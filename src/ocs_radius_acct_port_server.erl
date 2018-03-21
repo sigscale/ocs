@@ -315,8 +315,6 @@ request1(?AccountingStop, AcctSessionId, Id,
 		{error, not_found} ->
 			radius_attributes:fetch(?CallingStationId, Attributes)
 	end,
-	ok = ocs_log:acct_log(radius,
-			{ServerAddress, ServerPort}, stop, Attributes, undefined, undefined),
 	SessionAttributes = ocs_rating:session_attributes(Attributes),
 	DebitAmount = [{octets, UsageOctets}, {seconds, UsageSecs}],
 	{ServiceType, Direction, CallAddress} = get_service_type(Attributes),
@@ -342,6 +340,8 @@ request1(?AccountingStop, AcctSessionId, Id,
 			{noreply, State};
 		{disabled, SessionList} ->
 			gen_server:reply(From, {ok, response(Id, Authenticator, Secret)}),
+			ok = ocs_log:acct_log(radius,
+					{ServerAddress, ServerPort}, stop, Attributes, undefined, undefined),
 			start_disconnect(State, Subscriber, SessionList),
 			{noreply, State};
 		{error, Reason} ->
@@ -349,6 +349,8 @@ request1(?AccountingStop, AcctSessionId, Id,
 					{module, ?MODULE}, {error, Reason}, {ip_address, IpAddress},
 					{nas, NasId}, {type, final}, {subscriber, Subscriber},
 					{call_address, CallAddress}, {used, DebitAmount}, {session, AcctSessionId}]),
+			ok = ocs_log:acct_log(radius,
+					{ServerAddress, ServerPort}, stop, Attributes, undefined, undefined),
 			{reply, {ok, response(Id, Authenticator, Secret)}, State}
 	end;
 request1(?AccountingInterimUpdate, AcctSessionId, Id,

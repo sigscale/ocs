@@ -41,7 +41,7 @@
 -include("ocs_eap_codec.hrl").
 -include_lib("diameter/include/diameter.hrl").
 -include_lib("diameter/include/diameter_gen_base_rfc6733.hrl").
--include("../include/diameter_gen_nas_application_rfc7155.hrl").
+-include("diameter_gen_nas_application_rfc7155.hrl").
 
 %% service types
 -define(DATA, 2).

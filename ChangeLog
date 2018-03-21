@@ -1,3 +1,30 @@
+2018-03-20  Prahveen Thiruchelvam <prahveen@sigscale.org>
+
+	* support for event base charging for SMS
+	* introduce new bucket/usage type 'message'
+
+2018-03-14  Kalpa Gunarathna <kalpa@sigscale.org>
+
+	* ims profile diamater ro logging
+	* ipdr voip profile logs
+	* ipdr voip profile usage api
+	* ipdr file ui view
+
+2018-03-01  Vance Shipley <vances@sigscale.org>
+
+	* fix for negative decimals
+	* fix accumulated balance in subscriber view
+	* fix add bucket to subscriber
+	* diameter ro charateristics in usage views
+	* fix ui prefix table editing
+
+2018-02-26  Vance Shipley <vances@sigscale.org>
+
+	* decimal prices
+	* include rated charge info in accounting log
+	* improved diameter event handling
+	* advanced query filtering in log views
+
 2018-02-14  Vance Shipley <vances@sigscale.org>
 
 	* extended attribute query syntax for logs

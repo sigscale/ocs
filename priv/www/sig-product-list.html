@@ -328,18 +328,14 @@
 			_getTableResponse: function(event) {
 				var grid = this.$.productGrid;
 				var results = event.detail.xhr.response;
+				this.splice("tables", 0, this.tables.length)
 				for (var indexTable in results) {
-					function checkExist(tab) {
-						return tab.id == results[indexTable].id;
-					}
-					if(!this.tables.some(checkExist)) {
-						var tableRecord = new Object();
-						tableRecord.id = results[indexTable].id;
-						tableRecord.href = results[indexTable].href;
-						tableRecord.description = results[indexTable].description;
-						tableRecord.plaSpecId = results[indexTable].plaSpecId;
-						this.push('tables', tableRecord);
-					}
+					var tableRecord = new Object();
+					tableRecord.id = results[indexTable].id;
+					tableRecord.href = results[indexTable].href;
+					tableRecord.description = results[indexTable].description;
+					tableRecord.plaSpecId = results[indexTable].plaSpecId;
+					this.push('tables', tableRecord);
 				}
 			},
 			_getTableError: function(event) {

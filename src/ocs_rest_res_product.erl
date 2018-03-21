@@ -426,7 +426,7 @@ get_product_spec(_Id, _Query) ->
 	Headers	:: [tuple()],
 	Body		:: iolist(),
 	Status	:: 400 | 404 | 500 .
-%% @doc Respond to `GET /catalogManegment/v2/productSpecification'.
+%% @doc Respond to `GET /catalogManagment/v2/productSpecification'.
 %% 	Retrieve all product specifications.
 get_product_specs([] = _Query) ->
 	Headers = [{content_type, "application/json"}],
@@ -741,6 +741,10 @@ product_spec("8") ->
 	spec_prod_prepaid_data();
 product_spec("9") ->
 	spec_prod_prepaid_voice();
+product_spec("10") ->
+	spec_prod_sms();
+product_spec("11") ->
+	spec_prod_prepaid_sms();
 product_spec(_) ->
 	{error, 404}.
 
@@ -898,6 +902,41 @@ spec_prod_prepaid_voice() ->
 	DepHref2 = {"href", ?productSpecPath "6"},
 	Depend2 = {struct, [DepId2, DepHref2, DepType]},
 	Dependency = {"productSpecificationRelationship", {array, [Depend1, Depend2]}},
+	{struct, [Id, Name, Href, Description, Version, LastUpdate, Status, Dependency]}.
+
+%% @hidden
+spec_prod_sms() ->
+	Id = {"id", "10"},
+	Href = {"href", ?productSpecPath "10"},
+	Name = {"name", "SMSProductSpec"},
+	Description = {"description", "Defines characteristics specific to SMS."},
+	Version = {"version", "1.0"},
+	LastUpdate = {"lastUpdate", "2018-03-18T12:00:00Z"},
+	Status = {"lifecycleStatus", "Active"},
+	DepType = {"type", "dependency"},
+	DepId1 = {"id", "1"},
+	DepHref1 = {"href", ?productSpecPath "1"},
+	Depend1 = {struct, [DepId1, DepHref1, DepType]},
+	DepId2 = {"id", "3"},
+	DepHref2 = {"href", ?productSpecPath "3"},
+	Depend2 = {struct, [DepId2, DepHref2, DepType]},
+	Dependency = {"productSpecificationRelationship", {array, [Depend1, Depend2]}},
+	{struct, [Id, Name, Href, Description, Version, LastUpdate, Status, Dependency]}.
+
+%% @hidden
+spec_prod_prepaid_sms() ->
+	Id = {"id", "11"},
+	Href = {"href", ?productSpecPath "11"},
+	Name = {"name", "PrepaidSMSProductSpec"},
+	Description = {"description", "Defines characteristics specific to prepaid sms."},
+	Version = {"version", "1.0"},
+	LastUpdate = {"lastUpdate", "2018-03-19T12:00:00Z"},
+	Status = {"lifecycleStatus", "Active"},
+	DepType = {"type", "dependency"},
+	DepId1 = {"id", "10"},
+	DepHref1 = {"href", ?productSpecPath "10"},
+	Depend1 = {struct, [DepId1, DepHref1, DepType]},
+	Dependency = {"productSpecificationRelationship", {array, [Depend1]}},
 	{struct, [Id, Name, Href, Description, Version, LastUpdate, Status, Dependency]}.
 
 %% @hidden
@@ -1432,6 +1471,9 @@ price([units | T], #price{units = octets, size = Size} = P, Acc)
 price([units | T], #price{units = seconds, size = Size} = P, Acc)
 		when is_integer(Size) ->
 	price(T, P, [{"unitOfMeasure", integer_to_list(Size) ++ "s"} | Acc]);
+price([units | T], #price{units = messages, size = Size} = P, Acc)
+		when is_integer(Size) ->
+	price(T, P, [{"unitOfMeasure", integer_to_list(Size) ++ "msg"} | Acc]);
 price([amount | T], #price{amount = Amount, currency = Currency} = P, Acc)
 		when is_integer(Amount), is_list(Currency) ->
 	Price = {struct, [{"taxIncludedAmount", ocs_rest:decimal(Amount)},
@@ -1477,27 +1519,33 @@ price([{"priceType", Type} | T], Acc) when is_list(Type) ->
 	price(T, Acc#price{type = price_type(Type)});
 price([{"unitOfMeasure", UnitOfMeasure} | T], Acc)
 		when is_list(UnitOfMeasure) ->
-	case lists:last(UnitOfMeasure) of
-		$b ->
-			N = lists:sublist(UnitOfMeasure, length(UnitOfMeasure) - 1),
-			price(T, Acc#price{units = octets, size = list_to_integer(N)});
-		$k ->
-			N = lists:sublist(UnitOfMeasure, length(UnitOfMeasure) - 1),
-			price(T, Acc#price{units = octets,
-					size = list_to_integer(N) * 1000});
-		$m ->
-			N = lists:sublist(UnitOfMeasure, length(UnitOfMeasure) - 1),
-			price(T, Acc#price{units = octets,
-					size = list_to_integer(N) * 1000000});
-		$g ->
-			N = lists:sublist(UnitOfMeasure, length(UnitOfMeasure) - 1),
-			price(T, Acc#price{units = octets,
-					size = list_to_integer(N) * 1000000000});
-		$s ->
-			N = lists:sublist(UnitOfMeasure, length(UnitOfMeasure) - 1),
-			price(T, Acc#price{units = seconds, size = list_to_integer(N)});
-		_ ->
-			price(T, Acc#price{size = list_to_integer(UnitOfMeasure)})
+	case lists:suffix("msg", UnitOfMeasure) of
+		true ->
+			N = lists:sublist(UnitOfMeasure, length(UnitOfMeasure) - 3),
+			price(T, Acc#price{units = messages, size = list_to_integer(N)});
+		false ->
+			case lists:last(UnitOfMeasure) of
+				$b ->
+					N = lists:sublist(UnitOfMeasure, length(UnitOfMeasure) - 1),
+					price(T, Acc#price{units = octets, size = list_to_integer(N)});
+				$k ->
+					N = lists:sublist(UnitOfMeasure, length(UnitOfMeasure) - 1),
+					price(T, Acc#price{units = octets,
+							size = list_to_integer(N) * 1000});
+				$m ->
+					N = lists:sublist(UnitOfMeasure, length(UnitOfMeasure) - 1),
+					price(T, Acc#price{units = octets,
+							size = list_to_integer(N) * 1000000});
+				$g ->
+					N = lists:sublist(UnitOfMeasure, length(UnitOfMeasure) - 1),
+					price(T, Acc#price{units = octets,
+							size = list_to_integer(N) * 1000000000});
+				$s ->
+					N = lists:sublist(UnitOfMeasure, length(UnitOfMeasure) - 1),
+					price(T, Acc#price{units = seconds, size = list_to_integer(N)});
+				_ ->
+					price(T, Acc#price{size = list_to_integer(UnitOfMeasure)})
+			end
 	end;
 price([{"price", {struct, L}} | T], Acc) when is_list(L) ->
 	Acc1 = case lists:keyfind("taxIncludedAmount", 1, L) of
@@ -1567,6 +1615,9 @@ alteration([units | T], #alteration{units = octets, size = Size} = A, Acc)
 alteration([units | T], #alteration{units = seconds, size = Size} = A, Acc)
 		when is_integer(Size) ->
 	alteration(T, A, [{"unitOfMeasure", integer_to_list(Size) ++ "s"} | Acc]);
+alteration([units | T], #alteration{units = messages, size = Size} = A, Acc)
+		when is_integer(Size) ->
+	alteration(T, A, [{"unitOfMeasure", integer_to_list(Size) ++ "msg"} | Acc]);
 alteration([amount | T], #alteration{amount = Amount, currency = Currency} = A, Acc)
 		when is_integer(Amount), is_list(Currency) ->
 	Price = {struct, [{"taxIncludedAmount", ocs_rest:decimal(Amount)},
@@ -1606,28 +1657,34 @@ alteration([{"validFor", {struct, L}} | T], Acc) when is_list(L) ->
 alteration([{"priceType", Type} | T], Acc) ->
 	alteration(T, Acc#alteration{type = price_type(Type)});
 alteration([{"unitOfMeasure", UnitOfMeasure} | T], Acc) ->
-	case lists:last(UnitOfMeasure) of
-		$b ->
-			N = lists:sublist(UnitOfMeasure, length(UnitOfMeasure) - 1),
-			alteration(T, Acc#alteration{units = octets,
-					size = list_to_integer(N)});
-		$k ->
-			N = lists:sublist(UnitOfMeasure, length(UnitOfMeasure) - 1),
-			alteration(T, Acc#alteration{units = octets,
-					size = list_to_integer(N) * 1000});
-		$m ->
-			N = lists:sublist(UnitOfMeasure, length(UnitOfMeasure) - 1),
-			alteration(T, Acc#alteration{units = octets,
-					size = list_to_integer(N) * 1000000});
-		$g ->
-			N = lists:sublist(UnitOfMeasure, length(UnitOfMeasure) - 1),
-			alteration(T, Acc#alteration{units = octets,
-					size = list_to_integer(N) * 1000000000});
-		$s ->
-			N = lists:sublist(UnitOfMeasure, length(UnitOfMeasure) - 1),
-			alteration(T, Acc#alteration{units = seconds, size = list_to_integer(N)});
-		_ ->
-			alteration(T, Acc#alteration{size = list_to_integer(UnitOfMeasure)})
+	case lists:suffix("msg", UnitOfMeasure) of
+		true ->
+			N = lists:sublist(UnitOfMeasure, length(UnitOfMeasure) - 3),
+			alteration(T, Acc#alteration{units = messages, size = list_to_integer(N)});
+		false ->
+			case lists:last(UnitOfMeasure) of
+				$b ->
+					N = lists:sublist(UnitOfMeasure, length(UnitOfMeasure) - 1),
+					alteration(T, Acc#alteration{units = octets,
+							size = list_to_integer(N)});
+				$k ->
+					N = lists:sublist(UnitOfMeasure, length(UnitOfMeasure) - 1),
+					alteration(T, Acc#alteration{units = octets,
+							size = list_to_integer(N) * 1000});
+				$m ->
+					N = lists:sublist(UnitOfMeasure, length(UnitOfMeasure) - 1),
+					alteration(T, Acc#alteration{units = octets,
+							size = list_to_integer(N) * 1000000});
+				$g ->
+					N = lists:sublist(UnitOfMeasure, length(UnitOfMeasure) - 1),
+					alteration(T, Acc#alteration{units = octets,
+							size = list_to_integer(N) * 1000000000});
+				$s ->
+					N = lists:sublist(UnitOfMeasure, length(UnitOfMeasure) - 1),
+					alteration(T, Acc#alteration{units = seconds, size = list_to_integer(N)});
+				_ ->
+					alteration(T, Acc#alteration{size = list_to_integer(UnitOfMeasure)})
+			end
 	end;
 alteration([{"price", {struct, L}} | T], Acc) ->
 	Acc1 = case lists:keyfind("taxIncludedAmount", 1, L) of

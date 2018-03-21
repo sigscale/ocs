@@ -34,6 +34,7 @@
 		{etag :: string(),
 		max_page_size :: pos_integer(),
 		timeout :: pos_integer(),
+		log :: term(),
 		module :: atom(),
 		function :: atom(),
 		args :: list(),
@@ -57,7 +58,7 @@
 		PageServer :: pid(),
 		Reason :: term().
 %% @doc Start a handler for a sequence of REST range requests.
-%% 	`Args' is a list of `[Module, Function, Arguments]'.
+%% 	`Args' is a list of `[Log, Module, Function, Arguments]'.
 %% 	Each request will result in a call to the callback
 %% 	with `apply(Module, Function, [Cont | Arguments])'. The result
 %% 	should be `{Cont, Items}' or `{error, Reason}'. `Cont' will
@@ -96,6 +97,14 @@ init([Etag, M, F, A] = _Args) when is_atom(M), is_atom(F), is_list(A) ->
 	{ok, Timeout} = application:get_env(rest_page_timeout),
 	process_flag(trap_exit, true),
 	State = #state{etag = Etag, module = M, function = F,
+			args = A, max_page_size = MaxPageSize, timeout = Timeout},
+	{ok, State, Timeout};
+init([Etag, {LogName, B}, M, F, A] = _Args) when is_atom(M), is_atom(F), is_list(A) ->
+   {ok, Log} = disk_log:open([{LogName, B}]),
+	{ok, MaxPageSize} = application:get_env(rest_page_size),
+	{ok, Timeout} = application:get_env(rest_page_timeout),
+	process_flag(trap_exit, true),
+	State = #state{etag = Etag, log = Log, module = M, function = F,
 			args = A, max_page_size = MaxPageSize, timeout = Timeout},
 	{ok, State, Timeout}.
 
@@ -165,8 +174,8 @@ handle_info(timeout, State) ->
 %% @see //stdlib/gen_server:terminate/3
 %% @private
 %%
-terminate(_Reason, _State) ->
-	ok.
+terminate(_Reason, #state{log = Log} = _State) ->
+	disk_log:close(Log).
 
 -spec code_change(OldVsn, State, Extra) -> Result
 	when

@@ -236,8 +236,14 @@
 					document.getElementById("updateClientDisconnectPort").value = item.port;
 					if (item.protocol == "RADIUS") {
 						document.getElementById("updateClientProtocolList").selected = 0;
+						document.getElementById("updateClientPassword").hidden = false;
+						document.getElementById("updateClientNewPassword").hidden = false;
+						document.getElementById("passClientHide").show();
 					} else if (item.protocol == "DIAMETER") {
 						document.getElementById("updateClientProtocolList").selected = 1;
+						document.getElementById("updateClientPassword").hidden = true;
+						document.getElementById("updateClientNewPassword").hidden = true;
+						document.getElementById("passClientHide").hide();
 					}
 				}
 			},

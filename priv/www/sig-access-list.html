@@ -227,8 +227,6 @@
 			refreshAccess: function() {
 				this.etag = null;
 				delete this.$.getAccess.headers['If-Range'];
-				delete this.$.getUsageAjax.params['filter'];
-				delete this.$.getUsageAjax.params['date'];
 				this.filterTimeStamp = null;
 				this.filterClientAddress = null;
 				this.filterclientIdentity = null;
@@ -296,9 +294,6 @@
 							grid.size = Number(range2[1]) + grid.pageSize * 2;
 						}
 						var vaadinItems = new Array();
-						function checkChar(characteristic) {
-							return characteristic.name == "username";
-						}
 						for (var index in request.response) {
 							var newRecord = new Object();
 							newRecord.date = request.response[index].date;
@@ -306,21 +301,36 @@
 								return characteristic.name == "clientAddress";
 							}
 							var index1 = request.response[index].usageCharacteristic.findIndex(checkChar1);
-							newRecord.clientAddress = request.response[index].usageCharacteristic[index1].value;
+							if (index1 != -1) {
+								newRecord.clientAddress = request.response[index].usageCharacteristic[index1].value;
+							}
 							function checkChar2(characteristic) {
 								return characteristic.name == "nasIdentifier";
 							}
 							var index2 = request.response[index].usageCharacteristic.findIndex(checkChar2);
-							newRecord.nasIdentifier = request.response[index].usageCharacteristic[index2].value;
+							if (index2 != -1) {
+								newRecord.nasIdentifier = request.response[index].usageCharacteristic[index2].value;
+							}
 							function checkChar3(characteristic) {
 								return characteristic.name == "calledStationId";
 							}
 							var index3 = request.response[index].usageCharacteristic.findIndex(checkChar3);
-							newRecord.calledStationId = request.response[index].usageCharacteristic[index3].value;
-							var username1 = request.response[index].usageCharacteristic.find(checkChar);
-							newRecord.type = request.response[index].type;
+							if (index3 != -1) {
+								newRecord.calledStationId = request.response[index].usageCharacteristic[index3].value;
+							}
+							function checkChar4(characteristic) {
+								return characteristic.name == "username";
+							}
+							var username1 = request.response[index].usageCharacteristic.find(checkChar4);
 							if (username1 != undefined) {
 								newRecord.username = username1.value;
+							}
+							function checkChar5(characteristic) {
+								return characteristic.name == "type";
+							}
+							var index5 = request.response[index].usageCharacteristic.findIndex(checkChar5);
+							if (index5 != -1) {
+								newRecord.type = request.response[index].usageCharacteristic[index5].value;
 							}
 						vaadinItems[index] = newRecord;
 						}

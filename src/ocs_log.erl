@@ -28,7 +28,7 @@
 		acct_query/5, acct_query/6]).
 -export([auth_open/0, auth_log/5, auth_log/6, auth_close/0,
 			auth_query/6, auth_query/7]).
--export([ipdr_log/3, ipdr_file/2]).
+-export([ipdr_log/4, ipdr_file/2, ipdr_query/5]).
 -export([abmf_open/0, abmf_log/15,
 			abmf_query/8]).
 -export([get_range/3, last/2, dump_file/2, httpd_logname/1,
@@ -36,16 +36,16 @@
 -export([http_query/8]).
 
 %% exported the private function
--export([acct_query/4, auth_query/5, abmf_query/6]).
+-export([acct_query/4, ipdr_query/2, auth_query/5, abmf_query/6]).
 
 %% export the ocs_log event types
 -export_type([auth_event/0, acct_event/0, http_event/0]).
 
 -include("ocs_log.hrl").
 -include_lib("radius/include/radius.hrl").
--include("../include/diameter_gen_3gpp_ro_application.hrl").
--include("../include/diameter_gen_nas_application_rfc7155.hrl").
--include("../include/diameter_gen_eap_application_rfc4072.hrl").
+-include("diameter_gen_3gpp_ro_application.hrl").
+-include("diameter_gen_nas_application_rfc7155.hrl").
+-include("diameter_gen_eap_application_rfc4072.hrl").
 
 -define(ACCTLOG, ocs_acct).
 -define(AUTHLOG, ocs_auth).
@@ -84,7 +84,7 @@ acct_open() ->
 				| radius_attributes:attributes(),
 		Response :: #'3gpp_ro_CCA'{} | #'3gpp_ro_RAA'{}
 				| radius_attributes:attributes() | undefined,
-		Rated :: #rated{} | undefined,
+		Rated :: [#rated{}] | undefined,
 		Result :: ok | {error, Reason},
 		Reason :: term().
 %% @doc Write an event to accounting log.
@@ -380,8 +380,35 @@ http_query8(Chunks) ->
 	end,
 	{eof, lists:reverse(lists:foldl(F, [], Chunks))}.
 
--spec ipdr_log(File, Start, End) -> Result
+-spec ipdr_query(Continuation, Log, Start, End, AttrsMatch) -> Result
 	when
+		Continuation :: start | disk_log:continuation(),
+		Log :: atom(),
+		Start :: calendar:datetime() | pos_integer(),
+		End :: calendar:datetime() | pos_integer(),
+		AttrsMatch :: [{Attribute, Match}] | '_',
+		Attribute :: byte(),
+		Match :: {exact, term()} | {notexact, term()}
+				| {lt, term()} | {lte, term()}
+				| {gt, term()} | {gte, term()}
+				| {regex, term()} | {like, [term()]} | {notlike, [term()]}
+				| {in, [term()]} | {notin, [term()]} | {contains, [term()]}
+				| {notcontain, [term()]} | {containsall, [term()]} | '_',
+		Result :: {Continuation2, Events},
+		Continuation2 :: eof | disk_log:continuation(),
+		Events :: [acct_event()].
+%% @doc Ipdr log query.
+ipdr_query(Continuation, Log, Start, End, AttrsMatch) ->
+	case disk_log:chunk(Log, Continuation) of
+		eof ->
+			{eof, []};
+		{Continuation1, Events} ->
+			{Continuation1, Events}
+	end.
+
+-spec ipdr_log(Type, File, Start, End) -> Result
+	when
+		Type :: wlan | voip,
 		File :: file:filename(),
 		Start :: calendar:datetime() | pos_integer(),
 		End :: calendar:datetime() | pos_integer(),
@@ -391,7 +418,7 @@ http_query8(Chunks) ->
 %%
 %% 	Creates a new {@link //kernel/disk_log:log(). disk_log:log()},
 %% 	or overwrites an existing, with filename `File'. The log starts
-%% 	with a `#ipdrDoc{}' header, is followed by `#ipdr{}' records,
+%% 	with a `#ipdrDocWLAN{}' header, is followed by `#ipdr_wlan{}' records,
 %% 	and ends with a `#ipdrDocEnd{}' trailer.
 %%
 %% 	The `ocs_acct' log is searched for events created between `Start'
@@ -399,19 +426,26 @@ http_query8(Chunks) ->
 %% 	`{{Year, Month, Day}, {Hour, Minute, Second}}' or the native
 %% 	{@link //erts/erlang:system_time(). erlang:system_time(millisecond)}.
 %%
-ipdr_log(File, {{_, _, _}, {_, _, _}} = Start, End) ->
+ipdr_log(Type, File, {{_, _, _}, {_, _, _}} = Start, End) ->
 	Seconds = calendar:datetime_to_gregorian_seconds(Start) - ?EPOCH,
-	ipdr_log(File, Seconds * 1000, End);
-ipdr_log(File, Start, {{_, _, _}, {_, _, _}} = End) ->
+	ipdr_log(Type, File, Seconds * 1000, End);
+ipdr_log(Type, File, Start, {{_, _, _}, {_, _, _}} = End) ->
 	Seconds = calendar:datetime_to_gregorian_seconds(End) - ?EPOCH,
-	ipdr_log(File, Start, Seconds * 1000 + 999);
-ipdr_log(File, Start, End) when is_list(File),
+	ipdr_log(Type, File, Start, Seconds * 1000 + 999);
+ipdr_log(Type, File, Start, End) when is_list(File),
 		is_integer(Start), is_integer(End) ->
 	case disk_log:open([{name, File}, {file, File}, {repair, truncate}]) of
 		{ok, IpdrLog} ->
-			IpdrDoc = #ipdrDoc{docId = uuid(), version = "3.1",
-					creationTime = iso8601(erlang:system_time(?MILLISECOND)),
-					ipdrRecorderInfo = atom_to_list(node())},
+			IpdrDoc = case Type of
+				wlan ->
+					#ipdrDocWLAN{docId = uuid(), version = "3.1",
+							creationTime = iso8601(erlang:system_time(?MILLISECOND)),
+							ipdrRecorderInfo = atom_to_list(node())};
+				voip ->
+					#ipdrDocVoIP{docId = uuid(), version = "3.1",
+							creationTime = iso8601(erlang:system_time(?MILLISECOND)),
+							ipdrRecorderInfo = atom_to_list(node())}
+			end,
 			case disk_log:log(IpdrLog, IpdrDoc) of
 				ok ->
 					ipdr_log1(IpdrLog, Start, End,
@@ -476,16 +510,29 @@ ipdr_log3(IpdrLog, _Start, End, SeqNum, {_Cont, [H | _]})
 	ipdr_log4(IpdrLog, SeqNum);
 ipdr_log3(IpdrLog, _Start, End, SeqNum, {Cont, [H | T]})
 		when element(6, H) == stop ->
-	IPDR = ipdr_codec(H),
-	NewSeqNum = SeqNum + 1,
-	case disk_log:log(IpdrLog, IPDR#ipdr{seqNum = NewSeqNum}) of
-		ok ->
-			ipdr_log3(IpdrLog, _Start, End, NewSeqNum, {Cont, T});
-		{error, Reason} ->
-			error_logger:error_report([disk_log:format_error(Reason),
-					{module, ?MODULE}, {log, IpdrLog}, {error, Reason}]),
-			disk_log:close(IpdrLog),
-			{error, Reason}
+	case ipdr_codec(H) of
+		#ipdr_wlan{} = IPDR ->
+			NewSeqNum = SeqNum + 1,
+			case disk_log:log(IpdrLog, IPDR#ipdr_wlan{seqNum = NewSeqNum}) of
+				ok ->
+					ipdr_log3(IpdrLog, _Start, End, NewSeqNum, {Cont, T});
+				{error, Reason} ->
+					error_logger:error_report([disk_log:format_error(Reason),
+							{module, ?MODULE}, {log, IpdrLog}, {error, Reason}]),
+					disk_log:close(IpdrLog),
+					{error, Reason}
+			end;
+		#ipdr_voip{} = IPDR ->
+			NewSeqNum = SeqNum + 1,
+			case disk_log:log(IpdrLog, IPDR#ipdr_voip{seqNum = NewSeqNum}) of
+				ok ->
+					ipdr_log3(IpdrLog, _Start, End, NewSeqNum, {Cont, T});
+				{error, Reason} ->
+					error_logger:error_report([disk_log:format_error(Reason),
+							{module, ?MODULE}, {log, IpdrLog}, {error, Reason}]),
+					disk_log:close(IpdrLog),
+					{error, Reason}
+			end
 	end;
 ipdr_log3(IpdrLog, Start, End, SeqNum, {Cont, [_ | T]}) ->
 	ipdr_log3(IpdrLog, Start, End, SeqNum, {Cont, T}).
@@ -897,7 +944,7 @@ abmf_open() ->
 		Type :: deduct | reserve | unreserve | transfer | topup | adjustment,
 		Subscriber :: binary(),
 		Bucket :: undefined | string(),
-		Units :: cents | seconds | octets,
+		Units :: cents | seconds | octets | messages,
 		Product :: string(),
 		Amount :: integer(),
 		AmountBefore :: integer(),
@@ -921,9 +968,9 @@ abmf_log(Type, Subscriber, Bucket, Units, Product, Amount,
 		when ((Type == transfer) orelse (Type == topup) orelse
 		(Type == adjustment) orelse (Type == deduct) orelse (Type == reserve)
 		orelse (Type == unreserve)), is_binary(Subscriber), is_list(Bucket),
-		((Units == cents) orelse (Units == seconds) orelse (Units == octets)),
-		is_integer(AmountBefore), is_integer(AmountAfter), is_list(Product),
-		is_integer(Amount)->
+		((Units == cents) orelse (Units == seconds) orelse (Units == octets)
+		orelse (Units == messages)), is_integer(AmountBefore), is_integer(AmountAfter),
+		is_list(Product), is_integer(Amount)->
 	Event = [node(), Type, Subscriber, Bucket, Units, Product, Amount,
 			AmountBefore, AmountAfter, Validity, Channel, Requestor,
 			RelatedParty, PaymentMeans, Action, Status],
@@ -938,7 +985,7 @@ abmf_log(Type, Subscriber, Bucket, Units, Product, Amount,
 		Type :: deduct | reserve | unreserve | transfer | topup | adjustment,
 		Subscriber :: binary() | '_',
 		Bucket :: string() | '_',
-		Units :: cents | seconds | octets | '_',
+		Units :: cents | seconds | octets | messages | '_',
 		Product :: string() | '_',
 		Result :: {Continuation2, Events} | {error, Reason},
 		Continuation2 :: eof | disk_log:continuation(),
@@ -1097,30 +1144,22 @@ get_range2(Log, End, {Cont, Chunk}, Acc) ->
 			lists:flatten(lists:reverse([lists:takewhile(Fend, Chunk) | Acc]))
 	end.
 
--spec ipdr_codec({TimeStamp, N, Protocol, Node, Server, RequestType, Attributes}) -> IPDR
+-spec ipdr_codec(Event) -> IPDR
 	when
-		TimeStamp :: pos_integer(),
-		N :: pos_integer(),
-		Protocol :: radius | diameter,
-		Node :: node(),
-		Server :: {Address, Port},
-		Address :: inet:ip_address(),
-		Port :: pos_integer(),
-		RequestType :: stop,
-		Attributes :: radius_attributes:attributes() | #'3gpp_ro_CCR'{},
-		IPDR :: #ipdr{}.
+		Event :: tuple(),
+		IPDR :: #ipdr_wlan{} | #ipdr_voip{}.
 %% @doc Convert `ocs_acct' log entry to IPDR log entry.
 %% @private
 ipdr_codec(Event) when size(Event) > 6,
 		((element(3, Event) == radius
 		andalso element(6, Event) == stop)
 		orelse (element(3, Event) == diameter
-		andalso element(6, Event) == final)) ->
+		andalso element(6, Event) == stop)) ->
 	TimeStamp = element(1, Event),
 	Protocol = element(3, Event),
-	RequestType = element(6, Event),
-	ReqAttrs = element(7, Event),
-	RespAttrs = case size(Event) > 7 of
+	ReqType = element(6, Event),
+	Req = element(7, Event),
+	Res = case size(Event) > 7 of
 		true ->
 			element(8, Event);
 		false ->
@@ -1132,156 +1171,352 @@ ipdr_codec(Event) when size(Event) > 6,
 		false ->
 			undefined
 	end,
-	IPDR = #ipdr{ipdrCreationTime = iso8601(TimeStamp)},
-	ipdr_codec1(TimeStamp, Protocol,
-			RequestType, ReqAttrs, RespAttrs, Rated, IPDR).
+	ipdr_codec1(Protocol, TimeStamp, ReqType, Req, Res, Rated).
 %% @hidden
-ipdr_codec1(TimeStamp, radius, stop, ReqAttrs, RespAttrs, Rated, Acc) ->
-	case radius_attributes:find(?AcctDelayTime, ReqAttrs) of
+ipdr_codec1(Protocol, TimeStamp, ReqType,
+		#'3gpp_ro_CCR'{'Service-Context-Id' = Id,
+		'Service-Information' = [ServiceInfo]} = Req, Res, Rated) ->
+	case binary:part(Id, size(Id), -8) of
+		<<"3gpp.org">> ->
+			ServiceType = binary:part(Id, byte_size(Id) - 14, 5),
+			ipdr_codec2(ServiceInfo, ServiceType, Protocol,
+							TimeStamp, ReqType, Req, Res, Rated);
+		_ ->
+			exit(service_type_not_found)
+	end;
+ipdr_codec1(radius, TimeStamp, ReqType, Req, Res, Rated) when is_list(Req) ->
+	ipdr_wlan(radius, TimeStamp, ReqType, Req, Res, Rated).
+%% @hidden
+ipdr_codec2(#'3gpp_ro_Service-Information'{'PS-Information' = [_PSInfo]},
+		_ServiceInfo, _ServiceType, _Protocol, _TimeStamp, _ReqType, _Req, _Res) ->
+	exit(not_support);
+ipdr_codec2(#'3gpp_ro_Service-Information'{'IMS-Information' = [_IMSInfo]},
+		ServiceType, Protocol, TimeStamp, ReqType, Req, Res, Rated) ->
+	ipdr_ims(ServiceType, Protocol, TimeStamp, ReqType, Req, Res, Rated);
+ipdr_codec2(_, _ServiceType, Protocol, TimeStamp, ReqType, Req, Res, Rated) ->
+	ipdr_wlan(Protocol, TimeStamp, ReqType, Req, Res, Rated).
+
+-spec ipdr_ims(ServiceType, Protocol, TimeStamp, ReqType, Req, Res, Rated) -> IPDR
+	when
+		ServiceType :: binary(),
+		Protocol :: diameter,
+		TimeStamp :: pos_integer(),
+		ReqType :: stop,
+		Req :: #'3gpp_ro_CCR'{},
+		Res :: #'3gpp_ro_CCA'{},
+		Rated :: [#rated{}] | undefined,
+		IPDR :: #ipdr_voip{}.
+%% @doc CODEC for IMS VOIP
+%% @todo ipdr_data
+ipdr_ims(<<"32251">> = _Data, _Protocol, _TimeStamp, _ReqType, _Req, _Res, _Rated) ->
+	exit(not_found);
+ipdr_ims(<<"32260">> = _Voice, Protocol, TimeStamp, ReqType, Req, Res, Rated) ->
+	ipdr_ims_voip(Protocol, TimeStamp, ReqType, Req, Res, Rated).
+
+-spec ipdr_ims_voip(Protocol, TimeStamp, ReqType, Req, Res, Rated) -> IPDR
+	when
+		Protocol :: diameter,
+		TimeStamp :: pos_integer(),
+		ReqType :: stop,
+		Req :: #'3gpp_ro_CCR'{},
+		Res :: #'3gpp_ro_CCA'{},
+		Rated :: [#rated{}] | undefined,
+		IPDR :: #ipdr_voip{}.
+ipdr_ims_voip(Protocol, TimeStamp, ReqType, Req, Res, Rated) ->
+	ipdr_ims_voip1(record_info(fields, ipdr_voip), Protocol,
+			TimeStamp, ReqType, Req, Res, Rated, #ipdr_voip{}).
+%% @hidden
+ipdr_ims_voip1([ipdrCreationTime | T], Protocol, TimeStamp, ReqType, Req, Res, Rated, IPDR) ->
+	NewIPDR = IPDR#ipdr_voip{ipdrCreationTime = iso8601(TimeStamp)},
+	ipdr_ims_voip1(T, Protocol, TimeStamp, ReqType, Req, Res, Rated, NewIPDR);
+ipdr_ims_voip1([callCompletionCode | T], Protocol, TimeStamp, ReqType,
+		#'3gpp_ro_CCR'{'Multiple-Services-Credit-Control' = [ServiceCreditControl]} = Req,
+		Res, Rated, IPDR) ->
+	case ServiceCreditControl of
+		#'3gpp_ro_Multiple-Services-Credit-Control'{'Reporting-Reason' = [ReportReason]} ->
+			NewIPDR = IPDR#ipdr_voip{callCompletionCode = ReportReason},
+			ipdr_ims_voip1(T, Protocol, TimeStamp, ReqType, Req, Res, Rated, NewIPDR);
+		_ ->
+			ipdr_ims_voip1(T, Protocol, TimeStamp, ReqType, Req, Res, Rated, IPDR)
+	end;
+ipdr_ims_voip1([originalDestinationId | T], Protocol, TimeStamp,
+		ReqType, Req, Res, Rated, IPDR) ->
+	ipdr_ims_voip1(T, Protocol, TimeStamp, ReqType, Req, Res, Rated, IPDR);
+ipdr_ims_voip1([hostName | T], Protocol, TimeStamp, ReqType,
+		#'3gpp_ro_CCR'{'Origin-Host' = OriginHost} = Req, Res, Rated, IPDR) ->
+	NewIPDR = IPDR#ipdr_voip{hostName = binary_to_list(OriginHost)},
+	ipdr_ims_voip1(T, Protocol, TimeStamp, ReqType, Req, Res, Rated, NewIPDR);
+ipdr_ims_voip1([subscriberId | T], Protocol, TimeStamp, ReqType,
+		 #'3gpp_ro_CCR'{'Subscription-Id' = [SubscriptionID]} = Req, Res, Rated, IPDR) ->
+	case SubscriptionID of
+		#'3gpp_ro_Subscription-Id'{'Subscription-Id-Data' = Subscriber} ->
+			NewIPDR = IPDR#ipdr_voip{subscriberId = binary_to_list(Subscriber)},
+			ipdr_ims_voip1(T, Protocol, TimeStamp, ReqType, Req, Res, Rated, NewIPDR);
+		_ ->
+			ipdr_ims_voip1(T, Protocol, TimeStamp, ReqType, Req, Res, Rated, IPDR)
+	end;
+ipdr_ims_voip1([uniqueCallID | T], Protocol, TimeStamp, ReqType,
+		#'3gpp_ro_CCR'{'Service-Information' = [ServiceInfo]} = Req, Res, Rated, IPDR) ->
+	case ServiceInfo of
+		#'3gpp_ro_Service-Information'{'IMS-Information' = [IMSINFO]} ->
+			case IMSINFO of	
+				#'3gpp_ro_IMS-Information'{'IMS-Charging-Identifier' = [UniqueID]} ->
+					NewIPDR = IPDR#ipdr_voip{uniqueCallID = binary_to_list(UniqueID)},
+					ipdr_ims_voip1(T, Protocol, TimeStamp, ReqType, Req, Res, Rated, NewIPDR);
+				_ ->
+					ipdr_ims_voip1(T, Protocol, TimeStamp, ReqType, Req, Res, Rated, IPDR)
+			end;
+		_ ->
+			ipdr_ims_voip1(T, Protocol, TimeStamp, ReqType, Req, Res, Rated, IPDR)
+	end;
+ipdr_ims_voip1([disconnectReason | T], Protocol, TimeStamp, ReqType,
+		#'3gpp_ro_CCR'{'Service-Information' = [ServiceInfo]} = Req, Res, Rated, IPDR) ->
+	case ServiceInfo of
+		#'3gpp_ro_Service-Information'{'IMS-Information' = [IMSINFO]} ->
+			case IMSINFO of	
+				#'3gpp_ro_IMS-Information'{'Cause-Code' = [CauseCode]} ->
+					NewIPDR = IPDR#ipdr_voip{disconnectReason = CauseCode},
+					ipdr_ims_voip1(T, Protocol, TimeStamp, ReqType, Req, Res, Rated, NewIPDR);
+				_ ->
+					ipdr_ims_voip1(T, Protocol, TimeStamp, ReqType, Req, Res, Rated, IPDR)
+			end;
+		_ ->
+			ipdr_ims_voip1(T, Protocol, TimeStamp, ReqType, Req, Res, Rated, IPDR)
+	end;
+ipdr_ims_voip1([destinationID | T], Protocol, TimeStamp, ReqType,
+		#'3gpp_ro_CCR'{'Service-Information' = [ServiceInfo]} = Req, Res, Rated, IPDR) ->
+	case ServiceInfo of
+		#'3gpp_ro_Service-Information'{'IMS-Information' = [IMSINFO]} ->
+			case IMSINFO of	
+				#'3gpp_ro_IMS-Information'{'Called-Party-Address' = [CalledParty]} ->
+					Prefix = "tel:",
+					CParty1 = binary_to_list(CalledParty),
+					case lists:prefix(Prefix, CParty1) of
+						true ->
+							{_, CParty2} = lists:split(4, CParty1),
+							NewIPDR = IPDR#ipdr_voip{destinationID = CParty2},
+							ipdr_ims_voip1(T, Protocol, TimeStamp, ReqType, Req, Res, Rated, NewIPDR);
+						false ->
+							NewIPDR = IPDR#ipdr_voip{destinationID = CParty1},
+							ipdr_ims_voip1(T, Protocol, TimeStamp, ReqType, Req, Res, Rated, NewIPDR)
+					end;
+				_ ->
+					ipdr_ims_voip1(T, Protocol, TimeStamp, ReqType, Req, Res, Rated, IPDR)
+			end;
+		_ ->
+			ipdr_ims_voip1(T, Protocol, TimeStamp, ReqType, Req, Res, Rated, IPDR)
+	end;
+ipdr_ims_voip1([chargeAmount | T], Protocol, TimeStamp, ReqType, Req, Res, undefined, IPDR) ->
+	ipdr_ims_voip1(T, Protocol, TimeStamp, ReqType, Req, Res, undefined, IPDR);
+ipdr_ims_voip1([chargeAmount | T], Protocol, TimeStamp, ReqType,
+		Req, Res, [#rated{bucket_value = BValue, bucket_type = BType,
+		tariff_type = TType, tax_excluded_amount = TxExAmount,
+		price_type = PType, usage_rating_tag = URating, product = Product} | _], IPDR) ->
+	NewIPDR = IPDR#ipdr_voip{chargeAmount = TxExAmount, bucketValue = BValue,
+			bucketType = BType, tariffType = TType, priceType = PType,
+			usageRating = URating, product = Product},
+	ipdr_ims_voip1(T, Protocol, TimeStamp, ReqType, Req, Res, undefined, NewIPDR);
+ipdr_ims_voip1([_ | T], Protocol, TimeStamp, ReqType, Req, Res, Rated, IPDR) ->
+	ipdr_ims_voip1(T, Protocol, TimeStamp, ReqType, Req, Res, Rated, IPDR);
+ipdr_ims_voip1([], _Protocol, _TimeStamp, _ReqType, _Req, _Res, _Rated, IPDR) ->
+	IPDR.
+
+-spec ipdr_wlan(Protocol, TimeStamp, ReqType, Req, Res, Rated) -> IPDRWlan
+	when
+		Protocol :: radius | diameter,
+		TimeStamp :: pos_integer(),
+		ReqType :: stop,
+		Req :: [tuple()] | #'3gpp_ro_CCR'{} | undefined,
+		Res :: [tuple()] | #'3gpp_ro_CCA'{} | undefined,
+		Rated :: [#rated{}] | undefined,
+		IPDRWlan :: #ipdr_wlan{}.
+%% @doc CODEC for IPDR Wlan
+ipdr_wlan(Protocol, TimeStamp, ReqType, Req, Res, Rated) ->
+	ipdr_wlan1(record_info(fields, ipdr_wlan), Protocol, TimeStamp,
+			ReqType, Req, Res, Rated, #ipdr_wlan{}).
+%% @hidden
+ipdr_wlan1([ipdrCreationTime | T], Protocol, TimeStamp, stop, Req, Resp, Rated, IPDR) ->
+	NewIPDR = IPDR#ipdr_wlan{ipdrCreationTime = iso8601(TimeStamp)},
+	ipdr_wlan1(T, Protocol, TimeStamp, stop, Req, Resp, Rated, NewIPDR);
+ipdr_wlan1([unsername | T], radius, TimeStamp, stop, Req, Resp, Rated, IPDR) ->
+	Username = proplists:get_value(?UserName, Req),
+	NewIPDR = IPDR#ipdr_wlan{username = Username},
+	ipdr_wlan1(T, radius, TimeStamp, stop, Req, Resp, Rated, NewIPDR);
+ipdr_wlan1([username | T], diameter, TimeStamp, stop, Req, Resp, Rated, IPDR) ->
+	ipdr_wlan1(T, diameter, TimeStamp, stop, Req, Resp, Rated, IPDR);
+ipdr_wlan1([scId | T], diameter, TimeStamp, stop, Req, Resp, Rated, IPDR) ->
+	ipdr_wlan1(T, diameter, TimeStamp, stop, Req, Resp, Rated, IPDR);
+ipdr_wlan1([acctSessionId | T], radius, TimeStamp, stop, Req, Resp, Rated, IPDR) ->
+	SessionId = proplists:get_value(?AcctSessionId, Req),
+	NewIPDR = IPDR#ipdr_wlan{acctSessionId = SessionId},
+	ipdr_wlan1(T, radius, TimeStamp, stop, Req, Resp, Rated, NewIPDR);
+ipdr_wlan1([acctSessionId | T], diameter, TimeStamp, stop, Req, Resp, Rated, IPDR) ->
+	ipdr_wlan1(T, diameter, TimeStamp, stop, Req, Resp, Rated, IPDR);
+ipdr_wlan1([callingStationId | T], radius, TimeStamp, stop, Req, Resp, Rated, IPDR) ->
+	CallingParty = proplists:get_value(?CallingStationId, Req),
+	NewIPDR = IPDR#ipdr_wlan{callingStationId = CallingParty},
+	ipdr_wlan1(T, radius, TimeStamp, stop, Req, Resp, Rated, NewIPDR);
+ipdr_wlan1([calledStationId | T], radius, TimeStamp, stop, Req, Resp, Rated, IPDR) ->
+	CalledParty = proplists:get_value(?CalledStationId, Req),
+	NewIPDR = IPDR#ipdr_wlan{calledStationId = CalledParty},
+	ipdr_wlan1(T, radius, TimeStamp, stop, Req, Resp, Rated, NewIPDR);
+ipdr_wlan1([callingStationId | T], diameter, TimeStamp, stop, Req, Resp, Rated, IPDR) ->
+	ipdr_wlan1(T, diameter, TimeStamp, stop, Req, Resp, Rated, IPDR);
+ipdr_wlan1([sessionTerminateCause | T], radius, TimeStamp, stop, Req, Resp, Rated, IPDR) ->
+	Cause = proplists:get_value(?AcctTerminateCause, Req),
+	NewIPDR = IPDR#ipdr_wlan{sessionTerminateCause = Cause},
+	ipdr_wlan1(T, radius, TimeStamp, stop, Req, Resp, Rated, NewIPDR);
+ipdr_wlan1([sessionTerminateCause | T], diameter, TimeStamp, stop, Req, Resp, Rated, IPDR) ->
+	ipdr_wlan1(T, diameter, TimeStamp, stop, Req, Resp, Rated, IPDR);
+ipdr_wlan1([nasIpAddress | T], radius, TimeStamp, stop, Req, Resp, Rated, IPDR) ->
+	case radius_attributes:find(?NasIpAddress, Req) of
+		{ok, Address} ->
+			NewIPDR = IPDR#ipdr_wlan{nasIpAddress = inet:ntoa(Address)},
+			ipdr_wlan1(T, radius, TimeStamp, stop, Req, Resp, Rated, NewIPDR);
+		{error, not_found} ->
+			ipdr_wlan1(T, radius, TimeStamp, stop, Req, Resp, Rated, IPDR)
+	end;
+ipdr_wlan1([nasIpAddress | T], diameter, TimeStamp, stop, Req, Resp, Rated, IPDR) ->
+	ipdr_wlan1(T, diameter, TimeStamp, stop, Req, Resp, Rated, IPDR);
+ipdr_wlan1([nasId | T], radius, TimeStamp, stop, Req, Resp, Rated, IPDR) ->
+	Identifier = proplists:get_value(?NasIdentifier, Req),
+	NewIPDR = IPDR#ipdr_wlan{nasId = Identifier},
+	ipdr_wlan1(T, radius, TimeStamp, stop, Req, Resp, Rated, NewIPDR);
+ipdr_wlan1([nasId | T], diameter, TimeStamp, stop, Req, Resp, Rated, IPDR) ->
+	ipdr_wlan1(T, diameter, TimeStamp, stop, Req, Resp, Rated, IPDR);
+ipdr_wlan1([userIpAddress | T], radius, TimeStamp, stop, Req, Resp, Rated, IPDR) ->
+	case radius_attributes:find(?FramedIpAddress, Req) of
+		{ok, Address} ->
+			NewIPDR = IPDR#ipdr_wlan{userIpAddress = inet:ntoa(Address)},
+			ipdr_wlan1(T, radius, TimeStamp, stop, Req, Resp, Rated, NewIPDR);
+		{error, not_found} ->
+			ipdr_wlan1(T, radius, TimeStamp, stop, Req, Resp, Rated, IPDR)
+	end;
+ipdr_wlan1([userIpAddress | T], diameter, TimeStamp, stop, Req, Resp, Rated, IPDR) ->
+	ipdr_wlan1(T, diameter, TimeStamp, stop, Req, Resp, Rated, IPDR);
+ipdr_wlan1([sessionDuration | T], radius, TimeStamp, stop, Req, Resp, Rated, IPDR) ->
+	SessionTime = proplists:get_value(?AcctSessionTime, Req),
+	NewIPDR = IPDR#ipdr_wlan{sessionDuration = SessionTime},
+	ipdr_wlan1(T, radius, TimeStamp, stop, Req, Resp, Rated, NewIPDR);
+ipdr_wlan1([sessionDuration | T], diameter, TimeStamp, stop, Req, Resp, Rated, IPDR) ->
+	ipdr_wlan1(T, diameter, TimeStamp, stop, Req, Resp, Rated, IPDR);
+ipdr_wlan1([inputOctets | T], radius, TimeStamp, stop, Req, Resp, Rated, IPDR) ->
+	Octets = proplists:get_value(?AcctInputOctets, Req, 0),
+	case radius_attributes:find(?AcctInputGigawords, Req) of
+		{ok, GigaWords} ->
+			GigaOctets = (GigaWords * (16#ffffffff + 1)) + Octets,
+			NewIPDR = IPDR#ipdr_wlan{inputOctets = GigaOctets},
+			ipdr_wlan1(T, radius, TimeStamp, stop, Req, Resp, Rated, NewIPDR);
+		{error, not_found} ->
+			NewIPDR = IPDR#ipdr_wlan{inputOctets = Octets},
+			ipdr_wlan1(T, radius, TimeStamp, stop, Req, Resp, Rated, NewIPDR)
+	end;
+ipdr_wlan1([inputOctets | T], diameter, TimeStamp, stop, Req, Resp, Rated, IPDR) ->
+	ipdr_wlan1(T, diameter, TimeStamp, stop, Req, Resp, Rated, IPDR);
+ipdr_wlan1([outputOctets | T], radius, TimeStamp, stop, Req, Resp, Rated, IPDR) ->
+	Octets = proplists:get_value(?AcctOutputOctets, Req, 0),
+	case radius_attributes:find(?AcctOutputGigawords, Req) of
+		{ok, GigaWords} ->
+			GigaOctets = (GigaWords * (16#ffffffff + 1)) + Octets,
+			NewIPDR = IPDR#ipdr_wlan{outputOctets = GigaOctets},
+			ipdr_wlan1(T, radius, TimeStamp, stop, Req, Resp, Rated, NewIPDR);
+		{error, not_found} ->
+			NewIPDR = IPDR#ipdr_wlan{outputOctets = Octets},
+			ipdr_wlan1(T, radius, TimeStamp, stop, Req, Resp, Rated, NewIPDR)
+	end;
+ipdr_wlan1([outputOctets | T], diameter, TimeStamp, stop, Req, Resp, Rated, IPDR) ->
+	ipdr_wlan1(T, diameter, TimeStamp, stop, Req, Resp, Rated, IPDR);
+ipdr_wlan1([gmtSessionStartDateTime | T], diameter, TimeStamp, stop, Req, Resp, Rated, IPDR) ->
+	ipdr_wlan1(T, diameter, TimeStamp, stop, Req, Resp, Rated, IPDR);
+ipdr_wlan1([gmtSessionEndDateTime | T], radius, TimeStamp, stop, Req, Resp, Rated, IPDR) ->
+	EndTime = case radius_attributes:find(?AcctDelayTime, Req) of
 		{ok, DelayTime} ->
-			EndTime = TimeStamp - (DelayTime * 1000),
-			ipdr_codec2(EndTime, radius, stop, ReqAttrs, RespAttrs, Rated,
-					Acc#ipdr{gmtSessionEndDateTime = iso8601(EndTime)});
+			TimeStamp - (DelayTime * 1000);
 		{error, not_found} ->
-			ipdr_codec2(TimeStamp, radius, stop, ReqAttrs, RespAttrs, Rated,
-					Acc#ipdr{gmtSessionEndDateTime = iso8601(TimeStamp)})
-	end.
-%% @hidden
-ipdr_codec2(EndTime, radius, stop, ReqAttrs, RespAttrs, Rated, Acc) ->
-	case radius_attributes:find(?AcctSessionTime, ReqAttrs) of
+			TimeStamp
+	end,
+	StartTime = case radius_attributes:find(?AcctSessionTime, Req) of
 		{ok, Duration} ->
-			StartTime = EndTime - (Duration * 1000),
-			ipdr_codec3(radius, stop, ReqAttrs, RespAttrs, Rated,
-					Acc#ipdr{gmtSessionStartDateTime = iso8601(StartTime)});
+			iso8601(EndTime - (Duration * 1000));
 		{error, not_found} ->
-			ipdr_codec3(radius, stop, ReqAttrs, RespAttrs, Rated, Acc)
-	end.
-%% @hidden
-ipdr_codec3(radius, stop, ReqAttrs, RespAttrs, Rated, Acc) ->
-	case radius_attributes:find(?UserName, ReqAttrs) of
-		{ok, UserName} ->
-			ipdr_codec4(radius, stop, ReqAttrs, RespAttrs, Rated,
-					Acc#ipdr{username = UserName});
-		{error, not_found} ->
-			ipdr_codec4(radius, stop, ReqAttrs, RespAttrs, Rated, Acc)
-	end.
-%% @hidden
-ipdr_codec4(radius, stop, ReqAttrs, RespAttrs, Rated, Acc) ->
-	case radius_attributes:find(?AcctSessionId, ReqAttrs) of
-		{ok, SessionID} ->
-			ipdr_codec5(radius, stop, ReqAttrs, RespAttrs, Rated,
-					Acc#ipdr{acctSessionId = SessionID});
-		{error, not_found} ->
-			ipdr_codec5(radius, stop, ReqAttrs, RespAttrs, Rated, Acc)
-	end.
-%% @hidden
-ipdr_codec5(radius, stop, ReqAttrs, RespAttrs, Rated, Acc) ->
-	case radius_attributes:find(?FramedIpAddress, ReqAttrs) of
-		{ok, Address} ->
-			ipdr_codec6(radius, stop, ReqAttrs, RespAttrs, Rated,
-					Acc#ipdr{userIpAddress = inet:ntoa(Address)});
-		{error, not_found} ->
-			ipdr_codec6(radius, stop, ReqAttrs, RespAttrs, Rated, Acc)
-	end.
-%% @hidden
-ipdr_codec6(radius, stop, ReqAttrs, RespAttrs, Rated, Acc) ->
-	case radius_attributes:find(?CallingStationId, ReqAttrs) of
-		{ok, StationID} ->
-			ipdr_codec7(radius, stop, ReqAttrs, RespAttrs, Rated,
-					Acc#ipdr{callingStationId = StationID});
-		{error, not_found} ->
-			ipdr_codec7(radius, stop, ReqAttrs, RespAttrs, Rated, Acc)
-	end.
-%% @hidden
-ipdr_codec7(radius, stop, ReqAttrs, RespAttrs, Rated, Acc) ->
-	case radius_attributes:find(?CalledStationId, ReqAttrs) of
-		{ok, StationID} ->
-			ipdr_codec8(radius, stop, ReqAttrs, RespAttrs, Rated,
-					Acc#ipdr{calledStationId = StationID});
-		{error, not_found} ->
-			ipdr_codec8(radius, stop, ReqAttrs, RespAttrs, Rated, Acc)
-	end.
-%% @hidden
-ipdr_codec8(radius, stop, ReqAttrs, RespAttrs, Rated, Acc) ->
-	case radius_attributes:find(?NasIpAddress, ReqAttrs) of
-		{ok, Address} ->
-			ipdr_codec9(radius, stop, ReqAttrs, RespAttrs, Rated,
-					Acc#ipdr{nasIpAddress = inet:ntoa(Address)});
-		{error, not_found} ->
-			ipdr_codec9(radius, stop, ReqAttrs, RespAttrs, Rated, Acc)
-	end.
-%% @hidden
-ipdr_codec9(radius, stop, ReqAttrs, RespAttrs, Rated, Acc) ->
-	case radius_attributes:find(?NasIdentifier, ReqAttrs) of
-		{ok, Identifier} ->
-			ipdr_codec10(radius, stop, ReqAttrs, RespAttrs, Rated,
-					Acc#ipdr{nasId = Identifier});
-		{error, not_found} ->
-			ipdr_codec10(radius, stop, ReqAttrs, RespAttrs, Rated, Acc)
-	end.
-%% @hidden
-ipdr_codec10(radius, stop, ReqAttrs, RespAttrs, Rated, Acc) ->
-	case radius_attributes:find(?AcctSessionTime, ReqAttrs) of
-		{ok, SessionTime} ->
-			ipdr_codec11(radius, stop, ReqAttrs, RespAttrs, Rated,
-					Acc#ipdr{sessionDuration = SessionTime});
-		{error, not_found} ->
-			ipdr_codec11(radius, stop, ReqAttrs, RespAttrs, Rated, Acc)
-	end.
-%% @hidden
-ipdr_codec11(radius, stop, ReqAttrs, RespAttrs, Rated, Acc) ->
-	Octets = case radius_attributes:find(?AcctInputOctets, ReqAttrs) of
-		{ok, N} ->
-			N;
-		{error, not_found} ->
-			0
+			undefined
 	end,
-	case radius_attributes:find(?AcctInputGigawords, ReqAttrs) of
-		{ok, GigaWords} ->
-			GigaOctets = (GigaWords * (16#ffffffff + 1)) + Octets,
-			ipdr_codec12(radius, stop,ReqAttrs, RespAttrs, Rated,
-					Acc#ipdr{inputOctets = GigaOctets});
-		{error, not_found} ->
-			ipdr_codec12(radius, stop, ReqAttrs, RespAttrs, Rated,
-					Acc#ipdr{inputOctets = Octets})
-	end.
-%% @hidden
-ipdr_codec12(radius, stop, ReqAttrs, RespAttrs, Rated, Acc) ->
-	Octets = case radius_attributes:find(?AcctOutputOctets, ReqAttrs) of
-		{ok, N} ->
-			N;
-		{error, not_found} ->
-			0
-	end,
-	case radius_attributes:find(?AcctOutputGigawords, ReqAttrs) of
-		{ok, GigaWords} ->
-			GigaOctets = (GigaWords * (16#ffffffff + 1)) + Octets,
-			ipdr_codec13(radius, stop, ReqAttrs, RespAttrs, Rated,
-					Acc#ipdr{outputOctets = GigaOctets});
-		{error, not_found} ->
-			ipdr_codec13(radius, stop, ReqAttrs, RespAttrs, Rated,
-					Acc#ipdr{outputOctets = Octets})
-	end.
-%% @hidden
-ipdr_codec13(radius, stop, ReqAttrs, RespAttrs, Rated, Acc) ->
-	case radius_attributes:find(?Class, ReqAttrs) of
-		{ok, Class} ->
-			ipdr_codec14(radius, stop, ReqAttrs, RespAttrs, Rated,
-					Acc#ipdr{class = Class});
-		{error, not_found} ->
-			ipdr_codec14(radius, stop, ReqAttrs, RespAttrs, Rated, Acc)
-	end.
-%% @hidden
-ipdr_codec14(radius, stop, ReqAttrs, _RespAttrs, _Rated, Acc) ->
-	case radius_attributes:find(?AcctTerminateCause, ReqAttrs) of
-		{ok, Cause} ->
-			Acc#ipdr{sessionTerminateCause = Cause};
-		{error, not_found} ->
-			Acc
-	end.
+	NewIPDR = IPDR#ipdr_wlan{gmtSessionEndDateTime = iso8601(EndTime),
+			gmtSessionStartDateTime = StartTime},
+	ipdr_wlan1(T, radius, TimeStamp, stop, Req, Resp, Rated, NewIPDR);
+ipdr_wlan1([gmtSessionEndDateTime | T], diameter, TimeStamp, stop, Req, Resp, Rated, IPDR) ->
+	ipdr_wlan1(T, diameter, TimeStamp, stop, Req, Resp, Rated, IPDR);
+ipdr_wlan1([unitOfMeasure | T], diameter, TimeStamp, stop, Req, Resp, undefined, IPDR) ->
+	ipdr_wlan1(T, diameter, TimeStamp, stop, Req, Resp, undefined, IPDR);
+ipdr_wlan1([unitOfMeasure | T], diameter, TimeStamp, stop, Req, Resp,
+		[#rated{bucket_type = BType, currency = Currency,
+		tax_included_amount = TaxInc}] = Rated, IPDR) ->
+	NewIPDR = IPDR#ipdr_wlan{unitOfMeasure = BType, chargeAmount = TaxInc,
+			chargeCurrencyType = Currency},
+	ipdr_wlan1(T, diameter, TimeStamp, stop, Req, Resp, Rated, NewIPDR);
+ipdr_wlan1([class | T], radius, TimeStamp, stop, Req, Resp, Rated, IPDR) ->
+	Class = proplists:get_value(?Class, Req),
+	NewIPDR = IPDR#ipdr_wlan{class = Class},
+	ipdr_wlan1(T, diameter, TimeStamp, stop, Req, Resp, Rated, NewIPDR);
+ipdr_wlan1([class | T], diameter, TimeStamp, stop, Req, Resp, Rated, IPDR) ->
+	ipdr_wlan1(T, diameter, TimeStamp, stop, Req, Resp, Rated, IPDR);
+ipdr_wlan1([chargeableUnit| T], diameter, TimeStamp, stop, Req, Resp, Rated, IPDR) ->
+	ipdr_wlan1(T, diameter, TimeStamp, stop, Req, Resp, Rated, IPDR);
+ipdr_wlan1([chargeableQuantity | T], diameter, TimeStamp, stop, Req, Resp, Rated, IPDR) ->
+	ipdr_wlan1(T, diameter, TimeStamp, stop, Req, Resp, Rated, IPDR);
+ipdr_wlan1([chargeAmount | T], diameter, TimeStamp, stop, Req, Resp, Rated, IPDR) ->
+	ipdr_wlan1(T, diameter, TimeStamp, stop, Req, Resp, Rated, IPDR);
+ipdr_wlan1([chargeCurrencyType | T], diameter, TimeStamp, stop, Req, Resp, Rated, IPDR) ->
+	ipdr_wlan1(T, diameter, TimeStamp, stop, Req, Resp, Rated, IPDR);
+ipdr_wlan1([otherParty | T], diameter, TimeStamp, stop, Req, Resp, Rated, IPDR) ->
+	ipdr_wlan1(T, diameter, TimeStamp, stop, Req, Resp, Rated, IPDR);
+ipdr_wlan1([taxPercentage | T], diameter, TimeStamp, stop, Req, Resp, Rated, IPDR) ->
+	ipdr_wlan1(T, diameter, TimeStamp, stop, Req, Resp, Rated, IPDR);
+ipdr_wlan1([taxAmount | T], diameter, TimeStamp, stop, Req, Resp, Rated, IPDR) ->
+	ipdr_wlan1(T, diameter, TimeStamp, stop, Req, Resp, Rated, IPDR);
+ipdr_wlan1([taxType | T], diameter, TimeStamp, stop, Req, Resp, Rated, IPDR) ->
+	ipdr_wlan1(T, diameter, TimeStamp, stop, Req, Resp, Rated, IPDR);
+ipdr_wlan1([seqNum | T], diameter, TimeStamp, stop, Req, Resp, Rated, IPDR) ->
+	ipdr_wlan1(T, diameter, TimeStamp, stop, Req, Resp, Rated, IPDR);
+ipdr_wlan1([homeServiceProviderType | T], diameter, TimeStamp, stop, Req, Resp, Rated, IPDR) ->
+	ipdr_wlan1(T, diameter, TimeStamp, stop, Req, Resp, Rated, IPDR);
+ipdr_wlan1([homeServiceProvider| T], diameter, TimeStamp, stop, Req, Resp, Rated, IPDR) ->
+	ipdr_wlan1(T, diameter, TimeStamp, stop, Req, Resp, Rated, IPDR);
+ipdr_wlan1([accessProviderType | T], diameter, TimeStamp, stop, Req, Resp, Rated, IPDR) ->
+	ipdr_wlan1(T, diameter, TimeStamp, stop, Req, Resp, Rated, IPDR);
+ipdr_wlan1([accessServiceProvider | T], diameter, TimeStamp, stop, Req, Resp, Rated, IPDR) ->
+	ipdr_wlan1(T, diameter, TimeStamp, stop, Req, Resp, Rated, IPDR);
+ipdr_wlan1([locationName | T], diameter, TimeStamp, stop, Req, Resp, Rated, IPDR) ->
+	ipdr_wlan1(T, diameter, TimeStamp, stop, Req, Resp, Rated, IPDR);
+ipdr_wlan1([locationType | T], diameter, TimeStamp, stop, Req, Resp, Rated, IPDR) ->
+	ipdr_wlan1(T, diameter, TimeStamp, stop, Req, Resp, Rated, IPDR);
+ipdr_wlan1([locationCountryCode | T], diameter, TimeStamp, stop, Req, Resp, Rated, IPDR) ->
+	ipdr_wlan1(T, diameter, TimeStamp, stop, Req, Resp, Rated, IPDR);
+ipdr_wlan1([locationStateProvince | T], diameter, TimeStamp, stop, Req, Resp, Rated, IPDR) ->
+	ipdr_wlan1(T, diameter, TimeStamp, stop, Req, Resp, Rated, IPDR);
+ipdr_wlan1([locationCity | T], diameter, TimeStamp, stop, Req, Resp, Rated, IPDR) ->
+	ipdr_wlan1(T, diameter, TimeStamp, stop, Req, Resp, Rated, IPDR);
+ipdr_wlan1([locationGeocode | T], diameter, TimeStamp, stop, Req, Resp, Rated, IPDR) ->
+	ipdr_wlan1(T, diameter, TimeStamp, stop, Req, Resp, Rated, IPDR);
+ipdr_wlan1([locationGeocodeType | T], diameter, TimeStamp, stop, Req, Resp, Rated, IPDR) ->
+	ipdr_wlan1(T, diameter, TimeStamp, stop, Req, Resp, Rated, IPDR);
+ipdr_wlan1([nasPortType | T], diameter, TimeStamp, stop, Req, Resp, Rated, IPDR) ->
+	ipdr_wlan1(T, diameter, TimeStamp, stop, Req, Resp, Rated, IPDR);
+ipdr_wlan1([paymentType | T], diameter, TimeStamp, stop, Req, Resp, Rated, IPDR) ->
+	ipdr_wlan1(T, diameter, TimeStamp, stop, Req, Resp, Rated, IPDR);
+ipdr_wlan1([networkConnectionType | T], diameter, TimeStamp, stop, Req, Resp, Rated, IPDR) ->
+	ipdr_wlan1(T, diameter, TimeStamp, stop, Req, Resp, Rated, IPDR);
+ipdr_wlan1([billingClassOfService | T], diameter, TimeStamp, stop, Req, Resp, Rated, IPDR) ->
+	ipdr_wlan1(T, diameter, TimeStamp, stop, Req, Resp, Rated, IPDR);
+ipdr_wlan1([intermediaryName| T], diameter, TimeStamp, stop, Req, Resp, Rated, IPDR) ->
+	ipdr_wlan1(T, diameter, TimeStamp, stop, Req, Resp, Rated, IPDR);
+ipdr_wlan1([_| T], Protocol, TimeStamp, stop, Req, Resp, Rated, IPDR) ->
+	ipdr_wlan1(T, Protocol, TimeStamp, stop, Req, Resp, Rated, IPDR);
+ipdr_wlan1([], _Protocol, _TimeStamp, _Flag, _Req, _Resp, _Rated, IPDR) ->
+	IPDR.
 
 %% @hidden
-ipdr_xml(Log, IoDevice, {Cont, [#ipdrDoc{} = _I | T]}) ->
+ipdr_xml(Log, IoDevice, {Cont, [#ipdrDocWLAN{} = _I | T]}) ->
 	Header = [],
 	case file:write(IoDevice, Header) of
 		ok ->
@@ -1293,7 +1528,7 @@ ipdr_xml(Log, IoDevice, {Cont, [#ipdrDoc{} = _I | T]}) ->
 			disk_log:close(Log),
 			{error, Reason}
 	end;
-ipdr_xml(Log, IoDevice, {Cont, [#ipdr{} = _I | T]}) ->
+ipdr_xml(Log, IoDevice, {Cont, [#ipdr_wlan{} = _I | T]}) ->
 	IPDR = <<>>,
 	case file:write(IoDevice, IPDR) of
 		ok ->
@@ -1321,7 +1556,7 @@ ipdr_xml(Log, IoDevice, {Cont, []}) ->
 	ipdr_file3(Log, IoDevice, xml, {Cont, []}).
 
 %% @hidden
-ipdr_xdr(Log, IoDevice, {Cont, [#ipdrDoc{} = _I | T]}) ->
+ipdr_xdr(Log, IoDevice, {Cont, [#ipdrDocWLAN{} = _I | T]}) ->
 	Header = [<<>>],
 	case file:write(IoDevice, Header) of
 		ok ->
@@ -1333,7 +1568,7 @@ ipdr_xdr(Log, IoDevice, {Cont, [#ipdrDoc{} = _I | T]}) ->
 			disk_log:close(Log),
 			{error, Reason}
 	end;
-ipdr_xdr(Log, IoDevice, {Cont, [#ipdr{} = _I | T]}) ->
+ipdr_xdr(Log, IoDevice, {Cont, [#ipdr_wlan{} = _I | T]}) ->
 	IPDR = <<>>,
 	case file:write(IoDevice, IPDR) of
 		ok ->
@@ -1363,7 +1598,7 @@ ipdr_xdr(Log, IoDevice, {Cont, []}) ->
 	ipdr_file3(Log, IoDevice, xdr, {Cont, []}).
 
 %% @hidden
-ipdr_csv(Log, IoDevice, {Cont, [#ipdrDoc{} | T]}) ->
+ipdr_csv(Log, IoDevice, {Cont, [#ipdrDocWLAN{} | T]}) ->
 	Header = [<<"Creation Time;Sequence Number;Username;">>,
 			<<"Accounting Session ID;User IP Address;Calling Station ID;">>,
 			<<"Called Station ID;NAS IP Address;NAS Identifier;">>,
@@ -1379,76 +1614,190 @@ ipdr_csv(Log, IoDevice, {Cont, [#ipdrDoc{} | T]}) ->
 			disk_log:close(Log),
 			{error, Reason}
 	end;
-ipdr_csv(Log, IoDevice, {Cont, [#ipdr{} = I | T]}) ->
-	Time = list_to_binary(I#ipdr.ipdrCreationTime),
-	Seq = integer_to_binary(I#ipdr.seqNum),
-	User = case I#ipdr.username of
+ipdr_csv(Log, IoDevice, {Cont, [#ipdrDocVoIP{} | T]}) ->
+	Header = [<<"Creation Time;Sequence Number;Subscriber ID;">>,
+			<<"Unique Call ID;Bucket Type;Bucket Value;Tarrif Type;" >>,
+			<<"Product;Price Type;Usage Rating;Charge Amount;">>,
+			<<"Destination ID;Call Completion Code;">>,
+			<<"Disconnect Reason;Host Name;">>, $\r, $\n],
+	case file:write(IoDevice, Header) of
+		ok ->
+			ipdr_csv(Log, IoDevice, {Cont, T});
+		{error, Reason} ->
+			error_logger:error_report([file:format_error(Reason),
+					{error, Reason}]),
+			file:close(IoDevice),
+			disk_log:close(Log),
+			{error, Reason}
+	end;
+ipdr_csv(Log, IoDevice, {Cont, [#ipdr_voip{} = I | T]}) ->
+	Time = list_to_binary(I#ipdr_voip.ipdrCreationTime),
+	Seq = integer_to_binary(I#ipdr_voip.seqNum),
+	SubId = case I#ipdr_voip.subscriberId of
+		undefined ->
+			<<>>;
+		SID ->
+			list_to_binary(SID)
+	end,
+	UniqueId = case I#ipdr_voip.uniqueCallID of
+		undefined ->
+			<<>>;
+		UID ->
+			list_to_binary(UID)
+	end,
+	BType = case I#ipdr_voip.bucketType of
+		undefined ->
+			<<>>;
+		BT ->
+			atom_to_binary(BT, latin1)
+	end,
+	BValue = case I#ipdr_voip.bucketValue of
+		undefined ->
+			<<>>;
+		BV ->
+			integer_to_binary(BV)
+	end,
+	TType = case I#ipdr_voip.tariffType of
+		undefined ->
+			<<>>;
+		TP ->
+			atom_to_binary(TP, latin1)
+	end,
+	Prod = case I#ipdr_voip.product of
+		undefined ->
+			<<>>;
+		P ->
+		 term_to_binary(P)
+	end,
+	PType = case I#ipdr_voip.priceType of
+		undefined ->
+			<<>>;
+		PT ->
+			atom_to_binary(PT, latin1)
+	end,
+	URating = case I#ipdr_voip.usageRating of
+		undefined ->
+			<<>>;
+		UR ->
+			atom_to_binary(UR, latin1)
+	end,
+	ChargeA = case I#ipdr_voip.chargeAmount of
+		undefined ->
+			<<>>;
+		CA ->
+		 integer_to_binary(CA)
+	end,
+	Dest = case I#ipdr_voip.destinationID of
+		undefined ->
+			<<>>;
+		DestID ->
+			list_to_binary(DestID)
+	end,
+	CCCode = case I#ipdr_voip.callCompletionCode of
+		undefined ->
+			<<>>;
+		ComCode when is_integer(ComCode) ->
+			integer_to_list(ComCode);
+		ComCode when is_list(ComCode) ->
+			list_to_binary(ComCode)
+	end,
+	DiscReason = case I#ipdr_voip.disconnectReason of
+		undefined ->
+			<<>>;
+		Disc when is_integer(Disc) ->
+			integer_to_binary(Disc);
+		Disc when is_list(Disc) ->
+			list_to_binary(Disc)
+	end,
+	HostName = case I#ipdr_voip.hostName of
+		undefined ->
+			<<>>;
+		HN ->
+			list_to_binary(HN)
+	end,
+	IPDR = [Time, $;, Seq, $;, SubId, $;, UniqueId, $;, BType, $;,
+			BValue, $;, TType, $;, Prod, $;, PType, $;, URating, $;,
+			ChargeA, $;, Dest, $;, CCCode, $;, DiscReason, $;, HostName, $\r, $\n],
+	case file:write(IoDevice, IPDR) of
+		ok ->
+			ipdr_csv(Log, IoDevice, {Cont, T});
+		{error, Reason} ->
+			error_logger:error_report([file:format_error(Reason),
+					{error, Reason}]),
+			file:close(IoDevice),
+			disk_log:close(Log),
+			{error, Reason}
+	end;
+ipdr_csv(Log, IoDevice, {Cont, [#ipdr_wlan{} = I | T]}) ->
+	Time = list_to_binary(I#ipdr_wlan.ipdrCreationTime),
+	Seq = integer_to_binary(I#ipdr_wlan.seqNum),
+	User = case I#ipdr_wlan.username of
 		undefined ->
 			<<>>;
 		US ->
 			list_to_binary(US)
 	end,
-	Sess = case I#ipdr.acctSessionId of
+	Sess = case I#ipdr_wlan.acctSessionId of
 		undefined ->
 			<<>>;
 		SI ->
 			list_to_binary(SI)
 	end,
-	IP = case I#ipdr.userIpAddress of
+	IP = case I#ipdr_wlan.userIpAddress of
 		undefined ->
 			<<>>;
 		IpAddress ->
 			list_to_binary(IpAddress)
 	end,
-	Calling = case I#ipdr.callingStationId of
+	Calling = case I#ipdr_wlan.callingStationId of
 		undefined ->
 			<<>>;
 		CgID ->
 			list_to_binary(CgID)
 	end,
-	Called = case I#ipdr.calledStationId of
+	Called = case I#ipdr_wlan.calledStationId of
 		undefined ->
 			<<>>;
 		CdID ->
 			list_to_binary(CdID)
 	end,
-	NasIP = case I#ipdr.nasIpAddress of
+	NasIP = case I#ipdr_wlan.nasIpAddress of
 		undefined ->
 			<<>>;
 		NIP ->
 			list_to_binary(NIP)
 	end,
-	NasID = case I#ipdr.nasId of
+	NasID = case I#ipdr_wlan.nasId of
 		undefined ->
 			<<>>;
 		NID ->
 			list_to_binary(NID)
 	end,
-	Duration = case I#ipdr.sessionDuration of
+	Duration = case I#ipdr_wlan.sessionDuration of
 		undefined ->
 			<<>>;
 		DU ->
 			integer_to_binary(DU)
 	end,
-	Input = case I#ipdr.inputOctets of
+	Input = case I#ipdr_wlan.inputOctets of
 		undefined ->
 			<<>>;
 		IN ->
 			integer_to_binary(IN)
 	end,
-	Output = case I#ipdr.outputOctets of
+	Output = case I#ipdr_wlan.outputOctets of
 		undefined ->
 			<<>>;
 		OUT ->
 			integer_to_binary(OUT)
 	end,
-	Class = case I#ipdr.class of
+	Class = case I#ipdr_wlan.class of
 		undefined ->
 			<<>>;
 		CLS ->
 			list_to_binary(CLS)
 	end,
-	Cause = case I#ipdr.sessionTerminateCause of
+	Cause = case I#ipdr_wlan.sessionTerminateCause of
 		undefined ->
 			<<>>;
 		CS ->
@@ -1708,6 +2057,58 @@ acct_query4(Attributes, [_ | T]) ->
 acct_query4(_Attributes, []) ->
 	true.
 
+-spec ipdr_query(Continuation, MatchSpec) -> Result
+	when
+		Continuation :: {Continuation2, Events},
+		MatchSpec :: [tuple()] | '_',
+		Result :: {Continuation2, Events},
+		Continuation2 :: eof | disk_log:continuation(),
+		Events :: [#ipdr_wlan{}].
+%% @private
+%% @doc Query accounting log events with filters.
+%%
+ipdr_query({Cont, Events}, AttrsMatch) ->
+	{Cont, ipdr_query3(Events, AttrsMatch, [])}.
+%% @hidden
+ipdr_query3(Events, '_', _Acc) ->
+	Events;
+ipdr_query3([H | T], AttrsMatch, Acc) ->
+	case ipdr_query4(element(7, H), AttrsMatch) of
+		true ->
+			ipdr_query3(T, AttrsMatch, [H | Acc]);
+		false ->
+			ipdr_query3(T, AttrsMatch, Acc)
+	end;
+ipdr_query3([], _AttrsMatch, Acc) ->
+	lists:reverse(Acc).
+%% @hidden
+ipdr_query4(Attributes, [{Attribute, {exact, Match}} | T]) ->
+	case lists:keyfind(Attribute, 1, Attributes) of
+		{Attribute, Match1} when
+				(Match1 == Match) or (Match == '_') ->
+			ipdr_query4(Attributes, T);
+		_ ->
+			false
+	end;
+ipdr_query4(Attributes, [{Attribute, {like, [H | T1]}} | T2]) ->
+	case lists:keyfind(Attribute, 1, Attributes) of
+		{Attribute, Value} ->
+			case lists:prefix(H, Value) of
+				true ->
+					ipdr_query4(Attributes, [{Attribute, {like, T1}} | T2]);
+				false ->
+					false
+			end;
+		_ ->
+			false
+	end;
+ipdr_query4(Attributes, [{_, {like, []}} | T]) ->
+	ipdr_query4(Attributes, T);
+ipdr_query4(Attributes, [_ | T]) ->
+	ipdr_query4(Attributes, T);
+ipdr_query4(_Attributes, []) ->
+	true.
+
 -spec auth_query(Continuation, Protocol, Types, ReqAttrsMatch, RespAttrsMatch) -> Result
 	when
 		Continuation :: {Continuation2, Events},
@@ -1816,7 +2217,7 @@ auth_query5(_Attributes, []) ->
 		Type :: transfer | topup | adjustment | '_',
 		Subscriber :: binary() | '_',
 		Bucket :: string() | '_',
-		Units :: cents | seconds | octets | '_',
+		Units :: cents | seconds | octets | messages | '_',
 		Product :: string() | '_',
 		Events :: [acct_event()].
 %% @private

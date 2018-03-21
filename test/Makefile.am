@@ -23,7 +23,7 @@ testmods = ocs_api_SUITE \
 check_DATA = .dialyzer_ok .common_test_ok
 
 .dialyzer_ok:	$(addsuffix .beam, $(testmods))
-	dialyzer --src $(top_srcdir)/src # $(top_builddir)/src
+	dialyzer --src -I $(top_builddir)/include $(top_srcdir)/src # $(top_builddir)/src
 
 %.beam:$(top_srcdir)/test/%.erl $(top_srcdir)/include/ocs.hrl
 	$(ERLC) $(ERLCFLAGS) -I $(top_srcdir)/include $<

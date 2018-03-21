@@ -29,6 +29,7 @@
 -compile(export_all).
 
 -include("ocs.hrl").
+-include("ocs_log.hrl").
 -include_lib("radius/include/radius.hrl").
 -include_lib("common_test/include/ct.hrl").
 
@@ -108,7 +109,7 @@ all() ->
 	authorize_incoming_voice, authorize_outgoing_voice,
 	authorize_default_voice, authorize_data_1, authorize_data_2,
 	authorize_data_with_partial_reservation, authorize_negative_balance,
-	unauthorize_bad_password, unauthorize_bad_password].
+	unauthorize_bad_password, unauthorize_bad_password, reserve_sms, debit_sms].
 
 %%---------------------------------------------------------------------
 %%  Test cases
@@ -1939,7 +1940,74 @@ unauthorize_out_of_credit(_Config) ->
 			ServiceType, SubscriberID, Password, Timestamp,
 			CallAddress, undefined, SessionId).
 
+reserve_sms() ->
+	[{userdata, [{doc, "Reservation for SMS"}]}].
 
+reserve_sms(_Config) ->
+	ProdID = ocs:generate_password(),
+	PackagePrice = 1,
+	PackageSize = 1,
+	Price = #price{name = "SMS", type = usage,
+		units = messages, size = PackageSize, amount = PackagePrice},
+	Product = #product{name = ProdID, price = [Price], specification = "11"},
+	{ok, _} = ocs:add_product(Product),
+	SubscriberID = list_to_binary(ocs:generate_identity()),
+	Password = ocs:generate_password(),
+	Timestamp = calendar:local_time(),
+	RemAmount = rand:uniform(100) * 5,
+	Buckets = [#bucket{units = messages, remain_amount = RemAmount,
+		start_date = erlang:system_time(?MILLISECOND),
+		termination_date = erlang:system_time(?MILLISECOND) + 2592000000}],
+	SessionId = [{'Session-Id', list_to_binary(ocs:generate_password())}],
+	ServiceType = 32274,
+	NumOfEvents = rand:uniform(10),
+	{ok, _} = ocs:add_subscriber(SubscriberID, Password, ProdID, [], Buckets),
+	{ok, _, _} = ocs_rating:rate(diameter, ServiceType, SubscriberID,
+		Timestamp, {127,0,0,1}, undefined, initial, [], [{messages, NumOfEvents}],
+		SessionId),
+	{ok, #subscriber{buckets = [B1]}} = ocs:find_subscriber(SubscriberID),
+	#bucket{remain_amount = R1, reservations = Rs1} = B1,
+	R1 = RemAmount - (PackagePrice * NumOfEvents),
+	[{_, _, Reserved, _}] = Rs1,
+	Reserved = PackagePrice * NumOfEvents.
+
+debit_sms() ->
+	[{userdata, [{doc, "Debit for SMS"}]}].
+
+debit_sms(_Config) ->
+	ProdID = ocs:generate_password(),
+	PackagePrice = 1,
+	PackageSize = 1,
+	Price = #price{name = "SMS", type = usage,
+		units = messages, size = PackageSize, amount = PackagePrice},
+	Product = #product{name = ProdID, price = [Price], specification = "11"},
+	{ok, _} = ocs:add_product(Product),
+	SubscriberID = list_to_binary(ocs:generate_identity()),
+	Password = ocs:generate_password(),
+	Timestamp = calendar:local_time(),
+	RemAmount = rand:uniform(100) * 5,
+	Buckets = [#bucket{units = messages, remain_amount = RemAmount,
+		start_date = erlang:system_time(?MILLISECOND),
+		termination_date = erlang:system_time(?MILLISECOND) + 2592000000}],
+	SessionId = [{'Session-Id', list_to_binary(ocs:generate_password())}],
+	ServiceType = 32274,
+	NumOfEvents = rand:uniform(10),
+	{ok, _} = ocs:add_subscriber(SubscriberID, Password, ProdID, [], Buckets),
+	{ok, _, _} = ocs_rating:rate(diameter, ServiceType, SubscriberID,
+		Timestamp, undefined, undefined, initial, [], [{messages, NumOfEvents}],
+		SessionId),
+	{ok, #subscriber{buckets = [B1]}} = ocs:find_subscriber(SubscriberID),
+	#bucket{remain_amount = R1, reservations = Rs1} = B1,
+	R1 = RemAmount - (PackagePrice * NumOfEvents),
+	[{_, _, Reserved, _}] = Rs1,
+	Reserved = PackagePrice * NumOfEvents,
+	{ok, _, _, Rated} = ocs_rating:rate(diameter, ServiceType, SubscriberID,
+		Timestamp, undefined, undefined, final, [{messages, NumOfEvents}], [],
+		SessionId),
+	{ok, #subscriber{buckets = [B2]}} = ocs:find_subscriber(SubscriberID),
+	#bucket{remain_amount = R2, reservations = []} = B2,
+	[#rated{bucket_type = messages, bucket_value = NumOfEvents}] = Rated,
+	R2 = RemAmount - (PackagePrice * NumOfEvents).
 
 %%---------------------------------------------------------------------
 %%  Internal functions

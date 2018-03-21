@@ -163,16 +163,21 @@
 				if(this.$.addTableEnd.value) {
 					var endDateTime = this.$.addTableEnd.value;
 				}
-				if(startDateTime && endDateTime) {
+				if(endDateTime < startDateTime) {
+					this.$.addTableToastError.text = event.detail.request.xhr.statusText;
+					this.$.addTableToastError.open();
+				} else if(startDateTime && endDateTime) {
 					tabName.validFor = {startDateTime, endDateTime};
 				} else if(startDateTime && !endDateTime) {
 					tabName.validFor = {startDateTime};
 				} else if(!startDateTime && !endDateTime) {
 					tabName.validFor = {endDateTime};
 				}
-				var ajax = this.$.addTableAjax;
-				ajax.body = tabName; 
-				ajax.generateRequest();
+				if(tabName.name) {
+					var ajax = this.$.addTableAjax;
+					ajax.body = tabName;
+					ajax.generateRequest();
+				}
 				this.$.addTableName.value = null;
 				this.$.addTableDesc.value = null;
 				this.$.addTableStart.value = null;

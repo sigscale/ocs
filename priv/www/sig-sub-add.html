@@ -446,20 +446,19 @@
 				}
 				subscriber.attributes = attributes;
 				var buckets = [];
-				if(parseInt(document.getElementById("add8").value)
-						&& parseInt(document.getElementById("add8").value) != null) {
-					var units;
+				if(document.getElementById("add8").value) {
 					if(document.getElementById("adduni9").selected == 0) {
-						units = "octets";
+						buckets.push({"remainAmount": parseInt(document.getElementById("add8").value),
+						"units": "octets"});
 					}
 					if(document.getElementById("adduni9").selected == 1) {
-						units = "cents";
+						buckets.push({"remainAmount": document.getElementById("add8").value,
+						"units": "cents"});
 					}
 					if(document.getElementById("adduni9").selected == 2) {
-						units = "seconds";
+						buckets.push({"remainAmount": parseInt(document.getElementById("add8").value),
+						"units": "seconds"});
 					}
-					buckets.push({"remainAmount": parseInt(document.getElementById("add8").value),
-							"units": units});
 					subscriber.buckets = buckets;
 				}
 				subscriber.product = this.product;

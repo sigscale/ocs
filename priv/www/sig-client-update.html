@@ -87,7 +87,8 @@
 								id="updateClientPassword"
 								name="password"
 								label="[[i18n.secret]]"
-								disabled>
+								disabled
+								hidden>
 						</paper-input>
 						<paper-tooltip>
 							<i18n-msg msgid="secretTooltip">
@@ -99,7 +100,8 @@
 						<paper-input
 								id="updateClientNewPassword"
 								name="secret"
-								label="[[i18n.newpass]]">
+								label="[[i18n.newpass]]"
+								hidden>
 						</paper-input>
 						<paper-tooltip>
 							<i18n-msg msgid="secretTooltip">
@@ -107,10 +109,14 @@
 							</i18n-msg>
 						</paper-tooltip>
 					</div>
-					Passwordless
-					<paper-checkbox
-						id="checkPassUpdate">
-					</paper-checkbox>
+					<iron-collapse id="passClientHide">
+					<div>
+						Passwordless
+						<paper-checkbox
+							id="checkPassUpdate">
+						</paper-checkbox>
+					</div>
+					</iron-collapse>
 					<div class="buttons">
 						<paper-button
 								dialog-dismiss

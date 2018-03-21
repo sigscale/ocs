@@ -144,6 +144,20 @@
 			<vaadin-grid-column width="12ex" flex-grow="1">
 				<template class="header">
 					<vaadin-grid-filter
+							aria-label="[[i18n.price]]"
+							path="prices"
+							value="[[filterPrices]]">
+						<input
+								placeholder="[[i18n.price]]"
+								value="{{filterPrices::input}}"
+								focus-target>
+					</vaadin-grid-filter>
+				</template>
+				<template>[[item.prices]]</template>
+			</vaadin-grid-column>
+			<vaadin-grid-column width="12ex" flex-grow="1">
+				<template class="header">
+					<vaadin-grid-filter
 							aria-label="[[i18n.userName]]"
 							path="username"
 							value="[[filterUserName]]">
@@ -217,6 +231,9 @@
 				filterUserName: {
 					observer: '_filterUserName'
 				},
+				filterPrices: {
+					observer: '_filterPrices'
+				},
 				filterType: {
 					observer: '_filterType'
 				}
@@ -247,6 +264,9 @@
 						},
 						{
 							name: "username"
+						},
+						{
+							name: "prices"
 						},
 						{
 							name: "type"
@@ -290,6 +310,11 @@
 				delete this.$.getAccounting.headers['If-Range'];
 				this.$.accountingGrid.size = 0;
 			},
+			_filterPrices: function(filter) {
+				this.etag = null;
+				delete this.$.getAccounting.headers['If-Range'];
+				this.$.accountingGrid.size = 0;
+			},
 			_filterType: function(filter) {
 				this.etag = null;
 				delete this.$.getAccounting.headers['If-Range'];
@@ -305,6 +330,7 @@
 				this.filterin = null;
 				this.filtertotal = null;
 				this.filterUserName = null;
+				this.filterPrices = null;
 				this.filterType = null
 			},
 			_getAccounting: function(params, callback) {
@@ -368,18 +394,16 @@
 							grid.size = Number(range2[1]) + grid.pageSize * 2;
 						}
 						var vaadinItems = new Array();
-						function checkChar(characteristic) {
-							return characteristic.name == "username";
-						}
 						for (var index in request.response) {
-console.log(request.response[index]);
 							var newRecord = new Object();
 							newRecord.date = request.response[index].date;
 							function checkChar2(characteristic) {
 								return characteristic.name == "nasIdentifier";
 							}
 							var index2 = request.response[index].usageCharacteristic.findIndex(checkChar2);
-							newRecord.nasIdentifier = request.response[index].usageCharacteristic[index2].value;
+							if(index2 != -1) {
+								newRecord.nasIdentifier = request.response[index].usageCharacteristic[index2].value;
+							}
 							function checkChar3(characteristic) {
 								return characteristic.name == "acctSessionTime";
 							}
@@ -408,10 +432,25 @@ console.log(request.response[index]);
 							if(index6 != -1) {
 								newRecord.acctTotaloctets = results[index].acctTotaloctets;
 							}
-							var username1 = request.response[index].usageCharacteristic.find(checkChar);
-							newRecord.type = request.response[index].type;
+							function checkChar7(characteristic) {
+								return characteristic.name == "username";
+							}
+							var username1 = request.response[index].usageCharacteristic.find(checkChar7);
 							if (username1 != undefined) {
 								newRecord.username = username1.value;
+							}
+							function checkChar8(characteristic) {
+								return characteristic.name == "type";
+							}
+							var index8 = request.response[index].usageCharacteristic.findIndex(checkChar8);
+							if (index8 != -1) {
+								newRecord.type = request.response[index].usageCharacteristic[index8].value;
+							}
+							for(var indexTax in request.response[index].ratedProductUsage) {
+								var taxObj = request.response[index].ratedProductUsage[indexTax].taxExcludedRatingAmount;
+								if(taxObj) {
+									newRecord.prices = taxObj;
+								}
 							}
 						vaadinItems[index] = newRecord;
 						}

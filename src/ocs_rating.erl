@@ -43,6 +43,7 @@
 %% service types for diameter
 -define(DIAMETERDATA, 32251).
 -define(DIAMETERVOICE, 32260).
+-define(DIAMETERSMS, 32274).
 
 
 -spec rate(Protocol, ServiceType, SubscriberID, Timestamp,
@@ -59,7 +60,7 @@
 		DebitAmounts :: [{Type, Amount}],
 		ReserveAmounts :: [{Type, Amount}],
 		SessionAttributes :: [tuple()],
-		Type :: octets | seconds,
+		Type :: octets | seconds | messages,
 		Amount :: integer(),
 		Result :: {ok, Subscriber, Amount}
 				| {ok, Subscriber, Amount, Rated}
@@ -147,15 +148,17 @@ rate1(Protocol, ServiceType, Subscriber, Timestamp, Address, Direction,
 							and
 							(((Protocol == radius)
 								and
-								(((ServiceType == ?RADIUSFRAMED) orelse (ServiceType == ?RADIUSLOGIN)) and ((Spec == "4") orelse (Spec == "8")))
-								orelse
+								(((ServiceType == ?RADIUSFRAMED) orelse (ServiceType == ?RADIUSLOGIN))
+								and ((Spec == "4") orelse (Spec == "8"))) orelse
 								((ServiceType == ?RADIUSVOICE) and ((Spec == "5") orelse (Spec == "9"))))
 							orelse
 							((Protocol == diameter)
 								and
 								((ServiceType == ?DIAMETERDATA) and ((Spec == "4") orelse (Spec == "8")))
 								orelse
-								((ServiceType == ?DIAMETERVOICE) and ((Spec == "5") orelse (Spec == "9"))))) ->
+								((ServiceType == ?DIAMETERVOICE) and ((Spec == "5") orelse (Spec == "9")))
+								orelse
+								((ServiceType == ?DIAMETERSMS) and ((Spec == "10") orelse (Spec == "11"))))) ->
 						[P | Acc];
 					_ ->
 						Acc
@@ -178,6 +181,26 @@ rate1(Protocol, _ServiceType, Subscriber, Timestamp, Address, Direction,
 %% @hidden
 rate2(Protocol, Subscriber, Timestamp, Address, Direction,
 		#offer{specification = ProdSpec, price = Prices},
+		Validity, Flag, DebitAmounts, ReserveAmounts,
+		SessionAttributes, Rated) when ProdSpec == "10"; ProdSpec == "11" ->
+	F = fun(#price{type = usage, units = messages}) ->
+				true;
+			(#price{type = usage, units = cents}) ->
+				true;
+			(_) ->
+				false
+	end,
+	FilteredPrices1 = lists:filter(F, Prices),
+	FilteredPrices2 = filter_prices_tod(Timestamp, FilteredPrices1),
+	case filter_prices_dir(Direction, FilteredPrices2) of
+		[Price | _] ->
+			rate3(Protocol, Subscriber, Address, Price, Validity, Flag,
+					DebitAmounts, ReserveAmounts, SessionAttributes, Rated);
+		_ ->
+			throw(price_not_found)
+	end;
+rate2(Protocol, Subscriber, Timestamp, Address, Direction,
+		#product{specification = ProdSpec, price = Prices},
 		Validity, Flag, DebitAmounts, ReserveAmounts,
 		SessionAttributes, Rated) when ProdSpec == "5"; ProdSpec == "9" ->
 	F = fun(#price{type = tariff, units = seconds}) ->
@@ -221,7 +244,7 @@ rate3(Protocol, Subscriber, Address,
 		#char_value_use{values = [#char_value{value = TariffTable}]} ->
 			Table = list_to_existing_atom(TariffTable),
 			case catch ocs_gtt:lookup_last(Table, Address) of
-				{Description, Amount} ->
+				{Description, Amount, _} ->
 					case Amount of
 						N when N >= 0 ->
 							rate4(Protocol, Subscriber, Price#price{amount = N},
@@ -418,20 +441,8 @@ rate6(#service{session_attributes = SessionList,
 		final, Charge, Charged, 0, 0, SessionId, Rated)
 		when Charged >= Charge ->
 	NewBuckets1 = refund(SessionId, Buckets),
-	{Seconds, Octets, Cents, NewBuckets2} = get_debits(SessionId, NewBuckets1),
-	Rated1 = case {Seconds, Octets, Cents} of
-		{Seconds, 0, 0} when Seconds > 0 ->
-			Rated#rated{bucket_value = Seconds,
-					bucket_type = seconds, is_billed = true};
-		{0, Octets, 0} when Octets > 0 ->
-			Rated#rated{bucket_value = Octets,
-					bucket_type = octets, is_billed = true};
-		{_, _, Cents} when Cents > 0 ->
-			Rated#rated{bucket_type = cents,
-					tax_excluded_amount = Cents, is_billed = true};
-		{0, 0, 0} ->
-			Rated#rated{is_billed = true}
-	end,
+	{Seconds, Octets, Cents, Msgs, NewBuckets2} = get_debits(SessionId, NewBuckets1),
+	Rated1 = rated(Seconds, Octets, Cents, Msgs, Rated),
 	NewSessionList = remove_session(SessionId, SessionList),
 	Subscriber2 = Subscriber1#service{buckets = NewBuckets2,
 			session_attributes = NewSessionList},
@@ -673,7 +684,7 @@ authorize3(Protocol, ServiceType, Subscriber, Address,
 		#char_value_use{values = [#char_value{value = TariffTable}]} ->
 			Table = list_to_existing_atom(TariffTable),
 			case catch ocs_gtt:lookup_last(Table, Address) of
-				{_Description, Amount} ->
+				{_Description, Amount, _} ->
 					case Amount of
 						N when N >= 0 ->
 							authorize4(Protocol, ServiceType, Subscriber,
@@ -730,7 +741,8 @@ authorize5(#service{buckets = Buckets, session_attributes = ExistingAttr} = Subs
 				(((ServiceType == ?RADIUSFRAMED) orelse (ServiceType == ?RADIUSLOGIN) orelse (ServiceType == ?DIAMETERDATA)) and
 				((U == octets) orelse (U == cents) orelse (U == seconds))) orelse
 				(((ServiceType == ?RADIUSVOICE) orelse (ServiceType == ?DIAMETERVOICE)) and
-				((U == seconds) orelse (U == cents)))) and (R > 0) ->
+				((U == seconds) orelse (U == cents))) orelse
+				((ServiceType == ?DIAMETERSMS) and ((U == messages) orelse (U == cents)))) and (R > 0) ->
 			true;
 		(_) ->
 			false
@@ -812,7 +824,7 @@ session_attributes(Attributes) ->
 
 -spec reserve_session(Type, Amount, SessionId, Buckets) -> Result
 	when
-		Type :: octets | seconds | cents,
+		Type :: octets | seconds | cents | messages,
 		Amount :: non_neg_integer(),
 		SessionId :: string() | binary(),
 		Buckets :: [#bucket{}],
@@ -871,7 +883,7 @@ reserve_session(_, _, _, _, [], Acc, Reserved) ->
 
 -spec update_session(Type, Charge, Reserve, SessionId, Buckets) -> Result
 	when
-		Type :: octets | seconds | cents,
+		Type :: octets | seconds | cents | messages,
 		Charge :: non_neg_integer(),
 		Reserve :: non_neg_integer(),
 		SessionId :: string() | binary(),
@@ -1034,7 +1046,7 @@ update(_, _, _,  _, _, [], Acc, Charged, Reserved) ->
 
 -spec charge_session(Type, Charge, SessionId, Buckets) -> Result
 	when
-		Type :: octets | seconds | cents,
+		Type :: octets | seconds | cents | messages,
 		Charge :: non_neg_integer(),
 		SessionId :: string() | binary(),
 		Buckets :: [#bucket{}],
@@ -1448,44 +1460,50 @@ filter_prices_dir(_, [], Acc) ->
 	when
 		SessionId :: [tuple()],
 		Buckets :: [#bucket{}],
-		Result :: {Seconds, Octets, Cents, NewBuckets},
+		Result :: {Seconds, Octets, Cents, Messages, NewBuckets},
 		Seconds :: integer(),
 		Octets :: integer(),
 		Cents :: integer(),
+		Messages :: integer(),
 		NewBuckets :: [#bucket{}].
 %% @doc Get total debited amount and remove all reservations for session.
 %% @private
 %% 
 get_debits(SessionId, Buckets) ->
 	Now = erlang:system_time(?MILLISECOND),
-	get_debits(Buckets, SessionId, Now, 0, 0, 0, []).
+	get_debits(Buckets, SessionId, Now, 0, 0, 0, 0, []).
 %% @hidden
 get_debits([#bucket{remain_amount = 0, reservations = []} | T],
-		SessionId, Now, Seconds, Octets, Cents, Acc) ->
-	get_debits(T, SessionId, Now, Seconds, Octets, Cents, Acc);
+		SessionId, Now, Seconds, Octets, Cents, Msgs, Acc) ->
+	get_debits(T, SessionId, Now, Seconds, Octets, Cents, Msgs, Acc);
 get_debits([#bucket{reservations = [], termination_date = Expires} | T],
-		SessionId, Now, Seconds, Octets, Cents, Acc) when Expires < Now ->
-	get_debits(T, SessionId, Now, Seconds, Octets, Cents, Acc);
+		SessionId, Now, Seconds, Octets, Cents, Msgs, Acc) when Expires < Now ->
+	get_debits(T, SessionId, Now, Seconds, Octets, Cents, Msgs, Acc);
 get_debits([#bucket{reservations = []} = B | T],
-		SessionId, Now, Seconds, Octets, Cents, Acc) ->
-	get_debits(T, SessionId, Now, Seconds, Octets, Cents, [B | Acc]);
+		SessionId, Now, Seconds, Octets, Cents, Msgs, Acc) ->
+	get_debits(T, SessionId, Now, Seconds, Octets, Cents, Msgs, [B | Acc]);
 get_debits([#bucket{units = seconds, reservations = Reservations} = B | T],
-		SessionId, Now, Seconds, Octets, Cents, Acc) ->
+		SessionId, Now, Seconds, Octets, Cents, Msgs, Acc) ->
 	{Debit, NewReservations} = get_debits1(SessionId, Reservations, 0, []),
-	get_debits(T, SessionId, Now, Seconds + Debit, Octets, Cents,
+	get_debits(T, SessionId, Now, Seconds + Debit, Octets, Cents, Msgs,
 			[B#bucket{reservations = NewReservations} | Acc]);
 get_debits([#bucket{units = octets, reservations = Reservations} = B | T],
-		SessionId, Now, Seconds, Octets, Cents, Acc) ->
+		SessionId, Now, Seconds, Octets, Cents, Msgs, Acc) ->
 	{Debit, NewReservations} = get_debits1(SessionId, Reservations, 0, []),
-	get_debits(T, SessionId, Now, Seconds, Octets + Debit, Cents,
+	get_debits(T, SessionId, Now, Seconds, Octets + Debit, Cents, Msgs,
 			[B#bucket{reservations = NewReservations} | Acc]);
 get_debits([#bucket{units = cents, reservations = Reservations} = B | T],
-		SessionId, Now, Seconds, Octets, Cents, Acc) ->
+		SessionId, Now, Seconds, Octets, Cents, Msgs, Acc) ->
 	{Debit, NewReservations} = get_debits1(SessionId, Reservations, 0, []),
-	get_debits(T, SessionId, Now, Seconds, Octets, Cents  + Debit,
+	get_debits(T, SessionId, Now, Seconds, Octets, Cents  + Debit, Msgs,
 			[B#bucket{reservations = NewReservations} | Acc]);
-get_debits([], _SessionId, _Now, Seconds, Octets, Cents, Acc) ->
-	{Seconds, Octets, Cents, lists:reverse(Acc)}.
+get_debits([#bucket{units = messages, reservations = Reservations} = B | T],
+		SessionId, Now, Seconds, Octets, Cents, Msgs, Acc) ->
+	{Debit, NewReservations} = get_debits1(SessionId, Reservations, 0, []),
+	get_debits(T, SessionId, Now, Seconds, Octets, Cents, Msgs + Debit,
+			[B#bucket{reservations = NewReservations} | Acc]);
+get_debits([], _SessionId, _Now, Seconds, Octets, Cents, Msgs, Acc) ->
+	{Seconds, Octets, Cents, Msgs, lists:reverse(Acc)}.
 %% @hidden
 get_debits1(SessionId, [{_, Debited, _, SessionId} | T], Debit, Acc) ->
 	{Debited + Debit, lists:reverse(Acc) ++ T};
@@ -1493,4 +1511,44 @@ get_debits1(SessionId, [H | T], Debit, Acc) ->
 	get_debits1(SessionId, T, Debit, [H | Acc]);
 get_debits1(_SessionId, [], Debit, Acc) ->
 	{Debit, lists:reverse(Acc)}.
+
+-spec rated(Seconds, Octets, Cents, Messages, Rated) -> Result
+	when
+		Seconds :: non_neg_integer(),
+		Octets :: non_neg_integer(),
+		Cents :: non_neg_integer(),
+		Messages :: non_neg_integer(),
+		Rated :: #rated{},
+		Result :: [Rated].
+%% @doc Construct rated product usage.
+%% @hidden
+rated(Seconds, 0, 0, 0, Rated) when Seconds > 0 ->
+	[Rated#rated{bucket_value = Seconds,
+			bucket_type = seconds, is_billed = true}];
+rated(0, Octets, 0, 0, Rated) when Octets > 0 ->
+	[Rated#rated{bucket_value = Octets,
+			bucket_type = octets, is_billed = true}];
+rated(0, 0, Cents, 0, Rated) when Cents > 0 ->
+	[Rated#rated{bucket_type = cents,
+			tax_excluded_amount = Cents, is_billed = true}];
+rated(0, 0, 0, Msgs, Rated) when Msgs > 0 ->
+	[Rated#rated{bucket_value = Msgs,
+			bucket_type = messages, is_billed = true}];
+rated(Seconds, 0, Cents, 0, Rated) when Seconds > 0, Cents > 0 ->
+	[Rated#rated{bucket_type = seconds, bucket_value = Seconds,
+			usage_rating_tag = included, is_billed = true},
+			Rated#rated{bucket_type = cents,
+			tax_excluded_amount = Cents, is_billed = true}];
+rated(0, Octets, Cents, 0, Rated) when Octets > 0, Cents > 0 ->
+	[Rated#rated{bucket_type = octets, bucket_value = Octets,
+			usage_rating_tag = included, is_billed = true},
+			Rated#rated{bucket_type = cents,
+			tax_excluded_amount = Cents, is_billed = true}];
+rated(0, 0, Cents, Msgs, Rated) when Cents > 0, Msgs > 0 ->
+	[Rated#rated{bucket_type = cents, bucket_value = Cents,
+			usage_rating_tag = included, is_billed = true},
+			Rated#rated{bucket_type = messages,
+			tax_excluded_amount = Msgs, is_billed = true}];
+rated(0, 0, 0, 0, Rated) ->
+	[Rated#rated{is_billed = true}].
 

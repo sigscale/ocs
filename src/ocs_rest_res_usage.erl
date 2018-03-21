@@ -27,6 +27,7 @@
 
 -include_lib("radius/include/radius.hrl").
 -include("ocs_log.hrl").
+-include("diameter_gen_3gpp_ro_application.hrl").
 
 -define(usageSpecPath, "/usageManagement/v1/usageSpecification/").
 -define(usagePath, "/usageManagement/v1/usage/").
@@ -34,6 +35,9 @@
 %% support deprecated_time_unit()
 -define(MILLISECOND, milli_seconds).
 %-define(MILLISECOND, millisecond).
+
+% calendar:datetime_to_gregorian_seconds({{1970,1,1},{0,0,0}})
+-define(EPOCH, 62167219200).
 
 %%----------------------------------------------------------------------
 %%  The ocs_rest_res_usage API
@@ -229,7 +233,8 @@ get_usage(Id, [] = _Query, _Headers) ->
 get_usagespec([] = _Query) ->
 	RespHeaders = [{content_type, "application/json"}],
 	Body = mochijson:encode({array, [spec_aaa_auth(),
-			spec_aaa_acct(), spec_public_wlan()]}),
+			spec_aaa_acct(), spec_public_wlan(),
+			spec_voip()]}),
 	{ok, RespHeaders, Body};
 get_usagespec(Query) ->
 	RespHeaders = [{content_type, "application/json"}],
@@ -248,6 +253,11 @@ get_usagespec(Query) ->
 			Body = mochijson:encode({array, [spec_public_wlan()]}),
 			{ok, RespHeaders, Body};
 		{_, {_, "PublicWLANAccessUsageSpec"}, _} ->
+			{error, 400};
+		{_, {_, "VoIPUsageSpec"}, []} ->
+			Body = mochijson:encode({array, [spec_voip()]}),
+			{ok, RespHeaders, Body};
+		{_, {_, "VoIPUsageSpec"}, _} ->
 			{error, 400};
 		{_, {_, "HTTPTransferUsageSpec"}, []} ->
 			Body = mochijson:encode({array, [spec_http_transfer()]}),
@@ -285,6 +295,12 @@ get_usagespec("PublicWLANAccessUsageSpec", [] = _Query) ->
 	Body = mochijson:encode(spec_public_wlan()),
 	{ok, RespHeaders, Body};
 get_usagespec("PublicWLANAccessUsageSpec", _Query) ->
+	{error, 400};
+get_usagespec("VoIPUsageSpec", []) ->
+	RespHeaders = [{content_type, "application/json"}],
+	Body = mochijson:encode(spec_voip()),
+	{ok, RespHeaders, Body};
+get_usagespec("VoIPUsageSpec", _Query) ->
 	{error, 400};
 get_usagespec("HTTPTransferUsageSpec", [] = _Query) ->
 	RespHeaders = [{content_type, "application/json"}],
@@ -362,17 +378,33 @@ read_ipdr2(Log, Count, Acc)->
 
 %% @hidden
 ipdr_to_json(Count, Records) ->
-	F = fun(#ipdrDoc{}, {N, Acc}) ->
+	F = fun(#ipdrDocWLAN{}, {N, Acc}) ->
 				{N, Acc};
-			(#ipdr{} = Ipdr, {N, Acc}) ->
+			(#ipdrDocVoIP{}, {N, Acc}) ->
+				{N, Acc};
+			(#ipdr_wlan{} = Ipdr, {N, Acc}) ->
 				UsageSpecification = {struct, [{"id", 1},
 						{"href", ?usageSpecPath ++ "1"},
 						{"name", "PublicWLANAccessUsageSpec"}]},
-				UsageCharacteristicObjs = ipdr_characteristics(Ipdr),
+				UsageCharacteristicObjs = ipdr_wlan_characteristics(Ipdr),
 				UsageCharacteristic = {array, UsageCharacteristicObjs},
 				RespObj = [{struct, [{"id", N + 1},
 						{"href", ?usagePath ++ integer_to_list(N + 1)},
 						{"date", "SomeDateTime"}, {"type", "PublicWLANAccessUsage"},
+						{"description", "Description for individual usage content"},
+						{"status", "received"},
+						{"usageSpecification", UsageSpecification},
+						{"usageCharacteristic", UsageCharacteristic}]}],
+						{N + 1, [RespObj | Acc]};
+			(#ipdr_voip{} = Ipdr, {N, Acc}) ->
+				UsageSpecification = {struct, [{"id", "VoIPUsageSpec"},
+						{"href", ?usageSpecPath ++ "VoIPUsageSpec"},
+						{"name", "VoIPUsageSpec"}]},
+				UsageCharacteristicObjs = ipdr_voip_characteristics(Ipdr),
+				UsageCharacteristic = {array, UsageCharacteristicObjs},
+				RespObj = [{struct, [{"id", N + 1},
+						{"href", ?usagePath ++ integer_to_list(N + 1)},
+						{"date", "SomeDateTime"}, {"type", "VoIPUsage"},
 						{"description", "Description for individual usage content"},
 						{"status", "received"},
 						{"usageSpecification", UsageSpecification},
@@ -383,153 +415,282 @@ ipdr_to_json(Count, Records) ->
 	end,
 	lists:foldl(F, {Count, []}, Records).
 
+-spec ipdr_voip_characteristics(IPDRVoIP) -> IPDRVoIP
+	when
+		IPDRVoIP :: #ipdr_voip{} | [{struct, [tuple()]}].
+%% @doc Implements json object for ipdr_voip record
 %% @hidden
-ipdr_characteristics(#ipdr{} = Ipdr) ->
-	ipdr_characteristics(record_info(fields, ipdr), Ipdr, []).
+ipdr_voip_characteristics(#ipdr_voip{} = IPDR) ->
+	ipdr_voip_characteristics(record_info(fields, ipdr_voip), IPDR, []).
+%% @hidden
+ipdr_voip_characteristics([callCompletionCode | T],
+		#ipdr_voip{callCompletionCode = CCCode} = IPDR, Acc) ->
+	Obj = {struct, [{"name", "callCompletionCode"}, {"value", CCCode}]},
+	ipdr_voip_characteristics(T, IPDR, [Obj |Acc]);
+ipdr_voip_characteristics([hostName | T], #ipdr_voip{hostName = Host} = IPDR, Acc) ->
+	Obj = {struct, [{"name", "hostName"}, {"value", Host}]},
+	ipdr_voip_characteristics(T, IPDR, [Obj |Acc]);
+ipdr_voip_characteristics([subscriberId | T],
+		#ipdr_voip{subscriberId = SubscriberId} = IPDR, Acc) ->
+	Obj = {struct, [{"name", "subscriberId"}, {"value", SubscriberId}]},
+	ipdr_voip_characteristics(T, IPDR, [Obj |Acc]);
+ipdr_voip_characteristics([uniqueCallID | T],
+		#ipdr_voip{uniqueCallID = UniqueId} = IPDR, Acc) ->
+	Obj = {struct, [{"name", "uniqueCallID"}, {"value", UniqueId}]},
+	ipdr_voip_characteristics(T, IPDR, [Obj |Acc]);
+ipdr_voip_characteristics([disconnectReason | T],
+		#ipdr_voip{disconnectReason = DiscReason} = IPDR, Acc) ->
+	Obj = {struct, [{"name", "disconnectReason"}, {"value", DiscReason}]},
+	ipdr_voip_characteristics(T, IPDR, [Obj |Acc]);
+ipdr_voip_characteristics([destinationID | T],
+		#ipdr_voip{destinationID = DistID} = IPDR, Acc) ->
+	Obj = {struct, [{"name", "destinationID"}, {"value", DistID}]},
+	ipdr_voip_characteristics(T, IPDR, [Obj |Acc]);
+ipdr_voip_characteristics([bucketType | T],
+		#ipdr_voip{bucketType = undefined} = IPDR, Acc) ->
+	ipdr_voip_characteristics(T, IPDR, Acc);
+ipdr_voip_characteristics([bucketType | T],
+		#ipdr_voip{bucketType = BType} = IPDR, Acc) ->
+	Obj = {struct, [{"name", "bucketType"}, {"value", BType}]},
+	ipdr_voip_characteristics(T, IPDR, [Obj |Acc]);
+ipdr_voip_characteristics([bucketValue | T],
+		#ipdr_voip{bucketValue = undefined} = IPDR, Acc) ->
+	ipdr_voip_characteristics(T, IPDR, Acc);
+ipdr_voip_characteristics([bucketValue | T],
+		#ipdr_voip{bucketValue = BValue} = IPDR, Acc) ->
+	Obj = {struct, [{"name", "bucketValue"}, {"value", BValue}]},
+	ipdr_voip_characteristics(T, IPDR, [Obj |Acc]);
+ipdr_voip_characteristics([tariffType | T],
+		#ipdr_voip{tariffType = undefined} = IPDR, Acc) ->
+	ipdr_voip_characteristics(T, IPDR, Acc);
+ipdr_voip_characteristics([tariffType | T],
+		#ipdr_voip{tariffType = TValue} = IPDR, Acc) ->
+	Obj = {struct, [{"name", "tariffType"}, {"value", TValue}]},
+	ipdr_voip_characteristics(T, IPDR, [Obj |Acc]);
+ipdr_voip_characteristics([product | T],
+		#ipdr_voip{product = undefined} = IPDR, Acc) ->
+	ipdr_voip_characteristics(T, IPDR, Acc);
+ipdr_voip_characteristics([product | T],
+		#ipdr_voip{product = Prod} = IPDR, Acc) ->
+	Obj = {struct, [{"name", "product"}, {"value", Prod}]},
+	ipdr_voip_characteristics(T, IPDR, [Obj |Acc]);
+ipdr_voip_characteristics([priceType | T],
+		#ipdr_voip{priceType = undefined} = IPDR, Acc) ->
+	ipdr_voip_characteristics(T, IPDR, Acc);
+ipdr_voip_characteristics([priceType | T],
+		#ipdr_voip{priceType = PType} = IPDR, Acc) ->
+	Obj = {struct, [{"name", "priceType"}, {"value", PType}]},
+	ipdr_voip_characteristics(T, IPDR, [Obj |Acc]);
+ipdr_voip_characteristics([usageRating | T],
+		#ipdr_voip{usageRating = undefined} = IPDR, Acc) ->
+	ipdr_voip_characteristics(T, IPDR, Acc);
+ipdr_voip_characteristics([usageRating | T],
+		#ipdr_voip{usageRating = URate} = IPDR, Acc) ->
+	Obj = {struct, [{"name", "usageRating"}, {"value", URate}]},
+	ipdr_voip_characteristics(T, IPDR, [Obj |Acc]);
+ipdr_voip_characteristics([chargeAmount | T],
+		#ipdr_voip{chargeAmount = undefined} = IPDR, Acc) ->
+	ipdr_voip_characteristics(T, IPDR, Acc);
+ipdr_voip_characteristics([chargeAmount | T],
+		#ipdr_voip{chargeAmount = CA} = IPDR, Acc) ->
+	Obj = {struct, [{"name", "chargeAmount"}, {"value", CA}]},
+	ipdr_voip_characteristics(T, IPDR, [Obj |Acc]);
+ipdr_voip_characteristics([_ | T], IPDR, Acc) ->
+	ipdr_voip_characteristics(T, IPDR, Acc);
+ipdr_voip_characteristics([], _IPDR, Acc) ->
+	lists:reverse(Acc).
 
 %% @hidden
-ipdr_characteristics([ipdrCreationTime | T], Ipdr, Acc) ->
-	Struct = {struct, [{"key", "ipdrCreationTime"}, {"value", Ipdr#ipdr.ipdrCreationTime}]},
-	ipdr_characteristics(T, Ipdr, [Struct |Acc]);
-ipdr_characteristics([seqNum | T], Ipdr, Acc) ->
-	Struct = {struct, [{"key", "seqNum"}, {"value", Ipdr#ipdr.seqNum}]},
-	ipdr_characteristics(T, Ipdr, [Struct |Acc]);
-ipdr_characteristics([username | T], Ipdr, Acc) ->
-	Struct = {struct, [{"key", "username"}, {"value", Ipdr#ipdr.username}]},
-	ipdr_characteristics(T, Ipdr, [Struct |Acc]);
-ipdr_characteristics([scIdType | T], Ipdr, Acc) ->
-	Struct = {struct, [{"key", "scIdType"}, {"value", Ipdr#ipdr.scIdType}]},
-	ipdr_characteristics(T, Ipdr, [Struct |Acc]);
-ipdr_characteristics([scId | T], Ipdr, Acc) ->
-	Struct = {struct, [{"key", "scId"}, {"value", Ipdr#ipdr.scId}]},
-	ipdr_characteristics(T, Ipdr, [Struct |Acc]);
-ipdr_characteristics([homeServiceProviderType | T], Ipdr, Acc) ->
-	Struct = {struct, [{"key", "homeServiceProviderType"}, {"value", Ipdr#ipdr.homeServiceProviderType}]},
-	ipdr_characteristics(T, Ipdr, [Struct |Acc]);
-ipdr_characteristics([homeServiceProvider | T], Ipdr, Acc) ->
-	Struct = {struct, [{"key", "homeServiceProvider"}, {"value", Ipdr#ipdr.homeServiceProvider}]},
-	ipdr_characteristics(T, Ipdr, [Struct |Acc]);
-ipdr_characteristics([acctSessionId | T], Ipdr, Acc) ->
-	Struct = {struct, [{"key", "acctSessionId"}, {"value", Ipdr#ipdr.acctSessionId}]},
-	ipdr_characteristics(T, Ipdr, [Struct |Acc]);
-ipdr_characteristics([userIpAddress | T], Ipdr, Acc) ->
-	Struct = {struct, [{"key", "userIpAddress"}, {"value", Ipdr#ipdr.userIpAddress}]},
-	ipdr_characteristics(T, Ipdr, [Struct |Acc]);
-ipdr_characteristics([callingStationId | T], Ipdr, Acc) ->
-	Struct = {struct, [{"key", "callingStationId"}, {"value", Ipdr#ipdr.callingStationId}]},
-	ipdr_characteristics(T, Ipdr, [Struct |Acc]);
-ipdr_characteristics([nasIpAddress | T], Ipdr, Acc) ->
-	Struct = {struct, [{"key", "nasIpAddress"}, {"value", Ipdr#ipdr.nasIpAddress}]},
-	ipdr_characteristics(T, Ipdr, [Struct |Acc]);
-ipdr_characteristics([calledStationId | T], Ipdr, Acc) ->
-	Struct = {struct, [{"key", "calledStationId"}, {"value", Ipdr#ipdr.calledStationId}]},
-	ipdr_characteristics(T, Ipdr, [Struct |Acc]);
-ipdr_characteristics([nasId | T], Ipdr, Acc) ->
-	Struct = {struct, [{"key", "nasId"}, {"value", Ipdr#ipdr.nasId}]},
-	ipdr_characteristics(T, Ipdr, [Struct |Acc]);
-ipdr_characteristics([accessProviderType | T], Ipdr, Acc) ->
-	Struct = {struct, [{"key", "accessProviderType"}, {"value", Ipdr#ipdr.accessProviderType}]},
-	ipdr_characteristics(T, Ipdr, [Struct |Acc]);
-ipdr_characteristics([accessServiceProvider | T], Ipdr, Acc) ->
-	Struct = {struct, [{"key", "accessServiceProvider"}, {"value", Ipdr#ipdr.accessServiceProvider}]},
-	ipdr_characteristics(T, Ipdr, [Struct |Acc]);
-ipdr_characteristics([locationName | T], Ipdr, Acc) ->
-	Struct = {struct, [{"key", "locationName"}, {"value", Ipdr#ipdr.locationName}]},
-	ipdr_characteristics(T, Ipdr, [Struct |Acc]);
-ipdr_characteristics([locationId | T], Ipdr, Acc) ->
-	Struct = {struct, [{"key", "locationId"}, {"value", Ipdr#ipdr.locationId}]},
-	ipdr_characteristics(T, Ipdr, [Struct |Acc]);
-ipdr_characteristics([locationType | T], Ipdr, Acc) ->
-	Struct = {struct, [{"key", "locationType"}, {"value", Ipdr#ipdr.locationType}]},
-	ipdr_characteristics(T, Ipdr, [Struct |Acc]);
-ipdr_characteristics([locationCountryCode | T], Ipdr, Acc) ->
-	Struct = {struct, [{"key", "locationCountryCode"}, {"value", Ipdr#ipdr.locationCountryCode}]},
-	ipdr_characteristics(T, Ipdr, [Struct |Acc]);
-ipdr_characteristics([locationStateProvince | T], Ipdr, Acc) ->
-	Struct = {struct, [{"key", "locationStateProvince"}, {"value", Ipdr#ipdr.locationStateProvince}]},
-	ipdr_characteristics(T, Ipdr, [Struct |Acc]);
-ipdr_characteristics([locationCity | T], Ipdr, Acc) ->
-	Struct = {struct, [{"key", "locationCity"}, {"value", Ipdr#ipdr.locationCity}]},
-	ipdr_characteristics(T, Ipdr, [Struct |Acc]);
-ipdr_characteristics([locationGeocode | T], Ipdr, Acc) ->
-	Struct = {struct, [{"key", "locationGeocode"}, {"value", Ipdr#ipdr.locationGeocode}]},
-	ipdr_characteristics(T, Ipdr, [Struct |Acc]);
-ipdr_characteristics([locationGeocodeType | T], Ipdr, Acc) ->
-	Struct = {struct, [{"key", "locationGeocodeType"}, {"value", Ipdr#ipdr.locationGeocodeType}]},
-	ipdr_characteristics(T, Ipdr, [Struct |Acc]);
-ipdr_characteristics([nasPortType | T], Ipdr, Acc) ->
-	Struct = {struct, [{"key", "nasPortType"}, {"value", Ipdr#ipdr.nasPortType}]},
-	ipdr_characteristics(T, Ipdr, [Struct |Acc]);
-ipdr_characteristics([paymentType | T], Ipdr, Acc) ->
-	Struct = {struct, [{"key", "paymentType"}, {"value", Ipdr#ipdr.paymentType}]},
-	ipdr_characteristics(T, Ipdr, [Struct |Acc]);
-ipdr_characteristics([networkConnectionType | T], Ipdr, Acc) ->
-	Struct = {struct, [{"key", "networkConnectionType"}, {"value", Ipdr#ipdr.networkConnectionType}]},
-	ipdr_characteristics(T, Ipdr, [Struct |Acc]);
-ipdr_characteristics([sessionDuration | T], Ipdr, Acc) ->
-	Struct = {struct, [{"key", "sessionDuration"}, {"value", Ipdr#ipdr.sessionDuration}]},
-	ipdr_characteristics(T, Ipdr, [Struct |Acc]);
-ipdr_characteristics([inputOctets | T], Ipdr, Acc) ->
-	Struct = {struct, [{"key", "inputOctets"}, {"value", Ipdr#ipdr.inputOctets}]},
-	ipdr_characteristics(T, Ipdr, [Struct |Acc]);
-ipdr_characteristics([outputOctets | T], Ipdr, Acc) ->
-	Struct = {struct, [{"key", "outputOctets"}, {"value", Ipdr#ipdr.outputOctets}]},
-	ipdr_characteristics(T, Ipdr, [Struct |Acc]);
-ipdr_characteristics([class | T], Ipdr, Acc) ->
-	Struct = {struct, [{"key", "class"}, {"value", Ipdr#ipdr.class}]},
-	ipdr_characteristics(T, Ipdr, [Struct |Acc]);
-ipdr_characteristics([gmtSessionStartDateTime | T], Ipdr, Acc) ->
-	Struct = {struct, [{"key", "gmtSessionStartDateTime"}, {"value", Ipdr#ipdr.gmtSessionStartDateTime}]},
-	ipdr_characteristics(T, Ipdr, [Struct |Acc]);
-ipdr_characteristics([gmtSessionEndDateTime | T], Ipdr, Acc) ->
-	Struct = {struct, [{"key", "gmtSessionEndDateTime"}, {"value", Ipdr#ipdr.gmtSessionEndDateTime}]},
-	ipdr_characteristics(T, Ipdr, [Struct |Acc]);
-ipdr_characteristics([sessionTerminateCause | T], Ipdr, Acc) ->
-	Struct = {struct, [{"key", "sessionTerminateCause"}, {"value", Ipdr#ipdr.sessionTerminateCause}]},
-	ipdr_characteristics(T, Ipdr, [Struct |Acc]);
-ipdr_characteristics([billingClassOfService | T], Ipdr, Acc) ->
-	Struct = {struct, [{"key", "billingClassOfService"}, {"value", Ipdr#ipdr.billingClassOfService}]},
-	ipdr_characteristics(T, Ipdr, [Struct |Acc]);
-ipdr_characteristics([unitOfMeasure | T], Ipdr, Acc) ->
-	Struct = {struct, [{"key", "unitOfMeasure"}, {"value", Ipdr#ipdr.unitOfMeasure}]},
-	ipdr_characteristics(T, Ipdr, [Struct |Acc]);
-ipdr_characteristics([chargeableUnit | T], Ipdr, Acc) ->
-	Struct = {struct, [{"key", "chargeableUnit"}, {"value", Ipdr#ipdr.chargeableUnit}]},
-	ipdr_characteristics(T, Ipdr, [Struct |Acc]);
-ipdr_characteristics([chargeableQuantity | T], Ipdr, Acc) ->
-	Struct = {struct, [{"key", "chargeableQuantity"}, {"value", Ipdr#ipdr.chargeableQuantity}]},
-	ipdr_characteristics(T, Ipdr, [Struct |Acc]);
-ipdr_characteristics([chargeAmount | T], Ipdr, Acc) ->
-	Struct = {struct, [{"key", "chargeAmount"}, {"value", Ipdr#ipdr.chargeAmount}]},
-	ipdr_characteristics(T, Ipdr, [Struct |Acc]);
-ipdr_characteristics([chargeCurrencyType | T], Ipdr, Acc) ->
-	Struct = {struct, [{"key", "chargeCurrencyType"}, {"value", Ipdr#ipdr.chargeCurrencyType}]},
-	ipdr_characteristics(T, Ipdr, [Struct |Acc]);
-ipdr_characteristics([otherParty | T], Ipdr, Acc) ->
-	Struct = {struct, [{"key", "otherParty"}, {"value", Ipdr#ipdr.otherParty}]},
-	ipdr_characteristics(T, Ipdr, [Struct |Acc]);
-ipdr_characteristics([taxPercentage | T], Ipdr, Acc) ->
-	Struct = {struct, [{"key", "taxPercentage"}, {"value", Ipdr#ipdr.taxPercentage}]},
-	ipdr_characteristics(T, Ipdr, [Struct |Acc]);
-ipdr_characteristics([taxAmount | T], Ipdr, Acc) ->
-	Struct = {struct, [{"key", "taxAmount"}, {"value", Ipdr#ipdr.taxAmount}]},
-	ipdr_characteristics(T, Ipdr, [Struct |Acc]);
-ipdr_characteristics([taxType | T], Ipdr, Acc) ->
-	Struct = {struct, [{"key", "taxType"}, {"value", Ipdr#ipdr.taxType}]},
-	ipdr_characteristics(T, Ipdr, [Struct |Acc]);
-ipdr_characteristics([intermediaryName | T], Ipdr, Acc) ->
-	Struct = {struct, [{"key", "intermediaryName"}, {"value", Ipdr#ipdr.intermediaryName}]},
-	ipdr_characteristics(T, Ipdr, [Struct |Acc]);
-ipdr_characteristics([serviceName | T], Ipdr, Acc) ->
-	Struct = {struct, [{"key", "serviceName"}, {"value", Ipdr#ipdr.serviceName}]},
-	ipdr_characteristics(T, Ipdr, [Struct |Acc]);
-ipdr_characteristics([relatedIpdrIdList | T], Ipdr, Acc) ->
-	Struct = {struct, [{"key", "relatedIpdrIdList"}, {"value", Ipdr#ipdr.relatedIpdrIdList}]},
-	ipdr_characteristics(T, Ipdr, [Struct |Acc]);
-ipdr_characteristics([tempUserId | T], Ipdr, Acc) ->
-	Struct = {struct, [{"key", "tempUserId"}, {"value", Ipdr#ipdr.tempUserId}]},
-	ipdr_characteristics(T, Ipdr, [Struct |Acc]);
-ipdr_characteristics([], _Ipdr, Acc) ->
+ipdr_wlan_characteristics(#ipdr_wlan{} = Ipdr) ->
+	ipdr_wlan_characteristics(record_info(fields, ipdr_wlan), Ipdr, []).
+
+%% @hidden
+ipdr_wlan_characteristics([ipdrCreationTime | T], #ipdr_wlan{ipdrCreationTime = IpdrCreationTime} = Ipdr, Acc)
+		when is_list(IpdrCreationTime) ->
+	Struct = {struct, [{"name", "ipdrCreationTime"}, {"value", IpdrCreationTime}]},
+	ipdr_wlan_characteristics(T, Ipdr, [Struct |Acc]);
+ipdr_wlan_characteristics([seqNum | T], #ipdr_wlan{seqNum = SeqNum} = Ipdr, Acc)
+		when is_integer(SeqNum) ->
+	Struct = {struct, [{"name", "seqNum"}, {"value", SeqNum}]},
+	ipdr_wlan_characteristics(T, Ipdr, [Struct |Acc]);
+ipdr_wlan_characteristics([username | T], #ipdr_wlan{username = Username} = Ipdr, Acc)
+		when is_list(Username)->
+	Struct = {struct, [{"name", "username"}, {"value", Username}]},
+	ipdr_wlan_characteristics(T, Ipdr, [Struct |Acc]);
+ipdr_wlan_characteristics([scIdType | T], #ipdr_wlan{scIdType = ScIdType} = Ipdr, Acc)
+		when is_integer(ScIdType) ->
+	Struct = {struct, [{"name", "scIdType"}, {"value", ScIdType}]},
+	ipdr_wlan_characteristics(T, Ipdr, [Struct |Acc]);
+ipdr_wlan_characteristics([scId | T], #ipdr_wlan{scId = ScId} = Ipdr, Acc)
+		when is_list(ScId) ->
+	Struct = {struct, [{"name", "scId"}, {"value", ScId}]},
+	ipdr_wlan_characteristics(T, Ipdr, [Struct |Acc]);
+ipdr_wlan_characteristics([homeServiceProviderType | T], #ipdr_wlan{homeServiceProviderType
+		= HomeServiceProviderType} = Ipdr, Acc) when is_integer(HomeServiceProviderType) ->
+	Struct = {struct, [{"name", "homeServiceProviderType"}, {"value", HomeServiceProviderType}]},
+	ipdr_wlan_characteristics(T, Ipdr, [Struct |Acc]);
+ipdr_wlan_characteristics([homeServiceProvider | T], #ipdr_wlan{homeServiceProvider
+		= HomeServiceProvider} = Ipdr, Acc) when is_list(HomeServiceProvider) ->
+	Struct = {struct, [{"name", "homeServiceProvider"}, {"value", Ipdr#ipdr_wlan.homeServiceProvider}]},
+	ipdr_wlan_characteristics(T, Ipdr, [Struct |Acc]);
+ipdr_wlan_characteristics([acctSessionId | T], #ipdr_wlan{acctSessionId = AcctSessionId} = Ipdr, Acc)
+		when is_list(AcctSessionId)->
+	Struct = {struct, [{"name", "acctSessionId"}, {"value", AcctSessionId}]},
+	ipdr_wlan_characteristics(T, Ipdr, [Struct |Acc]);
+ipdr_wlan_characteristics([userIpAddress | T], #ipdr_wlan{userIpAddress = UserIpAddress} = Ipdr, Acc)
+		when is_list(UserIpAddress)->
+	Struct = {struct, [{"name", "userIpAddress"}, {"value", UserIpAddress}]},
+	ipdr_wlan_characteristics(T, Ipdr, [Struct |Acc]);
+ipdr_wlan_characteristics([callingStationId | T], #ipdr_wlan{callingStationId = CallingStationId} = Ipdr,
+		Acc) when is_list(CallingStationId) ->
+	Struct = {struct, [{"name", "callingStationId"}, {"value", CallingStationId}]},
+	ipdr_wlan_characteristics(T, Ipdr, [Struct |Acc]);
+ipdr_wlan_characteristics([nasIpAddress | T], #ipdr_wlan{nasIpAddress = NasIpAddress} = Ipdr, Acc)
+		when is_list(NasIpAddress) ->
+	Struct = {struct, [{"name", "nasIpAddress"}, {"value", NasIpAddress}]},
+	ipdr_wlan_characteristics(T, Ipdr, [Struct |Acc]);
+ipdr_wlan_characteristics([calledStationId | T], #ipdr_wlan{calledStationId = CalledStationId} = Ipdr,
+		Acc) when is_list(CalledStationId) ->
+	Struct = {struct, [{"name", "calledStationId"}, {"value", CalledStationId}]},
+	ipdr_wlan_characteristics(T, Ipdr, [Struct |Acc]);
+ipdr_wlan_characteristics([nasId | T], #ipdr_wlan{nasId = NasId} = Ipdr, Acc) when is_list(NasId) ->
+	Struct = {struct, [{"name", "nasId"}, {"value", NasId}]},
+	ipdr_wlan_characteristics(T, Ipdr, [Struct |Acc]);
+ipdr_wlan_characteristics([accessProviderType | T], #ipdr_wlan{accessProviderType = AccessProviderType}
+		= Ipdr, Acc) when is_integer(AccessProviderType) ->
+	Struct = {struct, [{"name", "accessProviderType"}, {"value", AccessProviderType}]},
+	ipdr_wlan_characteristics(T, Ipdr, [Struct |Acc]);
+ipdr_wlan_characteristics([accessServiceProvider | T], #ipdr_wlan{accessServiceProvider
+		= AccessServiceProvider} = Ipdr, Acc) when is_list(AccessServiceProvider) ->
+	Struct = {struct, [{"name", "accessServiceProvider"}, {"value", AccessServiceProvider}]},
+	ipdr_wlan_characteristics(T, Ipdr, [Struct |Acc]);
+ipdr_wlan_characteristics([locationName | T], #ipdr_wlan{locationName = LocationName} = Ipdr, Acc)
+		when is_list(LocationName) ->
+	Struct = {struct, [{"name", "locationName"}, {"value", LocationName}]},
+	ipdr_wlan_characteristics(T, Ipdr, [Struct |Acc]);
+ipdr_wlan_characteristics([locationId | T], #ipdr_wlan{locationId = LocationId} = Ipdr, Acc)
+		when is_list(LocationId) ->
+	Struct = {struct, [{"name", "locationId"}, {"value", LocationId}]},
+	ipdr_wlan_characteristics(T, Ipdr, [Struct |Acc]);
+ipdr_wlan_characteristics([locationType | T], #ipdr_wlan{locationType = LocationType} = Ipdr, Acc) ->
+	Struct = {struct, [{"name", "locationType"}, {"value", LocationType}]},
+	ipdr_wlan_characteristics(T, Ipdr, [Struct |Acc]);
+ipdr_wlan_characteristics([locationCountryCode | T], #ipdr_wlan{locationCountryCode =
+		LocationCountryCode} = Ipdr, Acc) when is_list(LocationCountryCode) ->
+	Struct = {struct, [{"name", "locationCountryCode"}, {"value", LocationCountryCode}]},
+	ipdr_wlan_characteristics(T, Ipdr, [Struct |Acc]);
+ipdr_wlan_characteristics([locationStateProvince | T], #ipdr_wlan{locationStateProvince =
+		LocationStateProvince} = Ipdr, Acc) when is_list(LocationStateProvince) ->
+	Struct = {struct, [{"name", "locationStateProvince"}, {"value", LocationStateProvince}]},
+	ipdr_wlan_characteristics(T, Ipdr, [Struct |Acc]);
+ipdr_wlan_characteristics([locationCity | T], #ipdr_wlan{locationCity = LocationCity} = Ipdr, Acc)
+		when is_list(LocationCity) ->
+	Struct = {struct, [{"name", "locationCity"}, {"value", LocationCity}]},
+	ipdr_wlan_characteristics(T, Ipdr, [Struct |Acc]);
+ipdr_wlan_characteristics([locationGeocode | T], #ipdr_wlan{locationGeocode = LocationGeocode} = Ipdr,
+		Acc) when is_list(LocationGeocode) ->
+	Struct = {struct, [{"name", "locationGeocode"}, {"value", LocationGeocode}]},
+	ipdr_wlan_characteristics(T, Ipdr, [Struct |Acc]);
+ipdr_wlan_characteristics([locationGeocodeType | T], #ipdr_wlan{locationGeocodeType
+		= LocationGeocodeType} = Ipdr, Acc) when is_list(LocationGeocodeType) ->
+	Struct = {struct, [{"name", "locationGeocodeType"}, {"value", LocationGeocodeType}]},
+	ipdr_wlan_characteristics(T, Ipdr, [Struct |Acc]);
+ipdr_wlan_characteristics([nasPortType | T], #ipdr_wlan{nasPortType = NasPortType} = Ipdr, Acc)
+		when is_integer(NasPortType) ->
+	Struct = {struct, [{"name", "nasPortType"}, {"value", NasPortType}]},
+	ipdr_wlan_characteristics(T, Ipdr, [Struct |Acc]);
+ipdr_wlan_characteristics([paymentType | T], #ipdr_wlan{paymentType = PaymentType} = Ipdr, Acc)
+		when is_integer(PaymentType) ->
+	Struct = {struct, [{"name", "paymentType"}, {"value", PaymentType}]},
+	ipdr_wlan_characteristics(T, Ipdr, [Struct |Acc]);
+ipdr_wlan_characteristics([networkConnectionType | T], #ipdr_wlan{networkConnectionType
+		= NetworkConnectionType} = Ipdr, Acc) ->
+	Struct = {struct, [{"name", "networkConnectionType"}, {"value", NetworkConnectionType}]},
+	ipdr_wlan_characteristics(T, Ipdr, [Struct |Acc]);
+ipdr_wlan_characteristics([sessionDuration | T], #ipdr_wlan{sessionDuration = SessionDuration}
+		= Ipdr, Acc) when is_integer(SessionDuration) ->
+	Struct = {struct, [{"name", "sessionDuration"}, {"value", SessionDuration}]},
+	ipdr_wlan_characteristics(T, Ipdr, [Struct |Acc]);
+ipdr_wlan_characteristics([inputOctets | T], #ipdr_wlan{inputOctets = InputOctets} = Ipdr, Acc)
+		when is_integer(InputOctets) ->
+	Struct = {struct, [{"name", "inputOctets"}, {"value", InputOctets}]},
+	ipdr_wlan_characteristics(T, Ipdr, [Struct |Acc]);
+ipdr_wlan_characteristics([outputOctets | T], #ipdr_wlan{outputOctets = OutputOctets} = Ipdr, Acc)
+		when is_integer(OutputOctets) ->
+	Struct = {struct, [{"name", "outputOctets"}, {"value", OutputOctets}]},
+	ipdr_wlan_characteristics(T, Ipdr, [Struct |Acc]);
+ipdr_wlan_characteristics([class | T], #ipdr_wlan{class = Class} = Ipdr, Acc) when is_list(Class) ->
+	Struct = {struct, [{"name", "class"}, {"value", Class}]},
+	ipdr_wlan_characteristics(T, Ipdr, [Struct |Acc]);
+ipdr_wlan_characteristics([gmtSessionStartDateTime | T], #ipdr_wlan{gmtSessionStartDateTime =
+		GmtSessionStartDateTime} = Ipdr, Acc) when is_list(GmtSessionStartDateTime) ->
+	Struct = {struct, [{"name", "gmtSessionStartDateTime"}, {"value", GmtSessionStartDateTime}]},
+	ipdr_wlan_characteristics(T, Ipdr, [Struct |Acc]);
+ipdr_wlan_characteristics([gmtSessionEndDateTime | T], #ipdr_wlan{gmtSessionEndDateTime =
+		GmtSessionEndDateTime} = Ipdr, Acc) when is_list(GmtSessionEndDateTime) ->
+	Struct = {struct, [{"name", "gmtSessionEndDateTime"}, {"value", GmtSessionEndDateTime}]},
+	ipdr_wlan_characteristics(T, Ipdr, [Struct |Acc]);
+ipdr_wlan_characteristics([sessionTerminateCause | T], #ipdr_wlan{sessionTerminateCause =
+		SessionTerminateCause} = Ipdr, Acc) when is_integer(SessionTerminateCause) ->
+	Struct = {struct, [{"name", "sessionTerminateCause"}, {"value", SessionTerminateCause}]},
+	ipdr_wlan_characteristics(T, Ipdr, [Struct |Acc]);
+ipdr_wlan_characteristics([billingClassOfService | T], #ipdr_wlan{billingClassOfService =
+		BillingClassOfService} = Ipdr, Acc) when is_list(BillingClassOfService) ->
+	Struct = {struct, [{"name", "billingClassOfService"}, {"value", BillingClassOfService}]},
+	ipdr_wlan_characteristics(T, Ipdr, [Struct |Acc]);
+ipdr_wlan_characteristics([unitOfMeasure | T], #ipdr_wlan{unitOfMeasure = UnitOfMeasure} = Ipdr, Acc)
+		when is_integer(UnitOfMeasure) ->
+	Struct = {struct, [{"name", "unitOfMeasure"}, {"value", UnitOfMeasure}]},
+	ipdr_wlan_characteristics(T, Ipdr, [Struct |Acc]);
+ipdr_wlan_characteristics([chargeableUnit | T], #ipdr_wlan{chargeableUnit = ChargeableUnit} = Ipdr,
+		Acc) when is_integer(ChargeableUnit) ->
+	Struct = {struct, [{"name", "chargeableUnit"}, {"value", ChargeableUnit}]},
+	ipdr_wlan_characteristics(T, Ipdr, [Struct |Acc]);
+ipdr_wlan_characteristics([chargeableQuantity | T], #ipdr_wlan{chargeableQuantity =
+		ChargeableQuantity} = Ipdr, Acc) ->
+	Struct = {struct, [{"name", "chargeableQuantity"}, {"value", ChargeableQuantity}]},
+	ipdr_wlan_characteristics(T, Ipdr, [Struct |Acc]);
+ipdr_wlan_characteristics([chargeAmount | T], #ipdr_wlan{chargeAmount = ChargeAmount} = Ipdr, Acc)
+		when is_integer(ChargeAmount) ->
+	Struct = {struct, [{"name", "chargeAmount"}, {"value", ChargeAmount}]},
+	ipdr_wlan_characteristics(T, Ipdr, [Struct |Acc]);
+ipdr_wlan_characteristics([chargeCurrencyType | T], #ipdr_wlan{chargeCurrencyType =
+		ChargeCurrencyType} = Ipdr, Acc) when is_list(ChargeCurrencyType)->
+	Struct = {struct, [{"name", "chargeCurrencyType"}, {"value", ChargeCurrencyType}]},
+	ipdr_wlan_characteristics(T, Ipdr, [Struct |Acc]);
+ipdr_wlan_characteristics([otherParty | T], #ipdr_wlan{otherParty = OtherParty} = Ipdr, Acc)
+		when is_list(OtherParty) ->
+	Struct = {struct, [{"name", "otherParty"}, {"value", OtherParty}]},
+	ipdr_wlan_characteristics(T, Ipdr, [Struct |Acc]);
+ipdr_wlan_characteristics([taxPercentage | T], #ipdr_wlan{taxPercentage = TaxPercentage} = Ipdr, Acc)
+		when is_integer(TaxPercentage) ->
+	Struct = {struct, [{"name", "taxPercentage"}, {"value", TaxPercentage}]},
+	ipdr_wlan_characteristics(T, Ipdr, [Struct |Acc]);
+ipdr_wlan_characteristics([taxAmount | T], #ipdr_wlan{taxAmount = TaxAmount} = Ipdr, Acc) ->
+	Struct = {struct, [{"name", "taxAmount"}, {"value", TaxAmount}]},
+	ipdr_wlan_characteristics(T, Ipdr, [Struct |Acc]);
+ipdr_wlan_characteristics([taxType | T], #ipdr_wlan{taxType = TaxType} = Ipdr, Acc) when is_integer(TaxType) ->
+	Struct = {struct, [{"name", "taxType"}, {"value", TaxType}]},
+	ipdr_wlan_characteristics(T, Ipdr, [Struct |Acc]);
+ipdr_wlan_characteristics([intermediaryName | T], #ipdr_wlan{intermediaryName = IntermediaryName} =
+		Ipdr, Acc) when is_list(IntermediaryName) ->
+	Struct = {struct, [{"name", "intermediaryName"}, {"value", IntermediaryName}]},
+	ipdr_wlan_characteristics(T, Ipdr, [Struct |Acc]);
+ipdr_wlan_characteristics([serviceName | T], #ipdr_wlan{serviceName = ServiceName} = Ipdr, Acc)
+		when is_integer(ServiceName) ->
+	Struct = {struct, [{"name", "serviceName"}, {"value", ServiceName}]},
+	ipdr_wlan_characteristics(T, Ipdr, [Struct |Acc]);
+ipdr_wlan_characteristics([relatedIpdrIdList | T], #ipdr_wlan{relatedIpdrIdList = RelatedIpdrIdList}
+		= Ipdr, Acc) when is_list(RelatedIpdrIdList) ->
+	Struct = {struct, [{"name", "relatedIpdrIdList"}, {"value", RelatedIpdrIdList}]},
+	ipdr_wlan_characteristics(T, Ipdr, [Struct |Acc]);
+ipdr_wlan_characteristics([tempUserId | T], #ipdr_wlan{tempUserId = TempUserId} = Ipdr, Acc)
+		when is_list(TempUserId) ->
+	Struct = {struct, [{"name", "tempUserId"}, {"value", TempUserId}]},
+	ipdr_wlan_characteristics(T, Ipdr, [Struct |Acc]);
+ipdr_wlan_characteristics([_ | T], Ipdr, Acc) ->
+	ipdr_wlan_characteristics(T, Ipdr, Acc);
+ipdr_wlan_characteristics([], _Ipdr, Acc) ->
 	lists:reverse(Acc).
 
 %% @hidden
@@ -581,6 +742,59 @@ usage_aaa_auth([], _Filters, Acc) ->
 	lists:reverse(Acc).
 
 %% @hidden
+usage_aaa_ipdr(Event, Filters) when is_record(Event, ipdr_wlan) ->
+	UsageSpec = {struct, [{"id", "PublicWLANAccessUsageSpec"},
+			{"href", ?usageSpecPath ++ "PublicWLANAccessUsageSpec"},
+			{"name", "PublicWLANAccessUsageSpec"}]},
+	Type = "PublicWLANAccessUsage",
+	Status = "rated",
+	ID = integer_to_list(Event#ipdr_wlan.seqNum),
+	Href = ?usagePath ++ ID,
+	Date = Event#ipdr_wlan.ipdrCreationTime,
+	Chars = ipdr_wlan_characteristics(Event),
+	Object = {struct, [{"id", ID}, {"href", Href}, {"date", Date}, {"type", Type},
+			{"status", Status}, {"usageSpecification", UsageSpec},
+			{"usageCharacteristic", {array, Chars}}]},
+	case Filters of
+		[] ->
+			Object;
+		_ ->
+			ocs_rest:fields("id,href," ++ Filters, Object)
+	end;
+usage_aaa_ipdr(Event, Filters) when is_record(Event, ipdr_voip) ->
+	UsageSpec = {struct, [{"id", "VoIPUsageSpec"},
+			{"href", ?usageSpecPath ++ "VoIPUsageSpec"},
+			{"name", "VoIPUsageSpec"}]},
+	Type = "VoIPUsage",
+	Status = "rated",
+	ID = integer_to_list(Event#ipdr_voip.seqNum),
+	Href = ?usagePath ++ ID,
+	Date = Event#ipdr_voip.ipdrCreationTime,
+	Chars = ipdr_voip_characteristics(Event),
+	Object = {struct, [{"id", ID}, {"href", Href}, {"date", Date}, {"type", Type},
+			{"status", Status}, {"usageSpecification", UsageSpec},
+			{"usageCharacteristic", {array, Chars}}]},
+	case Filters of
+		[] ->
+			Object;
+		_ ->
+			ocs_rest:fields("id,href," ++ Filters, Object)
+	end;
+usage_aaa_ipdr(Event, Filters) when is_list(Event) ->
+	usage_aaa_ipdr(Event, Filters, []).
+%% @hidden
+usage_aaa_ipdr([#ipdrDocWLAN{} | T], Filters, Acc) ->
+	usage_aaa_ipdr(T, Filters, Acc);
+usage_aaa_ipdr([#ipdrDocVoIP{} | T], Filters, Acc) ->
+	usage_aaa_ipdr(T, Filters, Acc);
+usage_aaa_ipdr([#ipdrDocEnd{} | T], Filters, Acc) ->
+	usage_aaa_ipdr(T, Filters, Acc);
+usage_aaa_ipdr([H | T], Filters, Acc) ->
+	usage_aaa_ipdr(T, Filters, [usage_aaa_ipdr(H, Filters) | Acc]);
+usage_aaa_ipdr([], _Filters, Acc) ->
+	lists:reverse(Acc).
+
+%% @hidden
 usage_aaa_acct(Event, Filters) when is_tuple(Event), size(Event) > 6 ->
 	Milliseconds = element(1, Event),
 	{ServerIP, ServerPort} = element(5, Event),
@@ -609,9 +823,27 @@ usage_aaa_acct(Event, Filters) when is_tuple(Event), size(Event) > 6 ->
 					{"value", atom_to_list(element(6, Event))}]}],
 	AttributeChars = usage_characteristics(element(7, Event)),
 	UsageChars = EventChars ++ AttributeChars,
+	Frated = fun(#rated{tax_excluded_amount = TaxExcluded})
+					when is_integer(TaxExcluded) ->
+				{struct, [{"taxExcludedRatingAmount", ocs_rest:decimal(TaxExcluded)}]};
+			(_) ->
+				{struct, []}
+	end,
+	RatedUsage = case size(Event) > 8 of
+		true ->
+			case element(9, Event) of
+				Rated when is_list(Rated) ->
+					[{"ratedProductUsage",
+							{array, lists:map(Frated, Rated)}}];
+				undefined ->
+					[]
+			end;
+		false ->
+			[]
+	end,
 	Object = {struct, [{"id", ID}, {"href", Href}, {"date", Date}, {"type", Type},
 			{"status", Status}, {"usageSpecification", UsageSpec},
-			{"usageCharacteristic", {array, UsageChars}}]},
+			{"usageCharacteristic", {array, UsageChars}}] ++ RatedUsage},
 	case Filters of
 		[] ->
 			Object;
@@ -724,6 +956,77 @@ spec_http_transfer() ->
 	Chars = [{struct, [{"todo", "todo"}]}],
 	Char = {"usageSpecCharacteristic", {array, Chars}},
 	{struct, [ID, Href, Name, Desc, Valid, Char]}.
+
+spec_voip() ->
+	ID = {"id", "VoIPUsageSpec"},
+	Href = {"href", ?usageSpecPath ++ "VoIPUsageSpec"},
+	Name = {"name", "VoIPUsageSpec"},
+	Desc = {"description", ""},
+	Start = {"startDateTime", "2018-03-12T00:00:00Z"},
+	End = {"endDateTime", "2018-12-31T23:59:59Z"},
+	Valid = {"validFor", {struct, [Start, End]}},
+	Chars = lists:reverse(spec_voip1([])),
+	Char = {"usageSpecCharacteristic", {array, Chars}},
+	{struct, [ID, Href, Name, Desc, Valid, Char]}.
+%% @hidden
+spec_voip1(Acc) ->
+	Name = {"name", "callCompletionCode"},
+	Desc = {"description", "Final call completion code for billing use"},
+	Conf = {"configurable", false},
+	Typ = {"valueType", "Number"},
+	Value1 = {struct, [Typ]},
+	Value = {"usageSpecCharacteristicValue", {array, [Value1]}},
+	NewAcc = [{struct, [Name, Desc, Conf, Value]} | Acc],
+	spec_voip2(NewAcc).
+%% @hidden
+spec_voip2(Acc) ->
+	Name = {"name", "hostName"},
+	Desc = {"description", "Name of call management server controlling call processing"},
+	Conf = {"configurable", false},
+	Typ = {"valueType", "String"},
+	Value1 = {struct, [Typ]},
+	Value = {"usageSpecCharacteristicValue", {array, [Value1]}},
+	NewAcc = [{struct, [Name, Desc, Conf, Value]} | Acc],
+	spec_voip3(NewAcc).
+%% @hidden
+spec_voip3(Acc) ->
+	Name = {"name", "subscriberId"},
+	Desc = {"description", "Unique within a service provider network. Tied to a SC or a SE requesting a service"},
+	Conf = {"configurable", false},
+	Typ = {"valueType", "String"},
+	Value1 = {struct, [Typ]},
+	Value = {"usageSpecCharacteristicValue", {array, [Value1]}},
+	NewAcc = [{struct, [Name, Desc, Conf, Value]} | Acc],
+	spec_voip4(NewAcc).
+%% @hidden
+spec_voip4(Acc) ->
+	Name = {"name", "uniqueCallID"},
+	Desc = {"description", "Unique Call ID to identify that different IPDRs generated by different elements are for the same call"},
+	Conf = {"configurable", false},
+	Typ = {"valueType", "String"},
+	Value1 = {struct, [Typ]},
+	Value = {"usageSpecCharacteristicValue", {array, [Value1]}},
+	NewAcc = [{struct, [Name, Desc, Conf, Value]} | Acc],
+	spec_voip5(NewAcc).
+%% @hidden
+spec_voip5(Acc) ->
+	Name = {"name", "disconnectReason"},
+	Desc = {"description", "Reason that call was disconnected based on Call CompletionCode"},
+	Conf = {"configurable", false},
+	Typ = {"valueType", "String"},
+	Value1 = {struct, [Typ]},
+	Value = {"usageSpecCharacteristicValue", {array, [Value1]}},
+	NewAcc = [{struct, [Name, Desc, Conf, Value]} | Acc],
+	spec_voip6(NewAcc).
+spec_voip6(Acc) ->
+	Name = {"name", "destinationID"},
+	Desc = {"description", "ID of called party"},
+	Conf = {"configurable", false},
+	Typ = {"valueType", "String"},
+	Value1 = {struct, [Typ]},
+	Value = {"usageSpecCharacteristicValue", {array, [Value1]}},
+	NewAcc = [{struct, [Name, Desc, Conf, Value]} | Acc],
+	lists:reverse(NewAcc).
 
 %% @hidden
 spec_public_wlan() ->
@@ -1815,6 +2118,19 @@ usage_characteristics(Attributes) ->
 	lists:reverse(char_attr_username(Attributes, [])).
 
 %% @hidden
+char_attr_username(#'3gpp_ro_CCR'{'Subscription-Id'
+		= [#'3gpp_ro_Subscription-Id'{'Subscription-Id-Data' = ID}]} = CCR,
+		Acc) when is_binary(ID) ->
+	NewAcc = [{struct, [{"name", "username"},
+			{"value", binary_to_list(ID)}]} | Acc],
+	char_attr_nas_ip(CCR, NewAcc);
+char_attr_username(#'3gpp_ro_CCR'{'User-Name' = [Username]} = CCR, Acc)
+		when is_binary(Username) ->
+	NewAcc = [{struct, [{"name", "username"},
+			{"value", binary_to_list(Username)}]} | Acc],
+	char_attr_nas_ip(CCR, NewAcc);
+char_attr_username(#'3gpp_ro_CCR'{} = CCR, Acc) ->
+	char_attr_nas_ip(CCR, Acc);
 char_attr_username(Attributes, Acc) ->
 	NewAcc = case radius_attributes:find(?UserName, Attributes) of
 		{ok, Value} ->
@@ -1825,6 +2141,10 @@ char_attr_username(Attributes, Acc) ->
 	char_attr_nas_ip(Attributes, NewAcc).
 
 %% @hidden
+char_attr_nas_ip(#'3gpp_ro_CCR'{'Origin-Host' = Value} = CCR, Acc) ->
+	NewAcc = [{struct, [{"name", "nasIpAddress"},
+			{"value", binary_to_list(Value)}]} | Acc],
+	char_attr_service_type(CCR, NewAcc);
 char_attr_nas_ip(Attributes, Acc) ->
 	NewAcc = case radius_attributes:find(?NasIpAddress, Attributes) of
 		{ok, Value} ->
@@ -1846,6 +2166,14 @@ char_attr_nas_port(Attributes, Acc) ->
 	char_attr_service_type(Attributes, NewAcc).
 
 %% @hidden
+char_attr_service_type(#'3gpp_ro_CCR'{'Service-Context-Id' = Context} = CCR, Acc) ->
+	NewAcc = case service_type(Context) of
+		undefined ->
+			Acc;
+		Value ->
+			[{struct, [{"name", "serviceType"}, {"value", Value}]} | Acc]
+	end,
+	char_attr_called_id(CCR, NewAcc);
 char_attr_service_type(Attributes, Acc) ->
 	NewAcc = case radius_attributes:find(?ServiceType, Attributes) of
 		{ok, Value} ->
@@ -1998,6 +2326,15 @@ char_attr_termination_action(Attributes, Acc) ->
 	char_attr_called_id(Attributes, NewAcc).
 
 %% @hidden
+char_attr_called_id(#'3gpp_ro_CCR'{'Service-Information'
+		= [#'3gpp_ro_Service-Information'{'IMS-Information'
+		= [#'3gpp_ro_IMS-Information'{'Called-Party-Address'
+		= [<<"tel:", Called/binary>>]}]}]} = CCR, Acc) ->
+	NewAcc = [{struct, [{"name", "calledStationId"},
+			{"value", binary_to_list(Called)}]} | Acc],
+	char_attr_calling_id(CCR, NewAcc);
+char_attr_called_id(#'3gpp_ro_CCR'{} = CCR, Acc) ->
+	char_attr_calling_id(CCR, Acc);
 char_attr_called_id(Attributes, Acc) ->
 	NewAcc = case radius_attributes:find(?CalledStationId, Attributes) of
 		{ok, Value} ->
@@ -2008,6 +2345,15 @@ char_attr_called_id(Attributes, Acc) ->
 	char_attr_calling_id(Attributes, NewAcc).
 
 %% @hidden
+char_attr_calling_id(#'3gpp_ro_CCR'{'Service-Information'
+		= [#'3gpp_ro_Service-Information'{'IMS-Information'
+		= [#'3gpp_ro_IMS-Information'{'Calling-Party-Address'
+		= [<<"tel:", Called/binary>>]}]}]} = CCR, Acc) ->
+	NewAcc = [{struct, [{"name", "callingStationId"},
+			{"value", binary_to_list(Called)}]} | Acc],
+	char_attr_nas_id(CCR, NewAcc);
+char_attr_calling_id(#'3gpp_ro_CCR'{} = CCR, Acc) ->
+	char_attr_nas_id(CCR, Acc);
 char_attr_calling_id(Attributes, Acc) ->
 	NewAcc = case radius_attributes:find(?CallingStationId, Attributes) of
 		{ok, Value} ->
@@ -2018,6 +2364,16 @@ char_attr_calling_id(Attributes, Acc) ->
 	char_attr_nas_id(Attributes, NewAcc).
 
 %% @hidden
+char_attr_nas_id(#'3gpp_ro_CCR'{'Service-Information'
+		= [#'3gpp_ro_Service-Information'{'IMS-Information'
+		= [#'3gpp_ro_IMS-Information'{'Inter-Operator-Identifier'
+		= [#'3gpp_ro_Inter-Operator-Identifier'{'Originating-IOI'
+		= [IOI]}]}]}]} = CCR, Acc) when is_binary(IOI) ->
+	NewAcc = [{struct, [{"name", "nasIdentifier"},
+			{"value", binary_to_list(IOI)}]} | Acc],
+	char_attr_event_timestamp(CCR, NewAcc);
+char_attr_nas_id(#'3gpp_ro_CCR'{} = CCR, Acc) ->
+	char_attr_event_timestamp(CCR, Acc);
 char_attr_nas_id(Attributes, Acc) ->
 	NewAcc = case radius_attributes:find(?NasIdentifier, Attributes) of
 		{ok, Value} ->
@@ -2088,6 +2444,17 @@ char_attr_delay(Attributes, Acc) ->
 	char_attr_event_timestamp(Attributes, NewAcc).
 
 %% @hidden
+char_attr_event_timestamp(#'3gpp_ro_CCR'{'Service-Information'
+		= [#'3gpp_ro_Service-Information'{'IMS-Information'
+		= [#'3gpp_ro_IMS-Information'{'Time-Stamps'
+		= [#'3gpp_ro_Time-Stamps'{'SIP-Request-Timestamp'
+		= [TimeStamp]}]}]}]} = CCR, Acc) ->
+	Seconds = calendar:datetime_to_gregorian_seconds(TimeStamp) - ?EPOCH,
+	NewAcc = [{struct, [{"name", "eventTimestamp"},
+			{"value", ocs_log:iso8601(Seconds * 1000)}]} | Acc],
+	char_attr_session_id(CCR, NewAcc);
+char_attr_event_timestamp(#'3gpp_ro_CCR'{} = CCR, Acc) ->
+	char_attr_session_id(CCR, Acc);
 char_attr_event_timestamp(Attributes, Acc) ->
 	NewAcc = case radius_attributes:find(?EventTimestamp, Attributes) of
 		{ok, Value} ->
@@ -2099,6 +2466,13 @@ char_attr_event_timestamp(Attributes, Acc) ->
 	char_attr_session_id(Attributes, NewAcc).
 
 %% @hidden
+char_attr_session_id(#'3gpp_ro_CCR'{'Session-Id' = SessionID} = CCR, Acc)
+		when SessionID /= undefined ->
+	NewAcc = [{struct, [{"name", "acctSessionId"},
+			{"value", binary_to_list(SessionID)}]} | Acc],
+	char_attr_cause(CCR, NewAcc);
+char_attr_session_id(#'3gpp_ro_CCR'{} = CCR, Acc) ->
+	char_attr_cause(CCR, Acc);
 char_attr_session_id(Attributes, Acc) ->
 	NewAcc = case radius_attributes:find(?AcctSessionId, Attributes) of
 		{ok, Value} ->
@@ -2249,6 +2623,14 @@ char_attr_interim_interval(Attributes, Acc) ->
 	char_attr_cause(Attributes, NewAcc).
 
 %% @hidden
+char_attr_cause(#'3gpp_ro_CCR'{'Service-Information'
+		= [#'3gpp_ro_Service-Information'{'IMS-Information'
+		= [#'3gpp_ro_IMS-Information'{'Cause-Code'
+		= [Cause]}]}]}, Acc) ->
+	[{struct, [{"name", "acctTerminateCause"},
+			{"value", integer_to_list(Cause)}]} | Acc];
+char_attr_cause(#'3gpp_ro_CCR'{}, Acc) ->
+	Acc;
 char_attr_cause(Attributes, Acc) ->
 	case radius_attributes:find(?AcctTerminateCause, Attributes) of
 		{ok, Value} ->
@@ -2373,14 +2755,18 @@ query_start1({_, "PublicWLANAccessUsage"}, IpdrFile, Query,
 				case ocs_rest_query_parser:parse(Tokens) of
 					{ok, [{array, [{complex,
 							[{"usageCharacteristic", contains, Contains}]}]}]} ->
-						characteristic(Contains, '_', '_', '_', '_')
+						ipdr_chars(Contains, '_')
 				end;
 			false ->
-				{'_', '_', '_'}
+				'_'
 		end
 	of
-		{Protocol, Types, Attrs} ->
-			Args = [IpdrFile, DateStart, DateEnd, Protocol, Types, Attrs],
+		Chars ->
+			Name = {name, {ipdr, erlang:unique_integer([positive])}},
+			FileName = {file, "log/ipdr/" ++ IpdrFile},
+			Mode = {mode, read_only},
+			{ok, {Log, A}} = disk_log:open([Name, FileName, Mode]),
+			Args = [{Log, A}, DateStart, DateEnd, Chars],
 			MFA = [ocs_log, ipdr_query, Args],
 			case supervisor:start_child(ocs_rest_pagination_sup, [MFA]) of
 				{ok, PageServer, Etag} ->
@@ -2391,6 +2777,33 @@ query_start1({_, "PublicWLANAccessUsage"}, IpdrFile, Query,
 	catch
 		_ ->
 			{error, 400}
+	after
+		disk_log:close("log/ipdr/" ++ IpdrFile)
+	end;
+%% @todo filter
+query_start1({_, "VoIPUsage"}, IpdrFile, Query,
+		Filters, RangeStart, RangeEnd, DateStart, DateEnd) ->
+	try
+		Name = {name, {ipdr, erlang:unique_integer([positive])}},
+		FileName = {file, "log/ipdr/" ++ IpdrFile},
+		case disk_log:open([Name, FileName, {mode, read_only}]) of
+			{ok, Log} ->
+				Args = [Log, DateStart, DateEnd, '_'],
+				MFA = [ocs_log, ipdr_query, Args],
+				case supervisor:start_child(ocs_rest_pagination_sup, [MFA]) of
+					{ok, PageServer, Etag} ->
+						query_page(PageServer, Etag, Query, Filters, RangeStart, RangeEnd);
+					{error, _Reason} ->
+						{error, 500}
+				end;
+			{error, _Reason} ->
+				{error, 500}
+		end
+	catch
+		_ ->
+			{error, 500}
+	after
+		disk_log:close("log/ipdr/" ++ IpdrFile)
 	end;
 query_start1({_, "HTTPTransferUsage"}, undefined, Query,
 		Filters, RangeStart, RangeEnd, _, _) ->
@@ -2422,8 +2835,10 @@ query_page(PageServer, Etag, Query, Filters, Start, End) ->
 			query_page1(PageServer, Etag, fun usage_aaa_auth/2, Filters, Start, End);
 		{_, {_, "AAAAccountingUsage"}, _Query1} ->
 			query_page1(PageServer, Etag, fun usage_aaa_acct/2, Filters, Start, End);
-		{_, {_, "PublicWLANAccessUsage"}, []} ->
-			{error, 404}; % todo?
+		{_, {_, "PublicWLANAccessUsage"}, _Query1} ->
+			query_page1(PageServer, Etag, fun usage_aaa_ipdr/2, Filters, Start, End);
+		{_, {_, "VoIPUsage"}, _Query1} ->
+			query_page1(PageServer, Etag, fun usage_aaa_ipdr/2, Filters, Start, End);
 		{_, {_, "HTTPTransferUsage"}, _} ->
 			query_page1(PageServer, Etag, fun usage_http_transfer/2, Filters, Start, End);
 		{_, {_, _}, []} ->
@@ -2461,7 +2876,7 @@ get_last(Query, Filters) ->
 		{_, {_, "AAAAccountingUsage"}, []} ->
 			get_last1(ocs_acct, fun usage_aaa_acct/2, Filters);
 		{_, {_, "PublicWLANAccessUsage"}, []} ->
-			{error, 404}; % todo?
+			get_last1(ocs_acct, fun usage_aaa_ipdr/2, Filters);
 		{_, {_, "HTPPUsage"}, []} ->
 			get_last1(ocs_acct, fun usage_http_transfer/2, Filters);
 		{_, {_, _}, []} ->
@@ -2643,6 +3058,121 @@ range(Year, Day, [_, _, $:, _, _, $:, _, _, $., _, _] = S) ->
 	ocs_log:iso8601(Year ++ Day ++ S ++ "9");
 range(Year, Day, [_, _, $:, _, _, $:, _, _, $., _, _ | _] = S) ->
 	ocs_log:iso8601(Year ++ Day ++ S).
+
+%% @hidden
+ipdr_chars([{complex, L1} | T], Chars) -> 
+	case lists:keytake("name", 1, L1) of
+		{_, Name, L2} ->
+			case lists:keytake("value", 1, L2) of
+				{_, Value, []} ->
+					ipdr_chars(Name, Value, T, Chars);
+				_ ->
+					throw({error, 400})
+			end;
+		false ->
+			throw({error, 400})
+	end;
+ipdr_chars([], Chars) ->
+	rev(Chars).
+%% @hidden
+ipdr_chars({"name", exact, "ipdrCreationTime"}, {"value", exact, IpdrCreationTime},
+		T, Chars1) when is_list(IpdrCreationTime) ->
+	Chars2 = add_char(Chars1, {ipdrCreationTime, {exact, IpdrCreationTime}}),
+	ipdr_chars(T, Chars2);
+ipdr_chars({"name", exact, "ipdrCreationTime"}, {"value", like, Like},
+		T, Chars1) when is_list(Like) ->
+	Chars2 = add_char(Chars1, {ipdrCreationTime, {like, like(Like)}}),
+	ipdr_chars(T, Chars2);
+ipdr_chars({"name", exact, "username"}, {"value", exact, UserName},
+		T, Chars1) when is_list(UserName) ->
+	Chars2 = add_char(Chars1, {username, {exact, UserName}}),
+	ipdr_chars(T, Chars2);
+ipdr_chars({"name", exact, "username"}, {"value", like, Like},
+		T, Chars1) when is_list(Like) ->
+	Chars2 = add_char(Chars1, {username, {like, like(Like)}}),
+	ipdr_chars(T, Chars2);
+ipdr_chars({"name", exact, "acctSessionId"}, {"value", exact, AcctSessionId},
+		T, Chars1) when is_list(AcctSessionId) ->
+	Chars2 = add_char(Chars1, {acctSessionId, {exact, AcctSessionId}}),
+	ipdr_chars(T, Chars2);
+ipdr_chars({"name", exact, "acctSessionId"}, {"value", like, Like},
+		T, Chars1) when is_list(Like) ->
+	Chars2 = add_char(Chars1, {acctSessionId, {like, like(Like)}}),
+	ipdr_chars(T, Chars2);
+ipdr_chars({"name", exact, "callingStationId"}, {"value", exact, CallingStationId},
+		T, Chars1) when is_list(CallingStationId) ->
+	Chars2 = add_char(Chars1, {callingStationId, {exact, CallingStationId}}),
+	ipdr_chars(T, Chars2);
+ipdr_chars({"name", exact, "callingStationId"}, {"value", like, Like},
+		T, Chars1) when is_list(Like) ->
+	Chars2 = add_char(Chars1, {callingStationId, {like, like(Like)}}),
+	ipdr_chars(T, Chars2);
+ipdr_chars({"name", exact, "calledStationId"}, {"value", exact, CalledStationId},
+		T, Chars1) when is_list(CalledStationId) ->
+	Chars2 = add_char(Chars1, {calledStationId, {exact, CalledStationId}}),
+	ipdr_chars(T, Chars2);
+ipdr_chars({"name", exact, "calledStationId"}, {"value", like, Like},
+		T, Chars1) when is_list(Like) ->
+	Chars2 = add_char(Chars1, {calledStationId, {like, like(Like)}}),
+	ipdr_chars(T, Chars2);
+ipdr_chars({"name", exact, "nasIpAddress"}, {"value", exact, NasIpAddress},
+		T, Chars1) when is_list(NasIpAddress) ->
+	Chars2 = add_char(Chars1, {nasIpAddress, {exact, NasIpAddress}}),
+	ipdr_chars(T, Chars2);
+ipdr_chars({"name", exact, "nasIpAddress"}, {"value", like, Like},
+		T, Chars1) when is_list(Like) ->
+	Chars2 = add_char(Chars1, {nasIpAddress, {like, like(Like)}}),
+	ipdr_chars(T, Chars2);
+ipdr_chars({"name", exact, "nasId"}, {"value", exact, NasId},
+		T, Chars1) when is_list(NasId) ->
+	Chars2 = add_char(Chars1, {nasId, {exact, NasId}}),
+	ipdr_chars(T, Chars2);
+ipdr_chars({"name", exact, "nasId"}, {"value", like, Like},
+		T, Chars1) when is_list(Like) ->
+	Chars2 = add_char(Chars1, {nasId, {like, like(Like)}}),
+	ipdr_chars(T, Chars2);
+ipdr_chars({"name", exact, "locationType"}, {"value", exact, LocationType},
+		T, Chars1) when is_list(LocationType) ->
+	Chars2 = add_char(Chars1, {locationType, {exact, LocationType}}),
+	ipdr_chars(T, Chars2);
+ipdr_chars({"name", exact, "locationType"}, {"value", like, Like},
+		T, Chars1) when is_list(Like) ->
+	Chars2 = add_char(Chars1, {locationType, {like, like(Like)}}),
+	ipdr_chars(T, Chars2);
+ipdr_chars({"name", exact, "networkConnectionType"}, {"value", exact, NetworkConnectionType},
+		T, Chars1) when is_list(NetworkConnectionType) ->
+	Chars2 = add_char(Chars1, {networkConnectionType, {exact, NetworkConnectionType}}),
+	ipdr_chars(T, Chars2);
+ipdr_chars({"name", exact, "networkConnectionType"}, {"value", like, Like},
+		T, Chars1) when is_list(Like) ->
+	Chars2 = add_char(Chars1, {networkConnectionType, {like, like(Like)}}),
+	ipdr_chars(T, Chars2);
+ipdr_chars({"name", exact, "gmtSessionStartDateTime"}, {"value", exact, GmtSessionStartDateTime},
+		T, Chars1) when is_list(GmtSessionStartDateTime) ->
+	Chars2 = add_char(Chars1, {gmtSessionStartDateTime, {exact, GmtSessionStartDateTime}}),
+	ipdr_chars(T, Chars2);
+ipdr_chars({"name", exact, "gmtSessionStartDateTime"}, {"value", like, Like},
+		T, Chars1) when is_list(Like) ->
+	Chars2 = add_char(Chars1, {gmtSessionStartDateTime, {like, like(Like)}}),
+	ipdr_chars(T, Chars2);
+ipdr_chars({"name", exact, "gmtSessionEndDateTime"}, {"value", exact, GmtSessionEndDateTime},
+		T, Chars1) when is_list(GmtSessionEndDateTime) ->
+	Chars2 = add_char(Chars1, {gmtSessionEndDateTime, {exact, GmtSessionEndDateTime}}),
+	ipdr_chars(T, Chars2);
+ipdr_chars({"name", exact, "gmtSessionEndDateTime"}, {"value", like, Like},
+		T, Chars1) when is_list(Like) ->
+	Chars2 = add_char(Chars1, {gmtSessionEndDateTime, {like, like(Like)}}),
+	ipdr_chars(T, Chars2);
+ipdr_chars({"name", exact, "chargeableQuantity"}, {"value", Op, ChargeableQuantity},
+		T, Chars1) 
+		when Op == exact; Op == lt; Op == lte; Op == gt; Op == gte ->
+	Chars2 = add_char(Chars1, {chargeableQuantity, {Op, list_to_integer(ChargeableQuantity)}}),
+	ipdr_chars(T, Chars2);
+ipdr_chars({"name", exact, "taxAmount"}, {"alue", Op, TaxAmount},
+		T, Chars1) 
+		when Op == exact; Op == lt; Op == lte; Op == gt; Op == gte ->
+	Chars2 = add_char(Chars1, {taxAmount, {Op, list_to_integer(TaxAmount)}}),
+	ipdr_chars(T, Chars2).
 
 %% @hidden
 characteristic([{complex, L1} | T], Protocol, Types, ReqAttrs, RespAttrs) ->
@@ -2917,4 +3447,20 @@ rev('_') ->
 	'_';
 rev(Attributes) when is_list(Attributes) ->
 	lists:reverse(Attributes).
+
+%% @hidden
+service_type(Id) ->
+	% allow ".3gpp.org" or the proper "@3gpp.org"
+	case binary:part(Id, size(Id), -8) of
+		<<"3gpp.org">> ->
+			ServiceContext = binary:part(Id, byte_size(Id) - 14, 5),
+			case catch binary:decode_unsigned(ServiceContext) of
+				{'EXIT', _} ->
+					undefined;
+				SeviceType ->
+					SeviceType
+			end;
+		_ ->
+			undefined
+	end.
 

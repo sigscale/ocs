@@ -416,19 +416,36 @@ patch_replace(Path, Value, [H | T], Acc) ->
 %% @doc Convert between decimal strings ("625.75") and integer (625750000).
 %% Internal representation 1:1000000 for six decimal places maximum.
 %%
+decimal([$- | T]) ->
+	0 - decimal(T);
 decimal(N) when is_list(N) ->
 	case string:tokens(N, [$.]) of
 		[M] ->
 			list_to_integer(M) * 1000000;
 		[M, D] when length(D) =< 6 ->
-			list_to_integer(M) * 1000000 +
-					(list_to_integer(D ++ lists:duplicate(6 - length(D), $0)))
+			D1 = list_to_integer(D ++ lists:duplicate(6 - length(D), $0)),
+			case list_to_integer(M) of
+				M1 when M1 < 0 ->
+					M1 * 1000000 - D1;
+				M1 ->
+					M1 * 1000000 + D1
+			end
 	end;
+decimal(N) when is_integer(N), N < 0 ->
+	N1 = 0 - N,
+	M = N1 div 1000000,
+	D = N1 rem 1000000,
+	SD = integer_to_list(D),
+	S1 = [$-] ++ integer_to_list(M) ++ [$.]
+			++ lists:duplicate(6 - length(SD), $0) ++ SD,
+	S2 = string:strip(S1, right, $0),
+	string:strip(S2, right, $.);
 decimal(N) when is_integer(N) ->
 	M = N div 1000000,
 	D = N rem 1000000,
 	SD = integer_to_list(D),
-	S1 = integer_to_list(M) ++ [$.] ++ lists:duplicate(6 - length(SD), $0) ++ SD,
+	S1 = integer_to_list(M) ++ [$.]
+			++ lists:duplicate(6 - length(SD), $0) ++ SD,
 	S2 = string:strip(S1, right, $0),
 	string:strip(S2, right, $.).
 

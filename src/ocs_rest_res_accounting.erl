@@ -26,7 +26,7 @@
 
 -include_lib("radius/include/radius.hrl").
 -include("ocs_log.hrl").
--include("../include/diameter_gen_3gpp_ro_application.hrl").
+-include("diameter_gen_3gpp_ro_application.hrl").
 
 -spec content_types_accepted() -> ContentTypes
 	when

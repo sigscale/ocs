@@ -130,11 +130,6 @@
 							icon="refresh"
 							on-tap="refresh">
 					</paper-icon-button>
-					<paper-icon-button
-							id="download"
-							icon="file-download"
-							on-tap="download" >
-					</paper-icon-button>
 					<paper-progress
 							id="progress"
 							value="0"
@@ -159,8 +154,7 @@
 				<sig-user-list></sig-user-list>
 				<sig-access-list id="accessList"></sig-access-list>
 				<sig-accounting-list id="accountingList"></sig-accounting-list>
-				<sig-usage-list id="usageList"></sig-usage-list>
-				<sig-ipdr-list></sig-ipdr-list>
+				<sig-ipdr-list id="ipdrLogList"></sig-ipdr-list>
 				<sig-http-list></sig-http-list>
 				<sig-prefix-list id="prefixList" table="{{table}}"></sig-prefix-list>
 				<sig-balance-list></sig-balance-list>
@@ -266,13 +260,6 @@
 											</i18n-msg>
 									</paper-icon-item>
 									<paper-icon-item
-											id="pageUsage"
-											onclick="drawer.toggle()"
-											class="menuitem">
-										<iron-icon icon ="device:data-usage" item-icon></iron-icon>
-											Usage	
-									</paper-icon-item>
-									<paper-icon-item
 											id="pageIPDR"
 											onclick="drawer.toggle()"
 											class="menuitem">
@@ -319,6 +306,8 @@
 							<div class="buttons">
 								<paper-button
 										raised
+										id="tabOkButton"
+										disabled
 										onclick="drawer.toggle()"
 										on-tap="tableOk"
 										class="ok-button">
@@ -363,9 +352,9 @@
 		<sig-sub-update></sig-sub-update>
 		<sig-client-add></sig-client-add>
 		<sig-client-update></sig-client-update>
-		<sig-ipdr-log-files></sig-ipdr-log-files>
 		<sig-user-add></sig-user-add>
 		<sig-product-update id="updateProduct"></sig-product-update>
+		<sig-ipdr-log-files></sig-ipdr-log-files>
 		<sig-prefix-table-add></sig-prefix-table-add>
 		<sig-prefix-add></sig-prefix-add>
 		<sig-prefix-update></sig-prefix-update>
@@ -399,6 +388,9 @@
 			tableSelection: function(e) {
 				if(e.model.item && e.model.item.id) {
 					this.$.prefixList.table = e.model.item.id;
+					this.$.tabOkButton.disabled = false;
+				} else {
+					this.$.tabOkButton.disabled = true;
 				}
 			},
 			tableDelete: function(event) {
@@ -408,7 +400,7 @@
 			},
 			_deleteTableResponse: function(event) {
 				this.$.tableList.close();
-				document.getElementById('productGrid').clearCache();
+				document.getElementById('getTableAjax').generateRequest();
 			},
 			loadElement: function(event) {
 				switch(event.detail.item.getAttribute('id')) {
@@ -417,7 +409,7 @@
 						this.$.logMenu.selected = null;
 						break;
 					case 'pageSubscribers':
-						this.$.loadPage.selected = 0;
+						this.$.loadPage.selected = 1;
 						this.$.productMenu.selected = null;
 						this.$.logMenu.selected = null;
 						break;
@@ -437,22 +429,19 @@
 					case 'pageAccounting':
 						this.$.loadPage.selected = 5;
 						break;
-					case 'pageUsage':
-						this.$.loadPage.selected = 6;
-						break;
 					case 'pageIPDR':
 						this.$.loadPage.selected = null;
-						this.$.loadPage.selected = 7;
+						this.$.loadPage.selected = 6;
 						this.$.logMenu.selected = null;
 						break;
 					case 'pageHTTP':
-						this.$.loadPage.selected = 8;
+						this.$.loadPage.selected = 7;
 						break;
 					case 'pagePrefix':
-						this.$.loadPage.selected = 9;
+						this.$.loadPage.selected = 8;
 						break;
 					case 'pageBalance':
-						this.$.loadPage.selected = 10;
+						this.$.loadPage.selected = 9;
 						break;
 				}
 			},
@@ -482,129 +471,16 @@
 						this.$.accountingList.refreshAccounting();
 						break;
 					case 6:
-						this.$.usageList.refresh();
-						break;
-					case 6:
-						document.getElementById('getIpdr').generateRequest();
+						this.$.ipdrLogList.refreshIpdr();
 						break;
 					case 7:
 						document.getElementById('getHttp').generateRequest();
 						break;
 					case 8:
-						document.getElementById('prefixGrid').generateRequest();
-						break;
-				}
-			},
-			download: function() {
-				var csvObject = new Object();
-				switch (this.$.loadPage.selected) {
-					case 0:
-						var data = document.getElementById("productGrid").items;
-						csvObject.gridData = data;
-						csvObject.headers = "Name,Description,StartDate,EndDate,"
-								+ "Status,Prices \n";
-						csvObject.keys = ["name", "description", "startDate",
-								"endDate", "status", "price"];
-						csvObject.fileName = "product.csv";
-						generateCSVData(csvObject);
-						break;
-					case 1:
-						var data = document.getElementById("subscriberGrid").items;
-						csvObject.gridData = data;
-						csvObject.headers = "Identity,Password,Product,Balance,"
-								+ "Enabled,Multisession \n";
-						csvObject.keys = ["id", "password", "product",
-								"totalBalance", "enabled", "multisession"];
-						csvObject.fileName = "subscribers.csv";
-						generateCSVData(csvObject);
-						break;
-					case 2:
-						var data = document.getElementById("clientGrid").items;
-						csvObject.gridData = data;
-						csvObject.headers = "Address,Identifier,Secret,ListenPort,Protocol \n";
-						csvObject.keys = ["id", "identifier", "secret", "port", "protocol"];
-						csvObject.fileName = "clients.csv";
-						generateCSVData(csvObject);
-						break;
-					case 3:
-						var data = document.getElementById("userGrid").items;
-						csvObject.gridData = data;
-						csvObject.headers = "UserName,Language\n";
-						csvObject.keys = ["id", "language"];
-						csvObject.fileName = "user_list.csv";
-						generateCSVData(csvObject);
-						break;
-					case 4:
-						var data = document.getElementById("accessGrid").items;
-						csvObject.gridData = data;
-						csvObject.headers = "TimeStamp,ClientAddress,ClientIdentity,CalledStation,"
-								+ "UserName,Type\n";
-						csvObject.keys = ["timeStamp", "clientAddress", "nasIdentifier", "calledStation",
-								"username", "type"];
-						csvObject.fileName = "access.csv";
-						generateCSVData(csvObject);
-						break;
-					case 5:
-						var data = document.getElementById("accountingGrid").items;
-						csvObject.gridData = data;
-						csvObject.headers = "TimeStamp,ClientIdentity,Duration,Out(bytes),In(bytes),Username,Type\n";
-						csvObject.keys = ["timeStamp", "nasIdentifier", "acctSessiontime",
-								"acctOutputoctets", "acctInputoctets", "username", "type"];
-						csvObject.fileName = "accounting.csv";
-						generateCSVData(csvObject);
-						break;
-					case 6:
-						var data = document.getElementById("ipdrGrid").items;
-						csvObject.gridData = data;
-						csvObject.headers = "Creation Time,Sequence,Username,Session ID,"
-								+ "Calling Station,Called Station,NAS Address,NAS ID,"
-								+ "Duration,Input Octets,Output Octets,Start Time,"
-								+ "End Time,Cause\n";
-						csvObject.keys = ["ipdrCreationTime", "seqNum", "username",
-								"acctSessionId", "callingStationId", "calledStationId",
-								"nasIpAddress", "nasId", "sessionDuration", "inputOctets",
-								"outputOctets", "gmtSessionStartDateTime",
-								"gmtSessionEndDateTime", "sessionTerminateCause"];
-						csvObject.fileName = "usage_logs.csv";
-						generateCSVData(csvObject);
-						break;
-					case 7:
-						var data = document.getElementById("httpGrid").items;
-						csvObject.gridData = data;
-						csvObject.headers = "DateTime,Host,User,Method,Resource,Status\n";
-						csvObject.keys = ["datetime", "host", "user", "method",
-								"uri", "httpStatus"];
-						csvObject.fileName = "http.csv";
-						generateCSVData(csvObject);
+						document.getElementById('prefixGrid').clearCache();
 						break;
 				}
 			}
 		});
-		function generateCSVData(csvObject) {
-			var csvData = "data:text/csv;charset=utf-8,";
-			csvData += csvObject.headers;
-			csvObject.gridData.forEach(
-				function(row, index) {
-					var dataLine = "";
-					csvObject.keys.forEach(
-						function(key, i) {
-							if(row[key] === undefined) {
-								dataLine = ",";
-							} else {
-								dataLine += row[key] + ",";
-							}
-						}
-					);
-					dataLine += "\n";
-					csvData += dataLine;
-				}
-			);
-			var encodedUri = encodeURI(csvData);
-			var link = document.createElement("a");
-			link.setAttribute("href", encodedUri);
-			link.setAttribute("download", csvObject.fileName);
-			document.body.appendChild(link);
-			link.click();
-		}
 	</script>
 </dom-module>

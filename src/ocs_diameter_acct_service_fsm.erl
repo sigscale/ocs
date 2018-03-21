@@ -48,16 +48,12 @@
 
 -define(DIAMETER_ACCT_SERVICE(A, P), {ocs_diameter_acct_service, A, P}).
 -define(BASE_APPLICATION, ocs_diameter_base_application).
--define(BASE_APPLICATION_ID, 0).
 -define(BASE_APPLICATION_CALLBACK, ocs_diameter_base_application_cb).
--define(CC_APPLICATION_ID, 4).
--define(CC_APPLICATION, ocs_diameter_cc_application).
--define(CC_APPLICATION_DICT, diameter_gen_cc_application_rfc4006).
--define(CC_APPLICATION_CALLBACK, ocs_diameter_cc_application_cb).
 -define(RO_APPLICATION_ID, 4).
 -define(RO_APPLICATION, ocs_diameter_3gpp_ro_application).
 -define(RO_APPLICATION_DICT, diameter_gen_3gpp_ro_application).
 -define(RO_APPLICATION_CALLBACK, ocs_diameter_3gpp_ro_application_cb).
+-define(WAIT_STOP, 11000).
 
 %%----------------------------------------------------------------------
 %%  The ocs_diameter_acct_service_fsm API
@@ -119,7 +115,7 @@ init1(StateData) ->
 
 -spec wait_for_start(Event, StateData) -> Result
 	when
-		Event :: timeout | term(), 
+		Event :: timeout | term(),
 		StateData :: #statedata{},
 		Result :: {next_state, NextStateName, NewStateData}
 			| {next_state, NextStateName, NewStateData, Timeout}
@@ -139,7 +135,7 @@ wait_for_start(timeout, StateData) ->
 
 -spec started(Event, StateData) -> Result
 	when
-		Event :: timeout | term(), 
+		Event :: timeout | term(),
 		StateData :: #statedata{},
 		Result :: {next_state, NextStateName, NewStateData}
 			| {next_state, NextStateName, NewStateData, Timeout}
@@ -159,7 +155,7 @@ started(timeout, StateData) ->
 
 -spec wait_for_stop(Event, StateData) -> Result
 	when
-		Event :: timeout | term(), 
+		Event :: timeout | term(),
 		StateData :: #statedata{},
 		Result :: {next_state, NextStateName, NewStateData}
 			| {next_state, NextStateName, NewStateData, Timeout}
@@ -179,8 +175,8 @@ wait_for_stop(timeout, StateData) ->
 
 -spec handle_event(Event, StateName, StateData) -> Result
 	when
-		Event :: term(), 
-		StateName :: atom(), 
+		Event :: term(),
+		StateName :: atom(),
 		StateData :: #statedata{},
 		Result :: {next_state, NextStateName, NewStateData}
 			| {next_state, NextStateName, NewStateData, Timeout}
@@ -201,9 +197,9 @@ handle_event(_Event, StateName, StateData) ->
 
 -spec handle_sync_event(Event, From, StateName, StateData) -> Result
 	when
-		Event :: term(), 
+		Event :: term(),
 		From :: {Pid :: pid(), Tag :: term()},
-		StateName :: atom(), 
+		StateName :: atom(),
 		StateData :: #statedata{},
 		Result :: {reply, Reply, NextStateName, NewStateData}
 			| {reply, Reply, NextStateName, NewStateData, Timeout}
@@ -229,8 +225,8 @@ handle_sync_event(_Event, _From, StateName, StateData) ->
 
 -spec handle_info(Info, StateName, StateData) -> Result
 	when
-		Info :: term(), 
-		StateName :: atom(), 
+		Info :: term(),
+		StateName :: atom(),
 		StateData :: #statedata{},
 		Result :: {next_state, NextStateName, NewStateData}
 			| {next_state, NextStateName, NewStateData, Timeout}
@@ -244,22 +240,29 @@ handle_sync_event(_Event, _From, StateName, StateData) ->
 %% @see //stdlib/gen_fsm:handle_info/3
 %% @private
 %%
-handle_info(#diameter_event{service = ?DIAMETER_ACCT_SERVICE(Address, Port),
-		info = start}, wait_for_start, #statedata{address = Address,
-		port = Port} = StateData) ->
-	{next_state, started, StateData, 0};
-handle_info(#diameter_event{service = ?DIAMETER_ACCT_SERVICE(Address, Port),
-	info = Event}, started = StateName, #statedata{address = Address,
-	port =Port} = StateData) ->
-	change_state(StateName, Event, StateData);
-handle_info(Event, StateName, StateData) ->
-	error_logger:warning_report(["Unexpected diameter event",
-			{module, ?MODULE}, {state, StateName}, {event, Event}]),
+handle_info(#diameter_event{info = start}, wait_for_start, StateData) ->
+	{next_state, started, StateData};
+%handle_info(#diameter_event{info = stop}, _StateName, StateData) ->
+%	{next_state, wait_for_stop, StateData, ?WAIT_STOP};
+handle_info(#diameter_event{info = Event, service = Service},
+		StateName, StateData) when element(1, Event) == up;
+		element(1, Event) == down ->
+	{_PeerRef, #diameter_caps{origin_host = {_, Peer}}} = element(3, Event),
+	error_logger:info_report(["DIAMETER peer connection state changed",
+			{service, Service}, {event, element(1, Event)},
+			{peer, binary_to_list(Peer)}]),
+	{next_state, StateName, StateData};
+handle_info(#diameter_event{info = {watchdog,
+		_Ref, _PeerRef, {_From, _To}, _Config}}, StateName, StateData) ->
+	{next_state, StateName, StateData};
+handle_info(#diameter_event{info = Event, service = Service}, StateName, StateData) ->
+	error_logger:info_report(["DIAMETER event",
+			{service, Service}, {event, Event}]),
 	{next_state, StateName, StateData}.
 
 -spec terminate(Reason, StateName, StateData) -> any()
 	when
-		Reason :: normal | shutdown | term(), 
+		Reason :: normal | shutdown | term(),
 		StateName :: atom(),
 		StateData :: #statedata{}.
 %% @doc Cleanup and exit.
@@ -281,8 +284,8 @@ terminate(_Reason1, _StateName,  #statedata{transport_ref = TransRef,
 -spec code_change(OldVsn, StateName, StateData, Extra) -> Result
 	when
 		OldVsn :: (Vsn :: term() | {down, Vsn :: term()}),
-		StateName :: atom(), 
-		StateData :: #statedata{}, 
+		StateName :: atom(),
+		StateData :: #statedata{},
 		Extra :: term(),
 		Result :: {ok, NextStateName :: atom(), NewStateData :: #statedata{}}.
 %% @doc Update internal state data during a release upgrade&#047;downgrade.
@@ -343,32 +346,6 @@ transport_options(Transport, Address, Port) ->
 	Opts = [{transport_module, Transport},
 			{transport_config, [{reuseaddr, true},
 					{ip, Address},
-					{port, Port}]},
-			{disconnect_cb, fun(_, _, _) -> close end}],
+					{port, Port}]}],
 	{listen, Opts}.
-
--spec change_state(StateName, Event, StateData) -> Result
-	when
-		StateName :: atom(),
-		Event :: term(),
-		StateData :: #statedata{},
-		Result :: {next_state, NextStateName, NewStateData}
-			| {next_state, NextStateName, NewStateData, Timeout}
-			| {next_state, NextStateName, NewStateData, hibernate}
-			| {stop, Reason, NewStateData},
-		NextStateName :: atom(),
-		NewStateData :: #statedata{},
-		Timeout :: non_neg_integer() | infinity,
-		Reason :: normal | term().
-%% @doc Chnage the state of the fsm based on the event sent
-%% by the diameter service.
-%% @hidden
-change_state(started, {closed, _, _, _}, StateData) ->
-	{next_state, wait_for_stop, StateData, 0};
-change_state(started, {watchdog, _, _, {_, down}, _}, StateData) ->
-	{next_state, wait_for_stop, StateData, 0};
-change_state(started, stop, StateData) ->
-	{next_state, wait_for_stop, StateData, 0};
-change_state(started, _Event, StateData) ->
-	{next_state, started, StateData, 0}.
 
