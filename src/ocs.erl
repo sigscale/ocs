@@ -526,11 +526,6 @@ add_service(Identity, Password, ProductRef, Attributes, EnabledStatus, MultiSess
 			{error, Reason}
 	end.
 
-
-
-
-
-
 -spec add_subscriber(Identity, Password, Offer) -> Result
 	when
 		Identity :: string() | binary(),
