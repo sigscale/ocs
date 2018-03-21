@@ -46,6 +46,7 @@
 -define(DIAMETERSMS, 32274).
 
 
+
 -spec rate(Protocol, ServiceType, SubscriberID, Timestamp,
 		Address, Direction, Flag, DebitAmounts, ReserveAmounts,
 		SessionAttributes) -> Result
@@ -103,19 +104,30 @@ rate(Protocol, ServiceType, SubscriberID, Timestamp, Address, Direction,
 		is_list(DebitAmounts), is_list(ReserveAmounts), length(SessionAttributes) > 0 ->
 	F = fun() ->
 			case mnesia:read(service, SubscriberID, write) of
-				[#service{buckets = Buckets, product =
-						#product_instance{product = ProdID,
-						characteristics = Chars}} = Subscriber] ->
-					case mnesia:read(offer, ProdID, read) of
-						[#offer{} = Offer] ->
-							Validity = proplists:get_value(validity, Chars),
-							Subscriber1 = Subscriber#service{buckets = due(Buckets)},
-							rate1(Protocol, ServiceType, Subscriber1, Timestamp,
-									Address, Direction, Offer, Validity, Flag,
-									DebitAmounts, ReserveAmounts, SessionAttributes);
+				%% not doing dues
+				[#service{product = ProdRef} = Service] ->
+					case mnesia:read(product, ProdRef, read) of
+						[#product{characteristics = Chars, product = OfferId,
+								balance = BucketRefs} = Product] ->
+							case mnesia:read(offer, OfferId, read) of
+								[#offer{} = Offer] ->
+									Buckets = [mnesia:select(bucket,
+											[{'$1', [{'==', Id, {element, #bucket.id, '$1'}}], ['$1']}])
+											|| Id <- BucketRefs],
+									State = #{buckets => Buckets,
+											bucket_refs => BucketRefs, product => Product,
+											chars => Chars, service_type => ServiceType,
+											session_id => get_session_id(SessionAttributes)},
+									rate1(Protocol, Service, Buckets,
+											Timestamp, Address, Direction, Offer,
+											Flag, DebitAmounts, ReserveAmounts, State);
+								[] ->
+									throw(offer_not_found)
+							end;
 						[] ->
-							throw(offer_not_found)
+							throw(product_not_found)
 					end;
+
 				[] ->
 					throw(service_not_found)
 			end
@@ -137,9 +149,9 @@ rate(Protocol, ServiceType, SubscriberID, Timestamp, Address, Direction,
 			{error, Reason}
 	end.
 %% @hidden
-rate1(Protocol, ServiceType, Subscriber, Timestamp, Address, Direction,
-		#offer{specification = undefined, bundle = Bundle},
-		Validity, Flag, DebitAmounts, ReserveAmounts, SessionAttributes) ->
+rate1(Protocol, Service, Buckets, Timestamp, Address, Direction,
+		#offer{specification = undefined, bundle = Bundle}, Flag,
+		DebitAmounts, ReserveAmounts, #{service_type := ServiceType} = State) ->
 	try
 		F = fun(#bundled_po{name = OfferId}, Acc) ->
 				case mnesia:read(offer, OfferId, read) of
@@ -164,25 +176,25 @@ rate1(Protocol, ServiceType, Subscriber, Timestamp, Address, Direction,
 						Acc
 				end
 		end,
-		[#offer{name = ProductName} = Product | _] = lists:foldl(F, [], Bundle),
-		rate2(Protocol, Subscriber, Timestamp, Address, Direction, Product,
-				Validity, Flag, DebitAmounts, ReserveAmounts, SessionAttributes,
-				#rated{product = ProductName})
+		[#offer{name = OfferName} = Offer | _] = lists:foldl(F, [], Bundle),
+		rate2(Protocol, Service, Buckets, Timestamp,
+				Address, Direction, Offer, Flag, DebitAmounts,
+				ReserveAmounts, State#{rated => #rated{product = OfferName}})
 	catch
 		_:_ ->
 			throw(invalid_bundle_product)
 	end;
-rate1(Protocol, _ServiceType, Subscriber, Timestamp, Address, Direction,
-		#offer{name = ProductName} = Product, Validity, Flag, DebitAmounts,
-		ReserveAmounts, SessionAttributes) ->
-	rate2(Protocol, Subscriber, Timestamp, Address, Direction, Product,
-		Validity, Flag, DebitAmounts, ReserveAmounts, SessionAttributes,
-		#rated{product = ProductName}).
+rate1(Protocol, Service, Buckets, Timestamp, Address,
+		Direction, #offer{name = OfferName} = Offer,
+		Flag, DebitAmounts, ReserveAmounts, State) ->
+	rate2(Protocol, Service, Buckets, Timestamp, Address,
+		Direction, Offer, Flag, DebitAmounts, ReserveAmounts,
+		State#{rated => #rated{product = OfferName}}).
 %% @hidden
-rate2(Protocol, Subscriber, Timestamp, Address, Direction,
-		#offer{specification = ProdSpec, price = Prices},
-		Validity, Flag, DebitAmounts, ReserveAmounts,
-		SessionAttributes, Rated) when ProdSpec == "10"; ProdSpec == "11" ->
+rate2(Protocol, Service, Buckets, Timestamp, Address,
+		Direction, #offer{specification = ProdSpec, price = Prices},
+		Flag, DebitAmounts, ReserveAmounts, State)
+		when ProdSpec == "10"; ProdSpec == "11" ->
 	F = fun(#price{type = usage, units = messages}) ->
 				true;
 			(#price{type = usage, units = cents}) ->
@@ -194,15 +206,15 @@ rate2(Protocol, Subscriber, Timestamp, Address, Direction,
 	FilteredPrices2 = filter_prices_tod(Timestamp, FilteredPrices1),
 	case filter_prices_dir(Direction, FilteredPrices2) of
 		[Price | _] ->
-			rate3(Protocol, Subscriber, Address, Price, Validity, Flag,
-					DebitAmounts, ReserveAmounts, SessionAttributes, Rated);
+			rate3(Protocol, Service, Buckets, Address, Price,
+					Flag, DebitAmounts, ReserveAmounts, State);
 		_ ->
 			throw(price_not_found)
 	end;
-rate2(Protocol, Subscriber, Timestamp, Address, Direction,
-		#offer{specification = ProdSpec, price = Prices},
-		Validity, Flag, DebitAmounts, ReserveAmounts,
-		SessionAttributes, Rated) when ProdSpec == "5"; ProdSpec == "9" ->
+rate2(Protocol, Service, Buckets, Timestamp, Address,
+		Direction, #offer{specification = ProdSpec, price = Prices},
+		Flag, DebitAmounts, ReserveAmounts, State)
+		when ProdSpec == "5"; ProdSpec == "9" ->
 	F = fun(#price{type = tariff, units = seconds}) ->
 				true;
 			(#price{type = usage, units = seconds}) ->
@@ -214,14 +226,13 @@ rate2(Protocol, Subscriber, Timestamp, Address, Direction,
 	FilteredPrices2 = filter_prices_tod(Timestamp, FilteredPrices1),
 	case filter_prices_dir(Direction, FilteredPrices2) of
 		[Price | _] ->
-			rate3(Protocol, Subscriber, Address, Price, Validity, Flag,
-					DebitAmounts, ReserveAmounts, SessionAttributes, Rated);
+			rate3(Protocol, Service, Buckets, Address, Price,
+					Flag, DebitAmounts, ReserveAmounts, State);
 		_ ->
 			throw(price_not_found)
 	end;
-rate2(Protocol, Subscriber, Timestamp, _Address, _Direction,
-		#offer{price = Prices}, Validity, Flag,
-		DebitAmounts, ReserveAmounts, SessionAttributes, Rated) ->
+rate2(Protocol, Service, Buckets, Timestamp, _Address, _Direction,
+		#offer{price = Prices}, Flag, DebitAmounts, ReserveAmounts, State) ->
 	F = fun(#price{type = usage}) ->
 				true;
 			(_) ->
@@ -230,16 +241,15 @@ rate2(Protocol, Subscriber, Timestamp, _Address, _Direction,
 	FilteredPrices1 = lists:filter(F, Prices),
 	case filter_prices_tod(Timestamp, FilteredPrices1) of
 		[Price | _] ->
-			rate4(Protocol, Subscriber, Price, Validity, Flag,
-					DebitAmounts, ReserveAmounts, SessionAttributes, Rated);
+			rate4(Protocol, Service, Buckets, Price, Flag,
+					DebitAmounts, ReserveAmounts, State);
 		_ ->
 			throw(price_not_found)
 	end.
 %% @hidden
-rate3(Protocol, Subscriber, Address,
+rate3(Protocol, Service, Buckets, Address,
 		#price{type = tariff, char_value_use = CharValueUse} = Price,
-		Validity, Flag, DebitAmounts, ReserveAmounts,
-		SessionAttributes, Rated) ->
+		Flag, DebitAmounts, ReserveAmounts, #{rated := Rated} = State) ->
 	case lists:keyfind("destPrefixTariffTable", #char_value_use.name, CharValueUse) of
 		#char_value_use{values = [#char_value{value = TariffTable}]} ->
 			Table = list_to_existing_atom(TariffTable),
@@ -247,10 +257,10 @@ rate3(Protocol, Subscriber, Address,
 				{Description, Amount, _} ->
 					case Amount of
 						N when N >= 0 ->
-							rate4(Protocol, Subscriber, Price#price{amount = N},
-									Validity, Flag, DebitAmounts, ReserveAmounts,
-									SessionAttributes, Rated#rated{price_type = tariff,
-									description = Description});
+							rate4(Protocol, Service, Buckets,
+									Price#price{amount = N}, Flag, DebitAmounts, ReserveAmounts,
+									State#{rated => Rated#rated{price_type = tariff,
+											description = Description}});
 						_N ->
 							throw(negative_amount)
 					end;
@@ -263,32 +273,27 @@ rate3(Protocol, Subscriber, Address,
 		false ->
 			throw(undefined_tariff)
 	end;
-rate3(Protocol, Subscriber, _Address, Price, Validity, Flag,
-		DebitAmounts, ReserveAmounts, SessionAttributes, Rated) ->
-	rate4(Protocol, Subscriber, Price, Validity, Flag,
-			DebitAmounts, ReserveAmounts, SessionAttributes, Rated).
+rate3(Protocol, Service, Buckets, _Address,
+		Price, Flag, DebitAmounts, ReserveAmounts, State) ->
+	rate4(Protocol, Service, Buckets, Price,
+			Flag, DebitAmounts, ReserveAmounts, State).
 %% @hidden
-rate4(_Protocol, #service{enabled = false} = Subscriber, _Price,
-		_Validity, initial, _DebitAmounts, _ReserveAmounts,
-		SessionAttributes, Rated) ->
-	SessionId = get_session_id(SessionAttributes),
-	rate6(Subscriber, initial, 0, 0, 0, 0, SessionId, Rated);
-rate4(radius, Subscriber, Price, Validity,
-		initial, [], [], SessionAttributes, Rated) ->
-	rate5(Subscriber, Price, Validity, initial,
-			0, get_reserve(Price), SessionAttributes, Rated);
-rate4(radius, Subscriber, #price{units = Units} = Price, Validity,
-		interim, [], ReserveAmounts, SessionAttributes, Rated) ->
+rate4(_Protocol, #service{enabled = false} = Service,
+		Buckets, _Price, initial, _DebitAmounts, _ReserveAmounts, State) ->
+	rate6(Service, Buckets, initial, 0, 0, 0, 0, State);
+rate4(radius, Service, Buckets, Price, initial, [], [], State) ->
+	rate5(Service, Buckets, Price, initial, 0, get_reserve(Price), State);
+rate4(radius, Service, Buckets, #price{units = Units} = Price,
+		interim, [], ReserveAmounts, State) ->
 	ReserveAmount = case lists:keyfind(Units, 1, ReserveAmounts) of
 		{_, ReserveUnits} ->
 			ReserveUnits + get_reserve(Price);
 		false ->
 			get_reserve(Price)
 	end,
-	rate5(Subscriber, Price, Validity, interim,
-			0, ReserveAmount, SessionAttributes, Rated);
-rate4(_Protocol, Subscriber, #price{units = Units} = Price, Validity,
-		Flag, DebitAmounts, ReserveAmounts, SessionAttributes, Rated) ->
+	rate5(Service, Buckets, Price, interim, 0, ReserveAmount, State);
+rate4(_Protocol, Service, Buckets, #price{units = Units} = Price,
+		Flag, DebitAmounts, ReserveAmounts, State) ->
 	DebitAmount = case lists:keyfind(Units, 1, DebitAmounts) of
 		{_, DebitUnits} ->
 			DebitUnits;
@@ -301,85 +306,71 @@ rate4(_Protocol, Subscriber, #price{units = Units} = Price, Validity,
 		false ->
 			0
 	end,
-	rate5(Subscriber, Price, Validity, Flag,
-			DebitAmount, ReserveAmount, SessionAttributes, Rated).
+	rate5(Service, Buckets, Price, Flag, DebitAmount, ReserveAmount, State).
 %% @hidden
-rate5(#service{buckets = Buckets1} = Subscriber,
+rate5(Service, Buckets1,
 		#price{units = Units, size = UnitSize, amount = UnitPrice},
-		_Validity, initial, 0, ReserveAmount, SessionAttributes, Rated) ->
-	SessionId = get_session_id(SessionAttributes),
+		initial, 0, ReserveAmount, #{session_id := SessionId} = State) ->
 	case reserve_session(Units, ReserveAmount, SessionId, Buckets1) of
 		{ReserveAmount, Buckets2} ->
-			rate6(Subscriber#service{buckets = Buckets2},
-					initial, 0, 0, ReserveAmount, ReserveAmount,
-					SessionId, Rated);
+			rate6(Service, Buckets2, initial,
+					0, 0, ReserveAmount, ReserveAmount, State);
 		{UnitsReserved, Buckets2} ->
 			PriceReserveUnits = (ReserveAmount - UnitsReserved),
 			{UnitReserve, PriceReserve} = price_units(PriceReserveUnits,
 					UnitSize, UnitPrice),
 			case reserve_session(cents, PriceReserve, SessionId, Buckets2) of
 				{PriceReserve, Buckets3} ->
-					rate6(Subscriber#service{buckets = Buckets3},
-							initial, 0, 0, ReserveAmount,
-							UnitsReserved + UnitReserve, SessionId, Rated);
+					rate6(Service, Buckets3, initial, 0, 0,
+							ReserveAmount, UnitsReserved + UnitReserve, State);
 				{PriceReserved, Buckets3} ->
-					rate6(Subscriber#service{buckets = Buckets3},
-							initial, 0, 0, ReserveAmount,
-							UnitsReserved + (PriceReserved div UnitPrice),
-							SessionId, Rated)
+					rate6(Service, Buckets3, initial, 0, 0, ReserveAmount,
+							UnitsReserved + (PriceReserved div UnitPrice), State)
 			end
 	end;
-rate5(#service{enabled = false, buckets = Buckets1} = Subscriber,
+rate5(#service{enabled = false} = Service, Buckets1,
 		#price{units = Units, size = UnitSize, amount = UnitPrice},
-		_Validity, interim, DebitAmount, _ReserveAmount,
-		SessionAttributes, Rated) ->
-	SessionId = get_session_id(SessionAttributes),
+		interim, DebitAmount, _ReserveAmount,
+		#{session_id := SessionId} = State) ->
 	case update_session(Units, DebitAmount, 0, SessionId, Buckets1) of
 		{DebitAmount, 0, Buckets2} ->
-			rate6(Subscriber#service{buckets = Buckets2}, interim,
-					DebitAmount, DebitAmount, 0, 0, SessionId, Rated);
+			rate6(Service, Buckets2, interim,
+					DebitAmount, DebitAmount, 0, 0, State);
 		{UnitsCharged, 0, Buckets2} ->
 			PriceChargeUnits = DebitAmount - UnitsCharged,
 			{UnitCharge, PriceCharge} = price_units(PriceChargeUnits,
 					UnitSize, UnitPrice),
 			case update_session(cents, PriceCharge, 0, SessionId, Buckets2) of
 				{PriceCharge, 0, Buckets3} ->
-					rate6(Subscriber#service{buckets = Buckets3}, interim,
-							DebitAmount, DebitAmount + UnitCharge, 0, 0,
-							SessionId, Rated);
+					rate6(Service, Buckets3, interim, DebitAmount,
+							DebitAmount + UnitCharge, 0, 0, State);
 				{PriceCharged, 0, Buckets3} ->
+					%% @todo generate unique bucket id
 					Buckets4 = [#bucket{remain_amount = PriceCharged - PriceCharge,
 							units = cents} | Buckets3],
-					rate6(Subscriber#service{buckets = Buckets4}, interim, DebitAmount,
-							UnitsCharged + (PriceCharged div UnitPrice), 0, 0,
-							SessionId, Rated)
+					rate6(Service, Buckets4, interim, DebitAmount,
+							UnitsCharged + (PriceCharged div UnitPrice), 0, 0, State)
 			end
 	end;
-rate5(#service{buckets = Buckets1} = Subscriber,
+rate5(Service, Buckets1,
 		#price{units = Units, size = UnitSize, amount = UnitPrice},
-		_Validity, interim, DebitAmount, ReserveAmount,
-		SessionAttributes, Rated) ->
-	SessionId = get_session_id(SessionAttributes),
-	case update_session(Units, DebitAmount, ReserveAmount,
-			SessionId, Buckets1) of
+		interim, DebitAmount, ReserveAmount, #{session_id := SessionId} = State) ->
+	case update_session(Units, DebitAmount, ReserveAmount, SessionId, Buckets1) of
 		{DebitAmount, ReserveAmount, Buckets2} ->
-			rate6(Subscriber#service{buckets = Buckets2}, interim,
-					DebitAmount, DebitAmount, ReserveAmount,
-					ReserveAmount, SessionId, Rated);
+			rate6(Service, Buckets2, interim, DebitAmount,
+					DebitAmount, ReserveAmount, ReserveAmount, State);
 		{DebitAmount, UnitsReserved, Buckets2} ->
 			PriceReserveUnits = ReserveAmount - UnitsReserved,
 			{UnitReserve, PriceReserve} = price_units(PriceReserveUnits,
 					UnitSize, UnitPrice),
 			case update_session(cents, 0, PriceReserve, SessionId, Buckets2) of
 				{0, PriceReserve, Buckets3} ->
-					rate6(Subscriber#service{buckets = Buckets3}, interim,
-							DebitAmount, DebitAmount, ReserveAmount,
-							UnitReserve, SessionId, Rated);
+					rate6(Service, Buckets3, interim, DebitAmount,
+							DebitAmount, ReserveAmount, UnitReserve, State);
 				{0, PriceReserved, Buckets3} ->
-					rate6(Subscriber#service{buckets = Buckets3}, interim,
-							DebitAmount, DebitAmount, ReserveAmount,
-							UnitsReserved + PriceReserved div UnitPrice,
-							SessionId, Rated)
+					rate6(Service, Buckets3,
+							interim, DebitAmount, DebitAmount, ReserveAmount,
+							UnitsReserved + PriceReserved div UnitPrice, State)
 			end;
 		{UnitsCharged, 0, Buckets2} ->
 			PriceChargeUnits = DebitAmount - UnitsCharged,
@@ -390,33 +381,33 @@ rate5(#service{buckets = Buckets1} = Subscriber,
 			case update_session(cents,
 					PriceCharge, PriceReserve, SessionId, Buckets2) of
 				{PriceCharge, PriceReserve, Buckets3} ->
-					rate6(Subscriber#service{buckets = Buckets3}, interim,
-							DebitAmount, UnitsCharged + UnitCharge, ReserveAmount,
-							UnitReserve, SessionId, Rated);
+					rate6(Service, Buckets3, interim,
+							DebitAmount, UnitsCharged + UnitCharge,
+							ReserveAmount, UnitReserve, State);
 				{PriceCharge, PriceReserved, Buckets3} ->
-					rate6(Subscriber#service{buckets = Buckets3}, interim,
-							DebitAmount, UnitsCharged + UnitCharge, ReserveAmount,
-							PriceReserved div UnitPrice, SessionId, Rated);
+					rate6(Service, Buckets3, interim, DebitAmount,
+							UnitsCharged + UnitCharge, ReserveAmount,
+							PriceReserved div UnitPrice, State);
 				{PriceCharged, 0, Buckets3} ->
+					%% @todo generate unique bucket id
 					Buckets4 = [#bucket{remain_amount = PriceCharged - PriceCharge,
 							units = cents} | Buckets3],
-					rate6(Subscriber#service{buckets = Buckets4}, interim,
-							DebitAmount, UnitsCharged + (PriceCharged div UnitPrice),
-							ReserveAmount, 0, SessionId, Rated)
+					rate6(Service, Buckets4, interim, DebitAmount,
+							UnitsCharged + (PriceCharged div UnitPrice),
+							ReserveAmount, 0, State)
 			end
 	end;
-rate5(#service{buckets = Buckets1} = Subscriber,
+rate5(Service, Buckets1,
 		#price{units = Units, size = UnitSize, amount = UnitPrice,
-		type = PriceType, currency = Currency},
-		_Validity, final, DebitAmount, 0, SessionAttributes, Rated1) ->
+		type = PriceType, currency = Currency}, final, DebitAmount, 0,
+		#{rated := Rated1, session_id := SessionId} = State) ->
 	Rated2 = Rated1#rated{bucket_type = Units,
 			price_type = PriceType, currency = Currency},
-	SessionId = get_session_id(SessionAttributes),
 	case charge_session(Units, DebitAmount, SessionId, Buckets1) of
 		{DebitAmount, Buckets2} ->
 			Rated3 = Rated2#rated{usage_rating_tag = included},
-			rate6(Subscriber#service{buckets = Buckets2}, final,
-					DebitAmount, DebitAmount, 0, 0, SessionId, Rated3);
+			rate6(Service, Buckets2, final, DebitAmount,
+					DebitAmount, 0, 0, State#{rated => Rated3});
 		{UnitsCharged, Buckets2} ->
 			PriceChargeUnits = DebitAmount - UnitsCharged,
 			{UnitCharge, PriceCharge} = price_units(PriceChargeUnits,
@@ -425,66 +416,78 @@ rate5(#service{buckets = Buckets1} = Subscriber,
 			case charge_session(cents, PriceCharge, SessionId, Buckets2) of
 				{PriceCharge, Buckets3} ->
 					TotalUnits = UnitsCharged + UnitCharge,
-					rate6(Subscriber#service{buckets = Buckets3}, final,
-							DebitAmount, TotalUnits, 0, 0, SessionId, Rated3);
+					rate6(Service, Buckets3, final, DebitAmount,
+							TotalUnits, 0, 0, State#{rated => Rated3});
 				{PriceCharged, Buckets3} ->
 					TotalUnits = UnitsCharged + (PriceCharged div UnitPrice),
+					%% @todo generate unique bucket id
 					Buckets4 = [#bucket{remain_amount = PriceCharged - PriceCharge,
 							units = cents} | Buckets3],
-					rate6(Subscriber#service{buckets = Buckets4}, final,
-					DebitAmount, TotalUnits, 0, 0, SessionId, Rated3)
+					rate6(Service, Buckets4, final, DebitAmount,
+							TotalUnits, 0, 0, State#{rated => Rated3})
 			end
 	end.
 %% @hidden
-rate6(#service{session_attributes = SessionList,
-		buckets = Buckets} = Subscriber1,
-		final, Charge, Charged, 0, 0, SessionId, Rated)
+rate6(#service{session_attributes = SessionList} =
+		Service1, Buckets, final, Charge, Charged, 0, 0,
+		#{session_id := SessionId, rated := Rated, product := P,
+		session_id := SessionId, buckets := OldBuckets})
 		when Charged >= Charge ->
 	NewBuckets1 = refund(SessionId, Buckets),
 	{Seconds, Octets, Cents, Msgs, NewBuckets2} = get_debits(SessionId, NewBuckets1),
+	NewBRefs = update_buckets(P#product.balance, OldBuckets, NewBuckets2),
+	ok = mnesia:write(P#product{balance = NewBRefs}),
 	Rated1 = rated(Seconds, Octets, Cents, Msgs, Rated),
 	NewSessionList = remove_session(SessionId, SessionList),
-	Subscriber2 = Subscriber1#service{buckets = NewBuckets2,
-			session_attributes = NewSessionList},
-	ok = mnesia:write(Subscriber2),
-	{ok, Subscriber2, 0, Rated1};
-rate6(#service{session_attributes = SessionList,
-		buckets = Buckets} = Subscriber1,
-		final, _Charge, _Charged, 0, 0, SessionId, Rated) ->
+	Service2 = Service1#service{session_attributes = NewSessionList},
+	ok = mnesia:write(Service2),
+	{ok, Service2, 0, Rated1};
+rate6(#service{session_attributes = SessionList} =
+		Service1, Buckets, final, _Charge, _Charged, 0, 0,
+		#{session_id := SessionId, rated := Rated, product := P,
+		session_id := SessionId, buckets := OldBuckets}) ->
 	NewBuckets1 = refund(SessionId, Buckets),
 	{Seconds, Octets, Cents, Msgs, NewBuckets2} = get_debits(SessionId, NewBuckets1),
+	NewBRefs = update_buckets(P#product.balance, OldBuckets, NewBuckets2),
+	ok = mnesia:write(P#product{balance = NewBRefs}),
 	Rated1 = rated(Seconds, Octets, Cents, Msgs, Rated),
-	Subscriber2 = Subscriber1#service{buckets = NewBuckets2,
-			session_attributes = []},
-	ok = mnesia:write(Subscriber2),
+	Service2 = Service1#service{session_attributes = []},
+	ok = mnesia:write(Service2),
 	{out_of_credit, SessionList, [Rated1]};
-rate6(#service{enabled = false, buckets = Buckets,
-		session_attributes = SessionList} = Subscriber1, _Flag,
-		_Charge, _Charged, _Reserve, _Reserved, SessionId, _Rated) ->
+rate6(#service{enabled = false, session_attributes = SessionList} =
+		Service1, Buckets, _Flag, _Charge, _Charged, _Reserve, _Reserved,
+		#{session_id := SessionId, buckets := OldBuckets, product := P}) ->
 	NewBuckets = refund(SessionId, Buckets),
-	Subscriber2 = Subscriber1#service{buckets = NewBuckets,
-			session_attributes = []},
-	ok = mnesia:write(Subscriber2),
+	NewBRefs = update_buckets(P#product.balance, OldBuckets, NewBuckets),
+	ok = mnesia:write(P#product{balance = NewBRefs}),
+	Service2 = Service1#service{session_attributes = []},
+	ok = mnesia:write(Service2),
 	{disabled, SessionList};
-rate6(#service{session_attributes = SessionList,
-		buckets = Buckets} = Subscriber1, _Flag,
-		Charge, Charged, Reserve, Reserved, SessionId, _Rated)
-		when Charged < Charge; Reserved <  Reserve ->
+rate6(#service{session_attributes = SessionList} =
+		Service1, Buckets, _Flag, Charge, Charged, Reserve,
+		Reserved, #{session_id := SessionId, buckets := OldBuckets,
+		product := P}) when Charged < Charge; Reserved <  Reserve ->
 	NewBuckets = refund(SessionId, Buckets),
-	Subscriber2 = Subscriber1#service{buckets = NewBuckets,
-			session_attributes = []},
-	ok = mnesia:write(Subscriber2),
+	NewBRefs = update_buckets(P#product.balance, OldBuckets, NewBuckets),
+	ok = mnesia:write(P#product{balance = NewBRefs}),
+	Service2 = Service1#service{session_attributes = []},
+	ok = mnesia:write(Service2),
 	{out_of_credit, SessionList};
-rate6(#service{session_attributes = SessionList} = Subscriber1,
-		initial, 0, 0, _Reserve, Reserved, SessionId, _Rated) ->
+rate6(#service{session_attributes = SessionList} =
+		Service1, Buckets, initial, 0, 0, _Reserve, Reserved,
+		#{buckets := OldBuckets, session_id := SessionId, product := P}) ->
+	NewBRefs = update_buckets(P#product.balance, OldBuckets, Buckets),
+	ok = mnesia:write(P#product{balance = NewBRefs}),
 	NewSessionList = add_session(SessionId, SessionList),
-	Subscriber2 = Subscriber1#service{session_attributes = NewSessionList},
-	ok = mnesia:write(Subscriber2),
-	{grant, Subscriber2, Reserved};
-rate6(Subscriber, interim, _Charge, _Charged, _Reserve, Reserved,
-		_SessionId, _Rated) ->
-	ok = mnesia:write(Subscriber),
-	{grant, Subscriber, Reserved}.
+	Service2 = Service1#service{session_attributes = NewSessionList},
+	ok = mnesia:write(Service2),
+	{grant, Service2, Reserved};
+rate6(Service, Buckets, interim, _Charge, _Charged, _Reserve, Reserved,
+		#{buckets := OldBuckets, product := P}) ->
+	NewBRefs = update_buckets(P#product.balance, OldBuckets, Buckets),
+	ok = mnesia:write(P#product{balance = NewBRefs}),
+	ok = mnesia:write(Service),
+	{grant, Service, Reserved}.
 
 -spec authorize(Protocol, ServiceType, SubscriberId, Password,
 		Timestamp, Address, Direction, SessionAttributes) -> Result
@@ -1073,7 +1076,7 @@ charge_session(Type, Charge, Now, SessionId,
 			NewAcc = [B#bucket{remain_amount = Remain + (ReservedAmount - Charge),
 					reservations = [NewReservation | NewReservations]} | Acc],
 			charge_session(Type, 0, Now, SessionId, T, Charged + Charge, NewAcc);
-		{value, {_, DebitedAmount, ReservedAmount, _}, []} 
+		{value, {_, DebitedAmount, ReservedAmount, _}, []}
 				when ReservedAmount >= Charge,
 				Expires /= undefined, Expires =< Now ->
 			NewDebitedAmount = DebitedAmount + Charge,
@@ -1086,7 +1089,7 @@ charge_session(Type, Charge, Now, SessionId,
 				Expires /= undefined, Expires =< Now ->
 			NewDebitedAmount = DebitedAmount + Charge,
 			NewReservation = {Now, NewDebitedAmount, 0, SessionId},
-			NewAcc = [B#bucket{reservations = 
+			NewAcc = [B#bucket{reservations =
 					[NewReservation | NewReservations]} | Acc],
 			charge_session(Type, 0, Now, SessionId, T, Charged + Charge, NewAcc);
 		{value, {_, DebitedAmount, ReservedAmount, _}, NewReservations}
@@ -1117,7 +1120,7 @@ charge_session(Type, Charge, Now, SessionId,
 				((Expires == undefined) or (Now < Expires)) ->
 			NewDebitedAmount = DebitedAmount + (Remain + ReservedAmount),
 			NewReservation = {Now, NewDebitedAmount, 0, SessionId},
-			NewAcc = [B#bucket{remain_amount = 0, reservations = [NewReservation]} | Acc], 
+			NewAcc = [B#bucket{remain_amount = 0, reservations = [NewReservation]} | Acc],
 			charge_session(Type, Charge - ReservedAmount - Remain, Now,
 					SessionId, T, Charged + ReservedAmount + Remain, NewAcc);
 		{value, {_, DebitedAmount, ReservedAmount, _}, NewReservations}
@@ -1175,7 +1178,7 @@ charge(Type, Charge, Now, SessionId, [#bucket{units = Type,
 		reservations = Reservations} = B | T], Acc, Charged)
 		when R =< Charge, 0 =< R, ((Expires == undefined) or (Now < Expires)) ->
 	NewReservation = {Now, R, 0, SessionId},
-	NewAcc = [B#bucket{remain_amount = 0, 
+	NewAcc = [B#bucket{remain_amount = 0,
 			reservations = [NewReservation | Reservations]} | Acc],
 	charge(Type, Charge - R, Now, SessionId, T, NewAcc, Charged + R);
 charge(_Type, 0, _Now, _SessionId, Buckets, Acc, Charged) ->
@@ -1456,7 +1459,7 @@ filter_prices_dir(_, [], Acc) ->
 		NewBuckets :: [#bucket{}].
 %% @doc Get total debited amount and remove all reservations for session.
 %% @private
-%% 
+%%
 get_debits(SessionId, Buckets) ->
 	Now = erlang:system_time(?MILLISECOND),
 	get_debits(Buckets, SessionId, Now, 0, 0, 0, 0, []).
@@ -1539,4 +1542,25 @@ rated(0, 0, Cents, Msgs, Rated) when Cents > 0, Msgs > 0 ->
 			tax_excluded_amount = Msgs, is_billed = true}];
 rated(0, 0, 0, 0, Rated) ->
 	[Rated#rated{is_billed = true}].
+
+%% @hidden
+update_buckets(BRefs, OldB, NewB) ->
+	UpdatedB = NewB -- OldB,
+	UBKeys = update_b(UpdatedB, []),
+	ok = delete_b(BRefs -- UBKeys),
+	UBKeys.
+
+%% @hidden
+update_b([#bucket{id = Id} = B | T], Acc)	->
+	ok = mnesia:write(B),
+	update_b(T, [Id | Acc]);
+update_b([], Acc)	->
+	lists:reverse(Acc).
+
+%% @hidden
+delete_b([BRef | T]) ->
+	ok = mnesia:delete(bucket, BRef, write),
+	delete_b(T);
+delete_b([]) ->
+	ok.
 
