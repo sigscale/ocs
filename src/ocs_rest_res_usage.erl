@@ -742,7 +742,7 @@ usage_aaa_auth([], _Filters, Acc) ->
 	lists:reverse(Acc).
 
 %% @hidden
-usage_aaa_ipdr(Event, Filters) when is_record(Event, ipdr_wlan) ->
+usage_ipdr(Event, Filters) when is_record(Event, ipdr_wlan) ->
 	UsageSpec = {struct, [{"id", "PublicWLANAccessUsageSpec"},
 			{"href", ?usageSpecPath ++ "PublicWLANAccessUsageSpec"},
 			{"name", "PublicWLANAccessUsageSpec"}]},
@@ -761,7 +761,7 @@ usage_aaa_ipdr(Event, Filters) when is_record(Event, ipdr_wlan) ->
 		_ ->
 			ocs_rest:fields("id,href," ++ Filters, Object)
 	end;
-usage_aaa_ipdr(Event, Filters) when is_record(Event, ipdr_voip) ->
+usage_ipdr(Event, Filters) when is_record(Event, ipdr_voip) ->
 	UsageSpec = {struct, [{"id", "VoIPUsageSpec"},
 			{"href", ?usageSpecPath ++ "VoIPUsageSpec"},
 			{"name", "VoIPUsageSpec"}]},
@@ -780,18 +780,18 @@ usage_aaa_ipdr(Event, Filters) when is_record(Event, ipdr_voip) ->
 		_ ->
 			ocs_rest:fields("id,href," ++ Filters, Object)
 	end;
-usage_aaa_ipdr(Event, Filters) when is_list(Event) ->
-	usage_aaa_ipdr(Event, Filters, []).
+usage_ipdr(Event, Filters) when is_list(Event) ->
+	usage_ipdr(Event, Filters, []).
 %% @hidden
-usage_aaa_ipdr([#ipdrDocWLAN{} | T], Filters, Acc) ->
-	usage_aaa_ipdr(T, Filters, Acc);
-usage_aaa_ipdr([#ipdrDocVoIP{} | T], Filters, Acc) ->
-	usage_aaa_ipdr(T, Filters, Acc);
-usage_aaa_ipdr([#ipdrDocEnd{} | T], Filters, Acc) ->
-	usage_aaa_ipdr(T, Filters, Acc);
-usage_aaa_ipdr([H | T], Filters, Acc) ->
-	usage_aaa_ipdr(T, Filters, [usage_aaa_ipdr(H, Filters) | Acc]);
-usage_aaa_ipdr([], _Filters, Acc) ->
+usage_ipdr([#ipdrDocWLAN{} | T], Filters, Acc) ->
+	usage_ipdr(T, Filters, Acc);
+usage_ipdr([#ipdrDocVoIP{} | T], Filters, Acc) ->
+	usage_ipdr(T, Filters, Acc);
+usage_ipdr([#ipdrDocEnd{} | T], Filters, Acc) ->
+	usage_ipdr(T, Filters, Acc);
+usage_ipdr([H | T], Filters, Acc) ->
+	usage_ipdr(T, Filters, [usage_ipdr(H, Filters) | Acc]);
+usage_ipdr([], _Filters, Acc) ->
 	lists:reverse(Acc).
 
 %% @hidden
@@ -2836,9 +2836,9 @@ query_page(PageServer, Etag, Query, Filters, Start, End) ->
 		{_, {_, "AAAAccountingUsage"}, _Query1} ->
 			query_page1(PageServer, Etag, fun usage_aaa_acct/2, Filters, Start, End);
 		{_, {_, "PublicWLANAccessUsage"}, _Query1} ->
-			query_page1(PageServer, Etag, fun usage_aaa_ipdr/2, Filters, Start, End);
+			query_page1(PageServer, Etag, fun usage_ipdr/2, Filters, Start, End);
 		{_, {_, "VoIPUsage"}, _Query1} ->
-			query_page1(PageServer, Etag, fun usage_aaa_ipdr/2, Filters, Start, End);
+			query_page1(PageServer, Etag, fun usage_ipdr/2, Filters, Start, End);
 		{_, {_, "HTTPTransferUsage"}, _} ->
 			query_page1(PageServer, Etag, fun usage_http_transfer/2, Filters, Start, End);
 		{_, {_, _}, []} ->
@@ -2876,7 +2876,7 @@ get_last(Query, Filters) ->
 		{_, {_, "AAAAccountingUsage"}, []} ->
 			get_last1(ocs_acct, fun usage_aaa_acct/2, Filters);
 		{_, {_, "PublicWLANAccessUsage"}, []} ->
-			get_last1(ocs_acct, fun usage_aaa_ipdr/2, Filters);
+			get_last1(ocs_acct, fun usage_ipdr/2, Filters);
 		{_, {_, "HTPPUsage"}, []} ->
 			get_last1(ocs_acct, fun usage_http_transfer/2, Filters);
 		{_, {_, _}, []} ->
