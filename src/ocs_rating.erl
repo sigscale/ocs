@@ -452,7 +452,7 @@ rate6(#service{session_attributes = SessionList,
 		buckets = Buckets} = Subscriber1,
 		final, _Charge, _Charged, 0, 0, SessionId, Rated) ->
 	NewBuckets1 = refund(SessionId, Buckets),
-	{Seconds, Octets, Cents, NewBuckets2} = get_debits(SessionId, NewBuckets1),
+	{Seconds, Octets, Cents, Msgs, NewBuckets2} = get_debits(SessionId, NewBuckets1),
 	Rated1 = rated(Seconds, Octets, Cents, Msgs, Rated),
 	Subscriber2 = Subscriber1#service{buckets = NewBuckets2,
 			session_attributes = []},
