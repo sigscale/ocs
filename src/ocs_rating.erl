@@ -453,23 +453,11 @@ rate6(#service{session_attributes = SessionList,
 		final, _Charge, _Charged, 0, 0, SessionId, Rated) ->
 	NewBuckets1 = refund(SessionId, Buckets),
 	{Seconds, Octets, Cents, NewBuckets2} = get_debits(SessionId, NewBuckets1),
-	Rated1 = case {Seconds, Octets, Cents} of
-		{Seconds, 0, 0} when Seconds > 0 ->
-			Rated#rated{bucket_value = Seconds,
-					bucket_type = seconds, is_billed = true};
-		{0, Octets, 0} when Octets > 0 ->
-			Rated#rated{bucket_value = Octets,
-					bucket_type = octets, is_billed = true};
-		{_, _, Cents} when Cents > 0 ->
-			Rated#rated{bucket_type = cents,
-					tax_excluded_amount = Cents, is_billed = true};
-		{0, 0, 0} ->
-			Rated#rated{is_billed = true}
-	end,
+	Rated1 = rated(Seconds, Octets, Cents, Msgs, Rated),
 	Subscriber2 = Subscriber1#service{buckets = NewBuckets2,
 			session_attributes = []},
 	ok = mnesia:write(Subscriber2),
-	{out_of_credit, SessionList, Rated1};
+	{out_of_credit, SessionList, [Rated1]};
 rate6(#service{enabled = false, buckets = Buckets,
 		session_attributes = SessionList} = Subscriber1, _Flag,
 		_Charge, _Charged, _Reserve, _Reserved, SessionId, _Rated) ->
