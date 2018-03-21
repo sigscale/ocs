@@ -430,7 +430,7 @@ diameter_sms(_Config) ->
 	NumOfEvents = Balance div rand:uniform(5),
 	Price = #price{name = ocs:generate_identity(), type = usage,
 		units = messages, size = PackageSize, amount = PackagePrice},
-	Product = #product{name = ProdID, price = [Price], specification = "11"},
+	Product = #offer{name = ProdID, price = [Price], specification = "11"},
 	{ok, _} = ocs:add_product(Product),
 	CalledParty = ocs:generate_identity(),
 	CallingParty = ocs:generate_identity(),
