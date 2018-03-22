@@ -493,7 +493,8 @@ ipdr_voip_characteristics([chargeAmount | T],
 	ipdr_voip_characteristics(T, IPDR, Acc);
 ipdr_voip_characteristics([chargeAmount | T],
 		#ipdr_voip{chargeAmount = CA} = IPDR, Acc) ->
-	Obj = {struct, [{"name", "chargeAmount"}, {"value", CA}]},
+	Obj = {struct, [{"name", "chargeAmount"},
+			{"value", ocs_rest:decimal(CA)}]},
 	ipdr_voip_characteristics(T, IPDR, [Obj |Acc]);
 ipdr_voip_characteristics([_ | T], IPDR, Acc) ->
 	ipdr_voip_characteristics(T, IPDR, Acc);
