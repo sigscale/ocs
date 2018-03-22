@@ -118,56 +118,44 @@ initial_exact_fit() ->
 	[{userdata, [{doc, "Cents balance exactly equal to reservation price"}]}].
 
 initial_exact_fit(_Config) ->
-	ProdID = ocs:generate_password(),
 	PackagePrice = 100,
 	PackageSize = 1000,
-	Price = #price{name = "overage", type = usage,
-		units = octets, size = PackageSize, amount = PackagePrice},
-	Product = #offer{name = ProdID, price = [Price], specification = 4},
-	{ok, _} = ocs:add_offer(Product),
-	SubscriberID = list_to_binary(ocs:generate_identity()),
-	Password = ocs:generate_password(),
+	P1 = price(usage, octets, PackageSize, PackagePrice),
+	OfferId = add_offer([P1], 4),
+	ProdRef = add_product(OfferId),
+	ServiceId =  add_service(ProdRef),
+	B1 = bucket(cents, PackagePrice),
+	BId = add_bucket(ProdRef, B1),
+	ServiceType = 32251,
 	Timestamp = calendar:local_time(),
-	Chars = [{validity, erlang:system_time(?MILLISECOND) + 2592000000}],
-	RemAmount = 100,
-	Buckets = [#bucket{units = cents, remain_amount = RemAmount,
-		start_date = erlang:system_time(?MILLISECOND),
-		termination_date = erlang:system_time(?MILLISECOND) + 2592000000}],
 	SessionId = [{'Session-Id', list_to_binary(ocs:generate_password())}],
-	ServiceType = <<"32251@3gpp.org">>,
-	{ok, _Subscriber1} = ocs:add_service(SubscriberID, Password, ProdID, Chars, Buckets),
-	{ok, Subscriber2, PackageSize} = ocs_rating:rate(diameter, ServiceType,
-			SubscriberID, Timestamp, undefined, undefined, initial, [],
+	{ok, _, PackageSize} = ocs_rating:rate(diameter, ServiceType,
+			ServiceId, Timestamp, undefined, undefined, initial, [],
 			[{octets, PackageSize}], SessionId),
-	#service{buckets = [#bucket{remain_amount = 0,
-			reservations = [{_, 0, PackagePrice, _}]}]} = Subscriber2.
+	{ok, #bucket{remain_amount = 0,
+			reservations = [{_, 0, PackagePrice, _}]}} = ocs:find_bucket(BId).
 
 initial_insufficient() ->
 	[{userdata, [{doc, "Insufficient cents balance for initial reservation"}]}].
 
 initial_insufficient(_Config) ->
-	ProdID = ocs:generate_password(),
 	PackagePrice = 100,
 	PackageSize = 1000,
-	Price = #price{name = "overage", type = usage,
-		units = octets, size = PackageSize, amount = PackagePrice},
-	Product = #offer{name = ProdID, price = [Price], specification = 4},
-	{ok, _} = ocs:add_offer(Product),
-	SubscriberID = list_to_binary(ocs:generate_identity()),
-	Timestamp = calendar:local_time(),
-	Password = ocs:generate_password(),
-	Chars = [{validity, erlang:system_time(?MILLISECOND) + 2592000000}],
+	P1 = price(usage, octets, PackageSize, PackagePrice),
+	OfferId = add_offer([P1], 4),
+	ProdRef = add_product(OfferId),
+	ServiceId =  add_service(ProdRef),
 	RemAmount = 13,
-	Buckets = [#bucket{units = cents, remain_amount = RemAmount,
-		start_date = erlang:system_time(?MILLISECOND),
-		termination_date = erlang:system_time(?MILLISECOND) + 2592000000}],
+	B1 = bucket(cents, RemAmount),
+	BId = add_bucket(ProdRef, B1),
+	ProdID = ocs:generate_password(),
+	Timestamp = calendar:local_time(),
 	SessionId = [{'Session-Id', list_to_binary(ocs:generate_password())}],
 	ServiceType = 2,
-	{ok, _Subscriber1} = ocs:add_service(SubscriberID, Password, ProdID, Chars, Buckets),
-	{out_of_credit, _} = ocs_rating:rate(radius, ServiceType, SubscriberID,
+	{out_of_credit, _} = ocs_rating:rate(radius, ServiceType, ServiceId,
 			Timestamp, undefined, undefined, initial, [], [{octets, PackageSize}], SessionId),
-	{ok, #service{buckets = [#bucket{units = cents, remain_amount = RemAmount,
-			reservations = []}]}} = ocs:find_service(SubscriberID).
+	{ok, #bucket{units = cents, remain_amount = RemAmount,
+			reservations = []}} = ocs:find_bucket(BId).
 
 initial_insufficient_multisession() ->
 	[{userdata, [{doc, "Insufficient cents balance on initial reservation of additional session"}]}].
@@ -2012,4 +2000,40 @@ debit_sms(_Config) ->
 %%---------------------------------------------------------------------
 %%  Internal functions
 %%---------------------------------------------------------------------
+%% @hidden
+price(Type, Units, Size, Amount) ->
+	#price{name = ocs:generate_identity(),
+			type = Type, units = Units,
+			size = Size, amount = Amount}.
+
+%% @hidden
+bucket(Units, RA) ->
+	#bucket{units = Units, remain_amount = RA,
+		start_date = erlang:system_time(?MILLISECOND),
+		termination_date = erlang:system_time(?MILLISECOND) + 2592000000}.
+
+%% @hidden
+add_offer(Prices, Spec) ->
+	Offer = #offer{name = ocs:generate_identity(),
+	price = Prices, specification = Spec},
+	{ok, #offer{name = OfferId}} = ocs:add_offer(Offer),
+	OfferId.
+
+%% @hidden
+add_product(OfferId) ->
+	{ok, #product{id = ProdRef}} = ocs:add_product(OfferId, []),
+	ProdRef.
+
+%% @hidden
+add_service(ProdRef) ->
+	ServiceId = ocs:generate_identity(),
+	{ok, _Service1} =
+			ocs:add_service(ServiceId, ocs:generate_password(),
+			ProdRef, []),
+	ServiceId.
+
+%% @hidden
+add_bucket(ProdRef, Bucket) ->
+	{ok, _, #bucket{id = BId}} = ocs:add_bucket(ProdRef, Bucket),
+	BId.
 
