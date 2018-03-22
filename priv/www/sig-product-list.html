@@ -2,7 +2,6 @@
 <link rel="import" href="polymer/polymer.html">
 <link rel="import" href="vaadin-grid/vaadin-grid.html">
 <link rel="import" href="vaadin-grid/vaadin-grid-filter.html">
-<link rel="import" href="vaadin-grid/vaadin-grid-sorter.html">
 <link rel="import" href="i18n-msg/i18n-msg-behavior.html">
 <link rel="import" href="iron-ajax/iron-ajax.html">
 <link rel="import" href="paper-fab/paper-fab.html" >
@@ -57,61 +56,49 @@
 		<vaadin-grid id="productGrid" active-item="{{activeItem}}">
 			<vaadin-grid-column width="15ex" flex-grow="5">
 				<template class="header">
-					<vaadin-grid-sorter path="name">
-						<vaadin-grid-filter aria-label="[[i18n.name]]" path="name" value="[[_filterName]]">
-							<input placeholder="[[i18n.name]]" value="{{_filterName::input}}" focus-target>
-						</vaadin-grid-filter>
-				 	</vaadin-grid-sorter>
+					<vaadin-grid-filter aria-label="[[i18n.name]]" path="name" value="[[_filterName]]">
+						<input placeholder="[[i18n.name]]" value="{{_filterName::input}}" focus-target>
+					</vaadin-grid-filter>
 				</template>
 				<template>[[item.name]]</template>
 			</vaadin-grid-column>
 			<vaadin-grid-column width="15ex" flex-grow="13">
 				<template class="header">
-					<vaadin-grid-sorter path="description">
-						<vaadin-grid-filter aria-label="[[i18n.des]]" path="description" value="[[_filterDes]]">
-							<input placeholder="[[i18n.des]]" value="{{_filterDes::input}}" focus-target>
-						</vaadin-grid-filter>
-					</vaadin-grid-sorter>
+					<vaadin-grid-filter aria-label="[[i18n.des]]" path="description" value="[[_filterDes]]">
+						<input placeholder="[[i18n.des]]" value="{{_filterDes::input}}" focus-target>
+					</vaadin-grid-filter>
 				</template>
 				<template>[[item.description]]</template>
 			</vaadin-grid-column>
 			<vaadin-grid-column width="15ex" flex-grow="10">
 				<template class="header">
-					<vaadin-grid-sorter path="startDate">
-						<vaadin-grid-filter aria-label="[[i18n.start]]" path="startDate" value="[[_filterStart]]">
-							<input placeholder="[[i18n.start]]" value="{{_filterStart::input}}" focus-target>
-						</vaadin-grid-filter>
-					</vaadin-grid-sorter>
+					<vaadin-grid-filter aria-label="[[i18n.start]]" path="startDate" value="[[_filterStart]]">
+						<input placeholder="[[i18n.start]]" value="{{_filterStart::input}}" focus-target>
+					</vaadin-grid-filter>
 				</template>
 				<template>[[item.startDate]]</template>
 			</vaadin-grid-column>
 			<vaadin-grid-column width="15ex" flex-grow="10">
 				<template class="header">
-					<vaadin-grid-sorter path="endDate">
-						<vaadin-grid-filter aria-label="[[i18n.end]]" path="endDate" value="[[_filterEnd]]">
-							<input placeholder="[[i18n.end]]" value="{{_filterEnd::input}}" focus-target>
-						</vaadin-grid-filter>
-					</vaadin-grid-sorter>
+					<vaadin-grid-filter aria-label="[[i18n.end]]" path="endDate" value="[[_filterEnd]]">
+						<input placeholder="[[i18n.end]]" value="{{_filterEnd::input}}" focus-target>
+					</vaadin-grid-filter>
 				</template>
 				<template>[[item.endDate]]</template>
 			</vaadin-grid-column>
 			<vaadin-grid-column width="15ex" flex-grow="7">
 				<template class="header">
-					<vaadin-grid-sorter path="status">
-						<vaadin-grid-filter aria-label="[[i18n.status]]" path="status" value="[[_filterStatus]]">
-							<input placeholder="[[i18n.status]]" value="{{_filterStatus::input}}" focus-target>
-						</vaadin-grid-filter>
-					</vaadin-grid-sorter>
+					<vaadin-grid-filter aria-label="[[i18n.status]]" path="status" value="[[_filterStatus]]">
+						<input placeholder="[[i18n.status]]" value="{{_filterStatus::input}}" focus-target>
+					</vaadin-grid-filter>
 				</template>
 				<template>[[item.status]]</template>
 			</vaadin-grid-column>
 			<vaadin-grid-column width="15ex" flex-grow="8">
 				<template class="header">
-					<vaadin-grid-sorter path="price">
-						<vaadin-grid-filter aria-label="[[i18n.prices]]" path="price" value="[[_filterPrice]]">
-							<input placeholder="[[i18n.prices]]" value="{{_filterPrice::input}}" focus-target>
-						</vaadin-grid-filter>
-					</vaadin-grid-sorter>
+					<vaadin-grid-filter aria-label="[[i18n.prices]]" path="price" value="[[_filterPrice]]">
+						<input placeholder="[[i18n.prices]]" value="{{_filterPrice::input}}" focus-target>
+					</vaadin-grid-filter>
 				</template>
 				<template>[[item.price]]</template>
 			</vaadin-grid-column>
