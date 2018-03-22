@@ -541,7 +541,7 @@ add_bucket(ProductRef, #bucket{id = undefined} = Bucket) when is_list(ProductRef
 		case mnesia:read(product, ProductRef, write) of
 			[#product{balance = B} = P] ->
 				BId = generate_bucket_id(),
-				Bucket1  = Bucket#bucket{id = BId},
+				Bucket1  = Bucket#bucket{id = BId, product = [ProductRef]},
 				ok = mnesia:write(bucket, Bucket1, write),
 				Product = P#product{balance = lists:reverse([BId | B])},
 				ok = mnesia:write(product, Product, write),
