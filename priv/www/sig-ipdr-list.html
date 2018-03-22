@@ -43,11 +43,9 @@
 		<vaadin-grid id="ipdrGrid">
 			<vaadin-grid-column width="19ex" flex-grow="1">
 				<template class="header">
-					<vaadin-grid-sorter path="ipdrCreationTime">
-						<vaadin-grid-filter aria-label="[[i18n.creationTime]]" path="ipdrCreationTime" value="[[_filterIPDRCreationTime]]">
-							<input placeholder="[[i18n.creationTime]]" value="{{_filterIPDRCreationTime::input}}" focus-target>
-						</vaadin-grid-filter>
-					</vaadin-grid-sorter>
+					<vaadin-grid-filter aria-label="[[i18n.creationTime]]" path="ipdrCreationTime" value="[[_filterIPDRCreationTime]]">
+						<input placeholder="[[i18n.creationTime]]" value="{{_filterIPDRCreationTime::input}}" focus-target>
+					</vaadin-grid-filter>
 				</template>
 				<template>[[item.ipdrCreationTime]]</template>
 			</vaadin-grid-column>
@@ -57,99 +55,89 @@
 			</vaadin-grid-column>
 			<vaadin-grid-column width="20ex" flex-grow="4">
 				<template class="header">
-					<vaadin-grid-sorter path="username">
-						<vaadin-grid-filter aria-label="[[i18n.userName]]" path="username" value="[[_filterUserName]]">
-							<input placeholder="[[i18n.userName]]" value="{{_filterUserName::input}}" focus-target>
-						</vaadin-grid-filter>
-					</vaadin-grid-sorter>
+					<vaadin-grid-filter aria-label="[[i18n.userName]]" path="username" value="[[_filterUserName]]">
+						<input placeholder="[[i18n.userName]]" value="{{_filterUserName::input}}" focus-target>
+					</vaadin-grid-filter>
 				</template>
 				<template>[[item.username]]</template>
 			</vaadin-grid-column>
 			<vaadin-grid-column width="12ex" flex-grow="0">
 				<template class="header">
-					<vaadin-grid-sorter path="acctSessionId">
-						<vaadin-grid-filter aria-label="[[i18n.acctSessionId]]" path="acctSessionId" value="[[_filterAcctSessionId]]">
-							<input placeholder="[[i18n.acctSessionId]]" value="{{_filterAcctSessionId::input}}" focus-target>
-						</vaadin-grid-filter>
-					</vaadin-grid-sorter>
+					<vaadin-grid-filter aria-label="[[i18n.acctSessionId]]" path="acctSessionId" value="[[_filterAcctSessionId]]">
+						<input placeholder="[[i18n.acctSessionId]]" value="{{_filterAcctSessionId::input}}" focus-target>
+					</vaadin-grid-filter>
 				</template>
 				<template>[[item.acctSessionId]]</template>
 			</vaadin-grid-column>
 			<vaadin-grid-column width="20ex" flex-grow="3">
 				<template class="header">
-					<vaadin-grid-sorter path="callingStationId">
-						<vaadin-grid-filter aria-label="[[i18n.callingStationId]]" path="callingStationId" value="[[_filterCallingStationId]]">
-							<input placeholder="[[i18n.callingStationId]]" value="{{_filterCallingStationId::input}}" focus-target>
-						</vaadin-grid-filter>
-					</vaadin-grid-sorter>
+					<vaadin-grid-filter aria-label="[[i18n.callingStationId]]" path="callingStationId" value="[[_filterCallingStationId]]">
+						<input placeholder="[[i18n.callingStationId]]" value="{{_filterCallingStationId::input}}" focus-target>
+					</vaadin-grid-filter>
 				</template>
 				<template>[[item.callingStationId]]</template>
 			</vaadin-grid-column>
 			<vaadin-grid-column width="28ex" flex-grow="3">
 				<template class="header">
-					<vaadin-grid-sorter path="calledStationId">
-						<vaadin-grid-filter aria-label="[[i18n.calledStationId]]" path="calledStationId" value="[[_filterCalledStationId]]">
-							<input placeholder="[[i18n.calledStationId]]" value="{{_filterCalledStationId::input}}" focus-target>
-						</vaadin-grid-filter>
-					</vaadin-grid-sorter>
+					<vaadin-grid-filter aria-label="[[i18n.calledStationId]]" path="calledStationId" value="[[_filterCalledStationId]]">
+						<input placeholder="[[i18n.calledStationId]]" value="{{_filterCalledStationId::input}}" focus-target>
+					</vaadin-grid-filter>
 				</template>
 				<template>[[item.calledStationId]]</template>
 			</vaadin-grid-column>
 			<vaadin-grid-column width="16ex" flex-grow="2">
 				<template class="header">
-					<vaadin-grid-sorter path="nasIpAddress">
-						<vaadin-grid-filter aria-label="[[i18n.nasIpAddress]]" path="nasIpAddress" value="[[_filterNasIpAddress]]">
-							<input placeholder="[[i18n.nasIpAddress]]" value="{{_filterNasIpAddress::input}}" focus-target>
-						</vaadin-grid-filter>
-					</vaadin-grid-sorter>
+					<vaadin-grid-filter aria-label="[[i18n.nasIpAddress]]" path="nasIpAddress" value="[[_filterNasIpAddress]]">
+						<input placeholder="[[i18n.nasIpAddress]]" value="{{_filterNasIpAddress::input}}" focus-target>
+					</vaadin-grid-filter>
 				</template>
 				<template>[[item.nasIpAddress]]</template>
 			</vaadin-grid-column>
 			<vaadin-grid-column width="12ex" flex-grow="4">
 				<template class="header">
-					<vaadin-grid-sorter path="nasId">
-						<vaadin-grid-filter aria-label="[[i18n.nasID]]" path="nasId" value="[[_filterNasId]]">
-							<input placeholder="[[i18n.nasID]]" value="{{_filterNasId::input}}" focus-target>
-						</vaadin-grid-filter>
-					</vaadin-grid-sorter>
+					<vaadin-grid-filter aria-label="[[i18n.nasID]]" path="nasId" value="[[_filterNasId]]">
+						<input placeholder="[[i18n.nasID]]" value="{{_filterNasId::input}}" focus-target>
+					</vaadin-grid-filter>
 				</template>
 				<template>[[item.nasId]]</template>
 			</vaadin-grid-column>
 			<vaadin-grid-column width="9ex" flex-grow="2">
 				<template class="header">
-					<vaadin-grid-sorter path="sessionDuration">[[i18n.sessionDur]]</vaadin-grid-sorter>
+					<i18n-msg msgid="sessionDur">
+						SessionDuration
+					</i18n-msg>
 				</template>
 				<template>[[item.sessionDuration]]</template>
 			</vaadin-grid-column>
 			<vaadin-grid-column width="12ex" flex-grow="2">
 				<template class="header">
-					<vaadin-grid-sorter path="inputOctets">[[i18n.inputOctets]]</vaadin-grid-sorter>
+					<i18n-msg msgid="inputOctets">
+						InputOctets
+					</i18n-msg>
 				</template>
 				<template>[[item.inputOctets]]</template>
 			</vaadin-grid-column>
 			<vaadin-grid-column width="13ex" flex-grow="2">
 				<template class="header">
-					<vaadin-grid-sorter path="outputOctets">[[i18n.outputOctets]]</vaadin-grid-sorter>
+					<i18n-msg msgid="outputOctets">
+						OutputOctets
+					</i18n-msg>
 				</template>
 				<template>[[item.outputOctets]]</template>
 			</vaadin-grid-column>
 			<vaadin-grid-column width="19ex" flex-grow="1">
 				<template class="header">
-					<vaadin-grid-sorter path="gmtSessionStartDateTime">
-						<vaadin-grid-filter aria-label="[[i18n.gmtSessionStartDateTime]]" path="gmtSessionStartDateTime" value="[[_filterGmtSessionStartDateTime]]">
-							<input placeholder="[[i18n.gmtSessionStartDateTime]]" value="{{_filterGmtSessionStartDateTime::input}}" focus-target>
-						</vaadin-grid-filter>
-					</vaadin-grid-sorter>
+					<vaadin-grid-filter aria-label="[[i18n.gmtSessionStartDateTime]]" path="gmtSessionStartDateTime" value="[[_filterGmtSessionStartDateTime]]">
+						<input placeholder="[[i18n.gmtSessionStartDateTime]]" value="{{_filterGmtSessionStartDateTime::input}}" focus-target>
+					</vaadin-grid-filter>
 				</template>
 				<template>[[item.gmtSessionStartDateTime]]</template>
 			</vaadin-grid-column>
 			<vaadin-grid-column width="19ex" flex-grow="1">
 				<template class="header">
-					<vaadin-grid-sorter path="gmtSessionEndDateTime">
-						<vaadin-grid-filter aria-label="[[i18n.gmtSessionendtime]]" path="gmtSessionEndDateTime" value="[[_filterGmtSessionEndDateTime]]">
-							<input placeholder="[[i18n.gmtSessionendtime]]" value="{{_filterGmtSessionEndDateTime::input}}" focus-target>
-						</vaadin-grid-filter>
-					</vaadin-grid-sorter>
+					<vaadin-grid-filter aria-label="[[i18n.gmtSessionendtime]]" path="gmtSessionEndDateTime" value="[[_filterGmtSessionEndDateTime]]">
+						<input placeholder="[[i18n.gmtSessionendtime]]" value="{{_filterGmtSessionEndDateTime::input}}" focus-target>
+					</vaadin-grid-filter>
 				</template>
 				<template>[[item.gmtSessionEndDateTime]]</template>
 			</vaadin-grid-column>
