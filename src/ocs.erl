@@ -26,10 +26,11 @@
 		update_client/2, update_client/3, get_clients/0, delete_client/1,
 		query_clients/6]).
 -export([add_service/3, add_service/4, add_service/6,
-		add_product/2, add_product/4, add_bucket/2]).
+		add_product/2, add_product/4]).
 -export([add_subscriber/3, add_subscriber/4, add_subscriber/5,
 		add_subscriber/6, add_subscriber/8, find_service/1,
 		delete_service/1, get_services/0, query_service/1]).
+-export([add_bucket/2, find_bucket/1, delete_bucket/1]).
 -export([add_user/3, list_users/0, get_user/1, delete_user/1,
 		query_users/3, update_user/3]).
 -export([add_offer/1, find_offer/1, get_offers/0, delete_offer/1,
@@ -556,7 +557,7 @@ add_bucket(ProductRef, #bucket{id = undefined} = Bucket) when is_list(ProductRef
 			{error, Reason}
 	end;
 add_bucket(ProductRef, #bucket{id = BId, product = ProdRef1,
-		remain_amount = RAmount1, termination_date = TD} = Bucket)
+		remain_amount = RAmount1, termination_date = TD} = _Bucket)
 		when is_list(ProductRef) ->
 	F = fun() ->
 		case mnesia:read(product, ProductRef, write) of
@@ -591,6 +592,38 @@ add_bucket(ProductRef, #bucket{id = BId, product = ProdRef1,
 		{aborted, Reason} ->
 			{error, Reason}
 	end.
+
+-spec find_bucket(BucketId) -> Result
+	when
+		BucketId :: term(),
+		Result :: {ok, Bucket} | {error, Reason},
+		Bucket :: #bucket{},
+		Reason :: not_found | term().
+%% @doc Look up an entry in the bucket table.
+find_bucket(BucketId) ->
+	F = fun() -> mnesia:read(bucket, BucketId, read) end,
+	case mnesia:transaction(F) of
+		{atomic, [#bucket{} = B]} ->
+			{ok, B};
+		{atomic, []} ->
+			{error, not_found};
+		{aborted, Reason} ->
+			{error, Reason}
+	end.
+
+-spec delete_bucket(BucketId) -> ok
+	when
+		BucketId :: term().
+%% @doc Delete entry in the bucket table.
+delete_bucket(BucketId) ->
+	F = fun() -> mnesia:delete(bucket, BucketId, write) end,
+	case mnesia:transaction(F) of
+		{atomic, ok} ->
+			ok;
+		{aborted, Reason} ->
+			exit(Reason)
+	end.
+
 
 -spec add_subscriber(Identity, Password, Offer) -> Result
 	when
