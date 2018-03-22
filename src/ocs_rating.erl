@@ -104,16 +104,15 @@ rate(Protocol, ServiceType, SubscriberID, Timestamp, Address, Direction,
 		is_list(DebitAmounts), is_list(ReserveAmounts), length(SessionAttributes) > 0 ->
 	F = fun() ->
 			case mnesia:read(service, SubscriberID, write) of
-				%% not doing dues
 				[#service{product = ProdRef} = Service] ->
 					case mnesia:read(product, ProdRef, read) of
 						[#product{characteristics = Chars, product = OfferId,
 								balance = BucketRefs} = Product] ->
 							case mnesia:read(offer, OfferId, read) of
 								[#offer{} = Offer] ->
-									Buckets = [mnesia:select(bucket,
+									Buckets = lists:flatten([mnesia:select(bucket,
 											[{'$1', [{'==', Id, {element, #bucket.id, '$1'}}], ['$1']}])
-											|| Id <- BucketRefs],
+											|| Id <- BucketRefs]),
 									State = #{buckets => Buckets,
 											bucket_refs => BucketRefs, product => Product,
 											chars => Chars, service_type => ServiceType,
