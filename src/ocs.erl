@@ -26,7 +26,7 @@
 		update_client/2, update_client/3, get_clients/0, delete_client/1,
 		query_clients/6]).
 -export([add_service/3, add_service/4, add_service/6,
-		add_subscription/2, add_subscription/4]).
+		add_product/2, add_product/4]).
 -export([add_subscriber/3, add_subscriber/4, add_subscriber/5,
 		add_subscriber/6, add_subscriber/8, find_service/1,
 		delete_service/1, get_services/0, query_service/1]).
@@ -352,17 +352,17 @@ query_clients4(Clients, Address) ->
 	Fun = fun(#client{address = A}) -> lists:prefix(Address, inet:ntoa(A)) end,
 	{eof, lists:filter(Fun, Clients)}.
 
--spec add_subscription(Offer, Characteristics) -> Result
+-spec add_product(Offer, Characteristics) -> Result
 	when
 		Offer :: string(),
 		Characteristics :: [tuple()],
 		Result :: {ok, #product{}} | {error, Reason},
 		Reason :: term().
-%% @equiv add_subscription(Offer, undefined, undefined, Characteristics)
-add_subscription(Offer, Characteristics) ->
-	add_subscription(Offer, undefined, undefined, Characteristics).
+%% @equiv add_product(Offer, undefined, undefined, Characteristics)
+add_product(Offer, Characteristics) ->
+	add_product(Offer, undefined, undefined, Characteristics).
 
--spec add_subscription(Offer, StartDate, EndDate, Characteristics) -> Result
+-spec add_product(Offer, StartDate, EndDate, Characteristics) -> Result
 	when
 		Offer :: string(),
 		StartDate :: undefined | pos_integer(),
@@ -371,7 +371,7 @@ add_subscription(Offer, Characteristics) ->
 		Result :: {ok, #product{}} | {error, Reason},
 		Reason :: term().
 %% @doc Add a product invenotry subscription instance.
-add_subscription(Offer, StartDate, EndDate, Characteristics)
+add_product(Offer, StartDate, EndDate, Characteristics)
 		when (is_integer(StartDate) orelse (StartDate == undefined)),
 		(is_integer(EndDate) orelse (EndDate == undefined)),
 		is_list(Characteristics), is_list(Offer) ->

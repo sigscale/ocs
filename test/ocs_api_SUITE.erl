@@ -164,7 +164,7 @@ add_service() ->
 
 add_service(Config) ->
 	OfferId = ?config(product_id, Config),
-	{ok, #product{id = ProdRef}} = ocs:add_subscription(OfferId, []),
+	{ok, #product{id = ProdRef}} = ocs:add_product(OfferId, []),
 	Attribute0 = radius_attributes:new(),
 	Attribute1 = radius_attributes:add(?SessionTimeout, 3600, Attribute0),
 	Attribute2 = radius_attributes:add(?AcctInterimInterval, 60, Attribute0),

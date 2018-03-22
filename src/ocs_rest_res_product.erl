@@ -107,7 +107,7 @@ add_inventory(ReqData) ->
 		#product{start_date = SD, termination_date = TD,
 				characteristics = Chars, product = OfferId} =
 				inventory(mochijson:decode(ReqData)),
-		case ocs:add_subscription(OfferId, SD, TD, Chars) of
+		case ocs:add_product(OfferId, SD, TD, Chars) of
 			{ok, Product} ->
 				Product;
 			{error, Reason} ->

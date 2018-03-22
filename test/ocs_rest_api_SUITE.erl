@@ -299,7 +299,7 @@ add_service_inventory() ->
 
 add_service_inventory(Config) ->
 	OfferId = ?config(product_id, Config),
-	{ok, #product{id = ProdId}} = ocs:add_subscription(OfferId, []),
+	{ok, #product{id = ProdId}} = ocs:add_product(OfferId, []),
 	ID = ocs:generate_identity(),
 	Password = ocs:generate_password(),
 	Product = {"product", ProdId},
@@ -343,7 +343,7 @@ add_service_inventory_without_password() ->
 
 add_service_inventory_without_password(Config) ->
 	OfferId = ?config(product_id, Config),
-	{ok, #product{id = ProdId}} = ocs:add_subscription(OfferId, []),
+	{ok, #product{id = ProdId}} = ocs:add_product(OfferId, []),
 	ID = ocs:generate_identity(),
 	Product = {"product", ProdId},
 	IsServiceEnabled = {"isServiceEnabled", true},
@@ -392,7 +392,7 @@ get_service_inventory() ->
 
 get_service_inventory(Config) ->
 	OfferId = ?config(product_id, Config),
-	{ok, #product{id = ProdRef}} = ocs:add_subscription(OfferId, []),
+	{ok, #product{id = ProdRef}} = ocs:add_product(OfferId, []),
 	ID = ocs:generate_identity(),
 	Password = ocs:generate_password(),
 	SessionTimeout = rand:uniform(2500),
@@ -473,11 +473,11 @@ get_all_service_inventories() ->
 
 get_all_service_inventories(Config) ->
 	OfferId = ?config(product_id, Config),
-	{ok, #product{id = ProdRef1}} = ocs:add_subscription(OfferId, []),
-	{ok, #product{id = ProdRef2}} = ocs:add_subscription(OfferId, []),
-	{ok, #product{id = ProdRef3}} = ocs:add_subscription(OfferId, []),
-	{ok, #product{id = ProdRef4}} = ocs:add_subscription(OfferId, []),
-	{ok, #product{id = ProdRef5}} = ocs:add_subscription(OfferId, []),
+	{ok, #product{id = ProdRef1}} = ocs:add_product(OfferId, []),
+	{ok, #product{id = ProdRef2}} = ocs:add_product(OfferId, []),
+	{ok, #product{id = ProdRef3}} = ocs:add_product(OfferId, []),
+	{ok, #product{id = ProdRef4}} = ocs:add_product(OfferId, []),
+	{ok, #product{id = ProdRef5}} = ocs:add_product(OfferId, []),
 	ID1 = ocs:generate_identity(),
 	ID2 = ocs:generate_identity(),
 	ID3 = ocs:generate_identity(),
