@@ -26,7 +26,7 @@
 		update_client/2, update_client/3, get_clients/0, delete_client/1,
 		query_clients/6]).
 -export([add_service/3, add_service/4, add_service/6,
-		add_product/2, add_product/4]).
+		add_product/2, add_product/4, add_bucket/2]).
 -export([add_subscriber/3, add_subscriber/4, add_subscriber/5,
 		add_subscriber/6, add_subscriber/8, find_service/1,
 		delete_service/1, get_services/0, query_service/1]).
@@ -522,6 +522,72 @@ add_service(Identity, Password, ProductRef, Attributes, EnabledStatus, MultiSess
 	case mnesia:transaction(F1) of
 		{atomic, Service} ->
 			{ok, Service};
+		{aborted, Reason} ->
+			{error, Reason}
+	end.
+
+-spec add_bucket(ProductRef, Bucket) -> Result
+	when
+		ProductRef :: string(),
+		Bucket :: #bucket{},
+		Result :: {ok, BucketBefore, BucketAfter} | {error, Reason},
+		BucketBefore :: #bucket{},
+		BucketAfter :: #bucket{},
+		Reason :: term().
+%% @doc Add a new bucket to bucket table or update exsiting bucket
+add_bucket(ProductRef, #bucket{id = undefined} = Bucket) when is_list(ProductRef) ->
+	F = fun() ->
+		case mnesia:read(product, ProductRef, write) of
+			[#product{balance = B} = P] ->
+				BId = generate_bucket_id(),
+				Bucket1  = Bucket#bucket{id = BId},
+				ok = mnesia:write(bucket, Bucket1, write),
+				Product = P#product{balance = lists:reverse([BId | B])},
+				ok = mnesia:write(product, Product, write),
+				{ok, undefined, Bucket1};
+			[] ->
+				throw(product_not_found)
+		end
+	end,
+	case mnesia:transaction(F) of
+		{atomic, {ok, OldBucket, NewBucket}} ->
+			{ok, OldBucket, NewBucket};
+		{aborted, Reason} ->
+			{error, Reason}
+	end;
+add_bucket(ProductRef, #bucket{id = BId, product = ProdRef1,
+		remain_amount = RAmount1, termination_date = TD} = Bucket)
+		when is_list(ProductRef) ->
+	F = fun() ->
+		case mnesia:read(product, ProductRef, write) of
+			[#product{balance = B} = P] ->
+				case mnesia:read(bucket, BId, write) of
+					[#bucket{product = ProdRef2,
+							remain_amount = RAmount2} = Bucket2] ->
+						ProdRef3 = ProdRef2 ++ [ProdRef1 -- ProdRef2],
+						Bucket3  = Bucket2#bucket{id = BId, product = ProdRef3,
+							remain_amount = RAmount2 + RAmount1, termination_date = TD},
+						ok = mnesia:write(bucket, Bucket3, write),
+						case lists:any(fun(Id) when Id == BId -> true; (_) -> false end, B) of
+							true ->
+								Product = P#product{balance = lists:reverse([BId | B])},
+								ok = mnesia:write(product, Product, write),
+								{ok, Bucket2, Bucket3};
+							false ->
+								{ok, Bucket2, Bucket3}
+						end;
+					[] ->
+						throw(bucket_not_found)
+				end;
+			[] ->
+				throw(product_not_found)
+		end
+	end,
+	case mnesia:transaction(F) of
+		{atomic, {ok, OldBucket, NewBucket}} ->
+			{ok, OldBucket, NewBucket};
+		{aborted, {throw, Reason}} ->
+			{error, Reason};
 		{aborted, Reason} ->
 			{error, Reason}
 	end.
