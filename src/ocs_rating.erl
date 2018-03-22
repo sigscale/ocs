@@ -1556,17 +1556,18 @@ rated(0, 0, 0, 0, Rated) ->
 
 %% @hidden
 update_buckets(BRefs, OldB, NewB) ->
+	AllNewKeys = [B#bucket.id || B <- NewB],
 	UpdatedB = NewB -- OldB,
-	UBKeys = update_b(UpdatedB, []),
-	ok = delete_b(BRefs -- UBKeys),
-	UBKeys.
+	update_b(UpdatedB),
+	ok = delete_b(BRefs -- AllNewKeys),
+	AllNewKeys.
 
 %% @hidden
-update_b([#bucket{id = Id} = B | T], Acc)	->
+update_b([B | T])	->
 	ok = mnesia:write(B),
-	update_b(T, [Id | Acc]);
-update_b([], Acc)	->
-	lists:reverse(Acc).
+	update_b(T);
+update_b([])	->
+	ok.
 
 %% @hidden
 delete_b([BRef | T]) ->
