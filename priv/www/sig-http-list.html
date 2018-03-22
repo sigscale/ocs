@@ -2,7 +2,6 @@
 <link rel="import" href="polymer/polymer.html">
 <link rel="import" href="i18n-msg/i18n-msg-behavior.html">
 <link rel="import" href="vaadin-grid/vaadin-grid.html">
-<link rel="import" href="vaadin-grid/vaadin-grid-sorter.html">
 <link rel="import" href="vaadin-grid/vaadin-grid-filter.html">
 <link rel="import" href="iron-ajax/iron-ajax.html">
 
@@ -47,31 +46,25 @@
 		<vaadin-grid id="httpGrid">
 			<vaadin-grid-column width="28ex" flex-grow="2">
 				<template class="header">
-					<vaadin-grid-sorter path="datetime">
-						<vaadin-grid-filter aria-label="[[i18n.dateTime]]" path="datetime" value="[[_filterDateTime]]">
-							<input placeholder="[[i18n.dateTime]]" value="{{_filterDateTime::input}}" focus-target>
-						</vaadin-grid-filter>
-					</vaadin-grid-sorter>
+					<vaadin-grid-filter aria-label="[[i18n.dateTime]]" path="datetime" value="[[_filterDateTime]]">
+						<input placeholder="[[i18n.dateTime]]" value="{{_filterDateTime::input}}" focus-target>
+					</vaadin-grid-filter>
 				</template>
 				<template>[[item.datetime]]</template>
 			</vaadin-grid-column>
 			<vaadin-grid-column width="15ex" flex-grow="4">
 				<template class="header">
-					<vaadin-grid-sorter path="host">
-						<vaadin-grid-filter aria-label="[[i18n.host]]" path="host" value="[[_filterHost]]">
-							<input placeholder="[[i18n.host]]" value="{{_filterHost::input}}" focus-target>
-						</vaadin-grid-filter>
-					</vaadin-grid-sorter>
+					<vaadin-grid-filter aria-label="[[i18n.host]]" path="host" value="[[_filterHost]]">
+						<input placeholder="[[i18n.host]]" value="{{_filterHost::input}}" focus-target>
+					</vaadin-grid-filter>
 				</template>
 				<template>[[item.host]]</template>
 			</vaadin-grid-column>
 			<vaadin-grid-column width="8ex" flex-grow="5">
 				<template class="header">
-					<vaadin-grid-sorter path="user">
-						<vaadin-grid-filter aria-label="[[i18n.user]]" path="user" value="[[_filterUser]]">
-							<input placeholder="[[i18n.user]]" value="{{_filterUser::input}}" focus-target>
-						</vaadin-grid-filter>
-					</vaadin-grid-sorter>
+					<vaadin-grid-filter aria-label="[[i18n.user]]" path="user" value="[[_filterUser]]">
+						<input placeholder="[[i18n.user]]" value="{{_filterUser::input}}" focus-target>
+					</vaadin-grid-filter>
 				</template>
 				<template>[[item.user]]</template>
 			</vaadin-grid-column>

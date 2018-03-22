@@ -1,7 +1,6 @@
 <!--  vim: set ts=3:  -->
 <link rel="import" href="polymer/polymer.html">
 <link rel="import" href="vaadin-grid/vaadin-grid.html">
-<link rel="import" href="vaadin-grid/vaadin-grid-sorter.html">
 <link rel="import" href="vaadin-grid/vaadin-grid-filter.html">
 <link rel="import" href="i18n-msg/i18n-msg-behavior.html">
 <link rel="import" href="iron-ajax/iron-ajax.html">
@@ -61,51 +60,41 @@
 				active-item="{{activeItem}}">
 			<vaadin-grid-column width="15ex" flex-grow="1">
 				<template class="header">
-					<vaadin-grid-sorter path="id">
-						<vaadin-grid-filter aria-label="[[i18n.address]]" path="id" value="[[_filterAddress]]">
-							<input placeholder="[[i18n.address]]" value="{{_filterAddress::input}}" focus-target>
-						</vaadin-grid-filter>
-					</vaadin-grid-sorter>
+					<vaadin-grid-filter aria-label="[[i18n.address]]" path="id" value="[[_filterAddress]]">
+						<input placeholder="[[i18n.address]]" value="{{_filterAddress::input}}" focus-target>
+					</vaadin-grid-filter>
 				</template>
 				<template>[[item.id]]</template>
 			</vaadin-grid-column>
 			<vaadin-grid-column width="4ex" flex-grow="1">
 				<template class="header">
-					<vaadin-grid-sorter path="port">
-						<vaadin-grid-filter aria-label="[[i18n.listen]]" path="port" value="[[_filterPort]]">
-							<input placeholder="[[i18n.listen]]" value="{{_filterPort::input}}" focus-target>
-						</vaadin-grid-filter>
-					</vaadin-grid-sorter>
+					<vaadin-grid-filter aria-label="[[i18n.listen]]" path="port" value="[[_filterPort]]">
+						<input placeholder="[[i18n.listen]]" value="{{_filterPort::input}}" focus-target>
+					</vaadin-grid-filter>
 				</template>
 				<template>[[item.port]]</template>
 			</vaadin-grid-column>
 			<vaadin-grid-column width="20ex" flex-grow="2">
 				<template class="header">
-					<vaadin-grid-sorter path="identifier">
-						<vaadin-grid-filter aria-label="[[i18n.identify]]" path="identifier" value="[[_filterIdentifier]]">
-							<input placeholder="[[i18n.identify]]" value="{{_filterIdentifier::input}}" focus-target>
-						</vaadin-grid-filter>
-					</vaadin-grid-sorter>
+					<vaadin-grid-filter aria-label="[[i18n.identify]]" path="identifier" value="[[_filterIdentifier]]">
+						<input placeholder="[[i18n.identify]]" value="{{_filterIdentifier::input}}" focus-target>
+					</vaadin-grid-filter>
 				</template>
 				<template>[[item.identifier]]</template>
 			</vaadin-grid-column>
 			<vaadin-grid-column width="15ex" flex-grow="3">
 				<template class="header">
-					<vaadin-grid-sorter path="secret">
-						<vaadin-grid-filter aria-label="[[i18n.secret]]" path="secret" value="[[_filterSecret]]">
-							<input placeholder="[[i18n.secret]]" value="{{_filterSecret::input}}" focus-target>
-						</vaadin-grid-filter>
-					</vaadin-grid-sorter>
+					<vaadin-grid-filter aria-label="[[i18n.secret]]" path="secret" value="[[_filterSecret]]">
+						<input placeholder="[[i18n.secret]]" value="{{_filterSecret::input}}" focus-target>
+					</vaadin-grid-filter>
 				</template>
 				<template>[[item.secret]]</template>
 			</vaadin-grid-column>
 			<vaadin-grid-column width="8ex" flex-grow="1">
 				<template class="header">
-					<vaadin-grid-sorter path="protocol" >
-						<vaadin-grid-filter aria-label="[[i18n.proto]]" path="protocol" value="[[_filterProtocol]]">
-							<input placeholder="[[i18n.proto]]" value="{{_filterProtocol::input}}" focus-target>
-						</vaadin-grid-filter>
-					</vaadin-grid-sorter>
+					<vaadin-grid-filter aria-label="[[i18n.proto]]" path="protocol" value="[[_filterProtocol]]">
+						<input placeholder="[[i18n.proto]]" value="{{_filterProtocol::input}}" focus-target>
+					</vaadin-grid-filter>
 				</template>
 				<template>[[item.protocol]]</template>
 			</vaadin-grid-column>

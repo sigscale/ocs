@@ -1,7 +1,6 @@
 <!--  vim: set ts=3:  -->
 <link rel="import" href="polymer/polymer.html">
 <link rel="import" href="vaadin-grid/vaadin-grid.html">
-<link rel="import" href="vaadin-grid/vaadin-grid-sorter.html">
 <link rel="import" href="vaadin-grid/vaadin-grid-filter.html">
 <link rel="import" href="i18n-msg/i18n-msg-behavior.html">
 <link rel="import" href="iron-ajax/iron-ajax.html">
@@ -62,21 +61,17 @@
 				active-item="{{activeItem}}">
 			<vaadin-grid-column width="15ex" flex-grow="5">
 				<template class="header">
-					<vaadin-grid-sorter path="id">
-						<vaadin-grid-filter aria-label="[[i18n.userName]]" path="id" value="[[_filterId]]">
-							<input placeholder="[[i18n.userName]]" value="{{_filterId::input}}" focus-target>
-						</vaadin-grid-filter>
-					</vaadin-grid-sorter>
+					<vaadin-grid-filter aria-label="[[i18n.userName]]" path="id" value="[[_filterId]]">
+						<input placeholder="[[i18n.userName]]" value="{{_filterId::input}}" focus-target>
+					</vaadin-grid-filter>
 				</template>
 				<template>[[item.id]]</template>
 			</vaadin-grid-column>
 			<vaadin-grid-column width="15ex" flex-grow="5">
 				<template class="header">
-					<vaadin-grid-sorter path="language">
-						<vaadin-grid-filter aria-label="[[i18n.language]]" path="language" value="[[_filterLanguage]]">
-							<input placeholder="[[i18n.language]]" value="{{_filterLanguage::input}}" focus-target>
-						</vaadin-grid-filter>
-					</vaadin-grid-sorter>
+					<vaadin-grid-filter aria-label="[[i18n.language]]" path="language" value="[[_filterLanguage]]">
+						<input placeholder="[[i18n.language]]" value="{{_filterLanguage::input}}" focus-target>
+					</vaadin-grid-filter>
 				</template>
 				<template>[[item.language]]</template>
 			</vaadin-grid-column>
