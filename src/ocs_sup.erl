@@ -43,8 +43,10 @@ init([LogRotateTime, LogRotateInterval] = _Args) ->
 			supervisor(ocs_radius_auth_sup, []),
 			supervisor(ocs_diameter_auth_sup, []),
 			supervisor(ocs_diameter_acct_top_sup, []),
-			log_server(ocs_log_rotate_server,
-					[LogRotateTime, LogRotateInterval]),
+			log_server(voip, ocs_log_rotate_server,
+					[voip, LogRotateTime, LogRotateInterval]),
+			log_server(wlan, ocs_log_rotate_server,
+					[wlan, LogRotateTime, LogRotateInterval]),
 			supervisor(ocs_rest_pagination_sup,
 					ocs_rest_pagination_sup, []),
 			server(ocs_server, [self()])],
@@ -99,8 +101,8 @@ server(StartMod, Args) ->
 	{StartMod, StartFunc, permanent, 4000, worker, [StartMod]}.
 
 %% @hidden
-log_server(StartMod, Args) ->
+log_server(Type, StartMod, Args) ->
 	StartArgs = [StartMod, Args, []],
 	StartFunc = {gen_server, start_link, StartArgs},
-	{StartMod, StartFunc, permanent, 4000, worker, [StartMod]}.
+	{{StartMod, Type},  StartFunc, permanent, 4000, worker, [StartMod]}.
 

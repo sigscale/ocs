@@ -22,7 +22,7 @@
 -copyright('Copyright (c) 2016 - 2017 SigScale Global Inc.').
 
 -export([content_types_accepted/0, content_types_provided/0,
-		get_usages/2, get_usages/3, get_usage/3, get_ipdr/1,
+		get_usages/2, get_usages/3, get_usages/4, get_usage/3, get_ipdr/2,
 		get_usagespec/1, get_usagespec/2]).
 
 -include_lib("radius/include/radius.hrl").
@@ -68,8 +68,21 @@ content_types_provided() ->
 get_usages(Query, Headers) ->
 	get_usages(undefined, Query, Headers).
 
--spec get_usages(Id, Query, Headers) -> Result
+-spec get_usages(Type, Query, Headers) -> Result
 	when
+		Type :: wlan | voip,
+		Query :: [{Key :: string(), Value :: string()}],
+		Headers :: [tuple()],
+		Result :: {ok, Headers :: [tuple()], Body :: iolist()}
+				| {error, ErrorCode :: integer()}.
+%% @equiv get_usages(Type, undefined, Query, Headers)
+%% @hidden
+get_usages(Type, Query, Headers) ->
+	get_usages(Type, undefined, Query, Headers).
+
+-spec get_usages(Type, Id, Query, Headers) -> Result
+	when
+		Type :: wlan | voip,
 		Id :: string() | undefined,
 		Query :: [{Key :: string(), Value :: string()}],
 		Headers :: [tuple()],
@@ -77,31 +90,30 @@ get_usages(Query, Headers) ->
 				| {error, ErrorCode :: integer()}.
 %% @doc Body producing function for
 %% 	`GET /usageManagement/v1/usage'
-%% 	`GET /usageManagement/v1/usage/ipdr/{Id}'
 %% 	requests.
 %% @hidden
-get_usages(Id, Query, Headers) ->
+get_usages(Type, Id, Query, Headers) ->
 	case lists:keytake("fields", 1, Query) of
 		{value, {_, Filters}, NewQuery} ->
-			get_usages1(Id, NewQuery, Filters, Headers);
+			get_usages1(Type, Id, NewQuery, Filters, Headers);
 		false ->
-			get_usages1(Id, Query, [], Headers)
+			get_usages1(Type, Id, Query, [], Headers)
 	end.
 %% @hidden
-get_usages1(Id, Query, Filters, Headers) ->
+get_usages1(Type, Id, Query, Filters, Headers) ->
 	case lists:keytake("sort", 1, Query) of
 		{value, {_, "-date"}, NewQuery} ->
 			get_last(NewQuery, Filters);
 		{value, {_, Date}, NewQuery}
 				when Date == "date"; Date == "+date" ->
-			get_usages2(Id, NewQuery, Filters, Headers);
+			get_usages2(Type, Id, NewQuery, Filters, Headers);
 		false ->
-			get_usages2(Id, Query, Filters, Headers);
+			get_usages2(Type, Id, Query, Filters, Headers);
 		_ ->
 			{error, 400}
 	end.
 %% @hidden
-get_usages2(Id, Query, Filters, Headers) ->
+get_usages2(Type, Id, Query, Filters, Headers) ->
 	case {lists:keyfind("if-match", 1, Headers),
 			lists:keyfind("if-range", 1, Headers),
 			lists:keyfind("range", 1, Headers)} of
@@ -131,7 +143,7 @@ get_usages2(Id, Query, Filters, Headers) ->
 						{error, _} ->
 							{error, 400};
 						{ok, {Start, End}} ->
-							query_start(Id, Query, Filters, Start, End)
+							query_start(Type, Id, Query, Filters, Start, End)
 					end;
 				PageServer ->
 					case ocs_rest:range(Range) of
@@ -150,10 +162,10 @@ get_usages2(Id, Query, Filters, Headers) ->
 				{error, _Reason} ->
 					{error, 400};
 				{ok, {Start, End}} ->
-					query_start(Id, Query, Filters, Start, End)
+					query_start(Type, Id, Query, Filters, Start, End)
 			end;
 		{false, false, false} ->
-			query_start(Id, Query, Filters, undefined, undefined)
+			query_start(Type, Id, Query, Filters, undefined, undefined)
 	end.
 
 -spec get_usage(Id, Query, Headers) -> Result
@@ -215,12 +227,7 @@ get_usage("acct-" ++ _ = Id, [] = _Query, _Headers) ->
 	catch
 		_:_Reason1 ->
 			{error, 404}
-	end;
-get_usage(Id, [] = _Query, _Headers) ->
-	{ok, MaxItems} = application:get_env(ocs, rest_page_size),
-	{ok, Directory} = application:get_env(ocs, ipdr_log_dir),
-	FileName = Directory ++ "/" ++ Id,
-	read_ipdr(FileName, MaxItems).
+	end.
 
 -spec get_usagespec(Query) -> Result
 	when
@@ -309,17 +316,19 @@ get_usagespec("HTTPTransferUsageSpec", [] = _Query) ->
 get_usagespec(_Id, _Query) ->
 	{error, 404}.
 
--spec get_ipdr(Query) -> Result
+-spec get_ipdr(Type, Query) -> Result
 	when
+		Type :: wlan | voip,
 		Query :: [{Key :: string(), Value :: string()}],
 		Result :: {ok, Headers :: [tuple()], Body :: iolist()}
 				| {error, ErrorCode :: integer()}.
 %% @doc Body producing function for
-%% 	`GET /ocs/v1/log/ipdr'
+%% 	`GET /ocs/v1/log/ipdr/{Type}'
 %% 	requests.
-get_ipdr([] = _Query) ->
+get_ipdr(Type, [] = _Query) ->
 	{ok, Directory} = application:get_env(ocs, ipdr_log_dir),
-	case file:list_dir(Directory) of
+	Dir = Directory ++ "/" ++ Type,
+	case file:list_dir(Dir) of
 		{ok, Files} ->
 			SortedFiles = lists:reverse(lists:sort(Files)),
 			Body = mochijson:encode({array, SortedFiles}),
@@ -328,7 +337,7 @@ get_ipdr([] = _Query) ->
 		{error, _Reason} ->
 			{error, 500}
 	end;
-get_ipdr(_Query) ->
+get_ipdr(_Type, _Query) ->
 	{error, 400}.
 
 %%----------------------------------------------------------------------
@@ -2681,17 +2690,17 @@ char_attr_cause(Attributes, Acc) ->
 	end.
 
 %% @hidden
-query_start(Id, Query, Filters, RangeStart, RangeEnd) ->
+query_start(Type, Id, Query, Filters, RangeStart, RangeEnd) ->
 	{DateStart, DateEnd} = case lists:keyfind("date", 1, Query) of
 		{_, DateTime} when length(DateTime) > 3 ->
 			range(DateTime);
 		false ->
 			{1, erlang:system_time(?MILLISECOND)}
 	end,
-	query_start1(lists:keyfind("type", 1, Query), Id, Query,
+	query_start1(Type, lists:keyfind("type", 1, Query), Id, Query,
 			Filters, RangeStart, RangeEnd, DateStart, DateEnd).
 %% @hidden
-query_start1({_, "AAAAccessUsage"}, undefined, Query,
+query_start1(_Type, {_, "AAAAccessUsage"}, undefined, Query,
 		Filters, RangeStart, RangeEnd, DateStart, DateEnd) ->
 	try
 		case lists:keyfind("filter", 1, Query) of
@@ -2719,7 +2728,7 @@ query_start1({_, "AAAAccessUsage"}, undefined, Query,
 		_ ->
 			{error, 400}
 	end;
-query_start1({_, "AAAAccountingUsage"}, undefined, Query,
+query_start1(Type, {_, "AAAAccountingUsage"}, undefined, Query,
 		Filters, RangeStart, RangeEnd, DateStart, DateEnd) ->
 	try
 		case lists:keyfind("filter", 1, Query) of
@@ -2747,7 +2756,7 @@ query_start1({_, "AAAAccountingUsage"}, undefined, Query,
 		_ ->
 			{error, 400}
 	end;
-query_start1({_, "PublicWLANAccessUsage"}, IpdrFile, Query,
+query_start1(Type, false, IpdrFile, Query,
 		Filters, RangeStart, RangeEnd, DateStart, DateEnd) ->
 	try
 		case lists:keyfind("filter", 1, Query) of
@@ -2764,14 +2773,16 @@ query_start1({_, "PublicWLANAccessUsage"}, IpdrFile, Query,
 	of
 		Chars ->
 			Name = {name, {ipdr, erlang:unique_integer([positive])}},
-			FileName = {file, "log/ipdr/" ++ IpdrFile},
+			{ok, Directory} = application:get_env(ocs, ipdr_log_dir),
+			Directory1 = Directory ++ "/" ++ Type,
+			FileName = {file, Directory1 ++ "/" ++ IpdrFile},
 			Mode = {mode, read_only},
 			{ok, {Log, A}} = disk_log:open([Name, FileName, Mode]),
 			Args = [{Log, A}, DateStart, DateEnd, Chars],
 			MFA = [ocs_log, ipdr_query, Args],
 			case supervisor:start_child(ocs_rest_pagination_sup, [MFA]) of
 				{ok, PageServer, Etag} ->
-					query_page(PageServer, Etag, Query, Filters, RangeStart, RangeEnd);
+					query_page1(PageServer, Etag, fun usage_ipdr/2, Filters, DateStart, DateEnd);
 				{error, _Reason} ->
 					{error, 500}
 			end
@@ -2779,34 +2790,9 @@ query_start1({_, "PublicWLANAccessUsage"}, IpdrFile, Query,
 		_ ->
 			{error, 400}
 	after
-		disk_log:close("log/ipdr/" ++ IpdrFile)
+		disk_log:close("log/ipdr/" ++ Type ++ "/" ++ IpdrFile)
 	end;
-%% @todo filter
-query_start1({_, "VoIPUsage"}, IpdrFile, Query,
-		Filters, RangeStart, RangeEnd, DateStart, DateEnd) ->
-	try
-		Name = {name, {ipdr, erlang:unique_integer([positive])}},
-		FileName = {file, "log/ipdr/" ++ IpdrFile},
-		case disk_log:open([Name, FileName, {mode, read_only}]) of
-			{ok, Log} ->
-				Args = [Log, DateStart, DateEnd, '_'],
-				MFA = [ocs_log, ipdr_query, Args],
-				case supervisor:start_child(ocs_rest_pagination_sup, [MFA]) of
-					{ok, PageServer, Etag} ->
-						query_page(PageServer, Etag, Query, Filters, RangeStart, RangeEnd);
-					{error, _Reason} ->
-						{error, 500}
-				end;
-			{error, _Reason} ->
-				{error, 500}
-		end
-	catch
-		_ ->
-			{error, 500}
-	after
-		disk_log:close("log/ipdr/" ++ IpdrFile)
-	end;
-query_start1({_, "HTTPTransferUsage"}, undefined, Query,
+query_start1(Type, {_, "HTTPTransferUsage"}, undefined, Query,
 		Filters, RangeStart, RangeEnd, _, _) ->
 	DateTime = proplists:get_value("datetime", Query, '_'),
 	Host = proplists:get_value("host", Query, '_'),
@@ -2822,11 +2808,11 @@ query_start1({_, "HTTPTransferUsage"}, undefined, Query,
 		{error, _Reason} ->
 			{error, 500}
 	end;
-query_start1({_, _}, _, [], _, _, _, _, _) ->
+query_start1(_, {_, _}, _, [], _, _, _, _, _) ->
 	{error, 404};
-query_start1({_, _}, _, _, _, _, _, _, _) ->
+query_start1(_, {_, _}, _, _, _, _, _, _, _) ->
 	{error, 400};
-query_start1(false, _, _, _, _, _, _, _) ->
+query_start1(_, false, _, _, _, _, _, _, _) ->
 	{error, 400}.
 
 %% @hidden
@@ -2836,10 +2822,6 @@ query_page(PageServer, Etag, Query, Filters, Start, End) ->
 			query_page1(PageServer, Etag, fun usage_aaa_auth/2, Filters, Start, End);
 		{_, {_, "AAAAccountingUsage"}, _Query1} ->
 			query_page1(PageServer, Etag, fun usage_aaa_acct/2, Filters, Start, End);
-		{_, {_, "PublicWLANAccessUsage"}, _Query1} ->
-			query_page1(PageServer, Etag, fun usage_ipdr/2, Filters, Start, End);
-		{_, {_, "VoIPUsage"}, _Query1} ->
-			query_page1(PageServer, Etag, fun usage_ipdr/2, Filters, Start, End);
 		{_, {_, "HTTPTransferUsage"}, _} ->
 			query_page1(PageServer, Etag, fun usage_http_transfer/2, Filters, Start, End);
 		{_, {_, _}, []} ->

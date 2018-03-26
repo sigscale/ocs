@@ -59,7 +59,7 @@
 %% @see //stdlib/gen_server:init/1
 %% @private
 %% @todo Allow intervals shorter than one day.
-init([ScheduledTime, Interval] = _Args) when
+init([Type, ScheduledTime, Interval] = _Args) when
 		is_tuple(ScheduledTime), size(ScheduledTime) =:= 3,
 		is_integer(Interval), Interval > 0 ->
 	process_flag(trap_exit, true),
@@ -72,9 +72,10 @@ init([ScheduledTime, Interval] = _Args) when
 			I
 	end,
 	{ok, Directory} = application:get_env(ipdr_log_dir),
+	Directory1 = Directory ++ "/" ++ atom_to_list(Type),
 	State = #state{interval = NewInterval,
-			schedule = ScheduledTime, dir = Directory},
-	case file:make_dir(Directory) of
+			schedule = ScheduledTime, dir = Directory1},
+	case file:make_dir(Directory1) of
 		ok ->
 			{ok, State, wait(ScheduledTime, NewInterval)};
 		{error, eexist} ->
