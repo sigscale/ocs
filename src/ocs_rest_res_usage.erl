@@ -64,7 +64,7 @@ content_types_provided() ->
 		Headers :: [tuple()],
 		Result :: {ok, Headers :: [tuple()], Body :: iolist()}
 				| {error, ErrorCode :: integer()}.
-%% @equiv get_usages(undefined, Query, Headers)
+%% @equiv get_usages(Type, undefined, Query, Headers)
 %% @hidden
 get_usages(Type, Query, Headers) ->
 	get_usages(Type, undefined, Query, Headers).
@@ -312,7 +312,7 @@ get_usagespec(_Id, _Query) ->
 		Result :: {ok, Headers :: [tuple()], Body :: iolist()}
 				| {error, ErrorCode :: integer()}.
 %% @doc Body producing function for
-%% 	`GET /ocs/v1/log/ipdr'
+%% 	`GET /ocs/v1/log/ipdr/{Type}'
 %% 	requests.
 get_ipdr(Type, [] = _Query) ->
 	{ok, Directory} = application:get_env(ocs, ipdr_log_dir),
