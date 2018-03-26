@@ -22,7 +22,7 @@
 -copyright('Copyright (c) 2016 - 2017 SigScale Global Inc.').
 
 -export([content_types_accepted/0, content_types_provided/0,
-		get_usages/3, get_usages/4, get_usage/3, get_ipdr/2,
+		get_usages/2, get_usages/3, get_usages/4, get_usage/3, get_ipdr/2,
 		get_usagespec/1, get_usagespec/2]).
 
 -include_lib("radius/include/radius.hrl").
@@ -56,6 +56,17 @@ content_types_accepted() ->
 %% @doc Provides list of resource representations available.
 content_types_provided() ->
 	["application/json"].
+
+-spec get_usages(Query, Headers) -> Result
+	when
+		Query :: [{Key :: string(), Value :: string()}],
+		Headers :: [tuple()],
+		Result :: {ok, Headers :: [tuple()], Body :: iolist()}
+				| {error, ErrorCode :: integer()}.
+%% @equiv get_usages(undefined, Query, Headers)
+%% @hidden
+get_usages(Query, Headers) ->
+	get_usages(undefined, Query, Headers).
 
 -spec get_usages(Type, Query, Headers) -> Result
 	when
