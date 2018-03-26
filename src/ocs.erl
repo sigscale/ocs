@@ -29,7 +29,8 @@
 		add_product/2, add_product/4]).
 -export([add_subscriber/3, add_subscriber/4, add_subscriber/5,
 		add_subscriber/6, add_subscriber/8, find_service/1,
-		delete_service/1, get_services/0, query_service/1]).
+		delete_service/1, get_services/0, query_service/1,
+		find_product/1]).
 -export([add_bucket/2, find_bucket/1, delete_bucket/1]).
 -export([add_user/3, list_users/0, get_user/1, delete_user/1,
 		query_users/3, update_user/3]).
@@ -398,6 +399,24 @@ add_product(Offer, StartDate, EndDate, Characteristics)
 			{ok, Product};
 		{aborted, {throw, Reason}} ->
 			{error, Reason};
+		{aborted, Reason} ->
+			{error, Reason}
+	end.
+
+-spec find_product(ProductRef) -> Result
+	when
+		ProductRef :: string(),
+		Result :: {ok, Product} | {error, Reason},
+		Product :: #product{},
+		Reason :: not_found | term().
+%% @doc Look up entry in product table
+find_product(ProductRef) when is_list(ProductRef) ->
+	F = fun() -> mnesia:read(product, ProductRef, read) end,
+	case mnesia:transaction(F) of
+		{atomic, []} ->
+			{error, not_found};
+		{atomic, [Product]} ->
+			{ok, Product};
 		{aborted, Reason} ->
 			{error, Reason}
 	end.
