@@ -28,7 +28,7 @@
 		acct_query/5, acct_query/6]).
 -export([auth_open/0, auth_log/5, auth_log/6, auth_close/0,
 			auth_query/6, auth_query/7]).
--export([ipdr_log/4, ipdr_file/2, ipdr_query/5]).
+-export([ipdr_log/4, ipdr_file/3, ipdr_query/5]).
 -export([abmf_open/0, abmf_log/15,
 			abmf_query/8]).
 -export([get_range/3, last/2, dump_file/2, httpd_logname/1,
@@ -434,7 +434,9 @@ ipdr_log(Type, File, Start, {{_, _, _}, {_, _, _}} = End) ->
 	ipdr_log(Type, File, Start, Seconds * 1000 + 999);
 ipdr_log(Type, File, Start, End) when is_list(File),
 		is_integer(Start), is_integer(End) ->
-	case disk_log:open([{name, File}, {file, File}, {repair, truncate}]) of
+		{ok, Directory} = application:get_env(ocs, ipdr_log_dir),
+		FileName = Directory ++ "/" ++ atom_to_list(Type) ++ "/" ++ File,
+	case disk_log:open([{name, File}, {file, FileName}, {repair, truncate}]) of
 		{ok, IpdrLog} ->
 			IpdrDoc = case Type of
 				wlan ->
@@ -557,8 +559,9 @@ ipdr_log4(IpdrLog, SeqNum) ->
 			{error, Reason}
 	end.
 
--spec ipdr_file(LogFile, Format) -> Result
+-spec ipdr_file(Type, LogFile, Format) -> Result
 	when
+		Type :: wlan | voip,
 		LogFile :: file:filename(),
 		Format :: xml | xdr | csv,
 		Result :: ok | {error, Reason},
@@ -569,10 +572,10 @@ ipdr_log4(IpdrLog, SeqNum) ->
 %% 	{@link //kernel/disk_log:log(). disk_log:log()} file `LogFile'
 %% 	created previously with {@link ipdr_log/3}.
 %%
-ipdr_file(LogFile, Format) when is_list(LogFile),
+ipdr_file(Type, LogFile, Format) when is_list(LogFile),
 		((Format == xml) or (Format == xdr) or (Format == csv)) ->
 	{ok, Directory} = application:get_env(ocs, ipdr_log_dir),
-	FileName = Directory ++ "/" ++ LogFile,
+	FileName = Directory ++ "/" ++ atom_to_list(Type) ++ "/" ++ LogFile,
 	case disk_log:open([{name, make_ref()}, {file, FileName}, {repair, true}]) of
 		{ok, Log} ->
 			ipdr_file1(LogFile, Log, Format);

@@ -112,8 +112,8 @@ do_get(Resource, #mod{parsed_header = Headers} = ModData,
 		["usageManagement", "v1", "usage"], Query) ->
 	do_response(ModData, Resource:get_usages(Query, Headers));
 do_get(Resource, #mod{parsed_header = Headers} = ModData,
-		["usageManagement", "v1", "usage", "ipdr", Id], Query) ->
-	do_response(ModData, Resource:get_usages(Id, Query, Headers));
+		["usageManagement", "v1", "usage", "ipdr", Type, Id], Query) ->
+	do_response(ModData, Resource:get_usages(Type, Id, Query, Headers));
 do_get(Resource, #mod{parsed_header = Headers} = ModData,
 		["usageManagement", "v1", "usage", Id], Query) ->
 	do_response(ModData, Resource:get_usage(Id, Query, Headers));
@@ -123,8 +123,8 @@ do_get(Resource, ModData,
 do_get(Resource, ModData,
 		["usageManagement", "v1", "usageSpecification", Id], Query) ->
 	do_response(ModData, Resource:get_usagespec(Id, Query));
-do_get(Resource, ModData, ["ocs", "v1", "log", "ipdr"], Query) ->
-	do_response(ModData, Resource:get_ipdr(Query));
+do_get(Resource, ModData, ["ocs", "v1", "log", "ipdr", Type], Query) ->
+	do_response(ModData, Resource:get_ipdr(Type, Query));
 do_get(Resource, ModData, ["ocs", "v1", "log", "access"], []) ->
 	do_response(ModData, Resource:get_access());
 do_get(Resource, ModData, ["ocs", "v1", "log", "accounting"], []) ->
