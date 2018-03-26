@@ -494,7 +494,7 @@ add_service(undefined, Password, ProductRef, Attributes, EnabledStatus, MultiSes
 					F3 = fun(_, _, 0) ->
 								mnesia:abort(retries);
 							(F, Identity, I) ->
-								case mnesia:read(service, Identity, read) of
+								case mnesia:read(service, Identity, write) of
 									[] ->
 										S2 = S1#service{name = Identity},
 										ok = mnesia:write(S2),
