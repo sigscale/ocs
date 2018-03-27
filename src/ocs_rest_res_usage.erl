@@ -66,7 +66,7 @@ content_types_provided() ->
 %% @equiv get_usages(undefined, Query, Headers)
 %% @hidden
 get_usages(Query, Headers) ->
-	get_usages(undefined, Query, Headers).
+	get_usages(Query, Headers).
 
 -spec get_usages(Type, Query, Headers) -> Result
 	when
@@ -343,86 +343,6 @@ get_ipdr(_Type, _Query) ->
 %%----------------------------------------------------------------------
 %%  internal functions
 %%----------------------------------------------------------------------
-
-%% @hidden
-read_ipdr(FileName, MaxItems) ->
-	case disk_log:open([{name, make_ref()}, {file, FileName},
-			{type, halt}, {size, infinity}]) of
-		{ok, Log} ->
-			read_ipdr1(Log, start, MaxItems, 0, []);
-		{repaired, Log, _Recovered, _Bad} ->
-			read_ipdr1(Log, start, MaxItems, 0, []);
-		{error, _Reason} ->
-			{error, 500}
-	end.
-
-%% @hidden
-read_ipdr1(Log, Continuation, MaxItems, Count, Acc) ->
-	case disk_log:chunk(Log, Continuation) of
-		eof ->
-			read_ipdr2(Log, Count, Acc);
-		{Continuation2, Records} ->
-			case ipdr_to_json(Count, Records) of
-				{NewCount, JsonObj} when NewCount > MaxItems ->
-					{NewJsonObj, _} = lists:split(MaxItems - Count, lists:reverse(JsonObj)),
-					NewAcc = [NewJsonObj | Acc],
-					read_ipdr2(Log, NewCount, NewAcc);
-				{NewCount, JsonObj} when NewCount == MaxItems ->
-					NewAcc = [JsonObj | Acc],
-					read_ipdr2(Log, NewCount, NewAcc);
-				{NewCount, JsonObj} ->
-					NewAcc = [JsonObj | Acc],
-					read_ipdr1(Log, Continuation2, MaxItems, NewCount, NewAcc)
-			end
-	end.
-%% @hidden
-read_ipdr2(Log, Count, Acc)->
-	NewAcc = lists:flatten(lists:reverse(Acc)),
-	Response = {array, NewAcc},
-	Body = mochijson:encode(Response),
-	disk_log:close(Log),
-	ContentRange = "items 1-" ++ integer_to_list(Count) ++ "/*",
-   Headers = [{content_range, ContentRange}],
-	{ok, Headers, Body}.
-
-%% @hidden
-ipdr_to_json(Count, Records) ->
-	F = fun(#ipdrDocWLAN{}, {N, Acc}) ->
-				{N, Acc};
-			(#ipdrDocVoIP{}, {N, Acc}) ->
-				{N, Acc};
-			(#ipdr_wlan{} = Ipdr, {N, Acc}) ->
-				UsageSpecification = {struct, [{"id", 1},
-						{"href", ?usageSpecPath ++ "1"},
-						{"name", "PublicWLANAccessUsageSpec"}]},
-				UsageCharacteristicObjs = ipdr_wlan_characteristics(Ipdr),
-				UsageCharacteristic = {array, UsageCharacteristicObjs},
-				RespObj = [{struct, [{"id", N + 1},
-						{"href", ?usagePath ++ integer_to_list(N + 1)},
-						{"date", "SomeDateTime"}, {"type", "PublicWLANAccessUsage"},
-						{"description", "Description for individual usage content"},
-						{"status", "received"},
-						{"usageSpecification", UsageSpecification},
-						{"usageCharacteristic", UsageCharacteristic}]}],
-						{N + 1, [RespObj | Acc]};
-			(#ipdr_voip{} = Ipdr, {N, Acc}) ->
-				UsageSpecification = {struct, [{"id", "VoIPUsageSpec"},
-						{"href", ?usageSpecPath ++ "VoIPUsageSpec"},
-						{"name", "VoIPUsageSpec"}]},
-				UsageCharacteristicObjs = ipdr_voip_characteristics(Ipdr),
-				UsageCharacteristic = {array, UsageCharacteristicObjs},
-				RespObj = [{struct, [{"id", N + 1},
-						{"href", ?usagePath ++ integer_to_list(N + 1)},
-						{"date", "SomeDateTime"}, {"type", "VoIPUsage"},
-						{"description", "Description for individual usage content"},
-						{"status", "received"},
-						{"usageSpecification", UsageSpecification},
-						{"usageCharacteristic", UsageCharacteristic}]}],
-						{N + 1, [RespObj | Acc]};
-			(#ipdrDocEnd{}, {N, Acc}) ->
-				{N, Acc}
-	end,
-	lists:foldl(F, {Count, []}, Records).
 
 -spec ipdr_voip_characteristics(IPDRVoIP) -> IPDRVoIP
 	when
@@ -2812,7 +2732,7 @@ query_start1(_, {_, _}, _, [], _, _, _, _, _) ->
 	{error, 404};
 query_start1(_, {_, _}, _, _, _, _, _, _, _) ->
 	{error, 400};
-query_start1(_, false, _, _, _, _, _, _, _) ->
+query_start1(_, {_, false}, _, _, _, _, _, _, _) ->
 	{error, 400}.
 
 %% @hidden
@@ -2844,6 +2764,7 @@ query_page1(PageServer, Etag, Decoder, Filters, Start, End) ->
 					Headers = [{content_type, "application/json"},
 							{etag, Etag}, {accept_ranges, "items"},
 							{content_range, ContentRange}],
+erlang:display({?MODULE, ?LINE, Etag}),
 					{ok, Headers, Body}
 			catch
 				throw:{error, Status} ->
