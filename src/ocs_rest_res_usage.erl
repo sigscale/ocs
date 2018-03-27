@@ -66,7 +66,7 @@ content_types_provided() ->
 %% @equiv get_usages(undefined, Query, Headers)
 %% @hidden
 get_usages(Query, Headers) ->
-	get_usages(Query, Headers).
+	get_usages(voip, Query, Headers).
 
 -spec get_usages(Type, Query, Headers) -> Result
 	when
