@@ -93,19 +93,23 @@ start_link(Args) ->
 %% @private
 %%
 init([Etag, M, F, A] = _Args) when is_atom(M), is_atom(F), is_list(A) ->
+erlang:display({?MODULE, ?LINE, _Args}),
 	{ok, MaxPageSize} = application:get_env(rest_page_size),
 	{ok, Timeout} = application:get_env(rest_page_timeout),
 	process_flag(trap_exit, true),
 	State = #state{etag = Etag, module = M, function = F,
 			args = A, max_page_size = MaxPageSize, timeout = Timeout},
+erlang:display({?MODULE, ?LINE, Etag}),
 	{ok, State, Timeout};
 init([Etag, {LogName, B}, M, F, A] = _Args) when is_atom(M), is_atom(F), is_list(A) ->
+erlang:display({?MODULE, ?LINE, _Args}),
    {ok, Log} = disk_log:open([{LogName, B}]),
 	{ok, MaxPageSize} = application:get_env(rest_page_size),
 	{ok, Timeout} = application:get_env(rest_page_timeout),
 	process_flag(trap_exit, true),
 	State = #state{etag = Etag, log = Log, module = M, function = F,
 			args = A, max_page_size = MaxPageSize, timeout = Timeout},
+erlang:display({?MODULE, ?LINE, Etag}),
 	{ok, State, Timeout}.
 
 -spec handle_call(Request, From, State) -> Result
