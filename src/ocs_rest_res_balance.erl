@@ -34,7 +34,7 @@
 
 -define(bucketPath, "/balancemanagement/v1/bucket/").
 -define(actionPath, "/balancemanagement/v1/balanceTransfer/").
--define(productPath, "/productInventoryManagement/v1/product/").
+-define(productInventoryPath, "/productInventoryManagement/v1/product/").
 -define(balancePath, "/balancemanagement/v1/accumulatedBalance/").
 
 -spec content_types_accepted() -> ContentTypes
@@ -313,6 +313,10 @@ bucket([name | T], #bucket{name = undefined} = B, Acc) ->
 	bucket(T, B, Acc);
 bucket([name | T], #bucket{name = Name} = B, Acc) ->
 	bucket(T, B, [{"name", Name} | Acc]);
+bucket([product | T], #bucket{product = [ProRef]} = B, Acc) ->
+	Id = {"id", ProdRef},
+	Href = {"href", ?productInventoryPath ++ ProdRef},
+	bucket(T, B, [{"product", {struct, [Id, Href]}} | Acc]);
 bucket([remain_amount | T],
 		#bucket{units = Units, remain_amount = Amount} =
 		B, Acc) when is_integer(Amount) ->
@@ -424,8 +428,8 @@ abmf_json6(Event, Acc) ->
 %% @hidden
 abmf_json7(Event, Acc) when element(8, Event) /= undefined ->
 	Product = element(8, Event),
-	Product1 = {"product", {struct,
-			[{"id", Product}, {"href", ?productPath ++ Product}]}},
+	Product1 = {"product", {struct, [{"id", Product},
+			{"href", ?productInventoryPathPath ++ Product}]}},
 	abmf_json8(Event, [Product1 | Acc]);
 abmf_json7(Event, Acc) ->
 	abmf_json8(Event, Acc).
