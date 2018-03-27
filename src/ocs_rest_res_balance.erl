@@ -84,22 +84,22 @@ get_balance_log() ->
 
 -spec get_bucket(BucketId) -> Result
 	when
-		BucketID :: string(),
+		BucketId :: string(),
 		Result :: {ok, Headers :: [tuple()], Body :: iolist()}
 				| {error, ErrorCode :: integer()}.
 %% @doc Body producing function for `GET /balanceManagment/v1/bucket/{id}',
 get_bucket(BucketId) ->
 	try
 		case ocs:find_bucket(BucketId) of
-			{ok, Bucket} ->
-				Bucket;
+			{ok, Bucket1} ->
+				Bucket1;
 			{error, Reason} ->
 				exit(Reason)
 		end
 	of
 		Bucket ->
 			Body = mochijson:encode(bucket(Bucket)),
-			Href = ?bucketPath ++ Bucket#bucket.id
+			Href = ?bucketPath ++ Bucket#bucket.id,
 			Headers = [{location, Href},
 					{content_type, "application/json"}],
 			{ok, Headers, Body}
@@ -257,7 +257,7 @@ bucket([name | T], #bucket{name = undefined} = B, Acc) ->
 	bucket(T, B, Acc);
 bucket([name | T], #bucket{name = Name} = B, Acc) ->
 	bucket(T, B, [{"name", Name} | Acc]);
-bucket([product | T], #bucket{product = [ProRef]} = B, Acc) ->
+bucket([product | T], #bucket{product = [ProdRef]} = B, Acc) ->
 	Id = {"id", ProdRef},
 	Href = {"href", ?productInventoryPath ++ ProdRef},
 	bucket(T, B, [{"product", {struct, [Id, Href]}} | Acc]);
@@ -373,7 +373,7 @@ abmf_json6(Event, Acc) ->
 abmf_json7(Event, Acc) when element(8, Event) /= undefined ->
 	Product = element(8, Event),
 	Product1 = {"product", {struct, [{"id", Product},
-			{"href", ?productInventoryPathPath ++ Product}]}},
+			{"href", ?productInventoryPath ++ Product}]}},
 	abmf_json8(Event, [Product1 | Acc]);
 abmf_json7(Event, Acc) ->
 	abmf_json8(Event, Acc).
