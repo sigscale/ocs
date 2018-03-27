@@ -24,7 +24,7 @@
 -export([content_types_accepted/0, content_types_provided/0,
 		top_up/2, get_balance/1, get_balance_log/0]).
 
--export([specific_bucket_balance/2]).
+-export([get_bucket/1]).
 
 -include("ocs.hrl").
 
@@ -82,90 +82,34 @@ get_balance_log() ->
 			{error, 500}
 	end.
 
--spec specific_bucket_balance(SubscriberID, BucketID) -> Result
+-spec get_bucket(BucketId) -> Result
 	when
-		SubscriberID :: string() | undefined,
 		BucketID :: string(),
 		Result :: {ok, Headers :: [tuple()], Body :: iolist()}
 				| {error, ErrorCode :: integer()}.
 %% @doc Body producing function for `GET /balanceManagment/v1/bucket/{id}',
-%% `GET /balanceManagment/v1/product/{subscriber_id}/bucket/{id}'
-%% reuqests
-specific_bucket_balance(SubscriberID, BucketID) ->
-	F = fun() ->
-		case specific_bucket_balance1(SubscriberID, BucketID) of
-			{ok, S, Bucket}->
-				{S, Bucket};
-			{error, not_found} ->
-				throw(not_found)
-		end
-	end,
-	case mnesia:transaction(F) of
-		{atomic, {S, B}} ->
-			specific_bucket_balance4(S, B);
-		{aborted, {throw, not_found}} ->
-			{error, 404};
-		{aborted, _} ->
-			{error, 500}
-	end.
-%% @hidden
-specific_bucket_balance1(undefined, BucketID) ->
-	First = mnesia:first(service),
-	specific_bucket_balance2(First, BucketID);
-specific_bucket_balance1(SubscriberID, BucketID) when is_list(SubscriberID) ->
-	specific_bucket_balance1(list_to_binary(SubscriberID), BucketID);
-specific_bucket_balance1(SubscriberID, BucketID) when is_binary(SubscriberID) ->
- case specific_bucket_balance3(SubscriberID, BucketID) of
-	{#service{} = S, #bucket{} = B} ->
-		{ok, S, B};
-	{_, false} ->
-		{error, not_found};
-	{error, Reason} ->
-		{error, Reason}
- end.
-%% @hidden
-specific_bucket_balance2('end_of_table', _BucketID) ->
-	{error, not_found};
-specific_bucket_balance2(SubscriberID, BucketID) ->
-	case specific_bucket_balance3(SubscriberID, BucketID) of
-		{#service{} = S, #bucket{} = B} ->
-			{ok, S, B};
-		{_,  false} ->
-			Next = mnesia:next(service, SubscriberID),
-			specific_bucket_balance2(Next, BucketID);
-		{error, Reason} ->
-			{error, Reason}
-	end.
-%% @hidden
-specific_bucket_balance3(SubscriberID, BucketID) ->
-	case mnesia:read(service, SubscriberID, read) of
-		[#service{buckets = Buckets} = S] ->
-			{S, lists:keyfind(BucketID, #bucket.id, Buckets)};
-		[] ->
-			{error, not_found}
-	end.
-%% @hidden
-specific_bucket_balance4(#service{name = SubID, last_modified = LM}, Bucket) ->
+get_bucket(BucketId) ->
 	try
-		P_ID = {"id", binary_to_list(SubID)},
-		P_Href = {"href", "/productInventory/v1/product/" ++ binary_to_list(SubID)},
-		Product = {"product", {struct, [P_ID, P_Href]}},
-		{struct, Bucket1} = bucket(Bucket),
-		Json = {struct, [Product | Bucket1]},
-		Body = mochijson:encode(Json),
-		Etag = case LM of
-			undefined ->
-				[];
-			LM ->
-				[{etag, ocs_rest:etag(LM)}]
-		end,
-		Headers = [{content_type, "application/json"}] ++ Etag,
-		{ok, Headers, Body}
+		case ocs:find_bucket(BucketId) of
+			{ok, Bucket} ->
+				Bucket;
+			{error, Reason} ->
+				exit(Reason)
+		end
+	of
+		Bucket ->
+			Body = mochijson:encode(bucket(Bucket)),
+			Href = ?bucketPath ++ Bucket#bucket.id
+			Headers = [{location, Href},
+					{content_type, "application/json"}],
+			{ok, Headers, Body}
 	catch
+		_:not_found ->
+			{error, 404};
 		_:_ ->
 			{error, 500}
 	end.
-
+ 
 -spec get_balance(Identity) -> Result
 	when
 		Identity :: list(),
