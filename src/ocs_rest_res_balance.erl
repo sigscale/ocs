@@ -110,52 +110,42 @@ get_bucket(BucketId) ->
 			{error, 500}
 	end.
  
--spec get_balance(Identity) -> Result
+-spec get_balance(ProdRef) -> Result
 	when
-		Identity :: list(),
+		ProdRef :: list(),
 		Result :: {ok, Headers :: [tuple()], Body :: iolist()}
 				| {error, ErrorCode :: integer()}.
-%% @doc Body producing function for `GET /balanceManagment/v1/accumulatedBalance/{id}'
-%% reuqest
-get_balance(Identity) ->
+%% @doc Body producing function for
+%%	`GET /balanceManagment/v1/accumulatedBalance/{id}' reuqest
+get_balance(ProdRef) ->
 	try
-		case ocs:find_service(Identity) of
-			{ok, #service{buckets = Buckets}} ->
-				get_balance1(Identity, Buckets);
-			{error, not_found} ->
-				{error, 404};
-			{error, _Reason} ->
-				{error, 500}
+		case ocs:get_buckets(ProdRef) of
+			{ok, Buckets1} ->
+				Buckets1;
+			{error, Reason} ->
+				throw(Reason)
 		end
-	catch
-		_Error ->
-			{error, 400}
-	end.
-%% @hidden
-get_balance1(Identity, Buckets) ->
-	try
-		F1 = fun(#bucket{units = cents}) ->
-					true;
-				(_) ->
-					false
-		end,
-		Buckets1 = lists:filter(F1, Buckets),
-		F2 = fun(#bucket{remain_amount = N}, Acc) ->
-					Acc + N
-		end,
-		TotalAmount = lists:foldl(F2, 0, Buckets1),
-		F3 = fun(#bucket{id = Id}) ->
+	of
+		Buckets2 ->
+			F1 = fun(#bucket{units = cents}) -> true; (_) -> false end,
+			Buckets3 = lists:filter(F1, Buckets2),
+			TotalAmount = lists:sum([B#bucket.remain_amount || B <- Buckets3]),
+			F2 = fun(#bucket{id = Id}) ->
 					{struct, [{"id", Id}, {"href", ?balancePath ++ Id}]}
-		end,
-		Buckets2 = {"buckets", {array, lists:map(F3, Buckets1)}},
-		Total = {"totalBalance", {struct, [{"amount", ocs_rest:decimal(TotalAmount)}]}},
-		ProdId = {"id", Identity},
-		ProdHref = {"href", ?balancePath ++ Identity},
-		Product = {"product", {struct, [ProdId, ProdHref]}},
-		Json = {struct, [ProdId, ProdHref, Total, Buckets2, Product]},
-		Body  = mochijson:encode(Json),
-		{ok, [{content_type, "application/json"}], Body}
+			end,
+			Buckets4 = {"buckets", {array, lists:map(F2, Buckets3)}},
+			Total = {"totalBalance", {struct,
+					[{"amount", ocs_rest:decimal(TotalAmount)}]}},
+			Id = {"id", ProdRef},
+			Href = {"href", ?balancePath ++ ProdRef},
+			Product = {"product", {struct, [Id, Href]}},
+			Json = {struct, [Id, Href, Total, Buckets4, Product]},
+			Body  = mochijson:encode(Json),
+			Headers = [{content_type, "application/json"}],
+			{ok, Headers, Body}
 	catch
+		_:product_not_found ->
+			{error, 404};
 		_:_ ->
 			{error, 500}
 	end.
