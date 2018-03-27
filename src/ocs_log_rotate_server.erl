@@ -72,6 +72,16 @@ init([Type, ScheduledTime, Interval] = _Args) when
 			I
 	end,
 	{ok, Directory} = application:get_env(ipdr_log_dir),
+	case file:make_dir(Directory) of
+		ok ->
+			init1(Directory, NewInterval, ScheduledTime, Type);
+		{error, eexist} ->
+			init1(Directory, NewInterval, ScheduledTime, Type);
+		{error, Reason} ->
+			{stop, Reason}
+	end.
+%% @hidden
+init1(Directory, NewInterval, ScheduledTime, Type) ->
 	Directory1 = Directory ++ "/" ++ atom_to_list(Type),
 	State = #state{interval = NewInterval,
 			schedule = ScheduledTime, dir = Directory1},
