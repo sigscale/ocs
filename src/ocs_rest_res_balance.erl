@@ -223,62 +223,23 @@ get_balance1(Identity, Buckets) ->
 		Result :: {ok, Headers :: [tuple()], Body :: iolist()}
 				| {error, ErrorCode :: integer()}.
 %% @doc Respond to `POST /balanceManagement/v1/{id}/balanceTopups'
-%% and top up `subscriber' balance resource
-top_up(Identity, RequestBody) ->
+top_up(_Identity, RequestBody) ->
 	try
-		{struct, Object} = mochijson:decode(RequestBody),
-		{_, _} = lists:keyfind("type", 1, Object),
-		{_, {struct, Channel}} = lists:keyfind("channel", 1, Object),
-		{_, _} = lists:keyfind("name", 1, Channel),
-		{_, {struct, AmountObj}} = lists:keyfind("amount", 1, Object),
-		{_, Units} = lists:keyfind("units", 1, AmountObj),
-		{_, Amount} = lists:keyfind("amount", 1, AmountObj),
-		{StartDate, EndDate} = case lists:keyfind("validFor", 1, Object) of
-			{_, {struct, VF}} ->
-				SDT = proplists:get_value("startDate", VF),
-				EDT = proplists:get_value("endDate", VF),
-				case {SDT, EDT} of
-					{undefined, undefined} ->
-						{undefined, undefined};
-					{undefined, EDT} ->
-						{undefined, ocs_rest:iso8601(EDT)};
-					{SDT, undefined} ->
-						{ocs_rest:iso8601(SDT), undefined}
-				end;
-			false ->
-				{undefined, undefined}
-		end,
-		BucketType = units(Units),
-		BID = generate_bucket_id(),
-		Bucket = #bucket{id = BID, units = BucketType, remain_amount = ocs_rest:decimal(Amount),
-				start_date = StartDate, termination_date = EndDate},
-		top_up1(Identity, Bucket)
+		bucket(mochijson:decode(RequestBody))
+	of
+		#bucket{product = [ProdRef]} = B ->
+			case ocs:add_bucket(ProdRef, B) of
+				{ok, _, #bucket{id = Id}} ->
+					Location = ?bucketPath ++ Id,
+					Headers = [{location, Location}],
+					{ok, Headers, []};
+				{error, _} ->
+					{error, 500}
+			end
 	catch
-		_Error ->
-			{error, 400}
+		_:_ ->
+		{error, 400}
 	end.
-%% @hidden
-top_up1(Identity, Bucket) ->
-	F = fun()->
-		case mnesia:read(service, list_to_binary(Identity), read) of
-			[] ->
-				not_found;
-			[#service{buckets = CrntBuckets, last_modified = LM} = User] ->
-				mnesia:write(User#service{buckets = CrntBuckets ++ [Bucket]}),
-				LM
-		end
-	end,
-	case mnesia:transaction(F) of
-		{atomic, not_found} ->
-			{error, 404};
-		{atomic, LastMod} ->
-			Location = "/balanceManagement/v1/buckets/" ++ Identity,
-			Headers = [{location, Location}, {etag, ocs_rest:etag(LastMod)}],
-			{ok, Headers, []};
-		{aborted, _Reason} ->
-			{error, 500}
-	end.
-
 
 %%----------------------------------------------------------------------
 %%  internal functions
@@ -302,26 +263,29 @@ units1(cents) -> "cents";
 units1(seconds) -> "seconds";
 units1(messages) -> "messages".
 
-%% @hidden
-generate_bucket_id() ->
-	TS = erlang:system_time(?MILLISECOND),
-	N = erlang:unique_integer([positive]),
-	integer_to_list(TS) ++ "-" ++ integer_to_list(N).
-
 -spec bucket(Bucket) -> Bucket
 	when
 		Bucket :: #bucket{} | {struct, list()}.
 %% @doc CODEC for buckets
-bucket(#bucket{} = B) ->
-	bucket1(record_info(fields, bucket), B, []);
 bucket({struct, Object}) ->
-	bucket1(Object, #bucket{}).
+	bucket(Object, #bucket{});
+bucket(#bucket{} = B) ->
+	bucket(record_info(fields, bucket), B, []).
 %% @hidden
-bucket1([{"id", ID} | T], Bucket) ->
-	bucket1(T, Bucket#bucket{id = ID});
-bucket1([{"name", Name} | T], Bucket) ->
-	bucket1(T, Bucket#bucket{name = Name});
-bucket1([{"validFor", {struct, L}} | T], Bucket) ->
+bucket([{"id", ID} | T], Bucket) ->
+	bucket(T, Bucket#bucket{id = ID});
+bucket([{"name", Name} | T], Bucket) ->
+	bucket(T, Bucket#bucket{name = Name});
+bucket([{"amount", {struct, L}} | T], Bucket) ->
+	#quantity{amount = Amount, units = Units} = quantity(L),
+	bucket(T, Bucket#bucket{units = units(Units), remain_amount = Amount});
+bucket([{"remainedAmount", {struct, L}} | T], Bucket) ->
+	#quantity{amount = Amount, units = Units} = quantity(L),
+	bucket(T, Bucket#bucket{units = Units, remain_amount = Amount});
+bucket([{"product", {struct, _}} = P | T], Bucket) ->
+	{_, ProdRef} = lists:keyfind("id", 1, P),
+	bucket(T, Bucket#bucket{product = [ProdRef]});
+bucket([{"validFor", {struct, L}} | T], Bucket) ->
 	Bucket1 = case lists:keyfind("startDateTime", 1, L) of
 		{_, Start} ->
 			Bucket#bucket{start_date = ocs_rest:iso8601(Start)};
@@ -334,83 +298,60 @@ bucket1([{"validFor", {struct, L}} | T], Bucket) ->
 		false ->
 			Bucket1
 	end,
-	bucket1(T, Bucket2);
-bucket1([{"remainedAmount", {struct, L}} | T], Bucket) ->
-	Bucket1 = case lists:keyfind("amount", 1, L) of
-		{_, Amount} ->
-			Bucket#bucket{remain_amount = Amount};
-		false ->
-			Bucket
-	end,
-	Bucket2 = case lists:keyfind("units", 1, L) of
-		{_, Units} ->
-			Bucket1#bucket{units = units(Units)};
-		false ->
-			Bucket1
-	end,
-	bucket1(T, Bucket2);
-bucket1([_ | T], Bucket) ->
-	bucket1(T, Bucket);
-bucket1([], Bucket) ->
+	bucket(T, Bucket2);
+bucket([_ | T], Bucket) ->
+	bucket(T, Bucket);
+bucket([], Bucket) ->
 	Bucket.
 %% @hidden
-bucket1([id | T], #bucket{id = undefined} = B, Acc) ->
-	bucket1(T, B, Acc);
-bucket1([id | T], #bucket{id = ID} = B, Acc) ->
-	Id = {"id", ID},
-	Href = {"href", "/balanceManagement/v1/bucket/" ++ ID},
-	bucket1(T, B, [Id, Href | Acc]);
-bucket1([name | T], #bucket{name = undefined} = B, Acc) ->
-	bucket1(T, B, Acc);
-bucket1([name | T], #bucket{name = Name} = B, Acc) ->
-	bucket1(T, B, [{"name", Name} | Acc]);
-bucket1([remain_amount | T], #bucket{units = undefined,
-		remain_amount = RemainAmount} = B, Acc) when is_integer(RemainAmount) ->
-	RM = {"remainedAmount", {struct, [{"amount", RemainAmount}]}},
-	bucket1(T, B, [RM | Acc]);
-bucket1([remain_amount | T], #bucket{units = cents,
-		remain_amount = RemainAmount} = B, Acc) when is_integer(RemainAmount) ->
-	RM = {"remainedAmount", {struct, [{"amount", ocs_rest:decimal(RemainAmount)}]}},
-	bucket1(T, B, [RM | Acc]);
-bucket1([remain_amount | T], #bucket{remain_amount = RemainAmount,
-		units = Units} = B, Acc) when is_integer(RemainAmount) ->
-	RM = {"remainAmount", {struct, [{"amount", RemainAmount},
-			{"units", units(Units)}]}},
-	bucket1(T, B, [RM | Acc]);
-bucket1([reservations | T], #bucket{reservations = []} = B, Acc) ->
-	bucket1(T, B, Acc);
-bucket1([reservations | T], #bucket{units = undefined,
+bucket([id | T], #bucket{id = undefined} = B, Acc) ->
+	bucket(T, B, Acc);
+bucket([id | T], #bucket{id = ID} = B, Acc) ->
+	bucket(T, B, [{"id", ID},
+			{"href", ?bucketPath ++ ID} | Acc]);
+bucket([name | T], #bucket{name = undefined} = B, Acc) ->
+	bucket(T, B, Acc);
+bucket([name | T], #bucket{name = Name} = B, Acc) ->
+	bucket(T, B, [{"name", Name} | Acc]);
+bucket([remain_amount | T],
+		#bucket{units = Units, remain_amount = Amount} =
+		B, Acc) when is_integer(Amount) ->
+	Q = #quantity{amount = Amount, units = Units},
+	bucket(T, B, [{"remainedAmount", quantity(Q)} | Acc]);
+bucket([reservations | T], #bucket{reservations = []} = B, Acc) ->
+	bucket(T, B, Acc);
+bucket([reservations | T], #bucket{units = undefined,
 		reservations = Reservations} = B, Acc) ->
 	Amount = lists:sum([A || {_, _, A, _} <- Reservations]),
 	Reserved = [{"amount", Amount}],
-	bucket1(T, B, [{"reservedAmount", {struct, Reserved}}| Acc]);
-bucket1([reservations | T], #bucket{reservations = Reservations,
+	bucket(T, B, [{"reservedAmount", {struct, Reserved}}| Acc]);
+bucket([reservations | T], #bucket{reservations = Reservations,
 		units = cents} = B, Acc) ->
 	Amount = lists:sum([A || {_, _, A, _} <- Reservations]),
 	Reserved = [{"amount", ocs_rest:decimal(Amount)}, {"units", "cents"}],
-	bucket1(T, B, [{"reservedAmount", {struct, Reserved}}| Acc]);
-bucket1([reservations | T], #bucket{reservations = Reservations,
+	bucket(T, B, [{"reservedAmount", {struct, Reserved}}| Acc]);
+bucket([reservations | T], #bucket{reservations = Reservations,
 		units = Units} = B, Acc) ->
 	Amount = lists:sum([A || {_, _, A, _} <- Reservations]),
 	Reserved = [{"amount", Amount}, {"units", units(Units)}],
-	bucket1(T, B, [{"reservedAmount", {struct, Reserved}}| Acc]);
-bucket1([start_date | T], #bucket{start_date = undefined,
+	bucket(T, B, [{"reservedAmount", {struct, Reserved}}| Acc]);
+bucket([start_date | T], #bucket{start_date = undefined,
 		termination_date = End} = B, Acc) when is_integer(End) ->
 	ValidFor = {struct, [{"endDateTime", ocs_rest:iso8601(End)}]},
-	bucket1(T, B, [{"validFor", ValidFor} | Acc]);
-bucket1([start_date | T], #bucket{start_date = Start,
+	bucket(T, B, [{"validFor", ValidFor} | Acc]);
+bucket([start_date | T], #bucket{start_date = Start,
 		termination_date = undefined} = B, Acc) when is_integer(Start) ->
 	ValidFor = {struct, [{"startDateTime", ocs_rest:iso8601(Start)}]},
-	bucket1(T, B, [{"validFor", ValidFor} | Acc]);
-bucket1([start_date | T], #bucket{start_date = Start,
+	bucket(T, B, [{"validFor", ValidFor} | Acc]);
+bucket([start_date | T], #bucket{start_date = Start,
 		termination_date = End} = B, Acc) when is_integer(Start),
 		is_integer(End)->
 	ValidFor = {struct, [{"endDateTime", ocs_rest:iso8601(End)},
 			{"startDateTime", ocs_rest:iso8601(Start)}]},
-	bucket1(T, B, [{"validFor", ValidFor} | Acc]);
-bucket1([_ | T], B, Acc) ->
-	bucket1(T, B, Acc);
-bucket1([], _B, Acc) ->
+	bucket(T, B, [{"validFor", ValidFor} | Acc]);
+bucket([_ | T], B, Acc) ->
+	bucket(T, B, Acc);
+bucket([], _B, Acc) ->
 	{struct, lists:reverse(Acc)}.
 
 % @hidden
@@ -489,6 +430,38 @@ abmf_json7(Event, Acc) when element(8, Event) /= undefined ->
 abmf_json7(Event, Acc) ->
 	abmf_json8(Event, Acc).
 %% @hidden
-abmf_json8(Event, Acc) ->
+abmf_json8(_Event, Acc) ->
+	lists:reverse(Acc).
+
+-spec quantity(Quantity) -> Quantity
+	when
+		Quantity :: {struct, list()} | #quantity{}.
+%% @doc CODEC for quantity type
+quantity({struct, Quantity}) ->
+	quantity(Quantity, #quantity{});
+quantity(#quantity{} = Quantity) ->
+	{struct, quantity(record_info(fields, quantity),
+			Quantity, [])}.
+%% @hidden
+quantity([{"amount", Amount} | T], Acc) when is_list(Amount) ->
+	quantity(T, Acc#quantity{amount = ocs_rest:decimal(Amount)});
+quantity([{"amount", Amount} | T], Acc) ->
+	quantity(T, Acc#quantity{amount = Amount});
+quantity([{"units", Units} | T], Acc) ->
+	quantity(T, Acc#quantity{units = units(Units)});
+quantity([], Acc) ->
+	Acc.
+%% @hidden
+quantity([amount | T], #quantity{amount = undefined} = Q, Acc) ->
+	quantity(T, Q, Acc);
+quantity([amount | T], #quantity{units = cents, amount = Amount} = Q, Acc) ->
+	quantity(T, Q, [{"amount", ocs_rest:decimal(Amount)} | Acc]);
+quantity([amount | T], #quantity{amount = Amount} = Q, Acc) ->
+	quantity(T, Q, [{"amount", Amount} | Acc]);
+quantity([units | T], #quantity{units = undefined} = Q, Acc) ->
+	quantity(T, Q, Acc);
+quantity([units | T], #quantity{units = Units} = Q, Acc) ->
+	quantity(T, Q, [{"units", units(Units)} | Acc]);
+quantity([], _Q, Acc) ->
 	lists:reverse(Acc).
 
