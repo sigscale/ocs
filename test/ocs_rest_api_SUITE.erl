@@ -130,26 +130,26 @@ sequences() ->
 %%
 all() ->
 	[authenticate_user_request, unauthenticate_user_request,
-	add_service_inventory, add_service_inventory_without_password,
-	get_service_inventory, get_subscriber_not_found, get_all_service_inventories,
-	get_subscriber_range, delete_service,
+	add_user, get_user, delete_user,
+	update_user_characteristics_json_patch,
 	add_client, add_client_without_password, get_client, get_client_id,
 	get_client_bogus, get_client_notfound, get_all_clients,
 	get_client_range, get_clients_filter, delete_client,
+	update_client_password_json_patch,
+	update_client_attributes_json_patch,
+	add_service_inventory, add_service_inventory_without_password,
+	get_service_inventory, get_subscriber_not_found, get_all_service_inventories,
+	get_subscriber_range, delete_service,
 	get_usagespecs, get_usagespecs_query, get_usagespec,
 	get_auth_usage, get_auth_usage_id, get_auth_usage_filter,
 	get_auth_usage_range, get_acct_usage, get_acct_usage_id,
 	get_acct_usage_filter, get_acct_usage_range, get_ipdr_usage,
 	top_up_subscriber_balance, get_subscriber_balance,
-	add_user, get_user, delete_user,
 	simultaneous_updates_on_subscriber_failure,
 	simultaneous_updates_on_client_failure,
-	update_client_password_json_patch,
-	update_client_attributes_json_patch,
 	update_subscriber_password_json_patch,
 	update_subscriber_attributes_json_patch,
-	update_user_characteristics_json_patch,
-	add_product, get_product, update_product, add_product_sms].
+	get_product, update_product, add_product_sms].
 
 %%---------------------------------------------------------------------
 %%  Test cases
@@ -177,6 +177,449 @@ unauthenticate_user_request(Config) ->
 	Request = {HostUrl ++ "/usageManagement/v1/usage", [Accept, Authentication]},
 	{ok, Result} = httpc:request(get, Request, [], []),
 	{{"HTTP/1.1", 401, _}, _, _} = Result.
+
+add_user() ->
+	[{userdata, [{doc,"Add user in rest interface"}]}].
+
+add_user(Config) ->
+	ContentType = "application/json",
+	ID = "King",
+	Username = ID,
+	Password = "KingKong",
+	Locale = "en",
+	PasswordAttr = {struct, [{"name", "password"}, {"value", Password}]},
+	LocaleAttr = {struct, [{"name", "locale"}, {"value", Locale}]},
+	UsernameAttr = {struct, [{"name", "username"}, {"value", Username}]},
+	CharArray = {array, [UsernameAttr, PasswordAttr, LocaleAttr]},
+	JSON = {struct, [{"id", ID}, {"characteristic", CharArray}]},
+	RequestBody = lists:flatten(mochijson:encode(JSON)),
+	HostUrl = ?config(host_url, Config),
+	Accept = {"accept", "application/json"},
+	Request1 = {HostUrl ++ "/partyManagement/v1/individual", [Accept, auth_header()], ContentType, RequestBody},
+	{ok, Result} = httpc:request(post, Request1, [], []),
+	{{"HTTP/1.1", 201, _Created}, Headers, ResponseBody} = Result,
+	{_, "application/json"} = lists:keyfind("content-type", 1, Headers),
+	ContentLength = integer_to_list(length(ResponseBody)),
+	{_, ContentLength} = lists:keyfind("content-length", 1, Headers),
+	{_, URI} = lists:keyfind("location", 1, Headers),
+	{"/partyManagement/v1/individual/" ++ ID, _} = httpd_util:split_path(URI),
+	{struct, Object} = mochijson:decode(ResponseBody),
+	{_, ID} = lists:keyfind("id", 1, Object),
+	{_, URI} = lists:keyfind("href", 1, Object),
+	{_, {array, _Characteristic}} = lists:keyfind("characteristic", 1, Object),
+	{ok, #httpd_user{username = Username, password = Password,
+			user_data = UserData}} = ocs:get_user(ID),
+	{_, Locale} = lists:keyfind(locale, 1, UserData).
+
+get_user() ->
+	[{userdata, [{doc,"get user in rest interface"}]}].
+
+get_user(Config) ->
+	ID = "Prince",
+	Password = "Frog",
+	Locale = "es",
+	{ok, _} = ocs:add_user(ID, Password, Locale),
+	HostUrl = ?config(host_url, Config),
+	Accept = {"accept", "application/json"},
+	Request2 = {HostUrl ++ "/partyManagement/v1/individual/" ++ ID, [Accept, auth_header()]},
+	{ok, Result1} = httpc:request(get, Request2, [], []),
+	{{"HTTP/1.1", 200, _OK}, Headers1, Body1} = Result1,
+	{_, "application/json"} = lists:keyfind("content-type", 1, Headers1),
+	{struct, Object} = mochijson:decode(Body1),
+	{_, ID} = lists:keyfind("id", 1, Object),
+	{_, _URI2} = lists:keyfind("href", 1, Object),
+	{_, {array, Characteristic}} = lists:keyfind("characteristic", 1, Object),
+	F = fun(_F, [{struct, [{"name", Name}, {"value", Value}]} | _T], Name) ->
+				{ok, Value};
+			(_F, [{struct, [{"value", Value}, {"name", Name}]} | _T], Name) ->
+				{ok, Value};
+			(F, [_ | T], Name) ->
+				F(F, T, Name);
+			(_F, [], _Name) ->
+				{error, not_found}
+	end,
+	{ok, ID} = F(F, Characteristic, "username"),
+	{error, not_found} = F(F, Characteristic, "password"),
+	{ok, Locale} = F(F, Characteristic, "locale").
+
+delete_user() ->
+	[{userdata, [{doc,"Delete user in rest interface"}]}].
+
+delete_user(Config) ->
+	ID = "Queen",
+	Password = "QueenBee",
+	Locale = "en",
+	{ok, _} = ocs:add_user(ID, Password, Locale),
+	HostUrl = ?config(host_url, Config),
+	Request1 = {HostUrl ++ "/partyManagement/v1/individual/" ++ ID, [auth_header()]},
+	{ok, Result1} = httpc:request(delete, Request1, [], []),
+	{{"HTTP/1.1", 204, _NoContent}, _Headers1, []} = Result1,
+	{error, no_such_user} = ocs:get_user(ID).
+
+update_user_characteristics_json_patch() ->
+	[{userdata, [{doc,"Use HTTP PATCH to update users's characteristics using
+			json-patch media type"}]}].
+
+update_user_characteristics_json_patch(Config) ->
+	Username = "ryanstiles",
+	Password = "wliaycaducb46",
+	Locale = "en",
+	{ok, _} = ocs:add_user(Username, Password, Locale),
+	HostUrl = ?config(host_url, Config),
+	Accept = {"accept", "application/json"},
+	Request2 = {HostUrl ++ "/partyManagement/v1/individual/" ++ Username,
+			[Accept, auth_header()]},
+	{ok, Result1} = httpc:request(get, Request2, [], []),
+	{{"HTTP/1.1", 200, _OK}, Headers1, Body1} = Result1,
+	{_, "application/json"} = lists:keyfind("content-type", 1, Headers1),
+	{_, Etag} = lists:keyfind("etag", 1, Headers1),
+	{struct, Object} = mochijson:decode(Body1),
+	{_, URI} = lists:keyfind("href", 1, Object),
+	{_, {array, Characteristic}} = lists:keyfind("characteristic", 1, Object),
+	ContentType = "application/json-patch+json",
+	NewPassword = ocs:generate_password(),
+	NewPwdObj = {struct, [{"name", "password"}, {"value", NewPassword}]},
+	NewLocale = "es",
+	NewLocaleObj = {struct, [{"name", "locale"}, {"value", NewLocale}]},
+	F1 = fun(_F, [{struct, [{"name", Name}, _]} | _T], Name, N) ->
+				integer_to_list(N);
+			(_F, [{struct, [_, {"name", Name}]} | _T], Name, N) ->
+				integer_to_list(N);
+			(F, [_ | T], Name, N) ->
+				F(F, T, Name, N + 1);
+			(_F, [], _Name, _N) ->
+				"-"
+	end,
+	IndexPassword= F1(F1, Characteristic, "password", 0),
+	IndexLocale = F1(F1, Characteristic, "locale", 0),
+	JSON = {array, [
+			{struct, [{op, "add"}, {path, "/characteristic/" ++ IndexPassword}, {value, NewPwdObj}]},
+			{struct, [{op, "replace"}, {path, "/characteristic/" ++ IndexLocale}, {value, NewLocaleObj}]}]},
+	PatchBody = lists:flatten(mochijson:encode(JSON)),
+	PatchBodyLen = size(list_to_binary(PatchBody)),
+	RestPort = ?config(port, Config),
+	PatchReq = ["PATCH ", URI, " HTTP/1.1",$\r,$\n,
+			"Content-Type:" ++ ContentType, $\r,$\n, "Accept:application/json",$\r,$\n,
+			"Authorization:"++ basic_auth(),$\r,$\n,
+			"Host:localhost:" ++ integer_to_list(RestPort),$\r,$\n,
+			"If-Match:" ++ Etag,$\r,$\n,
+			"Content-Length:" ++ integer_to_list(PatchBodyLen),$\r,$\n,
+			$\r, $\n,
+			PatchBody],
+	{ok, SslSock} = ssl:connect({127,0,0,1}, RestPort,  [binary, {active, false}], infinity),
+	ok = ssl:send(SslSock, list_to_binary(PatchReq)),
+	Timeout = 1500,
+	F2 = fun(_F, _Sock, {error, timeout}, Acc) ->
+					lists:reverse(Acc);
+			(F, Sock, {ok, Bin}, Acc) ->
+					F(F, Sock, ssl:recv(Sock, 0, Timeout), [Bin | Acc])
+	end,
+	RecvBuf = F2(F2, SslSock, ssl:recv(SslSock, 0, Timeout), []),
+	PatchResponse = list_to_binary(RecvBuf),
+	[Headers2, <<>>] = binary:split(PatchResponse, <<$\r,$\n,$\r,$\n>>),
+	<<"HTTP/1.1 204", _/binary>> = Headers2,
+	ok = ssl:close(SslSock),
+	{ok, #httpd_user{username = Username, password = NewPassword,
+			user_data = UserData}} = ocs:get_user(Username),
+	{_, NewLocale} = lists:keyfind(locale, 1, UserData).
+
+add_client() ->
+	[{userdata, [{doc,"Add client in rest interface"}]}].
+
+add_client(Config) ->
+	ContentType = "application/json",
+	ID = "10.2.53.9",
+	Port = 3799,
+	Protocol = "RADIUS",
+	Secret = "ksc8c244npqc",
+	JSON = {struct, [{"id", ID}, {"port", Port}, {"protocol", Protocol},
+		{"secret", Secret}]},
+	RequestBody = lists:flatten(mochijson:encode(JSON)),
+	HostUrl = ?config(host_url, Config),
+	Accept = {"accept", "application/json"},
+	Request1 = {HostUrl ++ "/ocs/v1/client/", [Accept, auth_header()], ContentType, RequestBody},
+	{ok, Result} = httpc:request(post, Request1, [], []),
+	{{"HTTP/1.1", 201, _Created}, Headers, ResponseBody} = Result,
+	{_, "application/json"} = lists:keyfind("content-type", 1, Headers),
+	ContentLength = integer_to_list(length(ResponseBody)),
+	{_, ContentLength} = lists:keyfind("content-length", 1, Headers),
+	{_, URI} = lists:keyfind("location", 1, Headers),
+	{"/ocs/v1/client/" ++ ID, _} = httpd_util:split_path(URI),
+	{struct, Object} = mochijson:decode(ResponseBody),
+	{_, ID} = lists:keyfind("id", 1, Object),
+	{_, URI} = lists:keyfind("href", 1, Object),
+	{_, Port} = lists:keyfind("port", 1, Object),
+	{_, Protocol} = lists:keyfind("protocol", 1, Object),
+	{_, Secret} = lists:keyfind("secret", 1, Object).
+
+add_client_without_password() ->
+	[{userdata, [{doc,"Add client without password"}]}].
+
+add_client_without_password(Config) ->
+	ContentType = "application/json",
+	JSON = {struct, [{"id", "10.5.55.10"}]},
+	RequestBody = lists:flatten(mochijson:encode(JSON)),
+	HostUrl = ?config(host_url, Config),
+	Accept = {"accept", "application/json"},
+	Request1 = {HostUrl ++ "/ocs/v1/client/", [Accept, auth_header()], ContentType, RequestBody},
+	{ok, Result} = httpc:request(post, Request1, [], []),
+	{{"HTTP/1.1", 201, _Created}, _Headers, ResponseBody} = Result,
+	{struct, Object} = mochijson:decode(ResponseBody),
+	{_, 3799} = lists:keyfind("port", 1, Object),
+	{_, "RADIUS"} = lists:keyfind("protocol", 1, Object),
+	{_, Secret} = lists:keyfind("secret", 1, Object),
+	12 = length(Secret).
+
+get_client() ->
+	[{userdata, [{doc,"get client in rest interface"}]}].
+
+get_client(Config) ->
+	ContentType = "application/json",
+	ID = "10.2.53.9",
+	Port = 1899,
+	Protocol = "RADIUS",
+	Secret = "ksc8c244npqc",
+	JSON = {struct, [{"id", ID}, {"port", Port}, {"protocol", Protocol},
+		{"secret", Secret}]},
+	RequestBody = lists:flatten(mochijson:encode(JSON)),
+	HostUrl = ?config(host_url, Config),
+	AcceptValue = "application/json",
+	Accept = {"accept", AcceptValue},
+	Request1 = {HostUrl ++ "/ocs/v1/client/", [Accept, auth_header()], ContentType, RequestBody},
+	{ok, Result} = httpc:request(post, Request1, [], []),
+	{{"HTTP/1.1", 201, _Created}, Headers, _} = Result,
+	{_, URI1} = lists:keyfind("location", 1, Headers),
+	{URI2, _} = httpd_util:split_path(URI1),
+	Request2 = {HostUrl ++ URI2, [Accept, auth_header()]},
+	{ok, Result1} = httpc:request(get, Request2, [], []),
+	{{"HTTP/1.1", 200, _OK}, Headers1, Body1} = Result1,
+	{_, AcceptValue} = lists:keyfind("content-type", 1, Headers1),
+	ContentLength = integer_to_list(length(Body1)),
+	{_, ContentLength} = lists:keyfind("content-length", 1, Headers1),
+	{struct, Object} = mochijson:decode(Body1),
+	{_, ID} = lists:keyfind("id", 1, Object),
+	{_, URI2} = lists:keyfind("href", 1, Object),
+	{_, Port} = lists:keyfind("port", 1, Object),
+	{_, Protocol} = lists:keyfind("protocol", 1, Object),
+	{_, Secret} = lists:keyfind("secret", 1, Object).
+
+get_client_id() ->
+	[{userdata, [{doc,"get client with identifier"}]}].
+
+get_client_id(Config) ->
+	ID = "10.2.53.19",
+	Identifier = "nas-01-23-45",
+	Secret = "ps5mhybc297m",
+	{ok, _} = ocs:add_client(ID, Secret),
+	{ok, Address} = inet:parse_address(ID),
+	Fun = fun() ->
+				[C1] = mnesia:read(client, Address, write),
+				C2 = C1#client{identifier = list_to_binary(Identifier)},
+				mnesia:write(C2)
+	end,
+	{atomic, ok} = mnesia:transaction(Fun),
+	HostUrl = ?config(host_url, Config),
+	Accept = {"accept", "application/json"},
+	Request = {HostUrl ++ "/ocs/v1/client/" ++ ID, [Accept, auth_header()]},
+	{ok, Result} = httpc:request(get, Request, [], []),
+	{{"HTTP/1.1", 200, _OK}, _, Body} = Result,
+	{struct, Object} = mochijson:decode(Body),
+	{_, ID} = lists:keyfind("id", 1, Object),
+	{_, Identifier} = lists:keyfind("identifier", 1, Object).
+
+get_client_bogus() ->
+	[{userdata, [{doc, "get client bogus in rest interface"}]}].
+
+get_client_bogus(Config) ->
+	HostUrl = ?config(host_url, Config),
+	Accept = {"accept", "application/json"},
+	ID = "beefbeefcafe",
+	Request = {HostUrl ++ "/ocs/v1/client/" ++ ID, [Accept, auth_header()]},
+	{ok, Result} = httpc:request(get, Request, [], []),
+	{{"HTTP/1.1", 400, _BadRequest}, _Headers, _Body} = Result.
+
+get_client_notfound() ->
+	[{userdata, [{doc, "get client notfound in rest interface"}]}].
+
+get_client_notfound(Config) ->
+	HostUrl = ?config(host_url, Config),
+	Accept = {"accept", "application/json"},
+	ID = "10.2.53.20",
+	Request = {HostUrl ++ "/ocs/v1/client/" ++ ID, [Accept, auth_header()]},
+	{ok, Result} = httpc:request(get, Request, [], []),
+	{{"HTTP/1.1", 404, _}, _Headers, _Body} = Result.
+
+get_all_clients() ->
+	[{userdata, [{doc,"get all clients in rest interface"}]}].
+
+get_all_clients(Config) ->
+	ContentType = "application/json",
+	ID = "10.2.53.8",
+	Port = 1899,
+	Protocol = "RADIUS",
+	Secret = "ksc8c344npqc",
+	JSON = {struct, [{"id", ID}, {"port", Port}, {"protocol", Protocol},
+		{"secret", Secret}]},
+	RequestBody = lists:flatten(mochijson:encode(JSON)),
+	HostUrl = ?config(host_url, Config),
+	AcceptValue = "application/json",
+	Accept = {"accept", AcceptValue},
+	Request1 = {HostUrl ++ "/ocs/v1/client", [Accept, auth_header()], ContentType, RequestBody},
+	{ok, Result} = httpc:request(post, Request1, [], []),
+	{{"HTTP/1.1", 201, _Created}, Headers, _} = Result,
+	{_, URI1} = lists:keyfind("location", 1, Headers),
+	Request2 = {HostUrl ++ "/ocs/v1/client", [Accept, auth_header()]},
+	{ok, Result1} = httpc:request(get, Request2, [], []),
+	{{"HTTP/1.1", 200, _OK}, Headers1, Body1} = Result1,
+	{_, AcceptValue} = lists:keyfind("content-type", 1, Headers1),
+	ContentLength = integer_to_list(length(Body1)),
+	{_, ContentLength} = lists:keyfind("content-length", 1, Headers1),
+	{array, ClientsList} = mochijson:decode(Body1),
+	Pred1 = fun({struct, Param}) ->
+		case lists:keyfind("id", 1, Param) of
+			{_, ID} ->
+				true;
+			{_, _ID} ->
+				false
+		end
+	end,
+	[{struct, ClientVar}] = lists:filter(Pred1, ClientsList),
+	{_, URI1} = lists:keyfind("href", 1, ClientVar),
+	{_, Port} = lists:keyfind("port", 1, ClientVar),
+	{_, Protocol} = lists:keyfind("protocol", 1, ClientVar),
+	{_, Secret} = lists:keyfind("secret", 1, ClientVar).
+
+get_client_range() ->
+	[{userdata, [{doc,"Get range of items in the client collection"}]}].
+
+get_client_range(Config) ->
+	{ok, PageSize} = application:get_env(ocs, rest_page_size),
+	Fadd = fun(_F, 0) ->
+				ok;
+			(F, N) ->
+				Address = {10, rand:uniform(255),
+						rand:uniform(255), rand:uniform(254)},
+				Secret = ocs:generate_password(),
+				{ok, _} = ocs:add_client(Address, Secret),
+				F(F, N - 1)
+	end,
+	NumAdded = (PageSize * 2) + (PageSize div 2) + 17,
+	ok = Fadd(Fadd, NumAdded),
+	RangeSize = case PageSize > 25 of
+		true ->
+			rand:uniform(PageSize - 10) + 10;
+		false ->
+			PageSize - 1
+	end,
+	HostUrl = ?config(host_url, Config),
+	Accept = {"accept", "application/json"},
+	RequestHeaders1 = [Accept, auth_header()],
+	Request1 = {HostUrl ++ "/ocs/v1/client", RequestHeaders1},
+	{ok, Result1} = httpc:request(get, Request1, [], []),
+	{{"HTTP/1.1", 200, _OK}, ResponseHeaders1, Body1} = Result1,
+	{_, Etag} = lists:keyfind("etag", 1, ResponseHeaders1),
+	true = is_etag_valid(Etag),
+	{_, AcceptRanges1} = lists:keyfind("accept-ranges", 1, ResponseHeaders1),
+	true = lists:member("items", string:tokens(AcceptRanges1, ", ")),
+	{_, Range1} = lists:keyfind("content-range", 1, ResponseHeaders1),
+	["items", "1", RangeEndS1, "*"] = string:tokens(Range1, " -/"),
+	RequestHeaders2 = RequestHeaders1 ++ [{"if-match", Etag}],
+	PageSize = list_to_integer(RangeEndS1),
+	{array, Clients1} = mochijson:decode(Body1),
+	PageSize = length(Clients1),
+	Fget = fun(F, RangeStart2, RangeEnd2) ->
+				RangeHeader = [{"range",
+						"items " ++ integer_to_list(RangeStart2)
+						++ "-" ++ integer_to_list(RangeEnd2)}],
+				RequestHeaders3 = RequestHeaders2 ++ RangeHeader,
+				Request2 = {HostUrl ++ "/ocs/v1/client", RequestHeaders3},
+				{ok, Result2} = httpc:request(get, Request2, [], []),
+				{{"HTTP/1.1", 200, _OK}, ResponseHeaders2, Body2} = Result2,
+				{_, Etag} = lists:keyfind("etag", 1, ResponseHeaders2),
+				{_, AcceptRanges2} = lists:keyfind("accept-ranges", 1, ResponseHeaders2),
+				true = lists:member("items", string:tokens(AcceptRanges2, ", ")),
+				{_, Range} = lists:keyfind("content-range", 1, ResponseHeaders2),
+				["items", RangeStartS, RangeEndS, EndS] = string:tokens(Range, " -/"),
+				RangeStart2 = list_to_integer(RangeStartS),
+				case EndS of
+					"*" ->
+						RangeEnd2 = list_to_integer(RangeEndS),
+						RangeSize = (RangeEnd2 - (RangeStart2 - 1)),
+						{array, Clients2} = mochijson:decode(Body2),
+						RangeSize = length(Clients2),
+						NewRangeStart = RangeEnd2 + 1,
+						NewRangeEnd = NewRangeStart + (RangeSize - 1),
+						F(F, NewRangeStart, NewRangeEnd);
+					EndS when RangeEndS == EndS ->
+						list_to_integer(EndS)
+				end
+	end,
+	CollectionSize = length(ocs:get_clients()),
+	CollectionSize = Fget(Fget, PageSize + 1, PageSize + RangeSize).
+
+get_clients_filter() ->
+	[{userdata, [{doc,"Get clients with filters"}]}].
+
+get_clients_filter(Config) ->
+	{ok, _} = ocs:add_client("10.0.123.100", 3799, radius, "ziggyzaggy", true),
+	HostUrl = ?config(host_url, Config),
+	Accept = {"accept", "application/json"},
+	Filters = "?fields=identifier,secret",
+	Url = HostUrl ++ "/ocs/v1/client" ++ Filters,
+	Request = {Url, [Accept, auth_header()]},
+	{ok, Result} = httpc:request(get, Request, [], []),
+	{{"HTTP/1.1", 200, _OK}, Headers, Body} = Result,
+	ContentLength = integer_to_list(length(Body)),
+	{_, ContentLength} = lists:keyfind("content-length", 1, Headers),
+	{array, ClientsList} = mochijson:decode(Body),
+	Fall = fun({struct, L}) ->
+				lists:keymember("id", 1, L)
+						and lists:keymember("href", 1, L)
+						and not lists:keymember("port", 1, L)
+						and not lists:keymember("protocol", 1, L)
+						and lists:keymember("secret", 1, L)
+	end,
+	true = lists:all(Fall, ClientsList).
+
+delete_client() ->
+	[{userdata, [{doc,"Delete client in rest interface"}]}].
+
+delete_client(Config) ->
+	ContentType = "application/json",
+	ID = "10.2.53.9",
+	Port = 1899,
+	Protocol = "RADIUS",
+	Secret = "ksc8c244npqc",
+	JSON1 = {struct, [{"id", ID}, {"port", Port}, {"protocol", Protocol},
+		{"secret", Secret}]},
+	RequestBody = lists:flatten(mochijson:encode(JSON1)),
+	HostUrl = ?config(host_url, Config),
+	Accept = {"accept", "application/json"},
+	Request1 = {HostUrl ++ "/ocs/v1/client", [Accept, auth_header()], ContentType, RequestBody},
+	{ok, Result} = httpc:request(post, Request1, [], []),
+	{{"HTTP/1.1", 201, _Created}, Headers, _} = Result,
+	{_, URI1} = lists:keyfind("location", 1, Headers),
+	{URI2, _} = httpd_util:split_path(URI1),
+	Request2 = {HostUrl ++ URI2, [auth_header()]},
+	{ok, Result1} = httpc:request(delete, Request2, [], []),
+	{{"HTTP/1.1", 204, _NoContent}, Headers1, []} = Result1,
+	{_, "0"} = lists:keyfind("content-length", 1, Headers1).
+
+add_offer() ->
+	[{userdata, [{doc,"Create a new product offering."}]}].
+
+add_offer(Config) ->
+	CatalogHref = "/catalogManagement/v2",
+	HostUrl = ?config(host_url, Config),
+	Accept = {"accept", "application/json"},
+	ContentType = "application/json",
+	ReqList = product_offer(),
+	ReqBody = lists:flatten(mochijson:encode({struct, ReqList})),
+	Request1 = {HostUrl ++ CatalogHref ++ "/productOffering",
+			[Accept, auth_header()], ContentType, ReqBody},
+	{ok, Result} = httpc:request(post, Request1, [], []),
+	{{"HTTP/1.1", 201, _Created}, Headers, _} = Result,
+	{_, _Href} = lists:keyfind("location", 1, Headers).
 
 add_service_inventory() ->
 	[{userdata, [{doc,"Add service inventory"}]}].
@@ -550,365 +993,6 @@ delete_service(Config) ->
 	{{"HTTP/1.1", 204, _NoContent}, Headers1, []} = Result1,
 	{_, "0"} = lists:keyfind("content-length", 1, Headers1).
 
-add_user() ->
-	[{userdata, [{doc,"Add user in rest interface"}]}].
-
-add_user(Config) ->
-	ContentType = "application/json",
-	ID = "King",
-	Username = ID,
-	Password = "KingKong",
-	Locale = "en",
-	PasswordAttr = {struct, [{"name", "password"}, {"value", Password}]},
-	LocaleAttr = {struct, [{"name", "locale"}, {"value", Locale}]},
-	UsernameAttr = {struct, [{"name", "username"}, {"value", Username}]},
-	CharArray = {array, [UsernameAttr, PasswordAttr, LocaleAttr]},
-	JSON = {struct, [{"id", ID}, {"characteristic", CharArray}]},
-	RequestBody = lists:flatten(mochijson:encode(JSON)),
-	HostUrl = ?config(host_url, Config),
-	Accept = {"accept", "application/json"},
-	Request1 = {HostUrl ++ "/partyManagement/v1/individual", [Accept, auth_header()], ContentType, RequestBody},
-	{ok, Result} = httpc:request(post, Request1, [], []),
-	{{"HTTP/1.1", 201, _Created}, Headers, ResponseBody} = Result,
-	{_, "application/json"} = lists:keyfind("content-type", 1, Headers),
-	ContentLength = integer_to_list(length(ResponseBody)),
-	{_, ContentLength} = lists:keyfind("content-length", 1, Headers),
-	{_, URI} = lists:keyfind("location", 1, Headers),
-	{"/partyManagement/v1/individual/" ++ ID, _} = httpd_util:split_path(URI),
-	{struct, Object} = mochijson:decode(ResponseBody),
-	{_, ID} = lists:keyfind("id", 1, Object),
-	{_, URI} = lists:keyfind("href", 1, Object),
-	{_, {array, _Characteristic}} = lists:keyfind("characteristic", 1, Object),
-	{ok, #httpd_user{username = Username, password = Password,
-			user_data = UserData}} = ocs:get_user(ID),
-	{_, Locale} = lists:keyfind(locale, 1, UserData).
-
-get_user() ->
-	[{userdata, [{doc,"get user in rest interface"}]}].
-
-get_user(Config) ->
-	ID = "Prince",
-	Password = "Frog",
-	Locale = "es",
-	{ok, _} = ocs:add_user(ID, Password, Locale),
-	HostUrl = ?config(host_url, Config),
-	Accept = {"accept", "application/json"},
-	Request2 = {HostUrl ++ "/partyManagement/v1/individual/" ++ ID, [Accept, auth_header()]},
-	{ok, Result1} = httpc:request(get, Request2, [], []),
-	{{"HTTP/1.1", 200, _OK}, Headers1, Body1} = Result1,
-	{_, "application/json"} = lists:keyfind("content-type", 1, Headers1),
-	{struct, Object} = mochijson:decode(Body1),
-	{_, ID} = lists:keyfind("id", 1, Object),
-	{_, _URI2} = lists:keyfind("href", 1, Object),
-	{_, {array, Characteristic}} = lists:keyfind("characteristic", 1, Object),
-	F = fun(_F, [{struct, [{"name", Name}, {"value", Value}]} | _T], Name) ->
-				{ok, Value};
-			(_F, [{struct, [{"value", Value}, {"name", Name}]} | _T], Name) ->
-				{ok, Value};
-			(F, [_ | T], Name) ->
-				F(F, T, Name);
-			(_F, [], _Name) ->
-				{error, not_found}
-	end,
-	{ok, ID} = F(F, Characteristic, "username"),
-	{error, not_found} = F(F, Characteristic, "password"),
-	{ok, Locale} = F(F, Characteristic, "locale").
-
-delete_user() ->
-	[{userdata, [{doc,"Delete user in rest interface"}]}].
-
-delete_user(Config) ->
-	ID = "Queen",
-	Password = "QueenBee",
-	Locale = "en",
-	{ok, _} = ocs:add_user(ID, Password, Locale),
-	HostUrl = ?config(host_url, Config),
-	Request1 = {HostUrl ++ "/partyManagement/v1/individual/" ++ ID, [auth_header()]},
-	{ok, Result1} = httpc:request(delete, Request1, [], []),
-	{{"HTTP/1.1", 204, _NoContent}, _Headers1, []} = Result1,
-	{error, no_such_user} = ocs:get_user(ID).
-
-add_client() ->
-	[{userdata, [{doc,"Add client in rest interface"}]}].
-
-add_client(Config) ->
-	ContentType = "application/json",
-	ID = "10.2.53.9",
-	Port = 3799,
-	Protocol = "RADIUS",
-	Secret = "ksc8c244npqc",
-	JSON = {struct, [{"id", ID}, {"port", Port}, {"protocol", Protocol},
-		{"secret", Secret}]},
-	RequestBody = lists:flatten(mochijson:encode(JSON)),
-	HostUrl = ?config(host_url, Config),
-	Accept = {"accept", "application/json"},
-	Request1 = {HostUrl ++ "/ocs/v1/client/", [Accept, auth_header()], ContentType, RequestBody},
-	{ok, Result} = httpc:request(post, Request1, [], []),
-	{{"HTTP/1.1", 201, _Created}, Headers, ResponseBody} = Result,
-	{_, "application/json"} = lists:keyfind("content-type", 1, Headers),
-	ContentLength = integer_to_list(length(ResponseBody)),
-	{_, ContentLength} = lists:keyfind("content-length", 1, Headers),
-	{_, URI} = lists:keyfind("location", 1, Headers),
-	{"/ocs/v1/client/" ++ ID, _} = httpd_util:split_path(URI),
-	{struct, Object} = mochijson:decode(ResponseBody),
-	{_, ID} = lists:keyfind("id", 1, Object),
-	{_, URI} = lists:keyfind("href", 1, Object),
-	{_, Port} = lists:keyfind("port", 1, Object),
-	{_, Protocol} = lists:keyfind("protocol", 1, Object),
-	{_, Secret} = lists:keyfind("secret", 1, Object).
-
-add_client_without_password() ->
-	[{userdata, [{doc,"Add client without password"}]}].
-
-add_client_without_password(Config) ->
-	ContentType = "application/json",
-	JSON = {struct, [{"id", "10.5.55.10"}]},
-	RequestBody = lists:flatten(mochijson:encode(JSON)),
-	HostUrl = ?config(host_url, Config),
-	Accept = {"accept", "application/json"},
-	Request1 = {HostUrl ++ "/ocs/v1/client/", [Accept, auth_header()], ContentType, RequestBody},
-	{ok, Result} = httpc:request(post, Request1, [], []),
-	{{"HTTP/1.1", 201, _Created}, _Headers, ResponseBody} = Result,
-	{struct, Object} = mochijson:decode(ResponseBody),
-	{_, 3799} = lists:keyfind("port", 1, Object),
-	{_, "RADIUS"} = lists:keyfind("protocol", 1, Object),
-	{_, Secret} = lists:keyfind("secret", 1, Object),
-	12 = length(Secret).
-
-get_client() ->
-	[{userdata, [{doc,"get client in rest interface"}]}].
-
-get_client(Config) ->
-	ContentType = "application/json",
-	ID = "10.2.53.9",
-	Port = 1899,
-	Protocol = "RADIUS",
-	Secret = "ksc8c244npqc",
-	JSON = {struct, [{"id", ID}, {"port", Port}, {"protocol", Protocol},
-		{"secret", Secret}]},
-	RequestBody = lists:flatten(mochijson:encode(JSON)),
-	HostUrl = ?config(host_url, Config),
-	AcceptValue = "application/json",
-	Accept = {"accept", AcceptValue},
-	Request1 = {HostUrl ++ "/ocs/v1/client/", [Accept, auth_header()], ContentType, RequestBody},
-	{ok, Result} = httpc:request(post, Request1, [], []),
-	{{"HTTP/1.1", 201, _Created}, Headers, _} = Result,
-	{_, URI1} = lists:keyfind("location", 1, Headers),
-	{URI2, _} = httpd_util:split_path(URI1),
-	Request2 = {HostUrl ++ URI2, [Accept, auth_header()]},
-	{ok, Result1} = httpc:request(get, Request2, [], []),
-	{{"HTTP/1.1", 200, _OK}, Headers1, Body1} = Result1,
-	{_, AcceptValue} = lists:keyfind("content-type", 1, Headers1),
-	ContentLength = integer_to_list(length(Body1)),
-	{_, ContentLength} = lists:keyfind("content-length", 1, Headers1),
-	{struct, Object} = mochijson:decode(Body1),
-	{_, ID} = lists:keyfind("id", 1, Object),
-	{_, URI2} = lists:keyfind("href", 1, Object),
-	{_, Port} = lists:keyfind("port", 1, Object),
-	{_, Protocol} = lists:keyfind("protocol", 1, Object),
-	{_, Secret} = lists:keyfind("secret", 1, Object).
-
-get_client_id() ->
-	[{userdata, [{doc,"get client with identifier"}]}].
-
-get_client_id(Config) ->
-	ID = "10.2.53.19",
-	Identifier = "nas-01-23-45",
-	Secret = "ps5mhybc297m",
-	{ok, _} = ocs:add_client(ID, Secret),
-	{ok, Address} = inet:parse_address(ID),
-	Fun = fun() ->
-				[C1] = mnesia:read(client, Address, write),
-				C2 = C1#client{identifier = list_to_binary(Identifier)},
-				mnesia:write(C2)
-	end,
-	{atomic, ok} = mnesia:transaction(Fun),
-	HostUrl = ?config(host_url, Config),
-	Accept = {"accept", "application/json"},
-	Request = {HostUrl ++ "/ocs/v1/client/" ++ ID, [Accept, auth_header()]},
-	{ok, Result} = httpc:request(get, Request, [], []),
-	{{"HTTP/1.1", 200, _OK}, _, Body} = Result,
-	{struct, Object} = mochijson:decode(Body),
-	{_, ID} = lists:keyfind("id", 1, Object),
-	{_, Identifier} = lists:keyfind("identifier", 1, Object).
-
-get_client_bogus() ->
-	[{userdata, [{doc, "get client bogus in rest interface"}]}].
-
-get_client_bogus(Config) ->
-	HostUrl = ?config(host_url, Config),
-	Accept = {"accept", "application/json"},
-	ID = "beefbeefcafe",
-	Request = {HostUrl ++ "/ocs/v1/client/" ++ ID, [Accept, auth_header()]},
-	{ok, Result} = httpc:request(get, Request, [], []),
-	{{"HTTP/1.1", 400, _BadRequest}, _Headers, _Body} = Result.
-
-get_client_notfound() ->
-	[{userdata, [{doc, "get client notfound in rest interface"}]}].
-
-get_client_notfound(Config) ->
-	HostUrl = ?config(host_url, Config),
-	Accept = {"accept", "application/json"},
-	ID = "10.2.53.20",
-	Request = {HostUrl ++ "/ocs/v1/client/" ++ ID, [Accept, auth_header()]},
-	{ok, Result} = httpc:request(get, Request, [], []),
-	{{"HTTP/1.1", 404, _}, _Headers, _Body} = Result.
-
-get_all_clients() ->
-	[{userdata, [{doc,"get all clients in rest interface"}]}].
-
-get_all_clients(Config) ->
-	ContentType = "application/json",
-	ID = "10.2.53.8",
-	Port = 1899,
-	Protocol = "RADIUS",
-	Secret = "ksc8c344npqc",
-	JSON = {struct, [{"id", ID}, {"port", Port}, {"protocol", Protocol},
-		{"secret", Secret}]},
-	RequestBody = lists:flatten(mochijson:encode(JSON)),
-	HostUrl = ?config(host_url, Config),
-	AcceptValue = "application/json",
-	Accept = {"accept", AcceptValue},
-	Request1 = {HostUrl ++ "/ocs/v1/client", [Accept, auth_header()], ContentType, RequestBody},
-	{ok, Result} = httpc:request(post, Request1, [], []),
-	{{"HTTP/1.1", 201, _Created}, Headers, _} = Result,
-	{_, URI1} = lists:keyfind("location", 1, Headers),
-	Request2 = {HostUrl ++ "/ocs/v1/client", [Accept, auth_header()]},
-	{ok, Result1} = httpc:request(get, Request2, [], []),
-	{{"HTTP/1.1", 200, _OK}, Headers1, Body1} = Result1,
-	{_, AcceptValue} = lists:keyfind("content-type", 1, Headers1),
-	ContentLength = integer_to_list(length(Body1)),
-	{_, ContentLength} = lists:keyfind("content-length", 1, Headers1),
-	{array, ClientsList} = mochijson:decode(Body1),
-	Pred1 = fun({struct, Param}) ->
-		case lists:keyfind("id", 1, Param) of
-			{_, ID} ->
-				true;
-			{_, _ID} ->
-				false
-		end
-	end,
-	[{struct, ClientVar}] = lists:filter(Pred1, ClientsList),
-	{_, URI1} = lists:keyfind("href", 1, ClientVar),
-	{_, Port} = lists:keyfind("port", 1, ClientVar),
-	{_, Protocol} = lists:keyfind("protocol", 1, ClientVar),
-	{_, Secret} = lists:keyfind("secret", 1, ClientVar).
-
-get_client_range() ->
-	[{userdata, [{doc,"Get range of items in the client collection"}]}].
-
-get_client_range(Config) ->
-	{ok, PageSize} = application:get_env(ocs, rest_page_size),
-	Fadd = fun(_F, 0) ->
-				ok;
-			(F, N) ->
-				Address = {10, rand:uniform(255),
-						rand:uniform(255), rand:uniform(254)},
-				Secret = ocs:generate_password(),
-				{ok, _} = ocs:add_client(Address, Secret),
-				F(F, N - 1)
-	end,
-	NumAdded = (PageSize * 2) + (PageSize div 2) + 17,
-	ok = Fadd(Fadd, NumAdded),
-	RangeSize = case PageSize > 25 of
-		true ->
-			rand:uniform(PageSize - 10) + 10;
-		false ->
-			PageSize - 1
-	end,
-	HostUrl = ?config(host_url, Config),
-	Accept = {"accept", "application/json"},
-	RequestHeaders1 = [Accept, auth_header()],
-	Request1 = {HostUrl ++ "/ocs/v1/client", RequestHeaders1},
-	{ok, Result1} = httpc:request(get, Request1, [], []),
-	{{"HTTP/1.1", 200, _OK}, ResponseHeaders1, Body1} = Result1,
-	{_, Etag} = lists:keyfind("etag", 1, ResponseHeaders1),
-	true = is_etag_valid(Etag),
-	{_, AcceptRanges1} = lists:keyfind("accept-ranges", 1, ResponseHeaders1),
-	true = lists:member("items", string:tokens(AcceptRanges1, ", ")),
-	{_, Range1} = lists:keyfind("content-range", 1, ResponseHeaders1),
-	["items", "1", RangeEndS1, "*"] = string:tokens(Range1, " -/"),
-	RequestHeaders2 = RequestHeaders1 ++ [{"if-match", Etag}],
-	PageSize = list_to_integer(RangeEndS1),
-	{array, Clients1} = mochijson:decode(Body1),
-	PageSize = length(Clients1),
-	Fget = fun(F, RangeStart2, RangeEnd2) ->
-				RangeHeader = [{"range",
-						"items " ++ integer_to_list(RangeStart2)
-						++ "-" ++ integer_to_list(RangeEnd2)}],
-				RequestHeaders3 = RequestHeaders2 ++ RangeHeader,
-				Request2 = {HostUrl ++ "/ocs/v1/client", RequestHeaders3},
-				{ok, Result2} = httpc:request(get, Request2, [], []),
-				{{"HTTP/1.1", 200, _OK}, ResponseHeaders2, Body2} = Result2,
-				{_, Etag} = lists:keyfind("etag", 1, ResponseHeaders2),
-				{_, AcceptRanges2} = lists:keyfind("accept-ranges", 1, ResponseHeaders2),
-				true = lists:member("items", string:tokens(AcceptRanges2, ", ")),
-				{_, Range} = lists:keyfind("content-range", 1, ResponseHeaders2),
-				["items", RangeStartS, RangeEndS, EndS] = string:tokens(Range, " -/"),
-				RangeStart2 = list_to_integer(RangeStartS),
-				case EndS of
-					"*" ->
-						RangeEnd2 = list_to_integer(RangeEndS),
-						RangeSize = (RangeEnd2 - (RangeStart2 - 1)),
-						{array, Clients2} = mochijson:decode(Body2),
-						RangeSize = length(Clients2),
-						NewRangeStart = RangeEnd2 + 1,
-						NewRangeEnd = NewRangeStart + (RangeSize - 1),
-						F(F, NewRangeStart, NewRangeEnd);
-					EndS when RangeEndS == EndS ->
-						list_to_integer(EndS)
-				end
-	end,
-	CollectionSize = length(ocs:get_clients()),
-	CollectionSize = Fget(Fget, PageSize + 1, PageSize + RangeSize).
-
-get_clients_filter() ->
-	[{userdata, [{doc,"Get clients with filters"}]}].
-
-get_clients_filter(Config) ->
-	{ok, _} = ocs:add_client("10.0.123.100", 3799, radius, "ziggyzaggy", true),
-	HostUrl = ?config(host_url, Config),
-	Accept = {"accept", "application/json"},
-	Filters = "?fields=identifier,secret",
-	Url = HostUrl ++ "/ocs/v1/client" ++ Filters,
-	Request = {Url, [Accept, auth_header()]},
-	{ok, Result} = httpc:request(get, Request, [], []),
-	{{"HTTP/1.1", 200, _OK}, Headers, Body} = Result,
-	ContentLength = integer_to_list(length(Body)),
-	{_, ContentLength} = lists:keyfind("content-length", 1, Headers),
-	{array, ClientsList} = mochijson:decode(Body),
-	Fall = fun({struct, L}) ->
-				lists:keymember("id", 1, L)
-						and lists:keymember("href", 1, L)
-						and not lists:keymember("port", 1, L)
-						and not lists:keymember("protocol", 1, L)
-						and lists:keymember("secret", 1, L)
-	end,
-	true = lists:all(Fall, ClientsList).
-
-delete_client() ->
-	[{userdata, [{doc,"Delete client in rest interface"}]}].
-
-delete_client(Config) ->
-	ContentType = "application/json",
-	ID = "10.2.53.9",
-	Port = 1899,
-	Protocol = "RADIUS",
-	Secret = "ksc8c244npqc",
-	JSON1 = {struct, [{"id", ID}, {"port", Port}, {"protocol", Protocol},
-		{"secret", Secret}]},
-	RequestBody = lists:flatten(mochijson:encode(JSON1)),
-	HostUrl = ?config(host_url, Config),
-	Accept = {"accept", "application/json"},
-	Request1 = {HostUrl ++ "/ocs/v1/client", [Accept, auth_header()], ContentType, RequestBody},
-	{ok, Result} = httpc:request(post, Request1, [], []),
-	{{"HTTP/1.1", 201, _Created}, Headers, _} = Result,
-	{_, URI1} = lists:keyfind("location", 1, Headers),
-	{URI2, _} = httpd_util:split_path(URI1),
-	Request2 = {HostUrl ++ URI2, [auth_header()]},
-	{ok, Result1} = httpc:request(delete, Request2, [], []),
-	{{"HTTP/1.1", 204, _NoContent}, Headers1, []} = Result1,
-	{_, "0"} = lists:keyfind("content-length", 1, Headers1).
 
 get_usagespecs() ->
 	[{userdata, [{doc,"Get usageSpecification collection"}]}].
@@ -2072,88 +2156,7 @@ update_subscriber_attributes_json_patch(Config) ->
 	{"multisession", NewMulti} = lists:keyfind("multisession", 1, Object1),
 	ok = ssl:close(SslSock).
 
-update_user_characteristics_json_patch() ->
-	[{userdata, [{doc,"Use HTTP PATCH to update users's characteristics using
-			json-patch media type"}]}].
 
-update_user_characteristics_json_patch(Config) ->
-	Username = "ryanstiles",
-	Password = "wliaycaducb46",
-	Locale = "en",
-	{ok, _} = ocs:add_user(Username, Password, Locale),
-	HostUrl = ?config(host_url, Config),
-	Accept = {"accept", "application/json"},
-	Request2 = {HostUrl ++ "/partyManagement/v1/individual/" ++ Username,
-			[Accept, auth_header()]},
-	{ok, Result1} = httpc:request(get, Request2, [], []),
-	{{"HTTP/1.1", 200, _OK}, Headers1, Body1} = Result1,
-	{_, "application/json"} = lists:keyfind("content-type", 1, Headers1),
-	{_, Etag} = lists:keyfind("etag", 1, Headers1),
-	{struct, Object} = mochijson:decode(Body1),
-	{_, URI} = lists:keyfind("href", 1, Object),
-	{_, {array, Characteristic}} = lists:keyfind("characteristic", 1, Object),
-	ContentType = "application/json-patch+json",
-	NewPassword = ocs:generate_password(),
-	NewPwdObj = {struct, [{"name", "password"}, {"value", NewPassword}]},
-	NewLocale = "es",
-	NewLocaleObj = {struct, [{"name", "locale"}, {"value", NewLocale}]},
-	F1 = fun(_F, [{struct, [{"name", Name}, _]} | _T], Name, N) ->
-				integer_to_list(N);
-			(_F, [{struct, [_, {"name", Name}]} | _T], Name, N) ->
-				integer_to_list(N);
-			(F, [_ | T], Name, N) ->
-				F(F, T, Name, N + 1);
-			(_F, [], _Name, _N) ->
-				"-"
-	end,
-	IndexPassword= F1(F1, Characteristic, "password", 0),
-	IndexLocale = F1(F1, Characteristic, "locale", 0),
-	JSON = {array, [
-			{struct, [{op, "add"}, {path, "/characteristic/" ++ IndexPassword}, {value, NewPwdObj}]},
-			{struct, [{op, "replace"}, {path, "/characteristic/" ++ IndexLocale}, {value, NewLocaleObj}]}]},
-	PatchBody = lists:flatten(mochijson:encode(JSON)),
-	PatchBodyLen = size(list_to_binary(PatchBody)),
-	RestPort = ?config(port, Config),
-	PatchReq = ["PATCH ", URI, " HTTP/1.1",$\r,$\n,
-			"Content-Type:" ++ ContentType, $\r,$\n, "Accept:application/json",$\r,$\n,
-			"Authorization:"++ basic_auth(),$\r,$\n,
-			"Host:localhost:" ++ integer_to_list(RestPort),$\r,$\n,
-			"If-Match:" ++ Etag,$\r,$\n,
-			"Content-Length:" ++ integer_to_list(PatchBodyLen),$\r,$\n,
-			$\r, $\n,
-			PatchBody],
-	{ok, SslSock} = ssl:connect({127,0,0,1}, RestPort,  [binary, {active, false}], infinity),
-	ok = ssl:send(SslSock, list_to_binary(PatchReq)),
-	Timeout = 1500,
-	F2 = fun(_F, _Sock, {error, timeout}, Acc) ->
-					lists:reverse(Acc);
-			(F, Sock, {ok, Bin}, Acc) ->
-					F(F, Sock, ssl:recv(Sock, 0, Timeout), [Bin | Acc])
-	end,
-	RecvBuf = F2(F2, SslSock, ssl:recv(SslSock, 0, Timeout), []),
-	PatchResponse = list_to_binary(RecvBuf),
-	[Headers2, <<>>] = binary:split(PatchResponse, <<$\r,$\n,$\r,$\n>>),
-	<<"HTTP/1.1 204", _/binary>> = Headers2,
-	ok = ssl:close(SslSock),
-	{ok, #httpd_user{username = Username, password = NewPassword,
-			user_data = UserData}} = ocs:get_user(Username),
-	{_, NewLocale} = lists:keyfind(locale, 1, UserData).
-
-add_offer() ->
-	[{userdata, [{doc,"Create a new product offering."}]}].
-
-add_offer(Config) ->
-	CatalogHref = "/catalogManagement/v2",
-	HostUrl = ?config(host_url, Config),
-	Accept = {"accept", "application/json"},
-	ContentType = "application/json",
-	ReqList = product_offer(),
-	ReqBody = lists:flatten(mochijson:encode({struct, ReqList})),
-	Request1 = {HostUrl ++ CatalogHref ++ "/productOffering",
-			[Accept, auth_header()], ContentType, ReqBody},
-	{ok, Result} = httpc:request(post, Request1, [], []),
-	{{"HTTP/1.1", 201, _Created}, Headers, _} = Result,
-	{_, _Href} = lists:keyfind("location", 1, Headers).
 
 add_inventory() ->
 	[{userdata, [{doc,"Create a new product inventory."}]}].
