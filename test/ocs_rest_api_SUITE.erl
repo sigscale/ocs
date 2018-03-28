@@ -145,14 +145,14 @@ all() ->
 	get_auth_usage, get_auth_usage_id, get_auth_usage_filter,
 	get_auth_usage_range, get_acct_usage, get_acct_usage_id,
 	get_acct_usage_filter, get_acct_usage_range, get_ipdr_usage,
-	top_up_subscriber_balance, get_subscriber_balance,
+	top_up, get_subscriber_balance,
 	simultaneous_updates_on_subscriber_failure,
 	simultaneous_updates_on_client_failure,
 	update_subscriber_password_json_patch,
 	update_subscriber_attributes_json_patch,
 	get_product, update_product, add_product_sms].
 
-%%%%---------------------------------------------------------------------
+%%%%%---------------------------------------------------------------------
 %%  Test cases
 %%---------------------------------------------------------------------
 authenticate_user_request() ->
@@ -1921,28 +1921,39 @@ get_ipdr_usage(Config) ->
 	end,
 	true = lists:all(F, UsageCharacteristic).
 
-top_up_subscriber_balance() ->
+top_up() ->
 	[{userdata, [{doc,"TMF654 Prepay Balance Management API :
-			Top-up balance for subscriber"}]}].
+			Top-up add a new bucket"}]}].
 
-top_up_subscriber_balance(Config) ->
+top_up(Config) ->
+	P1 = price(usage, octets, rand:uniform(10000), rand:uniform(100)),
+	OfferId = offer_add([P1], 4),
+	ProdRef = product_add(OfferId),
 	HostUrl = ?config(host_url, Config),
-	ProdID = ?config(product_id, Config),
 	AcceptValue = "application/json",
 	Accept = {"accept", AcceptValue},
 	ContentType = "application/json",
-	Identity = ocs:generate_identity(),
-	Password = ocs:generate_password(),
-	{ok, _} = ocs:add_service(Identity, Password, ProdID),
-	RequestURI = HostUrl ++ "/balanceManagement/v1/" ++ Identity ++ "/balanceTopups",
-	BucketType = {"type", "buckettype"},
-	Channel = {"channel", {struct, [{"name", "POS"}]}},
-	Amount = {"amount", {struct, [{"units", "octets"}, {"amount", 10000000}]}},
-	JSON = {struct, [BucketType, Channel, Amount]},
+	RequestURI = HostUrl ++ "/balanceManagement/v1/" ++ ProdRef ++ "/balanceTopups",
+	BucketType = {"type", ocs:generate_identity()},
+	Channel = {"channel", {struct, [{"name", ocs:generate_identity()}]}},
+	RechargeAmount = rand:uniform(10000000),
+	Amount = {"amount", {struct, [{"units", octets}, {"amount", RechargeAmount}]}},
+	Product = {"product", {struct, [{"id", ProdRef}]}},
+	SDT = erlang:system_time(?MILLISECOND),
+	EDT = erlang:system_time(?MILLISECOND) + rand:uniform(10000000000),
+	ValidFor = {"validFor",
+			{struct, [{"startDateTime", ocs_rest:iso8601(SDT)},
+			{"endDateTime", ocs_rest:iso8601(EDT)}]}},
+	JSON = {struct, [BucketType, Channel, Amount, Product, ValidFor]},
 	RequestBody = lists:flatten(mochijson:encode(JSON)),
 	Request = {RequestURI, [Accept, auth_header()], ContentType, RequestBody},
 	{ok, Result} = httpc:request(post, Request, [], []),
-	{{"HTTP/1.1", 201, _Created}, _, _} = Result.
+	{{"HTTP/1.1", 201, _Created}, Headers, _} = Result,
+	{_, Href} = lists:keyfind("location", 1, Headers),
+	BucketId = lists:last(string:tokens(Href, "/")),
+	{ok, #bucket{units = octets, remain_amount = RechargeAmount,
+			start_date = SDT, termination_date = EDT,
+			product = [ProdRef]}} = ocs:find_bucket(BucketId).
 
 get_subscriber_balance() ->
 	[{userdata, [{doc,"TMF654 Prepay Balance Management API :
