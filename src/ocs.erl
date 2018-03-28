@@ -1155,6 +1155,8 @@ get_offers() ->
 		OfferID :: string(),
 		Result :: ok.
 %% @doc Delete an entry from the offer table.
+%% @todo If any product inventory related with given
+%% offerID, ignore deleteing record from table
 delete_offer(OfferID) ->
 	F = fun() ->
 		mnesia:delete(offer, OfferID, write)
