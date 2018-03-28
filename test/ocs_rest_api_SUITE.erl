@@ -1166,7 +1166,9 @@ get_all_service_inventories(Config) ->
 					{_, ID6} when ID6 == ID4 ->
 						F2(Object, ID4, Password4, ProdRef4, Attributes4);
 					{_, ID6} when ID6 == ID5 ->
-						F2(Object, ID5, Password5, ProdRef5, Attributes5)
+						F2(Object, ID5, Password5, ProdRef5, Attributes5);
+					_ ->
+						true
 				end
 	end,
 	true = lists:all(F, Objects).
