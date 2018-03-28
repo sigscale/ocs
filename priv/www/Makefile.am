@@ -10,12 +10,14 @@ www_DATA = favicon.ico \
 	sort-ascend.png \
 	sort-descend.png \
 	index.html \
-	sig-ipdr-list.html \
+	sig-ipdr-list-wlan.html \
+	sig-ipdr-list-voip.html\
 	sig-access-list.html \
 	sig-accounting-list.html \
 	sig-usage-list.html \
 	sig-http-list.html \
-	sig-ipdr-log-files.html \
+	sig-ipdr-log-files-wlan.html \
+	sig-ipdr-log-files-voip.html \
 	sig-app.html \
 	sig-help.html \
 	sig-client-add.html \
