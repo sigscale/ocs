@@ -22,7 +22,8 @@
 -copyright('Copyright (c) 2016 - 2018 SigScale Global Inc.').
 
 -export([content_types_accepted/0, content_types_provided/0]).
--export([add_inventory/1, get_inventory/1, get_inventories/2]).
+-export([add_inventory/1, get_inventory/1, get_inventories/2,
+		delete_inventory/1]).
 -export([get_service_specs/1, get_service_spec/2]).
 
 -include("ocs.hrl").
@@ -123,7 +124,7 @@ get_inventory(Id) ->
 	Headers	:: [tuple()],
 	Body		:: iolist(),
 	Status	:: 400 | 404 | 412 | 500 .
-%% @doc Respond to `GET /serviceInventoryManagement/v2/product'.
+%% @doc Respond to `GET /serviceInventoryManagement/v2/service'.
 %% 	Retrieve all Service Inventories.
 %% @todo Filtering
 get_inventories(Query, Headers) ->
@@ -132,6 +133,21 @@ get_inventories(Query, Headers) ->
 	A = [],
 	Codec = fun inventory/1,
 	query_filter({M, F, A}, Codec, Query, Headers).
+
+-spec delete_inventory(Id) -> Result
+	when
+		Id :: string(),
+		Result :: {ok, Headers :: [tuple()], Body :: iolist()}
+				| {error, ErrorCode :: integer()} .
+%% @doc Respond to `DELETE /serviceInventoryManagement/v2/service/{id}'
+%% 	request to remove a `Service Inventory'.
+delete_inventory(Id) ->
+	case ocs:delete_service(Id) of
+		ok ->
+			{ok, [], []};
+		{error, _} ->
+			{error, 500}
+	end.
 
 -spec get_service_specs(Query) -> Result when
 	Query :: [{Key :: string(), Value :: string()}],
