@@ -64,22 +64,22 @@ init_per_suite(Config) ->
 	ok = ocs_test_lib:initialize_db(),
 	ok = ocs_test_lib:start(),
 	{ok, Services} = application:get_env(inets, services),
-	Fport = fun(F, [{httpd, L} | T]) ->
+	Fport = fun FPort([{httpd, L} | T]) ->
 				case lists:keyfind(server_name, 1, L) of
 					{_, "rest"} ->
 						H1 = lists:keyfind(bind_address, 1, L),
 						P1 = lists:keyfind(port, 1, L),
 						{H1, P1};
 					_ ->
-						F(F, T)
+						FPort(T)
 				end;
-			(F, [_ | T]) ->
-				F(F, T)
+			FPort([_ | T]) ->
+				FPort(T)
 	end,
 	RestUser = ct:get_config(rest_user),
 	RestPass = ct:get_config(rest_pass),
 	_RestGroup = ct:get_config(rest_group),
-	{Host, Port} = case Fport(Fport, Services) of
+	{Host, Port} = case Fport(Services) of
 		{{_, H2}, {_, P2}} when H2 == "localhost"; H2 == {127,0,0,1} ->
 			{ok, _} = ocs:add_user(RestUser, RestPass, "en"),
 			{"localhost", P2};
