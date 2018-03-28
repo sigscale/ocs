@@ -137,6 +137,7 @@ all() ->
 	get_client_range, get_clients_filter, delete_client,
 	update_client_password_json_patch,
 	update_client_attributes_json_patch,
+	add_offer, get_offer,
 	add_service_inventory, add_service_inventory_without_password,
 	get_service_inventory, get_subscriber_not_found, get_all_service_inventories,
 	get_subscriber_range, delete_service,
@@ -620,6 +621,56 @@ add_offer(Config) ->
 	{ok, Result} = httpc:request(post, Request1, [], []),
 	{{"HTTP/1.1", 201, _Created}, Headers, _} = Result,
 	{_, _Href} = lists:keyfind("location", 1, Headers).
+
+get_offer() ->
+	[{userdata, [{doc,"Get offer for given Offer Id"}]}].
+
+get_offer(Config) ->
+	P1 = #price{name = ocs:generate_identity(),
+			type = recurring, period = monthly,
+			amount = rand:uniform(1000)},
+	P2 = price(usage, octets, rand:uniform(1000), rand:uniform(100)),
+	OfferId = offer_add([P1, P2], 4),
+	HostUrl = ?config(host_url, Config),
+	Accept = {"accept", "application/json"},
+	Request = {HostUrl ++ "/catalogManagement/v2/productOffering/" ++ OfferId,
+			[Accept, auth_header()]},
+	{ok, Result} = httpc:request(get, Request, [], []),
+	{{"HTTP/1.1", 200, _OK}, Headers, Body} = Result,
+	{_, "application/json"} = lists:keyfind("content-type", 1, Headers),
+	{_, _Etag} = lists:keyfind("etag", 1, Headers),
+	ContentLength = integer_to_list(length(Body)),
+	{_, ContentLength} = lists:keyfind("content-length", 1, Headers),
+	{_, URI} = lists:keyfind("location", 1, Headers),
+	{"/catalogManagement/v2/productOffering/" ++ OfferId, _} = httpd_util:split_path(URI),
+	{struct, Object} = mochijson:decode(Body),
+	{_, OfferId} = lists:keyfind("id", 1, Object),
+	{_, "/catalogManagement/v2/productOffering/" ++ OfferId} = lists:keyfind("href", 1, Object),
+	{_, {struct, ProductSpec}} = lists:keyfind("productSpecification", 1, Object),
+	{_, {array, ProductOfferingPrice}} = lists:keyfind("productOfferingPrice", 1, Object),
+	{_, "4"} = lists:keyfind("id", 1, ProductSpec),
+	{_, "/catalogManagement/v2/productSpecification/4"} = lists:keyfind("href", 1, ProductSpec),
+	{_, _} = lists:keyfind("name", 1, ProductSpec),
+	F = fun({struct, Price}) ->
+			case lists:keyfind("name", 1, Price) of
+				{_, P} when P1#price.name == P ->
+					{_, "recurring"} = lists:keyfind("priceType", 1, Price),
+					{_, "monthly"} = lists:keyfind("recurringChargePeriod", 1, Price),
+					{_, {struct, PObj}} = lists:keyfind("price", 1, Price),
+					{_, TaxExAmount} = lists:keyfind("taxIncludedAmount", 1, PObj),
+					true = (P1#price.amount == ocs_rest:decimal(TaxExAmount));
+				{_, P} when P2#price.name == P ->
+					{_, "usage"} = lists:keyfind("priceType", 1, Price),
+					{_, {struct, PObj}} = lists:keyfind("price", 1, Price),
+					{_, TaxExAmount} = lists:keyfind("taxIncludedAmount", 1, PObj),
+					true = (P2#price.amount == ocs_rest:decimal(TaxExAmount)),
+					{_, UOM} = lists:keyfind("unitOfMeasure", 1, Price),
+					(integer_to_list(P2#price.size) ++ "b" == UOM);
+				_ ->
+					false
+			end
+	end,
+	true = lists:all(F, ProductOfferingPrice).
 
 add_service_inventory() ->
 	[{userdata, [{doc,"Add service inventory"}]}].
@@ -2571,4 +2622,44 @@ basic_auth() ->
 auth_header() ->
 	{"authorization", basic_auth()}.
 
+%% @hidden
+price(Type, Units, Size, Amount) ->
+	#price{name = ocs:generate_identity(),
+			type = Type, units = Units,
+			size = Size, amount = Amount}.
+
+%% @hidden
+b(Units, RA) ->
+	#bucket{units = Units, remain_amount = RA,
+		start_date = erlang:system_time(?MILLISECOND),
+		termination_date = erlang:system_time(?MILLISECOND) + 2592000000}.
+
+%% @hidden
+offer_add(Prices, Spec) when is_integer(Spec) ->
+	offer_add(Prices, integer_to_list(Spec));
+offer_add(Prices, Spec) ->
+	Offer = #offer{name = ocs:generate_identity(),
+	price = Prices, specification = Spec},
+	{ok, #offer{name = OfferId}} = ocs:add_offer(Offer),
+	OfferId.
+
+%% @hidden
+product_add(OfferId) ->
+	product_add(OfferId, []).
+product_add(OfferId, Chars) ->
+	{ok, #product{id = ProdRef}} = ocs:add_product(OfferId, Chars),
+	ProdRef.
+
+%% @hidden
+service_add(ProdRef) ->
+	ServiceId = ocs:generate_identity(),
+	{ok, _Service1} =
+			ocs:add_service(ServiceId, ocs:generate_password(),
+			ProdRef, []),
+	ServiceId.
+
+%% @hidden
+bucket_add(ProdRef, Bucket) ->
+	{ok, _, #bucket{id = BId}} = ocs:add_bucket(ProdRef, Bucket),
+	BId.
 
