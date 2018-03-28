@@ -140,7 +140,7 @@ all() ->
 	add_offer, get_offer, delete_offer,
 	add_service_inventory, add_service_inventory_without_password,
 	get_service_inventory, get_subscriber_not_found, get_all_service_inventories,
-	get_subscriber_range, delete_service,
+	get_service_not_found, get_subscriber_range, delete_service,
 	get_usagespecs, get_usagespecs_query, get_usagespec,
 	get_auth_usage, get_auth_usage_id, get_auth_usage_filter,
 	get_auth_usage_range, get_acct_usage, get_acct_usage_id,
@@ -151,7 +151,7 @@ all() ->
 	update_subscriber_password_json_patch,
 	update_subscriber_attributes_json_patch,
 	get_product, update_product, add_product_sms].
-%
+
 %%%---------------------------------------------------------------------
 %%  Test cases
 %%---------------------------------------------------------------------
@@ -902,7 +902,6 @@ add_product_sms(Config) ->
 	{{"HTTP/1.1", 201, _Created}, Headers, _} = Result,
 	{_, _Href} = lists:keyfind("location", 1, Headers).
 
-
 add_service_inventory() ->
 	[{userdata, [{doc,"Add service inventory"}]}].
 
@@ -1045,6 +1044,17 @@ get_service_inventory(Config) ->
 				false
 	end,
 	true = lists:all(F, Chars).
+
+get_service_not_found() ->
+	[{userdata, [{doc, "Get service notfound for given service id"}]}].
+
+get_service_not_found(Config) ->
+	HostUrl = ?config(host_url, Config),
+	Accept = {"accept", "application/json"},
+	ID = ocs:generate_identity(),
+	Request = {HostUrl ++ "/serviceInventoryManagement/v2/service/" ++ ID, [Accept, auth_header()]},
+	{ok, Result} = httpc:request(get, Request, [], []),
+	{{"HTTP/1.1", 404, _NotFound}, _Headers, _Body} = Result.
 
 get_subscriber_not_found() ->
 	[{userdata, [{doc, "get subscriber notfound in rest interface"}]}].
