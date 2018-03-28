@@ -139,7 +139,7 @@ all() ->
 	update_client_attributes_json_patch,
 	add_offer, get_offer, delete_offer,
 	add_service_inventory, add_service_inventory_without_password,
-	get_service_inventory, get_subscriber_not_found, get_all_service_inventories,
+	get_service_inventory, get_all_service_inventories,
 	get_service_not_found, get_subscriber_range, delete_service,
 	get_usagespecs, get_usagespecs_query, get_usagespec,
 	get_auth_usage, get_auth_usage_id, get_auth_usage_filter,
@@ -1053,17 +1053,6 @@ get_service_not_found(Config) ->
 	Accept = {"accept", "application/json"},
 	ID = ocs:generate_identity(),
 	Request = {HostUrl ++ "/serviceInventoryManagement/v2/service/" ++ ID, [Accept, auth_header()]},
-	{ok, Result} = httpc:request(get, Request, [], []),
-	{{"HTTP/1.1", 404, _NotFound}, _Headers, _Body} = Result.
-
-get_subscriber_not_found() ->
-	[{userdata, [{doc, "get subscriber notfound in rest interface"}]}].
-
-get_subscriber_not_found(Config) ->
-	HostUrl = ?config(host_url, Config),
-	Accept = {"accept", "application/json"},
-	ID = "beefbeefcafe",
-	Request = {HostUrl ++ "/ocs/v1/subscriber/" ++ ID, [Accept, auth_header()]},
 	{ok, Result} = httpc:request(get, Request, [], []),
 	{{"HTTP/1.1", 404, _NotFound}, _Headers, _Body} = Result.
 
