@@ -130,8 +130,6 @@ sequences() ->
 %%
 all() ->
 	[authenticate_user_request, unauthenticate_user_request,
-	authenticate_subscriber_request, unauthenticate_subscriber_request,
-	authenticate_client_request, unauthenticate_client_request,
 	add_service_inventory, add_service_inventory_without_password,
 	get_service_inventory, get_subscriber_not_found, get_all_service_inventories,
 	get_subscriber_range, delete_service,
@@ -177,56 +175,6 @@ unauthenticate_user_request(Config) ->
 	AuthKey = "Basic " ++ Encodekey,
 	Authentication = {"authorization", AuthKey},
 	Request = {HostUrl ++ "/usageManagement/v1/usage", [Accept, Authentication]},
-	{ok, Result} = httpc:request(get, Request, [], []),
-	{{"HTTP/1.1", 401, _}, _, _} = Result.
-
-authenticate_subscriber_request() ->
-	[{userdata, [{doc, "Authorized subscriber request to the server"}]}].
-
-authenticate_subscriber_request(Config) ->
-	HostUrl = ?config(host_url, Config),
-	Accept = {"accept", "application/json"},
-	Authentication = auth_header(),
-	Request = {HostUrl ++ "/ocs/v1/subscriber", [Accept, Authentication]},
-	{ok, _Result} = httpc:request(get, Request, [], []).
-
-unauthenticate_subscriber_request() ->
-	[{userdata, [{doc, "Unauthorized subscriber request to the server"}]}].
-
-unauthenticate_subscriber_request(Config) ->
-	HostUrl = ?config(host_url, Config),
-	Accept = {"accept", "application/json"},
-	RestUser = ocs:generate_identity(),
-	RestPass = ocs:generate_password(),
-	Encodekey = base64:encode_to_string(string:concat(RestUser ++ ":", RestPass)),
-	AuthKey = "Basic " ++ Encodekey,
-	Authentication = {"authorization", AuthKey},
-	Request = {HostUrl ++ "/ocs/v1/subscriber", [Accept, Authentication]},
-	{ok, Result} = httpc:request(get, Request, [], []),
-	{{"HTTP/1.1", 401, _}, _, _} = Result.
-
-authenticate_client_request() ->
-	[{userdata, [{doc, "Authorized client request to the server"}]}].
-
-authenticate_client_request(Config) ->
-	HostUrl = ?config(host_url, Config),
-	Accept = {"accept", "application/json"},
-	Authentication = auth_header(),
-	Request = {HostUrl ++ "/ocs/v1/client", [Accept, Authentication]},
-	{ok, _Result} = httpc:request(get, Request, [], []).
-
-unauthenticate_client_request() ->
-	[{userdata, [{doc, "Unauthorized subscriber request to the server"}]}].
-
-unauthenticate_client_request(Config) ->
-	HostUrl = ?config(host_url, Config),
-	Accept = {"accept", "application/json"},
-	RestUser = ocs:generate_identity(),
-	RestPass = ocs:generate_password(),
-	Encodekey = base64:encode_to_string(string:concat(RestUser ++ ":", RestPass)),
-	AuthKey = "Basic " ++ Encodekey,
-	Authentication = {"authorization", AuthKey},
-	Request = {HostUrl ++ "/ocs/v1/client", [Accept, Authentication]},
 	{ok, Result} = httpc:request(get, Request, [], []),
 	{{"HTTP/1.1", 401, _}, _, _} = Result.
 
