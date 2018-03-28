@@ -32,8 +32,10 @@
 <link rel="import" href="sig-client-list.html">
 <link rel="import" href="sig-client-add.html">
 <link rel="import" href="sig-client-update.html">
-<link rel="import" href="sig-ipdr-log-files.html">
-<link rel="import" href="sig-ipdr-list.html">
+<link rel="import" href="sig-ipdr-log-files-wlan.html">
+<link rel="import" href="sig-ipdr-log-files-voip.html">
+<link rel="import" href="sig-ipdr-list-wlan.html">
+<link rel="import" href="sig-ipdr-list-voip.html">
 <link rel="import" href="sig-access-list.html">
 <link rel="import" href="sig-accounting-list.html">
 <link rel="import" href="sig-http-list.html">
@@ -112,6 +114,9 @@
 			.sublist paper-icon-item {
 				padding-left: 30px;
 			}
+			.sublistipdr paper-icon-item {
+				padding-left: 60px;
+			}
 		</style>
 		<app-header-layout fullbleed>
 			<app-header>
@@ -154,7 +159,8 @@
 				<sig-user-list></sig-user-list>
 				<sig-access-list id="accessList"></sig-access-list>
 				<sig-accounting-list id="accountingList"></sig-accounting-list>
-				<sig-ipdr-list id="ipdrLogList"></sig-ipdr-list>
+				<sig-ipdr-list-wlan id="ipdrLogListWlan"></sig-ipdr-list-wlan>
+				<sig-ipdr-list-voip id="ipdrLogListVoip"></sig-ipdr-list-voip>
 				<sig-http-list></sig-http-list>
 				<sig-prefix-list id="prefixList" table="{{table}}"></sig-prefix-list>
 				<sig-balance-list></sig-balance-list>
@@ -259,15 +265,32 @@
 												Accounting
 											</i18n-msg>
 									</paper-icon-item>
+									<paper-submenu>
 									<paper-icon-item
 											id="pageIPDR"
-											onclick="drawer.toggle()"
-											class="menuitem">
+											class="menu-trigger menuitem">
 										<iron-icon icon ="device:data-usage" item-icon></iron-icon>
 											<i18n-msg msgid="ipdr">
 												IPDR
 											</i18n-msg>
 									</paper-icon-item>
+									<paper-menu id="ipdrMenu" class="menu-content sublistipdr">
+										<paper-icon-item
+												id="pageIPDRWlan"
+												onclick="drawer.toggle()"
+												class="menuitem">
+											<iron-icon icon ="device:data-usage" item-icon></iron-icon>
+												WLAN
+										</paper-icon-item>
+										<paper-icon-item
+												id="pageIPDRVoip"
+												onclick="drawer.toggle()"
+												class="menuitem">
+											<iron-icon icon ="device:data-usage" item-icon></iron-icon>
+												VoIP
+										</paper-icon-item>
+									</paper-menu>
+									</paper-submenu>
 									<paper-icon-item
 											id="pageHTTP"
 											onclick="drawer.toggle()"
@@ -354,7 +377,8 @@
 		<sig-client-update></sig-client-update>
 		<sig-user-add></sig-user-add>
 		<sig-product-update id="updateProduct"></sig-product-update>
-		<sig-ipdr-log-files></sig-ipdr-log-files>
+		<sig-ipdr-log-files-wlan></sig-ipdr-log-files-wlan>
+		<sig-ipdr-log-files-voip></sig-ipdr-log-files-voip>
 		<sig-prefix-table-add></sig-prefix-table-add>
 		<sig-prefix-add></sig-prefix-add>
 		<sig-prefix-update></sig-prefix-update>
@@ -429,19 +453,24 @@
 					case 'pageAccounting':
 						this.$.loadPage.selected = 5;
 						break;
-					case 'pageIPDR':
+					case 'pageIPDRWlan':
 						this.$.loadPage.selected = null;
 						this.$.loadPage.selected = 6;
 						this.$.logMenu.selected = null;
 						break;
-					case 'pageHTTP':
+					case 'pageIPDRVoip':
+						this.$.loadPage.selected = null;
 						this.$.loadPage.selected = 7;
+						this.$.logMenu.selected = null;
 						break;
-					case 'pagePrefix':
+					case 'pageHTTP':
 						this.$.loadPage.selected = 8;
 						break;
-					case 'pageBalance':
+					case 'pagePrefix':
 						this.$.loadPage.selected = 9;
+						break;
+					case 'pageBalance':
+						this.$.loadPage.selected = 10;
 						break;
 				}
 			},
@@ -474,9 +503,12 @@
 						this.$.ipdrLogList.refreshIpdr();
 						break;
 					case 7:
-						document.getElementById('getHttp').generateRequest();
+						this.$.ipdrLogList.refreshIPDRVoip();
 						break;
 					case 8:
+						document.getElementById('getHttp').generateRequest();
+						break;
+					case 9:
 						document.getElementById('prefixGrid').clearCache();
 						break;
 				}

@@ -879,6 +879,30 @@
     "description": "Price",
     "message": "Price"
   },
+	"callCompletion": {
+    "description": "CallCompletionCode",
+    "message": "call Completion Code"
+  },
+	"hostName": {
+    "description": "HostName",
+    "message": "Host Name"
+  },
+	"subscriberId": {
+    "description": "SubscriberId",
+    "message": "Subscriber Id"
+  },
+	"uniqueCallID": {
+    "description": "UniqueCallID",
+    "message": "UniqueCall Id"
+  },
+	"disconnectReason": {
+    "description": "DisconnectReason",
+    "message": "Disconnect Reason"
+  },
+	"destinationID": {
+    "description": "DestinationID",
+    "message": "Destination Id"
+  },
    "productDeleted": {
     "description": "Success Toast Message",
     "message": "Product deleted"

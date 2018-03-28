@@ -895,6 +895,30 @@
     "description": "Price",
     "message": "Precio"
   },
+	"callCompletion": {
+    "description": "CallCompletionCode",
+    "message": "Código de finalización de llamada"
+  },
+	"hostName": {
+    "description": "HostName",
+    "message": "Nombre de host"
+  },
+	"subscriberId": {
+    "description": "SubscriberId",
+    "message": "Identificación de suscriptor"
+  },
+	"uniqueCallID": {
+    "description": "UniqueCallID",
+    "message": "ID de llamada única"
+  },
+	"disconnectReason": {
+    "description": "DisconnectReason",
+    "message": "Desconectar motivo"
+  },
+	"destinationID": {
+    "description": "DestinationID",
+    "message": "ID de destino"
+  },
    "productDeleted": {
     "description": "Success Toast Message",
     "message": "Producto eliminado"

@@ -66,7 +66,7 @@ content_types_provided() ->
 %% @equiv get_usages(undefined, Query, Headers)
 %% @hidden
 get_usages(Query, Headers) ->
-	get_usages(Query, Headers).
+	get_usages(voip, Query, Headers).
 
 -spec get_usages(Type, Query, Headers) -> Result
 	when
@@ -2702,7 +2702,7 @@ query_start1(Type, false, IpdrFile, Query,
 			MFA = [ocs_log, ipdr_query, Args],
 			case supervisor:start_child(ocs_rest_pagination_sup, [MFA]) of
 				{ok, PageServer, Etag} ->
-					query_page1(PageServer, Etag, fun usage_ipdr/2, Filters, DateStart, DateEnd);
+					query_page(PageServer, Etag, Query, Filters, RangeStart, RangeEnd);
 				{error, _Reason} ->
 					{error, 500}
 			end
@@ -2749,7 +2749,7 @@ query_page(PageServer, Etag, Query, Filters, Start, End) ->
 		{_, {_, _}, _} ->
 			{error, 400};
 		false ->
-			{error, 400}
+			query_page1(PageServer, Etag, fun usage_ipdr/2, Filters, Start, End)
 	end.
 %% @hidden
 query_page1(PageServer, Etag, Decoder, Filters, Start, End) ->
@@ -2764,7 +2764,6 @@ query_page1(PageServer, Etag, Decoder, Filters, Start, End) ->
 					Headers = [{content_type, "application/json"},
 							{etag, Etag}, {accept_ranges, "items"},
 							{content_range, ContentRange}],
-erlang:display({?MODULE, ?LINE, Etag}),
 					{ok, Headers, Body}
 			catch
 				throw:{error, Status} ->
