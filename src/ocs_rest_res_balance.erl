@@ -210,13 +210,13 @@ bucket([{"id", ID} | T], Bucket) ->
 	bucket(T, Bucket#bucket{id = ID});
 bucket([{"name", Name} | T], Bucket) ->
 	bucket(T, Bucket#bucket{name = Name});
-bucket([{"amount", {struct, L}} | T], Bucket) ->
-	#quantity{amount = Amount, units = Units} = quantity(L),
-	bucket(T, Bucket#bucket{units = units(Units), remain_amount = Amount});
-bucket([{"remainedAmount", {struct, L}} | T], Bucket) ->
-	#quantity{amount = Amount, units = Units} = quantity(L),
+bucket([{"amount", {struct, _} = Q} | T], Bucket) ->
+	#quantity{amount = Amount, units = Units} = quantity(Q),
 	bucket(T, Bucket#bucket{units = Units, remain_amount = Amount});
-bucket([{"product", {struct, _}} = P | T], Bucket) ->
+bucket([{"remainedAmount", {struct, _} = Q} | T], Bucket) ->
+	#quantity{amount = Amount, units = Units} = quantity(Q),
+	bucket(T, Bucket#bucket{units = Units, remain_amount = Amount});
+bucket([{"product", {struct, P}} | T], Bucket) ->
 	{_, ProdRef} = lists:keyfind("id", 1, P),
 	bucket(T, Bucket#bucket{product = [ProdRef]});
 bucket([{"validFor", {struct, L}} | T], Bucket) ->
