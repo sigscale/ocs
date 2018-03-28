@@ -140,7 +140,7 @@ all() ->
 	add_offer, get_offer, delete_offer,
 	add_service_inventory, add_service_inventory_without_password,
 	get_service_inventory, get_all_service_inventories,
-	get_service_not_found, get_subscriber_range, delete_service,
+	get_service_not_found, get_service_range, delete_service,
 	get_usagespecs, get_usagespecs_query, get_usagespec,
 	get_auth_usage, get_auth_usage_id, get_auth_usage_filter,
 	get_auth_usage_range, get_acct_usage, get_acct_usage_id,
@@ -152,7 +152,7 @@ all() ->
 	update_subscriber_attributes_json_patch,
 	get_product, update_product, add_product_sms].
 
-%%%---------------------------------------------------------------------
+%%%%---------------------------------------------------------------------
 %%  Test cases
 %%---------------------------------------------------------------------
 authenticate_user_request() ->
@@ -1171,18 +1171,20 @@ get_all_service_inventories(Config) ->
 	end,
 	true = lists:all(F, Objects).
 
-get_subscriber_range() ->
-	[{userdata, [{doc,"Get range of items in the subscriber collection"}]}].
+get_service_range() ->
+	[{userdata, [{doc,"Get range of items in the service collection"}]}].
 
-get_subscriber_range(Config) ->
+get_service_range(Config) ->
 	{ok, PageSize} = application:get_env(ocs, rest_page_size),
-	{ok, ProductName} = ocs_test_lib:add_offer(),
+	P1 = price(usage, octets, rand:uniform(1000000), rand:uniform(100)),
+	OfferId = offer_add([P1], 4),
+	ProdRef = product_add(OfferId),
 	Fadd = fun(_F, 0) ->
 				ok;
 			(F, N) ->
 				Identity = ocs:generate_identity(),
 				Password = ocs:generate_password(),
-				{ok, _} = ocs:add_service(Identity, Password, ProductName),
+				{ok, _} = ocs:add_service(Identity, Password, ProdRef, []),
 				F(F, N - 1)
 	end,
 	NumAdded = (PageSize * 2) + (PageSize div 2) + 17,
@@ -1196,7 +1198,7 @@ get_subscriber_range(Config) ->
 	HostUrl = ?config(host_url, Config),
 	Accept = {"accept", "application/json"},
 	RequestHeaders1 = [Accept, auth_header()],
-	Request1 = {HostUrl ++ "/ocs/v1/subscriber", RequestHeaders1},
+	Request1 = {HostUrl ++ "/serviceInventoryManagement/v2/service/", RequestHeaders1},
 	{ok, Result1} = httpc:request(get, Request1, [], []),
 	{{"HTTP/1.1", 200, _OK}, ResponseHeaders1, Body1} = Result1,
 	{_, Etag} = lists:keyfind("etag", 1, ResponseHeaders1),
@@ -1207,14 +1209,14 @@ get_subscriber_range(Config) ->
 	["items", "1", RangeEndS1, "*"] = string:tokens(Range1, " -/"),
 	RequestHeaders2 = RequestHeaders1 ++ [{"if-match", Etag}],
 	PageSize = list_to_integer(RangeEndS1),
-	{array, Subscribers1} = mochijson:decode(Body1),
-	PageSize = length(Subscribers1),
-	Fget = fun(F, RangeStart2, RangeEnd2) ->
+	{array, Service1} = mochijson:decode(Body1),
+	PageSize = length(Service1),
+	Fget = fun Fget(RangeStart2, RangeEnd2) ->
 				RangeHeader = [{"range",
 						"items " ++ integer_to_list(RangeStart2)
 						++ "-" ++ integer_to_list(RangeEnd2)}],
 				RequestHeaders3 = RequestHeaders2 ++ RangeHeader,
-				Request2 = {HostUrl ++ "/ocs/v1/subscriber", RequestHeaders3},
+				Request2 = {HostUrl ++ "/serviceInventoryManagement/v2/service/", RequestHeaders3},
 				{ok, Result2} = httpc:request(get, Request2, [], []),
 				{{"HTTP/1.1", 200, _OK}, ResponseHeaders2, Body2} = Result2,
 				{_, Etag} = lists:keyfind("etag", 1, ResponseHeaders2),
@@ -1227,17 +1229,17 @@ get_subscriber_range(Config) ->
 					"*" ->
 						RangeEnd2 = list_to_integer(RangeEndS),
 						RangeSize = (RangeEnd2 - (RangeStart2 - 1)),
-						{array, Subscribers2} = mochijson:decode(Body2),
-						RangeSize = length(Subscribers2),
+						{array, Service2} = mochijson:decode(Body2),
+						RangeSize = length(Service2),
 						NewRangeStart = RangeEnd2 + 1,
 						NewRangeEnd = NewRangeStart + (RangeSize - 1),
-						F(F, NewRangeStart, NewRangeEnd);
+						Fget(NewRangeStart, NewRangeEnd);
 					EndS when RangeEndS == EndS ->
 						list_to_integer(EndS)
 				end
 	end,
 	CollectionSize = length(ocs:get_services()),
-	CollectionSize = Fget(Fget, PageSize + 1, PageSize + RangeSize).
+	CollectionSize = Fget(PageSize + 1, PageSize + RangeSize).
 
 delete_service() ->
 	[{userdata, [{doc,"Delete subscriber in rest interface"}]}].
