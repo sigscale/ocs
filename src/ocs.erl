@@ -29,7 +29,7 @@
 		add_subscriber/6, add_subscriber/8,
 		find_subscriber/1, delete_subscriber/1, update_password/2,
 		update_attributes/2, update_attributes/5, get_subscribers/0,
-		query_subscriber/1]).
+		query_subscriber/9]).
 -export([add_user/3, list_users/0, get_user/1, delete_user/1,
 		query_users/3, update_user/3]).
 -export([add_product/1, find_product/1, get_products/0, delete_product/1,
@@ -586,13 +586,23 @@ get_subscribers()->
 			Result
 	end.
 
--spec query_subscriber(Cont) -> Result
+-spec query_subscriber(Cont, Id, Password, Product, Cents,
+		TotalBalance, Seconds, Enabled, MultiSession) -> Result
 	when
 		Cont :: start | eof | any(),
+		Id :: undefined | string(),
+		Password :: undefined | string(),
+		Product :: undefined | string(),
+		Cents :: undefined | string(),
+		TotalBalance :: undefined | string(),
+		Seconds :: undefined | string(),
+		Enabled :: undefined | string(),
+		MultiSession :: undefined | string(),
 		Result :: {Cont, [#product{}]} | {error, Reason},
 		Reason :: term().
 %% @doc Query product inventories
-query_subscriber(start) ->
+query_subscriber(start, Id, Password, Product, Cents,
+		TotalBalance, Seconds, Enabled, MultiSession) ->
 	MatchSpec = [{'_', [], ['$_']}],
 	F = fun(F, start, Acc) ->
 				F(F, mnesia:select(subscriber, MatchSpec,
@@ -607,9 +617,78 @@ query_subscriber(start) ->
 	case mnesia:transaction(F, [F, start, []]) of
 		{aborted, Reason} ->
 			{error, Reason};
-		{atomic, Result} ->
-			{eof, Result}
+		{atomic, Subscribers} ->
+			query_subscriber1(Subscribers, Id, Password, Product,
+					Cents, TotalBalance, Seconds, Enabled, MultiSession)
 	end.
+%% @hidden
+query_subscriber1(Subs, undefined, Pwd, Product, Cents, TotalBal, Seconds,
+		Enabled, MultiSession) ->
+	query_subscriber2(Subs, Pwd, Product, Cents, TotalBal, Seconds, Enabled,
+			MultiSession);
+query_subscriber1(Subs, [], Pwd, Product, Cents, TotalBal, Seconds,
+		Enabled, MultiSession) ->
+	query_subscriber2(Subs, Pwd, Product, Cents, TotalBal, Seconds, Enabled,
+			MultiSession);
+query_subscriber1(Subs, Id, Pwd, Product, Cents, TotalBal, Seconds,
+		Enabled, MultiSession) ->
+	IdBin = list_to_binary(Id),
+	F = fun(#subscriber{name = IdBin1}) ->
+				case binary:match(IdBin1, IdBin) of
+					nomatch ->
+						false;
+					{_, _} ->
+						true
+				end
+	end,
+	FilteredSubs = lists:filter(F, Subs),
+	query_subscriber2(FilteredSubs, Pwd, Product, Cents, TotalBal, Seconds,
+			Enabled, MultiSession).
+%% @hidden
+query_subscriber2(Subs, undefined, Product, Cents, TotalBal, Seconds,
+			Enabled, MultiSession) ->
+	query_subscriber3(Subs, Product, Cents, TotalBal, Seconds,
+			Enabled, MultiSession);
+query_subscriber2(Subs, [], Product, Cents, TotalBal, Seconds,
+			Enabled, MultiSession) ->
+	query_subscriber3(Subs, Product, Cents, TotalBal, Seconds,
+			Enabled, MultiSession);
+query_subscriber2(Subs, Pwd, Product, Cents, TotalBal, Seconds,
+			Enabled, MultiSession) ->
+	PwdBin = list_to_binary(Pwd),
+	F = fun(#subscriber{password = PwdBin1}) ->
+				case binary:match(PwdBin1, PwdBin) of
+					nomatch ->
+						false;
+					{_, _} ->
+						true
+				end
+	end,
+	FilteredSubs = lists:filter(F, Subs),
+	query_subscriber3(FilteredSubs, Product, Cents, TotalBal, Seconds,
+			Enabled, MultiSession).
+%% @hidden
+query_subscriber3(Subs, undefined, Cents, TotalBal, Seconds, Enabled, MultiSession) ->
+	query_subscriber4(Subs, Cents, TotalBal, Seconds, Enabled, MultiSession);
+query_subscriber3(Subs, [], Cents, TotalBal, Seconds, Enabled, MultiSession) ->
+	query_subscriber4(Subs, Cents, TotalBal, Seconds, Enabled, MultiSession);
+query_subscriber3(Subs, Product, Cents, TotalBal, Seconds, Enabled, MultiSession) ->
+	ProdBin = list_to_binary(Product),
+	F = fun(#subscriber{product = #product_instance{product = undefined}}) ->
+				false;
+			(#subscriber{product = #product_instance{product = Product1}}) ->
+				case binary:match(list_to_binary(Product1), ProdBin) of
+					nomatch ->
+						false;
+					{_, _} ->
+						true
+				end
+	end,
+	FilteredSubs = lists:filter(F, Subs),
+	query_subscriber4(FilteredSubs, Cents, TotalBal, Seconds, Enabled, MultiSession).
+%% @hidden
+query_subscriber4(Subs, _Cents, _TotalBal, _Seconds, _Enabled, MultiSession) ->
+	{eof, Subs}.
 
 -spec delete_subscriber(Identity) -> ok
 	when

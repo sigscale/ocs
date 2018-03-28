@@ -696,8 +696,17 @@ units(seconds) -> "seconds".
 
 %% @hidden
 query_start(Query, Filters, RangeStart, RangeEnd) ->
+	Id = proplists:get_value("id", Query),
+	Password = proplists:get_value("password", Query),
+	Product = proplists:get_value("product", Query),
+	Cents = proplists:get_value("cents", Query),
+	TotalBalance = proplists:get_value("totalBalance", Query),
+	Seconds = proplists:get_value("seconds", Query),
+	Enabled = proplists:get_value("enabled", Query),
+	MultiSession = proplists:get_value("multisession", Query),
 	case supervisor:start_child(ocs_rest_pagination_sup,
-				[[ocs, query_subscriber, []]]) of
+				[[ocs, query_subscriber, [Id, Password, Product, Cents,
+						TotalBalance, Seconds, Enabled, MultiSession]]]) of
 		{ok, PageServer, Etag} ->
 			query_page(PageServer, Etag, Query, Filters, RangeStart, RangeEnd);
 		{error, _Reason} ->
