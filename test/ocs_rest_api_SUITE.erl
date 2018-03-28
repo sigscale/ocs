@@ -137,7 +137,7 @@ all() ->
 	get_client_range, get_clients_filter, delete_client,
 	update_client_password_json_patch,
 	update_client_attributes_json_patch,
-	add_offer, get_offer,
+	add_offer, get_offer, delete_offer,
 	add_service_inventory, add_service_inventory_without_password,
 	get_service_inventory, get_subscriber_not_found, get_all_service_inventories,
 	get_subscriber_range, delete_service,
@@ -671,6 +671,21 @@ get_offer(Config) ->
 			end
 	end,
 	true = lists:all(F, ProductOfferingPrice).
+
+delete_offer() ->
+	[{userdata, [{doc,"Delete offer for given Offer Id"}]}].
+
+delete_offer(Config) ->
+	P1 = price(usage, octets, rand:uniform(1000), rand:uniform(100)),
+	OfferId = offer_add([P1], 4),
+	{ok, #offer{}} = ocs:find_offer(OfferId),
+	HostUrl = ?config(host_url, Config),
+	URI = "/catalogManagement/v2/productOffering/" ++ OfferId,
+	Request = {HostUrl ++ URI, [auth_header()]},
+	{ok, Result} = httpc:request(delete, Request, [], []),
+	{{"HTTP/1.1", 204, _NoContent}, Headers, []} = Result,
+	{_, "0"} = lists:keyfind("content-length", 1, Headers),
+	{error, not_found} = ocs:find_offer(OfferId).
 
 add_service_inventory() ->
 	[{userdata, [{doc,"Add service inventory"}]}].
