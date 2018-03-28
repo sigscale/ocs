@@ -2172,7 +2172,7 @@ auth_query3([], _ReqAttrsMatch, RespAttrsMatch, Acc) ->
 	auth_query4(lists:reverse(Acc), RespAttrsMatch, []).
 %% @hidden
 auth_query4(Events, '_', []) ->
-	lists:reverse(Events);
+	Events;
 auth_query4([{_, _, _, _, _, _, _, _, RespAttr} = H | T],
 		RespAttrsMatch, Acc) ->
 	case auth_query5(RespAttr, RespAttrsMatch) of
