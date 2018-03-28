@@ -26,7 +26,7 @@
 		update_client/2, update_client/3, get_clients/0, delete_client/1,
 		query_clients/6]).
 -export([add_service/3, add_service/4, add_service/6,
-		add_product/2, add_product/4]).
+		add_product/2, add_product/4, delete_product/1]).
 -export([add_subscriber/3, add_subscriber/4, add_subscriber/5,
 		add_subscriber/6, add_subscriber/8, find_service/1,
 		delete_service/1, get_services/0, query_service/1,
@@ -419,6 +419,25 @@ find_product(ProductRef) when is_list(ProductRef) ->
 			{ok, Product};
 		{aborted, Reason} ->
 			{error, Reason}
+	end.
+
+-spec delete_product(ProductRef) -> Result
+	when
+		ProductRef :: string(),
+		Result :: ok | {error, Reason},
+		Reason :: term().
+%% @doc Delete an entry from product table
+%% @todo If service subscribe to given product
+%% then ignore the deleteing record form the table
+delete_product(ProductRef) when is_list(ProductRef) ->
+	F = fun() ->
+		mnesia:delete(product, ProductRef, write)
+	end,
+	case mnesia:transaction(F) of
+		{atomic, _} ->
+			ok;
+		{aborted, Reason} ->
+			exit(Reason)
 	end.
 
 -spec add_service(Identity, Password, ProductRef) -> Result
