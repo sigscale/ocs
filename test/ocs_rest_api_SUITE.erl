@@ -1247,37 +1247,18 @@ delete_service() ->
 	[{userdata, [{doc,"Delete subscriber in rest interface"}]}].
 
 delete_service(Config) ->
+	P1 = price(usage, octets, rand:uniform(10000), rand:uniform(100)),
+	OfferId = offer_add([P1], 4),
+	ProdRef = product_add(OfferId),
+	ServiceId = service_add(ProdRef),
+	{ok, #service{}} = ocs:find_service(ServiceId),
 	ContentType = "application/json",
-	ID = "eacfd73ae11d",
-	Password = "ksc8c333npqc",
-	ProdID = ?config(product_id, Config),
-	AsendDataRate = {struct, [{"name", "ascendDataRate"}, {"value", 1000000}]},
-	AsendXmitRate = {struct, [{"name", "ascendXmitRate"}, {"value", 64000}]},
-	SessionTimeout = {struct, [{"name", "sessionTimeout"}, {"value", 10864}]},
-	Interval = {struct, [{"name", "acctInterimInterval"}, {"value", 300}]},
-	Class = {struct, [{"name", "class"}, {"value", "skiorgs"}]},
-	SortedAttributes = lists:sort([AsendDataRate, AsendXmitRate, SessionTimeout, Interval, Class]),
-	AttributeArray = {array, SortedAttributes},
-	Balance = 100,
-	Amount = {"remainAmount", integer_to_list(Balance)},
-	Units = {"units", "cents"},
-	Buckets = {array, [{struct, [Amount, Units]}]},
-	Enable = true,
-	JSON1 = {struct, [{"id", ID}, {"password", Password}, {"product", ProdID},
-	{"attributes", AttributeArray}, {"buckets", Buckets}, {"enabled", Enable}]},
-	RequestBody = lists:flatten(mochijson:encode(JSON1)),
+	URI = "/serviceInventoryManagement/v2/service/" ++ ServiceId,
 	HostUrl = ?config(host_url, Config),
-	Accept = {"accept", "application/json"},
-	Request1 = {HostUrl ++ "/ocs/v1/subscriber", [Accept, auth_header()], ContentType, RequestBody},
-	{ok, Result} = httpc:request(post, Request1, [], []),
-	{{"HTTP/1.1", 201, _Created}, Headers, _} = Result,
-	{_, URI1} = lists:keyfind("location", 1, Headers),
-	{URI2, _} = httpd_util:split_path(URI1),
-	Request2 = {HostUrl ++ URI2, [auth_header()]},
-	{ok, Result1} = httpc:request(delete, Request2, [], []),
-	{{"HTTP/1.1", 204, _NoContent}, Headers1, []} = Result1,
-	{_, "0"} = lists:keyfind("content-length", 1, Headers1).
-
+	Request = {HostUrl ++ URI, [auth_header()]},
+	{ok, Result} = httpc:request(delete, Request, [], []),
+	{{"HTTP/1.1", 204, _NoContent}, Headers, []} = Result,
+	{_, "0"} = lists:keyfind("content-length", 1, Headers).
 
 get_usagespecs() ->
 	[{userdata, [{doc,"Get usageSpecification collection"}]}].
