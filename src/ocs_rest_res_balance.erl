@@ -138,7 +138,7 @@ get_balance(ProdRef) ->
 					[{"amount", ocs_rest:decimal(TotalAmount)}]}},
 			Id = {"id", ProdRef},
 			Href = {"href", ?balancePath ++ ProdRef},
-			Product = {"product", {struct, [Id, Href]}},
+			Product = {"product", {array, [{struct, [Id, Href]}]}},
 			Json = {struct, [Id, Href, Total, Buckets4, Product]},
 			Body  = mochijson:encode(Json),
 			Headers = [{content_type, "application/json"}],
