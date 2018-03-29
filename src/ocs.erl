@@ -515,9 +515,12 @@ add_service(undefined, Password, ProductRef, Attributes, EnabledStatus, MultiSes
 							(F, Identity, I) ->
 								case mnesia:read(service, Identity, write) of
 									[] ->
-										S2 = S1#service{name = Identity},
+										TS = erlang:system_time(?MILLISECOND),
+										N = erlang:unique_integer([positive]),
+										LM = {TS, N},
+										S2 = S1#service{name = Identity, last_modified = LM},
 										ok = mnesia:write(S2),
-										P2 = P1#product{service = [Identity | ServiceRefs]},
+										P2 = P1#product{service = [Identity | ServiceRefs], last_modified = LM},
 										ok = mnesia:write(P2),
 										S2;
 									[_] ->
@@ -543,7 +546,9 @@ add_service(Identity, Password, ProductRef, Attributes, EnabledStatus, MultiSess
 					[#product{service = ServiceRefs} = P1] ->
 						Now = erlang:system_time(?MILLISECOND),
 						N = erlang:unique_integer([positive]),
-						P2 = P1#product{service = [Identity | ServiceRefs]},
+						LM = {Now, N},
+						P2 = P1#product{service = [Identity | ServiceRefs],
+								last_modified = LM},
 						ok = mnesia:write(P2),
 						S1 = #service{name = Identity,
 								password = Password,
@@ -551,7 +556,7 @@ add_service(Identity, Password, ProductRef, Attributes, EnabledStatus, MultiSess
 								attributes = Attributes,
 								enabled = EnabledStatus,
 								multisession = MultiSession,
-								last_modified = {Now, N}},
+								last_modified = LM},
 						ok = mnesia:write(S1),
 						S1;
 					[] ->
