@@ -1,3 +1,12 @@
+2018-03-29  Vance Shipley <vances@sigscale.org>
+
+	* fix ipdr usage characteristics
+	* correct order in access log query results
+	* implement query susbcriber of susbcriber identity, password, product id
+	* query parameter values
+	* ipdr voip view
+	* change ipdr log directory path
+
 2018-03-20  Prahveen Thiruchelvam <prahveen@sigscale.org>
 
 	* support for event base charging for SMS
