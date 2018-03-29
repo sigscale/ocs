@@ -63,7 +63,7 @@ content_types_provided() ->
 		Headers :: [tuple()],
 		Result :: {ok, Headers :: [tuple()], Body :: iolist()}
 				| {error, ErrorCode :: integer()}.
-%% @equiv get_usages(undefined, Query, Headers)
+%% @equiv get_usages(voip, Query, Headers)
 %% @hidden
 get_usages(Query, Headers) ->
 	get_usages(voip, Query, Headers).

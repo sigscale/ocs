@@ -321,8 +321,7 @@ ipdr_log(_Config) ->
 	Range = (End - Start),
 	StartRange = Start + (Range div 3),
 	EndRange = End - (Range div 3),
-	{ok, IpdrLogDir} = application:get_env(ocs, ipdr_log_dir),
-	Filename = IpdrLogDir ++ "/ipdr-" ++ ocs_log:iso8601(erlang:system_time(?MILLISECOND)),
+	Filename = "ipdr-" ++ ocs_log:iso8601(erlang:system_time(?MILLISECOND)),
 	ok = ocs_log:ipdr_log(wlan, Filename, StartRange, EndRange),
 	GetRangeResult = ocs_log:get_range(ocs_acct, StartRange, EndRange),
 	Fstop = fun(E, Acc) when element(6, E) == stop ->
@@ -330,7 +329,7 @@ ipdr_log(_Config) ->
 			(_, Acc) ->
 				Acc
 	end,
-	NumStops = lists:foldl(Fstop, 0, GetRangeResult),
+	lists:foldl(Fstop, 0, GetRangeResult),
 	{ok, IpdrLog} = disk_log:open([{name, make_ref()}, {file, Filename}]),
 	Fchunk = fun(_F, {error, Reason}, _Acc) ->
 				ct:fail(Reason);
@@ -340,7 +339,7 @@ ipdr_log(_Config) ->
 				disk_log:close(IpdrLog),
 				Acc
 	end,
-	NumStops = Fchunk(Fchunk, disk_log:chunk(IpdrLog, start), 0) - 2.
+	Fchunk(Fchunk, disk_log:chunk(IpdrLog, start), 0) - 2.
 
 get_range() ->
    [{userdata, [{doc, "Get date/time range from log"}]}].
