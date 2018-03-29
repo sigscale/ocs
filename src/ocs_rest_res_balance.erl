@@ -131,7 +131,7 @@ get_balance(ProdRef) ->
 			Buckets3 = lists:filter(F1, Buckets2),
 			TotalAmount = lists:sum([B#bucket.remain_amount || B <- Buckets3]),
 			F2 = fun(#bucket{id = Id}) ->
-					{struct, [{"id", Id}, {"href", ?balancePath ++ Id}]}
+					{struct, [{"id", Id}, {"href", ?bucketPath ++ Id}]}
 			end,
 			Buckets4 = {"buckets", {array, lists:map(F2, Buckets3)}},
 			Total = {"totalBalance", {struct,
