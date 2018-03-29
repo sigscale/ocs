@@ -149,7 +149,7 @@ delete_inventory(Id) ->
 			{error, 500}
 	end.
 
--spec patch_Inventory(ServiceId, Etag, ReqData) -> Result
+-spec patch_inventory(ServiceId, Etag, ReqData) -> Result
 	when
 		ServiceId :: string(),
 		Etag		:: undefined | list(),
@@ -174,13 +174,13 @@ patch_inventory(ServiceId, Etag, ReqData) ->
 	of
 		{Etag2, {array, _} = Operations} ->
 			F = fun() ->
-					case mnesia:read(service, list_to_binary(), write) of
+					case mnesia:read(service, list_to_binary(ServiceId), write) of
 						[Service1] when
 								Service1#service.last_modified == Etag2;
 								Etag2 == undefined ->
 							case catch ocs_rest:patch(Operations, inventory(Service1)) of
 								{struct, _} = Service2 ->
-									Service3 = offer(Service2),
+									Service3 = inventory(Service2),
 									TS = erlang:system_time(?MILLISECOND),
 									N = erlang:unique_integer([positive]),
 									LM = {TS, N},
