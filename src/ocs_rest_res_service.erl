@@ -23,7 +23,7 @@
 
 -export([content_types_accepted/0, content_types_provided/0]).
 -export([add_inventory/1, get_inventory/1, get_inventories/2,
-		delete_inventory/1]).
+		delete_inventory/1, patch_inventory/3]).
 -export([get_service_specs/1, get_service_spec/2]).
 
 -include("ocs.hrl").
@@ -147,6 +147,73 @@ delete_inventory(Id) ->
 			{ok, [], []};
 		{error, _} ->
 			{error, 500}
+	end.
+
+-spec patch_Inventory(ServiceId, Etag, ReqData) -> Result
+	when
+		ServiceId :: string(),
+		Etag		:: undefined | list(),
+		ReqData	:: [tuple()],
+		Result	:: {ok, Headers, Body} | {error, Status},
+		Headers	:: [tuple()],
+		Body		:: iolist(),
+		Status	:: 400 | 404 | 412 | 500 .
+%% @doc Respond to `PATCH /serviceInventoryManagement/v2/service/{id}'.
+%% 	Update a Service Inventory using JSON patch method
+%% 	<a href="http://tools.ietf.org/html/rfc6902">RFC6902</a>.
+patch_inventory(ServiceId, Etag, ReqData) ->
+
+	try
+		Etag1 = case Etag of
+			undefined ->
+				undefined;
+			Etag ->
+				ocs_rest:etag(Etag)
+		end,
+		{Etag1, mochijson:decode(ReqData)}
+	of
+		{Etag2, {array, _} = Operations} ->
+			F = fun() ->
+					case mnesia:read(service, list_to_binary(), write) of
+						[Service1] when
+								Service1#service.last_modified == Etag2;
+								Etag2 == undefined ->
+							case catch ocs_rest:patch(Operations, inventory(Service1)) of
+								{struct, _} = Service2 ->
+									Service3 = offer(Service2),
+									TS = erlang:system_time(?MILLISECOND),
+									N = erlang:unique_integer([positive]),
+									LM = {TS, N},
+									Service4 = Service3#service{last_modified = LM},
+									ok = mnesia:write(Service4),
+									{Service2, LM};
+								_ ->
+									throw(bad_request)
+							end;
+						[#service{}] ->
+							throw(precondition_failed);
+						[] ->
+							throw(not_found)
+					end
+			end,
+			case mnesia:transaction(F) of
+				{atomic, {Service, Etag3}} ->
+					Location = ?servicePath ++ ServiceId,
+					Headers = [{location, Location}, {etag, ocs_rest:etag(Etag3)}],
+					Body = mochijson:encode(Service),
+					{ok, Headers, Body};
+				{aborted, {throw, bad_request}} ->
+					{error, 400};
+				{aborted, {throw, not_found}} ->
+					{error, 404};
+				{aborted, {throw, precondition_failed}} ->
+					{error, 412};
+				{aborted, _Reason} ->
+					{error, 500}
+			end
+	catch
+		_:_ ->
+			{error, 400}
 	end.
 
 -spec get_service_specs(Query) -> Result when
