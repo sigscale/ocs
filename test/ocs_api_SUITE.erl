@@ -182,19 +182,19 @@ add_service(Config) ->
 	Password2 = binary_to_list(BinPassword2).
 
 delete_service() ->
-	[{userdata, [{doc, "Delete subscriber from the database"}]}].
+	[{userdata, [{doc, "Delete service from the database"}]}].
 
 delete_service(Config) ->
-	ProdID = ?config(product_id, Config),
+	OfferId = ?config(product_id, Config),
+	{ok, #product{id = ProdRef}} = ocs:add_product(OfferId, []),
 	Attribute0 = radius_attributes:new(),
 	Attribute = radius_attributes:add(?SessionTimeout, 3600, Attribute0),
-	Subscriber = "deleteandroid",
+	ServiceId = ocs:generate_identity(),
 	Password = ocs:generate_password(),
-	Buckets = [#bucket{units = cents, remain_amount = 3000}],
-	{ok, _} = ocs:add_service(Subscriber, Password, ProdID, [], Buckets, Attribute),
-	{ok, _} = ocs:find_service(Subscriber),
-	ok = ocs:delete_service(Subscriber),
-	{error, _} = ocs:find_service(Subscriber).
+	{ok, _} = ocs:add_service(ServiceId, Password, ProdRef, Attribute),
+	{ok, _} = ocs:find_service(ServiceId),
+	ok = ocs:delete_service(ServiceId),
+	{error, _} = ocs:find_service(ServiceId).
 
 add_offer() ->
 	[{userdata, [{doc, "Add a product offering."}]}].
