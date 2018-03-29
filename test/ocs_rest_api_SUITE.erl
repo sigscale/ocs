@@ -145,7 +145,7 @@ all() ->
 	get_auth_usage, get_auth_usage_id, get_auth_usage_filter,
 	get_auth_usage_range, get_acct_usage, get_acct_usage_id,
 	get_acct_usage_filter, get_acct_usage_range, get_ipdr_usage,
-	top_up, get_subscriber_balance,
+	top_up, get_balance,
 	simultaneous_updates_on_subscriber_failure,
 	simultaneous_updates_on_client_failure,
 	update_subscriber_password_json_patch,
@@ -1955,29 +1955,23 @@ top_up(Config) ->
 			start_date = SDT, termination_date = EDT,
 			product = [ProdRef]}} = ocs:find_bucket(BucketId).
 
-get_subscriber_balance() ->
+get_balance() ->
 	[{userdata, [{doc,"TMF654 Prepay Balance Management API :
-			Query balance for subscriber"}]}].
+			Get accumulated balance for given product instance"}]}].
 
-get_subscriber_balance(Config) ->
+get_balance(Config) ->
 	HostUrl = ?config(host_url, Config),
-	ProdID = ?config(product_id, Config),
+	P1 = price(usage, octets, rand:uniform(10000), rand:uniform(100)),
+	OfferId = offer_add([P1], 4),
+	ProdRef = product_add(OfferId),
+	B1 = b(cents, 10000),
+	B2 = b(cents, 5),
+	{_, _, #bucket{id = BId1}} = ocs:add_bucket(ProdRef, B1),
+	{_, _, #bucket{id = BId2}} = ocs:add_bucket(ProdRef, B2),
 	AcceptValue = "application/json",
 	Accept = {"accept", AcceptValue},
-	Identity = ocs:generate_identity(),
-	Password = ocs:generate_password(),
-	Buckets = [#bucket{units = cents, remain_amount = 10000},
-			#bucket{units = cents, remain_amount = 5}],
-	{ok, _} = ocs:add_service(Identity, Password, ProdID, [], Buckets, []),
-	{ok, #service{buckets = Buckets1}} = ocs:find_service(Identity),
-	F = fun(#bucket{remain_amount = N, units = cents}, Acc) ->
-				N + Acc;
-			(_, Acc) ->
-				Acc
-   end,
-	Balance = lists:foldl(F, 0, Buckets1),
-%%	#bucket{remain_amount = Balance} = lists:keyfind(cents, #bucket.units, Buckets1),
-	GETURI = HostUrl ++ "/balanceManagement/v1/accumulatedBalance/" ++ Identity,
+	Balance = B1#bucket.remain_amount + B2#bucket.remain_amount,
+	GETURI = HostUrl ++ "/balanceManagement/v1/accumulatedBalance/" ++ ProdRef,
 	GETRequest = {GETURI, [Accept, auth_header()]},
 	{ok, GETResult} = httpc:request(get, GETRequest, [], []),
 	{{"HTTP/1.1", 200, _OK}, Headers, Body} = GETResult,
@@ -1985,10 +1979,21 @@ get_subscriber_balance(Config) ->
 	ContentLength = integer_to_list(length(Body)),
 	{_, ContentLength} = lists:keyfind("content-length", 1, Headers),
 	{struct, PrePayBalance} = mochijson:decode(Body),
-	{_, Identity} = lists:keyfind("id", 1, PrePayBalance),
-	{_, "/balancemanagement/v1/accumulatedBalance/" ++ Identity} =
-			lists:keyfind("href", 1, PrePayBalance),
 	{_, {struct, TotalAmount}} = lists:keyfind("totalBalance", 1, PrePayBalance),
+	{_, {array, [{struct, Product}]}} = lists:keyfind("product", 1, PrePayBalance),
+	{_, {array, Buckets}} = lists:keyfind("buckets", 1, PrePayBalance),
+	{_, ProdRef} = lists:keyfind("id", 1, Product),
+	{_, "/balancemanagement/v1/accumulatedBalance/" ++ ProdRef} =
+			lists:keyfind("href", 1, Product),
+	F = fun({struct, B}) ->
+		case lists:keyfind("id", 1, B) of
+			{_, Id} when Id == BId1; Id == BId2 ->
+				true;
+			_ ->
+				false
+		end
+	end,
+	true = lists:all(F, Buckets),
 	{_, Balance1} = lists:keyfind("amount", 1, TotalAmount),
 	Balance1 = ocs_rest:decimal(Balance).
 
