@@ -687,8 +687,131 @@ query_subscriber3(Subs, Product, Cents, TotalBal, Seconds, Enabled, MultiSession
 	FilteredSubs = lists:filter(F, Subs),
 	query_subscriber4(FilteredSubs, Cents, TotalBal, Seconds, Enabled, MultiSession).
 %% @hidden
-query_subscriber4(Subs, _Cents, _TotalBal, _Seconds, _Enabled, MultiSession) ->
-	{eof, Subs}.
+query_subscriber4(Subs, undefined, TotalBal, Seconds, Enabled, MultiSession) ->
+	query_subscriber5(Subs, TotalBal, Seconds, Enabled, MultiSession);
+query_subscriber4(Subs, [], TotalBal, Seconds, Enabled, MultiSession) ->
+	query_subscriber5(Subs, TotalBal, Seconds, Enabled, MultiSession);
+query_subscriber4(Subs, Cents, TotalBal, Seconds, Enabled, MultiSession) ->
+	CentsD = ocs_rest:decimal(Cents),
+	F = fun(#subscriber{buckets = []}) ->
+			false;
+			(#subscriber{buckets = Buckets}) ->
+					case lists:keyfind(cents, #bucket.units, Buckets) of
+						false ->
+							false;
+						#bucket{remain_amount = CentsD} ->
+							true;
+						#bucket{} ->
+							false
+					end
+	end,
+	FilteredSubs = lists:filter(F, Subs),
+	query_subscriber5(FilteredSubs, TotalBal, Seconds, Enabled, MultiSession).
+%% @hidden
+query_subscriber5(Subs, undefined, Seconds, Enabled, MultiSession) ->
+	query_subscriber6(Subs, Seconds, Enabled, MultiSession);
+query_subscriber5(Subs, [], Seconds, Enabled, MultiSession) ->
+	query_subscriber6(Subs, Seconds, Enabled, MultiSession);
+query_subscriber5(Subs, TotalBal, Seconds, Enabled, MultiSession) ->
+	case catch list_to_integer(TotalBal) of
+		{error, _} ->
+			query_subscriber6(Subs, Seconds, Enabled, MultiSession);
+		TotalBalInt ->
+			F = fun(#subscriber{buckets = []}) ->
+						false;
+					(#subscriber{buckets = Buckets}) ->
+						case lists:keyfind(octets, #bucket.units, Buckets) of
+							false ->
+								false;
+							#bucket{remain_amount = TotalBalInt} ->
+								true;
+							#bucket{} ->
+								false
+						end
+			end,
+			FilteredSubs = lists:filter(F, Subs),
+			query_subscriber6(FilteredSubs, Seconds, Enabled, MultiSession)
+	end.
+%% @hidden
+query_subscriber6(Subs, undefined, Enabled, MultiSession) ->
+	query_subscriber7(Subs, Enabled, MultiSession);
+query_subscriber6(Subs, [], Enabled, MultiSession) ->
+	query_subscriber7(Subs, Enabled, MultiSession);
+query_subscriber6(Subs, Seconds, Enabled, MultiSession) ->
+	case catch list_to_integer(Seconds) of
+		{error, _} ->
+			query_subscriber7(Subs, Enabled, MultiSession);
+		SecondsInt ->
+			F = fun(#subscriber{buckets = []}) ->
+						false;
+					(#subscriber{buckets = Buckets}) ->
+						case lists:keyfind(seconds, #bucket.units, Buckets) of
+							false ->
+								false;
+							#bucket{remain_amount = SecondsInt} ->
+								true;
+							#bucket{} ->
+								false
+						end
+			end,
+			FilteredSubs = lists:filter(F, Subs),
+			query_subscriber7(FilteredSubs, Enabled, MultiSession)
+	end.
+%% @hidden
+query_subscriber7(Subs, undefined, MultiSession) ->
+	query_subscriber8(Subs, MultiSession);
+query_subscriber7(Subs, [], MultiSession) ->
+	query_subscriber8(Subs, MultiSession);
+query_subscriber7(Subs, Enabled, MultiSession) ->
+	EnBin = list_to_binary(Enabled),
+	E = case binary:match(<<"true">>, EnBin) of
+				nomatch ->
+					case binary:match(<<"false">>, EnBin) of
+						nomatch ->
+							nomatch;
+						_ ->
+							false
+					end;
+				_ ->
+					true
+	end,
+	F = fun(#subscriber{enabled = V}) ->
+					case V of
+						E ->
+							true;
+						_ ->
+							false
+					end
+	end,
+	FilteredSubs = lists:filter(F, Subs),
+	query_subscriber8(FilteredSubs, MultiSession).
+%% @hidden
+query_subscriber8(Subs, undefined) ->
+	{eof, Subs};
+query_subscriber8(Subs, []) ->
+	{eof, Subs};
+query_subscriber8(Subs, MultiSession) ->
+	MSBin = list_to_binary(MultiSession),
+	MS = case binary:match(<<"true">>, MSBin) of
+				nomatch ->
+					case binary:match(<<"false">>, MSBin) of
+						nomatch ->
+							nomatch;
+						_ ->
+							false
+					end;
+				_ ->
+					true
+	end,
+	F = fun(#subscriber{multisession = V}) ->
+					case V of
+						MS ->
+							true;
+						_ ->
+							false
+					end
+	end,
+	{eof, lists:filter(F, Subs)}.
 
 -spec delete_subscriber(Identity) -> ok
 	when
