@@ -587,14 +587,14 @@ get_subscribers()->
 	end.
 
 -spec query_subscriber(Cont, Id, Password, Product, Cents,
-		TotalBalance, Seconds, Enabled, MultiSession) -> Result
+		Bytes, Seconds, Enabled, MultiSession) -> Result
 	when
 		Cont :: start | eof | any(),
 		Id :: undefined | string(),
 		Password :: undefined | string(),
 		Product :: undefined | string(),
 		Cents :: undefined | string(),
-		TotalBalance :: undefined | string(),
+		Bytes :: undefined | string(),
 		Seconds :: undefined | string(),
 		Enabled :: undefined | string(),
 		MultiSession :: undefined | string(),
@@ -602,7 +602,7 @@ get_subscribers()->
 		Reason :: term().
 %% @doc Query product inventories
 query_subscriber(start, Id, Password, Product, Cents,
-		TotalBalance, Seconds, Enabled, MultiSession) ->
+		Bytes, Seconds, Enabled, MultiSession) ->
 	MatchSpec = [{'_', [], ['$_']}],
 	F = fun(F, start, Acc) ->
 				F(F, mnesia:select(subscriber, MatchSpec,
@@ -619,18 +619,18 @@ query_subscriber(start, Id, Password, Product, Cents,
 			{error, Reason};
 		{atomic, Subscribers} ->
 			query_subscriber1(Subscribers, Id, Password, Product,
-					Cents, TotalBalance, Seconds, Enabled, MultiSession)
+					Cents, Bytes, Seconds, Enabled, MultiSession)
 	end.
 %% @hidden
-query_subscriber1(Subs, undefined, Pwd, Product, Cents, TotalBal, Seconds,
+query_subscriber1(Subs, undefined, Pwd, Product, Cents, Bytes, Seconds,
 		Enabled, MultiSession) ->
-	query_subscriber2(Subs, Pwd, Product, Cents, TotalBal, Seconds, Enabled,
+	query_subscriber2(Subs, Pwd, Product, Cents, Bytes, Seconds, Enabled,
 			MultiSession);
-query_subscriber1(Subs, [], Pwd, Product, Cents, TotalBal, Seconds,
+query_subscriber1(Subs, [], Pwd, Product, Cents, Bytes, Seconds,
 		Enabled, MultiSession) ->
-	query_subscriber2(Subs, Pwd, Product, Cents, TotalBal, Seconds, Enabled,
+	query_subscriber2(Subs, Pwd, Product, Cents, Bytes, Seconds, Enabled,
 			MultiSession);
-query_subscriber1(Subs, Id, Pwd, Product, Cents, TotalBal, Seconds,
+query_subscriber1(Subs, Id, Pwd, Product, Cents, Bytes, Seconds,
 		Enabled, MultiSession) ->
 	IdBin = list_to_binary(Id),
 	F = fun(#subscriber{name = IdBin1}) ->
@@ -642,18 +642,18 @@ query_subscriber1(Subs, Id, Pwd, Product, Cents, TotalBal, Seconds,
 				end
 	end,
 	FilteredSubs = lists:filter(F, Subs),
-	query_subscriber2(FilteredSubs, Pwd, Product, Cents, TotalBal, Seconds,
+	query_subscriber2(FilteredSubs, Pwd, Product, Cents, Bytes, Seconds,
 			Enabled, MultiSession).
 %% @hidden
-query_subscriber2(Subs, undefined, Product, Cents, TotalBal, Seconds,
+query_subscriber2(Subs, undefined, Product, Cents, Bytes, Seconds,
 			Enabled, MultiSession) ->
-	query_subscriber3(Subs, Product, Cents, TotalBal, Seconds,
+	query_subscriber3(Subs, Product, Cents, Bytes, Seconds,
 			Enabled, MultiSession);
-query_subscriber2(Subs, [], Product, Cents, TotalBal, Seconds,
+query_subscriber2(Subs, [], Product, Cents, Bytes, Seconds,
 			Enabled, MultiSession) ->
-	query_subscriber3(Subs, Product, Cents, TotalBal, Seconds,
+	query_subscriber3(Subs, Product, Cents, Bytes, Seconds,
 			Enabled, MultiSession);
-query_subscriber2(Subs, Pwd, Product, Cents, TotalBal, Seconds,
+query_subscriber2(Subs, Pwd, Product, Cents, Bytes, Seconds,
 			Enabled, MultiSession) ->
 	PwdBin = list_to_binary(Pwd),
 	F = fun(#subscriber{password = PwdBin1}) ->
@@ -665,14 +665,14 @@ query_subscriber2(Subs, Pwd, Product, Cents, TotalBal, Seconds,
 				end
 	end,
 	FilteredSubs = lists:filter(F, Subs),
-	query_subscriber3(FilteredSubs, Product, Cents, TotalBal, Seconds,
+	query_subscriber3(FilteredSubs, Product, Cents, Bytes, Seconds,
 			Enabled, MultiSession).
 %% @hidden
-query_subscriber3(Subs, undefined, Cents, TotalBal, Seconds, Enabled, MultiSession) ->
-	query_subscriber4(Subs, Cents, TotalBal, Seconds, Enabled, MultiSession);
-query_subscriber3(Subs, [], Cents, TotalBal, Seconds, Enabled, MultiSession) ->
-	query_subscriber4(Subs, Cents, TotalBal, Seconds, Enabled, MultiSession);
-query_subscriber3(Subs, Product, Cents, TotalBal, Seconds, Enabled, MultiSession) ->
+query_subscriber3(Subs, undefined, Cents, Bytes, Seconds, Enabled, MultiSession) ->
+	query_subscriber4(Subs, Cents, Bytes, Seconds, Enabled, MultiSession);
+query_subscriber3(Subs, [], Cents, Bytes, Seconds, Enabled, MultiSession) ->
+	query_subscriber4(Subs, Cents, Bytes, Seconds, Enabled, MultiSession);
+query_subscriber3(Subs, Product, Cents, Bytes, Seconds, Enabled, MultiSession) ->
 	ProdBin = list_to_binary(Product),
 	F = fun(#subscriber{product = #product_instance{product = undefined}}) ->
 				false;
@@ -685,13 +685,13 @@ query_subscriber3(Subs, Product, Cents, TotalBal, Seconds, Enabled, MultiSession
 				end
 	end,
 	FilteredSubs = lists:filter(F, Subs),
-	query_subscriber4(FilteredSubs, Cents, TotalBal, Seconds, Enabled, MultiSession).
+	query_subscriber4(FilteredSubs, Cents, Bytes, Seconds, Enabled, MultiSession).
 %% @hidden
-query_subscriber4(Subs, undefined, TotalBal, Seconds, Enabled, MultiSession) ->
-	query_subscriber5(Subs, TotalBal, Seconds, Enabled, MultiSession);
-query_subscriber4(Subs, [], TotalBal, Seconds, Enabled, MultiSession) ->
-	query_subscriber5(Subs, TotalBal, Seconds, Enabled, MultiSession);
-query_subscriber4(Subs, Cents, TotalBal, Seconds, Enabled, MultiSession) ->
+query_subscriber4(Subs, undefined, Bytes, Seconds, Enabled, MultiSession) ->
+	query_subscriber5(Subs, Bytes, Seconds, Enabled, MultiSession);
+query_subscriber4(Subs, [], Bytes, Seconds, Enabled, MultiSession) ->
+	query_subscriber5(Subs, Bytes, Seconds, Enabled, MultiSession);
+query_subscriber4(Subs, Cents, Bytes, Seconds, Enabled, MultiSession) ->
 	CentsD = ocs_rest:decimal(Cents),
 	F = fun(#subscriber{buckets = []}) ->
 			false;
@@ -706,24 +706,24 @@ query_subscriber4(Subs, Cents, TotalBal, Seconds, Enabled, MultiSession) ->
 					end
 	end,
 	FilteredSubs = lists:filter(F, Subs),
-	query_subscriber5(FilteredSubs, TotalBal, Seconds, Enabled, MultiSession).
+	query_subscriber5(FilteredSubs, Bytes, Seconds, Enabled, MultiSession).
 %% @hidden
 query_subscriber5(Subs, undefined, Seconds, Enabled, MultiSession) ->
 	query_subscriber6(Subs, Seconds, Enabled, MultiSession);
 query_subscriber5(Subs, [], Seconds, Enabled, MultiSession) ->
 	query_subscriber6(Subs, Seconds, Enabled, MultiSession);
-query_subscriber5(Subs, TotalBal, Seconds, Enabled, MultiSession) ->
-	case catch list_to_integer(TotalBal) of
+query_subscriber5(Subs, Bytes, Seconds, Enabled, MultiSession) ->
+	case catch list_to_integer(Bytes) of
 		{error, _} ->
 			query_subscriber6(Subs, Seconds, Enabled, MultiSession);
-		TotalBalInt ->
+		BytesInt ->
 			F = fun(#subscriber{buckets = []}) ->
 						false;
 					(#subscriber{buckets = Buckets}) ->
 						case lists:keyfind(octets, #bucket.units, Buckets) of
 							false ->
 								false;
-							#bucket{remain_amount = TotalBalInt} ->
+							#bucket{remain_amount = BytesInt} ->
 								true;
 							#bucket{} ->
 								false
