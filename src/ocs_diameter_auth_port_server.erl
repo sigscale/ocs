@@ -267,10 +267,10 @@ request(Caps, _Address, _Port, none, _PasswordReq, Request, _CbProc, State)
 	try
 		[Username] = Request#diameter_nas_app_STR.'User-Name',
 		F = fun() ->
-			case mnesia:read(subscriber, Username, write) of
+			case mnesia:read(service, Username, write) of
 				[#service{disconnect = false} = Entry] ->
 					NewEntry = Entry#service{disconnect = true},
-					mnesia:write(subscriber, NewEntry, write);
+					mnesia:write(service, NewEntry, write);
 				[#service{disconnect = true}] ->
 					ok
 			end
