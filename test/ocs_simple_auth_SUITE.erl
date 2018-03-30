@@ -115,10 +115,8 @@ end_per_testcase(TestCase, Config) when
 		TestCase == simple_authentication_diameter; TestCase == bad_password_diameter;
 		TestCase == unknown_username_diameter; TestCase == out_of_credit_diameter;
 		TestCase == session_termination_diameter ->
-	UserName= ?config(username, Config),
 	Client = ?config(diameter_client, Config),
-	ok = ocs:delete_client(Client),
-	ok = ocs:delete_service(UserName);
+	ok = ocs:delete_client(Client);
 end_per_testcase(_TestCase, Config) ->
 	Socket = ?config(socket, Config),
 	ok = 	gen_udp:close(Socket).
@@ -175,7 +173,6 @@ simple_authentication_radius(Config) ->
 	A7 = radius_attributes:add(?CalledStationId, CalledStationId, A6),
 	A8 = radius_attributes:add(?UserPassword, UserPassword, A7),
 	A9 = radius_attributes:add(?NasIdentifier, NasId, A8),
-erlang:display({?MODULE, ?LINE, A9}),
 	AccessReqest = #radius{code = ?AccessRequest, id = Id,
 			authenticator = Authenticator, attributes = A9},
 	AccessReqestPacket= radius:codec(AccessReqest),
@@ -186,8 +183,7 @@ erlang:display({?MODULE, ?LINE, A9}),
 simple_authentication_diameter() ->
 	[{userdata, [{doc, "Successful simple authentication using DIAMETER NAS application"}]}].
 
-simple_authentication_diameter(Config) ->
-	Id = 1,
+simple_authentication_diameter(_Config) ->
 	P1 = price(usage, octets, rand:uniform(1000000), rand:uniform(100)),
 	OfferId = add_offer([P1], 4),
 	ProdRef = add_product(OfferId),
@@ -257,7 +253,7 @@ out_of_credit_radius(Config) ->
 out_of_credit_diameter() ->
 	[{userdata, [{doc, "Diameter authentication failure when subscriber has a balance less than 0"}]}].
 
-out_of_credit_diameter(Config) ->
+out_of_credit_diameter(_Config) ->
 	P1 = price(usage, octets, rand:uniform(1000000), rand:uniform(100)),
 	OfferId = add_offer([P1], 4),
 	ProdRef = add_product(OfferId),
@@ -295,7 +291,6 @@ bad_password_radius(Config) ->
 	_BId = add_bucket(ProdRef, B1),
 	NasId = ?config(nas_id, Config),
 	CalledStationId = ?config(called_id, Config),
-	ProdID = ?config(product_id, Config),
 	MAC = "DD:EE:DD:EE:DD:CC",
 	MACtokens = string:tokens(MAC, ":"),
 	CallingStationId = string:join(MACtokens, "-"),
@@ -328,9 +323,14 @@ bad_password_radius(Config) ->
 bad_password_diameter() ->
 	[{userdata, [{doc, "Diameter simple authentication failure wheh a wrong password is used"}]}].
 
-bad_password_diameter(Config) ->
-	Username = ?config(username, Config),
-	InvalidPassword = "starGazer987",
+bad_password_diameter(_Config) ->
+	P1 = price(usage, octets, rand:uniform(1000000), rand:uniform(100)),
+	OfferId = add_offer([P1], 4),
+	ProdRef = add_product(OfferId),
+	#service{name = Username} =  add_service(ProdRef),
+	B1 = bucket(octets, rand:uniform(100000)),
+	_BId = add_bucket(ProdRef, B1),
+	InvalidPassword = ocs:generate_password(), 
 	Ref = erlang:ref_to_list(make_ref()),
 	SId = diameter:session_id(Ref),
 	NAS_AAR = #diameter_nas_app_AAR{'Session-Id' = SId,
@@ -354,20 +354,21 @@ unknown_username_radius() ->
 
 unknown_username_radius(Config) ->
 	Id = 3,
+	P1 = price(usage, octets, rand:uniform(1000000), rand:uniform(100)),
+	OfferId = add_offer([P1], 4),
+	ProdRef = add_product(OfferId),
+	#service{password = PeerPassword} =  add_service(ProdRef),
+	B1 = bucket(octets, rand:uniform(100000)),
+	_BId = add_bucket(ProdRef, B1),
 	NasId = ?config(nas_id, Config),
 	CalledStationId = ?config(called_id, Config),
-	ProdID = ?config(product_id, Config),
 	MAC = "DD:EE:DD:EE:DD:CC",
 	MACtokens = string:tokens(MAC, ":"),
 	CallingStationId = string:join(MACtokens, "-"),
-	PeerID = string:to_lower(lists:append(MACtokens)),
-	PeerPassword = ocs:generate_password(),
-	Buckets = [#bucket{units = cents, remain_amount = 3000}],
-	{ok, _} = ocs:add_service(PeerID, PeerPassword, ProdID, [], Buckets, []),
 	Authenticator = radius:authenticator(),
 	SharedSecret = ct:get_config(radius_shared_secret),
 	UserPassword = radius_attributes:hide(SharedSecret, Authenticator, PeerPassword),	
-	BogusUserName = "tormentor",
+	BogusUserName = ocs:generate_password(),
 	{ok, RadiusConfig} = application:get_env(ocs, radius),
 	{auth, [{AuthAddress, AuthPort, _} | _]} = lists:keyfind(auth, 1, RadiusConfig),
 	Socket = ?config(socket, Config), 
@@ -394,9 +395,14 @@ unknown_username_radius(Config) ->
 unknown_username_diameter() ->
 	[{userdata, [{doc, "Diameter simple authentication failure wheh a unknown username is used"}]}].
 
-unknown_username_diameter(Config) ->
-	UnknownUsername = "PeterGriffin",
-	Password = ?config(password, Config),
+unknown_username_diameter(_Config) ->
+	P1 = price(usage, octets, rand:uniform(1000000), rand:uniform(100)),
+	OfferId = add_offer([P1], 4),
+	ProdRef = add_product(OfferId),
+	#service{password = Password} =  add_service(ProdRef),
+	B1 = bucket(octets, rand:uniform(100000)),
+	_BId = add_bucket(ProdRef, B1),
+	UnknownUsername = ocs:generate_identity(),
 	Ref = erlang:ref_to_list(make_ref()),
 	SId = diameter:session_id(Ref),
 	NAS_AAR = #diameter_nas_app_AAR{'Session-Id' = SId,
@@ -417,9 +423,14 @@ unknown_username_diameter(Config) ->
 session_termination_diameter() ->
 	[{userdata, [{doc, "Successful simple authentication using DIAMETER NAS application"}]}].
 
-session_termination_diameter(Config) ->
-	Username = ?config(username, Config),
-	Password = ?config(password, Config),
+session_termination_diameter(_Config) ->
+	P1 = price(usage, octets, rand:uniform(1000000), rand:uniform(100)),
+	OfferId = add_offer([P1], 4),
+	ProdRef = add_product(OfferId),
+	#service{name = Username,
+		password = Password} =  add_service(ProdRef),
+	B1 = bucket(octets, rand:uniform(100000)),
+	_BId = add_bucket(ProdRef, B1),
 	Ref = erlang:ref_to_list(make_ref()),
 	SId = diameter:session_id(Ref),
 	NAS_AAR = #diameter_nas_app_AAR{'Session-Id' = SId,
@@ -452,14 +463,13 @@ authenticate_voice_call() ->
 		authenticate and authorize voice call"}]}].
 
 authenticate_voice_call(Config) ->
-	ProdID = ocs:generate_password(),
 	PackagePrice = 1,
 	PackageSize = 2,
-	Price = #price{name = "voice", type = usage,
-		units = seconds, size = PackageSize, amount = PackagePrice},
-	Product = #offer{name = ProdID, price = [Price],
-		specification = "9"},
-	{ok, _} = ocs:add_offer(Product),
+	P1 = price(usage, seconds, PackageSize, PackagePrice),
+	OfferId = add_offer([P1], 9),
+	RadiusReserveSessionTime = 60,
+	ProdRef = add_product(OfferId,
+		[{"radiusReserveSessionTime", RadiusReserveSessionTime}]),
 	Id = 1,
 	NasId = ?config(nas_id, Config),
 	SharedSecret = ct:get_config(radius_shared_secret),
@@ -467,11 +477,9 @@ authenticate_voice_call(Config) ->
 	CallingStationId = "99771234567",
 	CalledStationId = "99771234568",
 	PeerPassword = ocs:generate_password(),
-	Buckets = [#bucket{units = cents, remain_amount = 3000}],
-	RadiusReserveSessionTime = 60,
-	{ok, _} = ocs:add_service(CallingStationId, PeerPassword,
-			ProdID, [{"radiusReserveSessionTime", RadiusReserveSessionTime}],
-			Buckets, []),
+	B1 = bucket(cents, 3000),
+	_BId = add_bucket(ProdRef, B1),
+	{ok, _} = ocs:add_service(CallingStationId, PeerPassword, ProdRef, []),
 	Authenticator = radius:authenticator(),
 	{ok, RadiusConfig} = application:get_env(ocs, radius),
 	{auth, [{AuthAddress, AuthPort, _} | _]} = lists:keyfind(auth, 1, RadiusConfig),
