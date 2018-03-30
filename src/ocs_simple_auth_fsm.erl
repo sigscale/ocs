@@ -263,7 +263,7 @@ reject_radius(bad_password, #statedata{session_id = SessionID} = StateData) ->
 	RejectAttributes = [{?ReplyMessage, "Bad Password"}],
 	response(?AccessReject, RejectAttributes, StateData),
 	{stop, {shutdown, SessionID}, StateData};
-reject_radius(subscriber_not_found, #statedata{session_id = SessionID} = StateData) ->
+reject_radius(service_not_found, #statedata{session_id = SessionID} = StateData) ->
 	RejectAttributes = [{?ReplyMessage, "Unknown Username"}],
 	response(?AccessReject, RejectAttributes, StateData),
 	{stop, {shutdown, SessionID}, StateData};
