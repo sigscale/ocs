@@ -27,7 +27,7 @@
 		query_clients/6]).
 -export([add_service/3, add_service/4, add_service/6,
 		add_product/2, add_product/4, delete_product/1]).
--export([find_service/1, delete_service/1, get_services/0, query_subscriber/9,
+-export([find_service/1, delete_service/1, get_services/0, query_service/1, query_subscriber/9,
 		find_product/1]).
 -export([add_bucket/2, find_bucket/1, get_buckets/1, delete_bucket/1]).
 -export([add_user/3, list_users/0, get_user/1, delete_user/1,
@@ -737,6 +737,31 @@ get_services()->
 			{error, Reason};
 		{atomic, Result} ->
 			Result
+	end.
+
+-spec query_service(Cont) -> Result
+	when
+		Cont :: start | eof | any(),
+		Result :: {Cont, [#service{}]} | {error, Reason},
+		Reason :: term().
+%% @doc Query services 
+query_service(start) ->
+	MatchSpec = [{'_', [], ['$_']}],
+	F = fun(F, start, Acc) ->
+				F(F, mnesia:select(service, MatchSpec,
+						?CHUNKSIZE, read), Acc);
+			(_F, '$end_of_table', Acc) ->
+				lists:flatten(lists:reverse(Acc));
+			(_F, {error, Reason}, _Acc) ->
+				{error, Reason};
+			(F,{Services, Cont}, Acc) ->
+				F(F, mnesia:select(Cont), [Services | Acc])
+	end,
+	case mnesia:transaction(F, [F, start, []]) of
+		{aborted, Reason} ->
+			{error, Reason};
+		{atomic, Services} ->
+			{eof, Services}
 	end.
 
 -spec query_subscriber(Cont, Id, Password, Product, Cents,
