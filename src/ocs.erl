@@ -27,7 +27,7 @@
 		query_clients/6]).
 -export([add_service/3, add_service/4, add_service/6,
 		add_product/2, add_product/4, delete_product/1]).
--export([find_service/1, delete_service/1, get_services/0, query_service/1,
+-export([find_service/1, delete_service/1, get_services/0, query_subscriber/9,
 		find_product/1]).
 -export([add_bucket/2, find_bucket/1, get_buckets/1, delete_bucket/1]).
 -export([add_user/3, list_users/0, get_user/1, delete_user/1,
@@ -739,13 +739,23 @@ get_services()->
 			Result
 	end.
 
--spec query_service(Cont) -> Result
+-spec query_subscriber(Cont, Id, Password, Product, Cents,
+		Bytes, Seconds, Enabled, MultiSession) -> Result
 	when
 		Cont :: start | eof | any(),
-		Result :: {Cont, [#offer{}]} | {error, Reason},
+		Id :: undefined | string(),
+		Password :: undefined | string(),
+		Product :: undefined | string(),
+		Cents :: undefined | string(),
+		Bytes :: undefined | string(),
+		Seconds :: undefined | string(),
+		Enabled :: undefined | string(),
+		MultiSession :: undefined | string(),
+		Result :: {Cont, [#product{}]} | {error, Reason},
 		Reason :: term().
-%% @doc Query offer inventories
-query_service(start) ->
+%% @doc Query product inventories
+query_subscriber(start, Id, Password, Product, Cents,
+		Bytes, Seconds, Enabled, MultiSession) ->
 	MatchSpec = [{'_', [], ['$_']}],
 	F = fun(F, start, Acc) ->
 				F(F, mnesia:select(service, MatchSpec,
@@ -760,9 +770,201 @@ query_service(start) ->
 	case mnesia:transaction(F, [F, start, []]) of
 		{aborted, Reason} ->
 			{error, Reason};
-		{atomic, Result} ->
-			{eof, Result}
+		{atomic, Subscribers} ->
+			query_subscriber1(Subscribers, Id, Password, Product,
+					Cents, Bytes, Seconds, Enabled, MultiSession)
 	end.
+%% @hidden
+query_subscriber1(Subs, undefined, Pwd, Product, Cents, Bytes, Seconds,
+		Enabled, MultiSession) ->
+	query_subscriber2(Subs, Pwd, Product, Cents, Bytes, Seconds, Enabled,
+			MultiSession);
+query_subscriber1(Subs, [], Pwd, Product, Cents, Bytes, Seconds,
+		Enabled, MultiSession) ->
+	query_subscriber2(Subs, Pwd, Product, Cents, Bytes, Seconds, Enabled,
+			MultiSession);
+query_subscriber1(Subs, Id, Pwd, Product, Cents, Bytes, Seconds,
+		Enabled, MultiSession) ->
+	IdBin = list_to_binary(Id),
+	F = fun(#service{name = IdBin1}) ->
+				case binary:match(IdBin1, IdBin) of
+					nomatch ->
+						false;
+					{_, _} ->
+						true
+				end
+	end,
+	FilteredSubs = lists:filter(F, Subs),
+	query_subscriber2(FilteredSubs, Pwd, Product, Cents, Bytes, Seconds,
+			Enabled, MultiSession).
+%% @hidden
+query_subscriber2(Subs, undefined, Product, Cents, Bytes, Seconds,
+			Enabled, MultiSession) ->
+	query_subscriber3(Subs, Product, Cents, Bytes, Seconds,
+			Enabled, MultiSession);
+query_subscriber2(Subs, [], Product, Cents, Bytes, Seconds,
+			Enabled, MultiSession) ->
+	query_subscriber3(Subs, Product, Cents, Bytes, Seconds,
+			Enabled, MultiSession);
+query_subscriber2(Subs, Pwd, Product, Cents, Bytes, Seconds,
+			Enabled, MultiSession) ->
+	PwdBin = list_to_binary(Pwd),
+	F = fun(#service{password = PwdBin1}) ->
+				case binary:match(PwdBin1, PwdBin) of
+					nomatch ->
+						false;
+					{_, _} ->
+						true
+				end
+	end,
+	FilteredSubs = lists:filter(F, Subs),
+	query_subscriber3(FilteredSubs, Product, Cents, Bytes, Seconds,
+			Enabled, MultiSession).
+%% @hidden
+query_subscriber3(Subs, undefined, Cents, Bytes, Seconds, Enabled, MultiSession) ->
+	query_subscriber4(Subs, Cents, Bytes, Seconds, Enabled, MultiSession);
+query_subscriber3(Subs, [], Cents, Bytes, Seconds, Enabled, MultiSession) ->
+	query_subscriber4(Subs, Cents, Bytes, Seconds, Enabled, MultiSession);
+query_subscriber3(Subs, Product, Cents, Bytes, Seconds, Enabled, MultiSession) ->
+	ProdBin = list_to_binary(Product),
+	F = fun(#service{product = #product_instance{product = undefined}}) ->
+				false;
+			(#service{product = #product_instance{product = Product1}}) ->
+				case binary:match(list_to_binary(Product1), ProdBin) of
+					nomatch ->
+						false;
+					{_, _} ->
+						true
+				end
+	end,
+	FilteredSubs = lists:filter(F, Subs),
+	query_subscriber4(FilteredSubs, Cents, Bytes, Seconds, Enabled, MultiSession).
+%% @hidden
+query_subscriber4(Subs, undefined, Bytes, Seconds, Enabled, MultiSession) ->
+	query_subscriber5(Subs, Bytes, Seconds, Enabled, MultiSession);
+query_subscriber4(Subs, [], Bytes, Seconds, Enabled, MultiSession) ->
+	query_subscriber5(Subs, Bytes, Seconds, Enabled, MultiSession);
+query_subscriber4(Subs, Cents, Bytes, Seconds, Enabled, MultiSession) ->
+	CentsD = ocs_rest:decimal(Cents),
+	F = fun(#service{buckets = []}) ->
+			false;
+			(#service{buckets = Buckets}) ->
+					case lists:keyfind(cents, #bucket.units, Buckets) of
+						false ->
+							false;
+						#bucket{remain_amount = CentsD} ->
+							true;
+						#bucket{} ->
+							false
+					end
+	end,
+	FilteredSubs = lists:filter(F, Subs),
+	query_subscriber5(FilteredSubs, Bytes, Seconds, Enabled, MultiSession).
+%% @hidden
+query_subscriber5(Subs, undefined, Seconds, Enabled, MultiSession) ->
+	query_subscriber6(Subs, Seconds, Enabled, MultiSession);
+query_subscriber5(Subs, [], Seconds, Enabled, MultiSession) ->
+	query_subscriber6(Subs, Seconds, Enabled, MultiSession);
+query_subscriber5(Subs, Bytes, Seconds, Enabled, MultiSession) ->
+	case catch list_to_integer(Bytes) of
+		{error, _} ->
+			query_subscriber6(Subs, Seconds, Enabled, MultiSession);
+		BytesInt ->
+			F = fun(#service{buckets = []}) ->
+						false;
+					(#service{buckets = Buckets}) ->
+						case lists:keyfind(octets, #bucket.units, Buckets) of
+							false ->
+								false;
+							#bucket{remain_amount = BytesInt} ->
+								true;
+							#bucket{} ->
+								false
+						end
+			end,
+			FilteredSubs = lists:filter(F, Subs),
+			query_subscriber6(FilteredSubs, Seconds, Enabled, MultiSession)
+	end.
+%% @hidden
+query_subscriber6(Subs, undefined, Enabled, MultiSession) ->
+	query_subscriber7(Subs, Enabled, MultiSession);
+query_subscriber6(Subs, [], Enabled, MultiSession) ->
+	query_subscriber7(Subs, Enabled, MultiSession);
+query_subscriber6(Subs, Seconds, Enabled, MultiSession) ->
+	case catch list_to_integer(Seconds) of
+		{error, _} ->
+			query_subscriber7(Subs, Enabled, MultiSession);
+		SecondsInt ->
+			F = fun(#service{buckets = []}) ->
+						false;
+					(#service{buckets = Buckets}) ->
+						case lists:keyfind(seconds, #bucket.units, Buckets) of
+							false ->
+								false;
+							#bucket{remain_amount = SecondsInt} ->
+								true;
+							#bucket{} ->
+								false
+						end
+			end,
+			FilteredSubs = lists:filter(F, Subs),
+			query_subscriber7(FilteredSubs, Enabled, MultiSession)
+	end.
+%% @hidden
+query_subscriber7(Subs, undefined, MultiSession) ->
+	query_subscriber8(Subs, MultiSession);
+query_subscriber7(Subs, [], MultiSession) ->
+	query_subscriber8(Subs, MultiSession);
+query_subscriber7(Subs, Enabled, MultiSession) ->
+	EnBin = list_to_binary(Enabled),
+	E = case binary:match(<<"true">>, EnBin) of
+				nomatch ->
+					case binary:match(<<"false">>, EnBin) of
+						nomatch ->
+							nomatch;
+						_ ->
+							false
+					end;
+				_ ->
+					true
+	end,
+	F = fun(#service{enabled = V}) ->
+					case V of
+						E ->
+							true;
+						_ ->
+							false
+					end
+	end,
+	FilteredSubs = lists:filter(F, Subs),
+	query_subscriber8(FilteredSubs, MultiSession).
+%% @hidden
+query_subscriber8(Subs, undefined) ->
+	{eof, Subs};
+query_subscriber8(Subs, []) ->
+	{eof, Subs};
+query_subscriber8(Subs, MultiSession) ->
+	MSBin = list_to_binary(MultiSession),
+	MS = case binary:match(<<"true">>, MSBin) of
+				nomatch ->
+					case binary:match(<<"false">>, MSBin) of
+						nomatch ->
+							nomatch;
+						_ ->
+							false
+					end;
+				_ ->
+					true
+	end,
+	F = fun(#service{multisession = V}) ->
+					case V of
+						MS ->
+							true;
+						_ ->
+							false
+					end
+	end,
+	{eof, lists:filter(F, Subs)}.
 
 -spec delete_service(Identity) -> ok
 	when
