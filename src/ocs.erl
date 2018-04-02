@@ -27,7 +27,7 @@
 		query_clients/6]).
 -export([add_service/3, add_service/4, add_service/6,
 		add_product/2, add_product/4, delete_product/1]).
--export([find_service/1, delete_service/1, get_services/0, query_service/1, query_subscriber/9,
+-export([find_service/1, delete_service/1, get_services/0, query_service/1,
 		find_product/1]).
 -export([add_bucket/2, find_bucket/1, get_buckets/1, delete_bucket/1]).
 -export([add_user/3, list_users/0, get_user/1, delete_user/1,
@@ -38,7 +38,7 @@
 -export([generate_password/0, generate_identity/0]).
 -export([start/4, start/5]).
 %% export the ocs private API
--export([authorize/3, normalize/1, subscription/4]).
+-export([authorize/3, normalize/1]).
 
 -export_type([eap_method/0]).
 
@@ -762,233 +762,6 @@ query_service(start) ->
 		{atomic, Services} ->
 			{eof, Services}
 	end.
-
--spec query_subscriber(Cont, Id, Password, Product, Cents,
-		Bytes, Seconds, Enabled, MultiSession) -> Result
-	when
-		Cont :: start | eof | any(),
-		Id :: undefined | string(),
-		Password :: undefined | string(),
-		Product :: undefined | string(),
-		Cents :: undefined | string(),
-		Bytes :: undefined | string(),
-		Seconds :: undefined | string(),
-		Enabled :: undefined | string(),
-		MultiSession :: undefined | string(),
-		Result :: {Cont, [#product{}]} | {error, Reason},
-		Reason :: term().
-%% @doc Query product inventories
-query_subscriber(start, Id, Password, Product, Cents,
-		Bytes, Seconds, Enabled, MultiSession) ->
-	MatchSpec = [{'_', [], ['$_']}],
-	F = fun(F, start, Acc) ->
-				F(F, mnesia:select(service, MatchSpec,
-						?CHUNKSIZE, read), Acc);
-			(_F, '$end_of_table', Acc) ->
-				lists:flatten(lists:reverse(Acc));
-			(_F, {error, Reason}, _Acc) ->
-				{error, Reason};
-			(F,{Services, Cont}, Acc) ->
-				F(F, mnesia:select(Cont), [Services | Acc])
-	end,
-	case mnesia:transaction(F, [F, start, []]) of
-		{aborted, Reason} ->
-			{error, Reason};
-		{atomic, Subscribers} ->
-			query_subscriber1(Subscribers, Id, Password, Product,
-					Cents, Bytes, Seconds, Enabled, MultiSession)
-	end.
-%% @hidden
-query_subscriber1(Subs, undefined, Pwd, Product, Cents, Bytes, Seconds,
-		Enabled, MultiSession) ->
-	query_subscriber2(Subs, Pwd, Product, Cents, Bytes, Seconds, Enabled,
-			MultiSession);
-query_subscriber1(Subs, [], Pwd, Product, Cents, Bytes, Seconds,
-		Enabled, MultiSession) ->
-	query_subscriber2(Subs, Pwd, Product, Cents, Bytes, Seconds, Enabled,
-			MultiSession);
-query_subscriber1(Subs, Id, Pwd, Product, Cents, Bytes, Seconds,
-		Enabled, MultiSession) ->
-	IdBin = list_to_binary(Id),
-	F = fun(#service{name = IdBin1}) ->
-				case binary:match(IdBin1, IdBin) of
-					nomatch ->
-						false;
-					{_, _} ->
-						true
-				end
-	end,
-	FilteredSubs = lists:filter(F, Subs),
-	query_subscriber2(FilteredSubs, Pwd, Product, Cents, Bytes, Seconds,
-			Enabled, MultiSession).
-%% @hidden
-query_subscriber2(Subs, undefined, Product, Cents, Bytes, Seconds,
-			Enabled, MultiSession) ->
-	query_subscriber3(Subs, Product, Cents, Bytes, Seconds,
-			Enabled, MultiSession);
-query_subscriber2(Subs, [], Product, Cents, Bytes, Seconds,
-			Enabled, MultiSession) ->
-	query_subscriber3(Subs, Product, Cents, Bytes, Seconds,
-			Enabled, MultiSession);
-query_subscriber2(Subs, Pwd, Product, Cents, Bytes, Seconds,
-			Enabled, MultiSession) ->
-	PwdBin = list_to_binary(Pwd),
-	F = fun(#service{password = PwdBin1}) ->
-				case binary:match(PwdBin1, PwdBin) of
-					nomatch ->
-						false;
-					{_, _} ->
-						true
-				end
-	end,
-	FilteredSubs = lists:filter(F, Subs),
-	query_subscriber3(FilteredSubs, Product, Cents, Bytes, Seconds,
-			Enabled, MultiSession).
-%% @hidden
-query_subscriber3(Subs, undefined, Cents, Bytes, Seconds, Enabled, MultiSession) ->
-	query_subscriber4(Subs, Cents, Bytes, Seconds, Enabled, MultiSession);
-query_subscriber3(Subs, [], Cents, Bytes, Seconds, Enabled, MultiSession) ->
-	query_subscriber4(Subs, Cents, Bytes, Seconds, Enabled, MultiSession);
-query_subscriber3(Subs, Product, Cents, Bytes, Seconds, Enabled, MultiSession) ->
-	ProdBin = list_to_binary(Product),
-	F = fun(#service{product = #product_instance{product = undefined}}) ->
-				false;
-			(#service{product = #product_instance{product = Product1}}) ->
-				case binary:match(list_to_binary(Product1), ProdBin) of
-					nomatch ->
-						false;
-					{_, _} ->
-						true
-				end
-	end,
-	FilteredSubs = lists:filter(F, Subs),
-	query_subscriber4(FilteredSubs, Cents, Bytes, Seconds, Enabled, MultiSession).
-%% @hidden
-query_subscriber4(Subs, undefined, Bytes, Seconds, Enabled, MultiSession) ->
-	query_subscriber5(Subs, Bytes, Seconds, Enabled, MultiSession);
-query_subscriber4(Subs, [], Bytes, Seconds, Enabled, MultiSession) ->
-	query_subscriber5(Subs, Bytes, Seconds, Enabled, MultiSession);
-query_subscriber4(Subs, Cents, Bytes, Seconds, Enabled, MultiSession) ->
-	CentsD = ocs_rest:decimal(Cents),
-	F = fun(#service{buckets = []}) ->
-			false;
-			(#service{buckets = Buckets}) ->
-					case lists:keyfind(cents, #bucket.units, Buckets) of
-						false ->
-							false;
-						#bucket{remain_amount = CentsD} ->
-							true;
-						#bucket{} ->
-							false
-					end
-	end,
-	FilteredSubs = lists:filter(F, Subs),
-	query_subscriber5(FilteredSubs, Bytes, Seconds, Enabled, MultiSession).
-%% @hidden
-query_subscriber5(Subs, undefined, Seconds, Enabled, MultiSession) ->
-	query_subscriber6(Subs, Seconds, Enabled, MultiSession);
-query_subscriber5(Subs, [], Seconds, Enabled, MultiSession) ->
-	query_subscriber6(Subs, Seconds, Enabled, MultiSession);
-query_subscriber5(Subs, Bytes, Seconds, Enabled, MultiSession) ->
-	case catch list_to_integer(Bytes) of
-		{error, _} ->
-			query_subscriber6(Subs, Seconds, Enabled, MultiSession);
-		BytesInt ->
-			F = fun(#service{buckets = []}) ->
-						false;
-					(#service{buckets = Buckets}) ->
-						case lists:keyfind(octets, #bucket.units, Buckets) of
-							false ->
-								false;
-							#bucket{remain_amount = BytesInt} ->
-								true;
-							#bucket{} ->
-								false
-						end
-			end,
-			FilteredSubs = lists:filter(F, Subs),
-			query_subscriber6(FilteredSubs, Seconds, Enabled, MultiSession)
-	end.
-%% @hidden
-query_subscriber6(Subs, undefined, Enabled, MultiSession) ->
-	query_subscriber7(Subs, Enabled, MultiSession);
-query_subscriber6(Subs, [], Enabled, MultiSession) ->
-	query_subscriber7(Subs, Enabled, MultiSession);
-query_subscriber6(Subs, Seconds, Enabled, MultiSession) ->
-	case catch list_to_integer(Seconds) of
-		{error, _} ->
-			query_subscriber7(Subs, Enabled, MultiSession);
-		SecondsInt ->
-			F = fun(#service{buckets = []}) ->
-						false;
-					(#service{buckets = Buckets}) ->
-						case lists:keyfind(seconds, #bucket.units, Buckets) of
-							false ->
-								false;
-							#bucket{remain_amount = SecondsInt} ->
-								true;
-							#bucket{} ->
-								false
-						end
-			end,
-			FilteredSubs = lists:filter(F, Subs),
-			query_subscriber7(FilteredSubs, Enabled, MultiSession)
-	end.
-%% @hidden
-query_subscriber7(Subs, undefined, MultiSession) ->
-	query_subscriber8(Subs, MultiSession);
-query_subscriber7(Subs, [], MultiSession) ->
-	query_subscriber8(Subs, MultiSession);
-query_subscriber7(Subs, Enabled, MultiSession) ->
-	EnBin = list_to_binary(Enabled),
-	E = case binary:match(<<"true">>, EnBin) of
-				nomatch ->
-					case binary:match(<<"false">>, EnBin) of
-						nomatch ->
-							nomatch;
-						_ ->
-							false
-					end;
-				_ ->
-					true
-	end,
-	F = fun(#service{enabled = V}) ->
-					case V of
-						E ->
-							true;
-						_ ->
-							false
-					end
-	end,
-	FilteredSubs = lists:filter(F, Subs),
-	query_subscriber8(FilteredSubs, MultiSession).
-%% @hidden
-query_subscriber8(Subs, undefined) ->
-	{eof, Subs};
-query_subscriber8(Subs, []) ->
-	{eof, Subs};
-query_subscriber8(Subs, MultiSession) ->
-	MSBin = list_to_binary(MultiSession),
-	MS = case binary:match(<<"true">>, MSBin) of
-				nomatch ->
-					case binary:match(<<"false">>, MSBin) of
-						nomatch ->
-							nomatch;
-						_ ->
-							false
-					end;
-				_ ->
-					true
-	end,
-	F = fun(#service{multisession = V}) ->
-					case V of
-						MS ->
-							true;
-						_ ->
-							false
-					end
-	end,
-	{eof, lists:filter(F, Subs)}.
 
 -spec delete_service(Identity) -> ok
 	when
@@ -1776,36 +1549,12 @@ get_params() ->
 			exit(not_found)
 	end.
 
--spec charge(Amount, Buckets) -> Buckets
-	when
-		Amount :: non_neg_integer(),
-		Buckets :: [#bucket{}].
-%% @doc Charge `Amount' to `Buckets'.
-%% @private
-charge(Amount, Buckets) ->
-	charge(Amount, Buckets, []).
-%% @hidden
-charge(0, T, Acc) ->
-	lists:reverse(Acc) ++ T;
-charge(Amount, [#bucket{units = cents,
-		remain_amount = Remain} = B | T], Acc) when Amount < Remain ->
-	lists:reverse(Acc) ++ [B#bucket{remain_amount = Remain - Amount} | T];
-charge(Amount, [#bucket{units = cents,
-		remain_amount = Remain} = B], Acc) ->
-	lists:reverse([B#bucket{remain_amount = Remain - Amount} | Acc]);
-charge(Amount, [#bucket{units = cents,
-		remain_amount = Remain} | T], Acc) ->
-	charge(Amount - Remain, T, Acc);
-charge(Amount, [H | T], Acc) ->
-	charge(Amount, T, [H | Acc]);
-charge(Amount, [], Acc) ->
-	lists:reverse([#bucket{units = cents, remain_amount = - Amount} | Acc]).
-
 -spec date(MilliSeconds) -> DateTime
 	when
 		MilliSeconds :: pos_integer(),
 		DateTime :: calendar:datetime().
 %% @doc Convert timestamp to date and time.
+%% @private
 date(MilliSeconds) when is_integer(MilliSeconds) ->
 	Seconds = ?EPOCH + (MilliSeconds div 1000),
 	calendar:gregorian_seconds_to_datetime(Seconds).
@@ -1816,6 +1565,7 @@ date(MilliSeconds) when is_integer(MilliSeconds) ->
 		Period :: hourly | daily | weekly | monthly | yearly,
 		EndTime :: non_neg_integer().
 %% @doc Calculate end of period.
+%% @private
 end_period(StartTime, Period) when is_integer(StartTime) ->
 	end_period1(date(StartTime), Period).
 %% @hidden
@@ -1905,106 +1655,6 @@ default_chars1([_ | T]) ->
 	default_chars1(T);
 default_chars1([]) ->
 	undefined.
-
--spec subscription(Service, Offer, Characteristics, InitialFlag) ->
-		Service
-	when
-		Service :: #service{},
-		Offer :: #offer{},
-		Characteristics :: [tuple()],
-		InitialFlag :: boolean().
-%% @doc Apply product offering charges.
-%% 	If `InitialFlag' is `true' initial bucket preparation
-%% 	is done and one time prices are charged.
-%% @throws offer_not_found
-subscription(#service{last_modified = {Now, _}} = Service,
-		#offer{name = OfferName, bundle = [], price = Prices} = _Offer,
-		Characteristics, InitialFlag) ->
-	Service1 = subscription(Service,
-			Characteristics, Now, InitialFlag, Prices),
-	ProductInstance = #product_instance{start_date = Now,
-			product = OfferName, characteristics = Characteristics,
-			last_modified = {Now, erlang:unique_integer([positive])}},
-	Service1#service{product = ProductInstance};
-subscription(#service{last_modified = {Now, _}} = Service,
-		#offer{name = BundleName, bundle = Bundled, price = Prices},
-		Characteristics, InitialFlag) when length(Bundled) > 0 ->
-	F = fun(#bundled_po{name = P}, S) ->
-				case mnesia:read(offer, P, read) of
-					[Offer] ->
-						subscription(S, Offer, Characteristics, true);
-					[] ->
-						throw(offer_not_found)
-				end
-	end,
-	Service1 = lists:foldl(F, Service, Bundled),
-	Service2 = subscription(Service1,
-			Characteristics, Now, InitialFlag, Prices),
-	ProductInstance = #product_instance{start_date = Now,
-			product = BundleName, characteristics = Characteristics,
-			last_modified = {Now, erlang:unique_integer([positive])}},
-	Service2#service{product = ProductInstance}.
-%% @hidden
-subscription(#service{buckets = Buckets} = Service,
-		Characteristics, Now, true, [#price{type = one_time,
-		amount = Amount, alteration = undefined} | T]) ->
-	NewBuckets = charge(Amount, Buckets),
-	subscription(Service#service{buckets = NewBuckets},
-			Characteristics, Now, true, T);
-subscription(#service{buckets = Buckets} = Service,
-		Characteristics, Now, true, [#price{type = one_time,
-		amount = PriceAmount, name = Name,
-		alteration = #alteration{units = Units, size = Size,
-		amount = AlterationAmount}} | T]) ->
-	NewBuckets = charge(PriceAmount + AlterationAmount,
-		[#bucket{units = Units, remain_amount = Size, prices = [Name]} | Buckets]),
-	subscription(Service#service{buckets = NewBuckets},
-			Characteristics, Now, true, T);
-subscription(#service{buckets = Buckets} = Service,
-		Characteristics, Now, true, [#price{type = usage,
-		name = Name, alteration = #alteration{type = one_time,
-		units = Units, size = Size, amount = AlterationAmount}} | T]) ->
-	NewBuckets = charge(AlterationAmount, [#bucket{units = Units,
-		remain_amount = Size, prices = [Name]} | Buckets]),
-	subscription(Service#service{buckets = NewBuckets},
-			Characteristics, Now, true, T);
-subscription(#service{buckets = Buckets} = Service,
-		Characteristics, Now, InitialFlag, [#price{type = recurring,
-		period = Period, amount = SubscriptionAmount,
-		alteration = undefined} | T]) when Period /= undefined ->
-	NewBuckets = charge(SubscriptionAmount, Buckets),
-	subscription(Service#service{buckets = NewBuckets},
-			Characteristics, Now, InitialFlag, T);
-subscription(#service{buckets = Buckets} = Service,
-		Characteristics, Now, InitialFlag,
-		[#price{type = recurring, name = Name,
-		period = Period, amount = SubscriptionAmount,
-		alteration = #alteration{units = Units, size = Size,
-		amount = AllowanceAmount}} | T]) when Period /= undefined,
-		Units == octets; Period /= undefined, Units == seconds ->
-	NewBuckets = charge(SubscriptionAmount + AllowanceAmount,
-			[#bucket{units = Units, remain_amount = Size, name = Name,
-			termination_date = end_period(Now, Period)} | Buckets]),
-	subscription(Service#service{buckets = NewBuckets},
-			Characteristics, Now, InitialFlag, T);
-subscription(#service{buckets = Buckets} = Service,
-		Characteristics, Now, InitialFlag, [#price{type = usage,
-		name = Name, alteration = #alteration{type = recurring,
-		period = Period, units = Units, size = Size,
-		amount = Amount}} | T]) when Period /= undefined,
-		Units == octets; Units == seconds ->
-	NewBuckets = charge(Amount, [#bucket{units = Units,
-			remain_amount = Size, prices = [Name],
-			termination_date = end_period(Now, Period)} | Buckets]),
-	subscription(Service#service{buckets = NewBuckets},
-			Characteristics, Now, InitialFlag, T);
-subscription(Service, Characteristics, Now, InitialFlag, [_H | T]) ->
-	subscription(Service, Characteristics, Now, InitialFlag, T);
-subscription(#service{buckets = Buckets} = Service, _, Now, _, []) ->
-	NewBuckets = [B#bucket{last_modified = {Now,
-			erlang:unique_integer([positive])},
-			id = generate_bucket_id()} || B <- Buckets],
-	Service#service{buckets = NewBuckets}.
 
 %% @hidden
 generate_bucket_id() ->

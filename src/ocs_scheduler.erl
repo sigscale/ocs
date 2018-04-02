@@ -45,34 +45,9 @@ start(Interval) ->
 -spec product_charge() -> ok.
 %% @doc Scheduler update for all the subscriptions.
 product_charge() ->
-	F  = fun() ->
-		product_charge(mnesia:first(service))
-	end,
-	mnesia:transaction(F),
+	error_logger:error_report("Not implement scheduler update",
+			[{module, ?MODULE}]),
 	ok.
-%% @hidden
-product_charge('$end_of_table') ->
-	ok;
-product_charge(SubscriptionId) ->
-	case mnesia:read(service, SubscriptionId) of
-		[#service{product =
-				#product_instance{product = ProdId,
-				characteristics = Chars}} = Subscriber]
-				when ProdId /= undefined ->
-			Now = erlang:system_time(?MILLISECOND),
-			LM = {Now, erlang:unique_integer([positive])},
-			case mnesia:read(product, ProdId, read) of
-				[Product] ->
-					Subscriber1 = Subscriber#service{last_modified= LM},
-					Subscriber2 = ocs:subscription(Subscriber1, Product, Chars, false),
-					mnesia:write(Subscriber2);
-				[] ->
-					ok
-			end;
-		[] ->
-			ok
-	end,
-	product_charge(mnesia:next(service, SubscriptionId)).
 
 %%----------------------------------------------------------------------
 %%  internal functions
