@@ -422,8 +422,7 @@ find_product(ProductRef) when is_list(ProductRef) ->
 -spec delete_product(ProductRef) -> Result
 	when
 		ProductRef :: string(),
-		Result :: ok | {error, Reason},
-		Reason :: term().
+		Result :: ok.
 %% @doc Delete an entry from product table
 %% @todo If service subscribe to given product
 %% then ignore the deleteing record form the table

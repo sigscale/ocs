@@ -695,10 +695,10 @@ delete_offer(Id) ->
 %% @doc Respond to `DELETE /productInventoryManagement/v1/product/{id}'
 %% 	request to remove a `Product Invenotry'.
 delete_inventory(Id) ->
-	case ocs:delete_product(Id) of
+	case catch ocs:delete_product(Id) of
 		ok ->
 			{ok, [], []};
-		{error, _} ->
+		{'EXIT', _} ->
 			{error, 500}
 	end.
 
