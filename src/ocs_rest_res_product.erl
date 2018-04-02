@@ -545,9 +545,9 @@ get_pla_spec(ID, [] = _Query) ->
 get_pla_spec(_Id, _Query) ->
 	{error, 400}.
 
--spec patch_inventory(SubId, Etag, ReqData) -> Result
+-spec patch_inventory(ProdId, Etag, ReqData) -> Result
 	when
-		SubId	:: string(),
+		ProdId :: string(),
 		Etag		:: undefined | list(),
 		ReqData	:: [tuple()],
 		Result	:: {ok, Headers, Body} | {error, Status},
@@ -557,7 +557,7 @@ get_pla_spec(_Id, _Query) ->
 %% @doc Respond to `PATCH /catalogManagement/v2/productOffering/{id}'.
 %% 	Update a Product Offering using JSON patch method
 %% 	<a href="http://tools.ietf.org/html/rfc6902">RFC6902</a>.
-patch_inventory(SubId, Etag, ReqData) ->
+patch_inventory(ProdId, Etag, ReqData) ->
 	try
 		Etag1 = case Etag of
 			undefined ->
@@ -569,33 +569,33 @@ patch_inventory(SubId, Etag, ReqData) ->
 	of
 		{Etag2, {array, _} = Operations} ->
 			F = fun() ->
-					case mnesia:read(service, SubId, write) of
-						[Subscriber1] when
-								Subscriber1#service.last_modified == Etag2;
+					case mnesia:read(product, ProdId, write) of
+						[Product1] when
+								Product1#product.last_modified == Etag2;
 								Etag2 == undefined ->
-							case catch ocs_rest:patch(Operations, inventory(Subscriber1)) of
-								{struct, _} = Subscriber2  ->
-									Subscriber3 = inventory(Subscriber2),
+							case catch ocs_rest:patch(Operations, inventory(Product1)) of
+								{struct, _} = Product2 ->
+									Product3 = inventory(Product2),
 									TS = erlang:system_time(?MILLISECOND),
 									N = erlang:unique_integer([positive]),
 									LM = {TS, N},
-									Subscriber4 = Subscriber3#service{last_modified = LM},
-									ok = mnesia:write(Subscriber4),
-									{Subscriber2, LM};
+									Product4 = Product3#product{last_modified = LM},
+									ok = mnesia:write(Product4),
+									{Product2, LM};
 								_ ->
 									throw(bad_request)
 							end;
-						[#service{}] ->
+						[#product{}] ->
 							throw(precondition_failed);
 						[] ->
 							throw(not_found)
 					end
 			end,
 			case mnesia:transaction(F) of
-				{atomic, {Subscriber, Etag3}} ->
-					Location = "/productInventoryManagement/v1/product/" ++ SubId,
+				{atomic, {Product, Etag3}} ->
+					Location = "/productInventoryManagement/v1/product/" ++ ProdId,
 					Headers = [{location, Location}, {etag, ocs_rest:etag(Etag3)}],
-					Body = mochijson:encode(Subscriber),
+					Body = mochijson:encode(Product),
 					{ok, Headers, Body};
 				{aborted, {throw, bad_request}} ->
 					{error, 400};
