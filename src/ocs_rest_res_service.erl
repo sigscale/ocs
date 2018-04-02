@@ -413,8 +413,7 @@ inventory([name | T], #service{name = Identity} = Service,
 	Href = {"href", ?serviceInventoryPath ++ binary_to_list(Identity)},
 	NewChars = lists:keystore("serviceIdentity", 1, Chars, SId),
 	inventory(T, Service, NewChars, [Id, Href | Acc]);
-inventory([name | T], #service{name = Identity} = Service,
-		Chars, Acc) when is_list(Identity) ->
+inventory([name | T], #service{name = Identity} = Service, Chars, Acc) ->
 	Id = {"id", Identity},
 	Href = {"href", ?serviceInventoryPath ++ Identity},
 	SId = {"serviceIdentity", Identity},
@@ -427,8 +426,7 @@ inventory([password | T], #service{password = Password} = Service,
 	SPwd = {"servicePassword", binary_to_list(Password)},
 	NewChars = lists:keystore("servicePassword", 1, Chars, SPwd),
 	inventory(T, Service, NewChars, Acc);
-inventory([password | T], #service{password = Password} = Service,
-		Chars, Acc) when is_list(Password) ->
+inventory([password | T], #service{password = Password} = Service, Chars, Acc) ->
 	SPwd = {"servicePassword", Password},
 	NewChars = lists:keystore("servicePassword", 1, Chars, SPwd),
 	inventory(T, Service, NewChars, Acc);
