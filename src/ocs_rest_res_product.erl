@@ -205,8 +205,8 @@ get_offer(ID) ->
 get_inventory(ID) ->
 	try
 		case ocs:find_product(ID) of
-			{ok, Product} ->
-				Subscriber;
+			{ok, Product1} ->
+				Product1;
 			{error, not_found} ->
 				{throw, 404};
 			{error, _Reason1} ->
@@ -216,7 +216,7 @@ get_inventory(ID) ->
 		Product ->
 			Body = mochijson:encode(inventory(Product)),
 			Etag = ocs_rest:etag(Product#product.last_modified),
-			Href = ?inventoryPath ++ Product#product.name),
+			Href = ?inventoryPath ++ Product#product.name,
 			Headers = [{location, Href}, {etag, Etag},
 					{content_type, "application/json"}],
 			{ok, Headers, Body}
