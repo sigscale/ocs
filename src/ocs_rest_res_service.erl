@@ -142,10 +142,10 @@ get_inventories(Query, Headers) ->
 %% @doc Respond to `DELETE /serviceInventoryManagement/v2/service/{id}'
 %% 	request to remove a `Service Inventory'.
 delete_inventory(Id) ->
-	case ocs:delete_service(Id) of
+	case catch ocs:delete_service(Id) of
 		ok ->
 			{ok, [], []};
-		{error, _} ->
+		{'EXIT', _} ->
 			{error, 500}
 	end.
 
