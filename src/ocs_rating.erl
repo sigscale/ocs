@@ -1349,42 +1349,6 @@ refund(SessionId, Bucket1, [], T, Acc1, Acc2) ->
 	Bucket2 = Bucket1#bucket{reservations = lists:reverse(Acc1)},
 	refund(SessionId, T, [Bucket2 | Acc2]).
 
--spec due(Buckets) -> Buckets
-	when
-		Buckets :: [#bucket{}].
-%% @doc Claim if any dues
-%% @hidden
-due(Buckets) ->
-	F = fun(#bucket{remain_amount = R}) when R =< 0 ->
-			true;
-	(_) ->
-			false
-	end,
-	{B1, B2} = lists:splitwith(F, Buckets),
-	due1(B1, B2).
-%% @hidden
-due1([H | T], B2) ->
-	due1(T, due2(H, B2));
-due1([], B2) ->
-	B2.
-%% @hidden
-due2(B1, B2) ->
-	due2(B1, B2, []).
-%% @hidden
-due2(#bucket{units = Units, remain_amount = R1} = B1,
-		[#bucket{units = Units, remain_amount = R2}
-		| T], Acc) when R1 < 0, R1 + R2 < 0 ->
-	due2(B1#bucket{remain_amount = R1 + R2}, T, Acc);
-due2(#bucket{units = Units, remain_amount = R1},
-		[#bucket{units = Units, remain_amount = R2} = B2
-		| T], Acc) when R1 < 0, R1 + R2 >= 0 ->
-	NewAcc = [B2#bucket{remain_amount = R1 + R2} | Acc],
-	lists:reverse(NewAcc) ++ T;
-due2(#bucket{} = B, [H | T], Acc) ->
-	due2(B, T, [H | Acc]);
-due2(#bucket{} = B, [], Acc) ->
-	lists:reverse([B | Acc]).
-
 -spec filter_prices_tod(Timestamp, Prices) -> Prices
 	when
 		Timestamp :: calendar:datetime(),
