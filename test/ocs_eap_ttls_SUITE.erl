@@ -55,6 +55,10 @@
 -define(BASE_APPLICATION_ID, 0).
 -define(EAP_APPLICATION_ID, 5).
 
+%% support deprecated_time_unit()
+-define(MILLISECOND, milli_seconds).
+%-define(MILLISECOND, millisecond).
+
 -include_lib("radius/include/radius.hrl").
 -include_lib("diameter/include/diameter.hrl").
 -include("ocs_eap_codec.hrl").
@@ -152,13 +156,15 @@ eap_ttls_authentication_radius() ->
 
 eap_ttls_authentication_radius(Config) ->
 	DataDir = ?config(data_dir, Config),
-	ProdID = ?config(product_id, Config),
+	P1 = price(usage, octets, rand:uniform(1000000), rand:uniform(100)),
+	OfferId = add_offer([P1], 4),
+	ProdRef = add_product(OfferId),
+	#service{name = Username,
+			password = PeerAuth} =  add_service(ProdRef),
+	B1 = bucket(octets, rand:uniform(100000)),
+	_BId = add_bucket(ProdRef, B1),
 	AnonymousName = ocs:generate_password(),
-	Subscriber = ocs:generate_identity(),
 	MAC = "DD-EE-FF-AA-BB-CC",
-	PeerAuth = list_to_binary(ocs:generate_password()),
-	Buckets = [#bucket{remain_amount = 1000, units = cents}],
-	{ok, _} = ocs:add_service(Subscriber, PeerAuth, ProdID, [], Buckets, []),
 	Socket = ?config(socket, Config),
 	{ok, RadiusConfig} = application:get_env(ocs, radius),
 	{auth, [{Address, Port, _} | _]} = lists:keyfind(auth, 1, RadiusConfig),
@@ -197,8 +203,9 @@ eap_ttls_authentication_radius(Config) ->
 	{MSK, _} = prf(SslSocket, master_secret ,
 			<<"ttls keying material">>, Seed, 128),
 	ReqAuth6 = radius:authenticator(),
-	{RadId7, CPAuth} = client_passthrough_radius(SslSocket, Subscriber, PeerAuth,
-			Socket, Address, Port, NasId, Secret, MAC, ReqAuth6, EapId5, RadId7),
+	{RadId7, CPAuth} = client_passthrough_radius(SslSocket,
+			binary_to_list(Username), PeerAuth, Socket, Address,
+			Port, NasId, Secret, MAC, ReqAuth6, EapId5, RadId7),
 	ok = server_passthrough_radius(Socket, Address, Port, NasId, UserName, Secret,
 			MAC, MSK, CPAuth, RadId7),
 	ok = ssl:close(SslSocket).
@@ -213,11 +220,13 @@ eap_ttls_authentication_diameter(Config) ->
 	SIdbin = list_to_binary(SId),
 	DataDir = ?config(data_dir, Config),
 	AnonymousName = ocs:generate_password(),
-	Subscriber = ocs:generate_identity(),
-	PeerAuth = list_to_binary(ocs:generate_password()),
-	Buckets = [#bucket{remain_amount = 1000, units = octets}],
-	ProdID = ?config(product_id, Config),
-	{ok, _} = ocs:add_service(Subscriber, PeerAuth, ProdID, [], Buckets, []),
+	P1 = price(usage, octets, rand:uniform(1000000), rand:uniform(100)),
+	OfferId = add_offer([P1], 4),
+	ProdRef = add_product(OfferId),
+	#service{name = Username,
+			password = PeerAuth} =  add_service(ProdRef),
+	B1 = bucket(octets, rand:uniform(100000)),
+	_BId = add_bucket(ProdRef, B1),
 	{ok, DiameterConfig} = application:get_env(ocs, diameter),
 	{auth, [{Address, _Port, _} | _]} = lists:keyfind(auth, 1, DiameterConfig),
 	DEA1 = send_identity_diameter(SId, AnonymousName, EapId),
@@ -258,7 +267,7 @@ eap_ttls_authentication_diameter(Config) ->
 	Seed = prf_seed(ClientHelloMsg, ServerHello),
 	{_MSK, _} = prf(SslSocket, master_secret ,
 			<<"ttls keying material">>, Seed, 128),
-	ok = client_passthrough_diameter(SslSocket, Subscriber, PeerAuth, SId, EapId4),
+	ok = client_passthrough_diameter(SslSocket, binary_to_list(Username), PeerAuth, SId, EapId4),
 	ok = ssl:close(SslSocket).
 
 %%---------------------------------------------------------------------
@@ -828,3 +837,43 @@ encrypt_key(Secret, RequestAuthenticator, Salt, Key)
 	AccIn = [[RequestAuthenticator, <<Salt:16>>]],
 	AccOut = lists:foldl(F, AccIn, [P || <<P:16/binary>> <= Plaintext]),
 	iolist_to_binary(tl(lists:reverse(AccOut))).
+
+%% @hidden
+price(Type, Units, Size, Amount) ->
+	#price{name = ocs:generate_identity(),
+			type = Type, units = Units,
+			size = Size, amount = Amount}.
+
+%% @hidden
+bucket(Units, RA) ->
+	#bucket{units = Units, remain_amount = RA,
+		start_date = erlang:system_time(?MILLISECOND),
+		termination_date = erlang:system_time(?MILLISECOND) + 2592000000}.
+
+%% @hidden
+add_offer(Prices, Spec) when is_integer(Spec) ->
+	add_offer(Prices, integer_to_list(Spec));
+add_offer(Prices, Spec) ->
+	Offer = #offer{name = ocs:generate_identity(),
+	price = Prices, specification = Spec},
+	{ok, #offer{name = OfferId}} = ocs:add_offer(Offer),
+	OfferId.
+
+%% @hidden
+add_product(OfferId) ->
+	add_product(OfferId, []).
+add_product(OfferId, Chars) ->
+	{ok, #product{id = ProdRef}} = ocs:add_product(OfferId, Chars),
+	ProdRef.
+
+%% @hidden
+add_service(ProdRef) ->
+	{ok, Service} =
+			ocs:add_service(ocs:generate_identity(), ocs:generate_password(),
+			ProdRef, []),
+	Service.
+
+%% @hidden
+add_bucket(ProdRef, Bucket) ->
+	{ok, _, #bucket{id = BId}} = ocs:add_bucket(ProdRef, Bucket),
+	BId.

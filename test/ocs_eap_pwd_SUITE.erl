@@ -183,11 +183,11 @@ pwd_id_over_radius() ->
    [{userdata, [{doc, "Send an EAP-pwd-ID/Response to peer"}]}].
 
 pwd_id_over_radius(Config) ->
-	ProdID = ?config(product_id, Config),
-	PeerId = <<"23456789">>,
+	P1 = price(usage, octets, rand:uniform(1000000), rand:uniform(100)),
+	OfferId = add_offer([P1], 4),
+	ProdRef = add_product(OfferId),
+	#service{name = PeerId} =  add_service(ProdRef),
 	MAC = "BB-CC-DD-EE-FF-AA",
-	PeerAuth = list_to_binary(ocs:generate_password()),
-	{ok, _} = ocs:add_service(PeerId, PeerAuth, ProdID),
 	Socket = ?config(socket, Config),
 	{ok, RadiusConfig} = application:get_env(ocs, radius),
 	{auth, [{Address, Port, _} | _]} = lists:keyfind(auth, 1, RadiusConfig),
@@ -212,11 +212,11 @@ pwd_id_over_radius(Config) ->
 pwd_id_over_diameter() ->
    [{userdata, [{doc, "Send an EAP-pwd-ID/Response to peer using DIAMETER"}]}].
 
-pwd_id_over_diameter(Config) ->
-	ProdID = ?config(product_id, Config),
-	PeerId = <<"78923456">>,
-	PeerAuth = list_to_binary(ocs:generate_password()),
-	{ok, _} = ocs:add_service(PeerId, PeerAuth, ProdID),
+pwd_id_over_diameter(_Config) ->
+	P1 = price(usage, octets, rand:uniform(1000000), rand:uniform(100)),
+	OfferId = add_offer([P1], 4),
+	ProdRef = add_product(OfferId),
+	#service{name = PeerId} =  add_service(ProdRef),
 	Ref = erlang:ref_to_list(make_ref()),
 	SId = diameter:session_id(Ref),
 	EapId0 = 0,
@@ -258,11 +258,11 @@ pwd_commit_over_radius() ->
 	[{userdata, [{doc, "Send an EAP-pwd-Commit/Response using RADIUS to peer"}]}].
 
 pwd_commit_over_radius(Config) ->
-	ProdID = ?config(product_id, Config),
-	PeerId = <<"34567890">>,
+	P1 = price(usage, octets, rand:uniform(1000000), rand:uniform(100)),
+	OfferId = add_offer([P1], 4),
+	ProdRef = add_product(OfferId),
+	#service{name = PeerId, password = PeerAuth} =  add_service(ProdRef),
 	MAC = "CC-DD-EE-FF-AA-BB",
-	PeerAuth = list_to_binary(ocs:generate_password()),
-	{ok, _} = ocs:add_service(PeerId, PeerAuth, ProdID),
 	Socket = ?config(socket, Config),
 	{ok, RadiusConfig} = application:get_env(ocs, radius),
 	{auth, [{Address, Port, _} | _]} = lists:keyfind(auth, 1, RadiusConfig),
@@ -297,11 +297,11 @@ pwd_commit_over_radius(Config) ->
 pwd_commit_over_diameter() ->
    [{userdata, [{doc, "Send an EAP-pwd-Commit/Response to peer using DIAMETER"}]}].
 
-pwd_commit_over_diameter(Config) ->
-	ProdID = ?config(product_id, Config),
-	PeerId = <<"78456923">>,
-	PeerAuth = list_to_binary(ocs:generate_password()),
-	{ok, _} = ocs:add_service(PeerId, PeerAuth, ProdID),
+pwd_commit_over_diameter(_Config) ->
+	P1 = price(usage, octets, rand:uniform(1000000), rand:uniform(100)),
+	OfferId = add_offer([P1], 4),
+	ProdRef = add_product(OfferId),
+	#service{name = PeerId, password = PeerAuth} =  add_service(ProdRef),
 	Ref = erlang:ref_to_list(make_ref()),
 	SId = diameter:session_id(Ref),
 	EapId0 = 0,
@@ -357,15 +357,13 @@ pwd_confirm_over_radius() ->
 	[{userdata, [{doc, "Send an EAP-pwd-Confirm/Response using RADIUS to peer"}]}].
 
 pwd_confirm_over_radius(Config) ->
-	ProdID = ?config(product_id, Config),
-	PeerId = <<"45678901">>,
+	P1 = price(usage, octets, rand:uniform(1000000), rand:uniform(100)),
+	OfferId = add_offer([P1], 4),
+	ProdRef = add_product(OfferId),
+	#service{name = PeerId, password = PeerAuth} =  add_service(ProdRef),
+	B1 = bucket(octets, rand:uniform(100000)),
+	_BId = add_bucket(ProdRef, B1),
 	MAC = "DD-EE-FF-AA-BB-CC",
-	PeerAuth = list_to_binary(ocs:generate_password()),
-	Now = erlang:system_time(?MILLISECOND),
-	TD = Now + 86400000,
-	Buckets = [#bucket{remain_amount = 1000, units = octets,
-		termination_date = TD}],
-	{ok, _} = ocs:add_service(PeerId, PeerAuth, ProdID, [], Buckets, []),
 	Socket = ?config(socket, Config),
 	{ok, RadiusConfig} = application:get_env(ocs, radius),
 	{auth, [{Address, Port, _} | _]} = lists:keyfind(auth, 1, RadiusConfig),
@@ -409,15 +407,13 @@ pwd_confirm_over_radius(Config) ->
 pwd_confirm_over_diameter() ->
    [{userdata, [{doc, "Send an EAP-pwd-Confirm/Response to peer using DIAMETER"}]}].
 
-pwd_confirm_over_diameter(Config) ->
-	ProdID = ?config(product_id, Config),
-	PeerId = <<"72384569">>,
-	PeerAuth = list_to_binary(ocs:generate_password()),
-	Now = erlang:system_time(?MILLISECOND),
-	TD = Now + 86400000,
-	Buckets = [#bucket{remain_amount = 100000, units = octets,
-			termination_date = TD}],
-	{ok, _} = ocs:add_service(PeerId, PeerAuth, ProdID, [], Buckets, []),
+pwd_confirm_over_diameter(_Config) ->
+	P1 = price(usage, octets, rand:uniform(1000000), rand:uniform(100)),
+	OfferId = add_offer([P1], 4),
+	ProdRef = add_product(OfferId),
+	#service{name = PeerId, password = PeerAuth} =  add_service(ProdRef),
+	B1 = bucket(octets, rand:uniform(100000)),
+	_BId = add_bucket(ProdRef, B1),
 	Ref = erlang:ref_to_list(make_ref()),
 	SId = diameter:session_id(Ref),
 	EapId0 = 0,
@@ -485,17 +481,17 @@ message_authentication_over_radius() ->
 	[{userdata, [{doc, "Send corrupt Message-Authenticator using RADIUS"}]}].
 
 message_authentication_over_radius(Config) ->
-	ProdID = ?config(product_id, Config),
-	PeerId = <<"56789012">>,
+	P1 = price(usage, octets, rand:uniform(1000000), rand:uniform(100)),
+	OfferId = add_offer([P1], 4),
+	ProdRef = add_product(OfferId),
+	#service{name = PeerId} =  add_service(ProdRef),
 	MAC = "EE-FF-AA-BB-CC-DD",
-	PeerAuth = list_to_binary(ocs:generate_password()),
-	{ok, _} = ocs:add_service(PeerId, PeerAuth, ProdID),
 	Socket = ?config(socket, Config),
 	{ok, RadiusConfig} = application:get_env(ocs, radius),
 	{auth, [{Address, Port, _} | _]} = lists:keyfind(auth, 1, RadiusConfig),
 	NasId = ?config(nas_id, Config),
 	UserName = ct:get_config(radius_username),
-	Secret = "bogus",
+	Secret = ocs:generate_password(), 
 	ReqAuth = radius:authenticator(),
 	RadId = 13, EapId = 1,
 	ok = send_radius_identity(Socket, Address, Port, NasId, UserName,
@@ -506,7 +502,10 @@ role_reversal_over_radius() ->
 	[{userdata, [{doc, "Send EAP-Request (unsupported role reversal) using RADIUS"}]}].
 
 role_reversal_over_radius(Config) ->
-	PeerId = <<"67890123">>,
+	P1 = price(usage, octets, rand:uniform(1000000), rand:uniform(100)),
+	OfferId = add_offer([P1], 4),
+	ProdRef = add_product(OfferId),
+	#service{name = PeerId} =  add_service(ProdRef),
 	MAC = "FF-AA-BB-CC-DD-FF",
 	Socket = ?config(socket, Config),
 	Address = {127, 0, 0, 1},
@@ -532,11 +531,11 @@ validate_pwd_id_cipher_over_radius() ->
 	[{userdata, [{doc, "Send invalid EAP-pwd-ID (bad cipher) using RADIUS"}]}].
 
 validate_pwd_id_cipher_over_radius(Config) ->
-	ProdID = ?config(product_id, Config),
-	PeerId = <<"78901234">>,
+	P1 = price(usage, octets, rand:uniform(1000000), rand:uniform(100)),
+	OfferId = add_offer([P1], 4),
+	ProdRef = add_product(OfferId),
+	#service{name = PeerId} =  add_service(ProdRef),
 	MAC = "AB-CD-EF-FE-DC-BA",
-	PeerAuth = list_to_binary(ocs:generate_password()),
-	{ok, _} = ocs:add_service(PeerId, PeerAuth, ProdID),
 	Socket = ?config(socket, Config),
 	{ok, RadiusConfig} = application:get_env(ocs, radius),
 	{auth, [{Address, Port, _} | _]} = lists:keyfind(auth, 1, RadiusConfig),
@@ -567,11 +566,11 @@ validate_pwd_id_prep_over_radius() ->
 	[{userdata, [{doc, "Send invalid EAP-pwd-ID (bad prep) using RADIUS"}]}].
 
 validate_pwd_id_prep_over_radius(Config) ->
-	ProdID = ?config(product_id, Config),
-	PeerId = <<"89012345">>,
+	P1 = price(usage, octets, rand:uniform(1000000), rand:uniform(100)),
+	OfferId = add_offer([P1], 4),
+	ProdRef = add_product(OfferId),
+	#service{name = PeerId} =  add_service(ProdRef),
 	MAC = "CD-EF-FE-DC-BA-AB",
-	PeerAuth = list_to_binary(ocs:generate_password()),
-	{ok, _} = ocs:add_service(PeerId, PeerAuth, ProdID),
 	Socket = ?config(socket, Config),
 	{ok, RadiusConfig} = application:get_env(ocs, radius),
 	{auth, [{Address, Port, _} | _]} = lists:keyfind(auth, 1, RadiusConfig),
@@ -602,11 +601,11 @@ validate_pwd_id_token_over_radius() ->
 	[{userdata, [{doc, "Send invalid EAP-pwd-ID (bad token) using RADIUS"}]}].
 
 validate_pwd_id_token_over_radius(Config) ->
-	ProdID = ?config(product_id, Config),
-	PeerId = <<"90123456">>,
+	P1 = price(usage, octets, rand:uniform(1000000), rand:uniform(100)),
+	OfferId = add_offer([P1], 4),
+	ProdRef = add_product(OfferId),
+	#service{name = PeerId} =  add_service(ProdRef),
 	MAC = "EF-FE-DC-BA-AB-CD",
-	PeerAuth = list_to_binary(ocs:generate_password()),
-	{ok, _} = ocs:add_service(PeerId, PeerAuth, ProdID),
 	Socket = ?config(socket, Config),
 	{ok, RadiusConfig} = application:get_env(ocs, radius),
 	{auth, [{Address, Port, _} | _]} = lists:keyfind(auth, 1, RadiusConfig),
@@ -637,11 +636,11 @@ negotiate_method_over_radius() ->
 	[{userdata, [{doc, "Send EAP-Nak with alternate methods using RADIUS"}]}].
 
 negotiate_method_over_radius(Config) ->
-	ProdID = ?config(product_id, Config),
-	PeerId = <<"01234567">>,
+	P1 = price(usage, octets, rand:uniform(1000000), rand:uniform(100)),
+	OfferId = add_offer([P1], 4),
+	ProdRef = add_product(OfferId),
+	#service{name = PeerId} =  add_service(ProdRef),
 	MAC = "FE-DC-BA-AB-CD-EF",
-	PeerAuth = list_to_binary(ocs:generate_password()),
-	{ok, _} = ocs:add_service(PeerId, PeerAuth, ProdID),
 	Socket = ?config(socket, Config),
 	{ok, RadiusConfig} = application:get_env(ocs, radius),
 	{auth, [{Address, Port, _} | _]} = lists:keyfind(auth, 1, RadiusConfig),
@@ -679,6 +678,12 @@ negotiate_method_over_radius(Config) ->
 %%  Internal functions
 %%---------------------------------------------------------------------
 
+radius_access_request(Socket, Address, Port, NasId,
+		UserName, Secret, MAC, Auth, RadId, EapMsg)
+		when is_binary(UserName) ->
+	radius_access_request(Socket, Address, Port, NasId,
+			binary_to_list(UserName), Secret, MAC, Auth, RadId,
+			EapMsg);
 radius_access_request(Socket, Address, Port, NasId,
 		UserName, Secret, MAC, Auth, RadId, EapMsg) ->
 	A0 = radius_attributes:new(),
@@ -903,3 +908,42 @@ send_diameter_confirm(SId, ConfirmP, EapId) ->
 	{ok, Answer} = diameter:call(?SVC, eap_app_test, DER, []),
 	Answer.
 
+%% @hidden
+price(Type, Units, Size, Amount) ->
+	#price{name = ocs:generate_identity(),
+			type = Type, units = Units,
+			size = Size, amount = Amount}.
+
+%% @hidden
+bucket(Units, RA) ->
+	#bucket{units = Units, remain_amount = RA,
+		start_date = erlang:system_time(?MILLISECOND),
+		termination_date = erlang:system_time(?MILLISECOND) + 2592000000}.
+
+%% @hidden
+add_offer(Prices, Spec) when is_integer(Spec) ->
+	add_offer(Prices, integer_to_list(Spec));
+add_offer(Prices, Spec) ->
+	Offer = #offer{name = ocs:generate_identity(),
+	price = Prices, specification = Spec},
+	{ok, #offer{name = OfferId}} = ocs:add_offer(Offer),
+	OfferId.
+
+%% @hidden
+add_product(OfferId) ->
+	add_product(OfferId, []).
+add_product(OfferId, Chars) ->
+	{ok, #product{id = ProdRef}} = ocs:add_product(OfferId, Chars),
+	ProdRef.
+
+%% @hidden
+add_service(ProdRef) ->
+	{ok, Service} =
+			ocs:add_service(ocs:generate_identity(), ocs:generate_password(),
+			ProdRef, []),
+	Service.
+
+%% @hidden
+add_bucket(ProdRef, Bucket) ->
+	{ok, _, #bucket{id = BId}} = ocs:add_bucket(ProdRef, Bucket),
+	BId.
