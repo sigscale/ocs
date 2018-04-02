@@ -204,8 +204,8 @@ get_offer(ID) ->
 %% 	Retrieve a Product Inventory.
 get_inventory(ID) ->
 	try
-		case ocs:find_service(ID) of
-			{ok, Subscriber} ->
+		case ocs:find_product(ID) of
+			{ok, Product} ->
 				Subscriber;
 			{error, not_found} ->
 				{throw, 404};
@@ -213,10 +213,10 @@ get_inventory(ID) ->
 				{throw, 500}
 		end
 	of
-		Subscription ->
-			Body = mochijson:encode(inventory(Subscription)),
-			Etag = ocs_rest:etag(Subscription#product.last_modified),
-			Href = ?inventoryPath ++ binary_to_list(Subscription#product.name),
+		Product ->
+			Body = mochijson:encode(inventory(Product)),
+			Etag = ocs_rest:etag(Product#product.last_modified),
+			Href = ?inventoryPath ++ Product#product.name),
 			Headers = [{location, Href}, {etag, Etag},
 					{content_type, "application/json"}],
 			{ok, Headers, Body}
