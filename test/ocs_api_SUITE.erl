@@ -91,7 +91,8 @@ all() ->
 	[client, get_all_clients, update_client_password, delete_client,
 	add_service, delete_service, add_offer, find_offer, get_offers,
 	delete_offer, add_user, get_user, delete_user, add_bucket,
-	find_bucket, delete_bucket, get_buckets].
+	find_bucket, delete_bucket, get_buckets, add_product, find_product,
+	delete_product].
 
 %%---------------------------------------------------------------------
 %%  Test cases
@@ -329,6 +330,50 @@ delete_user(_Config) ->
 	{ok, _} = ocs:get_user(User),
 	ok = ocs:delete_user(User),
 	{error, no_such_user} = ocs:get_user(User).
+
+add_product() ->
+	[{userdata, [{doc, "Add new product inventory"}]}].
+
+add_product(_Config) ->
+	Price1 = #price{name = ocs:generate_identity(), units = octets,
+			type = usage, size = rand:uniform(10000), amount = rand:uniform(100)},
+	Prices = [Price1],
+	OfferId = ocs:generate_identity(),
+	Offer = #offer{name = OfferId,
+			status = active, price = Prices},
+	{ok, _Offer1} = ocs:add_offer(Offer),
+	{ok, #product{id = ProdRef} = P} = ocs:add_product(OfferId, []),
+	{atomic, [P]} = mnesia:transaction(fun() -> mnesia:read(product, ProdRef, read) end).
+
+find_product() ->
+	[{userdata, [{doc, "Lookup product with given product reference"}]}].
+
+find_product(_Config) ->
+	Price1 = #price{name = ocs:generate_identity(), units = octets,
+			type = usage, size = rand:uniform(10000), amount = rand:uniform(100)},
+	Prices = [Price1],
+	OfferId = ocs:generate_identity(),
+	Offer = #offer{name = OfferId,
+			status = active, price = Prices},
+	{ok, _Offer1} = ocs:add_offer(Offer),
+	{ok, #product{id = ProdRef}} = ocs:add_product(OfferId, []),
+	{ok, #product{}} = ocs:find_product(ProdRef).
+
+delete_product() ->
+	[{userdata, [{doc, "Remove product from table"}]}].
+
+delete_product(_Config) ->
+	Price1 = #price{name = ocs:generate_identity(), units = octets,
+			type = usage, size = rand:uniform(10000), amount = rand:uniform(100)},
+	Prices = [Price1],
+	OfferId = ocs:generate_identity(),
+	Offer = #offer{name = OfferId,
+			status = active, price = Prices},
+	{ok, _Offer1} = ocs:add_offer(Offer),
+	{ok, #product{id = ProdRef}} = ocs:add_product(OfferId, []),
+	{ok, #product{}} = ocs:find_product(ProdRef),
+	ok = ocs:delete_product(ProdRef),
+	{error, not_found} = ocs:find_product(ProdRef).
 
 add_bucket() ->
 	[{userdata, [{doc, "Add new bucket"}]}].
