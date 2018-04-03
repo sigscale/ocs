@@ -390,8 +390,6 @@ quantity([{"units", Units} | T], Acc) ->
 quantity([], Acc) ->
 	Acc.
 %% @hidden
-quantity([amount | T], #quantity{amount = undefined} = Q, Acc) ->
-	quantity(T, Q, Acc);
 quantity([amount | T], #quantity{units = cents, amount = Amount} = Q, Acc) ->
 	quantity(T, Q, [{"amount", ocs_rest:decimal(Amount)} | Acc]);
 quantity([amount | T], #quantity{amount = Amount} = Q, Acc) ->
