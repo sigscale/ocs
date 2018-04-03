@@ -154,17 +154,6 @@
 		service = [] :: [ServiceRef :: binary()],
 		last_modified :: tuple() | undefined}).
 
-%% @todo product instance is keeping for backward compatibility,
-%% remove product_instance
--record(product_instance,
-		{product :: string() | undefined,
-		start_date :: pos_integer() | undefined,
-		termination_date :: pos_integer() | undefined,
-		status :: product_status() | undefined,
-		characteristics = [] :: [{Name :: string(), Value :: term()}],
-		payment = [] :: [{Price :: string(), DueDate :: pos_integer()}],
-		last_modified :: tuple() | undefined}).
-
 %% define service table entries record
 %% @todo kept the buckets for backward compatibility, remove buckets
 -record(service,
