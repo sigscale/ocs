@@ -1235,7 +1235,8 @@ ipdr_ims_voip1([ipdrCreationTime | T], Protocol, TimeStamp, ReqType, Req, Res, R
 ipdr_ims_voip1([endTime | T], Protocol, TimeStamp, ReqType,
 		#'3gpp_ro_CCR'{'Event-Timestamp' = [EventTimestamp]} = Req,
 		Res, Rated, IPDR) ->
-	NewIPDR = IPDR#ipdr_voip{endTime = iso8601(EventTimestamp)},
+	EventTimeSeconds1 = calendar:datetime_to_gregorian_seconds(EventTimestamp),
+	NewIPDR = IPDR#ipdr_voip{endTime = iso8601(EventTimeSeconds1)},
 	ipdr_ims_voip1(T, Protocol, TimeStamp, ReqType, Req, Res, Rated, NewIPDR);
 ipdr_ims_voip1([callCompletionCode | T], Protocol, TimeStamp, ReqType,
 		#'3gpp_ro_CCR'{'Multiple-Services-Credit-Control' = [ServiceCreditControl]} = Req,
