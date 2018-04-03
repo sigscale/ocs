@@ -989,11 +989,15 @@ get_offers() ->
 		OfferID :: string(),
 		Result :: ok.
 %% @doc Delete an entry from the offer table.
-%% @todo If any product inventory related with given
-%% offerID, ignore deleteing record from table
 delete_offer(OfferID) ->
 	F = fun() ->
-		mnesia:delete(offer, OfferID, write)
+		MatchSpec = [{'$1', [{'==', OfferID, {element, #product.product, '$1'}}], ['$1']}],
+		case mnesia:select(product, MatchSpec) of
+			[] ->
+				mnesia:delete(offer, OfferID, write);
+			_ ->
+				throw(unable_to_delete)
+		end
 	end,
 	case mnesia:transaction(F) of
 		{atomic, _} ->
