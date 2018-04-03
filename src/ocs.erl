@@ -424,15 +424,25 @@ find_product(ProductRef) when is_list(ProductRef) ->
 		ProductRef :: string(),
 		Result :: ok.
 %% @doc Delete an entry from product table
-%% @todo If service subscribe to given product
-%% then ignore the deleteing record form the table
 delete_product(ProductRef) when is_list(ProductRef) ->
-	F = fun() ->
-		mnesia:delete(product, ProductRef, write)
+	F1 = fun(#service{product = PRefs}, Acc) ->
+			F3 = fun(Ref) when Ref == ProductRef -> true; (_) -> false end,
+			case lists:any(F3, PRefs) of
+				true ->
+					exit(service_exsist);
+				false ->
+					Acc
+			end
 	end,
-	case mnesia:transaction(F) of
+	F2 = fun() ->
+			[] = mnesia:foldl(F1, [], service),
+			mnesia:delete(product, ProductRef, write)
+	end,
+	case mnesia:transaction(F2) of
 		{atomic, _} ->
 			ok;
+		{aborted, {throw, Reason}} ->
+			exit(Reason);
 		{aborted, Reason} ->
 			exit(Reason)
 	end.
