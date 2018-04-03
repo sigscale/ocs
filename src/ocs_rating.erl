@@ -504,7 +504,7 @@ rate6(Service, Buckets, interim, _Charge, _Charged, _Reserve, Reserved,
 		Subscriber :: #service{},
 		Attributes :: [tuple()],
 		SessionList :: [tuple()],
-		Reason :: disabled | bad_password | subscriber_not_found
+		Reason :: disabled | bad_password | service_not_found
 				| out_of_credit | offer_not_found | invalid_bundle_product
 				| price_not_found | table_lookup_failed.
 %% @doc Authorize access request.
