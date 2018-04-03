@@ -685,13 +685,35 @@ get_buckets(ProdRef) when is_list(ProdRef) ->
 		BucketId :: term().
 %% @doc Delete entry in the bucket table.
 delete_bucket(BucketId) ->
-	F = fun() -> mnesia:delete(bucket, BucketId, write) end,
+	F = fun() ->
+		case mnesia:read(bucket, BucketId, write) of
+			[#bucket{product = ProdRefs}] ->
+				delete_bucket1(BucketId, ProdRefs);
+			[] ->
+				throw(not_found)
+		end
+	end,
 	case mnesia:transaction(F) of
 		{atomic, ok} ->
 			ok;
+		{aborted, {throw, Reason}} ->
+			exit(Reason);
 		{aborted, Reason} ->
 			exit(Reason)
 	end.
+%% @hidden
+delete_bucket1(BId, ProdRefs) ->
+	F = fun(ProdRef) ->
+			case mnesia:read(product, ProdRef, write) of
+				[#product{balance = Balance} = P] ->
+					ok = mnesia:write(P#product{balance = Balance -- [BId]}),
+					true;
+				[] ->
+					true
+			end
+	end,
+	true = lists:all(F, ProdRefs),
+	ok = mnesia:delete(bucket, BId, write).
 
 -spec find_service(Identity) -> Result  
 	when

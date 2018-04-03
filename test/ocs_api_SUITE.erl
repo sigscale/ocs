@@ -416,8 +416,10 @@ delete_bucket(_Config) ->
 			termination_date = erlang:system_time(?MILLISECOND) + 2592000000},
 	{ok, _, #bucket{id = BId}} = ocs:add_bucket(ProdRef, Bucket1),
 	{ok, #bucket{}} = ocs:find_bucket(BId),
+	{ok, #product{balance = [BId]}} = ocs:find_product(ProdRef),
 	ok = ocs:delete_bucket(BId),
-	{error, not_found} = ocs:find_bucket(BId).
+	{error, not_found} = ocs:find_bucket(BId),
+	{ok, #product{balance = []}} = ocs:find_product(ProdRef).
 
 %%---------------------------------------------------------------------
 %%  Internal functions
