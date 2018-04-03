@@ -38,7 +38,7 @@
 -export([generate_password/0, generate_identity/0]).
 -export([start/4, start/5]).
 %% export the ocs private API
--export([authorize/3, normalize/1]).
+-export([normalize/1]).
 
 -export_type([eap_method/0]).
 
@@ -1408,98 +1408,6 @@ charset() ->
 	C5 = lists:seq($p, $t),
 	C6 = lists:seq($w, $z),
 	lists:append([C1, C2, C3, C4, C5, C6]).
-
-%% service types
--define(DATA, 2).
--define(VOICE, 12).
-
--spec authorize(ServiceType, Identity, Password) -> Result
-	when
-		ServiceType :: undefined | integer(),
-		Identity :: string() | binary(),
-		Password :: string() | binary(),
-		Result :: {ok, #service{}} | {disabled, SessionsList} | {error, Reason},
-		SessionsList :: [{TimeStamp, SessionAttributes}],
-		TimeStamp :: integer(),
-		SessionAttributes :: [tuple()],
-		Reason :: out_of_credit | bad_password | not_found | term().
-%% @doc Authorize a service.
-%%
-%% 	If the service `enabled' field is `true' and have sufficient balance
-%%		set `disconnect' field to `false' and return {ok, #service{password = `PSK'}}
-%% 	where `PSK' is used for `Mikrotik-Wireless-Psk' and `Attributes' are
-%% 	additional attributes to be returned in an `Access-Accept' response.
-%% @private
-authorize(ServiceType, Identity, Password) when is_list(Identity) ->
-	authorize(ServiceType, list_to_binary(Identity), Password);
-authorize(ServiceType, Identity, Password) when is_list(Password) ->
-	authorize(ServiceType, Identity, list_to_binary(Password));
-authorize(ServiceType, Identity, Password) when is_binary(Identity),
-		is_binary(Password) ->
-	F= fun() ->
-				case mnesia:read(service, Identity, write) of
-					[#service{buckets = Buckets, enabled = Enabled,
-							disconnect = Disconnect} = Entry] ->
-						Now = erlang:system_time(?MILLISECOND),
-						F2 = fun(#bucket{remain_amount = Amount,
-											termination_date = TD, units = Units}) when
-											((TD =/= undefined) orelse (TD > Now))
-											and
-											((ServiceType == undefined) orelse
-											((ServiceType == ?DATA)
-												and ((Units == octets) orelse (Units == cents))) orelse
-											((ServiceType == ?VOICE)
-												and ((Units == seconds) orelse (Units == cents))))
-											and
-											(Amount > 0) ->
-										true;
-									(_) ->
-										false
-						end,
-						case lists:any(F2, Buckets) of
-							true ->
-								case {Enabled, Disconnect, Entry#service.password} of
-									{true, false, Password} ->
-										Entry;
-									{true, true, Password} ->
-										NewEntry = Entry#service{disconnect = false},
-										ok = mnesia:write(service, NewEntry, write),
-										NewEntry;
-									{true, false, MTPassword} when
-											Password == <<>>,
-											MTPassword =/= Password ->
-										Entry;
-									{true, true, MTPassword} when
-											Password == <<>>,
-											MTPassword =/= Password ->
-										NewEntry = Entry#service{disconnect = false},
-										ok = mnesia:write(service, NewEntry, write),
-										NewEntry;
-									{false, _, Password} ->
-										SessionsList = Entry#service.session_attributes,
-										NewEntry = Entry#service{session_attributes = []},
-										ok = mnesia:write(service, NewEntry, write),
-										{disabled, SessionsList};
-									{_, _, _} ->
-										throw(bad_password)
-								end;
-							false ->
-								throw(out_of_credit)
-						end;
-					[] ->
-						throw(not_found)
-				end
-	end,
-	case mnesia:transaction(F) of
-		{atomic, #service{} = S} ->
-			{ok, S};
-		{atomic, SessionAttributes} ->
-			{disabled, SessionAttributes};
-		{aborted, {throw, Reason}} ->
-			{error, Reason};
-		{aborted, Reason} ->
-			{error, Reason}
-	end.
 
 -spec normalize(String) -> string()
 	when
