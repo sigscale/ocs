@@ -90,7 +90,8 @@ sequences() ->
 all() -> 
 	[client, get_all_clients, update_client_password, delete_client,
 	add_service, delete_service, add_offer, find_offer, get_offers,
-	delete_offer, add_user, get_user, delete_user].
+	delete_offer, add_user, get_user, delete_user, add_bucket,
+	find_bucket, delete_bucket, get_buckets].
 
 %%---------------------------------------------------------------------
 %%  Test cases
@@ -328,6 +329,95 @@ delete_user(_Config) ->
 	{ok, _} = ocs:get_user(User),
 	ok = ocs:delete_user(User),
 	{error, no_such_user} = ocs:get_user(User).
+
+add_bucket() ->
+	[{userdata, [{doc, "Add new bucket"}]}].
+
+add_bucket(_Config) ->
+	Price1 = #price{name = ocs:generate_identity(),
+			type = usage, units = octets,
+			size = rand:uniform(100000000),
+			amount = rand:uniform(100)},
+	OfferId = ocs:generate_identity(),
+	Offer = #offer{name = OfferId, price = [Price1],
+			specification = "4"},
+	{ok, #offer{}} = ocs:add_offer(Offer),
+	{ok, #product{id = ProdRef}} = ocs:add_product(OfferId, []),
+	Bucket1 = #bucket{units = octets,
+			remain_amount = rand:uniform(10000000),
+			start_date = erlang:system_time(?MILLISECOND),
+			termination_date = erlang:system_time(?MILLISECOND) + 2592000000},
+	{ok, _, #bucket{id = BId}} = ocs:add_bucket(ProdRef, Bucket1),
+	{atomic, [B1]} = mnesia:transaction(fun() -> mnesia:read(bucket, BId, read) end),
+	true = B1#bucket.remain_amount == Bucket1#bucket.remain_amount,
+	true = B1#bucket.units == Bucket1#bucket.units.
+
+find_bucket() ->
+	[{userdata, [{doc, "Lookup existing bucket"}]}].
+
+find_bucket(_Config) ->
+	Price1 = #price{name = ocs:generate_identity(),
+			type = usage, units = octets,
+			size = rand:uniform(100000000),
+			amount = rand:uniform(100)},
+	OfferId = ocs:generate_identity(),
+	Offer = #offer{name = OfferId, price = [Price1],
+			specification = "4"},
+	{ok, #offer{}} = ocs:add_offer(Offer),
+	{ok, #product{id = ProdRef}} = ocs:add_product(OfferId, []),
+	Bucket1 = #bucket{units = octets,
+			remain_amount = rand:uniform(10000000),
+			start_date = erlang:system_time(?MILLISECOND),
+			termination_date = erlang:system_time(?MILLISECOND) + 2592000000},
+	{ok, _, #bucket{id = BId}} = ocs:add_bucket(ProdRef, Bucket1),
+	{ok, #bucket{}} = ocs:find_bucket(BId).
+
+get_buckets() ->
+	[{userdata, [{doc, "Get all the buckets for given Product Reference"}]}].
+
+get_buckets(_Config) ->
+	Price1 = #price{name = ocs:generate_identity(),
+			type = usage, units = octets,
+			size = rand:uniform(100000000),
+			amount = rand:uniform(100)},
+	OfferId = ocs:generate_identity(),
+	Offer = #offer{name = OfferId, price = [Price1],
+			specification = "4"},
+	{ok, #offer{}} = ocs:add_offer(Offer),
+	{ok, #product{id = ProdRef}} = ocs:add_product(OfferId, []),
+	AddBuckets = fun() ->
+			B1 = #bucket{units = octets,
+			remain_amount = rand:uniform(10000000),
+			start_date = erlang:system_time(?MILLISECOND),
+			termination_date = erlang:system_time(?MILLISECOND) + 2592000000},
+			{ok, _, #bucket{id = BId}} = ocs:add_bucket(ProdRef, B1),
+			BId
+	end,
+	BIds = [AddBuckets() || _ <- lists:seq(1, 100)],
+	{ok, Buckets} = ocs:get_buckets(ProdRef),
+	[] = BIds -- [B2#bucket.id || B2 <- Buckets].
+
+delete_bucket() ->
+	[{userdata, [{doc, "Delete bucket form table"}]}].
+
+delete_bucket(_Config) ->
+	Price1 = #price{name = ocs:generate_identity(),
+			type = usage, units = octets,
+			size = rand:uniform(100000000),
+			amount = rand:uniform(100)},
+	OfferId = ocs:generate_identity(),
+	Offer = #offer{name = OfferId, price = [Price1],
+			specification = "4"},
+	{ok, #offer{}} = ocs:add_offer(Offer),
+	{ok, #product{id = ProdRef}} = ocs:add_product(OfferId, []),
+	Bucket1 = #bucket{units = octets,
+			remain_amount = rand:uniform(10000000),
+			start_date = erlang:system_time(?MILLISECOND),
+			termination_date = erlang:system_time(?MILLISECOND) + 2592000000},
+	{ok, _, #bucket{id = BId}} = ocs:add_bucket(ProdRef, Bucket1),
+	{ok, #bucket{}} = ocs:find_bucket(BId),
+	ok = ocs:delete_bucket(BId),
+	{error, not_found} = ocs:find_bucket(BId).
 
 %%---------------------------------------------------------------------
 %%  Internal functions
