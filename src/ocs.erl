@@ -507,23 +507,21 @@ add_service(undefined, Password, ProductRef, Attributes, EnabledStatus, MultiSes
 				[#product{service = ServiceRefs} = P1] ->
 					Now = erlang:system_time(?MILLISECOND),
 					N = erlang:unique_integer([positive]),
+					LM = {Now, N},
 					S1 = #service{password = Password,
 						product = ProductRef,
 						attributes = Attributes,
 						enabled = EnabledStatus,
-						multisession = MultiSession,
-						last_modified = {Now, N}},
+						multisession = MultiSession}},
 					F3 = fun(_, _, 0) ->
 								mnesia:abort(retries);
 							(F, Identity, I) ->
 								case mnesia:read(service, Identity, write) of
 									[] ->
-										TS = erlang:system_time(?MILLISECOND),
-										N = erlang:unique_integer([positive]),
-										LM = {TS, N},
 										S2 = S1#service{name = Identity, last_modified = LM},
 										ok = mnesia:write(S2),
-										P2 = P1#product{service = [Identity | ServiceRefs], last_modified = LM},
+										P2 = P1#product{service = [Identity | ServiceRefs],
+												last_modified = LM},
 										ok = mnesia:write(P2),
 										S2;
 									[_] ->
