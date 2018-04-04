@@ -25,7 +25,7 @@
 -export([add_client/2, add_client/3, add_client/5, find_client/1,
 		update_client/2, update_client/3, get_clients/0, delete_client/1,
 		query_clients/6]).
--export([add_service/3, add_service/4, add_service/6,
+-export([add_service/3, add_service/4, add_service/5, add_service/7,
 		add_product/2, add_product/4, delete_product/1]).
 -export([find_service/1, delete_service/1, get_services/0, query_service/1,
 		find_product/1]).
@@ -452,26 +452,40 @@ delete_product(ProductRef) when is_list(ProductRef) ->
 		Reason :: term().
 %% @equiv add_service(Identity, Password, ProductRef, [], true, false)
 add_service(Identity, Password, ProductRef) ->
-	add_service(Identity, Password, ProductRef, [], true, false).
+	add_service(Identity, Password, ProductRef, [], [], true, false).
 
--spec add_service(Identity, Password, ProductRef, Attributes) -> Result
+-spec add_service(Identity, Password, ProductRef, Chars) -> Result
 	when
 		Identity :: string() | binary(),
 		Password :: string() | binary(),
 		ProductRef :: string() | undefined,
+		Chars :: [tuple()],
+		Result :: {ok, #service{}} | {error, Reason},
+		Reason :: term().
+%% @equiv add_service(Identity, Password, ProductRef, Chars, [], true, false)
+add_service(Identity, Password, ProductRef, Chars) ->
+	add_service(Identity, Password, ProductRef, Chars, [], true, false).
+
+-spec add_service(Identity, Password, ProductRef, Chars, Attributes) -> Result
+	when
+		Identity :: string() | binary(),
+		Password :: string() | binary(),
+		ProductRef :: string() | undefined,
+		Chars :: [tuple()],
 		Attributes :: radius_attributes:attributes() | binary(),
 		Result :: {ok, #service{}} | {error, Reason},
 		Reason :: term().
-%% @equiv add_service(Identity, Password, ProductRef, Attributes, true, false)
-add_service(Identity, Password, ProductRef, Attributes) ->
-	add_service(Identity, Password, ProductRef, Attributes, true, false).
+%% @equiv add_service(Identity, Password, ProductRef, Chars, Attributes, true, false)
+add_service(Identity, Password, ProductRef, Chars, Attributes) ->
+	add_service(Identity, Password, ProductRef, Chars, Attributes, true, false).
 
--spec add_service(Identity, Password, ProductRef,
+-spec add_service(Identity, Password, ProductRef, Chars,
 		Attributes, EnabledStatus, MultiSessions) -> Result
 	when
 		Identity :: string() | binary() | undefined,
 		Password :: string() | binary() | undefined,
 		ProductRef :: string() | undefined,
+		Chars :: [tuple()],
 		Attributes :: radius_attributes:attributes() | binary(),
 		EnabledStatus :: boolean() | undefined,
 		MultiSessions :: boolean() | undefined,
@@ -486,21 +500,23 @@ add_service(Identity, Password, ProductRef, Attributes) ->
 %% 	`ProductRef' key for product invenotry reference,
 %%		`Enabled' status and `MultiSessions' status may be provided.
 %%
-add_service(Identity, Password, ProductRef, Attributes, EnabledStatus, undefined) ->
-	add_service(Identity, Password, ProductRef, Attributes, EnabledStatus, false);
-add_service(Identity, Password, ProductRef, Attributes, undefined, MultiSession) ->
-	add_service(Identity, Password, ProductRef, Attributes, true, MultiSession);
-add_service(Identity, Password, ProductRef, undefined, EnabledStatus, MultiSession) ->
-	add_service(Identity, Password, ProductRef, [], EnabledStatus, MultiSession);
-add_service(Identity, Password, undefined, Attributes, EnabledStatus, MultiSession) ->
-	add_service(Identity, Password, [], Attributes, EnabledStatus, MultiSession);
-add_service(Identity, undefined, ProductRef, Attributes, EnabledStatus, MultiSession) ->
-	add_service(Identity, ocs:generate_password(), ProductRef, Attributes, EnabledStatus, MultiSession);
-add_service(Identity, Password, ProductRef, Attributes, EnabledStatus, MultiSession) when is_list(Identity) ->
-	add_service(list_to_binary(Identity), Password, ProductRef, Attributes, EnabledStatus, MultiSession);
-add_service(Identity, Password, ProductRef, Attributes, EnabledStatus, MultiSession) when is_list(Password) ->
-	add_service(Identity, list_to_binary(Password), ProductRef, Attributes, EnabledStatus, MultiSession);
-add_service(undefined, Password, ProductRef, Attributes, EnabledStatus, MultiSession) when is_binary(Password),
+add_service(Identity, Password, ProductRef, Chars, Attributes, EnabledStatus, undefined) ->
+	add_service(Identity, Password, ProductRef, Chars, Attributes, EnabledStatus, false);
+add_service(Identity, Password, ProductRef, Chars, Attributes, undefined, MultiSession) ->
+	add_service(Identity, Password, ProductRef, Chars, Attributes, true, MultiSession);
+add_service(Identity, Password, ProductRef, Chars, undefined, EnabledStatus, MultiSession) ->
+	add_service(Identity, Password, ProductRef, Chars, [], EnabledStatus, MultiSession);
+add_service(Identity, Password, ProductRef, undefined, Attributes, EnabledStatus, MultiSession) ->
+	add_service(Identity, Password, ProductRef, [], Attributes, EnabledStatus, MultiSession);
+add_service(Identity, Password, undefined, Chars, Attributes, EnabledStatus, MultiSession) ->
+	add_service(Identity, Password, [], Chars, Attributes, EnabledStatus, MultiSession);
+add_service(Identity, undefined, ProductRef, Chars, Attributes, EnabledStatus, MultiSession) ->
+	add_service(Identity, ocs:generate_password(), ProductRef, Chars, Attributes, EnabledStatus, MultiSession);
+add_service(Identity, Password, ProductRef, Chars, Attributes, EnabledStatus, MultiSession) when is_list(Identity) ->
+	add_service(list_to_binary(Identity), Password, ProductRef, Chars, Attributes, EnabledStatus, MultiSession);
+add_service(Identity, Password, ProductRef, Chars, Attributes, EnabledStatus, MultiSession) when is_list(Password) ->
+	add_service(Identity, list_to_binary(Password), ProductRef, Chars, Attributes, EnabledStatus, MultiSession);
+add_service(undefined, Password, ProductRef, Chars, Attributes, EnabledStatus, MultiSession) when is_binary(Password),
 		is_list(ProductRef), is_list(Attributes), is_boolean(EnabledStatus), is_boolean(MultiSession) ->
 	F1 = fun() ->
 			case mnesia:read(product, ProductRef, write) of
@@ -512,7 +528,8 @@ add_service(undefined, Password, ProductRef, Attributes, EnabledStatus, MultiSes
 						product = ProductRef,
 						attributes = Attributes,
 						enabled = EnabledStatus,
-						multisession = MultiSession}},
+						multisession = MultiSession,
+						characteristics = Chars},
 					F3 = fun(_, _, 0) ->
 								mnesia:abort(retries);
 							(F, Identity, I) ->
@@ -539,7 +556,7 @@ add_service(undefined, Password, ProductRef, Attributes, EnabledStatus, MultiSes
 		{aborted, Reason} ->
 			{error, Reason}
 	end;
-add_service(Identity, Password, ProductRef, Attributes, EnabledStatus, MultiSession)
+add_service(Identity, Password, ProductRef, Chars, Attributes, EnabledStatus, MultiSession)
 		when is_binary(Identity), size(Identity) > 0, is_binary(Password), is_list(ProductRef),
 		is_list(Attributes), is_boolean(EnabledStatus), is_boolean(MultiSession) ->
 	F1 = fun() ->
@@ -557,6 +574,7 @@ add_service(Identity, Password, ProductRef, Attributes, EnabledStatus, MultiSess
 								attributes = Attributes,
 								enabled = EnabledStatus,
 								multisession = MultiSession,
+								characteristics = Chars,
 								last_modified = LM},
 						ok = mnesia:write(S1),
 						S1;

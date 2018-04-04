@@ -165,6 +165,7 @@
 		enabled = true :: boolean(),
 		disconnect  = false :: boolean(),
 		session_attributes = [] :: [{TS :: pos_integer(), Attributes :: [tuple()]}],
+		characteristics = [] :: [{Name :: string(), Value :: term()}],
 		multisession = false :: boolean(),
 		last_modified :: tuple() | undefined}).
 

@@ -64,10 +64,11 @@ add_inventory(ReqData) ->
 	try
 		#service{name = Identity, password = Password,
 			attributes = Attributes, product = ProductRef,
-			enabled = Enabled, multisession = MultiSession} =
+			enabled = Enabled, multisession = MultiSession,
+			characteristics = Chars} =
 			inventory(mochijson:decode(ReqData)),
-		case ocs:add_service(Identity, Password,
-				ProductRef, Attributes, Enabled, MultiSession) of
+		case ocs:add_service(Identity, Password, ProductRef,
+				Chars, Attributes, Enabled, MultiSession) of
 			{ok, Service1} ->
 				Service1;
 			{error, Reason} ->
@@ -332,7 +333,7 @@ inventory([{"product", ProductRef}| T], Acc) ->
 	inventory(T, Acc#service{product = ProductRef});
 inventory([{"serviceCharacteristic", Characteristics}| T], Acc) ->
 	Chars = service_chars(Characteristics),
-	F = fun(Key, Chars1) ->
+	F1 = fun(Key, Chars1) ->
 			case lists:keyfind(Key, 1, Chars1) of
 				{_, Value} ->
 					Value;
@@ -340,23 +341,34 @@ inventory([{"serviceCharacteristic", Characteristics}| T], Acc) ->
 					undefined
 			end
 	end,
-	Identity = F("serviceIdentity", Chars),
-	Password = F("servicePassword", Chars),
-	MultiSession = F("multiSession", Chars),
-	A1 = case F("sessionTimeout", Chars) of
+	Identity = F1("serviceIdentity", Chars),
+	Password = F1("servicePassword", Chars),
+	MultiSession = F1("multiSession", Chars),
+	A1 = case F1("sessionTimeout", Chars) of
 		undefined ->
 			[];
 		SessionTimeout ->
 			[{?SessionTimeout, SessionTimeout}]
 	end,
-	A2  = case F("acctSessionInterval", Chars) of
+	A2  = case F1("acctSessionInterval", Chars) of
 		undefined ->
 			A1;
 		SessionInterval ->
 			[{?AcctInterimInterval, SessionInterval} | A1]
 	end,
+	F2 = fun(Key1, Chars1, AccIn) -> 
+			case lists:keyfind(Key1, 1, Chars1) of
+				false ->
+					AccIn;
+				Result ->
+					[Result | AccIn]
+			end
+	end,
+	C0 = F2("radiusReserveTime", Chars, []),
+	C1 = F2("radiusReserveOctets", Chars, C0), 
+	C2 = F2("ReserveSessionTime", Chars, C1),
 	NewAcc = Acc#service{name = Identity, password = Password,
-		multisession = MultiSession, attributes = A2},
+		multisession = MultiSession, attributes = A2, characteristics = C2},
 	inventory(T, NewAcc);
 inventory([{"category", _}| T], Acc) ->
 	inventory(T, Acc);
@@ -452,6 +464,13 @@ inventory([attributes | T], #service{attributes = Attributes} = Service, Chars, 
 	end,
 	NewChars = C2 ++ Chars,
 	inventory(T, Service, NewChars, Acc);
+inventory([characteristics | T],
+		#service{characteristics = []} = Service, Chars, Acc) ->
+	inventory(T, Service, Chars, Acc);
+inventory([characteristics | T], #service{characteristics = Chars1} =
+		Service, Chars2, Acc) ->
+	NewChars = service_chars(Chars1) ++ Chars2,
+	inventory(T, Service, NewChars, Acc);
 inventory([_ | T], Service, Chars, Acc) ->
 	inventory(T, Service, Chars, Acc);
 inventory([], _Service, [], Acc) ->
@@ -480,21 +499,91 @@ start_mode(any_of_the_above) -> 5.
 -spec service_chars(ServiceChars) -> ServiceChars
 	when
 		ServiceChars :: [tuple()] | {array, list()}.
-%% @doc CODEC for service charateristics
+%% @doc CODEC for service characteristics
 service_chars({array, L}) ->
 	service_chars(L, []);
 service_chars(Chars) when is_list(Chars) ->
 	{array, service_chars(Chars, [])}.
 %% @hidden
+service_chars([{struct, [{"name", "radiusReserveTime"}, {"value", RadiusReserveTime}]} | T], Acc) ->
+	service_chars(T, [{"radiusReserveTime", radius_reserve(RadiusReserveTime)} | Acc]);
+service_chars([{struct, [{"value", RadiusReserveTime}, {"name", "radiusReserveTime"}]} | T], Acc) ->
+	service_chars(T, [{"radiusReserveTime", radius_reserve(RadiusReserveTime)} | Acc]);
+service_chars([{struct, [{"name", "radiusReserveOctets"}, {"value", RadiusReserveOctets}]} | T], Acc) ->
+	service_chars(T, [{"radiusReserveOctets", radius_reserve(RadiusReserveOctets)} | Acc]);
+service_chars([{struct, [{"value", RadiusReserveOctets} ,{"name", "radiusReserveOctets"}]} | T], Acc) ->
+	service_chars(T, [{"radiusReserveOctets", radius_reserve(RadiusReserveOctets)} | Acc]);
 service_chars([{struct, [{"name", Name}, {"value", Value}]} | T], Acc) ->
 	service_chars(T, [{Name, Value} | Acc]);
 service_chars([{struct, [{"value", Value}, {"name", Name}]} | T], Acc) ->
 	service_chars(T, [{Name, Value} | Acc]);
+service_chars([{"radiusReserveTime", Value} | T], Acc) ->
+	Char = {struct, [{"name", "radiusReserveTime"},
+			{"value", radius_reserve(Value)}]},
+	service_chars(T, [Char | Acc]);
+service_chars([{"radiusReserveOctets", Value} | T], Acc) ->
+	Char = {struct, [{"name", "radiusReserveOctets"},
+			{"value", radius_reserve(Value)}]},
+	service_chars(T, [Char | Acc]);
 service_chars([{Name, Value} | T], Acc) ->
 	Char = {struct, [{"name", Name}, {"value", Value}]},
 	service_chars(T, [Char | Acc]);
 service_chars([], Acc) ->
 	lists:reverse(Acc).
+
+-spec radius_reserve(RadiusReserve) -> RadiusReserve
+	when
+		RadiusReserve :: {struct, list()} | [tuple()].
+%% @doc CODEC for top up duration characteristic
+radius_reserve({struct, [{"unitOfMeasure", "seconds"}, {"value", Value}]}) ->
+	[{type, seconds}, {value, Value}];
+radius_reserve({struct, [{"value", Value}, {"unitOfMeasure", "seconds"}]}) ->
+	[{type, seconds}, {value, Value}];
+radius_reserve({struct, [{"unitOfMeasure", "minutes"}, {"value", Value}]}) ->
+	[{type, minutes}, {value, Value}];
+radius_reserve({struct, [{"value", Value}, {"unitOfMeasure", "minutes"}]}) ->
+	[{type, minutes}, {value, Value}];
+radius_reserve({struct, [{"unitOfMeasure", "bytes"}, {"value", Value}]}) ->
+	[{type, bytes}, {value, Value}];
+radius_reserve({struct, [{"value", Value}, {"unitOfMeasure", "bytes"}]}) ->
+	[{type, bytes}, {value, Value}];
+radius_reserve({struct, [{"unitOfMeasure", "kilobytes"}, {"value", Value}]}) ->
+	[{type, kilobytes}, {value, Value}];
+radius_reserve({struct, [{"value", Value}, {"unitOfMeasure", "kilobytes"}]}) ->
+	[{type, kilobytes}, {value, Value}];
+radius_reserve({struct, [{"unitOfMeasure", "megabytes"}, {"value", Value}]}) ->
+	[{type, megabytes}, {value, Value}];
+radius_reserve({struct, [{"value", Value}, {"unitOfMeasure", "megabytes"}]}) ->
+	[{type, megabytes}, {value, Value}];
+radius_reserve({struct, [{"unitOfMeasure", "gigabytes"}, {"value", Value}]}) ->
+	[{type, gigabytes}, {value, Value}];
+radius_reserve({struct, [{"value", Value}, {"unitOfMeasure", "gigabytes"}]}) ->
+	[{type, gigabytes}, {value, Value}];
+%% @hidden
+radius_reserve([{type, seconds}, {value, Value}]) ->
+	{struct, [{"unitOfMeasure", "seconds"}, {"value", Value}]};
+radius_reserve([{value, Value}, {type, seconds}]) ->
+	{struct, [{"unitOfMeasure", "seconds"}, {"value", Value}]};
+radius_reserve([{type, minutes}, {value, Value}]) ->
+	{struct, [{"unitOfMeasure", "minutes"}, {"value", Value}]};
+radius_reserve([{value, Value}, {type, minutes}]) ->
+	{struct, [{"unitOfMeasure", "minutes"}, {"value", Value}]};
+radius_reserve([{type, bytes}, {value, Value}]) ->
+	{struct, [{"unitOfMeasure", "bytes"}, {"value", Value}]};
+radius_reserve([{value, Value}, {type, bytes}]) ->
+	{struct, [{"unitOfMeasure", "bytes"}, {"value", Value}]};
+radius_reserve([{type, kilobytes}, {value, Value}]) ->
+	{struct, [{"unitOfMeasure", "kilobytes"}, {"value", Value}]};
+radius_reserve([{value, Value}, {type, kilobytes}]) ->
+	{struct, [{"unitOfMeasure", "kilobytes"}, {"value", Value}]};
+radius_reserve([{type, megabytes}, {value, Value}]) ->
+	{struct, [{"unitOfMeasure", "megabytes"}, {"value", Value}]};
+radius_reserve([{value, Value}, {type, megabytes}]) ->
+	{struct, [{"unitOfMeasure", "megabytes"}, {"value", Value}]};
+radius_reserve([{type, gigabytes}, {value, Value}]) ->
+	{struct, [{"unitOfMeasure", "gigabytes"}, {"value", Value}]};
+radius_reserve([{value, Value}, {type, gigabytes}]) ->
+	{struct, [{"unitOfMeasure", "gigabytes"}, {"value", Value}]}.
 
 query_filter(MFA, Codec, Query, Headers) ->
 	case lists:keytake("fields", 1, Query) of

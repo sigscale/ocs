@@ -281,7 +281,7 @@ radius_multisession(_Config) ->
 	PeerID = ocs:generate_identity(),
 	Password = ocs:generate_identity(),
 	{ok, #service{}} = ocs:add_service(PeerID, Password,
-			ProdRef, [], true, true),
+			ProdRef, [], [], true, true),
 	B1 = bucket(octets, rand:uniform(100000)),
 	_BId = add_bucket(ProdRef, B1),
 	Secret = ct:get_config(radius_shared_secret),

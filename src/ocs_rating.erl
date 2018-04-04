@@ -555,11 +555,11 @@ authorize(Protocol, ServiceType, SubscriberId, Password, Timestamp,
 	end.
 %% @hidden
 authorize1(radius, ServiceType,
-		#service{attributes = Attributes, product = ProdRef} =
-		Service, Timestamp, Address, Direction, SessionAttributes) ->
+		#service{attributes = Attributes, product = ProdRef,
+		characteristics = Chars} = Service, Timestamp, Address,
+		Direction, SessionAttributes) ->
 	case mnesia:read(product, ProdRef, read) of
-		[#product{characteristics = Chars,
-				product = OfferId, balance = BucketRefs}] ->
+		[#product{product = OfferId, balance = BucketRefs}] ->
 			Buckets = lists:flatten([mnesia:select(bucket,
 					[{'$1', [{'==', Id, {element, #bucket.id, '$1'}}], ['$1']}])
 					|| Id <- BucketRefs]),
