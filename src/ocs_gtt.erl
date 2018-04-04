@@ -355,6 +355,8 @@ import2(Table, [Chunk | Rest], LM, Acc) ->
 		SplitChunks ->
 			F = fun(<<$, , T/binary>>, AccIn) ->
 						[T | AccIn];
+					(<<>>, AccIn) ->
+						[<<>> | AccIn];
 					(C, AccIn) ->
 						case binary:at(C, size(C) - 1) of
 							$, ->
@@ -369,7 +371,7 @@ import2(Table, [Chunk | Rest], LM, Acc) ->
 	end.
 %% @hidden
 import3([<<>> | T], LM, Acc) ->
-	import3(T, LM, [undefined, Acc]);
+	import3(T, LM, [undefined | Acc]);
 import3([H | T], LM, Acc) ->
 	import3(T, LM, [binary_to_list(H) | Acc]);
 import3([], LM, Acc) when length(Acc) == 3 ->
