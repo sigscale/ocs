@@ -342,9 +342,11 @@ import1(Table, Records) ->
 			exit(Reason)
 	end.
 %% @hidden
-import2(Table, [<<>>], _LM, Acc) ->
+import2(Table, [], _LM, Acc) ->
 	F = fun(#gtt{} = G) -> mnesia:write(Table, G, write) end,
 	lists:foreach(F, lists:flatten(Acc));
+import2(Table, [<<>> | T], LM, Acc) ->
+	import2(Table, T, LM, Acc);
 import2(Table, [Chunk | Rest], LM, Acc) ->
 	case binary:split(Chunk, [<<"\"">>], [global]) of
 		[Chunk] ->
