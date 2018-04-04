@@ -469,7 +469,7 @@ inventory([characteristics | T],
 	inventory(T, Service, Chars, Acc);
 inventory([characteristics | T], #service{characteristics = Chars1} =
 		Service, Chars2, Acc) ->
-	NewChars = service_chars(Chars1) ++ Chars2,
+	NewChars = Chars1 ++ Chars2,
 	inventory(T, Service, NewChars, Acc);
 inventory([_ | T], Service, Chars, Acc) ->
 	inventory(T, Service, Chars, Acc);
