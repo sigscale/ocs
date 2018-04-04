@@ -684,8 +684,14 @@ patch_pla(Id, Etag, ReqData) ->
 %% @doc Respond to `DELETE /catalogManagement/v1/productOffering/{id}'
 %% 	request to remove a `Product Offering'.
 delete_offer(Id) ->
-	ok = ocs:delete_offer(Id),
-	{ok, [], []}.
+	case catch ocs:delete_offer(Id) of
+		ok ->
+			{ok, [], []};
+		{'EXIT', unable_to_delete} ->
+			{error, 412};
+		{'EXIT', _} ->
+			{error, 500}
+	end.
 
 -spec delete_inventory(Id) -> Result
 	when
@@ -698,6 +704,8 @@ delete_inventory(Id) ->
 	case catch ocs:delete_product(Id) of
 		ok ->
 			{ok, [], []};
+		{'EXIT', service_exsist} ->
+			{error, 412};
 		{'EXIT', _} ->
 			{error, 500}
 	end.

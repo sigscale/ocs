@@ -1012,6 +1012,7 @@ delete_offer(OfferID) ->
 	case mnesia:transaction(F) of
 		{atomic, _} ->
 			ok;
+		{aborted, {throw, Reason}} ->
 		{aborted, Reason} ->
 			exit(Reason)
 	end.
