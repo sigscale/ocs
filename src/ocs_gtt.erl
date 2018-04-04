@@ -378,7 +378,7 @@ import3([], _LM, _Acc) ->
 	[].
 %% @hidden
 import4([Key, Desc, Rate], LM) ->
-	Tuple  = {Desc, ocs_rest:decimal(Rate), LM},
+	Tuple  = {Desc, ocs_rest:millionths_in(Rate), LM},
 	case is_key_number(Key) of
 		true->
 			#gtt{num = Key, value = Tuple};

@@ -423,7 +423,7 @@ ipdr_voip_characteristics([chargeAmount | T],
 ipdr_voip_characteristics([chargeAmount | T],
 		#ipdr_voip{chargeAmount = CA} = IPDR, Acc) ->
 	Obj = {struct, [{"name", "chargeAmount"},
-			{"value", ocs_rest:decimal(CA)}]},
+			{"value", ocs_rest:millionths_out(CA)}]},
 	ipdr_voip_characteristics(T, IPDR, [Obj |Acc]);
 ipdr_voip_characteristics([_ | T], IPDR, Acc) ->
 	ipdr_voip_characteristics(T, IPDR, Acc);
@@ -755,7 +755,7 @@ usage_aaa_acct(Event, Filters) when is_tuple(Event), size(Event) > 6 ->
 	UsageChars = EventChars ++ AttributeChars,
 	Frated = fun(#rated{tax_excluded_amount = TaxExcluded})
 					when is_integer(TaxExcluded) ->
-				{struct, [{"taxExcludedRatingAmount", ocs_rest:decimal(TaxExcluded)}]};
+				{struct, [{"taxExcludedRatingAmount", ocs_rest:millionths_out(TaxExcluded)}]};
 			(_) ->
 				{struct, []}
 	end,

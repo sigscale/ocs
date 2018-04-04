@@ -692,7 +692,7 @@ query_subscriber4(Subs, undefined, Bytes, Seconds, Enabled, MultiSession) ->
 query_subscriber4(Subs, [], Bytes, Seconds, Enabled, MultiSession) ->
 	query_subscriber5(Subs, Bytes, Seconds, Enabled, MultiSession);
 query_subscriber4(Subs, Cents, Bytes, Seconds, Enabled, MultiSession) ->
-	CentsD = ocs_rest:decimal(Cents),
+	CentsD = ocs_rest:millionths_in(Cents),
 	F = fun(#subscriber{buckets = []}) ->
 			false;
 			(#subscriber{buckets = Buckets}) ->

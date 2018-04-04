@@ -78,7 +78,8 @@ all() ->
 			filter_match, filter_match_array, filter_match_list, filter_complex,
 			pointer, patch, patch_array, lhs,
 			parse_query1, parse_query2, parse_query3, parse_query4, parse_query5,
-			parse_query6, parse_query7, parse_query8, parse_query9].
+			parse_query6, parse_query7, parse_query8, parse_query9,
+			decimal_in_string, decimal_in_integer, decimal_in_float, decimal_out].
 
 %%---------------------------------------------------------------------
 %%  Test cases
@@ -495,6 +496,36 @@ parse_query9(_Config) ->
 	{"productOffering.productOfferingRelationship",
 			contains, [Exact4]} = Contains,
 	{complex, [{"target.Id", exact, "iphone6S"}]} = Exact4.
+
+decimal_in_string() ->
+	[{userdata, [{doc, "Convert decimal string to millionths"}]}].
+
+decimal_in_string(_Config) ->
+	Value = "2.0002",
+	2000200 = ocs_rest:millionths_in(Value).
+
+decimal_in_integer() ->
+	[{userdata, [{doc, "Convert decimal integer to millionsths"}]}].
+
+decimal_in_integer(_Config) ->
+	Value = 200,
+	200000000 = ocs_rest:millionths_in(Value).
+
+decimal_in_float() ->
+	[{userdata, [{doc, "Convert decimal float to millionths"}]}].
+
+decimal_in_float(_Config) ->
+	Value = 2.0002,
+	2000200 = ocs_rest:millionths_in(Value).
+
+decimal_out() ->
+	[{userdata, [{doc, "Convert millionths to decimal string"}]}].
+
+decimal_out(_Config) ->
+	Value = 20,
+	Value1 = -20,
+	"0.00002" = ocs_rest:millionths_out(Value),
+	"-0.00002" = ocs_rest:millionths_out(Value1).
 
 %%---------------------------------------------------------------------
 %%  Internal functions
