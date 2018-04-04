@@ -425,14 +425,10 @@ find_product(ProductRef) when is_list(ProductRef) ->
 		Result :: ok.
 %% @doc Delete an entry from product table
 delete_product(ProductRef) when is_list(ProductRef) ->
-	F1 = fun(#service{product = PRefs}, Acc) ->
-			F3 = fun(Ref) when Ref == ProductRef -> true; (_) -> false end,
-			case lists:any(F3, PRefs) of
-				true ->
+	F1 = fun(#service{product = PRef}, _) when PRef == ProductRef ->
 					exit(service_exsist);
-				false ->
+			(_, Acc) ->
 					Acc
-			end
 	end,
 	F2 = fun() ->
 			[] = mnesia:foldl(F1, [], service),
