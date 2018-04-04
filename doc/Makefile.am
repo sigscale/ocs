@@ -55,7 +55,6 @@ modhtml = ocs.html \
 			ocs_eap_tls_transport.html \
 			ocs_rating.html \
 			ocs_rest.html \
-			ocs_rest_res_subscriber.html \
 			ocs_rest_res_client.html \
 			ocs_rest_res_usage.html \
 			ocs_rest_res_user.html \
