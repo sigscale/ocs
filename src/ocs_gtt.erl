@@ -352,7 +352,7 @@ import2(Table, [Chunk | Rest], LM, Acc) ->
 		[Chunk] ->
 			NewAcc = [import3(binary:split(Chunk, [<<",">>], [global]), LM, []) | Acc],
 			import2(Table, Rest, LM, NewAcc);
-		SplitedChunks ->
+		SplittedChunks ->
 			F = fun(<<$, , T/binary>>, AccIn) ->
 						[T | AccIn];
 					(C, AccIn) ->
@@ -363,7 +363,7 @@ import2(Table, [Chunk | Rest], LM, Acc) ->
 								[C | AccIn]
 						end
 			end,
-			AccOut = lists:foldl(F, [], SplitedChunks),
+			AccOut = lists:foldl(F, [], SplittedChunks),
 			NewAcc = [import3(lists:reverse(AccOut), LM, []) | Acc],
 			import2(Table, Rest, LM, NewAcc)
 	end.
