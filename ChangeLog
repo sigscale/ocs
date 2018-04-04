@@ -1,3 +1,10 @@
+2018-04-05  Vance Shipley <vances@sigscale.org>
+	* accept JSON Number() or String() input amounts
+	* alow quoted fields with commas in CSV for table import
+	* add user update modal
+	* correct end time for VoIP IPDR
+	* filter by susbcriber balance/enabled/multi-session fields
+
 2018-03-29  Vance Shipley <vances@sigscale.org>
 
 	* fix ipdr usage characteristics
