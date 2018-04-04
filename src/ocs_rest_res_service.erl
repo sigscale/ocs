@@ -163,7 +163,6 @@ delete_inventory(Id) ->
 %% 	Update a Service Inventory using JSON patch method
 %% 	<a href="http://tools.ietf.org/html/rfc6902">RFC6902</a>.
 patch_inventory(ServiceId, Etag, ReqData) ->
-
 	try
 		Etag1 = case Etag of
 			undefined ->
@@ -341,8 +340,18 @@ inventory([{"serviceCharacteristic", Characteristics}| T], Acc) ->
 					undefined
 			end
 	end,
-	Identity = F1("serviceIdentity", Chars),
-	Password = F1("servicePassword", Chars),
+	Identity = case lists:keyfind("serviceIdentity", 1, Chars) of
+		{_, V1} ->
+			list_to_binary(V1);
+		false ->
+			undefined
+	end,
+	Password = case lists:keyfind("servicePassword", 1, Chars) of
+		{_, V2} ->
+			list_to_binary(V2);
+		false ->
+			undefined
+	end,
 	MultiSession = F1("multiSession", Chars),
 	A1 = case F1("sessionTimeout", Chars) of
 		undefined ->
