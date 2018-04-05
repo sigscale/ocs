@@ -110,7 +110,7 @@
 						</paper-icon-button>
 					</div>
 					<iron-collapse id="addBundle">
-						<template is=dom-repeat items="{{offer}}">
+						<template is=dom-repeat items="{{offers}}">
 							<div>
 								<paper-checkbox checked="{{item.checked}}"> 
 										{{item.name}}
@@ -842,7 +842,7 @@
 						return [];
 					}
 				},
-				offer: {
+				offers: {
 					type: Array,
 					value: function() {
 						return [];
@@ -904,7 +904,7 @@
 				'checkOut.checked-changed': 'checkOutChanged'
 			}, 
 			observers: [
-				'_bundleCheckboxChanged(offer.*)'
+				'_bundleCheckboxChanged(offers.*)'
 			],
 			_addProductStartDateOfferPick: function(date) {
 				if (this.$.addProductStartDatePickOff.opened) {
@@ -942,13 +942,13 @@
 					function checkExist(spec) {
 						return spec.name == results[index].name;
 					}
-					if(!this.offer.some(checkExist)) {
+					if(!this.offers.some(checkExist)) {
 						var product = new Object();
 						product.id = results[index].id;
 						product.href = results[index].href;
 						product.name = results[index].name;
 						product.checked = false;
-						this.push('offer', product);
+						this.push('offers', product);
 					}
 				}
 			},
@@ -1116,7 +1116,7 @@
 				function check(item) {
 					return item.checked;
 				}
-				if(this.offer.some(check)) {
+				if(this.offers.some(check)) {
 					this.$.addOffProductSpecificationDrop.disabled = true;
 					this.$.addOfferCharReserveSession.disabled = true;
 				} else {
@@ -1152,16 +1152,16 @@
 				}
 				if(this.$.addBundle) {
 					var bundled = new Array();
-					for(var index in this.offer) {
-						if(this.offer[index].checked == true) {
+					for(var index in this.offers) {
+						if(this.offers[index].checked == true) {
 							var bundleOffer = new Object();
 							bundleOffer.numberRelOfferLowerLimit = 0;
 							bundleOffer.numberRelOfferUpperLimit = 1;
 							bundleOffer.numberRelOfferDefault = 1;
 							var bundleObj = new Object();
-							bundleObj.id = this.offer[index].id;
-							bundleObj.href = this.offer[index].href;
-							bundleObj.name = this.offer[index].name;
+							bundleObj.id = this.offers[index].id;
+							bundleObj.href = this.offers[index].href;
+							bundleObj.name = this.offers[index].name;
 							bundleObj.bundledProductOfferingOption = bundleOffer;
 							bundled.push(bundleObj);
 						}
@@ -1858,7 +1858,7 @@
 			cancelDialog: function() {
 				this.set('prices', []);
 				this.set('alterations', []);
-				this.set('offer', []);
+				this.set('offers', []);
 				this.addOrUpdateButton = "add";
 				this.$.addOffName.value = null;
 				this.$.addOffDesc.value = null;

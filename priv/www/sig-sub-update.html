@@ -354,7 +354,7 @@
 					type: Number,
 					value: 0
 				},
-				products: {
+				offers: {
 					type: Array,
 					value: function() {
 						return [];
@@ -367,8 +367,8 @@
 					function checkExist(name) {
 						return name == results[index].name;
 					}
-					if(!this.products.some(checkExist)){
-						this.push('products', results[index].name);
+					if(!this.offers.some(checkExist)){
+						this.push('offers', results[index].name);
 					}
 				}
 			},

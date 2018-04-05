@@ -157,7 +157,7 @@
 			is: 'sig-offer-list',
 			behaviors: [i18nMsgBehavior],
 			properties: {
-				offer: {
+				offers: {
 					type: Array,
 					readOnly: true,
 					notify: true,
@@ -274,8 +274,8 @@
 					function checkExist(name) {
 						return name == results[index].name;
 					}
-					if(!this.offer.some(checkExist)) {
-						this.push('offer', results[index].name);
+					if(!this.offers.some(checkExist)) {
+						this.push('offers', results[index].name);
 					}
 					newRecord.name = results[index].name;
 					newRecord.description = results[index].description;
