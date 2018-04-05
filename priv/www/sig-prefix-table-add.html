@@ -185,7 +185,7 @@
 			},
 			_addTableResponse: function(event) {
 				this.$.addPrefixTableModal.close();
-				document.getElementById('productGrid').clearCache();
+				document.getElementById('offerGrid').clearCache();
 			},
 			_addTableError: function(event) {
 				this.$.addTableToastError.text = event.detail.request.xhr.statusText;

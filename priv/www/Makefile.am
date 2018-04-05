@@ -34,9 +34,9 @@ www_DATA = favicon.ico \
 	sig-prefix-update.html \
 	sig-prefix-table-add.html \
 	sig-prefix-add.html \
-	sig-product-list.html \
-	sig-product-update.html \
-	sig-product-add.html \
+	sig-offer-list.html \
+	sig-offer-update.html \
+	sig-offer-add.html \
 	sig-balance-list.html
 
 install-data-local:	$(srcdir)/bower.json

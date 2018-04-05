@@ -8,7 +8,7 @@
 <link rel="import" href="paper-toast/paper-toast.html">
 <link rel="import" href="paper-styles/color.html">
 
-<dom-module id="sig-product-list">
+<dom-module id="sig-offer-list">
 	<template>
 		<style>
 			::-webkit-input-placeholder { /* Chrome/Opera/Safari */
@@ -53,7 +53,7 @@
 				color: #eeff41;
 			}
 		</style>
-		<vaadin-grid id="productGrid" active-item="{{activeItem}}">
+		<vaadin-grid id="offerGrid" active-item="{{activeItem}}">
 			<vaadin-grid-column width="15ex" flex-grow="5">
 				<template class="header">
 					<vaadin-grid-filter aria-label="[[i18n.name]]" path="name" value="[[_filterName]]">
@@ -154,10 +154,10 @@
 		var cbProduct;
 		var lastItem;
 		Polymer ({
-			is: 'sig-product-list',
+			is: 'sig-offer-list',
 			behaviors: [i18nMsgBehavior],
 			properties: {
-				products: {
+				offer: {
 					type: Array,
 					readOnly: true,
 					notify: true,
@@ -184,7 +184,7 @@
 			},
 			_activePageChanged: function(active) {
 				if (active) {
-					var grid = this.$.productGrid;
+					var grid = this.$.offerGrid;
 					grid.columns = [
 						{
 							name: "name"
@@ -248,12 +248,12 @@
 			},
 			_activeItemChanged: function(item) {
 				if(item != null) {
-					this.$.productGrid.selectedItems = item ? [item] : [];
+					this.$.offerGrid.selectedItems = item ? [item] : [];
 					document.getElementById("updateProduct").initialize(item);
 				}
 			},
 			_getProductResponse: function(event) {
-				var grid = this.$.productGrid;
+				var grid = this.$.offerGrid;
 				var results = event.detail.xhr.response;
 				if (grid.size == undefined) {
 					grid.size = 0;
@@ -274,8 +274,8 @@
 					function checkExist(name) {
 						return name == results[index].name;
 					}
-					if(!this.products.some(checkExist)) {
-						this.push('products', results[index].name);
+					if(!this.offer.some(checkExist)) {
+						this.push('offer', results[index].name);
 					}
 					newRecord.name = results[index].name;
 					newRecord.description = results[index].description;
@@ -305,7 +305,7 @@
 				cbProduct(vaadinItems);
 			},
 			_getProductError: function(event) {
-				this.$.productGrid.size = 0;
+				this.$.offerGrid.size = 0;
 				cbProduct([]);
 				if (!lastItem && event.detail.request.xhr.status != 416) {
 					this.$.getProductErrorToast.text = event.detail.request.xhr.statusText;
@@ -313,7 +313,7 @@
 				}
 			},
 			_getTableResponse: function(event) {
-				var grid = this.$.productGrid;
+				var grid = this.$.offerGrid;
 				var results = event.detail.xhr.response;
 				this.splice("tables", 0, this.tables.length)
 				for (var indexTable in results) {
@@ -326,7 +326,7 @@
 				}
 			},
 			_getTableError: function(event) {
-				this.$.productGrid.size = 0;
+				this.$.offerGrid.size = 0;
 				cbProduct([]);
 				if (!lastItem && event.detail.request.xhr.status != 416) {
 					this.$.getProductErrorToast.text = event.detail.request.xhr.statusText;
