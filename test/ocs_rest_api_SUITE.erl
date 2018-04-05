@@ -658,12 +658,12 @@ get_offer(Config) ->
 					{_, "monthly"} = lists:keyfind("recurringChargePeriod", 1, Price),
 					{_, {struct, PObj}} = lists:keyfind("price", 1, Price),
 					{_, TaxExAmount} = lists:keyfind("taxIncludedAmount", 1, PObj),
-					true = (P1#price.amount == ocs_rest:decimal(TaxExAmount));
+					true = (P1#price.amount == ocs_rest:millionths_in(TaxExAmount));
 				{_, P} when P2#price.name == P ->
 					{_, "usage"} = lists:keyfind("priceType", 1, Price),
 					{_, {struct, PObj}} = lists:keyfind("price", 1, Price),
 					{_, TaxExAmount} = lists:keyfind("taxIncludedAmount", 1, PObj),
-					true = (P2#price.amount == ocs_rest:decimal(TaxExAmount)),
+					true = (P2#price.amount == ocs_rest:millionths_in(TaxExAmount)),
 					{_, UOM} = lists:keyfind("unitOfMeasure", 1, Price),
 					(integer_to_list(P2#price.size) ++ "b" == UOM);
 				_ ->
