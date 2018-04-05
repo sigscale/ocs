@@ -24,7 +24,7 @@
 -export([date/1, iso8601/1, etag/1]).
 -export([pointer/1, patch/2]).
 -export([parse_query/1, lhs/1, fields/2, range/1]).
--export([decimal/1]).
+-export([millionths_in/1, millionths_out/1]).
 
 -export_type([operator/0]).
 
@@ -410,16 +410,16 @@ patch_replace([Name | T1], Value1, [{Name, Value2} | T2], Acc) ->
 patch_replace(Path, Value, [H | T], Acc) ->
 	patch_replace(Path, Value, T, [H | Acc]).
 
--spec decimal(N) -> N
-	when
-		N :: string() | integer().
-%% @doc Convert between decimal strings ("625.75") and integer (625750000).
+-type millionths() :: non_neg_integer().
 %% Internal representation 1:1000000 for six decimal places maximum.
+-spec millionths_in(In) -> Out
+	when
+		In :: string() | integer() | float(),
+		Out :: millionths().
+%% @doc Convert value from JSON to internal value.
 %%
-decimal([$- | T]) ->
-	0 - decimal(T);
-decimal(N) when is_list(N) ->
-	case string:tokens(N, [$.]) of
+millionths_in(In) when is_list(In) ->
+	case string:tokens(In, [$.]) of
 		[M] ->
 			list_to_integer(M) * 1000000;
 		[M, D] when length(D) =< 6 ->
@@ -431,8 +431,19 @@ decimal(N) when is_list(N) ->
 					M1 * 1000000 + D1
 			end
 	end;
-decimal(N) when is_integer(N), N < 0 ->
-	N1 = 0 - N,
+millionths_in(In) when is_integer(In) ->
+	In * 1000000;
+millionths_in(In) when is_float(In) ->
+	millionths_in(float_to_list(In, [{decimals, 7}, compact])).
+
+-spec millionths_out(In) -> Out
+	when
+		In :: millionths(),
+		Out :: string().
+%% @doc Convert internal value to string() for JSON.
+%%
+millionths_out(In) when is_integer(In), In < 0 ->
+	N1 = 0 - In,
 	M = N1 div 1000000,
 	D = N1 rem 1000000,
 	SD = integer_to_list(D),
@@ -440,9 +451,9 @@ decimal(N) when is_integer(N), N < 0 ->
 			++ lists:duplicate(6 - length(SD), $0) ++ SD,
 	S2 = string:strip(S1, right, $0),
 	string:strip(S2, right, $.);
-decimal(N) when is_integer(N) ->
-	M = N div 1000000,
-	D = N rem 1000000,
+millionths_out(In) when is_integer(In) ->
+	M = In div 1000000,
+	D = In rem 1000000,
 	SD = integer_to_list(D),
 	S1 = integer_to_list(M) ++ [$.]
 			++ lists:duplicate(6 - length(SD), $0) ++ SD,

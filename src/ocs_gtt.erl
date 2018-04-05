@@ -352,9 +352,11 @@ import2(Table, [Chunk | Rest], LM, Acc) ->
 		[Chunk] ->
 			NewAcc = [import3(binary:split(Chunk, [<<",">>], [global]), LM, []) | Acc],
 			import2(Table, Rest, LM, NewAcc);
-		SplitedChunks ->
+		SplitChunks ->
 			F = fun(<<$, , T/binary>>, AccIn) ->
 						[T | AccIn];
+					(<<>>, AccIn) ->
+						[<<>> | AccIn];
 					(C, AccIn) ->
 						case binary:at(C, size(C) - 1) of
 							$, ->
@@ -363,13 +365,13 @@ import2(Table, [Chunk | Rest], LM, Acc) ->
 								[C | AccIn]
 						end
 			end,
-			AccOut = lists:foldl(F, [], SplitedChunks),
+			AccOut = lists:foldl(F, [], SplitChunks),
 			NewAcc = [import3(lists:reverse(AccOut), LM, []) | Acc],
 			import2(Table, Rest, LM, NewAcc)
 	end.
 %% @hidden
 import3([<<>> | T], LM, Acc) ->
-	import3(T, LM, [undefined, Acc]);
+	import3(T, LM, [undefined | Acc]);
 import3([H | T], LM, Acc) ->
 	import3(T, LM, [binary_to_list(H) | Acc]);
 import3([], LM, Acc) when length(Acc) == 3 ->
@@ -378,7 +380,7 @@ import3([], _LM, _Acc) ->
 	[].
 %% @hidden
 import4([Key, Desc, Rate], LM) ->
-	Tuple  = {Desc, ocs_rest:decimal(Rate), LM},
+	Tuple  = {Desc, ocs_rest:millionths_in(Rate), LM},
 	case is_key_number(Key) of
 		true->
 			#gtt{num = Key, value = Tuple};

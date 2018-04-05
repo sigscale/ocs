@@ -1995,7 +1995,7 @@ get_balance(Config) ->
 	end,
 	true = lists:all(F, Buckets),
 	{_, Balance1} = lists:keyfind("amount", 1, TotalAmount),
-	Balance1 = ocs_rest:decimal(Balance).
+	Balance1 = ocs_rest:millionths_out(Balance).
 
 simultaneous_updates_on_subscriber_failure() ->
 	[{userdata, [{doc,"Simulataneous HTTP PATCH updates on subscriber resource must fail

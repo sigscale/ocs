@@ -135,7 +135,7 @@ get_balance(ProdRef) ->
 			end,
 			Buckets4 = {"buckets", {array, lists:map(F2, Buckets3)}},
 			Total = {"totalBalance", {struct,
-					[{"amount", ocs_rest:decimal(TotalAmount)}]}},
+					[{"amount", ocs_rest:millionths_out(TotalAmount)}]}},
 			Id = {"id", ProdRef},
 			Href = {"href", ?balancePath ++ ProdRef},
 			Product = {"product", {array, [{struct, [Id, Href]}]}},
@@ -146,8 +146,8 @@ get_balance(ProdRef) ->
 	catch
 		_:product_not_found ->
 			{error, 404};
-		_:_ ->
-			{error, 500}
+		_Error ->
+			{error, 400}
 	end.
 
 -spec top_up(Identity, RequestBody) -> Result
@@ -172,7 +172,7 @@ top_up(_Identity, RequestBody) ->
 			end
 	catch
 		_:_ ->
-		{error, 400}
+			{error, 400}
 	end.
 
 %%----------------------------------------------------------------------
@@ -266,7 +266,7 @@ bucket([reservations | T], #bucket{units = undefined,
 bucket([reservations | T], #bucket{reservations = Reservations,
 		units = cents} = B, Acc) ->
 	Amount = lists:sum([A || {_, _, A, _} <- Reservations]),
-	Reserved = [{"amount", ocs_rest:decimal(Amount)}, {"units", "cents"}],
+	Reserved = [{"amount", ocs_rest:millionths_out(Amount)}, {"units", "cents"}],
 	bucket(T, B, [{"reservedAmount", {struct, Reserved}}| Acc]);
 bucket([reservations | T], #bucket{reservations = Reservations,
 		units = Units} = B, Acc) ->
@@ -382,7 +382,7 @@ quantity(#quantity{} = Quantity) ->
 			Quantity, [])}.
 %% @hidden
 quantity([{"amount", Amount} | T], Acc) when is_list(Amount) ->
-	quantity(T, Acc#quantity{amount = ocs_rest:decimal(Amount)});
+	quantity(T, Acc#quantity{amount = ocs_rest:millionths_in(Amount)});
 quantity([{"amount", Amount} | T], Acc) ->
 	quantity(T, Acc#quantity{amount = Amount});
 quantity([{"units", Units} | T], Acc) ->
@@ -391,7 +391,7 @@ quantity([], Acc) ->
 	Acc.
 %% @hidden
 quantity([amount | T], #quantity{units = cents, amount = Amount} = Q, Acc) ->
-	quantity(T, Q, [{"amount", ocs_rest:decimal(Amount)} | Acc]);
+	quantity(T, Q, [{"amount", ocs_rest:millionths_out(Amount)} | Acc]);
 quantity([amount | T], #quantity{amount = Amount} = Q, Acc) ->
 	quantity(T, Q, [{"amount", Amount} | Acc]);
 quantity([units | T], #quantity{units = undefined} = Q, Acc) ->

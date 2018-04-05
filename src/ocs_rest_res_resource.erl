@@ -404,7 +404,7 @@ gtt(Name, {Prefix, Description, Rate} = _Gtt) ->
 			{struct, [{"name", "description"},
 			{"value", {struct, [{"seqNum", 2}, {"value", Description}]}}]},
 			{struct, [{"name", "rate"},
-			{"value", {struct, [{"seqNum", 3}, {"value", ocs_rest:decimal(Rate)}]}}]}]}}]};
+			{"value", {struct, [{"seqNum", 3}, {"value", ocs_rest:millionths_out(Rate)}]}}]}]}}]};
 gtt(_, {struct, ObjectMembers}) when is_list(ObjectMembers) ->
 	gtt1(ObjectMembers, {undefined, [], undefined}).
 %% @hidden
@@ -414,7 +414,7 @@ gtt1([_ | T], Acc) ->
 	gtt1(T, Acc);
 gtt1([], {Prefix, Desc, Rate} = _Acc)
 		when is_list(Prefix)->
-   {Prefix, Desc, ocs_rest:decimal(Rate)}.
+   {Prefix, Desc, ocs_rest:millionths_in(Rate)}.
 %% @hidden
 gtt2([{struct, L} | T], {Prefix, Desc, Rate} = _Acc) ->
 	case lists:keytake("name", 1, L) of

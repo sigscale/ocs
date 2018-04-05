@@ -1711,7 +1711,7 @@ ipdr_csv(Log, IoDevice, {Cont, [#ipdr_voip{} = I | T]}) ->
 		undefined ->
 			<<>>;
 		CA ->
-		 list_to_binary(ocs_rest:decimal(CA))
+		 list_to_binary(ocs_rest:millionths_out(CA))
 	end,
 	Dest = case I#ipdr_voip.destinationID of
 		undefined ->
