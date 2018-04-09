@@ -239,7 +239,7 @@ get_service_specs(_Query) ->
 	Headers	:: [tuple()],
 	Body		:: iolist(),
 	Status	:: 400 | 404 | 500 .
-%% @doc Respond to `GET /catalogManegment/v2/serviceSpecification/{id}'.
+%% @doc Respond to `GET /catalogManagement/v2/serviceSpecification/{id}'.
 %% 	Retrieve a service specification.
 get_service_spec(ID, [] = _Query) ->
 	case service_spec(ID) of
@@ -263,15 +263,15 @@ get_service_spec(_ID, _Query) ->
 		Result :: {struct, [tuple()]} | {error, 404}.
 %% @doc Get Service Specification by ID
 service_spec("1") ->
-	default_spec();
+	ocs_service_spec();
 service_spec(_) ->
 	{error, 404}.
 
 %% @hidden
-default_spec() ->
+ocs_service_spec() ->
 	Id = {"id", "1"},
 	Href = {"href", ?serviceSpecPath ++ "1"},
-	Name = {"name", ""},
+	Name = {"name", "OCSServiceSpec"},
 	Description = {"description", ""},
 	Version = {"version", "1.0"},
 	Status = {"lifecycleStatus", "Active"},
@@ -299,13 +299,13 @@ service_spec_chars() ->
 	Description3 = {"description", "Number of seconds for interim updated"},
 	Config3 = {"configurable", false},
 	Type3 = {"valueType", "Number"},
-	Value3 = {"serviceSpecCharacteristicValue", {array, [Type3]}},
+	Value3 = {"serviceSpecCharacteristicValue", {array, [{struct, [Type3]}]}},
 	Char3 = {struct, [Name3, Description3, Config3, Type3, Value3]},
 	Name4 = {"name", "sessionTimeout"},
 	Description4 = {"description", "Number of seconds for one session"},
 	Config4 = {"configurable", false},
 	Type4 = {"valueType", "Number"},
-	Value4 = {"serviceSpecCharacteristicValue", {array, [Type4]}},
+	Value4 = {"serviceSpecCharacteristicValue", {array, [{struct, [Type4]}]}},
 	Char4 = {struct, [Name4, Description4, Config4, Type4, Value4]},
 	Name5 = {"name", "multiSession"},
 	Description5 = {"description", ""},
