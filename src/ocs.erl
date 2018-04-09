@@ -516,10 +516,6 @@ add_service(Identity, Password, ProductRef,
 		undefined, Attributes, EnabledStatus, MultiSession) ->
 	add_service(Identity, Password, ProductRef,
 			[], Attributes, EnabledStatus, MultiSession);
-add_service(Identity, Password, undefined,
-		Chars, Attributes, EnabledStatus, MultiSession) ->
-	add_service(Identity, Password, [], Chars,
-			Attributes, EnabledStatus, MultiSession);
 add_service(Identity, undefined, ProductRef,
 		Chars, Attributes, EnabledStatus, MultiSession) ->
 	add_service(Identity, ocs:generate_password(),
@@ -534,7 +530,7 @@ add_service(Identity, Password, ProductRef, Chars,
 			ProductRef, Chars, Attributes, EnabledStatus, MultiSession);
 add_service(undefined, Password, ProductRef, Chars,
 		Attributes, EnabledStatus, MultiSession) when is_binary(Password),
-		is_list(ProductRef), is_list(Attributes), is_boolean(EnabledStatus),
+		is_list(Attributes), is_boolean(EnabledStatus),
 		is_boolean(MultiSession) ->
 	F1 = fun() ->
 			F2 = fun F2(_, 0) ->
@@ -559,7 +555,7 @@ add_service(undefined, Password, ProductRef, Chars,
 	end;
 add_service(Identity, Password, ProductRef, Chars, Attributes,
 		EnabledStatus, MultiSession) when is_binary(Identity), size(Identity) > 0,
-		is_binary(Password), is_list(ProductRef), is_list(Attributes), is_boolean(EnabledStatus),
+		is_binary(Password), is_list(Attributes), is_boolean(EnabledStatus),
 		is_boolean(MultiSession) ->
 	F1 =  fun() ->
 			add_service1(Identity, Password, ProductRef,
@@ -568,6 +564,8 @@ add_service(Identity, Password, ProductRef, Chars, Attributes,
 	case mnesia:transaction(F1) of
 		{atomic, Service} ->
 			{ok, Service};
+		{aborted, {throw, Reason}} ->
+			{error, Reason};
 		{aborted, Reason} ->
 			{error, Reason}
 	end.
