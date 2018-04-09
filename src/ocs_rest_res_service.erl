@@ -94,7 +94,7 @@ add_inventory(ReqData) ->
 	Headers	:: [tuple()],
 	Body		:: iolist(),
 	Status	:: 400 | 404 | 500 .
-%% @doc Respond to `GET /serviceInventoryManagement/service/{id}'.
+%% @doc Respond to `GET /serviceInventoryManagement/v2/service/{id}'.
 %% 	Retrieve a service inventories.
 get_inventory(Id) ->
 	try
