@@ -485,7 +485,7 @@ add_service(Identity, Password, ProductRef, Chars, Attributes) ->
 		Identity :: string() | binary() | undefined,
 		Password :: string() | binary() | undefined,
 		ProductRef :: string() | undefined,
-		Chars :: [tuple()],
+		Chars :: [tuple()] | undefined,
 		Attributes :: radius_attributes:attributes() | binary(),
 		EnabledStatus :: boolean() | undefined,
 		MultiSessions :: boolean() | undefined,
@@ -500,55 +500,56 @@ add_service(Identity, Password, ProductRef, Chars, Attributes) ->
 %% 	`ProductRef' key for product invenotry reference,
 %%		`Enabled' status and `MultiSessions' status may be provided.
 %%
-add_service(Identity, Password, ProductRef, Chars, Attributes, EnabledStatus, undefined) ->
-	add_service(Identity, Password, ProductRef, Chars, Attributes, EnabledStatus, false);
-add_service(Identity, Password, ProductRef, Chars, Attributes, undefined, MultiSession) ->
-	add_service(Identity, Password, ProductRef, Chars, Attributes, true, MultiSession);
-add_service(Identity, Password, ProductRef, Chars, undefined, EnabledStatus, MultiSession) ->
-	add_service(Identity, Password, ProductRef, Chars, [], EnabledStatus, MultiSession);
-add_service(Identity, Password, ProductRef, undefined, Attributes, EnabledStatus, MultiSession) ->
-	add_service(Identity, Password, ProductRef, [], Attributes, EnabledStatus, MultiSession);
-add_service(Identity, Password, undefined, Chars, Attributes, EnabledStatus, MultiSession) ->
-	add_service(Identity, Password, [], Chars, Attributes, EnabledStatus, MultiSession);
-add_service(Identity, undefined, ProductRef, Chars, Attributes, EnabledStatus, MultiSession) ->
-	add_service(Identity, ocs:generate_password(), ProductRef, Chars, Attributes, EnabledStatus, MultiSession);
-add_service(Identity, Password, ProductRef, Chars, Attributes, EnabledStatus, MultiSession) when is_list(Identity) ->
-	add_service(list_to_binary(Identity), Password, ProductRef, Chars, Attributes, EnabledStatus, MultiSession);
-add_service(Identity, Password, ProductRef, Chars, Attributes, EnabledStatus, MultiSession) when is_list(Password) ->
-	add_service(Identity, list_to_binary(Password), ProductRef, Chars, Attributes, EnabledStatus, MultiSession);
-add_service(undefined, Password, ProductRef, Chars, Attributes, EnabledStatus, MultiSession) when is_binary(Password),
-		is_list(ProductRef), is_list(Attributes), is_boolean(EnabledStatus), is_boolean(MultiSession) ->
+add_service(Identity, Password, ProductRef,
+		Chars, Attributes, EnabledStatus, undefined) ->
+	add_service(Identity, Password, ProductRef,
+			Chars, Attributes, EnabledStatus, false);
+add_service(Identity, Password, ProductRef,
+		Chars, Attributes, undefined, MultiSession) ->
+	add_service(Identity, Password, ProductRef,
+			Chars, Attributes, true, MultiSession);
+add_service(Identity, Password, ProductRef,
+		Chars, undefined, EnabledStatus, MultiSession) ->
+	add_service(Identity, Password, ProductRef,
+			Chars, [], EnabledStatus, MultiSession);
+add_service(Identity, Password, ProductRef,
+		undefined, Attributes, EnabledStatus, MultiSession) ->
+	add_service(Identity, Password, ProductRef,
+			[], Attributes, EnabledStatus, MultiSession);
+add_service(Identity, Password, undefined,
+		Chars, Attributes, EnabledStatus, MultiSession) ->
+	add_service(Identity, Password, [], Chars,
+			Attributes, EnabledStatus, MultiSession);
+add_service(Identity, undefined, ProductRef,
+		Chars, Attributes, EnabledStatus, MultiSession) ->
+	add_service(Identity, ocs:generate_password(),
+			ProductRef, Chars, Attributes, EnabledStatus, MultiSession);
+add_service(Identity, Password, ProductRef, Chars,
+		Attributes, EnabledStatus, MultiSession) when is_list(Identity) ->
+	add_service(list_to_binary(Identity), Password,
+			ProductRef, Chars, Attributes, EnabledStatus, MultiSession);
+add_service(Identity, Password, ProductRef, Chars,
+		Attributes, EnabledStatus, MultiSession) when is_list(Password) ->
+	add_service(Identity, list_to_binary(Password),
+			ProductRef, Chars, Attributes, EnabledStatus, MultiSession);
+add_service(undefined, Password, ProductRef, Chars,
+		Attributes, EnabledStatus, MultiSession) when is_binary(Password),
+		is_list(ProductRef), is_list(Attributes), is_boolean(EnabledStatus),
+		is_boolean(MultiSession) ->
 	F1 = fun() ->
-			case mnesia:read(product, ProductRef, write) of
-				[#product{service = ServiceRefs} = P1] ->
-					Now = erlang:system_time(?MILLISECOND),
-					N = erlang:unique_integer([positive]),
-					LM = {Now, N},
-					S1 = #service{password = Password,
-						product = ProductRef,
-						attributes = Attributes,
-						enabled = EnabledStatus,
-						multisession = MultiSession,
-						characteristics = Chars},
-					F3 = fun(_, _, 0) ->
-								mnesia:abort(retries);
-							(F, Identity, I) ->
-								case mnesia:read(service, Identity, write) of
-									[] ->
-										S2 = S1#service{name = Identity, last_modified = LM},
-										ok = mnesia:write(S2),
-										P2 = P1#product{service = [Identity | ServiceRefs],
-												last_modified = LM},
-										ok = mnesia:write(P2),
-										S2;
-									[_] ->
-										F(F, list_to_binary(generate_identity()), I - 1)
-								end
-					end,
-					F3(F3, list_to_binary(generate_identity()), 5);
-				[] ->
-					throw(product_inventory_not_found)
-			end
+			F2 = fun F2(_, 0) ->
+							mnesia:abort(retries);
+						F2(Identity1, I) ->
+							case mnesia:read(service, Identity1, write) of
+								[] ->
+									Identity1;
+								[_] ->
+									F2(list_to_binary(generate_identity()), I - 1)
+							end
+			end,
+			Identity = F2(list_to_binary(generate_identity()), 5),
+			add_service1(Identity, Password, ProductRef,
+					Chars, Attributes, EnabledStatus, MultiSession)
 	end,
 	case mnesia:transaction(F1) of
 		{atomic, Service} ->
@@ -556,37 +557,57 @@ add_service(undefined, Password, ProductRef, Chars, Attributes, EnabledStatus, M
 		{aborted, Reason} ->
 			{error, Reason}
 	end;
-add_service(Identity, Password, ProductRef, Chars, Attributes, EnabledStatus, MultiSession)
-		when is_binary(Identity), size(Identity) > 0, is_binary(Password), is_list(ProductRef),
-		is_list(Attributes), is_boolean(EnabledStatus), is_boolean(MultiSession) ->
-	F1 = fun() ->
-				case mnesia:read(product, ProductRef, read) of
-					[#product{service = ServiceRefs} = P1] ->
-						Now = erlang:system_time(?MILLISECOND),
-						N = erlang:unique_integer([positive]),
-						LM = {Now, N},
-						P2 = P1#product{service = [Identity | ServiceRefs],
-								last_modified = LM},
-						ok = mnesia:write(P2),
-						S1 = #service{name = Identity,
-								password = Password,
-								product = ProductRef,
-								attributes = Attributes,
-								enabled = EnabledStatus,
-								multisession = MultiSession,
-								characteristics = Chars,
-								last_modified = LM},
-						ok = mnesia:write(service, S1, write),
-						S1;
-					[] ->
-						throw(offer_not_found)
-				end
+add_service(Identity, Password, ProductRef, Chars, Attributes,
+		EnabledStatus, MultiSession) when is_binary(Identity), size(Identity) > 0,
+		is_binary(Password), is_list(ProductRef), is_list(Attributes), is_boolean(EnabledStatus),
+		is_boolean(MultiSession) ->
+	F1 =  fun() ->
+			add_service1(Identity, Password, ProductRef,
+					Chars, Attributes, EnabledStatus, MultiSession)
 	end,
 	case mnesia:transaction(F1) of
 		{atomic, Service} ->
 			{ok, Service};
 		{aborted, Reason} ->
 			{error, Reason}
+	end.
+%% @hidden
+add_service1(Identity, Password, undefined,
+		Chars, Attributes, EnabledStatus, MultiSession) ->
+	Now = erlang:system_time(?MILLISECOND),
+	N = erlang:unique_integer([positive]),
+	LM = {Now, N},
+	S1 = #service{name = Identity,
+					password = Password,
+					attributes = Attributes,
+					enabled = EnabledStatus,
+					multisession = MultiSession,
+					characteristics = Chars,
+					last_modified = LM},
+	ok = mnesia:write(service, S1, write),
+	S1;
+add_service1(Identity, Password, ProductRef,
+		Chars, Attributes, EnabledStatus, MultiSession) ->
+	case mnesia:read(product, ProductRef, read) of
+		[#product{service = ServiceRefs} = P1] ->
+			Now = erlang:system_time(?MILLISECOND),
+			N = erlang:unique_integer([positive]),
+			LM = {Now, N},
+			P2 = P1#product{service = [Identity | ServiceRefs],
+					last_modified = LM},
+			ok = mnesia:write(P2),
+			S1 = #service{name = Identity,
+							password = Password,
+							product = ProductRef,
+							attributes = Attributes,
+							enabled = EnabledStatus,
+							multisession = MultiSession,
+							characteristics = Chars,
+							last_modified = LM},
+			ok = mnesia:write(service, S1, write),
+			S1;
+		[] ->
+			throw(product_not_found)
 	end.
 
 -spec add_bucket(ProductRef, Bucket) -> Result
