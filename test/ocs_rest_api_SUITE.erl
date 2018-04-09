@@ -149,7 +149,7 @@ all() ->
 	simultaneous_updates_on_client_failure,
 	update_subscriber_password_json_patch,
 	update_subscriber_attributes_json_patch, get_product, update_product,
-	add_product_sms].
+	add_product_sms, update_product_realizing_service].
 
 %%%%%---------------------------------------------------------------------
 %%  Test cases
@@ -860,6 +860,69 @@ update_product(Config) ->
 	{Headers2, _Response2} = patch_request(SslSock,
 			RestPort, PatchContentType, Etag, basic_auth(), ProductName, Body),
 	<<"HTTP/1.1 200", _/binary>> = Headers2,
+	ok = ssl_socket_close(SslSock).
+
+update_product_realizing_service() ->
+	[{userdata, [{doc,"Use PATCH for update product inventory realizing services"}]}].
+
+update_product_realizing_service(Config) ->
+	P1 = price(usage, octets, rand:uniform(1000000), rand:uniform(100)),
+	OfferId = offer_add([P1], 4),
+	ProdRef = product_add(OfferId),
+	ServiceId = ocs:generate_identity(),
+	{ok, #service{}}	= ocs:add_service(ServiceId, ocs:generate_password(), undefined, []),
+	HostUrl = ?config(host_url, Config),
+	Accept = {"accept", "application/json"},
+	Request2 = {HostUrl ++ "/productInventoryManagement/v2/product/" ++ ProdRef,
+			[Accept, auth_header()]},
+	{ok, Result1} = httpc:request(get, Request2, [], []),
+	{{"HTTP/1.1", 200, _OK}, Headers1, _} = Result1,
+	{_, "application/json"} = lists:keyfind("content-type", 1, Headers1),
+	{_, Etag} = lists:keyfind("etag", 1, Headers1),
+	NewRSObj = {struct, [{"id", ServiceId},
+			{"href", "serviceInventoryManagement/v2/service/"++ ServiceId}]},
+	JSON = {array, [{struct, [{op, "add"},
+			{path, "/realizingService/-"},
+			{value, NewRSObj}]}]},
+	Body = lists:flatten(mochijson:encode(JSON)),
+	Length= size(list_to_binary(Body)),
+	Port = ?config(port, Config),
+	SslSock = ssl_socket_open({127,0,0,1}, Port),
+	ContentType = "application/json-patch+json",
+	Timeout = 1500,
+	PatchURI = "/productInventoryManagement/v2/product/" ++ ProdRef,
+	Request =
+			["PATCH ", PatchURI, " HTTP/1.1",$\r,$\n,
+			"Content-Type:"++ ContentType, $\r,$\n,
+			"Accept:application/json",$\r,$\n,
+			"Authorization:"++ basic_auth(),$\r,$\n,
+			"Host:localhost:" ++ integer_to_list(Port),$\r,$\n,
+			"Content-Length:" ++ integer_to_list(Length),$\r,$\n,
+			"If-match:" ++ Etag,$\r,$\n,
+			$\r,$\n,
+			Body],
+	ok = ssl:send(SslSock, Request),
+	F2 = fun F2(_Sock, {error, timeout}, Acc) ->
+					lists:reverse(Acc);
+			F2(Sock, {ok, Bin}, Acc) ->
+					F2(Sock, ssl:recv(Sock, 0, Timeout), [Bin | Acc])
+	end,
+	RecvBuf = F2(SslSock, ssl:recv(SslSock, 0, Timeout), []),
+	PatchResponse = list_to_binary(RecvBuf),
+	[Headers, ResponseBody] = binary:split(PatchResponse, <<$\r,$\n,$\r,$\n>>),
+	<<"HTTP/1.1 200", _/binary>> = Headers,
+	{struct, PatchObj} = mochijson:decode(ResponseBody),
+	{_, {array, RealizeingServices}} = lists:keyfind("realizingService", 1, PatchObj),
+	F3 = fun({struct, Obj}) ->
+			try
+				{_, ServiceId} = lists:keyfind("id", 1, Obj),
+				{_, "serviceInventoryManagement/v2/service/" ++ ServiceId} = lists:keyfind("href", 1, Obj)
+			catch
+				_:_ ->
+					false
+			end
+	end,
+	true = lists:all(F3, RealizeingServices),
 	ok = ssl_socket_close(SslSock).
 
 add_product_sms(Config) ->
