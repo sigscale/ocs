@@ -141,16 +141,15 @@ all() ->
 	add_service_inventory, add_service_inventory_without_password,
 	get_service_inventory, get_all_service_inventories,
 	get_service_not_found, get_service_range, delete_service,
-	update_service, %	get_usagespecs, get_usagespecs_query, get_usagespec,
+	update_service, get_usagespecs, get_usagespecs_query, get_usagespec,
 	get_auth_usage, get_auth_usage_id, get_auth_usage_filter,
 	get_auth_usage_range, get_acct_usage, get_acct_usage_id,
 	get_acct_usage_filter, get_acct_usage_range, get_ipdr_usage,
-	top_up, get_balance,
-	simultaneous_updates_on_subscriber_failure,
+	top_up, get_balance, simultaneous_updates_on_subscriber_failure,
 	simultaneous_updates_on_client_failure,
 	update_subscriber_password_json_patch,
-	update_subscriber_attributes_json_patch,
-	get_product, update_product, add_product_sms].
+	update_subscriber_attributes_json_patch, get_product, update_product,
+	add_product_sms].
 
 %%%%%---------------------------------------------------------------------
 %%  Test cases
@@ -1294,7 +1293,7 @@ update_service(Config) ->
 				"-"
 	end,
 	IndexPassword= F1(Characteristic, "servicePassword", 0),
-	JSON = {array, [{struct, [{op, "add"},
+	JSON = {array, [{struct, [{op, "replace"},
 			{path, "/serviceCharacteristic/" ++ IndexPassword},
 			{value, NewPwdObj}]}]},
 	Body = lists:flatten(mochijson:encode(JSON)),
@@ -1324,11 +1323,21 @@ update_service(Config) ->
 	PatchResponse = list_to_binary(RecvBuf),
 	[Headers, ResponseBody] = binary:split(PatchResponse, <<$\r,$\n,$\r,$\n>>),
 	{struct, PatchObj} = mochijson:decode(ResponseBody),
-	[{struct,[{"name","serviceIdentity"},{"value","1806086"}]},
 	{_, {array, PatchChars}} = lists:keyfind("serviceCharacteristic", 1, PatchObj),
+	F3 = fun({struct, [{"name","serviceIdentity"},{"value", ServiceId1}]})
+						when ServiceId1 == ServiceId ->
+					true;
+			({struct,[{"name","servicePassword"},{"value", Password1}]})
+						when Password1 == NewPassword ->
+					true;
+			({struct,[{"name","multiSession"},{"value", false}]}) ->
+				true;
+			(_) ->
+				false
+	end,
+	true = lists:all(F3, PatchChars),
 	<<"HTTP/1.1 200", _/binary>> = Headers,
-	ok = ssl_socket_close(SslSock),
-	{Headers, ResponseBody}.
+	ok = ssl_socket_close(SslSock).
 
 get_usagespecs() ->
 	[{userdata, [{doc,"Get usageSpecification collection"}]}].
