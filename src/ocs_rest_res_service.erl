@@ -226,7 +226,7 @@ patch_inventory(ServiceId, Etag, ReqData) ->
 %% 	Retrieve all service specifications.
 get_service_specs([] = _Query) ->
 	Headers = [{content_type, "application/json"}],
-	Object = {array, [default_spec()]},
+	Object = {array, [ocs_service_spec()]},
 	Body = mochijson:encode(Object),
 	{ok, Headers, Body};
 get_service_specs(_Query) ->
