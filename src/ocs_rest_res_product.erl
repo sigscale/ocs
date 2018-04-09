@@ -217,7 +217,7 @@ get_inventory(ID) ->
 		Product ->
 			Body = mochijson:encode(inventory(Product)),
 			Etag = ocs_rest:etag(Product#product.last_modified),
-			Href = ?inventoryPath ++ Product#product.name,
+			Href = ?inventoryPath ++ Product#product.id,
 			Headers = [{location, Href}, {etag, Etag},
 					{content_type, "application/json"}],
 			{ok, Headers, Body}
