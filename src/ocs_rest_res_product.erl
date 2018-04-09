@@ -46,6 +46,7 @@
 -define(plaPath, "/catalogManagement/v2/pla/").
 -define(plaSpecPath, "/catalogManagement/v2/plaSpecification/").
 -define(inventoryPath, "/productInventoryManagement/v2/product/").
+-define(servicePath, "/serviceInventoryManagement/v2/service/").
 
 -spec content_types_accepted() -> ContentTypes
 	when
@@ -105,9 +106,9 @@ add_offer(ReqData) ->
 add_inventory(ReqData) ->
 	try
 		#product{start_date = SD, termination_date = TD,
-				characteristics = Chars, product = OfferId} =
-				inventory(mochijson:decode(ReqData)),
-		case ocs:add_product(OfferId, SD, TD, Chars) of
+				characteristics = Chars, product = OfferId,
+				service = ServiceRefs} = inventory(mochijson:decode(ReqData)),
+		case ocs:add_product(OfferId, ServiceRefs, SD, TD, Chars) of
 			{ok, Product} ->
 				Product;
 			{error, Reason} ->
@@ -2036,6 +2037,13 @@ inventory([{"startDate", SDate} | T], Acc) ->
 	inventory(T, Acc#product{start_date = ocs_rest:iso8601(SDate)});
 inventory([{"terminationDate", TDate} | T], Acc) ->
 	inventory(T, Acc#product{termination_date = ocs_rest:iso8601(TDate)});
+inventory([{"realizingService", {array, RealizingServices}} | T], Acc) ->
+	F = fun({struct, Obj}) ->
+				{_, ID} = lists:keyfind("id", 1, Obj),
+				list_to_binary(ID)
+	end,
+	ServiceRefs = [F(RS) || RS <- RealizingServices],
+	inventory(T, Acc#product{service = ServiceRefs});
 inventory([_ | T], Acc) ->
 	inventory(T, Acc);
 inventory([], Acc) ->
@@ -2056,6 +2064,17 @@ inventory([product | T], #product{product = OfferId} = Product, Acc) ->
 inventory([characteristics | T], #product{characteristics = Chars} = Product, Acc) ->
 	Characteristics = {"characteristic", instance_chars(Chars)},
 	inventory(T, Product, [Characteristics | Acc]);
+inventory([service | T], #product{status = []} = Product, Acc) ->
+	inventory(T, Product, Acc);
+inventory([service | T], #product{status = ServiceRefs} = Product, Acc) ->
+	F = fun(ServiceRef) ->
+			SR = binary_to_list(ServiceRef),
+			ID = {"id", SR},
+			Href = {"href", ?servicePath ++ SR},
+			{struct, [ID, Href]}
+	end,
+	RealizingServices = {"realizingService", {array, [F(SR) || SR <- ServiceRefs]}},
+	inventory(T, Product, [RealizingServices | Acc]);
 inventory([status | T], #product{status = undefined} = Product, Acc) ->
 	inventory(T, Product,  Acc);
 inventory([status | T], #product{status = Status} = Product, Acc) ->
