@@ -849,7 +849,6 @@ update_product(Config) ->
 	{struct, Product1} = mochijson:decode(ResponseBody),
 	RestPort = ?config(port, Config),
 	{_, ProductName} = lists:keyfind("name", 1, Product1),
-	{ok, Product2} = ocs:find_offer(ProductName),
 	SslSock = ssl_socket_open({127,0,0,1}, RestPort),
 	PatchContentType = "application/json-patch+json",
 	Json = {array, [product_description(), product_status(),
@@ -969,7 +968,7 @@ add_service_inventory() ->
 
 add_service_inventory(Config) ->
 	OfferId = ?config(product_id, Config),
-	{ok, #product{id = ProdId}} = ocs:add_product(OfferId, []),
+	{ok, #product{}} = ocs:add_product(OfferId, []),
 	ID = ocs:generate_identity(),
 	Password = ocs:generate_password(),
 	IsServiceEnabled = {"isServiceEnabled", true},
@@ -1009,7 +1008,7 @@ add_service_inventory_without_password() ->
 
 add_service_inventory_without_password(Config) ->
 	OfferId = ?config(product_id, Config),
-	{ok, #product{id = ProdId}} = ocs:add_product(OfferId, []),
+	{ok, #product{}} = ocs:add_product(OfferId, []),
 	ID = ocs:generate_identity(),
 	IsServiceEnabled = {"isServiceEnabled", true},
 	Char1= {struct, [{"name", "acctSessionInterval"}, {"value", rand:uniform(500)}]},
