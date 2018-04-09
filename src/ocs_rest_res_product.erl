@@ -2064,9 +2064,9 @@ inventory([product | T], #product{product = OfferId} = Product, Acc) ->
 inventory([characteristics | T], #product{characteristics = Chars} = Product, Acc) ->
 	Characteristics = {"characteristic", instance_chars(Chars)},
 	inventory(T, Product, [Characteristics | Acc]);
-inventory([service | T], #product{status = []} = Product, Acc) ->
+inventory([service | T], #product{service = []} = Product, Acc) ->
 	inventory(T, Product, Acc);
-inventory([service | T], #product{status = ServiceRefs} = Product, Acc) ->
+inventory([service | T], #product{service = ServiceRefs} = Product, Acc) ->
 	F = fun(ServiceRef) ->
 			SR = binary_to_list(ServiceRef),
 			ID = {"id", SR},
