@@ -141,7 +141,7 @@ all() ->
 	add_service_inventory, add_service_inventory_without_password,
 	get_service_inventory, get_all_service_inventories,
 	get_service_not_found, get_service_range, delete_service,
-	get_usagespecs, get_usagespecs_query, get_usagespec,
+	update_service, %	get_usagespecs, get_usagespecs_query, get_usagespec,
 	get_auth_usage, get_auth_usage_id, get_auth_usage_filter,
 	get_auth_usage_range, get_acct_usage, get_acct_usage_id,
 	get_acct_usage_filter, get_acct_usage_range, get_ipdr_usage,
@@ -917,7 +917,10 @@ add_service_inventory(Config) ->
 	Char3 = {struct, [{"name", "serviceIdentity"}, {"value", ID}]},
 	Char4 = {struct, [{"name", "servicePassword"}, {"value", Password}]},
 	Char5 = {struct, [{"name", "multiSession"}, {"value", true}]},
-	SortedChars = lists:sort([Char1, Char2, Char3, Char4, Char5]),
+	Char6 = {struct, [{"name", "radiusReserveOctets"},
+			{"value", {struct, [{"unitOfMeasure", "bytes"},
+			{"value", rand:uniform(100000)}]}}]},
+	SortedChars = lists:sort([Char1, Char2, Char3, Char4, Char5, Char6]),
 	Characteristics = {"serviceCharacteristic", {array, SortedChars}},
 	JSON = {struct, [Product, IsServiceEnabled, Characteristics]},
 	RequestBody = lists:flatten(mochijson:encode(JSON)),
@@ -1259,6 +1262,73 @@ delete_service(Config) ->
 	{ok, Result} = httpc:request(delete, Request, [], []),
 	{{"HTTP/1.1", 204, _NoContent}, Headers, []} = Result,
 	{_, "0"} = lists:keyfind("content-length", 1, Headers).
+
+update_service() ->
+	[{userdata, [{doc,"Use HTTP PATCH to update service characteristics
+			using json-patch media type"}]}].
+
+update_service(Config) ->
+	P1 = price(usage, octets, rand:uniform(10000), rand:uniform(100)),
+	OfferId = offer_add([P1], 4),
+	ProdRef = product_add(OfferId),
+	ServiceId = service_add(ProdRef),
+	HostUrl = ?config(host_url, Config),
+	Accept = {"accept", "application/json"},
+	Request2 = {HostUrl ++ "/serviceInventoryManagement/v2/service/" ++ ServiceId,
+			[Accept, auth_header()]},
+	{ok, Result1} = httpc:request(get, Request2, [], []),
+	{{"HTTP/1.1", 200, _OK}, Headers1, Body1} = Result1,
+	{_, "application/json"} = lists:keyfind("content-type", 1, Headers1),
+	{_, Etag} = lists:keyfind("etag", 1, Headers1),
+	{struct, Object} = mochijson:decode(Body1),
+	{_, {array, Characteristic}} = lists:keyfind("serviceCharacteristic", 1, Object),
+	NewPassword = ocs:generate_password(),
+	NewPwdObj = {struct, [{"name", "servicePassword"}, {"value", NewPassword}]},
+	F1 = fun F1([{struct, [{"name", Name}, _]} | _T], Name, N) ->
+				integer_to_list(N);
+			F1([{struct, [_, {"name", Name}]} | _T], Name, N) ->
+				integer_to_list(N);
+			F1([_ | T], Name, N) ->
+				F1(T, Name, N + 1);
+			F1([], _Name, _N) ->
+				"-"
+	end,
+	IndexPassword= F1(Characteristic, "servicePassword", 0),
+	JSON = {array, [{struct, [{op, "add"},
+			{path, "/serviceCharacteristic/" ++ IndexPassword},
+			{value, NewPwdObj}]}]},
+	Body = lists:flatten(mochijson:encode(JSON)),
+	Length= size(list_to_binary(Body)),
+	Port = ?config(port, Config),
+	SslSock = ssl_socket_open({127,0,0,1}, Port),
+	ContentType = "application/json-patch+json",
+	Timeout = 1500,
+	PatchURI = "/serviceInventoryManagement/v2/service/" ++ ServiceId,
+	Request =
+			["PATCH ", PatchURI, " HTTP/1.1",$\r,$\n,
+			"Content-Type:"++ ContentType, $\r,$\n,
+			"Accept:application/json",$\r,$\n,
+			"Authorization:"++ basic_auth(),$\r,$\n,
+			"Host:localhost:" ++ integer_to_list(Port),$\r,$\n,
+			"Content-Length:" ++ integer_to_list(Length),$\r,$\n,
+			"If-match:" ++ Etag,$\r,$\n,
+			$\r,$\n,
+			Body],
+	ok = ssl:send(SslSock, Request),
+	F2 = fun F2(_Sock, {error, timeout}, Acc) ->
+					lists:reverse(Acc);
+			F2(Sock, {ok, Bin}, Acc) ->
+					F2(Sock, ssl:recv(Sock, 0, Timeout), [Bin | Acc])
+	end,
+	RecvBuf = F2(SslSock, ssl:recv(SslSock, 0, Timeout), []),
+	PatchResponse = list_to_binary(RecvBuf),
+	[Headers, ResponseBody] = binary:split(PatchResponse, <<$\r,$\n,$\r,$\n>>),
+	{struct, PatchObj} = mochijson:decode(ResponseBody),
+	[{struct,[{"name","serviceIdentity"},{"value","1806086"}]},
+	{_, {array, PatchChars}} = lists:keyfind("serviceCharacteristic", 1, PatchObj),
+	<<"HTTP/1.1 200", _/binary>> = Headers,
+	ok = ssl_socket_close(SslSock),
+	{Headers, ResponseBody}.
 
 get_usagespecs() ->
 	[{userdata, [{doc,"Get usageSpecification collection"}]}].
