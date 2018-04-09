@@ -576,7 +576,7 @@ add_service(Identity, Password, ProductRef, Chars, Attributes, EnabledStatus, Mu
 								multisession = MultiSession,
 								characteristics = Chars,
 								last_modified = LM},
-						ok = mnesia:write(S1),
+						ok = mnesia:write(service, S1, write),
 						S1;
 					[] ->
 						throw(offer_not_found)
