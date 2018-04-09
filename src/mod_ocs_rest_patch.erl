@@ -114,6 +114,9 @@ do_patch("application/json-patch+json", Body, Resource, ModData, Etag,
 do_patch("application/merge-patch+json", Body, Resource, ModData, Etag,
 		["catalogManagement", "v2", "productOffering", ProdId]) ->
 	do_response(ModData, Resource:merge_patch_offer(ProdId, Etag, Body));
+do_patch("application/json-patch+json", Body, Resource, ModData, Etag,
+		["productInventoryManagement", "v2", "product", SubId]) ->
+	do_response(ModData, Resource:patch_inventory(SubId, Etag, Body));
 do_patch("application/merge-patch+json", Body, Resource, ModData, Etag,
 		["productInventoryManagement", "v2", "product", SubId]) ->
 	do_response(ModData, Resource:patch_inventory(SubId, Etag, Body));

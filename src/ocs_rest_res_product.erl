@@ -555,7 +555,7 @@ get_pla_spec(_Id, _Query) ->
 		Headers	:: [tuple()],
 		Body		:: iolist(),
 		Status	:: 400 | 404 | 412 | 500 .
-%% @doc Respond to `PATCH /catalogManagement/v2/productOffering/{id}'.
+%% @doc Respond to `PATCH /productInventoryManagement/v2/product/{id}'.
 %% 	Update a Product Offering using JSON patch method
 %% 	<a href="http://tools.ietf.org/html/rfc6902">RFC6902</a>.
 patch_inventory(ProdId, Etag, ReqData) ->
