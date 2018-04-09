@@ -909,7 +909,6 @@ add_service_inventory(Config) ->
 	{ok, #product{id = ProdId}} = ocs:add_product(OfferId, []),
 	ID = ocs:generate_identity(),
 	Password = ocs:generate_password(),
-	Product = {"product", ProdId},
 	IsServiceEnabled = {"isServiceEnabled", true},
 	Char1= {struct, [{"name", "acctSessionInterval"}, {"value", rand:uniform(500)}]},
 	Char2 = {struct, [{"name", "sessionTimeout"}, {"value", rand:uniform(2500)}]},
@@ -921,7 +920,7 @@ add_service_inventory(Config) ->
 			{"value", rand:uniform(100000)}]}}]},
 	SortedChars = lists:sort([Char1, Char2, Char3, Char4, Char5, Char6]),
 	Characteristics = {"serviceCharacteristic", {array, SortedChars}},
-	JSON = {struct, [Product, IsServiceEnabled, Characteristics]},
+	JSON = {struct, [IsServiceEnabled, Characteristics]},
 	RequestBody = lists:flatten(mochijson:encode(JSON)),
 	HostUrl = ?config(host_url, Config),
 	Accept = {"accept", "application/json"},
@@ -939,7 +938,6 @@ add_service_inventory(Config) ->
 	{struct, Object} = mochijson:decode(ResponseBody),
 	{"id", ID} = lists:keyfind("id", 1, Object),
 	{_, URI} = lists:keyfind("href", 1, Object),
-	{"product", ProdId} = lists:keyfind("product", 1, Object),
 	{_, {array, Chars}} = lists:keyfind("serviceCharacteristic", 1, Object),
 	SortedChars = lists:sort(Chars).
 
@@ -950,7 +948,6 @@ add_service_inventory_without_password(Config) ->
 	OfferId = ?config(product_id, Config),
 	{ok, #product{id = ProdId}} = ocs:add_product(OfferId, []),
 	ID = ocs:generate_identity(),
-	Product = {"product", ProdId},
 	IsServiceEnabled = {"isServiceEnabled", true},
 	Char1= {struct, [{"name", "acctSessionInterval"}, {"value", rand:uniform(500)}]},
 	Char2 = {struct, [{"name", "sessionTimeout"}, {"value", rand:uniform(2500)}]},
@@ -958,7 +955,7 @@ add_service_inventory_without_password(Config) ->
 	Char4 = {struct, [{"name", "multiSession"}, {"value", true}]},
 	SortedChars = lists:sort([Char1, Char2, Char3, Char4]),
 	Characteristics = {"serviceCharacteristic", {array, SortedChars}},
-	JSON = {struct, [Product, IsServiceEnabled, Characteristics]},
+	JSON = {struct, [IsServiceEnabled, Characteristics]},
 	RequestBody = lists:flatten(mochijson:encode(JSON)),
 	HostUrl = ?config(host_url, Config),
 	Accept = {"accept", "application/json"},
@@ -976,7 +973,6 @@ add_service_inventory_without_password(Config) ->
 	{struct, Object} = mochijson:decode(ResponseBody),
 	{"id", ID} = lists:keyfind("id", 1, Object),
 	{_, URI} = lists:keyfind("href", 1, Object),
-	{"product", ProdId} = lists:keyfind("product", 1, Object),
 	{_, {array, Chars}} = lists:keyfind("serviceCharacteristic", 1, Object),
 	F = fun({struct, [{"name", "servicePassword"}, {"value", Password}]}) ->
 					12 == length(Password);
@@ -1015,7 +1011,6 @@ get_service_inventory(Config) ->
 	{struct, Object} = mochijson:decode(ResponseBody),
 	{"id", ID} = lists:keyfind("id", 1, Object),
 	{_, URI} = lists:keyfind("href", 1, Object),
-	{"product", ProdRef} = lists:keyfind("product", 1, Object),
 	{"isServiceEnabled", true} = lists:keyfind("isServiceEnabled", 1, Object),
 	{_, {array, Chars}} = lists:keyfind("serviceCharacteristic", 1, Object),
 	F = fun({struct, [{"name", "serviceIdentity"}, {"value", ID1}]}) when ID1 == ID ->
@@ -1108,8 +1103,7 @@ get_all_service_inventories(Config) ->
 	ContentLength = integer_to_list(length(ResponseBody)),
 	{_, ContentLength} = lists:keyfind("content-length", 1, Headers),
 	{array, Objects} = mochijson:decode(ResponseBody),
-	F2 = fun(Obj, ID, Password, ProdRef, Attributes) ->
-					{"product", ProdRef} = lists:keyfind("product", 1, Obj),
+	F2 = fun(Obj, ID, Password, Attributes) ->
 					{"isServiceEnabled", true} = lists:keyfind("isServiceEnabled", 1, Obj),
 					{_, {array, Chars}} = lists:keyfind("serviceCharacteristic", 1, Obj),
 						F3 = fun({struct, [{"name", "serviceIdentity"}, {"value", ID6}]}) when ID6 == ID ->
@@ -1160,15 +1154,15 @@ get_all_service_inventories(Config) ->
 	F = fun({struct, Object}) ->
 				case lists:keyfind("id", 1, Object) of
 					{_, ID6} when ID6 == ID1 ->
-						F2(Object, ID1, Password1, ProdRef1, Attributes1);
+						F2(Object, ID1, Password1, Attributes1);
 					{_, ID6} when ID6 == ID2 ->
-						F2(Object, ID2, Password2, ProdRef2, Attributes2);
+						F2(Object, ID2, Password2, Attributes2);
 					{_, ID6} when ID6 == ID3 ->
-						F2(Object, ID3, Password3, ProdRef3, Attributes3);
+						F2(Object, ID3, Password3, Attributes3);
 					{_, ID6} when ID6 == ID4 ->
-						F2(Object, ID4, Password4, ProdRef4, Attributes4);
+						F2(Object, ID4, Password4, Attributes4);
 					{_, ID6} when ID6 == ID5 ->
-						F2(Object, ID5, Password5, ProdRef5, Attributes5);
+						F2(Object, ID5, Password5, Attributes5);
 					_ ->
 						true
 				end

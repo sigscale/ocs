@@ -26,7 +26,7 @@
 		update_client/2, update_client/3, get_clients/0, delete_client/1,
 		query_clients/6]).
 -export([add_service/3, add_service/4, add_service/5, add_service/7,
-		add_product/2, add_product/4, delete_product/1]).
+		add_product/2, add_product/3, add_product/5, delete_product/1]).
 -export([find_service/1, delete_service/1, get_services/0, query_service/1,
 		find_product/1]).
 -export([add_bucket/2, find_bucket/1, get_buckets/1, delete_bucket/1]).
@@ -352,29 +352,44 @@ query_clients4(Clients, Address) ->
 	Fun = fun(#client{address = A}) -> lists:prefix(Address, inet:ntoa(A)) end,
 	{eof, lists:filter(Fun, Clients)}.
 
--spec add_product(Offer, Characteristics) -> Result
+-spec add_product(Offer, ServiceRefs) -> Result
 	when
 		Offer :: string(),
+		ServiceRefs :: [ServiceRef],
+		Result :: {ok, #product{}} | {error, Reason},
+		ServiceRef :: binary(),
+		Reason :: term().
+%% @equiv add_product(Offer, undefined, undefined, Characteristics)
+add_product(Offer, ServiceRefs) ->
+	add_product(Offer, ServiceRefs, undefined, undefined, []).
+
+-spec add_product(Offer, ServiceRefs, Characteristics) -> Result
+	when
+		Offer :: string(),
+		ServiceRefs :: [ServiceRef],
 		Characteristics :: [tuple()],
+		ServiceRef :: binary(),
 		Result :: {ok, #product{}} | {error, Reason},
 		Reason :: term().
 %% @equiv add_product(Offer, undefined, undefined, Characteristics)
-add_product(Offer, Characteristics) ->
-	add_product(Offer, undefined, undefined, Characteristics).
+add_product(Offer, ServiceRefs, Characteristics) ->
+	add_product(Offer, ServiceRefs, undefined, undefined, Characteristics).
 
--spec add_product(Offer, StartDate, EndDate, Characteristics) -> Result
+-spec add_product(Offer, ServiceRefs, StartDate, EndDate, Characteristics) -> Result
 	when
 		Offer :: string(),
+		ServiceRefs :: [ServiceRef],
 		StartDate :: undefined | pos_integer(),
 		EndDate :: undefined | pos_integer(),
 		Characteristics :: [tuple()],
+		ServiceRef :: binary(),
 		Result :: {ok, #product{}} | {error, Reason},
 		Reason :: term().
 %% @doc Add a product invenotry subscription instance.
-add_product(Offer, StartDate, EndDate, Characteristics)
+add_product(Offer, ServiceRefs, StartDate, EndDate, Characteristics)
 		when (is_integer(StartDate) orelse (StartDate == undefined)),
 		(is_integer(EndDate) orelse (EndDate == undefined)),
-		is_list(Characteristics), is_list(Offer) ->
+		is_list(Characteristics), is_list(Offer), is_list(ServiceRefs) ->
 	F = fun() ->
 			case mnesia:read(offer, Offer, read) of
 				[#offer{char_value_use = CharValueUse}] ->
@@ -382,10 +397,20 @@ add_product(Offer, StartDate, EndDate, Characteristics)
 					N = erlang:unique_integer([positive]),
 					LM = {TS, N},
 					Id = ocs_rest:etag(LM),
+					F2 = fun(ServiceRef) ->
+								case mnesia:read(service, ServiceRef, write) of
+									[Service] ->
+										ok = mnesia:write(Service#service{product = Id,
+												last_modified = LM});
+									_ ->
+										exit(service_not_found)
+								end
+					end,
+					ok = lists:foreach(F2, ServiceRefs),
 					NewChars = default_chars(CharValueUse, Characteristics),
 					Product = #product{id = Id, product = Offer, start_date = StartDate,
 							termination_date = EndDate, characteristics = NewChars,
-							last_modified = LM},
+							service = ServiceRefs, last_modified = LM},
 					ok = mnesia:write(Product),
 					Product;
 				[] ->

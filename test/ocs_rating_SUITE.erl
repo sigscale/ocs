@@ -1823,7 +1823,9 @@ add_offer(Prices, Spec) ->
 add_product(OfferId) ->
 	add_product(OfferId, []).
 add_product(OfferId, Chars) ->
-	{ok, #product{id = ProdRef}} = ocs:add_product(OfferId, Chars),
+	add_product(OfferId, [], Chars).
+add_product(OfferId, ServiceRefs, Chars) ->
+	{ok, #product{id = ProdRef}} = ocs:add_product(OfferId, ServiceRefs, Chars),
 	ProdRef.
 
 %% @hidden

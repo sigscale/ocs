@@ -166,7 +166,6 @@ add_service() ->
 
 add_service(Config) ->
 	OfferId = ?config(product_id, Config),
-	{ok, #product{id = ProdRef}} = ocs:add_product(OfferId, []),
 	Attribute0 = radius_attributes:new(),
 	Attribute1 = radius_attributes:add(?SessionTimeout, 3600, Attribute0),
 	Attribute2 = radius_attributes:add(?AcctInterimInterval, 60, Attribute0),
@@ -174,13 +173,15 @@ add_service(Config) ->
 	Identity2 = ocs:generate_identity(),
 	Password1 = ocs:generate_password(),
 	Password2 = ocs:generate_password(),
-	{ok, _} = ocs:add_service(Identity1, Password1, ProdRef, [], Attribute1),
-	{ok, _} = ocs:add_service(Identity2, Password2, ProdRef, [], Attribute2),
-	{ok, #service{password = BinPassword1, attributes = Attribute1,
-			product = ProdRef }} = ocs:find_service(Identity1),
+	{ok, _} = ocs:add_service(Identity1, Password1, undefined, [], Attribute1),
+	{ok, _} = ocs:add_service(Identity2, Password2, undefined, [], Attribute2),
+	{ok, #service{name = BinIdentity1, password = BinPassword1,
+			attributes = Attribute1}} = ocs:find_service(Identity1),
 	Password1 = binary_to_list(BinPassword1),
-	{ok, #service{password = BinPassword2, attributes = Attribute2,
-			product = ProdRef}} = ocs:find_service(Identity2),
+	{ok, #service{name = BinIdentity2, password = BinPassword2,
+			attributes = Attribute2}} = ocs:find_service(Identity2),
+	ServiceRefs = [BinIdentity1, BinIdentity2],
+	{ok, #product{}} = ocs:add_product(OfferId, ServiceRefs, []),
 	Password2 = binary_to_list(BinPassword2).
 
 delete_service() ->
