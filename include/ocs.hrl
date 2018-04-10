@@ -21,6 +21,8 @@
 		| active | rejected | launched | retired | obsolete.
 -type product_status() :: created | pending_active | aborted
 		| cancelled | active | suspended | pending_terminate | terminated.
+-type service_status() :: feasibilityChecked | designed | reserved
+		| active | inactive | terminated.
 -type pla_status() :: created | active | cancelled | terminated. 
 
 %% define price types
@@ -162,6 +164,7 @@
 		attributes :: [tuple()] | undefined,
 		buckets = [] :: [#bucket{}],
 		product :: ProductRef :: string() | undefined,
+		state :: service_status() | undefined,
 		enabled = true :: boolean(),
 		disconnect  = false :: boolean(),
 		session_attributes = [] :: [{TS :: pos_integer(), Attributes :: [tuple()]}],

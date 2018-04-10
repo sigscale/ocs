@@ -64,10 +64,10 @@ add_inventory(ReqData) ->
 	try
 		#service{name = Identity, password = Password,
 			attributes = Attributes, product = ProductRef,
-			enabled = Enabled, multisession = MultiSession,
+			state = State, enabled = Enabled, multisession = MultiSession,
 			characteristics = Chars} =
 			inventory(mochijson:decode(ReqData)),
-		case ocs:add_service(Identity, Password, ProductRef,
+		case ocs:add_service(Identity, Password, State, ProductRef,
 				Chars, Attributes, Enabled, MultiSession) of
 			{ok, Service1} ->
 				Service1;
@@ -326,6 +326,8 @@ inventory(#service{} = Service) ->
 %% @hidden
 inventory([{"id", Id}| T], Acc) ->
 	inventory(T, Acc#service{name = list_to_binary(Id)});
+inventory([{"state", State}| T], Acc) ->
+	inventory(T, Acc#service{state = service_state(State)});
 inventory([{"isServiceEnabled", Enabled}| T], Acc) ->
 	inventory(T, Acc#service{enabled = Enabled});
 inventory([{"product", ProductRef}| T], Acc) ->
@@ -423,6 +425,8 @@ inventory([product | T], #service{product = undefined} = Service, Chars, Acc) ->
 	inventory(T, Service, Chars, Acc);
 inventory([product | T], #service{product = ProductRef} = Service, Chars, Acc) ->
 	inventory(T, Service, Chars, [{"product", ProductRef} | Acc]);
+inventory([state | T], #service{state = State} = Service, Chars, Acc) ->
+	inventory(T, Service, Chars, [{"state", State} | Acc]);
 inventory([enabled | T], #service{enabled = Enabled} = Service, Chars, Acc) ->
 	inventory(T, Service, Chars, [{"isServiceEnabled", Enabled} | Acc]);
 inventory([name | T], #service{name = undefined} = Service, Chars, Acc) ->
@@ -504,6 +508,24 @@ start_mode(automatically_owning_device) -> 2;
 start_mode(manullay_provider_of_service) -> 3;
 start_mode(manullay_customer_of_service) -> 4;
 start_mode(any_of_the_above) -> 5.
+
+-spec service_state(State) -> State
+	when
+		State :: atom() | string().
+%% @doc CODEC for life cycle status of Product instance.
+%% @private
+service_state("feasibilityChecked") -> feasibilityChecked;
+service_state("designed") -> designed;
+service_state("reserved") -> reserved;
+service_state("active") -> active;
+service_state("inactive") -> inactive;
+service_state("terminated") -> terminated;
+service_state(feasibilityChecked) -> "feasibilityChecked";
+service_state(designed) -> "designed";
+service_state(reserved) -> "reserved";
+service_state(active) -> "active";
+service_state(inactive) -> "inactive";
+service_state(terminated) -> "terminated".
 
 -spec service_chars(ServiceChars) -> ServiceChars
 	when
