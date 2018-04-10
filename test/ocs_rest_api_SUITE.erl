@@ -137,7 +137,7 @@ all() ->
 	get_client_range, get_clients_filter, delete_client,
 	update_client_password_json_patch,
 	update_client_attributes_json_patch,
-	add_offer, get_offer, delete_offer,
+	add_offer, get_offer, delete_offer, ignore_delete_offer,
 	add_service_inventory, add_service_inventory_without_password,
 	get_service_inventory, get_all_service_inventories,
 	get_service_not_found, get_service_range, delete_service,
@@ -149,7 +149,8 @@ all() ->
 	simultaneous_updates_on_client_failure,
 	update_subscriber_password_json_patch,
 	update_subscriber_attributes_json_patch, get_product, update_product,
-	add_product_sms, update_product_realizing_service].
+	add_product_sms, update_product_realizing_service, delete_product,
+	ignore_delete_product].
 
 %%%%%---------------------------------------------------------------------
 %%  Test cases
@@ -686,6 +687,21 @@ delete_offer(Config) ->
 	{_, "0"} = lists:keyfind("content-length", 1, Headers),
 	{error, not_found} = ocs:find_offer(OfferId).
 
+ignore_delete_offer() ->
+	[{userdata, [{doc,"Delete offer for given Offer Id"}]}].
+
+ignore_delete_offer(Config) ->
+	P1 = price(usage, octets, rand:uniform(1000), rand:uniform(100)),
+	OfferId = offer_add([P1], 4),
+	{ok, #offer{}} = ocs:find_offer(OfferId),
+	ProdRef = product_add(OfferId),
+	HostUrl = ?config(host_url, Config),
+	URI = "/catalogManagement/v2/productOffering/" ++ OfferId,
+	Request = {HostUrl ++ URI, [auth_header()]},
+	{ok, Result} = httpc:request(delete, Request, [], []),
+	{{"HTTP/1.1", 202, _Accepted}, _Headers, _} = Result,
+	{ok, #offer{}} = ocs:find_offer(OfferId).
+
 add_product() ->
 	[{userdata, [{doc,"Create a new product inventory."}]}].
 
@@ -915,7 +931,8 @@ update_product_realizing_service(Config) ->
 	F3 = fun({struct, Obj}) ->
 			try
 				{_, ServiceId} = lists:keyfind("id", 1, Obj),
-				{_, "serviceInventoryManagement/v2/service/" ++ ServiceId} = lists:keyfind("href", 1, Obj)
+				{_, "serviceInventoryManagement/v2/service/" ++ ServiceId} = lists:keyfind("href", 1, Obj),
+				true
 			catch
 				_:_ ->
 					false
@@ -923,6 +940,39 @@ update_product_realizing_service(Config) ->
 	end,
 	true = lists:all(F3, RealizeingServices),
 	ok = ssl_socket_close(SslSock).
+
+delete_product() ->
+	[{userdata, [{doc,"Delete product inventory"}]}].
+
+delete_product(Config) ->
+	P1 = price(usage, octets, rand:uniform(10000), rand:uniform(100)),
+	OfferId = offer_add([P1], 4),
+	ProdRef = product_add(OfferId),
+	{_, #product{}} = ocs:find_product(ProdRef),
+	URI = "/productInventoryManagement/v2/product/" ++ ProdRef,
+	HostUrl = ?config(host_url, Config),
+	Request = {HostUrl ++ URI, [auth_header()]},
+	{ok, Result} = httpc:request(delete, Request, [], []),
+	{{"HTTP/1.1", 204, _NoContent}, Headers, []} = Result,
+	{_, "0"} = lists:keyfind("content-length", 1, Headers),
+	{error, not_found} = ocs:find_product(ProdRef).
+
+ignore_delete_product() ->
+	[{userdata, [{doc,"ignore Delete product inventory if
+			service any service related with product inventory"}]}].
+
+ignore_delete_product(Config) ->
+	P1 = price(usage, octets, rand:uniform(10000), rand:uniform(100)),
+	OfferId = offer_add([P1], 4),
+	ServiceId = service_add(undefined),
+	{ok, #product{id = ProdRef}} =
+			ocs:add_product(OfferId, [list_to_binary(ServiceId)]),
+	URI = "/productInventoryManagement/v2/product/" ++ ProdRef,
+	HostUrl = ?config(host_url, Config),
+	Request = {HostUrl ++ URI, [auth_header()]},
+	{ok, Result} = httpc:request(delete, Request, [], []),
+	{{"HTTP/1.1", 202, _Accepted}, _Headers, _} = Result,
+	{ok, #product{}} = ocs:find_product(ProdRef).
 
 add_product_sms(Config) ->
 	CatalogHref = "/catalogManagement/v2",
@@ -2790,7 +2840,7 @@ offer_add(Prices, Spec) ->
 product_add(OfferId) ->
 	product_add(OfferId, []).
 product_add(OfferId, Chars) ->
-	{ok, #product{id = ProdRef}} = ocs:add_product(OfferId, Chars),
+	{ok, #product{id = ProdRef}} = ocs:add_product(OfferId, [], Chars),
 	ProdRef.
 
 %% @hidden

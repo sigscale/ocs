@@ -93,6 +93,9 @@ do_response(ModData, {ok, Headers, ResponseBody}) ->
 	NewHeaders = Headers ++ [{content_length, Size}],
 	send(ModData, 204, NewHeaders, ResponseBody),
 	{proceed, [{response,{already_sent, 204, Size}}]};
+do_response(_ModData, {error, 202}) ->
+	Response = "<h2>HTTP Error 202 - Accepted</h2>",
+	{break, [{response, {202, Response}}]};
 do_response(_ModData, {error, 400}) ->
 	Response = "<h2>HTTP Error 400 - Bad Reques</h2>",
 	{break, [{response, {400, Response}}]};

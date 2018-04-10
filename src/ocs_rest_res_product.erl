@@ -689,7 +689,7 @@ delete_offer(Id) ->
 		ok ->
 			{ok, [], []};
 		{'EXIT', unable_to_delete} ->
-			{error, 412};
+			{error, 202};
 		{'EXIT', _} ->
 			{error, 500}
 	end.
@@ -706,7 +706,7 @@ delete_inventory(Id) ->
 		ok ->
 			{ok, [], []};
 		{'EXIT', service_exsist} ->
-			{error, 412};
+			{error, 202};
 		{'EXIT', _} ->
 			{error, 500}
 	end.
@@ -2064,8 +2064,6 @@ inventory([product | T], #product{product = OfferId} = Product, Acc) ->
 inventory([characteristics | T], #product{characteristics = Chars} = Product, Acc) ->
 	Characteristics = {"characteristic", instance_chars(Chars)},
 	inventory(T, Product, [Characteristics | Acc]);
-inventory([service | T], #product{service = []} = Product, Acc) ->
-	inventory(T, Product, Acc);
 inventory([service | T], #product{service = ServiceRefs} = Product, Acc) ->
 	F = fun(ServiceRef) ->
 			SR = binary_to_list(ServiceRef),

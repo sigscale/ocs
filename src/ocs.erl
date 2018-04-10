@@ -451,7 +451,7 @@ find_product(ProductRef) when is_list(ProductRef) ->
 %% @doc Delete an entry from product table
 delete_product(ProductRef) when is_list(ProductRef) ->
 	F1 = fun(#service{product = PRef}, _) when PRef == ProductRef ->
-					exit(service_exsist);
+					throw(service_exsist);
 			(_, Acc) ->
 					Acc
 	end,
@@ -462,8 +462,6 @@ delete_product(ProductRef) when is_list(ProductRef) ->
 	case mnesia:transaction(F2) of
 		{atomic, _} ->
 			ok;
-		{aborted, {throw, Reason}} ->
-			exit(Reason);
 		{aborted, Reason} ->
 			exit(Reason)
 	end.
@@ -866,7 +864,21 @@ delete_service(Identity) when is_list(Identity) ->
 	delete_service(list_to_binary(Identity));
 delete_service(Identity) when is_binary(Identity) ->
 	F = fun() ->
-		mnesia:delete(service, Identity, write)
+		case mnesia:read(service, Identity, write) of
+			[#service{product = undefined}] ->
+				mnesia:delete(service, Identity, write);
+			[#service{product = ProdRef}] ->
+				case mnesia:read(product, ProdRef, write) of
+					[#product{service = ServiceRefs} = P] ->
+						P1 = P#product{service = ServiceRefs -- [Identity]},
+						ok = mnesia:write(P1),
+						mnesia:delete(service, Identity, write);
+					[] ->
+						ok
+				end;
+			[] ->
+				ok
+		end
 	end,
 	case mnesia:transaction(F) of
 		{atomic, _} ->
