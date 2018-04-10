@@ -25,7 +25,7 @@
 -export([add_client/2, add_client/3, add_client/5, find_client/1,
 		update_client/2, update_client/3, get_clients/0, delete_client/1,
 		query_clients/6]).
--export([add_service/3, add_service/4, add_service/5, add_service/7,
+-export([add_service/3, add_service/4, add_service/5, add_service/8,
 		add_product/2, add_product/3, add_product/5, delete_product/1]).
 -export([find_service/1, delete_service/1, get_services/0, query_service/1,
 		find_product/1]).
@@ -475,7 +475,7 @@ delete_product(ProductRef) when is_list(ProductRef) ->
 		Reason :: term().
 %% @equiv add_service(Identity, Password, ProductRef, [], true, false)
 add_service(Identity, Password, ProductRef) ->
-	add_service(Identity, Password, ProductRef, [], [], true, false).
+	add_service(Identity, Password, active, ProductRef, [], [], true, false).
 
 -spec add_service(Identity, Password, ProductRef, Chars) -> Result
 	when
@@ -487,7 +487,7 @@ add_service(Identity, Password, ProductRef) ->
 		Reason :: term().
 %% @equiv add_service(Identity, Password, ProductRef, Chars, [], true, false)
 add_service(Identity, Password, ProductRef, Chars) ->
-	add_service(Identity, Password, ProductRef, Chars, [], true, false).
+	add_service(Identity, Password, active, ProductRef, Chars, [], true, false).
 
 -spec add_service(Identity, Password, ProductRef, Chars, Attributes) -> Result
 	when
@@ -500,13 +500,14 @@ add_service(Identity, Password, ProductRef, Chars) ->
 		Reason :: term().
 %% @equiv add_service(Identity, Password, ProductRef, Chars, Attributes, true, false)
 add_service(Identity, Password, ProductRef, Chars, Attributes) ->
-	add_service(Identity, Password, ProductRef, Chars, Attributes, true, false).
+	add_service(Identity, Password, active, ProductRef, Chars, Attributes, true, false).
 
--spec add_service(Identity, Password, ProductRef, Chars,
+-spec add_service(Identity, Password, State, ProductRef, Chars,
 		Attributes, EnabledStatus, MultiSessions) -> Result
 	when
 		Identity :: string() | binary() | undefined,
 		Password :: string() | binary() | undefined,
+		State :: atom() | string() | undefined,
 		ProductRef :: string() | undefined,
 		Chars :: [tuple()] | undefined,
 		Attributes :: radius_attributes:attributes() | binary(),
@@ -523,35 +524,39 @@ add_service(Identity, Password, ProductRef, Chars, Attributes) ->
 %% 	`ProductRef' key for product invenotry reference,
 %%		`Enabled' status and `MultiSessions' status may be provided.
 %%
-add_service(Identity, Password, ProductRef,
+add_service(Identity, Password, State, ProductRef,
 		Chars, Attributes, EnabledStatus, undefined) ->
-	add_service(Identity, Password, ProductRef,
+	add_service(Identity, Password, State, ProductRef,
 			Chars, Attributes, EnabledStatus, false);
-add_service(Identity, Password, ProductRef,
+add_service(Identity, Password, State, ProductRef,
 		Chars, Attributes, undefined, MultiSession) ->
-	add_service(Identity, Password, ProductRef,
+	add_service(Identity, Password, State, ProductRef,
 			Chars, Attributes, true, MultiSession);
-add_service(Identity, Password, ProductRef,
+add_service(Identity, Password, State, ProductRef,
 		Chars, undefined, EnabledStatus, MultiSession) ->
-	add_service(Identity, Password, ProductRef,
+	add_service(Identity, Password, State, ProductRef,
 			Chars, [], EnabledStatus, MultiSession);
-add_service(Identity, Password, ProductRef,
+add_service(Identity, Password, State, ProductRef,
 		undefined, Attributes, EnabledStatus, MultiSession) ->
-	add_service(Identity, Password, ProductRef,
+	add_service(Identity, Password, State, ProductRef,
 			[], Attributes, EnabledStatus, MultiSession);
-add_service(Identity, undefined, ProductRef,
+add_service(Identity, Password, undefined, ProductRef,
 		Chars, Attributes, EnabledStatus, MultiSession) ->
-	add_service(Identity, ocs:generate_password(),
+	add_service(Identity, Password, undefined, ProductRef,
+			Chars, Attributes, EnabledStatus, MultiSession);
+add_service(Identity, undefined, State, ProductRef,
+		Chars, Attributes, EnabledStatus, MultiSession) ->
+	add_service(Identity, ocs:generate_password(), State,
 			ProductRef, Chars, Attributes, EnabledStatus, MultiSession);
-add_service(Identity, Password, ProductRef, Chars,
+add_service(Identity, Password, State, ProductRef, Chars,
 		Attributes, EnabledStatus, MultiSession) when is_list(Identity) ->
-	add_service(list_to_binary(Identity), Password,
+	add_service(list_to_binary(Identity), Password, State,
 			ProductRef, Chars, Attributes, EnabledStatus, MultiSession);
-add_service(Identity, Password, ProductRef, Chars,
+add_service(Identity, Password, State, ProductRef, Chars,
 		Attributes, EnabledStatus, MultiSession) when is_list(Password) ->
-	add_service(Identity, list_to_binary(Password),
+	add_service(Identity, list_to_binary(Password), State,
 			ProductRef, Chars, Attributes, EnabledStatus, MultiSession);
-add_service(undefined, Password, ProductRef, Chars,
+add_service(undefined, Password, State, ProductRef, Chars,
 		Attributes, EnabledStatus, MultiSession) when is_binary(Password),
 		is_list(Attributes), is_boolean(EnabledStatus),
 		is_boolean(MultiSession) ->
@@ -567,7 +572,7 @@ add_service(undefined, Password, ProductRef, Chars,
 							end
 			end,
 			Identity = F2(list_to_binary(generate_identity()), 5),
-			add_service1(Identity, Password, ProductRef,
+			add_service1(Identity, Password, State, ProductRef,
 					Chars, Attributes, EnabledStatus, MultiSession)
 	end,
 	case mnesia:transaction(F1) of
@@ -576,12 +581,12 @@ add_service(undefined, Password, ProductRef, Chars,
 		{aborted, Reason} ->
 			{error, Reason}
 	end;
-add_service(Identity, Password, ProductRef, Chars, Attributes,
+add_service(Identity, Password, State, ProductRef, Chars, Attributes,
 		EnabledStatus, MultiSession) when is_binary(Identity), size(Identity) > 0,
 		is_binary(Password), is_list(Attributes), is_boolean(EnabledStatus),
 		is_boolean(MultiSession) ->
 	F1 =  fun() ->
-			add_service1(Identity, Password, ProductRef,
+			add_service1(Identity, Password, State, ProductRef,
 					Chars, Attributes, EnabledStatus, MultiSession)
 	end,
 	case mnesia:transaction(F1) of
@@ -593,13 +598,14 @@ add_service(Identity, Password, ProductRef, Chars, Attributes,
 			{error, Reason}
 	end.
 %% @hidden
-add_service1(Identity, Password, undefined,
+add_service1(Identity, Password, State, undefined,
 		Chars, Attributes, EnabledStatus, MultiSession) ->
 	Now = erlang:system_time(?MILLISECOND),
 	N = erlang:unique_integer([positive]),
 	LM = {Now, N},
 	S1 = #service{name = Identity,
 					password = Password,
+					state = State,
 					attributes = Attributes,
 					enabled = EnabledStatus,
 					multisession = MultiSession,
@@ -607,7 +613,7 @@ add_service1(Identity, Password, undefined,
 					last_modified = LM},
 	ok = mnesia:write(service, S1, write),
 	S1;
-add_service1(Identity, Password, ProductRef,
+add_service1(Identity, Password, State, ProductRef,
 		Chars, Attributes, EnabledStatus, MultiSession) ->
 	case mnesia:read(product, ProductRef, read) of
 		[#product{service = ServiceRefs} = P1] ->
@@ -619,6 +625,7 @@ add_service1(Identity, Password, ProductRef,
 			ok = mnesia:write(P2),
 			S1 = #service{name = Identity,
 							password = Password,
+							state = State,
 							product = ProductRef,
 							attributes = Attributes,
 							enabled = EnabledStatus,
