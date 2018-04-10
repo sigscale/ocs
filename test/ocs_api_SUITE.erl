@@ -92,7 +92,7 @@ all() ->
 	add_service, delete_service, add_offer, find_offer, get_offers,
 	delete_offer, add_user, get_user, delete_user, add_bucket,
 	find_bucket, delete_bucket, get_buckets, add_product, find_product,
-	delete_product, ignore_delete_product].
+	delete_product].
 
 %%---------------------------------------------------------------------
 %%  Test cases
@@ -196,8 +196,11 @@ delete_service(Config) ->
 	Password = ocs:generate_password(),
 	{ok, _} = ocs:add_service(ServiceId, Password, ProdRef, Attribute),
 	{ok, _} = ocs:find_service(ServiceId),
+	{ok, #product{service = [ServiceRef]}} = ocs:find_product(ProdRef),
+	ServiceRef = list_to_binary(ServiceId),
 	ok = ocs:delete_service(ServiceId),
-	{error, _} = ocs:find_service(ServiceId).
+	{error, _} = ocs:find_service(ServiceId),
+	{ok, #product{service = []}} = ocs:find_product(ProdRef).
 
 add_offer() ->
 	[{userdata, [{doc, "Add a product offering."}]}].
