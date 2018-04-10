@@ -689,7 +689,7 @@ delete_offer(Id) ->
 		ok ->
 			{ok, [], []};
 		{'EXIT', unable_to_delete} ->
-			{error, 412};
+			{error, 202};
 		{'EXIT', _} ->
 			{error, 500}
 	end.
