@@ -706,7 +706,7 @@ delete_inventory(Id) ->
 		ok ->
 			{ok, [], []};
 		{'EXIT', service_exsist} ->
-			{error, 412};
+			{error, 202};
 		{'EXIT', _} ->
 			{error, 500}
 	end.
