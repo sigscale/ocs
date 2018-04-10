@@ -149,7 +149,8 @@ all() ->
 	simultaneous_updates_on_client_failure,
 	update_subscriber_password_json_patch,
 	update_subscriber_attributes_json_patch, get_product, update_product,
-	add_product_sms, update_product_realizing_service, delete_product].
+	add_product_sms, update_product_realizing_service, delete_product,
+	ignore_delete_product].
 
 %%%%%---------------------------------------------------------------------
 %%  Test cases
@@ -933,7 +934,6 @@ delete_product(Config) ->
 	OfferId = offer_add([P1], 4),
 	ProdRef = product_add(OfferId),
 	{_, #product{}} = ocs:find_product(ProdRef),
-	ContentType = "application/json",
 	URI = "/productInventoryManagement/v2/product/" ++ ProdRef,
 	HostUrl = ?config(host_url, Config),
 	Request = {HostUrl ++ URI, [auth_header()]},
@@ -941,6 +941,23 @@ delete_product(Config) ->
 	{{"HTTP/1.1", 204, _NoContent}, Headers, []} = Result,
 	{_, "0"} = lists:keyfind("content-length", 1, Headers),
 	{error, not_found} = ocs:find_product(ProdRef).
+
+ignore_delete_product() ->
+	[{userdata, [{doc,"ignore Delete product inventory if
+			service any service related with product inventory"}]}].
+
+ignore_delete_product(Config) ->
+	P1 = price(usage, octets, rand:uniform(10000), rand:uniform(100)),
+	OfferId = offer_add([P1], 4),
+	ServiceId = service_add(undefined),
+	{ok, #product{id = ProdRef}} =
+			ocs:add_product(OfferId, [list_to_binary(ServiceId)]),
+	URI = "/productInventoryManagement/v2/product/" ++ ProdRef,
+	HostUrl = ?config(host_url, Config),
+	Request = {HostUrl ++ URI, [auth_header()]},
+	{ok, Result} = httpc:request(delete, Request, [], []),
+	{{"HTTP/1.1", 202, _Accepted}, _Headers, _} = Result,
+	{ok, #product{}} = ocs:find_product(ProdRef).
 
 add_product_sms(Config) ->
 	CatalogHref = "/catalogManagement/v2",
