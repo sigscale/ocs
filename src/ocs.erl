@@ -451,7 +451,7 @@ find_product(ProductRef) when is_list(ProductRef) ->
 %% @doc Delete an entry from product table
 delete_product(ProductRef) when is_list(ProductRef) ->
 	F1 = fun(#service{product = PRef}, _) when PRef == ProductRef ->
-					exit(service_exsist);
+					throw(service_exsist);
 			(_, Acc) ->
 					Acc
 	end,
@@ -462,8 +462,6 @@ delete_product(ProductRef) when is_list(ProductRef) ->
 	case mnesia:transaction(F2) of
 		{atomic, _} ->
 			ok;
-		{aborted, {throw, Reason}} ->
-			exit(Reason);
 		{aborted, Reason} ->
 			exit(Reason)
 	end.
