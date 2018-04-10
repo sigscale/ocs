@@ -137,7 +137,7 @@ all() ->
 	get_client_range, get_clients_filter, delete_client,
 	update_client_password_json_patch,
 	update_client_attributes_json_patch,
-	add_offer, get_offer, delete_offer, ignore_delete_offer,
+	add_offer, get_offer, delete_offer, ignore_delete_offer, update_offer,
 	add_service_inventory, add_service_inventory_without_password,
 	get_service_inventory, get_all_service_inventories,
 	get_service_not_found, get_service_range, delete_service,
@@ -148,7 +148,7 @@ all() ->
 	top_up, get_balance, simultaneous_updates_on_subscriber_failure,
 	simultaneous_updates_on_client_failure,
 	update_subscriber_password_json_patch,
-	update_subscriber_attributes_json_patch, get_product, update_product,
+	update_subscriber_attributes_json_patch, get_product,
 	add_product_sms, update_product_realizing_service, delete_product,
 	ignore_delete_product].
 
@@ -626,111 +626,6 @@ get_offer() ->
 	[{userdata, [{doc,"Get offer for given Offer Id"}]}].
 
 get_offer(Config) ->
-	P1 = #price{name = ocs:generate_identity(),
-			type = recurring, period = monthly,
-			amount = rand:uniform(1000)},
-	P2 = price(usage, octets, rand:uniform(1000), rand:uniform(100)),
-	OfferId = offer_add([P1, P2], 4),
-	HostUrl = ?config(host_url, Config),
-	Accept = {"accept", "application/json"},
-	Request = {HostUrl ++ "/catalogManagement/v2/productOffering/" ++ OfferId,
-			[Accept, auth_header()]},
-	{ok, Result} = httpc:request(get, Request, [], []),
-	{{"HTTP/1.1", 200, _OK}, Headers, Body} = Result,
-	{_, "application/json"} = lists:keyfind("content-type", 1, Headers),
-	{_, _Etag} = lists:keyfind("etag", 1, Headers),
-	ContentLength = integer_to_list(length(Body)),
-	{_, ContentLength} = lists:keyfind("content-length", 1, Headers),
-	{_, URI} = lists:keyfind("location", 1, Headers),
-	{"/catalogManagement/v2/productOffering/" ++ OfferId, _} = httpd_util:split_path(URI),
-	{struct, Object} = mochijson:decode(Body),
-	{_, OfferId} = lists:keyfind("id", 1, Object),
-	{_, "/catalogManagement/v2/productOffering/" ++ OfferId} = lists:keyfind("href", 1, Object),
-	{_, {struct, ProductSpec}} = lists:keyfind("productSpecification", 1, Object),
-	{_, {array, ProductOfferingPrice}} = lists:keyfind("productOfferingPrice", 1, Object),
-	{_, "4"} = lists:keyfind("id", 1, ProductSpec),
-	{_, "/catalogManagement/v2/productSpecification/4"} = lists:keyfind("href", 1, ProductSpec),
-	{_, _} = lists:keyfind("name", 1, ProductSpec),
-	F = fun({struct, Price}) ->
-			case lists:keyfind("name", 1, Price) of
-				{_, P} when P1#price.name == P ->
-					{_, "recurring"} = lists:keyfind("priceType", 1, Price),
-					{_, "monthly"} = lists:keyfind("recurringChargePeriod", 1, Price),
-					{_, {struct, PObj}} = lists:keyfind("price", 1, Price),
-					{_, TaxExAmount} = lists:keyfind("taxIncludedAmount", 1, PObj),
-					true = (P1#price.amount == ocs_rest:millionths_in(TaxExAmount));
-				{_, P} when P2#price.name == P ->
-					{_, "usage"} = lists:keyfind("priceType", 1, Price),
-					{_, {struct, PObj}} = lists:keyfind("price", 1, Price),
-					{_, TaxExAmount} = lists:keyfind("taxIncludedAmount", 1, PObj),
-					true = (P2#price.amount == ocs_rest:millionths_in(TaxExAmount)),
-					{_, UOM} = lists:keyfind("unitOfMeasure", 1, Price),
-					(integer_to_list(P2#price.size) ++ "b" == UOM);
-				_ ->
-					false
-			end
-	end,
-	true = lists:all(F, ProductOfferingPrice).
-
-delete_offer() ->
-	[{userdata, [{doc,"Delete offer for given Offer Id"}]}].
-
-delete_offer(Config) ->
-	P1 = price(usage, octets, rand:uniform(1000), rand:uniform(100)),
-	OfferId = offer_add([P1], 4),
-	{ok, #offer{}} = ocs:find_offer(OfferId),
-	HostUrl = ?config(host_url, Config),
-	URI = "/catalogManagement/v2/productOffering/" ++ OfferId,
-	Request = {HostUrl ++ URI, [auth_header()]},
-	{ok, Result} = httpc:request(delete, Request, [], []),
-	{{"HTTP/1.1", 204, _NoContent}, Headers, []} = Result,
-	{_, "0"} = lists:keyfind("content-length", 1, Headers),
-	{error, not_found} = ocs:find_offer(OfferId).
-
-ignore_delete_offer() ->
-	[{userdata, [{doc,"Delete offer for given Offer Id"}]}].
-
-ignore_delete_offer(Config) ->
-	P1 = price(usage, octets, rand:uniform(1000), rand:uniform(100)),
-	OfferId = offer_add([P1], 4),
-	{ok, #offer{}} = ocs:find_offer(OfferId),
-	ProdRef = product_add(OfferId),
-	HostUrl = ?config(host_url, Config),
-	URI = "/catalogManagement/v2/productOffering/" ++ OfferId,
-	Request = {HostUrl ++ URI, [auth_header()]},
-	{ok, Result} = httpc:request(delete, Request, [], []),
-	{{"HTTP/1.1", 202, _Accepted}, _Headers, _} = Result,
-	{ok, #offer{}} = ocs:find_offer(OfferId).
-
-add_product() ->
-	[{userdata, [{doc,"Create a new product inventory."}]}].
-
-add_product(Config) ->
-	P1 = price(one_time, undefined, rand:uniform(1000), rand:uniform(100)),
-	P2 = price(usage, octets, rand:uniform(1000000), rand:uniform(500)),
-	OfferId = offer_add([P1, P2], 4),
-	HostUrl = ?config(host_url, Config),
-	Accept = {"accept", "application/json"},
-	ContentType = "application/json",
-	InventoryHref = "/productInventoryManagement/v2",
-	ProdOffer = {"productOffering", {struct,[{"id", OfferId}, {"name", OfferId},
-			{"href","/catalogManagement/v2/productOffering/" ++ OfferId}]}},
-	StartDate = {"startDate", ocs_rest:iso8601(erlang:system_time(?MILLISECOND))},
-	EndDate = {"terminationDate", ocs_rest:iso8601(erlang:system_time(?MILLISECOND) + 10000000)},
-	Inventory = {struct, [ProdOffer, StartDate, EndDate]},
-	ReqBody = lists:flatten(mochijson:encode(Inventory)),
-	Request1 = {HostUrl ++ InventoryHref ++ "/product",
-			[Accept, auth_header()], ContentType, ReqBody},
-	{ok, Result} = httpc:request(post, Request1, [], []),
-	{{"HTTP/1.1", 201, _Created}, Headers, _} = Result,
-	{_, Href} = lists:keyfind("location", 1, Headers),
-	InventoryId = lists:last(string:tokens(Href, "/")),
-	{ok, #product{product = OfferId}} = ocs:find_product(InventoryId).
-
-get_product() ->
-	[{userdata, [{doc,"Use HTTP GET to retrieves a product entity"}]}].
-
-get_product(Config) ->
 	CatalogHref = "/catalogManagement/v2",
 	HostUrl = ?config(host_url, Config),
 	Accept = {"accept", "application/json"},
@@ -845,10 +740,10 @@ get_product(Config) ->
 	end,
 	true = lists:all(F1, lists:zip(POP1, POP2)).
 
-update_product() ->
-	[{userdata, [{doc,"Use PATCH for update product entity"}]}].
+update_offer() ->
+	[{userdata, [{doc,"Use PATCH for update product offering entity"}]}].
 
-update_product(Config) ->
+update_offer(Config) ->
 	CatalogHref = "/catalogManagement/v2",
 	HostUrl = ?config(host_url, Config),
 	Accept = {"accept", "application/json"},
@@ -876,6 +771,92 @@ update_product(Config) ->
 			RestPort, PatchContentType, Etag, basic_auth(), ProductName, Body),
 	<<"HTTP/1.1 200", _/binary>> = Headers2,
 	ok = ssl_socket_close(SslSock).
+
+delete_offer() ->
+	[{userdata, [{doc,"Delete offer for given Offer Id"}]}].
+
+delete_offer(Config) ->
+	P1 = price(usage, octets, rand:uniform(1000), rand:uniform(100)),
+	OfferId = offer_add([P1], 4),
+	{ok, #offer{}} = ocs:find_offer(OfferId),
+	HostUrl = ?config(host_url, Config),
+	URI = "/catalogManagement/v2/productOffering/" ++ OfferId,
+	Request = {HostUrl ++ URI, [auth_header()]},
+	{ok, Result} = httpc:request(delete, Request, [], []),
+	{{"HTTP/1.1", 204, _NoContent}, Headers, []} = Result,
+	{_, "0"} = lists:keyfind("content-length", 1, Headers),
+	{error, not_found} = ocs:find_offer(OfferId).
+
+ignore_delete_offer() ->
+	[{userdata, [{doc,"Delete offer for given Offer Id"}]}].
+
+ignore_delete_offer(Config) ->
+	P1 = price(usage, octets, rand:uniform(1000), rand:uniform(100)),
+	OfferId = offer_add([P1], 4),
+	{ok, #offer{}} = ocs:find_offer(OfferId),
+	HostUrl = ?config(host_url, Config),
+	URI = "/catalogManagement/v2/productOffering/" ++ OfferId,
+	Request = {HostUrl ++ URI, [auth_header()]},
+	{ok, Result} = httpc:request(delete, Request, [], []),
+	{{"HTTP/1.1", 202, _Accepted}, _Headers, _} = Result,
+	{ok, #offer{}} = ocs:find_offer(OfferId).
+
+add_product() ->
+	[{userdata, [{doc,"Create a new product inventory."}]}].
+
+add_product(Config) ->
+	P1 = price(one_time, undefined, rand:uniform(1000), rand:uniform(100)),
+	P2 = price(usage, octets, rand:uniform(1000000), rand:uniform(500)),
+	OfferId = offer_add([P1, P2], 4),
+	HostUrl = ?config(host_url, Config),
+	Accept = {"accept", "application/json"},
+	ContentType = "application/json",
+	InventoryHref = "/productInventoryManagement/v2",
+	ProdOffer = {"productOffering", {struct,[{"id", OfferId}, {"name", OfferId},
+			{"href","/catalogManagement/v2/productOffering/" ++ OfferId}]}},
+	StartDate = {"startDate", ocs_rest:iso8601(erlang:system_time(?MILLISECOND))},
+	EndDate = {"terminationDate", ocs_rest:iso8601(erlang:system_time(?MILLISECOND) + 10000000)},
+	Inventory = {struct, [ProdOffer, StartDate, EndDate]},
+	ReqBody = lists:flatten(mochijson:encode(Inventory)),
+	Request1 = {HostUrl ++ InventoryHref ++ "/product",
+			[Accept, auth_header()], ContentType, ReqBody},
+	{ok, Result} = httpc:request(post, Request1, [], []),
+	{{"HTTP/1.1", 201, _Created}, Headers, _} = Result,
+	{_, Href} = lists:keyfind("location", 1, Headers),
+	InventoryId = lists:last(string:tokens(Href, "/")),
+	{ok, #product{product = OfferId}} = ocs:find_product(InventoryId).
+
+get_product() ->
+	[{userdata, [{doc,"Get product inventory
+			with given product inventory reference"}]}].
+
+get_product(Config) ->
+	P1 = price(one_time, undefined, rand:uniform(1000), rand:uniform(100)),
+	P2 = price(usage, octets, rand:uniform(1000000), rand:uniform(500)),
+	OfferId = offer_add([P1, P2], 4),
+	ProdRef = product_add(OfferId),
+	ServiceId = service_add(ProdRef),
+	HostUrl = ?config(host_url, Config),
+	Accept = {"accept", "application/json"},
+	Request = {HostUrl ++ "/productInventoryManagement/v2/product/" ++ ProdRef,
+			[Accept, auth_header()]},
+	{ok, Result} = httpc:request(get, Request, [], []),
+	{{"HTTP/1.1", 200, _OK}, Headers, ResponseBody} = Result,
+	{_, "application/json"} = lists:keyfind("content-type", 1, Headers),
+	{struct, Object} = mochijson:decode(ResponseBody),
+	{_, ProdRef} = lists:keyfind("id", 1, Object),
+	{_, "/productInventoryManagement/v2/product/" ++ ProdRef} = lists:keyfind("href", 1, Object),
+	{_, {struct, ProductOffering}} = lists:keyfind("productOffering", 1, Object),
+	{_, OfferId} = lists:keyfind("id", 1, ProductOffering),
+	{_, "/catalogManagement/v2/productOffering/" ++ OfferId} = lists:keyfind("href", 1, ProductOffering),
+	{_, {array, RealizeingServices}} = lists:keyfind("realizingService", 1, Object),
+	F = fun({struct, [{"id", SId}, {"href","/serviceInventoryManagement/v2/service/" ++ SId}]})
+					when ServiceId == SId ->
+				true;
+			(_) ->
+				false
+	end,
+	true = lists:all(F, RealizeingServices).
 
 update_product_realizing_service() ->
 	[{userdata, [{doc,"Use PATCH for update product inventory realizing services"}]}].
