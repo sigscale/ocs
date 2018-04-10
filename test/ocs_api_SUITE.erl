@@ -291,6 +291,25 @@ delete_offer(_Config) ->
 	ok = ocs:delete_offer(ProductName),
 	{error, not_found} = ocs:find_offer(ProductName).
 
+ignore_delete_offer() ->
+	[{userdata, [{doc, "ignore remove offer if exist product
+			inventory related to offer reference"}]}].
+
+ignore_delete_offer(_Config) ->
+	Price1 = #price{name = ocs:generate_identity(),
+			type = recurring, period = daily, amount = rand:uniform(500)},
+	Price2 = #price{name = ocs:generate_identity(), units = octets,
+			type = usage, size = rand:uniform(1000000), amount = rand:uniform(100)},
+	Prices = [Price1, Price2],
+	OfferId = ocs:generate_identity(),
+	Offer = #offer{name = OfferId,
+			description = "Monthly subscription for mobile internet",
+			status = active, price = Prices},
+	{ok, _Offer} = ocs:add_offer(Offer),
+	{ok, #product{}} = ocs:add_product(OfferId, [], []),
+	{'EXIT', unable_to_delete} = (catch ocs:delete_offer(OfferId)),
+	{ok, #product{}} = ocs:find_offer(OfferId).
+
 add_user() ->
 	[{userdata, [{doc, "Create a new user"}]}].
 
@@ -377,7 +396,8 @@ delete_product(_Config) ->
 	{error, not_found} = ocs:find_product(ProdRef).
 
 ignore_delete_product() ->
-	[{userdata, [{doc, ""}]}].
+	[{userdata, [{doc, "ignore remove product if exist service
+			related to product reference"}]}].
 
 ignore_delete_product(_Config) ->
 	Price1 = #price{name = ocs:generate_identity(), units = octets,
