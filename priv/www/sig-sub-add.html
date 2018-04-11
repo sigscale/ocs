@@ -162,10 +162,9 @@
 			</div>
 			<div id="add-divone">
 				<div>
-					<paper-input id="addSubscriberDataRate"
-							name="ascendDataRate"
-							type="number"
-							label="[[i18n.recieve]]">
+					<paper-input id="addServiceIdentity"
+							name="serviceIdentity"
+							label="ServiceIdentity">
 					</paper-input>
 					<paper-tooltip>
 						<i18n-msg msgid="dataRateTool">
@@ -174,10 +173,9 @@
 					</paper-tooltip>
 				</div>
 				<div>
-					<paper-input id="addSubscriberXmitRate"
-							name="ascendXmitRate"
-							type="number"
-							label="[[i18n.trans]]">
+					<paper-input id="addServicePassword"
+							name="servicePassword"
+							label="servicePassword">
 					</paper-input>
 					<paper-tooltip>
 						<i18n-msg msgid="xmitRateTool">
@@ -186,11 +184,9 @@
 					</paper-tooltip>
 				</div>
 				<div>
-					<paper-input id="addSubscriberTimeout"
-							name="sessionTimeout"
-							type="number"
-							label="[[i18n.ses]]"
-							value=3600>
+					<paper-input id="addAcctSessionInterval"
+							name="acctSessionInterval"
+							label="sessionInterval">
 					</paper-input>
 					<paper-tooltip>
 						<i18n-msg msgid="sessionTimeoutTool">
@@ -199,10 +195,9 @@
 					</paper-tooltip>
 				</div>
 				<div>
-					<paper-input id="addSubscriberInterval"
-							name="acctInterimInterval"
-							type="number"
-							label="[[i18n.updateInterval]]">
+					<paper-input id="addSessionTimeout"
+							name="addSessionTimeout"
+							label="sessionTimeout">
 					</paper-input>
 					<paper-tooltip>
 						<i18n-msg msgid="acctInterimIntervalTool">
@@ -220,7 +215,7 @@
 					</i18n-msg>
 					<div style="display:inline-block;">
 						<paper-toggle-button id="addSubscriberEnabled"
-							name="enabled" checked>
+							name="isServiceEnabled" checked>
 						</paper-toggle-button>
 						<paper-tooltip>
 							<i18n-msg msgid="enableTool">
@@ -374,7 +369,7 @@
 		</paper-dialog>
 		<iron-ajax
 				id="addSubscriberAjax"
-				url="/ocs/v1/subscriber"
+				url="/serviceInventoryManagement/v2/service"
 				method = "post"
 				content-type="application/json"
 				on-loading-changed="_onLoadingChanged"
@@ -387,6 +382,14 @@
             method = "GET"
             on-response="_updateSubscriberProductsResponse1"
             on-error="_updateSubscriberProductsError1">
+      </iron-ajax>
+		<iron-ajax
+            id="updateSubscriberProductsAjax2"
+            url="/catalogManagement/v2/productOffering"
+            method = "POST"
+				content-type="application/json"
+            on-response="_postSubscriberProductsResponse1"
+            on-error="_postSubscriberProductsError1">
       </iron-ajax>
 	</template>
 	<script>
@@ -404,47 +407,39 @@
 			},
 			_subscriberAddSubmit: function(event) {
 				var subscriber = new Object();
-				if(!this.$.addSubscriberId.disabled) {
-					subscriber.id = this.$.addSubscriberId.value;
+				var serviceChar = new Array();
+				if(this.$.addServiceIdentity.value) {
+					var serviceIdentity = new Object();
+					serviceIdentity.name = "serviceIdentity";
+					serviceIdentity.value = this.$.addServiceIdentity.value;
+					serviceChar.push(serviceIdentity);
 				}
 				if(!this.$.addSubscriberPassword.disabled) {
-					subscriber.password = this.$.addSubscriberPassword.value;
+					var servicePass = new Object();
+					servicePass.name = "servicePassword";
+					servicePass.value = this.$.addSubscriberPassword.value;
+					serviceChar.push(servicePass);
 				}
-				var attributes = new Array();
-				if(parseInt(this.$.addSubscriberDataRate.value)) {
-					var ascendDataRate = new Object();
-					ascendDataRate.name = "ascendDataRate";
-					ascendDataRate.value = parseInt(this.$.addSubscriberDataRate.value);
-					attributes.push(ascendDataRate);
+				if(parseInt(this.$.addAcctSessionInterval.value)) {
+					var sessionInterval = new Object();
+					sessionInterval.name = "acctSessionInterval";
+					sessionInterval.value = parseInt(this.$.addAcctSessionInterval.value);
+					serviceChar.push(sessionInterval);
 				}
-				if(parseInt(this.$.addSubscriberXmitRate.value)) {
-					var ascendXmitRate = new Object();
-					ascendXmitRate.name = "ascendXmitRate";
-					ascendXmitRate.value = parseInt(this.$.addSubscriberXmitRate.value);
-					attributes.push(ascendXmitRate);
+				if(parseInt(this.$.addSessionTimeout.value)) {
+					var sessionTime = new Object();
+					sessionTime.name = "sessionTimeout";
+					sessionTime.value = parseInt(this.$.addSessionTimeout.value);
+					serviceChar.push(sessionTime);
 				}
-				if(parseInt(this.$.addSubscriberTimeout.value)) {
-					var sessionTimeout = new Object();
-					sessionTimeout.name = "sessionTimeout";
-					sessionTimeout.value = parseInt(this.$.addSubscriberTimeout.value);
-					attributes.push(sessionTimeout);
+				if(this.$.addSubscriberMulti.checked) {
+					var multiSess = new Object();
+					multiSess.name = "multisession";
+					multiSess.valueType = "boolean";
+					multiSess.value = this.$.addSubscriberMulti.checked;
+					serviceChar.push(multiSess);
 				}
-				if(parseInt(this.$.addSubscriberInterval.value)) {
-					var acctInterimInterval = new Object();
-					acctInterimInterval.name = "acctInterimInterval";
-					acctInterimInterval.value = parseInt(this.$.addSubscriberInterval.value);
-					attributes.push(acctInterimInterval);
-				}
-				if(this.$.addSubscriberClass.value) {
-					var classx = new Object();
-					classx.name = "class";
-					if(this.$.addSubscriberClass.value == "") {
-						classx.value = null;
-					} else {
-						classx.value = this.$.addSubscriberClass.value;
-					}
-				}
-				subscriber.attributes = attributes;
+				subscriber.serviceCharacteristic = serviceChar;
 				var buckets = [];
 				if(document.getElementById("add8").value) {
 					if(document.getElementById("adduni9").selected == 0) {
@@ -461,9 +456,12 @@
 					}
 					subscriber.buckets = buckets;
 				}
-				subscriber.product = this.product;
-				subscriber.enabled = this.$.addSubscriberEnabled.checked;
-				subscriber.multisession = this.$.addSubscriberMulti.checked;
+				subscriber.isServiceEnabled = this.$.addSubscriberEnabled.checked;
+				subscriber.state = "active";
+				var specService = new Object();
+				specService.id = "1";
+				specService.href = "/catalogManagement/v2/serviceSpecification/1";
+				subscriber.serviceSpecification = specService;
 				if(subscriber.id != "") {
 					var ajax = this.$.addSubscriberAjax;
 					ajax.headers['Content-type'] = "application/json";
