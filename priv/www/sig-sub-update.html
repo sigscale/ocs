@@ -486,7 +486,7 @@
 			},
 			deleteSubscriber: function(event) {
 				this.$.deleteSubscriberAjax.method = "DELETE";
-				this.$.deleteSubscriberAjax.url = "/ocs/v1/subscriber/"
+				this.$.deleteSubscriberAjax.url = "/serviceInventoryManagement/v2/service/"
 						+ document.getElementById("subscriberGrid").selectedItems[0].id;
 				this.$.deleteSubscriberAjax.generateRequest();
 			},
