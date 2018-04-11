@@ -239,7 +239,7 @@
 					grid.dataProvider = function(params, callback) {
 						cbSubscriber = callback;
 						var ajax = document.getElementById("getSubscriberAjax");
-						ajax.url = "/ocs/v1/subscriber";
+						ajax.url = "/serviceInventoryManagement/v2/service";
 						params.filters.forEach(function(filter, index) {
 							if(index == 0) {
 								ajax.url += '?' + filter.path + '=' + filter.value;
@@ -311,7 +311,6 @@
 				for (var index in results) {
 					var newRecord = new Object();
 					newRecord.id = results[index].id;
-					newRecord.password = results[index].password;
 					newRecord.product = results[index].product;
 					if(results[index].totalBalance) {
 						function getBytes(balance) {
@@ -343,8 +342,21 @@
 							}
 						);
 					}
-					newRecord.enabled = results[index].enabled;
-					newRecord.multisession = results[index].multisession;
+					function checkPassword(pass) {
+						return pass.name == "servicePassword";
+					}
+					var indexPass = results[index].serviceCharacteristic.findIndex(checkPassword);
+					if(indexPass != -1) {
+						newRecord.password = results[index].serviceCharacteristic[indexPass].value;
+					}
+					newRecord.enabled = results[index].isServiceEnabled;
+					function checkMultisession(multi) {
+						return multi.name == "multiSession";
+					}
+					var indexMulti = results[index].serviceCharacteristic.findIndex(checkMultisession);
+					if(indexMulti != -1) {
+						newRecord.multisession = results[index].serviceCharacteristic[indexMulti].value;
+					}
 					vaadinItems[index] = newRecord;
 				}
 					cbSubscriber(vaadinItems);
