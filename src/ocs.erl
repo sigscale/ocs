@@ -38,7 +38,7 @@
 -export([generate_password/0, generate_identity/0]).
 -export([start/4, start/5]).
 %% export the ocs private API
--export([normalize/1]).
+-export([normalize/1, generate_bucket_id/0, end_period/2]).
 
 -export_type([eap_method/0]).
 
@@ -1551,6 +1551,12 @@ normalize([_ | T], Acc) ->
 normalize([], Acc) ->
 	lists:reverse(Acc).
 
+%% @private 
+generate_bucket_id() ->
+	TS = erlang:system_time(?MILLISECOND),
+	N = erlang:unique_integer([positive]),
+	integer_to_list(TS) ++ "-" ++ integer_to_list(N).
+
 -spec get_params() -> {Port :: integer(), Address :: string(),
 		Directory :: string(), Group :: string()}.
 %% @doc Returns configurations details for currently running
@@ -1676,12 +1682,6 @@ default_chars1([_ | T]) ->
 	default_chars1(T);
 default_chars1([]) ->
 	undefined.
-
-%% @hidden
-generate_bucket_id() ->
-	TS = erlang:system_time(?MILLISECOND),
-	N = erlang:unique_integer([positive]),
-	integer_to_list(TS) ++ "-" ++ integer_to_list(N).
 
 -spec gregorian_datetime_to_system_time(DateTime) -> MilliSeconds
 	when
