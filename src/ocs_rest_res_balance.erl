@@ -161,7 +161,8 @@ top_up(_Identity, RequestBody) ->
 	try
 		bucket(mochijson:decode(RequestBody))
 	of
-		#bucket{product = [ProdRef]} = B ->
+		#bucket{product = [ProdRef], units = Units, remain_amount = RM} = B
+				when Units /= undefined, RM > 0 ->
 			case ocs:add_bucket(ProdRef, B) of
 				{ok, _, #bucket{id = Id}} ->
 					Location = ?bucketPath ++ Id,
@@ -169,7 +170,9 @@ top_up(_Identity, RequestBody) ->
 					{ok, Headers, []};
 				{error, _} ->
 					{error, 500}
-			end
+			end;
+		_ ->
+			{error, 400}
 	catch
 		_:_ ->
 			{error, 400}
