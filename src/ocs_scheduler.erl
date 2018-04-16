@@ -70,7 +70,7 @@ product_charge1(ProdRef, Now, Prices) ->
 											[{'$1',
 											[
 												{'==', Id, {element, #bucket.id, '$1'}},
-												{'==', cents, {element, #bucket.units}}
+												{'==', cents, {element, #bucket.units, '$1'}}
 											],
 											['$1']}]) || Id <- BucketRefs]),
 									Bucket2  = filter_buckets(ProdRef, Now, Buckets1),
