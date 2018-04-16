@@ -155,7 +155,7 @@ handle_info(timeout, #state{interval = Interval,
 		schedule = ScheduledTime, dir = Directory,
 		type = Type} = State) ->
 	Time = erlang:system_time(?MILLISECOND),
-	FileName = Directory ++ "/" ++ ocs_log:iso8601(Time),
+	FileName = ocs_log:iso8601(Time),
 	{Start, End} = previous(Interval),
 	case ocs_log:ipdr_log(Type, FileName, Start, End) of
 		ok ->

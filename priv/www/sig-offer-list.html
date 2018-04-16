@@ -240,10 +240,10 @@
 							ajax.headers['If-Range'] = etag;
 						}
 						ajax.generateRequest();
-						var ajax1 = document.getElementById('getTableAjax');
-						ajax1.url = "/catalogManagement/v2/pla";
-						ajax1.generateRequest();
 					};
+					var ajax1 = document.getElementById('getTableAjax');
+					ajax1.url = "/catalogManagement/v2/pla";
+					ajax1.generateRequest();
 				}
 			},
 			_activeItemChanged: function(item) {
