@@ -31,6 +31,10 @@
 -include("ocs.hrl").
 -include_lib("common_test/include/ct.hrl").
 
+%% support deprecated_time_unit()
+-define(MILLISECOND, milli_seconds).
+%-define(MILLISECOND, millisecond).
+
 %%---------------------------------------------------------------------
 %%  Test server callback functions
 %%---------------------------------------------------------------------
@@ -83,7 +87,8 @@ all() ->
 			add_once_allowance_bundle, add_recurring,
 			add_recurring_bundle, add_recurring_allowance,
 			add_recurring_usage_allowance,
-			add_recurring_allowance_bundle].
+			add_recurring_allowance_bundle,
+			recurring_charge_monthly].
 
 %%---------------------------------------------------------------------
 %%  Test cases
@@ -422,7 +427,65 @@ add_recurring_allowance_bundle(_Config) ->
 	UnitSize6 = UnitSize2 + UnitSize4,
 	{_, UnitSize6} = lists:foldl(F, {seconds, 0}, Buckets3).
 
+recurring_charge_monthly() ->
+	[{userdata, [{doc, "Recurring charges for monthly subscription"}]}].
+
+recurring_charge_monthly(_Config) ->
+	SD = erlang:system_time(?MILLISECOND),
+	P1 = one_time(SD, 2995),
+	Alteration = alteration(SD, usage, octets, 100000000000),
+	P2 = recurring(SD, monthly, 1250, Alteration),
+	P3 = overage(SD, usage, octets, 100, 1000000000),
+	Prices = [P1, P2, P3],
+	OfferId = ocs:generate_identity(),
+	Offer = #offer{name = OfferId, start_date = SD,
+			status = active, price = Prices},
+	{ok, _Offer1} = ocs:add_offer(Offer),
+	{ok, #product{id = ProdId} = P} = ocs:add_product(OfferId, []),
+	Expired = erlang:system_time(?MILLISECOND) - 2592000000,
+	mnesia:dirty_write(product, P#product{payment =
+			[{P2#price.name, Expired}]}),
+	B1 = #bucket{units = cents,
+			remain_amount = 10000000,
+			start_date = erlang:system_time(?MILLISECOND),
+			termination_date = erlang:system_time(?MILLISECOND) + 2592000000},
+	{ok, _, #bucket{id = BId1}} = ocs:add_bucket(ProdId, B1),
+	ok = ocs_scheduler:product_charge(),
+	F1 = fun(BId) ->
+				case ocs:find_bucket(BId) of
+					{ok, #bucket{remain_amount = RM1}} when BId == BId1 ->
+							RM1 == B1#bucket.remain_amount - P2#price.amount;
+					{ok, #bucket{remain_amount = RM1}} ->
+							RM1 == Alteration#alteration.size;
+					_ ->
+						false
+				end
+	end,
+	{ok, #product{payment = Payments, balance = BRefs}} =
+			ocs:find_product(ProdId),
+	true = lists:all(F1, BRefs),
+	F2 = fun({_, DueDate}) -> DueDate == ocs:end_period(Expired, monthly) end,
+	lists:any(F2, Payments).
 %%---------------------------------------------------------------------
 %%  Internal functions
 %%---------------------------------------------------------------------
+
+one_time(SD, Amount) ->
+	#price{name = ocs:generate_identity(),
+			start_date = SD, type = one_time, amount = Amount}.
+
+recurring(SD, Period, Amount, Alteration) ->
+	#price{name = ocs:generate_identity(),
+			start_date = SD, type = recurring, period = Period,
+			amount = Amount, alteration = Alteration}.
+
+overage(SD, Type, Units, Amount, Size) ->
+	#price{name = ocs:generate_identity(),
+			start_date = SD, type = Type, size = Size,
+			amount = Amount, units = Units}.
+
+alteration(SD, Type, Units, Size) ->
+	#alteration{name = ocs:generate_identity(),
+			start_date = SD, type = Type,
+			units = Units, size = Size, amount = 0}.
 
