@@ -1593,6 +1593,8 @@ subscription(#product{name = ProdRef} = Product, Now, true,
 				units = Units, remain_amount = Size, last_modified = Now}
 				| Buckets]),
 	subscription(Product, Now, true, NewBuckets, T);
+subscription(Product, Now, false, Buckets, [#price{type = one_time} | T]) ->
+	subscription(Product, Now, false, Buckets, T);
 subscription(#product{name = ProdRef} = Product, Now, true, Buckets,
 		[#price{type = usage, alteration = #alteration{type = one_time,
 			units = Units, size = Size, amount = AlterationAmount}} | T]) ->
@@ -1600,6 +1602,9 @@ subscription(#product{name = ProdRef} = Product, Now, true, Buckets,
 		[#bucket{id = generate_bucket_id(), units = Units,
 			remain_amount = Size, product = [ProdRef]} | Buckets]),
 	subscription(Product, Now, true, NewBuckets, T);
+subscription(Product, Now, false, Buckets,
+		[#price{type = usage, alteration = #alteration{type = one_time}} | T]) ->
+	subscription(Product, Now, false, Buckets, T);
 subscription(#product{payment = Payments} = Product,
 		Now, true, Buckets, [#price{type = recurring, period = Period,
 		amount = Amount, name = Name, alteration = undefined} | T]) when
