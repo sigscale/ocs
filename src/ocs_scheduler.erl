@@ -54,16 +54,16 @@ product_charge() ->
 			product_charge1(get_product(start), Now, frp(Offers))
 	end.
 %% @hidden
-product_charge1('$end_of_table', _Now, _Prices) ->
+product_charge1('$end_of_table', _Now, _Offers) ->
 	ok;
-product_charge1(ProdRef, Now, Prices) ->
+product_charge1(ProdRef, Now, Offers) ->
 	F = fun() ->
 			case mnesia:read(product, ProdRef, write) of
 				[#product{product = OfferId,
 						payment = Payments,
 						balance = BucketRefs} = Product] ->
-					case if_recur(OfferId, Prices) of
-						{true, Price} ->
+					case if_recur(OfferId, Offers) of
+						{true, Offer} ->
 							case if_dues(Payments, Now) of
 								true ->
 									Buckets1 = lists:flatten([mnesia:select(bucket,
@@ -73,12 +73,12 @@ product_charge1(ProdRef, Now, Prices) ->
 												{'==', cents, {element, #bucket.units, '$1'}}
 											],
 											['$1']}]) || Id <- BucketRefs]),
-									Bucket2  = filter_buckets(ProdRef, Now, Buckets1),
-									{NewPayments, Buckets3} = do_charge(Payments, Now, Bucket2, Price),
+									Buckets2  = filter_buckets(ProdRef, Now, Buckets1),
+									{NewProduct1, Buckets3} = ocs:subscription(Product, Offer,
+											Buckets2, false),
 									NewBRefs = update_buckets(BucketRefs, Buckets1, Buckets3),
-									NewProduct = Product#product{balance = NewBRefs,
-											payment = NewPayments},
-									ok = mnesia:write(NewProduct);
+									NewProduct2 = NewProduct1#product{balance = NewBRefs},
+									ok = mnesia:write(NewProduct2);
 								false ->
 									ok
 							end;
@@ -182,8 +182,8 @@ if_dues([], _Now)  ->
 	false.
 
 %% @private
-if_recur(OfferId, [#{offer := OfferId, price := Price} | _]) ->
-	{true, Price};
+if_recur(OfferId, [#{offer_id := OfferId, offer := Offer} | _]) ->
+	{true, Offer};
 if_recur(OfferId, [_ | T]) ->
 	if_recur(OfferId, T);
 if_recur(_OfferId, []) ->
@@ -229,17 +229,19 @@ get_offers() ->
 frp(Offers) ->
 	frp1(Offers, []).
 %% @hidden
-frp1([#offer{name = OfferId, price = Prices} | T], Acc) ->
-	case lists:filter(fun frp2/1, Prices) of
-		[] ->
+frp1([#offer{name = OfferId, price = Prices} = Offer | T], Acc) ->
+	case lists:any(fun frp2/1, Prices) of
+		false ->
 			frp1(T, Acc);
-		FPs ->
-			[#{offer => OfferId, price => FP} || FP <- FPs] ++ Acc
+		true ->
+			[#{offer_id => OfferId, offer => Offer}] ++ Acc
 	end;
 frp1([], Acc) ->
 	lists:reverse(Acc).
 %% @hidden
 frp2(#price{type = recurring}) ->
+	true;
+frp2(#price{alteration = #alteration{type = recurring}}) ->
 	true;
 frp2(_) ->
 	false.
