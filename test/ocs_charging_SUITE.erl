@@ -457,7 +457,7 @@ recurring_charge_monthly(_Config) ->
 							RM1 == B1#bucket.remain_amount - P2#price.amount;
 					{ok, #bucket{remain_amount = RM1}} ->
 							RM1 == Alteration#alteration.size;
-					_ ->
+					_R ->
 						false
 				end
 	end,
