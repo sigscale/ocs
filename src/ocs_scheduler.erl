@@ -91,62 +91,18 @@ product_charge1(ProdRef, Now, Offers) ->
 	end,
 	case mnesia:transaction(F) of
 		{atomic, ok} ->
-			product_charge1(get_product(ProdRef), Now, Prices);
+			product_charge1(get_product(ProdRef), Now, Offers);
 		{aborted, Reason} ->
 			error_logger:error_report("Schedular Update Failed",
 					[{module, ?MODULE}, {product_id, ProdRef},
 					{time, erlang:system_time(?MILLISECOND)},
 					{reason, Reason}]),
-			product_charge1(get_product(ProdRef), Now, Prices)
+			product_charge1(get_product(ProdRef), Now, Offers)
 	end.
 
 %%----------------------------------------------------------------------
 %%  internal functions
 %%----------------------------------------------------------------------
-%% @private
-do_charge(Payments, Now, Buckets, Prices) ->
-	do_charge1(Payments, Now, Buckets, Prices, []).
-%% @hidden
-do_charge1([{PID, DueDate} = P | T], Now, Buckets,
-		#price{name = PID} = Price, NewPayments) when DueDate > Now ->
-	do_charge1(T, Now, Buckets, Price, [P | NewPayments]);
-do_charge1([{PID, DueDate} | T], Now, Buckets,
-		#price{name = PID, period = Period, amount = Amount,
-		alteration = Alter} = Price, NewPayments) ->
-	Buckets1 = charge(Amount, Alter, Buckets),
-	case next_due_date(DueDate, Period) of
-		NextDueDate when NextDueDate < Now ->
-			do_charge1([{Price, NextDueDate} | T], Now,
-					Buckets1, Price, NewPayments);
-		NextDueDate ->
-			do_charge1(T, Now, Buckets1, Price,
-					[{PID, NextDueDate} | NewPayments])
-	end;
-do_charge1([P | T], Now, Buckets, Price, NewPayments) ->
-	do_charge1(T, Now, Buckets, Price, [P | NewPayments]);
-do_charge1([], _Now, Buckets, _Price, NewPayments) ->
-	{lists:reverse(NewPayments), Buckets}.
-
-%% @private
-%% @todo set termination date
-charge(Charge, Alteration, [#bucket{remain_amount = RM} = B
-		| T]) when RM >= Charge, Charge =/= 0 ->
-	NewBuckets = [B#bucket{remain_amount = RM - Charge} | T],
-	charge(0, Alteration, NewBuckets);
-charge(Charge, Alteration, [#bucket{remain_amount = RM}
-		| T]) when RM < Charge, Charge =/= 0 ->
-	charge(Charge - RM, Alteration, T);
-charge(0, undefined, Buckets) ->
-	Buckets;
-charge(0, #alteration{units = Units, size = Size}, Buckets) ->
-	[#bucket{id = ocs:generate_bucket_id(),
-			units = Units, remain_amount = Size} | Buckets];
-charge(Charge, #alteration{units = Units, size = Size}, []) ->
-	[#bucket{id = ocs:generate_bucket_id(),
-			units = cents, remain_amount = - Charge},
-	#bucket{id = ocs:generate_bucket_id(),
-			units = Units, remain_amount = Size}].
-
 %% @private
 filter_buckets(ProdRef, Now, Buckets) ->
 	filter_buckets1(Buckets, ProdRef, Now, []).
@@ -168,10 +124,6 @@ filter_buckets1([#bucket{product = P} = B | T], ProdRef, Now, Acc) ->
 	end;
 filter_buckets1([], _ProdRef, _Now, Acc) ->
 	Acc.
-
-%% @private
-next_due_date(DueDate, Period) ->
-	ocs:end_period(DueDate, Period).
 
 %% @private
 if_dues([{_, DueDate} | _], Now) when DueDate < Now ->
