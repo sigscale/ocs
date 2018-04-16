@@ -1628,7 +1628,7 @@ subscription(#product{name = ProdRef, payment = Payments} = Product,
 	Product1 = Product#product{payment = NewPayments},
 	subscription(Product1, Now, true, NewBuckets, T);
 subscription(#product{name = ProdRef, payment = Payments} = Product,
-		Now, flase, Buckets, [#price{type = recurring, period = Period,
+		Now, false, Buckets, [#price{type = recurring, period = Period,
 			amount = Amount, alteration = #alteration{units = Units, size = Size,
 			amount = AllowanceAmount}, name = Name} | T]) when (Period /= undefined)
 			and ((Units == octets) orelse (Units == seconds) orelse (Units == messages)) ->
