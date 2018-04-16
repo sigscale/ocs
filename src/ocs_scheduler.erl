@@ -130,16 +130,17 @@ do_charge1([], _Now, Buckets, _Price, NewPayments) ->
 %% @private
 %% @todo set termination date
 charge(Charge, Alteration, [#bucket{remain_amount = RM} = B
-		| T]) when RM >= Charge ->
+		| T]) when RM >= Charge, Charge =/= 0 ->
 	NewBuckets = [B#bucket{remain_amount = RM - Charge} | T],
 	charge(0, Alteration, NewBuckets);
 charge(Charge, Alteration, [#bucket{remain_amount = RM}
-		| T]) when RM < Charge ->
+		| T]) when RM < Charge, Charge =/= 0 ->
 	charge(Charge - RM, Alteration, T);
 charge(0, undefined, Buckets) ->
 	Buckets;
 charge(0, #alteration{units = Units, size = Size}, Buckets) ->
-	[#bucket{units = Units, remain_amount = Size} | Buckets];
+	[#bucket{id = ocs:generate_bucket_id(),
+			units = Units, remain_amount = Size} | Buckets];
 charge(Charge, #alteration{units = Units, size = Size}, []) ->
 	[#bucket{id = ocs:generate_bucket_id(),
 			units = cents, remain_amount = - Charge},
