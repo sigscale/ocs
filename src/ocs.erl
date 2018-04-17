@@ -1562,25 +1562,24 @@ normalize([], Acc) ->
 		InitialFlag :: boolean(),
 		Result :: {Product, Buckets}.
 %% @private
-subscription(#product{product = OfferId} = Product,
-		#offer{name = OfferId, bundle = [], price = Prices} = _Offer,
-		Buckets, InitialFlag) ->
+subscription(Product, #offer{bundle = [], price = Prices} =
+		_Offer, Buckets, InitialFlag) ->
 	Now = erlang:system_time(?MILLISECOND),
 	subscription(Product, Now, InitialFlag, Buckets, Prices);
 subscription(#product{product = OfferId} = Product,
 		#offer{name = OfferId, bundle = Bundled, price = Prices} = _Offer,
 		Buckets, InitialFlag) when length(Bundled) > 0 ->
 	Now = erlang:system_time(?MILLISECOND),
-	F = fun(#bundled_po{name = P}, Prod) ->
+	F = fun(#bundled_po{name = P}, {Prod, B}) ->
 				case mnesia:read(offer, P, read) of
 					[Offer] ->
-						subscription(Prod, Now, Offer, Buckets, InitialFlag);
+						subscription(Prod, Offer, B, InitialFlag);
 					[] ->
 						throw(offer_not_found)
 				end
 	end,
-	Product1 = lists:foldl(F, Product, Bundled),
-	subscription(Product1, Now, InitialFlag, Buckets, Prices).
+	{Product1, Buckets1} = lists:foldl(F, {Product, Buckets}, Bundled),
+	subscription(Product1, Now, InitialFlag, Buckets1, Prices).
 %% @hidden
 subscription(Product, Now, true, Buckets,
 		[#price{type = one_time, amount = Amount,
