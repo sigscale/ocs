@@ -1671,7 +1671,7 @@ subscription(#product{name = ProdRef, payment = Payments}
 subscription(Product, Now, InitialFlag, Buckets, [_H | T]) ->
 	subscription(Product, Now, InitialFlag, Buckets, T);
 subscription(Product, _Now, _, Buckets, []) ->
-	NewBIds = [Id || Id <- Buckets],
+	NewBIds = [Id || #bucket{id = Id} <- Buckets],
 	{Product#product{balance = NewBIds}, Buckets}.
 
 %% @hidden
