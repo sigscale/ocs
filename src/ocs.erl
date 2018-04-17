@@ -375,9 +375,9 @@ add_product(Offer, ServiceRefs) ->
 add_product(Offer, ServiceRefs, Characteristics) ->
 	add_product(Offer, ServiceRefs, undefined, undefined, Characteristics).
 
--spec add_product(Offer, ServiceRefs, StartDate, EndDate, Characteristics) -> Result
+-spec add_product(OfferId, ServiceRefs, StartDate, EndDate, Characteristics) -> Result
 	when
-		Offer :: string(),
+		OfferId :: string(),
 		ServiceRefs :: [ServiceRef],
 		StartDate :: undefined | pos_integer(),
 		EndDate :: undefined | pos_integer(),
@@ -386,13 +386,13 @@ add_product(Offer, ServiceRefs, Characteristics) ->
 		Result :: {ok, #product{}} | {error, Reason},
 		Reason :: term().
 %% @doc Add a product invenotry subscription instance.
-add_product(Offer, ServiceRefs, StartDate, EndDate, Characteristics)
+add_product(OfferId, ServiceRefs, StartDate, EndDate, Characteristics)
 		when (is_integer(StartDate) orelse (StartDate == undefined)),
 		(is_integer(EndDate) orelse (EndDate == undefined)),
-		is_list(Characteristics), is_list(Offer), is_list(ServiceRefs) ->
+		is_list(Characteristics), is_list(OfferId), is_list(ServiceRefs) ->
 	F = fun() ->
-			case mnesia:read(offer, Offer, read) of
-				[#offer{char_value_use = CharValueUse}] ->
+			case mnesia:read(offer, OfferId, read) of
+				[#offer{char_value_use = CharValueUse} = Offer] ->
 					TS = erlang:system_time(?MILLISECOND),
 					N = erlang:unique_integer([positive]),
 					LM = {TS, N},
@@ -408,11 +408,14 @@ add_product(Offer, ServiceRefs, StartDate, EndDate, Characteristics)
 					end,
 					ok = lists:foreach(F2, ServiceRefs),
 					NewChars = default_chars(CharValueUse, Characteristics),
-					Product = #product{id = Id, product = Offer, start_date = StartDate,
+					Product1 = #product{id = Id, product = OfferId, start_date = StartDate,
 							termination_date = EndDate, characteristics = NewChars,
 							service = ServiceRefs, last_modified = LM},
-					ok = mnesia:write(Product),
-					Product;
+					{Product2, Buckets} = subscription(Product1, Offer, [], true),
+					F3 = fun(#bucket{} = B) -> ok = mnesia:write(bucket, B, write) end,
+					ok = lists:foreach(F3, Buckets),
+					ok = mnesia:write(Product2),
+					Product2;
 				[] ->
 					throw(offer_not_found)
 			end
