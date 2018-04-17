@@ -940,12 +940,12 @@ abmf_open() ->
 	{ok, LogFiles} = application:get_env(ocs, abmf_log_files),
 	open_log(Directory, ?BALANCELOG, LogSize, LogFiles).
 
--spec abmf_log(Type, Subscriber, Bucket, Units, Product, Amount,
+-spec abmf_log(Type, ServiceId, Bucket, Units, Product, Amount,
 		AmountBefore, AmountAfter, Validity, Channel, Requestor,
 		RelatedParty, PaymentMeans, Action, Status) -> Result
 	when
 		Type :: deduct | reserve | unreserve | transfer | topup | adjustment,
-		Subscriber :: binary(),
+		ServiceId :: undefined | binary(),
 		Bucket :: undefined | string(),
 		Units :: cents | seconds | octets | messages,
 		Product :: string(),
@@ -965,16 +965,16 @@ abmf_open() ->
 		Result :: ok | {error, Reason},
 		Reason :: term().
 %% @doc Write a balance activity log
-abmf_log(Type, Subscriber, Bucket, Units, Product, Amount,
+abmf_log(Type, ServiceId, Bucket, Units, Product, Amount,
 		AmountBefore, AmountAfter, Validity, Channel, Requestor,
 		RelatedParty, PaymentMeans, Action, Status)
 		when ((Type == transfer) orelse (Type == topup) orelse
 		(Type == adjustment) orelse (Type == deduct) orelse (Type == reserve)
-		orelse (Type == unreserve)), is_binary(Subscriber), is_list(Bucket),
-		((Units == cents) orelse (Units == seconds) orelse (Units == octets)
+		orelse (Type == unreserve)), ((is_binary(ServiceId)) orelse (ServiceId == undefined)),
+		is_list(Bucket), ((Units == cents) orelse (Units == seconds) orelse (Units == octets)
 		orelse (Units == messages)), is_integer(AmountBefore), is_integer(AmountAfter),
 		is_list(Product), is_integer(Amount)->
-	Event = [node(), Type, Subscriber, Bucket, Units, Product, Amount,
+	Event = [node(), Type, ServiceId, Bucket, Units, Product, Amount,
 			AmountBefore, AmountAfter, Validity, Channel, Requestor,
 			RelatedParty, PaymentMeans, Action, Status],
 	write_log(?BALANCELOG, Event).
