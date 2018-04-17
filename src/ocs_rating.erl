@@ -113,13 +113,23 @@ rate(Protocol, ServiceType, SubscriberID, Timestamp, Address, Direction,
 									Buckets = lists:flatten([mnesia:select(bucket,
 											[{'$1', [{'==', Id, {element, #bucket.id, '$1'}}], ['$1']}])
 											|| Id <- BucketRefs]),
-									State = #{buckets => Buckets,
-											bucket_refs => BucketRefs, product => Product,
-											chars => Chars, service_type => ServiceType,
-											session_id => get_session_id(SessionAttributes)},
-									rate1(Protocol, Service, Buckets,
-											Timestamp, Address, Direction, Offer,
-											Flag, DebitAmounts, ReserveAmounts, State);
+									F2 = fun(#bucket{units = cents, remain_amount = RM}) when RM < 0 ->
+												false;
+											(_) ->
+												true
+									end,
+									case lists:all(F2, Buckets) of
+										true ->
+											State = #{buckets => Buckets,
+													bucket_refs => BucketRefs, product => Product,
+													chars => Chars, service_type => ServiceType,
+													session_id => get_session_id(SessionAttributes)},
+											rate1(Protocol, Service, Buckets,
+													Timestamp, Address, Direction, Offer,
+													Flag, DebitAmounts, ReserveAmounts, State);
+										false ->
+											throw(out_of_credit)
+									end;
 								[] ->
 									throw(offer_not_found)
 							end;
