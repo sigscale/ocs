@@ -1579,7 +1579,7 @@ subscription(#product{product = OfferId} = Product,
 						throw(offer_not_found)
 				end
 	end,
-	Product1 = lists:fold(F, Product, Bundled),
+	Product1 = lists:foldl(F, Product, Bundled),
 	subscription(Product1, Now, InitialFlag, Buckets, Prices).
 %% @hidden
 subscription(Product, Now, true, Buckets,
