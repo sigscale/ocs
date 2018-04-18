@@ -126,13 +126,11 @@ new(Table, Options, Items) when is_list(Options), is_list(Items) ->
 -spec insert(Table, Number, Value) -> Result
 	when
 		Table :: atom(),
-		Number :: string() | integer(),
+		Number :: string(),
 		Value :: term(),
 		Result :: {ok, #gtt{}}.
 %% @doc Insert a table entry.
 %% 
-insert(Table, Number, Value) when is_integer(Number) ->
-	insert(Table, integer_to_list(Number), Value);
 insert(Table, Number, Value) 
 		when is_atom(Table),
 		is_list(Number) ->
@@ -148,7 +146,7 @@ insert(Table, Number, Value)
 	when
 		Table :: atom(),
 		Items :: [{Number, Value}],
-		Number :: string() | integer(),
+		Number :: string(),
 		Value :: term().
 %% @doc Insert a list of table entries.
 %% 	The entries are inserted as a transaction, either all entries
@@ -164,11 +162,9 @@ insert(Table, Items) when is_atom(Table), is_list(Items)  ->
 -spec delete(Table, Number) -> ok
 	when
 		Table :: atom(),
-	 	Number :: string() | integer().
+		Number :: string().
 %% @doc Delete a table entry.
 %% 
-delete(Table, Number) when is_integer(Number) ->
-	delete(Table, integer_to_list(Number));
 delete(Table, Number) when is_atom(Table), is_list(Number) ->
 	Fun = fun() -> mnesia:delete(Table, Number, write) end,
 	case mnesia:transaction(Fun) of
@@ -181,12 +177,10 @@ delete(Table, Number) when is_atom(Table), is_list(Number) ->
 -spec lookup_first(Table, Number) -> Value
 	when
 		Table :: atom(),
-		Number :: string() | integer(),
+		Number :: string(),
 		Value :: term().
 %% @doc Lookup the value of the first matching table entry.
 %% 
-lookup_first(Table, Number) when is_integer(Number) ->
-	lookup_first(Table, integer_to_list(Number));
 lookup_first(Table, [Digit | Rest]) when is_atom(Table) ->
 	Fun1 = fun(F, [H|T], [#gtt{num = Prefix, value = undefined}]) ->
 				F(F, T, mnesia:read(Table, Prefix ++ [H], read));
@@ -206,12 +200,10 @@ lookup_first(Table, [Digit | Rest]) when is_atom(Table) ->
 -spec lookup_last(Table, Number) -> Value
 	when
 		Table :: atom(),
-		Number :: string() | integer(),
+		Number :: string(),
 		Value :: term().
 %% @doc Lookup the value of the longest matching table entry.
 %% 
-lookup_last(Table, Number) when is_integer(Number) ->
-	lookup_last(Table, integer_to_list(Number));
 lookup_last(Table, Number) when is_atom(Table) ->
 	Fun1 = fun(F, [_|T], []) ->
 				F(F, T, mnesia:read(Table, lists:reverse(T), read));
@@ -235,12 +227,10 @@ lookup_last(Table, Number) when is_atom(Table) ->
 -spec lookup_all(Table, Number) -> Value
 	when
 		Table :: atom(),
-		Number :: list() | integer(),
+		Number :: string(),
 		Value :: term().
 %% @doc Lookup the values of matching table entries.
 %% 
-lookup_all(Table, Number) when is_integer(Number) ->
-	lookup_all(Table, integer_to_list(Number));
 lookup_all(Table, [Digit | Rest]) when is_atom(Table) ->
 	Fun1 = fun(F, [H|T], [#gtt{num = Prefix, value = undefined}], Acc) ->
 				F(F, T, mnesia:read(Table, Prefix ++ [H], read), Acc);
