@@ -186,11 +186,13 @@ frp1([#offer{name = OfferId, price = Prices} = Offer | T], Acc) ->
 		false ->
 			frp1(T, Acc);
 		true ->
-			[#{offer_id => OfferId, offer => Offer}] ++ Acc
+			frp1(T, [#{offer_id => OfferId, offer => Offer}] ++ Acc)
 	end;
 frp1([], Acc) ->
 	lists:reverse(Acc).
 %% @hidden
+frp2(#price{type = Bundle}) when Bundle /= [] ->
+	true;
 frp2(#price{type = recurring}) ->
 	true;
 frp2(#price{alteration = #alteration{type = recurring}}) ->
