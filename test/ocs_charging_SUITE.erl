@@ -98,334 +98,277 @@ add_once() ->
 	[{userdata, [{doc, "One time charges at subscription instantiation"}]}].
 
 add_once(_Config) ->
-	ProductName = ocs:generate_password(),
+	SD = erlang:system_time(?MILLISECOND),
+	OfferId = ocs:generate_password(),
 	Amount1 = 1900,
-	Price1 = #price{name = ocs:generate_password(),
-			type = one_time, amount = Amount1},
+	Price1 = one_time(SD, Amount1),
 	Amount2 = 100,
-	Price2 = #price{name = ocs:generate_password(),
-			type = one_time, amount = Amount2},
+	Price2 = one_time(SD, Amount2),
 	Prices = [Price1, Price2],
-	Product = #offer{name = ProductName, status = active,
+	Offer = #offer{name = OfferId, status = active,
 			specification = 8, price = Prices},
-	{ok, _} = ocs:add_offer(Product),
-	Identity = ocs:generate_identity(),
-	Password = ocs:generate_password(),
+	{ok, _} = ocs:add_offer(Offer),
 	Amount3 = Amount1 + Amount2,
-	Buckets1 = [#bucket{units = cents, remain_amount = Amount3}],
-	{ok, #service{buckets = Buckets2}} = ocs:add_service(Identity,
-			Password, ProductName, [], Buckets1),
-	{_, #bucket{remain_amount = 0}, []} = lists:keytake(cents,
-			#bucket.units, Buckets2).
+	{ok, #product{balance = BRefs}} = ocs:add_product(OfferId, []),
+	Buckets = lists:flatten([mnesia:dirty_read(bucket, BRef) || BRef <- BRefs]),
+	{_, #bucket{remain_amount = Amount4}, []} = lists:keytake(cents,
+			#bucket.units, Buckets),
+	0 = Amount4 + Amount3.
 
 add_once_bundle() ->
 	[{userdata, [{doc, "One time charges instantiating product bundle"}]}].
 
 add_once_bundle(_Config) ->
-	ProductName1 = ocs:generate_password(),
+	SD = erlang:system_time(?MILLISECOND),
+	OfferId1 = ocs:generate_password(),
 	Amount1 = 1900,
-	Price1 = #price{name = ocs:generate_password(),
-			type = one_time, amount = Amount1},
-	Product1 = #offer{name = ProductName1, status = active,
+	Price1 = one_time(SD, Amount1),
+	Offer1 = #offer{name = OfferId1, status = active,
 			specification = 8, price = [Price1]},
-	{ok, _} = ocs:add_offer(Product1),
-	ProductName2 = ocs:generate_password(),
+	{ok, _} = ocs:add_offer(Offer1),
+	OfferId2 = ocs:generate_password(),
 	Amount2 = 100,
-	Price2 = #price{name = ocs:generate_password(),
-			type = one_time, amount = Amount2},
-	Product2 = #offer{name = ProductName2, status = active,
+	Price2 = one_time(SD, Amount2),
+	Offer2 = #offer{name = OfferId2, status = active,
 			specification = 9, price = [Price2]},
-	{ok, _} = ocs:add_offer(Product2),
+	{ok, _} = ocs:add_offer(Offer2),
 	BundleName = ocs:generate_password(),
-	Bundled1 = #bundled_po{name = ProductName1, status = active,
+	Bundled1 = #bundled_po{name = OfferId1, status = active,
 			lower_limit = 0, upper_limit = 1, default = 1},
-	Bundled2 = #bundled_po{name = ProductName2, status = active,
+	Bundled2 = #bundled_po{name = OfferId2, status = active,
 			lower_limit = 0, upper_limit = 1, default = 1},
 	Amount3 = 1000,
-	Price3 = #price{name = ocs:generate_password(),
-			type = one_time, amount = Amount3},
+	Price3 = one_time(SD, Amount3),
 	Bundle = #offer{name = BundleName, status = active,
 			bundle = [Bundled1, Bundled2], price = [Price3]},
 	{ok, _} = ocs:add_offer(Bundle),
-	Identity = ocs:generate_identity(),
-	Password = ocs:generate_password(),
+	{ok, #product{balance = BRefs}} = ocs:add_product(BundleName, []),
+	Buckets = lists:flatten([mnesia:dirty_read(bucket, BRef) || BRef <- BRefs]),
 	Amount4 = Amount1 + Amount2 + Amount3,
-	Buckets1 = [#bucket{units = cents, remain_amount = Amount4}],
-	{ok, #service{buckets = Buckets2}} = ocs:add_service(Identity,
-			Password, BundleName, [], Buckets1),
-	{_, #bucket{remain_amount = 0}, []} = lists:keytake(cents,
-			#bucket.units, Buckets2).
+	{_, #bucket{remain_amount = Amount5}, []} = lists:keytake(cents,
+			#bucket.units, Buckets),
+	0 = Amount5 + Amount4.
 
 add_once_allowance() ->
 	[{userdata, [{doc, "One time allowances at subscription instantiation"}]}].
 
 add_once_allowance(_Config) ->
-	ProductName = ocs:generate_password(),
+	SD = erlang:system_time(?MILLISECOND),
+	OfferId = ocs:generate_password(),
 	UnitSize = 100000000000,
-	Alteration = #alteration{name = ocs:generate_password(),
-			type = one_time, units = octets, size = UnitSize, amount = 0},
+	Alteration = alteration(SD, one_time, undefined, octets, UnitSize, 0),
 	Amount = 1000,
-	Price = #price{name = ocs:generate_password(),
-			type = one_time, amount = Amount, alteration = Alteration},
-	Product = #offer{name = ProductName, status = active,
+	Price = one_time(SD, Amount, Alteration),
+	Offer = #offer{name = OfferId, status = active,
 			specification = 8, price = [Price]},
-	{ok, _} = ocs:add_offer(Product),
-	Identity = ocs:generate_identity(),
-	Password = ocs:generate_password(),
-	Buckets1 = [#bucket{units = cents, remain_amount = Amount}],
-	{ok, #service{buckets = Buckets2}} = ocs:add_service(Identity,
-			Password, ProductName, [], Buckets1),
-	{_, #bucket{remain_amount = 0}, Buckets3} = lists:keytake(cents,
-			#bucket.units, Buckets2),
+	{ok, _} = ocs:add_offer(Offer),
+	{ok, #product{balance = BRefs}} = ocs:add_product(OfferId, []),
+	Buckets = lists:flatten([mnesia:dirty_read(bucket, BRef) || BRef <- BRefs]),
+	{_, #bucket{remain_amount = -1000}, Buckets1} = lists:keytake(cents,
+			#bucket.units, Buckets),
 	{_, #bucket{remain_amount = UnitSize}, []} = lists:keytake(octets,
-			#bucket.units, Buckets3).
+			#bucket.units, Buckets1).
 
 add_once_allowance_bundle() ->
 	[{userdata, [{doc, "One time allowances at instantiation of product bundle"}]}].
 
 add_once_allowance_bundle(_Config) ->
-	ProductName1 = ocs:generate_password(),
+	SD = erlang:system_time(?MILLISECOND),
+	OfferId1 = ocs:generate_password(),
 	UnitSize1 = 100000000000,
-	Alteration1 = #alteration{name = ocs:generate_password(),
-			type = one_time, units = octets, size = UnitSize1, amount = 0},
+	Alteration1 = alteration(SD, one_time, undefined, octets, UnitSize1, 0),
 	Amount1 = 1000,
-	Price1 = #price{name = ocs:generate_password(),
-			type = one_time, amount = Amount1, alteration = Alteration1},
-	Product1 = #offer{name = ProductName1, status = active,
+	Price1 = one_time(SD, Amount1, Alteration1),
+	Offer1 = #offer{name = OfferId1, status = active,
 			specification = 8, price = [Price1]},
-	{ok, _} = ocs:add_offer(Product1),
-	ProductName2 = ocs:generate_password(),
+	{ok, _} = ocs:add_offer(Offer1),
+	OfferId2 = ocs:generate_password(),
 	UnitSize2 = 36000,
-	Alteration2 = #alteration{name = ocs:generate_password(),
-			type = one_time, units = seconds, size = UnitSize2, amount = 0},
+	Alteration2 = alteration(SD, one_time, undefined, seconds, UnitSize2, 0),
 	Amount2 = 1000,
-	Price2 = #price{name = ocs:generate_password(),
-			type = one_time, amount = Amount2, alteration = Alteration2},
-	Product2 = #offer{name = ProductName2, status = active,
+	Price2 = one_time(SD, Amount2, Alteration2),
+	Offer2 = #offer{name = OfferId2, status = active,
 			specification = 9, price = [Price2]},
-	{ok, _} = ocs:add_offer(Product2),
+	{ok, _} = ocs:add_offer(Offer2),
 	BundleName = ocs:generate_password(),
-	Bundled1 = #bundled_po{name = ProductName1, status = active,
+	Bundled1 = #bundled_po{name = OfferId1, status = active,
 			lower_limit = 0, upper_limit = 1, default = 1},
-	Bundled2 = #bundled_po{name = ProductName2, status = active,
+	Bundled2 = #bundled_po{name = OfferId2, status = active,
 			lower_limit = 0, upper_limit = 1, default = 1},
 	UnitSize3 = 2000000000,
-	Alteration3 = #alteration{name = ocs:generate_password(),
-			type = one_time, units = octets, size = UnitSize3, amount = 0},
+	Alteration3 = alteration(SD, one_time, undefined, octets, UnitSize3, 0),
 	Amount3 = 100,
-	Price3 = #price{name = ocs:generate_password(),
-			type = one_time, amount = Amount3, alteration = Alteration3},
+	Price3 = one_time(SD, Amount3, Alteration3),
 	UnitSize4 = 3600,
-	Alteration4 = #alteration{name = ocs:generate_password(),
-			type = one_time, units = seconds, size = UnitSize4, amount = 0},
+	Alteration4 = alteration(SD, one_time, undefined, seconds, UnitSize4, 0),
 	Amount4 = 100,
-	Price4 = #price{name = ocs:generate_password(),
-			type = one_time, amount = Amount4, alteration = Alteration4},
+	Price4 = one_time(SD, Amount4, Alteration4),
 	Bundle = #offer{name = BundleName, status = active,
 			bundle = [Bundled1, Bundled2], price = [Price3, Price4]},
 	{ok, _} = ocs:add_offer(Bundle),
-	Identity = ocs:generate_identity(),
-	Password = ocs:generate_password(),
+	{ok, #product{balance = BRefs}} = ocs:add_product(BundleName, []),
+	Buckets = lists:flatten([mnesia:dirty_read(bucket, BRef) || BRef <- BRefs]),
 	Amount5 = Amount1 + Amount2 + Amount3 + Amount4,
-	Buckets1 = [#bucket{units = cents, remain_amount = Amount5}],
-	{ok, #service{buckets = Buckets2}} = ocs:add_service(Identity,
-			Password, BundleName, [], Buckets1),
-	{_, #bucket{remain_amount = 0}, Buckets3} = lists:keytake(cents,
-			#bucket.units, Buckets2),
+	{_, #bucket{remain_amount = Amount6}, Buckets1} = lists:keytake(cents,
+			#bucket.units, Buckets),
+	0 = Amount6 + Amount5,
 	F = fun(#bucket{units = Units, remain_amount = Amount}, {Units, N}) ->
 				{Units, N + Amount};
 			(_, Acc) ->
 				Acc
 	end,
 	UnitSize5 = UnitSize1 + UnitSize3,
-	{_, UnitSize5} = lists:foldl(F, {octets, 0}, Buckets3),
+	{_, UnitSize5} = lists:foldl(F, {octets, 0}, Buckets1),
 	UnitSize6 = UnitSize2 + UnitSize4,
-	{_, UnitSize6} = lists:foldl(F, {seconds, 0}, Buckets3).
+	{_, UnitSize6} = lists:foldl(F, {seconds, 0}, Buckets1).
 
 add_recurring() ->
 	[{userdata, [{doc, "Recurring charges at subscription instantiation"}]}].
 
 add_recurring(_Config) ->
-	ProductName = ocs:generate_password(),
+	SD = erlang:system_time(?MILLISECOND),
+	OfferId = ocs:generate_password(),
 	Amount1 = 2995,
-	Price1 = #price{name = ocs:generate_password(),
-			type = recurring, period = monthly, amount = Amount1},
+	Price1 = recurring(SD, monthly, Amount1, undefined),
 	Amount2 = 5,
-	Price2 = #price{name = ocs:generate_password(),
-			type = recurring, period = hourly, amount = Amount2},
+	Price2 = recurring(SD, hourly, Amount2, undefined),
 	Prices = [Price1, Price2],
-	Product = #offer{name = ProductName, status = active,
+	Offer = #offer{name = OfferId, status = active,
 			specification = 8, price = Prices},
-	{ok, _} = ocs:add_offer(Product),
-	Identity = ocs:generate_identity(),
-	Password = ocs:generate_password(),
+	{ok, _} = ocs:add_offer(Offer),
+	{ok, #product{balance = BRefs}} = ocs:add_product(OfferId, []),
+	Buckets = lists:flatten([mnesia:dirty_read(bucket, BRef) || BRef <- BRefs]),
 	Amount3 = Amount1 + Amount2,
-	Buckets1 = [#bucket{units = cents, remain_amount = Amount3}],
-	{ok, #service{buckets = Buckets2}} = ocs:add_service(Identity,
-			Password, ProductName, [], Buckets1),
-	{_, #bucket{remain_amount = 0}, []} = lists:keytake(cents,
-			#bucket.units, Buckets2).
+	{_, #bucket{remain_amount = Amount4}, []} = lists:keytake(cents,
+			#bucket.units, Buckets),
+	0 = Amount4 + Amount3.
 
 add_recurring_bundle() ->
 	[{userdata, [{doc, "Recurring charges instantiating product bundle"}]}].
 
 add_recurring_bundle(_Config) ->
-	ProductName1 = ocs:generate_password(),
+	SD = erlang:system_time(?MILLISECOND),
+	OfferId1 = ocs:generate_password(),
 	Amount1 = 2995,
-	Price1 = #price{name = ocs:generate_password(),
-			type = recurring, period = monthly, amount = Amount1},
-	Product1 = #offer{name = ProductName1, status = active,
+	Price1 = recurring(SD, monthly, Amount1, undefined),
+	Offer1 = #offer{name = OfferId1, status = active,
 			specification = 8, price = [Price1]},
-	{ok, _} = ocs:add_offer(Product1),
+	{ok, _} = ocs:add_offer(Offer1),
 	Amount2 = 5,
-	Price2 = #price{name = ocs:generate_password(),
-			type = recurring, period = hourly, amount = Amount2},
-	ProductName2 = ocs:generate_password(),
-	Product2 = #offer{name = ProductName2, status = active,
+	Price2 = recurring(SD, hourly, Amount2, undefined),
+	OfferId2 = ocs:generate_password(),
+	Offer2 = #offer{name = OfferId2, status = active,
 			specification = 9, price = [Price2]},
-	{ok, _} = ocs:add_offer(Product2),
+	{ok, _} = ocs:add_offer(Offer2),
 	BundleName = ocs:generate_password(),
-	Bundled1 = #bundled_po{name = ProductName1, status = active,
+	Bundled1 = #bundled_po{name = OfferId1, status = active,
 			lower_limit = 0, upper_limit = 1, default = 1},
-	Bundled2 = #bundled_po{name = ProductName2, status = active,
+	Bundled2 = #bundled_po{name = OfferId2, status = active,
 			lower_limit = 0, upper_limit = 1, default = 1},
 	Amount3 = 1000,
-	Price3 = #price{name = ocs:generate_password(),
-			type = recurring, period = yearly, amount = Amount3},
+	Price3 = recurring(SD, yearly, Amount3, undefined),
 	Bundle = #offer{name = BundleName, status = active,
 			bundle = [Bundled1, Bundled2], price = [Price3]},
 	{ok, _} = ocs:add_offer(Bundle),
-	Identity = ocs:generate_identity(),
-	Password = ocs:generate_password(),
+	{ok, #product{balance = BRefs}} = ocs:add_product(BundleName, []),
+	Buckets = lists:flatten([mnesia:dirty_read(bucket, BRef) || BRef <- BRefs]),
 	Amount4 = Amount1 + Amount2 + Amount3,
-	Buckets1 = [#bucket{units = cents, remain_amount = Amount4}],
-	{ok, #service{buckets = Buckets2}} = ocs:add_service(Identity,
-			Password, BundleName, [], Buckets1),
-	{_, #bucket{remain_amount = 0}, []} = lists:keytake(cents,
-			#bucket.units, Buckets2).
+	{_, #bucket{remain_amount = Amount5}, []} = lists:keytake(cents,
+			#bucket.units, Buckets),
+	0 = Amount5 + Amount4.
 
 add_recurring_allowance() ->
 	[{userdata, [{doc, "Recurring allowances at subscription instantiation"}]}].
 
 add_recurring_allowance(_Config) ->
-	ProductName = ocs:generate_password(),
+	SD = erlang:system_time(?MILLISECOND),
+	OfferId = ocs:generate_password(),
 	UnitSize = 100000000000,
-	Alteration = #alteration{name = ocs:generate_password(),
-			type = recurring, period = monthly,
-			units = octets, size = UnitSize, amount = 0},
+	Alteration = alteration(SD, recurring, monthly, octets, UnitSize, 0),
 	Amount = 1000,
-	Price = #price{name = ocs:generate_password(),
-			type = recurring, period = monthly,
-			amount = Amount, alteration = Alteration},
-	Product = #offer{name = ProductName, status = active,
+	Price = recurring(SD, monthly, Amount, Alteration),
+	Offer = #offer{name = OfferId, status = active,
 			specification = 8, price = [Price]},
-	{ok, _} = ocs:add_offer(Product),
-	Identity = ocs:generate_identity(),
-	Password = ocs:generate_password(),
-	Buckets1 = [#bucket{units = cents, remain_amount = Amount}],
-	{ok, #service{buckets = Buckets2}} = ocs:add_service(Identity,
-			Password, ProductName, [], Buckets1),
-	{_, #bucket{remain_amount = 0}, Buckets3} = lists:keytake(cents,
-			#bucket.units, Buckets2),
+	{ok, _} = ocs:add_offer(Offer),
+	{ok, #product{balance = BRefs}} = ocs:add_product(OfferId, []),
+	Buckets = lists:flatten([mnesia:dirty_read(bucket, BRef) || BRef <- BRefs]),
+	{_, #bucket{remain_amount = -1000}, Buckets1} = lists:keytake(cents,
+			#bucket.units, Buckets),
 	{_, #bucket{remain_amount = UnitSize}, []} = lists:keytake(octets,
-			#bucket.units, Buckets3).
+			#bucket.units, Buckets1).
 
 add_recurring_usage_allowance() ->
 	[{userdata, [{doc, "Recurring allowances attached to usage price
 			at subscription instantiation"}]}].
 
 add_recurring_usage_allowance(_Config) ->
-	ProductName = ocs:generate_password(),
+	SD = erlang:system_time(?MILLISECOND),
+	OfferId = ocs:generate_password(),
 	UnitSize = 100000000000,
 	Amount = 1000,
-	Alteration = #alteration{name = ocs:generate_password(),
-			type = recurring, period = monthly,
-			units = octets, size = UnitSize, amount = Amount},
-	Price = #price{name = ocs:generate_password(),
-			type = usage, units = octets, size = 1000000000,
-			amount = 100, alteration = Alteration},
-	Product = #offer{name = ProductName, status = active,
+	Alteration = alteration(SD, recurring, monthly, octets, UnitSize, Amount),
+	Price = overage(SD, usage, octets, 100, 1000000000, Alteration),
+	Offer = #offer{name = OfferId, status = active,
 			specification = 8, price = [Price]},
-	{ok, _} = ocs:add_offer(Product),
-	Identity = ocs:generate_identity(),
-	Password = ocs:generate_password(),
-	Buckets1 = [#bucket{units = cents, remain_amount = Amount}],
-	{ok, #service{buckets = Buckets2}} = ocs:add_service(Identity,
-			Password, ProductName, [], Buckets1),
-	{_, #bucket{remain_amount = 0}, Buckets3} = lists:keytake(cents,
-			#bucket.units, Buckets2),
+	{ok, _} = ocs:add_offer(Offer),
+	{ok, #product{balance = BRefs}} = ocs:add_product(OfferId, []),
+	Buckets = lists:flatten([mnesia:dirty_read(bucket, BRef) || BRef <- BRefs]),
+	{_, #bucket{remain_amount = -1000}, Buckets2} = lists:keytake(cents,
+			#bucket.units, Buckets),
 	{_, #bucket{remain_amount = UnitSize}, []} = lists:keytake(octets,
-			#bucket.units, Buckets3).
+			#bucket.units, Buckets2).
 
 add_recurring_allowance_bundle() ->
 	[{userdata, [{doc, "Recurring allowances at instantiation of product bundle"}]}].
 
 add_recurring_allowance_bundle(_Config) ->
-	ProductName1 = ocs:generate_password(),
+	SD = erlang:system_time(?MILLISECOND),
+	OfferId1 = ocs:generate_password(),
 	UnitSize1 = 100000000000,
-	Alteration1 = #alteration{name = ocs:generate_password(),
-			type = recurring, period = monthly,
-			units = octets, size = UnitSize1, amount = 0},
+	Alteration1 = alteration(SD, recurring, monthly, octets, UnitSize1, 0),
 	Amount1 = 1000,
-	Price1 = #price{name = ocs:generate_password(),
-			type = recurring, period = monthly,
-			amount = Amount1, alteration = Alteration1},
-	Product1 = #offer{name = ProductName1, status = active,
+	Price1 = recurring(SD, monthly, Amount1, Alteration1),
+	Offer1 = #offer{name = OfferId1, status = active,
 			specification = 8, price = [Price1]},
-	{ok, _} = ocs:add_offer(Product1),
-	ProductName2 = ocs:generate_password(),
+	{ok, _} = ocs:add_offer(Offer1),
+	OfferId2 = ocs:generate_password(),
 	UnitSize2 = 36000,
-	Alteration2 = #alteration{name = ocs:generate_password(),
-			type = recurring, period = monthly,
-			units = seconds, size = UnitSize2, amount = 0},
+	Alteration2 = alteration(SD, recurring, monthly, seconds, UnitSize2, 0),
 	Amount2 = 1000,
-	Price2 = #price{name = ocs:generate_password(),
-			type = recurring, period = monthly,
-			amount = Amount2, alteration = Alteration2},
-	Product2 = #offer{name = ProductName2, status = active,
+	Price2 = recurring(SD, monthly, Amount2, Alteration2),
+	Offer2 = #offer{name = OfferId2, status = active,
 			specification = 9, price = [Price2]},
-	{ok, _} = ocs:add_offer(Product2),
+	{ok, _} = ocs:add_offer(Offer2),
 	BundleName = ocs:generate_password(),
-	Bundled1 = #bundled_po{name = ProductName1, status = active,
+	Bundled1 = #bundled_po{name = OfferId1, status = active,
 			lower_limit = 0, upper_limit = 1, default = 1},
-	Bundled2 = #bundled_po{name = ProductName2, status = active,
+	Bundled2 = #bundled_po{name = OfferId2, status = active,
 			lower_limit = 0, upper_limit = 1, default = 1},
 	UnitSize3 = 2000000000,
-	Alteration3 = #alteration{name = ocs:generate_password(),
-			type = recurring, period = monthly,
-			units = octets, size = UnitSize3, amount = 0},
+	Alteration3 = alteration(SD, recurring, monthly, octets, UnitSize3, 0),
 	Amount3 = 100,
-	Price3 = #price{name = ocs:generate_password(),
-			type = recurring, period = monthly,
-			amount = Amount3, alteration = Alteration3},
+	Price3 = recurring(SD, monthly, Amount3, Alteration3),
 	UnitSize4 = 3600,
-	Alteration4 = #alteration{name = ocs:generate_password(),
-			type = recurring, period = monthly,
-			units = seconds, size = UnitSize4, amount = 0},
+	Alteration4 = alteration(SD, recurring, monthly, seconds, UnitSize4, 0),
 	Amount4 = 100,
-	Price4 = #price{name = ocs:generate_password(),
-			type = recurring, period = monthly,
-			amount = Amount4, alteration = Alteration4},
+	Price4 = recurring(SD, monthly, Amount4, Alteration4),
 	Bundle = #offer{name = BundleName, status = active,
 			bundle = [Bundled1, Bundled2], price = [Price3, Price4]},
 	{ok, _} = ocs:add_offer(Bundle),
-	Identity = ocs:generate_identity(),
-	Password = ocs:generate_password(),
+	{ok, #product{balance = BRefs}} = ocs:add_product(BundleName, []),
 	Amount5 = Amount1 + Amount2 + Amount3 + Amount4,
-	Buckets1 = [#bucket{units = cents, remain_amount = Amount5}],
-	{ok, #service{buckets = Buckets2}} = ocs:add_service(Identity,
-			Password, BundleName, [], Buckets1),
-	{_, #bucket{remain_amount = 0}, Buckets3} = lists:keytake(cents,
-			#bucket.units, Buckets2),
+	Buckets = lists:flatten([mnesia:dirty_read(bucket, BRef) || BRef <- BRefs]),
 	F = fun(#bucket{units = Units, remain_amount = Amount}, {Units, N}) ->
 				{Units, N + Amount};
 			(_, Acc) ->
 				Acc
 	end,
+	{_, Amount6} = lists:foldl(F, {cents, 0}, Buckets),
+	0 = Amount5 + Amount6,
 	UnitSize5 = UnitSize1 + UnitSize3,
-	{_, UnitSize5} = lists:foldl(F, {octets, 0}, Buckets3),
+	{_, UnitSize5} = lists:foldl(F, {octets, 0}, Buckets),
 	UnitSize6 = UnitSize2 + UnitSize4,
-	{_, UnitSize6} = lists:foldl(F, {seconds, 0}, Buckets3).
+	{_, UnitSize6} = lists:foldl(F, {seconds, 0}, Buckets).
 
 recurring_charge_monthly() ->
 	[{userdata, [{doc, "Recurring charges for monthly subscription"}]}].
@@ -443,7 +386,7 @@ recurring_charge_monthly(_Config) ->
 	{ok, _Offer1} = ocs:add_offer(Offer),
 	{ok, #product{id = ProdId} = P} = ocs:add_product(OfferId, []),
 	Expired = erlang:system_time(?MILLISECOND) - 2592000000,
-	mnesia:dirty_write(product, P#product{payment =
+	ok = mnesia:dirty_write(product, P#product{payment =
 			[{P2#price.name, Expired}]}),
 	B1 = #bucket{units = cents,
 			remain_amount = 10000000,
@@ -455,8 +398,10 @@ recurring_charge_monthly(_Config) ->
 				case ocs:find_bucket(BId) of
 					{ok, #bucket{remain_amount = RM1}} when BId == BId1 ->
 							RM1 == B1#bucket.remain_amount - P2#price.amount;
-					{ok, #bucket{remain_amount = RM1}} ->
+					{ok, #bucket{units = octets, remain_amount = RM1}} ->
 							RM1 == Alteration#alteration.size;
+					{ok, #bucket{units = cents, remain_amount = RM1}} ->
+							RM1 == -4245;
 					_R ->
 						false
 				end
@@ -466,13 +411,17 @@ recurring_charge_monthly(_Config) ->
 	true = lists:all(F1, BRefs),
 	F2 = fun({_, DueDate}) -> DueDate == ocs:end_period(Expired, monthly) end,
 	lists:any(F2, Payments).
+
 %%---------------------------------------------------------------------
 %%  Internal functions
 %%---------------------------------------------------------------------
 
 one_time(SD, Amount) ->
+	one_time(SD, Amount, undefined).
+one_time(SD, Amount, Alter) ->
 	#price{name = ocs:generate_identity(),
-			start_date = SD, type = one_time, amount = Amount}.
+			start_date = SD, type = one_time,
+			amount = Amount, alteration = Alter}.
 
 recurring(SD, Period, Amount, Alteration) ->
 	#price{name = ocs:generate_identity(),
@@ -480,12 +429,16 @@ recurring(SD, Period, Amount, Alteration) ->
 			amount = Amount, alteration = Alteration}.
 
 overage(SD, Type, Units, Amount, Size) ->
+	overage(SD, Type, Units, Amount, Size, undefined).
+overage(SD, Type, Units, Amount, Size, Alter) ->
 	#price{name = ocs:generate_identity(),
 			start_date = SD, type = Type, size = Size,
-			amount = Amount, units = Units}.
+			amount = Amount, units = Units, alteration = Alter}.
 
 alteration(SD, Type, Units, Size) ->
+	alteration(SD, Type, undefined, Units, Size, 0).
+alteration(SD, Type, Period, Units, Size, Amount) ->
 	#alteration{name = ocs:generate_identity(),
-			start_date = SD, type = Type,
-			units = Units, size = Size, amount = 0}.
+			start_date = SD, type = Type, period = Period,
+			units = Units, size = Size, amount = Amount}.
 
