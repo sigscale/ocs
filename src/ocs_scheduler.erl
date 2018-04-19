@@ -69,8 +69,7 @@ product_charge1(ProdRef, Now, Offers) ->
 									Buckets1 = lists:flatten([mnesia:select(bucket,
 											[{'$1',
 											[
-												{'==', Id, {element, #bucket.id, '$1'}},
-												{'==', cents, {element, #bucket.units, '$1'}}
+												{'==', Id, {element, #bucket.id, '$1'}}
 											],
 											['$1']}]) || Id <- BucketRefs]),
 									Buckets2  = filter_buckets(ProdRef, Now, Buckets1),
