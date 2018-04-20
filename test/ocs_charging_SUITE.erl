@@ -376,9 +376,12 @@ recurring_charge_monthly() ->
 
 recurring_charge_monthly(_Config) ->
 	SD = erlang:system_time(?MILLISECOND),
-	P1 = one_time(SD, 2995),
-	Alteration = alteration(SD, usage, octets, 100000000000),
-	P2 = recurring(SD, monthly, 1250, Alteration),
+	Amount1 = 2995,
+	P1 = one_time(SD, Amount1),
+	Amount2 = 100000000000,
+	Alteration = alteration(SD, usage, octets, Amount2),
+	Amount3 = 1250,
+	P2 = recurring(SD, monthly, Amount3, Alteration),
 	P3 = overage(SD, usage, octets, 100, 1000000000),
 	Prices = [P1, P2, P3],
 	OfferId = ocs:generate_identity(),
@@ -402,7 +405,7 @@ recurring_charge_monthly(_Config) ->
 					{ok, #bucket{units = octets, remain_amount = RM1}} ->
 							RM1 == Alteration#alteration.size;
 					{ok, #bucket{units = cents, remain_amount = RM1}} ->
-							RM1 == -4245;
+							RM1 == - (Amount1 + Amount3);
 					_R ->
 						false
 				end
@@ -427,7 +430,7 @@ recurring_charge_hourly(_Config) ->
 	Offer = #offer{name = OfferId, status = active,
 			specification = 8, price = Prices},
 	{ok, _} = ocs:add_offer(Offer),
-	{ok, #product{id = ProdId, balance = BRefs1} = P} = ocs:add_product(OfferId, []),
+	{ok, #product{id = ProdId} = P} = ocs:add_product(OfferId, []),
 	Expired = erlang:system_time(?MILLISECOND) - 3600000,
 	ok = mnesia:dirty_write(product, P#product{payment =
 			[{P2#price.name, Expired}]}),
@@ -442,7 +445,7 @@ recurring_charge_hourly(_Config) ->
 					{ok, #bucket{remain_amount = RM1}} when BId == BId1 ->
 							RM1 == B1#bucket.remain_amount - (P2#price.amount * 2);
 					{ok, #bucket{units = cents, remain_amount = RM1}} ->
-							RM1 == -3000;
+							RM1 == - (Amount1 + Amount2);
 					_R ->
 						false
 				end
@@ -471,7 +474,7 @@ recurring_charge_yearly(_Config) ->
 	Offer = #offer{name = OfferId, status = active,
 			specification = 8, price = Prices},
 	{ok, _} = ocs:add_offer(Offer),
-	{ok, #product{id = ProdId, balance = BRefs1} = P} = ocs:add_product(OfferId, []),
+	{ok, #product{id = ProdId} = P} = ocs:add_product(OfferId, []),
 	Expired = erlang:system_time(?MILLISECOND) - 315360,
 	ok = mnesia:dirty_write(product, P#product{payment =
 			[{P2#price.name, Expired}]}),
@@ -486,7 +489,7 @@ recurring_charge_yearly(_Config) ->
 					{ok, #bucket{remain_amount = RM1}} when BId == BId1 ->
 							RM1 == B1#bucket.remain_amount - P2#price.amount;
 					{ok, #bucket{units = cents, remain_amount = RM1}} ->
-							RM1 == -3000;
+							RM1 == - (Amount1 + Amount2);
 					_R ->
 						false
 				end
