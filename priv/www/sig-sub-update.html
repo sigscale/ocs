@@ -125,30 +125,6 @@
 				</div>
 				<div id="edit-attributes">
 					<div>
-						<paper-input id="updateSubscriberDataRate"
-								name="ascendDataRate"
-								type="number"
-								label="[[i18n.recieve]]">
-						</paper-input>
-						<paper-tooltip>
-							<i18n-msg msgid="dataRateTooltip">
-									Limit on received (download) data per second in bits.
-							</i18n-msg>
-						</paper-tooltip>
-					</div>
-					<div>
-						<paper-input id="updateSubscriberXmitRate"
-								name="ascendXmitRate"
-								type="number"
-								label="[[i18n.trans]]">
-						</paper-input>
-						<paper-tooltip>
-							<i18n-msg msgid="xmitRateTooltip">
-									Limit on transmitted (upload) data per second in bits.
-							</i18n-msg>
-						</paper-tooltip>
-					</div>
-					<div>
 						<paper-input id="updateSubscriberTimeout"
 								name="sessionTimeout"
 								type="number"
@@ -338,6 +314,12 @@
 				on-error="_updateSubscriberBalanceError">
 		</iron-ajax>
 		<iron-ajax
+				id="getServiceRespAjax"
+				method = "GET"
+				on-response="_getServiceResponse"
+				on-error="_getServiceError">
+		</iron-ajax>
+		<iron-ajax
 				id="updateSubscriberProductsAjax"
 				url="/catalogManagement/v2/productOffering"
 				method = "GET"
@@ -359,7 +341,7 @@
 					value: function() {
 						return [];
 					}
-				},
+				}
 			},
 			_updateSubscriberProductsResponse: function(event) {
 				var results = event.detail.xhr.response;
@@ -377,15 +359,27 @@
 				this.$.updateSubscriberToastError.open();
 			},
 			updateSubscriberAuthentication: function(event) {
+				var id = document.getElementById("updateSubscriberId").value;
+				var getAjax = this.$.getServiceRespAjax; 
+				var etag = getAjax.lastRequest.xhr.getResponseHeader('ETag');
+				var results = getAjax.lastResponse;
 				var editAjax =  this.$.updateSubscriberAuthenticationAjax;
 				editAjax.method = "PATCH";
+				editAjax.headers['If-Match'] = etag;
 				editAjax.contentType = "application/json-patch+json";
 				var id = document.getElementById("updateSubscriberId").value;
-				editAjax.url = "/ocs/v1/subscriber/" + id;
+				editAjax.url = "/serviceInventoryManagement/v2/service/" + id;
+				function checkPass(pass) {
+					return pass.name == "servicePassword";
+				}
+				var index = results.serviceCharacteristic.findIndex(checkPass);
 				var sub = new Object();
 				sub.op = "replace";
-				sub.path = "/password";
-				sub.value = document.getElementById("updateSubscriberNewPassword").value;
+				sub.path = "/serviceCharacteristic/" + index;
+				var servicePass = new Object();
+				servicePass.name = "servicePassword";
+				servicePass.value = document.getElementById("updateSubscriberNewPassword").value;
+				sub.value = servicePass;
 				editAjax.body = JSON.stringify([sub]);;
 				editAjax.generateRequest();
 			},
@@ -440,22 +434,14 @@
 				sub.op = "replace";
 				sub.path = "/attributes";
 				var attr = new Array();
-				var ascendDataRate = new Object();
-				ascendDataRate.name = "ascendDataRate";
-				ascendDataRate.value = parseInt(this.$.updateSubscriberDataRate.value);
-				attr[0] = ascendDataRate;
-				var ascendXmitRate = new Object();
-				ascendXmitRate.name = "ascendXmitRate";
-				ascendXmitRate.value = parseInt(this.$.updateSubscriberXmitRate.value);
-				attr[1] = ascendXmitRate;
 				var sessionTimeout = new Object();
 				sessionTimeout.name = "sessionTimeout";
 				sessionTimeout.value = parseInt(this.$.updateSubscriberTimeout.value);
-				attr[2] = sessionTimeout;
+				attr[0] = sessionTimeout;
 				var acctInterimInterval = new Object();
 				acctInterimInterval.name = "acctInterimInterval";
 				acctInterimInterval.value = parseInt(this.$.updateSubscriberInterval.value);
-				attr[3] = acctInterimInterval;
+				attr[1] = acctInterimInterval;
 				var classx = new Object();
 				classx.name = "class";
 				if(this.$.updateSubscriberClass.value == undefined) {
@@ -463,7 +449,7 @@
 				} else {
 					classx.value = this.$.updateSubscriberClass.value;
 				}
-				attr[4] = classx;
+				attr[2] = classx;
 				sub.value = attr;
 				var ena = new Object();
 				ena.op = "replace";

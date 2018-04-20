@@ -174,6 +174,11 @@
 			on-response="_getSubscriberResponse"
 			on-error="_getSubscriberError">
 		</iron-ajax>
+		<iron-ajax
+			id="getProductInventoryAjax"
+			on-response="_getProductResponse"
+			on-error="_getProductError">
+		</iron-ajax>
 	</template>
 	<script>
 		var cbSubscriber;
@@ -276,14 +281,15 @@
 			},
 			_activeItemChanged: function(item) {
 				if (item != null){
+					var ajaxCh = document.getElementById("getServiceRespAjax");
+					ajaxCh.url = "/serviceInventoryManagement/v2/service/" + item.id;
+					ajaxCh.generateRequest();
 					document.getElementById("updateSubscriberProductsAjax").generateRequest();
 					this.$.subscriberGrid.selectedItems = item ? [item] : [];
 					document.getElementById("updateSubscriberModal").open();
 					document.getElementById("updateSubscriberId").value = item.id;
 					document.getElementById("updateSubscriberPassword").value = item.password;
 					document.getElementById("updatePro").value = item.product;
-					document.getElementById("updateSubscriberDataRate").value = item.ascendDataRate;
-					document.getElementById("updateSubscriberXmitRate").value = item.ascendXmitRate;
 					document.getElementById("updateSubscriberTimeout").value = item.sessionTimeout;
 					document.getElementById("updateSubscriberInterval").value = item.acctInterimInterval;
 					document.getElementById("updateSubscriberClass").value =  item.class;
