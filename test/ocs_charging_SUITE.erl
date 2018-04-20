@@ -457,6 +457,9 @@ recurring_charge_hourly(_Config) ->
 	end,
 	true = lists:any(F2, Payments).
 
+recurring_charge_yearly() ->
+	[{userdata, [{doc, "Recurring charges for yearly subscription"}]}].
+
 recurring_charge_yearly(_Config) ->
 	SD = erlang:system_time(?MILLISECOND),
 	OfferId = ocs:generate_password(),
