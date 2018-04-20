@@ -82,7 +82,7 @@
 						dialog-dismiss
 						class="cancel-button"
 						autofocus
-						onclick="addSubscriberModal.close()">
+						onclick="addServiceModal.close()">
 				<i18n-msg msgid="cancel">
 					Cancel
 				</i18n-msg>
@@ -107,7 +107,7 @@
 				if(product) {
 					document.getElementById("AddUpdatePro").value = product;
 					document.getElementById("subscriberAdd").product = product;
-					document.getElementById("addSubscriberModal").open();
+					document.getElementById("addServiceModal").open();
 					document.getElementById("addSubscriberProductModal").close();
 					this.$.addproduct10.selected = null;
 				}
