@@ -164,7 +164,7 @@
 		hostName :: string() | undefined,
 		subscriberId :: string() | undefined,
 		uniqueCallID :: string() | undefined,
-		ipAdderss :: string() | undefined,
+		ipAddress :: string() | undefined,
 		imisIngress :: integer() | undefined,
 		esnIngress :: integer() | undefined,
 		callProgressState :: 1..8 | undefined,
