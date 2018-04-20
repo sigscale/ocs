@@ -148,7 +148,7 @@ all() ->
 	top_up, get_balance, simultaneous_updates_on_subscriber_failure,
 	simultaneous_updates_on_client_failure,
 	update_subscriber_password_json_patch,
-	update_subscriber_attributes_json_patch, get_product,
+	update_subscriber_attributes_json_patch, get_product, add_product,
 	add_product_sms, update_product_realizing_service, delete_product,
 	ignore_delete_product].
 
