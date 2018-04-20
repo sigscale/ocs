@@ -88,7 +88,7 @@ all() ->
 			add_recurring_bundle, add_recurring_allowance,
 			add_recurring_usage_allowance,
 			add_recurring_allowance_bundle,
-			recurring_charge_monthly].
+			recurring_charge_monthly, recurring_charge_hourly].
 
 %%---------------------------------------------------------------------
 %%  Test cases
@@ -410,7 +410,51 @@ recurring_charge_monthly(_Config) ->
 			ocs:find_product(ProdId),
 	true = lists:all(F1, BRefs),
 	F2 = fun({_, DueDate}) -> DueDate == ocs:end_period(Expired, monthly) end,
-	lists:any(F2, Payments).
+	true = lists:any(F2, Payments).
+
+recurring_charge_hourly() ->
+	[{userdata, [{doc, "Recurring charges for hourly subscription"}]}].
+
+recurring_charge_hourly(_Config) ->
+	SD = erlang:system_time(?MILLISECOND),
+	OfferId = ocs:generate_password(),
+	Amount1 = 2995,
+	P1 = recurring(SD, monthly, Amount1, undefined),
+	Amount2 = 5,
+	P2 = recurring(SD, hourly, Amount2, undefined),
+	Prices = [P1, P2],
+	Offer = #offer{name = OfferId, status = active,
+			specification = 8, price = Prices},
+	{ok, _} = ocs:add_offer(Offer),
+	{ok, #product{id = ProdId, balance = BRefs1} = P} = ocs:add_product(OfferId, []),
+	Expired = erlang:system_time(?MILLISECOND) - 3600000,
+	ok = mnesia:dirty_write(product, P#product{payment =
+			[{P2#price.name, Expired}]}),
+	B1 = #bucket{units = cents,
+			remain_amount = 10000000,
+			start_date = erlang:system_time(?MILLISECOND),
+			termination_date = erlang:system_time(?MILLISECOND) + 2592000000},
+	{ok, _, #bucket{id = BId1}} = ocs:add_bucket(ProdId, B1),
+	ok = ocs_scheduler:product_charge(),
+	F1 = fun(BId) ->
+				case ocs:find_bucket(BId) of
+					{ok, #bucket{remain_amount = RM1}} when BId == BId1 ->
+							RM1 == B1#bucket.remain_amount - (P2#price.amount * 2);
+					{ok, #bucket{units = cents, remain_amount = RM1}} ->
+							RM1 == -3000;
+					_R ->
+						false
+				end
+	end,
+	{ok, #product{payment = Payments, balance = BRefs}} =
+			ocs:find_product(ProdId),
+	true = lists:all(F1, BRefs),
+	F2 = fun({_, DueDate}) ->
+			EP1 = ocs:end_period(Expired, hourly),
+			EP2 = ocs:end_period(EP1, hourly),
+			DueDate == EP2
+	end,
+	true = lists:any(F2, Payments).
 
 %%---------------------------------------------------------------------
 %%  Internal functions
