@@ -47,7 +47,7 @@
 
 -record(state,
 		{buckets = [] :: [#bucket{}],
-		product :: string(),
+		product :: #product{},
 		chars = [] :: [tuple()],
 		service_type :: integer() | binary(),
 		session_id :: [tuple()],
