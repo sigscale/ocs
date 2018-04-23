@@ -155,15 +155,18 @@ if_recur(OfferId, [_ | T]) ->
 if_recur(_OfferId, []) ->
 	false.
 
+
 %% @private
 get_product(start) ->
 	ets:first(product);
 get_product(SId) ->
 	ets:next(product, SId).
 
--spec get_offers() -> Offers
+-spec get_offers() -> Result
 	when
-		Offers :: [#offer{}].
+		Result :: Offers | {error, Reason},
+		Offers :: [#offer{}],
+		Reason :: term().
 %% @private
 get_offers() ->
 	MatchSpec = [{'_', [], ['$_']}],
