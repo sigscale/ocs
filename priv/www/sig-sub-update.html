@@ -138,13 +138,13 @@
 					</div>
 					<div>
 						<paper-input id="updateSubscriberInterval"
-								name="acctInterimInterval"
+								name="acctSessionInterval"
 								type="number"
 								label="[[i18n.accInt]]">
 						</paper-input>
 						<paper-tooltip>
 							<i18n-msg msgid="intervalTooltip">
-									Time between accouting interim updates in seconds.
+									Time between accouting session updates in seconds.
 							</i18n-msg>
 						</paper-tooltip>
 					</div>
@@ -426,40 +426,78 @@
 				this.$.updateSubscriberToastError.open();
 			},
 			updateSubscriberAuthorization: function(event) {
+				var getAjax = this.$.getServiceRespAjax;
+				var results = getAjax.lastResponse;
 				var editAjax =  this.$.updateSubscriberAuthorizationAjax;
 				editAjax.method = "PATCH";
 				editAjax.contentType = "application/json-patch+json";
-				editAjax.url = "/ocs/v1/subscriber/" + this.$.updateSubscriberId.value;
-				var sub = new Object();
-				sub.op = "replace";
-				sub.path = "/attributes";
-				var attr = new Array();
-				var sessionTimeout = new Object();
-				sessionTimeout.name = "sessionTimeout";
-				sessionTimeout.value = parseInt(this.$.updateSubscriberTimeout.value);
-				attr[0] = sessionTimeout;
-				var acctInterimInterval = new Object();
-				acctInterimInterval.name = "acctInterimInterval";
-				acctInterimInterval.value = parseInt(this.$.updateSubscriberInterval.value);
-				attr[1] = acctInterimInterval;
-				var classx = new Object();
-				classx.name = "class";
-				if(this.$.updateSubscriberClass.value == undefined) {
-					classx.value = null;
-				} else {
-					classx.value = this.$.updateSubscriberClass.value;
-				}
-				attr[2] = classx;
-				sub.value = attr;
+				editAjax.url = "/serviceInventoryManagement/v2/service/" + this.$.updateSubscriberId.value;
 				var ena = new Object();
 				ena.op = "replace";
-				ena.path = "/enabled";
+				ena.path = "/isServiceEnabled";
 				ena.value = this.$.updateSubscriberEnabled.checked;
+				if(this.$.updateSubscriberTimeout.value) {
+					function checkTimeout(sessionTime) {
+						return sessionTime.name == "sessionTimeout";
+					}
+					var indexSession = results.serviceCharacteristic.findIndex(checkTimeout);
+					var sub = new Object();
+					sub.op = "replace";
+					sub.path = "/serviceCharacteristic/" + indexSession;
+					var sessionTimeout = new Object();
+					sessionTimeout.name = "sessionTimeout";
+					sessionTimeout.value = parseInt(this.$.updateSubscriberTimeout.value);
+					sub.value = sessionTimeout;
+				} else {
+					function checkTimeout(sessionTime) {
+						return sessionTime.name == "sessionTimeout";
+					}
+					var indexSession = results.serviceCharacteristic.findIndex(checkTimeout);
+					var sub = new Object();
+					sub.op = "replace";
+					sub.path = "/serviceCharacteristic/" + indexSession;
+					var sessionTimeout = new Object();
+					sessionTimeout.name = "sessionTimeout";
+					sessionTimeout.value = results.serviceCharacteristic[indexSession].value;
+					sub.value = sessionTimeout;
+				}
+				if(this.$.updateSubscriberInterval.value) {
+					function checkSessionInt(sessionInterval) {
+						return sessionInterval.name == "acctSessionInterval";
+					}
+					var indexSessionInt = results.serviceCharacteristic.findIndex(checkSessionInt);
+					var sub1 = new Object();
+					sub1.op = "replace";
+					sub1.path = "/serviceCharacteristic/" + indexSessionInt;
+					var acctSessionInterval = new Object();
+					acctSessionInterval.name = "acctSessionInterval";
+					acctSessionInterval.value = parseInt(this.$.updateSubscriberInterval.value);
+					sub1.value = acctSessionInterval;
+				} else{
+					function checkSessionInt(sessionInterval) {
+						return sessionInterval.name == "acctSessionInterval";
+					}
+					var indexSessionInt = results.serviceCharacteristic.findIndex(checkSessionInt);
+					var sub1 = new Object();
+					sub1.op = "replace";
+					sub1.path = "/serviceCharacteristic/" + indexSessionInt;
+					var acctSessionInterval = new Object();
+					acctSessionInterval.name = "acctSessionInterval";
+					acctSessionInterval.value = results.serviceCharacteristic[indexSessionInt].value;
+					sub1.value = acctSessionInterval;
+				}
+				function checkMulti(multiSess) {
+					return multiSess.name == "multiSession";
+				}
+				var indexMulti = results.serviceCharacteristic.findIndex(checkMulti);
+				var sub2 = new Object();
+				sub2.op = "replace";
+				sub2.path = "/serviceCharacteristic/" + indexMulti;
 				var multi = new Object();
-				multi.op = "replace";
-				multi.path = "/multisession";
+				multi.name = "multiSession";
 				multi.value = this.$.updateSubscriberMulti.checked;
-				editAjax.body = JSON.stringify([sub, ena, multi]);;
+				sub2.value = multi;
+				editAjax.body = JSON.stringify([sub, sub1, sub2, ena]);
 				editAjax.generateRequest();
 			},
 			_updateSubscriberAuthorizationResponse: function (event) {
