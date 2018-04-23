@@ -19,7 +19,7 @@
 -module(ocs_scheduler).
 -copyright('Copyright (c) 2016 - 2017 SigScale Global Inc.').
 
--export([start/0, start/1]).
+-export([start/0, start/2]).
 -export([product_charge/0]).
 
 -include("ocs.hrl").
@@ -29,17 +29,32 @@
 -define(MILLISECOND, milli_seconds).
 %-define(MILLISECOND, millisecond).
 
+-export([frp/1]).
 -spec start() -> ok.
 %% @equiv start(Interval)
 start() ->
-	start(1440000).
+	ScheduledTime = case application:get_env(charing_scheduler_time) of
+		{ok, ST} ->
+			ST;
+		undefined ->
+			{4, 4, 4}
+	end,
+	Interval = case application:get_env(charing_interval) of
+		{ok, CI} ->
+			CI;
+		undefined ->
+			1440
+	end
+	start(RotateTime, Interval).
 
--spec start(Interval) -> ok
+-spec start(ScheduledTime, Interval) -> ok
 	when
+		ScheduledTime :: tuple(),
 		Interval :: pos_integer().
 %% @doc
-start(Interval) ->
-	timer:apply_interval(Interval, ?MODULE, product_charge, []),
+start(ScheduledTime, Interval) ->
+	NextInterval = interval(ScheduledTime, Interval),
+	timer:apply_interval(NextInterval, ?MODULE, product_charge, []),
 	ok.
 
 -spec product_charge() -> ok.
@@ -220,4 +235,14 @@ delete_b([BRef | T]) ->
 	delete_b(T);
 delete_b([]) ->
 	ok.
+
+%% @hidden
+interval(ScheduledTime, Interval) ->
+	{Date, Time} = erlang:universaltime(),
+	Today = calendar:date_to_gregorian_days(Date),
+	Period = Interval div 1440,
+	ScheduleDay = calendar:gregorian_days_to_date(Today + Period),
+	Next = {ScheduleDay, ScheduledTime},
+	Now = calendar:datetime_to_gregorian_seconds({Date, Time}),
+	(calendar:datetime_to_gregorian_seconds(Next) - Now) * 1000.
 
