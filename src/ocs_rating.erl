@@ -110,7 +110,7 @@ rate(Protocol, ServiceType, SubscriberID, Timestamp, Address, Direction,
 		is_list(DebitAmounts), is_list(ReserveAmounts), length(SessionAttributes) > 0 ->
 	F = fun() ->
 			case mnesia:read(service, SubscriberID, write) of
-				[#service{product = ProdRef} = Service] ->
+				[#service{product = ProdRef, session_attributes = SessionList} = Service] ->
 					case mnesia:read(product, ProdRef, read) of
 						[#product{characteristics = Chars, product = OfferId,
 								balance = BucketRefs} = Product] ->
@@ -135,7 +135,7 @@ rate(Protocol, ServiceType, SubscriberID, Timestamp, Address, Direction,
 													Timestamp, Address, Direction, Offer,
 													Flag, DebitAmounts, ReserveAmounts, State);
 										false ->
-											throw(out_of_credit)
+											{out_of_credit, SessionList}
 									end;
 								[] ->
 									throw(offer_not_found)
