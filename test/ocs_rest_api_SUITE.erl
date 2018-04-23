@@ -788,12 +788,14 @@ delete_offer(Config) ->
 	{error, not_found} = ocs:find_offer(OfferId).
 
 ignore_delete_offer() ->
-	[{userdata, [{doc,"Delete offer for given Offer Id"}]}].
+	[{userdata, [{doc,"Ignore delete offer for given Offer Id,
+			if any product related to offer"}]}].
 
 ignore_delete_offer(Config) ->
 	P1 = price(usage, octets, rand:uniform(1000), rand:uniform(100)),
 	OfferId = offer_add([P1], 4),
 	{ok, #offer{}} = ocs:find_offer(OfferId),
+	_ProdRef = product_add(OfferId),
 	HostUrl = ?config(host_url, Config),
 	URI = "/catalogManagement/v2/productOffering/" ++ OfferId,
 	Request = {HostUrl ++ URI, [auth_header()]},
