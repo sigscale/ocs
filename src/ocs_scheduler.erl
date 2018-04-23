@@ -87,9 +87,9 @@ product_charge1(ProdRef, Now, Offers) ->
 												{'==', Id, {element, #bucket.id, '$1'}}
 											],
 											['$1']}]) || Id <- BucketRefs]),
-									Buckets2  = filter_buckets(ProdRef, Now, Buckets1),
+									%Buckets2  = filter_buckets(ProdRef, Now, Buckets1),
 									{NewProduct1, Buckets3} = ocs:subscription(Product, Offer,
-											Buckets2, false),
+											Buckets1, false),
 									NewBRefs = update_buckets(BucketRefs, Buckets1, Buckets3),
 									NewProduct2 = NewProduct1#product{balance = NewBRefs},
 									ok = mnesia:write(NewProduct2);
