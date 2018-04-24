@@ -24,7 +24,6 @@
 -export([content_types_accepted/0, content_types_provided/0,
 		get_subscribers/2, get_subscriber/2, post_subscriber/1,
 		patch_subscriber/4, delete_subscriber/1]).
-
 -include_lib("radius/include/radius.hrl").
 -include("ocs.hrl").
 
@@ -499,9 +498,9 @@ bucket([{"name", Name} | T], Acc) when is_list(Name) ->
 bucket([{"id", Id} | T], Acc) when is_list(Id) ->
 	bucket(T, Acc#bucket{id = Id});
 bucket([{"startDate", SDate} | T], Acc) when is_list(SDate) ->
-	bucket(T, Acc#bucket{id = ocs_rest:iso8601(SDate)});
+	bucket(T, Acc#bucket{start_date = ocs_rest:iso8601(SDate)});
 bucket([{"terminationDate", TDate} | T], Acc) when is_list(TDate) ->
-	bucket(T, Acc#bucket{id = ocs_rest:iso8601(TDate)});
+	bucket(T, Acc#bucket{termination_date = ocs_rest:iso8601(TDate)});
 bucket([{"units", Type} | T], Acc) when is_list(Type) ->
 	bucket(T, Acc#bucket{units = units(Type)});
 bucket([{"remainAmount", Amount} | T], #bucket{units = cents} = Acc) ->
