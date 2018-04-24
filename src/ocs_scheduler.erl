@@ -44,8 +44,8 @@ start() ->
 			CI;
 		undefined ->
 			1440
-	end
-	start(RotateTime, Interval).
+	end,
+	start(ScheduledTime, Interval).
 
 -spec start(ScheduledTime, Interval) -> ok
 	when
