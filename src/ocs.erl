@@ -26,7 +26,7 @@
 		update_client/2, update_client/3, get_clients/0, delete_client/1,
 		query_clients/6]).
 -export([add_service/3, add_service/4, add_service/5, add_service/8,
-		add_product/2, add_product/3, add_product/5, delete_product/1]).
+		add_product/2, add_product/3, add_product/5, delete_product/1, get_products/0]).
 -export([find_service/1, delete_service/1, get_services/0, query_service/1,
 		find_product/1]).
 -export([add_bucket/2, find_bucket/1, get_buckets/1, delete_bucket/1]).
@@ -351,6 +351,25 @@ query_clients4(Clients, undefined) ->
 query_clients4(Clients, Address) ->
 	Fun = fun(#client{address = A}) -> lists:prefix(Address, inet:ntoa(A)) end,
 	{eof, lists:filter(Fun, Clients)}.
+
+get_products()->
+	MatchSpec = [{'_', [], ['$_']}],
+	F = fun(F, start, Acc) ->
+		F(F, mnesia:select(product, MatchSpec,
+				?CHUNKSIZE, read), Acc);
+		(_F, '$end_of_table', Acc) ->
+				lists:flatten(lists:reverse(Acc));
+		(_F, {error, Reason}, _Acc) ->
+				{error, Reason};
+		(F,{Products, Cont}, Acc) ->
+				F(F, mnesia:select(Cont), [Products | Acc])
+	end,
+	case mnesia:transaction(F, [F, start, []]) of
+		{aborted, Reason} ->
+			{error, Reason};
+		{atomic, Result} ->
+			Result
+	end.
 
 -spec add_product(Offer, ServiceRefs) -> Result
 	when
