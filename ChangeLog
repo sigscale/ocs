@@ -19,6 +19,12 @@
 	* change IPDR log directory path
 	* implement API function for add buckets
 
+2018-04-26  Krishman Logenderarajah <krishmanl@sigscale.org>
+
+	* fix bucket terminationDate
+	* add ps information for ipdr codec
+	* ignore empty description in table import
+
 2018-04-05  Vance Shipley <vances@sigscale.org>
 
 	* accept JSON Number() or String() input amounts
