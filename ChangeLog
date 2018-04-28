@@ -1,3 +1,24 @@
+2018-04-28  Vance Shipley <vances@sigscale.org>
+
+	* create function for get productInventory
+	* patch serviceCharacteristics in serviceInventory
+	* implement serviceInventoryManagement API
+	* add test case for recurring charge daily subscription
+	* do not remove negative balance bucekts
+	* refactor subscription function
+	* if any negative cents bucket return out of credit
+	* initial subscription charges when create new product
+	* clause for handle one time charges
+	* implement scheduler for recurring charges
+	* implement add service in GUI
+	* deprecate subscriber resource
+	* add service specific char values
+	* implement IPDR VoIp view in GUI
+	* refactor REST API for get accumulated balance
+	* refactor REST API for get bucket with id
+	* change IPDR log directory path
+	* implement API function for add buckets
+
 2018-04-05  Vance Shipley <vances@sigscale.org>
 
 	* accept JSON Number() or String() input amounts
