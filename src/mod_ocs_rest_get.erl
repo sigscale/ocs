@@ -200,6 +200,8 @@ do_get(Resource, #mod{parsed_header = Headers} = ModData,
 	do_response(ModData, Resource:get_inventories(Query, Headers));
 do_get(Resource, ModData, ["serviceInventoryManagement", "v2", "service", Id], []) ->
 	do_response(ModData, Resource:get_inventory(Id));
+do_get(Resource, ModData, ["serviceInventoryManagement", "schema", "OCS.yml"], []) ->
+	do_response(ModData, Resource:get_schema());
 do_get(_, _, _, _) ->
 	Response = "<h2>HTTP Error 404 - Not Found</h2>",
 	{break, [{response, {404, Response}}]}.

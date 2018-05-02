@@ -23,7 +23,7 @@
 
 -export([content_types_accepted/0, content_types_provided/0]).
 -export([add_inventory/1, get_inventory/1, get_inventories/2,
-		delete_inventory/1, patch_inventory/3]).
+		delete_inventory/1, patch_inventory/3, get_schema/0]).
 -export([get_service_specs/1, get_service_spec/2]).
 
 -include("ocs.hrl").
@@ -43,14 +43,34 @@
 		ContentTypes :: list().
 %% @doc Provides list of resource representations accepted.
 content_types_accepted() ->
-	["application/json", "application/json-patch+json"].
+	["application/json", "application/json-patch+json", "application/yaml"].
 
 -spec content_types_provided() -> ContentTypes
 	when
 		ContentTypes :: list().
 %% @doc Provides list of resource representations available.
 content_types_provided() ->
-	["application/json"].
+	["application/json", "application/yaml"].
+
+-spec get_schema() -> Result when
+	Result :: {ok, Headers, Body},
+	Body :: iolist(),
+	Headers  :: [tuple()].
+%% @doc Respond to `GET /serviceInventoryManagement/schema/OCS.yml'.
+%%    get schema.
+get_schema() ->
+	Body = "OCS:\n"
+			"   title: OCS\n"
+			"   type: Object\n"
+			"   allOf:\n"
+			"      -$ref: #/definations/Service\n"
+			"      -properties:\n"
+			"         product:\n"
+			"            type: string\n"
+			"         productOffering:\n"
+			"            type: string\n",
+	Headers = [{content_type, "application/yaml"}],
+	{ok, Headers, Body}.
 
 -spec add_inventory(ReqData) -> Result when
 	ReqData	:: [tuple()],
@@ -276,7 +296,7 @@ ocs_service_spec() ->
 	Version = {"version", "1.0"},
 	Status = {"lifecycleStatus", "Active"},
 	LastUpdate = {"lastUpdate", "2018-02-22T00:00:00Z"},
-	Type = {"type", ""},
+	Type = {"type", "RFS"},
 	Chars = {"serviceSpecCharacteristic", {array, service_spec_chars()}},
 	{struct, [Id, Href, Name, Description, Version, Status, LastUpdate, Type, Chars]}.
 
@@ -313,7 +333,13 @@ service_spec_chars() ->
 	Type5 = {"valueType", "boolean"},
 	Value5 = {"serviceSpecCharacteristicValue", {array, [{struct, [Type5]}]}},
 	Char5 = {struct, [Name5, Description5, Config5, Type5, Value5]},
-	[Char1, Char2, Char3, Char4, Char5].
+	Name6 = {"name", "class"},
+	Description6 = {"description", "Class"},
+	Config6 = {"configurable", true},
+	Type6 = {"valueType", "String"},
+	Value6 = {"serviceSpecCharacteristicValue", {array, [{struct, [Type6]}]}},
+	Char6 = {struct, [Name6, Description6, Config6, Type6, Value6]},
+	[Char1, Char2, Char3, Char4, Char5, Char6].
 
 -spec inventory(Service) -> Service
 	when
@@ -366,6 +392,12 @@ inventory([{"serviceCharacteristic", Characteristics}| T], Acc) ->
 			A1;
 		SessionInterval ->
 			[{?AcctInterimInterval, SessionInterval} | A1]
+	end,
+	A3  = case F1("class", Chars) of
+		undefined ->
+			A2;
+		Class ->
+			[{?Class, Class} | A2]
 	end,
 	F2 = fun(Key1, Chars1, AccIn) -> 
 			case lists:keyfind(Key1, 1, Chars1) of
@@ -489,8 +521,10 @@ inventory([_ | T], Service, Chars, Acc) ->
 inventory([], _Service, [], Acc) ->
 	{struct, lists:reverse(Acc)};
 inventory([], _Service, Chars, Acc) ->
-	NewAcc = [{"serviceCharacteristic", service_chars(Chars)} | Acc],
-	{struct, lists:reverse(NewAcc)}.
+	Obj = [{"serviceCharacteristic", service_chars(Chars)},
+			{"@schemaLocation", "serviceInventoryManagement/schema/OCS.yml"},
+			{"@baseType", "Service"}, {"@type", "OCS"}, {"type", "RFS"} | Acc],
+	{struct, lists:reverse(Obj)}.
 
 -spec start_mode(Mode) -> Mode
 	when
