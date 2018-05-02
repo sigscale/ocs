@@ -87,7 +87,6 @@ product_charge1(ProdRef, Now, Offers) ->
 												{'==', Id, {element, #bucket.id, '$1'}}
 											],
 											['$1']}]) || Id <- BucketRefs]),
-									%Buckets2  = filter_buckets(ProdRef, Now, Buckets1),
 									{NewProduct1, Buckets3} = ocs:subscription(Product, Offer,
 											Buckets1, false),
 									NewBRefs = update_buckets(BucketRefs, Buckets1, Buckets3),
@@ -117,28 +116,6 @@ product_charge1(ProdRef, Now, Offers) ->
 %%----------------------------------------------------------------------
 %%  internal functions
 %%----------------------------------------------------------------------
-%% @private
-filter_buckets(ProdRef, Now, Buckets) ->
-	filter_buckets1(Buckets, ProdRef, Now, []).
-%% @hidden
-filter_buckets1([#bucket{termination_date = Expires} | T],
-		ProdRef, Now, Acc) when (Expires =:= undefined) and (Expires > Now) ->
-	filter_buckets1(T, ProdRef, Now, Acc);
-filter_buckets1([#bucket{product = P} = B | T], ProdRef, Now, Acc) ->
-	F = fun(P1) when P1 == ProdRef ->
-				true;
-			(_) ->
-				false
-	end,
-	case lists:any(F, P) of
-		true ->
-			filter_buckets1(T, ProdRef, Now, [B | Acc]);
-		false ->
-			filter_buckets1(T, ProdRef, Now, Acc)
-	end;
-filter_buckets1([], _ProdRef, _Now, Acc) ->
-	Acc.
-
 %% @private
 if_dues([{_, DueDate} | _], Now) when DueDate < Now ->
 	true;
