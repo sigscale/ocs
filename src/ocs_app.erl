@@ -55,8 +55,7 @@
 %% @see //kernel/application:start/2
 %%
 start(normal = _StartType, _Args) ->
-	Tables = [client, service, offer, product,
-			pla, httpd_user, httpd_group],
+	Tables = [client, service, offer, product, pla],
 	case mnesia:wait_for_tables(Tables, 60000) of
 		ok ->
 			start1();
