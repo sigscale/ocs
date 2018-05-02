@@ -327,15 +327,15 @@ add_user() ->
 	[{userdata, [{doc, "Create a new user"}]}].
 
 add_user(_Config) ->
-	User = "staff_billing",
+	User = ocs:generate_identity(),
 	Password = ocs:generate_password(),
 	Locale = "en",
-	{ok, {E1, E2}} = ocs:add_user(User, Password, Locale),
-	true = is_integer(E1),
-	true = is_integer(E2),
+	{ok, {TS, N}} = ocs:add_user(User, Password, Locale),
+	true = is_integer(TS),
+	true = is_integer(N),
 	{Port, Address, Dir, _} = get_params(),
 	{ok, #httpd_user{username = User, password = Password,
-	user_data = UserData}} = mod_auth:get_user(User, Address, Port, Dir),
+			user_data = UserData}} = mod_auth:get_user(User, Address, Port, Dir),
 	{_, Locale} = lists:keyfind(locale, 1, UserData),
 	{_, {E1, E2}} = lists:keyfind(last_modified, 1, UserData).
 
@@ -343,7 +343,7 @@ get_user() ->
 	[{userdata, [{doc, "Look up a user from table"}]}].
 
 get_user(_Config) ->
-	User = "customer_care",
+	User = ocs:generate_identity(),
 	Password = ocs:generate_password(),
 	Locale = "en",
 	{ok, LastModified} = ocs:add_user(User, Password, Locale),
@@ -356,7 +356,7 @@ delete_user() ->
 	[{userdata, [{doc, "Remove user from table"}]}].
 
 delete_user(_Config) ->
-	User = "staff_3",
+	User = ocs:generate_identity(),
 	Password = ocs:generate_password(),
 	Locale = "en",
 	{ok, _} = ocs:add_user(User, Password, Locale),
