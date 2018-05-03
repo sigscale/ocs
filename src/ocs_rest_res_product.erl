@@ -2185,7 +2185,7 @@ query_page(Codec, PageServer, Etag, Query, Filters, Start, End) ->
 	case gen_server:call(PageServer, {Start, End}) of
 		{error, Status} ->
 			{error, Status};
-		{#offer{} = Result, ContentRange} ->
+		{[#offer{} | _] = Result, ContentRange} ->
 			try
 				case lists:keytake("sort", 1, Query) of
 					{value, {_, "name"}, Q1} ->
@@ -2230,7 +2230,7 @@ query_page(Codec, PageServer, Etag, Query, Filters, Start, End) ->
 				throw:{error, Status} ->
 					{error, Status}
 			end;
-		{#product{} = Result, ContentRange} ->
+		{[#product{} | _] = Result, ContentRange} ->
 			try
 				%% @todo sort product
 				case lists:keytake("sort", 1, Query) of
