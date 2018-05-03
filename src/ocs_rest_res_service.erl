@@ -450,6 +450,12 @@ inventory([{"serviceSpecification", _}| T], Acc) ->
 	inventory(T, Acc);
 inventory([{"relatedPary", {array, _}}| T], Acc) ->
 	inventory(T, Acc);
+inventory([{"@type", _} | T], Acc) ->
+	inventory(T, Acc);
+inventory([{"@baseType", _} | T], Acc) ->
+	inventory(T, Acc);
+inventory([{"@schemaLocation", _} | T], Acc) ->
+	inventory(T, Acc);
 inventory([], Acc) ->
 	Acc.
 %% @hidden
