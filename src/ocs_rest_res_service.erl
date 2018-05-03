@@ -411,7 +411,7 @@ inventory([{"serviceCharacteristic", Characteristics}| T], Acc) ->
 	C1 = F2("radiusReserveOctets", Chars, C0), 
 	C2 = F2("ReserveSessionTime", Chars, C1),
 	NewAcc = Acc#service{name = Identity, password = Password,
-		multisession = MultiSession, attributes = A2, characteristics = C2},
+		multisession = MultiSession, attributes = A3, characteristics = C2},
 	inventory(T, NewAcc);
 inventory([{"category", _}| T], Acc) ->
 	inventory(T, Acc);
