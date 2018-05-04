@@ -326,9 +326,15 @@ get_plas(_Query, _Headers) ->
 %% 	Retrieve all Product Inventories.
 %% @todo Filtering
 get_inventories(Query, Headers) ->
+	ID =  proplists:get_value("id", Query),
+	Name =  proplists:get_value("name", Query),
+	Offer = proplists:get_value("productOffer", Query),
+	SDT = proplists:get_value("startDate", Query),
+	EDT = proplists:get_value("endDate", Query),
+	Service = proplists:get_value("service", Query),
 	M = ocs,
 	F = query_product,
-	A = [],
+	A = [ID, Name, Offer, SDT, EDT, Service],
 	Codec = fun inventory/1,
 	query_filter({M, F, A}, Codec, Query, Headers).
 
@@ -2232,10 +2238,19 @@ query_page(Codec, PageServer, Etag, Query, Filters, Start, End) ->
 			end;
 		{[#product{} | _] = Result, ContentRange} ->
 			try
-				%% @todo sort product
 				case lists:keytake("sort", 1, Query) of
+					{value, {_, "id"}, Q1} ->
+						{lists:keysort(#product.id, Result), Q1};
 					{value, {_, "name"}, Q1} ->
 						{lists:keysort(#product.name, Result), Q1};
+					{value, {_, "productOffer"}, Q1} ->
+						{lists:keysort(#product.product, Result), Q1};
+					{value, {_, "startDate"}, Q1} ->
+						{lists:keysort(#product.start_date, Result), Q1};
+					{value, {_, "endDate"}, Q1} ->
+						{lists:keysort(#product.termination_date, Result), Q1};
+					{value, {_, "service"}, Q1} ->
+						{lists:keysort(#product.service, Result), Q1};
 					false ->
 						{Result, Query};
 					_ ->
