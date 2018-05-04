@@ -774,8 +774,7 @@ find_bucket(BucketId) ->
 -spec get_buckets(ProdRef) -> Result
 	when
 		ProdRef :: string(),
-		Result :: {ok, Buckets} | {error, Reason},
-		Buckets :: [#bucket{}],
+		Result :: [#bucket{}] | {error, Reason},
 		Reason :: term().
 %% @doc Get the all buckets for given product reference
 get_buckets(ProdRef) when is_list(ProdRef) ->
@@ -793,7 +792,7 @@ get_buckets(ProdRef) when is_list(ProdRef) ->
 	end,
 	case mnesia:transaction(F) of
 		{atomic, Buckets} ->
-			{ok, Buckets};
+			Buckets;
 		{aborted, {throw, Reason}} ->
 			{error, Reason};
 		{aborted, Reason} ->

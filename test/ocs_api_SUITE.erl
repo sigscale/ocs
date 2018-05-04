@@ -481,7 +481,7 @@ get_buckets(_Config) ->
 			BId
 	end,
 	BIds = [AddBuckets() || _ <- lists:seq(1, 100)],
-	{ok, Buckets} = ocs:get_buckets(ProdRef),
+	Buckets = ocs:get_buckets(ProdRef),
 	[] = BIds -- [B2#bucket.id || B2 <- Buckets].
 
 delete_bucket() ->
