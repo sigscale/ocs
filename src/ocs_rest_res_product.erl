@@ -328,7 +328,7 @@ get_plas(_Query, _Headers) ->
 get_inventories(Query, Headers) ->
 	ID =  proplists:get_value("id", Query),
 	Name =  proplists:get_value("name", Query),
-	Offer = proplists:get_value("productOffer", Query),
+	Offer = proplists:get_value("productOffering", Query),
 	SDT = proplists:get_value("startDate", Query),
 	EDT = proplists:get_value("endDate", Query),
 	Service = proplists:get_value("service", Query),
