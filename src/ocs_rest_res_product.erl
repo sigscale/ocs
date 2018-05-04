@@ -117,6 +117,7 @@ add_inventory(ReqData) ->
 	of
 		Subscription ->
 			Body = mochijson:encode(inventory(Subscription)),
+erlang:display({?MODULE, ?LINE, Body}),
 			Etag = ocs_rest:etag(Subscription#product.last_modified),
 			Href = ?inventoryPath ++ Subscription#product.id,
 			Headers = [{location, Href}, {etag, Etag}],
@@ -2109,6 +2110,8 @@ instance_chars([{struct, [{"name", Name}, {"value", Value}]} | T], Acc) ->
 	instance_chars(T, [{Name, Value} | Acc]);
 instance_chars([{struct, [{"value", Value}, {"name", Name}]} | T], Acc) ->
 	instance_chars(T, [{Name, Value} | Acc]);
+instance_chars([{Name, Value} | T], Acc) ->
+	instance_chars(T, [{struct, [{"name", Name}, {"value", Value}]} | Acc]);
 instance_chars([], Acc) ->
 	lists:reverse(Acc).
 
