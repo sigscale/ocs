@@ -25,9 +25,9 @@
 -export([add_client/2, add_client/3, add_client/5, find_client/1,
 		update_client/2, update_client/3, get_clients/0, delete_client/1,
 		query_clients/6]).
--export([add_service/3, add_service/4, add_service/5, add_service/8,
-		add_product/2, add_product/3, add_product/5, delete_product/1,
-		get_products/0, query_product/7]).
+-export([add_service/2, add_service/3, add_service/4, add_service/5,
+		add_service/8, add_product/2, add_product/3, add_product/5,
+		delete_product/1, get_products/0, query_product/7]).
 -export([find_service/1, delete_service/1, get_services/0, query_service/1,
 		find_product/1]).
 -export([add_bucket/2, find_bucket/1, get_buckets/0, get_buckets/1,
@@ -519,7 +519,7 @@ add_product(Offer, ServiceRefs, Characteristics) ->
 		ServiceRef :: binary(),
 		Result :: {ok, #product{}} | {error, Reason},
 		Reason :: term().
-%% @doc Add a product invenotry subscription instance.
+%% @doc Add a product inventory subscription instance.
 add_product(OfferId, ServiceRefs, StartDate, EndDate, Characteristics)
 		when (is_integer(StartDate) orelse (StartDate == undefined)),
 		(is_integer(EndDate) orelse (EndDate == undefined)),
@@ -603,10 +603,20 @@ delete_product(ProductRef) when is_list(ProductRef) ->
 			exit(Reason)
 	end.
 
+-spec add_service(Identity, Password) -> Result
+	when
+		Identity :: string() | binary() | undefined,
+		Password :: string() | binary() | undefined,
+		Result :: {ok, #service{}} | {error, Reason},
+		Reason :: term().
+%% @equiv add_service(Identity, Password, undefined, [], true, false)
+add_service(Identity, Password) ->
+	add_service(Identity, Password, active, undefined, [], [], true, false).
+
 -spec add_service(Identity, Password, ProductRef) -> Result
 	when
-		Identity :: string() | binary(),
-		Password :: string() | binary(),
+		Identity :: string() | binary() | undefined,
+		Password :: string() | binary() | undefined,
 		ProductRef :: string() | undefined,
 		Result :: {ok, #service{}} | {error, Reason},
 		Reason :: term().
@@ -616,8 +626,8 @@ add_service(Identity, Password, ProductRef) ->
 
 -spec add_service(Identity, Password, ProductRef, Chars) -> Result
 	when
-		Identity :: string() | binary(),
-		Password :: string() | binary(),
+		Identity :: string() | binary() | undefined,
+		Password :: string() | binary() | undefined,
 		ProductRef :: string() | undefined,
 		Chars :: [tuple()],
 		Result :: {ok, #service{}} | {error, Reason},
@@ -628,8 +638,8 @@ add_service(Identity, Password, ProductRef, Chars) ->
 
 -spec add_service(Identity, Password, ProductRef, Chars, Attributes) -> Result
 	when
-		Identity :: string() | binary(),
-		Password :: string() | binary(),
+		Identity :: string() | binary() | undefined,
+		Password :: string() | binary() | undefined,
 		ProductRef :: string() | undefined,
 		Chars :: [tuple()],
 		Attributes :: radius_attributes:attributes() | binary(),
@@ -658,7 +668,7 @@ add_service(Identity, Password, ProductRef, Chars, Attributes) ->
 %% 	RADIUS `Attributes', to be returned in an `AccessRequest' response,
 %% 	may be provided.  These attributes will overide any default values.
 %%
-%% 	`ProductRef' key for product invenotry reference,
+%% 	`ProductRef' key for product inventory reference,
 %%		`Enabled' status and `MultiSessions' status may be provided.
 %%
 add_service(Identity, Password, State, ProductRef,
