@@ -55,6 +55,7 @@
 				ocs_rest_res_accounting,
 				ocs_rest_res_balance,
 				ocs_rest_res_product,
+				ocs_rest_res_service,
 				ocs_rest_res_resource,
 				ocs_rest_res_http,
 				ocs_rest_pagination_sup,
