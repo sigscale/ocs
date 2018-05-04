@@ -157,12 +157,10 @@
 		last_modified :: tuple() | undefined}).
 
 %% define service table entries record
-%% @todo kept the buckets for backward compatibility, remove buckets
 -record(service,
 		{name :: binary() | undefined,
 		password :: binary() | undefined,
 		attributes :: [tuple()] | undefined,
-		buckets = [] :: [#bucket{}],
 		product :: ProductRef :: string() | undefined,
 		state :: service_status() | undefined,
 		enabled = true :: boolean(),

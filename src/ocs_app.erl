@@ -409,7 +409,7 @@ install12(Nodes, Acc, {directory, {_, DirectoryInfo}}) ->
 install12(Nodes, Acc, false) ->
 	error_logger:info_msg("Auth directory not defined. "
 			"User table not created~n"),
-	install16(Nodes, Acc).
+	install15(Nodes, Acc).
 %% @hidden
 install13(Nodes, Acc) ->
 	case mnesia:create_table(httpd_user, [{type, bag},{disc_copies, Nodes},

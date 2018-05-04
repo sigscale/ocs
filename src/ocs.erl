@@ -25,12 +25,13 @@
 -export([add_client/2, add_client/3, add_client/5, find_client/1,
 		update_client/2, update_client/3, get_clients/0, delete_client/1,
 		query_clients/6]).
--export([add_service/3, add_service/4, add_service/5, add_service/8,
-		add_product/2, add_product/3, add_product/5, delete_product/1,
-		get_products/0, query_product/1]).
+-export([add_service/2, add_service/3, add_service/4, add_service/5,
+		add_service/8, add_product/2, add_product/3, add_product/5,
+		delete_product/1, get_products/0, query_product/7]).
 -export([find_service/1, delete_service/1, get_services/0, query_service/1,
 		find_product/1]).
--export([add_bucket/2, find_bucket/1, get_buckets/1, delete_bucket/1]).
+-export([add_bucket/2, find_bucket/1, get_buckets/0, get_buckets/1,
+		delete_bucket/1]).
 -export([add_user/3, list_users/0, get_user/1, delete_user/1,
 		query_users/3, update_user/3]).
 -export([add_offer/1, find_offer/1, get_offers/0, delete_offer/1,
@@ -372,31 +373,118 @@ get_products()->
 			Result
 	end.
 
--spec query_product(Cont) -> Result
+-spec query_product(Cont, Id, Name, Offer, SDT, EDT, Service) -> Result
 	when
 		Cont :: start | eof | any(),
+		Id :: string() | undefined | '_',
+		Name :: string() | undefined | '_',
+		Offer :: string() | undefined | '_',
+		SDT :: pos_integer() | undefined | '_',
+		EDT :: pos_integer() | undefined | '_',
+		Service :: binary() | string() | undefined | '_',
 		Result :: {Cont, [#product{}]} | {error, Reason},
 		Reason :: term().
 %% @doc Query product
-%% @todo Support for query
-query_product(start) ->
+query_product(Cont, Id, Name, Offer, SDT, EDT, undefined) ->
+	query_product(Cont, Id, Name, Offer, SDT, EDT, '_');
+query_product(Cont, Id, Name, Offer, SDT, undefined, Service) ->
+	query_product(Cont, Id, Name, Offer, SDT, '_', Service);
+query_product(Cont, Id, Name, Offer, undefined, EDT, Service) ->
+	query_product(Cont, Id, Name, Offer, '_', EDT, Service);
+query_product(Cont, Id, Name, undefined, SDT, EDT, Service) ->
+	query_product(Cont, Id, Name, '_', SDT, EDT, Service);
+query_product(Cont, Id, undefined, Offer, SDT, EDT, Service) ->
+	query_product(Cont, Id, '_', Offer, SDT, EDT, Service);
+query_product(Cont, undefined, Name, Offer, SDT, EDT, Service) ->
+	query_product(Cont, '_', Name, Offer, SDT, EDT, Service);
+query_product(Cont, Id, Name, Offer, SDT, EDT, Service) when is_binary(Service)->
+	query_product(Cont, Id, Name, Offer, SDT, EDT, binary_to_list(Service));
+query_product(start, Id, Name, Offer, SDT, EDT, Service) ->
+erlang:display({?MODULE, ?LINE}),
 	MatchSpec = [{'_', [], ['$_']}],
-	F = fun(F, start, Acc) ->
-				F(F, mnesia:select(product, MatchSpec,
+	F = fun F(start, Acc) ->
+				F(mnesia:select(product, MatchSpec,
 						?CHUNKSIZE, read), Acc);
-			(_F, '$end_of_table', Acc) ->
+			F('$end_of_table', Acc) ->
 				lists:flatten(lists:reverse(Acc));
-			(_F, {error, Reason}, _Acc) ->
+			F({error, Reason}, _Acc) ->
 				{error, Reason};
-			(F,{Products, Cont}, Acc) ->
-				F(F, mnesia:select(Cont), [Products | Acc])
+			F({Products, Cont}, Acc) ->
+				F(mnesia:select(Cont), [Products | Acc])
 	end,
-	case mnesia:transaction(F, [F, start, []]) of
+	case mnesia:transaction(F, [start, []]) of
 		{aborted, Reason} ->
+erlang:display({?MODULE, ?LINE, Reason}),
 			{error, Reason};
 		{atomic, Products1} ->
-			{eof, Products1}
+erlang:display({?MODULE, ?LINE}),
+			Products2 = query_product1(Products1, Id, Name,
+					Offer, SDT, EDT, Service),
+erlang:display({?MODULE, ?LINE, Products2}),
+			{eof, Products2}
 	end.
+%% @hidden
+query_product1(Products, '_', Name, Offer, SDT, EDT, Service) ->
+	query_product2(Products, Name, Offer, SDT, EDT, Service);
+query_product1(Products, Id, Name, Offer, SDT, EDT, Service) ->
+	F = fun(#product{id = Id1}) when is_list(Id1)->
+				lists:prefix(Id, Id1);
+		(_) ->
+			false
+	end,
+	NewProducts = lists:filter(F, Products),
+	query_product2(NewProducts, Name, Offer, SDT, EDT, Service).
+%% @hidden
+query_product2(Products, '_', Offer, SDT, EDT, Service) ->
+	query_product3(Products, Offer, SDT, EDT, Service);
+query_product2(Products, Name, Offer, SDT, EDT, Service) ->
+	F = fun(#product{name = Name1}) when is_list(Name1)->
+				lists:prefix(Name, Name1);
+			(_) ->
+				false
+	end,
+	NewProducts = lists:filter(F, Products),
+	query_product3(NewProducts, Offer, SDT, EDT, Service).
+%% @hidden
+query_product3(Products, '_', SDT, EDT, Service) ->
+	query_product4(Products, SDT, EDT, Service);
+query_product3(Products, Offer, SDT, EDT, Service) ->
+	F = fun(#product{product = Offer1}) when is_list(Offer1)->
+				lists:prefix(Offer, Offer1);
+		(_) ->
+			false
+	end,
+	NewProducts = lists:filter(F, Products),
+	query_product4(NewProducts, SDT, EDT, Service).
+%% @hidden
+query_product4(Products, '_', '_', Service) ->
+	query_product5(Products, Service);
+query_product4(Products, SDT, '_', Service) when is_integer(SDT) ->
+	F = fun(#product{start_date = SDT1}) when SDT1 >= SDT -> true; (_) -> false end,
+	NewProducts = lists:filter(F, Products),
+	query_product5(NewProducts, Service);
+query_product4(Products, '_', EDT, Service) when is_integer(EDT) ->
+	F = fun(#product{termination_date = EDT1}) when EDT1 =< EDT -> true; (_) -> false end,
+	NewProducts = lists:filter(F, Products),
+	query_product5(NewProducts, Service).
+%% @hidden
+query_product5(Products, '_') ->
+	Products;
+query_product5(Products, Service) ->
+	F = fun(#product{service = Services} = P, AccIn) ->
+			F2 = fun(S) when is_binary(S) ->
+						lists:prefix(Service, binary_to_list(S));
+					(S) when is_list(S) ->
+						lists:prefix(Service, S)
+			end,
+			case lists:any(F2, Services) of
+				true ->
+					[P | AccIn];
+				false ->
+					AccIn
+			end
+	end,
+	lists:foldl(F, [], Products).
 
 -spec add_product(Offer, ServiceRefs) -> Result
 	when
@@ -431,7 +519,7 @@ add_product(Offer, ServiceRefs, Characteristics) ->
 		ServiceRef :: binary(),
 		Result :: {ok, #product{}} | {error, Reason},
 		Reason :: term().
-%% @doc Add a product invenotry subscription instance.
+%% @doc Add a product inventory subscription instance.
 add_product(OfferId, ServiceRefs, StartDate, EndDate, Characteristics)
 		when (is_integer(StartDate) orelse (StartDate == undefined)),
 		(is_integer(EndDate) orelse (EndDate == undefined)),
@@ -515,10 +603,20 @@ delete_product(ProductRef) when is_list(ProductRef) ->
 			exit(Reason)
 	end.
 
+-spec add_service(Identity, Password) -> Result
+	when
+		Identity :: string() | binary() | undefined,
+		Password :: string() | binary() | undefined,
+		Result :: {ok, #service{}} | {error, Reason},
+		Reason :: term().
+%% @equiv add_service(Identity, Password, undefined, [], true, false)
+add_service(Identity, Password) ->
+	add_service(Identity, Password, active, undefined, [], [], true, false).
+
 -spec add_service(Identity, Password, ProductRef) -> Result
 	when
-		Identity :: string() | binary(),
-		Password :: string() | binary(),
+		Identity :: string() | binary() | undefined,
+		Password :: string() | binary() | undefined,
 		ProductRef :: string() | undefined,
 		Result :: {ok, #service{}} | {error, Reason},
 		Reason :: term().
@@ -528,8 +626,8 @@ add_service(Identity, Password, ProductRef) ->
 
 -spec add_service(Identity, Password, ProductRef, Chars) -> Result
 	when
-		Identity :: string() | binary(),
-		Password :: string() | binary(),
+		Identity :: string() | binary() | undefined,
+		Password :: string() | binary() | undefined,
 		ProductRef :: string() | undefined,
 		Chars :: [tuple()],
 		Result :: {ok, #service{}} | {error, Reason},
@@ -540,8 +638,8 @@ add_service(Identity, Password, ProductRef, Chars) ->
 
 -spec add_service(Identity, Password, ProductRef, Chars, Attributes) -> Result
 	when
-		Identity :: string() | binary(),
-		Password :: string() | binary(),
+		Identity :: string() | binary() | undefined,
+		Password :: string() | binary() | undefined,
 		ProductRef :: string() | undefined,
 		Chars :: [tuple()],
 		Attributes :: radius_attributes:attributes() | binary(),
@@ -570,7 +668,7 @@ add_service(Identity, Password, ProductRef, Chars, Attributes) ->
 %% 	RADIUS `Attributes', to be returned in an `AccessRequest' response,
 %% 	may be provided.  These attributes will overide any default values.
 %%
-%% 	`ProductRef' key for product invenotry reference,
+%% 	`ProductRef' key for product inventory reference,
 %%		`Enabled' status and `MultiSessions' status may be provided.
 %%
 add_service(Identity, Password, State, ProductRef,
@@ -769,6 +867,31 @@ find_bucket(BucketId) ->
 			{error, not_found};
 		{aborted, Reason} ->
 			{error, Reason}
+	end.
+
+-spec get_buckets() -> Result
+	when
+		Result :: Buckets | {error, Reason},
+		Buckets :: [#bucket{}],
+		Reason :: term().
+%% @doc Get the all buckets product reference
+get_buckets() ->
+	MatchSpec = [{'_', [], ['$_']}],
+	F = fun F(start, Acc) ->
+		F(mnesia:select(bucekts, MatchSpec,
+				?CHUNKSIZE, read), Acc);
+		F('$end_of_table', Acc) ->
+				lists:flatten(lists:reverse(Acc));
+		F({error, Reason}, _Acc) ->
+				{error, Reason};
+		F({Buckets, Cont}, Acc) ->
+				F(mnesia:select(Cont), [Buckets | Acc])
+	end,
+	case mnesia:transaction(F, [start, []]) of
+		{aborted, Reason} ->
+			{error, Reason};
+		{atomic, Result} ->
+			Result
 	end.
 
 -spec get_buckets(ProdRef) -> Result

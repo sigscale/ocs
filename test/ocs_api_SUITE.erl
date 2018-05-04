@@ -92,7 +92,7 @@ all() ->
 	add_service, delete_service, add_offer, find_offer, get_offers,
 	delete_offer, add_user, get_user, delete_user, add_bucket,
 	find_bucket, delete_bucket, get_buckets, add_product, find_product,
-	delete_product].
+	delete_product, query_product].
 
 %%---------------------------------------------------------------------
 %%  Test cases
@@ -397,6 +397,35 @@ delete_product(_Config) ->
 	{ok, #product{}} = ocs:find_product(ProdRef),
 	ok = ocs:delete_product(ProdRef),
 	{error, not_found} = ocs:find_product(ProdRef).
+
+query_product() ->
+	[{userdata, [{doc, "Query product"}]}].
+
+query_product(_Config) ->
+	F = fun F(0, Acc) ->
+					Acc;
+			F(N, Acc) ->
+				Price1 = #price{name = ocs:generate_identity(), units = octets,
+						type = usage, size = rand:uniform(10000), amount = rand:uniform(100)},
+				Prices = [Price1],
+				OfferId = ocs:generate_identity(),
+				Offer = #offer{name = OfferId,
+						status = active, price = Prices},
+				{ok, _Offer1} = ocs:add_offer(Offer),
+				{ok, P} = ocs:add_product(OfferId, []),
+				P1 = P#product{service = [list_to_binary(ocs:generate_identity())
+						|| _ <- lists:seq(1, 5)]},
+				mnesia:dirty_write(product, P1),
+				F(N -1, [P1 | Acc])
+	end,
+	Products = F(rand:uniform(1000), []),
+	#product{id = Id, name = Name, product = Offer,
+			start_date = SDT, termination_date = EDT,
+			service = Services} = lists:nth(rand:uniform(length(Products)), Products),
+	{eof, [#product{id = Id, name = Name, product = Offer,
+			start_date = SDT, termination_date = EDT,
+			service = Services}]} = ocs:query_product(start, Id, Name, Offer,
+					SDT, EDT, lists:nth(rand:uniform(length(Services)), Services)).
 
 ignore_delete_product() ->
 	[{userdata, [{doc, "ignore remove product if exist service

@@ -150,7 +150,7 @@ all() ->
 	update_subscriber_password_json_patch,
 	update_subscriber_attributes_json_patch, get_product, add_product,
 	add_product_sms, update_product_realizing_service, delete_product,
-	ignore_delete_product].
+	ignore_delete_product, query_product, filter_product].
 
 %%%%%---------------------------------------------------------------------
 %%  Test cases
@@ -956,6 +956,72 @@ ignore_delete_product(Config) ->
 	{ok, Result} = httpc:request(delete, Request, [], []),
 	{{"HTTP/1.1", 202, _Accepted}, _Headers, _} = Result,
 	{ok, #product{}} = ocs:find_product(ProdRef).
+
+query_product() ->
+	[{userdata, [{doc, "Query product entry in product table"}]}].
+
+query_product(Config) ->
+	F = fun F(0, Acc) ->
+					Acc;
+			F(N, Acc) ->
+				Price1 = #price{name = ocs:generate_identity(), units = octets,
+						type = usage, size = rand:uniform(10000), amount = rand:uniform(100)},
+				Prices = [Price1],
+				OfferId = ocs:generate_identity(),
+				Offer = #offer{name = OfferId,
+						status = active, price = Prices},
+				{ok, _Offer1} = ocs:add_offer(Offer),
+				{ok, P} = ocs:add_product(OfferId, []),
+				P1 = P#product{service = [list_to_binary(ocs:generate_identity()) || _ <- lists:seq(1, 5)]},
+				mnesia:dirty_write(product, P1),
+				F(N -1, [P1 | Acc])
+	end,
+	Products = F(rand:uniform(1000), []),
+	#product{id = Id, service = Services, product = Offer} = lists:nth(rand:uniform(length(Products)), Products),
+	HostUrl = ?config(host_url, Config),
+	Accept = {"accept", "application/json"},
+	Query = "id=" ++ Id ++ "&productOffering=" ++ Offer ++ 
+		"&service=" ++  binary_to_list(lists:nth(rand:uniform(length(Services)), Services)),
+	Request = {HostUrl ++ "/productInventoryManagement/v2/product?" ++ Query,
+			[Accept, auth_header()]},
+	{ok, Result} = httpc:request(get, Request, [], []),
+	{{"HTTP/1.1", 200, _OK}, Headers, ResponseBody} = Result,
+	{_, "application/json"} = lists:keyfind("content-type", 1, Headers),
+	{array, [{struct, Object}]} = mochijson:decode(ResponseBody),
+	{_, Id} = lists:keyfind("id", 1, Object),
+	{_, "/productInventoryManagement/v2/product/" ++ Id} = lists:keyfind("href", 1, Object),
+	{_, {struct, ProdOffer}} = lists:keyfind("productOffering", 1, Object),
+	{_, Offer} = lists:keyfind("id", 1, ProdOffer).
+
+filter_product() ->
+	[{userdata, [{doc, "Filter product inventory ids"}]}].
+
+filter_product(Config) ->
+	F = fun F(0, Acc) ->
+					Acc;
+			F(N, Acc) ->
+				Price1 = #price{name = ocs:generate_identity(), units = octets,
+						type = usage, size = rand:uniform(10000), amount = rand:uniform(100)},
+				Prices = [Price1],
+				OfferId = ocs:generate_identity(),
+				Offer = #offer{name = OfferId,
+						status = active, price = Prices},
+				{ok, _Offer1} = ocs:add_offer(Offer),
+				{ok, P} = ocs:add_product(OfferId, []),
+				F(N -1, [P#product.id | Acc])
+	end,
+	ProdRefs1 = F(5, []),
+	HostUrl = ?config(host_url, Config),
+	Accept = {"accept", "application/json"},
+	Filter = "fields=id",
+	Request = {HostUrl ++ "/productInventoryManagement/v2/product?" ++ Filter,
+			[Accept, auth_header()]},
+	{ok, Result} = httpc:request(get, Request, [], []),
+	{{"HTTP/1.1", 200, _OK}, Headers, ResponseBody} = Result,
+	{_, "application/json"} = lists:keyfind("content-type", 1, Headers),
+	{array, Objects} = mochijson:decode(ResponseBody),
+	ProdRefs2 = [Id || {struct, [{"id", Id}]} <- Objects],
+	[] = ProdRefs1 -- ProdRefs2.
 
 add_product_sms(Config) ->
 	CatalogHref = "/catalogManagement/v2",
