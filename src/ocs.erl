@@ -30,7 +30,8 @@
 		get_products/0, query_product/7]).
 -export([find_service/1, delete_service/1, get_services/0, query_service/1,
 		find_product/1]).
--export([add_bucket/2, find_bucket/1, get_buckets/1, delete_bucket/1]).
+-export([add_bucket/2, find_bucket/1, get_buckets/0, get_buckets/1,
+		delete_bucket/1]).
 -export([add_user/3, list_users/0, get_user/1, delete_user/1,
 		query_users/3, update_user/3]).
 -export([add_offer/1, find_offer/1, get_offers/0, delete_offer/1,
@@ -856,6 +857,31 @@ find_bucket(BucketId) ->
 			{error, not_found};
 		{aborted, Reason} ->
 			{error, Reason}
+	end.
+
+-spec get_buckets() -> Result
+	when
+		Result :: Buckets | {error, Reason},
+		Buckets :: [#bucket{}],
+		Reason :: term().
+%% @doc Get the all buckets product reference
+get_buckets() ->
+	MatchSpec = [{'_', [], ['$_']}],
+	F = fun F(start, Acc) ->
+		F(mnesia:select(bucekts, MatchSpec,
+				?CHUNKSIZE, read), Acc);
+		F('$end_of_table', Acc) ->
+				lists:flatten(lists:reverse(Acc));
+		F({error, Reason}, _Acc) ->
+				{error, Reason};
+		F({Buckets, Cont}, Acc) ->
+				F(mnesia:select(Cont), [Buckets | Acc])
+	end,
+	case mnesia:transaction(F, [start, []]) of
+		{aborted, Reason} ->
+			{error, Reason};
+		{atomic, Result} ->
+			Result
 	end.
 
 -spec get_buckets(ProdRef) -> Result
