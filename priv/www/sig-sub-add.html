@@ -449,13 +449,18 @@
 				this.identity = event.detail.xhr.response.id;
 				this.$.addSubscriberSecretModal.open();
 				var ajaxProduct = this.$.addProductAjax;
+				var productSer = new Object();
 				var productRef = new Object();
-				id = this.product;
-				name = this.product;
-				href = "/productInventoryManagement/v2/product/" + this.product; 
-				productRef.productOffering = {id, name,href},
+				productRef.id = this.product;
+				productRef.name = this.product;
+				productRef.href = "/catalogManagement/v2/productOffering/one" + this.product; 
+				productSer.productOffering = productRef;
+				var productRealizingService = new Object();
+				productRealizingService.id = this.identity;
+				productRealizingService.href = "/serviceInventoryManagement/v2/service/" + this.identity;
+				productSer.realizingService = [productRealizingService];
 				ajaxProduct.headers['Content-type'] = "application/json";
-				ajaxProduct.body = productRef;
+				ajaxProduct.body = productSer;
 				ajaxProduct.generateRequest();
 			},
 			_addServiceError: function(event) {
