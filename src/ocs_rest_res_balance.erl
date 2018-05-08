@@ -24,7 +24,7 @@
 -export([content_types_accepted/0, content_types_provided/0,
 		top_up/2, get_balance/1, get_balance_log/0]).
 
--export([get_bucket/1]).
+-export([get_bucket/1, get_buckets/0]).
 
 -include("ocs.hrl").
 
@@ -107,6 +107,25 @@ get_bucket(BucketId) ->
 		_:not_found ->
 			{error, 404};
 		_:_ ->
+			{error, 500}
+	end.
+
+-spec get_buckets() -> Result
+	when
+		Result :: {ok, Headers :: [tuple()], Body :: iolist()}
+				| {error, ErrorCode :: integer()}.
+%% @doc Body producing function for `GET /balanceManagment/v1/bucket/',
+get_buckets() -> 
+	try
+		case ocs:get_buckets() of
+			Buckets when is_list(Buckets) ->
+				Body = mochijson:encode({array, lists:map(fun bucket/1, Buckets)}),
+			{ok, [], Body};
+		{error, Reason} ->
+			{error, 400}
+		end
+	catch
+		_Error ->
 			{error, 500}
 	end.
  
