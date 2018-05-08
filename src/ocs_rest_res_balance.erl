@@ -120,7 +120,7 @@ get_bucket(BucketId) ->
 get_balance(ProdRef) ->
 	try
 		case ocs:get_buckets(ProdRef) of
-			Buckets1 when is_list(Buckets) ->
+			Buckets1 when is_list(Buckets1) ->
 				Buckets1;
 			{error, Reason} ->
 				throw(Reason)
