@@ -1762,17 +1762,17 @@ subscription(#product{product = OfferId} = Product,
 	{Product1, Buckets1} = lists:foldl(F, {Product, Buckets}, Bundled),
 	subscription(Product1, Now, InitialFlag, Buckets1, Prices).
 %% @hidden
-subscription(Product, Now, true, Buckets,
+subscription(#product{name = ProdRef} = Product, Now, true, Buckets,
 		[#price{type = one_time, amount = Amount,
 			alteration = undefined} | T]) ->
-	NewBuckets = charge(Amount, Buckets),
+	NewBuckets = charge(ProdRef, Amount, Buckets),
 	subscription(Product, Now, true, NewBuckets, T);
 subscription(#product{name = ProdRef} = Product, Now, true,
 		Buckets, [#price{type = one_time, amount = PriceAmount,
 			alteration = #alteration{units = Units, size = Size,
 			amount = AlterAmount}} | T]) ->
 	N = erlang:unique_integer([positive]),
-	NewBuckets = charge(PriceAmount + AlterAmount,
+	NewBuckets = charge(ProdRef, PriceAmount + AlterAmount,
 			[#bucket{id = generate_bucket_id(), product = [ProdRef],
 				units = Units, remain_amount = Size, last_modified = {Now, N}}
 				| Buckets]),
@@ -1783,7 +1783,7 @@ subscription(#product{name = ProdRef} = Product, Now, true, Buckets,
 		[#price{type = usage, alteration = #alteration{type = one_time,
 			units = Units, size = Size, amount = AlterationAmount}} | T]) ->
 	N = erlang:unique_integer([positive]),
-	NewBuckets = charge(AlterationAmount,
+	NewBuckets = charge(ProdRef, AlterationAmount,
 		[#bucket{id = generate_bucket_id(), units = Units,
 			remain_amount = Size, product = [ProdRef], last_modified = {Now, N}}
 			| Buckets]),
@@ -1791,18 +1791,18 @@ subscription(#product{name = ProdRef} = Product, Now, true, Buckets,
 subscription(Product, Now, false, Buckets,
 		[#price{type = usage, alteration = #alteration{type = one_time}} | T]) ->
 	subscription(Product, Now, false, Buckets, T);
-subscription(#product{payment = Payments} = Product,
+subscription(#product{name = ProdRef, payment = Payments} = Product,
 		Now, true, Buckets, [#price{type = recurring, period = Period,
 		amount = Amount, name = Name, alteration = undefined} | T]) when
 		Period /= undefined ->
-	NewBuckets = charge(Amount, Buckets),
+	NewBuckets = charge(ProdRef, Amount, Buckets),
 	NewPayments = [{Name, end_period(Now, Period)} | Payments],
 	Product1 = Product#product{payment = NewPayments},
 	subscription(Product1, Now, true, NewBuckets, T);
-subscription(#product{payment = Payments} = Product, Now, false, Buckets,
+subscription(#product{name = ProdRef, payment = Payments} = Product, Now, false, Buckets,
 		[#price{type = recurring, period = Period, amount = Amount,
 			name = Name, alteration = undefined} | T]) when Period /= undefined ->
-	{NewPayments, NewBuckets} = dues(Payments, Now, Buckets, Name, Period, Amount),
+	{NewPayments, NewBuckets} = dues(Payments, Now, Buckets, Name, Period, ProdRef, Amount),
 	Product1 = Product#product{payment = NewPayments},
 	subscription(Product1, Now, false, NewBuckets, T);
 subscription(#product{name = ProdRef, payment = Payments} = Product,
@@ -1812,7 +1812,7 @@ subscription(#product{name = ProdRef, payment = Payments} = Product,
 			(Period /= undefined) and ((Units == octets) orelse
 			(Units == seconds) orelse  (Units == messages)) ->
 	N = erlang:unique_integer([positive]),
-	NewBuckets = charge(Amount + AllowanceAmount,
+	NewBuckets = charge(ProdRef, Amount + AllowanceAmount,
 			[#bucket{id = generate_bucket_id(),
 			units = Units, remain_amount = Size, product = [ProdRef],
 			termination_date = end_period(Now, Period), last_modified = {Now, N}}
@@ -1825,9 +1825,9 @@ subscription(#product{name = ProdRef, payment = Payments} = Product,
 			amount = Amount, alteration = #alteration{units = Units, size = Size,
 			amount = AllowanceAmount}, name = Name} | T]) when (Period /= undefined)
 			and ((Units == octets) orelse (Units == seconds) orelse (Units == messages)) ->
-	{NewPayments, NewBuckets1} = dues(Payments, Now, Buckets, Name, Period, Amount),
+	{NewPayments, NewBuckets1} = dues(Payments, Now, Buckets, Name, Period, ProdRef, Amount),
 	N = erlang:unique_integer([positive]),
-	NewBuckets2 = charge(AllowanceAmount,
+	NewBuckets2 = charge(ProdRef, AllowanceAmount,
 			[#bucket{id = generate_bucket_id(),
 			units = Units, remain_amount = Size, product = [ProdRef],
 			termination_date = end_period(Now, Period), last_modified = {Now, N}}
@@ -1839,7 +1839,7 @@ subscription(#product{name = ProdRef, payment = Payments} = Product, Now, true,
 		period = Period, units = Units, size = Size, amount = Amount}, name = Name}
 		| T]) when Period /= undefined, Units == octets; Units == seconds; Units == messages ->
 	N = erlang:unique_integer([positive]),
-	NewBuckets = charge(Amount, [#bucket{id = generate_bucket_id(),
+	NewBuckets = charge(ProdRef, Amount, [#bucket{id = generate_bucket_id(),
 			units = Units, remain_amount = Size, product = [ProdRef],
 			termination_date = end_period(Now, Period), last_modified = {Now, N}}
 			| Buckets]),
@@ -1851,9 +1851,9 @@ subscription(#product{name = ProdRef, payment = Payments}
 		alteration = #alteration{type = recurring, period = Period, units = Units,
 		size = Size, amount = Amount}} | T]) when Period /= undefined, Units == octets;
 		Units == seconds; Units == messages ->
-	{NewPayments, NewBuckets1} = dues(Payments, Now, Buckets, Name, Period, Amount),
+	{NewPayments, NewBuckets1} = dues(Payments, Now, Buckets, Name, Period, ProdRef, Amount),
 	N = erlang:unique_integer([positive]),
-	NewBuckets2 = charge(Amount, [#bucket{id = generate_bucket_id(),
+	NewBuckets2 = charge(ProdRef, Amount, [#bucket{id = generate_bucket_id(),
 			units = Units, remain_amount = Size, product = [ProdRef],
 			termination_date = end_period(Now, Period), last_modified = {Now, N}}
 			| NewBuckets1]),
@@ -1867,24 +1867,24 @@ subscription(Product, _Now, _, Buckets, []) ->
 	{Product#product{balance = NewBIds}, Buckets}.
 
 %% @hidden
-dues(Payments, Now, Buckets, PName, Period, Amount) ->
-	dues(Payments, Now, Buckets, PName, Period, Amount, []).
+dues(Payments, Now, Buckets, PName, Period, Amount, ProdRef) ->
+	dues(Payments, Now, Buckets, PName, Period, Amount, ProdRef, []).
 %% @hidden
-dues([{_, DueDate} = P | T], Now, Buckets, PName, Period, Amount, Acc) when DueDate > Now ->
-	dues(T, Now, Buckets, PName, Period, Amount, [P | Acc]);
-dues([{PName, DueDate} | T], Now, Buckets, PName, Period, Amount, Acc) ->
-	NewBuckets = charge(Amount, Buckets),
+dues([{_, DueDate} = P | T], Now, Buckets, PName, Period, Amount, ProdRef, Acc) when DueDate > Now ->
+	dues(T, Now, Buckets, PName, Period, Amount, ProdRef, [P | Acc]);
+dues([{PName, DueDate} | T], Now, Buckets, PName, Period, Amount, ProdRef, Acc) ->
+	NewBuckets = charge(ProdRef, Amount, Buckets),
 	case end_period(DueDate, Period) of
 		NextDueDate when NextDueDate < Now ->
 			dues([{PName, NextDueDate} | T], Now,
-					NewBuckets, PName, Period, Amount, Acc);
+					NewBuckets, PName, Period, Amount, ProdRef, Acc);
 		NextDueDate ->
 			dues(T, Now, NewBuckets, PName, Period,
-					Amount, [{PName, NextDueDate} | Acc])
+					Amount, ProdRef, [{PName, NextDueDate} | Acc])
 	end;
-dues([P | T], Now, Buckets, PName, Period, Amount, Acc) ->
-	dues(T, Now, Buckets, PName, Period, Amount, [P | Acc]);
-dues([], _Now, Buckets, _PName, _Period, _Amount, Acc) ->
+dues([P | T], Now, Buckets, PName, Period, Amount, ProdRef, Acc) ->
+	dues(T, Now, Buckets, PName, Period, Amount, ProdRef, [P | Acc]);
+dues([], _Now, Buckets, _PName, _Period, _Amount, _ProdRef, Acc) ->
 	{lists:reverse(Acc), Buckets}.
 
 -spec get_params() -> Result
@@ -1931,28 +1931,30 @@ get_params5(Address, Port, Directory, {require_group, [Group | _]}) ->
 get_params5(_, _, _, false) ->
 	{error, httpd_group_undefined}.
 
--spec charge(Amount, Buckets) -> Buckets
+-spec charge(ProdRef, Amount, Buckets) -> Buckets
 	when
+		ProdRef :: string(),
 		Amount :: non_neg_integer(),
 		Buckets :: [#bucket{}].
 %% @doc Charge `Amount' to `Buckets'.
 %% @private
-charge(Amount, Buckets) ->
-	charge(Amount, Buckets, []).
+charge(ProdRef, Amount, Buckets) ->
+	charge(ProdRef, Amount, Buckets, []).
 %% @hidden
-charge(0, T, Acc) ->
+charge(_ProdRef, 0, T, Acc) ->
 	lists:reverse(Acc) ++ T;
-charge(Amount, [#bucket{units = cents,
+charge(_ProdRef, Amount, [#bucket{units = cents,
 		remain_amount = Remain} = B | T], Acc) when Amount < Remain ->
 	lists:reverse(Acc) ++ [B#bucket{remain_amount = Remain - Amount} | T];
-charge(Amount, [#bucket{units = cents,
+charge(_ProdRef, Amount, [#bucket{units = cents,
 		remain_amount = Remain} = B], Acc) ->
 	lists:reverse([B#bucket{remain_amount = Remain - Amount} | Acc]);
-charge(Amount, [H | T], Acc) ->
-	charge(Amount, T, [H | Acc]);
-charge(Amount, [], Acc) ->
+charge(ProdRef, Amount, [H | T], Acc) ->
+	charge(ProdRef, Amount, T, [H | Acc]);
+charge(ProdRef, Amount, [], Acc) ->
 	lists:reverse([#bucket{id = generate_bucket_id(),
-			units = cents, remain_amount = - Amount} | Acc]).
+			units = cents, remain_amount = - Amount,
+			product = [ProdRef]} | Acc]).
 
 %% @private 
 generate_bucket_id() ->
