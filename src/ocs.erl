@@ -1762,12 +1762,12 @@ subscription(#product{product = OfferId} = Product,
 	{Product1, Buckets1} = lists:foldl(F, {Product, Buckets}, Bundled),
 	subscription(Product1, Now, InitialFlag, Buckets1, Prices).
 %% @hidden
-subscription(#product{name = ProdRef} = Product, Now, true, Buckets,
+subscription(#product{id = ProdRef} = Product, Now, true, Buckets,
 		[#price{type = one_time, amount = Amount,
 			alteration = undefined} | T]) ->
 	NewBuckets = charge(ProdRef, Amount, Buckets),
 	subscription(Product, Now, true, NewBuckets, T);
-subscription(#product{name = ProdRef} = Product, Now, true,
+subscription(#product{id = ProdRef} = Product, Now, true,
 		Buckets, [#price{type = one_time, amount = PriceAmount,
 			alteration = #alteration{units = Units, size = Size,
 			amount = AlterAmount}} | T]) ->
@@ -1779,7 +1779,7 @@ subscription(#product{name = ProdRef} = Product, Now, true,
 	subscription(Product, Now, true, NewBuckets, T);
 subscription(Product, Now, false, Buckets, [#price{type = one_time} | T]) ->
 	subscription(Product, Now, false, Buckets, T);
-subscription(#product{name = ProdRef} = Product, Now, true, Buckets,
+subscription(#product{id = ProdRef} = Product, Now, true, Buckets,
 		[#price{type = usage, alteration = #alteration{type = one_time,
 			units = Units, size = Size, amount = AlterationAmount}} | T]) ->
 	N = erlang:unique_integer([positive]),
@@ -1791,7 +1791,7 @@ subscription(#product{name = ProdRef} = Product, Now, true, Buckets,
 subscription(Product, Now, false, Buckets,
 		[#price{type = usage, alteration = #alteration{type = one_time}} | T]) ->
 	subscription(Product, Now, false, Buckets, T);
-subscription(#product{name = ProdRef, payment = Payments} = Product,
+subscription(#product{id = ProdRef, payment = Payments} = Product,
 		Now, true, Buckets, [#price{type = recurring, period = Period,
 		amount = Amount, name = Name, alteration = undefined} | T]) when
 		Period /= undefined ->
@@ -1799,13 +1799,13 @@ subscription(#product{name = ProdRef, payment = Payments} = Product,
 	NewPayments = [{Name, end_period(Now, Period)} | Payments],
 	Product1 = Product#product{payment = NewPayments},
 	subscription(Product1, Now, true, NewBuckets, T);
-subscription(#product{name = ProdRef, payment = Payments} = Product, Now, false, Buckets,
+subscription(#product{id = ProdRef, payment = Payments} = Product, Now, false, Buckets,
 		[#price{type = recurring, period = Period, amount = Amount,
 			name = Name, alteration = undefined} | T]) when Period /= undefined ->
 	{NewPayments, NewBuckets} = dues(Payments, Now, Buckets, Name, Period, ProdRef, Amount),
 	Product1 = Product#product{payment = NewPayments},
 	subscription(Product1, Now, false, NewBuckets, T);
-subscription(#product{name = ProdRef, payment = Payments} = Product,
+subscription(#product{id = ProdRef, payment = Payments} = Product,
 		Now, true, Buckets, [#price{type = recurring, period = Period,
 			amount = Amount, alteration = #alteration{units = Units,
 			size = Size, amount = AllowanceAmount}, name = Name} | T]) when
@@ -1820,7 +1820,7 @@ subscription(#product{name = ProdRef, payment = Payments} = Product,
 	NewPayments = [{Name, end_period(Now, Period)} | Payments],
 	Product1 = Product#product{payment = NewPayments},
 	subscription(Product1, Now, true, NewBuckets, T);
-subscription(#product{name = ProdRef, payment = Payments} = Product,
+subscription(#product{id = ProdRef, payment = Payments} = Product,
 		Now, false, Buckets, [#price{type = recurring, period = Period,
 			amount = Amount, alteration = #alteration{units = Units, size = Size,
 			amount = AllowanceAmount}, name = Name} | T]) when (Period /= undefined)
@@ -1834,7 +1834,7 @@ subscription(#product{name = ProdRef, payment = Payments} = Product,
 			| NewBuckets1]),
 	Product1 = Product#product{payment = NewPayments},
 	subscription(Product1, Now, false, NewBuckets2, T);
-subscription(#product{name = ProdRef, payment = Payments} = Product, Now, true,
+subscription(#product{id = ProdRef, payment = Payments} = Product, Now, true,
 		Buckets, [#price{type = usage, alteration = #alteration{type = recurring,
 		period = Period, units = Units, size = Size, amount = Amount}, name = Name}
 		| T]) when Period /= undefined, Units == octets; Units == seconds; Units == messages ->
@@ -1846,7 +1846,7 @@ subscription(#product{name = ProdRef, payment = Payments} = Product, Now, true,
 	NewPayments = [{Name, end_period(Now, Period)} | Payments],
 	Product1 = Product#product{payment = NewPayments},
 	subscription(Product1, Now, true, NewBuckets, T);
-subscription(#product{name = ProdRef, payment = Payments}
+subscription(#product{id = ProdRef, payment = Payments}
 		= Product, Now, false, Buckets, [#price{type = usage, name = Name,
 		alteration = #alteration{type = recurring, period = Period, units = Units,
 		size = Size, amount = Amount}} | T]) when Period /= undefined, Units == octets;
