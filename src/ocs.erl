@@ -878,7 +878,7 @@ find_bucket(BucketId) ->
 get_buckets() ->
 	MatchSpec = [{'_', [], ['$_']}],
 	F = fun F(start, Acc) ->
-		F(mnesia:select(bucekts, MatchSpec,
+		F(mnesia:select(bucket, MatchSpec,
 				?CHUNKSIZE, read), Acc);
 		F('$end_of_table', Acc) ->
 				lists:flatten(lists:reverse(Acc));
