@@ -395,20 +395,21 @@ abmf_json8(_Event, Acc) ->
 	when
 		Quantity :: {struct, list()} | #quantity{}.
 %% @doc CODEC for quantity type
-quantity({struct, Quantity}) ->
-	quantity(Quantity, #quantity{});
+quantity({struct, [{"amount", Amount}, {"units", "cents"}]}) ->
+	#quantity{units = cents, amount = ocs_rest:millionths_in(Amount)};
+quantity({struct, [{"units", "cents"}, {"amount", Amount}]}) ->
+	#quantity{units = cents, amount = ocs_rest:millionths_in(Amount)};
+quantity({struct, [{"amount", Amount}, {"units", Units}]}) when is_list(Amount) ->
+	#quantity{units = units(Units), amount = list_to_integer(Amount)};
+quantity({struct, [{"amount", Amount}, {"units", Units}]}) ->
+	#quantity{units = units(Units), amount = Amount};
+quantity({struct, [{"units", Units}, {"amount", Amount}]}) when is_list(Amount) ->
+	#quantity{units = units(Units), amount = list_to_integer(Amount)};
+quantity({struct, [{"units", Units}, {"amount", Amount}]}) ->
+	#quantity{units = units(Units), amount = Amount};
 quantity(#quantity{} = Quantity) ->
 	{struct, quantity(record_info(fields, quantity),
 			Quantity, [])}.
-%% @hidden
-quantity([{"amount", Amount} | T], Acc) when is_list(Amount) ->
-	quantity(T, Acc#quantity{amount = ocs_rest:millionths_in(Amount)});
-quantity([{"amount", Amount} | T], Acc) ->
-	quantity(T, Acc#quantity{amount = Amount});
-quantity([{"units", Units} | T], Acc) ->
-	quantity(T, Acc#quantity{units = units(Units)});
-quantity([], Acc) ->
-	Acc.
 %% @hidden
 quantity([amount | T], #quantity{units = cents, amount = Amount} = Q, Acc) ->
 	quantity(T, Q, [{"amount", ocs_rest:millionths_out(Amount)} | Acc]);
