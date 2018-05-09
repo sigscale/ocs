@@ -124,7 +124,7 @@ get_buckets(Query, Headers) ->
 	F = query_bucket,
 	A = [Id, Product],
 	Codec = fun bucket/1,
-	query_filtel({M, F, A}, Codec, Query, Headers).
+	query_filter({M, F, A}, Codec, Query, Headers).
  
 -spec get_balance(ProdRef) -> Result
 	when
