@@ -180,10 +180,11 @@ top_up(_Identity, RequestBody) ->
 		#bucket{product = [ProdRef], units = Units, remain_amount = RM} = B
 				when Units /= undefined, RM > 0 ->
 			case ocs:add_bucket(ProdRef, B) of
-				{ok, _, #bucket{id = Id}} ->
+				{ok, _, #bucket{id = Id} = B1} ->
+					Body = mochijson:encode(bucket(B1)),
 					Location = ?bucketPath ++ Id,
 					Headers = [{location, Location}],
-					{ok, Headers, []};
+					{ok, Headers, Body};
 				{error, _} ->
 					{error, 500}
 			end;
