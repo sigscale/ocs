@@ -24,7 +24,7 @@
 -export([content_types_accepted/0, content_types_provided/0,
 		top_up/2, get_balance/1, get_balance_log/0]).
 
--export([get_bucket/1, get_buckets/0]).
+-export([get_bucket/1, get_buckets/2]).
 
 -include("ocs.hrl").
 
@@ -110,24 +110,21 @@ get_bucket(BucketId) ->
 			{error, 500}
 	end.
 
--spec get_buckets() -> Result
+-spec get_buckets(Query, Headers) -> Result
 	when
+		Query :: [{Key :: string(), Value :: string()}],
+		Headers	:: [tuple()],
 		Result :: {ok, Headers :: [tuple()], Body :: iolist()}
 				| {error, ErrorCode :: integer()}.
 %% @doc Body producing function for `GET /balanceManagment/v1/bucket/',
-get_buckets() -> 
-	try
-		case ocs:get_buckets() of
-			Buckets when is_list(Buckets) ->
-				Body = mochijson:encode({array, lists:map(fun bucket/1, Buckets)}),
-			{ok, [], Body};
-		{error, Reason} ->
-			{error, 400}
-		end
-	catch
-		_Error ->
-			{error, 500}
-	end.
+get_buckets(Query, Headers) -> 
+	Id = proplists:get_value("id", Query),
+	Product = proplists:get_value("product", Query),
+	M = ocs,
+	F = query_bucket,
+	A = [Id, Product],
+	Codec = fun bucket/1,
+	query_filtel({M, F, A}, Codec, Query, Headers).
  
 -spec get_balance(ProdRef) -> Result
 	when
@@ -421,5 +418,118 @@ quantity([units | T], #quantity{units = undefined} = Q, Acc) ->
 quantity([units | T], #quantity{units = Units} = Q, Acc) ->
 	quantity(T, Q, [{"units", units(Units)} | Acc]);
 quantity([], _Q, Acc) ->
+	lists:reverse(Acc).
+
+%% @hidden
+query_filter(MFA, Codec, Query, Headers) ->
+	case lists:keytake("fields", 1, Query) of
+		{value, {_, Filters}, NewQuery} ->
+			query_filter(MFA, Codec, NewQuery, Filters, Headers);
+		false ->
+			query_filter(MFA, Codec, Query, [], Headers)
+	end.
+%% @hidden
+query_filter(MFA, Codec, Query, Filters, Headers) ->
+	case {lists:keyfind("if-match", 1, Headers),
+			lists:keyfind("if-range", 1, Headers),
+			lists:keyfind("range", 1, Headers)} of
+		{{"if-match", Etag}, false, {"range", Range}} ->
+			case global:whereis_name(Etag) of
+				undefined ->
+					{error, 412};
+				PageServer ->
+					case ocs_rest:range(Range) of
+						{error, _} ->
+							{error, 400};
+						{ok, {Start, End}} ->
+							query_page(Codec, PageServer, Etag, Query, Filters, Start, End)
+					end
+			end;
+		{{"if-match", Etag}, false, false} ->
+			case global:whereis_name(Etag) of
+				undefined ->
+					{error, 412};
+				PageServer ->
+					query_page(Codec, PageServer, Etag, Query, Filters, undefined, undefined)
+			end;
+		{false, {"if-range", Etag}, {"range", Range}} ->
+			case global:whereis_name(Etag) of
+				undefined ->
+					case ocs_rest:range(Range) of
+						{error, _} ->
+							{error, 400};
+						{ok, {Start, End}} ->
+							query_start(MFA, Codec, Query, Filters, Start, End)
+					end;
+				PageServer ->
+					case ocs_rest:range(Range) of
+						{error, _} ->
+							{error, 400};
+						{ok, {Start, End}} ->
+							query_page(Codec, PageServer, Etag, Query, Filters, Start, End)
+					end
+			end;
+		{{"if-match", _}, {"if-range", _}, _} ->
+			{error, 400};
+		{_, {"if-range", _}, false} ->
+			{error, 400};
+		{false, false, {"range", Range}} ->
+			case ocs_rest:range(Range) of
+				{error, _} ->
+					{error, 400};
+				{ok, {Start, End}} ->
+					query_start(MFA, Codec, Query, Filters, Start, End)
+			end;
+		{false, false, false} ->
+			query_start(MFA, Codec, Query, Filters, undefined, undefined)
+	end.
+
+%% @hidden
+query_start({M, F, A}, Codec, Query, Filters, RangeStart, RangeEnd) ->
+	case supervisor:start_child(ocs_rest_pagination_sup,
+				[[M, F, A]]) of
+		{ok, PageServer, Etag} ->
+			query_page(Codec, PageServer, Etag, Query, Filters, RangeStart, RangeEnd);
+		{error, _Reason} ->
+			{error, 500}
+	end.
+
+%% @hidden
+query_page(Codec, PageServer, Etag, Query, Filters, Start, End) ->
+	case gen_server:call(PageServer, {Start, End}) of
+		{error, Status} ->
+			{error, Status};
+		{Result, ContentRange} ->
+			try
+				case lists:keytake("sort", 1, Query) of
+					{value, {_, "id"}, Q1} ->
+						{lists:keysort(#bucket.id, Result), Q1};
+					{value, {_, "-id"}, Q1} ->
+						{lists:reverse(lists:keysort(#bucket.id, Result)), Q1};
+					false ->
+						{Result, Query};
+					_ ->
+						throw(400)
+				end
+			of
+				{SortedResult, _NewQuery} ->
+					JsonObj = query_page1(lists:map(Codec, SortedResult), Filters, []),
+					JsonArray = {array, JsonObj},
+					Body = mochijson:encode(JsonArray),
+					Headers = [{content_type, "application/json"},
+							{etag, Etag}, {accept_ranges, "items"},
+							{content_range, ContentRange}],
+					{ok, Headers, Body}
+			catch
+				throw:{error, Status} ->
+					{error, Status}
+			end
+	end.
+%% @hidden
+query_page1(Json, [], []) ->
+	Json;
+query_page1([H | T], Filters, Acc) ->
+	query_page1(T, Filters, [ocs_rest:fields(Filters, H) | Acc]);
+query_page1([], _, Acc) ->
 	lists:reverse(Acc).
 

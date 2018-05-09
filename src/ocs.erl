@@ -31,7 +31,7 @@
 -export([find_service/1, delete_service/1, get_services/0, query_service/1,
 		find_product/1]).
 -export([add_bucket/2, find_bucket/1, get_buckets/0, get_buckets/1,
-		delete_bucket/1]).
+		delete_bucket/1, query_bucket/3]).
 -export([add_user/3, list_users/0, get_user/1, delete_user/1,
 		query_users/3, update_user/3]).
 -export([add_offer/1, find_offer/1, get_offers/0, delete_offer/1,
@@ -921,6 +921,53 @@ get_buckets(ProdRef) when is_list(ProdRef) ->
 		{aborted, Reason} ->
 			{error, Reason}
 	end.
+
+-spec query_bucket(Cont, Id, Product) -> Result
+	when
+		Cont :: start | eof | any(),
+		Id :: string() | undefined | '_',
+		Product :: string() | undefined | '_',
+		Result :: {Cont, [#bucket{}]} | {error, Reason},
+		Reason :: term().
+%% @doc Query bucket
+query_bucket(Cont, Id, undefined) ->
+	query_bucket(Cont, Id, '_');
+query_bucket(Cont, undefined, Product) ->
+	query_bucket(Cont, '_', Product);
+query_bucket(start, Id, Product) ->
+	MatchSpec = [{'_', [], ['$_']}],
+	F = fun F(start, Acc) ->
+				F(mnesia:select(bucket, MatchSpec,
+						?CHUNKSIZE, read), Acc);
+			F('$end_of_table', Acc) ->
+				lists:flatten(lists:reverse(Acc));
+			F({error, Reason}, _Acc) ->
+				{error, Reason};
+			F({Services, Cont}, Acc) ->
+				F(mnesia:select(Cont), [Services | Acc])
+	end,
+	case mnesia:transaction(F, [start, []]) of
+		{aborted, Reason} ->
+			{error, Reason};
+		{atomic, Buckets} ->
+			{eof, query_bucket1(Id, Product, Buckets)}
+	end.
+%% @hidden
+query_bucket1('_', Product, Buckets) ->
+	query_bucket2(Product, Buckets);
+query_bucket1(Id, Product, Buckets) ->
+	F = fun(#bucket{id = Id1}) -> lists:prefix(Id, Id1) end,
+	NewBuckets = lists:filter(F, Buckets),
+	query_bucket2(Product, NewBuckets).
+%% @hidden
+query_bucket2('_', Buckets) ->
+	Buckets;
+query_bucket2(Product, Buckets) ->
+	F1 = fun(#bucket{product = Products}) ->
+		F2 = fun(Product1) -> lists:prefix(Product, Product1) end,
+		lists:any(F2, Products)
+	end,
+	lists:filter(F1, Buckets).
 
 -spec delete_bucket(BucketId) -> ok
 	when
