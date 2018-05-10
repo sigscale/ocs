@@ -400,7 +400,6 @@ query_product(Cont, undefined, Name, Offer, SDT, EDT, Service) ->
 query_product(Cont, Id, Name, Offer, SDT, EDT, Service) when is_binary(Service)->
 	query_product(Cont, Id, Name, Offer, SDT, EDT, binary_to_list(Service));
 query_product(start, Id, Name, Offer, SDT, EDT, Service) ->
-erlang:display({?MODULE, ?LINE}),
 	MatchSpec = [{'_', [], ['$_']}],
 	F = fun F(start, Acc) ->
 				F(mnesia:select(product, MatchSpec,
@@ -414,13 +413,10 @@ erlang:display({?MODULE, ?LINE}),
 	end,
 	case mnesia:transaction(F, [start, []]) of
 		{aborted, Reason} ->
-erlang:display({?MODULE, ?LINE, Reason}),
 			{error, Reason};
 		{atomic, Products1} ->
-erlang:display({?MODULE, ?LINE}),
 			Products2 = query_product1(Products1, Id, Name,
 					Offer, SDT, EDT, Service),
-erlang:display({?MODULE, ?LINE, Products2}),
 			{eof, Products2}
 	end.
 %% @hidden
@@ -1057,17 +1053,17 @@ get_services()->
 %% @doc Query services 
 query_service(start) ->
 	MatchSpec = [{'_', [], ['$_']}],
-	F = fun(F, start, Acc) ->
-				F(F, mnesia:select(service, MatchSpec,
+	F = fun F(start, Acc) ->
+				F(mnesia:select(service, MatchSpec,
 						?CHUNKSIZE, read), Acc);
-			(_F, '$end_of_table', Acc) ->
+			F('$end_of_table', Acc) ->
 				lists:flatten(lists:reverse(Acc));
-			(_F, {error, Reason}, _Acc) ->
+			F({error, Reason}, _Acc) ->
 				{error, Reason};
-			(F,{Services, Cont}, Acc) ->
-				F(F, mnesia:select(Cont), [Services | Acc])
+			F({Services, Cont}, Acc) ->
+				F(mnesia:select(Cont), [Services | Acc])
 	end,
-	case mnesia:transaction(F, [F, start, []]) of
+	case mnesia:transaction(F, [start, []]) of
 		{aborted, Reason} ->
 			{error, Reason};
 		{atomic, Services} ->
