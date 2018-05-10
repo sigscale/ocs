@@ -88,41 +88,6 @@
 				</template>
 			<template>[[item.product]]</template>
 			</vaadin-grid-column>
-			<vaadin-grid-column-group>
-				<template class="header">
-					<div class="grouptitle">[[i18n.balance]]</div>
-				</template>
-				<vaadin-grid-column width="12ex" flex-grow="2">
-					<template class="header">
-						<vaadin-grid-filter aria-label="[[i18n.cents]]" path="cents" value="[[_filterCents]]">
-							<input placeholder="[[i18n.cents]]" value="{{_filterCents::input}}" focus-target>
-						</vaadin-grid-filter>
-					</template>
-					<template>
-						<div class="cell numeric">[[item.cents]]</div>
-					</template>
-				</vaadin-grid-column>
-				<vaadin-grid-column width="12ex" flex-grow="2">
-					<template class="header">
-						<vaadin-grid-filter aria-label="[[i18n.bytes]]" path="totalBalance" value="[[_filterBalance]]">
-							<input placeholder="[[i18n.bytes]]" value="{{_filterBalance::input}}" focus-target>
-						</vaadin-grid-filter>
-					</template>
-					<template>
-						<div class="cell numeric">[[item.totalBalance]]</div>
-					</template>
-				</vaadin-grid-column>
-				<vaadin-grid-column width="12ex" flex-grow="2">
-					<template class="header">
-						<vaadin-grid-filter aria-label="[[i18n.seconds]]" path="seconds" value="[[_filterSeconds]]">
-							<input placeholder="[[i18n.seconds]]" value="{{_filterSeconds::input}}" focus-target>
-						</vaadin-grid-filter>
-					</template>
-					<template>
-						<div class="cell numeric">[[item.seconds]]</div>
-					</template>
-				</vaadin-grid-column>
-			</vaadin-grid-column-group>
 			<vaadin-grid-column width="8ex" flex-grow="1">
 				<template class="header">
 					<vaadin-grid-filter aria-label="[[i18n.enable]]" path="enabled" value="[[_filterEnabled]]">
@@ -318,29 +283,6 @@
 					var newRecord = new Object();
 					newRecord.id = results[index].id;
 					newRecord.product = results[index].product;
-					if(results[index].totalBalance) {
-						function getBytes(balance) {
-							return balance.units == "octets";
-						}
-						var byteTotal = results[index].totalBalance.find(getBytes);
-						if(byteTotal) {
-							newRecord.totalBalance = byteTotal.amount;
-						}
-						function getCents(balance) {
-							return balance.units == "cents";
-						}
-						var centsTotal = results[index].totalBalance.find(getCents);
-						if(centsTotal) {
-							newRecord.cents = centsTotal.amount;
-						}
-						function getSeconds(balance) {
-							return balance.units == "seconds";
-						}
-						var secondsTotal = results[index].totalBalance.find(getSeconds);
-						if(secondsTotal) {
-							newRecord.seconds = secondsTotal.amount;
-						}
-					}
 					if(results[index].attributes) {
 						results[index].attributes.forEach(
 							function(attrObj) {

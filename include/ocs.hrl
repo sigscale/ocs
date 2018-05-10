@@ -19,6 +19,7 @@
 
 -type offer_status() :: in_study | in_design | in_test
 		| active | rejected | launched | retired | obsolete.
+-type bucket_status() :: active | expired | suspended.
 -type product_status() :: created | pending_active | aborted
 		| cancelled | active | suspended | pending_terminate | terminated.
 -type service_status() :: feasibilityChecked | designed | reserved
@@ -133,6 +134,7 @@
 		name :: string() | undefined,
 		start_date :: pos_integer() | undefined,
 		termination_date :: pos_integer() | undefined,
+		status :: bucket_status() | undefined,
 		remain_amount = 0 :: integer(),
 		reservations = [] :: [{TS :: pos_integer(),
 				DebitAmount :: non_neg_integer(),
@@ -146,10 +148,10 @@
 -record(product,
 		{id :: string() | undefined,
 		name :: string() | undefined,
-		product :: string() | undefined,
 		start_date :: pos_integer() | undefined,
 		termination_date :: pos_integer() | undefined,
 		status :: product_status() | undefined,
+		product :: string() | undefined,
 		characteristics = [] :: [{Name :: string(), Value :: term()}],
 		payment = [] :: [{Price :: string(), DueDate :: pos_integer()}],
 		balance = [] :: [BucketRef :: term()],
@@ -158,11 +160,14 @@
 
 %% define service table entries record
 -record(service,
-		{name :: binary() | undefined,
+		{id :: string() | undefined,
+		name :: binary() | undefined,
+		start_date :: pos_integer() | undefined,
+		termination_date :: pos_integer() | undefined,
+		state :: service_status() | undefined,
 		password :: binary() | undefined,
 		attributes :: [tuple()] | undefined,
 		product :: ProductRef :: string() | undefined,
-		state :: service_status() | undefined,
 		enabled = true :: boolean(),
 		disconnect  = false :: boolean(),
 		session_attributes = [] :: [{TS :: pos_integer(), Attributes :: [tuple()]}],

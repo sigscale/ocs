@@ -51,6 +51,9 @@
 <link rel="import" href="sig-prefix-add.html">
 <link rel="import" href="sig-prefix-update.html">
 <link rel="import" href="sig-balance-list.html">
+<link rel="import" href="sig-product-list.html">
+<link rel="import" href="sig-bucket-list.html">
+<link rel="import" href="sig-bucket-add.html">
 
 <dom-module id="sig-app">
 	<template>
@@ -164,6 +167,8 @@
 				<sig-http-list></sig-http-list>
 				<sig-prefix-list id="prefixList" table="{{table}}"></sig-prefix-list>
 				<sig-balance-list></sig-balance-list>
+				<sig-product-list></sig-product-list>
+				<sig-bucket-list></sig-bucket-list>
 			</iron-pages>
 			<app-drawer-layout>
 				<app-drawer
@@ -178,9 +183,7 @@
 								<paper-icon-item
 										class="menu-trigger menuitem">
 									<iron-icon icon ="icons:store" item-icon></iron-icon>
-										<i18n-msg msgid="prod">
-											Products
-										</i18n-msg>
+										Catalog
 								</paper-icon-item>
 								<paper-menu id="offerMenu" class="menu-content sublist">
 									<paper-icon-item
@@ -211,15 +214,38 @@
 									</paper-submenu>
 								</paper-menu>
 							</paper-submenu>
-							<paper-icon-item
-									id="pageSubscribers"
-									onclick="drawer.toggle()"
-									class="menuitem">
-								<iron-icon icon="device:devices" item-icon></iron-icon>
-									<i18n-msg msgid="subs">
-										Subscribers
-									</i18n-msg>
-							</paper-icon-item>
+							<paper-submenu>
+								<paper-icon-item
+										class="menu-trigger menuitem">
+									<iron-icon icon="icons:card-membership" item-icon></iron-icon>
+										<i18n-msg msgid="subs">
+											Subscribers
+										</i18n-msg>
+								</paper-icon-item>
+								<paper-menu id="services" class="menu-content sublist">
+									<paper-icon-item
+											id="pageService"
+											onclick="drawer.toggle()"
+											class="menuitem">
+										<iron-icon icon="device:devices" item-icon></iron-icon>
+											Services
+									</paper-icon-item>
+									<paper-icon-item
+											id="pageProductInventory"
+											onclick="drawer.toggle()"
+											class="menuitem">
+										<iron-icon icon="maps:local-offer" item-icon></iron-icon>
+											Products
+									</paper-icon-item>
+									<paper-icon-item
+											id="pageBucketBalance"
+											onclick="drawer.toggle()"
+											class="menuitem">
+										<iron-icon icon="icons:account-balance" item-icon></iron-icon>
+											Balance Buckets
+									</paper-icon-item>
+								</paper-menu>
+							</paper-submenu>
 							<paper-icon-item
 									id="pageClients"
 									onclick="drawer.toggle()"
@@ -383,6 +409,7 @@
 		<sig-prefix-table-add></sig-prefix-table-add>
 		<sig-prefix-add></sig-prefix-add>
 		<sig-prefix-update></sig-prefix-update>
+		<sig-bucket-add></sig-bucket-add>
 		<iron-ajax id="deleteTableAjax"
 			on-response="_deleteTableResponse"
 			on-error="_deleteTableError">
@@ -433,7 +460,7 @@
 						this.$.loadPage.selected = 0;
 						this.$.logMenu.selected = null;
 						break;
-					case 'pageSubscribers':
+					case 'pageService':
 						this.$.loadPage.selected = 0;
 						this.$.loadPage.selected = 1;
 						this.$.offerMenu.selected = null;
@@ -473,6 +500,12 @@
 						break;
 					case 'pageBalance':
 						this.$.loadPage.selected = 10;
+						break;
+					case 'pageProductInventory':
+						this.$.loadPage.selected = 11;
+						break;
+					case 'pageBucketBalance':
+						this.$.loadPage.selected = 12;
 						break;
 				}
 			},
