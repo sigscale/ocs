@@ -258,6 +258,8 @@ handle_info(#diameter_event{info = {watchdog,
 handle_info(#diameter_event{info = Event, service = Service}, StateName, StateData) ->
 	error_logger:info_report(["DIAMETER event",
 			{service, Service}, {event, Event}]),
+	{next_state, StateName, StateData};
+handle_info({'EXIT', _Pid, noconnection}, StateName, StateData) ->
 	{next_state, StateName, StateData}.
 
 -spec terminate(Reason, StateName, StateData) -> any()

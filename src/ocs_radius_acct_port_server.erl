@@ -162,6 +162,8 @@ handle_info({'EXIT', _Pid, {shutdown, SessionId}},
 	NewHandlers = gb_trees:delete(SessionId, Handlers),
 	NewState = State#state{handlers = NewHandlers},
 	{noreply, NewState};
+handle_info({'EXIT', _Pid, noconnection}, State) ->
+	{noreply, State};
 handle_info({'EXIT', Fsm, _Reason},
 		#state{handlers = Handlers} = State) ->
 	Fdel = fun(_F, {Key, Pid, _Iter}) when Pid == Fsm ->
