@@ -162,6 +162,8 @@ handle_info({'EXIT', _Pid, {shutdown, SessionId}},
 	NewHandlers = gb_trees:delete(SessionId, Handlers),
 	NewState = State#state{handlers = NewHandlers},
 	{noreply, NewState};
+handle_info({'EXIT', _Pid, noconnection}, State) ->
+	{noreply, State};
 handle_info({'EXIT', Fsm, _Reason},
 		#state{handlers = Handlers} = State) ->
 	Fdel = fun(_F, {Key, Pid, _Iter}) when Pid == Fsm ->
@@ -280,7 +282,7 @@ request1(?AccountingStart, AcctSessionId, Id,
 	end,
 	case ocs_rating:rate(radius, ServiceType, Subscriber, Timestamp,
 			CallAddress, Direction, initial, [], [], SessionAttributes) of
-		{ok, #subscriber{}, _} ->
+		{ok, #service{}, _} ->
 			ok = ocs_log:acct_log(radius,
 					{ServerAddress, ServerPort}, start, Attributes, undefined, undefined),
 			{reply, {ok, response(Id, Authenticator, Secret)}, State};
@@ -328,14 +330,14 @@ request1(?AccountingStop, AcctSessionId, Id,
 	end,
 	case ocs_rating:rate(radius, ServiceType, Subscriber, Timestamp,
 			CallAddress, Direction, final, DebitAmount, [], SessionAttributes) of
-		{ok, #subscriber{}, _, Rated} ->
+		{ok, #service{}, _, Rated} ->
 			ok = ocs_log:acct_log(radius,
-					{ServerAddress, ServerPort}, stop, Attributes, undefined, Rated),
+					{ServerAddress, ServerPort}, stop, Attributes, undefined, [Rated]),
 			{reply, {ok, response(Id, Authenticator, Secret)}, State};
 		{out_of_credit, SessionList, Rated}  ->
 			gen_server:reply(From, {ok, response(Id, Authenticator, Secret)}),
 			ok = ocs_log:acct_log(radius,
-					{ServerAddress, ServerPort}, stop, Attributes, undefined, Rated),
+					{ServerAddress, ServerPort}, stop, Attributes, undefined, [Rated]),
 			start_disconnect(State, Subscriber, SessionList),
 			{noreply, State};
 		{disabled, SessionList} ->
@@ -384,7 +386,7 @@ request1(?AccountingInterimUpdate, AcctSessionId, Id,
 	end,
 	case ocs_rating:rate(radius, ServiceType, Subscriber, Timestamp,
 			CallAddress, Direction, interim, [], ReserveAmount, SessionAttributes) of
-		{ok, #subscriber{}, _} ->
+		{ok, #service{}, _} ->
 			{reply, {ok, response(Id, Authenticator, Secret)}, State};
 		{out_of_credit, SessionList} ->
 			gen_server:reply(From, {ok, response(Id, Authenticator, Secret)}),

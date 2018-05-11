@@ -22,16 +22,16 @@
 -copyright('Copyright (c) 2016 - 2017 SigScale Global Inc.').
 
 -export([content_types_accepted/0, content_types_provided/0]).
--export([add_product_offering/1, add_product_inventory/1]).
--export([get_product_offering/1, get_product_offerings/2,
-		patch_product_offering/3, get_product_inventory/1,
-		get_product_inventories/2, patch_product_inventory/3]).
+-export([add_offer/1, add_inventory/1]).
+-export([get_offer/1, get_offers/2,
+		patch_offer/3, get_inventory/1,
+		get_inventories/2, patch_inventory/3]).
 -export([get_catalog/2, get_catalogs/1]).
 -export([get_category/2, get_categories/1]).
 -export([get_product_spec/2, get_product_specs/1]).
 -export([add_pla/1, get_pla/1, get_plas/2, patch_pla/3]).
 -export([get_pla_spec/2, get_pla_specs/1]).
--export([delete_product_offering/1, delete_product_inventory/1, delete_pla/1]).
+-export([delete_offer/1, delete_inventory/1, delete_pla/1]).
 
 -include("ocs.hrl").
 
@@ -46,6 +46,7 @@
 -define(plaPath, "/catalogManagement/v2/pla/").
 -define(plaSpecPath, "/catalogManagement/v2/plaSpecification/").
 -define(inventoryPath, "/productInventoryManagement/v2/product/").
+-define(servicePath, "/serviceInventoryManagement/v2/service/").
 
 -spec content_types_accepted() -> ContentTypes
 	when
@@ -62,7 +63,7 @@ content_types_accepted() ->
 content_types_provided() ->
 	["application/json"].
 
--spec add_product_offering(ReqData) -> Result when
+-spec add_offer(ReqData) -> Result when
 	ReqData	:: [tuple()],
 	Result	:: {ok, Headers, Body} | {error, Status},
 	Headers	:: [tuple()],
@@ -70,9 +71,9 @@ content_types_provided() ->
 	Status	:: 400 | 500 .
 %% @doc Respond to `POST /catalogManagement/v2/productOffering'.
 %% 	Add a new Product Offering.
-add_product_offering(ReqData) ->
+add_offer(ReqData) ->
 	try
-		case ocs:add_product(offer(mochijson:decode(ReqData))) of
+		case ocs:add_offer(offer(mochijson:decode(ReqData))) of
 			{ok, ProductOffering} ->
 				ProductOffering;
 			{error, Reason} ->
@@ -81,8 +82,8 @@ add_product_offering(ReqData) ->
 	of
 		Offer ->
 			Body = mochijson:encode(offer(Offer)),
-			Etag = ocs_rest:etag(Offer#product.last_modified),
-			Href = ?offeringPath ++ Offer#product.name,
+			Etag = ocs_rest:etag(Offer#offer.last_modified),
+			Href = ?offeringPath ++ Offer#offer.name,
 			Headers = [{location, Href}, {etag, Etag}],
 			{ok, Headers, Body}
 	catch
@@ -94,30 +95,30 @@ add_product_offering(ReqData) ->
 			{error, 400}
 	end.
 
--spec add_product_inventory(ReqData) -> Result when
+-spec add_inventory(ReqData) -> Result when
 	ReqData	:: [tuple()],
 	Result	:: {ok, Headers, Body} | {error, Status},
 	Headers	:: [tuple()],
 	Body		:: iolist(),
 	Status	:: 400 | 500 .
-%% @doc Respond to `POST /productInventoryManagemen/v2/product'.
+%% @doc Respond to `POST /productInventoryManagement/v2/product'.
 %% 	Add a new instance of a Product Offering subscription.
-add_product_inventory(ReqData) ->
+add_inventory(ReqData) ->
 	try
-		#subscriber{name = SubscriberID,
-				password = Password, product = #product_instance{product = ProdId,
-				characteristics = Chars}} = inventory(mochijson:decode(ReqData)),
-		case ocs:add_subscriber(SubscriberID, Password, ProdId, Chars) of
-			{ok, Subscriber} ->
-				Subscriber;
+		#product{start_date = SD, end_date = TD,
+				characteristics = Chars, product = OfferId,
+				service = ServiceRefs} = inventory(mochijson:decode(ReqData)),
+		case ocs:add_product(OfferId, ServiceRefs, SD, TD, Chars) of
+			{ok, Product} ->
+				Product;
 			{error, Reason} ->
 				throw(Reason)
 		end
 	of
 		Subscription ->
 			Body = mochijson:encode(inventory(Subscription)),
-			Etag = ocs_rest:etag(Subscription#subscriber.last_modified),
-			Href = ?inventoryPath ++ binary_to_list(Subscription#subscriber.name),
+			Etag = ocs_rest:etag(Subscription#product.last_modified),
+			Href = ?inventoryPath ++ Subscription#product.id,
 			Headers = [{location, Href}, {etag, Etag}],
 			{ok, Headers, Body}
 	catch
@@ -161,7 +162,7 @@ add_pla(ReqData) ->
 			{error, 400}
 	end.
 
--spec get_product_offering(ID) -> Result when
+-spec get_offer(ID) -> Result when
 	ID			:: string(),
 	Result	:: {ok, Headers, Body} | {error, Status},
 	Headers	:: [tuple()],
@@ -169,9 +170,9 @@ add_pla(ReqData) ->
 	Status	:: 400 | 404 | 500 .
 %% @doc Respond to `GET /catalogManagement/v2/productOffering/{id}'.
 %% 	Retrieve a Product Offering.
-get_product_offering(ID) ->
+get_offer(ID) ->
 	try
-		case ocs:find_product(ID) of
+		case ocs:find_offer(ID) of
 			{ok, ProductOffering} ->
 				ProductOffering;
 			{error, not_found} ->
@@ -182,8 +183,8 @@ get_product_offering(ID) ->
 	of
 		Offer ->
 			Body = mochijson:encode(offer(Offer)),
-			Etag = ocs_rest:etag(Offer#product.last_modified),
-			Href = ?offeringPath ++ Offer#product.name,
+			Etag = ocs_rest:etag(Offer#offer.last_modified),
+			Href = ?offeringPath ++ Offer#offer.name,
 			Headers = [{location, Href}, {etag, Etag},
 					{content_type, "application/json"}],
 			{ok, Headers, Body}
@@ -194,7 +195,7 @@ get_product_offering(ID) ->
 			{error, 400}
 	end.
 
--spec get_product_inventory(ID) -> Result when
+-spec get_inventory(ID) -> Result when
 	ID			:: string(),
 	Result	:: {ok, Headers, Body} | {error, Status},
 	Headers	:: [tuple()],
@@ -202,21 +203,21 @@ get_product_offering(ID) ->
 	Status	:: 400 | 404 | 500 .
 %% @doc Respond to `GET /productInventoryManagement/v2/product/{id}'.
 %% 	Retrieve a Product Inventory.
-get_product_inventory(ID) ->
+get_inventory(ID) ->
 	try
-		case ocs:find_subscriber(ID) of
-			{ok, Subscriber} ->
-				Subscriber;
+		case ocs:find_product(ID) of
+			{ok, Product1} ->
+				Product1;
 			{error, not_found} ->
 				{throw, 404};
 			{error, _Reason1} ->
 				{throw, 500}
 		end
 	of
-		Subscription ->
-			Body = mochijson:encode(inventory(Subscription)),
-			Etag = ocs_rest:etag(Subscription#subscriber.last_modified),
-			Href = ?inventoryPath ++ binary_to_list(Subscription#subscriber.name),
+		Product ->
+			Body = mochijson:encode(inventory(Product)),
+			Etag = ocs_rest:etag(Product#product.last_modified),
+			Href = ?inventoryPath ++ Product#product.id,
 			Headers = [{location, Href}, {etag, Etag},
 					{content_type, "application/json"}],
 			{ok, Headers, Body}
@@ -227,7 +228,7 @@ get_product_inventory(ID) ->
 			{error, 400}
 	end.
 
--spec get_product_offerings(Query, Headers) -> Result when
+-spec get_offers(Query, Headers) -> Result when
 	Query :: [{Key :: string(), Value :: string()}],
 	Result	:: {ok, Headers, Body} | {error, Status},
 	Headers	:: [tuple()],
@@ -236,7 +237,7 @@ get_product_inventory(ID) ->
 %% @doc Respond to `GET /catalogManagement/v2/productOffering'.
 %% 	Retrieve all Product Offerings.
 %% @todo Filtering
-get_product_offerings(Query, Headers) ->
+get_offers(Query, Headers) ->
 	Name =  proplists:get_value("name", Query),
 	Des = proplists:get_value("description", Query),
 	Status = case lists:keyfind("lifecycleStatus", 1, Query) of
@@ -249,7 +250,7 @@ get_product_offerings(Query, Headers) ->
 	EDT = proplists:get_value("endDate", Query),
 	Price = proplists:get_value("price", Query),
 	M = ocs,
-	F = query_product,
+	F = query_offer,
 	A = [Name, Des, Status, SDT, EDT, Price],
 	Codec = fun offer/1,
 	query_filter({M, F, A}, Codec, Query, Headers).
@@ -315,7 +316,7 @@ get_plas(_Query, _Headers) ->
          {error, 400}
    end.
 
--spec get_product_inventories(Query, Headers) -> Result when
+-spec get_inventories(Query, Headers) -> Result when
 	Query :: [{Key :: string(), Value :: string()}],
 	Result	:: {ok, Headers, Body} | {error, Status},
 	Headers	:: [tuple()],
@@ -324,10 +325,16 @@ get_plas(_Query, _Headers) ->
 %% @doc Respond to `GET /productInventoryManagement/v2/product'.
 %% 	Retrieve all Product Inventories.
 %% @todo Filtering
-get_product_inventories(Query, Headers) ->
+get_inventories(Query, Headers) ->
+	ID =  proplists:get_value("id", Query),
+	Name =  proplists:get_value("name", Query),
+	Offer = proplists:get_value("productOffering", Query),
+	SDT = proplists:get_value("startDate", Query),
+	EDT = proplists:get_value("endDate", Query),
+	Service = proplists:get_value("service", Query),
 	M = ocs,
-	F = query_subscriber,
-	A = [],
+	F = query_product,
+	A = [ID, Name, Offer, SDT, EDT, Service],
 	Codec = fun inventory/1,
 	query_filter({M, F, A}, Codec, Query, Headers).
 
@@ -441,7 +448,7 @@ get_product_specs([] = _Query) ->
 get_product_specs(_Query) ->
 	{error, 400}.
 
--spec patch_product_offering(ProdId, Etag, ReqData) -> Result
+-spec patch_offer(ProdId, Etag, ReqData) -> Result
 	when
 		ProdId	:: string(),
 		Etag		:: undefined | list(),
@@ -453,7 +460,7 @@ get_product_specs(_Query) ->
 %% @doc Respond to `PATCH /catalogManagement/v2/productOffering/{id}'.
 %% 	Update a Product Offering using JSON patch method
 %% 	<a href="http://tools.ietf.org/html/rfc6902">RFC6902</a>.
-patch_product_offering(ProdId, Etag, ReqData) ->
+patch_offer(ProdId, Etag, ReqData) ->
 	try
 		Etag1 = case Etag of
 			undefined ->
@@ -465,9 +472,9 @@ patch_product_offering(ProdId, Etag, ReqData) ->
 	of
 		{Etag2, {array, _} = Operations} ->
 			F = fun() ->
-					case mnesia:read(product, ProdId, write) of
+					case mnesia:read(offer, ProdId, write) of
 						[Product1] when
-								Product1#product.last_modified == Etag2;
+								Product1#offer.last_modified == Etag2;
 								Etag2 == undefined ->
 							case catch ocs_rest:patch(Operations, offer(Product1)) of
 								{struct, _} = Product2  ->
@@ -475,13 +482,13 @@ patch_product_offering(ProdId, Etag, ReqData) ->
 									TS = erlang:system_time(?MILLISECOND),
 									N = erlang:unique_integer([positive]),
 									LM = {TS, N},
-									Product4 = Product3#product{last_modified = LM},
+									Product4 = Product3#offer{last_modified = LM},
 									ok = mnesia:write(Product4),
 									{Product2, LM};
 								_ ->
 									throw(bad_request)
 							end;
-						[#product{}] ->
+						[#offer{}] ->
 							throw(precondition_failed);
 						[] ->
 							throw(not_found)
@@ -545,19 +552,19 @@ get_pla_spec(ID, [] = _Query) ->
 get_pla_spec(_Id, _Query) ->
 	{error, 400}.
 
--spec patch_product_inventory(SubId, Etag, ReqData) -> Result
+-spec patch_inventory(ProdId, Etag, ReqData) -> Result
 	when
-		SubId	:: string(),
+		ProdId :: string(),
 		Etag		:: undefined | list(),
 		ReqData	:: [tuple()],
 		Result	:: {ok, Headers, Body} | {error, Status},
 		Headers	:: [tuple()],
 		Body		:: iolist(),
 		Status	:: 400 | 404 | 412 | 500 .
-%% @doc Respond to `PATCH /catalogManagement/v2/productOffering/{id}'.
+%% @doc Respond to `PATCH /productInventoryManagement/v2/product/{id}'.
 %% 	Update a Product Offering using JSON patch method
 %% 	<a href="http://tools.ietf.org/html/rfc6902">RFC6902</a>.
-patch_product_inventory(SubId, Etag, ReqData) ->
+patch_inventory(ProdId, Etag, ReqData) ->
 	try
 		Etag1 = case Etag of
 			undefined ->
@@ -569,33 +576,33 @@ patch_product_inventory(SubId, Etag, ReqData) ->
 	of
 		{Etag2, {array, _} = Operations} ->
 			F = fun() ->
-					case mnesia:read(subscriber, SubId, write) of
-						[Subscriber1] when
-								Subscriber1#subscriber.last_modified == Etag2;
+					case mnesia:read(product, ProdId, write) of
+						[Product1] when
+								Product1#product.last_modified == Etag2;
 								Etag2 == undefined ->
-							case catch ocs_rest:patch(Operations, inventory(Subscriber1)) of
-								{struct, _} = Subscriber2  ->
-									Subscriber3 = inventory(Subscriber2),
+							case catch ocs_rest:patch(Operations, inventory(Product1)) of
+								{struct, _} = Product2 ->
+									Product3 = inventory(Product2),
 									TS = erlang:system_time(?MILLISECOND),
 									N = erlang:unique_integer([positive]),
 									LM = {TS, N},
-									Subscriber4 = Subscriber3#subscriber{last_modified = LM},
-									ok = mnesia:write(Subscriber4),
-									{Subscriber2, LM};
+									Product4 = Product3#product{last_modified = LM},
+									ok = mnesia:write(Product4),
+									{Product2, LM};
 								_ ->
 									throw(bad_request)
 							end;
-						[#subscriber{}] ->
+						[#product{}] ->
 							throw(precondition_failed);
 						[] ->
 							throw(not_found)
 					end
 			end,
 			case mnesia:transaction(F) of
-				{atomic, {Subscriber, Etag3}} ->
-					Location = "/productInventoryManagement/v1/product/" ++ SubId,
+				{atomic, {Product, Etag3}} ->
+					Location = "/productInventoryManagement/v1/product/" ++ ProdId,
 					Headers = [{location, Location}, {etag, ocs_rest:etag(Etag3)}],
-					Body = mochijson:encode(Subscriber),
+					Body = mochijson:encode(Product),
 					{ok, Headers, Body};
 				{aborted, {throw, bad_request}} ->
 					{error, 400};
@@ -676,27 +683,39 @@ patch_pla(Id, Etag, ReqData) ->
 			{error, 400}
 	end.
 
--spec delete_product_offering(Id) -> Result
+-spec delete_offer(Id) -> Result
 	when
 		Id :: string(),
 		Result :: {ok, Headers :: [tuple()], Body :: iolist()}
 				| {error, ErrorCode :: integer()} .
 %% @doc Respond to `DELETE /catalogManagement/v1/productOffering/{id}'
 %% 	request to remove a `Product Offering'.
-delete_product_offering(Id) ->
-	ok = ocs:delete_product(Id),
-	{ok, [], []}.
+delete_offer(Id) ->
+	case catch ocs:delete_offer(Id) of
+		ok ->
+			{ok, [], []};
+		{'EXIT', unable_to_delete} ->
+			{error, 202};
+		{'EXIT', _} ->
+			{error, 500}
+	end.
 
--spec delete_product_inventory(Id) -> Result
+-spec delete_inventory(Id) -> Result
 	when
 		Id :: string(),
 		Result :: {ok, Headers :: [tuple()], Body :: iolist()}
 				| {error, ErrorCode :: integer()} .
 %% @doc Respond to `DELETE /productInventoryManagement/v1/product/{id}'
 %% 	request to remove a `Product Invenotry'.
-delete_product_inventory(Id) ->
-	ok = ocs:delete_subscriber(Id),
-	{ok, [], []}.
+delete_inventory(Id) ->
+	case catch ocs:delete_product(Id) of
+		ok ->
+			{ok, [], []};
+		{'EXIT', service_exsist} ->
+			{error, 202};
+		{'EXIT', _} ->
+			{error, 500}
+	end.
 
 -spec delete_pla(Id) -> Result
 	when
@@ -1249,21 +1268,21 @@ pla([], Acc) ->
 
 -spec offer(Product) -> Product
 	when
-		Product :: #product{} | {struct, [tuple()]}.
+		Product :: #offer{} | {struct, [tuple()]}.
 %% @doc CODEC for Product Offering.
 %% @private
-offer(#product{} = Product) ->
-	offer(record_info(fields, product), Product, []);
+offer(#offer{} = Product) ->
+	offer(record_info(fields, offer), Product, []);
 offer({struct, ObjectMembers}) when is_list(ObjectMembers) ->
-	offer(ObjectMembers, #product{}).
+	offer(ObjectMembers, #offer{}).
 %% @hidden
-offer([name | T], #product{name = Name} = P, Acc) when is_list(Name) ->
+offer([name | T], #offer{name = Name} = P, Acc) when is_list(Name) ->
 	offer(T, P, [{"name", Name} | Acc]);
-offer([description | T], #product{description = Description} = P,
+offer([description | T], #offer{description = Description} = P,
 	Acc) when is_list(Description) ->
 	offer(T, P, [{"description", Description} | Acc]);
 offer([specification | T],
-		#product{specification = ProdSpecId} = P, Acc) when is_list(ProdSpecId) ->
+		#offer{specification = ProdSpecId} = P, Acc) when is_list(ProdSpecId) ->
 	{struct, L} = product_spec(ProdSpecId),
 	{_, Id} = lists:keyfind("id", 1, L),
 	{_, Href} = lists:keyfind("href", 1, L),
@@ -1271,44 +1290,44 @@ offer([specification | T],
 	Spec = {struct, [{"id", Id}, {"href", Href}, {"name", Name}]},
 	offer(T, P, [{"productSpecification", Spec} | Acc]);
 offer([bundle | T],
-		#product{bundle = Bundle} = P, Acc) when length(Bundle) > 0 ->
+		#offer{bundle = Bundle} = P, Acc) when length(Bundle) > 0 ->
 	Array = [bundled_po(B) || B <- Bundle],
 	offer(T, P, [{"bundledProductOffering", {array, Array}} | Acc]);
-offer([status | T], #product{status = Status} = P, Acc)
+offer([status | T], #offer{status = Status} = P, Acc)
 		when Status /= undefined ->
 	StatusString = offer_status(Status),
 	offer(T, P, [{"lifecycleStatus", StatusString} | Acc]);
-offer([start_date | T], #product{start_date = Start,
+offer([start_date | T], #offer{start_date = Start,
 		end_date = undefined} = P, Acc) when is_integer(Start) ->
 	ValidFor = {struct, [{"startDateTime", ocs_rest:iso8601(Start)}]},
 	offer(T, P, [{"validFor", ValidFor} | Acc]);
-offer([start_date | T], #product{start_date = undefined,
+offer([start_date | T], #offer{start_date = undefined,
 		end_date = End} = P, Acc) when is_integer(End) ->
 	ValidFor = {struct, [{"endDateTime", ocs_rest:iso8601(End)}]},
 	offer(T, P, [{"validFor", ValidFor} | Acc]);
-offer([start_date | T], #product{start_date = Start,
+offer([start_date | T], #offer{start_date = Start,
 		end_date = End} = P, Acc) when is_integer(Start), is_integer(End) ->
 	ValidFor = {struct, [{"startDateTime", ocs_rest:iso8601(Start)},
 			{"endDateTime", ocs_rest:iso8601(End)}]},
 	offer(T, P, [{"validFor", ValidFor} | Acc]);
 offer([end_date | T], P, Acc) ->
 	offer(T, P, Acc);
-offer([price | T], #product{price = Prices1} = P, Acc)
+offer([price | T], #offer{price = Prices1} = P, Acc)
 		when is_list(Prices1) ->
 	Prices2 = [price(Price) || Price <- Prices1],
 	offer(T, P, [{"productOfferingPrice", {array, Prices2}} | Acc]);
-offer([char_value_use | T], #product{char_value_use = CharValueUses} = P, Acc) ->
+offer([char_value_use | T], #offer{char_value_use = CharValueUses} = P, Acc) ->
 	offer(T, P, [{"prodSpecCharValueUse", char_value_uses(CharValueUses)} | Acc]);
-offer([last_modified | T], #product{last_modified = {Last, _}} = P, Acc)
+offer([last_modified | T], #offer{last_modified = {Last, _}} = P, Acc)
 		when is_integer(Last) ->
 	offer(T, P, [{"lastUpdate", ocs_rest:iso8601(Last)} | Acc]);
 offer([_H | T], P, Acc) ->
 	offer(T, P, Acc);
-offer([], #product{name = Name, bundle = [] ,
+offer([], #offer{name = Name, bundle = [] ,
 		specification = S}, Acc) when S /= undefined ->
 	H = [{"id", Name}, {"href", ?offeringPath ++ Name}, {"isBundle", false}],
 	{struct, H ++ lists:reverse(Acc)};
-offer([], #product{name = Name, bundle = L,
+offer([], #offer{name = Name, bundle = L,
 		specification = undefined}, Acc) when length(L) > 0 ->
 	H = [{"id", Name}, {"href", ?offeringPath ++ Name}, {"isBundle", true}],
 	{struct, H ++ lists:reverse(Acc)}.
@@ -1318,29 +1337,29 @@ offer([{"id", ID} | T], Acc) when is_list(ID) ->
 offer([{"href", URI} | T], Acc) when is_list(URI) ->
 	offer(T, Acc);
 offer([{"name", Name} | T], Acc) when is_list(Name) ->
-	offer(T, Acc#product{name = Name});
+	offer(T, Acc#offer{name = Name});
 offer([{"description", Description} | T], Acc) when is_list(Description) ->
-	offer(T, Acc#product{description = Description});
+	offer(T, Acc#offer{description = Description});
 offer([{"validFor", {struct, L}} | T], Acc) ->
 	Acc1 = case lists:keyfind("startDateTime", 1, L) of
 		{_, Start} ->
-			Acc#product{start_date = ocs_rest:iso8601(Start)};
+			Acc#offer{start_date = ocs_rest:iso8601(Start)};
 		false ->
 			Acc
 	end,
 	Acc2 = case lists:keyfind("endDateTime", 1, L) of
 		{_, End} ->
-			Acc1#product{end_date = ocs_rest:iso8601(End)};
+			Acc1#offer{end_date = ocs_rest:iso8601(End)};
 		false ->
 			Acc
 	end,
 	offer(T, Acc2);
 offer([{"lifecycleStatus", Status} | T], Acc) when is_list(Status) ->
-	offer(T, Acc#product{status = offer_status(Status)});
+	offer(T, Acc#offer{status = offer_status(Status)});
 offer([{"productSpecification", {struct, L}} | T], Acc) when is_list(L) ->
 	Acc1 = case lists:keyfind("id", 1, L) of
 		{_, ID} when is_list(ID) ->
-			Acc#product{specification = ID};
+			Acc#offer{specification = ID};
 		false ->
 			Acc
 	end,
@@ -1348,22 +1367,22 @@ offer([{"productSpecification", {struct, L}} | T], Acc) when is_list(L) ->
 offer([{"bundledProductOffering", {array, Array}} | T], Acc)
 		when is_list(Array) ->
 	Bundle = [bundled_po(B) || B <- Array],
-	offer(T, Acc#product{bundle = Bundle});
+	offer(T, Acc#offer{bundle = Bundle});
 offer([{"isCustomerVisible", Visible} | T], Acc) when is_boolean(Visible) ->
 	offer(T, Acc);
 offer([{"productOfferingPrice", {array, Prices1}} | T], Acc) when is_list(Prices1) ->
 	Prices2 = [price(Price) || Price <- Prices1],
-	offer(T, Acc#product{price = Prices2});
+	offer(T, Acc#offer{price = Prices2});
 offer([{"prodSpecCharValueUse", {array, _} = CharValueUses} | T], Acc) ->
-	offer(T, Acc#product{char_value_use = char_value_uses(CharValueUses)});
+	offer(T, Acc#offer{char_value_use = char_value_uses(CharValueUses)});
 offer([{"lastUpdate", LastUpdate} | T], Acc) when is_list(LastUpdate) ->
 	offer(T, Acc);
 offer([_ | T], Acc) ->
 	offer(T, Acc);
-offer([], #product{bundle = [], specification = S} = Acc)
+offer([], #offer{bundle = [], specification = S} = Acc)
 		when S /= undefined ->
 	Acc;
-offer([], #product{bundle = L, specification = undefined} = Acc)
+offer([], #offer{bundle = L, specification = undefined} = Acc)
 		when length(L) > 0 ->
 	Acc.
 
@@ -2000,96 +2019,81 @@ char_value_type(#rate{numerator = Numerator, denominator = Denominator}) ->
 char_value_type(Value) when is_integer(Value); is_list(Value) ->
 	Value.
 	
--spec inventory(Subscription) -> Subscription
+-spec inventory(Instance) -> Instance
 	when
-		Subscription :: #subscriber{} | {struct, [tuple()]}.
+		Instance :: #product{} | {struct, [tuple()]}.
 %% @doc CODEC for Product Inventory.
-inventory({struct, ObjectMembers}) when is_list(ObjectMembers) ->
-	ProductInstance  = instance({struct, ObjectMembers}),
-	F = fun(Key) ->
-			case proplists:get_value(Key, ProductInstance#product_instance.characteristics) of
-				undefined ->
-					undefined;
-				Value ->
-					list_to_binary(Value)
-			end
-	end,
-	Username = F("subscriberIdentity"),
-	Password = F("subscriberPassword"),
-	#subscriber{name = Username, password = Password, product = ProductInstance};
-inventory(#subscriber{name = Username, password = Password,
-		product = #product_instance{characteristics = Chars}  = ProductInstance}) ->
-	F1 = fun(CChars, _, undefined) ->
-			CChars;
-		(CChars, Key, Value) ->
-			lists:keystore(Key, 1, CChars, {Key, binary_to_list(Value)})
-	end,
-	Chars1 = F1(Chars, "subscriberIdentity", Username),
-	Chars2 = F1(Chars1, "subscriberPassword", Password),
-	{struct, Json1} = instance(ProductInstance#product_instance{characteristics = Chars2}),
-	F2 = fun(Key) ->
-			case proplists:get_value(Key, ProductInstance#product_instance.characteristics) of
-				undefined ->
-					binary_to_list(Username);
-				Value ->
-					Value
-			end
-	end,
-	Username1 = F2("subscriberIdentity"),
-	Id = {"id", Username1},
-	Href = {"href", ?inventoryPath ++ Username1},
-	Name = {"name", Username1},
-	{struct, [Id, Href, Name | Json1]}.
-
--spec instance(Instance) -> Instance
-	when
-		Instance :: #product_instance{} | {struct, [tuple()]}.
-%% @doc CODEC for Product Inventory.
-instance({struct, ObjectMembers}) ->
-	instance(ObjectMembers, #product_instance{});
-instance(ProductInstance) ->
-	{struct, instance(record_info(fields, product_instance), ProductInstance, [])}.
+inventory({struct, ObjectMembers}) ->
+	inventory(ObjectMembers, #product{});
+inventory(ProductInstance) ->
+	{struct, inventory(record_info(fields, product), ProductInstance, [])}.
 %% @hidden
-instance([{"characteristic", Chars} | T], Acc) ->
-	NewChars = instance_chars(Chars),
-	instance(T, Acc#product_instance{characteristics = NewChars});
-instance([{"productOffering", {struct, Offer}} | T], Acc) ->
-	instance(T, Acc#product_instance{product = product({struct, Offer})});
-instance([{"status", Status} | T], Acc) ->
-	instance(T, Acc#product_instance{status = product_status(Status)});
-instance([{"startDate", SDate} | T], Acc) ->
-	instance(T, Acc#product_instance{start_date = ocs_rest:iso8601(SDate)});
-instance([{"terminationDate", TDate} | T], Acc) ->
-	instance(T, Acc#product_instance{termination_date = ocs_rest:iso8601(TDate)});
-instance([_ | T], Acc) ->
-	instance(T, Acc);
-instance([], Acc) ->
+inventory([{"characteristic", Chars} | T], Acc) ->
+	inventory(T, Acc#product{characteristics = instance_chars(Chars)});
+inventory([{"productOffering", {struct, Offer}} | T], Acc) ->
+	case lists:keyfind("id", 1, Offer) of
+		{_, OfferId} ->
+			inventory(T, Acc#product{product = OfferId});
+		false ->
+			inventory(T, Acc)
+	end;
+inventory([{"status", Status} | T], Acc) ->
+	inventory(T, Acc#product{status = product_status(Status)});
+inventory([{"startDate", SDate} | T], Acc) ->
+	inventory(T, Acc#product{start_date = ocs_rest:iso8601(SDate)});
+inventory([{"terminationDate", TDate} | T], Acc) ->
+	inventory(T, Acc#product{end_date = ocs_rest:iso8601(TDate)});
+inventory([{"realizingService", {array, RealizingServices}} | T], Acc) ->
+	F = fun({struct, Obj}) ->
+				{_, ID} = lists:keyfind("id", 1, Obj),
+				list_to_binary(ID)
+	end,
+	ServiceRefs = [F(RS) || RS <- RealizingServices],
+	inventory(T, Acc#product{service = ServiceRefs});
+inventory([_ | T], Acc) ->
+	inventory(T, Acc);
+inventory([], Acc) ->
 	Acc.
 %% @hidden
-instance([product | T], #product_instance{product = ProdID} = ProductInstance, Acc) ->
-	Offer = {"productOffering", product(ProdID)},
-	instance(T, ProductInstance, [Offer | Acc]);
-instance([characteristics | T], #product_instance{characteristics = Chars} = ProductInstance, Acc) ->
+inventory([id | T], #product{id = undefined} = Product, Acc) ->
+	inventory(T, Product, Acc);
+inventory([id | T], #product{id = Id} = Product, Acc) ->
+	ID = {"id", Id},
+	Href = {"href", ?inventoryPath ++ Id},
+	inventory(T, Product, [ID, Href | Acc]);
+inventory([product | T], #product{product = OfferId} = Product, Acc) ->
+	Id = {"id", OfferId},
+	Href = {"href", ?offeringPath ++ OfferId},
+	Name = {"name", OfferId},
+	Offer = {"productOffering", {struct, [Id, Href, Name]}},
+	inventory(T, Product, [Offer | Acc]);
+inventory([characteristics | T], #product{characteristics = Chars} = Product, Acc) ->
 	Characteristics = {"characteristic", instance_chars(Chars)},
-	instance(T, ProductInstance, [Characteristics | Acc]);
-instance([status | T], #product_instance{status = undefined} = ProductInstance, Acc) ->
-	instance(T, ProductInstance,  Acc);
-instance([status | T], #product_instance{status = Status} = ProductInstance, Acc) ->
-	NewAcc = [{"status", product_status(Status)}  | Acc],
-	instance(T, ProductInstance,  NewAcc);
-instance([start_date | T], #product_instance{start_date = undefined} = ProductInstance, Acc) ->
-	instance(T, ProductInstance,  Acc);
-instance([start_date | T], #product_instance{start_date = SDate} = ProductInstance, Acc) ->
-	NewAcc = [{"startDate", ocs_rest:iso8601(SDate)}  | Acc],
-	instance(T, ProductInstance,  NewAcc);
-instance([termination_date | T], #product_instance{termination_date = undefined} = ProductInstance, Acc) ->
-	instance(T, ProductInstance,  Acc);
-instance([termination_date | T], #product_instance{termination_date = TDate} = ProductInstance, Acc) ->
-	NewAcc = [{"terminationDate", ocs_rest:iso8601(TDate)}  | Acc],
-	instance(T, ProductInstance,  NewAcc);
-instance([_ | T], ProductInstance, Acc) ->
-	instance(T, ProductInstance,  Acc);
-instance([], _ProductInstance, Acc) ->
+	inventory(T, Product, [Characteristics | Acc]);
+inventory([service | T], #product{service = ServiceRefs} = Product, Acc) ->
+	F = fun(ServiceRef) ->
+			SR = binary_to_list(ServiceRef),
+			ID = {"id", SR},
+			Href = {"href", ?servicePath ++ SR},
+			{struct, [ID, Href]}
+	end,
+	RealizingServices = {"realizingService", {array, [F(SR) || SR <- ServiceRefs]}},
+	inventory(T, Product, [RealizingServices | Acc]);
+inventory([status | T], #product{status = undefined} = Product, Acc) ->
+	inventory(T, Product,  Acc);
+inventory([status | T], #product{status = Status} = Product, Acc) ->
+	inventory(T, Product,  [{"status", product_status(Status)} |Acc]);
+inventory([start_date | T], #product{start_date = undefined} = Product, Acc) ->
+	inventory(T, Product,  Acc);
+inventory([start_date | T], #product{start_date = SDate} = Product, Acc) ->
+	inventory(T, Product,  [{"startDate", ocs_rest:iso8601(SDate)} | Acc]);
+inventory([end_date | T], #product{end_date = undefined} = Product, Acc) ->
+	inventory(T, Product,  Acc);
+inventory([end_date | T], #product{end_date = TDate} = Product, Acc) ->
+	inventory(T, Product, [{"terminationDate", ocs_rest:iso8601(TDate)}  | Acc]);
+inventory([_ | T], Product, Acc) ->
+	inventory(T, Product,  Acc);
+inventory([], _Product, Acc) ->
 	lists:reverse(Acc).
 
 -spec instance_chars(Characteristics) -> Characteristics
@@ -2105,18 +2109,10 @@ instance_chars([{struct, [{"name", Name}, {"value", Value}]} | T], Acc) ->
 	instance_chars(T, [{Name, Value} | Acc]);
 instance_chars([{struct, [{"value", Value}, {"name", Name}]} | T], Acc) ->
 	instance_chars(T, [{Name, Value} | Acc]);
+instance_chars([{Name, Value} | T], Acc) ->
+	instance_chars(T, [{struct, [{"name", Name}, {"value", Value}]} | Acc]);
 instance_chars([], Acc) ->
 	lists:reverse(Acc).
-
-%% @hidden
-product({struct, Offer}) ->
-	{_, ProdId} = lists:keyfind("id", 1, Offer),
-	ProdId;
-product(ProdID) ->
-	ID = {"id", ProdID},
-	Href = {"href", ?offeringPath ++ ProdID},
-	Name = {"name", ProdID},
-	{struct, [ID, Href, Name]}.
 
 %% @hidden
 query_filter(MFA, Codec, Query, Headers) ->
@@ -2197,33 +2193,66 @@ query_page(Codec, PageServer, Etag, Query, Filters, Start, End) ->
 	case gen_server:call(PageServer, {Start, End}) of
 		{error, Status} ->
 			{error, Status};
-		{Result, ContentRange} ->
+		{[#offer{} | _] = Result, ContentRange} ->
 			try
 				case lists:keytake("sort", 1, Query) of
 					{value, {_, "name"}, Q1} ->
-						{lists:keysort(#product.name, Result), Q1};
+						{lists:keysort(#offer.name, Result), Q1};
 					{value, {_, "-name"}, Q1} ->
-						{lists:reverse(lists:keysort(#product.name, Result)), Q1};
+						{lists:reverse(lists:keysort(#offer.name, Result)), Q1};
 					{value, {_, "description"}, Q1} ->
-						{lists:keysort(#product.description, Result), Q1};
+						{lists:keysort(#offer.description, Result), Q1};
 					{value, {_, "-description"}, Q1} ->
-						{lists:reverse(lists:keysort(#product.description, Result)), Q1};
+						{lists:reverse(lists:keysort(#offer.description, Result)), Q1};
 					{value, {_, "lifecycleStatus"}, Q1} ->
-						{lists:keysort(#product.status, Result), Q1};
+						{lists:keysort(#offer.status, Result), Q1};
 					{value, {_, "-lifecycleStatus"}, Q1} ->
-						{lists:reverse(lists:keysort(#product.status, Result)), Q1};
+						{lists:reverse(lists:keysort(#offer.status, Result)), Q1};
+					{value, {_, "startDate"}, Q1} ->
+						{lists:keysort(#offer.start_date, Result), Q1};
+					{value, {_, "-startDate"}, Q1} ->
+						{lists:reverse(lists:keysort(#offer.start_date, Result)), Q1};
+					{value, {_, "endDate"}, Q1} ->
+						{lists:keysort(#offer.end_date, Result), Q1};
+					{value, {_, "-endDate"}, Q1} ->
+						{lists:reverse(lists:keysort(#offer.end_date, Result)), Q1};
+					{value, {_, "price"}, Q1} ->
+						{lists:keysort(#offer.price, Result), Q1};
+					{value, {_, "-price"}, Q1} ->
+						{lists:reverse(lists:keysort(#offer.price, Result)), Q1};
+					false ->
+						{Result, Query};
+					_ ->
+						throw(400)
+				end
+			of
+				{SortedResult, _NewQuery} ->
+					JsonObj = query_page1(lists:map(Codec, SortedResult), Filters, []),
+					JsonArray = {array, JsonObj},
+					Body = mochijson:encode(JsonArray),
+					Headers = [{content_type, "application/json"},
+							{etag, Etag}, {accept_ranges, "items"},
+							{content_range, ContentRange}],
+					{ok, Headers, Body}
+			catch
+				throw:{error, Status} ->
+					{error, Status}
+			end;
+		{[#product{} | _] = Result, ContentRange} ->
+			try
+				case lists:keytake("sort", 1, Query) of
+					{value, {_, "id"}, Q1} ->
+						{lists:keysort(#product.id, Result), Q1};
+					{value, {_, "name"}, Q1} ->
+						{lists:keysort(#product.name, Result), Q1};
+					{value, {_, "productOffer"}, Q1} ->
+						{lists:keysort(#product.product, Result), Q1};
 					{value, {_, "startDate"}, Q1} ->
 						{lists:keysort(#product.start_date, Result), Q1};
-					{value, {_, "-startDate"}, Q1} ->
-						{lists:reverse(lists:keysort(#product.start_date, Result)), Q1};
 					{value, {_, "endDate"}, Q1} ->
 						{lists:keysort(#product.end_date, Result), Q1};
-					{value, {_, "-endDate"}, Q1} ->
-						{lists:reverse(lists:keysort(#product.end_date, Result)), Q1};
-					{value, {_, "price"}, Q1} ->
-						{lists:keysort(#product.price, Result), Q1};
-					{value, {_, "-price"}, Q1} ->
-						{lists:reverse(lists:keysort(#product.price, Result)), Q1};
+					{value, {_, "service"}, Q1} ->
+						{lists:keysort(#product.service, Result), Q1};
 					false ->
 						{Result, Query};
 					_ ->

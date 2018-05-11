@@ -70,15 +70,17 @@ do(#mod{method = Method, request_uri = Uri, data = Data} = ModData) ->
 do_delete(Resource, ModData, ["ocs", "v1", "client", Identity]) ->
 	do_response(ModData, Resource:delete_client(Identity));
 do_delete(Resource, ModData, ["ocs", "v1", "subscriber", Identity]) ->
-	do_response(ModData, Resource:delete_subscriber(Identity));
+	do_response(ModData, Resource:delete_service(Identity));
 do_delete(Resource, ModData, ["catalogManagement", "v2", "productOffering", Identity]) ->
-	do_response(ModData, Resource:delete_product_offering(Identity));
+	do_response(ModData, Resource:delete_offer(Identity));
 do_delete(Resource, ModData, ["catalogManagement", "v2", "pla", Identity]) ->
 	do_response(ModData, Resource:delete_pla(Identity));
 do_delete(Resource, ModData, ["partyManagement", "v1", "individual", Identity]) ->
 	do_response(ModData, Resource:delete_user(Identity));
 do_delete(Resource, ModData, ["productInventoryManagement", "v2", "product", Identity]) ->
-	do_response(ModData, Resource:delete_product_inventory(Identity));
+	do_response(ModData, Resource:delete_inventory(Identity));
+do_delete(Resource, ModData, ["serviceInventoryManagement", "v2", "service", Identity]) ->
+	do_response(ModData, Resource:delete_inventory(Identity));
 do_delete(Resource, ModData, ["resourceInventoryManagement", "v1", "logicalResource", Table, Identity]) ->
 	do_response(ModData, Resource:delete_resource_inventory(Table, Identity));
 do_delete(_Resource, _ModData, _) ->
@@ -91,6 +93,9 @@ do_response(ModData, {ok, Headers, ResponseBody}) ->
 	NewHeaders = Headers ++ [{content_length, Size}],
 	send(ModData, 204, NewHeaders, ResponseBody),
 	{proceed, [{response,{already_sent, 204, Size}}]};
+do_response(_ModData, {error, 202}) ->
+	Response = "<h2>HTTP Error 202 - Accepted</h2>",
+	{break, [{response, {202, Response}}]};
 do_response(_ModData, {error, 400}) ->
 	Response = "<h2>HTTP Error 400 - Bad Reques</h2>",
 	{break, [{response, {400, Response}}]};

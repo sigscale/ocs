@@ -126,13 +126,13 @@
 			</vaadin-grid-column-group>
 			<vaadin-grid-column width="14ex">
 				<template class="header">
-					<vaadin-grid-filter aria-label="[[i18n.prod]]" path="product"
+					<vaadin-grid-filter aria-label="[[i18n.prod]]" path="offer"
 						value="[[_filterProduct]]">
 						<input placeholder="[[i18n.prod]]" value="{{_filterProduct}}"
 							focus-target>
 					</vaadin-grid-filter>
 				</template>
-				<template>[[item.product]]</template>
+				<template>[[item.offer]]</template>
 			</vaadin-grid-column>
 		</vaadinGrid>
 		<paper-toast
@@ -176,7 +176,7 @@
 					balanceLog.bucket = results[index].bucketBalance.id;
 					balanceLog.amountBefore = results[index].amountBefore.amount;
 					balanceLog.amountAfter = results[index].amountAfter.amount;
-					balanceLog.product = results[index].product.id;
+					balanceLog.offer = results[index].offer.id;
 					vaadinItems[index] = balanceLog;
 				}
 				grid.items = vaadinItems;
@@ -203,7 +203,7 @@
 						name: "amountAfter"
 					},
 					{
-						name: "product"
+						name: "offer"
 					}
 				];
 			},

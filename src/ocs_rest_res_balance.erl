@@ -24,7 +24,7 @@
 -export([content_types_accepted/0, content_types_provided/0,
 		top_up/2, get_balance/1, get_balance_log/0]).
 
--export([specific_bucket_balance/2]).
+-export([get_bucket/1, get_buckets/2]).
 
 -include("ocs.hrl").
 
@@ -34,7 +34,7 @@
 
 -define(bucketPath, "/balancemanagement/v1/bucket/").
 -define(actionPath, "/balancemanagement/v1/balanceTransfer/").
--define(productPath, "/productInventoryManagement/v1/product/").
+-define(productInventoryPath, "/productInventoryManagement/v1/product/").
 -define(balancePath, "/balancemanagement/v1/accumulatedBalance/").
 
 -spec content_types_accepted() -> ContentTypes
@@ -82,138 +82,88 @@ get_balance_log() ->
 			{error, 500}
 	end.
 
--spec specific_bucket_balance(SubscriberID, BucketID) -> Result
+-spec get_bucket(BucketId) -> Result
 	when
-		SubscriberID :: string() | undefined,
-		BucketID :: string(),
+		BucketId :: string(),
 		Result :: {ok, Headers :: [tuple()], Body :: iolist()}
 				| {error, ErrorCode :: integer()}.
 %% @doc Body producing function for `GET /balanceManagment/v1/bucket/{id}',
-%% `GET /balanceManagment/v1/product/{subscriber_id}/bucket/{id}'
-%% reuqests
-specific_bucket_balance(SubscriberID, BucketID) ->
-	F = fun() ->
-		case specific_bucket_balance1(SubscriberID, BucketID) of
-			{ok, S, Bucket}->
-				{S, Bucket};
-			{error, not_found} ->
-				throw(not_found)
-		end
-	end,
-	case mnesia:transaction(F) of
-		{atomic, {S, B}} ->
-			specific_bucket_balance4(S, B);
-		{aborted, {throw, not_found}} ->
-			{error, 404};
-		{aborted, _} ->
-			{error, 500}
-	end.
-%% @hidden
-specific_bucket_balance1(undefined, BucketID) ->
-	First = mnesia:first(subscriber),
-	specific_bucket_balance2(First, BucketID);
-specific_bucket_balance1(SubscriberID, BucketID) when is_list(SubscriberID) ->
-	specific_bucket_balance1(list_to_binary(SubscriberID), BucketID);
-specific_bucket_balance1(SubscriberID, BucketID) when is_binary(SubscriberID) ->
- case specific_bucket_balance3(SubscriberID, BucketID) of
-	{#subscriber{} = S, #bucket{} = B} ->
-		{ok, S, B};
-	{_, false} ->
-		{error, not_found};
-	{error, Reason} ->
-		{error, Reason}
- end.
-%% @hidden
-specific_bucket_balance2('end_of_table', _BucketID) ->
-	{error, not_found};
-specific_bucket_balance2(SubscriberID, BucketID) ->
-	case specific_bucket_balance3(SubscriberID, BucketID) of
-		{#subscriber{} = S, #bucket{} = B} ->
-			{ok, S, B};
-		{_,  false} ->
-			Next = mnesia:next(subscriber, SubscriberID),
-			specific_bucket_balance2(Next, BucketID);
-		{error, Reason} ->
-			{error, Reason}
-	end.
-%% @hidden
-specific_bucket_balance3(SubscriberID, BucketID) ->
-	case mnesia:read(subscriber, SubscriberID, read) of
-		[#subscriber{buckets = Buckets} = S] ->
-			{S, lists:keyfind(BucketID, #bucket.id, Buckets)};
-		[] ->
-			{error, not_found}
-	end.
-%% @hidden
-specific_bucket_balance4(#subscriber{name = SubID, last_modified = LM}, Bucket) ->
+get_bucket(BucketId) ->
 	try
-		P_ID = {"id", binary_to_list(SubID)},
-		P_Href = {"href", "/productInventory/v1/product/" ++ binary_to_list(SubID)},
-		Product = {"product", {struct, [P_ID, P_Href]}},
-		{struct, Bucket1} = bucket(Bucket),
-		Json = {struct, [Product | Bucket1]},
-		Body = mochijson:encode(Json),
-		Etag = case LM of
-			undefined ->
-				[];
-			LM ->
-				[{etag, ocs_rest:etag(LM)}]
-		end,
-		Headers = [{content_type, "application/json"}] ++ Etag,
-		{ok, Headers, Body}
+		case ocs:find_bucket(BucketId) of
+			{ok, Bucket1} ->
+				Bucket1;
+			{error, Reason} ->
+				exit(Reason)
+		end
+	of
+		Bucket ->
+			Body = mochijson:encode(bucket(Bucket)),
+			Href = ?bucketPath ++ Bucket#bucket.id,
+			Headers = [{location, Href},
+					{content_type, "application/json"}],
+			{ok, Headers, Body}
 	catch
+		_:not_found ->
+			{error, 404};
 		_:_ ->
 			{error, 500}
 	end.
 
--spec get_balance(Identity) -> Result
+-spec get_buckets(Query, Headers) -> Result
 	when
-		Identity :: list(),
+		Query :: [{Key :: string(), Value :: string()}],
+		Headers	:: [tuple()],
 		Result :: {ok, Headers :: [tuple()], Body :: iolist()}
 				| {error, ErrorCode :: integer()}.
-%% @doc Body producing function for `GET /balanceManagment/v1/accumulatedBalance/{id}'
-%% reuqest
-get_balance(Identity) ->
+%% @doc Body producing function for `GET /balanceManagment/v1/bucket/',
+get_buckets(Query, Headers) -> 
+	Id = proplists:get_value("id", Query),
+	Product = proplists:get_value("product", Query),
+	M = ocs,
+	F = query_bucket,
+	A = [Id, Product],
+	Codec = fun bucket/1,
+	query_filter({M, F, A}, Codec, Query, Headers).
+ 
+-spec get_balance(ProdRef) -> Result
+	when
+		ProdRef :: list(),
+		Result :: {ok, Headers :: [tuple()], Body :: iolist()}
+				| {error, ErrorCode :: integer()}.
+%% @doc Body producing function for
+%%	`GET /balanceManagment/v1/accumulatedBalance/{id}' reuqest
+get_balance(ProdRef) ->
 	try
-		case ocs:find_subscriber(Identity) of
-			{ok, #subscriber{buckets = Buckets}} ->
-				get_balance1(Identity, Buckets);
-			{error, not_found} ->
-				{error, 404};
-			{error, _Reason} ->
-				{error, 500}
+		case ocs:get_buckets(ProdRef) of
+			Buckets1 when is_list(Buckets1) ->
+				Buckets1;
+			{error, Reason} ->
+				throw(Reason)
 		end
+	of
+		Buckets2 ->
+			F1 = fun(#bucket{units = cents}) -> true; (_) -> false end,
+			Buckets3 = lists:filter(F1, Buckets2),
+			TotalAmount = lists:sum([B#bucket.remain_amount || B <- Buckets3]),
+			F2 = fun(#bucket{id = Id}) ->
+					{struct, [{"id", Id}, {"href", ?bucketPath ++ Id}]}
+			end,
+			Buckets4 = {"buckets", {array, lists:map(F2, Buckets3)}},
+			Total = {"totalBalance", {struct,
+					[{"amount", ocs_rest:millionths_out(TotalAmount)}]}},
+			Id = {"id", ProdRef},
+			Href = {"href", ?balancePath ++ ProdRef},
+			Product = {"product", {array, [{struct, [Id, Href]}]}},
+			Json = {struct, [Id, Href, Total, Buckets4, Product]},
+			Body  = mochijson:encode(Json),
+			Headers = [{content_type, "application/json"}],
+			{ok, Headers, Body}
 	catch
+		_:product_not_found ->
+			{error, 404};
 		_Error ->
 			{error, 400}
-	end.
-%% @hidden
-get_balance1(Identity, Buckets) ->
-	try
-		F1 = fun(#bucket{units = cents}) ->
-					true;
-				(_) ->
-					false
-		end,
-		Buckets1 = lists:filter(F1, Buckets),
-		F2 = fun(#bucket{remain_amount = N}, Acc) ->
-					Acc + N
-		end,
-		TotalAmount = lists:foldl(F2, 0, Buckets1),
-		F3 = fun(#bucket{id = Id}) ->
-					{struct, [{"id", Id}, {"href", ?balancePath ++ Id}]}
-		end,
-		Buckets2 = {"buckets", {array, lists:map(F3, Buckets1)}},
-		Total = {"totalBalance", {struct, [{"amount", ocs_rest:millionths_out(TotalAmount)}]}},
-		ProdId = {"id", Identity},
-		ProdHref = {"href", ?balancePath ++ Identity},
-		Product = {"product", {struct, [ProdId, ProdHref]}},
-		Json = {struct, [ProdId, ProdHref, Total, Buckets2, Product]},
-		Body  = mochijson:encode(Json),
-		{ok, [{content_type, "application/json"}], Body}
-	catch
-		_:_ ->
-			{error, 500}
 	end.
 
 -spec top_up(Identity, RequestBody) -> Result
@@ -223,62 +173,27 @@ get_balance1(Identity, Buckets) ->
 		Result :: {ok, Headers :: [tuple()], Body :: iolist()}
 				| {error, ErrorCode :: integer()}.
 %% @doc Respond to `POST /balanceManagement/v1/{id}/balanceTopups'
-%% and top up `subscriber' balance resource
-top_up(Identity, RequestBody) ->
+top_up(_Identity, RequestBody) ->
 	try
-		{struct, Object} = mochijson:decode(RequestBody),
-		{_, _} = lists:keyfind("type", 1, Object),
-		{_, {struct, Channel}} = lists:keyfind("channel", 1, Object),
-		{_, _} = lists:keyfind("name", 1, Channel),
-		{_, {struct, AmountObj}} = lists:keyfind("amount", 1, Object),
-		{_, Units} = lists:keyfind("units", 1, AmountObj),
-		{_, Amount} = lists:keyfind("amount", 1, AmountObj),
-		{StartDate, EndDate} = case lists:keyfind("validFor", 1, Object) of
-			{_, {struct, VF}} ->
-				SDT = proplists:get_value("startDate", VF),
-				EDT = proplists:get_value("endDate", VF),
-				case {SDT, EDT} of
-					{undefined, undefined} ->
-						{undefined, undefined};
-					{undefined, EDT} ->
-						{undefined, ocs_rest:iso8601(EDT)};
-					{SDT, undefined} ->
-						{ocs_rest:iso8601(SDT), undefined}
-				end;
-			false ->
-				{undefined, undefined}
-		end,
-		BucketType = units(Units),
-		BID = generate_bucket_id(),
-		Bucket = #bucket{id = BID, units = BucketType, remain_amount = ocs_rest:millionths_in(Amount),
-				start_date = StartDate, termination_date = EndDate},
-		top_up1(Identity, Bucket)
+		bucket(mochijson:decode(RequestBody))
+	of
+		#bucket{product = [ProdRef], units = Units, remain_amount = RM} = B
+				when Units /= undefined, RM > 0 ->
+			case ocs:add_bucket(ProdRef, B) of
+				{ok, _, #bucket{id = Id} = B1} ->
+					Body = mochijson:encode(bucket(B1)),
+					Location = ?bucketPath ++ Id,
+					Headers = [{location, Location}],
+					{ok, Headers, Body};
+				{error, _} ->
+					{error, 500}
+			end;
+		_ ->
+			{error, 400}
 	catch
-		_Error ->
+		_:_ ->
 			{error, 400}
 	end.
-%% @hidden
-top_up1(Identity, Bucket) ->
-	F = fun()->
-		case mnesia:read(subscriber, list_to_binary(Identity), read) of
-			[] ->
-				not_found;
-			[#subscriber{buckets = CrntBuckets, last_modified = LM} = User] ->
-				mnesia:write(User#subscriber{buckets = CrntBuckets ++ [Bucket]}),
-				LM
-		end
-	end,
-	case mnesia:transaction(F) of
-		{atomic, not_found} ->
-			{error, 404};
-		{atomic, LastMod} ->
-			Location = "/balanceManagement/v1/buckets/" ++ Identity,
-			Headers = [{location, Location}, {etag, ocs_rest:etag(LastMod)}],
-			{ok, Headers, []};
-		{aborted, _Reason} ->
-			{error, 500}
-	end.
-
 
 %%----------------------------------------------------------------------
 %%  internal functions
@@ -302,26 +217,29 @@ units1(cents) -> "cents";
 units1(seconds) -> "seconds";
 units1(messages) -> "messages".
 
-%% @hidden
-generate_bucket_id() ->
-	TS = erlang:system_time(?MILLISECOND),
-	N = erlang:unique_integer([positive]),
-	integer_to_list(TS) ++ "-" ++ integer_to_list(N).
-
 -spec bucket(Bucket) -> Bucket
 	when
 		Bucket :: #bucket{} | {struct, list()}.
 %% @doc CODEC for buckets
-bucket(#bucket{} = B) ->
-	bucket1(record_info(fields, bucket), B, []);
 bucket({struct, Object}) ->
-	bucket1(Object, #bucket{}).
+	bucket(Object, #bucket{});
+bucket(#bucket{} = B) ->
+	bucket(record_info(fields, bucket), B, []).
 %% @hidden
-bucket1([{"id", ID} | T], Bucket) ->
-	bucket1(T, Bucket#bucket{id = ID});
-bucket1([{"name", Name} | T], Bucket) ->
-	bucket1(T, Bucket#bucket{name = Name});
-bucket1([{"validFor", {struct, L}} | T], Bucket) ->
+bucket([{"id", ID} | T], Bucket) ->
+	bucket(T, Bucket#bucket{id = ID});
+bucket([{"name", Name} | T], Bucket) ->
+	bucket(T, Bucket#bucket{name = Name});
+bucket([{"amount", {struct, _} = Q} | T], Bucket) ->
+	#quantity{amount = Amount, units = Units} = quantity(Q),
+	bucket(T, Bucket#bucket{units = Units, remain_amount = Amount});
+bucket([{"remainedAmount", {struct, _} = Q} | T], Bucket) ->
+	#quantity{amount = Amount, units = Units} = quantity(Q),
+	bucket(T, Bucket#bucket{units = Units, remain_amount = Amount});
+bucket([{"product", {struct, P}} | T], Bucket) ->
+	{_, ProdRef} = lists:keyfind("id", 1, P),
+	bucket(T, Bucket#bucket{product = [ProdRef]});
+bucket([{"validFor", {struct, L}} | T], Bucket) ->
 	Bucket1 = case lists:keyfind("startDateTime", 1, L) of
 		{_, Start} ->
 			Bucket#bucket{start_date = ocs_rest:iso8601(Start)};
@@ -330,87 +248,68 @@ bucket1([{"validFor", {struct, L}} | T], Bucket) ->
 	end,
 	Bucket2 = case lists:keyfind("endDateTime", 1, L) of
 		{_, End} ->
-			Bucket1#bucket{termination_date = ocs_rest:iso8601(End)};
+			Bucket1#bucket{end_date = ocs_rest:iso8601(End)};
 		false ->
 			Bucket1
 	end,
-	bucket1(T, Bucket2);
-bucket1([{"remainedAmount", {struct, L}} | T], Bucket) ->
-	Bucket1 = case lists:keyfind("amount", 1, L) of
-		{_, Amount} ->
-			Bucket#bucket{remain_amount = Amount};
-		false ->
-			Bucket
-	end,
-	Bucket2 = case lists:keyfind("units", 1, L) of
-		{_, Units} ->
-			Bucket1#bucket{units = units(Units)};
-		false ->
-			Bucket1
-	end,
-	bucket1(T, Bucket2);
-bucket1([_ | T], Bucket) ->
-	bucket1(T, Bucket);
-bucket1([], Bucket) ->
+	bucket(T, Bucket2);
+bucket([_ | T], Bucket) ->
+	bucket(T, Bucket);
+bucket([], Bucket) ->
 	Bucket.
 %% @hidden
-bucket1([id | T], #bucket{id = undefined} = B, Acc) ->
-	bucket1(T, B, Acc);
-bucket1([id | T], #bucket{id = ID} = B, Acc) ->
-	Id = {"id", ID},
-	Href = {"href", "/balanceManagement/v1/bucket/" ++ ID},
-	bucket1(T, B, [Id, Href | Acc]);
-bucket1([name | T], #bucket{name = undefined} = B, Acc) ->
-	bucket1(T, B, Acc);
-bucket1([name | T], #bucket{name = Name} = B, Acc) ->
-	bucket1(T, B, [{"name", Name} | Acc]);
-bucket1([remain_amount | T], #bucket{units = undefined,
-		remain_amount = RemainAmount} = B, Acc) when is_integer(RemainAmount) ->
-	RM = {"remainedAmount", {struct, [{"amount", RemainAmount}]}},
-	bucket1(T, B, [RM | Acc]);
-bucket1([remain_amount | T], #bucket{units = cents,
-		remain_amount = RemainAmount} = B, Acc) when is_integer(RemainAmount) ->
-	RM = {"remainedAmount", {struct, [{"amount", ocs_rest:millionths_out(RemainAmount)}]}},
-	bucket1(T, B, [RM | Acc]);
-bucket1([remain_amount | T], #bucket{remain_amount = RemainAmount,
-		units = Units} = B, Acc) when is_integer(RemainAmount) ->
-	RM = {"remainAmount", {struct, [{"amount", RemainAmount},
-			{"units", units(Units)}]}},
-	bucket1(T, B, [RM | Acc]);
-bucket1([reservations | T], #bucket{reservations = []} = B, Acc) ->
-	bucket1(T, B, Acc);
-bucket1([reservations | T], #bucket{units = undefined,
+bucket([id | T], #bucket{id = undefined} = B, Acc) ->
+	bucket(T, B, Acc);
+bucket([id | T], #bucket{id = ID} = B, Acc) ->
+	bucket(T, B, [{"id", ID},
+			{"href", ?bucketPath ++ ID} | Acc]);
+bucket([name | T], #bucket{name = undefined} = B, Acc) ->
+	bucket(T, B, Acc);
+bucket([name | T], #bucket{name = Name} = B, Acc) ->
+	bucket(T, B, [{"name", Name} | Acc]);
+bucket([product | T], #bucket{product = [ProdRef]} = B, Acc) ->
+	Id = {"id", ProdRef},
+	Href = {"href", ?productInventoryPath ++ ProdRef},
+	bucket(T, B, [{"product", {struct, [Id, Href]}} | Acc]);
+bucket([remain_amount | T],
+		#bucket{units = Units, remain_amount = Amount} =
+		B, Acc) when is_integer(Amount) ->
+	Q = #quantity{amount = Amount, units = Units},
+	bucket(T, B, [{"remainedAmount", quantity(Q)} | Acc]);
+bucket([reservations | T], #bucket{reservations = []} = B, Acc) ->
+	bucket(T, B, Acc);
+bucket([reservations | T], #bucket{units = undefined,
 		reservations = Reservations} = B, Acc) ->
 	Amount = lists:sum([A || {_, _, A, _} <- Reservations]),
 	Reserved = [{"amount", Amount}],
-	bucket1(T, B, [{"reservedAmount", {struct, Reserved}}| Acc]);
-bucket1([reservations | T], #bucket{reservations = Reservations,
+	bucket(T, B, [{"reservedAmount", {struct, Reserved}}| Acc]);
+bucket([reservations | T], #bucket{reservations = Reservations,
 		units = cents} = B, Acc) ->
 	Amount = lists:sum([A || {_, _, A, _} <- Reservations]),
 	Reserved = [{"amount", ocs_rest:millionths_out(Amount)}, {"units", "cents"}],
-	bucket1(T, B, [{"reservedAmount", {struct, Reserved}}| Acc]);
-bucket1([reservations | T], #bucket{reservations = Reservations,
+	bucket(T, B, [{"reservedAmount", {struct, Reserved}}| Acc]);
+bucket([reservations | T], #bucket{reservations = Reservations,
 		units = Units} = B, Acc) ->
 	Amount = lists:sum([A || {_, _, A, _} <- Reservations]),
 	Reserved = [{"amount", Amount}, {"units", units(Units)}],
-	bucket1(T, B, [{"reservedAmount", {struct, Reserved}}| Acc]);
-bucket1([start_date | T], #bucket{start_date = undefined,
-		termination_date = End} = B, Acc) when is_integer(End) ->
+	bucket(T, B, [{"reservedAmount", {struct, Reserved}}| Acc]);
+bucket([start_date | T], #bucket{start_date = undefined,
+		end_date = End} = B, Acc) when is_integer(End) ->
 	ValidFor = {struct, [{"endDateTime", ocs_rest:iso8601(End)}]},
-	bucket1(T, B, [{"validFor", ValidFor} | Acc]);
-bucket1([start_date | T], #bucket{start_date = Start,
-		termination_date = undefined} = B, Acc) when is_integer(Start) ->
+	bucket(T, B, [{"validFor", ValidFor} | Acc]);
+bucket([start_date | T], #bucket{start_date = Start,
+		end_date = undefined} = B, Acc) when is_integer(Start) ->
 	ValidFor = {struct, [{"startDateTime", ocs_rest:iso8601(Start)}]},
-	bucket1(T, B, [{"validFor", ValidFor} | Acc]);
-bucket1([start_date | T], #bucket{start_date = Start,
-		termination_date = End} = B, Acc) when is_integer(Start),
+	bucket(T, B, [{"validFor", ValidFor} | Acc]);
+bucket([start_date | T], #bucket{start_date = Start,
+		end_date = End} = B, Acc) when is_integer(Start),
 		is_integer(End)->
 	ValidFor = {struct, [{"endDateTime", ocs_rest:iso8601(End)},
 			{"startDateTime", ocs_rest:iso8601(Start)}]},
-	bucket1(T, B, [{"validFor", ValidFor} | Acc]);
-bucket1([_ | T], B, Acc) ->
-	bucket1(T, B, Acc);
-bucket1([], _B, Acc) ->
+	bucket(T, B, [{"validFor", ValidFor} | Acc]);
+bucket([_ | T], B, Acc) ->
+	bucket(T, B, Acc);
+bucket([], _B, Acc) ->
 	{struct, lists:reverse(Acc)}.
 
 % @hidden
@@ -483,12 +382,156 @@ abmf_json6(Event, Acc) ->
 %% @hidden
 abmf_json7(Event, Acc) when element(8, Event) /= undefined ->
 	Product = element(8, Event),
-	Product1 = {"product", {struct,
-			[{"id", Product}, {"href", ?productPath ++ Product}]}},
+	Product1 = {"product", {struct, [{"id", Product},
+			{"href", ?productInventoryPath ++ Product}]}},
 	abmf_json8(Event, [Product1 | Acc]);
 abmf_json7(Event, Acc) ->
 	abmf_json8(Event, Acc).
 %% @hidden
-abmf_json8(Event, Acc) ->
+abmf_json8(_Event, Acc) ->
+	lists:reverse(Acc).
+
+-spec quantity(Quantity) -> Quantity
+	when
+		Quantity :: {struct, list()} | #quantity{}.
+%% @doc CODEC for quantity type
+quantity({struct, [{"amount", Amount}, {"units", "cents"}]}) ->
+	#quantity{units = cents, amount = ocs_rest:millionths_in(Amount)};
+quantity({struct, [{"units", "cents"}, {"amount", Amount}]}) ->
+	#quantity{units = cents, amount = ocs_rest:millionths_in(Amount)};
+quantity({struct, [{"amount", Amount}, {"units", Units}]}) when is_list(Amount) ->
+	#quantity{units = units(Units), amount = list_to_integer(Amount)};
+quantity({struct, [{"amount", Amount}, {"units", Units}]}) ->
+	#quantity{units = units(Units), amount = Amount};
+quantity({struct, [{"units", Units}, {"amount", Amount}]}) when is_list(Amount) ->
+	#quantity{units = units(Units), amount = list_to_integer(Amount)};
+quantity({struct, [{"units", Units}, {"amount", Amount}]}) ->
+	#quantity{units = units(Units), amount = Amount};
+quantity(#quantity{} = Quantity) ->
+	{struct, quantity(record_info(fields, quantity),
+			Quantity, [])}.
+%% @hidden
+quantity([amount | T], #quantity{units = cents, amount = Amount} = Q, Acc) ->
+	quantity(T, Q, [{"amount", ocs_rest:millionths_out(Amount)} | Acc]);
+quantity([amount | T], #quantity{amount = Amount} = Q, Acc) ->
+	quantity(T, Q, [{"amount", Amount} | Acc]);
+quantity([units | T], #quantity{units = undefined} = Q, Acc) ->
+	quantity(T, Q, Acc);
+quantity([units | T], #quantity{units = Units} = Q, Acc) ->
+	quantity(T, Q, [{"units", units(Units)} | Acc]);
+quantity([], _Q, Acc) ->
+	lists:reverse(Acc).
+
+%% @hidden
+query_filter(MFA, Codec, Query, Headers) ->
+	case lists:keytake("fields", 1, Query) of
+		{value, {_, Filters}, NewQuery} ->
+			query_filter(MFA, Codec, NewQuery, Filters, Headers);
+		false ->
+			query_filter(MFA, Codec, Query, [], Headers)
+	end.
+%% @hidden
+query_filter(MFA, Codec, Query, Filters, Headers) ->
+	case {lists:keyfind("if-match", 1, Headers),
+			lists:keyfind("if-range", 1, Headers),
+			lists:keyfind("range", 1, Headers)} of
+		{{"if-match", Etag}, false, {"range", Range}} ->
+			case global:whereis_name(Etag) of
+				undefined ->
+					{error, 412};
+				PageServer ->
+					case ocs_rest:range(Range) of
+						{error, _} ->
+							{error, 400};
+						{ok, {Start, End}} ->
+							query_page(Codec, PageServer, Etag, Query, Filters, Start, End)
+					end
+			end;
+		{{"if-match", Etag}, false, false} ->
+			case global:whereis_name(Etag) of
+				undefined ->
+					{error, 412};
+				PageServer ->
+					query_page(Codec, PageServer, Etag, Query, Filters, undefined, undefined)
+			end;
+		{false, {"if-range", Etag}, {"range", Range}} ->
+			case global:whereis_name(Etag) of
+				undefined ->
+					case ocs_rest:range(Range) of
+						{error, _} ->
+							{error, 400};
+						{ok, {Start, End}} ->
+							query_start(MFA, Codec, Query, Filters, Start, End)
+					end;
+				PageServer ->
+					case ocs_rest:range(Range) of
+						{error, _} ->
+							{error, 400};
+						{ok, {Start, End}} ->
+							query_page(Codec, PageServer, Etag, Query, Filters, Start, End)
+					end
+			end;
+		{{"if-match", _}, {"if-range", _}, _} ->
+			{error, 400};
+		{_, {"if-range", _}, false} ->
+			{error, 400};
+		{false, false, {"range", Range}} ->
+			case ocs_rest:range(Range) of
+				{error, _} ->
+					{error, 400};
+				{ok, {Start, End}} ->
+					query_start(MFA, Codec, Query, Filters, Start, End)
+			end;
+		{false, false, false} ->
+			query_start(MFA, Codec, Query, Filters, undefined, undefined)
+	end.
+
+%% @hidden
+query_start({M, F, A}, Codec, Query, Filters, RangeStart, RangeEnd) ->
+	case supervisor:start_child(ocs_rest_pagination_sup,
+				[[M, F, A]]) of
+		{ok, PageServer, Etag} ->
+			query_page(Codec, PageServer, Etag, Query, Filters, RangeStart, RangeEnd);
+		{error, _Reason} ->
+			{error, 500}
+	end.
+
+%% @hidden
+query_page(Codec, PageServer, Etag, Query, Filters, Start, End) ->
+	case gen_server:call(PageServer, {Start, End}) of
+		{error, Status} ->
+			{error, Status};
+		{Result, ContentRange} ->
+			try
+				case lists:keytake("sort", 1, Query) of
+					{value, {_, "id"}, Q1} ->
+						{lists:keysort(#bucket.id, Result), Q1};
+					{value, {_, "-id"}, Q1} ->
+						{lists:reverse(lists:keysort(#bucket.id, Result)), Q1};
+					false ->
+						{Result, Query};
+					_ ->
+						throw(400)
+				end
+			of
+				{SortedResult, _NewQuery} ->
+					JsonObj = query_page1(lists:map(Codec, SortedResult), Filters, []),
+					JsonArray = {array, JsonObj},
+					Body = mochijson:encode(JsonArray),
+					Headers = [{content_type, "application/json"},
+							{etag, Etag}, {accept_ranges, "items"},
+							{content_range, ContentRange}],
+					{ok, Headers, Body}
+			catch
+				throw:{error, Status} ->
+					{error, Status}
+			end
+	end.
+%% @hidden
+query_page1(Json, [], []) ->
+	Json;
+query_page1([H | T], Filters, Acc) ->
+	query_page1(T, Filters, [ocs_rest:fields(Filters, H) | Acc]);
+query_page1([], _, Acc) ->
 	lists:reverse(Acc).
 

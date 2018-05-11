@@ -46,6 +46,9 @@
 -define(NAS_APPLICATION_ID, 1).
 -define(RO_APPLICATION_ID, 4).
 -define(EPOCH_OFFSET, 2208988800).
+%% support deprecated_time_unit()
+-define(MILLISECOND, milli_seconds).
+%-define(MILLISECOND, millisecond).
 
 %%---------------------------------------------------------------------
 %%  Test server callback functions
@@ -65,7 +68,7 @@ suite() ->
 init_per_suite(Config) ->
 	ok = ocs_test_lib:initialize_db(),
 	ok = ocs_test_lib:start(),
-	{ok, ProdID} = ocs_test_lib:add_product(),
+	{ok, ProdID} = ocs_test_lib:add_offer(),
 	{ok, EnvList} = application:get_env(ocs, diameter),
 	{acct, [{Address, Port, Options } | _]} = lists:keyfind(acct, 1, EnvList),
 	true = diameter:subscribe(?SVC_ACCT),
@@ -85,7 +88,7 @@ end_per_suite(Config) ->
 	ok = diameter:stop_service(?SVC_AUTH),
 	ok = diameter:stop_service(?SVC_ACCT),
 	ok = ocs_test_lib:stop(),
-	ok = ocs:delete_subscriber("25252525"),
+	ok = ocs:delete_service("25252525"),
 	Config.
 
 -spec init_per_testcase(TestCase :: atom(), Config :: [tuple()]) -> Config :: [tuple()].
@@ -93,15 +96,10 @@ end_per_suite(Config) ->
 %%
 init_per_testcase(TestCase, Config) when
 		TestCase == diameter_accounting; TestCase == diameter_disconnect_session ->
-	UserName = ocs:generate_identity(),
-	Password = ocs:generate_password(),
-	ProdID = ?config(product_id, Config),
 	{ok, EnvList} = application:get_env(ocs, diameter),
 	{acct, [{Address, _Port, _Options } | _]} = lists:keyfind(acct, 1, EnvList),
 	{ok, _} = ocs:add_client(Address, undefined, diameter, undefined, true),
-	Buckets = [#bucket{units = cents, remain_amount = 2290}],
-	{ok, _} = ocs:add_subscriber(UserName, Password, ProdID, [], Buckets, []),
-	[{username, UserName}, {password, Password} | Config];
+	Config;
 init_per_testcase(_TestCase, Config) ->
 	NasID = erlang:ref_to_list(make_ref()),
 	Port = ocs_test_lib:port(),
@@ -115,10 +113,8 @@ init_per_testcase(_TestCase, Config) ->
 %%
 end_per_testcase(TestCase, Config) when
 		TestCase == diameter_accounting; TestCase == diameter_disconnect_session ->
-	UserName= ?config(username, Config),
 	Client = ?config(diameter_auth_client, Config),
-	ok = ocs:delete_client(Client),
-	ok = ocs:delete_subscriber(UserName);
+	ok = ocs:delete_client(Client);
 end_per_testcase(_TestCase, _Config) ->
 	ocs:delete_client({127, 0, 0, 1}).
 
@@ -152,12 +148,13 @@ radius_accounting(Config) ->
 	[{AuthAddress, AuthPort, _} | _] = AuthInstance,
 	[{AcctAddress, AcctPort, _} | _] = AcctInstance,
 	{ok, Socket} = gen_udp:open(0, [{active, false}, inet, binary]),
-	PeerID = ocs:generate_identity(),
+	P1 = price(usage, octets, rand:uniform(1000000), rand:uniform(100)),
+	OfferId = add_offer([P1], 4),
+	ProdRef = add_product(OfferId),
+	#service{name = PeerID, password = Password} =  add_service(ProdRef),
+	B1 = bucket(octets, rand:uniform(100000)),
+	_BId = add_bucket(ProdRef, B1),
 	Secret = ct:get_config(radius_shared_secret),
-	Password = ocs:generate_password(),
-	Buckets = [#bucket{units = cents, remain_amount = 3000}],
-	ProdID = ?config(product_id, Config),
-   {ok, _} = ocs:add_subscriber(PeerID, Password, ProdID, [], Buckets, []),
 	ReqAuth = radius:authenticator(),
    HiddenPassword = radius_attributes:hide(Secret, ReqAuth, Password),
 	authenticate_subscriber(Socket, AuthAddress, AuthPort, PeerID,
@@ -175,17 +172,18 @@ radius_disconnect_session() ->
 radius_disconnect_session(Config) ->
 	RadID1 = 10,
 	NasID = ?config(nas_id, Config),
-	ProdID = ?config(product_id, Config),
 	AcctSessionID = ocs:generate_identity(),
 	{ok, [{auth, AuthInstance}, {acct, AcctInstance}]} = application:get_env(ocs, radius),
 	[{AuthAddress, AuthPort, _} | _] = AuthInstance,
 	[{AcctAddress, AcctPort, _} | _] = AcctInstance,
 	{ok, Socket} = gen_udp:open(0, [{active, false}, inet, binary]),
-	PeerID = ocs:generate_identity(),
+	P1 = price(usage, octets, rand:uniform(1000000), rand:uniform(100)),
+	OfferId = add_offer([P1], 4),
+	ProdRef = add_product(OfferId),
+	#service{name = PeerID, password = Password} =  add_service(ProdRef),
+	B1 = bucket(octets, rand:uniform(100000)),
+	_BId = add_bucket(ProdRef, B1),
 	Secret = ct:get_config(radius_shared_secret),
-	Password = ocs:generate_password(),
-	Buckets = [#bucket{units = cents, remain_amount = 2290}],
-   {ok, _} = ocs:add_subscriber(PeerID, Password, ProdID, [], Buckets, []),
 	ReqAuth = radius:authenticator(),
    HiddenPassword = radius_attributes:hide(Secret, ReqAuth, Password),
 	authenticate_subscriber(Socket, AuthAddress, AuthPort, PeerID,
@@ -210,17 +208,19 @@ radius_multisession_disallowed() ->
 radius_multisession_disallowed(Config) ->
 	RadID1 = 8,
 	NasID = ?config(nas_id, Config),
-	ProdID = ?config(product_id, Config),
 	AcctSessionID1 = ocs:generate_identity(),
 	{ok, [{auth, AuthInstance}, {acct, AcctInstance}]} = application:get_env(ocs, radius),
 	[{AuthAddress, AuthPort, _} | _] = AuthInstance,
 	[{AcctAddress, AcctPort, _} | _] = AcctInstance,
 	{ok, Socket} = gen_udp:open(0, [{active, false}, inet, binary]),
-	PeerID = ocs:generate_identity(),
+	P1 = price(usage, octets, rand:uniform(1000000), rand:uniform(100)),
+	OfferId = add_offer([P1], 4),
+	ProdRef = add_product(OfferId),
+	#service{name = User, password = Password} =  add_service(ProdRef),
+	PeerID = binary_to_list(User),
+	B1 = bucket(octets, rand:uniform(100000)),
+	_BId = add_bucket(ProdRef, B1),
 	Secret = ct:get_config(radius_shared_secret),
-	Password = ocs:generate_password(),
-	Buckets = [#bucket{units = cents, remain_amount = 3000}],
-	{ok, _} = ocs:add_subscriber(PeerID, Password, ProdID, [], Buckets, [], true, false),
 	ReqAuth = radius:authenticator(),
 	HiddenPassword = radius_attributes:hide(Secret, ReqAuth, Password),
 	authenticate_subscriber(Socket, AuthAddress, AuthPort, PeerID,
@@ -228,8 +228,8 @@ radius_multisession_disallowed(Config) ->
 	RadID2 = RadID1 + 1,
 	accounting_start(Socket, AcctAddress, AcctPort,
 			PeerID, Secret, NasID, AcctSessionID1, RadID2),
-	{ok, #subscriber{multisession = false, session_attributes = SessionList1}}
-			= ocs:find_subscriber(PeerID),
+	{ok, #service{multisession = false, session_attributes = SessionList1}}
+			= ocs:find_service(PeerID),
 	[SessionAttr1] = SessionList1,
 	F = fun({_, SessionAttributes}, Nas) ->
 		{_, PeerID} = radius_attributes:find(?UserName, SessionAttributes),
@@ -250,8 +250,8 @@ radius_multisession_disallowed(Config) ->
 			HiddenPassword, Secret, NasID2, ReqAuth, Rad2ID1,
 			DiscPort, AcctSessionID2),
 	ct:sleep(500),
-	{ok, #subscriber{multisession = false, session_attributes = SessionList2}}
-			= ocs:find_subscriber(PeerID),
+	{ok, #service{multisession = false, session_attributes = SessionList2}}
+			= ocs:find_service(PeerID),
 	[SessionAttr2] = SessionList2,
 	ok = F(SessionAttr2, NasID2),
 	Rad2ID2 = Rad2ID1 + 1,
@@ -260,27 +260,32 @@ radius_multisession_disallowed(Config) ->
 	Rad2ID3 = Rad2ID2 + 1,
 	accounting_stop(Socket, AcctAddress, AcctPort,
 			PeerID, Secret, NasID2, AcctSessionID2, Rad2ID3),
-	{ok, #subscriber{multisession = false, session_attributes = []}}
-			= ocs:find_subscriber(PeerID).
+	{ok, #service{multisession = false, session_attributes = []}}
+			= ocs:find_service(PeerID).
 
 radius_multisession() ->
 	[{userdata, [{doc, "Start multiple RADIUS sessions for a subscriber when
 			multiple RADIUS sessions are allowed."}]}].
 
-radius_multisession(Config) ->
+radius_multisession(_Config) ->
 	RadID1 = 11,
 	NasID1 = "axe1@ap-1.org",
 	AcctSessionID1 = ocs:generate_identity(),
-	ProdID = ?config(product_id, Config),
 	{ok, [{auth, AuthInstance}, {acct, AcctInstance}]} = application:get_env(ocs, radius),
 	[{AuthAddress, AuthPort, _} | _] = AuthInstance,
 	[{AcctAddress, AcctPort, _} | _] = AcctInstance,
 	{ok, Socket} = gen_udp:open(0, [{active, false}, inet, binary]),
+	P1 = price(usage, octets, rand:uniform(1000000), rand:uniform(100)),
+	OfferId = add_offer([P1], 4),
+	ProdRef = add_product(OfferId),
 	PeerID = ocs:generate_identity(),
+	Password = ocs:generate_identity(),
+	State = active,
+	{ok, #service{}} = ocs:add_service(PeerID, Password, State,
+			ProdRef, [], [], true, true),
+	B1 = bucket(octets, rand:uniform(100000)),
+	_BId = add_bucket(ProdRef, B1),
 	Secret = ct:get_config(radius_shared_secret),
-	Password = ocs:generate_password(),
-	Buckets = [#bucket{units = cents, remain_amount = 3000}],
-	{ok, _} = ocs:add_subscriber(PeerID, Password, ProdID, [], Buckets, [], true, true),
 	ReqAuth = radius:authenticator(),
 	HiddenPassword = radius_attributes:hide(Secret, ReqAuth, Password),
 	%% Authenticate session 1
@@ -289,8 +294,8 @@ radius_multisession(Config) ->
 	RadID2 = RadID1 + 1,
 	accounting_start(Socket, AcctAddress, AcctPort,
 			PeerID, Secret, NasID1, AcctSessionID1, RadID2),
-	{ok, #subscriber{multisession = true, session_attributes = SessionList1}}
-			= ocs:find_subscriber(PeerID),
+	{ok, #service{multisession = true, session_attributes = SessionList1}}
+			= ocs:find_service(PeerID),
 	F1 = fun(F1, Session, [H1 | T1]) ->
 				case lists:member(H1, Session) of
 					true ->
@@ -320,8 +325,8 @@ radius_multisession(Config) ->
 	authenticate_subscriber(Socket, AuthAddress, AuthPort, PeerID,
 			HiddenPassword, Secret, NasID2, ReqAuth, Rad2ID1, AcctSessionID2),
 	ct:sleep(500),
-	{ok, #subscriber{multisession = true, session_attributes = SessionList2}}
-			= ocs:find_subscriber(PeerID),
+	{ok, #service{multisession = true, session_attributes = SessionList2}}
+			= ocs:find_service(PeerID),
 	2 = length(SessionList2),
 	ok = F2(F2, SessionList2, [{?UserName, PeerID}, {?NasIdentifier, NasID2}]),
 	Rad2ID2 = Rad2ID1 + 1,
@@ -334,8 +339,8 @@ radius_multisession(Config) ->
 	authenticate_subscriber(Socket, AuthAddress, AuthPort, PeerID,
 			HiddenPassword, Secret, NasID3, ReqAuth, Rad3ID1, AcctSessionID3),
 	ct:sleep(500),
-	{ok, #subscriber{multisession = true, session_attributes = SessionList3}}
-			= ocs:find_subscriber(PeerID),
+	{ok, #service{multisession = true, session_attributes = SessionList3}}
+			= ocs:find_service(PeerID),
 	3 = length(SessionList3),
 	ok = F2(F2, SessionList3, [{?UserName, PeerID}, {?NasIdentifier, NasID3}]),
 	Rad3ID2 = Rad3ID1 + 1,
@@ -345,8 +350,8 @@ radius_multisession(Config) ->
 	Rad2ID3 = Rad2ID2 + 1,
 	accounting_stop(Socket, AcctAddress, AcctPort,
 			PeerID, Secret, NasID2, AcctSessionID2, Rad2ID3),
-	{ok, #subscriber{multisession = true, session_attributes = SessionList4}}
-			= ocs:find_subscriber(PeerID),
+	{ok, #service{multisession = true, session_attributes = SessionList4}}
+			= ocs:find_service(PeerID),
 	2 = length(SessionList4),
 	ok = F2(F2, SessionList4, [{?UserName, PeerID}, {?NasIdentifier, NasID1}]),
 	ok = F2(F2, SessionList4, [{?UserName, PeerID}, {?NasIdentifier, NasID3}]).
@@ -354,8 +359,15 @@ radius_multisession(Config) ->
 diameter_accounting() ->
 	[{userdata, [{doc, "Initiate and terminate a DIAMETER accounting session"}]}].
 
-diameter_accounting(Config) ->
-	Username = ?config(username, Config),
+diameter_accounting(_Config) ->
+	P1 = price(usage, octets, rand:uniform(10000), rand:uniform(100)),
+	OfferId = add_offer([P1], 4),
+	ProdRef = add_product(OfferId),
+	Username = list_to_binary(ocs:generate_identity()),
+	Password = ocs:generate_identity(),
+	{ok, #service{}} = ocs:add_service(Username, Password, ProdRef, []),
+	B1 = bucket(octets, 100000000000),
+	_BId = add_bucket(ProdRef, B1),
 	Ref = erlang:ref_to_list(make_ref()),
 	SId = diameter:session_id(Ref),
 	RequestNum = 0,
@@ -378,8 +390,15 @@ diameter_accounting(Config) ->
 diameter_disconnect_session() ->
 	[{userdata, [{doc, "Disconnect a DIAMETER accounting session based on usage"}]}].
 
-diameter_disconnect_session(Config) ->
-	Username = ?config(username, Config),
+diameter_disconnect_session(_Config) ->
+	P1 = price(usage, octets, 1000000, 100),
+	OfferId = add_offer([P1], 4),
+	ProdRef = add_product(OfferId),
+	Username = ocs:generate_identity(),
+	Password = ocs:generate_identity(),
+	{ok, #service{}} = ocs:add_service(Username, Password, ProdRef, []),
+	B1 = bucket(octets, 2000000000),
+	_BId = add_bucket(ProdRef, B1),
 	Ref = erlang:ref_to_list(make_ref()),
 	SId = diameter:session_id(Ref),
 	RequestNum0 = 0,
@@ -423,23 +442,22 @@ diameter_sms() ->
 	[{userdata, [{doc, "DIAMETER accouting for event base usage"}]}].
 
 diameter_sms(_Config) ->
-	ProdID = ocs:generate_password(),
 	PackagePrice = rand:uniform(5),
 	PackageSize = rand:uniform(5),
 	Balance = (rand:uniform(5) * 5) div rand:uniform(5),
-	NumOfEvents = Balance div rand:uniform(5),
-	Price = #price{name = ocs:generate_identity(), type = usage,
-		units = messages, size = PackageSize, amount = PackagePrice},
-	Product = #product{name = ProdID, price = [Price], specification = "11"},
-	{ok, _} = ocs:add_product(Product),
+	P1 = price(usage, messages, PackageSize, PackagePrice),
+	OfferId = add_offer([P1], 11),
+	ProdRef = add_product(OfferId),
 	CalledParty = ocs:generate_identity(),
 	CallingParty = ocs:generate_identity(),
 	Password = ocs:generate_password(),
+	{ok, #service{}} = ocs:add_service(CalledParty, Password, ProdRef, []),
+	B1 = bucket(messages, Balance),
+	_BId = add_bucket(ProdRef, B1),
+	NumOfEvents = Balance div rand:uniform(5),
 	{ok, EnvList} = application:get_env(ocs, diameter),
 	{acct, [{Address, _Port, _Options } | _]} = lists:keyfind(acct, 1, EnvList),
 	{ok, _} = ocs:add_client(Address, undefined, diameter, undefined, true),
-	Buckets = [#bucket{units = messages, remain_amount = Balance}],
-	{ok, _} = ocs:add_subscriber(CalledParty, Password, ProdID, [], Buckets, []),
 	Ref = erlang:ref_to_list(make_ref()),
 	SId = diameter:session_id(Ref),
 	Subscription_Id = #'3gpp_ro_Subscription-Id'{
@@ -564,6 +582,11 @@ receive_radius(Code, Socket, Address, Port, RadID) ->
 	#radius{code = Code, id = RadID} = radius:codec(RespPacket).
 
 access_request(Socket, Address, Port, UserName, Secret,
+		NasID, Auth, RadID, AcctSessionID, RadAttributes)
+		when is_binary(UserName) ->
+	access_request(Socket, Address, Port, binary_to_list(UserName),
+			Secret, NasID, Auth, RadID, AcctSessionID, RadAttributes);
+access_request(Socket, Address, Port, UserName, Secret,
 		NasID, Auth, RadID, AcctSessionID, RadAttributes) ->
 	A1 = session_attributes(UserName, NasID, AcctSessionID, RadAttributes),
 	A2 = radius_attributes:add(?MessageAuthenticator, <<0:128>>, A1),
@@ -576,6 +599,12 @@ access_request(Socket, Address, Port, UserName, Secret,
 	ReqPacket2 = radius:codec(Request2),
 	gen_udp:send(Socket, Address, Port, ReqPacket2).
 
+accounting_request(StatusType, Socket, Address, Port,
+		UserName, Secret, NasID, AcctSessionID, RadID, RadAttributes)
+		when is_binary(UserName) ->
+	accounting_request(StatusType, Socket, Address, Port,
+			binary_to_list(UserName), Secret, NasID, AcctSessionID,
+			RadID, RadAttributes);
 accounting_request(StatusType, Socket, Address, Port,
 		UserName, Secret, NasID, AcctSessionID, RadID, RadAttributes) ->
 	A1 = session_attributes(UserName, NasID, AcctSessionID, RadAttributes),
@@ -729,3 +758,42 @@ authenticate_subscriber1(Socket, Address,
 	disconnect_request(DiscPort),
 	access_accept(Socket, Address, Port, RadID).
 
+%% @hidden
+price(Type, Units, Size, Amount) ->
+	#price{name = ocs:generate_identity(),
+			type = Type, units = Units,
+			size = Size, amount = Amount}.
+
+%% @hidden
+bucket(Units, RA) ->
+	#bucket{units = Units, remain_amount = RA,
+		start_date = erlang:system_time(?MILLISECOND),
+		end_date = erlang:system_time(?MILLISECOND) + 2592000000}.
+
+%% @hidden
+add_offer(Prices, Spec) when is_integer(Spec) ->
+	add_offer(Prices, integer_to_list(Spec));
+add_offer(Prices, Spec) ->
+	Offer = #offer{name = ocs:generate_identity(),
+	price = Prices, specification = Spec},
+	{ok, #offer{name = OfferId}} = ocs:add_offer(Offer),
+	OfferId.
+
+%% @hidden
+add_product(OfferId) ->
+	add_product(OfferId, []).
+add_product(OfferId, Chars) ->
+	{ok, #product{id = ProdRef}} = ocs:add_product(OfferId, Chars),
+	ProdRef.
+
+%% @hidden
+add_service(ProdRef) ->
+	{ok, Service} =
+			ocs:add_service(ocs:generate_identity(), ocs:generate_password(),
+			ProdRef, []),
+	Service.
+
+%% @hidden
+add_bucket(ProdRef, Bucket) ->
+	{ok, _, #bucket{id = BId}} = ocs:add_bucket(ProdRef, Bucket),
+	BId.

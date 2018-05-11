@@ -19,7 +19,7 @@
 -module(ocs_scheduler).
 -copyright('Copyright (c) 2016 - 2017 SigScale Global Inc.').
 
--export([start/0, start/1]).
+-export([start/0, start/2]).
 -export([product_charge/0]).
 
 -include("ocs.hrl").
@@ -29,52 +29,200 @@
 -define(MILLISECOND, milli_seconds).
 %-define(MILLISECOND, millisecond).
 
+-export([frp/1]).
 -spec start() -> ok.
 %% @equiv start(Interval)
 start() ->
-	start(1440000).
+	ScheduledTime = case application:get_env(charing_scheduler_time) of
+		{ok, ST} ->
+			ST;
+		undefined ->
+			{4, 4, 4}
+	end,
+	Interval = case application:get_env(charing_interval) of
+		{ok, CI} ->
+			CI;
+		undefined ->
+			1440
+	end,
+	start(ScheduledTime, Interval).
 
--spec start(Interval) -> ok
+-spec start(ScheduledTime, Interval) -> ok
 	when
+		ScheduledTime :: tuple(),
 		Interval :: pos_integer().
 %% @doc
-start(Interval) ->
-	timer:apply_interval(Interval, ?MODULE, product_charge, []),
+start(ScheduledTime, Interval) ->
+	NextInterval = interval(ScheduledTime, Interval),
+	timer:apply_interval(NextInterval, ?MODULE, product_charge, []),
 	ok.
 
 -spec product_charge() -> ok.
 %% @doc Scheduler update for all the subscriptions.
 product_charge() ->
-	F  = fun() ->
-		product_charge(mnesia:first(subscriber))
-	end,
-	mnesia:transaction(F),
-	ok.
-%% @hidden
-product_charge('$end_of_table') ->
-	ok;
-product_charge(SubscriptionId) ->
-	case mnesia:read(subscriber, SubscriptionId) of
-		[#subscriber{product =
-				#product_instance{product = ProdId,
-				characteristics = Chars}} = Subscriber]
-				when ProdId /= undefined ->
+	case get_offers() of
+		{error, Reason} ->
+			error_logger:error_report("Schedular Faild",
+					[{module, ?MODULE}, {reason, Reason}]);
+		Offers ->
 			Now = erlang:system_time(?MILLISECOND),
-			LM = {Now, erlang:unique_integer([positive])},
-			case mnesia:read(product, ProdId, read) of
-				[Product] ->
-					Subscriber1 = Subscriber#subscriber{last_modified= LM},
-					Subscriber2 = ocs:subscription(Subscriber1, Product, Chars, false),
-					mnesia:write(Subscriber2);
+			product_charge1(get_product(start), Now, frp(Offers))
+	end.
+%% @hidden
+product_charge1('$end_of_table', _Now, _Offers) ->
+	ok;
+product_charge1(ProdRef, Now, Offers) ->
+	F = fun() ->
+			case mnesia:read(product, ProdRef, write) of
+				[#product{product = OfferId,
+						payment = Payments,
+						balance = BucketRefs} = Product] ->
+					case if_recur(OfferId, Offers) of
+						{true, Offer} ->
+							case if_dues(Payments, Now) of
+								true ->
+									Buckets1 = lists:flatten([mnesia:select(bucket,
+											[{'$1',
+											[
+												{'==', Id, {element, #bucket.id, '$1'}}
+											],
+											['$1']}]) || Id <- BucketRefs]),
+									{NewProduct1, Buckets3} = ocs:subscription(Product, Offer,
+											Buckets1, false),
+									NewBRefs = update_buckets(BucketRefs, Buckets1, Buckets3),
+									NewProduct2 = NewProduct1#product{balance = NewBRefs},
+									ok = mnesia:write(NewProduct2);
+								false ->
+									ok
+							end;
+						false ->
+							ok
+					end;
 				[] ->
-					ok
-			end;
-		[] ->
-			ok
+					throw(product_ref_nof_found)
+			end
 	end,
-	product_charge(mnesia:next(subscriber, SubscriptionId)).
+	case mnesia:transaction(F) of
+		{atomic, ok} ->
+			product_charge1(get_product(ProdRef), Now, Offers);
+		{aborted, Reason} ->
+			error_logger:error_report("Schedular Update Failed",
+					[{module, ?MODULE}, {product_id, ProdRef},
+					{time, erlang:system_time(?MILLISECOND)},
+					{reason, Reason}]),
+			product_charge1(get_product(ProdRef), Now, Offers)
+	end.
 
 %%----------------------------------------------------------------------
 %%  internal functions
 %%----------------------------------------------------------------------
+%% @private
+if_dues([{_, DueDate} | _], Now) when DueDate < Now ->
+	true;
+if_dues([_ | T], Now) ->
+	if_dues(T, Now);
+if_dues([], _Now)  ->
+	false.
+
+%% @private
+if_recur(OfferId, [#{offer_id := OfferId, offer := Offer} | _]) ->
+	{true, Offer};
+if_recur(OfferId, [_ | T]) ->
+	if_recur(OfferId, T);
+if_recur(_OfferId, []) ->
+	false.
+
+
+%% @private
+get_product(start) ->
+	ets:first(product);
+get_product(SId) ->
+	ets:next(product, SId).
+
+-spec get_offers() -> Result
+	when
+		Result :: Offers | {error, Reason},
+		Offers :: [#offer{}],
+		Reason :: term().
+%% @private
+get_offers() ->
+	MatchSpec = [{'_', [], ['$_']}],
+	F = fun F(start, Acc) ->
+				F(mnesia:select(offer, MatchSpec,
+						?CHUNKSIZE, read), Acc);
+			F ('$end_of_table', Acc) ->
+				lists:flatten(lists:reverse(Acc));
+			F({error, Reason}, _Acc) ->
+				{error, Reason};
+			F({Offers, Cont}, Acc) ->
+				F(mnesia:select(Cont), [Offers | Acc])
+	end,
+	case mnesia:transaction(F, [start, []]) of
+		{aborted, Reason} ->
+			{error, Reason};
+		{atomic, Result} ->
+			Result
+	end.
+
+-spec frp(Offers) -> FilterOffer
+	when
+		Offers :: [#offer{}],
+		FilterOffer :: [#{offer => OfferId, price => Price}],
+		OfferId :: string(),
+		Price :: #price{}.
+%% @doc Filter recurring prices
+%% @private
+frp(Offers) ->
+	frp1(Offers, []).
+%% @hidden
+frp1([#offer{name = OfferId, price = Prices} = Offer | T], Acc) ->
+	case lists:any(fun frp2/1, Prices) of
+		false ->
+			frp1(T, Acc);
+		true ->
+			frp1(T, [#{offer_id => OfferId, offer => Offer}] ++ Acc)
+	end;
+frp1([], Acc) ->
+	lists:reverse(Acc).
+%% @hidden
+frp2(#price{type = Bundle}) when Bundle /= [] ->
+	true;
+frp2(#price{type = recurring}) ->
+	true;
+frp2(#price{alteration = #alteration{type = recurring}}) ->
+	true;
+frp2(_) ->
+	false.
+
+%% @private
+update_buckets(BRefs, OldB, NewB) ->
+	AllNewKeys = [B#bucket.id || B <- NewB],
+	UpdatedB = NewB -- OldB,
+	update_b(UpdatedB),
+	ok = delete_b(BRefs -- AllNewKeys),
+	AllNewKeys.
+
+%% @private
+update_b([B | T]) ->
+	ok = mnesia:write(B),
+	update_b(T);
+update_b([]) ->
+	ok.
+
+%% @private
+delete_b([BRef | T]) ->
+	ok = mnesia:delete(bucket, BRef, write),
+	delete_b(T);
+delete_b([]) ->
+	ok.
+
+%% @hidden
+interval(ScheduledTime, Interval) ->
+	{Date, Time} = erlang:universaltime(),
+	Today = calendar:date_to_gregorian_days(Date),
+	Period = Interval div 1440,
+	ScheduleDay = calendar:gregorian_days_to_date(Today + Period),
+	Next = {ScheduleDay, ScheduledTime},
+	Now = calendar:datetime_to_gregorian_seconds({Date, Time}),
+	(calendar:datetime_to_gregorian_seconds(Next) - Now) * 1000.
 

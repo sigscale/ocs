@@ -21,7 +21,7 @@
 <link rel="import" href="paper-icon-button/paper-icon-button.html">
 <link rel="import" href="paper-date-picker/paper-date-picker.html">
 
-<dom-module id="sig-product-update">
+<dom-module id="sig-offer-update">
 	<template>
 		<style is="custom-style">
 			paper-dialog {
@@ -113,7 +113,7 @@
 							</paper-icon-button>
 					</div>
 					<iron-collapse id="addBundleUpdate">
-						<template is=dom-repeat items="{{products}}">
+						<template is=dom-repeat items="{{offers}}">
 							<div>
 								<paper-checkbox checked="{{item.checked}}">
 									{{item.name}}
@@ -440,7 +440,7 @@
 						</paper-dropdown-menu>
 						<paper-tooltip>
 							<i18n-msg msgid="priceAlterTool">
-								add alteration to product offering price
+								add alteration to offering price
 							</i18n-msg>
 						</paper-tooltip>
 					</div>
@@ -631,7 +631,7 @@
 								onfocus="updateProductEndDatePickAlt.hide(); updateProductStartDatePickAlt.hide();">
 						</paper-input>
 						<paper-tooltip>
-								product offering alteration name
+								offering alteration name
 						</paper-tooltip>
 					</div>
 					<div>
@@ -642,7 +642,7 @@
 								onfocus="updateProductEndDatePickAlt.hide(); updateProductStartDatePickAlt.hide();">
 						</paper-input>
 						<paper-tooltip>
-								product offering alteration description
+								offering alteration description
 						</paper-tooltip>
 					</div>
 					<div>
@@ -657,7 +657,7 @@
 								onfocus="updateProductEndDatePickAlt.hide(); updateProductStartDatePickAlt.show();">
 						</paper-input>
 						<paper-tooltip>
-								product offering alteration start date
+								offering alteration start date
 						</paper-tooltip>
 					</div>
 					<div>
@@ -672,7 +672,7 @@
 								onfocus="updateProductStartDatePickAlt.hide(); updateProductEndDatePickAlt.show();">
 						</paper-input>
 						<paper-tooltip>
-								product offering alteration end date
+								offering alteration end date
 						</paper-tooltip>
 					</div>
 					<div>
@@ -697,7 +697,7 @@
 							</paper-listbox>
 						</paper-dropdown-menu>
 						<paper-tooltip>
-								product offering alteration price type
+								offering alteration price type
 						</paper-tooltip>
 					</div>
 					<div>
@@ -713,7 +713,7 @@
 								onfocus="updateProductEndDatePickAlt.hide(); updateProductStartDatePickAlt.hide();">
 						</paper-input>
 						<paper-tooltip>
-								product offering alteration size
+								offering alteration size
 						</paper-tooltip>
 					</div>
 					<div>
@@ -742,7 +742,7 @@
 							</paper-listbox>
 						</paper-dropdown-menu>
 						<paper-tooltip>
-								product offering alteration units
+								offering alteration units
 						</paper-tooltip>
 					</div>
 					<div>
@@ -758,7 +758,7 @@
 								onfocus="updateProductEndDatePickAlt.hide(); updateProductStartDatePickAlt.hide();">
 						</paper-input>
 						<paper-tooltip>
-								product offering alteration amount
+								offering alteration amount
 						</paper-tooltip>
 					</div>
 					<div>
@@ -769,7 +769,7 @@
 								onfocus="updateProductEndDatePickAlt.hide(); updateProductStartDatePickAlt.hide();">
 						</paper-input>
 						<paper-tooltip>
-								product offering alteration currency
+								offering alteration currency
 						</paper-tooltip>
 					</div>
 					<div>
@@ -799,7 +799,7 @@
 							</paper-listbox>
 						</paper-dropdown-menu>
 						<paper-tooltip>
-								product offering alteration period
+								offering alteration period
 						</paper-tooltip>
 					</div>
 					<div class="buttons">
@@ -885,7 +885,7 @@
 	</template>
 	<script>
 		Polymer ({
-			is: 'sig-product-update',
+			is: 'sig-offer-update',
 			behaviors: [i18nMsgBehavior],
 			properties: {
 				alterations: {
@@ -900,7 +900,7 @@
 						return [];
 					}
 				},
-				products: {
+				offers: {
 					type: Array,
 					value: function() {
 						return [];
@@ -1082,23 +1082,23 @@
 					return spec.name == results[index].name;
 				}
 				for (var index in results) {
-					if(!this.products.some(checkExist)) {
+					if(!this.offers.some(checkExist)) {
 						var product = new Object();
 						product.id = results[index].id;
 						product.href = results[index].href;
 						product.name = results[index].name;
 						product.checked = false;
-						this.push('products', product);
+						this.push('offers', product);
 					}
 				}
-				var bundle = document.getElementById("productGrid").activeItem.bundledProductOffering;
+				var bundle = document.getElementById("offerGrid").activeItem.bundledProductOffering;
 				for(var indexBun in bundle) {
 					function checkExist1(prod) {
 						return prod.name == bundle[indexBun].name;
 					}
-					var ind = this.products.findIndex(checkExist1);
+					var ind = this.offers.findIndex(checkExist1);
 					if (ind != -1) {
-						this.products[ind].checked = true;
+						this.offers[ind].checked = true;
 					}
 				}
 			},
@@ -1451,7 +1451,7 @@
 			},
 			_updateProductOfferResponse: function(event) {
 				this.$.updateProductModal.close();
-				document.getElementById("productGrid").clearCache();
+				document.getElementById("offerGrid").clearCache();
 			},
 			_updateProductOfferError: function(event) {
 				this.$.updateProductToastError.text = event.detail.request.xhr.statusText;
@@ -1788,7 +1788,7 @@
 			}, 
 			_updateProductPriceResponse: function(event) {
 				this.$.updateProductModal.close();
-				document.getElementById("productGrid").clearCache();
+				document.getElementById("offerGrid").clearCache();
 			},
 			_updateProductPriceError: function(event) {
 				this.$.updateProductToastError.text = event.detail.request.xhr.statusText;
@@ -1846,7 +1846,7 @@
 			},
 			_updateProductAlterationResponse: function(event) {
 				this.$.updateProductModal.close();
-				document.getElementById("productGrid").clearCache();
+				document.getElementById("offerGrid").clearCache();
 			},
 			_updateProductAlterationError: function(event) {
 				this.$.updateProductToastError.text = event.detail.request.xhr.statusText;
@@ -2229,7 +2229,7 @@
 			},
 			_deleteProductResponse: function(event) {
 				this.$.updateProductModal.close();
-				document.getElementById("productGrid").clearCache();
+				document.getElementById("offerGrid").clearCache();
 			},
 			_deleteProductError: function(event) {
 				this.$.updateProductToastError.text = event.detail.request.xhr.statusText;
@@ -2247,7 +2247,7 @@
 				document.getElementById("updateProductToastSuccess").open();
 				this.set('prices', []);
 				this.set('alterations', []);
-				document.getElementById("productGrid").clearCache();
+				document.getElementById("offerGrid").clearCache();
 				this.cancelDialog();
 			},
 			cancelDialog: function() {

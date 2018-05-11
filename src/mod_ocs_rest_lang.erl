@@ -72,6 +72,8 @@ do(#mod{request_uri = Uri, data = Data} = ModData) ->
 									{proceed, Data};
 								["productInventoryManagement", "v2" | _] ->
 									{proceed, Data};
+								["serviceInventoryManagement", "v2" | _] ->
+									{proceed, Data};
 								_ ->
 									serve_index(User, ModData)
 							end;

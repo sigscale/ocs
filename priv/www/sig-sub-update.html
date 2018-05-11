@@ -125,30 +125,6 @@
 				</div>
 				<div id="edit-attributes">
 					<div>
-						<paper-input id="updateSubscriberDataRate"
-								name="ascendDataRate"
-								type="number"
-								label="[[i18n.recieve]]">
-						</paper-input>
-						<paper-tooltip>
-							<i18n-msg msgid="dataRateTooltip">
-									Limit on received (download) data per second in bits.
-							</i18n-msg>
-						</paper-tooltip>
-					</div>
-					<div>
-						<paper-input id="updateSubscriberXmitRate"
-								name="ascendXmitRate"
-								type="number"
-								label="[[i18n.trans]]">
-						</paper-input>
-						<paper-tooltip>
-							<i18n-msg msgid="xmitRateTooltip">
-									Limit on transmitted (upload) data per second in bits.
-							</i18n-msg>
-						</paper-tooltip>
-					</div>
-					<div>
 						<paper-input id="updateSubscriberTimeout"
 								name="sessionTimeout"
 								type="number"
@@ -162,13 +138,13 @@
 					</div>
 					<div>
 						<paper-input id="updateSubscriberInterval"
-								name="acctInterimInterval"
+								name="acctSessionInterval"
 								type="number"
 								label="[[i18n.accInt]]">
 						</paper-input>
 						<paper-tooltip>
 							<i18n-msg msgid="intervalTooltip">
-									Time between accouting interim updates in seconds.
+									Time between accouting session updates in seconds.
 							</i18n-msg>
 						</paper-tooltip>
 					</div>
@@ -338,6 +314,12 @@
 				on-error="_updateSubscriberBalanceError">
 		</iron-ajax>
 		<iron-ajax
+				id="getServiceRespAjax"
+				method = "GET"
+				on-response="_getServiceResponse"
+				on-error="_getServiceError">
+		</iron-ajax>
+		<iron-ajax
 				id="updateSubscriberProductsAjax"
 				url="/catalogManagement/v2/productOffering"
 				method = "GET"
@@ -354,12 +336,12 @@
 					type: Number,
 					value: 0
 				},
-				products: {
+				offers: {
 					type: Array,
 					value: function() {
 						return [];
 					}
-				},
+				}
 			},
 			_updateSubscriberProductsResponse: function(event) {
 				var results = event.detail.xhr.response;
@@ -367,8 +349,8 @@
 					function checkExist(name) {
 						return name == results[index].name;
 					}
-					if(!this.products.some(checkExist)){
-						this.push('products', results[index].name);
+					if(!this.offers.some(checkExist)){
+						this.push('offers', results[index].name);
 					}
 				}
 			},
@@ -377,15 +359,27 @@
 				this.$.updateSubscriberToastError.open();
 			},
 			updateSubscriberAuthentication: function(event) {
+				var id = document.getElementById("updateSubscriberId").value;
+				var getAjax = this.$.getServiceRespAjax; 
+				var etag = getAjax.lastRequest.xhr.getResponseHeader('ETag');
+				var results = getAjax.lastResponse;
 				var editAjax =  this.$.updateSubscriberAuthenticationAjax;
 				editAjax.method = "PATCH";
+				editAjax.headers['If-Match'] = etag;
 				editAjax.contentType = "application/json-patch+json";
 				var id = document.getElementById("updateSubscriberId").value;
-				editAjax.url = "/ocs/v1/subscriber/" + id;
+				editAjax.url = "/serviceInventoryManagement/v2/service/" + id;
+				function checkPass(pass) {
+					return pass.name == "servicePassword";
+				}
+				var index = results.serviceCharacteristic.findIndex(checkPass);
 				var sub = new Object();
 				sub.op = "replace";
-				sub.path = "/password";
-				sub.value = document.getElementById("updateSubscriberNewPassword").value;
+				sub.path = "/serviceCharacteristic/" + index;
+				var servicePass = new Object();
+				servicePass.name = "servicePassword";
+				servicePass.value = document.getElementById("updateSubscriberNewPassword").value;
+				sub.value = servicePass;
 				editAjax.body = JSON.stringify([sub]);;
 				editAjax.generateRequest();
 			},
@@ -432,48 +426,78 @@
 				this.$.updateSubscriberToastError.open();
 			},
 			updateSubscriberAuthorization: function(event) {
+				var getAjax = this.$.getServiceRespAjax;
+				var results = getAjax.lastResponse;
 				var editAjax =  this.$.updateSubscriberAuthorizationAjax;
 				editAjax.method = "PATCH";
 				editAjax.contentType = "application/json-patch+json";
-				editAjax.url = "/ocs/v1/subscriber/" + this.$.updateSubscriberId.value;
-				var sub = new Object();
-				sub.op = "replace";
-				sub.path = "/attributes";
-				var attr = new Array();
-				var ascendDataRate = new Object();
-				ascendDataRate.name = "ascendDataRate";
-				ascendDataRate.value = parseInt(this.$.updateSubscriberDataRate.value);
-				attr[0] = ascendDataRate;
-				var ascendXmitRate = new Object();
-				ascendXmitRate.name = "ascendXmitRate";
-				ascendXmitRate.value = parseInt(this.$.updateSubscriberXmitRate.value);
-				attr[1] = ascendXmitRate;
-				var sessionTimeout = new Object();
-				sessionTimeout.name = "sessionTimeout";
-				sessionTimeout.value = parseInt(this.$.updateSubscriberTimeout.value);
-				attr[2] = sessionTimeout;
-				var acctInterimInterval = new Object();
-				acctInterimInterval.name = "acctInterimInterval";
-				acctInterimInterval.value = parseInt(this.$.updateSubscriberInterval.value);
-				attr[3] = acctInterimInterval;
-				var classx = new Object();
-				classx.name = "class";
-				if(this.$.updateSubscriberClass.value == undefined) {
-					classx.value = null;
-				} else {
-					classx.value = this.$.updateSubscriberClass.value;
-				}
-				attr[4] = classx;
-				sub.value = attr;
+				editAjax.url = "/serviceInventoryManagement/v2/service/" + this.$.updateSubscriberId.value;
 				var ena = new Object();
 				ena.op = "replace";
-				ena.path = "/enabled";
+				ena.path = "/isServiceEnabled";
 				ena.value = this.$.updateSubscriberEnabled.checked;
+				if(this.$.updateSubscriberTimeout.value) {
+					function checkTimeout(sessionTime) {
+						return sessionTime.name == "sessionTimeout";
+					}
+					var indexSession = results.serviceCharacteristic.findIndex(checkTimeout);
+					var sub = new Object();
+					sub.op = "replace";
+					sub.path = "/serviceCharacteristic/" + indexSession;
+					var sessionTimeout = new Object();
+					sessionTimeout.name = "sessionTimeout";
+					sessionTimeout.value = parseInt(this.$.updateSubscriberTimeout.value);
+					sub.value = sessionTimeout;
+				} else {
+					function checkTimeout(sessionTime) {
+						return sessionTime.name == "sessionTimeout";
+					}
+					var indexSession = results.serviceCharacteristic.findIndex(checkTimeout);
+					var sub = new Object();
+					sub.op = "replace";
+					sub.path = "/serviceCharacteristic/" + indexSession;
+					var sessionTimeout = new Object();
+					sessionTimeout.name = "sessionTimeout";
+					sessionTimeout.value = results.serviceCharacteristic[indexSession].value;
+					sub.value = sessionTimeout;
+				}
+				if(this.$.updateSubscriberInterval.value) {
+					function checkSessionInt(sessionInterval) {
+						return sessionInterval.name == "acctSessionInterval";
+					}
+					var indexSessionInt = results.serviceCharacteristic.findIndex(checkSessionInt);
+					var sub1 = new Object();
+					sub1.op = "replace";
+					sub1.path = "/serviceCharacteristic/" + indexSessionInt;
+					var acctSessionInterval = new Object();
+					acctSessionInterval.name = "acctSessionInterval";
+					acctSessionInterval.value = parseInt(this.$.updateSubscriberInterval.value);
+					sub1.value = acctSessionInterval;
+				} else{
+					function checkSessionInt(sessionInterval) {
+						return sessionInterval.name == "acctSessionInterval";
+					}
+					var indexSessionInt = results.serviceCharacteristic.findIndex(checkSessionInt);
+					var sub1 = new Object();
+					sub1.op = "replace";
+					sub1.path = "/serviceCharacteristic/" + indexSessionInt;
+					var acctSessionInterval = new Object();
+					acctSessionInterval.name = "acctSessionInterval";
+					acctSessionInterval.value = results.serviceCharacteristic[indexSessionInt].value;
+					sub1.value = acctSessionInterval;
+				}
+				function checkMulti(multiSess) {
+					return multiSess.name == "multiSession";
+				}
+				var indexMulti = results.serviceCharacteristic.findIndex(checkMulti);
+				var sub2 = new Object();
+				sub2.op = "replace";
+				sub2.path = "/serviceCharacteristic/" + indexMulti;
 				var multi = new Object();
-				multi.op = "replace";
-				multi.path = "/multisession";
+				multi.name = "multiSession";
 				multi.value = this.$.updateSubscriberMulti.checked;
-				editAjax.body = JSON.stringify([sub, ena, multi]);;
+				sub2.value = multi;
+				editAjax.body = JSON.stringify([sub, sub1, sub2, ena]);
 				editAjax.generateRequest();
 			},
 			_updateSubscriberAuthorizationResponse: function (event) {
@@ -486,7 +510,7 @@
 			},
 			deleteSubscriber: function(event) {
 				this.$.deleteSubscriberAjax.method = "DELETE";
-				this.$.deleteSubscriberAjax.url = "/ocs/v1/subscriber/"
+				this.$.deleteSubscriberAjax.url = "/serviceInventoryManagement/v2/service/"
 						+ document.getElementById("subscriberGrid").selectedItems[0].id;
 				this.$.deleteSubscriberAjax.generateRequest();
 			},

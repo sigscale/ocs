@@ -28,7 +28,6 @@
 -export([get_resource_catalog/1, get_resource_catalogs/1]).
 -export([get_resource_inventory/2, add_resource_inventory/2, patch_resource_inventory/4,
 			delete_resource_inventory/2]).
--export([gtt/2]).
 
 -include("ocs.hrl").
 

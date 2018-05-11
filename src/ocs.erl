@@ -25,20 +25,22 @@
 -export([add_client/2, add_client/3, add_client/5, find_client/1,
 		update_client/2, update_client/3, get_clients/0, delete_client/1,
 		query_clients/6]).
--export([add_subscriber/3, add_subscriber/4, add_subscriber/5,
-		add_subscriber/6, add_subscriber/8,
-		find_subscriber/1, delete_subscriber/1, update_password/2,
-		update_attributes/2, update_attributes/5, get_subscribers/0,
-		query_subscriber/9]).
+-export([add_service/2, add_service/3, add_service/4, add_service/5,
+		add_service/8, add_product/2, add_product/3, add_product/5,
+		delete_product/1, get_products/0, query_product/7]).
+-export([find_service/1, delete_service/1, get_services/0, query_service/1,
+		find_product/1]).
+-export([add_bucket/2, find_bucket/1, get_buckets/0, get_buckets/1,
+		delete_bucket/1, query_bucket/3]).
 -export([add_user/3, list_users/0, get_user/1, delete_user/1,
 		query_users/3, update_user/3]).
--export([add_product/1, find_product/1, get_products/0, delete_product/1,
-		query_product/7]).
+-export([add_offer/1, find_offer/1, get_offers/0, delete_offer/1,
+		query_offer/7]).
 -export([add_pla/1, add_pla/2, find_pla/1, get_plas/0, delete_pla/1, query_table/6]).
 -export([generate_password/0, generate_identity/0]).
 -export([start/4, start/5]).
 %% export the ocs private API
--export([authorize/3, normalize/1, subscription/4]).
+-export([normalize/1, subscription/4, generate_bucket_id/0, end_period/2]).
 
 -export_type([eap_method/0]).
 
@@ -352,232 +354,17 @@ query_clients4(Clients, Address) ->
 	Fun = fun(#client{address = A}) -> lists:prefix(Address, inet:ntoa(A)) end,
 	{eof, lists:filter(Fun, Clients)}.
 
--spec add_subscriber(Identity, Password, Product) -> Result
-	when
-		Identity :: string() | binary(),
-		Password :: string() | binary(),
-		Product :: string() | undefined,
-		Result :: {ok, #subscriber{}} | {error, Reason},
-		Reason :: term().
-%% @equiv add_subscriber(Identity, Password, Product, [], [], [], true, false)
-add_subscriber(Identity, Password, Product) ->
-	add_subscriber(Identity, Password, Product, [], [], [], true, false).
-
--spec add_subscriber(Identity, Password, Product, Characteristics) -> Result
-	when 
-		Identity :: string() | binary(),
-		Password :: string() | binary(),
-		Product :: string() | undefined,
-		Characteristics :: [tuple()],
-		Result :: {ok, #subscriber{}} | {error, Reason},
-		Reason :: term().
-%% @equiv add_subscriber(Identity, Password, Product, Characteristics, Buckets, [], true, false)
-add_subscriber(Identity, Password, Product, Characteristics) ->
-	add_subscriber(Identity, Password, Product, Characteristics, [], [], true, false).
-
--spec add_subscriber(Identity, Password, Product, Characteristics, Buckets) -> Result
-	when 
-		Identity :: string() | binary(),
-		Password :: string() | binary(),
-		Product :: string() | undefined,
-		Characteristics :: [tuple()],
-		Buckets :: [#bucket{}],
-		Result :: {ok, #subscriber{}} | {error, Reason},
-		Reason :: term().
-%% @equiv add_subscriber(Identity, Password, Product, Characteristics, Buckets, [], true, false)
-add_subscriber(Identity, Password, Product, Characteristics, Buckets) ->
-	add_subscriber(Identity, Password, Product, Characteristics, Buckets, [], true, false).
-
--spec add_subscriber(Identity, Password, Product,
-		Characteristics, Buckets, Attributes) -> Result
-	when 
-		Identity :: string() | binary(),
-		Password :: string() | binary(),
-		Product :: string() | undefined,
-		Characteristics :: [tuple()],
-		Buckets :: [#bucket{}],
-		Attributes :: radius_attributes:attributes() | binary(),
-		Result :: {ok, #subscriber{}} | {error, Reason},
-		Reason :: term().
-%% @equiv add_subscriber(Identity, Password, Product,
-%%		Characteristics, Buckets, Attributes, true, false)
-add_subscriber(Identity, Password, Product, Characteristics, Buckets, Attributes) ->
-	add_subscriber(Identity, Password, Product,
-			Characteristics, Buckets, Attributes, true, false).
-
--spec add_subscriber(Identity, Password, Product,
-		Characteristics, Buckets, Attributes, EnabledStatus, MultiSessions) -> Result
-	when
-		Identity :: string() | binary() | undefined,
-		Password :: string() | binary() | undefined,
-		Product :: string() | undefined,
-		Characteristics :: [tuple()] | undefined,
-		Buckets :: [#bucket{}] | undefined,
-		Attributes :: radius_attributes:attributes() | binary(),
-		EnabledStatus :: boolean() | undefined,
-		MultiSessions :: boolean() | undefined,
-		Result :: {ok, #subscriber{}} | {error, Reason},
-		Reason :: term().
-%% @doc Create an entry in the subscriber table.
-%%
-%% 	Authentication will be done using `Password'. An optional list of
-%% 	RADIUS `Attributes', to be returned in an `AccessRequest' response,
-%% 	may be provided.  These attributes will overide any default values.
-%%
-%% 	An initial account `Bucket', `Product' key for product reference
-%%		`Enabled' status and `MultiSessions' status may be provided.
-%%
-add_subscriber(Identity, Password, Product, Characteristics, Buckets, Attributes, EnabledStatus, undefined) ->
-	add_subscriber(Identity, Password, Product, Characteristics, Buckets, Attributes, EnabledStatus, false);
-add_subscriber(Identity, Password, Product, Characteristics, Buckets, Attributes, undefined, MultiSession) ->
-	add_subscriber(Identity, Password, Product, Characteristics, Buckets, Attributes, true, MultiSession);
-add_subscriber(Identity, Password, Product, Characteristics, Buckets, undefined, EnabledStatus, MultiSession) ->
-	add_subscriber(Identity, Password, Product, Characteristics, Buckets, [], EnabledStatus, MultiSession);
-add_subscriber(Identity, Password, Product, Characteristics, undefined, Attributes, EnabledStatus, MultiSession) ->
-	add_subscriber(Identity, Password, Product, Characteristics, [], Attributes, EnabledStatus, MultiSession);
-add_subscriber(Identity, Password, Product, undefined, Buckets, Attributes, EnabledStatus, MultiSession) ->
-	add_subscriber(Identity, Password, Product, [], Buckets, Attributes, EnabledStatus, MultiSession);
-add_subscriber(Identity, Password, undefined, Characteristics, Buckets, Attributes, EnabledStatus, MultiSession) ->
-	add_subscriber(Identity, Password, [], Characteristics, Buckets, Attributes, EnabledStatus, MultiSession);
-add_subscriber(Identity, undefined, Product, Characteristics, Buckets, Attributes, EnabledStatus, MultiSession) ->
-	add_subscriber(Identity, ocs:generate_password(),
-			Product, Characteristics, Buckets, Attributes, EnabledStatus, MultiSession);
-add_subscriber(Identity, Password, Product, Characteristics, Buckets, Attributes, EnabledStatus, MultiSession)
-		when is_list(Identity) ->
-	add_subscriber(list_to_binary(Identity), Password, Product, Characteristics, Buckets,
-			Attributes, EnabledStatus, MultiSession);
-add_subscriber(Identity, Password, Product, Characteristics, Buckets, Attributes, EnabledStatus, MultiSession)
-		when is_list(Password) ->
-	add_subscriber(Identity, list_to_binary(Password), Product, Characteristics, Buckets,
-			Attributes, EnabledStatus, MultiSession);
-add_subscriber(undefined, Password, Product, Characteristics, Buckets, Attributes, EnabledStatus, MultiSession)
-		when is_binary(Password), is_list(Product), is_list(Buckets), is_list(Attributes),
-		is_boolean(EnabledStatus), is_boolean(MultiSession) ->
-	Now = erlang:system_time(?MILLISECOND),
-	F1 = fun() ->
-				ProductId = case Product of
-					[] ->
-						case mnesia:first(product) of
-							'$end_of_table' ->
-								throw(product_not_found);
-							ProdId ->
-								ProdId
-						end;
-					Product ->
-						Product
-				end,
-				case mnesia:read(product, ProductId, read) of
-					[#product{char_value_use = CharValueUse} = P] ->
-						N = erlang:unique_integer([positive]),
-						S1 = #subscriber{password = Password,
-								attributes = Attributes,
-								buckets = Buckets,
-								enabled = EnabledStatus,
-								multisession = MultiSession,
-								last_modified = {Now, N}},
-						NewChars = default_chars(CharValueUse, Characteristics),
-						S2 = subscription(S1, P, NewChars, true),
-						F3 = fun(_, _, 0) ->
-									mnesia:abort(retries);
-								(F, Identity, I) ->
-									case mnesia:read(subscriber, Identity, read) of
-										[] ->
-											S3 = S2#subscriber{name = Identity},
-											ok = mnesia:write(S3),
-											S3;
-										[_] ->
-											F(F, list_to_binary(generate_identity()), I - 1)
-									end
-						end,
-						F3(F3, list_to_binary(generate_identity()), 5);
-					[] ->
-						throw(product_not_found)
-				end
-	end,
-	case mnesia:transaction(F1) of
-		{atomic, Subscriber} ->
-			{ok, Subscriber};
-		{aborted, Reason} ->
-			{error, Reason}
-	end;
-add_subscriber(Identity, Password, Product, Characteristics, Buckets, Attributes, EnabledStatus, MultiSession)
-		when is_binary(Identity), size(Identity) > 0, is_binary(Password), is_list(Product),
-		is_list(Buckets), is_list(Attributes), is_boolean(EnabledStatus), is_boolean(MultiSession) ->
-	Now = erlang:system_time(?MILLISECOND),
-	F1 = fun() ->
-				ProductId = case Product of
-					[] ->
-						case mnesia:first(product) of
-							'$end_of_table' ->
-								throw(product_not_found);
-							ProdId ->
-								ProdId
-						end;
-					Product ->
-						Product
-				end,
-				case mnesia:read(product, ProductId, read) of
-					[#product{char_value_use = CharValueUse} = P] ->
-						N = erlang:unique_integer([positive]),
-						S1 = #subscriber{name = Identity,
-								password = Password,
-								attributes = Attributes,
-								buckets = Buckets,
-								enabled = EnabledStatus,
-								multisession = MultiSession,
-								last_modified = {Now, N}},
-						NewChars = default_chars(CharValueUse, Characteristics),
-						S2 = subscription(S1, P, NewChars, true),
-						ok = mnesia:write(S2),
-						S2;
-					[] ->
-						throw(product_not_found)
-				end
-	end,
-	case mnesia:transaction(F1) of
-		{atomic, Subscriber} ->
-			{ok, Subscriber};
-		{aborted, Reason} ->
-			{error, Reason}
-	end.
-
--spec find_subscriber(Identity) -> Result  
-	when
-		Identity :: string() | binary(),
-		Result :: {ok, #subscriber{}} | {error, Reason},
-		Reason :: not_found | term().
-%% @doc Look up an entry in the subscriber table.
-find_subscriber(Identity) when is_list(Identity) ->
-	find_subscriber(list_to_binary(Identity));
-find_subscriber(Identity) when is_binary(Identity) ->
-	F = fun() ->
-				mnesia:read(subscriber, Identity, read)
-	end,
-	case mnesia:transaction(F) of
-		{atomic, [#subscriber{} = Subscriber]} ->
-			{ok, Subscriber};
-		{atomic, []} ->
-			{error, not_found};
-		{aborted, Reason} ->
-			{error, Reason}
-	end.
-
--spec get_subscribers() -> Result
-	when
-		Result :: [#subscriber{}] | {error, Reason},
-		Reason :: term().
-%% @doc Get all entries in the subscriber table.
-get_subscribers()->
+get_products()->
 	MatchSpec = [{'_', [], ['$_']}],
 	F = fun(F, start, Acc) ->
-				F(F, mnesia:select(subscriber, MatchSpec,
-						?CHUNKSIZE, read), Acc);
-			(_F, '$end_of_table', Acc) ->
+		F(F, mnesia:select(product, MatchSpec,
+				?CHUNKSIZE, read), Acc);
+		(_F, '$end_of_table', Acc) ->
 				lists:flatten(lists:reverse(Acc));
-			(_F, {error, Reason}, _Acc) ->
+		(_F, {error, Reason}, _Acc) ->
 				{error, Reason};
-			(F,{Subscribers, Cont}, Acc) ->
-				F(F, mnesia:select(Cont), [Subscribers | Acc])
+		(F,{Products, Cont}, Acc) ->
+				F(F, mnesia:select(Cont), [Products | Acc])
 	end,
 	case mnesia:transaction(F, [F, start, []]) of
 		{aborted, Reason} ->
@@ -586,242 +373,726 @@ get_subscribers()->
 			Result
 	end.
 
--spec query_subscriber(Cont, Id, Password, Product, Cents,
-		Bytes, Seconds, Enabled, MultiSession) -> Result
+-spec query_product(Cont, Id, Name, Offer, SDT, EDT, Service) -> Result
 	when
 		Cont :: start | eof | any(),
-		Id :: undefined | string(),
-		Password :: undefined | string(),
-		Product :: undefined | string(),
-		Cents :: undefined | string(),
-		Bytes :: undefined | string(),
-		Seconds :: undefined | string(),
-		Enabled :: undefined | string(),
-		MultiSession :: undefined | string(),
+		Id :: string() | undefined | '_',
+		Name :: string() | undefined | '_',
+		Offer :: string() | undefined | '_',
+		SDT :: pos_integer() | undefined | '_',
+		EDT :: pos_integer() | undefined | '_',
+		Service :: binary() | string() | undefined | '_',
 		Result :: {Cont, [#product{}]} | {error, Reason},
 		Reason :: term().
-%% @doc Query product inventories
-query_subscriber(start, Id, Password, Product, Cents,
-		Bytes, Seconds, Enabled, MultiSession) ->
+%% @doc Query product
+query_product(Cont, Id, Name, Offer, SDT, EDT, undefined) ->
+	query_product(Cont, Id, Name, Offer, SDT, EDT, '_');
+query_product(Cont, Id, Name, Offer, SDT, undefined, Service) ->
+	query_product(Cont, Id, Name, Offer, SDT, '_', Service);
+query_product(Cont, Id, Name, Offer, undefined, EDT, Service) ->
+	query_product(Cont, Id, Name, Offer, '_', EDT, Service);
+query_product(Cont, Id, Name, undefined, SDT, EDT, Service) ->
+	query_product(Cont, Id, Name, '_', SDT, EDT, Service);
+query_product(Cont, Id, undefined, Offer, SDT, EDT, Service) ->
+	query_product(Cont, Id, '_', Offer, SDT, EDT, Service);
+query_product(Cont, undefined, Name, Offer, SDT, EDT, Service) ->
+	query_product(Cont, '_', Name, Offer, SDT, EDT, Service);
+query_product(Cont, Id, Name, Offer, SDT, EDT, Service) when is_binary(Service)->
+	query_product(Cont, Id, Name, Offer, SDT, EDT, binary_to_list(Service));
+query_product(start, Id, Name, Offer, SDT, EDT, Service) ->
+	MatchSpec = [{'_', [], ['$_']}],
+	F = fun F(start, Acc) ->
+				F(mnesia:select(product, MatchSpec,
+						?CHUNKSIZE, read), Acc);
+			F('$end_of_table', Acc) ->
+				lists:flatten(lists:reverse(Acc));
+			F({error, Reason}, _Acc) ->
+				{error, Reason};
+			F({Products, Cont}, Acc) ->
+				F(mnesia:select(Cont), [Products | Acc])
+	end,
+	case mnesia:transaction(F, [start, []]) of
+		{aborted, Reason} ->
+			{error, Reason};
+		{atomic, Products1} ->
+			Products2 = query_product1(Products1, Id, Name,
+					Offer, SDT, EDT, Service),
+			{eof, Products2}
+	end.
+%% @hidden
+query_product1(Products, '_', Name, Offer, SDT, EDT, Service) ->
+	query_product2(Products, Name, Offer, SDT, EDT, Service);
+query_product1(Products, Id, Name, Offer, SDT, EDT, Service) ->
+	F = fun(#product{id = Id1}) when is_list(Id1)->
+				lists:prefix(Id, Id1);
+		(_) ->
+			false
+	end,
+	NewProducts = lists:filter(F, Products),
+	query_product2(NewProducts, Name, Offer, SDT, EDT, Service).
+%% @hidden
+query_product2(Products, '_', Offer, SDT, EDT, Service) ->
+	query_product3(Products, Offer, SDT, EDT, Service);
+query_product2(Products, Name, Offer, SDT, EDT, Service) ->
+	F = fun(#product{name = Name1}) when is_list(Name1)->
+				lists:prefix(Name, Name1);
+			(_) ->
+				false
+	end,
+	NewProducts = lists:filter(F, Products),
+	query_product3(NewProducts, Offer, SDT, EDT, Service).
+%% @hidden
+query_product3(Products, '_', SDT, EDT, Service) ->
+	query_product4(Products, SDT, EDT, Service);
+query_product3(Products, Offer, SDT, EDT, Service) ->
+	F = fun(#product{product = Offer1}) when is_list(Offer1)->
+				lists:prefix(Offer, Offer1);
+		(_) ->
+			false
+	end,
+	NewProducts = lists:filter(F, Products),
+	query_product4(NewProducts, SDT, EDT, Service).
+%% @hidden
+query_product4(Products, '_', '_', Service) ->
+	query_product5(Products, Service);
+query_product4(Products, SDT, '_', Service) when is_integer(SDT) ->
+	F = fun(#product{start_date = SDT1}) when SDT1 >= SDT -> true; (_) -> false end,
+	NewProducts = lists:filter(F, Products),
+	query_product5(NewProducts, Service);
+query_product4(Products, '_', EDT, Service) when is_integer(EDT) ->
+	F = fun(#product{end_date = EDT1}) when EDT1 =< EDT -> true; (_) -> false end,
+	NewProducts = lists:filter(F, Products),
+	query_product5(NewProducts, Service).
+%% @hidden
+query_product5(Products, '_') ->
+	Products;
+query_product5(Products, Service) ->
+	F = fun(#product{service = Services} = P, AccIn) ->
+			F2 = fun(S) when is_binary(S) ->
+						lists:prefix(Service, binary_to_list(S));
+					(S) when is_list(S) ->
+						lists:prefix(Service, S)
+			end,
+			case lists:any(F2, Services) of
+				true ->
+					[P | AccIn];
+				false ->
+					AccIn
+			end
+	end,
+	lists:foldl(F, [], Products).
+
+-spec add_product(Offer, ServiceRefs) -> Result
+	when
+		Offer :: string(),
+		ServiceRefs :: [ServiceRef],
+		Result :: {ok, #product{}} | {error, Reason},
+		ServiceRef :: binary(),
+		Reason :: term().
+%% @equiv add_product(Offer, undefined, undefined, Characteristics)
+add_product(Offer, ServiceRefs) ->
+	add_product(Offer, ServiceRefs, undefined, undefined, []).
+
+-spec add_product(Offer, ServiceRefs, Characteristics) -> Result
+	when
+		Offer :: string(),
+		ServiceRefs :: [ServiceRef],
+		Characteristics :: [tuple()],
+		ServiceRef :: binary(),
+		Result :: {ok, #product{}} | {error, Reason},
+		Reason :: term().
+%% @equiv add_product(Offer, undefined, undefined, Characteristics)
+add_product(Offer, ServiceRefs, Characteristics) ->
+	add_product(Offer, ServiceRefs, undefined, undefined, Characteristics).
+
+-spec add_product(OfferId, ServiceRefs, StartDate, EndDate, Characteristics) -> Result
+	when
+		OfferId :: string(),
+		ServiceRefs :: [ServiceRef],
+		StartDate :: undefined | pos_integer(),
+		EndDate :: undefined | pos_integer(),
+		Characteristics :: [tuple()],
+		ServiceRef :: binary(),
+		Result :: {ok, #product{}} | {error, Reason},
+		Reason :: term().
+%% @doc Add a product inventory subscription instance.
+add_product(OfferId, ServiceRefs, StartDate, EndDate, Characteristics)
+		when (is_integer(StartDate) orelse (StartDate == undefined)),
+		(is_integer(EndDate) orelse (EndDate == undefined)),
+		is_list(Characteristics), is_list(OfferId), is_list(ServiceRefs) ->
+	F = fun() ->
+			case mnesia:read(offer, OfferId, read) of
+				[#offer{char_value_use = CharValueUse} = Offer] ->
+					TS = erlang:system_time(?MILLISECOND),
+					N = erlang:unique_integer([positive]),
+					LM = {TS, N},
+					Id = ocs_rest:etag(LM),
+					F2 = fun(ServiceRef) ->
+								case mnesia:read(service, ServiceRef, write) of
+									[Service] ->
+										ok = mnesia:write(Service#service{product = Id,
+												last_modified = LM});
+									_ ->
+										exit(service_not_found)
+								end
+					end,
+					ok = lists:foreach(F2, ServiceRefs),
+					NewChars = default_chars(CharValueUse, Characteristics),
+					Product1 = #product{id = Id, product = OfferId, start_date = StartDate,
+							end_date = EndDate, characteristics = NewChars,
+							service = ServiceRefs, last_modified = LM},
+					{Product2, Buckets} = subscription(Product1, Offer, [], true),
+					F3 = fun(#bucket{} = B) -> ok = mnesia:write(bucket, B, write) end,
+					ok = lists:foreach(F3, Buckets),
+					ok = mnesia:write(Product2),
+					Product2;
+				[] ->
+					throw(offer_not_found)
+			end
+	end,
+	case mnesia:transaction(F) of
+		{atomic, Product} ->
+			{ok, Product};
+		{aborted, {throw, Reason}} ->
+			{error, Reason};
+		{aborted, Reason} ->
+			{error, Reason}
+	end.
+
+-spec find_product(ProductRef) -> Result
+	when
+		ProductRef :: string(),
+		Result :: {ok, Product} | {error, Reason},
+		Product :: #product{},
+		Reason :: not_found | term().
+%% @doc Look up entry in product table
+find_product(ProductRef) when is_list(ProductRef) ->
+	F = fun() -> mnesia:read(product, ProductRef, read) end,
+	case mnesia:transaction(F) of
+		{atomic, []} ->
+			{error, not_found};
+		{atomic, [Product]} ->
+			{ok, Product};
+		{aborted, Reason} ->
+			{error, Reason}
+	end.
+
+-spec delete_product(ProductRef) -> Result
+	when
+		ProductRef :: string(),
+		Result :: ok.
+%% @doc Delete an entry from product table
+delete_product(ProductRef) when is_list(ProductRef) ->
+	F1 = fun(#service{product = PRef}, _) when PRef == ProductRef ->
+					throw(service_exsist);
+			(_, Acc) ->
+					Acc
+	end,
+	F2 = fun() ->
+			[] = mnesia:foldl(F1, [], service),
+			mnesia:delete(product, ProductRef, write)
+	end,
+	case mnesia:transaction(F2) of
+		{atomic, _} ->
+			ok;
+		{aborted, Reason} ->
+			exit(Reason)
+	end.
+
+-spec add_service(Identity, Password) -> Result
+	when
+		Identity :: string() | binary() | undefined,
+		Password :: string() | binary() | undefined,
+		Result :: {ok, #service{}} | {error, Reason},
+		Reason :: term().
+%% @equiv add_service(Identity, Password, undefined, [], true, false)
+add_service(Identity, Password) ->
+	add_service(Identity, Password, active, undefined, [], [], true, false).
+
+-spec add_service(Identity, Password, ProductRef) -> Result
+	when
+		Identity :: string() | binary() | undefined,
+		Password :: string() | binary() | undefined,
+		ProductRef :: string() | undefined,
+		Result :: {ok, #service{}} | {error, Reason},
+		Reason :: term().
+%% @equiv add_service(Identity, Password, ProductRef, [], true, false)
+add_service(Identity, Password, ProductRef) ->
+	add_service(Identity, Password, active, ProductRef, [], [], true, false).
+
+-spec add_service(Identity, Password, ProductRef, Chars) -> Result
+	when
+		Identity :: string() | binary() | undefined,
+		Password :: string() | binary() | undefined,
+		ProductRef :: string() | undefined,
+		Chars :: [tuple()],
+		Result :: {ok, #service{}} | {error, Reason},
+		Reason :: term().
+%% @equiv add_service(Identity, Password, ProductRef, Chars, [], true, false)
+add_service(Identity, Password, ProductRef, Chars) ->
+	add_service(Identity, Password, active, ProductRef, Chars, [], true, false).
+
+-spec add_service(Identity, Password, ProductRef, Chars, Attributes) -> Result
+	when
+		Identity :: string() | binary() | undefined,
+		Password :: string() | binary() | undefined,
+		ProductRef :: string() | undefined,
+		Chars :: [tuple()],
+		Attributes :: radius_attributes:attributes() | binary(),
+		Result :: {ok, #service{}} | {error, Reason},
+		Reason :: term().
+%% @equiv add_service(Identity, Password, ProductRef, Chars, Attributes, true, false)
+add_service(Identity, Password, ProductRef, Chars, Attributes) ->
+	add_service(Identity, Password, active, ProductRef, Chars, Attributes, true, false).
+
+-spec add_service(Identity, Password, State, ProductRef, Chars,
+		Attributes, EnabledStatus, MultiSessions) -> Result
+	when
+		Identity :: string() | binary() | undefined,
+		Password :: string() | binary() | undefined,
+		State :: atom() | string() | undefined,
+		ProductRef :: string() | undefined,
+		Chars :: [tuple()] | undefined,
+		Attributes :: radius_attributes:attributes() | binary(),
+		EnabledStatus :: boolean() | undefined,
+		MultiSessions :: boolean() | undefined,
+		Result :: {ok, #service{}} | {error, Reason},
+		Reason :: term().
+%% @doc Create an entry in the service table.
+%%
+%% 	Authentication will be done using `Password'. An optional list of
+%% 	RADIUS `Attributes', to be returned in an `AccessRequest' response,
+%% 	may be provided.  These attributes will overide any default values.
+%%
+%% 	`ProductRef' key for product inventory reference,
+%%		`Enabled' status and `MultiSessions' status may be provided.
+%%
+add_service(Identity, Password, State, ProductRef,
+		Chars, Attributes, EnabledStatus, undefined) ->
+	add_service(Identity, Password, State, ProductRef,
+			Chars, Attributes, EnabledStatus, false);
+add_service(Identity, Password, State, ProductRef,
+		Chars, Attributes, undefined, MultiSession) ->
+	add_service(Identity, Password, State, ProductRef,
+			Chars, Attributes, true, MultiSession);
+add_service(Identity, Password, State, ProductRef,
+		Chars, undefined, EnabledStatus, MultiSession) ->
+	add_service(Identity, Password, State, ProductRef,
+			Chars, [], EnabledStatus, MultiSession);
+add_service(Identity, Password, State, ProductRef,
+		undefined, Attributes, EnabledStatus, MultiSession) ->
+	add_service(Identity, Password, State, ProductRef,
+			[], Attributes, EnabledStatus, MultiSession);
+add_service(Identity, Password, undefined, ProductRef,
+		Chars, Attributes, EnabledStatus, MultiSession) ->
+	add_service(Identity, Password, undefined, ProductRef,
+			Chars, Attributes, EnabledStatus, MultiSession);
+add_service(Identity, undefined, State, ProductRef,
+		Chars, Attributes, EnabledStatus, MultiSession) ->
+	add_service(Identity, ocs:generate_password(), State,
+			ProductRef, Chars, Attributes, EnabledStatus, MultiSession);
+add_service(Identity, Password, State, ProductRef, Chars,
+		Attributes, EnabledStatus, MultiSession) when is_list(Identity) ->
+	add_service(list_to_binary(Identity), Password, State,
+			ProductRef, Chars, Attributes, EnabledStatus, MultiSession);
+add_service(Identity, Password, State, ProductRef, Chars,
+		Attributes, EnabledStatus, MultiSession) when is_list(Password) ->
+	add_service(Identity, list_to_binary(Password), State,
+			ProductRef, Chars, Attributes, EnabledStatus, MultiSession);
+add_service(undefined, Password, State, ProductRef, Chars,
+		Attributes, EnabledStatus, MultiSession) when is_binary(Password),
+		is_list(Attributes), is_boolean(EnabledStatus),
+		is_boolean(MultiSession) ->
+	F1 = fun() ->
+			F2 = fun F2(_, 0) ->
+							mnesia:abort(retries);
+						F2(Identity1, I) ->
+							case mnesia:read(service, Identity1, write) of
+								[] ->
+									Identity1;
+								[_] ->
+									F2(list_to_binary(generate_identity()), I - 1)
+							end
+			end,
+			Identity = F2(list_to_binary(generate_identity()), 5),
+			add_service1(Identity, Password, State, ProductRef,
+					Chars, Attributes, EnabledStatus, MultiSession)
+	end,
+	case mnesia:transaction(F1) of
+		{atomic, Service} ->
+			{ok, Service};
+		{aborted, Reason} ->
+			{error, Reason}
+	end;
+add_service(Identity, Password, State, ProductRef, Chars, Attributes,
+		EnabledStatus, MultiSession) when is_binary(Identity), size(Identity) > 0,
+		is_binary(Password), is_list(Attributes), is_boolean(EnabledStatus),
+		is_boolean(MultiSession) ->
+	F1 =  fun() ->
+			add_service1(Identity, Password, State, ProductRef,
+					Chars, Attributes, EnabledStatus, MultiSession)
+	end,
+	case mnesia:transaction(F1) of
+		{atomic, Service} ->
+			{ok, Service};
+		{aborted, {throw, Reason}} ->
+			{error, Reason};
+		{aborted, Reason} ->
+			{error, Reason}
+	end.
+%% @hidden
+add_service1(Identity, Password, State, undefined,
+		Chars, Attributes, EnabledStatus, MultiSession) ->
+	Now = erlang:system_time(?MILLISECOND),
+	N = erlang:unique_integer([positive]),
+	LM = {Now, N},
+	S1 = #service{name = Identity,
+					password = Password,
+					state = State,
+					attributes = Attributes,
+					enabled = EnabledStatus,
+					multisession = MultiSession,
+					characteristics = Chars,
+					last_modified = LM},
+	ok = mnesia:write(service, S1, write),
+	S1;
+add_service1(Identity, Password, State, ProductRef,
+		Chars, Attributes, EnabledStatus, MultiSession) ->
+	case mnesia:read(product, ProductRef, read) of
+		[#product{service = ServiceRefs} = P1] ->
+			Now = erlang:system_time(?MILLISECOND),
+			N = erlang:unique_integer([positive]),
+			LM = {Now, N},
+			P2 = P1#product{service = [Identity | ServiceRefs],
+					last_modified = LM},
+			ok = mnesia:write(P2),
+			S1 = #service{name = Identity,
+							password = Password,
+							state = State,
+							product = ProductRef,
+							attributes = Attributes,
+							enabled = EnabledStatus,
+							multisession = MultiSession,
+							characteristics = Chars,
+							last_modified = LM},
+			ok = mnesia:write(service, S1, write),
+			S1;
+		[] ->
+			throw(product_not_found)
+	end.
+
+-spec add_bucket(ProductRef, Bucket) -> Result
+	when
+		ProductRef :: string(),
+		Bucket :: #bucket{},
+		Result :: {ok, BucketBefore, BucketAfter} | {error, Reason},
+		BucketBefore :: #bucket{},
+		BucketAfter :: #bucket{},
+		Reason :: term().
+%% @doc Add a new bucket to bucket table or update exsiting bucket
+add_bucket(ProductRef, #bucket{id = undefined} = Bucket) when is_list(ProductRef) ->
+	F = fun() ->
+		case mnesia:read(product, ProductRef, write) of
+			[#product{balance = B} = P] ->
+				BId = generate_bucket_id(),
+				Bucket1  = Bucket#bucket{id = BId, product = [ProductRef]},
+				ok = mnesia:write(bucket, Bucket1, write),
+				Product = P#product{balance = lists:reverse([BId | B])},
+				ok = mnesia:write(product, Product, write),
+				{ok, undefined, Bucket1};
+			[] ->
+				throw(product_not_found)
+		end
+	end,
+	case mnesia:transaction(F) of
+		{atomic, {ok, OldBucket, NewBucket}} ->
+			{ok, OldBucket, NewBucket};
+		{aborted, Reason} ->
+			{error, Reason}
+	end;
+add_bucket(ProductRef, #bucket{id = BId, product = ProdRef1,
+		remain_amount = RAmount1, end_date = TD} = _Bucket)
+		when is_list(ProductRef) ->
+	F = fun() ->
+		case mnesia:read(product, ProductRef, write) of
+			[#product{balance = B} = P] ->
+				case mnesia:read(bucket, BId, write) of
+					[#bucket{product = ProdRef2,
+							remain_amount = RAmount2} = Bucket2] ->
+						ProdRef3 = ProdRef2 ++ [ProdRef1 -- ProdRef2],
+						Bucket3  = Bucket2#bucket{id = BId, product = ProdRef3,
+							remain_amount = RAmount2 + RAmount1, end_date = TD},
+						ok = mnesia:write(bucket, Bucket3, write),
+						case lists:any(fun(Id) when Id == BId -> true; (_) -> false end, B) of
+							true ->
+								Product = P#product{balance = lists:reverse([BId | B])},
+								ok = mnesia:write(product, Product, write),
+								{ok, Bucket2, Bucket3};
+							false ->
+								{ok, Bucket2, Bucket3}
+						end;
+					[] ->
+						throw(bucket_not_found)
+				end;
+			[] ->
+				throw(product_not_found)
+		end
+	end,
+	case mnesia:transaction(F) of
+		{atomic, {ok, OldBucket, NewBucket}} ->
+			{ok, OldBucket, NewBucket};
+		{aborted, {throw, Reason}} ->
+			{error, Reason};
+		{aborted, Reason} ->
+			{error, Reason}
+	end.
+
+-spec find_bucket(BucketId) -> Result
+	when
+		BucketId :: term(),
+		Result :: {ok, Bucket} | {error, Reason},
+		Bucket :: #bucket{},
+		Reason :: not_found | term().
+%% @doc Look up an entry in the bucket table.
+find_bucket(BucketId) ->
+	F = fun() -> mnesia:read(bucket, BucketId, read) end,
+	case mnesia:transaction(F) of
+		{atomic, [#bucket{} = B]} ->
+			{ok, B};
+		{atomic, []} ->
+			{error, not_found};
+		{aborted, Reason} ->
+			{error, Reason}
+	end.
+
+-spec get_buckets() -> Result
+	when
+		Result :: Buckets | {error, Reason},
+		Buckets :: [#bucket{}],
+		Reason :: term().
+%% @doc Get the all buckets product reference
+get_buckets() ->
+	MatchSpec = [{'_', [], ['$_']}],
+	F = fun F(start, Acc) ->
+		F(mnesia:select(bucket, MatchSpec,
+				?CHUNKSIZE, read), Acc);
+		F('$end_of_table', Acc) ->
+				lists:flatten(lists:reverse(Acc));
+		F({error, Reason}, _Acc) ->
+				{error, Reason};
+		F({Buckets, Cont}, Acc) ->
+				F(mnesia:select(Cont), [Buckets | Acc])
+	end,
+	case mnesia:transaction(F, [start, []]) of
+		{aborted, Reason} ->
+			{error, Reason};
+		{atomic, Result} ->
+			Result
+	end.
+
+-spec get_buckets(ProdRef) -> Result
+	when
+		ProdRef :: string(),
+		Result :: [#bucket{}] | {error, Reason},
+		Reason :: term().
+%% @doc Get the all buckets for given product reference
+get_buckets(ProdRef) when is_list(ProdRef) ->
+	F = fun() ->
+		case mnesia:read(product, ProdRef) of
+			[#product{balance = []}] ->
+				[];
+			[#product{balance = BucketRefs}] ->
+				lists:flatten([mnesia:select(bucket,
+						[{'$1', [{'==', Id, {element, #bucket.id, '$1'}}], ['$1']}])
+						|| Id <- BucketRefs]);
+			[] ->
+				throw(product_not_found)
+		end
+	end,
+	case mnesia:transaction(F) of
+		{atomic, Buckets} ->
+			Buckets;
+		{aborted, {throw, Reason}} ->
+			{error, Reason};
+		{aborted, Reason} ->
+			{error, Reason}
+	end.
+
+-spec query_bucket(Cont, Id, Product) -> Result
+	when
+		Cont :: start | eof | any(),
+		Id :: string() | undefined | '_',
+		Product :: string() | undefined | '_',
+		Result :: {Cont, [#bucket{}]} | {error, Reason},
+		Reason :: term().
+%% @doc Query bucket
+query_bucket(Cont, Id, undefined) ->
+	query_bucket(Cont, Id, '_');
+query_bucket(Cont, undefined, Product) ->
+	query_bucket(Cont, '_', Product);
+query_bucket(start, Id, Product) ->
+	MatchSpec = [{'_', [], ['$_']}],
+	F = fun F(start, Acc) ->
+				F(mnesia:select(bucket, MatchSpec,
+						?CHUNKSIZE, read), Acc);
+			F('$end_of_table', Acc) ->
+				lists:flatten(lists:reverse(Acc));
+			F({error, Reason}, _Acc) ->
+				{error, Reason};
+			F({Services, Cont}, Acc) ->
+				F(mnesia:select(Cont), [Services | Acc])
+	end,
+	case mnesia:transaction(F, [start, []]) of
+		{aborted, Reason} ->
+			{error, Reason};
+		{atomic, Buckets} ->
+			{eof, query_bucket1(Id, Product, Buckets)}
+	end.
+%% @hidden
+query_bucket1('_', Product, Buckets) ->
+	query_bucket2(Product, Buckets);
+query_bucket1(Id, Product, Buckets) ->
+	F = fun(#bucket{id = Id1}) -> lists:prefix(Id, Id1) end,
+	NewBuckets = lists:filter(F, Buckets),
+	query_bucket2(Product, NewBuckets).
+%% @hidden
+query_bucket2('_', Buckets) ->
+	Buckets;
+query_bucket2(Product, Buckets) ->
+	F1 = fun(#bucket{product = Products}) ->
+		F2 = fun(Product1) -> lists:prefix(Product, Product1) end,
+		lists:any(F2, Products)
+	end,
+	lists:filter(F1, Buckets).
+
+-spec delete_bucket(BucketId) -> ok
+	when
+		BucketId :: term().
+%% @doc Delete entry in the bucket table.
+delete_bucket(BucketId) ->
+	F = fun() ->
+		case mnesia:read(bucket, BucketId, write) of
+			[#bucket{product = ProdRefs}] ->
+				delete_bucket1(BucketId, ProdRefs);
+			[] ->
+				throw(not_found)
+		end
+	end,
+	case mnesia:transaction(F) of
+		{atomic, ok} ->
+			ok;
+		{aborted, {throw, Reason}} ->
+			exit(Reason);
+		{aborted, Reason} ->
+			exit(Reason)
+	end.
+%% @hidden
+delete_bucket1(BId, ProdRefs) ->
+	F = fun(ProdRef) ->
+			case mnesia:read(product, ProdRef, write) of
+				[#product{balance = Balance} = P] ->
+					ok = mnesia:write(P#product{balance = Balance -- [BId]}),
+					true;
+				[] ->
+					true
+			end
+	end,
+	true = lists:all(F, ProdRefs),
+	ok = mnesia:delete(bucket, BId, write).
+
+-spec find_service(Identity) -> Result  
+	when
+		Identity :: string() | binary(),
+		Result :: {ok, #service{}} | {error, Reason},
+		Reason :: not_found | term().
+%% @doc Look up an entry in the service table.
+find_service(Identity) when is_list(Identity) ->
+	find_service(list_to_binary(Identity));
+find_service(Identity) when is_binary(Identity) ->
+	F = fun() ->
+				mnesia:read(service, Identity, read)
+	end,
+	case mnesia:transaction(F) of
+		{atomic, [#service{} = Service]} ->
+			{ok, Service};
+		{atomic, []} ->
+			{error, not_found};
+		{aborted, Reason} ->
+			{error, Reason}
+	end.
+
+-spec get_services() -> Result
+	when
+		Result :: [#service{}] | {error, Reason},
+		Reason :: term().
+%% @doc Get all entries in the service table.
+get_services()->
 	MatchSpec = [{'_', [], ['$_']}],
 	F = fun(F, start, Acc) ->
-				F(F, mnesia:select(subscriber, MatchSpec,
+				F(F, mnesia:select(service, MatchSpec,
 						?CHUNKSIZE, read), Acc);
 			(_F, '$end_of_table', Acc) ->
 				lists:flatten(lists:reverse(Acc));
 			(_F, {error, Reason}, _Acc) ->
 				{error, Reason};
-			(F,{Subscribers, Cont}, Acc) ->
-				F(F, mnesia:select(Cont), [Subscribers | Acc])
+			(F,{Services, Cont}, Acc) ->
+				F(F, mnesia:select(Cont), [Services | Acc])
 	end,
 	case mnesia:transaction(F, [F, start, []]) of
 		{aborted, Reason} ->
 			{error, Reason};
-		{atomic, Subscribers} ->
-			query_subscriber1(Subscribers, Id, Password, Product,
-					Cents, Bytes, Seconds, Enabled, MultiSession)
+		{atomic, Result} ->
+			Result
 	end.
-%% @hidden
-query_subscriber1(Subs, undefined, Pwd, Product, Cents, Bytes, Seconds,
-		Enabled, MultiSession) ->
-	query_subscriber2(Subs, Pwd, Product, Cents, Bytes, Seconds, Enabled,
-			MultiSession);
-query_subscriber1(Subs, [], Pwd, Product, Cents, Bytes, Seconds,
-		Enabled, MultiSession) ->
-	query_subscriber2(Subs, Pwd, Product, Cents, Bytes, Seconds, Enabled,
-			MultiSession);
-query_subscriber1(Subs, Id, Pwd, Product, Cents, Bytes, Seconds,
-		Enabled, MultiSession) ->
-	IdBin = list_to_binary(Id),
-	F = fun(#subscriber{name = IdBin1}) ->
-				case binary:match(IdBin1, IdBin) of
-					nomatch ->
-						false;
-					{_, _} ->
-						true
-				end
-	end,
-	FilteredSubs = lists:filter(F, Subs),
-	query_subscriber2(FilteredSubs, Pwd, Product, Cents, Bytes, Seconds,
-			Enabled, MultiSession).
-%% @hidden
-query_subscriber2(Subs, undefined, Product, Cents, Bytes, Seconds,
-			Enabled, MultiSession) ->
-	query_subscriber3(Subs, Product, Cents, Bytes, Seconds,
-			Enabled, MultiSession);
-query_subscriber2(Subs, [], Product, Cents, Bytes, Seconds,
-			Enabled, MultiSession) ->
-	query_subscriber3(Subs, Product, Cents, Bytes, Seconds,
-			Enabled, MultiSession);
-query_subscriber2(Subs, Pwd, Product, Cents, Bytes, Seconds,
-			Enabled, MultiSession) ->
-	PwdBin = list_to_binary(Pwd),
-	F = fun(#subscriber{password = PwdBin1}) ->
-				case binary:match(PwdBin1, PwdBin) of
-					nomatch ->
-						false;
-					{_, _} ->
-						true
-				end
-	end,
-	FilteredSubs = lists:filter(F, Subs),
-	query_subscriber3(FilteredSubs, Product, Cents, Bytes, Seconds,
-			Enabled, MultiSession).
-%% @hidden
-query_subscriber3(Subs, undefined, Cents, Bytes, Seconds, Enabled, MultiSession) ->
-	query_subscriber4(Subs, Cents, Bytes, Seconds, Enabled, MultiSession);
-query_subscriber3(Subs, [], Cents, Bytes, Seconds, Enabled, MultiSession) ->
-	query_subscriber4(Subs, Cents, Bytes, Seconds, Enabled, MultiSession);
-query_subscriber3(Subs, Product, Cents, Bytes, Seconds, Enabled, MultiSession) ->
-	ProdBin = list_to_binary(Product),
-	F = fun(#subscriber{product = #product_instance{product = undefined}}) ->
-				false;
-			(#subscriber{product = #product_instance{product = Product1}}) ->
-				case binary:match(list_to_binary(Product1), ProdBin) of
-					nomatch ->
-						false;
-					{_, _} ->
-						true
-				end
-	end,
-	FilteredSubs = lists:filter(F, Subs),
-	query_subscriber4(FilteredSubs, Cents, Bytes, Seconds, Enabled, MultiSession).
-%% @hidden
-query_subscriber4(Subs, undefined, Bytes, Seconds, Enabled, MultiSession) ->
-	query_subscriber5(Subs, Bytes, Seconds, Enabled, MultiSession);
-query_subscriber4(Subs, [], Bytes, Seconds, Enabled, MultiSession) ->
-	query_subscriber5(Subs, Bytes, Seconds, Enabled, MultiSession);
-query_subscriber4(Subs, Cents, Bytes, Seconds, Enabled, MultiSession) ->
-	CentsD = ocs_rest:millionths_in(Cents),
-	F = fun(#subscriber{buckets = []}) ->
-			false;
-			(#subscriber{buckets = Buckets}) ->
-					case lists:keyfind(cents, #bucket.units, Buckets) of
-						false ->
-							false;
-						#bucket{remain_amount = CentsD} ->
-							true;
-						#bucket{} ->
-							false
-					end
-	end,
-	FilteredSubs = lists:filter(F, Subs),
-	query_subscriber5(FilteredSubs, Bytes, Seconds, Enabled, MultiSession).
-%% @hidden
-query_subscriber5(Subs, undefined, Seconds, Enabled, MultiSession) ->
-	query_subscriber6(Subs, Seconds, Enabled, MultiSession);
-query_subscriber5(Subs, [], Seconds, Enabled, MultiSession) ->
-	query_subscriber6(Subs, Seconds, Enabled, MultiSession);
-query_subscriber5(Subs, Bytes, Seconds, Enabled, MultiSession) ->
-	case catch list_to_integer(Bytes) of
-		{error, _} ->
-			query_subscriber6(Subs, Seconds, Enabled, MultiSession);
-		BytesInt ->
-			F = fun(#subscriber{buckets = []}) ->
-						false;
-					(#subscriber{buckets = Buckets}) ->
-						case lists:keyfind(octets, #bucket.units, Buckets) of
-							false ->
-								false;
-							#bucket{remain_amount = BytesInt} ->
-								true;
-							#bucket{} ->
-								false
-						end
-			end,
-			FilteredSubs = lists:filter(F, Subs),
-			query_subscriber6(FilteredSubs, Seconds, Enabled, MultiSession)
-	end.
-%% @hidden
-query_subscriber6(Subs, undefined, Enabled, MultiSession) ->
-	query_subscriber7(Subs, Enabled, MultiSession);
-query_subscriber6(Subs, [], Enabled, MultiSession) ->
-	query_subscriber7(Subs, Enabled, MultiSession);
-query_subscriber6(Subs, Seconds, Enabled, MultiSession) ->
-	case catch list_to_integer(Seconds) of
-		{error, _} ->
-			query_subscriber7(Subs, Enabled, MultiSession);
-		SecondsInt ->
-			F = fun(#subscriber{buckets = []}) ->
-						false;
-					(#subscriber{buckets = Buckets}) ->
-						case lists:keyfind(seconds, #bucket.units, Buckets) of
-							false ->
-								false;
-							#bucket{remain_amount = SecondsInt} ->
-								true;
-							#bucket{} ->
-								false
-						end
-			end,
-			FilteredSubs = lists:filter(F, Subs),
-			query_subscriber7(FilteredSubs, Enabled, MultiSession)
-	end.
-%% @hidden
-query_subscriber7(Subs, undefined, MultiSession) ->
-	query_subscriber8(Subs, MultiSession);
-query_subscriber7(Subs, [], MultiSession) ->
-	query_subscriber8(Subs, MultiSession);
-query_subscriber7(Subs, Enabled, MultiSession) ->
-	EnBin = list_to_binary(Enabled),
-	E = case binary:match(<<"true">>, EnBin) of
-				nomatch ->
-					case binary:match(<<"false">>, EnBin) of
-						nomatch ->
-							nomatch;
-						_ ->
-							false
-					end;
-				_ ->
-					true
-	end,
-	F = fun(#subscriber{enabled = V}) ->
-					case V of
-						E ->
-							true;
-						_ ->
-							false
-					end
-	end,
-	FilteredSubs = lists:filter(F, Subs),
-	query_subscriber8(FilteredSubs, MultiSession).
-%% @hidden
-query_subscriber8(Subs, undefined) ->
-	{eof, Subs};
-query_subscriber8(Subs, []) ->
-	{eof, Subs};
-query_subscriber8(Subs, MultiSession) ->
-	MSBin = list_to_binary(MultiSession),
-	MS = case binary:match(<<"true">>, MSBin) of
-				nomatch ->
-					case binary:match(<<"false">>, MSBin) of
-						nomatch ->
-							nomatch;
-						_ ->
-							false
-					end;
-				_ ->
-					true
-	end,
-	F = fun(#subscriber{multisession = V}) ->
-					case V of
-						MS ->
-							true;
-						_ ->
-							false
-					end
-	end,
-	{eof, lists:filter(F, Subs)}.
 
--spec delete_subscriber(Identity) -> ok
+-spec query_service(Cont) -> Result
+	when
+		Cont :: start | eof | any(),
+		Result :: {Cont, [#service{}]} | {error, Reason},
+		Reason :: term().
+%% @doc Query services 
+query_service(start) ->
+	MatchSpec = [{'_', [], ['$_']}],
+	F = fun F(start, Acc) ->
+				F(mnesia:select(service, MatchSpec,
+						?CHUNKSIZE, read), Acc);
+			F('$end_of_table', Acc) ->
+				lists:flatten(lists:reverse(Acc));
+			F({error, Reason}, _Acc) ->
+				{error, Reason};
+			F({Services, Cont}, Acc) ->
+				F(mnesia:select(Cont), [Services | Acc])
+	end,
+	case mnesia:transaction(F, [start, []]) of
+		{aborted, Reason} ->
+			{error, Reason};
+		{atomic, Services} ->
+			{eof, Services}
+	end.
+
+-spec delete_service(Identity) -> ok
 	when
 		Identity :: string() | binary().
-%% @doc Delete an entry in the subscriber table.
-delete_subscriber(Identity) when is_list(Identity) ->
-	delete_subscriber(list_to_binary(Identity));
-delete_subscriber(Identity) when is_binary(Identity) ->
+%% @doc Delete an entry in the service table.
+delete_service(Identity) when is_list(Identity) ->
+	delete_service(list_to_binary(Identity));
+delete_service(Identity) when is_binary(Identity) ->
 	F = fun() ->
-		mnesia:delete(subscriber, Identity, write)
+		case mnesia:read(service, Identity, write) of
+			[#service{product = undefined}] ->
+				mnesia:delete(service, Identity, write);
+			[#service{product = ProdRef}] ->
+				case mnesia:read(product, ProdRef, write) of
+					[#product{service = ServiceRefs} = P] ->
+						P1 = P#product{service = ServiceRefs -- [Identity]},
+						ok = mnesia:write(P1),
+						mnesia:delete(service, Identity, write);
+					[] ->
+						ok
+				end;
+			[] ->
+				ok
+		end
 	end,
 	case mnesia:transaction(F) of
 		{atomic, _} ->
@@ -830,118 +1101,13 @@ delete_subscriber(Identity) when is_binary(Identity) ->
 			exit(Reason)
 	end.
 
--spec update_password(Identity, Password)-> Result
+-spec add_offer(Offer) -> Result
 	when
-		Identity :: string() | binary(),
-		Password :: string() | binary(),
-		Result :: ok | {error, Reason},
-		Reason :: not_found | term().
-%% @doc Update a new subscriber password
-%% @see ocs:generate_password/0
-update_password(Identity, Password)
-		when is_list(Identity) ->
-	update_password(list_to_binary(Identity), Password);
-update_password(Identity, Password)
-		when is_list(Password) ->
-	update_password(Identity, list_to_binary(Password));
-update_password(Identity, Password) ->
-	F = fun() ->
-				case mnesia:read(subscriber, Identity, write) of
-					[Entry] ->
-						NewEntry = Entry#subscriber{password = Password},
-						mnesia:write(subscriber, NewEntry, write);
-					[] ->
-						throw(not_found)
-				end
-	end,
-	case mnesia:transaction(F) of
-		{atomic, ok} ->
-			ok;
-		{aborted, {throw, Reason}} ->
-			{error, Reason};
-		{aborted, Reason} ->
-			{error, Reason}
-	end.
-
--spec update_attributes(Identity, Attributes) -> Result
-	when
-		Identity :: string() | binary(),
-		Attributes :: radius_attributes:attributes(),
-		Result :: ok | {error, Reason},
-		Reason :: not_found | term().
-%% @doc Update subscriber attributes.
-%%
-update_attributes(Identity, Attributes) when is_list(Identity) ->
-	update_attributes(list_to_binary(Identity), Attributes);
-update_attributes(Identity, Attributes)
-		when is_binary(Identity), is_list(Attributes) ->
-	F = fun() ->
-				case mnesia:read(subscriber, Identity, write) of
-					[Entry] ->
-						NewEntry = Entry#subscriber{attributes = Attributes},
-						mnesia:write(subscriber, NewEntry, write);
-					[] ->
-						throw(not_found)
-				end
-	end,
-	case mnesia:transaction(F) of
-		{atomic, ok} ->
-			ok;
-		{aborted, {throw, Reason}} ->
-			{error, Reason};
-		{aborted, Reason} ->
-			{error, Reason}
-	end.
-
--spec update_attributes(Identity, Buckets, Attributes, EnabledStatus,
-		MultiSessions) -> Result
-	when
-		Identity :: string() | binary(),
-		Buckets :: [#bucket{}],
-		Attributes :: radius_attributes:attributes(),
-		EnabledStatus :: boolean(),
-		MultiSessions :: boolean(),
-		Result :: ok | {error, Reason},
-		Reason :: not_found | term().
-%% @doc Update subscriber attributes.
-%%
-update_attributes(Identity, Buckets, Attributes, EnabledStatus, MultiSession)
-		when is_list(Identity), is_list(Buckets), is_boolean(EnabledStatus),
-		is_boolean(MultiSession) ->
-	update_attributes(list_to_binary(Identity), Buckets, Attributes,
-		EnabledStatus, MultiSession);
-update_attributes(Identity, Buckets, Attributes, EnabledStatus, MultiSession)
-		when is_binary(Identity), is_list(Attributes) ->
-	F = fun() ->
-				case mnesia:read(subscriber, Identity, write) of
-					[Entry] ->
-						TS = erlang:system_time(?MILLISECOND),
-						N = erlang:unique_integer([positive]),
-						NewBuckets = [B#bucket{last_modified = {TS, N}} || B <- Buckets],
-						NewEntry = Entry#subscriber{attributes = Attributes,
-							buckets = NewBuckets, enabled = EnabledStatus,
-							multisession = MultiSession, last_modified = {TS, N}},
-						mnesia:write(subscriber, NewEntry, write);
-					[] ->
-						throw(not_found)
-				end
-	end,
-	case mnesia:transaction(F) of
-		{atomic, ok} ->
-			ok;
-		{aborted, {throw, Reason}} ->
-			{error, Reason};
-		{aborted, Reason} ->
-			{error, Reason}
-	end.
-
--spec add_product(Product) -> Result
-	when
-		Product :: #product{},
-		Result :: {ok, #product{}} | {error, Reason},
+		Offer :: #offer{},
+		Result :: {ok, #offer{}} | {error, Reason},
 		Reason :: validation_failed | term().
-%% @doc Add a new entry in product table.
-add_product(#product{price = Prices} = Product) when length(Prices) > 0 ->
+%% @doc Add a new entry in offer table.
+add_offer(#offer{price = Prices} = Offer) when length(Prices) > 0 ->
 	Fvala = fun(undefined) ->
 				true;
 			(#alteration{name = Name, type = one_time, period = undefined,
@@ -997,28 +1163,28 @@ add_product(#product{price = Prices} = Product) when length(Prices) > 0 ->
 	end,
 	case lists:all(Fvalp, Prices) of
 		true ->
-			add_product1(Product);
+			add_offer1(Offer);
 		false ->
 			{error, validation_failed}
 	end;
-add_product(#product{specification = undefined, bundle = L} = Product)
+add_offer(#offer{specification = undefined, bundle = L} = Offer)
 		when length(L) > 0 ->
-	add_product1(Product);
-add_product(#product{specification = L, bundle = []} = Product)
+	add_offer1(Offer);
+add_offer(#offer{specification = L, bundle = []} = Offer)
 		when length(L) > 0 ->
-	add_product1(Product).
+	add_offer1(Offer).
 %% @hidden
-add_product1(Product) ->
+add_offer1(Offer) ->
 	Fadd = fun() ->
 		TS = erlang:system_time(?MILLISECOND),
 		N = erlang:unique_integer([positive]),
-		Product1 = Product#product{last_modified = {TS, N}},
-		ok = mnesia:write(product, Product1, write),
-		Product1
+		Offer1 = Offer#offer{last_modified = {TS, N}},
+		ok = mnesia:write(offer, Offer1, write),
+		Offer1
 	end,
 	case mnesia:transaction(Fadd) of
-		{atomic, Product2} ->
-			{ok, Product2};
+		{atomic, Offer2} ->
+			{ok, Offer2};
 		{aborted, Reason} ->
 			{error, Reason}
 	end.
@@ -1068,16 +1234,16 @@ add_pla(#pla{} = Pla, File) when is_list(File) ->
 			{error, Reason}
 	end.
 
--spec find_product(ProductID) -> Result
+-spec find_offer(OfferID) -> Result
 	when
-		ProductID :: string(),
-		Result :: {ok, Product} | {error, Reason},
-		Product :: #product{},
+		OfferID :: string(),
+		Result :: {ok, Offer} | {error, Reason},
+		Offer :: #offer{},
 		Reason :: term().
-%% @doc Find product by product id
-find_product(ProductID) ->
+%% @doc Find offer by product id
+find_offer(OfferID) ->
 	F = fun() ->
-		case mnesia:read(product, ProductID) of
+		case mnesia:read(offer, OfferID) of
 			[Entry] ->
 				Entry;
 			[] ->
@@ -1085,30 +1251,30 @@ find_product(ProductID) ->
 		end
 	end,
 	case mnesia:transaction(F) of
-		{atomic, Product} ->
-			{ok, Product};
+		{atomic, Offer} ->
+			{ok, Offer};
 		{aborted, {throw, not_found}} ->
 			{error, not_found};
 		{aborted, Reason} ->
 			{error, Reason}
 	end.
 
--spec get_products() -> Result
+-spec get_offers() -> Result
 	when
-		Result :: [#product{}] | {error, Reason},
+		Result :: [#offer{}] | {error, Reason},
 		Reason :: term().
-%% @doc Get all entries in the product table.
-get_products() ->
+%% @doc Get all entries in the offer table.
+get_offers() ->
 	MatchSpec = [{'_', [], ['$_']}],
 	F = fun(F, start, Acc) ->
-				F(F, mnesia:select(product, MatchSpec,
+				F(F, mnesia:select(offer, MatchSpec,
 						?CHUNKSIZE, read), Acc);
 			(_F, '$end_of_table', Acc) ->
 				lists:flatten(lists:reverse(Acc));
 			(_F, {error, Reason}, _Acc) ->
 				{error, Reason};
-			(F,{Product, Cont}, Acc) ->
-				F(F, mnesia:select(Cont), [Product | Acc])
+			(F,{Offer, Cont}, Acc) ->
+				F(F, mnesia:select(Cont), [Offer | Acc])
 	end,
 	case mnesia:transaction(F, [F, start, []]) of
 		{aborted, Reason} ->
@@ -1117,23 +1283,31 @@ get_products() ->
 			Result
 	end.
 
--spec delete_product(ProductID) -> Result
+-spec delete_offer(OfferID) -> Result
 	when
-		ProductID :: string(),
+		OfferID :: string(),
 		Result :: ok.
-%% @doc Delete an entry from the product table.
-delete_product(ProductID) ->
+%% @doc Delete an entry from the offer table.
+delete_offer(OfferID) ->
 	F = fun() ->
-		mnesia:delete(product, ProductID, write)
+		MatchSpec = [{'$1', [{'==', OfferID, {element, #product.product, '$1'}}], ['$1']}],
+		case mnesia:select(product, MatchSpec) of
+			[] ->
+				mnesia:delete(offer, OfferID, write);
+			_ ->
+				throw(unable_to_delete)
+		end
 	end,
 	case mnesia:transaction(F) of
 		{atomic, _} ->
 			ok;
+		{aborted, {throw, Reason}} ->
+			exit(Reason);
 		{aborted, Reason} ->
 			exit(Reason)
 	end.
 
--spec query_product(Cont, Name, Description, Status, SDT, EDT, Price) -> Result
+-spec query_offer(Cont, Name, Description, Status, SDT, EDT, Price) -> Result
 	when
 		Cont :: start | eof | any(),
 		Name :: undefined | '_' | string(),
@@ -1142,55 +1316,55 @@ delete_product(ProductID) ->
 		SDT :: undefined | '_' | string() | integer(),
 		EDT :: undefined | '_' | string() | integer(),
 		Price :: undefined | '_' | string(),
-		Result :: {Cont, [#product{}]} | {error, Reason},
+		Result :: {Cont, [#offer{}]} | {error, Reason},
 		Reason :: term().
-%% @doc Query product entires
-query_product(Con, Name, Description, Status, STD, EDT, undefined) ->
-	query_product(Con, Name, Description, Status, STD, EDT, '_');
-query_product(Con, Name, Description, Status, STD, undefined, Price) ->
-	query_product(Con, Name, Description, Status, STD, '_', Price);
-query_product(Con, Name, Description, Status, undefined, EDT, Price) ->
-	query_product(Con, Name, Description, Status, '_', EDT, Price);
-query_product(Con, Name, Description, undefined, SDT, EDT, Price) ->
-	query_product(Con, Name, Description, '_', SDT, EDT, Price);
-query_product(Con, Name, undefined, Status, SDT, EDT, Price) ->
-	query_product(Con, Name, '_', Status, SDT, EDT, Price);
-query_product(Con, undefined, Description, Status, SDT, EDT, Price) ->
-	query_product(Con, '_', Description, Status, SDT, EDT, Price);
-query_product(Con, Name, Description, Status, SDT, EDT, Price) when is_list(EDT) ->
+%% @doc Query offer entires
+query_offer(Con, Name, Description, Status, STD, EDT, undefined) ->
+	query_offer(Con, Name, Description, Status, STD, EDT, '_');
+query_offer(Con, Name, Description, Status, STD, undefined, Price) ->
+	query_offer(Con, Name, Description, Status, STD, '_', Price);
+query_offer(Con, Name, Description, Status, undefined, EDT, Price) ->
+	query_offer(Con, Name, Description, Status, '_', EDT, Price);
+query_offer(Con, Name, Description, undefined, SDT, EDT, Price) ->
+	query_offer(Con, Name, Description, '_', SDT, EDT, Price);
+query_offer(Con, Name, undefined, Status, SDT, EDT, Price) ->
+	query_offer(Con, Name, '_', Status, SDT, EDT, Price);
+query_offer(Con, undefined, Description, Status, SDT, EDT, Price) ->
+	query_offer(Con, '_', Description, Status, SDT, EDT, Price);
+query_offer(Con, Name, Description, Status, SDT, EDT, Price) when is_list(EDT) ->
 	ISOEDT = ocs_rest:iso8601(EDT),
-	query_product(Con, Name, Description, Status, SDT, ISOEDT, Price);
-query_product(Con, Name, Description, Status, SDT, EDT, Price) when is_list(SDT) ->
+	query_offer(Con, Name, Description, Status, SDT, ISOEDT, Price);
+query_offer(Con, Name, Description, Status, SDT, EDT, Price) when is_list(SDT) ->
 	ISOSDT = ocs_rest:iso8601(SDT),
-	query_product(Con, Name, Description, Status, ISOSDT, EDT, Price);
-query_product(start, Name, Description, Status, SDT, EDT, Price) ->
-	MatchHead = #product{name = Name, description = Description,
+	query_offer(Con, Name, Description, Status, ISOSDT, EDT, Price);
+query_offer(start, Name, Description, Status, SDT, EDT, Price) ->
+	MatchHead = #offer{name = Name, description = Description,
 			start_date = SDT, end_date = EDT, bundle = '_',
 			status = Status, specification = '_',
 			char_value_use = '_', price = '_', last_modified = '_'},
 	MatchSpec = MatchSpec = [{MatchHead, [], ['$_']}],
 	F = fun() ->
-		mnesia:select(product, MatchSpec, read)
+		mnesia:select(offer, MatchSpec, read)
 	end,
 	case mnesia:transaction(F) of
-		{atomic, Products} ->
-			query_product1(Products, Price, []);
+		{atomic, Offers} ->
+			query_offer1(Offers, Price, []);
 		{aborted, Reason} ->
 			{error, Reason}
 	end;
-query_product(eof, _Name, _Description, _Status, _STD, _EDT, _Price) ->
+query_offer(eof, _Name, _Description, _Status, _STD, _EDT, _Price) ->
 	{eof, []}.
 %% @hidden
-query_product1([], _, Acc) ->
+query_offer1([], _, Acc) ->
 	{eof, lists:reverse(Acc)};
-query_product1(Products, '_', _) ->
-	{eof, Products};
-query_product1([#product{price = Prices} = Product | T], PriceName, Acc) ->
+query_offer1(Offers, '_', _) ->
+	{eof, Offers};
+query_offer1([#offer{price = Prices} = Offer | T], PriceName, Acc) ->
 	case lists:keyfind(PriceName, #price.name, Prices) of
 		false ->
-			query_product1(T, PriceName, Acc);
+			query_offer1(T, PriceName, Acc);
 		_ ->
-			query_product1(T, PriceName, [Product | Acc])
+			query_offer1(T, PriceName, [Offer | Acc])
 	end.
 
 -spec query_table(Cont, Name, Prefix, Description, Rate, LM) -> Result
@@ -1575,98 +1749,6 @@ charset() ->
 	C6 = lists:seq($w, $z),
 	lists:append([C1, C2, C3, C4, C5, C6]).
 
-%% service types
--define(DATA, 2).
--define(VOICE, 12).
-
--spec authorize(ServiceType, Identity, Password) -> Result
-	when
-		ServiceType :: undefined | integer(),
-		Identity :: string() | binary(),
-		Password :: string() | binary(),
-		Result :: {ok, #subscriber{}} | {disabled, SessionsList} | {error, Reason},
-		SessionsList :: [{TimeStamp, SessionAttributes}],
-		TimeStamp :: integer(),
-		SessionAttributes :: [tuple()],
-		Reason :: out_of_credit | bad_password | not_found | term().
-%% @doc Authorize a subscriber.
-%%
-%% 	If the subscriber `enabled' field is `true' and have sufficient balance
-%%		set `disconnect' field to `false' and return {ok, #subscriber{password = `PSK'}}
-%% 	where `PSK' is used for `Mikrotik-Wireless-Psk' and `Attributes' are
-%% 	additional attributes to be returned in an `Access-Accept' response.
-%% @private
-authorize(ServiceType, Identity, Password) when is_list(Identity) ->
-	authorize(ServiceType, list_to_binary(Identity), Password);
-authorize(ServiceType, Identity, Password) when is_list(Password) ->
-	authorize(ServiceType, Identity, list_to_binary(Password));
-authorize(ServiceType, Identity, Password) when is_binary(Identity),
-		is_binary(Password) ->
-	F= fun() ->
-				case mnesia:read(subscriber, Identity, write) of
-					[#subscriber{buckets = Buckets, enabled = Enabled,
-							disconnect = Disconnect} = Entry] ->
-						Now = erlang:system_time(?MILLISECOND),
-						F2 = fun(#bucket{remain_amount = Amount,
-											termination_date = TD, units = Units}) when
-											((TD =/= undefined) orelse (TD > Now))
-											and
-											((ServiceType == undefined) orelse
-											((ServiceType == ?DATA)
-												and ((Units == octets) orelse (Units == cents))) orelse
-											((ServiceType == ?VOICE)
-												and ((Units == seconds) orelse (Units == cents))))
-											and
-											(Amount > 0) ->
-										true;
-									(_) ->
-										false
-						end,
-						case lists:any(F2, Buckets) of
-							true ->
-								case {Enabled, Disconnect, Entry#subscriber.password} of
-									{true, false, Password} ->
-										Entry;
-									{true, true, Password} ->
-										NewEntry = Entry#subscriber{disconnect = false},
-										ok = mnesia:write(subscriber, NewEntry, write),
-										NewEntry;
-									{true, false, MTPassword} when
-											Password == <<>>,
-											MTPassword =/= Password ->
-										Entry;
-									{true, true, MTPassword} when
-											Password == <<>>,
-											MTPassword =/= Password ->
-										NewEntry = Entry#subscriber{disconnect = false},
-										ok = mnesia:write(subscriber, NewEntry, write),
-										NewEntry;
-									{false, _, Password} ->
-										SessionsList = Entry#subscriber.session_attributes,
-										NewEntry = Entry#subscriber{session_attributes = []},
-										ok = mnesia:write(subscriber, NewEntry, write),
-										{disabled, SessionsList};
-									{_, _, _} ->
-										throw(bad_password)
-								end;
-							false ->
-								throw(out_of_credit)
-						end;
-					[] ->
-						throw(not_found)
-				end
-	end,
-	case mnesia:transaction(F) of
-		{atomic, #subscriber{} = S} ->
-			{ok, S};
-		{atomic, SessionAttributes} ->
-			{disabled, SessionAttributes};
-		{aborted, {throw, Reason}} ->
-			{error, Reason};
-		{aborted, Reason} ->
-			{error, Reason}
-	end.
-
 -spec normalize(String) -> string()
 	when
 		String :: string().
@@ -1695,6 +1777,158 @@ normalize([_ | T], Acc) ->
 	normalize(T, Acc);
 normalize([], Acc) ->
 	lists:reverse(Acc).
+
+-spec subscription(Product, Offer, Buckets, InitialFlag) -> Result
+	when
+		Product :: #product{},
+		Offer :: #offer{},
+		Buckets :: [#bucket{}],
+		InitialFlag :: boolean(),
+		Result :: {Product, Buckets}.
+%% @private
+subscription(Product, #offer{bundle = [], price = Prices} =
+		_Offer, Buckets, InitialFlag) ->
+	Now = erlang:system_time(?MILLISECOND),
+	subscription(Product, Now, InitialFlag, Buckets, Prices);
+subscription(#product{product = OfferId} = Product,
+		#offer{name = OfferId, bundle = Bundled, price = Prices} = _Offer,
+		Buckets, InitialFlag) when length(Bundled) > 0 ->
+	Now = erlang:system_time(?MILLISECOND),
+	F = fun(#bundled_po{name = P}, {Prod, B}) ->
+				case mnesia:read(offer, P, read) of
+					[Offer] ->
+						subscription(Prod, Offer, B, InitialFlag);
+					[] ->
+						throw(offer_not_found)
+				end
+	end,
+	{Product1, Buckets1} = lists:foldl(F, {Product, Buckets}, Bundled),
+	subscription(Product1, Now, InitialFlag, Buckets1, Prices).
+%% @hidden
+subscription(#product{id = ProdRef} = Product, Now, true, Buckets,
+		[#price{type = one_time, amount = Amount,
+			alteration = undefined} | T]) ->
+	NewBuckets = charge(ProdRef, Amount, Buckets),
+	subscription(Product, Now, true, NewBuckets, T);
+subscription(#product{id = ProdRef} = Product, Now, true,
+		Buckets, [#price{type = one_time, amount = PriceAmount,
+			alteration = #alteration{units = Units, size = Size,
+			amount = AlterAmount}} | T]) ->
+	N = erlang:unique_integer([positive]),
+	NewBuckets = charge(ProdRef, PriceAmount + AlterAmount,
+			[#bucket{id = generate_bucket_id(), product = [ProdRef],
+				units = Units, remain_amount = Size, last_modified = {Now, N}}
+				| Buckets]),
+	subscription(Product, Now, true, NewBuckets, T);
+subscription(Product, Now, false, Buckets, [#price{type = one_time} | T]) ->
+	subscription(Product, Now, false, Buckets, T);
+subscription(#product{id = ProdRef} = Product, Now, true, Buckets,
+		[#price{type = usage, alteration = #alteration{type = one_time,
+			units = Units, size = Size, amount = AlterationAmount}} | T]) ->
+	N = erlang:unique_integer([positive]),
+	NewBuckets = charge(ProdRef, AlterationAmount,
+		[#bucket{id = generate_bucket_id(), units = Units,
+			remain_amount = Size, product = [ProdRef], last_modified = {Now, N}}
+			| Buckets]),
+	subscription(Product, Now, true, NewBuckets, T);
+subscription(Product, Now, false, Buckets,
+		[#price{type = usage, alteration = #alteration{type = one_time}} | T]) ->
+	subscription(Product, Now, false, Buckets, T);
+subscription(#product{id = ProdRef, payment = Payments} = Product,
+		Now, true, Buckets, [#price{type = recurring, period = Period,
+		amount = Amount, name = Name, alteration = undefined} | T]) when
+		Period /= undefined ->
+	NewBuckets = charge(ProdRef, Amount, Buckets),
+	NewPayments = [{Name, end_period(Now, Period)} | Payments],
+	Product1 = Product#product{payment = NewPayments},
+	subscription(Product1, Now, true, NewBuckets, T);
+subscription(#product{id = ProdRef, payment = Payments} = Product, Now, false, Buckets,
+		[#price{type = recurring, period = Period, amount = Amount,
+			name = Name, alteration = undefined} | T]) when Period /= undefined ->
+	{NewPayments, NewBuckets} = dues(Payments, Now, Buckets, Name, Period, Amount, ProdRef),
+	Product1 = Product#product{payment = NewPayments},
+	subscription(Product1, Now, false, NewBuckets, T);
+subscription(#product{id = ProdRef, payment = Payments} = Product,
+		Now, true, Buckets, [#price{type = recurring, period = Period,
+			amount = Amount, alteration = #alteration{units = Units,
+			size = Size, amount = AllowanceAmount}, name = Name} | T]) when
+			(Period /= undefined) and ((Units == octets) orelse
+			(Units == seconds) orelse  (Units == messages)) ->
+	N = erlang:unique_integer([positive]),
+	NewBuckets = charge(ProdRef, Amount + AllowanceAmount,
+			[#bucket{id = generate_bucket_id(),
+			units = Units, remain_amount = Size, product = [ProdRef],
+			end_date = end_period(Now, Period), last_modified = {Now, N}}
+			| Buckets]),
+	NewPayments = [{Name, end_period(Now, Period)} | Payments],
+	Product1 = Product#product{payment = NewPayments},
+	subscription(Product1, Now, true, NewBuckets, T);
+subscription(#product{id = ProdRef, payment = Payments} = Product,
+		Now, false, Buckets, [#price{type = recurring, period = Period,
+			amount = Amount, alteration = #alteration{units = Units, size = Size,
+			amount = AllowanceAmount}, name = Name} | T]) when (Period /= undefined)
+			and ((Units == octets) orelse (Units == seconds) orelse (Units == messages)) ->
+	{NewPayments, NewBuckets1} = dues(Payments, Now, Buckets, Name, Period, Amount, ProdRef),
+	N = erlang:unique_integer([positive]),
+	NewBuckets2 = charge(ProdRef, AllowanceAmount,
+			[#bucket{id = generate_bucket_id(),
+			units = Units, remain_amount = Size, product = [ProdRef],
+			end_date = end_period(Now, Period), last_modified = {Now, N}}
+			| NewBuckets1]),
+	Product1 = Product#product{payment = NewPayments},
+	subscription(Product1, Now, false, NewBuckets2, T);
+subscription(#product{id = ProdRef, payment = Payments} = Product, Now, true,
+		Buckets, [#price{type = usage, alteration = #alteration{type = recurring,
+		period = Period, units = Units, size = Size, amount = Amount}, name = Name}
+		| T]) when Period /= undefined, Units == octets; Units == seconds; Units == messages ->
+	N = erlang:unique_integer([positive]),
+	NewBuckets = charge(ProdRef, Amount, [#bucket{id = generate_bucket_id(),
+			units = Units, remain_amount = Size, product = [ProdRef],
+			end_date = end_period(Now, Period), last_modified = {Now, N}}
+			| Buckets]),
+	NewPayments = [{Name, end_period(Now, Period)} | Payments],
+	Product1 = Product#product{payment = NewPayments},
+	subscription(Product1, Now, true, NewBuckets, T);
+subscription(#product{id = ProdRef, payment = Payments}
+		= Product, Now, false, Buckets, [#price{type = usage, name = Name,
+		alteration = #alteration{type = recurring, period = Period, units = Units,
+		size = Size, amount = Amount}} | T]) when Period /= undefined, Units == octets;
+		Units == seconds; Units == messages ->
+	{NewPayments, NewBuckets1} = dues(Payments, Now, Buckets, Name, Period, Amount, ProdRef),
+	N = erlang:unique_integer([positive]),
+	NewBuckets2 = charge(ProdRef, Amount, [#bucket{id = generate_bucket_id(),
+			units = Units, remain_amount = Size, product = [ProdRef],
+			end_date = end_period(Now, Period), last_modified = {Now, N}}
+			| NewBuckets1]),
+	NewPayments = [{Name, end_period(Now, Period)} | Payments],
+	Product1 = Product#product{payment = NewPayments},
+	subscription(Product1, Now, false, NewBuckets2, T);
+subscription(Product, Now, InitialFlag, Buckets, [_H | T]) ->
+	subscription(Product, Now, InitialFlag, Buckets, T);
+subscription(Product, _Now, _, Buckets, []) ->
+	NewBIds = [Id || #bucket{id = Id} <- Buckets],
+	{Product#product{balance = NewBIds}, Buckets}.
+
+%% @hidden
+dues(Payments, Now, Buckets, PName, Period, Amount, ProdRef) ->
+	dues(Payments, Now, Buckets, PName, Period, Amount, ProdRef, []).
+%% @hidden
+dues([{_, DueDate} = P | T], Now, Buckets, PName, Period, Amount, ProdRef, Acc) when DueDate > Now ->
+	dues(T, Now, Buckets, PName, Period, Amount, ProdRef, [P | Acc]);
+dues([{PName, DueDate} | T], Now, Buckets, PName, Period, Amount, ProdRef, Acc) ->
+	NewBuckets = charge(ProdRef, Amount, Buckets),
+	case end_period(DueDate, Period) of
+		NextDueDate when NextDueDate < Now ->
+			dues([{PName, NextDueDate} | T], Now,
+					NewBuckets, PName, Period, Amount, ProdRef, Acc);
+		NextDueDate ->
+			dues(T, Now, NewBuckets, PName, Period,
+					Amount, ProdRef, [{PName, NextDueDate} | Acc])
+	end;
+dues([P | T], Now, Buckets, PName, Period, Amount, ProdRef, Acc) ->
+	dues(T, Now, Buckets, PName, Period, Amount, ProdRef, [P | Acc]);
+dues([], _Now, Buckets, _PName, _Period, _Amount, _ProdRef, Acc) ->
+	{lists:reverse(Acc), Buckets}.
 
 -spec get_params() -> Result
 	when
@@ -1740,36 +1974,43 @@ get_params5(Address, Port, Directory, {require_group, [Group | _]}) ->
 get_params5(_, _, _, false) ->
 	{error, httpd_group_undefined}.
 
--spec charge(Amount, Buckets) -> Buckets
+-spec charge(ProdRef, Amount, Buckets) -> Buckets
 	when
+		ProdRef :: string(),
 		Amount :: non_neg_integer(),
 		Buckets :: [#bucket{}].
 %% @doc Charge `Amount' to `Buckets'.
 %% @private
-charge(Amount, Buckets) ->
-	charge(Amount, Buckets, []).
+charge(ProdRef, Amount, Buckets) ->
+	charge(ProdRef, Amount, Buckets, []).
 %% @hidden
-charge(0, T, Acc) ->
+charge(_ProdRef, 0, T, Acc) ->
 	lists:reverse(Acc) ++ T;
-charge(Amount, [#bucket{units = cents,
+charge(_ProdRef, Amount, [#bucket{units = cents,
 		remain_amount = Remain} = B | T], Acc) when Amount < Remain ->
 	lists:reverse(Acc) ++ [B#bucket{remain_amount = Remain - Amount} | T];
-charge(Amount, [#bucket{units = cents,
+charge(_ProdRef, Amount, [#bucket{units = cents,
 		remain_amount = Remain} = B], Acc) ->
 	lists:reverse([B#bucket{remain_amount = Remain - Amount} | Acc]);
-charge(Amount, [#bucket{units = cents,
-		remain_amount = Remain} | T], Acc) ->
-	charge(Amount - Remain, T, Acc);
-charge(Amount, [H | T], Acc) ->
-	charge(Amount, T, [H | Acc]);
-charge(Amount, [], Acc) ->
-	lists:reverse([#bucket{units = cents, remain_amount = - Amount} | Acc]).
+charge(ProdRef, Amount, [H | T], Acc) ->
+	charge(ProdRef, Amount, T, [H | Acc]);
+charge(ProdRef, Amount, [], Acc) ->
+	lists:reverse([#bucket{id = generate_bucket_id(),
+			units = cents, remain_amount = - Amount,
+			product = [ProdRef]} | Acc]).
+
+%% @private 
+generate_bucket_id() ->
+	TS = erlang:system_time(?MILLISECOND),
+	N = erlang:unique_integer([positive]),
+	integer_to_list(TS) ++ "-" ++ integer_to_list(N).
 
 -spec date(MilliSeconds) -> DateTime
 	when
 		MilliSeconds :: pos_integer(),
 		DateTime :: calendar:datetime().
 %% @doc Convert timestamp to date and time.
+%% @private
 date(MilliSeconds) when is_integer(MilliSeconds) ->
 	Seconds = ?EPOCH + (MilliSeconds div 1000),
 	calendar:gregorian_seconds_to_datetime(Seconds).
@@ -1780,6 +2021,7 @@ date(MilliSeconds) when is_integer(MilliSeconds) ->
 		Period :: hourly | daily | weekly | monthly | yearly,
 		EndTime :: non_neg_integer().
 %% @doc Calculate end of period.
+%% @private
 end_period(StartTime, Period) when is_integer(StartTime) ->
 	end_period1(date(StartTime), Period).
 %% @hidden
@@ -1869,112 +2111,6 @@ default_chars1([_ | T]) ->
 	default_chars1(T);
 default_chars1([]) ->
 	undefined.
-
--spec subscription(Subscriber, Product, Characteristics, InitialFlag) ->
-		Subscriber
-	when
-		Subscriber :: #subscriber{},
-		Product :: #product{},
-		Characteristics :: [tuple()],
-		InitialFlag :: boolean().
-%% @doc Apply product offering charges.
-%% 	If `InitialFlag' is `true' initial bucket preparation
-%% 	is done and one time prices are charged.
-%% @throws product_not_found
-subscription(#subscriber{last_modified = {Now, _}} = Subscriber,
-		#product{name = ProductName, bundle = [], price = Prices} = _Product,
-		Characteristics, InitialFlag) ->
-	Subscriber1 = subscription(Subscriber,
-			Characteristics, Now, InitialFlag, Prices),
-	ProductInstance = #product_instance{start_date = Now,
-			product = ProductName, characteristics = Characteristics,
-			last_modified = {Now, erlang:unique_integer([positive])}},
-	Subscriber1#subscriber{product = ProductInstance};
-subscription(#subscriber{last_modified = {Now, _}} = Subscriber,
-		#product{name = BundleName, bundle = Bundled, price = Prices},
-		Characteristics, InitialFlag) when length(Bundled) > 0 ->
-	F = fun(#bundled_po{name = P}, S) ->
-				case mnesia:read(product, P, read) of
-					[Product] ->
-						subscription(S, Product, Characteristics, true);
-					[] ->
-						throw(product_not_found)
-				end
-	end,
-	Subscriber1 = lists:foldl(F, Subscriber, Bundled),
-	Subscriber2 = subscription(Subscriber1,
-			Characteristics, Now, InitialFlag, Prices),
-	ProductInstance = #product_instance{start_date = Now,
-			product = BundleName, characteristics = Characteristics,
-			last_modified = {Now, erlang:unique_integer([positive])}},
-	Subscriber2#subscriber{product = ProductInstance}.
-%% @hidden
-subscription(#subscriber{buckets = Buckets} = Subscriber,
-		Characteristics, Now, true, [#price{type = one_time,
-		amount = Amount, alteration = undefined} | T]) ->
-	NewBuckets = charge(Amount, Buckets),
-	subscription(Subscriber#subscriber{buckets = NewBuckets},
-			Characteristics, Now, true, T);
-subscription(#subscriber{buckets = Buckets} = Subscriber,
-		Characteristics, Now, true, [#price{type = one_time,
-		amount = PriceAmount, name = Name,
-		alteration = #alteration{units = Units, size = Size,
-		amount = AlterationAmount}} | T]) ->
-	NewBuckets = charge(PriceAmount + AlterationAmount,
-		[#bucket{units = Units, remain_amount = Size, prices = [Name]} | Buckets]),
-	subscription(Subscriber#subscriber{buckets = NewBuckets},
-			Characteristics, Now, true, T);
-subscription(#subscriber{buckets = Buckets} = Subscriber,
-		Characteristics, Now, true, [#price{type = usage,
-		name = Name, alteration = #alteration{type = one_time,
-		units = Units, size = Size, amount = AlterationAmount}} | T]) ->
-	NewBuckets = charge(AlterationAmount, [#bucket{units = Units,
-		remain_amount = Size, prices = [Name]} | Buckets]),
-	subscription(Subscriber#subscriber{buckets = NewBuckets},
-			Characteristics, Now, true, T);
-subscription(#subscriber{buckets = Buckets} = Subscriber,
-		Characteristics, Now, InitialFlag, [#price{type = recurring,
-		period = Period, amount = SubscriptionAmount,
-		alteration = undefined} | T]) when Period /= undefined ->
-	NewBuckets = charge(SubscriptionAmount, Buckets),
-	subscription(Subscriber#subscriber{buckets = NewBuckets},
-			Characteristics, Now, InitialFlag, T);
-subscription(#subscriber{buckets = Buckets} = Subscriber,
-		Characteristics, Now, InitialFlag,
-		[#price{type = recurring, name = Name,
-		period = Period, amount = SubscriptionAmount,
-		alteration = #alteration{units = Units, size = Size,
-		amount = AllowanceAmount}} | T]) when Period /= undefined,
-		Units == octets; Period /= undefined, Units == seconds ->
-	NewBuckets = charge(SubscriptionAmount + AllowanceAmount,
-			[#bucket{units = Units, remain_amount = Size, name = Name,
-			termination_date = end_period(Now, Period)} | Buckets]),
-	subscription(Subscriber#subscriber{buckets = NewBuckets},
-			Characteristics, Now, InitialFlag, T);
-subscription(#subscriber{buckets = Buckets} = Subscriber,
-		Characteristics, Now, InitialFlag, [#price{type = usage,
-		name = Name, alteration = #alteration{type = recurring,
-		period = Period, units = Units, size = Size,
-		amount = Amount}} | T]) when Period /= undefined,
-		Units == octets; Units == seconds ->
-	NewBuckets = charge(Amount, [#bucket{units = Units,
-			remain_amount = Size, prices = [Name],
-			termination_date = end_period(Now, Period)} | Buckets]),
-	subscription(Subscriber#subscriber{buckets = NewBuckets},
-			Characteristics, Now, InitialFlag, T);
-subscription(Subscriber, Characteristics, Now, InitialFlag, [_H | T]) ->
-	subscription(Subscriber, Characteristics, Now, InitialFlag, T);
-subscription(#subscriber{buckets = Buckets} = Subscriber, _, Now, _, []) ->
-	NewBuckets = [B#bucket{last_modified = {Now,
-			erlang:unique_integer([positive])},
-			id = generate_bucket_id()} || B <- Buckets],
-	Subscriber#subscriber{buckets = NewBuckets}.
-
-%% @hidden
-generate_bucket_id() ->
-	TS = erlang:system_time(?MILLISECOND),
-	N = erlang:unique_integer([positive]),
-	integer_to_list(TS) ++ "-" ++ integer_to_list(N).
 
 -spec gregorian_datetime_to_system_time(DateTime) -> MilliSeconds
 	when

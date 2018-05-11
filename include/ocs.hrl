@@ -19,8 +19,11 @@
 
 -type offer_status() :: in_study | in_design | in_test
 		| active | rejected | launched | retired | obsolete.
+-type bucket_status() :: active | expired | suspended.
 -type product_status() :: created | pending_active | aborted
 		| cancelled | active | suspended | pending_terminate | terminated.
+-type service_status() :: feasibilityChecked | designed | reserved
+		| active | inactive | terminated.
 -type pla_status() :: created | active | cancelled | terminated. 
 
 %% define price types
@@ -114,7 +117,7 @@
 		upper_limit :: non_neg_integer() | undefined,
 		default :: non_neg_integer() | undefined}).
 
--record(product,
+-record(offer,
 		{name :: '_' | string() | undefined,
 		description :: '_' | string() | undefined,
 		start_date :: '_' | pos_integer() | undefined,
@@ -130,35 +133,44 @@
 		{id :: string() | undefined,
 		name :: string() | undefined,
 		start_date :: pos_integer() | undefined,
-		termination_date :: pos_integer() | undefined,
+		end_date :: pos_integer() | undefined,
+		status :: bucket_status() | undefined,
 		remain_amount = 0 :: integer(),
 		reservations = [] :: [{TS :: pos_integer(),
 				DebitAmount :: non_neg_integer(),
 				ReservedAmount :: non_neg_integer(),
 				SessionId :: string() | binary()}],
 		units :: octets | cents | seconds | messages | undefined,
-		prices = [] :: list(),
+		prices :: [],
+		product :: [ProdRef :: term()],
 		last_modified :: tuple() | undefined}).
 
--record(product_instance,
-		{product :: string() | undefined,
+-record(product,
+		{id :: string() | undefined,
+		name :: string() | undefined,
 		start_date :: pos_integer() | undefined,
-		termination_date :: pos_integer() | undefined,
+		end_date :: pos_integer() | undefined,
 		status :: product_status() | undefined,
+		product :: string() | undefined,
 		characteristics = [] :: [{Name :: string(), Value :: term()}],
 		payment = [] :: [{Price :: string(), DueDate :: pos_integer()}],
+		balance = [] :: [BucketRef :: term()],
+		service = [] :: [ServiceRef :: binary()],
 		last_modified :: tuple() | undefined}).
 
-%% define subscriber table entries record
--record(subscriber,
+%% define service table entries record
+-record(service,
 		{name :: binary() | undefined,
+		start_date :: pos_integer() | undefined,
+		end_date :: pos_integer() | undefined,
+		state :: service_status() | undefined,
 		password :: binary() | undefined,
 		attributes :: [tuple()] | undefined,
-		buckets = [] :: [#bucket{}],
-		product :: #product_instance{} | undefined,
+		product :: ProductRef :: string() | undefined,
 		enabled = true :: boolean(),
 		disconnect  = false :: boolean(),
 		session_attributes = [] :: [{TS :: pos_integer(), Attributes :: [tuple()]}],
+		characteristics = [] :: [{Name :: string(), Value :: term()}],
 		multisession = false :: boolean(),
 		last_modified :: tuple() | undefined}).
 

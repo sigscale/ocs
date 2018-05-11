@@ -31,7 +31,8 @@
 -record(state,
 			{interval :: pos_integer(),
 			schedule :: calendar:time(),
-			dir :: string()}).
+			dir :: string(),
+			type :: voip | wlan}).
 -type state() :: #state{}.
 
 %% support deprecated_time_unit()
@@ -84,7 +85,8 @@ init([Type, ScheduledTime, Interval] = _Args) when
 init1(Directory, NewInterval, ScheduledTime, Type) ->
 	Directory1 = Directory ++ "/" ++ atom_to_list(Type),
 	State = #state{interval = NewInterval,
-			schedule = ScheduledTime, dir = Directory1},
+			schedule = ScheduledTime, dir = Directory1,
+			type = Type},
 	case file:make_dir(Directory1) of
 		ok ->
 			{ok, State, wait(ScheduledTime, NewInterval)};
@@ -150,11 +152,11 @@ handle_cast(stop, State) ->
 %% @private
 %%
 handle_info(timeout, #state{interval = Interval,
-		schedule = ScheduledTime, dir = Directory} = State) ->
+		schedule = ScheduledTime, type = Type} = State) ->
 	Time = erlang:system_time(?MILLISECOND),
-	FileName = Directory ++ "/" ++ ocs_log:iso8601(Time),
+	FileName = ocs_log:iso8601(Time),
 	{Start, End} = previous(Interval),
-	case ocs_log:ipdr_log(voip, FileName, Start, End) of
+	case ocs_log:ipdr_log(Type, FileName, Start, End) of
 		ok ->
 			{noreply, State, wait(ScheduledTime, Interval)};
 		{error, Reason} ->

@@ -51,8 +51,8 @@
 				--paper-checkbox-checkmark-color: var(--paper-yellow-900);
 			}
 			.toggle {
-	 	      display:inline-block;
-	      }
+				display:inline-block;
+			}
 			.generate {
 				display: inline-block;
 				width: 8em;
@@ -83,7 +83,7 @@
 				width: 5em;
 			}
 		</style>
-		<paper-dialog id="addSubscriberModal" modal>
+		<paper-dialog id="addServiceModal" modal>
 			<paper-toolbar>
 				<paper-tabs selected="{{selected}}">
 					<paper-tab id="auth-add">
@@ -144,7 +144,7 @@
 					<paper-button
 							raised
 							class="add-button"
-							on-tap="_subscriberAddSubmit">
+							on-tap="_serviceAddSubmit">
 						<i18n-msg msgid="submit">
 								Submit
 						</i18n-msg>
@@ -153,7 +153,7 @@
 							dialog-dismiss
 							class="cancel-button"
 							autofocus
-							onclick="addSubscriberModal.close()">
+							onclick="addServiceModal.close()">
 					<i18n-msg msgid="cancel">
 						Cancel
 					</i18n-msg>
@@ -162,35 +162,9 @@
 			</div>
 			<div id="add-divone">
 				<div>
-					<paper-input id="addSubscriberDataRate"
-							name="ascendDataRate"
-							type="number"
-							label="[[i18n.recieve]]">
-					</paper-input>
-					<paper-tooltip>
-						<i18n-msg msgid="dataRateTool">
-								Limit on received (download) data per second in bits.
-						</i18n-msg>
-					</paper-tooltip>
-				</div>
-				<div>
-					<paper-input id="addSubscriberXmitRate"
-							name="ascendXmitRate"
-							type="number"
-							label="[[i18n.trans]]">
-					</paper-input>
-					<paper-tooltip>
-						<i18n-msg msgid="xmitRateTool">
-								Limit on transmitted (upload) data per second in bits.
-						</i18n-msg>
-					</paper-tooltip>
-				</div>
-				<div>
-					<paper-input id="addSubscriberTimeout"
-							name="sessionTimeout"
-							type="number"
-							label="[[i18n.ses]]"
-							value=3600>
+					<paper-input id="addAcctSessionInterval"
+							name="acctSessionInterval"
+							label="sessionInterval">
 					</paper-input>
 					<paper-tooltip>
 						<i18n-msg msgid="sessionTimeoutTool">
@@ -199,10 +173,9 @@
 					</paper-tooltip>
 				</div>
 				<div>
-					<paper-input id="addSubscriberInterval"
-							name="acctInterimInterval"
-							type="number"
-							label="[[i18n.updateInterval]]">
+					<paper-input id="addSessionTimeout"
+							name="addSessionTimeout"
+							label="sessionTimeout">
 					</paper-input>
 					<paper-tooltip>
 						<i18n-msg msgid="acctInterimIntervalTool">
@@ -220,7 +193,7 @@
 					</i18n-msg>
 					<div style="display:inline-block;">
 						<paper-toggle-button id="addSubscriberEnabled"
-							name="enabled" checked>
+							name="isServiceEnabled" checked>
 						</paper-toggle-button>
 						<paper-tooltip>
 							<i18n-msg msgid="enableTool">
@@ -246,7 +219,7 @@
 						<paper-button dialog-confirm
 								raised
 								class="add-button"
-								on-tap="_subscriberAddSubmit">
+								on-tap="_serviceAddSubmit">
 							<i18n-msg msgid="submit">
 									Submit
 							</i18n-msg>
@@ -255,7 +228,7 @@
 								dialog-dismiss
 								class="cancel-button"
 								autofocus
-								onclick="addSubscriberModal.close()">
+								onclick="addServiceModal.close()">
 							<i18n-msg msgid="cancel">
 									Cancel
 							</i18n-msg>
@@ -317,14 +290,14 @@
 					<paper-button dialog-confirm
 							raised
 							class="add-button"
-							on-tap="_subscriberAddSubmit">
+							on-tap="_serviceAddSubmit">
 						<i18n-msg msgid="submit">
 								Submit
 						</i18n-msg>
 					</paper-button>
 					<paper-button dialog-dismiss
 							class="cancel-button"
-							onclick="addSubscriberModal.close()">
+							onclick="addServiceModal.close()">
 						<i18n-msg msgid="cancel">
 								Cancel
 						</i18n-msg>
@@ -373,21 +346,38 @@
 			</div>
 		</paper-dialog>
 		<iron-ajax
-				id="addSubscriberAjax"
-				url="/ocs/v1/subscriber"
+				id="addServiceAjax"
+				url="/serviceInventoryManagement/v2/service"
 				method = "post"
 				content-type="application/json"
 				on-loading-changed="_onLoadingChanged"
-				on-response="_addSubscriberResponse"
-				on-error="_addSubscriberError">
+				on-response="_addServiceResponse"
+				on-error="_addServiceError">
 		</iron-ajax>
 		<iron-ajax
-            id="updateSubscriberProductsAjax1"
-            url="/catalogManagement/v2/productOffering"
-            method = "GET"
-            on-response="_updateSubscriberProductsResponse1"
-            on-error="_updateSubscriberProductsError1">
-      </iron-ajax>
+				id="addProductAjax"
+				url="/productInventoryManagement/v2/product"
+				method = "post"
+				content-type="application/json"
+				on-loading-changed="_onLoadingChanged"
+				on-response="_addProductResponse"
+				on-error="_addProductError">
+		</iron-ajax>
+		<iron-ajax
+				id="addBucketAjax"
+				method = "post"
+				content-type="application/json"
+				on-loading-changed="_onLoadingChanged"
+				on-response="_addBucketResponse"
+				on-error="_addBucketError">
+		</iron-ajax>
+		<iron-ajax
+				id="updateSubscriberProductsAjax1"
+				url="/catalogManagement/v2/productOffering"
+				method = "GET"
+				on-response="_updateSubscriberProductsResponse1"
+				on-error="_updateSubscriberProductsError1">
+		</iron-ajax>
 	</template>
 	<script>
 		Polymer ({
@@ -402,94 +392,125 @@
 					type: String,
 				}
 			},
-			_subscriberAddSubmit: function(event) {
+			_serviceAddSubmit: function(event) {
 				var subscriber = new Object();
-				if(!this.$.addSubscriberId.disabled) {
-					subscriber.id = this.$.addSubscriberId.value;
+				var serviceChar = new Array();
+				if(this.$.addSubscriberId.value) {
+					var serviceIdentity = new Object();
+					serviceIdentity.name = "serviceIdentity";
+					serviceIdentity.value = this.$.addSubscriberId.value;
+					serviceChar.push(serviceIdentity);
 				}
 				if(!this.$.addSubscriberPassword.disabled) {
-					subscriber.password = this.$.addSubscriberPassword.value;
+					var servicePass = new Object();
+					servicePass.name = "servicePassword";
+					servicePass.value = this.$.addSubscriberPassword.value;
+					serviceChar.push(servicePass);
 				}
-				var attributes = new Array();
-				if(parseInt(this.$.addSubscriberDataRate.value)) {
-					var ascendDataRate = new Object();
-					ascendDataRate.name = "ascendDataRate";
-					ascendDataRate.value = parseInt(this.$.addSubscriberDataRate.value);
-					attributes.push(ascendDataRate);
+				if(parseInt(this.$.addAcctSessionInterval.value)) {
+					var sessionInterval = new Object();
+					sessionInterval.name = "acctSessionInterval";
+					sessionInterval.value = parseInt(this.$.addAcctSessionInterval.value);
+					serviceChar.push(sessionInterval);
 				}
-				if(parseInt(this.$.addSubscriberXmitRate.value)) {
-					var ascendXmitRate = new Object();
-					ascendXmitRate.name = "ascendXmitRate";
-					ascendXmitRate.value = parseInt(this.$.addSubscriberXmitRate.value);
-					attributes.push(ascendXmitRate);
+				if(parseInt(this.$.addSessionTimeout.value)) {
+					var sessionTime = new Object();
+					sessionTime.name = "sessionTimeout";
+					sessionTime.value = parseInt(this.$.addSessionTimeout.value);
+					serviceChar.push(sessionTime);
 				}
-				if(parseInt(this.$.addSubscriberTimeout.value)) {
-					var sessionTimeout = new Object();
-					sessionTimeout.name = "sessionTimeout";
-					sessionTimeout.value = parseInt(this.$.addSubscriberTimeout.value);
-					attributes.push(sessionTimeout);
+				if(this.$.addSubscriberMulti.checked) {
+					var multiSess = new Object();
+					multiSess.name = "multisession";
+					multiSess.valueType = "boolean";
+					multiSess.value = this.$.addSubscriberMulti.checked;
+					serviceChar.push(multiSess);
 				}
-				if(parseInt(this.$.addSubscriberInterval.value)) {
-					var acctInterimInterval = new Object();
-					acctInterimInterval.name = "acctInterimInterval";
-					acctInterimInterval.value = parseInt(this.$.addSubscriberInterval.value);
-					attributes.push(acctInterimInterval);
-				}
-				if(this.$.addSubscriberClass.value) {
-					var classx = new Object();
-					classx.name = "class";
-					if(this.$.addSubscriberClass.value == "") {
-						classx.value = null;
-					} else {
-						classx.value = this.$.addSubscriberClass.value;
-					}
-				}
-				subscriber.attributes = attributes;
-				var buckets = [];
-				if(document.getElementById("add8").value) {
-					if(document.getElementById("adduni9").selected == 0) {
-						buckets.push({"remainAmount": parseInt(document.getElementById("add8").value),
-						"units": "octets"});
-					}
-					if(document.getElementById("adduni9").selected == 1) {
-						buckets.push({"remainAmount": document.getElementById("add8").value,
-						"units": "cents"});
-					}
-					if(document.getElementById("adduni9").selected == 2) {
-						buckets.push({"remainAmount": parseInt(document.getElementById("add8").value),
-						"units": "seconds"});
-					}
-					subscriber.buckets = buckets;
-				}
-				subscriber.product = this.product;
-				subscriber.enabled = this.$.addSubscriberEnabled.checked;
-				subscriber.multisession = this.$.addSubscriberMulti.checked;
+				subscriber.serviceCharacteristic = serviceChar;
+				subscriber.isServiceEnabled = this.$.addSubscriberEnabled.checked;
+				subscriber.state = "active";
+				var specService = new Object();
+				specService.id = "1";
+				specService.href = "/catalogManagement/v2/serviceSpecification/1";
+				subscriber.serviceSpecification = specService;
 				if(subscriber.id != "") {
-					var ajax = this.$.addSubscriberAjax;
+					var ajax = this.$.addServiceAjax;
 					ajax.headers['Content-type'] = "application/json";
 					ajax.body = subscriber;
 					ajax.generateRequest();
 				}
-				this.$.add8.value = null;
 			},
-			_addSubscriberResponse: function(event) {
-				this.$.addSubscriberModal.close();
-				var ajax = this.$.addSubscriberAjax;
-				if (ajax.body.password == undefined || ajax.body.id == undefined) {
-					this.password = ajax.lastResponse.password;
-					this.identity = ajax.lastResponse.id;
-					this.$.addSubscriberSecretModal.open();
-				} else {
-					document.getElementById("addSubscriberToastSuccess").open();
+			_addServiceResponse: function(event) {
+				function checkPasswordResp(pass) {
+					return pass.name == "servicePassword";
 				}
-				document.getElementById("subscriberGrid").clearCache();
+				var indexPass = event.detail.xhr.response.serviceCharacteristic.findIndex(checkPasswordResp);
+				this.password = event.detail.xhr.response.serviceCharacteristic[indexPass].value;
+				this.identity = event.detail.xhr.response.id;
+				this.$.addSubscriberSecretModal.open();
+				var ajaxProduct = this.$.addProductAjax;
+				var productSer = new Object();
+				var productRef = new Object();
+				productRef.id = this.product;
+				productRef.name = this.product;
+				productRef.href = "/catalogManagement/v2/productOffering/one" + this.product; 
+				productSer.productOffering = productRef;
+				var productRealizingService = new Object();
+				productRealizingService.id = this.identity;
+				productRealizingService.href = "/serviceInventoryManagement/v2/service/" + this.identity;
+				productSer.realizingService = [productRealizingService];
+				ajaxProduct.headers['Content-type'] = "application/json";
+				ajaxProduct.body = productSer;
+				ajaxProduct.generateRequest();
 			},
-			_addSubscriberError: function(event) {
+			_addServiceError: function(event) {
 				this.$.addSubscriberToastError.text = event.detail.request.xhr.statusText;
 				this.$.addSubscriberToastError.open();
 			},
+			_addProductResponse: function(event) {
+				var ajaxServices1 = this.$.addServiceAjax;
+				var ajaxProduct1 = this.$.addProductAjax;
+				var result = event.detail.xhr.response;
+				serviceId = ajaxServices1.lastResponse.id;
+				var ajaxBucket = this.$.addBucketAjax;
+				var bucketTop = new Object();
+				name =  "channel";
+				bucketTop.channel = {name};
+				if(document.getElementById("add8").value) {
+					if(document.getElementById("adduni9").selected == 0) {
+						units = "bytes";
+					}
+					if(document.getElementById("adduni9").selected == 1) {
+						units = "cents";
+					}
+					if(document.getElementById("adduni9").selected == 2) {
+						units = "seconds";
+					}
+					amount = document.getElementById("add8").value;
+					bucketTop.amount = {units, amount};
+				}
+				id = result.id;
+				href = "/productInventoryManagement/v2/product/" + this.product;
+				bucketTop.product = {id, href};
+				ajaxBucket.headers['Content-type'] = "application/json";
+				ajaxBucket.body = bucketTop;
+				ajaxBucket.url="/balanceManagement/v1/" + serviceId + "/balanceTopups";
+				ajaxBucket.generateRequest();
+				this.$.addServiceModal.close();
+				document.getElementById("add8").value = null;
+			},
+			_addProductError: function(event) {
+				var ajaxBucketRes = this.$.addBucketAjax;
+			},
+			_addBucketResponse: function(event) {
+				this.$.addServiceModal.close();
+				document.getElementById("subscriberGrid").clearCache();
+				document.getElementById("addSubscriberToastSuccess").open();
+			},
+			_addBucketError: function(event) {
+			},
 			_onLoadingChanged: function(event) {
-				if (this.$.addSubscriberAjax.loading) {
+				if (this.$.addServiceAjax.loading) {
 					document.getElementById("progress").disabled = false;
 				} else {
 					document.getElementById("progress").disabled = true;

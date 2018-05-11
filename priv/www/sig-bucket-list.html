@@ -10,7 +10,7 @@
 <link rel="import" href="paper-styles/color.html">
 <link rel="import" href="sig-sub-add.html">
 
-<dom-module id="sig-product-list">
+<dom-module id="sig-bucket-list">
 	<template>
 		<style is="custom-style">
 			::-webkit-input-placeholder { /* Chrome/Opera/Safari */
@@ -63,41 +63,74 @@
 				color: #eeff41;
 			}
 		</style>
-		<vaadin-grid id="productInventoryGrid" active-item="{{activeItem}}">
+		<vaadin-grid id="balanceBucketGrid" active-item="{{activeItem}}">
 			<vaadin-grid-column width="15ex" flex-grow="5">
 				<template class="header">
-					<vaadin-grid-filter aria-label="Product Id" path="id" value="[[_filterProId]]">
-						<input placeholder="Product Id" value="{{_filterProId::input}}" focus-target>
+					<vaadin-grid-filter aria-label="Bucket Id" path="id" value="[[_filterBucId]]">
+						<input placeholder="Bucket Id" value="{{_filterBucId::input}}" focus-target>
 					</vaadin-grid-filter>
 				</template>
 				<template>[[item.id]]</template>
 			</vaadin-grid-column>
 			<vaadin-grid-column width="15ex" flex-grow="5">
 				<template class="header">
-					<vaadin-grid-filter aria-label="Services" path="identity" value="[[_filterIdentity]]">
-						<input placeholder="Services" value="{{_filterIdentity::input}}" focus-target>
+					<vaadin-grid-filter aria-label="Product Id" path="productId" value="[[_filterProdId]]">
+						<input placeholder="Product Id" value="{{_filterProdId::input}}" focus-target>
 					</vaadin-grid-filter>
 				</template>
-				<template>[[item.identity]]</template>
+				<template>[[item.productId]]</template>
 			</vaadin-grid-column>
-			<vaadin-grid-column width="15ex" flex-grow="5">
+			<vaadin-grid-column-group>
 				<template class="header">
-					<vaadin-grid-filter aria-label="Offering" path="productOffering" value="[[_filterOffer]]">
-						<input placeholder="Offering" value="{{_filterOffer::input}}" focus-target>
-					</vaadin-grid-filter>
+					<div class="grouptitle">[[i18n.balance]]</div>
 				</template>
-				<template>[[item.productOffering]]</template>
-			</vaadin-grid-column>
+				<vaadin-grid-column width="12ex" flex-grow="2">
+					<template class="header">
+						<vaadin-grid-filter aria-label="[[i18n.cents]]" path="cents" value="[[_filterCents]]">
+							<input placeholder="[[i18n.cents]]" value="{{_filterCents::input}}" focus-target>
+						</vaadin-grid-filter>
+					</template>
+					<template>
+						<div class="cell numeric">[[item.cents]]</div>
+					</template>
+				</vaadin-grid-column>
+				<vaadin-grid-column width="12ex" flex-grow="2">
+					<template class="header">
+						<vaadin-grid-filter aria-label="[[i18n.bytes]]" path="remainedAmount" value="[[_filterBalance]]">
+							<input placeholder="[[i18n.bytes]]" value="{{_filterBalance::input}}" focus-target>
+						</vaadin-grid-filter>
+					</template>
+					<template>
+						<div class="cell numeric">[[item.remainedAmount]]</div>
+					</template>
+				</vaadin-grid-column>
+				<vaadin-grid-column width="12ex" flex-grow="2">
+					<template class="header">
+						<vaadin-grid-filter aria-label="[[i18n.seconds]]" path="seconds" value="[[_filterSeconds]]">
+							<input placeholder="[[i18n.seconds]]" value="{{_filterSeconds::input}}" focus-target>
+						</vaadin-grid-filter>
+					</template>
+					<template>
+						<div class="cell numeric">[[item.seconds]]</div>
+					</template>
+				</vaadin-grid-column>
+			</vaadin-grid-column-group>
 		</vaadin-grid>
+		<div class="add-button">
+			<paper-fab
+				icon="add"
+				on-tap="showAddBucket">
+			</paper-fab>
+		</div>
 		<iron-ajax
-			id="getProductInventory"
-			on-response="_getProductResponse"
-			on-error="_getProductError">
+			id="getBucketBalance"
+			on-response="_getBucketBalanceResponse"
+			on-error="_getBucketBalanceError">
 		</iron-ajax>
 	</template>
 	<script>
 		Polymer ({
-			is: 'sig-product-list',
+			is: 'sig-bucket-list',
 			behaviors: [i18nMsgBehavior],
 			properties: {
 				activePage: {
@@ -111,22 +144,28 @@
 			},
 			_activePageChanged: function(active) {
 				if(active) {
-					var grid = this.$.productInventoryGrid;
+					var grid = this.$.balanceBucketGrid;
 					grid.columns = [
 						{
-							name: "productId" 
+							name: "id" 
 						},
 						{
-							name: "identity"
+							name: "productId"
 						},
 						{
-							name: "offering"
+							name: "remainedAmount"
+						},
+						{
+							name: "cents"
+						},
+						{
+							name: "seconds"
 						}
 					];
 					grid.dataProvider = function(params, callback) {
-						cbProduct = callback;
-						var ajax = document.getElementById("getProductInventory");
-						ajax.url = "/productInventoryManagement/v2/product/";
+						cbBucket = callback;
+						var ajax = document.getElementById("getBucketBalance");
+						ajax.url = "/balanceManagement/v1/bucket/";
 						params.filters.forEach(function(filter, index) {
 							if(index == 0) {
 								ajax.url += '?' + filter.path + '=' + filter.value;
@@ -150,21 +189,20 @@
 							} else {
 								ajax.url += ',' + dirsort;
 							}
+							StartRange = params.page * params.pageSize + 1;
+							EndRange = StartRange + params.pageSize - 1;
+							ajax.headers['Range'] = "items=" + StartRange + "-" + EndRange;
+							if (etag && StartRange > lastItem) {
+								ajax.headers['If-Range'] = etag;
+							}
 						});
-						StartRange = params.page * params.pageSize + 1;
-						EndRange = StartRange + params.pageSize - 1;
-						ajax.headers['Range'] = "items=" + StartRange + "-" + EndRange;
-						if (etag && StartRange > lastItem) {
-							ajax.headers['If-Range'] = etag;
-						}
 						ajax.generateRequest();
 					};
 				}
 			},
-			_getProductResponse: function(event) {
-				var grid = this.$.productInventoryGrid;
+			_getBucketBalanceResponse: function(event) {
+				var grid = this.$.balanceBucketGrid;
 				var results = event.detail.xhr.response;
-console.log(results);
 				etag = event.detail.xhr.getResponseHeader('ETag');
 				var range = event.detail.xhr.getResponseHeader('Content-Range');
 				if (grid.size == undefined) {
@@ -182,15 +220,25 @@ console.log(results);
 				for (var index in results) {
 					var newRecord = new Object();
 					newRecord.id = results[index].id;
-console.log(results[index].productOffering.name),
-					newRecord.productOffering = results[index].productOffering.name;
-					for(var indexSer in results[index].realizingService) {
-						newRecord.identity = results[index].realizingService[indexSer].id;
-					}
+					newRecord.productId = results[index].product.id;
+						if(results[index].remainedAmount) {
+							if(results[index].remainedAmount.units == "cents") {
+								newRecord.cents = results[index].remainedAmount.amount;
+							}
+							if(results[index].remainedAmount.units == "seconds") {
+								newRecord.seconds = results[index].remainedAmount.amount;
+							}
+							if(results[index].remainedAmount.units == "octets") {
+								newRecord.remainedAmount = results[index].remainedAmount.amount;
+							}
+						}
 					vaadinItems[index] = newRecord;
 				}
-				cbProduct(vaadinItems);
+				cbBucket(vaadinItems);
 			},
+			showAddBucket: function(event) {
+				document.getElementById("addBucketModal").open();
+			}
 		})
 	</script>
 </dom-module>

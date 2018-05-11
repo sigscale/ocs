@@ -88,41 +88,6 @@
 				</template>
 			<template>[[item.product]]</template>
 			</vaadin-grid-column>
-			<vaadin-grid-column-group>
-				<template class="header">
-					<div class="grouptitle">[[i18n.balance]]</div>
-				</template>
-				<vaadin-grid-column width="12ex" flex-grow="2">
-					<template class="header">
-						<vaadin-grid-filter aria-label="[[i18n.cents]]" path="cents" value="[[_filterCents]]">
-							<input placeholder="[[i18n.cents]]" value="{{_filterCents::input}}" focus-target>
-						</vaadin-grid-filter>
-					</template>
-					<template>
-						<div class="cell numeric">[[item.cents]]</div>
-					</template>
-				</vaadin-grid-column>
-				<vaadin-grid-column width="12ex" flex-grow="2">
-					<template class="header">
-						<vaadin-grid-filter aria-label="[[i18n.bytes]]" path="totalBalance" value="[[_filterBalance]]">
-							<input placeholder="[[i18n.bytes]]" value="{{_filterBalance::input}}" focus-target>
-						</vaadin-grid-filter>
-					</template>
-					<template>
-						<div class="cell numeric">[[item.totalBalance]]</div>
-					</template>
-				</vaadin-grid-column>
-				<vaadin-grid-column width="12ex" flex-grow="2">
-					<template class="header">
-						<vaadin-grid-filter aria-label="[[i18n.seconds]]" path="seconds" value="[[_filterSeconds]]">
-							<input placeholder="[[i18n.seconds]]" value="{{_filterSeconds::input}}" focus-target>
-						</vaadin-grid-filter>
-					</template>
-					<template>
-						<div class="cell numeric">[[item.seconds]]</div>
-					</template>
-				</vaadin-grid-column>
-			</vaadin-grid-column-group>
 			<vaadin-grid-column width="8ex" flex-grow="1">
 				<template class="header">
 					<vaadin-grid-filter aria-label="[[i18n.enable]]" path="enabled" value="[[_filterEnabled]]">
@@ -173,6 +138,11 @@
 			id="getSubscriberAjax"
 			on-response="_getSubscriberResponse"
 			on-error="_getSubscriberError">
+		</iron-ajax>
+		<iron-ajax
+			id="getProductInventoryAjax"
+			on-response="_getProductResponse"
+			on-error="_getProductError">
 		</iron-ajax>
 	</template>
 	<script>
@@ -239,7 +209,7 @@
 					grid.dataProvider = function(params, callback) {
 						cbSubscriber = callback;
 						var ajax = document.getElementById("getSubscriberAjax");
-						ajax.url = "/ocs/v1/subscriber";
+						ajax.url = "/serviceInventoryManagement/v2/service";
 						params.filters.forEach(function(filter, index) {
 							if(index == 0) {
 								ajax.url += '?' + filter.path + '=' + filter.value;
@@ -276,14 +246,15 @@
 			},
 			_activeItemChanged: function(item) {
 				if (item != null){
+					var ajaxCh = document.getElementById("getServiceRespAjax");
+					ajaxCh.url = "/serviceInventoryManagement/v2/service/" + item.id;
+					ajaxCh.generateRequest();
 					document.getElementById("updateSubscriberProductsAjax").generateRequest();
 					this.$.subscriberGrid.selectedItems = item ? [item] : [];
 					document.getElementById("updateSubscriberModal").open();
 					document.getElementById("updateSubscriberId").value = item.id;
 					document.getElementById("updateSubscriberPassword").value = item.password;
 					document.getElementById("updatePro").value = item.product;
-					document.getElementById("updateSubscriberDataRate").value = item.ascendDataRate;
-					document.getElementById("updateSubscriberXmitRate").value = item.ascendXmitRate;
 					document.getElementById("updateSubscriberTimeout").value = item.sessionTimeout;
 					document.getElementById("updateSubscriberInterval").value = item.acctInterimInterval;
 					document.getElementById("updateSubscriberClass").value =  item.class;
@@ -311,31 +282,7 @@
 				for (var index in results) {
 					var newRecord = new Object();
 					newRecord.id = results[index].id;
-					newRecord.password = results[index].password;
 					newRecord.product = results[index].product;
-					if(results[index].totalBalance) {
-						function getBytes(balance) {
-							return balance.units == "octets";
-						}
-						var byteTotal = results[index].totalBalance.find(getBytes);
-						if(byteTotal) {
-							newRecord.totalBalance = byteTotal.amount;
-						}
-						function getCents(balance) {
-							return balance.units == "cents";
-						}
-						var centsTotal = results[index].totalBalance.find(getCents);
-						if(centsTotal) {
-							newRecord.cents = centsTotal.amount;
-						}
-						function getSeconds(balance) {
-							return balance.units == "seconds";
-						}
-						var secondsTotal = results[index].totalBalance.find(getSeconds);
-						if(secondsTotal) {
-							newRecord.seconds = secondsTotal.amount;
-						}
-					}
 					if(results[index].attributes) {
 						results[index].attributes.forEach(
 							function(attrObj) {
@@ -343,8 +290,21 @@
 							}
 						);
 					}
-					newRecord.enabled = results[index].enabled;
-					newRecord.multisession = results[index].multisession;
+					function checkPassword(pass) {
+						return pass.name == "servicePassword";
+					}
+					var indexPass = results[index].serviceCharacteristic.findIndex(checkPassword);
+					if(indexPass != -1) {
+						newRecord.password = results[index].serviceCharacteristic[indexPass].value;
+					}
+					newRecord.enabled = results[index].isServiceEnabled;
+					function checkMultisession(multi) {
+						return multi.name == "multiSession";
+					}
+					var indexMulti = results[index].serviceCharacteristic.findIndex(checkMultisession);
+					if(indexMulti != -1) {
+						newRecord.multisession = results[index].serviceCharacteristic[indexMulti].value;
+					}
 					vaadinItems[index] = newRecord;
 				}
 					cbSubscriber(vaadinItems);

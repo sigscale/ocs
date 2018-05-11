@@ -2648,7 +2648,7 @@ query_start1(_Type, {_, "AAAAccessUsage"}, undefined, Query,
 		_ ->
 			{error, 400}
 	end;
-query_start1(Type, {_, "AAAAccountingUsage"}, undefined, Query,
+query_start1(_Type, {_, "AAAAccountingUsage"}, undefined, Query,
 		Filters, RangeStart, RangeEnd, DateStart, DateEnd) ->
 	try
 		case lists:keyfind("filter", 1, Query) of
@@ -2712,7 +2712,7 @@ query_start1(Type, false, IpdrFile, Query,
 	after
 		disk_log:close("log/ipdr/" ++ Type ++ "/" ++ IpdrFile)
 	end;
-query_start1(Type, {_, "HTTPTransferUsage"}, undefined, Query,
+query_start1(_Type, {_, "HTTPTransferUsage"}, undefined, Query,
 		Filters, RangeStart, RangeEnd, _, _) ->
 	DateTime = proplists:get_value("datetime", Query, '_'),
 	Host = proplists:get_value("host", Query, '_'),
@@ -2730,9 +2730,9 @@ query_start1(Type, {_, "HTTPTransferUsage"}, undefined, Query,
 	end;
 query_start1(_, {_, _}, _, [], _, _, _, _, _) ->
 	{error, 404};
-query_start1(_, {_, _}, _, _, _, _, _, _, _) ->
-	{error, 400};
 query_start1(_, {_, false}, _, _, _, _, _, _, _) ->
+	{error, 400};
+query_start1(_, {_, _}, _, _, _, _, _, _, _) ->
 	{error, 400}.
 
 %% @hidden

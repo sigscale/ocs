@@ -71,7 +71,8 @@ acct_open() ->
 	{ok, Directory} = application:get_env(ocs, acct_log_dir),
 	{ok, LogSize} = application:get_env(ocs, acct_log_size),
 	{ok, LogFiles} = application:get_env(ocs, acct_log_files),
-	open_log(Directory, ?ACCTLOG, LogSize, LogFiles).
+	{ok, LogNodes} = application:get_env(ocs, acct_log_nodes),
+	open_log(Directory, ?ACCTLOG, LogSize, LogFiles, LogNodes).
 
 -spec acct_log(Protocol, Server, Type, Request, Response, Rated) -> Result
 	when
@@ -175,7 +176,8 @@ auth_open() ->
 	{ok, Directory} = application:get_env(ocs, auth_log_dir),
 	{ok, LogSize} = application:get_env(ocs, auth_log_size),
 	{ok, LogFiles} = application:get_env(ocs, auth_log_files),
-	open_log(Directory, ?AUTHLOG, LogSize, LogFiles).
+	{ok, LogNodes} = application:get_env(ocs, auth_log_nodes),
+	open_log(Directory, ?AUTHLOG, LogSize, LogFiles, LogNodes).
 
 -spec auth_log(Protocol, Server, Client, Type, RequestAttributes,
 		ResponseAttributes) -> Result
@@ -938,14 +940,15 @@ abmf_open() ->
 	{ok, Directory} = application:get_env(ocs, abmf_log_dir),
 	{ok, LogSize} = application:get_env(ocs, abmf_log_size),
 	{ok, LogFiles} = application:get_env(ocs, abmf_log_files),
-	open_log(Directory, ?BALANCELOG, LogSize, LogFiles).
+	{ok, LogNodes} = application:get_env(ocs, abmf_log_nodes),
+	open_log(Directory, ?BALANCELOG, LogSize, LogFiles, LogNodes).
 
--spec abmf_log(Type, Subscriber, Bucket, Units, Product, Amount,
+-spec abmf_log(Type, ServiceId, Bucket, Units, Product, Amount,
 		AmountBefore, AmountAfter, Validity, Channel, Requestor,
 		RelatedParty, PaymentMeans, Action, Status) -> Result
 	when
 		Type :: deduct | reserve | unreserve | transfer | topup | adjustment,
-		Subscriber :: binary(),
+		ServiceId :: undefined | binary(),
 		Bucket :: undefined | string(),
 		Units :: cents | seconds | octets | messages,
 		Product :: string(),
@@ -965,16 +968,16 @@ abmf_open() ->
 		Result :: ok | {error, Reason},
 		Reason :: term().
 %% @doc Write a balance activity log
-abmf_log(Type, Subscriber, Bucket, Units, Product, Amount,
+abmf_log(Type, ServiceId, Bucket, Units, Product, Amount,
 		AmountBefore, AmountAfter, Validity, Channel, Requestor,
 		RelatedParty, PaymentMeans, Action, Status)
 		when ((Type == transfer) orelse (Type == topup) orelse
 		(Type == adjustment) orelse (Type == deduct) orelse (Type == reserve)
-		orelse (Type == unreserve)), is_binary(Subscriber), is_list(Bucket),
-		((Units == cents) orelse (Units == seconds) orelse (Units == octets)
+		orelse (Type == unreserve)), ((is_binary(ServiceId)) orelse (ServiceId == undefined)),
+		is_list(Bucket), ((Units == cents) orelse (Units == seconds) orelse (Units == octets)
 		orelse (Units == messages)), is_integer(AmountBefore), is_integer(AmountAfter),
 		is_list(Product), is_integer(Amount)->
-	Event = [node(), Type, Subscriber, Bucket, Units, Product, Amount,
+	Event = [node(), Type, ServiceId, Bucket, Units, Product, Amount,
 			AmountBefore, AmountAfter, Validity, Channel, Requestor,
 			RelatedParty, PaymentMeans, Action, Status],
 	write_log(?BALANCELOG, Event).
@@ -1907,38 +1910,59 @@ http_parse6(Event, Acc) ->
 	<<Status:Offset/binary, 32, _Rest/binary>> = Event,
 	Acc#event{httpStatus = binary_to_integer(Status)}.
 
--spec open_log(Directory, Log, LogSize, LogFiles) -> Result
+-spec open_log(Directory, Log, LogSize, LogFiles, LogNodes) -> Result
 	when
 		Directory  :: string(),
 		Log :: atom(),
 		LogSize :: integer(),
 		LogFiles :: integer(),
+		LogNodes :: [Node],
+		Node :: atom(),
 		Result :: ok | {error, Reason},
 		Reason :: term().
 %% @doc open disk log file
-open_log(Directory, Log, LogSize, LogFiles) ->
+open_log(Directory, Log, LogSize, LogFiles, LogNodes) ->
 	case file:make_dir(Directory) of
 		ok ->
-			open_log1(Directory, Log, LogSize, LogFiles);
+			open_log1(Directory, Log, LogSize, LogFiles, LogNodes);
 		{error, eexist} ->
-			open_log1(Directory, Log, LogSize, LogFiles);
+			open_log1(Directory, Log, LogSize, LogFiles, LogNodes);
 		{error, Reason} ->
 			{error, Reason}
 	end.
 %% @hidden
-open_log1(Directory, Log, LogSize, LogFiles) ->
+open_log1(Directory, Log, LogSize, LogFiles, LogNodes) ->
 	FileName = Directory ++ "/" ++ atom_to_list(Log),
 	case disk_log:open([{name, Log}, {file, FileName},
-					{type, wrap}, {size, {LogSize, LogFiles}}]) of
-		{ok, Log} ->
+					{type, wrap}, {size, {LogSize, LogFiles}},
+					{distributed, [node() | LogNodes]}]) of
+		{ok, _} = Result ->
+			open_log2(Log, [{node(), Result}], [], undefined);
+		{repaired, _, _, _} = Result ->
+			open_log2(Log, [{node(), Result}], [], undefined);
+		{error, _} = Result ->
+			open_log2(Log, [], [{node(), Result}], undefined);
+		{OkNodes, ErrNodes} ->
+			open_log2(Log, OkNodes, ErrNodes, undefined)
+	end.
+%% @hidden
+open_log2(Log, OkNodes,
+		[{Node, {error, {node_already_open, _}}} | T], Reason)
+		when Node == node() ->
+	open_log2(Log, [{Node, {ok, Log}} | OkNodes], T, Reason);
+open_log2(Log, OkNodes, [{_, {error, {node_already_open, _}}} | T], Reason) ->
+	open_log2(Log, OkNodes, T, Reason);
+open_log2(Log, OkNodes, [{Node, Reason1} | T], Reason2) ->
+	Descr = lists:flatten(disk_log:format_error(Reason1)),
+	Trunc = lists:sublist(Descr, length(Descr) - 1),
+	error_logger:error_report([Trunc, {module, ?MODULE},
+		{log, Log}, {node, Node}, {error, Reason1}]),
+	open_log2(Log, OkNodes, T, Reason2);
+open_log2(_Log, OkNodes, [], Reason) ->
+	case lists:keymember(node(), 1, OkNodes) of
+		true ->
 			ok;
-		{repaired, Log, _Recovered, _Bad} ->
-			ok;
-		{error, Reason} ->
-			Descr = lists:flatten(disk_log:format_error(Reason)),
-			Trunc = lists:sublist(Descr, length(Descr) - 1),
-			error_logger:error_report([Trunc, {module, ?MODULE},
-					{log, Log}, {error, Reason}]),
+		false ->
 			{error, Reason}
 	end.
 

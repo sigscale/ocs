@@ -174,6 +174,8 @@ handle_info({'EXIT', Fsm, {shutdown, SessionId}},
 		none ->
 			{noreply, State}
 	end;
+handle_info({'EXIT', _Pid, noconnection}, State) ->
+	{noreply, State};
 handle_info({'EXIT', Fsm, _Reason},
 		#state{handlers = Handlers} = State) ->
 	Fdel = fun(_F, {Key, {Pid, _Identity}, _Iter}) when Pid == Fsm ->
@@ -267,11 +269,11 @@ request(Caps, _Address, _Port, none, _PasswordReq, Request, _CbProc, State)
 	try
 		[Username] = Request#diameter_nas_app_STR.'User-Name',
 		F = fun() ->
-			case mnesia:read(subscriber, Username, write) of
-				[#subscriber{disconnect = false} = Entry] ->
-					NewEntry = Entry#subscriber{disconnect = true},
-					mnesia:write(subscriber, NewEntry, write);
-				[#subscriber{disconnect = true}] ->
+			case mnesia:read(service, Username, write) of
+				[#service{disconnect = false} = Entry] ->
+					NewEntry = Entry#service{disconnect = true},
+					mnesia:write(service, NewEntry, write);
+				[#service{disconnect = true}] ->
 					ok
 			end
 		end,

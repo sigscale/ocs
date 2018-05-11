@@ -57,12 +57,12 @@ beam_DATA = ocs.beam \
 			mod_ocs_rest_patch.beam \
 			mod_ocs_rest_delete.beam \
 			ocs_rest.beam \
-			ocs_rest_res_subscriber.beam \
 			ocs_rest_res_client.beam \
 			ocs_rest_res_usage.beam \
 			ocs_rest_res_user.beam \
 			ocs_rest_res_balance.beam \
 			ocs_rest_res_product.beam \
+			ocs_rest_res_service.beam \
 			diameter_gen_ietf.beam \
 			diameter_gen_3gpp.beam \
 			diameter_gen_3gpp_ro_application.beam \

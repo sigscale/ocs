@@ -43,14 +43,17 @@
 <link rel="import" href="sig-user-add.html">
 <link rel="import" href="sig-user-list.html">
 <link rel="import" href="sig-user-update.html">
-<link rel="import" href="sig-product-list.html">
-<link rel="import" href="sig-product-add.html">
-<link rel="import" href="sig-product-update.html">
+<link rel="import" href="sig-offer-list.html">
+<link rel="import" href="sig-offer-add.html">
+<link rel="import" href="sig-offer-update.html">
 <link rel="import" href="sig-prefix-list.html">
 <link rel="import" href="sig-prefix-table-add.html">
 <link rel="import" href="sig-prefix-add.html">
 <link rel="import" href="sig-prefix-update.html">
 <link rel="import" href="sig-balance-list.html">
+<link rel="import" href="sig-product-list.html">
+<link rel="import" href="sig-bucket-list.html">
+<link rel="import" href="sig-bucket-add.html">
 
 <dom-module id="sig-app">
 	<template>
@@ -153,7 +156,7 @@
 					id="loadPage"
 					role="main"
 					selected-attribute="active-page">
-				<sig-product-list products="{{products}}" tables="{{tables}}"></sig-product-list>
+				<sig-offer-list id="offerList" offers="{{offers}}" tables="{{tables}}"></sig-offer-list>
 				<sig-sub-list></sig-sub-list>
 				<sig-client-list></sig-client-list>
 				<sig-user-list></sig-user-list>
@@ -164,6 +167,8 @@
 				<sig-http-list></sig-http-list>
 				<sig-prefix-list id="prefixList" table="{{table}}"></sig-prefix-list>
 				<sig-balance-list></sig-balance-list>
+				<sig-product-list></sig-product-list>
+				<sig-bucket-list></sig-bucket-list>
 			</iron-pages>
 			<app-drawer-layout>
 				<app-drawer
@@ -178,11 +183,9 @@
 								<paper-icon-item
 										class="menu-trigger menuitem">
 									<iron-icon icon ="icons:store" item-icon></iron-icon>
-										<i18n-msg msgid="prod">
-											Products
-										</i18n-msg>
+										Catalog
 								</paper-icon-item>
-								<paper-menu id="productMenu" class="menu-content sublist">
+								<paper-menu id="offerMenu" class="menu-content sublist">
 									<paper-icon-item
 											id="pageOffer"
 											onclick="drawer.toggle()"
@@ -211,15 +214,38 @@
 									</paper-submenu>
 								</paper-menu>
 							</paper-submenu>
-							<paper-icon-item
-									id="pageSubscribers"
-									onclick="drawer.toggle()"
-									class="menuitem">
-								<iron-icon icon="device:devices" item-icon></iron-icon>
-									<i18n-msg msgid="subs">
-										Subscribers
-									</i18n-msg>
-							</paper-icon-item>
+							<paper-submenu>
+								<paper-icon-item
+										class="menu-trigger menuitem">
+									<iron-icon icon="icons:card-membership" item-icon></iron-icon>
+										<i18n-msg msgid="subs">
+											Subscribers
+										</i18n-msg>
+								</paper-icon-item>
+								<paper-menu id="services" class="menu-content sublist">
+									<paper-icon-item
+											id="pageService"
+											onclick="drawer.toggle()"
+											class="menuitem">
+										<iron-icon icon="device:devices" item-icon></iron-icon>
+											Services
+									</paper-icon-item>
+									<paper-icon-item
+											id="pageProductInventory"
+											onclick="drawer.toggle()"
+											class="menuitem">
+										<iron-icon icon="maps:local-offer" item-icon></iron-icon>
+											Products
+									</paper-icon-item>
+									<paper-icon-item
+											id="pageBucketBalance"
+											onclick="drawer.toggle()"
+											class="menuitem">
+										<iron-icon icon="icons:account-balance" item-icon></iron-icon>
+											Balance Buckets
+									</paper-icon-item>
+								</paper-menu>
+							</paper-submenu>
 							<paper-icon-item
 									id="pageClients"
 									onclick="drawer.toggle()"
@@ -369,20 +395,21 @@
 		</app-header-layout>
 		<!--Modal Definitions-->
 		<sig-help></sig-help>
-		<sig-product-add id="addProduct"></sig-product-add>
+		<sig-offer-add id="addProduct"></sig-offer-add>
 		<sig-sub-add id="subscriberAdd"></sig-sub-add>
-		<sig-subscriber-add products="[[products]]"></sig-subscriber-add>
+		<sig-subscriber-add offers="[[offers]]"></sig-subscriber-add>
 		<sig-sub-update></sig-sub-update>
 		<sig-client-add></sig-client-add>
 		<sig-client-update></sig-client-update>
 		<sig-user-add></sig-user-add>
 		<sig-user-update></sig-user-update>
-		<sig-product-update id="updateProduct"></sig-product-update>
+		<sig-offer-update id="updateProduct"></sig-offer-update>
 		<sig-ipdr-log-files-wlan></sig-ipdr-log-files-wlan>
 		<sig-ipdr-log-files-voip></sig-ipdr-log-files-voip>
 		<sig-prefix-table-add></sig-prefix-table-add>
 		<sig-prefix-add></sig-prefix-add>
 		<sig-prefix-update></sig-prefix-update>
+		<sig-bucket-add></sig-bucket-add>
 		<iron-ajax id="deleteTableAjax"
 			on-response="_deleteTableResponse"
 			on-error="_deleteTableError">
@@ -433,19 +460,20 @@
 						this.$.loadPage.selected = 0;
 						this.$.logMenu.selected = null;
 						break;
-					case 'pageSubscribers':
+					case 'pageService':
+						this.$.loadPage.selected = 0;
 						this.$.loadPage.selected = 1;
-						this.$.productMenu.selected = null;
+						this.$.offerMenu.selected = null;
 						this.$.logMenu.selected = null;
 						break;
 					case 'pageClients':
 						this.$.loadPage.selected = 2;
-						this.$.productMenu.selected = null;
+						this.$.offerMenu.selected = null;
 						this.$.logMenu.selected = null;
 						break;
 					case 'pageUsers':
 						this.$.loadPage.selected = 3;
-						this.$.productMenu.selected = null;
+						this.$.offerMenu.selected = null;
 						this.$.logMenu.selected = null;
 						break;
 					case 'pageAccess':
@@ -473,6 +501,12 @@
 					case 'pageBalance':
 						this.$.loadPage.selected = 10;
 						break;
+					case 'pageProductInventory':
+						this.$.loadPage.selected = 11;
+						break;
+					case 'pageBucketBalance':
+						this.$.loadPage.selected = 12;
+						break;
 				}
 			},
 			help: function(element) {
@@ -483,7 +517,7 @@
 			refresh: function() {
 				switch(this.$.loadPage.selected) {
 					case 0:
-						document.getElementById('productGrid').clearCache();
+						document.getElementById('offerGrid').clearCache();
 						break;
 					case 1:
 						document.getElementById('subscriberGrid').clearCache();

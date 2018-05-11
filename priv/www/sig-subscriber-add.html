@@ -64,7 +64,7 @@
 							id="addproduct10"
 							slot="dropdown-content"
 							class="dropdown-content">
-						<template is="dom-repeat" items="[[products]]">
+						<template is="dom-repeat" items="[[offers]]">
 							<paper-item>
 								{{item}}
 							</paper-item>
@@ -82,7 +82,7 @@
 						dialog-dismiss
 						class="cancel-button"
 						autofocus
-						onclick="addSubscriberModal.close()">
+						onclick="addServiceModal.close()">
 				<i18n-msg msgid="cancel">
 					Cancel
 				</i18n-msg>
@@ -95,7 +95,7 @@
 			is: 'sig-subscriber-add',
 			behaviors: [i18nMsgBehavior],
 			properties: {
-				products: {
+				offers: {
 					type: Array,
 					value: function() {
 						return []
@@ -103,11 +103,11 @@
 				},
 			},
 			_productSelected: function() {
-				var product = this.products[this.$.addproduct10.selected];
+				var product = this.offers[this.$.addproduct10.selected];
 				if(product) {
 					document.getElementById("AddUpdatePro").value = product;
 					document.getElementById("subscriberAdd").product = product;
-					document.getElementById("addSubscriberModal").open();
+					document.getElementById("addServiceModal").open();
 					document.getElementById("addSubscriberProductModal").close();
 					this.$.addproduct10.selected = null;
 				}

@@ -171,6 +171,8 @@ handle_info({'EXIT', Pid, {shutdown, SessionID}},
 		none ->
 			{noreply, State}
 	end;
+handle_info({'EXIT', _Pid, noconnection}, State) ->
+	{noreply, State};
 handle_info({'EXIT', Fsm, _Reason},
 		#state{handlers = Handlers} = State) ->
 	Fdel = fun(_F, {Key, {Pid, _Identity}, _Iter}) when Pid == Fsm ->

@@ -56,7 +56,7 @@ suite() ->
 init_per_suite(Config) ->
 	ok = ocs_test_lib:initialize_db(),
 	ok = ocs_test_lib:start(),
-	{ok, ProdID} = ocs_test_lib:add_product(),
+	{ok, ProdID} = ocs_test_lib:add_offer(),
 	[{product_id, ProdID} | Config].
 
 -spec end_per_suite(Config :: [tuple()]) -> any().
@@ -89,9 +89,10 @@ sequences() ->
 %%
 all() -> 
 	[client, get_all_clients, update_client_password, delete_client,
-	add_subscriber, update_password, update_attributes, delete_subscriber,
-	add_product, find_product, get_products, delete_product, add_user,
-	get_user, delete_user].
+	add_service, delete_service, add_offer, find_offer, get_offers,
+	delete_offer, add_user, get_user, delete_user, add_bucket,
+	find_bucket, delete_bucket, get_buckets, add_product, find_product,
+	delete_product, query_product].
 
 %%---------------------------------------------------------------------
 %%  Test cases
@@ -160,81 +161,51 @@ delete_client(Config) ->
 	ok = ocs:delete_client(Address),
 	{error, not_found} = ocs:find_client(Address).
 
-add_subscriber() ->
-	[{userdata, [{doc, "Add subscriber to database"}]}].
+add_service() ->
+	[{userdata, [{doc, "Add service to database"}]}].
 
-add_subscriber(Config) ->
-	ProdID = ?config(product_id, Config),
+add_service(Config) ->
+	OfferId = ?config(product_id, Config),
 	Attribute0 = radius_attributes:new(),
 	Attribute1 = radius_attributes:add(?SessionTimeout, 3600, Attribute0),
 	Attribute2 = radius_attributes:add(?AcctInterimInterval, 60, Attribute0),
+	Identity1 = ocs:generate_identity(),
+	Identity2 = ocs:generate_identity(),
 	Password1 = ocs:generate_password(),
 	Password2 = ocs:generate_password(),
-	Buckets = [#bucket{units = cents, remain_amount = 3000}],
-	{ok, _} = ocs:add_subscriber("tomba", Password1, ProdID, [], Buckets, Attribute1),
-	{ok, _} = ocs:add_subscriber("android", Password2, ProdID, [], Buckets, Attribute2),
-	{ok, #subscriber{password = BinPassword1, attributes = Attribute1,
-			product = #product_instance{product = ProdID}}} = 
-			ocs:find_subscriber("tomba"),
+	{ok, _} = ocs:add_service(Identity1, Password1, undefined, [], Attribute1),
+	{ok, _} = ocs:add_service(Identity2, Password2, undefined, [], Attribute2),
+	{ok, #service{name = BinIdentity1, password = BinPassword1,
+			attributes = Attribute1}} = ocs:find_service(Identity1),
 	Password1 = binary_to_list(BinPassword1),
-	{ok, #subscriber{password = BinPassword2, attributes = Attribute2,
-			product = #product_instance{product = ProdID}}} = ocs:find_subscriber("android"),
+	{ok, #service{name = BinIdentity2, password = BinPassword2,
+			attributes = Attribute2}} = ocs:find_service(Identity2),
+	ServiceRefs = [BinIdentity1, BinIdentity2],
+	{ok, #product{}} = ocs:add_product(OfferId, ServiceRefs, []),
 	Password2 = binary_to_list(BinPassword2).
 
-delete_subscriber() ->
-	[{userdata, [{doc, "Delete subscriber from the database"}]}].
+delete_service() ->
+	[{userdata, [{doc, "Delete service from the database"}]}].
 
-delete_subscriber(Config) ->
-	ProdID = ?config(product_id, Config),
+delete_service(Config) ->
+	OfferId = ?config(product_id, Config),
+	{ok, #product{id = ProdRef}} = ocs:add_product(OfferId, []),
 	Attribute0 = radius_attributes:new(),
 	Attribute = radius_attributes:add(?SessionTimeout, 3600, Attribute0),
-	Subscriber = "deleteandroid",
+	ServiceId = ocs:generate_identity(),
 	Password = ocs:generate_password(),
-	Buckets = [#bucket{units = cents, remain_amount = 3000}],
-	{ok, _} = ocs:add_subscriber(Subscriber, Password, ProdID, [], Buckets, Attribute),
-	{ok, _} = ocs:find_subscriber(Subscriber),
-	ok = ocs:delete_subscriber(Subscriber),
-	{error, _} = ocs:find_subscriber(Subscriber).
+	{ok, _} = ocs:add_service(ServiceId, Password, ProdRef, Attribute),
+	{ok, _} = ocs:find_service(ServiceId),
+	{ok, #product{service = [ServiceRef]}} = ocs:find_product(ProdRef),
+	ServiceRef = list_to_binary(ServiceId),
+	ok = ocs:delete_service(ServiceId),
+	{error, _} = ocs:find_service(ServiceId),
+	{ok, #product{service = []}} = ocs:find_product(ProdRef).
 
-update_password() ->
-	[{userdata, [{doc, "Update subscriber password to database"}]}].
-
-update_password(Config) ->
-	ProdID = ?config(product_id, Config),
-	Attribute0 = radius_attributes:new(),
-	Attribute = radius_attributes:add(?SessionTimeout, 3600, Attribute0),
-	Subscriber = "android",
-	OldPassword = ocs:generate_password(),
-	Buckets = [#bucket{units = cents, remain_amount = 3000}],
-	{ok, _} = ocs:add_subscriber(Subscriber, OldPassword, ProdID, [], Buckets, Attribute),
-	{ok, #subscriber{password = BinOldPassword, attributes = Attribute}} =
-			ocs:find_subscriber(Subscriber),
-	OldPassword = binary_to_list(BinOldPassword),
-	NewPassword = ocs:generate_password(),
-	ok = ocs:update_password(Subscriber, NewPassword),
-	{ok, #subscriber{password = BinNewPassword}} = ocs:find_subscriber(Subscriber),
-	NewPassword = binary_to_list(BinNewPassword).
-
-update_attributes() ->
-	[{userdata, [{doc, "Update subscriber attributes to database"}]}].
-
-update_attributes(Config) ->
-	ProdID = ?config(product_id, Config),
-	Password = ocs:generate_password(),
-	Username = "tomba1",
-	Attribute0 = radius_attributes:new(),
-	Attribute1 = radius_attributes:add(?SessionTimeout, 3600, Attribute0),
-	Buckets = [#bucket{units = cents, remain_amount = 3000}],
-	{ok, _} = ocs:add_subscriber(Username, Password, ProdID, [], Buckets, Attribute1),
-	{ok, #subscriber{attributes = Attribute1}} = ocs:find_subscriber(Username),
-	Attribute2 = radius_attributes:add(?AcctInterimInterval, 60, Attribute0),
-	ok = ocs:update_attributes(Username, Attribute2),
-	{ok, #subscriber{attributes = Attribute2}} = ocs:find_subscriber(Username).
-
-add_product() ->
+add_offer() ->
 	[{userdata, [{doc, "Add a product offering."}]}].
 
-add_product(_Config) ->
+add_offer(_Config) ->
 	SD = erlang:system_time(?MILLISECOND),
 	Price1 = #price{name = "Installation",
 			description = "One time installation fee.",
@@ -250,16 +221,16 @@ add_product(_Config) ->
 			start_date = SD, type = usage, size = 1000000000,
 			amount = 100, units = octets},
 	Prices = [Price1, Price2, Price3],
-	Product = #product{name = "Silver Surfer",
+	Product = #offer{name = "Silver Surfer",
 			description = "Medium use residential subscription.",
 			start_date = SD, status = active,
 			price = Prices},
-	{ok, _Product1} = ocs:add_product(Product).
+	{ok, _Product1} = ocs:add_offer(Product).
 
-find_product() ->
+find_offer() ->
 	[{userdata, [{doc, "Find a product offering."}]}].
 
-find_product(_Config) ->
+find_offer(_Config) ->
 	SD = erlang:system_time(?MILLISECOND),
 	ED = SD + 108000000,
 	Price1 = #price{name = "P1", description = "D1",
@@ -276,16 +247,16 @@ find_product(_Config) ->
 					size = 150000000, amount = 0}},
 	Prices = [Price1, Price2],
 	ProductName = "PD1",
-	Product = #product{name = ProductName, description = "PDD1",
+	Product = #offer{name = ProductName, description = "PDD1",
 			start_date = SD, end_date = ED, status = active,
 			price = Prices},
-	{ok, _Product1} = ocs:add_product(Product),
-	{ok, #product{name = ProductName}} = ocs:find_product(ProductName).
+	{ok, _Product1} = ocs:add_offer(Product),
+	{ok, #offer{name = ProductName}} = ocs:find_offer(ProductName).
 
-get_products() ->
+get_offers() ->
 	[{userdata, [{doc, "Get all products from product table database"}]}].
 
-get_products(_Config) ->
+get_offers(_Config) ->
 	F1 = fun(_, 0, Acc) ->
 				Acc;
 			(F, N, Acc) ->
@@ -298,30 +269,49 @@ get_products(_Config) ->
 						type = usage, units = octets,
 						size = 150000000, amount = 0}},
 		Prices = [Price1, Price2],
-		Product = #product{name = ProductName,
+		Product = #offer{name = ProductName,
 				status = active, price = Prices},
-		{ok, _Product1} =  ocs:add_product(Product),
+		{ok, _Product1} =  ocs:add_offer(Product),
 		F(F, N - 1, [ProductName | Acc])
 	end,
 	NewProducts = F1(F1, 3, []),
-	[] = NewProducts -- [Name || #product{name = Name} <- ocs:get_products()].
+	[] = NewProducts -- [Name || #offer{name = Name} <- ocs:get_offers()].
 
-delete_product() ->
+delete_offer() ->
 	[{userdata, [{doc, "Remove a product from product table"}]}].
 
-delete_product(_Config) ->
+delete_offer(_Config) ->
 	Price1 = #price{name = "Daily price",
 			type = recurring, period = daily, amount = 330},
 	Price2 = #price{name = "Monthly price", units = octets,
 			type = usage, size = 1000000, amount = 6},
 	Prices = [Price1, Price2],
 	ProductName = "Mobile-Internet",
-	Product = #product{name = ProductName,
+	Product = #offer{name = ProductName,
 			description = "Monthly subscription for mobile internet",
 			status = active, price = Prices},
-	{ok, _Product1} = ocs:add_product(Product),
-	ok = ocs:delete_product(ProductName),
-	{error, not_found} = ocs:find_product(ProductName).
+	{ok, _Product1} = ocs:add_offer(Product),
+	ok = ocs:delete_offer(ProductName),
+	{error, not_found} = ocs:find_offer(ProductName).
+
+ignore_delete_offer() ->
+	[{userdata, [{doc, "ignore remove offer if exist product
+			inventory related to offer reference"}]}].
+
+ignore_delete_offer(_Config) ->
+	Price1 = #price{name = ocs:generate_identity(),
+			type = recurring, period = daily, amount = rand:uniform(500)},
+	Price2 = #price{name = ocs:generate_identity(), units = octets,
+			type = usage, size = rand:uniform(1000000), amount = rand:uniform(100)},
+	Prices = [Price1, Price2],
+	OfferId = ocs:generate_identity(),
+	Offer = #offer{name = OfferId,
+			description = "Monthly subscription for mobile internet",
+			status = active, price = Prices},
+	{ok, _Offer} = ocs:add_offer(Offer),
+	{ok, #product{}} = ocs:add_product(OfferId, [], []),
+	{'EXIT', unable_to_delete} = (catch ocs:delete_offer(OfferId)),
+	{ok, #product{}} = ocs:find_offer(OfferId).
 
 add_user() ->
 	[{userdata, [{doc, "Create a new user"}]}].
@@ -363,6 +353,189 @@ delete_user(_Config) ->
 	{ok, _} = ocs:get_user(User),
 	ok = ocs:delete_user(User),
 	{error, no_such_user} = ocs:get_user(User).
+
+add_product() ->
+	[{userdata, [{doc, "Add new product inventory"}]}].
+
+add_product(_Config) ->
+	Price1 = #price{name = ocs:generate_identity(), units = octets,
+			type = usage, size = rand:uniform(10000), amount = rand:uniform(100)},
+	Prices = [Price1],
+	OfferId = ocs:generate_identity(),
+	Offer = #offer{name = OfferId,
+			status = active, price = Prices},
+	{ok, _Offer1} = ocs:add_offer(Offer),
+	{ok, #product{id = ProdRef} = P} = ocs:add_product(OfferId, []),
+	{atomic, [P]} = mnesia:transaction(fun() -> mnesia:read(product, ProdRef, read) end).
+
+find_product() ->
+	[{userdata, [{doc, "Lookup product with given product reference"}]}].
+
+find_product(_Config) ->
+	Price1 = #price{name = ocs:generate_identity(), units = octets,
+			type = usage, size = rand:uniform(10000), amount = rand:uniform(100)},
+	Prices = [Price1],
+	OfferId = ocs:generate_identity(),
+	Offer = #offer{name = OfferId,
+			status = active, price = Prices},
+	{ok, _Offer1} = ocs:add_offer(Offer),
+	{ok, #product{id = ProdRef}} = ocs:add_product(OfferId, []),
+	{ok, #product{}} = ocs:find_product(ProdRef).
+
+delete_product() ->
+	[{userdata, [{doc, "Remove product from table"}]}].
+
+delete_product(_Config) ->
+	Price1 = #price{name = ocs:generate_identity(), units = octets,
+			type = usage, size = rand:uniform(10000), amount = rand:uniform(100)},
+	Prices = [Price1],
+	OfferId = ocs:generate_identity(),
+	Offer = #offer{name = OfferId,
+			status = active, price = Prices},
+	{ok, _Offer1} = ocs:add_offer(Offer),
+	{ok, #product{id = ProdRef}} = ocs:add_product(OfferId, []),
+	{ok, #product{}} = ocs:find_product(ProdRef),
+	ok = ocs:delete_product(ProdRef),
+	{error, not_found} = ocs:find_product(ProdRef).
+
+query_product() ->
+	[{userdata, [{doc, "Query product"}]}].
+
+query_product(_Config) ->
+	F = fun F(0, Acc) ->
+					Acc;
+			F(N, Acc) ->
+				Price1 = #price{name = ocs:generate_identity(), units = octets,
+						type = usage, size = rand:uniform(10000), amount = rand:uniform(100)},
+				Prices = [Price1],
+				OfferId = ocs:generate_identity(),
+				Offer = #offer{name = OfferId,
+						status = active, price = Prices},
+				{ok, _Offer1} = ocs:add_offer(Offer),
+				{ok, P} = ocs:add_product(OfferId, []),
+				P1 = P#product{service = [list_to_binary(ocs:generate_identity())
+						|| _ <- lists:seq(1, 5)]},
+				mnesia:dirty_write(product, P1),
+				F(N -1, [P1 | Acc])
+	end,
+	Products = F(rand:uniform(1000), []),
+	#product{id = Id, name = Name, product = Offer,
+			start_date = SDT, end_date = EDT,
+			service = Services} = lists:nth(rand:uniform(length(Products)), Products),
+	{eof, [#product{id = Id, name = Name, product = Offer,
+			start_date = SDT, end_date = EDT,
+			service = Services}]} = ocs:query_product(start, Id, Name, Offer,
+					SDT, EDT, lists:nth(rand:uniform(length(Services)), Services)).
+
+ignore_delete_product() ->
+	[{userdata, [{doc, "ignore remove product if exist service
+			related to product reference"}]}].
+
+ignore_delete_product(_Config) ->
+	Price1 = #price{name = ocs:generate_identity(), units = octets,
+			type = usage, size = rand:uniform(10000), amount = rand:uniform(100)},
+	Prices = [Price1],
+	OfferId = ocs:generate_identity(),
+	Offer = #offer{name = OfferId,
+			status = active, price = Prices},
+	{ok, _Offer1} = ocs:add_offer(Offer),
+	{ok, #product{id = ProdRef}} = ocs:add_product(OfferId, []),
+	{ok, #product{}} = ocs:find_product(ProdRef),
+	{ok, #service{}} = ocs:add_service(ocs:generate_identity(),
+			ocs:generate_password(), ProdRef, []),
+	{'EXIT', service_exsist} = (catch ocs:delete_product(ProdRef)),
+	{ok, #product{}} = ocs:find_product(ProdRef).
+
+add_bucket() ->
+	[{userdata, [{doc, "Add new bucket"}]}].
+
+add_bucket(_Config) ->
+	Price1 = #price{name = ocs:generate_identity(),
+			type = usage, units = octets,
+			size = rand:uniform(100000000),
+			amount = rand:uniform(100)},
+	OfferId = ocs:generate_identity(),
+	Offer = #offer{name = OfferId, price = [Price1],
+			specification = "4"},
+	{ok, #offer{}} = ocs:add_offer(Offer),
+	{ok, #product{id = ProdRef}} = ocs:add_product(OfferId, []),
+	Bucket1 = #bucket{units = octets,
+			remain_amount = rand:uniform(10000000),
+			start_date = erlang:system_time(?MILLISECOND),
+			end_date = erlang:system_time(?MILLISECOND) + 2592000000},
+	{ok, _, #bucket{id = BId}} = ocs:add_bucket(ProdRef, Bucket1),
+	{atomic, [B1]} = mnesia:transaction(fun() -> mnesia:read(bucket, BId, read) end),
+	true = B1#bucket.remain_amount == Bucket1#bucket.remain_amount,
+	true = B1#bucket.units == Bucket1#bucket.units.
+
+find_bucket() ->
+	[{userdata, [{doc, "Lookup existing bucket"}]}].
+
+find_bucket(_Config) ->
+	Price1 = #price{name = ocs:generate_identity(),
+			type = usage, units = octets,
+			size = rand:uniform(100000000),
+			amount = rand:uniform(100)},
+	OfferId = ocs:generate_identity(),
+	Offer = #offer{name = OfferId, price = [Price1],
+			specification = "4"},
+	{ok, #offer{}} = ocs:add_offer(Offer),
+	{ok, #product{id = ProdRef}} = ocs:add_product(OfferId, []),
+	Bucket1 = #bucket{units = octets,
+			remain_amount = rand:uniform(10000000),
+			start_date = erlang:system_time(?MILLISECOND),
+			end_date = erlang:system_time(?MILLISECOND) + 2592000000},
+	{ok, _, #bucket{id = BId}} = ocs:add_bucket(ProdRef, Bucket1),
+	{ok, #bucket{}} = ocs:find_bucket(BId).
+
+get_buckets() ->
+	[{userdata, [{doc, "Get all the buckets for given Product Reference"}]}].
+
+get_buckets(_Config) ->
+	Price1 = #price{name = ocs:generate_identity(),
+			type = usage, units = octets,
+			size = rand:uniform(100000000),
+			amount = rand:uniform(100)},
+	OfferId = ocs:generate_identity(),
+	Offer = #offer{name = OfferId, price = [Price1],
+			specification = "4"},
+	{ok, #offer{}} = ocs:add_offer(Offer),
+	{ok, #product{id = ProdRef}} = ocs:add_product(OfferId, []),
+	AddBuckets = fun() ->
+			B1 = #bucket{units = octets,
+			remain_amount = rand:uniform(10000000),
+			start_date = erlang:system_time(?MILLISECOND),
+			end_date = erlang:system_time(?MILLISECOND) + 2592000000},
+			{ok, _, #bucket{id = BId}} = ocs:add_bucket(ProdRef, B1),
+			BId
+	end,
+	BIds = [AddBuckets() || _ <- lists:seq(1, 100)],
+	Buckets = ocs:get_buckets(ProdRef),
+	[] = BIds -- [B2#bucket.id || B2 <- Buckets].
+
+delete_bucket() ->
+	[{userdata, [{doc, "Delete bucket form table"}]}].
+
+delete_bucket(_Config) ->
+	Price1 = #price{name = ocs:generate_identity(),
+			type = usage, units = octets,
+			size = rand:uniform(100000000),
+			amount = rand:uniform(100)},
+	OfferId = ocs:generate_identity(),
+	Offer = #offer{name = OfferId, price = [Price1],
+			specification = "4"},
+	{ok, #offer{}} = ocs:add_offer(Offer),
+	{ok, #product{id = ProdRef}} = ocs:add_product(OfferId, []),
+	Bucket1 = #bucket{units = octets,
+			remain_amount = rand:uniform(10000000),
+			start_date = erlang:system_time(?MILLISECOND),
+			end_date = erlang:system_time(?MILLISECOND) + 2592000000},
+	{ok, _, #bucket{id = BId}} = ocs:add_bucket(ProdRef, Bucket1),
+	{ok, #bucket{}} = ocs:find_bucket(BId),
+	{ok, #product{balance = [BId]}} = ocs:find_product(ProdRef),
+	ok = ocs:delete_bucket(BId),
+	{error, not_found} = ocs:find_bucket(BId),
+	{ok, #product{balance = []}} = ocs:find_product(ProdRef).
 
 %%---------------------------------------------------------------------
 %%  Internal functions

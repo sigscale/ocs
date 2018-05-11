@@ -184,8 +184,13 @@
 				this.$.addTableEnd.value = null;
 			},
 			_addTableResponse: function(event) {
+				var results = event.detail.response;
+				var tableRecord = new Object();
+				tableRecord.id = results.id;
+				tableRecord.href = results.href;
+				tableRecord.plaSpecId = results.plaSpecId;
+					document.getElementById("offerList").push('tables', tableRecord);
 				this.$.addPrefixTableModal.close();
-				document.getElementById('productGrid').clearCache();
 			},
 			_addTableError: function(event) {
 				this.$.addTableToastError.text = event.detail.request.xhr.statusText;

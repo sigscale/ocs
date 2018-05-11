@@ -22,7 +22,7 @@
 <link rel="import" href="iron-icon/iron-icon.html">
 <link rel="import" href="iron-icons/iron-icons.html">
 
-<dom-module id="sig-product-add">
+<dom-module id="sig-offer-add">
 	<template>
 		<style is="custom-style">
 			paper-dialog {
@@ -110,7 +110,7 @@
 						</paper-icon-button>
 					</div>
 					<iron-collapse id="addBundle">
-						<template is=dom-repeat items="{{products}}">
+						<template is=dom-repeat items="{{offers}}">
 							<div>
 								<paper-checkbox checked="{{item.checked}}"> 
 										{{item.name}}
@@ -444,7 +444,7 @@
 						</paper-dropdown-menu>
 						<paper-tooltip>
 							<i18n-msg msgid="priceAlterTool">
-								add alteration to product offering price
+								add alteration to offering price
 							</i18n-msg>
 						</paper-tooltip>
 					</div>
@@ -616,7 +616,7 @@
 								on-value-changed="updateAltsDialog">
 						</paper-input>
 						<paper-tooltip>
-								product offering alteration name
+								offering alteration name
 						</paper-tooltip>
 					</div>
 					<div>
@@ -627,7 +627,7 @@
 								onfocus="addProductEndDatePickAlt.hide(); addProductStartDatePickAlt.hide();">
 						</paper-input>
 						<paper-tooltip>
-								product offering alteration description
+								offering alteration description
 						</paper-tooltip>
 					</div>
 					<div>
@@ -642,7 +642,7 @@
 								onfocus="addProductEndDatePickAlt.hide(); addProductStartDatePickAlt.show();">
 						</paper-input>
 						<paper-tooltip>
-								product offering alteration start date
+								offering alteration start date
 						</paper-tooltip>
 					</div>
 					<div>
@@ -657,7 +657,7 @@
 								onfocus="addProductStartDatePickAlt.hide(); addProductEndDatePickAlt.show();">
 						</paper-input>
 						<paper-tooltip>
-								product offering alteration end date
+								offering alteration end date
 						</paper-tooltip>
 					</div>
 					<div>
@@ -681,7 +681,7 @@
 							</paper-listbox>
 						</paper-dropdown-menu>
 						<paper-tooltip>
-								product offering alteration price type
+								offering alteration price type
 						</paper-tooltip>
 					</div>
 					<div>
@@ -696,7 +696,7 @@
 								onfocus="addProductEndDatePickAlt.hide(); addProductStartDatePickAlt.hide();">
 						</paper-input>
 						<paper-tooltip>
-								product offering alteration size
+								offering alteration size
 						</paper-tooltip>
 					</div>
 					<div>
@@ -725,7 +725,7 @@
 							</paper-listbox>
 						</paper-dropdown-menu>
 						<paper-tooltip>
-								product offering alteration units
+								offering alteration units
 						</paper-tooltip>
 					</div>
 					<div>
@@ -741,7 +741,7 @@
 								onfocus="addProductEndDatePickAlt.hide(); addProductStartDatePickAlt.hide();">
 						</paper-input>
 						<paper-tooltip>
-								product offering alteration amount
+								offering alteration amount
 						</paper-tooltip>
 					</div>
 					<div>
@@ -752,7 +752,7 @@
 								onfocus="addProductEndDatePickAlt.hide(); addProductStartDatePickAlt.hide();">
 						</paper-input>
 						<paper-tooltip>
-								product offering alteration currency
+								offering alteration currency
 						</paper-tooltip>
 					</div>
 					<div>
@@ -781,7 +781,7 @@
 							</paper-listbox>
 						</paper-dropdown-menu>
 						<paper-tooltip>
-								product offering alteration period
+								offering alteration period
 						</paper-tooltip>
 					</div>
 					<div class="buttons">
@@ -827,7 +827,7 @@
 	</template>
 	<script>
 		Polymer ({
-			is: 'sig-product-add',
+			is: 'sig-offer-add',
 			behaviors: [i18nMsgBehavior],
 			properties: {
 				alterations: {
@@ -842,7 +842,7 @@
 						return [];
 					}
 				},
-				products: {
+				offers: {
 					type: Array,
 					value: function() {
 						return [];
@@ -904,7 +904,7 @@
 				'checkOut.checked-changed': 'checkOutChanged'
 			}, 
 			observers: [
-				'_bundleCheckboxChanged(products.*)'
+				'_bundleCheckboxChanged(offers.*)'
 			],
 			_addProductStartDateOfferPick: function(date) {
 				if (this.$.addProductStartDatePickOff.opened) {
@@ -942,13 +942,13 @@
 					function checkExist(spec) {
 						return spec.name == results[index].name;
 					}
-					if(!this.products.some(checkExist)) {
+					if(!this.offers.some(checkExist)) {
 						var product = new Object();
 						product.id = results[index].id;
 						product.href = results[index].href;
 						product.name = results[index].name;
 						product.checked = false;
-						this.push('products', product);
+						this.push('offers', product);
 					}
 				}
 			},
@@ -1116,7 +1116,7 @@
 				function check(item) {
 					return item.checked;
 				}
-				if(this.products.some(check)) {
+				if(this.offers.some(check)) {
 					this.$.addOffProductSpecificationDrop.disabled = true;
 					this.$.addOfferCharReserveSession.disabled = true;
 				} else {
@@ -1152,16 +1152,16 @@
 				}
 				if(this.$.addBundle) {
 					var bundled = new Array();
-					for(var index in this.products) {
-						if(this.products[index].checked == true) {
+					for(var index in this.offers) {
+						if(this.offers[index].checked == true) {
 							var bundleOffer = new Object();
 							bundleOffer.numberRelOfferLowerLimit = 0;
 							bundleOffer.numberRelOfferUpperLimit = 1;
 							bundleOffer.numberRelOfferDefault = 1;
 							var bundleObj = new Object();
-							bundleObj.id = this.products[index].id;
-							bundleObj.href = this.products[index].href;
-							bundleObj.name = this.products[index].name;
+							bundleObj.id = this.offers[index].id;
+							bundleObj.href = this.offers[index].href;
+							bundleObj.name = this.offers[index].name;
 							bundleObj.bundledProductOfferingOption = bundleOffer;
 							bundled.push(bundleObj);
 						}
@@ -1849,7 +1849,7 @@
 				this.$.addOffDesc.value = null;
 				this.set('prices', []);
 				this.set('alterations', []);
-				document.getElementById("productGrid").clearCache();
+				document.getElementById("offerGrid").clearCache();
 				this.cancelDialog();
 			},
 			_addProductError: function(event) {
@@ -1858,7 +1858,7 @@
 			cancelDialog: function() {
 				this.set('prices', []);
 				this.set('alterations', []);
-				this.set('products', []);
+				this.set('offers', []);
 				this.addOrUpdateButton = "add";
 				this.$.addOffName.value = null;
 				this.$.addOffDesc.value = null;

@@ -1,9 +1,20 @@
+April 28 2018
+-------------
+	- Version 3.1
+	- Major change to data schema:
+		- Product Offering table
+		- Product Inventory table
+		- Balance Bucket table
+		- Service Inventory table
+	- Many subscriber identities may be associated with a Product
+	- Recurring charges are now supported
+
 March 20 2018
-----------------
+-------------
 	- ECUR on DIAMETER Ro (SMS)
 
 March 14 2018
-----------------
+-------------
 	- VOIP IPDR logging
 
 February 26 2018
