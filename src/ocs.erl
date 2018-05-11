@@ -460,7 +460,7 @@ query_product4(Products, SDT, '_', Service) when is_integer(SDT) ->
 	NewProducts = lists:filter(F, Products),
 	query_product5(NewProducts, Service);
 query_product4(Products, '_', EDT, Service) when is_integer(EDT) ->
-	F = fun(#product{termination_date = EDT1}) when EDT1 =< EDT -> true; (_) -> false end,
+	F = fun(#product{end_date = EDT1}) when EDT1 =< EDT -> true; (_) -> false end,
 	NewProducts = lists:filter(F, Products),
 	query_product5(NewProducts, Service).
 %% @hidden
@@ -539,7 +539,7 @@ add_product(OfferId, ServiceRefs, StartDate, EndDate, Characteristics)
 					ok = lists:foreach(F2, ServiceRefs),
 					NewChars = default_chars(CharValueUse, Characteristics),
 					Product1 = #product{id = Id, product = OfferId, start_date = StartDate,
-							termination_date = EndDate, characteristics = NewChars,
+							end_date = EndDate, characteristics = NewChars,
 							service = ServiceRefs, last_modified = LM},
 					{Product2, Buckets} = subscription(Product1, Offer, [], true),
 					F3 = fun(#bucket{} = B) -> ok = mnesia:write(bucket, B, write) end,
@@ -811,7 +811,7 @@ add_bucket(ProductRef, #bucket{id = undefined} = Bucket) when is_list(ProductRef
 			{error, Reason}
 	end;
 add_bucket(ProductRef, #bucket{id = BId, product = ProdRef1,
-		remain_amount = RAmount1, termination_date = TD} = _Bucket)
+		remain_amount = RAmount1, end_date = TD} = _Bucket)
 		when is_list(ProductRef) ->
 	F = fun() ->
 		case mnesia:read(product, ProductRef, write) of
@@ -821,7 +821,7 @@ add_bucket(ProductRef, #bucket{id = BId, product = ProdRef1,
 							remain_amount = RAmount2} = Bucket2] ->
 						ProdRef3 = ProdRef2 ++ [ProdRef1 -- ProdRef2],
 						Bucket3  = Bucket2#bucket{id = BId, product = ProdRef3,
-							remain_amount = RAmount2 + RAmount1, termination_date = TD},
+							remain_amount = RAmount2 + RAmount1, end_date = TD},
 						ok = mnesia:write(bucket, Bucket3, write),
 						case lists:any(fun(Id) when Id == BId -> true; (_) -> false end, B) of
 							true ->
@@ -1858,7 +1858,7 @@ subscription(#product{id = ProdRef, payment = Payments} = Product,
 	NewBuckets = charge(ProdRef, Amount + AllowanceAmount,
 			[#bucket{id = generate_bucket_id(),
 			units = Units, remain_amount = Size, product = [ProdRef],
-			termination_date = end_period(Now, Period), last_modified = {Now, N}}
+			end_date = end_period(Now, Period), last_modified = {Now, N}}
 			| Buckets]),
 	NewPayments = [{Name, end_period(Now, Period)} | Payments],
 	Product1 = Product#product{payment = NewPayments},
@@ -1873,7 +1873,7 @@ subscription(#product{id = ProdRef, payment = Payments} = Product,
 	NewBuckets2 = charge(ProdRef, AllowanceAmount,
 			[#bucket{id = generate_bucket_id(),
 			units = Units, remain_amount = Size, product = [ProdRef],
-			termination_date = end_period(Now, Period), last_modified = {Now, N}}
+			end_date = end_period(Now, Period), last_modified = {Now, N}}
 			| NewBuckets1]),
 	Product1 = Product#product{payment = NewPayments},
 	subscription(Product1, Now, false, NewBuckets2, T);
@@ -1884,7 +1884,7 @@ subscription(#product{id = ProdRef, payment = Payments} = Product, Now, true,
 	N = erlang:unique_integer([positive]),
 	NewBuckets = charge(ProdRef, Amount, [#bucket{id = generate_bucket_id(),
 			units = Units, remain_amount = Size, product = [ProdRef],
-			termination_date = end_period(Now, Period), last_modified = {Now, N}}
+			end_date = end_period(Now, Period), last_modified = {Now, N}}
 			| Buckets]),
 	NewPayments = [{Name, end_period(Now, Period)} | Payments],
 	Product1 = Product#product{payment = NewPayments},
@@ -1898,7 +1898,7 @@ subscription(#product{id = ProdRef, payment = Payments}
 	N = erlang:unique_integer([positive]),
 	NewBuckets2 = charge(ProdRef, Amount, [#bucket{id = generate_bucket_id(),
 			units = Units, remain_amount = Size, product = [ProdRef],
-			termination_date = end_period(Now, Period), last_modified = {Now, N}}
+			end_date = end_period(Now, Period), last_modified = {Now, N}}
 			| NewBuckets1]),
 	NewPayments = [{Name, end_period(Now, Period)} | Payments],
 	Product1 = Product#product{payment = NewPayments},

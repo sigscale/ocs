@@ -105,7 +105,7 @@ add_offer(ReqData) ->
 %% 	Add a new instance of a Product Offering subscription.
 add_inventory(ReqData) ->
 	try
-		#product{start_date = SD, termination_date = TD,
+		#product{start_date = SD, end_date = TD,
 				characteristics = Chars, product = OfferId,
 				service = ServiceRefs} = inventory(mochijson:decode(ReqData)),
 		case ocs:add_product(OfferId, ServiceRefs, SD, TD, Chars) of
@@ -2043,7 +2043,7 @@ inventory([{"status", Status} | T], Acc) ->
 inventory([{"startDate", SDate} | T], Acc) ->
 	inventory(T, Acc#product{start_date = ocs_rest:iso8601(SDate)});
 inventory([{"terminationDate", TDate} | T], Acc) ->
-	inventory(T, Acc#product{termination_date = ocs_rest:iso8601(TDate)});
+	inventory(T, Acc#product{end_date = ocs_rest:iso8601(TDate)});
 inventory([{"realizingService", {array, RealizingServices}} | T], Acc) ->
 	F = fun({struct, Obj}) ->
 				{_, ID} = lists:keyfind("id", 1, Obj),
@@ -2088,9 +2088,9 @@ inventory([start_date | T], #product{start_date = undefined} = Product, Acc) ->
 	inventory(T, Product,  Acc);
 inventory([start_date | T], #product{start_date = SDate} = Product, Acc) ->
 	inventory(T, Product,  [{"startDate", ocs_rest:iso8601(SDate)} | Acc]);
-inventory([termination_date | T], #product{termination_date = undefined} = Product, Acc) ->
+inventory([end_date | T], #product{termination_date = undefined} = Product, Acc) ->
 	inventory(T, Product,  Acc);
-inventory([termination_date | T], #product{termination_date = TDate} = Product, Acc) ->
+inventory([end_date | T], #product{termination_date = TDate} = Product, Acc) ->
 	inventory(T, Product, [{"terminationDate", ocs_rest:iso8601(TDate)}  | Acc]);
 inventory([_ | T], Product, Acc) ->
 	inventory(T, Product,  Acc);
@@ -2251,7 +2251,7 @@ query_page(Codec, PageServer, Etag, Query, Filters, Start, End) ->
 					{value, {_, "startDate"}, Q1} ->
 						{lists:keysort(#product.start_date, Result), Q1};
 					{value, {_, "endDate"}, Q1} ->
-						{lists:keysort(#product.termination_date, Result), Q1};
+						{lists:keysort(#product.end_date, Result), Q1};
 					{value, {_, "service"}, Q1} ->
 						{lists:keysort(#product.service, Result), Q1};
 					false ->

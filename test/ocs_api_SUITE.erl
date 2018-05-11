@@ -420,10 +420,10 @@ query_product(_Config) ->
 	end,
 	Products = F(rand:uniform(1000), []),
 	#product{id = Id, name = Name, product = Offer,
-			start_date = SDT, termination_date = EDT,
+			start_date = SDT, end_date = EDT,
 			service = Services} = lists:nth(rand:uniform(length(Products)), Products),
 	{eof, [#product{id = Id, name = Name, product = Offer,
-			start_date = SDT, termination_date = EDT,
+			start_date = SDT, end_date = EDT,
 			service = Services}]} = ocs:query_product(start, Id, Name, Offer,
 					SDT, EDT, lists:nth(rand:uniform(length(Services)), Services)).
 
@@ -462,7 +462,7 @@ add_bucket(_Config) ->
 	Bucket1 = #bucket{units = octets,
 			remain_amount = rand:uniform(10000000),
 			start_date = erlang:system_time(?MILLISECOND),
-			termination_date = erlang:system_time(?MILLISECOND) + 2592000000},
+			end_date = erlang:system_time(?MILLISECOND) + 2592000000},
 	{ok, _, #bucket{id = BId}} = ocs:add_bucket(ProdRef, Bucket1),
 	{atomic, [B1]} = mnesia:transaction(fun() -> mnesia:read(bucket, BId, read) end),
 	true = B1#bucket.remain_amount == Bucket1#bucket.remain_amount,
@@ -484,7 +484,7 @@ find_bucket(_Config) ->
 	Bucket1 = #bucket{units = octets,
 			remain_amount = rand:uniform(10000000),
 			start_date = erlang:system_time(?MILLISECOND),
-			termination_date = erlang:system_time(?MILLISECOND) + 2592000000},
+			end_date = erlang:system_time(?MILLISECOND) + 2592000000},
 	{ok, _, #bucket{id = BId}} = ocs:add_bucket(ProdRef, Bucket1),
 	{ok, #bucket{}} = ocs:find_bucket(BId).
 
@@ -505,7 +505,7 @@ get_buckets(_Config) ->
 			B1 = #bucket{units = octets,
 			remain_amount = rand:uniform(10000000),
 			start_date = erlang:system_time(?MILLISECOND),
-			termination_date = erlang:system_time(?MILLISECOND) + 2592000000},
+			end_date = erlang:system_time(?MILLISECOND) + 2592000000},
 			{ok, _, #bucket{id = BId}} = ocs:add_bucket(ProdRef, B1),
 			BId
 	end,
@@ -529,7 +529,7 @@ delete_bucket(_Config) ->
 	Bucket1 = #bucket{units = octets,
 			remain_amount = rand:uniform(10000000),
 			start_date = erlang:system_time(?MILLISECOND),
-			termination_date = erlang:system_time(?MILLISECOND) + 2592000000},
+			end_date = erlang:system_time(?MILLISECOND) + 2592000000},
 	{ok, _, #bucket{id = BId}} = ocs:add_bucket(ProdRef, Bucket1),
 	{ok, #bucket{}} = ocs:find_bucket(BId),
 	{ok, #product{balance = [BId]}} = ocs:find_product(ProdRef),

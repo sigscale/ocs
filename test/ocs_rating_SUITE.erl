@@ -288,7 +288,7 @@ initial_expire_buckets(_Config) ->
 	RemAmount = 100,
 	B1 = bucket(cents, RemAmount),
 	B2= B1#bucket{start_date = erlang:system_time(?MILLISECOND) -  (2 * 2592000000),
-		termination_date = erlang:system_time(?MILLISECOND) - 2592000000},
+		end_date = erlang:system_time(?MILLISECOND) - 2592000000},
 	BId = add_bucket(ProdRef, B2),
 	Timestamp = calendar:local_time(),
 	SessionId = [{'Session-Id', list_to_binary(ocs:generate_password())}],
@@ -313,7 +313,7 @@ initial_ignore_expired_buckets(_Config) ->
 	ExpiredBucket = #bucket{units = cents, remain_amount = 1000,
 		reservations = [{erlang:system_time(?MILLISECOND) - 3666000, 123, SessionId1}],
 		start_date = erlang:system_time(?MILLISECOND) - (2 * 2592000000),
-		termination_date = erlang:system_time(?MILLISECOND) - 2592000000},
+		end_date = erlang:system_time(?MILLISECOND) - 2592000000},
 	RemAmount = 565,
 	_BId1 = add_bucket(ProdRef, ExpiredBucket),
 	CurrentBucket = bucket(cents, RemAmount),
@@ -1808,7 +1808,7 @@ price(Type, Units, Size, Amount) ->
 bucket(Units, RA) ->
 	#bucket{units = Units, remain_amount = RA,
 		start_date = erlang:system_time(?MILLISECOND),
-		termination_date = erlang:system_time(?MILLISECOND) + 2592000000}.
+		end_date = erlang:system_time(?MILLISECOND) + 2592000000}.
 
 %% @hidden
 add_offer(Prices, Spec) when is_integer(Spec) ->

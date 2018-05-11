@@ -2191,7 +2191,7 @@ top_up(Config) ->
 	{_, Href} = lists:keyfind("location", 1, Headers),
 	BucketId = lists:last(string:tokens(Href, "/")),
 	{ok, #bucket{units = octets, remain_amount = RechargeAmount,
-			start_date = SDT, termination_date = EDT,
+			start_date = SDT, end_date = EDT,
 			product = [ProdRef]}} = ocs:find_bucket(BucketId).
 
 get_balance() ->
@@ -2879,7 +2879,7 @@ price(Type, Units, Size, Amount) ->
 b(Units, RA) ->
 	#bucket{units = Units, remain_amount = RA,
 		start_date = erlang:system_time(?MILLISECOND),
-		termination_date = erlang:system_time(?MILLISECOND) + 2592000000}.
+		end_date = erlang:system_time(?MILLISECOND) + 2592000000}.
 
 %% @hidden
 offer_add(Prices, Spec) when is_integer(Spec) ->

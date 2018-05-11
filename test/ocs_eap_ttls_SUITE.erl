@@ -848,7 +848,7 @@ price(Type, Units, Size, Amount) ->
 bucket(Units, RA) ->
 	#bucket{units = Units, remain_amount = RA,
 		start_date = erlang:system_time(?MILLISECOND),
-		termination_date = erlang:system_time(?MILLISECOND) + 2592000000}.
+		end_date = erlang:system_time(?MILLISECOND) + 2592000000}.
 
 %% @hidden
 add_offer(Prices, Spec) when is_integer(Spec) ->

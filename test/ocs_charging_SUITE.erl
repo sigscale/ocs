@@ -395,7 +395,7 @@ recurring_charge_monthly(_Config) ->
 	B1 = #bucket{units = cents,
 			remain_amount = 10000000,
 			start_date = erlang:system_time(?MILLISECOND),
-			termination_date = erlang:system_time(?MILLISECOND) + 2592000000},
+			end_date = erlang:system_time(?MILLISECOND) + 2592000000},
 	{ok, _, #bucket{id = BId1}} = ocs:add_bucket(ProdId, B1),
 	ok = ocs_scheduler:product_charge(),
 	F1 = fun(BId) ->
@@ -437,7 +437,7 @@ recurring_charge_hourly(_Config) ->
 	B1 = #bucket{units = cents,
 			remain_amount = 10000000,
 			start_date = erlang:system_time(?MILLISECOND),
-			termination_date = erlang:system_time(?MILLISECOND) + 2592000000},
+			end_date = erlang:system_time(?MILLISECOND) + 2592000000},
 	{ok, _, #bucket{id = BId1}} = ocs:add_bucket(ProdId, B1),
 	ok = ocs_scheduler:product_charge(),
 	F1 = fun(BId) ->
@@ -481,7 +481,7 @@ recurring_charge_yearly(_Config) ->
 	B1 = #bucket{units = cents,
 			remain_amount = 10000000,
 			start_date = erlang:system_time(?MILLISECOND),
-			termination_date = erlang:system_time(?MILLISECOND) + 2592000000},
+			end_date = erlang:system_time(?MILLISECOND) + 2592000000},
 	{ok, _, #bucket{id = BId1}} = ocs:add_bucket(ProdId, B1),
 	ok = ocs_scheduler:product_charge(),
 	F1 = fun(BId) ->
@@ -519,7 +519,7 @@ recurring_charge_daily(_Config) ->
 	ok = mnesia:dirty_write(product, P#product{payment = [{P2#price.name, Expired}]}),
 	B1 = #bucket{units = cents, remain_amount = 10000000,
 			start_date = erlang:system_time(?MILLISECOND),
-			termination_date = erlang:system_time(?MILLISECOND) + 2592000000},
+			end_date = erlang:system_time(?MILLISECOND) + 2592000000},
 	{ok, _, #bucket{id = BId1}} = ocs:add_bucket(ProdId, B1),
 	ok = ocs_scheduler:product_charge(),
 	F1 = fun(BId) ->
