@@ -117,7 +117,6 @@ add_inventory(ReqData) ->
 	of
 		Subscription ->
 			Body = mochijson:encode(inventory(Subscription)),
-erlang:display({?MODULE, ?LINE, Body}),
 			Etag = ocs_rest:etag(Subscription#product.last_modified),
 			Href = ?inventoryPath ++ Subscription#product.id,
 			Headers = [{location, Href}, {etag, Etag}],
