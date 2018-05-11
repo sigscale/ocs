@@ -160,8 +160,7 @@
 
 %% define service table entries record
 -record(service,
-		{id :: string() | undefined,
-		name :: binary() | undefined,
+		{name :: binary() | undefined,
 		start_date :: pos_integer() | undefined,
 		termination_date :: pos_integer() | undefined,
 		state :: service_status() | undefined,
