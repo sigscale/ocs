@@ -1,3 +1,17 @@
+2018-05-11  Vance Shipley <vances@sigscale.org>
+
+	* app vars to configure distributed logs
+	* change UI view for service
+	* rest query support for buckets
+	* add_service/2 api function
+	* remove bucket from service record
+	* get_buckets/1,2 api function
+	* make instance_chars codec bidirectional
+	* query support for product inventory
+	* add class to service attributes
+	* httpd auth management optional
+	* extend service inventory api
+
 2018-04-28  Vance Shipley <vances@sigscale.org>
 
 	* create function for get productInventory

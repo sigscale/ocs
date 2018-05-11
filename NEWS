@@ -1,3 +1,9 @@
+May 5, 2018
+-----------
+	- UI views for Products, Services, Buckets 
+	- Support seperate UI and service nodes
+	- Distribute disk logs
+
 April 28 2018
 -------------
 	- Version 3.1
