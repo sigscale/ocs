@@ -248,7 +248,7 @@ bucket([{"validFor", {struct, L}} | T], Bucket) ->
 	end,
 	Bucket2 = case lists:keyfind("endDateTime", 1, L) of
 		{_, End} ->
-			Bucket1#bucket{termination_date = ocs_rest:iso8601(End)};
+			Bucket1#bucket{end_date = ocs_rest:iso8601(End)};
 		false ->
 			Bucket1
 	end,
@@ -294,15 +294,15 @@ bucket([reservations | T], #bucket{reservations = Reservations,
 	Reserved = [{"amount", Amount}, {"units", units(Units)}],
 	bucket(T, B, [{"reservedAmount", {struct, Reserved}}| Acc]);
 bucket([start_date | T], #bucket{start_date = undefined,
-		termination_date = End} = B, Acc) when is_integer(End) ->
+		end_date = End} = B, Acc) when is_integer(End) ->
 	ValidFor = {struct, [{"endDateTime", ocs_rest:iso8601(End)}]},
 	bucket(T, B, [{"validFor", ValidFor} | Acc]);
 bucket([start_date | T], #bucket{start_date = Start,
-		termination_date = undefined} = B, Acc) when is_integer(Start) ->
+		end_date = undefined} = B, Acc) when is_integer(Start) ->
 	ValidFor = {struct, [{"startDateTime", ocs_rest:iso8601(Start)}]},
 	bucket(T, B, [{"validFor", ValidFor} | Acc]);
 bucket([start_date | T], #bucket{start_date = Start,
-		termination_date = End} = B, Acc) when is_integer(Start),
+		end_date = End} = B, Acc) when is_integer(Start),
 		is_integer(End)->
 	ValidFor = {struct, [{"endDateTime", ocs_rest:iso8601(End)},
 			{"startDateTime", ocs_rest:iso8601(Start)}]},

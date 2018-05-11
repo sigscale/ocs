@@ -2088,9 +2088,9 @@ inventory([start_date | T], #product{start_date = undefined} = Product, Acc) ->
 	inventory(T, Product,  Acc);
 inventory([start_date | T], #product{start_date = SDate} = Product, Acc) ->
 	inventory(T, Product,  [{"startDate", ocs_rest:iso8601(SDate)} | Acc]);
-inventory([end_date | T], #product{termination_date = undefined} = Product, Acc) ->
+inventory([end_date | T], #product{end_date = undefined} = Product, Acc) ->
 	inventory(T, Product,  Acc);
-inventory([end_date | T], #product{termination_date = TDate} = Product, Acc) ->
+inventory([end_date | T], #product{end_date = TDate} = Product, Acc) ->
 	inventory(T, Product, [{"terminationDate", ocs_rest:iso8601(TDate)}  | Acc]);
 inventory([_ | T], Product, Acc) ->
 	inventory(T, Product,  Acc);
