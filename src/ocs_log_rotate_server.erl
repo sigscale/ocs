@@ -152,8 +152,7 @@ handle_cast(stop, State) ->
 %% @private
 %%
 handle_info(timeout, #state{interval = Interval,
-		schedule = ScheduledTime, dir = Directory,
-		type = Type} = State) ->
+		schedule = ScheduledTime, type = Type} = State) ->
 	Time = erlang:system_time(?MILLISECOND),
 	FileName = ocs_log:iso8601(Time),
 	{Start, End} = previous(Interval),
