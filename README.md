@@ -60,27 +60,28 @@ in PS and IMS domains.
 
 ### [RADIUS](https://tools.ietf.org/html/rfc2865)
 The OCS acts as an authentication, authorization and accounting (AAA) server
-for network access servers (NAS) using the RADIUS protocol.
+for network access servers (NAS) using the RADIUS protocol such as wireless
+local area network (WLAN) access points (AP), broadband remote access server
+(BRAS) or broadband network gateway (BNG).
 
 #### Authentication & Authorization
-A wireless local area network (WLAN/Wi-Fi) access point (AP) acts as a
-NAS using RADIUS protocol to request authentication from the
-OCS (AAA server) for subscribers attempting to associate. The OCS
-may authorize access and provide specific service authorization information
-(i.e. data rate, class, session expiry).
+A NAS may use the RADIUS protocol to request authentication from the
+OCS (AAA server) for subscribers attempting access. The OCS may authorize
+access and provide specific service authorization information
+(i.e. data rate, class, session expiry time).
 
 #### Accounting
-A wireless AP (NAS) may send accounting requests to the OCS (AAA server)
-at the end of a session and optionally at intervals during an ongoing
-session. The OCS logs usage records for offline billing and reporting and
-performs real-time credit management, updating subscriber account balances.
-The OCS may send a disconnect request to an AP (NAS) when an interim update
-depletes all available balance or when a subscriber has been disabled.
+A NAS may send accounting requests to the OCS (AAA server) at the end of
+a session and optionally at intervals during an ongoing session. The OCS
+logs usage records for offline billing and reporting and performs real-time
+credit management, updating subscriber account balances.  The OCS may send
+a disconnect request to a NAS when an interim update depletes all available
+balance or when a subscriber has been disabled administratively.
 
 ### [EAP](https://tools.ietf.org/html/rfc3748)
 The Extensible Authentication Protocol (EAP) is an authentication framework
 which supports multiple authentication methods. In a WLAN (Wi-Fi) use case
-an EAP peer (supplicant) in a device (e.g. laptop or smartphone) tunnels
+an EAP peer (supplicant) in a device (e.g. laptop or smartphone) sends
 EAP over LAN (EAPoL) to the AP (NAS) which tunnels the EAP over RADIUS to
 the OCS (AAA server). An EAP authentication method (e.g. PWD, TTLS) is
 negotiated and the peer authenticates directly with the OCS.
