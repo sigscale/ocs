@@ -19,7 +19,7 @@ product catalog management are supported with a web components front end.
 |REST      | TM Forum Open APIs        |
 |CLI       | Erlang API                |
 |RADIUS    | AAA NAS Clients           |
-|DIAMETER  | 3GPP Ro/Gy                |
+|DIAMETER  | 3GPP Ro/Gy/Wo             |
 |EAP-PWD   | Android, Linux            |
 |EAP-TTLS  | " + Apple, Windows        |
 |IPDR      | Billing Record Files      |
@@ -54,7 +54,7 @@ module development.
 
 ### [DIAMETER](https://tools.ietf.org/html/rfc6733)
 SigScale OCS acts as either or both 3GPP AAA Server and 3GPP OCS.
-The DIAMETER Ro/Gy interface (3GPP 32.299) supports Session Charging with
+The DIAMETER Ro/Gy/Wo interface (3GPP 32.299) supports Session Charging with
 Unit Reservation (SCUR) and Event Charging with Unit Reservation (ECUR)
 in PS and IMS domains.
 
