@@ -55,7 +55,8 @@ module development.
 ### [DIAMETER](https://tools.ietf.org/html/rfc6733)
 SigScale OCS acts as either or both 3GPP AAA Server and 3GPP OCS.
 The DIAMETER Ro/Gy interface (3GPP 32.299) supports Session Charging with
-Unit Reservation (SCUR). Supports voice and/or data service charging.
+Unit Reservation (SCUR) and Event Charging with Unit Reservation (ECUR)
+in PS and IMS domains.
 
 ### [RADIUS](https://tools.ietf.org/html/rfc2865)
 The OCS acts as an authentication, authorization and accounting (AAA) server
