@@ -28,22 +28,23 @@ product catalog management are supported with a web components front end.
 A web front end built with Google [Polymer](https://www.polymer-project.org)
 web components for
 [material design](https://material.io/guidelines/material-design/introduction.html) 
-provides simple guided management of Product Offerings & Prices, Subscribers and
-NAS clients. Supports provisioning common authorization attributes as well
-as viewing usage and access logs. Uses REST APIs exclusively.
+provides simple guided management of Product Offerings & Prices, Subscribers,
+Balance Buckets and NAS clients. Provisioning common authorization attributes
+as well as viewing usage and access logs is supported. Uses REST APIs exclusively.
 ![screenshot](https://raw.githubusercontent.com/sigscale/ocs/master/doc/ocs-gui.png)
 
 ### Application Programming Interfaces (API)
-The GUI provides a comfortable interface for simple administration however
-for use at scale you'll want to integrate your Operations & Business Support
-Systems (OSS/BSS) using a machine-to-machine API.
+The GUI provides a comfortable interface for administration however
+most CSPs shall want to integrate Operations & Business Support Systems
+(OSS/BSS) using machine-to-machine APIs.
 
 #### [REST](https://en.wikipedia.org/wiki/Representational_state_transfer)
 Most aspects of provisioning and operations may be performed through
 integration using an HTTP RESTful interface. Specifically the
 [TM Forum](https://www.tmforum.org)
 [Open APIs](https://www.tmforum.org/open-apis/) are supported including:
-Product Catalog, Product Inventory, Prepay Balance and Usage Management.
+Product Catalog, Product Inventory, Prepay Balance, Service Inventory,
+Resource Inventory and Usage Management.
 
 #### [Erlang](http://www.erlang.org)
 All aspects of provisioning, operations and maintenance may be performed
