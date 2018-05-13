@@ -316,12 +316,11 @@ service_options(Options) ->
 		false ->
 			[{'Origin-Host', Hostname} | Options]
 	end,
-	Options2 = case lists:keyfind('Origin-Realm', 1, Options) of
-		{_, _} ->
+	Options2 = case lists:keymember('Origin-Realm', 1, Options) of
+		true ->
 			Options1;
 		false ->
-			{ok, #hostent{h_name = Realm}} = inet:gethostbyname(Hostname),
-			[{'Origin-Realm', Realm} | Options1]
+			[{'Origin-Realm', inet_db:res_option(domain)} | Options1]
 	end,
 	Options2 ++ [{'Vendor-Id', 50386},
 		{'Product-Name', "SigScale OCS"},
