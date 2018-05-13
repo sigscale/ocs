@@ -203,14 +203,14 @@
 
 @enum Termination-Cause
 
-   LOGOUT                            1
-   SERVICE_NOT_PROVIDED              2
-   BAD_ANSWER                        3
-   ADMINISTRATIVE                    4
-   LINK_BROKEN                       5
-   AUTH_EXPIRED                      6
-   USER_MOVED                        7
-   SESSION_TIMEOUT                   8
+   DIAMETER_LOGOUT                   1
+   DIAMETER_SERVICE_NOT_PROVIDED     2
+   DIAMETER_BAD_ANSWER               3
+   DIAMETER_ADMINISTRATIVE           4
+   DIAMETER_LINK_BROKEN              5
+   DIAMETER_AUTH_EXPIRED             6
+   DIAMETER_USER_MOVED               7
+   DIAMETER_SESSION_TIMEOUT          8
    USER_REQUEST                     11
    LOST_CARRIER                     12
    LOST_SERVICE                     13
