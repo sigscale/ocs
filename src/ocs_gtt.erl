@@ -306,7 +306,7 @@ import1(Table, Binary, {latin1, 0}) ->
 	import2(Table, Binary);
 import1(Table, Binary, {utf8, Offset}) ->
 	Length = size(Binary) - Offset,
-	import2(Table, binary:part(Binary, Offset, Length));
+	import2(Table, binary:part(Binary, Offset, Length)).
 %% @hidden
 import2(Table, Records) ->
 	case mnesia:create_table(Table,
