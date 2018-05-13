@@ -264,17 +264,19 @@ errors(_ServiceName, _Capabilities, _Request, [ResultCode | _]) ->
 	when
 		Address :: inet:ip_address(),
 		Port :: inet:port_number(),
-		Request :: term(),
+		Request :: #'3gpp_ro_CCR'{},
 		Caps :: capabilities(),
 		Result :: packet() | message().
 %% @doc Process a received DIAMETER Accounting packet.
 %% @private
-process_request(Address, Port, Caps, Request) ->
-	#diameter_caps{origin_host = {OHost, DHost}, origin_realm = {ORealm, DRealm}} = Caps,
-	#'3gpp_ro_CCR'{'Session-Id' = SId, 'User-Name' = NAISpecUName,
-			'Auth-Application-Id' = ?RO_APPLICATION_ID,
-			'Service-Context-Id' = _SvcContextId, 'CC-Request-Type' = RequestType,
-			'CC-Request-Number' = RequestNum, 'Subscription-Id' = SubscriptionIds} = Request,
+process_request(Address, Port,
+		#diameter_caps{origin_host = {OHost, DHost}, origin_realm = {ORealm, DRealm}},
+		#'3gpp_ro_CCR'{'Session-Id' = SId, 'User-Name' = NAISpecUName,
+				'Auth-Application-Id' = ?RO_APPLICATION_ID,
+				'Service-Context-Id' = _SvcContextId,
+				'CC-Request-Type' = RequestType,
+				'CC-Request-Number' = RequestNum,
+				'Subscription-Id' = SubscriptionIds} = Request) ->
 	try
 		Subscriber = case SubscriptionIds of
 			[#'3gpp_ro_Subscription-Id'{'Subscription-Id-Data' = Sub} | _] ->
