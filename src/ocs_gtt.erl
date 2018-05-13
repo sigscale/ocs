@@ -293,26 +293,32 @@ restore(Tables, File) when is_list(Tables), is_list(File) ->
 %% 	Create a new table or overwrite existing table.
 import(File) ->
 	case file:read_file(File) of
-		{ok, Records} ->
+		{ok, Binary} ->
 			Basename = filename:basename(File),
 			Table = list_to_atom(string:sub_string(Basename,
 					1, string:rchr(Basename, $.) - 1)),
-			import(Table, Records);
+			import1(Table, Binary, unicode:bom_to_encoding(Binary));
 		{error, Reason} ->
 			exit(file:format_error(Reason))
 	end.
 %% @hidden
-import(Table, Records) ->
+import1(Table, Binary, {latin1, 0}) ->
+	import2(Table, Binary);
+import1(Table, Binary, {utf8, Offset}) ->
+	Length = size(Binary) - Offset,
+	import2(Table, binary:part(Binary, Offset, Length));
+%% @hidden
+import2(Table, Records) ->
 	case mnesia:create_table(Table,
 			[{disc_copies, [node() | nodes()]},
 			{attributes, record_info(fields, gtt)},
 			{record_name, gtt}]) of
 		{atomic, ok} ->
-			import1(Table, Records);
+			import3(Table, Records);
 		{aborted, {already_exists, Table}} ->
 			case mnesia:clear_table(Table) of
 				{atomic, ok} ->
-					import1(Table, Records);
+					import3(Table, Records);
 				{aborted, Reason} ->
 					exit(Reason)
 			end;
@@ -320,11 +326,13 @@ import(Table, Records) ->
 			exit(Reason)
 	end.
 %% @hidden
-import1(Table, Records) ->
+import3(Table, Records) ->
 	TS = erlang:system_time(?MILLISECOND),
 	N = erlang:unique_integer([positive]),
 	Split = binary:split(Records, [<<"\n">>, <<"\r">>, <<"\r\n">>], [global]),
-	F = fun() -> import2(Table, Split, {TS, N}, []) end,
+	F = fun() ->
+				import4(Table, Split, {TS, N}, [])
+	end,
 	case mnesia:transaction(F) of
 		{atomic, ok} ->
 			ok;
@@ -332,16 +340,18 @@ import1(Table, Records) ->
 			exit(Reason)
 	end.
 %% @hidden
-import2(Table, [], _LM, Acc) ->
-	F = fun(#gtt{} = G) -> mnesia:write(Table, G, write) end,
+import4(Table, [], _LM, Acc) ->
+	F = fun(#gtt{} = G) ->
+				mnesia:write(Table, G, write)
+	end,
 	lists:foreach(F, lists:flatten(Acc));
-import2(Table, [<<>> | T], LM, Acc) ->
-	import2(Table, T, LM, Acc);
-import2(Table, [Chunk | Rest], LM, Acc) ->
+import4(Table, [<<>> | T], LM, Acc) ->
+	import4(Table, T, LM, Acc);
+import4(Table, [Chunk | Rest], LM, Acc) ->
 	case binary:split(Chunk, [<<"\"">>], [global]) of
 		[Chunk] ->
-			NewAcc = [import3(binary:split(Chunk, [<<",">>], [global]), LM, []) | Acc],
-			import2(Table, Rest, LM, NewAcc);
+			NewAcc = [import5(binary:split(Chunk, [<<",">>], [global]), LM, []) | Acc],
+			import4(Table, Rest, LM, NewAcc);
 		SplitChunks ->
 			F = fun(<<$, , T/binary>>, AccIn) ->
 						[T | AccIn];
@@ -356,20 +366,20 @@ import2(Table, [Chunk | Rest], LM, Acc) ->
 						end
 			end,
 			AccOut = lists:foldl(F, [], SplitChunks),
-			NewAcc = [import3(lists:reverse(AccOut), LM, []) | Acc],
-			import2(Table, Rest, LM, NewAcc)
+			NewAcc = [import5(lists:reverse(AccOut), LM, []) | Acc],
+			import4(Table, Rest, LM, NewAcc)
 	end.
 %% @hidden
-import3([<<>> | T], LM, Acc) ->
-	import3(T, LM, [undefined | Acc]);
-import3([H | T], LM, Acc) ->
-	import3(T, LM, [binary_to_list(H) | Acc]);
-import3([], LM, Acc) when length(Acc) == 3 ->
-	import4(lists:reverse(Acc), LM);
-import3([], _LM, _Acc) ->
+import5([<<>> | T], LM, Acc) ->
+	import5(T, LM, [undefined | Acc]);
+import5([H | T], LM, Acc) ->
+	import5(T, LM, [binary_to_list(H) | Acc]);
+import5([], LM, Acc) when length(Acc) == 3 ->
+	import6(lists:reverse(Acc), LM);
+import5([], _LM, _Acc) ->
 	[].
 %% @hidden
-import4([Key, Desc, Rate], LM) ->
+import6([Key, Desc, Rate], LM) ->
 	Tuple  = {Desc, ocs_rest:millionths_in(Rate), LM},
 	case is_key_number(Key) of
 		true->
