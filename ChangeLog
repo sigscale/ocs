@@ -1,5 +1,6 @@
-2018-05-13  Vance Shipley <vances@sigscale.org>
+2018-05-14  Vance Shipley <vances@sigscale.org>
 
+	* handle utf8 csv file in table import
 	* correct diameter termination-cause values
 
 2018-05-11  Vance Shipley <vances@sigscale.org>
