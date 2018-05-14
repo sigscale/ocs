@@ -141,7 +141,7 @@
 				ReservedAmount :: non_neg_integer(),
 				SessionId :: string() | binary()}],
 		units :: octets | cents | seconds | messages | undefined,
-		prices :: [],
+		prices = [] :: list(), 
 		product :: [ProdRef :: term()],
 		last_modified :: tuple() | undefined}).
 
