@@ -125,13 +125,13 @@ if_dues([], _Now)  ->
 	false.
 
 %% @private
-if_recur(OfferId, [#{offer_id := OfferId, offer := Offer} | _]) ->
-	{true, Offer};
-if_recur(OfferId, [_ | T]) ->
-	if_recur(OfferId, T);
-if_recur(_OfferId, []) ->
-	false.
-
+if_recur(OfferId, Offers) ->
+	case lists:keyfind(OfferId, 1, Offers) of
+		{_, Offer} ->
+			{true, Offer};
+		false ->
+			false
+	end.
 
 %% @private
 get_product(start) ->
@@ -167,9 +167,9 @@ get_offers() ->
 -spec frp(Offers) -> FilterOffer
 	when
 		Offers :: [#offer{}],
-		FilterOffer :: [#{offer => OfferId, price => Price}],
+		FilterOffer :: [{OfferId, Offer}],
 		OfferId :: string(),
-		Price :: #price{}.
+		Offer :: #offer{}.
 %% @doc Filter recurring prices
 %% @private
 frp(Offers) ->
@@ -180,7 +180,7 @@ frp1([#offer{name = OfferId, price = Prices} = Offer | T], Acc) ->
 		false ->
 			frp1(T, Acc);
 		true ->
-			frp1(T, [#{offer_id => OfferId, offer => Offer}] ++ Acc)
+			frp1(T, [{OfferId, Offer}] ++ Acc)
 	end;
 frp1([], Acc) ->
 	lists:reverse(Acc).
