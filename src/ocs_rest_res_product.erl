@@ -840,7 +840,8 @@ spec_prod_data() ->
 	DepHref = {"href", ?productSpecPath "1"},
 	Depend = {struct, [DepId, DepHref, DepType]},
 	Dependency = {"productSpecificationRelationship", {array, [Depend]}},
-	{struct, [Id, Name, Href, Description, Version, LastUpdate, Status, Dependency]}.
+	Chars = {"productSpecCharacteristic", {array, characteristic_product_data()}},
+	{struct, [Id, Name, Href, Description, Version, LastUpdate, Status, Chars, Dependency]}.
 
 %% @hidden
 spec_prod_voice() ->
@@ -1038,7 +1039,19 @@ characteristic_product_voice() ->
 	Description2 = {"description", "Constrain price to incoming or outgoing calls"},
 	ValueType2 = {"valueType", "String"},
 	Char2 = {struct, [Name2, Description2, ValueType2]},
-	[Char1, Char2].
+	Name3 = {"name", "romingTable"},
+	Description3 = {"description", "Roaming partners table name"},
+	ValueType3 = {"valueType", "String"},
+	Char3 = {struct, [Name3, Description3, ValueType3]},
+	[Char1, Char2, Char3].
+
+%% @hidden
+characteristic_product_data() ->
+	Name1 = {"name", "romingTable"},
+	Description1 = {"description", "Roaming partners table name"},
+	ValueType1 = {"valueType", "String"},
+	Char1 = {struct, [Name1, Description1, ValueType1]},
+	[Char1].
 
 -spec pla_spec(ID) -> Result
 	when
