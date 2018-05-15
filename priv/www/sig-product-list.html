@@ -89,6 +89,12 @@
 				<template>[[item.productOffering]]</template>
 			</vaadin-grid-column>
 		</vaadin-grid>
+		<div class="add-button">
+         <paper-fab
+            icon="add"
+            on-tap="showAddProductInven">
+         </paper-fab>
+      </div>
 		<iron-ajax
 			id="getProductInventory"
 			on-response="_getProductResponse"
@@ -191,6 +197,9 @@ console.log(results[index].productOffering.name),
 				}
 				cbProduct(vaadinItems);
 			},
+			showAddProductInven: function(event) {
+            document.getElementById("addProductInvenModal").open();
+         }
 		})
 	</script>
 </dom-module>

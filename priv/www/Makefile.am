@@ -39,6 +39,7 @@ www_DATA = favicon.ico \
 	sig-offer-add.html \
 	sig-balance-list.html \
 	sig-product-list.html \
+	sig-product-add.html \
 	sig-bucket-list.html \
 	sig-bucket-add.html
 
