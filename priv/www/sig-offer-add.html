@@ -121,6 +121,7 @@
 					<div>
 						<paper-dropdown-menu
 								id="addOffProductSpecificationDrop"
+								on-selected-item-changed="checkProductSpec"
 								label="[[i18n.productSpec]]">
 							<paper-listbox
 									id="addOffProductSpecification"
@@ -1514,6 +1515,13 @@
 					this.$.addBundle.hide();
 				} else {
 					document.getElementById("addProductToastError").open();
+				}
+			},
+			checkProductSpec: function() {
+				if(this.$.addOffProductSpecification.selected == 0) {
+					this.$.destPrefixTariff.disabled = true;
+				} else if(this.$.addOffProductSpecification.selected == 1) {
+					this.$.destPrefixTariff.disabled = false;
 				}
 			},
 			checkPattern: function() {
