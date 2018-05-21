@@ -1148,15 +1148,15 @@ add_offer(#offer{price = Prices} = Offer) when length(Prices) > 0 ->
 					units = Units, size = Size,
 					amount = Amount, alteration = Alteration})
 					when length(Name) > 0, ((Units == octets)
-					or (Units == seconds) or (Units == message)),
+					or (Units == seconds) or (Units == messages)),
 					is_integer(Size), Size > 0, is_integer(Amount),
 					Amount > 0 ->
 				Fvala(Alteration);
 			(#price{type = tariff, alteration = undefined,
 					size = Size, units = Units, amount = Amount})
 					when is_integer(Size), Size > 0, ((Units == octets)
-					or (Units == seconds)), ((Amount == undefined) or
-					(Amount == 0)) ->
+					or (Units == seconds) or (Units == messages)),
+					((Amount == undefined) or (Amount == 0)) ->
 				true;
 			(#price{}) ->
 				false
