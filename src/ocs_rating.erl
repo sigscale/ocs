@@ -219,6 +219,8 @@ rate2(Protocol, Service, Buckets, Timestamp, Address,
 				true;
 			(#price{type = usage, units = cents}) ->
 				true;
+			(#price{type = tariff, units = messages}) ->
+				true;
 			(_) ->
 				false
 	end,
@@ -257,7 +259,9 @@ rate2(Protocol, Service, Buckets, Timestamp, Address,
 	end;
 rate2(Protocol, Service, Buckets, Timestamp, _Address, _Direction,
 		#offer{price = Prices}, Flag, DebitAmounts, ReserveAmounts, State) ->
-	F = fun(#price{type = usage}) ->
+	F = fun(#price{type = tariff, units = octets}) ->
+				true;
+			(#price{type = usage}) ->
 				true;
 			(_) ->
 				false
