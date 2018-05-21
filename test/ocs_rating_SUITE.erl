@@ -109,7 +109,8 @@ all() ->
 	authorize_incoming_voice, authorize_outgoing_voice,
 	authorize_default_voice, authorize_data_1, authorize_data_2,
 	authorize_data_with_partial_reservation, authorize_negative_balance,
-	unauthorize_bad_password, unauthorize_bad_password, reserve_sms, debit_sms].
+	unauthorize_bad_password, unauthorize_bad_password, reserve_sms, debit_sms,
+	roaming_table_data, roaming_table_voice, roaming_table_sms].
 
 %%---------------------------------------------------------------------
 %%  Test cases
@@ -1794,6 +1795,170 @@ debit_sms(_Config) ->
 	{ok, #bucket{remain_amount = R2, reservations = []}} = ocs:find_bucket(BId),
 	[#rated{bucket_type = messages, bucket_value = NumOfEvents}] = Rated,
 	R2 = RemAmount - (PackagePrice * NumOfEvents).
+
+roaming_table_data() ->
+	[{userdata, [{doc, "Data rating for roaming with prefix table"}]}].
+
+roaming_table_data(Config) ->
+	PrivDir = ?config(priv_dir, Config),
+	RoamingTable = ocs:generate_identity(),
+	CsvFile = PrivDir ++ RoamingTable ++ ".csv",
+	{ok, File} = file:open(CsvFile, [write]),
+	F = fun F(0) ->
+			ok;
+		F(N) ->
+			SN = ocs:generate_identity(),
+			ok = file:write(File, SN ++ "," ++ ocs:generate_password() ++
+					"," ++ integer_to_list(rand:uniform(100)) ++ "\n"),
+			F(N - 1)
+	end,
+	ok = F(10),
+	SNPrefix = ocs:generate_identity(),
+	ok = file:write(File, SNPrefix ++ "," ++ ocs:generate_password() ++
+			"," ++ integer_to_list(rand:uniform(100)) ++ "\n"),
+	ok = ocs:import(CsvFile, data),
+	PackageSize = 200,
+	CharValueUse = [#char_value_use{name = "roamingTable",
+		values = [#char_value{value = RoamingTable}]}],
+	P1 = #price{type = tariff, units = octets, size = PackageSize,
+			amount = 0, char_value_use = CharValueUse},
+	OfferId = add_offer([P1], "4"),
+	Chars = [{"radiusReserveSessionTime", 60}],
+	ProdRef = add_product(OfferId, Chars),
+	Password = ocs:generate_password(),
+	ServiceId = list_to_binary(ocs:generate_identity()),
+	{ok, _Service1} = ocs:add_service(ServiceId, Password, ProdRef, Chars),
+	Timestamp = calendar:local_time(),
+	RemAmount = ocs_rest:millionths_in(1000),
+	B1 = bucket(cents, RemAmount),
+	_Bid = add_bucket(ProdRef, B1),
+	ServiceType = 32251,
+	SessionId = [{'Session-Id', list_to_binary(ocs:generate_password())}],
+	{ok, _A, PackageSize}= ocs_rating:rate(diameter, ServiceType,
+			list_to_binary(SNPrefix), ServiceId, Timestamp, undefined,
+			undefined, initial, [],
+			[{octets, PackageSize}], SessionId),
+	ok = file:close(File).
+
+roaming_table_voice() ->
+	[{userdata, [{doc, "Voice rating for roaming with prefix table"}]}].
+
+roaming_table_voice(Config) ->
+	PrivDir = ?config(priv_dir, Config),
+	RoamingTable = ocs:generate_identity(),
+	DestPrefixTable = ocs:generate_identity(),
+	DesPrefix = ocs:generate_identity(),
+	CsvFile1 = PrivDir ++ RoamingTable ++ ".csv",
+	{ok, File1} = file:open(CsvFile1, [write]),
+	F1 = fun F1(0) ->
+			ok;
+		F1(N) ->
+			SN = ocs:generate_identity(),
+			ok = file:write(File1, SN ++ "," ++ ocs:generate_password() ++ "," ++
+					ocs:generate_identity() ++ "\n"),
+			F1(N - 1)
+	end,
+	ok = F1(10),
+	SNPrefix = ocs:generate_identity(),
+	ok = file:write(File1, SNPrefix ++ "," ++ ocs:generate_password() ++ ","
+			++ DesPrefix ++ "\n"),
+	ok = ocs:import(CsvFile1, voice),
+	CsvFile2 = PrivDir ++ DesPrefix ++ "-" ++ DestPrefixTable ++ ".csv",
+	{ok, File2} = file:open(CsvFile2, [write]),
+	F2 = fun F2(0) ->
+				ok;
+			F2(N) ->
+				Prefix = ocs:generate_identity(),
+				ok = file:write(File2, Prefix ++ "," ++ ocs:generate_password() ++ ","
+						++ integer_to_list(rand:uniform(200)) ++ "\n"),
+				F2(N - 2)
+	end,
+	ok = F2(20),
+	ok = file:write(File2, DesPrefix ++ "," ++ ocs:generate_password() ++ ","
+						++ integer_to_list(rand:uniform(200)) ++ "\n"),
+	ok = ocs_gtt:import(CsvFile2),
+	PackageSize = 10,
+	CharValueUse = [#char_value_use{name = "roamingTable", values = [#char_value{value = RoamingTable}]},
+			#char_value_use{name = "destPrefixTariffTable", values = [#char_value{value = DestPrefixTable}]}],
+	P1 = #price{type = tariff, units = seconds, size = PackageSize, amount = 0, char_value_use = CharValueUse},
+	OfferId = add_offer([P1], "5"),
+	Chars = [{"radiusReserveSessionTime", 60}],
+	ProdRef = add_product(OfferId, Chars),
+	Password = ocs:generate_password(),
+	ServiceId = DesPrefix ++ ocs:generate_identity(),
+	{ok, _Service1} = ocs:add_service(ServiceId, Password, ProdRef, Chars),
+	Timestamp = calendar:local_time(),
+	RemAmount = ocs_rest:millionths_in(1000),
+	B1 = bucket(cents, RemAmount),
+	_Bid = add_bucket(ProdRef, B1),
+	ServiceType = 32260,
+	SessionId = [{'Session-Id', list_to_binary(ocs:generate_password())}],
+	{ok, _A, PackageSize} = ocs_rating:rate(diameter, ServiceType,
+			list_to_binary(SNPrefix), ServiceId, Timestamp, ServiceId,
+			undefined, initial, [],
+			[{seconds, PackageSize}], SessionId),
+	ok = file:close(File1),
+	ok = file:close(File2).
+
+roaming_table_sms() ->
+	[{userdata, [{doc, "SMS rating for roaming with prefix table"}]}].
+
+roaming_table_sms(Config) ->
+	PrivDir = ?config(priv_dir, Config),
+	RoamingTable = ocs:generate_identity(),
+	DestPrefixTable = ocs:generate_identity(),
+	DesPrefix = ocs:generate_identity(),
+	CsvFile1 = PrivDir ++ RoamingTable ++ ".csv",
+	{ok, File1} = file:open(CsvFile1, [write]),
+	F1 = fun F1(0) ->
+			ok;
+		F1(N) ->
+			SN = ocs:generate_identity(),
+			ok = file:write(File1, SN ++ "," ++ ocs:generate_password() ++ "," ++
+					ocs:generate_identity() ++ "\n"),
+			F1(N - 1)
+	end,
+	ok = F1(10),
+	SNPrefix = ocs:generate_identity(),
+	ok = file:write(File1, SNPrefix ++ "," ++ ocs:generate_password() ++ ","
+			++ DesPrefix ++ "\n"),
+	ok = ocs:import(CsvFile1, voice),
+	CsvFile2 = PrivDir ++ DesPrefix ++ "-" ++ DestPrefixTable ++ ".csv",
+	{ok, File2} = file:open(CsvFile2, [write]),
+	F2 = fun F2(0) ->
+				ok;
+			F2(N) ->
+				Prefix = ocs:generate_identity(),
+				ok = file:write(File2, Prefix ++ "," ++ ocs:generate_password() ++ ","
+						++ integer_to_list(rand:uniform(200)) ++ "\n"),
+				F2(N - 2)
+	end,
+	ok = F2(20),
+	ok = file:write(File2, DesPrefix ++ "," ++ ocs:generate_password() ++ ","
+						++ integer_to_list(rand:uniform(200)) ++ "\n"),
+	ok = ocs_gtt:import(CsvFile2),
+	PackageSize = 10,
+	CharValueUse = [#char_value_use{name = "roamingTable", values = [#char_value{value = RoamingTable}]},
+			#char_value_use{name = "destPrefixTariffTable", values = [#char_value{value = DestPrefixTable}]}],
+	P1 = #price{type = tariff, units = messages, size = PackageSize, amount = 0, char_value_use = CharValueUse},
+	OfferId = add_offer([P1], "10"),
+	Chars = [{"radiusReserveSessionTime", 60}],
+	ProdRef = add_product(OfferId, Chars),
+	Password = ocs:generate_password(),
+	ServiceId = DesPrefix ++ ocs:generate_identity(),
+	{ok, _Service1} = ocs:add_service(ServiceId, Password, ProdRef, Chars),
+	Timestamp = calendar:local_time(),
+	RemAmount = ocs_rest:millionths_in(1000),
+	B1 = bucket(cents, RemAmount),
+	_Bid = add_bucket(ProdRef, B1),
+	ServiceType = 32274,
+	SessionId = [{'Session-Id', list_to_binary(ocs:generate_password())}],
+	{ok, _A, PackageSize} = ocs_rating:rate(diameter, ServiceType,
+			list_to_binary(SNPrefix), ServiceId, Timestamp, ServiceId,
+			undefined, initial, [],
+			[{messages, PackageSize}], SessionId),
+	ok = file:close(File1),
+	ok = file:close(File2).
 
 %%---------------------------------------------------------------------
 %%  Internal functions
