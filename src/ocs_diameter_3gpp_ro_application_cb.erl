@@ -675,6 +675,6 @@ service_type(Id) ->
 service_network([#'3gpp_ro_Service-Information'{'PS-Information' = PsInfo}]) ->
 	service_network(PsInfo);
 service_network([#'3gpp_ro_PS-Information'{'3GPP-SGSN-MCC-MNC' = [MccMnc]}]) ->
-	binary_to_list(MccMnc);
+	MccMnc;
 service_network(_) ->
 	undefined.

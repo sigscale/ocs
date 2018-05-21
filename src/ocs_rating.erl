@@ -50,7 +50,7 @@
 		product :: #product{},
 		chars = [] :: [tuple()],
 		service_type :: integer() | binary(),
-		service_network :: string() | undefined,
+		service_network :: binary() | undefined,
 		roaming_tb_prefix :: string() | undefined,
 		session_id :: [tuple()],
 		rated :: #rated{}}).
@@ -304,17 +304,17 @@ rate3(Protocol, Service, Buckets, Address,
 			end;
 		#char_value_use{values = [#char_value{value = TariffTable}]} ->
 			Table1 = list_to_existing_atom(RoamingTable),
-			case catch ocs_gtt:lookup_last(Table1, ServiceNetwork) of
-				{_, Description, TabPrefix} ->
+			case catch ocs:find_sn_network(Table1, ServiceNetwork) of
+				{_, _, _Description, TabPrefix} ->
 						Table2 = list_to_existing_atom(TabPrefix ++ "-" ++ TariffTable),
 						case catch ocs_gtt:lookup_last(Table2, Address) of
-							{Description, Amount, _} ->
+							{Description1, Amount, _} ->
 								case Amount of
 									N when N >= 0 ->
 										rate5(Protocol, Service, Buckets,
 												Price#price{amount = N}, Flag, DebitAmounts, ReserveAmounts,
 												State#state{rated = Rated#rated{price_type = tariff,
-												description = Description}});
+												description = Description1}});
 
 									_N ->
 										throw(negative_amount)
@@ -345,15 +345,14 @@ rate4(Protocol, Service, Buckets,
 		rated = Rated} = State)
 		when is_list(RoamingTable)->
 	Table = list_to_existing_atom(RoamingTable),
-	case catch ocs_gtt:lookup_last(Table, ServiceNetwork) of
-		{_, Description, Amount} ->
+	case catch ocs:find_sn_network(Table, ServiceNetwork) of
+		{_, _, Description, Amount} ->
 			case Amount of
 				N when N >= 0 ->
 					rate5(Protocol, Service, Buckets,
 							Price#price{amount = N}, Flag, DebitAmounts, ReserveAmounts,
 							State#state{rated = Rated#rated{price_type = tariff,
 							description = Description}});
-
 				_N ->
 					throw(negative_amount)
 			end;

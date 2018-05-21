@@ -41,6 +41,7 @@
 -export([start/4, start/5]).
 %% export the ocs private API
 -export([normalize/1, subscription/4, generate_bucket_id/0, end_period/2]).
+-export([import/2, find_sn_network/2]).
 
 -export_type([eap_method/0]).
 
@@ -1695,6 +1696,121 @@ query_users2(Users, Locale) ->
 	end,
 	{eof, lists:filter(F2, Users)}.
 
+-record(roaming, {key, des, value}).
+
+-spec import(File, Type) -> ok
+	when
+		File :: string(),
+		Type :: data | voice | sms.
+%% @doc Import roaming tables
+import(File, Type) ->
+	case file:read_file(File) of
+		{ok, Binary} ->
+			Basename = filename:basename(File),
+			Table = list_to_atom(string:sub_string(Basename,
+					1, string:rchr(Basename, $.) - 1)),
+			import1(Table, Type, Binary, unicode:bom_to_encoding(Binary));
+		{error, Reason} ->
+			exit(file:format_error(Reason))
+	end.
+%% @hidden
+import1(Table, Type, Binary, {latin1, 0}) ->
+	import2(Table, Type, Binary);
+import1(Table, Type, Binary, {utf8, Offset}) ->
+	Length = size(Binary) - Offset,
+	import2(Table, Type, binary:part(Binary, Offset, Length)).
+%% @hidden
+import2(Table, Type, Records) ->
+	case mnesia:create_table(Table,
+			[{disc_copies, [node() | nodes()]},
+			{attributes, record_info(fields, roaming)},
+			{record_name, roaming}]) of
+		{atomic, ok} ->
+			import3(Table, Type, Records);
+		{aborted, {already_exists, Table}} ->
+			case mnesia:clear_table(Table) of
+				{atomic, ok} ->
+					import3(Table, Type, Records);
+				{aborted, Reason} ->
+					exit(Reason)
+			end;
+		{aborted, Reason} ->
+			exit(Reason)
+	end.
+%% @hidden
+import3(Table, Type, Records) ->
+	TS = erlang:system_time(?MILLISECOND),
+	N = erlang:unique_integer([positive]),
+	Split = binary:split(Records, [<<"\n">>, <<"\r">>, <<"\r\n">>], [global]),
+	case mnesia:transaction(fun import4/5, [Table, Type, Split, {TS, N}, []]) of
+		{atomic, ok} ->
+			ok;
+		{aborted, Reason} ->
+			exit(Reason)
+	end.
+%%% @hidden
+import4(Table, Type, [], _LM, Acc) ->
+	F = fun(#roaming{} = G) -> mnesia:write(Table, G, write) end,
+	lists:foreach(F, lists:flatten(Acc));
+import4(Table, Type, [<<>> | T], LM, Acc) ->
+	import4(Table, Type, T, LM, Acc);
+import4(Table, Type, [Chunk | Rest], LM, Acc) ->
+	case binary:split(Chunk, [<<"\"">>], [global]) of
+		[Chunk] ->
+			NewAcc = [import5(binary:split(Chunk, [<<",">>], [global]), Type, LM, []) | Acc],
+			import4(Table, Type, Rest, LM, NewAcc);
+		SplitChunks ->
+			F = fun(<<$, , T/binary>>, AccIn) ->
+						[T | AccIn];
+					(<<>>, AccIn) ->
+						[<<>> | AccIn];
+					(C, AccIn) ->
+						case binary:at(C, size(C) - 1) of
+							$, ->
+								[binary:part(C, 0, size(C) - 1) | AccIn];
+							_ ->
+								[C | AccIn]
+						end
+			end,
+			AccOut = lists:foldl(F, [], SplitChunks),
+			NewAcc = [import5(lists:reverse(AccOut), Type, LM, []) | Acc],
+			import4(Table, Type, Rest, LM, NewAcc)
+	end.
+%%% @hidden
+import5([<<>> | T], Type, LM, Acc) ->
+	import5(T, Type, LM, [undefined | Acc]);
+import5([H | T], Type, LM, Acc) ->
+	import5(T, Type, LM, [binary_to_list(H) | Acc]);
+import5([], Type, LM, Acc) when length(Acc) == 3 ->
+	import6(lists:reverse(Acc), Type, LM);
+import5([], _Type, _LM, _Acc) ->
+	[].
+%% @hidden
+import6([Key, Desc, Rate], Type, LM) when Type == voice; Type == sms ->
+	#roaming{key =list_to_binary(Key), des = Desc, value = Rate};
+import6([Key, Desc, Rate], data, LM) ->
+	#roaming{key =list_to_binary(Key), des = Desc, value = ocs_rest:millionths_in(Rate)}.
+
+-spec find_sn_network(Table, Id) -> Roaming
+	when
+		Table :: atom(),
+		Id :: string() | binary(),
+		Roaming :: #roaming{}.
+%% @doc Lookup roaming table
+find_sn_network(Table, Id) when is_list(Id) ->
+	find_sn_network(Table, list_to_binary(Id));
+find_sn_network(Table, Id) ->
+	F = fun() -> mnesia:read(Table, Id, read) end,
+	case mnesia:transaction(F) of
+		{atomic, [#roaming{} = R]} ->
+			R;
+		{atomic, []} ->
+			exit(not_found);
+		{aborted, Reason} ->
+			exit(Reason)
+	end.
+
+%
 %%----------------------------------------------------------------------
 %%  internal functions
 %%----------------------------------------------------------------------
