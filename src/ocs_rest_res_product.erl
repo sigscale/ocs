@@ -1015,7 +1015,7 @@ characteristic_product_rated_plan() ->
 
 %% @hidden
 characteristic_product_prepaid() ->
-	Name1 = {"name", "balanceTopUpDuration"},
+	Name1 = {"name", "balanceTopupDuration"},
 	Description1 = {"description", "Validity period of balance top-ups."},
 	Config1 = {"configurable", false},
 	Type1 = {"valueType", "Number"},
