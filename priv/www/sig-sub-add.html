@@ -503,7 +503,7 @@
 				bucketTop.product = {id, href};
 				ajaxBucket.headers['Content-type'] = "application/json";
 				ajaxBucket.body = bucketTop;
-				ajaxBucket.url="/balanceManagement/v1/" + serviceId + "/balanceTopups";
+				ajaxBucket.url="/balanceManagement/v1/product/" + id + "/balanceTopup";
 				ajaxBucket.generateRequest();
 				this.$.addServiceModal.close();
 				document.getElementById("add8").value = null;

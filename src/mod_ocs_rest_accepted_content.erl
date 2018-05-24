@@ -45,7 +45,7 @@
 	Size :: term(),
 	Fun :: fun((Arg) -> sent| close | Body),
 	Arg :: [term()].
-%% @doc Erlang web server API callback function.
+% % @doc Erlang web server API callback function.
 do(#mod{method = Method, parsed_header = Headers, request_uri = Uri,
 		data = Data} = _ModData) ->
 	case proplists:get_value(status, Data) of
@@ -86,7 +86,7 @@ do(#mod{method = Method, parsed_header = Headers, request_uri = Uri,
 							check_content_type_header(Headers, Method, ocs_rest_res_user, Data);
 						["partyManagement", "v1", "individual", _Id] ->
 							check_content_type_header(Headers, Method, ocs_rest_res_user, Data);
-						["balanceManagement", "v1", _Id, "balanceTopups"] ->
+						["balanceManagement", "v1", "product",_Id, "balanceTopup"] ->
 							check_content_type_header(Headers, Method, ocs_rest_res_balance, Data);
 						["balanceManagement", "v1", "bucket" | _] ->
 							check_content_type_header(Headers, Method, ocs_rest_res_balance, Data);

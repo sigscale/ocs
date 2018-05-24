@@ -2170,7 +2170,7 @@ top_up(Config) ->
 	AcceptValue = "application/json",
 	Accept = {"accept", AcceptValue},
 	ContentType = "application/json",
-	RequestURI = HostUrl ++ "/balanceManagement/v1/" ++ ProdRef ++ "/balanceTopups",
+	RequestURI = HostUrl ++ "/balanceManagement/v1/product/" ++ ProdRef ++ "/balanceTopup",
 	BucketType = {"type", ocs:generate_identity()},
 	Channel = {"channel", {struct, [{"name", ocs:generate_identity()}]}},
 	RechargeAmount = rand:uniform(10000000),
@@ -2220,7 +2220,7 @@ get_balance(Config) ->
 	{_, {array, [{struct, Product}]}} = lists:keyfind("product", 1, PrePayBalance),
 	{_, {array, Buckets}} = lists:keyfind("buckets", 1, PrePayBalance),
 	{_, ProdRef} = lists:keyfind("id", 1, Product),
-	{_, "/balancemanagement/v1/accumulatedBalance/" ++ ProdRef} =
+	{_, "/balanceManagement/v1/accumulatedBalance/" ++ ProdRef} =
 			lists:keyfind("href", 1, Product),
 	F = fun({struct, B}) ->
 		case lists:keyfind("id", 1, B) of

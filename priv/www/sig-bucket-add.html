@@ -199,7 +199,7 @@ console.log(document.getElementById("addUnitsBucket").selected);
 				bucketTop.product = {id, href};
 				ajaxBucket.headers['Content-type'] = "application/json";
 				ajaxBucket.body = bucketTop;
-				ajaxBucket.url="/balanceManagement/v1/" + id + "/balanceTopups";
+				ajaxBucket.url="/balanceManagement/v1/" + id + "/balanceTopup";
 				ajaxBucket.generateRequest();
 				this.$.addBucketModal.close();
 				document.getElementById("amount").value = null;

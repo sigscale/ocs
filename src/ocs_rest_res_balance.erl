@@ -32,10 +32,10 @@
 -define(MILLISECOND, milli_seconds).
 %-define(MILLISECOND, millisecond).
 
--define(bucketPath, "/balancemanagement/v1/bucket/").
--define(actionPath, "/balancemanagement/v1/balanceTransfer/").
+-define(bucketPath, "/balanceManagement/v1/bucket/").
+-define(actionPath, "/balanceManagement/v1/balanceTransfer/").
 -define(productInventoryPath, "/productInventoryManagement/v1/product/").
--define(balancePath, "/balancemanagement/v1/accumulatedBalance/").
+-define(balancePath, "/balanceManagement/v1/accumulatedBalance/").
 
 -spec content_types_accepted() -> ContentTypes
 	when
@@ -132,7 +132,7 @@ get_buckets(Query, Headers) ->
 		Result :: {ok, Headers :: [tuple()], Body :: iolist()}
 				| {error, ErrorCode :: integer()}.
 %% @doc Body producing function for
-%%	`GET /balanceManagment/v1/accumulatedBalance/{id}' reuqest
+%%	`GET /balanceManagment/v1/accumulatedBalance/{id}' request
 get_balance(ProdRef) ->
 	try
 		case ocs:get_buckets(ProdRef) of
@@ -172,7 +172,7 @@ get_balance(ProdRef) ->
 		RequestBody :: list(),
 		Result :: {ok, Headers :: [tuple()], Body :: iolist()}
 				| {error, ErrorCode :: integer()}.
-%% @doc Respond to `POST /balanceManagement/v1/{id}/balanceTopups'
+%% @doc Respond to `POST /balanceManagement/v1/product/{id}/balanceTopup'
 top_up(_Identity, RequestBody) ->
 	try
 		bucket(mochijson:decode(RequestBody))
