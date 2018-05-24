@@ -18,6 +18,7 @@
 <link rel="import" href="paper-checkbox/paper-checkbox.html">
 <link rel="import" href="iron-icons/iron-icons.html">
 <link rel="import" href="iron-icons/communication-icons.html">
+<link rel="import" href="iron-a11y-keys/iron-a11y-keys.html">
 
 <dom-module id="sig-subscriber-add">
 	<template>
@@ -50,6 +51,12 @@
 				--paper-checkbox-checked-color: #ffb04c;
 				--paper-checkbox-checkmark-color: var(--paper-yellow-900);
 			}
+			 .add-button {
+				background-color: var(--paper-lime-a700);
+				color: black;
+				float: right;
+				width: 8em;
+			}
 		</style>
 		<paper-dialog id="addSubscriberProductModal" modal>
 			<paper-toolbar>
@@ -59,7 +66,7 @@
 				<paper-dropdown-menu
 						id="addproductDrop10"
 						on-selected-item-changed="_productSelected"
-						label="[[i18n.prod]]">
+						label="Offers">
 					<paper-listbox
 							id="addproduct10"
 							slot="dropdown-content"
@@ -77,10 +84,22 @@
 					</i18n-msg>
 				</paper-tooltip>
 			</div>
+			<div>
+				<iron-a11y-keys id="a11y"
+						target="[[target]]"
+						keys="enter"
+						on-keys-pressed="onEnter">
+				</iron-a11y-keys>
+				<paper-input
+						id="addProductId1"
+						name="product"
+						label="Product Id">
+				</paper-input>
 			<div class="buttons">
 				<paper-button
 						dialog-dismiss
 						class="cancel-button"
+						 on-tap="productTapCancel"
 						autofocus
 						onclick="addServiceModal.close()">
 				<i18n-msg msgid="cancel">
@@ -101,6 +120,12 @@
 						return []
 					}
 				},
+				target: {
+					type: Object
+				},
+			},
+			ready: function() {
+				this.target = this.$.addProductId1;
 			},
 			_productSelected: function() {
 				var product = this.offers[this.$.addproduct10.selected];
@@ -111,6 +136,16 @@
 					document.getElementById("addSubscriberProductModal").close();
 					this.$.addproduct10.selected = null;
 				}
+			},
+			onEnter: function() {
+				var productId = this.$.addProductId1.value;
+				document.getElementById("AddUpdateProId").value = productId;
+				document.getElementById("addServiceModal").open();
+				document.getElementById("addSubscriberProductModal").close();
+				this.$.addProductId1.value = null;
+			},
+			productTapCancel: function() {
+				this.$.addProductId1.value = null;
 			}
 		});
 	</script>
