@@ -173,13 +173,24 @@ get_balance(ProdRef) ->
 		Result :: {ok, Headers :: [tuple()], Body :: iolist()}
 				| {error, ErrorCode :: integer()}.
 %% @doc Respond to `POST /balanceManagement/v1/product/{id}/balanceTopup'
-top_up(_Identity, RequestBody) ->
+top_up(Identity, RequestBody) ->
 	try
 		bucket(mochijson:decode(RequestBody))
 	of
-		#bucket{product = [ProdRef], units = Units, remain_amount = RM} = B
+		#bucket{product = undefined, units = Units, remain_amount = RM} = B
 				when Units /= undefined, RM > 0 ->
-			case ocs:add_bucket(ProdRef, B) of
+			case ocs:add_bucket(Identity, B#bucket{product = [Identity]}) of
+				{ok, _, #bucket{id = Id} = B1} ->
+					Body = mochijson:encode(bucket(B1)),
+					Location = ?bucketPath ++ Id,
+					Headers = [{location, Location}],
+					{ok, Headers, Body};
+				{error, _} ->
+					{error, 500}
+			end;
+		#bucket{product = [Identity], units = Units, remain_amount = RM} = B
+				when Units /= undefined, RM > 0 ->
+			case ocs:add_bucket(Identity, B) of
 				{ok, _, #bucket{id = Id} = B1} ->
 					Body = mochijson:encode(bucket(B1)),
 					Location = ?bucketPath ++ Id,
