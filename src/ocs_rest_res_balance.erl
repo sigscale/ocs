@@ -541,35 +541,18 @@ query_start({M, F, A}, Codec, Query, Filters, RangeStart, RangeEnd) ->
 	end.
 
 %% @hidden
-query_page(Codec, PageServer, Etag, Query, Filters, Start, End) ->
+query_page(Codec, PageServer, Etag, _Query, Filters, Start, End) ->
 	case gen_server:call(PageServer, {Start, End}) of
 		{error, Status} ->
 			{error, Status};
 		{Result, ContentRange} ->
-			try
-				case lists:keytake("sort", 1, Query) of
-					{value, {_, "id"}, Q1} ->
-						{lists:keysort(#bucket.id, Result), Q1};
-					{value, {_, "-id"}, Q1} ->
-						{lists:reverse(lists:keysort(#bucket.id, Result)), Q1};
-					false ->
-						{Result, Query};
-					_ ->
-						throw(400)
-				end
-			of
-				{SortedResult, _NewQuery} ->
-					JsonObj = query_page1(lists:map(Codec, SortedResult), Filters, []),
-					JsonArray = {array, JsonObj},
-					Body = mochijson:encode(JsonArray),
-					Headers = [{content_type, "application/json"},
-							{etag, Etag}, {accept_ranges, "items"},
-							{content_range, ContentRange}],
-					{ok, Headers, Body}
-			catch
-				throw:{error, Status} ->
-					{error, Status}
-			end
+			JsonObj = query_page1(lists:map(Codec, Result), Filters, []),
+			JsonArray = {array, JsonObj},
+			Body = mochijson:encode(JsonArray),
+			Headers = [{content_type, "application/json"},
+					{etag, Etag}, {accept_ranges, "items"},
+					{content_range, ContentRange}],
+			{ok, Headers, Body}
 	end.
 %% @hidden
 query_page1(Json, [], []) ->
