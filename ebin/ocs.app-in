@@ -109,6 +109,8 @@
 				{abmf_log_files, 100},
 				{abmf_log_nodes, []},
 				{export_dir, "log/export"},
+				{charging_scheduler_time, {4, 4, 4}},
+				{charging_interval, 1440},
 				{tls_key, "%APP_PRIV%/key.pem"},
 				{tls_cert, "%APP_PRIV%/cert.pem"},
 				{tls_cacert, "%APP_PRIV%/CAcert.pem"},

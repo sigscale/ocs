@@ -33,18 +33,8 @@
 -spec start() -> ok.
 %% @equiv start(Interval)
 start() ->
-	ScheduledTime = case application:get_env(charing_scheduler_time) of
-		{ok, ST} ->
-			ST;
-		undefined ->
-			{4, 4, 4}
-	end,
-	Interval = case application:get_env(charing_interval) of
-		{ok, CI} ->
-			CI;
-		undefined ->
-			1440
-	end,
+	{ok, ScheduledTime} = application:get_env(charging_scheduler_time), 
+	{ok, Interval} = application:get_env(charging_interval),
 	start(ScheduledTime, Interval).
 
 -spec start(ScheduledTime, Interval) -> ok
