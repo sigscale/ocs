@@ -1047,27 +1047,30 @@ get_services()->
 
 -spec query_service(Cont) -> Result
 	when
-		Cont :: start | eof | any(),
+		Cont :: start | any() | eof,
 		Result :: {Cont, [#service{}]} | {error, Reason},
 		Reason :: term().
 %% @doc Query services 
 query_service(start) ->
 	MatchSpec = [{'_', [], ['$_']}],
-	F = fun F(start, Acc) ->
-				F(mnesia:select(service, MatchSpec,
-						?CHUNKSIZE, read), Acc);
-			F('$end_of_table', Acc) ->
-				lists:flatten(lists:reverse(Acc));
-			F({error, Reason}, _Acc) ->
-				{error, Reason};
-			F({Services, Cont}, Acc) ->
-				F(mnesia:select(Cont), [Services | Acc])
+	F = fun() ->
+			mnesia:select(service, MatchSpec, ?CHUNKSIZE, read)
 	end,
-	case mnesia:transaction(F, [start, []]) of
-		{aborted, Reason} ->
-			{error, Reason};
-		{atomic, Services} ->
-			{eof, Services}
+	case mnesia:ets(F) of
+		{Services, Cont1} ->
+			{Cont1, Services};
+		'$end_of_table' ->
+			{eof, []}
+	end;
+query_service(Cont) ->
+	F = fun() ->
+			mnesia:select(Cont)
+	end,
+	case mnesia:ets(F) of
+		{Services, Cont1} ->
+			{Cont1, Services};
+		'$end_of_table' ->
+			{eof, []}
 	end.
 
 -spec delete_service(Identity) -> ok
