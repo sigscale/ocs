@@ -42,7 +42,7 @@
 %% export the ocs private API
 -export([normalize/1, subscription/4, generate_bucket_id/0, end_period/2]).
 
--export_type([eap_method/0]).
+-export_type([eap_method/0, match/0]).
 
 -include("ocs.hrl").
 -include_lib("inets/include/mod_auth.hrl").
@@ -1649,54 +1649,109 @@ update_user(Username, Password, Language) ->
 			end
 	end.
 
--spec query_users(Cont, Id, Locale) -> Result
+-spec query_users(Cont, MatchId, MatchLocale) -> Result
 	when
-		Cont :: start | eof | any(),
-		Id :: undefined | string(),
-		Locale :: undefined | string(),
-		Result :: {Cont, [#httpd_user{}]} | {error, Reason},
+		Cont :: start | any(),
+		MatchId :: Match,
+		MatchLocale ::Match,
+		Match :: {exact, string()} | {notexact, string()} | {like, string()},
+		Result :: {Cont1, [#httpd_user{}]} | eof | {error, Reason},
+		Cont1 :: any(),
 		Reason :: term().
-query_users(start, Id, Locale) ->
-	MatchSpec = MatchSpec = [{'_', [], ['$_']}],
+%% @doc Query the user table.
+query_users(start, '_', MatchLocale) ->
+	MatchSpec = [{'_', [], ['$_']}],
+	query_users1(MatchSpec, MatchLocale);
+query_users(start, {like, String} = _MatchId, MatchLocale)
+		when is_list(String) ->
+	MatchSpec = case lists:last(String) of
+		$% ->
+			Prefix = lists:droplast(String),
+			Username = {Prefix ++ '_', '_', '_', '_'},
+			MatchHead = #httpd_user{username = Username, _ = '_'},
+			[{MatchHead, [], ['$_']}];
+		_ ->
+			Username = {String, '_', '_', '_'},
+			MatchHead = #httpd_user{username = Username, _ = '_'},
+			[{MatchHead, [], ['$_']}]
+	end,
+	query_users1(MatchSpec, MatchLocale);
+query_users(Cont, _MatchId, MatchLocale) when is_tuple(Cont) ->
 	F = fun() ->
-		mnesia:select(httpd_user, MatchSpec, read)
+			mnesia:select(Cont)
 	end,
-	case mnesia:transaction(F) of
-		{atomic, Users} ->
-			query_users1(Users, Id, Locale);
-		{aborted, Reason} ->
-			{error, Reason}
+	case mnesia:ets(F) of
+		{Users, Cont1} ->
+			query_users2(MatchLocale, Cont1, Users);
+		'$end_of_table' ->
+			{eof, []}
+	end;
+query_users(start, MatchId, MatchLocale) when is_tuple(MatchId) ->
+	MatchCondition = [match_condition('$1', MatchId)],
+	Username = {'$1', '_', '_', '_'},
+	MatchHead = #httpd_user{username = Username, _ = '_'},
+	MatchSpec = [{MatchHead, MatchCondition, ['$_']}],
+	query_users1(MatchSpec, MatchLocale).
+%% @hidden
+query_users1(MatchSpec, MatchLocale) ->
+	F = fun() ->
+			mnesia:select(httpd_user, MatchSpec, ?CHUNKSIZE, read)
+	end,
+	case mnesia:ets(F) of
+		{Users, Cont} ->
+			query_users2(MatchLocale, Cont, Users);
+		'$end_of_table' ->
+			{eof, []}
 	end.
 %% @hidden
-query_users1([], _, _) ->
-	{eof, []};
-query_users1(Users, undefined, Locale) ->
-	query_users2(Users, Locale);
-query_users1(Users, Id, Locale) ->
-	F = fun(#httpd_user{username = Username}) when element(1, Username) =:= Id ->
-				true;
-			(_) ->
-				false
-	end,
-	case lists:filter(F, Users) of
-		[] ->
-			{error, not_found};
-		FilteredUsers ->
-			query_users2(FilteredUsers, Locale)
-	end.
-%% @hidden
-query_users2(Users, undefined) ->
-	{eof, Users};
-query_users2(Users, Locale) ->
-	F2 = fun(#httpd_user{user_data = C}) ->
-				case lists:keyfind(locale, 1, C) of
-					{_, Locale} -> true;
-					_ -> false
-				end;
-			(_) ->
+query_users2('_' = _MatchLocale, Cont, Users) ->
+	{Cont, Users};
+query_users2({exact, String} = _MatchLocale, Cont, Users)
+		when is_list(String) ->
+	F = fun(#httpd_user{user_data = UD}) ->
+			case lists:keyfind(locale, 1, UD) of
+				{_, String} ->
+					true;
+				_ ->
 					false
+			end
 	end,
-	{eof, lists:filter(F2, Users)}.
+	{Cont, lists:filter(F, Users)};
+query_users2({notexact, String} = _MatchLocale, Cont, Users)
+		when is_list(String) ->
+	F = fun(#httpd_user{user_data = UD}) ->
+			case lists:keyfind(locale, 1, UD) of
+				{_, String} ->
+					false;
+				_ ->
+					true
+			end
+	end,
+	{Cont, lists:filter(F, Users)};
+query_users2({like, String} = _MatchLocale, Cont, Users)
+		when is_list(String) ->
+	F = case lists:last(String) of
+		$% ->
+			Prefix = lists:droplast(String),
+			fun(#httpd_user{user_data = UD}) ->
+					case lists:keyfind(locale, 1, UD) of
+						{_, Locale} ->
+							lists:prefix(Prefix, Locale);
+						_ ->
+							false
+					end
+			end;
+		_ ->
+			fun(#httpd_user{user_data = UD}) ->
+					case lists:keyfind(locale, 1, UD) of
+						{_, String} ->
+							true;
+						_ ->
+							false
+					end
+			end
+	end,
+	{Cont, lists:filter(F, Users)}.
 
 %%----------------------------------------------------------------------
 %%  internal functions
@@ -2123,4 +2178,33 @@ default_chars1([]) ->
 %% @hidden
 gregorian_datetime_to_system_time(DateTime) ->
 	(calendar:datetime_to_gregorian_seconds(DateTime) - ?EPOCH) * 1000.
+
+-type match() :: {exact, term()} | {notexact, term()} | {lt, term()}
+		| {lte, term()} | {gt, term()} | {gte, term()} | {regex, term()}
+		| {like, [term()]} | {notlike, [term()]} | {in, [term()]}
+		| {notin, [term()]} | {contains, [term()]} | {notcontain, [term()]}
+		| {containsall, [term()]} | '_'.
+
+-spec match_condition(MatchVariable, Match) -> MatchCondition
+	when
+		MatchVariable :: atom(), % '$<number>'
+		Match :: {exact, term()} | {notexact, term()} | {lt, term()}
+				| {lte, term()} | {gt, term()} | {gte, term()},
+		MatchCondition :: {GuardFunction, MatchVariable, Term},
+		Term :: any(),
+		GuardFunction :: '=:=' | '=/=' | '<' | '=<' | '>' | '>='.
+%% @doc Convert REST query patterns to Erlang match specification conditions.
+%% @hidden
+match_condition(Var, {exact, Term}) ->
+	{'=:=', Var, Term};
+match_condition(Var, {notexact, Term}) ->
+	{'=/=', Var, Term};
+match_condition(Var, {lt, Term}) ->
+	{'<', Var, Term};
+match_condition(Var, {lte, Term}) ->
+	{'=<', Var, Term};
+match_condition(Var, {gt, Term}) ->
+	{'>', Var, Term};
+match_condition(Var, {gte, Term}) ->
+	{'>=', Var, Term}.
 

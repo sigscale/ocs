@@ -346,10 +346,20 @@ user1([], Acc) ->
 
 %% @hidden
 query_start(Query, Filters, RangeStart, RangeEnd) ->
-	Id =  proplists:get_value("id", Query),
-	Locale =  proplists:get_value("locale", Query),
+	MatchId = case proplists:get_value("id", Query) of
+		undefined ->
+			'_';
+		Id->
+			Id
+	end,
+	MatchLocale = case proplists:get_value("locale", Query) of
+		undefined ->
+			'_';
+		Locale ->
+			Locale
+	end,
 	case supervisor:start_child(ocs_rest_pagination_sup,
-				[[ocs, query_users, [Id, Locale]]]) of
+				[[ocs, query_users, [MatchId, MatchLocale]]]) of
 		{ok, PageServer, Etag} ->
 			query_page(PageServer, Etag, Query, Filters, RangeStart, RangeEnd);
 		{error, _Reason} ->
