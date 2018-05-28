@@ -144,6 +144,8 @@
 						cbUsers = callback;
 						var ajax = document.getElementById("getUserAjax");
 						params.filters.forEach(function(filter, index) {
+							etag = undefined;
+							lastItem = undefined;
 							if(index == 0) {
 								ajax.url += '?' + filter.path + '=' + filter.value;
 							} else {
