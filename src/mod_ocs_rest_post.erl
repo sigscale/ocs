@@ -92,6 +92,8 @@ do_post(Resource, ModData, Body, ["partyManagement", "v1", "individual"]) ->
 	do_response(ModData, Resource:post_user(Body));
 do_post(Resource, ModData, Body, ["balanceManagement", "v1", "product", Id, "balanceTopup"]) ->
 	do_response(ModData, Resource:top_up(Id, Body));
+do_post(Resource, ModData, Body, ["balanceManagement", "v1", "service", Id, "balanceTopup"]) ->
+	do_response(ModData, Resource:top_up_service(Id, Body));
 do_post(Resource, ModData, Body, ["catalogManagement", "v2", "productOffering"]) ->
 	do_response(ModData, Resource:add_offer(Body));
 do_post(Resource, ModData, Body, ["productInventoryManagement", "v2", "product"]) ->

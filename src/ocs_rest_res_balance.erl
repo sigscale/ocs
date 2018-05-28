@@ -22,7 +22,7 @@
 -copyright('Copyright (c) 2016 - 2017 SigScale Global Inc.').
 
 -export([content_types_accepted/0, content_types_provided/0,
-		top_up/2, get_balance/1, get_balance_log/0]).
+		top_up/2, top_up_service/2, get_balance/1, get_balance_log/0]).
 
 -export([get_bucket/1, get_buckets/2]).
 
@@ -163,6 +163,39 @@ get_balance(ProdRef) ->
 		_:product_not_found ->
 			{error, 404};
 		_Error ->
+			{error, 400}
+	end.
+
+-spec top_up_service(Identity, RequestBody) -> Result
+	when
+		Identity :: list(),
+		RequestBody :: list(),
+		Result :: {ok, Headers :: [tuple()], Body :: iolist()}
+				| {error, ErrorCode :: integer()}.
+%% @doc Respond to `POST /balanceManagement/v1/service/{id}/balanceTopup'
+top_up_service(Identity, RequestBody) ->
+	try
+		bucket(mochijson:decode(RequestBody))
+	of
+		Bucket ->
+			case ocs:find_service(Identity) of
+				{ok, #service{product = ProductRef}} ->
+					case ocs:add_bucket(ProductRef, Bucket) of
+						{ok, _, #bucket{id = Id} = B11} ->
+							Body = mochijson:encode(bucket(B11)),
+							Location = ?bucketPath ++ Id,
+							Headers = [{location, Location}],
+							{ok, Headers, Body};
+						{error, _} ->
+							{error, 500}
+					end;
+				{error, _} ->
+					{error, 500}
+			end;
+		_ ->
+			{error, 400}
+	catch
+		_:_ ->
 			{error, 400}
 	end.
 
