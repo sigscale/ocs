@@ -1685,7 +1685,7 @@ query_users(Cont, _MatchId, MatchLocale) when is_tuple(Cont) ->
 		{Users, Cont1} ->
 			query_users2(MatchLocale, Cont1, Users);
 		'$end_of_table' ->
-			{eof, []}
+			eof
 	end;
 query_users(start, MatchId, MatchLocale) when is_tuple(MatchId) ->
 	MatchCondition = [match_condition('$1', MatchId)],
@@ -1702,7 +1702,7 @@ query_users1(MatchSpec, MatchLocale) ->
 		{Users, Cont} ->
 			query_users2(MatchLocale, Cont, Users);
 		'$end_of_table' ->
-			{eof, []}
+			eof
 	end.
 %% @hidden
 query_users2('_' = _MatchLocale, Cont, Users) ->
