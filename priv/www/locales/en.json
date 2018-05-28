@@ -467,10 +467,6 @@
     "description": "filtering",
     "message": "Filtering"
   },
-	"sort": {
-    "description": "sorting",
-    "message": "Sorting"
-  },
 	"credit": {
     "description": "Balance management",
     "message": "Credit"

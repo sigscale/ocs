@@ -1,7 +1,6 @@
 <!--  vim: set ts=3:  -->
 <link rel="import" href="polymer/polymer.html">
 <link rel="import" href="vaadin-grid/vaadin-grid.html">
-<link rel="import" href="vaadin-grid/vaadin-grid-sorter.html">
 <link rel="import" href="vaadin-grid/vaadin-grid-filter.html">
 <link rel="import" href="i18n-msg/i18n-msg-behavior.html">
 <link rel="import" href="iron-ajax/iron-ajax.html">
@@ -43,37 +42,29 @@
 		<vaadin-grid id="usageGrid">
 			<vaadin-grid-column width="15ex" flex-grow="5">
 				<template class="header">
-					<vaadin-grid-sorter
-							id="usageSortDate"
-							path="date">
-						<vaadin-grid-filter
-								aria-label="[[i18n.dateTime]]"
-								path="date"
-								value="{{filterDate}}">
-							<input
-									placeholder="[[i18n.dateTime]]"
-									value="{{filterDate::input}}"
-									focus-target>
-						</vaadin-grid-filter>
-					</vaadin-grid-sorter>
+					<vaadin-grid-filter
+							aria-label="[[i18n.dateTime]]"
+							path="date"
+							value="{{filterDate}}">
+						<input
+								placeholder="[[i18n.dateTime]]"
+								value="{{filterDate::input}}"
+								focus-target>
+					</vaadin-grid-filter>
 				</template>
 				<template>[[item.date]]</template>
 			</vaadin-grid-column>
 			<vaadin-grid-column width="15ex" flex-grow="5">
 				<template class="header">
-					<vaadin-grid-sorter
-							id="usageSortUsername"
-							path="username">
-						<vaadin-grid-filter
-								aria-label="[[i18n.userName]]"
-								path="username"
-								value="{{filterUsername}}">
-							<input
-									placeholder="[[i18n.userName]]"
-									value="{{filterUsername::input}}"
-									focus-target>
-						</vaadin-grid-filter>
-					</vaadin-grid-sorter>
+					<vaadin-grid-filter
+							aria-label="[[i18n.userName]]"
+							path="username"
+							value="{{filterUsername}}">
+						<input
+								placeholder="[[i18n.userName]]"
+								value="{{filterUsername::input}}"
+								focus-target>
+					</vaadin-grid-filter>
 				</template>
 				<template>[[item.username]]</template>
 			</vaadin-grid-column>
@@ -127,20 +118,16 @@
 				this.etag = null;
 				delete this.$.getUsageAjax.headers['If-Range'];
 				this.$.usageGrid.size = 0;
-				document.getElementById('usageSortDate').direction = null;
 			},
 			_filterChangedUsername: function(filter) {
 				this.etag = null;
 				delete this.$.getUsageAjax.headers['If-Range'];
 				this.$.usageGrid.size = 0;
-				document.getElementById('usageSortUsername').direction = null;
 			},
 			refresh: function() {
 				this.etag = null;
 				delete this.$.getUsageAjax.headers['If-Range'];
 				this.$.usageGrid.size = 0;
-				document.getElementById('usageSortDate').direction = null;
-				document.getElementById('usageSortUsername').direction = null;
 				delete this.$.getUsageAjax.params['filter'];
 				delete this.$.getUsageAjax.params['date'];
 				this.filterDate = null;
@@ -179,19 +166,6 @@
 				if (ajax.params['filter']) {
 					ajax.params['filter'] += "]}]\"";
 				}
-				params.sortOrders.forEach(function(sort, index) {
-					var dirsort;
-					if(sort.direction == "desc") {
-						dirsort = '-' + sort.path;
-					} else {
-						dirsort = sort.path;
-					}
-					if(index == 0) {
-						ajax.params['sort'] = dirsort;
-					} else {
-						ajax.params['sort'] = ',' + dirsort;
-					}
-				});
 				usageList = document.getElementById('usageList');
 				handleAjaxResponse = function(request) {
 					if (request) {
