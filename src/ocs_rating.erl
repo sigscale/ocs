@@ -489,18 +489,17 @@ rate6(Service, Buckets1,
 		#price{units = Units, size = UnitSize, amount = UnitPrice,
 		type = PriceType, currency = Currency}, final, DebitAmount, 0,
 		#state{rated = Rated1, session_id = SessionId} = State) ->
-	Rated2 = Rated1#rated{bucket_type = Units,
-			price_type = PriceType, currency = Currency},
+	Rated2 = Rated1#rated{price_type = PriceType, currency = Currency},
 	case charge_session(Units, DebitAmount, SessionId, Buckets1) of
 		{DebitAmount, Buckets2} ->
-			Rated3 = Rated2#rated{usage_rating_tag = included},
+			Rated3 = Rated2#rated{bucket_type = Units, usage_rating_tag = included},
 			rate7(Service, Buckets2, final, DebitAmount,
 					DebitAmount, 0, 0, State#state{rated = Rated3});
 		{UnitsCharged, Buckets2} ->
 			PriceChargeUnits = DebitAmount - UnitsCharged,
 			{UnitCharge, PriceCharge} = price_units(PriceChargeUnits,
 					UnitSize, UnitPrice),
-			Rated3 = Rated2#rated{usage_rating_tag = non_included},
+			Rated3 = Rated2#rated{bucket_type = cents, usage_rating_tag = non_included},
 			case charge_session(cents, PriceCharge, SessionId, Buckets2) of
 				{PriceCharge, Buckets3} ->
 					TotalUnits = UnitsCharged + UnitCharge,
@@ -1604,7 +1603,7 @@ rated(0, 0, Cents, Msgs, Rated) when Cents > 0, Msgs > 0 ->
 			Rated#rated{bucket_type = messages,
 			tax_excluded_amount = Msgs, is_billed = true}];
 rated(0, 0, 0, 0, Rated) ->
-	[Rated#rated{is_billed = true}].
+	[Rated#rated{bucket_type = undefined, is_billed = true}].
 
 %% @hidden
 update_buckets(BRefs, OldB, NewB) ->
