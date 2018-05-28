@@ -330,8 +330,9 @@ process_request1(?'3GPP_CC-REQUEST-TYPE_INITIAL_REQUEST' = RequestType,
 	Destination = call_destination(ServiceInformation),
 	ReserveAmount = [{ReqUsageType, ReqUsage}],
 	ServiceType = service_type(SvcContextId),
+	ServiceNetwork = service_network(ServiceInformation),
 	Server = {Address, Port},
-	case ocs_rating:rate(diameter, ServiceType, Subscriber, Timestamp,
+	case ocs_rating:rate(diameter, ServiceType, ServiceNetwork, Subscriber, Timestamp,
 			Destination, originate, initial, [], ReserveAmount, [{'Session-Id', SId}]) of
 		{ok, _, GrantedAmount} ->
 			GrantedUnits = case ReqUsageType of
@@ -436,9 +437,10 @@ process_request1(?'3GPP_CC-REQUEST-TYPE_UPDATE_REQUEST' = RequestType,
 		ReserveAmount = [{ReqUsageType, ReqUsage}],
 		DebitAmount = [{UsedType, UsedUsage}],
 		ServiceType = service_type(SvcContextId),
+		ServiceNetwork = service_network(ServiceInformation),
 		Server = {Address, Port},
-		case ocs_rating:rate(diameter, ServiceType, Subscriber, Timestamp,
-				Destination, originate, interim, DebitAmount, ReserveAmount,
+		case ocs_rating:rate(diameter, ServiceType, ServiceNetwork, Subscriber,
+				Timestamp, Destination, originate, interim, DebitAmount, ReserveAmount,
 				[{'Session-Id', SId}]) of
 			{ok, _, GrantedAmount} ->
 				GrantedUnits = case ReqUsageType of
@@ -525,8 +527,9 @@ process_request1(?'3GPP_CC-REQUEST-TYPE_TERMINATION_REQUEST' = RequestType,
 		Destination = call_destination(ServiceInformation),
 		DebitAmount = [{UsedType, UsedUsage}],
 		ServiceType = service_type(SvcContextId),
+		ServiceNetwork = service_network(ServiceInformation),
 		Server = {Address, Port},
-		case ocs_rating:rate(diameter, ServiceType, Subscriber, Timestamp,
+		case ocs_rating:rate(diameter, ServiceType, ServiceNetwork, Subscriber, Timestamp,
 				Destination, originate, final, DebitAmount, [], [{'Session-Id', SId}]) of
 			{ok, _, 0, Rated} ->
 				Reply = generate_diameter_answer(SId,
@@ -668,3 +671,10 @@ service_type(Id) ->
 			undefined
 	end.
 
+%% @hidden
+service_network([#'3gpp_ro_Service-Information'{'PS-Information' = PsInfo}]) ->
+	service_network(PsInfo);
+service_network([#'3gpp_ro_PS-Information'{'3GPP-SGSN-MCC-MNC' = [MccMnc]}]) ->
+	MccMnc;
+service_network(_) ->
+	undefined.

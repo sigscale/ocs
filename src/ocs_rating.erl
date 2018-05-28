@@ -21,7 +21,7 @@
 -module(ocs_rating).
 -copyright('Copyright (c) 2016 - 2017 SigScale Global Inc.').
 
--export([rate/10]).
+-export([rate/11]).
 -export([authorize/8]).
 -export([session_attributes/1]).
 
@@ -50,15 +50,18 @@
 		product :: #product{},
 		chars = [] :: [tuple()],
 		service_type :: integer() | binary(),
+		service_network :: binary() | undefined,
+		roaming_tb_prefix :: string() | undefined,
 		session_id :: [tuple()],
 		rated :: #rated{}}).
 
--spec rate(Protocol, ServiceType, SubscriberID, Timestamp,
+-spec rate(Protocol, ServiceType, ServiceNetwork, SubscriberID, Timestamp,
 		Address, Direction, Flag, DebitAmounts, ReserveAmounts,
 		SessionAttributes) -> Result
 	when
 		Protocol :: radius | diameter,
 		ServiceType :: integer() | binary(),
+		ServiceNetwork :: string() | undefined,
 		SubscriberID :: string() | binary(),
 		Timestamp :: calendar:datetime(),
 		Address :: string(),
@@ -97,14 +100,14 @@
 %% 	 cases subscriber's balance is debited.  `SessionList' describes the
 %% 	known active sessions whichshould be disconnected.
 %%
-rate(Protocol, ServiceType, SubscriberID, Timestamp, Address, Direction,
-		Flag, DebitAmounts, ReserveAmounts, SessionAttributes)
+rate(Protocol, ServiceType, ServiceNetwork, SubscriberID, Timestamp, Address,
+		Direction, Flag, DebitAmounts, ReserveAmounts, SessionAttributes)
 		when is_list(SubscriberID)->
-	rate(Protocol, ServiceType, list_to_binary(SubscriberID), Timestamp,
-		Address, Direction, Flag, DebitAmounts, ReserveAmounts,
+	rate(Protocol, ServiceType, ServiceNetwork, list_to_binary(SubscriberID),
+		Timestamp, Address, Direction, Flag, DebitAmounts, ReserveAmounts,
 		SessionAttributes);
-rate(Protocol, ServiceType, SubscriberID, Timestamp, Address, Direction,
-		Flag, DebitAmounts, ReserveAmounts, SessionAttributes) when
+rate(Protocol, ServiceType, ServiceNetwork, SubscriberID, Timestamp, Address,
+		Direction, Flag, DebitAmounts, ReserveAmounts, SessionAttributes) when
 		((Protocol == radius) or (Protocol == diameter)), is_binary(SubscriberID),
 		((Flag == initial) or (Flag == interim) or (Flag == final)),
 		is_list(DebitAmounts), is_list(ReserveAmounts), length(SessionAttributes) > 0 ->
@@ -130,6 +133,7 @@ rate(Protocol, ServiceType, SubscriberID, Timestamp, Address, Direction,
 													product  = Product,
 													chars = Chars,
 													service_type = ServiceType,
+													service_network = ServiceNetwork,
 													session_id = get_session_id(SessionAttributes)},
 											rate1(Protocol, Service, Buckets,
 													Timestamp, Address, Direction, Offer,
@@ -215,6 +219,8 @@ rate2(Protocol, Service, Buckets, Timestamp, Address,
 				true;
 			(#price{type = usage, units = cents}) ->
 				true;
+			(#price{type = tariff, units = messages}) ->
+				true;
 			(_) ->
 				false
 	end,
@@ -222,8 +228,10 @@ rate2(Protocol, Service, Buckets, Timestamp, Address,
 	FilteredPrices2 = filter_prices_tod(Timestamp, FilteredPrices1),
 	case filter_prices_dir(Direction, FilteredPrices2) of
 		[Price | _] ->
-			rate3(Protocol, Service, Buckets, Address, Price,
-					Flag, DebitAmounts, ReserveAmounts, State);
+			RoamingTable = roaming_table_prefix(Price),
+			rate3(Protocol, Service, Buckets, Address,
+					Price, Flag, DebitAmounts, ReserveAmounts,
+					State#state{roaming_tb_prefix = RoamingTable});
 		_ ->
 			throw(price_not_found)
 	end;
@@ -242,14 +250,18 @@ rate2(Protocol, Service, Buckets, Timestamp, Address,
 	FilteredPrices2 = filter_prices_tod(Timestamp, FilteredPrices1),
 	case filter_prices_dir(Direction, FilteredPrices2) of
 		[Price | _] ->
-			rate3(Protocol, Service, Buckets, Address, Price,
-					Flag, DebitAmounts, ReserveAmounts, State);
+			RoamingTable = roaming_table_prefix(Price),
+			rate3(Protocol, Service, Buckets, Address,
+					Price, Flag, DebitAmounts, ReserveAmounts,
+					State#state{roaming_tb_prefix = RoamingTable});
 		_ ->
 			throw(price_not_found)
 	end;
 rate2(Protocol, Service, Buckets, Timestamp, _Address, _Direction,
 		#offer{price = Prices}, Flag, DebitAmounts, ReserveAmounts, State) ->
-	F = fun(#price{type = usage}) ->
+	F = fun(#price{type = tariff, units = octets}) ->
+				true;
+			(#price{type = usage}) ->
 				true;
 			(_) ->
 				false
@@ -257,23 +269,27 @@ rate2(Protocol, Service, Buckets, Timestamp, _Address, _Direction,
 	FilteredPrices1 = lists:filter(F, Prices),
 	case filter_prices_tod(Timestamp, FilteredPrices1) of
 		[Price | _] ->
-			rate4(Protocol, Service, Buckets, Price, Flag,
-					DebitAmounts, ReserveAmounts, State);
+			RoamingTable = roaming_table_prefix(Price),
+			rate4(Protocol, Service, Buckets, Price,
+					Flag, DebitAmounts, ReserveAmounts,
+					State#state{roaming_tb_prefix = RoamingTable});
 		_ ->
 			throw(price_not_found)
 	end.
 %% @hidden
 rate3(Protocol, Service, Buckets, Address,
 		#price{type = tariff, char_value_use = CharValueUse} = Price,
-		Flag, DebitAmounts, ReserveAmounts, #state{rated = Rated} = State) ->
+		Flag, DebitAmounts, ReserveAmounts, #state{rated = Rated,
+		roaming_tb_prefix = RoamingTable, service_network = ServiceNetwork} = State) ->
 	case lists:keyfind("destPrefixTariffTable", #char_value_use.name, CharValueUse) of
-		#char_value_use{values = [#char_value{value = TariffTable}]} ->
+		#char_value_use{values = [#char_value{value = TariffTable}]}
+				when RoamingTable == undefined ->
 			Table = list_to_existing_atom(TariffTable),
 			case catch ocs_gtt:lookup_last(Table, Address) of
 				{Description, Amount, _} ->
 					case Amount of
 						N when N >= 0 ->
-							rate4(Protocol, Service, Buckets,
+							rate5(Protocol, Service, Buckets,
 									Price#price{amount = N}, Flag, DebitAmounts, ReserveAmounts,
 									State#state{rated = Rated#rated{price_type = tariff,
 											description = Description}});
@@ -286,20 +302,76 @@ rate3(Protocol, Service, Buckets, Address,
 							{address, Address}, {result, Other}]),
 					throw(table_lookup_failed)
 			end;
+		#char_value_use{values = [#char_value{value = TariffTable}]} ->
+			Table1 = list_to_existing_atom(RoamingTable),
+			case catch ocs:find_sn_network(Table1, ServiceNetwork) of
+				{_, _, _Description, TabPrefix} ->
+						Table2 = list_to_existing_atom(TabPrefix ++ "-" ++ TariffTable),
+						case catch ocs_gtt:lookup_last(Table2, Address) of
+							{Description1, Amount, _} ->
+								case Amount of
+									N when N >= 0 ->
+										rate5(Protocol, Service, Buckets,
+												Price#price{amount = N}, Flag, DebitAmounts, ReserveAmounts,
+												State#state{rated = Rated#rated{price_type = tariff,
+												description = Description1}});
+
+									_N ->
+										throw(negative_amount)
+								end;
+							Other ->
+								error_logger:error_report(["Prefix table tariff lookup failed",
+										{module, ?MODULE}, {table, Table2},
+										{address, Address}, {result, Other}]),
+								throw(table_lookup_failed)
+						end;
+				Other ->
+					error_logger:error_report(["Service Network table lookup failed",
+							{module, ?MODULE}, {table, Table1},
+							{address, Address}, {result, Other}]),
+					throw(table_lookup_failed)
+			end;
 		false ->
 			throw(undefined_tariff)
 	end;
 rate3(Protocol, Service, Buckets, _Address,
 		Price, Flag, DebitAmounts, ReserveAmounts, State) ->
-	rate4(Protocol, Service, Buckets, Price,
+	rate5(Protocol, Service, Buckets, Price,
 			Flag, DebitAmounts, ReserveAmounts, State).
 %% @hidden
-rate4(_Protocol, #service{enabled = false} = Service,
+rate4(Protocol, Service, Buckets,
+		#price{type = tariff} = Price, Flag, DebitAmounts, ReserveAmounts,
+		#state{roaming_tb_prefix = RoamingTable, service_network = ServiceNetwork,
+		rated = Rated} = State)
+		when is_list(RoamingTable)->
+	Table = list_to_existing_atom(RoamingTable),
+	case catch ocs:find_sn_network(Table, ServiceNetwork) of
+		{_, _, Description, Amount} ->
+			case Amount of
+				N when N >= 0 ->
+					rate5(Protocol, Service, Buckets,
+							Price#price{amount = N}, Flag, DebitAmounts, ReserveAmounts,
+							State#state{rated = Rated#rated{price_type = tariff,
+							description = Description}});
+				_N ->
+					throw(negative_amount)
+			end;
+		Other ->
+			error_logger:error_report(["Prefix table tariff lookup failed",
+					{module, ?MODULE}, {table, Table}, {result, Other}]),
+			throw(table_lookup_failed)
+	end;
+rate4(Protocol, Service, Buckets, Price,
+		Flag, DebitAmounts, ReserveAmounts, State) ->
+	rate5(Protocol, Service, Buckets, Price,
+			Flag, DebitAmounts, ReserveAmounts, State).
+%% @hidden
+rate5(_Protocol, #service{enabled = false} = Service,
 		Buckets, _Price, initial, _DebitAmounts, _ReserveAmounts, State) ->
-	rate6(Service, Buckets, initial, 0, 0, 0, 0, State);
-rate4(radius, Service, Buckets, Price, initial, [], [], State) ->
-	rate5(Service, Buckets, Price, initial, 0, get_reserve(Price), State);
-rate4(radius, Service, Buckets, #price{units = Units} = Price,
+	rate7(Service, Buckets, initial, 0, 0, 0, 0, State);
+rate5(radius, Service, Buckets, Price, initial, [], [], State) ->
+	rate6(Service, Buckets, Price, initial, 0, get_reserve(Price), State);
+rate5(radius, Service, Buckets, #price{units = Units} = Price,
 		interim, [], ReserveAmounts, State) ->
 	ReserveAmount = case lists:keyfind(Units, 1, ReserveAmounts) of
 		{_, ReserveUnits} ->
@@ -307,8 +379,8 @@ rate4(radius, Service, Buckets, #price{units = Units} = Price,
 		false ->
 			get_reserve(Price)
 	end,
-	rate5(Service, Buckets, Price, interim, 0, ReserveAmount, State);
-rate4(_Protocol, Service, Buckets, #price{units = Units} = Price,
+	rate6(Service, Buckets, Price, interim, 0, ReserveAmount, State);
+rate5(_Protocol, Service, Buckets, #price{units = Units} = Price,
 		Flag, DebitAmounts, ReserveAmounts, State) ->
 	DebitAmount = case lists:keyfind(Units, 1, DebitAmounts) of
 		{_, DebitUnits} ->
@@ -322,14 +394,14 @@ rate4(_Protocol, Service, Buckets, #price{units = Units} = Price,
 		false ->
 			0
 	end,
-	rate5(Service, Buckets, Price, Flag, DebitAmount, ReserveAmount, State).
+	rate6(Service, Buckets, Price, Flag, DebitAmount, ReserveAmount, State).
 %% @hidden
-rate5(Service, Buckets1,
+rate6(Service, Buckets1,
 		#price{units = Units, size = UnitSize, amount = UnitPrice},
 		initial, 0, ReserveAmount, #state{session_id = SessionId} = State) ->
 	case reserve_session(Units, ReserveAmount, SessionId, Buckets1) of
 		{ReserveAmount, Buckets2} ->
-			rate6(Service, Buckets2, initial,
+			rate7(Service, Buckets2, initial,
 					0, 0, ReserveAmount, ReserveAmount, State);
 		{UnitsReserved, Buckets2} ->
 			PriceReserveUnits = (ReserveAmount - UnitsReserved),
@@ -337,20 +409,20 @@ rate5(Service, Buckets1,
 					UnitSize, UnitPrice),
 			case reserve_session(cents, PriceReserve, SessionId, Buckets2) of
 				{PriceReserve, Buckets3} ->
-					rate6(Service, Buckets3, initial, 0, 0,
+					rate7(Service, Buckets3, initial, 0, 0,
 							ReserveAmount, UnitsReserved + UnitReserve, State);
 				{PriceReserved, Buckets3} ->
-					rate6(Service, Buckets3, initial, 0, 0, ReserveAmount,
+					rate7(Service, Buckets3, initial, 0, 0, ReserveAmount,
 							UnitsReserved + (PriceReserved div UnitPrice), State)
 			end
 	end;
-rate5(#service{enabled = false} = Service, Buckets1,
+rate6(#service{enabled = false} = Service, Buckets1,
 		#price{units = Units, size = UnitSize, amount = UnitPrice},
 		interim, DebitAmount, _ReserveAmount,
 		#state{session_id = SessionId} = State) ->
 	case update_session(Units, DebitAmount, 0, SessionId, Buckets1) of
 		{DebitAmount, 0, Buckets2} ->
-			rate6(Service, Buckets2, interim,
+			rate7(Service, Buckets2, interim,
 					DebitAmount, DebitAmount, 0, 0, State);
 		{UnitsCharged, 0, Buckets2} ->
 			PriceChargeUnits = DebitAmount - UnitsCharged,
@@ -358,22 +430,22 @@ rate5(#service{enabled = false} = Service, Buckets1,
 					UnitSize, UnitPrice),
 			case update_session(cents, PriceCharge, 0, SessionId, Buckets2) of
 				{PriceCharge, 0, Buckets3} ->
-					rate6(Service, Buckets3, interim, DebitAmount,
+					rate7(Service, Buckets3, interim, DebitAmount,
 							DebitAmount + UnitCharge, 0, 0, State);
 				{PriceCharged, 0, Buckets3} ->
 					%% @todo generate unique bucket id
 					Buckets4 = [#bucket{remain_amount = PriceCharged - PriceCharge,
 							units = cents} | Buckets3],
-					rate6(Service, Buckets4, interim, DebitAmount,
+					rate7(Service, Buckets4, interim, DebitAmount,
 							UnitsCharged + (PriceCharged div UnitPrice), 0, 0, State)
 			end
 	end;
-rate5(Service, Buckets1,
+rate6(Service, Buckets1,
 		#price{units = Units, size = UnitSize, amount = UnitPrice},
 		interim, DebitAmount, ReserveAmount, #state{session_id = SessionId} = State) ->
 	case update_session(Units, DebitAmount, ReserveAmount, SessionId, Buckets1) of
 		{DebitAmount, ReserveAmount, Buckets2} ->
-			rate6(Service, Buckets2, interim, DebitAmount,
+			rate7(Service, Buckets2, interim, DebitAmount,
 					DebitAmount, ReserveAmount, ReserveAmount, State);
 		{DebitAmount, UnitsReserved, Buckets2} ->
 			PriceReserveUnits = ReserveAmount - UnitsReserved,
@@ -381,10 +453,10 @@ rate5(Service, Buckets1,
 					UnitSize, UnitPrice),
 			case update_session(cents, 0, PriceReserve, SessionId, Buckets2) of
 				{0, PriceReserve, Buckets3} ->
-					rate6(Service, Buckets3, interim, DebitAmount,
+					rate7(Service, Buckets3, interim, DebitAmount,
 							DebitAmount, ReserveAmount, UnitReserve, State);
 				{0, PriceReserved, Buckets3} ->
-					rate6(Service, Buckets3,
+					rate7(Service, Buckets3,
 							interim, DebitAmount, DebitAmount, ReserveAmount,
 							UnitsReserved + PriceReserved div UnitPrice, State)
 			end;
@@ -397,23 +469,23 @@ rate5(Service, Buckets1,
 			case update_session(cents,
 					PriceCharge, PriceReserve, SessionId, Buckets2) of
 				{PriceCharge, PriceReserve, Buckets3} ->
-					rate6(Service, Buckets3, interim,
+					rate7(Service, Buckets3, interim,
 							DebitAmount, UnitsCharged + UnitCharge,
 							ReserveAmount, UnitReserve, State);
 				{PriceCharge, PriceReserved, Buckets3} ->
-					rate6(Service, Buckets3, interim, DebitAmount,
+					rate7(Service, Buckets3, interim, DebitAmount,
 							UnitsCharged + UnitCharge, ReserveAmount,
 							PriceReserved div UnitPrice, State);
 				{PriceCharged, 0, Buckets3} ->
 					%% @todo generate unique bucket id
 					Buckets4 = [#bucket{remain_amount = PriceCharged - PriceCharge,
 							units = cents} | Buckets3],
-					rate6(Service, Buckets4, interim, DebitAmount,
+					rate7(Service, Buckets4, interim, DebitAmount,
 							UnitsCharged + (PriceCharged div UnitPrice),
 							ReserveAmount, 0, State)
 			end
 	end;
-rate5(Service, Buckets1,
+rate6(Service, Buckets1,
 		#price{units = Units, size = UnitSize, amount = UnitPrice,
 		type = PriceType, currency = Currency}, final, DebitAmount, 0,
 		#state{rated = Rated1, session_id = SessionId} = State) ->
@@ -422,7 +494,7 @@ rate5(Service, Buckets1,
 	case charge_session(Units, DebitAmount, SessionId, Buckets1) of
 		{DebitAmount, Buckets2} ->
 			Rated3 = Rated2#rated{usage_rating_tag = included},
-			rate6(Service, Buckets2, final, DebitAmount,
+			rate7(Service, Buckets2, final, DebitAmount,
 					DebitAmount, 0, 0, State#state{rated = Rated3});
 		{UnitsCharged, Buckets2} ->
 			PriceChargeUnits = DebitAmount - UnitsCharged,
@@ -432,19 +504,19 @@ rate5(Service, Buckets1,
 			case charge_session(cents, PriceCharge, SessionId, Buckets2) of
 				{PriceCharge, Buckets3} ->
 					TotalUnits = UnitsCharged + UnitCharge,
-					rate6(Service, Buckets3, final, DebitAmount,
+					rate7(Service, Buckets3, final, DebitAmount,
 							TotalUnits, 0, 0, State#state{rated = Rated3});
 				{PriceCharged, Buckets3} ->
 					TotalUnits = UnitsCharged + (PriceCharged div UnitPrice),
 					%% @todo generate unique bucket id
 					Buckets4 = [#bucket{remain_amount = PriceCharged - PriceCharge,
 							units = cents} | Buckets3],
-					rate6(Service, Buckets4, final, DebitAmount,
+					rate7(Service, Buckets4, final, DebitAmount,
 							TotalUnits, 0, 0, State#state{rated = Rated3})
 			end
 	end.
 %% @hidden
-rate6(#service{session_attributes = SessionList} =
+rate7(#service{session_attributes = SessionList} =
 		Service1, Buckets, final, Charge, Charged, 0, 0,
 		#state{rated = Rated, product = P, session_id = SessionId,
 		buckets = OldBuckets}) when Charged >= Charge ->
@@ -457,7 +529,7 @@ rate6(#service{session_attributes = SessionList} =
 	Service2 = Service1#service{session_attributes = NewSessionList},
 	ok = mnesia:write(Service2),
 	{ok, Service2, 0, Rated1};
-rate6(#service{session_attributes = SessionList} =
+rate7(#service{session_attributes = SessionList} =
 		Service1, Buckets, final, _Charge, _Charged, 0, 0,
 		#state{rated = Rated, product = P, session_id = SessionId,
 		buckets = OldBuckets}) ->
@@ -469,7 +541,7 @@ rate6(#service{session_attributes = SessionList} =
 	Service2 = Service1#service{session_attributes = []},
 	ok = mnesia:write(Service2),
 	{out_of_credit, SessionList, [Rated1]};
-rate6(#service{enabled = false, session_attributes = SessionList} =
+rate7(#service{enabled = false, session_attributes = SessionList} =
 		Service1, Buckets, _Flag, _Charge, _Charged, _Reserve, _Reserved,
 		#state{session_id = SessionId, buckets = OldBuckets, product = P}) ->
 	NewBuckets = refund(SessionId, Buckets),
@@ -478,7 +550,7 @@ rate6(#service{enabled = false, session_attributes = SessionList} =
 	Service2 = Service1#service{session_attributes = []},
 	ok = mnesia:write(Service2),
 	{disabled, SessionList};
-rate6(#service{session_attributes = SessionList} =
+rate7(#service{session_attributes = SessionList} =
 		Service1, Buckets, _Flag, Charge, Charged, Reserve,
 		Reserved, #state{session_id = SessionId, buckets = OldBuckets,
 		product = P}) when Charged < Charge; Reserved <  Reserve ->
@@ -488,7 +560,7 @@ rate6(#service{session_attributes = SessionList} =
 	Service2 = Service1#service{session_attributes = []},
 	ok = mnesia:write(Service2),
 	{out_of_credit, SessionList};
-rate6(#service{session_attributes = SessionList} =
+rate7(#service{session_attributes = SessionList} =
 		Service1, Buckets, initial, 0, 0, _Reserve, Reserved,
 		#state{buckets = OldBuckets, session_id = SessionId, product = P}) ->
 	NewBRefs = update_buckets(P#product.balance, OldBuckets, Buckets),
@@ -497,7 +569,7 @@ rate6(#service{session_attributes = SessionList} =
 	Service2 = Service1#service{session_attributes = NewSessionList},
 	ok = mnesia:write(Service2),
 	{grant, Service2, Reserved};
-rate6(Service, Buckets, interim, _Charge, _Charged, _Reserve, Reserved,
+rate7(Service, Buckets, interim, _Charge, _Charged, _Reserve, Reserved,
 		#state{buckets = OldBuckets, product = P}) ->
 	NewBRefs = update_buckets(P#product.balance, OldBuckets, Buckets),
 	ok = mnesia:write(P#product{balance = NewBRefs}),
@@ -1556,3 +1628,13 @@ delete_b([BRef | T]) ->
 delete_b([]) ->
 	ok.
 
+%% @hidden
+roaming_table_prefix(#price{type = tariff, char_value_use = CharValueUse}) ->
+	case lists:keyfind("roamingTable", #char_value_use.name, CharValueUse) of
+		#char_value_use{values = [#char_value{value = RoamingTable}]} ->
+			RoamingTable;
+		false ->
+			undefined
+	end;
+roaming_table_prefix(_) ->
+	undefined.

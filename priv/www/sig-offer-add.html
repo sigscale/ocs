@@ -583,6 +583,13 @@
 								</i18n-msg>
 							</paper-tooltip>
 						</div>
+						<div>
+							<paper-input
+									id="roamingTable"
+									type="string"
+									label="RoamingTable">
+							</paper-input>
+						</div>
 					</iron-collapse>
 					<div class="buttons">
 						<paper-button
@@ -1043,6 +1050,7 @@
 						this.$.checkIn.value = this.prices[indexPrice].callDirection;
 						this.$.checkOut.value = this.prices[indexPrice].callDirection;
 						this.$.destPrefixTariff.value = this.prices[indexPrice].prefixTariff;
+						this.$.roamingTable.value = this.prices[indexPrice].roamingTable;
 					}
 				}
 			},
@@ -1386,6 +1394,23 @@
 						charValueUse.productSpecification = prodSpec;
 						prodSpecCharValueUse.push(charValueUse);
 					}
+					if (item.roamingTable) {
+						var charValue = new Object();
+						var charValueUse = new Object();
+						charValueUse.name = "roamingTable";
+						charValueUse.minCardinality = 0;
+						charValueUse.maxCardinality = 1;
+						charValue.default = true;
+						charValue.value = item.roamingTable;
+						var charValues = new Array();
+						charValues.push(charValue);
+						charValueUse.productSpecCharacteristicValue = charValues;
+						var prodSpec = new Object();
+						prodSpec.id = "3";
+						prodSpec.href = "/catalogManagement/v2/productSpecification/3";
+						charValueUse.productSpecification = prodSpec;
+						prodSpecCharValueUse.push(charValueUse);
+					}
 					if (item.reserveTime) {
 						var charValue = new Object();
 						charValue.unitOfMeasure = "seconds";
@@ -1693,6 +1718,7 @@
 					priceNew.callDirection = "originate";
 				}
 				priceNew.prefixTariff = this.$.destPrefixTariff.value;
+				priceNew.roamingTable = this.$.roamingTable.value;
 				if(priceNew.name
 						&& priceNew.type
 						&& priceNew.unit
@@ -1718,6 +1744,7 @@
 					this.$.addPriceCharReserveTime.value = null;
 					this.$.addPriceCharReserveBytes.value = null;
 					this.$.destPrefixTariff.value = null;
+					this.$.roamingTable.value = null;
 					this.$.timeOfDayStart.value = null;
 					this.$.timeOfDayEnd.value = null;
 					document.getElementById("addProductPriceToastSuccess").open();
@@ -1876,6 +1903,7 @@
 				this.$.addOfferChars.hide();
 				this.$.addBundle.hide();
 				this.$.destPrefixTariff.value = null;
+				this.$.roamingTable.value = null;
 				this.$.addOfferCharReserveSession.value = null;
 				this.$.addProductStartDatePickOff.hide()
 				this.$.addProductEndDatePickOff.hide()

@@ -280,7 +280,7 @@ request1(?AccountingStart, AcctSessionId, Id,
 		{error, not_found} ->
 			calendar:local_time()
 	end,
-	case ocs_rating:rate(radius, ServiceType, Subscriber, Timestamp,
+	case ocs_rating:rate(radius, ServiceType, undefined, Subscriber, Timestamp,
 			CallAddress, Direction, initial, [], [], SessionAttributes) of
 		{ok, #service{}, _} ->
 			ok = ocs_log:acct_log(radius,
@@ -328,7 +328,7 @@ request1(?AccountingStop, AcctSessionId, Id,
 		{error, not_found} ->
 			calendar:local_time()
 	end,
-	case ocs_rating:rate(radius, ServiceType, Subscriber, Timestamp,
+	case ocs_rating:rate(radius, ServiceType, undefined, Subscriber, Timestamp,
 			CallAddress, Direction, final, DebitAmount, [], SessionAttributes) of
 		{ok, #service{}, _, Rated} ->
 			ok = ocs_log:acct_log(radius,
@@ -384,7 +384,7 @@ request1(?AccountingInterimUpdate, AcctSessionId, Id,
 		{error, not_found} ->
 			calendar:local_time()
 	end,
-	case ocs_rating:rate(radius, ServiceType, Subscriber, Timestamp,
+	case ocs_rating:rate(radius, ServiceType, undefined, Subscriber, Timestamp,
 			CallAddress, Direction, interim, [], ReserveAmount, SessionAttributes) of
 		{ok, #service{}, _} ->
 			{reply, {ok, response(Id, Authenticator, Secret)}, State};
