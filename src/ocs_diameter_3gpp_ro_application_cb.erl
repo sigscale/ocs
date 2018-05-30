@@ -642,9 +642,16 @@ accounting_event_type(2) -> interim;
 accounting_event_type(3) -> stop.
 
 %% @hidden
-call_destination([#'3gpp_ro_Service-Information'{'IMS-Information' = ImsInfo}]) ->
-	call_destination(ImsInfo);
-call_destination([#'3gpp_ro_IMS-Information'{'Called-Party-Address' = [CalledParty]}]) ->
+call_destination([#'3gpp_ro_Service-Information'{
+		'SMS-Information' = [#'3gpp_ro_SMS-Information'{
+		'Recipient-Info' = [#'3gpp_ro_Recipient-Info'{
+		'Recipient-Address' = [#'3gpp_ro_Recipient-Address'{
+		'Address-Data' = [RecipientAddress]}]}]}]}]) ->
+	% @todo handle multiple SMS recipients
+	RecipientAddress;
+call_destination([#'3gpp_ro_Service-Information'{
+		'IMS-Information' = [#'3gpp_ro_IMS-Information'{
+		'Called-Party-Address' = [CalledParty]}]}]) ->
 	destination(CalledParty);
 call_destination(_) ->
 	undefined.
@@ -672,9 +679,10 @@ service_type(Id) ->
 	end.
 
 %% @hidden
-service_network([#'3gpp_ro_Service-Information'{'PS-Information' = PsInfo}]) ->
-	service_network(PsInfo);
-service_network([#'3gpp_ro_PS-Information'{'3GPP-SGSN-MCC-MNC' = [MccMnc]}]) ->
+service_network([#'3gpp_ro_Service-Information'{
+		'PS-Information' = [#'3gpp_ro_PS-Information'{
+		'3GPP-SGSN-MCC-MNC' = [MccMnc]}]}]) ->
 	MccMnc;
 service_network(_) ->
 	undefined.
+

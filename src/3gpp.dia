@@ -256,7 +256,7 @@
    Originator                                              864  Enumerated       VM
    Originator-Address                                      886  Grouped          VM
    Originator-Interface                                   2009  Grouped          VM
-;  Originator-Received-Address                            2027  Grouped          VM
+   Originator-Received-Address                            2027  Grouped          VM
    Originator-SCCP-Address                                2008  Address          VM
    Outgoing-Session-Id                                    2320  UTF8String       VM
    Outgoing-Trunk-Group-Id                                 853  UTF8String       VM
@@ -342,8 +342,8 @@
    Reason-Header                                          3401  UTF8String       VM
    Received-Talk-Burst-Time                               1284  Unsigned32       VM
    Received-Talk-Burst-Volume                             1285  Unsigned32       VM
-;  Recipient-Address                                      1201  Grouped          VM
-;  Recipient-Info                                         2026  Grouped          VM
+   Recipient-Address                                      1201  Grouped          VM
+   Recipient-Info                                         2026  Grouped          VM
 ;  Recipient-Received-Address                             2028  Grouped          VM
 ;  Recipient-SCCP-Address                                 2010  Address          VM
 ;  Reference-Number                                       3007  
@@ -408,17 +408,17 @@
    SIP-Request-Timestamp-Fraction                         2301  Unsigned32       VM
    SIP-Response-Timestamp                                  835  Time             VM
    SIP-Response-Timestamp-Fraction                        2302  Unsigned32       VM
-;  SM-Device-Trigger-Indicator                            3407  Enumerated       VM
+   SM-Device-Trigger-Indicator                            3407  Enumerated       VM
 ;  SM-Device-Trigger-Information                          3405  Grouped          VM
    SM-Discharge-Time                                      2012  Time             VM
-;  SM-Message-Type                                        2007  Enumerated       VM
+   SM-Message-Type                                        2007  Enumerated       VM
    SM-Protocol-ID                                         2013  OctetString      VM
    SM-Sequence-Number                                     3408  Unsigned32       VM
-;  SM-Service-Type                                        2029  Enumerated       VM
+   SM-Service-Type                                        2029  Enumerated       VM
    SM-Status                                              2014  OctetString      VM
    SM-User-Data-Header                                    2015  OctetString      VM
-;  SMS-Information                                        2000  Grouped          VM
-;  SMS-Node                                               2016  Enumerated       VM
+   SMS-Information                                        2000  Grouped          VM
+   SMS-Node                                               2016  Enumerated       VM
    SMS-Result                                             3409  Unsigned32       VM
    SMSC-Address                                           2017  Address          VM
 ;  Sponsor-Identity                                        531  
@@ -537,7 +537,7 @@
 ;     [ LCS-Information ]
 ;     [ PoC-Information ]
 ;     [ MBMS-Information ]
-;     [ SMS-Information ]
+      [ SMS-Information ]
 ;     [ VCS-Information ]
 ;     [ MMTel-Information ]
 ;     [ ProSe-Information ]
@@ -737,28 +737,28 @@
 ;     [ MBMS-Data-Transfer-Start ]
 ;     [ MBMS-Data-Transfer-Stop ]
 
-;  SMS-Information :: = < AVP Header: 2000>
-;     [ SMS-Node ]
-;     [ Client-Address ]
-;     [ Originator-SCCP-Address ]
-;     [ SMSC-Address ]
-;     [ Data-Coding-Scheme ]
-;     [ SM-Discharge-Time ]
-;     [ SM-Message-Type ]
-;     [ Originator-Interface ]
-;     [ SM-Protocol-ID ]
+   SMS-Information ::= <AVP Header: 2000>
+      [ SMS-Node ]
+      [ Client-Address ]
+      [ Originator-SCCP-Address ]
+      [ SMSC-Address ]
+      [ Data-Coding-Scheme ]
+      [ SM-Discharge-Time ]
+      [ SM-Message-Type ]
+      [ Originator-Interface ]
+      [ SM-Protocol-ID ]
 ;     [ Reply-Path-Requested ]
-;     [ SM-Status ]
-;     [ SM-User-Data-Header ]
-;     [ Number-Of-Messages-Sent ]
-;     [ SM-Sequence-Number ]
-;    *[ Recipient-Info ]
-;     [ Originator-Received-Address ]
-;     [ SM-Service-Type ]
-;     [ SMS-Result ]
-;     [ SM-Device-Trigger-Indicator ]
+      [ SM-Status ]
+      [ SM-User-Data-Header ]
+      [ Number-Of-Messages-Sent ]
+      [ SM-Sequence-Number ]
+     *[ Recipient-Info ]
+      [ Originator-Received-Address ]
+      [ SM-Service-Type ]
+      [ SMS-Result ]
+      [ SM-Device-Trigger-Indicator ]
 ;     [ SM-Device-Trigger-Information ]
-;     [ MTC-IWF-Address ]
+      [ MTC-IWF-Address ]
 ;     [ Application-Port-Identifier ]
 ;     [ External-Identifier ]
 
@@ -1071,6 +1071,24 @@
       { 3GPP-Charging-Id }
       { PS-Free-Format-Data }
       [ PS-Append-Free-Format-Data ]
+
+   Recipient-Info ::= <AVP Header: 2026>
+;     [ Destination-Interface ]
+     *[ Recipient-Address ]
+;    *[ Recipient-Received-Address ]
+;     [ Recipient-SCCP-Address ]
+;     [ SM-Protocol-ID ]
+
+   Recipient-Address ::= <AVP Header: 1201>
+      [ Address-Type ]
+      [ Address-Data ]
+      [ Address-Domain ]
+      [ Addressee-Type ]
+
+   Originator-Received-Address ::= <AVP Header: 2027>
+      [ Address-Type ]
+      [ Address-Data ]
+      [ Address-Domain ]
 
 @enum Role-Of-Node
    ORIGINATING_ROLE  0
@@ -1390,4 +1408,23 @@
 @enum Charging-Per-IP-CAN-Session-Indicator
    INACTIVE  0
    ACTIVE    1
+
+@enum SM-Device-Trigger-Indicator
+   NotDeviceTrigger      0
+	DeviceTriggerRequest  1
+	DeviceTriggerReplace  2
+	DeviceTriggerRecall   3
+
+@enum SM-Service-Type
+   VAS4SMSContentProcessing                0
+   VAS4SMSForwarding                       1
+   VAS4SMSForwardingMultipleSubscriptions  2
+   VAS4SMSFiltering                        3
+   VAS4SMSReceipt                          4
+   VAS4SMSNetworkStorage                   5
+   VAS4SMSMultipleDestinations             6
+   VAS4SMSVirtualPrivateNetwork            7
+   VAS4SMSAutoReply                        8
+   VAS4SMSPersonalSignature                9
+   VAS4SMSDeferredDelivery                10
 
