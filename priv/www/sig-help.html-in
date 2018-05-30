@@ -155,14 +155,6 @@
 					Filtering
 				</i18n-msg>
 			</paper-icon-item>
-			<paper-icon-item
-					class="icon-style"
-					on-tap="sorting">
-				<iron-icon icon="icons:assignment" item-icon></iron-icon>
-				<i18n-msg msgid="sort">
-					Sorting
-				</i18n-msg>
-			</paper-icon-item>
 		</paper-dialog>
 		<paper-dialog id="helpToolbar">
 			<paper-dialog-scrollable>
@@ -521,34 +513,6 @@
 			<img alt="screenshot" src="/filter.png" height="118" width="320">
 			</paper-dialog-scrollable>
 		</paper-dialog>
-		<paper-dialog id="helpSorting">
-			<paper-toolbar>
-				<paper-icon-item
-						class="menu-trigger menuitem"
-						on-tap="helpBack">
-					<iron-icon icon="icons:arrow-back" item-icon></iron-icon>
-				</paper-icon-item>
-				<h2>[[i18n.help]]</h2>
-			</paper-toolbar>
-			<paper-icon-item
-					class="menu-trigger menuitem">
-				<iron-icon icon="icons:assignment" item-icon></iron-icon>
-				<h2>[[i18n.sort]]</h2>
-			</paper-icon-item>
-			<paper-dialog-scrollable>
-			<p>Within a grid view (e.g. Subscribers, Client, Logs) the
-			displayed rows may be sorted by selecting the arrows in
-			column headers.</p>
-			<h3>Sorting a View</h3>
-			<p>In the example below the down arrow of the <b>Address</b>
-			column header in the <b>Clients</b> view is selected resulting
-			in rows being reordered by address in ascending order:</p>
-			<img alt="screenshot" src="/sort-ascend.png" height="150" width="320">
-			<p>In the example below the up arrow is selected resulting
-			in rows being reordered by address in descending order:</p>
-			<img alt="screenshot" src="/sort-descend.png" height="144" width="320">
-			</paper-dialog-scrollable>
-		</paper-dialog>
 		<paper-dialog id="helpProduct">
 			<paper-toolbar>
 				<paper-icon-item
@@ -648,11 +612,6 @@
 				var queObj = document.getElementById("helpFiltering");
 				queObj.open();
 			},
-			sorting: function(event) {
-				document.getElementById("helpMenu").close();
-				var queObj = document.getElementById("helpSorting");
-				queObj.open();
-			},
 			product: function(event) {
 				document.getElementById("helpMenu").close();
 				var queObj = document.getElementById("helpProduct");
@@ -665,7 +624,6 @@
 				document.getElementById("helpUsers").close();
 				document.getElementById("helpLogs").close();
 				document.getElementById("helpFiltering").close();
-				document.getElementById("helpSorting").close();
 				document.getElementById("helpProduct").close();
 				var backObj = document.getElementById("helpMenu");
 				backObj.open();

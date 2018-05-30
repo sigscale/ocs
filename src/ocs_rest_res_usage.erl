@@ -101,19 +101,6 @@ get_usages(Type, Id, Query, Headers) ->
 	end.
 %% @hidden
 get_usages1(Type, Id, Query, Filters, Headers) ->
-	case lists:keytake("sort", 1, Query) of
-		{value, {_, "-date"}, NewQuery} ->
-			get_last(NewQuery, Filters);
-		{value, {_, Date}, NewQuery}
-				when Date == "date"; Date == "+date" ->
-			get_usages2(Type, Id, NewQuery, Filters, Headers);
-		false ->
-			get_usages2(Type, Id, Query, Filters, Headers);
-		_ ->
-			{error, 400}
-	end.
-%% @hidden
-get_usages2(Type, Id, Query, Filters, Headers) ->
 	case {lists:keyfind("if-match", 1, Headers),
 			lists:keyfind("if-range", 1, Headers),
 			lists:keyfind("range", 1, Headers)} of

@@ -483,10 +483,6 @@
     "description": "filtering",
     "message": "Filtración"
   },
-	"sort": {
-    "description": "sorting",
-    "message": "Clasificación"
-  },
 	"credit": {
     "description": "Balance management",
     "message": "Crédito"

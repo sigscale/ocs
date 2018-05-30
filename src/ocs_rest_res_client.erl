@@ -346,51 +346,18 @@ query_start(Query, Filters, RangeStart, RangeEnd) ->
 			{error, 500}
 	end.
 
-query_page(PageServer, Etag, Query, Filters, Start, End) ->
+query_page(PageServer, Etag, _Query, Filters, Start, End) ->
 	case gen_server:call(PageServer, {Start, End}) of
 		{error, Status} ->
 			{error, Status};
 		{Events, ContentRange} ->
-			try
-				case lists:keytake("sort", 1, Query) of
-					{value, {_, "address"}, Q1} ->
-						{lists:keysort(#client.address, Events), Q1};
-					{value, {_, "-address"}, Q1} ->
-						{lists:reverse(lists:keysort(#client.address, Events)), Q1};
-					{value, {_, "identifier"}, Q1} ->
-						{lists:keysort(#client.identifier, Events), Q1};
-					{value, {_, "-identifier"}, Q1} ->
-						{lists:reverse(lists:keysort(#client.identifier, Events)), Q1};
-					{value, {_, "port"}, Q1} ->
-						{lists:keysort(#client.port, Events), Q1};
-					{value, {_, "-port"}, Q1} ->
-						{lists:reverse(lists:keysort(#client.port, Events)), Q1};
-					{value, {_, "protocol"}, Q1} ->
-						{lists:keysort(#client.protocol, Events), Q1};
-					{value, {_, "-protocol"}, Q1} ->
-						{lists:reverse(lists:keysort(#client.protocol, Events)), Q1};
-					{value, {_, "secret"}, Q1} ->
-						{lists:keysort(#client.secret, Events), Q1};
-					{value, {_, "-secret"}, Q1} ->
-						{lists:reverse(lists:keysort(#client.secret, Events)), Q1};
-					false ->
-						{Events, Query};
-					_ ->
-						throw(400)
-				end
-			of
-				{SortedEvents, _NewQuery} ->
-					JsonObj = query_page1(lists:map(fun client/1, SortedEvents), Filters, []),
-					JsonArray = {array, JsonObj},
-					Body = mochijson:encode(JsonArray),
-					Headers = [{content_type, "application/json"},
-							{etag, Etag}, {accept_ranges, "items"},
-							{content_range, ContentRange}],
-					{ok, Headers, Body}
-			catch
-				throw:{error, Status} ->
-					{error, Status}
-			end
+			JsonObj = query_page1(lists:map(fun client/1, Events), Filters, []),
+			JsonArray = {array, JsonObj},
+			Body = mochijson:encode(JsonArray),
+			Headers = [{content_type, "application/json"},
+					{etag, Etag}, {accept_ranges, "items"},
+					{content_range, ContentRange}],
+			{ok, Headers, Body}
 	end.
 %% @hidden
 query_page1([], _, Acc) ->

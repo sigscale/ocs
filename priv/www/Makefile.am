@@ -7,8 +7,6 @@ www_DATA = favicon.ico \
 	toolbar.png \
 	progress.png \
 	filter.png \
-	sort-ascend.png \
-	sort-descend.png \
 	index.html \
 	sig-ipdr-list-wlan.html \
 	sig-ipdr-list-voip.html\

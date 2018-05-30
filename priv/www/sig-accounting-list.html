@@ -367,19 +367,6 @@
 				if (ajax.params['filter']) {
 					ajax.params['filter'] += "]}]\"";
 				}
-				params.sortOrders.forEach(function(sort, index) {
-					var dirsort;
-					if(sort.direction == "desc") {
-						dirsort = '-' + sort.path;
-					} else {
-						dirsort = sort.path;
-					}
-					if(index == 0) {
-						ajax.params['sort'] = dirsort;
-					} else {
-						ajax.params['sort'] = ',' + dirsort;
-					}
-				});
 				accountingList = document.getElementById('accountingList');
 				handleAjaxResponse = function(request) {
 					if (request) {
