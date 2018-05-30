@@ -13,6 +13,8 @@ modhtml = ocs.html \
 			ocs_diameter_auth_service_fsm.html \
 			ocs_diameter_acct_service_fsm.html \
 			ocs_diameter_auth_sup.html \
+			diameter_gen_3gpp.html \
+			diameter_gen_ietf.html \
 			diameter_gen_3gpp_ro_application.html \
 			diameter_gen_cc_application_rfc4006.html \
 			diameter_gen_nas_application_rfc7155.html \
