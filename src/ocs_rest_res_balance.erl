@@ -177,7 +177,7 @@ top_up_service(Identity, RequestBody) ->
 	try
 		bucket(mochijson:decode(RequestBody))
 	of
-		Bucket ->
+		#bucket{} = Bucket ->
 			case ocs:find_service(Identity) of
 				{ok, #service{product = ProductRef}} ->
 					case ocs:add_bucket(ProductRef, Bucket) of
