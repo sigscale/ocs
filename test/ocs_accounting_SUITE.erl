@@ -475,7 +475,7 @@ diameter_sms(_Config) ->
 	RequestNum0 = 0,
 	CC_CCR0 = #'3gpp_ro_CCR'{'Session-Id' = SId,
 			'Auth-Application-Id' = ?RO_APPLICATION_ID,
-			'Service-Context-Id' = "nas45.32274.org",
+			'Service-Context-Id' = "nas45.32274@3gpp.org",
 			'User-Name' = [CalledParty],
 			'CC-Request-Type' = ?'3GPP_CC-REQUEST-TYPE_INITIAL_REQUEST',
 			'CC-Request-Number' = RequestNum0,
