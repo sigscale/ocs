@@ -508,8 +508,10 @@ rate6(Service, Buckets1,
 				{PriceCharged, Buckets3} ->
 					TotalUnits = UnitsCharged + (PriceCharged div UnitPrice),
 					%% @todo generate unique bucket id
+					Reservations1 = [{erlang:system_time(?MILLISECOND),
+							PriceCharged - PriceCharge, 0, SessionId}],
 					Buckets4 = [#bucket{remain_amount = PriceCharged - PriceCharge,
-							units = cents} | Buckets3],
+							units = cents, reservation = Reservations1} | Buckets3],
 					rate7(Service, Buckets4, final, DebitAmount,
 							TotalUnits, 0, 0, State#state{rated = Rated3})
 			end
