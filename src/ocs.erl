@@ -456,7 +456,6 @@ query_product6(Cont, MatchEDT, Service, MatchHead, MatchCondition) ->
 %% @hidden
 query_product7(start, Service, MatchHead, MatchCondition) ->
 	MatchSpec = [{MatchHead, MatchCondition, ['$_']}],
-erlang:display({?MODULE, ?LINE, MatchSpec}),
 	F = fun() -> mnesia:select(product, MatchSpec, ?CHUNKSIZE, read) end,
 	case mnesia:ets(F) of
 		{'EXIT', Reason} ->
@@ -466,13 +465,12 @@ erlang:display({?MODULE, ?LINE, MatchSpec}),
 		'$end_of_table' ->
 			eof
 	end;
-query_product7(Cont, Service, MatchHead, MatchCondition) ->
-	MatchSpec = [{MatchHead, MatchCondition, ['$_']}],
-	F = fun() -> mnesia:select(Cont, MatchSpec) end,
+query_product7(Cont, Service, _MatchHead, _MatchCondition) ->
+	F = fun() -> mnesia:select(Cont) end,
 	case mnesia:ets(F) of
 		{Cont, Products} ->
 			query_product8(Service, Cont, Products);
-		eof ->
+		'$end_of_table' ->
 			eof;
 		{'EXIT', Reason} ->
 			{error, Reason}

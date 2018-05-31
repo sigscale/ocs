@@ -2759,46 +2759,6 @@ query_page1(PageServer, Etag, Decoder, Filters, Start, End) ->
 	end.
 
 %% @hidden
-get_last(Query, Filters) ->
-	case lists:keytake("type", 1, Query) of
-		{_, {_, "AAAAccessUsage"}, []} ->
-			get_last1(ocs_auth, fun usage_aaa_auth/2, Filters);
-		{_, {_, "AAAAccountingUsage"}, []} ->
-			get_last1(ocs_acct, fun usage_aaa_acct/2, Filters);
-		{_, {_, "PublicWLANAccessUsage"}, []} ->
-			get_last1(ocs_acct, fun usage_ipdr/2, Filters);
-		{_, {_, "HTPPUsage"}, []} ->
-			get_last1(ocs_acct, fun usage_http_transfer/2, Filters);
-		{_, {_, _}, []} ->
-			{error, 404};
-		false ->
-			{error, 400}
-	end.
-%% @hidden
-get_last1(Log, Decoder, Filters) ->
-	{ok, MaxItems} = application:get_env(ocs, rest_page_size),
-	case ocs_log:last(Log, MaxItems) of
-		{error, _} ->
-			{error, 500};
-		{0, []} ->
-			{error, 404};
-		{NewCount, Events} ->
-			try Decoder(Events, Filters) of
-				JsonObj ->
-					JsonArray = {array, JsonObj},
-					Body = mochijson:encode(JsonArray),
-					ContentRange = "items 1-"
-							++ integer_to_list(NewCount) ++ "/*",
-					Headers = [{content_type, "application/json"},
-							{content_range, ContentRange}],
-					{ok, Headers, Body}
-			catch
-				throw:{error, Status} ->
-					{error, Status}
-			end
-	end.
-
-%% @hidden
 range([Y1, Y2, Y3, Y4 | T] = DateTime)
 		when Y1 >= $0, Y1 =< $9, Y2 >= $0, Y2 =< $9,
 		Y3 >= $0, Y3 =< $9, Y4 >= $0, Y4 =< $9 ->

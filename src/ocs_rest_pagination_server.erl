@@ -272,6 +272,9 @@ range_request({StartRange, EndRange}, From,
 			{stop, shutdown, {error, 500}, State};
 		{Cont2, Items} ->
 			NewState = State#state{cont = Cont2, buffer = Buffer ++ Items},
+			range_request({StartRange, EndRange}, From, NewState);
+		eof ->
+			NewState = State#state{cont = eof},
 			range_request({StartRange, EndRange}, From, NewState)
 	end.
 
