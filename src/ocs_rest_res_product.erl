@@ -238,20 +238,22 @@ get_inventory(ID) ->
 %% 	Retrieve all Product Offerings.
 %% @todo Filtering
 get_offers(Query, Headers) ->
-	Name =  proplists:get_value("name", Query),
-	Des = proplists:get_value("description", Query),
+erlang:display({?MODULE, ?LINE, Query}),
+	Name =  proplists:get_value("name", Query, '_'),
+	Des = proplists:get_value("description", Query, '_'),
 	Status = case lists:keyfind("lifecycleStatus", 1, Query) of
 		false ->
-			undefined;
+			'_';
 		{_, S} ->
 			product_status(S)
 	end,
-	SDT = proplists:get_value("startDate", Query),
-	EDT = proplists:get_value("endDate", Query),
-	Price = proplists:get_value("price", Query),
+	SDT = proplists:get_value("startDate", Query, '_'),
+	EDT = proplists:get_value("endDate", Query, '_'),
+	Price = proplists:get_value("price", Query, '_'),
 	M = ocs,
 	F = query_offer,
 	A = [Name, Des, Status, SDT, EDT, Price],
+erlang:display({?MODULE, ?LINE, A}),
 	Codec = fun offer/1,
 	query_filter({M, F, A}, Codec, Query, Headers).
 
@@ -326,12 +328,12 @@ get_plas(_Query, _Headers) ->
 %% 	Retrieve all Product Inventories.
 %% @todo Filtering
 get_inventories(Query, Headers) ->
-	ID =  proplists:get_value("id", Query),
-	Name =  proplists:get_value("name", Query),
-	Offer = proplists:get_value("productOffering", Query),
-	SDT = proplists:get_value("startDate", Query),
-	EDT = proplists:get_value("endDate", Query),
-	Service = proplists:get_value("service", Query),
+	ID =  proplists:get_value("id", Query, '_'),
+	Name =  proplists:get_value("name", Query, '_'),
+	Offer = proplists:get_value("productOffering", Query, '_'),
+	SDT = proplists:get_value("startDate", Query, '_'),
+	EDT = proplists:get_value("endDate", Query, '_'),
+	Service = proplists:get_value("service", Query, '_'),
 	M = ocs,
 	F = query_product,
 	A = [ID, Name, Offer, SDT, EDT, Service],

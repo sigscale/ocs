@@ -118,8 +118,8 @@ get_bucket(BucketId) ->
 				| {error, ErrorCode :: integer()}.
 %% @doc Body producing function for `GET /balanceManagment/v1/bucket/',
 get_buckets(Query, Headers) -> 
-	Id = proplists:get_value("id", Query),
-	Product = proplists:get_value("product", Query),
+	Id = proplists:get_value("id", Query, '_'),
+	Product = proplists:get_value("product", Query, '_'),
 	M = ocs,
 	F = query_bucket,
 	A = [Id, Product],
