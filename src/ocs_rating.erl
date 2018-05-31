@@ -541,7 +541,7 @@ rate7(#service{session_attributes = SessionList} =
 	Rated1 = rated(Seconds, Octets, Cents, Msgs, Rated),
 	Service2 = Service1#service{session_attributes = []},
 	ok = mnesia:write(Service2),
-	{out_of_credit, SessionList, [Rated1]};
+	{out_of_credit, SessionList, Rated1};
 rate7(#service{enabled = false, session_attributes = SessionList} =
 		Service1, Buckets, _Flag, _Charge, _Charged, _Reserve, _Reserved,
 		#state{session_id = SessionId, buckets = OldBuckets, product = P}) ->
