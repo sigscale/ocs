@@ -61,7 +61,7 @@
 				active-item="{{activeItem}}">
 			<vaadin-grid-column width="15ex" flex-grow="5">
 				<template class="header">
-					<vaadin-grid-filter aria-label="[[i18n.userName]]" path="id" value="[[_filterId]]">
+					<vaadin-grid-filter id="filterId" aria-label="[[i18n.userName]]" path="id" value="[[_filterId]]">
 						<input placeholder="[[i18n.userName]]" value="{{_filterId::input}}" focus-target>
 					</vaadin-grid-filter>
 				</template>
@@ -69,7 +69,7 @@
 			</vaadin-grid-column>
 			<vaadin-grid-column width="15ex" flex-grow="5">
 				<template class="header">
-					<vaadin-grid-filter aria-label="[[i18n.language]]" path="language" value="[[_filterLanguage]]">
+					<vaadin-grid-filter id="filterLanguage" aria-label="[[i18n.language]]" path="language" value="[[_filterLanguage]]">
 						<input placeholder="[[i18n.language]]" value="{{_filterLanguage::input}}" focus-target>
 					</vaadin-grid-filter>
 				</template>
@@ -107,7 +107,6 @@
 		</paper-toast>
 		<iron-ajax
 				id="getUserAjax"
-				url="/partyManagement/v1/individual"
 				on-response="getUserResponse"
 				on-error="getUserError">
 		</iron-ajax>
@@ -143,20 +142,29 @@
 					grid.dataProvider = function(params, callback) {
 						cbUsers = callback;
 						var ajax = document.getElementById("getUserAjax");
+						var url = "/partyManagement/v1/individual";
 						params.filters.forEach(function(filter, index) {
-							etag = undefined;
-							lastItem = undefined;
 							if(index == 0) {
-								ajax.url += '?' + filter.path + '=' + filter.value;
+								url += '?';
 							} else {
-								ajax.url += '&' + filter.path + '=' + filter.value;
+								url += '&';
 							}
+							url += filter.path + ".like" + '=' + filter.value + "%25";
 						});
+						if(url !== ajax.url) {
+							ajax.url = url;
+							etag = undefined;
+							lastItem = 0;
+						}	
 						StartRange = params.page * params.pageSize + 1;
 						EndRange = StartRange + params.pageSize - 1;
 						ajax.headers['Range'] = "items=" + StartRange + "-" + EndRange;
-						if (etag && StartRange > lastItem) {
-							ajax.headers['If-Range'] = etag;
+						if (etag) {
+							if (StartRange > lastItem) {
+								ajax.headers['If-Range'] = etag;
+							}
+						} else {
+							delete ajax.headers['If-Range'];
 						}
 						ajax.generateRequest();
 					};
@@ -169,7 +177,6 @@
 					modal.open();
 					document.getElementById("updateUserName").value = item.id;
 					document.getElementById("updateUserPassword").value = item.password;
-					// document.getElementById("updateUserLocale").selected =
 				}
 			},
 			getUserResponse: function(event) {
@@ -207,12 +214,6 @@
 					vaadinItems[index] = newRecord;
 				}
 					cbUsers(vaadinItems);
-			},
-			getUserError: function(event) {
-				this.$.userGrid.size = 0;
-				cbUsers([]);
-				this.$.userErrorToast.text = event.detail.request.xhr.statusText;
-				this.$.userErrorToast.open();
 			},
 			getUserError: function(event) {
 				this.$.userGrid.size = 0;

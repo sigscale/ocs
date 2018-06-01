@@ -1734,7 +1734,7 @@ update_user(Username, Password, Language) ->
 query_users(start, '_', MatchLocale) ->
 	MatchSpec = [{'_', [], ['$_']}],
 	query_users1(MatchSpec, MatchLocale);
-query_users(start, {like, String} = _MatchId, MatchLocale)
+query_users(start, String = _MatchId, MatchLocale)
 		when is_list(String) ->
 	MatchSpec = case lists:last(String) of
 		$% ->
