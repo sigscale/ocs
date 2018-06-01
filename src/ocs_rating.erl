@@ -511,7 +511,7 @@ rate6(Service, Buckets1,
 					Reservations1 = [{erlang:system_time(?MILLISECOND),
 							PriceCharged - PriceCharge, 0, SessionId}],
 					Buckets4 = [#bucket{remain_amount = PriceCharged - PriceCharge,
-							units = cents, reservation = Reservations1} | Buckets3],
+							units = cents, reservations = Reservations1} | Buckets3],
 					rate7(Service, Buckets4, final, DebitAmount,
 							TotalUnits, 0, 0, State#state{rated = Rated3})
 			end
