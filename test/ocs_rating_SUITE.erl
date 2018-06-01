@@ -103,7 +103,7 @@ all() ->
 	interim_debit_and_reserve_insufficient3,
 	interim_debit_and_reserve_insufficient4,
 	interim_out_of_credit_voice,
-	final_remove_session, final_refund, final_voice, final_multibucket,
+	final_remove_session, final_refund, final_voice, final_multiple_buckets,
 	reserve_data, reserve_voice, interim_voice, time_of_day,
 	authorize_voice, authorize_voice_with_partial_reservation,
 	authorize_incoming_voice, authorize_outgoing_voice,
@@ -1089,10 +1089,10 @@ final_refund(_Config) ->
 	#bucket{remain_amount = 0, reservations = Reserved2} = lists:keyfind(cents, #bucket.units, RatedBuckets3),
 	[{_, 0, UnitPrice, SessionId2}] = Reserved2.
 
-final_multibucket() ->
+final_multiple_buckets() ->
 	[{userdata, [{doc, "Debit applied to one of several available buckets"}]}].
 
-final_multibucket(_Config) ->
+final_multiple_buckets(_Config) ->
 	UnitPrice = 1,
 	UnitSize = 1000000,
 	P1 = price(usage, octets, UnitSize, UnitPrice),
