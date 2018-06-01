@@ -103,7 +103,7 @@ all() ->
 	interim_debit_and_reserve_insufficient3,
 	interim_debit_and_reserve_insufficient4,
 	interim_out_of_credit_voice,
-	final_remove_session, final_refund, final_voice,
+	final_remove_session, final_refund, final_voice, final_multibucket,
 	reserve_data, reserve_voice, interim_voice, time_of_day,
 	authorize_voice, authorize_voice_with_partial_reservation,
 	authorize_incoming_voice, authorize_outgoing_voice,
@@ -1088,6 +1088,43 @@ final_refund(_Config) ->
 			|| Id <- BucketRefs3]),
 	#bucket{remain_amount = 0, reservations = Reserved2} = lists:keyfind(cents, #bucket.units, RatedBuckets3),
 	[{_, 0, UnitPrice, SessionId2}] = Reserved2.
+
+final_multibucket() ->
+	[{userdata, [{doc, "Debit applied to one of several available buckets"}]}].
+
+final_multibucket(_Config) ->
+	UnitPrice = 1,
+	UnitSize = 1000000,
+	P1 = price(usage, octets, UnitSize, UnitPrice),
+	OfferId = add_offer([P1], 8),
+	ProdRef = add_product(OfferId),
+	ServiceId =  add_service(ProdRef),
+	Balance = 10000000,
+	NumBuckets = 3,
+	F1 = fun F(0) ->
+				ok;
+			F(N) ->
+				add_bucket(ProdRef, bucket(cents, Balance)),
+				F(N - 1)
+	end,
+	F1(NumBuckets),
+	ServiceType = 32251,
+	TS1 = calendar:datetime_to_gregorian_seconds(calendar:local_time()),
+	SessionId = [{'Session-Id', list_to_binary(ocs:generate_password())}],
+	{ok, _, _} = ocs_rating:rate(diameter, ServiceType, undefined,
+			ServiceId, TS1, undefined, undefined, initial,
+			[], [{octets, UnitSize * 3}], SessionId),
+	TS2 = calendar:datetime_to_gregorian_seconds(calendar:local_time()),
+	{ok, _, _} = ocs_rating:rate(diameter, ServiceType, undefined,
+			ServiceId, TS2, undefined, undefined, interim,
+			[{octets, UnitSize * 3}], [{octets, UnitSize * 3}], SessionId),
+	TS3 = calendar:datetime_to_gregorian_seconds(calendar:local_time()),
+	{ok, _, _, _} = ocs_rating:rate(diameter, ServiceType, undefined,
+			ServiceId, TS3, undefined, undefined, final,
+			[{octets, UnitSize * 3}], [], SessionId),
+	NewBalance = (Balance * NumBuckets) - (6 * UnitPrice),
+	F2 = fun(#bucket{remain_amount = N}, Acc) -> Acc + N end,
+	NewBalance = lists:foldl(F2, 0, ocs:get_buckets(ProdRef)).
 
 final_voice() ->
 	[{userdata, [{doc, "Final RADIUS accounting request for voice call"}]}].
