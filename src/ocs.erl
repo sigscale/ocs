@@ -41,6 +41,7 @@
 -export([start/4, start/5]).
 %% export the ocs private API
 -export([normalize/1, subscription/4, generate_bucket_id/0, end_period/2]).
+-export([import/2, find_sn_network/2]).
 
 -export_type([eap_method/0, match/0]).
 
@@ -275,84 +276,80 @@ delete_client(Client) when is_tuple(Client) ->
 		{aborted, Reason} ->
 			exit(Reason)
 	end.
-
 -spec query_clients(Cont, Address, Identifier, Port, Protocol, Secret) -> Result
 	when
-		Cont :: start | eof | any(),
-		Address :: undefined | string(),
-		Identifier :: undefined | string(),
-		Port :: undefined | string(),
-		Protocol :: undefined | string(),
-		Secret :: undefined | string(),
-		Result :: {Cont, [#client{}]} | {error, Reason},
+		Cont :: start | any(),
+		Address :: Match,
+		Identifier :: Match,
+		Port :: Match,
+		Protocol :: Match,
+		Secret :: Match,
+		Match :: {exact, string()} | {notexact, string()} | {like, string()} | '_',
+		Result :: {Cont, [#client{}]} | eof | {error, Reason},
 		Reason :: term().
+%% @hidden
 query_clients(start, Address, Identifier, Port, Protocol, Secret) ->
 	MatchSpec = [{'_', [], ['$_']}],
-	F = fun() ->
-		mnesia:select(client, MatchSpec, read)
-	end,
-	case mnesia:transaction(F) of
-		{atomic, Clients} ->
-			query_clients1(Clients, Address, Identifier, Port, Protocol, Secret);
-		{aborted, Reason} ->
-			{error, Reason}
+	F = fun() -> mnesia:select(client, MatchSpec, ?CHUNKSIZE, read) end,
+	case catch mnesia:ets(F) of
+		{'EXIT', Reason} ->
+			{error, Reason};
+		{Clients, Cont1} ->
+			query_clients1(Cont1, Address, Identifier,
+					Port, Protocol, Secret, Clients);
+		'$end_of_table' ->
+			eof
 	end.
 %% @hidden
-query_clients1(Clients, Address, Identifier, Port, Protocol, undefined) ->
-	query_clients2(Clients, Address, Identifier, Port, Protocol);
-query_clients1(Clients, Address, Identifier, Port, Protocol, Secret) ->
-	SecretBin = list_to_binary(Secret),
-	SecretLen = size(SecretBin),
-	Fun = fun(#client{secret = S}) ->
-			case S of
-				<<SecretBin:SecretLen/binary, _/binary>> ->
-					true;
-				_ ->
-					false
-			end
+query_clients1(Cont, '_', Identifier, Port, Protocol, Secret, Clients) ->
+	query_clients2(Cont, Identifier, Port, Protocol, Secret, Clients);
+query_clients1(Cont, {Operator, Address}, Identifier, Port, Protocol, Secret, Clients) ->
+	F = fun(#client{address = Address1}) when is_tuple(Address1) ->
+				match(Operator, Address, inet:ntoa(Address1));
+		(_) ->
+			false
 	end,
-	FilteredClients = lists:filter(Fun, Clients),
-	query_clients2(FilteredClients, Address, Identifier, Port, Protocol).
+	query_clients2(Cont, Identifier, Port, Protocol, Secret, lists:filter(F, Clients)).
 %% @hidden
-query_clients2(Clients, Address, Identifier, Port, undefined) ->
-	query_clients3(Clients, Address, Identifier, Port);
-query_clients2(Clients, Address, Identifier, Port, Protocol) ->
-	P1 = string:to_upper(Protocol),
-	Fun = fun(#client{protocol = P}) ->
-				P2 = string:to_upper(atom_to_list(P)),
-				lists:prefix(P1, P2)
+query_clients2(Cont, '_', Port, Protocol, Secret, Clients) ->
+	query_clients3(Cont, Port, Protocol, Secret, Clients);
+query_clients2(Cont, {Operator, Identifier}, Port, Protocol, Secret, Clients) ->
+	F = fun(#client{identifier = Identifier1}) when is_binary(Identifier1) ->
+				match(Operator, Identifier, binary_to_list(Identifier1));
+			(_) ->
+				false
 	end,
-	FilteredClients = lists:filter(Fun, Clients),
-	query_clients3(FilteredClients, Address, Identifier, Port).
+	query_clients3(Cont, Port, Protocol, Secret, lists:filter(F, Clients)).
 %% @hidden
-query_clients3(Clients, Address, Identifier, undefined) ->
-	query_clients4(Clients, Address, Identifier);
-query_clients3(Clients, Address, Identifier, Port) ->
-	Fun = fun(#client{port = P}) -> lists:prefix(Port, integer_to_list(P)) end,
-	FilteredClients = lists:filter(Fun, Clients),
-	query_clients4(FilteredClients, Address, Identifier).
-%% @hidden
-query_clients4(Clients, Address, undefined) ->
-	query_clients4(Clients, Address);
-query_clients4(Clients, Address, Identifier) ->
-	IdBin = list_to_binary(Identifier),
-	IdLen = size(IdBin),
-	Fun = fun(#client{identifier = I}) ->
-			case I of
-				<<IdBin:IdLen/binary, _/binary>> ->
-					true;
-				_ ->
-					false
-			end
+query_clients3(Cont, '_', Protocol, Secret, Clients) ->
+	query_clients4(Cont, Protocol, Secret, Clients);
+query_clients3(Cont, {Operator, Port}, Protocol, Secret, Clients) ->
+	F = fun(#client{port = Port1}) when is_integer(Port1) ->
+				match(Operator, Port, integer_to_list(Port1));
+			(_) ->
+				false
 	end,
-	FilteredClients = lists:filter(Fun, Clients),
-	query_clients4(FilteredClients, Address).
+	query_clients4(Cont, Protocol, Secret, lists:filter(F, Clients)).
 %% @hidden
-query_clients4(Clients, undefined) ->
-	{eof, Clients};
-query_clients4(Clients, Address) ->
-	Fun = fun(#client{address = A}) -> lists:prefix(Address, inet:ntoa(A)) end,
-	{eof, lists:filter(Fun, Clients)}.
+query_clients4(Cont, '_', Secret, Clients) ->
+	query_clients5(Cont, Secret, Clients);
+query_clients4(Cont, {Operator, Protocol}, Secret, Clients) ->
+	F = fun(#client{protocol = Proto}) when Proto == radius; Proto == diameter ->
+				match(Operator, Protocol, atom_to_list(Proto));
+			(_) ->
+				false
+	end,
+	query_clients5(Cont, Secret, lists:filter(F, Clients)).
+%% @hidden
+query_clients5(Cont, '_', Clients) ->
+	{Cont, Clients};
+query_clients5(Cont, {Operator, Secret}, Clients) ->
+	F = fun(#client{secret = Secret1}) when is_binary(Secret1) ->
+				match(Operator, Secret, binary_to_list(Secret1));
+			(_) ->
+				false
+	end,
+	{Cont, lists:filter(F, Clients)}.
 
 get_products()->
 	MatchSpec = [{'_', [], ['$_']}],
@@ -375,112 +372,119 @@ get_products()->
 
 -spec query_product(Cont, Id, Name, Offer, SDT, EDT, Service) -> Result
 	when
-		Cont :: start | eof | any(),
-		Id :: string() | undefined | '_',
-		Name :: string() | undefined | '_',
-		Offer :: string() | undefined | '_',
-		SDT :: pos_integer() | undefined | '_',
-		EDT :: pos_integer() | undefined | '_',
-		Service :: binary() | string() | undefined | '_',
-		Result :: {Cont, [#product{}]} | {error, Reason},
+		Cont :: start | any(),
+		Id ::  Match,
+		Name ::  Match,
+		Offer ::  Match,
+		SDT ::  Match,
+		EDT ::  Match,
+		Service ::  Match,
+		Match :: {exact, string()} | {notexact, string()} | {like, string()} | '_',
+		Result :: {Cont, [#product{}]} | eof | {error, Reason},
 		Reason :: term().
 %% @doc Query product
-query_product(Cont, Id, Name, Offer, SDT, EDT, undefined) ->
-	query_product(Cont, Id, Name, Offer, SDT, EDT, '_');
-query_product(Cont, Id, Name, Offer, SDT, undefined, Service) ->
-	query_product(Cont, Id, Name, Offer, SDT, '_', Service);
-query_product(Cont, Id, Name, Offer, undefined, EDT, Service) ->
-	query_product(Cont, Id, Name, Offer, '_', EDT, Service);
-query_product(Cont, Id, Name, undefined, SDT, EDT, Service) ->
-	query_product(Cont, Id, Name, '_', SDT, EDT, Service);
-query_product(Cont, Id, undefined, Offer, SDT, EDT, Service) ->
-	query_product(Cont, Id, '_', Offer, SDT, EDT, Service);
-query_product(Cont, undefined, Name, Offer, SDT, EDT, Service) ->
-	query_product(Cont, '_', Name, Offer, SDT, EDT, Service);
-query_product(Cont, Id, Name, Offer, SDT, EDT, Service) when is_binary(Service)->
-	query_product(Cont, Id, Name, Offer, SDT, EDT, binary_to_list(Service));
-query_product(start, Id, Name, Offer, SDT, EDT, Service) ->
-	MatchSpec = [{'_', [], ['$_']}],
-	F = fun F(start, Acc) ->
-				F(mnesia:select(product, MatchSpec,
-						?CHUNKSIZE, read), Acc);
-			F('$end_of_table', Acc) ->
-				lists:flatten(lists:reverse(Acc));
-			F({error, Reason}, _Acc) ->
-				{error, Reason};
-			F({Products, Cont}, Acc) ->
-				F(mnesia:select(Cont), [Products | Acc])
-	end,
-	case mnesia:transaction(F, [start, []]) of
-		{aborted, Reason} ->
-			{error, Reason};
-		{atomic, Products1} ->
-			Products2 = query_product1(Products1, Id, Name,
-					Offer, SDT, EDT, Service),
-			{eof, Products2}
+query_product(Cont, '_', '_', '_', '_', '_', Service) ->
+	query_product7(Cont, Service, #product{_ = '_'}, []);
+query_product(Cont, Id, Name, Offer, SDT, EDT, Service) ->
+	MatchHead = #product{_ = '_'},
+	query_product2(Cont, Id, Name, Offer, SDT,
+			EDT, Service, MatchHead, []).
+%% @hidden
+query_product1(String) ->
+	case lists:last(String) of
+		$% ->
+			lists:droplast(String) ++ '_';
+		_ ->
+			String
 	end.
 %% @hidden
-query_product1(Products, '_', Name, Offer, SDT, EDT, Service) ->
-	query_product2(Products, Name, Offer, SDT, EDT, Service);
-query_product1(Products, Id, Name, Offer, SDT, EDT, Service) ->
-	F = fun(#product{id = Id1}) when is_list(Id1)->
-				lists:prefix(Id, Id1);
-		(_) ->
-			false
-	end,
-	NewProducts = lists:filter(F, Products),
-	query_product2(NewProducts, Name, Offer, SDT, EDT, Service).
+query_product2(Cont, '_', Name, Offer, SDT, EDT, Service, MatchHead, MatchCondition) ->
+	query_product3(Cont, Name, Offer, SDT, EDT, Service, MatchHead, MatchCondition);
+query_product2(Cont, {like, Id}, Name, Offer, SDT, EDT, Service, MatchHead, MatchCondition) ->
+	Id1 = query_product1(Id),
+	MatchHead1 = MatchHead#product{id = Id1},
+	query_product3(Cont, Name, Offer, SDT, EDT, Service,
+			MatchHead1, MatchCondition);
+query_product2(Cont, MatchId, Name, Offer, SDT, EDT, Service, MatchHead, MatchCondition) ->
+	MatchCondition1 = [match_condition('$1', MatchId) | MatchCondition],
+	MatchHead1 = MatchHead#product{id = '$1'},
+	query_product3(Cont, Name, Offer, SDT, EDT, Service, MatchHead1, MatchCondition1).
 %% @hidden
-query_product2(Products, '_', Offer, SDT, EDT, Service) ->
-	query_product3(Products, Offer, SDT, EDT, Service);
-query_product2(Products, Name, Offer, SDT, EDT, Service) ->
-	F = fun(#product{name = Name1}) when is_list(Name1)->
-				lists:prefix(Name, Name1);
-			(_) ->
-				false
-	end,
-	NewProducts = lists:filter(F, Products),
-	query_product3(NewProducts, Offer, SDT, EDT, Service).
+query_product3(Cont, '_', Offer, SDT, EDT, Service, MatchHead, MatchCondition) ->
+	query_product4(Cont, Offer, SDT, EDT, Service, MatchHead, MatchCondition);
+query_product3(Cont, {like, Name}, Offer, SDT, EDT, Service, MatchHead, MatchCondition) ->
+	Name1 = query_product1(Name),
+	MatchHead1 = MatchHead#product{name = Name1},
+	query_product4(Cont, Offer, SDT, EDT, Service, MatchHead1, MatchCondition);
+query_product3(Cont, MatchName, Offer, SDT, EDT, Service, MatchHead, MatchCondition) ->
+	MatchCondition1 = [match_condition('$2', MatchName) | MatchCondition],
+	MatchHead1 = MatchHead#product{name = '$2'},
+	query_product4(Cont, Offer, SDT, EDT, Service, MatchHead1, MatchCondition1).
 %% @hidden
-query_product3(Products, '_', SDT, EDT, Service) ->
-	query_product4(Products, SDT, EDT, Service);
-query_product3(Products, Offer, SDT, EDT, Service) ->
-	F = fun(#product{product = Offer1}) when is_list(Offer1)->
-				lists:prefix(Offer, Offer1);
-		(_) ->
-			false
-	end,
-	NewProducts = lists:filter(F, Products),
-	query_product4(NewProducts, SDT, EDT, Service).
+query_product4(Cont, '_', SDT, EDT, Service, MatchHead, MatchCondition) ->
+	query_product5(Cont, SDT, EDT, Service, MatchHead, MatchCondition);
+query_product4(Cont, {like, Offer}, SDT, EDT, Service, MatchHead, MatchCondition) ->
+	Offer1 = query_product1(Offer),
+	MatchHead1 = MatchHead#product{product = Offer1},
+	query_product5(Cont, SDT, EDT, Service, MatchHead1, MatchCondition);
+query_product4(Cont, MatchOffer, SDT, EDT, Service, MatchHead, MatchCondition) ->
+	MatchCondition1 = [match_condition('$3', MatchOffer) | MatchCondition],
+	MatchHead1 = MatchHead#product{product = '$3'},
+	query_product5(Cont, SDT, EDT, Service, MatchHead1, MatchCondition1).
 %% @hidden
-query_product4(Products, '_', '_', Service) ->
-	query_product5(Products, Service);
-query_product4(Products, SDT, '_', Service) when is_integer(SDT) ->
-	F = fun(#product{start_date = SDT1}) when SDT1 >= SDT -> true; (_) -> false end,
-	NewProducts = lists:filter(F, Products),
-	query_product5(NewProducts, Service);
-query_product4(Products, '_', EDT, Service) when is_integer(EDT) ->
-	F = fun(#product{end_date = EDT1}) when EDT1 =< EDT -> true; (_) -> false end,
-	NewProducts = lists:filter(F, Products),
-	query_product5(NewProducts, Service).
+query_product5(Cont, '_', EDT, Service, MatchHead, MatchCondition) ->
+	query_product6(Cont, EDT, Service, MatchHead, MatchCondition);
+query_product5(Cont, {like, SDT}, EDT, Service, MatchHead, MatchCondition) ->
+	SDT1 = query_product1(SDT),
+	MatchHead1 = MatchHead#product{start_date = SDT1},
+	query_product6(Cont, EDT, Service, MatchHead1, MatchCondition);
+query_product5(Cont, MatchSDT, EDT, Service, MatchHead, MatchCondition) ->
+	MatchCondition1 = [match_condition('$4', MatchSDT) | MatchCondition],
+	MatchHead1 = MatchHead#product{start_date = '$4'},
+	query_product6(Cont, EDT, Service, MatchHead1, MatchCondition1).
 %% @hidden
-query_product5(Products, '_') ->
-	Products;
-query_product5(Products, Service) ->
-	F = fun(#product{service = Services} = P, AccIn) ->
-			F2 = fun(S) when is_binary(S) ->
-						lists:prefix(Service, binary_to_list(S));
-					(S) when is_list(S) ->
-						lists:prefix(Service, S)
-			end,
-			case lists:any(F2, Services) of
-				true ->
-					[P | AccIn];
-				false ->
-					AccIn
-			end
+query_product6(Cont, '_', Service, MatchHead, MatchCondition) ->
+	query_product7(Cont, Service, MatchHead, MatchCondition);
+query_product6(Cont, {like, EDT}, Service, MatchHead, MatchCondition) ->
+	EDT1 = query_product1(EDT),
+	MatchHead1 = MatchHead#product{end_date = EDT1},
+	query_product7(Cont, Service, MatchHead1, MatchCondition);
+query_product6(Cont, MatchEDT, Service, MatchHead, MatchCondition) ->
+	MatchCondition1 = [match_condition('$5', MatchEDT) | MatchCondition],
+	MatchHead1 = MatchHead#product{end_date = '$5'},
+	query_product7(Cont, Service, MatchHead1, MatchCondition1).
+%% @hidden
+query_product7(start, Service, MatchHead, MatchCondition) ->
+	MatchSpec = [{MatchHead, MatchCondition, ['$_']}],
+	F = fun() -> mnesia:select(product, MatchSpec, ?CHUNKSIZE, read) end,
+	case mnesia:ets(F) of
+		{'EXIT', Reason} ->
+			{error, Reason};
+		{Products, Cont} ->
+			query_product8(Service, Cont, Products);
+		'$end_of_table' ->
+			eof
+	end;
+query_product7(Cont, Service, _MatchHead, _MatchCondition) ->
+	F = fun() -> mnesia:select(Cont) end,
+	case mnesia:ets(F) of
+		{Cont, Products} ->
+			query_product8(Service, Cont, Products);
+		'$end_of_table' ->
+			eof;
+		{'EXIT', Reason} ->
+			{error, Reason}
+	end.
+%% @hidden
+query_product8('_', Cont, Products) ->
+	{Cont, Products};
+query_product8({Operator, Service}, Cont, Products) ->
+	F = fun(#product{service = Services}) ->
+				Services1 = [binary_to_list(S1) || S1 <- Services],
+
+				lists:any(fun(S2) -> match(Operator, Service, S2) end, Services1)
 	end,
-	lists:foldl(F, [], Products).
+	{Cont, lists:filter(F, Products)}.
 
 -spec add_product(Offer, ServiceRefs) -> Result
 	when
@@ -920,50 +924,64 @@ get_buckets(ProdRef) when is_list(ProdRef) ->
 
 -spec query_bucket(Cont, Id, Product) -> Result
 	when
-		Cont :: start | eof | any(),
-		Id :: string() | undefined | '_',
-		Product :: string() | undefined | '_',
-		Result :: {Cont, [#bucket{}]} | {error, Reason},
+		Cont :: start | any(),
+		Id :: Match,
+		Product :: Match,
+		Match :: {exact, string()} | {notexact, string()} | {like, string()},
+		Result :: {Cont, [#bucket{}]} | eof | {error, Reason},
 		Reason :: term().
 %% @doc Query bucket
-query_bucket(Cont, Id, undefined) ->
-	query_bucket(Cont, Id, '_');
-query_bucket(Cont, undefined, Product) ->
-	query_bucket(Cont, '_', Product);
-query_bucket(start, Id, Product) ->
+query_bucket(Cont, '_', Product) ->
 	MatchSpec = [{'_', [], ['$_']}],
-	F = fun F(start, Acc) ->
-				F(mnesia:select(bucket, MatchSpec,
-						?CHUNKSIZE, read), Acc);
-			F('$end_of_table', Acc) ->
-				lists:flatten(lists:reverse(Acc));
-			F({error, Reason}, _Acc) ->
-				{error, Reason};
-			F({Services, Cont}, Acc) ->
-				F(mnesia:select(Cont), [Services | Acc])
+	query_bucket2(Cont, MatchSpec, Product);
+query_bucket(Cont, {like, Id}, Product) when is_list(Id) ->
+	MatchSpec = case lists:last(Id) of
+		$% ->
+			Prefix = lists:droplast(Id),
+			MatchHead = #bucket{id = Prefix, _ = '_'},
+			[{MatchHead, [], ['$_']}];
+		_ ->
+			MatchHead = #bucket{id = Id, _ = '_'},
+			[{MatchHead, [], ['$_']}]
 	end,
-	case mnesia:transaction(F, [start, []]) of
-		{aborted, Reason} ->
+	query_bucket2(Cont, MatchSpec, Product);
+query_bucket(Cont, MatchId, Product) when is_tuple(MatchId) ->
+	MatchCondition = [match_condition('$1', MatchId)],
+	MatchHead = #bucket{id = '$1', _ = '_'},
+	MatchSpec = [{MatchHead, MatchCondition, ['$_']}],
+	query_users2(Cont, MatchSpec, Product).
+%% @hidden
+query_bucket2(start, MatchSpec, Product) ->
+	F = fun() ->
+		mnesia:select(bucket, MatchSpec, ?CHUNKSIZE, read)
+	end,
+	case catch mnesia:ets(F)  of
+		{'EXIT', Reason} ->
 			{error, Reason};
-		{atomic, Buckets} ->
-			{eof, query_bucket1(Id, Product, Buckets)}
+		{Buckets, Cont} ->
+			query_bucket3(Cont, Buckets, Product);
+		'$end_of_table' ->
+			eof
+	end;
+query_bucket2(Cont, _MatchSpec, Product) ->
+	F = fun() -> mnesia:select(Cont) end,
+	case catch mnesia:ets(F)  of
+		{'EXIT', Reason} ->
+			{error, Reason};
+		{Buckets, Cont} ->
+			query_bucket3(Cont, Buckets, Product);
+		'$end_of_table' ->
+			eof
 	end.
 %% @hidden
-query_bucket1('_', Product, Buckets) ->
-	query_bucket2(Product, Buckets);
-query_bucket1(Id, Product, Buckets) ->
-	F = fun(#bucket{id = Id1}) -> lists:prefix(Id, Id1) end,
-	NewBuckets = lists:filter(F, Buckets),
-	query_bucket2(Product, NewBuckets).
-%% @hidden
-query_bucket2('_', Buckets) ->
-	Buckets;
-query_bucket2(Product, Buckets) ->
-	F1 = fun(#bucket{product = Products}) ->
-		F2 = fun(Product1) -> lists:prefix(Product, Product1) end,
-		lists:any(F2, Products)
+query_bucket3(Cont, Buckets, '_') ->
+	{Cont, Buckets};
+query_bucket3(Cont, Buckets, {Operator, Product}) ->
+	F = fun(#bucket{product = Products}) ->
+				F2 = fun(P) -> match(Operator, Product, P) end,
+				lists:any(F2, Products)
 	end,
-	lists:filter(F1, Buckets).
+	{Cont, lists:filter(F, Buckets)}.
 
 -spec delete_bucket(BucketId) -> ok
 	when
@@ -1000,7 +1018,7 @@ delete_bucket1(BId, ProdRefs) ->
 	true = lists:all(F, ProdRefs),
 	ok = mnesia:delete(bucket, BId, write).
 
--spec find_service(Identity) -> Result  
+-spec find_service(Identity) -> Result 
 	when
 		Identity :: string() | binary(),
 		Result :: {ok, #service{}} | {error, Reason},
@@ -1151,15 +1169,15 @@ add_offer(#offer{price = Prices} = Offer) when length(Prices) > 0 ->
 					units = Units, size = Size,
 					amount = Amount, alteration = Alteration})
 					when length(Name) > 0, ((Units == octets)
-					or (Units == seconds) or (Units == message)),
+					or (Units == seconds) or (Units == messages)),
 					is_integer(Size), Size > 0, is_integer(Amount),
 					Amount > 0 ->
 				Fvala(Alteration);
 			(#price{type = tariff, alteration = undefined,
 					size = Size, units = Units, amount = Amount})
 					when is_integer(Size), Size > 0, ((Units == octets)
-					or (Units == seconds)), ((Amount == undefined) or
-					(Amount == 0)) ->
+					or (Units == seconds) or (Units == messages)),
+					((Amount == undefined) or (Amount == 0)) ->
 				true;
 			(#price{}) ->
 				false
@@ -1312,63 +1330,117 @@ delete_offer(OfferID) ->
 
 -spec query_offer(Cont, Name, Description, Status, SDT, EDT, Price) -> Result
 	when
-		Cont :: start | eof | any(),
-		Name :: undefined | '_' | string(),
-		Description :: undefined | '_' | string(),
-		Status :: undefined | '_' | atom(),
-		SDT :: undefined | '_' | string() | integer(),
-		EDT :: undefined | '_' | string() | integer(),
-		Price :: undefined | '_' | string(),
-		Result :: {Cont, [#offer{}]} | {error, Reason},
+		Cont :: start | any(),
+		Name :: Match,
+		Description :: Match,
+		Status :: Match,
+		SDT :: Match,
+		EDT:: Match,
+		Price :: Match,
+		Match :: {exact, string()} | {notexact, string()} | {like, string()} | '_',
+		Result :: {Cont, [#offer{}]} | eof | {error, Reason},
 		Reason :: term().
 %% @doc Query offer entires
-query_offer(Con, Name, Description, Status, STD, EDT, undefined) ->
-	query_offer(Con, Name, Description, Status, STD, EDT, '_');
-query_offer(Con, Name, Description, Status, STD, undefined, Price) ->
-	query_offer(Con, Name, Description, Status, STD, '_', Price);
-query_offer(Con, Name, Description, Status, undefined, EDT, Price) ->
-	query_offer(Con, Name, Description, Status, '_', EDT, Price);
-query_offer(Con, Name, Description, undefined, SDT, EDT, Price) ->
-	query_offer(Con, Name, Description, '_', SDT, EDT, Price);
-query_offer(Con, Name, undefined, Status, SDT, EDT, Price) ->
-	query_offer(Con, Name, '_', Status, SDT, EDT, Price);
-query_offer(Con, undefined, Description, Status, SDT, EDT, Price) ->
-	query_offer(Con, '_', Description, Status, SDT, EDT, Price);
-query_offer(Con, Name, Description, Status, SDT, EDT, Price) when is_list(EDT) ->
-	ISOEDT = ocs_rest:iso8601(EDT),
-	query_offer(Con, Name, Description, Status, SDT, ISOEDT, Price);
-query_offer(Con, Name, Description, Status, SDT, EDT, Price) when is_list(SDT) ->
-	ISOSDT = ocs_rest:iso8601(SDT),
-	query_offer(Con, Name, Description, Status, ISOSDT, EDT, Price);
-query_offer(start, Name, Description, Status, SDT, EDT, Price) ->
-	MatchHead = #offer{name = Name, description = Description,
-			start_date = SDT, end_date = EDT, bundle = '_',
-			status = Status, specification = '_',
-			char_value_use = '_', price = '_', last_modified = '_'},
-	MatchSpec = MatchSpec = [{MatchHead, [], ['$_']}],
-	F = fun() ->
-		mnesia:select(offer, MatchSpec, read)
-	end,
-	case mnesia:transaction(F) of
-		{atomic, Offers} ->
-			query_offer1(Offers, Price, []);
-		{aborted, Reason} ->
-			{error, Reason}
-	end;
-query_offer(eof, _Name, _Description, _Status, _STD, _EDT, _Price) ->
-	{eof, []}.
+query_offer(Con, '_', '_', Status, STD, EDT, Price) ->
+	query_offer4(Con, Status, STD, EDT, Price, #offer{_ = '_'}, []);
+query_offer(Con, Name, Description, Status, STD, EDT, Price) ->
+	query_offer2(Con, Name, Description, Status, STD, EDT, Price, #offer{_ = '_'}, []).
 %% @hidden
-query_offer1([], _, Acc) ->
-	{eof, lists:reverse(Acc)};
-query_offer1(Offers, '_', _) ->
-	{eof, Offers};
-query_offer1([#offer{price = Prices} = Offer | T], PriceName, Acc) ->
-	case lists:keyfind(PriceName, #price.name, Prices) of
-		false ->
-			query_offer1(T, PriceName, Acc);
+query_offer1(String) ->
+	case lists:last(String) of
+		$% ->
+			lists:droplast(String) ++ '_';
 		_ ->
-			query_offer1(T, PriceName, [Offer | Acc])
+			String
 	end.
+query_offer2(Con, '_', Description, Status, STD, EDT, Price, MatchHead, MatchConditions) ->
+	query_offer3(Con, Description, Status, STD, EDT, Price, MatchHead, MatchConditions);
+query_offer2(Con, {like, Name}, Description, Status, STD, EDT, Price, MatchHead, MatchConditions) ->
+	Name1 = query_offer1(Name),
+	MatchHead1 = MatchHead#offer{name = Name1},
+	query_offer3(Con, Description, Status, STD, EDT, Price, MatchHead1, MatchConditions);
+query_offer2(Con, MatchName, Description, Status, STD, EDT, Price, MatchHead, MatchConditions) ->
+	MatchConditions1 = [match_condition('$1', MatchName) | MatchConditions],
+	MatchHead1 = MatchHead#offer{name = '$1'},
+	query_offer3(Con, Description, Status, STD, EDT, Price, MatchHead1, MatchConditions1).
+%% @hidden
+query_offer3(Con, '_', Status, STD, EDT, Price, MatchHead, MatchConditions) ->
+	query_offer4(Con, Status, STD, EDT, Price, MatchHead, MatchConditions);
+query_offer3(Con, {like, Description}, Status, STD, EDT, Price, MatchHead, MatchConditions) ->
+	Des = query_offer1(Description),
+	MatchHead1 = MatchHead#offer{description = Des},
+	query_offer4(Con, Status, STD, EDT, Price, MatchHead1, MatchConditions);
+query_offer3(Con, MatchDescription, Status, STD, EDT, Price, MatchHead, MatchConditions) ->
+	MatchConditions1 = [match_condition('$2', MatchDescription) | MatchConditions],
+	MatchHead1 = MatchHead#offer{name = '$3'},
+	query_offer4(Con, Status, STD, EDT, Price, MatchHead1, MatchConditions1).
+%% @hidden
+query_offer4(start, Status, STD, EDT, Price, MatchHead, MatchConditions) ->
+	MatchSpec = [{MatchHead, MatchConditions, ['$_']}],
+	F = fun() -> mnesia:select(offer, MatchSpec, ?CHUNKSIZE, read) end,
+	case mnesia:ets(F) of
+		{'EXIT', Reason} ->
+			{error, Reason};
+		{Offers, Cont} ->
+			query_offer5(Status, STD, EDT, Price, Cont, Offers);
+		'$end_of_table' ->
+			eof
+	end;
+query_offer4(Con, Status, STD, EDT, Price, _MatchHead, _MatchConditions) ->
+	F = fun() -> mnesia:select(Con) end,
+	case mnesia:ets(F) of
+		{'EXIT', Reason} ->
+			{error, Reason};
+		{Offers, Cont} ->
+			query_offer5(Status, STD, EDT, Price, Cont, Offers);
+		'$end_of_table' ->
+			eof
+	end.
+%% @hidden
+query_offer5('_', STD, EDT, Price, Cont, Offers) ->
+	query_offer6(STD, EDT, Price, Cont, Offers);
+query_offer5({Operator, Status}, STD, EDT, Price, Cont, Offers) ->
+	F = fun(#offer{status = Status1}) ->
+			Status2 = atom_to_list(Status1),
+			match(Operator, Status, Status2)
+	end,
+	NewOffers = lists:filter(F, Offers),
+	query_offer6(STD, EDT, Price, Cont, NewOffers).
+%% @hidden
+query_offer6('_', EDT, Price, Cont, Offers) ->
+	query_offer7(EDT, Price, Cont, Offers);
+query_offer6({Operator, STD}, EDT, Price, Cont, Offers) ->
+	F = fun(#offer{start_date = STD1}) when is_integer(STD1) ->
+			SDT2 = integer_to_list(STD1),
+			match(Operator, STD, SDT2);
+		(_) ->
+			false
+	end,
+	NewOffers = lists:filter(F, Offers),
+	query_offer7(EDT, Price, Cont, NewOffers).
+%% @hidden
+query_offer7('_', Price, Cont, Offers) ->
+	query_offer8(Price, Cont, Offers);
+query_offer7({Operator, EDT}, Price, Cont, Offers) ->
+	F = fun(#offer{end_date = ETD1}) when is_integer(ETD1) ->
+			EDT2 = integer_to_list(ETD1),
+			match(Operator, EDT, EDT2);
+		(_) ->
+			false
+	end,
+	NewOffers = lists:filter(F, Offers),
+	query_offer8(Price, Cont, NewOffers).
+%% @hidden
+query_offer8('_', Cont, Offers) ->
+	{Cont, Offers};
+query_offer8({Operator, Price}, Cont, Offers) ->
+	F = fun(#offer{price = Prices}) ->
+			F2 = fun(#price{name = Price1}) ->
+					match(Operator, Price, Price1)
+			end,
+			list:any(F2, Prices)
+	end,
+	{Cont, lists:filter(F, Offers)}.
 
 -spec query_table(Cont, Name, Prefix, Description, Rate, LM) -> Result
 	when
@@ -1662,7 +1734,7 @@ update_user(Username, Password, Language) ->
 query_users(start, '_', MatchLocale) ->
 	MatchSpec = [{'_', [], ['$_']}],
 	query_users1(MatchSpec, MatchLocale);
-query_users(start, {like, String} = _MatchId, MatchLocale)
+query_users(start, String = _MatchId, MatchLocale)
 		when is_list(String) ->
 	MatchSpec = case lists:last(String) of
 		$% ->
@@ -1684,7 +1756,7 @@ query_users(Cont, _MatchId, MatchLocale) when is_tuple(Cont) ->
 		{Users, Cont1} ->
 			query_users2(MatchLocale, Cont1, Users);
 		'$end_of_table' ->
-			{eof, []}
+			eof
 	end;
 query_users(start, MatchId, MatchLocale) when is_tuple(MatchId) ->
 	MatchCondition = [match_condition('$1', MatchId)],
@@ -1701,7 +1773,7 @@ query_users1(MatchSpec, MatchLocale) ->
 		{Users, Cont} ->
 			query_users2(MatchLocale, Cont, Users);
 		'$end_of_table' ->
-			{eof, []}
+			eof
 	end.
 %% @hidden
 query_users2('_' = _MatchLocale, Cont, Users) ->
@@ -1753,6 +1825,121 @@ query_users2({like, String} = _MatchLocale, Cont, Users)
 	end,
 	{Cont, lists:filter(F, Users)}.
 
+-record(roaming, {key, des, value}).
+
+-spec import(File, Type) -> ok
+	when
+		File :: string(),
+		Type :: data | voice | sms.
+%% @doc Import roaming tables
+import(File, Type) ->
+	case file:read_file(File) of
+		{ok, Binary} ->
+			Basename = filename:basename(File),
+			Table = list_to_atom(string:sub_string(Basename,
+					1, string:rchr(Basename, $.) - 1)),
+			import1(Table, Type, Binary, unicode:bom_to_encoding(Binary));
+		{error, Reason} ->
+			exit(file:format_error(Reason))
+	end.
+%% @hidden
+import1(Table, Type, Binary, {latin1, 0}) ->
+	import2(Table, Type, Binary);
+import1(Table, Type, Binary, {utf8, Offset}) ->
+	Length = size(Binary) - Offset,
+	import2(Table, Type, binary:part(Binary, Offset, Length)).
+%% @hidden
+import2(Table, Type, Records) ->
+	case mnesia:create_table(Table,
+			[{disc_copies, [node() | nodes()]},
+			{attributes, record_info(fields, roaming)},
+			{record_name, roaming}]) of
+		{atomic, ok} ->
+			import3(Table, Type, Records);
+		{aborted, {already_exists, Table}} ->
+			case mnesia:clear_table(Table) of
+				{atomic, ok} ->
+					import3(Table, Type, Records);
+				{aborted, Reason} ->
+					exit(Reason)
+			end;
+		{aborted, Reason} ->
+			exit(Reason)
+	end.
+%% @hidden
+import3(Table, Type, Records) ->
+	TS = erlang:system_time(?MILLISECOND),
+	N = erlang:unique_integer([positive]),
+	Split = binary:split(Records, [<<"\n">>, <<"\r">>, <<"\r\n">>], [global]),
+	case mnesia:transaction(fun import4/5, [Table, Type, Split, {TS, N}, []]) of
+		{atomic, ok} ->
+			ok;
+		{aborted, Reason} ->
+			exit(Reason)
+	end.
+%%% @hidden
+import4(Table, Type, [], _LM, Acc) ->
+	F = fun(#roaming{} = G) -> mnesia:write(Table, G, write) end,
+	lists:foreach(F, lists:flatten(Acc));
+import4(Table, Type, [<<>> | T], LM, Acc) ->
+	import4(Table, Type, T, LM, Acc);
+import4(Table, Type, [Chunk | Rest], LM, Acc) ->
+	case binary:split(Chunk, [<<"\"">>], [global]) of
+		[Chunk] ->
+			NewAcc = [import5(binary:split(Chunk, [<<",">>], [global]), Type, LM, []) | Acc],
+			import4(Table, Type, Rest, LM, NewAcc);
+		SplitChunks ->
+			F = fun(<<$, , T/binary>>, AccIn) ->
+						[T | AccIn];
+					(<<>>, AccIn) ->
+						[<<>> | AccIn];
+					(C, AccIn) ->
+						case binary:at(C, size(C) - 1) of
+							$, ->
+								[binary:part(C, 0, size(C) - 1) | AccIn];
+							_ ->
+								[C | AccIn]
+						end
+			end,
+			AccOut = lists:foldl(F, [], SplitChunks),
+			NewAcc = [import5(lists:reverse(AccOut), Type, LM, []) | Acc],
+			import4(Table, Type, Rest, LM, NewAcc)
+	end.
+%%% @hidden
+import5([<<>> | T], Type, LM, Acc) ->
+	import5(T, Type, LM, [undefined | Acc]);
+import5([H | T], Type, LM, Acc) ->
+	import5(T, Type, LM, [binary_to_list(H) | Acc]);
+import5([], Type, LM, Acc) when length(Acc) == 3 ->
+	import6(lists:reverse(Acc), Type, LM);
+import5([], _Type, _LM, _Acc) ->
+	[].
+%% @hidden
+import6([Key, Desc, Rate], Type, LM) when Type == voice; Type == sms ->
+	#roaming{key =list_to_binary(Key), des = Desc, value = Rate};
+import6([Key, Desc, Rate], data, LM) ->
+	#roaming{key =list_to_binary(Key), des = Desc, value = ocs_rest:millionths_in(Rate)}.
+
+-spec find_sn_network(Table, Id) -> Roaming
+	when
+		Table :: atom(),
+		Id :: string() | binary(),
+		Roaming :: #roaming{}.
+%% @doc Lookup roaming table
+find_sn_network(Table, Id) when is_list(Id) ->
+	find_sn_network(Table, list_to_binary(Id));
+find_sn_network(Table, Id) ->
+	F = fun() -> mnesia:read(Table, Id, read) end,
+	case mnesia:transaction(F) of
+		{atomic, [#roaming{} = R]} ->
+			R;
+		{atomic, []} ->
+			exit(not_found);
+		{aborted, Reason} ->
+			exit(Reason)
+	end.
+
+%
 %%----------------------------------------------------------------------
 %%  internal functions
 %%----------------------------------------------------------------------
@@ -2208,3 +2395,21 @@ match_condition(Var, {gt, Term}) ->
 match_condition(Var, {gte, Term}) ->
 	{'>=', Var, Term}.
 
+
+%% @hidden
+match(exact, String, String) ->
+	true;
+match(exact, _String1, _String2) ->
+	false;
+match(notexact, String, String) ->
+	false;
+match(notexact, _String1, _String2) ->
+	true;
+match(like, String1, String2) ->
+	case lists:last(String1) of
+		$% ->
+			Prefix = lists:droplast(String1),
+			lists:prefix(Prefix, String2);
+		_ ->
+			lists:prefix(String1, String2)
+	end.

@@ -25,17 +25,10 @@
 -type service_status() :: feasibilityChecked | designed | reserved
 		| active | inactive | terminated.
 -type pla_status() :: created | active | cancelled | terminated. 
-
-%% define price types
 -type product_price_type() :: recurring | one_time | usage | tariff.
-
-%% define unit of measure
--type unit_of_measure() :: octets| cents | seconds | messages.
-
-%% define recurring charge period
+-type unit_of_measure() :: octets | cents | seconds | messages.
 -type recur_period() :: hourly | daily | weekly | monthly | yearly.
 
-%% define TMF SID types
 -record(quantity,
 		{amount :: integer(),
 		units :: atom() | string()}).
@@ -51,7 +44,6 @@
 		denominator :: quantity()}).
 -type rate() :: #rate{}.
 
-%% define client table entries record
 -record(client,
 		{address :: inet:ip_address() | undefined,
 		identifier = <<>> :: binary(),
@@ -158,7 +150,6 @@
 		service = [] :: [ServiceRef :: binary()],
 		last_modified :: tuple() | undefined}).
 
-%% define service table entries record
 -record(service,
 		{name :: binary() | undefined,
 		start_date :: pos_integer() | undefined,

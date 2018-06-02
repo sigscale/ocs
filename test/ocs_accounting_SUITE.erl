@@ -439,7 +439,7 @@ diameter_disconnect_session(_Config) ->
 			'CC-Request-Number' = RequestNum3} = Answer3.
 
 diameter_sms() ->
-	[{userdata, [{doc, "DIAMETER accouting for event base usage"}]}].
+	[{userdata, [{doc, "DIAMETER accounting for event base usage"}]}].
 
 diameter_sms(_Config) ->
 	PackagePrice = rand:uniform(5),
@@ -451,7 +451,7 @@ diameter_sms(_Config) ->
 	CalledParty = ocs:generate_identity(),
 	CallingParty = ocs:generate_identity(),
 	Password = ocs:generate_password(),
-	{ok, #service{}} = ocs:add_service(CalledParty, Password, ProdRef, []),
+	{ok, #service{}} = ocs:add_service(CallingParty, Password, ProdRef, []),
 	B1 = bucket(messages, Balance),
 	_BId = add_bucket(ProdRef, B1),
 	NumOfEvents = Balance div rand:uniform(5),
@@ -462,21 +462,21 @@ diameter_sms(_Config) ->
 	SId = diameter:session_id(Ref),
 	Subscription_Id = #'3gpp_ro_Subscription-Id'{
 			'Subscription-Id-Type' = ?'3GPP_SUBSCRIPTION-ID-TYPE_END_USER_E164',
-			'Subscription-Id-Data' = CalledParty},
+			'Subscription-Id-Data' = CallingParty},
 	RequestedUnits = #'3gpp_ro_Requested-Service-Unit' {
 			'CC-Service-Specific-Units' = [NumOfEvents]},
-	ServiceInformation = #'3gpp_ro_Service-Information'{'IMS-Information' =
-			[#'3gpp_ro_IMS-Information'{
-					'Node-Functionality' = ?'3GPP_NODE-FUNCTIONALITY_AS',
-					'Calling-Party-Address' = [list_to_binary("tel:" ++ CalledParty)],
-					'Called-Party-Address' = [list_to_binary("tel:" ++ CallingParty)]}]},
+	ServiceInformation = #'3gpp_ro_Service-Information'{
+			'SMS-Information' = [#'3gpp_ro_SMS-Information'{
+			'Recipient-Info' = [#'3gpp_ro_Recipient-Info'{
+			'Recipient-Address' = [#'3gpp_ro_Recipient-Address'{
+			'Address-Data' = [CalledParty]}]}]}]},
 	MultiServices_CC0 = #'3gpp_ro_Multiple-Services-Credit-Control'{
 			'Requested-Service-Unit' = [RequestedUnits]},
 	RequestNum0 = 0,
 	CC_CCR0 = #'3gpp_ro_CCR'{'Session-Id' = SId,
 			'Auth-Application-Id' = ?RO_APPLICATION_ID,
-			'Service-Context-Id' = "nas45.32274.org",
-			'User-Name' = [CalledParty],
+			'Service-Context-Id' = "nas45.32274@3gpp.org",
+			'User-Name' = [CallingParty],
 			'CC-Request-Type' = ?'3GPP_CC-REQUEST-TYPE_INITIAL_REQUEST',
 			'CC-Request-Number' = RequestNum0,
 			'Event-Timestamp' = [calendar:universal_time()],

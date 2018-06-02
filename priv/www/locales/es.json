@@ -67,6 +67,14 @@
     "description": "Timeout of subscribers", 
     "message": "Se Acabó el Tiempo"
   },
+  "sessionTimeout": {
+    "description": "Timeout of subscribers",
+    "message": "hora de término de la sesión"
+  },
+  "sessionInterval": {
+    "description": "Timeout of subscribers",
+    "message": "Intervalo de sesión"
+  },
   "int": {
     "description": "Interval of subscribers", 
     "message": "Intervalo"
@@ -483,10 +491,6 @@
     "description": "filtering",
     "message": "Filtración"
   },
-	"sort": {
-    "description": "sorting",
-    "message": "Clasificación"
-  },
 	"credit": {
     "description": "Balance management",
     "message": "Crédito"
@@ -513,7 +517,7 @@
   },
 	"prod": {
     "description": "Balance types",
-    "message": "Producto"
+    "message": "Product"
   },
 	"add": {
     "description": "Balance add",

@@ -22,7 +22,7 @@
 -copyright('Copyright (c) 2016 - 2017 SigScale Global Inc.').
 
 -export([content_types_accepted/0, content_types_provided/0,
-		top_up/2, get_balance/1, get_balance_log/0]).
+		top_up/2, top_up_service/2, get_balance/1, get_balance_log/0]).
 
 -export([get_bucket/1, get_buckets/2]).
 
@@ -118,8 +118,8 @@ get_bucket(BucketId) ->
 				| {error, ErrorCode :: integer()}.
 %% @doc Body producing function for `GET /balanceManagment/v1/bucket/',
 get_buckets(Query, Headers) -> 
-	Id = proplists:get_value("id", Query),
-	Product = proplists:get_value("product", Query),
+	Id = proplists:get_value("id", Query, '_'),
+	Product = proplists:get_value("product", Query, '_'),
 	M = ocs,
 	F = query_bucket,
 	A = [Id, Product],
@@ -163,6 +163,39 @@ get_balance(ProdRef) ->
 		_:product_not_found ->
 			{error, 404};
 		_Error ->
+			{error, 400}
+	end.
+
+-spec top_up_service(Identity, RequestBody) -> Result
+	when
+		Identity :: list(),
+		RequestBody :: list(),
+		Result :: {ok, Headers :: [tuple()], Body :: iolist()}
+				| {error, ErrorCode :: integer()}.
+%% @doc Respond to `POST /balanceManagement/v1/service/{id}/balanceTopup'
+top_up_service(Identity, RequestBody) ->
+	try
+		bucket(mochijson:decode(RequestBody))
+	of
+		#bucket{} = Bucket ->
+			case ocs:find_service(Identity) of
+				{ok, #service{product = ProductRef}} ->
+					case ocs:add_bucket(ProductRef, Bucket) of
+						{ok, _, #bucket{id = Id} = B11} ->
+							Body = mochijson:encode(bucket(B11)),
+							Location = ?bucketPath ++ Id,
+							Headers = [{location, Location}],
+							{ok, Headers, Body};
+						{error, _} ->
+							{error, 500}
+					end;
+				{error, _} ->
+					{error, 500}
+			end;
+		_ ->
+			{error, 400}
+	catch
+		_:_ ->
 			{error, 400}
 	end.
 
@@ -508,35 +541,18 @@ query_start({M, F, A}, Codec, Query, Filters, RangeStart, RangeEnd) ->
 	end.
 
 %% @hidden
-query_page(Codec, PageServer, Etag, Query, Filters, Start, End) ->
+query_page(Codec, PageServer, Etag, _Query, Filters, Start, End) ->
 	case gen_server:call(PageServer, {Start, End}) of
 		{error, Status} ->
 			{error, Status};
 		{Result, ContentRange} ->
-			try
-				case lists:keytake("sort", 1, Query) of
-					{value, {_, "id"}, Q1} ->
-						{lists:keysort(#bucket.id, Result), Q1};
-					{value, {_, "-id"}, Q1} ->
-						{lists:reverse(lists:keysort(#bucket.id, Result)), Q1};
-					false ->
-						{Result, Query};
-					_ ->
-						throw(400)
-				end
-			of
-				{SortedResult, _NewQuery} ->
-					JsonObj = query_page1(lists:map(Codec, SortedResult), Filters, []),
-					JsonArray = {array, JsonObj},
-					Body = mochijson:encode(JsonArray),
-					Headers = [{content_type, "application/json"},
-							{etag, Etag}, {accept_ranges, "items"},
-							{content_range, ContentRange}],
-					{ok, Headers, Body}
-			catch
-				throw:{error, Status} ->
-					{error, Status}
-			end
+			JsonObj = query_page1(lists:map(Codec, Result), Filters, []),
+			JsonArray = {array, JsonObj},
+			Body = mochijson:encode(JsonArray),
+			Headers = [{content_type, "application/json"},
+					{etag, Etag}, {accept_ranges, "items"},
+					{content_range, ContentRange}],
+			{ok, Headers, Body}
 	end.
 %% @hidden
 query_page1(Json, [], []) ->

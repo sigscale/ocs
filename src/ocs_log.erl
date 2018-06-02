@@ -455,20 +455,26 @@ ipdr_log(Type, File, Start, End) when is_list(File),
 					ipdr_log1(IpdrLog, Start, End,
 							start_binary_tree(?ACCTLOG, Start, End));
 				{error, Reason} ->
-					error_logger:error_report([disk_log:format_error(Reason),
-							{module, ?MODULE}, {log, IpdrLog}, {error, Reason}]),
+					Descr = lists:flatten(disk_log:format_error(Reason)),
+					Trunc = lists:sublist(Descr, length(Descr) - 1),
+					error_logger:error_report([Trunc, {module, ?MODULE},
+							{log, IpdrLog}, {error, Reason}]),
 					disk_log:close(IpdrLog),
 					{error, Reason}
 			end;
 		{error, Reason} ->
-			error_logger:error_report([disk_log:format_error(Reason),
-					{module, ?MODULE}, {file, File}, {error, Reason}]),
+			Descr = lists:flatten(disk_log:format_error(Reason)),
+			Trunc = lists:sublist(Descr, length(Descr) - 1),
+			error_logger:error_report([Trunc, {module, ?MODULE},
+					{file, File}, {error, Reason}]),
 			{error, Reason}
 	end.
 %% @hidden
 ipdr_log1(IpdrLog, _Start, _End, {error, Reason}) ->
-	error_logger:error_report([disk_log:format_error(Reason),
-			{module, ?MODULE}, {log, ?ACCTLOG}, {error, Reason}]),
+	Descr = lists:flatten(disk_log:format_error(Reason)),
+	Trunc = lists:sublist(Descr, length(Descr) - 1),
+	error_logger:error_report([Trunc, {module, ?MODULE},
+			{log, ?ACCTLOG}, {error, Reason}]),
 	ipdr_log4(IpdrLog, 0);
 ipdr_log1(IpdrLog, _Start, _End, eof) ->
 	ipdr_log4(IpdrLog, 0);
@@ -476,8 +482,10 @@ ipdr_log1(IpdrLog, Start, End, Cont) ->
 	ipdr_log2(IpdrLog, Start, End, [], disk_log:chunk(?ACCTLOG, Cont)).
 %% @hidden
 ipdr_log2(IpdrLog, _Start, _End, _PrevChunk, {error, Reason}) ->
-	error_logger:error_report([disk_log:format_error(Reason),
-			{module, ?MODULE}, {log, ?ACCTLOG}, {error, Reason}]),
+	Descr = lists:flatten(disk_log:format_error(Reason)),
+	Trunc = lists:sublist(Descr, length(Descr) - 1),
+	error_logger:error_report([Trunc, {module, ?MODULE},
+			{log, ?ACCTLOG}, {error, Reason}]),
 	ipdr_log4(IpdrLog, 0);
 ipdr_log2(IpdrLog, _Start, _End, [], eof) ->
 	ipdr_log4(IpdrLog, 0);
@@ -521,8 +529,10 @@ ipdr_log3(IpdrLog, _Start, End, SeqNum, {Cont, [H | T]})
 				ok ->
 					ipdr_log3(IpdrLog, _Start, End, NewSeqNum, {Cont, T});
 				{error, Reason} ->
-					error_logger:error_report([disk_log:format_error(Reason),
-							{module, ?MODULE}, {log, IpdrLog}, {error, Reason}]),
+					Descr = lists:flatten(disk_log:format_error(Reason)),
+					Trunc = lists:sublist(Descr, length(Descr) - 1),
+					error_logger:error_report([Trunc, {module, ?MODULE},
+							{log, IpdrLog}, {error, Reason}]),
 					disk_log:close(IpdrLog),
 					{error, Reason}
 			end;
@@ -532,8 +542,10 @@ ipdr_log3(IpdrLog, _Start, End, SeqNum, {Cont, [H | T]})
 				ok ->
 					ipdr_log3(IpdrLog, _Start, End, NewSeqNum, {Cont, T});
 				{error, Reason} ->
-					error_logger:error_report([disk_log:format_error(Reason),
-							{module, ?MODULE}, {log, IpdrLog}, {error, Reason}]),
+					Descr = lists:flatten(disk_log:format_error(Reason)),
+					Trunc = lists:sublist(Descr, length(Descr) - 1),
+					error_logger:error_report([Trunc, {module, ?MODULE},
+							{log, IpdrLog}, {error, Reason}]),
 					disk_log:close(IpdrLog),
 					{error, Reason}
 			end
@@ -550,13 +562,17 @@ ipdr_log4(IpdrLog, SeqNum) ->
 				ok ->
 					ok;
 				{error, Reason} ->
-					error_logger:error_report([disk_log:format_error(Reason),
-							{module, ?MODULE}, {log, IpdrLog}, {error, Reason}]),
+					Descr = lists:flatten(disk_log:format_error(Reason)),
+					Trunc = lists:sublist(Descr, length(Descr) - 1),
+					error_logger:error_report([Trunc, {module, ?MODULE},
+							{log, IpdrLog}, {error, Reason}]),
 					{error, Reason}
 			end;
 		{error, Reason} ->
-			error_logger:error_report([disk_log:format_error(Reason),
-					{module, ?MODULE}, {log, IpdrLog}, {error, Reason}]),
+			Descr = lists:flatten(disk_log:format_error(Reason)),
+			Trunc = lists:sublist(Descr, length(Descr) - 1),
+			error_logger:error_report([Trunc, {module, ?MODULE},
+					{log, IpdrLog}, {error, Reason}]),
 			disk_log:close(IpdrLog),
 			{error, Reason}
 	end.
@@ -600,6 +616,7 @@ ipdr_file1(FileName, Log, Format) ->
 			ipdr_file2(FileName, Log, Format, Directory);
 		{error, Reason} ->
 			error_logger:error_report([file:format_error(Reason),
+					{module, ?MODULE}, {log, Log},
 					{directory, Directory}, {error, Reason}]),
 			disk_log:close(Log),
 			{error, Reason}
@@ -679,7 +696,8 @@ dump_file(Log, FileName) when is_list(FileName) ->
 			file_chunk(Log, IoDevice, tuple, start);
 		{error, Reason} ->
 			error_logger:error_report([file:format_error(Reason),
-					{module, ?MODULE}, {log, Log}, {error, Reason}]),
+					{module, ?MODULE}, {log, Log},
+					{filename, FileName}, {error, Reason}]),
 			{error, Reason}
 	end.
 
@@ -698,7 +716,8 @@ http_file(LogType, FileName) when is_atom(LogType), is_list(FileName) ->
 			file_chunk(Log, IoDevice, binary, start);
 		{error, Reason} ->
 			error_logger:error_report([file:format_error(Reason),
-					{module, ?MODULE}, {log, Log}, {error, Reason}]),
+					{module, ?MODULE}, {log, Log},
+					{filename, FileName}, {error, Reason}]),
 			{error, Reason}
 	end.
 
@@ -1013,8 +1032,10 @@ file_chunk(Log, IoDevice, Type, Cont) ->
 		eof ->
 			file:close(IoDevice);
 		{error, Reason} ->
-			error_logger:error_report([file:format_error(Reason),
-					{module, ?MODULE}, {log, Log}, {error, Reason}]),
+			Descr = lists:flatten(disk_log:format_error(Reason)),
+			Trunc = lists:sublist(Descr, length(Descr) - 1),
+			error_logger:error_report([Trunc, {module, ?MODULE},
+					{log, Log}, {error, Reason}]),
 			file:close(IoDevice),
 			{error, Reason};
 		{NextCont, Terms} ->
@@ -1576,7 +1597,7 @@ ipdr_xml(Log, IoDevice, {Cont, [#ipdrDocWLAN{} = _I | T]}) ->
 			ipdr_xml(Log, IoDevice, {Cont, T});
 		{error, Reason} ->
 			error_logger:error_report([file:format_error(Reason),
-					{error, Reason}]),
+					{module, ?MODULE}, {log, Log}, {error, Reason}]),
 			file:close(IoDevice),
 			disk_log:close(Log),
 			{error, Reason}
@@ -1588,7 +1609,7 @@ ipdr_xml(Log, IoDevice, {Cont, [#ipdr_wlan{} = _I | T]}) ->
 			ipdr_xml(Log, IoDevice, {Cont, T});
 		{error, Reason} ->
 			error_logger:error_report([file:format_error(Reason),
-					{error, Reason}]),
+					{module, ?MODULE}, {log, Log}, {error, Reason}]),
 			file:close(IoDevice),
 			disk_log:close(Log),
 			{error, Reason}
@@ -1600,7 +1621,7 @@ ipdr_xml(Log, IoDevice, {Cont, [#ipdrDocEnd{}]}) ->
 			ipdr_file3(Log, IoDevice, xml, {Cont, []});
 		{error, Reason} ->
 			error_logger:error_report([file:format_error(Reason),
-					{error, Reason}]),
+					{module, ?MODULE}, {log, Log}, {error, Reason}]),
 			file:close(IoDevice),
 			disk_log:close(Log),
 			{error, Reason}
@@ -1616,7 +1637,7 @@ ipdr_xdr(Log, IoDevice, {Cont, [#ipdrDocWLAN{} = _I | T]}) ->
 			ipdr_xdr(Log, IoDevice, {Cont, T});
 		{error, Reason} ->
 			error_logger:error_report([file:format_error(Reason),
-					{error, Reason}]),
+					{module, ?MODULE}, {log, Log}, {error, Reason}]),
 			file:close(IoDevice),
 			disk_log:close(Log),
 			{error, Reason}
@@ -1628,7 +1649,7 @@ ipdr_xdr(Log, IoDevice, {Cont, [#ipdr_wlan{} = _I | T]}) ->
 			ipdr_xdr(Log, IoDevice, {Cont, T});
 		{error, Reason} ->
 			error_logger:error_report([file:format_error(Reason),
-					{error, Reason}]),
+					{module, ?MODULE}, {log, Log}, {error, Reason}]),
 			file:close(IoDevice),
 			disk_log:close(Log),
 			{error, Reason}
@@ -1640,7 +1661,7 @@ ipdr_xdr(Log, IoDevice, {Cont, [#ipdrDocEnd{}]}) ->
 			ipdr_file3(Log, IoDevice, xdr, {Cont, []});
 		{error, Reason} ->
 			error_logger:error_report([file:format_error(Reason),
-					{error, Reason}]),
+					{module, ?MODULE}, {log, Log}, {error, Reason}]),
 			file:close(IoDevice),
 			disk_log:close(Log),
 			{error, Reason}
@@ -1662,7 +1683,7 @@ ipdr_csv(Log, IoDevice, {Cont, [#ipdrDocWLAN{} | T]}) ->
 			ipdr_csv(Log, IoDevice, {Cont, T});
 		{error, Reason} ->
 			error_logger:error_report([file:format_error(Reason),
-					{error, Reason}]),
+					{module, ?MODULE}, {log, Log}, {error, Reason}]),
 			file:close(IoDevice),
 			disk_log:close(Log),
 			{error, Reason}
@@ -1678,7 +1699,7 @@ ipdr_csv(Log, IoDevice, {Cont, [#ipdrDocVoIP{} | T]}) ->
 			ipdr_csv(Log, IoDevice, {Cont, T});
 		{error, Reason} ->
 			error_logger:error_report([file:format_error(Reason),
-					{error, Reason}]),
+					{module, ?MODULE}, {log, Log}, {error, Reason}]),
 			file:close(IoDevice),
 			disk_log:close(Log),
 			{error, Reason}
@@ -1776,7 +1797,7 @@ ipdr_csv(Log, IoDevice, {Cont, [#ipdr_voip{} = I | T]}) ->
 			ipdr_csv(Log, IoDevice, {Cont, T});
 		{error, Reason} ->
 			error_logger:error_report([file:format_error(Reason),
-					{error, Reason}]),
+					{module, ?MODULE}, {log, Log}, {error, Reason}]),
 			file:close(IoDevice),
 			disk_log:close(Log),
 			{error, Reason}
@@ -1864,7 +1885,7 @@ ipdr_csv(Log, IoDevice, {Cont, [#ipdr_wlan{} = I | T]}) ->
 			ipdr_csv(Log, IoDevice, {Cont, T});
 		{error, Reason} ->
 			error_logger:error_report([file:format_error(Reason),
-					{error, Reason}]),
+					{module, ?MODULE}, {log, Log}, {error, Reason}]),
 			file:close(IoDevice),
 			disk_log:close(Log),
 			{error, Reason}

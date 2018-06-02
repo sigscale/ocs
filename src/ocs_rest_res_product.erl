@@ -238,20 +238,22 @@ get_inventory(ID) ->
 %% 	Retrieve all Product Offerings.
 %% @todo Filtering
 get_offers(Query, Headers) ->
-	Name =  proplists:get_value("name", Query),
-	Des = proplists:get_value("description", Query),
+erlang:display({?MODULE, ?LINE, Query}),
+	Name =  proplists:get_value("name", Query, '_'),
+	Des = proplists:get_value("description", Query, '_'),
 	Status = case lists:keyfind("lifecycleStatus", 1, Query) of
 		false ->
-			undefined;
+			'_';
 		{_, S} ->
 			product_status(S)
 	end,
-	SDT = proplists:get_value("startDate", Query),
-	EDT = proplists:get_value("endDate", Query),
-	Price = proplists:get_value("price", Query),
+	SDT = proplists:get_value("startDate", Query, '_'),
+	EDT = proplists:get_value("endDate", Query, '_'),
+	Price = proplists:get_value("price", Query, '_'),
 	M = ocs,
 	F = query_offer,
 	A = [Name, Des, Status, SDT, EDT, Price],
+erlang:display({?MODULE, ?LINE, A}),
 	Codec = fun offer/1,
 	query_filter({M, F, A}, Codec, Query, Headers).
 
@@ -326,12 +328,12 @@ get_plas(_Query, _Headers) ->
 %% 	Retrieve all Product Inventories.
 %% @todo Filtering
 get_inventories(Query, Headers) ->
-	ID =  proplists:get_value("id", Query),
-	Name =  proplists:get_value("name", Query),
-	Offer = proplists:get_value("productOffering", Query),
-	SDT = proplists:get_value("startDate", Query),
-	EDT = proplists:get_value("endDate", Query),
-	Service = proplists:get_value("service", Query),
+	ID =  proplists:get_value("id", Query, '_'),
+	Name =  proplists:get_value("name", Query, '_'),
+	Offer = proplists:get_value("productOffering", Query, '_'),
+	SDT = proplists:get_value("startDate", Query, '_'),
+	EDT = proplists:get_value("endDate", Query, '_'),
+	Service = proplists:get_value("service", Query, '_'),
 	M = ocs,
 	F = query_product,
 	A = [ID, Name, Offer, SDT, EDT, Service],
@@ -840,7 +842,8 @@ spec_prod_data() ->
 	DepHref = {"href", ?productSpecPath "1"},
 	Depend = {struct, [DepId, DepHref, DepType]},
 	Dependency = {"productSpecificationRelationship", {array, [Depend]}},
-	{struct, [Id, Name, Href, Description, Version, LastUpdate, Status, Dependency]}.
+	Chars = {"productSpecCharacteristic", {array, characteristic_product_data()}},
+	{struct, [Id, Name, Href, Description, Version, LastUpdate, Status, Chars, Dependency]}.
 
 %% @hidden
 spec_prod_voice() ->
@@ -1014,7 +1017,7 @@ characteristic_product_rated_plan() ->
 
 %% @hidden
 characteristic_product_prepaid() ->
-	Name1 = {"name", "balanceTopUpDuration"},
+	Name1 = {"name", "balanceTopupDuration"},
 	Description1 = {"description", "Validity period of balance top-ups."},
 	Config1 = {"configurable", false},
 	Type1 = {"valueType", "Number"},
@@ -1038,7 +1041,19 @@ characteristic_product_voice() ->
 	Description2 = {"description", "Constrain price to incoming or outgoing calls"},
 	ValueType2 = {"valueType", "String"},
 	Char2 = {struct, [Name2, Description2, ValueType2]},
-	[Char1, Char2].
+	Name3 = {"name", "romingTable"},
+	Description3 = {"description", "Roaming partners table name"},
+	ValueType3 = {"valueType", "String"},
+	Char3 = {struct, [Name3, Description3, ValueType3]},
+	[Char1, Char2, Char3].
+
+%% @hidden
+characteristic_product_data() ->
+	Name1 = {"name", "romingTable"},
+	Description1 = {"description", "Roaming partners table name"},
+	ValueType1 = {"valueType", "String"},
+	Char1 = {struct, [Name1, Description1, ValueType1]},
+	[Char1].
 
 -spec pla_spec(ID) -> Result
 	when
@@ -2189,88 +2204,18 @@ query_start({M, F, A}, Codec, Query, Filters, RangeStart, RangeEnd) ->
 	end.
 
 %% @hidden
-query_page(Codec, PageServer, Etag, Query, Filters, Start, End) ->
+query_page(Codec, PageServer, Etag, _Query, Filters, Start, End) ->
 	case gen_server:call(PageServer, {Start, End}) of
 		{error, Status} ->
 			{error, Status};
-		{[#offer{} | _] = Result, ContentRange} ->
-			try
-				case lists:keytake("sort", 1, Query) of
-					{value, {_, "name"}, Q1} ->
-						{lists:keysort(#offer.name, Result), Q1};
-					{value, {_, "-name"}, Q1} ->
-						{lists:reverse(lists:keysort(#offer.name, Result)), Q1};
-					{value, {_, "description"}, Q1} ->
-						{lists:keysort(#offer.description, Result), Q1};
-					{value, {_, "-description"}, Q1} ->
-						{lists:reverse(lists:keysort(#offer.description, Result)), Q1};
-					{value, {_, "lifecycleStatus"}, Q1} ->
-						{lists:keysort(#offer.status, Result), Q1};
-					{value, {_, "-lifecycleStatus"}, Q1} ->
-						{lists:reverse(lists:keysort(#offer.status, Result)), Q1};
-					{value, {_, "startDate"}, Q1} ->
-						{lists:keysort(#offer.start_date, Result), Q1};
-					{value, {_, "-startDate"}, Q1} ->
-						{lists:reverse(lists:keysort(#offer.start_date, Result)), Q1};
-					{value, {_, "endDate"}, Q1} ->
-						{lists:keysort(#offer.end_date, Result), Q1};
-					{value, {_, "-endDate"}, Q1} ->
-						{lists:reverse(lists:keysort(#offer.end_date, Result)), Q1};
-					{value, {_, "price"}, Q1} ->
-						{lists:keysort(#offer.price, Result), Q1};
-					{value, {_, "-price"}, Q1} ->
-						{lists:reverse(lists:keysort(#offer.price, Result)), Q1};
-					false ->
-						{Result, Query};
-					_ ->
-						throw(400)
-				end
-			of
-				{SortedResult, _NewQuery} ->
-					JsonObj = query_page1(lists:map(Codec, SortedResult), Filters, []),
-					JsonArray = {array, JsonObj},
-					Body = mochijson:encode(JsonArray),
-					Headers = [{content_type, "application/json"},
-							{etag, Etag}, {accept_ranges, "items"},
-							{content_range, ContentRange}],
-					{ok, Headers, Body}
-			catch
-				throw:{error, Status} ->
-					{error, Status}
-			end;
-		{[#product{} | _] = Result, ContentRange} ->
-			try
-				case lists:keytake("sort", 1, Query) of
-					{value, {_, "id"}, Q1} ->
-						{lists:keysort(#product.id, Result), Q1};
-					{value, {_, "name"}, Q1} ->
-						{lists:keysort(#product.name, Result), Q1};
-					{value, {_, "productOffer"}, Q1} ->
-						{lists:keysort(#product.product, Result), Q1};
-					{value, {_, "startDate"}, Q1} ->
-						{lists:keysort(#product.start_date, Result), Q1};
-					{value, {_, "endDate"}, Q1} ->
-						{lists:keysort(#product.end_date, Result), Q1};
-					{value, {_, "service"}, Q1} ->
-						{lists:keysort(#product.service, Result), Q1};
-					false ->
-						{Result, Query};
-					_ ->
-						throw(400)
-				end
-			of
-				{SortedResult, _NewQuery} ->
-					JsonObj = query_page1(lists:map(Codec, SortedResult), Filters, []),
-					JsonArray = {array, JsonObj},
-					Body = mochijson:encode(JsonArray),
-					Headers = [{content_type, "application/json"},
-							{etag, Etag}, {accept_ranges, "items"},
-							{content_range, ContentRange}],
-					{ok, Headers, Body}
-			catch
-				throw:{error, Status} ->
-					{error, Status}
-			end
+		{Result, ContentRange} ->
+			JsonObj = query_page1(lists:map(Codec, Result), Filters, []),
+			JsonArray = {array, JsonObj},
+			Body = mochijson:encode(JsonArray),
+			Headers = [{content_type, "application/json"},
+					{etag, Etag}, {accept_ranges, "items"},
+					{content_range, ContentRange}],
+			{ok, Headers, Body}
 	end.
 %% @hidden
 query_page1(Json, [], []) ->

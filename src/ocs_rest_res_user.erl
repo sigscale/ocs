@@ -346,7 +346,7 @@ user1([], Acc) ->
 
 %% @hidden
 query_start(Query, Filters, RangeStart, RangeEnd) ->
-	MatchId = case proplists:get_value("id", Query) of
+	MatchId = case proplists:get_value("id.like", Query) of
 		undefined ->
 			'_';
 		Id->
@@ -368,35 +368,18 @@ query_start(Query, Filters, RangeStart, RangeEnd) ->
 	end.
 
 %% @hidden
-query_page(PageServer, Etag, Query, Filters, Start, End) ->
+query_page(PageServer, Etag, _Query, Filters, Start, End) ->
 	case gen_server:call(PageServer, {Start, End}) of
 		{error, Status} ->
 			{error, Status};
 		{Events, ContentRange} ->
-			try
-				case lists:keytake("sort", 1, Query) of
-					{value, {_, "id"}, Q1} ->
-						{lists:keysort(#httpd_user.username, Events), Q1};
-					{value, {_, "-id"}, Q1} ->
-						{lists:reverse(lists:keysort(#httpd_user.username, Events)), Q1};
-					false ->
-						{Events, Query};
-					_ ->
-						throw(400)
-				end
-			of
-				{SortedEvents, _NewQuery} ->
-					JsonObj = query_page1(lists:map(fun user/1, SortedEvents), Filters, []),
-					JsonArray = {array, JsonObj},
-					Body = mochijson:encode(JsonArray),
-					Headers = [{content_type, "application/json"},
-							{etag, Etag}, {accept_ranges, "items"},
-							{content_range, ContentRange}],
-					{ok, Headers, Body}
-			catch
-				throw:{error, Status} ->
-					{error, Status}
-			end
+			JsonObj = query_page1(lists:map(fun user/1, Events), Filters, []),
+			JsonArray = {array, JsonObj},
+			Body = mochijson:encode(JsonArray),
+			Headers = [{content_type, "application/json"},
+					{etag, Etag}, {accept_ranges, "items"},
+					{content_range, ContentRange}],
+			{ok, Headers, Body}
 	end.
 %% @hidden
 query_page1([], Filters, Acc) ->

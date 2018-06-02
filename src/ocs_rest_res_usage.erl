@@ -101,19 +101,6 @@ get_usages(Type, Id, Query, Headers) ->
 	end.
 %% @hidden
 get_usages1(Type, Id, Query, Filters, Headers) ->
-	case lists:keytake("sort", 1, Query) of
-		{value, {_, "-date"}, NewQuery} ->
-			get_last(NewQuery, Filters);
-		{value, {_, Date}, NewQuery}
-				when Date == "date"; Date == "+date" ->
-			get_usages2(Type, Id, NewQuery, Filters, Headers);
-		false ->
-			get_usages2(Type, Id, Query, Filters, Headers);
-		_ ->
-			{error, 400}
-	end.
-%% @hidden
-get_usages2(Type, Id, Query, Filters, Headers) ->
 	case {lists:keyfind("if-match", 1, Headers),
 			lists:keyfind("if-range", 1, Headers),
 			lists:keyfind("range", 1, Headers)} of
@@ -2763,46 +2750,6 @@ query_page1(PageServer, Etag, Decoder, Filters, Start, End) ->
 					Body = mochijson:encode(JsonArray),
 					Headers = [{content_type, "application/json"},
 							{etag, Etag}, {accept_ranges, "items"},
-							{content_range, ContentRange}],
-					{ok, Headers, Body}
-			catch
-				throw:{error, Status} ->
-					{error, Status}
-			end
-	end.
-
-%% @hidden
-get_last(Query, Filters) ->
-	case lists:keytake("type", 1, Query) of
-		{_, {_, "AAAAccessUsage"}, []} ->
-			get_last1(ocs_auth, fun usage_aaa_auth/2, Filters);
-		{_, {_, "AAAAccountingUsage"}, []} ->
-			get_last1(ocs_acct, fun usage_aaa_acct/2, Filters);
-		{_, {_, "PublicWLANAccessUsage"}, []} ->
-			get_last1(ocs_acct, fun usage_ipdr/2, Filters);
-		{_, {_, "HTPPUsage"}, []} ->
-			get_last1(ocs_acct, fun usage_http_transfer/2, Filters);
-		{_, {_, _}, []} ->
-			{error, 404};
-		false ->
-			{error, 400}
-	end.
-%% @hidden
-get_last1(Log, Decoder, Filters) ->
-	{ok, MaxItems} = application:get_env(ocs, rest_page_size),
-	case ocs_log:last(Log, MaxItems) of
-		{error, _} ->
-			{error, 500};
-		{0, []} ->
-			{error, 404};
-		{NewCount, Events} ->
-			try Decoder(Events, Filters) of
-				JsonObj ->
-					JsonArray = {array, JsonObj},
-					Body = mochijson:encode(JsonArray),
-					ContentRange = "items 1-"
-							++ integer_to_list(NewCount) ++ "/*",
-					Headers = [{content_type, "application/json"},
 							{content_range, ContentRange}],
 					{ok, Headers, Body}
 			catch

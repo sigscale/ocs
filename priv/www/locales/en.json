@@ -59,6 +59,14 @@
     "description": "Timeout of subscribers",
     "message": "Timeout"
   },
+  "sessionTimeout": {
+    "description": "Timeout of subscribers",
+    "message": "sessionTimeout"
+  },
+  "sessionInterval": {
+    "description": "Timeout of subscribers",
+    "message": "sessionInterval"
+  },
   "int": {
     "description": "Interval of subscribers",
     "message": "Interval"
@@ -467,10 +475,6 @@
     "description": "filtering",
     "message": "Filtering"
   },
-	"sort": {
-    "description": "sorting",
-    "message": "Sorting"
-  },
 	"credit": {
     "description": "Balance management",
     "message": "Credit"
@@ -497,7 +501,7 @@
   },
 	"prod": {
     "description": "Balance types",
-    "message": "Products"
+    "message": "Product"
   },
 	"add": {
     "description": "Balance add",
