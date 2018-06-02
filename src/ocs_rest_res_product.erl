@@ -238,7 +238,6 @@ get_inventory(ID) ->
 %% 	Retrieve all Product Offerings.
 %% @todo Filtering
 get_offers(Query, Headers) ->
-erlang:display({?MODULE, ?LINE, Query}),
 	Name =  proplists:get_value("name", Query, '_'),
 	Des = proplists:get_value("description", Query, '_'),
 	Status = case lists:keyfind("lifecycleStatus", 1, Query) of
@@ -253,7 +252,6 @@ erlang:display({?MODULE, ?LINE, Query}),
 	M = ocs,
 	F = query_offer,
 	A = [Name, Des, Status, SDT, EDT, Price],
-erlang:display({?MODULE, ?LINE, A}),
 	Codec = fun offer/1,
 	query_filter({M, F, A}, Codec, Query, Headers).
 
