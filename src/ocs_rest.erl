@@ -148,7 +148,7 @@ parse_query1(_Field, 0, _Acc) ->
 parse_query1(Field, N, Acc) ->
 	Key = lists:sublist(Field, N - 1),
 	Value = lists:sublist(Field, N + 1, length(Field)),
-	[{http_uri:decode(Key), http_uri:decode(Value)} | Acc].
+	[{Key, Value} | Acc].
 
 -spec fields(Filters, JsonObject) -> Result
 	when
