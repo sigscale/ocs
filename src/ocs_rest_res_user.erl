@@ -346,7 +346,7 @@ user1([], Acc) ->
 
 %% @hidden
 query_start(Query, Filters, RangeStart, RangeEnd) ->
-	MatchId = case proplists:get_value("id", Query) of
+	MatchId = case proplists:get_value("id.like", Query) of
 		undefined ->
 			'_';
 		Id->
