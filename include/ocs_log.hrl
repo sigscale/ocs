@@ -90,18 +90,18 @@
 
 %% IPDR WLAN Document
 -record(ipdrDocWLAN,
-		{docId :: string(),
+		{docId :: string() | undefined,
 		version = "3.1" :: string(),
-		creationTime :: string(),
-		ipdrRecorderInfo :: string()}).
+		creationTime :: string() | undefined,
+		ipdrRecorderInfo :: string() | undefined}).
 -record(ipdrDocVoIP,
-		{docId :: string(),
+		{docId :: string() | undefined,
 		version = "3.1" :: string(),
-		creationTime :: string(),
-		ipdrRecorderInfo :: string()}).
+		creationTime :: string() | undefined,
+		ipdrRecorderInfo :: string() | undefined}).
 -record(ipdrDocEnd,
-		{count :: non_neg_integer(),
-		endTime :: string()}).
+		{count :: non_neg_integer() | undefined,
+		endTime :: string() | undefined}).
 
 %% IPDR Public WLAN Access - WISP Use Case
 -record(ipdr_wlan,
