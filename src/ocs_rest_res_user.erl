@@ -25,6 +25,7 @@
 		get_user/2, get_users/2, post_user/1, patch_user/4,
 		delete_user/1, user/1]).
 
+-include_lib("radius/include/radius.hrl").
 -include_lib("inets/include/mod_auth.hrl").
 -include("ocs.hrl").
 
@@ -346,25 +347,33 @@ user1([], Acc) ->
 
 %% @hidden
 query_start(Query, Filters, RangeStart, RangeEnd) ->
-	MatchId = case proplists:get_value("id.like", Query) of
-		undefined ->
-			'_';
-		Id->
-			Id
-	end,
-	MatchLocale = case proplists:get_value("locale", Query) of
-		undefined ->
-			'_';
-		Locale ->
-			Locale
-	end,
-	case supervisor:start_child(ocs_rest_pagination_sup,
-				[[ocs, query_users, [MatchId, MatchLocale]]]) of
-		{ok, PageServer, Etag} ->
-			query_page(PageServer, Etag, Query, Filters, RangeStart, RangeEnd);
-		{error, _Reason} ->
-
-			{error, 500}
+	try
+		case lists:keyfind("filter", 1, Query) of
+			{_, String} ->
+				{ok, Tokens, _} = ocs_rest_query_scanner:string(String),
+				case ocs_rest_query_parser:parse(Tokens) of
+					{ok, [{array, [{complex, [{"id", like, [Id]},
+							{"characteristic", contains, Contains}]}]}]} ->
+						[{"language", {like, [Locale]}}] = char(Contains, '_'),
+						{{like, Id}, {like, Locale}};
+					{ok, [{array, [{complex, [{"id", like, [Id]}]}]}]} ->
+						{{like, Id}, '_'}
+				end;
+			false ->
+				{'_', '_'}
+		end
+	of
+		{MatchId, MatchLocale} ->
+			MFA = [ocs, query_users, [MatchId, MatchLocale]],
+			case supervisor:start_child(ocs_rest_pagination_sup, [MFA]) of
+				{ok, PageServer, Etag} ->
+					query_page(PageServer, Etag, Query, Filters, RangeStart, RangeEnd);
+				{error, _Reason} ->
+					{error, 500}
+			end
+	catch
+		_ ->
+			{error, 400}
 	end.
 
 %% @hidden
@@ -404,4 +413,41 @@ query_page2(Json, [], Acc) ->
 	lists:reverse(Json ++ Acc);
 query_page2([H | T], Filters, Acc) ->
 	query_page2(T, Filters, [ocs_rest:fields(Filters, H) | Acc]).
+
+%% @hidden
+char([{complex, L1} | T], Chars) ->
+	case lists:keytake("name", 1, L1) of
+		{_, Name, L2} ->
+			case lists:keytake("value", 1, L2) of
+				{_, Value, []} ->
+					char(Name, Value, T, Chars);
+				_ ->
+					throw({error, 400})
+			end;
+		false ->
+			throw({error, 400})
+	end;
+char([], Chars) ->
+	rev(Chars).
+%% @hidden
+char({"name", exact, "language"}, {"value", exact, Lang}, T, Chars)
+			when is_list(Lang) ->
+		Obj = add_char(Chars, {"language", {exact, Lang}}),
+		char(T, Obj);
+char({"name", exact, "language"}, {"value", like, Like}, T, Chars)
+			when is_list(Like) ->
+		Obj = add_char(Chars, {"language", {like, Like}}),
+		char(T, Obj).
+
+%% @hidden
+add_char('_', AttributeMatch) ->
+	[AttributeMatch];
+add_char(Attributes, AttributeMatch) when is_list(Attributes) ->
+	[AttributeMatch | Attributes].
+
+%% @hidden
+rev('_') ->
+	'_';
+rev(Attributes) when is_list(Attributes) ->
+	lists:reverse(Attributes).
 

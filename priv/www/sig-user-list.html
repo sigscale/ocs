@@ -61,7 +61,7 @@
 				active-item="{{activeItem}}">
 			<vaadin-grid-column width="15ex" flex-grow="5">
 				<template class="header">
-					<vaadin-grid-filter id="filterId" aria-label="[[i18n.userName]]" path="id" value="[[_filterId]]">
+					<vaadin-grid-filter id="filterId" aria-label="[[i18n.userName]]" path="id" value="{{_filterId}}">
 						<input placeholder="[[i18n.userName]]" value="{{_filterId::input}}" focus-target>
 					</vaadin-grid-filter>
 				</template>
@@ -69,7 +69,7 @@
 			</vaadin-grid-column>
 			<vaadin-grid-column width="15ex" flex-grow="5">
 				<template class="header">
-					<vaadin-grid-filter id="filterLanguage" aria-label="[[i18n.language]]" path="language" value="[[_filterLanguage]]">
+					<vaadin-grid-filter id="filterLanguage" aria-label="[[i18n.language]]" path="language" value="{{_filterLanguage}}">
 						<input placeholder="[[i18n.language]]" value="{{_filterLanguage::input}}" focus-target>
 					</vaadin-grid-filter>
 				</template>
@@ -82,6 +82,9 @@
 				on-tap="showAddUserModal">
 		</paper-fab>
 		</div>
+		<paper-toast
+            id="userToastError">
+      </paper-toast>
 		<paper-toast
 				id="addUserToastErrorForm"
 				text="[[i18n.validateToastError]]">
@@ -126,6 +129,9 @@
 				},
 				activeItem: {
 					observer:'_activeItemChanged'
+				},
+				_filterId: {
+					observer: '_filterChangedId'
 				}
 			},
 			_activePageChanged: function(active) {
@@ -142,6 +148,11 @@
 					grid.dataProvider = this._getUsers;
 				}
 			},
+			_filterChangedId: function(filter) {
+				this.etag = null;
+				delete this.$.getUserAjax.headers['If-Range'];
+				this.$.userGrid.size = 0;
+			},
 			_activeItemChanged: function(item) {
 				if (item != null){
 					this.$.userGrid.selectedItems = item ? [item] : [];
@@ -154,15 +165,13 @@
 			_getUsers: function(params, callback) {
 				var grid = document.getElementById('userGrid');
 				var ajax = document.getElementById("getUserAjax");
-				delete ajax.params['id'];
-				delete ajax.params['language'];
+				delete ajax.params['filter'];
 				function checkHead(param) {
 					return param.path == "id";
 				}
-				var head;
 				params.filters.filter(checkHead).forEach(function(filter) {
 					if (filter.value) {
-						ajax.params[filter.path] = filter.value;
+						ajax.params['filter'] = "\"[{id.like=[" + filter.value + "%";
 					}
 				});
 				function checkChar(param) {
@@ -171,11 +180,11 @@
 				params.filters.filter(checkChar).forEach(function(filter) {
 					if (filter.value) {
 							if (!ajax.params['filter']) {
-								ajax.params['filter'] = "\"[{characteristic.contains=[";
+								ajax.params['filter'] = "\"[{";
 							} else {
-								ajax.params['filter'] += ",";
+								ajax.params['filter'] += "],";
 							}
-							ajax.params['filter'] += "{name=" + filter.path + ",value.like=[" + filter.value + "%25]}";
+							ajax.params['filter'] += "characteristic.contains=[{name=language" + ",value.like=[" + filter.value + "%]}";
 					}
 				});
 				if (ajax.params['filter']) {
