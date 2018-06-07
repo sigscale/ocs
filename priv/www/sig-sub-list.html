@@ -136,8 +136,8 @@
 		</paper-toast>
 		<iron-ajax
 			id="getSubscriberAjax"
-			on-response="_getSubscriberResponse"
-			on-error="_getSubscriberError">
+			url="/serviceInventoryManagement/v2/service"
+			rejectWithRequest>
 		</iron-ajax>
 		<iron-ajax
 			id="getProductInventoryAjax"
@@ -160,6 +160,12 @@
 				},
 				activeItem: {
 					observer:'_activeItemChanged'
+				},
+				_filterIdentity: {
+					observer: '_filterChangedId'
+				},
+				_filterBalance: {
+					observer: '_filterChangedProduct'
 				}
 			},
 			_activePageChanged: function(active) {
@@ -206,26 +212,18 @@
 							name: "multisession"
 						}
 					];
-					grid.dataProvider = function(params, callback) {
-						cbSubscriber = callback;
-						var ajax = document.getElementById("getSubscriberAjax");
-						ajax.url = "/serviceInventoryManagement/v2/service";
-						params.filters.forEach(function(filter, index) {
-							if(index == 0) {
-								ajax.url += '?' + filter.path + '=' + filter.value;
-							} else {
-								ajax.url += '&' + filter.path + '=' + filter.value;
-							}
-						});
-						StartRange = params.page * params.pageSize + 1;
-						EndRange = StartRange + params.pageSize - 1;
-						ajax.headers['Range'] = "items=" + StartRange + "-" + EndRange;
-						if (etag && StartRange > lastItem) {
-							ajax.headers['If-Range'] = etag;
-						}
-						ajax.generateRequest();
-					};
+					grid.dataProvider = this._getSubscriberResponse;
 				}
+			},
+			_filterChangedId: function(filter) {
+				this.etag = null;
+				delete this.$.getSubscriberAjax.headers['If-Range'];
+				this.$.subscriberGrid.size = 0;
+			},
+			_filterChangedProduct: function(filter) {
+				this.etag = null;
+				delete this.$.getSubscriberAjax.headers['If-Range'];
+				this.$.subscriberGrid.size = 0;
 			},
 			_activeItemChanged: function(item) {
 				if (item != null){
@@ -245,59 +243,102 @@
 					document.getElementById("updateSubscriberMulti").checked =  item.multisession;
 				}
 			},
-			_getSubscriberResponse: function(event) {
-				var grid = this.$.subscriberGrid;
-				var results = event.detail.xhr.response;
-				etag = event.detail.xhr.getResponseHeader('ETag');
-				var range = event.detail.xhr.getResponseHeader('Content-Range');
-				if (grid.size == undefined) {
-					grid.size = 0;
+			_getSubscriberResponse: function(params, callback) {
+				var grid = document.getElementById('subscriberGrid');
+				var ajax = document.getElementById("getSubscriberAjax"); 
+				delete ajax.params['filter'];
+				function checkHead(param) {
+					return param.path == "id" || param.path == "product";
 				}
-				var range1 = range.split("/");
-				var range2 = range1[0].split("-");
-				lastItem = Number(range2[1]);
-				if (range1[1] != "*") {
-					grid.size = Number(range1[1]);
-				} else {
-					grid.size = Number(range2[1]) + grid.pageSize * 2;
+				params.filters.filter(checkHead).forEach(function(filter) {
+					if(ajax.params['filter']) {
+						ajax.params['filter'] += "]},{" + filter.path + ".like=[" + filter.value + "%";
+					} else {
+						ajax.params['filter'] = "\"[{" + filter.path + ".like=[" + filter.value + "%";
+					}
+				});
+				if (ajax.params['filter']) {
+					ajax.params['filter'] += "]}]\"";
 				}
-				var vaadinItems = new Array();
-				for (var index in results) {
-					var newRecord = new Object();
-					newRecord.id = results[index].id;
-					newRecord.product = results[index].product;
-					if(results[index].attributes) {
-						results[index].attributes.forEach(
-							function(attrObj) {
-								newRecord[attrObj.name] = attrObj.value;
+				serviceList = document.getElementById('serviceList');
+				handleAjaxResponse = function(request) {
+					if (request) {
+						serviceList.etag = request.xhr.getResponseHeader('ETag');
+						var range = request.xhr.getResponseHeader('Content-Range');
+						var range1 = range.split("/");
+						var range2 = range1[0].split("-");
+						if (range1[1] != "*") {
+							grid.size = Number(range1[1]);
+						} else {
+							grid.size = Number(range2[1]) + grid.pageSize * 2;
+						}
+						var vaadinItems = new Array();
+						function checkChar(characteristic) {
+							return characteristic.name == "username";
+						}
+						for (var index in request.response) {
+							var newRecord = new Object();
+							newRecord.id = request.response[index].id;
+							newRecord.product = request.response[index].product;
+							if(request.response[index].attributes) {
+								request.response[index].attributes.forEach(
+									function(attrObj) {
+										newRecord[attrObj.name] = attrObj.value;
+									}
+								);
 							}
-						);
+							function checkPassword(pass) {
+								return pass.name == "servicePassword";
+							}
+							var indexPass = request.response[index].serviceCharacteristic.findIndex(checkPassword);
+							if(indexPass != -1) {
+								newRecord.password = request.response[index].serviceCharacteristic[indexPass].value;
+							}
+							newRecord.enabled = request.response[index].isServiceEnabled;
+							function checkMultisession(multi) {
+								return multi.name == "multiSession";
+							}
+							var indexMulti = request.response[index].serviceCharacteristic.findIndex(checkMultisession);
+							if(indexMulti != -1) {
+								newRecord.multisession = request.response[index].serviceCharacteristic[indexMulti].value;
+							}
+							vaadinItems[index] = newRecord;
+						}
+						callback(vaadinItems);
+					} else {
+						grid.size = 0;
+						callback([]);
 					}
-					function checkPassword(pass) {
-						return pass.name == "servicePassword";
-					}
-					var indexPass = results[index].serviceCharacteristic.findIndex(checkPassword);
-					if(indexPass != -1) {
-						newRecord.password = results[index].serviceCharacteristic[indexPass].value;
-					}
-					newRecord.enabled = results[index].isServiceEnabled;
-					function checkMultisession(multi) {
-						return multi.name == "multiSession";
-					}
-					var indexMulti = results[index].serviceCharacteristic.findIndex(checkMultisession);
-					if(indexMulti != -1) {
-						newRecord.multisession = results[index].serviceCharacteristic[indexMulti].value;
-					}
-					vaadinItems[index] = newRecord;
+				};
+				handleAjaxError = function(error) {
+					serviceList.etag = null;
+					var toast = document.getElementById('usageToastError');
+					toast.text = error;
+					toast.open();
+					callback([]);
 				}
-					cbSubscriber(vaadinItems);
-			},
-			_getSubscriberError: function(event) {
-				this.$.subscriberGrid.size = 0;
-				cbSubscriber([]);
-				if (!lastItem && event.detail.request.xhr.status != 416) {
-					this.$.getSubscriberErrorToast.text = event.detail.request.xhr.statusText;
-					this.$.getSubscriberErrorToast.open();
+				if (ajax.loading) {
+					ajax.lastRequest.completes.then(function(request) {
+						StartRange = params.page * params.pageSize + 1;
+						EndRange = StartRange + params.pageSize - 1;
+						ajax.headers['Range'] = "items=" + StartRange + "-" + EndRange;
+						if (serviceList.etag && params.page > 0) {
+							ajax.headers['If-Range'] = serviceList.etag;
+						} else {
+							delete ajax.headers['If-Range'];
+						}
+						return ajax.generateRequest().completes;
+					}, handleAjaxError).then(handleAjaxResponse, handleAjaxError);
+				} else {
+					StartRange = params.page * params.pageSize + 1;
+					EndRange = StartRange + params.pageSize - 1;
+					ajax.headers['Range'] = "items=" + StartRange + "-" + EndRange;
+					if (serviceList.etag && params.page > 0) {
+						ajax.headers['If-Range'] = serviceList.etag;
+					} else {
+						delete ajax.headers['If-Range'];
+					}
+					ajax.generateRequest().completes.then(handleAjaxResponse, handleAjaxError);
 				}
 			},
 			showAddModal: function(event) {
