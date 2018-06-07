@@ -28,7 +28,7 @@
 -export([add_service/2, add_service/3, add_service/4, add_service/5,
 		add_service/8, add_product/2, add_product/3, add_product/5,
 		delete_product/1, get_products/0, query_product/7]).
--export([find_service/1, delete_service/1, get_services/0, query_service/1,
+-export([find_service/1, delete_service/1, get_services/0, query_service/3,
 		find_product/1]).
 -export([add_bucket/2, find_bucket/1, get_buckets/0, get_buckets/1,
 		delete_bucket/1, query_bucket/3]).
@@ -1063,33 +1063,68 @@ get_services()->
 			Result
 	end.
 
--spec query_service(Cont) -> Result
+-spec query_service(Cont, MatchId, MatchProduct) -> Result
 	when
-		Cont :: start | any() | eof,
-		Result :: {Cont, [#service{}]} | {error, Reason},
+		Cont :: start | any(),
+		MatchId :: Match,
+		MatchProduct :: Match,
+		Match :: {exact, string()} | {notexact, string()} | {like, string()},
+		Result :: {Cont1, [#service{}]} | eof | {error, Reason},
+		Cont1 :: any(),
 		Reason :: term().
 %% @doc Query services 
-query_service(start) ->
+query_service(Cont, MatchId, '_') ->
 	MatchSpec = [{'_', [], ['$_']}],
+	query_service1(Cont, MatchSpec, MatchId);
+query_service(Cont, MatchId, {like, String} = _MatchProduct)
+		when is_list(String) ->
+	Product = case lists:last(String) of
+		$% ->
+			lists:droplast(String) ++ '_';
+		_ ->
+         String
+	end,
+	MatchHead = #service{product = Product, _ = '_'},
+	MatchSpec = [{MatchHead, [], ['$_']}],
+   query_service1(Cont, MatchSpec, MatchId).
+%% @hidden
+query_service1(start, MatchSpec, MatchId) ->
 	F = fun() ->
 			mnesia:select(service, MatchSpec, ?CHUNKSIZE, read)
 	end,
-	case mnesia:ets(F) of
-		{Services, Cont1} ->
-			{Cont1, Services};
-		'$end_of_table' ->
-			{eof, []}
-	end;
-query_service(Cont) ->
+	query_service2(mnesia:ets(F), MatchId);
+query_service1(Cont, _MatchSpec, MatchId) ->
 	F = fun() ->
-			mnesia:select(Cont)
+         mnesia:select(Cont)
+   end,
+	query_service2(mnesia:ets(F), MatchId).
+%% @hidden
+query_service2({Services, Cont}, '_') ->
+	{Cont, Services};
+query_service2({Services, Cont}, {like, String}) ->
+	F = case lists:last(String) of
+		$% ->
+			Prefix = list_to_binary(lists:droplast(String)),
+			Size = size(Prefix),
+			fun(#service{name = Name}) ->
+					case binary:part(Name, 0, Size) of
+						Prefix ->
+							true;
+						_ ->
+							false
+					end
+			end;
+		_ ->
+         ExactMatch = list_to_binary(String),
+			fun(#service{name = Name}) when Name == ExactMatch ->
+					true;
+				(_) ->	
+					false
+			end
 	end,
-	case mnesia:ets(F) of
-		{Services, Cont1} ->
-			{Cont1, Services};
-		'$end_of_table' ->
-			{eof, []}
-	end.
+	{Cont, lists:filter(F, Services)};
+query_service2('$end_of_table', _MatchId) ->
+		{eof, []}.
 
 -spec delete_service(Identity) -> ok
 	when
