@@ -124,8 +124,8 @@
 		</div>
 		<iron-ajax
 			id="getBucketBalance"
-			on-response="_getBucketBalanceResponse"
-			on-error="_getBucketBalanceError">
+			url="/balanceManagement/v1/bucket/"
+			rejectWithRequest>
 		</iron-ajax>
 	</template>
 	<script>
@@ -162,66 +162,97 @@
 							name: "seconds"
 						}
 					];
-					grid.dataProvider = function(params, callback) {
-						cbBucket = callback;
-						var ajax = document.getElementById("getBucketBalance");
-						ajax.url = "/balanceManagement/v1/bucket/";
-						params.filters.forEach(function(filter, index) {
-							if(index == 0) {
-								ajax.url += '?' + filter.path + '=' + filter.value;
-							} else {
-								ajax.url += '&' + filter.path + '=' + filter.value;
+					grid.dataProvider = this._getBuckets;
+				}
+			},
+			_getBuckets: function(params, callback) {
+				var grid = document.getElementById('balanceBucketGrid');
+				var ajax = document.getElementById("getBucketBalance");
+				delete ajax.params['filter'];
+				function checkHead(param) {
+					return param.path == "id";
+				}
+				params.filters.filter(checkHead).forEach(function(filter) {
+					if(filter.value) {
+						ajax.params['filter'] = "\"[{" + filter.path + ".like=[" + filter.value + "%";
+					}
+				});
+				if (ajax.params['filter']) {
+					ajax.params['filter'] += "]}]\"";
+				}
+				bucketList = document.getElementById('bucketList');
+				handleAjaxResponse = function(request) {
+					if(request) {
+						bucketList.etag = request.xhr.getResponseHeader('ETag');
+						var range = request.xhr.getResponseHeader('Content-Range');
+						var range1 = range.split("/");
+						var range2 = range1[0].split("-");
+						if (range1[1] != "*") {
+							grid.size = Number(range1[1]);
+						} else {
+							grid.size = Number(range2[1]) + grid.pageSize * 2;
+						}
+						var vaadinItems = new Array();
+						function checkChar(characteristic){
+							return characteristic.name == "id";
+						}
+						for (var index in request.response) {
+							var newRecord = new Object();
+							newRecord.id = request.response[index].id;
+							newRecord.productId = request.response[index].product.id;
+							if(request.response[index].remainedAmount) {
+								if(request.response[index].remainedAmount.units == "cents") {
+									newRecord.cents = request.response[index].remainedAmount.amount;
+								}
+								if(request.response[index].remainedAmount.units == "seconds") {
+									newRecord.seconds = request.response[index].remainedAmount.amount;
+								}
+								if(request.response[index].remainedAmount.units == "octets") {
+									newRecord.remainedAmount = request.response[index].remainedAmount.amount;
+								}
 							}
-						});
+							vaadinItems[index] = newRecord;
+						}
+						callback(vaadinItems);
+					} else {
+						grid.size = 0;
+						callback([]);
+					}
+				};
+				handleAjaxError = function(error) {
+					bucketList.etag = null;
+					var toast = document.getElementById('userToastError');
+					toast.text = error;
+					toast.open();
+					callback([]);
+				}
+				if (ajax.loading) {
+					ajax.lastRequest.completes.then(function(request) {
 						StartRange = params.page * params.pageSize + 1;
 						EndRange = StartRange + params.pageSize - 1;
 						ajax.headers['Range'] = "items=" + StartRange + "-" + EndRange;
-						if (etag && StartRange > lastItem) {
-							ajax.headers['If-Range'] = etag;
+						if (bucketList.etag && params.page > 0) {
+							ajax.headers['If-Range'] = bucketList.etag;
+						} else {
+							delete ajax.headers['If-Range'];
 						}
-						ajax.generateRequest();
-					};
-				}
-			},
-			_getBucketBalanceResponse: function(event) {
-				var grid = this.$.balanceBucketGrid;
-				var results = event.detail.xhr.response;
-				etag = event.detail.xhr.getResponseHeader('ETag');
-				var range = event.detail.xhr.getResponseHeader('Content-Range');
-				if (grid.size == undefined) {
-					grid.size = 0;
-				}
-				var range1 = range.split("/");
-				var range2 = range1[0].split("-");
-				lastItem = Number(range2[1]);
-				if (range1[1] != "*") {
-					grid.size = Number(range1[1]);
+						return ajax.generateRequest().completes;
+					}, handleAjaxError).then(handleAjaxResponse, handleAjaxError);
 				} else {
-					grid.size = Number(range2[1]) + grid.pageSize * 2;
+					StartRange = params.page * params.pageSize + 1;
+					EndRange = StartRange + params.pageSize - 1;
+					ajax.headers['Range'] = "items=" + StartRange + "-" + EndRange;
+					if (bucketList.etag && params.page > 0) {
+						ajax.headers['If-Range'] = bucketList.etag;
+					} else {
+						delete ajax.headers['If-Range'];
+					}
+				ajax.generateRequest().completes.then(handleAjaxResponse, handleAjaxError);
 				}
-				var vaadinItems = new Array();
-				for (var index in results) {
-					var newRecord = new Object();
-					newRecord.id = results[index].id;
-					newRecord.productId = results[index].product.id;
-						if(results[index].remainedAmount) {
-							if(results[index].remainedAmount.units == "cents") {
-								newRecord.cents = results[index].remainedAmount.amount;
-							}
-							if(results[index].remainedAmount.units == "seconds") {
-								newRecord.seconds = results[index].remainedAmount.amount;
-							}
-							if(results[index].remainedAmount.units == "octets") {
-								newRecord.remainedAmount = results[index].remainedAmount.amount;
-							}
-						}
-					vaadinItems[index] = newRecord;
-				}
-				cbBucket(vaadinItems);
 			},
 			showAddBucket: function(event) {
 				document.getElementById("addBucketModal").open();
-			}
-		})
+			},
+		});
 	</script>
 </dom-module>
