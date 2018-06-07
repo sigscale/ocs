@@ -74,11 +74,11 @@
 			</vaadin-grid-column>
 			<vaadin-grid-column width="15ex" flex-grow="5">
 				<template class="header">
-					<vaadin-grid-filter aria-label="Product Id" path="productId" value="[[_filterProdId]]">
+					<vaadin-grid-filter aria-label="Product Id" path="product" value="[[_filterProdId]]">
 						<input placeholder="Product Id" value="{{_filterProdId::input}}" focus-target>
 					</vaadin-grid-filter>
 				</template>
-				<template>[[item.productId]]</template>
+				<template>[[item.product]]</template>
 			</vaadin-grid-column>
 			<vaadin-grid-column-group>
 				<template class="header">
@@ -150,7 +150,7 @@
 							name: "id" 
 						},
 						{
-							name: "productId"
+							name: "product"
 						},
 						{
 							name: "remainedAmount"
@@ -170,10 +170,12 @@
 				var ajax = document.getElementById("getBucketBalance");
 				delete ajax.params['filter'];
 				function checkHead(param) {
-					return param.path == "id";
+					return param.path == "id" || param.path == "product";
 				}
 				params.filters.filter(checkHead).forEach(function(filter) {
-					if(filter.value) {
+					if(ajax.params['filter']) {
+						ajax.params['filter'] += "]},{" + filter.path + ".like=[" + filter.value + "%";
+					} else {
 						ajax.params['filter'] = "\"[{" + filter.path + ".like=[" + filter.value + "%";
 					}
 				});
@@ -199,7 +201,7 @@
 						for (var index in request.response) {
 							var newRecord = new Object();
 							newRecord.id = request.response[index].id;
-							newRecord.productId = request.response[index].product.id;
+							newRecord.product = request.response[index].product.id;
 							if(request.response[index].remainedAmount) {
 								if(request.response[index].remainedAmount.units == "cents") {
 									newRecord.cents = request.response[index].remainedAmount.amount;
