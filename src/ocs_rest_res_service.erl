@@ -151,9 +151,9 @@ get_inventory(Id) ->
 get_inventories(Query, Headers) ->
 	case lists:keytake("fields", 1, Query) of
 		{value, {_, Filters}, NewQuery} ->
-         get_inventories1(NewQuery, Filters, Headers);
-      false ->
-         get_inventories1(Query, [], Headers)
+			get_inventories1(NewQuery, Filters, Headers);
+		false ->
+			get_inventories1(Query, [], Headers)
 	end.
 %% @hidden
 get_inventories1(Query, Filters, Headers) ->
@@ -733,10 +733,10 @@ query_start(Query, Filters, RangeStart, RangeEnd) ->
 			MFA = [ocs, query_service, [MatchId, MatchProduct]],
 			case supervisor:start_child(ocs_rest_pagination_sup, [MFA]) of
 				{ok, PageServer, Etag} ->
-               query_page(PageServer, Etag, Query, Filters, RangeStart, RangeEnd);
-            {error, _Reason} ->
-               {error, 500}
-         end
+					query_page(PageServer, Etag, Query, Filters, RangeStart, RangeEnd);
+				{error, _Reason} ->
+					{error, 500}
+			end
 	catch
 		_ ->
 			{error, 400}
@@ -761,7 +761,7 @@ query_page1(T, Filters, Acc) ->
 	query_page2(Acc, Filters, T).
 %% @hidden
 query_page2([], _, Acc) ->
-   lists:reverse(Acc);
+	lists:reverse(Acc);
 query_page2(Json, [], Acc) ->
 	lists:reverse(Json ++ Acc);
 query_page2([H | T], Filters, Acc) ->
