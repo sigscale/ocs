@@ -1,3 +1,22 @@
+2018-06-07  Vance Shipley <vances@sigscale.org>
+
+	* advanced rest query patterns: users, services, buckets
+	* pipeline get pages: users, services, buckets
+	* fix patch service api
+	* diameter ro: sms-information in service-information
+	* add debit ammount for negative balance
+	* reset range values on filter changes
+	* remove deprecated sort queries in api
+	* correct error report formatting
+	* topup for service id
+	* do not include bucket type for zero rated cdrs
+	* changed application variable for scheduler
+	* change topup uri to match tmf spec
+	* add product inventory id in add service api
+	* add roaming table and rating
+	* filter tarrif prices for messages and data
+	* price type tariff validation for messages
+
 2018-05-14  Vance Shipley <vances@sigscale.org>
 
 	* handle utf8 csv file in table import

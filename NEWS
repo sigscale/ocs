@@ -1,3 +1,11 @@
+June 7, 2018
+------------
+	- Advanced query patterns in REST API 
+	- SMS service information in DIAMETER Ro
+	- Balance topup by Service Inventory ID
+	- Balance topup URI changed to match TMF
+	- Roaming table rating
+
 May 5, 2018
 -----------
 	- UI views for Products, Services, Buckets 
