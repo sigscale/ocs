@@ -922,66 +922,62 @@ get_buckets(ProdRef) when is_list(ProdRef) ->
 			{error, Reason}
 	end.
 
--spec query_bucket(Cont, Id, Product) -> Result
+-spec query_bucket(Cont, MatchId, MatchProduct) -> Result
 	when
 		Cont :: start | any(),
-		Id :: Match,
-		Product :: Match,
+		MatchId :: Match,
+		MatchProduct :: Match,
 		Match :: {exact, string()} | {notexact, string()} | {like, string()},
 		Result :: {Cont, [#bucket{}]} | eof | {error, Reason},
 		Reason :: term().
 %% @doc Query bucket
-query_bucket(Cont, '_', Product) ->
+query_bucket(Cont, '_' = _MatchId, MatchProduct) ->
 	MatchSpec = [{'_', [], ['$_']}],
-	query_bucket2(Cont, MatchSpec, Product);
-query_bucket(Cont, {like, Id}, Product) when is_list(Id) ->
+	query_bucket1(Cont, MatchSpec, MatchProduct);
+query_bucket(Cont, {like, Id}, MatchProduct) when is_list(Id) ->
 	MatchSpec = case lists:last(Id) of
 		$% ->
 			Prefix = lists:droplast(Id),
-			MatchHead = #bucket{id = Prefix, _ = '_'},
+			MatchHead = #bucket{id = Prefix ++ '_', _ = '_'},
 			[{MatchHead, [], ['$_']}];
 		_ ->
 			MatchHead = #bucket{id = Id, _ = '_'},
 			[{MatchHead, [], ['$_']}]
 	end,
-	query_bucket2(Cont, MatchSpec, Product);
-query_bucket(Cont, MatchId, Product) when is_tuple(MatchId) ->
-	MatchCondition = [match_condition('$1', MatchId)],
-	MatchHead = #bucket{id = '$1', _ = '_'},
-	MatchSpec = [{MatchHead, MatchCondition, ['$_']}],
-	query_users2(Cont, MatchSpec, Product).
+	query_bucket1(Cont, MatchSpec, MatchProduct).
 %% @hidden
-query_bucket2(start, MatchSpec, Product) ->
+query_bucket1(start, MatchSpec, MatchProduct) ->
 	F = fun() ->
 		mnesia:select(bucket, MatchSpec, ?CHUNKSIZE, read)
 	end,
-	case catch mnesia:ets(F)  of
-		{'EXIT', Reason} ->
-			{error, Reason};
-		{Buckets, Cont} ->
-			query_bucket3(Cont, Buckets, Product);
-		'$end_of_table' ->
-			eof
-	end;
-query_bucket2(Cont, _MatchSpec, Product) ->
-	F = fun() -> mnesia:select(Cont) end,
-	case catch mnesia:ets(F)  of
-		{'EXIT', Reason} ->
-			{error, Reason};
-		{Buckets, Cont} ->
-			query_bucket3(Cont, Buckets, Product);
-		'$end_of_table' ->
-			eof
-	end.
-%% @hidden
-query_bucket3(Cont, Buckets, '_') ->
-	{Cont, Buckets};
-query_bucket3(Cont, Buckets, {Operator, Product}) ->
-	F = fun(#bucket{product = Products}) ->
-				F2 = fun(P) -> match(Operator, Product, P) end,
-				lists:any(F2, Products)
+	query_bucket2(mnesia:ets(F), MatchProduct);
+query_bucket1(Cont, _MatchSpec, MatchProduct) ->
+	F = fun() ->
+		mnesia:select(Cont)
 	end,
-	{Cont, lists:filter(F, Buckets)}.
+	query_bucket2(mnesia:ets(F), MatchProduct).
+%% @hidden
+query_bucket2({Buckets, Cont}, '_') ->
+	{Cont, Buckets};
+query_bucket2({Buckets, Cont}, {like, String}) ->
+
+	F1 = case lists:last(String) of
+		$% ->
+			Prefix = lists:droplast(String),
+			fun(#bucket{product = Products}) ->
+					F2 = fun(P) ->
+							lists:prefix(Prefix, P)
+					end,
+					lists:any(F2, Products)
+			end;
+		_ ->
+			fun(#bucket{product = Products}) ->
+					lists:member(Products, String)
+			end
+	end,
+	{Cont, lists:filter(F1, Buckets)};
+query_bucket2('$end_of_table', _MatchProduct) ->
+      {eof, []}.
 
 -spec delete_bucket(BucketId) -> ok
 	when
