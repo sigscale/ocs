@@ -562,7 +562,7 @@ query_page(PageServer, Etag, _Query, Filters, Start, End) ->
 			Headers = [{content_type, "application/json"},
 					{etag, Etag}, {accept_ranges, "items"},
 					{content_range, ContentRange}],
-			ok, Headers, Body}
+			{ok, Headers, Body}
 	end.
 %% @hidden
 query_page1(T, Filters, Acc) ->
