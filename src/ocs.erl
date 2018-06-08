@@ -27,7 +27,7 @@
 		query_clients/6]).
 -export([add_service/2, add_service/3, add_service/4, add_service/5,
 		add_service/8, add_product/2, add_product/3, add_product/5,
-		delete_product/1, get_products/0, query_product/3]).
+		delete_product/1, get_products/0, query_product/4]).
 -export([find_service/1, delete_service/1, get_services/0, query_service/3,
 		find_product/1]).
 -export([add_bucket/2, find_bucket/1, get_buckets/0, get_buckets/1,
@@ -370,19 +370,20 @@ get_products()->
 			Result
 	end.
 
--spec query_product(Cont, MatchId, MatchOffer) -> Result
+-spec query_product(Cont, MatchId, MatchOffer, MatchService) -> Result
 	when
 		Cont :: start | any(),
 		MatchId ::  Match,
 		MatchOffer ::  Match,
+		MatchService ::  Match,
 		Match :: {exact, string()} | {notexact, string()} | {like, string()} | '_',
 		Result :: {Cont, [#product{}]} | eof | {error, Reason},
 		Reason :: term().
 %% @doc Query product
-query_product(Cont, '_' = _MatchId, MatchOffer) ->
+query_product(Cont, '_' = _MatchId, MatchOffer, MatchService) ->
 	 MatchHead = #product{_ = '_'},
-	query_product1(Cont, MatchHead, MatchOffer);
-query_product(Cont, {like, String}, MatchOffer) when is_list(String) ->
+	query_product1(Cont, MatchHead, MatchOffer, MatchService);
+query_product(Cont, {like, String}, MatchOffer, MatchService) when is_list(String) ->
 	MatchHead = case lists:last(String) of
 		$% ->
 			Prefix = lists:droplast(String),
@@ -390,12 +391,12 @@ query_product(Cont, {like, String}, MatchOffer) when is_list(String) ->
 		_ ->
 			#product{id = String, _ = '_'}
 	end,
-	query_product1(Cont, MatchHead, MatchOffer).
+	query_product1(Cont, MatchHead, MatchOffer, MatchService).
 %% @hidden
-query_product1(Cont, MatchHead, '_') ->
+query_product1(Cont, MatchHead, '_', MatchService) ->
 	MatchSpec = [{MatchHead, [], ['$_']}],
-	query_product2(Cont, MatchSpec);
-query_product1(Cont, MatchHead, {like, String} = _MatchOffer) when is_list(String) ->
+	query_product2(Cont, MatchSpec, MatchService);
+query_product1(Cont, MatchHead, {like, String} = _MatchOffer, MatchService) when is_list(String) ->
 	MatchHead1 = case lists:last(String) of
 		$% ->
 			Prefix = lists:droplast(String),
@@ -404,22 +405,42 @@ query_product1(Cont, MatchHead, {like, String} = _MatchOffer) when is_list(Strin
 			MatchHead#product{product = String}
 	end,
 	MatchSpec = [{MatchHead1, [], ['$_']}],
-	query_product2(Cont, MatchSpec).
+	query_product2(Cont, MatchSpec, MatchService).
 %% @hidden
-query_product2(start, MatchSpec) ->
+query_product2(start, MatchSpec, MatchService) ->
 	F = fun() ->
 		mnesia:select(product, MatchSpec, ?CHUNKSIZE, read)
 	end,
-	query_product3(mnesia:ets(F));
-query_product2(Cont, _MatchSpec) ->
+	query_product3(mnesia:ets(F), MatchService);
+query_product2(Cont, _MatchSpec, MatchService) ->
 	F = fun() ->
 		mnesia:select(Cont)
 	end,
-	query_product3(mnesia:ets(F)).
+	query_product3(mnesia:ets(F), MatchService).
 %% @hidden
-query_product3({Products, Cont}) ->
+query_product3({Products, Cont}, '_') ->
 	{Cont, Products};
-query_product3('$end_of_table') ->
+query_product3({Products, Cont}, {like, String}) when is_list(String) ->
+	F1 = case lists:last(String) of
+		$% ->
+			Prefix = list_to_binary(lists:droplast(String)),
+			Size = size(Prefix),
+			F2 = fun(<<P:Size/binary, _/binary>>) when P == Prefix ->
+						true;
+					(_) ->
+						false
+			end,
+			fun(#product{service = Services}) ->
+						lists:any(F2, Services)
+			end;
+		_ ->
+			Service = list_to_binary(String),
+			fun(#product{service = Services}) ->
+						lists:member(Service, Services)
+			end
+	end,
+	{Cont, lists:filter(F1, Products)};
+query_product3('$end_of_table', _MatchService) ->
 	eof.
 
 -spec add_product(Offer, ServiceRefs) -> Result
