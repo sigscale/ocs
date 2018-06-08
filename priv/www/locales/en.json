@@ -61,11 +61,11 @@
   },
   "sessionTimeout": {
     "description": "Timeout of subscribers",
-    "message": "sessionTimeout"
+    "message": "Session Timeout"
   },
   "sessionInterval": {
     "description": "Timeout of subscribers",
-    "message": "sessionInterval"
+    "message": "Session Interval"
   },
   "int": {
     "description": "Interval of subscribers",
