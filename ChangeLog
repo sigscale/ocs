@@ -1,3 +1,14 @@
+2018-06-08  Vance Shipley <vances@sigscale.org>
+
+	* advanced rest query patterns: products
+	* pipeline get pages: products
+	* reload button for product and bucket views
+	* clear add service dialog on submit
+	* filtering product inventry view
+	* remove deprecated log modules
+	* remove unused http put module
+	* correct field filter handling
+
 2018-06-07  Vance Shipley <vances@sigscale.org>
 
 	* advanced rest query patterns: users, services, buckets
