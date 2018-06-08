@@ -153,6 +153,7 @@
 							dialog-dismiss
 							class="cancel-button"
 							autofocus
+							on-tap="_serviceAddcancel"
 							onclick="addServiceModal.close()">
 					<i18n-msg msgid="cancel">
 						Cancel
@@ -447,7 +448,11 @@
 					ajax.headers['Content-type'] = "application/json";
 					ajax.body = subscriber;
 					ajax.generateRequest();
+					this.$.addSubscriberId.value = null;
 				}
+			},
+			_serviceAddcancel: function(event) {
+				this.$.addSubscriberId.value = null;
 			},
 			_addServiceResponse: function(event) {
 				function checkPasswordResp(pass) {
