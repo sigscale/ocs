@@ -15,7 +15,7 @@
 %%% See the License for the specific language governing permissions and
 %%% limitations under the License.
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-%%% 
+%%%
 
 -type offer_status() :: in_study | in_design | in_test
 		| active | rejected | launched | retired | obsolete.
@@ -24,7 +24,7 @@
 		| cancelled | active | suspended | pending_terminate | terminated.
 -type service_status() :: feasibilityChecked | designed | reserved
 		| active | inactive | terminated.
--type pla_status() :: created | active | cancelled | terminated. 
+-type pla_status() :: created | active | cancelled | terminated.
 -type product_price_type() :: recurring | one_time | usage | tariff.
 -type unit_of_measure() :: octets | cents | seconds | messages.
 -type recur_period() :: hourly | daily | weekly | monthly | yearly.
@@ -110,60 +110,60 @@
 		default :: non_neg_integer() | undefined}).
 
 -record(offer,
-		{name :: '_' | string() | undefined,
-		description :: '_' | string() | undefined,
-		start_date :: '_' | pos_integer() | undefined,
-		end_date :: '_' | pos_integer() | undefined,
-		status :: offer_status() | '_' | undefined,
-		specification :: '_' | string() | undefined,
-		bundle = [] :: '_' | [#bundled_po{}],
-		price = [] :: '_' | [#price{}],
-		char_value_use = [] :: '_' | [#char_value_use{}],
-		last_modified :: tuple() | '_' | undefined}).
+		{name :: string() | undefined | '_' | '$1' | '$3',
+		description :: string() | undefined | '_',
+		start_date :: pos_integer() | undefined | '_',
+		end_date :: pos_integer() | undefined | '_',
+		status :: offer_status() | '_' | undefined | '_',
+		specification :: string() | undefined | '_',
+		bundle = [] :: [#bundled_po{}] | '_',
+		price = [] :: [#price{}] | '_',
+		char_value_use = [] :: [#char_value_use{}] | '_',
+		last_modified :: tuple() | undefined | '_'}).
 
 -record(bucket,
-		{id :: string() | undefined,
-		name :: string() | undefined,
-		start_date :: pos_integer() | undefined,
-		end_date :: pos_integer() | undefined,
-		status :: bucket_status() | undefined,
-		remain_amount = 0 :: integer(),
+		{id :: string() | undefined | '_',
+		name :: string() | undefined | '_',
+		start_date :: pos_integer() | undefined | '_',
+		end_date :: pos_integer() | undefined | '_',
+		status :: bucket_status() | undefined | '_',
+		remain_amount = 0 :: integer() | '_',
 		reservations = [] :: [{TS :: pos_integer(),
 				DebitAmount :: non_neg_integer(),
 				ReservedAmount :: non_neg_integer(),
-				SessionId :: string() | binary()}],
-		units :: octets | cents | seconds | messages | undefined,
-		prices = [] :: list(), 
-		product :: [ProdRef :: term()],
-		last_modified :: tuple() | undefined}).
+				SessionId :: string() | binary()}] | '_',
+		units :: octets | cents | seconds | messages | undefined | '_',
+		prices = [] :: list() | '_',
+		product :: [ProdRef :: term()] | '_',
+		last_modified :: tuple() | undefined | '_'}).
 
 -record(product,
-		{id :: string() | undefined,
-		name :: string() | undefined,
-		start_date :: pos_integer() | undefined,
-		end_date :: pos_integer() | undefined,
-		status :: product_status() | undefined,
-		product :: string() | undefined,
-		characteristics = [] :: [{Name :: string(), Value :: term()}],
-		payment = [] :: [{Price :: string(), DueDate :: pos_integer()}],
-		balance = [] :: [BucketRef :: term()],
-		service = [] :: [ServiceRef :: binary()],
-		last_modified :: tuple() | undefined}).
+		{id :: string() | undefined | '_' | '$1',
+		name :: string() | undefined | '_' | '$2',
+		start_date :: pos_integer() | undefined | '_' | '$4',
+		end_date :: pos_integer() | undefined | '_' | '$5',
+		status :: product_status() | undefined | '_',
+		product :: string() | undefined | '_' | '$3',
+		characteristics = [] :: [{Name :: string(), Value :: term()}] | '_',
+		payment = [] :: [{Price :: string(), DueDate :: pos_integer()}] | '_',
+		balance = [] :: [BucketRef :: term()] | '_',
+		service = [] :: [ServiceRef :: binary()] | '_',
+		last_modified :: tuple() | undefined | '_'}).
 
 -record(service,
-		{name :: binary() | undefined,
-		start_date :: pos_integer() | undefined,
-		end_date :: pos_integer() | undefined,
-		state :: service_status() | undefined,
-		password :: binary() | undefined,
-		attributes :: [tuple()] | undefined,
-		product :: ProductRef :: string() | undefined,
-		enabled = true :: boolean(),
-		disconnect  = false :: boolean(),
-		session_attributes = [] :: [{TS :: pos_integer(), Attributes :: [tuple()]}],
-		characteristics = [] :: [{Name :: string(), Value :: term()}],
-		multisession = false :: boolean(),
-		last_modified :: tuple() | undefined}).
+		{name :: binary() | undefined | '_',
+		start_date :: pos_integer() | undefined | '_',
+		end_date :: pos_integer() | undefined | '_',
+		state :: service_status() | undefined | '_',
+		password :: binary() | undefined | '_',
+		attributes :: [tuple()] | undefined | '_',
+		product :: ProductRef :: string() | undefined | '_',
+		enabled = true :: boolean() | '_',
+		disconnect  = false :: boolean() | '_',
+		session_attributes = [] :: [{TS :: pos_integer(), Attributes :: [tuple()]}] | '_',
+		characteristics = [] :: [{Name :: string(), Value :: term()}] | '_',
+		multisession = false :: boolean() | '_',
+		last_modified :: tuple() | undefined | '_'}).
 
 -record(pla,
 		{name :: string() | undefined,
