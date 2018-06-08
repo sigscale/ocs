@@ -53,7 +53,6 @@ beam_DATA = ocs.beam \
 			mod_ocs_rest_accepted_content.beam \
 			mod_ocs_rest_get.beam \
 			mod_ocs_rest_post.beam \
-			mod_ocs_rest_put.beam \
 			mod_ocs_rest_patch.beam \
 			mod_ocs_rest_delete.beam \
 			ocs_rest.beam \

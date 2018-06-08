@@ -441,7 +441,7 @@
 				<dt><b>User</b></dt>
 					<dd>Username of the authenticated user.</dd>
 				<dt><b>Method</b></dt>
-					<dd>Request type (GET/POST/PUT/PATCH/DELETE).</dd>
+					<dd>Request type (GET/POST/PATCH/DELETE).</dd>
 				<dt><b>Resource</b></dt>
 					<dd>URI provided in the request.</dd>
 				<dt><b>Status</b></dt>

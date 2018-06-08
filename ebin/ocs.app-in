@@ -68,7 +68,6 @@
 				mod_ocs_rest_delete,
 				mod_ocs_rest_get,
 				mod_ocs_rest_patch,
-				mod_ocs_rest_put,
 				mod_ocs_rest_post,
 				diameter_gen_3gpp,
 				diameter_gen_3gpp_ro_application,
