@@ -565,13 +565,11 @@ query_page(PageServer, Etag, _Query, Filters, Start, End) ->
 			{ok, Headers, Body}
 	end.
 %% @hidden
-query_page1(T, Filters, Acc) ->
-	query_page2(Acc, Filters, T).
+query_page1(Json, [], []) ->
+	Json;
 %% @hidden
-query_page2([], _, Acc) ->
-	lists:reverse(Acc);
-query_page2(Json, [], Acc) ->
-	lists:reverse(Json ++ Acc);
-query_page2([H | T], Filters, Acc) ->
-	query_page1(T, Filters, [ocs_rest:fields(Filters, H) | Acc]).
+query_page1([H | T], Filters, Acc) ->
+	query_page1(T, Filters, [ocs_rest:fields(Filters, H) | Acc]);
+query_page1([], _, Acc) ->
+	lists:reverse(Acc).
 
