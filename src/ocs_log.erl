@@ -318,7 +318,7 @@ auth_close() ->
 		Continuation2 :: eof | disk_log:continuation(),
 		Events :: [http_event()],
 		Reason :: term().
-%% @doc Query http log events with fileters
+%% @doc Query http log events with filters
 http_query(start, LogType, DateTime, Host, User, Method, URI, HTTPStatus) ->
 	Log = ocs_log:httpd_logname(LogType),
 	http_query1(disk_log:chunk(Log, start), Log,
