@@ -74,11 +74,11 @@
 			</vaadin-grid-column>
 			<vaadin-grid-column width="15ex" flex-grow="5">
 				<template class="header">
-					<vaadin-grid-filter aria-label="Services" path="identity" value="[[_filterIdentity]]">
+					<vaadin-grid-filter aria-label="Services" path="service" value="[[_filterIdentity]]">
 						<input placeholder="Services" value="{{_filterIdentity::input}}" focus-target>
 					</vaadin-grid-filter>
 				</template>
-				<template>[[item.identity]]</template>
+				<template>[[item.service]]</template>
 			</vaadin-grid-column>
 			<vaadin-grid-column width="15ex" flex-grow="5">
 				<template class="header">
@@ -140,7 +140,7 @@
 				var ajax = document.getElementById("getProductInventory");
 				delete ajax.params['filter'];
 				function checkHead(param) {
-					return param.path == "id" || param.path == "product";
+					return param.path == "id" || param.path == "product" || param.path == "service";
 				}
 				params.filters.filter(checkHead).forEach(function(filter) {
 					if(ajax.params['filter']) {
@@ -173,7 +173,7 @@
 							newRecord.id = request.response[index].id;
 							newRecord.product = request.response[index].productOffering.name;
 							for(var indexSer in request.response[index].realizingService) {
-								newRecord.identity = request.response[index].realizingService[indexSer].id;
+								newRecord.service = request.response[index].realizingService[indexSer].id;
 							}
 						vaadinItems[index] = newRecord;
 						}

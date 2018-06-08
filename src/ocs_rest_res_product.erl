@@ -2196,17 +2196,25 @@ query_startProduct(Query, Filters, RangeStart, RangeEnd) ->
 				{ok, Tokens, _} = ocs_rest_query_scanner:string(String),
 				case ocs_rest_query_parser:parse(Tokens) of
 					{ok, [{array, [{complex, [{"id", like, [Id]}]},
+							{complex, [{"product", like, [Product]}]},
+							{complex, [{"service", like, [Service]}]}]}]} ->
+						{{like, Id}, {like, Product}, {like, Service}};
+					{ok, [{array, [{complex, [{"id", like, [Id]}]},
 							{complex, [{"product", like, [Product]}]}]}]} ->
-						{{like, Id}, {like, Product}};
+						{{like, Id}, {like, Product}, '_'};
 					{ok, [{array, [{complex, [{"id", like, [Id]}]}]}]} ->
-						{{like, Id}, '_'}
+						{{like, Id}, '_', '_'};
+					{ok, [{array, [{complex, [{"product", like, [Product]}]}]}]} ->
+						{'_', {like, Product}, '_'};
+					{ok, [{array, [{complex, [{"service", like, [Service]}]}]}]} ->
+						{'_', '_', {like, Service}}
 				end;
 			false ->
-				{'_', '_'}
+				{'_', '_', '_'}
 		end
 	of
-		{MatchId, MatchProduct} ->
-			MFA = [ocs, query_product, [MatchId, MatchProduct]],
+		{MatchId, MatchProduct, MatchService} ->
+			MFA = [ocs, query_product, [MatchId, MatchProduct, MatchService]],
 			case supervisor:start_child(ocs_rest_pagination_sup, [MFA]) of
 				{ok, PageServer, Etag} ->
 					query_pageProduct(PageServer, Etag, Query, Filters, RangeStart, RangeEnd);
