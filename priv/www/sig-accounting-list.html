@@ -361,7 +361,7 @@
 						} else {
 							ajax.params['filter'] += ",";
 						}
-							ajax.params['filter'] += "{name=" + filter.path + ",value.like=[" + filter.value + "%25]}";
+							ajax.params['filter'] += "{name=" + filter.path + ",value.like=[" + filter.value + "%]}";
 					}
 				});
 				if (ajax.params['filter']) {
