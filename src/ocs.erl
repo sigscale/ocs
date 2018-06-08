@@ -27,7 +27,7 @@
 		query_clients/6]).
 -export([add_service/2, add_service/3, add_service/4, add_service/5,
 		add_service/8, add_product/2, add_product/3, add_product/5,
-		delete_product/1, get_products/0, query_product/7]).
+		delete_product/1, get_products/0, query_product/3]).
 -export([find_service/1, delete_service/1, get_services/0, query_service/3,
 		find_product/1]).
 -export([add_bucket/2, find_bucket/1, get_buckets/0, get_buckets/1,
@@ -370,121 +370,57 @@ get_products()->
 			Result
 	end.
 
--spec query_product(Cont, Id, Name, Offer, SDT, EDT, Service) -> Result
+-spec query_product(Cont, MatchId, MatchOffer) -> Result
 	when
 		Cont :: start | any(),
-		Id ::  Match,
-		Name ::  Match,
-		Offer ::  Match,
-		SDT ::  Match,
-		EDT ::  Match,
-		Service ::  Match,
+		MatchId ::  Match,
+		MatchOffer ::  Match,
 		Match :: {exact, string()} | {notexact, string()} | {like, string()} | '_',
 		Result :: {Cont, [#product{}]} | eof | {error, Reason},
 		Reason :: term().
 %% @doc Query product
-query_product(Cont, '_', '_', '_', '_', '_', Service) ->
-	query_product7(Cont, Service, #product{_ = '_'}, []);
-query_product(Cont, Id, Name, Offer, SDT, EDT, Service) ->
-	MatchHead = #product{_ = '_'},
-	query_product2(Cont, Id, Name, Offer, SDT,
-			EDT, Service, MatchHead, []).
-%% @hidden
-query_product1(String) ->
-	case lists:last(String) of
+query_product(Cont, '_' = _MatchId, MatchOffer) ->
+	 MatchHead = #product{_ = '_'},
+	query_product1(Cont, MatchHead, MatchOffer);
+query_product(Cont, {like, String}, MatchOffer) when is_list(String) ->
+	MatchHead = case lists:last(String) of
 		$% ->
-			lists:droplast(String) ++ '_';
+			Prefix = lists:droplast(String),
+			#product{id = Prefix ++ '_', _ = '_'};
 		_ ->
-			String
-	end.
-%% @hidden
-query_product2(Cont, '_', Name, Offer, SDT, EDT, Service, MatchHead, MatchCondition) ->
-	query_product3(Cont, Name, Offer, SDT, EDT, Service, MatchHead, MatchCondition);
-query_product2(Cont, {like, Id}, Name, Offer, SDT, EDT, Service, MatchHead, MatchCondition) ->
-	Id1 = query_product1(Id),
-	MatchHead1 = MatchHead#product{id = Id1},
-	query_product3(Cont, Name, Offer, SDT, EDT, Service,
-			MatchHead1, MatchCondition);
-query_product2(Cont, MatchId, Name, Offer, SDT, EDT, Service, MatchHead, MatchCondition) ->
-	MatchCondition1 = [match_condition('$1', MatchId) | MatchCondition],
-	MatchHead1 = MatchHead#product{id = '$1'},
-	query_product3(Cont, Name, Offer, SDT, EDT, Service, MatchHead1, MatchCondition1).
-%% @hidden
-query_product3(Cont, '_', Offer, SDT, EDT, Service, MatchHead, MatchCondition) ->
-	query_product4(Cont, Offer, SDT, EDT, Service, MatchHead, MatchCondition);
-query_product3(Cont, {like, Name}, Offer, SDT, EDT, Service, MatchHead, MatchCondition) ->
-	Name1 = query_product1(Name),
-	MatchHead1 = MatchHead#product{name = Name1},
-	query_product4(Cont, Offer, SDT, EDT, Service, MatchHead1, MatchCondition);
-query_product3(Cont, MatchName, Offer, SDT, EDT, Service, MatchHead, MatchCondition) ->
-	MatchCondition1 = [match_condition('$2', MatchName) | MatchCondition],
-	MatchHead1 = MatchHead#product{name = '$2'},
-	query_product4(Cont, Offer, SDT, EDT, Service, MatchHead1, MatchCondition1).
-%% @hidden
-query_product4(Cont, '_', SDT, EDT, Service, MatchHead, MatchCondition) ->
-	query_product5(Cont, SDT, EDT, Service, MatchHead, MatchCondition);
-query_product4(Cont, {like, Offer}, SDT, EDT, Service, MatchHead, MatchCondition) ->
-	Offer1 = query_product1(Offer),
-	MatchHead1 = MatchHead#product{product = Offer1},
-	query_product5(Cont, SDT, EDT, Service, MatchHead1, MatchCondition);
-query_product4(Cont, MatchOffer, SDT, EDT, Service, MatchHead, MatchCondition) ->
-	MatchCondition1 = [match_condition('$3', MatchOffer) | MatchCondition],
-	MatchHead1 = MatchHead#product{product = '$3'},
-	query_product5(Cont, SDT, EDT, Service, MatchHead1, MatchCondition1).
-%% @hidden
-query_product5(Cont, '_', EDT, Service, MatchHead, MatchCondition) ->
-	query_product6(Cont, EDT, Service, MatchHead, MatchCondition);
-query_product5(Cont, {like, SDT}, EDT, Service, MatchHead, MatchCondition) ->
-	SDT1 = query_product1(SDT),
-	MatchHead1 = MatchHead#product{start_date = SDT1},
-	query_product6(Cont, EDT, Service, MatchHead1, MatchCondition);
-query_product5(Cont, MatchSDT, EDT, Service, MatchHead, MatchCondition) ->
-	MatchCondition1 = [match_condition('$4', MatchSDT) | MatchCondition],
-	MatchHead1 = MatchHead#product{start_date = '$4'},
-	query_product6(Cont, EDT, Service, MatchHead1, MatchCondition1).
-%% @hidden
-query_product6(Cont, '_', Service, MatchHead, MatchCondition) ->
-	query_product7(Cont, Service, MatchHead, MatchCondition);
-query_product6(Cont, {like, EDT}, Service, MatchHead, MatchCondition) ->
-	EDT1 = query_product1(EDT),
-	MatchHead1 = MatchHead#product{end_date = EDT1},
-	query_product7(Cont, Service, MatchHead1, MatchCondition);
-query_product6(Cont, MatchEDT, Service, MatchHead, MatchCondition) ->
-	MatchCondition1 = [match_condition('$5', MatchEDT) | MatchCondition],
-	MatchHead1 = MatchHead#product{end_date = '$5'},
-	query_product7(Cont, Service, MatchHead1, MatchCondition1).
-%% @hidden
-query_product7(start, Service, MatchHead, MatchCondition) ->
-	MatchSpec = [{MatchHead, MatchCondition, ['$_']}],
-	F = fun() -> mnesia:select(product, MatchSpec, ?CHUNKSIZE, read) end,
-	case mnesia:ets(F) of
-		{'EXIT', Reason} ->
-			{error, Reason};
-		{Products, Cont} ->
-			query_product8(Service, Cont, Products);
-		'$end_of_table' ->
-			eof
-	end;
-query_product7(Cont, Service, _MatchHead, _MatchCondition) ->
-	F = fun() -> mnesia:select(Cont) end,
-	case mnesia:ets(F) of
-		{Cont, Products} ->
-			query_product8(Service, Cont, Products);
-		'$end_of_table' ->
-			eof;
-		{'EXIT', Reason} ->
-			{error, Reason}
-	end.
-%% @hidden
-query_product8('_', Cont, Products) ->
-	{Cont, Products};
-query_product8({Operator, Service}, Cont, Products) ->
-	F = fun(#product{service = Services}) ->
-				Services1 = [binary_to_list(S1) || S1 <- Services],
-
-				lists:any(fun(S2) -> match(Operator, Service, S2) end, Services1)
+			#product{id = String, _ = '_'}
 	end,
-	{Cont, lists:filter(F, Products)}.
+	query_product1(Cont, MatchHead, MatchOffer).
+%% @hidden
+query_product1(Cont, MatchHead, '_') ->
+	MatchSpec = [{MatchHead, [], ['$_']}],
+	query_product2(Cont, MatchSpec);
+query_product1(Cont, MatchHead, {like, String} = _MatchOffer) when is_list(String) ->
+	MatchHead1 = case lists:last(String) of
+		$% ->
+			Prefix = lists:droplast(String),
+			MatchHead#product{product = Prefix ++ '_'};
+		_ ->
+			MatchHead#product{product = String}
+	end,
+	MatchSpec = [{MatchHead1, [], ['$_']}],
+	query_product2(Cont, MatchSpec).
+%% @hidden
+query_product2(start, MatchSpec) ->
+	F = fun() ->
+		mnesia:select(product, MatchSpec, ?CHUNKSIZE, read)
+	end,
+	query_product3(mnesia:ets(F));
+query_product2(Cont, _MatchSpec) ->
+	F = fun() ->
+		mnesia:select(Cont)
+	end,
+	query_product3(mnesia:ets(F)).
+%% @hidden
+query_product3({Products, Cont}) ->
+	{Cont, Products};
+query_product3('$end_of_table') ->
+	eof.
 
 -spec add_product(Offer, ServiceRefs) -> Result
 	when
