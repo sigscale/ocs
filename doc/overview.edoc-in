@@ -4,51 +4,36 @@
 @doc This application implements an Online Charging System (OCS).
 
 ==Introduction==
-In a communications service provider (CSP) network an Online
-Charging System (OCS) is used for real-time charging of services.
-The OCS controls subscriber's sessions such that usage is decremented
-from the subscriber's account in real-time and once the balance is
-zero all sessions are terminated.
-
-This OCS performs authentication, authorization and accounting (AAA)
+SigScale OCS performs authentication, authorization and accounting (AAA)
 for subscribers of wireless local area network (WLAN) services (WiFi).
+
+In a communications service provider (CSP) network an Online
+Charging System (OCS) is a core network element which performs
+real-time charging for services. An OCS authorizes subscribers'
+sessions subject to available credit on account and decrements
+account balance as services are consumed. When a subscriber's
+account balance is depleted authorization may be withdrawn and
+ongoing session(s) terminated.
+
+SigScale OCS includes a 3GPP AAA server function for authentication,
+authorization and accounting (AAA) of subscribers using DIAMETER
+or RADIUS protocols. TM Forum Open APIs for prepay balance
+management and product catalog management are supported with
+a web components front end.
 
 ==Installation==
 Before starting the application for the first time, {@link //mnesia/mnesia. mnesia}
 should be initialized. Create a schema and start mnesia on all nodes
-where the application should ru 
-{@link //ocs. ocs} application will run. Following command will initialize {@link //ocs. ocs}
-on current node and create a default user "admin" with password "admin".
+where the application {@link //ocs. ocs} application will run.
+
+The following command will initialize {@link //ocs. ocs}
+on the current node and create a default REST user
+"admin" with password "admin".
 
 e.g &#058;
  	```
-	$ erl -sname ocs -config sys -s ocs_app install
-	=INFO REPORT==== 4-Aug-2017::19:59:41 ===
-	Started mnesia
-	
-	=INFO REPORT==== 4-Aug-2017::19:59:41 ===
-	Created new client table.
-	
-	=INFO REPORT==== 4-Aug-2017::19:59:41 ===
-	Created new subscriber table.
-	
-	=INFO REPORT==== 4-Aug-2017::19:59:41 ===
-	Created new httpd_user table.
-	
-	=INFO REPORT==== 4-Aug-2017::19:59:41 ===
-	Created new httpd_group table.
-
-	=INFO REPORT==== 4-Aug-2017::19:59:41 ===
-	Created new product table.
-	
-	=INFO REPORT==== 4-Aug-2017::19:59:41 ===
-	Started inets. 
-	
-	=INFO REPORT==== 4-Aug-2017::19:59:41 ===
-	    "Created a default user"
-	    username: "admin"
-	    password: "admin"
-	    locale: "en"
+	(ocs-vances@rt)1> ocs_app:install().
+	{ok,[httpd_group,httpd_user,bucket,offer,pla,product,service,client]}
 	'''
 
 ===HTTP Authentication===
@@ -76,8 +61,8 @@ should be provided in `priv/www/locales'.
 	'''
 
 ==Operation==
-The OCS application will start RADIUS servers for authentication and
-accounting on the configured ports. The {@link //inets. inets} application
+The OCS application will start RADIUS &amp; DIAMETER servers for authentication
+and accounting on the configured ports. The {@link //inets. inets} application
 may be started to provide a REST API and web user interface (UI).
 
 ==REST API==
@@ -93,8 +78,9 @@ specify the format of
 <a href="http://tools.ietf.org/html/rfc3986">URI</a>s used with the API.
 The actual <a href="http://tools.ietf.org/html/rfc3986">URI</a>, as shown
 in the examples, is expanded using the values of the variables in use.  For
-example a URI specified using the template `/ocs/v1/subscriber/{id}' might be
-formed as `/ocs/v1/subscriber/eacfd73ae10a'.
+example a URI specified using the template
+`/balanceManagement/v1/service/{id}/balanceTopup' might be formed as
+`/balanceManagement/v1/service/771231660/balanceTopup'.
 
 ===HTTP Methods===
 The <a href="http://tools.ietf.org/html/rfc2616">HTTP</a> methods used in

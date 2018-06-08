@@ -125,10 +125,6 @@ do_get(Resource, ModData,
 	do_response(ModData, Resource:get_usagespec(Id, Query));
 do_get(Resource, ModData, ["ocs", "v1", "log", "ipdr", Type], Query) ->
 	do_response(ModData, Resource:get_ipdr(Type, Query));
-do_get(Resource, ModData, ["ocs", "v1", "log", "access"], []) ->
-	do_response(ModData, Resource:get_access());
-do_get(Resource, ModData, ["ocs", "v1", "log", "accounting"], []) ->
-	do_response(ModData, Resource:get_accounting());
 do_get(Resource, ModData, ["ocs", "v1", "log", "http"], []) ->
 	do_response(ModData, Resource:get_http());
 do_get(Resource, ModData, ["ocs", "v1", "log", "balance"], []) ->
