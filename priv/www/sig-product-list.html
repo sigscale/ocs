@@ -82,19 +82,19 @@
 			</vaadin-grid-column>
 			<vaadin-grid-column width="15ex" flex-grow="5">
 				<template class="header">
-					<vaadin-grid-filter aria-label="Offering" path="productOffering" value="[[_filterOffer]]">
+					<vaadin-grid-filter aria-label="Offering" path="product" value="[[_filterOffer]]">
 						<input placeholder="Offering" value="{{_filterOffer::input}}" focus-target>
 					</vaadin-grid-filter>
 				</template>
-				<template>[[item.productOffering]]</template>
+				<template>[[item.product]]</template>
 			</vaadin-grid-column>
 		</vaadin-grid>
 		<div class="add-button">
-         <paper-fab
-            icon="add"
-            on-tap="showAddProductInven">
-         </paper-fab>
-      </div>
+			<paper-fab
+				icon="add"
+				on-tap="showAddProductInven">
+			</paper-fab>
+		</div>
 		<iron-ajax
 			id="getProductInventory"
 			url="/productInventoryManagement/v2/product/"
@@ -140,11 +140,13 @@
 				var ajax = document.getElementById("getProductInventory");
 				delete ajax.params['filter'];
 				function checkHead(param) {
-					return param.path == "id";
+					return param.path == "id" || param.path == "product";
 				}
 				params.filters.filter(checkHead).forEach(function(filter) {
 					if(ajax.params['filter']) {
 						ajax.params['filter'] += "]},{" + filter.path + ".like=[" + filter.value + "%";
+					} else {
+						ajax.params['filter'] = "\"[{" + filter.path + ".like=[" + filter.value + "%";
 					}
 				});
 				if (ajax.params['filter']) {
@@ -169,7 +171,7 @@
 						for (var index in request.response) {
 							var newRecord = new Object();
 							newRecord.id = request.response[index].id;
-							newRecord.productOffering = request.response[index].productOffering.name;
+							newRecord.product = request.response[index].productOffering.name;
 							for(var indexSer in request.response[index].realizingService) {
 								newRecord.identity = request.response[index].realizingService[indexSer].id;
 							}
