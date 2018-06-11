@@ -333,11 +333,11 @@ delete_client(Id) ->
 
 %% @hidden
 query_start(Query, Filters, RangeStart, RangeEnd) ->
-	Address =  proplists:get_value("id", Query),
-	Identifier = proplists:get_value("identifier", Query),
-	Port =  proplists:get_value("port", Query),
-	Protocol =  proplists:get_value("protocol", Query),
-	Secret = proplists:get_value("secret", Query),
+	Address =  proplists:get_value("address", Query, '_'),
+	Identifier = proplists:get_value("identifier", Query, '_'),
+	Port =  proplists:get_value("port", Query, '_'),
+	Protocol =  proplists:get_value("protocol", Query, '_'),
+	Secret = proplists:get_value("secret", Query, '_'),
 	case supervisor:start_child(ocs_rest_pagination_sup,
 				[[ocs, query_clients, [Address, Identifier, Port, Protocol, Secret]]]) of
 		{ok, PageServer, Etag} ->

@@ -276,6 +276,7 @@ delete_client(Client) when is_tuple(Client) ->
 		{aborted, Reason} ->
 			exit(Reason)
 	end.
+
 -spec query_clients(Cont, Address, Identifier, Port, Protocol, Secret) -> Result
 	when
 		Cont :: start | any(),
@@ -288,68 +289,95 @@ delete_client(Client) when is_tuple(Client) ->
 		Result :: {Cont, [#client{}]} | eof | {error, Reason},
 		Reason :: term().
 %% @hidden
-query_clients(start, Address, Identifier, Port, Protocol, Secret) ->
-	MatchSpec = [{'_', [], ['$_']}],
-	F = fun() -> mnesia:select(client, MatchSpec, ?CHUNKSIZE, read) end,
-	case catch mnesia:ets(F) of
-		{'EXIT', Reason} ->
-			{error, Reason};
-		{Clients, Cont1} ->
-			query_clients1(Cont1, Address, Identifier,
-					Port, Protocol, Secret, Clients);
-		'$end_of_table' ->
-			eof
-	end.
-%% @hidden
-query_clients1(Cont, '_', Identifier, Port, Protocol, Secret, Clients) ->
-	query_clients2(Cont, Identifier, Port, Protocol, Secret, Clients);
-query_clients1(Cont, {Operator, Address}, Identifier, Port, Protocol, Secret, Clients) ->
-	F = fun(#client{address = Address1}) when is_tuple(Address1) ->
-				match(Operator, Address, inet:ntoa(Address1));
-		(_) ->
-			false
+query_clients(start, {like, String}, Identifier, Port, Protocol, Secret) ->
+	MatchHead = case lists:last(String) of
+		$% ->
+			Prefix = lists:droplast(String),
+			#client{address = Prefix ++ '_', _ = '_'};
+		_ ->
+			#client{address = String, _  = '_'}
 	end,
-	query_clients2(Cont, Identifier, Port, Protocol, Secret, lists:filter(F, Clients)).
+	query_clients1(start, MatchHead, Identifier, Port, Protocol, Secret);
+query_clients(start, '_', Identifier, Port, Protocol, Secret) ->
+	MatchHead = #client{_ = '_'},
+	query_clients1(start, MatchHead, Identifier, Port, Protocol, Secret);
+query_clients(Cont, _Address, Identifier, _Port, _Protocol, _Secret) ->
+	query_clients4(Cont, [], Identifier).
 %% @hidden
-query_clients2(Cont, '_', Port, Protocol, Secret, Clients) ->
-	query_clients3(Cont, Port, Protocol, Secret, Clients);
-query_clients2(Cont, {Operator, Identifier}, Port, Protocol, Secret, Clients) ->
-	F = fun(#client{identifier = Identifier1}) when is_binary(Identifier1) ->
-				match(Operator, Identifier, binary_to_list(Identifier1));
-			(_) ->
-				false
+query_clients1(start, MatchHead, Identifier, {like, String}, Protocol, Secret) ->
+	MatchHead1 = case lists:last(String) of
+		$% ->
+			Prefix = lists:droplast(String),
+			MatchHead#client{port = Prefix ++ '_'};
+		_ ->
+			MatchHead#client{port = String}
 	end,
-	query_clients3(Cont, Port, Protocol, Secret, lists:filter(F, Clients)).
+	query_clients2(start, MatchHead1, Identifier, Protocol, Secret);
+query_clients1(start, MatchHead, Identifier, '_', Protocol, Secret) ->
+	query_clients2(start, MatchHead, Identifier, Protocol, Secret).
 %% @hidden
-query_clients3(Cont, '_', Protocol, Secret, Clients) ->
-	query_clients4(Cont, Protocol, Secret, Clients);
-query_clients3(Cont, {Operator, Port}, Protocol, Secret, Clients) ->
-	F = fun(#client{port = Port1}) when is_integer(Port1) ->
-				match(Operator, Port, integer_to_list(Port1));
-			(_) ->
-				false
+query_clients2(start, MatchHead, Identifier, {like, String}, Secret) ->
+	MatchHead1 = case lists:last(String) of
+		$% ->
+			Prefix = lists:droplast(String),
+			MatchHead#client{protocol = Prefix ++ '_'};
+		_ ->
+			MatchHead#client{protocol = String}
 	end,
-	query_clients4(Cont, Protocol, Secret, lists:filter(F, Clients)).
+	query_clients3(start, MatchHead1, Identifier, Secret);
+query_clients2(start, MatchHead, Identifier, '_', Secret) ->
+	query_clients3(start, MatchHead, Identifier, Secret).
 %% @hidden
-query_clients4(Cont, '_', Secret, Clients) ->
-	query_clients5(Cont, Secret, Clients);
-query_clients4(Cont, {Operator, Protocol}, Secret, Clients) ->
-	F = fun(#client{protocol = Proto}) when Proto == radius; Proto == diameter ->
-				match(Operator, Protocol, atom_to_list(Proto));
-			(_) ->
-				false
+query_clients3(start, MatchHead, Identifier, {like, String}) ->
+	MatchHead1 = case lists:last(String) of
+		$% ->
+			Prefix = lists:droplast(String),
+			MatchHead#client{secret = Prefix ++ '_'};
+		_ ->
+			MatchHead#client{secret = String}
 	end,
-	query_clients5(Cont, Secret, lists:filter(F, Clients)).
+	query_clients4(start, MatchHead1, Identifier);
+query_clients3(start, MatchHead, Identifier, '_') ->
+	query_clients4(start, MatchHead, Identifier).
 %% @hidden
-query_clients5(Cont, '_', Clients) ->
+query_clients4(start, MatchHead, Identifier) ->
+	MatchSpec = [{MatchHead, [], ['$_']}],
+	F = fun() ->
+			mnesia:select(client, MatchSpec, ?CHUNKSIZE, read)
+	end,
+	query_clients5(mnesia:ets(F), Identifier);
+query_clients4(Cont, _MatchHead, Identifier) ->
+	F = fun() ->
+			mnesia:select(Cont)
+	end,
+	query_clients5(mnesia:ets(F), Identifier).
+%% @hidden
+query_clients5({Clients, Cont}, '_') ->
 	{Cont, Clients};
-query_clients5(Cont, {Operator, Secret}, Clients) ->
-	F = fun(#client{secret = Secret1}) when is_binary(Secret1) ->
-				match(Operator, Secret, binary_to_list(Secret1));
-			(_) ->
-				false
+query_clients5({Clients, Cont}, {like, String}) ->
+	F = case lists:last(String) of
+		$% ->
+			Prefix = list_to_binary(lists:droplast(String)),
+			Size = size(Prefix),
+			fun(#client{identifier = Identifier}) ->
+				case binary:part(Identifier, 0, Size) of
+					Prefix ->
+						true;
+					_ ->
+						false
+				end
+			end;
+		_ ->
+			ExactMatch = list_to_binary(String),
+			fun(#client{identifier = Identifier}) when Identifier == ExactMatch ->
+					true;
+				(_) ->
+					false
+			end
 	end,
-	{Cont, lists:filter(F, Clients)}.
+	{Cont, lists:filter(F, Clients)};
+query_clients5('$end_of_table', _Identifier) ->
+      {eof, []}.
 
 get_products()->
 	MatchSpec = [{'_', [], ['$_']}],
