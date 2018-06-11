@@ -419,13 +419,11 @@ query_product(_Config) ->
 				F(N -1, [P1 | Acc])
 	end,
 	Products = F(rand:uniform(1000), []),
-	#product{id = Id, name = Name, product = Offer,
-			start_date = SDT, end_date = EDT,
+	#product{id = Id, product = Offer,
 			service = Services} = lists:nth(rand:uniform(length(Products)), Products),
-	{eof, [#product{id = Id, name = Name, product = Offer,
-			start_date = SDT, end_date = EDT,
-			service = Services}]} = ocs:query_product(start, Id, Name, Offer,
-					SDT, EDT, lists:nth(rand:uniform(length(Services)), Services)).
+	{_, [#product{id = Id, product = Offer,
+			service = Services}]} = ocs:query_product(start, {like, Id},{like, Offer},
+					{like, binary_to_list(lists:nth(rand:uniform(length(Services)), Services))}).
 
 ignore_delete_product() ->
 	[{userdata, [{doc, "ignore remove product if exist service

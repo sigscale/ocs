@@ -1454,7 +1454,7 @@ query_offer8({Operator, Price}, Cont, Offers) ->
 			F2 = fun(#price{name = Price1}) ->
 					match(Operator, Price, Price1)
 			end,
-			list:any(F2, Prices)
+			lists:any(F2, Prices)
 	end,
 	{Cont, lists:filter(F, Offers)}.
 
