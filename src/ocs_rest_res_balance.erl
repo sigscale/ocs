@@ -36,7 +36,7 @@
 -define(bucketPath, "/balanceManagement/v1/bucket/").
 -define(actionPath, "/balanceManagement/v1/balanceTransfer/").
 -define(productInventoryPath, "/productInventoryManagement/v1/product/").
--define(balancePath, "/balanceManagement/v1/accumulatedBalance/").
+-define(balancePath, "/balanceManagement/v1/").
 
 -spec content_types_accepted() -> ContentTypes
 	when
@@ -181,9 +181,9 @@ query_buckets1(Query, Filters, Headers) ->
 			query_start(Query, Filters, undefined, undefined)
 	end.
 
--spec get_balance_service(ProdRef) -> Result
+-spec get_balance_service(Identity) -> Result
 	when
-		ProdRef :: list(),
+		Identity :: list(),
 		Result :: {ok, Headers :: [tuple()], Body :: iolist()}
 				| {error, ErrorCode :: integer()}.
 %% @doc Body producing function for
@@ -194,7 +194,7 @@ get_balance_service(Identity) ->
 			{ok, #service{product = ProductRef}} ->
 				case ocs:get_buckets(ProductRef) of
 					Buckets1 when is_list(Buckets1) ->
-						Buckets1;
+						{ProductRef, Buckets1};
 					{error, Reason} ->
 						throw(Reason)
 				end;
@@ -202,7 +202,7 @@ get_balance_service(Identity) ->
 				{error, 500}
 		end
 	of
-		Buckets2 ->
+		{ProductRef1, Buckets2} ->
 			F1 = fun(#bucket{units = cents}) -> true; (_) -> false end,
 			Buckets3 = lists:filter(F1, Buckets2),
 			TotalAmount = lists:sum([B#bucket.remain_amount || B <- Buckets3]),
@@ -213,8 +213,8 @@ get_balance_service(Identity) ->
 			Total = {"totalBalance", {struct,
 					[{"amount", ocs_rest:millionths_out(TotalAmount)}]}},
 			Id = {"id", Identity},
-			Href = {"href", ?balancePath ++ Identity},
-			Product = {"product", {array, [{struct, [Id, Href]}]}},
+			Href = {"href", ?balancePath ++ Identity ++ "/accumulatedBalance"},
+			Product = {"product", {array, [{struct, [{"id", ProductRef1}, Href]}]}},
 			Json = {struct, [Id, Href, Total, Buckets4, Product]},
 			Body  = mochijson:encode(Json),
 			Headers = [{content_type, "application/json"}],
@@ -253,7 +253,7 @@ get_balance(ProdRef) ->
 			Total = {"totalBalance", {struct,
 					[{"amount", ocs_rest:millionths_out(TotalAmount)}]}},
 			Id = {"id", ProdRef},
-			Href = {"href", ?balancePath ++ ProdRef},
+			Href = {"href", ?balancePath ++ ProdRef ++ "/accumulatedBalance"},
 			Product = {"product", {array, [{struct, [Id, Href]}]}},
 			Json = {struct, [Id, Href, Total, Buckets4, Product]},
 			Body  = mochijson:encode(Json),
