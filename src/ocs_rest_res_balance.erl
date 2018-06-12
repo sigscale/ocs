@@ -22,7 +22,8 @@
 -copyright('Copyright (c) 2016 - 2017 SigScale Global Inc.').
 
 -export([content_types_accepted/0, content_types_provided/0,
-		top_up/2, top_up_service/2, get_balance/1, get_balance_log/0]).
+		top_up/2, top_up_service/2, get_balance/1, get_balance_service/1,
+		get_balance_log/0]).
 
 -export([get_bucket/1, get_buckets/2]).
 
@@ -179,6 +180,51 @@ query_buckets1(Query, Filters, Headers) ->
 		{false, false, false} ->
 			query_start(Query, Filters, undefined, undefined)
 	end.
+
+-spec get_balance_service(ProdRef) -> Result
+	when
+		ProdRef :: list(),
+		Result :: {ok, Headers :: [tuple()], Body :: iolist()}
+				| {error, ErrorCode :: integer()}.
+%% @doc Body producing function for
+%% `GET /balanceManagment/v1/service/{id}/accumulatedBalance' request
+get_balance_service(Identity) ->
+	try
+		case ocs:find_service(Identity) of
+			{ok, #service{product = ProductRef}} ->
+				case ocs:get_buckets(ProductRef) of
+					Buckets1 when is_list(Buckets1) ->
+						Buckets1;
+					{error, Reason} ->
+						throw(Reason)
+				end;
+			{error, _} ->
+				{error, 500}
+		end
+	of
+		Buckets2 ->
+			F1 = fun(#bucket{units = cents}) -> true; (_) -> false end,
+			Buckets3 = lists:filter(F1, Buckets2),
+			TotalAmount = lists:sum([B#bucket.remain_amount || B <- Buckets3]),
+			F2 = fun(#bucket{id = Id}) ->
+					{struct, [{"id", Id}, {"href", ?bucketPath ++ Id}]}
+			end,
+			Buckets4 = {"buckets", {array, lists:map(F2, Buckets3)}},
+			Total = {"totalBalance", {struct,
+					[{"amount", ocs_rest:millionths_out(TotalAmount)}]}},
+			Id = {"id", Identity},
+			Href = {"href", ?balancePath ++ Identity},
+			Product = {"product", {array, [{struct, [Id, Href]}]}},
+			Json = {struct, [Id, Href, Total, Buckets4, Product]},
+			Body  = mochijson:encode(Json),
+			Headers = [{content_type, "application/json"}],
+			{ok, Headers, Body}
+	catch
+		_:product_not_found ->
+			{error, 404};
+		_Error ->
+			{error, 400}
+	end.
  
 -spec get_balance(ProdRef) -> Result
 	when
@@ -186,7 +232,7 @@ query_buckets1(Query, Filters, Headers) ->
 		Result :: {ok, Headers :: [tuple()], Body :: iolist()}
 				| {error, ErrorCode :: integer()}.
 %% @doc Body producing function for
-%%	`GET /balanceManagment/v1/accumulatedBalance/{id}' request
+%%	`GET /balanceManagment/v1/{id}/accumulatedBalance' request
 get_balance(ProdRef) ->
 	try
 		case ocs:get_buckets(ProdRef) of
