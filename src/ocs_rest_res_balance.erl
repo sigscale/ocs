@@ -576,6 +576,8 @@ query_start(Query, Filters, RangeStart, RangeEnd) ->
 					{ok, [{array, [{complex, [{"id", like, [Id]}]},
 							{complex, [{"product", like, [Product]}]}]}]} ->
 						{{like, Id}, {like, Product}};
+					{ok, [{array, [{complex, [{"product", like, [Product]}]}]}]} ->
+						{'_', {like, Product}};
 					{ok, [{array, [{complex, [{"id", like, [Id]}]}]}]} ->
 						{{like, Id}, '_'}
 				end;
