@@ -196,7 +196,7 @@
 				bucketTop.product = {id, href};
 				ajaxBucket.headers['Content-type'] = "application/json";
 				ajaxBucket.body = bucketTop;
-				ajaxBucket.url="/balanceManagement/v1/" + id + "/balanceTopup";
+				ajaxBucket.url="/balanceManagement/v1/product/" + id + "/balanceTopup";
 				ajaxBucket.generateRequest();
 				this.$.addBucketModal.close();
 				document.getElementById("amount").value = null;
