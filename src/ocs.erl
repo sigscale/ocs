@@ -290,21 +290,23 @@ delete_client(Client) when is_tuple(Client) ->
 		Reason :: term().
 %% @hidden
 query_clients(start, {like, String}, Identifier, Port, Protocol, Secret) ->
-	MatchHead = case lists:last(String) of
+	{MatchHead, MatchConditions}  = case lists:last(String) of
 		$% ->
-			Prefix = lists:droplast(String),
-			#client{address = Prefix ++ '_', _ = '_'};
-		_ ->
-			#client{address = String, _  = '_'}
+			{AddressMatch, Conditions} = match_prefix(lists:droplast(String)),
+			{#client{address = AddressMatch, _ = '_'}, Conditions};
+		Address ->
+			{#client{address = inet:parse_address(Address), _  = '_'}, []}
 	end,
-	query_clients1(start, MatchHead, Identifier, Port, Protocol, Secret);
+	query_clients1(start, MatchHead, MatchConditions,
+			Identifier, Port, Protocol, Secret);
 query_clients(start, '_', Identifier, Port, Protocol, Secret) ->
 	MatchHead = #client{_ = '_'},
-	query_clients1(start, MatchHead, Identifier, Port, Protocol, Secret);
+	query_clients1(start, MatchHead, [], Identifier, Port, Protocol, Secret);
 query_clients(Cont, _Address, Identifier, _Port, _Protocol, _Secret) ->
-	query_clients4(Cont, [], Identifier).
+	query_clients4(Cont, [], [], Identifier).
 %% @hidden
-query_clients1(start, MatchHead, Identifier, {like, String}, Protocol, Secret) ->
+query_clients1(start, MatchHead, MatchConditions,
+		Identifier, {like, String}, Protocol, Secret) ->
 	MatchHead1 = case lists:last(String) of
 		$% ->
 			Prefix = lists:droplast(String),
@@ -312,11 +314,15 @@ query_clients1(start, MatchHead, Identifier, {like, String}, Protocol, Secret) -
 		_ ->
 			MatchHead#client{port = String}
 	end,
-	query_clients2(start, MatchHead1, Identifier, Protocol, Secret);
-query_clients1(start, MatchHead, Identifier, '_', Protocol, Secret) ->
-	query_clients2(start, MatchHead, Identifier, Protocol, Secret).
+	query_clients2(start, MatchHead1, MatchConditions,
+			Identifier, Protocol, Secret);
+query_clients1(start, MatchHead, MatchConditions,
+		Identifier, '_', Protocol, Secret) ->
+	query_clients2(start, MatchHead, MatchConditions,
+			Identifier, Protocol, Secret).
 %% @hidden
-query_clients2(start, MatchHead, Identifier, {like, String}, Secret) ->
+query_clients2(start, MatchHead, MatchConditions,
+		Identifier, {like, String}, Secret) ->
 	MatchHead1 = case lists:last(String) of
 		$% ->
 			Prefix = lists:droplast(String),
@@ -324,11 +330,12 @@ query_clients2(start, MatchHead, Identifier, {like, String}, Secret) ->
 		_ ->
 			MatchHead#client{protocol = String}
 	end,
-	query_clients3(start, MatchHead1, Identifier, Secret);
-query_clients2(start, MatchHead, Identifier, '_', Secret) ->
-	query_clients3(start, MatchHead, Identifier, Secret).
+	query_clients3(start, MatchHead1, MatchConditions, Identifier, Secret);
+query_clients2(start, MatchHead, MatchConditions, Identifier, '_', Secret) ->
+	query_clients3(start, MatchHead, MatchConditions, Identifier, Secret).
 %% @hidden
-query_clients3(start, MatchHead, Identifier, {like, String}) ->
+query_clients3(start, MatchHead, MatchConditions,
+		Identifier, {like, String}) ->
 	MatchHead1 = case lists:last(String) of
 		$% ->
 			Prefix = lists:droplast(String),
@@ -336,17 +343,17 @@ query_clients3(start, MatchHead, Identifier, {like, String}) ->
 		_ ->
 			MatchHead#client{secret = String}
 	end,
-	query_clients4(start, MatchHead1, Identifier);
-query_clients3(start, MatchHead, Identifier, '_') ->
-	query_clients4(start, MatchHead, Identifier).
+	query_clients4(start, MatchHead1, MatchConditions, Identifier);
+query_clients3(start, MatchHead, MatchConditions, Identifier, '_') ->
+	query_clients4(start, MatchHead, MatchConditions, Identifier).
 %% @hidden
-query_clients4(start, MatchHead, Identifier) ->
-	MatchSpec = [{MatchHead, [], ['$_']}],
+query_clients4(start, MatchHead, MatchConditions, Identifier) ->
+	MatchSpec = [{MatchHead, MatchConditions, ['$_']}],
 	F = fun() ->
 			mnesia:select(client, MatchSpec, ?CHUNKSIZE, read)
 	end,
 	query_clients5(mnesia:ets(F), Identifier);
-query_clients4(Cont, _MatchHead, Identifier) ->
+query_clients4(Cont, _MatchHead, _MatchConditions, Identifier) ->
 	F = fun() ->
 			mnesia:select(Cont)
 	end,
@@ -2429,3 +2436,31 @@ match(like, String1, String2) ->
 		_ ->
 			lists:prefix(String1, String2)
 	end.
+
+-spec match_prefix(String) -> Result
+	when
+		String :: string(),
+		Result ::{MatchAddress, MatchConditions},
+		MatchAddress :: tuple(),
+		MatchConditions :: [tuple()].
+%% @doc Construct match specification for IP address.
+%% @hidden
+match_prefix(String) ->
+	Ns = [list_to_integer(N) || N <- string:tokens(String, [$.])],
+	match_prefix1(lists:reverse(Ns)).
+%% @hidden
+match_prefix1([N | T]) when N >= 100 ->
+	match_prefix2(T, [N], []);
+match_prefix1([N | T]) when N >= 10 ->
+	match_prefix2(T, ['$1'], [{'or', {'==', '$1', N},
+			{'and', {'>=', '$1', N * 10}, {'<', '$1', (N + 1) * 10}}}]);
+match_prefix1([N | T]) ->
+	match_prefix2(T, ['$1'], [{'or', {'==', '$1', N},
+			{'and', {'>=', '$1', N * 10}, {'<', '$1', (N + 1) * 10}},
+			{'and', {'>=', '$1', N * 100}, {'<', '$1', (N + 1) * 100}}}]).
+%% @hidden
+match_prefix2(T, Head, Conditions) ->
+	Head1 = lists:reverse(T) ++ Head,
+	Head2 = Head1 ++ lists:duplicate(4 - length(Head1), '_'),
+	{list_to_tuple(Head2), Conditions}.
+
