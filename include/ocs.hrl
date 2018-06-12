@@ -45,13 +45,13 @@
 -type rate() :: #rate{}.
 
 -record(client,
-		{address :: inet:ip_address() | undefined,
-		identifier = <<>> :: binary(),
-		port :: inet:port_number() | undefined,
-		protocol :: radius | diameter | undefined,
-		secret :: binary() | undefined,
-		password_required  = true :: boolean(),
-		last_modified :: tuple() | undefined}).
+		{address :: inet:ip_address() | undefined | '_',
+		identifier = <<>> :: binary() | '_',
+		port :: inet:port_number() | undefined | '_',
+		protocol :: radius | diameter | undefined | '_',
+		secret :: binary() | undefined | '_',
+		password_required  = true :: boolean() | '_',
+		last_modified :: tuple() | undefined | '_'}).
 
 -record(alteration,
 		{name :: string() | undefined,
