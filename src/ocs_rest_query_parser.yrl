@@ -127,6 +127,8 @@ field -> word '.' field :
 
 value -> word :
 	element(3, '$1').
+value -> word '.' value :
+	element(3, '$1') ++ "." ++ '$3'.
 
 values -> value :
 	['$1'].
