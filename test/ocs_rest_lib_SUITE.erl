@@ -78,7 +78,7 @@ all() ->
 			filter_match, filter_match_array, filter_match_list, filter_complex,
 			pointer, patch, patch_array, lhs,
 			parse_query1, parse_query2, parse_query3, parse_query4, parse_query5,
-			parse_query6, parse_query7, parse_query8, parse_query9,
+			parse_query6, parse_query7, parse_query8, parse_query9, parse_query10,
 			decimal_in_string, decimal_in_integer, decimal_in_float, decimal_out].
 
 %%---------------------------------------------------------------------
@@ -496,6 +496,16 @@ parse_query9(_Config) ->
 	{"productOffering.productOfferingRelationship",
 			contains, [Exact4]} = Contains,
 	{complex, [{"target.Id", exact, "iphone6S"}]} = Exact4.
+
+parse_query10() ->
+	[{userdata, [{doc, "Query collection using 'like'"}]}].
+
+parse_query10(_Config) ->
+	String = "\"[productOffering.name.like=[level.silver%,level.gold%]]\"",
+	{ok, Tokens, _} = ocs_rest_query_scanner:string(String),
+	{ok, Result} = ocs_rest_query_parser:parse(Tokens),
+	[{array, [Like]}] = Result,
+	{"productOffering.name", like, ["level.silver%", "level.gold%"]} = Like.
 
 decimal_in_string() ->
 	[{userdata, [{doc, "Convert decimal string to millionths"}]}].
