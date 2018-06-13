@@ -285,7 +285,7 @@ delete_client(Client) when is_tuple(Client) ->
 		Port :: Match,
 		Protocol :: Match,
 		Secret :: Match,
-		Match :: {exact, string()} | {notexact, string()} | {like, string()} | '_',
+		Match :: {like, string()} | '_',
 		Result :: {Cont1, [#client{}]} | {error, Reason},
 		Cont1 :: eof | any(),
 		Reason :: term().
@@ -443,7 +443,7 @@ get_products()->
 		MatchId ::  Match,
 		MatchOffer ::  Match,
 		MatchService ::  Match,
-		Match :: {exact, string()} | {notexact, string()} | {like, string()} | '_',
+		Match :: {like, string()} | '_',
 		Result :: {Cont1, [#product{}]} | {error, Reason},
 		Cont1 :: eof | any(),
 		Reason :: term().
@@ -952,7 +952,7 @@ get_buckets(ProdRef) when is_list(ProdRef) ->
 		Cont :: start | any(),
 		MatchId :: Match,
 		MatchProduct :: Match,
-		Match :: {exact, string()} | {notexact, string()} | {like, string()},
+		Match :: {like, string()},
 		Result :: {Cont1, [#bucket{}]} | {error, Reason},
 		Cont1 :: eof | any(),
 		Reason :: term().
@@ -1090,7 +1090,7 @@ get_services()->
 		Cont :: start | any(),
 		MatchId :: Match,
 		MatchProduct :: Match,
-		Match :: {exact, string()} | {notexact, string()} | {like, string()},
+		Match :: {like, string()},
 		Result :: {Cont1, [#service{}]} | {error, Reason},
 		Cont1 :: eof | any(),
 		Reason :: term().
