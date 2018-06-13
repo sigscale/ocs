@@ -286,82 +286,73 @@ delete_client(Client) when is_tuple(Client) ->
 		Protocol :: Match,
 		Secret :: Match,
 		Match :: {exact, string()} | {notexact, string()} | {like, string()} | '_',
-		Result :: {Cont, [#client{}]} | eof | {error, Reason},
+		Result :: {Cont1, [#client{}]} | {error, Reason},
+		Cont1 :: eof | any(),
 		Reason :: term().
 %% @hidden
 query_clients(start, {like, String}, Identifier, Port, Protocol, Secret) ->
 	{MatchHead, MatchConditions}  = case lists:last(String) of
 		$% ->
-			{AddressMatch, Conditions} = match_prefix(lists:droplast(String)),
+			{AddressMatch, Conditions} = match_address(lists:droplast(String)),
 			{#client{address = AddressMatch, _ = '_'}, Conditions};
-		Address ->
-			{#client{address = inet:parse_address(Address), _  = '_'}, []}
+		_ ->
+			{ok, Address} = inet:parse_address(String),
+			{#client{address = Address, _  = '_'}, []}
 	end,
 	query_clients1(start, MatchHead, MatchConditions,
 			Identifier, Port, Protocol, Secret);
 query_clients(start, '_', Identifier, Port, Protocol, Secret) ->
 	MatchHead = #client{_ = '_'},
 	query_clients1(start, MatchHead, [], Identifier, Port, Protocol, Secret);
-query_clients(Cont, _Address, Identifier, _Port, _Protocol, _Secret) ->
-	query_clients4(Cont, [], [], Identifier).
+query_clients(Cont, _Address, Identifier, Port, _Protocol, Secret) ->
+	query_clients2(Cont, [], [], Identifier, Port, Secret).
 %% @hidden
 query_clients1(start, MatchHead, MatchConditions,
-		Identifier, {like, String}, Protocol, Secret) ->
-	MatchHead1 = case lists:last(String) of
-		$% ->
-			Prefix = lists:droplast(String),
-			MatchHead#client{port = Prefix ++ '_'};
-		_ ->
-			MatchHead#client{port = String}
-	end,
-	query_clients2(start, MatchHead1, MatchConditions,
-			Identifier, Protocol, Secret);
-query_clients1(start, MatchHead, MatchConditions,
-		Identifier, '_', Protocol, Secret) ->
-	query_clients2(start, MatchHead, MatchConditions,
-			Identifier, Protocol, Secret).
+		Identifier, Port, {like, String}, Secret) ->
+	try
+		case lists:last(String) of
+			$% ->
+				match_protocol(lists:droplast(String));
+			_ ->
+				case String of
+					"diameter" ->
+						diameter;
+					"DIAMETER" ->
+						diameter;
+					"radius" ->
+						radius;
+					"RADIUS" ->
+						radius;
+					_ ->
+						throw(badarg)
+				end
+		end
+	of
+		Protocol ->
+			query_clients2(start, MatchHead#client{protocol = Protocol},
+					MatchConditions, Identifier, Port, Secret)
+	catch
+		throw:badarg ->
+			{eof, []}
+	end;
+query_clients1(start, MatchHead, MatchConditions, Identifier, Port, '_', Secret) ->
+	query_clients2(start, MatchHead, MatchConditions, Identifier, Port, Secret).
 %% @hidden
-query_clients2(start, MatchHead, MatchConditions,
-		Identifier, {like, String}, Secret) ->
-	MatchHead1 = case lists:last(String) of
-		$% ->
-			Prefix = lists:droplast(String),
-			MatchHead#client{protocol = Prefix ++ '_'};
-		_ ->
-			MatchHead#client{protocol = String}
-	end,
-	query_clients3(start, MatchHead1, MatchConditions, Identifier, Secret);
-query_clients2(start, MatchHead, MatchConditions, Identifier, '_', Secret) ->
-	query_clients3(start, MatchHead, MatchConditions, Identifier, Secret).
-%% @hidden
-query_clients3(start, MatchHead, MatchConditions,
-		Identifier, {like, String}) ->
-	MatchHead1 = case lists:last(String) of
-		$% ->
-			Prefix = lists:droplast(String),
-			MatchHead#client{secret = Prefix ++ '_'};
-		_ ->
-			MatchHead#client{secret = String}
-	end,
-	query_clients4(start, MatchHead1, MatchConditions, Identifier);
-query_clients3(start, MatchHead, MatchConditions, Identifier, '_') ->
-	query_clients4(start, MatchHead, MatchConditions, Identifier).
-%% @hidden
-query_clients4(start, MatchHead, MatchConditions, Identifier) ->
+query_clients2(start, MatchHead, MatchConditions, Identifier, Port, Secret) ->
 	MatchSpec = [{MatchHead, MatchConditions, ['$_']}],
 	F = fun() ->
 			mnesia:select(client, MatchSpec, ?CHUNKSIZE, read)
 	end,
-	query_clients5(mnesia:ets(F), Identifier);
-query_clients4(Cont, _MatchHead, _MatchConditions, Identifier) ->
+	query_clients3(mnesia:ets(F), Identifier, Port, Secret);
+query_clients2(Cont, _MatchHead, _MatchConditions, Identifier, Port, Secret) ->
 	F = fun() ->
 			mnesia:select(Cont)
 	end,
-	query_clients5(mnesia:ets(F), Identifier).
+	query_clients3(mnesia:ets(F), Identifier, Port, Secret).
 %% @hidden
-query_clients5({Clients, Cont}, '_') ->
-	{Cont, Clients};
-query_clients5({Clients, Cont}, {like, String}) ->
+query_clients3({Clients, Cont}, '_', Port, Secret) ->
+	query_clients4({Clients, Cont}, Port, Secret);
+query_clients3({Clients, Cont}, {like, String}, Port, Secret) ->
 	F = case lists:last(String) of
 		$% ->
 			Prefix = list_to_binary(lists:droplast(String)),
@@ -382,9 +373,50 @@ query_clients5({Clients, Cont}, {like, String}) ->
 					false
 			end
 	end,
-	{Cont, lists:filter(F, Clients)};
-query_clients5('$end_of_table', _Identifier) ->
+	query_clients4({lists:filter(F, Clients), Cont}, Port, Secret);
+query_clients3('$end_of_table', _Identifier, _Port, _Secret) ->
       {eof, []}.
+%% @hidden
+query_clients4({Clients, Cont}, '_', Secret) ->
+	query_clients5({Cont, Clients}, Secret);
+query_clients4({Clients, Cont}, {like, String}, Secret) ->
+	F = case lists:last(String) of
+		$% ->
+			Prefix = lists:droplast(String),
+			fun(#client{port = Port}) ->
+					lists:prefix(Prefix, integer_to_list(Port))
+			end;
+		_ ->
+			fun(#client{port = Port}) ->
+					String == integer_to_list(Port)
+			end
+	end,
+	query_clients5({lists:filter(F, Clients), Cont}, Secret).
+%% @hidden
+query_clients5({Clients, Cont}, '_') ->
+	{Cont, Clients};
+query_clients5({Clients, Cont}, {like, String}) ->
+	F = case lists:last(String) of
+		$% ->
+			Prefix = list_to_binary(lists:droplast(String)),
+			Size = size(Prefix),
+			fun(#client{secret = Secret}) ->
+				case binary:part(Secret, 0, Size) of
+					Prefix ->
+						true;
+					_ ->
+						false
+				end
+			end;
+		_ ->
+			ExactMatch = list_to_binary(String),
+			fun(#client{secret = Secret}) when Secret == ExactMatch ->
+					true;
+				(_) ->
+					false
+			end
+	end,
+	{Cont, lists:filter(F, Clients)}.
 
 get_products()->
 	MatchSpec = [{'_', [], ['$_']}],
@@ -2437,7 +2469,7 @@ match(like, String1, String2) ->
 			lists:prefix(String1, String2)
 	end.
 
--spec match_prefix(String) -> Result
+-spec match_address(String) -> Result
 	when
 		String :: string(),
 		Result ::{MatchAddress, MatchConditions},
@@ -2445,22 +2477,55 @@ match(like, String1, String2) ->
 		MatchConditions :: [tuple()].
 %% @doc Construct match specification for IP address.
 %% @hidden
-match_prefix(String) ->
+match_address(String) ->
 	Ns = [list_to_integer(N) || N <- string:tokens(String, [$.])],
-	match_prefix1(lists:reverse(Ns)).
+	match_address1(lists:reverse(Ns)).
 %% @hidden
-match_prefix1([N | T]) when N >= 100 ->
-	match_prefix2(T, [N], []);
-match_prefix1([N | T]) when N >= 10 ->
-	match_prefix2(T, ['$1'], [{'or', {'==', '$1', N},
+match_address1([N | T]) when N >= 100 ->
+	match_address2(T, [N], []);
+match_address1([N | T]) when N >= 10 ->
+	match_address2(T, ['$1'], [{'or', {'==', '$1', N},
 			{'and', {'>=', '$1', N * 10}, {'<', '$1', (N + 1) * 10}}}]);
-match_prefix1([N | T]) ->
-	match_prefix2(T, ['$1'], [{'or', {'==', '$1', N},
+match_address1([N | T]) ->
+	match_address2(T, ['$1'], [{'or', {'==', '$1', N},
 			{'and', {'>=', '$1', N * 10}, {'<', '$1', (N + 1) * 10}},
 			{'and', {'>=', '$1', N * 100}, {'<', '$1', (N + 1) * 100}}}]).
 %% @hidden
-match_prefix2(T, Head, Conditions) ->
+match_address2(T, Head, Conditions) ->
 	Head1 = lists:reverse(T) ++ Head,
 	Head2 = Head1 ++ lists:duplicate(4 - length(Head1), '_'),
 	{list_to_tuple(Head2), Conditions}.
+
+%% @hidden
+match_protocol(Prefix) ->
+	case lists:prefix(Prefix, "diameter") of
+		true ->
+			diameter;
+		false ->
+			match_protocol1(Prefix)
+	end.
+%% @hidden
+match_protocol1(Prefix) ->
+	case lists:prefix(Prefix, "DIAMETER") of
+		true ->
+			diameter;
+		false ->
+			match_protocol2(Prefix)
+	end.
+%% @hidden
+match_protocol2(Prefix) ->
+	case lists:prefix(Prefix, "radius") of
+		true ->
+			radius;
+		false ->
+			match_protocol3(Prefix)
+	end.
+%% @hidden
+match_protocol3(Prefix) ->
+	case lists:prefix(Prefix, "RADIUS") of
+		true ->
+			radius;
+		false ->
+			throw(badmatch)
+	end.
 
