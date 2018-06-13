@@ -444,7 +444,8 @@ get_products()->
 		MatchOffer ::  Match,
 		MatchService ::  Match,
 		Match :: {exact, string()} | {notexact, string()} | {like, string()} | '_',
-		Result :: {Cont, [#product{}]} | eof | {error, Reason},
+		Result :: {Cont1, [#product{}]} | {error, Reason},
+		Cont1 :: eof | any(),
 		Reason :: term().
 %% @doc Query product
 query_product(Cont, '_' = _MatchId, MatchOffer, MatchService) ->
@@ -508,7 +509,7 @@ query_product3({Products, Cont}, {like, String}) when is_list(String) ->
 	end,
 	{Cont, lists:filter(F1, Products)};
 query_product3('$end_of_table', _MatchService) ->
-	eof.
+	{eof, []}.
 
 -spec add_product(Offer, ServiceRefs) -> Result
 	when
@@ -952,7 +953,8 @@ get_buckets(ProdRef) when is_list(ProdRef) ->
 		MatchId :: Match,
 		MatchProduct :: Match,
 		Match :: {exact, string()} | {notexact, string()} | {like, string()},
-		Result :: {Cont, [#bucket{}]} | eof | {error, Reason},
+		Result :: {Cont1, [#bucket{}]} | {error, Reason},
+		Cont1 :: eof | any(),
 		Reason :: term().
 %% @doc Query bucket
 query_bucket(Cont, '_' = _MatchId, MatchProduct) ->
@@ -1089,8 +1091,8 @@ get_services()->
 		MatchId :: Match,
 		MatchProduct :: Match,
 		Match :: {exact, string()} | {notexact, string()} | {like, string()},
-		Result :: {Cont1, [#service{}]} | eof | {error, Reason},
-		Cont1 :: any(),
+		Result :: {Cont1, [#service{}]} | {error, Reason},
+		Cont1 :: eof | any(),
 		Reason :: term().
 %% @doc Query services 
 query_service(Cont, MatchId, '_') ->
@@ -1393,7 +1395,8 @@ delete_offer(OfferID) ->
 		EDT:: Match,
 		Price :: Match,
 		Match :: {exact, string()} | {notexact, string()} | {like, string()} | '_',
-		Result :: {Cont, [#offer{}]} | eof | {error, Reason},
+		Result :: {Cont1, [#offer{}]} | {error, Reason},
+		Cont1 :: eof | any(),
 		Reason :: term().
 %% @doc Query offer entires
 query_offer(Con, '_', '_', Status, STD, EDT, Price) ->
@@ -1439,7 +1442,7 @@ query_offer4(start, Status, STD, EDT, Price, MatchHead, MatchConditions) ->
 		{Offers, Cont} ->
 			query_offer5(Status, STD, EDT, Price, Cont, Offers);
 		'$end_of_table' ->
-			eof
+			{eof, []}
 	end;
 query_offer4(Con, Status, STD, EDT, Price, _MatchHead, _MatchConditions) ->
 	F = fun() -> mnesia:select(Con) end,
@@ -1449,7 +1452,7 @@ query_offer4(Con, Status, STD, EDT, Price, _MatchHead, _MatchConditions) ->
 		{Offers, Cont} ->
 			query_offer5(Status, STD, EDT, Price, Cont, Offers);
 		'$end_of_table' ->
-			eof
+			{eof, []}
 	end.
 %% @hidden
 query_offer5('_', STD, EDT, Price, Cont, Offers) ->
@@ -1499,13 +1502,14 @@ query_offer8({Operator, Price}, Cont, Offers) ->
 
 -spec query_table(Cont, Name, Prefix, Description, Rate, LM) -> Result
 	when
-		Cont :: start | eof | any(),
+		Cont :: start | any(),
 		Name :: undefined | '_' | atom(),
 		Prefix :: undefined | '_' | string(),
 		Description :: undefined | '_' | string(),
 		Rate :: undefined | '_' | string(),
 		LM :: undefined | '_' | tuple(),
-		Result :: {Cont, [#gtt{}]} | {error, Reason},
+		Result :: {Cont1, [#gtt{}]} | {error, Reason},
+		Cont1 :: eof | any(),
 		Reason :: term().
 %% @doc Query pricing logic algorithm entires
 query_table(Cont, Name, Prefix, Description, Rate, undefined) ->
@@ -1782,8 +1786,8 @@ update_user(Username, Password, Language) ->
 		MatchId :: Match,
 		MatchLocale ::Match,
 		Match :: {exact, string()} | {notexact, string()} | {like, string()},
-		Result :: {Cont1, [#httpd_user{}]} | eof | {error, Reason},
-		Cont1 :: any(),
+		Result :: {Cont1, [#httpd_user{}]} | {error, Reason},
+		Cont1 :: eof | any(),
 		Reason :: term().
 %% @doc Query the user table.
 query_users(start, '_', MatchLocale) ->
@@ -1811,7 +1815,7 @@ query_users(Cont, _MatchId, MatchLocale) when is_tuple(Cont) ->
 		{Users, Cont1} ->
 			query_users2(MatchLocale, Cont1, Users);
 		'$end_of_table' ->
-			eof
+			{eof, []}
 	end;
 query_users(start, MatchId, MatchLocale) when is_tuple(MatchId) ->
 	MatchCondition = [match_condition('$1', MatchId)],
@@ -1828,7 +1832,7 @@ query_users1(MatchSpec, MatchLocale) ->
 		{Users, Cont} ->
 			query_users2(MatchLocale, Cont, Users);
 		'$end_of_table' ->
-			eof
+			{eof, []}
 	end.
 %% @hidden
 query_users2('_' = _MatchLocale, Cont, Users) ->
