@@ -152,6 +152,12 @@
 				},
 				activeItem: {
 					observer: '_activeItemChanged'
+				},
+				_filterAddress: {
+					observer: '_filterChangedAddress'
+				},
+				_filterPort: {
+					observer: ' _filterChangedPort'
 				}
 			},
 			_activePageChanged: function(active) {
@@ -176,6 +182,16 @@
 					];
 					grid.dataProvider = this.clientResponse;
 				}
+			},
+			_filterChangedAddress: function(filter) {
+				this.etag = null;
+				delete this.$.getClientAjax.headers['If-Range'];
+				this.$.clientGrid.size = 0;
+			},
+			_filterChangedPort: function(filter) {
+				this.etag = null;
+				delete this.$.getClientAjax.headers['If-Range'];
+				this.$.clientGrid.size = 0;
 			},
 			_activeItemChanged: function(item) {
 				if (item != null){
@@ -206,13 +222,15 @@
 				var ajax = document.getElementById('getClientAjax');
 				delete ajax.params['filter'];
 				function checkHead(param) {
-					return param.path == "id"
+					return param.path == "id" || param.path == "port" 
 				}
 				params.filters.filter(checkHead).forEach(function(filter) {
-					if(ajax.params['filter']) {
-						ajax.params['filter'] += "]},{" + filter.path + ".like=[" + filter.value + "%";
-					} else {
-						ajax.params['filter'] = "\"[{" + filter.path + ".like=[" + filter.value + "%";
+					if(filter.value) {
+						if(ajax.params['filter']) {
+							ajax.params['filter'] += "]},{" + filter.path + ".like=[" + filter.value + "%";
+						} else {
+							ajax.params['filter'] = "\"[{" + filter.path + ".like=[" + filter.value + "%";
+						}
 					}
 				});
 				if (ajax.params['filter']) {
