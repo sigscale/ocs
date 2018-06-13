@@ -134,8 +134,7 @@
 		<iron-ajax
 				id="getClientAjax"
 				url="/ocs/v1/client"
-				on-response="_getClientResponse"
-				on-error="_getClientError">
+				rejectWithRequest>
 		</iron-ajax>
 	</template>
 	<script>
@@ -175,24 +174,7 @@
 							name: "protocol"
 						}
 					];
-					grid.dataProvider = function(params, callback) {
-						var ajax = document.getElementById("getClientAjax");
-						cbClient = callback;
-						params.filters.forEach(function(filter, index) {
-							if(index == 0) {
-								ajax.url += '?' + filter.path + '=' + filter.value;
-							} else {
-								ajax.url += '&' + filter.path + '=' + filter.value;
-							}
-						});
-						StartRange = params.page * params.pageSize + 1;
-						EndRange = StartRange + params.pageSize - 1;
-						ajax.headers['Range'] = "items=" + StartRange + "-" + EndRange;
-						if (etag && StartRange > lastItem) {
-							ajax.headers['If-Range'] = etag;
-						}
-						ajax.generateRequest();
-					};
+					grid.dataProvider = this.clientResponse;
 				}
 			},
 			_activeItemChanged: function(item) {
@@ -219,41 +201,84 @@
 					}
 				}
 			},
-			_getClientResponse: function(event) {
-				var grid = this.$.clientGrid;
-				var results = event.detail.xhr.response;
-				if (grid.size == undefined) {
-					grid.size = 0;
+			clientResponse: function(params, callback) {
+				var grid = document.getElementById('clientGrid');
+				var ajax = document.getElementById('getClientAjax');
+				delete ajax.params['filter'];
+				function checkHead(param) {
+					return param.path == "id"
 				}
-				etag = event.detail.xhr.getResponseHeader('ETag');
-				var range = event.detail.xhr.getResponseHeader('Content-Range');
-				var range1 = range.split("/");
-				var range2 = range1[0].split("-");
-				lastItem = Number(range2[1]);
-				if (range1[1] != "*") {
-					grid.size = Number(range1[1]);
+				params.filters.filter(checkHead).forEach(function(filter) {
+					if(ajax.params['filter']) {
+						ajax.params['filter'] += "]},{" + filter.path + ".like=[" + filter.value + "%";
+					} else {
+						ajax.params['filter'] = "\"[{" + filter.path + ".like=[" + filter.value + "%";
+					}
+				});
+				if (ajax.params['filter']) {
+					ajax.params['filter'] += "]}]\"";
+				}
+				clientList = document.getElementById('clientList');
+				handleAjaxResponse = function(request) {
+					if(request) {
+						clientList.etag = request.xhr.getResponseHeader('ETag');
+						var range = request.xhr.getResponseHeader('Content-Range');
+						var range1 = range.split("/");
+						var range2 = range1[0].split("-");
+						if (range1[1] != "*") {
+							grid.size = Number(range1[1]);
+						} else {
+							grid.size = Number(range2[1]) + grid.pageSize * 2;
+						}
+						var vaadinItems = new Array();
+						function checkChar(characteristic) {
+							return characteristic.name == "id"
+						}
+						for (var index in request.response) {
+							var newRecord = new Object();
+							newRecord.id = request.response[index].id;
+							newRecord.identifier = request.response[index].identifier;
+							newRecord.secret = request.response[index].secret;
+							newRecord.passwordRequired = request.response[index].passwordRequired;
+							newRecord.port = request.response[index].port;
+							newRecord.protocol = request.response[index].protocol;
+							vaadinItems[index] = newRecord;
+						}
+						callback(vaadinItems);
+					} else {
+						grid.size = 0;
+						callback([]);
+					}
+				};
+				handleAjaxError = function(error) {
+					clientList.etag = null;
+					var toast = document.getElementById('userToastError');
+					toast.text = error;
+					toast.open();
+					callback([]);
+				}
+				if (ajax.loading) {
+					ajax.lastRequest.completes.then(function(request) {
+						StartRange = params.page * params.pageSize + 1;
+						EndRange = StartRange + params.pageSize - 1;
+						ajax.headers['Range'] = "items=" + StartRange + "-" + EndRange;
+						if (clientList.etag && params.page > 0) {
+							ajax.headers['If-Range'] = clientList.etag;
+						} else {
+							delete ajax.headers['If-Range'];
+						}
+						return ajax.generateRequest().completes;
+					}, handleAjaxError).then(handleAjaxResponse, handleAjaxError);
 				} else {
-					grid.size = Number(range2[1]) + grid.pageSize * 2;
-				}
-				var vaadinItems = new Array();
-				for (var index in results) {
-					var newRecord = new Object();
-					newRecord.id = results[index].id;
-					newRecord.identifier = results[index].identifier;
-					newRecord.secret = results[index].secret;
-					newRecord.passwordRequired = results[index].passwordRequired;
-					newRecord.port = results[index].port;
-					newRecord.protocol = results[index].protocol;
-					vaadinItems[index] = newRecord;
-				}
-					cbClient(vaadinItems);
-			},
-			_getClientError: function (event) {
-				this.$.clientGrid.size = 0;
-				cbClient([]);
-				if (!lastItem && event.detail.request.xhr.status != 416) {
-					this.$.getClientErrorToast.text = event.detail.request.xhr.statusText;
-					this.$.getClientErrorToast.open();
+					StartRange = params.page * params.pageSize + 1;
+					EndRange = StartRange + params.pageSize - 1;
+					ajax.headers['Range'] = "items=" + StartRange + "-" + EndRange;
+					if (clientList.etag && params.page > 0) {
+						ajax.headers['If-Range'] = clientList.etag;
+					} else {
+						delete ajax.headers['If-Range'];
+					}
+					ajax.generateRequest().completes.then(handleAjaxResponse, handleAjaxError);
 				}
 			},
 			showAddClientModal: function(event) {
