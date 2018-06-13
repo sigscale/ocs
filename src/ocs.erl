@@ -378,7 +378,7 @@ query_clients3('$end_of_table', _Identifier, _Port, _Secret) ->
       {eof, []}.
 %% @hidden
 query_clients4({Clients, Cont}, '_', Secret) ->
-	query_clients5({Cont, Clients}, Secret);
+	query_clients5({Clients, Cont}, Secret);
 query_clients4({Clients, Cont}, {like, String}, Secret) ->
 	F = case lists:last(String) of
 		$% ->
