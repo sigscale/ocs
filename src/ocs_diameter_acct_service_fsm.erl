@@ -310,13 +310,13 @@ service_options(Options) ->
 	{ok, Vsn} = application:get_key(vsn),
 	Version = list_to_integer([C || C <- Vsn, C /= $.]),
 	{ok, Hostname} = inet:gethostname(),
-	Options1 = case lists:keyfind('Origin-Host', 1, Options) of
-		{_, _} ->
+	Options1 = case lists:keymember('Origin-Host', 1, Options) of
+		true ->
 			Options;
 		false ->
 			[{'Origin-Host', Hostname} | Options]
 	end,
-	Options2 = case lists:keymember('Origin-Realm', 1, Options) of
+	Options2 = case lists:keymember('Origin-Realm', 1, Options1) of
 		true ->
 			Options1;
 		false ->
