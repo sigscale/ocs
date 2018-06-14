@@ -1821,7 +1821,7 @@ query_users(start, {notexact, String} = _MatchId, MatchLocale)
 		when is_list(String) ->
 	Username = {'$1', '_', '_', '_'},
 	MatchHead = #httpd_user{username = Username, _ = '_'},
-	[{MatchHead, [{'/=', '$1', String}], ['$_']}]
+	MatchSpec = [{MatchHead, [{'/=', '$1', String}], ['$_']}],
 	query_users1(MatchSpec, MatchLocale);
 query_users(Cont, _MatchId, MatchLocale) when is_tuple(Cont) ->
 	F = fun() ->
