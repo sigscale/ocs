@@ -170,10 +170,12 @@
 					return param.path == "id" || param.path == "product";
 				}
 				params.filters.filter(checkHead).forEach(function(filter) {
-					if(ajax.params['filter']) {
-						ajax.params['filter'] += "]," + filter.path + ".like=[" + filter.value + "%";
-					} else {
-						ajax.params['filter'] = "\"[{" + filter.path + ".like=[" + filter.value + "%";
+					if (filter.value) {
+						if(ajax.params['filter']) {
+							ajax.params['filter'] += "]," + filter.path + ".like=[" + filter.value + "%";
+						} else {
+							ajax.params['filter'] = "\"[{" + filter.path + ".like=[" + filter.value + "%";
+						}
 					}
 				});
 				if (ajax.params['filter']) {
