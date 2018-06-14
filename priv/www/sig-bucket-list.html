@@ -170,10 +170,12 @@
 					return param.path == "id" || param.path == "product";
 				}
 				params.filters.filter(checkHead).forEach(function(filter) {
-					if(ajax.params['filter']) {
-						ajax.params['filter'] += "]," + filter.path + ".like=[" + filter.value + "%";
-					} else {
-						ajax.params['filter'] = "\"[{" + filter.path + ".like=[" + filter.value + "%";
+					if (filter.value) {
+						if(ajax.params['filter']) {
+							ajax.params['filter'] += "]," + filter.path + ".like=[" + filter.value + "%";
+						} else {
+							ajax.params['filter'] = "\"[{" + filter.path + ".like=[" + filter.value + "%";
+						}
 					}
 				});
 				if (ajax.params['filter']) {
@@ -223,7 +225,9 @@
 					var toast = document.getElementById('userToastError');
 					toast.text = error;
 					toast.open();
-					grid.size = 0;
+					if(!grid.size) {
+						grid.size = 0;
+					}
 					callback([]);
 				}
 				if (ajax.loading) {

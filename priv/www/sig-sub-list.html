@@ -324,7 +324,9 @@
 					var toast = document.getElementById('usageToastError');
 					toast.text = error;
 					toast.open();
-					grid.size = 0;
+					if(!grid.size) {
+						grid.size = 0;
+					}
 					callback([]);
 				}
 				if (ajax.loading) {

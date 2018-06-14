@@ -98,8 +98,9 @@ add_client(Address, Port, Protocol, Secret, PasswordRequired) when is_list(Addre
 	add_client(AddressTuple, Port, Protocol, Secret, PasswordRequired);
 add_client(Address, Port, Protocol, Secret, undefined) ->
 	add_client(Address, Port, Protocol, Secret, true);
-add_client(Address, undefined, diameter, undefined, PasswordRequired)
-		when is_tuple(Address), is_boolean(PasswordRequired) ->
+add_client({A, B, C, D} = Address, undefined, diameter, undefined, PasswordRequired)
+		when A >= 1, A =< 255, B >= 0, C =< 255, C >= 0, D =< 255, D >= 1, A < 255,
+		is_boolean(PasswordRequired) ->
 	F = fun() ->
 				TS = erlang:system_time(?MILLISECOND),
 				N = erlang:unique_integer([positive]),
@@ -124,8 +125,9 @@ add_client(Address, undefined, Protocol, Secret, PasswordRequired) ->
 	add_client(Address, 3799, Protocol, Secret, PasswordRequired);
 add_client(Address, Port, Protocol, Secret, PasswordRequired) when is_list(Secret) ->
 	add_client(Address, Port, Protocol, list_to_binary(Secret), PasswordRequired);
-add_client(Address, Port, radius, Secret, PasswordRequired) when
-		is_tuple(Address), is_binary(Secret), is_boolean(PasswordRequired) ->
+add_client({A, B, C, D} = Address, Port, radius, Secret, PasswordRequired)
+		when A >= 1, A =< 255, B >= 0, C =< 255, C >= 0, D =< 255, D >= 1, A < 255,
+		is_binary(Secret), is_boolean(PasswordRequired) ->
 	F = fun() ->
 				TS = erlang:system_time(?MILLISECOND),
 				N = erlang:unique_integer([positive]),
