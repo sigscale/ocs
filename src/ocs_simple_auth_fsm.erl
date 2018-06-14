@@ -480,7 +480,7 @@ start_disconnect(SessionList, #statedata{protocol = radius,
 	end;
 start_disconnect(SessionList, #statedata{protocol = diameter, session_id = SessionID,
 		origin_host = OHost, origin_realm = ORealm, subscriber = SubscriberId} = State) ->
-	case pg2:get_closest_pid(ocs_diamter_acct_port_sup) of
+	case pg2:get_closest_pid(ocs_diameter_acct_port_sup) of
 		{error, Reason} ->
 			error_logger:error_report(["Failed to initiate session disconnect function",
 					{module, ?MODULE}, {subscriber, SubscriberId}, {origin_host, OHost},
