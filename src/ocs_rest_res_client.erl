@@ -333,17 +333,34 @@ delete_client(Id) ->
 
 %% @hidden
 query_start(Query, Filters, RangeStart, RangeEnd) ->
-	Address =  proplists:get_value("address", Query, '_'),
-	Identifier = proplists:get_value("identifier", Query, '_'),
-	Port =  proplists:get_value("port", Query, '_'),
-	Protocol =  proplists:get_value("protocol", Query, '_'),
-	Secret = proplists:get_value("secret", Query, '_'),
-	case supervisor:start_child(ocs_rest_pagination_sup,
-				[[ocs, query_clients, [Address, Identifier, Port, Protocol, Secret]]]) of
-		{ok, PageServer, Etag} ->
-			query_page(PageServer, Etag, Query, Filters, RangeStart, RangeEnd);
-		{error, _} ->
-			{error, 500}
+	try
+		case lists:keyfind("filter", 1, Query) of
+			{_, String} ->
+				{ok, Tokens, _} = ocs_rest_query_scanner:string(String),
+				case ocs_rest_query_parser:parse(Tokens) of
+					{ok, [{array, [{complex, [{"id", like, [Address]}]},
+						{complex, [{"port", like, [Port]}]}]}]} ->
+						{{like, Address}, '_', {like, Port}, '_', '_'};
+					{ok, [{array, [{complex, [{"id", like, [Address]}]}]}]} ->
+						{{like, Address}, '_', '_', '_', '_'};
+					{ok, [{array, [{complex, [{"port", like, [Port]}]}]}]} ->
+						{'_', '_', {like, Port}, '_', '_'}
+				end;
+			false ->
+				{'_', '_', '_', '_', '_'}
+		end
+	of
+		{MatchAddress, MatchId, MatchPort, MatchProtocol, MatchSecret} ->
+			MFA = [ocs, query_clients, [MatchAddress, MatchId, MatchPort, MatchProtocol, MatchSecret]],
+			case supervisor:start_child(ocs_rest_pagination_sup, [MFA]) of
+				{ok, PageServer, Etag} ->
+					query_page(PageServer, Etag, Query, Filters, RangeStart, RangeEnd);
+				{error, _Reason} ->
+					{error, 500}
+			end
+	catch
+		_ ->
+			{error, 400}
 	end.
 
 query_page(PageServer, Etag, _Query, Filters, Start, End) ->
