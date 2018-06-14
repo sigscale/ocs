@@ -86,9 +86,9 @@
 				</template>
 				<vaadin-grid-column width="12ex" flex-grow="2">
 					<template class="header">
-						<vaadin-grid-filter aria-label="[[i18n.cents]]" path="cents" value="[[_filterCents]]">
-							<input placeholder="[[i18n.cents]]" value="{{_filterCents::input}}" focus-target>
-						</vaadin-grid-filter>
+						<i18n-msg msgid="cents">
+							Cents
+						</i18n-msg>
 					</template>
 					<template>
 						<div class="cell numeric">[[item.cents]]</div>
@@ -96,9 +96,9 @@
 				</vaadin-grid-column>
 				<vaadin-grid-column width="12ex" flex-grow="2">
 					<template class="header">
-						<vaadin-grid-filter aria-label="[[i18n.bytes]]" path="remainedAmount" value="[[_filterBalance]]">
-							<input placeholder="[[i18n.bytes]]" value="{{_filterBalance::input}}" focus-target>
-						</vaadin-grid-filter>
+						<i18n-msg msgid="bytes">
+							Bytes
+						</i18n-msg>
 					</template>
 					<template>
 						<div class="cell numeric">[[item.remainedAmount]]</div>
@@ -106,9 +106,9 @@
 				</vaadin-grid-column>
 				<vaadin-grid-column width="12ex" flex-grow="2">
 					<template class="header">
-						<vaadin-grid-filter aria-label="[[i18n.seconds]]" path="seconds" value="[[_filterSeconds]]">
-							<input placeholder="[[i18n.seconds]]" value="{{_filterSeconds::input}}" focus-target>
-						</vaadin-grid-filter>
+						<i18n-msg msgid="seconds">
+							Seconds
+						</i18n-msg>
 					</template>
 					<template>
 						<div class="cell numeric">[[item.seconds]]</div>
@@ -174,7 +174,7 @@
 				}
 				params.filters.filter(checkHead).forEach(function(filter) {
 					if(ajax.params['filter']) {
-						ajax.params['filter'] += "]},{" + filter.path + ".like=[" + filter.value + "%";
+						ajax.params['filter'] += "]," + filter.path + ".like=[" + filter.value + "%";
 					} else {
 						ajax.params['filter'] = "\"[{" + filter.path + ".like=[" + filter.value + "%";
 					}
