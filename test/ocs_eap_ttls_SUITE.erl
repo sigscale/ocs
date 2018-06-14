@@ -236,7 +236,7 @@ eap_ttls_authentication_diameter(Config) ->
 			'Origin-Host' = OriginHost, 'Origin-Realm' = OriginRealm,
 			'EAP-Payload' = [EapMsg]} = DEA1,
 	{ok, HostName} = inet:gethostname(),
-	{ok, #hostent{h_name = Realm}} = inet:gethostbyname(HostName),
+	Realm = inet_db:res_option(domain),
 	OriginHost = list_to_binary(HostName),
 	OriginRealm = list_to_binary(Realm),
 	#eap_packet{code = request, type = ?PWD, identifier = EapId1,
