@@ -119,66 +119,28 @@ get_bucket(BucketId) ->
 				| {error, ErrorCode :: integer()}.
 %% @doc Body producing function for `GET /balanceManagment/v1/bucket/',
 get_buckets(Query, Headers) -> 
-	case lists:keytake("fields", 1, Query) of
-		{value, {_, Filters}, NewQuery} ->
-			query_buckets1(NewQuery, Filters, Headers);
-		false ->
-			query_buckets1(Query, [], Headers)
-	end.
-%% @hidden
-query_buckets1(Query, Filters, Headers) ->
-	case {lists:keyfind("if-match", 1, Headers),
-			lists:keyfind("if-range", 1, Headers),
-			lists:keyfind("range", 1, Headers)} of
-		{{"if-match", Etag}, false, {"range", Range}} ->
-			case global:whereis_name(Etag) of
-				undefined ->
-					{error, 412};
-				PageServer ->
-					case ocs_rest:range(Range) of
-						{error, _} ->
-							{error, 400};
-						{ok, {Start, End}} ->
-							query_page(PageServer, Etag, Query, Filters, Start, End)
-					end
-			end;
-		{{"if-match", Etag}, false, false} ->
-			case global:whereis_name(Etag) of
-				undefined ->
-					{error, 412};
-				PageServer ->
-					query_page(PageServer, Etag, Query, Filters, undefined, undefined)
-			end;
-		{false, {"if-range", Etag}, {"range", Range}} ->
-			case global:whereis_name(Etag) of
-				undefined ->
-					case ocs_rest:range(Range) of
-						{error, _} ->
-							{error, 400};
-						{ok, {Start, End}} ->
-							query_start(Query, Filters, Start, End)
-					end;
-				PageServer ->
-					case ocs_rest:range(Range) of
-						{error, _} ->
-							{error, 400};
-						{ok, {Start, End}} ->
-							query_page(PageServer, Etag, Query, Filters, Start, End)
-					end
-			end;
-		{{"if-match", _}, {"if-range", _}, _} ->
-			{error, 400};
-		{_, {"if-range", _}, false} ->
-			{error, 400};
-		{false, false, {"range", Range}} ->
-			case ocs_rest:range(Range) of
-				{error, _} ->
-					{error, 400};
-				{ok, {Start, End}} ->
-					query_start(Query, Filters, Start, End)
-			end;
-		{false, false, false} ->
-			query_start(Query, Filters, undefined, undefined)
+	try
+		case lists:keytake("filter", 1, Query) of
+			{value, {_, String}, Query1} ->
+				{ok, Tokens, _} = ocs_rest_query_scanner:string(String),
+				case ocs_rest_query_parser:parse(Tokens) of
+					{ok, [{array, [{complex, Complex}]}]} ->
+						MatchId = match("id", Complex, Query),
+						MatchProduct = match("product", Complex, Query),
+						{Query1, [MatchId, MatchProduct]}
+				end;
+			false ->
+				MatchId = match("id", [], Query),
+				MatchProduct = match("product", [], Query),
+				{Query, [MatchId, MatchProduct]}
+		end
+	of
+		{Query2, Args} ->
+			Codec = fun bucket/1,
+			query_filter({ocs, query_bucket, Args}, Codec, Query2, Headers)
+	catch
+		 _ ->
+			{error, 400}
 	end.
 
 -spec get_balance_service(Identity) -> Result
@@ -567,44 +529,86 @@ quantity([], _Q, Acc) ->
 	lists:reverse(Acc).
 
 %% @hidden
-query_start(Query, Filters, RangeStart, RangeEnd) ->
-	try
-		case lists:keyfind("filter", 1, Query) of
-			{_, String} ->
-				{ok, Tokens, _} = ocs_rest_query_scanner:string(String),
-				case ocs_rest_query_parser:parse(Tokens) of
-					{ok, [{array, [{complex, [{"id", like, [Id]}]},
-							{complex, [{"product", like, [Product]}]}]}]} ->
-						{{like, Id}, {like, Product}};
-					{ok, [{array, [{complex, [{"product", like, [Product]}]}]}]} ->
-						{'_', {like, Product}};
-					{ok, [{array, [{complex, [{"id", like, [Id]}]}]}]} ->
-						{{like, Id}, '_'}
-				end;
-			false ->
-				{'_', '_'}
-		end
-	of
-		{MatchId, MatchProduct} ->
-			MFA = [ocs, query_bucket, [MatchId, MatchProduct]],
-				case supervisor:start_child(ocs_rest_pagination_sup, [MFA]) of
-					{ok, PageServer, Etag} ->
-						query_page(PageServer, Etag, Query, Filters, RangeStart, RangeEnd);
-					{error, _Reason} ->
-						{error, 500}
-				end
-	catch
-		 _ ->
-			{error, 400}
+query_filter(MFA, Codec, Query, Headers) ->
+	case lists:keytake("fields", 1, Query) of
+		{value, {_, Filters}, NewQuery} ->
+			query_filter(MFA, Codec, NewQuery, Filters, Headers);
+		false ->
+			query_filter(MFA, Codec, Query, [], Headers)
+	end.
+%% @hidden
+query_filter(MFA, Codec, Query, Filters, Headers) ->
+	case {lists:keyfind("if-match", 1, Headers),
+			lists:keyfind("if-range", 1, Headers),
+			lists:keyfind("range", 1, Headers)} of
+		{{"if-match", Etag}, false, {"range", Range}} ->
+			case global:whereis_name(Etag) of
+				undefined ->
+					{error, 412};
+				PageServer ->
+					case ocs_rest:range(Range) of
+						{error, _} ->
+							{error, 400};
+						{ok, {Start, End}} ->
+							query_page(Codec, PageServer, Etag, Query, Filters, Start, End)
+					end
+			end;
+		{{"if-match", Etag}, false, false} ->
+			case global:whereis_name(Etag) of
+				undefined ->
+					{error, 412};
+				PageServer ->
+					query_page(Codec, PageServer, Etag, Query, Filters, undefined, undefined)
+			end;
+		{false, {"if-range", Etag}, {"range", Range}} ->
+			case global:whereis_name(Etag) of
+				undefined ->
+					case ocs_rest:range(Range) of
+						{error, _} ->
+							{error, 400};
+						{ok, {Start, End}} ->
+							query_start(MFA, Codec, Query, Filters, Start, End)
+					end;
+				PageServer ->
+					case ocs_rest:range(Range) of
+						{error, _} ->
+							{error, 400};
+						{ok, {Start, End}} ->
+							query_page(Codec, PageServer, Etag, Query, Filters, Start, End)
+					end
+			end;
+		{{"if-match", _}, {"if-range", _}, _} ->
+			{error, 400};
+		{_, {"if-range", _}, false} ->
+			{error, 400};
+		{false, false, {"range", Range}} ->
+			case ocs_rest:range(Range) of
+				{error, _} ->
+					{error, 400};
+				{ok, {Start, End}} ->
+					query_start(MFA, Codec, Query, Filters, Start, End)
+			end;
+		{false, false, false} ->
+			query_start(MFA, Codec, Query, Filters, undefined, undefined)
 	end.
 
 %% @hidden
-query_page(PageServer, Etag, _Query, Filters, Start, End) ->
+query_start({M, F, A}, Codec, Query, Filters, RangeStart, RangeEnd) ->
+	case supervisor:start_child(ocs_rest_pagination_sup,
+				[[M, F, A]]) of
+		{ok, PageServer, Etag} ->
+			query_page(Codec, PageServer, Etag, Query, Filters, RangeStart, RangeEnd);
+		{error, _Reason} ->
+			{error, 500}
+	end.
+
+%% @hidden
+query_page(Codec, PageServer, Etag, _Query, Filters, Start, End) ->
 	case gen_server:call(PageServer, {Start, End}) of
 		{error, Status} ->
 			{error, Status};
-		{Events, ContentRange} ->
-			JsonObj = query_page1(lists:map(fun bucket/1, Events), Filters, []),
+		{Result, ContentRange} ->
+			JsonObj = query_page1(lists:map(Codec, Result), Filters, []),
 			JsonArray = {array, JsonObj},
 			Body = mochijson:encode(JsonArray),
 			Headers = [{content_type, "application/json"},
@@ -615,9 +619,24 @@ query_page(PageServer, Etag, _Query, Filters, Start, End) ->
 %% @hidden
 query_page1(Json, [], []) ->
 	Json;
-%% @hidden
 query_page1([H | T], Filters, Acc) ->
 	query_page1(T, Filters, [ocs_rest:fields(Filters, H) | Acc]);
 query_page1([], _, Acc) ->
 	lists:reverse(Acc).
+
+%% @hidden
+match(Key, Complex, Query) ->
+	case lists:keyfind(Key, 1, Complex) of
+		{_, like, [Value]} ->
+			{like, Value};
+		{_, exact, [Value]} ->
+			{exact, Value};
+		false ->
+			case lists:keyfind(Key, 1, Query) of
+				{_, Value} ->
+					{exact, Value};
+				false ->
+					'_'
+			end
+	end.
 
