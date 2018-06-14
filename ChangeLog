@@ -1,3 +1,13 @@
+2018-06-14  Vance Shipley <vances@sigscale.org>
+
+	* advanced rest query patterns: clients, buckets
+	* change accumulated balance uri to match tmf spec
+	* accumulated balance by service id
+	* fix pagination in clients api
+	* allow . in query advanced values
+	* clear filter values on refresh
+	* validate ip address adding clients
+
 2018-06-08  Vance Shipley <vances@sigscale.org>
 
 	* advanced rest query patterns: products
