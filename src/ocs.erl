@@ -285,14 +285,15 @@ delete_client(Client) when is_tuple(Client) ->
 		Port :: Match,
 		Protocol :: Match,
 		Secret :: Match,
-		Match :: {exact, string()} | {notexact, string()} | {like, string()} | '_',
+		Match :: {exact, string()} | {like, string()} | '_',
 		Result :: {Cont1, [#client{}]} | {error, Reason},
 		Cont1 :: eof | any(),
 		Reason :: term().
 %% @hidden
-query_clients(start, {like, String}, Identifier, Port, Protocol, Secret) ->
+query_clients(start, {Op, String}, Identifier, Port, Protocol, Secret)
+		when is_list(String), ((Op == exact) orelse (Op == like)) ->
 	{MatchHead, MatchConditions}  = case lists:last(String) of
-		$% ->
+		$% when Op == like ->
 			{AddressMatch, Conditions} = match_address(lists:droplast(String)),
 			{#client{address = AddressMatch, _ = '_'}, Conditions};
 		_ ->
@@ -308,10 +309,11 @@ query_clients(Cont, _Address, Identifier, Port, _Protocol, Secret) ->
 	query_clients2(Cont, [], [], Identifier, Port, Secret).
 %% @hidden
 query_clients1(start, MatchHead, MatchConditions,
-		Identifier, Port, {like, String}, Secret) ->
+		Identifier, Port, {Op, String}, Secret)
+		when is_list(String), ((Op == exact) orelse (Op == like)) ->
 	try
 		case lists:last(String) of
-			$% ->
+			$% when Op == like ->
 				match_protocol(lists:droplast(String));
 			_ ->
 				case String of
@@ -352,9 +354,10 @@ query_clients2(Cont, _MatchHead, _MatchConditions, Identifier, Port, Secret) ->
 %% @hidden
 query_clients3({Clients, Cont}, '_', Port, Secret) ->
 	query_clients4({Clients, Cont}, Port, Secret);
-query_clients3({Clients, Cont}, {like, String}, Port, Secret) ->
+query_clients3({Clients, Cont}, {Op, String}, Port, Secret)
+		when is_list(String), ((Op == exact) orelse (Op == like)) ->
 	F = case lists:last(String) of
-		$% ->
+		$% when Op == like ->
 			Prefix = list_to_binary(lists:droplast(String)),
 			Size = size(Prefix),
 			fun(#client{identifier = Identifier}) ->
@@ -379,9 +382,10 @@ query_clients3('$end_of_table', _Identifier, _Port, _Secret) ->
 %% @hidden
 query_clients4({Clients, Cont}, '_', Secret) ->
 	query_clients5({Clients, Cont}, Secret);
-query_clients4({Clients, Cont}, {like, String}, Secret) ->
+query_clients4({Clients, Cont}, {Op, String}, Secret)
+		when is_list(String), ((Op == exact) orelse (Op == like)) ->
 	F = case lists:last(String) of
-		$% ->
+		$% when Op == like ->
 			Prefix = lists:droplast(String),
 			fun(#client{port = Port}) ->
 					lists:prefix(Prefix, integer_to_list(Port))
@@ -395,9 +399,10 @@ query_clients4({Clients, Cont}, {like, String}, Secret) ->
 %% @hidden
 query_clients5({Clients, Cont}, '_') ->
 	{Cont, Clients};
-query_clients5({Clients, Cont}, {like, String}) ->
+query_clients5({Clients, Cont}, {Op, String})
+		when is_list(String), ((Op == exact) orelse (Op == like)) ->
 	F = case lists:last(String) of
-		$% ->
+		$% when Op == like ->
 			Prefix = list_to_binary(lists:droplast(String)),
 			Size = size(Prefix),
 			fun(#client{secret = Secret}) ->
@@ -443,7 +448,7 @@ get_products()->
 		MatchId ::  Match,
 		MatchOffer ::  Match,
 		MatchService ::  Match,
-		Match :: {exact, string()} | {notexact, string()} | {like, string()} | '_',
+		Match :: {exact, string()} | {like, string()} | '_',
 		Result :: {Cont1, [#product{}]} | {error, Reason},
 		Cont1 :: eof | any(),
 		Reason :: term().
@@ -451,9 +456,10 @@ get_products()->
 query_product(Cont, '_' = _MatchId, MatchOffer, MatchService) ->
 	 MatchHead = #product{_ = '_'},
 	query_product1(Cont, MatchHead, MatchOffer, MatchService);
-query_product(Cont, {like, String}, MatchOffer, MatchService) when is_list(String) ->
+query_product(Cont, {Op, String}, MatchOffer, MatchService)
+		when is_list(String), ((Op == exact) orelse (Op == like)) ->
 	MatchHead = case lists:last(String) of
-		$% ->
+		$% when Op == like ->
 			Prefix = lists:droplast(String),
 			#product{id = Prefix ++ '_', _ = '_'};
 		_ ->
@@ -464,9 +470,10 @@ query_product(Cont, {like, String}, MatchOffer, MatchService) when is_list(Strin
 query_product1(Cont, MatchHead, '_', MatchService) ->
 	MatchSpec = [{MatchHead, [], ['$_']}],
 	query_product2(Cont, MatchSpec, MatchService);
-query_product1(Cont, MatchHead, {like, String} = _MatchOffer, MatchService) when is_list(String) ->
+query_product1(Cont, MatchHead, {Op, String} = _MatchOffer, MatchService)
+		when is_list(String), ((Op == exact) orelse (Op == like)) ->
 	MatchHead1 = case lists:last(String) of
-		$% ->
+		$% when Op == like ->
 			Prefix = lists:droplast(String),
 			MatchHead#product{product = Prefix ++ '_'};
 		_ ->
@@ -488,9 +495,10 @@ query_product2(Cont, _MatchSpec, MatchService) ->
 %% @hidden
 query_product3({Products, Cont}, '_') ->
 	{Cont, Products};
-query_product3({Products, Cont}, {like, String}) when is_list(String) ->
+query_product3({Products, Cont}, {Op, String})
+		when is_list(String), ((Op == exact) orelse (Op == like)) ->
 	F1 = case lists:last(String) of
-		$% ->
+		$% when Op == like ->
 			Prefix = list_to_binary(lists:droplast(String)),
 			Size = size(Prefix),
 			F2 = fun(<<P:Size/binary, _/binary>>) when P == Prefix ->
@@ -952,7 +960,7 @@ get_buckets(ProdRef) when is_list(ProdRef) ->
 		Cont :: start | any(),
 		MatchId :: Match,
 		MatchProduct :: Match,
-		Match :: {exact, string()} | {notexact, string()} | {like, string()},
+		Match :: {exact, string()} | {like, string()} | '_',
 		Result :: {Cont1, [#bucket{}]} | {error, Reason},
 		Cont1 :: eof | any(),
 		Reason :: term().
@@ -960,9 +968,10 @@ get_buckets(ProdRef) when is_list(ProdRef) ->
 query_bucket(Cont, '_' = _MatchId, MatchProduct) ->
 	MatchSpec = [{'_', [], ['$_']}],
 	query_bucket1(Cont, MatchSpec, MatchProduct);
-query_bucket(Cont, {like, Id}, MatchProduct) when is_list(Id) ->
+query_bucket(Cont, {Op, Id}, MatchProduct)
+		when is_list(Id), ((Op == exact) orelse (Op == like)) ->
 	MatchSpec = case lists:last(Id) of
-		$% ->
+		$% when Op == like ->
 			Prefix = lists:droplast(Id),
 			MatchHead = #bucket{id = Prefix ++ '_', _ = '_'},
 			[{MatchHead, [], ['$_']}];
@@ -985,10 +994,10 @@ query_bucket1(Cont, _MatchSpec, MatchProduct) ->
 %% @hidden
 query_bucket2({Buckets, Cont}, '_') ->
 	{Cont, Buckets};
-query_bucket2({Buckets, Cont}, {like, String}) ->
-
+query_bucket2({Buckets, Cont}, {Op, String})
+		when is_list(String), ((Op == exact) orelse (Op == like)) ->
 	F1 = case lists:last(String) of
-		$% ->
+		$% when Op == like ->
 			Prefix = lists:droplast(String),
 			fun(#bucket{product = Products}) ->
 					F2 = fun(P) ->
@@ -1090,7 +1099,7 @@ get_services()->
 		Cont :: start | any(),
 		MatchId :: Match,
 		MatchProduct :: Match,
-		Match :: {exact, string()} | {notexact, string()} | {like, string()},
+		Match :: {exact, string()} | {like, string()} | '_',
 		Result :: {Cont1, [#service{}]} | {error, Reason},
 		Cont1 :: eof | any(),
 		Reason :: term().
@@ -1098,10 +1107,10 @@ get_services()->
 query_service(Cont, MatchId, '_') ->
 	MatchSpec = [{'_', [], ['$_']}],
 	query_service1(Cont, MatchSpec, MatchId);
-query_service(Cont, MatchId, {like, String} = _MatchProduct)
-		when is_list(String) ->
+query_service(Cont, MatchId, {Op, String} = _MatchProduct)
+		when is_list(String), ((Op == exact) orelse (Op == like)) ->
 	Product = case lists:last(String) of
-		$% ->
+		$% when Op == like ->
 			lists:droplast(String) ++ '_';
 		_ ->
          String
@@ -1123,9 +1132,10 @@ query_service1(Cont, _MatchSpec, MatchId) ->
 %% @hidden
 query_service2({Services, Cont}, '_') ->
 	{Cont, Services};
-query_service2({Services, Cont}, {like, String}) ->
+query_service2({Services, Cont}, {Op, String})
+		when is_list(String), ((Op == exact) orelse (Op == like)) ->
 	F = case lists:last(String) of
-		$% ->
+		$% when Op == like ->
 			Prefix = list_to_binary(lists:droplast(String)),
 			Size = size(Prefix),
 			fun(#service{name = Name}) ->
@@ -1793,10 +1803,10 @@ update_user(Username, Password, Language) ->
 query_users(start, '_', MatchLocale) ->
 	MatchSpec = [{'_', [], ['$_']}],
 	query_users1(MatchSpec, MatchLocale);
-query_users(start, {like, String} = _MatchId, MatchLocale)
-		when is_list(String) ->
+query_users(start, {Op, String} = _MatchId, MatchLocale)
+		when is_list(String), ((Op == exact) orelse (Op == like)) ->
 	MatchSpec = case lists:last(String) of
-		$% ->
+		$% when Op == like ->
 			Prefix = lists:droplast(String),
 			Username = {Prefix ++ '_', '_', '_', '_'},
 			MatchHead = #httpd_user{username = Username, _ = '_'},
@@ -1806,6 +1816,12 @@ query_users(start, {like, String} = _MatchId, MatchLocale)
 			MatchHead = #httpd_user{username = Username, _ = '_'},
 			[{MatchHead, [], ['$_']}]
 	end,
+	query_users1(MatchSpec, MatchLocale);
+query_users(start, {notexact, String} = _MatchId, MatchLocale)
+		when is_list(String) ->
+	Username = {'$1', '_', '_', '_'},
+	MatchHead = #httpd_user{username = Username, _ = '_'},
+	[{MatchHead, [{'/=', '$1', String}], ['$_']}]
 	query_users1(MatchSpec, MatchLocale);
 query_users(Cont, _MatchId, MatchLocale) when is_tuple(Cont) ->
 	F = fun() ->

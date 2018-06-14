@@ -324,79 +324,31 @@ get_plas(_Query, _Headers) ->
 	Status	:: 400 | 404 | 412 | 500 .
 %% @doc Respond to `GET /productInventoryManagement/v2/product'.
 %% 	Retrieve all Product Inventories.
-%% @todo Filtering
 get_inventories(Query, Headers) ->
-%%	ID =  proplists:get_value("id", Query, '_'),
-%%	Name =  proplists:get_value("name", Query, '_'),
-%%	Offer = proplists:get_value("productOffering", Query, '_'),
-%%	SDT = proplists:get_value("startDate", Query, '_'),
-%%	EDT = proplists:get_value("endDate", Query, '_'),
-%%	Service = proplists:get_value("service", Query, '_'),
-%%	M = ocs,
-%%	F = query_product,
-%%	A = [ID, Name, Offer, SDT, EDT, Service],
-%%	Codec = fun inventory/1,
-%%	query_filter({M, F, A}, Codec, Query, Headers).
-	case lists:keytake("fields", 1, Query) of 
-		{value, {_, Filters}, NewQuery} ->
-			get_productInventories1(NewQuery, Filters, Headers);
-		false ->
-			get_productInventories1(Query, [], Headers)
-	end.
-%% @hidden
-get_productInventories1(Query, Filters, Headers) ->
-	case {lists:keyfind("if-match", 1, Headers),
-			lists:keyfind("if-range", 1, Headers),
-			lists:keyfind("range", 1, Headers)} of
-		{{"if-match", Etag}, false, {"range", Range}} ->
-			case global:whereis_name(Etag) of
-				undefined ->
-					{error, 412};
-				PageServer ->
-					case ocs_rest:range(Range) of
-						{error, _} ->
-							{error, 400};
-						{ok, {Start, End}} ->
-							query_pageProduct(PageServer, Etag, Query, Filters, Start, End)
-					end
-			end;
-		{{"if-match", Etag}, false, false} ->
-			case global:whereis_name(Etag) of
-				undefined ->
-					{error, 412};
-				PageServer ->
-					query_pageProduct(PageServer, Etag, Query, Filters, undefined, undefined)
-			end;
-		{false, {"if-range", Etag}, {"range", Range}} ->
-			case global:whereis_name(Etag) of
-				undefined ->
-					case ocs_rest:range(Range) of
-						{error, _} ->
-							{error, 400};
-						{ok, {Start, End}} ->
-							query_startProduct(Query, Filters, Start, End)
-					end;
-				PageServer ->
-					case ocs_rest:range(Range) of
-						{error, _} ->
-							{error, 400};
-						{ok, {Start, End}} ->
-							query_pageProduct(PageServer, Etag, Query, Filters, Start, End)
-					end
-			end;
-		{{"if-match", _}, {"if-range", _}, _} ->
-			{error, 400};
-		{_, {"if-range", _}, false} ->
-			{error, 400};
-		{false, false, {"range", Range}} ->
-			case ocs_rest:range(Range) of
-				{error, _} ->
-					{error, 400};
-				{ok, {Start, End}} ->
-					query_startProduct(Query, Filters, Start, End)
-			end;
-		{false, false, false} ->
-			query_startProduct(Query, Filters, undefined, undefined)
+	try
+		case lists:keytake("filter", 1, Query) of
+			{value, {_, String}, Query1} ->
+				{ok, Tokens, _} = ocs_rest_query_scanner:string(String),
+				case ocs_rest_query_parser:parse(Tokens) of
+					{ok, [{array, [{complex, Complex}]}]} ->
+						MatchId = match("id", Complex, Query),
+						MatchProduct = match("product", Complex, Query),
+						MatchService = match("service", Complex, Query),
+						{Query1, [MatchId, MatchProduct, MatchService]}
+				end;
+			false ->
+				MatchId = match("id", [], Query),
+				MatchProduct = match("product", [], Query),
+				MatchService = match("service", [], Query),
+				{Query, [MatchId, MatchProduct, MatchService]}
+		end
+	of
+		{Query2, Args} ->
+			Codec = fun inventory/1,
+			query_filter({ocs, query_product, Args}, Codec, Query2, Headers)
+	catch
+		_ ->
+			{error, 400}
 	end.
 
 -spec get_catalog(Id, Query) -> Result when
@@ -2189,66 +2141,6 @@ instance_chars([], Acc) ->
 	lists:reverse(Acc).
 
 %% @hidden
-query_startProduct(Query, Filters, RangeStart, RangeEnd) ->
-	try
-		case lists:keyfind("filter", 1, Query) of
-			{_, String} ->
-				{ok, Tokens, _} = ocs_rest_query_scanner:string(String),
-				case ocs_rest_query_parser:parse(Tokens) of
-					{ok, [{array, [{complex, [{"id", like, [Id]}]},
-							{complex, [{"product", like, [Product]}]},
-							{complex, [{"service", like, [Service]}]}]}]} ->
-						{{like, Id}, {like, Product}, {like, Service}};
-					{ok, [{array, [{complex, [{"id", like, [Id]}]},
-							{complex, [{"product", like, [Product]}]}]}]} ->
-						{{like, Id}, {like, Product}, '_'};
-					{ok, [{array, [{complex, [{"id", like, [Id]}]}]}]} ->
-						{{like, Id}, '_', '_'};
-					{ok, [{array, [{complex, [{"product", like, [Product]}]}]}]} ->
-						{'_', {like, Product}, '_'};
-					{ok, [{array, [{complex, [{"service", like, [Service]}]}]}]} ->
-						{'_', '_', {like, Service}}
-				end;
-			false ->
-				{'_', '_', '_'}
-		end
-	of
-		{MatchId, MatchProduct, MatchService} ->
-			MFA = [ocs, query_product, [MatchId, MatchProduct, MatchService]],
-			case supervisor:start_child(ocs_rest_pagination_sup, [MFA]) of
-				{ok, PageServer, Etag} ->
-					query_pageProduct(PageServer, Etag, Query, Filters, RangeStart, RangeEnd);
-				{error, _Reason} ->
-					{error, 500}
-			end
-	catch
-		_ ->
-			{error, 400}
-	end.
-		
-%% @hidden
-query_pageProduct(PageServer, Etag, _Query, Filters, Start, End) ->
-	case gen_server:call(PageServer, {Start, End}) of
-		{error, Status} ->
-			{error, Status};
-		{Events, ContentRange} ->
-			JsonObj = query_pageProduct1(lists:map(fun inventory/1, Events), Filters, []),
-			JsonArray = {array, JsonObj},
-			Body = mochijson:encode(JsonArray),
-			Headers = [{content_type, "application/json"},
-					{etag, Etag}, {accept_ranges, "items"},
-					{content_range, ContentRange}],
-			{ok, Headers, Body}
-	end.
-%% @hidden
-query_pageProduct1([], _, Acc) ->
-	lists:reverse(Acc);
-query_pageProduct1(Json, [], Acc) ->
-	lists:reverse(Json ++ Acc);
-query_pageProduct1([H | T], Filters, Acc) ->
-	query_pageProduct1(T, Filters, [ocs_rest:fields(Filters, H) | Acc]).
-
-%% @hidden
 query_filter(MFA, Codec, Query, Headers) ->
 	case lists:keytake("fields", 1, Query) of
 		{value, {_, Filters}, NewQuery} ->
@@ -2343,4 +2235,20 @@ query_page1([H | T], Filters, Acc) ->
 	query_page1(T, Filters, [ocs_rest:fields(Filters, H) | Acc]);
 query_page1([], _, Acc) ->
 	lists:reverse(Acc).
+
+%% @hidden
+match(Key, Complex, Query) ->
+	case lists:keyfind(Key, 1, Complex) of
+		{_, like, [Value]} ->
+			{like, Value};
+		{_, exact, [Value]} ->
+			{exact, Value};
+		false ->
+			case lists:keyfind(Key, 1, Query) of
+				{_, Value} ->
+					{exact, Value};	
+				false ->
+					'_' 
+			end
+	end.
 
