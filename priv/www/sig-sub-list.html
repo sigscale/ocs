@@ -74,9 +74,9 @@
 			</vaadin-grid-column>
 			<vaadin-grid-column width="14ex">
 				<template class="header">
-					<vaadin-grid-filter aria-label="[[i18n.password]]" path="password" value="[[_filterPassword]]">
-						<input placeholder="[[i18n.password]]" value="{{_filterPassword::input}}" focus-target>
-					</vaadin-grid-filter>
+					<i18n-msg msgid="password">
+						Password
+					</i18n-msg>
 				</template>
 				<template>[[item.password]]</template>
 			</vaadin-grid-column>
@@ -90,17 +90,17 @@
 			</vaadin-grid-column>
 			<vaadin-grid-column width="8ex" flex-grow="1">
 				<template class="header">
-					<vaadin-grid-filter aria-label="[[i18n.enable]]" path="enabled" value="[[_filterEnabled]]">
-						<input placeholder="[[i18n.enable]]" value="{{_filterEnabled::input}}" focus-target>
-					</vaadin-grid-filter>
+					<i18n-msg msgid="enable">
+						Enabled
+					</i18n-msg>
 				</template>
 				<template>[[item.enabled]]</template>
 			</vaadin-grid-column>
 			<vaadin-grid-column width="8ex" flex-grow="1">
 				<template class="header">
-					<vaadin-grid-filter aria-label="[[i18n.multi]]" path="multisession" value="[[_filterMulti]]">
-						<input placeholder="[[i18n.multi]]" value="{{_filterMulti::input}}" focus-target>
-					</vaadin-grid-filter>
+					<i18n-msg msgid="multi">
+						Multisession
+					</i18n-msg>
 				</template>
 				<template>[[item.multisession]]</template>
 			</vaadin-grid-column>
@@ -252,7 +252,7 @@
 				}
 				params.filters.filter(checkHead).forEach(function(filter) {
 					if(ajax.params['filter']) {
-						ajax.params['filter'] += "]},{" + filter.path + ".like=[" + filter.value + "%";
+						ajax.params['filter'] += "]," + filter.path + ".like=[" + filter.value + "%";
 					} else {
 						ajax.params['filter'] = "\"[{" + filter.path + ".like=[" + filter.value + "%";
 					}
