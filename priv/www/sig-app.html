@@ -522,10 +522,10 @@
 						document.getElementById('offerGrid').clearCache();
 						break;
 					case 1:
-						document.getElementById('subscriberGrid').clearCache();
+						this.$.serviceList.refreshSub();
 						break;
 					case 2:
-						document.getElementById('clientGrid').clearCache();
+						this.$.clientList.refreshClient();
 						break;
 					case 3:
 						document.getElementById('userGrid').clearCache();
@@ -552,7 +552,7 @@
 						document.getElementById('balanceGrid').clearCache();
 						break;
 					case 11:
-						document.getElementById('productInventoryGrid').clearCache();
+						this.$.productList.refreshProduct();
 						break;
 					case 12:
 						document.getElementById('balanceBucketGrid').clearCache();

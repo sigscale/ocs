@@ -113,6 +113,15 @@
 					type: Boolean,
 					value: false,
 					observer: '_activePageChanged'
+				},
+				_filterProId: {
+					observer: '_filterChangedProId'
+				},
+				_filterIdentity: {
+					observer: 'filterChangedIdentity'
+				},
+				_filterOffer: {
+					observer: 'filterChangedOffer'
 				}
 			},
 			_activePageChanged: function(active) {
@@ -131,6 +140,29 @@
 					];
 					grid.dataProvider = this._getProduct;
 				}
+			},
+			_filterChangedProId: function(filter) {
+				this.etag = null;
+				delete this.$.getProductInventory.headers['If-Range'];
+				this.$.productInventoryGrid.size = 0;
+			},
+			filterChangedIdentity: function(filter) {
+				this.etag = null;
+				delete this.$.getProductInventory.headers['If-Range'];
+				this.$.productInventoryGrid.size = 0;
+			},
+			filterChangedOffer: function(filter) {
+				this.etag = null;
+				delete this.$.getProductInventory.headers['If-Range'];
+				this.$.productInventoryGrid.size = 0;
+			},
+			refreshProduct: function() {
+				this.etag = null;
+				delete this.$.getProductInventory.headers['If-Range'];
+				delete this.$.getProductInventory.params['filter'];
+				this._filterProId = null;
+				this._filterIdentity = null;
+				this._filterOffer = null;
 			},
 			_getProduct: function(params, callback) {
 				var grid = document.getElementById('productInventoryGrid');

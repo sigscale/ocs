@@ -217,6 +217,13 @@
 					}
 				}
 			},
+			refreshClient: function() {
+				this.etag = null;
+				delete this.$.getClientAjax.headers['If-Range'];
+				delete this.$.getClientAjax.params['filter'];
+				this._filterAddress = null;
+				this._filterPort = null;
+			},
 			clientResponse: function(params, callback) {
 				var grid = document.getElementById('clientGrid');
 				var ajax = document.getElementById('getClientAjax');

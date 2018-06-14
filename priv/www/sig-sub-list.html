@@ -243,18 +243,27 @@
 					document.getElementById("updateSubscriberMulti").checked =  item.multisession;
 				}
 			},
+			refreshSub: function() {
+				this.etag = null;
+				delete this.$.getSubscriberAjax.headers['If-Range'];
+				delete this.$.getSubscriberAjax.params['filter'];
+				this._filterIdentity = null;
+				this._filterBalance = null;
+			},
 			_getSubscriberResponse: function(params, callback) {
 				var grid = document.getElementById('subscriberGrid');
-				var ajax = document.getElementById("getSubscriberAjax"); 
+				var ajax = document.getElementById('getSubscriberAjax'); 
 				delete ajax.params['filter'];
 				function checkHead(param) {
 					return param.path == "id" || param.path == "product";
 				}
 				params.filters.filter(checkHead).forEach(function(filter) {
-					if(ajax.params['filter']) {
-						ajax.params['filter'] += "]," + filter.path + ".like=[" + filter.value + "%";
-					} else {
-						ajax.params['filter'] = "\"[{" + filter.path + ".like=[" + filter.value + "%";
+					if(filter.value) {
+						if(ajax.params['filter']) {
+							ajax.params['filter'] += "]," + filter.path + ".like=[" + filter.value + "%";
+						} else {
+							ajax.params['filter'] = "\"[{" + filter.path + ".like=[" + filter.value + "%";
+						}
 					}
 				});
 				if (ajax.params['filter']) {
