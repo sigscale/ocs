@@ -2208,7 +2208,8 @@ get_balance(Config) ->
 	AcceptValue = "application/json",
 	Accept = {"accept", AcceptValue},
 	Balance = B1#bucket.remain_amount + B2#bucket.remain_amount,
-	GETURI = HostUrl ++ "/balanceManagement/v1/accumulatedBalance/" ++ ProdRef,
+	Path = "/balanceManagement/v1/product/" ++ ProdRef ++ "/accumulatedBalance",
+	GETURI = HostUrl ++ Path,
 	GETRequest = {GETURI, [Accept, auth_header()]},
 	{ok, GETResult} = httpc:request(get, GETRequest, [], []),
 	{{"HTTP/1.1", 200, _OK}, Headers, Body} = GETResult,
@@ -2220,7 +2221,51 @@ get_balance(Config) ->
 	{_, {array, [{struct, Product}]}} = lists:keyfind("product", 1, PrePayBalance),
 	{_, {array, Buckets}} = lists:keyfind("buckets", 1, PrePayBalance),
 	{_, ProdRef} = lists:keyfind("id", 1, Product),
-	{_, "/balanceManagement/v1/accumulatedBalance/" ++ ProdRef} =
+	{_, Path} =
+			lists:keyfind("href", 1, Product),
+	F = fun({struct, B}) ->
+		case lists:keyfind("id", 1, B) of
+			{_, Id} when Id == BId1; Id == BId2 ->
+				true;
+			_ ->
+				false
+		end
+	end,
+	true = lists:all(F, Buckets),
+	{_, Balance1} = lists:keyfind("amount", 1, TotalAmount),
+	Balance1 = ocs_rest:millionths_out(Balance).
+
+get_balance_service() ->
+	[{userdata, [{doc,"TMF654 Prepay Balance Management API :
+			Get accumulated balance for given service identifier"}]}].
+
+get_balance_service(Config) ->
+	HostUrl = ?config(host_url, Config),
+	P1 = price(usage, octets, rand:uniform(10000), rand:uniform(100)),
+	OfferId = offer_add([P1], 4),
+	ProdRef = product_add(OfferId),
+	B1 = b(cents, 10000),
+	B2 = b(cents, 5),
+	{_, _, #bucket{id = BId1}} = ocs:add_bucket(ProdRef, B1),
+	{_, _, #bucket{id = BId2}} = ocs:add_bucket(ProdRef, B2),
+	ServiceId = service_add(ProdRef),
+	AcceptValue = "application/json",
+	Accept = {"accept", AcceptValue},
+	Balance = B1#bucket.remain_amount + B2#bucket.remain_amount,
+	Path = "/balanceManagement/v1/service/" ++ ServiceId ++ "/accumulatedBalance",
+	GETURI = HostUrl ++ Path,
+	GETRequest = {GETURI, [Accept, auth_header()]},
+	{ok, GETResult} = httpc:request(get, GETRequest, [], []),
+	{{"HTTP/1.1", 200, _OK}, Headers, Body} = GETResult,
+	{_, "application/json"} = lists:keyfind("content-type", 1, Headers),
+	ContentLength = integer_to_list(length(Body)),
+	{_, ContentLength} = lists:keyfind("content-length", 1, Headers),
+	{struct, PrePayBalance} = mochijson:decode(Body),
+	{_, {struct, TotalAmount}} = lists:keyfind("totalBalance", 1, PrePayBalance),
+	{_, {array, [{struct, Product}]}} = lists:keyfind("product", 1, PrePayBalance),
+	{_, {array, Buckets}} = lists:keyfind("buckets", 1, PrePayBalance),
+	{_, ProdRef} = lists:keyfind("id", 1, Product),
+	{_, Path} =
 			lists:keyfind("href", 1, Product),
 	F = fun({struct, B}) ->
 		case lists:keyfind("id", 1, B) of
