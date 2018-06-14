@@ -113,9 +113,6 @@
 					type: Boolean,
 					value: false,
 					observer: '_activePageChanged'
-				},
-				activeItem: {
-					observer: '_activeItemChanged'
 				}
 			},
 			_activePageChanged: function(active) {
@@ -190,6 +187,7 @@
 					var toast = document.getElementById('userToastError');
 					toast.text = error;
 					toast.open();
+					grid.size = 0;
 					callback([]);
 				}
 				if (ajax.loading) {
