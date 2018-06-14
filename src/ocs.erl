@@ -285,7 +285,7 @@ delete_client(Client) when is_tuple(Client) ->
 		Port :: Match,
 		Protocol :: Match,
 		Secret :: Match,
-		Match :: {like, string()} | '_',
+		Match :: {exact, string()} | {like, string()} | '_',
 		Result :: {Cont1, [#client{}]} | {error, Reason},
 		Cont1 :: eof | any(),
 		Reason :: term().
@@ -448,7 +448,7 @@ get_products()->
 		MatchId ::  Match,
 		MatchOffer ::  Match,
 		MatchService ::  Match,
-		Match :: {like, string()} | '_',
+		Match :: {exact, string()} | {like, string()} | '_',
 		Result :: {Cont1, [#product{}]} | {error, Reason},
 		Cont1 :: eof | any(),
 		Reason :: term().
@@ -960,7 +960,7 @@ get_buckets(ProdRef) when is_list(ProdRef) ->
 		Cont :: start | any(),
 		MatchId :: Match,
 		MatchProduct :: Match,
-		Match :: {like, string()},
+		Match :: {exact, string()} | {like, string()} | '_',
 		Result :: {Cont1, [#bucket{}]} | {error, Reason},
 		Cont1 :: eof | any(),
 		Reason :: term().
@@ -1099,7 +1099,7 @@ get_services()->
 		Cont :: start | any(),
 		MatchId :: Match,
 		MatchProduct :: Match,
-		Match :: {like, string()},
+		Match :: {exact, string()} | {like, string()} | '_',
 		Result :: {Cont1, [#service{}]} | {error, Reason},
 		Cont1 :: eof | any(),
 		Reason :: term().
@@ -1816,6 +1816,12 @@ query_users(start, {Op, String} = _MatchId, MatchLocale)
 			MatchHead = #httpd_user{username = Username, _ = '_'},
 			[{MatchHead, [], ['$_']}]
 	end,
+	query_users1(MatchSpec, MatchLocale);
+query_users(start, {notexact, String} = _MatchId, MatchLocale)
+		when is_list(String) ->
+	Username = {'$1', '_', '_', '_'},
+	MatchHead = #httpd_user{username = Username, _ = '_'},
+	[{MatchHead, [{'/=', '$1', String}], ['$_']}]
 	query_users1(MatchSpec, MatchLocale);
 query_users(Cont, _MatchId, MatchLocale) when is_tuple(Cont) ->
 	F = fun() ->
