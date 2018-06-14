@@ -213,7 +213,7 @@ get_balance_service(Identity) ->
 			Total = {"totalBalance", {struct,
 					[{"amount", ocs_rest:millionths_out(TotalAmount)}]}},
 			Id = {"id", Identity},
-			Href = {"href", ?balancePath ++ Identity ++ "/accumulatedBalance"},
+			Href = {"href", ?balancePath ++ "service/" ++ Identity ++ "/accumulatedBalance"},
 			Product = {"product", {array, [{struct, [{"id", ProductRef1}, Href]}]}},
 			Json = {struct, [Id, Href, Total, Buckets4, Product]},
 			Body  = mochijson:encode(Json),
@@ -232,7 +232,7 @@ get_balance_service(Identity) ->
 		Result :: {ok, Headers :: [tuple()], Body :: iolist()}
 				| {error, ErrorCode :: integer()}.
 %% @doc Body producing function for
-%%	`GET /balanceManagment/v1/{id}/accumulatedBalance' request
+%%	`GET /balanceManagment/v1/product/{id}/accumulatedBalance' request
 get_balance(ProdRef) ->
 	try
 		case ocs:get_buckets(ProdRef) of
@@ -253,7 +253,7 @@ get_balance(ProdRef) ->
 			Total = {"totalBalance", {struct,
 					[{"amount", ocs_rest:millionths_out(TotalAmount)}]}},
 			Id = {"id", ProdRef},
-			Href = {"href", ?balancePath ++ ProdRef ++ "/accumulatedBalance"},
+			Href = {"href", ?balancePath ++ "product/" ++ ProdRef ++ "/accumulatedBalance"},
 			Product = {"product", {array, [{struct, [Id, Href]}]}},
 			Json = {struct, [Id, Href, Total, Buckets4, Product]},
 			Body  = mochijson:encode(Json),
