@@ -32,6 +32,7 @@
 -export([add_pla/1, get_pla/1, get_plas/2, patch_pla/3]).
 -export([get_pla_spec/2, get_pla_specs/1]).
 -export([delete_offer/1, delete_inventory/1, delete_pla/1]).
+-export([get_schema/0]).
 
 -include("ocs.hrl").
 
@@ -61,7 +62,27 @@ content_types_accepted() ->
 		ContentTypes :: list().
 %% @doc Provides list of resource representations available.
 content_types_provided() ->
-	["application/json"].
+	["application/json", "application/yaml"].
+
+-spec get_schema() -> Result when
+	Result :: {ok, Headers, Body},
+	Body :: iolist(),
+	Headers  :: [tuple()].
+%% @doc Respond to `GET /productInventoryManagement/schema/OCS.yml'.
+%%    get schema.
+get_schema() ->
+	Body = "OCS:\n"
+			"	title:OCS\n"
+			"	type: Object\n"
+			"	allof:\n"
+			"		-$ref: '#/definition/Product'\n"
+			"		-properties:\n"
+			"			balance:\n"
+			"				type: array\n"
+			"				items:\n"
+			"					-$ref: '/balanceManagement/v1#definition/AccumulatedBalance'\n",
+	Headers = [{content_type, "application/yaml"}],
+	{ok, Headers, Body}.
 
 -spec add_offer(ReqData) -> Result when
 	ReqData	:: [tuple()],
@@ -2076,6 +2097,12 @@ inventory([{"realizingService", {array, RealizingServices}} | T], Acc) ->
 	end,
 	ServiceRefs = [F(RS) || RS <- RealizingServices],
 	inventory(T, Acc#product{service = ServiceRefs});
+inventory([{"@type", _} | T], Acc) ->
+	inventory(T, Acc);
+inventory([{"@baseType", _} | T], Acc) ->
+	inventory(T, Acc);
+inventory([{"@schemaLocation", _} | T], Acc) ->
+	inventory(T, Acc);
 inventory([_ | T], Acc) ->
 	inventory(T, Acc);
 inventory([], Acc) ->
@@ -2105,6 +2132,34 @@ inventory([service | T], #product{service = ServiceRefs} = Product, Acc) ->
 	end,
 	RealizingServices = {"realizingService", {array, [F(SR) || SR <- ServiceRefs]}},
 	inventory(T, Product, [RealizingServices | Acc]);
+inventory([balance | T], #product{balance = BucketRefs} = Product, Acc) ->
+	F1 = fun() ->
+			MatchHead = #bucket{id = '$1', _ = '_'},
+			MatchIds = [{'==', Id, '$1'} || Id <- BucketRefs],
+			MatchConditions = [list_to_tuple(['or' | MatchIds])],
+			mnesia:select(bucket, [{MatchHead, MatchConditions, ['$_']}])
+	end,
+	case mnesia:transaction(F1) of
+		{atomic, Buckets} ->
+			F2 = fun(#bucket{units = cents, remain_amount = N}, {C, B, S}) ->
+						{C + N, B, S};
+					(#bucket{units = bytes, remain_amount = N}, {C, B, S}) ->
+						{C , B + N, S};
+					(#bucket{units = seconds, remain_amount = N}, {C, B, S}) ->
+						{C , B, S + N}
+			end,
+			{Cents, Bytes, Seconds} = lists:foldl(F2, {0,0,0}, Buckets),
+			Balance = {"balance", {array,
+					[{struct, [{"name", "cents"}, {"totalBalance",
+					{struct, [{"amount", Cents}, {"units", "cents"}]}}]},
+					{struct, [{"name", "bytes"}, {"totalBalance",
+					{struct, [{"amount", Bytes}, {"units", "bytes"}]}}]},
+					{struct, [{"name", "seconds"}, {"totalBalance",
+					{struct, [{"amount", Seconds}, {"units", "seconds"}]}}]}]}},
+			inventory(T, Product, [Balance| Acc]);
+		{aborted, Reason} ->
+			throw(Reason)
+	end;
 inventory([status | T], #product{status = undefined} = Product, Acc) ->
 	inventory(T, Product,  Acc);
 inventory([status | T], #product{status = Status} = Product, Acc) ->
@@ -2120,7 +2175,9 @@ inventory([end_date | T], #product{end_date = TDate} = Product, Acc) ->
 inventory([_ | T], Product, Acc) ->
 	inventory(T, Product,  Acc);
 inventory([], _Product, Acc) ->
-	lists:reverse(Acc).
+	Obj = [{"@schemaLocation", "/productInventoryManagement/schema/OCS.yml"},
+			{"@baseType", "Product"}, {"@type", "OCS"} | Acc],
+	lists:reverse(Obj).
 
 -spec instance_chars(Characteristics) -> Characteristics
 	when
