@@ -80,6 +80,41 @@
 				</template>
 				<template>[[item.service]]</template>
 			</vaadin-grid-column>
+			<vaadin-grid-column-group>
+				<template class="header">
+					<div class="grouptitle">[[i18n.balance]]</div>
+				</template>
+				<vaadin-grid-column width="12ex" flex-grow="2">
+					<template class="header">
+						<i18n-msg msgid="cents">
+							Cents
+						</i18n-msg>
+					</template>
+					<template>
+						<div class="cell numeric">[[item.cents]]</div>
+					</template>
+				</vaadin-grid-column>
+				<vaadin-grid-column width="12ex" flex-grow="2">
+					<template class="header">
+						<i18n-msg msgid="bytes">
+							Bytes
+						</i18n-msg>
+					</template>
+					<template>
+						<div class="cell numeric">[[item.remainedAmount]]</div>
+					</template>
+				</vaadin-grid-column>
+				<vaadin-grid-column width="12ex" flex-grow="2">
+					<template class="header">
+						<i18n-msg msgid="seconds">
+							Seconds
+						</i18n-msg>
+					</template>
+					<template>
+						<div class="cell numeric">[[item.seconds]]</div>
+					</template>
+				</vaadin-grid-column>
+			</vaadin-grid-column-group>
 			<vaadin-grid-column width="15ex" flex-grow="5">
 				<template class="header">
 					<vaadin-grid-filter aria-label="Offering" path="product" value="[[_filterOffer]]">
