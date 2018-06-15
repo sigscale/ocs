@@ -63,7 +63,7 @@ get_schema() ->
 			"   title: OCS\n"
 			"   type: Object\n"
 			"   allOf:\n"
-			"      -$ref: #/definations/Service\n"
+			"      -$ref: #/definition/Service\n"
 			"      -properties:\n"
 			"         product:\n"
 			"            type: string\n"
