@@ -43,7 +43,7 @@
 		ContentTypes :: list().
 %% @doc Provides list of resource representations accepted.
 content_types_accepted() ->
-	["application/json", "application/json-patch+json", "application/yaml"].
+	["application/json", "application/json-patch+json"].
 
 -spec content_types_provided() -> ContentTypes
 	when
@@ -63,7 +63,7 @@ get_schema() ->
 			"   title: OCS\n"
 			"   type: Object\n"
 			"   allOf:\n"
-			"      -$ref: #/definations/Service\n"
+			"      -$ref: #/definition/Service\n"
 			"      -properties:\n"
 			"         product:\n"
 			"            type: string\n"
