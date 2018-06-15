@@ -68,6 +68,48 @@ The {@link //ocs. ocs} application provides a
 API built on the <a href="http://tools.ietf.org/html/rfc2616">HTTP</a> protocol
 and using <a href="http://tools.ietf.org/html/rfc4627">JSON</a> data encoding.
 
+The following <a href="https://www.tmforum.org/open-apis/">TM Forum Open APIs</a>
+are used:
+
+<p><table id="mt">
+	<thead>
+		<tr id="mt">
+			<th id="mt">Document Number</th>
+			<th id="mt">TM Forum Open API</th>
+		</tr>
+	</thead>
+	<tbody>
+		<tr id="mt">
+			<td id="mt">TMF632</td>
+			<td id="mt">Party Management</td>
+		</tr>
+		<tr id="mt">
+			<td id="mt">TMF654</td>
+			<td id="mt">Prepay Balance Management</td>
+		</tr>
+		<tr id="mt">
+			<td id="mt">TMF620</td>
+			<td id="mt">Product Catalog Management</td>
+		</tr>
+		<tr id="mt">
+			<td id="mt">TMF637</td>
+			<td id="mt">Product Inventory Management</td>
+		</tr>
+		<tr id="mt">
+			<td id="mt">TMF638</td>
+			<td id="mt">Service Inventory Management</td>
+		</tr>
+		<tr id="mt">
+			<td id="mt">TMF639</td>
+			<td id="mt">Resource Inventory Management</td>
+		</tr>
+		<tr id="mt">
+			<td id="mt">TMF635</td>
+			<td id="mt">Usage Management</td>
+		</tr>
+	</tbody>
+</table></p>
+
 ===Uniform Resource Identifiers (URI)===
 In this document we will use the
 <a href="http://tools.ietf.org/html/rfc6570">URI Template</a> syntax to
