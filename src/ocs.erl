@@ -941,9 +941,10 @@ get_buckets(ProdRef) when is_list(ProdRef) ->
 			[#product{balance = []}] ->
 				[];
 			[#product{balance = BucketRefs}] ->
-				lists:flatten([mnesia:select(bucket,
-						[{'$1', [{'==', Id, {element, #bucket.id, '$1'}}], ['$1']}])
-						|| Id <- BucketRefs]);
+				MatchHead = #bucket{id = '$1', _ = '_'},
+				MatchIds = [{'==', Id, '$1'} || Id <- BucketRefs],
+				MatchConditions = [list_to_tuple(['or' | MatchIds])],
+				mnesia:select(bucket, [{MatchHead, MatchConditions, ['$_']}]);
 			[] ->
 				throw(product_not_found)
 		end
