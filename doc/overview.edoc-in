@@ -410,8 +410,8 @@ Content-length: nn
 HTTP/1.1 201 Created
 Location: /ocs/v1/client/10.2.53.9
 Content-Type: application/json
-Content-Length: nn
-Etag: mm-m
+Content-Length: 149
+Etag: 1528460867948-26
 
 {
  "id": "10.2.53.9",
@@ -461,8 +461,8 @@ Accept: application/json
 <p>Example response:<pre>
 HTTP/1.1 200 OK
 Content-Type: application/json
-Content-Length: nn
-Etag: mm-m
+Content-Length: 182
+Etag: 1528460873819-92
 
 {
  "id": "10.2.53.9",
@@ -513,7 +513,7 @@ Accept: application/json
 <p>Example response:<pre>
 HTTP/1.1 200 OK
 Content-Type: application/json
-Content-Length: nn
+Content-Length: 362
 
 [
  {
@@ -594,8 +594,8 @@ Accept: application/json
 <p>Example response:<pre>
 HTTP/1.1 200 Ok
 Content-Type: application/json
-Content-Length: 315
-Etag: mm-m
+Content-Length: 150
+Etag: 1528460874866-4
 
 {
  "id": "10.2.53.9",
@@ -671,8 +671,8 @@ Accept: application/json
 <p>Example response:<pre>
 HTTP/1.1 200 Ok
 Content-Type: application/json
-Content-Length: 315
-Etag: mm-m
+Content-Length: 128
+Etag: 1528460854620-3
 
 {
  "id": "10.2.53.9",
@@ -760,7 +760,7 @@ Accept: application/json
 <p>Example response:<pre>
 HTTP/1.1 200 OK
 Content-Type: application/json
-Content-Length: 0
+Content-Length: 1110
 
 [{"id": 1,
 	"href": "/usageManagement/v1/usage/1"
@@ -857,7 +857,7 @@ Content-Length: 0
 POST /partyManagement/v1/individual HTTP/1.1
 Accept: application/json
 Content-type: application/json
-Content-length: nn
+Content-length: 279
 
 {
  "id":"john",
@@ -878,8 +878,8 @@ Content-length: nn
 HTTP/1.1 201 Created
 Location: /partyManagement/v1/individual/john
 Content-Type: application/json
-Content-Length: nn
-Etag: mm-m
+Content-Length: 370
+Etag: 1528460853317-61
 
 {
  "id":"john",
@@ -939,8 +939,8 @@ Accept: application/json
 <p>Example response:<pre>
 HTTP/1.1 200 OK
 Content-Type: application/json
-Content-Length: nn
-Etag: mm-m
+Content-Length: 270
+Etag: 1528460854222-25
 
 {
  "id":"john",
@@ -996,7 +996,7 @@ Accept: application/json
 <p>Example response:<pre>
 HTTP/1.1 200 OK
 Content-Type: application/json
-Content-Length: nn
+Content-Length: 548
 
 [
  {
@@ -1083,8 +1083,8 @@ Accept: application/json
 <p>Example response:<pre>
 HTTP/1.1 200 Ok
 Content-Type: application/json
-Content-Length: 315
-Etag: mm-m
+Content-Length: 223
+Etag: 1528460818432-16
 
 {
  "id":"john",
@@ -1155,7 +1155,7 @@ Accept: application/json
 <p>Example response:<pre>
 HTTP/1.1 204 No Content
 Content-Length: 0
-Etag: mm-m
+Etag: 1528460835302-87
 
 </pre></p>
 
@@ -1236,7 +1236,7 @@ Accept: application/json
 <p>Example response:<pre>
 HTTP/1.1 200 OK
 Content-Type: application/json
-Content-Length: nn
+Content-Length: 2761
 
 {
  "name": "Wi-Fi",
