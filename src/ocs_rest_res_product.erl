@@ -62,7 +62,7 @@ content_types_accepted() ->
 		ContentTypes :: list().
 %% @doc Provides list of resource representations available.
 content_types_provided() ->
-	["application/json", "application/yaml"].
+	["application/json", "text/x-yaml"].
 
 -spec get_schema() -> Result when
 	Result :: {ok, Headers, Body},
@@ -81,7 +81,7 @@ get_schema() ->
 			"				type: array\n"
 			"				items:\n"
 			"					-$ref: '/balanceManagement/v1#definition/AccumulatedBalance'\n",
-	Headers = [{content_type, "application/yaml"}],
+	Headers = [{content_type, "text/x-yaml"}],
 	{ok, Headers, Body}.
 
 -spec add_offer(ReqData) -> Result when

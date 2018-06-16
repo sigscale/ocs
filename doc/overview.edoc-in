@@ -148,6 +148,9 @@ The media types used in this application are described below.
 		<tr id="mt">
 			<td id="mt"><a href="http://tools.ietf.org/html/rfc7396">application/merge-patch+json</a></td>
 		</tr>
+		<tr id="mt">
+			<td id="mt"><a href="http://tools.ietf.org/html/rfc7396">text/x-yaml</a></td>
+		</tr>
 	</tbody>
 </table></p>
 
