@@ -143,7 +143,10 @@ The media types used in this application are described below.
 			<td id="mt"><a href="http://tools.ietf.org/html/rfc4627">application/json</a></td>
 		</tr>
 		<tr id="mt">
-			<td id="mt"><a href="https://tools.ietf.org/html/rfc6902">application/json-patch+json</a></td>
+			<td id="mt"><a href="http://tools.ietf.org/html/rfc6902">application/json-patch+json</a></td>
+		</tr>
+		<tr id="mt">
+			<td id="mt"><a href="http://tools.ietf.org/html/rfc7396">application/merge-patch+json</a></td>
 		</tr>
 	</tbody>
 </table></p>
