@@ -154,6 +154,57 @@ The media types used in this application are described below.
 	</tbody>
 </table></p>
 
+===Advanced Attribute Filtering Pattern===
+Complex queries are supported using a `filter' attribute as described in issue
+<a href="https://projects.tmforum.org/jira/browse/AP-832">AP-832</a> of TM Forum
+<a href="https://projects.tmforum.org/wiki/display/AP/">API Project</a>.
+
+<p>Example:</p>
+```
+	filter="[{usageCharacteristic.contains=[{name=nasIdentifier,value.like=[north-%]}]}]"
+'''
+<p>The right hand side (RHS) of the `filter' attribute should be enclosed
+in double quotes (`""'). Query values seperated by a comma (`,') and treated as AND.
+A complex value should be enclosed in `{}'.</p>
+
+<p><table id="mt">
+	<thead>
+		<tr id="mt">
+			<th id="mt">Operation</th>
+			<th id="mt">Description</th>
+			<th id="mt">LHS Data Type</th>
+			<th id="mt">RHS Data Type</th>
+		</tr>
+	</thead>
+	<tbody>
+		<tr id="mt">
+			<td id="mt">.exact OR =</td>
+			<td id="mt">Equals (Case-sensitive)</td>
+			<td id="mt">String, Number, Date, Boolean</td>
+			<td id="mt">String, Number, Date, Boolean</td>
+		</tr>
+		<tr id="mt">
+			<td id="mt">.notexact OR &lt;&gt;</td>
+			<td id="mt">Not equal to (Case-sensitive)</td>
+			<td id="mt">String, Number, Date, Boolean</td>
+			<td id="mt">String, Number, Date, Boolean</td>
+		</tr>
+		<tr id="mt">
+			<td id="mt">.like</td>
+			<td id="mt">Match the patterns in the argument array,
+				where "%" matches zero or more characters.</td>
+			<td id="mt">String</td>
+			<td id="mt">Array of String</td>
+		</tr>
+		<tr id="mt">
+			<td id="mt">.contains</td>
+			<td id="mt">Match LHS elements with RHS</td>
+			<td id="mt">Collection/Array</td>
+			<td id="mt">Array of String</td>
+		</tr>
+	</tbody>
+</table></p>
+
 ===Resources &amp; Operations===
 The resources, their URIs, the methods available on them and expected
 responses, are described in this section.  Only the headers, and responses,
