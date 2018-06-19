@@ -101,7 +101,7 @@
 						</i18n-msg>
 					</template>
 					<template>
-						<div class="cell numeric">[[item.remainedAmount]]</div>
+						<div class="cell numeric">[[item.bytes]]</div>
 					</template>
 				</vaadin-grid-column>
 				<vaadin-grid-column width="12ex" flex-grow="2">
@@ -238,6 +238,34 @@
 							var newRecord = new Object();
 							newRecord.id = request.response[index].id;
 							newRecord.product = request.response[index].productOffering.name;
+							for(var indexPro in request.response[index].balance) {
+								if(request.response[index].balance[indexPro].totalBalance) {
+									if(request.response[index].balance[indexPro]
+												.totalBalance.units == "cents") {
+										if(!request.response[index].balance[indexPro].totalBalance.amount)	{
+											newRecord.cents = request.response[index].balance[indexPro].totalBalance.amount;
+										} else {
+											newRecord.cents = request.response[index].balance[indexPro].totalBalance.amount;
+										}
+									}
+									if(request.response[index].balance[indexPro]
+												.totalBalance.units == "seconds") {
+										if(!request.response[index].balance[indexPro].totalBalance.amount) {
+											newRecord.seconds = request.response[index].balance[indexPro].totalBalance.amount;
+										} else {
+											newRecord.seconds = request.response[index].balance[indexPro].totalBalance.amount;
+										}
+									}
+									if(request.response[index].balance[indexPro]
+												.totalBalance.units == "octets") {
+										if(!request.response[index].balance[indexPro].totalBalance.amount) {
+											newRecord.bytes = request.response[index].balance[indexPro].totalBalance.amount;
+										} else {
+											newRecord.bytes = request.response[index].balance[indexPro].totalBalance.amount;
+										}
+									}
+								}
+							}
 							for(var indexSer in request.response[index].realizingService) {
 								newRecord.service = request.response[index].realizingService[indexSer].id;
 							}

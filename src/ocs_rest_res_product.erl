@@ -2141,21 +2141,42 @@ inventory([balance | T], #product{balance = BucketRefs} = Product, Acc) ->
 	end,
 	case mnesia:transaction(F1) of
 		{atomic, Buckets} ->
-			F2 = fun(#bucket{units = cents, remain_amount = N}, {C, B, S}) ->
+			F2 = fun(#bucket{units = cents, remain_amount = N}, {undefined, B, S}) ->
+						{N, B, S};
+					(#bucket{units = cents, remain_amount = N}, {C, B, S}) ->
 						{C + N, B, S};
+					(#bucket{units = bytes, remain_amount = N}, {C, undefined, S}) ->
+						{C , N, S};
 					(#bucket{units = bytes, remain_amount = N}, {C, B, S}) ->
 						{C , B + N, S};
+					(#bucket{units = seconds, remain_amount = N}, {C, B, undefined}) ->
+						{C , B, N};
 					(#bucket{units = seconds, remain_amount = N}, {C, B, S}) ->
 						{C , B, S + N}
 			end,
-			{Cents, Bytes, Seconds} = lists:foldl(F2, {0,0,0}, Buckets),
-			Balance = {"balance", {array,
+			{Cents, Bytes, Seconds} = lists:foldl(F2, {undefined, undefined, undefined}, Buckets),
+			CentsBalance = case Cents of
+				Cents when is_integer(Cents) ->
 					[{struct, [{"name", "cents"}, {"totalBalance",
-					{struct, [{"amount", Cents}, {"units", "cents"}]}}]},
-					{struct, [{"name", "bytes"}, {"totalBalance",
-					{struct, [{"amount", Bytes}, {"units", "bytes"}]}}]},
-					{struct, [{"name", "seconds"}, {"totalBalance",
-					{struct, [{"amount", Seconds}, {"units", "seconds"}]}}]}]}},
+					{struct, [{"amount", Cents}, {"units", "cents"}]}}]}];
+				undefined ->
+					[]
+			end,
+			BytesBalance = case Bytes of
+				Bytes when is_integer(Bytes) ->
+					[{struct, [{"name", "bytes"}, {"totalBalance",
+					{struct, [{"amount", Bytes}, {"units", "bytes"}]}}]}];
+				undefined ->
+					[]
+			end,
+			SecondBalance = case Seconds of
+				Seconds when is_integer(Seconds) ->
+					[{struct, [{"name", "seconds"}, {"totalBalance",
+					{struct, [{"amount", Seconds}, {"units", "seconds"}]}}]}];
+				undefined ->
+					[]
+			end,
+			Balance = {"balance", {array, CentsBalance ++ BytesBalance ++ SecondBalance}},
 			inventory(T, Product, [Balance| Acc]);
 		{aborted, Reason} ->
 			throw(Reason)
