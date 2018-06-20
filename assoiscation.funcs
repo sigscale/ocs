@@ -1,0 +1,5 @@
+{ocsClientEntry, {sigscale_snmp_agent, sigscaleClientsTable, []}}.
+{ocsClientAddress, {sigscale_snmp_agent, sigscaleClientsTable, []}}.
+{ocsClientPort, {sigscale_snmp_agent, sigscaleClientsTable, []}}.
+{ocsClientIdentifier, {sigscale_snmp_agent,, sigscaleClientsTable, []}}.
+{ocsClientProtocol, {sigscale_snmp_agent, sigscaleClientsTable, []}}.
