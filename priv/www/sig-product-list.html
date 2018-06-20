@@ -66,16 +66,16 @@
 		<vaadin-grid id="productInventoryGrid" active-item="{{activeItem}}">
 			<vaadin-grid-column width="15ex" flex-grow="5">
 				<template class="header">
-					<vaadin-grid-filter aria-label="Product Id" path="id" value="[[_filterProId]]">
-						<input placeholder="Product Id" value="{{_filterProId::input}}" focus-target>
+					<vaadin-grid-filter aria-label="[[i18n.prodId]]" path="id" value="[[_filterProId]]">
+						<input placeholder="[[i18n.prodId]]" value="{{_filterProId::input}}" focus-target>
 					</vaadin-grid-filter>
 				</template>
 				<template>[[item.id]]</template>
 			</vaadin-grid-column>
 			<vaadin-grid-column width="15ex" flex-grow="5">
 				<template class="header">
-					<vaadin-grid-filter aria-label="Services" path="service" value="[[_filterIdentity]]">
-						<input placeholder="Services" value="{{_filterIdentity::input}}" focus-target>
+					<vaadin-grid-filter aria-label="[[i18n.service]]" path="service" value="[[_filterIdentity]]">
+						<input placeholder="[[i18n.service]]" value="{{_filterIdentity::input}}" focus-target>
 					</vaadin-grid-filter>
 				</template>
 				<template>[[item.service]]</template>
@@ -117,8 +117,8 @@
 			</vaadin-grid-column-group>
 			<vaadin-grid-column width="15ex" flex-grow="5">
 				<template class="header">
-					<vaadin-grid-filter aria-label="Offering" path="product" value="[[_filterOffer]]">
-						<input placeholder="Offering" value="{{_filterOffer::input}}" focus-target>
+					<vaadin-grid-filter aria-label="[[i18n.offer]]" path="product" value="[[_filterOffer]]">
+						<input placeholder="[[i18n.offer]]" value="{{_filterOffer::input}}" focus-target>
 					</vaadin-grid-filter>
 				</template>
 				<template>[[item.product]]</template>

@@ -111,10 +111,6 @@
     "description": "Class for adding subscribers", 
     "message": "Clase"
   },
-  "balance": {
-    "description": "Balance for adding subscribers", 
-    "message": "Equilibrio (bytes)"
-  },
   "submit": {
     "description": "Submit button for adding subscribers", 
     "message": "Enviar"
@@ -517,7 +513,15 @@
   },
 	"prod": {
     "description": "Balance types",
-    "message": "Product"
+    "message": "Producto"
+  },
+	"prod1": {
+    "description": "Balance types",
+    "message": "Productos"
+  },
+	"prodId": {
+    "description": "Product Id",
+    "message": "ID del Producto"
   },
 	"add": {
     "description": "Balance add",
@@ -922,6 +926,18 @@
 	"destinationID": {
     "description": "DestinationID",
     "message": "ID de destino"
+  },
+	"catalog": {
+    "description": "Catalog",
+    "message": "catalogar"
+  },
+	"service": {
+    "description": "Services",
+    "message": "Servicios"
+  },
+	"bucketBal": {
+    "description": "Balance bucket",
+    "message": "Equilibrio del cubo"
   },
    "productDeleted": {
     "description": "Success Toast Message",

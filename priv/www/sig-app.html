@@ -184,7 +184,9 @@
 								<paper-icon-item
 										class="menu-trigger menuitem">
 									<iron-icon icon ="icons:store" item-icon></iron-icon>
-										Catalog
+										<i18n-msg msgid="catalog">
+											Catalog
+										</i18n-msg>
 								</paper-icon-item>
 								<paper-menu id="offerMenu" class="menu-content sublist">
 									<paper-icon-item
@@ -229,21 +231,27 @@
 											onclick="drawer.toggle()"
 											class="menuitem">
 										<iron-icon icon="device:devices" item-icon></iron-icon>
-											Services
+											<i18n-msg msgid="service">
+												Services
+											</i18n-msg>
 									</paper-icon-item>
 									<paper-icon-item
 											id="pageProductInventory"
 											onclick="drawer.toggle()"
 											class="menuitem">
 										<iron-icon icon="maps:local-offer" item-icon></iron-icon>
-											Products
+											<i18n-msg msgid="prod1">
+												Products
+											</i18n-msg>
 									</paper-icon-item>
 									<paper-icon-item
 											id="pageBucketBalance"
 											onclick="drawer.toggle()"
 											class="menuitem">
 										<iron-icon icon="icons:account-balance" item-icon></iron-icon>
-											Balance Buckets
+											<i18n-msg msgid="bucketBal">
+												Balance Buckets
+											</i18n-msg>
 									</paper-icon-item>
 								</paper-menu>
 							</paper-submenu>
@@ -297,7 +305,9 @@
 											onclick="drawer.toggle()"
 											class="menuitem">
 										<iron-icon icon ="device:data-usage" item-icon></iron-icon>
+											<i18n-msg msgid="balance">
 												Balance
+											</i18n-msg>
 									</paper-icon-item>
 									<paper-submenu>
 									<paper-icon-item
@@ -479,10 +489,16 @@
 						this.$.logMenu.selected = null;
 						break;
 					case 'pageAccess':
+console.log("alertAcc");
 						this.$.loadPage.selected = 4;
+						this.$.logMenu.selected = null;
+console.log("alertAcc1");
 						break;
 					case 'pageAccounting':
+console.log("alert");
 						this.$.loadPage.selected = 5;
+						this.$.logMenu.selected = null;
+console.log("alert1");
 						break;
 					case 'pageIPDRWlan':
 						this.$.loadPage.selected = null;

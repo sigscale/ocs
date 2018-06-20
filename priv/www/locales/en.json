@@ -503,6 +503,14 @@
     "description": "Balance types",
     "message": "Product"
   },
+	"prod1": {
+    "description": "Balance types",
+    "message": "Products"
+  },
+	"prodId": {
+    "description": "Product Id",
+    "message": "Product Id"
+  },
 	"add": {
     "description": "Balance add",
     "message": "Add"
@@ -906,6 +914,18 @@
 	"destinationID": {
     "description": "DestinationID",
     "message": "Destination Id"
+  },
+	"catalog": {
+    "description": "Catalog",
+    "message": "Catalog"
+  },
+	"service": {
+    "description": "Services",
+    "message": "Services"
+  },
+	"bucketBal": {
+    "description": "Balance bucket",
+    "message": "Balance Buckets"
   },
    "productDeleted": {
     "description": "Success Toast Message",
