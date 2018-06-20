@@ -1,0 +1,114 @@
+-- SIGSCALE-OCS-MIB.mib:  SigScale Online Charging System (OCS)
+
+SIGSCALE-OCS-MIB DEFINITIONS ::= BEGIN
+
+IMPORTS
+    ocs
+        FROM SIGSCALE-PRODUCTS-MIB
+    sigscaleModules, sigscaleProducts
+        FROM SIGSCALE-SMI
+    DisplayString, DateAndTime, RowStatus
+        FROM SNMPv2-TC
+    InetAddress
+        FROM INET-ADDRESS-MIB
+    MODULE-IDENTITY, OBJECT-TYPE, Integer32, Counter32, Unsigned32
+        FROM SNMPv2-SMI;
+
+ocsMIB MODULE-IDENTITY
+    LAST-UPDATED "201806190000Z"
+    ORGANIZATION "SigScale Global Inc."
+    CONTACT-INFO
+        "SigScale Global Inc.
+         716/1/3 Dr. Danister de Silva Mawatha
+         Colombo 00900
+         Sri Lanka
+         Tel: +94771231660
+         E-mail: support@sigscale.org"
+    DESCRIPTION  "This module defines the SigScale OCS MIB."
+    ::= {sigscaleModules 5}
+
+-- groups
+
+ocsNotifications OBJECT IDENTIFIER ::= {ocsMIB 0}
+ocsObjects       OBJECT IDENTIFIER ::= {ocsMIB 1}
+
+ocsConfig    OBJECT IDENTIFIER ::= {ocsObjects 1}
+ocsData      OBJECT IDENTIFIER ::= {ocsObjects 2}
+
+--
+-- config
+--
+
+--
+-- data
+--
+
+-- clients
+ocsClientTable OBJECT-TYPE
+    SYNTAX       SEQUENCE OF OcsClientEntry
+    MAX-ACCESS   not-accessible
+    STATUS       current
+    DESCRIPTION
+        "A table of Network Access Server (NAS) clients."
+    ::= {ocsData 2}
+
+ocsClientEntry OBJECT-TYPE
+    SYNTAX       OcsClientEntry
+    MAX-ACCESS   not-accessible
+    STATUS       current
+    DESCRIPTION  "A conceptual row in the client table."
+    INDEX        {ocsClientAddress}
+    ::= {ocsClientTable 1}
+
+OcsClientEntry ::= SEQUENCE {
+    ocsClientAddress InetAddress,
+    ocsClientPort Integer32,
+    ocsClientIdentifier DisplayString,
+    ocsClientProtocol INTEGER,
+    ocsClientRowStatus RowStatus
+}
+    
+ocsClientAddress  OBJECT-TYPE
+    SYNTAX       InetAddress
+    MAX-ACCESS   read-write
+    STATUS       current
+    DESCRIPTION 
+        "The IP address of the NAS client."
+    ::= {ocsClientEntry 1}
+
+ocsClientPort OBJECT-TYPE
+    SYNTAX       Integer32 ( 0..65535 )
+    MAX-ACCESS   read-write
+    STATUS       current
+    DESCRIPTION
+        "The IP port of the NAS client."
+    ::= {ocsClientEntry 2}
+
+ocsClientIdentifier OBJECT-TYPE
+    SYNTAX       DisplayString 
+    MAX-ACCESS   read-write
+    STATUS       current
+    DESCRIPTION
+        "The NAS-Identifier attribute value received from the NAS client."
+    ::= {ocsClientEntry 3}
+
+ocsClientProtocol OBJECT-TYPE
+    SYNTAX       INTEGER {
+        radius(1),
+        diameter(2)
+    }
+    MAX-ACCESS   read-write
+    STATUS       current
+    DESCRIPTION
+        "The protocol used by the NAS client."
+    ::= {ocsClientEntry 4}
+
+ocsClientRowStatus OBJECT-TYPE
+    SYNTAX       RowStatus
+    MAX-ACCESS   read-write
+    STATUS       current
+    DESCRIPTION
+        "."
+    ::= {ocsClientEntry 5}
+
+END
