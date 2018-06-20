@@ -68,6 +68,8 @@ AC_ERLANG_SUBST_INSTALL_LIB_DIR
 appdir=$ERLANG_INSTALL_LIB_DIR/$PACKAGE_NAME-$PACKAGE_VERSION
 erldir=$ERLANG_INSTALL_LIB_DIR/$PACKAGE_NAME-$PACKAGE_VERSION/src
 beamdir=$ERLANG_INSTALL_LIB_DIR/$PACKAGE_NAME-$PACKAGE_VERSION/ebin
+emibdir=$ERLANG_INSTALL_LIB_DIR/$PACKAGE_NAME-$PACKAGE_VERSION/priv/mibs
+mibsdir=$ERLANG_INSTALL_LIB_DIR/$PACKAGE_NAME-$PACKAGE_VERSION/mibs
 eincludedir=$ERLANG_INSTALL_LIB_DIR/$PACKAGE_NAME-$PACKAGE_VERSION/include
 docdir=$ERLANG_INSTALL_LIB_DIR/$PACKAGE_NAME-$PACKAGE_VERSION/doc
 libdir=$ERLANG_INSTALL_LIB_DIR/$PACKAGE_NAME-$PACKAGE_VERSION/priv/lib
@@ -77,6 +79,8 @@ envdir=/etc/default
 AC_SUBST(appdir)
 AC_SUBST(erldir)
 AC_SUBST(beamdir)
+AC_SUBST(emibdir)
+AC_SUBST(mibsdir)
 AC_SUBST(eincludedir)
 AC_SUBST(privdir)
 AC_SUBST(wwwdir)
@@ -103,11 +107,13 @@ AC_ERLANG_CHECK_LIB([ssl], [], [AC_MSG_ERROR([ssl was not found!])])
 AC_ERLANG_CHECK_LIB([inets], [], [AC_MSG_ERROR([inets was not found!])])
 AC_ERLANG_CHECK_LIB([xmerl], [], [AC_MSG_ERROR([xmerl was not found!])])
 AC_ERLANG_CHECK_LIB([compiler], [], [AC_MSG_ERROR([compiler was not found!])])
+AC_ERLANG_CHECK_LIB([snmp], [], [AC_MSG_ERROR([snmp was not found!])])
 AC_ERLANG_CHECK_LIB([parsetools], [], [AC_MSG_ERROR([parsetools was not found!])])
 AC_ERLANG_CHECK_LIB([syntax_tools], [], [AC_MSG_ERROR([syntax_tools was not found!])])
 AC_ERLANG_CHECK_LIB([mochiweb], [], [AC_MSG_ERROR([mochiweb was not found!])])
 AC_ERLANG_CHECK_LIB([radius], [], [AC_MSG_ERROR([radius was not found!])])
 AC_ERLANG_CHECK_LIB([diameter], [], [AC_MSG_ERROR([diameter was not found!])])
+AC_ERLANG_CHECK_LIB([sigscale_mibs], [], [AC_MSG_ERROR([sigscale_mibs was not found!])])
 AC_LANG_POP([Erlang])
 
 
@@ -140,5 +146,6 @@ AC_CHECK_FUNC([BN_new], [], [AC_MSG_ERROR([BN_new function not found!])])
 
 AC_OUTPUT([Makefile include/Makefile src/Makefile ebin/Makefile doc/Makefile
 		c_src/Makefile priv/Makefile priv/lib/Makefile
+		priv/mibs/Makefile mibs/Makefile
 		priv/www/Makefile test/Makefile ocs.rel sys.config ebin/ocs.appup])
 
