@@ -56,11 +56,11 @@
 		<vaadin-grid id="offerGrid" active-item="{{activeItem}}">
 			<vaadin-grid-column width="15ex" flex-grow="5">
 				<template class="header">
-					<vaadin-grid-filter aria-label="[[i18n.name]]" path="name" value="[[_filterName]]">
+					<vaadin-grid-filter aria-label="[[i18n.name]]" path="id" value="[[_filterName]]">
 						<input placeholder="[[i18n.name]]" value="{{_filterName::input}}" focus-target>
 					</vaadin-grid-filter>
 				</template>
-				<template>[[item.name]]</template>
+				<template>[[item.id]]</template>
 			</vaadin-grid-column>
 			<vaadin-grid-column width="15ex" flex-grow="13">
 				<template class="header">
@@ -141,8 +141,8 @@
 			</paper-button>
 		</paper-toast>
 		<iron-ajax id="getProductAjax"
-			on-response="_getProductResponse"
-			on-error="_getProductError">
+			url="/catalogManagement/v2/productOffering"
+			rejectWithRequest>
 		</iron-ajax>
 		<iron-ajax id="getTableAjax"
 			on-response="_getTableResponse"
@@ -205,94 +205,133 @@
 							name: "price"
 						}
 					];
-					grid.dataProvider = function(params, callback) {
-						cbProduct = callback;
-						var ajax = document.getElementById('getProductAjax');
-						ajax.url="/catalogManagement/v2/productOffering"
-						params.filters.forEach(function(filter, index) {
-							if(index == 0) {
-								ajax.url += '?' + filter.path + '=' + filter.value;
-							} else {
-								ajax.url += '&' + filter.path + '=' + filter.value;
-							}
-						});
-						StartRange = params.page * params.pageSize + 1;
-						EndRange = StartRange + params.pageSize - 1;
-						ajax.headers['Range'] = "items=" + StartRange + "-" + EndRange;
-						if (etag && StartRange > lastItem) {
-							ajax.headers['If-Range'] = etag;
-						}
-						ajax.generateRequest();
-					};
 					var ajax1 = document.getElementById('getTableAjax');
 					ajax1.url = "/catalogManagement/v2/pla";
 					ajax1.generateRequest();
+					grid.dataProvider = this._getOffers;
+				}
+			},
+			_getOffers: function(params, callback) {
+				var grid = document.getElementById('offerGrid');
+				var ajax = document.getElementById("getProductAjax");
+				delete ajax.params['filter'];
+				function checkHead(param) {
+					return param.path == "id";
+				}
+				params.filters.filter(checkHead).forEach(function(filter) {
+					if (filter.value) {
+						ajax.params['filter'] = "\"[{id.like=[" + filter.value + "%";
+					}
+				});
+				function checkChar(param) {
+					return param.path != "id";
+				}
+				params.filters.filter(checkChar).forEach(function(filter) {
+					if (filter.value) {
+						if (!ajax.params['filter']) {
+							ajax.params['filter'] = "\"[{";
+						} else {
+							ajax.params['filter'] += "],";
+						}
+						ajax.params['filter'] += "characteristic.contains=[{name=language" + ",value.like=[" + filter.value + "%]}";
+					}
+				});
+				if (ajax.params['filter']) {
+					ajax.params['filter'] += "]}]\"";
+				}
+				offerList = document.getElementById('offerList');
+				handleAjaxResponse = function(request) {
+					if (request) {
+						offerList.etag = request.xhr.getResponseHeader('ETag');
+						var range = request.xhr.getResponseHeader('Content-Range');
+						var range1 = range.split("/");
+						var range2 = range1[0].split("-");
+						if (range1[1] != "*") {
+							grid.size = Number(range1[1]);
+						} else {
+							grid.size = Number(range2[1]) + grid.pageSize * 2;
+						}
+						var vaadinItems = new Array();
+						function checkChar(characteristic){
+							return characteristic.name == "id";
+						}
+						for (var index in request.response) {
+							var newRecord = new Object();
+							function checkExist(name) {
+								return name == request.response[index].name;
+							}
+							if(!offerList.offers.some(checkExist)) {
+								document.getElementById("offerList").push('offers', request.response[index].name);
+							}
+							newRecord.id = request.response[index].name;
+							newRecord.description = request.response[index].description;
+							newRecord.productSpecification = request.response[index].productSpecification;
+							if(request.response[index].validFor && request.response[index].validFor != "") {
+								if(request.response[index].validFor.startDateTime
+										&& request.response[index].validFor.startDateTime != ""){
+									newRecord.startDate = request.response[index].validFor.startDateTime.split("T")[0];
+								}
+								if(request.response[index].validFor.endDateTime
+										&& request.response[index].validFor.endDateTime != ""){
+									newRecord.endDate = request.response[index].validFor.endDateTime.split("T")[0];
+								}
+							}
+							newRecord.lifecycleStatus = request.response[index].status;
+							if(request.response[index].productOfferingPrice && request.response[index].productOfferingPrice != ""){
+								function getNames(price) {
+									return price.name;
+								}
+								newRecord.price = request.response[index].productOfferingPrice.map(getNames).join(", ");
+								newRecord.prices = request.response[index].productOfferingPrice;
+							}
+							newRecord.bundledProductOffering = request.response[index].bundledProductOffering;
+							newRecord.prodSpecCharValueUse = request.response[index].prodSpecCharValueUse;
+							vaadinItems[index] = newRecord;
+						}
+						callback(vaadinItems);
+					} else {
+						grid.size = 0;
+						callback([]);
+					}
+				};
+				handleAjaxError = function(error) {
+					offerList.etag = null;
+					var toast = document.getElementById('userToastError');
+					toast.text = error;
+					toast.open();
+					if(!grid.size) {
+						grid.size = 0;
+					}
+					callback([]);
+				}
+				if(ajax.loading) {
+					ajax.lastRequest.completes.then(function(request) {
+						StartRange = params.page * params.pageSize + 1;
+						EndRange = StartRange + params.pageSize - 1;
+						ajax.headers['Range'] = "items=" + StartRange + "-" + EndRange;
+						if (offerList.etag && params.page > 0) {
+							ajax.headers['If-Range'] = offerList.etag;
+						} else {
+							delete ajax.headers['If-Range'];
+						}
+						return ajax.generateRequest().completes;
+					}, handleAjaxError).then(handleAjaxResponse, handleAjaxError);
+				} else {
+					StartRange = params.page * params.pageSize + 1;
+					EndRange = StartRange + params.pageSize - 1;
+					ajax.headers['Range'] = "items=" + StartRange + "-" + EndRange;
+					if (offerList.etag && params.page > 0) {
+						ajax.headers['If-Range'] = offerList.etag;
+					} else {
+						delete ajax.headers['If-Range'];
+					}
+					ajax.generateRequest().completes.then(handleAjaxResponse, handleAjaxError);
 				}
 			},
 			_activeItemChanged: function(item) {
 				if(item != null) {
 					this.$.offerGrid.selectedItems = item ? [item] : [];
 					document.getElementById("updateProduct").initialize(item);
-				}
-			},
-			_getProductResponse: function(event) {
-				var grid = this.$.offerGrid;
-				var results = event.detail.xhr.response;
-				if (grid.size == undefined) {
-					grid.size = 0;
-				}
-				etag = event.detail.xhr.getResponseHeader('ETag');
-				var range = event.detail.xhr.getResponseHeader('Content-Range');
-				var range1 = range.split("/");
-				var range2 = range1[0].split("-");
-				lastItem = Number(range2[1]);
-				if (range1[1] != "*") {
-					grid.size = Number(range1[1]);
-				} else {
-					grid.size = Number(range2[1]) + grid.pageSize * 2;
-				}
-				var vaadinItems = new Array();
-				for (var index in results) {
-					var newRecord = new Object();
-					function checkExist(name) {
-						return name == results[index].name;
-					}
-					if(!this.offers.some(checkExist)) {
-						this.push('offers', results[index].name);
-					}
-					newRecord.name = results[index].name;
-					newRecord.description = results[index].description;
-					newRecord.productSpecification = results[index].productSpecification;
-					if(results[index].validFor && results[index].validFor != "") {
-						if(results[index].validFor.startDateTime
-								&& results[index].validFor.startDateTime != ""){
-							newRecord.startDate = results[index].validFor.startDateTime.split("T")[0];
-						}
-						if(results[index].validFor.endDateTime
-								&& results[index].validFor.endDateTime != ""){
-							newRecord.endDate = results[index].validFor.endDateTime.split("T")[0];
-						}
-					}
-					newRecord.lifecycleStatus = results[index].status;
-					if(results[index].productOfferingPrice && results[index].productOfferingPrice != ""){
-						function getNames(price) {
-							return price.name;
-						}
-						newRecord.price = results[index].productOfferingPrice.map(getNames).join(", ");
-						newRecord.prices = results[index].productOfferingPrice;
-					}
-					newRecord.bundledProductOffering = results[index].bundledProductOffering;
-					newRecord.prodSpecCharValueUse = results[index].prodSpecCharValueUse;
-					vaadinItems[index] = newRecord;
-				}
-				cbProduct(vaadinItems);
-			},
-			_getProductError: function(event) {
-				this.$.offerGrid.size = 0;
-				cbProduct([]);
-				if (!lastItem && event.detail.request.xhr.status != 416) {
-					this.$.getProductErrorToast.text = event.detail.request.xhr.statusText;
-					this.$.getProductErrorToast.open();
 				}
 			},
 			_getTableResponse: function(event) {
