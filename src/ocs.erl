@@ -1423,7 +1423,7 @@ query_offer(Cont, {Op, String}, Description, Status, STD, EDT, Price)
 			MatchHead = #offer{name = Prefix ++ '_', _ = '_'},
 			[{MatchHead, [], ['$_']}];
 		_ ->
-			MatchHead = #offer{name = String ++ '_', _ = '_'},
+			MatchHead = #offer{name = String, _ = '_'},
 			[{MatchHead, [], ['$_']}]
 	end,
 	query_offer1(Cont, MatchSpec, Description, Status, STD, EDT, Price).
