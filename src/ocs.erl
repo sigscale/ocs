@@ -1412,106 +1412,37 @@ delete_offer(OfferID) ->
 		Cont1 :: eof | any(),
 		Reason :: term().
 %% @doc Query offer entires
-query_offer(Con, '_', '_', Status, STD, EDT, Price) ->
-	query_offer4(Con, Status, STD, EDT, Price, #offer{_ = '_'}, []);
-query_offer(Con, Name, Description, Status, STD, EDT, Price) ->
-	query_offer2(Con, Name, Description, Status, STD, EDT, Price, #offer{_ = '_'}, []).
-%% @hidden
-query_offer1(String) ->
-	case lists:last(String) of
-		$% ->
-			lists:droplast(String) ++ '_';
+query_offer(Cont, '_' = _Name, Description, Status, STD, EDT, Price) ->
+	MatchSpec = [{'_', [], ['$_']}],
+	query_offer1(Cont, MatchSpec, Description, Status, STD, EDT, Price);
+query_offer(Cont, {Op, String}, Description, Status, STD, EDT, Price)
+		when is_list(String), ((Op == exact) orelse (Op == like)) ->
+	 MatchSpec = case lists:last(String) of
+		$% when Op == like ->
+			Prefix = lists:droplast(String),
+			MatchHead = #offer{name = Prefix ++ '_', _ = '_'},
+			[{MatchHead, [], ['$_']}];
 		_ ->
-			String
-	end.
-query_offer2(Con, '_', Description, Status, STD, EDT, Price, MatchHead, MatchConditions) ->
-	query_offer3(Con, Description, Status, STD, EDT, Price, MatchHead, MatchConditions);
-query_offer2(Con, {like, Name}, Description, Status, STD, EDT, Price, MatchHead, MatchConditions) ->
-	Name1 = query_offer1(Name),
-	MatchHead1 = MatchHead#offer{name = Name1},
-	query_offer3(Con, Description, Status, STD, EDT, Price, MatchHead1, MatchConditions);
-query_offer2(Con, MatchName, Description, Status, STD, EDT, Price, MatchHead, MatchConditions) ->
-	MatchConditions1 = [match_condition('$1', MatchName) | MatchConditions],
-	MatchHead1 = MatchHead#offer{name = '$1'},
-	query_offer3(Con, Description, Status, STD, EDT, Price, MatchHead1, MatchConditions1).
-%% @hidden
-query_offer3(Con, '_', Status, STD, EDT, Price, MatchHead, MatchConditions) ->
-	query_offer4(Con, Status, STD, EDT, Price, MatchHead, MatchConditions);
-query_offer3(Con, {like, Description}, Status, STD, EDT, Price, MatchHead, MatchConditions) ->
-	Des = query_offer1(Description),
-	MatchHead1 = MatchHead#offer{description = Des},
-	query_offer4(Con, Status, STD, EDT, Price, MatchHead1, MatchConditions);
-query_offer3(Con, MatchDescription, Status, STD, EDT, Price, MatchHead, MatchConditions) ->
-	MatchConditions1 = [match_condition('$2', MatchDescription) | MatchConditions],
-	MatchHead1 = MatchHead#offer{name = '$3'},
-	query_offer4(Con, Status, STD, EDT, Price, MatchHead1, MatchConditions1).
-%% @hidden
-query_offer4(start, Status, STD, EDT, Price, MatchHead, MatchConditions) ->
-	MatchSpec = [{MatchHead, MatchConditions, ['$_']}],
-	F = fun() -> mnesia:select(offer, MatchSpec, ?CHUNKSIZE, read) end,
-	case mnesia:ets(F) of
-		{'EXIT', Reason} ->
-			{error, Reason};
-		{Offers, Cont} ->
-			query_offer5(Status, STD, EDT, Price, Cont, Offers);
-		'$end_of_table' ->
-			{eof, []}
-	end;
-query_offer4(Con, Status, STD, EDT, Price, _MatchHead, _MatchConditions) ->
-	F = fun() -> mnesia:select(Con) end,
-	case mnesia:ets(F) of
-		{'EXIT', Reason} ->
-			{error, Reason};
-		{Offers, Cont} ->
-			query_offer5(Status, STD, EDT, Price, Cont, Offers);
-		'$end_of_table' ->
-			{eof, []}
-	end.
-%% @hidden
-query_offer5('_', STD, EDT, Price, Cont, Offers) ->
-	query_offer6(STD, EDT, Price, Cont, Offers);
-query_offer5({Operator, Status}, STD, EDT, Price, Cont, Offers) ->
-	F = fun(#offer{status = Status1}) ->
-			Status2 = atom_to_list(Status1),
-			match(Operator, Status, Status2)
+			MatchHead = #offer{name = String ++ '_', _ = '_'},
+			[{MatchHead, [], ['$_']}]
 	end,
-	NewOffers = lists:filter(F, Offers),
-	query_offer6(STD, EDT, Price, Cont, NewOffers).
+	query_offer1(Cont, MatchSpec, Description, Status, STD, EDT, Price).
 %% @hidden
-query_offer6('_', EDT, Price, Cont, Offers) ->
-	query_offer7(EDT, Price, Cont, Offers);
-query_offer6({Operator, STD}, EDT, Price, Cont, Offers) ->
-	F = fun(#offer{start_date = STD1}) when is_integer(STD1) ->
-			SDT2 = integer_to_list(STD1),
-			match(Operator, STD, SDT2);
-		(_) ->
-			false
+query_offer1(start, MatchSpec, Description, Status, STD, EDT, Price) ->
+	F = fun() ->
+		mnesia:select(offer, MatchSpec, ?CHUNKSIZE, read)
 	end,
-	NewOffers = lists:filter(F, Offers),
-	query_offer7(EDT, Price, Cont, NewOffers).
-%% @hidden
-query_offer7('_', Price, Cont, Offers) ->
-	query_offer8(Price, Cont, Offers);
-query_offer7({Operator, EDT}, Price, Cont, Offers) ->
-	F = fun(#offer{end_date = ETD1}) when is_integer(ETD1) ->
-			EDT2 = integer_to_list(ETD1),
-			match(Operator, EDT, EDT2);
-		(_) ->
-			false
+	query_offer2(mnesia:ets(F), Description, Status, STD, EDT, Price);
+query_offer1(Cont, _MatchSpec, Description, Status, STD, EDT, Price) ->
+	F = fun() ->
+		mnesia:select(Cont)
 	end,
-	NewOffers = lists:filter(F, Offers),
-	query_offer8(Price, Cont, NewOffers).
+	query_offer2(mnesia:ets(F), Description, Status, STD, EDT, Price).
 %% @hidden
-query_offer8('_', Cont, Offers) ->
+query_offer2({Offers, Cont}, '_', '_', '_', '_', '_') ->
 	{Cont, Offers};
-query_offer8({Operator, Price}, Cont, Offers) ->
-	F = fun(#offer{price = Prices}) ->
-			F2 = fun(#price{name = Price1}) ->
-					match(Operator, Price, Price1)
-			end,
-			lists:any(F2, Prices)
-	end,
-	{Cont, lists:filter(F, Offers)}.
+query_offer2('$end_of_table', _Description, _Status, _STD, _EDT, _Price) ->
+	{eof, []}.
 
 -spec query_table(Cont, Name, Prefix, Description, Rate, LM) -> Result
 	when
