@@ -2404,25 +2404,6 @@ match_condition(Var, {gt, Term}) ->
 match_condition(Var, {gte, Term}) ->
 	{'>=', Var, Term}.
 
-
-%% @hidden
-match(exact, String, String) ->
-	true;
-match(exact, _String1, _String2) ->
-	false;
-match(notexact, String, String) ->
-	false;
-match(notexact, _String1, _String2) ->
-	true;
-match(like, String1, String2) ->
-	case lists:last(String1) of
-		$% ->
-			Prefix = lists:droplast(String1),
-			lists:prefix(Prefix, String2);
-		_ ->
-			lists:prefix(String1, String2)
-	end.
-
 -spec match_address(String) -> Result
 	when
 		String :: string(),
