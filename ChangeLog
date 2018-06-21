@@ -1,3 +1,14 @@
+2018-06-21  Vance Shipley <vances@sigscale.org>
+
+	* advanced rest query patterns: offers
+	* document tmforum open api table
+	* document advanced attribute filtering query
+	* fix for navigation menu reselection
+	* internalization updates
+	* fixes for access and accounting logs
+	* add accumulated balance in product inventory view
+	* extend product api with accumulated balance
+
 2018-06-14  Vance Shipley <vances@sigscale.org>
 
 	* advanced rest query patterns: clients, buckets
