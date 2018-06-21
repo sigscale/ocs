@@ -122,7 +122,7 @@
 		last_modified :: tuple() | undefined | '_'}).
 
 -record(bucket,
-		{id :: string() | undefined | '_',
+		{id :: string() | undefined | '_' | '$1',
 		name :: string() | undefined | '_',
 		start_date :: pos_integer() | undefined | '_',
 		end_date :: pos_integer() | undefined | '_',
