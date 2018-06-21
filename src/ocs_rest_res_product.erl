@@ -2145,9 +2145,9 @@ inventory([balance | T], #product{balance = BucketRefs} = Product, Acc) ->
 						{N, B, S};
 					(#bucket{units = cents, remain_amount = N}, {C, B, S}) ->
 						{C + N, B, S};
-					(#bucket{units = bytes, remain_amount = N}, {C, undefined, S}) ->
+					(#bucket{units = octets, remain_amount = N}, {C, undefined, S}) ->
 						{C , N, S};
-					(#bucket{units = bytes, remain_amount = N}, {C, B, S}) ->
+					(#bucket{units = octets, remain_amount = N}, {C, B, S}) ->
 						{C , B + N, S};
 					(#bucket{units = seconds, remain_amount = N}, {C, B, undefined}) ->
 						{C , B, N};
