@@ -571,11 +571,13 @@ get_clients_filter(Config) ->
 	ContentLength = integer_to_list(length(Body)),
 	{_, ContentLength} = lists:keyfind("content-length", 1, Headers),
 	{array, ClientsList} = mochijson:decode(Body),
+erlang:display({?MODULE, ?LINE, ClientsList}),
 	Fall = fun({struct, L}) ->
 				lists:keymember("id", 1, L)
 						and lists:keymember("href", 1, L)
 						and not lists:keymember("port", 1, L)
 						and not lists:keymember("protocol", 1, L)
+						and lists:keymember("identifier", 1, L)
 						and lists:keymember("secret", 1, L)
 	end,
 	true = lists:all(Fall, ClientsList).
