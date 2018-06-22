@@ -14,7 +14,7 @@
 %%% WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 %%% See the License for the specific language governing permissions and
 %%% limitations under the License.
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%% @doc This library module implements the SNMP MIB for the
 %%%     {@link //ocs. ocs} application.
 %%%
@@ -26,6 +26,8 @@
 
 %% export the ocs_mib snmp agent callbacks
 -export([client_table/3]).
+
+-include("ocs.hrl").
 
 %%----------------------------------------------------------------------
 %%  The ocs_mib public API
@@ -75,9 +77,46 @@ unload(Agent) ->
 %% The ocs_mib snmp agent callbacks
 %%----------------------------------------------------------------------
 
-client_table(get, RowIndex, Cols) ->
-erlang:display({?MODULE, ?LINE, get, RowIndex, Cols}),
-	{ok, RowIndex, Cols};
-client_table(get_next, RowIndex ,Cols) ->
-erlang:display({?MODULE, ?LINE, get_next, RowIndex, Cols}),
-	{ok, RowIndex, Cols}.
+client_table(get_next, [] = RowIndex, [0] = Cols) ->
+	F = fun() ->
+			 mnesia:first(client)
+	end,
+	case mnesia:ets(F) of
+		IP when is_tuple(IP) ->
+			case ocs:find_client(IP) of
+				{ok, #client{}} ->
+					[{[1, 1, 4 | tuple_to_list(IP)], ipv4}];
+				{error, _Reason} ->
+					{genErr, 0}
+			end;
+		'$end_of_table' ->
+			[endOfTable]
+	end;
+client_table(get_next, [1, 4] ++ Key1, Cols) ->
+	F1 = fun() ->
+			 mnesia:next(client, list_to_tuple(Key1))
+	end,
+	case mnesia:ets(F1) of
+		IP when is_tuple(IP) ->
+			Key2 = tuple_to_list(IP),
+			case ocs:find_client(IP) of
+				{ok, #client{port = Port, identifier = ID, protocol = Proto}} ->
+					F2 = fun(1, Acc) ->
+								[{[1, 1, 4 | Key2], ipv4} | Acc];
+							(2, Acc) ->
+								[{[1, 1, 4 | Key2], Key2} | Acc];
+							(3, Acc) ->
+								[{[1, 1, 4 | Key2], Port} | Acc];
+							(4, Acc) ->
+								[{[1, 1, 4 | Key2], ID} | Acc];
+							(5, Acc) ->
+								[{[1, 1, 4 | Key2], Proto} | Acc]
+					end,
+					lists:foldl(F2, [], Cols);
+				{error, _Reason} ->
+					{genErr, 0}
+			end;
+		'$end_of_table' ->
+			[endOfTable]
+	end.
+
