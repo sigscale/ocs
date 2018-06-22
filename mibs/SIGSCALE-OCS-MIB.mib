@@ -9,7 +9,7 @@ IMPORTS
         FROM SIGSCALE-SMI
     DisplayString, DateAndTime, RowStatus
         FROM SNMPv2-TC
-    InetAddress
+    InetAddressType, InetAddress
         FROM INET-ADDRESS-MIB
     MODULE-IDENTITY, OBJECT-TYPE, Integer32, Counter32, Unsigned32
         FROM SNMPv2-SMI;
@@ -57,24 +57,33 @@ ocsClientEntry OBJECT-TYPE
     MAX-ACCESS   not-accessible
     STATUS       current
     DESCRIPTION  "A conceptual row in the client table."
-    INDEX        {ocsClientAddress}
+    INDEX        {ocsClientAddressType, ocsClientAddress}
     ::= {ocsClientTable 1}
 
 OcsClientEntry ::= SEQUENCE {
+    ocsClientAddressType InetAddressType,
     ocsClientAddress InetAddress,
     ocsClientPort Integer32,
     ocsClientIdentifier DisplayString,
     ocsClientProtocol INTEGER,
     ocsClientRowStatus RowStatus
 }
-    
+
+ocsClientAddressType OBJECT-TYPE
+    SYNTAX       InetAddressType
+    MAX-ACCESS   read-write
+    STATUS       current
+    DESCRIPTION
+        "The IP address type of the NAS client."
+    ::= {ocsClientEntry 1}
+
 ocsClientAddress  OBJECT-TYPE
     SYNTAX       InetAddress
     MAX-ACCESS   read-write
     STATUS       current
-    DESCRIPTION 
+    DESCRIPTION
         "The IP address of the NAS client."
-    ::= {ocsClientEntry 1}
+    ::= {ocsClientEntry 2}
 
 ocsClientPort OBJECT-TYPE
     SYNTAX       Integer32 ( 0..65535 )
@@ -82,15 +91,15 @@ ocsClientPort OBJECT-TYPE
     STATUS       current
     DESCRIPTION
         "The IP port of the NAS client."
-    ::= {ocsClientEntry 2}
+    ::= {ocsClientEntry 3}
 
 ocsClientIdentifier OBJECT-TYPE
-    SYNTAX       DisplayString 
+    SYNTAX       DisplayString
     MAX-ACCESS   read-write
     STATUS       current
     DESCRIPTION
         "The NAS-Identifier attribute value received from the NAS client."
-    ::= {ocsClientEntry 3}
+    ::= {ocsClientEntry 4}
 
 ocsClientProtocol OBJECT-TYPE
     SYNTAX       INTEGER {
@@ -101,7 +110,7 @@ ocsClientProtocol OBJECT-TYPE
     STATUS       current
     DESCRIPTION
         "The protocol used by the NAS client."
-    ::= {ocsClientEntry 4}
+    ::= {ocsClientEntry 5}
 
 ocsClientRowStatus OBJECT-TYPE
     SYNTAX       RowStatus
@@ -109,6 +118,6 @@ ocsClientRowStatus OBJECT-TYPE
     STATUS       current
     DESCRIPTION
         "."
-    ::= {ocsClientEntry 5}
+    ::= {ocsClientEntry 6}
 
 END
