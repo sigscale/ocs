@@ -259,23 +259,38 @@ get_inventory(ID) ->
 %% 	Retrieve all Product Offerings.
 %% @todo Filtering
 get_offers(Query, Headers) ->
-	Name =  proplists:get_value("name", Query, '_'),
-	Des = proplists:get_value("description", Query, '_'),
-	Status = case lists:keyfind("lifecycleStatus", 1, Query) of
-		false ->
-			'_';
-		{_, S} ->
-			product_status(S)
-	end,
-	SDT = proplists:get_value("startDate", Query, '_'),
-	EDT = proplists:get_value("endDate", Query, '_'),
-	Price = proplists:get_value("price", Query, '_'),
-	M = ocs,
-	F = query_offer,
-	A = [Name, Des, Status, SDT, EDT, Price],
-	Codec = fun offer/1,
-	query_filter({M, F, A}, Codec, Query, Headers).
-
+	try
+		case lists:keytake("filter", 1, Query) of
+			{value, {_, String}, Query1} ->
+				{ok, Tokens, _} = ocs_rest_query_scanner:string(String),
+				case ocs_rest_query_parser:parse(Tokens) of
+					{ok, [{array, [{complex, Complex}]}]} ->
+						MatchName = match("id", Complex, Query),
+						MatchDes = match("description", Complex, Query),
+						MatchStatus = match("lifecycleStatus", Complex, Query),
+						MatchSDT = match("startDate", Complex, Query),
+						MatchEDT = match("endDate", Complex, Query),
+						MatchPrice = match("price", Complex, Query),
+						{Query1, [MatchName, MatchDes, MatchStatus, MatchSDT, MatchEDT, MatchPrice]}
+				end;
+			false ->
+					MatchName = match("id", [], Query),
+					MatchDes = match("description", [], Query),
+					MatchStatus = match("lifecycleStatus", [], Query),
+					MatchSDT = match("startDate", [], Query),
+					MatchEDT = match("endDate", [], Query),
+					MatchPrice = match("price", [], Query),
+					{Query, [MatchName, MatchDes, MatchStatus, MatchSDT, MatchEDT, MatchPrice]}
+		end
+	of
+		{Query2, Args} ->
+			Codec = fun offer/1,
+			query_filter({ocs, query_offer, Args}, Codec, Query2, Headers)
+	catch
+		_ ->
+			{error, 400}
+		end.
+				
 -spec get_pla(ID) -> Result when
 	ID	:: string(),
 	Result :: {ok, Headers, Body} | {error, Status},
@@ -2145,9 +2160,9 @@ inventory([balance | T], #product{balance = BucketRefs} = Product, Acc) ->
 						{N, B, S};
 					(#bucket{units = cents, remain_amount = N}, {C, B, S}) ->
 						{C + N, B, S};
-					(#bucket{units = bytes, remain_amount = N}, {C, undefined, S}) ->
+					(#bucket{units = octets, remain_amount = N}, {C, undefined, S}) ->
 						{C , N, S};
-					(#bucket{units = bytes, remain_amount = N}, {C, B, S}) ->
+					(#bucket{units = octets, remain_amount = N}, {C, B, S}) ->
 						{C , B + N, S};
 					(#bucket{units = seconds, remain_amount = N}, {C, B, undefined}) ->
 						{C , B, N};

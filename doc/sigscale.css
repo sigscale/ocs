@@ -70,14 +70,15 @@ th#mt {
 td#mt {
 	padding: 5px;
 }
-table#op, tr#op, td#opl, td#opr {
+table.op, table#op, tr#op, td#opl, td#opr {
 	border: 1px solid black;
 	text-align: left;
 	padding: 5px;
 }
-caption#op {
+caption.op {
 	text-align: left;
 }
 td#opl {
 	background-color: #f57f17;
 }
+
