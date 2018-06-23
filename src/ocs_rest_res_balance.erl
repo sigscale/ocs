@@ -272,7 +272,7 @@ top_up(Identity, RequestBody) ->
 	try
 		bucket(mochijson:decode(RequestBody))
 	of
-		#bucket{product = undefined, units = Units, remain_amount = RM} = B
+		#bucket{product = [], units = Units, remain_amount = RM} = B
 				when Units /= undefined, RM > 0 ->
 			case ocs:add_bucket(Identity, B#bucket{product = [Identity]}) of
 				{ok, _, #bucket{id = Id} = B1} ->
