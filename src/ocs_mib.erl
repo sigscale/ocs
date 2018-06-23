@@ -77,40 +77,35 @@ unload(Agent) ->
 %% The ocs_mib snmp agent callbacks
 %%----------------------------------------------------------------------
 
-client_table(get_next, [] = RowIndex, [0] = Cols) ->
+client_table(get_next, [] = _RowIndex, [0] = _Cols) ->
+	client_table(get_next, [], [1]);
+client_table(get_next, [] = _RowIndex, Cols) ->
 	F = fun() ->
 			 mnesia:first(client)
 	end,
-	case mnesia:ets(F) of
-		IP when is_tuple(IP) ->
-			case ocs:find_client(IP) of
-				{ok, #client{}} ->
-					[{[1, 1, 4 | tuple_to_list(IP)], ipv4}];
-				{error, _Reason} ->
-					{genErr, 0}
-			end;
-		'$end_of_table' ->
-			[endOfTable]
-	end;
+	client_table_get_next(F, Cols);
 client_table(get_next, [1, 4] ++ Key1, Cols) ->
-	F1 = fun() ->
+	F = fun() ->
 			 mnesia:next(client, list_to_tuple(Key1))
 	end,
+	client_table_get_next(F, Cols).
+%% @hidden
+client_table_get_next(F1, Cols) ->
 	case mnesia:ets(F1) of
 		IP when is_tuple(IP) ->
-			Key2 = tuple_to_list(IP),
 			case ocs:find_client(IP) of
 				{ok, #client{port = Port, identifier = Id, protocol = Proto}} ->
+					Key = tuple_to_list(IP),
 					F2 = fun(1, Acc) ->
-								[{[1, 1, 4 | Key2], ipv4} | Acc];
+								[{[1, 1, 4 | Key], ipv4} | Acc];
 							(2, Acc) ->
-								[{[2, 1, 4 | Key2], Key2} | Acc];
+								[{[2, 1, 4 | Key], Key} | Acc];
 							(3, Acc) ->
-								[{[3, 1, 4 | Key2], Port} | Acc];
+								[{[3, 1, 4 | Key], Port} | Acc];
 							(4, Acc) ->
-								[{[4, 1, 4 | Key2], binary_to_list(Id)} | Acc];
+								[{[4, 1, 4 | Key], binary_to_list(Id)} | Acc];
 							(5, Acc) ->
-								[{[5, 1, 4 | Key2], Proto} | Acc]
+								[{[5, 1, 4 | Key], Proto} | Acc]
 					end,
 					lists:reverse(lists:foldl(F2, [], Cols));
 				{error, _Reason} ->
@@ -119,4 +114,3 @@ client_table(get_next, [1, 4] ++ Key1, Cols) ->
 		'$end_of_table' ->
 			[endOfTable]
 	end.
-
