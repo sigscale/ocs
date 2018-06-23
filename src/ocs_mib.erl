@@ -112,7 +112,7 @@ client_table(get_next, [1, 4] ++ Key1, Cols) ->
 							(5, Acc) ->
 								[{[5, 1, 4 | Key2], Proto} | Acc]
 					end,
-					lists:foldl(F2, [], Cols);
+					lists:reverse(lists:foldl(F2, [], Cols));
 				{error, _Reason} ->
 					{genErr, 0}
 			end;
