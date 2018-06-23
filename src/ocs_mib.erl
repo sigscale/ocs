@@ -100,17 +100,17 @@ client_table(get_next, [1, 4] ++ Key1, Cols) ->
 		IP when is_tuple(IP) ->
 			Key2 = tuple_to_list(IP),
 			case ocs:find_client(IP) of
-				{ok, #client{port = Port, identifier = ID, protocol = Proto}} ->
+				{ok, #client{port = Port, identifier = Id, protocol = Proto}} ->
 					F2 = fun(1, Acc) ->
 								[{[1, 1, 4 | Key2], ipv4} | Acc];
 							(2, Acc) ->
-								[{[1, 1, 4 | Key2], Key2} | Acc];
+								[{[2, 1, 4 | Key2], Key2} | Acc];
 							(3, Acc) ->
-								[{[1, 1, 4 | Key2], Port} | Acc];
+								[{[3, 1, 4 | Key2], Port} | Acc];
 							(4, Acc) ->
-								[{[1, 1, 4 | Key2], ID} | Acc];
+								[{[4, 1, 4 | Key2], Id} | Acc];
 							(5, Acc) ->
-								[{[1, 1, 4 | Key2], Proto} | Acc]
+								[{[5, 1, 4 | Key2], Proto} | Acc]
 					end,
 					lists:foldl(F2, [], Cols);
 				{error, _Reason} ->
