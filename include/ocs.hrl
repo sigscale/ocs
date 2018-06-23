@@ -134,7 +134,7 @@
 				SessionId :: string() | binary()}] | '_',
 		units :: octets | cents | seconds | messages | undefined | '_',
 		prices = [] :: list() | '_',
-		product :: [ProdRef :: term()] | '_',
+		product  = [] :: [ProdRef :: term()] | '_',
 		last_modified :: tuple() | undefined | '_'}).
 
 -record(product,
