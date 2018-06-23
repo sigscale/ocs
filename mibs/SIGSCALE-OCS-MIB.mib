@@ -11,7 +11,7 @@ IMPORTS
         FROM SNMPv2-TC
     InetAddressType, InetAddress
         FROM INET-ADDRESS-MIB
-    MODULE-IDENTITY, OBJECT-TYPE, Integer32
+    MODULE-IDENTITY, OBJECT-TYPE
         FROM SNMPv2-SMI;
 
 ocsMIB MODULE-IDENTITY
@@ -63,9 +63,9 @@ ocsClientEntry OBJECT-TYPE
 OcsClientEntry ::= SEQUENCE {
     ocsClientAddressType InetAddressType,
     ocsClientAddress InetAddress,
-    ocsClientPort Integer32,
+    ocsClientPort INTEGER,
     ocsClientIdentifier DisplayString,
-    ocsClientProtocol INTEGER,
+    ocsClientProtocol INTEGER
 }
 
 ocsClientAddressType OBJECT-TYPE
@@ -85,7 +85,7 @@ ocsClientAddress  OBJECT-TYPE
     ::= {ocsClientEntry 2}
 
 ocsClientPort OBJECT-TYPE
-    SYNTAX       Integer32 ( 0..65535 )
+    SYNTAX       INTEGER (0..65535)
     MAX-ACCESS   read-only
     STATUS       current
     DESCRIPTION
@@ -108,7 +108,7 @@ ocsClientProtocol OBJECT-TYPE
     MAX-ACCESS   read-only
     STATUS       current
     DESCRIPTION
-        "The protocol used by the NAS client to."
+        "The protocol used by the NAS client."
     ::= {ocsClientEntry 5}
 
 END
