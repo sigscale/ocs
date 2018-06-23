@@ -7,7 +7,7 @@ IMPORTS
         FROM SIGSCALE-PRODUCTS-MIB
     sigscaleModules, sigscaleProducts
         FROM SIGSCALE-SMI
-    DisplayString, DateAndTime, RowStatus
+    DisplayString, DateAndTime
         FROM SNMPv2-TC
     InetAddressType, InetAddress
         FROM INET-ADDRESS-MIB
@@ -66,12 +66,11 @@ OcsClientEntry ::= SEQUENCE {
     ocsClientPort Integer32,
     ocsClientIdentifier DisplayString,
     ocsClientProtocol INTEGER,
-    ocsClientRowStatus RowStatus
 }
 
 ocsClientAddressType OBJECT-TYPE
     SYNTAX       InetAddressType
-    MAX-ACCESS   read-write
+    MAX-ACCESS   read-only
     STATUS       current
     DESCRIPTION
         "The IP address type of the NAS client."
@@ -79,7 +78,7 @@ ocsClientAddressType OBJECT-TYPE
 
 ocsClientAddress  OBJECT-TYPE
     SYNTAX       InetAddress
-    MAX-ACCESS   read-write
+    MAX-ACCESS   read-only
     STATUS       current
     DESCRIPTION
         "The IP address of the NAS client."
@@ -87,7 +86,7 @@ ocsClientAddress  OBJECT-TYPE
 
 ocsClientPort OBJECT-TYPE
     SYNTAX       Integer32 ( 0..65535 )
-    MAX-ACCESS   read-write
+    MAX-ACCESS   read-only
     STATUS       current
     DESCRIPTION
         "The IP port of the NAS client."
@@ -95,7 +94,7 @@ ocsClientPort OBJECT-TYPE
 
 ocsClientIdentifier OBJECT-TYPE
     SYNTAX       DisplayString
-    MAX-ACCESS   read-write
+    MAX-ACCESS   read-only
     STATUS       current
     DESCRIPTION
         "The NAS-Identifier attribute value received from the NAS client."
@@ -106,18 +105,10 @@ ocsClientProtocol OBJECT-TYPE
         radius(1),
         diameter(2)
     }
-    MAX-ACCESS   read-write
+    MAX-ACCESS   read-only
     STATUS       current
     DESCRIPTION
-        "The protocol used by the NAS client."
+        "The protocol used by the NAS client to."
     ::= {ocsClientEntry 5}
-
-ocsClientRowStatus OBJECT-TYPE
-    SYNTAX       RowStatus
-    MAX-ACCESS   read-write
-    STATUS       current
-    DESCRIPTION
-        "."
-    ::= {ocsClientEntry 6}
 
 END
