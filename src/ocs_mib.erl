@@ -77,20 +77,33 @@ unload(Agent) ->
 %% The ocs_mib snmp agent callbacks
 %%----------------------------------------------------------------------
 
-client_table(get_next, [] = _RowIndex, [0] = _Cols) ->
+-spec client_table(Operation, RowIndex, Columns) -> Result
+	when
+		Operation :: get_next,
+		RowIndex :: ObjectIdentifier,
+		ObjectIdentifier :: [integer()],
+		Columns :: [Column],
+		Column :: integer(),
+		Result :: [Element] | {genErr, Column},
+		Element :: {NextOid, NextValue},
+		NextOid :: ObjectIdentifier,
+		NextValue :: atom() | integer() | string() | [integer()].
+%% @doc Handle SNMP requests for the client table.
+%% @private
+client_table(get_next, [] = _RowIndex, [0] = _Columns) ->
 	client_table(get_next, [], [1]);
-client_table(get_next, [] = _RowIndex, Cols) ->
+client_table(get_next, [], Columns) ->
 	F = fun() ->
 			 mnesia:first(client)
 	end,
-	client_table_get_next(F, Cols);
-client_table(get_next, [1, 4] ++ Key1, Cols) ->
+	client_table_get_next(F, Columns);
+client_table(get_next, [1, 4] ++ Key, Columns) ->
 	F = fun() ->
-			 mnesia:next(client, list_to_tuple(Key1))
+			 mnesia:next(client, list_to_tuple(Key))
 	end,
-	client_table_get_next(F, Cols).
+	client_table_get_next(F, Columns).
 %% @hidden
-client_table_get_next(F1, Cols) ->
+client_table_get_next(F1, Columns) ->
 	case mnesia:ets(F1) of
 		IP when is_tuple(IP) ->
 			case ocs:find_client(IP) of
@@ -107,7 +120,7 @@ client_table_get_next(F1, Cols) ->
 							(5, Acc) ->
 								[{[5, 1, 4 | Key], Proto} | Acc]
 					end,
-					lists:reverse(lists:foldl(F2, [], Cols));
+					lists:reverse(lists:foldl(F2, [], Columns));
 				{error, _Reason} ->
 					{genErr, 0}
 			end;
