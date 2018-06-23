@@ -108,7 +108,7 @@ client_table(get_next, [1, 4] ++ Key1, Cols) ->
 							(3, Acc) ->
 								[{[3, 1, 4 | Key2], Port} | Acc];
 							(4, Acc) ->
-								[{[4, 1, 4 | Key2], Id} | Acc];
+								[{[4, 1, 4 | Key2], binary_to_list(Id)} | Acc];
 							(5, Acc) ->
 								[{[5, 1, 4 | Key2], Proto} | Acc]
 					end,
