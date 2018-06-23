@@ -120,12 +120,16 @@ client_table_get_next(F1, Columns) ->
 							(4, Acc) ->
 								[{[4, 1, 4 | Key], binary_to_list(Id)} | Acc];
 							(5, Acc) ->
-								[{[5, 1, 4 | Key], Proto} | Acc]
+								[{[5, 1, 4 | Key], Proto} | Acc];
+							(6, Acc) ->
+								[endOfTable | Acc]
 					end,
 					lists:reverse(lists:foldl(F2, [], Columns));
 				{error, _Reason} ->
 					{genErr, 0}
 			end;
 		'$end_of_table' ->
-			[endOfTable]
+			F3 = fun(N) -> N + 1 end,
+			client_table(get_next, [], lists:map(F3, Columns))
 	end.
+
