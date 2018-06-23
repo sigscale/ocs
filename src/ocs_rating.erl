@@ -53,7 +53,7 @@
 		service_network :: binary() | undefined,
 		roaming_tb_prefix :: string() | undefined,
 		session_id :: [tuple()],
-		rated :: #rated{}}).
+		rated = #rated{} :: #rated{}}).
 
 -spec rate(Protocol, ServiceType, ServiceNetwork, SubscriberID, Timestamp,
 		Address, Direction, Flag, DebitAmounts, ReserveAmounts,
