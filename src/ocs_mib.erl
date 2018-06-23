@@ -113,6 +113,8 @@ client_table_get_next(F1, Columns) ->
 								[{[1, 1, 4 | Key], ipv4} | Acc];
 							(2, Acc) ->
 								[{[2, 1, 4 | Key], Key} | Acc];
+							(3, Acc) when Port == undefined ->
+								[{[3, 1, 4 | Key], 0} | Acc];
 							(3, Acc) ->
 								[{[3, 1, 4 | Key], Port} | Acc];
 							(4, Acc) ->
