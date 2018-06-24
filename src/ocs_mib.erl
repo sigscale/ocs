@@ -79,17 +79,40 @@ unload(Agent) ->
 
 -spec client_table(Operation, RowIndex, Columns) -> Result
 	when
-		Operation :: get_next,
-		RowIndex :: ObjectIdentifier,
-		ObjectIdentifier :: [integer()],
+		Operation :: get | get_next,
+		RowIndex :: ObjectId,
+		ObjectId :: [integer()],
 		Columns :: [Column],
 		Column :: integer(),
 		Result :: [Element] | {genErr, Column},
-		Element :: {NextOid, NextValue},
-		NextOid :: ObjectIdentifier,
-		NextValue :: atom() | integer() | string() | [integer()].
+		Element :: {value, Value} | {ObjectId, Value},
+		Value :: atom() | integer() | string() | [integer()].
 %% @doc Handle SNMP requests for the client table.
 %% @private
+client_table(get, RowIndex, Columns) when length(RowIndex) == 4 ->
+	case ocs:find_client(list_to_tuple(RowIndex)) of
+		{ok, #client{port = Port, identifier = Id, protocol = Proto}} ->
+			F2 = fun(1, Acc) ->
+						[{value, ipv4} | Acc];
+					(2, Acc) ->
+						[{value, RowIndex} | Acc];
+					(3, Acc) when Port == undefined ->
+						[{value, 0} | Acc];
+					(3, Acc) ->
+						[{value, Port} | Acc];
+					(4, Acc) ->
+						[{value, binary_to_list(Id)} | Acc];
+					(5, Acc) ->
+						[{value, Proto} | Acc];
+					(_, Acc) ->
+						[{noValue, noSuchInstance} | Acc]
+			end,
+			lists:reverse(lists:foldl(F2, [], Columns));
+		{error, not_found} ->
+			{noValue, noSuchInstance};
+		{error, _Reason} ->
+			{genErr, 0}
+	end;
 client_table(get_next, [], Columns) ->
 	F = fun() ->
 			 mnesia:first(client)

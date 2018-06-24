@@ -99,16 +99,25 @@ sequences() ->
 %% Returns a list of all test cases in this test suite.
 %%
 all() -> 
-	[get_next_client].
+	[get_client, get_next_client].
 
 %%---------------------------------------------------------------------
 %%  Test cases
 %%---------------------------------------------------------------------
 
-get_next_client() ->
-	[{userdata, [{doc, "Get next client table"}]}].
+get_client() ->
+	[{userdata, [{doc, "Get client table entry"}]}].
 
-get_next_client(Config) ->
+get_client(_Config) ->
+	{value, OID} = snmpa:name_to_oid(ocsClientTable),
+	OID1 = OID ++ [1, 4, 172, 16, 1, 3],
+	{noError, _, _Varbinds} = ct_snmp:get_values(ocs_mibs_test,
+			[OID1], snmp_mgr_agent).
+
+get_next_client() ->
+	[{userdata, [{doc, "Get next on client table"}]}].
+
+get_next_client(_Config) ->
 	{value, OID} = snmpa:name_to_oid(ocsClientTable),
 	{noError, _, _Varbinds} = ct_snmp:get_next_values(ocs_mibs_test,
 			[OID], snmp_mgr_agent).
