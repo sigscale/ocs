@@ -110,7 +110,8 @@ get_next_client() ->
 
 get_next_client(Config) ->
 	{value, OID} = snmpa:name_to_oid(ocsClientTable),
-	ct_snmp:get_next_values(ocs_mibs_test, [OID], snmp_mgr_agent). 
+	{noError, _, _Varbinds} = ct_snmp:get_next_values(ocs_mibs_test,
+			[OID], snmp_mgr_agent).
 
 %%---------------------------------------------------------------------
 %%  Internal functions
