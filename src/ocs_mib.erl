@@ -90,26 +90,26 @@ unload(Agent) ->
 		NextValue :: atom() | integer() | string() | [integer()].
 %% @doc Handle SNMP requests for the client table.
 %% @private
-client_table(get_next, [] = _RowIndex, [0] = _Columns) ->
-	client_table(get_next, [], [1]);
 client_table(get_next, [], Columns) ->
 	F = fun() ->
 			 mnesia:first(client)
 	end,
-	client_table_get_next(F, Columns);
+	client_get_next(F, Columns, true);
 client_table(get_next, [1, 4] ++ Key, Columns) ->
 	F = fun() ->
 			 mnesia:next(client, list_to_tuple(Key))
 	end,
-	client_table_get_next(F, Columns).
+	client_get_next(F, Columns, true).
 %% @hidden
-client_table_get_next(F1, Columns) ->
+client_get_next(F1, Columns, First) ->
 	case mnesia:ets(F1) of
 		IP when is_tuple(IP) ->
 			case ocs:find_client(IP) of
 				{ok, #client{port = Port, identifier = Id, protocol = Proto}} ->
 					Key = tuple_to_list(IP),
-					F2 = fun(1, Acc) ->
+					F2 = fun(0, Acc) ->
+								[{[1, 1, 4 | Key], ipv4} | Acc];
+							(1, Acc) ->
 								[{[1, 1, 4 | Key], ipv4} | Acc];
 							(2, Acc) ->
 								[{[2, 1, 4 | Key], Key} | Acc];
@@ -121,15 +121,23 @@ client_table_get_next(F1, Columns) ->
 								[{[4, 1, 4 | Key], binary_to_list(Id)} | Acc];
 							(5, Acc) ->
 								[{[5, 1, 4 | Key], Proto} | Acc];
-							(6, Acc) ->
+							(_, Acc) ->
 								[endOfTable | Acc]
 					end,
 					lists:reverse(lists:foldl(F2, [], Columns));
 				{error, _Reason} ->
 					{genErr, 0}
 			end;
+		'$end_of_table' when First == true ->
+			F3 = fun(N) ->
+					N + 1
+			end,
+			NextColumns = lists:map(F3, Columns),
+			F4 = fun() ->
+					mnesia:first(client)
+			end,
+			client_get_next(F4, NextColumns, false);
 		'$end_of_table' ->
-			F3 = fun(N) -> N + 1 end,
-			client_table(get_next, [], lists:map(F3, Columns))
+			[endOfTable || _ <- Columns]
 	end.
 
