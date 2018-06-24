@@ -114,12 +114,15 @@ client_table(get, [1, 4] ++ Key = _RowIndex, Columns)
 		{error, _Reason} ->
 			{genErr, 0}
 	end;
+client_table(get, _RowIndex, _Columns) ->
+	{noValue, noSuchInstance};
 client_table(get_next, [], Columns) ->
 	F = fun() ->
 			 mnesia:first(client)
 	end,
 	client_get_next(F, Columns, true);
-client_table(get_next, [1, 4] ++ Key, Columns) ->
+client_table(get_next, [1, 4] ++ Key, Columns)
+		when length(Key) == 4 ->
 	F = fun() ->
 			 mnesia:next(client, list_to_tuple(Key))
 	end,
