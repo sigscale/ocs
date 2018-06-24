@@ -89,13 +89,14 @@ unload(Agent) ->
 		Value :: atom() | integer() | string() | [integer()].
 %% @doc Handle SNMP requests for the client table.
 %% @private
-client_table(get, RowIndex, Columns) when length(RowIndex) == 4 ->
-	case ocs:find_client(list_to_tuple(RowIndex)) of
+client_table(get, [1, 4] ++ Key = _RowIndex, Columns)
+		when length(Key) == 4 ->
+	case ocs:find_client(list_to_tuple(Key)) of
 		{ok, #client{port = Port, identifier = Id, protocol = Proto}} ->
 			F2 = fun(1, Acc) ->
 						[{value, ipv4} | Acc];
 					(2, Acc) ->
-						[{value, RowIndex} | Acc];
+						[{value, Key} | Acc];
 					(3, Acc) when Port == undefined ->
 						[{value, 0} | Acc];
 					(3, Acc) ->

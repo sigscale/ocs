@@ -109,7 +109,7 @@ get_client() ->
 	[{userdata, [{doc, "Get client table entry"}]}].
 
 get_client(_Config) ->
-	{value, OID} = snmpa:name_to_oid(ocsClientTable),
+	{value, OID} = snmpa:name_to_oid(ocsClientProtocol),
 	OID1 = OID ++ [1, 4, 172, 16, 1, 3],
 	{noError, _, _Varbinds} = ct_snmp:get_values(ocs_mibs_test,
 			[OID1], snmp_mgr_agent).
