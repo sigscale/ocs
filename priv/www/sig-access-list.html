@@ -46,10 +46,10 @@
 					<vaadin-grid-filter
 							aria-label="[[i18n.timeStamp]]"
 							path="date"
-							value="[[filterTimeStamp]]">
+							value="[[filterAccessTimeStamp]]">
 						<input
 								placeholder="[[i18n.timeStamp]]"
-								value="{{filterTimeStamp::input}}"
+								value="{{filterAccessTimeStamp::input}}"
 								focus-target>
 						</vaadin-grid-filter>
 				</template>
@@ -133,6 +133,7 @@
 		</iron-ajax>
 	</template>
 	<script>
+		var etag;
 		Polymer ({
 			is: 'sig-access-list',
 			behaviors: [i18nMsgBehavior],
@@ -142,12 +143,8 @@
 					value: false,
 					observer: '_activePageChanged'
 				},
-				etag: {
-					type: String,
-					value: null
-				},
-				filterTimeStamp: {
-					observer: '_filterTimeStamp'
+				filterAccessTimeStamp: {
+					observer: '_filterAccessChangedTimeStamp'
 				},
 				filterClientAddress: {
 					observer: '_filterClientAddress'
@@ -192,7 +189,7 @@
 					grid.dataProvider = this._getAccess;
 				}
 			},
-			_filterTimeStamp: function(filter) {
+			__filterAccessChangedTimeStamp: function(filter) {
 				this.etag = null;
 				delete this.$.getAccess.headers['If-Range'];
 				this.$.accessGrid.size = 0;
@@ -225,7 +222,8 @@
 			refreshAccess: function() {
 				this.etag = null;
 				delete this.$.getAccess.headers['If-Range'];
-				this.filterTimeStamp = null;
+				delete this.$.getAccess.params['filter'];
+				this.filterAccessTimeStamp = null;
 				this.filterClientAddress = null;
 				this.filterclientIdentity = null;
 				this.filtercalledStation = null;
@@ -279,6 +277,9 @@
 							grid.size = Number(range2[1]) + grid.pageSize * 2;
 						}
 						var vaadinItems = new Array();
+						function checkChar(characteristic){
+                     return characteristic.name == "id";
+                  }
 						for (var index in request.response) {
 							var newRecord = new Object();
 							newRecord.date = request.response[index].date;
@@ -324,7 +325,7 @@
 						grid.size = 0;
 						callback([]);
 					}
-				},
+				};
 				handleAjaxError = function(error) {
 					accessList.etag = null;
 					var toast = document.getElementById('usageToastError');
