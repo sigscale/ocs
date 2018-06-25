@@ -1,10 +1,10 @@
 SIGSCALE-DIAMETER-BASE-PROTOCOL-MIB DEFINITIONS ::= BEGIN
 
 IMPORTS
-		sigscaleModules, sigscaleExperiment
+		sigscaleExperiment
 			FROM SIGSCALE-SMI
 		MODULE-IDENTITY, OBJECT-TYPE, NOTIFICATION-TYPE,
-		Integer32, Counter32, Unsigned32, Gauge32, TimeTicks
+		Counter32, Unsigned32, Gauge32, TimeTicks
 			FROM SNMPv2-SMI
 		SnmpAdminString
 			FROM SNMP-FRAMEWORK-MIB
@@ -30,6 +30,8 @@ diameterBaseProtocolMIB MODULE-IDENTITY
 		DESCRIPTION
 			"This module defines entities for implementing the
 			 Diameter Base Protocol.
+			"The MIB module for entities implementing the
+			 DIAMETER Base Protocol (RFC6733).
 			
 			 Copyright (c) 2011 IETF Trust and the persons identified
 			 as the document authors.  All rights reserved.
