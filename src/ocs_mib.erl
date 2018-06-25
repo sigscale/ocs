@@ -168,10 +168,10 @@ client_get_next(F1, Columns, First) ->
 			[endOfTable || _ <- Columns]
 	end.
 
--spec dbp_local_stats(get, Item) -> Result
+-spec dbp_local_stats(Operation, Item) -> Result
 	when
 		Operation :: get,
-		Result :: [Element] | {genErr, Column},
+		Item :: uptime,
 		Result :: {value, Value} | {noValue, noSuchInstance} | genErr,
 		Value :: atom() | integer() | string() | [integer()].
 %% @doc Handle SNMP requests for `DIAMETER-BASE-PROTOCOL-MIB::dbpLocalStats'.
@@ -181,6 +181,7 @@ dbp_local_stats(get, uptime) ->
 		{'EXIT', _Reason} ->
 			genErr;
 		{Hours, Mins, Secs, MicroSecs} ->
-			{value, (Hours * 360000) + (Mins * 6000) + (MicroSecs div 10)}
+			{value, (Hours * 360000) + (Mins * 6000)
+					+ (Secs * 100) + (MicroSecs div 10)}
 	end.
 
