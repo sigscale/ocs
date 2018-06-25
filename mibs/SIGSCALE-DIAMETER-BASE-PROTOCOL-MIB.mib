@@ -92,14 +92,14 @@ dbpProtocolErrorNotifEnabled OBJECT-TYPE
 dbpProtocolErrorNotif NOTIFICATION-TYPE
 		OBJECTS {
 			dbpPeerId,
-			dbpPerPeerStatsProtocolErrors
+			dbpPeerStatsProtocolErrors
 		}
 		STATUS current
 		DESCRIPTION
 			"An dbpProtocolError Notification is sent when both the
 			 following conditions are true:
 			 1) the value of dbpProtocolErrorNotifEnabled is True(1)
-			 2) the value of dbpPerPeerStatsProtocolErrors changes
+			 2) the value of dbpPeerStatsProtocolErrors changes
 			 An agent must not generate more than one
 			 dbpProtocolError 'notification event' in a five second
 			 period, where a 'notification event' is the
@@ -109,7 +109,7 @@ dbpProtocolErrorNotif NOTIFICATION-TYPE
 			 five second 'throttling' period, then these
 			 notification events should be suppressed by the agent.
 			 An NMS should periodically check the value of
-			 dbpPerPeerStatsProtocolErrors to detect any missed
+			 dbpPeerStatsProtocolErrors to detect any missed
 			 dbpProtocolError notification events, e.g. due to
 			 throttling or transmission loss."
 	::= { diameterBaseNotifications 1 }
@@ -130,7 +130,7 @@ dbpTransientFailureNotifEnabled OBJECT-TYPE
 dbpTransientFailureNotif NOTIFICATION-TYPE
 		OBJECTS {
 			dbpPeerId,
-			dbpPerPeerStatsTransientFailures
+			dbpPeerStatsTransientFailures
 		}
 		STATUS current
 		DESCRIPTION
@@ -138,7 +138,7 @@ dbpTransientFailureNotif NOTIFICATION-TYPE
 			 the following conditions are true:
 			 1) the value of dbpTransientFailureNotifEnabled
 			 is True(1)
-			 2) the value of dbpPerPeerStatsTransientFailures
+			 2) the value of dbpPeerStatsTransientFailures
 			 changes
 			 An agent must not generate more than one
 			 dbpTransientFailure 'notification event' in a five
@@ -150,7 +150,7 @@ dbpTransientFailureNotif NOTIFICATION-TYPE
 			 these notification events should be suppressed
 			 by the agent.
 			 An NMS should periodically check the value of
-			 dbpPerPeerStatsTransientFailures to detect any
+			 dbpPeerStatsTransientFailures to detect any
 			 missed dbpTransientFailure notification events,
 			 e.g. due to throttling or transmission loss."
 	::= { diameterBaseNotifications 2 }
@@ -172,7 +172,7 @@ dbpPermanentFailureNotifEnabled OBJECT-TYPE
 dbpPermanentFailureNotif NOTIFICATION-TYPE
 		OBJECTS  {
 			dbpPeerId,
-			dbpPerPeerStatsPermanentFailures
+			dbpPeerStatsPermanentFailures
 		}
 		STATUS current
 		DESCRIPTION
@@ -180,7 +180,7 @@ dbpPermanentFailureNotif NOTIFICATION-TYPE
 			 both the following conditions are true:
 			 1) the value of dbpPermanentFailureNotifEnabled
 			 is True(1)
-			 2) the value of dbpPerPeerStatsPermanentFailures
+			 2) the value of dbpPeerStatsPermanentFailures
 			 changes
 			 An agent must not generate more than one
 			 dbpPermanentFailure 'notification event' in a five
@@ -191,7 +191,7 @@ dbpPermanentFailureNotif NOTIFICATION-TYPE
 			 five second 'throttling' period, then these
 			 trap-events should be suppressed by the agent.
 			 An NMS should periodically check the value of
-			 dbpPerPeerStatsPermanentFailures to detect
+			 dbpPeerStatsPermanentFailures to detect
 			 any missed dbpPermanentFailure trap-events,
 			 e.g. due to throttling or transmission loss."
 	::= { diameterBaseNotifications 3 }
@@ -221,7 +221,7 @@ dbpPeerConnectionDownNotif NOTIFICATION-TYPE
 			 both the following conditions are true:
 			 1) the value of dbpPeerConnectionDownNotifEnabled is
 			    True(1)
-			 2) dbpPerPeerStatsState changes to closed(1)
+			 2) dbpPeerStatsState changes to closed(1)
 			 An agent must not generate more than one
 			 dbpPeerConnectionDown
 			 'notification event' in a five second period, where a
@@ -258,7 +258,7 @@ dbpPeerConnectionUpNotif NOTIFICATION-TYPE
 			 when both thefollowing conditions are true:
 			 1) the value of dbpPeerConnectionUpNotifEnabled is
 			    True(1)
-			 2) the value of dbpPerPeerStatsState changes to
+			 2) the value of dbpPeerStatsState changes to
 			    either rOpen(6)or iOpen(7)
 			 An agent must not generate
 			 more than one dbpPeerConnectionUp
@@ -900,77 +900,77 @@ dbpPeerVendorRowStatus OBJECT-TYPE
 	::= { dbpPeerVendorEntry 4 }
 
 
-dbpPerPeerInfoTable OBJECT-TYPE
-		SYNTAX SEQUENCE OF DbpPerPeerInfoEntry
+dbpPeerStatsTable OBJECT-TYPE
+		SYNTAX SEQUENCE OF DbpPeerStatsEntry
 		MAX-ACCESS not-accessible
 		STATUS current
 		DESCRIPTION
 			"The table listing Diameter per-peer information."
 	::= { dbpPeerStats 1 }
 
-dbpPerPeerInfoEntry OBJECT-TYPE
-		SYNTAX DbpPerPeerInfoEntry
+dbpPeerStatsEntry OBJECT-TYPE
+		SYNTAX DbpPeerStatsEntry
 		MAX-ACCESS not-accessible
 		STATUS current
 		DESCRIPTION
 			"A row entry representing a Diameter peer."
 		INDEX { dbpPeerIndex }
-	::= { dbpPerPeerInfoTable 1 }
+	::= { dbpPeerStatsTable 1 }
 
-DbpPerPeerInfoEntry ::= SEQUENCE {
-		dbpPerPeerInfoState INTEGER,
-		dbpPerPeerInfoStateDuration TimeTicks,
-		dbpPerPeerInfoLastDiscCause INTEGER,
-		dbpPerPeerInfoWhoInitDisconnect INTEGER,
-		dbpPerPeerStatsDWCurrentStatus INTEGER,
-		dbpPerPeerStatsTimeoutConnAtmpts Counter32,
-		dbpPerPeerStatsASRsIn Counter32,
-		dbpPerPeerStatsASRsOut Counter32,
-		dbpPerPeerStatsASAsIn Counter32,
-		dbpPerPeerStatsASAsOut Counter32,
-		dbpPerPeerStatsACRsIn Counter32,
-		dbpPerPeerStatsACRsOut Counter32,
-		dbpPerPeerStatsACAsIn Counter32,
-		dbpPerPeerStatsACAsOut Counter32,
-		dbpPerPeerStatsCERsIn Counter32,
-		dbpPerPeerStatsCERsOut Counter32,
-		dbpPerPeerStatsCEAsIn Counter32,
-		dbpPerPeerStatsCEAsOut Counter32,
-		dbpPerPeerStatsDWRsIn Counter32,
-		dbpPerPeerStatsDWRsOut Counter32,
-		dbpPerPeerStatsDWAsIn Counter32,
-		dbpPerPeerStatsDWAsOut Counter32,
-		dbpPerPeerStatsDPRsIn Counter32,
-		dbpPerPeerStatsDPRsOut Counter32,
-		dbpPerPeerStatsDPAsIn Counter32,
-		dbpPerPeerStatsDPAsOut Counter32,
-		dbpPerPeerStatsRARsIn Counter32,
-		dbpPerPeerStatsRARsOut Counter32,
-		dbpPerPeerStatsRAAsIn Counter32,
-		dbpPerPeerStatsRAAsOut Counter32,
-		dbpPerPeerStatsSTRsIn Counter32,
-		dbpPerPeerStatsSTRsOut Counter32,
-		dbpPerPeerStatsSTAsIn Counter32,
-		dbpPerPeerStatsSTAsOut Counter32,
-		dbpPerPeerInfoDWReqTimer TimeTicks,
-		dbpPerPeerStatsRedirectEvents Counter32,
-		dbpPerPeerStatsAccDupRequests Counter32,
-		dbpPerPeerStatsMalformedReqsts Counter32,
-		dbpPerPeerStatsAccsNotRecorded Counter32,
-		dbpPerPeerStatsAccRetrans Counter32,
-		dbpPerPeerStatsTotalRetrans Counter32,
-		dbpPerPeerStatsAccPendReqstsOut Gauge32,
-		dbpPerPeerStatsAccReqstsDropped Counter32,
-		dbpPerPeerStatsHByHDropMessages Counter32,
-		dbpPerPeerStatsEToEDupMessages Counter32,
-		dbpPerPeerStatsUnknownTypes Counter32,
-		dbpPerPeerStatsProtocolErrors Counter32,
-		dbpPerPeerStatsTransientFailures Counter32,
-		dbpPerPeerStatsPermanentFailures Counter32,
-		dbpPerPeerStatsTransportDown Counter32
+DbpPeerStatsEntry ::= SEQUENCE {
+		dbpPeerStatsState INTEGER,
+		dbpPeerStatsStateDuration TimeTicks,
+		dbpPeerStatsLastDiscCause INTEGER,
+		dbpPeerStatsWhoInitDisconnect INTEGER,
+		dbpPeerStatsDWCurrentStatus INTEGER,
+		dbpPeerStatsTimeoutConnAtmpts Counter32,
+		dbpPeerStatsASRsIn Counter32,
+		dbpPeerStatsASRsOut Counter32,
+		dbpPeerStatsASAsIn Counter32,
+		dbpPeerStatsASAsOut Counter32,
+		dbpPeerStatsACRsIn Counter32,
+		dbpPeerStatsACRsOut Counter32,
+		dbpPeerStatsACAsIn Counter32,
+		dbpPeerStatsACAsOut Counter32,
+		dbpPeerStatsCERsIn Counter32,
+		dbpPeerStatsCERsOut Counter32,
+		dbpPeerStatsCEAsIn Counter32,
+		dbpPeerStatsCEAsOut Counter32,
+		dbpPeerStatsDWRsIn Counter32,
+		dbpPeerStatsDWRsOut Counter32,
+		dbpPeerStatsDWAsIn Counter32,
+		dbpPeerStatsDWAsOut Counter32,
+		dbpPeerStatsDPRsIn Counter32,
+		dbpPeerStatsDPRsOut Counter32,
+		dbpPeerStatsDPAsIn Counter32,
+		dbpPeerStatsDPAsOut Counter32,
+		dbpPeerStatsRARsIn Counter32,
+		dbpPeerStatsRARsOut Counter32,
+		dbpPeerStatsRAAsIn Counter32,
+		dbpPeerStatsRAAsOut Counter32,
+		dbpPeerStatsSTRsIn Counter32,
+		dbpPeerStatsSTRsOut Counter32,
+		dbpPeerStatsSTAsIn Counter32,
+		dbpPeerStatsSTAsOut Counter32,
+		dbpPeerStatsDWReqTimer TimeTicks,
+		dbpPeerStatsRedirectEvents Counter32,
+		dbpPeerStatsAccDupRequests Counter32,
+		dbpPeerStatsMalformedReqsts Counter32,
+		dbpPeerStatsAccsNotRecorded Counter32,
+		dbpPeerStatsAccRetrans Counter32,
+		dbpPeerStatsTotalRetrans Counter32,
+		dbpPeerStatsAccPendReqstsOut Gauge32,
+		dbpPeerStatsAccReqstsDropped Counter32,
+		dbpPeerStatsHByHDropMessages Counter32,
+		dbpPeerStatsEToEDupMessages Counter32,
+		dbpPeerStatsUnknownTypes Counter32,
+		dbpPeerStatsProtocolErrors Counter32,
+		dbpPeerStatsTransientFailures Counter32,
+		dbpPeerStatsPermanentFailures Counter32,
+		dbpPeerStatsTransportDown Counter32
 	}
 
-dbpPerPeerInfoState OBJECT-TYPE
+dbpPeerStatsState OBJECT-TYPE
 		SYNTAX INTEGER {
 			closed(1),
 			waitConnAck(2),
@@ -1003,18 +1003,18 @@ dbpPerPeerInfoState OBJECT-TYPE
 			 i-open      - Initiator transport connection is
 			               used for communication.
 			 closing     - Actively closing and doing cleanup."
-	::= { dbpPerPeerInfoEntry 1 }
+	::= { dbpPeerStatsEntry 1 }
 
-dbpPerPeerInfoStateDuration OBJECT-TYPE
+dbpPeerStatsStateDuration OBJECT-TYPE
 		SYNTAX TimeTicks
 		MAX-ACCESS read-only
 		STATUS current
 		DESCRIPTION
 			"The elapsed time (in hundredths of a second)
 			 since the last state change."
-	::= { dbpPerPeerInfoEntry 2 }
+	::= { dbpPeerStatsEntry 2 }
 
-dbpPerPeerInfoLastDiscCause OBJECT-TYPE
+dbpPeerStatsLastDiscCause OBJECT-TYPE
 		SYNTAX INTEGER {
 			rebooting(1),
 			busy(2),
@@ -1040,9 +1040,9 @@ dbpPerPeerInfoLastDiscCause OBJECT-TYPE
 			               has lost the election process
 			               and has therefore disconnected
 			               the transport connection."
-	::= { dbpPerPeerInfoEntry 3 }
+	::= { dbpPeerStatsEntry 3 }
 
-dbpPerPeerInfoWhoInitDisconnect OBJECT-TYPE
+dbpPeerStatsWhoInitDisconnect OBJECT-TYPE
 		SYNTAX INTEGER {
 			host(1),
 			peer(2)
@@ -1054,9 +1054,9 @@ dbpPerPeerInfoWhoInitDisconnect OBJECT-TYPE
 			 host - If this peer initiated the disconnect.
 			 peer - If the peer with which this peer was
 			        connected initiated the disconnect."
-	::= { dbpPerPeerInfoEntry 4 }
+	::= { dbpPeerStatsEntry 4 }
 
-dbpPerPeerStatsDWCurrentStatus OBJECT-TYPE
+dbpPeerStatsDWCurrentStatus OBJECT-TYPE
 		SYNTAX INTEGER {
 			okay(1),
 			suspect(2),
@@ -1073,9 +1073,9 @@ dbpPerPeerStatsDWCurrentStatus OBJECT-TYPE
 			           the transport connection to be shutdown.
 			 reopen  - Three watchdog messages are exchanged with
 			           to the peer is considered stabilized."
-	::= { dbpPerPeerInfoEntry 5 }
+	::= { dbpPeerStatsEntry 5 }
 
-dbpPerPeerStatsTimeoutConnAtmpts OBJECT-TYPE
+dbpPeerStatsTimeoutConnAtmpts OBJECT-TYPE
 		SYNTAX Counter32 UNITS "connection attempts"
 		MAX-ACCESS read-only
 		STATUS current
@@ -1084,252 +1084,252 @@ dbpPerPeerStatsTimeoutConnAtmpts OBJECT-TYPE
 			 this is the number of times the local peer has attempted
 			 to connect to that peer.  This is reset on
 			 connection."
-	::= { dbpPerPeerInfoEntry 6 }
+	::= { dbpPeerStatsEntry 6 }
 
-dbpPerPeerStatsASRsIn OBJECT-TYPE
+dbpPeerStatsASRsIn OBJECT-TYPE
 		SYNTAX Counter32 UNITS "messages"
 		MAX-ACCESS read-only
 		STATUS current
 		DESCRIPTION
 			"Number of Abort-Session-Request messages
 			 received from the peer."
-	::= { dbpPerPeerInfoEntry 7 }
+	::= { dbpPeerStatsEntry 7 }
 
-dbpPerPeerStatsASRsOut OBJECT-TYPE
+dbpPeerStatsASRsOut OBJECT-TYPE
 		SYNTAX Counter32 UNITS "messages"
 		MAX-ACCESS read-only
 		STATUS current
 		DESCRIPTION
 			"Number of Abort-Session-Request
 			 messages sent to the peer."
-	::= { dbpPerPeerInfoEntry 8 }
+	::= { dbpPeerStatsEntry 8 }
 
-dbpPerPeerStatsASAsIn OBJECT-TYPE
+dbpPeerStatsASAsIn OBJECT-TYPE
 		SYNTAX Counter32 UNITS "messages"
 		MAX-ACCESS read-only
 		STATUS current
 		DESCRIPTION
 			"Number of Abort-Session-Answer
 			 messages received from the peer."
-	::= { dbpPerPeerInfoEntry 9 }
+	::= { dbpPeerStatsEntry 9 }
 
-dbpPerPeerStatsASAsOut OBJECT-TYPE
+dbpPeerStatsASAsOut OBJECT-TYPE
 		SYNTAX Counter32 UNITS "messages"
 		MAX-ACCESS read-only
 		STATUS current
 		DESCRIPTION
 			"Number of Abort-Session-Answer
 			messages sent to the peer."
-	::= { dbpPerPeerInfoEntry 10 }
+	::= { dbpPeerStatsEntry 10 }
 
-dbpPerPeerStatsACRsIn OBJECT-TYPE
+dbpPeerStatsACRsIn OBJECT-TYPE
 		SYNTAX Counter32 UNITS "messages"
 		MAX-ACCESS read-only
 		STATUS current
 		DESCRIPTION
 			"Number of Accounting-Request messages
 			 received from the peer."
-	::= { dbpPerPeerInfoEntry 11 }
+	::= { dbpPeerStatsEntry 11 }
 
-dbpPerPeerStatsACRsOut OBJECT-TYPE
+dbpPeerStatsACRsOut OBJECT-TYPE
 		SYNTAX Counter32 UNITS "messages"
 		MAX-ACCESS read-only
 		STATUS current
 		DESCRIPTION
 			"Number of Accounting-Request messages
 			 sent to the peer."
-	::= { dbpPerPeerInfoEntry 12 }
+	::= { dbpPeerStatsEntry 12 }
 
-dbpPerPeerStatsACAsIn OBJECT-TYPE
+dbpPeerStatsACAsIn OBJECT-TYPE
 		SYNTAX Counter32 UNITS "messages"
 		MAX-ACCESS read-only
 		STATUS current
 		DESCRIPTION
 			"Number of Accounting-Answer messages
 			 received from the peer."
-	::= { dbpPerPeerInfoEntry 13 }
+	::= { dbpPeerStatsEntry 13 }
 
-dbpPerPeerStatsACAsOut OBJECT-TYPE
+dbpPeerStatsACAsOut OBJECT-TYPE
 		SYNTAX Counter32 UNITS "messages"
 		MAX-ACCESS read-only
 		STATUS current
 		DESCRIPTION
 			"Number of Accounting-Answer messages
 			 sent to the peer."
-	::= { dbpPerPeerInfoEntry 14 }
+	::= { dbpPeerStatsEntry 14 }
 
-dbpPerPeerStatsCERsIn OBJECT-TYPE
+dbpPeerStatsCERsIn OBJECT-TYPE
 		SYNTAX Counter32 UNITS "messages"
 		MAX-ACCESS read-only
 		STATUS current
 		DESCRIPTION
 			"Number of Capabilities-Exchange-Request
 			 messages received from the peer."
-	::= { dbpPerPeerInfoEntry 15 }
+	::= { dbpPeerStatsEntry 15 }
 
-dbpPerPeerStatsCERsOut OBJECT-TYPE
+dbpPeerStatsCERsOut OBJECT-TYPE
 		SYNTAX Counter32 UNITS "messages"
 		MAX-ACCESS read-only
 		STATUS current
 		DESCRIPTION
 			"Number of Capabilities-Exchange-Request
 			 messages sent to the peer."
-	::= { dbpPerPeerInfoEntry 16 }
+	::= { dbpPeerStatsEntry 16 }
 
-dbpPerPeerStatsCEAsIn OBJECT-TYPE
+dbpPeerStatsCEAsIn OBJECT-TYPE
 		SYNTAX Counter32 UNITS "messages"
 		MAX-ACCESS read-only
 		STATUS current
 		DESCRIPTION
 			"Number of Capabilities-Exchange-Answer
 			 messages received from the peer."
-	::= { dbpPerPeerInfoEntry 17 }
+	::= { dbpPeerStatsEntry 17 }
 
-dbpPerPeerStatsCEAsOut OBJECT-TYPE
+dbpPeerStatsCEAsOut OBJECT-TYPE
 		SYNTAX Counter32 UNITS "messages"
 		MAX-ACCESS read-only
 		STATUS current
 		DESCRIPTION
 			"Number of Capabilities-Exchange-Answer
 			 messages sent to the peer."
-	::= { dbpPerPeerInfoEntry 18 }
+	::= { dbpPeerStatsEntry 18 }
 
-dbpPerPeerStatsDWRsIn OBJECT-TYPE
+dbpPeerStatsDWRsIn OBJECT-TYPE
 		SYNTAX Counter32 UNITS "messages"
 		MAX-ACCESS read-only
 		STATUS current
 		DESCRIPTION
 			"Number of Device-Watchdog-Request
 			 messages received from the peer."
-	::= { dbpPerPeerInfoEntry 19 }
+	::= { dbpPeerStatsEntry 19 }
 
-dbpPerPeerStatsDWRsOut OBJECT-TYPE
+dbpPeerStatsDWRsOut OBJECT-TYPE
 		SYNTAX Counter32 UNITS "messages"
 		MAX-ACCESS read-only
 		STATUS current
 		DESCRIPTION
 			"Number of Device-Watchdog-Request
 			 messages sent to the peer."
-	::= { dbpPerPeerInfoEntry 20 }
+	::= { dbpPeerStatsEntry 20 }
 
-dbpPerPeerStatsDWAsIn OBJECT-TYPE
+dbpPeerStatsDWAsIn OBJECT-TYPE
 		SYNTAX Counter32 UNITS "messages"
 		MAX-ACCESS read-only
 		STATUS current
 		DESCRIPTION
 			"Number of Device-Watchdog-Answer
 			 messages received from the peer."
-	::= { dbpPerPeerInfoEntry 21 }
+	::= { dbpPeerStatsEntry 21 }
 
-dbpPerPeerStatsDWAsOut OBJECT-TYPE
+dbpPeerStatsDWAsOut OBJECT-TYPE
 		SYNTAX Counter32 UNITS "messages"
 		MAX-ACCESS read-only
 		STATUS current
 		DESCRIPTION
 			"Number of Device-Watchdog-Answer messages sent to the peer."
-	::= { dbpPerPeerInfoEntry 22 }
+	::= { dbpPeerStatsEntry 22 }
 
-dbpPerPeerStatsDPRsIn OBJECT-TYPE
+dbpPeerStatsDPRsIn OBJECT-TYPE
 		SYNTAX Counter32 UNITS "messages"
 		MAX-ACCESS read-only
 		STATUS current
 		DESCRIPTION
 			"Number of Disconnect-Peer-Request messages received."
-	::= { dbpPerPeerInfoEntry 23 }
+	::= { dbpPeerStatsEntry 23 }
 
-dbpPerPeerStatsDPRsOut OBJECT-TYPE
+dbpPeerStatsDPRsOut OBJECT-TYPE
 		SYNTAX Counter32 UNITS "messages"
 		MAX-ACCESS read-only
 		STATUS current
 		DESCRIPTION
 			"Number of Disconnect-Peer-Request messages sent."
-	::= { dbpPerPeerInfoEntry 24 }
+	::= { dbpPeerStatsEntry 24 }
 
-dbpPerPeerStatsDPAsIn OBJECT-TYPE
+dbpPeerStatsDPAsIn OBJECT-TYPE
 		SYNTAX Counter32 UNITS "messages"
 		MAX-ACCESS read-only
 		STATUS current
 		DESCRIPTION
 			"Number of Disconnect-Peer-Answer messages received."
-	::= { dbpPerPeerInfoEntry 25 }
+	::= { dbpPeerStatsEntry 25 }
 
-dbpPerPeerStatsDPAsOut OBJECT-TYPE
+dbpPeerStatsDPAsOut OBJECT-TYPE
 		SYNTAX Counter32 UNITS "messages"
 		MAX-ACCESS read-only
 		STATUS current
 		DESCRIPTION
 			"Number of Disconnect-Peer-Answer messages sent."
-	::= { dbpPerPeerInfoEntry 26 }
+	::= { dbpPeerStatsEntry 26 }
 
-dbpPerPeerStatsRARsIn  OBJECT-TYPE
+dbpPeerStatsRARsIn  OBJECT-TYPE
 		SYNTAX Counter32 UNITS "messages"
 		MAX-ACCESS read-only
 		STATUS current
 		DESCRIPTION
 			"Number of Re-Auth-Request messages received."
-	::= { dbpPerPeerInfoEntry 27 }
+	::= { dbpPeerStatsEntry 27 }
 
-dbpPerPeerStatsRARsOut OBJECT-TYPE
+dbpPeerStatsRARsOut OBJECT-TYPE
 		SYNTAX Counter32 UNITS "messages"
 		MAX-ACCESS read-only
 		STATUS current
 		DESCRIPTION
 			"Number of Re-Auth-Request messages sent."
-	::= { dbpPerPeerInfoEntry 28 }
+	::= { dbpPeerStatsEntry 28 }
 
-dbpPerPeerStatsRAAsIn OBJECT-TYPE
+dbpPeerStatsRAAsIn OBJECT-TYPE
 		SYNTAX Counter32 UNITS "messages"
 		MAX-ACCESS read-only
 		STATUS current
 		DESCRIPTION
 			"Number of Re-Auth-Answer messages received."
-	::= { dbpPerPeerInfoEntry 29 }
+	::= { dbpPeerStatsEntry 29 }
 
-dbpPerPeerStatsRAAsOut OBJECT-TYPE
+dbpPeerStatsRAAsOut OBJECT-TYPE
 		SYNTAX Counter32 UNITS "messages"
 		MAX-ACCESS read-only
 		STATUS current
 		DESCRIPTION
 			"Number of Re-Auth-Answer messages sent."
-	::= { dbpPerPeerInfoEntry 30 }
+	::= { dbpPeerStatsEntry 30 }
 
-dbpPerPeerStatsSTRsIn OBJECT-TYPE
+dbpPeerStatsSTRsIn OBJECT-TYPE
 		SYNTAX Counter32 UNITS "messages"
 		MAX-ACCESS read-only
 		STATUS current
 		DESCRIPTION
 			"Number of Session-Termination-Request
 			 messages received from the peer."
-	::= { dbpPerPeerInfoEntry 31 }
+	::= { dbpPeerStatsEntry 31 }
 
-dbpPerPeerStatsSTRsOut OBJECT-TYPE
+dbpPeerStatsSTRsOut OBJECT-TYPE
 		SYNTAX Counter32 UNITS "messages"
 		MAX-ACCESS read-only
 		STATUS current
 		DESCRIPTION
 			"Number of Session-Termination-Request
 			 messages sent to the peer."
-	::= { dbpPerPeerInfoEntry 32 }
+	::= { dbpPeerStatsEntry 32 }
 
-dbpPerPeerStatsSTAsIn OBJECT-TYPE
+dbpPeerStatsSTAsIn OBJECT-TYPE
 		SYNTAX Counter32 UNITS "messages"
 		MAX-ACCESS read-only
 		STATUS current
 		DESCRIPTION
 			"Number of Session-Termination-Answer
 			 messages received from the peer."
-	::= { dbpPerPeerInfoEntry 33 }
+	::= { dbpPeerStatsEntry 33 }
 
-dbpPerPeerStatsSTAsOut OBJECT-TYPE
+dbpPeerStatsSTAsOut OBJECT-TYPE
 		SYNTAX Counter32 UNITS "messages"
 		MAX-ACCESS read-only
 		STATUS current
 		DESCRIPTION
 			"Number of Session-Termination-Answer
 			 messages sent to the peer."
-	::= { dbpPerPeerInfoEntry 34 }
+	::= { dbpPeerStatsEntry 34 }
 
-dbpPerPeerInfoDWReqTimer OBJECT-TYPE
+dbpPeerStatsDWReqTimer OBJECT-TYPE
 		SYNTAX TimeTicks
 		MAX-ACCESS read-only
 		STATUS current
@@ -1337,36 +1337,36 @@ dbpPerPeerInfoDWReqTimer OBJECT-TYPE
 			"Device-Watchdog Request Timer, which
 			 is the interval between messages sent to
 			 peers."
-	::= { dbpPerPeerInfoEntry 35 }
+	::= { dbpPeerStatsEntry 35 }
 
-dbpPerPeerStatsRedirectEvents OBJECT-TYPE
+dbpPeerStatsRedirectEvents OBJECT-TYPE
 		SYNTAX Counter32 UNITS "messages"
 		MAX-ACCESS read-only
 		STATUS current
 		DESCRIPTION
 			"Redirect Event count, which is the number
 			 of redirects sent from a peer."
-	::= { dbpPerPeerInfoEntry 36 }
+	::= { dbpPeerStatsEntry 36 }
 
-dbpPerPeerStatsAccDupRequests OBJECT-TYPE
+dbpPeerStatsAccDupRequests OBJECT-TYPE
 		SYNTAX Counter32 UNITS "messages"
 		MAX-ACCESS read-only
 		STATUS current
 		DESCRIPTION
 			"The number of duplicate Diameter Accounting-Request
 			 messages received."
-	::= { dbpPerPeerInfoEntry 37 }
+	::= { dbpPeerStatsEntry 37 }
 
-dbpPerPeerStatsMalformedReqsts OBJECT-TYPE
+dbpPeerStatsMalformedReqsts OBJECT-TYPE
 		SYNTAX Counter32 UNITS "messages"
 		MAX-ACCESS read-only
 		STATUS current
 		DESCRIPTION
 			"The number of malformed Diameter
 			 messages received."
-	::= { dbpPerPeerInfoEntry 38 }
+	::= { dbpPeerStatsEntry 38 }
 
-dbpPerPeerStatsAccsNotRecorded OBJECT-TYPE
+dbpPeerStatsAccsNotRecorded OBJECT-TYPE
 		SYNTAX Counter32 UNITS "messages"
 		MAX-ACCESS read-only
 		STATUS current
@@ -1374,18 +1374,18 @@ dbpPerPeerStatsAccsNotRecorded OBJECT-TYPE
 			"The number of Diameter Accounting-Request messages
 			 which were received and responded to but not
 			 recorded."
-	::= { dbpPerPeerInfoEntry 39 }
+	::= { dbpPeerStatsEntry 39 }
 
-dbpPerPeerStatsAccRetrans OBJECT-TYPE
+dbpPeerStatsAccRetrans OBJECT-TYPE
 		SYNTAX Counter32 UNITS "messages"
 		MAX-ACCESS read-only
 		STATUS current
 		DESCRIPTION
 			"The number of Diameter Accounting-Request messages
 			 retransmitted to this Diameter peer."
-	::= { dbpPerPeerInfoEntry 40 }
+	::= { dbpPeerStatsEntry 40 }
 
-dbpPerPeerStatsTotalRetrans OBJECT-TYPE
+dbpPeerStatsTotalRetrans OBJECT-TYPE
 		SYNTAX Counter32 UNITS "messages"
 		MAX-ACCESS read-only
 		STATUS current
@@ -1393,9 +1393,9 @@ dbpPerPeerStatsTotalRetrans OBJECT-TYPE
 			"The number of Diameter messages retransmitted
 			 to this Diameter peer, not to include Diameter
 			 Accounting-Request messages retransmitted."
-	::= { dbpPerPeerInfoEntry 41 }
+	::= { dbpPeerStatsEntry 41 }
 
-dbpPerPeerStatsAccPendReqstsOut OBJECT-TYPE
+dbpPeerStatsAccPendReqstsOut OBJECT-TYPE
 		SYNTAX Gauge32
 		MAX-ACCESS read-only
 		STATUS current
@@ -1406,18 +1406,18 @@ dbpPerPeerStatsAccPendReqstsOut OBJECT-TYPE
 			 Accounting-Request is received by this server and decremented
 			 due to the transmission of an Accounting-Response, a timeout
 			 or a retransmission."
-	::= { dbpPerPeerInfoEntry 42 }
+	::= { dbpPeerStatsEntry 42 }
 
-dbpPerPeerStatsAccReqstsDropped OBJECT-TYPE
+dbpPeerStatsAccReqstsDropped OBJECT-TYPE
 		SYNTAX Counter32 UNITS "messages"
 		MAX-ACCESS read-only
 		STATUS current
 		DESCRIPTION
 			"The number of Accounting-Requests to this server
 			 that have been dropped."
-	::= { dbpPerPeerInfoEntry 43 }
+	::= { dbpPeerStatsEntry 43 }
 
-dbpPerPeerStatsHByHDropMessages OBJECT-TYPE
+dbpPeerStatsHByHDropMessages OBJECT-TYPE
 		SYNTAX Counter32 UNITS "messages"
 		MAX-ACCESS read-only
 		STATUS current
@@ -1425,9 +1425,9 @@ dbpPerPeerStatsHByHDropMessages OBJECT-TYPE
 			"An answer message that is received with an unknown
 			 Hop-by-Hop Identifier.  Does not include Accounting
 			 Requests dropped."
-	::= { dbpPerPeerInfoEntry 44 }
+	::= { dbpPeerStatsEntry 44 }
 
-dbpPerPeerStatsEToEDupMessages OBJECT-TYPE
+dbpPeerStatsEToEDupMessages OBJECT-TYPE
 		SYNTAX Counter32 UNITS "messages"
 		MAX-ACCESS read-only
 		STATUS current
@@ -1435,49 +1435,49 @@ dbpPerPeerStatsEToEDupMessages OBJECT-TYPE
 			"Duplicate answer messages that are to be locally
 			 consumed.  Does not include duplicate Accounting
 			 Requests received."
-	::= { dbpPerPeerInfoEntry 45 }
+	::= { dbpPeerStatsEntry 45 }
 
-dbpPerPeerStatsUnknownTypes OBJECT-TYPE
+dbpPeerStatsUnknownTypes OBJECT-TYPE
 		SYNTAX Counter32 UNITS "messages"
 		MAX-ACCESS read-only
 		STATUS current
 		DESCRIPTION
 			"The number of Diameter messages of unknown type
 			 which were received."
-	::= { dbpPerPeerInfoEntry 46 }
+	::= { dbpPeerStatsEntry 46 }
 
-dbpPerPeerStatsProtocolErrors OBJECT-TYPE
+dbpPeerStatsProtocolErrors OBJECT-TYPE
 		SYNTAX Counter32 UNITS "errors"
 		MAX-ACCESS read-only
 		STATUS current
 		DESCRIPTION
 			"Number of protocol errors returned to peer,
 			 but not including redirects."
-	::= { dbpPerPeerInfoEntry 47 }
+	::= { dbpPeerStatsEntry 47 }
 
-dbpPerPeerStatsTransientFailures OBJECT-TYPE
+dbpPeerStatsTransientFailures OBJECT-TYPE
 		SYNTAX Counter32 UNITS "errors"
 		MAX-ACCESS read-only
 		STATUS current
 		DESCRIPTION
 			"Transient Failure count."
-	::= { dbpPerPeerInfoEntry 48 }
+	::= { dbpPeerStatsEntry 48 }
 
-dbpPerPeerStatsPermanentFailures OBJECT-TYPE
+dbpPeerStatsPermanentFailures OBJECT-TYPE
 		SYNTAX Counter32 UNITS "errors"
 		MAX-ACCESS read-only
 		STATUS current
 		DESCRIPTION
 			"Number of permanent failures returned to peer."
-	::= { dbpPerPeerInfoEntry 49 }
+	::= { dbpPeerStatsEntry 49 }
 
-dbpPerPeerStatsTransportDown OBJECT-TYPE
+dbpPeerStatsTransportDown OBJECT-TYPE
 		SYNTAX Counter32 UNITS "errors"
 		MAX-ACCESS read-only
 		STATUS current
 		DESCRIPTION
 			"Number of unexpected transport failures."
-	::= { dbpPerPeerInfoEntry 50 }
+	::= { dbpPeerStatsEntry 50 }
 
 
 -- Realm-based Routing Table
