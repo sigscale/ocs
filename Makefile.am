@@ -2,7 +2,7 @@
 ##
 ## Process this file with automake to produce Makefile.in
 
-SUBDIRS = include src ebin doc c_src priv test
+SUBDIRS = include src ebin doc c_src priv mibs test
 
 beam_DATA = ebin/ocs.appup
 

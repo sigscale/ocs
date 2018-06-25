@@ -8,3 +8,17 @@ mibs_DATA = SIGSCALE-OCS-MIB.mib \
 		SIGSCALE-DIAMETER-BASE-PROTOCOL-MIB.mib \
 		SIGSCALE-DIAMETER-CC-APPLICATION-MIB.mib
 
+check_DATA = .tree_ok
+
+.tree_ok:
+	@if snmptranslate -V > /dev/null 2>&1; then \
+		snmptranslate -M +$(ERLANG_LIB_DIR_sigscale_mibs)/mibs:$(top_srcdir)/mibs \
+			-m +SIGSCALE-OCS-MIB -Lo -Tp -IR ocsMIB; \
+		snmptranslate -M +$(ERLANG_LIB_DIR_sigscale_mibs)/mibs:$(top_srcdir)/mibs \
+			-m +SIGSCALE-DIAMETER-BASE-PROTOCOL-MIB \
+			-Lo -Tp -IR diameterBaseProtocolMIB; \
+		snmptranslate -M +$(ERLANG_LIB_DIR_sigscale_mibs)/mibs:$(top_srcdir)/mibs \
+			-m +SIGSCALE-DIAMETER-CC-APPLICATION-MIB \
+			-Lo -Tp -IR diameterCCAMIB; \
+	fi
+
