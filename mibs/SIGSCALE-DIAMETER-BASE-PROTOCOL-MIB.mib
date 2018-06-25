@@ -493,7 +493,7 @@ DbpPeerEntry ::= SEQUENCE {
 		dbpPeerId SnmpAdminString,
 		dbpPeerPortConnect Unsigned32,
 		dbpPeerPortListen Unsigned32,
-		dbpPeerTransportProtocol INTEGER,
+		dbpPeerProtocol INTEGER,
 		dbpPeerSecurity INTEGER,
 		dbpPeerFirmwareRevision SnmpAdminString,
 		dbpPeerStorageType StorageType,
@@ -538,7 +538,7 @@ dbpPeerPortListen OBJECT-TYPE
 			"The port the peer is listening on."
 	::= { dbpPeerEntry  4 }
 
-dbpPeerTransportProtocol OBJECT-TYPE
+dbpPeerProtocol OBJECT-TYPE
 		SYNTAX INTEGER {
 			tcp(1),
 			sctp(2)
