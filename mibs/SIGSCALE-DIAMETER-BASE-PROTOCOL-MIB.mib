@@ -2071,7 +2071,7 @@ dbpLocalStatsSkippedGroup OBJECT-GROUP
 	::= { diameterBaseProtocolMIBGroups 7 }
 
 dbpPeerCfgSkippedGroup OBJECT-GROUP
-		OBJECTS { cdbpAppAdvFromPeerType }
+		OBJECTS { dbpAppAdvFromPeerType }
 		STATUS  current
 		DESCRIPTION
 			"A collection of objects providing configuration for
