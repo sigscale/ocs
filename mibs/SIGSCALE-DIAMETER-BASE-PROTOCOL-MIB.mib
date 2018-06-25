@@ -321,7 +321,7 @@ dbpLocalRealm OBJECT-TYPE
 	::= { dbpLocalCfgs 6 }
 
 
-dbpLocalStatsTotalMessagesIn OBJECT-TYPE
+dbpLocalStatsTotalPacketsIn OBJECT-TYPE
 		SYNTAX  Counter32 UNITS "messages"
 		MAX-ACCESS  read-only
 		STATUS  current
@@ -330,7 +330,7 @@ dbpLocalStatsTotalMessagesIn OBJECT-TYPE
 			 messages received since the last reset."
 	::= { dbpLocalStats 1 }
 
-dbpLocalStatsTotalMessagesOut OBJECT-TYPE
+dbpLocalStatsTotalPacketsOut OBJECT-TYPE
 		SYNTAX  Counter32 UNITS "messages"
 		MAX-ACCESS  read-only
 		STATUS  current
