@@ -1914,10 +1914,7 @@ diameterBPMIBCompliances MODULE-COMPLIANCE
 dbpLocalCfgGroup OBJECT-GROUP
 		OBJECTS {
 			dbpLocalRealm,
-			dbpLocalOriginHost,
-			dbpLocalVendorId,
-			dbpLocalVendorStorageType,
-			dbpLocalVendorRowStatus
+			dbpLocalOriginHost
 		}
 		STATUS  current
 		DESCRIPTION
