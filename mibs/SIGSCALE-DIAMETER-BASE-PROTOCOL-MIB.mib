@@ -285,6 +285,56 @@ dbpLocalId OBJECT-TYPE
 			 the system; for example: 'diameterd'"
 	::= { dbpLocalCfgs 1 }
 
+dbpLocalIpAddrTable OBJECT-TYPE
+		SYNTAX SEQUENCE OF DbpLocalIpAddrEntry
+		MAX-ACCESS not-accessible
+		STATUS current
+		DESCRIPTION
+			"The table listing the Diameter local host's IP Addresses."
+	::= { dbpLocalCfgs 2 }
+
+dbpLocalIpAddrEntry OBJECT-TYPE
+		SYNTAX DbpLocalIpAddrEntry
+		MAX-ACCESS not-accessible
+		STATUS current
+		DESCRIPTION
+			"A row entry representing a Diameter local host IP Address."
+		INDEX { dbpLocalIpAddrIndex }
+	::= { dbpLocalIpAddrTable 1 }
+
+DbpLocalIpAddrEntry ::= SEQUENCE {
+		dbpLocalIpAddrIndex Unsigned32,
+		dbpLocalIpAddrType  InetAddressType,
+		dbpLocalIpAddress   InetAddress
+	}
+
+dbpLocalIpAddrIndex OBJECT-TYPE
+		SYNTAX Unsigned32 (1..4294967295 )
+		MAX-ACCESS not-accessible
+		STATUS current
+		DESCRIPTION
+			"A number uniquely identifying the number
+			 of IP Addresses supported by this Diameter host."
+	::= { dbpLocalIpAddrEntry 1 }
+
+dbpLocalIpAddrType OBJECT-TYPE
+		SYNTAX  InetAddressType
+		MAX-ACCESS read-only
+		STATUS current
+		DESCRIPTION
+			"The type of internet address stored
+			 in cdbpLocalIpAddress."
+	::= { dbpLocalIpAddrEntry 2 }
+
+dbpLocalIpAddress OBJECT-TYPE
+		SYNTAX InetAddress
+		MAX-ACCESS read-only
+		STATUS current
+		DESCRIPTION
+			"The IP-Address of the host, which is of the type
+			 specified in cdbpLocalIpAddrType."
+	::= { dbpLocalIpAddrEntry 3 }
+
 dbpLocalTcpListenPort OBJECT-TYPE
 		SYNTAX  Unsigned32 (1..65535)
 		MAX-ACCESS  read-only
@@ -1945,7 +1995,7 @@ dbpPeerCfgGroup OBJECT-GROUP
 	::= { diameterBaseProtocolMIBGroups 2 }
 
 dbpPeerStatsGroup OBJECT-GROUP
-		OBJECTS   {
+		OBJECTS {
 			dbpPeerStatsState,
 			dbpPeerStatsStateDuration,
 			dbpPeerStatsLastDiscCause,
@@ -2034,6 +2084,8 @@ dbpNotifCfgGroup OBJECT-GROUP
 dbpLocalCfgSkippedGroup OBJECT-GROUP
 		OBJECTS {
 			dbpLocalId,
+			dbpLocalIpAddrType,
+			dbpLocalIpAddress,
 			dbpLocalTcpListenPort,
 			dbpLocalSctpListenPort,
 			dbpLocalStatsTotalPacketsIn,
