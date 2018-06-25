@@ -25,7 +25,7 @@
 -export([load/0, load/1, unload/0, unload/1]).
 
 %% export the ocs_mib snmp agent callbacks
--export([client_table/3]).
+-export([client_table/3, dbp_local_stats/2]).
 
 -include("ocs.hrl").
 
@@ -166,5 +166,21 @@ client_get_next(F1, Columns, First) ->
 			client_get_next(F4, NextColumns, false);
 		'$end_of_table' ->
 			[endOfTable || _ <- Columns]
+	end.
+
+-spec dbp_local_stats(get, Item) -> Result
+	when
+		Operation :: get,
+		Result :: [Element] | {genErr, Column},
+		Result :: {value, Value} | {noValue, noSuchInstance} | genErr,
+		Value :: atom() | integer() | string() | [integer()].
+%% @doc Handle SNMP requests for `DIAMETER-BASE-PROTOCOL-MIB::dbpLocalStats'.
+%% @private
+dbp_local_stats(get, uptime) ->
+	case catch diameter_stats:uptime() of
+		{'EXIT', _Reason} ->
+			genErr;
+		{Hours, Mins, Secs, MicroSecs} ->
+			{value, (Hours * 360000) + (Mins * 6000) + (MicroSecs div 10)}
 	end.
 
