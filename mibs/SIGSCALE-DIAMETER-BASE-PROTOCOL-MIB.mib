@@ -28,8 +28,6 @@ diameterBaseProtocolMIB MODULE-IDENTITY
 			 Tel: +94771231660
 			 E-mail: support@sigscale.org"
 		DESCRIPTION
-			"This module defines entities for implementing the
-			 Diameter Base Protocol.
 			"The MIB module for entities implementing the
 			 DIAMETER Base Protocol (RFC6733).
 			
