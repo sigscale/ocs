@@ -25,7 +25,7 @@
 -export([load/0, load/1, unload/0, unload/1]).
 
 %% export the ocs_mib snmp agent callbacks
--export([client_table/3, dbp_local_stats/2]).
+-export([client_table/3, local_configs/2, dbp_local_stats/2]).
 
 -include("ocs.hrl").
 
@@ -75,8 +75,31 @@ unload(Agent) ->
 
 %%----------------------------------------------------------------------
 %% The ocs_mib snmp agent callbacks
-%%----------------------------------------------------------------------
+%----------------------------------------------------------------------
 
+-spec local_configs(Operation, Items) -> Result
+	when
+		Operation :: get,
+		Items :: 'Origin-Host' | 'Origin-Realm' | 'Product-Name',
+		Result :: {value, Value} | genErr,
+		Value :: atom() | integer() | string() | [integer()].
+% @doc Get local configuration
+% @private
+local_configs(get, Item) ->
+	case lists:keyfind(ocs_diameter_acct_service, 1, diameter:services()) of
+		Service when is_tuple(Service) ->
+			case diameter:service_info(Service, Item) of
+				Info when is_binary(Info) ->
+					{value, binary_to_list(Info)};
+				Info when is_list(Info) ->
+					{value, Info};
+				_ ->
+					genErr
+			end;
+		false ->
+		 	{noValue, noSuchInstance}
+	end.
+ 
 -spec client_table(Operation, RowIndex, Columns) -> Result
 	when
 		Operation :: get | get_next,
