@@ -2050,6 +2050,8 @@ query_log1(Start, End, _Log, MFA, PrevChunk, eof) ->
 	query_log2(Start, End, MFA, {eof, Chunk}, []);
 query_log1(_Start, _End, _Log, _MFA, _PrevChunk, {error, Reason}) ->
 	{error, Reason};
+query_log1(Start, End, Log, MFA, PrevChunk, {Cont, Chunk, 0}) ->
+	query_log1(Start, End, Log, MFA, PrevChunk, {Cont, Chunk});
 query_log1(Start, End, Log, MFA, PrevChunk, {Cont, [H | T] = Chunk}) ->
 	case binary_to_term(H) of
 		Event when element(1, Event) > End ->
