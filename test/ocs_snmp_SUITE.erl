@@ -64,7 +64,10 @@ init_per_suite(Config) ->
 	TestDir = filename:dirname(DataDir),
 	BuildDir = filename:dirname(TestDir),
 	MibDir =  BuildDir ++ "/priv/mibs/",
-	ok = ct_snmp:load_mibs([MibDir ++ "SIGSCALE-OCS-MIB"]),
+	Mibs = [MibDir ++ "SIGSCALE-OCS-MIB",
+		MibDir ++ "SIGSCALE-DIAMETER-BASE-PROTOCOL-MIB",
+		MibDir ++ "SIGSCALE-DIAMETER-CC-APPLICATION-MIB"],
+	ok = ct_snmp:load_mibs(Mibs),
 	Config.
 
 -spec end_per_suite(Config :: [tuple()]) -> any().
@@ -92,14 +95,16 @@ end_per_testcase(_TestCase, _Config) ->
 -spec sequences() -> Sequences :: [{SeqName :: atom(), Testcases :: [atom()]}].
 %% Group test cases into a test sequence.
 %%
-sequences() -> 
+sequences() ->
 	[].
 
 -spec all() -> TestCases :: [Case :: atom()].
 %% Returns a list of all test cases in this test suite.
 %%
-all() -> 
-	[get_client, get_next_client].
+all() ->
+	[get_client, get_next_client, get_diameter_host, get_diameter_realm,
+		get_diameter_product, get_diameter_packets_in, get_diameter_packets_out,
+		get_diameter_uptime].
 
 %%---------------------------------------------------------------------
 %%  Test cases
@@ -120,6 +125,54 @@ get_next_client() ->
 get_next_client(_Config) ->
 	{value, OID} = snmpa:name_to_oid(ocsClientTable),
 	{noError, _, _Varbinds} = ct_snmp:get_next_values(ocs_mibs_test,
+			[OID], snmp_mgr_agent).
+
+get_diameter_host() ->
+	[{userdata, [{doc, "Get diameter Origin-Host"}]}].
+
+get_diameter_host(_Config) ->
+	{value, OID} = snmpa:name_to_oid(dbpLocalOriginHost),
+	{noError, _, _Varbinds} = ct_snmp:get_values(ocs_mibs_test,
+			[OID], snmp_mgr_agent).
+
+get_diameter_realm() ->
+	[{userdata, [{doc, "Get diameter Origin-Realm"}]}].
+
+get_diameter_realm(_Config) ->
+	{value, OID} = snmpa:name_to_oid(dbpLocalRealm),
+	{noError, _, _Varbinds} = ct_snmp:get_values(ocs_mibs_test,
+			[OID], snmp_mgr_agent).
+
+get_diameter_product() ->
+	[{userdata, [{doc, "Get diameter Product-Name"}]}].
+
+get_diameter_product(_Config) ->
+	{value, OID} = snmpa:name_to_oid(dbpLocalId),
+	{noError, _, _Varbinds} = ct_snmp:get_values(ocs_mibs_test,
+			[OID], snmp_mgr_agent).
+
+get_diameter_packets_in() ->
+	[{userdata, [{doc, "Get diameter Total Packets In"}]}].
+
+get_diameter_packets_in(_Config) ->
+	{value, OID} = snmpa:name_to_oid(dbpLocalStatsTotalPacketsIn),
+	{noError, _, _Varbinds} = ct_snmp:get_values(ocs_mibs_test,
+			[OID], snmp_mgr_agent).
+
+get_diameter_packets_out() ->
+	[{userdata, [{doc, "Get diameter Total Packets Out"}]}].
+
+get_diameter_packets_out(_Config) ->
+	{value, OID} = snmpa:name_to_oid(dbpLocalStatsTotalPacketsOut),
+	{noError, _, _Varbinds} = ct_snmp:get_values(ocs_mibs_test,
+			[OID], snmp_mgr_agent).
+
+get_diameter_uptime() ->
+	[{userdata, [{doc, "Get diameter uptime"}]}].
+
+get_diameter_uptime(_Config) ->
+	{value, OID} = snmpa:name_to_oid(dbpLocalStatsTotalUpTime),
+	{noError, _, _Varbinds} = ct_snmp:get_values(ocs_mibs_test,
 			[OID], snmp_mgr_agent).
 
 %%---------------------------------------------------------------------
