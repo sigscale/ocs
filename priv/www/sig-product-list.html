@@ -144,6 +144,14 @@
 			is: 'sig-product-list',
 			behaviors: [i18nMsgBehavior],
 			properties: {
+				products: {
+					type: Array,
+					readOnly: true,
+					notify: true,
+					value: function() {
+						return []
+					}
+				},
 				activePage: {
 					type: Boolean,
 					value: false,
@@ -236,6 +244,12 @@
 						}
 						for (var index in request.response) {
 							var newRecord = new Object();
+							function checkExist(name) {
+								return name == request.response[index].id;
+							}
+							if(!productList.products.some(checkExist)) {
+								document.getElementById("productList").push('products', request.response[index].id);
+							}
 							newRecord.id = request.response[index].id;
 							newRecord.product = request.response[index].productOffering.name;
 							for(var indexPro in request.response[index].balance) {

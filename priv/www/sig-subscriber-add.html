@@ -85,16 +85,27 @@
 				</paper-tooltip>
 			</div>
 			<div>
-				<iron-a11y-keys id="a11y"
-						target="[[target]]"
-						keys="enter"
-						on-keys-pressed="onEnter">
-				</iron-a11y-keys>
-				<paper-input
-						id="addProductId1"
-						name="product"
+				<paper-dropdown-menu
+						id="addproductIdDrop"
+						on-selected-item-changed="_onEnter"
 						label="Product Id">
-				</paper-input>
+					<paper-listbox
+							id="addproductId"
+							slot="dropdown-content"
+							class="dropdown-content">
+						<template is="dom-repeat" items="[[products]]">
+							<paper-item>
+								{{item}}
+							</paper-item>
+						</template>
+					</paper-listbox>
+				</paper-dropdown-menu>
+				<paper-tooltip>
+					<i18n-msg msgid="addSubProTooltip">
+							Select the product.
+					</i18n-msg>
+				</paper-tooltip>
+			</div>
 			<div class="buttons">
 				<paper-button
 						dialog-dismiss
@@ -120,6 +131,12 @@
 						return []
 					}
 				},
+				products: {
+					type: Array,
+					value: function() {
+						return []
+					}
+				},
 				target: {
 					type: Object
 				},
@@ -137,12 +154,13 @@
 					this.$.addproduct10.selected = null;
 				}
 			},
-			onEnter: function() {
-				var productId = this.$.addProductId1.value;
-				document.getElementById("AddUpdateProId").value = productId;
-				document.getElementById("addServiceModal").open();
-				document.getElementById("addSubscriberProductModal").close();
-				this.$.addProductId1.value = null;
+			_onEnter: function() {
+				var productId = this.products[this.$.addproductId.selected];
+				if(productId) {
+					document.getElementById("AddUpdateProId").value = productId;
+					document.getElementById("addServiceModal").open();
+					document.getElementById("addSubscriberProductModal").close();
+				}
 			},
 			productTapCancel: function() {
 				this.$.addProductId1.value = null;
