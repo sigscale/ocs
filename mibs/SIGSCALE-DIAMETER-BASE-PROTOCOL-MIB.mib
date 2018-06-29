@@ -1,4 +1,5 @@
 SIGSCALE-DIAMETER-BASE-PROTOCOL-MIB DEFINITIONS ::= BEGIN
+{dbpLocalStatsTotalUpTime, {ocs_mib, local_stats, [uptime]}}.
 
 IMPORTS
 		sigscaleExperiment

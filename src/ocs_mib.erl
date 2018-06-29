@@ -51,7 +51,9 @@ load() ->
 %% @doc Loads the SigScale OCS MIB.
 load(Agent) ->
 	MibDir = code:priv_dir(ocs) ++ "/mibs",
-	Mibs = [MibDir ++ "/SIGSCALE-OCS-MIB"],
+	Mibs = [MibDir ++ "/SIGSCALE-OCS-MIB",
+				MibDir ++ "/SIGSCALE-DIAMETER-BASE-PROTOCOL-MIB",
+				MibDir ++ "/SIGSCALE-DIAMETER-CC-APPLICATION-MIB"],
 	snmpa:load_mibs(Agent, Mibs).
 
 -spec unload() -> Result
@@ -93,11 +95,11 @@ local_configs(get, Item) ->
 					{value, binary_to_list(Info)};
 				Info when is_list(Info) ->
 					{value, Info};
-				_ ->
+				->
 					genErr
 			end;
 		false ->
-		 	{noValue, noSuchInstance}
+			{noValue, noSuchInstance}
 	end.
  
 -spec client_table(Operation, RowIndex, Columns) -> Result
@@ -206,5 +208,87 @@ dbp_local_stats(get, uptime) ->
 		{Hours, Mins, Secs, MicroSecs} ->
 			{value, (Hours * 360000) + (Mins * 6000)
 					+ (Secs * 100) + (MicroSecs div 10)}
+	end;
+dbp_local_stats(get, Item) ->
+	case catch diameter:services() of
+		[Service |  _] ->
+			case catch diameter:service_info(Service, transport) of
+				{value, PacketsIn} when Item == in ->
+					search(PacketsIn);
+				{value, PacketsOut} when Item == out ->
+					search(PacketsOut);
+				{error, Reason} ->
+					genErr2
+			end;
+		->
+			genErr1
 	end.
 
+%%----------------------------------------------------------------------
+%% internal functions
+%----------------------------------------------------------------------
+-spec search(Info) -> Result
+	when
+		Info :: [tuple()],
+		Result :: {ok, {PacketsIn, PacketsOut}} | {error, Reason},
+		PacketsIn :: integer(),
+		PacketsOut :: integer(),
+		Reason :: term().
+%% @doc Get packet counts from service info.
+
+search(Info) ->
+	search(Info, {0, 0}).
+%% @hidden
+search([H | T], Acc) ->
+	case lists:keyfind(accept, 1, H) of
+		{_, L} ->
+			case search1(L, Acc) of
+				{ok, Acc1} ->
+					search(T, Acc1);
+				{error, Reason} ->
+					search(T, Acc)
+			end;
+		false ->
+			{error, not_found}
+	end;
+search([], Acc) ->
+	{ok, Acc}.
+%% @hidden
+search1([H | T], Acc) ->
+	case lists:keyfind(port, 1, H) of
+		{_, L} ->
+			case search2(L, Acc) of
+				{ok, Acc1} ->
+					search1(T, Acc1);
+				{error, Reason} ->
+					{error, Reason}
+			end;
+		false ->
+			search1(T, Acc)
+	end;
+search1([], Acc) ->
+	{ok, Acc}.
+%% @hidden
+search2(L1, Acc) ->
+	case lists:keyfind(statistics, 1, L1) of
+		{_, L2} ->
+			search3(L2, Acc);
+		false ->
+			{error, not_found}
+	end.
+%% @hidden
+search3(L, {PacketsIn, PacketsOut}) ->
+	case lists:keyfind(recv_cnt, 1, L) of
+		{_, N} ->
+			search4(L, {PacketsIn + N, PacketsOut});
+		false ->
+			{error, not_found}
+	end.
+%% @hidden
+search4(L, {PacketsIn, PacketsOut}) ->
+	case lists:keyfind(send_cnt, 1, L) of
+		{_, N} ->
+			{ok, {PacketsIn, PacketsOut + N}};
+		false ->
+			{error, not_found}
+	end.
