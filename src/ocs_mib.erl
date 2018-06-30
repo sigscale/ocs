@@ -214,9 +214,9 @@ dbp_local_stats(get, Item) ->
 		[Service |  _] ->
 			case catch diameter:service_info(Service, transport) of
 				{value, PacketsIn} when Item == in ->
-					search(PacketsIn);
+					total_packets(PacketsIn);
 				{value, PacketsOut} when Item == out ->
-					search(PacketsOut);
+					total_packets(PacketsOut);
 				{error, Reason} ->
 					genErr2
 			end;
@@ -227,7 +227,7 @@ dbp_local_stats(get, Item) ->
 %%----------------------------------------------------------------------
 %% internal functions
 %----------------------------------------------------------------------
--spec search(Info) -> Result
+-spec total_packets(Info) -> Result
 	when
 		Info :: [tuple()],
 		Result :: {ok, {PacketsIn, PacketsOut}} | {error, Reason},
@@ -236,59 +236,60 @@ dbp_local_stats(get, Item) ->
 		Reason :: term().
 %% @doc Get packet counts from service info.
 
-search(Info) ->
-	search(Info, {0, 0}).
+total_packets(Info) ->
+	total_packets(Info, {0, 0}).
 %% @hidden
-search([H | T], Acc) ->
+total_packets([H | T], Acc) ->
 	case lists:keyfind(accept, 1, H) of
 		{_, L} ->
-			case search1(L, Acc) of
+			case total_packets1(L, Acc) of
 				{ok, Acc1} ->
-					search(T, Acc1);
+					total_packets(T, Acc1);
 				{error, Reason} ->
-					search(T, Acc)
+					total_packets(T, Acc)
 			end;
 		false ->
 			{error, not_found}
 	end;
-search([], Acc) ->
+total_packets([], Acc) ->
 	{ok, Acc}.
 %% @hidden
-search1([H | T], Acc) ->
+total_packets1([H | T], Acc) ->
 	case lists:keyfind(port, 1, H) of
 		{_, L} ->
-			case search2(L, Acc) of
+			case total_packets2(L, Acc) of
 				{ok, Acc1} ->
-					search1(T, Acc1);
+					total_packets1(T, Acc1);
 				{error, Reason} ->
 					{error, Reason}
 			end;
 		false ->
-			search1(T, Acc)
+			total_packets1(T, Acc)
 	end;
-search1([], Acc) ->
+total_packets1([], Acc) ->
 	{ok, Acc}.
 %% @hidden
-search2(L1, Acc) ->
+total_packets2(L1, Acc) ->
 	case lists:keyfind(statistics, 1, L1) of
 		{_, L2} ->
-			search3(L2, Acc);
+			total_packets3(L2, Acc);
 		false ->
 			{error, not_found}
 	end.
 %% @hidden
-search3(L, {PacketsIn, PacketsOut}) ->
+total_packets3(L, {PacketsIn, PacketsOut}) ->
 	case lists:keyfind(recv_cnt, 1, L) of
 		{_, N} ->
-			search4(L, {PacketsIn + N, PacketsOut});
+			total_packets4(L, {PacketsIn + N, PacketsOut});
 		false ->
 			{error, not_found}
 	end.
 %% @hidden
-search4(L, {PacketsIn, PacketsOut}) ->
+total_packets4(L, {PacketsIn, PacketsOut}) ->
 	case lists:keyfind(send_cnt, 1, L) of
 		{_, N} ->
 			{ok, {PacketsIn, PacketsOut + N}};
 		false ->
 			{error, not_found}
 	end.
+
