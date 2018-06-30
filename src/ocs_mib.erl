@@ -213,15 +213,20 @@ dbp_local_stats(get, Item) ->
 	case catch diameter:services() of
 		[Service |  _] ->
 			case catch diameter:service_info(Service, transport) of
-				{value, PacketsIn} when Item == in ->
-					total_packets(PacketsIn);
-				{value, PacketsOut} when Item == out ->
-					total_packets(PacketsOut);
-				{error, Reason} ->
-					genErr2
+				Info when is_list(Info) ->
+					case total_packets(Info) of
+						{ok, {PacketsIn, _}} when Item == in ->
+							PacketsIn;
+						{ok, {_, PacketsOut}} when Item == out ->
+							PacketsOut;
+						{error, _Reason} ->
+							genErr
+					end;
+				_ ->
+					genErr
 			end;
 		_ ->
-			genErr1
+			genErr
 	end.
 
 %%----------------------------------------------------------------------
@@ -245,7 +250,7 @@ total_packets([H | T], Acc) ->
 			case total_packets1(L, Acc) of
 				{ok, Acc1} ->
 					total_packets(T, Acc1);
-				{error, Reason} ->
+				{error, _Reason} ->
 					total_packets(T, Acc)
 			end;
 		false ->
