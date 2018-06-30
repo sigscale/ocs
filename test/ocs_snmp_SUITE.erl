@@ -49,6 +49,16 @@ suite() ->
 					[{ocs_mibs_test, [snmpm_user_default, []]}]},
 			{managed_agents,
 					[{ocs_mibs_test, [ocs_mibs_test, {127,0,0,1}, Port, []]}]}]},
+	{require, snmp_app},
+	{default_config, snmp_app,
+			[{manager,
+					[{config, [{verbosity, silence}]},
+					{server, [{verbosity, silence}]},
+					{net_if, [{verbosity, silence}]}]},
+			{agent,
+					[{config, [{verbosity, silence}]},
+					{agent_verbosity, silence},
+					{net_if, [{verbosity, silence}]}]}]},
 	{timetrap, {minutes, 1}}].
 
 -spec init_per_suite(Config :: [tuple()]) -> Config :: [tuple()].
@@ -57,7 +67,7 @@ suite() ->
 init_per_suite(Config) ->
 	ok = ocs_test_lib:initialize_db(),
 	ok = ocs_test_lib:start(),
-	ok = ct_snmp:start(Config, snmp_mgr_agent),
+	ok = ct_snmp:start(Config, snmp_mgr_agent, snmp_app),
 	ok = application:start(sigscale_mibs),
 	ok = sigscale_mib:load(),
 	DataDir = filename:absname(?config(data_dir, Config)),
