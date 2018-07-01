@@ -142,48 +142,58 @@ get_diameter_host() ->
 
 get_diameter_host(_Config) ->
 	{value, OID} = snmpa:name_to_oid(dbpLocalOriginHost),
-	{noError, _, _Varbinds} = ct_snmp:get_values(ocs_mibs_test,
-			[OID], snmp_mgr_agent).
+	OID1 = OID ++ [0],
+	{noError, _, Varbinds} = ct_snmp:get_values(ocs_mibs_test,
+			[OID1], snmp_mgr_agent),
+	[{varbind, OID1, 'OCTET STRING', _, _}] = Varbinds.
 
 get_diameter_realm() ->
 	[{userdata, [{doc, "Get diameter Origin-Realm"}]}].
 
 get_diameter_realm(_Config) ->
 	{value, OID} = snmpa:name_to_oid(dbpLocalRealm),
-	{noError, _, _Varbinds} = ct_snmp:get_values(ocs_mibs_test,
-			[OID], snmp_mgr_agent).
+	OID1 = OID ++ [0],
+	{noError, _, Varbinds} = ct_snmp:get_values(ocs_mibs_test,
+			[OID1], snmp_mgr_agent),
+	[{varbind, OID1, 'OCTET STRING', _, _}] = Varbinds.
 
 get_diameter_product() ->
 	[{userdata, [{doc, "Get diameter Product-Name"}]}].
 
 get_diameter_product(_Config) ->
 	{value, OID} = snmpa:name_to_oid(dbpLocalId),
-	{noError, _, _Varbinds} = ct_snmp:get_values(ocs_mibs_test,
-			[OID], snmp_mgr_agent).
+	OID1 = OID ++ [0],
+	{noError, _, Varbinds} = ct_snmp:get_values(ocs_mibs_test,
+			[OID1], snmp_mgr_agent),
+	[{varbind, OID1, 'OCTET STRING', _, _}] = Varbinds.
 
 get_diameter_packets_in() ->
 	[{userdata, [{doc, "Get diameter Total Packets In"}]}].
 
 get_diameter_packets_in(_Config) ->
 	{value, OID} = snmpa:name_to_oid(dbpLocalStatsTotalPacketsIn),
+	OID1 = OID ++ [0],
 	{noError, _, _Varbinds} = ct_snmp:get_values(ocs_mibs_test,
-			[OID], snmp_mgr_agent).
+			[OID1], snmp_mgr_agent).
 
 get_diameter_packets_out() ->
 	[{userdata, [{doc, "Get diameter Total Packets Out"}]}].
 
 get_diameter_packets_out(_Config) ->
 	{value, OID} = snmpa:name_to_oid(dbpLocalStatsTotalPacketsOut),
+	OID1 = OID ++ [0],
 	{noError, _, _Varbinds} = ct_snmp:get_values(ocs_mibs_test,
-			[OID], snmp_mgr_agent).
+			[OID1], snmp_mgr_agent).
 
 get_diameter_uptime() ->
 	[{userdata, [{doc, "Get diameter uptime"}]}].
 
 get_diameter_uptime(_Config) ->
 	{value, OID} = snmpa:name_to_oid(dbpLocalStatsTotalUpTime),
-	{noError, _, _Varbinds} = ct_snmp:get_values(ocs_mibs_test,
-			[OID], snmp_mgr_agent).
+	OID1 = OID ++ [0],
+	{noError, _, Varbinds} = ct_snmp:get_values(ocs_mibs_test,
+			[OID1], snmp_mgr_agent),
+	[{varbind, OID1, 'TimeTicks', _, _}] = Varbinds.
 
 %%---------------------------------------------------------------------
 %%  Internal functions
