@@ -1373,6 +1373,10 @@ The {@link //inets. inets} application's {@link //inets/httpd. httpd} server con
       {tls_cacert, "ssl/ca.pem"}]},
 {radius,
       [{sock_opts, [{recbuf, 131072}, {sndbuf, 131072}]}]},
+{snmp,
+      [{agent,
+           [{config, [{dir, "snmp/conf"}]},
+           {db_dir, "snmp/db"}]}]},
 {inets,
       [{services,
          [{httpd,
@@ -1393,7 +1397,7 @@ The {@link //inets. inets} application's {@link //inets/httpd. httpd} server con
             {modules, [mod_alias, mod_auth, mod_disk_log, mod_responsecontrol,
                   mod_ocs_rest_lang, mod_ocs_rest_accepted_content,
                   mod_ocs_rest_get, mod_get, mod_ocs_rest_post,
-						mod_ocs_rest_patch, mod_ocs_rest_delete]},
+                  mod_ocs_rest_patch, mod_ocs_rest_delete]},
             {port, 8080},
             {socket_type, {essl,
                   [{certfile,  "/etc/ssl/certs/ocs.pem"},
@@ -1403,3 +1407,41 @@ The {@link //inets. inets} application's {@link //inets/httpd. httpd} server con
             {document_root, "/usr/lib/erlang/lib/ocs-%VERSION%/priv/www"}]}]}]}].
 
 '''
+
+==SNMP Agent==
+SigScale OCS supports fault &amp; performance management with the Simple Network
+Management Protocol (SNMP). A management information base (MIB) for the OCS
+application is provided as well as IETF standard MIBs and SigScale's versions
+of IETF draft MIBs.
+
+<p><table id="mt">
+	<thead>
+		<tr id="mt">
+			<th id="mt">IETF</th>
+			<th id="mt">MIB Name</th>
+		</tr>
+	</thead>
+	<tbody>
+		<tr id="mt">
+			<td id="mt"></td>
+			<td id="mt">SIGSCALE-OCS-MIB</td>
+		</tr>
+		<tr id="mt">
+			<td id="mt"><a href="http://tools.ietf.org/html/draft-ietf-dime-diameter-base-protocol-mib-06">draft-ietf-dime-diameter-base-protocol-mib</a></td>
+			<td id="mt">SIGSCALE-DIAMETER-BASE-PROTOCOL-MIB</td>
+		</tr>
+		<tr id="mt">
+			<td id="mt"><a href="http://tools.ietf.org/html/draft-ietf-dime-diameter-cc-appl-mib-03">draft-ietf-dime-diameter-cc-appl-mib</a></td>
+			<td id="mt">SIGSCALE-DIAMETER-CC-APPLICATION-MIB</td>
+		</tr>
+		<tr id="mt">
+			<td id="mt"><a href="http://tools.ietf.org/html/rfc4669">RFC4669</a></td>
+			<td id="mt">RADIUS-AUTH-SERVER-MIB</td>
+		</tr>
+		<tr id="mt">
+			<td id="mt"><a href="http://tools.ietf.org/html/rfc4671">RFC4671</a></td>
+			<td id="mt">RADIUS-ACC-SERVER-MIB</td>
+		</tr>
+	</tbody>
+</table></p>
+
