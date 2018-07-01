@@ -216,11 +216,11 @@ dbp_local_stats(get, Item) ->
 				Info when is_list(Info) ->
 					case total_packets(Info) of
 						{ok, {PacketsIn, _}} when Item == in ->
-							PacketsIn;
+							{value, PacketsIn};
 						{ok, {_, PacketsOut}} when Item == out ->
-							PacketsOut;
-						{error, _Reason} ->
-							genErr
+							{value, PacketsOut};
+						{error, not_found} ->
+							{noValue, noSuchInstance}
 					end;
 				_ ->
 					genErr
