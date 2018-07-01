@@ -4,6 +4,7 @@
 ## Process this file with automake to produce Makefile.in
 
 mibs_DATA = SIGSCALE-OCS-MIB.mib \
+		RADIUS-AUTH-SERVER-MIB.mib \
 		RADIUS-ACC-SERVER-MIB.mib \
 		SIGSCALE-DIAMETER-BASE-PROTOCOL-MIB.mib \
 		SIGSCALE-DIAMETER-CC-APPLICATION-MIB.mib
