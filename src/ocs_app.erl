@@ -148,6 +148,7 @@ start1() ->
 		TopSup
 	of
 		Sup ->
+			catch ocs_mib:load(),
 			ok = ocs_scheduler:start(),
 			{ok, Sup}
 	catch
