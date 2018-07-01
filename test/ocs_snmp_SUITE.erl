@@ -173,8 +173,9 @@ get_diameter_packets_in() ->
 get_diameter_packets_in(_Config) ->
 	{value, OID} = snmpa:name_to_oid(dbpLocalStatsTotalPacketsIn),
 	OID1 = OID ++ [0],
-	{noError, _, _Varbinds} = ct_snmp:get_values(ocs_mibs_test,
-			[OID1], snmp_mgr_agent).
+	{noError, _, Varbinds} = ct_snmp:get_values(ocs_mibs_test,
+			[OID1], snmp_mgr_agent),
+	[{varbind, OID1, 'Counter32', _, _}] = Varbinds.
 
 get_diameter_packets_out() ->
 	[{userdata, [{doc, "Get diameter Total Packets Out"}]}].
@@ -182,8 +183,9 @@ get_diameter_packets_out() ->
 get_diameter_packets_out(_Config) ->
 	{value, OID} = snmpa:name_to_oid(dbpLocalStatsTotalPacketsOut),
 	OID1 = OID ++ [0],
-	{noError, _, _Varbinds} = ct_snmp:get_values(ocs_mibs_test,
-			[OID1], snmp_mgr_agent).
+	{noError, _, Varbinds} = ct_snmp:get_values(ocs_mibs_test,
+			[OID1], snmp_mgr_agent),
+	[{varbind, OID1, 'Counter32', _, _}] = Varbinds.
 
 get_diameter_uptime() ->
 	[{userdata, [{doc, "Get diameter uptime"}]}].
