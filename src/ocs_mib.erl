@@ -25,7 +25,8 @@
 -export([load/0, load/1, unload/0, unload/1]).
 
 %% export the ocs_mib snmp agent callbacks
--export([client_table/3, dbp_local_config/2, dbp_local_stats/2]).
+-export([client_table/3, radius_auth_server/2, radius_acct_server/2,
+		dbp_local_config/2, dbp_local_stats/2]).
 
 -include("ocs.hrl").
 
@@ -39,9 +40,14 @@
 		Reason :: term().
 %% @doc Loads the SigScale OCS MIB.
 load() ->
-	MibDir = code:priv_dir(ocs) ++ "/mibs",
-	Mibs = [MibDir ++ "/SIGSCALE-OCS-MIB"],
-	snmpa:load_mibs(Mibs).
+	case code:priv_dir(ocs) of
+		PrivDir when is_list(PrivDir) ->
+			MibDir = PrivDir ++ "/mibs/",
+			Mibs = [MibDir ++ MIB || MIB <- mibs()],
+			snmpa:load_mibs(Mibs);
+		{error, Reason} ->
+			{error, Reason}
+	end.
 
 -spec load(Agent) -> Result
 	when
@@ -50,11 +56,14 @@ load() ->
 		Reason :: term().
 %% @doc Loads the SigScale OCS MIB.
 load(Agent) ->
-	MibDir = code:priv_dir(ocs) ++ "/mibs",
-	Mibs = [MibDir ++ "/SIGSCALE-OCS-MIB",
-				MibDir ++ "/SIGSCALE-DIAMETER-BASE-PROTOCOL-MIB",
-				MibDir ++ "/SIGSCALE-DIAMETER-CC-APPLICATION-MIB"],
-	snmpa:load_mibs(Agent, Mibs).
+	case code:priv_dir(ocs) of
+		PrivDir when is_list(PrivDir) ->
+			MibDir = PrivDir ++ "/mibs/",
+			Mibs = [MibDir ++ MIB || MIB <- mibs()],
+			snmpa:load_mibs(Agent, Mibs);
+		{error, Reason} ->
+			{error, Reason}
+	end.
 
 -spec unload() -> Result
 	when
@@ -62,8 +71,7 @@ load(Agent) ->
 		Reason :: term().
 %% @doc Unloads the SigScale OCS MIB.
 unload() ->
-	Mibs = ["SIGSCALE-OCS-MIB"],
-	snmpa:unload_mibs(Mibs).
+	snmpa:unload_mibs(mibs()).
 
 -spec unload(Agent) -> Result
 	when
@@ -72,8 +80,7 @@ unload() ->
 		Reason :: term().
 %% @doc Unloads the SigScale OCS MIB.
 unload(Agent) ->
-	Mibs = ["SIGSCALE-OCS-MIB"],
-	snmpa:unload_mibs(Agent, Mibs).
+	snmpa:unload_mibs(Agent, mibs()).
 
 %%----------------------------------------------------------------------
 %% The ocs_mib snmp agent callbacks
@@ -170,6 +177,28 @@ client_get_next(F1, Columns, First) ->
 			[endOfTable || _ <- Columns]
 	end.
 
+-spec radius_auth_server(Operation, Item) -> Result
+	when
+		Operation :: get,
+		Item :: ident,
+		Result :: {value, Value} | genErr,
+		Value :: atom() | integer() | string() | [integer()].
+% @doc Get RADIUS authentication server identity"
+% @private
+radius_auth_server(get, ident = _Item) ->
+	{value, "SigScale OCS"}.
+
+-spec radius_acct_server(Operation, Item) -> Result
+	when
+		Operation :: get,
+		Item :: ident,
+		Result :: {value, Value} | genErr,
+		Value :: atom() | integer() | string() | [integer()].
+% @doc Get RADIUS accounting server identity"
+% @private
+radius_acct_server(get, ident = _Item) ->
+	{value, "SigScale OCS"}.
+
 -spec dbp_local_config(Operation, Item) -> Result
 	when
 		Operation :: get,
@@ -192,7 +221,7 @@ dbp_local_config(get, Item) ->
 		false ->
 			{noValue, noSuchInstance}
 	end.
- 
+
 -spec dbp_local_stats(Operation, Item) -> Result
 	when
 		Operation :: get,
@@ -232,6 +261,15 @@ dbp_local_stats(get, Item) ->
 %%----------------------------------------------------------------------
 %% internal functions
 %----------------------------------------------------------------------
+
+%% @hidden
+mibs() ->
+	["SIGSCALE-OCS-MIB",
+			"SIGSCALE-DIAMETER-BASE-PROTOCOL-MIB",
+			"SIGSCALE-DIAMETER-CC-APPLICATION-MIB",
+			"RADIUS-AUTH-SERVER-MIB",
+			"RADIUS-ACC-SERVER-MIB"].
+
 -spec total_packets(Info) -> Result
 	when
 		Info :: [tuple()],

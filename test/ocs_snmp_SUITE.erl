@@ -75,8 +75,10 @@ init_per_suite(Config) ->
 	BuildDir = filename:dirname(TestDir),
 	MibDir =  BuildDir ++ "/priv/mibs/",
 	Mibs = [MibDir ++ "SIGSCALE-OCS-MIB",
-		MibDir ++ "SIGSCALE-DIAMETER-BASE-PROTOCOL-MIB",
-		MibDir ++ "SIGSCALE-DIAMETER-CC-APPLICATION-MIB"],
+			MibDir ++ "SIGSCALE-DIAMETER-BASE-PROTOCOL-MIB",
+			MibDir ++ "SIGSCALE-DIAMETER-CC-APPLICATION-MIB",
+			MibDir ++ "RADIUS-AUTH-SERVER-MIB",
+			MibDir ++ "RADIUS-ACC-SERVER-MIB"],
 	ok = ct_snmp:load_mibs(Mibs),
 	Config.
 
@@ -112,9 +114,11 @@ sequences() ->
 %% Returns a list of all test cases in this test suite.
 %%
 all() ->
-	[get_client, get_next_client, get_diameter_host, get_diameter_realm,
-		get_diameter_product, get_diameter_packets_in, get_diameter_packets_out,
-		get_diameter_uptime].
+	[get_client, get_next_client,
+			get_radius_auth_ident, get_radius_acct_ident,
+			get_diameter_host, get_diameter_realm, get_diameter_product,
+			get_diameter_packets_in, get_diameter_packets_out,
+			get_diameter_uptime].
 
 %%---------------------------------------------------------------------
 %%  Test cases
@@ -136,6 +140,26 @@ get_next_client(_Config) ->
 	{value, OID} = snmpa:name_to_oid(ocsClientTable),
 	{noError, _, _Varbinds} = ct_snmp:get_next_values(ocs_mibs_test,
 			[OID], snmp_mgr_agent).
+
+get_radius_auth_ident() ->
+	[{userdata, [{doc, "Get RADIUS authentication server identity"}]}].
+
+get_radius_auth_ident(_Config) ->
+	{value, OID} = snmpa:name_to_oid(radiusAuthServIdent),
+	OID1 = OID ++ [0],
+	{noError, _, Varbinds} = ct_snmp:get_values(ocs_mibs_test,
+			[OID1], snmp_mgr_agent),
+	[{varbind, OID1, 'OCTET STRING', _, _}] = Varbinds.
+
+get_radius_acct_ident() ->
+	[{userdata, [{doc, "Get RADIUS accounting server identity"}]}].
+
+get_radius_acct_ident(_Config) ->
+	{value, OID} = snmpa:name_to_oid(radiusAccServIdent),
+	OID1 = OID ++ [0],
+	{noError, _, Varbinds} = ct_snmp:get_values(ocs_mibs_test,
+			[OID1], snmp_mgr_agent),
+	[{varbind, OID1, 'OCTET STRING', _, _}] = Varbinds.
 
 get_diameter_host() ->
 	[{userdata, [{doc, "Get diameter Origin-Host"}]}].
