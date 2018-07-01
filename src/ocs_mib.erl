@@ -170,10 +170,10 @@ client_get_next(F1, Columns, First) ->
 			[endOfTable || _ <- Columns]
 	end.
 
--spec dbp_local_config(Operation, Items) -> Result
+-spec dbp_local_config(Operation, Item) -> Result
 	when
 		Operation :: get,
-		Items :: 'Origin-Host' | 'Origin-Realm' | 'Product-Name',
+		Item :: 'Origin-Host' | 'Origin-Realm' | 'Product-Name',
 		Result :: {value, Value} | genErr,
 		Value :: atom() | integer() | string() | [integer()].
 % @doc Get local DIAMETER configuration.
