@@ -121,9 +121,9 @@ acct_close() ->
 		Events :: [acct_event()],
 		Reason :: term().
 %% @doc Query accounting log events with filters.
-%% @equiv acct_query(Continuation, Start, End, radius, Types, AttrsMatch)
+%% @equiv acct_query(Continuation, Start, End, '_', Types, AttrsMatch)
 acct_query(Continuation, Start, End, Types, AttrsMatch) ->
-	acct_query(Continuation, Start, End, radius, Types, AttrsMatch).
+	acct_query(Continuation, Start, End, '_', Types, AttrsMatch).
 
 -spec acct_query(Continuation, Start, End, Protocol, Types, AttrsMatch) -> Result
 	when
@@ -236,9 +236,9 @@ auth_log(Protocol, Server, Client, Request, Response) ->
 		Events :: [auth_event()],
 		Reason :: term().
 %% @doc Query access log events with filters.
-%% @equiv auth_query(Continuation, Start, End, radius, Types, ReqAttrsMatch, RespAttrsMatch)
+%% @equiv auth_query(Continuation, Start, End, '_', Types, ReqAttrsMatch, RespAttrsMatch)
 auth_query(Continuation, Start, End, Types, ReqAttrsMatch, RespAttrsMatch) ->
-	auth_query(Continuation, Start, End, radius, Types,
+	auth_query(Continuation, Start, End, '_', Types,
 			ReqAttrsMatch, RespAttrsMatch).
 
 -spec auth_query(Continuation, Start, End, Protocol, Types,
