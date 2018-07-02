@@ -563,7 +563,7 @@ get_clients_filter(Config) ->
 	{ok, _} = ocs:add_client("10.0.123.100", 3799, radius, "ziggyzaggy", true),
 	HostUrl = ?config(host_url, Config),
 	Accept = {"accept", "application/json"},
-	Filters = "?fields=identifier,secret",
+	Filters = "?filter=" ++ "\"[{id.like=[1%25]}]\"",
 	Url = HostUrl ++ "/ocs/v1/client" ++ Filters,
 	Request = {Url, [Accept, auth_header()]},
 	{ok, Result} = httpc:request(get, Request, [], []),
@@ -574,8 +574,8 @@ get_clients_filter(Config) ->
 	Fall = fun({struct, L}) ->
 				lists:keymember("id", 1, L)
 						and lists:keymember("href", 1, L)
-						and not lists:keymember("port", 1, L)
-						and not lists:keymember("protocol", 1, L)
+						and lists:keymember("port", 1, L)
+						and lists:keymember("protocol", 1, L)
 						and lists:keymember("identifier", 1, L)
 						and lists:keymember("secret", 1, L)
 	end,
