@@ -26,7 +26,7 @@
 
 %% export the ocs_mib snmp agent callbacks
 -export([client_table/3, radius_auth_server/2, radius_acct_server/2,
-		dbp_local_config/2, dbp_local_stats/2]).
+		dbp_local_config/2, dbp_local_stats/2, dcca_peer_stats/3]).
 
 -include("ocs.hrl").
 
@@ -258,6 +258,60 @@ dbp_local_stats(get, Item) ->
 			genErr
 	end.
 
+-spec dcca_peer_stats(Operation, RowIndex, Columns) -> Result
+	when
+		Operation :: get | get_next,
+		RowIndex :: ObjectId,
+		ObjectId :: [integer()],
+		Columns :: [Column],
+		Column :: integer(),
+		Result :: [Element] | {genErr, Column},
+		Element :: {value, Value} | {ObjectId, Value},
+		Value :: atom() | integer() | string() | [integer()].
+%% @doc Handle SNMP requests for the peer stats table.
+dcca_peer_stats(get_next = _Operation, [] = _RowIndex, Columns) ->
+	dcca_peer_stats_get_next(1, Columns, true);
+dcca_peer_stats(get_next, [N], Columns) ->
+	dcca_peer_stats_get_next(N + 1, Columns, true).
+%% @hidden
+dcca_peer_stats_get_next(Index, Columns, First) ->
+	case catch diameter:services() of
+		[Service |  _] ->
+			case catch diameter:service_info(Service, connections) of
+				Info when is_list(Info) ->
+					case total_ccr(Index, Info) of
+						{ok, {PeerId, Rev, CCRIn, CCAOut}} ->
+							F1 = fun(0, Acc) ->
+										[{[1, Index], PeerId} | Acc];
+									(1, Acc) ->
+										[{[1, Index], PeerId} | Acc];
+									(2, Acc) ->
+										[{[2, Index], Rev} | Acc];
+									(3, Acc) ->
+										[{[3, Index], CCRIn} | Acc];
+									(4, Acc) ->
+										[{[4, Index], CCAOut} | Acc];
+									(_, Acc) ->
+										[endOfTable | Acc]
+							end,
+							lists:reverse(lists:foldl(F1, [], Columns));
+						{error, not_found} when First == true ->
+							F2 = fun(N) ->
+									N + 1
+							end,
+							NextColumns = lists:map(F2, Columns),
+							dcca_peer_stats_get_next(1, NextColumns, false);
+						{error, not_found} ->
+							[endOfTable || _ <- Columns]
+					end;
+				_ ->
+					[endOfTable || _ <- Columns]
+			end;
+		_ ->
+			{genErr, 0}
+	end.
+
+
 %%----------------------------------------------------------------------
 %% internal functions
 %----------------------------------------------------------------------
@@ -335,4 +389,71 @@ total_packets4(L, {PacketsIn, PacketsOut}) ->
 		false ->
 			{error, not_found}
 	end.
+
+-spec total_ccr(Index, Info) -> Result
+   when
+		Index :: integer(),
+      Info :: [tuple()],
+      Result :: {ok, {PeerId, Rev, CCRIn, CCAOut}} | {error, Reason},
+		PeerId :: string(),
+		Rev :: integer(),
+      CCRIn :: integer(),
+      CCAOut :: integer(),
+      Reason :: term().
+%% @doc Get peer stats table entry.
+%% @hidden
+total_ccr(Index, Info) ->
+	case catch lists:nth(Index, Info) of
+		Connection when is_list(Connection) ->
+			total_ccr(Connection);
+		_ ->
+			{error, not_found}
+	end.
+%% @hidden
+total_ccr(Connection) ->
+erlang:display({?MODULE, ?LINE, is_list(Connection)}),
+	case lists:keyfind(caps, 1, Connection) of
+		{_, Caps} ->
+			total_ccr1(Connection, Caps);
+		false ->
+         {error, not_found}
+	end.
+%% @hidden
+total_ccr1(Connection ,Caps) ->
+erlang:display({?MODULE, ?LINE, is_list(Caps)}),
+	case lists:keyfind(origin_host, 1, Caps) of
+		{_, {_,PeerId}} ->
+			total_ccr2(Connection, Caps, binary_to_list(PeerId));
+		false ->
+         {error, not_found}
+	end.
+%% @hidden
+total_ccr2(Connection ,Caps, PeerId) ->
+erlang:display({?MODULE, ?LINE, is_list(Caps)}),
+	case lists:keyfind(firmware_revision, 1, Caps) of
+		{_, {_, []}} ->
+			total_ccr3(Connection, PeerId, 0);
+		{_, {_, [Rev]}} ->
+			total_ccr3(Connection, PeerId, Rev);
+		false ->
+         {error, not_found}
+	end.
+%% @hidden
+total_ccr3(Connection, PeerId, Rev) ->
+erlang:display({?MODULE, ?LINE, is_list(Connection)}),
+	case lists:keyfind(statistics, 1, Connection) of
+		{_, Statistics} ->
+				total_ccr4(PeerId, Rev, 0, 0, Statistics);
+		false ->
+         {error, not_found}
+	end.
+%% @hidden
+total_ccr4(PeerId, Rev, _, CCAOut, [{{{_, 272, 0}, recv}, CCRIn} | T]) ->
+	total_ccr4(PeerId ,Rev, CCRIn, CCAOut, T);
+total_ccr4(PeerId, Rev, CCRIn, _, [{{{_, 272, 1}, send}, CCAOut} | T]) ->
+	total_ccr4(PeerId ,Rev, CCRIn, CCAOut, T);
+total_ccr4(PeerId, Rev, CCRIn, CCAOut, [_ | T]) ->
+	total_ccr4(PeerId ,Rev, CCRIn, CCAOut, T);
+total_ccr4(PeerId, Rev, CCRIn, CCAOut, []) ->
+	{ok, {PeerId, Rev, CCRIn, CCAOut}}.
 
