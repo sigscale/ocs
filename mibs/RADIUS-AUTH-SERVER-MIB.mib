@@ -694,7 +694,7 @@ radiusAuthServMIBExtCompliance MODULE-COMPLIANCE
 			DESCRIPTION  "The only SETable value is 'reset' (2)."
 
 			OBJECT radiusAuthClientInetAddressType
-			SYNTAX InetAddressType { ipv4(1), ipv6(2) }
+			SYNTAX InetAddressType
 			DESCRIPTION
 				"An implementation is only required to support
 				 IPv4 and globally unique IPv6 addresses."
