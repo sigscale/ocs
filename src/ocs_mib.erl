@@ -346,7 +346,6 @@ dcca_peer_info_get_next(Index, Columns, First) ->
 									N + 1
 							end,
 							NextColumns = lists:map(F2, Columns),
-erlang:display({?MODULE, ?LINE, F2, Columns}),
 							dcca_peer_info_get_next(1, NextColumns, false);
 						{error, not_found} ->
 							[endOfTable || _ <- Columns]
@@ -547,7 +546,6 @@ peer_info(Index, Info) ->
 	end.
 %% @hidden
 peer_info(Info) ->
-erlang:display({?MODULE, ?LINE, is_list(Info)}),
 	case lists:keyfind(caps, 1, Info) of
 		{_, Caps} ->
 			peer_info1(Caps);
@@ -556,7 +554,6 @@ erlang:display({?MODULE, ?LINE, is_list(Info)}),
 	end.
 %% @hidden
 peer_info1(Caps) ->
-erlang:display({?MODULE, ?LINE, is_list(Caps)}),
 	case lists:keyfind(origin_host, 1, Caps) of
 		{_, {_,PeerId}} ->
 			peer_info2(Caps, binary_to_list(PeerId));
@@ -565,7 +562,6 @@ erlang:display({?MODULE, ?LINE, is_list(Caps)}),
 	end.
 %% @hidden
 peer_info2(Caps, PeerId) ->
-erlang:display({?MODULE, ?LINE, is_list(Caps)}),
 	case lists:keyfind(firmware_revision, 1, Caps) of
 		{_, {_, []}} ->
 			peer_info3(PeerId, undefined);
@@ -595,7 +591,6 @@ peer_stats(Index, Info) ->
 	end.
 %% @hidden
 peer_stats(Connection) ->
-erlang:display({?MODULE, ?LINE, is_list(Connection)}),
 	case lists:keyfind(statistics, 1, Connection) of
 		{_, Statistics} ->
 				peer_stats1(Statistics, #peer_stats{});
