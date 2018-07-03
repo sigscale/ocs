@@ -89,34 +89,43 @@
 				<h2>Add Product</h2>
 			</paper-toolbar>
 			<div>
-            <paper-input
-               id="addProduct1"
-               name="product"
-               label="Product Offer">
-            </paper-input>
-					<paper-tags-input id="addService1"
-						label="Service Id"
-						items="[]"
-						show-counter="tags">
-					</paper-tags-input>
-         </div>
+				<paper-dropdown-menu
+						id="addProDrop"
+						label="Product Offer">
+					<paper-listbox
+							id="addProDropList"
+							slot="dropdown-content"
+							class="dropdown-content">
+						<template is="dom-repeat" items="[[offers]]">
+							<paper-item>
+								{{item}}
+							</paper-item>
+						</template>
+					</paper-listbox>
+				</paper-dropdown-menu>
+				<paper-tags-input
+					id="addService1"
+					label="Service Id"
+					items="[]">
+				</paper-tags-input>
+			</div>
 			<div class="buttons">
-            <paper-button dialog-confirm
-               raised
-               class="add-button"
-               on-tap="_productinvenAddSubmit">
-               <i18n-msg msgid="submit">
-                  Submit
-               </i18n-msg>
-            </paper-button>
-            <paper-button dialog-dismiss
-               class="cancel-button"
-               onclick="addProductInvenModal.close()">
-               <i18n-msg msgid="cancel">
-                  Cancel
-               </i18n-msg>
-            </paper-button>
-         </div>
+				<paper-button dialog-confirm
+					raised
+					class="add-button"
+					on-tap="_productinvenAddSubmit">
+					<i18n-msg msgid="submit">
+						Submit
+					</i18n-msg>
+				</paper-button>
+				<paper-button dialog-dismiss
+					class="cancel-button"
+					onclick="addProductInvenModal.close()">
+					<i18n-msg msgid="cancel">
+						Cancel
+					</i18n-msg>
+				</paper-button>
+			</div>
 		</paper-dialog>
 		<iron-ajax
 				id="addProductAjax"
@@ -137,6 +146,12 @@
 					type: Number,
 					value: 0
 				},
+				offers: {
+					type: Array,
+					value: function() {
+						return []
+					}
+				},
 				product: {
 					type: String,
 				}
@@ -145,9 +160,9 @@
 				var ajaxPro = this.$.addProductAjax;
 				var productRes = new Object();
 				var productAdd = new Object();
-				productAdd.id = this.$.addProduct1.value;
-				productAdd.name = this.$.addProduct1.value;
-				productAdd.href = "/catalogManagement/v2/productOffering/" + this.$.addProduct1.value; 
+				productAdd.id = this.$.addProDrop.value;
+				productAdd.name = this.$.addProDrop.value;
+				productAdd.href = "/catalogManagement/v2/productOffering/" + this.$.addProDrop.value; 
 				productRes.productOffering = productAdd;
 				var productServi = new Array();
 				var services = this.$.addService1.items
@@ -160,7 +175,7 @@
 				productRes.realizingService= productServi;
 				ajaxPro.body = productRes;
 				ajaxPro.generateRequest();
-				this.$.addProduct1.value = null;
+				this.$.addProDrop.value = null;
 				this.$.addService1.value = null;
 				this.$.addProductInvenModal.close();
 			},
