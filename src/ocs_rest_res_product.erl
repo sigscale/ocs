@@ -2147,14 +2147,24 @@ inventory([service | T], #product{service = ServiceRefs} = Product, Acc) ->
 	end,
 	RealizingServices = {"realizingService", {array, [F(SR) || SR <- ServiceRefs]}},
 	inventory(T, Product, [RealizingServices | Acc]);
+inventory([balance | T], #product{balance = []} = Product, Acc) ->
+	inventory(T, Product, Acc);
 inventory([balance | T], #product{balance = BucketRefs} = Product, Acc) ->
-	F1 = fun() ->
-			MatchHead = #bucket{id = '$1', _ = '_'},
-			MatchIds = [{'==', Id, '$1'} || Id <- BucketRefs],
-			MatchConditions = [list_to_tuple(['or' | MatchIds])],
-			mnesia:select(bucket, [{MatchHead, MatchConditions, ['$_']}])
+	F1 = case BucketRefs of
+		[BucketRef] ->
+			fun() ->
+					MatchHead = #bucket{id = BucketRef, _ = '_'},
+					mnesia:select(bucket, [{MatchHead, [], ['$_']}])
+			end;
+		BucketRefs ->
+			fun() ->
+					MatchHead = #bucket{id = '$1', _ = '_'},
+					MatchIds = [{'==', Id, '$1'} || Id <- BucketRefs],
+					MatchConditions = [list_to_tuple(['or' | MatchIds])],
+					mnesia:select(bucket, [{MatchHead, MatchConditions, ['$_']}])
+			end
 	end,
-	case mnesia:transaction(F1) of
+	case catch mnesia:transaction(F1) of
 		{atomic, Buckets} ->
 			F2 = fun(#bucket{units = cents, remain_amount = N}, {undefined, B, S}) ->
 						{N, B, S};
