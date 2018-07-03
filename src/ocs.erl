@@ -150,7 +150,7 @@ add_client({A, B, C, D} = Address, Port, radius, Secret, PasswordRequired)
 	when
 		Address :: inet:ip_address(),
 		Result :: {ok, #client{}} | {error, Reason}, 
-		Reason :: notfound | term().
+		Reason :: not_found | term().
 %% @doc Find a client by IP address.
 %%
 find_client(Address) when is_list(Address) ->
