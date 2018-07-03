@@ -156,6 +156,7 @@
 -record(ipdr_voip,
 		{ipdrCreationTime :: string() | undefined,
 		seqNum :: non_neg_integer() | undefined,
+		seizeTime :: string() | undefined,
 		startTime :: string() | undefined,
 		endTime :: string() | undefined,
 		timeZoneOffset :: integer() | undefined,
