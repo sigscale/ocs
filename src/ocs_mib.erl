@@ -533,7 +533,7 @@ total_packets4(L, {PacketsIn, PacketsOut}) ->
       Info :: [tuple()],
       Result :: {ok, {PeerId, Rev}} | {error, Reason},
       PeerId :: string(),
-      Rev :: integer(),
+      Rev :: integer() | undefined,
       Reason :: term().
 %% @doc Get peer entry table.
 %% @hidden
