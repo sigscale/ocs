@@ -1,1 +1,3 @@
+{dccaPeerTable, {ocs_mib, dcca_peer_info, []}}.
 {dccaPerPeerStatsTable, {ocs_mib, dcca_peer_stats, []}}.
+

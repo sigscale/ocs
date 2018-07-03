@@ -26,9 +26,41 @@
 
 %% export the ocs_mib snmp agent callbacks
 -export([client_table/3, radius_auth_server/2, radius_acct_server/2,
-		dbp_local_config/2, dbp_local_stats/2, dcca_peer_stats/3]).
+		dbp_local_config/2, dbp_local_stats/2,
+		dcca_peer_info/3, dcca_peer_stats/3]).
 
 -include("ocs.hrl").
+
+-record(peer_stats,
+		{ccr_in = 0 :: non_neg_integer(),
+		ccr_out = 0 :: non_neg_integer(),
+		ccr_dropped = 0 :: non_neg_integer(),
+		cca_in = 0 :: non_neg_integer(),
+		cca_out = 0 :: non_neg_integer(),
+		cca_dropped = 0 :: non_neg_integer(),
+		rar_in = 0 :: non_neg_integer(),
+		rar_dropped = 0 :: non_neg_integer(),
+		rar_out = 0 :: non_neg_integer(),
+		raa_out = 0 :: non_neg_integer(),
+		str_in = 0 :: non_neg_integer(),
+		str_out = 0 :: non_neg_integer(),
+		str_dropped = 0 :: non_neg_integer(),
+		sta_in = 0 :: non_neg_integer(),
+		sta_out = 0 :: non_neg_integer(),
+		sta_dropped = 0 :: non_neg_integer(),
+		aar_in = 0 :: non_neg_integer(),
+		aar_out = 0 :: non_neg_integer(),
+		aar_dropped = 0 :: non_neg_integer(),
+		aaa_in = 0 :: non_neg_integer(),
+		aaa_out = 0 :: non_neg_integer(),
+		aaa_dropped = 0 :: non_neg_integer(),
+		asr_in = 0 :: non_neg_integer(),
+		asr_dropped = 0 :: non_neg_integer(),
+		asr_out = 0 :: non_neg_integer(),
+		asa_dropped = 0 :: non_neg_integer(),
+		asa_out = 0 :: non_neg_integer(),
+		raa_in = 0 :: non_neg_integer(),
+		asa_in = 0 :: non_neg_integer()}).
 
 %%----------------------------------------------------------------------
 %%  The ocs_mib public API
@@ -258,6 +290,74 @@ dbp_local_stats(get, Item) ->
 			genErr
 	end.
 
+-spec dcca_peer_info(Operation, RowIndex, Columns) -> Result
+	when
+		Operation :: get | get_next,
+		RowIndex :: ObjectId,
+		ObjectId :: [integer()],
+		Columns :: [Column],
+		Column :: integer(),
+		Result :: [Element] | {genErr, Column},
+		Element :: {value, Value} | {ObjectId, Value},
+		Value :: atom() | integer() | string() | [integer()].
+%% @doc Handle SNMP requests for the peer info table.
+dcca_peer_info(get_next = _Operation, [] = _RowIndex, Columns) ->
+	dcca_peer_info_get_next(1, Columns, true);
+dcca_peer_info(get_next, [N], Columns) ->
+	dcca_peer_info_get_next(N + 1, Columns, true).
+%% @hidden
+dcca_peer_info_get_next(Index, Columns, First) ->
+	case catch diameter:services() of
+		[Service |  _] ->
+			case catch diameter:service_info(Service, connections) of
+				Info when is_list(Info) ->
+					case peer_info(Index, Info) of
+						{ok, {PeerId, Rev}} ->
+							F1 = fun(0, Acc) ->
+										[{[1, Index], Index} | Acc];
+									(1, Acc) ->
+										[{[1, Index], Index} | Acc];
+									(2, Acc) ->
+										[{[2, Index], PeerId} | Acc];
+									(3, Acc) when Rev == undefined ->
+										case dcca_peer_info_get_next(Index + 1, [3], true) of
+											[NextResult] ->
+												[NextResult | Acc];
+											{genError, N} ->
+												 throw({genError, N})
+										end;
+									(3, Acc) ->
+										[{[3, Index], Rev} | Acc];
+									(4, Acc) ->
+										[{[4, Index], volatile} | Acc];
+									(5, Acc) ->
+										[{[5, Index], active} | Acc];
+									(_, Acc) ->
+										[endOfTable | Acc]
+							end,
+							try
+								 lists:reverse(lists:foldl(F1, [], Columns))
+							catch	
+								{genError, N} ->
+									{genError, N}
+							end;
+						{error, not_found} when First == true ->
+							F2 = fun(N) ->
+									N + 1
+							end,
+							NextColumns = lists:map(F2, Columns),
+erlang:display({?MODULE, ?LINE, F2, Columns}),
+							dcca_peer_info_get_next(1, NextColumns, false);
+						{error, not_found} ->
+							[endOfTable || _ <- Columns]
+					end;
+				_Info ->
+					[endOfTable || _ <- Columns]
+			end;
+		_ ->
+			{genErr, 0}
+	end.
+
 -spec dcca_peer_stats(Operation, RowIndex, Columns) -> Result
 	when
 		Operation :: get | get_next,
@@ -279,18 +379,56 @@ dcca_peer_stats_get_next(Index, Columns, First) ->
 		[Service |  _] ->
 			case catch diameter:service_info(Service, connections) of
 				Info when is_list(Info) ->
-					case total_ccr(Index, Info) of
-						{ok, {PeerId, Rev, CCRIn, CCAOut}} ->
+					case peer_stats(Index, Info) of
+						{ok, Stats} ->
 							F1 = fun(0, Acc) ->
-										[{[1, Index], PeerId} | Acc];
+										[{[2, Index], Stats#peer_stats.ccr_in} | Acc];
 									(1, Acc) ->
-										[{[1, Index], PeerId} | Acc];
+										[{genErr, 0} | Acc];
 									(2, Acc) ->
-										[{[2, Index], Rev} | Acc];
+										[{[2, Index], Stats#peer_stats.ccr_in} | Acc];
 									(3, Acc) ->
-										[{[3, Index], CCRIn} | Acc];
+										[{[3, Index], Stats#peer_stats.ccr_out} | Acc];
 									(4, Acc) ->
-										[{[4, Index], CCAOut} | Acc];
+										[{[4, Index], Stats#peer_stats.ccr_dropped} | Acc];
+									(5, Acc) ->
+										[{[5, Index], Stats#peer_stats.cca_in} | Acc];
+									(6, Acc) ->
+										[{[6, Index], Stats#peer_stats.cca_out} | Acc];
+									(7, Acc) ->
+										[{[7, Index], Stats#peer_stats.cca_dropped} | Acc];
+									(8, Acc) ->
+										[{[8, Index], Stats#peer_stats.rar_in} | Acc];
+									(9, Acc) ->
+										[{[9, Index], Stats#peer_stats.rar_dropped} | Acc];
+									(10, Acc) ->
+										[{[10, Index], Stats#peer_stats.raa_out} | Acc];
+									(11, Acc) ->
+										[{[11, Index], Stats#peer_stats.rar_dropped} | Acc];
+									(12, Acc) ->
+										[{[12, Index], Stats#peer_stats.str_out} | Acc];
+									(13, Acc) ->
+										[{[13, Index], Stats#peer_stats.str_dropped} | Acc];
+									(14, Acc) ->
+										[{[14, Index], Stats#peer_stats.sta_in} | Acc];
+									(15, Acc) ->
+										[{[15, Index], Stats#peer_stats.sta_dropped} | Acc];
+									(16, Acc) ->
+										[{[16, Index], Stats#peer_stats.aar_out} | Acc];
+									(17, Acc) ->
+										[{[17, Index], Stats#peer_stats.aar_dropped} | Acc];
+									(18, Acc) ->
+										[{[18, Index], Stats#peer_stats.aaa_in} | Acc];
+									(19, Acc) ->
+										[{[19, Index], Stats#peer_stats.aaa_dropped} | Acc];
+									(20, Acc) ->
+										[{[20, Index], Stats#peer_stats.asr_in} | Acc];
+									(21, Acc) ->
+										[{[21, Index], Stats#peer_stats.asr_dropped} | Acc];
+									(22, Acc) ->
+										[{[22, Index], Stats#peer_stats.asa_out} | Acc];
+									(23, Acc) ->
+										[{[23, Index], Stats#peer_stats.asa_dropped} | Acc];
 									(_, Acc) ->
 										[endOfTable | Acc]
 							end,
@@ -304,7 +442,7 @@ dcca_peer_stats_get_next(Index, Columns, First) ->
 						{error, not_found} ->
 							[endOfTable || _ <- Columns]
 					end;
-				_ ->
+				_Info ->
 					[endOfTable || _ <- Columns]
 			end;
 		_ ->
@@ -390,70 +528,123 @@ total_packets4(L, {PacketsIn, PacketsOut}) ->
 			{error, not_found}
 	end.
 
--spec total_ccr(Index, Info) -> Result
+-spec peer_info(Index, Info) -> Result
    when
-		Index :: integer(),
+      Index :: integer(),
       Info :: [tuple()],
-      Result :: {ok, {PeerId, Rev, CCRIn, CCAOut}} | {error, Reason},
-		PeerId :: string(),
-		Rev :: integer(),
-      CCRIn :: integer(),
-      CCAOut :: integer(),
+      Result :: {ok, {PeerId, Rev}} | {error, Reason},
+      PeerId :: string(),
+      Rev :: integer(),
       Reason :: term().
-%% @doc Get peer stats table entry.
+%% @doc Get peer entry table.
 %% @hidden
-total_ccr(Index, Info) ->
+peer_info(Index, Info) ->
 	case catch lists:nth(Index, Info) of
 		Connection when is_list(Connection) ->
-			total_ccr(Connection);
+			peer_info(Connection);
 		_ ->
 			{error, not_found}
 	end.
 %% @hidden
-total_ccr(Connection) ->
-erlang:display({?MODULE, ?LINE, is_list(Connection)}),
-	case lists:keyfind(caps, 1, Connection) of
+peer_info(Info) ->
+erlang:display({?MODULE, ?LINE, is_list(Info)}),
+	case lists:keyfind(caps, 1, Info) of
 		{_, Caps} ->
-			total_ccr1(Connection, Caps);
+			peer_info1(Caps);
 		false ->
          {error, not_found}
 	end.
 %% @hidden
-total_ccr1(Connection ,Caps) ->
+peer_info1(Caps) ->
 erlang:display({?MODULE, ?LINE, is_list(Caps)}),
 	case lists:keyfind(origin_host, 1, Caps) of
 		{_, {_,PeerId}} ->
-			total_ccr2(Connection, Caps, binary_to_list(PeerId));
+			peer_info2(Caps, binary_to_list(PeerId));
 		false ->
          {error, not_found}
 	end.
 %% @hidden
-total_ccr2(Connection ,Caps, PeerId) ->
+peer_info2(Caps, PeerId) ->
 erlang:display({?MODULE, ?LINE, is_list(Caps)}),
 	case lists:keyfind(firmware_revision, 1, Caps) of
 		{_, {_, []}} ->
-			total_ccr3(Connection, PeerId, 0);
+			peer_info3(PeerId, undefined);
 		{_, {_, [Rev]}} ->
-			total_ccr3(Connection, PeerId, Rev);
+			peer_info3(PeerId, Rev);
 		false ->
          {error, not_found}
 	end.
 %% @hidden
-total_ccr3(Connection, PeerId, Rev) ->
+peer_info3(PeerId, Rev) ->
+	{ok, {PeerId, Rev}}.
+
+-spec peer_stats(Index, Info) -> Result
+   when
+		Index :: integer(),
+      Info :: [tuple()],
+      Result :: {ok, #peer_stats{}} | {error, Reason},
+      Reason :: term().
+%% @doc Get peer stats table entry.
+%% @hidden
+peer_stats(Index, Info) ->
+	case catch lists:nth(Index, Info) of
+		Connection when is_list(Connection) ->
+			peer_stats(Connection);
+		_ ->
+			{error, not_found}
+	end.
+%% @hidden
+peer_stats(Connection) ->
 erlang:display({?MODULE, ?LINE, is_list(Connection)}),
 	case lists:keyfind(statistics, 1, Connection) of
 		{_, Statistics} ->
-				total_ccr4(PeerId, Rev, 0, 0, Statistics);
+				peer_stats1(Statistics, #peer_stats{});
 		false ->
-         {error, not_found}
+			{error, not_found}
 	end.
 %% @hidden
-total_ccr4(PeerId, Rev, _, CCAOut, [{{{_, 272, 0}, recv}, CCRIn} | T]) ->
-	total_ccr4(PeerId ,Rev, CCRIn, CCAOut, T);
-total_ccr4(PeerId, Rev, CCRIn, _, [{{{_, 272, 1}, send}, CCAOut} | T]) ->
-	total_ccr4(PeerId ,Rev, CCRIn, CCAOut, T);
-total_ccr4(PeerId, Rev, CCRIn, CCAOut, [_ | T]) ->
-	total_ccr4(PeerId ,Rev, CCRIn, CCAOut, T);
-total_ccr4(PeerId, Rev, CCRIn, CCAOut, []) ->
-	{ok, {PeerId, Rev, CCRIn, CCAOut}}.
+peer_stats1([{{{_, 272, 0}, recv}, N} | T], Acc) ->
+	peer_stats1(T, Acc#peer_stats{ccr_in = N});
+peer_stats1([{{{_, 272, 0}, send}, N} | T], Acc) ->
+	peer_stats1(T, Acc#peer_stats{ccr_out = N});
+peer_stats1([{{{_, 272, 1}, recv}, N} | T], Acc) ->
+	peer_stats1(T, Acc#peer_stats{cca_in = N});
+peer_stats1([{{{_, 272, 1}, send}, N} | T], Acc) ->
+	peer_stats1(T, Acc#peer_stats{cca_out = N});
+peer_stats1([{{{_, 258, 0}, recv}, N} | T], Acc) ->
+	peer_stats1(T, Acc#peer_stats{rar_in = N});
+peer_stats1([{{{_, 258, 0}, send}, N} | T], Acc) ->
+	peer_stats1(T, Acc#peer_stats{rar_out = N});
+peer_stats1([{{{_, 258, 1}, recv}, N} | T], Acc) ->
+	peer_stats1(T, Acc#peer_stats{raa_in = N});
+peer_stats1([{{{_, 258, 1}, send}, N} | T], Acc) ->
+	peer_stats1(T, Acc#peer_stats{raa_out = N});
+peer_stats1([{{{_, 275, 0}, recv}, N} | T], Acc) ->
+	peer_stats1(T, Acc#peer_stats{str_in = N});
+peer_stats1([{{{_, 275, 0}, send}, N} | T], Acc) ->
+	peer_stats1(T, Acc#peer_stats{str_out = N});
+peer_stats1([{{{_, 275, 1}, recv}, N} | T], Acc) ->
+	peer_stats1(T, Acc#peer_stats{sta_in = N});
+peer_stats1([{{{_, 275, 1}, send}, N} | T], Acc) ->
+	peer_stats1(T, Acc#peer_stats{sta_out = N});
+peer_stats1([{{{_, 265, 0}, recv}, N} | T], Acc) ->
+	peer_stats1(T, Acc#peer_stats{aar_in = N});
+peer_stats1([{{{_, 265, 0}, send}, N} | T], Acc) ->
+	peer_stats1(T, Acc#peer_stats{aar_out = N});
+peer_stats1([{{{_, 265, 1}, recv}, N} | T], Acc) ->
+	peer_stats1(T, Acc#peer_stats{aaa_in = N});
+peer_stats1([{{{_, 265, 1}, send}, N} | T], Acc) ->
+	peer_stats1(T, Acc#peer_stats{aaa_out = N});
+peer_stats1([{{{_, 274, 0}, recv}, N} | T], Acc) ->
+	peer_stats1(T, Acc#peer_stats{asr_in = N});
+peer_stats1([{{{_, 274, 0}, send}, N} | T], Acc) ->
+	peer_stats1(T, Acc#peer_stats{asr_out = N});
+peer_stats1([{{{_, 274, 1}, recv}, N} | T], Acc) ->
+	peer_stats1(T, Acc#peer_stats{asa_in = N});
+peer_stats1([{{{_, 274, 1}, send}, N} | T], Acc) ->
+	peer_stats1(T, Acc#peer_stats{asa_out = N});
+peer_stats1([_ | T], Acc) ->
+	peer_stats1(T, Acc);
+peer_stats1([], Acc) ->
+	{ok, Acc}.
 
