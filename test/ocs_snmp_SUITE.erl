@@ -252,7 +252,6 @@ get_diameter_peer_index() ->
 	[{userdata, [{doc, "Get diameter Peer Index"}]}].
 
 get_diameter_peer_index(_Config) ->
-erlang:display({?MODULE, ?LINE ,diameter:services()}),
 	{value, OID} = snmpa:name_to_oid(dccaPeerIndex),
 	OID1 = OID ++ [1],
 	{noError, _, Varbinds} = ct_snmp:get_values(ocs_mibs_test,
