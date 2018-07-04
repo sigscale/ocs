@@ -644,11 +644,9 @@ transport_opts(Address, Port, Trans) when is_atom(Trans) ->
 
 %% @hidden
 transport_opts1({Trans, LocalAddr, RemAddr, RemPort}) ->
-	[{transport_module, Trans},
-		{transport_config, [{raddr, RemAddr},
-		{rport, RemPort},
-		{reuseaddr, true}
-		| [{ip, LocalAddr}]]}].
+	[{transport_module, Trans}, {transport_config,
+			[{raddr, RemAddr}, {rport, RemPort},
+			{reuseaddr, true}, {ip, LocalAddr}]}].
 
 send_identity_diameter(SId, AnonymousName, EapId) ->
 	BinAnonymousName = list_to_binary(AnonymousName),

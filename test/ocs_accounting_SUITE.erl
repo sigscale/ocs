@@ -70,9 +70,9 @@ init_per_suite(Config) ->
 	ok = ocs_test_lib:start(),
 	{ok, ProdID} = ocs_test_lib:add_offer(),
 	{ok, EnvList} = application:get_env(ocs, diameter),
-	{acct, [{Address, Port, Options } | _]} = lists:keyfind(acct, 1, EnvList),
+	{acct, [{Address, Port, _} | _]} = lists:keyfind(acct, 1, EnvList),
 	true = diameter:subscribe(?SVC_ACCT),
-	ok = diameter:start_service(?SVC_ACCT, client_acct_service_opts(Options)),
+	ok = diameter:start_service(?SVC_ACCT, client_acct_service_opts()),
 	{ok, _Ref2} = connect(?SVC_ACCT, Address, Port, diameter_tcp),
 	receive
 		#diameter_event{service = ?SVC_ACCT, info = start} ->
@@ -639,9 +639,9 @@ connect(SvcName, Opts)->
 	diameter:add_transport(SvcName, {connect, Opts}).
 
 %% @hidden
-client_acct_service_opts(Options) ->
+client_acct_service_opts() ->
 	{ok, Hostname} = inet:gethostname(),
-	Options ++ [{'Origin-Host', Hostname},
+	[{'Origin-Host', Hostname},
 		{'Origin-Realm', "testdomain.com"},
 		{'Vendor-Id', 10415},
 		{'Product-Name', "SigScale Test Client (Acct)"},
@@ -661,11 +661,9 @@ transport_opts(Address, Port, Trans) when is_atom(Trans) ->
 
 %% @hidden
 transport_opts1({Trans, LocalAddr, RemAddr, RemPort}) ->
-	[{transport_module, Trans},
-		{transport_config, [{raddr, RemAddr},
-		{rport, RemPort},
-		{reuseaddr, true}
-		| [{ip, LocalAddr}]]}].
+	[{transport_module, Trans}, {transport_config,
+			[{raddr, RemAddr}, {rport, RemPort},
+			{reuseaddr, true}, {ip, LocalAddr}]}].
 
 %% @hidden
 diameter_accounting_start(SId, Username, RequestNum) ->
