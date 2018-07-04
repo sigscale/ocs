@@ -400,9 +400,13 @@
 				},
 				product: {
 					type: String,
+				},
+				productId: {
+					type: String,
 				}
 			},
 			_serviceAddSubmit: function(event) {
+console.log(this.productId);
 				var subscriber = new Object();
 				var serviceChar = new Array();
 				if(this.$.addSubscriberId.value) {
@@ -449,12 +453,16 @@
 					ajax.body = subscriber;
 					ajax.generateRequest();
 					this.$.addSubscriberId.value = null;
+					this.$.addSubscriberId.disabled = false;
+					this.$.addSubscriberPassword.disabled = false;
+					this.$.adduni9.value = null;
 				}
 			},
 			_serviceAddcancel: function(event) {
 				this.$.addSubscriberId.value = null;
 			},
 			_addServiceResponse: function(event) {
+console.log(event.detail.xhr.response);
 				function checkPasswordResp(pass) {
 					return pass.name == "servicePassword";
 				}
@@ -462,20 +470,22 @@
 				this.password = event.detail.xhr.response.serviceCharacteristic[indexPass].value;
 				this.identity = event.detail.xhr.response.id;
 				this.$.addSubscriberSecretModal.open();
-				var ajaxProduct = this.$.addProductAjax;
-				var productSer = new Object();
-				var productRef = new Object();
-				productRef.id = this.product;
-				productRef.name = this.product;
-				productRef.href = "/catalogManagement/v2/productOffering/one" + this.product; 
-				productSer.productOffering = productRef;
-				var productRealizingService = new Object();
-				productRealizingService.id = this.identity;
-				productRealizingService.href = "/serviceInventoryManagement/v2/service/" + this.identity;
-				productSer.realizingService = [productRealizingService];
-				ajaxProduct.headers['Content-type'] = "application/json";
-				ajaxProduct.body = productSer;
-				ajaxProduct.generateRequest();
+				if(!this.productId) {
+					var ajaxProduct = this.$.addProductAjax;
+					var productSer = new Object();
+					var productRef = new Object();
+					productRef.id = this.product;
+					productRef.name = this.product;
+					productRef.href = "/catalogManagement/v2/productOffering/one" + this.product; 
+					productSer.productOffering = productRef;
+					var productRealizingService = new Object();
+					productRealizingService.id = this.identity;
+					productRealizingService.href = "/serviceInventoryManagement/v2/service/" + this.identity;
+					productSer.realizingService = [productRealizingService];
+					ajaxProduct.headers['Content-type'] = "application/json";
+					ajaxProduct.body = productSer;
+					ajaxProduct.generateRequest();
+				}
 			},
 			_addServiceError: function(event) {
 				this.$.addSubscriberToastError.text = event.detail.request.xhr.statusText;
@@ -503,6 +513,7 @@
 					amount = document.getElementById("add8").value;
 					bucketTop.amount = {units, amount};
 				}
+console.log(result.id);
 				id = result.id;
 				href = "/productInventoryManagement/v2/product/" + this.product;
 				bucketTop.product = {id, href};

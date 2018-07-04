@@ -139,10 +139,13 @@
 			},
 			onEnter: function() {
 				var productId = this.$.addProductId1.value;
-				document.getElementById("AddUpdateProId").value = productId;
-				document.getElementById("addServiceModal").open();
-				document.getElementById("addSubscriberProductModal").close();
-				this.$.addProductId1.value = null;
+				if(productId) {
+					document.getElementById("AddUpdateProId").value = productId;
+					document.getElementById("subscriberAdd").productId = productId;
+					document.getElementById("addServiceModal").open();
+					document.getElementById("addSubscriberProductModal").close();
+					this.$.addProductId1.value = null;
+				}
 			},
 			productTapCancel: function() {
 				this.$.addProductId1.value = null;

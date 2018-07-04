@@ -288,7 +288,11 @@
 						for (var index in request.response) {
 							var newRecord = new Object();
 							newRecord.id = request.response[index].id;
-							newRecord.product = request.response[index].product;
+							if(request.response[index].product) {
+								newRecord.product = request.response[index].product;
+							} else {
+								newRecord.product = document.getElementById("subscriberAdd").productId;
+							}
 							if(request.response[index].attributes) {
 								request.response[index].attributes.forEach(
 									function(attrObj) {
