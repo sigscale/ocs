@@ -273,10 +273,8 @@ dbp_local_stats(get, uptime) ->
 dbp_local_stats(get, Item) ->
 	case lists:keyfind(ocs_diameter_acct_service, 1, diameter:services()) of
 		Service when is_tuple(Service) ->
-erlang:display({?MODULE ,?LINE, Service}),
 			case catch diameter:service_info(Service, transport) of
 				Info when is_list(Info) ->
-erlang:display({?MODULE ,?LINE, Info}),
 					case total_packets(Info) of
 						{ok, {PacketsIn, _}} when Item == in ->
 							{value, PacketsIn};
@@ -456,10 +454,8 @@ dcca_peer_stats_get_next(Index, Columns, First) ->
 dcca_peer_stats_get(Index, Columns) ->
 	case lists:keyfind(ocs_diameter_acct_service, 1, diameter:services()) of
 		Service when is_tuple(Service) ->
-erlang:display({?MODULE ,?LINE, Service}),
 			case catch diameter:service_info(Service, connections) of
 				Info when is_list(Info) ->
-erlang:display({?MODULE ,?LINE, Info}),
 					case peer_stats(Index, Info) of
 						{ok, Stats} ->
 							F1 = fun(0, Acc) ->
