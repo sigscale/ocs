@@ -29,6 +29,10 @@
 -compile(export_all).
 
 -include_lib("common_test/include/ct.hrl").
+-include_lib("diameter/include/diameter.hrl").
+
+-define(BASE_APPLICATION_ID, 0).
+-define(RO_APPLICATION_ID, 4).
 
 %%---------------------------------------------------------------------
 %%  Test server callback functions
@@ -42,7 +46,7 @@ suite() ->
 	[{userdata, [{doc, "Test suite for SNMP agent in SigScale OCS"}]},
 	{require, snmp_mgr_agent, snmp},
 	{default_config, snmp,
-      	[{start_agent, true},
+			[{start_agent, true},
 			{agent_udp, Port},
 			{agent_engine_id, sigscale_snmp_lib:engine_id()},
 			{users,
@@ -80,7 +84,19 @@ init_per_suite(Config) ->
 			MibDir ++ "RADIUS-AUTH-SERVER-MIB",
 			MibDir ++ "RADIUS-ACC-SERVER-MIB"],
 	ok = ct_snmp:load_mibs(Mibs),
-	Config.
+	{ok, EnvList} = application:get_env(ocs, diameter),
+	{acct, [{Address, Port, _} | _]} = lists:keyfind(acct, 1, EnvList),
+	ok = diameter:start_service(?MODULE, client_acct_service_opts()),
+	true = diameter:subscribe(?MODULE),
+	{ok, _} = connect(?MODULE, Address, Port, diameter_tcp),
+	receive
+		#diameter_event{service = ?MODULE, info = Up}
+				when element(1, Up) == up ->
+			Config
+	after
+		10000 ->
+			{skip, diameter_client_acct_service_not_started}
+	end.
 
 -spec end_per_suite(Config :: [tuple()]) -> any().
 %% Cleanup after the whole suite.
@@ -118,7 +134,18 @@ all() ->
 			get_radius_auth_ident, get_radius_acct_ident,
 			get_diameter_host, get_diameter_realm, get_diameter_product,
 			get_diameter_packets_in, get_diameter_packets_out,
-			get_diameter_uptime].
+			get_diameter_uptime, get_diameter_peer_index,
+			get_diameter_ccr_in, get_diameter_ccr_out,
+			get_diameter_ccr_dropped, get_diameter_cca_in,
+			get_diameter_cca_out, get_diameter_cca_dropped,
+			get_diameter_rar_in, get_diameter_rar_dropped,
+			get_diameter_raa_out, get_diameter_raa_dropped,
+			get_diameter_str_out, get_diameter_str_dropped,
+			get_diameter_sta_in, get_diameter_sta_dropped,
+			get_diameter_aar_out, get_diameter_aar_dropped,
+			get_diameter_aaa_in, get_diameter_aaa_dropped,
+			get_diameter_asr_in, get_diameter_asr_dropped,
+			get_diameter_asa_out, get_diameter_asa_dropped].
 
 %%---------------------------------------------------------------------
 %%  Test cases
@@ -221,7 +248,293 @@ get_diameter_uptime(_Config) ->
 			[OID1], snmp_mgr_agent),
 	[{varbind, OID1, 'TimeTicks', _, _}] = Varbinds.
 
+get_diameter_peer_index() ->
+	[{userdata, [{doc, "Get diameter Peer Index"}]}].
+
+get_diameter_peer_index(_Config) ->
+erlang:display({?MODULE, ?LINE ,diameter:services()}),
+	{value, OID} = snmpa:name_to_oid(dccaPeerIndex),
+	OID1 = OID ++ [1],
+	{noError, _, Varbinds} = ct_snmp:get_values(ocs_mibs_test,
+			[OID1], snmp_mgr_agent),
+	[{varbind, OID1, 'Unsigned32', _, _}] = Varbinds.
+
+get_diameter_peer_id() ->
+	[{userdata, [{doc, "Get diameter Peer Id"}]}].
+
+get_diameter_peer_id(_Config) ->
+	{value, OID} = snmpa:name_to_oid(dccaPeerId),
+	OID1 = OID ++ [1],
+	{noError, _, Varbinds} = ct_snmp:get_values(ocs_mibs_test,
+			[OID1], snmp_mgr_agent),
+	[{varbind, OID1, 'SnmpAdminString', _, _}] = Varbinds.
+
+get_diameter_firmware_rev() ->
+	[{userdata, [{doc, "Get diameter Firmware Revison"}]}].
+
+get_diameter_firmware_rev(_Config) ->
+	{value, OID} = snmpa:name_to_oid(dccaPeerFirmwareRevision),
+	OID1 = OID ++ [1],
+	{noError, _, Varbinds} = ct_snmp:get_values(ocs_mibs_test,
+			[OID1], snmp_mgr_agent),
+	[{varbind, OID1, 'Unsigned32', _, _}] = Varbinds.
+
+get_diameter_ccr_in() ->
+	[{userdata, [{doc, "Get diameter CCRIn"}]}].
+
+get_diameter_ccr_in(_Config) ->
+	{value, OID} = snmpa:name_to_oid(dccaPerPeerStatsCCRIn),
+	OID1 = OID ++ [1],
+	{noError, _, Varbinds} = ct_snmp:get_values(ocs_mibs_test,
+			[OID1], snmp_mgr_agent),
+	[{varbind, OID1, 'Counter32', _, _}] = Varbinds.
+
+get_diameter_ccr_out() ->
+	[{userdata, [{doc, "Get diameter CCROut"}]}].
+
+get_diameter_ccr_out(_Config) ->
+	{value, OID} = snmpa:name_to_oid(dccaPerPeerStatsCCROut),
+	OID1 = OID ++ [1],
+	{noError, _, Varbinds} = ct_snmp:get_values(ocs_mibs_test,
+			[OID1], snmp_mgr_agent),
+	[{varbind, OID1, 'Counter32', _, _}] = Varbinds.
+
+get_diameter_ccr_dropped() ->
+	[{userdata, [{doc, "Get diameter CCRDropped"}]}].
+
+get_diameter_ccr_dropped(_Config) ->
+	{value, OID} = snmpa:name_to_oid(dccaPerPeerStatsCCRDropped),
+	OID1 = OID ++ [1],
+	{noError, _, Varbinds} = ct_snmp:get_values(ocs_mibs_test,
+			[OID1], snmp_mgr_agent),
+	[{varbind, OID1, 'Counter32', _, _}] = Varbinds.
+
+get_diameter_cca_in() ->
+	[{userdata, [{doc, "Get diameter CCAIn"}]}].
+
+get_diameter_cca_in(_Config) ->
+	{value, OID} = snmpa:name_to_oid(dccaPerPeerStatsCCAIn),
+	OID1 = OID ++ [1],
+	{noError, _, Varbinds} = ct_snmp:get_values(ocs_mibs_test,
+			[OID1], snmp_mgr_agent),
+	[{varbind, OID1, 'Counter32', _, _}] = Varbinds.
+
+get_diameter_cca_out() ->
+	[{userdata, [{doc, "Get diameter CCAOut"}]}].
+
+get_diameter_cca_out(_Config) ->
+	{value, OID} = snmpa:name_to_oid(dccaPerPeerStatsCCAOut),
+	OID1 = OID ++ [1],
+	{noError, _, Varbinds} = ct_snmp:get_values(ocs_mibs_test,
+			[OID1], snmp_mgr_agent),
+	[{varbind, OID1, 'Counter32', _, _}] = Varbinds.
+
+get_diameter_cca_dropped() ->
+	[{userdata, [{doc, "Get diameter CCADropped"}]}].
+
+get_diameter_cca_dropped(_Config) ->
+	{value, OID} = snmpa:name_to_oid(dccaPerPeerStatsCCADropped),
+	OID1 = OID ++ [1],
+	{noError, _, Varbinds} = ct_snmp:get_values(ocs_mibs_test,
+			[OID1], snmp_mgr_agent),
+	[{varbind, OID1, 'Counter32', _, _}] = Varbinds.
+
+get_diameter_rar_in() ->
+	[{userdata, [{doc, "Get diameter RARIn"}]}].
+
+get_diameter_rar_in(_Config) ->
+	{value, OID} = snmpa:name_to_oid(dccaPerPeerStatsRARIn),
+	OID1 = OID ++ [1],
+	{noError, _, Varbinds} = ct_snmp:get_values(ocs_mibs_test,
+			[OID1], snmp_mgr_agent),
+	[{varbind, OID1, 'Counter32', _, _}] = Varbinds.
+
+get_diameter_rar_dropped() ->
+	[{userdata, [{doc, "Get diameter RARDropped"}]}].
+
+get_diameter_rar_dropped(_Config) ->
+	{value, OID} = snmpa:name_to_oid(dccaPerPeerStatsRARDropped),
+	OID1 = OID ++ [1],
+	{noError, _, Varbinds} = ct_snmp:get_values(ocs_mibs_test,
+			[OID1], snmp_mgr_agent),
+	[{varbind, OID1, 'Counter32', _, _}] = Varbinds.
+
+get_diameter_raa_out() ->
+	[{userdata, [{doc, "Get diameter RAAOut"}]}].
+
+get_diameter_raa_out(_Config) ->
+	{value, OID} = snmpa:name_to_oid(dccaPerPeerStatsRAAOut),
+	OID1 = OID ++ [1],
+	{noError, _, Varbinds} = ct_snmp:get_values(ocs_mibs_test,
+			[OID1], snmp_mgr_agent),
+	[{varbind, OID1, 'Counter32', _, _}] = Varbinds.
+
+get_diameter_raa_dropped() ->
+	[{userdata, [{doc, "Get diameter RARDropped"}]}].
+
+get_diameter_raa_dropped(_Config) ->
+	{value, OID} = snmpa:name_to_oid(dccaPerPeerStatsRAADropped),
+	OID1 = OID ++ [1],
+	{noError, _, Varbinds} = ct_snmp:get_values(ocs_mibs_test,
+			[OID1], snmp_mgr_agent),
+	[{varbind, OID1, 'Counter32', _, _}] = Varbinds.
+
+get_diameter_str_out() ->
+	[{userdata, [{doc, "Get diameter STROut"}]}].
+
+get_diameter_str_out(_Config) ->
+	{value, OID} = snmpa:name_to_oid(dccaPerPeerStatsSTROut),
+	OID1 = OID ++ [1],
+	{noError, _, Varbinds} = ct_snmp:get_values(ocs_mibs_test,
+			[OID1], snmp_mgr_agent),
+	[{varbind, OID1, 'Counter32', _, _}] = Varbinds.
+
+get_diameter_str_dropped() ->
+	[{userdata, [{doc, "Get diameter STRDropped"}]}].
+
+get_diameter_str_dropped(_Config) ->
+	{value, OID} = snmpa:name_to_oid(dccaPerPeerStatsSTRDropped),
+	OID1 = OID ++ [1],
+	{noError, _, Varbinds} = ct_snmp:get_values(ocs_mibs_test,
+			[OID1], snmp_mgr_agent),
+	[{varbind, OID1, 'Counter32', _, _}] = Varbinds.
+
+get_diameter_sta_in() ->
+	[{userdata, [{doc, "Get diameter STAIn"}]}].
+
+get_diameter_sta_in(_Config) ->
+	{value, OID} = snmpa:name_to_oid(dccaPerPeerStatsSTAIn),
+	OID1 = OID ++ [1],
+	{noError, _, Varbinds} = ct_snmp:get_values(ocs_mibs_test,
+			[OID1], snmp_mgr_agent),
+	[{varbind, OID1, 'Counter32', _, _}] = Varbinds.
+
+get_diameter_sta_dropped() ->
+	[{userdata, [{doc, "Get diameter STADropped"}]}].
+
+get_diameter_sta_dropped(_Config) ->
+	{value, OID} = snmpa:name_to_oid(dccaPerPeerStatsSTADropped),
+	OID1 = OID ++ [1],
+	{noError, _, Varbinds} = ct_snmp:get_values(ocs_mibs_test,
+			[OID1], snmp_mgr_agent),
+	[{varbind, OID1, 'Counter32', _, _}] = Varbinds.
+
+get_diameter_aar_out() ->
+	[{userdata, [{doc, "Get diameter AAROut"}]}].
+
+get_diameter_aar_out(_Config) ->
+	{value, OID} = snmpa:name_to_oid(dccaPerPeerStatsAAROut),
+	OID1 = OID ++ [1],
+	{noError, _, Varbinds} = ct_snmp:get_values(ocs_mibs_test,
+			[OID1], snmp_mgr_agent),
+	[{varbind, OID1, 'Counter32', _, _}] = Varbinds.
+
+get_diameter_aar_dropped() ->
+	[{userdata, [{doc, "Get diameter AARDropped"}]}].
+
+get_diameter_aar_dropped(_Config) ->
+	{value, OID} = snmpa:name_to_oid(dccaPerPeerStatsAARDropped),
+	OID1 = OID ++ [1],
+	{noError, _, Varbinds} = ct_snmp:get_values(ocs_mibs_test,
+			[OID1], snmp_mgr_agent),
+	[{varbind, OID1, 'Counter32', _, _}] = Varbinds.
+
+get_diameter_aaa_in() ->
+	[{userdata, [{doc, "Get diameter AARIn"}]}].
+
+get_diameter_aaa_in(_Config) ->
+	{value, OID} = snmpa:name_to_oid(dccaPerPeerStatsAAAIn),
+	OID1 = OID ++ [1],
+	{noError, _, Varbinds} = ct_snmp:get_values(ocs_mibs_test,
+			[OID1], snmp_mgr_agent),
+	[{varbind, OID1, 'Counter32', _, _}] = Varbinds.
+
+get_diameter_aaa_dropped() ->
+	[{userdata, [{doc, "Get diameter AAADropped"}]}].
+
+get_diameter_aaa_dropped(_Config) ->
+	{value, OID} = snmpa:name_to_oid(dccaPerPeerStatsAAADropped),
+	OID1 = OID ++ [1],
+	{noError, _, Varbinds} = ct_snmp:get_values(ocs_mibs_test,
+			[OID1], snmp_mgr_agent),
+	[{varbind, OID1, 'Counter32', _, _}] = Varbinds.
+
+get_diameter_asr_in() ->
+	[{userdata, [{doc, "Get diameter ASRIn"}]}].
+
+get_diameter_asr_in(_Config) ->
+	{value, OID} = snmpa:name_to_oid(dccaPerPeerStatsASRIn),
+	OID1 = OID ++ [1],
+	{noError, _, Varbinds} = ct_snmp:get_values(ocs_mibs_test,
+			[OID1], snmp_mgr_agent),
+	[{varbind, OID1, 'Counter32', _, _}] = Varbinds.
+
+get_diameter_asr_dropped() ->
+	[{userdata, [{doc, "Get diameter ASRDropped"}]}].
+
+get_diameter_asr_dropped(_Config) ->
+	{value, OID} = snmpa:name_to_oid(dccaPerPeerStatsASRDropped),
+	OID1 = OID ++ [1],
+	{noError, _, Varbinds} = ct_snmp:get_values(ocs_mibs_test,
+			[OID1], snmp_mgr_agent),
+	[{varbind, OID1, 'Counter32', _, _}] = Varbinds.
+
+get_diameter_asa_out() ->
+	[{userdata, [{doc, "Get diameter ASAOut"}]}].
+
+get_diameter_asa_out(_Config) ->
+	{value, OID} = snmpa:name_to_oid(dccaPerPeerStatsASAOut),
+	OID1 = OID ++ [1],
+	{noError, _, Varbinds} = ct_snmp:get_values(ocs_mibs_test,
+			[OID1], snmp_mgr_agent),
+	[{varbind, OID1, 'Counter32', _, _}] = Varbinds.
+
+get_diameter_asa_dropped() ->
+	[{userdata, [{doc, "Get diameter ASRDropped"}]}].
+
+get_diameter_asa_dropped(_Config) ->
+	{value, OID} = snmpa:name_to_oid(dccaPerPeerStatsASADropped),
+	OID1 = OID ++ [1],
+	{noError, _, Varbinds} = ct_snmp:get_values(ocs_mibs_test,
+			[OID1], snmp_mgr_agent),
+	[{varbind, OID1, 'Counter32', _, _}] = Varbinds.
 %%---------------------------------------------------------------------
 %%  Internal functions
 %%---------------------------------------------------------------------
+
+%% @doc Add a transport capability to diameter service.
+%% @hidden
+connect(SvcName, Address, Port, Transport) when is_atom(Transport) ->
+	connect(SvcName, [{connect_timer, 30000} | transport_opts(Address, Port, Transport)]).
+
+%% @hidden
+connect(SvcName, Opts)->
+	diameter:add_transport(SvcName, {connect, Opts}).
+
+%% @hidden
+client_acct_service_opts() ->
+	{ok, Hostname} = inet:gethostname(),
+	[{'Origin-Host', Hostname},
+		{'Origin-Realm', "sigscale.com"},
+		{'Vendor-Id', 10415},
+		{'Product-Name', "SigScale Test Client (Acct)"},
+		{'Auth-Application-Id', [?BASE_APPLICATION_ID, ?RO_APPLICATION_ID]},
+		{string_decode, false},
+		{restrict_connections, false},
+		{application, [{alias, base_app_test},
+				{dictionary, diameter_gen_base_rfc6733},
+				{module, diameter_test_client_cb}]},
+		{application, [{alias, cc_app_test},
+				{dictionary, diameter_gen_3gpp_ro_application},
+				{module, diameter_test_client_cb}]}].
+
+%% @hidden
+transport_opts(Address, Port, Trans) when is_atom(Trans) ->
+	transport_opts1({Trans, Address, Address, Port}).
+
+%% @hidden
+transport_opts1({Trans, LocalAddr, RemAddr, RemPort}) ->
+	[{transport_module, Trans},
+		{transport_config, [{raddr, RemAddr}, {rport, RemPort},
+		{reuseaddr, true}, {ip, LocalAddr}]}].
 
