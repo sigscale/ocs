@@ -52,7 +52,7 @@ start(ScheduledTime, Interval) ->
 product_charge() ->
 	case get_offers() of
 		{error, Reason} ->
-			error_logger:error_report("Schedular Faild",
+			error_logger:error_report("Scheduler Failed",
 					[{module, ?MODULE}, {reason, Reason}]);
 		Offers ->
 			Now = erlang:system_time(?MILLISECOND),
@@ -96,7 +96,7 @@ product_charge1(ProdRef, Now, Offers) ->
 		{atomic, ok} ->
 			product_charge1(get_product(ProdRef), Now, Offers);
 		{aborted, Reason} ->
-			error_logger:error_report("Schedular Update Failed",
+			error_logger:error_report("Scheduler Update Failed",
 					[{module, ?MODULE}, {product_id, ProdRef},
 					{time, erlang:system_time(?MILLISECOND)},
 					{reason, Reason}]),
