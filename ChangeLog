@@ -1,3 +1,18 @@
+2018-07-04  Vance Shipley <vances@sigscale.org>
+
+	* snmp agent
+	* ocs mib
+	* radius auth server mib
+	* radius accounting server mib
+	* diameter base protocol mib
+	* diameter credit control application mib
+	* correct matchspec for balance list
+	* add seize time field to voip record
+	* log query defaults to any protocol
+	* fix refresh in several gui views
+	* gui modal to add service to existing product
+	* handle results from read-only logs (bad bytes)
+
 2018-06-21  Vance Shipley <vances@sigscale.org>
 
 	* advanced rest query patterns: offers
