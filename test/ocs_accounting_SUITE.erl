@@ -40,11 +40,9 @@
 -include_lib("../include/diameter_gen_3gpp.hrl").
 -include_lib("../include/diameter_gen_ietf.hrl").
 
--define(SVC_AUTH, diameter_client_auth_service).
--define(SVC_ACCT, diameter_client_acct_service).
 -define(BASE_APPLICATION_ID, 0).
--define(NAS_APPLICATION_ID, 1).
 -define(RO_APPLICATION_ID, 4).
+
 -define(EPOCH_OFFSET, 2208988800).
 %% support deprecated_time_unit()
 -define(MILLISECOND, milli_seconds).
@@ -70,12 +68,13 @@ init_per_suite(Config) ->
 	ok = ocs_test_lib:start(),
 	{ok, ProdID} = ocs_test_lib:add_offer(),
 	{ok, EnvList} = application:get_env(ocs, diameter),
-	{acct, [{Address, Port, Options } | _]} = lists:keyfind(acct, 1, EnvList),
-	true = diameter:subscribe(?SVC_ACCT),
-	ok = diameter:start_service(?SVC_ACCT, client_acct_service_opts(Options)),
-	{ok, _Ref2} = connect(?SVC_ACCT, Address, Port, diameter_tcp),
+	{acct, [{Address, Port, _} | _]} = lists:keyfind(acct, 1, EnvList),
+	ok = diameter:start_service(?MODULE, client_acct_service_opts()),
+	true = diameter:subscribe(?MODULE),
+	{ok, _Ref2} = connect(?MODULE, Address, Port, diameter_tcp),
 	receive
-		#diameter_event{service = ?SVC_ACCT, info = start} ->
+		#diameter_event{service = ?MODULE, info = Info}
+				when element(1, Info) == up ->
 			[{product_id, ProdID}, {diameter_auth_client, Address} | Config];
 		_ ->
 			{skip, diameter_client_acct_service_not_started}
@@ -85,8 +84,7 @@ init_per_suite(Config) ->
 %% Cleanup after the whole suite.
 %%
 end_per_suite(Config) ->
-	ok = diameter:stop_service(?SVC_AUTH),
-	ok = diameter:stop_service(?SVC_ACCT),
+	ok = diameter:stop_service(?MODULE),
 	ok = ocs_test_lib:stop(),
 	ok = ocs:delete_service("25252525"),
 	Config.
@@ -483,7 +481,7 @@ diameter_sms(_Config) ->
 			'Subscription-Id' = [Subscription_Id],
 			'Multiple-Services-Credit-Control' = [MultiServices_CC0],
 			'Service-Information' = [ServiceInformation]},
-	{ok, Answer0} = diameter:call(?SVC_ACCT, cc_app_test, CC_CCR0, []),
+	{ok, Answer0} = diameter:call(?MODULE, cc_app_test, CC_CCR0, []),
 	#'3gpp_ro_CCA'{'Result-Code' = ?'DIAMETER_BASE_RESULT-CODE_SUCCESS',
 			'Auth-Application-Id' = ?RO_APPLICATION_ID,
 			'CC-Request-Type' = ?'3GPP_CC-REQUEST-TYPE_INITIAL_REQUEST',
@@ -506,7 +504,7 @@ diameter_sms(_Config) ->
 			'Multiple-Services-Credit-Control' = [MultiServices_CC2],
 			'Subscription-Id' = [Subscription_Id],
 			'Service-Information' = [ServiceInformation]},
-	{ok, Answer1} = diameter:call(?SVC_ACCT, cc_app_test, CC_CCR1, []),
+	{ok, Answer1} = diameter:call(?MODULE, cc_app_test, CC_CCR1, []),
 	#'3gpp_ro_CCA'{'Result-Code' = ?'DIAMETER_BASE_RESULT-CODE_SUCCESS',
 			'Auth-Application-Id' = ?RO_APPLICATION_ID,
 			'CC-Request-Type' = ?'3GPP_CC-REQUEST-TYPE_TERMINATION_REQUEST',
@@ -639,9 +637,9 @@ connect(SvcName, Opts)->
 	diameter:add_transport(SvcName, {connect, Opts}).
 
 %% @hidden
-client_acct_service_opts(Options) ->
+client_acct_service_opts() ->
 	{ok, Hostname} = inet:gethostname(),
-	Options ++ [{'Origin-Host', Hostname},
+	[{'Origin-Host', Hostname},
 		{'Origin-Realm', "testdomain.com"},
 		{'Vendor-Id', 10415},
 		{'Product-Name', "SigScale Test Client (Acct)"},
@@ -661,11 +659,9 @@ transport_opts(Address, Port, Trans) when is_atom(Trans) ->
 
 %% @hidden
 transport_opts1({Trans, LocalAddr, RemAddr, RemPort}) ->
-	[{transport_module, Trans},
-		{transport_config, [{raddr, RemAddr},
-		{rport, RemPort},
-		{reuseaddr, true}
-		| [{ip, LocalAddr}]]}].
+	[{transport_module, Trans}, {transport_config,
+			[{raddr, RemAddr}, {rport, RemPort},
+			{reuseaddr, true}, {ip, LocalAddr}]}].
 
 %% @hidden
 diameter_accounting_start(SId, Username, RequestNum) ->
@@ -691,7 +687,7 @@ diameter_accounting_start(SId, Username, RequestNum) ->
 			'Subscription-Id' = [Subscription_Id],
 			'Multiple-Services-Credit-Control' = [MultiServices_CC],
 			'Service-Information' = [ServiceInformation]},
-	{ok, Answer} = diameter:call(?SVC_ACCT, cc_app_test, CC_CCR, []),
+	{ok, Answer} = diameter:call(?MODULE, cc_app_test, CC_CCR, []),
 	Answer.
 	
 %% @hidden
@@ -717,7 +713,7 @@ diameter_accounting_stop(SId, Username, RequestNum, Usage) ->
 			'Multiple-Services-Credit-Control' = [MultiServices_CC],
 			'Subscription-Id' = [Subscription_Id],
 			'Service-Information' = [ServiceInformation]},
-	{ok, Answer} = diameter:call(?SVC_ACCT, cc_app_test, CC_CCR, []),
+	{ok, Answer} = diameter:call(?MODULE, cc_app_test, CC_CCR, []),
 	Answer.
 
 %% @hidden
@@ -746,7 +742,7 @@ diameter_accounting_interim(SId, Username, RequestNum, Usage) ->
 			'Multiple-Services-Credit-Control' = [MultiServices_CC],
 			'Subscription-Id' = [Subscription_Id],
 			'Service-Information' = [ServiceInformation]},
-	{ok, Answer} = diameter:call(?SVC_ACCT, cc_app_test, CC_CCR, []),
+	{ok, Answer} = diameter:call(?MODULE, cc_app_test, CC_CCR, []),
 	Answer.
 	
 authenticate_subscriber1(Socket, Address,

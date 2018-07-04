@@ -51,7 +51,6 @@
 -define(Finished,					20).
 
 %% Macro definitions for diameter service
--define(SVC, diameter_client_service).
 -define(BASE_APPLICATION_ID, 0).
 -define(EAP_APPLICATION_ID, 5).
 
@@ -95,11 +94,12 @@ init_per_suite(Config) ->
 	NasId = atom_to_list(node()),
 	{ok, DiameterConfig} = application:get_env(ocs, diameter),
 	{auth, [{Address, Port, _} | _]} = lists:keyfind(auth, 1, DiameterConfig),
-	true = diameter:subscribe(?SVC),
-	ok = diameter:start_service(?SVC, client_service_opts()),
-	{ok, _Ref} = connect(?SVC, Address, Port, diameter_tcp),
+	ok = diameter:start_service(?MODULE, client_service_opts()),
+	true = diameter:subscribe(?MODULE),
+	{ok, _Ref} = connect(?MODULE, Address, Port, diameter_tcp),
 	receive
-		#diameter_event{service = ?SVC, info = start} ->
+		#diameter_event{service = ?MODULE, info = Info}
+				when element(1, Info) == up ->
 			[{product_id, ProdID}, {nas_id, NasId}] ++ Config;
 		_ ->
 			{skip, diameter_client_service_not_started}
@@ -109,7 +109,7 @@ init_per_suite(Config) ->
 %% Cleanup after the whole suite.
 %%
 end_per_suite(Config) ->
-	ok = diameter:stop_service(?SVC),
+	ok = diameter:stop_service(?MODULE),
 	ok = ocs_test_lib:stop(),
 	Config.
 
@@ -644,11 +644,9 @@ transport_opts(Address, Port, Trans) when is_atom(Trans) ->
 
 %% @hidden
 transport_opts1({Trans, LocalAddr, RemAddr, RemPort}) ->
-	[{transport_module, Trans},
-		{transport_config, [{raddr, RemAddr},
-		{rport, RemPort},
-		{reuseaddr, true}
-		| [{ip, LocalAddr}]]}].
+	[{transport_module, Trans}, {transport_config,
+			[{raddr, RemAddr}, {rport, RemPort},
+			{reuseaddr, true}, {ip, LocalAddr}]}].
 
 send_identity_diameter(SId, AnonymousName, EapId) ->
 	BinAnonymousName = list_to_binary(AnonymousName),
@@ -659,7 +657,7 @@ send_identity_diameter(SId, AnonymousName, EapId) ->
 			'Auth-Application-Id' = ?EAP_APPLICATION_ID,
 			'Auth-Request-Type' = ?'DIAMETER_BASE_AUTH-REQUEST-TYPE_AUTHORIZE_AUTHENTICATE',
 		'EAP-Payload' = EapMsg},
-	{ok, Answer} = diameter:call(?SVC, eap_app_test, DER, []),
+	{ok, Answer} = diameter:call(?MODULE, eap_app_test, DER, []),
 	Answer.
 
 send_legacy_nak_diameter(SId, EapId) ->
@@ -670,7 +668,7 @@ send_legacy_nak_diameter(SId, EapId) ->
 			'Auth-Application-Id' = ?EAP_APPLICATION_ID,
 			'Auth-Request-Type' = ?'DIAMETER_BASE_AUTH-REQUEST-TYPE_AUTHORIZE_AUTHENTICATE',
 		'EAP-Payload' = EapMsg},
-	{ok, Answer} = diameter:call(?SVC, eap_app_test, DER, []),
+	{ok, Answer} = diameter:call(?MODULE, eap_app_test, DER, []),
 	Answer.
 
 client_hello_diameter(SId, <<?Handshake, _:32, ?ClientHello, _/binary>> = Data, EapId) ->
@@ -684,7 +682,7 @@ client_hello_diameter(SId, <<?Handshake, _:32, ?ClientHello, _/binary>> = Data, 
 			'Auth-Request-Type' = ?'DIAMETER_BASE_AUTH-REQUEST-TYPE_AUTHORIZE_AUTHENTICATE',
 			'EAP-Payload' = EapPayload, 'Framed-MTU' = [65536],
 			'NAS-Port-Type' = [19]},
-	{ok, Answer} = diameter:call(?SVC, eap_app_test, DER, []),
+	{ok, Answer} = diameter:call(?MODULE, eap_app_test, DER, []),
 	server_hello_diameter(Answer, SId).
 
 server_hello_diameter(Answer, SId) ->
@@ -713,7 +711,7 @@ send_ack_diameter(EapId, SId) ->
 			'Auth-Application-Id' = ?EAP_APPLICATION_ID,
 			'Auth-Request-Type' = ?'DIAMETER_BASE_AUTH-REQUEST-TYPE_AUTHORIZE_AUTHENTICATE',
 		'EAP-Payload' = EapMsg},
-	{ok, Answer} = diameter:call(?SVC, eap_app_test, DER, []),
+	{ok, Answer} = diameter:call(?MODULE, eap_app_test, DER, []),
 	[EapMsg] = Answer#diameter_eap_app_DEA.'EAP-Payload',
 	EapMsg.
 
@@ -767,7 +765,7 @@ access_request_diameter(EapPacket, UserName, SId, _EapId) ->
 			'Auth-Request-Type' = ?'DIAMETER_BASE_AUTH-REQUEST-TYPE_AUTHORIZE_AUTHENTICATE',
 			'EAP-Payload' = EapMsg, 'Framed-MTU' = [65536],
 			'NAS-Port-Type' = [19], 'User-Name' = [UserName]},
-	{ok, Answer} = diameter:call(?SVC, eap_app_test, DER, []),
+	{ok, Answer} = diameter:call(?MODULE, eap_app_test, DER, []),
 	server_cipher_diameter(Answer, SId).
 
 server_cipher_diameter(Answer, SId) ->
@@ -805,7 +803,7 @@ client_passthrough_diameter(SslSocket, UserName, Password, SId, EapId) ->
 			'Auth-Request-Type' = ?'DIAMETER_BASE_AUTH-REQUEST-TYPE_AUTHORIZE_AUTHENTICATE',
 			'EAP-Payload' = EapMsg, 'Framed-MTU' = [65536],
 			'NAS-Port-Type' = [19], 'User-Name' = [UserName]},
-	{ok, Answer} = diameter:call(?SVC, eap_app_test, DER, []),
+	{ok, Answer} = diameter:call(?MODULE, eap_app_test, DER, []),
 	server_passthrough_diameter(Answer, SId).
 
 server_passthrough_diameter(Answer, SId) ->

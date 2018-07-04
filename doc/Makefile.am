@@ -75,7 +75,8 @@ modhtml = ocs.html \
 			mod_ocs_rest_patch.html \
 			mod_ocs_rest_post.html \
 			ocs_rest_query_scanner.html \
-			ocs_rest_query_parser.html
+			ocs_rest_query_parser.html \
+			ocs_mib.html
 
 doc_DATA = overview.edoc $(modhtml) \
 		modules-frame.html overview-summary.html \
