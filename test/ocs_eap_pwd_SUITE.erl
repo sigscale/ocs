@@ -39,7 +39,6 @@
 -include_lib("../include/diameter_gen_eap_application_rfc4072.hrl").
 -include_lib("kernel/include/inet.hrl").
 
--define(SVC, diameter_client_service).
 -define(BASE_APPLICATION_ID, 0).
 -define(EAP_APPLICATION_ID, 5).
 
@@ -70,11 +69,12 @@ init_per_suite(Config) ->
 	{ok, ProdID} = ocs_test_lib:add_offer(),
 	{ok, DiameterConfig} = application:get_env(ocs, diameter),
 	{auth, [{Address, Port, _} | _]} = lists:keyfind(auth, 1, DiameterConfig),
-	true = diameter:subscribe(?SVC),
-	ok = diameter:start_service(?SVC, client_service_opts()),
-	{ok, _Ref} = connect(?SVC, Address, Port, diameter_tcp),
+	ok = diameter:start_service(?MODULE, client_service_opts()),
+	true = diameter:subscribe(?MODULE),
+	{ok, _Ref} = connect(?MODULE, Address, Port, diameter_tcp),
 	receive
-		#diameter_event{service = ?SVC, info = start} ->
+		#diameter_event{service = ?MODULE, info = Info}
+				when element(1, Info) == up ->
 			[{product_id, ProdID}, {diameter_client, Address}] ++ Config;
 		_ ->
 			{skip, diameter_client_service_not_started}
@@ -84,7 +84,7 @@ init_per_suite(Config) ->
 %% Cleanup after the whole suite.
 %%
 end_per_suite(Config) ->
-	ok = diameter:stop_service(?SVC),
+	ok = diameter:stop_service(?MODULE),
 	ok = ocs_test_lib:stop(),
 	Config.
 
@@ -866,7 +866,7 @@ send_diameter_identity(SId, EapId, PeerId) ->
 	DER = #diameter_eap_app_DER{'Session-Id' = SId, 'Auth-Application-Id' = ?EAP_APPLICATION_ID,
 		'Auth-Request-Type' = ?'DIAMETER_BASE_AUTH-REQUEST-TYPE_AUTHORIZE_AUTHENTICATE',
 		'EAP-Payload' = EapMsg},
-	{ok, Answer} = diameter:call(?SVC, eap_app_test, DER, []),
+	{ok, Answer} = diameter:call(?MODULE, eap_app_test, DER, []),
 	Answer.
 
 send_diameter_id(SId, Token, PeerId, EapId) ->
@@ -879,7 +879,7 @@ send_diameter_id(SId, Token, PeerId, EapId) ->
 	DER = #diameter_eap_app_DER{'Session-Id' = SId, 'Auth-Application-Id' = ?EAP_APPLICATION_ID,
 		'Auth-Request-Type' = ?'DIAMETER_BASE_AUTH-REQUEST-TYPE_AUTHORIZE_AUTHENTICATE',
 		'EAP-Payload' = EapPayload},
-	{ok, Answer} = diameter:call(?SVC, eap_app_test, DER, []),
+	{ok, Answer} = diameter:call(?MODULE, eap_app_test, DER, []),
 	Answer.
 
 send_diameter_commit(SId, ScalarP, ElementP, EapId) ->
@@ -892,7 +892,7 @@ send_diameter_commit(SId, ScalarP, ElementP, EapId) ->
 	DER = #diameter_eap_app_DER{'Session-Id' = SId, 'Auth-Application-Id' = ?EAP_APPLICATION_ID,
 		'Auth-Request-Type' = ?'DIAMETER_BASE_AUTH-REQUEST-TYPE_AUTHORIZE_AUTHENTICATE',
 		'EAP-Payload' = EapPayload},
-	{ok, Answer} = diameter:call(?SVC, eap_app_test, DER, []),
+	{ok, Answer} = diameter:call(?MODULE, eap_app_test, DER, []),
 	Answer.
 
 send_diameter_confirm(SId, ConfirmP, EapId) ->
@@ -903,7 +903,7 @@ send_diameter_confirm(SId, ConfirmP, EapId) ->
 	DER = #diameter_eap_app_DER{'Session-Id' = SId, 'Auth-Application-Id' = ?EAP_APPLICATION_ID,
 		'Auth-Request-Type' = ?'DIAMETER_BASE_AUTH-REQUEST-TYPE_AUTHORIZE_AUTHENTICATE',
 		'EAP-Payload' = EapPayload},
-	{ok, Answer} = diameter:call(?SVC, eap_app_test, DER, []),
+	{ok, Answer} = diameter:call(?MODULE, eap_app_test, DER, []),
 	Answer.
 
 %% @hidden

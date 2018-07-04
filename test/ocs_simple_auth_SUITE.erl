@@ -38,7 +38,6 @@
 -include("ocs_eap_codec.hrl").
 -include("ocs.hrl").
 
--define(SVC, diameter_client_service).
 -define(BASE_APPLICATION_ID, 0).
 -define(NAS_APPLICATION_ID, 1).
 
@@ -68,11 +67,12 @@ init_per_suite(Config) ->
 	ok = ocs_test_lib:start(),
 	{ok, DiameterConfig} = application:get_env(ocs, diameter),
 	{auth, [{Address, Port, _} | _]} = lists:keyfind(auth, 1, DiameterConfig),
-	true = diameter:subscribe(?SVC),
-	ok = diameter:start_service(?SVC, client_service_opts()),
-	{ok, _Ref} = connect(?SVC, Address, Port, diameter_tcp),
+	ok = diameter:start_service(?MODULE, client_service_opts()),
+	true = diameter:subscribe(?MODULE),
+	{ok, _Ref} = connect(?MODULE, Address, Port, diameter_tcp),
 	receive
-		#diameter_event{service = ?SVC, info = start} ->
+		#diameter_event{service = ?MODULE, info = Info}
+				when element(1, Info) == up ->
 			[{diameter_client, Address}] ++ Config;
 		_ ->
 			{skip, diameter_client_service_not_started}
@@ -82,7 +82,7 @@ init_per_suite(Config) ->
 %% Cleanup after the whole suite.
 %%
 end_per_suite(Config) ->
-	ok = diameter:stop_service(?SVC),
+	ok = diameter:stop_service(?MODULE),
 	ok = ocs_test_lib:stop(),
 	Config.
 
@@ -197,7 +197,7 @@ simple_authentication_diameter(_Config) ->
 			'Auth-Application-Id' = ?NAS_APPLICATION_ID ,
 			'Auth-Request-Type' = ?'DIAMETER_NAS_APP_AUTH-REQUEST-TYPE_AUTHENTICATE_ONLY',
 			'User-Name' = [Username], 'User-Password' = [Password]},
-	{ok, Answer} = diameter:call(?SVC, nas_app_test, NAS_AAR, []),
+	{ok, Answer} = diameter:call(?MODULE, nas_app_test, NAS_AAR, []),
 	true = is_record(Answer, diameter_nas_app_AAA),
 	{ok, HostName} = inet:gethostname(),
 	Realm = inet_db:res_option(domain),
@@ -266,7 +266,7 @@ out_of_credit_diameter(_Config) ->
 			'Auth-Request-Type' = ?'DIAMETER_NAS_APP_AUTH-REQUEST-TYPE_AUTHENTICATE_ONLY',
 			'User-Name' = [UserName], 'User-Password' = [Password],
 			'Service-Type' = [11]},
-	{ok, Answer} = diameter:call(?SVC, nas_app_test, NAS_AAR, []),
+	{ok, Answer} = diameter:call(?MODULE, nas_app_test, NAS_AAR, []),
 	true = is_record(Answer, diameter_nas_app_AAA),
 	{ok, HostName} = inet:gethostname(),
 	Realm = inet_db:res_option(domain),
@@ -337,7 +337,7 @@ bad_password_diameter(_Config) ->
 			'Auth-Application-Id' = ?NAS_APPLICATION_ID ,
 			'Auth-Request-Type' = ?'DIAMETER_NAS_APP_AUTH-REQUEST-TYPE_AUTHENTICATE_ONLY',
 			'User-Name' = [Username], 'User-Password' = [InvalidPassword]},
-	{ok, Answer} = diameter:call(?SVC, nas_app_test, NAS_AAR, []),
+	{ok, Answer} = diameter:call(?MODULE, nas_app_test, NAS_AAR, []),
 	true = is_record(Answer, diameter_nas_app_AAA),
 	{ok, HostName} = inet:gethostname(),
 	Realm = inet_db:res_option(domain),
@@ -409,7 +409,7 @@ unknown_username_diameter(_Config) ->
 			'Auth-Application-Id' = ?NAS_APPLICATION_ID ,
 			'Auth-Request-Type' = ?'DIAMETER_NAS_APP_AUTH-REQUEST-TYPE_AUTHENTICATE_ONLY',
 			'User-Name' = [UnknownUsername], 'User-Password' = [Password]},
-	{ok, Answer} = diameter:call(?SVC, nas_app_test, NAS_AAR, []),
+	{ok, Answer} = diameter:call(?MODULE, nas_app_test, NAS_AAR, []),
 	true = is_record(Answer, diameter_nas_app_AAA),
 	{ok, HostName} = inet:gethostname(),
 	Realm = inet_db:res_option(domain),
@@ -437,7 +437,7 @@ session_termination_diameter(_Config) ->
 			'Auth-Application-Id' = ?NAS_APPLICATION_ID ,
 			'Auth-Request-Type' = ?'DIAMETER_NAS_APP_AUTH-REQUEST-TYPE_AUTHENTICATE_ONLY',
 			'User-Name' = [Username], 'User-Password' = [Password]},
-	{ok, Answer} = diameter:call(?SVC, nas_app_test, NAS_AAR, []),
+	{ok, Answer} = diameter:call(?MODULE, nas_app_test, NAS_AAR, []),
 	true = is_record(Answer, diameter_nas_app_AAA),
 	{ok, HostName} = inet:gethostname(),
 	Realm = inet_db:res_option(domain),
@@ -449,7 +449,7 @@ session_termination_diameter(_Config) ->
 			'Origin-Host' = OriginHost, 'Origin-Realm' = OriginRealm} = Answer,
 	NAS_STR = #diameter_nas_app_STR{'Session-Id' = SId, 'Auth-Application-Id' = ?NAS_APPLICATION_ID,
 			'Termination-Cause' = ?'DIAMETER_NAS_APP_TERMINATION-CAUSE_LOGOUT', 'User-Name' = [Username]},
-	{ok, Answer1} = diameter:call(?SVC, nas_app_test, NAS_STR, []),
+	{ok, Answer1} = diameter:call(?MODULE, nas_app_test, NAS_STR, []),
 	true = is_record(Answer1, diameter_nas_app_STA),
 	{ok, HostName} = inet:gethostname(),
 	Realm = inet_db:res_option(domain),
