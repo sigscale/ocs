@@ -320,7 +320,13 @@ service_options(Options) ->
 		true ->
 			Options1;
 		false ->
-			[{'Origin-Realm', inet_db:res_option(domain)} | Options1]
+			OriginRealm = case inet_db:res_option(domain) of
+				S when is_list(S) ->
+					S;
+				_ ->
+					""
+			end,
+			[{'Origin-Realm', OriginRealm} | Options1]
 	end,
 	Options2 ++ [{'Vendor-Id', 50386},
 		{'Product-Name', "SigScale OCS"},
