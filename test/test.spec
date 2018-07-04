@@ -12,4 +12,6 @@
 		ocs_charging_SUITE,
 		ocs_snmp_SUITE]}.
 {skip_cases, ".",
-		ocs_rest_api_SUITE, get_ipdr_usage, "TODO"}.
+		ocs_rest_api_SUITE, [get_ipdr_usage], "TODO"}.
+{skip_cases, ".",
+		ocs_snmp_SUITE, [get_diameter_peer_index], "TODO"}.
