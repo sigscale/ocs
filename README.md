@@ -20,6 +20,7 @@ product catalog management are supported with a web components front end.
 |CLI       | Erlang API                |
 |RADIUS    | AAA NAS Clients           |
 |DIAMETER  | 3GPP Ro/Gy/Wo             |
+|SNMP      | Performance Management    |
 |EAP-PWD   | Android, Linux            |
 |EAP-TTLS  | " + Apple, Windows        |
 |IPDR      | Billing Record Files      |
@@ -52,17 +53,22 @@ using the Erlang public API, either manually on the command line
 [shell](http://erlang.org/doc/man/shell.html), or through custom Erlang
 module development.
 
-### [DIAMETER](https://tools.ietf.org/html/rfc6733)
+### [DIAMETER](http://tools.ietf.org/html/rfc6733)
 SigScale OCS acts as either or both 3GPP AAA Server and 3GPP OCS.
 The DIAMETER Ro/Gy/Wo interface (3GPP 32.299) supports Session Charging with
 Unit Reservation (SCUR) and Event Charging with Unit Reservation (ECUR)
 in PS and IMS domains.
 
-### [RADIUS](https://tools.ietf.org/html/rfc2865)
+### [RADIUS](http://tools.ietf.org/html/rfc2865)
 The OCS acts as an authentication, authorization and accounting (AAA) server
 for network access servers (NAS) using the RADIUS protocol such as wireless
 local area network (WLAN) access points (AP), broadband remote access server
 (BRAS) or broadband network gateway (BNG).
+
+### [SNMP](http://tools.ietf.org/html/rfc3410)
+A Simple Network Management Protocol (SNMP) agent is included which allows
+a Network Management System (NMS) to interogate the Management Information
+Bases (MIB) supported including RADIUS and DIAMETER MIBs.
 
 #### Authentication & Authorization
 A NAS may use the RADIUS protocol to request authentication from the
