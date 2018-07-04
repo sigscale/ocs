@@ -271,8 +271,8 @@ dbp_local_stats(get, uptime) ->
 					+ (Secs * 100) + (MicroSecs div 10)}
 	end;
 dbp_local_stats(get, Item) ->
-	case catch diameter:services() of
-		[Service |  _] ->
+	case lists:keyfind(ocs_diameter_acct_service, 1, diameter:services()) of
+		Service when is_tuple(Service) ->
 			case catch diameter:service_info(Service, transport) of
 				Info when is_list(Info) ->
 					case total_packets(Info) of
@@ -286,7 +286,7 @@ dbp_local_stats(get, Item) ->
 				_ ->
 					genErr
 			end;
-		_ ->
+		false ->
 			genErr
 	end.
 
@@ -307,8 +307,8 @@ dcca_peer_info(get_next, [N], Columns) ->
 	dcca_peer_info_get_next(N + 1, Columns, true).
 %% @hidden
 dcca_peer_info_get_next(Index, Columns, First) ->
-	case catch diameter:services() of
-		[Service |  _] ->
+	case lists:keyfind(ocs_diameter_acct_service, 1, diameter:services()) of
+		Service when is_tuple(Service) ->
 			case catch diameter:service_info(Service, connections) of
 				Info when is_list(Info) ->
 					case peer_info(Index, Info) of
@@ -353,7 +353,7 @@ dcca_peer_info_get_next(Index, Columns, First) ->
 				_Info ->
 					[endOfTable || _ <- Columns]
 			end;
-		_ ->
+		false ->
 			{genErr, 0}
 	end.
 
@@ -371,11 +371,14 @@ dcca_peer_info_get_next(Index, Columns, First) ->
 dcca_peer_stats(get_next = _Operation, [] = _RowIndex, Columns) ->
 	dcca_peer_stats_get_next(1, Columns, true);
 dcca_peer_stats(get_next, [N], Columns) ->
-	dcca_peer_stats_get_next(N + 1, Columns, true).
+	dcca_peer_stats_get_next(N + 1, Columns, true);
+dcca_peer_stats(get, [N], Columns) ->
+	dcca_peer_stats_get(N, Columns).
+	
 %% @hidden
 dcca_peer_stats_get_next(Index, Columns, First) ->
-	case catch diameter:services() of
-		[Service |  _] ->
+	case lists:keyfind(ocs_diameter_acct_service, 1, diameter:services()) of
+		Service when is_tuple(Service) ->
 			case catch diameter:service_info(Service, connections) of
 				Info when is_list(Info) ->
 					case peer_stats(Index, Info) of
@@ -444,11 +447,78 @@ dcca_peer_stats_get_next(Index, Columns, First) ->
 				_Info ->
 					[endOfTable || _ <- Columns]
 			end;
-		_ ->
+		false ->
 			{genErr, 0}
 	end.
-
-
+%% @hidden
+dcca_peer_stats_get(Index, Columns) ->
+	case lists:keyfind(ocs_diameter_acct_service, 1, diameter:services()) of
+		Service when is_tuple(Service) ->
+			case catch diameter:service_info(Service, connections) of
+				Info when is_list(Info) ->
+					case peer_stats(Index, Info) of
+						{ok, Stats} ->
+							F1 = fun(0, Acc) ->
+										[{genErr, 0} | Acc];
+									(1, Acc) ->
+										[{noValue, noSuchInstance} | Acc];
+									(2, Acc) ->
+										[{value, Stats#peer_stats.ccr_in} | Acc];
+									(3, Acc) ->
+										[{value, Stats#peer_stats.ccr_out} | Acc];
+									(4, Acc) ->
+										[{value, Stats#peer_stats.ccr_dropped} | Acc];
+									(5, Acc) ->
+										[{value, Stats#peer_stats.cca_in} | Acc];
+									(6, Acc) ->
+										[{value, Stats#peer_stats.cca_out} | Acc];
+									(7, Acc) ->
+										[{value, Stats#peer_stats.cca_dropped} | Acc];
+									(8, Acc) ->
+										[{value, Stats#peer_stats.rar_in} | Acc];
+									(9, Acc) ->
+										[{value, Stats#peer_stats.rar_dropped} | Acc];
+									(10, Acc) ->
+										[{value, Stats#peer_stats.raa_out} | Acc];
+									(11, Acc) ->
+										[{value, Stats#peer_stats.rar_dropped} | Acc];
+									(12, Acc) ->
+										[{value, Stats#peer_stats.str_out} | Acc];
+									(13, Acc) ->
+										[{value, Stats#peer_stats.str_dropped} | Acc];
+									(14, Acc) ->
+										[{value, Stats#peer_stats.sta_in} | Acc];
+									(15, Acc) ->
+										[{value, Stats#peer_stats.sta_dropped} | Acc];
+									(16, Acc) ->
+										[{value, Stats#peer_stats.aar_out} | Acc];
+									(17, Acc) ->
+										[{value, Stats#peer_stats.aar_dropped} | Acc];
+									(18, Acc) ->
+										[{value, Stats#peer_stats.aaa_in} | Acc];
+									(19, Acc) ->
+										[{value, Stats#peer_stats.aaa_dropped} | Acc];
+									(20, Acc) ->
+										[{value, Stats#peer_stats.asr_in} | Acc];
+									(21, Acc) ->
+										[{value, Stats#peer_stats.asr_dropped} | Acc];
+									(22, Acc) ->
+										[{value, Stats#peer_stats.asa_out} | Acc];
+									(23, Acc) ->
+										[{value, Stats#peer_stats.asa_dropped} | Acc];
+									(_, Acc) ->
+										[{noValue, noSuchInstance} | Acc]
+							end,
+							lists:reverse(lists:foldl(F1, [], Columns));
+						{error, not_found} ->
+							{noValue, noSuchInstance}
+					end;
+				_Info ->
+						{noValue, noSuchInstance}
+			end;
+		false ->
+			{genErr, 0}
+	end.
 %%----------------------------------------------------------------------
 %% internal functions
 %----------------------------------------------------------------------
