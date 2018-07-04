@@ -43,9 +43,17 @@ stages:
     - ../../../configure
     - make
 
+build:otp-21:
+  <<: *build_otp
+  image: erlang:21
+  artifacts:
+    untracked: true
+    paths:
+      - .build/otp-21.*
+
 build:otp-20:
   <<: *build_otp
-  image: erlang:latest
+  image: erlang:20
   artifacts:
     untracked: true
     paths:
@@ -76,6 +84,16 @@ build:otp-18:
     - if ! dialyzer --plt_info; then dialyzer --build_plt --apps erts kernel stdlib crypto compiler public_key diameter inets mnesia ssl mochiweb radius syntax_tools; fi
     - cd .build/otp-${OTP_VERSION}/ocs
     - make check
+
+check:otp-21:
+  <<: *check_otp
+  image: erlang:21
+  artifacts:
+    when: always
+    paths:
+      - .build/otp-21.*
+  dependencies:
+    - build:otp-21
 
 check:otp-20:
   <<: *check_otp
@@ -110,7 +128,10 @@ check:otp-18:
 pages:otp-18:
   stage: deploy
   script:
-    - mv .build/otp-18.*/ocs/test/log public/
+    - mkdir -p .public/doc .public/tests
+    - cp -r .build/otp-18.*/ocs/test/log/* .public/tests
+    - cp -r .build/otp-18.*/ocs/doc/* .public/doc
+    - mv .public public
   artifacts:
     when: always
     paths:
@@ -123,7 +144,10 @@ pages:otp-18:
 pages:otp-19:
   stage: deploy
   script:
-    - mv .build/otp-19.*/ocs/test/log public/
+    - mkdir -p .public/doc .public/tests
+    - cp -r .build/otp-19.*/ocs/test/log/* .public/tests
+    - cp -r .build/otp-19.*/ocs/doc/* .public/doc
+    - mv .public public
   artifacts:
     when: always
     paths:
@@ -136,13 +160,32 @@ pages:otp-19:
 pages:otp-20:
   stage: deploy
   script:
-    - mv .build/otp-20.*/ocs/test/log public/
+    - mkdir -p .public/doc .public/tests
+    - cp -r .build/otp-20.*/ocs/test/log/* .public/tests
+    - cp -r .build/otp-20.*/ocs/doc/* .public/doc
+    - mv .public public
   artifacts:
     when: always
     paths:
       - public
   dependencies:
     - check:otp-20
+  # Temporary option
+  when: always
+
+pages:otp-21:
+  stage: deploy
+  script:
+    - mkdir -p .public/doc .public/tests
+    - cp -r .build/otp-21.*/ocs/test/log/* .public/tests
+    - cp -r .build/otp-21.*/ocs/doc/* .public/doc
+    - mv .public public
+  artifacts:
+    when: always
+    paths:
+      - public
+  dependencies:
+    - check:otp-21
   # Temporary option
   when: always
 
