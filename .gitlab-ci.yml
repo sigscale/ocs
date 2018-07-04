@@ -29,7 +29,7 @@ stages:
     - cd ../../
     - if [ ! -d otp-${OTP_VERSION}/lib/mochiweb-${MOCHIWEB_VERSION} ]; then mv -v otp-${OTP_VERSION}/mochiweb/ otp-${OTP_VERSION}/lib/mochiweb-${MOCHIWEB_VERSION}; fi
     # Install radierl
-    - git clone git@gitlab.com:sigscale/radierl.git
+    - git clone https://gitlab.com/sigscale/radierl.git
     - cd radierl
     - aclocal
     - autoheader
@@ -39,7 +39,7 @@ stages:
     - make
     - make install
     # Install sigscale_mibs
-    - git clone git@gitlab.com:sigscale/sigscale_mibs.git
+    - git clone https://gitlab.com/sigscale/sigscale_mibs.git
     - cd sigscale_mibs
     - aclocal
     - autoheader
