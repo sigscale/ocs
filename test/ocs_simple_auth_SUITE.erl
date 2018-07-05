@@ -199,14 +199,9 @@ simple_authentication_diameter(_Config) ->
 			'User-Name' = [Username], 'User-Password' = [Password]},
 	{ok, Answer} = diameter:call(?MODULE, nas_app_test, NAS_AAR, []),
 	true = is_record(Answer, diameter_nas_app_AAA),
-	{ok, HostName} = inet:gethostname(),
-	Realm = inet_db:res_option(domain),
-	OriginHost = list_to_binary(HostName),
-	OriginRealm = list_to_binary(Realm),
 	#diameter_nas_app_AAA{'Result-Code' = ?'DIAMETER_BASE_RESULT-CODE_SUCCESS',
 			'Auth-Application-Id' = ?NAS_APPLICATION_ID,
-			'Auth-Request-Type' = ?'DIAMETER_NAS_APP_AUTH-REQUEST-TYPE_AUTHENTICATE_ONLY',
-			'Origin-Host' = OriginHost, 'Origin-Realm' = OriginRealm} = Answer.
+			'Auth-Request-Type' = ?'DIAMETER_NAS_APP_AUTH-REQUEST-TYPE_AUTHENTICATE_ONLY'} = Answer.
 
 out_of_credit_radius() ->
 	[{userdata, [{doc, "Send RADIUS AccessReject response to the peer when balance
@@ -268,14 +263,9 @@ out_of_credit_diameter(_Config) ->
 			'Service-Type' = [11]},
 	{ok, Answer} = diameter:call(?MODULE, nas_app_test, NAS_AAR, []),
 	true = is_record(Answer, diameter_nas_app_AAA),
-	{ok, HostName} = inet:gethostname(),
-	Realm = inet_db:res_option(domain),
-	OriginHost = list_to_binary(HostName),
-	OriginRealm = list_to_binary(Realm),
 	#diameter_nas_app_AAA{'Result-Code' = ?'DIAMETER_BASE_RESULT-CODE_AUTHENTICATION_REJECTED',
 			'Auth-Application-Id' = ?NAS_APPLICATION_ID,
-			'Auth-Request-Type' = ?'DIAMETER_NAS_APP_AUTH-REQUEST-TYPE_AUTHENTICATE_ONLY',
-			'Origin-Host' = OriginHost, 'Origin-Realm' = OriginRealm} = Answer.
+			'Auth-Request-Type' = ?'DIAMETER_NAS_APP_AUTH-REQUEST-TYPE_AUTHENTICATE_ONLY'} = Answer.
 
 bad_password_radius() ->
 	[{userdata, [{doc, "Send RADIUS AccessReject response to the peer when password 
@@ -339,15 +329,9 @@ bad_password_diameter(_Config) ->
 			'User-Name' = [Username], 'User-Password' = [InvalidPassword]},
 	{ok, Answer} = diameter:call(?MODULE, nas_app_test, NAS_AAR, []),
 	true = is_record(Answer, diameter_nas_app_AAA),
-	{ok, HostName} = inet:gethostname(),
-	Realm = inet_db:res_option(domain),
-	OriginHost = list_to_binary(HostName),
-	OriginRealm = list_to_binary(Realm),
 	#diameter_nas_app_AAA{'Result-Code' = ?'DIAMETER_BASE_RESULT-CODE_AUTHENTICATION_REJECTED',
 			'Auth-Application-Id' = ?NAS_APPLICATION_ID,
-			'Auth-Request-Type' = ?'DIAMETER_NAS_APP_AUTH-REQUEST-TYPE_AUTHENTICATE_ONLY',
-	'Origin-Host' = OriginHost, 'Origin-Realm' = OriginRealm} = Answer.
-
+			'Auth-Request-Type' = ?'DIAMETER_NAS_APP_AUTH-REQUEST-TYPE_AUTHENTICATE_ONLY'} = Answer.
 
 unknown_username_radius() ->
 	[{userdata, [{doc, "Send RADIUS RAccessReject response to the peer for unknown username"}]}].
@@ -411,14 +395,9 @@ unknown_username_diameter(_Config) ->
 			'User-Name' = [UnknownUsername], 'User-Password' = [Password]},
 	{ok, Answer} = diameter:call(?MODULE, nas_app_test, NAS_AAR, []),
 	true = is_record(Answer, diameter_nas_app_AAA),
-	{ok, HostName} = inet:gethostname(),
-	Realm = inet_db:res_option(domain),
-	OriginHost = list_to_binary(HostName),
-	OriginRealm = list_to_binary(Realm),
 	#diameter_nas_app_AAA{'Result-Code' = ?'DIAMETER_BASE_RESULT-CODE_AUTHENTICATION_REJECTED',
 			'Auth-Application-Id' = ?NAS_APPLICATION_ID,
-			'Auth-Request-Type' = ?'DIAMETER_NAS_APP_AUTH-REQUEST-TYPE_AUTHENTICATE_ONLY',
-	'Origin-Host' = OriginHost, 'Origin-Realm' = OriginRealm} = Answer.
+			'Auth-Request-Type' = ?'DIAMETER_NAS_APP_AUTH-REQUEST-TYPE_AUTHENTICATE_ONLY'} = Answer.
 
 session_termination_diameter() ->
 	[{userdata, [{doc, "Successful simple authentication using DIAMETER NAS application"}]}].
@@ -439,24 +418,14 @@ session_termination_diameter(_Config) ->
 			'User-Name' = [Username], 'User-Password' = [Password]},
 	{ok, Answer} = diameter:call(?MODULE, nas_app_test, NAS_AAR, []),
 	true = is_record(Answer, diameter_nas_app_AAA),
-	{ok, HostName} = inet:gethostname(),
-	Realm = inet_db:res_option(domain),
-	OriginHost = list_to_binary(HostName),
-	OriginRealm = list_to_binary(Realm),
 	#diameter_nas_app_AAA{'Result-Code' = ?'DIAMETER_BASE_RESULT-CODE_SUCCESS',
 			'Auth-Application-Id' = ?NAS_APPLICATION_ID,
-			'Auth-Request-Type' = ?'DIAMETER_NAS_APP_AUTH-REQUEST-TYPE_AUTHENTICATE_ONLY',
-			'Origin-Host' = OriginHost, 'Origin-Realm' = OriginRealm} = Answer,
+			'Auth-Request-Type' = ?'DIAMETER_NAS_APP_AUTH-REQUEST-TYPE_AUTHENTICATE_ONLY'} = Answer,
 	NAS_STR = #diameter_nas_app_STR{'Session-Id' = SId, 'Auth-Application-Id' = ?NAS_APPLICATION_ID,
 			'Termination-Cause' = ?'DIAMETER_NAS_APP_TERMINATION-CAUSE_LOGOUT', 'User-Name' = [Username]},
 	{ok, Answer1} = diameter:call(?MODULE, nas_app_test, NAS_STR, []),
 	true = is_record(Answer1, diameter_nas_app_STA),
-	{ok, HostName} = inet:gethostname(),
-	Realm = inet_db:res_option(domain),
-	OriginHost = list_to_binary(HostName),
-	OriginRealm = list_to_binary(Realm),
-	#diameter_nas_app_STA{'Result-Code' = ?'DIAMETER_BASE_RESULT-CODE_SUCCESS',
-			'Origin-Host' = OriginHost, 'Origin-Realm' = OriginRealm} = Answer1.
+	#diameter_nas_app_STA{'Result-Code' = ?'DIAMETER_BASE_RESULT-CODE_SUCCESS'} = Answer1.
 
 authenticate_voice_call() ->
 	[{userdata, [{doc, "Successful
