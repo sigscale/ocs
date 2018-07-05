@@ -100,7 +100,8 @@
 			<iron-pages selected="{{selected}}">
 			<div id="add-div">
 				<div>
-					<paper-input id="addSubscriberId"
+					<paper-input
+							id="addSubscriberId"
 							class="identity"
 							name="subscriber"
 							label="[[i18n.identity]]"
@@ -121,7 +122,8 @@
 					</div>
 				</div>
 				<div>
-					<paper-input id="addSubscriberPassword"
+					<paper-input
+							id="addSubscriberPassword"
 							class="password"
 							name="password"
 							label="[[i18n.password]]">
@@ -163,7 +165,8 @@
 			</div>
 			<div id="add-divone">
 				<div>
-					<paper-input id="addAcctSessionInterval"
+					<paper-input
+							id="addAcctSessionInterval"
 							name="acctSessionInterval"
 							label="[[i18n.sessionInterval]]">
 					</paper-input>
@@ -174,7 +177,8 @@
 					</paper-tooltip>
 				</div>
 				<div>
-					<paper-input id="addSessionTimeout"
+					<paper-input
+							id="addSessionTimeout"
 							name="addSessionTimeout"
 							label="[[i18n.sessionTimeout]]">
 					</paper-input>
@@ -184,7 +188,8 @@
 						</i18n-msg>
 					</paper-tooltip>
 				</div>
-					<paper-input id="addSubscriberClass"
+					<paper-input
+							id="addSubscriberClass"
 							name="class"
 							label="[[i18n.class]]">
 					</paper-input>
@@ -193,7 +198,8 @@
 							Enable
 					</i18n-msg>
 					<div style="display:inline-block;">
-						<paper-toggle-button id="addSubscriberEnabled"
+						<paper-toggle-button
+							id="addSubscriberEnabled"
 							name="isServiceEnabled" checked>
 						</paper-toggle-button>
 						<paper-tooltip>
@@ -206,7 +212,8 @@
 							Multisession
 					</i18n-msg>
 					<div style="display:inline-block;">
-						<paper-toggle-button id="addSubscriberMulti"
+						<paper-toggle-button
+							id="addSubscriberMulti"
 							name="multi-session">
 						</paper-toggle-button>
 						<paper-tooltip>
@@ -238,7 +245,8 @@
 				</div>
 			<div id=add-divtwo>
 				<div>
-					<paper-input id="AddUpdatePro"
+					<paper-input
+							id="AddUpdatePro"
 							name="product"
 							label="[[i18n.prod]]"
 							disabled
@@ -246,7 +254,8 @@
 					</paper-input>
 				</div>
 				<div>
-					<paper-input id="AddUpdateProId"
+					<paper-input
+							id="AddUpdateProId"
 							name="productId"
 							label="Product Id"
 							disabled
@@ -254,10 +263,14 @@
 					</paper-input>
 				</div>
 				<div>
-					<paper-input id="add8"
+					<paper-input
+							id="add8"
 							name="amount"
-							type="number"
-							label="[[i18n.amount]]">
+							type="text"
+							allowed-pattern="[0-9kmg]"
+							pattern="^[0-9]+[kmg]?$"
+							label="[[i18n.amount]]"
+							auto-validate>
 					</paper-input>
 					<paper-tooltip>
 						<i18n-msg msgid="addSubAmountTooltip">
@@ -406,7 +419,6 @@
 				}
 			},
 			_serviceAddSubmit: function(event) {
-console.log(this.productId);
 				var subscriber = new Object();
 				var serviceChar = new Array();
 				if(this.$.addSubscriberId.value) {
@@ -462,7 +474,6 @@ console.log(this.productId);
 				this.$.addSubscriberId.value = null;
 			},
 			_addServiceResponse: function(event) {
-console.log(event.detail.xhr.response);
 				function checkPasswordResp(pass) {
 					return pass.name == "servicePassword";
 				}
@@ -502,7 +513,7 @@ console.log(event.detail.xhr.response);
 				bucketTop.channel = {name};
 				if(document.getElementById("add8").value) {
 					if(document.getElementById("adduni9").selected == 0) {
-						units = "bytes";
+						units = "octets";
 					}
 					if(document.getElementById("adduni9").selected == 1) {
 						units = "cents";
@@ -510,10 +521,40 @@ console.log(event.detail.xhr.response);
 					if(document.getElementById("adduni9").selected == 2) {
 						units = "seconds";
 					}
-					amount = document.getElementById("add8").value;
+					if(units && document.getElementById("add8").value) {
+						var size = document.getElementById("add8").value;
+						var len = size.length;
+						var m = size.charAt(len - 1);
+						if(isNaN(parseInt(m))) {
+							var s = size.slice(0, (len - 1));
+						} else {
+							var s = size;
+						}
+						if(units == "octets") {
+							if(m == "m") {
+								amount = s + "000000b";
+							} else if(m == "g") {
+								amount = s + "000000000b";
+							} else if(m == "k") {
+								amount = s + "000b";
+							} else {
+								amount = s + "b";
+							}
+						} else if(units == "seconds") {
+							var n = Number(s);
+							if(m == "m") {
+								n = n * 60;
+								amount = n.toString() + "s";
+							} else if(m == "h") {
+								n = n * 3600;
+								amount = n.toString() + "s";
+							} else {
+								amount = n.toString() + "s";
+							}
+						}
 					bucketTop.amount = {units, amount};
+					}
 				}
-console.log(result.id);
 				id = result.id;
 				href = "/productInventoryManagement/v2/product/" + this.product;
 				bucketTop.product = {id, href};
