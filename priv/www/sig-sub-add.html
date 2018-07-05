@@ -473,7 +473,6 @@
 					this.$.addSubscriberId.value = null;
 					this.$.addSubscriberPassword.disabled = false;
 					this.$.adduni9.value = null;
-					this.$.add8.value = null;
 				}
 			},
 			_serviceAddcancel: function(event) {
@@ -525,12 +524,12 @@
 				if(document.getElementById("add8").value) {
 					if(document.getElementById("adduni9").selected == 0) {
 						units = "octets";
-					}
-					if(document.getElementById("adduni9").selected == 1) {
+					} else if (document.getElementById("adduni9").selected == 1) {
 						units = "cents";
-					}
-					if(document.getElementById("adduni9").selected == 2) {
+					} else if(document.getElementById("adduni9").selected == 2) {
 						units = "seconds";
+					} else {
+						units = "cents";
 					}
 					if(units && document.getElementById("add8").value) {
 						var size = document.getElementById("add8").value;
