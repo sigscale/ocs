@@ -93,6 +93,9 @@
 					name="product"
 					label="Product">
 				</paper-input>
+				<paper-tooltip>
+					Product Id
+				</paper-tooltip>
 			</div>
 			<div>
 				<paper-dropdown-menu
@@ -119,9 +122,7 @@
 						</paper-listbox>
 					</paper-dropdown-menu>
 					<paper-tooltip>
-						<i18n-msg msgid="addSubUnitTooltip">
-							Subscriber balance units.
-						</i18n-msg>
+						bucket balance units.
 					</paper-tooltip>
 				</div>
 			<div>
@@ -134,6 +135,9 @@
 					label="Amount"
 					auto-validate>
 				</paper-input>
+				<paper-tooltip>
+					balance amount of bucket
+				</paper-tooltip>
 			</div>
 			<div class="buttons">
 				<paper-button dialog-confirm
@@ -238,6 +242,8 @@
 				ajaxBucket.generateRequest();
 				this.$.addBucketModal.close();
 				document.getElementById("amount").value = null;
+				this.$.addProduct.value = null;
+				this.$.addUnitsBucket.value = null;
 			},
 			_addBucketResponse: function(event) {
 				this.$.addBucketModal.close();
