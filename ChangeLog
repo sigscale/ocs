@@ -1,3 +1,10 @@
+2018-07-05  Vance Shipley <vances@sigscale.org>
+
+	* safely get domain name
+	* if domain unavailable use default realm example.net
+	* allow multiplier patterns in balance
+	* snmp get diameter cc peer table
+
 2018-07-04  Vance Shipley <vances@sigscale.org>
 
 	* snmp agent
