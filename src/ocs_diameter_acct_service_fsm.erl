@@ -324,7 +324,7 @@ service_options(Options) ->
 				S when is_list(S) ->
 					S;
 				_ ->
-					""
+					"example.net"
 			end,
 			[{'Origin-Realm', OriginRealm} | Options1]
 	end,
