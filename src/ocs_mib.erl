@@ -304,7 +304,9 @@ dbp_local_stats(get, Item) ->
 dcca_peer_info(get_next = _Operation, [] = _RowIndex, Columns) ->
 	dcca_peer_info_get_next(1, Columns, true);
 dcca_peer_info(get_next, [N], Columns) ->
-	dcca_peer_info_get_next(N + 1, Columns, true).
+	dcca_peer_info_get_next(N + 1, Columns, true);
+dcca_peer_info(get, [N], Columns) ->
+	dcca_peer_info_get(N, Columns).
 %% @hidden
 dcca_peer_info_get_next(Index, Columns, First) ->
 	case lists:keyfind(ocs_diameter_acct_service, 1, diameter:services()) of
@@ -352,6 +354,41 @@ dcca_peer_info_get_next(Index, Columns, First) ->
 					end;
 				_Info ->
 					[endOfTable || _ <- Columns]
+			end;
+		false ->
+			{genErr, 0}
+	end.
+%% @hidden
+dcca_peer_info_get(Index, Columns) ->
+	case lists:keyfind(ocs_diameter_acct_service, 1, diameter:services()) of
+		Service when is_tuple(Service) ->
+			case catch diameter:service_info(Service, connections) of
+				Info when is_list(Info) ->
+					case peer_info(Index, Info) of
+						{ok, {PeerId, Rev}} ->
+							F1 = fun(0, Acc) ->
+										[{value, Index} | Acc];
+									(1, Acc) ->
+										[{value, Index} | Acc];
+									(2, Acc) ->
+										[{value, PeerId} | Acc];
+									(3, Acc) when Rev == undefined ->
+										[{noValue, noSuchInstance}];
+									(3, Acc) ->
+										[{value, Rev} | Acc];
+									(4, Acc) ->
+										[{value, volatile} | Acc];
+									(5, Acc) ->
+										[{value, active} | Acc];
+									(_, Acc) ->
+										{noValue, noSuchInstance}
+							end,
+							lists:reverse(lists:foldl(F1, [], Columns));
+						{error, not_found} ->
+							{noValue, noSuchInstance}
+					end;
+				_Info ->
+						{noValue, noSuchInstance}
 			end;
 		false ->
 			{genErr, 0}
