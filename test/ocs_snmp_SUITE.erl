@@ -134,7 +134,8 @@ all() ->
 			get_radius_auth_ident, get_radius_acct_ident,
 			get_diameter_host, get_diameter_realm, get_diameter_product,
 			get_diameter_packets_in, get_diameter_packets_out,
-			get_diameter_uptime, get_diameter_peer_index,
+			get_diameter_uptime,get_diameter_peer_id,
+			get_diameter_firmware_rev, get_diameter_asa_dropped,
 			get_diameter_ccr_in, get_diameter_ccr_out,
 			get_diameter_ccr_dropped, get_diameter_cca_in,
 			get_diameter_cca_out, get_diameter_cca_dropped,
@@ -145,7 +146,7 @@ all() ->
 			get_diameter_aar_out, get_diameter_aar_dropped,
 			get_diameter_aaa_in, get_diameter_aaa_dropped,
 			get_diameter_asr_in, get_diameter_asr_dropped,
-			get_diameter_asa_out, get_diameter_asa_dropped].
+			get_diameter_asa_out].
 
 %%---------------------------------------------------------------------
 %%  Test cases
@@ -248,16 +249,6 @@ get_diameter_uptime(_Config) ->
 			[OID1], snmp_mgr_agent),
 	[{varbind, OID1, 'TimeTicks', _, _}] = Varbinds.
 
-get_diameter_peer_index() ->
-	[{userdata, [{doc, "Get diameter Peer Index"}]}].
-
-get_diameter_peer_index(_Config) ->
-	{value, OID} = snmpa:name_to_oid(dccaPeerIndex),
-	OID1 = OID ++ [1],
-	{noError, _, Varbinds} = ct_snmp:get_values(ocs_mibs_test,
-			[OID1], snmp_mgr_agent),
-	[{varbind, OID1, 'Unsigned32', _, _}] = Varbinds.
-
 get_diameter_peer_id() ->
 	[{userdata, [{doc, "Get diameter Peer Id"}]}].
 
@@ -266,7 +257,7 @@ get_diameter_peer_id(_Config) ->
 	OID1 = OID ++ [1],
 	{noError, _, Varbinds} = ct_snmp:get_values(ocs_mibs_test,
 			[OID1], snmp_mgr_agent),
-	[{varbind, OID1, 'SnmpAdminString', _, _}] = Varbinds.
+	[{varbind, OID1, 'OCTET STRING', _, _}] = Varbinds.
 
 get_diameter_firmware_rev() ->
 	[{userdata, [{doc, "Get diameter Firmware Revison"}]}].
@@ -515,6 +506,7 @@ client_acct_service_opts() ->
 	{ok, Hostname} = inet:gethostname(),
 	[{'Origin-Host', Hostname},
 		{'Origin-Realm', "sigscale.com"},
+		{'Firmware-Revision', 318},
 		{'Vendor-Id', 10415},
 		{'Product-Name', "SigScale Test Client (Acct)"},
 		{'Auth-Application-Id', [?BASE_APPLICATION_ID, ?RO_APPLICATION_ID]},
