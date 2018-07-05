@@ -114,6 +114,7 @@
 					</paper-tooltip>
 					<div class="generate">
 						<paper-checkbox
+							id="idCheck"
 							on-change="subcheckchanged">
 							<i18n-msg msgid="gen">
 									Generate
@@ -135,6 +136,7 @@
 					</paper-tooltip>
 					<div class="generate">
 						<paper-checkbox
+							id="idCheckPass"
 							on-change="subcheckboxchanged">
 							<i18n-msg msgid="gen">
 									Generate
@@ -235,6 +237,7 @@
 						<paper-button
 								dialog-dismiss
 								class="cancel-button"
+								on-tap="_serviceAddcancel"
 								autofocus
 								onclick="addServiceModal.close()">
 							<i18n-msg msgid="cancel">
@@ -320,6 +323,7 @@
 					</paper-button>
 					<paper-button dialog-dismiss
 							class="cancel-button"
+							on-tap="_serviceAddcancel"
 							onclick="addServiceModal.close()">
 						<i18n-msg msgid="cancel">
 								Cancel
@@ -464,14 +468,21 @@
 					ajax.headers['Content-type'] = "application/json";
 					ajax.body = subscriber;
 					ajax.generateRequest();
+					this.$.idCheck.checked = false;
+					this.$.idCheckPass.checked = false;
 					this.$.addSubscriberId.value = null;
-					this.$.addSubscriberId.disabled = false;
 					this.$.addSubscriberPassword.disabled = false;
 					this.$.adduni9.value = null;
+					this.$.add8.value = null;
 				}
 			},
 			_serviceAddcancel: function(event) {
 				this.$.addSubscriberId.value = null;
+				this.$.idCheck.checked = false;
+				this.$.idCheckPass.checked = false;
+				this.$.addSubscriberPassword.value = null;
+				this.$.adduni9.value = null;
+				this.$.add8.value = null;
 			},
 			_addServiceResponse: function(event) {
 				function checkPasswordResp(pass) {
