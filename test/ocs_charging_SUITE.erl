@@ -389,7 +389,7 @@ recurring_charge_monthly(_Config) ->
 			status = active, price = Prices},
 	{ok, _Offer1} = ocs:add_offer(Offer),
 	{ok, #product{id = ProdId} = P} = ocs:add_product(OfferId, []),
-	Expired = erlang:system_time(?MILLISECOND) - 2592000000,
+	Expired = erlang:system_time(?MILLISECOND) - 3599000,
 	ok = mnesia:dirty_write(product, P#product{payment =
 			[{P2#price.name, Expired}]}),
 	B1 = #bucket{units = cents,
