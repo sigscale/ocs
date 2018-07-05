@@ -510,7 +510,7 @@ quantity({struct, [{"amount", Amount}, {"units", Units}]}) when is_list(Amount) 
 quantity({struct, [{"amount", Amount}, {"units", Units}]}) ->
 	#quantity{units = units(Units), amount = Amount};
 quantity({struct, [{"units", Units}, {"amount", Amount}]}) when is_list(Amount) ->
-	#quantity{units = units(Units), amount = list_to_integer(Amount)};
+	#quantity{units = units(Units), amount = Amount};
 quantity({struct, [{"units", Units}, {"amount", Amount}]}) ->
 	#quantity{units = units(Units), amount = Amount};
 quantity(#quantity{} = Quantity) ->
@@ -520,7 +520,7 @@ quantity(#quantity{} = Quantity) ->
 quantity([amount | T], #quantity{units = cents, amount = Amount} = Q, Acc) ->
 	quantity(T, Q, [{"amount", ocs_rest:millionths_out(Amount)} | Acc]);
 quantity([amount | T], #quantity{amount = Amount} = Q, Acc) ->
-	quantity(T, Q, [{"amount", Amount} | Acc]);
+	quantity(T, Q, [{"amount", integer_to_list(Amount) ++ "b"} | Acc]);
 quantity([units | T], #quantity{units = undefined} = Q, Acc) ->
 	quantity(T, Q, Acc);
 quantity([units | T], #quantity{units = Units} = Q, Acc) ->
