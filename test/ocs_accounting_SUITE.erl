@@ -103,8 +103,7 @@ init_per_testcase(_TestCase, Config) ->
 	Port = ocs_test_lib:port(),
 	SharedSecret = ct:get_config(radius_shared_secret),
 	{ok, _} = ocs:add_client({127, 0, 0, 1}, Port, radius, SharedSecret, true),
-	Config1 = lists:keystore(nas_id, 1, Config, {nas_id, NasID}),
-	lists:keystore(radius_disc_port, 1, Config1, {radius_disc_port, Port}).
+	[{nas_id, NasID}, {radius_disc_port, Port} | Config].
 
 -spec end_per_testcase(TestCase :: atom(), Config :: [tuple()]) -> any().
 %% Cleanup after each test case.

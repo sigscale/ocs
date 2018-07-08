@@ -100,7 +100,7 @@ init_per_suite(Config) ->
 	receive
 		#diameter_event{service = ?MODULE, info = Info}
 				when element(1, Info) == up ->
-			[{product_id, ProdID}, {nas_id, NasId}] ++ Config;
+			[{product_id, ProdID}, {nas_id, NasId} | Config];
 		_ ->
 			{skip, diameter_client_service_not_started}
 	end.

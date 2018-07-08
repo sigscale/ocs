@@ -73,7 +73,7 @@ init_per_suite(Config) ->
 	receive
 		#diameter_event{service = ?MODULE, info = Info}
 				when element(1, Info) == up ->
-			[{diameter_client, Address}] ++ Config;
+			[{diameter_client, Address} | Config];
 		_ ->
 			{skip, diameter_client_service_not_started}
 	end.

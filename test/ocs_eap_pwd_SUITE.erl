@@ -75,7 +75,7 @@ init_per_suite(Config) ->
 	receive
 		#diameter_event{service = ?MODULE, info = Info}
 				when element(1, Info) == up ->
-			[{product_id, ProdID}, {diameter_client, Address}] ++ Config;
+			[{product_id, ProdID}, {diameter_client, Address} | Config];
 		_ ->
 			{skip, diameter_client_service_not_started}
 	end.
@@ -97,7 +97,7 @@ init_per_testcase(TestCase, Config) when TestCase == eap_identity_over_diameter;
 	{ok, DiameterConfig} = application:get_env(ocs, diameter),
 	{auth, [{Address, _, _} | _]} = lists:keyfind(auth, 1, DiameterConfig),
 	{ok, _} = ocs:add_client(Address, undefined, diameter, undefined, true),
-	[{diameter_client, Address}] ++ Config;
+	[{diameter_client, Address} | Config];
 init_per_testcase(_TestCase, Config) ->
 	{ok, RadiusConfig} = application:get_env(ocs, radius),
 	{auth, [{RadIP, RadPort, _} | _]} = lists:keyfind(auth, 1, RadiusConfig),
@@ -106,7 +106,7 @@ init_per_testcase(_TestCase, Config) ->
 	Protocol = radius,
 	{ok, _} = ocs:add_client(RadIP, RadPort, Protocol, SharedSecret, true),
 	NasId = atom_to_list(node()),
-	[{nas_id, NasId}, {socket, Socket}, {radius_client, RadIP}] ++ Config.
+	[{nas_id, NasId}, {socket, Socket}, {radius_client, RadIP} | Config].
 
 -spec end_per_testcase(TestCase :: atom(), Config :: [tuple()]) -> any().
 %% Cleanup after each test case.
