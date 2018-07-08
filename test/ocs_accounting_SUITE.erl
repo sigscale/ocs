@@ -602,11 +602,9 @@ disconnect_request(Socket) ->
 	ok = gen_udp:send(Socket, OCSAddr, OCSPort, DiscAck).
 
 access_accept(Socket, Address, Port, RadID) ->
-erlang:display({?MODULE, ?LINE, Socket, Address, Port, RadID}),
 	receive_radius(?AccessAccept, Socket, Address, Port, RadID).
 
 accounting_response(Socket, Address, Port, Secret, RadID, ReqAuth) ->
-erlang:display({?MODULE, ?LINE, Socket, Address, Port, Secret, RadID}),
 	#radius{id = RadID, authenticator = RespAuth,
 		attributes = Attributes}
 		= receive_radius(?AccountingResponse, Socket, Address, Port, RadID),
@@ -616,9 +614,7 @@ erlang:display({?MODULE, ?LINE, Socket, Address, Port, Secret, RadID}),
 			ReqAuth, Attributes, Secret])).
 
 receive_radius(Code, Socket, Address, Port, RadID) ->
-erlang:display({?MODULE, ?LINE, Code, Socket, Address, Port, RadID}),
 	{ok, {Address, Port, RespPacket}} = gen_udp:recv(Socket, 0),
-erlang:display({?MODULE, ?LINE, radius:codec(RespPacket)}),
 	#radius{code = Code, id = RadID} = radius:codec(RespPacket).
 
 access_request(Socket, Address, Port, UserName, Secret,
