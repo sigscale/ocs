@@ -67,15 +67,23 @@ init_per_suite(Config) ->
 	ok = ocs_test_lib:initialize_db(),
 	ok = ocs_test_lib:start(),
 	{ok, ProdID} = ocs_test_lib:add_offer(),
-	{ok, EnvList} = application:get_env(ocs, diameter),
-	{acct, [{Address, Port, _} | _]} = lists:keyfind(acct, 1, EnvList),
+	{ok, Radius} = application:get_env(ocs, radius),
+	{_, [{RauthAddress, RauthPort, _} | _]} = lists:keyfind(auth, 1, Radius),
+	{_, [{RacctAddress, RacctPort, _} | _]} = lists:keyfind(acct, 1, Radius),
+	{ok, Diameter} = application:get_env(ocs, diameter),
+	{_, [{Daddress, Dport, _} | _]} = lists:keyfind(acct, 1, Diameter),
 	ok = diameter:start_service(?MODULE, client_acct_service_opts()),
 	true = diameter:subscribe(?MODULE),
-	{ok, _Ref2} = connect(?MODULE, Address, Port, diameter_tcp),
+	{ok, _Ref2} = connect(?MODULE, Daddress, Dport, diameter_tcp),
 	receive
 		#diameter_event{service = ?MODULE, info = Info}
 				when element(1, Info) == up ->
-			[{product_id, ProdID}, {diameter_auth_client, Address} | Config];
+			[{product_id, ProdID},
+					{radius_auth_address, RauthAddress},
+					{radius_auth_port, RauthPort},
+					{radius_acct_address, RacctAddress},
+					{radius_acct_port, RacctPort},
+					{diameter_acct_address, Daddress} | Config];
 		_ ->
 			{skip, diameter_client_acct_service_not_started}
 	end.
@@ -93,27 +101,59 @@ end_per_suite(Config) ->
 %% Initialization before each test case.
 %%
 init_per_testcase(TestCase, Config) when
-		TestCase == diameter_accounting; TestCase == diameter_disconnect_session ->
-	{ok, EnvList} = application:get_env(ocs, diameter),
-	{acct, [{Address, _Port, _Options } | _]} = lists:keyfind(acct, 1, EnvList),
-	{ok, _} = ocs:add_client(Address, undefined, diameter, undefined, true),
-	Config;
-init_per_testcase(_TestCase, Config) ->
+		TestCase == radius_disconnect_session;
+		TestCase == radius_multisession_disallowed ->
 	NasID = erlang:ref_to_list(make_ref()),
-	Port = ocs_test_lib:port(),
+	{ok, Socket} = gen_udp:open(0, [{active, false}, inet, binary]),
+	{ok, Port} = inet:port(Socket),
+	Config1 = [{nas_id, NasID}, {radius_disc_port, Port},
+			{radius_disc_socket, Socket} | Config],
+	init_per_testcase1(TestCase, Config1);
+init_per_testcase(TestCase, Config) ->
+	NasID = erlang:ref_to_list(make_ref()),
+	Config1 = [{nas_id, NasID}, {radius_disc_port, undefined} | Config],
+	init_per_testcase1(TestCase, Config1).
+
+init_per_testcase1(TestCase, Config) when
+		TestCase == radius_accounting;
+		TestCase == radius_disconnect_session;
+		TestCase == radius_multisession_disallowed;
+		TestCase == radius_multisession ->
 	SharedSecret = ct:get_config(radius_shared_secret),
-	{ok, _} = ocs:add_client({127, 0, 0, 1}, Port, radius, SharedSecret, true),
-	[{nas_id, NasID}, {radius_disc_port, Port} | Config].
+	Address = ?config(radius_acct_address, Config),
+	DiscPort = ?config(radius_disc_port, Config),
+	{ok, Socket} = gen_udp:open(0, [{active, false}, inet, binary]),
+	{ok, _} = ocs:add_client(Address, DiscPort, radius, SharedSecret, true),
+	[{radius_nas_socket, Socket}, {radius_nas_client, Address} | Config];
+init_per_testcase1(TestCase, Config) when
+		TestCase == diameter_accounting;
+		TestCase == diameter_disconnect_session;
+		TestCase == diameter_sms ->
+	Address = ?config(diameter_acct_address, Config),
+	{ok, _} = ocs:add_client(Address, undefined, diameter, undefined, true),
+	Config.
 
 -spec end_per_testcase(TestCase :: atom(), Config :: [tuple()]) -> any().
 %% Cleanup after each test case.
 %%
 end_per_testcase(TestCase, Config) when
-		TestCase == diameter_accounting; TestCase == diameter_disconnect_session ->
-	Client = ?config(diameter_auth_client, Config),
-	ok = ocs:delete_client(Client);
-end_per_testcase(_TestCase, _Config) ->
-	ocs:delete_client({127, 0, 0, 1}).
+		TestCase == radius_disconnect_session;
+		TestCase == radius_multisession_disallowed ->
+	Address = ?config(radius_nas_client, Config),
+	ok = ocs:delete_client(Address),
+	Socket = ?config(radius_disc_socket, Config),
+	gen_udp:close(Socket);
+end_per_testcase(TestCase, Config) when
+		TestCase == radius_accounting;
+		TestCase == radius_multisession ->
+	Address = ?config(radius_nas_client, Config),
+	ok = ocs:delete_client(Address);
+end_per_testcase(TestCase, Config) when
+		TestCase == diameter_accounting;
+		TestCase == diameter_disconnect_session;
+		TestCase == diameter_sms ->
+	Address = ?config(diameter_acct_address, Config),
+	ok = ocs:delete_client(Address).
 
 -spec sequences() -> Sequences :: [{SeqName :: atom(), Testcases :: [atom()]}].
 %% Group test cases into a test sequence.
@@ -141,10 +181,10 @@ radius_accounting(Config) ->
 	RadID1 = 1,
 	NasID = ?config(nas_id, Config),
 	AcctSessionID = ocs:generate_identity(),
-	{ok, [{auth, AuthInstance}, {acct, AcctInstance}]} = application:get_env(ocs, radius),
-	[{AuthAddress, AuthPort, _} | _] = AuthInstance,
-	[{AcctAddress, AcctPort, _} | _] = AcctInstance,
-	{ok, Socket} = gen_udp:open(0, [{active, false}, inet, binary]),
+	AuthAddress = ?config(radius_auth_address, Config),
+	AuthPort = ?config(radius_auth_port, Config),
+	AcctAddress = ?config(radius_acct_address, Config),
+	AcctPort = ?config(radius_acct_port, Config),
 	P1 = price(usage, octets, rand:uniform(1000000), rand:uniform(100)),
 	OfferId = add_offer([P1], 4),
 	ProdRef = add_product(OfferId),
@@ -154,6 +194,7 @@ radius_accounting(Config) ->
 	Secret = ct:get_config(radius_shared_secret),
 	ReqAuth = radius:authenticator(),
    HiddenPassword = radius_attributes:hide(Secret, ReqAuth, Password),
+	Socket = ?config(radius_nas_socket, Config),
 	authenticate_subscriber(Socket, AuthAddress, AuthPort, PeerID,
 			HiddenPassword, Secret, NasID, ReqAuth, RadID1, AcctSessionID),
 	RadID2 = RadID1 + 1,
@@ -170,10 +211,10 @@ radius_disconnect_session(Config) ->
 	RadID1 = 10,
 	NasID = ?config(nas_id, Config),
 	AcctSessionID = ocs:generate_identity(),
-	{ok, [{auth, AuthInstance}, {acct, AcctInstance}]} = application:get_env(ocs, radius),
-	[{AuthAddress, AuthPort, _} | _] = AuthInstance,
-	[{AcctAddress, AcctPort, _} | _] = AcctInstance,
-	{ok, Socket} = gen_udp:open(0, [{active, false}, inet, binary]),
+	AuthAddress = ?config(radius_auth_address, Config),
+	AuthPort = ?config(radius_auth_port, Config),
+	AcctAddress = ?config(radius_acct_address, Config),
+	AcctPort = ?config(radius_acct_port, Config),
 	P1 = price(usage, octets, rand:uniform(1000000), rand:uniform(100)),
 	OfferId = add_offer([P1], 4),
 	ProdRef = add_product(OfferId),
@@ -183,6 +224,7 @@ radius_disconnect_session(Config) ->
 	Secret = ct:get_config(radius_shared_secret),
 	ReqAuth = radius:authenticator(),
    HiddenPassword = radius_attributes:hide(Secret, ReqAuth, Password),
+	Socket = ?config(radius_nas_socket, Config),
 	authenticate_subscriber(Socket, AuthAddress, AuthPort, PeerID,
 			HiddenPassword, Secret, NasID, ReqAuth, RadID1, AcctSessionID),
 	RadID2 = RadID1 + 1,
@@ -194,8 +236,8 @@ radius_disconnect_session(Config) ->
 	RadID4 = RadID3 + 1,
 	accounting_stop(Socket, AcctAddress, AcctPort,
 			PeerID, Secret, NasID, AcctSessionID, RadID4, 1350000987, 1350000654),
-	DiscPort = ?config(radius_disc_port, Config),
-	disconnect_request(DiscPort).
+	DiscSocket = ?config(radius_disc_socket, Config),
+	disconnect_request(DiscSocket).
 
 radius_multisession_disallowed() ->
 	[{userdata, [{doc, "Start multiple RADIUS sessions for a subscriber when
@@ -206,10 +248,10 @@ radius_multisession_disallowed(Config) ->
 	RadID1 = 8,
 	NasID = ?config(nas_id, Config),
 	AcctSessionID1 = ocs:generate_identity(),
-	{ok, [{auth, AuthInstance}, {acct, AcctInstance}]} = application:get_env(ocs, radius),
-	[{AuthAddress, AuthPort, _} | _] = AuthInstance,
-	[{AcctAddress, AcctPort, _} | _] = AcctInstance,
-	{ok, Socket} = gen_udp:open(0, [{active, false}, inet, binary]),
+	AuthAddress = ?config(radius_auth_address, Config),
+	AuthPort = ?config(radius_auth_port, Config),
+	AcctAddress = ?config(radius_acct_address, Config),
+	AcctPort = ?config(radius_acct_port, Config),
 	P1 = price(usage, octets, rand:uniform(1000000), rand:uniform(100)),
 	OfferId = add_offer([P1], 4),
 	ProdRef = add_product(OfferId),
@@ -220,6 +262,7 @@ radius_multisession_disallowed(Config) ->
 	Secret = ct:get_config(radius_shared_secret),
 	ReqAuth = radius:authenticator(),
 	HiddenPassword = radius_attributes:hide(Secret, ReqAuth, Password),
+	Socket = ?config(radius_nas_socket, Config),
 	authenticate_subscriber(Socket, AuthAddress, AuthPort, PeerID,
 			HiddenPassword, Secret, NasID, ReqAuth, RadID1, AcctSessionID1),
 	RadID2 = RadID1 + 1,
@@ -242,10 +285,10 @@ radius_multisession_disallowed(Config) ->
 	Rad2ID1 = 5,
 	NasID2 = "vlkf@example.net",
 	AcctSessionID2 = ocs:generate_identity(),
-	DiscPort = ?config(radius_disc_port, Config),
+	DiscSocket = ?config(radius_disc_socket, Config),
 	authenticate_subscriber1(Socket, AuthAddress, AuthPort, PeerID,
 			HiddenPassword, Secret, NasID2, ReqAuth, Rad2ID1,
-			DiscPort, AcctSessionID2),
+			DiscSocket, AcctSessionID2),
 	ct:sleep(500),
 	{ok, #service{multisession = false, session_attributes = SessionList2}}
 			= ocs:find_service(PeerID),
@@ -264,14 +307,14 @@ radius_multisession() ->
 	[{userdata, [{doc, "Start multiple RADIUS sessions for a subscriber when
 			multiple RADIUS sessions are allowed."}]}].
 
-radius_multisession(_Config) ->
+radius_multisession(Config) ->
 	RadID1 = 11,
 	NasID1 = "axe1@ap-1.org",
 	AcctSessionID1 = ocs:generate_identity(),
-	{ok, [{auth, AuthInstance}, {acct, AcctInstance}]} = application:get_env(ocs, radius),
-	[{AuthAddress, AuthPort, _} | _] = AuthInstance,
-	[{AcctAddress, AcctPort, _} | _] = AcctInstance,
-	{ok, Socket} = gen_udp:open(0, [{active, false}, inet, binary]),
+	AuthAddress = ?config(radius_auth_address, Config),
+	AuthPort = ?config(radius_auth_port, Config),
+	AcctAddress = ?config(radius_acct_address, Config),
+	AcctPort = ?config(radius_acct_port, Config),
 	P1 = price(usage, octets, rand:uniform(1000000), rand:uniform(100)),
 	OfferId = add_offer([P1], 4),
 	ProdRef = add_product(OfferId),
@@ -285,6 +328,7 @@ radius_multisession(_Config) ->
 	Secret = ct:get_config(radius_shared_secret),
 	ReqAuth = radius:authenticator(),
 	HiddenPassword = radius_attributes:hide(Secret, ReqAuth, Password),
+	Socket = ?config(radius_nas_socket, Config),
 	%% Authenticate session 1
 	authenticate_subscriber(Socket, AuthAddress, AuthPort, PeerID,
 			HiddenPassword, Secret, NasID1, ReqAuth, RadID1, AcctSessionID1),
@@ -452,9 +496,6 @@ diameter_sms(_Config) ->
 	B1 = bucket(messages, Balance),
 	_BId = add_bucket(ProdRef, B1),
 	NumOfEvents = Balance div rand:uniform(5),
-	{ok, EnvList} = application:get_env(ocs, diameter),
-	{acct, [{Address, _Port, _Options } | _]} = lists:keyfind(acct, 1, EnvList),
-	{ok, _} = ocs:add_client(Address, undefined, diameter, undefined, true),
 	Ref = erlang:ref_to_list(make_ref()),
 	SId = diameter:session_id(Ref),
 	Subscription_Id = #'3gpp_ro_Subscription-Id'{
@@ -548,8 +589,7 @@ accounting_stop(Socket, Address, Port, PeerID,
 			Address, Port, PeerID, Secret, NasID, AcctSessionID, RadID, A3),
 	accounting_response(Socket, Address, Port, Secret, RadID, ReqAuth).
 
-disconnect_request(Port) ->
-	{ok, Socket} = gen_udp:open(Port, [{active, false}, inet, binary]),
+disconnect_request(Socket) ->
 	{ok, {OCSAddr, OCSPort, DiscReq}} = gen_udp:recv(Socket, 0),
 	#radius{code = ?DisconnectRequest, id = DiscReqID} = radius:codec(DiscReq),
 	DiscAckAuth = radius:authenticator(),
@@ -559,13 +599,14 @@ disconnect_request(Port) ->
 	DiscAckRec = #radius{code = ?DisconnectAck, id = DiscReqID,
 			authenticator = DiscAckAuth, attributes = DiscAckAttrBin},
 	DiscAck = radius:codec(DiscAckRec),
-	ok = gen_udp:send(Socket, OCSAddr, OCSPort, DiscAck),
-	ok =  gen_udp:close(Socket).
+	ok = gen_udp:send(Socket, OCSAddr, OCSPort, DiscAck).
 
 access_accept(Socket, Address, Port, RadID) ->
+erlang:display({?MODULE, ?LINE, Socket, Address, Port, RadID}),
 	receive_radius(?AccessAccept, Socket, Address, Port, RadID).
 
 accounting_response(Socket, Address, Port, Secret, RadID, ReqAuth) ->
+erlang:display({?MODULE, ?LINE, Socket, Address, Port, Secret, RadID}),
 	#radius{id = RadID, authenticator = RespAuth,
 		attributes = Attributes}
 		= receive_radius(?AccountingResponse, Socket, Address, Port, RadID),
@@ -575,7 +616,9 @@ accounting_response(Socket, Address, Port, Secret, RadID, ReqAuth) ->
 			ReqAuth, Attributes, Secret])).
 
 receive_radius(Code, Socket, Address, Port, RadID) ->
+erlang:display({?MODULE, ?LINE, Code, Socket, Address, Port, RadID}),
 	{ok, {Address, Port, RespPacket}} = gen_udp:recv(Socket, 0),
+erlang:display({?MODULE, ?LINE, radius:codec(RespPacket)}),
 	#radius{code = Code, id = RadID} = radius:codec(RespPacket).
 
 access_request(Socket, Address, Port, UserName, Secret,
@@ -746,11 +789,11 @@ diameter_accounting_interim(SId, Username, RequestNum, Usage) ->
 	
 authenticate_subscriber1(Socket, Address,
 		Port, PeerID, Password, Secret, NasID, ReqAuth, RadID,
-		DiscPort, AcctSessionID) ->
+		DiscSocket, AcctSessionID) ->
 	RadAttribute = radius_attributes:add(?UserPassword, Password, []),
 	access_request(Socket, Address, Port, PeerID, Secret,
 			NasID, ReqAuth, RadID, AcctSessionID, RadAttribute),
-	disconnect_request(DiscPort),
+	disconnect_request(DiscSocket),
 	access_accept(Socket, Address, Port, RadID).
 
 %% @hidden
