@@ -1421,8 +1421,8 @@ refund(SessionId, #bucket{remain_amount = R} = Bucket1,
 	refund(SessionId, T2, [Bucket2 | Acc2]);
 refund(SessionId, #bucket{remain_amount = R} = Bucket1,
 		[{TS, Debit, Amount, SessionId} | T1], T2, Acc1, Acc2) ->
-	Refuned = {TS, Debit, 0, SessionId},
-	NewReservation = [Refuned | T1],
+	Refunded = {TS, Debit, 0, SessionId},
+	NewReservation = [Refunded | T1],
 	Bucket2 = Bucket1#bucket{remain_amount = R + Amount,
 			reservations = lists:reverse(Acc1) ++ NewReservation},
 	refund(SessionId, T2, [Bucket2 | Acc2]);
