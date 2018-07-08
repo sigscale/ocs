@@ -98,7 +98,7 @@
 %% 	updates and `{out_of_credit, SessionList, Rated}' for final or
 %% 	`{disabled, SessionList}' if the subscriber is not enabled. In both
 %% 	 cases subscriber's balance is debited.  `SessionList' describes the
-%% 	known active sessions whichshould be disconnected.
+%% 	known active sessions which should be disconnected.
 %%
 rate(Protocol, ServiceType, ServiceNetwork, SubscriberID, Timestamp, Address,
 		Direction, Flag, DebitAmounts, ReserveAmounts, SessionAttributes)
