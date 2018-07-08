@@ -433,8 +433,8 @@ rate6(#service{enabled = false} = Service, Buckets1,
 					rate7(Service, Buckets3, interim, DebitAmount,
 							DebitAmount + UnitCharge, 0, 0, State);
 				{PriceCharged, 0, Buckets3} ->
-					%% @todo generate unique bucket id
-					Buckets4 = [#bucket{remain_amount = PriceCharged - PriceCharge,
+					Buckets4 = [#bucket{id = generate_bucket_id(),
+							remain_amount = PriceCharged - PriceCharge,
 							units = cents} | Buckets3],
 					rate7(Service, Buckets4, interim, DebitAmount,
 							UnitsCharged + (PriceCharged div UnitPrice), 0, 0, State)
@@ -477,8 +477,8 @@ rate6(Service, Buckets1,
 							UnitsCharged + UnitCharge, ReserveAmount,
 							PriceReserved div UnitPrice, State);
 				{PriceCharged, 0, Buckets3} ->
-					%% @todo generate unique bucket id
-					Buckets4 = [#bucket{remain_amount = PriceCharged - PriceCharge,
+					Buckets4 = [#bucket{id = generate_bucket_id(),
+							remain_amount = PriceCharged - PriceCharge,
 							units = cents} | Buckets3],
 					rate7(Service, Buckets4, interim, DebitAmount,
 							UnitsCharged + (PriceCharged div UnitPrice),
@@ -507,10 +507,10 @@ rate6(Service, Buckets1,
 							TotalUnits, 0, 0, State#state{rated = Rated3});
 				{PriceCharged, Buckets3} ->
 					TotalUnits = UnitsCharged + (PriceCharged div UnitPrice),
-					%% @todo generate unique bucket id
 					Reservations1 = [{erlang:system_time(?MILLISECOND),
 							PriceCharged - PriceCharge, 0, SessionId}],
-					Buckets4 = [#bucket{remain_amount = PriceCharged - PriceCharge,
+					Buckets4 = [#bucket{id = generate_bucket_id(),
+							remain_amount = PriceCharged - PriceCharge,
 							units = cents, reservations = Reservations1} | Buckets3],
 					rate7(Service, Buckets4, final, DebitAmount,
 							TotalUnits, 0, 0, State#state{rated = Rated3})
@@ -1639,3 +1639,10 @@ roaming_table_prefix(#price{type = tariff, char_value_use = CharValueUse}) ->
 	end;
 roaming_table_prefix(_) ->
 	undefined.
+
+%% @private
+generate_bucket_id() ->
+	TS = erlang:system_time(?MILLISECOND),
+	N = erlang:unique_integer([positive]),
+	integer_to_list(TS) ++ "-" ++ integer_to_list(N).
+
