@@ -66,16 +66,16 @@
 		<vaadin-grid id="balanceBucketGrid" active-item="{{activeItem}}">
 			<vaadin-grid-column width="15ex" flex-grow="5">
 				<template class="header">
-					<vaadin-grid-filter aria-label="Bucket Id" path="id" value="[[_filterBucId]]">
-						<input placeholder="Bucket Id" value="{{_filterBucId::input}}" focus-target>
+					<vaadin-grid-filter aria-label="[[i18n.bucketId]]" path="id" value="[[_filterBucId]]">
+						<input placeholder="[[i18n.bucketId]]" value="{{_filterBucId::input}}" focus-target>
 					</vaadin-grid-filter>
 				</template>
 				<template>[[item.id]]</template>
 			</vaadin-grid-column>
 			<vaadin-grid-column width="15ex" flex-grow="5">
 				<template class="header">
-					<vaadin-grid-filter aria-label="Product Id" path="product" value="[[_filterProdId]]">
-						<input placeholder="Product Id" value="{{_filterProdId::input}}" focus-target>
+					<vaadin-grid-filter aria-label="[[i18n.prodId]]" path="product" value="[[_filterProdId]]">
+						<input placeholder="[[i18n.prodId]]" value="{{_filterProdId::input}}" focus-target>
 					</vaadin-grid-filter>
 				</template>
 				<template>[[item.product]]</template>

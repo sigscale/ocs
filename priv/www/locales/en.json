@@ -523,6 +523,10 @@
     "description": "Offering product",
     "message": "Offering"
   },
+	"offers": {
+    "description": "Offering product",
+    "message": "Offers"
+  },
 	"prices": {
     "description": "Offer product Prices",
     "message": "Prices"
@@ -871,6 +875,10 @@
     "description": "Bucket balance",
     "message": "Bucket"
   },
+	"bucketId": {
+    "description": "Bucket Id",
+    "message": "Bucket Id"
+  },
 	"amountAfter": {
     "description": "Balance amount after",
     "message": "After"
@@ -926,6 +934,26 @@
 	"bucketBal": {
     "description": "Balance bucket",
     "message": "Balance Buckets"
+  },
+	"wlan": {
+    "description": "wlan",
+    "message": "WLAN"
+  },
+	"voip": {
+    "description": "voip",
+    "message": "VoIP"
+  },
+	"proOffer": {
+    "description": "product Offer",
+    "message": "Product Offer"
+  },
+	"servId": {
+    "description": "Service Id",
+    "message": "Service Id"
+  },
+	"RomaingTab": {
+    "description": "Roaming Table",
+    "message": "Roaming Table"
   },
    "productDeleted": {
     "description": "Success Toast Message",
