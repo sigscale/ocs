@@ -1555,7 +1555,7 @@ get_debits([], _SessionId, _Now, Seconds, Octets, Cents, Msgs, Acc) ->
 	{Seconds, Octets, Cents, Msgs, lists:reverse(Acc)}.
 %% @hidden
 get_debits1(SessionId, [{_, Debited, _, SessionId} | T], Debit, Acc) ->
-	{Debited + Debit, lists:reverse(Acc) ++ T};
+	{Debit + abs(Debited), lists:reverse(Acc) ++ T};
 get_debits1(SessionId, [H | T], Debit, Acc) ->
 	get_debits1(SessionId, T, Debit, [H | Acc]);
 get_debits1(_SessionId, [], Debit, Acc) ->
