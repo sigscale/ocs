@@ -40,7 +40,7 @@
 -export([generate_password/0, generate_identity/0]).
 -export([start/4, start/5]).
 %% export the ocs private API
--export([normalize/1, subscription/4, generate_bucket_id/0, end_period/2]).
+-export([normalize/1, subscription/4, end_period/2]).
 -export([import/2, find_sn_network/2]).
 
 -export_type([eap_method/0, match/0]).

@@ -535,6 +535,10 @@
     "description": "Offer Prices",
     "message": "Ofrecimiento"
   },
+	"offers": {
+    "description": "Offering product",
+    "message": "Ofertas"
+  },
 	"prices": {
     "description": "Offer product Prices",
     "message": "Precios"
@@ -883,6 +887,10 @@
     "description": "Bucket balance",
     "message": "Cangilón"
   },
+	"bucketId": {
+    "description": "Bucket Id",
+    "message": "ID del cubo"
+  },
 	"amountAfter": {
     "description": "balance amount after",
     "message": "Después"
@@ -938,6 +946,26 @@
 	"bucketBal": {
     "description": "Balance bucket",
     "message": "Equilibrio del cubo"
+  },
+	"wlan": {
+    "description": "wlan",
+    "message": "WLAN"
+  },
+	"voip": {
+    "description": "voip",
+    "message": "VoIP"
+  },
+	"proOffer": {
+    "description": "product Offer",
+    "message": "Oferta de producto"
+  },
+	"servId": {
+    "description": "Service Id",
+    "message": "ID de servicio"
+  },
+	"RomaingTab": {
+    "description": "Roaming Table",
+    "message": "Tabla de itinerancia"
   },
    "productDeleted": {
     "description": "Success Toast Message",

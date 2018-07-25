@@ -100,7 +100,7 @@ init_per_suite(Config) ->
 	receive
 		#diameter_event{service = ?MODULE, info = Info}
 				when element(1, Info) == up ->
-			[{product_id, ProdID}, {nas_id, NasId}] ++ Config;
+			[{product_id, ProdID}, {nas_id, NasId} | Config];
 		_ ->
 			{skip, diameter_client_service_not_started}
 	end.
@@ -233,12 +233,7 @@ eap_ttls_authentication_diameter(Config) ->
 	#diameter_eap_app_DEA{'Session-Id' = SIdbin, 'Auth-Application-Id' = ?EAP_APPLICATION_ID,
 			'Auth-Request-Type' =  ?'DIAMETER_BASE_AUTH-REQUEST-TYPE_AUTHORIZE_AUTHENTICATE',
 			'Result-Code' = ?'DIAMETER_BASE_RESULT-CODE_MULTI_ROUND_AUTH',
-			'Origin-Host' = OriginHost, 'Origin-Realm' = OriginRealm,
 			'EAP-Payload' = [EapMsg]} = DEA1,
-	{ok, HostName} = inet:gethostname(),
-	Realm = inet_db:res_option(domain),
-	OriginHost = list_to_binary(HostName),
-	OriginRealm = list_to_binary(Realm),
 	#eap_packet{code = request, type = ?PWD, identifier = EapId1,
 			data = EapData} = ocs_eap_codec:eap_packet(EapMsg),
 	#eap_pwd{length = false, more = false, pwd_exch = id,
@@ -249,7 +244,6 @@ eap_ttls_authentication_diameter(Config) ->
 	#diameter_eap_app_DEA{'Session-Id' = SIdbin, 'Auth-Application-Id' = ?EAP_APPLICATION_ID,
 			'Auth-Request-Type' =  ?'DIAMETER_BASE_AUTH-REQUEST-TYPE_AUTHORIZE_AUTHENTICATE',
 			'Result-Code' = ?'DIAMETER_BASE_RESULT-CODE_MULTI_ROUND_AUTH',
-			'Origin-Host' = OriginHost, 'Origin-Realm' = OriginRealm,
 			'EAP-Payload' = [EapMsg2]} = DEA2,
 	EapId2 = EapId1 + 1,
 	#eap_packet{code = request, type = ?TTLS, identifier = EapId2,

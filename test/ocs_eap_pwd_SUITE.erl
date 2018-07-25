@@ -75,7 +75,7 @@ init_per_suite(Config) ->
 	receive
 		#diameter_event{service = ?MODULE, info = Info}
 				when element(1, Info) == up ->
-			[{product_id, ProdID}, {diameter_client, Address}] ++ Config;
+			[{product_id, ProdID}, {diameter_client, Address} | Config];
 		_ ->
 			{skip, diameter_client_service_not_started}
 	end.
@@ -97,7 +97,7 @@ init_per_testcase(TestCase, Config) when TestCase == eap_identity_over_diameter;
 	{ok, DiameterConfig} = application:get_env(ocs, diameter),
 	{auth, [{Address, _, _} | _]} = lists:keyfind(auth, 1, DiameterConfig),
 	{ok, _} = ocs:add_client(Address, undefined, diameter, undefined, true),
-	[{diameter_client, Address}] ++ Config;
+	[{diameter_client, Address} | Config];
 init_per_testcase(_TestCase, Config) ->
 	{ok, RadiusConfig} = application:get_env(ocs, radius),
 	{auth, [{RadIP, RadPort, _} | _]} = lists:keyfind(auth, 1, RadiusConfig),
@@ -106,7 +106,7 @@ init_per_testcase(_TestCase, Config) ->
 	Protocol = radius,
 	{ok, _} = ocs:add_client(RadIP, RadPort, Protocol, SharedSecret, true),
 	NasId = atom_to_list(node()),
-	[{nas_id, NasId}, {socket, Socket}, {radius_client, RadIP}] ++ Config.
+	[{nas_id, NasId}, {socket, Socket}, {radius_client, RadIP} | Config].
 
 -spec end_per_testcase(TestCase :: atom(), Config :: [tuple()]) -> any().
 %% Cleanup after each test case.
@@ -172,12 +172,7 @@ eap_identity_over_diameter(_Config) ->
 	SIdbin = list_to_binary(SId),
 	#diameter_eap_app_DEA{'Session-Id' = SIdbin, 'Auth-Application-Id' = ?EAP_APPLICATION_ID,
 			'Auth-Request-Type' =  ?'DIAMETER_BASE_AUTH-REQUEST-TYPE_AUTHORIZE_AUTHENTICATE',
-			'Result-Code' = ?'DIAMETER_BASE_RESULT-CODE_MULTI_ROUND_AUTH',
-			'Origin-Host' = OriginHost, 'Origin-Realm' = OriginRealm} = DEA,
-	{ok, HostName} = inet:gethostname(),
-	Realm = inet_db:res_option(domain), 
-	OriginHost = list_to_binary(HostName),
-	OriginRealm = list_to_binary(Realm).
+			'Result-Code' = ?'DIAMETER_BASE_RESULT-CODE_MULTI_ROUND_AUTH'} = DEA.
 
 pwd_id_over_radius() ->
    [{userdata, [{doc, "Send an EAP-pwd-ID/Response to peer"}]}].
@@ -225,12 +220,7 @@ pwd_id_over_diameter(_Config) ->
 	#diameter_eap_app_DEA{'Session-Id' = SIdbin, 'Auth-Application-Id' = ?EAP_APPLICATION_ID,
 			'Auth-Request-Type' =  ?'DIAMETER_BASE_AUTH-REQUEST-TYPE_AUTHORIZE_AUTHENTICATE',
 			'Result-Code' = ?'DIAMETER_BASE_RESULT-CODE_MULTI_ROUND_AUTH',
-			'Origin-Host' = OriginHost, 'Origin-Realm' = OriginRealm,
 			'EAP-Payload' = [Payload]} = DEA,
-	{ok, HostName} = inet:gethostname(),
-	Realm = inet_db:res_option(domain),
-	OriginHost = list_to_binary(HostName),
-	OriginRealm = list_to_binary(Realm),
 	#eap_packet{code = request, type = ?PWD, identifier = EapId,
 		data = EapData} = ocs_eap_codec:eap_packet(Payload),
 	#eap_pwd{length = false, more = false, pwd_exch = id,
@@ -242,7 +232,6 @@ pwd_id_over_diameter(_Config) ->
 	#diameter_eap_app_DEA{'Session-Id' = SIdbin, 'Auth-Application-Id' = ?EAP_APPLICATION_ID,
 			'Auth-Request-Type' =  ?'DIAMETER_BASE_AUTH-REQUEST-TYPE_AUTHORIZE_AUTHENTICATE',
 			'Result-Code' = ?'DIAMETER_BASE_RESULT-CODE_MULTI_ROUND_AUTH',
-			'Origin-Host' = OriginHost, 'Origin-Realm' = OriginRealm,
 			'EAP-Payload' = [Payload1]} = DEA1,
 	#eap_packet{code = request, type = ?PWD, identifier = EapId1,
 		data = EapData1} = ocs_eap_codec:eap_packet(Payload1),
@@ -310,12 +299,7 @@ pwd_commit_over_diameter(_Config) ->
 	#diameter_eap_app_DEA{'Session-Id' = SIdbin, 'Auth-Application-Id' = ?EAP_APPLICATION_ID,
 			'Auth-Request-Type' =  ?'DIAMETER_BASE_AUTH-REQUEST-TYPE_AUTHORIZE_AUTHENTICATE',
 			'Result-Code' = ?'DIAMETER_BASE_RESULT-CODE_MULTI_ROUND_AUTH',
-			'Origin-Host' = OriginHost, 'Origin-Realm' = OriginRealm,
 			'EAP-Payload' = [Payload]} = DEA,
-	{ok, HostName} = inet:gethostname(),
-	Realm = inet_db:res_option(domain),
-	OriginHost = list_to_binary(HostName),
-	OriginRealm = list_to_binary(Realm),
 	#eap_packet{code = request, type = ?PWD, identifier = EapId,
 		data = EapData} = ocs_eap_codec:eap_packet(Payload),
 	#eap_pwd{length = false, more = false, pwd_exch = id,
@@ -327,7 +311,6 @@ pwd_commit_over_diameter(_Config) ->
 	#diameter_eap_app_DEA{'Session-Id' = SIdbin, 'Auth-Application-Id' = ?EAP_APPLICATION_ID,
 			'Auth-Request-Type' =  ?'DIAMETER_BASE_AUTH-REQUEST-TYPE_AUTHORIZE_AUTHENTICATE',
 			'Result-Code' = ?'DIAMETER_BASE_RESULT-CODE_MULTI_ROUND_AUTH',
-			'Origin-Host' = OriginHost, 'Origin-Realm' = OriginRealm,
 			'EAP-Payload' = [Payload1]} = DEA1,
 	#eap_packet{code = request, type = ?PWD, identifier = EapId1,
 		data = EapData1} = ocs_eap_codec:eap_packet(Payload1),
@@ -344,7 +327,6 @@ pwd_commit_over_diameter(_Config) ->
 	#diameter_eap_app_DEA{'Session-Id' = SIdbin, 'Auth-Application-Id' = ?EAP_APPLICATION_ID,
 			'Auth-Request-Type' =  ?'DIAMETER_BASE_AUTH-REQUEST-TYPE_AUTHORIZE_AUTHENTICATE',
 			'Result-Code' = ?'DIAMETER_BASE_RESULT-CODE_MULTI_ROUND_AUTH',
-			'Origin-Host' = OriginHost, 'Origin-Realm' = OriginRealm,
 			'EAP-Payload' = [Payload2]} = DEA2,
 	#eap_packet{code = request, type = ?PWD, identifier = EapId2,
 		data = EapData2} = ocs_eap_codec:eap_packet(Payload2),
@@ -422,12 +404,7 @@ pwd_confirm_over_diameter(_Config) ->
 	#diameter_eap_app_DEA{'Session-Id' = SIdbin, 'Auth-Application-Id' = ?EAP_APPLICATION_ID,
 			'Auth-Request-Type' =  ?'DIAMETER_BASE_AUTH-REQUEST-TYPE_AUTHORIZE_AUTHENTICATE',
 			'Result-Code' = ?'DIAMETER_BASE_RESULT-CODE_MULTI_ROUND_AUTH',
-			'Origin-Host' = OriginHost, 'Origin-Realm' = OriginRealm,
 			'EAP-Payload' = [Payload]} = DEA,
-	{ok, HostName} = inet:gethostname(),
-	Realm = inet_db:res_option(domain),
-	OriginHost = list_to_binary(HostName),
-	OriginRealm = list_to_binary(Realm),
 	#eap_packet{code = request, type = ?PWD, identifier = EapId,
 		data = EapData} = ocs_eap_codec:eap_packet(Payload),
 	#eap_pwd{length = false, more = false, pwd_exch = id,
@@ -439,7 +416,6 @@ pwd_confirm_over_diameter(_Config) ->
 	#diameter_eap_app_DEA{'Session-Id' = SIdbin, 'Auth-Application-Id' = ?EAP_APPLICATION_ID,
 			'Auth-Request-Type' =  ?'DIAMETER_BASE_AUTH-REQUEST-TYPE_AUTHORIZE_AUTHENTICATE',
 			'Result-Code' = ?'DIAMETER_BASE_RESULT-CODE_MULTI_ROUND_AUTH',
-			'Origin-Host' = OriginHost, 'Origin-Realm' = OriginRealm,
 			'EAP-Payload' = [Payload1]} = DEA1,
 	#eap_packet{code = request, type = ?PWD, identifier = EapId1,
 		data = EapData1} = ocs_eap_codec:eap_packet(Payload1),
@@ -456,7 +432,6 @@ pwd_confirm_over_diameter(_Config) ->
 	#diameter_eap_app_DEA{'Session-Id' = SIdbin, 'Auth-Application-Id' = ?EAP_APPLICATION_ID,
 			'Auth-Request-Type' =  ?'DIAMETER_BASE_AUTH-REQUEST-TYPE_AUTHORIZE_AUTHENTICATE',
 			'Result-Code' = ?'DIAMETER_BASE_RESULT-CODE_MULTI_ROUND_AUTH',
-			'Origin-Host' = OriginHost, 'Origin-Realm' = OriginRealm,
 			'EAP-Payload' = [Payload2]} = DEA2,
 	#eap_packet{code = request, type = ?PWD, identifier = EapId2,
 		data = EapData2} = ocs_eap_codec:eap_packet(Payload2),
@@ -471,7 +446,6 @@ pwd_confirm_over_diameter(_Config) ->
 	#diameter_eap_app_DEA{'Session-Id' = SIdbin, 'Auth-Application-Id' = ?EAP_APPLICATION_ID,
 			'Auth-Request-Type' =  ?'DIAMETER_BASE_AUTH-REQUEST-TYPE_AUTHORIZE_AUTHENTICATE',
 			'Result-Code' = ?'DIAMETER_BASE_RESULT-CODE_SUCCESS',
-			'Origin-Host' = OriginHost, 'Origin-Realm' = OriginRealm,
 			'EAP-Payload' = [Payload3]} = DEA3,
 	#eap_packet{code = success,
 			identifier = EapId2} = ocs_eap_codec:eap_packet(Payload3),

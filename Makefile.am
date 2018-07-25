@@ -22,7 +22,7 @@ $(PACKAGE_VERSION).tar.gz: ocs.rel
 	cp ocs.rel $(PACKAGE_VERSION).rel
 	ERL_LIBS=$(ERLTMP)/lib RELDIR=releases $(ERL) -noinput -boot_var OTPHOME lib \
 			-eval "systools:make_script(\"$(PACKAGE_VERSION)\", [{variables, [{\"OTPHOME\", \"$(ERLTMP)\"}]}])" \
-			-eval "systools:make_tar(\"$(PACKAGE_VERSION)\", [{dirs, [include]}])" \
+			-eval "systools:make_tar(\"$(PACKAGE_VERSION)\", [{dirs, [include,mibs]}])" \
 			-s init stop
 	rm -rf $(ERLTMP)
 
@@ -32,5 +32,5 @@ install-data-hook: $(PACKAGE_VERSION).tar.gz
 
 EXTRA_DIST = $(PACKAGE_VERSION).tar.gz
 
-CLEANFILES = $(PACKAGE_VERSION).script $(PACKAGE_VERSION).boot $(PACKAGE_VERSION).tar.gz
+CLEANFILES = $(PACKAGE_VERSION).rel $(PACKAGE_VERSION).script $(PACKAGE_VERSION).boot $(PACKAGE_VERSION).tar.gz
 

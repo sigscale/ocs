@@ -313,15 +313,17 @@ service_options(Options) ->
 	Options1 = case lists:keymember('Origin-Host', 1, Options) of
 		true ->
 			Options;
+		false when length(Hostname) > 0 ->
+			[{'Origin-Host', Hostname} | Options];
 		false ->
-			[{'Origin-Host', Hostname} | Options]
+			[{'Origin-Host', "ocs"} | Options]
 	end,
 	Options2 = case lists:keymember('Origin-Realm', 1, Options1) of
 		true ->
 			Options1;
 		false ->
 			OriginRealm = case inet_db:res_option(domain) of
-				S when is_list(S) ->
+				S when length(S) > 0 ->
 					S;
 				_ ->
 					"example.net"
