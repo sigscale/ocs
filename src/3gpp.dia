@@ -573,7 +573,7 @@
       [ Called-Station-Id ]
 ;     [ 3GPP-Session-Stop-Indicator ]
       [ 3GPP-Selection-Mode ]
-;     [ 3GPP-Charging-Characteristics ]
+      [ 3GPP-Charging-Characteristics ]
 ;     [ Charging-Characteristics-Selection-Mode ]
       [ 3GPP-SGSN-MCC-MNC ]
       [ 3GPP-MS-TimeZone ]
