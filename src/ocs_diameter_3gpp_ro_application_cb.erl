@@ -388,54 +388,56 @@ process_request1(?'3GPP_CC-REQUEST-TYPE_UPDATE_REQUEST' = RequestType,
 		'Event-Timestamp' = Timestamp} = Request, SId, RequestNum, Subscriber,
 		OHost, _DHost, ORealm, _DRealm, Address, Port) ->
 	try
-		RSU =  case MSCC of
-			#'3gpp_ro_Multiple-Services-Credit-Control'{'Requested-Service-Unit' =
-					[RequestedServiceUnits | _]} ->
-				RequestedServiceUnits;
-			_ ->
-				throw(multiple_service_credit_control_avp_not_available)
+		ReserveAmount = case MSCC of
+			#'3gpp_ro_Multiple-Services-Credit-Control'{'Requested-Service-Unit'
+					= [#'3gpp_ro_Requested-Service-Unit'{'CC-Time'
+					= [CCTime]}]} when CCTime =/= [] ->
+				[{seconds, CCTime}];
+			#'3gpp_ro_Multiple-Services-Credit-Control'{'Requested-Service-Unit'
+					= [#'3gpp_ro_Requested-Service-Unit'{'CC-Total-Octets'
+					= [CCTotalOctets]}]} ->
+				[{octets, CCTotalOctets}];
+			#'3gpp_ro_Multiple-Services-Credit-Control'{'Requested-Service-Unit'
+					= [#'3gpp_ro_Requested-Service-Unit'{'CC-Output-Octets'
+					= [CCOutputOctets], 'CC-Input-Octets' = [CCInputOctets]}]}
+					when is_integer(CCInputOctets), is_integer(CCOutputOctets) ->
+				[{octets, CCOutputOctets + CCOutputOctets}];
+			#'3gpp_ro_Multiple-Services-Credit-Control'{'Requested-Service-Unit'
+					= [#'3gpp_ro_Requested-Service-Unit'{'CC-Service-Specific-Units'
+					= [CCSpecUnits]}]} when is_integer(CCSpecUnits) ->
+				[{messages, CCSpecUnits}];
+			#'3gpp_ro_Multiple-Services-Credit-Control'{'Requested-Service-Unit'
+					= [#'3gpp_ro_Requested-Service-Unit'{}]} ->
+				throw(unsupported_request_units);
+			#'3gpp_ro_Multiple-Services-Credit-Control'{} ->
+				[]
 		end,
-		{ReqUsageType, ReqUsage} = case RSU of
-			#'3gpp_ro_Requested-Service-Unit'{'CC-Time' = [CCTime]} when
-					CCTime =/= [] ->
-				{seconds, CCTime};
-			#'3gpp_ro_Requested-Service-Unit'{'CC-Total-Octets' = [CCTotalOctets]} ->
-				{octets, CCTotalOctets};
-			#'3gpp_ro_Requested-Service-Unit'{'CC-Output-Octets' = [CCOutputOctets],
-					'CC-Input-Octets' = [CCInputOctets]} when is_integer(CCInputOctets),
-					is_integer(CCOutputOctets) ->
-				{octets, CCOutputOctets + CCOutputOctets};
-			#'3gpp_ro_Requested-Service-Unit'{'CC-Service-Specific-Units' = [CCSpecUnits]} when
-					is_integer(CCSpecUnits) ->
-				{messages, CCSpecUnits};
-			_ ->
-				throw(unsupported_request_units)
-		end,
-		USU =  case MSCC of
-			#'3gpp_ro_Multiple-Services-Credit-Control'{'Used-Service-Unit' =
-					[UsedServiceUnit | _]} ->
-				UsedServiceUnit;
-			_ ->
-				throw(multiple_service_credit_control_avp_not_available)
-		end,
-		{UsedType, UsedUsage} = case USU of
-			#'3gpp_ro_Used-Service-Unit'{'CC-Time' = [UsedCCTime]} when UsedCCTime =/= [] ->
-				{seconds, UsedCCTime};
-			#'3gpp_ro_Used-Service-Unit'{'CC-Total-Octets' = [UsedCCTotalOctets]} ->
-				{octets, UsedCCTotalOctets};
-			#'3gpp_ro_Used-Service-Unit'{'CC-Output-Octets' = [UsedCCOutputOctets],
-					'CC-Input-Octets' = [UsedCCInputOctets]} when is_integer(UsedCCInputOctets),
+		DebitAmount = case MSCC of
+			#'3gpp_ro_Multiple-Services-Credit-Control'{'Used-Service-Unit'
+					= [#'3gpp_ro_Used-Service-Unit'{'CC-Time'
+					= [UsedCCTime]}]} when UsedCCTime =/= [] ->
+				[{seconds, UsedCCTime}];
+			#'3gpp_ro_Multiple-Services-Credit-Control'{'Used-Service-Unit'
+					= [#'3gpp_ro_Used-Service-Unit'{'CC-Total-Octets'
+					= [UsedCCTotalOctets]}]} ->
+				[{octets, UsedCCTotalOctets}];
+			#'3gpp_ro_Multiple-Services-Credit-Control'{'Used-Service-Unit'
+					= [#'3gpp_ro_Used-Service-Unit'{'CC-Output-Octets'
+					= [UsedCCOutputOctets], 'CC-Input-Octets'
+					= [UsedCCInputOctets]}]} when is_integer(UsedCCInputOctets),
 					is_integer(UsedCCOutputOctets) ->
-				{octets, UsedCCInputOctets + UsedCCOutputOctets};
-			#'3gpp_ro_Used-Service-Unit'{'CC-Service-Specific-Units' = [UsedCCSpecUnits]}
-					when is_integer(UsedCCSpecUnits) ->
-				{messages, UsedCCSpecUnits};
-			[] ->
-				throw(used_amount_not_available)
+				[{octets, UsedCCInputOctets + UsedCCOutputOctets}];
+			#'3gpp_ro_Multiple-Services-Credit-Control'{'Used-Service-Unit'
+					= [#'3gpp_ro_Used-Service-Unit'{'CC-Service-Specific-Units'
+					= [UsedCCSpecUnits]}]} when is_integer(UsedCCSpecUnits) ->
+				[{messages, UsedCCSpecUnits}];
+			#'3gpp_ro_Multiple-Services-Credit-Control'{'Used-Service-Unit'
+					= [#'3gpp_ro_Used-Service-Unit'{}]} ->
+				throw(unsupported_used_units);
+			#'3gpp_ro_Multiple-Services-Credit-Control'{} ->
+				[]
 		end,
 		Destination = call_destination(ServiceInformation),
-		ReserveAmount = [{ReqUsageType, ReqUsage}],
-		DebitAmount = [{UsedType, UsedUsage}],
 		ServiceType = service_type(SvcContextId),
 		ServiceNetwork = service_network(ServiceInformation),
 		Server = {Address, Port},
@@ -443,12 +445,12 @@ process_request1(?'3GPP_CC-REQUEST-TYPE_UPDATE_REQUEST' = RequestType,
 				Timestamp, Destination, originate, interim, DebitAmount, ReserveAmount,
 				[{'Session-Id', SId}]) of
 			{ok, _, GrantedAmount} ->
-				GrantedUnits = case ReqUsageType of
-					seconds ->
+				GrantedUnits = case ReserveAmount of
+					[{seconds, _}] ->
 						#'3gpp_ro_Granted-Service-Unit'{'CC-Time' = [GrantedAmount]};
-					octets ->
+					[{octets, _}] ->
 						#'3gpp_ro_Granted-Service-Unit'{'CC-Total-Octets' = [GrantedAmount]};
-					messages ->
+					[{messages, _}] ->
 						#'3gpp_ro_Granted-Service-Unit'{'CC-Service-Specific-Units' = [GrantedAmount]}
 				end,
 				Reply = generate_diameter_answer(SId,
