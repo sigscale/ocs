@@ -1,3 +1,16 @@
+2018-07-26  Vance Shipley <vances@sigscale.org>
+
+	* handle diameter ro interim requests with only used or requested units
+	* add missing avp for ps charging characteristics
+	* handle negative amounts in rated
+	* simplify bucket reads
+	* assign unique bucket id
+	* refactor to open radius disconnect port early
+	* simplify config construction
+	* include mibs in release
+	* safer origin-{host,realm} discovery
+	* correct double charging
+
 2018-07-05  Vance Shipley <vances@sigscale.org>
 
 	* safely get domain name
