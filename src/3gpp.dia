@@ -19,7 +19,7 @@
 ;  Accumulated-Cost                                       2052  Grouped          VM
 ;  Accuracy                                               3137
 ;  Adaptations                                            1217  Enumerated       VM
-;  ADC-Rule-Base-Name                                     1095
+   ADC-Rule-Base-Name                                     1095  UTF8String       VM
 ;  Additional-Content-Information                         1207  Grouped          VM
 ;  Additional-Exception-Reports                           3936  Enumerated       VM
    Additional-Type-Information                            1205  UTF8String       VM
@@ -79,9 +79,9 @@
    Change-Time                                            2038  Time             VM
    Charge-Reason-Code                                     2118  Enumerated       VM
    Charged-Party                                           857  UTF8String       VM
-;  Charging-Characteristics-Selection-Mode                2066  Enumerated       VM
+   Charging-Characteristics-Selection-Mode                2066  Enumerated       VM
    Charging-Per-IP-CAN-Session-Indicator                  4400  Enumerated       VM
-;  Charging-Rule-Base-Name                                1004  
+   Charging-Rule-Base-Name                                1004  UTF8String       VM
 ;  Class-Identifier                                       1214  Enumerated       VM
    Client-Address                                         2018  Address          VM
 ;  CN-IP-Multicast-Distribution                            921  
@@ -396,7 +396,9 @@
    Service-Specific-Info                                  1249  Grouped          VM
    Service-Specific-Type                                  1257  Unsigned32       VM
    Serving-Node-Type                                      2047  Enumerated       VM
-;  Serving-PLMN-Rate-Control                              4310  
+   Serving-PLMN-Rate-Control                              4310  Grouped          VM
+   Uplink-Rate-Limit                                      4311  Unsigned32       VM
+   Downlink-Rate-Limit                                    4312  Unsigned32       VM
    Session-Direction                                      2707  Enumerated       VM
    Session-Priority                                        650  Enumerated       VM
 ;  SGi-PtP-Tunnelling-Method                              3931  Enumerated       VM
@@ -438,7 +440,7 @@
    Target-IP-Address                                      4412  Address          VM
    Tariff-Information                                     2060  Grouped          VM
    Tariff-XML                                             2306  UTF8String       VM
-;  TDF-IP-Address                                         1091  
+   TDF-IP-Address                                         1091  Address          VM
    Teleservice                                            3413  OctetString      VM
 ;  Terminal-Information                                   1401  
    Terminating-IOI                                         840  UTF8String       VM
@@ -457,7 +459,9 @@
 ;  Token-Text                                             1215  UTF8String       VM
 ;  Total-Number-Of-Messages-Exploded                      2113  
 ;  Total-Number-Of-Messages-Sent                          2114  
-;  Traffic-Data-Volumes                                   2046  Grouped          VM
+   Traffic-Data-Volumes                                   2046  Grouped          VM
+   Accounting-Input-Octets                                 363  Unsigned64       VM
+   Accounting-Output-Octets                                364  Unsigned64       VM
    Transcoder-Inserted-Indication                         2605  Enumerated       VM
    Transit-IOI-List                                       2701  UTF8String       VM
 ;  Transmitter-Info                                       3468  Grouped          VM
@@ -477,7 +481,7 @@
    Usage-Information-Report-Sequence-Number               3439  Integer32        VM
 ;  User-CSG-Information                                   2319  Grouped          VM
 ;  User-Data                                               606  
-;  User-Location-Info-Time                                2812  
+   User-Location-Info-Time                                2812  Time             VM
 ;  User-Participating-Type                                1279  Enumerated       VM
    User-Session-Id                                         830  UTF8String       VM
 ;  UWAN-User-Location-Info                                3918  Grouped          VM
@@ -503,7 +507,7 @@
    3GPP-PDP-Type                                             3  Enumerated       VM
    3GPP-RAT-Type                                            21  OctetString      VM
    3GPP-Selection-Mode                                      12  UTF8String       VM
-;  3GPP-Session-Stop-Indicator                              11
+   3GPP-Session-Stop-Indicator                              11  OctetString      VM
    3GPP-SGSN-MCC-MNC                                        18  UTF8String       VM
    3GPP-User-Location-Info                                  22  OctetString      VM
    ;; 3GPP TS 29.214
@@ -559,7 +563,7 @@
       [ QoS-Information ]
      *[ SGSN-Address ]
      *[ GGSN-Address ]
-;    *[ TDF-IP-Address ]
+     *[ TDF-IP-Address ]
      *[ SGW-Address ]
      *[ EPDG-Address ]
      *[ TWAG-Address ]
@@ -571,16 +575,16 @@
       [ 3GPP-GGSN-MCC-MNC ]
       [ 3GPP-NSAPI ]
       [ Called-Station-Id ]
-;     [ 3GPP-Session-Stop-Indicator ]
+      [ 3GPP-Session-Stop-Indicator ]
       [ 3GPP-Selection-Mode ]
       [ 3GPP-Charging-Characteristics ]
-;     [ Charging-Characteristics-Selection-Mode ]
+      [ Charging-Characteristics-Selection-Mode ]
       [ 3GPP-SGSN-MCC-MNC ]
       [ 3GPP-MS-TimeZone ]
-;     [ Charging-Rule-Base-Name ]
-;     [ ADC-Rule-Base-Name ]
+      [ Charging-Rule-Base-Name ]
+      [ ADC-Rule-Base-Name ]
       [ 3GPP-User-Location-Info ]
-;     [ User-Location-Info-Time ]
+      [ User-Location-Info-Time ]
 ;     [ User-CSG-Information ]
 ;    *[ Presence-Reporting-Area-Information ]
 ;     [ 3GPP2-BSID ]
@@ -590,7 +594,7 @@
       [ PS-Furnish-Charging-Information ]
       [ PDP-Context-Type ]
 ;     [ Offline-Charging ]
-;    *[ Traffic-Data-Volumes ]
+     *[ Traffic-Data-Volumes ]
 ;    *[ Service-Data-Container ]
       [ User-Equipment-Info ]
 ;     [ Terminal-Information ]
@@ -612,7 +616,7 @@
 ;     [ SGi-PtP-Tunnelling-Method ]
 ;     [ CP-CIoT-EPS-Optimisation-Indicator ]
 ;     [ UNI-PDU-CP-Only-Flag ]
-;     [ Serving-PLMN-Rate-Control ]
+      [ Serving-PLMN-Rate-Control ]
 ;     [ APN-Rate-Control ]
       [ Charging-Per-IP-CAN-Session-Indicator ]
 ;     [ RRC-Cause-Counter ]
@@ -1090,6 +1094,30 @@
       [ Address-Data ]
       [ Address-Domain ]
 
+   Traffic-Data-Volumes ::= <AVP Header: 2046>
+      [ QoS-Information ]
+      [ Accounting-Input-Octets ]
+      [ Accounting-Output-Octets ]
+      [ Change-Condition ]
+      [ Change-Time ]
+      [ 3GPP-User-Location-Info ]
+;     [ UWAN-User-Location-Info ]
+      [ 3GPP-Charging-Id ]
+;     [ Presence-Reporting-Area-Status ]
+;     [ User-CSG-Information ]
+      [ 3GPP-RAT-Type ]
+;     [ Access-Availability-Change-Reason ]
+;     [ Related-Change-Condition-Information ]
+      [ Diagnostics ]
+;     [ Enhanced-Diagnostics ]
+;     [ CP-CIoT-EPS-Optimisation-Indicator ]
+      [ Serving-PLMN-Rate-Control ]
+
+   Serving-PLMN-Rate-Control ::= <AVP Header: 4310>
+      [ Uplink-Rate-Limit ]
+      [ Downlink-Rate-Limit ]
+     *[ AVP ]
+
 @enum Role-Of-Node
    ORIGINATING_ROLE  0
    TERMINATING_ROLE  1
@@ -1411,9 +1439,9 @@
 
 @enum SM-Device-Trigger-Indicator
    NotDeviceTrigger      0
-	DeviceTriggerRequest  1
-	DeviceTriggerReplace  2
-	DeviceTriggerRecall   3
+   DeviceTriggerRequest  1
+   DeviceTriggerReplace  2
+   DeviceTriggerRecall   3
 
 @enum SM-Service-Type
    VAS4SMSContentProcessing                0
@@ -1427,4 +1455,12 @@
    VAS4SMSAutoReply                        8
    VAS4SMSPersonalSignature                9
    VAS4SMSDeferredDelivery                10
+
+@enum Charging-Characteristics-Selection-Mode
+   ServingNodeSupplied          0
+   Subscriptionspecific         1
+   APNspecific                  2
+   HomeDefault                  3
+   RoamingDefault               4
+   VisitingDefault              5
 
