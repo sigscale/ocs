@@ -2183,7 +2183,7 @@ inventory([balance | T], #product{balance = BucketRefs} = Product, Acc) ->
 			CentsBalance = case Cents of
 				Cents when is_integer(Cents) ->
 					[{struct, [{"name", "cents"}, {"totalBalance",
-					{struct, [{"amount", Cents}, {"units", "cents"}]}}]}];
+					{struct, [{"amount", ocs_rest:millionths_out(Cents)}, {"units", "cents"}]}}]}];
 				undefined ->
 					[]
 			end,
