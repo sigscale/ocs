@@ -305,29 +305,33 @@ process_request1(?'3GPP_CC-REQUEST-TYPE_INITIAL_REQUEST' = RequestType,
 		'Event-Timestamp' = Timestamp} = Request, SId, RequestNum, Subscriber,
 		OHost, _DHost, ORealm, _DRealm, Address, Port) ->
 	try
-		ReserveAmount = case MSCC of
-			#'3gpp_ro_Multiple-Services-Credit-Control'{'Requested-Service-Unit'
+		{ServiceIdentifier, RatingGroup, ReserveAmount} = case MSCC of
+			#'3gpp_ro_Multiple-Services-Credit-Control'{'Service-Identifier' = SI,
+					'Rating-Group' = RG, 'Requested-Service-Unit'
 					= [#'3gpp_ro_Requested-Service-Unit'{'CC-Time'
 					= [CCTime]}]} when CCTime =/= [] ->
-				[{seconds, CCTime}];
-			#'3gpp_ro_Multiple-Services-Credit-Control'{'Requested-Service-Unit'
+				{SI, RG, [{seconds, CCTime}]};
+			#'3gpp_ro_Multiple-Services-Credit-Control'{'Service-Identifier' = SI,
+					'Rating-Group' = RG, 'Requested-Service-Unit'
 					= [#'3gpp_ro_Requested-Service-Unit'{'CC-Total-Octets'
 					= [CCTotalOctets]}]} ->
-				[{octets, CCTotalOctets}];
-			#'3gpp_ro_Multiple-Services-Credit-Control'{'Requested-Service-Unit'
+				{SI, RG, [{octets, CCTotalOctets}]};
+			#'3gpp_ro_Multiple-Services-Credit-Control'{'Service-Identifier' = SI,
+					'Rating-Group' = RG, 'Requested-Service-Unit'
 					= [#'3gpp_ro_Requested-Service-Unit'{'CC-Output-Octets'
 					= [CCOutputOctets], 'CC-Input-Octets' = [CCInputOctets]}]}
 					when is_integer(CCInputOctets), is_integer(CCOutputOctets) ->
-				[{octets, CCOutputOctets + CCOutputOctets}];
-			#'3gpp_ro_Multiple-Services-Credit-Control'{'Requested-Service-Unit'
+				{SI, RG, [{octets, CCOutputOctets + CCOutputOctets}]};
+			#'3gpp_ro_Multiple-Services-Credit-Control'{'Service-Identifier' = SI,
+					'Rating-Group' = RG, 'Requested-Service-Unit'
 					= [#'3gpp_ro_Requested-Service-Unit'{'CC-Service-Specific-Units'
 					= [CCSpecUnits]}]} when is_integer(CCSpecUnits) ->
-				[{messages, CCSpecUnits}];
+				{SI, RG, [{messages, CCSpecUnits}]};
 			#'3gpp_ro_Multiple-Services-Credit-Control'{'Requested-Service-Unit'
 					= [#'3gpp_ro_Requested-Service-Unit'{}]} ->
 				throw(unsupported_request_units);
 			#'3gpp_ro_Multiple-Services-Credit-Control'{} ->
-				[]
+				{[], [], []}
 		end,
 		Destination = call_destination(ServiceInformation),
 		ServiceType = service_type(SvcContextId),
@@ -344,21 +348,21 @@ process_request1(?'3GPP_CC-REQUEST-TYPE_INITIAL_REQUEST' = RequestType,
 					[{messages, _}] ->
 						#'3gpp_ro_Granted-Service-Unit'{'CC-Service-Specific-Units' = [GrantedAmount]}
 				end,
-				Reply = generate_diameter_answer(SId, GrantedUnits,
-						?'DIAMETER_BASE_RESULT-CODE_SUCCESS', OHost, ORealm,
-						RequestType, RequestNum),
+				Reply = generate_diameter_answer(SId, ServiceIdentifier, RatingGroup,
+						GrantedUnits, ?'DIAMETER_BASE_RESULT-CODE_SUCCESS',
+						OHost, ORealm, RequestType, RequestNum),
 				ok = ocs_log:acct_log(diameter, Server,
 						accounting_event_type(RequestType), Request, Reply, undefined),
 				Reply;
 			{out_of_credit, _SessionList} ->
-				Reply = generate_diameter_answer(SId, undefined,
-						?'IETF_RESULT-CODE_CREDIT_LIMIT_REACHED', OHost,
-						ORealm, RequestType, RequestNum),
+				Reply = generate_diameter_answer(SId, ServiceIdentifier, RatingGroup,
+						undefined, ?'IETF_RESULT-CODE_CREDIT_LIMIT_REACHED',
+						OHost, ORealm, RequestType, RequestNum),
 				ok = ocs_log:acct_log(diameter, Server,
 						accounting_event_type(RequestType), Request, Reply, undefined),
 				Reply;
 			{disabled, _SessionList} ->
-				Reply = generate_diameter_answer(SId,
+				Reply = generate_diameter_answer(SId, ServiceIdentifier, RatingGroup,
 						undefined, ?'IETF_RESULT-CODE_END_USER_SERVICE_DENIED', OHost,
 						ORealm, RequestType, RequestNum),
 				ok = ocs_log:acct_log(diameter, Server,
@@ -394,29 +398,33 @@ process_request1(?'3GPP_CC-REQUEST-TYPE_UPDATE_REQUEST' = RequestType,
 		'Event-Timestamp' = Timestamp} = Request, SId, RequestNum, Subscriber,
 		OHost, _DHost, ORealm, _DRealm, Address, Port) ->
 	try
-		ReserveAmount = case MSCC of
-			#'3gpp_ro_Multiple-Services-Credit-Control'{'Requested-Service-Unit'
+		{ServiceIdentifier, RatingGroup, ReserveAmount} = case MSCC of
+			#'3gpp_ro_Multiple-Services-Credit-Control'{'Service-Identifier' = SI,
+					'Rating-Group' = RG, 'Requested-Service-Unit'
 					= [#'3gpp_ro_Requested-Service-Unit'{'CC-Time'
 					= [CCTime]}]} when CCTime =/= [] ->
-				[{seconds, CCTime}];
-			#'3gpp_ro_Multiple-Services-Credit-Control'{'Requested-Service-Unit'
+				{SI, RG, [{seconds, CCTime}]};
+			#'3gpp_ro_Multiple-Services-Credit-Control'{'Service-Identifier' = SI,
+					'Rating-Group' = RG, 'Requested-Service-Unit'
 					= [#'3gpp_ro_Requested-Service-Unit'{'CC-Total-Octets'
 					= [CCTotalOctets]}]} ->
-				[{octets, CCTotalOctets}];
-			#'3gpp_ro_Multiple-Services-Credit-Control'{'Requested-Service-Unit'
+				{SI, RG, [{octets, CCTotalOctets}]};
+			#'3gpp_ro_Multiple-Services-Credit-Control'{'Service-Identifier' = SI,
+					'Rating-Group' = RG, 'Requested-Service-Unit'
 					= [#'3gpp_ro_Requested-Service-Unit'{'CC-Output-Octets'
 					= [CCOutputOctets], 'CC-Input-Octets' = [CCInputOctets]}]}
 					when is_integer(CCInputOctets), is_integer(CCOutputOctets) ->
-				[{octets, CCOutputOctets + CCOutputOctets}];
-			#'3gpp_ro_Multiple-Services-Credit-Control'{'Requested-Service-Unit'
+				{SI, RG, [{octets, CCOutputOctets + CCOutputOctets}]};
+			#'3gpp_ro_Multiple-Services-Credit-Control'{'Service-Identifier' = SI,
+					'Rating-Group' = RG, 'Requested-Service-Unit'
 					= [#'3gpp_ro_Requested-Service-Unit'{'CC-Service-Specific-Units'
 					= [CCSpecUnits]}]} when is_integer(CCSpecUnits) ->
-				[{messages, CCSpecUnits}];
+				{SI, RG, [{messages, CCSpecUnits}]};
 			#'3gpp_ro_Multiple-Services-Credit-Control'{'Requested-Service-Unit'
 					= [#'3gpp_ro_Requested-Service-Unit'{}]} ->
 				throw(unsupported_request_units);
 			#'3gpp_ro_Multiple-Services-Credit-Control'{} ->
-				[]
+				{[], [], []}
 		end,
 		DebitAmount = case MSCC of
 			#'3gpp_ro_Multiple-Services-Credit-Control'{'Used-Service-Unit'
@@ -459,21 +467,21 @@ process_request1(?'3GPP_CC-REQUEST-TYPE_UPDATE_REQUEST' = RequestType,
 					[{messages, _}] ->
 						#'3gpp_ro_Granted-Service-Unit'{'CC-Service-Specific-Units' = [GrantedAmount]}
 				end,
-				Reply = generate_diameter_answer(SId,
+				Reply = generate_diameter_answer(SId, ServiceIdentifier, RatingGroup,
 						GrantedUnits, ?'DIAMETER_BASE_RESULT-CODE_SUCCESS', OHost, ORealm,
 						RequestType, RequestNum),
 				ok = ocs_log:acct_log(diameter, Server,
 						accounting_event_type(RequestType), Request, Reply, undefined),
 				Reply;
 			{out_of_credit, _SessionList} ->
-				Reply = generate_diameter_answer(SId,
+				Reply = generate_diameter_answer(SId, ServiceIdentifier, RatingGroup,
 						undefined, ?'IETF_RESULT-CODE_CREDIT_LIMIT_REACHED', OHost,
 						ORealm, RequestType, RequestNum),
 				ok = ocs_log:acct_log(diameter, Server,
 						accounting_event_type(RequestType), Request, Reply, undefined),
 				Reply;
 			{disabled, _SessionList} ->
-				Reply = generate_diameter_answer(SId,
+				Reply = generate_diameter_answer(SId, ServiceIdentifier, RatingGroup,
 						undefined, ?'IETF_RESULT-CODE_END_USER_SERVICE_DENIED', OHost,
 						ORealm, RequestType, RequestNum),
 				ok = ocs_log:acct_log(diameter, Server,
@@ -542,23 +550,23 @@ process_request1(?'3GPP_CC-REQUEST-TYPE_TERMINATION_REQUEST' = RequestType,
 		case ocs_rating:rate(diameter, ServiceType, ServiceNetwork, Subscriber, Timestamp,
 				Destination, originate, final, DebitAmount, [], [{'Session-Id', SId}]) of
 			{ok, _, 0, Rated} ->
-				Reply = generate_diameter_answer(SId,
-						undefined, ?'DIAMETER_BASE_RESULT-CODE_SUCCESS', OHost, ORealm,
-						RequestType, RequestNum),
+				Reply = generate_diameter_answer(SId, [], [], undefined,
+						?'DIAMETER_BASE_RESULT-CODE_SUCCESS',
+						OHost, ORealm, RequestType, RequestNum),
 				ok = ocs_log:acct_log(diameter, Server,
 						accounting_event_type(RequestType), Request, Reply, [Rated]),
 				Reply;
 			{out_of_credit, _SessionList, Rated} ->
-				Reply = generate_diameter_answer(SId,
-						undefined, ?'IETF_RESULT-CODE_CREDIT_LIMIT_REACHED', OHost,
-						ORealm, RequestType, RequestNum),
+				Reply = generate_diameter_answer(SId, [], [], undefined,
+						?'IETF_RESULT-CODE_CREDIT_LIMIT_REACHED',
+						OHost, ORealm, RequestType, RequestNum),
 				ok = ocs_log:acct_log(diameter, Server,
 						accounting_event_type(RequestType), Request, Reply, [Rated]),
 				Reply;
 			{disabled, _SessionList} ->
-				Reply = generate_diameter_answer(SId,
-						undefined, ?'IETF_RESULT-CODE_END_USER_SERVICE_DENIED', OHost,
-						ORealm, RequestType, RequestNum),
+				Reply = generate_diameter_answer(SId, [], [], undefined,
+						?'IETF_RESULT-CODE_END_USER_SERVICE_DENIED',
+						OHost, ORealm, RequestType, RequestNum),
 				ok = ocs_log:acct_log(diameter, Server,
 						accounting_event_type(RequestType), Request, Reply, undefined),
 				Reply;
@@ -586,10 +594,12 @@ process_request1(?'3GPP_CC-REQUEST-TYPE_TERMINATION_REQUEST' = RequestType,
 					ORealm, RequestType, RequestNum)
 	end.
 
--spec generate_diameter_answer(SessionId, GrantedUnits,
+-spec generate_diameter_answer(SessionId, ServiceIdentifier, RatingGroup, GrantedUnits,
 		ResultCode, OriginHost, OriginRealm, RequestType, RequestNum) -> Result
 			when
 				SessionId :: string(),
+				ServiceIdentifier :: [non_neg_integer()],
+				RatingGroup :: [non_neg_integer()],
 				GrantedUnits :: undefined | #'3gpp_ro_Granted-Service-Unit'{},
 				ResultCode :: integer(),
 				OriginHost :: string(),
@@ -599,7 +609,7 @@ process_request1(?'3GPP_CC-REQUEST-TYPE_TERMINATION_REQUEST' = RequestType,
 				Result :: #'3gpp_ro_CCA'{}.
 %% @doc Send CCA to DIAMETER client indicating a successful operation.
 %% @hidden
-generate_diameter_answer(SId, undefined,
+generate_diameter_answer(SId, _ServiceIdentifier, _RatingGroup, undefined,
 		?'IETF_RESULT-CODE_CREDIT_LIMIT_REACHED', OHost, ORealm,
 		RequestType, RequestNum) ->
 	#'3gpp_ro_CCA'{'Session-Id' = SId,
@@ -607,15 +617,17 @@ generate_diameter_answer(SId, undefined,
 			'Origin-Host' = OHost, 'Origin-Realm' = ORealm,
 			'Auth-Application-Id' = ?RO_APPLICATION_ID, 'CC-Request-Type' = RequestType,
 			'CC-Request-Number' = RequestNum};
-generate_diameter_answer(SId, undefined, ResultCode, OHost,
-		ORealm, RequestType, RequestNum) ->
+generate_diameter_answer(SId, _ServiceIdentifier, _RatingGroup, undefined,
+		ResultCode, OHost, ORealm, RequestType, RequestNum) ->
 	#'3gpp_ro_CCA'{'Session-Id' = SId, 'Result-Code' = ResultCode,
 			'Origin-Host' = OHost, 'Origin-Realm' = ORealm,
 			'Auth-Application-Id' = ?RO_APPLICATION_ID, 'CC-Request-Type' = RequestType,
 			'CC-Request-Number' = RequestNum};
-generate_diameter_answer(SId, GrantedUnits, ResultCode, OHost,
-		ORealm, RequestType, RequestNum) ->
+generate_diameter_answer(SId, ServiceIdentifier, RatingGroup, GrantedUnits,
+		ResultCode, OHost, ORealm, RequestType, RequestNum) ->
 	MultiServices_CC = #'3gpp_ro_Multiple-Services-Credit-Control'{
+			'Service-Identifier' = ServiceIdentifier,
+			'Rating-Group' = RatingGroup,
 			'Granted-Service-Unit' = [GrantedUnits]},
 	#'3gpp_ro_CCA'{'Session-Id' = SId, 'Result-Code' = ResultCode,
 			'Origin-Host' = OHost, 'Origin-Realm' = ORealm,
