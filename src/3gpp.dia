@@ -510,6 +510,8 @@
    3GPP-Session-Stop-Indicator                              11  OctetString      VM
    3GPP-SGSN-MCC-MNC                                        18  UTF8String       VM
    3GPP-User-Location-Info                                  22  OctetString      VM
+   3GPP-GPRS-Negotiated-QoS-Profile                          5  UTF8String       VM
+   3GPP-IMEISV                                              20  UTF8String       VM
    ;; 3GPP TS 29.214
    Media-Component-Number                                  518  Unsigned32       VM
    Flow-Number                                             509  Unsigned32       VM
@@ -623,6 +625,8 @@
       [ 3GPP-PS-Data-Off-Status ]
 ;     [ SCS-AS-Address ]
       [ Unused-Quota-Timer ]
+      [ 3GPP-GPRS-Negotiated-QoS-Profile ]
+      [ 3GPP-IMEISV ]
 
    IMS-Information ::= <AVP Header: 876>
       { Node-Functionality }
