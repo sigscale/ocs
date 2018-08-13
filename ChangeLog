@@ -1,3 +1,8 @@
+2018-08-13  Vance Shipley <vances@sigscale.org>
+
+	* gui fix for subscriber balance
+	* additional diameter ps-information 3gpp avps
+
 2018-08-08  Vance Shipley <vances@sigscale.org>
 
 	* include service-identifier and rating-group with granted-service-unit
