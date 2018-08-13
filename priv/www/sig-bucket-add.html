@@ -181,22 +181,22 @@
 			},
 			_bucketAddSubmit: function(event) {
 				var ajaxBucket = this.$.addBucketAjax;
-				var bucketTop = new Object();
-				name =  "channel";
-				bucketTop.channel = {name};
+				var bucketTop = {name: "channel"};
+				var bucketUnits;
+				var bucketAmount;
 				if(document.getElementById("amount").value) {
 					if(document.getElementById("addUnitsBucket").selected == 0) {
-						units = "octets";
+						bucketUnits = "octets";
 					}
 					else if(document.getElementById("addUnitsBucket").selected == 1) {
-						units = "cents";
+						bucketUnits = "cents";
 					}
 					else if(document.getElementById("addUnitsBucket").selected == 2) {
-						units = "seconds";
+						bucketUnits = "seconds";
 					} else {
-						units = "cents";
+						bucketUnits = "cents";
 					}
-					if(units && document.getElementById("amount").value) {
+					if(bucketUnits && document.getElementById("amount").value) {
 						var size = document.getElementById("amount").value;
 						var len = size.length;
 						var m = size.charAt(len - 1);
@@ -205,37 +205,39 @@
 						} else {
 							var s = size;
 						}
-						if(units == "octets") {
+						if(bucketUnits == "octets") {
 							if (m == "m") {
-								amount = s + "000000b";
+								bucketAmount = s + "000000b";
 							} else if(m == "g") {
-								amount = s + "000000000b";
+								bucketAmount = s + "000000000b";
 							} else if(m == "k") {
-								amount = s + "000b";
+								bucketAmount = s + "000b";
 							} else {
-								amount = s + "b";
+								bucketAmount = s + "b";
 							}
-						} else if(units == "seconds") {
+						} else if(bucketUnits == "cents") {
+							bucketAmount = document.getElementById("amount").value;
+						} else if(bucketUnits == "seconds") {
 							var n = Number(s);
 							if(m == "m") {
 								n = n * 60;
-								amount = n.toString() + "s";
+								bucketAmount = n.toString() + "s";
 							} else if(m == "h") {
 								n = n * 3600;
-								amount = n.toString() + "s";
+								bucketAmount = n.toString() + "s";
 							} else {
-								amount = n.toString() + "s";
+								bucketAmount = n.toString() + "s";
 							}
 						}
-					bucketTop.amount = {units, amount};
+					bucketTop.amount = {units: bucketUnits, amount: bucketAmount};
 					}
 				}
-				id = this.$.addProduct.value;
-				href = "/productInventoryManagement/v2/product/" + id;
-				bucketTop.product = {id, href};
+				proId = this.$.addProduct.value;
+				bucketTop.product = {id: proId,
+						href: "/productInventoryManagement/v2/product/" + proId};
 				ajaxBucket.headers['Content-type'] = "application/json";
 				ajaxBucket.body = bucketTop;
-				ajaxBucket.url="/balanceManagement/v1/product/" + id + "/balanceTopup";
+				ajaxBucket.url="/balanceManagement/v1/product/" + proId + "/balanceTopup";
 				ajaxBucket.generateRequest();
 				this.$.addBucketModal.close();
 				document.getElementById("amount").value = null;
