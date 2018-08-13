@@ -336,8 +336,8 @@
 				if (ajax.loading) {
 					ajax.lastRequest.completes.then(function(request) {
 						var startRange = params.page * params.pageSize + 1;
-						EndRange = startRange + params.pageSize - 1;
-						ajax.headers['Range'] = "items=" + startRange + "-" + EndRange;
+						var endRange = startRange + params.pageSize - 1;
+						ajax.headers['Range'] = "items=" + startRange + "-" + endRange;
 						if (serviceList.etag && params.page > 0) {
 							ajax.headers['If-Range'] = serviceList.etag;
 						} else {
@@ -347,8 +347,8 @@
 					}, handleAjaxError).then(handleAjaxResponse, handleAjaxError);
 				} else {
 					var startRange = params.page * params.pageSize + 1;
-					EndRange = startRange + params.pageSize - 1;
-					ajax.headers['Range'] = "items=" + startRange + "-" + EndRange;
+					var endRange = startRange + params.pageSize - 1;
+					ajax.headers['Range'] = "items=" + startRange + "-" + endRange;
 					if (serviceList.etag && params.page > 0) {
 						ajax.headers['If-Range'] = serviceList.etag;
 					} else {
