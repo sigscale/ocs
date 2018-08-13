@@ -300,9 +300,9 @@
 				}
 				if (ajax.loading) {
 					ajax.lastRequest.completes.then(function(request) {
-						StartRange = params.page * params.pageSize + 1;
-						EndRange = StartRange + params.pageSize - 1;
-						ajax.headers['Range'] = "items=" + StartRange + "-" + EndRange;
+						var startRange = params.page * params.pageSize + 1;
+						EndRange = startRange + params.pageSize - 1;
+						ajax.headers['Range'] = "items=" + startRange + "-" + EndRange;
 						if (ipdrLogListWlan.etag && params.page > 0) {
 							ajax.headers['If-Range'] = ipdrLogListWlan.etag;
 						} else {
@@ -311,9 +311,9 @@
 						return ajax.generateRequest().completes;
 					}, handleAjaxError).then(handleAjaxResponse, handleAjaxError);
 				} else {
-					StartRange = params.page * params.pageSize + 1;
-					EndRange = StartRange + params.pageSize - 1;
-					ajax.headers['Range'] = "items=" + StartRange + "-" + EndRange;
+					var startRange = params.page * params.pageSize + 1;
+					EndRange = startRange + params.pageSize - 1;
+					ajax.headers['Range'] = "items=" + startRange + "-" + EndRange;
 					if (ipdrLogListWlan.etag && params.page > 0) {
 						ajax.headers['If-Range'] = ipdrLogListWlan.etag;
 					} else {
