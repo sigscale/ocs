@@ -14,9 +14,6 @@ erl_DATA = diameter_gen_ietf.erl \
 
 DIAMETERC=$(ERLANG_LIB_DIR_diameter)/bin/diameterc
 
-$(top_builddir)/ebin/%.beam:%.erl
-	$(ERLC) $(ERLCFLAGS) $<
-
 diameter_gen_ietf.erl:	ietf.dia
 	$(DIAMETERC) -H $<
 
