@@ -627,6 +627,7 @@ generate_diameter_answer(SId, ServiceIdentifier, RatingGroup, GrantedUnits,
 		ResultCode, OHost, ORealm, RequestType, RequestNum) ->
 	MultiServices_CC = #'3gpp_ro_Multiple-Services-Credit-Control'{
 			'Service-Identifier' = ServiceIdentifier,
+			'Result-Code' = ResultCode,
 			'Rating-Group' = RatingGroup,
 			'Granted-Service-Unit' = [GrantedUnits]},
 	#'3gpp_ro_CCA'{'Session-Id' = SId, 'Result-Code' = ResultCode,
