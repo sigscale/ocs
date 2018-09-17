@@ -1,3 +1,9 @@
+2018-09-07  Vance Shipley <vances@sigscale.org>
+
+	* include result code in mscc of cca
+	* use sigscale supported-vendor-id
+	* use 3gpp vendor-id
+
 2018-08-13  Vance Shipley <vances@sigscale.org>
 
 	* gui fix for subscriber balance

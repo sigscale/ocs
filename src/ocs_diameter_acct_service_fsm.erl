@@ -330,9 +330,10 @@ service_options(Options) ->
 			end,
 			[{'Origin-Realm', OriginRealm} | Options1]
 	end,
-	Options2 ++ [{'Vendor-Id', 50386},
+	Options2 ++ [{'Vendor-Id', 10415},
 		{'Product-Name', "SigScale OCS"},
 		{'Firmware-Revision', Version},
+		{'Supported-Vendor-Id', [50386]},
 		{'Auth-Application-Id', [?RO_APPLICATION_ID]},
 		{restrict_connections, false},
 		{string_decode, false},
