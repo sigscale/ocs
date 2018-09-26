@@ -1958,28 +1958,44 @@ open_log1(Directory, Log, LogSize, LogFiles, LogNodes) ->
 					{type, wrap}, {size, {LogSize, LogFiles}},
 					{distributed, [node() | LogNodes]}]) of
 		{ok, _} = Result ->
-			open_log2(Log, [{node(), Result}], [], undefined);
+			open_log3(Log, [{node(), Result}], [], undefined);
+		{error, {size_mismatch, _CurrentSize, {LogSize, LogFiles}}} ->
+			open_log2(Log, FileName, LogSize, LogFiles, LogNodes);
 		{repaired, _, _, _} = Result ->
-			open_log2(Log, [{node(), Result}], [], undefined);
+			open_log3(Log, [{node(), Result}], [], undefined);
 		{error, _} = Result ->
-			open_log2(Log, [], [{node(), Result}], undefined);
+			open_log3(Log, [], [{node(), Result}], undefined);
 		{OkNodes, ErrNodes} ->
-			open_log2(Log, OkNodes, ErrNodes, undefined)
+			open_log3(Log, OkNodes, ErrNodes, undefined)
 	end.
 %% @hidden
-open_log2(Log, OkNodes,
+open_log2(Log, FileName, LogSize, LogFiles, LogNodes) ->
+	case disk_log:open([{name, ?ACCTLOG}, {file, FileName}, {type, wrap},
+			{distributed, [node() | LogNodes]}]) of
+		{error, _} = Result ->
+			open_log3(Log, [], [{node(), Result}], undefined);
+		{OkNodes, ErrNodes} ->
+			case disk_log:change_size(?ACCTLOG, {LogSize, LogFiles}) of
+				ok ->
+					open_log3(Log, OkNodes, ErrNodes, undefined);
+				{error, Reason} ->
+					{error, Reason}
+			end
+	end.
+%% @hidden
+open_log3(Log, OkNodes,
 		[{Node, {error, {node_already_open, _}}} | T], Reason)
 		when Node == node() ->
-	open_log2(Log, [{Node, {ok, Log}} | OkNodes], T, Reason);
-open_log2(Log, OkNodes, [{_, {error, {node_already_open, _}}} | T], Reason) ->
-	open_log2(Log, OkNodes, T, Reason);
-open_log2(Log, OkNodes, [{Node, Reason1} | T], Reason2) ->
+	open_log3(Log, [{Node, {ok, Log}} | OkNodes], T, Reason);
+open_log3(Log, OkNodes, [{_, {error, {node_already_open, _}}} | T], Reason) ->
+	open_log3(Log, OkNodes, T, Reason);
+open_log3(Log, OkNodes, [{Node, Reason1} | T], Reason2) ->
 	Descr = lists:flatten(disk_log:format_error(Reason1)),
 	Trunc = lists:sublist(Descr, length(Descr) - 1),
 	error_logger:error_report([Trunc, {module, ?MODULE},
 		{log, Log}, {node, Node}, {error, Reason1}]),
-	open_log2(Log, OkNodes, T, Reason2);
-open_log2(_Log, OkNodes, [], Reason) ->
+	open_log3(Log, OkNodes, T, Reason2);
+open_log3(_Log, OkNodes, [], Reason) ->
 	case lists:keymember(node(), 1, OkNodes) of
 		true ->
 			ok;
