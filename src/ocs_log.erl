@@ -34,6 +34,7 @@
 -export([get_range/3, last/2, dump_file/2, httpd_logname/1,
 			http_file/2, date/1, iso8601/1]).
 -export([http_query/8]).
+-export([log_name/1]).
 
 %% exported the private function
 -export([acct_query/4, ipdr_query/2, auth_query/5, abmf_query/6]).
@@ -47,10 +48,6 @@
 -include("diameter_gen_nas_application_rfc7155.hrl").
 -include("diameter_gen_eap_application_rfc4072.hrl").
 
--define(ACCTLOG, ocs_acct).
--define(AUTHLOG, ocs_auth).
--define(BALANCELOG, ocs_abmf).
-
 %% support deprecated_time_unit()
 -define(MILLISECOND, milli_seconds).
 %-define(MILLISECOND, millisecond).
@@ -62,6 +59,15 @@
 %%  The ocs_log public API
 %%----------------------------------------------------------------------
 
+-spec log_name(Var) -> Name
+	when
+		Var :: atom(),
+		Name :: term().
+%% @doc Return log name from `Var' application environment variable.
+log_name(Var) ->
+	{ok, Name} = application:get_env(ocs, Var),
+	Name.
+
 -spec acct_open() -> Result
 	when
 		Result :: ok | {error, Reason},
@@ -72,7 +78,7 @@ acct_open() ->
 	{ok, LogSize} = application:get_env(ocs, acct_log_size),
 	{ok, LogFiles} = application:get_env(ocs, acct_log_files),
 	{ok, LogNodes} = application:get_env(ocs, acct_log_nodes),
-	open_log(Directory, ?ACCTLOG, LogSize, LogFiles, LogNodes).
+	open_log(Directory, log_name(acct_log_name), LogSize, LogFiles, LogNodes).
 
 -spec acct_log(Protocol, Server, Type, Request, Response, Rated) -> Result
 	when
@@ -91,7 +97,7 @@ acct_open() ->
 %% @doc Write an event to accounting log.
 acct_log(Protocol, Server, Type, Request, Response, Rated) ->
 	Event = [Protocol, node(), Server, Type, Request, Response, Rated],
-	write_log(?ACCTLOG, Event).
+	write_log(log_name(acct_log_name), Event).
 
 -spec acct_close() -> Result
 	when
@@ -99,7 +105,7 @@ acct_log(Protocol, Server, Type, Request, Response, Rated) ->
 		Reason :: term().
 %% @doc Close accounting disk log.
 acct_close() ->
-	close_log(?ACCTLOG).
+	close_log(log_name(acct_log_name)).
 
 -spec acct_query(Continuation, Start, End, Types, AttrsMatch) -> Result
 	when
@@ -165,7 +171,7 @@ acct_query(Continuation, Start, End, Types, AttrsMatch) ->
 %%
 acct_query(Continuation, Start, End, Protocol, Types, AttrsMatch) ->
 	MFA = {?MODULE, acct_query, [Protocol, Types, AttrsMatch]},
-	query_log(Continuation, Start, End, ?ACCTLOG, MFA).
+	query_log(Continuation, Start, End, log_name(acct_log_name), MFA).
 
 -spec auth_open() -> Result
 	when
@@ -177,7 +183,7 @@ auth_open() ->
 	{ok, LogSize} = application:get_env(ocs, auth_log_size),
 	{ok, LogFiles} = application:get_env(ocs, auth_log_files),
 	{ok, LogNodes} = application:get_env(ocs, auth_log_nodes),
-	open_log(Directory, ?AUTHLOG, LogSize, LogFiles, LogNodes).
+	open_log(Directory, log_name(auth_log_name), LogSize, LogFiles, LogNodes).
 
 -spec auth_log(Protocol, Server, Client, Type, RequestAttributes,
 		ResponseAttributes) -> Result
@@ -196,7 +202,7 @@ auth_open() ->
 auth_log(Protocol, Server, Client, Type, RequestAttributes, ResponseAttributes) ->
 	Event = [Protocol, node(), Server, Client, Type,
 			RequestAttributes, ResponseAttributes],
-	write_log(?AUTHLOG, Event).
+	write_log(log_name(auth_log_name), Event).
 
 -spec auth_log(Protocol, Server, Client, Request, Response) -> Result
 	when
@@ -212,7 +218,7 @@ auth_log(Protocol, Server, Client, Type, RequestAttributes, ResponseAttributes) 
 %% @doc Write a DIAMETER event to authorization log.
 auth_log(Protocol, Server, Client, Request, Response) ->
 	Event = [Protocol, node(), Server, Client, Request, Response],
-	write_log(?AUTHLOG, Event).
+	write_log(log_name(auth_log_name), Event).
 
 -spec auth_query(Continuation, Start, End, Types,
 		ReqAttrsMatch, RespAttrsMatch) -> Result
@@ -286,7 +292,7 @@ auth_query(Continuation, Start, End, Types, ReqAttrsMatch, RespAttrsMatch) ->
 %%
 auth_query(Continuation, Start, End, Protocol, Types, ReqAttrsMatch, RespAttrsMatch) ->
 	MFA = {?MODULE, auth_query, [Protocol, Types, ReqAttrsMatch, RespAttrsMatch]},
-	query_log(Continuation, Start, End, ?AUTHLOG, MFA).
+	query_log(Continuation, Start, End, log_name(auth_log_name), MFA).
 
 -spec auth_close() -> Result
 	when
@@ -294,7 +300,7 @@ auth_query(Continuation, Start, End, Protocol, Types, ReqAttrsMatch, RespAttrsMa
 		Reason :: term().
 %% @doc Close auth disk log.
 auth_close() ->
-	close_log(?AUTHLOG).
+	close_log(log_name(auth_log_name)).
 
 -record(event,
 		{host :: string(),
@@ -453,7 +459,7 @@ ipdr_log(Type, File, Start, End) when is_list(File),
 			case disk_log:log(IpdrLog, IpdrDoc) of
 				ok ->
 					ipdr_log1(IpdrLog, Start, End,
-							start_binary_tree(?ACCTLOG, Start, End));
+							start_binary_tree(log_name(acct_log_name), Start, End));
 				{error, Reason} ->
 					Descr = lists:flatten(disk_log:format_error(Reason)),
 					Trunc = lists:sublist(Descr, length(Descr) - 1),
@@ -474,18 +480,18 @@ ipdr_log1(IpdrLog, _Start, _End, {error, Reason}) ->
 	Descr = lists:flatten(disk_log:format_error(Reason)),
 	Trunc = lists:sublist(Descr, length(Descr) - 1),
 	error_logger:error_report([Trunc, {module, ?MODULE},
-			{log, ?ACCTLOG}, {error, Reason}]),
+			{log, log_name(acct_log_name)}, {error, Reason}]),
 	ipdr_log4(IpdrLog, 0);
 ipdr_log1(IpdrLog, _Start, _End, eof) ->
 	ipdr_log4(IpdrLog, 0);
 ipdr_log1(IpdrLog, Start, End, Cont) ->
-	ipdr_log2(IpdrLog, Start, End, [], disk_log:chunk(?ACCTLOG, Cont)).
+	ipdr_log2(IpdrLog, Start, End, [], disk_log:chunk(log_name(acct_log_name), Cont)).
 %% @hidden
 ipdr_log2(IpdrLog, _Start, _End, _PrevChunk, {error, Reason}) ->
 	Descr = lists:flatten(disk_log:format_error(Reason)),
 	Trunc = lists:sublist(Descr, length(Descr) - 1),
 	error_logger:error_report([Trunc, {module, ?MODULE},
-			{log, ?ACCTLOG}, {error, Reason}]),
+			{log, log_name(acct_log_name)}, {error, Reason}]),
 	ipdr_log4(IpdrLog, 0);
 ipdr_log2(IpdrLog, _Start, _End, [], eof) ->
 	ipdr_log4(IpdrLog, 0);
@@ -499,7 +505,7 @@ ipdr_log2(IpdrLog, Start, End, PrevChunk, eof) ->
 			{eof, lists:dropwhile(Fstart, PrevChunk)});
 ipdr_log2(IpdrLog, Start, End, _PrevChunk, {Cont, [H | T]})
 		when element(1, H) < Start ->
-	ipdr_log2(IpdrLog, Start, End, T, disk_log:chunk(?ACCTLOG, Cont));
+	ipdr_log2(IpdrLog, Start, End, T, disk_log:chunk(log_name(acct_log_name), Cont));
 ipdr_log2(IpdrLog, Start, End, PrevChunk, {Cont, Chunk}) ->
 	Fstart = fun(R) when element(1, R) < Start ->
 				true;
@@ -516,7 +522,7 @@ ipdr_log3(IpdrLog, _Start, _End, SeqNum, {error, _Reason}) ->
 ipdr_log3(IpdrLog, _Start, _End, SeqNum, {eof, []}) ->
 	ipdr_log4(IpdrLog, SeqNum);
 ipdr_log3(IpdrLog, Start, End, SeqNum, {Cont, []}) ->
-	ipdr_log3(IpdrLog, Start, End, SeqNum, disk_log:chunk(?ACCTLOG, Cont));
+	ipdr_log3(IpdrLog, Start, End, SeqNum, disk_log:chunk(log_name(acct_log_name), Cont));
 ipdr_log3(IpdrLog, _Start, End, SeqNum, {_Cont, [H | _]})
 		when element(1, H) > End ->
 	ipdr_log4(IpdrLog, SeqNum);
@@ -960,7 +966,7 @@ abmf_open() ->
 	{ok, LogSize} = application:get_env(ocs, abmf_log_size),
 	{ok, LogFiles} = application:get_env(ocs, abmf_log_files),
 	{ok, LogNodes} = application:get_env(ocs, abmf_log_nodes),
-	open_log(Directory, ?BALANCELOG, LogSize, LogFiles, LogNodes).
+	open_log(Directory, log_name(abmf_log_name), LogSize, LogFiles, LogNodes).
 
 -spec abmf_log(Type, ServiceId, Bucket, Units, Product, Amount,
 		AmountBefore, AmountAfter, Validity, Channel, Requestor,
@@ -999,7 +1005,7 @@ abmf_log(Type, ServiceId, Bucket, Units, Product, Amount,
 	Event = [node(), Type, ServiceId, Bucket, Units, Product, Amount,
 			AmountBefore, AmountAfter, Validity, Channel, Requestor,
 			RelatedParty, PaymentMeans, Action, Status],
-	write_log(?BALANCELOG, Event).
+	write_log(log_name(abmf_log_name), Event).
 
 -spec abmf_query(Continuation, Start, End, Type, Subscriber,
 		Bucket, Units, Product) -> Result
@@ -1020,7 +1026,7 @@ abmf_log(Type, ServiceId, Bucket, Units, Product, Amount,
 abmf_query(Continuation, Start, End, Type, Subscriber,
 		Bucket, Units, Product) ->
 	MFA = {?MODULE, abmf_query, [Type, Subscriber, Bucket, Units, Product]},
-	query_log(Continuation, Start, End, ?BALANCELOG, MFA).
+	query_log(Continuation, Start, End, log_name(abmf_log_name), MFA).
 
 %%----------------------------------------------------------------------
 %%  internal functions
@@ -1934,7 +1940,7 @@ http_parse6(Event, Acc) ->
 -spec open_log(Directory, Log, LogSize, LogFiles, LogNodes) -> Result
 	when
 		Directory  :: string(),
-		Log :: atom(),
+		Log :: term(),
 		LogSize :: integer(),
 		LogFiles :: integer(),
 		LogNodes :: [Node],
@@ -1970,12 +1976,12 @@ open_log1(Directory, Log, LogSize, LogFiles, LogNodes) ->
 	end.
 %% @hidden
 open_log2(Log, FileName, LogSize, LogFiles, LogNodes) ->
-	case disk_log:open([{name, ?ACCTLOG}, {file, FileName}, {type, wrap},
+	case disk_log:open([{name, Log}, {file, FileName}, {type, wrap},
 			{distributed, [node() | LogNodes]}]) of
 		{error, _} = Result ->
 			open_log3(Log, [], [{node(), Result}], undefined);
 		{OkNodes, ErrNodes} ->
-			case disk_log:change_size(?ACCTLOG, {LogSize, LogFiles}) of
+			case disk_log:change_size(Log, {LogSize, LogFiles}) of
 				ok ->
 					open_log3(Log, OkNodes, ErrNodes, undefined);
 				{error, Reason} ->
