@@ -724,7 +724,7 @@ add_service(Identity, Password, State, ProductRef,
 			[], Attributes, EnabledStatus, MultiSession);
 add_service(Identity, Password, undefined, ProductRef,
 		Chars, Attributes, EnabledStatus, MultiSession) ->
-	add_service(Identity, Password, undefined, ProductRef,
+	add_service(Identity, Password, active, ProductRef,
 			Chars, Attributes, EnabledStatus, MultiSession);
 add_service(Identity, undefined, State, ProductRef,
 		Chars, Attributes, EnabledStatus, MultiSession) ->
