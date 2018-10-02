@@ -61,22 +61,17 @@ content_types_provided() ->
 get_balance_log() ->
 	{ok, MaxItems} = application:get_env(ocs, rest_page_size),
 	try
-		case ocs_log:abmf_open() of
-			ok ->
-				case ocs_log:last(ocs_abmf, MaxItems) of
-					{error, _} ->
-						{error, 404};
-					{NewCount, Events} ->
-						JsonObj = abmf_json(Events),
-						JsonArray = {array, JsonObj},
-						Body = mochijson:encode(JsonArray),
-						ContentRange = "items 1-" ++ integer_to_list(NewCount) ++ "/*",
-						Headers = [{content_type, "application/json"},
-							{content_range, ContentRange}],
-						{ok, Headers, Body}
-				end;
+		case ocs_log:last(ocs_abmf, MaxItems) of
 			{error, _} ->
-				{error, 404}
+				{error, 404};
+			{NewCount, Events} ->
+				JsonObj = abmf_json(Events),
+				JsonArray = {array, JsonObj},
+				Body = mochijson:encode(JsonArray),
+				ContentRange = "items 1-" ++ integer_to_list(NewCount) ++ "/*",
+				Headers = [{content_type, "application/json"},
+					{content_range, ContentRange}],
+				{ok, Headers, Body}
 		end
 	catch
 		_:_ ->
