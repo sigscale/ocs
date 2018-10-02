@@ -845,8 +845,7 @@ add_bucket(ProductRef, #bucket{id = undefined} = Bucket) when is_list(ProductRef
 	end,
 	case mnesia:transaction(F) of
 		{atomic, {ok, OldBucket, NewBucket}} ->
-erlang:display({?MODULE, ?LINE, OldBucket, NewBucket}),
-			[ProdRef] = NewBucket#bucket.product,
+			[ProdRef | _] = NewBucket#bucket.product,
 			ocs_log:abmf_log(topup, undefined, NewBucket#bucket.id, cents, ProdRef, 0, 0,
 				NewBucket#bucket.remain_amount, undefined, undefined, undefined, undefined, undefined, undefined, NewBucket#bucket.status),
 			{ok, OldBucket, NewBucket};
@@ -883,8 +882,7 @@ add_bucket(ProductRef, #bucket{id = BId, product = ProdRef1,
 	end,
 	case mnesia:transaction(F) of
 		{atomic, {ok, OldBucket, NewBucket}} ->
-erlang:display({?MODULE, ?LINE, OldBucket, NewBucket}),
-			[ProdRef] = NewBucket#bucket.product,
+			[ProdRef | _] = NewBucket#bucket.product,
 			ocs_log:abmf_log(topup, undefined, NewBucket#bucket.id, NewBucket#bucket.units, ProdRef, RAmount1, OldBucket#bucket.remain_amount,
 				NewBucket#bucket.remain_amount, undefined, undefined, undefined, undefined, undefined, undefined, NewBucket#bucket.status),
 			{ok, OldBucket, NewBucket};
