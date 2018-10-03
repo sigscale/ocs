@@ -850,8 +850,9 @@ spec_aaa_acct() ->
 			spec_attr_termination_action(), spec_attr_called_id(),
 			spec_attr_calling_id(), spec_attr_nas_id(),
 			spec_attr_nas_port_id(), spec_attr_delay(),
-			spec_attr_input_octets(),spec_attr_output_octets(),
+			spec_attr_input_octets(), spec_attr_output_octets(),
 			spec_attr_input_giga_words(),spec_attr_output_giga_words(),
+			spec_attr_total_octets(),
 			spec_attr_event_timestamp(), spec_attr_session_id(),
 			spec_attr_authentic(), spec_attr_session_time(),
 			spec_attr_input_packets(), spec_attr_output_packets(),
@@ -1933,6 +1934,16 @@ spec_attr_output_giga_words() ->
 	{struct, [Name, Desc, Conf, Value]}.
 
 %% @hidden
+spec_attr_total_octets() ->
+	Name = {"name", "totalOctets"},
+	Desc = {"description", "CC-Total-Octets attribute"},
+	Conf = {"configurable", true},
+	Typ = {"valueType", "Number"},
+	Value1 = {struct, [Typ]},
+	Value = {"usageSpecCharacteristicValue", {array, [Value1]}},
+	{struct, [Name, Desc, Conf, Value]}.
+
+%% @hidden
 spec_attr_input_packets() ->
 	Name = {"name", "acctInputPackets"},
 	Desc = {"description", "Acct-Input-Packets attribute"},
@@ -2387,9 +2398,9 @@ char_attr_session_id(#'3gpp_ro_CCR'{'Session-Id' = SessionID} = CCR, Acc)
 		when SessionID /= undefined ->
 	NewAcc = [{struct, [{"name", "acctSessionId"},
 			{"value", binary_to_list(SessionID)}]} | Acc],
-	char_attr_cause(CCR, NewAcc);
+	char_attr_session_time(CCR, NewAcc);
 char_attr_session_id(#'3gpp_ro_CCR'{} = CCR, Acc) ->
-	char_attr_cause(CCR, Acc);
+	char_attr_session_time(CCR, Acc);
 char_attr_session_id(Attributes, Acc) ->
 	NewAcc = case radius_attributes:find(?AcctSessionId, Attributes) of
 		{ok, Value} ->
@@ -2440,6 +2451,15 @@ char_attr_authentic(Attributes, Acc) ->
 	char_attr_session_time(Attributes, NewAcc).
 
 %% @hidden
+char_attr_session_time(#'3gpp_ro_CCR'{'Multiple-Services-Credit-Control'
+		= [#'3gpp_ro_Multiple-Services-Credit-Control'{'Used-Service-Unit'
+		= [#'3gpp_ro_Used-Service-Unit'{'CC-Time' = [Duration]}]}]} = CCR, Acc)
+		when is_integer(Duration) ->
+	NewAcc = [{struct, [{"name", "acctSessionTime"},
+			{"value", Duration}]} | Acc],
+	char_attr_input_octets(CCR, NewAcc);
+char_attr_session_time(#'3gpp_ro_CCR'{} = CCR, Acc) ->
+	char_attr_input_octets(CCR, Acc);
 char_attr_session_time(Attributes, Acc) ->
 	NewAcc = case radius_attributes:find(?AcctSessionTime, Attributes) of
 		{ok, Value} ->
@@ -2450,6 +2470,15 @@ char_attr_session_time(Attributes, Acc) ->
 	char_attr_input_octets(Attributes, NewAcc).
 
 %% @hidden
+char_attr_input_octets(#'3gpp_ro_CCR'{'Multiple-Services-Credit-Control'
+		= [#'3gpp_ro_Multiple-Services-Credit-Control'{'Used-Service-Unit'
+		= [#'3gpp_ro_Used-Service-Unit'{'CC-Input-Octets' = [InputOctets]}]}]}
+		= CCR, Acc) when is_integer(InputOctets) ->
+	NewAcc = [{struct, [{"name", "inputOctets"},
+			{"value", InputOctets}]} | Acc],
+	char_attr_output_octets(CCR, NewAcc);
+char_attr_input_octets(#'3gpp_ro_CCR'{} = CCR, Acc) ->
+	char_attr_output_octets(CCR, Acc);
 char_attr_input_octets(Attributes, Acc) ->
 	NewAcc = case radius_attributes:find(?AcctInputOctets, Attributes) of
 		{ok, Value} ->
@@ -2460,6 +2489,15 @@ char_attr_input_octets(Attributes, Acc) ->
 	char_attr_output_octets(Attributes, NewAcc).
 
 %% @hidden
+char_attr_output_octets(#'3gpp_ro_CCR'{'Multiple-Services-Credit-Control'
+		= [#'3gpp_ro_Multiple-Services-Credit-Control'{'Used-Service-Unit'
+		= [#'3gpp_ro_Used-Service-Unit'{'CC-Output-Octets' = [OutputOctets]}]}]}
+		= CCR, Acc) when is_integer(OutputOctets) ->
+	NewAcc = [{struct, [{"name", "outputOctets"},
+			{"value", OutputOctets}]} | Acc],
+	char_attr_total_octets(CCR, NewAcc);
+char_attr_output_octets(#'3gpp_ro_CCR'{} = CCR, Acc) ->
+	char_attr_total_octets(CCR, Acc);
 char_attr_output_octets(Attributes, Acc) ->
 	NewAcc = case radius_attributes:find(?AcctOutputOctets, Attributes) of
 		{ok, Value} ->
@@ -2468,6 +2506,17 @@ char_attr_output_octets(Attributes, Acc) ->
 			Acc
 	end,
 	char_attr_input_giga_words(Attributes, NewAcc).
+
+%% @hidden
+char_attr_total_octets(#'3gpp_ro_CCR'{'Multiple-Services-Credit-Control'
+		= [#'3gpp_ro_Multiple-Services-Credit-Control'{'Used-Service-Unit'
+		= [#'3gpp_ro_Used-Service-Unit'{'CC-Total-Octets' = [TotalOctets]}]}]}
+		= CCR, Acc) when is_integer(TotalOctets) ->
+	NewAcc = [{struct, [{"name", "totalOctets"},
+			{"value", TotalOctets}]} | Acc],
+	char_attr_cause(CCR, NewAcc);
+char_attr_total_octets(#'3gpp_ro_CCR'{} = CCR, Acc) ->
+	char_attr_cause(CCR, Acc).
 
 %% @hidden
 char_attr_input_giga_words(Attributes, Acc) ->
