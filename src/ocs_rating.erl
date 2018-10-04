@@ -79,7 +79,7 @@
 				| {disabled, SessionList}
 				| {error, Reason},
 		Subscriber :: #service{},
-		Rated :: #rated{},
+		Rated :: [#rated{}],
 		SessionList :: [{pos_integer(), [tuple()]}],
 		Reason :: term().
 %% @doc Handle rating and balance management for used and reserved unit amounts.

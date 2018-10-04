@@ -332,12 +332,12 @@ request1(?AccountingStop, AcctSessionId, Id,
 			CallAddress, Direction, final, DebitAmount, [], SessionAttributes) of
 		{ok, #service{}, _, Rated} ->
 			ok = ocs_log:acct_log(radius,
-					{ServerAddress, ServerPort}, stop, Attributes, undefined, [Rated]),
+					{ServerAddress, ServerPort}, stop, Attributes, undefined, Rated),
 			{reply, {ok, response(Id, Authenticator, Secret)}, State};
 		{out_of_credit, SessionList, Rated}  ->
 			gen_server:reply(From, {ok, response(Id, Authenticator, Secret)}),
 			ok = ocs_log:acct_log(radius,
-					{ServerAddress, ServerPort}, stop, Attributes, undefined, [Rated]),
+					{ServerAddress, ServerPort}, stop, Attributes, undefined, Rated),
 			start_disconnect(State, Subscriber, SessionList),
 			{noreply, State};
 		{disabled, SessionList} ->
