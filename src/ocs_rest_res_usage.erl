@@ -749,15 +749,10 @@ usage_aaa_acct(Event, Filters) when is_tuple(Event), size(Event) > 6 ->
 	RatedUsage = case size(Event) > 8 of
 		true ->
 			case element(9, Event) of
-				Element = [Rated | _] when is_list(Element) ->
-					case Rated of
-						Rated when is_list(Rated) ->
-							[{"ratedProductUsage",
-									{array, lists:map(Frated, Rated)}}];
-						Rated = #rated{} ->
-							[{"ratedProductUsage",
-									{array, lists:map(Frated, Element)}}]
-					end;
+				[#rated{} | _] = Rated ->
+					[{"ratedProductUsage", {array, lists:map(Frated, Rated)}}];
+				[[#rated{} | _] = Rated] ->
+					[{"ratedProductUsage", {array, lists:map(Frated, Rated)}}];
 				undefined ->
 					[]
 			end;
