@@ -2301,6 +2301,14 @@ char_attr_nas_id(#'3gpp_ro_CCR'{'Service-Information'
 	NewAcc = [{struct, [{"name", "nasIdentifier"},
 			{"value", binary_to_list(IOI)}]} | Acc],
 	char_attr_event_timestamp(CCR, NewAcc);
+char_attr_nas_id(#'3gpp_ro_CCR'{'Service-Information'
+		% old record version (< ocs-3.1.4)
+		= [{'3gpp_ro_Service-Information', [], [#'3gpp_ro_IMS-Information'{'Inter-Operator-Identifier'
+		= [#'3gpp_ro_Inter-Operator-Identifier'{'Originating-IOI'
+		= [IOI]}]}]}]} = CCR, Acc) when is_binary(IOI) ->
+   NewAcc = [{struct, [{"name", "nasIdentifier"},
+         {"value", binary_to_list(IOI)}]} | Acc],
+   char_attr_event_timestamp(CCR, NewAcc);
 char_attr_nas_id(#'3gpp_ro_CCR'{} = CCR, Acc) ->
 	char_attr_event_timestamp(CCR, Acc);
 char_attr_nas_id(Attributes, Acc) ->
