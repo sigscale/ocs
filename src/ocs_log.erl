@@ -107,14 +107,15 @@ acct_log(Protocol, Server, Type, Request, Response, Rated) ->
 acct_close() ->
 	close_log(log_name(acct_log_name)).
 
--spec acct_query(Continuation, Start, End, Types, AttrsMatch) -> Result
+-spec acct_query(Continuation, Start, End, Types, MatchSpec) -> Result
 	when
 		Continuation :: start | disk_log:continuation(),
 		Start :: calendar:datetime() | pos_integer(),
 		End :: calendar:datetime() | pos_integer(),
 		Types :: [Type] | '_',
 		Type :: on | off | start | stop | interim | event,
-		AttrsMatch :: [{Attribute, Match}] | '_',
+		MatchSpec :: RadiusMatchSpec | DiameterMatchSpec,
+		RadiusMatchSpec :: [{Attribute, Match}] | '_',
 		Attribute :: byte(),
 		Match :: {exact, term()} | {notexact, term()}
 				| {lt, term()} | {lte, term()}
@@ -122,6 +123,7 @@ acct_close() ->
 				| {regex, term()} | {like, [term()]} | {notlike, [term()]}
 				| {in, [term()]} | {notin, [term()]} | {contains, [term()]}
 				| {notcontain, [term()]} | {containsall, [term()]} | '_',
+		DiameterMatchSpec :: ets:match_spec() | '_',
 		Result :: {Continuation2, Events} | {error, Reason},
 		Continuation2 :: eof | disk_log:continuation(),
 		Events :: [acct_event()],
@@ -131,7 +133,7 @@ acct_close() ->
 acct_query(Continuation, Start, End, Types, AttrsMatch) ->
 	acct_query(Continuation, Start, End, '_', Types, AttrsMatch).
 
--spec acct_query(Continuation, Start, End, Protocol, Types, AttrsMatch) -> Result
+-spec acct_query(Continuation, Start, End, Protocol, Types, MatchSpec) -> Result
 	when
 		Continuation :: start | disk_log:continuation(),
 		Start :: calendar:datetime() | pos_integer(),
@@ -139,7 +141,8 @@ acct_query(Continuation, Start, End, Types, AttrsMatch) ->
 		Protocol :: radius | diameter | '_',
 		Types :: [Type] | '_',
 		Type :: on | off | start | stop | interim | event,
-		AttrsMatch :: [{Attribute, Match}] | '_',
+		MatchSpec :: RadiusMatchSpec | DiameterMatchSpec,
+		RadiusMatchSpec :: [{Attribute, Match}] | '_',
 		Attribute :: byte(),
 		Match :: {exact, term()} | {notexact, term()}
 				| {lt, term()} | {lte, term()}
@@ -147,6 +150,7 @@ acct_query(Continuation, Start, End, Types, AttrsMatch) ->
 				| {regex, term()} | {like, [term()]} | {notlike, [term()]}
 				| {in, [term()]} | {notin, [term()]} | {contains, [term()]}
 				| {notcontain, [term()]} | {containsall, [term()]} | '_',
+		DiameterMatchSpec :: ets:match_spec() | '_',
 		Result :: {Continuation2, Events} | {error, Reason},
 		Continuation2 :: eof | disk_log:continuation(),
 		Events :: [acct_event()],
@@ -164,13 +168,13 @@ acct_query(Continuation, Start, End, Types, AttrsMatch) ->
 %%
 %% 	All attribute filters must match or the event will be ignored.
 %%
-%% 	`Protocol', `Types', or `AttrsMatch' may be '_' which matches any value.
+%% 	`Protocol', `Types', or `MatchSpec' may be '_' which matches any value.
 %%
 %% 	Returns a new `Continuation' and a list of matching accounting events.
 %% 	Successive calls use the new `Continuation' to read more events.
 %%
-acct_query(Continuation, Start, End, Protocol, Types, AttrsMatch) ->
-	MFA = {?MODULE, acct_query, [Protocol, Types, AttrsMatch]},
+acct_query(Continuation, Start, End, Protocol, Types, MatchSpec) ->
+	MFA = {?MODULE, acct_query, [Protocol, Types, MatchSpec]},
 	query_log(Continuation, Start, End, log_name(acct_log_name), MFA).
 
 -spec auth_open() -> Result
@@ -2105,7 +2109,9 @@ query_log2(_Start, _End, {M, F, A}, {Cont, []}, Acc) ->
 		Protocol :: atom() | '_',
 		Types :: [Type] | '_',
 		Type :: atom(),
-		MatchSpec :: [tuple()] | '_',
+		MatchSpec :: RadiusMatchSpec | DiameterMatchSpec,
+		RadiusMatchSpec :: [tuple()] | '_',
+		DiameterMatchSpec :: ets:match_spec() | '_',
 		Result :: {Continuation2, Events},
 		Continuation2 :: eof | disk_log:continuation(),
 		Events :: [acct_event()].
@@ -2134,8 +2140,13 @@ acct_query2([H | T], Protocol, AttrsMatch, Acc)
 	acct_query2(T, Protocol, AttrsMatch, [H |Acc]);
 acct_query2([_ | T], Protocol, AttrsMatch, Acc) ->
 	acct_query2(T, Protocol, AttrsMatch, Acc);
-acct_query2([], _Protocol, AttrsMatch, Acc) ->
-	acct_query3(lists:reverse(Acc), AttrsMatch, []).
+acct_query2([], Protocol, AttrsMatch, Acc) ->
+	case Protocol of
+		radius ->
+			acct_query3(lists:reverse(Acc), AttrsMatch, []);
+		diameter ->
+			acct_query5(lists:reverse(Acc), AttrsMatch, [])
+	end.
 %% @hidden
 acct_query3(Events, '_', _Acc) ->
 	Events;
@@ -2175,6 +2186,18 @@ acct_query4(Attributes, [_ | T]) ->
 	acct_query4(Attributes, T);
 acct_query4(_Attributes, []) ->
 	true.
+%% @hidden
+acct_query5([H | T], MatchSpec, Acc) when is_list(MatchSpec) ->
+	case erlang:match_spec_test(element(7, H), MatchSpec, table) of
+		{ok, #'3gpp_ro_CCR'{}, [], []} ->
+			acct_query5(T, MatchSpec, [H | Acc]);
+		{ok, false , [], []}->
+			acct_query5(T, MatchSpec, Acc);
+		{error, Reason} ->
+			{error, Reason}
+	end;
+acct_query5([], _AttrsMatch, Acc) ->
+	lists:reverse(Acc).
 
 -spec ipdr_query(Continuation, MatchSpec) -> Result
 	when
