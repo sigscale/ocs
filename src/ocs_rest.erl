@@ -174,7 +174,7 @@ parse_query1(Field, N, Acc) ->
 %% 	Example:
 %% 	```
 %% 	1> In = {struct,[{"a",{array,[{struct,[{"name","bob"},{"value",6}]},
-%% 	1> {"b",7},{struct,[{"name","sue"},{"value",5},{"other", 8}]}]}},{"b",1}]},
+%% 	1> {stuct,[{"b",7}]},{struct,[{"name","sue"},{"value",5},{"other", 8}]}]}},{"b",1}]},
 %% 	1> ocs_rest:fields("b,a.name=sue,a.value", In).
 %% 	{struct, [{"a",{array,[{struct,[{"name","sue"},{"value",5}]}]}},{"b",1}]}
 %% 	'''
