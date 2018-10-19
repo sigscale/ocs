@@ -37,6 +37,8 @@
 				ocs_eap_pwd_fsm,
 				ocs_eap_ttls_fsm,
 				ocs_eap_ttls_aaah_fsm,
+				ocs_eap_aka_fsm,
+				ocs_eap_aka_auc_fsm,
 				ocs_simple_auth_fsm,
 				ocs_radius_auth_port_server,
 				ocs_eap_codec,
