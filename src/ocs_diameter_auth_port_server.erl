@@ -55,6 +55,7 @@
 		method_order :: [ocs:eap_method()],
 		simple_auth_sup :: undefined | pid(),
 		ttls_sup :: undefined | pid(),
+		aka_sup :: undefined | pid(),
 		pwd_sup :: undefined | pid(),
 		cb_fsms = gb_trees:empty() :: gb_trees:tree(
 				Key :: (AuthFsm :: pid()), Value :: (CbProc :: pid())),
@@ -86,7 +87,8 @@
 %%
 init([AuthPortSup, Address, Port, Options]) ->
 	MethodPrefer = proplists:get_value(eap_method_prefer, Options, pwd),
-	MethodOrder = proplists:get_value(eap_method_order, Options, [pwd, ttls]),
+	MethodOrder = proplists:get_value(eap_method_order, Options,
+			[pwd, ttls]),
 	State = #state{auth_port_sup = AuthPortSup, address = Address,
 			port = Port, method_prefer = MethodPrefer, method_order = MethodOrder},
 	case ocs_log:auth_open() of
@@ -160,8 +162,9 @@ handle_info(timeout, #state{auth_port_sup = AuthPortSup} = State) ->
 	{_, SimpleAuthSup, _, _} = lists:keyfind(ocs_simple_auth_fsm_sup, 1, Children),
 	{_, PwdSup, _, _} = lists:keyfind(ocs_eap_pwd_fsm_sup, 1, Children),
 	{_, TtlsSup, _, _} = lists:keyfind(ocs_eap_ttls_fsm_sup_sup, 1, Children),
+	{_, AkaSup, _, _} = lists:keyfind(ocs_eap_aka_fsm_sup_sup, 1, Children),
 	NewState = State#state{simple_auth_sup = SimpleAuthSup, pwd_sup = PwdSup,
-			ttls_sup = TtlsSup},
+			ttls_sup = TtlsSup, aka_sup = AkaSup},
 	{noreply, NewState};
 handle_info({'EXIT', Fsm, {shutdown, SessionId}},
 		#state{handlers = Handlers} = State) ->
@@ -239,8 +242,7 @@ code_change(_OldVsn, State, _Extra) ->
 		Reply :: {reply, Answer, State} | {noreply, State},
 		Answer :: #diameter_nas_app_AAA{} | #diameter_nas_app_STA{}
 				| #diameter_eap_app_DEA{}.
-%% @doc Based on the DIAMETER request generate appropriate DIAMETER
-%% answer.
+%% @doc Generate appropriate DIAMETER answer.
 %% @hidden
 request(Caps, Address, Port, none, PasswordReq, Request, CbProc, State)
 		when is_record(Request, diameter_nas_app_AAR) ->
@@ -391,34 +393,50 @@ request1(EapType, Address, Port, PasswordReq,
 		State :: state(),
 		Result :: {AuthFsm, State},
 		AuthFsm :: undefined | pid().
-start_fsm(AuthSup, ClientAddress, ClientPort, AppId, PasswordReq, SessId, Type, OHost,
-		ORealm, DHost, DRealm, Options, CbProc, Request, #state{address = ServerAddress,
-		port = ServerPort, ttls_sup = AuthSup} = State) ->
+start_fsm(AuthSup, ClientAddress, ClientPort, AppId, PasswordReq, SessId,
+		Type, OHost, ORealm, DHost, DRealm, Options, CbProc, Request,
+		#state{address = ServerAddress, port = ServerPort} = State) ->
 	StartArgs = [diameter, ServerAddress, ServerPort, ClientAddress,
 			ClientPort, PasswordReq, SessId, AppId, Type, OHost, ORealm,
 			DHost, DRealm, Request, Options],
 	ChildSpec = [StartArgs],
-	start_fsm1(AuthSup, ChildSpec, SessId, CbProc, State);
-start_fsm(AuthSup, ClientAddress, ClientPort, AppId, PasswordReq, SessId, Type, OHost,
-		ORealm, DHost, DRealm, Options, CbProc, Request, #state{address = ServerAddress,
-		port = ServerPort} = State) ->
-	StartArgs = [diameter, ServerAddress, ServerPort, ClientAddress,
-			ClientPort, PasswordReq, SessId, AppId, Type, OHost, ORealm,
-			DHost, DRealm,  Request, Options],
-	ChildSpec = [StartArgs, []],
 	start_fsm1(AuthSup, ChildSpec, SessId, CbProc, State).
 %% @hidden
-start_fsm1(AuthSup, ChildSpec, SessId, CbProc, #state{handlers = Handlers,
+start_fsm1(TtlsSup, ChildSpec, SessId, CbProc, #state{handlers = Handlers,
 		cb_fsms = FsmHandler, ttls_sup = TtlsSup} = State) ->
-	case supervisor:start_child(AuthSup, ChildSpec) of
-		{ok, AuthFsmSup} when AuthSup == TtlsSup ->
-			Children = supervisor:which_children(AuthFsmSup),
+	case supervisor:start_child(TtlsSup, ChildSpec) of
+		{ok, TtlsFsmSup} ->
+			Children = supervisor:which_children(TtlsFsmSup),
 			{_, Fsm, _, _} = lists:keyfind(ocs_eap_ttls_fsm, 1, Children),
 			link(Fsm),
 			NewHandlers = gb_trees:enter(SessId, Fsm, Handlers),
 			NewFsmHandler = gb_trees:enter(Fsm, CbProc, FsmHandler),
 			NewState = State#state{handlers = NewHandlers, cb_fsms = NewFsmHandler},
 			{Fsm, NewState};
+		{error, Reason} ->
+			error_logger:error_report(["Error starting session handler",
+					{error, Reason}, {supervisor, TtlsSup}, {session_id, SessId}]),
+			{undefined, State}
+	end;
+start_fsm1(AkaSup, ChildSpec, SessId, CbProc, #state{handlers = Handlers,
+		cb_fsms = FsmHandler, aka_sup = AkaSup} = State) ->
+	case supervisor:start_child(AkaSup, ChildSpec) of
+		{ok, AkaFsmSup} ->
+			Children = supervisor:which_children(AkaFsmSup),
+			{_, Fsm, _, _} = lists:keyfind(ocs_eap_aka_fsm, 1, Children),
+			link(Fsm),
+			NewHandlers = gb_trees:enter(SessId, Fsm, Handlers),
+			NewFsmHandler = gb_trees:enter(Fsm, CbProc, FsmHandler),
+			NewState = State#state{handlers = NewHandlers, cb_fsms = NewFsmHandler},
+			{Fsm, NewState};
+		{error, Reason} ->
+			error_logger:error_report(["Error starting session handler",
+					{error, Reason}, {supervisor, AkaSup}, {session_id, SessId}]),
+			{undefined, State}
+	end;
+start_fsm1(AuthSup, ChildSpec, SessId, CbProc,
+		#state{handlers = Handlers, cb_fsms = FsmHandler} = State) ->
+	case supervisor:start_child(AuthSup, ChildSpec) of
 		{ok, AuthFsm} ->
 			link(AuthFsm),
 			NewHandlers = gb_trees:enter(SessId, AuthFsm, Handlers),
@@ -427,7 +445,7 @@ start_fsm1(AuthSup, ChildSpec, SessId, CbProc, #state{handlers = Handlers,
 			{AuthFsm, NewState};
 		{error, Reason} ->
 			error_logger:error_report(["Error starting session handler",
-					{error, Reason}, {supervisor, AuthSup},{session_id, SessId}]),
+					{error, Reason}, {supervisor, AuthSup}, {session_id, SessId}]),
 			{undefined, State}
 	end.
 
@@ -470,6 +488,22 @@ get_alternate([pwd | T], AlternateMethods,
 get_alternate([ttls | T], AlternateMethods,
 		#state{ttls_sup = Sup} = State) ->
 	case lists:member(?TTLS, AlternateMethods) of
+		true ->
+			{ok, Sup};
+		false ->
+			get_alternate(T, AlternateMethods, State)
+	end;
+get_alternate([aka | T], AlternateMethods,
+		#state{aka_sup = Sup} = State) ->
+	case lists:member(?AKA, AlternateMethods) of
+		true ->
+			{ok, Sup};
+		false ->
+			get_alternate(T, AlternateMethods, State)
+	end;
+get_alternate([akap | T], AlternateMethods,
+		#state{aka_sup = Sup} = State) ->
+	case lists:member(?AKAprime, AlternateMethods) of
 		true ->
 			{ok, Sup};
 		false ->

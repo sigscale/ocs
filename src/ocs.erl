@@ -1580,7 +1580,7 @@ generate_identity() ->
 start(Protocol, Type, Address, Port) when is_tuple(Address), is_integer(Port) ->
 	start(Protocol, Type, Address, Port, []).
 
--type eap_method() :: pwd | ttls.
+-type eap_method() :: pwd | ttls | aka | akap.
 -spec start(Protocol, Type, Address, Port, Options) -> Result
 	when
 		Protocol :: radius | diameter,
