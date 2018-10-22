@@ -51,7 +51,7 @@
 -define(PSK,              47).
 -define(SAKE,             48).
 -define(IKEv2,            49).
--define(AKAbis,           50).
+-define(AKAprime,         50).
 -define(GPSK,             51).
 -define(PWD,              52).
 -define(EKEv1,            53).

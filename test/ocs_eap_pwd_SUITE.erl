@@ -633,7 +633,7 @@ negotiate_method_over_radius(Config) ->
 	true = (((Method > 4) and (Method < 254)) or (Method == 255)),
 	RadId2 = RadId1 + 1,
 	ReqAuth2 = radius:authenticator(),
-	Methods = [?PEAP, ?TLS, ?TTLS, ?SIM, ?AKA, ?AKAbis, ?PWD],
+	Methods = [?PEAP, ?TLS, ?TTLS, ?SIM, ?AKA, ?AKAprime, ?PWD],
 	AlternateMethods = lists:delete(Method, Methods),
 	EapPacket  = #eap_packet{code = response,
 			type = ?LegacyNak, identifier = EapId2,
