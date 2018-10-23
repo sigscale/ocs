@@ -3076,7 +3076,7 @@ ipdr_chars({"name", exact, "chargeableQuantity"}, {"value", Op, ChargeableQuanti
 		when Op == exact; Op == lt; Op == lte; Op == gt; Op == gte ->
 	Chars2 = add_char(Chars1, {chargeableQuantity, {Op, list_to_integer(ChargeableQuantity)}}),
 	ipdr_chars(T, Chars2);
-ipdr_chars({"name", exact, "taxAmount"}, {"alue", Op, TaxAmount},
+ipdr_chars({"name", exact, "taxAmount"}, {"value", Op, TaxAmount},
 		T, Chars1) 
 		when Op == exact; Op == lt; Op == lte; Op == gt; Op == gte ->
 	Chars2 = add_char(Chars1, {taxAmount, {Op, list_to_integer(TaxAmount)}}),
