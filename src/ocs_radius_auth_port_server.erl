@@ -353,7 +353,7 @@ request1(EapType, Address, Port, Secret, PasswordReq,
 	end.
 
 -spec start_fsm(AccessRequest, RadiusFsm, Address, Port, Secret,
-	PasswordReq, SessionID, Identity, Sup, State) -> NewState
+	PasswordReq, SessionID, Identity, AuthSup, State) -> NewState
 	when
 		AccessRequest :: #radius{}, 
 		RadiusFsm :: pid(),
@@ -363,45 +363,66 @@ request1(EapType, Address, Port, Secret, PasswordReq,
 		PasswordReq :: boolean(),
 		SessionID :: tuple(), 
 		Identity :: binary(),
-		Sup :: pid(), 
+		AuthSup :: pid(),
 		State :: state(),
 		NewState :: state().
 %% @doc Start a new session handler.
 %% @hidden
-start_fsm(AccessRequest, RadiusFsm, ClientAddress, ClientPort, Secret,
-		PasswordReq, SessionID, Identity, Sup, #state{address = ServerAddress,
-		port = ServerPort, ttls_sup = Sup} = State) ->
+start_fsm(AccessRequest, RadiusFsm, ClientAddress, ClientPort,
+		Secret, PasswordReq, SessionID, Identity, AuthSup,
+		#state{address = ServerAddress, port = ServerPort} = State) ->
 	StartArgs = [radius, ServerAddress, ServerPort, ClientAddress, ClientPort,
 			RadiusFsm, Secret, PasswordReq, SessionID, AccessRequest],
-	ChildSpec = [StartArgs],
-	start_fsm1(ServerAddress, ServerPort, RadiusFsm, SessionID,
-			Identity, Sup, ChildSpec, State);
-start_fsm(AccessRequest, RadiusFsm, ClientAddress, ClientPort, Secret,
-		PasswordReq, SessionID, Identity, Sup,  #state{address = ServerAddress,
-		port = ServerPort} = State) ->
-	StartArgs = [radius, ServerAddress, ServerPort, ClientAddress, ClientPort,
-			RadiusFsm, Secret, PasswordReq, SessionID, AccessRequest],
-	ChildSpec = [StartArgs, []],
-	start_fsm1(ServerAddress, ServerPort, RadiusFsm, SessionID,
-			Identity, Sup, ChildSpec, State).
+	start_fsm1(AuthSup, StartArgs, RadiusFsm, SessionID, Identity, State).
 %% @hidden
-start_fsm1(ServerAddress, ServerPort,
-		RadiusFsm, SessionID, Identity, Sup, ChildSpec,
-		#state{ttls_sup = TtlsSup, handlers = Handlers} = State) ->
-	case supervisor:start_child(Sup, ChildSpec) of
-		{ok, FsmSup} when Sup == TtlsSup ->
+start_fsm1(AuthSup, StartArgs, RadiusFsm, SessionID, Identity,
+		#state{ttls_sup = AuthSup, handlers = Handlers,
+		address = ServerAddress, port = ServerPort} = State) ->
+	ChildSpec = [StartArgs],
+	case supervisor:start_child(AuthSup, ChildSpec) of
+		{ok, FsmSup} ->
 			Children = supervisor:which_children(FsmSup),
 			{_, Fsm, _, _} = lists:keyfind(ocs_eap_ttls_fsm, 1, Children),
 			link(Fsm),
 			NewHandlers = gb_trees:enter(SessionID, {Fsm, Identity}, Handlers),
 			State#state{handlers = NewHandlers};
+		{error, Reason} ->
+			error_logger:error_report(["Error starting session handler",
+					{error, Reason}, {supervisor, AuthSup},
+					{address, ServerAddress}, {port, ServerPort},
+					{radius_fsm, RadiusFsm}, {session, SessionID}]),
+			State
+	end;
+start_fsm1(AuthSup, StartArgs, RadiusFsm, SessionID, Identity,
+		#state{aka_sup = AuthSup, handlers = Handlers,
+		address = ServerAddress, port = ServerPort} = State) ->
+	ChildSpec = [StartArgs],
+	case supervisor:start_child(AuthSup, ChildSpec) of
+		{ok, FsmSup} ->
+			Children = supervisor:which_children(FsmSup),
+			{_, Fsm, _, _} = lists:keyfind(ocs_eap_aka_fsm, 1, Children),
+			link(Fsm),
+			NewHandlers = gb_trees:enter(SessionID, {Fsm, Identity}, Handlers),
+			State#state{handlers = NewHandlers};
+		{error, Reason} ->
+			error_logger:error_report(["Error starting session handler",
+					{error, Reason}, {supervisor, AuthSup},
+					{address, ServerAddress}, {port, ServerPort},
+					{radius_fsm, RadiusFsm}, {session, SessionID}]),
+			State
+	end;
+start_fsm1(AuthSup, StartArgs, RadiusFsm, SessionID, Identity,
+		#state{handlers = Handlers, address = ServerAddress,
+		port = ServerPort} = State) ->
+	ChildSpec = [StartArgs, []],
+	case supervisor:start_child(AuthSup, ChildSpec) of
 		{ok, Fsm} ->
 			link(Fsm),
 			NewHandlers = gb_trees:enter(SessionID, {Fsm, Identity}, Handlers),
 			State#state{handlers = NewHandlers};
 		{error, Reason} ->
 			error_logger:error_report(["Error starting session handler",
-					{error, Reason}, {supervisor, Sup},
+					{error, Reason}, {supervisor, AuthSup},
 					{address, ServerAddress}, {port, ServerPort},
 					{radius_fsm, RadiusFsm}, {session, SessionID}]),
 			State

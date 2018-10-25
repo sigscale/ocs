@@ -399,11 +399,11 @@ start_fsm(AuthSup, ClientAddress, ClientPort, AppId, PasswordReq, SessId,
 	StartArgs = [diameter, ServerAddress, ServerPort, ClientAddress,
 			ClientPort, PasswordReq, SessId, AppId, Type, OHost, ORealm,
 			DHost, DRealm, Request, Options],
-	ChildSpec = [StartArgs],
-	start_fsm1(AuthSup, ChildSpec, SessId, CbProc, State).
+	start_fsm1(AuthSup, StartArgs, SessId, CbProc, State).
 %% @hidden
-start_fsm1(TtlsSup, ChildSpec, SessId, CbProc, #state{handlers = Handlers,
+start_fsm1(TtlsSup, StartArgs, SessId, CbProc, #state{handlers = Handlers,
 		cb_fsms = FsmHandler, ttls_sup = TtlsSup} = State) ->
+	ChildSpec = [StartArgs],
 	case supervisor:start_child(TtlsSup, ChildSpec) of
 		{ok, TtlsFsmSup} ->
 			Children = supervisor:which_children(TtlsFsmSup),
@@ -418,8 +418,9 @@ start_fsm1(TtlsSup, ChildSpec, SessId, CbProc, #state{handlers = Handlers,
 					{error, Reason}, {supervisor, TtlsSup}, {session_id, SessId}]),
 			{undefined, State}
 	end;
-start_fsm1(AkaSup, ChildSpec, SessId, CbProc, #state{handlers = Handlers,
+start_fsm1(AkaSup, StartArgs, SessId, CbProc, #state{handlers = Handlers,
 		cb_fsms = FsmHandler, aka_sup = AkaSup} = State) ->
+	ChildSpec = [StartArgs],
 	case supervisor:start_child(AkaSup, ChildSpec) of
 		{ok, AkaFsmSup} ->
 			Children = supervisor:which_children(AkaFsmSup),
@@ -434,8 +435,9 @@ start_fsm1(AkaSup, ChildSpec, SessId, CbProc, #state{handlers = Handlers,
 					{error, Reason}, {supervisor, AkaSup}, {session_id, SessId}]),
 			{undefined, State}
 	end;
-start_fsm1(AuthSup, ChildSpec, SessId, CbProc,
+start_fsm1(AuthSup, StartArgs, SessId, CbProc,
 		#state{handlers = Handlers, cb_fsms = FsmHandler} = State) ->
+	ChildSpec = [StartArgs, []],
 	case supervisor:start_child(AuthSup, ChildSpec) of
 		{ok, AuthFsm} ->
 			link(AuthFsm),
