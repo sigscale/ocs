@@ -296,81 +296,72 @@ request(Caps, _Address, _Port, none, _PasswordReq, Request, _CbProc, State)
 %% @hidden
 request1(EapType, Address, Port, PasswordReq,
 		OHost, ORealm, DHost, DRealm, Request, CbProc,
-		#state{handlers = Handlers, method_prefer = MethodPrefer,
-		method_order = MethodOrder, cb_fsms = FsmHandler} = State) ->
+		#state{handlers = Handlers} = State) ->
 	{SessionId, AuthType} = get_attibutes(Request),
+	request2(EapType, SessionId, AuthType,
+			gb_trees:lookup(SessionId, Handlers),
+			Address, Port, PasswordReq, OHost, ORealm,
+			DHost, DRealm, Request, CbProc, State).
+%% @hidden
+request2({_, _Identity}, SessionId, AuthType, none, Address, Port,
+		PasswordReq, OHost, ORealm, DHost, DRealm, Request, CbProc,
+		#state{pwd_sup = Sup, method_prefer = pwd} = State) ->
+	start_fsm(Sup, Address, Port, 5, PasswordReq, SessionId,
+			AuthType, OHost, ORealm, DHost, DRealm, [], CbProc, Request, State);
+request2(none, SessionId, AuthType, none, Address, Port,
+		PasswordReq, OHost, ORealm, DHost, DRealm,
+		#diameter_nas_app_AAR{'User-Name' = [UserName], 'User-Password' = [Password]} = Request,
+		CbProc, #state{simple_auth_sup = Sup} = State) ->
+	start_fsm(Sup, Address, Port, 1, PasswordReq, SessionId,
+			AuthType, OHost, ORealm, DHost, DRealm, [UserName, Password],
+			CbProc, Request, State);
+request2({legacy_nak, EapId, AlternateMethods},
+		SessionId, AuthType, {value, ExistingFsm},
+		Address, Port, PasswordReq, OHost, ORealm,
+		DHost, DRealm, Request, CbProc,
+		#state{method_order = MethodOrder} = State) ->
 	try
-		case gb_trees:lookup(SessionId, Handlers) of
-			none ->
-				case EapType of
-					{_, _Identity} when MethodPrefer == pwd ->
-						PwdSup = State#state.pwd_sup,
-						{_Fsm, NewState} = start_fsm(PwdSup, Address, Port, 5, PasswordReq, SessionId,
-								AuthType, OHost, ORealm, DHost, DRealm, [], CbProc, Request, State),
-						{noreply, NewState};
-					none ->
-						#diameter_nas_app_AAR{'User-Name' = [UserName],
-								'User-Password' = [Password]} = Request,
-						SimpleAuthSup = State#state.simple_auth_sup,
-						case {UserName, Password} of
-							{UserName, Password} when (UserName /= undefined andalso
-									Password /= undefined) ->
-								{_Fsm, NewState} = start_fsm(SimpleAuthSup, Address, Port, 1, PasswordReq,
-										SessionId, AuthType, OHost, ORealm, DHost, DRealm, [UserName, Password],
-										CbProc, Request, State),
-								{noreply, NewState};
-							_ ->
-								Answer = #diameter_nas_app_AAA{
-										'Result-Code' = ?'DIAMETER_BASE_RESULT-CODE_UNABLE_TO_COMPLY',
-										'Origin-Host' = OHost, 'Origin-Realm' = ORealm,
-										'Session-Id' = SessionId},
-								{reply, Answer, State}
-							end
-					end;
-			{value, ExistingFsm} ->
-				case EapType of
-					{legacy_nak, EapId, AlternateMethods} ->
-						case get_alternate(MethodOrder, AlternateMethods, State) of
-							{ok , Sup} ->
-								gen_fsm:send_event(ExistingFsm, Request),
-								NewEapPacket = #eap_packet{code = response,
-										type = ?Identity, identifier = EapId, data = <<>>},
-								NewEapMessage = ocs_eap_codec:eap_packet(NewEapPacket),
-								NewRequest = Request#diameter_eap_app_DER{'EAP-Payload' = NewEapMessage},
-								{_NewFsm, NewState} = start_fsm(Sup, Address, Port, 5, PasswordReq,
-										SessionId, AuthType, OHost, ORealm, DHost, DRealm, [], CbProc,
-										NewRequest, State),
-								{noreply, NewState};
-							{error, none} ->
-								NewEapPacket = #eap_packet{code = failure, identifier = EapId},
-								NewEapMessage = ocs_eap_codec:eap_packet(NewEapPacket),
-								Answer1 = #diameter_eap_app_DEA{'Session-Id' = SessionId,
-										'Auth-Application-Id' = 5, 'Auth-Request-Type' = AuthType,
-										'Result-Code' = ?'DIAMETER_BASE_RESULT-CODE_UNABLE_TO_COMPLY',
-										'Origin-Host' = OHost, 'Origin-Realm' = ORealm,
-										'EAP-Payload' = [NewEapMessage]},
-								{reply, Answer1, State}
-						end;
-					none ->
-						Answer = #diameter_nas_app_AAA{'Session-Id' = SessionId,
-								'Auth-Application-Id' = 1, 'Auth-Request-Type' = AuthType,
-								'Result-Code' = ?'DIAMETER_BASE_RESULT-CODE_SUCCESS',
-								'Origin-Host' = OHost, 'Origin-Realm' = ORealm },
-						{reply, Answer, State};
-					{eap, _Eap} ->
-						NewFsmHandler = gb_trees:enter(ExistingFsm, CbProc, FsmHandler),
-						gen_fsm:send_event(ExistingFsm, Request),
-						{noreply, State#state{cb_fsms = NewFsmHandler}}
-				end
+		case get_alternate(MethodOrder, AlternateMethods, State) of
+			{ok, Sup} ->
+				gen_fsm:send_event(ExistingFsm, Request),
+				NewEapPacket = #eap_packet{code = response,
+						type = ?Identity, identifier = EapId, data = <<>>},
+				NewEapMessage = ocs_eap_codec:eap_packet(NewEapPacket),
+				NewRequest = Request#diameter_eap_app_DER{'EAP-Payload' = NewEapMessage},
+				start_fsm(Sup, Address, Port, 5, PasswordReq, SessionId, AuthType,
+						OHost, ORealm, DHost, DRealm, [], CbProc, NewRequest, State);
+			{error, none} ->
+				NewEapPacket = #eap_packet{code = failure, identifier = EapId},
+				NewEapMessage = ocs_eap_codec:eap_packet(NewEapPacket),
+				Answer = #diameter_eap_app_DEA{'Session-Id' = SessionId,
+						'Auth-Application-Id' = 5, 'Auth-Request-Type' = AuthType,
+						'Result-Code' = ?'DIAMETER_BASE_RESULT-CODE_UNABLE_TO_COMPLY',
+						'Origin-Host' = OHost, 'Origin-Realm' = ORealm,
+						'EAP-Payload' = [NewEapMessage]},
+				{reply, Answer, State}
 		end
 	catch
-		_:_ ->
+		_:_Reason ->
 			Error = #diameter_nas_app_AAA{
 					'Result-Code' = ?'DIAMETER_BASE_RESULT-CODE_UNABLE_TO_COMPLY',
 					'Origin-Host' = OHost, 'Origin-Realm' = ORealm,
 					'Session-Id' = SessionId},
 			{reply, Error, State}
-	end.
+	end;
+request2(none, SessionId, AuthType, {value, _ExistingFsm},
+		_Address, _Port, _PasswordReq, OHost, ORealm,
+		_DHost, _DRealm, _Request, _CbProc, State) ->
+	Answer = #diameter_nas_app_AAA{'Session-Id' = SessionId,
+			'Auth-Application-Id' = 1, 'Auth-Request-Type' = AuthType,
+			'Result-Code' = ?'DIAMETER_BASE_RESULT-CODE_SUCCESS',
+			'Origin-Host' = OHost, 'Origin-Realm' = ORealm },
+	{reply, Answer, State};
+request2({eap, _Eap}, _SessionId, _AuthType, {value, ExistingFsm},
+		_Address, _Port, _PasswordReq, _OHost, _ORealm, _DHost, _DRealm,
+		Request, CbProc, #state{cb_fsms = FsmHandler} = State) ->
+	NewFsmHandler = gb_trees:enter(ExistingFsm, CbProc, FsmHandler),
+	gen_fsm:send_event(ExistingFsm, Request),
+	{noreply, State#state{cb_fsms = NewFsmHandler}}.
 
 %% @hidden
 -spec start_fsm(AuthSup, ClientAddress, ClientPort, AppId, PasswordReq, SessionId,
@@ -391,15 +382,27 @@ request1(EapType, Address, Port, PasswordReq,
 		CbProc :: {pid(), term()},
 		Request :: #diameter_nas_app_AAR{} | #diameter_eap_app_DER{},
 		State :: state(),
-		Result :: {AuthFsm, State},
-		AuthFsm :: undefined | pid().
-start_fsm(AuthSup, ClientAddress, ClientPort, AppId, PasswordReq, SessId,
+		Result :: {noreply, State} | {reply, Error, State},
+		Error :: #diameter_nas_app_AAA{}.
+start_fsm(AuthSup, ClientAddress, ClientPort, AppId, PasswordReq, SessionId,
 		Type, OHost, ORealm, DHost, DRealm, Options, CbProc, Request,
 		#state{address = ServerAddress, port = ServerPort} = State) ->
 	StartArgs = [diameter, ServerAddress, ServerPort, ClientAddress,
-			ClientPort, PasswordReq, SessId, AppId, Type, OHost, ORealm,
+			ClientPort, PasswordReq, SessionId, AppId, Type, OHost, ORealm,
 			DHost, DRealm, Request, Options],
-	start_fsm1(AuthSup, StartArgs, SessId, CbProc, State).
+	try
+		start_fsm1(AuthSup, StartArgs, SessionId, CbProc, State)
+	of
+		{_Fsm, NewState} ->
+			{noreply, NewState}
+	catch
+		_:_Reason ->
+			Error = #diameter_nas_app_AAA{
+					'Result-Code' = ?'DIAMETER_BASE_RESULT-CODE_UNABLE_TO_COMPLY',
+					'Origin-Host' = OHost, 'Origin-Realm' = ORealm,
+					'Session-Id' = SessionId},
+			{reply, Error, State}
+	end.
 %% @hidden
 start_fsm1(TtlsSup, StartArgs, SessId, CbProc, #state{handlers = Handlers,
 		cb_fsms = FsmHandler, ttls_sup = TtlsSup} = State) ->
