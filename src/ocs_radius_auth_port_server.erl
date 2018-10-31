@@ -76,8 +76,9 @@
 %% @private
 %%
 init([AuthPortSup, Address, Port, Options]) ->
-	MethodPrefer = proplists:get_value(eap_method_prefer, Options, pwd),
-	MethodOrder = proplists:get_value(eap_method_order, Options, [pwd, ttls]),
+	MethodPrefer = proplists:get_value(eap_method_prefer, Options, akap),
+	MethodOrder = proplists:get_value(eap_method_order,
+			Options, [akap, aka, pwd, ttls]),
 	State = #state{auth_port_sup = AuthPortSup,
 			address = Address, port = Port,
 			method_prefer = MethodPrefer, method_order = MethodOrder},
@@ -159,7 +160,7 @@ handle_info(timeout, #state{auth_port_sup = AuthPortSup} = State) ->
 	Children = supervisor:which_children(AuthPortSup),
 	{_, PwdSup, _, _} = lists:keyfind(ocs_eap_pwd_fsm_sup, 1, Children),
 	{_, TtlsSup, _, _} = lists:keyfind(ocs_eap_ttls_fsm_sup_sup, 1, Children),
-	{_, AkaSup, _, _} = lists:keyfind(ocs_eap_ttls_fsm_sup_sup, 1, Children),
+	{_, AkaSup, _, _} = lists:keyfind(ocs_eap_aka_fsm_sup_sup, 1, Children),
 	{_, SimpleAuthSup, _, _} = lists:keyfind(ocs_simple_auth_fsm_sup, 1, Children),
 	{noreply, State#state{pwd_sup = PwdSup, ttls_sup = TtlsSup,
 			aka_sup = AkaSup, simple_auth_sup = SimpleAuthSup}};
@@ -284,6 +285,16 @@ request1(EapType, Address, Port, Secret, PasswordReq,
 			{reply, {error, ignore}, State}
 	end.
 %% @hidden
+request2({_, Identity}, none, SessionID, Address, Port, Secret,
+		PasswordReq, AccessRequest, {RadiusFsm, _Tag} = _From,
+		#state{aka_sup = Sup, method_prefer = aka} = State) ->
+	start_fsm(AccessRequest, RadiusFsm, Address, Port, Secret,
+			PasswordReq, SessionID, Identity, Sup, State);
+request2({_, Identity}, none, SessionID, Address, Port, Secret,
+		PasswordReq, AccessRequest, {RadiusFsm, _Tag} = _From,
+		#state{aka_sup = Sup, method_prefer = akap} = State) ->
+	start_fsm(AccessRequest, RadiusFsm, Address, Port, Secret,
+			PasswordReq, SessionID, Identity, Sup, State);
 request2({_, Identity}, none, SessionID, Address, Port, Secret,
 		PasswordReq, AccessRequest, {RadiusFsm, _Tag} = _From,
 		#state{pwd_sup = Sup, method_prefer = pwd} = State) ->
@@ -431,11 +442,28 @@ start_fsm1(AuthSup, StartArgs, RadiusFsm, SessionID, Identity,
 		State :: state(),
 		Result :: {ok, SupervisorModule} | {error, none},
 		SupervisorModule :: pid().
-
+%% @doc Get an alternative EAP method.
+%% @hidden
 get_alternate(PreferenceOrder, AlternateMethods, State) 
 		when is_binary(AlternateMethods) ->
 	get_alternate(PreferenceOrder,
 			binary_to_list(AlternateMethods), State);
+get_alternate([aka | T], AlternateMethods,
+		#state{aka_sup = Sup} = State) ->
+	case lists:member(?AKA, AlternateMethods) of
+		true ->
+			{ok, Sup};
+		false ->
+			get_alternate(T, AlternateMethods, State)
+	end;
+get_alternate([akap | T], AlternateMethods,
+		#state{aka_sup = Sup} = State) ->
+	case lists:member(?AKAprime, AlternateMethods) of
+		true ->
+			{ok, Sup};
+		false ->
+			get_alternate(T, AlternateMethods, State)
+	end;
 get_alternate([pwd | T], AlternateMethods, 
 		#state{pwd_sup = Sup} = State) -> 
 	case lists:member(?PWD, AlternateMethods) of

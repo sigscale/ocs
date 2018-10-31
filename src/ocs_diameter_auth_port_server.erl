@@ -89,9 +89,9 @@
 %% @private
 %%
 init([AuthPortSup, Address, Port, Options]) ->
-	MethodPrefer = proplists:get_value(eap_method_prefer, Options, pwd),
+	MethodPrefer = proplists:get_value(eap_method_prefer, Options, akap),
 	MethodOrder = proplists:get_value(eap_method_order, Options,
-			[pwd, ttls]),
+			[akap, aka, pwd, ttls]),
 	State = #state{auth_port_sup = AuthPortSup, address = Address,
 			port = Port, method_prefer = MethodPrefer, method_order = MethodOrder},
 	case ocs_log:auth_open() of
@@ -308,12 +308,22 @@ request1(EapType, Address, Port, PasswordReq,
 %% @hidden
 request2({_, _Identity}, SessionId, AuthRequestType, none, Address, Port,
 		PasswordReq, OHost, ORealm, DHost, DRealm, Request, CbProc,
+		#state{aka_sup = Sup, method_prefer = akap} = State) ->
+	start_fsm(Sup, Address, Port, ?EAP_APPLICATION_ID, PasswordReq, SessionId,
+			AuthRequestType, OHost, ORealm, DHost, DRealm, [], CbProc, Request, State);
+request2({_, _Identity}, SessionId, AuthRequestType, none, Address, Port,
+		PasswordReq, OHost, ORealm, DHost, DRealm, Request, CbProc,
 		#state{aka_sup = Sup, method_prefer = aka} = State) ->
 	start_fsm(Sup, Address, Port, ?EAP_APPLICATION_ID, PasswordReq, SessionId,
 			AuthRequestType, OHost, ORealm, DHost, DRealm, [], CbProc, Request, State);
 request2({_, _Identity}, SessionId, AuthRequestType, none, Address, Port,
 		PasswordReq, OHost, ORealm, DHost, DRealm, Request, CbProc,
 		#state{pwd_sup = Sup, method_prefer = pwd} = State) ->
+	start_fsm(Sup, Address, Port, ?EAP_APPLICATION_ID, PasswordReq, SessionId,
+			AuthRequestType, OHost, ORealm, DHost, DRealm, [], CbProc, Request, State);
+request2({_, _Identity}, SessionId, AuthRequestType, none, Address, Port,
+		PasswordReq, OHost, ORealm, DHost, DRealm, Request, CbProc,
+		#state{ttls_sup = Sup, method_prefer = ttls} = State) ->
 	start_fsm(Sup, Address, Port, ?EAP_APPLICATION_ID, PasswordReq, SessionId,
 			AuthRequestType, OHost, ORealm, DHost, DRealm, [], CbProc, Request, State);
 request2(none, SessionId, AuthRequestType, none, Address, Port,
@@ -474,10 +484,10 @@ start_fsm1(AuthSup, StartArgs, SessId, CbProc,
 %% DIAMETER Request.
 %% @hidden
 get_attibutes(#diameter_nas_app_AAR{'Session-Id' = SessionId,
-		'Auth-Request-Type' = AuthRequestType}) -
+		'Auth-Request-Type' = AuthRequestType}) ->
 	{SessionId, AuthRequestType};
 get_attibutes(#diameter_eap_app_DER{'Session-Id' = SessionId,
-		'Auth-Request-Type' = Type}) ->
+		'Auth-Request-Type' = AuthRequestType}) ->
 	{SessionId, AuthRequestType}.
 
 -spec get_alternate(PreferenceOrder, AlternateMethods, State) -> Result
@@ -487,6 +497,8 @@ get_attibutes(#diameter_eap_app_DER{'Session-Id' = SessionId,
 		State :: state(),
 		Result :: {ok, SupervisorModule} | {error, none},
 		SupervisorModule :: pid().
+%% @doc Get an alternative EAP method.
+%% @hidden
 get_alternate(PreferenceOrder, AlternateMethods, State)
 		when is_binary(AlternateMethods) ->
 	get_alternate(PreferenceOrder,
