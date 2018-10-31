@@ -65,6 +65,9 @@
 -type state() :: #state{}.
 -type capabilities() :: #diameter_caps{}.
 
+-define(NAS_APPLICATION_ID, 1).
+-define(EAP_APPLICATION_ID, 5).
+
 %%----------------------------------------------------------------------
 %%  The ocs_diameter_auth_port_server API
 %%----------------------------------------------------------------------
@@ -305,14 +308,19 @@ request1(EapType, Address, Port, PasswordReq,
 %% @hidden
 request2({_, _Identity}, SessionId, AuthRequestType, none, Address, Port,
 		PasswordReq, OHost, ORealm, DHost, DRealm, Request, CbProc,
+		#state{aka_sup = Sup, method_prefer = aka} = State) ->
+	start_fsm(Sup, Address, Port, ?EAP_APPLICATION_ID, PasswordReq, SessionId,
+			AuthRequestType, OHost, ORealm, DHost, DRealm, [], CbProc, Request, State);
+request2({_, _Identity}, SessionId, AuthRequestType, none, Address, Port,
+		PasswordReq, OHost, ORealm, DHost, DRealm, Request, CbProc,
 		#state{pwd_sup = Sup, method_prefer = pwd} = State) ->
-	start_fsm(Sup, Address, Port, 5, PasswordReq, SessionId,
+	start_fsm(Sup, Address, Port, ?EAP_APPLICATION_ID, PasswordReq, SessionId,
 			AuthRequestType, OHost, ORealm, DHost, DRealm, [], CbProc, Request, State);
 request2(none, SessionId, AuthRequestType, none, Address, Port,
 		PasswordReq, OHost, ORealm, DHost, DRealm,
 		#diameter_nas_app_AAR{'User-Name' = [UserName], 'User-Password' = [Password]} = Request,
 		CbProc, #state{simple_auth_sup = Sup} = State) ->
-	start_fsm(Sup, Address, Port, 1, PasswordReq, SessionId,
+	start_fsm(Sup, Address, Port, ?NAS_APPLICATION_ID, PasswordReq, SessionId,
 			AuthRequestType, OHost, ORealm, DHost, DRealm, [UserName, Password],
 			CbProc, Request, State);
 request2({legacy_nak, EapId, AlternateMethods},
@@ -328,13 +336,15 @@ request2({legacy_nak, EapId, AlternateMethods},
 						type = ?Identity, identifier = EapId, data = <<>>},
 				NewEapMessage = ocs_eap_codec:eap_packet(NewEapPacket),
 				NewRequest = Request#diameter_eap_app_DER{'EAP-Payload' = NewEapMessage},
-				start_fsm(Sup, Address, Port, 5, PasswordReq, SessionId, AuthRequestType,
-						OHost, ORealm, DHost, DRealm, [], CbProc, NewRequest, State);
+				start_fsm(Sup, Address, Port, ?EAP_APPLICATION_ID, PasswordReq,
+						SessionId, AuthRequestType, OHost, ORealm, DHost, DRealm,
+						[], CbProc, NewRequest, State);
 			{error, none} ->
 				NewEapPacket = #eap_packet{code = failure, identifier = EapId},
 				NewEapMessage = ocs_eap_codec:eap_packet(NewEapPacket),
 				Answer = #diameter_eap_app_DEA{'Session-Id' = SessionId,
-						'Auth-Application-Id' = 5, 'Auth-Request-Type' = AuthRequestType,
+						'Auth-Application-Id' = ?EAP_APPLICATION_ID,
+						'Auth-Request-Type' = AuthRequestType,
 						'Result-Code' = ?'DIAMETER_BASE_RESULT-CODE_UNABLE_TO_COMPLY',
 						'Origin-Host' = OHost, 'Origin-Realm' = ORealm,
 						'EAP-Payload' = [NewEapMessage]},
@@ -352,7 +362,8 @@ request2(none, SessionId, AuthRequestType, {value, _ExistingFsm},
 		_Address, _Port, _PasswordReq, OHost, ORealm,
 		_DHost, _DRealm, _Request, _CbProc, State) ->
 	Answer = #diameter_nas_app_AAA{'Session-Id' = SessionId,
-			'Auth-Application-Id' = 1, 'Auth-Request-Type' = AuthRequestType,
+			'Auth-Application-Id' = ?NAS_APPLICATION_ID,
+			'Auth-Request-Type' = AuthRequestType,
 			'Result-Code' = ?'DIAMETER_BASE_RESULT-CODE_SUCCESS',
 			'Origin-Host' = OHost, 'Origin-Realm' = ORealm },
 	{reply, Answer, State};
@@ -370,7 +381,7 @@ request2({eap, _Eap}, _SessionId, _AuthRequestType, {value, ExistingFsm},
 		AuthSup :: pid(),
 		ClientAddress :: inet:ip_address(),
 		ClientPort :: inet:port_number(),
-		AppId :: non_neg_integer(),
+		AppId :: ?NAS_APPLICATION_ID | ?EAP_APPLICATION_ID,
 		PasswordReq :: boolean(),
 		SessionId :: string(),
 		AuthRequestType :: 1..3,
