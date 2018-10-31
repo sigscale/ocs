@@ -25,6 +25,14 @@
 %%% @reference <a href="http://tools.ietf.org/html/rfc5931">
 %%% 	RFC5931 - EAP Authentication Using Only a Password</a>
 %%%
+%%% @reference <a href="http://tools.ietf.org/html/rfc4187">
+%%% 	RFC4187 - EAP Method for 3rd Generation
+%%% 	Authentication and Key Agreement (EAP-AKA)</a>
+%%%
+%%% @reference <a href="http://tools.ietf.org/html/rfc5448">
+%%% 	RFC5448 - Improved EAP Method for 3rd Generation
+%%% 	Authentication and Key Agreement (EAP-AKA')</a>
+%%%
 -module(ocs_eap_codec).
 -copyright('Copyright (c) 2016 - 2017 SigScale Global Inc.').
 
@@ -224,4 +232,121 @@ eap_ttls(<<1:1, 1:1, 0:1, _:2, Version:3, Length:32, Data/binary>>) ->
 eap_ttls(<<1:1, 1:1, 1:1, _:2, Version:3, Length:32, Data/binary>>) ->
 	#eap_ttls{more = true, start = true, version = Version,
 			message_len = Length, data = Data}.
+
+-spec eap_aka_challenge(Packet) -> Result
+	when
+		Packet :: binary() | #eap_aka_challenge{},
+		Result :: #eap_aka_challenge{} | binary().
+%% @doc Encode or Decode an EAP AKA-Challenge message.
+%%
+%% RFC4187 section 8.1
+%%
+eap_aka_challenge(#eap_aka_challenge{} = Packet) ->
+	<<1, 0:16, _/binary>>;
+eap_aka_challenge(<<1, _:16, _/binary>>) ->
+	#eap_aka_challenge{}.
+
+-spec eap_aka_authentication_reject(Packet) -> Result
+	when
+		Packet :: binary() | #eap_aka_authentication_reject{},
+		Result :: #eap_aka_authentication_reject{} | binary().
+%% @doc Encode or Decode an EAP AKA-Authentication-Reject message.
+%%
+%% RFC4187 section 8.1
+%%
+eap_aka_authentication_reject(#eap_aka_authentication_reject{} = Packet) ->
+	<<2, 0:16, _/binary>>;
+eap_aka_authentication_reject(<<2, _:16, >>) ->
+	#eap_aka_authentication_reject{}.
+
+-spec eap_aka_synchronization_failure(Packet) -> Result
+	when
+		Packet :: binary() | #eap_aka_synchronization_failure{},
+		Result :: #eap_aka_synchronization_failure{} | binary().
+%% @doc Encode or Decode an EAP AKA-Synchronization-Failure message.
+%%
+%% RFC4187 section 8.1
+%%
+eap_aka_synchronization_failure(#eap_aka_synchronization_failure{} = Packet) ->
+	<<4, 0:16, _/binary>>;
+eap_aka_synchronization_failure(<<4, _:16, >>) ->
+	#eap_aka_synchronization_failure{}.
+
+-spec eap_aka_identity(Packet) -> Result
+	when
+		Packet :: binary() | #eap_aka_identity{},
+		Result :: #eap_aka_identity{} | binary().
+%% @doc Encode or Decode an EAP AKA-Identity message.
+%%
+%% RFC4187 section 8.1
+%%
+eap_aka_identity(#eap_aka_identity{} = Packet) ->
+	<<5, 0:16, _/binary>>;
+eap_aka_identity(<<5, _:16, >>) ->
+	#eap_aka_identity{}.
+
+-spec eap_sim_start(Packet) -> Result
+	when
+		Packet :: binary() | #eap_sim_start{},
+		Result :: #eap_sim_start{} | binary().
+%% @doc Encode or Decode an EAP SIM-Start message.
+%%
+%% RFC4187 section 8.1
+%%
+eap_sim_start(#eap_sim_start{} = Packet) ->
+	<<10, 0:16, _/binary>>;
+eap_sim_start(<<10, _:16, >>) ->
+	#eap_sim_start{}.
+
+-spec eap_sim_challenge(Packet) -> Result
+	when
+		Packet :: binary() | #eap_sim_challenge{},
+		Result :: #eap_sim_challenge{} | binary().
+%% @doc Encode or Decode an EAP SIM-Challenge message.
+%%
+%% RFC4187 section 8.1
+%%
+eap_sim_challenge(#eap_sim_challenge{} = Packet) ->
+	<<11, 0:16, _/binary>>;
+eap_sim_challenge(<<11, _:16, >>) ->
+	#eap_sim_challenge{}.
+
+-spec eap_aka_notification(Packet) -> Result
+	when
+		Packet :: binary() | #eap_aka_notification{},
+		Result :: #eap_aka_notification{} | binary().
+%% @doc Encode or Decode an EAP AKA-Notification message.
+%%
+%% RFC4187 section 8.1
+%%
+eap_aka_notification(#eap_aka_notification{} = Packet) ->
+	<<12, 0:16, _/binary>>;
+eap_aka_notification(<<12, _:16, >>) ->
+	#eap_aka_notification{}.
+
+-spec eap_aka_reauthentication(Packet) -> Result
+	when
+		Packet :: binary() | #eap_aka_reauthentication{},
+		Result :: #eap_aka_reauthentication{} | binary().
+%% @doc Encode or Decode an EAP AKA-Notification message.
+%%
+%% RFC4187 section 8.1
+%%
+eap_aka_reauthentication(#eap_aka_reauthentication{} = Packet) ->
+	<<13, 0:16, _/binary>>;
+eap_aka_reauthentication(<<13, _:16, >>) ->
+	#eap_aka_reauthentication{}.
+
+-spec eap_aka_client_error(Packet) -> Result
+	when
+		Packet :: binary() | #eap_aka_client_error{},
+		Result :: #eap_aka_client_error{} | binary().
+%% @doc Encode or Decode an EAP AKA-Notification message.
+%%
+%% RFC4187 section 8.1
+%%
+eap_aka_client_error(#eap_aka_client_error{} = Packet) ->
+	<<14, 0:16, _/binary>>;
+eap_aka_client_error(<<14, _:16, >>) ->
+	#eap_aka_client_error{}.
 
