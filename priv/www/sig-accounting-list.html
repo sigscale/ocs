@@ -337,12 +337,14 @@
 				delete ajax.params['date'];
 				delete ajax.params['nasIdentifier'];
 				delete ajax.params['acctSessiontime'];
-				delete ajax.params['outputOctets'];
-				delete ajax.params['inputOctets'];
+				delete ajax.params['acctOutputoctets'];
+				delete ajax.params['acctInputoctets'];
 				delete ajax.params['filter'];
 				ajax.params['type'] = "AAAAccountingUsage";
 				function checkHead(param) {
-					return param.path == "date" || param.path == "type" || param.path == "status";
+					return param.path == "date" || param.path == "type" || param.path == "status"
+					|| param.path == "acctSessiontime" || param.path == "acctOutputoctets"
+					|| param.path == "acctInputoctets";
 				}
 				var head;
 				params.filters.filter(checkHead).forEach(function(filter) {
@@ -351,7 +353,9 @@
 					}
 				});
 				function checkChar(param) {
-					return param.path != "date" && param.path != "type" && param.path != "status";
+					return param.path != "date" && param.path != "type" && param.path != "status"
+					|| param.path != "acctSessiontime" || param.path != "acctOutputoctets"
+					|| param.path != "acctInputoctets";
 				}
 				params.filters.filter(checkChar).forEach(function(filter) {
 					if (filter.value) {
@@ -360,7 +364,11 @@
 						} else {
 							ajax.params['filter'] += ",";
 						}
-							ajax.params['filter'] += "{name=" + filter.path + ",value.like=[" + filter.value + "%]}";
+							if(isNaN(filter.value)) {
+								ajax.params['filter'] += "{name=" + filter.path + ",value.like=[" + filter.value + "%]}";
+							} else {
+								ajax.params['filter'] += "{name=" + filter.path + ",value.gt=" + filter.value + "%}";
+							}
 					}
 				});
 				if (ajax.params['filter']) {
