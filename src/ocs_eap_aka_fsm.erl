@@ -51,15 +51,18 @@
 -include("diameter_gen_nas_application_rfc7155.hrl").
 
 -record(statedata,
-		{server_address :: inet:ip_address(),
+		{sup :: pid(),
+		server_address :: inet:ip_address(),
 		server_port :: pos_integer(),
 		client_address :: undefined | inet:ip_address(),
 		client_port :: undefined | pos_integer(),
 		radius_fsm :: undefined | pid(),
+		auc_fsm :: undefined | pid(),
 		session_id:: string() | {NAS :: inet:ip_address() | string(),
 				Port :: string(), Peer :: string()},
 		start :: undefined | #diameter_eap_app_DER{} | #radius{},
 		secret :: undefined | binary(),
+		eap_id = 0 :: byte(),
 		server_id  ::  binary(),
 		auth_app_id :: undefined | integer(),
 		auth_req_type :: undefined | integer(),
@@ -72,6 +75,8 @@
 
 -define(TIMEOUT, 30000).
 
+-define(EAP_APPLICATION_ID, 5).
+
 %%----------------------------------------------------------------------
 %%  The ocs_eap_aka_fsm API
 %%----------------------------------------------------------------------
@@ -80,19 +85,28 @@
 %%  The ocs_eap_aka_fsm gen_fsm call backs
 %%----------------------------------------------------------------------
 
-init([radius, ServerAddress, ServerPort, ClientAddress, ClientPort,
-		RadiusFsm, Secret, PasswordReq, SessionID, AccessRequest] = _Args) ->
+init([Sup, radius, ServerAddress, ServerPort, ClientAddress, ClientPort,
+		RadiusFsm, Secret, PasswordReq, SessionID,
+		#radius{attributes = Attributes} = AccessRequest] = _Args) ->
 	{ok, Hostname} = inet:gethostname(),
-	StateData = #statedata{server_address = ServerAddress,
+	ServiceType = case radius_attributes:find(?ServiceType, Attributes) of
+		{error, not_found} ->
+			undefined;
+		{_, ST} ->
+			ST
+	end,
+	StateData = #statedata{sup = Sup,
+			server_address = ServerAddress,
 			server_port = ServerPort, client_address = ClientAddress,
 			client_port = ClientPort, radius_fsm = RadiusFsm,
 			secret = Secret, session_id = SessionID,
 			server_id = list_to_binary(Hostname), start = AccessRequest,
-			password_required = PasswordReq},
+			password_required = PasswordReq,
+			service_type = ServiceType},
 	process_flag(trap_exit, true),
 	{ok, eap_start, StateData, 0};
-init([diameter, ServerAddress, ServerPort, ClientAddress, ClientPort,
-		PasswordReq, SessionId, ApplicationId, AuthType, OHost, ORealm,
+init([Sup, diameter, ServerAddress, ServerPort, ClientAddress, ClientPort,
+		PasswordReq, SessionId, ApplicationId, AuthReqType, OHost, ORealm,
 		_DHost, _DRealm, Request, _Options] = _Args) ->
 	{ok, Hostname} = inet:gethostname(),
 	case global:whereis_name({ocs_diameter_auth, ServerAddress, ServerPort}) of
@@ -105,11 +119,12 @@ init([diameter, ServerAddress, ServerPort, ClientAddress, ClientPort,
 				_ ->
 					undefined
 			end,
-			StateData = #statedata{server_address = ServerAddress,
+			StateData = #statedata{sup = Sup,
+					server_address = ServerAddress,
 					server_port = ServerPort, client_address = ClientAddress,
 					client_port = ClientPort, session_id = SessionId,
 					server_id = list_to_binary(Hostname), auth_app_id = ApplicationId,
-					auth_req_type = AuthType, origin_host = OHost,
+					auth_req_type = AuthReqType, origin_host = OHost,
 					origin_realm = ORealm, diameter_port_server = PortServer,
 					start = Request, password_required = PasswordReq,
 					service_type = ServiceType},
@@ -133,19 +148,127 @@ init([diameter, ServerAddress, ServerPort, ClientAddress, ClientPort,
 %%		gen_fsm:send_event/2} in the <b>eap_start</b> state.
 %% @@see //stdlib/gen_fsm:StateName/2
 %% @private
-eap_start(timeout, #statedata{start = _Request} = StateData) ->
-	{stop, unimplemented, StateData}.
+eap_start(timeout, #statedata{eap_id = EapID,
+		session_id = SessionId, auth_req_type = AuthReqType,
+		start = #diameter_eap_app_DER{'EAP-Payload' = []} = Request,
+		origin_host = OHost, origin_realm = ORealm,
+		diameter_port_server = PortServer} = StateData) ->
+	EapData = [],
+	EapPacket = #eap_packet{code = request, type = ?AKA,
+			identifier = EapID, data = EapData},
+	send_diameter_response(SessionId, AuthReqType,
+			?'DIAMETER_BASE_RESULT-CODE_MULTI_ROUND_AUTH', OHost, ORealm,
+			EapPacket, PortServer, Request, StateData),
+	{next_state, id, StateData, ?TIMEOUT};
+eap_start(timeout, #statedata{sup = Sup, eap_id = EapID,
+		session_id = SessionId, auth_req_type = AuthReqType,
+		start = #diameter_eap_app_DER{'EAP-Payload' = EapMessage} = Request,
+		origin_host = OHost, origin_realm = ORealm,
+		diameter_port_server = PortServer} = StateData) ->
+	Children = supervisor:which_children(Sup),
+	{_, AucFsm, _, _} = lists:keyfind(ocs_eap_aka_auc_fsm, 1, Children),
+	NewStateData = StateData#statedata{start = undeined, auc_fsm = AucFsm},
+	EapData = [],
+	case catch ocs_eap_codec:eap_packet(EapMessage) of
+		#eap_packet{code = response, type = ?Identity, identifier = NewEapID} ->
+			NextEapID = (NewEapID rem 255) + 1,
+			EapPacket = #eap_packet{code = request, type = ?AKA,
+					identifier = NextEapID, data = EapData},
+			NextStateData = NewStateData#statedata{eap_id = NextEapID},
+			send_diameter_response(SessionId, AuthReqType,
+					?'DIAMETER_BASE_RESULT-CODE_MULTI_ROUND_AUTH', OHost, ORealm,
+					EapPacket, PortServer, Request, NextStateData),
+			{next_state, id, NextStateData, ?TIMEOUT};
+		#eap_packet{code = request, identifier = NewEapID} ->
+			EapPacket = #eap_packet{code = response, type = ?LegacyNak,
+					identifier = NewEapID, data = <<0>>},
+			send_diameter_response(SessionId, AuthReqType,
+					?'DIAMETER_BASE_RESULT-CODE_UNABLE_TO_COMPLY', OHost, ORealm,
+					EapPacket, PortServer, Request, NewStateData),
+			{stop, {shutdown, SessionId}, NewStateData};
+		#eap_packet{code = Code, type = EapType,
+				identifier = NewEapID, data = Data} ->
+			error_logger:warning_report(["Unknown EAP received",
+					{pid, self()}, {session_id, SessionId}, {code, Code},
+					{type, EapType}, {identifier, NewEapID}, {data, Data}]),
+			EapPacket = #eap_packet{code = failure, identifier = NewEapID},
+			send_diameter_response(SessionId, AuthReqType,
+					?'DIAMETER_BASE_RESULT-CODE_UNABLE_TO_COMPLY', OHost, ORealm,
+					EapPacket, PortServer, Request, NewStateData),
+			{stop, {shutdown, SessionId}, NewStateData};
+		{'EXIT', _Reason} ->
+			EapPacket = #eap_packet{code = failure, identifier = EapID},
+			send_diameter_response(SessionId, AuthReqType,
+					?'DIAMETER_BASE_RESULT-CODE_UNABLE_TO_COMPLY', OHost, ORealm,
+					EapPacket, PortServer, Request, NewStateData),
+			{stop, {shutdown, SessionId}, NewStateData}
+	end;
+%% @hidden
+eap_start(timeout, #statedata{sup = Sup, eap_id = EapID,
+		start = #radius{code = ?AccessRequest, id = RadiusID,
+		authenticator = RequestAuthenticator, attributes = RequestAttributes},
+		session_id = SessionID} = StateData) ->
+	Children = supervisor:which_children(Sup),
+	{_, AucFsm, _, _} = lists:keyfind(ocs_eap_aka_auc_fsm, 1, Children),
+	NewStateData = StateData#statedata{start = undefined, auc_fsm = AucFsm},
+	EapData = [],
+	case radius_attributes:find(?EAPMessage, RequestAttributes) of
+		{ok, <<>>} ->
+			EapPacket = #eap_packet{code = request,
+					type = ?AKA, identifier = EapID, data = EapData},
+			send_radius_response(EapPacket, ?AccessChallenge, [], RadiusID,
+					RequestAuthenticator, RequestAttributes, NewStateData),
+			{next_state, id, NewStateData, ?TIMEOUT};
+		{ok, EAPMessage} ->
+			case catch ocs_eap_codec:eap_packet(EAPMessage) of
+				#eap_packet{code = response, type = ?Identity,
+						identifier = NewEapID} ->
+					NextEapID = (NewEapID rem 255) + 1,
+					EapPacket = #eap_packet{code = request,
+							type = ?AKA, identifier = NextEapID, data = EapData},
+					send_radius_response(EapPacket, ?AccessChallenge, [], RadiusID,
+							RequestAuthenticator, RequestAttributes, NewStateData),
+					NextStateData = NewStateData#statedata{eap_id = NextEapID},
+					{next_state, id, NextStateData, ?TIMEOUT};
+				#eap_packet{code = request, identifier = NewEapID} ->
+					EapPacket = #eap_packet{code = response, type = ?LegacyNak,
+							identifier = NewEapID, data = <<0>>},
+					send_radius_response(EapPacket, ?AccessReject, [], RadiusID,
+							RequestAuthenticator, RequestAttributes, NewStateData),
+					{stop, {shutdown, SessionID}, StateData};
+				#eap_packet{code = Code, type = EapType,
+						identifier = NewEapID, data = Data} ->
+					error_logger:warning_report(["Unknown EAP received",
+							{pid, self()}, {session_id, SessionID}, {code, Code},
+							{type, EapType}, {identifier, NewEapID}, {data, Data}]),
+					EapPacket = #eap_packet{code = failure, identifier = NewEapID},
+					send_radius_response(EapPacket, ?AccessReject, [], RadiusID,
+							RequestAuthenticator, RequestAttributes, NewStateData),
+					{stop, {shutdown, SessionID}, StateData};
+				{'EXIT', _Reason} ->
+					EapPacket = #eap_packet{code = failure, identifier = EapID},
+					send_radius_response(EapPacket, ?AccessReject, [], RadiusID,
+							RequestAuthenticator, RequestAttributes, NewStateData),
+					{stop, {shutdown, SessionID}, StateData}
+			end;
+		{error, not_found} ->
+			EapPacket = #eap_packet{code = request,
+					type = ?AKA, identifier = EapID, data = EapData},
+			send_radius_response(EapPacket, ?AccessChallenge, [], RadiusID,
+					RequestAuthenticator, RequestAttributes, NewStateData),
+			{next_state, id, NewStateData, ?TIMEOUT}
+	end.
 
 -spec handle_event(Event, StateName, StateData) -> Result
 	when
-		Event :: term(), 
+		Event :: term(),
 		StateName :: atom(),
 		StateData :: statedata(),
 		Result :: {next_state, NextStateName, NewStateData}
 		| {next_state, NextStateName, NewStateData, Timeout}
 		| {next_state, NextStateName, NewStateData, hibernate}
 		| {stop, Reason, NewStateData},
-		NextStateName :: atom(), 
+		NextStateName :: atom(),
 		NewStateData :: statedata(),
 		Timeout :: non_neg_integer() | infinity,
 		Reason :: normal | term().
@@ -160,9 +283,9 @@ handle_event(_Event, StateName, StateData) ->
 
 -spec handle_sync_event(Event, From, StateName, StateData) -> Result
 	when
-		Event :: term(), 
+		Event :: term(),
 		From :: {Pid :: pid(), Tag :: term()},
-		StateName :: atom(), 
+		StateName :: atom(),
 		StateData :: statedata(),
 		Result :: {reply, Reply, NextStateName, NewStateData}
 		| {reply, Reply, NextStateName, NewStateData, Timeout}
@@ -188,14 +311,14 @@ handle_sync_event(_Event, _From, StateName, StateData) ->
 
 -spec handle_info(Info, StateName, StateData) -> Result
 	when
-		Info :: term(), 
-		StateName :: atom(), 
+		Info :: term(),
+		StateName :: atom(),
 		StateData :: statedata(),
 		Result :: {next_state, NextStateName, NewStateData}
 		| {next_state, NextStateName, NewStateData, Timeout}
 		| {next_state, NextStateName, NewStateData, hibernate}
 		| {stop, Reason, NewStateData},
-		NextStateName :: atom(), 
+		NextStateName :: atom(),
 		NewStateData :: statedata(),
 		Timeout :: non_neg_integer() | infinity,
 		Reason :: normal | term().
@@ -208,7 +331,7 @@ handle_info(_Info, StateName, StateData) ->
 
 -spec terminate(Reason, StateName, StateData) -> any()
 	when
-		Reason :: normal | shutdown | term(), 
+		Reason :: normal | shutdown | term(),
 		StateName :: atom(),
 		StateData :: statedata().
 %% @doc Cleanup and exit.
@@ -221,11 +344,11 @@ terminate(_Reason, _StateName, _StateData) ->
 -spec code_change(OldVsn, StateName, StateData, Extra) -> Result
 	when
 		OldVsn :: (Vsn :: term() | {down, Vsn :: term()}),
-		StateName :: atom(), 
-		StateData :: statedata(), 
+		StateName :: atom(),
+		StateData :: statedata(),
 		Extra :: term(),
 		Result :: {ok, NextStateName, NewStateData},
-		NextStateName :: atom(), 
+		NextStateName :: atom(),
 		NewStateData :: statedata().
 %% @doc Update internal state data during a release upgrade&#047;downgrade.
 %% @see //stdlib/gen_fsm:code_change/4
@@ -237,4 +360,105 @@ code_change(_OldVsn, StateName, StateData, _Extra) ->
 %%----------------------------------------------------------------------
 %%  internal functions
 %%----------------------------------------------------------------------
+
+-spec send_radius_response(EapPacket, RadiusCode, ResponseAttributes, RadiusID,
+		RequestAuthenticator, RequestAttributes, StateData) -> ok
+	when
+		EapPacket :: #eap_packet{},
+		RadiusCode :: integer(),
+		ResponseAttributes :: radius_attributes:attributes(),
+		RadiusID :: integer(),
+		RequestAuthenticator :: [byte()],
+		RequestAttributes :: radius_attributes:attributes(),
+		StateData :: #statedata{}.
+%% @doc Sends a RADIUS Access/Challenge, Reject or Accept packet to peer.
+%% @hidden
+send_radius_response(EapPacket, RadiusCode, ResponseAttributes,
+		RadiusID, RequestAuthenticator, RequestAttributes,
+		#statedata{server_address = ServerAddress, server_port = ServerPort,
+		client_address = ClientAddress, client_port = ClientPort,
+		secret = Secret, radius_fsm = RadiusFsm} = _StateData) ->
+	EapPacketData = ocs_eap_codec:eap_packet(EapPacket),
+	AttrList1 = radius_attributes:add(?EAPMessage,
+			EapPacketData, ResponseAttributes),
+	AttrList2 = radius_attributes:add(?MessageAuthenticator,
+			<<0:128>>, AttrList1),
+	Attributes1 = radius_attributes:codec(AttrList2),
+	Length = size(Attributes1) + 20,
+	MessageAuthenticator = crypto:hmac(md5, Secret, [<<RadiusCode, RadiusID,
+			Length:16>>, RequestAuthenticator, Attributes1]),
+	AttrList3 = radius_attributes:store(?MessageAuthenticator,
+			MessageAuthenticator, AttrList2),
+	Attributes2 = radius_attributes:codec(AttrList3),
+	ResponseAuthenticator = crypto:hash(md5, [<<RadiusCode, RadiusID,
+			Length:16>>, RequestAuthenticator, Attributes2, Secret]),
+	Response = #radius{code = RadiusCode, id = RadiusID,
+			authenticator = ResponseAuthenticator, attributes = Attributes2},
+	ResponsePacket = radius:codec(Response),
+	case RadiusCode of
+		?AccessAccept ->
+			ok = ocs_log:auth_log(radius, {ServerAddress, ServerPort},
+					{ClientAddress, ClientPort}, accept,
+					RequestAttributes, AttrList3);
+		?AccessReject ->
+			ok = ocs_log:auth_log(radius, {ServerAddress, ServerPort},
+					{ClientAddress, ClientPort}, reject,
+					RequestAttributes, AttrList3);
+		?AccessChallenge ->
+			ok
+	end,
+	radius:response(RadiusFsm, {response, ResponsePacket}).
+
+-spec send_diameter_response(SId, AuthType, ResultCode, OH, OR,
+		EapPacket, PortServer, Request, StateData) -> ok
+	when
+		SId :: string(),
+		AuthType :: integer(),
+		ResultCode :: integer(),
+		OH :: binary(),
+		OR :: binary(),
+		EapPacket :: none | #eap_packet{},
+		PortServer :: pid(),
+		Request :: #diameter_eap_app_DER{},
+		StateData :: #statedata{}.
+%% @doc Log DIAMETER event and send appropriate DIAMETER answer to
+%% ocs_diameter_auth_port_server.
+%% @hidden
+send_diameter_response(SId, AuthType, ResultCode, OH, OR, none,
+		PortServer, Request, #statedata{server_address = ServerAddress,
+		server_port = ServerPort, client_address = ClientAddress,
+		client_port = ClientPort} = _StateData) ->
+	Server = {ServerAddress, ServerPort},
+	Client= {ClientAddress, ClientPort},
+	Answer = #diameter_eap_app_DEA{'Session-Id' = SId,
+			'Auth-Application-Id' = ?EAP_APPLICATION_ID,
+			'Auth-Request-Type' = AuthType,
+			'Result-Code' = ResultCode, 'Origin-Host' = OH, 'Origin-Realm' = OR},
+	ok = ocs_log:auth_log(diameter, Server, Client, Request, Answer),
+	gen_server:cast(PortServer, {self(), Answer});
+send_diameter_response(SId, AuthType, ResultCode, OH, OR, EapPacket,
+		PortServer, Request, #statedata{server_address = ServerAddress,
+		server_port = ServerPort, client_address = ClientAddress,
+		client_port = ClientPort} = _StateData) ->
+	Server = {ServerAddress, ServerPort},
+	Client= {ClientAddress, ClientPort},
+	try
+		EapData = ocs_eap_codec:eap_packet(EapPacket),
+		Answer = #diameter_eap_app_DEA{'Session-Id' = SId,
+				'Auth-Application-Id' = ?EAP_APPLICATION_ID,
+				'Auth-Request-Type' = AuthType,
+				'Result-Code' = ResultCode, 'Origin-Host' = OH, 'Origin-Realm' = OR,
+				'EAP-Payload' = [EapData]},
+		ok = ocs_log:auth_log(diameter, Server, Client, Request, Answer),
+		gen_server:cast(PortServer, {self(), Answer})
+	catch
+		_:_ ->
+		Answer1 = #diameter_eap_app_DEA{'Session-Id' = SId,
+				'Auth-Application-Id' = ?EAP_APPLICATION_ID,
+				'Auth-Request-Type' = AuthType,
+				'Result-Code' = ?'DIAMETER_BASE_RESULT-CODE_UNABLE_TO_COMPLY',
+				'Origin-Host' = OH, 'Origin-Realm' = OR},
+		ok = ocs_log:auth_log(diameter, Server, Client, Request, Answer1),
+		gen_server:cast(PortServer, {self(), Answer1})
+	end.
 
