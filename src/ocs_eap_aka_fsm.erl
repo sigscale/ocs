@@ -211,9 +211,9 @@ eap_start(timeout, #statedata{sup = Sup, eap_id = EapID,
 	Children = supervisor:which_children(Sup),
 	{_, AucFsm, _, _} = lists:keyfind(ocs_eap_aka_auc_fsm, 1, Children),
 	NewStateData = StateData#statedata{start = undefined, auc_fsm = AucFsm},
-	EapData = [],
 	case radius_attributes:find(?EAPMessage, RequestAttributes) of
 		{ok, <<>>} ->
+			EapData = eap_aka(#eap_aka_identity{any_id_req = true}),
 			EapPacket = #eap_packet{code = request,
 					type = ?AKA, identifier = EapID, data = EapData},
 			send_radius_response(EapPacket, ?AccessChallenge, [], RadiusID,
@@ -224,6 +224,7 @@ eap_start(timeout, #statedata{sup = Sup, eap_id = EapID,
 				#eap_packet{code = response, type = ?Identity,
 						identifier = NewEapID} ->
 					NextEapID = (NewEapID rem 255) + 1,
+					EapData = eap_aka(#eap_aka_identity{any_id_req = true}),
 					EapPacket = #eap_packet{code = request,
 							type = ?AKA, identifier = NextEapID, data = EapData},
 					send_radius_response(EapPacket, ?AccessChallenge, [], RadiusID,
@@ -252,6 +253,7 @@ eap_start(timeout, #statedata{sup = Sup, eap_id = EapID,
 					{stop, {shutdown, SessionID}, StateData}
 			end;
 		{error, not_found} ->
+					EapData = eap_aka(#eap_aka_identity{any_id_req = true}),
 			EapPacket = #eap_packet{code = request,
 					type = ?AKA, identifier = EapID, data = EapData},
 			send_radius_response(EapPacket, ?AccessChallenge, [], RadiusID,
