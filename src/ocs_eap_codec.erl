@@ -38,9 +38,13 @@
 
 %% export the ocs public API
 -export([eap_packet/1, eap_pwd/1, eap_pwd_id/1, eap_pwd_commit/1,
-			eap_ttls/1]).
+			eap_ttls/1, eap_aka/1, aka_attr/1]).
 
 -include("ocs_eap_codec.hrl").
+
+%%----------------------------------------------------------------------
+%%  The ocs_eap_codec public API
+%%----------------------------------------------------------------------
 
 -spec eap_packet(Packet) -> Result 
 	when
@@ -233,120 +237,177 @@ eap_ttls(<<1:1, 1:1, 1:1, _:2, Version:3, Length:32, Data/binary>>) ->
 	#eap_ttls{more = true, start = true, version = Version,
 			message_len = Length, data = Data}.
 
--spec eap_aka_challenge(Packet) -> Result
+-spec eap_aka(Message) -> Message
 	when
-		Packet :: binary() | #eap_aka_challenge{},
-		Result :: #eap_aka_challenge{} | binary().
-%% @doc Encode or Decode an EAP AKA-Challenge message.
+		Message :: binary()
+				| #eap_aka_identity{}
+				| #eap_aka_challenge{}
+				| #eap_aka_reauthentication{}
+				| #eap_aka_notification{}
+				| #eap_aka_authentication_reject{}
+				| #eap_aka_synchronization_failure{}
+				| #eap_aka_client_error{}.
+%% @doc Encode or decode an EAP-AKA message.
 %%
 %% RFC4187 section 8.1
 %%
-eap_aka_challenge(#eap_aka_challenge{} = Packet) ->
-	<<1, 0:16, _/binary>>;
-eap_aka_challenge(<<1, _:16, _/binary>>) ->
-	#eap_aka_challenge{}.
+eap_aka(#eap_aka_challenge{} = _Message) ->
+	<<1, 0:16, <<>>/binary>>;
+eap_aka(#eap_aka_authentication_reject{}) ->
+	<<2, 0:16, <<>>/binary>>;
+eap_aka(#eap_aka_synchronization_failure{}) ->
+	<<4, 0:16, <<>>/binary>>;
+eap_aka(#eap_aka_identity{}) ->
+	<<5, 0:16, <<>>/binary>>;
+eap_aka(#eap_aka_notification{}) ->
+	<<12, 0:16, <<>>/binary>>;
+eap_aka(#eap_aka_reauthentication{}) ->
+	<<13, 0:16, <<>>/binary>>;
+eap_aka(#eap_aka_client_error{}) ->
+	<<14, 0:16, <<>>/binary>>;
+eap_aka(<<1, _:16, Attributes/binary>>) ->
+	F = fun(?AT_RAND, Rand, Acc) ->
+				Acc#eap_aka_challenge{rand = Rand};
+			(?AT_AUTN, Autn, Acc) ->
+				Acc#eap_aka_challenge{autn = Autn};
+			(?AT_MAC, Mac, Acc) ->
+				Acc#eap_aka_challenge{mac = Mac};
+			(?AT_RESULT_IND, ResultInd, Acc) ->
+				Acc#eap_aka_challenge{result_ind = ResultInd};
+			(?AT_RES, Res, Acc) ->
+				Acc#eap_aka_challenge{res = Res};
+			(?AT_CHECKCODE, Code, Acc) ->
+				Acc#eap_aka_challenge{checkcode = Code};
+			(?AT_IV, Iv, Acc) ->
+				Acc#eap_aka_challenge{iv = Iv};
+			(?AT_ENCR_DATA, EncrData, Acc) ->
+				Acc#eap_aka_challenge{encr_data = EncrData}
+	end,
+	maps:fold(F, #eap_aka_challenge{}, aka_attr(Attributes));
+eap_aka(<<2, _:16, _Attributes/binary>>) ->
+	#eap_aka_authentication_reject{};
+eap_aka(<<4, _:16, Attributes/binary>>) ->
+	F = fun(?AT_AUTS, Auts, Acc) ->
+				Acc#eap_aka_synchronization_failure{auts = Auts}
+	end,
+	maps:fold(F, #eap_aka_synchronization_failure{}, aka_attr(Attributes));
+eap_aka(<<5, _:16, Attributes/binary>>) ->
+	F = fun(?AT_PERMANENT_ID_REQ, PermanentIdReq, Acc) ->
+				Acc#eap_aka_identity{permanent_id_req = PermanentIdReq};
+			(?AT_FULLAUTH_ID_REQ, FullAuthReq, Acc) ->
+				Acc#eap_aka_identity{fullauth_id_req = FullAuthReq};
+			(?AT_ANY_ID_REQ, AnyIdReq, Acc) ->
+				Acc#eap_aka_identity{any_id_req = AnyIdReq};
+			(?AT_IDENTITY, Identity, Acc) ->
+				Acc#eap_aka_identity{identity = Identity}
+	end,
+	maps:fold(F, #eap_aka_identity{}, aka_attr(Attributes));
+eap_aka(<<12, _:16, Attributes/binary>>) ->
+	F = fun(?AT_NOTIFICATION, Notification, Acc) ->
+				Acc#eap_aka_notification{notification = Notification};
+			(?AT_MAC, Mac, Acc) ->
+				Acc#eap_aka_notification{mac = Mac};
+			(?AT_IV, Iv, Acc) ->
+				Acc#eap_aka_notification{iv = Iv};
+			(?AT_ENCR_DATA, EncrData, Acc) ->
+				Acc#eap_aka_notification{encr_data = EncrData}
+	end,
+	maps:fold(F, #eap_aka_notification{}, aka_attr(Attributes));
+eap_aka(<<13, _:16, Attributes/binary>>) ->
+	F = fun(?AT_MAC, Mac, Acc) ->
+				Acc#eap_aka_reauthentication{mac = Mac};
+			(?AT_RESULT_IND, ResultInd, Acc) ->
+				Acc#eap_aka_reauthentication{result_ind = ResultInd};
+			(?AT_CHECKCODE, Code, Acc) ->
+				Acc#eap_aka_reauthentication{checkcode = Code};
+			(?AT_IV, Iv, Acc) ->
+				Acc#eap_aka_reauthentication{iv = Iv};
+			(?AT_ENCR_DATA, EncrData, Acc) ->
+				Acc#eap_aka_reauthentication{encr_data = EncrData}
+	end,
+	maps:fold(F, #eap_aka_reauthentication{}, aka_attr(Attributes));
+eap_aka(<<14, _:16, Attributes/binary>>) ->
+	F = fun(?AT_AUTS, Auts, Acc) ->
+				Acc#eap_aka_synchronization_failure{auts = Auts}
+	end,
+	maps:fold(F, #eap_aka_synchronization_failure{}, aka_attr(Attributes)).
 
--spec eap_aka_authentication_reject(Packet) -> Result
-	when
-		Packet :: binary() | #eap_aka_authentication_reject{},
-		Result :: #eap_aka_authentication_reject{} | binary().
-%% @doc Encode or Decode an EAP AKA-Authentication-Reject message.
-%%
-%% RFC4187 section 8.1
-%%
-eap_aka_authentication_reject(#eap_aka_authentication_reject{} = Packet) ->
-	<<2, 0:16, _/binary>>;
-eap_aka_authentication_reject(<<2, _:16, >>) ->
-	#eap_aka_authentication_reject{}.
+%%----------------------------------------------------------------------
+%%  internal functions
+%%----------------------------------------------------------------------
 
--spec eap_aka_synchronization_failure(Packet) -> Result
+-spec aka_attr(Attributes) -> Attributes
 	when
-		Packet :: binary() | #eap_aka_synchronization_failure{},
-		Result :: #eap_aka_synchronization_failure{} | binary().
-%% @doc Encode or Decode an EAP AKA-Synchronization-Failure message.
-%%
-%% RFC4187 section 8.1
-%%
-eap_aka_synchronization_failure(#eap_aka_synchronization_failure{} = Packet) ->
-	<<4, 0:16, _/binary>>;
-eap_aka_synchronization_failure(<<4, _:16, >>) ->
-	#eap_aka_synchronization_failure{}.
-
--spec eap_aka_identity(Packet) -> Result
-	when
-		Packet :: binary() | #eap_aka_identity{},
-		Result :: #eap_aka_identity{} | binary().
-%% @doc Encode or Decode an EAP AKA-Identity message.
-%%
-%% RFC4187 section 8.1
-%%
-eap_aka_identity(#eap_aka_identity{} = Packet) ->
-	<<5, 0:16, _/binary>>;
-eap_aka_identity(<<5, _:16, >>) ->
-	#eap_aka_identity{}.
-
--spec eap_sim_start(Packet) -> Result
-	when
-		Packet :: binary() | #eap_sim_start{},
-		Result :: #eap_sim_start{} | binary().
-%% @doc Encode or Decode an EAP SIM-Start message.
-%%
-%% RFC4187 section 8.1
-%%
-eap_sim_start(#eap_sim_start{} = Packet) ->
-	<<10, 0:16, _/binary>>;
-eap_sim_start(<<10, _:16, >>) ->
-	#eap_sim_start{}.
-
--spec eap_sim_challenge(Packet) -> Result
-	when
-		Packet :: binary() | #eap_sim_challenge{},
-		Result :: #eap_sim_challenge{} | binary().
-%% @doc Encode or Decode an EAP SIM-Challenge message.
-%%
-%% RFC4187 section 8.1
-%%
-eap_sim_challenge(#eap_sim_challenge{} = Packet) ->
-	<<11, 0:16, _/binary>>;
-eap_sim_challenge(<<11, _:16, >>) ->
-	#eap_sim_challenge{}.
-
--spec eap_aka_notification(Packet) -> Result
-	when
-		Packet :: binary() | #eap_aka_notification{},
-		Result :: #eap_aka_notification{} | binary().
-%% @doc Encode or Decode an EAP AKA-Notification message.
-%%
-%% RFC4187 section 8.1
-%%
-eap_aka_notification(#eap_aka_notification{} = Packet) ->
-	<<12, 0:16, _/binary>>;
-eap_aka_notification(<<12, _:16, >>) ->
-	#eap_aka_notification{}.
-
--spec eap_aka_reauthentication(Packet) -> Result
-	when
-		Packet :: binary() | #eap_aka_reauthentication{},
-		Result :: #eap_aka_reauthentication{} | binary().
-%% @doc Encode or Decode an EAP AKA-Notification message.
-%%
-%% RFC4187 section 8.1
-%%
-eap_aka_reauthentication(#eap_aka_reauthentication{} = Packet) ->
-	<<13, 0:16, _/binary>>;
-eap_aka_reauthentication(<<13, _:16, >>) ->
-	#eap_aka_reauthentication{}.
-
--spec eap_aka_client_error(Packet) -> Result
-	when
-		Packet :: binary() | #eap_aka_client_error{},
-		Result :: #eap_aka_client_error{} | binary().
-%% @doc Encode or Decode an EAP AKA-Notification message.
-%%
-%% RFC4187 section 8.1
-%%
-eap_aka_client_error(#eap_aka_client_error{} = Packet) ->
-	<<14, 0:16, _/binary>>;
-eap_aka_client_error(<<14, _:16, >>) ->
-	#eap_aka_client_error{}.
+		Attributes :: map() | binary().
+%% @doc Encode or decode EAP-AKA attributes.
+%% @hidden
+aka_attr(Attributes) when is_binary(Attributes)->
+	aka_attr(Attributes, #{});
+aka_attr(Attributes) when is_tuple(Attributes)->
+	aka_attr(Attributes, <<>>).
+%% @hidden
+aka_attr(<<?AT_RAND, 5, _:16, Rand:16/bytes, Rest/bytes>>, Acc) ->
+	aka_attr(Rest, Acc#{?AT_RAND => Rand});
+aka_attr(<<?AT_AUTN, 5, _:16, Autn:16/bytes, Rest/bytes>>, Acc) ->
+	aka_attr(Rest, Acc#{?AT_AUTN => Autn});
+aka_attr(<<?AT_RES, L1, _/bytes>> = B, Acc) ->
+	L2 = (L1 * 4) - 4,
+	<<_:16, L3:16, Data:L2/bytes, Rest/bytes>> = B,
+	<<Res:L3/bits, _/bits>> = Data,
+	aka_attr(Rest, Acc#{?AT_RES => Res});
+aka_attr(<<?AT_AUTS, 4, Auts:14/bytes, Rest/bytes>>, Acc) ->
+	aka_attr(Rest, Acc#{?AT_AUTS => Auts});
+aka_attr(<<?AT_PADDING, L1, _/bytes>> = B, Acc) ->
+	L2 = (L1 * 4) - 2,
+	<<_:16, _:L2/bytes, Rest/bytes>> = B,
+	aka_attr(Rest, Acc);
+aka_attr(<<?AT_PERMANENT_ID_REQ, 1, _:16, Rest/bytes>>, Acc) ->
+	aka_attr(Rest, Acc#{?AT_PERMANENT_ID_REQ => true});
+aka_attr(<<?AT_MAC, 5, _:16, Mac:16/bytes, Rest/bytes>>, Acc) ->
+	aka_attr(Rest, Acc#{?AT_MAC => Mac});
+aka_attr(<<?AT_NOTIFICATION, 1, Code:16, Rest/bytes>>, Acc) ->
+	aka_attr(Rest, Acc#{?AT_NOTIFICATION => Code});
+aka_attr(<<?AT_ANY_ID_REQ, 1, _:16, Rest/bytes>>, Acc) ->
+	aka_attr(Rest, Acc#{?AT_ANY_ID_REQ => true});
+aka_attr(<<?AT_IDENTITY, L1, _/bytes>> = B, Acc) ->
+	L2 = (L1 * 4) - 4,
+	<<_:16, L3:16, Data:L2/bytes, Rest/bytes>> = B,
+	<<Identity:L3/bytes, _/bytes>> = Data,
+	aka_attr(Rest, Acc#{?AT_IDENTITY => Identity});
+aka_attr(<<?AT_FULLAUTH_ID_REQ, 1, _:16, Rest/bytes>>, Acc) ->
+	aka_attr(Rest, Acc#{?AT_FULLAUTH_ID_REQ => true});
+aka_attr(<<?AT_COUNTER, 1, Counter:16, Rest/bytes>>, Acc) ->
+	aka_attr(Rest, Acc#{?AT_COUNTER => Counter});
+aka_attr(<<?AT_COUNTER_TOO_SMALL, 1, _:16, Rest/bytes>>, Acc) ->
+	aka_attr(Rest, Acc#{?AT_COUNTER_TOO_SMALL => true});
+aka_attr(<<?AT_NONCE_S, 5, _:16, Nonce:16/bytes, Rest/bytes>>, Acc) ->
+	aka_attr(Rest, Acc#{?AT_NONCE_S => Nonce});
+aka_attr(<<?AT_CLIENT_ERROR_CODE, 1, Code:16, Rest/bytes>>, Acc) ->
+	aka_attr(Rest, Acc#{?AT_CLIENT_ERROR_CODE => Code});
+aka_attr(<<?AT_IV, 5, _:16, Iv:16/bytes, Rest/bytes>>, Acc) ->
+	aka_attr(Rest, Acc#{?AT_IV => Iv});
+aka_attr(<<?AT_ENCR_DATA, L1, _/bytes>> = B, Acc) ->
+	L2 = (L1 * 4) - 4,
+	<<_:32, EncrData:L2/bytes, Rest/bytes>> = B,
+	aka_attr(Rest, Acc#{?AT_ENCR_DATA => EncrData});
+aka_attr(<<?AT_NEXT_PSEUDONYM, L1, _/bytes>> = B, Acc) ->
+	L2 = (L1 * 4) - 4,
+	<<_:16, L3:16, Data:L2/bytes, Rest/bytes>> = B,
+	<<NextPseudonym:L3/bytes, _/bytes>> = Data,
+	aka_attr(Rest, Acc#{?AT_NEXT_PSEUDONYM => NextPseudonym});
+aka_attr(<<?AT_NEXT_REAUTH_ID, L1, _/bytes>> = B, Acc) ->
+	L2 = (L1 * 4) - 4,
+	<<_:16, L3:16, Data:L2/bytes, Rest/bytes>> = B,
+	<<NextReauthId:L3/bytes, _/bytes>> = Data,
+	aka_attr(Rest, Acc#{?AT_NEXT_REAUTH_ID => NextReauthId});
+aka_attr(<<?AT_CHECKCODE, 1, _:16, Rest/bytes>>, Acc) ->
+	aka_attr(Rest, Acc#{?AT_CHECKCODE => <<>>});
+aka_attr(<<?AT_CHECKCODE, 6, _:16, CheckCode:20/bytes, Rest/bytes>>, Acc) ->
+	aka_attr(Rest, Acc#{?AT_CHECKCODE => CheckCode});
+aka_attr(<<?AT_RESULT_IND, 1, _:16, Rest/bytes>>, Acc) ->
+	aka_attr(Rest, Acc#{?AT_CHECKCODE => true});
+aka_attr(<<Type, 1, _:16, Rest/bytes>>, Acc) when Type > 127 ->
+	aka_attr(Rest, Acc);
+aka_attr(<<>>, Acc) ->
+	Acc.
 

@@ -68,6 +68,32 @@
 -define(Gy, 16#4fe342e2fe1a7f9b8ee7eb4a7c0f9e162bce33576b315ececbb6406837bf51f5).
 -define(R,  16#ffffffff00000000ffffffffffffffffbce6faada7179e84f3b9cac2fc632551).
 
+%% Macro definitions for EAP-AKA attributes
+-define(AT_RAND,                1).
+-define(AT_AUTN,                2).
+-define(AT_RES,                 3).
+-define(AT_AUTS,                4).
+-define(AT_PADDING,             6).
+-define(AT_NONCE_MT,            7).
+-define(AT_PERMANENT_ID_REQ,   10).
+-define(AT_MAC,                11).
+-define(AT_NOTIFICATION,       12).
+-define(AT_ANY_ID_REQ,         13).
+-define(AT_IDENTITY,           14).
+-define(AT_VERSION_LIST,       15).
+-define(AT_SELECTED_VERSION,   16).
+-define(AT_FULLAUTH_ID_REQ,    17).
+-define(AT_COUNTER,            19).
+-define(AT_COUNTER_TOO_SMALL,  20).
+-define(AT_NONCE_S,            21).
+-define(AT_CLIENT_ERROR_CODE,  22).
+-define(AT_IV,                129).
+-define(AT_ENCR_DATA,         130).
+-define(AT_NEXT_PSEUDONYM,    132).
+-define(AT_NEXT_REAUTH_ID,    133).
+-define(AT_CHECKCODE,         134).
+-define(AT_RESULT_IND,        135).
+
 -record(eap_packet,
 			{code :: request | response | success | failure,
 			type :: undefined | byte(),
@@ -99,4 +125,49 @@
 			version = 0 :: 0..7,
 			message_len :: undefined | integer(),
 			data = <<>> :: binary()}).
+
+-record(eap_aka_challenge,
+		{rand :: binary(),
+		autn :: binary(),
+		res :: bitstring(),
+		next_pseudonym :: binary(),
+		next_reauth_id :: binary(),
+		iv :: binary(),
+		encr_data :: binary(),
+		checkcode :: binary(),
+		result_ind :: boolean(),
+		mac :: binary()}).
+
+-record(eap_aka_identity,
+		{permanent_id_req :: boolean(),
+		any_id_req :: boolean(),
+		fullauth_id_req :: boolean(),
+		identity :: binary()}).
+
+-record(eap_aka_notification,
+		{iv :: binary(),
+		encr_data :: binary(),
+		mac :: binary(),
+		counter :: 0..65535,
+		notification :: 0..65535}).
+
+-record(eap_aka_reauthentication,
+		{next_reauth_id :: binary(),
+		iv :: binary(),
+		encr_data :: binary(),
+		checkcode :: binary(),
+		result_ind :: boolean(),
+		mac :: binary(),
+		counter :: 0..65535,
+		counter_too_small :: boolean(),
+		nonce_s :: binary()}).
+
+-record(eap_aka_authentication_reject,
+		{}).
+
+-record(eap_aka_synchronization_failure,
+		{auts :: binary()}).
+
+-record(eap_aka_client_error,
+		{client_error_code :: 0..65535}).
 
