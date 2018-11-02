@@ -2118,46 +2118,41 @@ query_log2(_Start, _End, {M, F, A}, {Cont, []}, Acc) ->
 %% @private
 %% @doc Query accounting log events with filters.
 %%
-acct_query({Cont, Events}, Protocol, Types, AttrsMatch) ->
-	{Cont, acct_query1(Events,  Protocol, Types, AttrsMatch, [])}.
+acct_query({Cont, Events} = _Continuation, Protocol, Types, MatchSpec) ->
+	{Cont, acct_query1(Events,  Protocol, Types, MatchSpec, [])}.
 %% @hidden
-acct_query1(Events, Protocol, '_',  AttrsMatch, _Acc) ->
-	acct_query2(Events, Protocol, AttrsMatch, []);
-acct_query1([H | T], Protocol, Types,  AttrsMatch, Acc) ->
+acct_query1(Events, Protocol, '_',  MatchSpec, _Acc) ->
+	acct_query2(Events, Protocol, MatchSpec, []);
+acct_query1([H | T], Protocol, Types, MatchSpec, Acc) ->
 	case lists:member(element(6, H), Types) of
 		true ->
-			acct_query1(T, Protocol, Types, AttrsMatch, [H | Acc]);
+			acct_query1(T, Protocol, Types, MatchSpec, [H | Acc]);
 		false ->
-			acct_query1(T, Protocol, Types, AttrsMatch, Acc)
+			acct_query1(T, Protocol, Types, MatchSpec, Acc)
 	end;
-acct_query1([], Protocol, _Types,  AttrsMatch, Acc) ->
-	acct_query2(lists:reverse(Acc), Protocol, AttrsMatch, []).
+acct_query1([], Protocol, _Types,  MatchSpec, Acc) ->
+	acct_query2(lists:reverse(Acc), Protocol, MatchSpec, []).
 %% @hidden
-acct_query2(Events, '_', AttrsMatch, _Acc) ->
-	acct_query3(Events, AttrsMatch, []);
-acct_query2([H | T], Protocol, AttrsMatch, Acc)
+acct_query2(Events, '_', MatchSpec, _Acc) ->
+	acct_query3(Events, MatchSpec, []);
+acct_query2([H | T], Protocol, MatchSpec, Acc)
 		when element(3, H) == Protocol ->
-	acct_query2(T, Protocol, AttrsMatch, [H |Acc]);
-acct_query2([_ | T], Protocol, AttrsMatch, Acc) ->
-	acct_query2(T, Protocol, AttrsMatch, Acc);
-acct_query2([], Protocol, AttrsMatch, Acc) ->
-	case Protocol of
-		radius ->
-			acct_query3(lists:reverse(Acc), AttrsMatch, []);
-		diameter ->
-			acct_query5(lists:reverse(Acc), AttrsMatch, [])
-	end.
+	acct_query2(T, Protocol, MatchSpec, [H |Acc]);
+acct_query2([_ | T], Protocol, MatchSpec, Acc) ->
+	acct_query2(T, Protocol, MatchSpec, Acc);
+acct_query2([], _Protocol, MatchSpec, Acc) ->
+	acct_query3(lists:reverse(Acc), MatchSpec, []).
 %% @hidden
 acct_query3(Events, '_', _Acc) ->
 	Events;
-acct_query3([H | T], AttrsMatch, Acc) ->
-	case acct_query4(element(7, H), AttrsMatch) of
+acct_query3([H | T], MatchSpec, Acc) ->
+	case acct_query4(element(7, H), MatchSpec) of
 		true ->
-			acct_query3(T, AttrsMatch, [H | Acc]);
+			acct_query3(T, MatchSpec, [H | Acc]);
 		false ->
-			acct_query3(T, AttrsMatch, Acc)
+			acct_query3(T, MatchSpec, Acc)
 	end;
-acct_query3([], _AttrsMatch, Acc) ->
+acct_query3([], _MatchSpec, Acc) ->
 	lists:reverse(Acc).
 %% @hidden
 acct_query4(Attributes, [{Attribute, {exact, Match}} | T]) ->
@@ -2182,22 +2177,19 @@ acct_query4(Attributes, [{Attribute, {like, [H | T1]}} | T2]) ->
 	end;
 acct_query4(Attributes, [{_, {like, []}} | T]) ->
 	acct_query4(Attributes, T);
+acct_query4(Attributes, [{#'3gpp_ro_CCR'{}, _, _} | _] = MatchSpec) -> 
+	case erlang:match_spec_test(Attributes, MatchSpec, table) of
+		{ok, #'3gpp_ro_CCR'{}, [], []} ->
+			true;
+		{ok, false , [], []}->
+			false;
+		{error, Reason} ->
+			{error, Reason}
+	end;
 acct_query4(Attributes, [_ | T]) ->
 	acct_query4(Attributes, T);
 acct_query4(_Attributes, []) ->
 	true.
-%% @hidden
-acct_query5([H | T], MatchSpec, Acc) when is_list(MatchSpec) ->
-	case erlang:match_spec_test(element(7, H), MatchSpec, table) of
-		{ok, #'3gpp_ro_CCR'{}, [], []} ->
-			acct_query5(T, MatchSpec, [H | Acc]);
-		{ok, false , [], []}->
-			acct_query5(T, MatchSpec, Acc);
-		{error, Reason} ->
-			{error, Reason}
-	end;
-acct_query5([], _AttrsMatch, Acc) ->
-	lists:reverse(Acc).
 
 -spec ipdr_query(Continuation, MatchSpec) -> Result
 	when
