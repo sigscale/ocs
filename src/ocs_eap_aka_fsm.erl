@@ -36,19 +36,17 @@
 -export([]).
 
 %% export the ocs_eap_aka_fsm state callbacks
--export([eap_start/2]).
+-export([eap_start/2, identity/2]).
 
 %% export the call backs needed for gen_fsm behaviour
 -export([init/1, handle_event/3, handle_sync_event/4, handle_info/3,
 			terminate/3, code_change/4]).
 
 -include_lib("radius/include/radius.hrl").
--include("ocs.hrl").
--include("ocs_eap_codec.hrl").
--include_lib("diameter/include/diameter.hrl").
 -include_lib("diameter/include/diameter_gen_base_rfc6733.hrl").
 -include("diameter_gen_eap_application_rfc4072.hrl").
 -include("diameter_gen_nas_application_rfc7155.hrl").
+-include("ocs_eap_codec.hrl").
 
 -record(statedata,
 		{sup :: pid(),
@@ -153,13 +151,13 @@ eap_start(timeout, #statedata{eap_id = EapID,
 		start = #diameter_eap_app_DER{'EAP-Payload' = []} = Request,
 		origin_host = OHost, origin_realm = ORealm,
 		diameter_port_server = PortServer} = StateData) ->
-	EapData = [],
+	EapData = ocs_eap_codec:eap_aka(#eap_aka_identity{any_id_req = true}),
 	EapPacket = #eap_packet{code = request, type = ?AKA,
 			identifier = EapID, data = EapData},
 	send_diameter_response(SessionId, AuthReqType,
 			?'DIAMETER_BASE_RESULT-CODE_MULTI_ROUND_AUTH', OHost, ORealm,
 			EapPacket, PortServer, Request, StateData),
-	{next_state, id, StateData, ?TIMEOUT};
+	{next_state, identity, StateData, ?TIMEOUT};
 eap_start(timeout, #statedata{sup = Sup, eap_id = EapID,
 		session_id = SessionId, auth_req_type = AuthReqType,
 		start = #diameter_eap_app_DER{'EAP-Payload' = EapMessage} = Request,
@@ -168,7 +166,7 @@ eap_start(timeout, #statedata{sup = Sup, eap_id = EapID,
 	Children = supervisor:which_children(Sup),
 	{_, AucFsm, _, _} = lists:keyfind(ocs_eap_aka_auc_fsm, 1, Children),
 	NewStateData = StateData#statedata{start = undeined, auc_fsm = AucFsm},
-	EapData = [],
+	EapData = ocs_eap_codec:eap_aka(#eap_aka_identity{any_id_req = true}),
 	case catch ocs_eap_codec:eap_packet(EapMessage) of
 		#eap_packet{code = response, type = ?Identity, identifier = NewEapID} ->
 			NextEapID = (NewEapID rem 255) + 1,
@@ -178,7 +176,7 @@ eap_start(timeout, #statedata{sup = Sup, eap_id = EapID,
 			send_diameter_response(SessionId, AuthReqType,
 					?'DIAMETER_BASE_RESULT-CODE_MULTI_ROUND_AUTH', OHost, ORealm,
 					EapPacket, PortServer, Request, NextStateData),
-			{next_state, id, NextStateData, ?TIMEOUT};
+			{next_state, identity, NextStateData, ?TIMEOUT};
 		#eap_packet{code = request, identifier = NewEapID} ->
 			EapPacket = #eap_packet{code = response, type = ?LegacyNak,
 					identifier = NewEapID, data = <<0>>},
@@ -213,24 +211,25 @@ eap_start(timeout, #statedata{sup = Sup, eap_id = EapID,
 	NewStateData = StateData#statedata{start = undefined, auc_fsm = AucFsm},
 	case radius_attributes:find(?EAPMessage, RequestAttributes) of
 		{ok, <<>>} ->
-			EapData = eap_aka(#eap_aka_identity{any_id_req = true}),
+			EapData = ocs_eap_codec:eap_aka(#eap_aka_identity{any_id_req = true}),
 			EapPacket = #eap_packet{code = request,
 					type = ?AKA, identifier = EapID, data = EapData},
 			send_radius_response(EapPacket, ?AccessChallenge, [], RadiusID,
 					RequestAuthenticator, RequestAttributes, NewStateData),
-			{next_state, id, NewStateData, ?TIMEOUT};
+			{next_state, identity, NewStateData, ?TIMEOUT};
 		{ok, EAPMessage} ->
 			case catch ocs_eap_codec:eap_packet(EAPMessage) of
 				#eap_packet{code = response, type = ?Identity,
 						identifier = NewEapID} ->
 					NextEapID = (NewEapID rem 255) + 1,
-					EapData = eap_aka(#eap_aka_identity{any_id_req = true}),
+					EapData = ocs_eap_codec:eap_aka(#eap_aka_challenge{any_id_req = true}),
+					% EapData = ocs_eap_codec:eap_aka(#eap_aka_identity{any_id_req = true}),
 					EapPacket = #eap_packet{code = request,
 							type = ?AKA, identifier = NextEapID, data = EapData},
 					send_radius_response(EapPacket, ?AccessChallenge, [], RadiusID,
 							RequestAuthenticator, RequestAttributes, NewStateData),
 					NextStateData = NewStateData#statedata{eap_id = NextEapID},
-					{next_state, id, NextStateData, ?TIMEOUT};
+					{next_state, identity, NextStateData, ?TIMEOUT};
 				#eap_packet{code = request, identifier = NewEapID} ->
 					EapPacket = #eap_packet{code = response, type = ?LegacyNak,
 							identifier = NewEapID, data = <<0>>},
@@ -253,12 +252,78 @@ eap_start(timeout, #statedata{sup = Sup, eap_id = EapID,
 					{stop, {shutdown, SessionID}, StateData}
 			end;
 		{error, not_found} ->
-					EapData = eap_aka(#eap_aka_identity{any_id_req = true}),
+					EapData = ocs_eap_codec:eap_aka(#eap_aka_identity{any_id_req = true}),
 			EapPacket = #eap_packet{code = request,
 					type = ?AKA, identifier = EapID, data = EapData},
 			send_radius_response(EapPacket, ?AccessChallenge, [], RadiusID,
 					RequestAuthenticator, RequestAttributes, NewStateData),
-			{next_state, id, NewStateData, ?TIMEOUT}
+			{next_state, identity, NewStateData, ?TIMEOUT}
+	end.
+
+-spec identity(Event, StateData) -> Result
+	when
+		Event :: timeout | term(),
+		StateData :: statedata(),
+		Result :: {next_state, NextStateName, NewStateData}
+				| {next_state, NextStateName, NewStateData, Timeout}
+				| {next_state, NextStateName, NewStateData, hibernate}
+				| {stop, Reason, NewStateData},
+		NextStateName :: atom(),
+		NewStateData :: statedata(),
+		Timeout :: non_neg_integer() | infinity,
+		Reason :: normal | term().
+%% @doc Handle events sent with {@link //stdlib/gen_fsm:send_event/2.
+%%		gen_fsm:send_event/2} in the <b>identity</b> state.
+%% @@see //stdlib/gen_fsm:StateName/2
+%% @private
+identity(timeout, #statedata{session_id = SessionID} = StateData)->
+	{stop, {shutdown, SessionID}, StateData};
+identity({#radius{id = RadiusID, authenticator = RequestAuthenticator,
+		attributes = RequestAttributes} = AccessRequest, RadiusFsm},
+		#statedata{eap_id = EapID, session_id = SessionID} = StateData) ->
+	NewStateData = StateData#statedata{radius_fsm = RadiusFsm},
+	try
+		EapMessage = radius_attributes:fetch(?EAPMessage, RequestAttributes),
+		case ocs_eap_codec:eap_packet(EapMessage) of
+			#eap_packet{code = response, type = ?AKA,
+					identifier = EapID, data = Data} ->
+				case ocs_eap_codec:eap_aka(Data) of
+					#eap_aka_identity{identity = Identity} ->
+{stop, {shutdown, SessionID}, NewStateData}
+				end;
+			#eap_packet{code = response,
+					type = ?LegacyNak, identifier = EapID} ->
+				{stop, {shutdown, SessionID}, NewStateData}
+		end
+	catch
+		_:_Reason ->
+			EapPacket = #eap_packet{code = failure, identifier = EapID},
+			send_radius_response(EapPacket, ?AccessReject, [], RadiusID,
+					RequestAuthenticator, RequestAttributes, NewStateData),
+			{stop, {shutdown, SessionID}, NewStateData}
+	end;
+identity(#diameter_eap_app_DER{'EAP-Payload' = EapMessage} = Request,
+		#statedata{eap_id = EapID, session_id = SessionID,
+		auth_req_type = RequestType, origin_host = OHost,
+		origin_realm = ORealm, diameter_port_server = PortServer} = StateData) ->
+	try
+		case ocs_eap_codec:eap_packet(EapMessage) of
+			#eap_packet{code = response, type = ?AKA,
+					identifier = EapID, data = Data} ->
+{stop, {shutdown, SessionID}, StateData};
+			#eap_packet{code = response, type = ?LegacyNak, identifier = EapID} ->
+				send_diameter_response(SessionID, RequestType,
+					?'DIAMETER_BASE_RESULT-CODE_INVALID_AVP_BITS', OHost, ORealm,
+					none, PortServer, Request, StateData),
+				{stop, {shutdown, SessionID}, StateData}
+		end
+	catch
+		_:_Reason ->
+			EapPacket = #eap_packet{code = failure, identifier = EapID},
+			send_diameter_response(SessionID, RequestType,
+					?'DIAMETER_BASE_RESULT-CODE_INVALID_AVP_BITS', OHost, ORealm,
+					EapPacket, PortServer, Request, StateData),
+			{stop, {shutdown, SessionID}, StateData}
 	end.
 
 -spec handle_event(Event, StateName, StateData) -> Result
