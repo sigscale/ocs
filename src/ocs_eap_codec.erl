@@ -332,10 +332,6 @@ eap_aka(<<14, _:16, Attributes/binary>>) ->
 	end,
 	maps:fold(F, #eap_aka_synchronization_failure{}, aka_attr(Attributes)).
 
-%%----------------------------------------------------------------------
-%%  internal functions
-%%----------------------------------------------------------------------
-
 -spec aka_attr(Attributes) -> Attributes
 	when
 		Attributes :: map() | binary().
@@ -343,8 +339,8 @@ eap_aka(<<14, _:16, Attributes/binary>>) ->
 %% @hidden
 aka_attr(Attributes) when is_binary(Attributes)->
 	aka_attr(Attributes, #{});
-aka_attr(Attributes) when is_tuple(Attributes)->
-	aka_attr(Attributes, <<>>).
+aka_attr(Attributes) when is_map(Attributes)->
+	list_to_binary(maps:fold(fun aka_attr/3, <<>>, Attributes)).
 %% @hidden
 aka_attr(<<?AT_RAND, 5, _:16, Rand:16/bytes, Rest/bytes>>, Acc) ->
 	aka_attr(Rest, Acc#{?AT_RAND => Rand});
@@ -405,9 +401,88 @@ aka_attr(<<?AT_CHECKCODE, 1, _:16, Rest/bytes>>, Acc) ->
 aka_attr(<<?AT_CHECKCODE, 6, _:16, CheckCode:20/bytes, Rest/bytes>>, Acc) ->
 	aka_attr(Rest, Acc#{?AT_CHECKCODE => CheckCode});
 aka_attr(<<?AT_RESULT_IND, 1, _:16, Rest/bytes>>, Acc) ->
-	aka_attr(Rest, Acc#{?AT_CHECKCODE => true});
+	aka_attr(Rest, Acc#{?AT_RESULT_IND=> true});
 aka_attr(<<Type, 1, _:16, Rest/bytes>>, Acc) when Type > 127 ->
 	aka_attr(Rest, Acc);
 aka_attr(<<>>, Acc) ->
 	Acc.
+%% @hidden
+aka_attr(?AT_RAND, Rand, Acc) when size(Rand) == 16 ->
+	[<<?AT_RAND, 5, 0:16, Rand/bytes>> | Acc];
+aka_attr(?AT_AUTN, Autn, Acc) when size(Autn) == 16 ->
+	[<<?AT_AUTN, 5, 0:16, Autn:16/bytes>> | Acc];
+aka_attr(?AT_RES, Res, Acc) when bit_size(Res) >= 32, bit_size(Res) =< 128 ->
+	L = bit_size(Res),
+	Pad = case {L, L rem 32} of
+		{L, 0} ->
+			0;
+		{L, R} ->
+			L + 32 - R
+	end,
+	L1 = ((L + Pad) div 32) + 1,
+	[<<?AT_RES, L1, L:16, Res/bits, 0:Pad>> | Acc];
+aka_attr(?AT_AUTS, Auts, Acc) when size(Auts) == 14 ->
+	[<<?AT_AUTS, 4, Auts/bytes>> |  Acc];
+aka_attr(?AT_PADDING, Pad, Acc) when size(Pad) == 2 ->
+	[<<?AT_PADDING, 1, Pad/bytes>> | Acc];
+aka_attr(?AT_PADDING, Pad, Acc) when size(Pad) == 6 ->
+	[<<?AT_PADDING, 2, Pad/bytes>> | Acc];
+aka_attr(?AT_PADDING, Pad, Acc) when size(Pad) == 10 ->
+	[<<?AT_PADDING, 3, Pad/bytes>> | Acc];
+aka_attr(?AT_PERMANENT_ID_REQ, true, Acc) ->
+	[<<?AT_PERMANENT_ID_REQ, 1, 0:16>> | Acc];
+aka_attr(?AT_PERMANENT_ID_REQ, false, Acc) ->
+	Acc;
+aka_attr(?AT_MAC, Mac, Acc) when size(Mac) == 16 ->
+	[<<?AT_MAC, 5, 0:16, Mac/bytes>> | Acc];
+aka_attr(?AT_NOTIFICATION, Code, Acc) when is_integer(Code) ->
+	[<<?AT_NOTIFICATION, 1, Code:16>> | Acc];
+aka_attr(?AT_ANY_ID_REQ, true, Acc) ->
+	[<<?AT_ANY_ID_REQ, 1, 0:16>> | Acc];
+aka_attr(?AT_ANY_ID_REQ, false, Acc) ->
+	Acc;
+aka_attr(A, Identity, Acc) when is_binary(Identity),
+		((A == ?AT_IDENTITY) or (A == ?AT_NEXT_PSEUDONYM)
+		or (A == ?AT_NEXT_REAUTH_ID)) ->
+	L = length(Identity),
+	R = L rem 4,
+	{L1, Pad} = case {L, R} of
+		{L, 0} ->
+			{(L div 4) + 1, 0};
+		{L, R} ->
+			N = 4 - R,
+			{(L + N + 4) div 4, N * 8}
+	end,
+	[<<A, L1, L:16, Identity/bytes, 0:Pad>> | Acc];
+aka_attr(?AT_FULLAUTH_ID_REQ, true, Acc) ->
+	[<<?AT_FULLAUTH_ID_REQ, 1, 0:16>> | Acc];
+aka_attr(?AT_FULLAUTH_ID_REQ, false, Acc) ->
+	Acc;
+aka_attr(?AT_COUNTER, Counter, Acc) when is_integer(Counter) ->
+	[<<?AT_COUNTER, 1, Counter:16>>, Acc];
+aka_attr(?AT_COUNTER_TOO_SMALL, true, Acc) ->
+	[<<?AT_COUNTER_TOO_SMALL, 1, 0:16>> | Acc];
+aka_attr(?AT_COUNTER_TOO_SMALL, false, Acc) ->
+	Acc;
+aka_attr(?AT_NONCE_S, Nonce, Acc) when size(Nonce) == 16 ->
+	[<<?AT_NONCE_S, 5, 0:16, Nonce/bytes>> | Acc];
+aka_attr(?AT_CLIENT_ERROR_CODE, Code, Acc) when is_integer(Code) ->
+	[<<?AT_CLIENT_ERROR_CODE, 1, Code:16>> | Acc];
+aka_attr(?AT_IV, Iv, Acc) when size(Iv) == 16 ->
+	[<<?AT_IV, 5, 0:16, Iv:16/bytes>> | Acc];
+aka_attr(?AT_ENCR_DATA, EncrData, Acc) when (size(EncrData) rem 16) == 0 ->
+	L = (size(EncrData) div 4) + 1,
+	[<<?AT_ENCR_DATA, L, 0:16, EncrData/bytes>> | Acc];
+aka_attr(?AT_CHECKCODE, <<>>, Acc) ->
+	[<<?AT_CHECKCODE, 1, 0:16>> | Acc];
+aka_attr(?AT_CHECKCODE, CheckCode, Acc) when size(CheckCode) == 20 ->
+	[<<?AT_CHECKCODE, 6, 0:16, CheckCode/bytes>> | Acc];
+aka_attr(?AT_RESULT_IND, true, Acc) ->
+	[<<?AT_RESULT_IND, 1, 0:16>> | Acc];
+aka_attr(?AT_RESULT_IND, false, Acc) ->
+	Acc.
+
+%%----------------------------------------------------------------------
+%%  internal functions
+%%----------------------------------------------------------------------
 
