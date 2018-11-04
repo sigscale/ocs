@@ -222,7 +222,7 @@ eap_start(timeout, #statedata{sup = Sup, eap_id = EapID,
 				#eap_packet{code = response, type = ?Identity,
 						identifier = NewEapID} ->
 					NextEapID = (NewEapID rem 255) + 1,
-					EapData = ocs_eap_codec:eap_aka(#eap_aka_challenge{any_id_req = true}),
+					EapData = ocs_eap_codec:eap_aka(#eap_aka_identity{any_id_req = true}),
 					% EapData = ocs_eap_codec:eap_aka(#eap_aka_identity{any_id_req = true}),
 					EapPacket = #eap_packet{code = request,
 							type = ?AKA, identifier = NextEapID, data = EapData},
