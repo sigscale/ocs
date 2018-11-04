@@ -251,20 +251,20 @@ eap_ttls(<<1:1, 1:1, 1:1, _:2, Version:3, Length:32, Data/binary>>) ->
 %%
 %% RFC4187 section 8.1
 %%
-eap_aka(#eap_aka_challenge{} = _Message) ->
-	<<1, 0:16, <<>>/binary>>;
-eap_aka(#eap_aka_authentication_reject{}) ->
-	<<2, 0:16, <<>>/binary>>;
-eap_aka(#eap_aka_synchronization_failure{}) ->
-	<<4, 0:16, <<>>/binary>>;
-eap_aka(#eap_aka_identity{}) ->
-	<<5, 0:16, <<>>/binary>>;
-eap_aka(#eap_aka_notification{}) ->
-	<<12, 0:16, <<>>/binary>>;
-eap_aka(#eap_aka_reauthentication{}) ->
-	<<13, 0:16, <<>>/binary>>;
-eap_aka(#eap_aka_client_error{}) ->
-	<<14, 0:16, <<>>/binary>>;
+eap_aka(#eap_aka_challenge{} = Message) ->
+	eap_aka_challenge(Message);
+eap_aka(#eap_aka_authentication_reject{} = Message) ->
+	eap_aka_authentication_reject(Message);
+eap_aka(#eap_aka_synchronization_failure{} = Message) ->
+	eap_aka_synchronization_failure(Message);
+eap_aka(#eap_aka_identity{} = Message) ->
+	eap_aka_identity(Message);
+eap_aka(#eap_aka_notification{} = Message) ->
+	eap_aka_notification(Message);
+eap_aka(#eap_aka_reauthentication{} = Message) ->
+	eap_aka_reauthentication(Message);
+eap_aka(#eap_aka_client_error{} = Message) ->
+	eap_aka_client_error(Message);
 eap_aka(<<1, _:16, Attributes/binary>>) ->
 	F = fun(?AT_RAND, Rand, Acc) ->
 				Acc#eap_aka_challenge{rand = Rand};
@@ -485,4 +485,162 @@ aka_attr(?AT_RESULT_IND, false, Acc) ->
 %%----------------------------------------------------------------------
 %%  internal functions
 %%----------------------------------------------------------------------
+
+%% @hidden
+eap_aka_challenge(R) ->
+	AttrMap = eap_aka_challenge(record_info(fields, eap_aka_challenge), R, #{}),
+	AttrBin = aka_attr(AttrMap),
+	<<1, 0:16, AttrBin/binary>>.
+%% @hidden
+eap_aka_challenge([rand | T], #eap_aka_challenge{rand = Rand} = R, Acc)
+		when Rand /= undefined ->
+	eap_aka_challenge(T, R, Acc#{?AT_RAND => Rand});
+eap_aka_challenge([autn | T], #eap_aka_challenge{autn = Autn} = R, Acc)
+		when Autn /= undefined ->
+	eap_aka_challenge(T, R, Acc#{?AT_AUTN => Autn});
+eap_aka_challenge([res | T], #eap_aka_challenge{res = Res} = R, Acc)
+		when Res /= undefined ->
+	eap_aka_challenge(T, R, Acc#{?AT_RES => Res});
+eap_aka_challenge([next_pseudonym | T],
+		#eap_aka_challenge{next_pseudonym = Identity} = R, Acc)
+		when Identity /= undefined ->
+	eap_aka_challenge(T, R, Acc#{?AT_NEXT_PSEUDONYM => Identity});
+eap_aka_challenge([next_reauth_id | T],
+		#eap_aka_challenge{next_reauth_id = Identity} = R, Acc)
+		when Identity /= undefined ->
+	eap_aka_challenge(T, R, Acc#{?AT_NEXT_REAUTH_ID => Identity});
+eap_aka_challenge([iv| T], #eap_aka_challenge{iv = Iv} = R, Acc)
+		when Iv /= undefined ->
+	eap_aka_challenge(T, R, Acc#{?AT_IV => Iv});
+eap_aka_challenge([encr_data | T],
+		#eap_aka_challenge{encr_data = EncrData} = R, Acc)
+		when EncrData/= undefined ->
+	eap_aka_challenge(T, R, Acc#{?AT_ENCR_DATA => EncrData});
+eap_aka_challenge([checkcode | T],
+		#eap_aka_challenge{checkcode = CheckCode} = R, Acc)
+		when CheckCode /= undefined ->
+	eap_aka_challenge(T, R, Acc#{?AT_CHECKCODE => CheckCode});
+eap_aka_challenge([result_ind | T],
+		#eap_aka_challenge{result_ind = ResultInd} = R, Acc)
+		when ResultInd /= undefined ->
+	eap_aka_challenge(T, R, Acc#{?AT_RESULT_IND => ResultInd});
+eap_aka_challenge([mac | T], #eap_aka_challenge{mac = Mac} = R, Acc)
+		when Mac /= undefined ->
+	eap_aka_challenge(T, R, Acc#{?AT_MAC => Mac});
+eap_aka_challenge([_ | T], R, Acc) ->
+	eap_aka_challenge(T, R, Acc);
+eap_aka_challenge([], _, Acc) ->
+	Acc.
+
+%% @hidden
+eap_aka_authentication_reject(_R) ->
+	<<2, 0:16>>.
+
+%% @hidden
+eap_aka_synchronization_failure(#eap_aka_synchronization_failure{auts = Auts}) ->
+	AttrBin = aka_attr(#{?AT_AUTS => Auts}),
+	<<4, 0:16, AttrBin/binary>>.
+
+%% @hidden
+eap_aka_identity(R) ->
+	AttrMap = eap_aka_identity(record_info(fields, eap_aka_identity), R, #{}),
+	AttrBin = aka_attr(AttrMap),
+	<<5, 0:16, AttrBin/binary>>.
+%% @hidden
+eap_aka_identity([permanent_id_req | T],
+		#eap_aka_identity{permanent_id_req = true} = R, Acc) ->
+	eap_aka_identity(T, R, Acc#{?AT_PERMANENT_ID_REQ => true});
+eap_aka_identity([any_id_req | T],
+		#eap_aka_identity{any_id_req = true} = R, Acc) ->
+	eap_aka_identity(T, R, Acc#{?AT_PERMANENT_ID_REQ => true});
+eap_aka_identity([fullauth_id_req | T],
+		#eap_aka_identity{fullauth_id_req = true} = R, Acc) ->
+	eap_aka_identity(T, R, Acc#{?AT_FULLAUTH_ID_REQ => true});
+eap_aka_identity([identity | T],
+		#eap_aka_identity{identity = Identity} = R, Acc)
+		when Identity /= undefined ->
+	eap_aka_identity(T, R, Acc#{?AT_IDENTITY => Identity});
+eap_aka_identity([_ | T], R, Acc) ->
+	eap_aka_identity(T, R, Acc);
+eap_aka_identity([], _, Acc) ->
+	Acc.
+
+%% @hidden
+eap_aka_notification(R) ->
+	AttrMap = eap_aka_notification(record_info(fields, eap_aka_notification), R, #{}),
+	AttrBin = aka_attr(AttrMap),
+	<<12, 0:16, AttrBin/binary>>.
+%% @hidden
+eap_aka_notification([iv | T],
+		#eap_aka_notification{iv = Iv} = R, Acc) when Iv /= undefined ->
+	eap_aka_notification(T, R, Acc#{?AT_IV => Iv});
+eap_aka_notification([encr_data | T],
+		#eap_aka_notification{encr_data = EncrData} = R, Acc)
+		when EncrData  /= undefined ->
+	eap_aka_notification(T, R, Acc#{?AT_ENCR_DATA => EncrData});
+eap_aka_notification([mac | T], #eap_aka_notification{mac = Mac} = R, Acc)
+		when Mac /= undefined ->
+	eap_aka_notification(T, R, Acc#{?AT_MAC => Mac});
+eap_aka_notification([counter | T],
+		#eap_aka_notification{counter = Counter} = R, Acc)
+		when Counter /= undefined ->
+	eap_aka_notification(T, R, Acc#{?AT_COUNTER => Counter});
+eap_aka_notification([notification | T],
+		#eap_aka_notification{notification = Notification} = R, Acc)
+		when Notification /= undefined ->
+	eap_aka_notification(T, R, Acc#{?AT_NOTIFICATION => Notification});
+eap_aka_notification([_ | T], R, Acc) ->
+	eap_aka_notification(T, R, Acc);
+eap_aka_notification([], _, Acc) ->
+	Acc.
+
+%% @hidden
+eap_aka_reauthentication(R) ->
+	AttrMap = eap_aka_reauthentication(record_info(fields, eap_aka_reauthentication), R, #{}),
+	AttrBin = aka_attr(AttrMap),
+	<<13, 0:16, AttrBin/binary>>.
+%% @hidden
+eap_aka_reauthentication([next_reauth_id | T],
+		#eap_aka_reauthentication{next_reauth_id = Identity} = R, Acc)
+		when Identity /= undefined ->
+	eap_aka_reauthentication(T, R, Acc#{?AT_NEXT_REAUTH_ID => Identity});
+eap_aka_reauthentication([iv | T], #eap_aka_reauthentication{iv = Iv} = R, Acc)
+		when Iv /= undefined ->
+	eap_aka_reauthentication(T, R, Acc#{?AT_IV => Iv});
+eap_aka_reauthentication([encr_data | T],
+		#eap_aka_reauthentication{encr_data = EncrData} = R, Acc)
+		when EncrData  /= undefined ->
+	eap_aka_reauthentication(T, R, Acc#{?AT_ENCR_DATA => EncrData});
+eap_aka_reauthentication([checkcode | T],
+		#eap_aka_reauthentication{checkcode = CheckCode} = R, Acc)
+		when CheckCode /= undefined ->
+	eap_aka_reauthentication(T, R, Acc#{?AT_CHECKCODE => CheckCode});
+eap_aka_reauthentication([result_ind | T],
+		#eap_aka_reauthentication{result_ind = ResultInd} = R, Acc)
+		when ResultInd /= undefined ->
+	eap_aka_reauthentication(T, R, Acc#{?AT_RESULT_IND => ResultInd});
+eap_aka_reauthentication([mac | T], #eap_aka_reauthentication{mac = Mac} = R, Acc)
+		when Mac /= undefined ->
+	eap_aka_reauthentication(T, R, Acc#{?AT_MAC => Mac});
+eap_aka_reauthentication([counter | T],
+		#eap_aka_reauthentication{counter = Counter} = R, Acc)
+		when Counter /= undefined ->
+	eap_aka_reauthentication(T, R, Acc#{?AT_COUNTER => Counter});
+eap_aka_reauthentication([counter_too_small | T],
+		#eap_aka_reauthentication{counter_too_small = true} = R, Acc) ->
+	eap_aka_reauthentication(T, R, Acc#{?AT_COUNTER_TOO_SMALL => true});
+eap_aka_reauthentication([nionce_s | T],
+		#eap_aka_reauthentication{nonce_s = NonceS} = R, Acc)
+		when NonceS /= undefined ->
+	eap_aka_reauthentication(T, R, Acc#{?AT_NONCE_S => NonceS});
+eap_aka_reauthentication([_ | T], R, Acc) ->
+	eap_aka_reauthentication(T, R, Acc);
+eap_aka_reauthentication([], _, Acc) ->
+	Acc.
+
+%% @hidden
+eap_aka_client_error(#eap_aka_client_error{client_error_code = Code})
+		when Code /= undefined ->
+	AttrBin = aka_attr(#{?AT_CLIENT_ERROR_CODE => Code}),
+	<<14, 0:16, AttrBin/binary>>.
 
