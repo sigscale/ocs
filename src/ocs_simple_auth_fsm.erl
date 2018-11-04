@@ -77,6 +77,7 @@
 		diameter_port_server :: undefined | pid(),
 		request :: undefined | #diameter_nas_app_AAR{},
 		password_required :: boolean(),
+		trusted :: boolean(),
 		service_type :: undefined | integer()}).
 
 -type statedata() :: #statedata{}.
@@ -103,8 +104,9 @@
 %% @see //stdlib/gen_fsm:init/1
 %% @private
 %%
-init([diameter, ServerAddress, ServerPort, ClientAddress, ClientPort, PasswordReq,
-		SessId, AppId, AuthType, OHost, ORealm, DHost, DRealm, Request, Options] = _Args) ->
+init([diameter, ServerAddress, ServerPort, ClientAddress, ClientPort,
+		PasswordReq, Trusted, SessId, AppId, AuthType, OHost, ORealm,
+		DHost, DRealm, Request, Options] = _Args) ->
 	[Subscriber, Password] = Options,
 	case global:whereis_name({ocs_diameter_auth, ServerAddress, ServerPort}) of
 		undefined ->
@@ -124,12 +126,13 @@ init([diameter, ServerAddress, ServerPort, ClientAddress, ClientPort, PasswordRe
 					server_address = ServerAddress, server_port = ServerPort,
 					client_address = ClientAddress, client_port = ClientPort,
 					diameter_port_server = PortServer, request = Request,
-					password_required = PasswordReq,
+					password_required = PasswordReq, trusted = Trusted,
 					service_type = ServiceType},
 			{ok, request, StateData, 0}
 	end;
-init([radius, ServerAddress, ServerPort, ClientAddress, ClientPort, RadiusFsm,
-		Secret, PasswordReq, SessionID, #radius{code = ?AccessRequest, id = ID,
+init([radius, ServerAddress, ServerPort, ClientAddress, ClientPort,
+		RadiusFsm, Secret, PasswordReq, Trusted, SessionID,
+		#radius{code = ?AccessRequest, id = ID,
 		authenticator = Authenticator, attributes = Attributes}] = _Args) ->
 	ServiceType = case radius_attributes:find(?ServiceType, Attributes) of
 		{error, not_found} ->
@@ -142,7 +145,7 @@ init([radius, ServerAddress, ServerPort, ClientAddress, ClientPort, RadiusFsm,
 		client_port = ClientPort, radius_fsm = RadiusFsm, shared_secret = Secret,
 		session_id = SessionID, radius_id = ID, req_auth = Authenticator,
 		req_attr = Attributes, password_required = PasswordReq,
-		service_type = ServiceType},
+		trusted = Trusted, service_type = ServiceType},
 	process_flag(trap_exit, true),
 	{ok, request, StateData, 0}.
 

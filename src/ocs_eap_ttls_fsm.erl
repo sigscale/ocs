@@ -105,6 +105,7 @@
 		origin_realm :: undefined | binary(),
 		port_server :: undefined | pid(),
 		password_required :: boolean(),
+		trusted :: boolean(),
 		service_type :: undefined | integer()}).
 
 -type statedata() :: #statedata{}.
@@ -136,8 +137,8 @@
 %% @private
 %%
 init([Sup, radius, ServerAddress, ServerPort, ClientAddress, ClientPort,
-		RadiusFsm, Secret, PasswordReq, SessionID, #radius{attributes =
-		Attributes} = AccessRequest] = _Args) ->
+		RadiusFsm, Secret, PasswordReq, Trusted, SessionID,
+		#radius{attributes = Attributes} = AccessRequest] = _Args) ->
 	{ok, TLSkey} = application:get_env(ocs, tls_key),
 	{ok, TLScert} = application:get_env(ocs, tls_cert),
 	{ok, TLScacert} = application:get_env(ocs, tls_cacert),
@@ -154,12 +155,12 @@ init([Sup, radius, ServerAddress, ServerPort, ClientAddress, ClientPort,
 			session_id = SessionID, server_id = list_to_binary(Hostname),
 			start = AccessRequest, tls_key = TLSkey, tls_cert = TLScert,
 			tls_cacert = TLScacert, password_required = PasswordReq,
-			service_type = ServiceType},
+			trusted = Trusted, service_type = ServiceType},
 	process_flag(trap_exit, true),
 	{ok, ssl_start, StateData, 0};
 init([Sup, diameter, ServerAddress, ServerPort, ClientAddress, ClientPort,
-		PasswordReq, SessionID, AppId, ReqType, OHost, ORealm, _DHost, _DRealm,
-		DiameterRequest, _Options] = _Args) ->
+		PasswordReq, Trusted, SessionID, AppId, ReqType, OHost, ORealm,
+		_DHost, _DRealm, DiameterRequest, _Options] = _Args) ->
 	{ok, TLSkey} = application:get_env(ocs, tls_key),
 	{ok, TLScert} = application:get_env(ocs, tls_cert),
 	{ok, TLScacert} = application:get_env(ocs, tls_cacert),
@@ -181,7 +182,8 @@ init([Sup, diameter, ServerAddress, ServerPort, ClientAddress, ClientPort,
 					tls_key = TLSkey, tls_cert = TLScert, tls_cacert = TLScacert,
 					app_id = AppId, auth_req_type = ReqType, origin_host = OHost,
 					origin_realm = ORealm, port_server = PortServer,
-					password_required = PasswordReq, service_type = ServiceType},
+					password_required = PasswordReq, trusted = Trusted,
+					service_type = ServiceType},
 			process_flag(trap_exit, true),
 			{ok, ssl_start, StateData, 0}
 	end.

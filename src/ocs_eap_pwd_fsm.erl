@@ -80,6 +80,7 @@
 		origin_realm :: undefined | binary(),
 		diameter_port_server :: undefined | pid(),
 		password_required :: boolean(),
+		trusted :: boolean(),
 		service_type :: undefined | integer()}).
 
 -type statedata() :: #statedata{}.
@@ -107,20 +108,20 @@
 %% @see //stdlib/gen_fsm:init/1
 %% @private
 %%
-init([radius, ServerAddress, ServerPort, ClientAddress, ClientPort,
-		RadiusFsm, Secret, PasswordReq, SessionID, AccessRequest] = _Args) ->
+init([radius, ServerAddress, ServerPort, ClientAddress, ClientPort, RadiusFsm,
+		Secret, PasswordReq, Trusted, SessionID, AccessRequest] = _Args) ->
 	{ok, Hostname} = inet:gethostname(),
 	StateData = #statedata{server_address = ServerAddress,
 			server_port = ServerPort, client_address = ClientAddress,
 			client_port = ClientPort, radius_fsm = RadiusFsm,
 			secret = Secret, session_id = SessionID,
 			server_id = list_to_binary(Hostname), start = AccessRequest,
-			password_required = PasswordReq},
+			password_required = PasswordReq, trusted = Trusted},
 	process_flag(trap_exit, true),
 	{ok, eap_start, StateData, 0};
 init([diameter, ServerAddress, ServerPort, ClientAddress, ClientPort,
-		PasswordReq, SessionId, ApplicationId, AuthType, OHost, ORealm,
-		_DHost, _DRealm, Request, _Options] = _Args) ->
+		PasswordReq, Trusted, SessionId, ApplicationId, AuthType,
+		OHost, ORealm, _DHost, _DRealm, Request, _Options] = _Args) ->
 	{ok, Hostname} = inet:gethostname(),
 	case global:whereis_name({ocs_diameter_auth, ServerAddress, ServerPort}) of
 		undefined ->
@@ -139,7 +140,7 @@ init([diameter, ServerAddress, ServerPort, ClientAddress, ClientPort,
 					auth_req_type = AuthType, origin_host = OHost,
 					origin_realm = ORealm, diameter_port_server = PortServer,
 					start = Request, password_required = PasswordReq,
-					service_type = ServiceType},
+					trusted = Trusted, service_type = ServiceType},
 			process_flag(trap_exit, true),
 			{ok, eap_start, StateData, 0}
 		end.

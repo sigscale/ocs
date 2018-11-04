@@ -50,8 +50,7 @@
 	when
 		Packet :: binary() | #eap_packet{},
 		Result :: #eap_packet{} | binary().
-%% @doc Encode or decode an EAP packet transported in the RADIUS `EAP-Message'
-%% attribute.
+%% @doc Encode or decode an EAP packet.
 eap_packet(<<?EapSuccess, Identifier, 4:16>> = _Packet) ->
 	#eap_packet{code = success, identifier = Identifier};
 eap_packet(<<?EapFailure, Identifier, 4:16>>) ->

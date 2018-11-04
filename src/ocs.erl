@@ -91,23 +91,36 @@ add_client(Address, Secret, PasswordRequired) ->
 		Secret :: string() | binary() | undefined,
 		PasswordRequired :: boolean(),
 		Result :: {ok, # client{}}.
+%% @equiv add_client(Address, Port, Protocol, Secret, PasswordRequired, true)
+add_client(Address, Port, Protocol, Secret, PasswordRequired) ->
+	add_client(Address, Port, Protocol, Secret, PasswordRequired, true).
+
+-spec add_client(Address, Port, Protocol, Secret, PasswordRequired, Trusted) -> Result
+	when
+		Address :: inet:ip_address(),
+		Port :: inet:port_number() | undefined,
+		Protocol :: atom() | undefined,
+		Secret :: string() | binary() | undefined,
+		PasswordRequired :: boolean(),
+		Trusted :: boolean(),
+		Result :: {ok, # client{}}.
 %% @doc Create an entry in the client table.
-%%
-add_client(Address, Port, Protocol, Secret, PasswordRequired) when is_list(Address) ->
+add_client(Address, Port, Protocol, Secret, PasswordRequired, Trusted)
+		when is_list(Address) ->
 	{ok, AddressTuple} = inet_parse:address(Address),
-	add_client(AddressTuple, Port, Protocol, Secret, PasswordRequired);
-add_client(Address, Port, Protocol, Secret, undefined) ->
-	add_client(Address, Port, Protocol, Secret, true);
-add_client({A, B, C, D} = Address, undefined, diameter, undefined, PasswordRequired)
+	add_client(AddressTuple, Port, Protocol, Secret, PasswordRequired, Trusted);
+add_client(Address, Port, Protocol, Secret, undefined, Trusted) ->
+	add_client(Address, Port, Protocol, Secret, true, Trusted);
+add_client({A, B, C, D} = Address,
+		undefined, diameter, undefined, PasswordRequired, Trusted)
 		when A >= 1, A =< 255, B >= 0, C =< 255, C >= 0, D =< 255, D >= 1, A < 255,
-		is_boolean(PasswordRequired) ->
+		is_boolean(PasswordRequired), is_boolean(Trusted) ->
 	F = fun() ->
 				TS = erlang:system_time(?MILLISECOND),
 				N = erlang:unique_integer([positive]),
-				R = #client{
-						address = Address,
-						protocol = diameter, last_modified = {TS, N},
-						password_required = PasswordRequired},
+				R = #client{address = Address, protocol = diameter,
+						last_modified = {TS, N},
+						password_required = PasswordRequired, trusted = Trusted},
 				mnesia:write(R),
 				R
 	end,
@@ -117,25 +130,29 @@ add_client({A, B, C, D} = Address, undefined, diameter, undefined, PasswordRequi
 		{aborted, Reason} ->
 			exit(Reason)
 	end;
-add_client(Address, Port, Protocol, undefined, PasswordRequired) ->
-	add_client(Address, Port, Protocol, generate_password(), PasswordRequired);
-add_client(Address, Port, undefined, Secret, PasswordRequired) ->
-	add_client(Address, Port, radius, Secret, PasswordRequired);
-add_client(Address, undefined, Protocol, Secret, PasswordRequired) ->
-	add_client(Address, 3799, Protocol, Secret, PasswordRequired);
-add_client(Address, Port, Protocol, Secret, PasswordRequired) when is_list(Secret) ->
-	add_client(Address, Port, Protocol, list_to_binary(Secret), PasswordRequired);
-add_client({A, B, C, D} = Address, Port, radius, Secret, PasswordRequired)
-		when A >= 1, A =< 255, B >= 0, C =< 255, C >= 0, D =< 255, D >= 1, A < 255,
+add_client(Address, Port, Protocol, undefined, PasswordRequired, Trusted) ->
+	add_client(Address, Port, Protocol,
+		generate_password(), PasswordRequired, Trusted);
+add_client(Address, Port, undefined, Secret, PasswordRequired, Trusted) ->
+	add_client(Address, Port, radius, Secret, PasswordRequired, Trusted);
+add_client(Address, undefined, Protocol, Secret, PasswordRequired, Trusted) ->
+	add_client(Address, 3799, Protocol, Secret, PasswordRequired, Trusted);
+add_client(Address, Port, Protocol,
+		Secret, PasswordRequired, Trusted) when is_list(Secret) ->
+	add_client(Address, Port, Protocol,
+		list_to_binary(Secret), PasswordRequired, Trusted);
+add_client({A, B, C, D} = Address,
+		Port, radius, Secret, PasswordRequired, Trusted)
+		when A >= 1, A =< 255, B >= 0, C =< 255,
+		C >= 0, D =< 255, D >= 1, A < 255,
 		is_binary(Secret), is_boolean(PasswordRequired) ->
 	F = fun() ->
 				TS = erlang:system_time(?MILLISECOND),
 				N = erlang:unique_integer([positive]),
 				LM = {TS, N},
-				R = #client{address = Address, port = Port,
-						protocol = radius, secret = Secret,
-						password_required = PasswordRequired,
-						last_modified = LM},
+				R = #client{address = Address, port = Port, protocol = radius,
+						secret = Secret, password_required = PasswordRequired,
+						trusted = Trusted, last_modified = LM},
 				ok = mnesia:write(R),
 				R
 	end,

@@ -117,8 +117,10 @@ init([AuthPortSup, Address, Port, Options]) ->
 handle_call(shutdown, _From, State) ->
 	{stop, normal, ok, State};
 handle_call({request, Address, Port, Secret, PasswordReq,
-			#radius{code = ?AccessRequest} = Radius, IsEap}, From, State) ->
-	request(IsEap, Address, Port, Secret, PasswordReq, Radius, From, State).
+			#radius{code = ?AccessRequest} = Radius,
+			Trusted, IsEap}, From, State) ->
+	request(IsEap, Address, Port, Secret,
+			PasswordReq, Trusted, Radius, From, State).
 
 -spec handle_cast(Request, State) -> Result
 	when
@@ -226,13 +228,15 @@ code_change(_OldVsn, State, _Extra) ->
 %%  internal functions
 %%----------------------------------------------------------------------
 
--spec request(IsEap, Address, Port, Secret, PasswordReq, Radius, From, State) -> Result
+-spec request(IsEap, Address, Port, Secret,
+		PasswordReq, Trusted, Radius, From, State) -> Result
 	when
 		IsEap :: {eap, binary()} | none,
 		Address :: inet:ip_address(), 
 		Port :: pos_integer(),
 		Secret :: string(), 
 		PasswordReq :: boolean(),
+		Trusted :: boolean(),
 		Radius :: #radius{},
 		From :: {Pid, Tag}, 
 		Pid :: pid(), 
@@ -243,18 +247,24 @@ code_change(_OldVsn, State, _Extra) ->
 		NewState :: state().
 %% @doc Handle a received RADIUS Access-Request packet.
 %% @private
-request(none, Address, Port, Secret, PasswordReq, Radius, From, State) ->
-	request1(none, Address, Port, Secret, PasswordReq, Radius, From, State);
-request({eap, <<_:32, ?Identity, Identity/binary>>},
-		Address, Port, Secret, PasswordReq, Radius, From, State) ->
-	request1({identity, Identity}, Address, Port, Secret, PasswordReq, Radius, From, State);
-request({eap, <<_, EapID, _:16, ?LegacyNak, Data/binary>>},
-		Address, Port, Secret, PasswordReq, Radius, From, State) ->
-	request1({legacy_nak, EapID, Data}, Address, Port, Secret, PasswordReq, Radius, From, State);
-request(Eap, Address, Port, Secret, PasswordReq, Radius, From, State) ->
-	request1(Eap, Address, Port, Secret, PasswordReq, Radius, From, State).
+request(none, Address, Port, Secret,
+		PasswordReq, Trusted, Radius, From, State) ->
+	request1(none, Address, Port, Secret,
+			PasswordReq, Trusted, Radius, From, State);
+request({eap, <<_:32, ?Identity, Identity/binary>>}, Address,
+		Port, Secret, PasswordReq, Trusted, Radius, From, State) ->
+	request1({identity, Identity}, Address, Port, Secret,
+			PasswordReq, Trusted, Radius, From, State);
+request({eap, <<_, EapID, _:16, ?LegacyNak, Data/binary>>}, Address,
+		Port, Secret, PasswordReq, Trusted, Radius, From, State) ->
+	request1({legacy_nak, EapID, Data}, Address, Port, Secret,
+			PasswordReq, Trusted, Radius, From, State);
+request(Eap, Address, Port, Secret,
+		PasswordReq, Trusted, Radius, From, State) ->
+	request1(Eap, Address, Port, Secret,
+			PasswordReq, Trusted, Radius, From, State).
 %% @hidden
-request1(EapType, Address, Port, Secret, PasswordReq,
+request1(EapType, Address, Port, Secret, PasswordReq, Trusted,
 		#radius{attributes = Attributes} = AccessRequest, From,
 		#state{handlers = Handlers} = State) ->
 	try
@@ -278,47 +288,48 @@ request1(EapType, Address, Port, Secret, PasswordReq,
 		end,
 		Peer = radius_attributes:fetch(?CallingStationId, Attributes),
 		SessionID = {NAS, NasPort, Peer},
-		request2(EapType, gb_trees:lookup(SessionID, Handlers), SessionID,
-				Address, Port, Secret, PasswordReq, AccessRequest, From, State)
+		request2(EapType, gb_trees:lookup(SessionID, Handlers),
+				SessionID, Address, Port, Secret, PasswordReq,
+				Trusted, AccessRequest, From, State)
 	catch
 		_:_Reason ->
 			{reply, {error, ignore}, State}
 	end.
 %% @hidden
 request2({_, Identity}, none, SessionID, Address, Port, Secret,
-		PasswordReq, AccessRequest, {RadiusFsm, _Tag} = _From,
+		PasswordReq, Trusted, AccessRequest, {RadiusFsm, _Tag} = _From,
 		#state{aka_sup = Sup, method_prefer = aka} = State) ->
 	start_fsm(AccessRequest, RadiusFsm, Address, Port, Secret,
-			PasswordReq, SessionID, Identity, Sup, State);
+			PasswordReq, Trusted, SessionID, Identity, Sup, State);
 request2({_, Identity}, none, SessionID, Address, Port, Secret,
-		PasswordReq, AccessRequest, {RadiusFsm, _Tag} = _From,
+		PasswordReq, Trusted, AccessRequest, {RadiusFsm, _Tag} = _From,
 		#state{aka_sup = Sup, method_prefer = akap} = State) ->
 	start_fsm(AccessRequest, RadiusFsm, Address, Port, Secret,
-			PasswordReq, SessionID, Identity, Sup, State);
+			PasswordReq, Trusted, SessionID, Identity, Sup, State);
 request2({_, Identity}, none, SessionID, Address, Port, Secret,
-		PasswordReq, AccessRequest, {RadiusFsm, _Tag} = _From,
+		PasswordReq, Trusted, AccessRequest, {RadiusFsm, _Tag} = _From,
 		#state{pwd_sup = Sup, method_prefer = pwd} = State) ->
 	start_fsm(AccessRequest, RadiusFsm, Address, Port, Secret,
-			PasswordReq, SessionID, Identity, Sup, State);
+			PasswordReq, Trusted, SessionID, Identity, Sup, State);
 request2({_, Identity}, none, SessionID, Address, Port, Secret,
-		PasswordReq, AccessRequest, {RadiusFsm, _Tag} = _From,
+		PasswordReq, Trusted, AccessRequest, {RadiusFsm, _Tag} = _From,
 		#state{ttls_sup = Sup, method_prefer = ttls} = State) ->
 	start_fsm(AccessRequest, RadiusFsm, Address, Port, Secret,
-			PasswordReq, SessionID, Identity, Sup, State);
-request2(none, none, SessionID, Address, Port, Secret, PasswordReq,
+			PasswordReq, Trusted, SessionID, Identity, Sup, State);
+request2(none, none, SessionID, Address, Port, Secret, PasswordReq, Trusted,
 		#radius{attributes = Attributes} = AccessRequest, {RadiusFsm, _Tag} = _From,
 		#state{simple_auth_sup = Sup} = State) ->
 	{ok, _} = radius_attributes:find(?UserName, Attributes),
 	case PasswordReq of
 		true ->
-			{ok, _} = radius_attributes:find(?UserPassword, Attributes);
+			radius_attributes:fetch(?UserPassword, Attributes);
 		false ->
 			ok
 	end,
 	start_fsm(AccessRequest, RadiusFsm, Address, Port, Secret,
-			PasswordReq, SessionID, <<>>, Sup, State);
+			PasswordReq, Trusted, SessionID, <<>>, Sup, State);
 request2({legacy_nak, EapId, AlternateMethods}, {value, {Fsm, Identity}},
-		SessionID, Address, Port, Secret, PasswordReq,
+		SessionID, Address, Port, Secret, PasswordReq, Trusted,
 		#radius{id = RadiusId, authenticator = RequestAuthenticator,
 		attributes = Attributes} = AccessRequest, {RadiusFsm, _Tag} = _From,
 		#state{method_order = MethodOrder, address = ServerAddress, port = ServerPort} = State) ->
@@ -331,7 +342,7 @@ request2({legacy_nak, EapId, AlternateMethods}, {value, {Fsm, Identity}},
 			RequestAttributes = radius_attributes:store(?EAPMessage, NewEapMessage, Attributes),
 			NewAccessRequest = AccessRequest#radius{attributes = RequestAttributes},
 			start_fsm(NewAccessRequest, RadiusFsm, Address, Port, Secret,
-					PasswordReq, SessionID, Identity, Sup, State);
+					PasswordReq, Trusted, SessionID, Identity, Sup, State);
 		{error, none} ->
 			Length = 20,
 			NewEapPacket = #eap_packet{code = failure, identifier = EapId},
@@ -350,16 +361,16 @@ request2({legacy_nak, EapId, AlternateMethods}, {value, {Fsm, Identity}},
 			{reply, {ok, AccessReject}, State}	
 	end;
 request2({eap, _}, {value, {Fsm, _Identity}}, _SessionID, _Address, _Port, _Secret,
-		_PasswordReq, AccessRequest, {RadiusFsm, _Tag} = _From, State) ->
+		_PasswordReq, _Trusted, AccessRequest, {RadiusFsm, _Tag} = _From, State) ->
 	gen_fsm:send_event(Fsm, {AccessRequest, RadiusFsm}),
 	{reply, {ok, wait}, State};
 request2(none, {value, {Fsm, _Identity}}, _SessionID, _Address, _Port, _Secret,
-		_PasswordReq, AccessRequest, {RadiusFsm, _Tag} = _From, State) ->
+		_PasswordReq, _Trusted, AccessRequest, {RadiusFsm, _Tag} = _From, State) ->
 	gen_fsm:send_event(Fsm, {AccessRequest, RadiusFsm}),
 	{reply, {ok, wait}, State}.
 
 -spec start_fsm(AccessRequest, RadiusFsm, Address, Port, Secret,
-	PasswordReq, SessionID, Identity, AuthSup, State) -> Result
+	PasswordReq, Trusted, SessionID, Identity, AuthSup, State) -> Result
 	when
 		AccessRequest :: #radius{}, 
 		RadiusFsm :: pid(),
@@ -367,6 +378,7 @@ request2(none, {value, {Fsm, _Identity}}, _SessionID, _Address, _Port, _Secret,
 		Port :: integer(),
 		Secret :: binary(), 
 		PasswordReq :: boolean(),
+		Trusted :: boolean(),
 		SessionID :: tuple(), 
 		Identity :: binary(),
 		AuthSup :: pid(),
@@ -376,10 +388,10 @@ request2(none, {value, {Fsm, _Identity}}, _SessionID, _Address, _Port, _Secret,
 %% @doc Start a new session handler.
 %% @hidden
 start_fsm(AccessRequest, RadiusFsm, ClientAddress, ClientPort,
-		Secret, PasswordReq, SessionID, Identity, AuthSup,
+		Secret, PasswordReq, Trusted, SessionID, Identity, AuthSup,
 		#state{address = ServerAddress, port = ServerPort} = State) ->
 	StartArgs = [radius, ServerAddress, ServerPort, ClientAddress, ClientPort,
-			RadiusFsm, Secret, PasswordReq, SessionID, AccessRequest],
+			RadiusFsm, Secret, PasswordReq, Trusted, SessionID, AccessRequest],
 	start_fsm1(AuthSup, StartArgs, RadiusFsm, SessionID, Identity, State).
 %% @hidden
 start_fsm1(AuthSup, StartArgs, RadiusFsm, SessionID, Identity,
