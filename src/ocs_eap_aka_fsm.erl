@@ -26,10 +26,10 @@
 %%% @reference <a href="http://tools.ietf.org/html/rfc5448">
 %%% 	RFC5448 - Improved Extensible Authentication Protocol Method for
 %%% 		3rd Generation Authentication and Key Agreement (EAP-AKA')</a>
-%%%
-%%% @reference <a href="https://webapp.etsi.org/key/key.asp?GSMSpecPart1=33
-%%% 	&GSMSpecPart2=402&Search=search">
-%%% 	Security aspects of non-3GPP accesses</a>
+%%% @reference <a href="https://webapp.etsi.org/key/key.asp?GSMSpecPart1=33&amp;GSMSpecPart2=402&amp;Search=search">
+%%% 	3GPP TS 33.402 - Security aspects of non-3GPP accesses</a>
+%%% @reference <a href="https://webapp.etsi.org/key/key.asp?GSMSpecPart1=23&amp;GSMSpecPart2=003&amp;Search=search">
+%%% 	3GPP TS 23.003 - Numbering, addressing and identification</a>
 %%%
 -module(ocs_eap_aka_fsm).
 -copyright('Copyright (c) 2016 - 2018 SigScale Global Inc.').
@@ -79,8 +79,10 @@
 -define(TIMEOUT, 30000).
 
 -define(EAP_APPLICATION_ID, 5).
--define(TEMP_TAG, $t).
--define(FAST_TAG, $f).
+
+%% 3GPP TS 23.003 14.5 Temporary identities
+-define(TEMP_TAG, 54).
+-define(FAST_TAG, 56).
 
 %%----------------------------------------------------------------------
 %%  The ocs_eap_aka_fsm API
@@ -582,16 +584,16 @@ send_diameter_response(SId, AuthType, ResultCode, OH, OR, EapPacket,
 
 -spec compressed_imsi(IMSI) -> IMSI
 	when
-		IMSI :: string() | binary().
+		IMSI :: binary().
 %% @doc Compress or decompress an IMSI.
 %%
 %% See 3GPP 33.402 14.1 Temporary identity generation.
 %% @private
-compressed_imsi(<<15:4, _:124/bits>> = IMSI) ->
+compressed_imsi(<<15:4, _:60/bits>> = IMSI) ->
 	B = << <<A, B>> || <<A:4, B:4>> <= IMSI >>,
 	lists:flatten([integer_to_list(C) || <<C>> <= B, C /= 15]);
 compressed_imsi(IMSI) when is_binary(IMSI) ->
-	L1 = [list_to_integer([C]) || <<C>> <- IMSI],
+	L1 = [list_to_integer([C]) || <<C>> <= IMSI],
 	L2 = lists:duplicate(16 - length(L1), 15),
 	L3 = L2 ++ L1,
 	<< <<D:4>> || D <- L3 >>.
@@ -603,15 +605,35 @@ compressed_imsi(IMSI) when is_binary(IMSI) ->
 		N :: pos_integer(),
 		Kpseu :: binary(),
 		Pseudonym :: binary().
-%% @doc Create a temporary identity.
+%% @doc Create an encrypted temporary identity.
 %%
 %% See 3GPP 33.402 14.1 Temporary identity generation.
 %% @private
 encrypt_imsi(CompressedIMSI, {N, Kpseu} = _Key)
-		when size(CompressedIMSI) == 16, size(Kpseu) == 16 ->
-	Pad = crypto:strong_rand_bytes(16),
+		when size(CompressedIMSI) == 8, size(Kpseu) == 16 ->
+	Pad = crypto:strong_rand_bytes(8),
 	PaddedIMSI = <<CompressedIMSI/binary, Pad/binary>>,
 	EncryptedIMSI = crypto:block_encrypt(aes_ecb, Kpseu, PaddedIMSI),
-	TaggedIMSI = <<?TEMP_TAG:6, N:4, EncryptedIMSI/binary>>,
-	base64:encode(TaggedIMSI). % nope!
+	TaggedIMSI = <<?TEMP_TAG:6, N:4, EncryptedIMSI/binary, 0:6>>,
+	binary:part(base64:encode(TaggedIMSI), 0, 23).
+
+-spec decrypt_imsi(Pseudonym, Keys) -> CompressedIMSI
+	when
+		Pseudonym :: binary(),
+		Keys :: [Key],
+		Key :: {N, Kpseu},
+		N :: pos_integer(),
+		Kpseu :: binary(),
+		CompressedIMSI :: binary().
+%% @doc Decrypt a temporary identity.
+%%
+%% See 3GPP 33.402 14.1 Temporary identity generation.
+%% @private
+decrypt_imsi(Pseudonym, Keys)
+		when size(Pseudonym) == 23, is_list(Keys) ->
+	TaggedIMSI = base64:decode(<<Pseudonym/binary, $A>>),
+	<<?TEMP_TAG:6, N:4, EncryptedIMSI:16/binary, _:6>> = TaggedIMSI,
+	{_, Kpseu} = lists:keyfind(N, 1, Keys),
+	PaddedIMSI = crypto:block_decrypt(aes_ecb, Kpseu, EncryptedIMSI),
+	binary:part(PaddedIMSI, 0, 8).
 
