@@ -574,3 +574,13 @@ send_diameter_response(SId, AuthType, ResultCode, OH, OR, EapPacket,
 			gen_server:cast(PortServer, {self(), Answer1})
 	end.
 
+%% @hidden
+compressed_imsi(IMSI) when is_list(IMSI) ->
+	L1 = [list_to_integer([C]) || C <- IMSI],
+	L2 = lists:duplicate(16 - length(L1), 15),
+	L3 = L2 ++ L1,
+	<< <<D:4>> || D <- L3 >>;
+compressed_imsi(<<15:4, _:124/bits>> = IMSI) ->
+	B = << <<A, B>> || <<A:4, B:4>> <= IMSI >>.
+	lists:flatten([integer_to_list(C) || <<C>> <= B1, C /= 15]).
+
