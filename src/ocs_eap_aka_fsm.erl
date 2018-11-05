@@ -586,10 +586,10 @@ send_diameter_response(SId, AuthType, ResultCode, OH, OR, EapPacket,
 %% @doc Compress or decompress an IMSI.
 %%
 %% See 3GPP 33.402 14.1 Temporary identity generation.
-%% @hidden
+%% @private
 compressed_imsi(<<15:4, _:124/bits>> = IMSI) ->
-	B = << <<A, B>> || <<A:4, B:4>> <= IMSI >>.
-	lists:flatten([integer_to_list(C) || <<C>> <= B1, C /= 15]);
+	B = << <<A, B>> || <<A:4, B:4>> <= IMSI >>,
+	lists:flatten([integer_to_list(C) || <<C>> <= B, C /= 15]);
 compressed_imsi(IMSI) when is_binary(IMSI) ->
 	L1 = [list_to_integer([C]) || <<C>> <- IMSI],
 	L2 = lists:duplicate(16 - length(L1), 15),
@@ -601,13 +601,14 @@ compressed_imsi(IMSI) when is_binary(IMSI) ->
 		CompressedIMSI :: binary(),
 		Key :: {N, Kpseu},
 		N :: pos_integer(),
+		Kpseu :: binary(),
 		Pseudonym :: binary().
 %% @doc Create a temporary identity.
 %%
 %% See 3GPP 33.402 14.1 Temporary identity generation.
-%% @hidden
+%% @private
 encrypt_imsi(CompressedIMSI, {N, Kpseu} = _Key)
-		when size(CompressedIMSI) == 16, size(Kpseu) == 16  >
+		when size(CompressedIMSI) == 16, size(Kpseu) == 16 ->
 	Pad = crypto:strong_rand_bytes(16),
 	PaddedIMSI = <<CompressedIMSI/binary, Pad/binary>>,
 	EncryptedIMSI = crypto:block_encrypt(aes_ecb, Kpseu, PaddedIMSI),
