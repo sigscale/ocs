@@ -83,9 +83,9 @@
 -define(EAP_APPLICATION_ID, 5).
 
 %% 3GPP TS 23.003 14.5 Temporary identities
--define(PERM_TAG, 50).
--define(TEMP_TAG, 54).
--define(FAST_TAG, 56).
+-define(PERM_TAG, $0).
+-define(TEMP_TAG, $2).
+-define(FAST_TAG, $4).
 
 %%----------------------------------------------------------------------
 %%  The ocs_eap_aka_fsm API
@@ -95,27 +95,6 @@
 %%  The ocs_eap_aka_fsm gen_fsm call backs
 %%----------------------------------------------------------------------
 
-init([Sup, radius, ServerAddress, ServerPort, ClientAddress, ClientPort,
-		RadiusFsm, Secret, PasswordReq, Trusted, SessionID,
-		#radius{attributes = Attributes} = AccessRequest] = _Args) ->
-	{ok, Hostname} = inet:gethostname(),
-	{ok, Keys} = application:get_env(aka_kpseu),
-	ServiceType = case radius_attributes:find(?ServiceType, Attributes) of
-		{error, not_found} ->
-			undefined;
-		{_, ST} ->
-			ST
-	end,
-	StateData = #statedata{sup = Sup,
-			server_address = ServerAddress,
-			server_port = ServerPort, client_address = ClientAddress,
-			client_port = ClientPort, radius_fsm = RadiusFsm,
-			secret = Secret, session_id = SessionID,
-			server_id = list_to_binary(Hostname), start = AccessRequest,
-			password_required = PasswordReq, trusted = Trusted,
-			keys = Keys, service_type = ServiceType},
-	process_flag(trap_exit, true),
-	{ok, eap_start, StateData, 0};
 init([Sup, diameter, ServerAddress, ServerPort, ClientAddress, ClientPort,
 		PasswordReq, Trusted, SessionId, ApplicationId, AuthReqType, OHost, ORealm,
 		_DHost, _DRealm, Request, _Options] = _Args) ->
@@ -142,7 +121,28 @@ init([Sup, diameter, ServerAddress, ServerPort, ClientAddress, ClientPort,
 					trusted = Trusted, keys = Keys, service_type = ServiceType},
 			process_flag(trap_exit, true),
 			{ok, eap_start, StateData, 0}
-		end.
+		end;
+init([Sup, radius, ServerAddress, ServerPort, ClientAddress, ClientPort,
+		RadiusFsm, Secret, PasswordReq, Trusted, SessionID,
+		#radius{attributes = Attributes} = AccessRequest] = _Args) ->
+	{ok, Hostname} = inet:gethostname(),
+	{ok, Keys} = application:get_env(aka_kpseu),
+	ServiceType = case radius_attributes:find(?ServiceType, Attributes) of
+		{error, not_found} ->
+			undefined;
+		{_, ST} ->
+			ST
+	end,
+	StateData = #statedata{sup = Sup,
+			server_address = ServerAddress,
+			server_port = ServerPort, client_address = ClientAddress,
+			client_port = ClientPort, radius_fsm = RadiusFsm,
+			secret = Secret, session_id = SessionID,
+			server_id = list_to_binary(Hostname), start = AccessRequest,
+			password_required = PasswordReq, trusted = Trusted,
+			keys = Keys, service_type = ServiceType},
+	process_flag(trap_exit, true),
+	{ok, eap_start, StateData, 0}.
 
 -spec eap_start(Event, StateData) -> Result
 	when
@@ -194,7 +194,7 @@ eap_start(timeout, #statedata{sup = Sup, eap_id = EapID,
 				NextStateData = NewStateData#statedata{eap_id = StartEapID},
 				[IMSI | _] = binary:split(PermanentID, <<$@>>, []),
 				% @todo handle DIAMETER ANID AVP
-				gen_fsm:send_event(AucFsm, {IMSI, "WLAN"}),
+				gen_fsm:send_event(AucFsm, {self(), IMSI, "WLAN"}),
 				{next_state, vector, NextStateData, ?TIMEOUT};
 			#eap_packet{code = response, type = ?Identity,
 					identifier = StartEapID,
@@ -205,7 +205,7 @@ eap_start(timeout, #statedata{sup = Sup, eap_id = EapID,
 				CompressedIMSI = decrypt_imsi(Pseudonym, Keys),
 				IMSI = compressed_imsi(CompressedIMSI),
 				% @todo handle DIAMETER ANID AVP
-				gen_fsm:send_event(AucFsm, {IMSI, "WLAN"}),
+				gen_fsm:send_event(AucFsm, {self(), IMSI, "WLAN"}),
 				{next_state, vector, NextStateData, ?TIMEOUT};
 			#eap_packet{code = response, type = ?Identity,
 					identifier = StartEapID, data = <<?FAST_TAG:6, _/bits>>}
@@ -285,7 +285,7 @@ eap_start(timeout, #statedata{sup = Sup, eap_id = EapID,
 						NextStateData = NewStateData#statedata{eap_id = StartEapID},
 						[IMSI | _] = binary:split(PermanentID, <<$@>>, []),
 						% @todo handle RADIUS attribute for ANID
-						gen_fsm:send_event(AucFsm, {IMSI, "WLAN"}),
+						gen_fsm:send_event(AucFsm, {self(), IMSI, "WLAN"}),
 						{next_state, vector, NextStateData, ?TIMEOUT};
 					#eap_packet{code = response, type = ?Identity,
 							identifier = StartEapID,
@@ -296,7 +296,7 @@ eap_start(timeout, #statedata{sup = Sup, eap_id = EapID,
 						CompressedIMSI = decrypt_imsi(Pseudonym, Keys),
 						IMSI = compressed_imsi(CompressedIMSI),
 						% @todo handle RADIUS attribute for ANID
-						gen_fsm:send_event(AucFsm, {IMSI, "WLAN"}),
+						gen_fsm:send_event(AucFsm, {self(), IMSI, "WLAN"}),
 						{next_state, vector, NextStateData, ?TIMEOUT};
 					#eap_packet{code = response, type = ?Identity,
 							identifier = StartEapID,
