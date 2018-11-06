@@ -96,6 +96,13 @@ init(_Args) ->
 %% @@see //stdlib/gen_fsm:StateName/2
 %% @private
 %%
+idle({AkaFsm, Identity, _ANID}, #statedata{} = StateData)
+		when is_pid(AkaFsm), is_binary(Identity) ->
+	Rand = crypto:strong_rand_bytes(16),
+	Autn = crypto:strong_rand_bytes(16),
+	Xres = crypto:strong_rand_bytes(16),
+	gen_fsm:send_event(AkaFsm, {Rand, Autn, Xres}),
+	{next_state, idle, StateData};
 idle(timeout, #statedata{} = StateData) ->
 	{stop, shutdown, StateData}.
 
