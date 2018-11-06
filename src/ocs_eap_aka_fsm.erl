@@ -74,6 +74,7 @@
 		password_required :: boolean(),
 		trusted :: boolean(),
 		keys :: [{pos_integer(), binary()}],
+		id_req :: any | full | permanent,
 		service_type :: undefined | integer()}).
 -type statedata() :: #statedata{}.
 
@@ -163,14 +164,18 @@ eap_start(timeout, #statedata{eap_id = EapID,
 		session_id = SessionId, auth_req_type = AuthReqType,
 		start = #diameter_eap_app_DER{'EAP-Payload' = []} = Request,
 		origin_host = OHost, origin_realm = ORealm,
-		diameter_port_server = PortServer} = StateData) ->
+		diameter_port_server = PortServer, sup = Sup} = StateData) ->
+	Children = supervisor:which_children(Sup),
+	{_, AucFsm, _, _} = lists:keyfind(ocs_eap_aka_auc_fsm, 1, Children),
 	EapData = ocs_eap_codec:eap_aka(#eap_aka_identity{fullauth_id_req = true}),
+	NewStateData = StateData#statedata{start = undefined,
+			auc_fsm = AucFsm, id_req = full},
 	EapPacket = #eap_packet{code = request,
 			type = ?AKA, identifier = EapID, data = EapData},
 	send_diameter_response(SessionId, AuthReqType,
 			?'DIAMETER_BASE_RESULT-CODE_MULTI_ROUND_AUTH', OHost, ORealm,
 			EapPacket, PortServer, Request, StateData),
-	{next_state, identity, StateData, ?TIMEOUT};
+	{next_state, identity, NewStateData, ?TIMEOUT};
 eap_start(timeout, #statedata{sup = Sup, eap_id = EapID,
 		session_id = SessionId, auth_req_type = AuthReqType,
 		start = #diameter_eap_app_DER{'EAP-Payload' = EapMessage} = Request,
@@ -207,8 +212,8 @@ eap_start(timeout, #statedata{sup = Sup, eap_id = EapID,
 					when Trusted == true ->
 				% @todo handle fast re-authentication
 				NextEapID = (StartEapID rem 255) + 1,
-				NextStateData = NewStateData#statedata{eap_id = NextEapID},
 				EapData = ocs_eap_codec:eap_aka(#eap_aka_identity{fullauth_id_req = true}),
+				NextStateData = NewStateData#statedata{eap_id = NextEapID, id_req = full},
 				EapPacket = #eap_packet{code = request,
 						type = ?AKA, identifier = NextEapID, data = EapData},
 				send_diameter_response(SessionId, AuthReqType,
@@ -218,8 +223,8 @@ eap_start(timeout, #statedata{sup = Sup, eap_id = EapID,
 			#eap_packet{code = response, type = ?Identity,
 					identifier = StartEapID} when Trusted == false ->
 				NextEapID = (StartEapID rem 255) + 1,
-				NextStateData = NewStateData#statedata{eap_id = NextEapID},
 				EapData = ocs_eap_codec:eap_aka(#eap_aka_identity{fullauth_id_req = true}),
+				NextStateData = NewStateData#statedata{eap_id = NextEapID, id_req = full},
 				EapPacket = #eap_packet{code = request,
 						type = ?AKA, identifier = NextEapID, data = EapData},
 				send_diameter_response(SessionId, AuthReqType,
@@ -264,11 +269,12 @@ eap_start(timeout, #statedata{sup = Sup, eap_id = EapID,
 	case radius_attributes:find(?EAPMessage, RequestAttributes) of
 		{ok, <<>>} ->
 			EapData = ocs_eap_codec:eap_aka(#eap_aka_identity{fullauth_id_req = true}),
+			NextStateData = NewStateData#statedata{id_req = full},
 			EapPacket = #eap_packet{code = request,
 					type = ?AKA, identifier = EapID, data = EapData},
 			send_radius_response(EapPacket, ?AccessChallenge, [], RadiusID,
 					RequestAuthenticator, RequestAttributes, NewStateData),
-			{next_state, identity, NewStateData, ?TIMEOUT};
+			{next_state, identity, NextStateData, ?TIMEOUT};
 		{ok, EAPMessage} ->
 			try
 				case ocs_eap_codec:eap_packet(EAPMessage) of
@@ -289,7 +295,7 @@ eap_start(timeout, #statedata{sup = Sup, eap_id = EapID,
 						Pseudonym = binary:split(TemporaryID, <<$@>>, []),
 						CompressedIMSI = decrypt_imsi(Pseudonym, Keys),
 						IMSI = compressed_imsi(CompressedIMSI),
-						% @todo handle DIAMETER ANID AVP
+						% @todo handle RADIUS attribute for ANID
 						gen_fsm:send_event(AucFsm, {IMSI, "WLAN"}),
 						{next_state, vector, NextStateData, ?TIMEOUT};
 					#eap_packet{code = response, type = ?Identity,
@@ -298,8 +304,8 @@ eap_start(timeout, #statedata{sup = Sup, eap_id = EapID,
 							when Trusted == true ->
 						% @todo handle fast re-authentication
 						NextEapID = (StartEapID rem 255) + 1,
-						NextStateData = NewStateData#statedata{eap_id = NextEapID},
 						EapData = ocs_eap_codec:eap_aka(#eap_aka_identity{fullauth_id_req = true}),
+						NextStateData = NewStateData#statedata{eap_id = NextEapID, id_req = full},
 						EapPacket = #eap_packet{code = request,
 								type = ?AKA, identifier = NextEapID, data = EapData},
 						send_radius_response(EapPacket, ?AccessChallenge, [], RadiusID,
@@ -330,11 +336,12 @@ eap_start(timeout, #statedata{sup = Sup, eap_id = EapID,
 			end;
 		{error, not_found} ->
 			EapData = ocs_eap_codec:eap_aka(#eap_aka_identity{fullauth_id_req = true}),
+			NextStateData = NewStateData#statedata{id_req = full},
 			EapPacket = #eap_packet{code = request,
 					type = ?AKA, identifier = EapID, data = EapData},
 			send_radius_response(EapPacket, ?AccessChallenge, [], RadiusID,
 					RequestAuthenticator, RequestAttributes, NewStateData),
-			{next_state, identity, NewStateData, ?TIMEOUT}
+			{next_state, identity, NextStateData, ?TIMEOUT}
 	end.
 
 -spec identity(Event, StateData) -> Result
@@ -358,21 +365,26 @@ identity(timeout, #statedata{session_id = SessionID} = StateData)->
 identity(#diameter_eap_app_DER{'EAP-Payload' = EapMessage} = Request,
 		#statedata{eap_id = EapID, session_id = SessionID,
 		auth_req_type = RequestType, origin_host = OHost,
-		origin_realm = ORealm, auc_fsm = AucFsm,
-		diameter_port_server = PortServer} = StateData) ->
+		origin_realm = ORealm, auc_fsm = AucFsm, id_req = IdReq,
+		diameter_port_server = PortServer, keys = Keys} = StateData) ->
 	try
-		case ocs_eap_codec:eap_packet(EapMessage) of
-			#eap_packet{code = response, type = ?AKA,
-					identifier = EapID, data = Data} ->
-				#eap_aka_identity{identity = Identity} = ocs_eap_codec:eap_aka(Data),
+		#eap_packet{code = response, type = ?AKA, identifier = EapID,
+				data = Data} = ocs_eap_codec:eap_packet(EapMessage),
+		case ocs_eap_codec:eap_aka(Data) of
+			#eap_aka_identity{identity = <<?PERM_TAG, PermanentID/binary>>}
+					when IdReq == full ->
+				[IMSI | _] = binary:split(PermanentID, <<$@>>, []),
 				% @todo handle DIAMETER ANID AVP
-				gen_fsm:send_event(AucFsm, {Identity, "WLAN"}),
+				gen_fsm:send_event(AucFsm, {self(), IMSI, "WLAN"}),
 				{next_state, vector, StateData, ?TIMEOUT};
-			#eap_packet{code = response, type = ?LegacyNak, identifier = EapID} ->
-				send_diameter_response(SessionID, RequestType,
-					?'DIAMETER_BASE_RESULT-CODE_INVALID_AVP_BITS', OHost, ORealm,
-					none, PortServer, Request, StateData),
-				{stop, {shutdown, SessionID}, StateData}
+			#eap_aka_identity{identity = <<?TEMP_TAG:6, _/bits>> = TemporaryID}
+					when IdReq == full ->
+				Pseudonym = binary:split(TemporaryID, <<$@>>, []),
+				CompressedIMSI = decrypt_imsi(Pseudonym, Keys),
+				IMSI = compressed_imsi(CompressedIMSI),
+				% @todo handle DIAMETER ANID AVP
+				gen_fsm:send_event(AucFsm, {self(), IMSI, "WLAN"}),
+				{next_state, vector, StateData, ?TIMEOUT}
 		end
 	catch
 		_:_Reason ->
@@ -385,21 +397,25 @@ identity(#diameter_eap_app_DER{'EAP-Payload' = EapMessage} = Request,
 identity({#radius{id = RadiusID, authenticator = RequestAuthenticator,
 		attributes = RequestAttributes}, RadiusFsm},
 		#statedata{eap_id = EapID, session_id = SessionID,
-		auc_fsm = AucFsm} = StateData) ->
+		auc_fsm = AucFsm, keys = Keys, id_req = IdReq} = StateData) ->
 	NewStateData = StateData#statedata{radius_fsm = RadiusFsm},
 	try
 		EapMessage = radius_attributes:fetch(?EAPMessage, RequestAttributes),
 		case ocs_eap_codec:eap_packet(EapMessage) of
-			#eap_packet{code = response, type = ?AKA,
-					identifier = EapID, data = Data} ->
-				NewEapID = (EapID rem 255) + 1,
-				NewStateData = StateData#statedata{eap_id = NewEapID},
-				#eap_aka_identity{identity = Identity} = ocs_eap_codec:eap_aka(Data),
+			#eap_aka_identity{identity = <<?PERM_TAG, PermanentID/binary>>}
+					when IdReq == full ->
+				[IMSI | _] = binary:split(PermanentID, <<$@>>, []),
 				% @todo handle RADIUS attribute for ANID
-				gen_fsm:send_event(AucFsm, {Identity, "WLAN"}),
-				{next_state, vector, NewStateData, ?TIMEOUT};
-			#eap_packet{code = response, type = ?LegacyNak, identifier = EapID} ->
-				{stop, {shutdown, SessionID}, NewStateData}
+				gen_fsm:send_event(AucFsm, {self(), IMSI, "WLAN"}),
+				{next_state, vector, StateData, ?TIMEOUT};
+			#eap_aka_identity{identity = <<?TEMP_TAG:6, _/bits>> = TemporaryID}
+					when IdReq == full ->
+				Pseudonym = binary:split(TemporaryID, <<$@>>, []),
+				CompressedIMSI = decrypt_imsi(Pseudonym, Keys),
+				IMSI = compressed_imsi(CompressedIMSI),
+				% @todo handle RADIUS attribute for ANID
+				gen_fsm:send_event(AucFsm, {self(), IMSI, "WLAN"}),
+				{next_state, vector, StateData, ?TIMEOUT}
 		end
 	catch
 		_:_Reason ->
