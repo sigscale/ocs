@@ -17,10 +17,10 @@
 %%% @doc This module implements the MILENAGE algorithm set.
 %%%
 %%% 	Within the security architecture of the 3GPP system there are
-%%% 	seven security functions; f1, f1*, f2, f3, f4, f5 and f5* used for
+%%% 	eight security functions; f0, f1, f1*, f2, f3, f4, f5 and f5* used for
 %%% 	authentication and key generation.  The operation of these functions
 %%% 	is to be specified by each operator and as such is not fully
-%%% 	standardised.  The algorithms implemented here follow the examples 
+%%% 	standardised.  The algorithms implemented here follow the examples
 %%% 	produced on request from 3GPP by <a href="http://portal.etsi.org/sage">
 %%% 	ETSI SAGE Task Force</a> and are based on the block cipher Rinjindael
 %%% 	now known as Advanced Encryption Standard (AES).
@@ -36,7 +36,7 @@
 -author('vances@motivity.ca').
 
 %% export the API
--export([f1/5, f2345/3, 'f1*'/5, f5/3, 'f5*'/3]).
+-export([f0/0, f1/5, f2/3, f3/3, f4/3, f5/3, 'f1*'/5, f5/3, 'f5*'/3]).
 -export([opc/2]).
 
 %% defined constants
@@ -76,13 +76,13 @@
 %%
 -type sqn() :: binary().
 %% @type sqn() = binary().
-%% 	A 48 bit sequence number (SQN).  The management of sequence 
+%% 	A 48 bit sequence number (SQN).  The management of sequence
 %% 	numbers is specified in
 %% 	<a href="http://www.3gpp.org/ftp/Specs/html-info/33102.htm">
 %% 	3GPP TS 33.102</a> Annex C.  The current implementation of
 %% 	the {@link //hss/hss_server. hss_server} module uses sequence
 %% 	numbers which are not time-based as described in C.1.1.2 and
-%% 	C.3.2.  `SQN = SQE || IND' where the length of `IND' is five 
+%% 	C.3.2.  `SQN = SQE || IND' where the length of `IND' is five
 %% 	bits or in Erlang terms `SQN = <<SQE:43, IND:5>>'.
 %%
 -type amf() :: binary().
@@ -110,6 +110,15 @@
 %% 	A 128 bit integrity key (AK).
 %%
 
+-spec f0() -> RAND
+	when
+		RAND :: rand().
+%% @doc Random challenge generating function.
+%%
+%% 	Generate a strongly random 128-bit value.
+f0() ->
+	crypto:strong_rand_bytes(16).
+
 -spec f1(OPc, K, RAND, SQN, AMF) -> MAC_A
 	when
 		OPc :: opc(),
@@ -118,7 +127,7 @@
 		SQN :: sqn(),
 		AMF :: amf(),
 		MAC_A :: mac().
-%% @doc Computes network authentication code MAC-A.	
+%% @doc Network authentication function.
 %%
 %% 	Takes as input the derived OPc, subscriber key K, random
 %% 	challenge RAND, sequence number SQN and authentication management
@@ -138,7 +147,7 @@ f1(OPc, K, RAND, SQN, AMF) ->
 		SQN :: sqn(),
 		AMF :: amf(),
 		MAC_S :: mac().
-%% @doc Computes resynch authentication code MAC-S.
+%% @doc Re-synchronisation message authentication function.
 %%
 %% 	Takes as input the derived OPc, subscriber key K, random
 %% 	challenge RAND, sequence number SQN and authentication management
@@ -150,7 +159,7 @@ f1(OPc, K, RAND, SQN, AMF) ->
 	<<_:8/binary, MAC_S:8/binary>> = out1(OPc, K, TEMP, IN1),
 	MAC_S.
 
--spec f2345(OPc, K, RAND) -> {RES, CK, IK, AK}
+-spec f2(OPc, K, RAND) -> {RES, CK, IK, AK}
 	when
 		OPc :: opc(),
 		K :: k(),
@@ -159,34 +168,68 @@ f1(OPc, K, RAND, SQN, AMF) ->
 		CK :: ck(),
 		IK :: ik(),
 		AK :: ak().
-%% @doc Computes response and keys.
+%% @doc User authentication function.
 %%
 %% 	Takes as input the derived OPc, subscriber key K and random
 %% 	challenge RAND.  Returns response RES, confidentiality key CK,
 %% 	integrity key IK and anonymity key AK.
 %%
-f2345(OPc, K, RAND) ->
-	TEMP = temp(OPc, K, RAND),
-	<<AK:6/binary, _:2/binary, RES:8/binary>> = out2(OPc, K, TEMP),
-	CK = out3(OPc, K, TEMP),
-	IK = out4(OPc, K, TEMP),
-	{RES, CK, IK, AK}.
-	
--spec f5(OPc, K, RAND) -> AK
+f2(OPc, K, RAND) ->
+	f2345(OPc, K, RAND).
+
+-spec f3(OPc, K, RAND) -> {RES, CK, IK, AK}
 	when
 		OPc :: opc(),
 		K :: k(),
 		RAND :: rand(),
+		RES :: res(),
+		CK :: ck(),
+		IK :: ik(),
 		AK :: ak().
-%% @doc Computes resynch anonymity key AK. 
+%% @doc Cipher key derivation function.
 %%
 %% 	Takes as input the derived OPc, subscriber key K and random
-%% 	challenge RAND.  Returns the anonymity key AK.
+%% 	challenge RAND.  Returns response RES, confidentiality key CK,
+%% 	integrity key IK and anonymity key AK.
+%%
+f3(OPc, K, RAND) ->
+	f2345(OPc, K, RAND).
+
+-spec f4(OPc, K, RAND) -> {RES, CK, IK, AK}
+	when
+		OPc :: opc(),
+		K :: k(),
+		RAND :: rand(),
+		RES :: res(),
+		CK :: ck(),
+		IK :: ik(),
+		AK :: ak().
+%% @doc Integrity key derivation function.
+%%
+%% 	Takes as input the derived OPc, subscriber key K and random
+%% 	challenge RAND.  Returns response RES, confidentiality key CK,
+%% 	integrity key IK and anonymity key AK.
+%%
+f4(OPc, K, RAND) ->
+	f2345(OPc, K, RAND).
+
+-spec f5(OPc, K, RAND) -> {RES, CK, IK, AK}
+	when
+		OPc :: opc(),
+		K :: k(),
+		RAND :: rand(),
+		RES :: res(),
+		CK :: ck(),
+		IK :: ik(),
+		AK :: ak().
+%% @doc Anonymity key derivation function.
+%%
+%% 	Takes as input the derived OPc, subscriber key K and random
+%% 	challenge RAND.  Returns response RES, confidentiality key CK,
+%% 	integrity key IK and anonymity key AK.
 %%
 f5(OPc, K, RAND) ->
-	TEMP = temp(OPc, K, RAND),
-	<<AK:6/binary, _/binary>> = out2(OPc, K, TEMP),
-	AK.
+	f2345(OPc, K, RAND).
 
 -spec 'f5*'(OPc, K, RAND) -> AK
 	when
@@ -194,7 +237,7 @@ f5(OPc, K, RAND) ->
 		K :: k(),
 		RAND :: rand(),
 		AK :: ak().
-%% @doc Computes resynch anonymity key AK. 
+%% @doc Anonymity key derivation function for re-synchronisation.
 %%
 %% 	Takes as input the derived OPc, subscriber key K and random
 %% 	challenge RAND.  Returns the anonymity key AK.
@@ -222,6 +265,28 @@ opc(OP, K) ->
 %%----------------------------------------------------------------------
 %% The milenage internal functions
 %%----------------------------------------------------------------------
+
+-spec f2345(OPc, K, RAND) -> {RES, CK, IK, AK}
+	when
+		OPc :: opc(),
+		K :: k(),
+		RAND :: rand(),
+		RES :: res(),
+		CK :: ck(),
+		IK :: ik(),
+		AK :: ak().
+%% @doc Computes response and keys.
+%%
+%% 	Takes as input the derived OPc, subscriber key K and random
+%% 	challenge RAND.  Returns response RES, confidentiality key CK,
+%% 	integrity key IK and anonymity key AK.
+%%
+f2345(OPc, K, RAND) ->
+	TEMP = temp(OPc, K, RAND),
+	<<AK:6/binary, _:2/binary, RES:8/binary>> = out2(OPc, K, TEMP),
+	CK = out3(OPc, K, TEMP),
+	IK = out4(OPc, K, TEMP),
+	{RES, CK, IK, AK}.
 
 -spec temp(OPc, K, RAND) -> TEMP
 	when
