@@ -36,7 +36,7 @@
 -author('vances@motivity.ca').
 
 %% export the API
--export([f0/0, f1/5, 'f1*'/5, f2/3, f3/3, f4/3, f5/3, f5/3, 'f5*'/3]).
+-export([f0/0, f1/5, 'f1*'/5, f2/3, f3/3, f4/3, f5/3, 'f5*'/3]).
 -export([opc/2]).
 
 %% defined constants
