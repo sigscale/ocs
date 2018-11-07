@@ -343,9 +343,7 @@
 				delete ajax.params['filter'];
 				ajax.params['type'] = "AAAAccountingUsage";
 				function checkHead(param) {
-					return param.path == "date" || param.path == "type" || param.path == "status"
-					|| param.path == "acctSessiontime" || param.path == "acctOutputoctets"
-					|| param.path == "acctInputoctets" || param.path == "acctTotaloctets";
+					return param.path == "date" || param.path == "type" || param.path == "status";
 				}
 				var head;
 				params.filters.filter(checkHead).forEach(function(filter) {
@@ -354,9 +352,7 @@
 					}
 				});
 				function checkChar(param) {
-					return param.path != "date" && param.path != "type" && param.path != "status"
-					|| param.path != "acctSessiontime" || param.path != "acctOutputoctets"
-					|| param.path != "acctInputoctets" || param.path != "acctTotaloctets";
+					return param.path != "date" && param.path != "type" && param.path != "status";
 				}
 				params.filters.filter(checkChar).forEach(function(filter) {
 					if (filter.value) {
