@@ -339,12 +339,13 @@
 				delete ajax.params['acctSessiontime'];
 				delete ajax.params['acctOutputoctets'];
 				delete ajax.params['acctInputoctets'];
+				delete ajax.params['acctTotaloctets'];
 				delete ajax.params['filter'];
 				ajax.params['type'] = "AAAAccountingUsage";
 				function checkHead(param) {
 					return param.path == "date" || param.path == "type" || param.path == "status"
 					|| param.path == "acctSessiontime" || param.path == "acctOutputoctets"
-					|| param.path == "acctInputoctets";
+					|| param.path == "acctInputoctets" || param.path == "acctTotaloctets";
 				}
 				var head;
 				params.filters.filter(checkHead).forEach(function(filter) {
@@ -355,7 +356,7 @@
 				function checkChar(param) {
 					return param.path != "date" && param.path != "type" && param.path != "status"
 					|| param.path != "acctSessiontime" || param.path != "acctOutputoctets"
-					|| param.path != "acctInputoctets";
+					|| param.path != "acctInputoctets" || param.path != "acctTotaloctets";
 				}
 				params.filters.filter(checkChar).forEach(function(filter) {
 					if (filter.value) {
@@ -367,7 +368,7 @@
 							if(isNaN(filter.value)) {
 								ajax.params['filter'] += "{name=" + filter.path + ",value.like=[" + filter.value + "%]}";
 							} else {
-								ajax.params['filter'] += "{name=" + filter.path + ",value.gt=" + filter.value + "%}";
+								ajax.params['filter'] += "{name=" + filter.path + ",value.gte=" + filter.value + "%}";
 							}
 					}
 				});
