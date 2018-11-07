@@ -50,15 +50,16 @@ modhtml = ocs.html \
 			ocs_eap_ttls_aaah_fsm.html \
 			ocs_simple_auth_fsm.html \
 			ocs_radius_auth_port_server.html \
-			ocs_eap_codec.html \
 			ocs_radius_accounting.html \
 			ocs_radius_authentication.html \
 			ocs_server.html \
 			ocs_log.html \
 			ocs_gtt.html \
 			ocs_log_rotate_server.html \
+			ocs_eap_codec.html \
 			ocs_eap_pwd.html \
 			ocs_eap_tls_transport.html \
+			ocs_milenage.html \
 			ocs_rating.html \
 			ocs_rest.html \
 			ocs_rest_res_client.html \
