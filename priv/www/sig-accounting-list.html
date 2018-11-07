@@ -342,9 +342,7 @@
 				delete ajax.params['filter'];
 				ajax.params['type'] = "AAAAccountingUsage";
 				function checkHead(param) {
-					return param.path == "date" || param.path == "type" || param.path == "status"
-					|| param.path == "acctSessiontime" || param.path == "acctOutputoctets"
-					|| param.path == "acctInputoctets";
+					return param.path == "date" || param.path == "type" || param.path == "status";
 				}
 				var head;
 				params.filters.filter(checkHead).forEach(function(filter) {
@@ -353,11 +351,12 @@
 					}
 				});
 				function checkChar(param) {
-					return param.path != "date" && param.path != "type" && param.path != "status"
-					|| param.path != "acctSessiontime" || param.path != "acctOutputoctets"
-					|| param.path != "acctInputoctets";
+					return param.path != "date" && param.path != "type" && param.path != "status";
 				}
 				params.filters.filter(checkChar).forEach(function(filter) {
+console.log(params.filters.filter);
+console.log(filter.path);
+console.log(filter.value);
 					if (filter.value) {
 						if (!ajax.params['filter']) {
 							ajax.params['filter'] = "\"[{usageCharacteristic.contains=[";
