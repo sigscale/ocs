@@ -37,7 +37,7 @@
 
 %% export the API
 -export([f0/0, f1/5, 'f1*'/5, f2/3, f3/3, f4/3, f5/3, 'f5*'/3]).
--export([opc/2]).
+-export([f2345/3, opc/2]).
 
 %% defined constants
 -define(c1, <<0:128>>).
@@ -136,8 +136,7 @@ f0() ->
 f1(OPc, K, RAND, SQN, AMF) ->
 	TEMP = temp(OPc, K, RAND),
 	IN1 = in1(SQN, AMF),
-	<<MAC_A:8/binary, _:8/binary>> = out1(OPc, K, TEMP, IN1),
-	MAC_A.
+	binary:part(out1(OPc, K, TEMP, IN1), 0, 8).
 
 -spec 'f1*'(OPc, K, RAND, SQN, AMF) -> MAC_S
 	when
@@ -156,80 +155,51 @@ f1(OPc, K, RAND, SQN, AMF) ->
 'f1*'(OPc, K, RAND, SQN, AMF) ->
 	TEMP = temp(OPc, K, RAND),
 	IN1 = in1(SQN, AMF),
-	<<_:8/binary, MAC_S:8/binary>> = out1(OPc, K, TEMP, IN1),
-	MAC_S.
+	binary:part(out1(OPc, K, TEMP, IN1), 8, 8).
 
--spec f2(OPc, K, RAND) -> {RES, CK, IK, AK}
+-spec f2(OPc, K, RAND) -> RES
 	when
 		OPc :: opc(),
 		K :: k(),
 		RAND :: rand(),
-		RES :: res(),
-		CK :: ck(),
-		IK :: ik(),
-		AK :: ak().
+		RES :: res().
 %% @doc User authentication function.
-%%
-%% 	Takes as input the derived OPc, subscriber key K and random
-%% 	challenge RAND.  Returns response RES, confidentiality key CK,
-%% 	integrity key IK and anonymity key AK.
-%%
 f2(OPc, K, RAND) ->
-	f2345(OPc, K, RAND).
+	TEMP = temp(OPc, K, RAND),
+	binary:part(out2(OPc, K, TEMP), 8, 8).
 
--spec f3(OPc, K, RAND) -> {RES, CK, IK, AK}
+-spec f3(OPc, K, RAND) -> CK
 	when
 		OPc :: opc(),
 		K :: k(),
 		RAND :: rand(),
-		RES :: res(),
-		CK :: ck(),
-		IK :: ik(),
-		AK :: ak().
+		CK :: ck().
 %% @doc Cipher key derivation function.
-%%
-%% 	Takes as input the derived OPc, subscriber key K and random
-%% 	challenge RAND.  Returns response RES, confidentiality key CK,
-%% 	integrity key IK and anonymity key AK.
-%%
 f3(OPc, K, RAND) ->
-	f2345(OPc, K, RAND).
+	TEMP = temp(OPc, K, RAND),
+	out3(OPc, K, TEMP).
 
--spec f4(OPc, K, RAND) -> {RES, CK, IK, AK}
+-spec f4(OPc, K, RAND) -> IK
 	when
 		OPc :: opc(),
 		K :: k(),
 		RAND :: rand(),
-		RES :: res(),
-		CK :: ck(),
-		IK :: ik(),
-		AK :: ak().
+		IK :: ik().
 %% @doc Integrity key derivation function.
-%%
-%% 	Takes as input the derived OPc, subscriber key K and random
-%% 	challenge RAND.  Returns response RES, confidentiality key CK,
-%% 	integrity key IK and anonymity key AK.
-%%
 f4(OPc, K, RAND) ->
-	f2345(OPc, K, RAND).
+	TEMP = temp(OPc, K, RAND),
+	out4(OPc, K, TEMP).
 
--spec f5(OPc, K, RAND) -> {RES, CK, IK, AK}
+-spec f5(OPc, K, RAND) -> AK
 	when
 		OPc :: opc(),
 		K :: k(),
 		RAND :: rand(),
-		RES :: res(),
-		CK :: ck(),
-		IK :: ik(),
 		AK :: ak().
 %% @doc Anonymity key derivation function.
-%%
-%% 	Takes as input the derived OPc, subscriber key K and random
-%% 	challenge RAND.  Returns response RES, confidentiality key CK,
-%% 	integrity key IK and anonymity key AK.
-%%
 f5(OPc, K, RAND) ->
-	f2345(OPc, K, RAND).
+	TEMP = temp(OPc, K, RAND),
+	binary:part(out2(OPc, K, TEMP), 0, 6).
 
 -spec 'f5*'(OPc, K, RAND) -> AK
 	when
@@ -238,33 +208,9 @@ f5(OPc, K, RAND) ->
 		RAND :: rand(),
 		AK :: ak().
 %% @doc Anonymity key derivation function for re-synchronisation.
-%%
-%% 	Takes as input the derived OPc, subscriber key K and random
-%% 	challenge RAND.  Returns the anonymity key AK.
-%%
 'f5*'(OPc, K, RAND) ->
 	TEMP = temp(OPc, K, RAND),
-	<<AK:6/binary, _/binary>> = out5(OPc, K, TEMP),
-	AK.
-
--spec opc(OP, K) -> OPc
-	when
-		OP :: op(),
-		K :: k(),
-		OPc :: opc().
-%% @doc Encode the Operator Variant Algorithm Configuration Field (OP).
-%%
-%% 	Each operator chooses a value of OP to provide separation between
-%% 	the functionality of the algorithms when used by different
-%% 	operators.  The value OPc is used as input for the security
-%% 	functions and is derived from OP and the subscriber key (K).
-%% 	
-opc(OP, K) ->
-	crypto:block_encrypt(aes_cfb128, K, OP, OP).
-
-%%----------------------------------------------------------------------
-%% The milenage internal functions
-%%----------------------------------------------------------------------
+	binary:part(out5(OPc, K, TEMP), 0, 6).
 
 -spec f2345(OPc, K, RAND) -> {RES, CK, IK, AK}
 	when
@@ -287,6 +233,25 @@ f2345(OPc, K, RAND) ->
 	CK = out3(OPc, K, TEMP),
 	IK = out4(OPc, K, TEMP),
 	{RES, CK, IK, AK}.
+
+-spec opc(OP, K) -> OPc
+	when
+		OP :: op(),
+		K :: k(),
+		OPc :: opc().
+%% @doc Encode the Operator Variant Algorithm Configuration Field (OP).
+%%
+%% 	Each operator chooses a value of OP to provide separation between
+%% 	the functionality of the algorithms when used by different
+%% 	operators.  The value OPc is used as input for the security
+%% 	functions and is derived from OP and the subscriber key (K).
+%% 	
+opc(OP, K) ->
+	crypto:block_encrypt(aes_cfb128, K, OP, OP).
+
+%%----------------------------------------------------------------------
+%% The milenage internal functions
+%%----------------------------------------------------------------------
 
 -spec temp(OPc, K, RAND) -> TEMP
 	when

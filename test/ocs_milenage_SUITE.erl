@@ -79,21 +79,12 @@ sequences() ->
 %% Returns a list of all test cases in this test suite.
 %%
 all() ->
-	[opc, f0, f1, 'f1*', f2, f3, f4, f5, 'f5*'].
+	[f0, f1, 'f1*', f2, f3, f4, f5, 'f5*', opc, f2345].
 
 %%---------------------------------------------------------------------
 %%  Test cases
 %%---------------------------------------------------------------------
 
-opc() ->
-	[{userdata, [{doc, "MILENAGE Operator Variant algorithm."}]}].
-
-opc(_Config) ->
-	F = fun(#test_set{k = K, op = OP, opc = OPc}) ->
-				OPc = ocs_milenage:opc(OP, K)
-	end,
-	lists:foreach(F, [test_set(N) || N <- lists:seq(1, 20)]).
-	
 f0() ->
 	[{userdata, [{doc, "MILENAGE f0 algorithm."}]}].
 
@@ -124,9 +115,8 @@ f2() ->
 	[{userdata, [{doc, "MILENAGE f2 algorithm."}]}].
 
 f2(_Config) ->
-	F = fun(#test_set{opc = OPc, k = K, rand = RAND,
-					f2 = F2, f3 = F3, f4 = F4, f5 = F5}) ->
-				{F2, F3, F4, F5} = ocs_milenage:f2(OPc, K, RAND)
+	F = fun(#test_set{opc = OPc, k = K, rand = RAND, f2 = F2}) ->
+				F2 = ocs_milenage:f2(OPc, K, RAND)
 	end,
 	lists:foreach(F, [test_set(N) || N <- lists:seq(1, 20)]).
 
@@ -134,9 +124,8 @@ f3() ->
 	[{userdata, [{doc, "MILENAGE f3 algorithm."}]}].
 
 f3(_Config) ->
-	F = fun(#test_set{opc = OPc, k = K, rand = RAND,
-					f2 = F2, f3 = F3, f4 = F4, f5 = F5}) ->
-				{F2, F3, F4, F5} = ocs_milenage:f3(OPc, K, RAND)
+	F = fun(#test_set{opc = OPc, k = K, rand = RAND, f3 = F3}) ->
+				F3 = ocs_milenage:f3(OPc, K, RAND)
 	end,
 	lists:foreach(F, [test_set(N) || N <- lists:seq(1, 20)]).
 
@@ -144,9 +133,8 @@ f4() ->
 	[{userdata, [{doc, "MILENAGE f4 algorithm."}]}].
 
 f4(_Config) ->
-	F = fun(#test_set{opc = OPc, k = K, rand = RAND,
-					f2 = F2, f3 = F3, f4 = F4, f5 = F5}) ->
-				{F2, F3, F4, F5} = ocs_milenage:f4(OPc, K, RAND)
+	F = fun(#test_set{opc = OPc, k = K, rand = RAND, f4 = F4}) ->
+				F4 = ocs_milenage:f4(OPc, K, RAND)
 	end,
 	lists:foreach(F, [test_set(N) || N <- lists:seq(1, 20)]).
 
@@ -154,9 +142,8 @@ f5() ->
 	[{userdata, [{doc, "MILENAGE f5 algorithm."}]}].
 
 f5(_Config) ->
-	F = fun(#test_set{opc = OPc, k = K, rand = RAND,
-					f2 = F2, f3 = F3, f4 = F4, f5 = F5}) ->
-				{F2, F3, F4, F5} = ocs_milenage:f5(OPc, K, RAND)
+	F = fun(#test_set{opc = OPc, k = K, rand = RAND, f5 = F5}) ->
+				F5 = ocs_milenage:f5(OPc, K, RAND)
 	end,
 	lists:foreach(F, [test_set(N) || N <- lists:seq(1, 20)]).
 
@@ -166,6 +153,25 @@ f5(_Config) ->
 'f5*'(_Config) ->
 	F = fun(#test_set{opc = OPc, k = K, rand = RAND, 'f5*' = F5star}) ->
 				F5star = ocs_milenage:'f5*'(OPc, K, RAND)
+	end,
+	lists:foreach(F, [test_set(N) || N <- lists:seq(1, 20)]).
+
+f2345() ->
+	[{userdata, [{doc, "MILENAGE f2,f3,f4 & f5 algorithms."}]}].
+
+f2345(_Config) ->
+	F = fun(#test_set{opc = OPc, k = K, rand = RAND,
+					f2 = F2, f3 = F3, f4 = F4, f5 = F5}) ->
+				{F2, F3, F4, F5} = ocs_milenage:f2345(OPc, K, RAND)
+	end,
+	lists:foreach(F, [test_set(N) || N <- lists:seq(1, 20)]).
+
+opc() ->
+	[{userdata, [{doc, "MILENAGE Operator Variant algorithm."}]}].
+
+opc(_Config) ->
+	F = fun(#test_set{k = K, op = OP, opc = OPc}) ->
+				OPc = ocs_milenage:opc(OP, K)
 	end,
 	lists:foreach(F, [test_set(N) || N <- lists:seq(1, 20)]).
 
