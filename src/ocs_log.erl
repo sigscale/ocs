@@ -2069,7 +2069,7 @@ close_log(Log) ->
 		Continuation2 :: eof | disk_log:continuation(),
 		Events :: [term()],
 		Reason :: term().
-%% @doc
+%% @doc Filter events by `Start' and `End'.
 query_log(Continuation, {{_, _, _}, {_, _, _}} = Start, End, Log, MFA) ->
 	Seconds = calendar:datetime_to_gregorian_seconds(Start) - ?EPOCH,
 	query_log(Continuation, Seconds * 1000, End, Log, MFA);
@@ -2077,32 +2077,30 @@ query_log(Continuation, Start, {{_, _, _}, {_, _, _}} = End, Log, MFA) ->
 	Seconds = calendar:datetime_to_gregorian_seconds(End) - ?EPOCH,
 	query_log(Continuation, Start, Seconds * 1000 + 999, Log, MFA);
 query_log(start, Start, End, Log, MFA) when is_integer(Start), is_integer(End) ->
-	query_log1(Start, End, Log, MFA, [], disk_log:bchunk(Log, start));
+	query_log1(Start, End, Log, MFA, start, start, disk_log:bchunk(Log, start));
 query_log(Continuation, Start, End, Log, MFA) when is_integer(Start), is_integer(End) ->
 	query_log2(Start, End, MFA, disk_log:chunk(Log, Continuation), []).
 %% @hidden
-query_log1(Start, End, _Log, MFA, PrevChunk, eof) ->
-	Chunk = [binary_to_term(E) || E <- PrevChunk],
-	query_log2(Start, End, MFA, {eof, Chunk}, []);
-query_log1(_Start, _End, _Log, _MFA, _PrevChunk, {error, Reason}) ->
+query_log1(Start, End, Log, MFA, PrevCont, _CurrentCont, eof) ->
+	query_log2(Start, End, MFA, disk_log:chunk(Log, PrevCont), []);
+query_log1(_Start, _End, _Log, _MFA, _PrevCont, _CurrentCont, {error, Reason}) ->
 	{error, Reason};
-query_log1(Start, End, Log, MFA, PrevChunk, {Cont, Chunk, 0}) ->
-	query_log1(Start, End, Log, MFA, PrevChunk, {Cont, Chunk});
-query_log1(Start, End, Log, MFA, PrevChunk, {Cont, [H | T] = Chunk}) ->
+query_log1(Start, End, Log, MFA, PrevCont, CurrentCont, {NextCont, Chunk, 0}) ->
+	query_log1(Start, End, Log, MFA, PrevCont, CurrentCont, {NextCont, Chunk});
+query_log1(Start, End, Log, MFA, PrevCont, CurrentCont, {NextCont, [H | _]}) ->
 	case binary_to_term(H) of
-		Event when element(1, Event) > End ->
-			{eof, []};
 		Event when element(1, Event) >= Start ->
-			NewChunk = [binary_to_term(E) || E <- PrevChunk ++ Chunk],
-			query_log2(Start, End, MFA, {Cont, NewChunk}, []);
+			query_log2(Start, End, MFA, disk_log:chunk(Log, PrevCont), []);
 		_Event ->
-			query_log1(Start, End, Log, MFA, T, disk_log:bchunk(Log, Cont))
+			query_log1(Start, End, Log, MFA, CurrentCont, NextCont, disk_log:bchunk(Log, NextCont))
 	end.
 %% @hidden
 query_log2(_Start, _End, {M, F, A}, eof, Acc) ->
 	apply(M, F, [{eof, lists:reverse(Acc)} | A]);
-query_log2(_Start, _End, _MFA, {error, Reason}, _Acc)->
+query_log2(_Start, _End, _MFA, {error, Reason}, _Acc) ->
 	{error, Reason};
+query_log2(Start, End, MFA, {Cont, Chunk, 0}, Acc) ->
+	query_log2(Start, End, MFA, {Cont, Chunk}, Acc);
 query_log2(_Start, End, {M, F, A}, {_, [Event | _]}, Acc) when element(1, Event) > End ->
 	apply(M, F, [{eof, lists:reverse(Acc)} | A]);
 query_log2(Start, End, MFA, {Cont, [Event | T]}, Acc)
