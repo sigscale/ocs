@@ -78,7 +78,7 @@
 init([AuthPortSup, Address, Port, Options]) ->
 	MethodPrefer = proplists:get_value(eap_method_prefer, Options, akap),
 	MethodOrder = proplists:get_value(eap_method_order,
-			Options, [akap, aka, pwd, ttls]),
+			Options, [akap, pwd, ttls]),
 	State = #state{auth_port_sup = AuthPortSup,
 			address = Address, port = Port,
 			method_prefer = MethodPrefer, method_order = MethodOrder},
@@ -460,14 +460,6 @@ get_alternate(PreferenceOrder, AlternateMethods, State)
 		when is_binary(AlternateMethods) ->
 	get_alternate(PreferenceOrder,
 			binary_to_list(AlternateMethods), State);
-get_alternate([aka | T], AlternateMethods,
-		#state{aka_sup = Sup} = State) ->
-	case lists:member(?AKA, AlternateMethods) of
-		true ->
-			{ok, Sup};
-		false ->
-			get_alternate(T, AlternateMethods, State)
-	end;
 get_alternate([akap | T], AlternateMethods,
 		#state{aka_sup = Sup} = State) ->
 	case lists:member(?AKAprime, AlternateMethods) of

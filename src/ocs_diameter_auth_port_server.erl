@@ -91,7 +91,7 @@
 init([AuthPortSup, Address, Port, Options]) ->
 	MethodPrefer = proplists:get_value(eap_method_prefer, Options, akap),
 	MethodOrder = proplists:get_value(eap_method_order, Options,
-			[akap, aka, pwd, ttls]),
+			[akap, pwd, ttls]),
 	State = #state{auth_port_sup = AuthPortSup, address = Address,
 			port = Port, method_prefer = MethodPrefer, method_order = MethodOrder},
 	case ocs_log:auth_open() of
@@ -514,14 +514,6 @@ get_alternate([pwd | T], AlternateMethods,
 get_alternate([ttls | T], AlternateMethods,
 		#state{ttls_sup = Sup} = State) ->
 	case lists:member(?TTLS, AlternateMethods) of
-		true ->
-			{ok, Sup};
-		false ->
-			get_alternate(T, AlternateMethods, State)
-	end;
-get_alternate([aka | T], AlternateMethods,
-		#state{aka_sup = Sup} = State) ->
-	case lists:member(?AKA, AlternateMethods) of
 		true ->
 			{ok, Sup};
 		false ->
