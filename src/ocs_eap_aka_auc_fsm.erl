@@ -98,10 +98,10 @@ init(_Args) ->
 %%
 idle({AkaFsm, Identity, _ANID}, #statedata{} = StateData)
 		when is_pid(AkaFsm), is_binary(Identity) ->
-	Rand = crypto:strong_rand_bytes(16),
-	Autn = crypto:strong_rand_bytes(16),
-	Xres = crypto:strong_rand_bytes(16),
-	gen_fsm:send_event(AkaFsm, {Rand, Autn, Xres}),
+	OPc = <<205,99,203,113,149,74,159,78,72,165,153,78,55,160,43,175>>,
+	K = <<70,91,92,232,177,153,180,159,170,95,10,46,226,56,166,188>>,
+	RAND = ocs_milenage:f0(),
+	gen_fsm:send_event(AkaFsm, ocs_milenage:f2345(OPc, K, RAND)),
 	{next_state, idle, StateData};
 idle(timeout, #statedata{} = StateData) ->
 	{stop, shutdown, StateData}.
