@@ -30,19 +30,19 @@
 		ResponseAttributes :: radius_attributes:attributes()}.
 
 -record(rated,
-		{bucket_value :: non_neg_integer() | undefined,
-		bucket_type :: cents | octets | seconds | messages | undefined,
-		currency :: string() | undefined,
-		is_billed = false :: boolean(),
-		is_tax_exempt :: boolean() | undefined,
-		tariff_type :: atom() | undefined,
-		product :: term() | undefined,
-		price_type :: tariff | usage | event | undefined,
-		description :: string() | undefined,
-		tax_excluded_amount :: non_neg_integer() | undefined,
-		tax_included_amount :: non_neg_integer() | undefined,
-		tax_rate :: integer() | undefined,
-		usage_rating_tag :: usage | included | non_included | undefined}).
+		{bucket_value :: non_neg_integer() | undefined | '_',
+		bucket_type :: cents | octets | seconds | messages | undefined | '_',
+		currency :: string() | undefined | '_',
+		is_billed = false :: boolean() | '_',
+		is_tax_exempt :: boolean() | undefined | '_',
+		tariff_type :: atom() | undefined | '_',
+		product :: term() | undefined | '_',
+		price_type :: tariff | usage | event | undefined | '_',
+		description :: string() | undefined | '_',
+		tax_excluded_amount :: non_neg_integer() | undefined | '_',
+		tax_included_amount :: non_neg_integer() | undefined | '_',
+		tax_rate :: integer() | undefined | '_',
+		usage_rating_tag :: usage | included | non_included | undefined | '_'}).
 
 %% Accounting event
 -type acct_event() :: {
