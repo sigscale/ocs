@@ -88,8 +88,8 @@ sequences() ->
 all() ->
 	[radius_log_auth_event, diameter_log_auth_event,
 			radius_log_acct_event, diameter_log_acct_event,
-			ipdr_log, get_range, get_last, auth_query, acct_query,
-			acct_diam_query, abmf_log_event, abmf_query].
+			ipdr_log, get_range, get_last, auth_query, acct_query_radius,
+			acct_query_diameter, abmf_log_event, abmf_query, start_binary_tree].
 
 %%---------------------------------------------------------------------
 %%  Test cases
@@ -496,10 +496,10 @@ auth_query(_Config) ->
 						[accept], MatchReq, '_'), []),
 	3 = length(Events).
 
-acct_query() ->
+acct_query_radius() ->
    [{userdata, [{doc, "Get matching accounting log events"}]}].
 
-acct_query(_Config) ->
+acct_query_radius(_Config) ->
 	Server = {{0,0,0,0}, 1812},
 	Username = ocs:generate_identity(),
 	ClientAddress = {10,0,0,1},
@@ -541,10 +541,10 @@ acct_query(_Config) ->
 						[stop], MatchReq), []),
 	3 = length(Events).
 
-acct_diam_query() ->
+acct_query_diameter() ->
    [{userdata, [{doc, "Get matching accounting log events for diameter"}]}].
 
-acct_diam_query(_Config) ->
+acct_query_diameter(_Config) ->
 	Server = {{0,0,0,0}, 1812},
 	ok = fill_acct(1000, diameter),
 	LogInfo = disk_log:info(ocs_acct),
@@ -555,7 +555,11 @@ acct_diam_query(_Config) ->
 	NumItems = (FileSize div EventSize) * 5,
 	Start = erlang:system_time(?MILLISECOND),
 	Sid = <<"10.170.6.80;1532594780;734917;4889089">>,
-	Record = #'3gpp_ro_CCR'{'Session-Id' = Sid},
+	OriginHost = <<"10.0.0.1">>,
+	OriginRealm = <<"ap14.sigscale.net">>,
+	EventTimeStamp = [ocs_log:date(erlang:system_time(milli_seconds))],
+	Record = #'3gpp_ro_CCR'{'Session-Id' = Sid, 'Origin-Host' = OriginHost,
+			'Origin-Realm' = OriginRealm, 'Event-Timestamp' = EventTimeStamp},
 	ok = fill_acct(NumItems, diameter),
 	ok = ocs_log:acct_log(diameter, Server, start, Record, undefined, undefined),
 	ok = fill_acct(rand:uniform(2000), diameter),
@@ -564,7 +568,7 @@ acct_diam_query(_Config) ->
 	ok = ocs_log:acct_log(diameter, Server, stop, Record, undefined, undefined),
 	ok = fill_acct(rand:uniform(2000), diameter),
 	End = erlang:system_time(?MILLISECOND),
-	MatchSpec = [{#'3gpp_ro_CCR'{'Session-Id' = '$1'}, [{'==', '$1', Sid}], ['$_']}],
+	MatchSpec = [{#'3gpp_ro_CCR'{'Session-Id' = '$1', _ = '_'}, [{'==', '$1', Sid}]}],
 	Fget = fun(_F, {eof, Events}, Acc) ->
 				lists:flatten(lists:reverse([Events | Acc]));
 			(F, {Cont, Events}, Acc) ->
