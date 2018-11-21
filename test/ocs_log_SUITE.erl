@@ -593,6 +593,7 @@ start_binary_tree(_Config) ->
 			false
 	end.
 
+
 abmf_log_event() ->
    [{userdata, [{doc, "Log a balance actvity event"}]}].
 
