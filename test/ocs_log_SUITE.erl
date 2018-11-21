@@ -578,6 +578,21 @@ acct_query_diameter(_Config) ->
 	Events = Fget(Fget, ocs_log:acct_query(start, Start, End, diameter, '_', MatchSpec), []),
 	3 = length(Events).
 
+start_binary_tree() ->
+   [{userdata, [{doc, "Ensure that start_binary_tree works perfectly"}]}].
+
+start_binary_tree(_Config) ->
+	ocs_log:acct_open(),
+	disk_log:change_notify(ocs_acct, self(), true),
+	ok = fill_acct(),
+	Cont = ocs_log:start_binary_tree(ocs_acct, 1, erlang:system_time(?MILLISECOND)),
+	case Cont of
+		{continuation, _, _, _} ->
+			true;
+		_ ->
+			false
+	end.
+
 abmf_log_event() ->
    [{userdata, [{doc, "Log a balance actvity event"}]}].
 
@@ -693,6 +708,36 @@ fill_auth(N) ->
 	ok = ocs_log:auth_log(radius, Server, Client, Type, ReqAttrs, RespAttrs),
 	fill_auth(N - 1).
 
+fill_acct() ->
+	AcctOutputOctets = rand:uniform(100000),
+	AcctInputOctets = rand:uniform(100000000),
+	AcctSessionTime = rand:uniform(3600) + 100,
+	UserName = ocs:generate_identity(),
+	Server = {{0, 0, 0, 0}, 3698},
+	I3 = rand:uniform(256) - 1,
+	I4 = rand:uniform(254),
+	ClientAddress = {192, 168, I3, I4},
+	Type = case rand:uniform(3) of
+		1 -> start;
+		2 -> stop;
+		3 -> interim
+	end,
+	Record = #'3gpp_ro_CCR'{'Origin-Host' = ClientAddress, 'Service-Context-Id' = 2, 'Subscription-Id' = [#'3gpp_ro_Subscription-Id'{'Subscription-Id-Data'
+			= UserName}], 'Multiple-Services-Credit-Control' = [#'3gpp_ro_Multiple-Services-Credit-Control'{'Requested-Service-Unit' = [#'3gpp_ro_Requested-Service-Unit'{'CC-Time'
+			= AcctSessionTime, 'CC-Input-Octets' = AcctInputOctets, 'CC-Output-Octets' = AcctOutputOctets}]}], 'Service-Information' = [{'3gpp_ro_Service-Information', [],
+			[#'3gpp_ro_IMS-Information'{'Calling-Party-Address' = ocs_test_lib:mac(), 'Called-Party-Address' = ocs_test_lib:mac()}]}]},
+	ocs_log:acct_log(diameter, Server, Type, Record, undefined, undefined),
+	receive
+		{disk_log, _Node, ocs_acct, {wrap, 0}} ->
+			fill_acct();
+		{disk_log, _Node, ocs_acct, {wrap, N}} when N > 0 ->
+			ok;
+		_Other ->
+			fill_acct()
+	after
+		0 ->
+			fill_acct()
+	end.
 fill_acct(0, _Protocal) ->
 	ok;
 fill_acct(N, Protocal) ->
