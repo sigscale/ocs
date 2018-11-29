@@ -186,7 +186,6 @@ acct_query(Continuation, Start, End, Types, AttrsMatch) ->
 %%
 acct_query(Continuation, Start, End, Protocol, Types, MatchSpec) ->
 	MFA = {?MODULE, acct_query, [Protocol, Types, MatchSpec]},
-erlang:display({?MODULE, ?LINE, start, Start, End}),
 	query_log(Continuation, Start, End, log_name(acct_log_name), MFA).
 
 -spec auth_open() -> Result
@@ -1096,20 +1095,28 @@ start_binary_tree(Log, Start, _End) ->
 	StartStep = MaxFiles div 2,
 	start_binary_tree(Log, Start, MaxFiles, start, 0, StartStep, StartStep).
 %% @hidden
-start_binary_tree(_Log, _Start, NumFiles,
+start_binary_tree(Log, Start, NumFiles,
 		LastCont, _LastStep, _StepSize, NumFiles) ->
-	LastCont;
+%	LastCont;
+	{1, [Event]} = last(Log, 1),
+	TimeStamp = element(1, Event),
+	case TimeStamp >= Start of
+		true ->
+			LastCont;
+		false ->
+			eof
+	end;
 start_binary_tree(_Log, _Start, _NumFiles,
-		_LastCont, _LastStep, _StepSize, -1) ->
-	eof;
+		LastCont, _LastStep, _StepSize, -1) ->
+%	eof;
+	LastCont;
 start_binary_tree(Log, Start, NumFiles, LastCont, LastStep, StepSize, Step) ->
-%	case disk_log:chunk_step(Log, start, Step - 1) of
 	case disk_log:chunk_step(Log, start, Step) of
 		{ok, NewCont} ->
 			start_binary_tree(Log, Start, NumFiles, LastCont, LastStep,
 					StepSize, Step, NewCont, disk_log:chunk(Log, NewCont, 1));
 		{error, end_of_log} ->
-erlang:display({?MODULE, ?LINE, LastCont}),
+%			eof;
 			LastCont;
 		{error, Reason} ->
 			{error, Reason}
@@ -1118,31 +1125,25 @@ erlang:display({?MODULE, ?LINE, LastCont}),
 start_binary_tree(_Log, Start, _NumFiles, _LastCont, LastStep, 1,
 		Step, NewCont, {_, [R]}) when element(1, R) < Start,
 		LastStep == (Step + 1) ->
-erlang:display({?MODULE, ?LINE, element(1, R), Start, LastStep, Step}),
 	NewCont;
 start_binary_tree(Log, Start, NumFiles, _LastCont, _LastStep, 1,
 		Step, NewCont, {_, [R]}) when element(1, R) < Start ->
-erlang:display({?MODULE, ?LINE, element(1, R), Start}),
 	start_binary_tree(Log, Start, NumFiles, NewCont, Step, 1, Step + 1);
 start_binary_tree(Log, Start, NumFiles, _LastCont, _LastStep, StepSize,
 		Step, NewCont, {_, [R]}) when element(1, R) < Start ->
 	NewStepSize = StepSize div 2,
-erlang:display({?MODULE, ?LINE, element(1, R), Start, StepSize, NewStepSize}),
 	start_binary_tree(Log, Start, NumFiles, NewCont, Step,
 			NewStepSize, Step + NewStepSize);
 start_binary_tree(_Log, Start, _NumFiles, LastCont, LastStep, 1,
 		Step, _NewCont, {_, [R]}) when element(1, R) >= Start,
 		LastStep == (Step - 1) ->
-erlang:display({?MODULE, ?LINE, element(1, R), Start, LastStep, Step}),
 	LastCont;
 start_binary_tree(Log, Start, NumFiles, _LastCont, _LastStep, 1,
 		Step, NewCont, {_, [R]}) when element(1, R) >= Start ->
-erlang:display({?MODULE, ?LINE, element(1, R), Start}),
 	start_binary_tree(Log, Start, NumFiles, NewCont, Step, 1, Step - 1);
 start_binary_tree(Log, Start, NumFiles, _LastCont, _LastStep, StepSize,
 		Step, NewCont, {_, [R]}) when element(1, R) >= Start ->
 	NewStepSize = StepSize div 2,
-erlang:display({?MODULE, ?LINE, element(1, R), Start, StepSize, NewStepSize, Step}),
 	start_binary_tree(Log, Start, NumFiles, NewCont, Step,
 			NewStepSize, Step - NewStepSize);
 start_binary_tree(_, _, _, _, _, _, _, _, {error, Reason}) ->
@@ -2087,33 +2088,19 @@ query_log(Continuation, Start, {{_, _, _}, {_, _, _}} = End, Log, MFA) ->
 	Seconds = calendar:datetime_to_gregorian_seconds(End) - ?EPOCH,
 	query_log(Continuation, Start, Seconds * 1000 + 999, Log, MFA);
 query_log(start, Start, End, Log, MFA) when is_integer(Start), is_integer(End) ->
-erlang:display({?MODULE, ?LINE, start, Start, End}),
+	query_log1(Start, End, Log, MFA);
+query_log(Continuation, Start, End, Log, MFA) when is_integer(Start), is_integer(End) ->
+	query_log2(Start, End, MFA, disk_log:chunk(Log, Continuation), []).
+%% @hidden
+query_log1(Start, End, Log, MFA) ->
 	case start_binary_tree(Log, Start, End) of
 		eof ->
 			{eof, []};
 		{error, Reason} ->
 			{error, Reason};
 		Continuation ->
-erlang:display({?MODULE, ?LINE, Continuation, Start, End}),
 			query_log2(Start, End, MFA, disk_log:chunk(Log, Continuation), [])
-	end;
-%	query_log1(Start, End, Log, MFA, start, start, disk_log:bchunk(Log, start));
-query_log(Continuation, Start, End, Log, MFA) when is_integer(Start), is_integer(End) ->
-erlang:display({?MODULE, ?LINE, Continuation, Start, End}),
-	query_log2(Start, End, MFA, disk_log:chunk(Log, Continuation), []).
-%query_log1(Start, End, Log, MFA, PrevCont, _CurrentCont, eof) ->
-%	query_log2(Start, End, MFA, disk_log:chunk(Log, PrevCont), []);
-%query_log1(_Start, _End, _Log, _MFA, _PrevCont, _CurrentCont, {error, Reason}) ->
-%	{error, Reason};
-%query_log1(Start, End, Log, MFA, PrevCont, CurrentCont, {NextCont, Chunk, 0}) ->
-%	query_log1(Start, End, Log, MFA, PrevCont, CurrentCont, {NextCont, Chunk});
-%query_log1(Start, End, Log, MFA, PrevCont, CurrentCont, {NextCont, [H | _]}) ->
-%	case binary_to_term(H) of
-%		Event when element(1, Event) >= Start ->
-%			query_log2(Start, End, MFA, disk_log:chunk(Log, PrevCont), []);
-%		_Event ->
-%			query_log1(Start, End, Log, MFA, CurrentCont, NextCont, disk_log:bchunk(Log, NextCont))
-%	end.
+	end.
 %% @hidden
 query_log2(_Start, _End, {M, F, A}, eof, Acc) ->
 	apply(M, F, [{eof, lists:reverse(Acc)} | A]);
