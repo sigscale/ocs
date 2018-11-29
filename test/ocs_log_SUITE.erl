@@ -585,13 +585,10 @@ start_binary_tree(_Config) ->
 	ocs_log:acct_open(),
 	disk_log:change_notify(ocs_acct, self(), true),
 	ok = fill_acct(),
+%% {continuation,<0.169.0>,{19,64427},1407}
 	Cont = ocs_log:start_binary_tree(ocs_acct, 1, erlang:system_time(?MILLISECOND)),
-	case Cont of
-		{continuation, _, _, _} ->
-			true;
-		_ ->
-			false
-	end.
+erlang:display({?MODULE, ?LINE, Cont}),
+	4 = size(Cont).
 
 abmf_log_event() ->
    [{userdata, [{doc, "Log a balance actvity event"}]}].
@@ -731,7 +728,10 @@ fill_acct() ->
 		{disk_log, _Node, ocs_acct, {wrap, 0}} ->
 			fill_acct();
 		{disk_log, _Node, ocs_acct, {wrap, N}} when N > 0 ->
-			ok;
+% checking on more than a full log
+			fill_acct(9, diameter);
+% checking on full log
+%			ok;
 		_Other ->
 			fill_acct()
 	after
