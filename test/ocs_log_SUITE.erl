@@ -89,7 +89,9 @@ all() ->
 	[radius_log_auth_event, diameter_log_auth_event,
 			radius_log_acct_event, diameter_log_acct_event,
 			ipdr_log, get_range, get_last, auth_query, acct_query_radius,
-			acct_query_diameter, abmf_log_event, abmf_query, start_binary_tree].
+			acct_query_diameter, abmf_log_event, abmf_query, binary_tree_before,
+			binary_tree_after, binary_tree_backward, binary_tree_forward,
+			binary_tree_last, binary_tree_first, binary_tree_half].
 
 %%---------------------------------------------------------------------
 %%  Test cases
@@ -190,9 +192,6 @@ diameter_log_auth_event(_Config) ->
 				false
 	end,
 	true = Find(Find, disk_log:chunk(ocs_auth, start)).
-
-radius_log_acct_event() ->
-   [{userdata, [{doc, "Log a RADIUS accounting event"}]}].
 
 radius_log_acct_event(_Config) ->
 	Start = erlang:system_time(?MILLISECOND),
@@ -578,20 +577,102 @@ acct_query_diameter(_Config) ->
 	Events = Fget(Fget, ocs_log:acct_query(start, Start, End, diameter, '_', MatchSpec), []),
 	3 = length(Events).
 
-start_binary_tree() ->
-   [{userdata, [{doc, "Ensure that start_binary_tree works perfectly"}]}].
+binary_tree_half() ->
+   [{userdata, [{doc, "When half of the log is used"}]}].
 
-start_binary_tree(_Config) ->
+binary_tree_half(_Config) ->
+	ocs_log:acct_open(),
+	disk_log:change_notify(ocs_acct, self(), true),
+	disk_log:truncate(ocs_acct),
+	LogInfo = disk_log:info(ocs_acct),
+	{size, {_FileSize, NumFiles}} = lists:keyfind(size, 1, LogInfo),
+	File = NumFiles div 4,
+	ok = fill_acct(File),
+	LogInfo1 = disk_log:info(ocs_acct),
+	{current_file, CurrentFile} = lists:keyfind(current_file, 1, LogInfo1),
+	{ok, Cont} = disk_log:chunk_step(ocs_acct, start, CurrentFile - 1),
+	Cont = ocs_log:start_binary_tree(ocs_acct, erlang:system_time(milli_seconds)).
+
+radius_log_acct_event() ->
+   [{userdata, [{doc, "Log a RADIUS accounting event"}]}].
+
+binary_tree_before() ->
+   [{userdata, [{doc, "When `Start' is smaller and out of the log range"}]}].
+
+binary_tree_before(_Config) ->
 	ocs_log:acct_open(),
 	disk_log:change_notify(ocs_acct, self(), true),
 	ok = fill_acct(),
-%% {continuation,<0.169.0>,{19,64427},1407}
-	Cont = ocs_log:start_binary_tree(ocs_acct, 1, erlang:system_time(?MILLISECOND)),
-erlang:display({?MODULE, ?LINE, Cont}),
-	4 = size(Cont).
+	start = ocs_log:start_binary_tree(ocs_acct, 1).
 
-abmf_log_event() ->
-   [{userdata, [{doc, "Log a balance actvity event"}]}].
+binary_tree_after() ->
+   [{userdata, [{doc, "When `Start' is bigger and out of log range"}]}].
+
+binary_tree_after(_Config) ->
+	ocs_log:acct_open(),
+	disk_log:change_notify(ocs_acct, self(), true),
+	ok = fill_acct(),
+	LogInfo = disk_log:info(ocs_acct),
+	{size, {_FileSize, NumFiles}} = lists:keyfind(size, 1, LogInfo),
+	{ok, Cont} = disk_log:chunk_step(ocs_acct, start, NumFiles - 1),
+	Start = erlang:system_time(milli_seconds),
+	Cont = ocs_log:start_binary_tree(ocs_acct, Start).
+
+binary_tree_backward() ->
+   [{userdata, [{doc, "When `Start' is at first half of the log"}]}].
+
+binary_tree_backward(_Config) ->
+	ocs_log:acct_open(),
+	disk_log:change_notify(ocs_acct, self(), true),
+	ok = fill_acct(),
+	LogInfo = disk_log:info(ocs_acct),
+	{size, {_FileSize, NumFiles}} = lists:keyfind(size, 1, LogInfo),
+	{ok, Cont} = disk_log:chunk_step(ocs_acct, start, NumFiles div 4),
+	{_, Events} = disk_log:chunk(ocs_acct, Cont),
+	Event = lists:last(Events),
+	Cont = ocs_log:start_binary_tree(ocs_acct, element(1, Event)).
+
+binary_tree_forward() ->
+   [{userdata, [{doc, "When start is at second half of the log"}]}].
+
+binary_tree_forward(_Config) ->
+	ocs_log:acct_open(),
+	disk_log:change_notify(ocs_acct, self(), true),
+	ok = fill_acct(),
+	LogInfo = disk_log:info(ocs_acct),
+	{size, {_FileSize, NumFiles}} = lists:keyfind(size, 1, LogInfo),
+	{ok, Cont} = disk_log:chunk_step(ocs_acct, start, ((NumFiles div 4) * 3) + 1),
+	{_, Events} = disk_log:chunk(ocs_acct, Cont),
+	Event = lists:nth(length(Events) div 3, Events),
+	Cont = ocs_log:start_binary_tree(ocs_acct, element(1, Event)).
+
+binary_tree_last() ->
+   [{userdata, [{doc, "When start is at last file of the log"}]}].
+
+binary_tree_last(_Config) ->
+	ocs_log:acct_open(),
+	disk_log:change_notify(ocs_acct, self(), true),
+	ok = fill_acct(),
+	LogInfo = disk_log:info(ocs_acct),
+	{size, {_FileSize, NumFiles}} = lists:keyfind(size, 1, LogInfo),
+	{ok, Cont} = disk_log:chunk_step(ocs_acct, start, NumFiles - 1),
+	{_, Events} = disk_log:chunk(ocs_acct, Cont),
+	Event = lists:last(Events),
+	Cont = ocs_log:start_binary_tree(ocs_acct, element(1, Event)).
+
+binary_tree_first() ->
+   [{userdata, [{doc, "When start is in first chunck of the log"}]}].
+
+binary_tree_first(_Config) ->
+	ocs_log:acct_open(),
+	disk_log:change_notify(ocs_acct, self(), true),
+	ok = fill_acct(),
+	LogInfo = disk_log:info(ocs_acct),
+	{size, {_FileSize, NumFiles}} = lists:keyfind(size, 1, LogInfo),
+	{ok, Cont} = disk_log:chunk_step(ocs_acct, start, NumFiles),
+	{_, Events} = disk_log:chunk(ocs_acct, Cont),
+	Event = lists:last(Events),
+	Cont = ocs_log:start_binary_tree(ocs_acct, element(1, Event)).
 
 abmf_log_event(_Config) ->
 	ok = ocs_log:abmf_open(),
@@ -706,37 +787,37 @@ fill_auth(N) ->
 	fill_auth(N - 1).
 
 fill_acct() ->
-	AcctOutputOctets = rand:uniform(100000),
-	AcctInputOctets = rand:uniform(100000000),
-	AcctSessionTime = rand:uniform(3600) + 100,
-	UserName = ocs:generate_identity(),
-	Server = {{0, 0, 0, 0}, 3698},
-	I3 = rand:uniform(256) - 1,
-	I4 = rand:uniform(254),
-	ClientAddress = {192, 168, I3, I4},
-	Type = case rand:uniform(3) of
-		1 -> start;
-		2 -> stop;
-		3 -> interim
-	end,
-	Record = #'3gpp_ro_CCR'{'Origin-Host' = ClientAddress, 'Service-Context-Id' = 2, 'Subscription-Id' = [#'3gpp_ro_Subscription-Id'{'Subscription-Id-Data'
-			= UserName}], 'Multiple-Services-Credit-Control' = [#'3gpp_ro_Multiple-Services-Credit-Control'{'Requested-Service-Unit' = [#'3gpp_ro_Requested-Service-Unit'{'CC-Time'
-			= AcctSessionTime, 'CC-Input-Octets' = AcctInputOctets, 'CC-Output-Octets' = AcctOutputOctets}]}], 'Service-Information' = [{'3gpp_ro_Service-Information', [],
-			[#'3gpp_ro_IMS-Information'{'Calling-Party-Address' = ocs_test_lib:mac(), 'Called-Party-Address' = ocs_test_lib:mac()}]}]},
-	ocs_log:acct_log(diameter, Server, Type, Record, undefined, undefined),
+	ok = fill_acct(10, diameter),
 	receive
 		{disk_log, _Node, ocs_acct, {wrap, 0}} ->
 			fill_acct();
 		{disk_log, _Node, ocs_acct, {wrap, N}} when N > 0 ->
-% checking on more than a full log
-			fill_acct(9, diameter);
-% checking on full log
-%			ok;
+			LogInfo = disk_log:info(ocs_acct),
+			{items, Items} = lists:keyfind(items, 1, LogInfo),
+			fill_acct(Items div 4, diameter);
 		_Other ->
 			fill_acct()
 	after
 		0 ->
 			fill_acct()
+	end.
+fill_acct(N) ->
+	ok = fill_acct(10, diameter),
+	receive
+		{disk_log, _Node, ocs_acct, {wrap, 0}} ->
+			LogInfo = disk_log:info(ocs_acct),
+			{current_file, File} = lists:keyfind(current_file, 1, LogInfo),
+			case N > File of
+				true ->
+					fill_acct(N);
+				false ->
+					ok
+			end;
+		_Other ->
+			fill_acct(N)
+	after
+		0 ->
+			fill_acct(N)
 	end.
 fill_acct(0, _Protocal) ->
 	ok;
