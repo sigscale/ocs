@@ -2113,32 +2113,29 @@ query_log(Continuation, Start, {{_, _, _}, {_, _, _}} = End, Log, MFA) ->
 	Seconds = calendar:datetime_to_gregorian_seconds(End) - ?EPOCH,
 	query_log(Continuation, Start, Seconds * 1000 + 999, Log, MFA);
 query_log(start, Start, End, Log, MFA) when is_integer(Start), is_integer(End) ->
-	query_log1(Start, End, Log, MFA);
-query_log(Continuation, Start, End, Log, MFA) when is_integer(Start), is_integer(End) ->
-	query_log2(Start, End, MFA, disk_log:chunk(Log, Continuation), []).
-%% @hidden
-query_log1(Start, End, Log, MFA) ->
 	case btree_search(Log, Start) of
 		{error, Reason} ->
 			{error, Reason};
 		Continuation ->
-			query_log2(Start, End, MFA, disk_log:chunk(Log, Continuation), [])
-	end.
+			query_log1(Start, End, MFA, disk_log:chunk(Log, Continuation), [])
+	end;
+query_log(Continuation, Start, End, Log, MFA) when is_integer(Start), is_integer(End) ->
+	query_log1(Start, End, MFA, disk_log:chunk(Log, Continuation), []).
 %% @hidden
-query_log2(_Start, _End, {M, F, A}, eof, Acc) ->
+query_log1(_Start, _End, {M, F, A}, eof, Acc) ->
 	apply(M, F, [{eof, lists:reverse(Acc)} | A]);
-query_log2(_Start, _End, _MFA, {error, Reason}, _Acc) ->
+query_log1(_Start, _End, _MFA, {error, Reason}, _Acc) ->
 	{error, Reason};
-query_log2(Start, End, MFA, {Cont, Chunk, 0}, Acc) ->
-	query_log2(Start, End, MFA, {Cont, Chunk}, Acc);
-query_log2(_Start, End, {M, F, A}, {_, [Event | _]}, Acc) when element(1, Event) > End ->
+query_log1(Start, End, MFA, {Cont, Chunk, 0}, Acc) ->
+	query_log1(Start, End, MFA, {Cont, Chunk}, Acc);
+query_log1(_Start, End, {M, F, A}, {_, [Event | _]}, Acc) when element(1, Event) > End ->
 	apply(M, F, [{eof, lists:reverse(Acc)} | A]);
-query_log2(Start, End, MFA, {Cont, [Event | T]}, Acc)
+query_log1(Start, End, MFA, {Cont, [Event | T]}, Acc)
 		when element(1, Event) >= Start, element(1, Event) =< End ->
-	query_log2(Start, End, MFA, {Cont, T}, [Event | Acc]);
-query_log2(Start, End, MFA, {Cont, [_ | T]}, Acc) ->
-	query_log2(Start, End, MFA, {Cont, T}, Acc);
-query_log2(_Start, _End, {M, F, A}, {Cont, []}, Acc) ->
+	query_log1(Start, End, MFA, {Cont, T}, [Event | Acc]);
+query_log1(Start, End, MFA, {Cont, [_ | T]}, Acc) ->
+	query_log1(Start, End, MFA, {Cont, T}, Acc);
+query_log1(_Start, _End, {M, F, A}, {Cont, []}, Acc) ->
 	apply(M, F, [{Cont, lists:reverse(Acc)} | A]).
 
 -spec acct_query(Continuation, Protocol, Types, Matches) -> Result
