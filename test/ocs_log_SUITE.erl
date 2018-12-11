@@ -591,7 +591,7 @@ binary_tree_half(_Config) ->
 	LogInfo1 = disk_log:info(ocs_acct),
 	{current_file, CurrentFile} = lists:keyfind(current_file, 1, LogInfo1),
 	{ok, Cont} = disk_log:chunk_step(ocs_acct, start, CurrentFile - 1),
-	Cont = ocs_log:start_binary_tree(ocs_acct, erlang:system_time(milli_seconds)).
+	Cont = ocs_log:btree_search(ocs_acct, erlang:system_time(milli_seconds)).
 
 radius_log_acct_event() ->
    [{userdata, [{doc, "Log a RADIUS accounting event"}]}].
@@ -603,7 +603,7 @@ binary_tree_before(_Config) ->
 	ocs_log:acct_open(),
 	disk_log:change_notify(ocs_acct, self(), true),
 	ok = fill_acct(),
-	start = ocs_log:start_binary_tree(ocs_acct, 1).
+	start = ocs_log:btree_search(ocs_acct, 1).
 
 binary_tree_after() ->
    [{userdata, [{doc, "When `Start' is bigger and out of log range"}]}].
@@ -616,7 +616,7 @@ binary_tree_after(_Config) ->
 	{size, {_FileSize, NumFiles}} = lists:keyfind(size, 1, LogInfo),
 	{ok, Cont} = disk_log:chunk_step(ocs_acct, start, NumFiles - 1),
 	Start = erlang:system_time(milli_seconds),
-	Cont = ocs_log:start_binary_tree(ocs_acct, Start).
+	Cont = ocs_log:btree_search(ocs_acct, Start).
 
 binary_tree_backward() ->
    [{userdata, [{doc, "When `Start' is at first half of the log"}]}].
@@ -630,7 +630,7 @@ binary_tree_backward(_Config) ->
 	{ok, Cont} = disk_log:chunk_step(ocs_acct, start, NumFiles div 4),
 	{_, Events} = disk_log:chunk(ocs_acct, Cont),
 	Event = lists:last(Events),
-	Cont = ocs_log:start_binary_tree(ocs_acct, element(1, Event)).
+	Cont = ocs_log:btree_search(ocs_acct, element(1, Event)).
 
 binary_tree_forward() ->
    [{userdata, [{doc, "When start is at second half of the log"}]}].
@@ -644,7 +644,7 @@ binary_tree_forward(_Config) ->
 	{ok, Cont} = disk_log:chunk_step(ocs_acct, start, ((NumFiles div 4) * 3) + 1),
 	{_, Events} = disk_log:chunk(ocs_acct, Cont),
 	Event = lists:nth(length(Events) div 3, Events),
-	Cont = ocs_log:start_binary_tree(ocs_acct, element(1, Event)).
+	Cont = ocs_log:btree_search(ocs_acct, element(1, Event)).
 
 binary_tree_last() ->
    [{userdata, [{doc, "When start is at last file of the log"}]}].
@@ -658,7 +658,7 @@ binary_tree_last(_Config) ->
 	{ok, Cont} = disk_log:chunk_step(ocs_acct, start, NumFiles - 1),
 	{_, Events} = disk_log:chunk(ocs_acct, Cont),
 	Event = lists:last(Events),
-	Cont = ocs_log:start_binary_tree(ocs_acct, element(1, Event)).
+	Cont = ocs_log:btree_search(ocs_acct, element(1, Event)).
 
 binary_tree_first() ->
    [{userdata, [{doc, "When start is in first chunck of the log"}]}].
@@ -672,7 +672,7 @@ binary_tree_first(_Config) ->
 	{ok, Cont} = disk_log:chunk_step(ocs_acct, start, NumFiles),
 	{_, Events} = disk_log:chunk(ocs_acct, Cont),
 	Event = lists:last(Events),
-	Cont = ocs_log:start_binary_tree(ocs_acct, element(1, Event)).
+	Cont = ocs_log:btree_search(ocs_acct, element(1, Event)).
 
 abmf_log_event(_Config) ->
 	ok = ocs_log:abmf_open(),

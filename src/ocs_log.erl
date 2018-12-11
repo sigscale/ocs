@@ -35,7 +35,7 @@
 			http_file/2, date/1, iso8601/1]).
 -export([http_query/8]).
 -export([log_name/1]).
--export([start_binary_tree/2]).
+-export([btree_search/2]).
 
 %% exported the private function
 -export([acct_query/4, ipdr_query/2, auth_query/5, abmf_query/6]).
@@ -474,8 +474,8 @@ ipdr_log(Type, File, Start, End) when is_list(File),
 			case disk_log:log(IpdrLog, IpdrDoc) of
 				ok ->
 					ipdr_log1(IpdrLog, Start, End,
-%							start_binary_tree(log_name(acct_log_name), Start, End));
-							start_binary_tree(log_name(acct_log_name), Start));
+%							btree_search(log_name(acct_log_name), Start, End));
+							btree_search(log_name(acct_log_name), Start));
 				{error, Reason} ->
 					Descr = lists:flatten(disk_log:format_error(Reason)),
 					Trunc = lists:sublist(Descr, length(Descr) - 1),
@@ -1080,7 +1080,7 @@ file_chunk1(Log, IoDevice, binary, Cont, [Event | T]) ->
 file_chunk1(Log, IoDevice, Type, Cont, []) ->
 	file_chunk(Log, IoDevice, Type, Cont).
 
--spec start_binary_tree(Log, Start) -> Result
+-spec btree_search(Log, Start) -> Result
 	when
 		Log :: disk_log:log(),
 		Start :: pos_integer(),
@@ -1089,20 +1089,20 @@ file_chunk1(Log, IoDevice, Type, Cont, []) ->
 %% @doc Binary tree search of multi file wrap disk_log.
 %% @private
 %% @hidden
-start_binary_tree(Log, Start) ->
-	start_binary_tree(Log, Start, disk_log:chunk(Log, start, 1)).
+btree_search(Log, Start) ->
+	btree_search(Log, Start, disk_log:chunk(Log, start, 1)).
 %% @hidden
-start_binary_tree(Log, Start, {Cont, Terms, BadBytes}) ->
+btree_search(Log, Start, {Cont, Terms, BadBytes}) ->
 	error_logger:error_report(["Error reading log",
 			{log, Log},{badbytes, BadBytes}]),
-	start_binary_tree(Log, Start, {Cont, Terms});
-start_binary_tree(_Log, _Start, eof) ->
+	btree_search(Log, Start, {Cont, Terms});
+btree_search(_Log, _Start, eof) ->
 	start;
-start_binary_tree(_Log, _Start, {error, Reason}) ->
+btree_search(_Log, _Start, {error, Reason}) ->
 	{error, Reason};
-start_binary_tree(_Log, Start, {_Cont, [R]}) when element(1, R) >= Start ->
+btree_search(_Log, Start, {_Cont, [R]}) when element(1, R) >= Start ->
 	start;
-start_binary_tree(Log, Start, {Cont, [R]}) when element(1, R) < Start ->
+btree_search(Log, Start, {Cont, [R]}) when element(1, R) < Start ->
 	InfoList = disk_log:info(Log),
 	Step = case lists:keyfind(size, 1, InfoList) of
 		{size, {_MaxBytes, MaxFiles}} when (MaxFiles rem 2) == 0, MaxFiles > 2 ->
@@ -1110,15 +1110,15 @@ start_binary_tree(Log, Start, {Cont, [R]}) when element(1, R) < Start ->
 		{size, {_MaxBytes, MaxFiles}} ->
 			MaxFiles div 2
 	end,
-	start_binary_tree(Log, Start, Step, start, element(1, R), disk_log:chunk_step(Log, Cont, Step)).
+	btree_search(Log, Start, Step, start, element(1, R), disk_log:chunk_step(Log, Cont, Step)).
 %% @hidden
-start_binary_tree(Log, Start, Step, PrevCont, PrevChunkStart, {ok, Cont}) ->
-	start_binary_tree(Log, Start, Step, PrevCont, PrevChunkStart, Cont,
+btree_search(Log, Start, Step, PrevCont, PrevChunkStart, {ok, Cont}) ->
+	btree_search(Log, Start, Step, PrevCont, PrevChunkStart, Cont,
 			disk_log:chunk(Log, Cont, 1));
-start_binary_tree(_Log, _Start, Step, PrevCont, _PrevChunkStart, {error, end_of_log})
+btree_search(_Log, _Start, Step, PrevCont, _PrevChunkStart, {error, end_of_log})
 		when Step == 1; Step == -1 ->
 	PrevCont;
-start_binary_tree(Log, Start, _Step, PrevCont, PrevChunkStart, {error, end_of_log}) ->
+btree_search(Log, Start, _Step, PrevCont, PrevChunkStart, {error, end_of_log}) ->
 	LogInfo = disk_log:info(Log),
 	Step1 = case lists:keyfind(current_file, 1, LogInfo) of
 		{current_file, CurrentFile} when (CurrentFile rem 2) == 0, CurrentFile > 2 ->
@@ -1126,52 +1126,52 @@ start_binary_tree(Log, Start, _Step, PrevCont, PrevChunkStart, {error, end_of_lo
 		{current_file, CurrentFile} ->
 			CurrentFile div 2
 	end,
-	start_binary_tree(Log, Start, Step1, PrevCont, PrevChunkStart, disk_log:chunk_step(Log, PrevCont, Step1));
-start_binary_tree(_Log, _Start, _Step, _PrevCont, _PrevChunkStart, {error, Reason}) ->
+	btree_search(Log, Start, Step1, PrevCont, PrevChunkStart, disk_log:chunk_step(Log, PrevCont, Step1));
+btree_search(_Log, _Start, _Step, _PrevCont, _PrevChunkStart, {error, Reason}) ->
 	{error, Reason}.
 %% @hidden
-start_binary_tree(_Log, Start, 1, PrevCont, _PrevChunkStart, _Cont, {_NextCont, [R]})
+btree_search(_Log, Start, 1, PrevCont, _PrevChunkStart, _Cont, {_NextCont, [R]})
 		when element(1, R) > Start ->
 	PrevCont;
-start_binary_tree(_Log, _Start, Step, _PrevCont, PrevChunkStart, Cont, {_NextCont, [R]})
+btree_search(_Log, _Start, Step, _PrevCont, PrevChunkStart, Cont, {_NextCont, [R]})
 		when Step < 0, element(1, R) > PrevChunkStart ->
 	Cont;
-start_binary_tree(_Log, _Start, Step, PrevCont, PrevChunkStart, _Cont, {_NextCont, [R]})
+btree_search(_Log, _Start, Step, PrevCont, PrevChunkStart, _Cont, {_NextCont, [R]})
 		when Step > 0, element(1, R) < PrevChunkStart ->
 	PrevCont;
-start_binary_tree(_Log, Start, -1, _PrevCont, _PrevChunkStart, Cont, {_NextCont, [R]})
+btree_search(_Log, Start, -1, _PrevCont, _PrevChunkStart, Cont, {_NextCont, [R]})
 		when element(1, R) < Start ->
 	Cont;
-start_binary_tree(Log, Start, Step, _PrevCont, _PrevChunkStart, Cont, {_NextCont, [R]})
+btree_search(Log, Start, Step, _PrevCont, _PrevChunkStart, Cont, {_NextCont, [R]})
 		when Step == 1; Step == -1 ->
-	start_binary_tree(Log, Start, Step, Cont, element(1, R), disk_log:chunk_step(Log, Cont, Step));
-start_binary_tree(Log, Start, Step, _PrevCont, _PrevChunkStart, Cont, {_NextCont, [R]})
+	btree_search(Log, Start, Step, Cont, element(1, R), disk_log:chunk_step(Log, Cont, Step));
+btree_search(Log, Start, Step, _PrevCont, _PrevChunkStart, Cont, {_NextCont, [R]})
 		when Step > 2, element(1, R) < Start, (Step rem 2) == 0 ->
 	NextStep = (Step div 2) - 1,
-	start_binary_tree(Log, Start, NextStep, Cont, element(1, R), disk_log:chunk_step(Log, Cont, NextStep));
-start_binary_tree(Log, Start, Step, _PrevCont, _PrevChunkStart, Cont, {_NextCont, [R]})
+	btree_search(Log, Start, NextStep, Cont, element(1, R), disk_log:chunk_step(Log, Cont, NextStep));
+btree_search(Log, Start, Step, _PrevCont, _PrevChunkStart, Cont, {_NextCont, [R]})
 		when Step > 0, element(1, R) < Start ->
 	NextStep = Step div 2,
-	start_binary_tree(Log, Start, NextStep, Cont, element(1, R), disk_log:chunk_step(Log, Cont, NextStep));
-start_binary_tree(Log, Start, Step, _PrevCont, _PrevChunkStart, Cont, {_NextCont, [R]})
+	btree_search(Log, Start, NextStep, Cont, element(1, R), disk_log:chunk_step(Log, Cont, NextStep));
+btree_search(Log, Start, Step, _PrevCont, _PrevChunkStart, Cont, {_NextCont, [R]})
 		when Step > 0, element(1, R) > Start ->
 	NextStep = -(Step div 2),
-	start_binary_tree(Log, Start, NextStep, Cont, element(1, R), disk_log:chunk_step(Log, Cont, NextStep));
-start_binary_tree(Log, Start, Step, _PrevCont, _PrevChunkStart, Cont, {_NextCont, [R]})
+	btree_search(Log, Start, NextStep, Cont, element(1, R), disk_log:chunk_step(Log, Cont, NextStep));
+btree_search(Log, Start, Step, _PrevCont, _PrevChunkStart, Cont, {_NextCont, [R]})
 		when Step < -2, element(1, R) > Start, (Step rem 2) == 0 ->
 	NextStep = (Step div 2) - 1,
-	start_binary_tree(Log, Start, NextStep, Cont, element(1, R), disk_log:chunk_step(Log, Cont, NextStep));
-start_binary_tree(Log, Start, Step, _PrevCont, _PrevChunkStart, Cont, {_NextCont, [R]})
+	btree_search(Log, Start, NextStep, Cont, element(1, R), disk_log:chunk_step(Log, Cont, NextStep));
+btree_search(Log, Start, Step, _PrevCont, _PrevChunkStart, Cont, {_NextCont, [R]})
 		when Step < 0, element(1, R) > Start ->
 	NextStep = Step div 2,
-	start_binary_tree(Log, Start, NextStep, Cont, element(1, R), disk_log:chunk_step(Log, Cont, NextStep));
-start_binary_tree(Log, Start, Step, _PrevCont, _PrevChunkStart, Cont, {_NextCont, [R]})
+	btree_search(Log, Start, NextStep, Cont, element(1, R), disk_log:chunk_step(Log, Cont, NextStep));
+btree_search(Log, Start, Step, _PrevCont, _PrevChunkStart, Cont, {_NextCont, [R]})
 		when Step < 0, element(1, R) < Start ->
 	NextStep = -(Step div 2),
-	start_binary_tree(Log, Start, NextStep, Cont, element(1, R), disk_log:chunk_step(Log, Cont, NextStep));
-start_binary_tree(_Log, _Start, _Step, _PrevCont, _PrevChunkStart, Cont, eof) ->
+	btree_search(Log, Start, NextStep, Cont, element(1, R), disk_log:chunk_step(Log, Cont, NextStep));
+btree_search(_Log, _Start, _Step, _PrevCont, _PrevChunkStart, Cont, eof) ->
 	Cont;
-start_binary_tree(_Log, _Start, _Step, _PrevCont, _PrevChunkStart, _Cont, {error, Reason}) ->
+btree_search(_Log, _Start, _Step, _PrevCont, _PrevChunkStart, _Cont, {error, Reason}) ->
 	{error, Reason}.
 
 -spec get_range(Log, Start, End, Cont) -> Result
@@ -2118,7 +2118,7 @@ query_log(Continuation, Start, End, Log, MFA) when is_integer(Start), is_integer
 	query_log2(Start, End, MFA, disk_log:chunk(Log, Continuation), []).
 %% @hidden
 query_log1(Start, End, Log, MFA) ->
-	case start_binary_tree(Log, Start) of
+	case btree_search(Log, Start) of
 		{error, Reason} ->
 			{error, Reason};
 		Continuation ->
