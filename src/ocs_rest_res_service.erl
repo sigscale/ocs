@@ -726,13 +726,15 @@ query_filter(MFA, Codec, Query, Filters, Headers) ->
 			{error, 400};
 		{_, {"if-range", _}, false} ->
 			{error, 400};
-		{false, false, {"range", Range}} ->
+		{false, false, {"range", "items=1-" ++ _ = Range}} ->
 			case ocs_rest:range(Range) of
 				{error, _} ->
 					{error, 400};
 				{ok, {Start, End}} ->
 					query_start(MFA, Codec, Query, Filters, Start, End)
 			end;
+		{false, false, {"range", _Range}} ->
+			{error, 416};
 		{false, false, false} ->
 			query_start(MFA, Codec, Query, Filters, undefined, undefined)
 	end.

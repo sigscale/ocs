@@ -144,13 +144,15 @@ get_usages1(Type, Id, Query, Filters, Headers) ->
 			{error, 400};
 		{_, {"if-range", _}, false} ->
 			{error, 400};
-		{false, false, {"range", Range}} ->
+		{false, false, {"range", "items=1-" ++ _ = Range}} ->
 			case ocs_rest:range(Range) of
 				{error, _Reason} ->
 					{error, 400};
 				{ok, {Start, End}} ->
 					query_start(Type, Id, Query, Filters, Start, End)
 			end;
+		{false, false, {"range", _Range}} ->
+			{error, 416};
 		{false, false, false} ->
 			query_start(Type, Id, Query, Filters, undefined, undefined)
 	end.
