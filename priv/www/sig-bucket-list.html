@@ -181,8 +181,8 @@
 				if (ajax.params['filter']) {
 					ajax.params['filter'] += "]}]\"";
 				}
-				bucketList = document.getElementById('bucketList');
-				handleAjaxResponse = function(request) {
+				var bucketList = document.getElementById('bucketList');
+				var handleAjaxResponse = function(request) {
 					if(request) {
 						bucketList.etag = request.xhr.getResponseHeader('ETag');
 						var range = request.xhr.getResponseHeader('Content-Range');
@@ -222,7 +222,7 @@
 						callback([]);
 					}
 				};
-				handleAjaxError = function(error) {
+				var handleAjaxError = function(error) {
 					bucketList.etag = null;
 					var toast = document.getElementById('userToastError');
 					toast.text = error;
