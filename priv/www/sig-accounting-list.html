@@ -337,12 +337,13 @@
 				delete ajax.params['date'];
 				delete ajax.params['nasIdentifier'];
 				delete ajax.params['acctSessiontime'];
-				delete ajax.params['outputOctets'];
-				delete ajax.params['inputOctets'];
+				delete ajax.params['acctOutputoctets'];
+				delete ajax.params['acctInputoctets'];
+				delete ajax.params['acctTotaloctets'];
 				delete ajax.params['filter'];
 				ajax.params['type'] = "AAAAccountingUsage";
 				function checkHead(param) {
-					return param.path == "date" || param.path == "type" || param.path == "status";
+					return param.path == "date" || param.path == "status";
 				}
 				var head;
 				params.filters.filter(checkHead).forEach(function(filter) {
@@ -351,7 +352,7 @@
 					}
 				});
 				function checkChar(param) {
-					return param.path != "date" && param.path != "type" && param.path != "status";
+					return param.path != "date" && param.path != "status";
 				}
 				params.filters.filter(checkChar).forEach(function(filter) {
 					if (filter.value) {
@@ -360,14 +361,18 @@
 						} else {
 							ajax.params['filter'] += ",";
 						}
-							ajax.params['filter'] += "{name=" + filter.path + ",value.like=[" + filter.value + "%]}";
+							if(isNaN(filter.value)) {
+								ajax.params['filter'] += "{name=" + filter.path + ",value.like=[" + filter.value + "%]}";
+							} else {
+								ajax.params['filter'] += "{name=" + filter.path + ",value.gte=" + filter.value + "%}";
+							}
 					}
 				});
 				if (ajax.params['filter']) {
 					ajax.params['filter'] += "]}]\"";
 				}
-				accountingList = document.getElementById('accountingList');
-				handleAjaxResponse = function(request) {
+				var accountingList = document.getElementById('accountingList');
+				var handleAjaxResponse = function(request) {
 					if (request) {
 						accountingList.etag = request.xhr.getResponseHeader('ETag');
 						var range = request.xhr.getResponseHeader('Content-Range');
@@ -445,7 +450,7 @@
 						callback([]);
 					}
 				},
-				handleAjaxError = function(error) {
+				var handleAjaxError = function(error) {
 					accountingList.etag = null;
 					var toast = document.getElementById('usageToastError');
 					toast.text = error;

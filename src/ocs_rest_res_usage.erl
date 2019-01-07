@@ -93,6 +93,7 @@ get_usages(Type, Query, Headers) ->
 %% 	requests.
 %% @hidden
 get_usages(Type, Id, Query, Headers) ->
+erlang:display({?MODULE, ?LINE, Type, Id, Query, Headers}),
 	case lists:keytake("fields", 1, Query) of
 		{value, {_, Filters}, NewQuery} ->
 			get_usages1(Type, Id, NewQuery, Filters, Headers);
@@ -144,13 +145,15 @@ get_usages1(Type, Id, Query, Filters, Headers) ->
 			{error, 400};
 		{_, {"if-range", _}, false} ->
 			{error, 400};
-		{false, false, {"range", Range}} ->
+		{false, false, {"range", "items=1-" ++ _ = Range}} ->
 			case ocs_rest:range(Range) of
 				{error, _Reason} ->
 					{error, 400};
 				{ok, {Start, End}} ->
 					query_start(Type, Id, Query, Filters, Start, End)
 			end;
+		{false, false, {"range", _Range}} ->
+			{error, 416};
 		{false, false, false} ->
 			query_start(Type, Id, Query, Filters, undefined, undefined)
 	end.
@@ -749,9 +752,10 @@ usage_aaa_acct(Event, Filters) when is_tuple(Event), size(Event) > 6 ->
 	RatedUsage = case size(Event) > 8 of
 		true ->
 			case element(9, Event) of
-				Rated when is_list(Rated) ->
-					[{"ratedProductUsage",
-							{array, lists:map(Frated, Rated)}}];
+				[#rated{} | _] = Rated ->
+					[{"ratedProductUsage", {array, lists:map(Frated, Rated)}}];
+				[[#rated{} | _] = Rated] ->
+					[{"ratedProductUsage", {array, lists:map(Frated, Rated)}}];
 				undefined ->
 					[]
 			end;
@@ -850,8 +854,9 @@ spec_aaa_acct() ->
 			spec_attr_termination_action(), spec_attr_called_id(),
 			spec_attr_calling_id(), spec_attr_nas_id(),
 			spec_attr_nas_port_id(), spec_attr_delay(),
-			spec_attr_input_octets(),spec_attr_output_octets(),
+			spec_attr_input_octets(), spec_attr_output_octets(),
 			spec_attr_input_giga_words(),spec_attr_output_giga_words(),
+			spec_attr_total_octets(),
 			spec_attr_event_timestamp(), spec_attr_session_id(),
 			spec_attr_authentic(), spec_attr_session_time(),
 			spec_attr_input_packets(), spec_attr_output_packets(),
@@ -1933,6 +1938,16 @@ spec_attr_output_giga_words() ->
 	{struct, [Name, Desc, Conf, Value]}.
 
 %% @hidden
+spec_attr_total_octets() ->
+	Name = {"name", "totalOctets"},
+	Desc = {"description", "CC-Total-Octets attribute"},
+	Conf = {"configurable", true},
+	Typ = {"valueType", "Number"},
+	Value1 = {struct, [Typ]},
+	Value = {"usageSpecCharacteristicValue", {array, [Value1]}},
+	{struct, [Name, Desc, Conf, Value]}.
+
+%% @hidden
 spec_attr_input_packets() ->
 	Name = {"name", "acctInputPackets"},
 	Desc = {"description", "Acct-Input-Packets attribute"},
@@ -2289,6 +2304,14 @@ char_attr_nas_id(#'3gpp_ro_CCR'{'Service-Information'
 	NewAcc = [{struct, [{"name", "nasIdentifier"},
 			{"value", binary_to_list(IOI)}]} | Acc],
 	char_attr_event_timestamp(CCR, NewAcc);
+char_attr_nas_id(#'3gpp_ro_CCR'{'Service-Information'
+		% old record version (< ocs-3.1.4)
+		= [{'3gpp_ro_Service-Information', [], [#'3gpp_ro_IMS-Information'{'Inter-Operator-Identifier'
+		= [#'3gpp_ro_Inter-Operator-Identifier'{'Originating-IOI'
+		= [IOI]}]}]}]} = CCR, Acc) when is_binary(IOI) ->
+   NewAcc = [{struct, [{"name", "nasIdentifier"},
+         {"value", binary_to_list(IOI)}]} | Acc],
+   char_attr_event_timestamp(CCR, NewAcc);
 char_attr_nas_id(#'3gpp_ro_CCR'{} = CCR, Acc) ->
 	char_attr_event_timestamp(CCR, Acc);
 char_attr_nas_id(Attributes, Acc) ->
@@ -2387,9 +2410,9 @@ char_attr_session_id(#'3gpp_ro_CCR'{'Session-Id' = SessionID} = CCR, Acc)
 		when SessionID /= undefined ->
 	NewAcc = [{struct, [{"name", "acctSessionId"},
 			{"value", binary_to_list(SessionID)}]} | Acc],
-	char_attr_cause(CCR, NewAcc);
+	char_attr_session_time(CCR, NewAcc);
 char_attr_session_id(#'3gpp_ro_CCR'{} = CCR, Acc) ->
-	char_attr_cause(CCR, Acc);
+	char_attr_session_time(CCR, Acc);
 char_attr_session_id(Attributes, Acc) ->
 	NewAcc = case radius_attributes:find(?AcctSessionId, Attributes) of
 		{ok, Value} ->
@@ -2440,6 +2463,15 @@ char_attr_authentic(Attributes, Acc) ->
 	char_attr_session_time(Attributes, NewAcc).
 
 %% @hidden
+char_attr_session_time(#'3gpp_ro_CCR'{'Multiple-Services-Credit-Control'
+		= [#'3gpp_ro_Multiple-Services-Credit-Control'{'Used-Service-Unit'
+		= [#'3gpp_ro_Used-Service-Unit'{'CC-Time' = [Duration]}]}]} = CCR, Acc)
+		when is_integer(Duration) ->
+	NewAcc = [{struct, [{"name", "acctSessionTime"},
+			{"value", Duration}]} | Acc],
+	char_attr_input_octets(CCR, NewAcc);
+char_attr_session_time(#'3gpp_ro_CCR'{} = CCR, Acc) ->
+	char_attr_input_octets(CCR, Acc);
 char_attr_session_time(Attributes, Acc) ->
 	NewAcc = case radius_attributes:find(?AcctSessionTime, Attributes) of
 		{ok, Value} ->
@@ -2450,6 +2482,15 @@ char_attr_session_time(Attributes, Acc) ->
 	char_attr_input_octets(Attributes, NewAcc).
 
 %% @hidden
+char_attr_input_octets(#'3gpp_ro_CCR'{'Multiple-Services-Credit-Control'
+		= [#'3gpp_ro_Multiple-Services-Credit-Control'{'Used-Service-Unit'
+		= [#'3gpp_ro_Used-Service-Unit'{'CC-Input-Octets' = [InputOctets]}]}]}
+		= CCR, Acc) when is_integer(InputOctets) ->
+	NewAcc = [{struct, [{"name", "inputOctets"},
+			{"value", InputOctets}]} | Acc],
+	char_attr_output_octets(CCR, NewAcc);
+char_attr_input_octets(#'3gpp_ro_CCR'{} = CCR, Acc) ->
+	char_attr_output_octets(CCR, Acc);
 char_attr_input_octets(Attributes, Acc) ->
 	NewAcc = case radius_attributes:find(?AcctInputOctets, Attributes) of
 		{ok, Value} ->
@@ -2460,6 +2501,15 @@ char_attr_input_octets(Attributes, Acc) ->
 	char_attr_output_octets(Attributes, NewAcc).
 
 %% @hidden
+char_attr_output_octets(#'3gpp_ro_CCR'{'Multiple-Services-Credit-Control'
+		= [#'3gpp_ro_Multiple-Services-Credit-Control'{'Used-Service-Unit'
+		= [#'3gpp_ro_Used-Service-Unit'{'CC-Output-Octets' = [OutputOctets]}]}]}
+		= CCR, Acc) when is_integer(OutputOctets) ->
+	NewAcc = [{struct, [{"name", "outputOctets"},
+			{"value", OutputOctets}]} | Acc],
+	char_attr_total_octets(CCR, NewAcc);
+char_attr_output_octets(#'3gpp_ro_CCR'{} = CCR, Acc) ->
+	char_attr_total_octets(CCR, Acc);
 char_attr_output_octets(Attributes, Acc) ->
 	NewAcc = case radius_attributes:find(?AcctOutputOctets, Attributes) of
 		{ok, Value} ->
@@ -2468,6 +2518,17 @@ char_attr_output_octets(Attributes, Acc) ->
 			Acc
 	end,
 	char_attr_input_giga_words(Attributes, NewAcc).
+
+%% @hidden
+char_attr_total_octets(#'3gpp_ro_CCR'{'Multiple-Services-Credit-Control'
+		= [#'3gpp_ro_Multiple-Services-Credit-Control'{'Used-Service-Unit'
+		= [#'3gpp_ro_Used-Service-Unit'{'CC-Total-Octets' = [TotalOctets]}]}]}
+		= CCR, Acc) when is_integer(TotalOctets) ->
+	NewAcc = [{struct, [{"name", "totalOctets"},
+			{"value", TotalOctets}]} | Acc],
+	char_attr_cause(CCR, NewAcc);
+char_attr_total_octets(#'3gpp_ro_CCR'{} = CCR, Acc) ->
+	char_attr_cause(CCR, Acc).
 
 %% @hidden
 char_attr_input_giga_words(Attributes, Acc) ->
@@ -2598,10 +2659,13 @@ char_attr_cause(Attributes, Acc) ->
 
 %% @hidden
 query_start(Type, Id, Query, Filters, RangeStart, RangeEnd) ->
+erlang:display({?MODULE, ?LINE, Type, Id, Query, Filters, RangeStart, RangeEnd}),
 	{DateStart, DateEnd} = case lists:keyfind("date", 1, Query) of
 		{_, DateTime} when length(DateTime) > 3 ->
+erlang:display({?MODULE, ?LINE, DateTime}),
 			range(DateTime);
 		false ->
+erlang:display({?MODULE, ?LINE, false}),
 			{1, erlang:system_time(?MILLISECOND)}
 	end,
 	query_start1(Type, lists:keyfind("type", 1, Query), Id, Query,
@@ -2616,7 +2680,7 @@ query_start1(_Type, {_, "AAAAccessUsage"}, undefined, Query,
 				case ocs_rest_query_parser:parse(Tokens) of
 					{ok, [{array, [{complex,
 							[{"usageCharacteristic", contains, Contains}]}]}]} ->
-						characteristic(Contains, '_', '_', '_', '_')
+						characteristic(Contains, '_', '_', '_', '_', 0)
 				end;
 			false ->
 				{'_', '_', '_', '_'}
@@ -2637,6 +2701,7 @@ query_start1(_Type, {_, "AAAAccessUsage"}, undefined, Query,
 	end;
 query_start1(_Type, {_, "AAAAccountingUsage"}, undefined, Query,
 		Filters, RangeStart, RangeEnd, DateStart, DateEnd) ->
+erlang:display({?MODULE, ?LINE, Query, Filters, RangeStart, RangeEnd, DateStart, DateEnd}),
 	try
 		case lists:keyfind("filter", 1, Query) of
 			{_, String} ->
@@ -2644,17 +2709,27 @@ query_start1(_Type, {_, "AAAAccountingUsage"}, undefined, Query,
 				case ocs_rest_query_parser:parse(Tokens) of
 					{ok, [{array, [{complex,
 							[{"usageCharacteristic", contains, Contains}]}]}]} ->
-						characteristic(Contains, '_', '_', '_', '_')
+						{ok, D} = application:get_env(ocs, diameter),
+						case lists:keyfind(acct, 1, D) of
+							{acct, L} when length(L) > 0 ->
+erlang:display({?MODULE, ?LINE, Contains}),
+								characteristic(Contains, diameter, '_', '_', '_', 0);
+							false ->
+erlang:display({?MODULE, ?LINE, Contains}),
+								characteristic(Contains, radius, '_', '_', '_', 0)
+						end
 				end;
 			false ->
-				{'_', '_', '_', '_'}
+				{'_', '_', '_'}
 		end
 	of
-		{Protocol, Types, Attributes, _} ->
-			Args = [DateStart, DateEnd, Protocol, Types, Attributes],
+		{Types, Attributes, _} ->
+			Args = [DateStart, DateEnd, '_', Types, Attributes],
+erlang:display({?MODULE, ?LINE, Args}),
 			MFA = [ocs_log, acct_query, Args],
 			case supervisor:start_child(ocs_rest_pagination_sup, [MFA]) of
 				{ok, PageServer, Etag} ->
+erlang:display({?MODULE, ?LINE, PageServer, Etag}),
 					query_page(PageServer, Etag, Query, Filters, RangeStart, RangeEnd);
 				{error, _Reason} ->
 					{error, 500}
@@ -2718,16 +2793,20 @@ query_start1(_Type, {_, "HTTPTransferUsage"}, undefined, Query,
 query_start1(_, {_, _}, _, [], _, _, _, _, _) ->
 	{error, 404};
 query_start1(_, {_, false}, _, _, _, _, _, _, _) ->
+erlang:display({?MODULE, ?LINE, false}),
 	{error, 400};
 query_start1(_, {_, _}, _, _, _, _, _, _, _) ->
+erlang:display({?MODULE, ?LINE, 400}),
 	{error, 400}.
 
 %% @hidden
 query_page(PageServer, Etag, Query, Filters, Start, End) ->
+erlang:display({?MODULE, ?LINE, Query}),
 	case lists:keytake("type", 1, Query) of
 		{_, {_, "AAAAccessUsage"}, _Query1} ->
 			query_page1(PageServer, Etag, fun usage_aaa_auth/2, Filters, Start, End);
 		{_, {_, "AAAAccountingUsage"}, _Query1} ->
+erlang:display({?MODULE, ?LINE, _Query1}),
 			query_page1(PageServer, Etag, fun usage_aaa_acct/2, Filters, Start, End);
 		{_, {_, "HTTPTransferUsage"}, _} ->
 			query_page1(PageServer, Etag, fun usage_http_transfer/2, Filters, Start, End);
@@ -2740,7 +2819,8 @@ query_page(PageServer, Etag, Query, Filters, Start, End) ->
 	end.
 %% @hidden
 query_page1(PageServer, Etag, Decoder, Filters, Start, End) ->
-	case gen_server:call(PageServer, {Start, End}) of
+erlang:display({?MODULE, ?LINE, PageServer, Etag, Decoder, Filters, Start, End}),
+	case gen_server:call(PageServer, {Start, End}, infinity) of
 		{error, Status} ->
 			{error, Status};
 		{Events, ContentRange} ->
@@ -3018,259 +3098,1548 @@ ipdr_chars({"name", exact, "chargeableQuantity"}, {"value", Op, ChargeableQuanti
 		when Op == exact; Op == lt; Op == lte; Op == gt; Op == gte ->
 	Chars2 = add_char(Chars1, {chargeableQuantity, {Op, list_to_integer(ChargeableQuantity)}}),
 	ipdr_chars(T, Chars2);
-ipdr_chars({"name", exact, "taxAmount"}, {"alue", Op, TaxAmount},
+ipdr_chars({"name", exact, "taxAmount"}, {"value", Op, TaxAmount},
 		T, Chars1) 
 		when Op == exact; Op == lt; Op == lte; Op == gt; Op == gte ->
 	Chars2 = add_char(Chars1, {taxAmount, {Op, list_to_integer(TaxAmount)}}),
 	ipdr_chars(T, Chars2).
 
 %% @hidden
-characteristic([{complex, L1} | T], Protocol, Types, ReqAttrs, RespAttrs) ->
+characteristic([{complex, L1} | T], Protocol, Types, ReqAttrs, RespAttrs, N) ->
 	case lists:keytake("name", 1, L1) of
 		{_, Name, L2} ->
 			case lists:keytake("value", 1, L2) of
 				{_, Value, []} ->
-					characteristic(Name, Value, T,
-							Protocol, Types, ReqAttrs, RespAttrs);
+					case Protocol of
+						radius ->
+erlang:display({?MODULE, ?LINE, Name, Value, T, radius, Types, ReqAttrs, RespAttrs, N}),
+							characteristic(Name, Value, T,
+									radius, Types, ReqAttrs, RespAttrs, N);
+						diameter ->
+erlang:display({?MODULE, ?LINE, Name, Value, T, diameter, Types, ReqAttrs, RespAttrs, N}),
+							characteristic(Name, Value, T,
+									diameter, Types, ReqAttrs, RespAttrs, N)
+					end;
 				_ ->
 					throw({error, 400})
 			end;
 		false ->
 			throw({error, 400})
 	end;
-characteristic([], Protocol, Types, ReqAttrs, RespAttrs) ->
-	{Protocol, rev(Types), rev(ReqAttrs), rev(RespAttrs)}.
+characteristic([], _Protocol, Types, ReqAttrs, RespAttrs, _N) ->
+	{rev(Types), rev(ReqAttrs), rev(RespAttrs)}.
 %% @hidden
 characteristic({"name", exact, "username"}, {"value", exact, UserName},
-		T, Protocol, Types, ReqAttrs1, RespAttrs) when is_list(UserName) ->
+		T, radius, Types, ReqAttrs1, RespAttrs, N) when is_list(UserName) ->
 	ReqAttrs2 = add_char(ReqAttrs1, {?UserName, {exact, UserName}}),
-	characteristic(T, Protocol, Types, ReqAttrs2, RespAttrs);
+	characteristic(T, radius, Types, ReqAttrs2, RespAttrs, N);
 characteristic({"name", exact, "username"}, {"value", like, Like},
-		T, Protocol, Types, ReqAttrs1, RespAttrs) when is_list(Like) ->
+		T, radius, Types, ReqAttrs1, RespAttrs, N) when is_list(Like) ->
 	ReqAttrs2 = add_char(ReqAttrs1, {?UserName, {like, like(Like)}}),
-	characteristic(T, Protocol, Types, ReqAttrs2, RespAttrs);
+	characteristic(T, radius, Types, ReqAttrs2, RespAttrs, N);
+characteristic({"name", exact, "username"}, {"value", Op, UserName},
+		T, diameter, Types, '_', RespAttrs, N) when is_list(UserName) ->
+	VarMatch = build_var_match(N),
+	case lists:last(UserName) of
+		$% when Op == gte ->
+			Pre = lists:droplast(UserName),
+			Prefix = list_to_binary(Pre),
+			I = list_to_integer(Pre),
+			Prefix2 = integer_to_binary(I + 1),
+			ReqAttrs2 = [{#'3gpp_ro_CCR'{'Subscription-Id'
+					= [#'3gpp_ro_Subscription-Id'{'Subscription-Id-Data'
+					= VarMatch, _ = '_'}], _ = '_'},
+					[{'=<', Prefix, VarMatch}, {'>', Prefix2, VarMatch}]}];
+		_ when Op == exact ->
+			Prefix = list_to_binary(UserName),
+			ReqAttrs2 = [{#'3gpp_ro_CCR'{'Subscription-Id'
+					= [#'3gpp_ro_Subscription-Id'{'Subscription-Id-Data'
+					= Prefix, _ = '_'}], _ = '_'}, []}]
+	end,
+	characteristic(T, diameter, Types, ReqAttrs2, RespAttrs, N + 1);
+characteristic({"name", exact, "username"}, {"value", Op, UserName},
+		T, diameter, Types, [{CCR, _MC}], RespAttrs, N) when is_list(UserName) ->
+	VarMatch = build_var_match(N),
+	case lists:last(UserName) of
+		$% when Op == gte ->
+			Pre = lists:droplast(UserName),
+			Prefix = list_to_binary(Pre),
+			I = list_to_integer(Pre),
+			Prefix2 = integer_to_binary(I + 1),
+			ReqAttrs2 = [{CCR#'3gpp_ro_CCR'{'Subscription-Id'
+					= [#'3gpp_ro_Subscription-Id'{'Subscription-Id-Data'
+					= VarMatch, _ = '_'}]},
+					[{'=<', Prefix, VarMatch}, {'>', Prefix2, VarMatch}]}];
+		_ when Op == exact ->
+			Prefix = list_to_binary(UserName),
+			ReqAttrs2 = [{CCR#'3gpp_ro_CCR'{'Subscription-Id'
+					= [#'3gpp_ro_Subscription-Id'{'Subscription-Id-Data'
+					= Prefix, _ = '_'}]}, []}]
+	end,
+	characteristic(T, diameter, Types, ReqAttrs2, RespAttrs, N + 1);
 characteristic({"name", exact, "nasIpAddress"}, {"value", exact, NasIp},
-		T, Protocol, Types, ReqAttrs1, RespAttrs) when is_list(NasIp) ->
+		T, radius, Types, ReqAttrs1, RespAttrs, N) when is_list(NasIp) ->
 	ReqAttrs2 = add_char(ReqAttrs1, {?NasIpAddress, {exact, NasIp}}),
-	characteristic(T, Protocol, Types, ReqAttrs2, RespAttrs);
+	characteristic(T, radius, Types, ReqAttrs2, RespAttrs, N);
 characteristic({"name", exact, "nasIpAddress"}, {"value", like, Like},
-		T, Protocol, Types, ReqAttrs1, RespAttrs) when is_list(Like) ->
+		T, radius, Types, ReqAttrs1, RespAttrs, N) when is_list(Like) ->
 	ReqAttrs2 = add_char(ReqAttrs1, {?NasIpAddress, {like, like(Like)}}),
-	characteristic(T, Protocol, Types, ReqAttrs2, RespAttrs);
+	characteristic(T, radius, Types, ReqAttrs2, RespAttrs, N);
+characteristic({"name", exact, "nasIpAddress"}, {"value", exact, NasIp},
+		T, diameter, Types, '_', RespAttrs, N) when is_list(NasIp) ->
+	ReqAttrs2 = [{#'3gpp_ro_CCR'{'Origin-Host' = NasIp, _ = '_'}, []}],
+	characteristic(T, diameter, Types, ReqAttrs2, RespAttrs, N);
+characteristic({"name", exact, "nasIpAddress"}, {"value", exact, NasIp},
+		T, diameter, Types, [{CCR, _MC}], RespAttrs, N) when is_list(NasIp) ->
+	ReqAttrs2 = [{CCR#'3gpp_ro_CCR'{'Origin-Host' = NasIp}, []}],
+	characteristic(T, diameter, Types, ReqAttrs2, RespAttrs, N);
 characteristic({"name", exact, "nasPort"}, {"value", Op, NasPort},
-		T, Protocol, Types, ReqAttrs1, RespAttrs)
+		T, radius, Types, ReqAttrs1, RespAttrs, N)
 		when Op == exact; Op == lt; Op == lte; Op == gt; Op == gte ->
 	ReqAttrs2 = add_char(ReqAttrs1, {?NasPort, {Op, list_to_integer(NasPort)}}),
-	characteristic(T, Protocol, Types, ReqAttrs2, RespAttrs);
+	characteristic(T, radius, Types, ReqAttrs2, RespAttrs, N);
 characteristic({"name", exact, "serviceType"}, {"value", Op, ServiceType},
-		T, Protocol, Types, ReqAttrs1, RespAttrs)
+		T, radius, Types, ReqAttrs1, RespAttrs, N)
 		when Op == exact; Op == lt; Op == lte; Op == gt; Op == gte ->
 	ReqAttrs2 = add_char(ReqAttrs1, {?ServiceType, {Op, list_to_integer(ServiceType)}}),
-	characteristic(T, Protocol, Types, ReqAttrs2, RespAttrs);
+	characteristic(T, radius, Types, ReqAttrs2, RespAttrs, N);
+characteristic({"name", exact, "serviceType"}, {"value", exact, ServiceType},
+		T, diameter, Types, '_', RespAttrs, N) ->
+	ReqAttrs2 = [{#'3gpp_ro_CCR'{'Service-Context-Id' = ServiceType, _ = '_'}, []}],
+	characteristic(T, diameter, Types, ReqAttrs2, RespAttrs, N);
+characteristic({"name", exact, "serviceType"}, {"value", exact, ServiceType},
+		T, diameter, Types, [{CCR, _MC}], RespAttrs, N) ->
+	ReqAttrs2 = [{CCR#'3gpp_ro_CCR'{'Service-Context-Id' = ServiceType}, []}],
+	characteristic(T, diameter, Types, ReqAttrs2, RespAttrs, N);
+characteristic({"name", exact, "serviceType"}, {"value", lt, ServiceType},
+		T, diameter, Types, '_', RespAttrs, N) ->
+	VarMatch = build_var_match(N),
+	ReqAttrs2 = [{#'3gpp_ro_CCR'{'Service-Context-Id' = VarMatch, _ = '_'},
+			[{'<', VarMatch, ServiceType}]}],
+	characteristic(T, diameter, Types, ReqAttrs2, RespAttrs, N + 1);
+characteristic({"name", exact, "serviceType"}, {"value", lt, ServiceType},
+		T, diameter, Types, [{CCR, _MC}], RespAttrs, N) ->
+	VarMatch = build_var_match(N),
+	ReqAttrs2 = [{CCR#'3gpp_ro_CCR'{'Service-Context-Id' = VarMatch},
+			[{'<', VarMatch, ServiceType}]}],
+	characteristic(T, diameter, Types, ReqAttrs2, RespAttrs, N + 1);
+characteristic({"name", exact, "serviceType"}, {"value", lte, ServiceType},
+		T, diameter, Types, '_', RespAttrs, N) ->
+	VarMatch = build_var_match(N),
+	ReqAttrs2 = [{#'3gpp_ro_CCR'{'Service-Context-Id' = VarMatch, _ = '_'},
+			[{'=<', VarMatch, ServiceType}]}],
+	characteristic(T, diameter, Types, ReqAttrs2, RespAttrs, N + 1);
+characteristic({"name", exact, "serviceType"}, {"value", lte, ServiceType},
+		T, diameter, Types, [{CCR, _MC}], RespAttrs, N) ->
+	VarMatch = build_var_match(N),
+	ReqAttrs2 = [{CCR#'3gpp_ro_CCR'{'Service-Context-Id' = VarMatch},
+			[{'=<', VarMatch, ServiceType}]}],
+	characteristic(T, diameter, Types, ReqAttrs2, RespAttrs, N + 1);
+characteristic({"name", exact, "serviceType"}, {"value", gt, ServiceType},
+		T, diameter, Types, '_', RespAttrs, N) ->
+	VarMatch = build_var_match(N),
+	ReqAttrs2 = [{#'3gpp_ro_CCR'{'Service-Context-Id' = VarMatch, _ = '_'},
+			[{'>', VarMatch, ServiceType}]}],
+	characteristic(T, diameter, Types, ReqAttrs2, RespAttrs, N + 1);
+characteristic({"name", exact, "serviceType"}, {"value", gt, ServiceType},
+		T, diameter, Types, [{CCR, _MC}], RespAttrs, N) ->
+	VarMatch = build_var_match(N),
+	ReqAttrs2 = [{CCR#'3gpp_ro_CCR'{'Service-Context-Id' = VarMatch},
+			[{'>', VarMatch, ServiceType}]}],
+	characteristic(T, diameter, Types, ReqAttrs2, RespAttrs, N + 1);
+characteristic({"name", exact, "serviceType"}, {"value", gte, ServiceType},
+		T, diameter, Types, '_', RespAttrs, N) ->
+	VarMatch = build_var_match(N),
+	ReqAttrs2 = [{#'3gpp_ro_CCR'{'Service-Context-Id' = VarMatch, _ = '_'},
+			[{'=>', VarMatch, ServiceType}]}],
+	characteristic(T, diameter, Types, ReqAttrs2, RespAttrs, N + 1);
+characteristic({"name", exact, "serviceType"}, {"value", gte, ServiceType},
+		T, diameter, Types, [{CCR, _MC}], RespAttrs, N) ->
+	VarMatch = build_var_match(N),
+	ReqAttrs2 = [{CCR#'3gpp_ro_CCR'{'Service-Context-Id' = VarMatch},
+			[{'=>', VarMatch, ServiceType}]}],
+	characteristic(T, diameter, Types, ReqAttrs2, RespAttrs, N + 1);
 characteristic({"name", exact, "framedIpAddress"}, {"value", exact, FramedIp},
-		T, Protocol, Types, ReqAttrs1, RespAttrs) when is_list(FramedIp) ->
+		T, radius, Types, ReqAttrs1, RespAttrs, N) when is_list(FramedIp) ->
 	ReqAttrs2 = add_char(ReqAttrs1, {?FramedIpAddress, {exact, FramedIp}}),
-	characteristic(T, Protocol, Types, ReqAttrs2, RespAttrs);
+	characteristic(T, radius, Types, ReqAttrs2, RespAttrs, N);
 characteristic({"name", exact, "framedIpAddress"}, {"value", like, Like},
-		T, Protocol, Types, ReqAttrs1, RespAttrs) when is_list(Like) ->
+		T, radius, Types, ReqAttrs1, RespAttrs, N) when is_list(Like) ->
 	ReqAttrs2 = add_char(ReqAttrs1, {?FramedIpAddress, {like, like(Like)}}),
-	characteristic(T, Protocol, Types, ReqAttrs2, RespAttrs);
+	characteristic(T, radius, Types, ReqAttrs2, RespAttrs, N);
 characteristic({"name", exact, "framedPool"}, {"value", exact, FramedPool},
-		T, Protocol, Types, ReqAttrs1, RespAttrs) when is_list(FramedPool) ->
+		T, radius, Types, ReqAttrs1, RespAttrs, N) when is_list(FramedPool) ->
 	ReqAttrs2 = add_char(ReqAttrs1, {?FramedPool, {exact, FramedPool}}),
-	characteristic(T, Protocol, Types, ReqAttrs2, RespAttrs);
+	characteristic(T, radius, Types, ReqAttrs2, RespAttrs, N);
 characteristic({"name", exact, "framedPool"}, {"value", like, Like},
-		T, Protocol, Types, ReqAttrs1, RespAttrs) when is_list(Like) ->
+		T, radius, Types, ReqAttrs1, RespAttrs, N) when is_list(Like) ->
 	ReqAttrs2 = add_char(ReqAttrs1, {?FramedPool, {like, like(Like)}}),
-	characteristic(T, Protocol, Types, ReqAttrs2, RespAttrs);
+	characteristic(T, radius, Types, ReqAttrs2, RespAttrs, N);
 characteristic({"name", exact, "framedIpNetmask"}, {"value", exact, FramedIpNet},
-		T, Protocol, Types, ReqAttrs1, RespAttrs) when is_list(FramedIpNet) ->
+		T, radius, Types, ReqAttrs1, RespAttrs, N) when is_list(FramedIpNet) ->
 	ReqAttrs2 = add_char(ReqAttrs1, {?FramedIpNetmask, {exact, FramedIpNet}}),
-	characteristic(T, Protocol, Types, ReqAttrs2, RespAttrs);
+	characteristic(T, radius, Types, ReqAttrs2, RespAttrs, N);
 characteristic({"name", exact, "framedIpNetmask"}, {"value", like, Like},
-		T, Protocol, Types, ReqAttrs1, RespAttrs) when is_list(Like) ->
+		T, radius, Types, ReqAttrs1, RespAttrs, N) when is_list(Like) ->
 	ReqAttrs2 = add_char(ReqAttrs1, {?FramedIpNetmask, {like, like(Like)}}),
-	characteristic(T, Protocol, Types, ReqAttrs2, RespAttrs);
+	characteristic(T, radius, Types, ReqAttrs2, RespAttrs, N);
 characteristic({"name", exact, "framedRouting"}, {"value", exact, FramedRouting},
-		T, Protocol, Types, ReqAttrs1, RespAttrs) when is_list(FramedRouting) ->
+		T, radius, Types, ReqAttrs1, RespAttrs, N) when is_list(FramedRouting) ->
 	ReqAttrs2 = add_char(ReqAttrs1, {?FramedRouting, {exact, FramedRouting}}),
-	characteristic(T, Protocol, Types, ReqAttrs2, RespAttrs);
+	characteristic(T, radius, Types, ReqAttrs2, RespAttrs, N);
 characteristic({"name", exact, "framedRouting"}, {"value", like, Like},
-		T, Protocol, Types, ReqAttrs1, RespAttrs) when is_list(Like) ->
+		T, radius, Types, ReqAttrs1, RespAttrs, N) when is_list(Like) ->
 	ReqAttrs2 = add_char(ReqAttrs1, {?FramedRouting, {like, like(Like)}}),
-	characteristic(T, Protocol, Types, ReqAttrs2, RespAttrs);
+	characteristic(T, radius, Types, ReqAttrs2, RespAttrs, N);
 characteristic({"name", exact, "filterId"}, {"value", exact, FilterId},
-		T, Protocol, Types, ReqAttrs1, RespAttrs) when is_list(FilterId) ->
+		T, radius, Types, ReqAttrs1, RespAttrs, N) when is_list(FilterId) ->
 	ReqAttrs2 = add_char(ReqAttrs1, {?FilterId, {exact, FilterId}}),
-	characteristic(T, Protocol, Types, ReqAttrs2, RespAttrs);
+	characteristic(T, radius, Types, ReqAttrs2, RespAttrs, N);
 characteristic({"name", exact, "filterId"}, {"value", like, Like},
-		T, Protocol, Types, ReqAttrs1, RespAttrs) when is_list(Like) ->
+		T, radius, Types, ReqAttrs1, RespAttrs, N) when is_list(Like) ->
 	ReqAttrs2 = add_char(ReqAttrs1, {?FilterId, {like, like(Like)}}),
-	characteristic(T, Protocol, Types, ReqAttrs2, RespAttrs);
+	characteristic(T, radius, Types, ReqAttrs2, RespAttrs, N);
 characteristic({"name", exact, "framedMtu"}, {"value", Op, FramedMtu},
-		T, Protocol, Types, ReqAttrs1, RespAttrs) 
+		T, radius, Types, ReqAttrs1, RespAttrs, N)
 		when Op == exact; Op == lt; Op == lte; Op == gt; Op == gte ->
 	ReqAttrs2 = add_char(ReqAttrs1, {?FramedMtu, {Op, list_to_integer(FramedMtu)}}),
-	characteristic(T, Protocol, Types, ReqAttrs2, RespAttrs);
+	characteristic(T, radius, Types, ReqAttrs2, RespAttrs, N);
 characteristic({"name", exact, "framedRoute"}, {"value", exact, FramedRoute},
-		T, Protocol, Types, ReqAttrs1, RespAttrs) when is_list(FramedRoute) ->
+		T, radius, Types, ReqAttrs1, RespAttrs, N) when is_list(FramedRoute) ->
 	ReqAttrs2 = add_char(ReqAttrs1, {?FramedRoute, {exact, FramedRoute}}),
-	characteristic(T, Protocol, Types, ReqAttrs2, RespAttrs);
+	characteristic(T, radius, Types, ReqAttrs2, RespAttrs, N);
 characteristic({"name", exact, "framedRoute"}, {"value", like, Like},
-		T, Protocol, Types, ReqAttrs1, RespAttrs) when is_list(Like) ->
+		T, radius, Types, ReqAttrs1, RespAttrs, N) when is_list(Like) ->
 	ReqAttrs2 = add_char(ReqAttrs1, {?FramedRoute, {like, like(Like)}}),
-	characteristic(T, Protocol, Types, ReqAttrs2, RespAttrs);
+	characteristic(T, radius, Types, ReqAttrs2, RespAttrs, N);
 characteristic({"name", exact, "class"}, {"value", exact, Class},
-		T, Protocol, Types, ReqAttrs1, RespAttrs) when is_list(Class) ->
+		T, radius, Types, ReqAttrs1, RespAttrs, N) when is_list(Class) ->
 	ReqAttrs2 = add_char(ReqAttrs1, {?Class, {exact, Class}}),
-	characteristic(T, Protocol, Types, ReqAttrs2, RespAttrs);
+	characteristic(T, radius, Types, ReqAttrs2, RespAttrs, N);
 characteristic({"name", exact, "class"}, {"value", like, Like},
-		T, Protocol, Types, ReqAttrs1, RespAttrs) when is_list(Like) ->
+		T, radius, Types, ReqAttrs1, RespAttrs, N) when is_list(Like) ->
 	ReqAttrs2 = add_char(ReqAttrs1, {?Class, {like, like(Like)}}),
-	characteristic(T, Protocol, Types, ReqAttrs2, RespAttrs);
+	characteristic(T, radius, Types, ReqAttrs2, RespAttrs, N);
 characteristic({"name", exact, "sessionTimeout"}, {"value", Op, SessionTimout},
-		T, Protocol, Types, ReqAttrs1, RespAttrs) 
+		T, radius, Types, ReqAttrs1, RespAttrs, N)
 		when Op == exact; Op == lt; Op == lte; Op == gt; Op == gte ->
 	ReqAttrs2 = add_char(ReqAttrs1, {?SessionTimeout, {Op, list_to_integer(SessionTimout)}}),
-	characteristic(T, Protocol, Types, ReqAttrs2, RespAttrs);
+	characteristic(T, radius, Types, ReqAttrs2, RespAttrs, N);
 characteristic({"name", exact, "idleTimeout"}, {"value", Op, IdleTimeout},
-		T, Protocol, Types, ReqAttrs1, RespAttrs) 
+		T, radius, Types, ReqAttrs1, RespAttrs, N)
 		when Op == exact; Op == lt; Op == lte; Op == gt; Op == gte ->
 	ReqAttrs2 = add_char(ReqAttrs1, {?IdleTimeout, {Op, list_to_integer(IdleTimeout)}}),
-	characteristic(T, Protocol, Types, ReqAttrs2, RespAttrs);
+	characteristic(T, radius, Types, ReqAttrs2, RespAttrs, N);
 characteristic({"name", exact, "terminationAction"}, {"value", exact, TerminationAction},
-		T, Protocol, Types, ReqAttrs1, RespAttrs) when is_list(TerminationAction) ->
+		T, radius, Types, ReqAttrs1, RespAttrs, N) when is_list(TerminationAction) ->
 	ReqAttrs2 = add_char(ReqAttrs1, {?TerminationAction, {exact, TerminationAction}}),
-	characteristic(T, Protocol, Types, ReqAttrs2, RespAttrs);
+	characteristic(T, radius, Types, ReqAttrs2, RespAttrs, N);
 characteristic({"name", exact, "terminationAction"}, {"value", like, Like},
-		T, Protocol, Types, ReqAttrs1, RespAttrs) when is_list(Like) ->
+		T, radius, Types, ReqAttrs1, RespAttrs, N) when is_list(Like) ->
 	ReqAttrs2 = add_char(ReqAttrs1, {?TerminationAction, {like, like(Like)}}),
-	characteristic(T, Protocol, Types, ReqAttrs2, RespAttrs);
+	characteristic(T, radius, Types, ReqAttrs2, RespAttrs, N);
 characteristic({"name", exact, "calledStationId"}, {"value", exact, CalledStation},
-		T, Protocol, Types, ReqAttrs1, RespAttrs) when is_list(CalledStation) ->
+		T, radius, Types, ReqAttrs1, RespAttrs, N) when is_list(CalledStation) ->
 	ReqAttrs2 = add_char(ReqAttrs1, {?CalledStationId, {exact, CalledStation}}),
-	characteristic(T, Protocol, Types, ReqAttrs2, RespAttrs);
+	characteristic(T, radius, Types, ReqAttrs2, RespAttrs, N);
 characteristic({"name", exact, "calledStationId"}, {"value", like, Like},
-		T, Protocol, Types, ReqAttrs1, RespAttrs) when is_list(Like) ->
+		T, radius, Types, ReqAttrs1, RespAttrs, N) when is_list(Like) ->
 	ReqAttrs2 = add_char(ReqAttrs1, {?CalledStationId, {like, like(Like)}}),
-	characteristic(T, Protocol, Types, ReqAttrs2, RespAttrs);
+	characteristic(T, radius, Types, ReqAttrs2, RespAttrs, N);
+characteristic({"name", exact, "calledStationId"}, {"value", exact, CalledStation},
+		T, diameter, Types, '_', RespAttrs, N) when is_list(CalledStation) ->
+	ReqAttrs2 = [{#'3gpp_ro_CCR'{'Service-Information'
+			= [{'3gpp_ro_Service-Information', [],
+			[#'3gpp_ro_IMS-Information'{'Called-Party-Address'
+			= CalledStation, _ = '_'}]}], _ = '_'}, []}],
+	characteristic(T, diameter, Types, ReqAttrs2, RespAttrs, N);
+characteristic({"name", exact, "calledStationId"}, {"value", exact, CalledStation},
+		T, diameter, Types, [{CCR, _MC}], RespAttrs, N) when is_list(CalledStation) ->
+	ReqAttrs2 = [{CCR#'3gpp_ro_CCR'{'Service-Information'
+			= [{'3gpp_ro_Service-Information', [],
+			[#'3gpp_ro_IMS-Information'{'Called-Party-Address'
+			= CalledStation, _ = '_'}]}]}, []}],
+	characteristic(T, diameter, Types, ReqAttrs2, RespAttrs, N);
 characteristic({"name", exact, "callingStationId"}, {"value", exact, CallingStation},
-		T, Protocol, Types, ReqAttrs1, RespAttrs) when is_list(CallingStation) ->
+		T, radius, Types, ReqAttrs1, RespAttrs, N) when is_list(CallingStation) ->
 	ReqAttrs2 = add_char(ReqAttrs1, {?CallingStationId, {exact, CallingStation}}),
-	characteristic(T, Protocol, Types, ReqAttrs2, RespAttrs);
+	characteristic(T, radius, Types, ReqAttrs2, RespAttrs, N);
 characteristic({"name", exact, "callingStationId"}, {"value", like, Like},
-		T, Protocol, Types, ReqAttrs1, RespAttrs) when is_list(Like) ->
+		T, radius, Types, ReqAttrs1, RespAttrs, N) when is_list(Like) ->
 	ReqAttrs2 = add_char(ReqAttrs1, {?CallingStationId, {like, like(Like)}}),
-	characteristic(T, Protocol, Types, ReqAttrs2, RespAttrs);
+	characteristic(T, radius, Types, ReqAttrs2, RespAttrs, N);
+characteristic({"name", exact, "callingStationId"}, {"value", exact, CallingStation},
+		T, diameter, Types, '_', RespAttrs, N) when is_list(CallingStation) ->
+	ReqAttrs2 = [{#'3gpp_ro_CCR'{'Service-Information'
+			= [{'3gpp_ro_Service-Information', [],
+			[#'3gpp_ro_IMS-Information'{'Calling-Party-Address'
+			= CallingStation, _ = '_'}]}], _ = '_'}, []}],
+	characteristic(T, diameter, Types, ReqAttrs2, RespAttrs, N);
+characteristic({"name", exact, "callingStationId"}, {"value", exact, CallingStation},
+		T, diameter, Types, [{CCR, _MC}], RespAttrs, N) when is_list(CallingStation) ->
+	ReqAttrs2 = [{CCR#'3gpp_ro_CCR'{'Service-Information'
+			= [{'3gpp_ro_Service-Information', [],
+			[#'3gpp_ro_IMS-Information'{'Calling-Party-Address'
+			= CallingStation, _ = '_'}]}]}, []}],
+	characteristic(T, diameter, Types, ReqAttrs2, RespAttrs, N);
 characteristic({"name", exact, "nasIdentifier"}, {"value", exact, NasId},
-		T, Protocol, Types, ReqAttrs1, RespAttrs) when is_list(NasId) ->
+		T, radius, Types, ReqAttrs1, RespAttrs, N) when is_list(NasId) ->
 	ReqAttrs2 = add_char(ReqAttrs1, {?NasIdentifier, {exact, NasId}}),
-	characteristic(T, Protocol, Types, ReqAttrs2, RespAttrs);
+	characteristic(T, radius, Types, ReqAttrs2, RespAttrs, N);
 characteristic({"name", exact, "nasIdentifier"}, {"value", like, Like},
-		T, Protocol, Types, ReqAttrs1, RespAttrs) when is_list(Like) ->
+		T, radius, Types, ReqAttrs1, RespAttrs, N) when is_list(Like) ->
 	ReqAttrs2 = add_char(ReqAttrs1, {?NasIdentifier, {like, like(Like)}}),
-	characteristic(T, Protocol, Types, ReqAttrs2, RespAttrs);
+	characteristic(T, radius, Types, ReqAttrs2, RespAttrs, N);
+characteristic({"name", exact, "nasIdentifier"}, {"value", Op, [NasId]},
+		T, diameter, Types, '_', RespAttrs, N) when is_list(NasId) ->
+	case lists:last(NasId) of
+		$% when Op == like ->
+			VarMatch = build_var_match(N),
+			Prefix = list_to_binary(lists:droplast(NasId)),
+			Pre = binary:part(Prefix, 0, byte_size(Prefix) -1),
+			Byte = binary:last(Prefix)+1,
+			Prefix2 = <<Pre/binary, Byte>>,
+			ReqAttrs2 = [{#'3gpp_ro_CCR'{'Service-Information'
+					= [{'3gpp_ro_Service-Information', [],
+					[#'3gpp_ro_IMS-Information'{'Inter-Operator-Identifier'
+					= [#'3gpp_ro_Inter-Operator-Identifier'{'Originating-IOI'
+					= [VarMatch], _ = '_'}], _ = '_'}]}], _ = '_'},
+					[{'=<', Prefix, VarMatch}, {'>', Prefix2, VarMatch}]}];
+		_ when Op == exact ->
+			Prefix = list_to_binary(NasId),
+			ReqAttrs2 = [{#'3gpp_ro_CCR'{'Service-Information'
+					= [{'3gpp_ro_Service-Information', [],
+					[#'3gpp_ro_IMS-Information'{'Inter-Operator-Identifier'
+					= [#'3gpp_ro_Inter-Operator-Identifier'{'Originating-IOI'
+					= [Prefix], _ = '_'}], _ = '_'}]}], _ = '_'}, []}]
+	end,
+	characteristic(T, diameter, Types, ReqAttrs2, RespAttrs, N + 1);
+characteristic({"name", exact, "nasIdentifier"}, {"value", Op, NasId},
+		T, diameter, Types, [{CCR, _MC}], RespAttrs, N) when is_list(NasId) ->
+	case lists:last(NasId) of
+		$% when Op == like ->
+			VarMatch = build_var_match(N),
+			Prefix = list_to_binary(lists:droplast(NasId)),
+			Pre = binary:part(Prefix, 0, byte_size(Prefix) -1),
+			Byte = binary:last(Prefix)+1,
+			Prefix2 = <<Pre/binary, Byte>>,
+			ReqAttrs2 = [{CCR#'3gpp_ro_CCR'{'Service-Information'
+					= [{'3gpp_ro_Service-Information', [],
+					[#'3gpp_ro_IMS-Information'{'Inter-Operator-Identifier'
+					= [#'3gpp_ro_Inter-Operator-Identifier'{'Originating-IOI'
+					= [VarMatch], _ = '_'}]}]}]},
+					[{'=<', Prefix, VarMatch}, {'>', Prefix2, VarMatch}]}];
+		_ when Op == exact ->
+			Prefix = list_to_binary(NasId),
+			ReqAttrs2 = [{CCR#'3gpp_ro_CCR'{'Service-Information'
+					= [{'3gpp_ro_Service-Information', [],
+					[#'3gpp_ro_IMS-Information'{'Inter-Operator-Identifier'
+					= [#'3gpp_ro_Inter-Operator-Identifier'{'Originating-IOI'
+					= [Prefix], _ = '_'}]}]}]}, []}]
+	end,
+	characteristic(T, diameter, Types, ReqAttrs2, RespAttrs, N + 1);
 characteristic({"name", exact, "nasPortId"}, {"value", exact, NasPortId},
-		T, Protocol, Types, ReqAttrs1, RespAttrs) when is_list(NasPortId) ->
+		T, radius, Types, ReqAttrs1, RespAttrs, N) when is_list(NasPortId) ->
 	ReqAttrs2 = add_char(ReqAttrs1, {?NasPortId, {exact, NasPortId}}),
-	characteristic(T, Protocol, Types, ReqAttrs2, RespAttrs);
+	characteristic(T, radius, Types, ReqAttrs2, RespAttrs, N);
 characteristic({"name", exact, "nasPortId"}, {"value", like, Like},
-		T, Protocol, Types, ReqAttrs1, RespAttrs) when is_list(Like) ->
+		T, radius, Types, ReqAttrs1, RespAttrs, N) when is_list(Like) ->
 	ReqAttrs2 = add_char(ReqAttrs1, {?NasPortId, {like, like(Like)}}),
-	characteristic(T, Protocol, Types, ReqAttrs2, RespAttrs);
+	characteristic(T, radius, Types, ReqAttrs2, RespAttrs, N);
 characteristic({"name", exact, "nasPortType"}, {"value", exact, NasPortType},
-		T, Protocol, Types, ReqAttrs1, RespAttrs) when is_list(NasPortType) ->
+		T, radius, Types, ReqAttrs1, RespAttrs, N) when is_list(NasPortType) ->
 	ReqAttrs2 = add_char(ReqAttrs1, {?NasPortType, {exact, NasPortType}}),
-	characteristic(T, Protocol, Types, ReqAttrs2, RespAttrs);
+	characteristic(T, radius, Types, ReqAttrs2, RespAttrs, N);
 characteristic({"name", exact, "nasPortType"}, {"value", like, Like},
-		T, Protocol, Types, ReqAttrs1, RespAttrs) when is_list(Like) ->
+		T, radius, Types, ReqAttrs1, RespAttrs, N) when is_list(Like) ->
 	ReqAttrs2 = add_char(ReqAttrs1, {?NasPortType, {like, like(Like)}}),
-	characteristic(T, Protocol, Types, ReqAttrs2, RespAttrs);
+	characteristic(T, radius, Types, ReqAttrs2, RespAttrs, N);
 characteristic({"name", exact, "portLimit"}, {"value", Op, PortLimit},
-		T, Protocol, Types, ReqAttrs1, RespAttrs) 
+		T, radius, Types, ReqAttrs1, RespAttrs, N)
 		when Op == exact; Op == lt; Op == lte; Op == gt; Op == gte ->
 	ReqAttrs2 = add_char(ReqAttrs1, {?PortLimit, {Op, list_to_integer(PortLimit)}}),
-	characteristic(T, Protocol, Types, ReqAttrs2, RespAttrs);
+	characteristic(T, radius, Types, ReqAttrs2, RespAttrs, N);
 characteristic({"name", exact, "acctDelayTime"}, {"value", Op, AcctDelayTime},
-		T, Protocol, Types, ReqAttrs1, RespAttrs) 
+		T, radius, Types, ReqAttrs1, RespAttrs, N)
 		when Op == exact; Op == lt; Op == lte; Op == gt; Op == gte ->
 	ReqAttrs2 = add_char(ReqAttrs1, {?PortLimit, {Op, list_to_integer(AcctDelayTime)}}),
-	characteristic(T, Protocol, Types, ReqAttrs2, RespAttrs);
+	characteristic(T, radius, Types, ReqAttrs2, RespAttrs, N);
 characteristic({"name", exact, "acctSessionId"}, {"value", exact, AcctSessionId},
-		T, Protocol, Types, ReqAttrs1, RespAttrs) when is_list(AcctSessionId) ->
+		T, radius, Types, ReqAttrs1, RespAttrs, N) when is_list(AcctSessionId) ->
 	ReqAttrs2 = add_char(ReqAttrs1, {?AcctSessionId, {exact, AcctSessionId}}),
-	characteristic(T, Protocol, Types, ReqAttrs2, RespAttrs);
+	characteristic(T, radius, Types, ReqAttrs2, RespAttrs, N);
 characteristic({"name", exact, "acctSessionId"}, {"value", like, Like},
-		T, Protocol, Types, ReqAttrs1, RespAttrs) when is_list(Like) ->
+		T, radius, Types, ReqAttrs1, RespAttrs, N) when is_list(Like) ->
 	ReqAttrs2 = add_char(ReqAttrs1, {?AcctSessionId, {like, like(Like)}}),
-	characteristic(T, Protocol, Types, ReqAttrs2, RespAttrs);
+	characteristic(T, radius, Types, ReqAttrs2, RespAttrs, N);
+characteristic({"name", exact, "acctSessionId"}, {"value", exact, AcctSessionId},
+		T, diameter, Types, '_', RespAttrs, N) when is_list(AcctSessionId) ->
+	ReqAttrs2 = [{#'3gpp_ro_CCR'{'Session-Id' = AcctSessionId, _ = '_'}, []}],
+	characteristic(T, diameter, Types, ReqAttrs2, RespAttrs, N);
+characteristic({"name", exact, "acctSessionId"}, {"value", exact, AcctSessionId},
+		T, diameter, Types, [{CCR, _MC}], RespAttrs, N) when is_list(AcctSessionId) ->
+	ReqAttrs2 = [{CCR#'3gpp_ro_CCR'{'Session-Id' = AcctSessionId}, []}],
+	characteristic(T, diameter, Types, ReqAttrs2, RespAttrs, N);
 characteristic({"name", exact, "acctMultiSessionId"}, {"value", exact, AcctMultiSessionId},
-		T, Protocol, Types, ReqAttrs1, RespAttrs) when is_list(AcctMultiSessionId) ->
+		T, radius, Types, ReqAttrs1, RespAttrs, N) when is_list(AcctMultiSessionId) ->
 	ReqAttrs2 = add_char(ReqAttrs1, {?AcctMultiSessionId, {exact, AcctMultiSessionId}}),
-	characteristic(T, Protocol, Types, ReqAttrs2, RespAttrs);
+	characteristic(T, radius, Types, ReqAttrs2, RespAttrs, N);
 characteristic({"name", exact, "acctMultiSessionId"}, {"value", like, Like},
-		T, Protocol, Types, ReqAttrs1, RespAttrs) when is_list(Like) ->
+		T, radius, Types, ReqAttrs1, RespAttrs, N) when is_list(Like) ->
 	ReqAttrs2 = add_char(ReqAttrs1, {?AcctMultiSessionId, {like, like(Like)}}),
-	characteristic(T, Protocol, Types, ReqAttrs2, RespAttrs);
+	characteristic(T, radius, Types, ReqAttrs2, RespAttrs, N);
 characteristic({"name", exact, "acctLinkCount"}, {"value", Op, AcctLinkCount},
-		T, Protocol, Types, ReqAttrs1, RespAttrs) 
+		T, radius, Types, ReqAttrs1, RespAttrs, N)
 		when Op == exact; Op == lt; Op == lte; Op == gt; Op == gte ->
 	ReqAttrs2 = add_char(ReqAttrs1, {?AcctLinkCount, {Op, list_to_integer(AcctLinkCount)}}),
-	characteristic(T, Protocol, Types, ReqAttrs2, RespAttrs);
+	characteristic(T, radius, Types, ReqAttrs2, RespAttrs, N);
 characteristic({"name", exact, "acctAuthentic"}, {"value", exact, AcctAuth},
-		T, Protocol, Types, ReqAttrs1, RespAttrs) when is_list(AcctAuth) ->
+		T, radius, Types, ReqAttrs1, RespAttrs, N) when is_list(AcctAuth) ->
 	ReqAttrs2 = add_char(ReqAttrs1, {?AcctAuthentic, {exact, AcctAuth}}),
-	characteristic(T, Protocol, Types, ReqAttrs2, RespAttrs);
+	characteristic(T, radius, Types, ReqAttrs2, RespAttrs, N);
 characteristic({"name", exact, "acctAuthentic"}, {"value", like, Like},
-		T, Protocol, Types, ReqAttrs1, RespAttrs) when is_list(Like) ->
+		T, radius, Types, ReqAttrs1, RespAttrs, N) when is_list(Like) ->
 	ReqAttrs2 = add_char(ReqAttrs1, {?AcctAuthentic, {like, like(Like)}}),
-	characteristic(T, Protocol, Types, ReqAttrs2, RespAttrs);
+	characteristic(T, radius, Types, ReqAttrs2, RespAttrs, N);
 characteristic({"name", exact, "acctSessionTime"}, {"value", Op, AcctSessionTime},
-		T, Protocol, Types, ReqAttrs1, RespAttrs) 
+		T, radius, Types, ReqAttrs1, RespAttrs, N)
 		when Op == exact; Op == lt; Op == lte; Op == gt; Op == gte ->
 	ReqAttrs2 = add_char(ReqAttrs1, {?AcctSessionTime, {Op, list_to_integer(AcctSessionTime)}}),
-	characteristic(T, Protocol, Types, ReqAttrs2, RespAttrs);
+	characteristic(T, radius, Types, ReqAttrs2, RespAttrs, N);
+characteristic({"name", exact, "acctSessiontime"}, {"value", exact, AcctSessionTime},
+		T, diameter, Types, '_', RespAttrs, N) ->
+	case lists:last(AcctSessionTime) of
+		$% ->
+			Prefix = list_to_integer(lists:droplast(AcctSessionTime)),
+			ReqAttrs2 = [{#'3gpp_ro_CCR'{'Multiple-Services-Credit-Control'
+					= [#'3gpp_ro_Multiple-Services-Credit-Control'{'Used-Service-Unit'
+					= [#'3gpp_ro_Used-Service-Unit'{'CC-Time'
+					= [Prefix], _ = '_'}], _ = '_'}], _ = '_'}, []}];
+		_ ->
+			Prefix = list_to_integer(AcctSessionTime),
+			ReqAttrs2 = [{#'3gpp_ro_CCR'{'Multiple-Services-Credit-Control'
+					= [#'3gpp_ro_Multiple-Services-Credit-Control'{'Used-Service-Unit'
+					= [#'3gpp_ro_Used-Service-Unit'{'CC-Time'
+					= [Prefix], _ = '_'}], _ = '_'}], _ = '_'}, []}]
+	end,
+	characteristic(T, diameter, Types, ReqAttrs2, RespAttrs, N);
+characteristic({"name", exact, "acctSessiontime"}, {"value", exact, AcctSessionTime},
+		T, diameter, Types, [{CCR, _MC}], RespAttrs, N) ->
+	case lists:last(AcctSessionTime) of
+		$% ->
+			Prefix = list_to_integer(lists:droplast(AcctSessionTime)),
+			ReqAttrs2 = [{CCR#'3gpp_ro_CCR'{'Multiple-Services-Credit-Control'
+					= [#'3gpp_ro_Multiple-Services-Credit-Control'{'Used-Service-Unit'
+					= [#'3gpp_ro_Used-Service-Unit'{'CC-Time' = [Prefix], _ = '_'}]}]}, []}];
+		_ ->
+			Prefix = list_to_integer(AcctSessionTime),
+			ReqAttrs2 = [{CCR#'3gpp_ro_CCR'{'Multiple-Services-Credit-Control'
+					= [#'3gpp_ro_Multiple-Services-Credit-Control'{'Used-Service-Unit'
+					= [#'3gpp_ro_Used-Service-Unit'{'CC-Time' = [Prefix], _ = '_'}]}]}, []}]
+	end,
+	characteristic(T, diameter, Types, ReqAttrs2, RespAttrs, N);
+characteristic({"name", exact, "acctSessiontime"}, {"value", lt, AcctSessionTime},
+		T, diameter, Types, '_', RespAttrs, N) ->
+	VarMatch = build_var_match(N),
+	case lists:last(AcctSessionTime) of
+		$% ->
+			Prefix = list_to_integer(lists:droplast(AcctSessionTime)),
+			ReqAttrs2 = [{#'3gpp_ro_CCR'{'Multiple-Services-Credit-Control'
+					= [#'3gpp_ro_Multiple-Services-Credit-Control'{'Used-Service-Unit'
+					= [#'3gpp_ro_Used-Service-Unit'{'CC-Time'
+					= [VarMatch], _ = '_'}], _ = '_'}], _ = '_'}, [{'<', VarMatch, Prefix}]}];
+		_ ->
+			Prefix = list_to_integer(AcctSessionTime),
+			ReqAttrs2 = [{#'3gpp_ro_CCR'{'Multiple-Services-Credit-Control'
+					= [#'3gpp_ro_Multiple-Services-Credit-Control'{'Used-Service-Unit'
+					= [#'3gpp_ro_Used-Service-Unit'{'CC-Time'
+					= [Prefix], _ = '_'}], _ = '_'}], _ = '_'}, []}]
+	end,
+	characteristic(T, diameter, Types, ReqAttrs2, RespAttrs, N + 1);
+characteristic({"name", exact, "acctSessiontime"}, {"value", lt, AcctSessionTime},
+		T, diameter, Types, [{CCR, _MC}], RespAttrs, N) ->
+	VarMatch = build_var_match(N),
+	case lists:last(AcctSessionTime) of
+		$% ->
+			Prefix = list_to_integer(lists:droplast(AcctSessionTime)),
+			ReqAttrs2 = [{CCR#'3gpp_ro_CCR'{'Multiple-Services-Credit-Control'
+					= [#'3gpp_ro_Multiple-Services-Credit-Control'{'Used-Service-Unit'
+					= [#'3gpp_ro_Used-Service-Unit'{'CC-Time'
+					= [VarMatch], _ = '_'}]}]}, [{'<', VarMatch, Prefix}]}];
+		_ ->
+			Prefix = list_to_integer(AcctSessionTime),
+			ReqAttrs2 = [{CCR#'3gpp_ro_CCR'{'Multiple-Services-Credit-Control'
+					= [#'3gpp_ro_Multiple-Services-Credit-Control'{'Used-Service-Unit'
+					= [#'3gpp_ro_Used-Service-Unit'{'CC-Time' = [Prefix], _ = '_'}]}]}, []}]
+	end,
+	characteristic(T, diameter, Types, ReqAttrs2, RespAttrs, N + 1);
+characteristic({"name", exact, "acctSessiontime"}, {"value", lte, AcctSessionTime},
+		T, diameter, Types, '_', RespAttrs, N) ->
+	VarMatch = build_var_match(N),
+	case lists:last(AcctSessionTime) of
+		$% ->
+			Prefix = list_to_integer(lists:droplast(AcctSessionTime)),
+			ReqAttrs2 = [{#'3gpp_ro_CCR'{'Multiple-Services-Credit-Control'
+					= [#'3gpp_ro_Multiple-Services-Credit-Control'{'Used-Service-Unit'
+					= [#'3gpp_ro_Used-Service-Unit'{'CC-Time'
+					= [VarMatch], _ = '_'}], _ = '_'}], _ = '_'}, [{'=<', VarMatch, Prefix}]}];
+		_ ->
+			Prefix = list_to_integer(AcctSessionTime),
+			ReqAttrs2 = [{#'3gpp_ro_CCR'{'Multiple-Services-Credit-Control'
+					= [#'3gpp_ro_Multiple-Services-Credit-Control'{'Used-Service-Unit'
+					= [#'3gpp_ro_Used-Service-Unit'{'CC-Time'
+					= [Prefix], _ = '_'}], _ = '_'}], _ = '_'}, []}]
+	end,
+	characteristic(T, diameter, Types, ReqAttrs2, RespAttrs, N + 1);
+characteristic({"name", exact, "acctSessiontime"}, {"value", lte, AcctSessionTime},
+		T, diameter, Types, [{CCR, _MC}], RespAttrs, N) ->
+	VarMatch = build_var_match(N),
+	case lists:last(AcctSessionTime) of
+		$% ->
+			Prefix = list_to_integer(lists:droplast(AcctSessionTime)),
+			ReqAttrs2 = [{CCR#'3gpp_ro_CCR'{'Multiple-Services-Credit-Control'
+					= [#'3gpp_ro_Multiple-Services-Credit-Control'{'Used-Service-Unit'
+					= [#'3gpp_ro_Used-Service-Unit'{'CC-Time'
+					= [VarMatch], _ = '_'}]}]}, [{'=<', VarMatch, Prefix}]}];
+		_ ->
+			Prefix = list_to_integer(AcctSessionTime),
+			ReqAttrs2 = [{CCR#'3gpp_ro_CCR'{'Multiple-Services-Credit-Control'
+					= [#'3gpp_ro_Multiple-Services-Credit-Control'{'Used-Service-Unit'
+					= [#'3gpp_ro_Used-Service-Unit'{'CC-Time' = [Prefix], _ = '_'}]}]}, []}]
+	end,
+	characteristic(T, diameter, Types, ReqAttrs2, RespAttrs, N + 1);
+characteristic({"name", exact, "acctSessiontime"}, {"value", gt, AcctSessionTime},
+		T, diameter, Types, '_', RespAttrs, N) ->
+	VarMatch = build_var_match(N),
+	case lists:last(AcctSessionTime) of
+		$% ->
+			Prefix = list_to_integer(lists:droplast(AcctSessionTime)),
+			ReqAttrs2 = [{#'3gpp_ro_CCR'{'Multiple-Services-Credit-Control'
+					= [#'3gpp_ro_Multiple-Services-Credit-Control'{'Used-Service-Unit'
+					= [#'3gpp_ro_Used-Service-Unit'{'CC-Time'
+					= [VarMatch], _ = '_'}], _ = '_'}], _ = '_'}, [{'>', VarMatch, Prefix}]}];
+		_ ->
+			Prefix = list_to_integer(AcctSessionTime),
+			ReqAttrs2 = [{#'3gpp_ro_CCR'{'Multiple-Services-Credit-Control' = [#'3gpp_ro_Multiple-Services-Credit-Control'{'Used-Service-Unit'
+					= [#'3gpp_ro_Used-Service-Unit'{'CC-Time' = [Prefix], _ = '_'}], _ = '_'}], _ = '_'}, []}]
+	end,
+	characteristic(T, diameter, Types, ReqAttrs2, RespAttrs, N + 1);
+characteristic({"name", exact, "acctSessiontime"}, {"value", gt, AcctSessionTime},
+		T, diameter, Types, [{CCR, _MC}], RespAttrs, N) ->
+	VarMatch = build_var_match(N),
+	case lists:last(AcctSessionTime) of
+		$% ->
+			Prefix = list_to_integer(lists:droplast(AcctSessionTime)),
+			ReqAttrs2 = [{CCR#'3gpp_ro_CCR'{'Multiple-Services-Credit-Control'
+					= [#'3gpp_ro_Multiple-Services-Credit-Control'{'Used-Service-Unit'
+					= [#'3gpp_ro_Used-Service-Unit'{'CC-Time'
+					= [VarMatch], _ = '_'}]}]}, [{'>', VarMatch, Prefix}]}];
+		_ ->
+			Prefix = list_to_integer(AcctSessionTime),
+			ReqAttrs2 = [{CCR#'3gpp_ro_CCR'{'Multiple-Services-Credit-Control'
+					= [#'3gpp_ro_Multiple-Services-Credit-Control'{'Used-Service-Unit'
+					= [#'3gpp_ro_Used-Service-Unit'{'CC-Time' = [Prefix], _ = '_'}]}]}, []}]
+	end,
+	characteristic(T, diameter, Types, ReqAttrs2, RespAttrs, N + 1);
+characteristic({"name", exact, "acctSessiontime"}, {"value", gte, AcctSessionTime},
+		T, diameter, Types, '_', RespAttrs, N) ->
+	VarMatch = build_var_match(N),
+	case lists:last(AcctSessionTime) of
+		$% ->
+			Prefix = list_to_integer(lists:droplast(AcctSessionTime)),
+			ReqAttrs2 = [{#'3gpp_ro_CCR'{'Multiple-Services-Credit-Control'
+					= [#'3gpp_ro_Multiple-Services-Credit-Control'{'Used-Service-Unit'
+					= [#'3gpp_ro_Used-Service-Unit'{'CC-Time'
+					= [VarMatch], _ = '_'}], _ = '_'}], _ = '_'}, [{'>=', VarMatch, Prefix}]}];
+		_ ->
+			Prefix = list_to_integer(AcctSessionTime),
+			ReqAttrs2 = [{#'3gpp_ro_CCR'{'Multiple-Services-Credit-Control'
+					= [#'3gpp_ro_Multiple-Services-Credit-Control'{'Used-Service-Unit'
+					= [#'3gpp_ro_Used-Service-Unit'{'CC-Time'
+					= [Prefix], _ = '_'}], _ = '_'}], _ = '_'}, []}]
+	end,
+	characteristic(T, diameter, Types, ReqAttrs2, RespAttrs, N + 1);
+characteristic({"name", exact, "acctSessiontime"}, {"value", gte, AcctSessionTime},
+		T, diameter, Types, [{CCR, _MC}], RespAttrs, N) ->
+	VarMatch = build_var_match(N),
+	case lists:last(AcctSessionTime) of
+		$% ->
+			Prefix = list_to_integer(lists:droplast(AcctSessionTime)),
+			ReqAttrs2 = [{CCR#'3gpp_ro_CCR'{'Multiple-Services-Credit-Control'
+					= [#'3gpp_ro_Multiple-Services-Credit-Control'{'Used-Service-Unit'
+					= [#'3gpp_ro_Used-Service-Unit'{'CC-Time'
+					= [VarMatch], _ = '_'}]}]}, [{'>=', VarMatch, Prefix}]}];
+		_ ->
+			Prefix = list_to_integer(AcctSessionTime),
+			ReqAttrs2 = [{CCR#'3gpp_ro_CCR'{'Multiple-Services-Credit-Control'
+					= [#'3gpp_ro_Multiple-Services-Credit-Control'{'Used-Service-Unit'
+					= [#'3gpp_ro_Used-Service-Unit'{'CC-Time' = [Prefix], _ = '_'}]}]}, []}]
+	end,
+	characteristic(T, diameter, Types, ReqAttrs2, RespAttrs, N + 1);
 characteristic({"name", exact, "acctInputGigawords"}, {"value", Op, InputGiga},
-		T, Protocol, Types, ReqAttrs1, RespAttrs) 
+		T, radius, Types, ReqAttrs1, RespAttrs, N)
 		when Op == exact; Op == lt; Op == lte; Op == gt; Op == gte ->
 	ReqAttrs2 = add_char(ReqAttrs1, {?AcctInputGigawords, {Op, list_to_integer(InputGiga)}}),
-	characteristic(T, Protocol, Types, ReqAttrs2, RespAttrs);
+	characteristic(T, radius, Types, ReqAttrs2, RespAttrs, N);
 characteristic({"name", exact, "acctOutputGigawords"}, {"value", Op, OutputGiga},
-		T, Protocol, Types, ReqAttrs1, RespAttrs) 
+		T, radius, Types, ReqAttrs1, RespAttrs, N)
 		when Op == exact; Op == lt; Op == lte; Op == gt; Op == gte ->
 	ReqAttrs2 = add_char(ReqAttrs1, {?AcctOutputGigawords, {Op, list_to_integer(OutputGiga)}}),
-	characteristic(T, Protocol, Types, ReqAttrs2, RespAttrs);
+	characteristic(T, radius, Types, ReqAttrs2, RespAttrs, N);
 characteristic({"name", exact, "acctInputOctets"}, {"value", Op, InputOctets},
-		T, Protocol, Types, ReqAttrs1, RespAttrs) 
+		T, radius, Types, ReqAttrs1, RespAttrs, N)
 		when Op == exact; Op == lt; Op == lte; Op == gt; Op == gte ->
 	ReqAttrs2 = add_char(ReqAttrs1, {?AcctInputPackets, {Op, list_to_integer(InputOctets)}}),
-	characteristic(T, Protocol, Types, ReqAttrs2, RespAttrs);
+	characteristic(T, radius, Types, ReqAttrs2, RespAttrs, N);
+characteristic({"name", exact, "acctInputoctets"}, {"value", exact, InputOctets},
+		T, diameter, Types, '_', RespAttrs, N) ->
+	case lists:last(InputOctets) of
+		$% ->
+			Prefix = list_to_integer(lists:droplast(InputOctets)),
+			ReqAttrs2 = [{#'3gpp_ro_CCR'{'Multiple-Services-Credit-Control'
+					= [#'3gpp_ro_Multiple-Services-Credit-Control'{'Used-Service-Unit'
+					= [#'3gpp_ro_Used-Service-Unit'{'CC-Input-Octets'
+					= [Prefix], _ = '_'}], _ = '_'}], _ = '_'}, []}];
+		_ ->
+			Prefix = list_to_integer(InputOctets),
+			ReqAttrs2 = [{#'3gpp_ro_CCR'{'Multiple-Services-Credit-Control'
+					= [#'3gpp_ro_Multiple-Services-Credit-Control'{'Used-Service-Unit'
+					= [#'3gpp_ro_Used-Service-Unit'{'CC-Input-Octets'
+					= [Prefix], _ = '_'}], _ = '_'}], _ = '_'}, []}]
+	end,
+	characteristic(T, diameter, Types, ReqAttrs2, RespAttrs, N);
+characteristic({"name", exact, "acctInputoctets"}, {"value", exact, InputOctets},
+		T, diameter, Types, [{CCR, _MC}], RespAttrs, N) ->
+	case lists:last(InputOctets) of
+		$% ->
+			Prefix = list_to_integer(lists:droplast(InputOctets)),
+			ReqAttrs2 = [{CCR#'3gpp_ro_CCR'{'Multiple-Services-Credit-Control'
+					= [#'3gpp_ro_Multiple-Services-Credit-Control'{'Used-Service-Unit'
+					= [#'3gpp_ro_Used-Service-Unit'{'CC-Input-Octets'
+					= [Prefix], _ = '_'}]}]}, []}];
+		_ ->
+			Prefix = list_to_integer(InputOctets),
+			ReqAttrs2 = [{CCR#'3gpp_ro_CCR'{'Multiple-Services-Credit-Control'
+					= [#'3gpp_ro_Multiple-Services-Credit-Control'{'Used-Service-Unit'
+					= [#'3gpp_ro_Used-Service-Unit'{'CC-Input-Octets'
+					= [Prefix], _ = '_'}]}]}, []}]
+	end,
+	characteristic(T, diameter, Types, ReqAttrs2, RespAttrs, N);
+characteristic({"name", exact, "acctInputoctets"}, {"value", lt, InputOctets},
+		T, diameter, Types, '_', RespAttrs, N) ->
+	VarMatch = build_var_match(N),
+	case lists:last(InputOctets) of
+		$% ->
+			Prefix = list_to_integer(lists:droplast(InputOctets)),
+			ReqAttrs2 = [{#'3gpp_ro_CCR'{'Multiple-Services-Credit-Control'
+					= [#'3gpp_ro_Multiple-Services-Credit-Control'{'Used-Service-Unit'
+					= [#'3gpp_ro_Used-Service-Unit'{'CC-Input-Octets'
+					= [VarMatch], _ = '_'}], _ = '_'}], _ = '_'}, [{'<', VarMatch, Prefix}]}];
+		_ ->
+			Prefix = list_to_integer(InputOctets),
+			ReqAttrs2 = [{#'3gpp_ro_CCR'{'Multiple-Services-Credit-Control'
+					= [#'3gpp_ro_Multiple-Services-Credit-Control'{'Used-Service-Unit'
+					= [#'3gpp_ro_Used-Service-Unit'{'CC-Input-Octets'
+					= [Prefix], _ = '_'}], _ = '_'}], _ = '_'}, []}]
+	end,
+	characteristic(T, diameter, Types, ReqAttrs2, RespAttrs, N + 1);
+characteristic({"name", exact, "acctInputoctets"}, {"value", lt, InputOctets},
+		T, diameter, Types, [{CCR, _MC}], RespAttrs, N) ->
+	VarMatch = build_var_match(N),
+	case lists:last(InputOctets) of
+		$% ->
+			Prefix = list_to_integer(lists:droplast(InputOctets)),
+			ReqAttrs2 = [{CCR#'3gpp_ro_CCR'{'Multiple-Services-Credit-Control'
+					= [#'3gpp_ro_Multiple-Services-Credit-Control'{'Used-Service-Unit'
+					= [#'3gpp_ro_Used-Service-Unit'{'CC-Input-Octets'
+					= [VarMatch], _ = '_'}]}]}, [{'<', VarMatch, Prefix}]}];
+		_ ->
+			Prefix = list_to_integer(InputOctets),
+			ReqAttrs2 = [{CCR#'3gpp_ro_CCR'{'Multiple-Services-Credit-Control'
+					= [#'3gpp_ro_Multiple-Services-Credit-Control'{'Used-Service-Unit'
+					= [#'3gpp_ro_Used-Service-Unit'{'CC-Input-Octets'
+					= [Prefix], _ = '_'}]}]}, []}]
+	end,
+	characteristic(T, diameter, Types, ReqAttrs2, RespAttrs, N + 1);
+characteristic({"name", exact, "acctInputoctets"}, {"value", lte, InputOctets},
+		T, diameter, Types, '_', RespAttrs, N) ->
+	VarMatch = build_var_match(N),
+	case lists:last(InputOctets) of
+		$% ->
+			Prefix = list_to_integer(lists:droplast(InputOctets)),
+			ReqAttrs2 = [{#'3gpp_ro_CCR'{'Multiple-Services-Credit-Control'
+					= [#'3gpp_ro_Multiple-Services-Credit-Control'{'Used-Service-Unit'
+					= [#'3gpp_ro_Used-Service-Unit'{'CC-Input-Octets'
+					= [VarMatch], _ = '_'}], _ = '_'}], _ = '_'}, [{'=<', VarMatch, Prefix}]}];
+		_ ->
+			Prefix = list_to_integer(InputOctets),
+			ReqAttrs2 = [{#'3gpp_ro_CCR'{'Multiple-Services-Credit-Control'
+					= [#'3gpp_ro_Multiple-Services-Credit-Control'{'Used-Service-Unit'
+					= [#'3gpp_ro_Used-Service-Unit'{'CC-Input-Octets'
+					= [Prefix], _ = '_'}], _ = '_'}], _ = '_'}, []}]
+	end,
+	characteristic(T, diameter, Types, ReqAttrs2, RespAttrs, N + 1);
+characteristic({"name", exact, "acctInputoctets"}, {"value", lte, InputOctets},
+		T, diameter, Types, [{CCR, _MC}], RespAttrs, N) ->
+	VarMatch = build_var_match(N),
+	case lists:last(InputOctets) of
+		$% ->
+			Prefix = list_to_integer(lists:droplast(InputOctets)),
+			ReqAttrs2 = [{CCR#'3gpp_ro_CCR'{'Multiple-Services-Credit-Control'
+					= [#'3gpp_ro_Multiple-Services-Credit-Control'{'Used-Service-Unit'
+					= [#'3gpp_ro_Used-Service-Unit'{'CC-Input-Octets'
+					= [VarMatch], _ = '_'}]}]}, [{'=<', VarMatch, Prefix}]}];
+		_ ->
+			Prefix = list_to_integer(InputOctets),
+			ReqAttrs2 = [{CCR#'3gpp_ro_CCR'{'Multiple-Services-Credit-Control'
+					= [#'3gpp_ro_Multiple-Services-Credit-Control'{'Used-Service-Unit'
+					= [#'3gpp_ro_Used-Service-Unit'{'CC-Input-Octets'
+					= [Prefix], _ = '_'}]}]}, []}]
+	end,
+	characteristic(T, diameter, Types, ReqAttrs2, RespAttrs, N + 1);
+characteristic({"name", exact, "acctInputoctets"}, {"value", gt, InputOctets},
+		T, diameter, Types, '_', RespAttrs, N) ->
+	VarMatch = build_var_match(N),
+	case lists:last(InputOctets) of
+		$% ->
+			Prefix = list_to_integer(lists:droplast(InputOctets)),
+			ReqAttrs2 = [{#'3gpp_ro_CCR'{'Multiple-Services-Credit-Control'
+					= [#'3gpp_ro_Multiple-Services-Credit-Control'{'Used-Service-Unit'
+					= [#'3gpp_ro_Used-Service-Unit'{'CC-Input-Octets'
+					= [VarMatch], _ = '_'}], _ = '_'}], _ = '_'}, [{'>', VarMatch, Prefix}]}];
+		_ ->
+			Prefix = list_to_integer(InputOctets),
+			ReqAttrs2 = [{#'3gpp_ro_CCR'{'Multiple-Services-Credit-Control'
+					= [#'3gpp_ro_Multiple-Services-Credit-Control'{'Used-Service-Unit'
+					= [#'3gpp_ro_Used-Service-Unit'{'CC-Input-Octets'
+					= [Prefix], _ = '_'}], _ = '_'}], _ = '_'}, []}]
+	end,
+	characteristic(T, diameter, Types, ReqAttrs2, RespAttrs, N + 1);
+characteristic({"name", exact, "acctInputoctets"}, {"value", gt, InputOctets},
+		T, diameter, Types, [{CCR, _MC}], RespAttrs, N) ->
+	VarMatch = build_var_match(N),
+	case lists:last(InputOctets) of
+		$% ->
+			Prefix = list_to_integer(lists:droplast(InputOctets)),
+			ReqAttrs2 = [{CCR#'3gpp_ro_CCR'{'Multiple-Services-Credit-Control'
+					= [#'3gpp_ro_Multiple-Services-Credit-Control'{'Used-Service-Unit'
+					= [#'3gpp_ro_Used-Service-Unit'{'CC-Input-Octets'
+					= [VarMatch], _ = '_'}]}]}, [{'>', VarMatch, Prefix}]}];
+		_ ->
+			Prefix = list_to_integer(InputOctets),
+			ReqAttrs2 = [{CCR#'3gpp_ro_CCR'{'Multiple-Services-Credit-Control'
+					= [#'3gpp_ro_Multiple-Services-Credit-Control'{'Used-Service-Unit'
+					= [#'3gpp_ro_Used-Service-Unit'{'CC-Input-Octets'
+					= [Prefix], _ = '_'}]}]}, []}]
+	end,
+	characteristic(T, diameter, Types, ReqAttrs2, RespAttrs, N + 1);
+characteristic({"name", exact, "acctInputoctets"}, {"value", gte, InputOctets},
+		T, diameter, Types, '_', RespAttrs, N) ->
+	VarMatch = build_var_match(N),
+	case lists:last(InputOctets) of
+		$% ->
+			Prefix = list_to_integer(lists:droplast(InputOctets)),
+			ReqAttrs2 = [{#'3gpp_ro_CCR'{'Multiple-Services-Credit-Control'
+					= [#'3gpp_ro_Multiple-Services-Credit-Control'{'Used-Service-Unit'
+					= [#'3gpp_ro_Used-Service-Unit'{'CC-Input-Octets'
+					= [VarMatch], _ = '_'}], _ = '_'}], _ = '_'}, [{'>=', VarMatch, Prefix}]}];
+		_ ->
+			Prefix = list_to_integer(InputOctets),
+			ReqAttrs2 = [{#'3gpp_ro_CCR'{'Multiple-Services-Credit-Control'
+					= [#'3gpp_ro_Multiple-Services-Credit-Control'{'Used-Service-Unit'
+					= [#'3gpp_ro_Used-Service-Unit'{'CC-Input-Octets'
+					= [Prefix], _ = '_'}], _ = '_'}], _ = '_'}, []}]
+	end,
+	characteristic(T, diameter, Types, ReqAttrs2, RespAttrs, N + 1);
+characteristic({"name", exact, "acctInputoctets"}, {"value", gte, InputOctets},
+		T, diameter, Types, [{CCR, _MC}], RespAttrs, N) ->
+	VarMatch = build_var_match(N),
+	case lists:last(InputOctets) of
+		$% ->
+			Prefix = list_to_integer(lists:droplast(InputOctets)),
+			ReqAttrs2 = [{CCR#'3gpp_ro_CCR'{'Multiple-Services-Credit-Control'
+					= [#'3gpp_ro_Multiple-Services-Credit-Control'{'Used-Service-Unit'
+					= [#'3gpp_ro_Used-Service-Unit'{'CC-Input-Octets'
+					= [VarMatch], _ = '_'}]}]}, [{'>=', VarMatch, Prefix}]}];
+		_ ->
+			Prefix = list_to_integer(InputOctets),
+			ReqAttrs2 = [{CCR#'3gpp_ro_CCR'{'Multiple-Services-Credit-Control'
+					= [#'3gpp_ro_Multiple-Services-Credit-Control'{'Used-Service-Unit'
+					= [#'3gpp_ro_Used-Service-Unit'{'CC-Input-Octets'
+					= [Prefix], _ = '_'}]}]}, []}]
+	end,
+	characteristic(T, diameter, Types, ReqAttrs2, RespAttrs, N + 1);
 characteristic({"name", exact, "acctOutputOctets"}, {"value", Op, OutputOctets},
-		T, Protocol, Types, ReqAttrs1, RespAttrs) 
+		T, radius, Types, ReqAttrs1, RespAttrs, N)
 		when Op == exact; Op == lt; Op == lte; Op == gt; Op == gte ->
 	ReqAttrs2 = add_char(ReqAttrs1, {?AcctOutputPackets, {Op, list_to_integer(OutputOctets)}}),
-	characteristic(T, Protocol, Types, ReqAttrs2, RespAttrs);
+	characteristic(T, radius, Types, ReqAttrs2, RespAttrs, N);
+characteristic({"name", exact, "acctOutputoctets"}, {"value", exact, OutputOctets},
+		T, diameter, Types, '_', RespAttrs, N) ->
+	case lists:last(OutputOctets) of
+		$% ->
+			Prefix = list_to_integer(lists:droplast(OutputOctets)),
+			ReqAttrs2 = [{#'3gpp_ro_CCR'{'Multiple-Services-Credit-Control'
+					= [#'3gpp_ro_Multiple-Services-Credit-Control'{'Used-Service-Unit'
+					= [#'3gpp_ro_Used-Service-Unit'{'CC-Output-Octets'
+					= [Prefix], _ = '_'}], _ = '_'}], _ = '_'}, []}];
+		_ ->
+			Prefix = list_to_integer(OutputOctets),
+			ReqAttrs2 = [{#'3gpp_ro_CCR'{'Multiple-Services-Credit-Control'
+					= [#'3gpp_ro_Multiple-Services-Credit-Control'{'Used-Service-Unit'
+					= [#'3gpp_ro_Used-Service-Unit'{'CC-Output-Octets'
+					= [Prefix], _ = '_'}], _ = '_'}], _ = '_'}, []}]
+	end,
+	characteristic(T, diameter, Types, ReqAttrs2, RespAttrs, N);
+characteristic({"name", exact, "acctOutputoctets"}, {"value", exact, OutputOctets},
+		T, diameter, Types, [{CCR, _MC}], RespAttrs, N) ->
+	case lists:last(OutputOctets) of
+		$% ->
+			Prefix = list_to_integer(lists:droplast(OutputOctets)),
+			ReqAttrs2 = [{CCR#'3gpp_ro_CCR'{'Multiple-Services-Credit-Control'
+					= [#'3gpp_ro_Multiple-Services-Credit-Control'{'Used-Service-Unit'
+					= [#'3gpp_ro_Used-Service-Unit'{'CC-Output-Octets'
+					= [Prefix], _ = '_'}]}]}, []}];
+		_ ->
+			Prefix = list_to_integer(OutputOctets),
+			ReqAttrs2 = [{CCR#'3gpp_ro_CCR'{'Multiple-Services-Credit-Control'
+					= [#'3gpp_ro_Multiple-Services-Credit-Control'{'Used-Service-Unit'
+					= [#'3gpp_ro_Used-Service-Unit'{'CC-Output-Octets'
+					= [Prefix], _ = '_'}]}]}, []}]
+	end,
+	characteristic(T, diameter, Types, ReqAttrs2, RespAttrs, N);
+characteristic({"name", exact, "acctOutputoctets"}, {"value", lt, OutputOctets},
+		T, diameter, Types, '_', RespAttrs, N) ->
+	VarMatch = build_var_match(N),
+	case lists:last(OutputOctets) of
+		$% ->
+			Prefix = list_to_integer(lists:droplast(OutputOctets)),
+			ReqAttrs2 = [{#'3gpp_ro_CCR'{'Multiple-Services-Credit-Control'
+					= [#'3gpp_ro_Multiple-Services-Credit-Control'{'Used-Service-Unit'
+					= [#'3gpp_ro_Used-Service-Unit'{'CC-Output-Octets'
+					= [VarMatch], _ = '_'}], _ = '_'}], _ = '_'},
+					[{'<', VarMatch, Prefix}]}];
+		_ ->
+			Prefix = list_to_integer(OutputOctets),
+			ReqAttrs2 = [{#'3gpp_ro_CCR'{'Multiple-Services-Credit-Control'
+					= [#'3gpp_ro_Multiple-Services-Credit-Control'{'Used-Service-Unit'
+					= [#'3gpp_ro_Used-Service-Unit'{'CC-Output-Octets'
+					= [Prefix], _ = '_'}], _ = '_'}], _ = '_'}, []}]
+	end,
+	characteristic(T, diameter, Types, ReqAttrs2, RespAttrs, N + 1);
+characteristic({"name", exact, "acctOutputoctets"}, {"value", lt, OutputOctets},
+		T, diameter, Types, [{CCR, _MC}], RespAttrs, N) ->
+	VarMatch = build_var_match(N),
+	case lists:last(OutputOctets) of
+		$% ->
+			Prefix = list_to_integer(lists:droplast(OutputOctets)),
+			ReqAttrs2 = [{CCR#'3gpp_ro_CCR'{'Multiple-Services-Credit-Control'
+					= [#'3gpp_ro_Multiple-Services-Credit-Control'{'Used-Service-Unit'
+					= [#'3gpp_ro_Used-Service-Unit'{'CC-Output-Octets'
+					= [VarMatch], _ = '_'}]}]}, [{'<', VarMatch, Prefix}]}];
+		_ ->
+			Prefix = list_to_integer(OutputOctets),
+			ReqAttrs2 = [{CCR#'3gpp_ro_CCR'{'Multiple-Services-Credit-Control'
+					= [#'3gpp_ro_Multiple-Services-Credit-Control'{'Used-Service-Unit'
+					= [#'3gpp_ro_Used-Service-Unit'{'CC-Output-Octets'
+					= [Prefix], _ = '_'}]}]}, []}]
+	end,
+	characteristic(T, diameter, Types, ReqAttrs2, RespAttrs, N + 1);
+characteristic({"name", exact, "acctOutputoctets"}, {"value", lte, OutputOctets},
+		T, diameter, Types, '_', RespAttrs, N) ->
+	VarMatch = build_var_match(N),
+	case lists:last(OutputOctets) of
+		$% ->
+			Prefix = list_to_integer(lists:droplast(OutputOctets)),
+			ReqAttrs2 = [{#'3gpp_ro_CCR'{'Multiple-Services-Credit-Control'
+					= [#'3gpp_ro_Multiple-Services-Credit-Control'{'Used-Service-Unit'
+					= [#'3gpp_ro_Used-Service-Unit'{'CC-Output-Octets'
+					= [VarMatch], _ = '_'}], _ = '_'}], _ = '_'},
+					[{'=<', VarMatch, Prefix}]}];
+		_ ->
+			Prefix = list_to_integer(OutputOctets),
+			ReqAttrs2 = [{#'3gpp_ro_CCR'{'Multiple-Services-Credit-Control'
+					= [#'3gpp_ro_Multiple-Services-Credit-Control'{'Used-Service-Unit'
+					= [#'3gpp_ro_Used-Service-Unit'{'CC-Output-Octets'
+					= [Prefix], _ = '_'}], _ = '_'}], _ = '_'}, []}]
+	end,
+	characteristic(T, diameter, Types, ReqAttrs2, RespAttrs, N + 1);
+characteristic({"name", exact, "acctOutputoctets"}, {"value", lte, OutputOctets},
+		T, diameter, Types, [{CCR, _MC}], RespAttrs, N) ->
+	VarMatch = build_var_match(N),
+	case lists:last(OutputOctets) of
+		$% ->
+			Prefix = list_to_integer(lists:droplast(OutputOctets)),
+			ReqAttrs2 = [{CCR#'3gpp_ro_CCR'{'Multiple-Services-Credit-Control'
+					= [#'3gpp_ro_Multiple-Services-Credit-Control'{'Used-Service-Unit'
+					= [#'3gpp_ro_Used-Service-Unit'{'CC-Output-Octets'
+					= [VarMatch], _ = '_'}]}]}, [{'=<', VarMatch, Prefix}]}];
+		_ ->
+			Prefix = list_to_integer(OutputOctets),
+			ReqAttrs2 = [{CCR#'3gpp_ro_CCR'{'Multiple-Services-Credit-Control'
+					= [#'3gpp_ro_Multiple-Services-Credit-Control'{'Used-Service-Unit'
+					= [#'3gpp_ro_Used-Service-Unit'{'CC-Output-Octets'
+					= [Prefix], _ = '_'}]}]}, []}]
+	end,
+	characteristic(T, diameter, Types, ReqAttrs2, RespAttrs, N + 1);
+characteristic({"name", exact, "acctOutputoctets"}, {"value", gt, OutputOctets},
+		T, diameter, Types, '_', RespAttrs, N) ->
+	VarMatch = build_var_match(N),
+	case lists:last(OutputOctets) of
+		$% ->
+			Prefix = list_to_integer(lists:droplast(OutputOctets)),
+			ReqAttrs2 = [{#'3gpp_ro_CCR'{'Multiple-Services-Credit-Control'
+					= [#'3gpp_ro_Multiple-Services-Credit-Control'{'Used-Service-Unit'
+					= [#'3gpp_ro_Used-Service-Unit'{'CC-Output-Octets'
+					= [VarMatch], _ = '_'}], _ = '_'}], _ = '_'}, [{'>', VarMatch, Prefix}]}];
+		_ ->
+			Prefix = list_to_integer(OutputOctets),
+			ReqAttrs2 = [{#'3gpp_ro_CCR'{'Multiple-Services-Credit-Control'
+					= [#'3gpp_ro_Multiple-Services-Credit-Control'{'Used-Service-Unit'
+					= [#'3gpp_ro_Used-Service-Unit'{'CC-Output-Octets'
+					= [Prefix], _ = '_'}], _ = '_'}], _ = '_'}, []}]
+	end,
+	characteristic(T, diameter, Types, ReqAttrs2, RespAttrs, N + 1);
+characteristic({"name", exact, "acctOutputoctets"}, {"value", gt, OutputOctets},
+		T, diameter, Types, [{CCR, _MC}], RespAttrs, N) ->
+	VarMatch = build_var_match(N),
+	case lists:last(OutputOctets) of
+		$% ->
+			Prefix = list_to_integer(lists:droplast(OutputOctets)),
+			ReqAttrs2 = [{CCR#'3gpp_ro_CCR'{'Multiple-Services-Credit-Control'
+					= [#'3gpp_ro_Multiple-Services-Credit-Control'{'Used-Service-Unit'
+					= [#'3gpp_ro_Used-Service-Unit'{'CC-Output-Octets'
+					= [VarMatch], _ = '_'}]}]}, [{'>', VarMatch, Prefix}]}];
+		_ ->
+			Prefix = list_to_integer(OutputOctets),
+			ReqAttrs2 = [{CCR#'3gpp_ro_CCR'{'Multiple-Services-Credit-Control'
+					= [#'3gpp_ro_Multiple-Services-Credit-Control'{'Used-Service-Unit'
+					= [#'3gpp_ro_Used-Service-Unit'{'CC-Output-Octets'
+					= [Prefix], _ = '_'}]}]}, []}]
+	end,
+	characteristic(T, diameter, Types, ReqAttrs2, RespAttrs, N + 1);
+characteristic({"name", exact, "acctOutputoctets"}, {"value", gte, OutputOctets},
+		T, diameter, Types, '_', RespAttrs, N) ->
+	VarMatch = build_var_match(N),
+	case lists:last(OutputOctets) of
+		$% ->
+			Prefix = list_to_integer(lists:droplast(OutputOctets)),
+			ReqAttrs2 = [{#'3gpp_ro_CCR'{'Multiple-Services-Credit-Control'
+					= [#'3gpp_ro_Multiple-Services-Credit-Control'{'Used-Service-Unit'
+					= [#'3gpp_ro_Used-Service-Unit'{'CC-Output-Octets'
+					= [VarMatch], _ = '_'}], _ = '_'}], _ = '_'}, [{'>=', VarMatch, Prefix}]}];
+		_ ->
+			Prefix = list_to_integer(OutputOctets),
+			ReqAttrs2 = [{#'3gpp_ro_CCR'{'Multiple-Services-Credit-Control'
+					= [#'3gpp_ro_Multiple-Services-Credit-Control'{'Used-Service-Unit'
+					= [#'3gpp_ro_Used-Service-Unit'{'CC-Output-Octets'
+					= [Prefix], _ = '_'}], _ = '_'}], _ = '_'}, []}]
+	end,
+	characteristic(T, diameter, Types, ReqAttrs2, RespAttrs, N + 1);
+characteristic({"name", exact, "acctOutputoctets"}, {"value", gte, OutputOctets},
+		T, diameter, Types, [{CCR, _MC}], RespAttrs, N) ->
+	VarMatch = build_var_match(N),
+	case lists:last(OutputOctets) of
+		$% ->
+			Prefix = list_to_integer(lists:droplast(OutputOctets)),
+			ReqAttrs2 = [{CCR#'3gpp_ro_CCR'{'Multiple-Services-Credit-Control'
+					= [#'3gpp_ro_Multiple-Services-Credit-Control'{'Used-Service-Unit'
+					= [#'3gpp_ro_Used-Service-Unit'{'CC-Output-Octets'
+					= [VarMatch], _ = '_'}]}]}, [{'>=', VarMatch, Prefix}]}];
+		_ ->
+			Prefix = list_to_integer(OutputOctets),
+			ReqAttrs2 = [{CCR#'3gpp_ro_CCR'{'Multiple-Services-Credit-Control'
+					= [#'3gpp_ro_Multiple-Services-Credit-Control'{'Used-Service-Unit'
+					= [#'3gpp_ro_Used-Service-Unit'{'CC-Output-Octets'
+					= [Prefix], _ = '_'}]}]}, []}]
+	end,
+	characteristic(T, diameter, Types, ReqAttrs2, RespAttrs, N + 1);
 characteristic({"name", exact, "ascendDataRate"}, {"value", Op, AscendDataRate},
-		T, Protocol, Types, ReqAttrs1, RespAttrs) 
+		T, radius, Types, ReqAttrs1, RespAttrs, N)
 		when Op == exact; Op == lt; Op == lte; Op == gt; Op == gte ->
 	ReqAttrs2 = add_char(ReqAttrs1, {?AscendDataRate, {Op, list_to_integer(AscendDataRate)}}),
-	characteristic(T, Protocol, Types, ReqAttrs2, RespAttrs);
+	characteristic(T, radius, Types, ReqAttrs2, RespAttrs, N);
 characteristic({"name", exact, "ascendXmitRate"}, {"value", Op, AscendXmitRate},
-		T, Protocol, Types, ReqAttrs1, RespAttrs) 
+		T, radius, Types, ReqAttrs1, RespAttrs, N)
 		when Op == exact; Op == lt; Op == lte; Op == gt; Op == gte ->
 	ReqAttrs2 = add_char(ReqAttrs1, {?AscendXmitRate, {Op, list_to_integer(AscendXmitRate)}}),
-	characteristic(T, Protocol, Types, ReqAttrs2, RespAttrs);
+	characteristic(T, radius, Types, ReqAttrs2, RespAttrs, N);
 characteristic({"name", exact, "acctInterimInterval"}, {"value", Op, AcctInterimInterval},
-		T, Protocol, Types, ReqAttrs1, RespAttrs) 
+		T, radius, Types, ReqAttrs1, RespAttrs, N)
 		when Op == exact; Op == lt; Op == lte; Op == gt; Op == gte ->
 	ReqAttrs2 = add_char(ReqAttrs1, {?AcctInterimInterval, {Op, list_to_integer(AcctInterimInterval)}}),
-	characteristic(T, Protocol, Types, ReqAttrs2, RespAttrs);
+	characteristic(T, radius, Types, ReqAttrs2, RespAttrs, N);
 characteristic({"name", exact, "acctTerminateCause"}, {"value", Op, AcctTerminateCause},
-		T, Protocol, Types, ReqAttrs1, RespAttrs) 
+		T, radius, Types, ReqAttrs1, RespAttrs, N)
 		when Op == exact; Op == lt; Op == lte; Op == gt; Op == gte ->
 	ReqAttrs2 = add_char(ReqAttrs1, {?AcctTerminateCause, {Op, list_to_integer(AcctTerminateCause)}}),
-	characteristic(T, Protocol, Types, ReqAttrs2, RespAttrs).
+	characteristic(T, radius, Types, ReqAttrs2, RespAttrs, N);
+characteristic({"name", exact, "acctTerminateCause"}, {"value", exact, AcctTerminateCause},
+		T, diameter, Types, '_', RespAttrs, N) ->
+	ReqAttrs2 = [{#'3gpp_ro_CCR'{'Service-Information'
+			= [{'3gpp_ro_Service-Information', [], [#'3gpp_ro_IMS-Information'{'Cause-Code'
+			= AcctTerminateCause, _ = '_'}]}], _ = '_'}, []}],
+	characteristic(T, diameter, Types, ReqAttrs2, RespAttrs, N);
+characteristic({"name", exact, "acctTerminateCause"}, {"value", exact, AcctTerminateCause},
+		T, diameter, Types, [{CCR, _MC}], RespAttrs, N) ->
+	ReqAttrs2 = [{CCR#'3gpp_ro_CCR'{'Service-Information'
+			= [{'3gpp_ro_Service-Information', [], [#'3gpp_ro_IMS-Information'{'Cause-Code'
+			= AcctTerminateCause, _ = '_'}]}]}, []}],
+	characteristic(T, diameter, Types, ReqAttrs2, RespAttrs, N);
+characteristic({"name", exact, "acctTerminateCause"}, {"value", lt, AcctTerminateCause},
+		T, diameter, Types, '_', RespAttrs, N) ->
+	VarMatch = build_var_match(N),
+	ReqAttrs2 = [{#'3gpp_ro_CCR'{'Service-Information'
+			= [{'3gpp_ro_Service-Information', [], [#'3gpp_ro_IMS-Information'{'Cause-Code'
+			= VarMatch, _ = '_'}]}], _ = '_'}, [{'<', VarMatch, AcctTerminateCause}]}],
+	characteristic(T, diameter, Types, ReqAttrs2, RespAttrs, N + 1);
+characteristic({"name", exact, "acctTerminateCause"}, {"value", lt, AcctTerminateCause},
+		T, diameter, Types, [{CCR, _MC}], RespAttrs, N) ->
+	VarMatch = build_var_match(N),
+	ReqAttrs2 = [{CCR#'3gpp_ro_CCR'{'Service-Information'
+			= [{'3gpp_ro_Service-Information', [], [#'3gpp_ro_IMS-Information'{'Cause-Code'
+			= VarMatch, _ = '_'}]}]}, [{'<', VarMatch, AcctTerminateCause}]}],
+	characteristic(T, diameter, Types, ReqAttrs2, RespAttrs, N + 1);
+characteristic({"name", exact, "acctTerminateCause"}, {"value", lte, AcctTerminateCause},
+		T, diameter, Types, '_', RespAttrs, N) ->
+	VarMatch = build_var_match(N),
+	ReqAttrs2 = [{#'3gpp_ro_CCR'{'Service-Information'
+			= [{'3gpp_ro_Service-Information', [], [#'3gpp_ro_IMS-Information'{'Cause-Code'
+			= VarMatch, _ = '_'}]}], _ = '_'}, [{'=<', VarMatch, AcctTerminateCause}]}],
+	characteristic(T, diameter, Types, ReqAttrs2, RespAttrs, N + 1);
+characteristic({"name", exact, "acctTerminateCause"}, {"value", lte, AcctTerminateCause},
+		T, diameter, Types, [{CCR, _MC}], RespAttrs, N) ->
+	VarMatch = build_var_match(N),
+	ReqAttrs2 = [{CCR#'3gpp_ro_CCR'{'Service-Information'
+			= [{'3gpp_ro_Service-Information', [], [#'3gpp_ro_IMS-Information'{'Cause-Code'
+			= VarMatch, _ = '_'}]}]}, [{'=<', VarMatch, AcctTerminateCause}]}],
+	characteristic(T, diameter, Types, ReqAttrs2, RespAttrs, N + 1);
+characteristic({"name", exact, "acctTerminateCause"}, {"value", gt, AcctTerminateCause},
+		T, diameter, Types, '_', RespAttrs, N) ->
+	VarMatch = build_var_match(N),
+	ReqAttrs2 = [{#'3gpp_ro_CCR'{'Service-Information'
+			= [{'3gpp_ro_Service-Information', [], [#'3gpp_ro_IMS-Information'{'Cause-Code'
+			= VarMatch, _ = '_'}]}], _ = '_'}, [{'>', VarMatch, AcctTerminateCause}]}],
+	characteristic(T, diameter, Types, ReqAttrs2, RespAttrs, N + 1);
+characteristic({"name", exact, "acctTerminateCause"}, {"value", gt, AcctTerminateCause},
+		T, diameter, Types, [{CCR, _MC}], RespAttrs, N) ->
+	VarMatch = build_var_match(N),
+	ReqAttrs2 = [{CCR#'3gpp_ro_CCR'{'Service-Information'
+			= [{'3gpp_ro_Service-Information', [], [#'3gpp_ro_IMS-Information'{'Cause-Code'
+			= VarMatch, _ = ''}]}]}, [{'>', VarMatch, AcctTerminateCause}]}],
+	characteristic(T, diameter, Types, ReqAttrs2, RespAttrs, N + 1);
+characteristic({"name", exact, "acctTerminateCause"}, {"value", gte, AcctTerminateCause},
+		T, diameter, Types, '_', RespAttrs, N) ->
+	VarMatch = build_var_match(N),
+	ReqAttrs2 = [{#'3gpp_ro_CCR'{'Service-Information'
+			= [{'3gpp_ro_Service-Information', [], [#'3gpp_ro_IMS-Information'{'Cause-Code'
+			= VarMatch, _ = '_'}]}], _ = '_'}, [{'>=', VarMatch, AcctTerminateCause}]}],
+	characteristic(T, diameter, Types, ReqAttrs2, RespAttrs, N + 1);
+characteristic({"name", exact, "acctTerminateCause"}, {"value", gte, AcctTerminateCause},
+		T, diameter, Types, [{CCR, _MC}], RespAttrs, N) ->
+	VarMatch = build_var_match(N),
+	ReqAttrs2 = [{CCR#'3gpp_ro_CCR'{'Service-Information'
+			= [{'3gpp_ro_Service-Information', [], [#'3gpp_ro_IMS-Information'{'Cause-Code'
+			= VarMatch, _ = '_'}]}]}, [{'>=', VarMatch, AcctTerminateCause}]}],
+	characteristic(T, diameter, Types, ReqAttrs2, RespAttrs, N + 1);
+characteristic({"name", exact, "prices"}, {"value", exact, Price},
+		T, diameter, Types, '_', RespAttrs, N) ->
+	ReqAttrs2 = case lists:last(Price) of
+		$% ->
+			Pre = lists:droplast(Price),
+			case string:rchr(Price, $.) of
+				0 ->
+					Prefix = list_to_integer(lists:droplast(Price)) * 1000000,
+					[{#rated{tax_excluded_amount = Prefix, _ = '_'}, []}];
+				_Other ->
+					case lists:last(Pre) of
+						$. ->
+							Prefix = list_to_integer(lists:droplast(Pre)) * 1000000,
+							[{#rated{tax_excluded_amount = Prefix, _ = '_'}, []}];
+						_ ->
+							Prefix = list_to_integer(Pre) * 1000000,
+							[{#rated{tax_excluded_amount = Prefix, _ = '_'}, []}]
+					end
+			end;
+		_ ->
+			[{#rated{tax_excluded_amount = list_to_integer(Price) * 1000000, _ = '_'}, []}]
+	end,
+	characteristic(T, diameter, Types, ReqAttrs2, RespAttrs, N + 1);
+characteristic({"name", exact, "prices"}, {"value", exact, Price},
+		T, diameter, Types, [{Rated, _MC}], RespAttrs, N) ->
+	ReqAttrs2 = case lists:last(Price) of
+		$% ->
+			Pre = lists:droplast(Price),
+			case string:rchr(Price, $.) of
+				0 ->
+					Prefix = list_to_integer(lists:droplast(Price)) * 1000000,
+					[{Rated#rated{tax_excluded_amount = Prefix}, []}];
+				_Other ->
+					case lists:last(Pre) of
+						$. ->
+							Prefix = list_to_integer(lists:droplast(Pre)) * 1000000,
+							[{Rated#rated{tax_excluded_amount = Prefix}, []}];
+						_ ->
+							Prefix = list_to_integer(Pre) * 1000000,
+							[{Rated#rated{tax_excluded_amount = Prefix}, []}]
+					end
+			end;
+		_ ->
+			[{Rated#rated{tax_excluded_amount = list_to_integer(Price) * 1000000}, []}]
+	end,
+	characteristic(T, diameter, Types, ReqAttrs2, RespAttrs, N + 1);
+characteristic({"name", exact, "prices"}, {"value", lt, Price},
+		T, diameter, Types, '_', RespAttrs, N) ->
+	VarMatch = build_var_match(N),
+	ReqAttrs2 = case lists:last(Price) of
+		$% ->
+			Pre = lists:droplast(Price),
+			case string:rchr(Price, $.) of
+				0 ->
+					Prefix = list_to_integer(lists:droplast(Price)) * 1000000,
+					[{#rated{tax_excluded_amount = VarMatch, _ = '_'},
+							[{'<', VarMatch, Prefix}, {'/=', VarMatch, undefined}]}];
+				_Other ->
+					case lists:last(Pre) of
+						$. ->
+							Prefix = list_to_integer(lists:droplast(Pre)) * 1000000,
+							[{#rated{tax_excluded_amount = VarMatch, _ = '_'},
+									[{'<', VarMatch, Prefix}, {'/=', VarMatch, undefined}]}];
+						_ ->
+							Prefix = list_to_float(Pre) * 1000000,
+							[{#rated{tax_excluded_amount = VarMatch, _ = '_'},
+									[{'<', VarMatch, Prefix}, {'/=', VarMatch, undefined}]}]
+					end
+			end;
+		_ ->
+			[{#rated{tax_excluded_amount = list_to_integer(Price) * 1000000, _ = '_'}, []}]
+	end,
+	characteristic(T, diameter, Types, ReqAttrs2, RespAttrs, N + 1);
+characteristic({"name", exact, "prices"}, {"value", lt, Price},
+		T, diameter, Types, [{Rated, _MC}], RespAttrs, N) ->
+	VarMatch = build_var_match(N),
+	ReqAttrs2 = case lists:last(Price) of
+		$% ->
+			Pre = lists:droplast(Price),
+			case string:rchr(Price, $.) of
+				0 ->
+					Prefix = list_to_integer(lists:droplast(Price)) * 1000000,
+					[{Rated#rated{tax_excluded_amount = VarMatch},
+							[{'<', VarMatch, Prefix}, {'/=', VarMatch, undefined}]}];
+				_Other ->
+					case lists:last(Pre) of
+						$. ->
+							Prefix = list_to_integer(lists:droplast(Pre)) * 1000000,
+							[{Rated#rated{tax_excluded_amount = VarMatch},
+									[{'<', VarMatch, Prefix}, {'/=', VarMatch, undefined}]}];
+						_ ->
+							Prefix = list_to_float(Pre) * 1000000,
+							[{Rated#rated{tax_excluded_amount = VarMatch},
+									[{'<', VarMatch, Prefix}, {'/=', VarMatch, undefined}]}]
+					end
+			end;
+		_ ->
+			[{Rated#rated{tax_excluded_amount = list_to_integer(Price) * 1000000}, []}]
+	end,
+	characteristic(T, diameter, Types, ReqAttrs2, RespAttrs, N + 1);
+characteristic({"name", exact, "prices"}, {"value", lte, Price},
+		T, diameter, Types, '_', RespAttrs, N) ->
+	VarMatch = build_var_match(N),
+	ReqAttrs2 = case lists:last(Price) of
+		$% ->
+			Pre = lists:droplast(Price),
+			case string:rchr(Price, $.) of
+				0 ->
+					Prefix = list_to_integer(lists:droplast(Price)) * 1000000,
+					[{#rated{tax_excluded_amount = VarMatch, _ = '_'},
+							[{'=<', VarMatch, Prefix}, {'/=', VarMatch, undefined}]}];
+				_Other ->
+					case lists:last(Pre) of
+						$. ->
+							Prefix = list_to_integer(lists:droplast(Pre)) * 1000000,
+							[{#rated{tax_excluded_amount = VarMatch, _ = '_'},
+									[{'=<', VarMatch, Prefix}, {'/=', VarMatch, undefined}]}];
+						_ ->
+							Prefix = list_to_float(Pre) * 1000000,
+							[{#rated{tax_excluded_amount = VarMatch, _ = '_'},
+									[{'=<', VarMatch, Prefix}, {'/=', VarMatch, undefined}]}]
+					end
+			end;
+		_ ->
+			[{#rated{tax_excluded_amount = list_to_integer(Price) * 1000000, _ = '_'}, []}]
+	end,
+	characteristic(T, diameter, Types, ReqAttrs2, RespAttrs, N + 1);
+characteristic({"name", exact, "prices"}, {"value", lte, Price},
+		T, diameter, Types, [{Rated, _MC}], RespAttrs, N) ->
+	VarMatch = build_var_match(N),
+	ReqAttrs2 = case lists:last(Price) of
+		$% ->
+			Pre = lists:droplast(Price),
+			case string:rchr(Price, $.) of
+				0 ->
+					Prefix = list_to_integer(lists:droplast(Price)) * 1000000,
+					[{Rated#rated{tax_excluded_amount = VarMatch},
+							[{'=<', VarMatch, Prefix}, {'/=', VarMatch, undefined}]}];
+				_Other ->
+					case lists:last(Pre) of
+						$. ->
+							Prefix = list_to_integer(lists:droplast(Pre)) * 1000000,
+							[{Rated#rated{tax_excluded_amount = VarMatch},
+									[{'=<', VarMatch, Prefix}, {'/=', VarMatch, undefined}]}];
+						_ ->
+							Prefix = list_to_float(Pre) * 1000000,
+							[{Rated#rated{tax_excluded_amount = VarMatch},
+									[{'=<', VarMatch, Prefix}, {'/=', VarMatch, undefined}]}]
+					end
+			end;
+		_ ->
+			[{Rated#rated{tax_excluded_amount = list_to_integer(Price) * 1000000}, []}]
+	end,
+	characteristic(T, diameter, Types, ReqAttrs2, RespAttrs, N + 1);
+characteristic({"name", exact, "prices"}, {"value", gt, Price},
+		T, diameter, Types, '_', RespAttrs, N) ->
+	VarMatch = build_var_match(N),
+	ReqAttrs2 = case lists:last(Price) of
+		$% ->
+			Pre = lists:droplast(Price),
+			case string:rchr(Price, $.) of
+				0 ->
+					Prefix = list_to_integer(lists:droplast(Price)) * 1000000,
+					[{#rated{tax_excluded_amount = VarMatch, _ = '_'},
+							[{'>', VarMatch, Prefix}, {'/=', VarMatch, undefined}]}];
+				_Other ->
+					case lists:last(Pre) of
+						$. ->
+							Prefix = list_to_integer(lists:droplast(Pre)) * 1000000,
+							[{#rated{tax_excluded_amount = VarMatch, _ = '_'},
+									[{'>', VarMatch, Prefix}, {'/=', VarMatch, undefined}]}];
+						_ ->
+							Prefix = list_to_float(Pre) * 1000000,
+							[{#rated{tax_excluded_amount = VarMatch, _ = '_'},
+									[{'>', VarMatch, Prefix}, {'/=', VarMatch, undefined}]}]
+					end
+			end;
+		_ ->
+			[{#rated{tax_excluded_amount = list_to_integer(Price) * 1000000, _ = '_'}, []}]
+	end,
+	characteristic(T, diameter, Types, ReqAttrs2, RespAttrs, N + 1);
+characteristic({"name", exact, "prices"}, {"value", gt, Price},
+		T, diameter, Types, [{Rated, _MC}], RespAttrs, N) ->
+	VarMatch = build_var_match(N),
+	ReqAttrs2 = case lists:last(Price) of
+		$% ->
+			Pre = lists:droplast(Price),
+			case string:rchr(Price, $.) of
+				0 ->
+					Prefix = list_to_integer(lists:droplast(Price)) * 1000000,
+					[{Rated#rated{tax_excluded_amount = VarMatch},
+							[{'>', VarMatch, Prefix}, {'/=', VarMatch, undefined}]}];
+				_Other ->
+					case lists:last(Pre) of
+						$. ->
+							Prefix = list_to_integer(lists:droplast(Pre)) * 1000000,
+							[{Rated#rated{tax_excluded_amount = VarMatch},
+									[{'>', VarMatch, Prefix}, {'/=', VarMatch, undefined}]}];
+						_ ->
+							Prefix = list_to_float(Pre) * 1000000,
+							[{Rated#rated{tax_excluded_amount = VarMatch},
+									[{'>', VarMatch, Prefix}, {'/=', VarMatch, undefined}]}]
+					end
+			end;
+		_ ->
+			[{Rated#rated{tax_excluded_amount = list_to_integer(Price) * 1000000}, []}]
+	end,
+	characteristic(T, diameter, Types, ReqAttrs2, RespAttrs, N + 1);
+characteristic({"name", exact, "prices"}, {"value", gte, Price},
+		T, diameter, Types, '_', RespAttrs, N) ->
+	VarMatch = build_var_match(N),
+	ReqAttrs2 = case lists:last(Price) of
+		$% ->
+			Pre = lists:droplast(Price),
+			case string:rchr(Price, $.) of
+				0 ->
+					Prefix = list_to_integer(lists:droplast(Price)) * 1000000,
+					[{#rated{tax_excluded_amount = VarMatch, _ = '_'},
+							[{'>=', VarMatch, Prefix}, {'/=', VarMatch, undefined}]}];
+				_Other ->
+					case lists:last(Pre) of
+						$. ->
+							Prefix = list_to_integer(lists:droplast(Pre)) * 1000000,
+							[{#rated{tax_excluded_amount = VarMatch, _ = '_'},
+									[{'>=', VarMatch, Prefix}, {'/=', VarMatch, undefined}]}];
+						_ ->
+							Prefix = list_to_float(Pre) * 1000000,
+							[{#rated{tax_excluded_amount = VarMatch, _ = '_'},
+									[{'>=', VarMatch, Prefix}, {'/=', VarMatch, undefined}]}]
+					end
+			end;
+		_ ->
+			[{#rated{tax_excluded_amount = list_to_integer(Price) * 1000000, _ = '_'}, []}]
+	end,
+	characteristic(T, diameter, Types, ReqAttrs2, RespAttrs, N + 1);
+characteristic({"name", exact, "prices"}, {"value", gte, Price},
+		T, diameter, Types, [{Rated, _MC}], RespAttrs, N) ->
+	VarMatch = build_var_match(N),
+	ReqAttrs2 = case lists:last(Price) of
+		$% ->
+			Pre = lists:droplast(Price),
+			case string:rchr(Price, $.) of
+				0 ->
+					Prefix = list_to_integer(lists:droplast(Price)) * 1000000,
+					[{Rated#rated{tax_excluded_amount = VarMatch},
+							[{'>=', VarMatch, Prefix}, {'/=', VarMatch, undefined}]}];
+				_Other ->
+					case lists:last(Pre) of
+						$. ->
+							Prefix = list_to_integer(lists:droplast(Pre)) * 1000000,
+							[{Rated#rated{tax_excluded_amount = VarMatch},
+									[{'>=', VarMatch, Prefix}, {'/=', VarMatch, undefined}]}];
+						_ ->
+							Prefix = list_to_float(Pre) * 1000000,
+							[{Rated#rated{tax_excluded_amount = VarMatch},
+									[{'>=', VarMatch, Prefix}, {'/=', VarMatch, undefined}]}]
+					end
+			end;
+		_ ->
+			[{Rated#rated{tax_excluded_amount = list_to_integer(Price) * 1000000}, []}]
+	end,
+	characteristic(T, diameter, Types, ReqAttrs2, RespAttrs, N + 1);
+characteristic({"name", exact, "acctTotaloctets"}, {"value", exact, TotalOctets},
+		T, diameter, Types, '_', RespAttrs, N) ->
+	ReqAttrs2 = case lists:last(TotalOctets) of
+		$% ->
+			Prefix = list_to_integer(lists:droplast(TotalOctets)),
+			[{#'3gpp_ro_CCR'{'Multiple-Services-Credit-Control'
+					= [#'3gpp_ro_Multiple-Services-Credit-Control'{'Used-Service-Unit'
+					= [#'3gpp_ro_Used-Service-Unit'{'CC-Total-Octets'
+					= [Prefix], _ = '_'}], _ = '_'}], _ = '_'}, []}];
+		_ ->
+			Prefix = list_to_integer(TotalOctets),
+			[{#'3gpp_ro_CCR'{'Multiple-Services-Credit-Control'
+					= [#'3gpp_ro_Multiple-Services-Credit-Control'{'Used-Service-Unit'
+					= [#'3gpp_ro_Used-Service-Unit'{'CC-Total-Octets'
+					= [Prefix], _ = '_'}], _ = '_'}], _ = '_'}, []}]
+	end,
+	characteristic(T, diameter, Types, ReqAttrs2, RespAttrs, N + 1);
+characteristic({"name", exact, "acctTotaloctets"}, {"value", exact, TotalOctets},
+		T, diameter, Types, [{CCR, _MC}], RespAttrs, N) ->
+	ReqAttrs2 = case lists:last(TotalOctets) of
+		$% ->
+			Prefix = list_to_integer(lists:droplast(TotalOctets)),
+			[{CCR#'3gpp_ro_CCR'{'Multiple-Services-Credit-Control'
+					= [#'3gpp_ro_Multiple-Services-Credit-Control'{'Used-Service-Unit'
+					= [#'3gpp_ro_Used-Service-Unit'{'CC-Total-Octets'
+					= [Prefix], _ = '_'}]}]}, []}];
+		_ ->
+			Prefix = list_to_integer(TotalOctets),
+			[{CCR#'3gpp_ro_CCR'{'Multiple-Services-Credit-Control'
+					= [#'3gpp_ro_Multiple-Services-Credit-Control'{'Used-Service-Unit'
+					= [#'3gpp_ro_Used-Service-Unit'{'CC-Total-Octets' = [Prefix], _ = '_'}]}]}, []}]
+	end,
+	characteristic(T, diameter, Types, ReqAttrs2, RespAttrs, N + 1);
+characteristic({"name", exact, "acctTotaloctets"}, {"value", lt, TotalOctets},
+		T, diameter, Types, '_', RespAttrs, N) ->
+	VarMatch = build_var_match(N),
+	ReqAttrs2 = case lists:last(TotalOctets) of
+		$% ->
+			Prefix = list_to_integer(lists:droplast(TotalOctets)),
+			[{#'3gpp_ro_CCR'{'Multiple-Services-Credit-Control'
+					= [#'3gpp_ro_Multiple-Services-Credit-Control'{'Used-Service-Unit'
+					= [#'3gpp_ro_Used-Service-Unit'{'CC-Total-Octets'
+					= [VarMatch], _ = '_'}], _ = '_'}], _ = '_'}, [{'<', VarMatch, Prefix}]}];
+		_ ->
+			Prefix = list_to_integer(TotalOctets),
+			[{#'3gpp_ro_CCR'{'Multiple-Services-Credit-Control'
+					= [#'3gpp_ro_Multiple-Services-Credit-Control'{'Used-Service-Unit'
+					= [#'3gpp_ro_Used-Service-Unit'{'CC-Total-Octets'
+					= [Prefix], _ = '_'}], _ = '_'}], _ = '_'}, []}]
+	end,
+	characteristic(T, diameter, Types, ReqAttrs2, RespAttrs, N + 1);
+characteristic({"name", exact, "acctTotaloctets"}, {"value", lt, TotalOctets},
+		T, diameter, Types, [{CCR, _MC}], RespAttrs, N) ->
+	VarMatch = build_var_match(N),
+	ReqAttrs2 = case lists:last(TotalOctets) of
+		$% ->
+			Prefix = list_to_integer(lists:droplast(TotalOctets)),
+			[{CCR#'3gpp_ro_CCR'{'Multiple-Services-Credit-Control'
+					= [#'3gpp_ro_Multiple-Services-Credit-Control'{'Used-Service-Unit'
+					= [#'3gpp_ro_Used-Service-Unit'{'CC-Total-Octets'
+					= [VarMatch], _ = '_'}]}]}, [{'<', VarMatch, Prefix}]}];
+		_ ->
+			Prefix = list_to_integer(TotalOctets),
+			[{CCR#'3gpp_ro_CCR'{'Multiple-Services-Credit-Control'
+					= [#'3gpp_ro_Multiple-Services-Credit-Control'{'Used-Service-Unit'
+					= [#'3gpp_ro_Used-Service-Unit'{'CC-Total-Octets' = [Prefix], _ = '_'}]}]}, []}]
+	end,
+	characteristic(T, diameter, Types, ReqAttrs2, RespAttrs, N + 1);
+characteristic({"name", exact, "acctTotaloctets"}, {"value", lte, TotalOctets},
+		T, diameter, Types, '_', RespAttrs, N) ->
+	VarMatch = build_var_match(N),
+	ReqAttrs2 = case lists:last(TotalOctets) of
+		$% ->
+			Prefix = list_to_integer(lists:droplast(TotalOctets)),
+			[{#'3gpp_ro_CCR'{'Multiple-Services-Credit-Control'
+					= [#'3gpp_ro_Multiple-Services-Credit-Control'{'Used-Service-Unit'
+					= [#'3gpp_ro_Used-Service-Unit'{'CC-Total-Octets'
+					= [VarMatch], _ = '_'}], _ = '_'}], _ = '_'}, [{'=<', VarMatch, Prefix}]}];
+		_ ->
+			Prefix = list_to_integer(TotalOctets),
+			[{#'3gpp_ro_CCR'{'Multiple-Services-Credit-Control'
+					= [#'3gpp_ro_Multiple-Services-Credit-Control'{'Used-Service-Unit'
+					= [#'3gpp_ro_Used-Service-Unit'{'CC-Total-Octets'
+					= [Prefix], _ = '_'}], _ = '_'}], _ = '_'}, []}]
+	end,
+	characteristic(T, diameter, Types, ReqAttrs2, RespAttrs, N + 1);
+characteristic({"name", exact, "acctTotaloctets"}, {"value", lte, TotalOctets},
+		T, diameter, Types, [{CCR, _MC}], RespAttrs, N) ->
+	VarMatch = build_var_match(N),
+	ReqAttrs2 = case lists:last(TotalOctets) of
+		$% ->
+			Prefix = list_to_integer(lists:droplast(TotalOctets)),
+			[{CCR#'3gpp_ro_CCR'{'Multiple-Services-Credit-Control'
+					= [#'3gpp_ro_Multiple-Services-Credit-Control'{'Used-Service-Unit'
+					= [#'3gpp_ro_Used-Service-Unit'{'CC-Total-Octets'
+					= [VarMatch], _ = '_'}]}]}, [{'=<', VarMatch, Prefix}]}];
+		_ ->
+			Prefix = list_to_integer(TotalOctets),
+			[{CCR#'3gpp_ro_CCR'{'Multiple-Services-Credit-Control'
+					= [#'3gpp_ro_Multiple-Services-Credit-Control'{'Used-Service-Unit'
+					= [#'3gpp_ro_Used-Service-Unit'{'CC-Total-Octets'
+					= [Prefix], _ = '_'}]}]}, []}]
+	end,
+	characteristic(T, diameter, Types, ReqAttrs2, RespAttrs, N + 1);
+characteristic({"name", exact, "acctTotaloctets"}, {"value", gt, TotalOctets},
+		T, diameter, Types, '_', RespAttrs, N) ->
+	VarMatch = build_var_match(N),
+	ReqAttrs2 = case lists:last(TotalOctets) of
+		$% ->
+			Prefix = list_to_integer(lists:droplast(TotalOctets)),
+			[{#'3gpp_ro_CCR'{'Multiple-Services-Credit-Control'
+					= [#'3gpp_ro_Multiple-Services-Credit-Control'{'Used-Service-Unit'
+					= [#'3gpp_ro_Used-Service-Unit'{'CC-Total-Octets'
+					= [VarMatch], _ = '_'}], _ = '_'}], _ = '_'},
+					[{'>', VarMatch, Prefix}]}];
+		_ ->
+			Prefix = list_to_integer(TotalOctets),
+			[{#'3gpp_ro_CCR'{'Multiple-Services-Credit-Control'
+					= [#'3gpp_ro_Multiple-Services-Credit-Control'{'Used-Service-Unit'
+					= [#'3gpp_ro_Used-Service-Unit'{'CC-Total-Octets'
+					= [Prefix], _ = '_'}], _ = '_'}], _ = '_'}, []}]
+	end,
+	characteristic(T, diameter, Types, ReqAttrs2, RespAttrs, N + 1);
+characteristic({"name", exact, "acctTotaloctets"}, {"value", gt, TotalOctets},
+		T, diameter, Types, [{CCR, _MC}], RespAttrs, N) ->
+	VarMatch = build_var_match(N),
+	ReqAttrs2 = case lists:last(TotalOctets) of
+		$% ->
+			Prefix = list_to_integer(lists:droplast(TotalOctets)),
+			[{CCR#'3gpp_ro_CCR'{'Multiple-Services-Credit-Control'
+					= [#'3gpp_ro_Multiple-Services-Credit-Control'{'Used-Service-Unit'
+					= [#'3gpp_ro_Used-Service-Unit'{'CC-Total-Octets'
+					= [VarMatch], _ = '_'}]}]}, [{'>', VarMatch, Prefix}]}];
+		_ ->
+			Prefix = list_to_integer(TotalOctets),
+			[{CCR#'3gpp_ro_CCR'{'Multiple-Services-Credit-Control'
+					= [#'3gpp_ro_Multiple-Services-Credit-Control'{'Used-Service-Unit'
+					= [#'3gpp_ro_Used-Service-Unit'{'CC-Total-Octets'
+					= [Prefix], _ = '_'}]}]}, []}]
+	end,
+	characteristic(T, diameter, Types, ReqAttrs2, RespAttrs, N + 1);
+characteristic({"name", exact, "acctTotaloctets"}, {"value", gte, TotalOctets},
+		T, diameter, Types, '_', RespAttrs, N) ->
+	VarMatch = build_var_match(N),
+	ReqAttrs2 = case lists:last(TotalOctets) of
+		$% ->
+			Prefix = list_to_integer(lists:droplast(TotalOctets)),
+			[{#'3gpp_ro_CCR'{'Multiple-Services-Credit-Control'
+					= [#'3gpp_ro_Multiple-Services-Credit-Control'{'Used-Service-Unit'
+					= [#'3gpp_ro_Used-Service-Unit'{'CC-Total-Octets'
+					= [VarMatch], _ = '_'}], _ = '_'}], _ = '_'},
+					[{'>=', VarMatch, Prefix}]}];
+		_ ->
+			Prefix = list_to_integer(TotalOctets),
+			[{#'3gpp_ro_CCR'{'Multiple-Services-Credit-Control'
+					= [#'3gpp_ro_Multiple-Services-Credit-Control'{'Used-Service-Unit'
+					= [#'3gpp_ro_Used-Service-Unit'{'CC-Total-Octets'
+					= [Prefix], _ = '_'}], _ = '_'}], _ = '_'}, []}]
+	end,
+	characteristic(T, diameter, Types, ReqAttrs2, RespAttrs, N + 1);
+characteristic({"name", exact, "acctTotaloctets"}, {"value", gte, TotalOctets},
+		T, diameter, Types, [{CCR, _MC}], RespAttrs, N) ->
+	VarMatch = build_var_match(N),
+	ReqAttrs2 = case lists:last(TotalOctets) of
+		$% ->
+			Prefix = list_to_integer(lists:droplast(TotalOctets)),
+			[{CCR#'3gpp_ro_CCR'{'Multiple-Services-Credit-Control'
+					= [#'3gpp_ro_Multiple-Services-Credit-Control'{'Used-Service-Unit'
+					= [#'3gpp_ro_Used-Service-Unit'{'CC-Total-Octets'
+					= [VarMatch], _ = '_'}]}]}, [{'>=', VarMatch, Prefix}]}];
+		_ ->
+			Prefix = list_to_integer(TotalOctets),
+			[{CCR#'3gpp_ro_CCR'{'Multiple-Services-Credit-Control'
+					= [#'3gpp_ro_Multiple-Services-Credit-Control'{'Used-Service-Unit'
+					= [#'3gpp_ro_Used-Service-Unit'{'CC-Total-Octets'
+					= [Prefix], _ = '_'}]}]}, []}]
+	end,
+	characteristic(T, diameter, Types, ReqAttrs2, RespAttrs, N + 1);
+characteristic({"name", exact, "type"}, {"value", like, [Type]},
+		T, diameter, '_', ReqAttrs, RespAttrs, N) ->
+	Types2 = case lists:last(Type) of
+		$% ->
+			Prefix = lists:droplast(Type),
+			F = fun({_Ty, String}) ->
+				lists:prefix(Prefix, String)
+			end,
+			STypes = [{start, "start"}, {stop, "stop"}, {interim, "interim"},
+					{on, "on"}, {off, "off"},{event, "event"}],
+			FTypes = lists:filter(F, STypes),
+			[Ty || {Ty, _} <- FTypes];
+		_ when Type == "start" ->
+			[start];
+		_ when Type == "stop" ->
+			[stop];
+		_ when Type == "interim" ->
+			[interim];
+		_ when Type == "on" ->
+			[on];
+		_ when Type == "off" ->
+			[off];
+		_ when Type == "event" ->
+			[event]
+	end,
+	characteristic(T, diameter, Types2, ReqAttrs, RespAttrs, N);
+characteristic({"name", exact, "type"}, {"value", like, [Type]},
+		T, diameter, Types, ReqAttrs, RespAttrs, N) when is_list(Types) ->
+	Types2 = case lists:last(Type) of
+		$% ->
+			Prefix = lists:droplast(Type),
+			F = fun({_Ty, String}) ->
+				lists:prefix(Prefix, String)
+			end,
+			STypes = [{start, "start"}, {stop, "stop"}, {interim, "interim"},
+					{on, "on"}, {off, "off"},{event, "event"}],
+			FTypes = lists:filter(F, STypes),
+			[Ty || {Ty, _} <- FTypes];
+		_ when Type == "start" ->
+			[start];
+		_ when Type == "stop" ->
+			[stop];
+		_ when Type == "interim" ->
+			[interim];
+		_ when Type == "on" ->
+			[on];
+		_ when Type == "off" ->
+			[off];
+		_ when Type == "event" ->
+			[event]
+	end,
+	Types3 = Types ++ Types2,
+	characteristic(T, diameter, Types3, ReqAttrs, RespAttrs, N).
 
+build_var_match(N) ->
+	VarN = integer_to_list(N),
+   %list_to_atom([$', $$] ++ VarN ++ [$']).
+   list_to_atom([$$] ++ VarN).
 
 %% @hidden
 like([H | T]) ->

@@ -88,8 +88,10 @@ sequences() ->
 all() ->
 	[radius_log_auth_event, diameter_log_auth_event,
 			radius_log_acct_event, diameter_log_acct_event,
-			ipdr_log, get_range, get_last, auth_query, acct_query,
-			abmf_log_event, abmf_query].
+			ipdr_log, get_range, get_last, auth_query, acct_query_radius,
+			acct_query_diameter, abmf_log_event, abmf_query, binary_tree_before,
+			binary_tree_after, binary_tree_backward, binary_tree_forward,
+			binary_tree_last, binary_tree_first, binary_tree_half].
 
 %%---------------------------------------------------------------------
 %%  Test cases
@@ -190,9 +192,6 @@ diameter_log_auth_event(_Config) ->
 				false
 	end,
 	true = Find(Find, disk_log:chunk(ocs_auth, start)).
-
-radius_log_acct_event() ->
-   [{userdata, [{doc, "Log a RADIUS accounting event"}]}].
 
 radius_log_acct_event(_Config) ->
 	Start = erlang:system_time(?MILLISECOND),
@@ -496,10 +495,10 @@ auth_query(_Config) ->
 						[accept], MatchReq, '_'), []),
 	3 = length(Events).
 
-acct_query() ->
+acct_query_radius() ->
    [{userdata, [{doc, "Get matching accounting log events"}]}].
 
-acct_query(_Config) ->
+acct_query_radius(_Config) ->
 	Server = {{0,0,0,0}, 1812},
 	Username = ocs:generate_identity(),
 	ClientAddress = {10,0,0,1},
@@ -513,7 +512,7 @@ acct_query(_Config) ->
 			{?AcctSessionTime, rand:uniform(3600) + 100},
 			{?AcctInputOctets, rand:uniform(100000000)},
 			{?AcctOutputOctets, rand:uniform(100000)}],
-	ok = fill_acct(1000),
+	ok = fill_acct(1000, radius),
 	LogInfo = disk_log:info(ocs_acct),
 	{_, {FileSize, _NumFiles}} = lists:keyfind(size, 1, LogInfo),
 	{_, CurItems} = lists:keyfind(no_current_items, 1, LogInfo),
@@ -521,13 +520,13 @@ acct_query(_Config) ->
 	EventSize = CurBytes div CurItems,
 	NumItems = (FileSize div EventSize) * 5,
 	Start = erlang:system_time(?MILLISECOND),
-	ok = fill_acct(NumItems),
+	ok = fill_acct(NumItems, radius),
 	ok = ocs_log:acct_log(radius, Server, stop, Attrs, undefined, undefined),
-	ok = fill_acct(rand:uniform(2000)),
+	ok = fill_acct(rand:uniform(2000), radius),
 	ok = ocs_log:acct_log(radius, Server, stop, Attrs, undefined, undefined),
-	ok = fill_acct(rand:uniform(2000)),
+	ok = fill_acct(rand:uniform(2000), radius),
 	ok = ocs_log:acct_log(radius, Server, stop, Attrs, undefined, undefined),
-	ok = fill_acct(rand:uniform(2000)),
+	ok = fill_acct(rand:uniform(2000), radius),
 	End = erlang:system_time(?MILLISECOND),
 	MatchReq = [{?UserName, {exact, Username}},
 			{?NasIdentifier, {exact, NasIdentifier}}],
@@ -541,8 +540,139 @@ acct_query(_Config) ->
 						[stop], MatchReq), []),
 	3 = length(Events).
 
-abmf_log_event() ->
-   [{userdata, [{doc, "Log a balance actvity event"}]}].
+acct_query_diameter() ->
+   [{userdata, [{doc, "Get matching accounting log events for diameter"}]}].
+
+acct_query_diameter(_Config) ->
+	Server = {{0,0,0,0}, 1812},
+	ok = fill_acct(1000, diameter),
+	LogInfo = disk_log:info(ocs_acct),
+	{_, {FileSize, _NumFiles}} = lists:keyfind(size, 1, LogInfo),
+	{_, CurItems} = lists:keyfind(no_current_items, 1, LogInfo),
+	{_, CurBytes} = lists:keyfind(no_current_bytes, 1, LogInfo),
+	EventSize = CurBytes div CurItems,
+	NumItems = (FileSize div EventSize) * 5,
+	Start = erlang:system_time(?MILLISECOND),
+	Sid = <<"10.170.6.80;1532594780;734917;4889089">>,
+	OriginHost = <<"10.0.0.1">>,
+	OriginRealm = <<"ap14.sigscale.net">>,
+	EventTimeStamp = [ocs_log:date(erlang:system_time(milli_seconds))],
+	Record = #'3gpp_ro_CCR'{'Session-Id' = Sid, 'Origin-Host' = OriginHost,
+			'Origin-Realm' = OriginRealm, 'Event-Timestamp' = EventTimeStamp},
+	ok = fill_acct(NumItems, diameter),
+	ok = ocs_log:acct_log(diameter, Server, start, Record, undefined, undefined),
+	ok = fill_acct(rand:uniform(2000), diameter),
+	ok = ocs_log:acct_log(diameter, Server, interim, Record, undefined, undefined),
+	ok = fill_acct(rand:uniform(2000), diameter),
+	ok = ocs_log:acct_log(diameter, Server, stop, Record, undefined, undefined),
+	ok = fill_acct(rand:uniform(2000), diameter),
+	End = erlang:system_time(?MILLISECOND),
+	MatchSpec = [{#'3gpp_ro_CCR'{'Session-Id' = '$1', _ = '_'}, [{'==', '$1', Sid}]}],
+	Fget = fun(_F, {eof, Events}, Acc) ->
+				lists:flatten(lists:reverse([Events | Acc]));
+			(F, {Cont, Events}, Acc) ->
+				F(F, ocs_log:acct_query(Cont, Start, End, diameter, '_',
+						MatchSpec), [Events | Acc])
+	end,
+	Events = Fget(Fget, ocs_log:acct_query(start, Start, End, diameter, '_', MatchSpec), []),
+	3 = length(Events).
+
+binary_tree_half() ->
+   [{userdata, [{doc, "When half of the log is used"}]}].
+
+binary_tree_half(_Config) ->
+	ocs_log:acct_open(),
+	disk_log:change_notify(ocs_acct, self(), true),
+	disk_log:truncate(ocs_acct),
+	LogInfo = disk_log:info(ocs_acct),
+	{size, {_FileSize, NumFiles}} = lists:keyfind(size, 1, LogInfo),
+	File = NumFiles div 4,
+	ok = fill_acct(File),
+	LogInfo1 = disk_log:info(ocs_acct),
+	{current_file, CurrentFile} = lists:keyfind(current_file, 1, LogInfo1),
+	{ok, Cont} = disk_log:chunk_step(ocs_acct, start, CurrentFile - 1),
+	Cont = ocs_log:btree_search(ocs_acct, erlang:system_time(milli_seconds)).
+
+radius_log_acct_event() ->
+   [{userdata, [{doc, "Log a RADIUS accounting event"}]}].
+
+binary_tree_before() ->
+   [{userdata, [{doc, "When `Start' is smaller and out of the log range"}]}].
+
+binary_tree_before(_Config) ->
+	ocs_log:acct_open(),
+	disk_log:change_notify(ocs_acct, self(), true),
+	ok = fill_acct(),
+	start = ocs_log:btree_search(ocs_acct, 1).
+
+binary_tree_after() ->
+   [{userdata, [{doc, "When `Start' is bigger and out of log range"}]}].
+
+binary_tree_after(_Config) ->
+	ocs_log:acct_open(),
+	disk_log:change_notify(ocs_acct, self(), true),
+	ok = fill_acct(),
+	LogInfo = disk_log:info(ocs_acct),
+	{size, {_FileSize, NumFiles}} = lists:keyfind(size, 1, LogInfo),
+	{ok, Cont} = disk_log:chunk_step(ocs_acct, start, NumFiles - 1),
+	Start = erlang:system_time(milli_seconds),
+	Cont = ocs_log:btree_search(ocs_acct, Start).
+
+binary_tree_backward() ->
+   [{userdata, [{doc, "When `Start' is at first half of the log"}]}].
+
+binary_tree_backward(_Config) ->
+	ocs_log:acct_open(),
+	disk_log:change_notify(ocs_acct, self(), true),
+	ok = fill_acct(),
+	LogInfo = disk_log:info(ocs_acct),
+	{size, {_FileSize, NumFiles}} = lists:keyfind(size, 1, LogInfo),
+	{ok, Cont} = disk_log:chunk_step(ocs_acct, start, NumFiles div 4),
+	{_, Events} = disk_log:chunk(ocs_acct, Cont),
+	Event = lists:last(Events),
+	Cont = ocs_log:btree_search(ocs_acct, element(1, Event)).
+
+binary_tree_forward() ->
+   [{userdata, [{doc, "When start is at second half of the log"}]}].
+
+binary_tree_forward(_Config) ->
+	ocs_log:acct_open(),
+	disk_log:change_notify(ocs_acct, self(), true),
+	ok = fill_acct(),
+	LogInfo = disk_log:info(ocs_acct),
+	{size, {_FileSize, NumFiles}} = lists:keyfind(size, 1, LogInfo),
+	{ok, Cont} = disk_log:chunk_step(ocs_acct, start, ((NumFiles div 4) * 3) + 1),
+	{_, Events} = disk_log:chunk(ocs_acct, Cont),
+	Event = lists:nth(length(Events) div 3, Events),
+	Cont = ocs_log:btree_search(ocs_acct, element(1, Event)).
+
+binary_tree_last() ->
+   [{userdata, [{doc, "When start is at last file of the log"}]}].
+
+binary_tree_last(_Config) ->
+	ocs_log:acct_open(),
+	disk_log:change_notify(ocs_acct, self(), true),
+	ok = fill_acct(),
+	LogInfo = disk_log:info(ocs_acct),
+	{size, {_FileSize, NumFiles}} = lists:keyfind(size, 1, LogInfo),
+	{ok, Cont} = disk_log:chunk_step(ocs_acct, start, NumFiles - 1),
+	{_, Events} = disk_log:chunk(ocs_acct, Cont),
+	Event = lists:last(Events),
+	Cont = ocs_log:btree_search(ocs_acct, element(1, Event)).
+
+binary_tree_first() ->
+   [{userdata, [{doc, "When start is in first chunck of the log"}]}].
+
+binary_tree_first(_Config) ->
+	ocs_log:acct_open(),
+	disk_log:change_notify(ocs_acct, self(), true),
+	ok = fill_acct(),
+	LogInfo = disk_log:info(ocs_acct),
+	{size, {_FileSize, NumFiles}} = lists:keyfind(size, 1, LogInfo),
+	{ok, Cont} = disk_log:chunk_step(ocs_acct, start, NumFiles),
+	{_, Events} = disk_log:chunk(ocs_acct, Cont),
+	Event = lists:last(Events),
+	Cont = ocs_log:btree_search(ocs_acct, element(1, Event)).
 
 abmf_log_event(_Config) ->
 	ok = ocs_log:abmf_open(),
@@ -656,9 +786,46 @@ fill_auth(N) ->
 	ok = ocs_log:auth_log(radius, Server, Client, Type, ReqAttrs, RespAttrs),
 	fill_auth(N - 1).
 
-fill_acct(0) ->
-	ok;
+fill_acct() ->
+	ok = fill_acct(10, diameter),
+	receive
+		{disk_log, _Node, ocs_acct, {wrap, 0}} ->
+			fill_acct();
+		{disk_log, _Node, ocs_acct, {wrap, N}} when N > 0 ->
+			LogInfo = disk_log:info(ocs_acct),
+			{items, Items} = lists:keyfind(items, 1, LogInfo),
+			fill_acct(Items div 4, diameter);
+		_Other ->
+			fill_acct()
+	after
+		0 ->
+			fill_acct()
+	end.
 fill_acct(N) ->
+	ok = fill_acct(10, diameter),
+	receive
+		{disk_log, _Node, ocs_acct, {wrap, 0}} ->
+			LogInfo = disk_log:info(ocs_acct),
+			{current_file, File} = lists:keyfind(current_file, 1, LogInfo),
+			case N > File of
+				true ->
+					fill_acct(N);
+				false ->
+					ok
+			end;
+		_Other ->
+			fill_acct(N)
+	after
+		0 ->
+			fill_acct(N)
+	end.
+fill_acct(0, _Protocal) ->
+	ok;
+fill_acct(N, Protocal) ->
+	AcctOutputOctets = rand:uniform(100000),
+	AcctInputOctets = rand:uniform(100000000),
+	AcctSessionTime = rand:uniform(3600) + 100,
+	UserName = ocs:generate_identity(),
 	Server = {{0, 0, 0, 0}, 1812},
 	I3 = rand:uniform(256) - 1,
 	I4 = rand:uniform(254),
@@ -670,15 +837,25 @@ fill_acct(N) ->
 		2 -> stop;
 		3 -> interim
 	end,
-	Attrs = [{?ServiceType, 2}, {?NasPortId, "wlan1"}, {?NasPortType, 19},
-			{?UserName, ocs:generate_identity()}, {?CallingStationId, ocs_test_lib:mac()},
-			{?CalledStationId, ocs_test_lib:mac() ++ ":AP1"}, {?NasIdentifier, NasIdentifier},
-			{?NasIpAddress, ClientAddress}, {?AcctStatusType, rand:uniform(3)}, 
-			{?AcctSessionTime, rand:uniform(3600) + 100},
-			{?AcctInputOctets, rand:uniform(100000000)},
-			{?AcctOutputOctets, rand:uniform(100000)}],
-	ok = ocs_log:acct_log(radius, Server, Type, Attrs, undefined, undefined),
-	fill_acct(N - 1).
+	case Protocal of
+		radius ->
+			Attrs = [{?ServiceType, 2}, {?NasPortId, "wlan1"}, {?NasPortType, 19},
+					{?UserName, ocs:generate_identity()}, {?CallingStationId, ocs_test_lib:mac()},
+					{?CalledStationId, ocs_test_lib:mac() ++ ":AP1"}, {?NasIdentifier, NasIdentifier},
+					{?NasIpAddress, ClientAddress}, {?AcctStatusType, rand:uniform(3)},
+					{?AcctSessionTime, AcctSessionTime},
+					{?AcctInputOctets, AcctInputOctets},
+					{?AcctOutputOctets, AcctOutputOctets}],
+			ok = ocs_log:acct_log(radius, Server, Type, Attrs, undefined, undefined),
+			fill_acct(N - 1, radius);
+		diameter ->
+			Record = #'3gpp_ro_CCR'{'Origin-Host' = ClientAddress, 'Service-Context-Id' = 2, 'Subscription-Id' = [#'3gpp_ro_Subscription-Id'{'Subscription-Id-Data'
+						= UserName}], 'Multiple-Services-Credit-Control' = [#'3gpp_ro_Multiple-Services-Credit-Control'{'Requested-Service-Unit' = [#'3gpp_ro_Requested-Service-Unit'{'CC-Time'
+						= AcctSessionTime, 'CC-Input-Octets' = AcctInputOctets, 'CC-Output-Octets' = AcctOutputOctets}]}], 'Service-Information' = [{'3gpp_ro_Service-Information', [],
+							[#'3gpp_ro_IMS-Information'{'Calling-Party-Address' = ocs_test_lib:mac(), 'Called-Party-Address' = ocs_test_lib:mac()}]}]},
+			ok = ocs_log:acct_log(diameter, Server, Type, Record, undefined, undefined),
+			fill_acct(N - 1, diameter)
+	end.
 
 fill_abmf(0) ->
 	ok;

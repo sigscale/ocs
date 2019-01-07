@@ -1,3 +1,18 @@
+2018-10-17  Kusal Fernando  <kusal@sigscale.org>
+
+	* test suite for diameter acct query
+	* query filter for diameter acct log
+	* handle old record version for nas_id
+	* correct logging of rated info 
+	* include usage amounts for diameter events in api 
+	* log bucket creation to abmf log 
+	* remove open an abmf log from get_balance_log function
+	* fix looping state in service
+	* handle ocs_acct, ocs_auth, ocs_abmf log names from environment variables
+	* handle size_mismatch error
+	* validate undefined productID in bucket view
+	* correct result code in mscc of cca
+
 2018-09-07  Vance Shipley <vances@sigscale.org>
 
 	* include result code in mscc of cca

@@ -34,6 +34,8 @@
 -export([get_range/3, last/2, dump_file/2, httpd_logname/1,
 			http_file/2, date/1, iso8601/1]).
 -export([http_query/8]).
+-export([log_name/1]).
+-export([btree_search/2]).
 
 %% exported the private function
 -export([acct_query/4, ipdr_query/2, auth_query/5, abmf_query/6]).
@@ -47,10 +49,6 @@
 -include("diameter_gen_nas_application_rfc7155.hrl").
 -include("diameter_gen_eap_application_rfc4072.hrl").
 
--define(ACCTLOG, ocs_acct).
--define(AUTHLOG, ocs_auth).
--define(BALANCELOG, ocs_abmf).
-
 %% support deprecated_time_unit()
 -define(MILLISECOND, milli_seconds).
 %-define(MILLISECOND, millisecond).
@@ -62,6 +60,15 @@
 %%  The ocs_log public API
 %%----------------------------------------------------------------------
 
+-spec log_name(Var) -> Name
+	when
+		Var :: atom(),
+		Name :: term().
+%% @doc Return log name from `Var' application environment variable.
+log_name(Var) ->
+	{ok, Name} = application:get_env(ocs, Var),
+	Name.
+
 -spec acct_open() -> Result
 	when
 		Result :: ok | {error, Reason},
@@ -72,7 +79,7 @@ acct_open() ->
 	{ok, LogSize} = application:get_env(ocs, acct_log_size),
 	{ok, LogFiles} = application:get_env(ocs, acct_log_files),
 	{ok, LogNodes} = application:get_env(ocs, acct_log_nodes),
-	open_log(Directory, ?ACCTLOG, LogSize, LogFiles, LogNodes).
+	open_log(Directory, log_name(acct_log_name), LogSize, LogFiles, LogNodes).
 
 -spec acct_log(Protocol, Server, Type, Request, Response, Rated) -> Result
 	when
@@ -91,7 +98,7 @@ acct_open() ->
 %% @doc Write an event to accounting log.
 acct_log(Protocol, Server, Type, Request, Response, Rated) ->
 	Event = [Protocol, node(), Server, Type, Request, Response, Rated],
-	write_log(?ACCTLOG, Event).
+	write_log(log_name(acct_log_name), Event).
 
 -spec acct_close() -> Result
 	when
@@ -99,23 +106,30 @@ acct_log(Protocol, Server, Type, Request, Response, Rated) ->
 		Reason :: term().
 %% @doc Close accounting disk log.
 acct_close() ->
-	close_log(?ACCTLOG).
+	close_log(log_name(acct_log_name)).
 
--spec acct_query(Continuation, Start, End, Types, AttrsMatch) -> Result
+-spec acct_query(Continuation, Start, End, Types, Matches) -> Result
 	when
 		Continuation :: start | disk_log:continuation(),
 		Start :: calendar:datetime() | pos_integer(),
 		End :: calendar:datetime() | pos_integer(),
 		Types :: [Type] | '_',
 		Type :: on | off | start | stop | interim | event,
-		AttrsMatch :: [{Attribute, Match}] | '_',
+		Matches :: [Match] | '_',
+		Match :: RadiusMatch | DiameterMatchSpec | RatedMatchSpec,
+		RadiusMatch :: {Attribute, AttributeMatch},
 		Attribute :: byte(),
-		Match :: {exact, term()} | {notexact, term()}
+		AttributeMatch :: {exact, term()} | {notexact, term()}
 				| {lt, term()} | {lte, term()}
 				| {gt, term()} | {gte, term()}
 				| {regex, term()} | {like, [term()]} | {notlike, [term()]}
 				| {in, [term()]} | {notin, [term()]} | {contains, [term()]}
-				| {notcontain, [term()]} | {containsall, [term()]} | '_',
+				| {notcontain, [term()]} | {containsall, [term()]},
+		DiameterMatchSpec :: {DiameterMatchHead, MatchConditions},
+		DiameterMatchHead :: #'3gpp_ro_CCR'{} | #'3gpp_ro_CCA'{},
+		RatedMatchSpec :: {RatedMatchHead, MatchConditions},
+		RatedMatchHead :: #rated{},
+		MatchConditions :: [tuple()],
 		Result :: {Continuation2, Events} | {error, Reason},
 		Continuation2 :: eof | disk_log:continuation(),
 		Events :: [acct_event()],
@@ -125,7 +139,7 @@ acct_close() ->
 acct_query(Continuation, Start, End, Types, AttrsMatch) ->
 	acct_query(Continuation, Start, End, '_', Types, AttrsMatch).
 
--spec acct_query(Continuation, Start, End, Protocol, Types, AttrsMatch) -> Result
+-spec acct_query(Continuation, Start, End, Protocol, Types, Matches) -> Result
 	when
 		Continuation :: start | disk_log:continuation(),
 		Start :: calendar:datetime() | pos_integer(),
@@ -133,14 +147,21 @@ acct_query(Continuation, Start, End, Types, AttrsMatch) ->
 		Protocol :: radius | diameter | '_',
 		Types :: [Type] | '_',
 		Type :: on | off | start | stop | interim | event,
-		AttrsMatch :: [{Attribute, Match}] | '_',
+		Matches :: [Match] | '_',
+		Match :: RadiusMatch | DiameterMatchSpec | RatedMatchSpec,
+		RadiusMatch :: {Attribute, AttributeMatch},
 		Attribute :: byte(),
-		Match :: {exact, term()} | {notexact, term()}
+		AttributeMatch :: {exact, term()} | {notexact, term()}
 				| {lt, term()} | {lte, term()}
 				| {gt, term()} | {gte, term()}
 				| {regex, term()} | {like, [term()]} | {notlike, [term()]}
 				| {in, [term()]} | {notin, [term()]} | {contains, [term()]}
-				| {notcontain, [term()]} | {containsall, [term()]} | '_',
+				| {notcontain, [term()]} | {containsall, [term()]},
+		DiameterMatchSpec :: {DiameterMatchHead, MatchConditions},
+		DiameterMatchHead :: #'3gpp_ro_CCR'{} | #'3gpp_ro_CCA'{},
+		RatedMatchSpec :: {RatedMatchHead, MatchConditions},
+		RatedMatchHead :: #rated{},
+		MatchConditions :: [tuple()],
 		Result :: {Continuation2, Events} | {error, Reason},
 		Continuation2 :: eof | disk_log:continuation(),
 		Events :: [acct_event()],
@@ -158,14 +179,14 @@ acct_query(Continuation, Start, End, Types, AttrsMatch) ->
 %%
 %% 	All attribute filters must match or the event will be ignored.
 %%
-%% 	`Protocol', `Types', or `AttrsMatch' may be '_' which matches any value.
+%% 	`Protocol', `Types', or `MatchSpec' may be '_' which matches any value.
 %%
 %% 	Returns a new `Continuation' and a list of matching accounting events.
 %% 	Successive calls use the new `Continuation' to read more events.
 %%
-acct_query(Continuation, Start, End, Protocol, Types, AttrsMatch) ->
-	MFA = {?MODULE, acct_query, [Protocol, Types, AttrsMatch]},
-	query_log(Continuation, Start, End, ?ACCTLOG, MFA).
+acct_query(Continuation, Start, End, Protocol, Types, MatchSpec) ->
+	MFA = {?MODULE, acct_query, [Protocol, Types, MatchSpec]},
+	query_log(Continuation, Start, End, log_name(acct_log_name), MFA).
 
 -spec auth_open() -> Result
 	when
@@ -177,7 +198,7 @@ auth_open() ->
 	{ok, LogSize} = application:get_env(ocs, auth_log_size),
 	{ok, LogFiles} = application:get_env(ocs, auth_log_files),
 	{ok, LogNodes} = application:get_env(ocs, auth_log_nodes),
-	open_log(Directory, ?AUTHLOG, LogSize, LogFiles, LogNodes).
+	open_log(Directory, log_name(auth_log_name), LogSize, LogFiles, LogNodes).
 
 -spec auth_log(Protocol, Server, Client, Type, RequestAttributes,
 		ResponseAttributes) -> Result
@@ -196,7 +217,7 @@ auth_open() ->
 auth_log(Protocol, Server, Client, Type, RequestAttributes, ResponseAttributes) ->
 	Event = [Protocol, node(), Server, Client, Type,
 			RequestAttributes, ResponseAttributes],
-	write_log(?AUTHLOG, Event).
+	write_log(log_name(auth_log_name), Event).
 
 -spec auth_log(Protocol, Server, Client, Request, Response) -> Result
 	when
@@ -212,7 +233,7 @@ auth_log(Protocol, Server, Client, Type, RequestAttributes, ResponseAttributes) 
 %% @doc Write a DIAMETER event to authorization log.
 auth_log(Protocol, Server, Client, Request, Response) ->
 	Event = [Protocol, node(), Server, Client, Request, Response],
-	write_log(?AUTHLOG, Event).
+	write_log(log_name(auth_log_name), Event).
 
 -spec auth_query(Continuation, Start, End, Types,
 		ReqAttrsMatch, RespAttrsMatch) -> Result
@@ -286,7 +307,7 @@ auth_query(Continuation, Start, End, Types, ReqAttrsMatch, RespAttrsMatch) ->
 %%
 auth_query(Continuation, Start, End, Protocol, Types, ReqAttrsMatch, RespAttrsMatch) ->
 	MFA = {?MODULE, auth_query, [Protocol, Types, ReqAttrsMatch, RespAttrsMatch]},
-	query_log(Continuation, Start, End, ?AUTHLOG, MFA).
+	query_log(Continuation, Start, End, log_name(auth_log_name), MFA).
 
 -spec auth_close() -> Result
 	when
@@ -294,7 +315,7 @@ auth_query(Continuation, Start, End, Protocol, Types, ReqAttrsMatch, RespAttrsMa
 		Reason :: term().
 %% @doc Close auth disk log.
 auth_close() ->
-	close_log(?AUTHLOG).
+	close_log(log_name(auth_log_name)).
 
 -record(event,
 		{host :: string(),
@@ -453,7 +474,8 @@ ipdr_log(Type, File, Start, End) when is_list(File),
 			case disk_log:log(IpdrLog, IpdrDoc) of
 				ok ->
 					ipdr_log1(IpdrLog, Start, End,
-							start_binary_tree(?ACCTLOG, Start, End));
+%							btree_search(log_name(acct_log_name), Start, End));
+							btree_search(log_name(acct_log_name), Start));
 				{error, Reason} ->
 					Descr = lists:flatten(disk_log:format_error(Reason)),
 					Trunc = lists:sublist(Descr, length(Descr) - 1),
@@ -474,18 +496,18 @@ ipdr_log1(IpdrLog, _Start, _End, {error, Reason}) ->
 	Descr = lists:flatten(disk_log:format_error(Reason)),
 	Trunc = lists:sublist(Descr, length(Descr) - 1),
 	error_logger:error_report([Trunc, {module, ?MODULE},
-			{log, ?ACCTLOG}, {error, Reason}]),
+			{log, log_name(acct_log_name)}, {error, Reason}]),
 	ipdr_log4(IpdrLog, 0);
-ipdr_log1(IpdrLog, _Start, _End, eof) ->
-	ipdr_log4(IpdrLog, 0);
+%ipdr_log1(IpdrLog, _Start, _End, eof) ->
+%	ipdr_log4(IpdrLog, 0);
 ipdr_log1(IpdrLog, Start, End, Cont) ->
-	ipdr_log2(IpdrLog, Start, End, [], disk_log:chunk(?ACCTLOG, Cont)).
+	ipdr_log2(IpdrLog, Start, End, [], disk_log:chunk(log_name(acct_log_name), Cont)).
 %% @hidden
 ipdr_log2(IpdrLog, _Start, _End, _PrevChunk, {error, Reason}) ->
 	Descr = lists:flatten(disk_log:format_error(Reason)),
 	Trunc = lists:sublist(Descr, length(Descr) - 1),
 	error_logger:error_report([Trunc, {module, ?MODULE},
-			{log, ?ACCTLOG}, {error, Reason}]),
+			{log, log_name(acct_log_name)}, {error, Reason}]),
 	ipdr_log4(IpdrLog, 0);
 ipdr_log2(IpdrLog, _Start, _End, [], eof) ->
 	ipdr_log4(IpdrLog, 0);
@@ -499,7 +521,7 @@ ipdr_log2(IpdrLog, Start, End, PrevChunk, eof) ->
 			{eof, lists:dropwhile(Fstart, PrevChunk)});
 ipdr_log2(IpdrLog, Start, End, _PrevChunk, {Cont, [H | T]})
 		when element(1, H) < Start ->
-	ipdr_log2(IpdrLog, Start, End, T, disk_log:chunk(?ACCTLOG, Cont));
+	ipdr_log2(IpdrLog, Start, End, T, disk_log:chunk(log_name(acct_log_name), Cont));
 ipdr_log2(IpdrLog, Start, End, PrevChunk, {Cont, Chunk}) ->
 	Fstart = fun(R) when element(1, R) < Start ->
 				true;
@@ -516,7 +538,7 @@ ipdr_log3(IpdrLog, _Start, _End, SeqNum, {error, _Reason}) ->
 ipdr_log3(IpdrLog, _Start, _End, SeqNum, {eof, []}) ->
 	ipdr_log4(IpdrLog, SeqNum);
 ipdr_log3(IpdrLog, Start, End, SeqNum, {Cont, []}) ->
-	ipdr_log3(IpdrLog, Start, End, SeqNum, disk_log:chunk(?ACCTLOG, Cont));
+	ipdr_log3(IpdrLog, Start, End, SeqNum, disk_log:chunk(log_name(acct_log_name), Cont));
 ipdr_log3(IpdrLog, _Start, End, SeqNum, {_Cont, [H | _]})
 		when element(1, H) > End ->
 	ipdr_log4(IpdrLog, SeqNum);
@@ -960,7 +982,7 @@ abmf_open() ->
 	{ok, LogSize} = application:get_env(ocs, abmf_log_size),
 	{ok, LogFiles} = application:get_env(ocs, abmf_log_files),
 	{ok, LogNodes} = application:get_env(ocs, abmf_log_nodes),
-	open_log(Directory, ?BALANCELOG, LogSize, LogFiles, LogNodes).
+	open_log(Directory, log_name(abmf_log_name), LogSize, LogFiles, LogNodes).
 
 -spec abmf_log(Type, ServiceId, Bucket, Units, Product, Amount,
 		AmountBefore, AmountAfter, Validity, Channel, Requestor,
@@ -999,7 +1021,7 @@ abmf_log(Type, ServiceId, Bucket, Units, Product, Amount,
 	Event = [node(), Type, ServiceId, Bucket, Units, Product, Amount,
 			AmountBefore, AmountAfter, Validity, Channel, Requestor,
 			RelatedParty, PaymentMeans, Action, Status],
-	write_log(?BALANCELOG, Event).
+	write_log(log_name(abmf_log_name), Event).
 
 -spec abmf_query(Continuation, Start, End, Type, Subscriber,
 		Bucket, Units, Product) -> Result
@@ -1020,7 +1042,7 @@ abmf_log(Type, ServiceId, Bucket, Units, Product, Amount,
 abmf_query(Continuation, Start, End, Type, Subscriber,
 		Bucket, Units, Product) ->
 	MFA = {?MODULE, abmf_query, [Type, Subscriber, Bucket, Units, Product]},
-	query_log(Continuation, Start, End, ?BALANCELOG, MFA).
+	query_log(Continuation, Start, End, log_name(abmf_log_name), MFA).
 
 %%----------------------------------------------------------------------
 %%  internal functions
@@ -1058,64 +1080,98 @@ file_chunk1(Log, IoDevice, binary, Cont, [Event | T]) ->
 file_chunk1(Log, IoDevice, Type, Cont, []) ->
 	file_chunk(Log, IoDevice, Type, Cont).
 
--spec start_binary_tree(Log, Start, End) -> Result
+-spec btree_search(Log, Start) -> Result
 	when
 		Log :: disk_log:log(),
 		Start :: pos_integer(),
-		End :: pos_integer(),
-		Result :: eof | disk_log:continuation() | {error, Reason},
+		Result :: disk_log:continuation() | {error, Reason},
 		Reason :: term().
 %% @doc Binary tree search of multi file wrap disk_log.
 %% @private
 %% @hidden
-start_binary_tree(Log, Start, _End) ->
+btree_search(Log, Start) ->
+	btree_search(Log, Start, disk_log:chunk(Log, start, 1)).
+%% @hidden
+btree_search(Log, Start, {Cont, Terms, BadBytes}) ->
+	error_logger:error_report(["Error reading log",
+			{log, Log},{badbytes, BadBytes}]),
+	btree_search(Log, Start, {Cont, Terms});
+btree_search(_Log, _Start, eof) ->
+	start;
+btree_search(_Log, _Start, {error, Reason}) ->
+	{error, Reason};
+btree_search(_Log, Start, {_Cont, [R]}) when element(1, R) >= Start ->
+	start;
+btree_search(Log, Start, {Cont, [R]}) when element(1, R) < Start ->
 	InfoList = disk_log:info(Log),
-	{size, {_MaxBytes, MaxFiles}} = lists:keyfind(size, 1, InfoList),
-	StartStep = MaxFiles div 2,
-	start_binary_tree(Log, Start, MaxFiles, start, 0, StartStep, StartStep).
+	Step = case lists:keyfind(size, 1, InfoList) of
+		{size, {_MaxBytes, MaxFiles}} when (MaxFiles rem 2) == 0, MaxFiles > 2 ->
+			(MaxFiles div 2) - 1;
+		{size, {_MaxBytes, MaxFiles}} ->
+			MaxFiles div 2
+	end,
+	btree_search(Log, Start, Step, start, element(1, R), disk_log:chunk_step(Log, Cont, Step)).
 %% @hidden
-start_binary_tree(_Log, _Start, NumFiles,
-		LastCont, _LastStep, _StepSize, NumFiles) ->
-	LastCont;
-start_binary_tree(_Log, _Start, _NumFiles,
-		_LastCont, _LastStep, _StepSize, -1) ->
-	eof;
-start_binary_tree(Log, Start, NumFiles, LastCont, LastStep, StepSize, Step) ->
-	case disk_log:chunk_step(Log, start, Step) of
-		{ok, NewCont} ->
-			start_binary_tree(Log, Start, NumFiles, LastCont, LastStep,
-					StepSize, Step, NewCont, disk_log:chunk(Log, NewCont, 1));
-		{error, end_of_log} ->
-			LastCont;
-		{error, Reason} ->
-			{error, Reason}
-	end.
+btree_search(Log, Start, Step, PrevCont, PrevChunkStart, {ok, Cont}) ->
+	btree_search(Log, Start, Step, PrevCont, PrevChunkStart, Cont,
+			disk_log:chunk(Log, Cont, 1));
+btree_search(_Log, _Start, Step, PrevCont, _PrevChunkStart, {error, end_of_log})
+		when Step == 1; Step == -1 ->
+	PrevCont;
+btree_search(Log, Start, _Step, PrevCont, PrevChunkStart, {error, end_of_log}) ->
+	LogInfo = disk_log:info(Log),
+	Step1 = case lists:keyfind(current_file, 1, LogInfo) of
+		{current_file, CurrentFile} when (CurrentFile rem 2) == 0, CurrentFile > 2 ->
+			(CurrentFile div 2) - 1;
+		{current_file, CurrentFile} ->
+			CurrentFile div 2
+	end,
+	btree_search(Log, Start, Step1, PrevCont, PrevChunkStart, disk_log:chunk_step(Log, PrevCont, Step1));
+btree_search(_Log, _Start, _Step, _PrevCont, _PrevChunkStart, {error, Reason}) ->
+	{error, Reason}.
 %% @hidden
-start_binary_tree(_Log, Start, _NumFiles, _LastCont, LastStep, 1,
-		Step, NewCont, {_, [R]}) when element(1, R) < Start,
-		LastStep == (Step + 1) ->
-	NewCont;
-start_binary_tree(Log, Start, NumFiles, _LastCont, _LastStep, 1,
-		Step, NewCont, {_, [R]}) when element(1, R) < Start ->
-	start_binary_tree(Log, Start, NumFiles, NewCont, Step, 1, Step + 1);
-start_binary_tree(Log, Start, NumFiles, _LastCont, _LastStep, StepSize,
-		Step, NewCont, {_, [R]}) when element(1, R) < Start ->
-	NewStepSize = StepSize div 2,
-	start_binary_tree(Log, Start, NumFiles, NewCont, Step,
-			NewStepSize, Step + NewStepSize);
-start_binary_tree(_Log, Start, _NumFiles, LastCont, LastStep, 1,
-		Step, _NewCont, {_, [R]}) when element(1, R) >= Start,
-		LastStep == (Step - 1) ->
-	LastCont;
-start_binary_tree(Log, Start, NumFiles, _LastCont, _LastStep, 1,
-		Step, NewCont, {_, [R]}) when element(1, R) >= Start ->
-	start_binary_tree(Log, Start, NumFiles, NewCont, Step, 1, Step - 1);
-start_binary_tree(Log, Start, NumFiles, _LastCont, _LastStep, StepSize,
-		Step, NewCont, {_, [R]}) when element(1, R) >= Start ->
-	NewStepSize = StepSize div 2,
-	start_binary_tree(Log, Start, NumFiles, NewCont, Step,
-			NewStepSize, Step - NewStepSize);
-start_binary_tree(_, _, _, _, _, _, _, _, {error, Reason}) ->
+btree_search(_Log, Start, 1, PrevCont, _PrevChunkStart, _Cont, {_NextCont, [R]})
+		when element(1, R) > Start ->
+	PrevCont;
+btree_search(_Log, _Start, Step, _PrevCont, PrevChunkStart, Cont, {_NextCont, [R]})
+		when Step < 0, element(1, R) > PrevChunkStart ->
+	Cont;
+btree_search(_Log, _Start, Step, PrevCont, PrevChunkStart, _Cont, {_NextCont, [R]})
+		when Step > 0, element(1, R) < PrevChunkStart ->
+	PrevCont;
+btree_search(_Log, Start, -1, _PrevCont, _PrevChunkStart, Cont, {_NextCont, [R]})
+		when element(1, R) < Start ->
+	Cont;
+btree_search(Log, Start, Step, _PrevCont, _PrevChunkStart, Cont, {_NextCont, [R]})
+		when Step == 1; Step == -1 ->
+	btree_search(Log, Start, Step, Cont, element(1, R), disk_log:chunk_step(Log, Cont, Step));
+btree_search(Log, Start, Step, _PrevCont, _PrevChunkStart, Cont, {_NextCont, [R]})
+		when Step > 2, element(1, R) < Start, (Step rem 2) == 0 ->
+	NextStep = (Step div 2) - 1,
+	btree_search(Log, Start, NextStep, Cont, element(1, R), disk_log:chunk_step(Log, Cont, NextStep));
+btree_search(Log, Start, Step, _PrevCont, _PrevChunkStart, Cont, {_NextCont, [R]})
+		when Step > 0, element(1, R) < Start ->
+	NextStep = Step div 2,
+	btree_search(Log, Start, NextStep, Cont, element(1, R), disk_log:chunk_step(Log, Cont, NextStep));
+btree_search(Log, Start, Step, _PrevCont, _PrevChunkStart, Cont, {_NextCont, [R]})
+		when Step > 0, element(1, R) > Start ->
+	NextStep = -(Step div 2),
+	btree_search(Log, Start, NextStep, Cont, element(1, R), disk_log:chunk_step(Log, Cont, NextStep));
+btree_search(Log, Start, Step, _PrevCont, _PrevChunkStart, Cont, {_NextCont, [R]})
+		when Step < -2, element(1, R) > Start, (Step rem 2) == 0 ->
+	NextStep = (Step div 2) - 1,
+	btree_search(Log, Start, NextStep, Cont, element(1, R), disk_log:chunk_step(Log, Cont, NextStep));
+btree_search(Log, Start, Step, _PrevCont, _PrevChunkStart, Cont, {_NextCont, [R]})
+		when Step < 0, element(1, R) > Start ->
+	NextStep = Step div 2,
+	btree_search(Log, Start, NextStep, Cont, element(1, R), disk_log:chunk_step(Log, Cont, NextStep));
+btree_search(Log, Start, Step, _PrevCont, _PrevChunkStart, Cont, {_NextCont, [R]})
+		when Step < 0, element(1, R) < Start ->
+	NextStep = -(Step div 2),
+	btree_search(Log, Start, NextStep, Cont, element(1, R), disk_log:chunk_step(Log, Cont, NextStep));
+btree_search(_Log, _Start, _Step, _PrevCont, _PrevChunkStart, Cont, eof) ->
+	Cont;
+btree_search(_Log, _Start, _Step, _PrevCont, _PrevChunkStart, _Cont, {error, Reason}) ->
 	{error, Reason}.
 
 -spec get_range(Log, Start, End, Cont) -> Result
@@ -1934,7 +1990,7 @@ http_parse6(Event, Acc) ->
 -spec open_log(Directory, Log, LogSize, LogFiles, LogNodes) -> Result
 	when
 		Directory  :: string(),
-		Log :: atom(),
+		Log :: term(),
 		LogSize :: integer(),
 		LogFiles :: integer(),
 		LogNodes :: [Node],
@@ -1970,12 +2026,12 @@ open_log1(Directory, Log, LogSize, LogFiles, LogNodes) ->
 	end.
 %% @hidden
 open_log2(Log, FileName, LogSize, LogFiles, LogNodes) ->
-	case disk_log:open([{name, ?ACCTLOG}, {file, FileName}, {type, wrap},
+	case disk_log:open([{name, Log}, {file, FileName}, {type, wrap},
 			{distributed, [node() | LogNodes]}]) of
 		{error, _} = Result ->
 			open_log3(Log, [], [{node(), Result}], undefined);
 		{OkNodes, ErrNodes} ->
-			case disk_log:change_size(?ACCTLOG, {LogSize, LogFiles}) of
+			case disk_log:change_size(Log, {LogSize, LogFiles}) of
 				ok ->
 					open_log3(Log, OkNodes, ErrNodes, undefined);
 				{error, Reason} ->
@@ -2049,7 +2105,7 @@ close_log(Log) ->
 		Continuation2 :: eof | disk_log:continuation(),
 		Events :: [term()],
 		Reason :: term().
-%% @doc
+%% @doc Filter events by `Start' and `End'.
 query_log(Continuation, {{_, _, _}, {_, _, _}} = Start, End, Log, MFA) ->
 	Seconds = calendar:datetime_to_gregorian_seconds(Start) - ?EPOCH,
 	query_log(Continuation, Seconds * 1000, End, Log, MFA);
@@ -2057,91 +2113,125 @@ query_log(Continuation, Start, {{_, _, _}, {_, _, _}} = End, Log, MFA) ->
 	Seconds = calendar:datetime_to_gregorian_seconds(End) - ?EPOCH,
 	query_log(Continuation, Start, Seconds * 1000 + 999, Log, MFA);
 query_log(start, Start, End, Log, MFA) when is_integer(Start), is_integer(End) ->
-	query_log1(Start, End, Log, MFA, [], disk_log:bchunk(Log, start));
+	case btree_search(Log, Start) of
+		{error, Reason} ->
+			{error, Reason};
+		Continuation ->
+			query_log1(Start, End, MFA, disk_log:chunk(Log, Continuation), [])
+	end;
 query_log(Continuation, Start, End, Log, MFA) when is_integer(Start), is_integer(End) ->
-	query_log2(Start, End, MFA, disk_log:chunk(Log, Continuation), []).
+	query_log1(Start, End, MFA, disk_log:chunk(Log, Continuation), []).
 %% @hidden
-query_log1(Start, End, _Log, MFA, PrevChunk, eof) ->
-	Chunk = [binary_to_term(E) || E <- PrevChunk],
-	query_log2(Start, End, MFA, {eof, Chunk}, []);
-query_log1(_Start, _End, _Log, _MFA, _PrevChunk, {error, Reason}) ->
-	{error, Reason};
-query_log1(Start, End, Log, MFA, PrevChunk, {Cont, Chunk, 0}) ->
-	query_log1(Start, End, Log, MFA, PrevChunk, {Cont, Chunk});
-query_log1(Start, End, Log, MFA, PrevChunk, {Cont, [H | T] = Chunk}) ->
-	case binary_to_term(H) of
-		Event when element(1, Event) > End ->
-			{eof, []};
-		Event when element(1, Event) >= Start ->
-			NewChunk = [binary_to_term(E) || E <- PrevChunk ++ Chunk],
-			query_log2(Start, End, MFA, {Cont, NewChunk}, []);
-		_Event ->
-			query_log1(Start, End, Log, MFA, T, disk_log:bchunk(Log, Cont))
-	end.
-%% @hidden
-query_log2(_Start, _End, {M, F, A}, eof, Acc) ->
+query_log1(_Start, _End, {M, F, A}, eof, Acc) ->
 	apply(M, F, [{eof, lists:reverse(Acc)} | A]);
-query_log2(_Start, _End, _MFA, {error, Reason}, _Acc)->
+query_log1(_Start, _End, _MFA, {error, Reason}, _Acc) ->
 	{error, Reason};
-query_log2(_Start, End, {M, F, A}, {_, [Event | _]}, Acc) when element(1, Event) > End ->
+query_log1(Start, End, MFA, {Cont, Chunk, 0}, Acc) ->
+	query_log1(Start, End, MFA, {Cont, Chunk}, Acc);
+query_log1(_Start, End, {M, F, A}, {_, [Event | _]}, Acc) when element(1, Event) > End ->
 	apply(M, F, [{eof, lists:reverse(Acc)} | A]);
-query_log2(Start, End, MFA, {Cont, [Event | T]}, Acc)
+query_log1(Start, End, MFA, {Cont, [Event | T]}, Acc)
 		when element(1, Event) >= Start, element(1, Event) =< End ->
-	query_log2(Start, End, MFA, {Cont, T}, [Event | Acc]);
-query_log2(Start, End, MFA, {Cont, [_ | T]}, Acc) ->
-	query_log2(Start, End, MFA, {Cont, T}, Acc);
-query_log2(_Start, _End, {M, F, A}, {Cont, []}, Acc) ->
+	query_log1(Start, End, MFA, {Cont, T}, [Event | Acc]);
+query_log1(Start, End, MFA, {Cont, [_ | T]}, Acc) ->
+	query_log1(Start, End, MFA, {Cont, T}, Acc);
+query_log1(_Start, _End, {M, F, A}, {Cont, []}, Acc) ->
 	apply(M, F, [{Cont, lists:reverse(Acc)} | A]).
 
--spec acct_query(Continuation, Protocol, Types, MatchSpec) -> Result
+-spec acct_query(Continuation, Protocol, Types, Matches) -> Result
 	when
 		Continuation :: {Continuation2, Events},
-		Protocol :: atom() | '_',
+		Continuation2 :: eof | disk_log:continuation(),
+		Events :: [acct_event()],
+		Protocol :: radius | diameter | '_',
 		Types :: [Type] | '_',
 		Type :: atom(),
-		MatchSpec :: [tuple()] | '_',
-		Result :: {Continuation2, Events},
-		Continuation2 :: eof | disk_log:continuation(),
-		Events :: [acct_event()].
+		Matches :: [Match] | '_',
+		Match :: RadiusMatch | DiameterMatchSpec | RatedMatchSpec,
+		RadiusMatch :: {Attribute, AttributeMatch},
+		Attribute :: byte(),
+		AttributeMatch :: {exact, term()} | {notexact, term()}
+				| {lt, term()} | {lte, term()}
+				| {gt, term()} | {gte, term()}
+				| {regex, term()} | {like, [term()]} | {notlike, [term()]}
+				| {in, [term()]} | {notin, [term()]} | {contains, [term()]}
+				| {notcontain, [term()]} | {containsall, [term()]},
+		DiameterMatchSpec :: {DiameterMatchHead, MatchConditions},
+		DiameterMatchHead :: #'3gpp_ro_CCR'{} | #'3gpp_ro_CCA'{},
+		RatedMatchSpec :: {RatedMatchHead, MatchConditions},
+		RatedMatchHead :: #rated{},
+		MatchConditions :: [tuple()],
+		Result :: {Continuation2, Events}.
 %% @private
 %% @doc Query accounting log events with filters.
 %%
-acct_query({Cont, Events}, Protocol, Types, AttrsMatch) ->
-	{Cont, acct_query1(Events,  Protocol, Types, AttrsMatch, [])}.
+acct_query({Cont, Events} = _Continuation, Protocol, Types, Matches) ->
+	{Cont, acct_query1(Events,  Protocol, Types, Matches, [])}.
 %% @hidden
-acct_query1(Events, Protocol, '_',  AttrsMatch, _Acc) ->
-	acct_query2(Events, Protocol, AttrsMatch, []);
-acct_query1([H | T], Protocol, Types,  AttrsMatch, Acc) ->
+acct_query1(Events, Protocol, '_', Matches, _Acc) ->
+	acct_query2(Events, Protocol, Matches, []);
+acct_query1([H | T], Protocol, Types, Matches, Acc) ->
 	case lists:member(element(6, H), Types) of
 		true ->
-			acct_query1(T, Protocol, Types, AttrsMatch, [H | Acc]);
+			acct_query1(T, Protocol, Types, Matches, [H | Acc]);
 		false ->
-			acct_query1(T, Protocol, Types, AttrsMatch, Acc)
+			acct_query1(T, Protocol, Types, Matches, Acc)
 	end;
-acct_query1([], Protocol, _Types,  AttrsMatch, Acc) ->
-	acct_query2(lists:reverse(Acc), Protocol, AttrsMatch, []).
+acct_query1([], Protocol, _Types,  Matches, Acc) ->
+	acct_query2(lists:reverse(Acc), Protocol, Matches, []).
 %% @hidden
-acct_query2(Events, '_', AttrsMatch, _Acc) ->
-	acct_query3(Events, AttrsMatch, []);
-acct_query2([H | T], Protocol, AttrsMatch, Acc)
+acct_query2(Events, '_', Matches, _Acc) ->
+	acct_query3(Events, Matches, []);
+acct_query2([H | T], Protocol, Matches, Acc)
 		when element(3, H) == Protocol ->
-	acct_query2(T, Protocol, AttrsMatch, [H |Acc]);
-acct_query2([_ | T], Protocol, AttrsMatch, Acc) ->
-	acct_query2(T, Protocol, AttrsMatch, Acc);
-acct_query2([], _Protocol, AttrsMatch, Acc) ->
-	acct_query3(lists:reverse(Acc), AttrsMatch, []).
+	acct_query2(T, Protocol, Matches, [H |Acc]);
+acct_query2([_ | T], Protocol, Matches, Acc) ->
+	acct_query2(T, Protocol, Matches, Acc);
+acct_query2([], _Protocol, Matches, Acc) ->
+	acct_query3(lists:reverse(Acc), Matches, []).
 %% @hidden
 acct_query3(Events, '_', _Acc) ->
 	Events;
-acct_query3([H | T], AttrsMatch, Acc) ->
-	case acct_query4(element(7, H), AttrsMatch) of
-		true ->
-			acct_query3(T, AttrsMatch, [H | Acc]);
-		false ->
-			acct_query3(T, AttrsMatch, Acc)
+acct_query3([H | T] = Events, Matches, Acc) when element(3, H) == radius ->
+	F = fun({Attribute, _Match}) when is_integer(Attribute) ->
+				true;
+			(_) ->
+				false
+	end,
+	RadiusMatch = lists:filter(F, Matches),
+	case length(RadiusMatch) of
+		0 ->
+			acct_query5(Events, Matches, []);
+		_ ->
+			case acct_query4(element(7, H), RadiusMatch) of
+				true ->
+					acct_query3(T, RadiusMatch, [H | Acc]);
+				false ->
+					acct_query3(T, RadiusMatch, Acc)
+			end
 	end;
-acct_query3([], _AttrsMatch, Acc) ->
-	lists:reverse(Acc).
+acct_query3([H | T] = Events, Matches, Acc) when element(3, H) == diameter ->
+	F = fun({#'3gpp_ro_CCR'{} = MatchHead, MatchConds}) ->
+				{true, {MatchHead, MatchConds, ['$_']}};
+			(_) ->
+				false
+	end,
+	MatchSpec = lists:filtermap(F, Matches),
+	case length(MatchSpec) of
+		0 ->
+			acct_query5(Events, Matches, []);
+		_ ->
+			case erlang:match_spec_test(element(7, H), MatchSpec, table) of
+				{ok, #'3gpp_ro_CCR'{}, [], []} ->
+					acct_query3(T, Matches, [H | Acc]);
+				{ok, false , [], []}->
+					acct_query3(T, Matches, Acc);
+				{error, Reason} ->
+					{error, Reason}
+			end
+	end;
+acct_query3([], Matches, Acc) ->
+	acct_query5(lists:reverse(Acc), Matches, []).
 %% @hidden
 acct_query4(Attributes, [{Attribute, {exact, Match}} | T]) ->
 	case lists:keyfind(Attribute, 1, Attributes) of
@@ -2169,6 +2259,66 @@ acct_query4(Attributes, [_ | T]) ->
 	acct_query4(Attributes, T);
 acct_query4(_Attributes, []) ->
 	true.
+%% @hidden
+acct_query5([H | T] = Events, Matches, Acc) ->
+	F = fun({#'3gpp_ro_CCA'{} = MatchHead, MatchConds}) ->
+				{true, {MatchHead, MatchConds, ['$_']}};
+			(_) ->
+				false
+	end,
+	MatchSpec = lists:filtermap(F, Matches),
+	case length(MatchSpec) of
+		0 ->
+			acct_query6(Events, Matches, []);
+		_ ->
+			case erlang:match_spec_test(element(8, H), MatchSpec, table) of
+				{ok, #'3gpp_ro_CCA'{}, [], []} ->
+					acct_query5(T, Matches, [H | Acc]);
+				{ok, false , [], []}->
+					acct_query5(T, Matches, Acc);
+				{error, Reason} ->
+					{error, Reason}
+			end
+	end;
+acct_query5([], Matches, Acc) ->
+	acct_query6(lists:reverse(Acc), Matches, []).
+%% @hidden
+acct_query6([H | T] = Events, Matches, Acc) ->
+	F = fun({#rated{} = MatchHead, MatchConds}) ->
+				{true, {MatchHead, MatchConds, ['$_']}};
+			(_) ->
+				false
+	end,
+	MatchSpec = lists:filtermap(F, Matches),
+	case length(MatchSpec) of
+		0 ->
+			Events;
+		_ ->
+			case element(9, H) of
+				[#rated{} = Rated | _] ->
+					case erlang:match_spec_test(Rated, MatchSpec, table) of
+						{ok, #rated{}, [], []} ->
+							acct_query6(T, Matches, [H | Acc]);
+						{ok, false , [], []}->
+							acct_query6(T, Matches, Acc);
+						{error, Reason} ->
+							{error, Reason}
+					end;
+				[[#rated{} = Rated | _]] ->
+					case erlang:match_spec_test(Rated, MatchSpec, table) of
+						{ok, #rated{}, [], []} ->
+							acct_query6(T, Matches, [H | Acc]);
+						{ok, false , [], []}->
+							acct_query6(T, Matches, Acc);
+						{error, Reason} ->
+							{error, Reason}
+					end;
+				undefined ->
+					acct_query6(T, Matches, Acc)
+			end
+	end;
+acct_query6([], _Matches, Acc) ->
+	lists:reverse(Acc).
 
 -spec ipdr_query(Continuation, MatchSpec) -> Result
 	when
