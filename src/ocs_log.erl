@@ -1037,7 +1037,7 @@ abmf_query(Continuation, Start, End, Type, Subscriber,
 %%----------------------------------------------------------------------
 
 %% @hidden
-file_chunk(Log, IoDevice, Type, Cont) ->
+file_chunk(Log, IoDevice, Type, Cont) when Type == binary; Type == tuple ->
 	case disk_log:chunk(Log, Cont) of
 		eof ->
 			file:close(IoDevice);
