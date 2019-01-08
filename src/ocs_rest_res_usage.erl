@@ -93,7 +93,6 @@ get_usages(Type, Query, Headers) ->
 %% 	requests.
 %% @hidden
 get_usages(Type, Id, Query, Headers) ->
-erlang:display({?MODULE, ?LINE, Type, Id, Query, Headers}),
 	case lists:keytake("fields", 1, Query) of
 		{value, {_, Filters}, NewQuery} ->
 			get_usages1(Type, Id, NewQuery, Filters, Headers);
@@ -2657,13 +2656,10 @@ char_attr_cause(Attributes, Acc) ->
 
 %% @hidden
 query_start(Type, Id, Query, Filters, RangeStart, RangeEnd) ->
-erlang:display({?MODULE, ?LINE, Type, Id, Query, Filters, RangeStart, RangeEnd}),
 	{DateStart, DateEnd} = case lists:keyfind("date", 1, Query) of
 		{_, DateTime} when length(DateTime) > 3 ->
-erlang:display({?MODULE, ?LINE, DateTime}),
 			range(DateTime);
 		false ->
-erlang:display({?MODULE, ?LINE, false}),
 			{1, erlang:system_time(?MILLISECOND)}
 	end,
 	query_start1(Type, lists:keyfind("type", 1, Query), Id, Query,
@@ -2699,7 +2695,6 @@ query_start1(_Type, {_, "AAAAccessUsage"}, undefined, Query,
 	end;
 query_start1(_Type, {_, "AAAAccountingUsage"}, undefined, Query,
 		Filters, RangeStart, RangeEnd, DateStart, DateEnd) ->
-erlang:display({?MODULE, ?LINE, Query, Filters, RangeStart, RangeEnd, DateStart, DateEnd}),
 	try
 		case lists:keyfind("filter", 1, Query) of
 			{_, String} ->
@@ -2710,10 +2705,8 @@ erlang:display({?MODULE, ?LINE, Query, Filters, RangeStart, RangeEnd, DateStart,
 						{ok, D} = application:get_env(ocs, diameter),
 						case lists:keyfind(acct, 1, D) of
 							{acct, L} when length(L) > 0 ->
-erlang:display({?MODULE, ?LINE, Contains}),
 								characteristic(Contains, diameter, '_', '_', '_', 0);
 							false ->
-erlang:display({?MODULE, ?LINE, Contains}),
 								characteristic(Contains, radius, '_', '_', '_', 0)
 						end
 				end;
@@ -2723,11 +2716,9 @@ erlang:display({?MODULE, ?LINE, Contains}),
 	of
 		{Types, Attributes, _} ->
 			Args = [DateStart, DateEnd, '_', Types, Attributes],
-erlang:display({?MODULE, ?LINE, Args}),
 			MFA = [ocs_log, acct_query, Args],
 			case supervisor:start_child(ocs_rest_pagination_sup, [MFA]) of
 				{ok, PageServer, Etag} ->
-erlang:display({?MODULE, ?LINE, PageServer, Etag}),
 					query_page(PageServer, Etag, Query, Filters, RangeStart, RangeEnd);
 				{error, _Reason} ->
 					{error, 500}
@@ -2791,20 +2782,16 @@ query_start1(_Type, {_, "HTTPTransferUsage"}, undefined, Query,
 query_start1(_, {_, _}, _, [], _, _, _, _, _) ->
 	{error, 404};
 query_start1(_, {_, false}, _, _, _, _, _, _, _) ->
-erlang:display({?MODULE, ?LINE, false}),
 	{error, 400};
 query_start1(_, {_, _}, _, _, _, _, _, _, _) ->
-erlang:display({?MODULE, ?LINE, 400}),
 	{error, 400}.
 
 %% @hidden
 query_page(PageServer, Etag, Query, Filters, Start, End) ->
-erlang:display({?MODULE, ?LINE, Query}),
 	case lists:keytake("type", 1, Query) of
 		{_, {_, "AAAAccessUsage"}, _Query1} ->
 			query_page1(PageServer, Etag, fun usage_aaa_auth/2, Filters, Start, End);
 		{_, {_, "AAAAccountingUsage"}, _Query1} ->
-erlang:display({?MODULE, ?LINE, _Query1}),
 			query_page1(PageServer, Etag, fun usage_aaa_acct/2, Filters, Start, End);
 		{_, {_, "HTTPTransferUsage"}, _} ->
 			query_page1(PageServer, Etag, fun usage_http_transfer/2, Filters, Start, End);
@@ -2817,7 +2804,6 @@ erlang:display({?MODULE, ?LINE, _Query1}),
 	end.
 %% @hidden
 query_page1(PageServer, Etag, Decoder, Filters, Start, End) ->
-erlang:display({?MODULE, ?LINE, PageServer, Etag, Decoder, Filters, Start, End}),
 	case gen_server:call(PageServer, {Start, End}, infinity) of
 		{error, Status} ->
 			{error, Status};
@@ -3110,11 +3096,9 @@ characteristic([{complex, L1} | T], Protocol, Types, ReqAttrs, RespAttrs, N) ->
 				{_, Value, []} ->
 					case Protocol of
 						radius ->
-erlang:display({?MODULE, ?LINE, Name, Value, T, radius, Types, ReqAttrs, RespAttrs, N}),
 							characteristic(Name, Value, T,
 									radius, Types, ReqAttrs, RespAttrs, N);
 						diameter ->
-erlang:display({?MODULE, ?LINE, Name, Value, T, diameter, Types, ReqAttrs, RespAttrs, N}),
 							characteristic(Name, Value, T,
 									diameter, Types, ReqAttrs, RespAttrs, N)
 					end;
