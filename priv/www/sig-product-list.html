@@ -218,8 +218,8 @@
 				if (ajax.params['filter']) {
 					ajax.params['filter'] += "]}]\"";
 				}
-				productList = document.getElementById('productList');
-				handleAjaxResponse = function(request) {
+				var productList = document.getElementById('productList');
+				var handleAjaxResponse = function(request) {
 					if(request) {
 						productList.etag = request.xhr.getResponseHeader('ETag');
 						var range = request.xhr.getResponseHeader('Content-Range');
@@ -277,7 +277,7 @@
 						callback([]);
 					}
 				};
-				handleAjaxError = function(error) {
+				var handleAjaxError = function(error) {
 					productList.etag = null;
 					var toast = document.getElementById('userToastError');
 					toast.text = error;

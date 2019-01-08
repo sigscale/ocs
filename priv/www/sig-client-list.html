@@ -243,8 +243,8 @@
 				if (ajax.params['filter']) {
 					ajax.params['filter'] += "]}]\"";
 				}
-				clientList = document.getElementById('clientList');
-				handleAjaxResponse = function(request) {
+				var clientList = document.getElementById('clientList');
+				var handleAjaxResponse = function(request) {
 					if(request) {
 						clientList.etag = request.xhr.getResponseHeader('ETag');
 						var range = request.xhr.getResponseHeader('Content-Range');
@@ -275,7 +275,7 @@
 						callback([]);
 					}
 				};
-				handleAjaxError = function(error) {
+				var handleAjaxError = function(error) {
 					clientList.etag = null;
 					var toast = document.getElementById('userToastError');
 					toast.text = error;

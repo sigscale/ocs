@@ -232,7 +232,7 @@
 					bucketTop.amount = {units: bucketUnits, amount: bucketAmount};
 					}
 				}
-				proId = this.$.addProduct.value;
+				var proId = this.$.addProduct.value;
 				bucketTop.product = {id: proId,
 						href: "/productInventoryManagement/v2/product/" + proId};
 				ajaxBucket.headers['Content-type'] = "application/json";
