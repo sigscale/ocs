@@ -1,3 +1,18 @@
+2019-01-08  Kusal Fernando  <kusal@sigscale.org>
+
+	* remove global variables in front end modules
+	* harden http range requests
+	* use sticky locks to speed up transactions
+	* use ets activity context for lookups
+	* rename log file search function
+	* binary tree search for log queries
+	* correct binary log chunking
+	* use matchspecs in diameter account query api
+	* handle event type at usage characteristic
+	* include total octets in log rest api
+	* fix accounting filter head and characteristics
+	* front end filter requests
+
 2018-10-17  Kusal Fernando  <kusal@sigscale.org>
 
 	* test suite for diameter acct query
