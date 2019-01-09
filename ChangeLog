@@ -1,3 +1,7 @@
+2019-01-09  Kusal Fernando  <kusal@sigscale.org>
+
+	* syntax errors are fixed
+
 2019-01-08  Kusal Fernando  <kusal@sigscale.org>
 
 	* remove global variables in front end modules
