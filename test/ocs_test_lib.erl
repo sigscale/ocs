@@ -25,15 +25,11 @@ initialize_db() ->
 					initialize_db()
 			end;
 		yes ->
-			Tables = [client, service, offer, httpd_user, httpd_group],
-			case mnesia:wait_for_tables(Tables, 1000) of
+			Tables = [httpd_user, httpd_group, client, service, offer],
+			case mnesia:wait_for_tables([client, service, offer], 1000) of
 				{timeout, _} ->
 					ok = application:stop(mnesia),
 					{ok, Tables} = ocs_app:install(),
-					F = fun(T) ->
-							lists:member(T, Tables)
-					end,
-					true = lists:all(F, Tables),
 					initialize_db();
 				ok ->
 					ok
