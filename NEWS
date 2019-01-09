@@ -1,3 +1,10 @@
+January 8, 2019
+---------------
+	- CLI API support matchspecs in DIAMETER log query
+	- REST API support unit totals in DIAMETER log query
+	- Efficiently find start file in disk log
+	- Optimize table transactions
+
 July 4, 2018
 ------------
 	- SNMP Agent

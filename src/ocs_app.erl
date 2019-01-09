@@ -36,7 +36,7 @@
 -record(state, {}).
 
 -define(WAITFORSCHEMA, 10000).
--define(WAITFORTABLES, 10000).
+-define(WAITFORTABLES, 60000).
 
 %%----------------------------------------------------------------------
 %%  The ocs_app aplication callbacks
@@ -56,7 +56,7 @@
 %%
 start(normal = _StartType, _Args) ->
 	Tables = [client, service, offer, product, pla],
-	case mnesia:wait_for_tables(Tables, 60000) of
+	case mnesia:wait_for_tables(Tables, ?WAITFORTABLES) of
 		ok ->
 			start1();
 		{timeout, BadTabList} ->
