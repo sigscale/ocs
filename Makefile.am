@@ -16,10 +16,12 @@ release:	$(PACKAGE_VERSION).tar.gz
 
 ERLTMP := $(shell mktemp -d)
 
-$(PACKAGE_VERSION).tar.gz: ocs.rel
+$(PACKAGE_VERSION).rel:	$(PACKAGE_NAME).rel
+	cp $(PACKAGE_NAME).rel $(PACKAGE_VERSION).rel
+
+$(PACKAGE_VERSION).tar.gz: $(PACKAGE_VERSION).rel
 	mkdir -p $(ERLTMP)/lib/$(PACKAGE_NAME)-$(PACKAGE_VERSION)
 	cp -r $(DESTDIR)/$(ERLANG_INSTALL_LIB_DIR)/$(PACKAGE_NAME)-$(PACKAGE_VERSION)/* $(ERLTMP)/lib/$(PACKAGE_NAME)-$(PACKAGE_VERSION)
-	cp ocs.rel $(PACKAGE_VERSION).rel
 	ERL_LIBS=$(ERLTMP)/lib RELDIR=releases $(ERL) -noinput -boot_var OTPHOME lib \
 			-eval "systools:make_script(\"$(PACKAGE_VERSION)\", [{variables, [{\"OTPHOME\", \"$(ERLTMP)\"}]}])" \
 			-eval "systools:make_tar(\"$(PACKAGE_VERSION)\", [{dirs, [include,mibs]}])" \
