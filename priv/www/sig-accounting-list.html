@@ -420,7 +420,7 @@
 							}
 							var index6 = request.response[index].usageCharacteristic.findIndex(checkChar6);
 							if(index6 != -1) {
-								newRecord.acctTotaloctets = results[index].totalOctets; 
+								newRecord.acctTotaloctets = request.response[index].usageCharacteristic[index6].value;
 							}
 							function checkChar7(characteristic) {
 								return characteristic.name == "username";
