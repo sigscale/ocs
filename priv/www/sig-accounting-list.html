@@ -416,11 +416,11 @@
 								newRecord.acctInputoctets = request.response[index].usageCharacteristic[index5].value;
 							}
 							function checkChar6(characteristic) {
-								return characteristic.name == "acctTotalOctets";
+								return characteristic.name == "totalOctets";
 							}
 							var index6 = request.response[index].usageCharacteristic.findIndex(checkChar6);
 							if(index6 != -1) {
-								newRecord.acctTotaloctets = results[index].acctTotaloctets;
+								newRecord.acctTotaloctets = results[index].totalOctets;
 							}
 							function checkChar7(characteristic) {
 								return characteristic.name == "username";
