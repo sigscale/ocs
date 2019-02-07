@@ -963,7 +963,7 @@
 			initialize: function(item) {
 				this.$.getProductUpdateAjax.generateRequest();
 				this.$.updateProductModal.open();
-				this.$.updateOffName.value = item.name;
+				this.$.updateOffName.value = item.id;
 				this.$.updateOffDesc.value = item.description;
 				if(item.productSpecification && item.productSpecification.name) {
 					this.$.updateOffSpec.value = item.productSpecification.name.replace("ProductSpec", "");
