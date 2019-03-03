@@ -149,11 +149,11 @@ check_content_type_header(Headers, Method, Module, Data) ->
 							{content_type,  ProvidedType} | Data]);
 				false ->
 					Response = "<h2>HTTP Error 415 - Unsupported Media Type</h2>",
-					{break, [{response, {415, Response}}]}
+					{proceed, [{response, {415, Response}} | Data]}
 			end;
 		false ->
 			Response = "<h2>HTTP Error 400 - Bad Request</h2>",
-			{break, [{response, {400, Response}}]}
+			{proceed, [{response, {400, Response}} | Data]}
 	end.
 
 %% @hidden
@@ -166,7 +166,7 @@ check_accept_header(Headers, Module, Data) ->
 					{proceed, [{accept, AcceptType} | Data]};
 				false ->
 					Response = "<h2>HTTP Error 415 - Unsupported Media Type</h2>",
-					{break, [{response, {415, Response}}]}
+					{proceed, [{response, {415, Response}} | Data]}
 			end;
 		false ->
 			{proceed, Data}

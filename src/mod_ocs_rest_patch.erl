@@ -70,7 +70,8 @@ do(#mod{method = Method, parsed_header = Headers, request_uri = Uri,
 	end.
 
 %% @hidden
-content_type_available(Headers, ContentType, Body, Uri, Resource, ModData) ->
+content_type_available(Headers, ContentType, Body,
+		Uri, Resource, #mod{data = Data} = ModData) ->
 	case lists:keyfind("accept", 1, Headers) of
 		{_, RequestingType} ->
 			AvailableTypes = Resource:content_types_provided(),
@@ -81,7 +82,7 @@ content_type_available(Headers, ContentType, Body, Uri, Resource, ModData) ->
 							string:tokens(Uri, "/"));
 				false ->
 					Response = "<h2>HTTP Error 415 - Unsupported Media Type</h2>",
-					{break, [{response, {415, Response}}]}
+					{proceed, [{response, {415, Response}} | Data]}
 			end;
 		_ ->
 			do_patch(ContentType, Uri, Body, Resource, undefined, ModData)
@@ -129,39 +130,39 @@ do_patch("application/json-patch+json", Body, Resource, ModData, Etag,
 do_patch("application/json-patch+json", Body, Resource, ModData, Etag,
 		["serviceInventoryManagement", "v2", "service", ServiceId]) ->
 	do_response(ModData, Resource:patch_inventory(ServiceId, Etag, Body));
-do_patch(_, _, _, _, _, _) ->
+do_patch(#mod{data = Data} = _ModData, _, _, _, _, _) ->
 	Response = "<h2>HTTP Error 404 - Not Found</h2>",
-	{break, [{response, {404, Response}}]}.
+	{proceed, [{response, {404, Response}} | Data]}.
 
 %% @hidden
-do_response(ModData, {ok, Headers, []}) ->
+do_response(#mod{data = Data} = ModData, {ok, Headers, []}) ->
 	Size = integer_to_list(iolist_size([])),
 	NewHeaders = [{content_length, Size} | Headers],
 	send(ModData, 204, NewHeaders, []),
-	{proceed,[{response,{already_sent,200, Size}}]};
-do_response(ModData, {ok, Headers, ResponseBody}) ->
+	{proceed,[{response,{already_sent,200, Size}} | Data]};
+do_response(#mod{data = Data} = ModData, {ok, Headers, ResponseBody}) ->
 	Size = integer_to_list(iolist_size(ResponseBody)),
 	NewHeaders = [{content_length, Size} | Headers],
 	send(ModData, 200, NewHeaders, ResponseBody),
-	{proceed,[{response,{already_sent,200, Size}}]};
-do_response(_ModData, {error, 400}) ->
+	{proceed,[{response,{already_sent,200, Size}} | Data]};
+do_response(#mod{data = Data} = _ModData, {error, 400}) ->
 	Response = "<h2>HTTP Error 400 - Bad Request</h2>",
-	{break, [{response, {400, Response}}]};
-do_response(_ModData, {error, 404}) ->
+	{proceed, [{response, {400, Response}} | Data]};
+do_response(#mod{data = Data} = _ModData, {error, 404}) ->
 	Response = "<h2>HTTP Error 404 - Not Found</h2>",
-	{break, [{response, {404, Response}}]};
-do_response(_ModData, {error, 409}) ->
+	{proceed, [{response, {404, Response}} | Data]};
+do_response(#mod{data = Data} = _ModData, {error, 409}) ->
 	Response = "<h2>HTTP Error 409 - Conflict</h2>",
-	{break, [{response, {409, Response}}]};
-do_response(_ModData, {error, 412}) ->
+	{proceed, [{response, {409, Response}} | Data]};
+do_response(#mod{data = Data} = _ModData, {error, 412}) ->
 	Response = "<h2>HTTP Error 412 - Precondition Failed</h2>",
-	{break, [{response, {412, Response}}]};
-do_response(_ModData, {error, 422}) ->
+	{proceed, [{response, {412, Response}} | Data]};
+do_response(#mod{data = Data} = _ModData, {error, 422}) ->
 	Response = "<h2>HTTP Error 422  - Unprocessable Entity</h2>",
-	{break, [{response, {422, Response}}]};
-do_response(_ModData, {error, 500}) ->
+	{proceed, [{response, {422, Response}} | Data]};
+do_response(#mod{data = Data} = _ModData, {error, 500}) ->
 	Response = "<h2>HTTP Error 500 - Server Error</h2>",
-	{break, [{response, {500, Response}}]}.
+	{proceed, [{response, {500, Response}} | Data]}.
 
 %% @hidden
 send(#mod{socket = Socket, socket_type = SocketType} = Info,

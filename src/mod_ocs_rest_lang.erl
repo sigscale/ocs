@@ -107,7 +107,7 @@ serve_index(User, #mod{data = Data, config_db = ConfigDb,
 							{proceed, [{response, {already_sent, 200, Size}} | Data]};
 						{error, _Reason} ->
 							Response = "<h2>HTTP Error 404 - Not Found</h2>",
-							{break, [{response, {404, Response}}]}
+							{proceed, [{response, {404, Response}} | Data]}
 					end;
 				{error, _Reason} ->
 					{proceed,  Data}
