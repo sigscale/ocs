@@ -1185,14 +1185,14 @@ delete_service(Identity) when is_binary(Identity) ->
 						ok = mnesia:write(P1),
 						mnesia:delete(service, Identity, write);
 					[] ->
-						ok
+						mnesia:delete(service, Identity, write)
 				end;
 			[] ->
 				ok
 		end
 	end,
 	case mnesia:transaction(F) of
-		{atomic, _} ->
+		{atomic, ok} ->
 			ok;
 		{aborted, Reason} ->
 			exit(Reason)
