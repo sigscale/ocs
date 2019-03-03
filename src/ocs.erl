@@ -610,7 +610,7 @@ find_product(ProductRef) when is_list(ProductRef) ->
 	case mnesia:transaction(F) of
 		{atomic, []} ->
 			{error, not_found};
-		{atomic, [Product]} ->
+		{atomic, [#product{} = Product]} ->
 			{ok, Product};
 		{aborted, Reason} ->
 			{error, Reason}
@@ -1339,18 +1339,11 @@ add_pla(#pla{} = Pla, File) when is_list(File) ->
 		Reason :: term().
 %% @doc Find offer by product id
 find_offer(OfferID) ->
-	F = fun() ->
-		case mnesia:read(offer, OfferID) of
-			[Entry] ->
-				Entry;
-			[] ->
-				throw(not_found)
-		end
-	end,
+	F = fun() -> mnesia:read(offer, OfferID) end,
 	case mnesia:transaction(F) of
-		{atomic, Offer} ->
+		{atomic, [#offer{} = Offer]} ->
 			{ok, Offer};
-		{aborted, {throw, not_found}} ->
+		{atomic, []} ->
 			{error, not_found};
 		{aborted, Reason} ->
 			{error, Reason}
@@ -1522,18 +1515,11 @@ get_plas() ->
 		Reason :: term().
 %% @doc Find pricing logic algorithm by id.
 find_pla(ID) ->
-	F = fun() ->
-		case mnesia:read(pla, ID) of
-			[Entry] ->
-				Entry;
-			[] ->
-				throw(not_found)
-		end
-	end,
+	F = fun() -> mnesia:read(pla, ID) end,
 	case mnesia:transaction(F) of
-		{atomic, Pla} ->
+		{atomic, [#pla{} = Pla]} ->
 			{ok, Pla};
-		{aborted, {throw, not_found}} ->
+		{atomic, []} ->
 			{error, not_found};
 		{aborted, Reason} ->
 			{error, Reason}
