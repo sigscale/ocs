@@ -760,7 +760,7 @@ delete_inventory(Id) ->
 	case catch ocs:delete_product(Id) of
 		ok ->
 			{ok, [], []};
-		{'EXIT', service_exsist} ->
+		{'EXIT', service_exists} ->
 			{error, 202};
 		{'EXIT', _} ->
 			{error, 500}

@@ -623,7 +623,7 @@ find_product(ProductRef) when is_list(ProductRef) ->
 %% @doc Delete an entry from product table
 delete_product(ProductRef) when is_list(ProductRef) ->
 	F1 = fun(#service{product = PRef}, _) when PRef == ProductRef ->
-					throw(service_exsist);
+					throw(service_exists);
 			(_, Acc) ->
 					Acc
 	end,

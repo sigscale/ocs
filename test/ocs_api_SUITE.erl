@@ -441,7 +441,7 @@ ignore_delete_product(_Config) ->
 	{ok, #product{}} = ocs:find_product(ProdRef),
 	{ok, #service{}} = ocs:add_service(ocs:generate_identity(),
 			ocs:generate_password(), ProdRef, []),
-	{'EXIT', service_exsist} = (catch ocs:delete_product(ProdRef)),
+	{'EXIT', service_exists} = (catch ocs:delete_product(ProdRef)),
 	{ok, #product{}} = ocs:find_product(ProdRef).
 
 add_bucket() ->
