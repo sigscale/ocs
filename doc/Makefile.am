@@ -81,7 +81,7 @@ modhtml = ocs.html \
 doc_DATA = overview.edoc $(modhtml) \
 		modules-frame.html overview-summary.html \
 		index.html stylesheet.css \
-		sigscale-logo.png supervision.png
+		sigscale-logo.png supervision.png schema.png
 
 overview.edoc: overview.edoc-in
 	sed -e 's!%VERSION%!$(VERSION)!' \
@@ -99,6 +99,7 @@ overview.edoc: overview.edoc-in
 	done
 	-cp -n $(top_srcdir)/doc/sigscale-logo.png .
 	-cp -n $(top_srcdir)/doc/supervision.png .
+	-cp -n $(top_srcdir)/doc/schema.png .
 
 CLEANFILES = overview.edoc edoc-info index.html \
 		modules-frame.html overview-summary.html packages-frame.html \
