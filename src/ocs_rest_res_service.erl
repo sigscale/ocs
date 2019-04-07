@@ -461,6 +461,8 @@ inventory([{"serviceRelationship", _}| T], Acc) ->
 	inventory(T, Acc);
 inventory([{"place", _}| T], Acc) ->
 	inventory(T, Acc);
+inventory([{"note", _}| T], Acc) ->
+	inventory(T, Acc);
 inventory([{"supportingService", _}| T], Acc) ->
 	inventory(T, Acc);
 inventory([{"serviceSpecification", _}| T], Acc) ->
