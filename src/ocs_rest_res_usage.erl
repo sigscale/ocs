@@ -2891,6 +2891,8 @@ range(Year, [$-, M1, M2, $-, $1, D2]) ->
 	ocs_log:iso8601(Year ++ [$-, M1, M2, $-, $1, D2 + 1]) - 1;
 range(Year, [$-, M1, M2, $-, $2, $9]) ->
 	ocs_log:iso8601(Year ++ [$-, M1, M2, $-, $3, $0]) - 1;
+range(Year, [$-, M1, M2, $-, $2, D2]) ->
+   ocs_log:iso8601(Year ++ [$-, M1, M2, $-, $2, D2 + 1]) - 1;
 range(Year, [$-, $0, $4, $-, $3, $0]) ->
 	ocs_log:iso8601(Year ++ [$-, $0, $5, $-, $0, $1]) - 1;
 range(Year, [$-, $0, $6, $-, $3, $0]) ->
