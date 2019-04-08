@@ -2189,8 +2189,8 @@ inventory([balance | T], #product{balance = BucketRefs} = Product, Acc) ->
 			end,
 			BytesBalance = case Bytes of
 				Bytes when is_integer(Bytes) ->
-					[{struct, [{"name", "bytes"}, {"totalBalance",
-					{struct, [{"amount", Bytes}, {"units", "bytes"}]}}]}];
+					[{struct, [{"name", "octets"}, {"totalBalance",
+					{struct, [{"amount", Bytes}, {"units", "octets"}]}}]}];
 				undefined ->
 					[]
 			end,
