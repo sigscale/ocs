@@ -208,10 +208,18 @@
 									newRecord.cents = request.response[index].remainedAmount.amount;
 								}
 								if(request.response[index].remainedAmount.units == "seconds") {
-									newRecord.seconds = request.response[index].remainedAmount.amount;
+									var Str = request.response[index].remainedAmount.amount;
+									if(Str.includes("b")){
+										var NewStrSec = Str.substring(0, Str.length - 1);
+										newRecord.seconds = NewStrSec;
+									}
 								}
 								if(request.response[index].remainedAmount.units == "octets") {
-									newRecord.remainedAmount = request.response[index].remainedAmount.amount;
+									var Str = request.response[index].remainedAmount.amount;
+									if(Str.includes("b")){
+										var NewStr = Str.substring(0, Str.length - 1);
+										newRecord.remainedAmount = NewStr;
+									}
 								}
 							}
 							vaadinItems[index] = newRecord;
