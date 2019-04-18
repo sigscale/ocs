@@ -563,9 +563,10 @@ add_product(OfferId, ServiceRefs, StartDate, EndDate, Characteristics)
 			case mnesia:read(offer, OfferId, read) of
 				[#offer{char_value_use = CharValueUse} = Offer] ->
 					TS = erlang:system_time(?MILLISECOND),
-					N = erlang:unique_integer([positive]),
-					LM = {TS, N},
-					Id = ocs_rest:etag(LM),
+					N1 = erlang:unique_integer([positive]),
+					N2 = erlang:unique_integer([positive]),
+					LM = {TS, N2},
+					Id = ocs_rest:etag({TS, N1}),
 					F2 = fun(ServiceRef) ->
 								case mnesia:read(service, ServiceRef, write) of
 									[Service] ->
