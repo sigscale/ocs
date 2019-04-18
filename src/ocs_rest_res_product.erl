@@ -98,6 +98,7 @@ add_offer(ReqData) ->
 			{ok, ProductOffering} ->
 				ProductOffering;
 			{error, Reason} ->
+			{error, Reason} ->
 				throw(Reason)
 		end
 	of
@@ -2090,6 +2091,8 @@ inventory({struct, ObjectMembers}) ->
 inventory(ProductInstance) ->
 	{struct, inventory(record_info(fields, product), ProductInstance, [])}.
 %% @hidden
+inventory([{"id", Id} | T], Acc) when is_list(Id) ->
+	inventory(T, Acc#product{id = Id});
 inventory([{"characteristic", Chars} | T], Acc) ->
 	inventory(T, Acc#product{characteristics = instance_chars(Chars)});
 inventory([{"productOffering", {struct, Offer}} | T], Acc) ->
@@ -2260,9 +2263,6 @@ query_filter(MFA, Codec, Query, Filters, Headers) ->
 			case global:whereis_name(Etag) of
 				undefined ->
 					{error, 412};
-				PageServer ->
-					case ocs_rest:range(Range) of
-						{error, _} ->
 							{error, 400};
 						{ok, {Start, End}} ->
 							query_page(Codec, PageServer, Etag, Query, Filters, Start, End)
