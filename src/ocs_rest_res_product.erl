@@ -2090,6 +2090,8 @@ inventory({struct, ObjectMembers}) ->
 inventory(ProductInstance) ->
 	{struct, inventory(record_info(fields, product), ProductInstance, [])}.
 %% @hidden
+inventory([{"id", Id} | T], Acc) when is_list(Id) ->
+	inventory(T, Acc#product{id = Id});
 inventory([{"characteristic", Chars} | T], Acc) ->
 	inventory(T, Acc#product{characteristics = instance_chars(Chars)});
 inventory([{"productOffering", {struct, Offer}} | T], Acc) ->
