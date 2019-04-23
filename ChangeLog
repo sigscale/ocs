@@ -1,3 +1,14 @@
+2019-04-23  Kusal Fernando  <kusal@sigscale.org>
+
+	* add missing id in product inventory codec
+	* make sure etag unique in product
+	* strip b from unit values
+	* balance view: fix allign for amount
+	* balance view: fix bytes value
+	* add missing clause to date range function
+	* add table schema diagram to user guide
+	* ignore note field in service inventory
+
 2019-03-04  Kusal Fernando  <kusal@sigscale.org>
 
 	* log all http requests, including errors

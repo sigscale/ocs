@@ -1,5 +1,12 @@
+April 23, 2019
+--------------
+	- Correct problem patching service
+	- Correct balance presentation views
+	- Document table schema in user guide
+	- Correct problem with date
+
 March 4, 2019
----------------
+-------------
 	- Log all http requests, including errors
 	- Delete service silently failed when product ref didn't exist
 	- Refactor find functions for consistency and safety
