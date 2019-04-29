@@ -1148,19 +1148,22 @@ query_service2({Services, Cont}, {Op, String})
 		$% when Op == like ->
 			Prefix = list_to_binary(lists:droplast(String)),
 			Size = size(Prefix),
-			fun(#service{name = Name}) ->
+			fun
+				(#service{name = Name}) when size(Name) >= Size ->
 					case binary:part(Name, 0, Size) of
 						Prefix ->
 							true;
 						_ ->
 							false
-					end
+					end;
+				(_) ->
+					false
 			end;
 		_ ->
-         ExactMatch = list_to_binary(String),
+			ExactMatch = list_to_binary(String),
 			fun(#service{name = Name}) when Name == ExactMatch ->
 					true;
-				(_) ->	
+				(_) ->
 					false
 			end
 	end,
