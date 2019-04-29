@@ -69,15 +69,15 @@
 				</template>
 				<template>[[item.type]]</template>
 			</vaadin-grid-column>
-			<vaadin-grid-column width="16ex" flex-grow="4">
+			<vaadin-grid-column width="14ex">
 				<template class="header">
-					<vaadin-grid-filter aria-label="[[i18n.subscriber]]" path="subscriber"
-						value="[[_filterSubscriber]]">
-						<input placeholder="[[i18n.subscriber]]" value="{{_filterSubscriber}}"
+					<vaadin-grid-filter aria-label="[[i18n.prod]]" path="product"
+						value="[[_filterProduct]]">
+						<input placeholder="[[i18n.prod]]" value="{{_filterProduct}}"
 							focus-target>
 					</vaadin-grid-filter>
 				</template>
-				<template>[[item.subscriber]]</template>
+				<template>[[item.product]]</template>
 			</vaadin-grid-column>
 			<vaadin-grid-column width="12ex" flex-grow="2">
 				<template class="header">
@@ -124,16 +124,6 @@
 					<template>[[item.amountBefore]]</template>
 				</vaadin-grid-column>
 			</vaadin-grid-column-group>
-			<vaadin-grid-column width="14ex">
-				<template class="header">
-					<vaadin-grid-filter aria-label="[[i18n.prod]]" path="offer"
-						value="[[_filterProduct]]">
-						<input placeholder="[[i18n.prod]]" value="{{_filterProduct}}"
-							focus-target>
-					</vaadin-grid-filter>
-				</template>
-				<template>[[item.offer]]</template>
-			</vaadin-grid-column>
 		</vaadinGrid>
 		<paper-toast
 			id="balanceErrorToast">
@@ -171,12 +161,11 @@
 					var balanceLog = new Object();
 					balanceLog.timeStamp = results[index].date;
 					balanceLog.type = results[index].type;
-					balanceLog.subscriber = results[index].subscriber.id;
 					balanceLog.amount = results[index].amount.amount;
 					balanceLog.bucket = results[index].bucketBalance.id;
 					balanceLog.amountBefore = results[index].amountBefore.amount;
 					balanceLog.amountAfter = results[index].amountAfter.amount;
-					balanceLog.offer = results[index].offer.id;
+					balanceLog.product = results[index].product.id;
 					vaadinItems[index] = balanceLog;
 				}
 				grid.items = vaadinItems;
@@ -188,7 +177,7 @@
 						name: "type"
 					},
 					{
-						name: "subscriber"
+						name: "product"
 					},
 					{
 						name: "bucket"
@@ -201,9 +190,6 @@
 					},
 					{
 						name: "amountAfter"
-					},
-					{
-						name: "offer"
 					}
 				];
 			},
