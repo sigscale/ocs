@@ -2491,10 +2491,10 @@ abmf_query({Cont, Events}, Type, Subscriber, Bucket,
 	{Cont, abmf_query1(Events, Type, Subscriber, Bucket, Units, Product)}.
 %% @hidden
 abmf_query1(Events, '_', Subscriber, Bucket, Units, Product) ->
-	abmf_query2(Events, Subscriber, Bucket, Units, Product);
+       abmf_query2(Events, Subscriber, Bucket, Units, Product);
 abmf_query1(Events, Type, Subscriber, Bucket, Units, Product) ->
-	F = fun(Event) when element(4, Event) == Type -> true; (_) -> false end,
-	abmf_query2(lists:filter(F, Events), Subscriber, Bucket, Units, Product).
+       F = fun(Event) when element(4, Event) == Type -> true; (_) -> false end,
+       abmf_query2(lists:filter(F, Events), Subscriber, Bucket, Units, Product).
 %% @hidden
 abmf_query2(Events, '_', Bucket, Units, Product) ->
 	abmf_query3(Events, Bucket, Units, Product);

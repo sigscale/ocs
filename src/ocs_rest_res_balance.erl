@@ -23,7 +23,7 @@
 
 -export([content_types_accepted/0, content_types_provided/0,
 		top_up/2, top_up_service/2, get_balance/1, get_balance_service/1,
-		get_balance_log/0]).
+		get_balance_log/2]).
 
 -export([get_bucket/1, get_buckets/2]).
 
@@ -52,30 +52,49 @@ content_types_accepted() ->
 content_types_provided() ->
 	["application/json"].
 
--spec get_balance_log() -> Result
+-spec get_balance_log(Query, Headers) -> Result
 	when
+		Query :: [{Key :: string(), Value :: string()}],
+		Headers  :: [tuple()],
 		Result :: {ok, Headers :: [tuple()],
 			Body :: iolist()} | {error, ErrorCode :: integer()}.
 %% @doc Body producing function for `GET /ocs/v1/log/balance'
 %% requests.
-get_balance_log() ->
-	{ok, MaxItems} = application:get_env(ocs, rest_page_size),
+get_balance_log(Query, Headers) ->
 	try
-		case ocs_log:last(ocs_abmf, MaxItems) of
-			{error, _} ->
-				{error, 404};
-			{NewCount, Events} ->
-				JsonObj = abmf_json(Events),
-				JsonArray = {array, JsonObj},
-				Body = mochijson:encode(JsonArray),
-				ContentRange = "items 1-" ++ integer_to_list(NewCount) ++ "/*",
-				Headers = [{content_type, "application/json"},
-					{content_range, ContentRange}],
-				{ok, Headers, Body}
-		end
+	{DateStart, DateEnd} = case lists:keyfind("date", 1, Query) of
+		{_, DateTime} when length(DateTime) > 3 ->
+			ocs_rest_res_usage:range(DateTime);
+                false ->
+                        {1, erlang:system_time(?MILLISECOND)}
+        end,
+	case lists:keytake("filter", 1, Query) of
+		{value, {_, String}, Query1} ->
+			{ok, Tokens, _} = ocs_rest_query_scanner:string(String),
+			case ocs_rest_query_parser:parse(Tokens) of
+				{ok, [{array, [{complex, Complex}]}]} ->
+					MatchType = match("type", Complex, Query),
+					MatchSubscriber = match("subscriber", Complex, Query),
+					MatchBucket = match("subscriber", Complex, Query),
+					MatchUnits = match("units", Complex, Query),
+					MatchProducts = match("procucts", Complex, Query),
+					{Query1, [DateStart, DateEnd, MatchType, MatchSubscriber, MatchBucket, MatchUnits, MatchProducts]}
+			end;
+		false ->
+			MatchType = match("type", [], Query),
+			MatchSubscriber = match("subscriber", [], Query),
+			MatchBucket = match("subscriber", [], Query),
+			MatchUnits = match("units", [], Query),
+			MatchProducts = match("procucts", [], Query),
+			{Query, [DateStart, DateEnd, MatchType, MatchSubscriber, MatchBucket, MatchUnits, MatchProducts]}
+	end
+	of
+               {Query2, Args} ->
+                       Codec = fun abmfs/2,
+                       query_filter({ocs_log, abmf_query, Args}, Codec, Query2, Headers)
 	catch
-		_:_ ->
-			{error, 500}
+               _ ->
+                       {error, 400}
 	end.
 
 -spec get_bucket(BucketId) -> Result
@@ -318,6 +337,28 @@ units1(cents) -> "cents";
 units1(seconds) -> "seconds";
 units1(messages) -> "messages".
 
+-spec type(Type) -> Type
+	when
+		Type :: string() | deduct | reserve | unreserve | transfer | topup | adjustment.
+%% @doc Return the type of abmf logs.
+type(Type) when is_list(Type) ->
+	type1(string:to_lower(Type));
+type(Type) when is_atom(Type) ->
+	type1(Type).
+%% @hidden
+type1("deduct") -> deduct;
+type1("reserve") -> reserve;
+type1("unreserve") -> unreserve;
+type1("transfer") -> transfer;
+type1("topup") -> topup;
+type1("adjustment") -> adjustment;
+type1(deduct) -> "deduct";
+type1(reserve) -> "reserve";
+type1(unreserve) -> "unreserve";
+type1(transfer) -> "transfer";
+type1(topup) -> "topup";
+type1(adjustment) -> "adjustment".
+
 -spec bucket(Bucket) -> Bucket
 	when
 		Bucket :: #bucket{} | {struct, list()}.
@@ -413,84 +454,99 @@ bucket([_ | T], B, Acc) ->
 bucket([], _B, Acc) ->
 	{struct, lists:reverse(Acc)}.
 
+-spec abmfs(Abmf, Acc) -> Result
+	when
+		Abmf :: list(),
+		Acc :: list(),
+		Result :: {array, list()}.
+%% @doc CODEC for list of abmf
 % @hidden
-abmf_json(Events) ->
-	lists:map(fun abmf_json0/1, Events).
-% @hidden
-abmf_json0(Event) ->
-	{struct, abmf_json0(Event, [])}.
+abmfs([H | T], Acc) ->
+	abmfs(T, [abmf(H) | Acc]);
+abmfs([], Acc) ->
+	{array, lists:reverse(Acc)}.
+
+-spec abmf(Event) -> Json 
+	when
+		Event :: tuple(),
+		Json :: {struct, list()}.
+%% @doc CODEC for abmf
 %% @hidden
-abmf_json0(Event, Acc) when element(1, Event) /= undefined ->
+abmf(Events) ->
+	abmf0(Events, []).
+%       lists:map(fun abmf0/2, Events).
+%% @hidden
+abmf0(Event, Acc) when element(1, Event) /= undefined ->
 	Date = {"date", ocs_log:iso8601(element(1, Event))},
-	abmf_json1(Event, [Date | Acc]);
-abmf_json0(Event, Acc) ->
-	abmf_json1(Event, Acc).
+	abmf1(Event, [Date | Acc]);
+abmf0(Event, Acc) ->
+	abmf1(Event, Acc).
 %% @hidden
-abmf_json1(Event, Acc) when element(4, Event) /= undefined ->
-	Type = {"type", element(4, Event)},
-	abmf_json2(Event, [Type | Acc]);
-abmf_json1(Event, Acc) ->
-	abmf_json2(Event, Acc).
+abmf1(Event, Acc) when element(4, Event) /= undefined ->
+	Type = {"type", type(element(4, Event))},
+	abmf2(Event, [Type | Acc]);
+abmf1(Event, Acc) ->
+	abmf2(Event, Acc).
 %% @hidden
-abmf_json2(Event, Acc) when element(5, Event) /= undefined,
+abmf2(Event, Acc) when element(5, Event) /= undefined,
 		is_list(element(5, Event)) ->
 	Sub = {"subscriber", {struct,[{"id", element(5, Event)}]}},
-	abmf_json3(Event, [Sub | Acc]);
-abmf_json2(Event, Acc) when element(5, Event) /= undefined ->
+	abmf3(Event, [Sub | Acc]);
+abmf2(Event, Acc) when element(5, Event) /= undefined ->
 	Sub = {"subscriber",
 			{struct,[{"id", binary_to_list(element(5, Event))}]}},
-	abmf_json3(Event, [Sub | Acc]);
-abmf_json2(Event, Acc) ->
-	abmf_json3(Event, Acc).
+	abmf3(Event, [Sub | Acc]);
+abmf2(Event, Acc) ->
+	abmf3(Event, Acc).
 %% @hidden
-abmf_json3(Event, Acc) when element(6, Event) /= undefined ->
+abmf3(Event, Acc) when element(6, Event) /= undefined ->
 	Bucket = element(6, Event),
 	Bucket1 = {"bucketBalance", {struct, [{"id", Bucket},
 			{"href", ?bucketPath ++ Bucket}]}},
-	abmf_json4(Event, [Bucket1 | Acc]);
-abmf_json3(Event, Acc) ->
-	abmf_json4(Event, Acc).
+	abmf4(Event, [Bucket1 | Acc]);
+abmf3(Event, Acc) ->
+	abmf4(Event, Acc).
 %% @hidden
-abmf_json4(Event, Acc) when element(7, Event) /= undefined,
+abmf4(Event, Acc) when element(7, Event) /= undefined,
 		is_integer(element(9, Event)) ->
 	Units = element(7, Event),
 	Amount = element(9, Event),
 	Amount1 = {"amount",	{struct,
 			[{"units", units(Units)}, {"amount", Amount}]}},
-	abmf_json5(Event, [Amount1 | Acc]);
-abmf_json4(Event, Acc) ->
-	abmf_json5(Event, Acc).
+	abmf5(Event, [Amount1 | Acc]);
+abmf4(Event, Acc) ->
+	abmf5(Event, Acc).
 %% @hidden
-abmf_json5(Event, Acc) when element(7, Event) /= undefined,
+abmf5(Event, Acc) when element(7, Event) /= undefined,
 		is_integer(element(10, Event)) ->
 	Units = element(7, Event),
 	Amount = element(10, Event),
 	AmountBefore1 = {"amountBefore",
 			{struct, [{"units", units(Units)}, {"amount", Amount}]}},
-	abmf_json6(Event, [AmountBefore1 | Acc]);
-abmf_json5(Event, Acc) ->
-	abmf_json6(Event, Acc).
+	abmf6(Event, [AmountBefore1 | Acc]);
+abmf5(Event, Acc) ->
+	abmf6(Event, Acc).
 %% @hidden
-abmf_json6(Event, Acc) when element(7, Event) /= undefined,
+abmf6(Event, Acc) when element(7, Event) /= undefined,
 		is_integer(element(10, Event)) ->
 	Units = element(7, Event),
 	Amount = element(11, Event),
 	AmountAfter = {"amountAfter",
 			{struct, [{"units", units(Units)}, {"amount", Amount}]}},
-	abmf_json7(Event, [AmountAfter | Acc]);
-abmf_json6(Event, Acc) ->
-	abmf_json7(Event, Acc).
+	abmf7(Event, [AmountAfter | Acc]);
+abmf6(Event, Acc) ->
+	abmf7(Event, Acc).
 %% @hidden
-abmf_json7(Event, Acc) when element(8, Event) /= undefined ->
+abmf7(Event, Acc) when element(8, Event) /= undefined ->
 	Product = element(8, Event),
 	Product1 = {"product", {struct, [{"id", Product},
 			{"href", ?productInventoryPath ++ Product}]}},
-	abmf_json8(Event, [Product1 | Acc]);
-abmf_json7(Event, Acc) ->
-	abmf_json8(Event, Acc).
+	abmf8(Event, [Product1 | Acc]);
+abmf7(Event, Acc) ->
+	abmf8(Event, Acc).
 %% @hidden
-abmf_json8(_Event, Acc) ->
-	lists:reverse(Acc).
+abmf8(_Event, Acc) ->
+	{struct, lists:reverse(Acc)}.
 
 -spec quantity(Quantity) -> Quantity
 	when
@@ -622,21 +678,13 @@ query_page(Codec, PageServer, Etag, _Query, Filters, Start, End) ->
 		{error, Status} ->
 			{error, Status};
 		{Result, ContentRange} ->
-			JsonObj = query_page1(lists:map(Codec, Result), Filters, []),
-			JsonArray = {array, JsonObj},
-			Body = mochijson:encode(JsonArray),
+			JsonCodec = abmfs(Result, []),
+			Body = mochijson:encode(JsonCodec),
 			Headers = [{content_type, "application/json"},
 					{etag, Etag}, {accept_ranges, "items"},
 					{content_range, ContentRange}],
 			{ok, Headers, Body}
 	end.
-%% @hidden
-query_page1(Json, [], []) ->
-	Json;
-query_page1([H | T], Filters, Acc) ->
-	query_page1(T, Filters, [ocs_rest:fields(Filters, H) | Acc]);
-query_page1([], _, Acc) ->
-	lists:reverse(Acc).
 
 %% @hidden
 match(Key, Complex, Query) ->
