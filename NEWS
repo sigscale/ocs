@@ -1,3 +1,9 @@
+May 10, 2019
+--------------
+	- validate size of the service id
+	- remove subscriber coloumn from balance view
+	- configure httpd with tls by default
+
 April 23, 2019
 --------------
 	- Correct problem patching service
