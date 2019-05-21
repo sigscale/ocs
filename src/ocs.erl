@@ -852,45 +852,6 @@ add_bucket(ProductRef, #bucket{id = undefined} = Bucket) when is_list(ProductRef
 			{ok, OldBucket, NewBucket};
 		{aborted, Reason} ->
 			{error, Reason}
-	end;
-add_bucket(ProductRef, #bucket{id = BId, product = ProdRef1,
-		remain_amount = RAmount1, end_date = TD} = _Bucket)
-		when is_list(ProductRef) ->
-	F = fun() ->
-		case mnesia:read(product, ProductRef, write) of
-			[#product{balance = B} = P] ->
-				case mnesia:read(bucket, BId, write) of
-					[#bucket{product = ProdRef2,
-							remain_amount = RAmount2} = Bucket2] ->
-						ProdRef3 = ProdRef2 ++ [ProdRef1 -- ProdRef2],
-						Bucket3  = Bucket2#bucket{id = BId, product = ProdRef3,
-							remain_amount = RAmount2 + RAmount1, end_date = TD},
-						ok = mnesia:write(bucket, Bucket3, write),
-						case lists:any(fun(Id) when Id == BId -> true; (_) -> false end, B) of
-							true ->
-								Product = P#product{balance = lists:reverse([BId | B])},
-								ok = mnesia:write(product, Product, write),
-								{ok, Bucket2, Bucket3};
-							false ->
-								{ok, Bucket2, Bucket3}
-						end;
-					[] ->
-						throw(bucket_not_found)
-				end;
-			[] ->
-				throw(product_not_found)
-		end
-	end,
-	case mnesia:transaction(F) of
-		{atomic, {ok, OldBucket, NewBucket}} ->
-			[ProdRef | _] = NewBucket#bucket.product,
-			ocs_log:abmf_log(topup, undefined, NewBucket#bucket.id, NewBucket#bucket.units, ProdRef, RAmount1, OldBucket#bucket.remain_amount,
-				NewBucket#bucket.remain_amount, undefined, undefined, undefined, undefined, undefined, undefined, NewBucket#bucket.status),
-			{ok, OldBucket, NewBucket};
-		{aborted, {throw, Reason}} ->
-			{error, Reason};
-		{aborted, Reason} ->
-			{error, Reason}
 	end.
 
 -spec find_bucket(BucketId) -> Result
