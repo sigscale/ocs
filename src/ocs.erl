@@ -31,7 +31,7 @@
 -export([find_service/1, delete_service/1, get_services/0, query_service/3,
 		find_product/1]).
 -export([add_bucket/2, find_bucket/1, get_buckets/0, get_buckets/1,
-		delete_bucket/1, query_bucket/3]).
+		delete_bucket/1, query_bucket/3, adjustment/1]).
 -export([add_user/3, list_users/0, get_user/1, delete_user/1,
 		query_users/3, update_user/3]).
 -export([add_offer/1, find_offer/1, get_offers/0, delete_offer/1,
@@ -1019,6 +1019,67 @@ delete_bucket1(BId, ProdRefs) ->
 	end,
 	true = lists:all(F, ProdRefs),
 	ok = mnesia:delete(bucket, BId, write).
+
+-spec adjustment(Adjustment) -> Result
+	when
+		Adjustment :: #adjustment{},
+		Result :: ok.
+%% @doc Adjust the all buckets for given product reference
+adjustment(#adjustment{amount = Amount, product = ProductRef, units = Units,
+		start_date = StartDate, end_date = EndDatae})
+		when Amount > 0, is_list(ProductRef) ->
+	F = fun() ->
+		case mnesia:read(product, ProductRef, write) of
+			[#product{balance = B} = P] ->
+				BId = generate_bucket_id(),
+				Bucket = #bucket{id = BId, start_date = StartDate, end_date = EndDatae,
+						remain_amount = Amount, units = Units, product = [ProductRef],
+						last_modified = calendar:local_time()},
+				ok = mnesia:write(bucket, Bucket, write),
+				Product = P#product{balance = lists:reverse([BId | B])},
+				ok = mnesia:write(product, Product, write),
+				{ok, undefined, Bucket};
+			[] ->
+				throw(product_not_found)
+		end
+	end,
+	case mnesia:transaction(F) of
+		{atomic, {ok, _OldBucket, NewBucket}} ->
+			[ProdRef | _] = NewBucket#bucket.product,
+			ocs_log:abmf_log(adjustment, undefined, NewBucket#bucket.id, cents,
+					ProdRef, 0, 0, NewBucket#bucket.remain_amount, undefined,
+					undefined, undefined, undefined, undefined, undefined,
+					NewBucket#bucket.status),
+			ok;
+		{aborted, Reason} ->
+			{error, Reason}
+	end;
+adjustment(#adjustment{amount = Amount, product = ProductRef})
+		when is_list(ProductRef), is_integer(Amount), Amount < 0 ->
+	F = fun() ->
+		case mnesia:read(product, ProductRef) of
+			[#product{balance = []}] ->
+				[];
+			[#product{balance = BucketRefs}] ->
+				MatchHead = #bucket{id = '$1', _ = '_'},
+				MatchIds = [{'==', Id, '$1'} || Id <- BucketRefs],
+				MatchConditions = [list_to_tuple(['or' | MatchIds])],
+				mnesia:select(bucket,
+						[{MatchHead, MatchConditions, ['$_']}]);
+%				NewBuckets = deduct_buckets(ProductRef, Amount, Buckets),
+%				[ok | _] = [mnesia:write(bucket, Bucket, write) || Bucket <- NewBuckets],
+			[] ->
+				throw(product_not_found)
+		end
+	end,
+	case mnesia:transaction(F) of
+		{atomic, Buckets} ->
+			deduct_buckets(ProductRef, Amount, Buckets);
+		{aborted, {throw, Reason}} ->
+			{error, Reason};
+		{aborted, Reason} ->
+			{error, Reason}
+	end.
 
 -spec find_service(Identity) -> Result 
 	when
@@ -2209,6 +2270,41 @@ charge(ProdRef, Amount, [], Acc) ->
 	lists:reverse([#bucket{id = generate_bucket_id(),
 			units = cents, remain_amount = - Amount,
 			product = [ProdRef]} | Acc]).
+
+-spec deduct_buckets(ProdRef, Amount, Buckets) -> ok
+	when
+		ProdRef :: string(),
+		Amount :: term(),
+		Buckets :: [#bucket{}].
+%% @doc Adjust remain amount of `Buckets'.
+%% @private
+deduct_buckets(ProdRef, Amount, [#bucket{units = cents,
+		remain_amount = Remain} = B | T]) ->
+	NewBucket = B#bucket{remain_amount = Remain + Amount},
+	ok = ocs_log:abmf_log(adjustment, undefined, NewBucket#bucket.id, cents,
+			ProdRef, 0, 0, NewBucket#bucket.remain_amount, undefined,
+			undefined, undefined, undefined, undefined, undefined,
+			NewBucket#bucket.status),
+	F = fun() ->
+		case mnesia:write(bucket, NewBucket, write) of
+			ok ->
+				ok;
+			_ ->
+				throw(transaction_abort)
+		end
+	end,
+	case mnesia:transaction(F) of
+		{atomic, ok} ->
+			deduct_buckets(ProdRef, Amount, T);
+		{aborted, {throw, Reason}} ->
+			{error, Reason};
+		{aborted, Reason} ->
+			{error, Reason}
+	end;
+deduct_buckets(ProdRef, Amount, [_H | T]) ->
+	deduct_buckets(ProdRef, Amount, T);
+deduct_buckets(_ProdRef, _Amount, []) ->
+	ok.
 
 %% @private 
 generate_bucket_id() ->
