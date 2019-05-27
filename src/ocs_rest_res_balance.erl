@@ -23,7 +23,7 @@
 
 -export([content_types_accepted/0, content_types_provided/0,
 		top_up/2, top_up_service/2, get_balance/1, get_balance_service/1,
-		get_balance_log/2]).
+		get_balance_log/2, balance_adjustment/1]).
 
 -export([get_bucket/1, get_buckets/2]).
 
@@ -315,6 +315,26 @@ top_up(Identity, RequestBody) ->
 			{error, 400}
 	end.
 
+-spec balance_adjustment(RequestBody) -> Result
+	when
+		RequestBody :: list(),
+		Result :: {ok, Headers :: [tuple()], Body :: iolist()}
+				| {error, ErrorCode :: integer()}.
+%% @doc Respond to `POST /balanceManagement/v1/balanceAdjustment'
+balance_adjustment(RequestBody) ->
+	try
+		adjustment(mochijson:decode(RequestBody))
+	of
+		#adjustment{} = Adjustment ->
+			ok = ocs:adjustment(Adjustment),
+			{ok, [], []};
+		_ ->
+			{error, 400}
+	catch
+		_:_ ->
+			{error, 400}
+	end.
+
 %%----------------------------------------------------------------------
 %%  internal functions
 %%----------------------------------------------------------------------
@@ -452,6 +472,95 @@ bucket([start_date | T], #bucket{start_date = Start,
 bucket([_ | T], B, Acc) ->
 	bucket(T, B, Acc);
 bucket([], _B, Acc) ->
+	{struct, lists:reverse(Acc)}.
+
+-spec adjustment(Adjustment) -> Adjustment
+	when
+		Adjustment :: #adjustment{} | {struct, list()}.
+%% @doc CODEC for adjustments
+adjustment({struct, Object}) ->
+	adjustment(Object, #adjustment{});
+adjustment(#adjustment{} = A) ->
+	adjustment(record_info(fields, adjustment), A, []).
+%% @hidden
+adjustment([{"id", ID} | T], Adjustment) ->
+	adjustment(T, Adjustment#adjustment{id = ID});
+adjustment([{"type", Type} | T], Adjustment) ->
+	adjustment(T, Adjustment#adjustment{type = Type});
+adjustment([{"description", Description} | T], Adjustment) ->
+	adjustment(T, Adjustment#adjustment{description = Description});
+adjustment([{"reason", Reason} | T], Adjustment) ->
+	adjustment(T, Adjustment#adjustment{reason = Reason});
+adjustment([{"amount", {struct, _} = Q} | T], Adjustment) ->
+	#quantity{amount = Amount, units = Units} = quantity(Q),
+	adjustment(T, Adjustment#adjustment{units = Units, amount = Amount});
+adjustment([{"product", {struct, P}} | T], Adjustment) ->
+	{_, ProdRef} = lists:keyfind("id", 1, P),
+	adjustment(T, Adjustment#adjustment{product = ProdRef});
+adjustment([{"bucket", {struct, B}} | T], Adjustment) ->
+	{_, BucketRef} = lists:keyfind("id", 1, B),
+	adjustment(T, Adjustment#adjustment{bucket = BucketRef});
+adjustment([{"validFor", {struct, L}} | T], Adjustment) ->
+	Adjustment1 = case lists:keyfind("startDateTime", 1, L) of
+		{_, Start} ->
+			Adjustment#adjustment{start_date = ocs_rest:iso8601(Start)};
+		false ->
+			Adjustment
+	end,
+	Adjustment2 = case lists:keyfind("endDateTime", 1, L) of
+		{_, End} ->
+			Adjustment1#adjustment{end_date = ocs_rest:iso8601(End)};
+		false ->
+			Adjustment1
+	end,
+	adjustment(T, Adjustment2);
+adjustment([_ | T], Adjustment) ->
+	adjustment(T, Adjustment);
+adjustment([], Adjustment) ->
+	Adjustment.
+%% @hidden
+adjustment([id | T], #adjustment{id = undefined} = A, Acc) ->
+	adjustment(T, A, Acc);
+adjustment([id | T], #adjustment{id = ID} = A, Acc) ->
+	adjustment(T, A, [{"id", ID},
+			{"href", ?bucketPath ++ ID} | Acc]);
+%adjustment([name | T], #adjustment{name = undefined} = A, Acc) ->
+%	adjustment(T, A, Acc);
+adjustment([type | T], #adjustment{type = Type} = A, Acc) ->
+	adjustment(T, A, [{"type", Type} | Acc]);
+adjustment([description | T], #adjustment{description = Description} = A, Acc) ->
+	adjustment(T, A, [{"description", Description} | Acc]);
+adjustment([reason | T], #adjustment{reason = Reason} = A, Acc) ->
+	adjustment(T, A, [{"reason", Reason} | Acc]);
+adjustment([product | T], #adjustment{product = [ProdRef]} = A, Acc) ->
+	Id = {"id", ProdRef},
+	Href = {"href", ?productInventoryPath ++ ProdRef},
+	adjustment(T, A, [{"product", {struct, [Id, Href]}} | Acc]);
+adjustment([bucket | T], #adjustment{bucket = [BucketRef]} = A, Acc) ->
+	Id = {"id", BucketRef},
+	Href = {"href", ?productInventoryPath ++ BucketRef},
+	adjustment(T, A, [{"bucket", {struct, [Id, Href]}} | Acc]);
+adjustment([amount | T], #adjustment{units = Units, amount = Amount} = A, Acc)
+		when is_integer(Amount) ->
+	Q = #quantity{amount = Amount, units = Units},
+	adjustment(T, A, [{"amount", quantity(Q)} | Acc]);
+adjustment([start_date | T], #adjustment{start_date = undefined,
+		end_date = End} = A, Acc) when is_integer(End) ->
+	ValidFor = {struct, [{"endDateTime", ocs_rest:iso8601(End)}]},
+	adjustment(T, A, [{"validFor", ValidFor} | Acc]);
+adjustment([start_date | T], #adjustment{start_date = Start,
+		end_date = undefined} = A, Acc) when is_integer(Start) ->
+	ValidFor = {struct, [{"startDateTime", ocs_rest:iso8601(Start)}]},
+	adjustment(T, A, [{"validFor", ValidFor} | Acc]);
+adjustment([start_date | T], #adjustment{start_date = Start,
+		end_date = End} = A, Acc) when is_integer(Start),
+		is_integer(End)->
+	ValidFor = {struct, [{"endDateTime", ocs_rest:iso8601(End)},
+			{"startDateTime", ocs_rest:iso8601(Start)}]},
+	adjustment(T, A, [{"validFor", ValidFor} | Acc]);
+adjustment([_ | T], A, Acc) ->
+	adjustment(T, A, Acc);
+adjustment([], _A, Acc) ->
 	{struct, lists:reverse(Acc)}.
 
 -spec abmfs(Abmf, Acc) -> Result
