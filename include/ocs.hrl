@@ -137,6 +137,18 @@
 		product  = [] :: [ProdRef :: term()] | '_',
 		last_modified :: tuple() | undefined | '_'}).
 
+-record(adjustment,
+		{id :: string() | undefined | '_' | '$1',
+		type :: string() | undefined | '_',
+		description :: string() | undefined | '_',
+		reason :: string() | undefined | '_',
+		amount :: integer() | '_',
+		units :: octets | cents | seconds | messages | undefined | '_',
+		start_date :: pos_integer() | undefined | '_',
+		end_date :: pos_integer() | undefined | '_',
+		product :: ProdRef :: term() | '_',
+		bucket :: BucketRef :: term() | '_'}).
+
 -record(product,
 		{id :: string() | undefined | '_' | '$1',
 		name :: string() | undefined | '_' | '$2',

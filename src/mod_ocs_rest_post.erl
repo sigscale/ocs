@@ -95,6 +95,8 @@ do_post(Resource, ModData, Body, ["balanceManagement", "v1", "product", Id, "bal
 	do_response(ModData, Resource:top_up(Id, Body));
 do_post(Resource, ModData, Body, ["balanceManagement", "v1", "service", Id, "balanceTopup"]) ->
 	do_response(ModData, Resource:top_up_service(Id, Body));
+do_post(Resource, ModData, Body, ["balanceManagement", "v1", "balanceAdjustment"]) ->
+	do_response(ModData, Resource:balance_adjustment(Body));
 do_post(Resource, ModData, Body, ["catalogManagement", "v2", "productOffering"]) ->
 	do_response(ModData, Resource:add_offer(Body));
 do_post(Resource, ModData, Body, ["productInventoryManagement", "v2", "product"]) ->
@@ -107,6 +109,13 @@ do_post(Resource, ModData, Body, ["resourceInventoryManagement", "v1", "logicalR
 	do_response(ModData, Resource:add_resource_inventory(Table, Body)).
 
 %% @hidden
+do_response(#mod{data = Data} = ModData, {ok, [] = Headers,
+		[] = ResponseBody}) ->
+	Size = integer_to_list(iolist_size(ResponseBody)),
+	Accept = proplists:get_value(accept, Data),
+	NewHeaders = Headers ++ [{content_length, Size}, {content_type, Accept}],
+	send(ModData, 204, NewHeaders, ResponseBody),
+	{proceed,[{response,{already_sent, 204, Size}} | Data]};
 do_response(#mod{data = Data} = ModData, {ok, Headers, ResponseBody}) ->
 	Size = integer_to_list(iolist_size(ResponseBody)),
 	Accept = proplists:get_value(accept, Data),
