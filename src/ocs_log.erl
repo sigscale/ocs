@@ -2475,48 +2475,140 @@ auth_query5(_Attributes, []) ->
 		Units, Product) -> Result
 	when
 		Continuation :: {Continuation2, Events},
-		Result :: {Continuation2, Events},
 		Continuation2 :: eof | disk_log:continuation(),
+		Events :: [abmf_event()],
 		Type :: transfer | topup | adjustment | '_',
 		Subscriber :: binary() | '_',
 		Bucket :: string() | '_',
 		Units :: cents | seconds | octets | messages | '_',
 		Product :: string() | '_',
-		Events :: [acct_event()].
+		Result :: {Continuation2, Events}.
 %% @private
 %% @doc Query balance activity log events with filters.
 %%
 abmf_query({Cont, Events}, Type, Subscriber, Bucket,
 		 Units, Product) ->
-	{Cont, abmf_query1(Events, Type, Subscriber, Bucket, Units, Product)}.
+	{Cont, abmf_query1(Events, Type, Subscriber, Bucket, Units, Product, [])}.
 %% @hidden
-abmf_query1(Events, '_', Subscriber, Bucket, Units, Product) ->
-       abmf_query2(Events, Subscriber, Bucket, Units, Product);
-abmf_query1(Events, Type, Subscriber, Bucket, Units, Product) ->
-       F = fun(Event) when element(4, Event) == Type -> true; (_) -> false end,
-       abmf_query2(lists:filter(F, Events), Subscriber, Bucket, Units, Product).
+abmf_query1(Events, '_', Subscriber, Bucket, Units, Product, []) ->
+	abmf_query2(Events, Subscriber, Bucket, Units, Product, []);
+abmf_query1([H | T] = Events, Type, Subscriber, Bucket, Units, Product, Acc) ->
+	case abmf_query6(H, Type) of
+		true ->
+			abmf_query1(T, Type, Subscriber, Bucket, Units, Product, [H | Acc]);
+		false ->
+			abmf_query1(T, Type, Subscriber, Bucket, Units, Product, Acc)
+	end;
+abmf_query1([], _Type, Subscriber, Bucket, Units, Product, Acc) ->
+	abmf_query2(lists:reverse(Acc), Subscriber, Bucket, Units, Product, []).
 %% @hidden
-abmf_query2(Events, '_', Bucket, Units, Product) ->
-	abmf_query3(Events, Bucket, Units, Product);
-abmf_query2(Events, Subscriber, Bucket, Units, Product) ->
-	F = fun(Event) when element(5, Event) == Subscriber -> true; (_) -> false end,
-	abmf_query3(lists:filter(F, Events), Bucket, Units, Product).
+abmf_query2(Events, '_', Bucket, Units, Product, []) ->
+	abmf_query3(Events, Bucket, Units, Product, []);
+abmf_query2([H | T], Subscriber, Bucket, Units, Product, Acc) ->
+	case abmf_query6(H, Subscriber) of
+		true ->
+			abmf_query2(T, Subscriber, Bucket, Units, Product, [H | Acc]);
+		false ->
+			abmf_query2(T, Subscriber, Bucket, Units, Product, Acc)
+	end;
+abmf_query2([], _Subscriber, Bucket, Units, Product, Acc) ->
+	abmf_query3(lists:reverse(Acc), Bucket, Units, Product, []).
 %% @hidden
-abmf_query3(Events, '_', Units, Product) ->
-	abmf_query4(Events, Units, Product);
-abmf_query3(Events, Bucket, Units, Product) ->
-	F = fun(Event) when element(6, Event) == Bucket -> true; (_) -> false end,
-	abmf_query4(lists:filter(F, Events), Units, Product).
+abmf_query3(Events, '_', Units, Product, []) ->
+	abmf_query4(Events, Units, Product, []);
+abmf_query3([H | T], Bucket, Units, Product, Acc) ->
+	case abmf_query6(H, Bucket) of
+		true ->
+			abmf_query3(T, Bucket, Units, Product, [H | Acc]);
+		false ->
+			abmf_query3(T, Bucket, Units, Product, Acc)
+	end;
+abmf_query3([], _Bucket, Units, Product, Acc) ->
+	abmf_query4(lists:reverse(Acc), Units, Product, []).
 %% @hidden
-abmf_query4(Events, '_', Product) ->
-	abmf_query5(Events, Product);
-abmf_query4(Events, Units, Product) ->
-	F = fun(Event) when element(7, Event) == Units -> true; (_) -> false end,
-	abmf_query5(lists:filter(F, Events), Product).
+abmf_query4(Events, '_', Product, []) ->
+	abmf_query5(Events, Product, []);
+abmf_query4([H | T], Units, Product, Acc) ->
+	case abmf_query6(H, Units) of
+		true ->
+			abmf_query4(T, Units, Product, [H | Acc]);
+		false ->
+			abmf_query4(T, Units, Product, Acc)
+	end;
+abmf_query4([], _Units, Product, Acc) ->
+	abmf_query5(lists:reverse(Acc), Product, []).
 %% @hidden
-abmf_query5(Events, '_') ->
-	lists:reverse(Events);
-abmf_query5(Events, Product) ->
-	F = fun(Event) when element(8, Event) == Product -> true; (_) -> false end,
-	lists:reverse(lists:filter(F, Events)).
+abmf_query5(Events, '_', []) ->
+	Events;
+abmf_query5([H | T], Product, Acc) ->
+	case abmf_query6(H, Product) of
+		true ->
+			abmf_query5(T, Product, [H | Acc]);
+		false ->
+			abmf_query5(T, Product, Acc)
+	end;
+abmf_query5([], _Product, Acc) ->
+	lists:reverse(Acc).
+%% @hidden
+abmf_query6(Attributes, [{Attribute, {exact, Match}} | _])
+		when Match == element(4, Attributes)->
+	true;
+abmf_query6(Attributes, [{Attribute, {exact, Match}} | _])
+		when Match == element(5, Attributes)->
+	true;
+abmf_query6(Attributes, [{Attribute, {exact, Match}} | _])
+		when Match == element(6, Attributes)->
+	true;
+abmf_query6(Attributes, [{Attribute, {exact, Match}} | _])
+		when Match == element(7, Attributes)->
+	true;
+abmf_query6(Attributes, [{Attribute, {exact, Match}} | _])
+		when Match == element(8, Attributes)->
+	true;
+
+abmf_query6(Attributes, [{type, {like, [H | T1]}} | _])
+		when is_atom(element(4, Attributes))->
+		case lists:prefix(H, atom_to_list(element(4, Attributes))) of
+			true ->
+				true;
+			false ->
+				false
+		end;
+abmf_query6(Attributes, [{subscriber, {like, [H | T1]}} | _])
+		when is_list(element(5, Attributes))->
+		case lists:prefix(H, element(5, Attributes)) of
+			true ->
+				true;
+			false ->
+				false
+		end;
+abmf_query6(Attributes, [{bucket, {like, [H | T1]}} | _])
+		when is_list(element(6, Attributes))->
+		case lists:prefix(H, element(6, Attributes)) of
+			true ->
+				true;
+			false ->
+				false
+		end;
+abmf_query6(Attributes, [{units, {like, [H | T1]}} | _])
+		when is_atom(element(7, Attributes))->
+		case lists:prefix(H, atom_to_list(element(7, Attributes))) of
+			true ->
+				true;
+			false ->
+				false
+		end;
+abmf_query6(Attributes, [{product, {like, [H | T1]}} | _])
+		when is_list(element(8, Attributes))->
+		case lists:prefix(H, element(8, Attributes)) of
+			true ->
+				true;
+			false ->
+				false
+		end;
+
+abmf_query6(Attributes, [_H | T]) ->
+	false;
+abmf_query6(_Attributes, []) ->
+	false.
 
