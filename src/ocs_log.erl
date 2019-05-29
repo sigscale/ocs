@@ -1029,7 +1029,7 @@ abmf_log(Type, ServiceId, Bucket, Units, Product, Amount,
 		Continuation :: start | disk_log:continuation(),
 		Start :: calendar:datetime() | pos_integer(),
 		End :: calendar:datetime() | pos_integer(),
-		Type :: deduct | reserve | unreserve | transfer | topup | adjustment,
+		Type :: deduct | reserve | unreserve | transfer | topup | adjustment | '_',
 		Subscriber :: binary() | '_',
 		Bucket :: string() | '_',
 		Units :: cents | seconds | octets | messages | '_',
@@ -2492,7 +2492,7 @@ abmf_query({Cont, Events}, Type, Subscriber, Bucket,
 %% @hidden
 abmf_query1(Events, '_', Subscriber, Bucket, Units, Product, []) ->
 	abmf_query2(Events, Subscriber, Bucket, Units, Product, []);
-abmf_query1([H | T] = Events, Type, Subscriber, Bucket, Units, Product, Acc) ->
+abmf_query1([H | T] = _Events, Type, Subscriber, Bucket, Units, Product, Acc) ->
 	case abmf_query6(H, Type) of
 		true ->
 			abmf_query1(T, Type, Subscriber, Bucket, Units, Product, [H | Acc]);
@@ -2550,23 +2550,23 @@ abmf_query5([H | T], Product, Acc) ->
 abmf_query5([], _Product, Acc) ->
 	lists:reverse(Acc).
 %% @hidden
-abmf_query6(Attributes, [{Attribute, {exact, Match}} | _])
+abmf_query6(Attributes, [{_Attribute, {exact, Match}} | _])
 		when Match == element(4, Attributes)->
 	true;
-abmf_query6(Attributes, [{Attribute, {exact, Match}} | _])
+abmf_query6(Attributes, [{_Attribute, {exact, Match}} | _])
 		when Match == element(5, Attributes)->
 	true;
-abmf_query6(Attributes, [{Attribute, {exact, Match}} | _])
+abmf_query6(Attributes, [{_Attribute, {exact, Match}} | _])
 		when Match == element(6, Attributes)->
 	true;
-abmf_query6(Attributes, [{Attribute, {exact, Match}} | _])
+abmf_query6(Attributes, [{_Attribute, {exact, Match}} | _])
 		when Match == element(7, Attributes)->
 	true;
-abmf_query6(Attributes, [{Attribute, {exact, Match}} | _])
+abmf_query6(Attributes, [{_Attribute, {exact, Match}} | _])
 		when Match == element(8, Attributes)->
 	true;
 
-abmf_query6(Attributes, [{type, {like, [H | T1]}} | _])
+abmf_query6(Attributes, [{type, {like, [H | _T1]}} | _])
 		when is_atom(element(4, Attributes))->
 		case lists:prefix(H, atom_to_list(element(4, Attributes))) of
 			true ->
@@ -2574,7 +2574,7 @@ abmf_query6(Attributes, [{type, {like, [H | T1]}} | _])
 			false ->
 				false
 		end;
-abmf_query6(Attributes, [{subscriber, {like, [H | T1]}} | _])
+abmf_query6(Attributes, [{subscriber, {like, [H | _T1]}} | _])
 		when is_list(element(5, Attributes))->
 		case lists:prefix(H, element(5, Attributes)) of
 			true ->
@@ -2582,7 +2582,7 @@ abmf_query6(Attributes, [{subscriber, {like, [H | T1]}} | _])
 			false ->
 				false
 		end;
-abmf_query6(Attributes, [{bucket, {like, [H | T1]}} | _])
+abmf_query6(Attributes, [{bucket, {like, [H | _T1]}} | _])
 		when is_list(element(6, Attributes))->
 		case lists:prefix(H, element(6, Attributes)) of
 			true ->
@@ -2590,7 +2590,7 @@ abmf_query6(Attributes, [{bucket, {like, [H | T1]}} | _])
 			false ->
 				false
 		end;
-abmf_query6(Attributes, [{units, {like, [H | T1]}} | _])
+abmf_query6(Attributes, [{units, {like, [H | _T1]}} | _])
 		when is_atom(element(7, Attributes))->
 		case lists:prefix(H, atom_to_list(element(7, Attributes))) of
 			true ->
@@ -2598,7 +2598,7 @@ abmf_query6(Attributes, [{units, {like, [H | T1]}} | _])
 			false ->
 				false
 		end;
-abmf_query6(Attributes, [{product, {like, [H | T1]}} | _])
+abmf_query6(Attributes, [{product, {like, [H | _T1]}} | _])
 		when is_list(element(8, Attributes))->
 		case lists:prefix(H, element(8, Attributes)) of
 			true ->
