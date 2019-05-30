@@ -994,8 +994,8 @@ abmf_open() ->
 		Units :: cents | seconds | octets | messages,
 		Product :: string(),
 		Amount :: integer(),
-		AmountBefore :: integer(),
-		AmountAfter :: integer(),
+		AmountBefore :: integer() | undefined,
+		AmountAfter :: integer() | undefined,
 		Validity :: undefined | pos_integer(),
 		Channel :: undefined | string(),
 		Requestor :: undefined | [{Id, Role, Name}],
@@ -1016,8 +1016,8 @@ abmf_log(Type, ServiceId, Bucket, Units, Product, Amount,
 		(Type == adjustment) orelse (Type == deduct) orelse (Type == reserve)
 		orelse (Type == unreserve)), ((is_binary(ServiceId)) orelse (ServiceId == undefined)),
 		is_list(Bucket), ((Units == cents) orelse (Units == seconds) orelse (Units == octets)
-		orelse (Units == messages)), is_integer(AmountBefore), is_integer(AmountAfter),
-		is_list(Product), is_integer(Amount)->
+		orelse (Units == messages)), (is_integer(AmountBefore) orelse (AmountBefore == undefined)),
+		(is_integer(AmountAfter) orelse (AmountAfter == undefined)), is_list(Product), is_integer(Amount)->
 	Event = [node(), Type, ServiceId, Bucket, Units, Product, Amount,
 			AmountBefore, AmountAfter, Validity, Channel, Requestor,
 			RelatedParty, PaymentMeans, Action, Status],
