@@ -26,6 +26,7 @@
 		get_balance_log/2, balance_adjustment/1]).
 
 -export([get_bucket/1, get_buckets/2]).
+-export([abmfs/2]).
 
 -include("ocs.hrl").
 
@@ -60,41 +61,51 @@ content_types_provided() ->
 			Body :: iolist()} | {error, ErrorCode :: integer()}.
 %% @doc Body producing function for `GET /ocs/v1/log/balance'
 %% requests.
-get_balance_log(Query, Headers) ->
+get_balance_log(Query, _Headers) ->
 	try
-	{DateStart, DateEnd} = case lists:keyfind("date", 1, Query) of
-		{_, DateTime} when length(DateTime) > 3 ->
-			ocs_rest:range(DateTime);
-                false ->
-                        {1, erlang:system_time(?MILLISECOND)}
-        end,
-	case lists:keytake("filter", 1, Query) of
-		{value, {_, String}, Query1} ->
-			{ok, Tokens, _} = ocs_rest_query_scanner:string(String),
-			case ocs_rest_query_parser:parse(Tokens) of
-				{ok, [{array, [{complex, Complex}]}]} ->
-					MatchType = match("type", Complex, Query),
-					MatchSubscriber = match("subscriber", Complex, Query),
-					MatchBucket = match("subscriber", Complex, Query),
-					MatchUnits = match("units", Complex, Query),
-					MatchProducts = match("procucts", Complex, Query),
-					{Query1, [DateStart, DateEnd, MatchType, MatchSubscriber, MatchBucket, MatchUnits, MatchProducts]}
-			end;
-		false ->
-			MatchType = match("type", [], Query),
-			MatchSubscriber = match("subscriber", [], Query),
-			MatchBucket = match("subscriber", [], Query),
-			MatchUnits = match("units", [], Query),
-			MatchProducts = match("procucts", [], Query),
-			{Query, [DateStart, DateEnd, MatchType, MatchSubscriber, MatchBucket, MatchUnits, MatchProducts]}
-	end
-	of
-               {Query2, Args} ->
-                       Codec = fun abmfs/2,
-                       query_filter({ocs_log, abmf_query, Args}, Codec, Query2, Headers)
+		{DateStart, DateEnd} = case lists:keyfind("date", 1, Query) of
+			{_, DateTime} when length(DateTime) > 3 ->
+				ocs_rest:range(DateTime);
+			false ->
+				{1, erlang:system_time(?MILLISECOND)}
+		end,
+		case lists:keytake("filter", 1, Query) of
+			{value, {_, String}, _Query1} ->
+				{ok, Tokens, _} = ocs_rest_query_scanner:string(String),
+				case ocs_rest_query_parser:parse(Tokens) of
+					{ok, [{array, [{complex, Complex}]}]} ->
+						MatchType = match_abmf("type", Complex, Query),
+						MatchSubscriber = match_abmf("subscriber", Complex, Query),
+						MatchBucket = match_abmf("bucket", Complex, Query),
+						MatchUnits = match_abmf("units", Complex, Query),
+						MatchProducts = match_abmf("products", Complex, Query),
+						case ocs_log:abmf_query(start, DateStart, DateEnd, MatchType,
+								MatchSubscriber, MatchBucket, MatchUnits, MatchProducts) of
+							{error, _} ->
+								{error, 500};
+							{_Cont, AbmfList} ->
+								Json = abmfs(AbmfList, []),
+								Body = mochijson:encode(Json),
+								HeadersAbmf = [{content_type, "application/json"}],
+								{ok, HeadersAbmf, Body}
+						end;
+					{error, _} ->
+						{error, 500}
+				end;
+			false ->
+				case ocs_log:abmf_query(start, DateStart, DateEnd, '_', '_', '_', '_', '_') of
+					{error, _} ->
+						{error, 500};
+					{_Cont1, AbmfList1}  ->
+						Json1 = abmfs(AbmfList1, []),
+						Body = mochijson:encode(Json1),
+						Headers1 = [{content_type, "application/json"}],
+						{ok, Headers1, Body}
+				end
+		end
 	catch
-               _ ->
-                       {error, 400}
+		_ ->
+			{error, 400}
 	end.
 
 -spec get_bucket(BucketId) -> Result
@@ -774,7 +785,7 @@ query_filter(MFA, Codec, Query, Filters, Headers) ->
 %% @hidden
 query_start({M, F, A}, Codec, Query, Filters, RangeStart, RangeEnd) ->
 	case supervisor:start_child(ocs_rest_pagination_sup,
-				[[M, F, A]]) of
+				[M, F, A]) of
 		{ok, PageServer, Etag} ->
 			query_page(Codec, PageServer, Etag, Query, Filters, RangeStart, RangeEnd);
 		{error, _Reason} ->
@@ -809,5 +820,18 @@ match(Key, Complex, Query) ->
 				false ->
 					'_'
 			end
+	end.
+
+%% @hidden
+match_abmf(Key, Complex, _Query) ->
+	case lists:keyfind(Key, 1, Complex) of
+		{Obj, like, [Value]} ->
+			[{list_to_atom(Obj), {like, [Value]}}];
+		{Obj1, exact, Value} when Obj1 == "type" ->
+			[{type, {exact, list_to_atom(Value)}}];
+		{Obj1, exact, Value} ->
+			[{list_to_atom(Obj1), {exact, Value}}];
+		false ->
+			'_'
 	end.
 
