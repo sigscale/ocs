@@ -1023,11 +1023,12 @@ delete_bucket1(BId, ProdRefs) ->
 -spec adjustment(Adjustment) -> Result
 	when
 		Adjustment :: #adjustment{},
-		Result :: ok.
-%% @doc Adjust the all buckets for given product reference
+		Result :: ok | {error, Reason},
+		Reason :: term().
+%% @doc Applying balance adjustment.
 adjustment(#adjustment{amount = Amount, product = ProductRef, units = Units,
 		start_date = StartDate, end_date = EndDatae})
-		when Amount > 0, is_list(ProductRef) ->
+		when is_list(ProductRef), is_integer(Amount), Amount > 0 ->
 	F = fun() ->
 		case mnesia:read(product, ProductRef, write) of
 			[#product{balance = B} = P] ->
@@ -1036,47 +1037,73 @@ adjustment(#adjustment{amount = Amount, product = ProductRef, units = Units,
 						remain_amount = Amount, units = Units, product = [ProductRef],
 						last_modified = calendar:local_time()},
 				ok = mnesia:write(bucket, Bucket, write),
-				Product = P#product{balance = lists:reverse([BId | B])},
+				Product = P#product{balance = B ++ [BId]},
 				ok = mnesia:write(product, Product, write),
-				{ok, undefined, Bucket};
+				Bucket;
 			[] ->
-				throw(product_not_found)
+				mnesia:abort(not_found)
 		end
 	end,
 	case mnesia:transaction(F) of
-		{atomic, {ok, _OldBucket, NewBucket}} ->
-			[ProdRef | _] = NewBucket#bucket.product,
-			ocs_log:abmf_log(adjustment, undefined, NewBucket#bucket.id, cents,
-					ProdRef, 0, 0, NewBucket#bucket.remain_amount, undefined,
-					undefined, undefined, undefined, undefined, undefined,
-					NewBucket#bucket.status),
-			ok;
+		{atomic, #bucket{id = Id}} ->
+			ocs_log:abmf_log(adjustment, undefined, Id, Units, ProductRef, Amount,
+					0, Amount, undefined, undefined, undefined, undefined, undefined,
+					undefined, undefined);
 		{aborted, Reason} ->
 			{error, Reason}
 	end;
-adjustment(#adjustment{amount = Amount, product = ProductRef})
-		when is_list(ProductRef), is_integer(Amount), Amount < 0 ->
-	F = fun() ->
-		case mnesia:read(product, ProductRef) of
-			[#product{balance = []}] ->
-				[];
-			[#product{balance = BucketRefs}] ->
-				MatchHead = #bucket{id = '$1', _ = '_'},
-				MatchIds = [{'==', Id, '$1'} || Id <- BucketRefs],
-				MatchConditions = [list_to_tuple(['or' | MatchIds])],
-				mnesia:select(bucket,
-						[{MatchHead, MatchConditions, ['$_']}]);
-%				NewBuckets = deduct_buckets(ProductRef, Amount, Buckets),
-%				[ok | _] = [mnesia:write(bucket, Bucket, write) || Bucket <- NewBuckets],
+adjustment(#adjustment{amount = Amount1, product = ProductRef, units = Units,
+		start_date = StartDate, end_date = EndDate})
+		when is_list(ProductRef), is_integer(Amount1), Amount1 < 0 ->
+	F1 = fun() ->
+		case mnesia:read(product, ProductRef, write) of
+			[#product{balance = []} = P] ->
+				BId = generate_bucket_id(),
+				NewBucket = #bucket{id = BId, start_date = StartDate, end_date = EndDate,
+						remain_amount = Amount1, units = Units, product = [ProductRef],
+						last_modified = calendar:local_time()},
+				mnesia:write(bucket, NewBucket, write),
+				NewProduct = P#product{balance = [BId]},
+				ok = mnesia:write(product, NewProduct, write),
+				[BId];
+			[#product{balance = BucketRefs} = P] ->
+				F2 = fun F([H | T], Amount2, Acc) ->
+						case mnesia:read(bucket, H, write) of
+							[#bucket{id = Id, remain_amount = Remain, units = Units} = B]
+									when Remain > Amount2 ->
+								NewBucket = B#bucket{remain_amount = Remain - Amount2},
+								ok = mnesia:write(bucket, NewBucket, write),
+								[Id | Acc] ++ T;
+							[#bucket{id = Id, remain_amount = Amount2, units = Units}] ->
+								ok = mnesia:delete(bucket, Id, write),
+								Acc ++ T;
+							[#bucket{id = Id, remain_amount = Remain, units = Units}] ->
+								ok = mnesia:delete(bucket, Id, write),
+								F(T, Amount2 - Remain, Acc);
+							[#bucket{}] ->
+								F(T, Amount2, [H | Acc])
+						end;
+					F([], Amount2, Acc) ->
+						BId = generate_bucket_id(),
+						NewBucket = #bucket{id = BId, start_date = StartDate, end_date = EndDate,
+								remain_amount = -Amount2, units = Units, product = [ProductRef],
+								last_modified = calendar:local_time()},
+						ok = mnesia:write(bucket, NewBucket, write),
+						[BId |Acc]
+				end,
+				NewBucketRefs = F2(BucketRefs, abs(Amount1), []),
+				NewProduct = P#product{balance = NewBucketRefs},
+				ok = mnesia:write(product, NewProduct, write),
+				NewBucketRefs;
 			[] ->
-				throw(product_not_found)
+				mnesia:abort(badarg)
 		end
 	end,
-	case mnesia:transaction(F) of
-		{atomic, Buckets} ->
-			deduct_buckets(ProductRef, Amount, Buckets);
-		{aborted, {throw, Reason}} ->
-			{error, Reason};
+	case mnesia:transaction(F1) of
+		{atomic, _BucketRefs} ->
+			ocs_log:abmf_log(adjustment, undefined, [], Units, ProductRef, Amount1,
+					undefined, undefined, undefined, undefined, undefined, undefined, undefined,
+					undefined, undefined);
 		{aborted, Reason} ->
 			{error, Reason}
 	end.
@@ -2270,41 +2297,6 @@ charge(ProdRef, Amount, [], Acc) ->
 	lists:reverse([#bucket{id = generate_bucket_id(),
 			units = cents, remain_amount = - Amount,
 			product = [ProdRef]} | Acc]).
-
--spec deduct_buckets(ProdRef, Amount, Buckets) -> ok
-	when
-		ProdRef :: string(),
-		Amount :: term(),
-		Buckets :: [#bucket{}].
-%% @doc Adjust remain amount of `Buckets'.
-%% @private
-deduct_buckets(ProdRef, Amount, [#bucket{units = cents,
-		remain_amount = Remain} = B | T]) ->
-	NewBucket = B#bucket{remain_amount = Remain + Amount},
-	ok = ocs_log:abmf_log(adjustment, undefined, NewBucket#bucket.id, cents,
-			ProdRef, 0, 0, NewBucket#bucket.remain_amount, undefined,
-			undefined, undefined, undefined, undefined, undefined,
-			NewBucket#bucket.status),
-	F = fun() ->
-		case mnesia:write(bucket, NewBucket, write) of
-			ok ->
-				ok;
-			_ ->
-				throw(transaction_abort)
-		end
-	end,
-	case mnesia:transaction(F) of
-		{atomic, ok} ->
-			deduct_buckets(ProdRef, Amount, T);
-		{aborted, {throw, Reason}} ->
-			{error, Reason};
-		{aborted, Reason} ->
-			{error, Reason}
-	end;
-deduct_buckets(ProdRef, Amount, [_H | T]) ->
-	deduct_buckets(ProdRef, Amount, T);
-deduct_buckets(_ProdRef, _Amount, []) ->
-	ok.
 
 %% @private 
 generate_bucket_id() ->
