@@ -78,7 +78,7 @@ get_balance_log(Query, _Headers) ->
 						MatchSubscriber = match_abmf("subscriber", Complex, Query),
 						MatchBucket = match_abmf("bucket", Complex, Query),
 						MatchUnits = match_abmf("units", Complex, Query),
-						MatchProducts = match_abmf("products", Complex, Query),
+						MatchProducts = match_abmf("product", Complex, Query),
 						case ocs_log:abmf_query(start, DateStart, DateEnd, MatchType,
 								MatchSubscriber, MatchBucket, MatchUnits, MatchProducts) of
 							{error, _} ->
