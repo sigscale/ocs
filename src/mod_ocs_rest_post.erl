@@ -111,11 +111,9 @@ do_post(Resource, ModData, Body, ["resourceInventoryManagement", "v1", "logicalR
 %% @hidden
 do_response(#mod{data = Data} = ModData, {ok, [] = Headers,
 		[] = ResponseBody}) ->
-	Size = integer_to_list(iolist_size(ResponseBody)),
-	Accept = proplists:get_value(accept, Data),
-	NewHeaders = Headers ++ [{content_length, Size}, {content_type, Accept}],
+	NewHeaders = Headers ++ [{content_length, "0"}],
 	send(ModData, 204, NewHeaders, ResponseBody),
-	{proceed,[{response,{already_sent, 204, Size}} | Data]};
+	{proceed,[{response,{already_sent, 204, "0"}} | Data]};
 do_response(#mod{data = Data} = ModData, {ok, Headers, ResponseBody}) ->
 	Size = integer_to_list(iolist_size(ResponseBody)),
 	Accept = proplists:get_value(accept, Data),
