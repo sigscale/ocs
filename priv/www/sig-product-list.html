@@ -149,6 +149,9 @@
 					value: false,
 					observer: '_activePageChanged'
 				},
+				activeItem: {
+					observer: '_activeItemChanged',
+				},
 				_filterProId: {
 					observer: '_filterChangedProId'
 				},
@@ -157,6 +160,14 @@
 				},
 				_filterOffer: {
 					observer: 'filterChangedOffer'
+				}
+			},
+			_activeItemChanged: function(item) {
+				if(item != null) {
+					var grid = this.$.productInventoryGrid;
+					grid.selectedItems = item ? [item] : [];
+					document.getElementById('deleteProductModal').open();
+					document.getElementById('deleteProId').value = item.id;
 				}
 			},
 			_activePageChanged: function(active) {
