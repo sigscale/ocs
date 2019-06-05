@@ -115,7 +115,7 @@
 					<iron-collapse id="addBundleUpdate">
 						<template is=dom-repeat items="{{offers}}">
 							<div>
-								<paper-checkbox checked="{{item.checked}}">
+								<paper-checkbox class="bundleCheck" checked="{{item.checked}}">
 									{{item.name}}
 								</paper-checkbox>
 							</div>
@@ -1452,6 +1452,12 @@
 			_updateProductOfferResponse: function(event) {
 				this.$.updateProductModal.close();
 				document.getElementById("offerGrid").clearCache();
+				var listOffer = document.getElementsByClassName("bundleCheck");
+				Array.prototype.forEach.call(listOffer, function(ell) {
+					if(ell.checked == true) {
+						ell.checked = false;
+					}
+				});
 			},
 			_updateProductOfferError: function(event) {
 				this.$.updateProductToastError.text = event.detail.request.xhr.statusText;
@@ -2253,6 +2259,12 @@
 			cancelDialog: function() {
 				this.set('prices', []);
 				this.set('alterations', []);
+				var list = document.getElementsByClassName("bundleCheck");
+				Array.prototype.forEach.call(list, function(el) {
+					if(el.checked == true) {
+						el.checked = false;
+					}
+				});
 				this.$.updateOffName.value = null;
 				this.$.updateOffDesc.value = null;
 				this.$.updateOffSpec.value = null;
