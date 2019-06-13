@@ -1,3 +1,15 @@
+2019-06-13  Vance Shipley <vances@sigscale.org>
+
+	* log and ignore unsupported avps
+	* clear bundle checkbox in offer dialog
+	* validate alterations amount
+	* delete product dialog
+	* filters in abmf view
+	* advanced rest query pattern for abmf
+	* correct content length in 204 response
+	* test cases for balance adjustment
+	* apis for balance adjustment
+
 2019-05-10  Kusal Fernando  <kusal@sigscale.org>
 
 	* validate size of the service id

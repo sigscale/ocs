@@ -1,8 +1,15 @@
+June 13, 2019
+-------------
+	- Ignore unsupported DIAMETER AVPs  
+	* Delete product dialog
+	* Filters in ABMF view
+	* Apply balance adjustments (TMF654)
+
 May 10, 2019
 --------------
-	- validate size of the service id
-	- remove subscriber coloumn from balance view
-	- configure httpd with tls by default
+	- Validate size of the service id
+	- Remove subscriber coloumn from balance view
+	- Configure httpd with TLS by default
 
 April 23, 2019
 --------------
