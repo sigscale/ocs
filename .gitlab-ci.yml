@@ -91,7 +91,7 @@ build:otp-18:
   script:
     - export ERL_LIBS="${CI_PROJECT_DIR}/.build/otp-${OTP_VERSION}/lib"
     - export DIALYZER_PLT="${CI_PROJECT_DIR}/.build/otp-${OTP_VERSION}/.dialyzer_plt"
-    - if ! dialyzer --plt_info; then dialyzer --build_plt --apps erts kernel stdlib crypto compiler public_key diameter inets mnesia ssl mochiweb radius syntax_tools; fi
+    - if ! dialyzer --plt_info; then dialyzer --no_native --build_plt --apps erts kernel stdlib crypto compiler public_key diameter inets mnesia ssl mochiweb radius syntax_tools; fi
     - cd .build/otp-${OTP_VERSION}/ocs
     - make check
 
