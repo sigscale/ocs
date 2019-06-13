@@ -154,7 +154,7 @@ handle_error(_Reason, _Request, _ServiceName, _Peer) ->
 		ServiceName :: term(),
 		Peer :: peer(),
 		Action :: Reply | {relay, [Opt]} | discard
-			| {eval|eval_packet, Action, PostF},
+			| {eval | eval_packet, Action, PostF},
 		Reply :: {reply, packet() | message()}
 			| {answer_message, 3000..3999|5000..5999}
 			| {protocol_error, 3000..3999},
@@ -210,20 +210,19 @@ request(_, _, _, []) ->
 		Request :: message(),
 		Errors :: [{0..4294967295, #diameter_avp{}}],
 		Action :: Reply | {relay, [Opt]} | discard
-			| {eval|eval_packet, Action, PostF},
+			| {eval | eval_packet, Action, PostF},
 		Reply :: {reply, packet() | message()}
 			| {answer_message, 3000..3999|5000..5999}
 			| {protocol_error, 3000..3999},
 		Opt :: diameter:call_opt(),
 		PostF :: diameter:evaluable().
-%% @doc Handle requests received in error.
-%% 	Log 5001 (unrecognized AVP) errors.
+%% @doc Handle errors in requests.
 %% @private
-errors(ServiceName, Capabilities, _Request, [{5001, _} | _] = Errors) ->
+errors(ServiceName, Capabilities, Request, [{5001, AVP} | T] = _Errors) ->
 	error_logger:error_report(["DIAMETER AVP unsupported",
 			{service_name, ServiceName}, {capabilities, Capabilities},
-			{errors, Errors}]),
-	{answer_message, 5001};
+			{avp, AVP}]),
+	errors(ServiceName, Capabilities, Request, T);
 errors(ServiceName, Capabilities, _Request, [{5004, _} | _] = Errors) ->
 	error_logger:error_report(["DIAMETER AVP invalid",
 			{service_name, ServiceName}, {capabilities, Capabilities},
@@ -257,8 +256,9 @@ errors(ServiceName, Capabilities, _Request, [{5014, _} | _] = Errors) ->
 errors(_ServiceName, _Capabilities, _Request, [{ResultCode, _} | _]) ->
 	{answer_message, ResultCode};
 errors(_ServiceName, _Capabilities, _Request, [ResultCode | _]) ->
-	{answer_message, ResultCode}.
-
+	{answer_message, ResultCode};
+errors(ServiceName, Capabilities, Request, []) ->
+	request(ServiceName, Capabilities, Request).
 
 -spec process_request(Address, Port, Caps, Request) -> Result
 	when

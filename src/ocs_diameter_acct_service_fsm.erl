@@ -339,10 +339,12 @@ service_options(Options) ->
 		{string_decode, false},
 		{application, [{alias, ?BASE_APPLICATION},
 				{dictionary, diameter_gen_base_rfc6733},
-				{module, ?BASE_APPLICATION_CALLBACK}]},
+				{module, ?BASE_APPLICATION_CALLBACK},
+				{request_errors, callback}]},
 		{application, [{alias, ?RO_APPLICATION},
 				{dictionary, ?RO_APPLICATION_DICT},
-				{module, ?RO_APPLICATION_CALLBACK}]}].
+				{module, ?RO_APPLICATION_CALLBACK},
+				{request_errors, callback}]}].
 
 -spec transport_options(Transport, Address, Port) -> Options
 	when

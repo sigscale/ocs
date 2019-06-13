@@ -325,15 +325,18 @@ service_options(Options) ->
 		{application,
 				[{alias, ?BASE_APPLICATION},
 				{dictionary, ?BASE_APPLICATION_DICT},
-				{module, ?BASE_APPLICATION_CALLBACK}]},
+				{module, ?BASE_APPLICATION_CALLBACK},
+				{request_errors, callback}]},
 		{application,
 				[{alias, ?EAP_APPLICATION},
 				{dictionary, ?EAP_APPLICATION_DICT},
-				{module, ?EAP_APPLICATION_CALLBACK}]},
+				{module, ?EAP_APPLICATION_CALLBACK},
+				{request_errors, callback}]},
 		{application,
 				[{alias, ?NAS_APPLICATION},
 				{dictionary, ?NAS_APPLICATION_DICT},
-				{module, ?NAS_APPLICATION_CALLBACK}]}].
+				{module, ?NAS_APPLICATION_CALLBACK},
+				{request_errors, callback}]}].
 
 -spec transport_options(Transport, Address, Port) -> Options
 	when
