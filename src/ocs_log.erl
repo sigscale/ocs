@@ -1088,7 +1088,6 @@ file_chunk1(Log, IoDevice, Type, Cont, []) ->
 		Reason :: term().
 %% @doc Binary tree search of multi file wrap disk_log.
 %% @private
-%% @hidden
 btree_search(Log, Start) ->
 	btree_search(Log, Start, disk_log:chunk(Log, start, 1)).
 %% @hidden
@@ -1120,18 +1119,23 @@ btree_search(_Log, _Start, Step, PrevCont, _PrevChunkStart, {error, end_of_log})
 	PrevCont;
 btree_search(Log, Start, _Step, PrevCont, PrevChunkStart, {error, end_of_log}) ->
 	LogInfo = disk_log:info(Log),
-	Step1 = case lists:keyfind(current_file, 1, LogInfo) of
+	case lists:keyfind(current_file, 1, LogInfo) of
 		{current_file, CurrentFile} when (CurrentFile rem 2) == 0, CurrentFile > 2 ->
-			(CurrentFile div 2) - 1;
+			Step1 = (CurrentFile div 2) - 1,
+			btree_search(Log, Start, Step1, PrevCont, PrevChunkStart,
+					disk_log:chunk_step(Log, PrevCont, Step1));
+		{current_file, 1} ->
+			start;
 		{current_file, CurrentFile} ->
-			CurrentFile div 2
-	end,
-	btree_search(Log, Start, Step1, PrevCont, PrevChunkStart, disk_log:chunk_step(Log, PrevCont, Step1));
+			Step1 = CurrentFile div 2,
+			btree_search(Log, Start, Step1, PrevCont, PrevChunkStart,
+					disk_log:chunk_step(Log, PrevCont, Step1))
+	end;
 btree_search(_Log, _Start, _Step, _PrevCont, _PrevChunkStart, {error, Reason}) ->
 	{error, Reason}.
 %% @hidden
 btree_search(_Log, Start, 1, PrevCont, _PrevChunkStart, _Cont, {_NextCont, [R]})
-		when element(1, R) > Start ->
+		when element(1, R) >= Start ->
 	PrevCont;
 btree_search(_Log, _Start, Step, _PrevCont, PrevChunkStart, Cont, {_NextCont, [R]})
 		when Step < 0, element(1, R) > PrevChunkStart ->
@@ -1154,15 +1158,15 @@ btree_search(Log, Start, Step, _PrevCont, _PrevChunkStart, Cont, {_NextCont, [R]
 	NextStep = Step div 2,
 	btree_search(Log, Start, NextStep, Cont, element(1, R), disk_log:chunk_step(Log, Cont, NextStep));
 btree_search(Log, Start, Step, _PrevCont, _PrevChunkStart, Cont, {_NextCont, [R]})
-		when Step > 0, element(1, R) > Start ->
+		when Step > 0, element(1, R) >= Start ->
 	NextStep = -(Step div 2),
 	btree_search(Log, Start, NextStep, Cont, element(1, R), disk_log:chunk_step(Log, Cont, NextStep));
 btree_search(Log, Start, Step, _PrevCont, _PrevChunkStart, Cont, {_NextCont, [R]})
-		when Step < -2, element(1, R) > Start, (Step rem 2) == 0 ->
+		when Step < -2, element(1, R) >= Start, (Step rem 2) == 0 ->
 	NextStep = (Step div 2) - 1,
 	btree_search(Log, Start, NextStep, Cont, element(1, R), disk_log:chunk_step(Log, Cont, NextStep));
 btree_search(Log, Start, Step, _PrevCont, _PrevChunkStart, Cont, {_NextCont, [R]})
-		when Step < 0, element(1, R) > Start ->
+		when Step < 0, element(1, R) >= Start ->
 	NextStep = Step div 2,
 	btree_search(Log, Start, NextStep, Cont, element(1, R), disk_log:chunk_step(Log, Cont, NextStep));
 btree_search(Log, Start, Step, _PrevCont, _PrevChunkStart, Cont, {_NextCont, [R]})
