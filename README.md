@@ -1,5 +1,9 @@
 # [SigScale](http://www.sigscale.org) Online Charging System (OCS)
 
+[Open Issues](https://sigscale.atlassian.net/projects/OCS/issues/?filter=allopenissues "Open Issues")  
+[Create Issue](https://sigscale.atlassian.net/secure/CreateIssue!default.jspa?pid=10100&issuetype=10000 "Create
+ Issue")
+
 In a communications service provider (CSP) network an Online Charging
 System (OCS) is a core network element which performs real-time charging
 for services. An OCS authorizes subscribers' sessions subject to available
