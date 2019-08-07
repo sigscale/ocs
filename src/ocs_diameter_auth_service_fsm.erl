@@ -65,6 +65,7 @@
 -define(EAP_APPLICATION_ID, 5).
 -define(EAP_APPLICATION_DICT, diameter_gen_eap_application_rfc4072).
 -define(EAP_APPLICATION_CALLBACK, ocs_diameter_eap_application_cb).
+-define(SWm_APPLICATION_ID, 16777264).
 -define(IANA_PEN_3GPP, 10415).
 -define(IANA_PEN_SigScale, 50386).
 
@@ -321,7 +322,8 @@ service_options(Options) ->
 		{'Product-Name', "SigScale AAA"},
 		{'Firmware-Revision', Version},
 		{'Supported-Vendor-Id',[?IANA_PEN_3GPP]},
-		{'Auth-Application-Id', [?NAS_APPLICATION_ID, ?EAP_APPLICATION_ID]},
+		{'Auth-Application-Id', [?NAS_APPLICATION_ID,
+				?EAP_APPLICATION_ID, ?SWm_APPLICATION_ID]},
 		{restrict_connections, false},
 		{string_decode, false},
 		{application,
