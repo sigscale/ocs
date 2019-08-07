@@ -65,6 +65,8 @@
 -define(EAP_APPLICATION_ID, 5).
 -define(EAP_APPLICATION_DICT, diameter_gen_eap_application_rfc4072).
 -define(EAP_APPLICATION_CALLBACK, ocs_diameter_eap_application_cb).
+-define(IANA_PEN_3GPP, 10415).
+-define(IANA_PEN_SigScale, 50386).
 
 %%----------------------------------------------------------------------
 %%  The ocs_diameter_auth_service_fsm API
@@ -315,10 +317,10 @@ service_options(Options) ->
 			end,
 			[{'Origin-Realm', OriginRealm} | Options1]
 	end,
-	Options2 ++ [{'Vendor-Id', 10415},
+	Options2 ++ [{'Vendor-Id', ?IANA_PEN_SigScale},
 		{'Product-Name', "SigScale AAA"},
 		{'Firmware-Revision', Version},
-		{'Supported-Vendor-Id',[50386]},
+		{'Supported-Vendor-Id',[?IANA_PEN_3GPP]},
 		{'Auth-Application-Id', [?NAS_APPLICATION_ID, ?EAP_APPLICATION_ID]},
 		{restrict_connections, false},
 		{string_decode, false},
