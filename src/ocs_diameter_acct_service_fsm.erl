@@ -53,6 +53,8 @@
 -define(RO_APPLICATION, ocs_diameter_3gpp_ro_application).
 -define(RO_APPLICATION_DICT, diameter_gen_3gpp_ro_application).
 -define(RO_APPLICATION_CALLBACK, ocs_diameter_3gpp_ro_application_cb).
+-define(IANA_PEN_3GPP, 10415).
+-define(IANA_PEN_SigScale, 50386).
 -define(WAIT_STOP, 11000).
 
 %%----------------------------------------------------------------------
@@ -330,19 +332,21 @@ service_options(Options) ->
 			end,
 			[{'Origin-Realm', OriginRealm} | Options1]
 	end,
-	Options2 ++ [{'Vendor-Id', 10415},
+	Options2 ++ [{'Vendor-Id', ?IANA_PEN_SigScale},
 		{'Product-Name', "SigScale OCS"},
 		{'Firmware-Revision', Version},
-		{'Supported-Vendor-Id', [50386]},
+		{'Supported-Vendor-Id', [?IANA_PEN_3GPP]},
 		{'Auth-Application-Id', [?RO_APPLICATION_ID]},
 		{restrict_connections, false},
 		{string_decode, false},
 		{application, [{alias, ?BASE_APPLICATION},
 				{dictionary, diameter_gen_base_rfc6733},
-				{module, ?BASE_APPLICATION_CALLBACK}]},
+				{module, ?BASE_APPLICATION_CALLBACK},
+				{request_errors, callback}]},
 		{application, [{alias, ?RO_APPLICATION},
 				{dictionary, ?RO_APPLICATION_DICT},
-				{module, ?RO_APPLICATION_CALLBACK}]}].
+				{module, ?RO_APPLICATION_CALLBACK},
+				{request_errors, callback}]}].
 
 -spec transport_options(Transport, Address, Port) -> Options
 	when

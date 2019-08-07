@@ -51,7 +51,7 @@
 				border-color: var(--paper-yellow-900);
 			}
 			vaadin-grid .cell.numeric{
-				text-align: right;
+				text-align: left;
 			}
 			vaadin-grid input {
 				font-size: inherit;
@@ -181,8 +181,8 @@
 				if (ajax.params['filter']) {
 					ajax.params['filter'] += "]}]\"";
 				}
-				bucketList = document.getElementById('bucketList');
-				handleAjaxResponse = function(request) {
+				var bucketList = document.getElementById('bucketList');
+				var handleAjaxResponse = function(request) {
 					if(request) {
 						bucketList.etag = request.xhr.getResponseHeader('ETag');
 						var range = request.xhr.getResponseHeader('Content-Range');
@@ -208,10 +208,18 @@
 									newRecord.cents = request.response[index].remainedAmount.amount;
 								}
 								if(request.response[index].remainedAmount.units == "seconds") {
-									newRecord.seconds = request.response[index].remainedAmount.amount;
+									var Str = request.response[index].remainedAmount.amount;
+									if(Str.includes("b")){
+										var NewStrSec = Str.substring(0, Str.length - 1);
+										newRecord.seconds = NewStrSec;
+									}
 								}
 								if(request.response[index].remainedAmount.units == "octets") {
-									newRecord.remainedAmount = request.response[index].remainedAmount.amount;
+									var Str = request.response[index].remainedAmount.amount;
+									if(Str.includes("b")){
+										var NewStr = Str.substring(0, Str.length - 1);
+										newRecord.remainedAmount = NewStr;
+									}
 								}
 							}
 							vaadinItems[index] = newRecord;
@@ -222,7 +230,7 @@
 						callback([]);
 					}
 				};
-				handleAjaxError = function(error) {
+				var handleAjaxError = function(error) {
 					bucketList.etag = null;
 					var toast = document.getElementById('userToastError');
 					toast.text = error;

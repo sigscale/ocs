@@ -72,6 +72,8 @@ do(#mod{method = Method, parsed_header = Headers, request_uri = Uri,
 							check_content_type_header(Headers, Method, ocs_rest_res_http, Data);
 						["ocs", "v1", "log", "balance"] ->
 							check_content_type_header(Headers, Method, ocs_rest_res_balance, Data);
+						["ocs", "v1", "log", "balance" | _] ->
+							check_content_type_header(Headers, Method, ocs_rest_res_balance, Data);
 						["usageManagement", "v1", "usage"] ->
 							check_content_type_header(Headers, Method, ocs_rest_res_usage, Data);
 						["usageManagement", "v1", "usage" | _] ->
@@ -93,6 +95,8 @@ do(#mod{method = Method, parsed_header = Headers, request_uri = Uri,
 						["balanceManagement", "v1", "product", _Id, "accumulatedBalance"] ->
 							check_content_type_header(Headers, Method, ocs_rest_res_balance, Data);
 						["balanceManagement", "v1", "service", _Id, "accumulatedBalance"] ->
+							check_content_type_header(Headers, Method, ocs_rest_res_balance, Data);
+						["balanceManagement", "v1", "balanceAdjustment"] ->
 							check_content_type_header(Headers, Method, ocs_rest_res_balance, Data);
 						["catalogManagement", "v2", "productOffering" | _] ->
 							check_content_type_header(Headers, Method, ocs_rest_res_product, Data);
@@ -149,11 +153,11 @@ check_content_type_header(Headers, Method, Module, Data) ->
 							{content_type,  ProvidedType} | Data]);
 				false ->
 					Response = "<h2>HTTP Error 415 - Unsupported Media Type</h2>",
-					{break, [{response, {415, Response}}]}
+					{proceed, [{response, {415, Response}} | Data]}
 			end;
 		false ->
 			Response = "<h2>HTTP Error 400 - Bad Request</h2>",
-			{break, [{response, {400, Response}}]}
+			{proceed, [{response, {400, Response}} | Data]}
 	end.
 
 %% @hidden
@@ -166,7 +170,7 @@ check_accept_header(Headers, Module, Data) ->
 					{proceed, [{accept, AcceptType} | Data]};
 				false ->
 					Response = "<h2>HTTP Error 415 - Unsupported Media Type</h2>",
-					{break, [{response, {415, Response}}]}
+					{proceed, [{response, {415, Response}} | Data]}
 			end;
 		false ->
 			{proceed, Data}

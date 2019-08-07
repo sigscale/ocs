@@ -68,7 +68,8 @@ do(#mod{method = Method, parsed_header = Headers, request_uri = Uri,
 	end.
 
 %% @hidden
-content_type_available(Headers, Uri, Body, Resource, ModData) ->
+content_type_available(Headers, Uri, Body,
+		Resource, #mod{data = Data} = ModData) ->
 	case lists:keyfind("accept", 1, Headers) of
 		{_, RequestingType} ->
 			AvailableTypes = Resource:content_types_provided(),
@@ -77,7 +78,7 @@ content_type_available(Headers, Uri, Body, Resource, ModData) ->
 					do_post(Resource, ModData, Body, string:tokens(Uri, "/"));
 				false ->
 					Response = "<h2>HTTP Error 415 - Unsupported Media Type</h2>",
-					{break, [{response, {415, Response}}]}
+					{proceed, [{response, {415, Response}} | Data]}
 			end;
 		_ ->
 			do_post(Resource, ModData, Body, string:tokens(Uri, "/"))
@@ -94,6 +95,8 @@ do_post(Resource, ModData, Body, ["balanceManagement", "v1", "product", Id, "bal
 	do_response(ModData, Resource:top_up(Id, Body));
 do_post(Resource, ModData, Body, ["balanceManagement", "v1", "service", Id, "balanceTopup"]) ->
 	do_response(ModData, Resource:top_up_service(Id, Body));
+do_post(Resource, ModData, Body, ["balanceManagement", "v1", "balanceAdjustment"]) ->
+	do_response(ModData, Resource:balance_adjustment(Body));
 do_post(Resource, ModData, Body, ["catalogManagement", "v2", "productOffering"]) ->
 	do_response(ModData, Resource:add_offer(Body));
 do_post(Resource, ModData, Body, ["productInventoryManagement", "v2", "product"]) ->
@@ -106,21 +109,26 @@ do_post(Resource, ModData, Body, ["resourceInventoryManagement", "v1", "logicalR
 	do_response(ModData, Resource:add_resource_inventory(Table, Body)).
 
 %% @hidden
+do_response(#mod{data = Data} = ModData, {ok, [] = Headers,
+		[] = ResponseBody}) ->
+	NewHeaders = Headers ++ [{content_length, "0"}],
+	send(ModData, 204, NewHeaders, ResponseBody),
+	{proceed,[{response,{already_sent, 204, "0"}} | Data]};
 do_response(#mod{data = Data} = ModData, {ok, Headers, ResponseBody}) ->
 	Size = integer_to_list(iolist_size(ResponseBody)),
 	Accept = proplists:get_value(accept, Data),
 	NewHeaders = Headers ++ [{content_length, Size}, {content_type, Accept}],
 	send(ModData, 201, NewHeaders, ResponseBody),
-	{proceed,[{response,{already_sent,201, Size}}]};
-do_response(_ModData, {error, 400}) ->
+	{proceed,[{response,{already_sent, 201, Size}} | Data]};
+do_response(#mod{data = Data} = _ModData, {error, 400}) ->
 	Response = "<h2>HTTP Error 400 - Bad Request</h2>",
-	{break, [{response, {400, Response}}]};
-do_response(_ModData, {error, 404}) ->
+	{proceed, [{response, {400, Response}} | Data]};
+do_response(#mod{data = Data} = _ModData, {error, 404}) ->
 	Response = "<h2>HTTP Error 404 - Not Found</h2>",
-	{break, [{response, {404, Response}}]};
-do_response(_ModData, {error, 500}) ->
+	{proceed, [{response, {404, Response}} | Data]};
+do_response(#mod{data = Data} = _ModData, {error, 500}) ->
 	Response = "<h2>HTTP Error 500 - Server Error</h2>",
-	{break, [{response, {500, Response}}]}.
+	{proceed, [{response, {500, Response}} | Data]}.
 
 %% @hidden
 send(#mod{socket = Socket, socket_type = SocketType} = Info,

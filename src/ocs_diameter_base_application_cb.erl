@@ -138,24 +138,84 @@ handle_answer(Packet, _Request, _SvcName, _Peer) ->
 handle_error(_Reason, _Request, _SvcName, _Peer) ->
 	not_implemented.
 
--spec handle_request(Packet, SvcName, Peer) -> Action
+-spec handle_request(Packet, ServiceName, Peer) -> Action
 	when
 		Packet :: packet(),
-		SvcName :: term(),
+		ServiceName :: term(),
 		Peer :: peer(),
 		Action :: Reply | {relay, [Opt]} | discard
-			| {eval|eval_packet, Action, PostF},
+			| {eval | eval_packet, Action, PostF},
 		Reply :: {reply, packet() | message()}
 			| {answer_message, 3000..3999|5000..5999}
 			| {protocol_error, 3000..3999},
 		Opt :: diameter:call_opt(),
 		PostF :: diameter:evaluable().
 %% @doc Invoked when a request messge is received from the peer. 
-handle_request(#diameter_packet{msg = _Req, errors = []},
-		_SvcName, {_Peer, _Caps}) ->
-	discard.
+handle_request(#diameter_packet{msg = _Request, errors = []} = _Packet,
+		_ServiceName, {_, _Capabilities} = _Peer) ->
+	discard;
+handle_request(#diameter_packet{msg = Request, errors = Errors} = _Packet,
+		ServiceName, {_, Capabilities} = _Peer) ->
+	errors(ServiceName, Capabilities, Request, Errors).
 
 %%----------------------------------------------------------------------
 %%  internal functions
 %%----------------------------------------------------------------------
+
+-spec errors(ServiceName, Capabilities, Request, Errors) -> Action
+	when
+		ServiceName :: atom(),
+		Capabilities :: capabilities(),
+		Request :: message(),
+		Errors :: [{0..4294967295, #diameter_avp{}}],
+		Action :: Reply | {relay, [Opt]} | discard
+			| {eval | eval_packet, Action, PostF},
+		Reply :: {reply, packet() | message()}
+			| {answer_message, 3000..3999|5000..5999}
+			| {protocol_error, 3000..3999},
+		Opt :: diameter:call_opt(),
+		PostF :: diameter:evaluable().
+%% @doc Handle errors in requests.
+%% @private
+errors(ServiceName, Capabilities, Request, [{5001, AVP} | T] = _Errors) ->
+	error_logger:error_report(["DIAMETER AVP unsupported",
+			{service_name, ServiceName}, {capabilities, Capabilities},
+			{avp, AVP}]),
+	errors(ServiceName, Capabilities, Request, T);
+errors(ServiceName, Capabilities, _Request, [{5004, _} | _] = Errors) ->
+	error_logger:error_report(["DIAMETER AVP invalid",
+			{service_name, ServiceName}, {capabilities, Capabilities},
+			{errors, Errors}]),
+	{answer_message, 5004};
+errors(ServiceName, Capabilities, _Request, [{5005, _} | _] = Errors) ->
+	error_logger:error_report(["DIAMETER AVP missing",
+			{service_name, ServiceName}, {capabilities, Capabilities},
+			{errors, Errors}]),
+	{answer_message, 5005};
+errors(ServiceName, Capabilities, _Request, [{5007, _} | _] = Errors) ->
+	error_logger:error_report(["DIAMETER AVPs contradicting",
+			{service_name, ServiceName}, {capabilities, Capabilities},
+			{errors, Errors}]),
+	{answer_message, 5007};
+errors(ServiceName, Capabilities, _Request, [{5008, _} | _] = Errors) ->
+	error_logger:error_report(["DIAMETER AVP not allowed",
+			{service_name, ServiceName}, {capabilities, Capabilities},
+			{errors, Errors}]),
+	{answer_message, 5008};
+errors(ServiceName, Capabilities, _Request, [{5009, _} | _] = Errors) ->
+	error_logger:error_report(["DIAMETER AVP too many times",
+			{service_name, ServiceName}, {capabilities, Capabilities},
+			{errors, Errors}]),
+	{answer_message, 5009};
+errors(ServiceName, Capabilities, _Request, [{5014, _} | _] = Errors) ->
+	error_logger:error_report(["DIAMETER AVP invalid length",
+			{service_name, ServiceName}, {capabilities, Capabilities},
+			{errors, Errors}]),
+	{answer_message, 5014};
+errors(_ServiceName, _Capabilities, _Request, [{ResultCode, _} | _]) ->
+	{answer_message, ResultCode};
+errors(_ServiceName, _Capabilities, _Request, [ResultCode | _]) ->
+	{answer_message, ResultCode};
+errors(_ServiceName, _Capabilities, _Request, []) ->
+	discard.
 

@@ -69,14 +69,6 @@ build:otp-20:
     paths:
       - .build/otp-20.*
 
-build:otp-19:
-  <<: *build_otp
-  image: erlang:19
-  artifacts:
-    untracked: true
-    paths:
-      - .build/otp-19.*
-
 build:otp-18:
   <<: *build_otp
   image: erlang:18
@@ -91,7 +83,7 @@ build:otp-18:
   script:
     - export ERL_LIBS="${CI_PROJECT_DIR}/.build/otp-${OTP_VERSION}/lib"
     - export DIALYZER_PLT="${CI_PROJECT_DIR}/.build/otp-${OTP_VERSION}/.dialyzer_plt"
-    - if ! dialyzer --plt_info; then dialyzer --build_plt --apps erts kernel stdlib crypto compiler public_key diameter inets mnesia ssl mochiweb radius syntax_tools; fi
+    - if ! dialyzer --plt_info; then dialyzer --no_native --build_plt --apps erts kernel stdlib crypto compiler public_key diameter inets mnesia ssl mochiweb radius syntax_tools; fi
     - cd .build/otp-${OTP_VERSION}/ocs
     - make check
 
@@ -114,16 +106,6 @@ check:otp-20:
       - .build/otp-20.*
   dependencies:
     - build:otp-20
-
-check:otp-19:
-  <<: *check_otp
-  image: erlang:19
-  artifacts:
-    when: always
-    paths:
-      - .build/otp-19.*
-  dependencies:
-    - build:otp-19
 
 check:otp-18:
   <<: *check_otp
@@ -148,22 +130,6 @@ pages:otp-18:
       - public
   dependencies:
     - check:otp-18
-  # Temporary option
-  when: always
-
-pages:otp-19:
-  stage: deploy
-  script:
-    - mkdir -p .public/doc .public/tests
-    - cp -r .build/otp-19.*/ocs/test/log/* .public/tests
-    - cp -r .build/otp-19.*/ocs/doc/* .public/doc
-    - mv .public public
-  artifacts:
-    when: always
-    paths:
-      - public
-  dependencies:
-    - check:otp-19
   # Temporary option
   when: always
 

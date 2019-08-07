@@ -1,3 +1,37 @@
+June 13, 2019
+-------------
+	- Ignore unsupported DIAMETER AVPs  
+	* Delete product dialog
+	* Filters in ABMF view
+	* Apply balance adjustments (TMF654)
+
+May 10, 2019
+--------------
+	- Validate size of the service id
+	- Remove subscriber coloumn from balance view
+	- Configure httpd with TLS by default
+
+April 23, 2019
+--------------
+	- Correct problem patching service
+	- Correct balance presentation views
+	- Document table schema in user guide
+	- Correct problem with date
+
+March 4, 2019
+-------------
+	- Log all http requests, including errors
+	- Delete service silently failed when product ref didn't exist
+	- Refactor find functions for consistency and safety
+	- Correct expected result of initialize tables
+
+January 8, 2019
+---------------
+	- CLI API support matchspecs in DIAMETER log query
+	- REST API support unit totals in DIAMETER log query
+	- Efficiently find start file in disk log
+	- Optimize table transactions
+
 July 4, 2018
 ------------
 	- SNMP Agent

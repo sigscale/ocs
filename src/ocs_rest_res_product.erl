@@ -760,7 +760,7 @@ delete_inventory(Id) ->
 	case catch ocs:delete_product(Id) of
 		ok ->
 			{ok, [], []};
-		{'EXIT', service_exsist} ->
+		{'EXIT', service_exists} ->
 			{error, 202};
 		{'EXIT', _} ->
 			{error, 500}
@@ -2090,6 +2090,8 @@ inventory({struct, ObjectMembers}) ->
 inventory(ProductInstance) ->
 	{struct, inventory(record_info(fields, product), ProductInstance, [])}.
 %% @hidden
+inventory([{"id", Id} | T], Acc) when is_list(Id) ->
+	inventory(T, Acc#product{id = Id});
 inventory([{"characteristic", Chars} | T], Acc) ->
 	inventory(T, Acc#product{characteristics = instance_chars(Chars)});
 inventory([{"productOffering", {struct, Offer}} | T], Acc) ->
@@ -2189,8 +2191,8 @@ inventory([balance | T], #product{balance = BucketRefs} = Product, Acc) ->
 			end,
 			BytesBalance = case Bytes of
 				Bytes when is_integer(Bytes) ->
-					[{struct, [{"name", "bytes"}, {"totalBalance",
-					{struct, [{"amount", Bytes}, {"units", "bytes"}]}}]}];
+					[{struct, [{"name", "octets"}, {"totalBalance",
+					{struct, [{"amount", Bytes}, {"units", "octets"}]}}]}];
 				undefined ->
 					[]
 			end,
@@ -2296,13 +2298,15 @@ query_filter(MFA, Codec, Query, Filters, Headers) ->
 			{error, 400};
 		{_, {"if-range", _}, false} ->
 			{error, 400};
-		{false, false, {"range", Range}} ->
+		{false, false, {"range", "items=1-" ++ _ = Range}} ->
 			case ocs_rest:range(Range) of
 				{error, _} ->
 					{error, 400};
 				{ok, {Start, End}} ->
 					query_start(MFA, Codec, Query, Filters, Start, End)
 			end;
+		{false, false, {"range", _Range}} ->
+			{error, 416};
 		{false, false, false} ->
 			query_start(MFA, Codec, Query, Filters, undefined, undefined)
 	end.

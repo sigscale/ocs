@@ -83,25 +83,25 @@ do_delete(Resource, ModData, ["serviceInventoryManagement", "v2", "service", Ide
 	do_response(ModData, Resource:delete_inventory(Identity));
 do_delete(Resource, ModData, ["resourceInventoryManagement", "v1", "logicalResource", Table, Identity]) ->
 	do_response(ModData, Resource:delete_resource_inventory(Table, Identity));
-do_delete(_Resource, _ModData, _) ->
+do_delete(_Resource, #mod{data = Data} = _ModData, _) ->
 	Response = "<h2>HTTP Error 404 - Not Found</h2>",
-	{break, [{response, {404, Response}}]}.
+	{proceed, [{response, {404, Response}} | Data]}.
 
 %% @hidden
-do_response(ModData, {ok, Headers, ResponseBody}) ->
+do_response(#mod{data = Data} = ModData, {ok, Headers, ResponseBody}) ->
 	Size = integer_to_list(iolist_size(ResponseBody)),
 	NewHeaders = Headers ++ [{content_length, Size}],
 	send(ModData, 204, NewHeaders, ResponseBody),
-	{proceed, [{response,{already_sent, 204, Size}}]};
-do_response(_ModData, {error, 202}) ->
+	{proceed, [{response,{already_sent, 204, Size}} | Data]};
+do_response(#mod{data = Data} = _ModData, {error, 202}) ->
 	Response = "<h2>HTTP Error 202 - Accepted</h2>",
-	{break, [{response, {202, Response}}]};
-do_response(_ModData, {error, 400}) ->
+	{proceed, [{response, {202, Response}} | Data]};
+do_response(#mod{data = Data} = _ModData, {error, 400}) ->
 	Response = "<h2>HTTP Error 400 - Bad Reques</h2>",
-	{break, [{response, {400, Response}}]};
-do_response(_ModData, {error, 500}) ->
+	{proceed, [{response, {400, Response}} | Data]};
+do_response(#mod{data = Data} = _ModData, {error, 500}) ->
 	Response = "<h2>HTTP Error 500 - Server Error</h2>",
-	{break, [{response, {500, Response}}]}.
+	{proceed, [{response, {500, Response}} | Data]}.
 
 %% @hidden
 send(#mod{socket = Socket, socket_type = SocketType} = ModData,

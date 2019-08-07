@@ -216,8 +216,8 @@
 			getLogContentResponseVoip: function(params, callback) {
 				var grid = document.getElementById('ipdrGridVoip');
 				var ajax = document.getElementById('getIpdrVoip');
-				ipdrLogListVoip = document.getElementById('ipdrLogListVoip');
-				handleAjaxResponse = function(request) {
+				var ipdrLogListVoip = document.getElementById('ipdrLogListVoip');
+				var handleAjaxResponse = function(request) {
 					if (request) {
 						ipdrLogListVoip.etag = request.xhr.getResponseHeader('ETag');
 						var range = request.xhr.getResponseHeader('Content-Range');
@@ -251,8 +251,8 @@
 						grid.size = 0;
 						callback([]);
 					}
-				},
-				handleAjaxError = function(error) {
+				}
+				var handleAjaxError = function(error) {
 					ipdrLogListVoip.etag = null;
 					var toast = document.getElementById('usageToastErrorVoip');
 					toast.text = error;

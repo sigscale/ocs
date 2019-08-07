@@ -70,6 +70,10 @@
 				float: right;
 				width: 8em;
 			}
+			.delete-buttons {
+				background: #EF5350;
+				color: black;
+			}
 			.cancel-button {
 				color: black;
 			}
@@ -127,6 +131,41 @@
 				</paper-button>
 			</div>
 		</paper-dialog>
+		<paper-dialog
+				id="deleteProductModal" modal>
+			<paper-toolbar>
+				<h2>Delete Product</h2>
+			</paper-toolbar>
+			<div>
+				<paper-input
+						id="deleteProId"
+						name="ProductId"
+						label="Product Id"
+						required
+						disabled>
+				</paper-input>
+			</div>
+			<div class="buttons">
+				<paper-button raised
+						id="proDelButton"
+						on-tap="productDelete"
+						class="delete-buttons">
+					Delete
+				</paper-button>
+				<paper-button dialog-dismiss
+						class="cancel-button"
+						onclick="deleteProductModal.close()">
+					Cancel
+				</paper-button>
+			</div>
+		</paper-dialog>
+		<iron-ajax
+				id="deleteProductAjax"
+				url="/productInventoryManagement/v2/product/"
+				method="delete"
+				on-response="_deleteProductResponse"
+				on-error="_deleteProductrror">
+		</iron-ajax>
 		<iron-ajax
 				id="addProductAjax"
 				url="/productInventoryManagement/v2/product"
@@ -155,6 +194,16 @@
 				product: {
 					type: String,
 				}
+			},
+			productDelete: function(event) {
+				var delProduct = this.$.deleteProId.value;
+				var deleteAjax = this.$.deleteProductAjax;
+				deleteAjax.url = "/productInventoryManagement/v2/product/" + delProduct;
+				deleteAjax.generateRequest();
+			},
+			_deleteProductResponse: function(event) {
+				this.$.deleteProductModal.close();
+				document.getElementById('getProductInventory').generateRequest();
 			},
 			_productinvenAddSubmit: function(event) {
 				var ajaxPro = this.$.addProductAjax;

@@ -1815,7 +1815,9 @@
 						altNew.type = "usage";
 				}
 				altNew.size = this.$.addAltSize.value;
-				altNew.amount= this.$.addAltAmount.value;
+				if(this.$.addAltAmount.value) {
+					altNew.amount= this.$.addAltAmount.value;
+				}
 				altNew.currency = this.$.addAltCurrency.value;
 				switch(this.$.addAltPeriod.selected) {
 					case 0:

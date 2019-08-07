@@ -31,7 +31,7 @@
 -export([find_service/1, delete_service/1, get_services/0, query_service/3,
 		find_product/1]).
 -export([add_bucket/2, find_bucket/1, get_buckets/0, get_buckets/1,
-		delete_bucket/1, query_bucket/3]).
+		delete_bucket/1, query_bucket/3, adjustment/1]).
 -export([add_user/3, list_users/0, get_user/1, delete_user/1,
 		query_users/3, update_user/3]).
 -export([add_offer/1, find_offer/1, get_offers/0, delete_offer/1,
@@ -580,9 +580,10 @@ add_product(OfferId, ServiceRefs, StartDate, EndDate, Characteristics)
 			case mnesia:read(offer, OfferId, read) of
 				[#offer{char_value_use = CharValueUse} = Offer] ->
 					TS = erlang:system_time(?MILLISECOND),
-					N = erlang:unique_integer([positive]),
-					LM = {TS, N},
-					Id = ocs_rest:etag(LM),
+					N1 = erlang:unique_integer([positive]),
+					N2 = erlang:unique_integer([positive]),
+					LM = {TS, N2},
+					Id = ocs_rest:etag({TS, N1}),
 					F2 = fun(ServiceRef) ->
 								case mnesia:read(service, ServiceRef, write) of
 									[Service] ->
@@ -627,7 +628,7 @@ find_product(ProductRef) when is_list(ProductRef) ->
 	case mnesia:transaction(F) of
 		{atomic, []} ->
 			{error, not_found};
-		{atomic, [Product]} ->
+		{atomic, [#product{} = Product]} ->
 			{ok, Product};
 		{aborted, Reason} ->
 			{error, Reason}
@@ -640,7 +641,7 @@ find_product(ProductRef) when is_list(ProductRef) ->
 %% @doc Delete an entry from product table
 delete_product(ProductRef) when is_list(ProductRef) ->
 	F1 = fun(#service{product = PRef}, _) when PRef == ProductRef ->
-					throw(service_exsist);
+					throw(service_exists);
 			(_, Acc) ->
 					Acc
 	end,
@@ -868,45 +869,6 @@ add_bucket(ProductRef, #bucket{id = undefined} = Bucket) when is_list(ProductRef
 			{ok, OldBucket, NewBucket};
 		{aborted, Reason} ->
 			{error, Reason}
-	end;
-add_bucket(ProductRef, #bucket{id = BId, product = ProdRef1,
-		remain_amount = RAmount1, end_date = TD} = _Bucket)
-		when is_list(ProductRef) ->
-	F = fun() ->
-		case mnesia:read(product, ProductRef, write) of
-			[#product{balance = B} = P] ->
-				case mnesia:read(bucket, BId, write) of
-					[#bucket{product = ProdRef2,
-							remain_amount = RAmount2} = Bucket2] ->
-						ProdRef3 = ProdRef2 ++ [ProdRef1 -- ProdRef2],
-						Bucket3  = Bucket2#bucket{id = BId, product = ProdRef3,
-							remain_amount = RAmount2 + RAmount1, end_date = TD},
-						ok = mnesia:write(bucket, Bucket3, write),
-						case lists:any(fun(Id) when Id == BId -> true; (_) -> false end, B) of
-							true ->
-								Product = P#product{balance = lists:reverse([BId | B])},
-								ok = mnesia:write(product, Product, write),
-								{ok, Bucket2, Bucket3};
-							false ->
-								{ok, Bucket2, Bucket3}
-						end;
-					[] ->
-						throw(bucket_not_found)
-				end;
-			[] ->
-				throw(product_not_found)
-		end
-	end,
-	case mnesia:transaction(F) of
-		{atomic, {ok, OldBucket, NewBucket}} ->
-			[ProdRef | _] = NewBucket#bucket.product,
-			ocs_log:abmf_log(topup, undefined, NewBucket#bucket.id, NewBucket#bucket.units, ProdRef, RAmount1, OldBucket#bucket.remain_amount,
-				NewBucket#bucket.remain_amount, undefined, undefined, undefined, undefined, undefined, undefined, NewBucket#bucket.status),
-			{ok, OldBucket, NewBucket};
-		{aborted, {throw, Reason}} ->
-			{error, Reason};
-		{aborted, Reason} ->
-			{error, Reason}
 	end.
 
 -spec find_bucket(BucketId) -> Result
@@ -1075,6 +1037,94 @@ delete_bucket1(BId, ProdRefs) ->
 	true = lists:all(F, ProdRefs),
 	ok = mnesia:delete(bucket, BId, write).
 
+-spec adjustment(Adjustment) -> Result
+	when
+		Adjustment :: #adjustment{},
+		Result :: ok | {error, Reason},
+		Reason :: term().
+%% @doc Applying balance adjustment.
+adjustment(#adjustment{amount = Amount, product = ProductRef, units = Units,
+		start_date = StartDate, end_date = EndDatae})
+		when is_list(ProductRef), is_integer(Amount), Amount > 0 ->
+	F = fun() ->
+		case mnesia:read(product, ProductRef, write) of
+			[#product{balance = B} = P] ->
+				BId = generate_bucket_id(),
+				Bucket = #bucket{id = BId, start_date = StartDate, end_date = EndDatae,
+						remain_amount = Amount, units = Units, product = [ProductRef],
+						last_modified = calendar:local_time()},
+				ok = mnesia:write(bucket, Bucket, write),
+				Product = P#product{balance = B ++ [BId]},
+				ok = mnesia:write(product, Product, write),
+				Bucket;
+			[] ->
+				mnesia:abort(not_found)
+		end
+	end,
+	case mnesia:transaction(F) of
+		{atomic, #bucket{id = Id}} ->
+			ocs_log:abmf_log(adjustment, undefined, Id, Units, ProductRef, Amount,
+					0, Amount, undefined, undefined, undefined, undefined, undefined,
+					undefined, undefined);
+		{aborted, Reason} ->
+			{error, Reason}
+	end;
+adjustment(#adjustment{amount = Amount1, product = ProductRef, units = Units,
+		start_date = StartDate, end_date = EndDate})
+		when is_list(ProductRef), is_integer(Amount1), Amount1 < 0 ->
+	F1 = fun() ->
+		case mnesia:read(product, ProductRef, write) of
+			[#product{balance = []} = P] ->
+				BId = generate_bucket_id(),
+				NewBucket = #bucket{id = BId, start_date = StartDate, end_date = EndDate,
+						remain_amount = Amount1, units = Units, product = [ProductRef],
+						last_modified = calendar:local_time()},
+				mnesia:write(bucket, NewBucket, write),
+				NewProduct = P#product{balance = [BId]},
+				ok = mnesia:write(product, NewProduct, write),
+				[BId];
+			[#product{balance = BucketRefs} = P] ->
+				F2 = fun F([H | T], Amount2, Acc) ->
+						case mnesia:read(bucket, H, write) of
+							[#bucket{id = Id, remain_amount = Remain, units = Units} = B]
+									when Remain > Amount2 ->
+								NewBucket = B#bucket{remain_amount = Remain - Amount2},
+								ok = mnesia:write(bucket, NewBucket, write),
+								[Id | Acc] ++ T;
+							[#bucket{id = Id, remain_amount = Amount2, units = Units}] ->
+								ok = mnesia:delete(bucket, Id, write),
+								Acc ++ T;
+							[#bucket{id = Id, remain_amount = Remain, units = Units}] ->
+								ok = mnesia:delete(bucket, Id, write),
+								F(T, Amount2 - Remain, Acc);
+							[#bucket{}] ->
+								F(T, Amount2, [H | Acc])
+						end;
+					F([], Amount2, Acc) ->
+						BId = generate_bucket_id(),
+						NewBucket = #bucket{id = BId, start_date = StartDate, end_date = EndDate,
+								remain_amount = -Amount2, units = Units, product = [ProductRef],
+								last_modified = calendar:local_time()},
+						ok = mnesia:write(bucket, NewBucket, write),
+						[BId |Acc]
+				end,
+				NewBucketRefs = F2(BucketRefs, abs(Amount1), []),
+				NewProduct = P#product{balance = NewBucketRefs},
+				ok = mnesia:write(product, NewProduct, write),
+				NewBucketRefs;
+			[] ->
+				mnesia:abort(badarg)
+		end
+	end,
+	case mnesia:transaction(F1) of
+		{atomic, _BucketRefs} ->
+			ocs_log:abmf_log(adjustment, undefined, [], Units, ProductRef, Amount1,
+					undefined, undefined, undefined, undefined, undefined, undefined, undefined,
+					undefined, undefined);
+		{aborted, Reason} ->
+			{error, Reason}
+	end.
+
 -spec find_service(Identity) -> Result 
 	when
 		Identity :: string() | binary(),
@@ -1164,19 +1214,22 @@ query_service2({Services, Cont}, {Op, String})
 		$% when Op == like ->
 			Prefix = list_to_binary(lists:droplast(String)),
 			Size = size(Prefix),
-			fun(#service{name = Name}) ->
+			fun
+				(#service{name = Name}) when size(Name) >= Size ->
 					case binary:part(Name, 0, Size) of
 						Prefix ->
 							true;
 						_ ->
 							false
-					end
+					end;
+				(_) ->
+					false
 			end;
 		_ ->
-         ExactMatch = list_to_binary(String),
+			ExactMatch = list_to_binary(String),
 			fun(#service{name = Name}) when Name == ExactMatch ->
 					true;
-				(_) ->	
+				(_) ->
 					false
 			end
 	end,
@@ -1202,14 +1255,14 @@ delete_service(Identity) when is_binary(Identity) ->
 						ok = mnesia:write(P1),
 						mnesia:delete(service, Identity, write);
 					[] ->
-						ok
+						mnesia:delete(service, Identity, write)
 				end;
 			[] ->
 				ok
 		end
 	end,
 	case mnesia:transaction(F) of
-		{atomic, _} ->
+		{atomic, ok} ->
 			ok;
 		{aborted, Reason} ->
 			exit(Reason)
@@ -1356,18 +1409,11 @@ add_pla(#pla{} = Pla, File) when is_list(File) ->
 		Reason :: term().
 %% @doc Find offer by product id
 find_offer(OfferID) ->
-	F = fun() ->
-		case mnesia:read(offer, OfferID) of
-			[Entry] ->
-				Entry;
-			[] ->
-				throw(not_found)
-		end
-	end,
+	F = fun() -> mnesia:read(offer, OfferID) end,
 	case mnesia:transaction(F) of
-		{atomic, Offer} ->
+		{atomic, [#offer{} = Offer]} ->
 			{ok, Offer};
-		{aborted, {throw, not_found}} ->
+		{atomic, []} ->
 			{error, not_found};
 		{aborted, Reason} ->
 			{error, Reason}
@@ -1539,18 +1585,11 @@ get_plas() ->
 		Reason :: term().
 %% @doc Find pricing logic algorithm by id.
 find_pla(ID) ->
-	F = fun() ->
-		case mnesia:read(pla, ID) of
-			[Entry] ->
-				Entry;
-			[] ->
-				throw(not_found)
-		end
-	end,
+	F = fun() -> mnesia:read(pla, ID) end,
 	case mnesia:transaction(F) of
-		{atomic, Pla} ->
+		{atomic, [#pla{} = Pla]} ->
 			{ok, Pla};
-		{aborted, {throw, not_found}} ->
+		{atomic, []} ->
 			{error, not_found};
 		{aborted, Reason} ->
 			{error, Reason}

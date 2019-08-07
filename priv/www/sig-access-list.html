@@ -264,8 +264,8 @@
 				if (ajax.params['filter']) {
 					ajax.params['filter'] += "]}]\"";
 				}
-				accessList = document.getElementById('accessList');
-				handleAjaxResponse = function(request) {
+				var accessList = document.getElementById('accessList');
+				var handleAjaxResponse = function(request) {
 					if (request) {
 						accessList.etag = request.xhr.getResponseHeader('ETag');
 						var range = request.xhr.getResponseHeader('Content-Range');
@@ -326,7 +326,7 @@
 						callback([]);
 					}
 				};
-				handleAjaxError = function(error) {
+				var handleAjaxError = function(error) {
 					accessList.etag = null;
 					var toast = document.getElementById('usageToastError');
 					toast.text = error;

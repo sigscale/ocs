@@ -1237,7 +1237,7 @@ HTTP/1.1 204 No Content
 Content-Length: 0
 </pre></p>
 
-==Database Schema==
+==Information Model==
 <table id="mt">
 	<caption id="mt">There are six persistent {@link //mnesia. mnesia} tables:</caption>
 	<thead>
@@ -1265,14 +1265,15 @@ Content-Length: 0
 		</tr>
 		<tr id="mt">
 			<td id="mt">pla</td>
-			<td id="mt">Pricing Logic Algorithms</td>
+			<td id="mt">Pricing Logic Algorithms (Rate Tables)</td>
 		</tr>
 		<tr id="mt">
 			<td id="mt">client</td>
-			<td id="mt">RADIUS/DIAMETER clients</td>
+			<td id="mt">RADIUS/DIAMETER Clients</td>
 		</tr>
 	</tbody>
 </table>
+<img src="schema.png" alt="Schema" height="501" width="619" />
 
 ==Configuration==
 The {@link //ocs. ocs} application is configured using the following environment variables:

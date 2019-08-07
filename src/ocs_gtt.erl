@@ -190,12 +190,7 @@ lookup_first(Table, [Digit | Rest]) when is_atom(Table) ->
 				undefined
 	end,
 	Fun2 = fun() -> Fun1(Fun1, Rest, mnesia:read(Table, [Digit], read)) end,
-	case mnesia:transaction(Fun2) of
-		{atomic, Result} ->
-			Result;
-		{aborted, Reason} ->
-			exit(Reason)
-	end.
+	mnesia:ets(Fun2).
 
 -spec lookup_last(Table, Number) -> Value
 	when
@@ -217,12 +212,7 @@ lookup_last(Table, Number) when is_atom(Table) ->
 	Fun2 = fun() ->
 				Fun1(Fun1, lists:reverse(Number), mnesia:read(Table, Number, read))
 	end,
-	case mnesia:transaction(Fun2) of
-		{atomic, Result} ->
-			Result;
-		{aborted, Reason} ->
-			exit(Reason)
-	end.
+	mnesia:ets(Fun2).
 
 -spec lookup_all(Table, Number) -> Value
 	when
@@ -240,12 +230,7 @@ lookup_all(Table, [Digit | Rest]) when is_atom(Table) ->
 				lists:reverse(Acc)	
 	end,
 	Fun2 = fun() -> Fun1(Fun1, Rest, mnesia:read(Table, [Digit], read), []) end,
-	case mnesia:transaction(Fun2) of
-		{atomic, Result} ->
-			Result;
-		{aborted, Reason} ->
-			exit(Reason)
-	end.
+	mnesia:ets(Fun2).
 
 -spec backup(Tables, File) -> ok
 	when

@@ -91,8 +91,9 @@ all() ->
 	[client, get_all_clients, update_client_password, delete_client,
 	add_service, delete_service, add_offer, find_offer, get_offers,
 	delete_offer, add_user, get_user, delete_user, add_bucket,
-	find_bucket, delete_bucket, get_buckets, add_product, find_product,
-	delete_product, query_product].
+	find_bucket, delete_bucket, get_buckets, positive_adjustment,
+	negative_adjustment_high, negative_adjustment_equal, negative_adjustment_low,
+	add_product, find_product, delete_product, query_product].
 
 %%---------------------------------------------------------------------
 %%  Test cases
@@ -441,7 +442,7 @@ ignore_delete_product(_Config) ->
 	{ok, #product{}} = ocs:find_product(ProdRef),
 	{ok, #service{}} = ocs:add_service(ocs:generate_identity(),
 			ocs:generate_password(), ProdRef, []),
-	{'EXIT', service_exsist} = (catch ocs:delete_product(ProdRef)),
+	{'EXIT', service_exists} = (catch ocs:delete_product(ProdRef)),
 	{ok, #product{}} = ocs:find_product(ProdRef).
 
 add_bucket() ->
@@ -534,6 +535,128 @@ delete_bucket(_Config) ->
 	ok = ocs:delete_bucket(BId),
 	{error, not_found} = ocs:find_bucket(BId),
 	{ok, #product{balance = []}} = ocs:find_product(ProdRef).
+
+positive_adjustment() ->
+	[{userdata, [{doc, "Applying positive adjustment"}]}].
+
+positive_adjustment(_Config) ->
+	Price1 = #price{name = ocs:generate_identity(), type = usage, units = octets,
+			size = rand:uniform(100000000), amount = rand:uniform(100)},
+	OfferId = ocs:generate_identity(),
+	Offer = #offer{name = OfferId, price = [Price1],
+			specification = "4"},
+	{ok, #offer{}} = ocs:add_offer(Offer),
+	{ok, #product{id = ProdRef}} = ocs:add_product(OfferId, []),
+	Bucket1 = #bucket{units = octets, remain_amount = rand:uniform(10000000),
+			start_date = erlang:system_time(?MILLISECOND),
+			end_date = erlang:system_time(?MILLISECOND) + 2592000000},
+	{ok, _, #bucket{}} = ocs:add_bucket(ProdRef, Bucket1),
+	Amount = rand:uniform(10000000),
+	Units = cents,
+	Adjustment = #adjustment{units = Units, amount = Amount,
+			start_date = erlang:system_time(?MILLISECOND), product = ProdRef,
+			end_date = erlang:system_time(?MILLISECOND) + 2592000000},
+	ok = ocs:adjustment(Adjustment),
+	{atomic, [#product{balance = BalanceRefs}]} = mnesia:transaction(fun() ->
+			mnesia:read(product, ProdRef, read) end),
+	BId = lists:last(BalanceRefs),
+	{atomic, [Bucket2]} = mnesia:transaction(fun() -> mnesia:read(bucket, BId, read) end),
+	Units = Bucket2#bucket.units,
+	Amount = Bucket2#bucket.remain_amount.
+
+negative_adjustment_high() ->
+	[{userdata, [{doc, "Applying high negative adjustment"}]}].
+
+negative_adjustment_high(_Config) ->
+	Price1 = #price{name = ocs:generate_identity(), type = usage, units = octets,
+			size = rand:uniform(100000000), amount = rand:uniform(100)},
+	OfferId = ocs:generate_identity(),
+	Offer = #offer{name = OfferId, price = [Price1],
+			specification = "4"},
+	{ok, #offer{}} = ocs:add_offer(Offer),
+	{ok, #product{id = ProdRef}} = ocs:add_product(OfferId, []),
+	Bucket1 = #bucket{units = octets, remain_amount = 1000,
+			start_date = erlang:system_time(?MILLISECOND),
+			end_date = erlang:system_time(?MILLISECOND) + 2592000000},
+	{ok, _, #bucket{}} = ocs:add_bucket(ProdRef, Bucket1),
+	Bucket2 = #bucket{units = octets, remain_amount = 3000,
+			start_date = erlang:system_time(?MILLISECOND),
+			end_date = erlang:system_time(?MILLISECOND) + 2592000000},
+	{ok, _, #bucket{}} = ocs:add_bucket(ProdRef, Bucket2),
+	Adjustment = #adjustment{units = octets, amount = -5000,
+			start_date = erlang:system_time(?MILLISECOND), product = ProdRef,
+			end_date = erlang:system_time(?MILLISECOND) + 2592000000},
+	ok = ocs:adjustment(Adjustment),
+	{atomic, [#product{balance = [BId]}]} = mnesia:transaction(fun() ->
+			mnesia:read(product, ProdRef, read) end),
+	{atomic, [Bucket3]} = mnesia:transaction(fun() -> mnesia:read(bucket, BId, read) end),
+	octets = Bucket2#bucket.units,
+	1000 + 3000 - 5000 = Bucket3#bucket.remain_amount.
+
+negative_adjustment_equal() ->
+	[{userdata, [{doc, "Applying equal negative adjustment"}]}].
+
+negative_adjustment_equal(_Config) ->
+	Price1 = #price{name = ocs:generate_identity(), type = usage, units = octets,
+			size = rand:uniform(100000000), amount = rand:uniform(100)},
+	OfferId = ocs:generate_identity(),
+	Offer = #offer{name = OfferId, price = [Price1],
+			specification = "4"},
+	{ok, #offer{}} = ocs:add_offer(Offer),
+	{ok, #product{id = ProdRef}} = ocs:add_product(OfferId, []),
+	Bucket1 = #bucket{units = octets, remain_amount = rand:uniform(10000000),
+			start_date = erlang:system_time(?MILLISECOND),
+			end_date = erlang:system_time(?MILLISECOND) + 2592000000},
+	{ok, _, #bucket{}} = ocs:add_bucket(ProdRef, Bucket1),
+	Units = cents,
+	Bucket2 = #bucket{units = Units, remain_amount = 2000,
+			start_date = erlang:system_time(?MILLISECOND),
+			end_date = erlang:system_time(?MILLISECOND) + 2592000000},
+	{ok, _, #bucket{}} = ocs:add_bucket(ProdRef, Bucket2),
+	Bucket3 = #bucket{units = octets, remain_amount = rand:uniform(10000000),
+			start_date = erlang:system_time(?MILLISECOND),
+			end_date = erlang:system_time(?MILLISECOND) + 2592000000},
+	{ok, _, #bucket{}} = ocs:add_bucket(ProdRef, Bucket3),
+	Adjustment = #adjustment{units = Units, amount = -2000,
+			start_date = erlang:system_time(?MILLISECOND), product = ProdRef,
+			end_date = erlang:system_time(?MILLISECOND) + 2592000000},
+	ok = ocs:adjustment(Adjustment),
+	{atomic, [#product{balance = BalanceRefs}]} = mnesia:transaction(fun() ->
+			mnesia:read(product, ProdRef, read) end),
+	2 = length(BalanceRefs).
+
+negative_adjustment_low() ->
+	[{userdata, [{doc, "Applying low negative adjustment"}]}].
+
+negative_adjustment_low(_Config) ->
+	Price1 = #price{name = ocs:generate_identity(), type = usage, units = octets,
+			size = rand:uniform(100000000), amount = rand:uniform(100)},
+	OfferId = ocs:generate_identity(),
+	Offer = #offer{name = OfferId, price = [Price1],
+			specification = "4"},
+	{ok, #offer{}} = ocs:add_offer(Offer),
+	{ok, #product{id = ProdRef}} = ocs:add_product(OfferId, []),
+	Bucket1 = #bucket{units = octets, remain_amount = rand:uniform(10000000),
+			start_date = erlang:system_time(?MILLISECOND),
+			end_date = erlang:system_time(?MILLISECOND) + 2592000000},
+	{ok, _, #bucket{}} = ocs:add_bucket(ProdRef, Bucket1),
+	Units = cents,
+	Bucket2 = #bucket{units = Units, remain_amount = 3000,
+			start_date = erlang:system_time(?MILLISECOND),
+			end_date = erlang:system_time(?MILLISECOND) + 2592000000},
+	{ok, _, #bucket{}} = ocs:add_bucket(ProdRef, Bucket2),
+	Bucket3 = #bucket{units = octets, remain_amount = rand:uniform(10000000),
+			start_date = erlang:system_time(?MILLISECOND),
+			end_date = erlang:system_time(?MILLISECOND) + 2592000000},
+	{ok, _, #bucket{}} = ocs:add_bucket(ProdRef, Bucket3),
+	Adjustment = #adjustment{units = Units, amount = -1000,
+			start_date = erlang:system_time(?MILLISECOND), product = ProdRef,
+			end_date = erlang:system_time(?MILLISECOND) + 2592000000},
+	ok = ocs:adjustment(Adjustment),
+	Buckets = ocs:get_buckets(ProdRef),
+	3 = length(Buckets),
+	[#bucket{remain_amount = RA}] = [B || #bucket{units = U} = B <- Buckets, U == Units],
+	2000 = RA.
 
 %%---------------------------------------------------------------------
 %%  Internal functions

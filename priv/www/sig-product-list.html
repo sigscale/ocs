@@ -149,6 +149,9 @@
 					value: false,
 					observer: '_activePageChanged'
 				},
+				activeItem: {
+					observer: '_activeItemChanged',
+				},
 				_filterProId: {
 					observer: '_filterChangedProId'
 				},
@@ -157,6 +160,14 @@
 				},
 				_filterOffer: {
 					observer: 'filterChangedOffer'
+				}
+			},
+			_activeItemChanged: function(item) {
+				if(item != null) {
+					var grid = this.$.productInventoryGrid;
+					grid.selectedItems = item ? [item] : [];
+					document.getElementById('deleteProductModal').open();
+					document.getElementById('deleteProId').value = item.id;
 				}
 			},
 			_activePageChanged: function(active) {
@@ -218,8 +229,8 @@
 				if (ajax.params['filter']) {
 					ajax.params['filter'] += "]}]\"";
 				}
-				productList = document.getElementById('productList');
-				handleAjaxResponse = function(request) {
+				var productList = document.getElementById('productList');
+				var handleAjaxResponse = function(request) {
 					if(request) {
 						productList.etag = request.xhr.getResponseHeader('ETag');
 						var range = request.xhr.getResponseHeader('Content-Range');
@@ -277,7 +288,7 @@
 						callback([]);
 					}
 				};
-				handleAjaxError = function(error) {
+				var handleAjaxError = function(error) {
 					productList.etag = null;
 					var toast = document.getElementById('userToastError');
 					toast.text = error;

@@ -1,3 +1,62 @@
+2019-06-13  Vance Shipley <vances@sigscale.org>
+
+	* log and ignore unsupported avps
+	* clear bundle checkbox in offer dialog
+	* validate alterations amount
+	* delete product dialog
+	* filters in abmf view
+	* advanced rest query pattern for abmf
+	* correct content length in 204 response
+	* test cases for balance adjustment
+	* apis for balance adjustment
+
+2019-05-10  Kusal Fernando  <kusal@sigscale.org>
+
+	* validate size of the service id
+	* remove subscriber coloumn from balance view
+	* configure httpd with tls by default
+
+2019-04-23  Kusal Fernando  <kusal@sigscale.org>
+
+	* add missing id in product inventory codec
+	* make sure etag unique in product
+	* strip b from unit values
+	* balance view: fix allign for amount
+	* balance view: fix bytes value
+	* add missing clause to date range function
+	* add table schema diagram to user guide
+	* ignore note field in service inventory
+
+2019-03-04  Kusal Fernando  <kusal@sigscale.org>
+
+	* log all http requests, including errors
+	* delete service silently failed when product ref didn't exist
+	* refactor find functions for consistency and safety
+	* correct expected result of initialize tables
+
+2019-01-30  Kusal Fernando  <kusal@sigscale.org>
+
+	* map correct name of total octets
+
+2019-01-09  Kusal Fernando  <kusal@sigscale.org>
+
+	* syntax errors are fixed
+
+2019-01-08  Kusal Fernando  <kusal@sigscale.org>
+
+	* remove global variables in front end modules
+	* harden http range requests
+	* use sticky locks to speed up transactions
+	* use ets activity context for lookups
+	* rename log file search function
+	* binary tree search for log queries
+	* correct binary log chunking
+	* use matchspecs in diameter account query api
+	* handle event type at usage characteristic
+	* include total octets in log rest api
+	* fix accounting filter head and characteristics
+	* front end filter requests
+
 2018-10-17  Kusal Fernando  <kusal@sigscale.org>
 
 	* test suite for diameter acct query
