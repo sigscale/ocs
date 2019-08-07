@@ -26,7 +26,7 @@
 		get_balance_log/2, balance_adjustment/1]).
 
 -export([get_bucket/1, get_buckets/2]).
--export([abmfs/2]).
+-export([abmf/1, adjustment/1]).
 
 -include("ocs.hrl").
 
@@ -489,7 +489,7 @@ bucket([], _B, Acc) ->
 	when
 		Adjustment :: #adjustment{} | {struct, list()}.
 %% @doc CODEC for adjustments
-adjustment({struct, Object}) ->
+adjustment({struct, Object}) when is_list(Object) ->
 	adjustment(Object, #adjustment{});
 adjustment(#adjustment{} = A) ->
 	adjustment(record_info(fields, adjustment), A, []).

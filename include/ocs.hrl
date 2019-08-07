@@ -142,7 +142,7 @@
 		type :: string() | undefined | '_',
 		description :: string() | undefined | '_',
 		reason :: string() | undefined | '_',
-		amount :: integer() | '_',
+		amount :: integer() |undefined | '_',
 		units :: octets | cents | seconds | messages | undefined | '_',
 		start_date :: pos_integer() | undefined | '_',
 		end_date :: pos_integer() | undefined | '_',
