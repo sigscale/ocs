@@ -443,7 +443,7 @@ aka_attr(?AT_ANY_ID_REQ, false, Acc) ->
 aka_attr(A, Identity, Acc) when is_binary(Identity),
 		((A == ?AT_IDENTITY) or (A == ?AT_NEXT_PSEUDONYM)
 		or (A == ?AT_NEXT_REAUTH_ID)) ->
-	L = length(Identity),
+	L = size(Identity),
 	R = L rem 4,
 	{L1, Pad} = case {L, R} of
 		{L, 0} ->
