@@ -313,11 +313,6 @@ request2({_, _Identity}, SessionId, AuthRequestType, none, Address, Port,
 			AuthRequestType, OHost, ORealm, DHost, DRealm, [], CbProc, Request, State);
 request2({_, _Identity}, SessionId, AuthRequestType, none, Address, Port,
 		PasswordReq, OHost, ORealm, DHost, DRealm, Request, CbProc,
-		#state{aka_sup = Sup, method_prefer = aka} = State) ->
-	start_fsm(Sup, Address, Port, ?EAP_APPLICATION_ID, PasswordReq, SessionId,
-			AuthRequestType, OHost, ORealm, DHost, DRealm, [], CbProc, Request, State);
-request2({_, _Identity}, SessionId, AuthRequestType, none, Address, Port,
-		PasswordReq, OHost, ORealm, DHost, DRealm, Request, CbProc,
 		#state{pwd_sup = Sup, method_prefer = pwd} = State) ->
 	start_fsm(Sup, Address, Port, ?EAP_APPLICATION_ID, PasswordReq, SessionId,
 			AuthRequestType, OHost, ORealm, DHost, DRealm, [], CbProc, Request, State);
