@@ -628,7 +628,7 @@ eap_aka_reauthentication([counter | T],
 eap_aka_reauthentication([counter_too_small | T],
 		#eap_aka_reauthentication{counter_too_small = true} = R, Acc) ->
 	eap_aka_reauthentication(T, R, Acc#{?AT_COUNTER_TOO_SMALL => true});
-eap_aka_reauthentication([nionce_s | T],
+eap_aka_reauthentication([nonce_s | T],
 		#eap_aka_reauthentication{nonce_s = NonceS} = R, Acc)
 		when NonceS /= undefined ->
 	eap_aka_reauthentication(T, R, Acc#{?AT_NONCE_S => NonceS});
