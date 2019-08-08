@@ -75,17 +75,17 @@
 		trusted :: boolean(),
 		service_type :: undefined | integer(),
 		keys :: [{pos_integer(), binary()}],
-		id_req :: any | full | permanent,
-		identity :: binary(),
-		res :: binary(),
-		ck :: binary(),
-		ik :: binary(),
-		ak :: binary(),
-		mk :: binary(),
-		msk :: binary(),
-		emsk :: binary(),
-		k_aut :: binary(),
-		k_encr :: binary()}).
+		id_req :: any | full | permanent | undefined,
+		identity :: binary() | undefined,
+		res :: binary() | undefined,
+		ck :: binary() | undefined,
+		ik :: binary() | undefined,
+		ak :: binary() | undefined,
+		mk :: binary() | undefined,
+		msk :: binary() | undefined,
+		emsk :: binary() | undefined,
+		k_aut :: binary() | undefined,
+		k_encr :: binary() | undefined}).
 -type statedata() :: #statedata{}.
 
 -define(TIMEOUT, 30000).
