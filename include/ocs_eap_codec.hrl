@@ -95,48 +95,48 @@
 -define(AT_RESULT_IND,        135).
 
 -record(eap_packet,
-			{code :: request | response | success | failure,
-			type :: undefined | byte(),
-			identifier :: byte(),
-			data :: undefined | binary()}).
+			{code :: request | response | success | failure | undefined,
+			type :: byte() | undefined,
+			identifier :: byte() | undefined,
+			data :: binary() | undefined}).
 
 -record(eap_pwd,
-			{length = false :: boolean(),
-			more = false :: boolean(),
+			{length = false :: boolean() | undefined,
+			more = false :: boolean() | undefined,
 			pwd_exch :: id | commit | confirm,
-			tot_length :: undefined | 0..65535,
-			data :: binary()}).
+			tot_length :: 0..65535 | undefined,
+			data :: binary() | undefined}).
 
 -record(eap_pwd_id,
-			{group_desc = 19 :: byte(),
-			random_fun = 1 :: byte(),
-			prf = 1 :: byte(),
-			token :: binary(),
+			{group_desc = 19 :: byte() | undefined,
+			random_fun = 1 :: byte() | undefined,
+			prf = 1 :: byte() | undefined,
+			token :: binary() | undefined,
 			pwd_prep = none :: none | rfc2759 | saslprep,
-			identity :: binary()}).
+			identity :: binary() | undefined}).
 
 -record(eap_pwd_commit,
-			{element :: binary(),
-			scalar :: binary()}).
+			{element :: binary() | undefined,
+			scalar :: binary() | undefined1}).
 
 -record(eap_ttls,
-			{more = false :: boolean(),
-			start = false :: boolean(),
+			{more = false :: boolean() | undefined,
+			start = false :: boolean() | undefined,
 			version = 0 :: 0..7,
-			message_len :: undefined | integer(),
-			data = <<>> :: binary()}).
+			message_len :: integer() | undefined,
+			data = <<>> :: binary() | undefined}).
 
 -record(eap_aka_challenge,
-		{rand :: binary(),
-		autn :: binary(),
-		res :: bitstring(),
-		next_pseudonym :: binary(),
-		next_reauth_id :: binary(),
-		iv :: binary(),
-		encr_data :: binary(),
-		checkcode :: binary(),
-		result_ind :: boolean(),
-		mac :: binary()}).
+		{rand :: binary() | undefined,
+		autn :: binary() | undefined,
+		res :: bitstring() | undefined,
+		next_pseudonym :: binary() | undefined,
+		next_reauth_id :: binary() | undefined,
+		iv :: binary() | undefined,
+		encr_data :: binary()| undefined,
+		checkcode :: binary() | undefined,
+		result_ind :: boolean() | undefined,
+		mac :: binary()  | undefined}).
 
 -record(eap_aka_identity,
 		{permanent_id_req :: boolean() | undefined,
@@ -145,29 +145,29 @@
 		identity :: binary() | undefined}).
 
 -record(eap_aka_notification,
-		{iv :: binary(),
-		encr_data :: binary(),
-		mac :: binary(),
-		counter :: 0..65535,
-		notification :: 0..65535}).
+		{iv :: binary() | undefined,
+		encr_data :: binary() | undefined,
+		mac :: binary() | undefined,
+		counter :: 0..65535 | undefined,
+		notification :: 0..65535 | undefined}).
 
 -record(eap_aka_reauthentication,
-		{next_reauth_id :: binary(),
-		iv :: binary(),
-		encr_data :: binary(),
-		checkcode :: binary(),
-		result_ind :: boolean(),
-		mac :: binary(),
-		counter :: 0..65535,
-		counter_too_small :: boolean(),
-		nonce_s :: binary()}).
+		{next_reauth_id :: binary() | undefined,
+		iv :: binary() | undefined,
+		encr_data :: binary() | undefined,
+		checkcode :: binary() | undefined,
+		result_ind :: boolean() | undefined,
+		mac :: binary() | undefined,
+		counter :: 0..65535 | undefined,
+		counter_too_small :: boolean() | undefined,
+		nonce_s :: binary() | undefined}).
 
 -record(eap_aka_authentication_reject,
 		{}).
 
 -record(eap_aka_synchronization_failure,
-		{auts :: binary()}).
+		{auts :: binary() | undefined}).
 
 -record(eap_aka_client_error,
-		{client_error_code :: 0..65535}).
+		{client_error_code :: 0..65535 | undefined}).
 
