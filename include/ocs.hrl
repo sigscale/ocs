@@ -51,7 +51,7 @@
 		protocol :: radius | diameter | undefined | '_',
 		secret :: binary() | undefined | '_',
 		password_required  = true :: boolean() | '_',
-		trusted = true :: boolean(),
+		trusted = true :: boolean() | '_',
 		last_modified :: tuple() | undefined | '_'}).
 
 -record(alteration,

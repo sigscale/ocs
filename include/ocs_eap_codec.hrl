@@ -139,10 +139,10 @@
 		mac :: binary()}).
 
 -record(eap_aka_identity,
-		{permanent_id_req :: boolean(),
-		any_id_req :: boolean(),
-		fullauth_id_req :: boolean(),
-		identity :: binary()}).
+		{permanent_id_req :: boolean() | undefined,
+		any_id_req :: boolean()| undefined,
+		fullauth_id_req :: boolean()| undefined,
+		identity :: binary() | undefined}).
 
 -record(eap_aka_notification,
 		{iv :: binary(),
