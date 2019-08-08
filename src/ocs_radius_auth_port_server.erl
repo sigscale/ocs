@@ -298,11 +298,6 @@ request1(EapType, Address, Port, Secret, PasswordReq, Trusted,
 %% @hidden
 request2({_, Identity}, none, SessionID, Address, Port, Secret,
 		PasswordReq, Trusted, AccessRequest, {RadiusFsm, _Tag} = _From,
-		#state{aka_sup = Sup, method_prefer = aka} = State) ->
-	start_fsm(AccessRequest, RadiusFsm, Address, Port, Secret,
-			PasswordReq, Trusted, SessionID, Identity, Sup, State);
-request2({_, Identity}, none, SessionID, Address, Port, Secret,
-		PasswordReq, Trusted, AccessRequest, {RadiusFsm, _Tag} = _From,
 		#state{aka_sup = Sup, method_prefer = akap} = State) ->
 	start_fsm(AccessRequest, RadiusFsm, Address, Port, Secret,
 			PasswordReq, Trusted, SessionID, Identity, Sup, State);
