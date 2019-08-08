@@ -424,7 +424,9 @@ identity({#radius{id = RadiusID, authenticator = RequestAuthenticator,
 			radius_fsm = RadiusFsm},
 	try
 		EapMessage = radius_attributes:fetch(?EAPMessage, RequestAttributes),
-		case ocs_eap_codec:eap_packet(EapMessage) of
+		#eap_packet{code = response, type = ?AKA, identifier = EapID,
+				data = Data} = ocs_eap_codec:eap_packet(EapMessage),
+		case ocs_eap_codec:eap_aka(Data) of
 			#eap_aka_identity{identity = <<?PERM_TAG,
 					PermanentID/binary>> = Identity} when IdReq == full ->
 				[IMSI | _] = binary:split(PermanentID, <<$@>>, []),
