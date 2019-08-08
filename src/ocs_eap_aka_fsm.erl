@@ -213,7 +213,7 @@ eap_start(timeout, #statedata{sup = Sup, eap_id = EapID,
 					when Trusted == true ->
 				NextStateData = NewStateData#statedata{eap_id = StartEapID,
 						identity = Identity},
-				Pseudonym = binary:split(Identity, <<$@>>, []),
+				[Pseudonym | _] = binary:split(Identity, <<$@>>, []),
 				CompressedIMSI = decrypt_imsi(Pseudonym, Keys),
 				IMSI = compressed_imsi(CompressedIMSI),
 				% @todo handle DIAMETER ANID AVP
@@ -309,7 +309,7 @@ eap_start(timeout, #statedata{sup = Sup, eap_id = EapID,
 							when Trusted == true ->
 						NextStateData = NewStateData#statedata{eap_id = StartEapID,
 								identity = Identity},
-						Pseudonym = binary:split(Identity, <<$@>>, []),
+						[Pseudonym | _] = binary:split(Identity, <<$@>>, []),
 						CompressedIMSI = decrypt_imsi(Pseudonym, Keys),
 						IMSI = compressed_imsi(CompressedIMSI),
 						% @todo handle RADIUS attribute for ANID
@@ -399,7 +399,7 @@ identity(#diameter_eap_app_DER{'EAP-Payload' = EapMessage} = Request,
 				{next_state, vector, NewStateData, ?TIMEOUT};
 			#eap_aka_identity{identity = <<?TEMP_TAG:6, _/bits>> = Identity}
 					when IdReq == full ->
-				Pseudonym = binary:split(Identity, <<$@>>, []),
+				[Pseudonym | _] = binary:split(Identity, <<$@>>, []),
 				CompressedIMSI = decrypt_imsi(Pseudonym, Keys),
 				IMSI = compressed_imsi(CompressedIMSI),
 				% @todo handle DIAMETER ANID AVP
@@ -434,7 +434,7 @@ identity({#radius{id = RadiusID, authenticator = RequestAuthenticator,
 				{next_state, vector, NextStateData, ?TIMEOUT};
 			#eap_aka_identity{identity = <<?TEMP_TAG:6, _/bits>> = Identity}
 					when IdReq == full ->
-				Pseudonym = binary:split(Identity, <<$@>>, []),
+				[Pseudonym | _] = binary:split(Identity, <<$@>>, []),
 				CompressedIMSI = decrypt_imsi(Pseudonym, Keys),
 				IMSI = compressed_imsi(CompressedIMSI),
 				% @todo handle RADIUS attribute for ANID
