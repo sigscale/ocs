@@ -111,7 +111,7 @@ start1() ->
 	end,
 	F2 = fun({AuthAddr, AuthPort, Options} = _Instance) ->
 		case ocs:start(radius, auth, AuthAddr, AuthPort, Options) of
-			{ok, _Authup} ->
+			{ok, _AuthSup} ->
 				ok;
 			{error, Reason} ->
 				throw(Reason)
