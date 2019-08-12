@@ -22,9 +22,9 @@
 -copyright('Copyright (c) 2016 - 2017 SigScale Global Inc.').
 
 %% export the ocs public API
--export([add_client/2, add_client/3, add_client/5, find_client/1,
-		update_client/2, update_client/3, get_clients/0, delete_client/1,
-		query_clients/6]).
+-export([add_client/2, add_client/3, add_client/5, add_client/6,
+		find_client/1, update_client/2, update_client/3,
+		get_clients/0, delete_client/1, query_clients/6]).
 -export([add_service/2, add_service/3, add_service/4, add_service/5,
 		add_service/8, add_product/2, add_product/3, add_product/5,
 		delete_product/1, get_products/0, query_product/4]).
