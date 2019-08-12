@@ -663,19 +663,20 @@ send_radius_response(EapPacket, RadiusCode, ResponseAttributes,
 			ok = ocs_log:auth_log(radius, {ServerAddress, ServerPort},
 					{ClientAddress, ClientPort}, reject,
 					RequestAttributes, AttrList3);
-		?AccessChallenge ->
+		_ ->
 			ok
 	end,
 	radius:response(RadiusFsm, {response, ResponsePacket}).
 
--spec send_diameter_response(SId, AuthType, ResultCode, OH, OR,
-		EapPacket, PortServer, Request, StateData) -> ok
+-spec send_diameter_response(SId, AuthType, ResultCode,
+		OriginHost, OriginRealm, EapPacket, PortServer,
+		Request, StateData) -> ok
 	when
 		SId :: string(),
 		AuthType :: integer(),
 		ResultCode :: integer(),
-		OH :: binary(),
-		OR :: binary(),
+		OriginHost :: binary(),
+		OriginRealm :: binary(),
 		EapPacket :: none | #eap_packet{},
 		PortServer :: pid(),
 		Request :: #diameter_eap_app_DER{},
@@ -683,22 +684,34 @@ send_radius_response(EapPacket, RadiusCode, ResponseAttributes,
 %% @doc Log DIAMETER event and send appropriate DIAMETER answer to
 %% 	ocs_diameter_auth_port_server.
 %% @hidden
-send_diameter_response(SId, AuthType, ResultCode, OH, OR, none,
-		PortServer, Request, #statedata{server_address = ServerAddress,
+send_diameter_response(SId, AuthType, ResultCode,
+		OriginHost, OriginRealm, none, PortServer,
+		#diameter_eap_app_DER{} = Request,
+		#statedata{server_address = ServerAddress,
 		server_port = ServerPort, client_address = ClientAddress,
-		client_port = ClientPort} = _StateData) ->
+		client_port = ClientPort} = _StateData) when is_list(SId),
+		is_integer(AuthType), is_integer(ResultCode),
+		is_binary(OriginHost), is_binary(OriginRealm),
+		is_pid(PortServer) ->
 	Server = {ServerAddress, ServerPort},
 	Client= {ClientAddress, ClientPort},
 	Answer = #diameter_eap_app_DEA{'Session-Id' = SId,
 			'Auth-Application-Id' = ?EAP_APPLICATION_ID,
 			'Auth-Request-Type' = AuthType,
-			'Result-Code' = ResultCode, 'Origin-Host' = OH, 'Origin-Realm' = OR},
+			'Result-Code' = ResultCode,
+			'Origin-Host' = OriginHost,
+			'Origin-Realm' = OriginRealm},
 	ok = ocs_log:auth_log(diameter, Server, Client, Request, Answer),
 	gen_server:cast(PortServer, {self(), Answer});
-send_diameter_response(SId, AuthType, ResultCode, OH, OR, EapPacket,
-		PortServer, Request, #statedata{server_address = ServerAddress,
+send_diameter_response(SId, AuthType, ResultCode,
+		OriginHost, OriginRealm, #eap_packet{} = EapPacket,
+		PortServer, #diameter_eap_app_DER{} = Request,
+		#statedata{server_address = ServerAddress,
 		server_port = ServerPort, client_address = ClientAddress,
-		client_port = ClientPort} = _StateData) ->
+		client_port = ClientPort} = _StateData) when is_list(SId),
+		is_integer(AuthType), is_integer(ResultCode),
+		is_binary(OriginHost), is_binary(OriginRealm),
+		is_pid(PortServer) ->
 	Server = {ServerAddress, ServerPort},
 	Client= {ClientAddress, ClientPort},
 	try
@@ -706,7 +719,9 @@ send_diameter_response(SId, AuthType, ResultCode, OH, OR, EapPacket,
 		Answer = #diameter_eap_app_DEA{'Session-Id' = SId,
 				'Auth-Application-Id' = ?EAP_APPLICATION_ID,
 				'Auth-Request-Type' = AuthType,
-				'Result-Code' = ResultCode, 'Origin-Host' = OH, 'Origin-Realm' = OR,
+				'Result-Code' = ResultCode,
+				'Origin-Host' = OriginHost,
+				'Origin-Realm' = OriginRealm,
 				'EAP-Payload' = [EapData]},
 		ok = ocs_log:auth_log(diameter, Server, Client, Request, Answer),
 		gen_server:cast(PortServer, {self(), Answer})
@@ -716,7 +731,8 @@ send_diameter_response(SId, AuthType, ResultCode, OH, OR, EapPacket,
 					'Auth-Application-Id' = ?EAP_APPLICATION_ID,
 					'Auth-Request-Type' = AuthType,
 					'Result-Code' = ?'DIAMETER_BASE_RESULT-CODE_UNABLE_TO_COMPLY',
-					'Origin-Host' = OH, 'Origin-Realm' = OR},
+					'Origin-Host' = OriginHost,
+					'Origin-Realm' = OriginRealm},
 			ok = ocs_log:auth_log(diameter, Server, Client, Request, Answer1),
 			gen_server:cast(PortServer, {self(), Answer1})
 	end.
