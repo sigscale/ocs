@@ -80,12 +80,10 @@
 		res :: binary() | undefined,
 		ck :: binary() | undefined,
 		ik :: binary() | undefined,
-		ak :: binary() | undefined,
-		mk :: binary() | undefined,
 		msk :: binary() | undefined,
 		emsk :: binary() | undefined,
-		k_aut :: binary() | undefined,
-		k_encr :: binary() | undefined}).
+		kaut :: binary() | undefined,
+		kencr :: binary() | undefined}).
 -type statedata() :: #statedata{}.
 
 -define(TIMEOUT, 30000).
@@ -470,48 +468,48 @@ identity({#radius{id = RadiusID, authenticator = RequestAuthenticator,
 %% @private
 vector(timeout, #statedata{session_id = SessionID} = StateData)->
 	{stop, {shutdown, SessionID}, StateData};
-vector({Rand, CK, IK, Autn}, #statedata{eap_id = EapID,
+vector({RAND, AUTN, CKprime, IKprime, XRES}, #statedata{eap_id = EapID,
 		request = #diameter_eap_app_DER{} = Request,
 		auth_req_type = AuthReqType,
 		origin_host = OHost, origin_realm = ORealm,
 		diameter_port_server = PortServer,
 		session_id = SessionID, identity = Identity} = StateData) ->
+	<<Kencr:16/binary, Kaut:32/binary, Kre:32/binary, MSK:64/binary,
+			EMSK:64/binary, _/binary>> = prf(<<IKprime/binary,
+			CKprime/binary>>, <<"EAP-AKA'", Identity/binary>>, 7),
 	NextEapID = (EapID rem 255) + 1,
 	AkaChallenge1 = #eap_aka_challenge{mac = <<0:128>>,
-			rand = Rand, autn = Autn},
+			rand = RAND, autn = AUTN},
 	EapData1 = ocs_eap_codec:eap_aka(AkaChallenge1),
-	MK = crypto:hash(sha, <<Identity/binary, IK/binary, CK/binary>>),
-	Kaut = <<0:16>>,
-	Kencr = <<0:16>>,
-	Mac = crypto:hmac(sha, Kaut, EapData1, 16),
+	Mac = crypto:hmac(sha256, Kaut, EapData1, 16),
 	AkaChallenge2 = AkaChallenge1#eap_aka_challenge{mac = Mac},
 	EapData2 = ocs_eap_codec:eap_aka(AkaChallenge2),
 	NewStateData = StateData#statedata{request = undefined,
-			eap_id = NextEapID, res = Rand, ck = CK, ik = IK,
-			ak = Autn, mk = MK, k_aut = Kaut, k_encr = Kencr},
+			eap_id = NextEapID, res = XRES, ck = CKprime, ik = IKprime,
+			msk = MSK, emsk = EMSK, kaut = Kaut, kencr = Kencr},
 	EapPacket = #eap_packet{code = request, type = ?AKAprime,
 			identifier = NextEapID, data = EapData2},
 	send_diameter_response(SessionID, AuthReqType,
 			?'DIAMETER_BASE_RESULT-CODE_MULTI_ROUND_AUTH', OHost, ORealm,
 			EapPacket, PortServer, Request, NewStateData),
 	{next_state, vector, NewStateData};
-vector({Rand, CK, IK, Autn}, #statedata{eap_id = EapID,
+vector({RAND, AUTN, CKprime, IKprime, XRES}, #statedata{eap_id = EapID,
 		request = #radius{code = ?AccessRequest, id = RadiusID,
 		authenticator = RequestAuthenticator, attributes = RequestAttributes},
 		identity = Identity} = StateData) ->
+	<<Kencr:16/binary, Kaut:32/binary, Kre:32/binary, MSK:64/binary,
+			EMSK:64/binary, _/binary>> = prf(<<IKprime/binary,
+			CKprime/binary>>, <<"EAP-AKA'", Identity/binary>>, 7),
 	NextEapID = (EapID rem 255) + 1,
 	AkaChallenge1 = #eap_aka_challenge{mac = <<0:128>>,
-			rand = Rand, autn = Autn},
+			rand = RAND, autn = AUTN},
 	EapData1 = ocs_eap_codec:eap_aka(AkaChallenge1),
-	MK = crypto:hash(sha, <<Identity/binary, IK/binary, CK/binary>>),
-	Kaut = <<0:16>>,
-	Kencr = <<0:16>>,
-	Mac = crypto:hmac(sha, Kaut, EapData1, 16),
+	Mac = crypto:hmac(sha256, Kaut, EapData1, 16),
 	AkaChallenge2 = AkaChallenge1#eap_aka_challenge{mac = Mac},
 	EapData2 = ocs_eap_codec:eap_aka(AkaChallenge2),
 	NewStateData = StateData#statedata{request = undefined,
-			eap_id = NextEapID, res = Rand, ck = CK, ik = IK,
-			ak = Autn, mk = MK, k_aut = Kaut, k_encr = Kencr},
+			eap_id = NextEapID, res = XRES, ck = CKprime, ik = IKprime,
+			msk = MSK, emsk = EMSK, kaut = Kaut, kencr = Kencr},
 	EapPacket = #eap_packet{code = request, type = ?AKAprime,
 			identifier = NextEapID, data = EapData2},
 	send_radius_response(EapPacket, ?AccessChallenge, [], RadiusID,
@@ -791,4 +789,23 @@ decrypt_imsi(Pseudonym, Keys)
 	{_, Kpseu} = lists:keyfind(N, 1, Keys),
 	PaddedIMSI = crypto:block_decrypt(aes_ecb, Kpseu, EncryptedIMSI),
 	binary:part(PaddedIMSI, 0, 8).
+
+-spec prf(K, S, N) -> MK
+	when
+		K :: binary(),
+		S :: binary(),
+		N :: pos_integer(),
+		MK :: binary().
+%% @doc Pseudo-Random Number Function (PRF).
+%%
+%% 	See RFC5448 3.4.
+%% @private
+prf(K, S, N) when is_binary(K), is_binary(S), is_integer(N), N > 1 ->
+	prf(K, S, N, 1, <<>>, []).
+%% @hidden
+prf(_, _, N, P, _, Acc) when P > N ->
+	<< B || B <- lists:reverse(Acc) >>;
+prf(K, S, N, P, T1, Acc) ->
+	T2 = crypto:hmac(sha256, K, <<T1/binary, S/binary, P>>),
+	prf(K, S, N, P + 1, T2, [T2 | Acc]).
 

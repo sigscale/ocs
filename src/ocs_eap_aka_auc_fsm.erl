@@ -18,7 +18,7 @@
 %%% @doc This {@link //stdlib/gen_fsm. gen_fsm} behaviour callback module
 %%% 	implements the functions associated with an Authentication Center (AuC)
 %%% 	in the user's home domain within EAP 3rd Generation Authentication and
-%%% 	Key Agreement (EAP-AKA/AKA') in the {@link //ocs. ocs} application.
+%%% 	Key Agreement (EAP-AKA') in the {@link //ocs. ocs} application.
 %%%
 %%% @reference <a href="http://tools.ietf.org/html/rfc4187">
 %%% 	RFC4187 - Extensible Authentication Protocol Method for 3rd Generation
@@ -26,6 +26,8 @@
 %%% @reference <a href="http://tools.ietf.org/html/rfc5448">
 %%% 	RFC5448 - Improved Extensible Authentication Protocol Method for
 %%% 		3rd Generation Authentication and Key Agreement (EAP-AKA')</a>
+%%% @reference <a href="http://webapp.etsi.org/key/key.asp?GSMSpecPart1=33&amp;GSMSpecPart2=402">
+%%% 	Security Aspects of non-3GPP Accesses (3GPP TS 33.402)</a>
 %%%
 -module(ocs_eap_aka_auc_fsm).
 -copyright('Copyright (c) 2016 - 2018 SigScale Global Inc.').
@@ -51,6 +53,10 @@
 -type statedata() :: #statedata{}.
 
 -define(TIMEOUT, 30000).
+
+%% support deprecated_time_unit()
+-define(MILLISECOND, milli_seconds).
+%-define(MILLISECOND, millisecond).
 
 %%----------------------------------------------------------------------
 %%  The ocs_eap_aka_auc_fsm API
@@ -81,7 +87,7 @@ init(_Args) ->
 
 -spec idle(Event, StateData) -> Result
 	when
-		Event :: timeout | term(), 
+		Event :: timeout | term(),
 		StateData :: statedata(),
 		Result :: {next_state, NextStateName, NewStateData} | {next_state, NextStateName, NewStateData,
 		Timeout}
@@ -96,19 +102,28 @@ init(_Args) ->
 %% @@see //stdlib/gen_fsm:StateName/2
 %% @private
 %%
-idle({AkaFsm, Identity, _ANID}, #statedata{} = StateData)
+idle({AkaFsm, Identity, ANID}, #statedata{} = StateData)
 		when is_pid(AkaFsm), is_binary(Identity) ->
 	OPc = <<205,99,203,113,149,74,159,78,72,165,153,78,55,160,43,175>>,
 	K = <<70,91,92,232,177,153,180,159,170,95,10,46,226,56,166,188>>,
 	RAND = ocs_milenage:f0(),
-	gen_fsm:send_event(AkaFsm, ocs_milenage:f2345(OPc, K, RAND)),
+	{XRES, CK, IK, <<AK:48>>} = ocs_milenage:f2345(OPc, K, RAND),
+	% @todo Update DIF and store in subscriber table.
+	DIF = 1565607657545,
+	SQN = sqn(DIF),
+	AMF = amf(),
+	MAC = ocs_milenage:f1(OPc, K, RAND, <<SQN:48>>, AMF),
+	AUTN = autn(SQN, AK, AMF, MAC),
+	% if AMF separation bit = 1 use CK'/IK'
+	<<CKprime:16/binary, IKprime:16/binary>> = kdf(CK, IK, ANID, SQN, AK),
+	gen_fsm:send_event(AkaFsm, {RAND, AUTN, CKprime, IKprime, XRES}),
 	{next_state, idle, StateData};
 idle(timeout, #statedata{} = StateData) ->
 	{stop, shutdown, StateData}.
 
 -spec handle_event(Event, StateName, StateData) -> Result
 	when
-		Event :: term(), 
+		Event :: term(),
 		StateName :: atom(),
       StateData :: statedata(),
 		Result :: {next_state, NextStateName, NewStateData} | {next_state, NextStateName, NewStateData,
@@ -130,11 +145,11 @@ handle_event(_Event, StateName, StateData) ->
 
 -spec handle_sync_event(Event, From, StateName, StateData) -> Result
 	when
-		Event :: term(), 
+		Event :: term(),
 		From :: {Pid, Tag},
 		Pid :: pid(),
 		Tag :: term(),
-      StateName :: atom(), 
+      StateName :: atom(),
 		StateData :: statedata(),
 		Result :: {reply, Reply, NextStateName, NewStateData}
 		| {reply, Reply, NextStateName, NewStateData, Timeout}
@@ -160,8 +175,8 @@ handle_sync_event(_Event, _From, StateName, StateData) ->
 
 -spec handle_info(Info, StateName, StateData) -> Result
 	when
-		Info :: term(), 
-		StateName :: atom(), 
+		Info :: term(),
+		StateName :: atom(),
 		StateData :: statedata(),
 		Result :: {next_state, NextStateName, NewStateData}
 		| {next_state, NextStateName, NewStateData, Timeout}
@@ -180,7 +195,7 @@ handle_info(Info, request, StateData) ->
 
 -spec terminate(Reason, StateName, StateData) -> any()
 	when
-		Reason :: normal | shutdown | term(), 
+		Reason :: normal | shutdown | term(),
 		StateName :: atom(),
       StateData :: statedata().
 %% @doc Cleanup and exit.
@@ -194,8 +209,8 @@ terminate(_Reason, _StateName, _StateData) ->
 	when
 		OldVsn :: (Vsn | {down, Vsn}),
 		Vsn :: term(),
-      StateName :: atom(), 
-		StateData :: statedata(), 
+      StateName :: atom(),
+		StateData :: statedata(),
 		Extra :: term(),
 		Result :: {ok, NextStateName, NewStateData},
 		NextStateName :: atom(),
@@ -210,4 +225,62 @@ code_change(_OldVsn, StateName, StateData, _Extra) ->
 %%----------------------------------------------------------------------
 %%  internal functions
 %%----------------------------------------------------------------------
+
+-spec sqn(DIF) -> SQN
+	when
+		DIF :: integer(),
+		SQN :: integer().
+%% @doc Sequence Number (SQN).
+%%
+%% 	3GPP RTS 33.102 Annex C.1.1.3.
+%% @private
+sqn(DIF) when is_integer(DIF) ->
+	(erlang:system_time(?MILLISECOND) - DIF) bsl 5.
+
+-spec autn(SQN, AK, AMF, MAC) -> AUTN
+	when
+		SQN :: integer(),
+		AK :: integer(),
+		AMF :: binary(),
+		MAC :: binary(),
+		AUTN :: binary().
+%% @doc Network Authentication Token (AUTN).
+%%
+%% @private
+autn(SQN, AK, AMF, MAC)
+		when is_integer(SQN), is_integer(AK),
+		byte_size(AMF) =:= 2, byte_size(MAC) =:= 8 ->
+	SQNa = SQN bxor AK,
+	<<SQNa:48, AMF/binary, MAC/binary>>.
+
+-spec amf() -> AMF
+	when
+		AMF :: binary().
+%% @doc Authentication Management Field (AMF).
+%%
+%% 	See 3GPP TS 33.102 Annex F.
+%% @private
+amf() ->
+	<<1:16>>.
+
+-spec kdf(CK, IK, ANID, SQN, AK) -> MSK
+	when
+		CK :: binary(),
+		IK :: binary(),
+		ANID :: string(),
+		SQN :: integer(),
+		AK :: integer(),
+		MSK :: binary().
+%% @doc Key Derivation Function (KDF).
+%%
+%% 	See 3GPP TS 33.402 Annex A,
+%% 	    3GPP TS 32.220 Annex B.
+%% @private
+kdf(CK, IK, "WLAN", SQN, AK)
+		when byte_size(CK) =:= 16,
+		byte_size(IK) =:= 16,
+		is_integer(SQN), is_integer(AK) ->
+	SQNi = SQN bxor AK,
+	crypto:hmac(sha256, <<CK/binary, IK/binary>>,
+			<<16#20, "WLAN", 4:16, SQNi:48, 6:16>>).
 
