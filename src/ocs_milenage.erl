@@ -79,11 +79,7 @@
 %% 	A 48 bit sequence number (SQN).  The management of sequence
 %% 	numbers is specified in
 %% 	<a href="http://www.3gpp.org/ftp/Specs/html-info/33102.htm">
-%% 	3GPP TS 33.102</a> Annex C.  The current implementation of
-%% 	the {@link //hss/hss_server. hss_server} module uses sequence
-%% 	numbers which are not time-based as described in C.1.1.2 and
-%% 	C.3.2.  `SQN = SQE || IND' where the length of `IND' is five
-%% 	bits or in Erlang terms `SQN = <<SQE:43, IND:5>>'.
+%% 	3GPP TS 33.102</a> Annex C.
 %%
 -type amf() :: binary().
 %% @type amf() = binary().
