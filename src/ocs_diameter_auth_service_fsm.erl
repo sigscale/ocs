@@ -104,10 +104,19 @@ init([Address, Port, Options] = _Args) ->
 				{ok, Ref} ->
 					StateData = #statedata{transport_ref = Ref, address = Address,
 							port = Port, options = Options},
-					{ok, wait_for_start, StateData, 0};
+					init1(StateData);
 				{error, Reason} ->
 					{stop, Reason}
 			end;
+		{error, Reason} ->
+			{stop, Reason}
+	end.
+%% @hidden
+init1(StateData) ->
+	case ocs_log:auth_open() of
+		ok ->
+			process_flag(trap_exit, true),
+			{ok, wait_for_start, StateData, 0};
 		{error, Reason} ->
 			{stop, Reason}
 	end.
@@ -239,17 +248,25 @@ handle_sync_event(_Event, _From, StateName, StateData) ->
 %% @see //stdlib/gen_fsm:handle_info/3
 %% @private
 %%
-handle_info(#diameter_event{service = ?DIAMETER_AUTH_SERVICE(Address, Port),
-		info = start} = _Event, wait_for_start, #statedata{address = Address,
-		port = Port} = StateData) ->
-	{next_state, started, StateData, 0};
-handle_info(#diameter_event{service = ?DIAMETER_AUTH_SERVICE(Address, Port),
-		info = Event}, started = StateName, #statedata{address = Address,
-		port = Port} = StateData) ->
-	change_state(StateName, Event, StateData);
-handle_info(Event, StateName, StateData) ->
-	error_logger:warning_report(["Unexpected diameter event",
-			{module, ?MODULE}, {state, StateName}, {event, Event}]),
+handle_info(#diameter_event{info = start}, wait_for_start, StateData) ->
+	{next_state, started, StateData};
+handle_info(#diameter_event{info = Event, service = Service},
+		StateName, StateData) when element(1, Event) == up;
+		element(1, Event) == down ->
+	{_PeerRef, #diameter_caps{origin_host = {_, Peer}}} = element(3, Event),
+	error_logger:info_report(["DIAMETER peer connection state changed",
+			{service, Service}, {event, element(1, Event)},
+			{peer, binary_to_list(Peer)}]),
+	{next_state, StateName, StateData};
+handle_info(#diameter_event{info = {watchdog,
+		_Ref, _PeerRef, {_From, _To}, _Config}}, StateName, StateData) ->
+	{next_state, StateName, StateData};
+handle_info(#diameter_event{info = Event, service = Service},
+		StateName, StateData) ->
+	error_logger:info_report(["DIAMETER event",
+			{service, Service}, {event, Event}]),
+	{next_state, StateName, StateData};
+handle_info({'EXIT', _Pid, noconnection}, StateName, StateData) ->
 	{next_state, StateName, StateData}.
 
 -spec terminate(Reason, StateName, StateData) -> any()
@@ -266,9 +283,10 @@ terminate(_Reason, _StateName,  #statedata{transport_ref = TransRef,
 	SvcName = ?DIAMETER_AUTH_SERVICE(Address, Port),
 	case diameter:remove_transport(SvcName, TransRef) of
 		ok ->
+			ocs_log:auth_close(),
 			diameter:stop_service(SvcName);
-		{error, Reason} ->
-			{error, Reason}
+		{error, Reason1} ->
+			{error, Reason1}
 	end.
 
 -spec code_change(OldVsn, StateName, StateData, Extra) -> Result
@@ -352,33 +370,8 @@ service_options(Options) ->
 %% @hidden
 transport_options(Transport, Address, Port) ->
 	Opts = [{transport_module, Transport},
-							{transport_config, [{reuseaddr, true},
-							{ip, Address},
-							{port, Port}]}],
+			{transport_config, [{reuseaddr, true},
+					{ip, Address},
+					{port, Port}]}],
 	{listen, Opts}.
-
--spec change_state(StateName, Event, StateData) -> Result
-	when
-		StateName :: atom(),
-		Event :: term(),
-		StateData :: #statedata{},
-		Result :: {next_state, NextStateName, NewStateData}
-			| {next_state, NextStateName, NewStateData, Timeout}
-			| {next_state, NextStateName, NewStateData, hibernate}
-			| {stop, Reason, NewStateData},
-		NextStateName :: atom(),
-		NewStateData :: #statedata{},
-		Timeout :: non_neg_integer() | infinity,
-		Reason :: normal | term().
-%% @doc Chnage the state of the fsm based on the event sent
-%% by the diameter service.
-%% @hidden
-change_state(started, {closed, _, _, _}, StateData) ->
-	{next_state, wait_for_stop, StateData, 0};
-change_state(started, {watchdog, _, _, {_, down}, _}, StateData) ->
-	{next_state, wait_for_stop, StateData, 0};
-change_state(started, stop, StateData) ->
-	{next_state, wait_for_stop, StateData, 0};
-change_state(started, _Event, StateData) ->
-	{next_state, started, StateData, 0}.
 
