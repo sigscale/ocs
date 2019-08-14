@@ -65,7 +65,10 @@
 -define(EAP_APPLICATION_ID, 5).
 -define(EAP_APPLICATION_DICT, diameter_gen_eap_application_rfc4072).
 -define(EAP_APPLICATION_CALLBACK, ocs_diameter_eap_application_cb).
+-define(SWm_APPLICATION, ocs_diameter_3gpp_swm_application).
 -define(SWm_APPLICATION_ID, 16777264).
+-define(SWm_APPLICATION_DICT, diameter_gen_3gpp_swm_application).
+-define(SWm_APPLICATION_CALLBACK, ocs_diameter_3gpp_ro_application_cb).
 -define(IANA_PEN_3GPP, 10415).
 -define(IANA_PEN_SigScale, 50386).
 
@@ -358,6 +361,11 @@ service_options(Options) ->
 				[{alias, ?NAS_APPLICATION},
 				{dictionary, ?NAS_APPLICATION_DICT},
 				{module, ?NAS_APPLICATION_CALLBACK},
+				{request_errors, callback}]},
+		{application,
+				[{alias, ?SWm_APPLICATION},
+				{dictionary, ?SWm_APPLICATION_DICT},
+				{module, ?SWm_APPLICATION_CALLBACK},
 				{request_errors, callback}]}].
 
 -spec transport_options(Transport, Address, Port) -> Options

@@ -7,6 +7,7 @@ einclude_DATA = ocs.hrl ocs_log.hrl ocs_eap_codec.hrl \
 		diameter_gen_ietf.hrl \
 		diameter_gen_3gpp.hrl \
 		diameter_gen_3gpp_ro_application.hrl \
+		diameter_gen_3gpp_swm_application.hrl \
 		diameter_gen_nas_application_rfc7155.hrl \
 		diameter_gen_cc_application_rfc4006.hrl \
 		diameter_gen_eap_application_rfc4072.hrl
@@ -25,6 +26,9 @@ $(top_builddir)/src/diameter_gen_3gpp.erl:	$(top_srcdir)/src/3gpp.dia
 $(top_builddir)/src/diameter_gen_3gpp_ro_application.erl:	$(top_srcdir)/src/3gpp_ro_application.dia
 	$(DIAMETERC) -i $(top_builddir)/ebin -H -o $(top_builddir)/src $<
 
+$(top_builddir)/src/diameter_gen_3gpp_swm_application.erl:	$(top_srcdir)/src/3gpp_swm_application.dia
+	$(DIAMETERC) -i $(top_builddir)/ebin -H -o $(top_builddir)/src $<
+
 $(top_builddir)/src/diameter_gen_cc_application_rfc4006.erl:	$(top_srcdir)/src/cc_application_rfc4006.dia
 	$(DIAMETERC) -H -o $(top_builddir)/src $<
 
@@ -40,6 +44,9 @@ diameter_gen_3gpp.hrl:	$(top_srcdir)/src/3gpp.dia $(top_builddir)/ebin/diameter_
 diameter_gen_3gpp_ro_application.hrl:	$(top_srcdir)/src/3gpp_ro_application.dia $(top_builddir)/ebin/diameter_gen_3gpp.beam
 	$(DIAMETERC) -i $(top_builddir)/ebin -E $<
 
+diameter_gen_3gpp_swm_application.hrl:	$(top_srcdir)/src/3gpp_swm_application.dia $(top_builddir)/ebin/diameter_gen_eap_application_rfc4072.beam
+	$(DIAMETERC) -i $(top_builddir)/ebin -E $<
+
 diameter_gen_nas_application_rfc7155.hrl:	$(top_srcdir)/src/nas_application_rfc7155.dia
 	$(DIAMETERC) -i $(top_builddir)/ebin -E $<
 
@@ -52,6 +59,7 @@ diameter_gen_eap_application_rfc4072.hrl:	$(top_srcdir)/src/eap_application_rfc4
 CLEANFILES = diameter_gen_ietf.hrl \
 		diameter_gen_3gpp.hrl \
 		diameter_gen_3gpp_ro_application.hrl \
+		diameter_gen_3gpp_swm_application.hrl \
 		diameter_gen_nas_application_rfc7155.hrl \
 		diameter_gen_cc_application_rfc4006.hrl \
 		diameter_gen_eap_application_rfc4072.hrl
