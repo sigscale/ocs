@@ -883,7 +883,7 @@ prf(K, S, N) when is_binary(K), is_binary(S), is_integer(N), N > 1 ->
 	prf(K, S, N, 1, <<>>, []).
 %% @hidden
 prf(_, _, N, P, _, Acc) when P > N ->
-	<< B || B <- lists:reverse(Acc) >>;
+	iolist_to_binary(lists:reverse(Acc));
 prf(K, S, N, P, T1, Acc) ->
 	T2 = crypto:hmac(sha256, K, <<T1/binary, S/binary, P>>),
 	prf(K, S, N, P + 1, T2, [T2 | Acc]).
