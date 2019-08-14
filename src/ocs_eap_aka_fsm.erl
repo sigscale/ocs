@@ -40,7 +40,7 @@
 -export([]).
 
 %% export the ocs_eap_aka_fsm state callbacks
--export([eap_start/2, identity/2, vector/2]).
+-export([eap_start/2, identity/2, vector/2, challenge/2]).
 
 %% export the call backs needed for gen_fsm behaviour
 -export([init/1, handle_event/3, handle_sync_event/4, handle_info/3,
@@ -83,7 +83,8 @@
 		msk :: binary() | undefined,
 		emsk :: binary() | undefined,
 		kaut :: binary() | undefined,
-		kencr :: binary() | undefined}).
+		kencr :: binary() | undefined,
+		kre :: binary() | undefined}).
 -type statedata() :: #statedata{}.
 
 -define(TIMEOUT, 30000).
@@ -474,47 +475,125 @@ vector({RAND, AUTN, CKprime, IKprime, XRES}, #statedata{eap_id = EapID,
 		origin_host = OHost, origin_realm = ORealm,
 		diameter_port_server = PortServer,
 		session_id = SessionID, identity = Identity} = StateData) ->
+	NextEapID = (EapID rem 255) + 1,
 	<<Kencr:16/binary, Kaut:32/binary, Kre:32/binary, MSK:64/binary,
 			EMSK:64/binary, _/binary>> = prf(<<IKprime/binary,
 			CKprime/binary>>, <<"EAP-AKA'", Identity/binary>>, 7),
-	NextEapID = (EapID rem 255) + 1,
 	AkaChallenge1 = #eap_aka_challenge{mac = <<0:128>>,
-			rand = RAND, autn = AUTN},
+			kdf = [1], network = <<"WLAN">>, rand = RAND, autn = AUTN},
 	EapData1 = ocs_eap_codec:eap_aka(AkaChallenge1),
-	Mac = crypto:hmac(sha256, Kaut, EapData1, 16),
+	EapPacket1 = #eap_packet{code = request, type = ?AKAprime,
+			identifier = NextEapID, data = EapData1},
+	EapMessage1 = ocs_eap_codec:eap_packet(EapPacket1),
+	Mac = crypto:hmac(sha256, Kaut, EapMessage1, 16),
 	AkaChallenge2 = AkaChallenge1#eap_aka_challenge{mac = Mac},
 	EapData2 = ocs_eap_codec:eap_aka(AkaChallenge2),
+	EapPacket2 = EapPacket1#eap_packet{data = EapData2},
 	NewStateData = StateData#statedata{request = undefined,
 			eap_id = NextEapID, res = XRES, ck = CKprime, ik = IKprime,
-			msk = MSK, emsk = EMSK, kaut = Kaut, kencr = Kencr},
-	EapPacket = #eap_packet{code = request, type = ?AKAprime,
-			identifier = NextEapID, data = EapData2},
+			msk = MSK, emsk = EMSK, kaut = Kaut, kencr = Kencr, kre = Kre},
 	send_diameter_response(SessionID, AuthReqType,
 			?'DIAMETER_BASE_RESULT-CODE_MULTI_ROUND_AUTH', OHost, ORealm,
-			EapPacket, PortServer, Request, NewStateData),
-	{next_state, vector, NewStateData};
+			EapPacket2, PortServer, Request, NewStateData),
+	{next_state, challenge, NewStateData};
 vector({RAND, AUTN, CKprime, IKprime, XRES}, #statedata{eap_id = EapID,
 		request = #radius{code = ?AccessRequest, id = RadiusID,
 		authenticator = RequestAuthenticator, attributes = RequestAttributes},
 		identity = Identity} = StateData) ->
+	NextEapID = (EapID rem 255) + 1,
 	<<Kencr:16/binary, Kaut:32/binary, Kre:32/binary, MSK:64/binary,
 			EMSK:64/binary, _/binary>> = prf(<<IKprime/binary,
 			CKprime/binary>>, <<"EAP-AKA'", Identity/binary>>, 7),
-	NextEapID = (EapID rem 255) + 1,
 	AkaChallenge1 = #eap_aka_challenge{mac = <<0:128>>,
-			rand = RAND, autn = AUTN},
+			kdf = [1], network = <<"WLAN">>, rand = RAND, autn = AUTN},
 	EapData1 = ocs_eap_codec:eap_aka(AkaChallenge1),
-	Mac = crypto:hmac(sha256, Kaut, EapData1, 16),
+	EapPacket1 = #eap_packet{code = request, type = ?AKAprime,
+			identifier = NextEapID, data = EapData1},
+	EapMessage1 = ocs_eap_codec:eap_packet(EapPacket1),
+	Mac = crypto:hmac(sha256, Kaut, EapMessage1, 16),
 	AkaChallenge2 = AkaChallenge1#eap_aka_challenge{mac = Mac},
 	EapData2 = ocs_eap_codec:eap_aka(AkaChallenge2),
+	EapPacket2 = EapPacket1#eap_packet{data = EapData2},
 	NewStateData = StateData#statedata{request = undefined,
 			eap_id = NextEapID, res = XRES, ck = CKprime, ik = IKprime,
-			msk = MSK, emsk = EMSK, kaut = Kaut, kencr = Kencr},
-	EapPacket = #eap_packet{code = request, type = ?AKAprime,
-			identifier = NextEapID, data = EapData2},
-	send_radius_response(EapPacket, ?AccessChallenge, [], RadiusID,
+			msk = MSK, emsk = EMSK, kaut = Kaut, kencr = Kencr, kre = Kre},
+	send_radius_response(EapPacket2, ?AccessChallenge, [], RadiusID,
 			RequestAuthenticator, RequestAttributes, NewStateData),
-	{next_state, vector, NewStateData}.
+	{next_state, challenge, NewStateData}.
+
+-spec challenge(Event, StateData) -> Result
+	when
+		Event :: timeout | term(),
+		StateData :: statedata(),
+		Result :: {next_state, NextStateName, NewStateData}
+				| {next_state, NextStateName, NewStateData, Timeout}
+				| {next_state, NextStateName, NewStateData, hibernate}
+				| {stop, Reason, NewStateData},
+		NextStateName :: atom(),
+		NewStateData :: statedata(),
+		Timeout :: non_neg_integer() | infinity,
+		Reason :: normal | term().
+%% @doc Handle events sent with {@link //stdlib/gen_fsm:send_event/2.
+%%		gen_fsm:send_event/2} in the <b>challenge</b> state.
+%% @@see //stdlib/gen_fsm:StateName/2
+%% @private
+challenge(timeout, #statedata{session_id = SessionID} = StateData)->
+	{stop, {shutdown, SessionID}, StateData};
+challenge(#diameter_eap_app_DER{'EAP-Payload' = EapMessage} = Request,
+		#statedata{eap_id = EapID, session_id = SessionID,
+		auth_req_type = AuthReqType, origin_host = OHost,
+		origin_realm = ORealm, auc_fsm = AucFsm, id_req = IdReq,
+		diameter_port_server = PortServer, keys = Keys} = StateData) ->
+	try
+		#eap_packet{code = response, type = ?AKAprime, identifier = EapID,
+				data = Data} = ocs_eap_codec:eap_packet(EapMessage),
+		case ocs_eap_codec:eap_aka(Data) of
+			#eap_aka_challenge{} = EAP ->
+erlang:display({?MODULE, ?LINE, EAP}),
+				{next_state, {shutdown, SessionID}, StateData};
+			#eap_aka_authentication_reject{} = EAP ->
+erlang:display({?MODULE, ?LINE, EAP}),
+				EapPacket1 = #eap_packet{code = failure, identifier = EapID},
+				send_diameter_response(SessionID, AuthReqType,
+						?'DIAMETER_BASE_RESULT-CODE_AUTHENTICATION_REJECTED',
+						OHost, ORealm, EapPacket1, PortServer, Request, StateData),
+				{next_state, {shutdown, SessionID}, StateData}
+		end
+	catch
+		_:_Reason ->
+			EapPacket2 = #eap_packet{code = failure, identifier = EapID},
+			send_diameter_response(SessionID, AuthReqType,
+					?'DIAMETER_BASE_RESULT-CODE_INVALID_AVP_BITS', OHost, ORealm,
+					EapPacket2, PortServer, Request, StateData),
+			{stop, {shutdown, SessionID}, StateData}
+	end;
+challenge({#radius{id = RadiusID, authenticator = RequestAuthenticator,
+		attributes = RequestAttributes} = Request, RadiusFsm},
+		#statedata{eap_id = EapID, session_id = SessionID, id_req = IdReq} = StateData) ->
+	NewStateData = StateData#statedata{request = Request,
+			radius_fsm = RadiusFsm},
+	try
+		EapMessage = radius_attributes:fetch(?EAPMessage, RequestAttributes),
+		#eap_packet{code = response, type = ?AKAprime, identifier = EapID,
+				data = Data} = ocs_eap_codec:eap_packet(EapMessage),
+		case ocs_eap_codec:eap_aka(Data) of
+			#eap_aka_challenge{} = EAP ->
+erlang:display({?MODULE, ?LINE, EAP}),
+				{next_state, {shutdown, SessionID}, StateData};
+			#eap_aka_authentication_reject{} = EAP ->
+erlang:display({?MODULE, ?LINE, EAP}),
+				EapPacket1 = #eap_packet{code = failure, identifier = EapID},
+				send_radius_response(EapPacket1, ?AccessReject, [], RadiusID,
+						RequestAuthenticator, RequestAttributes, NewStateData),
+				{next_state, {shutdown, SessionID}, NewStateData}
+		end
+	catch
+		_:_Reason ->
+			EapPacket2 = #eap_packet{code = failure, identifier = EapID},
+			send_radius_response(EapPacket2, ?AccessReject, [], RadiusID,
+					RequestAuthenticator, RequestAttributes, NewStateData),
+			{stop, {shutdown, SessionID}, NewStateData}
+	end.
 
 -spec handle_event(Event, StateName, StateData) -> Result
 	when

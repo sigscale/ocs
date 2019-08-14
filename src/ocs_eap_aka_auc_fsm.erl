@@ -54,10 +54,6 @@
 
 -define(TIMEOUT, 30000).
 
-%% support deprecated_time_unit()
--define(MILLISECOND, milli_seconds).
-%-define(MILLISECOND, millisecond).
-
 %%----------------------------------------------------------------------
 %%  The ocs_eap_aka_auc_fsm API
 %%----------------------------------------------------------------------
@@ -109,7 +105,7 @@ idle({AkaFsm, Identity, ANID}, #statedata{} = StateData)
 	RAND = ocs_milenage:f0(),
 	{XRES, CK, IK, <<AK:48>>} = ocs_milenage:f2345(OPc, K, RAND),
 	% @todo Update DIF and store in subscriber table.
-	DIF = 1565607657545,
+	DIF = 15657029971,
 	SQN = sqn(DIF),
 	AMF = amf(),
 	MAC = ocs_milenage:f1(OPc, K, RAND, <<SQN:48>>, AMF),
@@ -235,7 +231,7 @@ code_change(_OldVsn, StateName, StateData, _Extra) ->
 %% 	3GPP RTS 33.102 Annex C.1.1.3.
 %% @private
 sqn(DIF) when is_integer(DIF) ->
-	(erlang:system_time(?MILLISECOND) - DIF) bsl 5.
+	(erlang:system_time(10) - DIF) bsl 5.
 
 -spec autn(SQN, AK, AMF, MAC) -> AUTN
 	when
