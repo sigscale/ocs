@@ -30,7 +30,7 @@
 %% export the ocs_diameter_acct_service_fsm API
 -export([]).
 
-%% export the ocs_radius_disconnect_fsm state callbacks
+%% export the ocs_diameter_acct_service_fsm state callbacks
 -export([wait_for_start/2, started/2, wait_for_stop/2]).
 
 %% export the call backs needed for gen_fsm behaviour

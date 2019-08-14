@@ -36,7 +36,7 @@
 %% export the ocs_diameter_auth_service_fsm API
 -export([]).
 
-%% export the ocs_radius_disconnect_fsm state callbacks
+%% export the ocs_diameter_auth_service_fsm state callbacks
 -export([wait_for_start/2, started/2, wait_for_stop/2]).
 
 %% export the call backs needed for gen_fsm behaviour
@@ -240,12 +240,12 @@ handle_sync_event(_Event, _From, StateName, StateData) ->
 %% @private
 %%
 handle_info(#diameter_event{service = ?DIAMETER_AUTH_SERVICE(Address, Port),
-		info = start}, wait_for_start, #statedata{address = Address,
+		info = start} = _Event, wait_for_start, #statedata{address = Address,
 		port = Port} = StateData) ->
 	{next_state, started, StateData, 0};
 handle_info(#diameter_event{service = ?DIAMETER_AUTH_SERVICE(Address, Port),
-	info = Event}, started = StateName, #statedata{address = Address,
-	port = Port} = StateData) ->
+		info = Event}, started = StateName, #statedata{address = Address,
+		port = Port} = StateData) ->
 	change_state(StateName, Event, StateData);
 handle_info(Event, StateName, StateData) ->
 	error_logger:warning_report(["Unexpected diameter event",
