@@ -87,12 +87,15 @@
 -define(AT_COUNTER_TOO_SMALL,  20).
 -define(AT_NONCE_S,            21).
 -define(AT_CLIENT_ERROR_CODE,  22).
+-define(AT_KDF_INPUT,          23).
+-define(AT_KDF,                24).
 -define(AT_IV,                129).
 -define(AT_ENCR_DATA,         130).
 -define(AT_NEXT_PSEUDONYM,    132).
 -define(AT_NEXT_REAUTH_ID,    133).
 -define(AT_CHECKCODE,         134).
 -define(AT_RESULT_IND,        135).
+-define(AT_BIDDING,           136).
 
 -record(eap_packet,
 			{code :: request | response | success | failure | undefined,
@@ -130,6 +133,8 @@
 		{rand :: binary() | undefined,
 		autn :: binary() | undefined,
 		res :: bitstring() | undefined,
+		kdf :: [integer()] | undefined,
+		network :: binary() | undefined,
 		next_pseudonym :: binary() | undefined,
 		next_reauth_id :: binary() | undefined,
 		iv :: binary() | undefined,

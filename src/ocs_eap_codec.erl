@@ -269,6 +269,10 @@ eap_aka(<<1, _:16, Attributes/binary>>) ->
 				Acc#eap_aka_challenge{rand = Rand};
 			(?AT_AUTN, Autn, Acc) ->
 				Acc#eap_aka_challenge{autn = Autn};
+			(?AT_KDF, KDFs, Acc) ->
+				Acc#eap_aka_challenge{kdf = KDFs};
+			(?AT_KDF_INPUT, Name, Acc) ->
+				Acc#eap_aka_challenge{network = Name};
 			(?AT_MAC, Mac, Acc) ->
 				Acc#eap_aka_challenge{mac = Mac};
 			(?AT_RESULT_IND, ResultInd, Acc) ->
@@ -379,6 +383,15 @@ aka_attr(<<?AT_NONCE_S, 5, _:16, Nonce:16/bytes, Rest/bytes>>, Acc) ->
 	aka_attr(Rest, Acc#{?AT_NONCE_S => Nonce});
 aka_attr(<<?AT_CLIENT_ERROR_CODE, 1, Code:16, Rest/bytes>>, Acc) ->
 	aka_attr(Rest, Acc#{?AT_CLIENT_ERROR_CODE => Code});
+aka_attr(<<?AT_KDF_INPUT, L1, _/bytes>> = B, Acc) ->
+	L2 = (L1 * 4) - 4,
+	<<_:16, L3:16, Data:L2/bytes, Rest/bytes>> = B,
+	<<Name:L3/bytes, _/bytes>> = Data,
+	aka_attr(Rest, Acc#{?AT_KDF_INPUT => Name});
+aka_attr(<<?AT_KDF, 1, KDF:16, Rest/bytes>>, #{?AT_KDF := KDFs} = Acc) ->
+	aka_attr(Rest, Acc#{?AT_KDF => [KDF | KDFs]});
+aka_attr(<<?AT_KDF, 1, KDF:16, Rest/bytes>>, Acc) ->
+	aka_attr(Rest, Acc#{?AT_KDF => [KDF]});
 aka_attr(<<?AT_IV, 5, _:16, Iv:16/bytes, Rest/bytes>>, Acc) ->
 	aka_attr(Rest, Acc#{?AT_IV => Iv});
 aka_attr(<<?AT_ENCR_DATA, L1, _/bytes>> = B, Acc) ->
@@ -397,10 +410,14 @@ aka_attr(<<?AT_NEXT_REAUTH_ID, L1, _/bytes>> = B, Acc) ->
 	aka_attr(Rest, Acc#{?AT_NEXT_REAUTH_ID => NextReauthId});
 aka_attr(<<?AT_CHECKCODE, 1, _:16, Rest/bytes>>, Acc) ->
 	aka_attr(Rest, Acc#{?AT_CHECKCODE => <<>>});
-aka_attr(<<?AT_CHECKCODE, 6, _:16, CheckCode:20/bytes, Rest/bytes>>, Acc) ->
+aka_attr(<<?AT_CHECKCODE, 9, _:16, CheckCode:32/bytes, Rest/bytes>>, Acc) ->
 	aka_attr(Rest, Acc#{?AT_CHECKCODE => CheckCode});
 aka_attr(<<?AT_RESULT_IND, 1, _:16, Rest/bytes>>, Acc) ->
 	aka_attr(Rest, Acc#{?AT_RESULT_IND=> true});
+aka_attr(<<?AT_BIDDING, 1, 1:15, Rest/bytes>>, Acc) ->
+	aka_attr(Rest, Acc#{?AT_BIDDING => true});
+aka_attr(<<?AT_BIDDING, 1, 0:15, Rest/bytes>>, Acc) ->
+	aka_attr(Rest, Acc#{?AT_BIDDING => false});
 aka_attr(<<Type, 1, _:16, Rest/bytes>>, Acc) when Type > 127 ->
 	aka_attr(Rest, Acc);
 aka_attr(<<>>, Acc) ->
@@ -467,6 +484,19 @@ aka_attr(?AT_NONCE_S, Nonce, Acc) when size(Nonce) == 16 ->
 	[<<?AT_NONCE_S, 5, 0:16, Nonce/bytes>> | Acc];
 aka_attr(?AT_CLIENT_ERROR_CODE, Code, Acc) when is_integer(Code) ->
 	[<<?AT_CLIENT_ERROR_CODE, 1, Code:16>> | Acc];
+aka_attr(?AT_KDF_INPUT, Name, Acc) when is_binary(Name) ->
+	L = size(Name),
+	R = L rem 4,
+	{L1, Pad} = case {L, R} of
+		{L, 0} ->
+			{(L div 4) + 1, 0};
+		{L, R} ->
+			N = 4 - R,
+			{(L + N + 4) div 4, N * 8}
+	end,
+	[<<?AT_KDF_INPUT, L1, L:16, Name/bytes, 0:Pad>> | Acc];
+aka_attr(?AT_KDF, KDFs, Acc) when is_list(KDFs) ->
+	[[<<?AT_KDF, 1, KDF:16>> || KDF <- KDFs] | Acc];
 aka_attr(?AT_IV, Iv, Acc) when size(Iv) == 16 ->
 	[<<?AT_IV, 5, 0:16, Iv:16/bytes>> | Acc];
 aka_attr(?AT_ENCR_DATA, EncrData, Acc) when (size(EncrData) rem 16) == 0 ->
@@ -474,12 +504,16 @@ aka_attr(?AT_ENCR_DATA, EncrData, Acc) when (size(EncrData) rem 16) == 0 ->
 	[<<?AT_ENCR_DATA, L, 0:16, EncrData/bytes>> | Acc];
 aka_attr(?AT_CHECKCODE, <<>>, Acc) ->
 	[<<?AT_CHECKCODE, 1, 0:16>> | Acc];
-aka_attr(?AT_CHECKCODE, CheckCode, Acc) when size(CheckCode) == 20 ->
-	[<<?AT_CHECKCODE, 6, 0:16, CheckCode/bytes>> | Acc];
+aka_attr(?AT_CHECKCODE, CheckCode, Acc) when size(CheckCode) == 32 ->
+	[<<?AT_CHECKCODE, 9, 0:16, CheckCode/bytes>> | Acc];
 aka_attr(?AT_RESULT_IND, true, Acc) ->
 	[<<?AT_RESULT_IND, 1, 0:16>> | Acc];
 aka_attr(?AT_RESULT_IND, false, Acc) ->
-	Acc.
+	Acc;
+aka_attr(?AT_BIDDING, true, Acc) ->
+	[<<?AT_BIDDING, 1, 1:1, 0:15>> | Acc];
+aka_attr(?AT_BIDDING, false, Acc) ->
+	[<<?AT_BIDDING, 1, 0:1, 0:15>> | Acc].
 
 %%----------------------------------------------------------------------
 %%  internal functions
@@ -500,6 +534,12 @@ eap_aka_challenge([autn | T], #eap_aka_challenge{autn = Autn} = R, Acc)
 eap_aka_challenge([res | T], #eap_aka_challenge{res = Res} = R, Acc)
 		when Res /= undefined ->
 	eap_aka_challenge(T, R, Acc#{?AT_RES => Res});
+eap_aka_challenge([kdf | T], #eap_aka_challenge{kdf = KDFs} = R, Acc)
+		when KDFs /= undefined ->
+	eap_aka_challenge(T, R, Acc#{?AT_KDF => KDFs});
+eap_aka_challenge([network | T], #eap_aka_challenge{network = Name} = R, Acc)
+		when Name /= undefined ->
+	eap_aka_challenge(T, R, Acc#{?AT_KDF_INPUT => Name});
 eap_aka_challenge([next_pseudonym | T],
 		#eap_aka_challenge{next_pseudonym = Identity} = R, Acc)
 		when Identity /= undefined ->
