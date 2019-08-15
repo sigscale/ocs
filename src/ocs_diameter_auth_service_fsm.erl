@@ -68,7 +68,7 @@
 -define(SWm_APPLICATION, ocs_diameter_3gpp_swm_application).
 -define(SWm_APPLICATION_ID, 16777264).
 -define(SWm_APPLICATION_DICT, diameter_gen_3gpp_swm_application).
--define(SWm_APPLICATION_CALLBACK, ocs_diameter_3gpp_ro_application_cb).
+-define(SWm_APPLICATION_CALLBACK, ocs_diameter_3gpp_swm_application_cb).
 -define(IANA_PEN_3GPP, 10415).
 -define(IANA_PEN_SigScale, 50386).
 
