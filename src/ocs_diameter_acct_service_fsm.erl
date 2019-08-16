@@ -30,7 +30,7 @@
 %% export the ocs_diameter_acct_service_fsm API
 -export([]).
 
-%% export the ocs_radius_disconnect_fsm state callbacks
+%% export the ocs_diameter_acct_service_fsm state callbacks
 -export([wait_for_start/2, started/2, wait_for_stop/2]).
 
 %% export the call backs needed for gen_fsm behaviour
@@ -48,6 +48,7 @@
 
 -define(DIAMETER_ACCT_SERVICE(A, P), {ocs_diameter_acct_service, A, P}).
 -define(BASE_APPLICATION, ocs_diameter_base_application).
+-define(BASE_APPLICATION_DICT, diameter_gen_base_rfc6733).
 -define(BASE_APPLICATION_CALLBACK, ocs_diameter_base_application_cb).
 -define(RO_APPLICATION_ID, 4).
 -define(RO_APPLICATION, ocs_diameter_3gpp_ro_application).
@@ -340,7 +341,7 @@ service_options(Options) ->
 		{restrict_connections, false},
 		{string_decode, false},
 		{application, [{alias, ?BASE_APPLICATION},
-				{dictionary, diameter_gen_base_rfc6733},
+				{dictionary, ?BASE_APPLICATION_DICT},
 				{module, ?BASE_APPLICATION_CALLBACK},
 				{request_errors, callback}]},
 		{application, [{alias, ?RO_APPLICATION},
