@@ -14,7 +14,7 @@
 
 	* validate size of the service id
 	* remove subscriber coloumn from balance view
-	* configure httpd with tls by default
+	* configure httpd without tls by default
 
 2019-04-23  Kusal Fernando  <kusal@sigscale.org>
 
