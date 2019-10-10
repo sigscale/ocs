@@ -257,7 +257,7 @@ autn(SQN, AK, AMF, MAC)
 %% 	See 3GPP TS 33.102 Annex F.
 %% @private
 amf() ->
-	<<1:16>>.
+	<<1:1, 0:15>>.
 
 -spec kdf(CK, IK, ANID, SQN, AK) -> MSK
 	when
