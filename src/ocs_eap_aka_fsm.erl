@@ -549,15 +549,13 @@ challenge(#diameter_eap_app_DER{'EAP-Payload' = EapMessage} = Request,
 				data = Data} = ocs_eap_codec:eap_packet(EapMessage),
 		case ocs_eap_codec:eap_aka(Data) of
 			#eap_aka_challenge{} = EAP ->
-erlang:display({?MODULE, ?LINE, EAP}),
-				{next_state, {shutdown, SessionID}, StateData};
+				{stop, {shutdown, SessionID}, StateData};
 			#eap_aka_authentication_reject{} = EAP ->
-erlang:display({?MODULE, ?LINE, EAP}),
 				EapPacket1 = #eap_packet{code = failure, identifier = EapID},
 				send_diameter_response(SessionID, AuthReqType,
 						?'DIAMETER_BASE_RESULT-CODE_AUTHENTICATION_REJECTED',
 						OHost, ORealm, EapPacket1, PortServer, Request, StateData),
-				{next_state, {shutdown, SessionID}, StateData}
+				{stop, {shutdown, SessionID}, StateData}
 		end
 	catch
 		_:_Reason ->
@@ -578,14 +576,12 @@ challenge({#radius{id = RadiusID, authenticator = RequestAuthenticator,
 				data = Data} = ocs_eap_codec:eap_packet(EapMessage),
 		case ocs_eap_codec:eap_aka(Data) of
 			#eap_aka_challenge{} = EAP ->
-erlang:display({?MODULE, ?LINE, EAP}),
-				{next_state, {shutdown, SessionID}, StateData};
+				{stop, {shutdown, SessionID}, StateData};
 			#eap_aka_authentication_reject{} = EAP ->
-erlang:display({?MODULE, ?LINE, EAP}),
 				EapPacket1 = #eap_packet{code = failure, identifier = EapID},
 				send_radius_response(EapPacket1, ?AccessReject, [], RadiusID,
 						RequestAuthenticator, RequestAttributes, NewStateData),
-				{next_state, {shutdown, SessionID}, NewStateData}
+				{stop, {shutdown, SessionID}, NewStateData}
 		end
 	catch
 		_:_Reason ->
