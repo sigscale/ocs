@@ -557,6 +557,12 @@ challenge(#diameter_eap_app_DER{'EAP-Payload' = EapMessage} = Request,
 				send_diameter_response(SessionID, AuthReqType,
 						?'DIAMETER_BASE_RESULT-CODE_AUTHENTICATION_REJECTED',
 						OHost, ORealm, EapPacket1, PortServer, Request, StateData),
+				{stop, {shutdown, SessionID}, StateData};
+			#eap_aka_client_error{client_error_code :: Code}) ->
+				EapPacket1 = #eap_packet{code = failure, identifier = EapID},
+				send_diameter_response(SessionID, AuthReqType,
+						?'DIAMETER_BASE_RESULT-CODE_AUTHENTICATION_REJECTED',
+						OHost, ORealm, EapPacket1, PortServer, Request, StateData),
 				{stop, {shutdown, SessionID}, StateData}
 		end
 	catch
@@ -585,7 +591,12 @@ challenge({#radius{id = RadiusID, authenticator = RequestAuthenticator,
 				EapPacket1 = #eap_packet{code = failure, identifier = EapID},
 				send_radius_response(EapPacket1, ?AccessReject, [], RadiusID,
 						RequestAuthenticator, RequestAttributes, NewStateData),
-				{stop, {shutdown, SessionID}, NewStateData}
+				{stop, {shutdown, SessionID}, NewStateData};
+			#eap_aka_client_error{client_error_code :: Code}) ->
+				EapPacket1 = #eap_packet{code = failure, identifier = EapID},
+				send_radius_response(EapPacket1, ?AccessReject, [], RadiusID,
+						RequestAuthenticator, RequestAttributes, NewStateData),
+				{stop, {shutdown, SessionID}, StateData}
 		end
 	catch
 		_:_Reason ->
