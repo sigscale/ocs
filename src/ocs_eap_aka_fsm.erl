@@ -550,6 +550,8 @@ challenge(#diameter_eap_app_DER{'EAP-Payload' = EapMessage} = Request,
 		case ocs_eap_codec:eap_aka(Data) of
 			#eap_aka_challenge{} = EAP ->
 				{stop, {shutdown, SessionID}, StateData};
+			% #eap_aka_synchronization_failure{auts = _AUTS} = EAP ->
+			% @todo handle resynchronization
 			#eap_aka_authentication_reject{} = EAP ->
 				EapPacket1 = #eap_packet{code = failure, identifier = EapID},
 				send_diameter_response(SessionID, AuthReqType,
@@ -577,6 +579,8 @@ challenge({#radius{id = RadiusID, authenticator = RequestAuthenticator,
 		case ocs_eap_codec:eap_aka(Data) of
 			#eap_aka_challenge{} = EAP ->
 				{stop, {shutdown, SessionID}, StateData};
+			% #eap_aka_synchronization_failure{auts = _AUTS} = EAP ->
+			% @todo handle resynchronization
 			#eap_aka_authentication_reject{} = EAP ->
 				EapPacket1 = #eap_packet{code = failure, identifier = EapID},
 				send_radius_response(EapPacket1, ?AccessReject, [], RadiusID,
