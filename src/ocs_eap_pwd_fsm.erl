@@ -784,7 +784,9 @@ confirm3(#radius{id = RadiusID, authenticator = RequestAuthenticator,
 	<<MSK:64/binary, _EMSK:64/binary>> = ocs_eap_pwd:kdf(MK,
 			<<?PWD, MethodID/binary>>, 128),
 	Salt = crypto:rand_uniform(16#8000, 16#ffff),
-	MsMppeKey = encrypt_key(Secret, RequestAuthenticator, Salt, MSK),
+	<<MSK1, MSK2>> = MSK,
+	MsMppeRecvKey = encrypt_key(Secret, RequestAuthenticator, Salt, MSK1),
+	MsMppeSendKey = encrypt_key(Secret, RequestAuthenticator, Salt, MSK2),
 	UserName = binary_to_list(PeerID),
 	{ServiceType, Direction, CallAddress} = get_service_type(RequestAttributes),
 	Timestamp = calendar:local_time(),
@@ -794,9 +796,9 @@ confirm3(#radius{id = RadiusID, authenticator = RequestAuthenticator,
 		{authorized, _Subscriber, Attributes, _ExistingSessionAttributes} ->
 			Attr1 = radius_attributes:store(?UserName, UserName, Attributes),
 			Attr2 = radius_attributes:store(?Microsoft,
-					?MsMppeSendKey, {Salt, MsMppeKey}, Attr1),
+					?MsMppeRecvKey, {Salt, MsMppeRecvKey}, Attr1),
 			Attr3 = radius_attributes:store(?Microsoft,
-					?MsMppeRecvKey, {Salt, MsMppeKey}, Attr2),
+					?MsMppeSendKey, {Salt, MsMppeSendKey}, Attr2),
 			EapPacket = #eap_packet{code = success, identifier = EapID},
 			send_radius_response(EapPacket, ?AccessAccept, Attr3, RadiusID,
 					RequestAuthenticator, RequestAttributes, StateData),
@@ -1045,7 +1047,8 @@ send_radius_response(EapPacket, RadiusCode, ResponseAttributes,
 		Key :: binary(),
 		Ciphertext :: binary().
 %% @doc Encrypt the Pairwise Master Key (PMK) according to RFC2548
-%% 	section 2.4.2 for use as String in a MS-MPPE-Send-Key attribute.
+%% 	section 2.4.2 for use as String in a MS-MPPE-Recv-Key
+%% 	or MS-MPPE-Send-Key attribute.
 %% @private
 encrypt_key(Secret, RequestAuthenticator, Salt, Key)
 		when (Salt bsr 15) == 1 ->
