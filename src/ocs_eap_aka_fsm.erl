@@ -601,8 +601,8 @@ challenge(#diameter_eap_app_DER{'EAP-Payload' = EapMessage} = Request,
 	end;
 challenge({#radius{id = RadiusID, authenticator = RequestAuthenticator,
 		attributes = RequestAttributes} = Request, RadiusFsm},
-		#statedata{eap_id = EapID, session_id = SessionID,
-		res = RES, kaut = Kaut} = StateData) ->
+		#statedata{eap_id = EapID, session_id = SessionID, secret = Secret,
+		identity = Identity, msk = MSK, res = RES, kaut = Kaut} = StateData) ->
 	NewStateData = StateData#statedata{request = Request,
 			radius_fsm = RadiusFsm},
 	try
@@ -616,8 +616,19 @@ challenge({#radius{id = RadiusID, authenticator = RequestAuthenticator,
 				EapMessage1 = ocs_eap_codec:eap_packet(EapPacket#eap_packet{data = Data1}),
 				case crypto:hmac(sha256, Kaut, EapMessage1, 16) of
 					MAC ->
-						EapPacket1 = #eap_packet{code = success, identifier = EapID},
-						send_radius_response(EapPacket1, ?AccessAccept, [], RadiusID,
+						Salt = crypto:rand_uniform(16#8000, 16#ffff),
+						<<MSK1, MSK2>> = MSK,
+						MsMppeRecvKey = encrypt_key(Secret, RequestAuthenticator, Salt, MSK1),
+						MsMppeSendKey = encrypt_key(Secret, RequestAuthenticator, Salt, MSK2),
+						UserName = binary_to_list(Identity),
+						Attributes = radius_attributes:new(),
+						Attr1 = radius_attributes:store(?UserName, UserName, Attributes),
+						Attr2 = radius_attributes:store(?Microsoft,
+								?MsMppeRecvKey, {Salt, MsMppeRecvKey}, Attr1),
+						Attr3 = radius_attributes:store(?Microsoft,
+								?MsMppeSendKey, {Salt, MsMppeSendKey}, Attr2),
+						EapPacket = #eap_packet{code = success, identifier = EapID},
+						send_radius_response(EapPacket, ?AccessAccept, Attr3, RadiusID,
 								RequestAuthenticator, RequestAttributes, NewStateData),
 						{stop, {shutdown, SessionID}, NewStateData};
 					_ ->
@@ -885,6 +896,36 @@ send_diameter_response(SId, AuthType, ResultCode,
 			'Origin-Realm' = OriginRealm},
 	ok = ocs_log:auth_log(diameter, Server, Client, Request, Answer),
 	gen_server:cast(PortServer, {self(), Answer});
+send_diameter_response(SId, AuthType, ?'DIAMETER_BASE_RESULT-CODE_SUCCESS',
+		OriginHost, OriginRealm, #eap_packet{} = EapPacket,
+		PortServer, #diameter_eap_app_DER{} = Request,
+		#statedata{server_address = ServerAddress, server_port = ServerPort,
+		client_address = ClientAddress, client_port = ClientPort,
+		msk = MSK} = _StateData) when is_list(SId), is_integer(AuthType),
+		is_binary(OriginHost), is_binary(OriginRealm), is_pid(PortServer) ->
+	Server = {ServerAddress, ServerPort},
+	Client= {ClientAddress, ClientPort},
+	try
+		EapData = ocs_eap_codec:eap_packet(EapPacket),
+		Answer = #diameter_eap_app_DEA{'Session-Id' = SId,
+				'Auth-Application-Id' = ?EAP_APPLICATION_ID,
+				'Auth-Request-Type' = AuthType,
+				'Result-Code' = ?'DIAMETER_BASE_RESULT-CODE_SUCCESS',
+				'Origin-Host' = OriginHost, 'Origin-Realm' = OriginRealm,
+				'EAP-Payload' = [EapData], 'EAP-Master-Session-Key' = [MSK]},
+		ok = ocs_log:auth_log(diameter, Server, Client, Request, Answer),
+		gen_server:cast(PortServer, {self(), Answer})
+	catch
+		_:_ ->
+			Answer1 = #diameter_eap_app_DEA{'Session-Id' = SId,
+					'Auth-Application-Id' = ?EAP_APPLICATION_ID,
+					'Auth-Request-Type' = AuthType,
+					'Result-Code' = ?'DIAMETER_BASE_RESULT-CODE_UNABLE_TO_COMPLY',
+					'Origin-Host' = OriginHost,
+					'Origin-Realm' = OriginRealm},
+			ok = ocs_log:auth_log(diameter, Server, Client, Request, Answer1),
+			gen_server:cast(PortServer, {self(), Answer1})
+	end;
 send_diameter_response(SId, AuthType, ResultCode,
 		OriginHost, OriginRealm, #eap_packet{} = EapPacket,
 		PortServer, #diameter_eap_app_DER{} = Request,
@@ -992,4 +1033,34 @@ prf(_, _, N, P, _, Acc) when P > N ->
 prf(K, S, N, P, T1, Acc) ->
 	T2 = crypto:hmac(sha256, K, <<T1/binary, S/binary, P>>),
 	prf(K, S, N, P + 1, T2, [T2 | Acc]).
+
+-spec encrypt_key(Secret, RequestAuthenticator, Salt, Key) -> Ciphertext
+	when
+		Secret :: binary(),
+		RequestAuthenticator :: [byte()],
+		Salt :: integer(),
+		Key :: binary(),
+		Ciphertext :: binary().
+%% @doc Encrypt the Pairwise Master Key (PMK) according to RFC2548
+%% 	section 2.4.2 for use as String in a MS-MPPE-Recv-Key
+%% 	or MS-MPPE-Send-Key attribute.
+%% @private
+encrypt_key(Secret, RequestAuthenticator, Salt, Key)
+		when (Salt bsr 15) == 1 ->
+	KeyLength = size(Key),
+	Plaintext = case (KeyLength + 1) rem 16 of
+		0 ->
+			<<KeyLength, Key/binary>>;
+		N ->
+			PadLength = (16 - N) * 8,
+			<<KeyLength, Key/binary, 0:PadLength>>
+	end,
+	F = fun(P, [H | _] = Acc) ->
+				B = crypto:hash(md5, [Secret, H]),
+				C = crypto:exor(P, B),
+				[C | Acc]
+	end,
+	AccIn = [[RequestAuthenticator, <<Salt:16>>]],
+	AccOut = lists:foldl(F, AccIn, [P || <<P:16/binary>> <= Plaintext]),
+	iolist_to_binary(tl(lists:reverse(AccOut))).
 
