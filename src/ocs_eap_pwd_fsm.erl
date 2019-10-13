@@ -1096,6 +1096,33 @@ send_diameter_response(SId, AuthType, ResultCode, OH, OR, none,
 			'Result-Code' = ResultCode, 'Origin-Host' = OH, 'Origin-Realm' = OR},
 	ok = ocs_log:auth_log(diameter, Server, Client, Request, Answer),
 	gen_server:cast(PortServer, {self(), Answer});
+send_diameter_response(SId, AuthType, ?'DIAMETER_BASE_RESULT-CODE_SUCCESS',
+		OH, OR, EapPacket, PortServer, Request,
+		#statedata{server_address = ServerAddress,
+		server_port = ServerPort, client_address = ClientAddress,
+		client_port = ClientPort, msk = MSK} = _StateData) ->
+	Server = {ServerAddress, ServerPort},
+	Client= {ClientAddress, ClientPort},
+	try
+		EapData = ocs_eap_codec:eap_packet(EapPacket),
+		Answer = #diameter_eap_app_DEA{'Session-Id' = SId,
+				'Auth-Application-Id' = ?EAP_APPLICATION_ID,
+				'Auth-Request-Type' = AuthType,
+				'Result-Code' = ?'DIAMETER_BASE_RESULT-CODE_SUCCESS',
+				'Origin-Host' = OH, 'Origin-Realm' = OR,
+				'EAP-Payload' = [EapData], 'EAP-Master-Session-Key' = [MSK]},
+		ok = ocs_log:auth_log(diameter, Server, Client, Request, Answer),
+		gen_server:cast(PortServer, {self(), Answer})
+	catch
+		_:_ ->
+		Answer1 = #diameter_eap_app_DEA{'Session-Id' = SId,
+				'Auth-Application-Id' = ?EAP_APPLICATION_ID,
+				'Auth-Request-Type' = AuthType,
+				'Result-Code' = ?'DIAMETER_BASE_RESULT-CODE_UNABLE_TO_COMPLY',
+				'Origin-Host' = OH, 'Origin-Realm' = OR},
+		ok = ocs_log:auth_log(diameter, Server, Client, Request, Answer1),
+		gen_server:cast(PortServer, {self(), Answer1})
+	end;
 send_diameter_response(SId, AuthType, ResultCode, OH, OR, EapPacket,
 		PortServer, Request, #statedata{server_address = ServerAddress,
 		server_port = ServerPort, client_address = ClientAddress,
