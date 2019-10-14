@@ -617,7 +617,7 @@ challenge({#radius{id = RadiusID, authenticator = RequestAuthenticator,
 				case crypto:hmac(sha256, Kaut, EapMessage1, 16) of
 					MAC ->
 						Salt = crypto:rand_uniform(16#8000, 16#ffff),
-						<<MSK1, MSK2>> = MSK,
+						<<MSK1:32/binary, MSK2:32/binary>> = MSK,
 						MsMppeRecvKey = encrypt_key(Secret, RequestAuthenticator, Salt, MSK1),
 						MsMppeSendKey = encrypt_key(Secret, RequestAuthenticator, Salt, MSK2),
 						UserName = binary_to_list(Identity),
