@@ -38,7 +38,7 @@
 
 %% export the ocs public API
 -export([eap_packet/1, eap_pwd/1, eap_pwd_id/1, eap_pwd_commit/1,
-			eap_ttls/1, eap_aka/1, aka_attr/1]).
+			eap_ttls/1, eap_aka/1]).
 
 -include("ocs_eap_codec.hrl").
 
@@ -335,6 +335,10 @@ eap_aka(<<14, _:16, Attributes/binary>>) ->
 	end,
 	maps:fold(F, #eap_aka_synchronization_failure{}, aka_attr(Attributes)).
 
+%%----------------------------------------------------------------------
+%%  internal functions
+%%----------------------------------------------------------------------
+
 -spec aka_attr(Attributes) -> Attributes
 	when
 		Attributes :: map() | binary().
@@ -514,10 +518,6 @@ aka_attr(?AT_BIDDING, true, Acc) ->
 	[<<?AT_BIDDING, 1, 1:1, 0:15>> | Acc];
 aka_attr(?AT_BIDDING, false, Acc) ->
 	[<<?AT_BIDDING, 1, 0:1, 0:15>> | Acc].
-
-%%----------------------------------------------------------------------
-%%  internal functions
-%%----------------------------------------------------------------------
 
 %% @hidden
 eap_aka_challenge(R) ->
