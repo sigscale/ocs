@@ -140,13 +140,13 @@
 		iv :: binary() | undefined,
 		encr_data :: binary()| undefined,
 		checkcode :: binary() | undefined,
-		result_ind :: boolean() | undefined,
+		result_ind = false :: boolean() | undefined,
 		mac :: binary()  | undefined}).
 
 -record(eap_aka_identity,
-		{permanent_id_req :: boolean() | undefined,
-		any_id_req :: boolean()| undefined,
-		fullauth_id_req :: boolean()| undefined,
+		{permanent_id_req = false :: boolean() | undefined,
+		any_id_req = false :: boolean()| undefined,
+		fullauth_id_req = false :: boolean()| undefined,
 		identity :: binary() | undefined}).
 
 -record(eap_aka_notification,
@@ -161,10 +161,10 @@
 		iv :: binary() | undefined,
 		encr_data :: binary() | undefined,
 		checkcode :: binary() | undefined,
-		result_ind :: boolean() | undefined,
+		result_ind = false :: boolean() | undefined,
 		mac :: binary() | undefined,
 		counter :: 0..65535 | undefined,
-		counter_too_small :: boolean() | undefined,
+		counter_too_small = false :: boolean() | undefined,
 		nonce_s :: binary() | undefined}).
 
 -record(eap_aka_authentication_reject,
