@@ -181,9 +181,10 @@ eap_start(timeout, #statedata{eap_id = EapID,
 			auc_fsm = AucFsm, id_req = full},
 	EapPacket = #eap_packet{code = request,
 			type = ?AKAprime, identifier = EapID, data = EapData},
+	EapMessage = ocs_eap_codec:eap_packet(EapPacket),
 	send_diameter_response(SessionId, AuthReqType,
 			?'DIAMETER_BASE_RESULT-CODE_MULTI_ROUND_AUTH', OHost, ORealm,
-			EapPacket, PortServer, Request, StateData),
+			EapMessage, PortServer, Request, StateData),
 	{next_state, identity, NewStateData, ?TIMEOUT};
 eap_start(timeout, #statedata{sup = Sup, eap_id = EapID,
 		session_id = SessionId, auth_req_type = AuthReqType,
@@ -229,9 +230,10 @@ eap_start(timeout, #statedata{sup = Sup, eap_id = EapID,
 						eap_id = NextEapID, id_req = full, identity = Identity},
 				EapPacket = #eap_packet{code = request,
 						type = ?AKAprime, identifier = NextEapID, data = EapData},
+				EapMessage = ocs_eap_codec:eap_packet(EapPacket),
 				send_diameter_response(SessionId, AuthReqType,
 						?'DIAMETER_BASE_RESULT-CODE_MULTI_ROUND_AUTH', OHost, ORealm,
-						EapPacket, PortServer, Request, NextStateData),
+						EapMessage, PortServer, Request, NextStateData),
 				{next_state, identity, NextStateData, ?TIMEOUT};
 			#eap_packet{code = response, type = ?Identity,
 					identifier = StartEapID, data = Identity} ->
@@ -241,16 +243,18 @@ eap_start(timeout, #statedata{sup = Sup, eap_id = EapID,
 						eap_id = NextEapID, identity = Identity, id_req = full},
 				EapPacket = #eap_packet{code = request,
 						type = ?AKAprime, identifier = NextEapID, data = EapData},
+				EapMessage = ocs_eap_codec:eap_packet(EapPacket),
 				send_diameter_response(SessionId, AuthReqType,
 						?'DIAMETER_BASE_RESULT-CODE_MULTI_ROUND_AUTH', OHost, ORealm,
-						EapPacket, PortServer, Request, NextStateData),
+						EapMessage, PortServer, Request, NextStateData),
 				{next_state, identity, NextStateData, ?TIMEOUT};
 			#eap_packet{code = request, identifier = NewEapID} ->
 				EapPacket = #eap_packet{code = response, type = ?LegacyNak,
 						identifier = NewEapID, data = <<0>>},
+				EapMessage = ocs_eap_codec:eap_packet(EapPacket),
 				send_diameter_response(SessionId, AuthReqType,
 						?'DIAMETER_BASE_RESULT-CODE_UNABLE_TO_COMPLY', OHost, ORealm,
-						EapPacket, PortServer, Request, NewStateData),
+						EapMessage, PortServer, Request, NewStateData),
 				{stop, {shutdown, SessionId}, NewStateData};
 			#eap_packet{code = Code, type = EapType,
 					identifier = NewEapID, data = Data} ->
@@ -258,17 +262,19 @@ eap_start(timeout, #statedata{sup = Sup, eap_id = EapID,
 						{pid, self()}, {session_id, SessionId}, {code, Code},
 						{type, EapType}, {identifier, NewEapID}, {data, Data}]),
 				EapPacket = #eap_packet{code = failure, identifier = NewEapID},
+				EapMessage = ocs_eap_codec:eap_packet(EapPacket),
 				send_diameter_response(SessionId, AuthReqType,
 						?'DIAMETER_BASE_RESULT-CODE_UNABLE_TO_COMPLY', OHost, ORealm,
-					EapPacket, PortServer, Request, NewStateData),
+					EapMessage, PortServer, Request, NewStateData),
 				{stop, {shutdown, SessionId}, NewStateData}
 		end
 	catch
 		{'EXIT', _Reason} ->
 			EapPacket1 = #eap_packet{code = failure, identifier = EapID},
+			EapMessage1 = ocs_eap_codec:eap_packet(EapPacket1),
 			send_diameter_response(SessionId, AuthReqType,
 					?'DIAMETER_BASE_RESULT-CODE_UNABLE_TO_COMPLY', OHost, ORealm,
-					EapPacket1, PortServer, Request, NewStateData),
+					EapMessage1, PortServer, Request, NewStateData),
 			{stop, {shutdown, SessionId}, NewStateData}
 	end;
 %% @hidden
@@ -286,7 +292,8 @@ eap_start(timeout, #statedata{sup = Sup, eap_id = EapID,
 			NextStateData = NewStateData#statedata{request = undefined, id_req = full},
 			EapPacket = #eap_packet{code = request,
 					type = ?AKAprime, identifier = EapID, data = EapData},
-			send_radius_response(EapPacket, ?AccessChallenge, [], RadiusID,
+			EapMessage = ocs_eap_codec:eap_packet(EapPacket),
+			send_radius_response(EapMessage, ?AccessChallenge, [], RadiusID,
 					RequestAuthenticator, RequestAttributes, NewStateData),
 			{next_state, identity, NextStateData, ?TIMEOUT};
 		{ok, EAPMessage} ->
@@ -325,7 +332,8 @@ eap_start(timeout, #statedata{sup = Sup, eap_id = EapID,
 								eap_id = NextEapID, identity = Identity, id_req = full},
 						EapPacket = #eap_packet{code = request,
 								type = ?AKAprime, identifier = NextEapID, data = EapData},
-						send_radius_response(EapPacket, ?AccessChallenge, [], RadiusID,
+						EapMessage = ocs_eap_codec:eap_packet(EapPacket),
+						send_radius_response(EapMessage, ?AccessChallenge, [], RadiusID,
 								RequestAuthenticator, RequestAttributes, NextStateData),
 						{next_state, identity, NextStateData, ?TIMEOUT};
 					#eap_packet{code = response, type = ?Identity,
@@ -336,13 +344,15 @@ eap_start(timeout, #statedata{sup = Sup, eap_id = EapID,
 								eap_id = NextEapID, identity = Identity, id_req = full},
 						EapPacket = #eap_packet{code = request,
 								type = ?AKAprime, identifier = NextEapID, data = EapData},
-						send_radius_response(EapPacket, ?AccessChallenge, [], RadiusID,
+						EapMessage = ocs_eap_codec:eap_packet(EapPacket),
+						send_radius_response(EapMessage, ?AccessChallenge, [], RadiusID,
 								RequestAuthenticator, RequestAttributes, NextStateData),
 						{next_state, identity, NextStateData, ?TIMEOUT};
 					#eap_packet{code = request, identifier = StartEapID} ->
 						EapPacket = #eap_packet{code = response, type = ?LegacyNak,
 								identifier = StartEapID, data = <<0>>},
-						send_radius_response(EapPacket, ?AccessReject, [], RadiusID,
+						EapMessage = ocs_eap_codec:eap_packet(EapPacket),
+						send_radius_response(EapMessage, ?AccessReject, [], RadiusID,
 								RequestAuthenticator, RequestAttributes, NewStateData),
 						{stop, {shutdown, SessionID}, StateData};
 					#eap_packet{code = Code, type = EapType,
@@ -351,14 +361,16 @@ eap_start(timeout, #statedata{sup = Sup, eap_id = EapID,
 								{pid, self()}, {session_id, SessionID}, {code, Code},
 								{type, EapType}, {identifier, StartEapID}, {data, Data}]),
 						EapPacket = #eap_packet{code = failure, identifier = StartEapID},
-						send_radius_response(EapPacket, ?AccessReject, [], RadiusID,
+						EapMessage = ocs_eap_codec:eap_packet(EapPacket),
+						send_radius_response(EapMessage, ?AccessReject, [], RadiusID,
 								RequestAuthenticator, RequestAttributes, NewStateData),
 						{stop, {shutdown, SessionID}, StateData}
 				end
 			catch
 				{'EXIT', _Reason} ->
 					EapPacket1 = #eap_packet{code = failure, identifier = EapID},
-					send_radius_response(EapPacket1, ?AccessReject, [], RadiusID,
+					EapMessage1 = ocs_eap_codec:eap_packet(EapPacket1),
+					send_radius_response(EapMessage1, ?AccessReject, [], RadiusID,
 							RequestAuthenticator, RequestAttributes, NewStateData),
 					{stop, {shutdown, SessionID}, StateData}
 			end;
@@ -424,9 +436,10 @@ identity(#diameter_eap_app_DER{'EAP-Payload' = EapMessage} = Request,
 	catch
 		_:_Reason ->
 			EapPacket = #eap_packet{code = failure, identifier = EapID},
+			EapMessage = ocs_eap_codec:eap_packet(EapPacket),
 			send_diameter_response(SessionID, AuthReqType,
 					?'DIAMETER_BASE_RESULT-CODE_INVALID_AVP_BITS', OHost, ORealm,
-					EapPacket, PortServer, Request, StateData),
+					EapMessage, PortServer, Request, StateData),
 			{stop, {shutdown, SessionID}, StateData}
 	end;
 identity({#radius{id = RadiusID, authenticator = RequestAuthenticator,
@@ -436,8 +449,8 @@ identity({#radius{id = RadiusID, authenticator = RequestAuthenticator,
 	NewStateData = StateData#statedata{request = Request,
 			radius_fsm = RadiusFsm},
 	try
-		EapMessage = radius_attributes:fetch(?EAPMessage, RequestAttributes),
-		case ocs_eap_codec:eap_packet(EapMessage) of
+		EapMessage1 = radius_attributes:fetch(?EAPMessage, RequestAttributes),
+		case ocs_eap_codec:eap_packet(EapMessage1) of
 			#eap_packet{code = response, type = ?AKAprime, identifier = EapID, data = Data} ->
 				case ocs_eap_codec:eap_aka(Data) of
 					#eap_aka_identity{identity = <<?PERM_TAG,
@@ -463,7 +476,8 @@ identity({#radius{id = RadiusID, authenticator = RequestAuthenticator,
 	catch
 		_:_Reason ->
 			EapPacket = #eap_packet{code = failure, identifier = EapID},
-			send_radius_response(EapPacket, ?AccessReject, [], RadiusID,
+			EapMessage2 = ocs_eap_codec:eap_packet(EapPacket),
+			send_radius_response(EapMessage2, ?AccessReject, [], RadiusID,
 					RequestAuthenticator, RequestAttributes, NewStateData),
 			{stop, {shutdown, SessionID}, NewStateData}
 	end.
@@ -496,22 +510,20 @@ vector({RAND, AUTN, CKprime, IKprime, XRES}, #statedata{eap_id = EapID,
 	<<Kencr:16/binary, Kaut:32/binary, Kre:32/binary, MSK:64/binary,
 			EMSK:64/binary, _/binary>> = prf(<<IKprime/binary,
 			CKprime/binary>>, <<"EAP-AKA'", Identity/binary>>, 7),
-	AkaChallenge1 = #eap_aka_challenge{mac = <<0:128>>,
+	AkaChallenge = #eap_aka_challenge{mac = <<0:128>>,
 			kdf = [1], network = <<"WLAN">>, rand = RAND, autn = AUTN},
-	EapData1 = ocs_eap_codec:eap_aka(AkaChallenge1),
-	EapPacket1 = #eap_packet{code = request, type = ?AKAprime,
-			identifier = NextEapID, data = EapData1},
-	EapMessage1 = ocs_eap_codec:eap_packet(EapPacket1),
+	EapData = ocs_eap_codec:eap_aka(AkaChallenge),
+	EapPacket = #eap_packet{code = request, type = ?AKAprime,
+			identifier = NextEapID, data = EapData},
+	EapMessage1 = ocs_eap_codec:eap_packet(EapPacket),
 	Mac = crypto:hmac(sha256, Kaut, EapMessage1, 16),
-	AkaChallenge2 = AkaChallenge1#eap_aka_challenge{mac = Mac},
-	EapData2 = ocs_eap_codec:eap_aka(AkaChallenge2),
-	EapPacket2 = EapPacket1#eap_packet{data = EapData2},
+	EapMessage2 = ocs_eap_codec:aka_set_mac(Mac, EapMessage1),
 	NewStateData = StateData#statedata{request = undefined,
 			eap_id = NextEapID, res = XRES, ck = CKprime, ik = IKprime,
 			msk = MSK, emsk = EMSK, kaut = Kaut, kencr = Kencr, kre = Kre},
 	send_diameter_response(SessionID, AuthReqType,
 			?'DIAMETER_BASE_RESULT-CODE_MULTI_ROUND_AUTH', OHost, ORealm,
-			EapPacket2, PortServer, Request, NewStateData),
+			EapMessage2, PortServer, Request, NewStateData),
 	{next_state, challenge, NewStateData};
 vector({RAND, AUTN, CKprime, IKprime, XRES}, #statedata{eap_id = EapID,
 		request = #radius{code = ?AccessRequest, id = RadiusID,
@@ -521,20 +533,18 @@ vector({RAND, AUTN, CKprime, IKprime, XRES}, #statedata{eap_id = EapID,
 	<<Kencr:16/binary, Kaut:32/binary, Kre:32/binary, MSK:64/binary,
 			EMSK:64/binary, _/binary>> = prf(<<IKprime/binary,
 			CKprime/binary>>, <<"EAP-AKA'", Identity/binary>>, 7),
-	AkaChallenge1 = #eap_aka_challenge{mac = <<0:128>>,
+	AkaChallenge = #eap_aka_challenge{mac = <<0:128>>,
 			kdf = [1], network = <<"WLAN">>, rand = RAND, autn = AUTN},
-	EapData1 = ocs_eap_codec:eap_aka(AkaChallenge1),
-	EapPacket1 = #eap_packet{code = request, type = ?AKAprime,
-			identifier = NextEapID, data = EapData1},
-	EapMessage1 = ocs_eap_codec:eap_packet(EapPacket1),
+	EapData = ocs_eap_codec:eap_aka(AkaChallenge),
+	EapPacket = #eap_packet{code = request, type = ?AKAprime,
+			identifier = NextEapID, data = EapData},
+	EapMessage1 = ocs_eap_codec:eap_packet(EapPacket),
 	Mac = crypto:hmac(sha256, Kaut, EapMessage1, 16),
-	AkaChallenge2 = AkaChallenge1#eap_aka_challenge{mac = Mac},
-	EapData2 = ocs_eap_codec:eap_aka(AkaChallenge2),
-	EapPacket2 = EapPacket1#eap_packet{data = EapData2},
+	EapMessage2 = ocs_eap_codec:aka_set_mac(Mac, EapMessage1),
 	NewStateData = StateData#statedata{request = undefined,
 			eap_id = NextEapID, res = XRES, ck = CKprime, ik = IKprime,
 			msk = MSK, emsk = EMSK, kaut = Kaut, kencr = Kencr, kre = Kre},
-	send_radius_response(EapPacket2, ?AccessChallenge, [], RadiusID,
+	send_radius_response(EapMessage2, ?AccessChallenge, [], RadiusID,
 			RequestAuthenticator, RequestAttributes, NewStateData),
 	{next_state, challenge, NewStateData}.
 
@@ -556,64 +566,70 @@ vector({RAND, AUTN, CKprime, IKprime, XRES}, #statedata{eap_id = EapID,
 %% @private
 challenge(timeout, #statedata{session_id = SessionID} = StateData)->
 	{stop, {shutdown, SessionID}, StateData};
-challenge(#diameter_eap_app_DER{'EAP-Payload' = EapMessage} = Request,
+challenge(#diameter_eap_app_DER{'EAP-Payload' = EapMessage1} = Request,
 		#statedata{eap_id = EapID, session_id = SessionID,
 		auth_req_type = AuthReqType, origin_host = OHost,
 		origin_realm = ORealm, diameter_port_server = PortServer,
 		res = RES, kaut = Kaut} = StateData) ->
 	try
-		EapPacket = ocs_eap_codec:eap_packet(EapMessage),
 		#eap_packet{code = response, type = ?AKAprime, identifier = EapID,
-				data = Data} = EapPacket,
-		case ocs_eap_codec:eap_aka(Data) of
-			#eap_aka_challenge{res = RES, checkcode = <<>>, mac = MAC} = EAP ->
-				Data1 = ocs_eap_codec:eap_aka(EAP#eap_aka_challenge{mac = <<0:128>>}),
-				EapMessage1 = ocs_eap_codec:eap_packet(EapPacket#eap_packet{data = Data1}),
-				case crypto:hmac(sha256, Kaut, EapMessage1, 16) of
+				data = Data1} = ocs_eap_codec:eap_packet(EapMessage1),
+		case ocs_eap_codec:eap_aka(Data1) of
+			#eap_aka_challenge{res = RES, checkcode = <<>>, mac = MAC} = _EAP ->
+				EapMessage2 = ocs_eap_codec:aka_clear_mac(EapMessage1),
+				case crypto:hmac(sha256, Kaut, EapMessage2, 16) of
 					MAC ->
 						EapPacket1 = #eap_packet{code = success, identifier = EapID},
+						EapMessage3 = ocs_eap_codec:eap_packet(EapPacket1),
 						send_diameter_response(SessionID, AuthReqType,
 								?'DIAMETER_BASE_RESULT-CODE_SUCCESS',
-								OHost, ORealm, EapPacket1, PortServer, Request, StateData),
+								OHost, ORealm, EapMessage3, PortServer, Request, StateData),
 						{stop, {shutdown, SessionID}, StateData};
-					_ ->
+					_MAC ->
+						Notification = #eap_aka_notification{notification = 16384},
+						Data2 = ocs_eap_codec:eap_aka(Notification),
 						EapPacket1 = #eap_packet{code = request,
-								type = ?AKAprime, identifier = EapID,
-								data = #eap_aka_notification{notification = 16384}},
+								type = ?AKAprime, identifier = EapID, data = Data2},
+						EapMessage3 = ocs_eap_codec:eap_packet(EapPacket1),
 						send_diameter_response(SessionID, AuthReqType,
 								?'DIAMETER_BASE_RESULT-CODE_MULTI_ROUND_AUTH',
-								OHost, ORealm, EapPacket1, PortServer, Request, StateData),
+								OHost, ORealm, EapMessage3, PortServer, Request, StateData),
 						{next_state, failure, StateData, ?TIMEOUT}
 				end;
 			#eap_aka_challenge{checkcode = <<>>} = _EAP ->
+				Notification = #eap_aka_notification{notification = 16384},
+				Data2 = ocs_eap_codec:eap_aka(Notification),
 				EapPacket1 = #eap_packet{code = request,
-						type = ?AKAprime, identifier = EapID,
-						data = #eap_aka_notification{notification = 16384}},
+						type = ?AKAprime, identifier = EapID, data = Data2},
+				EapMessage3 = ocs_eap_codec:eap_packet(EapPacket1),
 				send_diameter_response(SessionID, AuthReqType,
 						?'DIAMETER_BASE_RESULT-CODE_MULTI_ROUND_AUTH',
-						OHost, ORealm, EapPacket1, PortServer, Request, StateData),
+						OHost, ORealm, EapMessage3, PortServer, Request, StateData),
 				{next_state, failure, StateData, ?TIMEOUT};
 			% #eap_aka_synchronization_failure{auts = _AUTS} = _EAP ->
 			% @todo handle resynchronization
 			#eap_aka_authentication_reject{} = _EAP ->
 				EapPacket1 = #eap_packet{code = failure, identifier = EapID},
+				EapMessage3 = ocs_eap_codec:eap_packet(EapPacket1),
 				send_diameter_response(SessionID, AuthReqType,
 						?'DIAMETER_BASE_RESULT-CODE_AUTHENTICATION_REJECTED',
-						OHost, ORealm, EapPacket1, PortServer, Request, StateData),
+						OHost, ORealm, EapMessage3, PortServer, Request, StateData),
 				{stop, {shutdown, SessionID}, StateData};
 			#eap_aka_client_error{client_error_code = _Code} ->
 				EapPacket1 = #eap_packet{code = failure, identifier = EapID},
+				EapMessage3 = ocs_eap_codec:eap_packet(EapPacket1),
 				send_diameter_response(SessionID, AuthReqType,
 						?'DIAMETER_BASE_RESULT-CODE_AUTHENTICATION_REJECTED',
-						OHost, ORealm, EapPacket1, PortServer, Request, StateData),
+						OHost, ORealm, EapMessage3, PortServer, Request, StateData),
 				{stop, {shutdown, SessionID}, StateData}
 		end
 	catch
 		_:_Reason ->
 			EapPacket2 = #eap_packet{code = failure, identifier = EapID},
+			EapMessage4 = ocs_eap_codec:eap_packet(EapPacket2),
 			send_diameter_response(SessionID, AuthReqType,
 					?'DIAMETER_BASE_RESULT-CODE_INVALID_AVP_BITS', OHost, ORealm,
-					EapPacket2, PortServer, Request, StateData),
+					EapMessage4, PortServer, Request, StateData),
 			{stop, {shutdown, SessionID}, StateData}
 	end;
 challenge({#radius{id = RadiusID, authenticator = RequestAuthenticator,
@@ -623,15 +639,13 @@ challenge({#radius{id = RadiusID, authenticator = RequestAuthenticator,
 	NewStateData = StateData#statedata{request = Request,
 			radius_fsm = RadiusFsm},
 	try
-		EapMessage = radius_attributes:fetch(?EAPMessage, RequestAttributes),
-		EapPacket = ocs_eap_codec:eap_packet(EapMessage),
+		EapMessage1 = radius_attributes:fetch(?EAPMessage, RequestAttributes),
 		#eap_packet{code = response, type = ?AKAprime, identifier = EapID,
-				data = Data} = EapPacket,
-		case ocs_eap_codec:eap_aka(Data) of
-			#eap_aka_challenge{res = RES, checkcode = <<>>, mac = MAC} = EAP ->
-				Data1 = ocs_eap_codec:eap_aka(EAP#eap_aka_challenge{mac = <<0:128>>}),
-				EapMessage1 = ocs_eap_codec:eap_packet(EapPacket#eap_packet{data = Data1}),
-				case crypto:hmac(sha256, Kaut, EapMessage1, 16) of
+				data = Data1} = ocs_eap_codec:eap_packet(EapMessage1),
+		case ocs_eap_codec:eap_aka(Data1) of
+			#eap_aka_challenge{res = RES, checkcode = <<>>, mac = MAC} = _EAP ->
+				EapMessage2 = ocs_eap_codec:aka_clear_mac(EapMessage1),
+				case crypto:hmac(sha256, Kaut, EapMessage2, 16) of
 					MAC ->
 						Salt = crypto:rand_uniform(16#8000, 16#ffff),
 						<<MSK1:32/binary, MSK2:32/binary>> = MSK,
@@ -644,42 +658,50 @@ challenge({#radius{id = RadiusID, authenticator = RequestAuthenticator,
 								?MsMppeRecvKey, {Salt, MsMppeRecvKey}, Attr1),
 						Attr3 = radius_attributes:store(?Microsoft,
 								?MsMppeSendKey, {Salt, MsMppeSendKey}, Attr2),
-						EapPacket = #eap_packet{code = success, identifier = EapID},
-						send_radius_response(EapPacket, ?AccessAccept, Attr3, RadiusID,
+						EapPacket1 = #eap_packet{code = success, identifier = EapID},
+						EapMessage3 = ocs_eap_codec:eap_packet(EapPacket1),
+						send_radius_response(EapMessage3, ?AccessAccept, Attr3, RadiusID,
 								RequestAuthenticator, RequestAttributes, NewStateData),
 						{stop, {shutdown, SessionID}, NewStateData};
-					_ ->
+					_MAC ->
+						Notification = #eap_aka_notification{notification = 16384},
+						Data2 = ocs_eap_codec:eap_aka(Notification),
 						EapPacket1 = #eap_packet{code = request,
-								type = ?AKAprime, identifier = EapID,
-								data = #eap_aka_notification{notification = 16384}},
-						send_radius_response(EapPacket1, ?AccessChallenge, [], RadiusID,
+								type = ?AKAprime, identifier = EapID, data = Data2},
+						EapMessage3 = ocs_eap_codec:eap_packet(EapPacket1),
+						send_radius_response(EapMessage3, ?AccessChallenge, [], RadiusID,
 								RequestAuthenticator, RequestAttributes, NewStateData),
 						{next_state, failure, NewStateData, ?TIMEOUT}
 				end;
 			#eap_aka_challenge{checkcode = <<>>} = _EAP ->
+				Notification = #eap_aka_notification{notification = 16384},
+				Data2 = ocs_eap_codec:eap_aka(Notification),
 				EapPacket1 = #eap_packet{code = request,
-						type = ?AKAprime, identifier = EapID,
-						data = #eap_aka_notification{notification = 16384}},
-				send_radius_response(EapPacket1, ?AccessChallenge, [], RadiusID,
+						type = ?AKAprime, identifier = EapID, data = Data2},
+				EapMessage3 = ocs_eap_codec:eap_packet(EapPacket1),
+				send_radius_response(EapMessage3, ?AccessChallenge, [], RadiusID,
 						RequestAuthenticator, RequestAttributes, NewStateData),
 				{next_state, failure, NewStateData, ?TIMEOUT};
 			% #eap_aka_synchronization_failure{auts = _AUTS} = _EAP ->
 			% @todo handle resynchronization
 			#eap_aka_authentication_reject{} = _EAP ->
 				EapPacket1 = #eap_packet{code = failure, identifier = EapID},
-				send_radius_response(EapPacket1, ?AccessReject, [], RadiusID,
+				EapMessage3 = ocs_eap_codec:eap_packet(EapPacket1),
+				send_radius_response(EapMessage3, ?AccessReject, [], RadiusID,
 						RequestAuthenticator, RequestAttributes, NewStateData),
 				{stop, {shutdown, SessionID}, NewStateData};
-			#eap_aka_client_error{client_error_code = _Code} ->
+			#eap_aka_client_error{client_error_code = _Code} = _EAP->
 				EapPacket1 = #eap_packet{code = failure, identifier = EapID},
-				send_radius_response(EapPacket1, ?AccessReject, [], RadiusID,
+				EapMessage3 = ocs_eap_codec:eap_packet(EapPacket1),
+				send_radius_response(EapMessage3, ?AccessReject, [], RadiusID,
 						RequestAuthenticator, RequestAttributes, NewStateData),
 				{stop, {shutdown, SessionID}, StateData}
 		end
 	catch
 		_:_Reason ->
 			EapPacket2 = #eap_packet{code = failure, identifier = EapID},
-			send_radius_response(EapPacket2, ?AccessReject, [], RadiusID,
+			EapMessage4 = ocs_eap_codec:eap_packet(EapPacket2),
+			send_radius_response(EapMessage4, ?AccessReject, [], RadiusID,
 					RequestAuthenticator, RequestAttributes, NewStateData),
 			{stop, {shutdown, SessionID}, NewStateData}
 	end.
@@ -708,13 +730,14 @@ failure({#radius{id = RadiusID, authenticator = RequestAuthenticator,
 	NewStateData = StateData#statedata{request = Request,
 			radius_fsm = RadiusFsm},
 	try
-		EapMessage = radius_attributes:fetch(?EAPMessage, RequestAttributes),
+		EapMessage1 = radius_attributes:fetch(?EAPMessage, RequestAttributes),
 		#eap_packet{code = response, type = ?AKAprime, identifier = EapID,
-				data = Data} = ocs_eap_codec:eap_packet(EapMessage),
+				data = Data} = ocs_eap_codec:eap_packet(EapMessage1),
 		case ocs_eap_codec:eap_aka(Data) of
 			#eap_aka_notification{mac = undefined} = _EAP ->
 				EapPacket1 = #eap_packet{code = failure, identifier = EapID},
-				send_radius_response(EapPacket1, ?AccessReject, [], RadiusID,
+				EapMessage2 = ocs_eap_codec:eap_packet(EapPacket1),
+				send_radius_response(EapMessage2, ?AccessReject, [], RadiusID,
 						RequestAuthenticator, RequestAttributes, NewStateData),
 				{stop, {shutdown, SessionID}, NewStateData}
 			% #eap_aka_notification{mac = MAC} = _EAP ->
@@ -723,7 +746,8 @@ failure({#radius{id = RadiusID, authenticator = RequestAuthenticator,
 	catch
 		_:_Reason ->
 			EapPacket2 = #eap_packet{code = failure, identifier = EapID},
-			send_radius_response(EapPacket2, ?AccessReject, [], RadiusID,
+			EapMessage3 = ocs_eap_codec:eap_packet(EapPacket2),
+			send_radius_response(EapMessage3, ?AccessReject, [], RadiusID,
 					RequestAuthenticator, RequestAttributes, NewStateData),
 			{stop, {shutdown, SessionID}, NewStateData}
 	end.
@@ -830,10 +854,10 @@ code_change(_OldVsn, StateName, StateData, _Extra) ->
 %%  internal functions
 %%----------------------------------------------------------------------
 
--spec send_radius_response(EapPacket, RadiusCode, ResponseAttributes, RadiusID,
+-spec send_radius_response(EapMessage, RadiusCode, ResponseAttributes, RadiusID,
 		RequestAuthenticator, RequestAttributes, StateData) -> ok
 	when
-		EapPacket :: #eap_packet{},
+		EapMessage :: binary(),
 		RadiusCode :: integer(),
 		ResponseAttributes :: radius_attributes:attributes(),
 		RadiusID :: integer(),
@@ -842,14 +866,13 @@ code_change(_OldVsn, StateName, StateData, _Extra) ->
 		StateData :: #statedata{}.
 %% @doc Sends a RADIUS Access/Challenge, Reject or Accept packet to peer.
 %% @hidden
-send_radius_response(EapPacket, RadiusCode, ResponseAttributes,
+send_radius_response(EapMessage, RadiusCode, ResponseAttributes,
 		RadiusID, RequestAuthenticator, RequestAttributes,
 		#statedata{server_address = ServerAddress, server_port = ServerPort,
 		client_address = ClientAddress, client_port = ClientPort,
 		secret = Secret, radius_fsm = RadiusFsm} = _StateData) ->
-	EapPacketData = ocs_eap_codec:eap_packet(EapPacket),
 	AttrList1 = radius_attributes:add(?EAPMessage,
-			EapPacketData, ResponseAttributes),
+			EapMessage, ResponseAttributes),
 	AttrList2 = radius_attributes:add(?MessageAuthenticator,
 			<<0:128>>, AttrList1),
 	Attributes1 = radius_attributes:codec(AttrList2),
@@ -879,7 +902,7 @@ send_radius_response(EapPacket, RadiusCode, ResponseAttributes,
 	radius:response(RadiusFsm, {response, ResponsePacket}).
 
 -spec send_diameter_response(SId, AuthType, ResultCode,
-		OriginHost, OriginRealm, EapPacket, PortServer,
+		OriginHost, OriginRealm, EapMessage, PortServer,
 		Request, StateData) -> ok
 	when
 		SId :: string(),
@@ -887,7 +910,7 @@ send_radius_response(EapPacket, RadiusCode, ResponseAttributes,
 		ResultCode :: integer(),
 		OriginHost :: binary(),
 		OriginRealm :: binary(),
-		EapPacket :: none | #eap_packet{},
+		EapMessage :: none | binary(),
 		PortServer :: pid(),
 		Request :: #diameter_eap_app_DER{},
 		StateData :: #statedata{}.
@@ -914,22 +937,22 @@ send_diameter_response(SId, AuthType, ResultCode,
 	ok = ocs_log:auth_log(diameter, Server, Client, Request, Answer),
 	gen_server:cast(PortServer, {self(), Answer});
 send_diameter_response(SId, AuthType, ?'DIAMETER_BASE_RESULT-CODE_SUCCESS',
-		OriginHost, OriginRealm, #eap_packet{} = EapPacket,
+		OriginHost, OriginRealm, EapMessage,
 		PortServer, #diameter_eap_app_DER{} = Request,
 		#statedata{server_address = ServerAddress, server_port = ServerPort,
 		client_address = ClientAddress, client_port = ClientPort,
 		msk = MSK} = _StateData) when is_list(SId), is_integer(AuthType),
-		is_binary(OriginHost), is_binary(OriginRealm), is_pid(PortServer) ->
+		is_binary(OriginHost), is_binary(OriginRealm),
+		is_binary(EapMessage), is_pid(PortServer) ->
 	Server = {ServerAddress, ServerPort},
 	Client= {ClientAddress, ClientPort},
 	try
-		EapData = ocs_eap_codec:eap_packet(EapPacket),
 		Answer = #diameter_eap_app_DEA{'Session-Id' = SId,
 				'Auth-Application-Id' = ?EAP_APPLICATION_ID,
 				'Auth-Request-Type' = AuthType,
 				'Result-Code' = ?'DIAMETER_BASE_RESULT-CODE_SUCCESS',
 				'Origin-Host' = OriginHost, 'Origin-Realm' = OriginRealm,
-				'EAP-Payload' = [EapData], 'EAP-Master-Session-Key' = [MSK]},
+				'EAP-Payload' = [EapMessage], 'EAP-Master-Session-Key' = [MSK]},
 		ok = ocs_log:auth_log(diameter, Server, Client, Request, Answer),
 		gen_server:cast(PortServer, {self(), Answer})
 	catch
@@ -944,25 +967,24 @@ send_diameter_response(SId, AuthType, ?'DIAMETER_BASE_RESULT-CODE_SUCCESS',
 			gen_server:cast(PortServer, {self(), Answer1})
 	end;
 send_diameter_response(SId, AuthType, ResultCode,
-		OriginHost, OriginRealm, #eap_packet{} = EapPacket,
+		OriginHost, OriginRealm, EapMessage,
 		PortServer, #diameter_eap_app_DER{} = Request,
 		#statedata{server_address = ServerAddress,
 		server_port = ServerPort, client_address = ClientAddress,
 		client_port = ClientPort} = _StateData) when is_list(SId),
 		is_integer(AuthType), is_integer(ResultCode),
 		is_binary(OriginHost), is_binary(OriginRealm),
-		is_pid(PortServer) ->
+		is_binary(EapMessage), is_pid(PortServer) ->
 	Server = {ServerAddress, ServerPort},
 	Client= {ClientAddress, ClientPort},
 	try
-		EapData = ocs_eap_codec:eap_packet(EapPacket),
 		Answer = #diameter_eap_app_DEA{'Session-Id' = SId,
 				'Auth-Application-Id' = ?EAP_APPLICATION_ID,
 				'Auth-Request-Type' = AuthType,
 				'Result-Code' = ResultCode,
 				'Origin-Host' = OriginHost,
 				'Origin-Realm' = OriginRealm,
-				'EAP-Payload' = [EapData]},
+				'EAP-Payload' = [EapMessage]},
 		ok = ocs_log:auth_log(diameter, Server, Client, Request, Answer),
 		gen_server:cast(PortServer, {self(), Answer})
 	catch

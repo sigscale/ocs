@@ -39,6 +39,7 @@
 %% export the ocs public API
 -export([eap_packet/1, eap_pwd/1, eap_pwd_id/1, eap_pwd_commit/1,
 			eap_ttls/1, eap_aka/1]).
+-export([aka_clear_mac/1, aka_set_mac/2]).
 
 -include("ocs_eap_codec.hrl").
 
@@ -335,9 +336,48 @@ eap_aka(<<14, _:16, Attributes/binary>>) ->
 	end,
 	maps:fold(F, #eap_aka_synchronization_failure{}, aka_attr(Attributes)).
 
+-spec aka_clear_mac(EapMessage) -> EapMessage
+	when
+		EapMessage :: binary().
+%% @doc Zero out the EAP-AKA' message authentication code (MAC).
+aka_clear_mac(EapMessage) when is_binary(EapMessage) ->
+	P1 = aka_find_mac(EapMessage),
+	B1 = binary_part(EapMessage, 0, P1),
+	P2 = P1 + 16,
+	B2 = binary_part(EapMessage, P2, size(EapMessage) - P2),
+	<<B1/bytes, 0:128, B2/bytes>>.
+
+-spec aka_set_mac(MAC, EapMessage) -> EapMessage
+	when
+		MAC :: binary(),
+		EapMessage :: binary().
+%% @doc Overwrite value of the EAP-AKA' message authentication code (MAC).
+aka_set_mac(MAC, EapMessage) when size(MAC) =:= 16, is_binary(EapMessage) ->
+	P1 = aka_find_mac(EapMessage),
+	B1 = binary_part(EapMessage, 0, P1),
+	P2 = P1 + 16,
+	B2 = binary_part(EapMessage, P2, size(EapMessage) - P2),
+	<<B1/bytes, MAC/bytes, B2/bytes>>.
+
 %%----------------------------------------------------------------------
 %%  internal functions
 %%----------------------------------------------------------------------
+
+-spec aka_find_mac(EapMessage) -> Pos
+	when
+		EapMessage :: binary(),
+		Pos :: pos_integer().
+%% @doc Find start of EAP-AKA' message authentication code (MAC).
+%% @hidden
+aka_find_mac(EapMessage) ->
+	P = 8,
+	aka_find_mac(binary_part(EapMessage, P, 2), P, EapMessage).
+%% @hidden
+aka_find_mac(<<?AT_MAC, 5>>, P, _) ->
+	P + 4;
+aka_find_mac(<<_, L>>, P, S) ->
+	P1 = P + (L * 4),
+	aka_find_mac(binary_part(S, P1, 2), P1, S).
 
 -spec aka_attr(Attributes) -> Attributes
 	when
