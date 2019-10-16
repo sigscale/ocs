@@ -150,7 +150,7 @@ handle_error(_Reason, _Request, _SvcName, _Peer) ->
 			| {protocol_error, 3000..3999},
 		Opt :: diameter:call_opt(),
 		PostF :: diameter:evaluable().
-%% @doc Invoked when a request messge is received from the peer. 
+%% @doc Invoked when a request message is received from the peer.
 handle_request(#diameter_packet{msg = _Request, errors = []} = _Packet,
 		_ServiceName, {_, _Capabilities} = _Peer) ->
 	discard;
