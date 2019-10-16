@@ -167,7 +167,9 @@ handle_request(#diameter_packet{msg = Request, errors = Errors} = _Packet,
 		ServiceName :: atom(),
 		Capabilities :: capabilities(),
 		Request :: message(),
-		Errors :: [{0..4294967295, #diameter_avp{}}],
+		Errors :: [Error],
+		Error :: {Code, #diameter_avp{}} | Code,
+		Code :: 0..4294967295,
 		Action :: Reply | {relay, [Opt]} | discard
 			| {eval | eval_packet, Action, PostF},
 		Reply :: {reply, packet() | message()}
@@ -177,41 +179,48 @@ handle_request(#diameter_packet{msg = Request, errors = Errors} = _Packet,
 		PostF :: diameter:evaluable().
 %% @doc Handle errors in requests.
 %% @private
-errors(ServiceName, Capabilities, Request, [{5001, AVP} | T] = _Errors) ->
+errors(ServiceName, Capabilities, _Request,
+		[{?'DIAMETER_BASE_RESULT-CODE_AVP_UNSUPPORTED', _} | _] = Errors) ->
 	error_logger:error_report(["DIAMETER AVP unsupported",
 			{service_name, ServiceName}, {capabilities, Capabilities},
-			{avp, AVP}]),
-	errors(ServiceName, Capabilities, Request, T);
-errors(ServiceName, Capabilities, _Request, [{5004, _} | _] = Errors) ->
+			{errors, Errors}]),
+	{answer_message, ?'DIAMETER_BASE_RESULT-CODE_AVP_UNSUPPORTED'};
+errors(ServiceName, Capabilities, _Request,
+		[{?'DIAMETER_BASE_RESULT-CODE_INVALID_AVP_VALUE', _} | _] = Errors) ->
 	error_logger:error_report(["DIAMETER AVP invalid",
 			{service_name, ServiceName}, {capabilities, Capabilities},
 			{errors, Errors}]),
-	{answer_message, 5004};
-errors(ServiceName, Capabilities, _Request, [{5005, _} | _] = Errors) ->
+	{answer_message, ?'DIAMETER_BASE_RESULT-CODE_INVALID_AVP_VALUE'};
+errors(ServiceName, Capabilities, _Request,
+		[{?'DIAMETER_BASE_RESULT-CODE_MISSING_AVP', _} | _] = Errors) ->
 	error_logger:error_report(["DIAMETER AVP missing",
 			{service_name, ServiceName}, {capabilities, Capabilities},
 			{errors, Errors}]),
-	{answer_message, 5005};
-errors(ServiceName, Capabilities, _Request, [{5007, _} | _] = Errors) ->
+	{answer_message, ?'DIAMETER_BASE_RESULT-CODE_MISSING_AVP'};
+errors(ServiceName, Capabilities, _Request,
+		[{?'DIAMETER_BASE_RESULT-CODE_CONTRADICTING_AVPS', _} | _] = Errors) ->
 	error_logger:error_report(["DIAMETER AVPs contradicting",
 			{service_name, ServiceName}, {capabilities, Capabilities},
 			{errors, Errors}]),
-	{answer_message, 5007};
-errors(ServiceName, Capabilities, _Request, [{5008, _} | _] = Errors) ->
+	{answer_message, ?'DIAMETER_BASE_RESULT-CODE_CONTRADICTING_AVPS'};
+errors(ServiceName, Capabilities, _Request,
+		[{?'DIAMETER_BASE_RESULT-CODE_AVP_NOT_ALLOWED', _} | _] = Errors) ->
 	error_logger:error_report(["DIAMETER AVP not allowed",
 			{service_name, ServiceName}, {capabilities, Capabilities},
 			{errors, Errors}]),
-	{answer_message, 5008};
-errors(ServiceName, Capabilities, _Request, [{5009, _} | _] = Errors) ->
+	{answer_message, ?'DIAMETER_BASE_RESULT-CODE_AVP_NOT_ALLOWED'};
+errors(ServiceName, Capabilities, _Request,
+		[{?'DIAMETER_BASE_RESULT-CODE_AVP_OCCURS_TOO_MANY_TIMES', _} | _] = Errors) ->
 	error_logger:error_report(["DIAMETER AVP too many times",
 			{service_name, ServiceName}, {capabilities, Capabilities},
 			{errors, Errors}]),
-	{answer_message, 5009};
-errors(ServiceName, Capabilities, _Request, [{5014, _} | _] = Errors) ->
+	{answer_message, ?'DIAMETER_BASE_RESULT-CODE_AVP_OCCURS_TOO_MANY_TIMES'};
+errors(ServiceName, Capabilities, _Request,
+		[{?'DIAMETER_BASE_RESULT-CODE_INVALID_AVP_LENGTH', _} | _] = Errors) ->
 	error_logger:error_report(["DIAMETER AVP invalid length",
 			{service_name, ServiceName}, {capabilities, Capabilities},
 			{errors, Errors}]),
-	{answer_message, 5014};
+	{answer_message, ?'DIAMETER_BASE_RESULT-CODE_INVALID_AVP_LENGTH'};
 errors(_ServiceName, _Capabilities, _Request, [{ResultCode, _} | _]) ->
 	{answer_message, ResultCode};
 errors(_ServiceName, _Capabilities, _Request, [ResultCode | _]) ->
