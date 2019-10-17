@@ -911,32 +911,13 @@ send_radius_response(EapMessage, RadiusCode, ResponseAttributes,
 		ResultCode :: integer(),
 		OriginHost :: binary(),
 		OriginRealm :: binary(),
-		EapMessage :: none | binary(),
+		EapMessage :: binary(),
 		PortServer :: pid(),
 		Request :: #diameter_eap_app_DER{},
 		StateData :: #statedata{}.
 %% @doc Log DIAMETER event and send appropriate DIAMETER answer to
 %% 	ocs_diameter_auth_port_server.
 %% @hidden
-send_diameter_response(SId, AuthType, ResultCode,
-		OriginHost, OriginRealm, none, PortServer,
-		#diameter_eap_app_DER{} = Request,
-		#statedata{server_address = ServerAddress,
-		server_port = ServerPort, client_address = ClientAddress,
-		client_port = ClientPort} = _StateData) when is_list(SId),
-		is_integer(AuthType), is_integer(ResultCode),
-		is_binary(OriginHost), is_binary(OriginRealm),
-		is_pid(PortServer) ->
-	Server = {ServerAddress, ServerPort},
-	Client= {ClientAddress, ClientPort},
-	Answer = #diameter_eap_app_DEA{'Session-Id' = SId,
-			'Auth-Application-Id' = ?EAP_APPLICATION_ID,
-			'Auth-Request-Type' = AuthType,
-			'Result-Code' = ResultCode,
-			'Origin-Host' = OriginHost,
-			'Origin-Realm' = OriginRealm},
-	ok = ocs_log:auth_log(diameter, Server, Client, Request, Answer),
-	gen_server:cast(PortServer, {self(), Answer});
 send_diameter_response(SId, AuthType, ?'DIAMETER_BASE_RESULT-CODE_SUCCESS',
 		OriginHost, OriginRealm, EapMessage,
 		PortServer, #diameter_eap_app_DER{} = Request,
