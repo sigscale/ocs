@@ -379,7 +379,8 @@ eap_start(timeout, #statedata{sup = Sup, eap_id = EapID,
 			NextStateData = NewStateData#statedata{request = undefined, id_req = full},
 			EapPacket = #eap_packet{code = request,
 					type = ?AKAprime, identifier = EapID, data = EapData},
-			send_radius_response(EapPacket, ?AccessChallenge, [], RadiusID,
+			EapMessage = ocs_eap_codec:eap_packet(EapPacket),
+			send_radius_response(EapMessage, ?AccessChallenge, [], RadiusID,
 					RequestAuthenticator, RequestAttributes, NewStateData),
 			{next_state, identity, NextStateData, ?TIMEOUT}
 	end.
