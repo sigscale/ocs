@@ -458,9 +458,9 @@ aka_attr(<<?AT_CHECKCODE, 9, _:16, CheckCode:32/bytes, Rest/bytes>>, Acc) ->
 	aka_attr(Rest, Acc#{?AT_CHECKCODE => CheckCode});
 aka_attr(<<?AT_RESULT_IND, 1, _:16, Rest/bytes>>, Acc) ->
 	aka_attr(Rest, Acc#{?AT_RESULT_IND=> true});
-aka_attr(<<?AT_BIDDING, 1, 1:15, Rest/bytes>>, Acc) ->
+aka_attr(<<?AT_BIDDING, 1, 1:1, _:15, Rest/bytes>>, Acc) ->
 	aka_attr(Rest, Acc#{?AT_BIDDING => true});
-aka_attr(<<?AT_BIDDING, 1, 0:15, Rest/bytes>>, Acc) ->
+aka_attr(<<?AT_BIDDING, 1, 0:1, _:15, Rest/bytes>>, Acc) ->
 	aka_attr(Rest, Acc#{?AT_BIDDING => false});
 aka_attr(<<Type, 1, _:16, Rest/bytes>>, Acc) when Type > 127 ->
 	aka_attr(Rest, Acc);
