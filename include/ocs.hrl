@@ -163,12 +163,18 @@
 		service = [] :: [ServiceRef :: binary()] | '_',
 		last_modified :: tuple() | undefined | '_'}).
 
+-record(aka_cred,
+		{k :: binary(),
+		opc :: binary(),
+		dif = 0 :: non_neg_integer()}).
+-type aka_cred() :: #aka_cred{}.
+
 -record(service,
 		{name :: binary() | undefined | '_',
 		start_date :: pos_integer() | undefined | '_',
 		end_date :: pos_integer() | undefined | '_',
 		state :: service_status() | undefined | '_',
-		password :: binary() | undefined | '_',
+		password :: binary() | aka_cred() | undefined | '_',
 		attributes :: [tuple()] | undefined | '_',
 		product :: ProductRef :: string() | undefined | '_',
 		enabled = true :: boolean() | '_',
