@@ -98,14 +98,19 @@ init(_Args) ->
 %% @@see //stdlib/gen_fsm:StateName/2
 %% @private
 %%
-idle({AkaFsm, Identity, ANID}, #statedata{} = StateData)
+idle({AkaFsm, Identity, ANID}, StateData)
 		when is_pid(AkaFsm), is_binary(Identity) ->
-	OPc = <<205,99,203,113,149,74,159,78,72,165,153,78,55,160,43,175>>,
-	K = <<70,91,92,232,177,153,180,159,170,95,10,46,226,56,166,188>>,
+	idle1(AkaFsm, ANID, StateData, ocs:find_service(Identity));
+idle(timeout, StateData) ->
+	{stop, shutdown, StateData}.
+%% @hidden
+idle1(_AkaFsm, _ANID, StateData,
+		{ok, #service{enabled = false}}) ->
+	{next_state, idle, StateData};
+idle1(AkaFsm, ANID, StateData,
+		{ok, #service{password = #aka_cred{k = K, opc = OPc, dif = DIF}}}) ->
 	RAND = ocs_milenage:f0(),
 	{XRES, CK, IK, <<AK:48>>} = ocs_milenage:f2345(OPc, K, RAND),
-	% @todo Update DIF and store in subscriber table.
-	DIF = 15657029971,
 	SQN = sqn(DIF),
 	AMF = amf(),
 	MAC = ocs_milenage:f1(OPc, K, RAND, <<SQN:48>>, AMF),
@@ -114,8 +119,10 @@ idle({AkaFsm, Identity, ANID}, #statedata{} = StateData)
 	<<CKprime:16/binary, IKprime:16/binary>> = kdf(CK, IK, ANID, SQN, AK),
 	gen_fsm:send_event(AkaFsm, {RAND, AUTN, CKprime, IKprime, XRES}),
 	{next_state, idle, StateData};
-idle(timeout, #statedata{} = StateData) ->
-	{stop, shutdown, StateData}.
+idle1(_AkaFsm, _ANID, StateData, {error, not_found}) ->
+	{next_state, idle, StateData};
+idle1(_AkaFsm, _ANID, StateData, {error, Reason}) ->
+	{stop, Reason, StateData}.
 
 -spec handle_event(Event, StateName, StateData) -> Result
 	when
