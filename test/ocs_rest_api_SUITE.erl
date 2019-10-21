@@ -1150,8 +1150,8 @@ add_service_aka() ->
 
 add_service_aka(Config) ->
 	IMSI = "001001" ++ ocs:generate_identity(),
-	K = crypto:strong_rand_bytes(16),
-	OPc = crypto:strong_rand_bytes(16),
+	K = binary_to_hex(crypto:strong_rand_bytes(16)),
+	OPc = binary_to_hex(crypto:strong_rand_bytes(16)),
 	Credentials = #aka_cred{k = K, opc = OPc},
 	State = {"state", active},
 	IsServiceEnabled = {"isServiceEnabled", true},
@@ -2739,4 +2739,15 @@ service_add(ProdRef) ->
 bucket_add(ProdRef, Bucket) ->
 	{ok, _, #bucket{id = BId}} = ocs:add_bucket(ProdRef, Bucket),
 	BId.
+
+%% @hidden
+binary_to_hex(B) ->
+	binary_to_hex(B, []).
+%% @hidden
+binary_to_hex(<<N:4, Rest/bits>>, Acc) when N >= 10 ->
+	binary_to_hex(Rest, [N - 10 + $a | Acc]);
+binary_to_hex(<<N:4, Rest/bits>>, Acc) ->
+	binary_to_hex(Rest, [N + $0 | Acc]);
+binary_to_hex(<<>>, Acc) ->
+	lists:reverse(Acc).
 
