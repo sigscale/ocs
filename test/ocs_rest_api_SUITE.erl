@@ -139,7 +139,7 @@ all() ->
 	update_client_attributes_json_patch,
 	add_offer, get_offer, delete_offer, ignore_delete_offer, update_offer,
 	add_service_inventory, add_service_inventory_without_password,
-	get_service_inventory, get_all_service_inventories,
+	get_service_inventory, get_all_service_inventories, add_service_aka,
 	get_service_not_found, get_service_range, delete_service,
 	update_service, get_usagespecs, get_usagespecs_query, get_usagespec,
 	get_auth_usage, get_auth_usage_id, get_auth_usage_filter,
@@ -1144,6 +1144,43 @@ add_service_inventory_without_password(Config) ->
 				false
 	end,
 	lists:any(F, Chars).
+
+add_service_aka() ->
+	[{userdata, [{doc,"Add service with IMSI and AKA"}]}].
+
+add_service_aka(Config) ->
+	IMSI = "001001" ++ ocs:generate_identity(),
+	K = crypto:strong_rand_bytes(16),
+	OPc = crypto:strong_rand_bytes(16),
+	Credentials = #aka_cred{k = K, opc = OPc},
+	State = {"state", active},
+	IsServiceEnabled = {"isServiceEnabled", true},
+	Char1 = {struct, [{"name", "serviceIdentity"}, {"value", IMSI}]},
+	Char2 = {struct, [{"name", "serviceAkaK"}, {"value", K}]},
+	Char3 = {struct, [{"name", "serviceAkaOpc"}, {"value", OPc}]},
+	Char4 = {struct, [{"name", "multiSession"}, {"value", true}]},
+	SortedChars = lists:sort([Char1, Char2, Char3, Char4]),
+	Characteristics = {"serviceCharacteristic", {array, SortedChars}},
+	JSON = {struct, [State, IsServiceEnabled, Characteristics]},
+	RequestBody = lists:flatten(mochijson:encode(JSON)),
+	HostUrl = ?config(host_url, Config),
+	Accept = {"accept", "application/json"},
+	ContentType = "application/json",
+	Request = {HostUrl ++ "/serviceInventoryManagement/v2/service",
+			[Accept, auth_header()], ContentType, RequestBody},
+	{ok, Result} = httpc:request(post, Request, [], []),
+	{{"HTTP/1.1", 201, _Created}, Headers, ResponseBody} = Result,
+	{_, "application/json"} = lists:keyfind("content-type", 1, Headers),
+	{_, _} = lists:keyfind("etag", 1, Headers),
+	{_, URI} = lists:keyfind("location", 1, Headers),
+	{"serviceInventoryManagement/v2/service/" ++ IMSI, _} = httpd_util:split_path(URI),
+	ContentLength = integer_to_list(length(ResponseBody)),
+	{_, ContentLength} = lists:keyfind("content-length", 1, Headers),
+	{struct, Object} = mochijson:decode(ResponseBody),
+	{"id", IMSI} = lists:keyfind("id", 1, Object),
+	{_, URI} = lists:keyfind("href", 1, Object),
+	{_, {array, Chars}} = lists:keyfind("serviceCharacteristic", 1, Object),
+	SortedChars = lists:sort(Chars).
 
 get_service_inventory() ->
 	[{userdata, [{doc,"get service invetory for spefici service id"}]}].
