@@ -659,7 +659,7 @@ delete_product(ProductRef) when is_list(ProductRef) ->
 -spec add_service(Identity, Password) -> Result
 	when
 		Identity :: string() | binary() | undefined,
-		Password :: string() | binary() | undefined,
+		Password :: string() | binary() | aka_cred() | undefined,
 		Result :: {ok, #service{}} | {error, Reason},
 		Reason :: term().
 %% @equiv add_service(Identity, Password, undefined, [], true, false)
@@ -669,7 +669,7 @@ add_service(Identity, Password) ->
 -spec add_service(Identity, Password, ProductRef) -> Result
 	when
 		Identity :: string() | binary() | undefined,
-		Password :: string() | binary() | undefined,
+		Password :: string() | binary() | aka_cred() | undefined,
 		ProductRef :: string() | undefined,
 		Result :: {ok, #service{}} | {error, Reason},
 		Reason :: term().
@@ -680,7 +680,7 @@ add_service(Identity, Password, ProductRef) ->
 -spec add_service(Identity, Password, ProductRef, Chars) -> Result
 	when
 		Identity :: string() | binary() | undefined,
-		Password :: string() | binary() | undefined,
+		Password :: string() | binary() | aka_cred() | undefined,
 		ProductRef :: string() | undefined,
 		Chars :: [tuple()],
 		Result :: {ok, #service{}} | {error, Reason},
@@ -692,7 +692,7 @@ add_service(Identity, Password, ProductRef, Chars) ->
 -spec add_service(Identity, Password, ProductRef, Chars, Attributes) -> Result
 	when
 		Identity :: string() | binary() | undefined,
-		Password :: string() | binary() | undefined,
+		Password :: string() | binary() | aka_cred() | undefined,
 		ProductRef :: string() | undefined,
 		Chars :: [tuple()],
 		Attributes :: radius_attributes:attributes() | binary(),
@@ -706,7 +706,7 @@ add_service(Identity, Password, ProductRef, Chars, Attributes) ->
 		Attributes, EnabledStatus, MultiSessions) -> Result
 	when
 		Identity :: string() | binary() | undefined,
-		Password :: string() | binary() | undefined,
+		Password :: string() | binary() | aka_cred() | undefined,
 		State :: atom() | string() | undefined,
 		ProductRef :: string() | undefined,
 		Chars :: [tuple()] | undefined,
@@ -757,7 +757,8 @@ add_service(Identity, Password, State, ProductRef, Chars,
 	add_service(Identity, list_to_binary(Password), State,
 			ProductRef, Chars, Attributes, EnabledStatus, MultiSession);
 add_service(undefined, Password, State, ProductRef, Chars,
-		Attributes, EnabledStatus, MultiSession) when is_binary(Password),
+		Attributes, EnabledStatus, MultiSession)
+		when (is_binary(Password) or is_record(Password, aka_cred)),
 		is_list(Attributes), is_boolean(EnabledStatus),
 		is_boolean(MultiSession) ->
 	F1 = fun() ->
@@ -783,7 +784,8 @@ add_service(undefined, Password, State, ProductRef, Chars,
 	end;
 add_service(Identity, Password, State, ProductRef, Chars, Attributes,
 		EnabledStatus, MultiSession) when is_binary(Identity), size(Identity) > 0,
-		is_binary(Password), is_list(Attributes), is_boolean(EnabledStatus),
+		(is_binary(Password) or is_record(Password, aka_cred)),
+		is_list(Attributes), is_boolean(EnabledStatus),
 		is_boolean(MultiSession) ->
 	F1 =  fun() ->
 			add_service1(Identity, Password, State, ProductRef,
