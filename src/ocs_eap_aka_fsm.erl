@@ -997,6 +997,7 @@ compressed_imsi(IMSI) when is_binary(IMSI) ->
 	L3 = L2 ++ L1,
 	<< <<D:4>> || D <- L3 >>.
 
+-dialyzer([{nowarn_function, [encrypt_imsi/2]}, no_missing_calls]). % temporary
 -spec encrypt_imsi(CompressedIMSI, Key) -> Pseudonym
 	when
 		CompressedIMSI :: binary(),
