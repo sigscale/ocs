@@ -1180,7 +1180,7 @@ add_service_aka(Config) ->
 	{"id", IMSI} = lists:keyfind("id", 1, Object),
 	{_, URI} = lists:keyfind("href", 1, Object),
 	{_, {array, Chars}} = lists:keyfind("serviceCharacteristic", 1, Object),
-	SortedChars = lists:sort(Chars).
+	SortedChars1 = lists:sort(Chars).
 
 get_service_inventory() ->
 	[{userdata, [{doc,"get service invetory for spefici service id"}]}].
