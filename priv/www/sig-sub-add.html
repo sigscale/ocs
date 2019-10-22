@@ -144,6 +144,32 @@
 						</paper-checkbox>
 					</div>
 				</div>
+				<div>
+					<paper-input
+							id="addSubscriberAkak"
+							class="identity"
+							name="akak"
+							label="[[i18n.akak]]">
+					</paper-input>
+					<paper-tooltip>
+						<i18n-msg msgid="akakTooltip">
+								Service akak
+						</i18n-msg>
+					</paper-tooltip>
+				</div>
+				<div>
+					<paper-input
+							id="addSubscriberAkaOpc"
+							class="identity"
+							name="akaOpc"
+							label="[[i18n.akaOpc]]">
+					</paper-input>
+					<paper-tooltip>
+						<i18n-msg msgid="akaOpcTooltip">
+								Service akaOpc
+						</i18n-msg>
+					</paper-tooltip>
+				</div>
 				<div class="buttons">
 					<paper-button
 							raised
@@ -430,11 +456,23 @@
 					serviceIdentity.value = this.$.addSubscriberId.value;
 					serviceChar.push(serviceIdentity);
 				}
-				if(!this.$.addSubscriberPassword.disabled) {
+				if(this.$.addSubscriberPassword.value) {
 					var servicePass = new Object();
 					servicePass.name = "servicePassword";
 					servicePass.value = this.$.addSubscriberPassword.value;
 					serviceChar.push(servicePass);
+				} 
+				if(this.$.addSubscriberAkak.value) {
+					var serviceAkak = new Object();
+					serviceAkak.name = "serviceAkaK";
+					serviceAkak.value = this.$.addSubscriberAkak.value;
+					serviceChar.push(serviceAkak);
+				}
+				if(this.$.addSubscriberAkaOpc.value) {
+					var serviceAkaOpc = new Object();
+					serviceAkaOpc.name = "serviceAkaOpc";
+					serviceAkaOpc.value = this.$.addSubscriberAkaOpc.value;
+					serviceChar.push(serviceAkak);
 				}
 				if(parseInt(this.$.addAcctSessionInterval.value)) {
 					var sessionInterval = new Object();
@@ -483,6 +521,7 @@
 				this.$.add8.value = null;
 			},
 			_addServiceResponse: function(event) {
+console.log(event.detail.xhr.response.serviceCharacteristic);
 				function checkPasswordResp(pass) {
 					return pass.name == "servicePassword";
 				}
@@ -594,8 +633,12 @@
 			},
 			subcheckboxchanged: function(event) {
 				if (event.target.checked) {
+					this.$.addSubscriberAkak.disabled = true;
+               this.$.addSubscriberAkaOpc.disabled = true;
 					this.$.addSubscriberPassword.disabled = true;
 				} else {
+					this.$.addSubscriberAkak.disabled = false;
+               this.$.addSubscriberAkaOpc.disabled = false;
 					this.$.addSubscriberPassword.disabled = false;
 				}
 			},

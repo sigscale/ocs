@@ -955,6 +955,14 @@
     "description": "Roaming Table",
     "message": "Roaming Table"
   },
+	"akak": {
+    "description": "Service Akak",
+    "message": "Service AkaK"
+  },
+	"akaOpc": {
+    "description": "Service AkaOpc",
+    "message": "Service AkaOpc"
+  },
    "productDeleted": {
     "description": "Success Toast Message",
     "message": "Product deleted"
