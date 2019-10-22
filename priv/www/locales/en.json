@@ -3,11 +3,11 @@
     "description": "Long form title",
     "message": "Online Charging System (OCS)"
   },
-	"subs": {
+  "subs": {
     "description": "Subscribers menu title",
     "message": "Subscribers"
   },
-	"subscriber": {
+  "subscriber": {
     "description": "Subscriber identity",
     "message": "Subscriber"
   },
