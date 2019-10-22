@@ -289,7 +289,7 @@ get_service_spec(ID, [] = _Query) ->
 	end;
 get_service_spec(_ID, _Query) ->
 	{error, 400}.
-			
+
 %%----------------------------------------------------------------------
 %%  internal functions
 %%----------------------------------------------------------------------
@@ -375,7 +375,7 @@ service_spec_chars() ->
 -spec inventory(Service) -> Service
 	when
 		Service :: #service{} | {struct, list()}.
-%% @doc CODEC for service inventory 
+%% @doc CODEC for service inventory
 inventory({struct, Service}) ->
 	inventory(Service, #service{});
 inventory(#service{} = Service) ->
@@ -430,7 +430,7 @@ inventory([{"serviceCharacteristic", Characteristics}| T], Acc) ->
 		Class ->
 			[{?Class, Class} | A2]
 	end,
-	F2 = fun(Key1, Chars1, AccIn) -> 
+	F2 = fun(Key1, Chars1, AccIn) ->
 			case lists:keyfind(Key1, 1, Chars1) of
 				false ->
 					AccIn;
@@ -439,12 +439,11 @@ inventory([{"serviceCharacteristic", Characteristics}| T], Acc) ->
 			end
 	end,
 	C0 = F2("radiusReserveTime", Chars, []),
-	C1 = F2("radiusReserveOctets", Chars, C0), 
+	C1 = F2("radiusReserveOctets", Chars, C0),
 	C2 = F2("ReserveSessionTime", Chars, C1),
 	C3 = F2("serviceAkaK", Chars, C2),
 	C4 = F2("serviceAkaOPc", Chars, C3),
-	
-	NewAcc = Acc#service{name = Identity, password = Password, 
+	NewAcc = Acc#service{name = Identity, password = Password,
 		multisession = MultiSession, attributes = A3, characteristics = C4},
 	inventory(T, NewAcc);
 inventory([{"category", _}| T], Acc) ->
