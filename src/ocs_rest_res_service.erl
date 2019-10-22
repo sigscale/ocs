@@ -363,7 +363,7 @@ service_spec_chars() ->
 	Type7 = {"valueType", "String"},
 	Value7 = {"serviceSpecCharacteristicValue", {array, [{struct, [Type7]}]}},
 	Char7 = {struct, [Name7, Description7, Config7, Type7, Value7]},
-	Name8 = {"name", "serviceAkaOpc"},
+	Name8 = {"name", "serviceAkaOPc"},
 	Description8 = {"description",
 			"Service OPc."},
 	Config8 = {"configurable", true},
@@ -442,7 +442,7 @@ inventory([{"serviceCharacteristic", Characteristics}| T], Acc) ->
 	C1 = F2("radiusReserveOctets", Chars, C0), 
 	C2 = F2("ReserveSessionTime", Chars, C1),
 	C3 = F2("serviceAkaK", Chars, C2),
-	C4 = F2("serviceAkaOpc", Chars, C3),
+	C4 = F2("serviceAkaOPc", Chars, C3),
 	
 	NewAcc = Acc#service{name = Identity, password = Password, 
 		multisession = MultiSession, attributes = A3, characteristics = C4},
@@ -616,10 +616,10 @@ service_chars([{struct, [{"name", "serviceAkaK"}, {"value", K}]} | T], Acc) ->
 	service_chars(T, [{"serviceAkaK", K} | Acc]);
 service_chars([{struct, [{"value", K}, {"name", "serviceAkaK"}]} | T], Acc) ->
 	service_chars(T, [{"serviceAkaK", K} | Acc]);
-service_chars([{struct, [{"name", "serviceAkaOpc"}, {"value", Opc}]} | T], Acc) ->
-	service_chars(T, [{"serviceAkaOpc", Opc} | Acc]);
-service_chars([{struct, [{"value", Opc}, {"name", "serviceAkaOpc"}]} | T], Acc) ->
-	service_chars(T, [{"serviceAkaOpc", Opc} | Acc]);
+service_chars([{struct, [{"name", "serviceAkaOPc"}, {"value", OPc}]} | T], Acc) ->
+	service_chars(T, [{"serviceAkaOPc", OPc} | Acc]);
+service_chars([{struct, [{"value", OPc}, {"name", "serviceAkaOPc"}]} | T], Acc) ->
+	service_chars(T, [{"serviceAkaOPc", OPc} | Acc]);
 service_chars([{struct, [{"name", "radiusReserveTime"}, {"value", RadiusReserveTime}]} | T], Acc) ->
 	service_chars(T, [{"radiusReserveTime", radius_reserve(RadiusReserveTime)} | Acc]);
 service_chars([{struct, [{"value", RadiusReserveTime}, {"name", "radiusReserveTime"}]} | T], Acc) ->
