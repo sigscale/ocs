@@ -149,8 +149,9 @@
 							id="addSubscriberAkak"
 							class="identity"
 							name="akak"
-                     allowed-pattern="[0-9a-f]"
-                     pattern="^[0-9a-f]{32}$"
+							maxlength="32"
+                     allowed-pattern="[0-9a-fA-F]"
+                     pattern="^[0-9a-fA-F]{32}$"
                      auto-validate
 							label="[[i18n.akak]]">
 					</paper-input>
@@ -165,8 +166,10 @@
 							id="addSubscriberAkaOpc"
 							class="identity"
 							name="akaOpc"
-                     allowed-pattern="[0-9a-f]"
-                     pattern="^[0-9a-f]{32}$"
+							maxlength="32"
+                     allowed-pattern="[0-9a-fA-F]"
+                     pattern="^[0-9a-fA-F]{32}$"
+                     auto-validate
 							label="[[i18n.akaOpc]]">
 					</paper-input>
 					<paper-tooltip>
