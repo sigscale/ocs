@@ -534,11 +534,19 @@ inventory([password | T], #service{password = Password} = Service,
 	inventory(T, Service, NewChars, Acc);
 inventory([password | T],
 		#service{password = #aka_cred{k = K, opc = OPc}} = Service,
-		Chars, Acc) ->
+		Chars, Acc) when is_binary(K)->
 	NewChars = lists:keystore("serviceAkaK", 1, Chars,
 			{"serviceAkaK", binary_to_hex(K)}),
 	NextChars = lists:keystore("serviceAkaOPc", 1, NewChars,
 			{"serviceAkaOPc", binary_to_hex(OPc)}),
+	inventory(T, Service, NextChars, Acc);
+inventory([password | T],
+		#service{password = #aka_cred{k = K, opc = OPc}} = Service,
+		Chars, Acc) ->
+	NewChars = lists:keystore("serviceAkaK", 1, Chars,
+			{"serviceAkaK", K}),
+	NextChars = lists:keystore("serviceAkaOPc", 1, NewChars,
+			{"serviceAkaOPc", OPc}),
 	inventory(T, Service, NextChars, Acc);
 inventory([multisession | T], #service{multisession = MultiSession} =
 		Service, Chars, Acc) ->
