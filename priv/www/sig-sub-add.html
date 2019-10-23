@@ -513,7 +513,12 @@
 					this.$.idCheck.checked = false;
 					this.$.idCheckPass.checked = false;
 					this.$.addSubscriberId.value = null;
+					this.$.addSubscriberId.disabled = false;
 					this.$.addSubscriberPassword.disabled = false;
+					this.$.addSubscriberAkak.disabled = false;
+					this.$.addSubscriberAkaOpc.disabled = false;
+					this.$.addSubscriberAkak.value = null;
+					this.$.addSubscriberAkaOpc.value = null;
 					this.$.adduni9.value = null;
 				}
 			},
@@ -522,16 +527,12 @@
 				this.$.idCheck.checked = false;
 				this.$.idCheckPass.checked = false;
 				this.$.addSubscriberPassword.value = null;
+				this.$.addSubscriberAkak.disabled = null;
+				this.$.addSubscriberAkaOpc.disabled = null;
 				this.$.adduni9.value = null;
 				this.$.add8.value = null;
 			},
 			_addServiceResponse: function(event) {
-console.log(event.detail.xhr.response.serviceCharacteristic);
-				function checkPasswordResp(pass) {
-					return pass.name == "servicePassword";
-				}
-				var indexPass = event.detail.xhr.response.serviceCharacteristic.findIndex(checkPasswordResp);
-				this.password = event.detail.xhr.response.serviceCharacteristic[indexPass].value;
 				this.identity = event.detail.xhr.response.id;
 				this.$.addSubscriberSecretModal.open();
 				if(!this.productId) {
@@ -639,12 +640,16 @@ console.log(event.detail.xhr.response.serviceCharacteristic);
 			subcheckboxchanged: function(event) {
 				if (event.target.checked) {
 					this.$.addSubscriberAkak.disabled = true;
-               this.$.addSubscriberAkaOpc.disabled = true;
+					this.$.addSubscriberAkaOpc.disabled = true;
 					this.$.addSubscriberPassword.disabled = true;
+					this.$.addSubscriberAkak.disabled = true;
+					this.$.addSubscriberAkaOpc.disabled = true;
 				} else {
 					this.$.addSubscriberAkak.disabled = false;
-               this.$.addSubscriberAkaOpc.disabled = false;
+					this.$.addSubscriberAkaOpc.disabled = false;
 					this.$.addSubscriberPassword.disabled = false;
+					this.$.addSubscriberAkak.disabled = false;
+					this.$.addSubscriberAkaOpc.disabled = false;
 				}
 			},
 			subcheckchanged: function(event) {
