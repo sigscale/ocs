@@ -357,15 +357,13 @@ service_spec_chars() ->
 	Value6 = {"serviceSpecCharacteristicValue", {array, [{struct, [Type6]}]}},
 	Char6 = {struct, [Name6, Description6, Config6, Type6, Value6]},
 	Name7 = {"name", "serviceAkak"},
-	Description7 = {"description",
-			"Service k."},
+	Description7 = {"description", "AKA K"},
 	Config7 = {"configurable", true},
 	Type7 = {"valueType", "String"},
 	Value7 = {"serviceSpecCharacteristicValue", {array, [{struct, [Type7]}]}},
 	Char7 = {struct, [Name7, Description7, Config7, Type7, Value7]},
 	Name8 = {"name", "serviceAkaOPc"},
-	Description8 = {"description",
-			"Service OPc."},
+	Description8 = {"description", "AKA OPc"},
 	Config8 = {"configurable", true},
 	Type8 = {"valueType", "String"},
 	Value8 = {"serviceSpecCharacteristicValue", {array, [{struct, [Type8]}]}},
@@ -409,7 +407,17 @@ inventory([{"serviceCharacteristic", Characteristics}| T], Acc) ->
 		{_, V2} ->
 			list_to_binary(V2);
 		false ->
-			undefined
+			case lists:keyfind("serviceAkaK", 1, Chars) of
+				{_, K} ->
+					case lists:keyfind("serviceAkaOPc", 1, Chars) of
+						{_, OPc} ->
+							#aka_cred{k = K, opc = OPc};
+						false ->
+							undefined
+					end;
+				false ->
+					undefined
+			end
 	end,
 	MultiSession = F1("multiSession", Chars),
 	A1 = case F1("sessionTimeout", Chars) of
@@ -441,10 +449,8 @@ inventory([{"serviceCharacteristic", Characteristics}| T], Acc) ->
 	C0 = F2("radiusReserveTime", Chars, []),
 	C1 = F2("radiusReserveOctets", Chars, C0),
 	C2 = F2("ReserveSessionTime", Chars, C1),
-	C3 = F2("serviceAkaK", Chars, C2),
-	C4 = F2("serviceAkaOPc", Chars, C3),
 	NewAcc = Acc#service{name = Identity, password = Password,
-		multisession = MultiSession, attributes = A3, characteristics = C4},
+			multisession = MultiSession, attributes = A3, characteristics = C2},
 	inventory(T, NewAcc);
 inventory([{"category", _}| T], Acc) ->
 	inventory(T, Acc);
@@ -524,10 +530,14 @@ inventory([password | T], #service{password = Password} = Service,
 	SPwd = {"servicePassword", binary_to_list(Password)},
 	NewChars = lists:keystore("servicePassword", 1, Chars, SPwd),
 	inventory(T, Service, NewChars, Acc);
-inventory([password | T], #service{password = Password} = Service, Chars, Acc) ->
-	SPwd = {"servicePassword", Password},
-	NewChars = lists:keystore("servicePassword", 1, Chars, SPwd),
-	inventory(T, Service, NewChars, Acc);
+inventory([password | T],
+		#service{password = #aka_cred{k = K, opc = OPc}} = Service,
+		Chars, Acc) ->
+	NewChars = lists:keystore("serviceAkaK", 1, Chars,
+			{"serviceAkaK", K}),
+	NextChars = lists:keystore("serviceAkaOPc", 1, NewChars,
+			{"serviceAkaOPc", OPc}),
+	inventory(T, Service, NextChars, Acc);
 inventory([multisession | T], #service{multisession = MultiSession} =
 		Service, Chars, Acc) ->
 	MS = {"multiSession", MultiSession},
@@ -553,8 +563,8 @@ inventory([attributes | T], #service{attributes = Attributes} = Service, Chars, 
 inventory([characteristics | T],
 		#service{characteristics = []} = Service, Chars, Acc) ->
 	inventory(T, Service, Chars, Acc);
-inventory([characteristics | T], #service{characteristics = Chars1} =
-		Service, Chars2, Acc) ->
+inventory([characteristics | T], #service{characteristics = Chars2} =
+		Service, Chars1, Acc) ->
 	NewChars = Chars1 ++ Chars2,
 	inventory(T, Service, NewChars, Acc);
 inventory([_ | T], Service, Chars, Acc) ->
