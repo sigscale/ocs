@@ -955,13 +955,13 @@
     "description": "Roaming Table",
     "message": "Roaming Table"
   },
-	"akak": {
+  "akak": {
     "description": "Service Akak",
-    "message": "Service AkaK"
+    "message": "3GPP AKA key K"
   },
-	"akaOpc": {
+  "akaOpc": {
     "description": "Service AkaOpc",
-    "message": "Service AkaOpc"
+    "message": "3GPP AKA key OPc"
   },
    "productDeleted": {
     "description": "Success Toast Message",

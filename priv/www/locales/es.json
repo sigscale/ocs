@@ -967,6 +967,14 @@
     "description": "Roaming Table",
     "message": "Tabla de itinerancia"
   },
+  "akak": {
+    "description": "Service Akak",
+    "message": "3GPP AKA clave K"
+  },
+  "akaOpc": {
+    "description": "Service AkaOpc",
+    "message": "3GPP AKA clave OPc"
+  },
    "productDeleted": {
     "description": "Success Toast Message",
     "message": "Producto eliminado"
