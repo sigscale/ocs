@@ -345,7 +345,7 @@ service_spec_chars() ->
 	Value4 = {"serviceSpecCharacteristicValue", {array, [{struct, [Type4]}]}},
 	Char4 = {struct, [Name4, Description4, Config4, Type4, Value4]},
 	Name5 = {"name", "multiSession"},
-	Description5 = {"description", ""},
+	Description5 = {"description", "Multiple concurrent sessions allowed"},
 	Config5 = {"configurable", true},
 	Type5 = {"valueType", "boolean"},
 	Value5 = {"serviceSpecCharacteristicValue", {array, [{struct, [Type5]}]}},
