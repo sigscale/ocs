@@ -408,9 +408,11 @@ inventory([{"serviceCharacteristic", Characteristics}| T], Acc) ->
 			list_to_binary(V2);
 		false ->
 			case lists:keyfind("serviceAkaK", 1, Chars) of
-				{_, K} ->
+				{_, V3} when length(V3) =:= 32 ->
+					K = << <<N:4>> || N <- [list_to_integer([C], 16) || C <- V3] >>,
 					case lists:keyfind("serviceAkaOPc", 1, Chars) of
-						{_, OPc} ->
+						{_, V4} when length(V4) =:= 32 ->
+							OPc = << <<N:4>> || N <- [list_to_integer([C], 16) || C <- V4] >>,
 							#aka_cred{k = K, opc = OPc};
 						false ->
 							undefined
@@ -534,9 +536,9 @@ inventory([password | T],
 		#service{password = #aka_cred{k = K, opc = OPc}} = Service,
 		Chars, Acc) ->
 	NewChars = lists:keystore("serviceAkaK", 1, Chars,
-			{"serviceAkaK", K}),
+			{"serviceAkaK", binary_to_hex(K)}),
 	NextChars = lists:keystore("serviceAkaOPc", 1, NewChars,
-			{"serviceAkaOPc", OPc}),
+			{"serviceAkaOPc", binary_to_hex(OPc)}),
 	inventory(T, Service, NextChars, Acc);
 inventory([multisession | T], #service{multisession = MultiSession} =
 		Service, Chars, Acc) ->
@@ -822,4 +824,15 @@ match(Key, Complex, Query) ->
 					'_'
 			end
 	end.
+
+%% @hidden
+binary_to_hex(B) ->
+	binary_to_hex(B, []).
+%% @hidden
+binary_to_hex(<<N:4, Rest/bits>>, Acc) when N >= 10 ->
+	binary_to_hex(Rest, [N - 10 + $a | Acc]);
+binary_to_hex(<<N:4, Rest/bits>>, Acc) ->
+	binary_to_hex(Rest, [N + $0 | Acc]);
+binary_to_hex(<<>>, Acc) ->
+	lists:reverse(Acc).
 
