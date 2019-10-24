@@ -673,7 +673,7 @@
   },
    "subProduct": {
     "description": "Subscribed product",
-    "message": "Subscribed Product"
+    "message": "Product"
   },
    "userNameTooltip": {
     "description": "Name of user",

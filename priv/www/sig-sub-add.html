@@ -86,6 +86,9 @@
 		<paper-dialog id="addServiceModal" modal>
 			<paper-toolbar>
 				<paper-tabs selected="{{selected}}">
+					<paper-tab id="auth-proadd">
+						<h2>[[i18n.subProduct]]</h2>
+					</paper-tab>
 					<paper-tab id="auth-add">
 						<h2>[[i18n.AuthTitle]]</h2>
 					</paper-tab>
@@ -98,6 +101,63 @@
 				</paper-tabs>
 			</paper-toolbar>
 			<iron-pages selected="{{selected}}">
+			<div id="add-divpro">
+				<div>
+					<paper-dropdown-menu
+						id="addproductDrop10"
+						on-selected-item-changed="_productSelected"
+						label="[[i18n.offers]]">
+						<paper-listbox
+							id="addproduct10"
+							slot="dropdown-content"
+							class="dropdown-content">
+							<template is="dom-repeat" items="[[offers]]">
+								<paper-item>
+									{{item}}
+								</paper-item>
+							</template>
+						</paper-listbox>
+					</paper-dropdown-menu>
+					<paper-tooltip>
+						Select the offer.
+					</paper-tooltip>
+				</div>
+				<div>
+					<iron-a11y-keys id="a11y"
+						target="[[target]]"
+						keys="enter"
+						on-keys-pressed="onEnter">
+					</iron-a11y-keys>
+					<paper-input
+						id="addProductId1"
+						name="product"
+						label="[[i18n.prodId]]">
+					</paper-input>
+					<paper-tooltip>
+						Product Id.
+					</paper-tooltip>
+				</div>
+				<div class="buttons">
+					<paper-button
+							raised
+							class="add-button"
+							on-tap="_serviceAddSubmit">
+						<i18n-msg msgid="submit">
+								Submit
+						</i18n-msg>
+					</paper-button>
+					<paper-button
+							dialog-dismiss
+							class="cancel-button"
+							autofocus
+							on-tap="_serviceAddcancel"
+							onclick="addServiceModal.close()">
+					<i18n-msg msgid="cancel">
+						Cancel
+					</i18n-msg>
+					</paper-button>
+				</div>
+			</div>
 			<div id="add-div">
 				<div>
 					<paper-input
@@ -447,13 +507,28 @@
 			properties: {
 				selected: {
 					type: Number,
-					value: 0
+					value: 1
 				},
 				product: {
 					type: String,
 				},
 				productId: {
 					type: String,
+				}
+			},
+			_productSelected: function() {
+				var product = this.offers[this.$.addproduct10.selected];
+				if(product) {
+					document.getElementById("AddUpdatePro").value = product;
+					document.getElementById("subscriberAdd").product = product;
+				}
+			},
+			onEnter: function() {
+				var productId = this.$.addProductId1.value;
+				if(productId) {
+					document.getElementById("AddUpdateProId").value = productId;
+					document.getElementById("subscriberAdd").productId = productId;
+					this.$.addProductId1.value = null;
 				}
 			},
 			_serviceAddSubmit: function(event) {
@@ -522,6 +597,8 @@
 					this.$.addSubscriberAkak.value = null;
 					this.$.addSubscriberAkaOpc.value = null;
 					this.$.adduni9.value = null;
+					this.$.addproduct10.value = null;
+					this.$.addProductId1.value = null;
 				}
 			},
 			_serviceAddcancel: function(event) {
@@ -533,6 +610,8 @@
 				this.$.addSubscriberAkaOpc.disabled = null;
 				this.$.adduni9.value = null;
 				this.$.add8.value = null;
+				this.$.addproductDrop10.value = null;
+				this.$.addProductId1.value = null;
 			},
 			_addServiceResponse: function(event) {
 				this.identity = event.detail.xhr.response.id;
