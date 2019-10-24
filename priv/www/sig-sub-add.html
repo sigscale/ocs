@@ -541,10 +541,10 @@
 				function checkPasswordResp(pass) {
 					return pass.name == "servicePassword";
 				}
-				if(event.detail.xhr.response.serviceCharacteristic.findIndex(checkPasswordResp) != 1) {
+				var indexPass = event.detail.xhr.response.serviceCharacteristic.findIndex(checkPasswordResp);
+				if(indexPass != 1) {
 					this.password = "";
 				} else {
-					var indexPass = event.detail.xhr.response.serviceCharacteristic.findIndex(checkPasswordResp);
 					this.password = event.detail.xhr.response.serviceCharacteristic[indexPass].value;
 				}
 				this.$.addSubscriberSecretModal.open();
