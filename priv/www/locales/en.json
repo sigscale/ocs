@@ -957,11 +957,11 @@
   },
   "akak": {
     "description": "Service Akak",
-    "message": "3GPP AKA key K"
+    "message": "AKA K"
   },
   "akaOpc": {
     "description": "Service AkaOpc",
-    "message": "3GPP AKA key OPc"
+    "message": "AKA OPc"
   },
    "productDeleted": {
     "description": "Success Toast Message",
