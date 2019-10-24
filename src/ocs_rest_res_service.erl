@@ -345,7 +345,7 @@ service_spec_chars() ->
 	Value4 = {"serviceSpecCharacteristicValue", {array, [{struct, [Type4]}]}},
 	Char4 = {struct, [Name4, Description4, Config4, Type4, Value4]},
 	Name5 = {"name", "multiSession"},
-	Description5 = {"description", ""},
+	Description5 = {"description", "Multiple concurrent sessions allowed"},
 	Config5 = {"configurable", true},
 	Type5 = {"valueType", "boolean"},
 	Value5 = {"serviceSpecCharacteristicValue", {array, [{struct, [Type5]}]}},
@@ -408,9 +408,11 @@ inventory([{"serviceCharacteristic", Characteristics}| T], Acc) ->
 			list_to_binary(V2);
 		false ->
 			case lists:keyfind("serviceAkaK", 1, Chars) of
-				{_, K} ->
+				{_, V3} when length(V3) =:= 32 ->
+					K = << <<N:4>> || N <- [list_to_integer([C], 16) || C <- V3] >>,
 					case lists:keyfind("serviceAkaOPc", 1, Chars) of
-						{_, OPc} ->
+						{_, V4} when length(V4) =:= 32 ->
+							OPc = << <<N:4>> || N <- [list_to_integer([C], 16) || C <- V4] >>,
 							#aka_cred{k = K, opc = OPc};
 						false ->
 							undefined
@@ -534,9 +536,9 @@ inventory([password | T],
 		#service{password = #aka_cred{k = K, opc = OPc}} = Service,
 		Chars, Acc) ->
 	NewChars = lists:keystore("serviceAkaK", 1, Chars,
-			{"serviceAkaK", K}),
+			{"serviceAkaK", binary_to_hex(K)}),
 	NextChars = lists:keystore("serviceAkaOPc", 1, NewChars,
-			{"serviceAkaOPc", OPc}),
+			{"serviceAkaOPc", binary_to_hex(OPc)}),
 	inventory(T, Service, NextChars, Acc);
 inventory([multisession | T], #service{multisession = MultiSession} =
 		Service, Chars, Acc) ->
@@ -584,14 +586,14 @@ inventory([], _Service, Chars, Acc) ->
 start_mode(0) -> unknown;
 start_mode(1) -> automatically_managed_environment;
 start_mode(2) -> automatically_owning_device;
-start_mode(3) -> manullay_provider_of_service;
-start_mode(4) -> manullay_customer_of_service;
+start_mode(3) -> manually_provider_of_service;
+start_mode(4) -> manually_customer_of_service;
 start_mode(5) -> any_of_the_above;
 start_mode(unknown) -> 0;
 start_mode(automatically_managed_environment) -> 1;
 start_mode(automatically_owning_device) -> 2;
-start_mode(manullay_provider_of_service) -> 3;
-start_mode(manullay_customer_of_service) -> 4;
+start_mode(manually_provider_of_service) -> 3;
+start_mode(manually_customer_of_service) -> 4;
 start_mode(any_of_the_above) -> 5.
 
 -spec service_state(State) -> State
@@ -822,4 +824,15 @@ match(Key, Complex, Query) ->
 					'_'
 			end
 	end.
+
+%% @hidden
+binary_to_hex(B) ->
+	binary_to_hex(B, []).
+%% @hidden
+binary_to_hex(<<N:4, Rest/bits>>, Acc) when N >= 10 ->
+	binary_to_hex(Rest, [N - 10 + $a | Acc]);
+binary_to_hex(<<N:4, Rest/bits>>, Acc) ->
+	binary_to_hex(Rest, [N + $0 | Acc]);
+binary_to_hex(<<>>, Acc) ->
+	lists:reverse(Acc).
 
