@@ -514,8 +514,6 @@
 					ajax.headers['Content-type'] = "application/json";
 					ajax.body = subscriber;
 					ajax.generateRequest();
-					this.$.idCheck.checked = false;
-					this.$.idCheckPass.checked = false;
 					this.$.addSubscriberId.value = null;
 					this.$.addSubscriberId.disabled = false;
 					this.$.addSubscriberPassword.disabled = false;
@@ -547,7 +545,11 @@
 				} else {
 					this.password = event.detail.xhr.response.serviceCharacteristic[indexPass].value;
 				}
-				this.$.addSubscriberSecretModal.open();
+				if(this.$.idCheck.checked || this.$.idCheckPass.checked) {
+					this.$.idCheck.checked = false;
+					this.$.idCheckPass.checked = false;
+					this.$.addSubscriberSecretModal.open();
+				}
 				if(!this.productId) {
 					var ajaxProduct = this.$.addProductAjax;
 					var productSer = new Object();
@@ -566,6 +568,8 @@
 				}
 			},
 			_addServiceError: function(event) {
+				this.$.idCheck.checked = false;
+				this.$.idCheckPass.checked = false;
 				this.$.addSubscriberToastError.text = event.detail.request.xhr.statusText;
 				this.$.addSubscriberToastError.open();
 			},
