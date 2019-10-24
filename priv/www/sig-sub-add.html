@@ -153,6 +153,7 @@
                      allowed-pattern="[0-9a-fA-F]"
                      pattern="^[0-9a-fA-F]{32}$"
                      auto-validate
+							maxlength="32"
 							label="[[i18n.akak]]">
 					</paper-input>
 					<paper-tooltip>
@@ -537,6 +538,15 @@
 			},
 			_addServiceResponse: function(event) {
 				this.identity = event.detail.xhr.response.id;
+				function checkPasswordResp(pass) {
+					return pass.name == "servicePassword";
+				}
+				if(event.detail.xhr.response.serviceCharacteristic.findIndex(checkPasswordResp) != 1) {
+					this.password = "";
+				} else {
+					var indexPass = event.detail.xhr.response.serviceCharacteristic.findIndex(checkPasswordResp);
+					this.password = event.detail.xhr.response.serviceCharacteristic[indexPass].value;
+				}
 				this.$.addSubscriberSecretModal.open();
 				if(!this.productId) {
 					var ajaxProduct = this.$.addProductAjax;
