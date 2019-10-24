@@ -3,7 +3,9 @@
 ##
 ## Process this file with automake to produce Makefile.in
 
-einclude_DATA = ocs.hrl ocs_log.hrl ocs_eap_codec.hrl \
+einclude_DATA = ocs.hrl \
+		ocs_log.hrl \
+		ocs_eap_codec.hrl \
 		diameter_gen_ietf.hrl \
 		diameter_gen_3gpp.hrl \
 		diameter_gen_nas_application_rfc7155.hrl \
