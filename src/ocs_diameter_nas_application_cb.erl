@@ -224,13 +224,14 @@ errors(ServiceName, Capabilities, Request, []) ->
 	is_client_authorized(ServiceName, Capabilities, Request).
 
 -spec send_to_port_server(Svc, Caps, ClientAddress,
-		ClientPort, PasswordReq, Request) -> Action
+		ClientPort, PasswordReq, Trusted, Request) -> Action
 	when
 		Svc :: atom(),
 		Caps :: capabilities(),
 		ClientAddress :: inet:ip_address(),
 		ClientPort :: inet:port_number(),
 		PasswordReq :: boolean(),
+		Trusted :: boolean(),
 		Request :: message(),
 		Action :: Reply | {relay, [Opt]} | discard
 			| {eval|eval_packet, Action, PostF},
@@ -242,7 +243,7 @@ errors(ServiceName, Capabilities, Request, []) ->
 %% @doc Locate ocs_diameter_auth_port_server process and send it
 %% peer's capabilities and diameter request.
 %% @hidden 
-send_to_port_server(Svc, Caps, CAddress, CPort, PasswordReq, Request) ->
+send_to_port_server(Svc, Caps, CAddress, CPort, PasswordReq, Trusted, Request) ->
 	[Info] = diameter:service_info(Svc, transport),
 	case lists:keyfind(options, 1, Info) of
 		{options, Options} ->
@@ -253,7 +254,8 @@ send_to_port_server(Svc, Caps, CAddress, CPort, PasswordReq, Request) ->
 							discard;
 						PortServer ->
 							Answer = gen_server:call(PortServer,
-									{diameter_request, Caps, CAddress, CPort, PasswordReq, Request, none}),
+									{diameter_request, Caps, CAddress, CPort,
+											PasswordReq, Trusted, Request, none}),
 							{reply, Answer}
 					end;
 				false ->
@@ -284,8 +286,9 @@ is_client_authorized(SvcName, Caps, Req) ->
 		{ClientIPs, _} = HostIPAddresses,
 		[HostIpAddress | _] = ClientIPs,
 		{ok, #client{protocol = diameter, port = Port,
-			password_required = PasswordReq}} = ocs:find_client(HostIpAddress),
-		send_to_port_server(SvcName, Caps, HostIpAddress, Port, PasswordReq, Req)
+				password_required = PasswordReq,
+				trusted = Trusted}} = ocs:find_client(HostIpAddress),
+		send_to_port_server(SvcName, Caps, HostIpAddress, Port, PasswordReq, Trusted, Req)
 	catch
 		_ : _ ->
 			send_error(Caps, Req, ?'DIAMETER_BASE_RESULT-CODE_UNKNOWN_PEER')

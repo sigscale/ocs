@@ -197,15 +197,17 @@ request(ServiceName, Capabilities, Request) ->
 request(ServiceName, Capabilities, Request, [H | T]) ->
 	case ocs:find_client(H) of
 		{ok, #client{protocol = diameter, port = Port,
-				password_required = PasswordReq}} ->
-			process_request(ServiceName, Capabilities, Request, H, Port, PasswordReq);
+				password_required = PasswordReq, trusted = Trusted}} ->
+			process_request(ServiceName, Capabilities, Request,
+					H, Port, PasswordReq, Trusted);
 		{error, not_found} ->
 			request(ServiceName, Capabilities, Request, T)
 	end;
 request(ServiceName, Capabilities, Request, []) ->
 	errors(ServiceName, Capabilities, Request, [?'DIAMETER_BASE_RESULT-CODE_UNKNOWN_PEER']).
 
--spec process_request(ServiceName, Capabilities, Request, Address, Port, PasswordReq) -> Result
+-spec process_request(ServiceName, Capabilities, Request,
+		Address, Port, PasswordReq, Trusted) -> Result
 	when
 		ServiceName :: term(),
 		Capabilities :: capabilities(),
@@ -213,6 +215,7 @@ request(ServiceName, Capabilities, Request, []) ->
 		Address :: inet:ip_address(),
 		Port :: inet:port(),
 		PasswordReq :: boolean(),
+		Trusted :: boolean(),
 		Result :: {reply, packet()} | discard.
 %% @doc Process a received DIAMETER Authorization packet.
 %% @private
@@ -221,7 +224,7 @@ process_request(ServiceName, #diameter_caps{origin_host = {OHost, _DHost},
 		#'diameter_eap_app_DER'{'Session-Id' = SId,
 				'Auth-Application-Id' = ?SWm_APPLICATION_ID,
 				'EAP-Payload' = EapPayload} = Request,
-		Address, Port, PasswordReq) ->
+		Address, Port, PasswordReq, Trusted) ->
 	try
 		[Info] = diameter:service_info(ServiceName, transport),
 		case lists:keyfind(options, 1, Info) of
@@ -235,8 +238,9 @@ process_request(ServiceName, #diameter_caps{origin_host = {OHost, _DHost},
 								discard;
 							PortServer ->
 								Answer = gen_server:call(PortServer,
-										{diameter_request, Capabilities, Address, Port, 
-										PasswordReq, Request, {eap, EapPayload}}),
+										{diameter_request, Capabilities,
+												Address, Port, PasswordReq, Trusted,
+												Request, {eap, EapPayload}}),
 								{reply, Answer}
 						end;
 					false ->

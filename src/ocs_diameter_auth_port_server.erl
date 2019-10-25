@@ -120,9 +120,10 @@ init([AuthPortSup, Address, Port, Options]) ->
 %% 	gen_server:multi_call/2,3,4}.
 %% @see //stdlib/gen_server:handle_call/3
 %% @private
-handle_call({diameter_request, Caps, ClientAddr, ClientPort, PasswordReq, Request, Eap},
-		CbProc, State) ->
-	request(Caps, ClientAddr, ClientPort, Eap, PasswordReq, Request, CbProc, State).
+handle_call({diameter_request, Caps, ClientAddr, ClientPort,
+		PasswordReq, Trusted, Request, Eap}, CbProc, State) ->
+	request(Caps, ClientAddr, ClientPort, Eap,
+			PasswordReq, Trusted, Request, CbProc, State).
 
 -spec handle_cast(Request, State) -> Result
 	when
@@ -231,13 +232,14 @@ code_change(_OldVsn, State, _Extra) ->
 %%----------------------------------------------------------------------
 
 -spec request(Caps, ClientAddress, ClientPort, Eap,
-		PasswordReq, Request, CbProc, State) -> Reply
+		PasswordReq, Trusted, Request, CbProc, State) -> Reply
 	when
 		Caps :: capabilities(),
 		ClientAddress :: inet:ip_address(),
 		ClientPort :: inet:port_number(),
 		Eap :: none | {eap, #eap_packet{}},
 		PasswordReq :: boolean(),
+		Trusted :: boolean(),
 		Request :: #diameter_nas_app_AAR{} | #diameter_nas_app_STR{}
 				| #diameter_eap_app_DER{},
 		CbProc :: {pid(), term()},
@@ -247,27 +249,27 @@ code_change(_OldVsn, State, _Extra) ->
 				| #diameter_eap_app_DEA{}.
 %% @doc Generate appropriate DIAMETER answer.
 %% @hidden
-request(Caps, Address, Port, none, PasswordReq, Request, CbProc, State)
+request(Caps, Address, Port, none, PasswordReq, Trusted, Request, CbProc, State)
 		when is_record(Request, diameter_nas_app_AAR) ->
 	#diameter_caps{origin_host = {OHost,DHost}, origin_realm = {ORealm,DRealm}} = Caps,
-	request1(none, Address, Port, PasswordReq, OHost,
+	request1(none, Address, Port, PasswordReq, Trusted, OHost,
 			ORealm, DHost, DRealm, Request, CbProc, State);
 request(Caps, Address, Port, {eap, <<_:32, ?Identity, Identity/binary>>},
-		PasswordReq, Request, CbProc, State) when is_record(Request, diameter_eap_app_DER) ->
+		PasswordReq, Trusted, Request, CbProc, State) when is_record(Request, diameter_eap_app_DER) ->
 	#diameter_caps{origin_host = {OHost, DHost}, origin_realm = {ORealm, DRealm}} = Caps,
-	request1({identity, Identity}, Address, Port, PasswordReq,
+	request1({identity, Identity}, Address, Port, PasswordReq, Trusted,
 			OHost, ORealm, DHost, DRealm, Request, CbProc, State);
 request(Caps, Address, Port, {eap, <<_, EapId, _:16, ?LegacyNak, Data/binary>>},
-		PasswordReq, Request, CbProc, State) when is_record(Request, diameter_eap_app_DER) ->
+		PasswordReq, Trusted, Request, CbProc, State) when is_record(Request, diameter_eap_app_DER) ->
 	#diameter_caps{origin_host = {OHost, DHost}, origin_realm = {ORealm, DRealm}} = Caps,
-	request1({legacy_nak, EapId, Data}, Address, Port, PasswordReq,
+	request1({legacy_nak, EapId, Data}, Address, Port, PasswordReq, Trusted,
 			OHost, ORealm, DHost, DRealm, Request, CbProc, State);
-request(Caps, Address, Port, Eap, PasswordReq, Request, CbProc, State)
+request(Caps, Address, Port, Eap, PasswordReq, Trusted, Request, CbProc, State)
 		when is_record(Request, diameter_eap_app_DER) ->
 	#diameter_caps{origin_host = {OHost, DHost}, origin_realm = {ORealm, DRealm}} = Caps,
-	request1(Eap, Address, Port, PasswordReq, OHost,
+	request1(Eap, Address, Port, PasswordReq, Trusted, OHost,
 			ORealm, DHost, DRealm, Request, CbProc, State);
-request(Caps, _Address, _Port, none, _PasswordReq, Request, _CbProc, State)
+request(Caps, _Address, _Port, none, _PasswordReq, _Trusted, Request, _CbProc, State)
 		when is_record(Request, diameter_nas_app_STR) ->
 	#diameter_caps{origin_host = {OHost,_}, origin_realm = {ORealm,_}} = Caps,
 	SessionId = Request#diameter_nas_app_STR.'Session-Id',
@@ -297,40 +299,40 @@ request(Caps, _Address, _Port, none, _PasswordReq, Request, _CbProc, State)
 			{reply, Answer, State}
 	end.
 %% @hidden
-request1(EapType, Address, Port, PasswordReq,
+request1(EapType, Address, Port, PasswordReq, Trusted,
 		OHost, ORealm, DHost, DRealm, Request, CbProc,
 		#state{handlers = Handlers} = State) ->
 	{SessionId, AuthRequestType} = get_attibutes(Request),
 	request2(EapType, SessionId, AuthRequestType,
 			gb_trees:lookup(SessionId, Handlers),
-			Address, Port, PasswordReq, OHost, ORealm,
+			Address, Port, PasswordReq, Trusted, OHost, ORealm,
 			DHost, DRealm, Request, CbProc, State).
 %% @hidden
 request2({_, _Identity}, SessionId, AuthRequestType, none, Address, Port,
-		PasswordReq, OHost, ORealm, DHost, DRealm, Request, CbProc,
+		PasswordReq, Trusted, OHost, ORealm, DHost, DRealm, Request, CbProc,
 		#state{aka_sup = Sup, method_prefer = akap} = State) ->
-	start_fsm(Sup, Address, Port, ?EAP_APPLICATION_ID, PasswordReq, SessionId,
+	start_fsm(Sup, Address, Port, ?EAP_APPLICATION_ID, PasswordReq, Trusted, SessionId,
 			AuthRequestType, OHost, ORealm, DHost, DRealm, [], CbProc, Request, State);
 request2({_, _Identity}, SessionId, AuthRequestType, none, Address, Port,
-		PasswordReq, OHost, ORealm, DHost, DRealm, Request, CbProc,
+		PasswordReq, Trusted, OHost, ORealm, DHost, DRealm, Request, CbProc,
 		#state{pwd_sup = Sup, method_prefer = pwd} = State) ->
-	start_fsm(Sup, Address, Port, ?EAP_APPLICATION_ID, PasswordReq, SessionId,
+	start_fsm(Sup, Address, Port, ?EAP_APPLICATION_ID, PasswordReq, Trusted, SessionId,
 			AuthRequestType, OHost, ORealm, DHost, DRealm, [], CbProc, Request, State);
 request2({_, _Identity}, SessionId, AuthRequestType, none, Address, Port,
-		PasswordReq, OHost, ORealm, DHost, DRealm, Request, CbProc,
+		PasswordReq, Trusted, OHost, ORealm, DHost, DRealm, Request, CbProc,
 		#state{ttls_sup = Sup, method_prefer = ttls} = State) ->
-	start_fsm(Sup, Address, Port, ?EAP_APPLICATION_ID, PasswordReq, SessionId,
+	start_fsm(Sup, Address, Port, ?EAP_APPLICATION_ID, PasswordReq, Trusted, SessionId,
 			AuthRequestType, OHost, ORealm, DHost, DRealm, [], CbProc, Request, State);
 request2(none, SessionId, AuthRequestType, none, Address, Port,
-		PasswordReq, OHost, ORealm, DHost, DRealm,
+		PasswordReq, Trusted, OHost, ORealm, DHost, DRealm,
 		#diameter_nas_app_AAR{'User-Name' = [UserName], 'User-Password' = [Password]} = Request,
 		CbProc, #state{simple_auth_sup = Sup} = State) ->
-	start_fsm(Sup, Address, Port, ?NAS_APPLICATION_ID, PasswordReq, SessionId,
+	start_fsm(Sup, Address, Port, ?NAS_APPLICATION_ID, PasswordReq, Trusted, SessionId,
 			AuthRequestType, OHost, ORealm, DHost, DRealm, [UserName, Password],
 			CbProc, Request, State);
 request2({legacy_nak, EapId, AlternateMethods},
 		SessionId, AuthRequestType, {value, ExistingFsm},
-		Address, Port, PasswordReq, OHost, ORealm,
+		Address, Port, PasswordReq, Trusted, OHost, ORealm,
 		DHost, DRealm, Request, CbProc,
 		#state{method_order = MethodOrder} = State) ->
 	try
@@ -341,7 +343,7 @@ request2({legacy_nak, EapId, AlternateMethods},
 						type = ?Identity, identifier = EapId, data = <<>>},
 				NewEapMessage = ocs_eap_codec:eap_packet(NewEapPacket),
 				NewRequest = Request#diameter_eap_app_DER{'EAP-Payload' = NewEapMessage},
-				start_fsm(Sup, Address, Port, ?EAP_APPLICATION_ID, PasswordReq,
+				start_fsm(Sup, Address, Port, ?EAP_APPLICATION_ID, PasswordReq, Trusted,
 						SessionId, AuthRequestType, OHost, ORealm, DHost, DRealm,
 						[], CbProc, NewRequest, State);
 			{error, none} ->
@@ -364,7 +366,7 @@ request2({legacy_nak, EapId, AlternateMethods},
 			{reply, Error, State}
 	end;
 request2(none, SessionId, AuthRequestType, {value, _ExistingFsm},
-		_Address, _Port, _PasswordReq, OHost, ORealm,
+		_Address, _Port, _PasswordReq, _Trusted, OHost, ORealm,
 		_DHost, _DRealm, _Request, _CbProc, State) ->
 	Answer = #diameter_nas_app_AAA{'Session-Id' = SessionId,
 			'Auth-Application-Id' = ?NAS_APPLICATION_ID,
@@ -373,14 +375,14 @@ request2(none, SessionId, AuthRequestType, {value, _ExistingFsm},
 			'Origin-Host' = OHost, 'Origin-Realm' = ORealm },
 	{reply, Answer, State};
 request2({eap, _Eap}, _SessionId, _AuthRequestType, {value, ExistingFsm},
-		_Address, _Port, _PasswordReq, _OHost, _ORealm, _DHost, _DRealm,
+		_Address, _Port, _PasswordReq, _Trusted, _OHost, _ORealm, _DHost, _DRealm,
 		Request, CbProc, #state{cb_fsms = FsmHandler} = State) ->
 	NewFsmHandler = gb_trees:enter(ExistingFsm, CbProc, FsmHandler),
 	gen_fsm:send_event(ExistingFsm, Request),
 	{noreply, State#state{cb_fsms = NewFsmHandler}}.
 
 %% @hidden
--spec start_fsm(AuthSup, ClientAddress, ClientPort, AppId, PasswordReq, SessionId,
+-spec start_fsm(AuthSup, ClientAddress, ClientPort, AppId, PasswordReq, Trusted, SessionId,
 		AuthRequestType, OHost, ORealm, DHost, DRealm, Options, CbProc, Request, State) -> Result
 	when
 		AuthSup :: pid(),
@@ -388,6 +390,7 @@ request2({eap, _Eap}, _SessionId, _AuthRequestType, {value, ExistingFsm},
 		ClientPort :: inet:port_number(),
 		AppId :: ?NAS_APPLICATION_ID | ?EAP_APPLICATION_ID,
 		PasswordReq :: boolean(),
+		Trusted :: boolean(),
 		SessionId :: string(),
 		AuthRequestType :: 1..3,
 		OHost :: string(),
@@ -400,11 +403,11 @@ request2({eap, _Eap}, _SessionId, _AuthRequestType, {value, ExistingFsm},
 		State :: state(),
 		Result :: {noreply, State} | {reply, Error, State},
 		Error :: #diameter_nas_app_AAA{}.
-start_fsm(AuthSup, ClientAddress, ClientPort, AppId, PasswordReq, SessionId,
+start_fsm(AuthSup, ClientAddress, ClientPort, AppId, PasswordReq, Trusted, SessionId,
 		AuthRequestType, OHost, ORealm, DHost, DRealm, Options, CbProc, Request,
 		#state{address = ServerAddress, port = ServerPort} = State) ->
 	StartArgs = [diameter, ServerAddress, ServerPort, ClientAddress,
-			ClientPort, PasswordReq, SessionId, AppId, AuthRequestType,
+			ClientPort, PasswordReq, Trusted, SessionId, AppId, AuthRequestType,
 			OHost, ORealm, DHost, DRealm, Request, Options],
 	try
 		start_fsm1(AuthSup, StartArgs, SessionId, CbProc, State)
