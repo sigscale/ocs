@@ -596,6 +596,8 @@
 					this.$.addSubscriberAkaOpc.disabled = false;
 					this.$.addSubscriberAkak.value = null;
 					this.$.addSubscriberAkaOpc.value = null;
+					document.getElementById('addproduct10').selected = null;
+					document.getElementById('adduni9').selected = null;
 					this.$.adduni9.value = null;
 					this.$.addproduct10.value = null;
 					this.$.addProductId1.value = null;
@@ -610,7 +612,8 @@
 				this.$.addSubscriberAkaOpc.disabled = null;
 				this.$.adduni9.value = null;
 				this.$.add8.value = null;
-				this.$.addproductDrop10.value = null;
+				document.getElementById('addproduct10').selected = null;
+				document.getElementById('adduni9').selected = null;
 				this.$.addProductId1.value = null;
 			},
 			_addServiceResponse: function(event) {
