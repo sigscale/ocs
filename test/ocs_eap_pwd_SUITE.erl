@@ -65,6 +65,13 @@ suite() ->
 %%
 init_per_suite(Config) ->
 	ok = ocs_test_lib:initialize_db(),
+	RadiusPort = rand:uniform(64511) + 1024,
+	Options = [{eap_method_prefer, pwd}, {eap_method_order, [pwd]}],
+	RadiusAppVar = [{auth, [{{127,0,0,1}, RadiusPort, Options}]}],
+	ok = application:set_env(ocs, radius, RadiusAppVar),
+	DiameterPort = rand:uniform(64511) + 1024,
+	DiameterAppVar = [{auth, [{{127,0,0,1}, DiameterPort, Options}]}],
+	ok = application:set_env(ocs, diameter, RadiusAppVar),
 	ok = ocs_test_lib:start(),
 	{ok, ProdID} = ocs_test_lib:add_offer(),
 	{ok, DiameterConfig} = application:get_env(ocs, diameter),
