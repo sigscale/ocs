@@ -4,8 +4,8 @@
 @vendor 10415 3GPP
 @prefix 3gpp_swm
 @inherits diameter_gen_base_rfc6733
-@inherits diameter_gen_nas_application_rfc7155
-@inherits diameter_gen_eap_application_rfc4072
+@inherits diameter_gen_ietf
+@inherits diameter_gen_3gpp
 @messages
 
 	DER ::= < Diameter Header: 268, REQ, PXY >
@@ -17,6 +17,19 @@
 		{ Auth-Request-Type }
 		{ EAP-Payload }
 		[ Destination-Host ]
+		[ User-Name ]
+		[ RAT-Type ]
+		[ Service-Selection ]
+;		[ MIP6-Feature-Vector ]
+;		[ QoS-Capability ]
+		[ Visited-Network-Identifier ]
+		[ AAA-Failure-Indication ]
+		* [ Supported-Features ]
+		[ UE-Local-IP-Address ]
+;		[ OC-Supported-Features ]
+;		[ Terminal-Information ]
+;		[ Emergency-Services ]
+;		[ DRMP ]
 		[ NAS-Identifier ]
 		[ NAS-IP-Address ]
 		[ NAS-IPv6-Address ]
@@ -25,7 +38,6 @@
 		[ NAS-Port-Type ]
 		[ Origin-State-Id ]
 		[ Port-Limit ]
-		[ User-Name ]
 		[ EAP-Key-Name ]
 		[ Service-Type ]
 		[ State ]
@@ -56,10 +68,30 @@
 		{ Result-Code }
 		{ Origin-Host }
 		{ Origin-Realm }
-		[ User-Name ]
 		[ EAP-Payload ]
-		[ EAP-Reissued-Payload ]
+		[ User-Name ]
 		[ EAP-Master-Session-Key ]
+		[ APN-OI-Replacement ]
+		[ APN-Configuration ]
+;		[ MIP6-Feature-Vector ]
+		[ Mobile-Node-Identifier ]
+;		[ Trace-Info ]
+		[ Subscription-Id ]
+		[ Session-Timeout ]
+;		[ MIP6-Agent-Info ]
+		[ 3GPP-Charging-Characteristics ]
+		* [ Redirect-Host ]
+		* [ Supported-Features ]
+;		[ OC-Supported-Features ]
+;		[ OC-OLR ]
+;		* [ Load ]
+		[ Access-Network-Info ]
+		[ User-Location-Info-Time ]
+		[ UE-Usage-Type ]
+;		[ Emergency-Info ]
+		[ Core-Network-Restrictions ]
+;		[ DRMP ]
+		[ EAP-Reissued-Payload ]
 		[ EAP-Key-Name ]
 		[ Multi-Round-Time-Out ]
 		[ Accounting-EAP-Auth-Method ]
@@ -75,7 +107,6 @@
 		[ Auth-Grace-Period ]
 		[ Auth-Session-State ]
 		[ Re-Auth-Request-Type ]
-		[ Session-Timeout ]
 		[ State ]
 		* [ Reply-Message ]
 		[ Origin-State-Id ]
@@ -102,7 +133,6 @@
 		* [ NAS-Filter-Rule ]
 		* [ QoS-Filter-Rule ]
 		* [ Tunneling ]
-		* [ Redirect-Host ]
 		[ Redirect-Host-Usage ]
 		[ Redirect-Max-Cache-Time ]
 		* [ Proxy-Info ]
