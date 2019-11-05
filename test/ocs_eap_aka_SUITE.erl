@@ -71,7 +71,7 @@ init_per_suite(Config) ->
 	ok = application:set_env(ocs, radius, RadiusAppVar),
 	DiameterPort = rand:uniform(64511) + 1024,
 	DiameterAppVar = [{auth, [{{127,0,0,1}, DiameterPort, Options}]}],
-	ok = application:set_env(ocs, diameter, RadiusAppVar),
+	ok = application:set_env(ocs, diameter, DiameterAppVar),
 	ok = ocs_test_lib:start(),
 	{ok, ProdID} = ocs_test_lib:add_offer(),
 	{ok, DiameterConfig} = application:get_env(ocs, diameter),
@@ -149,7 +149,7 @@ all() ->
 %%---------------------------------------------------------------------
 
 eap_identity_over_radius() ->
-	[{userdata, [{doc, "Send an EAP-Identity/Response using RADIUS to peer"}]}].        
+	[{userdata, [{doc, "Send an EAP-Identity/Response using RADIUS to peer"}]}].
 
 eap_identity_over_radius(Config) ->
 	MAC = "AA-BB-CC-DD-EE-FF",
@@ -473,7 +473,7 @@ message_authentication_over_radius(Config) ->
 	{auth, [{Address, Port, _} | _]} = lists:keyfind(auth, 1, RadiusConfig),
 	NasId = ?config(nas_id, Config),
 	UserName = ct:get_config(radius_username),
-	Secret = ocs:generate_password(), 
+	Secret = ocs:generate_password(),
 	ReqAuth = radius:authenticator(),
 	RadId = 13, EapId = 1,
 	ok = send_radius_identity(Socket, Address, Port, NasId, UserName,
