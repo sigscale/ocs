@@ -5,6 +5,7 @@
 		ocs_simple_auth_SUITE,
 		ocs_accounting_SUITE,
 		ocs_eap_pwd_SUITE,
+		ocs_eap_aka_SUITE,
 		ocs_codec_eap_SUITE,
 		ocs_eap_ttls_SUITE,
 		ocs_milenage_SUITE,
