@@ -477,7 +477,6 @@
 				[ CHAP-Response ]
 				* [ AVP ]
 
-@grouped
 		Tunneling ::= < AVP Header: 401 >
 				{ Tunnel-Type }
 				{ Tunnel-Medium-Type }

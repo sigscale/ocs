@@ -531,6 +531,26 @@
    RAT-Type                                               1032  Enumerated       VM
    Pre-emption-Capability                                 1047  Enumerated       VM
    Pre-emption-Vulnerability                              1048  Enumerated       VM
+   UE-Local-IP-Address                                    2805  Address          V
+   ;; 3GPP TS 29.273
+   AAA-Failure-Indication                                 1518  Unsigned32       V
+   Access-Network-Info                                    1526  Grouped          V
+;  Trace-Info                                             1505  Grouped          VM
+;  Trace-Data                                             1458  Grouped          VM
+   Mobile-Node-Identifier                                  506  UTF8String        M
+   MIP6-Feature-Vector                                     124  Unsigned64        M
+   Visited-Network-Identifier                              600  OctetString      VM
+;  QoS-Capability                                          578  Grouped           M
+   Service-Selection                                       493  UTF8String        M
+   ;; 3GPP TS 29.272
+   APN-OI-Replacement                                     1427  UTF8String       VM
+   APN-Configuration                                      1430  Grouped          VM
+   Trace-Reference                                        1459  OctetString      VM
+   Core-Network-Restrictions                              1704  Unsigned32       V
+   UE-Usage-Type                                          1680  Unsigned32       V
+   ;; 3GPP TS 29.229
+   Supported-Features                                      628  Grouped          VM
+;  OC-Supported-Features                                   621  Grouped          VM
 
 @grouped
 
@@ -1120,6 +1140,66 @@
    Serving-PLMN-Rate-Control ::= <AVP Header: 4310>
       [ Uplink-Rate-Limit ]
       [ Downlink-Rate-Limit ]
+     *[ AVP ]
+
+;  Trace-Data ::= <AVP Header: 1458>
+;     {Trace-Reference}
+;     {Trace-Depth}
+;     {Trace-NE-Type-List}
+;     [Trace-Interface-List]
+;     {Trace-Event-List}
+;     [OMC-Id]
+;     {Trace-Collection-Entity}
+;     [MDT-Configuration]
+;    *[AVP]
+
+;  Trace-Info ::= <AVP Header: 1505>
+;     [Trace-Data]
+;     [Trace-Reference]
+;    *[AVP]
+
+   APN-Configuration ::= <AVP Header: 1430>
+;     { Context-Identifier }
+;     { PDN-Type }
+;     { Service-Selection}
+    *2[ Served-Party-IP-Address ]
+;     [ EPS-Subscribed-QoS-Profile ]
+;     [ VPLMN-Dynamic-Address-Allowed ]
+;     [MIP6-Agent-Info ]
+      [ Visited-Network-Identifier ]
+;     [ PDN-GW-Allocation-Type ]
+      [ 3GPP-Charging-Characteristics ]
+;     [ AMBR ]
+;    *[ Specific-APN-Info ]
+      [ APN-OI-Replacement ]
+;     [ SIPTO-Permission ]
+;     [ LIPA-Permission ]
+;     [ Restoration-Priority ]
+;     [ SIPTO-Local-Network-Permission ]
+;     [ WLAN-offloadability ]
+;     [ Non-IP-PDN-Type-Indicator ]
+;     [ Non-IP-Data-Delivery-Mechanism ]
+;     [ SCEF-ID ]
+;     [ SCEF-Realm ]
+;     [ Preferred-Data-Mode ]
+;     [ PDN-Connection-Continuity ]
+;     [ RDS-Indicator ]
+;     [ Interworking-5GS-Indicator ]
+     *[ AVP ]
+
+   Supported-Features ::= <AVP Header: 628>
+      { Vendor-Id }
+;     { Feature-List-ID }
+;     { Feature-List }
+     *[AVP]
+
+   Access-Network-Info ::= < AVP Header: 1526 10415 >
+;     [ SSID ]
+      [ BSSID ]
+;     [ Location-Information ]
+;     [ Location-Data ]
+;     [ Operator-Name ]
+;     [ Logical-Access-ID ]
      *[ AVP ]
 
 @enum Role-Of-Node
