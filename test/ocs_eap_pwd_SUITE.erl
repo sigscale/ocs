@@ -71,7 +71,7 @@ init_per_suite(Config) ->
 	ok = application:set_env(ocs, radius, RadiusAppVar),
 	DiameterPort = rand:uniform(64511) + 1024,
 	DiameterAppVar = [{auth, [{{127,0,0,1}, DiameterPort, Options}]}],
-	ok = application:set_env(ocs, diameter, RadiusAppVar),
+	ok = application:set_env(ocs, diameter, DiameterAppVar),
 	ok = ocs_test_lib:start(),
 	{ok, ProdID} = ocs_test_lib:add_offer(),
 	{ok, DiameterConfig} = application:get_env(ocs, diameter),
