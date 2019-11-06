@@ -181,7 +181,9 @@ eap_identity_diameter(Config) ->
 
 %% @hidden
 client_service_opts(Config) ->
+	{ok, Hostname} = inet:gethostname(),
 	[{'Origin-Realm', ?config(realm, Config)},
+		{'Origin-Host', Hostname},
 		{'Vendor-Id', 10415},
 		{'Product-Name', "SigScale Test Client (auth)"},
 		{'Auth-Application-Id', [?BASE_APPLICATION_ID, ?EAP_APPLICATION_ID]},
