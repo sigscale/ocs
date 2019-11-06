@@ -74,14 +74,14 @@ init_per_suite(Config) ->
 	ok = application:set_env(ocs, diameter, DiameterAppVar),
 	ok = ocs_test_lib:start(),
 	{ok, ProdID} = ocs_test_lib:add_offer(),
+	{ok, DiameterConfig} = application:get_env(ocs, diameter),
+	{auth, [{Address, Port, _} | _]} = lists:keyfind(auth, 1, DiameterConfig),
 	Realm = "wlan.mnc" ++ ct:get_config(mnc) ++ ".mcc"
 			++ ct:get_config(mcc) ++ ".3gppnetwork.org",
 	Config1 = [{realm, Realm}, {product_id, ProdID},
 		{diameter_client, Address} | Config],
 	ok = diameter:start_service(?MODULE, client_service_opts(Config1)),
 	true = diameter:subscribe(?MODULE),
-	{ok, DiameterConfig} = application:get_env(ocs, diameter),
-	{auth, [{Address, Port, _} | _]} = lists:keyfind(auth, 1, DiameterConfig),
 	{ok, _Ref} = connect(?MODULE, Address, Port, diameter_tcp),
 	receive
 		#diameter_event{service = ?MODULE, info = Info}
