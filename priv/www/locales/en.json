@@ -517,7 +517,7 @@
   },
 	"multi": {
     "description": "Multi session allowed",
-    "message": "Multisession"
+    "message": "MultiSession"
   },
 	"offer": {
     "description": "Offering product",
