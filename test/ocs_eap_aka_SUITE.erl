@@ -56,8 +56,8 @@
 suite() ->
 	[{userdata, [{doc, "Test suite for authentication with EAP-AKA in OCS"}]},
 	{timetrap, {seconds, 8}},
-	{require, radius_username}, {default_config, radius_username, "ocs"},
-	{require, radius_password}, {default_config, radius_password, "ocs123"},
+	{require, mcc}, {default_config, mcc, "413"},
+	{require, mnc}, {default_config, mnc, "726"},
 	{require, radius_shared_secret},{default_config, radius_shared_secret, "xyzzy5461"}].
 
 -spec init_per_suite(Config :: [tuple()]) -> Config :: [tuple()].
@@ -76,13 +76,17 @@ init_per_suite(Config) ->
 	{ok, ProdID} = ocs_test_lib:add_offer(),
 	{ok, DiameterConfig} = application:get_env(ocs, diameter),
 	{auth, [{Address, Port, _} | _]} = lists:keyfind(auth, 1, DiameterConfig),
-	ok = diameter:start_service(?MODULE, client_service_opts()),
+	ok = diameter:start_service(?MODULE, client_service_opts(Config)),
 	true = diameter:subscribe(?MODULE),
 	{ok, _Ref} = connect(?MODULE, Address, Port, diameter_tcp),
+	Realm = "wlan.mnc" ++ ct:get_config(mnc) ++ ".mcc"
+			++ ct:get_config(mcc) ++ ".3gppnetwork.org",
+	Config1 = [{realm, Realm}, {product_id, ProdID},
+		{diameter_client, Address} | Config],
 	receive
 		#diameter_event{service = ?MODULE, info = Info}
 				when element(1, Info) == up ->
-			[{product_id, ProdID}, {diameter_client, Address} | Config];
+			Config1;
 		_ ->
 			{skip, diameter_client_service_not_started}
 	end.
@@ -127,22 +131,40 @@ sequences() ->
 %% Returns a list of all test cases in this test suite.
 %%
 all() ->
-	[]. 
+	[eap_identity_radius].
 
 %%---------------------------------------------------------------------
 %%  Test cases
 %%---------------------------------------------------------------------
+
+eap_identity_radius() ->
+   [{userdata, [{doc, "Send an EAP-Identity/Response using RADIUS"}]}].
+
+eap_identity_radius(Config) ->
+	Socket = ?config(socket, Config),
+	{ok, RadiusConfig} = application:get_env(ocs, radius),
+	{auth, [{Address, Port, _} | _]} = lists:keyfind(auth, 1, RadiusConfig),
+	NasId = ?config(nas_id, Config),
+	ReqAuth = radius:authenticator(),
+	RadId = 1, EapId = 1,
+	Secret = ct:get_config(radius_shared_secret),
+	Realm = ?config(realm, Config),
+	MSIN = msin(),
+	PeerId = "6" + ct:get_config(mcc) ++ ct:get_config(mcc)
+			++ MSIN ++ "@wlan." ++ Realm,
+	ok = send_radius_identity(Socket, Address, Port, NasId,
+			PeerId, Secret, ReqAuth, EapId, RadId),
+	NextEapId = EapId + 1,
+	{NextEapId, _Token, _ServerID} = receive_radius_id(Socket, Address,
+			Port, Secret, ReqAuth, RadId).
 
 %%---------------------------------------------------------------------
 %%  Internal functions
 %%---------------------------------------------------------------------
 
 %% @hidden
-client_service_opts() ->
-	OriginHost = ocs:generate_password() ++ "@siscale.org",
-	OriginRealm = ocs:generate_password() ++ "@siscale.org",
-	[{'Origin-Host', OriginHost},
-		{'Origin-Realm', OriginRealm},
+client_service_opts(Config) ->
+	[{'Origin-Realm', ?config(realm, Config)},
 		{'Vendor-Id', 10415},
 		{'Product-Name', "SigScale Test Client (auth)"},
 		{'Auth-Application-Id', [?BASE_APPLICATION_ID, ?EAP_APPLICATION_ID]},
@@ -172,4 +194,60 @@ transport_opts1({Trans, LocalAddr, RemAddr, RemPort}) ->
 	[{transport_module, Trans}, {transport_config,
 			[{raddr, RemAddr}, {rport, RemPort},
 			{reuseaddr, true}, {ip, LocalAddr}]}].
+
+%% @hidden
+radius_access_request(Socket, Address, Port, NasId,
+		UserName, Secret, Auth, RadId, EapMsg)
+		when is_binary(UserName) ->
+	radius_access_request(Socket, Address, Port, NasId,
+			binary_to_list(UserName), Secret, Auth, RadId, EapMsg);
+radius_access_request(Socket, Address, Port, NasId,
+		UserName, Secret, Auth, RadId, EapMsg) ->
+	A0 = radius_attributes:new(),
+	A1 = radius_attributes:add(?UserName, UserName, A0),
+	A2 = radius_attributes:add(?NasPortType, 19, A1),
+	A3 = radius_attributes:add(?NasIdentifier, NasId, A2),
+	A4 = radius_attributes:add(?CallingStationId, mac(), A3),
+	A5 = radius_attributes:add(?CalledStationId, mac(), A4),
+	A6 = radius_attributes:add(?EAPMessage, EapMsg, A5),
+	A7 = radius_attributes:add(?MessageAuthenticator, <<0:128>>, A6),
+	Request1 = #radius{code = ?AccessRequest, id = RadId,
+		authenticator = Auth, attributes = A7},
+	ReqPacket1 = radius:codec(Request1),
+	MsgAuth1 = crypto:hmac(md5, Secret, ReqPacket1),
+	A8 = radius_attributes:store(?MessageAuthenticator, MsgAuth1, A7),
+	Request2 = Request1#radius{attributes = A8},
+	ReqPacket2 = radius:codec(Request2),
+	gen_udp:send(Socket, Address, Port, ReqPacket2).
+
+%% @hidden
+send_radius_identity(Socket, Address, Port, NasId,
+		PeerId, Secret, Auth, EapId, RadId) ->
+	EapPacket  = #eap_packet{code = response, type = ?Identity,
+			identifier = EapId, data = PeerId},
+	EapMsg = ocs_eap_codec:eap_packet(EapPacket),
+	radius_access_request(Socket, Address, Port, NasId,
+			PeerId, Secret, Auth, RadId, EapMsg).
+
+%% @hidden
+mac() ->
+	mac([]).
+%% @hidden
+mac(Acc) when length(Acc) =:= 12 ->
+	list_to_binary(Acc);
+mac(Acc) ->
+	mac([integer_to_list(rand:uniform(255), 16) | Acc]).
+
+-spec msin(Length) -> string()
+	when
+		Length :: pos_integer().
+%% @doc Generate a random mobile subscription identification number (MSIN).
+%% @private
+msin() ->
+	msin([]).
+%% @hidden
+msin(Acc) when length(Acc) =:= 10 ->
+	Acc;
+msin(Acc) ->
+	msin([rand:uniform(10) + 47 | Acc]).
 
