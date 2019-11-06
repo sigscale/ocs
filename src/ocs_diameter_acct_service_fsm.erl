@@ -84,6 +84,7 @@
 init([Address, Port, Options] = _Args) ->
 	process_flag(trap_exit, true),
 	SOptions = service_options(Options),
+erlang:display({?MODULE, ?LINE, SOptions}),
 	TOptions = transport_options(diameter_tcp, Address, Port),
 	SvcName = ?DIAMETER_ACCT_SERVICE(Address, Port),
 	diameter:subscribe(SvcName),
@@ -313,17 +314,19 @@ service_options(Options) ->
 	{ok, Vsn} = application:get_key(vsn),
 	Version = list_to_integer([C || C <- Vsn, C /= $.]),
 	{ok, Hostname} = inet:gethostname(),
-	Options1 = case lists:keymember('Origin-Host', 1, Options) of
+	Options1 = lists:keydelete(eap_method_prefer, 1, Options),
+	Options2 = lists:keydelete(eap_method_order, 1, Options1),
+	Options3 = case lists:keymember('Origin-Host', 1, Options2) of
 		true ->
-			Options;
+			Options2;
 		false when length(Hostname) > 0 ->
-			[{'Origin-Host', Hostname} | Options];
+			[{'Origin-Host', Hostname} | Options2];
 		false ->
-			[{'Origin-Host', "ocs"} | Options]
+			[{'Origin-Host', "ocs"} | Options2]
 	end,
-	Options2 = case lists:keymember('Origin-Realm', 1, Options1) of
+	Options4 = case lists:keymember('Origin-Realm', 1, Options3) of
 		true ->
-			Options1;
+			Options3;
 		false ->
 			OriginRealm = case inet_db:res_option(domain) of
 				S when length(S) > 0 ->
@@ -331,9 +334,9 @@ service_options(Options) ->
 				_ ->
 					"example.net"
 			end,
-			[{'Origin-Realm', OriginRealm} | Options1]
+			[{'Origin-Realm', OriginRealm} | Options3]
 	end,
-	Options2 ++ [{'Vendor-Id', ?IANA_PEN_SigScale},
+	Options4 ++ [{'Vendor-Id', ?IANA_PEN_SigScale},
 		{'Product-Name', "SigScale OCS"},
 		{'Firmware-Revision', Version},
 		{'Supported-Vendor-Id', [?IANA_PEN_3GPP]},
