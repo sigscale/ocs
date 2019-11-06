@@ -131,7 +131,7 @@ sequences() ->
 %% Returns a list of all test cases in this test suite.
 %%
 all() ->
-	[eap_identity_radius].
+	[eap_identity_radius, eap_identity_diameter].
 
 %%---------------------------------------------------------------------
 %%  Test cases
@@ -157,6 +157,23 @@ eap_identity_radius(Config) ->
 	NextEapId = EapId + 1,
 	{NextEapId, _Token, _ServerID} = receive_radius_id(Socket, Address,
 			Port, Secret, ReqAuth, RadId).
+
+eap_identity_diameter() ->
+   [{userdata, [{doc, "Send an EAP-Identity/Response using DIAMETER"}]}].
+
+eap_identity_diameter(Config) ->
+	Ref = erlang:ref_to_list(make_ref()),
+	SId = diameter:session_id(Ref),
+	EapId = 1,
+	Realm = ?config(realm, Config),
+	MSIN = msin(),
+	PeerId = "6" + ct:get_config(mcc) ++ ct:get_config(mcc)
+			++ MSIN ++ "@wlan." ++ Realm,
+	DEA = send_diameter_identity(SId, EapId, PeerId),
+	SIdbin = list_to_binary(SId),
+	#diameter_eap_app_DEA{'Session-Id' = SIdbin, 'Auth-Application-Id' = ?EAP_APPLICATION_ID,
+			'Auth-Request-Type' =  ?'DIAMETER_BASE_AUTH-REQUEST-TYPE_AUTHORIZE_AUTHENTICATE',
+			'Result-Code' = ?'DIAMETER_BASE_RESULT-CODE_MULTI_ROUND_AUTH'} = DEA.
 
 %%---------------------------------------------------------------------
 %%  Internal functions
@@ -228,6 +245,18 @@ send_radius_identity(Socket, Address, Port, NasId,
 	EapMsg = ocs_eap_codec:eap_packet(EapPacket),
 	radius_access_request(Socket, Address, Port, NasId,
 			PeerId, Secret, Auth, RadId, EapMsg).
+
+%% @hidden
+send_diameter_identity(SId, EapId, PeerId) ->
+	EapPacket  = #eap_packet{code = response, type = ?Identity,
+			identifier = EapId, data = PeerId},
+	EapMsg = ocs_eap_codec:eap_packet(EapPacket),
+	DER = #diameter_eap_app_DER{'Session-Id' = SId,
+			'Auth-Application-Id' = ?EAP_APPLICATION_ID,
+			'Auth-Request-Type' = ?'DIAMETER_BASE_AUTH-REQUEST-TYPE_AUTHORIZE_AUTHENTICATE',
+			'EAP-Payload' = EapMsg},
+	{ok, Answer} = diameter:call(?MODULE, eap_app_test, DER, []),
+	Answer.
 
 %% @hidden
 mac() ->
