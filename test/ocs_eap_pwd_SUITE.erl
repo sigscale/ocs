@@ -147,6 +147,7 @@ all() ->
 %%---------------------------------------------------------------------
 %%  Test cases
 %%---------------------------------------------------------------------
+
 eap_identity_radius() ->
    [{userdata, [{doc, "Send an EAP-Identity/Response using RADIUS to peer"}]}].
 
