@@ -104,8 +104,17 @@
    User-Equipment-Info-Value                               460  OctetString      -
    Value-Digits                                            447  Integer64        M
    Validity-Time                                           448  Unsigned32       M
+   ;; RFC7683 DIAMETER Overload Indication Conveyance(DOIC)
+   OC-Supported-Features                                   621  Grouped          VM
+   OC-Feature-Vector                                       622  Unsigned64       -
+   ;; RFC7944 DIAMETER Routing Message Priority(DRMP)
+   DRMP                                                    301  Enumerated       V
 
 @grouped
+
+   OC-Supported-Features ::= <AVP Header: 621 >
+      [ OC-Feature-Vector ]
+     *[ AVP ]
 
    CC-Money ::= <AVP Header: 413>
       { Unit-Value }
@@ -200,6 +209,24 @@
       [ Tunnel-Assignment-Id ]
       [ Tunnel-Password ]
       [ Tunnel-Private-Group-Id ]
+
+@enum DRMP
+   PRIORITY_15                     15
+   PRIORITY_14                     14
+   PRIORITY_13                     13
+   PRIORITY_12                     12
+   PRIORITY_11                     11
+   PRIORITY_10                     10
+   PRIORITY_9                       9
+   PRIORITY_8                       8
+   PRIORITY_7                       7
+   PRIORITY_6                       6
+   PRIORITY_5                       5
+   PRIORITY_4                       4
+   PRIORITY_3                       3
+   PRIORITY_2                       2
+   PRIORITY_1                       1
+   PRIORITY_0                       0
 
 @enum CC-Request-Type
    INITIAL_REQUEST                  1

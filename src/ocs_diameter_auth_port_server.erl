@@ -302,7 +302,7 @@ request(Caps, _Address, _Port, none, _PasswordReq, _Trusted, Request, _CbProc, S
 request1(EapType, Address, Port, PasswordReq, Trusted,
 		OHost, ORealm, DHost, DRealm, Request, CbProc,
 		#state{handlers = Handlers} = State) ->
-	{SessionId, AuthRequestType} = get_attibutes(Request),
+	{SessionId, AuthRequestType} = get_attributes(Request),
 	request2(EapType, SessionId, AuthRequestType,
 			gb_trees:lookup(SessionId, Handlers),
 			Address, Port, PasswordReq, Trusted, OHost, ORealm,
@@ -473,7 +473,7 @@ start_fsm1(AuthSup, StartArgs, SessId, CbProc,
 			{undefined, State}
 	end.
 
--spec get_attibutes(Request) -> {SessionId, AuthRequestType}
+-spec get_attributes(Request) -> {SessionId, AuthRequestType}
 	when
 		Request :: #diameter_nas_app_AAR{} | #diameter_eap_app_DER{},
 		SessionId :: string(),
@@ -481,10 +481,10 @@ start_fsm1(AuthSup, StartArgs, SessId, CbProc,
 %% @doc Return values for Session-Id and Auth-Request-Type attributes in
 %% DIAMETER Request.
 %% @hidden
-get_attibutes(#diameter_nas_app_AAR{'Session-Id' = SessionId,
+get_attributes(#diameter_nas_app_AAR{'Session-Id' = SessionId,
 		'Auth-Request-Type' = AuthRequestType}) ->
 	{SessionId, AuthRequestType};
-get_attibutes(#diameter_eap_app_DER{'Session-Id' = SessionId,
+get_attributes(#diameter_eap_app_DER{'Session-Id' = SessionId,
 		'Auth-Request-Type' = AuthRequestType}) ->
 	{SessionId, AuthRequestType}.
 
