@@ -98,7 +98,6 @@
 init([Address, Port, Options] = _Args) ->
 	process_flag(trap_exit, true),
 	SOptions = service_options(Options),
-erlang:display({?MODULE, ?LINE, SOptions}),
 	TOptions = transport_options(diameter_tcp, Address, Port),
 	SvcName = ?DIAMETER_AUTH_SERVICE(Address, Port),
 	diameter:subscribe(SvcName),
