@@ -67,6 +67,16 @@ suite() ->
 %%
 init_per_suite(Config) ->
 	ok = ocs_test_lib:initialize_db(),
+	RadiusAuthPort = rand:uniform(64511) + 1024,
+	RadiusAcctPort = rand:uniform(64511) + 1024,
+	RadiusAppVar = [{auth, [{{127,0,0,1}, RadiusAuthPort, []}]},
+			{acct, [{{127,0,0,1}, RadiusAcctPort, []}]}],
+	ok = application:set_env(ocs, radius, RadiusAppVar, [{persistent, true}]),
+	DiameterAuthPort = rand:uniform(64511) + 1024,
+	DiameterAcctPort = rand:uniform(64511) + 1024,
+	DiameterAppVar = [{auth, [{{127,0,0,1}, DiameterAuthPort, []}]},
+		{acct, [{{127,0,0,1}, DiameterAcctPort, []}]}],
+	ok = application:set_env(ocs, diameter, DiameterAppVar, [{persistent, true}]),
 	ok = ocs_test_lib:start(),
 	{ok, ProdID} = ocs_test_lib:add_offer(),
 	{ok, Radius} = application:get_env(ocs, radius),
@@ -89,7 +99,8 @@ init_per_suite(Config) ->
 		#diameter_event{service = ?MODULE, info = Info}
 				when element(1, Info) == up ->
 			Config1;
-		_ ->
+		_Other ->
+erlang:display({?MODULE, ?LINE, _Other}),
 			{skip, diameter_client_acct_service_not_started}
 	end.
 
@@ -97,6 +108,8 @@ init_per_suite(Config) ->
 %% Cleanup after the whole suite.
 %%
 end_per_suite(Config) ->
+	ok = application:unset_env(ocs, radius, [{persistent, true}]),
+	ok = application:unset_env(ocs, diameter, [{persistent, true}]),
 	ok = diameter:stop_service(?MODULE),
 	ok = ocs_test_lib:stop(),
 	ok = ocs:delete_service("25252525"),
@@ -198,7 +211,7 @@ radius_accounting(Config) ->
 	_BId = add_bucket(ProdRef, B1),
 	Secret = ct:get_config(radius_shared_secret),
 	ReqAuth = radius:authenticator(),
-   HiddenPassword = radius_attributes:hide(Secret, ReqAuth, Password),
+	HiddenPassword = radius_attributes:hide(Secret, ReqAuth, Password),
 	Socket = ?config(radius_nas_socket, Config),
 	authenticate_subscriber(Socket, AuthAddress, AuthPort, PeerID,
 			HiddenPassword, Secret, NasID, ReqAuth, RadID1, AcctSessionID),
