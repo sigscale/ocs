@@ -682,7 +682,7 @@ connect(SvcName, Opts)->
 %% @hidden
 client_acct_service_opts(Config) ->
 	[{'Origin-Host', ?config(host, Config)},
-			{'Origin-Realm', ?config(host, Config)},
+			{'Origin-Realm', ?config(realm, Config)},
 			{'Vendor-Id', ?IANA_PEN_SigScale},
 			{'Supported-Vendor-Id', [?IANA_PEN_3GPP]},
 			{'Product-Name', "SigScale Test Client (Acct)"},
