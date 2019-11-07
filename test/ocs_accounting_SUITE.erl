@@ -42,6 +42,8 @@
 
 -define(BASE_APPLICATION_ID, 0).
 -define(RO_APPLICATION_ID, 4).
+-define(IANA_PEN_3GPP, 10415).
+-define(IANA_PEN_SigScale, 50386).
 
 -define(EPOCH_OFFSET, 2208988800).
 %% support deprecated_time_unit()
@@ -72,18 +74,21 @@ init_per_suite(Config) ->
 	{_, [{RacctAddress, RacctPort, _} | _]} = lists:keyfind(acct, 1, Radius),
 	{ok, Diameter} = application:get_env(ocs, diameter),
 	{_, [{Daddress, Dport, _} | _]} = lists:keyfind(acct, 1, Diameter),
-	ok = diameter:start_service(?MODULE, client_acct_service_opts()),
+	Host = atom_to_list(?MODULE),
+	Realm = "acct.sigscale.org",
+	Config1 = [{host, Host}, {realm, Realm}, {product_id, ProdID},
+			{radius_auth_address, RauthAddress},
+			{radius_auth_port, RauthPort},
+			{radius_acct_address, RacctAddress},
+			{radius_acct_port, RacctPort},
+			{diameter_acct_address, Daddress} | Config],
+	ok = diameter:start_service(?MODULE, client_acct_service_opts(Config1)),
 	true = diameter:subscribe(?MODULE),
 	{ok, _Ref2} = connect(?MODULE, Daddress, Dport, diameter_tcp),
 	receive
 		#diameter_event{service = ?MODULE, info = Info}
 				when element(1, Info) == up ->
-			[{product_id, ProdID},
-					{radius_auth_address, RauthAddress},
-					{radius_auth_port, RauthPort},
-					{radius_acct_address, RacctAddress},
-					{radius_acct_port, RacctPort},
-					{diameter_acct_address, Daddress} | Config];
+			Config1;
 		_ ->
 			{skip, diameter_client_acct_service_not_started}
 	end.
@@ -675,21 +680,21 @@ connect(SvcName, Opts)->
 	diameter:add_transport(SvcName, {connect, Opts}).
 
 %% @hidden
-client_acct_service_opts() ->
-	{ok, Hostname} = inet:gethostname(),
-	[{'Origin-Host', Hostname},
-		{'Origin-Realm', "testdomain.com"},
-		{'Vendor-Id', 10415},
-		{'Product-Name', "SigScale Test Client (Acct)"},
-		{'Auth-Application-Id', [?BASE_APPLICATION_ID, ?RO_APPLICATION_ID]},
-		{string_decode, false},
-		{restrict_connections, false},
-		{application, [{alias, base_app_test},
-				{dictionary, diameter_gen_base_rfc6733},
-				{module, diameter_test_client_cb}]},
-		{application, [{alias, cc_app_test},
-				{dictionary, diameter_gen_3gpp_ro_application},
-				{module, diameter_test_client_cb}]}].
+client_acct_service_opts(Config) ->
+	[{'Origin-Host', ?config(host, Config)},
+			{'Origin-Realm', ?config(host, Config)},
+			{'Vendor-Id', ?IANA_PEN_SigScale},
+			{'Supported-Vendor-Id', [?IANA_PEN_3GPP]},
+			{'Product-Name', "SigScale Test Client (Acct)"},
+			{'Auth-Application-Id', [?BASE_APPLICATION_ID, ?RO_APPLICATION_ID]},
+			{string_decode, false},
+			{restrict_connections, false},
+			{application, [{alias, base_app_test},
+					{dictionary, diameter_gen_base_rfc6733},
+					{module, diameter_test_client_cb}]},
+			{application, [{alias, cc_app_test},
+					{dictionary, diameter_gen_3gpp_ro_application},
+					{module, diameter_test_client_cb}]}].
 
 %% @hidden
 transport_opts(Address, Port, Trans) when is_atom(Trans) ->

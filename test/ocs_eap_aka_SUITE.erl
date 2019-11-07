@@ -41,6 +41,8 @@
 
 -define(BASE_APPLICATION_ID, 0).
 -define(EAP_APPLICATION_ID, 5).
+-define(IANA_PEN_3GPP, 10415).
+-define(IANA_PEN_SigScale, 50386).
 
 %% support deprecated_time_unit()
 -define(MILLISECOND, milli_seconds).
@@ -56,8 +58,8 @@
 suite() ->
 	[{userdata, [{doc, "Test suite for authentication with EAP-AKA in OCS"}]},
 	{timetrap, {seconds, 8}},
-	{require, mcc}, {default_config, mcc, "413"},
-	{require, mnc}, {default_config, mnc, "726"},
+	{require, mcc}, {default_config, mcc, "001"},
+	{require, mnc}, {default_config, mnc, "001"},
 	{require, radius_shared_secret},{default_config, radius_shared_secret, "xyzzy5461"}].
 
 -spec init_per_suite(Config :: [tuple()]) -> Config :: [tuple()].
@@ -76,9 +78,10 @@ init_per_suite(Config) ->
 	{ok, ProdID} = ocs_test_lib:add_offer(),
 	{ok, DiameterConfig} = application:get_env(ocs, diameter),
 	{auth, [{Address, Port, _} | _]} = lists:keyfind(auth, 1, DiameterConfig),
+	Host = atom_to_list(?MODULE),
 	Realm = "wlan.mnc" ++ ct:get_config(mnc) ++ ".mcc"
 			++ ct:get_config(mcc) ++ ".3gppnetwork.org",
-	Config1 = [{realm, Realm}, {product_id, ProdID},
+	Config1 = [{host, Host}, {realm, Realm}, {product_id, ProdID},
 		{diameter_client, Address} | Config],
 	ok = diameter:start_service(?MODULE, client_service_opts(Config1)),
 	true = diameter:subscribe(?MODULE),
@@ -87,7 +90,7 @@ init_per_suite(Config) ->
 		#diameter_event{service = ?MODULE, info = Info}
 				when element(1, Info) == up ->
 			Config1;
-		_ ->
+		_Other ->
 			{skip, diameter_client_service_not_started}
 	end.
 
@@ -154,7 +157,7 @@ eap_identity_radius(Config) ->
 			++ MSIN ++ "@wlan." ++ Realm,
 	ok = send_radius_identity(Socket, Address, Port, NasId,
 			PeerId, Secret, ReqAuth, EapId, RadId),
-	NextEapId = EapId + 1,
+	NextEapId = EapId + 1.
 	{NextEapId, _Token, _ServerID} = receive_radius_id(Socket, Address,
 			Port, Secret, ReqAuth, RadId).
 
@@ -181,19 +184,19 @@ eap_identity_diameter(Config) ->
 
 %% @hidden
 client_service_opts(Config) ->
-	{ok, Hostname} = inet:gethostname(),
-	[{'Origin-Realm', ?config(realm, Config)},
-		{'Origin-Host', Hostname},
-		{'Vendor-Id', 10415},
-		{'Product-Name', "SigScale Test Client (auth)"},
-		{'Auth-Application-Id', [?BASE_APPLICATION_ID, ?EAP_APPLICATION_ID]},
-		{string_decode, false},
-		{application, [{alias, base_app_test},
-				{dictionary, diameter_gen_base_rfc6733},
-				{module, diameter_test_client_cb}]},
-		{application, [{alias, eap_app_test},
-				{dictionary, diameter_gen_eap_application_rfc4072},
-				{module, diameter_test_client_cb}]}].
+	[{'Origin-Host', ?config(host, Config)},
+			{'Origin-Realm', ?config(realm, Config)},
+			{'Vendor-Id', ?IANA_PEN_SigScale},
+			{'Supported-Vendor-Id', [?IANA_PEN_3GPP]},
+			{'Product-Name', "SigScale Test Client (auth)"},
+			{'Auth-Application-Id', [?BASE_APPLICATION_ID, ?EAP_APPLICATION_ID]},
+			{string_decode, false},
+			{application, [{alias, base_app_test},
+					{dictionary, diameter_gen_base_rfc6733},
+					{module, diameter_test_client_cb}]},
+			{application, [{alias, eap_app_test},
+					{dictionary, diameter_gen_eap_application_rfc4072},
+					{module, diameter_test_client_cb}]}].
 
 %% @doc Add a transport capability to diameter service.
 %% @hidden

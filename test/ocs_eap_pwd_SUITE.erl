@@ -41,6 +41,8 @@
 
 -define(BASE_APPLICATION_ID, 0).
 -define(EAP_APPLICATION_ID, 5).
+-define(IANA_PEN_3GPP, 10415).
+-define(IANA_PEN_SigScale, 50386).
 
 %% support deprecated_time_unit()
 -define(MILLISECOND, milli_seconds).
@@ -76,13 +78,17 @@ init_per_suite(Config) ->
 	{ok, ProdID} = ocs_test_lib:add_offer(),
 	{ok, DiameterConfig} = application:get_env(ocs, diameter),
 	{auth, [{Address, Port, _} | _]} = lists:keyfind(auth, 1, DiameterConfig),
-	ok = diameter:start_service(?MODULE, client_service_opts()),
+	Host = atom_to_list(?MODULE),
+	Realm = "pwd.sigscale.org",
+	Config1 = [{host, Host}, {realm, Realm},
+			{product_id, ProdID}, {diameter_client, Address} | Config],
+	ok = diameter:start_service(?MODULE, client_service_opts(Config1)),
 	true = diameter:subscribe(?MODULE),
 	{ok, _Ref} = connect(?MODULE, Address, Port, diameter_tcp),
 	receive
 		#diameter_event{service = ?MODULE, info = Info}
 				when element(1, Info) == up ->
-			[{product_id, ProdID}, {diameter_client, Address} | Config];
+			Config1;
 		_ ->
 			{skip, diameter_client_service_not_started}
 	end.
@@ -815,22 +821,20 @@ connect(SvcName, Opts)->
 	diameter:add_transport(SvcName, {connect, Opts}).
 
 %% @hidden
-client_service_opts() ->
-	OriginHost = ocs:generate_password() ++ "@siscale.org",
-	OriginRealm = ocs:generate_password() ++ "@siscale.org",
-	[{'Origin-Host', OriginHost},
-		{'Origin-Realm', OriginRealm},
-		{'Vendor-Id', 10415},
-		{'Product-Name', "SigScale Test Client (auth)"},
-		{'Auth-Application-Id', [?BASE_APPLICATION_ID,
-														 ?EAP_APPLICATION_ID]},
-		{string_decode, false},
-		{application, [{alias, base_app_test},
-				{dictionary, diameter_gen_base_rfc6733},
-				{module, diameter_test_client_cb}]},
-		{application, [{alias, eap_app_test},
-				{dictionary, diameter_gen_eap_application_rfc4072},
-				{module, diameter_test_client_cb}]}].
+client_service_opts(Config) ->
+	[{'Origin-Host', ?config(host, Config)},
+			{'Origin-Realm', ?config(realm, Config)},
+			{'Vendor-Id', ?IANA_PEN_SigScale},
+			{'Supported-Vendor-Id', [?IANA_PEN_3GPP]},
+			{'Product-Name', "SigScale Test Client (auth)"},
+			{'Auth-Application-Id', [?BASE_APPLICATION_ID, ?EAP_APPLICATION_ID]},
+			{string_decode, false},
+			{application, [{alias, base_app_test},
+					{dictionary, diameter_gen_base_rfc6733},
+					{module, diameter_test_client_cb}]},
+			{application, [{alias, eap_app_test},
+					{dictionary, diameter_gen_eap_application_rfc4072},
+					{module, diameter_test_client_cb}]}].
 
 %% @hidden
 transport_opts(Address, Port, Trans) when is_atom(Trans) ->
