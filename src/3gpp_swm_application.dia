@@ -28,7 +28,7 @@
 		[ UE-Local-IP-Address ]
 		[ OC-Supported-Features ]
 ;		[ Terminal-Information ]
-;		[ Emergency-Services ]
+		[ Emergency-Services ]
 ;		[ DRMP ]
 		[ NAS-Identifier ]
 		[ NAS-IP-Address ]
