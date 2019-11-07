@@ -251,6 +251,10 @@
       [ Tunnel-Password ]
       [ Tunnel-Private-Group-Id ]
 
+@enum OC-Report-Type
+   HOST_REPORT                      0
+   REALM_REPORT                     1
+
 @enum Load-Type
    HOST                             1
    PEER                             2
