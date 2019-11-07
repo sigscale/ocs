@@ -1166,7 +1166,7 @@
     *2[ Served-Party-IP-Address ]
 ;     [ EPS-Subscribed-QoS-Profile ]
 ;     [ VPLMN-Dynamic-Address-Allowed ]
-;     [MIP6-Agent-Info ]
+      [ MIP6-Agent-Info ]
       [ Visited-Network-Identifier ]
 ;     [ PDN-GW-Allocation-Type ]
       [ 3GPP-Charging-Characteristics ]

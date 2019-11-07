@@ -105,12 +105,53 @@
    Value-Digits                                            447  Integer64        M
    Validity-Time                                           448  Unsigned32       M
    ;; RFC7683 DIAMETER Overload Indication Conveyance(DOIC)
-   OC-Supported-Features                                   621  Grouped          VM
-   OC-Feature-Vector                                       622  Unsigned64       -
+   OC-Supported-Features                                   621  Grouped          V
+   OC-Feature-Vector                                       622  Unsigned64       V
+   OC-OLR                                                  623  Grouped          V
+   OC-Sequence-Number                                      624  Unsigned64       V
+   OC-Validity-Duration                                    625  Unsigned32       V
+   OC-Report-Type                                          626  Enumerated       V
+   OC-Reduction-Percentage                                 627  Unsigned32       V
    ;; RFC7944 DIAMETER Routing Message Priority(DRMP)
    DRMP                                                    301  Enumerated       V
+   ;; RFC5447 DIAMETER Mobile IPv6
+   MIP6-Agent-Info                                         486  Grouped          -
+   MIP6-Home-Link-Prefix                                   125  OctetString      M
+   ;; RFC4004 DIAMETER Mobile IPv4 Application
+   MIP-Home-Agent-Address                                  334  Address          -
+   MIP-Home-Agent-Host                                     348  Grouped          -
+   ;; RFC8581 DIAMETER Agent Overload and the Peer Overload Report
+   SourceID                                                649  DiameterIdentity V
+   ;; RFC8583 DIAMETER Load Information Conveyance
+   Load                                                    650  Grouped          V
+   Load-Type                                               651  Enumerated       V
+   Load-Value                                              652  Unsigned64       V
 
 @grouped
+
+   Load ::= <AVP Header: 650 >
+      [ Load-Type ]
+      [ Load-Value ]
+      [ SourceID ]
+     *[ AVP ]
+
+   OC-OLR ::= <AVP Header: 623>
+      < OC-Sequence-Number >
+      < OC-Report-Type >
+      [ OC-Reduction-Percentage ]
+      [ OC-Validity-Duration ]
+     *[ AVP ]
+
+   MIP-Home-Agent-Host ::= < AVP Header: 348 >
+      { Destination-Realm }
+      { Destination-Host }
+     *[ AVP ]
+
+	MIP6-Agent-Info ::= <AVP Header: 486>
+    *2[ MIP-Home-Agent-Address ]
+      [ MIP-Home-Agent-Host ]
+      [ MIP6-Home-Link-Prefix ]
+     *[ AVP ]
 
    OC-Supported-Features ::= <AVP Header: 621 >
       [ OC-Feature-Vector ]
@@ -209,6 +250,14 @@
       [ Tunnel-Assignment-Id ]
       [ Tunnel-Password ]
       [ Tunnel-Private-Group-Id ]
+
+@enum OC-Report-Type
+   HOST_REPORT                      0
+   REALM_REPORT                     1
+
+@enum Load-Type
+   HOST                             1
+   PEER                             2
 
 @enum DRMP
    PRIORITY_15                     15
