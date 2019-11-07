@@ -82,7 +82,7 @@
 		[ 3GPP-Charging-Characteristics ]
 		* [ Redirect-Host ]
 		* [ Supported-Features ]
-;		[ OC-Supported-Features ]
+		[ OC-Supported-Features ]
 ;		[ OC-OLR ]
 ;		* [ Load ]
 		[ Access-Network-Info ]
