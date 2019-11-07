@@ -107,6 +107,11 @@
    ;; RFC7683 DIAMETER Overload Indication Conveyance(DOIC)
    OC-Supported-Features                                   621  Grouped          VM
    OC-Feature-Vector                                       622  Unsigned64       -
+   OC-OLR                                                  623  Grouped          V
+   OC-Sequence-Number                                      624  Unsigned64       -
+   OC-Validity-Duration                                    625  Unsigned32       V
+   OC-Report-Type                                          626  Enumerated       V
+   OC-Reduction-Percentage                                 627  Unsigned32       V
    ;; RFC7944 DIAMETER Routing Message Priority(DRMP)
    DRMP                                                    301  Enumerated       V
    ;; RFC5447 DIAMETER Mobile IPv6
@@ -117,6 +122,13 @@
    MIP-Home-Agent-Host                                     348  Grouped          -
 
 @grouped
+
+   OC-OLR ::= <AVP Header: 623>
+      < OC-Sequence-Number >
+      < OC-Report-Type >
+      [ OC-Reduction-Percentage ]
+      [ OC-Validity-Duration ]
+     *[ AVP ]
 
    MIP-Home-Agent-Host ::= < AVP Header: 348 >
       { Destination-Realm }
