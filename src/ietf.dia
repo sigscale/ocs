@@ -104,8 +104,15 @@
    User-Equipment-Info-Value                               460  OctetString      -
    Value-Digits                                            447  Integer64        M
    Validity-Time                                           448  Unsigned32       M
+   ;; RFC7683 DIAMETER Overload Indication Conveyance(DOIC)
+  	OC-Supported-Features                                   621  Grouped          VM
+  	OC-Feature-Vector                                       622  Unsigned64       -
 
 @grouped
+
+   OC-Supported-Features ::= <AVP Header: 621 >
+     	[ OC-Feature-Vector ]
+    	*[ AVP ]
 
    CC-Money ::= <AVP Header: 413>
       { Unit-Value }

@@ -550,7 +550,6 @@
    UE-Usage-Type                                          1680  Unsigned32       V
    ;; 3GPP TS 29.229
    Supported-Features                                      628  Grouped          VM
-;  OC-Supported-Features                                   621  Grouped          VM
 
 @grouped
 

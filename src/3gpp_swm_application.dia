@@ -26,7 +26,7 @@
 		[ AAA-Failure-Indication ]
 		* [ Supported-Features ]
 		[ UE-Local-IP-Address ]
-;		[ OC-Supported-Features ]
+		[ OC-Supported-Features ]
 ;		[ Terminal-Information ]
 ;		[ Emergency-Services ]
 ;		[ DRMP ]
