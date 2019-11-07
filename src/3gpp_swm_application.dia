@@ -84,7 +84,7 @@
 		* [ Supported-Features ]
 		[ OC-Supported-Features ]
 		[ OC-OLR ]
-;		* [ Load ]
+		* [ Load ]
 		[ Access-Network-Info ]
 		[ User-Location-Info-Time ]
 		[ UE-Usage-Type ]

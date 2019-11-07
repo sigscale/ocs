@@ -120,8 +120,20 @@
    ;; RFC4004 DIAMETER Mobile IPv4 Application
    MIP-Home-Agent-Address                                  334  Address          -
    MIP-Home-Agent-Host                                     348  Grouped          -
+   ;; RFC8581 DIAMETER Agent Overload and the Peer Overload Report
+   SourceID                                                649  DiameterIdentity V
+   ;; RFC8583 DIAMETER Load Information Conveyance
+   Load                                                    650  Grouped          V
+   Load-Type                                               651  Enumerated       V
+   Load-Value                                              652  Unsigned64       V
 
 @grouped
+
+   Load ::= <AVP Header: 650 >
+      [ Load-Type ]
+      [ Load-Value ]
+      [ SourceID ]
+     *[ AVP ]
 
    OC-OLR ::= <AVP Header: 623>
       < OC-Sequence-Number >
@@ -238,6 +250,10 @@
       [ Tunnel-Assignment-Id ]
       [ Tunnel-Password ]
       [ Tunnel-Private-Group-Id ]
+
+@enum Load-Type
+   HOST                             1
+   PEER                             2
 
 @enum DRMP
    PRIORITY_15                     15
