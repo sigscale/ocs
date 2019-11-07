@@ -109,8 +109,25 @@
    OC-Feature-Vector                                       622  Unsigned64       -
    ;; RFC7944 DIAMETER Routing Message Priority(DRMP)
    DRMP                                                    301  Enumerated       V
+   ;; RFC5447 DIAMETER Mobile IPv6
+   MIP6-Agent-Info                                         486  Grouped          -
+   MIP6-Home-Link-Prefix                                   125  OctetString      M
+   ;; RFC4004 DIAMETER Mobile IPv4 Application
+   MIP-Home-Agent-Address                                  334  Address          -
+   MIP-Home-Agent-Host                                     348  Grouped          -
 
 @grouped
+
+   MIP-Home-Agent-Host ::= < AVP Header: 348 >
+      { Destination-Realm }
+      { Destination-Host }
+     *[ AVP ]
+
+	MIP6-Agent-Info ::= <AVP Header: 486>
+    *2[ MIP-Home-Agent-Address ]
+      [ MIP-Home-Agent-Host ]
+      [ MIP6-Home-Link-Prefix ]
+     *[ AVP ]
 
    OC-Supported-Features ::= <AVP Header: 621 >
       [ OC-Feature-Vector ]

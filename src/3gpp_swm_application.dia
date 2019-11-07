@@ -78,7 +78,7 @@
 ;		[ Trace-Info ]
 		[ Subscription-Id ]
 		[ Session-Timeout ]
-;		[ MIP6-Agent-Info ]
+		[ MIP6-Agent-Info ]
 		[ 3GPP-Charging-Characteristics ]
 		* [ Redirect-Host ]
 		* [ Supported-Features ]
