@@ -105,10 +105,10 @@
    Value-Digits                                            447  Integer64        M
    Validity-Time                                           448  Unsigned32       M
    ;; RFC7683 DIAMETER Overload Indication Conveyance(DOIC)
-   OC-Supported-Features                                   621  Grouped          VM
-   OC-Feature-Vector                                       622  Unsigned64       -
+   OC-Supported-Features                                   621  Grouped          V
+   OC-Feature-Vector                                       622  Unsigned64       V
    OC-OLR                                                  623  Grouped          V
-   OC-Sequence-Number                                      624  Unsigned64       -
+   OC-Sequence-Number                                      624  Unsigned64       V
    OC-Validity-Duration                                    625  Unsigned32       V
    OC-Report-Type                                          626  Enumerated       V
    OC-Reduction-Percentage                                 627  Unsigned32       V
