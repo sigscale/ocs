@@ -41,6 +41,8 @@
 
 -define(BASE_APPLICATION_ID, 0).
 -define(EAP_APPLICATION_ID, 5).
+-define(IANA_PEN_3GPP, 10415).
+-define(IANA_PEN_SigScale, 50386).
 
 %% support deprecated_time_unit()
 -define(MILLISECOND, milli_seconds).
@@ -71,18 +73,22 @@ init_per_suite(Config) ->
 	ok = application:set_env(ocs, radius, RadiusAppVar),
 	DiameterPort = rand:uniform(64511) + 1024,
 	DiameterAppVar = [{auth, [{{127,0,0,1}, DiameterPort, Options}]}],
-	ok = application:set_env(ocs, diameter, RadiusAppVar),
+	ok = application:set_env(ocs, diameter, DiameterAppVar),
 	ok = ocs_test_lib:start(),
 	{ok, ProdID} = ocs_test_lib:add_offer(),
 	{ok, DiameterConfig} = application:get_env(ocs, diameter),
 	{auth, [{Address, Port, _} | _]} = lists:keyfind(auth, 1, DiameterConfig),
-	ok = diameter:start_service(?MODULE, client_service_opts()),
+	Host = atom_to_list(?MODULE),
+	Realm = "pwd.sigscale.org",
+	Config1 = [{host, Host}, {realm, Realm},
+			{product_id, ProdID}, {diameter_client, Address} | Config],
+	ok = diameter:start_service(?MODULE, client_service_opts(Config1)),
 	true = diameter:subscribe(?MODULE),
 	{ok, _Ref} = connect(?MODULE, Address, Port, diameter_tcp),
 	receive
 		#diameter_event{service = ?MODULE, info = Info}
 				when element(1, Info) == up ->
-			[{product_id, ProdID}, {diameter_client, Address} | Config];
+			Config1;
 		_ ->
 			{skip, diameter_client_service_not_started}
 	end.
@@ -98,9 +104,9 @@ end_per_suite(Config) ->
 -spec init_per_testcase(TestCase :: atom(), Config :: [tuple()]) -> Config :: [tuple()].
 %% Initialization before each test case.
 %%
-init_per_testcase(TestCase, Config) when TestCase == eap_identity_over_diameter;
-		TestCase == pwd_id_over_diameter; TestCase == pwd_commit_over_diameter;
-		TestCase == pwd_confirm_over_diameter ->
+init_per_testcase(TestCase, Config) when TestCase == eap_identity_diameter;
+		TestCase == pwd_id_diameter; TestCase == pwd_commit_diameter;
+		TestCase == pwd_confirm_diameter ->
 	{ok, DiameterConfig} = application:get_env(ocs, diameter),
 	{auth, [{Address, _, _} | _]} = lists:keyfind(auth, 1, DiameterConfig),
 	{ok, _} = ocs:add_client(Address, undefined, diameter, undefined, true),
@@ -118,9 +124,9 @@ init_per_testcase(_TestCase, Config) ->
 -spec end_per_testcase(TestCase :: atom(), Config :: [tuple()]) -> any().
 %% Cleanup after each test case.
 %%
-end_per_testcase(TestCase, Config) when TestCase == eap_identity_over_diameter;
-		TestCase == pwd_id_over_diameter; TestCase == pwd_commit_over_diameter;
-		TestCase == pwd_confirm_over_diameter	->
+end_per_testcase(TestCase, Config) when TestCase == eap_identity_diameter;
+		TestCase == pwd_id_diameter; TestCase == pwd_commit_diameter;
+		TestCase == pwd_confirm_diameter	->
 	DClient = ?config(diameter_client, Config),
 	ok = ocs:delete_client(DClient);
 end_per_testcase(_TestCase, Config) ->
@@ -139,18 +145,19 @@ sequences() ->
 %% Returns a list of all test cases in this test suite.
 %%
 all() ->
-	[eap_identity_over_radius, pwd_id_over_radius, pwd_commit_over_radius, pwd_confirm_over_radius,
-	message_authentication_over_radius, role_reversal_over_radius, validate_pwd_id_cipher_over_radius,
-	validate_pwd_id_prep_over_radius, validate_pwd_id_token_over_radius, negotiate_method_over_radius,
-	eap_identity_over_diameter, pwd_id_over_diameter, pwd_commit_over_diameter, pwd_confirm_over_diameter].
+	[eap_identity_radius, pwd_id_radius, pwd_commit_radius, pwd_confirm_radius,
+	message_authentication_radius, role_reversal_radius, validate_pwd_id_cipher_radius,
+	validate_pwd_id_prep_radius, validate_pwd_id_token_radius, negotiate_method_radius,
+	eap_identity_diameter, pwd_id_diameter, pwd_commit_diameter, pwd_confirm_diameter].
 
 %%---------------------------------------------------------------------
 %%  Test cases
 %%---------------------------------------------------------------------
-eap_identity_over_radius() ->
+
+eap_identity_radius() ->
    [{userdata, [{doc, "Send an EAP-Identity/Response using RADIUS to peer"}]}].
 
-eap_identity_over_radius(Config) ->
+eap_identity_radius(Config) ->
 	MAC = "AA-BB-CC-DD-EE-FF",
 	PeerId = <<"12345678">>,
 	Socket = ?config(socket, Config),
@@ -167,10 +174,10 @@ eap_identity_over_radius(Config) ->
 	{NextEapId, _Token, _ServerID} = receive_radius_id(Socket, Address,
 			Port, Secret, ReqAuth, RadId).
 
-eap_identity_over_diameter() ->
+eap_identity_diameter() ->
    [{userdata, [{doc, "Send an EAP-Identity/Response using DIAMETER to peer"}]}].
 
-eap_identity_over_diameter(_Config) ->
+eap_identity_diameter(_Config) ->
 	Ref = erlang:ref_to_list(make_ref()),
 	SId = diameter:session_id(Ref),
 	EapId = 1,
@@ -181,10 +188,10 @@ eap_identity_over_diameter(_Config) ->
 			'Auth-Request-Type' =  ?'DIAMETER_BASE_AUTH-REQUEST-TYPE_AUTHORIZE_AUTHENTICATE',
 			'Result-Code' = ?'DIAMETER_BASE_RESULT-CODE_MULTI_ROUND_AUTH'} = DEA.
 
-pwd_id_over_radius() ->
+pwd_id_radius() ->
    [{userdata, [{doc, "Send an EAP-pwd-ID/Response to peer"}]}].
 
-pwd_id_over_radius(Config) ->
+pwd_id_radius(Config) ->
 	P1 = price(usage, octets, rand:uniform(1000000), rand:uniform(100)),
 	OfferId = add_offer([P1], 4),
 	ProdRef = add_product(OfferId),
@@ -211,10 +218,10 @@ pwd_id_over_radius(Config) ->
 	{EapId3, _ElementS, _ScalarS} = receive_radius_commit(Socket, Address,
 			Port, Secret, ReqAuth2, RadId2).
 
-pwd_id_over_diameter() ->
+pwd_id_diameter() ->
    [{userdata, [{doc, "Send an EAP-pwd-ID/Response to peer using DIAMETER"}]}].
 
-pwd_id_over_diameter(_Config) ->
+pwd_id_diameter(_Config) ->
 	P1 = price(usage, octets, rand:uniform(1000000), rand:uniform(100)),
 	OfferId = add_offer([P1], 4),
 	ProdRef = add_product(OfferId),
@@ -250,10 +257,10 @@ pwd_id_over_diameter(_Config) ->
 	true = is_binary(Scalar),
 	ok = ocs:delete_service(PeerId).
 
-pwd_commit_over_radius() ->
+pwd_commit_radius() ->
 	[{userdata, [{doc, "Send an EAP-pwd-Commit/Response using RADIUS to peer"}]}].
 
-pwd_commit_over_radius(Config) ->
+pwd_commit_radius(Config) ->
 	P1 = price(usage, octets, rand:uniform(1000000), rand:uniform(100)),
 	OfferId = add_offer([P1], 4),
 	ProdRef = add_product(OfferId),
@@ -290,10 +297,10 @@ pwd_commit_over_radius(Config) ->
 	{EapId4, _ConfirmS} = receive_radius_confirm(Socket,
 			Address, Port, Secret, ReqAuth3, RadId3).
 
-pwd_commit_over_diameter() ->
+pwd_commit_diameter() ->
    [{userdata, [{doc, "Send an EAP-pwd-Commit/Response to peer using DIAMETER"}]}].
 
-pwd_commit_over_diameter(_Config) ->
+pwd_commit_diameter(_Config) ->
 	P1 = price(usage, octets, rand:uniform(1000000), rand:uniform(100)),
 	OfferId = add_offer([P1], 4),
 	ProdRef = add_product(OfferId),
@@ -342,10 +349,10 @@ pwd_commit_over_diameter(_Config) ->
 			data = _EapPwdData2} = ocs_eap_codec:eap_pwd(EapData2),
 	ok = ocs:delete_service(PeerId).
 	
-pwd_confirm_over_radius() ->
+pwd_confirm_radius() ->
 	[{userdata, [{doc, "Send an EAP-pwd-Confirm/Response using RADIUS to peer"}]}].
 
-pwd_confirm_over_radius(Config) ->
+pwd_confirm_radius(Config) ->
 	P1 = price(usage, octets, rand:uniform(1000000), rand:uniform(100)),
 	OfferId = add_offer([P1], 4),
 	ProdRef = add_product(OfferId),
@@ -393,10 +400,10 @@ pwd_confirm_over_radius(Config) ->
 			NasId, MAC, ConfirmP, EapId4, RadId4),
 	EapId4 = receive_radius_success(Socket, Address, Port, Secret, ReqAuth4, RadId4).
 
-pwd_confirm_over_diameter() ->
+pwd_confirm_diameter() ->
    [{userdata, [{doc, "Send an EAP-pwd-Confirm/Response to peer using DIAMETER"}]}].
 
-pwd_confirm_over_diameter(_Config) ->
+pwd_confirm_diameter(_Config) ->
 	P1 = price(usage, octets, rand:uniform(1000000), rand:uniform(100)),
 	OfferId = add_offer([P1], 4),
 	ProdRef = add_product(OfferId),
@@ -458,10 +465,10 @@ pwd_confirm_over_diameter(_Config) ->
 			identifier = EapId2} = ocs_eap_codec:eap_packet(Payload3),
 	ok = ocs:delete_service(PeerId).
 
-message_authentication_over_radius() ->
+message_authentication_radius() ->
 	[{userdata, [{doc, "Send corrupt Message-Authenticator using RADIUS"}]}].
 
-message_authentication_over_radius(Config) ->
+message_authentication_radius(Config) ->
 	P1 = price(usage, octets, rand:uniform(1000000), rand:uniform(100)),
 	OfferId = add_offer([P1], 4),
 	ProdRef = add_product(OfferId),
@@ -479,10 +486,10 @@ message_authentication_over_radius(Config) ->
 			Secret, PeerId, MAC, ReqAuth, EapId, RadId),
 	{error, timeout} = gen_udp:recv(Socket, 0, 2000).
 
-role_reversal_over_radius() ->
+role_reversal_radius() ->
 	[{userdata, [{doc, "Send EAP-Request (unsupported role reversal) using RADIUS"}]}].
 
-role_reversal_over_radius(Config) ->
+role_reversal_radius(Config) ->
 	P1 = price(usage, octets, rand:uniform(1000000), rand:uniform(100)),
 	OfferId = add_offer([P1], 4),
 	ProdRef = add_product(OfferId),
@@ -508,10 +515,10 @@ role_reversal_over_radius(Config) ->
 			UserName, Secret, MAC, ReqAuth, RadId, EapMsg),
 	{EapId, <<0>>} = receive_radius_nak(Socket, Address, Port, Secret, ReqAuth, RadId).
 
-validate_pwd_id_cipher_over_radius() ->
+validate_pwd_id_cipher_radius() ->
 	[{userdata, [{doc, "Send invalid EAP-pwd-ID (bad cipher) using RADIUS"}]}].
 
-validate_pwd_id_cipher_over_radius(Config) ->
+validate_pwd_id_cipher_radius(Config) ->
 	P1 = price(usage, octets, rand:uniform(1000000), rand:uniform(100)),
 	OfferId = add_offer([P1], 4),
 	ProdRef = add_product(OfferId),
@@ -543,10 +550,10 @@ validate_pwd_id_cipher_over_radius(Config) ->
 			UserName, Secret, MAC, ReqAuth2, RadId2, EapMsg),
 	EapId2 = receive_radius_failure(Socket, Address, Port, Secret, ReqAuth2, RadId2).
 
-validate_pwd_id_prep_over_radius() ->
+validate_pwd_id_prep_radius() ->
 	[{userdata, [{doc, "Send invalid EAP-pwd-ID (bad prep) using RADIUS"}]}].
 
-validate_pwd_id_prep_over_radius(Config) ->
+validate_pwd_id_prep_radius(Config) ->
 	P1 = price(usage, octets, rand:uniform(1000000), rand:uniform(100)),
 	OfferId = add_offer([P1], 4),
 	ProdRef = add_product(OfferId),
@@ -578,10 +585,10 @@ validate_pwd_id_prep_over_radius(Config) ->
 			UserName, Secret, MAC, ReqAuth2, RadId2, EapMsg),
 	EapId2 = receive_radius_failure(Socket, Address, Port, Secret, ReqAuth2, RadId2).
 
-validate_pwd_id_token_over_radius() ->
+validate_pwd_id_token_radius() ->
 	[{userdata, [{doc, "Send invalid EAP-pwd-ID (bad token) using RADIUS"}]}].
 
-validate_pwd_id_token_over_radius(Config) ->
+validate_pwd_id_token_radius(Config) ->
 	P1 = price(usage, octets, rand:uniform(1000000), rand:uniform(100)),
 	OfferId = add_offer([P1], 4),
 	ProdRef = add_product(OfferId),
@@ -613,10 +620,10 @@ validate_pwd_id_token_over_radius(Config) ->
 			UserName, Secret, MAC, ReqAuth2, RadId2, EapMsg),
 	EapId2 = receive_radius_failure(Socket, Address, Port, Secret, ReqAuth2, RadId2).
 
-negotiate_method_over_radius() ->
+negotiate_method_radius() ->
 	[{userdata, [{doc, "Send EAP-Nak with alternate methods using RADIUS"}]}].
 
-negotiate_method_over_radius(Config) ->
+negotiate_method_radius(Config) ->
 	P1 = price(usage, octets, rand:uniform(1000000), rand:uniform(100)),
 	OfferId = add_offer([P1], 4),
 	ProdRef = add_product(OfferId),
@@ -814,22 +821,20 @@ connect(SvcName, Opts)->
 	diameter:add_transport(SvcName, {connect, Opts}).
 
 %% @hidden
-client_service_opts() ->
-	OriginHost = ocs:generate_password() ++ "@siscale.org",
-	OriginRealm = ocs:generate_password() ++ "@siscale.org",
-	[{'Origin-Host', OriginHost},
-		{'Origin-Realm', OriginRealm},
-		{'Vendor-Id', 10415},
-		{'Product-Name', "SigScale Test Client (auth)"},
-		{'Auth-Application-Id', [?BASE_APPLICATION_ID,
-														 ?EAP_APPLICATION_ID]},
-		{string_decode, false},
-		{application, [{alias, base_app_test},
-				{dictionary, diameter_gen_base_rfc6733},
-				{module, diameter_test_client_cb}]},
-		{application, [{alias, eap_app_test},
-				{dictionary, diameter_gen_eap_application_rfc4072},
-				{module, diameter_test_client_cb}]}].
+client_service_opts(Config) ->
+	[{'Origin-Host', ?config(host, Config)},
+			{'Origin-Realm', ?config(realm, Config)},
+			{'Vendor-Id', ?IANA_PEN_SigScale},
+			{'Supported-Vendor-Id', [?IANA_PEN_3GPP]},
+			{'Product-Name', "SigScale Test Client (auth)"},
+			{'Auth-Application-Id', [?BASE_APPLICATION_ID, ?EAP_APPLICATION_ID]},
+			{string_decode, false},
+			{application, [{alias, base_app_test},
+					{dictionary, diameter_gen_base_rfc6733},
+					{module, diameter_test_client_cb}]},
+			{application, [{alias, eap_app_test},
+					{dictionary, diameter_gen_eap_application_rfc4072},
+					{module, diameter_test_client_cb}]}].
 
 %% @hidden
 transport_opts(Address, Port, Trans) when is_atom(Trans) ->

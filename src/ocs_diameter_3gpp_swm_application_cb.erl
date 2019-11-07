@@ -211,7 +211,7 @@ request(ServiceName, Capabilities, Request, []) ->
 	when
 		ServiceName :: term(),
 		Capabilities :: capabilities(),
-		Request :: #'diameter_eap_app_DER'{},
+		Request :: #'3gpp_swm_DER'{},
 		Address :: inet:ip_address(),
 		Port :: inet:port(),
 		PasswordReq :: boolean(),
@@ -221,7 +221,7 @@ request(ServiceName, Capabilities, Request, []) ->
 %% @private
 process_request(ServiceName, #diameter_caps{origin_host = {OHost, _DHost},
 		origin_realm = {ORealm, _DRealm}} = Capabilities,
-		#'diameter_eap_app_DER'{'Session-Id' = SId,
+		#'3gpp_swm_DER'{'Session-Id' = SId,
 				'Auth-Application-Id' = ?SWm_APPLICATION_ID,
 				'EAP-Payload' = EapPayload} = Request,
 		Address, Port, PasswordReq, Trusted) ->
@@ -251,7 +251,7 @@ process_request(ServiceName, #diameter_caps{origin_host = {OHost, _DHost},
 		end
 	catch
 		_:_Reason ->
-			{reply, #'diameter_eap_app_DEA'{'Session-Id' = SId,
+			{reply, #'3gpp_swm_DEA'{'Session-Id' = SId,
 					'Result-Code' = ?'DIAMETER_BASE_RESULT-CODE_INVALID_AVP_BITS',
 					'Origin-Host' = OHost, 'Origin-Realm' = ORealm,
 					'Auth-Application-Id' = ?SWm_APPLICATION_ID}}

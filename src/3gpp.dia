@@ -1388,7 +1388,9 @@
    GERAN          1001
    GAN            1002
    HSPA_EVOLUTION 1003
+   EUTRAN         1004
    EUTRAN-NB-IoT  1005
+   NG-RAN         1006
    CDMA2000_1X    2000
    HRPD           2001
    UMB            2002
