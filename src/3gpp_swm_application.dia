@@ -75,7 +75,7 @@
 		[ APN-Configuration ]
 		[ MIP6-Feature-Vector ]
 		[ Mobile-Node-Identifier ]
-;		[ Trace-Info ]
+		[ Trace-Info ]
 		[ Subscription-Id ]
 		[ Session-Timeout ]
 		[ MIP6-Agent-Info ]

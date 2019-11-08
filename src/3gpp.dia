@@ -535,8 +535,8 @@
    ;; 3GPP TS 29.273
    AAA-Failure-Indication                                 1518  Unsigned32       V
    Access-Network-Info                                    1526  Grouped          V
-;  Trace-Info                                             1505  Grouped          VM
-;  Trace-Data                                             1458  Grouped          VM
+   Trace-Info                                             1505  Grouped          V
+   Trace-Data                                             1458  Grouped          VM
    Mobile-Node-Identifier                                  506  UTF8String        M
    MIP6-Feature-Vector                                     124  Unsigned64        M
    Visited-Network-Identifier                              600  OctetString      VM
@@ -547,16 +547,75 @@
    Software-Version                                       1403  UTF8String       VM
    APN-OI-Replacement                                     1427  UTF8String       VM
    APN-Configuration                                      1430  Grouped          VM
+   Trace-Collection-Entity                                1452  Address          VM
    Trace-Reference                                        1459  OctetString      VM
+   Trace-NE-Type-List                                     1463  OctetString      VM
+   Trace-Depth                                            1462  Enumerated       VM
+   Trace-Interface-List                                   1464  OctetString      VM
+   Trace-Event-List                                       1465  OctetString      VM
+   OMC-Id                                                 1466  OctetString      VM
    3GPP2-MEID                                             1471  OctetString      VM
-   Core-Network-Restrictions                              1704  Unsigned32       V
+   E-UTRAN-Cell-Global-Identity                           1602  OctetString      V
+   Tracking-Area-Identity                                 1603  OctetString      V
+   Cell-Global-Identity                                   1604  OctetString      V
+   Routing-Area-Identity                                  1605  OctetString      V
+   Location-Area-Identity                                 1606  OctetString      V
+   MDT-Configuration                                      1622  Grouped          V
+   Job-Type                                               1623  Enumerated       V
+   Area-Scope                                             1624  Grouped          V
+   List-Of-Measurements                                   1625  Unsigned32       V
+   Reporting-Trigger                                      1626  Unsigned32       V
+   Report-Interval                                        1627  Enumerated       V
+   Report-Amount                                          1628  Enumerated       V
+   Event-Threshold-RSRP                                   1629  Unsigned32       V
+   Event-Threshold-RSRQ                                   1630  Unsigned32       V
+   Logging-Interval                                       1631  Enumerated       V
+   Logging-Duration                                       1632  Enumerated       V
+   Measurement-Period-UMTS                                1655  Enumerated       V
+   Measurement-Period-LTE                                 1656  Enumerated       V
+   Collection-Period-RRM-LTE                              1657  Enumerated       V
+   Collection-Period-RRM-UMTS                             1658  Enumerated       V
+   Positioning-Method                                     1659  OctetString      V
+   Measurement-Quantity                                   1660  OctetString      V
+   Event-Threshold-Event-1F                               1661  Integer32        V
+   Event-Threshold-Event-1I                               1662  Integer32        V
    UE-Usage-Type                                          1680  Unsigned32       V
+   Core-Network-Restrictions                              1704  Unsigned32       V
    ;; 3GPP TS 29.229
    Supported-Features                                      628  Grouped          VM
    ;; 3GPP TS 29.273
    Emergency-Services                                     1538  Unsigned32       V
 
 @grouped
+
+   Area-Scope ::= <AVP Header: 1624 10415>
+     *[ Cell-Global-Identity ]
+     *[ E-UTRAN-Cell-Global-Identity ]
+     *[ Routing-Area-Identity ]
+     *[ Location-Area-Identity ]
+     *[ Tracking-Area-Identity ]
+     *[ AVP ]
+
+   MDT-Configuration ::= <AVP Header: 1622 10415>
+      { Job-Type }
+      [ Area-Scope ]
+      [ List-Of-Measurements ]
+      [ Reporting-Trigger ]
+      [ Report-Interval ]
+      [ Report-Amount ]
+      [ Event-Threshold-RSRP ]
+      [ Event-Threshold-RSRQ ]
+      [ Logging-Interval ]
+      [ Logging-Duration ]
+      [ Measurement-Period-LTE ]
+      [ Measurement-Period-UMTS ]
+      [ Collection-Period-RRM-LTE ]
+      [ Collection-Period-RRM-UMTS ]
+      [ Positioning-Method ]
+      [ Measurement-Quantity]
+      [ Event-Threshold-Event-1F ]
+      [ Event-Threshold-Event-1I ]
+     *[ AVP ]
 
    Terminal-Information ::= <AVP Header: 1401 10415>
       [ IMEI ]
@@ -1152,21 +1211,21 @@
       [ Downlink-Rate-Limit ]
      *[ AVP ]
 
-;  Trace-Data ::= <AVP Header: 1458>
-;     {Trace-Reference}
-;     {Trace-Depth}
-;     {Trace-NE-Type-List}
-;     [Trace-Interface-List]
-;     {Trace-Event-List}
-;     [OMC-Id]
-;     {Trace-Collection-Entity}
-;     [MDT-Configuration]
-;    *[AVP]
+   Trace-Data ::= <AVP Header: 1458 10415>
+      {Trace-Reference}
+      {Trace-Depth}
+      {Trace-NE-Type-List}
+      {Trace-Event-List}
+      {Trace-Collection-Entity}
+      [Trace-Interface-List]
+      [OMC-Id]
+      [MDT-Configuration]
+     *[AVP]
 
-;  Trace-Info ::= <AVP Header: 1505>
-;     [Trace-Data]
-;     [Trace-Reference]
-;    *[AVP]
+   Trace-Info ::= <AVP Header: 1505>
+      [Trace-Data]
+      [Trace-Reference]
+     *[AVP]
 
    APN-Configuration ::= <AVP Header: 1430>
 ;     { Context-Identifier }
@@ -1211,6 +1270,59 @@
 ;     [ Operator-Name ]
 ;     [ Logical-Access-ID ]
      *[ AVP ]
+
+@enum Trace-Depth
+   Minimum                                  0
+   Medium                                   1
+   Maximum                                  2
+   MinimumWithoutVendorSpecificExtension    3
+   MediumWithoutVendorSpecificExtensioni    4
+   MaximumWithoutVendorSpecificExtension    5
+
+;@enum Logging-Interval
+;1.28        0
+;2.56        1
+;5.12        2
+;10.24       3
+;20.48       4
+;30.72       5
+;40.96       6
+;61.44       7
+
+@enum Report-Interval
+	250-ms              0
+   500-ms              1
+   1000-ms             2
+   2000-ms             3
+   3000-ms             4
+   4000-ms             5
+   6000-ms             6
+   8000-ms             7
+   12000-ms            8
+   16000-ms            9
+   20000-ms           10
+   24000-ms           11
+   28000-ms           12
+   32000-ms           13
+   64000-ms           14
+   120-ms             15
+   240-ms             16
+   480-ms             17
+   640-ms             18
+   1024-ms            19
+   2048-ms            20
+   5120-ms            21
+   10240-ms           22
+   60000-ms           23
+   360000-ms          24
+   720000-ms          25
+   1800000-ms         26
+   3600000-ms         27
+
+;@enum Job-Type
+;   ImmediateMDT           0
+;   LoggedMDT              1
+;   Trace_and_ImmediateMDT 2
 
 @enum Role-Of-Node
    ORIGINATING_ROLE  0
