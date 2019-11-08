@@ -97,6 +97,8 @@ init_per_suite(Config) ->
 %% Cleanup after the whole suite.
 %%
 end_per_suite(Config) ->
+	ok = application:unset_env(ocs, radius, [{persistent, true}]),
+	ok = application:unset_env(ocs, diameter, [{persistent, true}]),
 	ok = diameter:stop_service(?MODULE),
 	ok = ocs_test_lib:stop(),
 	Config.
