@@ -442,7 +442,7 @@
    Tariff-XML                                             2306  UTF8String       VM
    TDF-IP-Address                                         1091  Address          VM
    Teleservice                                            3413  OctetString      VM
-;  Terminal-Information                                   1401  
+   Terminal-Information                                   1401  Grouped          VM
    Terminating-IOI                                         840  UTF8String       VM
    Time-First-Reception                                   3466  Time             VM
    Time-First-Transmission                                3467  Time             VM
@@ -543,9 +543,12 @@
 ;  QoS-Capability                                          578  Grouped           M
    Service-Selection                                       493  UTF8String        M
    ;; 3GPP TS 29.272
+   IMEI                                                   1402  UTF8String       VM
+   Software-Version                                       1403  UTF8String       VM
    APN-OI-Replacement                                     1427  UTF8String       VM
    APN-Configuration                                      1430  Grouped          VM
    Trace-Reference                                        1459  OctetString      VM
+   3GPP2-MEID                                             1471  OctetString      VM
    Core-Network-Restrictions                              1704  Unsigned32       V
    UE-Usage-Type                                          1680  Unsigned32       V
    ;; 3GPP TS 29.229
@@ -554,6 +557,12 @@
    Emergency-Services                                     1538  Unsigned32       V
 
 @grouped
+
+   Terminal-Information ::= <AVP Header: 1401 10415>
+      [ IMEI ]
+      [ 3GPP2-MEID ]
+      [ Software-Version ]
+     *[ AVP ]
 
    Service-Information ::= <AVP Header: 873>
 ;    *[ Subscription-Id ]  ; Rf interface only
@@ -620,7 +629,7 @@
      *[ Traffic-Data-Volumes ]
 ;    *[ Service-Data-Container ]
       [ User-Equipment-Info ]
-;     [ Terminal-Information ]
+      [ Terminal-Information ]
       [ Start-Time ]
       [ Stop-Time ]
       [ Change-Condition ]
