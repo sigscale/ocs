@@ -48,6 +48,7 @@
 -include("diameter_gen_3gpp_ro_application.hrl").
 -include("diameter_gen_nas_application_rfc7155.hrl").
 -include("diameter_gen_eap_application_rfc4072.hrl").
+-include("diameter_gen_3gpp_swm_application.hrl").
 
 %% support deprecated_time_unit()
 -define(MILLISECOND, milli_seconds).
@@ -226,8 +227,10 @@ auth_log(Protocol, Server, Client, Type, RequestAttributes, ResponseAttributes) 
 		Client :: {Address, Port},
 		Address :: inet:ip_address(),
 		Port :: integer(),
-		Request :: #diameter_nas_app_AAR{} | #diameter_eap_app_DER{},
-		Response :: #diameter_nas_app_AAA{} | #diameter_eap_app_DEA{},
+		Request :: #diameter_nas_app_AAR{} | #diameter_eap_app_DER{}
+				| #'3gpp_swm_DER'{},
+		Response :: #diameter_nas_app_AAA{} | #diameter_eap_app_DEA{}
+				| #'3gpp_swm_DEA'{},
 		Result :: ok | {error, Reason},
 		Reason :: term().
 %% @doc Write a DIAMETER event to authorization log.
