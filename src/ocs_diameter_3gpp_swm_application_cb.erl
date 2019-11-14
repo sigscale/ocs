@@ -232,7 +232,7 @@ process_request(ServiceName, #diameter_caps{origin_host = {OHost, _DHost},
 				case lists:keyfind(transport_config, 1, Options) of
 					{transport_config, TC} ->
 						{ip, Sip} = lists:keyfind(ip, 1, TC),
-						{port, Sport} = lists:keyfind(ip, 1, TC),
+						{port, Sport} = lists:keyfind(port, 1, TC),
 						case global:whereis_name({ocs_diameter_auth, Sip, Sport}) of
 							undefined ->
 								discard;
