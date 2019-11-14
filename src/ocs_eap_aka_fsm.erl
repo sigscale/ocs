@@ -361,10 +361,10 @@ eap_start1(EapMessage, #statedata{sup = Sup, eap_id = EapID,
 						eap_id = NextEapID, id_req = full, identity = Identity},
 				EapPacket = #eap_packet{code = request,
 						type = ?AKAprime, identifier = NextEapID, data = EapData},
-				EapMessage = ocs_eap_codec:eap_packet(EapPacket),
+				EapMessage1 = ocs_eap_codec:eap_packet(EapPacket),
 				send_diameter_response(SessionId, AuthReqType,
 						?'DIAMETER_BASE_RESULT-CODE_MULTI_ROUND_AUTH', OHost, ORealm,
-						EapMessage, PortServer, Request, NextStateData),
+						EapMessage1, PortServer, Request, NextStateData),
 				{next_state, identity, NextStateData, ?TIMEOUT};
 			#eap_packet{code = response, type = ?Identity,
 					identifier = StartEapID, data = Identity} ->
@@ -374,18 +374,18 @@ eap_start1(EapMessage, #statedata{sup = Sup, eap_id = EapID,
 						eap_id = NextEapID, identity = Identity, id_req = full},
 				EapPacket = #eap_packet{code = request,
 						type = ?AKAprime, identifier = NextEapID, data = EapData},
-				EapMessage = ocs_eap_codec:eap_packet(EapPacket),
+				EapMessage1 = ocs_eap_codec:eap_packet(EapPacket),
 				send_diameter_response(SessionId, AuthReqType,
 						?'DIAMETER_BASE_RESULT-CODE_MULTI_ROUND_AUTH', OHost, ORealm,
-						EapMessage, PortServer, Request, NextStateData),
+						EapMessage1, PortServer, Request, NextStateData),
 				{next_state, identity, NextStateData, ?TIMEOUT};
 			#eap_packet{code = request, identifier = NewEapID} ->
 				EapPacket = #eap_packet{code = response, type = ?LegacyNak,
 						identifier = NewEapID, data = <<0>>},
-				EapMessage = ocs_eap_codec:eap_packet(EapPacket),
+				EapMessage1 = ocs_eap_codec:eap_packet(EapPacket),
 				send_diameter_response(SessionId, AuthReqType,
 						?'DIAMETER_BASE_RESULT-CODE_UNABLE_TO_COMPLY', OHost, ORealm,
-						EapMessage, PortServer, Request, NewStateData),
+						EapMessage1, PortServer, Request, NewStateData),
 				{stop, {shutdown, SessionId}, NewStateData};
 			#eap_packet{code = Code, type = EapType,
 					identifier = NewEapID, data = Data} ->
@@ -393,19 +393,19 @@ eap_start1(EapMessage, #statedata{sup = Sup, eap_id = EapID,
 						{pid, self()}, {session_id, SessionId}, {code, Code},
 						{type, EapType}, {identifier, NewEapID}, {data, Data}]),
 				EapPacket = #eap_packet{code = failure, identifier = NewEapID},
-				EapMessage = ocs_eap_codec:eap_packet(EapPacket),
+				EapMessage1 = ocs_eap_codec:eap_packet(EapPacket),
 				send_diameter_response(SessionId, AuthReqType,
 						?'DIAMETER_BASE_RESULT-CODE_UNABLE_TO_COMPLY', OHost, ORealm,
-					EapMessage, PortServer, Request, NewStateData),
+					EapMessage1, PortServer, Request, NewStateData),
 				{stop, {shutdown, SessionId}, NewStateData}
 		end
 	catch
 		{'EXIT', _Reason} ->
 			EapPacket1 = #eap_packet{code = failure, identifier = EapID},
-			EapMessage1 = ocs_eap_codec:eap_packet(EapPacket1),
+			EapMessage2 = ocs_eap_codec:eap_packet(EapPacket1),
 			send_diameter_response(SessionId, AuthReqType,
 					?'DIAMETER_BASE_RESULT-CODE_UNABLE_TO_COMPLY', OHost, ORealm,
-					EapMessage1, PortServer, Request, NewStateData),
+					EapMessage2, PortServer, Request, NewStateData),
 			{stop, {shutdown, SessionId}, NewStateData}
 	end.
 
@@ -507,10 +507,10 @@ identity1(EapMessage, Request,
 	catch
 		_:_Reason ->
 			EapPacket = #eap_packet{code = failure, identifier = EapID},
-			EapMessage = ocs_eap_codec:eap_packet(EapPacket),
+			EapMessage1 = ocs_eap_codec:eap_packet(EapPacket),
 			send_diameter_response(SessionID, AuthReqType,
 					?'DIAMETER_BASE_RESULT-CODE_INVALID_AVP_BITS', OHost, ORealm,
-					EapMessage, PortServer, Request, StateData),
+					EapMessage1, PortServer, Request, StateData),
 			{stop, {shutdown, SessionID}, StateData}
 	end.
 
