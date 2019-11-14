@@ -1,9 +1,9 @@
 June 13, 2019
 -------------
 	- Ignore unsupported DIAMETER AVPs  
-	* Delete product dialog
-	* Filters in ABMF view
-	* Apply balance adjustments (TMF654)
+	- Delete product dialog
+	- Filters in ABMF view
+	- Apply balance adjustments (TMF654)
 
 May 10, 2019
 --------------
