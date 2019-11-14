@@ -41,7 +41,7 @@
 -record(state, {}).
 
 -define(EPOCH_OFFSET, 2208988800).
--define(SWm_APPLICATION_ID, 4).
+-define(SWm_APPLICATION_ID, 16777264).
 
 -type state() :: #state{}.
 -type capabilities() :: #diameter_caps{}.
