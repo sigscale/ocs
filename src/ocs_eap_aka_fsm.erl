@@ -955,12 +955,15 @@ send_radius_response(EapMessage, RadiusCode, ResponseAttributes,
 %% @doc Log DIAMETER event and send appropriate DIAMETER answer to
 %% 	ocs_diameter_auth_port_server.
 %% @hidden
-send_diameter_response(SId, AuthType, ?'DIAMETER_BASE_RESULT-CODE_SUCCESS',
+send_diameter_response(SId, AuthType, ResultCode,
 		OriginHost, OriginRealm, EapMessage,
 		PortServer, #diameter_eap_app_DER{} = Request,
 		#statedata{server_address = ServerAddress, server_port = ServerPort,
 		client_address = ClientAddress, client_port = ClientPort,
-		msk = MSK} = _StateData) when is_list(SId), is_integer(AuthType),
+		msk = MSK} = _StateData)
+		when ((ResultCode =:= ?'DIAMETER_BASE_RESULT-CODE_SUCCESS')
+		or (ResultCode =:= ?'DIAMETER_BASE_RESULT-CODE_MULTI_ROUND_AUTH')),
+		is_list(SId), is_integer(AuthType),
 		is_binary(OriginHost), is_binary(OriginRealm),
 		is_binary(EapMessage), is_pid(PortServer) ->
 	Server = {ServerAddress, ServerPort},
@@ -969,7 +972,7 @@ send_diameter_response(SId, AuthType, ?'DIAMETER_BASE_RESULT-CODE_SUCCESS',
 		Answer = #diameter_eap_app_DEA{'Session-Id' = SId,
 				'Auth-Application-Id' = ?EAP_APPLICATION_ID,
 				'Auth-Request-Type' = AuthType,
-				'Result-Code' = ?'DIAMETER_BASE_RESULT-CODE_SUCCESS',
+				'Result-Code' = ResultCode,
 				'Origin-Host' = OriginHost, 'Origin-Realm' = OriginRealm,
 				'EAP-Payload' = [EapMessage], 'EAP-Master-Session-Key' = [MSK]},
 		ok = ocs_log:auth_log(diameter, Server, Client, Request, Answer),
@@ -985,12 +988,15 @@ send_diameter_response(SId, AuthType, ?'DIAMETER_BASE_RESULT-CODE_SUCCESS',
 			ok = ocs_log:auth_log(diameter, Server, Client, Request, Answer1),
 			gen_server:cast(PortServer, {self(), Answer1})
 	end;
-send_diameter_response(SId, AuthType, ?'DIAMETER_BASE_RESULT-CODE_SUCCESS',
+send_diameter_response(SId, AuthType, ResultCode,
 		OriginHost, OriginRealm, EapMessage,
 		PortServer, #'3gpp_swm_DER'{} = Request,
 		#statedata{server_address = ServerAddress, server_port = ServerPort,
 		client_address = ClientAddress, client_port = ClientPort,
-		msk = MSK} = _StateData) when is_list(SId), is_integer(AuthType),
+		msk = MSK} = _StateData)
+		when ((ResultCode =:= ?'DIAMETER_BASE_RESULT-CODE_SUCCESS')
+		or (ResultCode =:= ?'DIAMETER_BASE_RESULT-CODE_MULTI_ROUND_AUTH')),
+		is_list(SId), is_integer(AuthType),
 		is_binary(OriginHost), is_binary(OriginRealm),
 		is_binary(EapMessage), is_pid(PortServer) ->
 	Server = {ServerAddress, ServerPort},
@@ -999,7 +1005,7 @@ send_diameter_response(SId, AuthType, ?'DIAMETER_BASE_RESULT-CODE_SUCCESS',
 		Answer = #'3gpp_swm_DEA'{'Session-Id' = SId,
 				'Auth-Application-Id' = ?EAP_APPLICATION_ID,
 				'Auth-Request-Type' = AuthType,
-				'Result-Code' = ?'DIAMETER_BASE_RESULT-CODE_SUCCESS',
+				'Result-Code' = ResultCode,
 				'Origin-Host' = OriginHost, 'Origin-Realm' = OriginRealm,
 				'EAP-Payload' = [EapMessage], 'EAP-Master-Session-Key' = [MSK]},
 		ok = ocs_log:auth_log(diameter, Server, Client, Request, Answer),
