@@ -70,10 +70,10 @@ init_per_suite(Config) ->
 	RadiusPort = rand:uniform(64511) + 1024,
 	Options = [{eap_method_prefer, akap}, {eap_method_order, [akap]}],
 	RadiusAppVar = [{auth, [{{127,0,0,1}, RadiusPort, Options}]}],
-	ok = application:set_env(ocs, radius, RadiusAppVar),
+	ok = application:set_env(ocs, radius, RadiusAppVar, [{persistent, true}]),
 	DiameterPort = rand:uniform(64511) + 1024,
 	DiameterAppVar = [{auth, [{{127,0,0,1}, DiameterPort, Options}]}],
-	ok = application:set_env(ocs, diameter, DiameterAppVar),
+	ok = application:set_env(ocs, diameter, DiameterAppVar, [{persistent, true}]),
 	ok = ocs_test_lib:start(),
 	{ok, ProdID} = ocs_test_lib:add_offer(),
 	{ok, DiameterConfig} = application:get_env(ocs, diameter),
@@ -98,6 +98,8 @@ init_per_suite(Config) ->
 %% Cleanup after the whole suite.
 %%
 end_per_suite(Config) ->
+	ok = application:unset_env(ocs, radius, [{persistent, true}]),
+	ok = application:unset_env(ocs, diameter, [{persistent, true}]),
 	ok = diameter:stop_service(?MODULE),
 	ok = ocs_test_lib:stop(),
 	Config.
@@ -105,19 +107,29 @@ end_per_suite(Config) ->
 -spec init_per_testcase(TestCase :: atom(), Config :: [tuple()]) -> Config :: [tuple()].
 %% Initialization before each test case.
 %%
+init_per_testcase(TestCase, Config)
+		when TestCase == eap_identity_diameter ->
+	{ok, DiameterConfig} = application:get_env(ocs, diameter),
+	{auth, [{Address, _, _} | _]} = lists:keyfind(auth, 1, DiameterConfig),
+	{ok, _} = ocs:add_client(Address, undefined, diameter, undefined, true),
+	[{diameter_client, Address} | Config];
 init_per_testcase(_TestCase, Config) ->
 	{ok, RadiusConfig} = application:get_env(ocs, radius),
-	{auth, [{RadIP, RadPort, _} | _]} = lists:keyfind(auth, 1, RadiusConfig),
+	{auth, [{RadIP, _, _} | _]} = lists:keyfind(auth, 1, RadiusConfig),
 	{ok, Socket} = gen_udp:open(0, [{active, false}, inet, {ip, RadIP}, binary]),
 	SharedSecret = ct:get_config(radius_shared_secret),
 	Protocol = radius,
-	{ok, _} = ocs:add_client(RadIP, RadPort, Protocol, SharedSecret, true),
+	{ok, _} = ocs:add_client(RadIP, undefined, Protocol, SharedSecret, true, false),
 	NasId = atom_to_list(node()),
 	[{nas_id, NasId}, {socket, Socket}, {radius_client, RadIP} | Config].
 
 -spec end_per_testcase(TestCase :: atom(), Config :: [tuple()]) -> any().
 %% Cleanup after each test case.
 %%
+end_per_testcase(TestCase, Config)
+		when TestCase == eap_identity_diameter ->
+	DClient = ?config(diameter_client, Config),
+	ok = ocs:delete_client(DClient);
 end_per_testcase(_TestCase, Config) ->
 	Socket = ?config(socket, Config),
 	RadClient = ?config(radius_client, Config),
@@ -153,11 +165,12 @@ eap_identity_radius(Config) ->
 	Secret = ct:get_config(radius_shared_secret),
 	Realm = ?config(realm, Config),
 	MSIN = msin(),
-	PeerId = "6" + ct:get_config(mcc) ++ ct:get_config(mcc)
+	PeerId = "6" ++ ct:get_config(mcc) ++ ct:get_config(mcc)
 			++ MSIN ++ "@wlan." ++ Realm,
+	PeerId1 = list_to_binary(PeerId),
 	ok = send_radius_identity(Socket, Address, Port, NasId,
-			PeerId, Secret, ReqAuth, EapId, RadId),
-	NextEapId = EapId + 1.
+			PeerId1, Secret, ReqAuth, EapId, RadId),
+	NextEapId = EapId + 1,
 	{NextEapId, _Token, _ServerID} = receive_radius_id(Socket, Address,
 			Port, Secret, ReqAuth, RadId).
 
@@ -170,9 +183,10 @@ eap_identity_diameter(Config) ->
 	EapId = 1,
 	Realm = ?config(realm, Config),
 	MSIN = msin(),
-	PeerId = "6" + ct:get_config(mcc) ++ ct:get_config(mcc)
+	PeerId = "6" ++ ct:get_config(mcc) ++ ct:get_config(mcc)
 			++ MSIN ++ "@wlan." ++ Realm,
-	DEA = send_diameter_identity(SId, EapId, PeerId),
+	PeerId1 = list_to_binary(PeerId),
+	DEA = send_diameter_identity(SId, EapId, PeerId1),
 	SIdbin = list_to_binary(SId),
 	#diameter_eap_app_DEA{'Session-Id' = SIdbin, 'Auth-Application-Id' = ?EAP_APPLICATION_ID,
 			'Auth-Request-Type' =  ?'DIAMETER_BASE_AUTH-REQUEST-TYPE_AUTHORIZE_AUTHENTICATE',
@@ -242,6 +256,39 @@ radius_access_request(Socket, Address, Port, NasId,
 	ReqPacket2 = radius:codec(Request2),
 	gen_udp:send(Socket, Address, Port, ReqPacket2).
 
+radius_access_challenge(Socket, Address, Port, Secret, RadId, ReqAuth) ->
+	receive_radius(?AccessChallenge, Socket, Address, Port, Secret, RadId, ReqAuth).
+
+radius_access_accept(Socket, Address, Port, Secret, RadId, ReqAuth) ->
+	receive_radius(?AccessAccept, Socket, Address, Port, Secret, RadId, ReqAuth).
+
+radius_access_reject(Socket, Address, Port, Secret, RadId, ReqAuth) ->
+	receive_radius(?AccessReject, Socket, Address, Port, Secret, RadId, ReqAuth).
+
+receive_radius(Code, Socket, Address, Port, Secret, RadId, ReqAuth) ->
+	{ok, {Address, Port, RespPacket1}} = gen_udp:recv(Socket, 0),
+	Resp1 = radius:codec(RespPacket1),
+	#radius{code = Code, id = RadId, authenticator = RespAuth,
+			attributes = BinRespAttr1} = Resp1,
+	Resp2 = Resp1#radius{authenticator = ReqAuth},
+	RespPacket2 = radius:codec(Resp2),
+	RespAuth = binary_to_list(crypto:hash(md5, [RespPacket2, Secret])),
+	RespAttr1 = radius_attributes:codec(BinRespAttr1),
+	{ok, MsgAuth} = radius_attributes:find(?MessageAuthenticator, RespAttr1),
+	RespAttr2 = radius_attributes:store(?MessageAuthenticator, <<0:128>>, RespAttr1),
+	Resp3 = Resp2#radius{attributes = RespAttr2},
+	RespPacket3 = radius:codec(Resp3),
+	MsgAuth = crypto:hmac(md5, Secret, RespPacket3),
+	{ok, EapMsg} = radius_attributes:find(?EAPMessage, RespAttr1),
+	EapMsg.
+
+%% @hidden
+receive_radius_id(Socket, Address, Port, Secret, ReqAuth, RadId) ->
+	EapMsg = radius_access_challenge(Socket, Address, Port,
+			Secret, RadId, ReqAuth),
+	#eap_packet{code = request, type = ?AKA, identifier = EapId,
+			data = EapData} = ocs_eap_codec:eap_packet(EapMsg).
+
 %% @hidden
 send_radius_identity(Socket, Address, Port, NasId,
 		PeerId, Secret, Auth, EapId, RadId) ->
@@ -268,7 +315,7 @@ mac() ->
 	mac([]).
 %% @hidden
 mac(Acc) when length(Acc) =:= 12 ->
-	list_to_binary(Acc);
+	Acc;
 mac(Acc) ->
 	mac([integer_to_list(rand:uniform(255), 16) | Acc]).
 
