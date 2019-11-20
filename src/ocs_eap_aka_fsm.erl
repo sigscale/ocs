@@ -61,7 +61,7 @@
 		client_port :: undefined | pos_integer(),
 		radius_fsm :: undefined | pid(),
 		auc_fsm :: undefined | pid(),
-		session_id:: string() | {NAS :: inet:ip_address() | string(),
+		session_id:: binary() | {NAS :: inet:ip_address() | string(),
 				Port :: string(), Peer :: string()},
 		request :: undefined | #diameter_eap_app_DER{} | #'3gpp_swm_DER'{}
 				| #radius{},
@@ -939,11 +939,11 @@ send_radius_response(EapMessage, RadiusCode, ResponseAttributes,
 	end,
 	radius:response(RadiusFsm, {response, ResponsePacket}).
 
--spec send_diameter_response(SId, AuthType, ResultCode,
+-spec send_diameter_response(SessionId, AuthType, ResultCode,
 		OriginHost, OriginRealm, EapMessage, PortServer,
 		Request, StateData) -> ok
 	when
-		SId :: string(),
+		SessionId :: binary(),
 		AuthType :: integer(),
 		ResultCode :: integer(),
 		OriginHost :: binary(),
@@ -955,31 +955,29 @@ send_radius_response(EapMessage, RadiusCode, ResponseAttributes,
 %% @doc Log DIAMETER event and send appropriate DIAMETER answer to
 %% 	ocs_diameter_auth_port_server.
 %% @hidden
-send_diameter_response(SId, AuthType, ResultCode,
+send_diameter_response(SessionId, AuthType,
+		?'DIAMETER_BASE_RESULT-CODE_MULTI_ROUND_AUTH',
 		OriginHost, OriginRealm, EapMessage,
 		PortServer, #diameter_eap_app_DER{} = Request,
 		#statedata{server_address = ServerAddress, server_port = ServerPort,
-		client_address = ClientAddress, client_port = ClientPort,
-		msk = MSK} = _StateData)
-		when ((ResultCode =:= ?'DIAMETER_BASE_RESULT-CODE_SUCCESS')
-		or (ResultCode =:= ?'DIAMETER_BASE_RESULT-CODE_MULTI_ROUND_AUTH')),
-		is_list(SId), is_integer(AuthType),
+		client_address = ClientAddress, client_port = ClientPort} = _StateData)
+		when is_binary(SessionId), is_integer(AuthType),
 		is_binary(OriginHost), is_binary(OriginRealm),
 		is_binary(EapMessage), is_pid(PortServer) ->
 	Server = {ServerAddress, ServerPort},
 	Client= {ClientAddress, ClientPort},
 	try
-		Answer = #diameter_eap_app_DEA{'Session-Id' = SId,
+		Answer = #diameter_eap_app_DEA{'Session-Id' = SessionId,
 				'Auth-Application-Id' = ?EAP_APPLICATION_ID,
 				'Auth-Request-Type' = AuthType,
-				'Result-Code' = ResultCode,
+				'Result-Code' = ?'DIAMETER_BASE_RESULT-CODE_MULTI_ROUND_AUTH',
 				'Origin-Host' = OriginHost, 'Origin-Realm' = OriginRealm,
-				'EAP-Payload' = [EapMessage], 'EAP-Master-Session-Key' = [MSK]},
+				'EAP-Payload' = [EapMessage]},
 		ok = ocs_log:auth_log(diameter, Server, Client, Request, Answer),
 		gen_server:cast(PortServer, {self(), Answer})
 	catch
 		_:_ ->
-			Answer1 = #diameter_eap_app_DEA{'Session-Id' = SId,
+			Answer1 = #diameter_eap_app_DEA{'Session-Id' = SessionId,
 					'Auth-Application-Id' = ?EAP_APPLICATION_ID,
 					'Auth-Request-Type' = AuthType,
 					'Result-Code' = ?'DIAMETER_BASE_RESULT-CODE_UNABLE_TO_COMPLY',
@@ -988,21 +986,52 @@ send_diameter_response(SId, AuthType, ResultCode,
 			ok = ocs_log:auth_log(diameter, Server, Client, Request, Answer1),
 			gen_server:cast(PortServer, {self(), Answer1})
 	end;
-send_diameter_response(SId, AuthType, ResultCode,
+send_diameter_response(SessionId, AuthType,
+		?'DIAMETER_BASE_RESULT-CODE_SUCCESS',
+		OriginHost, OriginRealm, EapMessage,
+		PortServer, #diameter_eap_app_DER{} = Request,
+		#statedata{server_address = ServerAddress, server_port = ServerPort,
+		client_address = ClientAddress, client_port = ClientPort,
+		msk = MSK} = _StateData) when is_binary(SessionId),
+		is_integer(AuthType), is_binary(OriginHost), is_binary(OriginRealm),
+		is_binary(EapMessage), is_pid(PortServer), is_binary(MSK) ->
+	Server = {ServerAddress, ServerPort},
+	Client= {ClientAddress, ClientPort},
+	try
+		Answer = #diameter_eap_app_DEA{'Session-Id' = SessionId,
+				'Auth-Application-Id' = ?EAP_APPLICATION_ID,
+				'Auth-Request-Type' = AuthType,
+				'Result-Code' = ?'DIAMETER_BASE_RESULT-CODE_SUCCESS',
+				'Origin-Host' = OriginHost, 'Origin-Realm' = OriginRealm,
+				'EAP-Payload' = [EapMessage], 'EAP-Master-Session-Key' = [MSK]},
+		ok = ocs_log:auth_log(diameter, Server, Client, Request, Answer),
+		gen_server:cast(PortServer, {self(), Answer})
+	catch
+		_:_ ->
+			Answer1 = #diameter_eap_app_DEA{'Session-Id' = SessionId,
+					'Auth-Application-Id' = ?EAP_APPLICATION_ID,
+					'Auth-Request-Type' = AuthType,
+					'Result-Code' = ?'DIAMETER_BASE_RESULT-CODE_UNABLE_TO_COMPLY',
+					'Origin-Host' = OriginHost,
+					'Origin-Realm' = OriginRealm},
+			ok = ocs_log:auth_log(diameter, Server, Client, Request, Answer1),
+			gen_server:cast(PortServer, {self(), Answer1})
+	end;
+send_diameter_response(SessionId, AuthType, ResultCode,
 		OriginHost, OriginRealm, EapMessage,
 		PortServer, #'3gpp_swm_DER'{} = Request,
 		#statedata{server_address = ServerAddress, server_port = ServerPort,
 		client_address = ClientAddress, client_port = ClientPort,
 		msk = MSK} = _StateData)
-		when ((ResultCode =:= ?'DIAMETER_BASE_RESULT-CODE_SUCCESS')
-		or (ResultCode =:= ?'DIAMETER_BASE_RESULT-CODE_MULTI_ROUND_AUTH')),
-		is_list(SId), is_integer(AuthType),
+		when ((ResultCode =:= ?'DIAMETER_BASE_RESULT-CODE_SUCCESS') or
+		(ResultCode =:= ?'DIAMETER_BASE_RESULT-CODE_MULTI_ROUND_AUTH')),
+		is_binary(SessionId), is_integer(AuthType),
 		is_binary(OriginHost), is_binary(OriginRealm),
 		is_binary(EapMessage), is_pid(PortServer) ->
 	Server = {ServerAddress, ServerPort},
 	Client= {ClientAddress, ClientPort},
 	try
-		Answer = #'3gpp_swm_DEA'{'Session-Id' = SId,
+		Answer = #'3gpp_swm_DEA'{'Session-Id' = SessionId,
 				'Auth-Application-Id' = ?EAP_APPLICATION_ID,
 				'Auth-Request-Type' = AuthType,
 				'Result-Code' = ResultCode,
@@ -1012,7 +1041,7 @@ send_diameter_response(SId, AuthType, ResultCode,
 		gen_server:cast(PortServer, {self(), Answer})
 	catch
 		_:_ ->
-			Answer1 = #'3gpp_swm_DEA'{'Session-Id' = SId,
+			Answer1 = #'3gpp_swm_DEA'{'Session-Id' = SessionId,
 					'Auth-Application-Id' = ?EAP_APPLICATION_ID,
 					'Auth-Request-Type' = AuthType,
 					'Result-Code' = ?'DIAMETER_BASE_RESULT-CODE_UNABLE_TO_COMPLY',
@@ -1021,19 +1050,20 @@ send_diameter_response(SId, AuthType, ResultCode,
 			ok = ocs_log:auth_log(diameter, Server, Client, Request, Answer1),
 			gen_server:cast(PortServer, {self(), Answer1})
 	end;
-send_diameter_response(SId, AuthType, ResultCode,
+send_diameter_response(SessionId, AuthType, ResultCode,
 		OriginHost, OriginRealm, EapMessage,
 		PortServer, #diameter_eap_app_DER{} = Request,
 		#statedata{server_address = ServerAddress,
 		server_port = ServerPort, client_address = ClientAddress,
-		client_port = ClientPort} = _StateData) when is_list(SId),
+		client_port = ClientPort} = _StateData)
+		when is_binary(SessionId),
 		is_integer(AuthType), is_integer(ResultCode),
 		is_binary(OriginHost), is_binary(OriginRealm),
 		is_binary(EapMessage), is_pid(PortServer) ->
 	Server = {ServerAddress, ServerPort},
 	Client= {ClientAddress, ClientPort},
 	try
-		Answer = #diameter_eap_app_DEA{'Session-Id' = SId,
+		Answer = #diameter_eap_app_DEA{'Session-Id' = SessionId,
 				'Auth-Application-Id' = ?EAP_APPLICATION_ID,
 				'Auth-Request-Type' = AuthType,
 				'Result-Code' = ResultCode,
@@ -1044,7 +1074,7 @@ send_diameter_response(SId, AuthType, ResultCode,
 		gen_server:cast(PortServer, {self(), Answer})
 	catch
 		_:_ ->
-			Answer1 = #diameter_eap_app_DEA{'Session-Id' = SId,
+			Answer1 = #diameter_eap_app_DEA{'Session-Id' = SessionId,
 					'Auth-Application-Id' = ?EAP_APPLICATION_ID,
 					'Auth-Request-Type' = AuthType,
 					'Result-Code' = ?'DIAMETER_BASE_RESULT-CODE_UNABLE_TO_COMPLY',
@@ -1053,19 +1083,20 @@ send_diameter_response(SId, AuthType, ResultCode,
 			ok = ocs_log:auth_log(diameter, Server, Client, Request, Answer1),
 			gen_server:cast(PortServer, {self(), Answer1})
 	end;
-send_diameter_response(SId, AuthType, ResultCode,
+send_diameter_response(SessionId, AuthType, ResultCode,
 		OriginHost, OriginRealm, EapMessage,
 		PortServer, #'3gpp_swm_DER'{} = Request,
 		#statedata{server_address = ServerAddress,
 		server_port = ServerPort, client_address = ClientAddress,
-		client_port = ClientPort} = _StateData) when is_list(SId),
+		client_port = ClientPort} = _StateData)
+		when is_binary(SessionId),
 		is_integer(AuthType), is_integer(ResultCode),
 		is_binary(OriginHost), is_binary(OriginRealm),
 		is_binary(EapMessage), is_pid(PortServer) ->
 	Server = {ServerAddress, ServerPort},
 	Client= {ClientAddress, ClientPort},
 	try
-		Answer = #'3gpp_swm_DEA'{'Session-Id' = SId,
+		Answer = #'3gpp_swm_DEA'{'Session-Id' = SessionId,
 				'Auth-Application-Id' = ?EAP_APPLICATION_ID,
 				'Auth-Request-Type' = AuthType,
 				'Result-Code' = ResultCode,
@@ -1076,7 +1107,7 @@ send_diameter_response(SId, AuthType, ResultCode,
 		gen_server:cast(PortServer, {self(), Answer})
 	catch
 		_:_ ->
-			Answer1 = #'3gpp_swm_DEA'{'Session-Id' = SId,
+			Answer1 = #'3gpp_swm_DEA'{'Session-Id' = SessionId,
 					'Auth-Application-Id' = ?EAP_APPLICATION_ID,
 					'Auth-Request-Type' = AuthType,
 					'Result-Code' = ?'DIAMETER_BASE_RESULT-CODE_UNABLE_TO_COMPLY',
