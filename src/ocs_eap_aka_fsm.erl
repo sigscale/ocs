@@ -92,6 +92,7 @@
 -define(TIMEOUT, 30000).
 
 -define(EAP_APPLICATION_ID, 5).
+-define(SWm_APPLICATION_ID, 16777264).
 
 %% 3GPP TS 23.003 14.5 Temporary identities
 -define(PERM_TAG, $6).
@@ -1017,24 +1018,53 @@ send_diameter_response(SessionId, AuthType,
 			ok = ocs_log:auth_log(diameter, Server, Client, Request, Answer1),
 			gen_server:cast(PortServer, {self(), Answer1})
 	end;
-send_diameter_response(SessionId, AuthType, ResultCode,
+send_diameter_response(SessionId, AuthType,
+		?'DIAMETER_BASE_RESULT-CODE_MULTI_ROUND_AUTH',
 		OriginHost, OriginRealm, EapMessage,
 		PortServer, #'3gpp_swm_DER'{} = Request,
 		#statedata{server_address = ServerAddress, server_port = ServerPort,
-		client_address = ClientAddress, client_port = ClientPort,
-		msk = MSK} = _StateData)
-		when ((ResultCode =:= ?'DIAMETER_BASE_RESULT-CODE_SUCCESS') or
-		(ResultCode =:= ?'DIAMETER_BASE_RESULT-CODE_MULTI_ROUND_AUTH')),
-		is_binary(SessionId), is_integer(AuthType),
+		client_address = ClientAddress, client_port = ClientPort} = _StateData)
+		when is_binary(SessionId), is_integer(AuthType),
 		is_binary(OriginHost), is_binary(OriginRealm),
 		is_binary(EapMessage), is_pid(PortServer) ->
 	Server = {ServerAddress, ServerPort},
 	Client= {ClientAddress, ClientPort},
 	try
 		Answer = #'3gpp_swm_DEA'{'Session-Id' = SessionId,
-				'Auth-Application-Id' = ?EAP_APPLICATION_ID,
+				'Auth-Application-Id' = ?SWm_APPLICATION_ID,
 				'Auth-Request-Type' = AuthType,
-				'Result-Code' = ResultCode,
+				'Result-Code' = ?'DIAMETER_BASE_RESULT-CODE_MULTI_ROUND_AUTH',
+				'Origin-Host' = OriginHost, 'Origin-Realm' = OriginRealm,
+				'EAP-Payload' = [EapMessage]},
+		ok = ocs_log:auth_log(diameter, Server, Client, Request, Answer),
+		gen_server:cast(PortServer, {self(), Answer})
+	catch
+		_:_ ->
+			Answer1 = #'3gpp_swm_DEA'{'Session-Id' = SessionId,
+					'Auth-Application-Id' = ?SWm_APPLICATION_ID,
+					'Auth-Request-Type' = AuthType,
+					'Result-Code' = ?'DIAMETER_BASE_RESULT-CODE_UNABLE_TO_COMPLY',
+					'Origin-Host' = OriginHost,
+					'Origin-Realm' = OriginRealm},
+			ok = ocs_log:auth_log(diameter, Server, Client, Request, Answer1),
+			gen_server:cast(PortServer, {self(), Answer1})
+	end;
+send_diameter_response(SessionId, AuthType,
+		?'DIAMETER_BASE_RESULT-CODE_SUCCESS',
+		OriginHost, OriginRealm, EapMessage,
+		PortServer, #'3gpp_swm_DER'{} = Request,
+		#statedata{server_address = ServerAddress, server_port = ServerPort,
+		client_address = ClientAddress, client_port = ClientPort,
+		msk = MSK} = _StateData) when is_binary(SessionId),
+		is_integer(AuthType), is_binary(OriginHost), is_binary(OriginRealm),
+		is_binary(EapMessage), is_pid(PortServer), is_binary(MSK) ->
+	Server = {ServerAddress, ServerPort},
+	Client= {ClientAddress, ClientPort},
+	try
+		Answer = #'3gpp_swm_DEA'{'Session-Id' = SessionId,
+				'Auth-Application-Id' = ?SWm_APPLICATION_ID,
+				'Auth-Request-Type' = AuthType,
+				'Result-Code' = ?'DIAMETER_BASE_RESULT-CODE_SUCCESS',
 				'Origin-Host' = OriginHost, 'Origin-Realm' = OriginRealm,
 				'EAP-Payload' = [EapMessage], 'EAP-Master-Session-Key' = [MSK]},
 		ok = ocs_log:auth_log(diameter, Server, Client, Request, Answer),
@@ -1042,7 +1072,7 @@ send_diameter_response(SessionId, AuthType, ResultCode,
 	catch
 		_:_ ->
 			Answer1 = #'3gpp_swm_DEA'{'Session-Id' = SessionId,
-					'Auth-Application-Id' = ?EAP_APPLICATION_ID,
+					'Auth-Application-Id' = ?SWm_APPLICATION_ID,
 					'Auth-Request-Type' = AuthType,
 					'Result-Code' = ?'DIAMETER_BASE_RESULT-CODE_UNABLE_TO_COMPLY',
 					'Origin-Host' = OriginHost,
@@ -1097,7 +1127,7 @@ send_diameter_response(SessionId, AuthType, ResultCode,
 	Client= {ClientAddress, ClientPort},
 	try
 		Answer = #'3gpp_swm_DEA'{'Session-Id' = SessionId,
-				'Auth-Application-Id' = ?EAP_APPLICATION_ID,
+				'Auth-Application-Id' = ?SWm_APPLICATION_ID,
 				'Auth-Request-Type' = AuthType,
 				'Result-Code' = ResultCode,
 				'Origin-Host' = OriginHost,
@@ -1108,7 +1138,7 @@ send_diameter_response(SessionId, AuthType, ResultCode,
 	catch
 		_:_ ->
 			Answer1 = #'3gpp_swm_DEA'{'Session-Id' = SessionId,
-					'Auth-Application-Id' = ?EAP_APPLICATION_ID,
+					'Auth-Application-Id' = ?SWm_APPLICATION_ID,
 					'Auth-Request-Type' = AuthType,
 					'Result-Code' = ?'DIAMETER_BASE_RESULT-CODE_UNABLE_TO_COMPLY',
 					'Origin-Host' = OriginHost,
