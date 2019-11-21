@@ -113,7 +113,8 @@ init_per_testcase(TestCase, Config)
 	{auth, [{Address, _, _} | _]} = lists:keyfind(auth, 1, DiameterConfig),
 	{ok, _} = ocs:add_client(Address, undefined, diameter, undefined, true),
 	[{diameter_client, Address} | Config];
-init_per_testcase(_TestCase, Config) ->
+init_per_testcase(TestCase, Config)
+		when  TestCase == eap_identity_radius ->
 	{ok, RadiusConfig} = application:get_env(ocs, radius),
 	{auth, [{RadIP, _, _} | _]} = lists:keyfind(auth, 1, RadiusConfig),
 	{ok, Socket} = gen_udp:open(0, [{active, false}, inet, {ip, RadIP}, binary]),
@@ -171,7 +172,7 @@ eap_identity_radius(Config) ->
 	ok = send_radius_identity(Socket, Address, Port, NasId,
 			PeerId1, Secret, ReqAuth, EapId, RadId),
 	NextEapId = EapId + 1,
-	{NextEapId, _Token, _ServerID} = receive_radius_id(Socket, Address,
+	{NextEapId, _ServerID} = receive_radius_id(Socket, Address,
 			Port, Secret, ReqAuth, RadId).
 
 eap_identity_diameter() ->
@@ -286,8 +287,12 @@ receive_radius(Code, Socket, Address, Port, Secret, RadId, ReqAuth) ->
 receive_radius_id(Socket, Address, Port, Secret, ReqAuth, RadId) ->
 	EapMsg = radius_access_challenge(Socket, Address, Port,
 			Secret, RadId, ReqAuth),
-	#eap_packet{code = request, type = ?AKA, identifier = EapId,
-			data = EapData} = ocs_eap_codec:eap_packet(EapMsg).
+	#eap_packet{code = request, type = ?AKAprime, identifier = EapId,
+			data = EapData} = ocs_eap_codec:eap_packet(EapMsg),
+	#eap_aka_identity{permanent_id_req = false,
+			any_id_req = false,fullauth_id_req = true,
+			identity = ServerId} = ocs_eap_codec:eap_aka(EapData),
+	{EapId, ServerId}.
 
 %% @hidden
 send_radius_identity(Socket, Address, Port, NasId,
