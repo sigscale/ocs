@@ -111,7 +111,7 @@ init_per_testcase(TestCase, Config)
 		when TestCase == eap_identity_diameter ->
 	{ok, DiameterConfig} = application:get_env(ocs, diameter),
 	{auth, [{Address, _, _} | _]} = lists:keyfind(auth, 1, DiameterConfig),
-	{ok, _} = ocs:add_client(Address, undefined, diameter, undefined, true),
+	{ok, _} = ocs:add_client(Address, undefined, diameter, undefined, true, false),
 	[{diameter_client, Address} | Config];
 init_per_testcase(TestCase, Config)
 		when  TestCase == eap_identity_radius ->
