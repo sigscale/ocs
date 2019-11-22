@@ -356,7 +356,8 @@ rate4(Protocol, Service, Buckets,
 			end;
 		Other ->
 			error_logger:error_report(["Prefix table tariff lookup failed",
-					{module, ?MODULE}, {table, Table}, {result, Other}]),
+					{module, ?MODULE}, {table, Table},
+					{service_network, ServiceNetwork}, {result, Other}]),
 			throw(table_lookup_failed)
 	end;
 rate4(Protocol, Service, Buckets, Price,
