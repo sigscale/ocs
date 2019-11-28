@@ -122,6 +122,16 @@ init_per_testcase(TestCase, Config)
 	Protocol = radius,
 	{ok, _} = ocs:add_client(RadIP, undefined, Protocol, SharedSecret, true, false),
 	NasId = atom_to_list(node()),
+	[{nas_id, NasId}, {socket, Socket}, {radius_client, RadIP} | Config];
+init_per_testcase(TestCase, Config)
+		when TestCase == eap_identity_radius_trusted ->
+	{ok, RadiusConfig} = application:get_env(ocs, radius),
+	{auth, [{RadIP, _, _} | _]} = lists:keyfind(auth, 1, RadiusConfig),
+	{ok, Socket} = gen_udp:open(0, [{active, false}, inet, {ip, RadIP}, binary]),
+	SharedSecret = ct:get_config(radius_shared_secret),
+	Protocol = radius,
+	{ok, _} = ocs:add_client(RadIP, undefined, Protocol, SharedSecret, true, true),
+	NasId = atom_to_list(node()),
 	[{nas_id, NasId}, {socket, Socket}, {radius_client, RadIP} | Config].
 
 -spec end_per_testcase(TestCase :: atom(), Config :: [tuple()]) -> any().
@@ -147,7 +157,7 @@ sequences() ->
 %% Returns a list of all test cases in this test suite.
 %%
 all() ->
-	[eap_identity_radius, eap_identity_diameter].
+	[eap_identity_radius, eap_identity_diameter, eap_identity_radius_trusted].
 
 %%---------------------------------------------------------------------
 %%  Test cases
@@ -192,6 +202,32 @@ eap_identity_diameter(Config) ->
 	#diameter_eap_app_DEA{'Session-Id' = SIdbin, 'Auth-Application-Id' = ?EAP_APPLICATION_ID,
 			'Auth-Request-Type' =  ?'DIAMETER_BASE_AUTH-REQUEST-TYPE_AUTHORIZE_AUTHENTICATE',
 			'Result-Code' = ?'DIAMETER_BASE_RESULT-CODE_MULTI_ROUND_AUTH'} = DEA.
+
+eap_identity_radius_trusted() ->
+   [{userdata, [{doc, "Send an trusted EAP-Identity/Response using RADIUS"}]}].
+
+eap_identity_radius_trusted(Config) ->
+	Socket = ?config(socket, Config),
+	{ok, RadiusConfig} = application:get_env(ocs, radius),
+	{auth, [{Address, Port, _} | _]} = lists:keyfind(auth, 1, RadiusConfig),
+	NasId = ?config(nas_id, Config),
+	ReqAuth = radius:authenticator(),
+	RadId = 1, EapId = 1,
+	Secret = ct:get_config(radius_shared_secret),
+	Realm = ?config(realm, Config),
+	MSIN = msin(),
+	PeerId = "6" ++ ct:get_config(mcc) ++ ct:get_config(mcc)
+			++ MSIN ++ "@wlan." ++ Realm,
+	PeerId1 = list_to_binary(PeerId),
+	P1 = price(usage, octets, rand:uniform(1000000), rand:uniform(100)),
+	OfferId = add_offer([P1], 4),
+	ProdRef = add_product(OfferId),
+	#service{} = add_service(ProdRef),
+	ok = send_radius_identity(Socket, Address, Port, NasId,
+			PeerId1, Secret, ReqAuth, EapId, RadId),
+	NextEapId = EapId + 1,
+	{NextEapId, _Token, _ServerID} = receive_radius_id(Socket, Address,
+			Port, Secret, ReqAuth, RadId).
 
 %%---------------------------------------------------------------------
 %%  Internal functions
@@ -336,4 +372,36 @@ msin(Acc) when length(Acc) =:= 10 ->
 	Acc;
 msin(Acc) ->
 	msin([rand:uniform(10) + 47 | Acc]).
+
+%% @hidden
+price(Type, Units, Size, Amount) ->
+	#price{name = ocs:generate_identity(),
+			type = Type, units = Units,
+			size = Size, amount = Amount}.
+
+%% @hidden
+add_offer(Prices, Spec) when is_integer(Spec) ->
+	add_offer(Prices, integer_to_list(Spec));
+add_offer(Prices, Spec) ->
+	Offer = #offer{name = ocs:generate_identity(),
+			price = Prices, specification = Spec},
+	{ok, #offer{name = OfferId}} = ocs:add_offer(Offer),
+	OfferId.
+
+%% @hidden
+add_product(OfferId) ->
+	add_product(OfferId, []).
+add_product(OfferId, Chars) ->
+	{ok, #product{id = ProdRef}} = ocs:add_product(OfferId, Chars),
+	ProdRef.
+
+%% @hidden
+add_service(ProdRef) ->
+	K = crypto:strong_rand_bytes(16),
+	OPc = crypto:strong_rand_bytes(16),
+	Credentials = #aka_cred{k = K, opc = OPc},
+	{ok, Service} =
+			ocs:add_service(ocs:generate_identity(), Credentials,
+			ProdRef, []),
+	Service.
 
