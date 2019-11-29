@@ -397,11 +397,11 @@ add_product(OfferId, Chars) ->
 
 %% @hidden
 add_service(ProdRef) ->
+	IMSI = "001001" ++ ocs:generate_identity(),
 	K = crypto:strong_rand_bytes(16),
 	OPc = crypto:strong_rand_bytes(16),
 	Credentials = #aka_cred{k = K, opc = OPc},
-	{ok, Service} =
-			ocs:add_service(ocs:generate_identity(), Credentials,
+	{ok, Service} = ocs:add_service(IMSI, Credentials,
 			ProdRef, []),
 	Service.
 
