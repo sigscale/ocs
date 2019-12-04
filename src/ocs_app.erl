@@ -337,7 +337,13 @@ install7(Nodes, Acc) ->
 			{attributes, record_info(fields, offer)}]) of
 		{atomic, ok} ->
 			error_logger:info_msg("Created new offer table.~n"),
-			install8(Nodes, [offer | Acc]);
+			case add_example_offers() of
+				ok ->
+					error_logger:info_msg(["Added example offers to product catalog.~n"]),
+					install8(Nodes, [offer | Acc]);
+				{error, Reason} ->
+					{error, Reason}
+			end;
 		{aborted, {not_active, _, Node} = Reason} ->
 			error_logger:error_report(["Mnesia not started on node",
 					{node, Node}]),
@@ -559,6 +565,7 @@ config_change(_Changed, _New, _Removed) ->
 		TableName :: atom(),
 		Reason :: term().
 %% @doc Try to force load bad tables.
+%% @private
 force([H | T]) ->
 	case mnesia:force_load_table(H) of
 		yes ->
@@ -568,4 +575,69 @@ force([H | T]) ->
 	end;
 force([]) ->
 	ok.
+
+-spec add_example_offers() -> Result
+	when
+		Result :: ok | {error, Reason},
+		Reason :: term().
+%% @doc Seed product catalog with example offers.
+%% @private
+add_example_offers() ->
+	PriceInstall = #price{name = "Installation",
+			description = "One time installation charge",
+			type = one_time, amount = 500000000},
+	Alteration = #alteration{name = "Allowance",
+			description = "Usage included in monthly subscription.",
+			type = recurring, period = monthly,
+			units = octets, amount = 0},
+	PriceSubscription = #price{name = "Subscription",
+			description = "Monthly subscription charge",
+			type = recurring, period = monthly,
+			amount = 1000000000, alteration = Alteration},
+	PriceOverage = #price{name = "Overage",
+			description = "Usage over and above monthly allowance",
+			type = usage, units = octets, size = 1000000, amount = 1000000},
+	add_example_offer1(PriceInstall, Alteration, PriceSubscription, PriceOverage).
+%% @hidden
+add_example_offer1(PriceInstall, Alteration, PriceSubscription, PriceOverage) ->
+	Alteration1 = Alteration#alteration{size = 1000000000},
+	PriceSubscription1 = PriceSubscription#price{amount = 1000000000,
+			alteration = Alteration1},
+	Offer = #offer{name = "Data Plan (1G)", description = "1GB/month",
+			status = in_study, specification = "8",
+			price = [PriceInstall, PriceSubscription1, PriceOverage]},
+	case ocs:add_offer(Offer) of
+		{ok, #offer{}} ->
+			add_example_offer2(PriceInstall, Alteration, PriceSubscription, PriceOverage);
+		{error, Reason} ->
+			{error, Reason}
+	end.
+%% @hidden
+add_example_offer2(PriceInstall, Alteration, PriceSubscription, PriceOverage) ->
+	Alteration2 = Alteration#alteration{size = 4000000000},
+	PriceSubscription2 = PriceSubscription#price{amount = 3500000000,
+			alteration = Alteration2},
+	Offer = #offer{name = "Data Plan (4G)", description = "4GB/month",
+			status = in_study, specification = "8",
+			price = [PriceInstall, PriceSubscription2, PriceOverage]},
+	case ocs:add_offer(Offer) of
+		{ok, #offer{}} ->
+			add_example_offer3(PriceInstall, Alteration, PriceSubscription, PriceOverage);
+		{error, Reason} ->
+			{error, Reason}
+	end.
+%% @hidden
+add_example_offer3(PriceInstall, Alteration, PriceSubscription, PriceOverage) ->
+	Alteration3 = Alteration#alteration{size = 10000000000},
+	PriceSubscription3 = PriceSubscription#price{amount = 7500000000,
+			alteration = Alteration3},
+	Offer = #offer{name = "Data Plan (10G)", description = "10GB/month",
+			status = in_study, specification = "8",
+			price = [PriceInstall, PriceSubscription3, PriceOverage]},
+	case ocs:add_offer(Offer) of
+		{ok, #offer{}} ->
+			ok;
+		{error, Reason} ->
+			{error, Reason}
+	end.
 
