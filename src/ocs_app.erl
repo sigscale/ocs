@@ -583,15 +583,17 @@ force([]) ->
 %% @doc Seed product catalog with example offers.
 %% @private
 add_example_offers() ->
-	PriceInstall = #price{name = "Installation",
-			description = "One time installation charge",
-			type = one_time, amount = 500000000},
-	case add_example_data_offers() of
-		ok ->
-			add_example_voice_offers();
-		{error, Reason} ->
-			{error, Reason}
-	end.
+	add_example_offers1(add_example_data_offers()).
+%% @hidden
+add_example_offers1(ok) ->
+	add_example_offers2(add_example_voice_offers());
+add_example_offers1({error, Reason}) ->
+	{error, Reason}.
+%% @hidden
+add_example_offers2(ok) ->
+	add_example_bundles();
+add_example_offers2({error, Reason}) ->
+	{error, Reason}.
 
 %% @hidden
 add_example_data_offers() ->
@@ -612,7 +614,7 @@ add_example_data_offer1(Alteration, PriceSubscription, PriceOverage) ->
 	Alteration1 = Alteration#alteration{size = 1000000000},
 	PriceSubscription1 = PriceSubscription#price{amount = 1000000000,
 			alteration = Alteration1},
-	Offer = #offer{name = "Data Plan (1G)", description = "1GB/month",
+	Offer = #offer{name = "Data (1G)", description = "1GB/month",
 			status = in_study, specification = "8",
 			price = [PriceSubscription1, PriceOverage]},
 	case ocs:add_offer(Offer) of
@@ -626,7 +628,7 @@ add_example_data_offer2(Alteration, PriceSubscription, PriceOverage) ->
 	Alteration2 = Alteration#alteration{size = 4000000000},
 	PriceSubscription2 = PriceSubscription#price{amount = 3500000000,
 			alteration = Alteration2},
-	Offer = #offer{name = "Data Plan (4G)", description = "4GB/month",
+	Offer = #offer{name = "Data (4G)", description = "4GB/month",
 			status = in_study, specification = "8",
 			price = [PriceSubscription2, PriceOverage]},
 	case ocs:add_offer(Offer) of
@@ -640,7 +642,7 @@ add_example_data_offer3(Alteration, PriceSubscription, PriceOverage) ->
 	Alteration3 = Alteration#alteration{size = 10000000000},
 	PriceSubscription3 = PriceSubscription#price{amount = 7500000000,
 			alteration = Alteration3},
-	Offer = #offer{name = "Data Plan (10G)", description = "10GB/month",
+	Offer = #offer{name = "Data (10G)", description = "10GB/month",
 			status = in_study, specification = "8",
 			price = [PriceSubscription3, PriceOverage]},
 	case ocs:add_offer(Offer) of
@@ -657,9 +659,55 @@ add_example_voice_offers() ->
 			char_value_use = [#char_value_use{ name = "destPrefixTariffTable",
          type = undefined,min = 0, max = 1, specification = "3",
 			values = [#char_value{value = "examples"}]}]},
-	Offer = #offer{name = "Voice Plan", description = "Tariffed voice calling",
+	Offer = #offer{name = "Voice Calling", description = "Tariffed voice calling",
 			status = in_study, specification = "9",
 			price = [PriceUsage]},
+	case ocs:add_offer(Offer) of
+		{ok, #offer{}} ->
+			ok;
+		{error, Reason} ->
+			{error, Reason}
+	end.
+
+%% @hidden
+add_example_bundles() ->
+	PriceInstall = #price{name = "Installation",
+			description = "One time installation charge",
+			type = one_time, amount = 1000000000},
+	add_example_bundles1(PriceInstall).
+%% @hidden
+add_example_bundles1(PriceInstall) ->
+	Offer = #offer{name = "Voice & Data (1G)",
+			description = "Tariffed voice and 1GB/month data",
+			bundle = [#bundled_po{name = "Data (1G)"},
+			#bundled_po{name = "Voice Calling"}],
+			price = [PriceInstall]},
+	case ocs:add_offer(Offer) of
+		{ok, #offer{}} ->
+			add_example_bundles2(PriceInstall);
+		{error, Reason} ->
+			{error, Reason}
+	end.
+%% @hidden
+add_example_bundles2(PriceInstall) ->
+	Offer = #offer{name = "Voice & Data (4G)",
+			description = "Tariffed voice and 4GB/month data",
+			bundle = [#bundled_po{name = "Data (4G)"},
+			#bundled_po{name = "Voice Calling"}],
+			price = [PriceInstall]},
+	case ocs:add_offer(Offer) of
+		{ok, #offer{}} ->
+			add_example_bundles3(PriceInstall);
+		{error, Reason} ->
+			{error, Reason}
+	end.
+%% @hidden
+add_example_bundles3(PriceInstall) ->
+	Offer = #offer{name = "Voice & Data (10G)",
+			description = "Tariffed voice and 10GB/month data",
+			bundle = [#bundled_po{name = "Data (10G)"},
+			#bundled_po{name = "Voice Calling"}],
+			price = [PriceInstall]},
 	case ocs:add_offer(Offer) of
 		{ok, #offer{}} ->
 			ok;
