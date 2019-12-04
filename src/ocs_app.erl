@@ -339,7 +339,7 @@ install7(Nodes, Acc) ->
 			error_logger:info_msg("Created new offer table.~n"),
 			case add_example_offers() of
 				ok ->
-					error_logger:info_msg(["Added example offers to product catalog.~n"]),
+					error_logger:info_msg("Added example offers to product catalog.~n"),
 					install8(Nodes, [offer | Acc]);
 				{error, Reason} ->
 					{error, Reason}
@@ -586,6 +586,15 @@ add_example_offers() ->
 	PriceInstall = #price{name = "Installation",
 			description = "One time installation charge",
 			type = one_time, amount = 500000000},
+	case add_example_data_offers() of
+		ok ->
+			add_example_voice_offers();
+		{error, Reason} ->
+			{error, Reason}
+	end.
+
+%% @hidden
+add_example_data_offers() ->
 	Alteration = #alteration{name = "Allowance",
 			description = "Usage included in monthly subscription.",
 			type = recurring, period = monthly,
@@ -597,43 +606,60 @@ add_example_offers() ->
 	PriceOverage = #price{name = "Overage",
 			description = "Usage over and above monthly allowance",
 			type = usage, units = octets, size = 1000000, amount = 1000000},
-	add_example_offer1(PriceInstall, Alteration, PriceSubscription, PriceOverage).
+	add_example_data_offer1(Alteration, PriceSubscription, PriceOverage).
 %% @hidden
-add_example_offer1(PriceInstall, Alteration, PriceSubscription, PriceOverage) ->
+add_example_data_offer1(Alteration, PriceSubscription, PriceOverage) ->
 	Alteration1 = Alteration#alteration{size = 1000000000},
 	PriceSubscription1 = PriceSubscription#price{amount = 1000000000,
 			alteration = Alteration1},
 	Offer = #offer{name = "Data Plan (1G)", description = "1GB/month",
 			status = in_study, specification = "8",
-			price = [PriceInstall, PriceSubscription1, PriceOverage]},
+			price = [PriceSubscription1, PriceOverage]},
 	case ocs:add_offer(Offer) of
 		{ok, #offer{}} ->
-			add_example_offer2(PriceInstall, Alteration, PriceSubscription, PriceOverage);
+			add_example_data_offer2(Alteration, PriceSubscription, PriceOverage);
 		{error, Reason} ->
 			{error, Reason}
 	end.
 %% @hidden
-add_example_offer2(PriceInstall, Alteration, PriceSubscription, PriceOverage) ->
+add_example_data_offer2(Alteration, PriceSubscription, PriceOverage) ->
 	Alteration2 = Alteration#alteration{size = 4000000000},
 	PriceSubscription2 = PriceSubscription#price{amount = 3500000000,
 			alteration = Alteration2},
 	Offer = #offer{name = "Data Plan (4G)", description = "4GB/month",
 			status = in_study, specification = "8",
-			price = [PriceInstall, PriceSubscription2, PriceOverage]},
+			price = [PriceSubscription2, PriceOverage]},
 	case ocs:add_offer(Offer) of
 		{ok, #offer{}} ->
-			add_example_offer3(PriceInstall, Alteration, PriceSubscription, PriceOverage);
+			add_example_data_offer3(Alteration, PriceSubscription, PriceOverage);
 		{error, Reason} ->
 			{error, Reason}
 	end.
 %% @hidden
-add_example_offer3(PriceInstall, Alteration, PriceSubscription, PriceOverage) ->
+add_example_data_offer3(Alteration, PriceSubscription, PriceOverage) ->
 	Alteration3 = Alteration#alteration{size = 10000000000},
 	PriceSubscription3 = PriceSubscription#price{amount = 7500000000,
 			alteration = Alteration3},
 	Offer = #offer{name = "Data Plan (10G)", description = "10GB/month",
 			status = in_study, specification = "8",
-			price = [PriceInstall, PriceSubscription3, PriceOverage]},
+			price = [PriceSubscription3, PriceOverage]},
+	case ocs:add_offer(Offer) of
+		{ok, #offer{}} ->
+			ok;
+		{error, Reason} ->
+			{error, Reason}
+	end.
+
+%% @hidden
+add_example_voice_offers() ->
+	PriceUsage = #price{name = "Usage", description = "Tariffed voice calling",
+			type = tariff, units = seconds, size = 60,
+			char_value_use = [#char_value_use{ name = "destPrefixTariffTable",
+         type = undefined,min = 0, max = 1, specification = "3",
+			values = [#char_value{value = "examples"}]}]},
+	Offer = #offer{name = "Voice Plan", description = "Tariffed voice calling",
+			status = in_study, specification = "9",
+			price = [PriceUsage]},
 	case ocs:add_offer(Offer) of
 		{ok, #offer{}} ->
 			ok;
