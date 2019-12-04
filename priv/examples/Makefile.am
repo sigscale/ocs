@@ -3,5 +3,5 @@
 ##
 ## Process this file with automake to produce Makefile.in
 
-SUBDIRS = lib mibs www examples
+examples_DATA = example.csv
 

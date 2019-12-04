@@ -654,17 +654,32 @@ add_example_data_offer3(Alteration, PriceSubscription, PriceOverage) ->
 
 %% @hidden
 add_example_voice_offers() ->
+	PLA = #pla{name = "example", description = "Example voice tariff",
+			specification = "4", status = created},
 	PriceUsage = #price{name = "Usage", description = "Tariffed voice calling",
 			type = tariff, units = seconds, size = 60,
-			char_value_use = [#char_value_use{ name = "destPrefixTariffTable",
-         type = undefined,min = 0, max = 1, specification = "3",
-			values = [#char_value{value = "examples"}]}]},
+			char_value_use = [#char_value_use{name = "destPrefixTariffTable",
+			specification = "3", values = [#char_value{value = "example"}]}]},
 	Offer = #offer{name = "Voice Calling", description = "Tariffed voice calling",
 			status = in_study, specification = "9",
 			price = [PriceUsage]},
-	case ocs:add_offer(Offer) of
-		{ok, #offer{}} ->
-			ok;
+	case ocs:add_pla(PLA) of
+		{ok, #pla{}} ->
+			case ocs:add_offer(Offer) of
+				{ok, #offer{}} ->
+					TariffPath = code:priv_dir(ocs) ++ "/examples/example.csv",
+					try ocs_gtt:import(TariffPath) of
+						ok ->
+							error_logger:info_msg("Imported example tariff table: "
+									++ TariffPath ++ "~n"),
+							ok
+					catch
+						_:Reason ->
+							{error, Reason}
+					end;
+				{error, Reason} ->
+					{error, Reason}
+			end;
 		{error, Reason} ->
 			{error, Reason}
 	end.
