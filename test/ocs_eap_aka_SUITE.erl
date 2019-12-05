@@ -216,18 +216,17 @@ eap_identity_radius_trusted(Config) ->
 	Secret = ct:get_config(radius_shared_secret),
 	Realm = ?config(realm, Config),
 	MSIN = msin(),
-	PeerId = "6" ++ ct:get_config(mcc) ++ ct:get_config(mcc)
-			++ MSIN ++ "@wlan." ++ Realm,
+	Name = ct:get_config(mcc) ++ ct:get_config(mcc) ++ MSIN,
+	PeerId = "6" ++ Name ++ "@wlan." ++ Realm,
 	PeerId1 = list_to_binary(PeerId),
 	P1 = price(usage, octets, rand:uniform(1000000), rand:uniform(100)),
 	OfferId = add_offer([P1], 4),
 	ProdRef = add_product(OfferId),
-	#service{} = add_service(ProdRef),
+	Service = add_service(Name, ProdRef),
 	ok = send_radius_identity(Socket, Address, Port, NasId,
 			PeerId1, Secret, ReqAuth, EapId, RadId),
-	NextEapId = EapId + 1,
-	{NextEapId, _Token, _ServerID} = receive_radius_id(Socket, Address,
-			Port, Secret, ReqAuth, RadId).
+	_Mac = receive_radius_id1(Socket, Address,
+			Port, Secret, ReqAuth, RadId, Service, PeerId1).
 
 %%---------------------------------------------------------------------
 %%  Internal functions
@@ -331,6 +330,23 @@ receive_radius_id(Socket, Address, Port, Secret, ReqAuth, RadId) ->
 	{EapId, ServerId}.
 
 %% @hidden
+receive_radius_id1(Socket, Address, Port, Secret, ReqAuth, RadId,
+		#service{password = #aka_cred{k = K, opc = OPc, dif = DIF}}, Identity) ->
+	EapMsg = radius_access_challenge(Socket, Address, Port,
+			Secret, RadId, ReqAuth),
+	EapPacket = #eap_packet{code = request, type = ?AKAprime, identifier = EapId,
+			data = EapData} = ocs_eap_codec:eap_packet(EapMsg),
+	#eap_aka_challenge{rand = RAND, autn = _AUTN, mac = _MAC} = ocs_eap_codec:eap_aka(EapData),
+	{_XRES, CK, IK, <<AK:48>>} = ocs_milenage:f2345(OPc, K, RAND),
+	SQN = sqn(DIF),
+	<<CKprime:16/binary, IKprime:16/binary>> = kdf(CK, IK, "WLAN", SQN, AK),
+	<<_:16/binary, Kaut:32/binary, _:32/binary, _:64/binary,
+                        _:64/binary, _/binary>> = prf(<<IKprime/binary,
+	CKprime/binary>>, <<"EAP-AKA'", Identity/binary>>, 7),
+        EapMessage1 = ocs_eap_codec:eap_packet(EapPacket),
+	MAC = crypto:hmac(sha256, Kaut, EapMessage1 , 16).
+
+%% @hidden
 send_radius_identity(Socket, Address, Port, NasId,
 		PeerId, Secret, Auth, EapId, RadId) ->
 	EapPacket  = #eap_packet{code = response, type = ?Identity,
@@ -375,7 +391,8 @@ msin(Acc) ->
 
 %% @hidden
 price(Type, Units, Size, Amount) ->
-	#price{name = ocs:generate_identity(),
+	Name = ocs:generate_identity(),
+	#price{name = Name,
 			type = Type, units = Units,
 			size = Size, amount = Amount}.
 
@@ -383,7 +400,8 @@ price(Type, Units, Size, Amount) ->
 add_offer(Prices, Spec) when is_integer(Spec) ->
 	add_offer(Prices, integer_to_list(Spec));
 add_offer(Prices, Spec) ->
-	Offer = #offer{name = ocs:generate_identity(),
+	Name = ocs:generate_identity(),
+	Offer = #offer{name = Name,
 			price = Prices, specification = Spec},
 	{ok, #offer{name = OfferId}} = ocs:add_offer(Offer),
 	OfferId.
@@ -396,12 +414,71 @@ add_product(OfferId, Chars) ->
 	ProdRef.
 
 %% @hidden
-add_service(ProdRef) ->
-	IMSI = "001001" ++ ocs:generate_identity(),
+add_service(Name, ProdRef) ->
 	K = crypto:strong_rand_bytes(16),
 	OPc = crypto:strong_rand_bytes(16),
 	Credentials = #aka_cred{k = K, opc = OPc},
-	{ok, Service} = ocs:add_service(IMSI, Credentials,
+	{ok, Service} = ocs:add_service(Name, Credentials,
 			ProdRef, []),
 	Service.
+
+-spec sqn(DIF) -> SQN
+	when
+		DIF :: integer(),
+		SQN :: integer().
+%% @doc Sequence Number (SQN).
+%%
+%%      3GPP RTS 33.102 Annex C.1.1.3.
+%% @private
+sqn(DIF) when is_integer(DIF) ->
+	(erlang:system_time(10) - DIF) bsl 5.
+
+-spec amf() -> AMF
+	when
+		AMF :: binary().
+%% @doc Authentication Management Field (AMF).
+%%
+%%      See 3GPP TS 33.102 Annex F.
+%% @private
+amf() ->
+	<<1:1, 0:15>>.
+
+-spec kdf(CK, IK, ANID, SQN, AK) -> MSK
+        when
+                CK :: binary(),
+                IK :: binary(),
+                ANID :: string(),
+                SQN :: integer(),
+                AK :: integer(),
+                MSK :: binary().
+%% @doc Key Derivation Function (KDF).
+%%
+%%      See 3GPP TS 33.402 Annex A,
+%%          3GPP TS 32.220 Annex B.
+%% @private
+kdf(CK, IK, "WLAN", SQN, AK)
+		when byte_size(CK) =:= 16, byte_size(IK) =:= 16,
+		is_integer(SQN), is_integer(AK) ->
+	SQNi = SQN bxor AK,
+	crypto:hmac(sha256, <<CK/binary, IK/binary>>,
+			<<16#20, "WLAN", 4:16, SQNi:48, 6:16>>).
+
+-spec prf(K, S, N) -> MK
+	when
+		K :: binary(),
+		S :: binary(),
+		N :: pos_integer(),
+		MK :: binary().
+%% @doc Pseudo-Random Number Function (PRF).
+%%
+%%      See RFC5448 3.4.
+%% @private
+prf(K, S, N) when is_binary(K), is_binary(S), is_integer(N), N > 1 ->
+	prf(K, S, N, 1, <<>>, []).
+%% @hidden
+prf(_, _, N, P, _, Acc) when P > N ->
+	iolist_to_binary(lists:reverse(Acc));
+prf(K, S, N, P, T1, Acc) ->
+	T2 = crypto:hmac(sha256, K, <<T1/binary, S/binary, P>>),
+	prf(K, S, N, P + 1, T2, [T2 | Acc]).
 
