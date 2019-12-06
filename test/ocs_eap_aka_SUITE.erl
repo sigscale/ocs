@@ -208,10 +208,11 @@ eap_identity_diameter(Config) ->
 	SIdbin = list_to_binary(SId),
 	#diameter_eap_app_DEA{'Session-Id' = SIdbin, 'Auth-Application-Id' = ?EAP_APPLICATION_ID,
 			'Auth-Request-Type' =  ?'DIAMETER_BASE_AUTH-REQUEST-TYPE_AUTHORIZE_AUTHENTICATE',
-			'Result-Code' = ?'DIAMETER_BASE_RESULT-CODE_MULTI_ROUND_AUTH'} = DEA,
+			'Result-Code' = ?'DIAMETER_BASE_RESULT-CODE_MULTI_ROUND_AUTH',
+			'EAP-Payload' = [Payload]} = DEA,
 	NextEapId = EapId + 1,
 	#eap_packet{code = request, type = ?AKAprime, identifier = NextEapId,
-			data = EapData} = ocs_eap_codec:eap_packet(Payload).
+			data = _EapData} = ocs_eap_codec:eap_packet(Payload).
 
 eap_identity_radius_trusted() ->
    [{userdata, [{doc, "Send an trusted EAP-Identity/Response using RADIUS"}]}].
@@ -237,7 +238,7 @@ eap_identity_radius_trusted(Config) ->
 			PeerId1, Secret, ReqAuth, EapId, RadId),
 	_Mac = receive_radius_id1(Socket, Address,
 			Port, Secret, ReqAuth, RadId, Service, PeerId1),
-	ok = ocs:delete_service(PeerId).
+	ok = ocs:delete_service(PeerId1).
 
 eap_identity_diameter_trusted() ->
    [{userdata, [{doc, "Send an EAP-Identity/Response using DIAMETER"}]}].
@@ -254,7 +255,7 @@ eap_identity_diameter_trusted(Config) ->
 	P1 = price(usage, octets, rand:uniform(1000000), rand:uniform(100)),
 	OfferId = add_offer([P1], 4),
 	ProdRef = add_product(OfferId),
-	Service = add_service(Name, ProdRef),
+	_Service = add_service(Name, ProdRef),
 	DEA = send_diameter_identity(SId, EapId, PeerId1),
 	SIdbin = list_to_binary(SId),
 	#diameter_eap_app_DEA{'Session-Id' = SIdbin, 'Auth-Application-Id' = ?EAP_APPLICATION_ID,
@@ -263,7 +264,7 @@ eap_identity_diameter_trusted(Config) ->
 			'EAP-Payload' = [Payload]} = DEA,
 	NextEapId = EapId + 1,
 	#eap_packet{code = request, type = ?AKAprime, identifier = NextEapId,
-			data = EapData} = ocs_eap_codec:eap_packet(Payload).
+			data = _EapData} = ocs_eap_codec:eap_packet(Payload).
 
 %%---------------------------------------------------------------------
 %%  Internal functions
@@ -371,7 +372,7 @@ receive_radius_id1(Socket, Address, Port, Secret, ReqAuth, RadId,
 		#service{password = #aka_cred{k = K, opc = OPc, dif = DIF}}, Identity) ->
 	EapMsg = radius_access_challenge(Socket, Address, Port,
 			Secret, RadId, ReqAuth),
-	EapPacket = #eap_packet{code = request, type = ?AKAprime, identifier = EapId,
+	EapPacket = #eap_packet{code = request, type = ?AKAprime, identifier = EapID,
 			data = EapData} = ocs_eap_codec:eap_packet(EapMsg),
 	#eap_aka_challenge{rand = RAND, autn = _AUTN, mac = _MAC} = ocs_eap_codec:eap_aka(EapData),
 	{_XRES, CK, IK, <<AK:48>>} = ocs_milenage:f2345(OPc, K, RAND),
@@ -381,7 +382,7 @@ receive_radius_id1(Socket, Address, Port, Secret, ReqAuth, RadId,
                         _:64/binary, _/binary>> = prf(<<IKprime/binary,
 	CKprime/binary>>, <<"EAP-AKA'", Identity/binary>>, 7),
         EapMessage1 = ocs_eap_codec:eap_packet(EapPacket),
-	MAC = crypto:hmac(sha256, Kaut, EapMessage1 , 16).
+	_MAC = crypto:hmac(sha256, Kaut, EapMessage1, 16).
 
 %% @hidden
 send_radius_identity(Socket, Address, Port, NasId,
