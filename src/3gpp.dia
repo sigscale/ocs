@@ -1468,3 +1468,9 @@
    RoamingDefault               4
    VisitingDefault              5
 
+@enum SMS-Node
+   SMS-Router                   0
+   IP-SM-GW                     1
+   SMS-Router_and_IP-SM-GW      2
+   SMS-SC                       3
+
