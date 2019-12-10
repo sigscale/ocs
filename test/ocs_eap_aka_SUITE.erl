@@ -233,12 +233,22 @@ eap_identity_radius_trusted(Config) ->
 	P1 = price(usage, octets, rand:uniform(1000000), rand:uniform(100)),
 	OfferId = add_offer([P1], 4),
 	ProdRef = add_product(OfferId),
-	Service = add_service(Name, ProdRef),
+	#service{password = #aka_cred{k = K, opc = OPc, dif = DIF}} = add_service(Name, ProdRef),
 	ok = send_radius_identity(Socket, Address, Port, NasId,
 			PeerId1, Secret, ReqAuth, EapId, RadId),
-	_Mac = receive_radius_id1(Socket, Address,
-			Port, Secret, ReqAuth, RadId, Service, PeerId1),
-	ok = ocs:delete_service(PeerId1).
+	EapMsg = radius_access_challenge(Socket, Address, Port,
+			Secret, RadId, ReqAuth),
+	#eap_packet{code = request, type = ?AKAprime, identifier = _EapID,
+			data = EapData} = ocs_eap_codec:eap_packet(EapMsg),
+	#eap_aka_challenge{rand = RAND, autn = _AUTN, mac = MAC} = ocs_eap_codec:eap_aka(EapData),
+	{_XRES, CK, IK, <<AK:48>>} = ocs_milenage:f2345(OPc, K, RAND),
+	SQN = sqn(DIF),
+	<<CKprime:16/binary, IKprime:16/binary>> = kdf(CK, IK, "WLAN", SQN, AK),
+	<<_:16/binary, Kaut:32/binary, _:32/binary, _:64/binary,
+                        _:64/binary, _/binary>> = prf(<<IKprime/binary,
+	CKprime/binary>>, <<"EAP-AKA'", PeerId1/binary>>, 7),
+	 EapMsg1 = ocs_eap_codec:aka_clear_mac(EapMsg),
+	MAC = crypto:hmac(sha256, Kaut, EapMsg1, 16).
 
 eap_identity_diameter_trusted() ->
    [{userdata, [{doc, "Send an EAP-Identity/Response using DIAMETER"}]}].
@@ -366,23 +376,6 @@ receive_radius_id(Socket, Address, Port, Secret, ReqAuth, RadId) ->
 			any_id_req = false,fullauth_id_req = true,
 			identity = ServerId} = ocs_eap_codec:eap_aka(EapData),
 	{EapId, ServerId}.
-
-%% @hidden
-receive_radius_id1(Socket, Address, Port, Secret, ReqAuth, RadId,
-		#service{password = #aka_cred{k = K, opc = OPc, dif = DIF}}, Identity) ->
-	EapMsg = radius_access_challenge(Socket, Address, Port,
-			Secret, RadId, ReqAuth),
-	EapPacket = #eap_packet{code = request, type = ?AKAprime, identifier = EapID,
-			data = EapData} = ocs_eap_codec:eap_packet(EapMsg),
-	#eap_aka_challenge{rand = RAND, autn = _AUTN, mac = _MAC} = ocs_eap_codec:eap_aka(EapData),
-	{_XRES, CK, IK, <<AK:48>>} = ocs_milenage:f2345(OPc, K, RAND),
-	SQN = sqn(DIF),
-	<<CKprime:16/binary, IKprime:16/binary>> = kdf(CK, IK, "WLAN", SQN, AK),
-	<<_:16/binary, Kaut:32/binary, _:32/binary, _:64/binary,
-                        _:64/binary, _/binary>> = prf(<<IKprime/binary,
-	CKprime/binary>>, <<"EAP-AKA'", Identity/binary>>, 7),
-        EapMessage1 = ocs_eap_codec:eap_packet(EapPacket),
-	_MAC = crypto:hmac(sha256, Kaut, EapMessage1, 16).
 
 %% @hidden
 send_radius_identity(Socket, Address, Port, NasId,
