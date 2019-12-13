@@ -185,7 +185,7 @@ radius_accounting(Config) ->
 	AuthPort = ?config(radius_auth_port, Config),
 	AcctAddress = ?config(radius_acct_address, Config),
 	AcctPort = ?config(radius_acct_port, Config),
-	P1 = price(usage, octets, rand:uniform(1000000), rand:uniform(100)),
+	P1 = price(usage, octets, rand:uniform(1000000), rand:uniform(1000000)),
 	OfferId = add_offer([P1], 4),
 	ProdRef = add_product(OfferId),
 	#service{name = PeerID, password = Password} =  add_service(ProdRef),
@@ -215,7 +215,7 @@ radius_disconnect_session(Config) ->
 	AuthPort = ?config(radius_auth_port, Config),
 	AcctAddress = ?config(radius_acct_address, Config),
 	AcctPort = ?config(radius_acct_port, Config),
-	P1 = price(usage, octets, rand:uniform(1000000), rand:uniform(100)),
+	P1 = price(usage, octets, rand:uniform(1000000), rand:uniform(1000000)),
 	OfferId = add_offer([P1], 4),
 	ProdRef = add_product(OfferId),
 	#service{name = PeerID, password = Password} =  add_service(ProdRef),
@@ -252,7 +252,7 @@ radius_multisession_disallowed(Config) ->
 	AuthPort = ?config(radius_auth_port, Config),
 	AcctAddress = ?config(radius_acct_address, Config),
 	AcctPort = ?config(radius_acct_port, Config),
-	P1 = price(usage, octets, rand:uniform(1000000), rand:uniform(100)),
+	P1 = price(usage, octets, rand:uniform(1000000), rand:uniform(1000000)),
 	OfferId = add_offer([P1], 4),
 	ProdRef = add_product(OfferId),
 	#service{name = User, password = Password} =  add_service(ProdRef),
@@ -315,7 +315,7 @@ radius_multisession(Config) ->
 	AuthPort = ?config(radius_auth_port, Config),
 	AcctAddress = ?config(radius_acct_address, Config),
 	AcctPort = ?config(radius_acct_port, Config),
-	P1 = price(usage, octets, rand:uniform(1000000), rand:uniform(100)),
+	P1 = price(usage, octets, rand:uniform(1000000), rand:uniform(1000000)),
 	OfferId = add_offer([P1], 4),
 	ProdRef = add_product(OfferId),
 	PeerID = ocs:generate_identity(),
@@ -401,7 +401,7 @@ diameter_scur() ->
 	[{userdata, [{doc, "DIAMETER Session Charging with Unit Reservation (SCUR)"}]}].
 
 diameter_scur(_Config) ->
-	P1 = price(usage, octets, rand:uniform(10000), rand:uniform(100)),
+	P1 = price(usage, octets, rand:uniform(10000), rand:uniform(1000000)),
 	OfferId = add_offer([P1], 4),
 	ProdRef = add_product(OfferId),
 	Username = list_to_binary(ocs:generate_identity()),
@@ -432,7 +432,7 @@ diameter_scur_depletion() ->
 	[{userdata, [{doc, "DIAMETER SCUR mid-session out-of-credit"}]}].
 
 diameter_scur_depletion(_Config) ->
-	P1 = price(usage, octets, 1000000, 100),
+	P1 = price(usage, octets, 1000000, rand:uniform(1000000)),
 	OfferId = add_offer([P1], 4),
 	ProdRef = add_product(OfferId),
 	Username = ocs:generate_identity(),
@@ -483,16 +483,14 @@ diameter_ecur() ->
 	[{userdata, [{doc, "DIAMETER Evcent Charging with Unit Reservation (ECUR)"}]}].
 
 diameter_ecur(_Config) ->
-	PackagePrice = rand:uniform(5),
-	Balance = (rand:uniform(5) * 5) div rand:uniform(5),
-	P1 = price(usage, messages, 1, PackagePrice),
+	P1 = price(usage, messages, 1, rand:uniform(1000000)),
 	OfferId = add_offer([P1], 11),
 	ProdRef = add_product(OfferId),
 	CalledParty = ocs:generate_identity(),
 	CallingParty = ocs:generate_identity(),
 	Password = ocs:generate_password(),
 	{ok, #service{}} = ocs:add_service(CallingParty, Password, ProdRef, []),
-	B1 = bucket(messages, Balance),
+	B1 = bucket(messages, 5),
 	_BId = add_bucket(ProdRef, B1),
 	Ref = erlang:ref_to_list(make_ref()),
 	SId = diameter:session_id(Ref),
