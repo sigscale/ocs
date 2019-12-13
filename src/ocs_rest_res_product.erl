@@ -486,12 +486,11 @@ get_product_spec(_Id, _Query) ->
 %% 	Retrieve all product specifications.
 get_product_specs([] = _Query) ->
 	Headers = [{content_type, "application/json"}],
-	Object = {array, [spec_prod_network(),
-					spec_prod_fixed_quantity_pkg(),
-					spec_prod_rated_plan(),
-					spec_prod_data(), spec_prod_voice(),
+	Object = {array, [spec_prod_network(), spec_prod_fixed_quantity_pkg(),
+					spec_prod_rated_plan(), spec_prod_data(), spec_prod_voice(),
 					spec_prod_prepaid(), spec_prod_postpaid(),
-					spec_prod_prepaid_data(), spec_prod_prepaid_voice()]},
+					spec_prod_prepaid_data(), spec_prod_prepaid_voice(),
+					spec_prod_sms(), spec_prod_prepaid_sms()]},
 	Body = mochijson:encode(Object),
 	{ok, Headers, Body};
 get_product_specs(_Query) ->
