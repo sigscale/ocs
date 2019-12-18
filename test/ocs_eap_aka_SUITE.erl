@@ -130,7 +130,7 @@ init_per_testcase(TestCase, Config)
 	NasId = atom_to_list(node()),
 	[{nas_id, NasId}, {socket, Socket}, {radius_client, RadIP} | Config];
 init_per_testcase(TestCase, Config)
-		when TestCase == eap_identity_radius_trusted ->
+		when TestCase == eap_identity_radius_trusted; TestCase == eap_radius_response ->
 	{ok, RadiusConfig} = application:get_env(ocs, radius),
 	{auth, [{RadIP, _, _} | _]} = lists:keyfind(auth, 1, RadiusConfig),
 	{ok, Socket} = gen_udp:open(0, [{active, false}, inet, {ip, RadIP}, binary]),
@@ -144,7 +144,7 @@ init_per_testcase(TestCase, Config)
 %% Cleanup after each test case.
 %%
 end_per_testcase(TestCase, Config)
-		when TestCase == eap_identity_diameter ->
+		when TestCase == eap_identity_diameter; TestCase == eap_identity_diameter_trusted ->
 	DClient = ?config(diameter_client, Config),
 	ok = ocs:delete_client(DClient);
 end_per_testcase(_TestCase, Config) ->
@@ -189,6 +189,7 @@ eap_identity_radius(Config) ->
 	ok = send_radius_identity(Socket, Address, Port, NasId,
 			PeerId1, Secret, ReqAuth, EapId, RadId),
 	NextEapId = EapId + 1,
+erlang:display({?MODULE, ?LINE, here}),
 	{NextEapId, _ServerID} = receive_radius_id(Socket, Address,
 			Port, Secret, ReqAuth, RadId).
 
@@ -241,14 +242,34 @@ eap_identity_radius_trusted(Config) ->
 	#eap_packet{code = request, type = ?AKAprime, identifier = _EapID,
 			data = EapData} = ocs_eap_codec:eap_packet(EapMsg),
 	#eap_aka_challenge{rand = RAND, autn = _AUTN, mac = MAC} = ocs_eap_codec:eap_aka(EapData),
+
 	{_XRES, CK, IK, <<AK:48>>} = ocs_milenage:f2345(OPc, K, RAND),
 	SQN = sqn(DIF),
 	<<CKprime:16/binary, IKprime:16/binary>> = kdf(CK, IK, "WLAN", SQN, AK),
 	<<_:16/binary, Kaut:32/binary, _:32/binary, _:64/binary,
                         _:64/binary, _/binary>> = prf(<<IKprime/binary,
 	CKprime/binary>>, <<"EAP-AKA'", PeerId1/binary>>, 7),
-	 EapMsg1 = ocs_eap_codec:aka_clear_mac(EapMsg),
-	MAC = crypto:hmac(sha256, Kaut, EapMsg1, 16).
+	EapMsg1 = ocs_eap_codec:aka_clear_mac(EapMsg),
+	MAC = crypto:hmac(sha256, Kaut, EapMsg1, 16),
+	RAND1 = ocs_milenage:f0(),
+	{RES, CK1, IK1, <<AK1:48>>} = ocs_milenage:f2345(OPc, K, RAND1),
+	SQN1 = sqn(DIF),
+	<<CKprime1:16/binary, IKprime1:16/binary>> = kdf(CK1, IK1, "WLAN", SQN1, AK1),
+	AkaChallenge = #eap_aka_challenge{res = RES, mac = <<0:128>>},
+	<<_:16/binary, Kaut1:32/binary, _:32/binary, _:64/binary,
+		_:64/binary, _/binary>> = prf(<<IKprime1/binary,
+		CKprime1/binary>>, <<"EAP-AKA'", PeerId1/binary>>, 7),
+	EapData1 = ocs_eap_codec:eap_aka(AkaChallenge),
+	NextEapId1 = EapId + 1,
+	EapPacket1 = #eap_packet{code = request, type = ?AKAprime,
+			identifier = NextEapId1, data = EapData1},
+	EapMessage1 = ocs_eap_codec:eap_packet(EapPacket1),
+	MAC1 = crypto:hmac(sha256, Kaut1, EapMessage1, 16),
+	EapMessage2 = ocs_eap_codec:aka_set_mac(MAC1, EapMessage1),
+	ok = send_radius_identity(Socket, Address, Port, NasId,
+			PeerId1, Secret, ReqAuth, EapId, RadId),
+	ok = gen_udp:send(Socket, Address, Port, EapMessage2),
+	{ok, {Address, Port, _RespPacket1}} = gen_udp:recv(Socket, 0).
 
 eap_identity_diameter_trusted() ->
    [{userdata, [{doc, "Send an EAP-Identity/Response using DIAMETER"}]}].
@@ -500,7 +521,7 @@ kdf(CK, IK, "WLAN", SQN, AK)
 		S :: binary(),
 		N :: pos_integer(),
 		MK :: binary().
-%% @doc Pseudo-Random Number Function (PRF).
+%% @doc Pseudo-RANDom Number Function (PRF).
 %%
 %%      See RFC5448 3.4.
 %% @private
@@ -512,4 +533,20 @@ prf(_, _, N, P, _, Acc) when P > N ->
 prf(K, S, N, P, T1, Acc) ->
 	T2 = crypto:hmac(sha256, K, <<T1/binary, S/binary, P>>),
 	prf(K, S, N, P + 1, T2, [T2 | Acc]).
+
+-spec autn(SQN, AK, AMF, MAC) -> AUTN
+        when
+                SQN :: integer(),
+                AK :: integer(),
+                AMF :: binary(),
+                MAC :: binary(),
+                AUTN :: binary().
+%% @doc Network Authentication Token (AUTN).
+%%
+%% @private
+autn(SQN, AK, AMF, MAC)
+                when is_integer(SQN), is_integer(AK),
+                byte_size(AMF) =:= 2, byte_size(MAC) =:= 8 ->
+        SQNa = SQN bxor AK,
+        <<SQNa:48, AMF/binary, MAC/binary>>.
 
