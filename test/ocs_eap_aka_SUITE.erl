@@ -130,7 +130,7 @@ init_per_testcase(TestCase, Config)
 	NasId = atom_to_list(node()),
 	[{nas_id, NasId}, {socket, Socket}, {radius_client, RadIP} | Config];
 init_per_testcase(TestCase, Config)
-		when TestCase == eap_identity_radius_trusted; TestCase == eap_radius_response ->
+		when TestCase == eap_identity_radius_trusted; TestCase == eap_identity_radius_trusted_no_service->
 	{ok, RadiusConfig} = application:get_env(ocs, radius),
 	{auth, [{RadIP, _, _} | _]} = lists:keyfind(auth, 1, RadiusConfig),
 	{ok, Socket} = gen_udp:open(0, [{active, false}, inet, {ip, RadIP}, binary]),
@@ -138,13 +138,26 @@ init_per_testcase(TestCase, Config)
 	Protocol = radius,
 	{ok, _} = ocs:add_client(RadIP, undefined, Protocol, SharedSecret, true, true),
 	NasId = atom_to_list(node()),
+	[{nas_id, NasId}, {socket, Socket}, {radius_client, RadIP} | Config];
+init_per_testcase(TestCase, Config)
+		when TestCase == eap_identity_diameter_no_client ->
+	{ok, DiameterConfig} = application:get_env(ocs, diameter),
+	{auth, [{Address, _, _} | _]} = lists:keyfind(auth, 1, DiameterConfig),
+	[{diameter_client, Address} | Config];
+init_per_testcase(TestCase, Config)
+		when TestCase == eap_identity_radius_no_client ->
+	{ok, RadiusConfig} = application:get_env(ocs, radius),
+	{auth, [{RadIP, _, _} | _]} = lists:keyfind(auth, 1, RadiusConfig),
+	{ok, Socket} = gen_udp:open(0, [{active, false}, inet, {ip, RadIP}, binary]),
+	NasId = atom_to_list(node()),
 	[{nas_id, NasId}, {socket, Socket}, {radius_client, RadIP} | Config].
 
 -spec end_per_testcase(TestCase :: atom(), Config :: [tuple()]) -> any().
 %% Cleanup after each test case.
 %%
 end_per_testcase(TestCase, Config)
-		when TestCase == eap_identity_diameter; TestCase == eap_identity_diameter_trusted ->
+		when TestCase == eap_identity_diameter; TestCase == eap_identity_diameter_trusted;
+				TestCase == eap_identity_diameter_no_client ->
 	DClient = ?config(diameter_client, Config),
 	ok = ocs:delete_client(DClient);
 end_per_testcase(_TestCase, Config) ->
@@ -164,7 +177,7 @@ sequences() ->
 %%
 all() ->
 	[eap_identity_radius, eap_identity_diameter, eap_identity_radius_trusted,
-	eap_identity_diameter_trusted].
+			eap_identity_diameter_trusted, eap_identity_radius_no_client].
 
 %%---------------------------------------------------------------------
 %%  Test cases
@@ -189,7 +202,6 @@ eap_identity_radius(Config) ->
 	ok = send_radius_identity(Socket, Address, Port, NasId,
 			PeerId1, Secret, ReqAuth, EapId, RadId),
 	NextEapId = EapId + 1,
-erlang:display({?MODULE, ?LINE, here}),
 	{NextEapId, _ServerID} = receive_radius_id(Socket, Address,
 			Port, Secret, ReqAuth, RadId).
 
@@ -242,7 +254,6 @@ eap_identity_radius_trusted(Config) ->
 	#eap_packet{code = request, type = ?AKAprime, identifier = _EapID,
 			data = EapData} = ocs_eap_codec:eap_packet(EapMsg),
 	#eap_aka_challenge{rand = RAND, autn = _AUTN, mac = MAC} = ocs_eap_codec:eap_aka(EapData),
-
 	{_XRES, CK, IK, <<AK:48>>} = ocs_milenage:f2345(OPc, K, RAND),
 	SQN = sqn(DIF),
 	<<CKprime:16/binary, IKprime:16/binary>> = kdf(CK, IK, "WLAN", SQN, AK),
@@ -296,6 +307,25 @@ eap_identity_diameter_trusted(Config) ->
 	NextEapId = EapId + 1,
 	#eap_packet{code = request, type = ?AKAprime, identifier = NextEapId,
 			data = _EapData} = ocs_eap_codec:eap_packet(Payload).
+
+eap_identity_radius_no_client() ->
+   [{userdata, [{doc, "Send an EAP-Identity/Response using RADIUS"}]}].
+
+eap_identity_radius_no_client(Config) ->
+	Socket = ?config(socket, Config),
+	{ok, RadiusConfig} = application:get_env(ocs, radius),
+	{auth, [{Address, Port, _} | _]} = lists:keyfind(auth, 1, RadiusConfig),
+	NasId = ?config(nas_id, Config),
+	ReqAuth = radius:authenticator(),
+	RadId = 1, EapId = 1,
+	Secret = ct:get_config(radius_shared_secret),
+	Realm = ?config(realm, Config),
+	MSIN = msin(),
+	PeerId = "6" ++ ct:get_config(mcc) ++ ct:get_config(mcc) ++ MSIN ++ "@wlan." ++ Realm,
+	PeerId1 = list_to_binary(PeerId),
+	ok = send_radius_identity(Socket, Address, Port, NasId,
+			PeerId1, Secret, ReqAuth, EapId, RadId),
+	{error,timeout} = gen_udp:recv(Socket, 0, 5000).
 
 %%---------------------------------------------------------------------
 %%  Internal functions
