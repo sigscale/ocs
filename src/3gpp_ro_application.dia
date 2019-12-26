@@ -103,7 +103,6 @@
         *[ AVP ]
 
    RAR ::= < Diameter Header: 258, REQ, PXY >
-
          < Session-Id >
          { Origin-Host }
          { Origin-Realm }
@@ -121,7 +120,6 @@
         *[ AVP ]
 
    RAA ::= < Diameter Header: 258, PXY >
-
          < Session-Id >
          { Result-Code }
          { Origin-Host }
@@ -175,6 +173,7 @@
      *[ Announcement-Information ]
       [ 3GPP-RAT-Type ]
       [ Related-Trigger ]
+     *[ AVP ]
 
    Granted-Service-Unit ::= < AVP Header: 431 >
       [ Tariff-Time-Change ]
@@ -190,6 +189,7 @@
       [ CC-Input-Octets ]
       [ CC-Output-Octets ]
       [ CC-Service-Specific-Units ]
+     *[ AVP ]
 
    Used-Service-Unit ::= < AVP Header: 446 >
       [ Reporting-Reason ]
@@ -200,6 +200,7 @@
       [ CC-Output-Octets ]
       [ CC-Service-Specific-Units ]
      *[ Event-Charging-TimeStamp ]
+     *[ AVP ]
 
 @enum Termination-Cause
 

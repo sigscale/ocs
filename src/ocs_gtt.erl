@@ -17,7 +17,7 @@
 %%%
 %%% 	The example below shows the table contents after an initial entry
 %%%	of the form:<br />
-%%%	``1> gtt:insert(global_title, "1519240", "Bell Mobility").''
+%%%	``1> ocs_gtt:insert(global_title, "1519240", "Bell Mobility").''
 %%%	```
 %%%		{gtt, [1], undefined}
 %%%		{gtt, [1,5], undefined}
@@ -275,7 +275,23 @@ restore(Tables, File) when is_list(Tables), is_list(File) ->
 	when
 		File :: string().
 %% @doc Import table from file.
-%% 	Create a new table or overwrite existing table.
+%%
+%% 	Create a new table, or overwrite existing table, from
+%% 	the contents of a comma separated values (CSV) format
+%% 	file of the form `Prefix,Description,Rate'.
+%% 	Where `Prefix' is a string of digits, `Description'
+%% 	is a string and `Rate' is a decimal currency amount
+%% 	with no more than six digits to the right of the
+%% 	decimal point.
+%%
+%% 	Example:
+%% 	```
+%% 	1416,"Toronto, Ontaria, Canada",0.0123
+%% 	1212,"New York, New York, United States",0.011
+%% 	1800,Toll Free,0
+%% 	94,Sri Lanka,1.15
+%% 	'''
+%%
 import(File) ->
 	case file:read_file(File) of
 		{ok, Binary} ->

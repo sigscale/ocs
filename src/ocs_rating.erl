@@ -97,7 +97,7 @@
 %% 	and `ReserveAmounts' returns `{out_of_credit, SessionList}' for interim
 %% 	updates and `{out_of_credit, SessionList, Rated}' for final or
 %% 	`{disabled, SessionList}' if the subscriber is not enabled. In both
-%% 	 cases subscriber's balance is debited.  `SessionList' describes the
+%% 	cases subscriber's balance is debited.  `SessionList' describes the
 %% 	known active sessions which should be disconnected.
 %%
 rate(Protocol, ServiceType, ServiceNetwork, SubscriberID, Timestamp, Address,
@@ -356,7 +356,8 @@ rate4(Protocol, Service, Buckets,
 			end;
 		Other ->
 			error_logger:error_report(["Prefix table tariff lookup failed",
-					{module, ?MODULE}, {table, Table}, {result, Other}]),
+					{module, ?MODULE}, {table, Table},
+					{service_network, ServiceNetwork}, {result, Other}]),
 			throw(table_lookup_failed)
 	end;
 rate4(Protocol, Service, Buckets, Price,

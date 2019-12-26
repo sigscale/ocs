@@ -337,7 +337,13 @@ install7(Nodes, Acc) ->
 			{attributes, record_info(fields, offer)}]) of
 		{atomic, ok} ->
 			error_logger:info_msg("Created new offer table.~n"),
-			install8(Nodes, [offer | Acc]);
+			case add_example_offers() of
+				ok ->
+					error_logger:info_msg("Added example offers to product catalog.~n"),
+					install8(Nodes, [offer | Acc]);
+				{error, Reason} ->
+					{error, Reason}
+			end;
 		{aborted, {not_active, _, Node} = Reason} ->
 			error_logger:error_report(["Mnesia not started on node",
 					{node, Node}]),
@@ -559,6 +565,7 @@ config_change(_Changed, _New, _Removed) ->
 		TableName :: atom(),
 		Reason :: term().
 %% @doc Try to force load bad tables.
+%% @private
 force([H | T]) ->
 	case mnesia:force_load_table(H) of
 		yes ->
@@ -568,4 +575,158 @@ force([H | T]) ->
 	end;
 force([]) ->
 	ok.
+
+-spec add_example_offers() -> Result
+	when
+		Result :: ok | {error, Reason},
+		Reason :: term().
+%% @doc Seed product catalog with example offers.
+%% @private
+add_example_offers() ->
+	add_example_offers1(add_example_data_offers()).
+%% @hidden
+add_example_offers1(ok) ->
+	add_example_offers2(add_example_voice_offers());
+add_example_offers1({error, Reason}) ->
+	{error, Reason}.
+%% @hidden
+add_example_offers2(ok) ->
+	add_example_bundles();
+add_example_offers2({error, Reason}) ->
+	{error, Reason}.
+
+%% @hidden
+add_example_data_offers() ->
+	Alteration = #alteration{name = "Allowance",
+			description = "Usage included in monthly subscription.",
+			type = recurring, period = monthly,
+			units = octets, amount = 0},
+	PriceSubscription = #price{name = "Subscription",
+			description = "Monthly subscription charge",
+			type = recurring, period = monthly,
+			amount = 1000000000, alteration = Alteration},
+	PriceOverage = #price{name = "Overage",
+			description = "Usage over and above monthly allowance",
+			type = usage, units = octets, size = 1000000, amount = 1000000},
+	add_example_data_offer1(Alteration, PriceSubscription, PriceOverage).
+%% @hidden
+add_example_data_offer1(Alteration, PriceSubscription, PriceOverage) ->
+	Alteration1 = Alteration#alteration{size = 1000000000},
+	PriceSubscription1 = PriceSubscription#price{amount = 1000000000,
+			alteration = Alteration1},
+	Offer = #offer{name = "Data (1G)", description = "1GB/month",
+			status = in_study, specification = "8",
+			price = [PriceSubscription1, PriceOverage]},
+	case ocs:add_offer(Offer) of
+		{ok, #offer{}} ->
+			add_example_data_offer2(Alteration, PriceSubscription, PriceOverage);
+		{error, Reason} ->
+			{error, Reason}
+	end.
+%% @hidden
+add_example_data_offer2(Alteration, PriceSubscription, PriceOverage) ->
+	Alteration2 = Alteration#alteration{size = 4000000000},
+	PriceSubscription2 = PriceSubscription#price{amount = 3500000000,
+			alteration = Alteration2},
+	Offer = #offer{name = "Data (4G)", description = "4GB/month",
+			status = in_study, specification = "8",
+			price = [PriceSubscription2, PriceOverage]},
+	case ocs:add_offer(Offer) of
+		{ok, #offer{}} ->
+			add_example_data_offer3(Alteration, PriceSubscription, PriceOverage);
+		{error, Reason} ->
+			{error, Reason}
+	end.
+%% @hidden
+add_example_data_offer3(Alteration, PriceSubscription, PriceOverage) ->
+	Alteration3 = Alteration#alteration{size = 10000000000},
+	PriceSubscription3 = PriceSubscription#price{amount = 7500000000,
+			alteration = Alteration3},
+	Offer = #offer{name = "Data (10G)", description = "10GB/month",
+			status = in_study, specification = "8",
+			price = [PriceSubscription3, PriceOverage]},
+	case ocs:add_offer(Offer) of
+		{ok, #offer{}} ->
+			ok;
+		{error, Reason} ->
+			{error, Reason}
+	end.
+
+%% @hidden
+add_example_voice_offers() ->
+	PLA = #pla{name = "example", description = "Example voice tariff",
+			specification = "4", status = created},
+	PriceUsage = #price{name = "Usage", description = "Tariffed voice calling",
+			type = tariff, units = seconds, size = 60,
+			char_value_use = [#char_value_use{name = "destPrefixTariffTable",
+			specification = "3", values = [#char_value{value = "example"}]}]},
+	Offer = #offer{name = "Voice Calling", description = "Tariffed voice calling",
+			status = in_study, specification = "9",
+			price = [PriceUsage]},
+	case ocs:add_pla(PLA) of
+		{ok, #pla{}} ->
+			case ocs:add_offer(Offer) of
+				{ok, #offer{}} ->
+					TariffPath = code:priv_dir(ocs) ++ "/examples/example.csv",
+					try ocs_gtt:import(TariffPath) of
+						ok ->
+							error_logger:info_msg("Imported example tariff table: "
+									++ TariffPath ++ "~n"),
+							ok
+					catch
+						_:Reason ->
+							{error, Reason}
+					end;
+				{error, Reason} ->
+					{error, Reason}
+			end;
+		{error, Reason} ->
+			{error, Reason}
+	end.
+
+%% @hidden
+add_example_bundles() ->
+	PriceInstall = #price{name = "Installation",
+			description = "One time installation charge",
+			type = one_time, amount = 1000000000},
+	add_example_bundles1(PriceInstall).
+%% @hidden
+add_example_bundles1(PriceInstall) ->
+	Offer = #offer{name = "Voice & Data (1G)",
+			description = "Tariffed voice and 1GB/month data",
+			bundle = [#bundled_po{name = "Data (1G)"},
+			#bundled_po{name = "Voice Calling"}],
+			price = [PriceInstall]},
+	case ocs:add_offer(Offer) of
+		{ok, #offer{}} ->
+			add_example_bundles2(PriceInstall);
+		{error, Reason} ->
+			{error, Reason}
+	end.
+%% @hidden
+add_example_bundles2(PriceInstall) ->
+	Offer = #offer{name = "Voice & Data (4G)",
+			description = "Tariffed voice and 4GB/month data",
+			bundle = [#bundled_po{name = "Data (4G)"},
+			#bundled_po{name = "Voice Calling"}],
+			price = [PriceInstall]},
+	case ocs:add_offer(Offer) of
+		{ok, #offer{}} ->
+			add_example_bundles3(PriceInstall);
+		{error, Reason} ->
+			{error, Reason}
+	end.
+%% @hidden
+add_example_bundles3(PriceInstall) ->
+	Offer = #offer{name = "Voice & Data (10G)",
+			description = "Tariffed voice and 10GB/month data",
+			bundle = [#bundled_po{name = "Data (10G)"},
+			#bundled_po{name = "Voice Calling"}],
+			price = [PriceInstall]},
+	case ocs:add_offer(Offer) of
+		{ok, #offer{}} ->
+			ok;
+		{error, Reason} ->
+			{error, Reason}
+	end.
 

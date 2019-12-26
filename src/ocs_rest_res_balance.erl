@@ -784,8 +784,7 @@ query_filter(MFA, Codec, Query, Filters, Headers) ->
 
 %% @hidden
 query_start({M, F, A}, Codec, Query, Filters, RangeStart, RangeEnd) ->
-	case supervisor:start_child(ocs_rest_pagination_sup,
-				[M, F, A]) of
+	case supervisor:start_child(ocs_rest_pagination_sup, [[M, F, A]]) of
 		{ok, PageServer, Etag} ->
 			query_page(Codec, PageServer, Etag, Query, Filters, RangeStart, RangeEnd);
 		{error, _Reason} ->
@@ -793,18 +792,26 @@ query_start({M, F, A}, Codec, Query, Filters, RangeStart, RangeEnd) ->
 	end.
 
 %% @hidden
-query_page(_Codec, PageServer, Etag, _Query, _Filters, Start, End) ->
+query_page(Codec, PageServer, Etag, _Query, Filters, Start, End) ->
 	case gen_server:call(PageServer, {Start, End}) of
 		{error, Status} ->
 			{error, Status};
 		{Result, ContentRange} ->
-			JsonCodec = abmfs(Result, []),
-			Body = mochijson:encode(JsonCodec),
+			JsonObj = query_page1(lists:map(Codec, Result), Filters, []),
+			JsonArray = {array, JsonObj},
+			Body = mochijson:encode(JsonArray),
 			Headers = [{content_type, "application/json"},
 					{etag, Etag}, {accept_ranges, "items"},
 					{content_range, ContentRange}],
 			{ok, Headers, Body}
 	end.
+%% @hidden
+query_page1(Json, [], []) ->
+	Json;
+query_page1([H | T], Filters, Acc) ->
+	query_page1(T, Filters, [ocs_rest:fields(Filters, H) | Acc]);
+query_page1([], _, Acc) ->
+	lists:reverse(Acc).
 
 %% @hidden
 match(Key, Complex, Query) ->

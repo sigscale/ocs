@@ -779,8 +779,7 @@ query_filter(MFA, Codec, Query, Filters, Headers) ->
 
 %% @hidden
 query_start({M, F, A}, Codec, Query, Filters, RangeStart, RangeEnd) ->
-	case supervisor:start_child(ocs_rest_pagination_sup,
-				[[M, F, A]]) of
+	case supervisor:start_child(ocs_rest_pagination_sup, [[M, F, A]]) of
 		{ok, PageServer, Etag} ->
 			query_page(Codec, PageServer, Etag, Query, Filters, RangeStart, RangeEnd);
 		{error, _Reason} ->

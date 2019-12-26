@@ -779,7 +779,7 @@ httpd_logname(security, ServerRoot, HttpdConfig) ->
 last(Log, MaxItems) ->
 	case disk_log:chunk_step(Log, start, 0) of
 		{error, end_of_log} ->
-			{0, []};
+			last1(Log, MaxItems, [start], {0, []});
 		{error, Reason} ->
 			{error, Reason};
 		{ok, Cont1} ->
