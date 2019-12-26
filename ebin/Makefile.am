@@ -51,6 +51,7 @@ beam_DATA = ocs.beam \
 			ocs_log_rotate_server.beam \
 			ocs_eap_codec.beam \
 			ocs_eap_pwd.beam \
+			ocs_eap_aka.beam \
 			ocs_eap_tls_transport.beam \
 			ocs_milenage.beam \
 			ocs_rating.beam \
