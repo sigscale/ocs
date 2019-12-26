@@ -667,15 +667,20 @@ add_example_voice_offers() ->
 		{ok, #pla{}} ->
 			case ocs:add_offer(Offer) of
 				{ok, #offer{}} ->
-					TariffPath = code:priv_dir(ocs) ++ "/examples/example.csv",
-					try ocs_gtt:import(TariffPath) of
-						ok ->
-							error_logger:info_msg("Imported example tariff table: "
-									++ TariffPath ++ "~n"),
+					case code:priv_dir(ocs) of
+						PrivDir when is_list(PrivDir) ->
+							TariffPath = PrivDir ++ "/examples/example.csv",
+							try ocs_gtt:import(TariffPath) of
+								ok ->
+									error_logger:info_msg("Imported example tariff table: "
+											++ TariffPath ++ "~n"),
+									ok
+							catch
+								_:Reason ->
+									{error, Reason}
+							end;
+						{error, _Reason} ->
 							ok
-					catch
-						_:Reason ->
-							{error, Reason}
 					end;
 				{error, Reason} ->
 					{error, Reason}
