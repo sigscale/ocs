@@ -107,6 +107,8 @@ end_per_suite(Config) ->
 -spec init_per_testcase(TestCase :: atom(), Config :: [tuple()]) -> Config :: [tuple()].
 %% Initialization before each test case.
 %%
+init_per_testcase(eap_aka_prf, Config) ->
+	Config;
 init_per_testcase(TestCase, Config)
 		when TestCase == eap_identity_diameter ->
 	{ok, DiameterConfig} = application:get_env(ocs, diameter),
@@ -155,6 +157,8 @@ init_per_testcase(TestCase, Config)
 -spec end_per_testcase(TestCase :: atom(), Config :: [tuple()]) -> any().
 %% Cleanup after each test case.
 %%
+end_per_testcase(eap_aka_prf, Config) ->
+	Config;
 end_per_testcase(TestCase, Config)
 		when TestCase == eap_identity_diameter; TestCase == eap_identity_diameter_trusted;
 				TestCase == eap_identity_diameter_no_client ->
@@ -177,7 +181,8 @@ sequences() ->
 %%
 all() ->
 	[eap_identity_radius, eap_identity_diameter, eap_identity_radius_trusted,
-			eap_identity_diameter_trusted, eap_identity_radius_no_client].
+			eap_identity_diameter_trusted, eap_identity_radius_no_client,
+			eap_aka_prf].
 
 %%---------------------------------------------------------------------
 %%  Test cases
@@ -326,6 +331,13 @@ eap_identity_radius_no_client(Config) ->
 	ok = send_radius_identity(Socket, Address, Port, NasId,
 			PeerId1, Secret, ReqAuth, EapId, RadId),
 	{error,timeout} = gen_udp:recv(Socket, 0, 5000).
+
+eap_aka_prf() ->
+   [{userdata, [{doc, "Psuedo-Random Number Function (PRF) (RFC4187 Appendix A)"}]}].
+
+eap_aka_prf(Config) ->
+	{skip, not_implemented}.
+	% <<0:160>> = ocs_eap_aka:prf(<<0:160>>).
 
 %%---------------------------------------------------------------------
 %%  Internal functions
