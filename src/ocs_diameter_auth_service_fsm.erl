@@ -65,6 +65,10 @@
 -define(EAP_APPLICATION_ID, 5).
 -define(EAP_APPLICATION_DICT, diameter_gen_eap_application_rfc4072).
 -define(EAP_APPLICATION_CALLBACK, ocs_diameter_eap_application_cb).
+-define(STa_APPLICATION, ocs_diameter_3gpp_sta_application).
+-define(STa_APPLICATION_ID, 16777250).
+-define(STa_APPLICATION_DICT, diameter_gen_3gpp_sta_application).
+-define(STa_APPLICATION_CALLBACK, ocs_diameter_3gpp_sta_application_cb).
 -define(SWm_APPLICATION, ocs_diameter_3gpp_swm_application).
 -define(SWm_APPLICATION_ID, 16777264).
 -define(SWm_APPLICATION_DICT, diameter_gen_3gpp_swm_application).
@@ -346,7 +350,8 @@ service_options(Options) ->
 		{'Firmware-Revision', Version},
 		{'Supported-Vendor-Id',[?IANA_PEN_3GPP]},
 		{'Auth-Application-Id', [?NAS_APPLICATION_ID,
-				?EAP_APPLICATION_ID, ?SWm_APPLICATION_ID]},
+				?EAP_APPLICATION_ID,
+				?STa_APPLICATION_ID, ?SWm_APPLICATION_ID]},
 		{restrict_connections, false},
 		{string_decode, false},
 		{application,
@@ -363,6 +368,11 @@ service_options(Options) ->
 				[{alias, ?NAS_APPLICATION},
 				{dictionary, ?NAS_APPLICATION_DICT},
 				{module, ?NAS_APPLICATION_CALLBACK},
+				{request_errors, callback}]},
+		{application,
+				[{alias, ?STa_APPLICATION},
+				{dictionary, ?STa_APPLICATION_DICT},
+				{module, ?STa_APPLICATION_CALLBACK},
 				{request_errors, callback}]},
 		{application,
 				[{alias, ?SWm_APPLICATION},
