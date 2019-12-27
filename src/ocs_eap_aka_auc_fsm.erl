@@ -261,7 +261,7 @@ autn(SQN, AK, AMF, MAC)
 		AMF :: binary().
 %% @doc Authentication Management Field (AMF).
 %%
-%% 	See 3GPP TS 33.102 Annex F.
+%% 	See 3GPP TS 33.102 Annex H.
 %% @private
 amf() ->
 	<<1:1, 0:15>>.
