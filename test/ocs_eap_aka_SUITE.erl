@@ -107,22 +107,22 @@ end_per_suite(Config) ->
 -spec init_per_testcase(TestCase :: atom(), Config :: [tuple()]) -> Config :: [tuple()].
 %% Initialization before each test case.
 %%
-init_per_testcase(eap_aka_prf, Config) ->
+init_per_testcase(aka_prf, Config) ->
 	Config;
 init_per_testcase(TestCase, Config)
-		when TestCase == eap_identity_diameter ->
+		when TestCase == akap_identity_diameter ->
 	{ok, DiameterConfig} = application:get_env(ocs, diameter),
 	{auth, [{Address, _, _} | _]} = lists:keyfind(auth, 1, DiameterConfig),
 	{ok, _} = ocs:add_client(Address, undefined, diameter, undefined, true, false),
 	[{diameter_client, Address} | Config];
 init_per_testcase(TestCase, Config)
-		when TestCase == eap_identity_diameter_trusted ->
+		when TestCase == akap_identity_diameter_trusted ->
 	{ok, DiameterConfig} = application:get_env(ocs, diameter),
 	{auth, [{Address, _, _} | _]} = lists:keyfind(auth, 1, DiameterConfig),
 	{ok, _} = ocs:add_client(Address, undefined, diameter, undefined, true, true),
 	[{diameter_client, Address} | Config];
 init_per_testcase(TestCase, Config)
-		when  TestCase == eap_identity_radius ->
+		when  TestCase == akap_identity_radius ->
 	{ok, RadiusConfig} = application:get_env(ocs, radius),
 	{auth, [{RadIP, _, _} | _]} = lists:keyfind(auth, 1, RadiusConfig),
 	{ok, Socket} = gen_udp:open(0, [{active, false}, inet, {ip, RadIP}, binary]),
@@ -132,7 +132,7 @@ init_per_testcase(TestCase, Config)
 	NasId = atom_to_list(node()),
 	[{nas_id, NasId}, {socket, Socket}, {radius_client, RadIP} | Config];
 init_per_testcase(TestCase, Config)
-		when TestCase == eap_identity_radius_trusted; TestCase == eap_identity_radius_trusted_no_service->
+		when TestCase == akap_identity_radius_trusted; TestCase == akap_identity_radius_trusted_no_service->
 	{ok, RadiusConfig} = application:get_env(ocs, radius),
 	{auth, [{RadIP, _, _} | _]} = lists:keyfind(auth, 1, RadiusConfig),
 	{ok, Socket} = gen_udp:open(0, [{active, false}, inet, {ip, RadIP}, binary]),
@@ -142,12 +142,12 @@ init_per_testcase(TestCase, Config)
 	NasId = atom_to_list(node()),
 	[{nas_id, NasId}, {socket, Socket}, {radius_client, RadIP} | Config];
 init_per_testcase(TestCase, Config)
-		when TestCase == eap_identity_diameter_no_client ->
+		when TestCase == akap_identity_diameter_no_client ->
 	{ok, DiameterConfig} = application:get_env(ocs, diameter),
 	{auth, [{Address, _, _} | _]} = lists:keyfind(auth, 1, DiameterConfig),
 	[{diameter_client, Address} | Config];
 init_per_testcase(TestCase, Config)
-		when TestCase == eap_identity_radius_no_client ->
+		when TestCase == akap_identity_radius_no_client ->
 	{ok, RadiusConfig} = application:get_env(ocs, radius),
 	{auth, [{RadIP, _, _} | _]} = lists:keyfind(auth, 1, RadiusConfig),
 	{ok, Socket} = gen_udp:open(0, [{active, false}, inet, {ip, RadIP}, binary]),
@@ -157,11 +157,11 @@ init_per_testcase(TestCase, Config)
 -spec end_per_testcase(TestCase :: atom(), Config :: [tuple()]) -> any().
 %% Cleanup after each test case.
 %%
-end_per_testcase(eap_aka_prf, Config) ->
+end_per_testcase(aka_prf, Config) ->
 	Config;
 end_per_testcase(TestCase, Config)
-		when TestCase == eap_identity_diameter; TestCase == eap_identity_diameter_trusted;
-				TestCase == eap_identity_diameter_no_client ->
+		when TestCase == akap_identity_diameter; TestCase == akap_identity_diameter_trusted;
+				TestCase == akap_identity_diameter_no_client ->
 	DClient = ?config(diameter_client, Config),
 	ok = ocs:delete_client(DClient);
 end_per_testcase(_TestCase, Config) ->
@@ -180,18 +180,18 @@ sequences() ->
 %% Returns a list of all test cases in this test suite.
 %%
 all() ->
-	[eap_identity_radius, eap_identity_diameter, eap_identity_radius_trusted,
-			eap_identity_diameter_trusted, eap_identity_radius_no_client,
-			eap_aka_prf].
+	[akap_identity_radius, akap_identity_diameter, akap_identity_radius_trusted,
+			akap_identity_diameter_trusted, akap_identity_radius_no_client,
+			aka_prf].
 
 %%---------------------------------------------------------------------
 %%  Test cases
 %%---------------------------------------------------------------------
 
-eap_identity_radius() ->
+akap_identity_radius() ->
    [{userdata, [{doc, "Send an EAP-Identity/Response using RADIUS"}]}].
 
-eap_identity_radius(Config) ->
+akap_identity_radius(Config) ->
 	Socket = ?config(socket, Config),
 	{ok, RadiusConfig} = application:get_env(ocs, radius),
 	{auth, [{Address, Port, _} | _]} = lists:keyfind(auth, 1, RadiusConfig),
@@ -210,10 +210,10 @@ eap_identity_radius(Config) ->
 	{NextEapId, _ServerID} = receive_radius_id(Socket, Address,
 			Port, Secret, ReqAuth, RadId).
 
-eap_identity_diameter() ->
+akap_identity_diameter() ->
    [{userdata, [{doc, "Send an EAP-Identity/Response using DIAMETER"}]}].
 
-eap_identity_diameter(Config) ->
+akap_identity_diameter(Config) ->
 	Ref = erlang:ref_to_list(make_ref()),
 	SId = diameter:session_id(Ref),
 	EapId = 1,
@@ -232,10 +232,10 @@ eap_identity_diameter(Config) ->
 	#eap_packet{code = request, type = ?AKAprime, identifier = NextEapId,
 			data = _EapData} = ocs_eap_codec:eap_packet(Payload).
 
-eap_identity_radius_trusted() ->
+akap_identity_radius_trusted() ->
    [{userdata, [{doc, "Send an trusted EAP-Identity/Response using RADIUS"}]}].
 
-eap_identity_radius_trusted(Config) ->
+akap_identity_radius_trusted(Config) ->
 	Socket = ?config(socket, Config),
 	{ok, RadiusConfig} = application:get_env(ocs, radius),
 	{auth, [{Address, Port, _} | _]} = lists:keyfind(auth, 1, RadiusConfig),
@@ -287,10 +287,10 @@ eap_identity_radius_trusted(Config) ->
 	ok = gen_udp:send(Socket, Address, Port, EapMessage2),
 	{ok, {Address, Port, _RespPacket1}} = gen_udp:recv(Socket, 0).
 
-eap_identity_diameter_trusted() ->
+akap_identity_diameter_trusted() ->
    [{userdata, [{doc, "Send an EAP-Identity/Response using DIAMETER"}]}].
 
-eap_identity_diameter_trusted(Config) ->
+akap_identity_diameter_trusted(Config) ->
 	Ref = erlang:ref_to_list(make_ref()),
 	SId = diameter:session_id(Ref),
 	EapId = 1,
@@ -313,10 +313,10 @@ eap_identity_diameter_trusted(Config) ->
 	#eap_packet{code = request, type = ?AKAprime, identifier = NextEapId,
 			data = _EapData} = ocs_eap_codec:eap_packet(Payload).
 
-eap_identity_radius_no_client() ->
+akap_identity_radius_no_client() ->
    [{userdata, [{doc, "Send an EAP-Identity/Response using RADIUS"}]}].
 
-eap_identity_radius_no_client(Config) ->
+akap_identity_radius_no_client(Config) ->
 	Socket = ?config(socket, Config),
 	{ok, RadiusConfig} = application:get_env(ocs, radius),
 	{auth, [{Address, Port, _} | _]} = lists:keyfind(auth, 1, RadiusConfig),
@@ -332,10 +332,10 @@ eap_identity_radius_no_client(Config) ->
 			PeerId1, Secret, ReqAuth, EapId, RadId),
 	{error,timeout} = gen_udp:recv(Socket, 0, 5000).
 
-eap_aka_prf() ->
+aka_prf() ->
    [{userdata, [{doc, "Psuedo-Random Number Function (PRF) (RFC4187 Appendix A)"}]}].
 
-eap_aka_prf(Config) ->
+aka_prf(_Config) ->
 	{skip, not_implemented}.
 	% <<0:160>> = ocs_eap_aka:prf(<<0:160>>).
 
