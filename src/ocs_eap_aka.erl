@@ -26,14 +26,21 @@
 -copyright('Copyright (c) 2019 SigScale Global Inc.').
 
 % export public api
--export([prf/1]).
-
-% export private api
--export([g/1]).
+-export([prf/1, compressed_imsi/1, encrypt_imsi/3, decrypt_imsi/2]).
 
 -on_load(init/0).
 
 -include("ocs_eap_codec.hrl").
+
+%% 3GPP TS 23.003 19.3.2 Root NAI
+-define(PERM_AKA,  $0).
+-define(PERM_AKAp, $6).
+%% 3GPP TS 23.003 19.3.4 Fast Re-auth
+-define(FAST_AKA,  $4).
+-define(FAST_AKAp, $8).
+%% 3GPP TS 23.003 19.3.5 Pseudonym
+-define(TEMP_AKA,  $2).
+-define(TEMP_AKAp, $7).
 
 -spec prf(MK) -> Result
 	when 
@@ -64,6 +71,68 @@ prf(<<XKEY:160>> = MK) ->
 %% 	A modified SHA-1 as described in RFC4187 section 7.
 g(XKEY) when bit_size(XKEY) =:= 160 ->
 	erlang:nif_error(nif_library_not_loaded).
+
+-spec compressed_imsi(IMSI) -> IMSI
+	when
+		IMSI :: binary().
+%% @doc Compress or decompress an IMSI.
+%%
+%% 	See 3GPP 33.402 14.1 Temporary identity generation.
+%% @private
+compressed_imsi(<<15:4, _:60/bits>> = IMSI) ->
+	B = << <<A, B>> || <<A:4, B:4>> <= IMSI >>,
+	lists:flatten([integer_to_list(C) || <<C>> <= B, C /= 15]);
+compressed_imsi(IMSI) when is_binary(IMSI) ->
+	L1 = [list_to_integer([C]) || <<C>> <= IMSI],
+	L2 = lists:duplicate(16 - length(L1), 15),
+	L3 = L2 ++ L1,
+	<< <<D:4>> || D <- L3 >>.
+
+-dialyzer([{nowarn_function, [encrypt_imsi/3]}, no_missing_calls]). % temporary
+-spec encrypt_imsi(Tag, CompressedIMSI, Key) -> Pseudonym
+	when
+		Tag :: ?TEMP_AKA | ?TEMP_AKAp,
+		CompressedIMSI :: binary(),
+		Key :: {N, Kpseu},
+		N :: pos_integer(),
+		Kpseu :: binary(),
+		Pseudonym :: binary().
+%% @doc Create an encrypted temporary identity.
+%%
+%% 	See 3GPP 33.402 14.1 Temporary identity generation.
+%% @private
+encrypt_imsi(Tag, CompressedIMSI, {N, Kpseu} = _Key)
+		when ((Tag =:= ?TEMP_AKA) or (Tag =:= ?TEMP_AKAp)),
+		size(CompressedIMSI) == 8, size(Kpseu) == 16 ->
+	Pad = crypto:strong_rand_bytes(8),
+	PaddedIMSI = <<CompressedIMSI/binary, Pad/binary>>,
+	EncryptedIMSI = crypto:block_encrypt(aes_ecb, Kpseu, PaddedIMSI),
+	TaggedIMSI = <<Tag:6, N:4, EncryptedIMSI/binary, 0:6>>,
+	binary:part(base64:encode(TaggedIMSI), 0, 23).
+
+-spec decrypt_imsi(Pseudonym, Keys) -> CompressedIMSI
+	when
+		Pseudonym :: binary(),
+		Keys :: [Key],
+		Key :: {N, Kpseu},
+		N :: pos_integer(),
+		Kpseu :: binary(),
+		CompressedIMSI :: binary().
+%% @doc Decrypt a temporary identity.
+%%
+%% 	See 3GPP 33.402 14.1 Temporary identity generation.
+%% @private
+decrypt_imsi(Pseudonym, Keys)
+		when size(Pseudonym) == 23, is_list(Keys) ->
+	TaggedIMSI = base64:decode(<<Pseudonym/binary, $A>>),
+	<<_:6, N:4, EncryptedIMSI:16/binary, _:6>> = TaggedIMSI,
+	{_, Kpseu} = lists:keyfind(N, 1, Keys),
+	PaddedIMSI = crypto:block_decrypt(aes_ecb, Kpseu, EncryptedIMSI),
+	binary:part(PaddedIMSI, 0, 8).
+
+%%
+%% internal functions
+%%
 
 -spec init() -> ok.
 %% @doc When this module is loaded this function is called to load NIF library.

@@ -1,4 +1,4 @@
-%%% ocs_eap_akap_fsm.erl
+%%% ocs_eap_aka_fsm.erl
 %%% vim: ts=3
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%% @copyright 2016 - 2018 SigScale Global Inc.
@@ -23,23 +23,20 @@
 %%% @reference <a href="http://tools.ietf.org/html/rfc4187">
 %%% 	RFC4187 - Extensible Authentication Protocol Method for 3rd Generation
 %%% 		Authentication and Key Agreement (EAP-AKA)</a>
-%%% @reference <a href="http://tools.ietf.org/html/rfc5448">
-%%% 	RFC5448 - Improved Extensible Authentication Protocol Method for
-%%% 		3rd Generation Authentication and Key Agreement (EAP-AKA')</a>
 %%% @reference <a href="https://webapp.etsi.org/key/key.asp?GSMSpecPart1=33&amp;GSMSpecPart2=402&amp;Search=search">
 %%% 	3GPP TS 33.402 - Security aspects of non-3GPP accesses</a>
 %%% @reference <a href="https://webapp.etsi.org/key/key.asp?GSMSpecPart1=23&amp;GSMSpecPart2=003&amp;Search=search">
 %%% 	3GPP TS 23.003 - Numbering, addressing and identification</a>
 %%%
--module(ocs_eap_akap_fsm).
+-module(ocs_eap_aka_fsm).
 -copyright('Copyright (c) 2016 - 2018 SigScale Global Inc.').
 
 -behaviour(gen_fsm).
 
-%% export the ocs_eap_akap_fsm API
+%% export the ocs_eap_aka_fsm API
 -export([]).
 
-%% export the ocs_eap_akap_fsm state callbacks
+%% export the ocs_eap_aka_fsm state callbacks
 -export([eap_start/2, identity/2, vector/2, challenge/2, failure/2]).
 
 %% export the call backs needed for gen_fsm behaviour
@@ -85,28 +82,27 @@
 		msk :: binary() | undefined,
 		emsk :: binary() | undefined,
 		kaut :: binary() | undefined,
-		kencr :: binary() | undefined,
-		kre :: binary() | undefined}).
+		kencr :: binary() | undefined}).
 -type statedata() :: #statedata{}.
 
 -define(TIMEOUT, 30000).
 
 -define(EAP_APPLICATION_ID, 5).
--define(STa_APPLICATION_ID, 16777250).
+-define(SWm_APPLICATION_ID, 16777264).
 
 %% 3GPP TS 23.003 19.3.2 Root NAI
--define(PERM_AKAp, $6).
+-define(PERM_AKA,  $0).
 %% 3GPP TS 23.003 19.3.4 Fast Re-auth
--define(FAST_AKAp, $8).
+-define(FAST_AKA,  $4).
 %% 3GPP TS 23.003 19.3.5 Pseudonym
--define(TEMP_AKAp, $7).
+-define(TEMP_AKA,  $2).
 
 %%----------------------------------------------------------------------
-%%  The ocs_eap_akap_fsm API
+%%  The ocs_eap_aka_fsm API
 %%----------------------------------------------------------------------
 
 %%----------------------------------------------------------------------
-%%  The ocs_eap_akap_fsm gen_fsm call backs
+%%  The ocs_eap_aka_fsm gen_fsm call backs
 %%----------------------------------------------------------------------
 
 init([Sup, diameter, ServerAddress, ServerPort, ClientAddress, ClientPort,
@@ -187,7 +183,7 @@ eap_start(timeout, #statedata{sup = Sup, eap_id = EapID,
 			EapData = ocs_eap_codec:eap_aka(#eap_aka_identity{fullauth_id_req = true}),
 			NextStateData = NewStateData#statedata{request = undefined, id_req = full},
 			EapPacket = #eap_packet{code = request,
-					type = ?AKAprime, identifier = EapID, data = EapData},
+					type = ?AKA, identifier = EapID, data = EapData},
 			EapMessage = ocs_eap_codec:eap_packet(EapPacket),
 			send_radius_response(EapMessage, ?AccessChallenge, [], RadiusID,
 					RequestAuthenticator, RequestAttributes, NewStateData),
@@ -197,8 +193,8 @@ eap_start(timeout, #statedata{sup = Sup, eap_id = EapID,
 				case ocs_eap_codec:eap_packet(EAPMessage) of
 					#eap_packet{code = response, type = ?Identity,
 							identifier = StartEapID,
-							data = <<?PERM_AKAp, PermanentID/binary>> = Identity}
-							when Trusted == true ->
+							data = <<?PERM_AKA, PermanentID/binary>> = Identity}
+							Trusted == true ->
 						NextStateData = NewStateData#statedata{eap_id = StartEapID,
 								identity = Identity},
 						[IMSI | _] = binary:split(PermanentID, <<$@>>, []),
@@ -207,7 +203,7 @@ eap_start(timeout, #statedata{sup = Sup, eap_id = EapID,
 						{next_state, vector, NextStateData, ?TIMEOUT};
 					#eap_packet{code = response, type = ?Identity,
 							identifier = StartEapID,
-							data = <<?TEMP_AKAp:6, _/bits>> = Identity}
+							data = <<?TEMP_AKA:6, _/bits>> = Identity}
 							when Trusted == true ->
 						NextStateData = NewStateData#statedata{eap_id = StartEapID,
 								identity = Identity},
@@ -219,7 +215,7 @@ eap_start(timeout, #statedata{sup = Sup, eap_id = EapID,
 						{next_state, vector, NextStateData, ?TIMEOUT};
 					#eap_packet{code = response, type = ?Identity,
 							identifier = StartEapID,
-							data = <<?FAST_AKAp:6, _/bits>> = Identity}
+							data = <<?FAST_AKA:6, _/bits>> = Identity}
 							when Trusted == true ->
 						% @todo handle fast re-authentication
 						NextEapID = (StartEapID rem 255) + 1,
@@ -227,20 +223,20 @@ eap_start(timeout, #statedata{sup = Sup, eap_id = EapID,
 						NextStateData = NewStateData#statedata{request = undefined,
 								eap_id = NextEapID, identity = Identity, id_req = full},
 						EapPacket = #eap_packet{code = request,
-								type = ?AKAprime, identifier = NextEapID, data = EapData},
+								type = ?AKA, identifier = NextEapID, data = EapData},
 						EapMessage = ocs_eap_codec:eap_packet(EapPacket),
 						send_radius_response(EapMessage, ?AccessChallenge, [], RadiusID,
 								RequestAuthenticator, RequestAttributes, NextStateData),
 						{next_state, identity, NextStateData, ?TIMEOUT};
 					#eap_packet{code = response, type = ?Identity,
 							identifier = StartEapID,
-							data = <<?PERM_AKAp, _/bits>> = Identity} ->
+							data = <<?PERM_AKA, _/bits>> = Identity} ->
 						NextEapID = (StartEapID rem 255) + 1,
 						EapData = ocs_eap_codec:eap_aka(#eap_aka_identity{fullauth_id_req = true}),
 						NextStateData = NewStateData#statedata{request = undefined,
 								eap_id = NextEapID, identity = Identity, id_req = full},
 						EapPacket = #eap_packet{code = request,
-								type = ?AKAprime, identifier = NextEapID, data = EapData},
+								type = ?AKA, identifier = NextEapID, data = EapData},
 						EapMessage = ocs_eap_codec:eap_packet(EapPacket),
 						send_radius_response(EapMessage, ?AccessChallenge, [], RadiusID,
 								RequestAuthenticator, RequestAttributes, NextStateData),
@@ -248,13 +244,13 @@ eap_start(timeout, #statedata{sup = Sup, eap_id = EapID,
 					#eap_packet{code = response, type = ?Identity,
 							identifier = StartEapID,
 							data = <<Tag:6, _/bits>> = Identity}
-							when ((Tag =:= ?FAST_AKAp) or (Tag =:= ?TEMP_AKAp)) ->
+							when ((Tag =:= ?TEMP_AKA) or (Tag =:= ?FAST_AKA)) ->
 						NextEapID = (StartEapID rem 255) + 1,
 						EapData = ocs_eap_codec:eap_aka(#eap_aka_identity{fullauth_id_req = true}),
 						NextStateData = NewStateData#statedata{request = undefined,
 								eap_id = NextEapID, identity = Identity, id_req = full},
 						EapPacket = #eap_packet{code = request,
-								type = ?AKAprime, identifier = NextEapID, data = EapData},
+								type = ?AKA, identifier = NextEapID, data = EapData},
 						EapMessage = ocs_eap_codec:eap_packet(EapPacket),
 						send_radius_response(EapMessage, ?AccessChallenge, [], RadiusID,
 								RequestAuthenticator, RequestAttributes, NextStateData),
@@ -289,7 +285,7 @@ eap_start(timeout, #statedata{sup = Sup, eap_id = EapID,
 			EapData = ocs_eap_codec:eap_aka(#eap_aka_identity{fullauth_id_req = true}),
 			NextStateData = NewStateData#statedata{request = undefined, id_req = full},
 			EapPacket = #eap_packet{code = request,
-					type = ?AKAprime, identifier = EapID, data = EapData},
+					type = ?AKA, identifier = EapID, data = EapData},
 			EapMessage = ocs_eap_codec:eap_packet(EapPacket),
 			send_radius_response(EapMessage, ?AccessChallenge, [], RadiusID,
 					RequestAuthenticator, RequestAttributes, NewStateData),
@@ -306,7 +302,7 @@ eap_start(timeout, #statedata{eap_id = EapID,
 	NewStateData = StateData#statedata{request = undefined,
 			auc_fsm = AucFsm, id_req = full},
 	EapPacket = #eap_packet{code = request,
-			type = ?AKAprime, identifier = EapID, data = EapData},
+			type = ?AKA, identifier = EapID, data = EapData},
 	EapMessage = ocs_eap_codec:eap_packet(EapPacket),
 	send_diameter_response(SessionId, AuthReqType,
 			?'DIAMETER_BASE_RESULT-CODE_MULTI_ROUND_AUTH', OHost, ORealm,
@@ -323,7 +319,7 @@ eap_start(timeout, #statedata{eap_id = EapID,
 	NewStateData = StateData#statedata{request = undefined,
 			auc_fsm = AucFsm, id_req = full},
 	EapPacket = #eap_packet{code = request,
-			type = ?AKAprime, identifier = EapID, data = EapData},
+			type = ?AKA, identifier = EapID, data = EapData},
 	EapMessage = ocs_eap_codec:eap_packet(EapPacket),
 	send_diameter_response(SessionId, AuthReqType,
 			?'DIAMETER_BASE_RESULT-CODE_MULTI_ROUND_AUTH', OHost, ORealm,
@@ -348,7 +344,7 @@ eap_start1(EapMessage, #statedata{sup = Sup, eap_id = EapID,
 		case ocs_eap_codec:eap_packet(EapMessage) of
 			#eap_packet{code = response, type = ?Identity,
 					identifier = StartEapID,
-					data = <<?PERM_AKAp, PermanentID/binary>> = Identity}
+					data = <<?PERM_AKA, PermanentID/binary>> = Identity}
 					when Trusted == true ->
 				NextStateData = NewStateData#statedata{eap_id = StartEapID,
 						identity = Identity},
@@ -358,8 +354,8 @@ eap_start1(EapMessage, #statedata{sup = Sup, eap_id = EapID,
 				{next_state, vector, NextStateData, ?TIMEOUT};
 			#eap_packet{code = response, type = ?Identity,
 					identifier = StartEapID,
-					data = <<?TEMP_AKAp:6, _/bits>> = Identity}
-					when Trusted == true ->
+					data = <<?TEMP_AKA:6, _/bits>> = Identity}
+					Trusted == true ->
 				NextStateData = NewStateData#statedata{eap_id = StartEapID,
 						identity = Identity},
 				[Pseudonym | _] = binary:split(Identity, <<$@>>, []),
@@ -370,7 +366,7 @@ eap_start1(EapMessage, #statedata{sup = Sup, eap_id = EapID,
 				{next_state, vector, NextStateData, ?TIMEOUT};
 			#eap_packet{code = response, type = ?Identity,
 					identifier = StartEapID,
-					data = <<?FAST_AKAp:6, _/bits>> = Identity}
+					data = <<?FAST_AKA:6, _/bits>> = Identity}
 					when Trusted == true ->
 				% @todo handle fast re-authentication
 				NextEapID = (StartEapID rem 255) + 1,
@@ -378,7 +374,7 @@ eap_start1(EapMessage, #statedata{sup = Sup, eap_id = EapID,
 				NextStateData = NewStateData#statedata{request = undefined,
 						eap_id = NextEapID, id_req = full, identity = Identity},
 				EapPacket = #eap_packet{code = request,
-						type = ?AKAprime, identifier = NextEapID, data = EapData},
+						type = ?AKA, identifier = NextEapID, data = EapData},
 				EapMessage1 = ocs_eap_codec:eap_packet(EapPacket),
 				send_diameter_response(SessionId, AuthReqType,
 						?'DIAMETER_BASE_RESULT-CODE_MULTI_ROUND_AUTH', OHost, ORealm,
@@ -386,13 +382,13 @@ eap_start1(EapMessage, #statedata{sup = Sup, eap_id = EapID,
 				{next_state, identity, NextStateData, ?TIMEOUT};
 			#eap_packet{code = response, type = ?Identity,
 					identifier = StartEapID,
-					data = <<?PERM_AKAp, _/bits>> = Identity} ->
+					data = <<?PERM_AKA, _/bits>> = Identity} ->
 				NextEapID = (StartEapID rem 255) + 1,
 				EapData = ocs_eap_codec:eap_aka(#eap_aka_identity{fullauth_id_req = true}),
 				NextStateData = NewStateData#statedata{request = undefined,
 						eap_id = NextEapID, identity = Identity, id_req = full},
 				EapPacket = #eap_packet{code = request,
-						type = ?AKAprime, identifier = NextEapID, data = EapData},
+						type = ?AKA, identifier = NextEapID, data = EapData},
 				EapMessage1 = ocs_eap_codec:eap_packet(EapPacket),
 				send_diameter_response(SessionId, AuthReqType,
 						?'DIAMETER_BASE_RESULT-CODE_MULTI_ROUND_AUTH', OHost, ORealm,
@@ -401,13 +397,13 @@ eap_start1(EapMessage, #statedata{sup = Sup, eap_id = EapID,
 			#eap_packet{code = response, type = ?Identity,
 					identifier = StartEapID,
 					data = <<Tag:6, _/bits>> = Identity}
-					when ((Tag =:= ?FAST_AKAp) or (Tag =:= ?TEMP_AKAp)) ->
+					when ((Tag =:= ?FAST_AKA) or (Tag =:= ?TEMP_AKA)) ->
 				NextEapID = (StartEapID rem 255) + 1,
 				EapData = ocs_eap_codec:eap_aka(#eap_aka_identity{fullauth_id_req = true}),
 				NextStateData = NewStateData#statedata{request = undefined,
 						eap_id = NextEapID, identity = Identity, id_req = full},
 				EapPacket = #eap_packet{code = request,
-						type = ?AKAprime, identifier = NextEapID, data = EapData},
+						type = ?AKA, identifier = NextEapID, data = EapData},
 				EapMessage1 = ocs_eap_codec:eap_packet(EapPacket),
 				send_diameter_response(SessionId, AuthReqType,
 						?'DIAMETER_BASE_RESULT-CODE_MULTI_ROUND_AUTH', OHost, ORealm,
@@ -470,16 +466,35 @@ identity({#radius{id = RadiusID, authenticator = RequestAuthenticator,
 	try
 		EapMessage1 = radius_attributes:fetch(?EAPMessage, RequestAttributes),
 		case ocs_eap_codec:eap_packet(EapMessage1) of
-			#eap_packet{code = response, type = ?AKAprime, identifier = EapID, data = Data} ->
+			#eap_packet{code = response, type = ?AKA, identifier = EapID, data = Data} ->
 				case ocs_eap_codec:eap_aka(Data) of
-					#eap_aka_identity{identity = <<?PERM_AKAp,
+					#eap_aka_identity{identity = <<?PERM_AKA,
 							PermanentID/binary>> = Identity} when IdReq == full ->
 						[IMSI | _] = binary:split(PermanentID, <<$@>>, []),
 						% @todo handle RADIUS attribute for ANID
 						gen_fsm:send_event(AucFsm, {self(), IMSI, "WLAN"}),
 						NextStateData = NewStateData#statedata{identity = Identity},
 						{next_state, vector, NextStateData, ?TIMEOUT};
-					#eap_aka_identity{identity = <<?TEMP_AKAp:6, _/bits>> = Identity}
+					#eap_aka_identity{identity = <<?TEMP_AKA:6, _/bits>> = Identity}
+							when IdReq == full ->
+						[Pseudonym | _] = binary:split(Identity, <<$@>>, []),
+						CompressedIMSI = ocs_eap_aka:decrypt_imsi(Pseudonym, Keys),
+						IMSI = ocs_eap_aka:compressed_imsi(CompressedIMSI),
+						% @todo handle RADIUS attribute for ANID
+						gen_fsm:send_event(AucFsm, {self(), IMSI, "WLAN"}),
+						NextStateData = NewStateData#statedata{identity = Identity},
+						{next_state, vector, NextStateData, ?TIMEOUT}
+				end;
+			#eap_packet{code = response, type = ?AKA, identifier = EapID, data = Data} ->
+				case ocs_eap_codec:eap_aka(Data) of
+					#eap_aka_identity{identity = <<?PERM_AKA,
+							PermanentID/binary>> = Identity} when IdReq == full ->
+						[IMSI | _] = binary:split(PermanentID, <<$@>>, []),
+						% @todo handle RADIUS attribute for ANID
+						gen_fsm:send_event(AucFsm, {self(), IMSI, "WLAN"}),
+						NextStateData = NewStateData#statedata{identity = Identity},
+						{next_state, vector, NextStateData, ?TIMEOUT};
+					#eap_aka_identity{identity = <<?TEMP_AKA:6, _/bits>> = Identity}
 							when IdReq == full ->
 						[Pseudonym | _] = binary:split(Identity, <<$@>>, []),
 						CompressedIMSI = ocs_eap_aka:decrypt_imsi(Pseudonym, Keys),
@@ -514,9 +529,9 @@ identity1(EapMessage, Request,
 		diameter_port_server = PortServer, keys = Keys} = StateData) ->
 	try
 		case ocs_eap_codec:eap_packet(EapMessage) of
-			#eap_packet{code = response, type = ?AKAprime, identifier = EapID, data = Data} ->
+			#eap_packet{code = response, type = ?AKA, identifier = EapID, data = Data} ->
 				case ocs_eap_codec:eap_aka(Data) of
-					#eap_aka_identity{identity = <<?PERM_AKAp,
+					#eap_aka_identity{identity = <<?PERM_AKA,
 							PermanentID/binary>> = Identity} when IdReq == full ->
 						[IMSI | _] = binary:split(PermanentID, <<$@>>, []),
 						% @todo handle DIAMETER ANID AVP
@@ -524,7 +539,7 @@ identity1(EapMessage, Request,
 						NewStateData = StateData#statedata{request = Request,
 								identity = Identity},
 						{next_state, vector, NewStateData, ?TIMEOUT};
-					#eap_aka_identity{identity = <<?TEMP_AKAp:6, _/bits>> = Identity}
+					#eap_aka_identity{identity = <<?TEMP_AKA:6, _/bits>> = Identity}
 							when IdReq == full ->
 						[Pseudonym | _] = binary:split(Identity, <<$@>>, []),
 						CompressedIMSI = ocs_eap_aka:decrypt_imsi(Pseudonym, Keys),
@@ -566,48 +581,48 @@ identity1(EapMessage, Request,
 %% @private
 vector(timeout, #statedata{session_id = SessionID} = StateData)->
 	{stop, {shutdown, SessionID}, StateData};
-vector({RAND, AUTN, CKprime, IKprime, XRES}, #statedata{eap_id = EapID,
+vector({RAND, AUTN, CK, IK, XRES}, #statedata{eap_id = EapID,
 		request = #radius{code = ?AccessRequest, id = RadiusID,
 		authenticator = RequestAuthenticator, attributes = RequestAttributes},
 		identity = Identity} = StateData) ->
 	NextEapID = (EapID rem 255) + 1,
 	<<Kencr:16/binary, Kaut:32/binary, Kre:32/binary, MSK:64/binary,
-			EMSK:64/binary, _/binary>> = prf(<<IKprime/binary,
-			CKprime/binary>>, <<"EAP-AKA'", Identity/binary>>, 7),
+			EMSK:64/binary, _/binary>> = prf(<<IK/binary,
+			CK/binary>>, <<"EAP-AKA'", Identity/binary>>, 7),
 	AkaChallenge = #eap_aka_challenge{mac = <<0:128>>,
 			kdf = [1], network = <<"WLAN">>, rand = RAND, autn = AUTN},
 	EapData = ocs_eap_codec:eap_aka(AkaChallenge),
-	EapPacket = #eap_packet{code = request, type = ?AKAprime,
+	EapPacket = #eap_packet{code = request, type = ?AKA,
 			identifier = NextEapID, data = EapData},
 	EapMessage1 = ocs_eap_codec:eap_packet(EapPacket),
 	Mac = crypto:hmac(sha256, Kaut, EapMessage1, 16),
 	EapMessage2 = ocs_eap_codec:aka_set_mac(Mac, EapMessage1),
 	NewStateData = StateData#statedata{request = undefined,
-			eap_id = NextEapID, res = XRES, ck = CKprime, ik = IKprime,
-			msk = MSK, emsk = EMSK, kaut = Kaut, kencr = Kencr, kre = Kre},
+			eap_id = NextEapID, res = XRES, ck = CK, ik = IK,
+			msk = MSK, emsk = EMSK, kaut = Kaut, kencr = Kencr},
 	send_radius_response(EapMessage2, ?AccessChallenge, [], RadiusID,
 			RequestAuthenticator, RequestAttributes, NewStateData),
 	{next_state, challenge, NewStateData};
-vector({RAND, AUTN, CKprime, IKprime, XRES}, #statedata{eap_id = EapID,
+vector({RAND, AUTN, CK, IK, XRES}, #statedata{eap_id = EapID,
 		request = Request, auth_req_type = AuthReqType,
 		origin_host = OHost, origin_realm = ORealm,
 		diameter_port_server = PortServer,
 		session_id = SessionID, identity = Identity} = StateData) ->
 	NextEapID = (EapID rem 255) + 1,
 	<<Kencr:16/binary, Kaut:32/binary, Kre:32/binary, MSK:64/binary,
-			EMSK:64/binary, _/binary>> = prf(<<IKprime/binary,
-			CKprime/binary>>, <<"EAP-AKA'", Identity/binary>>, 7),
+			EMSK:64/binary, _/binary>> = prf(<<IK/binary,
+			CK/binary>>, <<"EAP-AKA'", Identity/binary>>, 7),
 	AkaChallenge = #eap_aka_challenge{mac = <<0:128>>,
 			kdf = [1], network = <<"WLAN">>, rand = RAND, autn = AUTN},
 	EapData = ocs_eap_codec:eap_aka(AkaChallenge),
-	EapPacket = #eap_packet{code = request, type = ?AKAprime,
+	EapPacket = #eap_packet{code = request, type = ?AKA,
 			identifier = NextEapID, data = EapData},
 	EapMessage1 = ocs_eap_codec:eap_packet(EapPacket),
 	Mac = crypto:hmac(sha256, Kaut, EapMessage1, 16),
 	EapMessage2 = ocs_eap_codec:aka_set_mac(Mac, EapMessage1),
 	NewStateData = StateData#statedata{request = undefined,
-			eap_id = NextEapID, res = XRES, ck = CKprime, ik = IKprime,
-			msk = MSK, emsk = EMSK, kaut = Kaut, kencr = Kencr, kre = Kre},
+			eap_id = NextEapID, res = XRES, ck = CK, ik = IK,
+			msk = MSK, emsk = EMSK, kaut = Kaut, kencr = Kencr},
 	send_diameter_response(SessionID, AuthReqType,
 			?'DIAMETER_BASE_RESULT-CODE_MULTI_ROUND_AUTH', OHost, ORealm,
 			EapMessage2, PortServer, Request, NewStateData),
@@ -639,7 +654,7 @@ challenge({#radius{id = RadiusID, authenticator = RequestAuthenticator,
 			radius_fsm = RadiusFsm},
 	try
 		EapMessage1 = radius_attributes:fetch(?EAPMessage, RequestAttributes),
-		#eap_packet{code = response, type = ?AKAprime, identifier = EapID,
+		#eap_packet{code = response, type = ?AKA, identifier = EapID,
 				data = Data1} = ocs_eap_codec:eap_packet(EapMessage1),
 		case ocs_eap_codec:eap_aka(Data1) of
 			#eap_aka_challenge{res = RES, checkcode = <<>>, mac = MAC} = _EAP ->
@@ -666,7 +681,7 @@ challenge({#radius{id = RadiusID, authenticator = RequestAuthenticator,
 						Notification = #eap_aka_notification{notification = 16384},
 						Data2 = ocs_eap_codec:eap_aka(Notification),
 						EapPacket1 = #eap_packet{code = request,
-								type = ?AKAprime, identifier = EapID, data = Data2},
+								type = ?AKA, identifier = EapID, data = Data2},
 						EapMessage3 = ocs_eap_codec:eap_packet(EapPacket1),
 						send_radius_response(EapMessage3, ?AccessChallenge, [], RadiusID,
 								RequestAuthenticator, RequestAttributes, NewStateData),
@@ -676,7 +691,7 @@ challenge({#radius{id = RadiusID, authenticator = RequestAuthenticator,
 				Notification = #eap_aka_notification{notification = 16384},
 				Data2 = ocs_eap_codec:eap_aka(Notification),
 				EapPacket1 = #eap_packet{code = request,
-						type = ?AKAprime, identifier = EapID, data = Data2},
+						type = ?AKA, identifier = EapID, data = Data2},
 				EapMessage3 = ocs_eap_codec:eap_packet(EapPacket1),
 				send_radius_response(EapMessage3, ?AccessChallenge, [], RadiusID,
 						RequestAuthenticator, RequestAttributes, NewStateData),
@@ -717,7 +732,7 @@ challenge1(EapMessage1, Request,
 		origin_realm = ORealm, diameter_port_server = PortServer,
 		res = RES, kaut = Kaut} = StateData) ->
 	try
-		#eap_packet{code = response, type = ?AKAprime, identifier = EapID,
+		#eap_packet{code = response, type = ?AKA, identifier = EapID,
 				data = Data1} = ocs_eap_codec:eap_packet(EapMessage1),
 		case ocs_eap_codec:eap_aka(Data1) of
 			#eap_aka_challenge{res = RES, checkcode = <<>>, mac = MAC} = _EAP ->
@@ -734,7 +749,7 @@ challenge1(EapMessage1, Request,
 						Notification = #eap_aka_notification{notification = 16384},
 						Data2 = ocs_eap_codec:eap_aka(Notification),
 						EapPacket1 = #eap_packet{code = request,
-								type = ?AKAprime, identifier = EapID, data = Data2},
+								type = ?AKA, identifier = EapID, data = Data2},
 						EapMessage3 = ocs_eap_codec:eap_packet(EapPacket1),
 						send_diameter_response(SessionID, AuthReqType,
 								?'DIAMETER_BASE_RESULT-CODE_MULTI_ROUND_AUTH',
@@ -745,7 +760,7 @@ challenge1(EapMessage1, Request,
 				Notification = #eap_aka_notification{notification = 16384},
 				Data2 = ocs_eap_codec:eap_aka(Notification),
 				EapPacket1 = #eap_packet{code = request,
-						type = ?AKAprime, identifier = EapID, data = Data2},
+						type = ?AKA, identifier = EapID, data = Data2},
 				EapMessage3 = ocs_eap_codec:eap_packet(EapPacket1),
 				send_diameter_response(SessionID, AuthReqType,
 						?'DIAMETER_BASE_RESULT-CODE_MULTI_ROUND_AUTH',
@@ -803,7 +818,7 @@ failure({#radius{id = RadiusID, authenticator = RequestAuthenticator,
 			radius_fsm = RadiusFsm},
 	try
 		EapMessage1 = radius_attributes:fetch(?EAPMessage, RequestAttributes),
-		#eap_packet{code = response, type = ?AKAprime, identifier = EapID,
+		#eap_packet{code = response, type = ?AKA, identifier = EapID,
 				data = Data} = ocs_eap_codec:eap_packet(EapMessage1),
 		case ocs_eap_codec:eap_aka(Data) of
 			#eap_aka_notification{mac = undefined} = _EAP ->
@@ -1179,47 +1194,6 @@ send_diameter_response(SessionId, AuthType, ResultCode,
 			ok = ocs_log:auth_log(diameter, Server, Client, Request, Answer1),
 			gen_server:cast(PortServer, {self(), Answer1})
 	end.
-
--dialyzer([{nowarn_function, [encrypt_imsi/3]}, no_missing_calls]). % temporary
--spec encrypt_imsi(Tag, CompressedIMSI, Key) -> Pseudonym
-	when
-		Tag :: ?TEMP_AKA | ?TEMP_AKAp,
-		CompressedIMSI :: binary(),
-		Key :: {N, Kpseu},
-		N :: pos_integer(),
-		Kpseu :: binary(),
-		Pseudonym :: binary().
-%% @doc Create an encrypted temporary identity.
-%%
-%% 	See 3GPP 33.402 14.1 Temporary identity generation.
-%% @private
-encrypt_imsi(Tag, CompressedIMSI, {N, Kpseu} = _Key)
-		when ((Tag =:= ?TEMP_AKA) or (Tag =:= ?TEMP_AKAp)),
-		size(CompressedIMSI) == 8, size(Kpseu) == 16 ->
-	Pad = crypto:strong_rand_bytes(8),
-	PaddedIMSI = <<CompressedIMSI/binary, Pad/binary>>,
-	EncryptedIMSI = crypto:block_encrypt(aes_ecb, Kpseu, PaddedIMSI),
-	TaggedIMSI = <<Tag:6, N:4, EncryptedIMSI/binary, 0:6>>,
-	binary:part(base64:encode(TaggedIMSI), 0, 23).
-
--spec prf(K, S, N) -> MK
-	when
-		K :: binary(),
-		S :: binary(),
-		N :: pos_integer(),
-		MK :: binary().
-%% @doc Pseudo-Random Number Function (PRF).
-%%
-%% 	See RFC5448 3.4.
-%% @private
-prf(K, S, N) when is_binary(K), is_binary(S), is_integer(N), N > 1 ->
-	prf(K, S, N, 1, <<>>, []).
-%% @hidden
-prf(_, _, N, P, _, Acc) when P > N ->
-	iolist_to_binary(lists:reverse(Acc));
-prf(K, S, N, P, T1, Acc) ->
-	T2 = crypto:hmac(sha256, K, <<T1/binary, S/binary, P>>),
-	prf(K, S, N, P + 1, T2, [T2 | Acc]).
 
 -spec encrypt_key(Secret, RequestAuthenticator, Salt, Key) -> Ciphertext
 	when
