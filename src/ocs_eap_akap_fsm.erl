@@ -648,8 +648,10 @@ challenge({#radius{id = RadiusID, authenticator = RequestAuthenticator,
 					MAC ->
 						Salt = crypto:rand_uniform(16#8000, 16#ffff),
 						<<MSK1:32/binary, MSK2:32/binary>> = MSK,
-						MsMppeRecvKey = encrypt_key(Secret, RequestAuthenticator, Salt, MSK1),
-						MsMppeSendKey = encrypt_key(Secret, RequestAuthenticator, Salt, MSK2),
+						MsMppeRecvKey = ocs_eap_aka:encrypt_key(Secret,
+								RequestAuthenticator, Salt, MSK1),
+						MsMppeSendKey = ocs_eap_aka:encrypt_key(Secret,
+								RequestAuthenticator, Salt, MSK2),
 						UserName = binary_to_list(Identity),
 						Attributes = radius_attributes:new(),
 						Attr1 = radius_attributes:store(?UserName, UserName, Attributes),
@@ -1220,34 +1222,4 @@ prf(_, _, N, P, _, Acc) when P > N ->
 prf(K, S, N, P, T1, Acc) ->
 	T2 = crypto:hmac(sha256, K, <<T1/binary, S/binary, P>>),
 	prf(K, S, N, P + 1, T2, [T2 | Acc]).
-
--spec encrypt_key(Secret, RequestAuthenticator, Salt, Key) -> Ciphertext
-	when
-		Secret :: binary(),
-		RequestAuthenticator :: [byte()],
-		Salt :: integer(),
-		Key :: binary(),
-		Ciphertext :: binary().
-%% @doc Encrypt the Pairwise Master Key (PMK) according to RFC2548
-%% 	section 2.4.2 for use as String in a MS-MPPE-Recv-Key
-%% 	or MS-MPPE-Send-Key attribute.
-%% @private
-encrypt_key(Secret, RequestAuthenticator, Salt, Key)
-		when (Salt bsr 15) == 1 ->
-	KeyLength = size(Key),
-	Plaintext = case (KeyLength + 1) rem 16 of
-		0 ->
-			<<KeyLength, Key/binary>>;
-		N ->
-			PadLength = (16 - N) * 8,
-			<<KeyLength, Key/binary, 0:PadLength>>
-	end,
-	F = fun(P, [H | _] = Acc) ->
-				B = crypto:hash(md5, [Secret, H]),
-				C = crypto:exor(P, B),
-				[C | Acc]
-	end,
-	AccIn = [[RequestAuthenticator, <<Salt:16>>]],
-	AccOut = lists:foldl(F, AccIn, [P || <<P:16/binary>> <= Plaintext]),
-	iolist_to_binary(tl(lists:reverse(AccOut))).
 
