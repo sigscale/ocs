@@ -45,6 +45,9 @@ modhtml = ocs.html \
 			ocs_eap_aka_fsm_sup_sup.html \
 			ocs_eap_aka_fsm_sup.html \
 			ocs_eap_aka_fsm.html \
+			ocs_eap_akap_fsm_sup_sup.html \
+			ocs_eap_akap_fsm_sup.html \
+			ocs_eap_akap_fsm.html \
 			ocs_eap_aka_auc_fsm.html \
 			ocs_radius_auth_port_sup.html \
 			ocs_radius_disconnect_fsm_sup.html\

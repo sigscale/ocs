@@ -40,6 +40,9 @@ beam_DATA = ocs.beam \
 			ocs_eap_aka_fsm_sup_sup.beam \
 			ocs_eap_aka_fsm_sup.beam \
 			ocs_eap_aka_fsm.beam \
+			ocs_eap_akap_fsm_sup_sup.beam \
+			ocs_eap_akap_fsm_sup.beam \
+			ocs_eap_akap_fsm.beam \
 			ocs_eap_aka_auc_fsm.beam \
 			ocs_simple_auth_fsm.beam \
 			ocs_radius_auth_port_server.beam \
