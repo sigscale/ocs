@@ -1,0 +1,140 @@
+
+@id 16777250
+@name   diameter_gen_3gpp_sta_application
+@vendor 10415 3GPP
+@prefix 3gpp_sta
+@inherits diameter_gen_base_rfc6733
+@inherits diameter_gen_ietf
+@inherits diameter_gen_3gpp
+@messages
+
+	DER ::= < Diameter Header: 268, REQ, PXY >
+		< Session-Id >
+		{ Auth-Application-Id }
+		{ Origin-Host }
+		{ Origin-Realm }
+		{ Destination-Realm }
+		{ Auth-Request-Type }
+		{ EAP-Payload }
+		[ Destination-Host ]
+		[ User-Name ]
+		[ RAT-Type ]
+		[ Service-Selection ]
+		[ MIP6-Feature-Vector ]
+;		[ QoS-Capability ]
+		[ Visited-Network-Identifier ]
+		[ AAA-Failure-Indication ]
+		* [ Supported-Features ]
+		[ UE-Local-IP-Address ]
+		[ OC-Supported-Features ]
+		[ Terminal-Information ]
+		[ Emergency-Services ]
+		[ DRMP ]
+		[ NAS-Identifier ]
+		[ NAS-IP-Address ]
+		[ NAS-IPv6-Address ]
+		[ NAS-Port ]
+		[ NAS-Port-Id ]
+		[ NAS-Port-Type ]
+		[ Origin-State-Id ]
+		[ Port-Limit ]
+		[ EAP-Key-Name ]
+		[ Service-Type ]
+		[ State ]
+		[ Authorization-Lifetime ]
+		[ Auth-Grace-Period ]
+		[ Auth-Session-State ]
+		[ Callback-Number ]
+		[ Called-Station-Id ]
+		[ Calling-Station-Id ]
+		[ Originating-Line-Info ]
+		[ Connect-Info ]
+		* [ Framed-Compression ]
+		[ Framed-Interface-Id ]
+		[ Framed-IP-Address ]
+		* [ Framed-IPv6-Prefix ]
+		[ Framed-IP-Netmask ]
+		[ Framed-MTU ]
+		[ Framed-Protocol ]
+		* [ Tunneling ]
+		* [ Proxy-Info ]
+		* [ Route-Record ]
+		* [ AVP ]
+
+	DEA ::= < Diameter Header: 268, PXY >
+		< Session-Id >
+		{ Auth-Application-Id }
+		{ Auth-Request-Type }
+		{ Result-Code }
+		{ Origin-Host }
+		{ Origin-Realm }
+		[ EAP-Payload ]
+		[ User-Name ]
+		[ EAP-Master-Session-Key ]
+		[ APN-OI-Replacement ]
+		[ APN-Configuration ]
+		[ MIP6-Feature-Vector ]
+		[ Mobile-Node-Identifier ]
+		[ Trace-Info ]
+		[ Subscription-Id ]
+		[ Session-Timeout ]
+		[ MIP6-Agent-Info ]
+		[ 3GPP-Charging-Characteristics ]
+		* [ Redirect-Host ]
+		* [ Supported-Features ]
+		[ OC-Supported-Features ]
+		[ OC-OLR ]
+		* [ Load ]
+		[ Access-Network-Info ]
+		[ User-Location-Info-Time ]
+		[ UE-Usage-Type ]
+;		[ Emergency-Info ]
+		[ Core-Network-Restrictions ]
+		[ DRMP ]
+		[ EAP-Reissued-Payload ]
+		[ EAP-Key-Name ]
+		[ Multi-Round-Time-Out ]
+		[ Accounting-EAP-Auth-Method ]
+		[ Service-Type ]
+		* [ Class ]
+		* [ Configuration-Token ]
+		[ Acct-Interim-Interval ]
+		[ Error-Message ]
+		[ Error-Reporting-Host ]
+		* [ Failed-AVP ]
+		[ Idle-Timeout ]
+		[ Authorization-Lifetime ]
+		[ Auth-Grace-Period ]
+		[ Auth-Session-State ]
+		[ Re-Auth-Request-Type ]
+		[ State ]
+		* [ Reply-Message ]
+		[ Origin-State-Id ]
+		* [ Filter-Id ]
+		[ Port-Limit ]
+		[ Callback-Id ]
+		[ Callback-Number ]
+		[ Framed-Appletalk-Link ]
+		* [ Framed-Appletalk-Network ]
+		[ Framed-Appletalk-Zone ]
+		* [ Framed-Compression ]
+		[ Framed-Interface-Id ]
+		[ Framed-IP-Address ]
+		* [ Framed-IPv6-Prefix ]
+		[ Framed-IPv6-Pool ]
+		* [ Framed-IPv6-Route ]
+		[ Framed-IP-Netmask ]
+		* [ Framed-Route ]
+		[ Framed-Pool ]
+		[ Framed-IPX-Network ]
+		[ Framed-MTU ]
+		[ Framed-Protocol ]
+		[ Framed-Routing ]
+		* [ NAS-Filter-Rule ]
+		* [ QoS-Filter-Rule ]
+		* [ Tunneling ]
+		[ Redirect-Host-Usage ]
+		[ Redirect-Max-Cache-Time ]
+		* [ Proxy-Info ]
+		* [ AVP ]
+
