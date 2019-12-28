@@ -58,6 +58,7 @@
 		simple_auth_sup :: undefined | pid(),
 		ttls_sup :: undefined | pid(),
 		aka_sup :: undefined | pid(),
+		akap_sup :: undefined | pid(),
 		pwd_sup :: undefined | pid(),
 		cb_fsms = gb_trees:empty() :: gb_trees:tree(
 				Key :: (AuthFsm :: pid()), Value :: (CbProc :: pid())),
@@ -171,8 +172,9 @@ handle_info(timeout, #state{auth_port_sup = AuthPortSup} = State) ->
 	{_, PwdSup, _, _} = lists:keyfind(ocs_eap_pwd_fsm_sup, 1, Children),
 	{_, TtlsSup, _, _} = lists:keyfind(ocs_eap_ttls_fsm_sup_sup, 1, Children),
 	{_, AkaSup, _, _} = lists:keyfind(ocs_eap_aka_fsm_sup_sup, 1, Children),
+	{_, AkapSup, _, _} = lists:keyfind(ocs_eap_akap_fsm_sup_sup, 1, Children),
 	NewState = State#state{simple_auth_sup = SimpleAuthSup, pwd_sup = PwdSup,
-			ttls_sup = TtlsSup, aka_sup = AkaSup},
+			ttls_sup = TtlsSup, aka_sup = AkaSup, akap_sup = AkapSup},
 	{noreply, NewState};
 handle_info({'EXIT', Fsm, {shutdown, SessionId}},
 		#state{handlers = Handlers} = State) ->
@@ -319,7 +321,12 @@ request1(EapType, Address, Port, PasswordReq, Trusted,
 %% @hidden
 request2({_, _Identity}, SessionId, AuthRequestType, none, Address, Port,
 		PasswordReq, Trusted, OHost, ORealm, DHost, DRealm, Request, CbProc,
-		#state{aka_sup = Sup, method_prefer = akap} = State) ->
+		#state{aka_sup = Sup, method_prefer = aka} = State) ->
+	start_fsm(Sup, Address, Port, PasswordReq, Trusted, SessionId,
+			AuthRequestType, OHost, ORealm, DHost, DRealm, [], CbProc, Request, State);
+request2({_, _Identity}, SessionId, AuthRequestType, none, Address, Port,
+		PasswordReq, Trusted, OHost, ORealm, DHost, DRealm, Request, CbProc,
+		#state{akap_sup = Sup, method_prefer = akap} = State) ->
 	start_fsm(Sup, Address, Port, PasswordReq, Trusted, SessionId,
 			AuthRequestType, OHost, ORealm, DHost, DRealm, [], CbProc, Request, State);
 request2({_, _Identity}, SessionId, AuthRequestType, none, Address, Port,
@@ -523,6 +530,23 @@ start_fsm1(AkaSup, StartArgs, SessId, CbProc, #state{handlers = Handlers,
 					{error, Reason}, {supervisor, AkaSup}, {session_id, SessId}]),
 			{undefined, State}
 	end;
+start_fsm1(AkapSup, StartArgs, SessId, CbProc, #state{handlers = Handlers,
+		cb_fsms = FsmHandler, akap_sup = AkapSup} = State) ->
+	ChildSpec = [StartArgs],
+	case supervisor:start_child(AkapSup, ChildSpec) of
+		{ok, AkaFsmSup} ->
+			Children = supervisor:which_children(AkaFsmSup),
+			{_, Fsm, _, _} = lists:keyfind(ocs_eap_akap_fsm, 1, Children),
+			link(Fsm),
+			NewHandlers = gb_trees:enter(SessId, Fsm, Handlers),
+			NewFsmHandler = gb_trees:enter(Fsm, CbProc, FsmHandler),
+			NewState = State#state{handlers = NewHandlers, cb_fsms = NewFsmHandler},
+			{Fsm, NewState};
+		{error, Reason} ->
+			error_logger:error_report(["Error starting session handler",
+					{error, Reason}, {supervisor, AkapSup}, {session_id, SessId}]),
+			{undefined, State}
+	end;
 start_fsm1(AuthSup, StartArgs, SessId, CbProc,
 		#state{handlers = Handlers, cb_fsms = FsmHandler} = State) ->
 	ChildSpec = [StartArgs, []],
@@ -590,8 +614,16 @@ get_alternate([ttls | T], AlternateMethods,
 		false ->
 			get_alternate(T, AlternateMethods, State)
 	end;
-get_alternate([akap | T], AlternateMethods,
+get_alternate([aka | T], AlternateMethods,
 		#state{aka_sup = Sup} = State) ->
+	case lists:member(?AKA, AlternateMethods) of
+		true ->
+			{ok, Sup};
+		false ->
+			get_alternate(T, AlternateMethods, State)
+	end;
+get_alternate([akap | T], AlternateMethods,
+		#state{akap_sup = Sup} = State) ->
 	case lists:member(?AKAprime, AlternateMethods) of
 		true ->
 			{ok, Sup};

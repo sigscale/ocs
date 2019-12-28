@@ -46,6 +46,7 @@ init([Address, Port, Options]) ->
 	ChildSpecs = [supervisor(ocs_simple_auth_fsm_sup, []),
 		supervisor(ocs_eap_ttls_fsm_sup_sup, []),
 		supervisor(ocs_eap_aka_fsm_sup_sup, []),
+		supervisor(ocs_eap_akap_fsm_sup_sup, []),
 		supervisor(ocs_eap_pwd_fsm_sup, []),
 		server(ocs_radius_auth_port_server, Address, Port, Options),
 		supervisor(ocs_radius_auth_server_sup, [Address, Port])],

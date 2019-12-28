@@ -43,6 +43,7 @@
 		pwd_sup :: undefined | pid(),
 		ttls_sup :: undefined | pid(),
 		aka_sup :: undefined | pid(),
+		akap_sup :: undefined | pid(),
 		address :: inet:ip_address(),
 		port :: non_neg_integer(),
 		method_prefer :: ocs:eap_method(),
@@ -163,9 +164,10 @@ handle_info(timeout, #state{auth_port_sup = AuthPortSup} = State) ->
 	{_, PwdSup, _, _} = lists:keyfind(ocs_eap_pwd_fsm_sup, 1, Children),
 	{_, TtlsSup, _, _} = lists:keyfind(ocs_eap_ttls_fsm_sup_sup, 1, Children),
 	{_, AkaSup, _, _} = lists:keyfind(ocs_eap_aka_fsm_sup_sup, 1, Children),
+	{_, AkapSup, _, _} = lists:keyfind(ocs_eap_akap_fsm_sup_sup, 1, Children),
 	{_, SimpleAuthSup, _, _} = lists:keyfind(ocs_simple_auth_fsm_sup, 1, Children),
 	{noreply, State#state{pwd_sup = PwdSup, ttls_sup = TtlsSup,
-			aka_sup = AkaSup, simple_auth_sup = SimpleAuthSup}};
+			aka_sup = AkaSup, akap_sup = AkapSup, simple_auth_sup = SimpleAuthSup}};
 handle_info({'EXIT', Pid, {shutdown, SessionID}},
 		#state{handlers = Handlers} = State) ->
 	 case gb_trees:lookup(SessionID, Handlers) of
@@ -298,7 +300,12 @@ request1(EapType, Address, Port, Secret, PasswordReq, Trusted,
 %% @hidden
 request2({_, Identity}, none, SessionID, Address, Port, Secret,
 		PasswordReq, Trusted, AccessRequest, {RadiusFsm, _Tag} = _From,
-		#state{aka_sup = Sup, method_prefer = akap} = State) ->
+		#state{aka_sup = Sup, method_prefer = aka} = State) ->
+	start_fsm(AccessRequest, RadiusFsm, Address, Port, Secret,
+			PasswordReq, Trusted, SessionID, Identity, Sup, State);
+request2({_, Identity}, none, SessionID, Address, Port, Secret,
+		PasswordReq, Trusted, AccessRequest, {RadiusFsm, _Tag} = _From,
+		#state{akap_sup = Sup, method_prefer = akap} = State) ->
 	start_fsm(AccessRequest, RadiusFsm, Address, Port, Secret,
 			PasswordReq, Trusted, SessionID, Identity, Sup, State);
 request2({_, Identity}, none, SessionID, Address, Port, Secret,
@@ -426,6 +433,24 @@ start_fsm1(AuthSup, StartArgs, RadiusFsm, SessionID, Identity,
 			{reply, {error, ignore}, State}
 	end;
 start_fsm1(AuthSup, StartArgs, RadiusFsm, SessionID, Identity,
+		#state{akap_sup = AuthSup, handlers = Handlers,
+		address = ServerAddress, port = ServerPort} = State) ->
+	ChildSpec = [StartArgs],
+	case supervisor:start_child(AuthSup, ChildSpec) of
+		{ok, FsmSup} ->
+			Children = supervisor:which_children(FsmSup),
+			{_, Fsm, _, _} = lists:keyfind(ocs_eap_akap_fsm, 1, Children),
+			link(Fsm),
+			NewHandlers = gb_trees:enter(SessionID, {Fsm, Identity}, Handlers),
+			{reply, {ok, wait}, State#state{handlers = NewHandlers}};
+		{error, Reason} ->
+			error_logger:error_report(["Error starting session handler",
+					{error, Reason}, {supervisor, AuthSup},
+					{address, ServerAddress}, {port, ServerPort},
+					{radius_fsm, RadiusFsm}, {session, SessionID}]),
+			{reply, {error, ignore}, State}
+	end;
+start_fsm1(AuthSup, StartArgs, RadiusFsm, SessionID, Identity,
 		#state{handlers = Handlers, address = ServerAddress,
 		port = ServerPort} = State) ->
 	ChildSpec = [StartArgs, []],
@@ -455,8 +480,16 @@ get_alternate(PreferenceOrder, AlternateMethods, State)
 		when is_binary(AlternateMethods) ->
 	get_alternate(PreferenceOrder,
 			binary_to_list(AlternateMethods), State);
-get_alternate([akap | T], AlternateMethods,
+get_alternate([aka | T], AlternateMethods,
 		#state{aka_sup = Sup} = State) ->
+	case lists:member(?AKA, AlternateMethods) of
+		true ->
+			{ok, Sup};
+		false ->
+			get_alternate(T, AlternateMethods, State)
+	end;
+get_alternate([akap | T], AlternateMethods,
+		#state{akap_sup = Sup} = State) ->
 	case lists:member(?AKAprime, AlternateMethods) of
 		true ->
 			{ok, Sup};
