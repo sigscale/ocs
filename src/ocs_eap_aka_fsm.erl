@@ -595,7 +595,7 @@ vector({RAND, AUTN, CK, IK, XRES}, #statedata{eap_id = EapID,
 	EapPacket = #eap_packet{code = request, type = ?AKA,
 			identifier = NextEapID, data = EapData},
 	EapMessage1 = ocs_eap_codec:eap_packet(EapPacket),
-	Mac = crypto:hmac(sha256, Kaut, EapMessage1, 16),
+	Mac = crypto:hmac(sha, Kaut, EapMessage1, 16),
 	EapMessage2 = ocs_eap_codec:aka_set_mac(Mac, EapMessage1),
 	NewStateData = StateData#statedata{request = undefined,
 			eap_id = NextEapID, res = XRES, ck = CK, ik = IK,
@@ -618,7 +618,7 @@ vector({RAND, AUTN, CK, IK, XRES}, #statedata{eap_id = EapID,
 	EapPacket = #eap_packet{code = request, type = ?AKA,
 			identifier = NextEapID, data = EapData},
 	EapMessage1 = ocs_eap_codec:eap_packet(EapPacket),
-	Mac = crypto:hmac(sha256, Kaut, EapMessage1, 16),
+	Mac = crypto:hmac(sha, Kaut, EapMessage1, 16),
 	EapMessage2 = ocs_eap_codec:aka_set_mac(Mac, EapMessage1),
 	NewStateData = StateData#statedata{request = undefined,
 			eap_id = NextEapID, res = XRES, ck = CK, ik = IK,
@@ -659,7 +659,7 @@ challenge({#radius{id = RadiusID, authenticator = RequestAuthenticator,
 		case ocs_eap_codec:eap_aka(Data1) of
 			#eap_aka_challenge{res = RES, checkcode = <<>>, mac = MAC} = _EAP ->
 				EapMessage2 = ocs_eap_codec:aka_clear_mac(EapMessage1),
-				case crypto:hmac(sha256, Kaut, EapMessage2, 16) of
+				case crypto:hmac(sha, Kaut, EapMessage2, 16) of
 					MAC ->
 						Salt = crypto:rand_uniform(16#8000, 16#ffff),
 						<<MSK1:32/binary, MSK2:32/binary>> = MSK,
@@ -739,7 +739,7 @@ challenge1(EapMessage1, Request,
 		case ocs_eap_codec:eap_aka(Data1) of
 			#eap_aka_challenge{res = RES, checkcode = <<>>, mac = MAC} = _EAP ->
 				EapMessage2 = ocs_eap_codec:aka_clear_mac(EapMessage1),
-				case crypto:hmac(sha256, Kaut, EapMessage2, 16) of
+				case crypto:hmac(sha, Kaut, EapMessage2, 16) of
 					MAC ->
 						EapPacket1 = #eap_packet{code = success, identifier = EapID},
 						EapMessage3 = ocs_eap_codec:eap_packet(EapPacket1),
