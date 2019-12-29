@@ -194,7 +194,7 @@ eap_start(timeout, #statedata{sup = Sup, eap_id = EapID,
 					#eap_packet{code = response, type = ?Identity,
 							identifier = StartEapID,
 							data = <<?PERM_AKA, PermanentID/binary>> = Identity}
-							Trusted == true ->
+							when Trusted == true ->
 						NextStateData = NewStateData#statedata{eap_id = StartEapID,
 								identity = Identity},
 						[IMSI | _] = binary:split(PermanentID, <<$@>>, []),
@@ -355,7 +355,7 @@ eap_start1(EapMessage, #statedata{sup = Sup, eap_id = EapID,
 			#eap_packet{code = response, type = ?Identity,
 					identifier = StartEapID,
 					data = <<?TEMP_AKA:6, _/bits>> = Identity}
-					Trusted == true ->
+					when Trusted == true ->
 				NextStateData = NewStateData#statedata{eap_id = StartEapID,
 						identity = Identity},
 				[Pseudonym | _] = binary:split(Identity, <<$@>>, []),
@@ -586,9 +586,9 @@ vector({RAND, AUTN, CK, IK, XRES}, #statedata{eap_id = EapID,
 		authenticator = RequestAuthenticator, attributes = RequestAttributes},
 		identity = Identity} = StateData) ->
 	NextEapID = (EapID rem 255) + 1,
-	<<Kencr:16/binary, Kaut:32/binary, Kre:32/binary, MSK:64/binary,
-			EMSK:64/binary, _/binary>> = prf(<<IK/binary,
-			CK/binary>>, <<"EAP-AKA'", Identity/binary>>, 7),
+	MK = crypto:hash(sha, [Identity, IK, CK]),
+	<<Kencr:16/binary, Kaut:16/binary, MSK:64/binary,
+			EMSK:64/binary, _/binary>> = ocs_eap_aka:prf(MK),
 	AkaChallenge = #eap_aka_challenge{mac = <<0:128>>,
 			kdf = [1], network = <<"WLAN">>, rand = RAND, autn = AUTN},
 	EapData = ocs_eap_codec:eap_aka(AkaChallenge),
@@ -609,9 +609,9 @@ vector({RAND, AUTN, CK, IK, XRES}, #statedata{eap_id = EapID,
 		diameter_port_server = PortServer,
 		session_id = SessionID, identity = Identity} = StateData) ->
 	NextEapID = (EapID rem 255) + 1,
-	<<Kencr:16/binary, Kaut:32/binary, Kre:32/binary, MSK:64/binary,
-			EMSK:64/binary, _/binary>> = prf(<<IK/binary,
-			CK/binary>>, <<"EAP-AKA'", Identity/binary>>, 7),
+	MK = crypto:hash(sha, [Identity, IK, CK]),
+	<<Kencr:16/binary, Kaut:16/binary, MSK:64/binary,
+			EMSK:64/binary, _/binary>> = ocs_eap_aka:prf(MK),
 	AkaChallenge = #eap_aka_challenge{mac = <<0:128>>,
 			kdf = [1], network = <<"WLAN">>, rand = RAND, autn = AUTN},
 	EapData = ocs_eap_codec:eap_aka(AkaChallenge),
