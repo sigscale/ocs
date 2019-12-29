@@ -233,26 +233,11 @@ eap_start(timeout, #statedata{sup = Sup, eap_id = EapID,
 								RequestAuthenticator, RequestAttributes, NextStateData),
 						{next_state, identity, NextStateData, ?TIMEOUT};
 					#eap_packet{code = response, type = ?Identity,
-							identifier = StartEapID,
-							data = <<?PERM_AKAp, _/bits>> = Identity} ->
+							identifier = StartEapID, data = _Identity} ->
 						NextEapID = (StartEapID rem 255) + 1,
 						EapData = ocs_eap_codec:eap_aka(#eap_aka_identity{fullauth_id_req = true}),
 						NextStateData = NewStateData#statedata{request = undefined,
-								eap_id = NextEapID, identity = Identity, id_req = full},
-						EapPacket = #eap_packet{code = request,
-								type = ?AKAprime, identifier = NextEapID, data = EapData},
-						EapMessage = ocs_eap_codec:eap_packet(EapPacket),
-						send_radius_response(EapMessage, ?AccessChallenge, [], RadiusID,
-								RequestAuthenticator, RequestAttributes, NextStateData),
-						{next_state, identity, NextStateData, ?TIMEOUT};
-					#eap_packet{code = response, type = ?Identity,
-							identifier = StartEapID,
-							data = <<Tag:6, _/bits>> = Identity}
-							when ((Tag =:= ?FAST_AKAp) or (Tag =:= ?TEMP_AKAp)) ->
-						NextEapID = (StartEapID rem 255) + 1,
-						EapData = ocs_eap_codec:eap_aka(#eap_aka_identity{fullauth_id_req = true}),
-						NextStateData = NewStateData#statedata{request = undefined,
-								eap_id = NextEapID, identity = Identity, id_req = full},
+								eap_id = NextEapID, id_req = full},
 						EapPacket = #eap_packet{code = request,
 								type = ?AKAprime, identifier = NextEapID, data = EapData},
 						EapMessage = ocs_eap_codec:eap_packet(EapPacket),
@@ -385,27 +370,11 @@ eap_start1(EapMessage, #statedata{sup = Sup, eap_id = EapID,
 						EapMessage1, PortServer, Request, NextStateData),
 				{next_state, identity, NextStateData, ?TIMEOUT};
 			#eap_packet{code = response, type = ?Identity,
-					identifier = StartEapID,
-					data = <<?PERM_AKAp, _/bits>> = Identity} ->
+					identifier = StartEapID, data = _Identity} ->
 				NextEapID = (StartEapID rem 255) + 1,
 				EapData = ocs_eap_codec:eap_aka(#eap_aka_identity{fullauth_id_req = true}),
 				NextStateData = NewStateData#statedata{request = undefined,
-						eap_id = NextEapID, identity = Identity, id_req = full},
-				EapPacket = #eap_packet{code = request,
-						type = ?AKAprime, identifier = NextEapID, data = EapData},
-				EapMessage1 = ocs_eap_codec:eap_packet(EapPacket),
-				send_diameter_response(SessionId, AuthReqType,
-						?'DIAMETER_BASE_RESULT-CODE_MULTI_ROUND_AUTH', OHost, ORealm,
-						EapMessage1, PortServer, Request, NextStateData),
-				{next_state, identity, NextStateData, ?TIMEOUT};
-			#eap_packet{code = response, type = ?Identity,
-					identifier = StartEapID,
-					data = <<Tag:6, _/bits>> = Identity}
-					when ((Tag =:= ?FAST_AKAp) or (Tag =:= ?TEMP_AKAp)) ->
-				NextEapID = (StartEapID rem 255) + 1,
-				EapData = ocs_eap_codec:eap_aka(#eap_aka_identity{fullauth_id_req = true}),
-				NextStateData = NewStateData#statedata{request = undefined,
-						eap_id = NextEapID, identity = Identity, id_req = full},
+						eap_id = NextEapID, id_req = full},
 				EapPacket = #eap_packet{code = request,
 						type = ?AKAprime, identifier = NextEapID, data = EapData},
 				EapMessage1 = ocs_eap_codec:eap_packet(EapPacket),
