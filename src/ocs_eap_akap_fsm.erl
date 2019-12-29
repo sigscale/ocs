@@ -1066,7 +1066,7 @@ send_diameter_response(SessionId, AuthType,
 	Client= {ClientAddress, ClientPort},
 	try
 		Answer = #'3gpp_swm_DEA'{'Session-Id' = SessionId,
-				'Auth-Application-Id' = ?SWm_APPLICATION_ID,
+				'Auth-Application-Id' = ?STa_APPLICATION_ID,
 				'Auth-Request-Type' = AuthType,
 				'Result-Code' = ?'DIAMETER_BASE_RESULT-CODE_MULTI_ROUND_AUTH',
 				'Origin-Host' = OriginHost, 'Origin-Realm' = OriginRealm,
@@ -1076,7 +1076,7 @@ send_diameter_response(SessionId, AuthType,
 	catch
 		_:_ ->
 			Answer1 = #'3gpp_swm_DEA'{'Session-Id' = SessionId,
-					'Auth-Application-Id' = ?SWm_APPLICATION_ID,
+					'Auth-Application-Id' = ?STa_APPLICATION_ID,
 					'Auth-Request-Type' = AuthType,
 					'Result-Code' = ?'DIAMETER_BASE_RESULT-CODE_UNABLE_TO_COMPLY',
 					'Origin-Host' = OriginHost,
@@ -1097,7 +1097,7 @@ send_diameter_response(SessionId, AuthType,
 	Client= {ClientAddress, ClientPort},
 	try
 		Answer = #'3gpp_swm_DEA'{'Session-Id' = SessionId,
-				'Auth-Application-Id' = ?SWm_APPLICATION_ID,
+				'Auth-Application-Id' = ?STa_APPLICATION_ID,
 				'Auth-Request-Type' = AuthType,
 				'Result-Code' = ?'DIAMETER_BASE_RESULT-CODE_SUCCESS',
 				'Origin-Host' = OriginHost, 'Origin-Realm' = OriginRealm,
@@ -1107,7 +1107,7 @@ send_diameter_response(SessionId, AuthType,
 	catch
 		_:_ ->
 			Answer1 = #'3gpp_swm_DEA'{'Session-Id' = SessionId,
-					'Auth-Application-Id' = ?SWm_APPLICATION_ID,
+					'Auth-Application-Id' = ?STa_APPLICATION_ID,
 					'Auth-Request-Type' = AuthType,
 					'Result-Code' = ?'DIAMETER_BASE_RESULT-CODE_UNABLE_TO_COMPLY',
 					'Origin-Host' = OriginHost,
@@ -1162,7 +1162,7 @@ send_diameter_response(SessionId, AuthType, ResultCode,
 	Client= {ClientAddress, ClientPort},
 	try
 		Answer = #'3gpp_swm_DEA'{'Session-Id' = SessionId,
-				'Auth-Application-Id' = ?SWm_APPLICATION_ID,
+				'Auth-Application-Id' = ?STa_APPLICATION_ID,
 				'Auth-Request-Type' = AuthType,
 				'Result-Code' = ResultCode,
 				'Origin-Host' = OriginHost,
@@ -1173,7 +1173,7 @@ send_diameter_response(SessionId, AuthType, ResultCode,
 	catch
 		_:_ ->
 			Answer1 = #'3gpp_swm_DEA'{'Session-Id' = SessionId,
-					'Auth-Application-Id' = ?SWm_APPLICATION_ID,
+					'Auth-Application-Id' = ?STa_APPLICATION_ID,
 					'Auth-Request-Type' = AuthType,
 					'Result-Code' = ?'DIAMETER_BASE_RESULT-CODE_UNABLE_TO_COMPLY',
 					'Origin-Host' = OriginHost,
@@ -1181,28 +1181,6 @@ send_diameter_response(SessionId, AuthType, ResultCode,
 			ok = ocs_log:auth_log(diameter, Server, Client, Request, Answer1),
 			gen_server:cast(PortServer, {self(), Answer1})
 	end.
-
--dialyzer([{nowarn_function, [encrypt_imsi/3]}, no_missing_calls]). % temporary
--spec encrypt_imsi(Tag, CompressedIMSI, Key) -> Pseudonym
-	when
-		Tag :: ?TEMP_AKA | ?TEMP_AKAp,
-		CompressedIMSI :: binary(),
-		Key :: {N, Kpseu},
-		N :: pos_integer(),
-		Kpseu :: binary(),
-		Pseudonym :: binary().
-%% @doc Create an encrypted temporary identity.
-%%
-%% 	See 3GPP 33.402 14.1 Temporary identity generation.
-%% @private
-encrypt_imsi(Tag, CompressedIMSI, {N, Kpseu} = _Key)
-		when ((Tag =:= ?TEMP_AKA) or (Tag =:= ?TEMP_AKAp)),
-		size(CompressedIMSI) == 8, size(Kpseu) == 16 ->
-	Pad = crypto:strong_rand_bytes(8),
-	PaddedIMSI = <<CompressedIMSI/binary, Pad/binary>>,
-	EncryptedIMSI = crypto:block_encrypt(aes_ecb, Kpseu, PaddedIMSI),
-	TaggedIMSI = <<Tag:6, N:4, EncryptedIMSI/binary, 0:6>>,
-	binary:part(base64:encode(TaggedIMSI), 0, 23).
 
 -spec prf(K, S, N) -> MK
 	when
