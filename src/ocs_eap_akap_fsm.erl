@@ -642,7 +642,8 @@ challenge({#radius{id = RadiusID, authenticator = RequestAuthenticator,
 		#eap_packet{code = response, type = ?AKAprime, identifier = EapID,
 				data = Data1} = ocs_eap_codec:eap_packet(EapMessage1),
 		case ocs_eap_codec:eap_aka(Data1) of
-			#eap_aka_challenge{res = RES, checkcode = <<>>, mac = MAC} = _EAP ->
+			#eap_aka_challenge{res = RES, checkcode = CheckCode, mac = MAC}
+					when ((CheckCode == undefined) or (CheckCode == <<>>)) ->
 				EapMessage2 = ocs_eap_codec:aka_clear_mac(EapMessage1),
 				case crypto:hmac(sha256, Kaut, EapMessage2, 16) of
 					MAC ->
@@ -674,7 +675,8 @@ challenge({#radius{id = RadiusID, authenticator = RequestAuthenticator,
 								RequestAuthenticator, RequestAttributes, NewStateData),
 						{next_state, failure, NewStateData, ?TIMEOUT}
 				end;
-			#eap_aka_challenge{checkcode = <<>>} = _EAP ->
+			#eap_aka_challenge{checkcode = CheckCode}
+					when ((CheckCode == undefined) or (CheckCode == <<>>)) ->
 				Notification = #eap_aka_notification{notification = 16384},
 				Data2 = ocs_eap_codec:eap_aka(Notification),
 				EapPacket1 = #eap_packet{code = request,
@@ -722,7 +724,8 @@ challenge1(EapMessage1, Request,
 		#eap_packet{code = response, type = ?AKAprime, identifier = EapID,
 				data = Data1} = ocs_eap_codec:eap_packet(EapMessage1),
 		case ocs_eap_codec:eap_aka(Data1) of
-			#eap_aka_challenge{res = RES, checkcode = <<>>, mac = MAC} = _EAP ->
+			#eap_aka_challenge{res = RES, checkcode = CheckCode, mac = MAC}
+					when ((CheckCode == undefined) or (CheckCode == <<>>)) ->
 				EapMessage2 = ocs_eap_codec:aka_clear_mac(EapMessage1),
 				case crypto:hmac(sha256, Kaut, EapMessage2, 16) of
 					MAC ->
@@ -743,7 +746,8 @@ challenge1(EapMessage1, Request,
 								OHost, ORealm, EapMessage3, PortServer, Request, StateData),
 						{next_state, failure, StateData, ?TIMEOUT}
 				end;
-			#eap_aka_challenge{checkcode = <<>>} = _EAP ->
+			#eap_aka_challenge{checkcode = CheckCode}
+					when ((CheckCode == undefined) or (CheckCode == <<>>)) ->
 				Notification = #eap_aka_notification{notification = 16384},
 				Data2 = ocs_eap_codec:eap_aka(Notification),
 				EapPacket1 = #eap_packet{code = request,
