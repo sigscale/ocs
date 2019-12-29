@@ -99,20 +99,33 @@ init(_Args) ->
 %% @private
 %%
 idle({AkaFsm, Identity, ANID}, StateData)
-		when is_pid(AkaFsm), is_binary(Identity) ->
+		when is_pid(AkaFsm), is_binary(Identity), is_list(ANID) ->
 	idle1(AkaFsm, ANID, StateData, ocs:find_service(Identity));
+idle({AkaFsm, Identity}, StateData)
+		when is_pid(AkaFsm), is_binary(Identity) ->
+	idle1(AkaFsm, undefined, StateData, ocs:find_service(Identity));
 idle(timeout, StateData) ->
 	{stop, shutdown, StateData}.
 %% @hidden
 idle1(_AkaFsm, _ANID, StateData,
 		{ok, #service{enabled = false}}) ->
 	{next_state, idle, StateData};
+idle1(AkaFsm, undefined, StateData,
+		{ok, #service{password = #aka_cred{k = K, opc = OPc, dif = DIF}}}) ->
+	RAND = ocs_milenage:f0(),
+	{XRES, CK, IK, <<AK:48>>} = ocs_milenage:f2345(OPc, K, RAND),
+	SQN = sqn(DIF),
+	AMF = amf(false),
+	MAC = ocs_milenage:f1(OPc, K, RAND, <<SQN:48>>, AMF),
+	AUTN = autn(SQN, AK, AMF, MAC),
+	gen_fsm:send_event(AkaFsm, {RAND, AUTN, CK, IK, XRES}),
+	{next_state, idle, StateData};
 idle1(AkaFsm, ANID, StateData,
 		{ok, #service{password = #aka_cred{k = K, opc = OPc, dif = DIF}}}) ->
 	RAND = ocs_milenage:f0(),
 	{XRES, CK, IK, <<AK:48>>} = ocs_milenage:f2345(OPc, K, RAND),
 	SQN = sqn(DIF),
-	AMF = amf(),
+	AMF = amf(true),
 	MAC = ocs_milenage:f1(OPc, K, RAND, <<SQN:48>>, AMF),
 	AUTN = autn(SQN, AK, AMF, MAC),
 	% if AMF separation bit = 1 use CK'/IK'
@@ -256,14 +269,17 @@ autn(SQN, AK, AMF, MAC)
 	SQNa = SQN bxor AK,
 	<<SQNa:48, AMF/binary, MAC/binary>>.
 
--spec amf() -> AMF
+-spec amf(Seperation) -> AMF
 	when
+		Seperation:: boolean(),
 		AMF :: binary().
 %% @doc Authentication Management Field (AMF).
 %%
 %% 	See 3GPP TS 33.102 Annex H.
 %% @private
-amf() ->
+amf(false) ->
+	<<0:1, 0:15>>;
+amf(true) ->
 	<<1:1, 0:15>>.
 
 -spec kdf(CK, IK, ANID, SQN, AK) -> MSK
