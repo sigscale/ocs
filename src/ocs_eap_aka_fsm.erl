@@ -659,6 +659,7 @@ challenge({#radius{id = RadiusID, authenticator = RequestAuthenticator,
 		case ocs_eap_codec:eap_aka(Data1) of
 			#eap_aka_challenge{res = RES, checkcode = CheckCode, mac = MAC}
 					when ((CheckCode == undefined) or (CheckCode == <<>>)) ->
+				EapMessage2 = ocs_eap_codec:aka_clear_mac(EapMessage1),
 				case crypto:hmac(sha, Kaut, EapMessage2, 16) of
 					MAC ->
 						Salt = crypto:rand_uniform(16#8000, 16#ffff),
@@ -1065,7 +1066,7 @@ send_diameter_response(SessionId, AuthType,
 			'Origin-Host' = OriginHost, 'Origin-Realm' = OriginRealm,
 			'EAP-Payload' = [EapMessage], 'EAP-Master-Session-Key' = [MSK]},
 	ok = ocs_log:auth_log(diameter, Server, Client, Request, Answer),
-	gen_server:cast(PortServer, {self(), Answer})
+	gen_server:cast(PortServer, {self(), Answer});
 send_diameter_response(SessionId, AuthType,
 		?'DIAMETER_BASE_RESULT-CODE_SUCCESS',
 		OriginHost, OriginRealm, EapMessage,
