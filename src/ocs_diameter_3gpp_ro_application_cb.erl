@@ -293,7 +293,10 @@ process_request(Address, Port,
 		process_request1(RequestType, Request, SId, RequestNum,
 				Subscriber, OHost, DHost, ORealm, DRealm, Address, Port)
 	catch
-		_:_Reason ->
+		_:Reason ->
+			error_logger:warning_report(["Unable to process DIAMETER request",
+					{origin_host, OHost}, {origin_realm, ORealm},
+					{request, Request}, {error, Reason}]),
 			generate_diameter_error(SId, ?'DIAMETER_BASE_RESULT-CODE_UNABLE_TO_COMPLY',
 					OHost, ORealm, RequestType, RequestNum)
 	end.
@@ -387,7 +390,10 @@ process_request1(?'3GPP_CC-REQUEST-TYPE_INITIAL_REQUEST' = RequestType,
 				Reply
 		end
 	catch
-		_:_Reason1 ->
+		_:Reason1 ->
+			error_logger:warning_report(["Unable to process DIAMETER request",
+					{origin_host, OHost}, {origin_realm, ORealm},
+					{request, Request}, {error, Reason1}]),
 			generate_diameter_error(SId, ?'DIAMETER_BASE_RESULT-CODE_UNABLE_TO_COMPLY', OHost,
 					ORealm, RequestType, RequestNum)
 	end;
@@ -507,7 +513,10 @@ process_request1(?'3GPP_CC-REQUEST-TYPE_UPDATE_REQUEST' = RequestType,
 				Reply
 		end
 	catch
-		_:_Reason1 ->
+		_:Reason1 ->
+			error_logger:warning_report(["Unable to process DIAMETER request",
+					{origin_host, OHost}, {origin_realm, ORealm},
+					{request, Request}, {error, Reason1}]),
 			generate_diameter_error(SId, ?'DIAMETER_BASE_RESULT-CODE_UNABLE_TO_COMPLY',
 					OHost, ORealm, RequestType, RequestNum)
 	end;
@@ -589,7 +598,10 @@ process_request1(?'3GPP_CC-REQUEST-TYPE_TERMINATION_REQUEST' = RequestType,
 				Reply
 		end
 	catch
-		_:_Reason1 ->
+		_:Reason1 ->
+			error_logger:warning_report(["Unable to process DIAMETER request",
+					{origin_host, OHost}, {origin_realm, ORealm},
+					{request, Request}, {error, Reason1}]),
 			generate_diameter_error(SId, ?'DIAMETER_BASE_RESULT-CODE_UNABLE_TO_COMPLY', OHost,
 					ORealm, RequestType, RequestNum)
 	end.
