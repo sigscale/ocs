@@ -51,13 +51,18 @@
 %%
 %% 	Generates a digest indistinguisable from random
 %% 	as described in RFC4187 section 7.
-prf(<<XKEY:160>> = MK) ->
+%%
+prf(MK) when byte_size(MK) =:= 20 ->
+	prf(MK, <<>>).
+%% @hidden
+prf(_XKEY, Acc) when byte_size(Acc) =:= 160 ->
+	Acc;
+prf(<<XKEYn:160>> = XKEY, Acc) ->
 	Mod = 1461501637330902918203684832716283019655932542976, % 2^b
-	W0 = g(MK),
-	<<W:160>> = W0,
-	XVAL = (1 + XKEY + W) rem Mod,
-	W1 = g(<<XVAL:160>>),
-	<<W0/binary, W1/binary>>.
+	W = g(XKEY),
+	<<Wn:160>> = W,
+	XKEY1 = (1 + XKEYn + Wn) rem Mod,
+	prf(<<XKEY1:160>>, <<Acc/binary, W/binary>>).
 
 %%
 %% internal functions
