@@ -30,10 +30,10 @@ enif_raise_exception(ErlNifEnv* env, ERL_NIF_TERM reason) {
 }
 #endif /* NIF < v2.8 */
 
-#define ROTL(B, W) ((W << B) | (W >> (32 - B)))
-#define Fch(B, C, D) ((B & C) | ((~B) & D))
-#define Fparity(B, C, D) (B ^ C ^ D)
-#define Fmaj(B, C, D) ((B & C) | (B & D) | (C & D))
+#define ROTL(B, W) (((W) << (B)) | ((W) >> (32 - (B))))
+#define Fch(B, C, D) (((B) & (C)) | ((~(B)) & (D)))
+#define Fparity(B, C, D) ((B) ^ (C) ^ (D))
+#define Fmaj(B, C, D) (((B) & (C)) | ((B) & (D)) | ((C) & (D)))
 
 static const uint32_t h[5] = {0x67452301,
 			0xefcdab89, 0x98badcfe, 0x10325476, 0xc3d2e1f0};
@@ -45,18 +45,15 @@ g_nif(ErlNifEnv* env, int argc, const ERL_NIF_TERM argv[])
    ERL_NIF_TERM reason;
    int i;
    uint32_t a, b, c, d, e, temp;
-   uint32_t m[16] = {0};
    uint32_t w[80] = {0};
    
+enif_fprintf(stderr, "%s:%d\r\n", __FILE__, __LINE__);
    if (!enif_inspect_binary(env, argv[0], &xkey) || xkey.size != 20)
       return enif_make_badarg(env);
    for(i = 0; i < 5; i++) {
-      m[i] = (xkey.data[i*4] << 24) | (xkey.data[i*4+1] << 16)
+      w[i] = (xkey.data[i*4] << 24) | (xkey.data[i*4+1] << 16)
             | (xkey.data[i*4+2] << 8) | (xkey.data[i*4+3]);
    } 
-	for(i = 0; i < 16; i++) {
-		w[i] = m[i];
-	}
 	for(i = 16; i < 80; i++) {
 		w[i] = ROTL(1, w[i-3] ^ w[i-8] ^ w[i-14] ^ w[i-16]);
 	}
