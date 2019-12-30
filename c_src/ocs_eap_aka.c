@@ -31,9 +31,9 @@ enif_raise_exception(ErlNifEnv* env, ERL_NIF_TERM reason) {
 #endif /* NIF < v2.8 */
 
 #define CLS(B, W) ((W << B) | (W >> (32 - B)))
-#define F1(B, C, D) ((B & C) | ((~B) & D))
-#define F2(B, C, D) (B ^ C ^ D)
-#define F3(B, C, D) ((B & C) | (B & D) | (C & D))
+#define Fch(B, C, D) ((B & C) | ((~B) & D))
+#define Fparity(B, C, D) (B ^ C ^ D)
+#define Fmaj(B, C, D) ((B & C) | (B & D) | (C & D))
 
 static ERL_NIF_TERM
 g_nif(ErlNifEnv* env, int argc, const ERL_NIF_TERM argv[])
@@ -65,7 +65,7 @@ g_nif(ErlNifEnv* env, int argc, const ERL_NIF_TERM argv[])
 	d = h[3];
 	e = h[4];
 	for(i = 0; i < 20; i++) {
-		temp = CLS(5, a) + F1(a, b, c) + e + w[i] + 0x5a827999;
+		temp = CLS(5, a) + Fch(a, b, c) + e + w[i] + 0x5a827999;
 		e = d;
 		d = c;
 		c = CLS(30, b);
@@ -74,7 +74,7 @@ g_nif(ErlNifEnv* env, int argc, const ERL_NIF_TERM argv[])
 
 	}
 	for(i = 20; i < 40; i++) {
-		temp = CLS(5, a) + F2(a, b, c) + e + w[i] + 0x6ed9eba1;
+		temp = CLS(5, a) + Fparity(a, b, c) + e + w[i] + 0x6ed9eba1;
 		e = d;
 		d = c;
 		c = CLS(30, b);
@@ -82,7 +82,7 @@ g_nif(ErlNifEnv* env, int argc, const ERL_NIF_TERM argv[])
 		a = temp;
 	}
 	for(i = 40; i < 60; i++) {
-		temp = CLS(5, a) + F3(a, b, c) + e + w[i] + 0x8f1bbcdc;
+		temp = CLS(5, a) + Fmaj(a, b, c) + e + w[i] + 0x8f1bbcdc;
 		e = d;
 		d = c;
 		c = CLS(30, b);
@@ -90,7 +90,7 @@ g_nif(ErlNifEnv* env, int argc, const ERL_NIF_TERM argv[])
 		a = temp;
 	}
 	for(i = 60; i < 80; i++) {
-		temp = CLS(5, a) + F2(a, b, c) + e + w[i] + 0xca62c1d6;
+		temp = CLS(5, a) + Fparity(a, b, c) + e + w[i] + 0xca62c1d6;
 		e = d;
 		d = c;
 		c = CLS(30, b);
