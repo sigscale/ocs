@@ -454,6 +454,8 @@ aka_attr(<<?AT_NEXT_REAUTH_ID, L1, _/bytes>> = B, Acc) ->
 	aka_attr(Rest, Acc#{?AT_NEXT_REAUTH_ID => NextReauthId});
 aka_attr(<<?AT_CHECKCODE, 1, _:16, Rest/bytes>>, Acc) ->
 	aka_attr(Rest, Acc#{?AT_CHECKCODE => <<>>});
+aka_attr(<<?AT_CHECKCODE, 5, _:16, CheckCode:16/bytes, Rest/bytes>>, Acc) ->
+	aka_attr(Rest, Acc#{?AT_CHECKCODE => CheckCode});
 aka_attr(<<?AT_CHECKCODE, 9, _:16, CheckCode:32/bytes, Rest/bytes>>, Acc) ->
 	aka_attr(Rest, Acc#{?AT_CHECKCODE => CheckCode});
 aka_attr(<<?AT_RESULT_IND, 1, _:16, Rest/bytes>>, Acc) ->
@@ -548,6 +550,8 @@ aka_attr(?AT_ENCR_DATA, EncrData, Acc) when (size(EncrData) rem 16) == 0 ->
 	[<<?AT_ENCR_DATA, L, 0:16, EncrData/bytes>> | Acc];
 aka_attr(?AT_CHECKCODE, <<>>, Acc) ->
 	[<<?AT_CHECKCODE, 1, 0:16>> | Acc];
+aka_attr(?AT_CHECKCODE, CheckCode, Acc) when size(CheckCode) == 16 ->
+	[<<?AT_CHECKCODE, 5, 0:16, CheckCode/bytes>> | Acc];
 aka_attr(?AT_CHECKCODE, CheckCode, Acc) when size(CheckCode) == 32 ->
 	[<<?AT_CHECKCODE, 9, 0:16, CheckCode/bytes>> | Acc];
 aka_attr(?AT_RESULT_IND, true, Acc) ->
