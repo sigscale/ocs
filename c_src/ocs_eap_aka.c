@@ -65,7 +65,7 @@ g_nif(ErlNifEnv* env, int argc, const ERL_NIF_TERM argv[])
 	d = h[3];
 	e = h[4];
 	for(i = 0; i < 20; i++) {
-		temp = CLS(5, a) + F1(a, b, c) + e + w[i] + 0x5aA827999;
+		temp = CLS(5, a) + F1(a, b, c) + e + w[i] + 0x5a827999;
 		e = d;
 		d = c;
 		c = CLS(30, b);
