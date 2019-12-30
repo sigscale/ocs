@@ -65,7 +65,7 @@ g_nif(ErlNifEnv* env, int argc, const ERL_NIF_TERM argv[])
 	d = h[3];
 	e = h[4];
 	for(i = 0; i < 20; i++) {
-		temp = CLS(5, a) + Fch(a, b, c) + e + w[i] + 0x5a827999;
+		temp = CLS(5, a) + Fch(b, c, d) + e + w[i] + 0x5a827999;
 		e = d;
 		d = c;
 		c = CLS(30, b);
@@ -74,7 +74,7 @@ g_nif(ErlNifEnv* env, int argc, const ERL_NIF_TERM argv[])
 
 	}
 	for(i = 20; i < 40; i++) {
-		temp = CLS(5, a) + Fparity(a, b, c) + e + w[i] + 0x6ed9eba1;
+		temp = CLS(5, a) + Fparity(b, c, d) + e + w[i] + 0x6ed9eba1;
 		e = d;
 		d = c;
 		c = CLS(30, b);
@@ -82,7 +82,7 @@ g_nif(ErlNifEnv* env, int argc, const ERL_NIF_TERM argv[])
 		a = temp;
 	}
 	for(i = 40; i < 60; i++) {
-		temp = CLS(5, a) + Fmaj(a, b, c) + e + w[i] + 0x8f1bbcdc;
+		temp = CLS(5, a) + Fmaj(b, c, d) + e + w[i] + 0x8f1bbcdc;
 		e = d;
 		d = c;
 		c = CLS(30, b);
@@ -90,7 +90,7 @@ g_nif(ErlNifEnv* env, int argc, const ERL_NIF_TERM argv[])
 		a = temp;
 	}
 	for(i = 60; i < 80; i++) {
-		temp = CLS(5, a) + Fparity(a, b, c) + e + w[i] + 0xca62c1d6;
+		temp = CLS(5, a) + Fparity(b, c, d) + e + w[i] + 0xca62c1d6;
 		e = d;
 		d = c;
 		c = CLS(30, b);
