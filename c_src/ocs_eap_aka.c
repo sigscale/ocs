@@ -35,14 +35,15 @@ enif_raise_exception(ErlNifEnv* env, ERL_NIF_TERM reason) {
 #define Fparity(B, C, D) (B ^ C ^ D)
 #define Fmaj(B, C, D) ((B & C) | (B & D) | (C & D))
 
+static const uint32_t h[5] = {0x67452301,
+			0xefcdab89, 0x98badcfe, 0x10325476, 0xc3d2e1f0};
+
 static ERL_NIF_TERM
 g_nif(ErlNifEnv* env, int argc, const ERL_NIF_TERM argv[])
 {
    ErlNifBinary xkey, res;
    ERL_NIF_TERM reason;
    int i;
-   const uint32_t h[5] = {0x67452301,
-			0xefcdab89, 0x98badcfe, 0x10325476, 0xc3d2e1f0};
    uint32_t a, b, c, d, e, temp;
    uint32_t m[16] = {0};
    uint32_t w[80] = {0};
@@ -71,7 +72,6 @@ g_nif(ErlNifEnv* env, int argc, const ERL_NIF_TERM argv[])
 		c = ROTL(30, b);
 		b = a;
 		a = temp;
-
 	}
 	for(i = 20; i < 40; i++) {
 		temp = ROTL(5, a) + Fparity(b, c, d) + e + w[i] + 0x6ed9eba1;
