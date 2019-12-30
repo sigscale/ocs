@@ -30,7 +30,7 @@ enif_raise_exception(ErlNifEnv* env, ERL_NIF_TERM reason) {
 }
 #endif /* NIF < v2.8 */
 
-#define CLS(B, W) ((W << B) | (W >> (32 - B)))
+#define ROTL(B, W) ((W << B) | (W >> (32 - B)))
 #define Fch(B, C, D) ((B & C) | ((~B) & D))
 #define Fparity(B, C, D) (B ^ C ^ D)
 #define Fmaj(B, C, D) ((B & C) | (B & D) | (C & D))
@@ -57,7 +57,7 @@ g_nif(ErlNifEnv* env, int argc, const ERL_NIF_TERM argv[])
 		w[i] = m[i];
 	}
 	for(i = 16; i < 80; i++) {
-		w[i] = CLS(1, w[i-3] ^ w[i-8] ^ w[i-14] ^ w[i-16]);
+		w[i] = ROTL(1, w[i-3] ^ w[i-8] ^ w[i-14] ^ w[i-16]);
 	}
 	a = h[0];
 	b = h[1];
@@ -65,35 +65,35 @@ g_nif(ErlNifEnv* env, int argc, const ERL_NIF_TERM argv[])
 	d = h[3];
 	e = h[4];
 	for(i = 0; i < 20; i++) {
-		temp = CLS(5, a) + Fch(b, c, d) + e + w[i] + 0x5a827999;
+		temp = ROTL(5, a) + Fch(b, c, d) + e + w[i] + 0x5a827999;
 		e = d;
 		d = c;
-		c = CLS(30, b);
+		c = ROTL(30, b);
 		b = a;
 		a = temp;
 
 	}
 	for(i = 20; i < 40; i++) {
-		temp = CLS(5, a) + Fparity(b, c, d) + e + w[i] + 0x6ed9eba1;
+		temp = ROTL(5, a) + Fparity(b, c, d) + e + w[i] + 0x6ed9eba1;
 		e = d;
 		d = c;
-		c = CLS(30, b);
+		c = ROTL(30, b);
 		b = a;
 		a = temp;
 	}
 	for(i = 40; i < 60; i++) {
-		temp = CLS(5, a) + Fmaj(b, c, d) + e + w[i] + 0x8f1bbcdc;
+		temp = ROTL(5, a) + Fmaj(b, c, d) + e + w[i] + 0x8f1bbcdc;
 		e = d;
 		d = c;
-		c = CLS(30, b);
+		c = ROTL(30, b);
 		b = a;
 		a = temp;
 	}
 	for(i = 60; i < 80; i++) {
-		temp = CLS(5, a) + Fparity(b, c, d) + e + w[i] + 0xca62c1d6;
+		temp = ROTL(5, a) + Fparity(b, c, d) + e + w[i] + 0xca62c1d6;
 		e = d;
 		d = c;
-		c = CLS(30, b);
+		c = ROTL(30, b);
 		b = a;
 		a = temp;
 	}
