@@ -53,11 +53,6 @@ g_nif(ErlNifEnv* env, int argc, const ERL_NIF_TERM argv[])
       m[i] = (xkey.data[i*4] << 24) | (xkey.data[i*4+1] << 16)
             | (xkey.data[i*4+2] << 8) | (xkey.data[i*4+3]);
    } 
-   m[5] = 0x80000000; 
-   for(i = 6; i < 15; i++) {
-      m[i] = 0x00000000;
-   }
-   m[15] = 0x000000a0;
 	for(i = 0; i < 16; i++) {
 		w[i] = m[i];
 	}
