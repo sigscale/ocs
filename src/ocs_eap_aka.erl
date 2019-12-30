@@ -97,7 +97,7 @@ compressed_imsi(IMSI) when is_binary(IMSI) ->
 -dialyzer([{nowarn_function, [encrypt_imsi/3]}, no_missing_calls]). % temporary
 -spec encrypt_imsi(Tag, CompressedIMSI, Key) -> Pseudonym
 	when
-		Tag :: ?TEMP_AKA | ?TEMP_AKAp,
+		Tag :: 50 | 55, % ?TEMP_AKA | ?TEMP_AKAp, (compile error with 18)
 		CompressedIMSI :: binary(),
 		Key :: {N, Kpseu},
 		N :: pos_integer(),
