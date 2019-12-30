@@ -61,8 +61,8 @@ prf(<<XKEYn:160>> = XKEY, Acc) ->
 	Mod = 1461501637330902918203684832716283019655932542976, % 2^b
 	W = g(XKEY),
 	<<Wn:160>> = W,
-	XKEY1 = (1 + XKEYn + Wn) rem Mod,
-	prf(<<XKEY1:160>>, <<Acc/binary, W/binary>>).
+	XKEY1n = (1 + XKEYn + Wn) rem Mod,
+	prf(<<XKEY1n:160>>, <<Acc/binary, W/binary>>).
 
 %%
 %% internal functions
