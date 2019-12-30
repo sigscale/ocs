@@ -198,8 +198,7 @@ eap_start(timeout, #statedata{sup = Sup, eap_id = EapID,
 						NextStateData = NewStateData#statedata{eap_id = StartEapID,
 								identity = Identity},
 						[IMSI | _] = binary:split(PermanentID, <<$@>>, []),
-						% @todo handle RADIUS attribute for ANID
-						gen_fsm:send_event(AucFsm, {self(), IMSI, "WLAN"}),
+						gen_fsm:send_event(AucFsm, {self(), IMSI}),
 						{next_state, vector, NextStateData, ?TIMEOUT};
 					#eap_packet{code = response, type = ?Identity,
 							identifier = StartEapID,
@@ -210,8 +209,7 @@ eap_start(timeout, #statedata{sup = Sup, eap_id = EapID,
 						[Pseudonym | _] = binary:split(Identity, <<$@>>, []),
 						CompressedIMSI = ocs_eap_aka:decrypt_imsi(Pseudonym, Keys),
 						IMSI = ocs_eap_aka:compressed_imsi(CompressedIMSI),
-						% @todo handle RADIUS attribute for ANID
-						gen_fsm:send_event(AucFsm, {self(), IMSI, "WLAN"}),
+						gen_fsm:send_event(AucFsm, {self(), IMSI}),
 						{next_state, vector, NextStateData, ?TIMEOUT};
 					#eap_packet{code = response, type = ?Identity,
 							identifier = StartEapID,
@@ -334,8 +332,7 @@ eap_start1(EapMessage, #statedata{sup = Sup, eap_id = EapID,
 				NextStateData = NewStateData#statedata{eap_id = StartEapID,
 						identity = Identity},
 				[IMSI | _] = binary:split(PermanentID, <<$@>>, []),
-				% @todo handle DIAMETER ANID AVP
-				gen_fsm:send_event(AucFsm, {self(), IMSI, "WLAN"}),
+				gen_fsm:send_event(AucFsm, {self(), IMSI}),
 				{next_state, vector, NextStateData, ?TIMEOUT};
 			#eap_packet{code = response, type = ?Identity,
 					identifier = StartEapID,
@@ -346,8 +343,7 @@ eap_start1(EapMessage, #statedata{sup = Sup, eap_id = EapID,
 				[Pseudonym | _] = binary:split(Identity, <<$@>>, []),
 				CompressedIMSI = ocs_eap_aka:decrypt_imsi(Pseudonym, Keys),
 				IMSI = ocs_eap_aka:compressed_imsi(CompressedIMSI),
-				% @todo handle DIAMETER ANID AVP
-				gen_fsm:send_event(AucFsm, {self(), IMSI, "WLAN"}),
+				gen_fsm:send_event(AucFsm, {self(), IMSI}),
 				{next_state, vector, NextStateData, ?TIMEOUT};
 			#eap_packet{code = response, type = ?Identity,
 					identifier = StartEapID,
@@ -440,8 +436,7 @@ identity({#radius{id = RadiusID, authenticator = RequestAuthenticator,
 					#eap_aka_identity{identity = <<?PERM_AKA,
 							PermanentID/binary>> = Identity} when IdReq == full ->
 						[IMSI | _] = binary:split(PermanentID, <<$@>>, []),
-						% @todo handle RADIUS attribute for ANID
-						gen_fsm:send_event(AucFsm, {self(), IMSI, "WLAN"}),
+						gen_fsm:send_event(AucFsm, {self(), IMSI}),
 						NextStateData = NewStateData#statedata{identity = Identity},
 						{next_state, vector, NextStateData, ?TIMEOUT};
 					#eap_aka_identity{identity = <<?TEMP_AKA:6, _/bits>> = Identity}
@@ -449,8 +444,7 @@ identity({#radius{id = RadiusID, authenticator = RequestAuthenticator,
 						[Pseudonym | _] = binary:split(Identity, <<$@>>, []),
 						CompressedIMSI = ocs_eap_aka:decrypt_imsi(Pseudonym, Keys),
 						IMSI = ocs_eap_aka:compressed_imsi(CompressedIMSI),
-						% @todo handle RADIUS attribute for ANID
-						gen_fsm:send_event(AucFsm, {self(), IMSI, "WLAN"}),
+						gen_fsm:send_event(AucFsm, {self(), IMSI}),
 						NextStateData = NewStateData#statedata{identity = Identity},
 						{next_state, vector, NextStateData, ?TIMEOUT}
 				end;
@@ -459,8 +453,7 @@ identity({#radius{id = RadiusID, authenticator = RequestAuthenticator,
 					#eap_aka_identity{identity = <<?PERM_AKA,
 							PermanentID/binary>> = Identity} when IdReq == full ->
 						[IMSI | _] = binary:split(PermanentID, <<$@>>, []),
-						% @todo handle RADIUS attribute for ANID
-						gen_fsm:send_event(AucFsm, {self(), IMSI, "WLAN"}),
+						gen_fsm:send_event(AucFsm, {self(), IMSI}),
 						NextStateData = NewStateData#statedata{identity = Identity},
 						{next_state, vector, NextStateData, ?TIMEOUT};
 					#eap_aka_identity{identity = <<?TEMP_AKA:6, _/bits>> = Identity}
@@ -468,8 +461,7 @@ identity({#radius{id = RadiusID, authenticator = RequestAuthenticator,
 						[Pseudonym | _] = binary:split(Identity, <<$@>>, []),
 						CompressedIMSI = ocs_eap_aka:decrypt_imsi(Pseudonym, Keys),
 						IMSI = ocs_eap_aka:compressed_imsi(CompressedIMSI),
-						% @todo handle RADIUS attribute for ANID
-						gen_fsm:send_event(AucFsm, {self(), IMSI, "WLAN"}),
+						gen_fsm:send_event(AucFsm, {self(), IMSI}),
 						NextStateData = NewStateData#statedata{identity = Identity},
 						{next_state, vector, NextStateData, ?TIMEOUT}
 				end;
@@ -503,8 +495,7 @@ identity1(EapMessage, Request,
 					#eap_aka_identity{identity = <<?PERM_AKA,
 							PermanentID/binary>> = Identity} when IdReq == full ->
 						[IMSI | _] = binary:split(PermanentID, <<$@>>, []),
-						% @todo handle DIAMETER ANID AVP
-						gen_fsm:send_event(AucFsm, {self(), IMSI, "WLAN"}),
+						gen_fsm:send_event(AucFsm, {self(), IMSI}),
 						NewStateData = StateData#statedata{request = Request,
 								identity = Identity},
 						{next_state, vector, NewStateData, ?TIMEOUT};
@@ -513,8 +504,7 @@ identity1(EapMessage, Request,
 						[Pseudonym | _] = binary:split(Identity, <<$@>>, []),
 						CompressedIMSI = ocs_eap_aka:decrypt_imsi(Pseudonym, Keys),
 						IMSI = ocs_eap_aka:compressed_imsi(CompressedIMSI),
-						% @todo handle DIAMETER ANID AVP
-						gen_fsm:send_event(AucFsm, {self(), IMSI, "WLAN"}),
+						gen_fsm:send_event(AucFsm, {self(), IMSI}),
 						NewStateData = StateData#statedata{request = Request,
 								identity = Identity},
 						{next_state, vector, NewStateData, ?TIMEOUT}
@@ -558,8 +548,7 @@ vector({RAND, AUTN, CK, IK, XRES}, #statedata{eap_id = EapID,
 	MK = crypto:hash(sha, [Identity, IK, CK]),
 	<<Kencr:16/binary, Kaut:16/binary, MSK:64/binary,
 			EMSK:64/binary>> = ocs_eap_aka:prf(MK),
-	AkaChallenge = #eap_aka_challenge{mac = <<0:128>>,
-			kdf = [1], network = <<"WLAN">>, rand = RAND, autn = AUTN},
+	AkaChallenge = #eap_aka_challenge{mac = <<0:128>>, rand = RAND, autn = AUTN},
 	EapData = ocs_eap_codec:eap_aka(AkaChallenge),
 	EapPacket = #eap_packet{code = request, type = ?AKA,
 			identifier = NextEapID, data = EapData},
@@ -581,8 +570,7 @@ vector({RAND, AUTN, CK, IK, XRES}, #statedata{eap_id = EapID,
 	MK = crypto:hash(sha, [Identity, IK, CK]),
 	<<Kencr:16/binary, Kaut:16/binary, MSK:64/binary,
 			EMSK:64/binary, _/binary>> = ocs_eap_aka:prf(MK),
-	AkaChallenge = #eap_aka_challenge{mac = <<0:128>>,
-			kdf = [1], network = <<"WLAN">>, rand = RAND, autn = AUTN},
+	AkaChallenge = #eap_aka_challenge{mac = <<0:128>>, rand = RAND, autn = AUTN},
 	EapData = ocs_eap_codec:eap_aka(AkaChallenge),
 	EapPacket = #eap_packet{code = request, type = ?AKA,
 			identifier = NextEapID, data = EapData},
