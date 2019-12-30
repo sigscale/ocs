@@ -47,7 +47,6 @@ g_nif(ErlNifEnv* env, int argc, const ERL_NIF_TERM argv[])
    uint32_t a, b, c, d, e, temp;
    uint32_t w[80] = {0};
    
-enif_fprintf(stderr, "%s:%d\r\n", __FILE__, __LINE__);
    if (!enif_inspect_binary(env, argv[0], &xkey) || xkey.size != 20)
       return enif_make_badarg(env);
    for(i = 0; i < 5; i++) {
