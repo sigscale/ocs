@@ -1,4 +1,4 @@
-%%% ocs_eap_aka_SUITE.erl
+%%% ocs_eap_akap_SUITE.erl
 %%% vim: ts=3
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%% @copyright 2016 - 2017 SigScale Global Inc.
@@ -19,8 +19,8 @@
 %%% 	Protocol (EAP) using only a password (EAP-AKA)
 %%% 	of the {@link //ocs. ocs} application.
 %%%
--module(ocs_eap_aka_SUITE).
--copyright('Copyright (c) 2016 - 2017 SigScale Global Inc.').
+-module(ocs_eap_akap_SUITE).
+-copyright('Copyright (c) 2016 - 2019 SigScale Global Inc.').
 
 %% common_test required callbacks
 -export([suite/0, sequences/0, all/0]).
