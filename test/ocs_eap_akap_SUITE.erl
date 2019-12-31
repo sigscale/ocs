@@ -122,7 +122,7 @@ init_per_testcase(TestCase, Config)
 	{ok, _} = ocs:add_client(Address, undefined, diameter, undefined, true, true),
 	[{diameter_client, Address} | Config];
 init_per_testcase(TestCase, Config)
-		when  TestCase == akap_identity_radius ->
+		when TestCase == akap_identity_radius ->
 	{ok, RadiusConfig} = application:get_env(ocs, radius),
 	{auth, [{RadIP, _, _} | _]} = lists:keyfind(auth, 1, RadiusConfig),
 	{ok, Socket} = gen_udp:open(0, [{active, false}, inet, {ip, RadIP}, binary]),
@@ -160,8 +160,8 @@ init_per_testcase(TestCase, Config)
 end_per_testcase(aka_prf, Config) ->
 	Config;
 end_per_testcase(TestCase, Config)
-		when TestCase == akap_identity_diameter; TestCase == akap_identity_diameter_trusted;
-				TestCase == akap_identity_diameter_no_client ->
+		when TestCase == akap_identity_diameter;
+		TestCase == akap_identity_diameter_trusted ->
 	DClient = ?config(diameter_client, Config),
 	ok = ocs:delete_client(DClient);
 end_per_testcase(_TestCase, Config) ->
@@ -348,9 +348,9 @@ aka_prf(_Config) ->
 	EMSK = <<160,209,144,223,251,129,233,55,81,60,175,138,195,210,165,45,
 			7,201,181,3,118,57,115,64,33,209,210,205,179,197,91,41,227,157,
 			150,91,143,235,198,126,109,163,130,110,165,180,216,175,57,135,
-			249,221,157,140,125,189,158,4,81,175,147,246,89,192>>, 
+			249,221,157,140,125,189,158,4,81,175,147,246,89,192>>,
 	MK = crypto:hash(sha, [Identity, IK, CK]),
-	<<Kencr:16/binary, Kaut:16/binary, MSK:64/binary,
+			<<Kencr:16/binary, Kaut:16/binary, MSK:64/binary,
 			EMSK:64/binary>> = ocs_eap_aka:prf(MK).
 
 %%---------------------------------------------------------------------
@@ -591,18 +591,18 @@ prf(K, S, N, P, T1, Acc) ->
 	prf(K, S, N, P + 1, T2, [T2 | Acc]).
 
 -spec autn(SQN, AK, AMF, MAC) -> AUTN
-        when
-                SQN :: integer(),
-                AK :: integer(),
-                AMF :: binary(),
-                MAC :: binary(),
-                AUTN :: binary().
+	when
+		SQN :: integer(),
+		AK :: integer(),
+		AMF :: binary(),
+		MAC :: binary(),
+		AUTN :: binary().
 %% @doc Network Authentication Token (AUTN).
 %%
 %% @private
 autn(SQN, AK, AMF, MAC)
-                when is_integer(SQN), is_integer(AK),
-                byte_size(AMF) =:= 2, byte_size(MAC) =:= 8 ->
-        SQNa = SQN bxor AK,
-        <<SQNa:48, AMF/binary, MAC/binary>>.
+		when is_integer(SQN), is_integer(AK),
+		byte_size(AMF) =:= 2, byte_size(MAC) =:= 8 ->
+	SQNa = SQN bxor AK,
+	<<SQNa:48, AMF/binary, MAC/binary>>.
 
