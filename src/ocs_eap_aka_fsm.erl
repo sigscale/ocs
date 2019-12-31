@@ -448,23 +448,6 @@ identity({#radius{id = RadiusID, authenticator = RequestAuthenticator,
 						NextStateData = NewStateData#statedata{identity = Identity},
 						{next_state, vector, NextStateData, ?TIMEOUT}
 				end;
-			#eap_packet{code = response, type = ?AKA, identifier = EapID, data = Data} ->
-				case ocs_eap_codec:eap_aka(Data) of
-					#eap_aka_identity{identity = <<?PERM_AKA,
-							PermanentID/binary>> = Identity} when IdReq == full ->
-						[IMSI | _] = binary:split(PermanentID, <<$@>>, []),
-						gen_fsm:send_event(AucFsm, {self(), IMSI}),
-						NextStateData = NewStateData#statedata{identity = Identity},
-						{next_state, vector, NextStateData, ?TIMEOUT};
-					#eap_aka_identity{identity = <<?TEMP_AKA:6, _/bits>> = Identity}
-							when IdReq == full ->
-						[Pseudonym | _] = binary:split(Identity, <<$@>>, []),
-						CompressedIMSI = ocs_eap_aka:decrypt_imsi(Pseudonym, Keys),
-						IMSI = ocs_eap_aka:compressed_imsi(CompressedIMSI),
-						gen_fsm:send_event(AucFsm, {self(), IMSI}),
-						NextStateData = NewStateData#statedata{identity = Identity},
-						{next_state, vector, NextStateData, ?TIMEOUT}
-				end;
 			#eap_packet{code = response, type = ?LegacyNak, identifier = EapID} ->
 				{stop, {shutdown, SessionID}, NewStateData}
 		end
