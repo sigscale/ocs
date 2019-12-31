@@ -151,7 +151,7 @@ sequences() ->
 %% Returns a list of all test cases in this test suite.
 %%
 all() ->
-	[aka_prf, aka_identity_radius].
+	[aka_prf, aka_identity_radius, aka_identity_diameter].
 
 %%---------------------------------------------------------------------
 %%  Test cases
@@ -178,6 +178,28 @@ aka_identity_radius(Config) ->
 	NextEapId = EapId + 1,
 	{NextEapId, _ServerID} = receive_radius_id(Socket, Address,
 			Port, Secret, ReqAuth, RadId).
+
+aka_identity_diameter() ->
+   [{userdata, [{doc, "Send an EAP-Identity/Response using DIAMETER"}]}].
+
+aka_identity_diameter(Config) ->
+	Ref = erlang:ref_to_list(make_ref()),
+	SId = diameter:session_id(Ref),
+	EapId = 1,
+	Realm = ?config(realm, Config),
+	MSIN = msin(),
+	PeerId = "0" ++ ct:get_config(mcc) ++ ct:get_config(mcc)
+			++ MSIN ++ "@wlan." ++ Realm,
+	PeerId1 = list_to_binary(PeerId),
+	DEA = send_diameter_identity(SId, EapId, PeerId1),
+	SIdbin = list_to_binary(SId),
+	#diameter_eap_app_DEA{'Session-Id' = SIdbin, 'Auth-Application-Id' = ?EAP_APPLICATION_ID,
+			'Auth-Request-Type' =  ?'DIAMETER_BASE_AUTH-REQUEST-TYPE_AUTHORIZE_AUTHENTICATE',
+			'Result-Code' = ?'DIAMETER_BASE_RESULT-CODE_MULTI_ROUND_AUTH',
+			'EAP-Payload' = [Payload]} = DEA,
+	NextEapId = EapId + 1,
+	#eap_packet{code = request, type = ?AKA, identifier = NextEapId,
+			data = _EapData} = ocs_eap_codec:eap_packet(Payload).
 
 aka_prf() ->
    [{userdata, [{doc, "Psuedo-Random Number Function (PRF) (RFC4187 Appendix A)"}]}].
@@ -309,6 +331,18 @@ send_radius_identity(Socket, Address, Port, NasId,
 	EapMsg = ocs_eap_codec:eap_packet(EapPacket),
 	radius_access_request(Socket, Address, Port, NasId,
 			PeerId, Secret, Auth, RadId, EapMsg).
+
+%% @hidden
+send_diameter_identity(SId, EapId, PeerId) ->
+	EapPacket  = #eap_packet{code = response, type = ?Identity,
+			identifier = EapId, data = PeerId},
+	EapMsg = ocs_eap_codec:eap_packet(EapPacket),
+	DER = #diameter_eap_app_DER{'Session-Id' = SId,
+			'Auth-Application-Id' = ?EAP_APPLICATION_ID,
+			'Auth-Request-Type' = ?'DIAMETER_BASE_AUTH-REQUEST-TYPE_AUTHORIZE_AUTHENTICATE',
+			'EAP-Payload' = EapMsg},
+	{ok, Answer} = diameter:call(?MODULE, eap_app_test, DER, []),
+	Answer.
 
 %% @hidden
 mac() ->
