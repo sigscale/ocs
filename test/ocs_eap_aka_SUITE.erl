@@ -108,13 +108,38 @@ end_per_suite(Config) ->
 %% Initialization before each test case.
 %%
 init_per_testcase(aka_prf, Config) ->
-	Config.
+	Config;
+init_per_testcase(TestCase, Config)
+		when TestCase == aka_identity_diameter ->
+	{ok, DiameterConfig} = application:get_env(ocs, diameter),
+	{auth, [{Address, _, _} | _]} = lists:keyfind(auth, 1, DiameterConfig),
+	{ok, _} = ocs:add_client(Address, undefined, diameter, undefined, true, false),
+	[{diameter_client, Address} | Config];
+init_per_testcase(TestCase, Config)
+		when TestCase == aka_identity_radius ->
+	{ok, RadiusConfig} = application:get_env(ocs, radius),
+	{auth, [{RadIP, _, _} | _]} = lists:keyfind(auth, 1, RadiusConfig),
+	{ok, Socket} = gen_udp:open(0, [{active, false}, inet, {ip, RadIP}, binary]),
+	SharedSecret = ct:get_config(radius_shared_secret),
+	Protocol = radius,
+	{ok, _} = ocs:add_client(RadIP, undefined, Protocol, SharedSecret, true, false),
+	NasId = atom_to_list(node()),
+	[{nas_id, NasId}, {socket, Socket}, {radius_client, RadIP} | Config].
 
 -spec end_per_testcase(TestCase :: atom(), Config :: [tuple()]) -> any().
 %% Cleanup after each test case.
 %%
 end_per_testcase(aka_prf, Config) ->
-	Config.
+	Config;
+end_per_testcase(TestCase, Config)
+		when TestCase == aka_identity_diameter ->
+	DClient = ?config(diameter_client, Config),
+	ok = ocs:delete_client(DClient);
+end_per_testcase(_TestCase, Config) ->
+	Socket = ?config(socket, Config),
+	RadClient = ?config(radius_client, Config),
+	ok = ocs:delete_client(RadClient),
+	ok = gen_udp:close(Socket).
 
 -spec sequences() -> Sequences :: [{SeqName :: atom(), Testcases :: [atom()]}].
 %% Group test cases into a test sequence.
@@ -126,11 +151,33 @@ sequences() ->
 %% Returns a list of all test cases in this test suite.
 %%
 all() ->
-	[aka_prf].
+	[aka_prf, aka_identity_radius].
 
 %%---------------------------------------------------------------------
 %%  Test cases
 %%---------------------------------------------------------------------
+
+aka_identity_radius() ->
+   [{userdata, [{doc, "Send an EAP-Identity/Response using RADIUS"}]}].
+
+aka_identity_radius(Config) ->
+	Socket = ?config(socket, Config),
+	{ok, RadiusConfig} = application:get_env(ocs, radius),
+	{auth, [{Address, Port, _} | _]} = lists:keyfind(auth, 1, RadiusConfig),
+	NasId = ?config(nas_id, Config),
+	ReqAuth = radius:authenticator(),
+	RadId = 1, EapId = 1,
+	Secret = ct:get_config(radius_shared_secret),
+	Realm = ?config(realm, Config),
+	MSIN = msin(),
+	PeerId = "0" ++ ct:get_config(mcc) ++ ct:get_config(mcc)
+			++ MSIN ++ "@wlan." ++ Realm,
+	PeerId1 = list_to_binary(PeerId),
+	ok = send_radius_identity(Socket, Address, Port, NasId,
+			PeerId1, Secret, ReqAuth, EapId, RadId),
+	NextEapId = EapId + 1,
+	{NextEapId, _ServerID} = receive_radius_id(Socket, Address,
+			Port, Secret, ReqAuth, RadId).
 
 aka_prf() ->
    [{userdata, [{doc, "Psuedo-Random Number Function (PRF) (RFC4187 Appendix A)"}]}].
@@ -156,4 +203,132 @@ aka_prf(_Config) ->
 %%---------------------------------------------------------------------
 %%  Internal functions
 %%---------------------------------------------------------------------
+
+%% @hidden
+client_service_opts(Config) ->
+	[{'Origin-Host', ?config(host, Config)},
+			{'Origin-Realm', ?config(realm, Config)},
+			{'Vendor-Id', ?IANA_PEN_SigScale},
+			{'Supported-Vendor-Id', [?IANA_PEN_3GPP]},
+			{'Product-Name', "SigScale Test Client (auth)"},
+			{'Auth-Application-Id', [?BASE_APPLICATION_ID, ?EAP_APPLICATION_ID]},
+			{string_decode, false},
+			{application, [{alias, base_app_test},
+					{dictionary, diameter_gen_base_rfc6733},
+					{module, diameter_test_client_cb}]},
+			{application, [{alias, eap_app_test},
+					{dictionary, diameter_gen_eap_application_rfc4072},
+					{module, diameter_test_client_cb}]}].
+
+%% @doc Add a transport capability to diameter service.
+%% @hidden
+connect(SvcName, Address, Port, Transport) when is_atom(Transport) ->
+	connect(SvcName, [{connect_timer, 30000} | transport_opts(Address, Port, Transport)]).
+
+%% @hidden
+connect(SvcName, Opts)->
+	diameter:add_transport(SvcName, {connect, Opts}).
+
+%% @hidden
+transport_opts(Address, Port, Trans) when is_atom(Trans) ->
+	transport_opts1({Trans, Address, Address, Port}).
+
+%% @hidden
+transport_opts1({Trans, LocalAddr, RemAddr, RemPort}) ->
+	[{transport_module, Trans}, {transport_config,
+			[{raddr, RemAddr}, {rport, RemPort},
+			{reuseaddr, true}, {ip, LocalAddr}]}].
+
+radius_access_challenge(Socket, Address, Port, Secret, RadId, ReqAuth) ->
+	receive_radius(?AccessChallenge, Socket, Address, Port, Secret, RadId, ReqAuth).
+
+radius_access_accept(Socket, Address, Port, Secret, RadId, ReqAuth) ->
+	receive_radius(?AccessAccept, Socket, Address, Port, Secret, RadId, ReqAuth).
+
+radius_access_reject(Socket, Address, Port, Secret, RadId, ReqAuth) ->
+	receive_radius(?AccessReject, Socket, Address, Port, Secret, RadId, ReqAuth).
+
+receive_radius(Code, Socket, Address, Port, Secret, RadId, ReqAuth) ->
+	{ok, {Address, Port, RespPacket1}} = gen_udp:recv(Socket, 0),
+	Resp1 = radius:codec(RespPacket1),
+	#radius{code = Code, id = RadId, authenticator = RespAuth,
+			attributes = BinRespAttr1} = Resp1,
+	Resp2 = Resp1#radius{authenticator = ReqAuth},
+	RespPacket2 = radius:codec(Resp2),
+	RespAuth = binary_to_list(crypto:hash(md5, [RespPacket2, Secret])),
+	RespAttr1 = radius_attributes:codec(BinRespAttr1),
+	{ok, MsgAuth} = radius_attributes:find(?MessageAuthenticator, RespAttr1),
+	RespAttr2 = radius_attributes:store(?MessageAuthenticator, <<0:128>>, RespAttr1),
+	Resp3 = Resp2#radius{attributes = RespAttr2},
+	RespPacket3 = radius:codec(Resp3),
+	MsgAuth = crypto:hmac(md5, Secret, RespPacket3),
+	{ok, EapMsg} = radius_attributes:find(?EAPMessage, RespAttr1),
+	EapMsg.
+
+%% @hidden
+receive_radius_id(Socket, Address, Port, Secret, ReqAuth, RadId) ->
+	EapMsg = radius_access_challenge(Socket, Address, Port,
+			Secret, RadId, ReqAuth),
+	#eap_packet{code = request, type = ?AKA, identifier = EapId,
+			data = EapData} = ocs_eap_codec:eap_packet(EapMsg),
+	#eap_aka_identity{permanent_id_req = false,
+			any_id_req = false,fullauth_id_req = true,
+			identity = ServerId} = ocs_eap_codec:eap_aka(EapData),
+	{EapId, ServerId}.
+
+%% @hidden
+radius_access_request(Socket, Address, Port, NasId,
+		UserName, Secret, Auth, RadId, EapMsg)
+		when is_binary(UserName) ->
+	radius_access_request(Socket, Address, Port, NasId,
+			binary_to_list(UserName), Secret, Auth, RadId, EapMsg);
+radius_access_request(Socket, Address, Port, NasId,
+		UserName, Secret, Auth, RadId, EapMsg) ->
+	A0 = radius_attributes:new(),
+	A1 = radius_attributes:add(?UserName, UserName, A0),
+	A2 = radius_attributes:add(?NasPortType, 19, A1),
+	A3 = radius_attributes:add(?NasIdentifier, NasId, A2),
+	A4 = radius_attributes:add(?CallingStationId, mac(), A3),
+	A5 = radius_attributes:add(?CalledStationId, mac(), A4),
+	A6 = radius_attributes:add(?EAPMessage, EapMsg, A5),
+	A7 = radius_attributes:add(?MessageAuthenticator, <<0:128>>, A6),
+	Request1 = #radius{code = ?AccessRequest, id = RadId,
+		authenticator = Auth, attributes = A7},
+	ReqPacket1 = radius:codec(Request1),
+	MsgAuth1 = crypto:hmac(md5, Secret, ReqPacket1),
+	A8 = radius_attributes:store(?MessageAuthenticator, MsgAuth1, A7),
+	Request2 = Request1#radius{attributes = A8},
+	ReqPacket2 = radius:codec(Request2),
+	gen_udp:send(Socket, Address, Port, ReqPacket2).
+
+%% @hidden
+send_radius_identity(Socket, Address, Port, NasId,
+		PeerId, Secret, Auth, EapId, RadId) ->
+	EapPacket  = #eap_packet{code = response, type = ?Identity,
+			identifier = EapId, data = PeerId},
+	EapMsg = ocs_eap_codec:eap_packet(EapPacket),
+	radius_access_request(Socket, Address, Port, NasId,
+			PeerId, Secret, Auth, RadId, EapMsg).
+
+%% @hidden
+mac() ->
+	mac([]).
+%% @hidden
+mac(Acc) when length(Acc) =:= 12 ->
+	Acc;
+mac(Acc) ->
+	mac([integer_to_list(rand:uniform(255), 16) | Acc]).
+
+-spec msin(Length) -> string()
+	when
+		Length :: pos_integer().
+%% @doc Generate a random mobile subscription identification number (MSIN).
+%% @private
+msin() ->
+	msin([]).
+%% @hidden
+msin(Acc) when length(Acc) =:= 10 ->
+	Acc;
+msin(Acc) ->
+	msin([rand:uniform(10) + 47 | Acc]).
 
