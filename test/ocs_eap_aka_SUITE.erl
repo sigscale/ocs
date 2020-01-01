@@ -120,7 +120,7 @@ init_per_testcase(TestCase, Config)
 	{ok, _} = ocs:add_client(Address, undefined, diameter, undefined, true, false),
 	[{diameter_client, Address} | Config];
 init_per_testcase(TestCase, Config)
-		when TestCase == identity_radius ->
+		when TestCase == identity_radius_eap ->
 	{ok, RadiusConfig} = application:get_env(ocs, radius),
 	{auth, [{RadIP, _, _} | _]} = lists:keyfind(auth, 1, RadiusConfig),
 	{ok, Socket} = gen_udp:open(0, [{active, false}, inet, {ip, RadIP}, binary]),
@@ -128,7 +128,13 @@ init_per_testcase(TestCase, Config)
 	Protocol = radius,
 	{ok, _} = ocs:add_client(RadIP, undefined, Protocol, SharedSecret, true, false),
 	NasId = atom_to_list(node()),
-	[{nas_id, NasId}, {socket, Socket}, {radius_client, RadIP} | Config].
+	[{nas_id, NasId}, {socket, Socket}, {radius_client, RadIP} | Config];
+init_per_testcase(TestCase, Config)
+		when TestCase == identity_diameter_swm ->
+	{ok, DiameterConfig} = application:get_env(ocs, diameter),
+	{auth, [{Address, _, _} | _]} = lists:keyfind(auth, 1, DiameterConfig),
+	{ok, _} = ocs:add_client(Address, undefined, diameter, undefined, true, true),
+	[{diameter_client, Address} | Config].
 
 -spec end_per_testcase(TestCase :: atom(), Config :: [tuple()]) -> any().
 %% Cleanup after each test case.
@@ -156,16 +162,16 @@ sequences() ->
 %% Returns a list of all test cases in this test suite.
 %%
 all() ->
-	[prf, identity_radius, identity_diameter_eap, identity_diameter_swm].
+	[prf, identity_radius_eap, identity_diameter_eap, identity_diameter_swm].
 
 %%---------------------------------------------------------------------
 %%  Test cases
 %%---------------------------------------------------------------------
 
-identity_radius() ->
+identity_radius_eap() ->
    [{userdata, [{doc, "Send an EAP-Identity/Response using RADIUS"}]}].
 
-identity_radius(Config) ->
+identity_radius_eap(Config) ->
 	Socket = ?config(socket, Config),
 	{ok, RadiusConfig} = application:get_env(ocs, radius),
 	{auth, [{Address, Port, _} | _]} = lists:keyfind(auth, 1, RadiusConfig),
@@ -215,9 +221,13 @@ identity_diameter_swm(Config) ->
 	EapId = 1,
 	Realm = ?config(realm, Config),
 	MSIN = msin(),
-	PeerId = "0" ++ ct:get_config(mcc) ++ ct:get_config(mcc)
-			++ MSIN ++ "@wlan." ++ Realm,
+	Name = ct:get_config(mcc) ++ ct:get_config(mcc) ++ MSIN,
+	PeerId = "0" ++ Name ++ "@wlan." ++ Realm,
 	PeerId1 = list_to_binary(PeerId),
+	P1 = price(usage, octets, rand:uniform(1000000), rand:uniform(100)),
+	OfferId = add_offer([P1], 4),
+	ProdRef = add_product(OfferId),
+	_Service = add_service(Name, ProdRef),
 	DEA = send_diameter_identity(?SWm_APPLICATION_ID, SId, EapId, PeerId1),
 	SIdbin = list_to_binary(SId),
 	#'3gpp_swm_DEA'{'Session-Id' = SIdbin, 'Auth-Application-Id' = ?SWm_APPLICATION_ID,
@@ -373,6 +383,7 @@ send_diameter_identity(?EAP_APPLICATION_ID, SId, EapId, PeerId) ->
 			'EAP-Payload' = EapMsg},
 	{ok, Answer} = diameter:call(?MODULE, eap_app_test, DER, []),
 	Answer;
+
 send_diameter_identity(?SWm_APPLICATION_ID, SId, EapId, PeerId) ->
 	EapPacket  = #eap_packet{code = response, type = ?Identity,
 			identifier = EapId, data = PeerId},
@@ -405,4 +416,97 @@ msin(Acc) when length(Acc) =:= 10 ->
 	Acc;
 msin(Acc) ->
 	msin([rand:uniform(10) + 47 | Acc]).
+
+%% @hidden
+price(Type, Units, Size, Amount) ->
+	Name = ocs:generate_identity(),
+	#price{name = Name,
+			type = Type, units = Units,
+			size = Size, amount = Amount}.
+
+%% @hidden
+add_offer(Prices, Spec) when is_integer(Spec) ->
+	add_offer(Prices, integer_to_list(Spec));
+add_offer(Prices, Spec) ->
+	Name = ocs:generate_identity(),
+	Offer = #offer{name = Name,
+			price = Prices, specification = Spec},
+	{ok, #offer{name = OfferId}} = ocs:add_offer(Offer),
+	OfferId.
+
+%% @hidden
+add_product(OfferId) ->
+	add_product(OfferId, []).
+add_product(OfferId, Chars) ->
+	{ok, #product{id = ProdRef}} = ocs:add_product(OfferId, Chars),
+	ProdRef.
+
+%% @hidden
+add_service(Name, ProdRef) ->
+	K = crypto:strong_rand_bytes(16),
+	OPc = crypto:strong_rand_bytes(16),
+	Credentials = #aka_cred{k = K, opc = OPc},
+	{ok, Service} = ocs:add_service(Name, Credentials,
+			ProdRef, []),
+	Service.
+
+-spec sqn(DIF) -> SQN
+	when
+		DIF :: integer(),
+		SQN :: integer().
+%% @doc Sequence Number (SQN).
+%%
+%%      3GPP RTS 33.102 Annex C.1.1.3.
+%% @private
+sqn(DIF) when is_integer(DIF) ->
+	(erlang:system_time(10) - DIF) bsl 5.
+
+-spec amf() -> AMF
+	when
+		AMF :: binary().
+%% @doc Authentication Management Field (AMF).
+%%
+%%      See 3GPP TS 33.102 Annex F.
+%% @private
+amf() ->
+	<<1:1, 0:15>>.
+
+-spec kdf(CK, IK, ANID, SQN, AK) -> MSK
+        when
+                CK :: binary(),
+                IK :: binary(),
+                ANID :: string(),
+                SQN :: integer(),
+                AK :: integer(),
+                MSK :: binary().
+%% @doc Key Derivation Function (KDF).
+%%
+%%      See 3GPP TS 33.402 Annex A,
+%%          3GPP TS 32.220 Annex B.
+%% @private
+kdf(CK, IK, "WLAN", SQN, AK)
+		when byte_size(CK) =:= 16, byte_size(IK) =:= 16,
+		is_integer(SQN), is_integer(AK) ->
+	SQNi = SQN bxor AK,
+	crypto:hmac(sha256, <<CK/binary, IK/binary>>,
+			<<16#20, "WLAN", 4:16, SQNi:48, 6:16>>).
+
+-spec prf(K, S, N) -> MK
+	when
+		K :: binary(),
+		S :: binary(),
+		N :: pos_integer(),
+		MK :: binary().
+%% @doc Pseudo-RANDom Number Function (PRF).
+%%
+%%      See RFC5448 3.4.
+%% @private
+prf(K, S, N) when is_binary(K), is_binary(S), is_integer(N), N > 1 ->
+	prf(K, S, N, 1, <<>>, []).
+%% @hidden
+prf(_, _, N, P, _, Acc) when P > N ->
+	iolist_to_binary(lists:reverse(Acc));
+prf(K, S, N, P, T1, Acc) ->
+	T2 = crypto:hmac(sha256, K, <<T1/binary, S/binary, P>>),
+	prf(K, S, N, P + 1, T2, [T2 | Acc]).
 
