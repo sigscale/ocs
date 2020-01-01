@@ -229,7 +229,8 @@ akap_identity_diameter(Config) ->
 			'EAP-Payload' = [Payload]} = DEA,
 	NextEapId = EapId + 1,
 	#eap_packet{code = request, type = ?AKAprime, identifier = NextEapId,
-			data = _EapData} = ocs_eap_codec:eap_packet(Payload).
+			data = EapData} = ocs_eap_codec:eap_packet(Payload),
+	#eap_aka_identity{fullauth_id_req = true} = ocs_eap_codec:eap_aka(EapData).
 
 akap_identity_radius_trusted() ->
    [{userdata, [{doc, "Send an trusted EAP-Identity/Response using RADIUS"}]}].
@@ -287,7 +288,7 @@ akap_identity_radius_trusted(Config) ->
 	{ok, {Address, Port, _RespPacket1}} = gen_udp:recv(Socket, 0).
 
 akap_identity_diameter_trusted() ->
-   [{userdata, [{doc, "Send an EAP-Identity/Response using DIAMETER"}]}].
+   [{userdata, [{doc, "Send an EAP-Identity/Response using DIAMETER from a trusted client"}]}].
 
 akap_identity_diameter_trusted(Config) ->
 	Ref = erlang:ref_to_list(make_ref()),
@@ -310,7 +311,9 @@ akap_identity_diameter_trusted(Config) ->
 			'EAP-Payload' = [Payload]} = DEA,
 	NextEapId = EapId + 1,
 	#eap_packet{code = request, type = ?AKAprime, identifier = NextEapId,
-			data = _EapData} = ocs_eap_codec:eap_packet(Payload).
+			data = EapData} = ocs_eap_codec:eap_packet(Payload),
+	#eap_aka_challenge{mac = <<_:128>>, rand = <<_:128>>,
+			autn = <<_:128>>} = ocs_eap_codec:eap_aka(EapData).
 
 akap_identity_radius_no_client() ->
    [{userdata, [{doc, "Send an EAP-Identity/Response using RADIUS"}]}].

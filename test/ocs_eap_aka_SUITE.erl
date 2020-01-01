@@ -139,8 +139,8 @@ init_per_testcase(TestCase, Config)
 %% Cleanup after each test case.
 %%
 end_per_testcase(prf, Config) ->
-	Config;
-end_per_testcase(radius_identity, Config) ->
+	ok;
+end_per_testcase(identity_radius, Config) ->
 	Socket = ?config(socket, Config),
 	RadClient = ?config(radius_client, Config),
 	ok = ocs:delete_client(RadClient),
@@ -208,10 +208,11 @@ identity_diameter_eap(Config) ->
 	#diameter_eap_app_DEA{'Session-Id' = SIdbin, 'Auth-Application-Id' = ?EAP_APPLICATION_ID,
 			'Auth-Request-Type' =  ?'DIAMETER_BASE_AUTH-REQUEST-TYPE_AUTHORIZE_AUTHENTICATE',
 			'Result-Code' = ?'DIAMETER_BASE_RESULT-CODE_MULTI_ROUND_AUTH',
-			'EAP-Payload' = [Payload]} = DEA,
+			'EAP-Payload' = [EapPayload]} = DEA,
 	NextEapId = EapId + 1,
 	#eap_packet{code = request, type = ?AKA, identifier = NextEapId,
-			data = _EapData} = ocs_eap_codec:eap_packet(Payload).
+			data = EapData} = ocs_eap_codec:eap_packet(EapPayload),
+	#eap_aka_identity{fullauth_id_req = true} = ocs_eap_codec:eap_aka(EapData).
 
 identity_diameter_swm() ->
    [{userdata, [{doc, "Send an EAP-Identity/Response using DIAMETER EAP application"}]}].
@@ -230,13 +231,14 @@ identity_diameter_swm(Config) ->
 	#'3gpp_swm_DEA'{'Session-Id' = SIdbin, 'Auth-Application-Id' = ?SWm_APPLICATION_ID,
 			'Auth-Request-Type' =  ?'DIAMETER_BASE_AUTH-REQUEST-TYPE_AUTHORIZE_AUTHENTICATE',
 			'Result-Code' = ?'DIAMETER_BASE_RESULT-CODE_MULTI_ROUND_AUTH',
-			'EAP-Payload' = [Payload]} = DEA,
+			'EAP-Payload' = [EapPayload]} = DEA,
 	NextEapId = EapId + 1,
 	#eap_packet{code = request, type = ?AKA, identifier = NextEapId,
-			data = _EapData} = ocs_eap_codec:eap_packet(Payload).
+			data = EapData} = ocs_eap_codec:eap_packet(EapPayload),
+	#eap_aka_identity{fullauth_id_req = true} = ocs_eap_codec:eap_aka(EapData).
 
 identity_diameter_swm_trusted() ->
-   [{userdata, [{doc, "Send an  EAP-Identity/Response using DIAMETER 3GPP SWm application from a trusted client"}]}].
+   [{userdata, [{doc, "Send an EAP-Identity/Response using DIAMETER 3GPP SWm application from a trusted client"}]}].
 
 identity_diameter_swm_trusted(Config) ->
 	Ref = erlang:ref_to_list(make_ref()),
@@ -256,10 +258,12 @@ identity_diameter_swm_trusted(Config) ->
 	#'3gpp_swm_DEA'{'Session-Id' = SIdbin, 'Auth-Application-Id' = ?SWm_APPLICATION_ID,
 			'Auth-Request-Type' =  ?'DIAMETER_BASE_AUTH-REQUEST-TYPE_AUTHORIZE_AUTHENTICATE',
 			'Result-Code' = ?'DIAMETER_BASE_RESULT-CODE_MULTI_ROUND_AUTH',
-			'EAP-Payload' = [Payload]} = DEA,
+			'EAP-Payload' = [EapPayload]} = DEA,
 	NextEapId = EapId + 1,
 	#eap_packet{code = request, type = ?AKA, identifier = NextEapId,
-			data = _EapData} = ocs_eap_codec:eap_packet(Payload).
+			data = EapData} = ocs_eap_codec:eap_packet(EapPayload),
+	#eap_aka_challenge{mac = <<_:128>>, rand = <<_:128>>,
+			autn = <<_:128>>} = ocs_eap_codec:eap_aka(EapData).
 
 prf() ->
    [{userdata, [{doc, "Psuedo-Random Number Function (PRF) (RFC4187 Appendix A)"}]}].
@@ -358,7 +362,7 @@ receive_radius_id(Socket, Address, Port, Secret, ReqAuth, RadId) ->
 	#eap_packet{code = request, type = ?AKA, identifier = EapId,
 			data = EapData} = ocs_eap_codec:eap_packet(EapMsg),
 	#eap_aka_identity{permanent_id_req = false,
-			any_id_req = false,fullauth_id_req = true,
+			any_id_req = false, fullauth_id_req = true,
 			identity = ServerId} = ocs_eap_codec:eap_aka(EapData),
 	{EapId, ServerId}.
 
