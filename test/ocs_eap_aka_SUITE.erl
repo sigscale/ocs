@@ -162,16 +162,16 @@ sequences() ->
 %% Returns a list of all test cases in this test suite.
 %%
 all() ->
-	[prf, identity_radius_eap, identity_diameter_eap, identity_diameter_swm].
+	[prf, identity_radius, identity_diameter_eap, identity_diameter_swm].
 
 %%---------------------------------------------------------------------
 %%  Test cases
 %%---------------------------------------------------------------------
 
-identity_radius_eap() ->
+identity_radius() ->
    [{userdata, [{doc, "Send an EAP-Identity/Response using RADIUS"}]}].
 
-identity_radius_eap(Config) ->
+identity_radius(Config) ->
 	Socket = ?config(socket, Config),
 	{ok, RadiusConfig} = application:get_env(ocs, radius),
 	{auth, [{Address, Port, _} | _]} = lists:keyfind(auth, 1, RadiusConfig),
