@@ -120,7 +120,7 @@ init_per_testcase(TestCase, Config)
 	{ok, _} = ocs:add_client(Address, undefined, diameter, undefined, true, false),
 	[{diameter_client, Address} | Config];
 init_per_testcase(TestCase, Config)
-		when TestCase == identity_radius_eap ->
+		when TestCase == identity_radius ->
 	{ok, RadiusConfig} = application:get_env(ocs, radius),
 	{auth, [{RadIP, _, _} | _]} = lists:keyfind(auth, 1, RadiusConfig),
 	{ok, Socket} = gen_udp:open(0, [{active, false}, inet, {ip, RadIP}, binary]),
