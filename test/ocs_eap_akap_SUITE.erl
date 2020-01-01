@@ -79,7 +79,7 @@ init_per_suite(Config) ->
 	{ok, DiameterConfig} = application:get_env(ocs, diameter),
 	{auth, [{Address, Port, _} | _]} = lists:keyfind(auth, 1, DiameterConfig),
 	Host = atom_to_list(?MODULE),
-	Realm = "wlan.mnc" ++ ct:get_config(mnc) ++ ".mcc"
+	Realm = "mnc" ++ ct:get_config(mnc) ++ ".mcc"
 			++ ct:get_config(mcc) ++ ".3gppnetwork.org",
 	Config1 = [{host, Host}, {realm, Realm}, {product_id, ProdID},
 		{diameter_client, Address} | Config],
