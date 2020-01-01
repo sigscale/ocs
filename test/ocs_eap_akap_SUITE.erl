@@ -36,11 +36,13 @@
 -include_lib("common_test/include/ct.hrl").
 -include_lib("diameter/include/diameter.hrl").
 -include_lib("diameter/include/diameter_gen_base_rfc6733.hrl").
--include_lib("../include/diameter_gen_eap_application_rfc4072.hrl").
+-include("../include/diameter_gen_eap_application_rfc4072.hrl").
+-include("../include/diameter_gen_3gpp_sta_application.hrl").
 -include_lib("kernel/include/inet.hrl").
 
 -define(BASE_APPLICATION_ID, 0).
 -define(EAP_APPLICATION_ID, 5).
+-define(STa_APPLICATION_ID, 16777250).
 -define(IANA_PEN_3GPP, 10415).
 -define(IANA_PEN_SigScale, 50386).
 
@@ -109,20 +111,7 @@ end_per_suite(Config) ->
 %%
 init_per_testcase(aka_prf, Config) ->
 	Config;
-init_per_testcase(TestCase, Config)
-		when TestCase == identity_diameter_eap ->
-	{ok, DiameterConfig} = application:get_env(ocs, diameter),
-	{auth, [{Address, _, _} | _]} = lists:keyfind(auth, 1, DiameterConfig),
-	{ok, _} = ocs:add_client(Address, undefined, diameter, undefined, true, false),
-	[{diameter_client, Address} | Config];
-init_per_testcase(TestCase, Config)
-		when TestCase == identity_diameter_eap_trusted ->
-	{ok, DiameterConfig} = application:get_env(ocs, diameter),
-	{auth, [{Address, _, _} | _]} = lists:keyfind(auth, 1, DiameterConfig),
-	{ok, _} = ocs:add_client(Address, undefined, diameter, undefined, true, true),
-	[{diameter_client, Address} | Config];
-init_per_testcase(TestCase, Config)
-		when TestCase == identity_radius ->
+init_per_testcase(identity_radius, Config) ->
 	{ok, RadiusConfig} = application:get_env(ocs, radius),
 	{auth, [{RadIP, _, _} | _]} = lists:keyfind(auth, 1, RadiusConfig),
 	{ok, Socket} = gen_udp:open(0, [{active, false}, inet, {ip, RadIP}, binary]),
@@ -132,7 +121,7 @@ init_per_testcase(TestCase, Config)
 	NasId = atom_to_list(node()),
 	[{nas_id, NasId}, {socket, Socket}, {radius_client, RadIP} | Config];
 init_per_testcase(TestCase, Config)
-		when TestCase == identity_radius_trusted; TestCase == identity_radius_trusted_no_service->
+		when TestCase == identity_radius_trusted ->
 	{ok, RadiusConfig} = application:get_env(ocs, radius),
 	{auth, [{RadIP, _, _} | _]} = lists:keyfind(auth, 1, RadiusConfig),
 	{ok, Socket} = gen_udp:open(0, [{active, false}, inet, {ip, RadIP}, binary]),
@@ -142,9 +131,18 @@ init_per_testcase(TestCase, Config)
 	NasId = atom_to_list(node()),
 	[{nas_id, NasId}, {socket, Socket}, {radius_client, RadIP} | Config];
 init_per_testcase(TestCase, Config)
-		when TestCase == identity_diameter_eap_no_client ->
+		when TestCase == identity_diameter_eap;
+		TestCase == identity_diameter_sta ->
 	{ok, DiameterConfig} = application:get_env(ocs, diameter),
 	{auth, [{Address, _, _} | _]} = lists:keyfind(auth, 1, DiameterConfig),
+	{ok, _} = ocs:add_client(Address, undefined, diameter, undefined, true, false),
+	[{diameter_client, Address} | Config];
+init_per_testcase(TestCase, Config)
+		when TestCase == identity_diameter_eap_trusted;
+		TestCase == identity_diameter_sta_trusted ->
+	{ok, DiameterConfig} = application:get_env(ocs, diameter),
+	{auth, [{Address, _, _} | _]} = lists:keyfind(auth, 1, DiameterConfig),
+	{ok, _} = ocs:add_client(Address, undefined, diameter, undefined, true, true),
 	[{diameter_client, Address} | Config];
 init_per_testcase(TestCase, Config)
 		when TestCase == identity_radius_no_client ->
@@ -157,18 +155,21 @@ init_per_testcase(TestCase, Config)
 -spec end_per_testcase(TestCase :: atom(), Config :: [tuple()]) -> any().
 %% Cleanup after each test case.
 %%
-end_per_testcase(aka_prf, Config) ->
-	Config;
+end_per_testcase(TestCase, Config)
+		when TestCase == identity_radius;
+		TestCase == identity_radius_trusted;
+		TestCase == identity_radius_no_client ->
+	Socket = ?config(socket, Config),
+	RadiusClient = ?config(radius_client, Config),
+	ok = ocs:delete_client(RadiusClient),
+	ok = gen_udp:close(Socket);
 end_per_testcase(TestCase, Config)
 		when TestCase == identity_diameter_eap;
-		TestCase == identity_diameter_eap_trusted ->
-	DClient = ?config(diameter_client, Config),
-	ok = ocs:delete_client(DClient);
-end_per_testcase(_TestCase, Config) ->
-	Socket = ?config(socket, Config),
-	RadClient = ?config(radius_client, Config),
-	ok = ocs:delete_client(RadClient),
-	ok = gen_udp:close(Socket).
+		TestCase == identity_diameter_eap_trusted;
+		TestCase == identity_diameter_sta;
+		TestCase == identity_diameter_sta_trusted ->
+	DiameterClient = ?config(diameter_client, Config),
+	ok = ocs:delete_client(DiameterClient).
 
 -spec sequences() -> Sequences :: [{SeqName :: atom(), Testcases :: [atom()]}].
 %% Group test cases into a test sequence.
@@ -181,7 +182,8 @@ sequences() ->
 %%
 all() ->
 	[identity_radius, identity_radius_trusted, identity_radius_no_client,
-			identity_diameter_eap, identity_diameter_eap_trusted].
+			identity_diameter_eap, identity_diameter_eap_trusted,
+			identity_diameter_sta, identity_diameter_sta_trusted].
 
 %%---------------------------------------------------------------------
 %%  Test cases
@@ -208,29 +210,6 @@ identity_radius(Config) ->
 	NextEapId = EapId + 1,
 	{NextEapId, _ServerID} = receive_radius_id(Socket, Address,
 			Port, Secret, ReqAuth, RadId).
-
-identity_diameter_eap() ->
-   [{userdata, [{doc, "Send an EAP-Identity/Response using DIAMETER EAP application"}]}].
-
-identity_diameter_eap(Config) ->
-	Ref = erlang:ref_to_list(make_ref()),
-	SId = diameter:session_id(Ref),
-	EapId = 1,
-	Realm = ?config(realm, Config),
-	MSIN = msin(),
-	PeerId = "6" ++ ct:get_config(mcc) ++ ct:get_config(mcc)
-			++ MSIN ++ "@wlan." ++ Realm,
-	PeerId1 = list_to_binary(PeerId),
-	DEA = send_diameter_identity(SId, EapId, PeerId1),
-	SIdbin = list_to_binary(SId),
-	#diameter_eap_app_DEA{'Session-Id' = SIdbin, 'Auth-Application-Id' = ?EAP_APPLICATION_ID,
-			'Auth-Request-Type' =  ?'DIAMETER_BASE_AUTH-REQUEST-TYPE_AUTHORIZE_AUTHENTICATE',
-			'Result-Code' = ?'DIAMETER_BASE_RESULT-CODE_MULTI_ROUND_AUTH',
-			'EAP-Payload' = [Payload]} = DEA,
-	NextEapId = EapId + 1,
-	#eap_packet{code = request, type = ?AKAprime, identifier = NextEapId,
-			data = EapData} = ocs_eap_codec:eap_packet(Payload),
-	#eap_aka_identity{fullauth_id_req = true} = ocs_eap_codec:eap_aka(EapData).
 
 identity_radius_trusted() ->
    [{userdata, [{doc, "Send an trusted EAP-Identity/Response using RADIUS"}]}].
@@ -287,6 +266,52 @@ identity_radius_trusted(Config) ->
 	ok = gen_udp:send(Socket, Address, Port, EapMessage2),
 	{ok, {Address, Port, _RespPacket1}} = gen_udp:recv(Socket, 0).
 
+identity_diameter_eap() ->
+   [{userdata, [{doc, "Send an EAP-Identity/Response using DIAMETER EAP application"}]}].
+
+identity_diameter_eap(Config) ->
+	Ref = erlang:ref_to_list(make_ref()),
+	SId = diameter:session_id(Ref),
+	EapId = 1,
+	Realm = ?config(realm, Config),
+	MSIN = msin(),
+	PeerId = "6" ++ ct:get_config(mcc) ++ ct:get_config(mcc)
+			++ MSIN ++ "@wlan." ++ Realm,
+	PeerId1 = list_to_binary(PeerId),
+	DEA = send_diameter_identity(?EAP_APPLICATION_ID, SId, EapId, PeerId1),
+	SIdbin = list_to_binary(SId),
+	#diameter_eap_app_DEA{'Session-Id' = SIdbin, 'Auth-Application-Id' = ?EAP_APPLICATION_ID,
+			'Auth-Request-Type' =  ?'DIAMETER_BASE_AUTH-REQUEST-TYPE_AUTHORIZE_AUTHENTICATE',
+			'Result-Code' = ?'DIAMETER_BASE_RESULT-CODE_MULTI_ROUND_AUTH',
+			'EAP-Payload' = [Payload]} = DEA,
+	NextEapId = EapId + 1,
+	#eap_packet{code = request, type = ?AKAprime, identifier = NextEapId,
+			data = EapData} = ocs_eap_codec:eap_packet(Payload),
+	#eap_aka_identity{fullauth_id_req = true} = ocs_eap_codec:eap_aka(EapData).
+
+identity_diameter_sta() ->
+   [{userdata, [{doc, "Send an EAP-Identity/Response using DIAMETER STa application"}]}].
+
+identity_diameter_sta(Config) ->
+	Ref = erlang:ref_to_list(make_ref()),
+	SId = diameter:session_id(Ref),
+	EapId = 1,
+	Realm = ?config(realm, Config),
+	MSIN = msin(),
+	PeerId = "6" ++ ct:get_config(mcc) ++ ct:get_config(mcc)
+			++ MSIN ++ "@wlan." ++ Realm,
+	PeerId1 = list_to_binary(PeerId),
+	DEA = send_diameter_identity(?STa_APPLICATION_ID, SId, EapId, PeerId1),
+	SIdbin = list_to_binary(SId),
+	#'3gpp_sta_DEA'{'Session-Id' = SIdbin, 'Auth-Application-Id' = ?STa_APPLICATION_ID,
+			'Auth-Request-Type' =  ?'DIAMETER_BASE_AUTH-REQUEST-TYPE_AUTHORIZE_AUTHENTICATE',
+			'Result-Code' = ?'DIAMETER_BASE_RESULT-CODE_MULTI_ROUND_AUTH',
+			'EAP-Payload' = [Payload]} = DEA,
+	NextEapId = EapId + 1,
+	#eap_packet{code = request, type = ?AKAprime, identifier = NextEapId,
+			data = EapData} = ocs_eap_codec:eap_packet(Payload),
+	#eap_aka_identity{fullauth_id_req = true} = ocs_eap_codec:eap_aka(EapData).
+
 identity_diameter_eap_trusted() ->
    [{userdata, [{doc, "Send an EAP-Identity/Response using DIAMETER EAP application from a trusted client"}]}].
 
@@ -303,9 +328,37 @@ identity_diameter_eap_trusted(Config) ->
 	OfferId = add_offer([P1], 4),
 	ProdRef = add_product(OfferId),
 	_Service = add_service(Name, ProdRef),
-	DEA = send_diameter_identity(SId, EapId, PeerId1),
+	DEA = send_diameter_identity(?EAP_APPLICATION_ID,SId, EapId, PeerId1),
 	SIdbin = list_to_binary(SId),
 	#diameter_eap_app_DEA{'Session-Id' = SIdbin, 'Auth-Application-Id' = ?EAP_APPLICATION_ID,
+			'Auth-Request-Type' =  ?'DIAMETER_BASE_AUTH-REQUEST-TYPE_AUTHORIZE_AUTHENTICATE',
+			'Result-Code' = ?'DIAMETER_BASE_RESULT-CODE_MULTI_ROUND_AUTH',
+			'EAP-Payload' = [Payload]} = DEA,
+	NextEapId = EapId + 1,
+	#eap_packet{code = request, type = ?AKAprime, identifier = NextEapId,
+			data = EapData} = ocs_eap_codec:eap_packet(Payload),
+	#eap_aka_challenge{mac = <<_:128>>, rand = <<_:128>>,
+			autn = <<_:128>>} = ocs_eap_codec:eap_aka(EapData).
+
+identity_diameter_sta_trusted() ->
+   [{userdata, [{doc, "Send an EAP-Identity/Response using DIAMETER STa application from a trusted client"}]}].
+
+identity_diameter_sta_trusted(Config) ->
+	Ref = erlang:ref_to_list(make_ref()),
+	SId = diameter:session_id(Ref),
+	EapId = 1,
+	Realm = ?config(realm, Config),
+	MSIN = msin(),
+	Name = ct:get_config(mcc) ++ ct:get_config(mcc) ++ MSIN,
+	PeerId = "6" ++ Name ++ "@wlan." ++ Realm,
+	PeerId1 = list_to_binary(PeerId),
+	P1 = price(usage, octets, rand:uniform(1000000), rand:uniform(100)),
+	OfferId = add_offer([P1], 4),
+	ProdRef = add_product(OfferId),
+	_Service = add_service(Name, ProdRef),
+	DEA = send_diameter_identity(?STa_APPLICATION_ID,SId, EapId, PeerId1),
+	SIdbin = list_to_binary(SId),
+	#'3gpp_sta_DEA'{'Session-Id' = SIdbin, 'Auth-Application-Id' = ?STa_APPLICATION_ID,
 			'Auth-Request-Type' =  ?'DIAMETER_BASE_AUTH-REQUEST-TYPE_AUTHORIZE_AUTHENTICATE',
 			'Result-Code' = ?'DIAMETER_BASE_RESULT-CODE_MULTI_ROUND_AUTH',
 			'EAP-Payload' = [Payload]} = DEA,
@@ -345,13 +398,17 @@ client_service_opts(Config) ->
 			{'Vendor-Id', ?IANA_PEN_SigScale},
 			{'Supported-Vendor-Id', [?IANA_PEN_3GPP]},
 			{'Product-Name', "SigScale Test Client (auth)"},
-			{'Auth-Application-Id', [?BASE_APPLICATION_ID, ?EAP_APPLICATION_ID]},
+			{'Auth-Application-Id', [?BASE_APPLICATION_ID,
+					?EAP_APPLICATION_ID, ?STa_APPLICATION_ID]},
 			{string_decode, false},
 			{application, [{alias, base_app_test},
 					{dictionary, diameter_gen_base_rfc6733},
 					{module, diameter_test_client_cb}]},
 			{application, [{alias, eap_app_test},
 					{dictionary, diameter_gen_eap_application_rfc4072},
+					{module, diameter_test_client_cb}]},
+			{application, [{alias, sta_app_test},
+					{dictionary, diameter_gen_3gpp_sta_application},
 					{module, diameter_test_client_cb}]}].
 
 %% @doc Add a transport capability to diameter service.
@@ -445,7 +502,7 @@ send_radius_identity(Socket, Address, Port, NasId,
 			PeerId, Secret, Auth, RadId, EapMsg).
 
 %% @hidden
-send_diameter_identity(SId, EapId, PeerId) ->
+send_diameter_identity(?EAP_APPLICATION_ID, SId, EapId, PeerId) ->
 	EapPacket  = #eap_packet{code = response, type = ?Identity,
 			identifier = EapId, data = PeerId},
 	EapMsg = ocs_eap_codec:eap_packet(EapPacket),
@@ -454,6 +511,16 @@ send_diameter_identity(SId, EapId, PeerId) ->
 			'Auth-Request-Type' = ?'DIAMETER_BASE_AUTH-REQUEST-TYPE_AUTHORIZE_AUTHENTICATE',
 			'EAP-Payload' = EapMsg},
 	{ok, Answer} = diameter:call(?MODULE, eap_app_test, DER, []),
+	Answer;
+send_diameter_identity(?STa_APPLICATION_ID, SId, EapId, PeerId) ->
+	EapPacket  = #eap_packet{code = response, type = ?Identity,
+			identifier = EapId, data = PeerId},
+	EapMsg = ocs_eap_codec:eap_packet(EapPacket),
+	DER = #'3gpp_sta_DER'{'Session-Id' = SId,
+			'Auth-Application-Id' = ?STa_APPLICATION_ID,
+			'Auth-Request-Type' = ?'DIAMETER_BASE_AUTH-REQUEST-TYPE_AUTHORIZE_AUTHENTICATE',
+			'EAP-Payload' = EapMsg},
+	{ok, Answer} = diameter:call(?MODULE, sta_app_test, DER, []),
 	Answer.
 
 %% @hidden
