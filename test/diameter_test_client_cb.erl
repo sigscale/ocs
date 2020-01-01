@@ -76,7 +76,7 @@ peer_down(_SvcName, _Peer, State) ->
 		Peer :: peer() | false,
 		Result :: Selection | false.
 %% @doc Invoked as a consequence of a call to diameter:call/4 to select
-%% a destination peer for an outgoing request. 
+%% a destination peer for an outgoing request.
 pick_peer([Peer | _], _, _SvcName, _State) ->
 	{ok, Peer}.
 
@@ -90,7 +90,7 @@ pick_peer([Peer | _], _, _SvcName, _State) ->
 		Discard :: {discard, Reason} | discard,
 		Reason :: term(),
 		PostF :: diameter:evaluable().
-%% @doc Invoked to return a request for encoding and transport 
+%% @doc Invoked to return a request for encoding and transport
 prepare_request(#diameter_packet{msg = ['RAR' = T | Avps]}, _, {_, Caps}) ->
 	#diameter_caps{origin_host = {OH, DH}, origin_realm = {OR, DR}} = Caps,
 	{send, [T, {'Origin-Host', OH}, {'Origin-Realm', OR},
@@ -171,26 +171,26 @@ generate_diameter_request(Record, OHost, DHost, ORealm, DRealm)
 		when is_record(Record, diameter_base_RAR) ->
 	Record#diameter_base_RAR{'Origin-Host' = OHost, 'Origin-Realm' = ORealm,
 			'Destination-Host' = DHost, 'Destination-Realm' = DRealm};
-generate_diameter_request(Record, OHost, DHost, ORealm, DRealm) 
+generate_diameter_request(Record, OHost, DHost, ORealm, DRealm)
 		when is_record(Record, diameter_nas_app_RAR) ->
 	Record#diameter_nas_app_RAR{'Origin-Host' = OHost, 'Origin-Realm' = ORealm,
 			'Destination-Host' = DHost, 'Destination-Realm' = DRealm};
-generate_diameter_request(Record, OHost, DHost, ORealm, DRealm) 
+generate_diameter_request(Record, OHost, DHost, ORealm, DRealm)
 		when is_record(Record, diameter_nas_app_AAR) ->
 	Record#diameter_nas_app_AAR{'Origin-Host' = OHost, 'Origin-Realm' = ORealm,
 			'Destination-Host' = [DHost], 'Destination-Realm' = DRealm};
-generate_diameter_request(Record, OHost, DHost, ORealm, DRealm) 
+generate_diameter_request(Record, OHost, DHost, ORealm, DRealm)
 		when is_record(Record, diameter_nas_app_STR) ->
 	Record#diameter_nas_app_STR{'Origin-Host' = OHost, 'Origin-Realm' = ORealm,
 			'Destination-Host' = [DHost], 'Destination-Realm' = DRealm};
-generate_diameter_request(Record, OHost, _DHost, ORealm, DRealm) 
+generate_diameter_request(Record, OHost, _DHost, ORealm, DRealm)
 		when is_record(Record, '3gpp_ro_CCR') ->
 	Record#'3gpp_ro_CCR'{'Origin-Host' = OHost, 'Origin-Realm' = ORealm,
 			'Destination-Realm' = DRealm};
-generate_diameter_request(Record, OHost, _DHost, ORealm, _DRealm) 
+generate_diameter_request(Record, OHost, _DHost, ORealm, _DRealm)
 		when is_record(Record, diameter_base_ASA) ->
 	Record#diameter_base_ASA{'Origin-Host' = OHost, 'Origin-Realm' = ORealm};
-generate_diameter_request(Record, OHost, _DHost, ORealm, DRealm) 
+generate_diameter_request(Record, OHost, _DHost, ORealm, DRealm)
 		when is_record(Record, diameter_eap_app_DER) ->
 	Record#diameter_eap_app_DER{'Origin-Host' = OHost, 'Origin-Realm' = ORealm,
 			'Destination-Realm' = DRealm};
