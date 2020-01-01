@@ -120,6 +120,13 @@ init_per_testcase(TestCase, Config)
 	{ok, _} = ocs:add_client(Address, undefined, diameter, undefined, true, false),
 	[{diameter_client, Address} | Config];
 init_per_testcase(TestCase, Config)
+		when TestCase == identity_diameter_swm;
+		TestCase == identity_diameter_swm ->
+	{ok, DiameterConfig} = application:get_env(ocs, diameter),
+	{auth, [{Address, _, _} | _]} = lists:keyfind(auth, 1, DiameterConfig),
+	{ok, _} = ocs:add_client(Address, undefined, diameter, undefined, true, false),
+	[{diameter_client, Address} | Config];
+init_per_testcase(TestCase, Config)
 		when TestCase == identity_radius ->
 	{ok, RadiusConfig} = application:get_env(ocs, radius),
 	{auth, [{RadIP, _, _} | _]} = lists:keyfind(auth, 1, RadiusConfig),
@@ -162,7 +169,8 @@ sequences() ->
 %% Returns a list of all test cases in this test suite.
 %%
 all() ->
-	[prf, identity_radius, identity_diameter_eap, identity_diameter_swm_trusted].
+	[prf, identity_radius, identity_diameter_eap, identity_diameter_swm,
+			identity_diameter_swm_trusted].
 
 %%---------------------------------------------------------------------
 %%  Test cases
@@ -212,8 +220,30 @@ identity_diameter_eap(Config) ->
 	#eap_packet{code = request, type = ?AKA, identifier = NextEapId,
 			data = _EapData} = ocs_eap_codec:eap_packet(Payload).
 
+identity_diameter_swm() ->
+   [{userdata, [{doc, "Send an EAP-Identity/Response using DIAMETER EAP application"}]}].
+
+identity_diameter_swm(Config) ->
+	Ref = erlang:ref_to_list(make_ref()),
+	SId = diameter:session_id(Ref),
+	EapId = 1,
+	Realm = ?config(realm, Config),
+	MSIN = msin(),
+	PeerId = "0" ++ ct:get_config(mcc) ++ ct:get_config(mcc)
+			++ MSIN ++ "@wlan." ++ Realm,
+	PeerId1 = list_to_binary(PeerId),
+	DEA = send_diameter_identity(?SWm_APPLICATION_ID, SId, EapId, PeerId1),
+	SIdbin = list_to_binary(SId),
+	#'3gpp_swm_DEA'{'Session-Id' = SIdbin, 'Auth-Application-Id' = ?SWm_APPLICATION_ID,
+			'Auth-Request-Type' =  ?'DIAMETER_BASE_AUTH-REQUEST-TYPE_AUTHORIZE_AUTHENTICATE',
+			'Result-Code' = ?'DIAMETER_BASE_RESULT-CODE_MULTI_ROUND_AUTH',
+			'EAP-Payload' = [Payload]} = DEA,
+	NextEapId = EapId + 1,
+	#eap_packet{code = request, type = ?AKA, identifier = NextEapId,
+			data = _EapData} = ocs_eap_codec:eap_packet(Payload).
+
 identity_diameter_swm_trusted() ->
-   [{userdata, [{doc, "Send an EAP-Identity/Response using DIAMETER 3GPP SWm application"}]}].
+   [{userdata, [{doc, "Send an trusted EAP-Identity/Response using DIAMETER 3GPP SWm application"}]}].
 
 identity_diameter_swm_trusted(Config) ->
 	Ref = erlang:ref_to_list(make_ref()),
