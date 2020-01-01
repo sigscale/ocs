@@ -492,22 +492,3 @@ kdf(CK, IK, "WLAN", SQN, AK)
 	crypto:hmac(sha256, <<CK/binary, IK/binary>>,
 			<<16#20, "WLAN", 4:16, SQNi:48, 6:16>>).
 
--spec prf(K, S, N) -> MK
-	when
-		K :: binary(),
-		S :: binary(),
-		N :: pos_integer(),
-		MK :: binary().
-%% @doc Pseudo-RANDom Number Function (PRF).
-%%
-%%      See RFC5448 3.4.
-%% @private
-prf(K, S, N) when is_binary(K), is_binary(S), is_integer(N), N > 1 ->
-	prf(K, S, N, 1, <<>>, []).
-%% @hidden
-prf(_, _, N, P, _, Acc) when P > N ->
-	iolist_to_binary(lists:reverse(Acc));
-prf(K, S, N, P, T1, Acc) ->
-	T2 = crypto:hmac(sha256, K, <<T1/binary, S/binary, P>>),
-	prf(K, S, N, P + 1, T2, [T2 | Acc]).
-
