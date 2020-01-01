@@ -50,7 +50,7 @@
 -include_lib("diameter/include/diameter_gen_base_rfc6733.hrl").
 -include("diameter_gen_nas_application_rfc7155.hrl").
 -include("diameter_gen_eap_application_rfc4072.hrl").
--include("diameter_gen_3gpp_swm_application.hrl").
+-include("diameter_gen_3gpp_sta_application.hrl").
 -include("ocs_eap_codec.hrl").
 
 -record(statedata,
@@ -63,7 +63,7 @@
 		auc_fsm :: undefined | pid(),
 		session_id:: binary() | {NAS :: inet:ip_address() | string(),
 				Port :: string(), Peer :: string()},
-		request :: undefined | #diameter_eap_app_DER{} | #'3gpp_swm_DER'{}
+		request :: undefined | #diameter_eap_app_DER{} | #'3gpp_sta_DER'{}
 				| #radius{},
 		secret :: undefined | binary(),
 		eap_id = 0 :: byte(),
@@ -299,7 +299,7 @@ eap_start(timeout, #statedata{eap_id = EapID,
 	{next_state, identity, NewStateData, ?TIMEOUT};
 eap_start(timeout, #statedata{eap_id = EapID,
 		session_id = SessionId, auth_req_type = AuthReqType,
-		request = #'3gpp_swm_DER'{'EAP-Payload' = []} = Request,
+		request = #'3gpp_sta_DER'{'EAP-Payload' = []} = Request,
 		origin_host = OHost, origin_realm = ORealm,
 		diameter_port_server = PortServer, sup = Sup} = StateData) ->
 	Children = supervisor:which_children(Sup),
@@ -318,7 +318,7 @@ eap_start(timeout, #statedata{request =
 		#diameter_eap_app_DER{'EAP-Payload' = EapMessage}} = StateData) ->
 	eap_start1(EapMessage, StateData);
 eap_start(timeout, #statedata{request =
-		#'3gpp_swm_DER'{'EAP-Payload' = EapMessage}} = StateData) ->
+		#'3gpp_sta_DER'{'EAP-Payload' = EapMessage}} = StateData) ->
 	eap_start1(EapMessage, StateData).
 %% @hidden
 eap_start1(EapMessage, #statedata{sup = Sup, eap_id = EapID,
@@ -472,7 +472,7 @@ identity({#radius{id = RadiusID, authenticator = RequestAuthenticator,
 identity(#diameter_eap_app_DER{'EAP-Payload' = EapMessage} = Request,
 		StateData) ->
 	identity1(EapMessage, Request, StateData);
-identity(#'3gpp_swm_DER'{'EAP-Payload' = EapMessage} = Request,
+identity(#'3gpp_sta_DER'{'EAP-Payload' = EapMessage} = Request,
 		StateData) ->
 	identity1(EapMessage, Request, StateData).
 %% @hidden
@@ -680,7 +680,7 @@ challenge({#radius{id = RadiusID, authenticator = RequestAuthenticator,
 challenge(#diameter_eap_app_DER{'EAP-Payload' = EapMessage} = Request,
 		StateData) ->
 	challenge1(EapMessage, Request, StateData);
-challenge(#'3gpp_swm_DER'{'EAP-Payload' = EapMessage} = Request,
+challenge(#'3gpp_sta_DER'{'EAP-Payload' = EapMessage} = Request,
 		StateData) ->
 	challenge1(EapMessage, Request, StateData).
 %% @hidden
@@ -959,7 +959,7 @@ send_radius_response(EapMessage, RadiusCode, ResponseAttributes,
 		OriginRealm :: binary(),
 		EapMessage :: binary(),
 		PortServer :: pid(),
-		Request :: #diameter_eap_app_DER{} | #'3gpp_swm_DER'{},
+		Request :: #diameter_eap_app_DER{} | #'3gpp_sta_DER'{},
 		StateData :: #statedata{}.
 %% @doc Log DIAMETER event and send appropriate DIAMETER answer to
 %% 	ocs_diameter_auth_port_server.
@@ -986,7 +986,7 @@ send_diameter_response(SessionId, AuthType,
 send_diameter_response(SessionId, AuthType,
 		?'DIAMETER_BASE_RESULT-CODE_MULTI_ROUND_AUTH',
 		OriginHost, OriginRealm, EapMessage,
-		PortServer, #'3gpp_swm_DER'{} = Request,
+		PortServer, #'3gpp_sta_DER'{} = Request,
 		#statedata{server_address = ServerAddress, server_port = ServerPort,
 		client_address = ClientAddress, client_port = ClientPort} = _StateData)
 		when is_binary(SessionId), is_integer(AuthType),
@@ -994,7 +994,7 @@ send_diameter_response(SessionId, AuthType,
 		is_binary(EapMessage), is_pid(PortServer) ->
 	Server = {ServerAddress, ServerPort},
 	Client= {ClientAddress, ClientPort},
-	Answer = #'3gpp_swm_DEA'{'Session-Id' = SessionId,
+	Answer = #'3gpp_sta_DEA'{'Session-Id' = SessionId,
 			'Auth-Application-Id' = ?STa_APPLICATION_ID,
 			'Auth-Request-Type' = AuthType,
 			'Result-Code' = ?'DIAMETER_BASE_RESULT-CODE_MULTI_ROUND_AUTH',
@@ -1024,7 +1024,7 @@ send_diameter_response(SessionId, AuthType,
 send_diameter_response(SessionId, AuthType,
 		?'DIAMETER_BASE_RESULT-CODE_SUCCESS',
 		OriginHost, OriginRealm, EapMessage,
-		PortServer, #'3gpp_swm_DER'{} = Request,
+		PortServer, #'3gpp_sta_DER'{} = Request,
 		#statedata{server_address = ServerAddress, server_port = ServerPort,
 		client_address = ClientAddress, client_port = ClientPort,
 		msk = MSK} = _StateData) when is_binary(SessionId),
@@ -1032,7 +1032,7 @@ send_diameter_response(SessionId, AuthType,
 		is_binary(EapMessage), is_pid(PortServer), is_binary(MSK) ->
 	Server = {ServerAddress, ServerPort},
 	Client= {ClientAddress, ClientPort},
-	Answer = #'3gpp_swm_DEA'{'Session-Id' = SessionId,
+	Answer = #'3gpp_sta_DEA'{'Session-Id' = SessionId,
 			'Auth-Application-Id' = ?STa_APPLICATION_ID,
 			'Auth-Request-Type' = AuthType,
 			'Result-Code' = ?'DIAMETER_BASE_RESULT-CODE_SUCCESS',
@@ -1063,7 +1063,7 @@ send_diameter_response(SessionId, AuthType, ResultCode,
 	gen_server:cast(PortServer, {self(), Answer});
 send_diameter_response(SessionId, AuthType, ResultCode,
 		OriginHost, OriginRealm, EapMessage,
-		PortServer, #'3gpp_swm_DER'{} = Request,
+		PortServer, #'3gpp_sta_DER'{} = Request,
 		#statedata{server_address = ServerAddress,
 		server_port = ServerPort, client_address = ClientAddress,
 		client_port = ClientPort} = _StateData)
@@ -1073,7 +1073,7 @@ send_diameter_response(SessionId, AuthType, ResultCode,
 		is_binary(EapMessage), is_pid(PortServer) ->
 	Server = {ServerAddress, ServerPort},
 	Client= {ClientAddress, ClientPort},
-	Answer = #'3gpp_swm_DEA'{'Session-Id' = SessionId,
+	Answer = #'3gpp_sta_DEA'{'Session-Id' = SessionId,
 			'Auth-Application-Id' = ?STa_APPLICATION_ID,
 			'Auth-Request-Type' = AuthType,
 			'Result-Code' = ResultCode,
