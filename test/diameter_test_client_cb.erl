@@ -31,6 +31,7 @@
 -include_lib("../include/diameter_gen_cc_application_rfc4006.hrl").
 -include_lib("../include/diameter_gen_eap_application_rfc4072.hrl").
 -include_lib("../include/diameter_gen_3gpp_ro_application.hrl").
+-include_lib("../include/diameter_gen_3gpp_swm_application.hrl").
 
 -record(state, {}).
 
@@ -192,5 +193,9 @@ generate_diameter_request(Record, OHost, _DHost, ORealm, _DRealm)
 generate_diameter_request(Record, OHost, _DHost, ORealm, DRealm) 
 		when is_record(Record, diameter_eap_app_DER) ->
 	Record#diameter_eap_app_DER{'Origin-Host' = OHost, 'Origin-Realm' = ORealm,
+			'Destination-Realm' = DRealm};
+generate_diameter_request(Record, OHost, _DHost, ORealm, DRealm)
+		when is_record(Record, '3gpp_swm_DER') ->
+	Record#'3gpp_swm_DER'{'Origin-Host' = OHost, 'Origin-Realm' = ORealm,
 			'Destination-Realm' = DRealm}.
 
