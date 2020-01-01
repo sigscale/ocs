@@ -112,22 +112,7 @@ end_per_suite(Config) ->
 %%
 init_per_testcase(prf, Config) ->
 	Config;
-init_per_testcase(TestCase, Config)
-		when TestCase == identity_diameter_eap;
-		TestCase == identity_diameter_swm ->
-	{ok, DiameterConfig} = application:get_env(ocs, diameter),
-	{auth, [{Address, _, _} | _]} = lists:keyfind(auth, 1, DiameterConfig),
-	{ok, _} = ocs:add_client(Address, undefined, diameter, undefined, true, false),
-	[{diameter_client, Address} | Config];
-init_per_testcase(TestCase, Config)
-		when TestCase == identity_diameter_swm;
-		TestCase == identity_diameter_swm ->
-	{ok, DiameterConfig} = application:get_env(ocs, diameter),
-	{auth, [{Address, _, _} | _]} = lists:keyfind(auth, 1, DiameterConfig),
-	{ok, _} = ocs:add_client(Address, undefined, diameter, undefined, true, false),
-	[{diameter_client, Address} | Config];
-init_per_testcase(TestCase, Config)
-		when TestCase == identity_radius ->
+init_per_testcase(identity_radius, Config) ->
 	{ok, RadiusConfig} = application:get_env(ocs, radius),
 	{auth, [{RadIP, _, _} | _]} = lists:keyfind(auth, 1, RadiusConfig),
 	{ok, Socket} = gen_udp:open(0, [{active, false}, inet, {ip, RadIP}, binary]),
@@ -136,6 +121,13 @@ init_per_testcase(TestCase, Config)
 	{ok, _} = ocs:add_client(RadIP, undefined, Protocol, SharedSecret, true, false),
 	NasId = atom_to_list(node()),
 	[{nas_id, NasId}, {socket, Socket}, {radius_client, RadIP} | Config];
+init_per_testcase(TestCase, Config)
+		when TestCase == identity_diameter_eap;
+		TestCase == identity_diameter_swm ->
+	{ok, DiameterConfig} = application:get_env(ocs, diameter),
+	{auth, [{Address, _, _} | _]} = lists:keyfind(auth, 1, DiameterConfig),
+	{ok, _} = ocs:add_client(Address, undefined, diameter, undefined, true, false),
+	[{diameter_client, Address} | Config];
 init_per_testcase(TestCase, Config)
 		when TestCase == identity_diameter_swm_trusted ->
 	{ok, DiameterConfig} = application:get_env(ocs, diameter),
@@ -148,16 +140,17 @@ init_per_testcase(TestCase, Config)
 %%
 end_per_testcase(prf, Config) ->
 	Config;
-end_per_testcase(TestCase, Config)
-		when TestCase == identity_diameter_eap;
-		TestCase == identity_diameter_swm; TestCase == identity_diameter_swm_trusted ->
-	DClient = ?config(diameter_client, Config),
-	ok = ocs:delete_client(DClient);
-end_per_testcase(_TestCase, Config) ->
+end_per_testcase(radius_identity, Config) ->
 	Socket = ?config(socket, Config),
 	RadClient = ?config(radius_client, Config),
 	ok = ocs:delete_client(RadClient),
-	ok = gen_udp:close(Socket).
+	ok = gen_udp:close(Socket);
+end_per_testcase(TestCase, Config)
+		when TestCase == identity_diameter_eap;
+		TestCase == identity_diameter_swm;
+		TestCase == identity_diameter_swm_trusted ->
+	DiameterClient = ?config(diameter_client, Config),
+	ok = ocs:delete_client(DiameterClient).
 
 -spec sequences() -> Sequences :: [{SeqName :: atom(), Testcases :: [atom()]}].
 %% Group test cases into a test sequence.
@@ -243,7 +236,7 @@ identity_diameter_swm(Config) ->
 			data = _EapData} = ocs_eap_codec:eap_packet(Payload).
 
 identity_diameter_swm_trusted() ->
-   [{userdata, [{doc, "Send an trusted EAP-Identity/Response using DIAMETER 3GPP SWm application"}]}].
+   [{userdata, [{doc, "Send an  EAP-Identity/Response using DIAMETER 3GPP SWm application from a trusted client"}]}].
 
 identity_diameter_swm_trusted(Config) ->
 	Ref = erlang:ref_to_list(make_ref()),
