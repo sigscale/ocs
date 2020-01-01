@@ -138,7 +138,7 @@ init_per_testcase(TestCase, Config)
 -spec end_per_testcase(TestCase :: atom(), Config :: [tuple()]) -> any().
 %% Cleanup after each test case.
 %%
-end_per_testcase(prf, Config) ->
+end_per_testcase(prf, _Config) ->
 	ok;
 end_per_testcase(identity_radius, Config) ->
 	Socket = ?config(socket, Config),
