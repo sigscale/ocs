@@ -96,7 +96,7 @@
 init([AuthPortSup, Address, Port, Options]) ->
 	MethodPrefer = proplists:get_value(eap_method_prefer, Options, akap),
 	MethodOrder = proplists:get_value(eap_method_order, Options,
-			[akap, pwd, ttls]),
+			[akap, aka, pwd, ttls]),
 	State = #state{auth_port_sup = AuthPortSup, address = Address,
 			port = Port, method_prefer = MethodPrefer, method_order = MethodOrder},
 	case ocs_log:auth_open() of
