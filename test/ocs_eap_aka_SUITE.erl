@@ -130,7 +130,7 @@ init_per_testcase(TestCase, Config)
 	NasId = atom_to_list(node()),
 	[{nas_id, NasId}, {socket, Socket}, {radius_client, RadIP} | Config];
 init_per_testcase(TestCase, Config)
-		when TestCase == identity_diameter_swm ->
+		when TestCase == identity_diameter_swm_trusted ->
 	{ok, DiameterConfig} = application:get_env(ocs, diameter),
 	{auth, [{Address, _, _} | _]} = lists:keyfind(auth, 1, DiameterConfig),
 	{ok, _} = ocs:add_client(Address, undefined, diameter, undefined, true, true),
@@ -143,7 +143,7 @@ end_per_testcase(prf, Config) ->
 	Config;
 end_per_testcase(TestCase, Config)
 		when TestCase == identity_diameter_eap;
-		TestCase == identity_diameter_swm ->
+		TestCase == identity_diameter_swm; TestCase == identity_diameter_swm_trusted ->
 	DClient = ?config(diameter_client, Config),
 	ok = ocs:delete_client(DClient);
 end_per_testcase(_TestCase, Config) ->
@@ -162,7 +162,7 @@ sequences() ->
 %% Returns a list of all test cases in this test suite.
 %%
 all() ->
-	[prf, identity_radius, identity_diameter_eap, identity_diameter_swm].
+	[prf, identity_radius, identity_diameter_eap, identity_diameter_swm_trusted].
 
 %%---------------------------------------------------------------------
 %%  Test cases
@@ -212,10 +212,10 @@ identity_diameter_eap(Config) ->
 	#eap_packet{code = request, type = ?AKA, identifier = NextEapId,
 			data = _EapData} = ocs_eap_codec:eap_packet(Payload).
 
-identity_diameter_swm() ->
+identity_diameter_swm_trusted() ->
    [{userdata, [{doc, "Send an EAP-Identity/Response using DIAMETER 3GPP SWm application"}]}].
 
-identity_diameter_swm(Config) ->
+identity_diameter_swm_trusted(Config) ->
 	Ref = erlang:ref_to_list(make_ref()),
 	SId = diameter:session_id(Ref),
 	EapId = 1,
