@@ -188,8 +188,12 @@ identity_radius(Config) ->
 	ok = send_radius_identity(Socket, Address, Port, NasId,
 			PeerId1, Secret, ReqAuth, EapId, RadId),
 	NextEapId = EapId + 1,
-	{NextEapId, _ServerID} = receive_radius_id(Socket, Address,
-			Port, Secret, ReqAuth, RadId).
+	EapMsg = radius_access_challenge(Socket,
+			Address, Port, Secret, RadId, ReqAuth),
+	#eap_packet{code = request, type = ?AKA, identifier = NextEapId,
+			data = EapData} = ocs_eap_codec:eap_packet(EapMsg),
+	#eap_aka_identity{fullauth_id_req = true,
+			identity = ServerId} = ocs_eap_codec:eap_aka(EapData).
 
 identity_diameter_eap() ->
    [{userdata, [{doc, "Send an EAP-Identity/Response using DIAMETER EAP application"}]}].
@@ -354,17 +358,6 @@ receive_radius(Code, Socket, Address, Port, Secret, RadId, ReqAuth) ->
 	MsgAuth = crypto:hmac(md5, Secret, RespPacket3),
 	{ok, EapMsg} = radius_attributes:find(?EAPMessage, RespAttr1),
 	EapMsg.
-
-%% @hidden
-receive_radius_id(Socket, Address, Port, Secret, ReqAuth, RadId) ->
-	EapMsg = radius_access_challenge(Socket, Address, Port,
-			Secret, RadId, ReqAuth),
-	#eap_packet{code = request, type = ?AKA, identifier = EapId,
-			data = EapData} = ocs_eap_codec:eap_packet(EapMsg),
-	#eap_aka_identity{permanent_id_req = false,
-			any_id_req = false, fullauth_id_req = true,
-			identity = ServerId} = ocs_eap_codec:eap_aka(EapData),
-	{EapId, ServerId}.
 
 %% @hidden
 radius_access_request(Socket, Address, Port, NasId,
