@@ -109,8 +109,6 @@ end_per_suite(Config) ->
 -spec init_per_testcase(TestCase :: atom(), Config :: [tuple()]) -> Config :: [tuple()].
 %% Initialization before each test case.
 %%
-init_per_testcase(aka_prf, Config) ->
-	Config;
 init_per_testcase(identity_radius, Config) ->
 	{ok, RadiusConfig} = application:get_env(ocs, radius),
 	{auth, [{RadIP, _, _} | _]} = lists:keyfind(auth, 1, RadiusConfig),
@@ -121,7 +119,8 @@ init_per_testcase(identity_radius, Config) ->
 	NasId = atom_to_list(node()),
 	[{nas_id, NasId}, {socket, Socket}, {radius_client, RadIP} | Config];
 init_per_testcase(TestCase, Config)
-		when TestCase == identity_radius_trusted ->
+		when TestCase == identity_radius_trusted;
+		TestCase == challenge_radius_trusted ->
 	{ok, RadiusConfig} = application:get_env(ocs, radius),
 	{auth, [{RadIP, _, _} | _]} = lists:keyfind(auth, 1, RadiusConfig),
 	{ok, Socket} = gen_udp:open(0, [{active, false}, inet, {ip, RadIP}, binary]),
@@ -158,7 +157,8 @@ init_per_testcase(TestCase, Config)
 end_per_testcase(TestCase, Config)
 		when TestCase == identity_radius;
 		TestCase == identity_radius_trusted;
-		TestCase == identity_radius_no_client ->
+		TestCase == identity_radius_no_client;
+		TestCase == challenge_radius_trusted ->
 	Socket = ?config(socket, Config),
 	RadiusClient = ?config(radius_client, Config),
 	ok = ocs:delete_client(RadiusClient),
@@ -183,7 +183,8 @@ sequences() ->
 all() ->
 	[identity_radius, identity_radius_trusted, identity_radius_no_client,
 			identity_diameter_eap, identity_diameter_eap_trusted,
-			identity_diameter_sta, identity_diameter_sta_trusted].
+			identity_diameter_sta, identity_diameter_sta_trusted,
+			challenge_radius_trusted].
 
 %%---------------------------------------------------------------------
 %%  Test cases
@@ -206,17 +207,16 @@ identity_radius(Config) ->
 			++ MSIN ++ "@wlan." ++ Realm,
 	PeerId1 = list_to_binary(PeerId),
 	ok = send_radius_identity(Socket, Address, Port, NasId,
-			PeerId1, Secret, ReqAuth, EapId, RadId),
+			PeerId1, Secret, mac(), ReqAuth, EapId, RadId),
 	NextEapId = EapId + 1,
 	EapMsg = radius_access_challenge(Socket,
 			Address, Port, Secret, RadId, ReqAuth),
 	#eap_packet{code = request, type = ?AKAprime, identifier = NextEapId,
 			data = EapData} = ocs_eap_codec:eap_packet(EapMsg),
-	#eap_aka_identity{fullauth_id_req = true,
-			identity = ServerId} = ocs_eap_codec:eap_aka(EapData).
+	#eap_aka_identity{fullauth_id_req = true} = ocs_eap_codec:eap_aka(EapData).
 
 identity_radius_trusted() ->
-   [{userdata, [{doc, "Send an trusted EAP-Identity/Response using RADIUS"}]}].
+   [{userdata, [{doc, "Send an EAP-Identity/Response using RADIUS from a trusted client"}]}].
 
 identity_radius_trusted(Config) ->
 	Socket = ?config(socket, Config),
@@ -234,41 +234,15 @@ identity_radius_trusted(Config) ->
 	P1 = price(usage, octets, rand:uniform(1000000), rand:uniform(100)),
 	OfferId = add_offer([P1], 4),
 	ProdRef = add_product(OfferId),
-	#service{password = #aka_cred{k = K, opc = OPc, dif = DIF}} = add_service(Name, ProdRef),
+	add_service(Name, ProdRef),
 	ok = send_radius_identity(Socket, Address, Port, NasId,
-			PeerId1, Secret, ReqAuth, EapId, RadId),
+			PeerId1, Secret, mac(), ReqAuth, EapId, RadId),
 	EapMsg = radius_access_challenge(Socket, Address, Port,
 			Secret, RadId, ReqAuth),
 	#eap_packet{code = request, type = ?AKAprime, identifier = _EapID,
 			data = EapData} = ocs_eap_codec:eap_packet(EapMsg),
-	#eap_aka_challenge{rand = RAND, autn = _AUTN, mac = MAC} = ocs_eap_codec:eap_aka(EapData),
-	{_XRES, CK, IK, <<AK:48>>} = ocs_milenage:f2345(OPc, K, RAND),
-	SQN = sqn(DIF),
-	<<CKprime:16/binary, IKprime:16/binary>> = kdf(CK, IK, "WLAN", SQN, AK),
-	<<_:16/binary, Kaut:32/binary, _:32/binary, _:64/binary,
-                        _:64/binary, _/binary>> = prf(<<IKprime/binary,
-	CKprime/binary>>, <<"EAP-AKA'", PeerId1/binary>>, 7),
-	EapMsg1 = ocs_eap_codec:aka_clear_mac(EapMsg),
-	MAC = crypto:hmac(sha256, Kaut, EapMsg1, 16),
-	RAND1 = ocs_milenage:f0(),
-	{RES, CK1, IK1, <<AK1:48>>} = ocs_milenage:f2345(OPc, K, RAND1),
-	SQN1 = sqn(DIF),
-	<<CKprime1:16/binary, IKprime1:16/binary>> = kdf(CK1, IK1, "WLAN", SQN1, AK1),
-	AkaChallenge = #eap_aka_challenge{res = RES, mac = <<0:128>>},
-	<<_:16/binary, Kaut1:32/binary, _:32/binary, _:64/binary,
-		_:64/binary, _/binary>> = prf(<<IKprime1/binary,
-		CKprime1/binary>>, <<"EAP-AKA'", PeerId1/binary>>, 7),
-	EapData1 = ocs_eap_codec:eap_aka(AkaChallenge),
-	NextEapId1 = EapId + 1,
-	EapPacket1 = #eap_packet{code = request, type = ?AKAprime,
-			identifier = NextEapId1, data = EapData1},
-	EapMessage1 = ocs_eap_codec:eap_packet(EapPacket1),
-	MAC1 = crypto:hmac(sha256, Kaut1, EapMessage1, 16),
-	EapMessage2 = ocs_eap_codec:aka_set_mac(MAC1, EapMessage1),
-	ok = send_radius_identity(Socket, Address, Port, NasId,
-			PeerId1, Secret, ReqAuth, EapId, RadId),
-	ok = gen_udp:send(Socket, Address, Port, EapMessage2),
-	{ok, {Address, Port, _RespPacket1}} = gen_udp:recv(Socket, 0).
+	#eap_aka_challenge{rand = <<_:128>>, autn = <<_:128>>,
+			mac = <<_:128>>} = ocs_eap_codec:eap_aka(EapData).
 
 identity_diameter_eap() ->
    [{userdata, [{doc, "Send an EAP-Identity/Response using DIAMETER EAP application"}]}].
@@ -388,8 +362,65 @@ identity_radius_no_client(Config) ->
 	PeerId = "6" ++ ct:get_config(mcc) ++ ct:get_config(mcc) ++ MSIN ++ "@wlan." ++ Realm,
 	PeerId1 = list_to_binary(PeerId),
 	ok = send_radius_identity(Socket, Address, Port, NasId,
-			PeerId1, Secret, ReqAuth, EapId, RadId),
+			PeerId1, Secret, mac(), ReqAuth, EapId, RadId),
 	{error,timeout} = gen_udp:recv(Socket, 0, 5000).
+
+challenge_radius_trusted() ->
+   [{userdata, [{doc, "Send an EAP-Challenge/Response using RADIUS from a trusted client"}]}].
+
+challenge_radius_trusted(Config) ->
+	Socket = ?config(socket, Config),
+	{ok, RadiusConfig} = application:get_env(ocs, radius),
+	{auth, [{Address, Port, _} | _]} = lists:keyfind(auth, 1, RadiusConfig),
+	NasId = ?config(nas_id, Config),
+	StationID = mac(),
+	ReqAuth = radius:authenticator(),
+	RadiusId = 1,
+	EapId = 1,
+	Secret = ct:get_config(radius_shared_secret),
+	Realm = ?config(realm, Config),
+	MSIN = msin(),
+	Name = ct:get_config(mcc) ++ ct:get_config(mcc) ++ MSIN,
+	PeerId = "6" ++ Name ++ "@wlan." ++ Realm,
+	PeerId1 = list_to_binary(PeerId),
+	P1 = price(usage, octets, rand:uniform(1000000), rand:uniform(100)),
+	OfferId = add_offer([P1], 4),
+	ProdRef = add_product(OfferId),
+	#service{password = #aka_cred{k = K, opc = OPc,
+			dif = DIF}} = add_service(Name, ProdRef),
+	ok = send_radius_identity(Socket, Address, Port, NasId,
+			PeerId1, Secret, StationID, ReqAuth, EapId, RadiusId),
+	EapMessage1 = radius_access_challenge(Socket, Address, Port,
+			Secret, RadiusId, ReqAuth),
+	#eap_packet{code = request, type = ?AKAprime, identifier = NextEapId1,
+			data = EapData1} = ocs_eap_codec:eap_packet(EapMessage1),
+	#eap_aka_challenge{rand = RAND, autn = AUTN,
+			mac = MAC1} = ocs_eap_codec:eap_aka(EapData1),
+	{RES, CK, IK, <<AK:48>>} = ocs_milenage:f2345(OPc, K, RAND),
+	SQN = sqn(DIF),
+	AMF = amf(),
+	MACA = ocs_milenage:f1(OPc, K, RAND, <<SQN:48>>, AMF),
+%	AUTN = autn(SQN, AK, AMF, MACA),
+	<<CKprime:16/binary, IKprime:16/binary>> = kdf(CK, IK, "WLAN", SQN, AK),
+	<<_:16/binary, Kaut:32/binary, _:32/binary, _:64/binary,
+         _:64/binary, _/binary>> = prf(<<IKprime/binary, CKprime/binary>>,
+			<<"EAP-AKA'", PeerId1/binary>>, 7),
+	EapMessage2 = ocs_eap_codec:aka_clear_mac(EapMessage1),
+	MAC1 = crypto:hmac(sha256, Kaut, EapMessage2, 16),
+	AkaChallenge1 = #eap_aka_challenge{res = RES, mac = <<0:128>>},
+	EapData2 = ocs_eap_codec:eap_aka(AkaChallenge1),
+	EapPacket1 = #eap_packet{code = response, type = ?AKAprime,
+			identifier = NextEapId1, data = EapData2},
+	EapMessage3 = ocs_eap_codec:eap_packet(EapPacket1),
+	MAC2 = crypto:hmac(sha256, Kaut, EapMessage3, 16),
+	EapMessage4 = ocs_eap_codec:aka_set_mac(MAC2, EapMessage3),
+	NextRadiusId = RadiusId + 1,
+	radius_access_request(Socket, Address, Port, NasId,
+			PeerId1, Secret, StationID, ReqAuth, NextRadiusId, EapMessage4),
+	EapMessage5 = radius_access_accept(Socket,
+			Address, Port, Secret, NextRadiusId, ReqAuth),
+	#eap_packet{code = success,
+			identifier = NextEapId1} = ocs_eap_codec:eap_packet(EapMessage5).
 
 %%---------------------------------------------------------------------
 %%  Internal functions
@@ -436,18 +467,19 @@ transport_opts1({Trans, LocalAddr, RemAddr, RemPort}) ->
 
 %% @hidden
 radius_access_request(Socket, Address, Port, NasId,
-		UserName, Secret, Auth, RadId, EapMsg)
+		UserName, Secret, StationID, Auth, RadId, EapMsg)
 		when is_binary(UserName) ->
 	radius_access_request(Socket, Address, Port, NasId,
-			binary_to_list(UserName), Secret, Auth, RadId, EapMsg);
+			binary_to_list(UserName), Secret, StationID, Auth, RadId, EapMsg);
 radius_access_request(Socket, Address, Port, NasId,
-		UserName, Secret, Auth, RadId, EapMsg) ->
+		UserName, Secret, StationID, Auth, RadId, EapMsg) ->
 	A0 = radius_attributes:new(),
 	A1 = radius_attributes:add(?UserName, UserName, A0),
 	A2 = radius_attributes:add(?NasPortType, 19, A1),
 	A3 = radius_attributes:add(?NasIdentifier, NasId, A2),
-	A4 = radius_attributes:add(?CallingStationId, mac(), A3),
-	A5 = radius_attributes:add(?CalledStationId, mac(), A4),
+	A4 = radius_attributes:add(?CallingStationId, StationID, A3),
+	A5 = radius_attributes:add(?CalledStationId,
+			"FE-EF-DE-ED-CE-ED:TestSSID", A4),
 	A6 = radius_attributes:add(?EAPMessage, EapMsg, A5),
 	A7 = radius_attributes:add(?MessageAuthenticator, <<0:128>>, A6),
 	Request1 = #radius{code = ?AccessRequest, id = RadId,
@@ -487,12 +519,12 @@ receive_radius(Code, Socket, Address, Port, Secret, RadId, ReqAuth) ->
 
 %% @hidden
 send_radius_identity(Socket, Address, Port, NasId,
-		PeerId, Secret, Auth, EapId, RadId) ->
+		PeerId, Secret, StationID, Auth, EapId, RadId) ->
 	EapPacket  = #eap_packet{code = response, type = ?Identity,
 			identifier = EapId, data = PeerId},
 	EapMsg = ocs_eap_codec:eap_packet(EapPacket),
 	radius_access_request(Socket, Address, Port, NasId,
-			PeerId, Secret, Auth, RadId, EapMsg).
+			PeerId, Secret, StationID, Auth, RadId, EapMsg).
 
 %% @hidden
 send_diameter_identity(?EAP_APPLICATION_ID, SId, EapId, PeerId) ->
@@ -567,8 +599,7 @@ add_service(Name, ProdRef) ->
 	K = crypto:strong_rand_bytes(16),
 	OPc = crypto:strong_rand_bytes(16),
 	Credentials = #aka_cred{k = K, opc = OPc},
-	{ok, Service} = ocs:add_service(Name, Credentials,
-			ProdRef, []),
+	{ok, Service} = ocs:add_service(Name, Credentials, ProdRef, []),
 	Service.
 
 -spec sqn(DIF) -> SQN
@@ -618,7 +649,7 @@ kdf(CK, IK, "WLAN", SQN, AK)
 		S :: binary(),
 		N :: pos_integer(),
 		MK :: binary().
-%% @doc Pseudo-RANDom Number Function (PRF).
+%% @doc Pseudo-Random Number Function (PRF).
 %%
 %%      See RFC5448 3.4.
 %% @private
