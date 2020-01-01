@@ -490,7 +490,7 @@ add_service(Name, ProdRef) ->
 %%      3GPP RTS 33.102 Annex C.1.1.3.
 %% @private
 sqn(DIF) when is_integer(DIF) ->
-	(erlang:system_time(10) - DIF) bsl 5.
+	(erlang:system_time(10) - DIF) bsl 5.
 
 -spec amf() -> AMF
 	when
