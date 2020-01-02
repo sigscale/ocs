@@ -52,8 +52,6 @@
 		{aka_fsm :: undefined | pid()}).
 -type statedata() :: #statedata{}.
 
--define(TIMEOUT, 30000).
-
 %%----------------------------------------------------------------------
 %%  The ocs_eap_aka_auc_fsm API
 %%----------------------------------------------------------------------
@@ -72,14 +70,14 @@
 		StateName :: atom(),
 		StateData :: statedata(),
 		Timeout :: non_neg_integer() | infinity,
-		Reason ::term.
+		Reason :: term().
 %% @doc Initialize the {@module} finite state machine.
 %% @see //stdlib/gen_fsm:init/1
 %% @private
 %%
 init(_Args) ->
 	process_flag(trap_exit, true),
-	{ok, idle, #statedata{}, ?TIMEOUT}.
+	{ok, idle, #statedata{}}.
 
 -spec idle(Event, StateData) -> Result
 	when
@@ -103,9 +101,7 @@ idle({AkaFsm, Identity, ANID}, StateData)
 	idle1(AkaFsm, ANID, StateData, ocs:find_service(Identity));
 idle({AkaFsm, Identity}, StateData)
 		when is_pid(AkaFsm), is_binary(Identity) ->
-	idle1(AkaFsm, undefined, StateData, ocs:find_service(Identity));
-idle(timeout, StateData) ->
-	{stop, shutdown, StateData}.
+	idle1(AkaFsm, undefined, StateData, ocs:find_service(Identity)).
 %% @hidden
 idle1(_AkaFsm, _ANID, StateData,
 		{ok, #service{enabled = false}}) ->
@@ -157,7 +153,7 @@ idle1(_AkaFsm, _ANID, StateData, {error, Reason}) ->
 %% @private
 %%
 handle_event(_Event, StateName, StateData) ->
-	{next_state, StateName, StateData, ?TIMEOUT}.
+	{next_state, StateName, StateData}.
 
 -spec handle_sync_event(Event, From, StateName, StateData) -> Result
 	when
