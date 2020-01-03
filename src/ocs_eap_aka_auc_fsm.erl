@@ -128,10 +128,14 @@ idle1(AkaFsm, ANID, StateData,
 	<<CKprime:16/binary, IKprime:16/binary>> = kdf(CK, IK, ANID, SQN, AK),
 	gen_fsm:send_event(AkaFsm, {RAND, AUTN, CKprime, IKprime, XRES}),
 	{next_state, idle, StateData};
-idle1(_AkaFsm, _ANID, StateData, {error, not_found}) ->
+idle1(AkaFsm, _ANID, StateData, {error, not_found}) ->
+	gen_fsm:send_event(AkaFsm, {error, user_unknown}),
 	{next_state, idle, StateData};
-idle1(_AkaFsm, _ANID, StateData, {error, Reason}) ->
-	{stop, Reason, StateData}.
+idle1(AkaFsm, _ANID, StateData, {error, Reason}) ->
+	error_logger:error_report(["Service lookup failure",
+			{module, ?MODULE}, {error, Reason}]),
+	gen_fsm:send_event(AkaFsm, {error, Reason}),
+	{next_state, idle, StateData}.
 
 -spec handle_event(Event, StateName, StateData) -> Result
 	when
