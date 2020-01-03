@@ -1290,7 +1290,7 @@
 ;61.44       7
 
 @enum Report-Interval
-	250-ms              0
+   250-ms              0
    500-ms              1
    1000-ms             2
    2000-ms             3
