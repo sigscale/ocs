@@ -137,6 +137,11 @@
 										Prepaid Voice
 									</i18n-msg>
 								</paper-item>
+								<paper-item>
+									<i18n-msg msgid="preSms">
+										Prepaid Sms
+									</i18n-msg>
+								</paper-item>
 							</paper-listbox>
 						</paper-dropdown-menu>
 					</div>
@@ -1204,6 +1209,11 @@
 					prodSpecVoice.id = "9";
 					prodSpecVoice.href = "/catalogManagement/v2/productSpecification/9";
 					offerNew.productSpecification = prodSpecVoice;
+				} else if(specIndex == 2) {
+					var prodSpecSms = new Object();
+					prodSpecSms.id = "11";
+					prodSpecSms.href = "/catalogManagement/v2/productSpecification/11";
+					offerNew.productSpecification = prodSpecSms;
 				}
 				var startDateTime;
 				var endDateTime;
@@ -1564,6 +1574,8 @@
 				if(this.$.addOffProductSpecification.selected == 0) {
 					this.$.destPrefixTariff.disabled = true;
 				} else if(this.$.addOffProductSpecification.selected == 1) {
+					this.$.destPrefixTariff.disabled = false;
+				} else if(this.$.addOffProductSpecification.selected == 2) {
 					this.$.destPrefixTariff.disabled = false;
 				}
 			},
