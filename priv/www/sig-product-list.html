@@ -114,6 +114,16 @@
 						<div class="cell numeric">[[item.seconds]]</div>
 					</template>
 				</vaadin-grid-column>
+				<vaadin-grid-column width="12ex" flex-grow="2">
+					<template class="header">
+						<i18n-msg msgid="messages">
+							Messages
+						</i18n-msg>
+					</template>
+					<template>
+						<div class="cell numeric">[[item.messages]]</div>
+					</template>
+				</vaadin-grid-column>
 			</vaadin-grid-column-group>
 			<vaadin-grid-column width="15ex" flex-grow="5">
 				<template class="header">
@@ -273,6 +283,14 @@
 											newRecord.bytes = request.response[index].balance[indexPro].totalBalance.amount;
 										} else {
 											newRecord.bytes = request.response[index].balance[indexPro].totalBalance.amount;
+										}
+									}
+									if(request.response[index].balance[indexPro]
+												.totalBalance.units == "messages") {
+										if(!request.response[index].balance[indexPro].totalBalance.amount) {
+											newRecord.messages = request.response[index].balance[indexPro].totalBalance.amount;
+										} else {
+											newRecord.messages = request.response[index].balance[indexPro].totalBalance.amount;
 										}
 									}
 								}
