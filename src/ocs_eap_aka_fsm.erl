@@ -548,7 +548,7 @@ identity1(EapMessage, Request,
 %%		gen_fsm:send_event/2} in the <b>vector</b> state.
 %% @@see //stdlib/gen_fsm:StateName/2
 %% @private
-vector(timeout, #statedata{session_id = SessionId} = StateData)->
+vector(timeout, #statedata{session_id = SessionId} = StateData) ->
 	{stop, {shutdown, SessionId}, StateData};
 vector({RAND, AUTN, CK, IK, XRES}, #statedata{eap_id = EapID,
 		request = #radius{code = ?AccessRequest, id = RadiusID,
@@ -1118,7 +1118,7 @@ send_diameter_response(SessionId, AuthType,
 			'Auth-Request-Type' = AuthType,
 			'Result-Code' = ?'DIAMETER_BASE_RESULT-CODE_MULTI_ROUND_AUTH',
 			'Origin-Host' = OriginHost, 'Origin-Realm' = OriginRealm,
-			'EAP-Payload' = [EapMessage], 'User-Name' = Identity},
+			'EAP-Payload' = [EapMessage], 'User-Name' = [Identity]},
 	ok = ocs_log:auth_log(diameter, Server, Client, Request, Answer),
 	gen_server:cast(PortServer, {self(), Answer});
 send_diameter_response(SessionId, AuthType,
@@ -1138,7 +1138,7 @@ send_diameter_response(SessionId, AuthType,
 			'Auth-Request-Type' = AuthType,
 			'Result-Code' = ?'DIAMETER_BASE_RESULT-CODE_MULTI_ROUND_AUTH',
 			'Origin-Host' = OriginHost, 'Origin-Realm' = OriginRealm,
-			'EAP-Payload' = [EapMessage], 'User-Name' = Identity},
+			'EAP-Payload' = [EapMessage], 'User-Name' = [Identity]},
 	ok = ocs_log:auth_log(diameter, Server, Client, Request, Answer),
 	gen_server:cast(PortServer, {self(), Answer});
 send_diameter_response(SessionId, AuthType,
@@ -1157,7 +1157,7 @@ send_diameter_response(SessionId, AuthType,
 			'Auth-Request-Type' = AuthType,
 			'Result-Code' = ?'DIAMETER_BASE_RESULT-CODE_SUCCESS',
 			'Origin-Host' = OriginHost, 'Origin-Realm' = OriginRealm,
-			'EAP-Payload' = [EapMessage], 'User-Name' = Identity,
+			'EAP-Payload' = [EapMessage], 'User-Name' = [Identity],
 			'EAP-Master-Session-Key' = [MSK]},
 	ok = ocs_log:auth_log(diameter, Server, Client, Request, Answer),
 	gen_server:cast(PortServer, {self(), Answer});
@@ -1177,7 +1177,7 @@ send_diameter_response(SessionId, AuthType,
 			'Auth-Request-Type' = AuthType,
 			'Result-Code' = ?'DIAMETER_BASE_RESULT-CODE_SUCCESS',
 			'Origin-Host' = OriginHost, 'Origin-Realm' = OriginRealm,
-			'EAP-Payload' = [EapMessage], 'User-Name' = Identity,
+			'EAP-Payload' = [EapMessage], 'User-Name' = [Identity],
 			'EAP-Master-Session-Key' = [MSK]},
 	ok = ocs_log:auth_log(diameter, Server, Client, Request, Answer),
 	gen_server:cast(PortServer, {self(), Answer});
@@ -1199,7 +1199,7 @@ send_diameter_response(SessionId, AuthType,
 					'Vendor-Id' = 10415,
 					'Experimental-Result-Code' = ?'DIAMETER_ERROR_USER_UNKNOWN'},
 			'Origin-Host' = OriginHost, 'Origin-Realm' = OriginRealm,
-			'EAP-Payload' = [EapMessage], 'User-Name' = Identity,
+			'EAP-Payload' = [EapMessage], 'User-Name' = [Identity],
 			'EAP-Master-Session-Key' = [MSK]},
 	ok = ocs_log:auth_log(diameter, Server, Client, Request, Answer),
 	gen_server:cast(PortServer, {self(), Answer});
@@ -1222,7 +1222,7 @@ send_diameter_response(SessionId, AuthType, ResultCode,
 			'Origin-Host' = OriginHost,
 			'Origin-Realm' = OriginRealm,
 			'EAP-Payload' = [EapMessage],
-			'User-Name' = Identity},
+			'User-Name' = [Identity]},
 	ok = ocs_log:auth_log(diameter, Server, Client, Request, Answer),
 	gen_server:cast(PortServer, {self(), Answer});
 send_diameter_response(SessionId, AuthType, ResultCode,
@@ -1244,7 +1244,7 @@ send_diameter_response(SessionId, AuthType, ResultCode,
 			'Origin-Host' = OriginHost,
 			'Origin-Realm' = OriginRealm,
 			'EAP-Payload' = [EapMessage],
-			'User-Name' = Identity},
+			'User-Name' = [Identity]},
 	ok = ocs_log:auth_log(diameter, Server, Client, Request, Answer),
 	gen_server:cast(PortServer, {self(), Answer}).
 
