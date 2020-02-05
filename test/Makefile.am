@@ -53,7 +53,7 @@ check_DATA = .dialyzer_ok .common_test_ok
 	(cd $(CERT_DIR) && \
 		if [ ! -f CAkey.pem -o ! -f CAcert.pem ]; then \
 			openssl req -newkey rsa:2048 -nodes -x509 -days 30 \
-					-subj /C=CA/ST=Ontario/L=Toronto/O=Example/CN=$$(hostname)\/emailAddress=support@$$(hostname) \
+					-subj /C=CA/ST=Ontario/L=Toronto/O=Example/CN=.ca$$(hostname)\/emailAddress=support@$$(hostname) \
 					-keyout CAkey.pem -out CAcert.pem; \
 		fi; \
 		if [ ! -f key.pem -o ! -f cert.csr ]; then \
