@@ -254,8 +254,8 @@ patch_user(ID, Etag, "application/json-patch+json", ReqBody) ->
 		Id :: string(),
 		Result :: {ok, Headers :: [tuple()], Body :: iolist()}
 				| {error, ErrorCode :: integer()} .
-%% @doc Respond to `DELETE /ocs/v1/subscriber/{id}' request and deletes
-%% a `subscriber' resource. If the deletion is succeeded return true.
+%% @doc	Respond to `DELETE /partyManagement/v1/individual/{id}' request and
+%% 	delete an existing `user'.
 delete_user(Id) ->
 	case ocs:delete_user(Id) of
 		ok ->
