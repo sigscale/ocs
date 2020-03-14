@@ -4,19 +4,33 @@
 @doc This application implements an Online Charging System (OCS).
 
 ==Introduction==
-In a communications service provider (CSP) network an Online
-Charging System (OCS) is a core network element which performs
-real-time charging for services. An OCS authorizes subscribers'
-sessions subject to available credit on account and decrements
-account balance as services are consumed. When a subscriber's
-account balance is depleted authorization may be withdrawn and
-ongoing session(s) terminated.
 
-SigScale OCS includes a 3GPP AAA server function for authentication,
-authorization and accounting (AAA) of subscribers using DIAMETER
-or RADIUS protocols. TM Forum Open APIs for prepay balance
-management and product catalog management are supported with
-a web components front end.
+This application implements functions used by communications
+service providers (CSP) for authorization and charging of
+prepaid services. It is built to TM Forum standards with
+Open APIs for management of product, service and balance. A
+web components front end is also provided for standalone use.
+
+===AAA===
+Authentication, authorization and accounting (AAA) functions
+are the foundation to commercial operations of a CSP. Subscriber
+credentials may (optionally) be stored internally with
+authentication performed over DIAMETER/RADIUS using EAP methods
+(AKA/AKA', PWD, TTLS) or managed by an external AAA (e.g. 3GPP HSS).
+
+===OCS===
+An Online Charging System (OCS) performs real-time charging for
+services. An OCS authorizes subscribers' sessions subject to
+available credit on account and decrements account balance as
+services are consumed.  When a subscriber's account balance is
+depleted authorization may be withdrawn and ongoing session(s)
+terminated.
+
+===3GPP===
+This application conforms to 3GPP specifications for the interfaces,
+protocols and procedures of the OCS and 3GPP AAA Server functions
+in the reference architecture. Supported interfaces include
+DIAMETER Ro/Gy for OCS and DIAMETER SWm/SWa/SWx for AAA Server.
 
 ==Installation==
 Before starting the application for the first time, {@link //mnesia/mnesia. mnesia}
