@@ -4,30 +4,44 @@
 [Create Issue](https://sigscale.atlassian.net/secure/CreateIssue!default.jspa?pid=10100&issuetype=10000 "Create
  Issue")
 
-In a communications service provider (CSP) network an Online Charging
-System (OCS) is a core network element which performs real-time charging
-for services. An OCS authorizes subscribers' sessions subject to available
-credit on account and decrements account balance as services are consumed.
-When a subscriber's account balance is depleted authorization may be
-withdrawn and ongoing session(s) terminated.
+This application implements functions used by communications
+service providers (CSP) for authorization and charging of
+prepaid services. It is built to TM Forum standards with
+Open APIs for management of product, service and balance. A
+web components front end is also provided for standalone use.
 
-SigScale OCS includes a 3GPP AAA server function for authentication,
-authorization and accounting (AAA) of subscribers using DIAMETER or
-RADIUS protocols. TM Forum Open APIs for prepay balance management and
-product catalog management are supported with a web components front end.
+## AAA
+Authentication, authorization and accounting (AAA) functions
+are the foundation to commercial operations of a CSP. Subscriber
+credentials may (optionally) be stored internally with
+authentication performed over DIAMETER/RADIUS using EAP methods
+(AKA/AKA', PWD, TTLS) or managed by an external AAA (e.g. 3GPP HSS).
+
+## OCS
+An Online Charging System (OCS) performs real-time charging for
+services. An OCS authorizes subscribers' sessions subject to
+available credit on account and decrements account balance as
+services are consumed.  When a subscriber's account balance is
+depleted authorization may be withdrawn and ongoing session(s)
+terminated.
+
+## 3GPP
+This application conforms to 3GPP specifications for the interfaces,
+protocols and procedures of the OCS and 3GPP AAA Server functions
+in the reference architecture.
 
 ## Interfaces
-|Interface | Description               |
-|----------|---------------------------|
-|GUI       | Polymer Web Components    |
-|REST      | TM Forum Open APIs        |
-|CLI       | Erlang API                |
-|RADIUS    | AAA NAS Clients           |
-|DIAMETER  | 3GPP Ro/Gy/Wo             |
-|SNMP      | Performance Management    |
-|EAP-PWD   | Android, Linux            |
-|EAP-TTLS  | " + Apple, Windows        |
-|IPDR      | Billing Record Files      |
+|Interface | Description                    |
+|----------|--------------------------------|
+|GUI       | Polymer Web Components         |
+|REST      | TM Forum Open APIs             |
+|CLI       | Erlang API                     |
+|RADIUS    | AAA NAS Clients                |
+|DIAMETER  | 3GPP Ro/Gy/Wo,Swm/Swa,SWx      |
+|SNMP      | Performance Management         |
+|EAP-PWD   | Android, Linux                 |
+|EAP-TTLS  | Android, Linux, Apple, Windows |
+|IPDR      | Billing Record Files           |
 
 ### Graphical User Interface (GUI)
 A web front end built with Google [Polymer](https://www.polymer-project.org)
@@ -61,7 +75,8 @@ module development.
 SigScale OCS acts as either or both 3GPP AAA Server and 3GPP OCS.
 The DIAMETER Ro/Gy/Wo interface (3GPP 32.299) supports Session Charging with
 Unit Reservation (SCUR) and Event Charging with Unit Reservation (ECUR)
-in PS and IMS domains.
+in PS and IMS domains. Non-3GPP access is supported with DIAMETER SWm/SWa
+while DIAMETER SWx provides HSS interworking.
 
 ### [RADIUS](http://tools.ietf.org/html/rfc2865)
 The OCS acts as an authentication, authorization and accounting (AAA) server
@@ -75,10 +90,11 @@ a Network Management System (NMS) to interogate the Management Information
 Bases (MIB) supported including RADIUS and DIAMETER MIBs.
 
 #### Authentication & Authorization
-A NAS may use the RADIUS protocol to request authentication from the
-OCS (AAA server) for subscribers attempting access. The OCS may authorize
-access and provide specific service authorization information
-(i.e. data rate, class, session expiry time).
+A NAS may request authentication from the AAA server for subscribers
+attempting access. The OCS may authorize access and provide specific
+service authorization information (i.e. data rate, class, session expiry
+time). In a 3GPP context an external Home Subscriber Server (HSS) may
+provide AAA with or without proxy through SigScale AAA.
 
 #### Accounting
 A NAS may send accounting requests to the OCS (AAA server) at the end of
@@ -93,8 +109,13 @@ The Extensible Authentication Protocol (EAP) is an authentication framework
 which supports multiple authentication methods. In a WLAN (Wi-Fi) use case
 an EAP peer (supplicant) in a device (e.g. laptop or smartphone) sends
 EAP over LAN (EAPoL) to the AP (NAS) which tunnels the EAP over RADIUS to
-the OCS (AAA server). An EAP authentication method (e.g. PWD, TTLS) is
-negotiated and the peer authenticates directly with the OCS.
+the OCS (AAA server). An EAP authentication method (e.g. AKA', PWD, TTLS)
+is negotiated and the peer authenticates directly with the OCS.
+
+#### [EAP-AKA/AKA'](https://tools.ietf.org/html/rfc5448)
+The AKA/AKA' methods authenticate using the credentials (K/OPC) stored
+on the USIM of a mobile device providing mobile operators the same level
+of security on non-3GPP access (e.f. Wifi) as 3GPP radio access networks.
 
 #### [EAP-PWD](https://tools.ietf.org/html/rfc5931)
 The PWD method authenticates using only a username and a password. This
