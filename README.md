@@ -37,7 +37,7 @@ in the reference architecture.
 |REST      | TM Forum Open APIs             |
 |CLI       | Erlang API                     |
 |RADIUS    | AAA NAS Clients                |
-|DIAMETER  | 3GPP Ro/Gy/Wo,Swm/Swa,SWx      |
+|DIAMETER  | 3GPP Ro/Gy/Wo,SWm/STa,SWx      |
 |SNMP      | Performance Management         |
 |EAP-PWD   | Android, Linux                 |
 |EAP-TTLS  | Android, Linux, Apple, Windows |
@@ -75,7 +75,7 @@ module development.
 SigScale OCS acts as either or both 3GPP AAA Server and 3GPP OCS.
 The DIAMETER Ro/Gy/Wo interface (3GPP 32.299) supports Session Charging with
 Unit Reservation (SCUR) and Event Charging with Unit Reservation (ECUR)
-in PS and IMS domains. Non-3GPP access is supported with DIAMETER SWm/SWa
+in PS and IMS domains. Non-3GPP access is supported with DIAMETER SWm/STa
 while DIAMETER SWx provides HSS interworking.
 
 ### [RADIUS](http://tools.ietf.org/html/rfc2865)

@@ -30,7 +30,7 @@ terminated.
 This application conforms to 3GPP specifications for the interfaces,
 protocols and procedures of the OCS and 3GPP AAA Server functions
 in the reference architecture. Supported interfaces include
-DIAMETER Ro/Gy for OCS and DIAMETER SWm/SWa/SWx for AAA Server.
+DIAMETER Ro/Gy for OCS and DIAMETER SWm/STa/SWx for AAA Server.
 
 ==Installation==
 Before starting the application for the first time, {@link //mnesia/mnesia. mnesia}
