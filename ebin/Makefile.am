@@ -72,10 +72,12 @@ beam_DATA = ocs.beam \
 			ocs_rest_res_product.beam \
 			ocs_rest_res_service.beam \
 			diameter_gen_ietf.beam \
+			diameter_gen_etsi.beam \
 			diameter_gen_3gpp.beam \
 			diameter_gen_3gpp_ro_application.beam \
 			diameter_gen_3gpp_sta_application.beam \
 			diameter_gen_3gpp_swm_application.beam \
+			diameter_gen_3gpp_swx_application.beam \
 			diameter_gen_nas_application_rfc7155.beam \
 			diameter_gen_cc_application_rfc4006.beam \
 			diameter_gen_eap_application_rfc4072.beam \
@@ -101,6 +103,7 @@ beam_DATA = ocs.beam \
 		$(top_builddir)/include/diameter_gen_3gpp_ro_application.hrl \
 		$(top_builddir)/include/diameter_gen_3gpp_sta_application.hrl \
 		$(top_builddir)/include/diameter_gen_3gpp_swm_application.hrl \
+		$(top_builddir)/include/diameter_gen_3gpp_swx_application.hrl \
 		$(top_builddir)/include/diameter_gen_nas_application_rfc7155.hrl \
 		$(top_builddir)/include/diameter_gen_cc_application_rfc4006.hrl \
 		$(top_builddir)/include/diameter_gen_eap_application_rfc4072.hrl
@@ -108,6 +111,10 @@ beam_DATA = ocs.beam \
 
 diameter_gen_ietf.beam:$(top_builddir)/src/diameter_gen_ietf.erl \
 		$(top_builddir)/include/diameter_gen_ietf.hrl
+	$(ERLC) $(ERLCFLAGS) -I $(top_builddir)/include $<
+
+diameter_gen_etsi.beam:$(top_builddir)/src/diameter_gen_etsi.erl \
+		$(top_builddir)/include/diameter_gen_etsi.hrl
 	$(ERLC) $(ERLCFLAGS) -I $(top_builddir)/include $<
 
 diameter_gen_3gpp.beam:$(top_builddir)/src/diameter_gen_3gpp.erl \
@@ -124,6 +131,10 @@ diameter_gen_3gpp_sta_application.beam:$(top_builddir)/src/diameter_gen_3gpp_sta
 
 diameter_gen_3gpp_swm_application.beam:$(top_builddir)/src/diameter_gen_3gpp_swm_application.erl \
 		$(top_builddir)/include/diameter_gen_3gpp_swm_application.hrl
+	$(ERLC) $(ERLCFLAGS) -I $(top_builddir)/include $<
+
+diameter_gen_3gpp_swx_application.beam:$(top_builddir)/src/diameter_gen_3gpp_swx_application.erl \
+		$(top_builddir)/include/diameter_gen_3gpp_swx_application.hrl
 	$(ERLC) $(ERLCFLAGS) -I $(top_builddir)/include $<
 
 diameter_gen_nas_application_rfc7155.beam:$(top_builddir)/src/diameter_gen_nas_application_rfc7155.erl \

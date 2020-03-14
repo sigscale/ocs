@@ -1,0 +1,11 @@
+
+@name   diameter_gen_etsi
+@prefix etsi
+@vendor 13019 ETSI
+@inherits diameter_gen_base_rfc6733
+@inherits diameter_gen_ietf
+
+@avp_types
+
+   Line-Identifier                                         500  OctetString      VM
+

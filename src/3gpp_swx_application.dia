@@ -1,0 +1,48 @@
+
+@id 16777265
+@name   diameter_gen_3gpp_swx_application
+@vendor 10415 3GPP
+@prefix 3gpp_swx
+@inherits diameter_gen_base_rfc6733
+@inherits diameter_gen_ietf
+@inherits diameter_gen_3gpp
+@messages
+
+	MAR ::= < Diameter Header: 303, REQ, PXY >
+		< Session-Id >
+		{ Auth-Session-State }
+		{ Origin-Host }
+		{ Origin-Realm }
+		{ Destination-Realm }
+		{ SIP-Auth-Data-Item }
+		{ SIP-Number-Auth-Items }
+		[ DRMP ]
+		[ Destination-Host ]
+		[ User-Name ]
+		[ RAT-Type ]
+		[ ANID ]
+		[ Visited-Network-Identifier ]
+		[ Terminal-Information ]
+		[AAA-Failure-Indication ]
+		[ OC-Supported-Features ]
+		* [ Supported-Features ]
+		* [ AVP ]
+
+	MAA ::= < Diameter Header: 303, PXY >
+		< Session-Id >
+		{ Auth-Session-State }
+		{ Origin-Host }
+		{ Origin-Realm }
+		{ User-Name }
+		[ DRMP ]
+		[ Result-Code ]
+		[ Experimental-Result ]
+		[ SIP-Number-Auth-Items ]
+		* [ SIP-Auth-Data-Item ]
+		[ 3GPP-AAA-Server-Name ]
+		[ OC-Supported-Features ]
+		[ OC-OLR ]
+		*[ Load ]
+		* [ Supported-Features ]
+		* [ AVP ]
+

@@ -126,6 +126,12 @@
    Load                                                    650  Grouped          V
    Load-Type                                               651  Enumerated       V
    Load-Value                                              652  Unsigned64       V
+   ;; RFC4590 RADIUS Extension for Digest Authentication
+   Digest-Realm                                            104  UTF8String       M
+   Digest-QoP                                              110  UTF8String       M
+   Digest-Algorithm                                        111  UTF8String       M
+   Digest-HA1                                              121  UTF8String       M
+
 
 @grouped
 
@@ -147,7 +153,7 @@
       { Destination-Host }
      *[ AVP ]
 
-	MIP6-Agent-Info ::= <AVP Header: 486>
+   MIP6-Agent-Info ::= <AVP Header: 486>
     *2[ MIP-Home-Agent-Address ]
       [ MIP-Home-Agent-Host ]
       [ MIP6-Home-Link-Prefix ]

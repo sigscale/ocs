@@ -15,9 +15,11 @@ modhtml = ocs.html \
 			ocs_diameter_auth_sup.html \
 			diameter_gen_3gpp.html \
 			diameter_gen_ietf.html \
+			diameter_gen_etsi.html \
 			diameter_gen_3gpp_ro_application.html \
 			diameter_gen_3gpp_sta_application.html \
 			diameter_gen_3gpp_swm_application.html \
+			diameter_gen_3gpp_swx_application.html \
 			diameter_gen_cc_application_rfc4006.html \
 			diameter_gen_nas_application_rfc7155.html \
 			diameter_gen_eap_application_rfc4072.html \

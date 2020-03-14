@@ -4,6 +4,7 @@
 @vendor 10415 3GPP
 @inherits diameter_gen_base_rfc6733
 @inherits diameter_gen_ietf
+@inherits diameter_gen_etsi
 
 @avp_types
 
@@ -582,8 +583,20 @@
    UE-Usage-Type                                          1680  Unsigned32       V
    Core-Network-Restrictions                              1704  Unsigned32       V
    ;; 3GPP TS 29.229
+   SIP-Number-Auth-Items                                   607  Unsigned32       VM
+   SIP-Authentication-Scheme                               608  UTF8String       VM
+   SIP-Authenticate                                        609  OctetString      VM
+   SIP-Authorization                                       610  OctetString      VM
+   SIP-Authentication-Context                              611  OctetString      VM
+   SIP-Auth-Data-Item                                      612  Grouped          VM
+   SIP-Item-Number                                         613  Unsigned32       VM
+   Confidentiality-Key                                     625  OctetString      VM
+   Integrity-Key                                           626  OctetString      VM
    Supported-Features                                      628  Grouped          VM
+   SIP-Digest-Authenticate                                 635  Grouped          V
    ;; 3GPP TS 29.273
+   3GPP-AAA-Server-Name                                    318  DiameterIdentity VM
+   ANID                                                   1504  UTF8String       VM
    Emergency-Services                                     1538  Unsigned32       V
 
 @grouped
@@ -1256,11 +1269,33 @@
 ;     [ Interworking-5GS-Indicator ]
      *[ AVP ]
 
+   SIP-Auth-Data-Item ::= <AVP Header: 612>
+      [ SIP-Item-Number ]
+      [ SIP-Authentication-Scheme ]
+      [ SIP-Authenticate ]
+      [ SIP-Authorization ]
+      [ SIP-Authentication-Context ]
+      [ Confidentiality-Key ]
+      [ Integrity-Key ]
+      [ SIP-Digest-Authenticate ]
+      [ Framed-IP-Address ]
+      [ Framed-IPv6-Prefix ]
+      [ Framed-Interface-Id ]
+     *[ Line-Identifier ]
+     *[ AVP ]
+
    Supported-Features ::= <AVP Header: 628>
       { Vendor-Id }
 ;     { Feature-List-ID }
 ;     { Feature-List }
-     *[AVP]
+     *[ AVP ]
+
+   SIP-Digest-Authenticate ::= <AVP Header: 635>
+      { Digest-Realm }
+      { Digest-QoP }
+      { Digest-HA1}
+      [ Digest-Algorithm ]
+     *[ AVP ]
 
    Access-Network-Info ::= < AVP Header: 1526 10415 >
 ;     [ SSID ]
