@@ -19,6 +19,7 @@
 				ocs_diameter_3gpp_ro_application_cb,
 				ocs_diameter_3gpp_sta_application_cb,
 				ocs_diameter_3gpp_swm_application_cb,
+				ocs_diameter_3gpp_swx_application_cb,
 				ocs_diameter_disconnect_fsm_sup,
 				ocs_diameter_disconnect_fsm,
 				ocs_radius_acct_port_server,

@@ -27,6 +27,7 @@ modhtml = ocs.html \
 			ocs_diameter_3gpp_ro_application_cb.html \
 			ocs_diameter_3gpp_sta_application_cb.html \
 			ocs_diameter_3gpp_swm_application_cb.html \
+			ocs_diameter_3gpp_swx_application_cb.html \
 			ocs_diameter_cc_application_cb.html \
 			ocs_diameter_nas_application_cb.html \
 			ocs_diameter_eap_application_cb.html \
