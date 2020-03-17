@@ -92,8 +92,8 @@ pick_peer(_, _, _SvcName, _State) ->
 		Reason :: term(),
 		PostF :: diameter:evaluable().
 %% @doc Invoked to return a request for encoding and transport 
-prepare_request(_, _SvcName, _Peer) ->
-    discard.
+prepare_request(#diameter_packet{} = Packet, _ServiceName, _Peer) ->
+	{send, Packet}.
 
 -spec prepare_retransmit(Packet, SvcName, Peer) -> Action
 	when
