@@ -137,6 +137,11 @@
 										Prepaid Voice
 									</i18n-msg>
 								</paper-item>
+								<paper-item>
+									<i18n-msg msgid="preSms">
+										Prepaid Sms
+									</i18n-msg>
+								</paper-item>
 							</paper-listbox>
 						</paper-dropdown-menu>
 					</div>
@@ -354,6 +359,11 @@
 								<paper-item id="priceSeconds">
 									<i18n-msg msgid="seconds">
 										Seconds
+									</i18n-msg>
+								</paper-item>
+								<paper-item id="priceMessages">
+									<i18n-msg msgid="messages">
+										Messages
 									</i18n-msg>
 								</paper-item>
 							</paper-listbox>
@@ -730,6 +740,11 @@
 											Seconds
 										</i18n-msg>
 									</paper-item>
+									<paper-item id="altMessages">
+										<i18n-msg msgid="messages">
+											Messages
+										</i18n-msg>
+									</paper-item>
 							</paper-listbox>
 						</paper-dropdown-menu>
 						<paper-tooltip>
@@ -1015,6 +1030,9 @@
 							case "s":
 								this.$.addPriceUnits.selected = 2;
 								break;
+							case "msg":
+								this.$.addPriceUnits.selected = 3;
+								break;
 						}
 						this.$.addPriceCurrency.value = this.prices[indexPrice].currency;
 						this.$.addPriceAmount.value = this.prices[indexPrice].amount;
@@ -1097,6 +1115,9 @@
 								break;
 							case "s":
 								this.$.addAltUnitDrop.selected = 2;
+								break;
+							case "msg":
+								this.$.addAltUnitDrop.selected = 3;
 								break;
 						}
 						this.$.addAltCurrency.value = this.alterations[index].currency;
@@ -1188,6 +1209,11 @@
 					prodSpecVoice.id = "9";
 					prodSpecVoice.href = "/catalogManagement/v2/productSpecification/9";
 					offerNew.productSpecification = prodSpecVoice;
+				} else if(specIndex == 2) {
+					var prodSpecSms = new Object();
+					prodSpecSms.id = "11";
+					prodSpecSms.href = "/catalogManagement/v2/productSpecification/11";
+					offerNew.productSpecification = prodSpecSms;
 				}
 				var startDateTime;
 				var endDateTime;
@@ -1280,6 +1306,8 @@
 							} else {
 								out.unitOfMeasure = n.toString() + "s";
 							}
+						} else if(item.unit == "msg") {
+							out.unitOfMeasure = s + "msg";
 						}
 					}
 					var taxIncludedAmount;
@@ -1547,6 +1575,8 @@
 					this.$.destPrefixTariff.disabled = true;
 				} else if(this.$.addOffProductSpecification.selected == 1) {
 					this.$.destPrefixTariff.disabled = false;
+				} else if(this.$.addOffProductSpecification.selected == 2) {
+					this.$.destPrefixTariff.disabled = false;
 				}
 			},
 			checkPattern: function() {
@@ -1570,6 +1600,10 @@
 					this.$.addPriceCharReserveTime.pattern = "^[0-9]+[mh]?$";
 					this.$.addPriceCharReserveTime.disabled = false;
 					this.$.addPriceCharReserveBytes.disabled = true;
+				} else if(this.$.addPriceUnits.selected == 3) {
+					this.$.addPriceSize.allowedPattern = "[0-9]";
+					this.$.addPriceSize.pattern = "^[0-9]+$";
+					this.$.addPriceSize.disabled = false;
 				}
 			},
 			checkPatternAlt: function() {
@@ -1585,6 +1619,10 @@
 					this.$.addAltSize.allowedPattern = "[0-9mh]";
 					this.$.addAltSize.pattern = "^[0-9]+[mh]?$";
 					this.$.addAltSize.disabled = false;
+				} else if(this.$.addAltUnitDrop.selected == 3) {
+					this.$.addAltSize.allowedPattern = "[0-9]";
+					this.$.addAltSize.pattern = "^[0-9]+$";
+					this.$.addAltSize.disabled= false;
 				}
 			},
 			checkRecure: function() {
@@ -1592,6 +1630,7 @@
 					this.$.addPricePerioddrop.disabled = false;
 					this.$.priceBytes.disabled = true;
 					this.$.priceSeconds.disabled = true;
+					this.$.priceMessages.disabled = true;
 					this.$.priceCents.disabled = false;
 					this.$.addPriceCharReserveTime.disabled = true;
 					this.$.addPriceCharReserveBytes.disabled = true;
@@ -1601,14 +1640,16 @@
 					this.$.addPricePerioddrop.disabled = true;
 					this.$.priceBytes.disabled = true;
 					this.$.priceSeconds.disabled = true;
+					this.$.priceMessages.disabled = true;
 					this.$.priceCents.disabled = false;
 					this.$.addPriceCharReserveTime.disabled = true;
 					this.$.addPriceCharReserveBytes.disabled = true;
 					this.$.addPriceUnits.selected = 1;
-					this.$.addPriceAmount.false= false;
+					this.$.addPriceAmount.disabled = false;
 				} else if(this.$.addPriceType.selected == 2) {
 					this.$.addPricePerioddrop.disabled = true;
 					this.$.priceCents.disabled = true;
+					this.$.priceMessages.disabled = false;
 					this.$.priceBytes.disabled = false;
 					this.$.priceSeconds.disabled = false;
 					this.$.addPriceUnits.selected = 0;
@@ -1617,6 +1658,7 @@
 					this.$.addPricePerioddrop.disabled = true;
 					this.$.priceCents.disabled = true;
 					this.$.priceBytes.disabled = true;
+					this.$.priceMessages.disabled = false;
 					this.$.priceSeconds.disabled = false;
 					this.$.addPriceUnits.selected = 2;
 					this.$.addPriceAmount.disabled = true;
@@ -1629,18 +1671,21 @@
 					this.$.altBytes.disabled = false;
 					this.$.altSeconds.disabled = false;
 					this.$.altCents.disabled = false;
+					this.$.altMessages.disabled =true;
 					this.$.addAltUnitDrop.selected = 1;
 				} else if(this.$.addAltType.selected == 1) {
 					this.$.addalt5drop.disabled = true;
 					this.$.altBytes.disabled = false;
 					this.$.altSeconds.disabled = false;
 					this.$.altCents.disabled = false;
+					this.$.altMessages.disabled =true;
 					this.$.addAltUnitDrop.selected = 1;
 				} else if(this.$.addAltType.selected == 2) {
 					this.$.addalt5drop.disabled = true;
 					this.$.altBytes.disabled = false;
 					this.$.altSeconds.disabled = false;
 					this.$.altCents.disabled = true;
+					this.$.altMessages.disabled = false;
 				}
 			},
 			addPrice: function(event) {
@@ -1679,6 +1724,10 @@
 						break;
 					case 2:
 						priceNew.unit = "s";
+						break;
+					case 3:
+						priceNew.unit = "msg";
+						break;
 				}
 				if (this.$.addPriceAmount.value) {
 					priceNew.amount = this.$.addPriceAmount.value;
@@ -1844,6 +1893,9 @@
 						break
 					case 2:
 						altNew.unit = "s";
+						break
+					case 3:
+						altNew.unit = "msg";
 						break
 				}
 				if(altNew.name
