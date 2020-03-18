@@ -25,10 +25,10 @@ $(top_builddir)/ebin/%.beam:$(top_builddir)/src/%.erl
 $(top_builddir)/src/diameter_gen_ietf.erl:	$(top_srcdir)/src/ietf.dia
 	$(DIAMETERC) -H -o $(top_builddir)/src $<
 
-$(top_builddir)/src/diameter_gen_etsi.erl:	$(top_srcdir)/src/etsi.dia
-	$(DIAMETERC) -H -o $(top_builddir)/src $<
+$(top_builddir)/src/diameter_gen_etsi.erl:	$(top_srcdir)/src/etsi.dia $(top_builddir)/ebin/diameter_gen_ietf.beam
+	$(DIAMETERC) -i $(top_builddir)/ebin -H -o $(top_builddir)/src $<
 
-$(top_builddir)/src/diameter_gen_3gpp.erl:	$(top_srcdir)/src/3gpp.dia
+$(top_builddir)/src/diameter_gen_3gpp.erl:	$(top_srcdir)/src/3gpp.dia $(top_builddir)/ebin/diameter_gen_ietf.beam $(top_builddir)/ebin/diameter_gen_etsi.beam
 	$(DIAMETERC) -i $(top_builddir)/ebin -H -o $(top_builddir)/src $<
 
 $(top_builddir)/src/diameter_gen_3gpp_ro_application.erl:	$(top_srcdir)/src/3gpp_ro_application.dia
@@ -55,8 +55,8 @@ $(top_builddir)/src/diameter_gen_eap_application_rfc4072.erl:	$(top_srcdir)/src/
 diameter_gen_ietf.hrl:	$(top_srcdir)/src/ietf.dia
 	$(DIAMETERC) -E $<
 
-diameter_gen_etsi.hrl:	$(top_srcdir)/src/etsi.dia
-	$(DIAMETERC) -E $<
+diameter_gen_etsi.hrl:	$(top_srcdir)/src/etsi.dia $(top_builddir)/ebin/diameter_gen_ietf.beam
+	$(DIAMETERC) -i $(top_builddir)/ebin -E $<
 
 diameter_gen_3gpp.hrl:	$(top_srcdir)/src/3gpp.dia $(top_builddir)/ebin/diameter_gen_ietf.beam $(top_builddir)/ebin/diameter_gen_etsi.beam
 	$(DIAMETERC) -i $(top_builddir)/ebin -E $<
