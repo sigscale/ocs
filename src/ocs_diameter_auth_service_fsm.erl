@@ -73,6 +73,10 @@
 -define(SWm_APPLICATION_ID, 16777264).
 -define(SWm_APPLICATION_DICT, diameter_gen_3gpp_swm_application).
 -define(SWm_APPLICATION_CALLBACK, ocs_diameter_3gpp_swm_application_cb).
+-define(SWx_APPLICATION, ocs_diameter_3gpp_swx_application).
+-define(SWx_APPLICATION_ID, 16777265).
+-define(SWx_APPLICATION_DICT, diameter_gen_3gpp_swx_application).
+-define(SWx_APPLICATION_CALLBACK, ocs_diameter_3gpp_swx_application_cb).
 -define(IANA_PEN_3GPP, 10415).
 -define(IANA_PEN_SigScale, 50386).
 
@@ -350,8 +354,8 @@ service_options(Options) ->
 		{'Firmware-Revision', Version},
 		{'Supported-Vendor-Id',[?IANA_PEN_3GPP]},
 		{'Auth-Application-Id', [?NAS_APPLICATION_ID,
-				?EAP_APPLICATION_ID,
-				?STa_APPLICATION_ID, ?SWm_APPLICATION_ID]},
+				?EAP_APPLICATION_ID, ?STa_APPLICATION_ID,
+				?SWm_APPLICATION_ID, ?SWx_APPLICATION_ID]},
 		{restrict_connections, false},
 		{string_decode, false},
 		{application,
@@ -378,6 +382,11 @@ service_options(Options) ->
 				[{alias, ?SWm_APPLICATION},
 				{dictionary, ?SWm_APPLICATION_DICT},
 				{module, ?SWm_APPLICATION_CALLBACK},
+				{request_errors, callback}]},
+		{application,
+				[{alias, ?SWx_APPLICATION},
+				{dictionary, ?SWx_APPLICATION_DICT},
+				{module, ?SWx_APPLICATION_CALLBACK},
 				{request_errors, callback}]}].
 
 -spec transport_options(Transport, Address, Port) -> Options
