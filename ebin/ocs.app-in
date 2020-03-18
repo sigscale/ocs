@@ -134,6 +134,8 @@
 				{tls_cert, "%APP_PRIV%/cert.pem"},
 				{tls_cacert, "%APP_PRIV%/CAcert.pem"},
 				{aka_kpseu, [{1, <<0:128>>}]},
+				{hss_realm, undefined},
+				{hss_host, undefined},
 				{rest_page_size, 1000},
 				{rest_page_timeout, 60000}]},
 		{mod, {ocs_app, []}}]}.

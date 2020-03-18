@@ -49,7 +49,9 @@
 -include_lib("diameter/include/diameter.hrl").
 
 -record(statedata,
-		{aka_fsm :: undefined | pid()}).
+		{aka_fsm :: undefined | pid(),
+		hss_realm :: string(),
+		hss_host :: string()}).
 -type statedata() :: #statedata{}.
 
 %%----------------------------------------------------------------------
@@ -77,7 +79,9 @@
 %%
 init(_Args) ->
 	process_flag(trap_exit, true),
-	{ok, idle, #statedata{}}.
+	{ok, HssRealm} = application:get_env(hss_realm),
+	{ok, HssHost} = application:get_env(hss_host),
+	{ok, idle, #statedata{hss_realm = HssRealm, hss_host = HssHost}}.
 
 -spec idle(Event, StateData) -> Result
 	when
@@ -129,7 +133,8 @@ idle1(AkaFsm, ANID, StateData,
 	<<CKprime:16/binary, IKprime:16/binary>> = kdf(CK, IK, ANID, SQN, AK),
 	gen_fsm:send_event(AkaFsm, {RAND, AUTN, CKprime, IKprime, XRES}),
 	{next_state, idle, StateData};
-idle1(AkaFsm, _ANID, StateData, {error, not_found}) ->
+idle1(AkaFsm, _ANID, #statedata{hss_realm = undefined] = StateData,
+		{error, not_found}) ->
 	gen_fsm:send_event(AkaFsm, {error, user_unknown}),
 	{next_state, idle, StateData};
 idle1(AkaFsm, _ANID, StateData, {error, Reason}) ->
