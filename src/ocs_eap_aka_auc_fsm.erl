@@ -45,18 +45,23 @@
 			terminate/3, code_change/4]).
 
 -include("ocs.hrl").
+-include("diameter_gen_3gpp_swx_application.hrl").
 -include_lib("radius/include/radius.hrl").
 -include_lib("diameter/include/diameter.hrl").
 
 -record(statedata,
-		{aka_fsm :: pid(),
-		identity :: string() | undefined,
+		{aka_fsm :: pid() | undefined,
+		identity :: binary() | undefined,
 		anid :: string() | undefined,
-		origin_host :: string(),
-		origin_realm :: string(),
-		hss_realm :: string() | undefined,
-		hss_host :: string() | undefined}).
+		service :: term(),
+		origin_host :: binary(),
+		origin_realm :: binary(),
+		hss_realm :: binary() | undefined,
+		hss_host :: binary() | undefined}).
 -type statedata() :: #statedata{}.
+
+-define(SWx_APPLICATION_DICT, diameter_gen_3gpp_swx_application).
+-define(SWx_APPLICATION, ocs_diameter_3gpp_swx_application).
 
 %%----------------------------------------------------------------------
 %%  The ocs_eap_aka_auc_fsm API
@@ -88,7 +93,9 @@ init([_Sup, _Protocol, _ServerAddress, _ServerPort,
 	process_flag(trap_exit, true),
 	{ok, HssRealm} = application:get_env(hss_realm),
 	{ok, HssHost} = application:get_env(hss_host),
-	{ok, idle, #statedata{origin_host = OHost, origin_realm = ORealm,
+	Service = lists:keyfind(ocs_diameter_auth_service, 1, diameter:services()),
+	{ok, idle, #statedata{service = Service,
+			origin_host = OHost, origin_realm = ORealm,
 			hss_realm = HssRealm, hss_host = HssHost}}.
 
 -spec idle(Event, StateData) -> Result
@@ -150,7 +157,12 @@ idle1({error, not_found}, #statedata{hss_realm = undefined,
 	{next_state, idle, StateData};
 idle1({error, not_found},
 		#statedata{hss_realm = _HssRealm} = StateData) ->
-	{next_state, auth, StateData};
+	case send_diameter_request(StateData) of
+		ok ->
+			{next_state, auth, StateData};
+		{error, Reason} ->
+			{stop, Reason, StateData}
+	end;
 idle1({error, Reason}, #statedata{aka_fsm = AkaFsm} = StateData) ->
 	error_logger:error_report(["Service lookup failure",
 			{module, ?MODULE}, {error, Reason}]),
@@ -342,4 +354,50 @@ kdf(CK, IK, "WLAN", SQN, AK)
 	SQNi = SQN bxor AK,
 	crypto:hmac(sha256, <<CK/binary, IK/binary>>,
 			<<16#20, "WLAN", 4:16, SQNi:48, 6:16>>).
+
+-spec send_diameter_request(StateData) -> Result
+	when
+		StateData :: #statedata{},
+		Result :: ok | {error, Reason},
+		Reason :: term().
+%% @doc Send DIAMETER request to HSS.
+%% @hidden
+send_diameter_request(#statedata{hss_host = undefined,
+		hss_realm = HssRealm, origin_host = OriginHost,
+		origin_realm = OriginRealm} = StateData) ->
+	SessionId = diameter:session_id([OriginHost]),
+	Request = #'3gpp_swx_MAR'{'Session-Id' = SessionId,
+			'Origin-Realm' = OriginRealm, 'Origin-Host' = OriginHost,
+			'Destination-Realm' = HssRealm},
+	send_diameter_request1(Request, StateData);
+send_diameter_request(#statedata{hss_host = HssHost,
+		hss_realm = HssRealm, origin_host = OriginHost,
+		origin_realm = OriginRealm} = StateData) ->
+	SessionId = diameter:session_id([OriginHost]),
+	Request = #'3gpp_swx_MAR'{'Session-Id' = SessionId,
+			'Origin-Realm' = OriginRealm, 'Origin-Host' = OriginHost,
+			'Destination-Realm' = HssRealm, 'Destination-Host' = HssHost},
+	send_diameter_request1(Request, StateData).
+%% @hidden
+send_diameter_request1(Request1, #statedata{anid = undefined,
+		identity = Identity} = StateData) ->
+	AuthData = #'3gpp_swx_SIP-Auth-Data-Item'{
+			'SIP-Authentication-Scheme' = <<"EAP-AKA">>},
+	Request2 = Request1#'3gpp_swx_MAR'{'User-Name' =  Identity,
+			'SIP-Number-Auth-Items' = 1,
+			'SIP-Auth-Data-Item' = AuthData},
+	send_diameter_request2(Request2, StateData);
+send_diameter_request1(Request1, #statedata{anid = ANID,
+		identity = Identity} = StateData) ->
+	AuthData = #'3gpp_swx_SIP-Auth-Data-Item'{
+			'SIP-Authentication-Scheme' = <<"EAP-AKA'">>},
+	Request2 = Request1#'3gpp_swx_MAR'{'User-Name' =  Identity,
+			'ANID' = list_to_binary(ANID), 'SIP-Number-Auth-Items' = 1,
+			'SIP-Auth-Data-Item' = AuthData},
+	send_diameter_request2(Request2, StateData).
+%% @hidden
+send_diameter_request2(Request1, #statedata{service = Service} = _StateData) ->
+	Request2 = Request1#'3gpp_swx_MAR'{'Auth-Session-State' = 1},
+	diameter:call(Service, ?SWx_APPLICATION,
+			Request2, [detach, {extra, [self()]}]).
 
