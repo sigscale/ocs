@@ -49,9 +49,11 @@
 -include_lib("diameter/include/diameter.hrl").
 
 -record(statedata,
-		{aka_fsm :: undefined | pid(),
-		hss_realm :: string(),
-		hss_host :: string()}).
+		{aka_fsm :: pid() | undefined,
+		identity :: string() | undefined,
+		anid :: string() | undefined,
+		hss_realm :: string() | undefined,
+		hss_host :: string() | undefined}).
 -type statedata() :: #statedata{}.
 
 %%----------------------------------------------------------------------
@@ -102,17 +104,20 @@ init(_Args) ->
 %%
 idle({AkaFsm, Identity, ANID}, StateData)
 		when is_pid(AkaFsm), is_binary(Identity), is_list(ANID) ->
-	idle1(AkaFsm, ANID, StateData, ocs:find_service(Identity));
+	NewStateData = StateData#statedata{aka_fsm = AkaFsm,
+			identity = Identity, anid = ANID},
+	idle1(ocs:find_service(Identity), NewStateData);
 idle({AkaFsm, Identity}, StateData)
 		when is_pid(AkaFsm), is_binary(Identity) ->
-	idle1(AkaFsm, undefined, StateData, ocs:find_service(Identity)).
+	NewStateData = StateData#statedata{aka_fsm = AkaFsm, identity = Identity},
+	idle1(ocs:find_service(Identity), NewStateData).
 %% @hidden
-idle1(AkaFsm, _ANID, StateData,
-		{ok, #service{enabled = false}}) ->
+idle1({ok, #service{enabled = false}},
+		#statedata{aka_fsm = AkaFsm} = StateData) ->
 	gen_fsm:send_event(AkaFsm, {error, disabled}),
 	{next_state, idle, StateData};
-idle1(AkaFsm, undefined, StateData,
-		{ok, #service{password = #aka_cred{k = K, opc = OPc, dif = DIF}}}) ->
+idle1({ok, #service{password = #aka_cred{k = K, opc = OPc, dif = DIF}}},
+		#statedata{anid = undefined, aka_fsm = AkaFsm} = StateData) ->
 	RAND = ocs_milenage:f0(),
 	{XRES, CK, IK, <<AK:48>>} = ocs_milenage:f2345(OPc, K, RAND),
 	SQN = sqn(DIF),
@@ -121,8 +126,8 @@ idle1(AkaFsm, undefined, StateData,
 	AUTN = autn(SQN, AK, AMF, MAC),
 	gen_fsm:send_event(AkaFsm, {RAND, AUTN, CK, IK, XRES}),
 	{next_state, idle, StateData};
-idle1(AkaFsm, ANID, StateData,
-		{ok, #service{password = #aka_cred{k = K, opc = OPc, dif = DIF}}}) ->
+idle1({ok, #service{password = #aka_cred{k = K, opc = OPc, dif = DIF}}},
+		#statedata{anid = ANID, aka_fsm = AkaFsm} = StateData) ->
 	RAND = ocs_milenage:f0(),
 	{XRES, CK, IK, <<AK:48>>} = ocs_milenage:f2345(OPc, K, RAND),
 	SQN = sqn(DIF),
@@ -133,14 +138,14 @@ idle1(AkaFsm, ANID, StateData,
 	<<CKprime:16/binary, IKprime:16/binary>> = kdf(CK, IK, ANID, SQN, AK),
 	gen_fsm:send_event(AkaFsm, {RAND, AUTN, CKprime, IKprime, XRES}),
 	{next_state, idle, StateData};
-idle1(AkaFsm, _ANID, #statedata{hss_realm = undefined} = StateData,
-		{error, not_found}) ->
+idle1({error, not_found}, #statedata{hss_realm = undefined,
+		aka_fsm = AkaFsm} = StateData) ->
 	gen_fsm:send_event(AkaFsm, {error, user_unknown}),
 	{next_state, idle, StateData};
-idle1(_AkaFsm, _ANID, #statedata{hss_realm = _HssRealm} = StateData,
-		{error, not_found}) ->
+idle1({error, not_found},
+		#statedata{hss_realm = _HssRealm} = StateData) ->
 	{next_state, auth, StateData};
-idle1(AkaFsm, _ANID, StateData, {error, Reason}) ->
+idle1({error, Reason}, #statedata{aka_fsm = AkaFsm} = StateData) ->
 	error_logger:error_report(["Service lookup failure",
 			{module, ?MODULE}, {error, Reason}]),
 	gen_fsm:send_event(AkaFsm, {error, Reason}),
