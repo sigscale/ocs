@@ -103,8 +103,9 @@ idle({AkaFsm, Identity}, StateData)
 		when is_pid(AkaFsm), is_binary(Identity) ->
 	idle1(AkaFsm, undefined, StateData, ocs:find_service(Identity)).
 %% @hidden
-idle1(_AkaFsm, _ANID, StateData,
+idle1(AkaFsm, _ANID, StateData,
 		{ok, #service{enabled = false}}) ->
+	gen_fsm:send_event(AkaFsm, {error, disabled}),
 	{next_state, idle, StateData};
 idle1(AkaFsm, undefined, StateData,
 		{ok, #service{password = #aka_cred{k = K, opc = OPc, dif = DIF}}}) ->
