@@ -38,7 +38,7 @@
 -export([]).
 
 %% export the ocs_eap_aka_auc_fsm state callbacks
--export([idle/2]).
+-export([idle/2, auth/2]).
 
 %% export the call backs needed for gen_fsm behaviour
 -export([init/1, handle_event/3, handle_sync_event/4, handle_info/3,
@@ -133,14 +133,37 @@ idle1(AkaFsm, ANID, StateData,
 	<<CKprime:16/binary, IKprime:16/binary>> = kdf(CK, IK, ANID, SQN, AK),
 	gen_fsm:send_event(AkaFsm, {RAND, AUTN, CKprime, IKprime, XRES}),
 	{next_state, idle, StateData};
-idle1(AkaFsm, _ANID, #statedata{hss_realm = undefined] = StateData,
+idle1(AkaFsm, _ANID, #statedata{hss_realm = undefined} = StateData,
 		{error, not_found}) ->
 	gen_fsm:send_event(AkaFsm, {error, user_unknown}),
 	{next_state, idle, StateData};
+idle1(_AkaFsm, _ANID, #statedata{hss_realm = _HssRealm} = StateData,
+		{error, not_found}) ->
+	{next_state, auth, StateData};
 idle1(AkaFsm, _ANID, StateData, {error, Reason}) ->
 	error_logger:error_report(["Service lookup failure",
 			{module, ?MODULE}, {error, Reason}]),
 	gen_fsm:send_event(AkaFsm, {error, Reason}),
+	{next_state, idle, StateData}.
+
+-spec auth(Event, StateData) -> Result
+	when
+		Event :: timeout | term(),
+		StateData :: statedata(),
+		Result :: {next_state, NextStateName, NewStateData} | {next_state, NextStateName, NewStateData,
+		Timeout}
+		| {next_state, NextStateName, NewStateData, hibernate}
+		| {stop, Reason, NewStateData},
+		NextStateName :: atom(),
+		NewStateData :: statedata(),
+		Timeout :: non_neg_integer() | infinity,
+		Reason :: normal | term().
+%% @doc Handle events sent with {@link //stdlib/gen_fsm:send_event/2.
+%%		gen_fsm:send_event/2} in the <b>auth</b> state.
+%% @@see //stdlib/gen_fsm:StateName/2
+%% @private
+%%
+auth(_Event, StateData) ->
 	{next_state, idle, StateData}.
 
 -spec handle_event(Event, StateName, StateData) -> Result
