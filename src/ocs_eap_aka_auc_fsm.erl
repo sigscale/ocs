@@ -49,9 +49,11 @@
 -include_lib("diameter/include/diameter.hrl").
 
 -record(statedata,
-		{aka_fsm :: pid() | undefined,
+		{aka_fsm :: pid(),
 		identity :: string() | undefined,
 		anid :: string() | undefined,
+		origin_host :: string(),
+		origin_realm :: string(),
 		hss_realm :: string() | undefined,
 		hss_host :: string() | undefined}).
 -type statedata() :: #statedata{}.
@@ -79,11 +81,15 @@
 %% @see //stdlib/gen_fsm:init/1
 %% @private
 %%
-init(_Args) ->
+init([_Sup, _Protocol, _ServerAddress, _ServerPort,
+		_ClientAddress, _ClientPort, _PasswordReq, _Trusted,
+		_SessionId, _ApplicationId, _AuthReqType, OHost, ORealm,
+		_DHost, _DRealm, _Request, _Options] = _Args) ->
 	process_flag(trap_exit, true),
 	{ok, HssRealm} = application:get_env(hss_realm),
 	{ok, HssHost} = application:get_env(hss_host),
-	{ok, idle, #statedata{hss_realm = HssRealm, hss_host = HssHost}}.
+	{ok, idle, #statedata{origin_host = OHost, origin_realm = ORealm,
+			hss_realm = HssRealm, hss_host = HssHost}}.
 
 -spec idle(Event, StateData) -> Result
 	when
