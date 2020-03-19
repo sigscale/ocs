@@ -120,7 +120,7 @@ prepare_request(#diameter_packet{} = Packet, _ServiceName, _Peer, _Fsm) ->
 %% @doc Invoked to return a request for encoding and retransmission.
 %% In case of peer connection is lost alternate peer is selected.
 prepare_retransmit(Packet, ServiceName, Peer, Fsm) ->
-	prepare_request(Packet, ServiceName, Peer).
+	prepare_request(Packet, ServiceName, Peer, Fsm).
 
 -spec handle_answer(Packet, Request, ServiceName, Peer, Fsm) -> Result
 	when
