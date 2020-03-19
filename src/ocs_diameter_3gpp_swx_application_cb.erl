@@ -133,7 +133,7 @@ prepare_retransmit(Packet, ServiceName, Peer, Fsm) ->
 %% @doc Invoked when an answer message is received from a peer.
 handle_answer(#diameter_packet{msg = Message} = _Packet,
 		 _Request, _ServiceName, _Peer, Fsm) ->
-    gen_fsm:send(Fsm, {ok, Message}).
+    gen_fsm:send_event(Fsm, {ok, Message}).
 
 -spec handle_error(Reason, Request, ServiceName, Peer, Fsm) -> Result
 	when
@@ -146,7 +146,7 @@ handle_answer(#diameter_packet{msg = Message} = _Packet,
 %% @doc Invoked when an error occurs before an answer message is received
 %% in response to an outgoing request.
 handle_error(Reason, _Request, _ServiceName, _Peer, Fsm) ->
-    gen_fsm:send(Fsm, {error, Reason}).
+    gen_fsm:send_event(Fsm, {error, Reason}).
 
 -spec handle_request(Packet, ServiceName, Peer) -> Action
 	when
