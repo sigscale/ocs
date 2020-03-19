@@ -188,7 +188,7 @@ idle1({error, Reason}, #statedata{aka_fsm = AkaFsm} = StateData) ->
 auth({ok, #'3gpp_swx_MAA'{'Origin-Host' = HssHost,
 		'Origin-Realm' = HssRealm,
 		'SIP-Auth-Data-Item' = [#'3gpp_swx_SIP-Auth-Data-Item'{
-		'SIP-Authentication-Scheme' = ["EAP-AKA"],
+		'SIP-Authentication-Scheme' = "EAP-AKA",
 		'SIP-Authenticate' = <<RAND:8/binary, AUTN:8/binary>>,
 		'SIP-Authorization' = XRES,
 		'Confidentiality-Key' = CK,
@@ -201,7 +201,7 @@ auth({ok, #'3gpp_swx_MAA'{'Origin-Host' = HssHost,
 auth({ok, #'3gpp_swx_MAA'{'Origin-Host' = HssHost,
 		'Origin-Realm' = HssRealm,
 		'SIP-Auth-Data-Item' = [#'3gpp_swx_SIP-Auth-Data-Item'{
-		'SIP-Authentication-Scheme' = ["EAP-AKA'"],
+		'SIP-Authentication-Scheme' = "EAP-AKA'",
 		'SIP-Authenticate' = <<RAND:8/binary, AUTN:8/binary>>,
 		'SIP-Authorization' = XRES,
 		'Confidentiality-Key' = CKprime,
