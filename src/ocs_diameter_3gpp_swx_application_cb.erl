@@ -131,8 +131,9 @@ prepare_retransmit(Packet, ServiceName, Peer, Fsm) ->
 		Fsm :: pid(),
 		Result :: term().
 %% @doc Invoked when an answer message is received from a peer.
-handle_answer(Packet, _Request, _ServiceName, _Peer, Fsm) ->
-    gen_fsm:send(Fsm, {ok, Packet}).
+handle_answer(#diameter_packet{msg = Message} = _Packet,
+		 _Request, _ServiceName, _Peer, Fsm) ->
+    gen_fsm:send(Fsm, {ok, Message}).
 
 -spec handle_error(Reason, Request, ServiceName, Peer, Fsm) -> Result
 	when

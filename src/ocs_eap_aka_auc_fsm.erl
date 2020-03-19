@@ -185,8 +185,32 @@ idle1({error, Reason}, #statedata{aka_fsm = AkaFsm} = StateData) ->
 %% @@see //stdlib/gen_fsm:StateName/2
 %% @private
 %%
-auth({ok, Packet} = _Event, #statedata{aka_fsm = _AkaFsm} = StateData) ->
-	{next_state, idle, StateData};
+auth({ok, #'3gpp_swx_MAA'{'Origin-Host' = HssHost,
+		'Origin-Realm' = HssRealm,
+		'SIP-Auth-Data-Item' = [#'3gpp_swx_SIP-Auth-Data-Item'{
+		'SIP-Authentication-Scheme' = ["EAP-AKA"],
+		'SIP-Authenticate' = <<RAND:8/binary, AUTN:8/binary>>,
+		'SIP-Authorization' = XRES,
+		'Confidentiality-Key' = CK,
+		'Integrity-Key' = IK}]}},
+		#statedata{aka_fsm = AkaFsm} = StateData) ->
+	gen_fsm:send_event(AkaFsm, {RAND, AUTN, CK, IK, XRES}),
+	NewStateData =StateData#statedata{hss_realm = HssRealm,
+			hss_host = HssHost},
+	{next_state, idle, NewStateData};
+auth({ok, #'3gpp_swx_MAA'{'Origin-Host' = HssHost,
+		'Origin-Realm' = HssRealm,
+		'SIP-Auth-Data-Item' = [#'3gpp_swx_SIP-Auth-Data-Item'{
+		'SIP-Authentication-Scheme' = ["EAP-AKA'"],
+		'SIP-Authenticate' = <<RAND:8/binary, AUTN:8/binary>>,
+		'SIP-Authorization' = XRES,
+		'Confidentiality-Key' = CKprime,
+		'Integrity-Key' = IKprime}]}},
+		#statedata{aka_fsm = AkaFsm} = StateData) ->
+	gen_fsm:send_event(AkaFsm, {RAND, AUTN, CKprime, IKprime, XRES}),
+	NewStateData = StateData#statedata{hss_realm = HssRealm,
+			hss_host = HssHost},
+	{next_state, idle, NewStateData};
 auth({error, Reason}, #statedata{aka_fsm = AkaFsm} = StateData) ->
 	gen_fsm:send_event(AkaFsm, {error, Reason}),
 	{next_state, idle, StateData}.
