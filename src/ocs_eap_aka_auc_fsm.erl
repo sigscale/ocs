@@ -86,16 +86,15 @@
 %% @see //stdlib/gen_fsm:init/1
 %% @private
 %%
-init([_Sup, _Protocol, _ServerAddress, _ServerPort,
-		_ClientAddress, _ClientPort, _PasswordReq, _Trusted,
-		_SessionId, _ApplicationId, _AuthReqType, OHost, ORealm,
-		_DHost, _DRealm, _Request, _Options] = _Args) ->
+init(_Args) ->
 	process_flag(trap_exit, true),
 	{ok, HssRealm} = application:get_env(hss_realm),
 	{ok, HssHost} = application:get_env(hss_host),
 	Service = lists:keyfind(ocs_diameter_auth_service, 1, diameter:services()),
+	OriginRealm = diameter:service_info(Service, 'Origin-Realm'),
+	OriginHost = diameter:service_info(Service, 'Origin-Host'),
 	{ok, idle, #statedata{service = Service,
-			origin_host = OHost, origin_realm = ORealm,
+			origin_host = OriginHost, origin_realm = OriginRealm,
 			hss_realm = HssRealm, hss_host = HssHost}}.
 
 -spec idle(Event, StateData) -> Result
