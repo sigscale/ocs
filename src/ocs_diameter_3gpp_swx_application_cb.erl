@@ -25,8 +25,8 @@
 -module(ocs_diameter_3gpp_swx_application_cb).
 -copyright('Copyright (c) 2016 - 2020 SigScale Global Inc.').
 
--export([peer_up/3, peer_down/3, pick_peer/4, prepare_request/3,
-		prepare_retransmit/3, handle_answer/4, handle_error/4,
+-export([peer_up/3, peer_down/3, pick_peer/5, prepare_request/4,
+		prepare_retransmit/4, handle_answer/5, handle_error/5,
 		handle_request/3]).
 
 -include_lib("diameter/include/diameter.hrl").
@@ -73,40 +73,45 @@ peer_up(_ServiceName, _Peer, State) ->
 peer_down(_ServiceName, _Peer, State) ->
     State.
 
--spec pick_peer(LocalCandidates, RemoteCandidates, ServiceName, State) -> Result
+-spec pick_peer(LocalCandidates, RemoteCandidates,
+		ServiceName, State, Fsm) -> Result
 	when
 		LocalCandidates :: [peer()],
 		RemoteCandidates :: [peer()],
 		ServiceName :: diameter:service_name(),
 		State :: state(),
+		Fsm :: pid(),
 		NewState :: state(),
 		Selection :: {ok, Peer} | {Peer, NewState},
 		Peer :: peer() | false,
 		Result :: Selection | false.
 %% @doc Invoked as a consequence of a call to diameter:call/4 to select
 %% a destination peer for an outgoing request. 
-pick_peer([Peer | _] = _LocalCandidates, _RemoteCandidates, _ServiceName, _State) ->
+pick_peer([Peer | _] = _LocalCandidates, _RemoteCandidates,
+		_ServiceName, _State, _Fsm) ->
 	{ok, Peer}.
 
--spec prepare_request(Packet, ServiceName, Peer) -> Action
+-spec prepare_request(Packet, ServiceName, Peer, Fsm) -> Action
 	when
 		Packet :: packet(),
 		ServiceName :: diameter:service_name(),
 		Peer :: peer(),
+		Fsm :: pid(),
 		Action :: Send | Discard | {eval_packet, Action, PostF},
 		Send :: {send, packet() | message()},
 		Discard :: {discard, Reason} | discard,
 		Reason :: term(),
 		PostF :: diameter:evaluable().
 %% @doc Invoked to return a request for encoding and transport 
-prepare_request(#diameter_packet{} = Packet, _ServiceName, _Peer) ->
+prepare_request(#diameter_packet{} = Packet, _ServiceName, _Peer, _Fsm) ->
 	{send, Packet}.
 
--spec prepare_retransmit(Packet, ServiceName, Peer) -> Action
+-spec prepare_retransmit(Packet, ServiceName, Peer, Fsm) -> Action
 	when
 		Packet :: packet(),
 		ServiceName :: diameter:service_name(),
 		Peer :: peer(),
+		Fsm :: pid(),
 		Action :: Send | Discard | {eval_packet, Action, PostF},
 		Send :: {send, packet() | message()},
 		Discard :: {discard, Reason} | discard,
@@ -114,31 +119,33 @@ prepare_request(#diameter_packet{} = Packet, _ServiceName, _Peer) ->
 		PostF :: diameter:evaluable().
 %% @doc Invoked to return a request for encoding and retransmission.
 %% In case of peer connection is lost alternate peer is selected.
-prepare_retransmit(Packet, ServiceName, Peer) ->
+prepare_retransmit(Packet, ServiceName, Peer, Fsm) ->
 	prepare_request(Packet, ServiceName, Peer).
 
--spec handle_answer(Packet, Request, ServiceName, Peer) -> Result
+-spec handle_answer(Packet, Request, ServiceName, Peer, Fsm) -> Result
 	when
 		Packet :: packet(),
 		Request :: message(),
 		ServiceName :: diameter:service_name(),
 		Peer :: peer(),
+		Fsm :: pid(),
 		Result :: term().
 %% @doc Invoked when an answer message is received from a peer.
-handle_answer(_Packet, _Request, _ServiceName, _Peer) ->
-    not_implemented.
+handle_answer(Packet, _Request, _ServiceName, _Peer, Fsm) ->
+    gen_fsm:send(Fsm, {ok, Packet}).
 
--spec handle_error(Reason, Request, ServiceName, Peer) -> Result
+-spec handle_error(Reason, Request, ServiceName, Peer, Fsm) -> Result
 	when
 		Reason :: timeout | failover | term(),
 		Request :: message(),
 		ServiceName :: diameter:service_name(),
 		Peer :: peer(),
+		Fsm :: pid(),
 		Result :: term().
 %% @doc Invoked when an error occurs before an answer message is received
 %% in response to an outgoing request.
-handle_error(_Reason, _Request, _ServiceName, _Peer) ->
-	not_implemented.
+handle_error(Reason, _Request, _ServiceName, _Peer, Fsm) ->
+    gen_fsm:send(Fsm, {error, Reason}).
 
 -spec handle_request(Packet, ServiceName, Peer) -> Action
 	when
