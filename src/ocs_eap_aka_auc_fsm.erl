@@ -186,7 +186,7 @@ idle1({error, Reason}, #statedata{aka_fsm = AkaFsm} = StateData) ->
 %% @private
 %%
 auth({ok, Packet} = _Event, #statedata{aka_fsm = _AkaFsm} = StateData) ->
-	{next_state, idle, StateData}.
+	{next_state, idle, StateData};
 auth({error, Reason}, #statedata{aka_fsm = AkaFsm} = StateData) ->
 	gen_fsm:send_event(AkaFsm, {error, Reason}),
 	{next_state, idle, StateData}.
