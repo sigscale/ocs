@@ -185,7 +185,10 @@ idle1({error, Reason}, #statedata{aka_fsm = AkaFsm} = StateData) ->
 %% @@see //stdlib/gen_fsm:StateName/2
 %% @private
 %%
-auth(_Event, StateData) ->
+auth({ok, Packet} = _Event, #statedata{aka_fsm = _AkaFsm} = StateData) ->
+	{next_state, idle, StateData}.
+auth({error, Reason}, #statedata{aka_fsm = AkaFsm} = StateData) ->
+	gen_fsm:send_event(AkaFsm, {error, Reason}),
 	{next_state, idle, StateData}.
 
 -spec handle_event(Event, StateName, StateData) -> Result
