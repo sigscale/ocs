@@ -378,7 +378,7 @@ send_diameter_request(#statedata{hss_host = HssHost,
 	SessionId = diameter:session_id([OriginHost]),
 	Request = #'3gpp_swx_MAR'{'Session-Id' = SessionId,
 			'Origin-Realm' = OriginRealm, 'Origin-Host' = OriginHost,
-			'Destination-Realm' = HssRealm, 'Destination-Host' = HssHost},
+			'Destination-Realm' = HssRealm, 'Destination-Host' = [HssHost]},
 	send_diameter_request1(Request, StateData).
 %% @hidden
 send_diameter_request1(Request1, #statedata{anid = undefined,
