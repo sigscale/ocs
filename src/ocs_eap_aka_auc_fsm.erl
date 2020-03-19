@@ -56,8 +56,8 @@
 		service :: term(),
 		origin_host :: binary(),
 		origin_realm :: binary(),
-		hss_realm :: binary() | undefined,
-		hss_host :: binary() | undefined}).
+		hss_realm :: string() | undefined,
+		hss_host :: string() | undefined}).
 -type statedata() :: #statedata{}.
 
 -define(SWx_APPLICATION_DICT, diameter_gen_3gpp_swx_application).
@@ -381,17 +381,17 @@ send_diameter_request(#statedata{hss_host = HssHost,
 send_diameter_request1(Request1, #statedata{anid = undefined,
 		identity = Identity} = StateData) ->
 	AuthData = #'3gpp_swx_SIP-Auth-Data-Item'{
-			'SIP-Authentication-Scheme' = <<"EAP-AKA">>},
-	Request2 = Request1#'3gpp_swx_MAR'{'User-Name' =  Identity,
+			'SIP-Authentication-Scheme' = [<<"EAP-AKA">>]},
+	Request2 = Request1#'3gpp_swx_MAR'{'User-Name' =  [Identity],
 			'SIP-Number-Auth-Items' = 1,
 			'SIP-Auth-Data-Item' = AuthData},
 	send_diameter_request2(Request2, StateData);
 send_diameter_request1(Request1, #statedata{anid = ANID,
 		identity = Identity} = StateData) ->
 	AuthData = #'3gpp_swx_SIP-Auth-Data-Item'{
-			'SIP-Authentication-Scheme' = <<"EAP-AKA'">>},
-	Request2 = Request1#'3gpp_swx_MAR'{'User-Name' =  Identity,
-			'ANID' = list_to_binary(ANID), 'SIP-Number-Auth-Items' = 1,
+			'SIP-Authentication-Scheme' = [<<"EAP-AKA'">>]},
+	Request2 = Request1#'3gpp_swx_MAR'{'User-Name' =  [Identity],
+			'ANID' = [ANID], 'SIP-Number-Auth-Items' = 1,
 			'SIP-Auth-Data-Item' = AuthData},
 	send_diameter_request2(Request2, StateData).
 %% @hidden
