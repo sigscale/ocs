@@ -26,6 +26,8 @@
 		[AAA-Failure-Indication ]
 		[ OC-Supported-Features ]
 		* [ Supported-Features ]
+		* [ Proxy-Info ]
+		* [ Route-Record ]
 		* [ AVP ]
 
 	MAA ::= < Diameter Header: 303, PXY >
@@ -42,7 +44,8 @@
 		[ 3GPP-AAA-Server-Name ]
 		[ OC-Supported-Features ]
 		[ OC-OLR ]
-		*[ Load ]
+		* [ Load ]
 		* [ Supported-Features ]
+		* [ Proxy-Info ]
 		* [ AVP ]
 
