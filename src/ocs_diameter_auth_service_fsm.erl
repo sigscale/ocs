@@ -387,6 +387,7 @@ service_options(Options) ->
 				[{alias, ?SWx_APPLICATION},
 				{dictionary, ?SWx_APPLICATION_DICT},
 				{module, ?SWx_APPLICATION_CALLBACK},
+				{answer_errors, callback},
 				{request_errors, callback}]}].
 
 -spec transport_options(Transport, Address, Port) -> Options
