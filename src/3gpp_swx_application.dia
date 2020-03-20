@@ -10,6 +10,7 @@
 
 	MAR ::= < Diameter Header: 303, REQ, PXY >
 		< Session-Id >
+		{ Vendor-Specific-Application-Id }
 		{ Auth-Session-State }
 		{ Origin-Host }
 		{ Origin-Realm }
@@ -32,6 +33,7 @@
 
 	MAA ::= < Diameter Header: 303, PXY >
 		< Session-Id >
+		{ Vendor-Specific-Application-Id }
 		{ Auth-Session-State }
 		{ Origin-Host }
 		{ Origin-Realm }
