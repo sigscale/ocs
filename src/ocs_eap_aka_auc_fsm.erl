@@ -428,7 +428,7 @@ send_diameter_request1(Request1, #statedata{anid = ANID,
 send_diameter_request2(Request1, #statedata{service = Service} = _StateData) ->
 	Request2 = Request1#'3gpp_swx_MAR'{'Auth-Session-State' = 1,
 			'Vendor-Specific-Application-Id' = #'3gpp_swx_Vendor-Specific-Application-Id'{
-			'Vendor-Id' = ?IANA_PEN_3GPP, 'Auth-Application-Id' = ?SWx_APPLICATION_ID}},
+			'Vendor-Id' = ?IANA_PEN_3GPP, 'Auth-Application-Id' = [?SWx_APPLICATION_ID]}},
 	diameter:call(Service, ?SWx_APPLICATION,
 			Request2, [detach, {extra, [self()]}]).
 
