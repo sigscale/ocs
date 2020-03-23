@@ -124,12 +124,14 @@ init(_Args) ->
 %% @private
 %%
 idle({AkaFsm, Identity, RAT, ANID}, StateData)
-		when is_pid(AkaFsm), is_binary(Identity), is_list(ANID) ->
+		when is_pid(AkaFsm), is_binary(Identity),
+		is_integer(RAT), is_list(ANID) ->
 	NewStateData = StateData#statedata{aka_fsm = AkaFsm,
 			identity = Identity, rat_type = RAT, anid = ANID},
 	idle1(ocs:find_service(Identity), NewStateData);
 idle({AkaFsm, Identity, RAT}, StateData)
-		when is_pid(AkaFsm), is_binary(Identity) ->
+		when is_pid(AkaFsm), is_integer(RAT),
+		is_binary(Identity) ->
 	NewStateData = StateData#statedata{aka_fsm = AkaFsm,
 			identity = Identity, rat_type = RAT},
 	idle1(ocs:find_service(Identity), NewStateData).
@@ -439,7 +441,7 @@ send_diameter_request2(Request1,
 			= #'3gpp_swx_Vendor-Specific-Application-Id'{
 			'Vendor-Id' = ?IANA_PEN_3GPP,
 			'Auth-Application-Id' = [?SWx_APPLICATION_ID]},
-			'RAT-Type' = RAT},
+			'RAT-Type' = [RAT]},
 	diameter:call(Service, ?SWx_APPLICATION,
 			Request2, [detach, {extra, [self()]}]).
 
