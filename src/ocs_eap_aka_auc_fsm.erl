@@ -211,6 +211,10 @@ auth({ok, #'3gpp_swx_MAA'{'Origin-Realm' = HssRealm,
 	NewStateData  = StateData#statedata{hss_realm = HssRealm,
 			hss_host = HssHost},
 	{next_state, idle, NewStateData};
+auth({ok, #'3gpp_swx_MAA'{'Result-Code' = ResultCode}},
+		#statedata{aka_fsm = AkaFsm} = StateData) ->
+	gen_fsm:send_event(AkaFsm, {error, ResultCode}),
+	{next_state, idle, StateData};
 auth({error, Reason}, #statedata{aka_fsm = AkaFsm} = StateData) ->
 	gen_fsm:send_event(AkaFsm, {error, Reason}),
 	{next_state, idle, StateData}.
