@@ -20,6 +20,11 @@
 %%% 	in the user's home domain within EAP 3rd Generation Authentication and
 %%% 	Key Agreement (EAP-AKA') in the {@link //ocs. ocs} application.
 %%%
+%%% 	The users of this module are the EAP-AKA/AKA' handlers which send
+%%% 	`{AkaFsm, Identity, RAT, ANID}' (AKA') or `{AkaFsm, Identity, RAT}' (AKA)
+%%% 	and expect back `{RAND, AUTN, CKprime, IKprime, XRES}' (AKA'),
+%%% 	`{RAND, AUTN, CK, IK, XRES}' (AKA) or `{error, Reason}'.
+%%%
 %%% @reference <a href="http://tools.ietf.org/html/rfc4187">
 %%% 	RFC4187 - Extensible Authentication Protocol Method for 3rd Generation
 %%% 		Authentication and Key Agreement (EAP-AKA)</a>
@@ -53,6 +58,7 @@
 -record(statedata,
 		{aka_fsm :: pid() | undefined,
 		identity :: binary() | undefined,
+		rat_type :: non_neg_integer() | undefined,
 		anid :: string() | undefined,
 		service :: term(),
 		origin_host :: binary(),
@@ -117,14 +123,15 @@ init(_Args) ->
 %% @@see //stdlib/gen_fsm:StateName/2
 %% @private
 %%
-idle({AkaFsm, Identity, ANID}, StateData)
+idle({AkaFsm, Identity, RAT, ANID}, StateData)
 		when is_pid(AkaFsm), is_binary(Identity), is_list(ANID) ->
 	NewStateData = StateData#statedata{aka_fsm = AkaFsm,
-			identity = Identity, anid = ANID},
+			identity = Identity, rat_type = RAT, anid = ANID},
 	idle1(ocs:find_service(Identity), NewStateData);
-idle({AkaFsm, Identity}, StateData)
+idle({AkaFsm, Identity, RAT}, StateData)
 		when is_pid(AkaFsm), is_binary(Identity) ->
-	NewStateData = StateData#statedata{aka_fsm = AkaFsm, identity = Identity},
+	NewStateData = StateData#statedata{aka_fsm = AkaFsm,
+			identity = Identity, rat_type = RAT},
 	idle1(ocs:find_service(Identity), NewStateData).
 %% @hidden
 idle1({ok, #service{enabled = false}},
@@ -425,10 +432,14 @@ send_diameter_request1(Request1, #statedata{anid = ANID,
 			'SIP-Auth-Data-Item' = AuthData},
 	send_diameter_request2(Request2, StateData).
 %% @hidden
-send_diameter_request2(Request1, #statedata{service = Service} = _StateData) ->
+send_diameter_request2(Request1,
+		#statedata{rat_type = RAT, service = Service} = _StateData) ->
 	Request2 = Request1#'3gpp_swx_MAR'{'Auth-Session-State' = 1,
-			'Vendor-Specific-Application-Id' = #'3gpp_swx_Vendor-Specific-Application-Id'{
-			'Vendor-Id' = ?IANA_PEN_3GPP, 'Auth-Application-Id' = [?SWx_APPLICATION_ID]}},
+			'Vendor-Specific-Application-Id'
+			= #'3gpp_swx_Vendor-Specific-Application-Id'{
+			'Vendor-Id' = ?IANA_PEN_3GPP,
+			'Auth-Application-Id' = [?SWx_APPLICATION_ID]},
+			'RAT-Type' = RAT},
 	diameter:call(Service, ?SWx_APPLICATION,
 			Request2, [detach, {extra, [self()]}]).
 

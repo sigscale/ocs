@@ -200,7 +200,8 @@ eap_start(timeout, #statedata{sup = Sup, eap_id = EapID,
 						NextStateData = NewStateData#statedata{eap_id = StartEapID,
 								identity = Identity},
 						[IMSI | _] = binary:split(PermanentID, <<$@>>, []),
-						gen_fsm:send_event(AucFsm, {self(), IMSI}),
+						gen_fsm:send_event(AucFsm,
+								{self(), IMSI, get_radius_rat(RequestAttributes)}),
 						{next_state, vector, NextStateData, ?TIMEOUT};
 					#eap_packet{code = response, type = ?Identity,
 							identifier = StartEapID,
@@ -211,7 +212,8 @@ eap_start(timeout, #statedata{sup = Sup, eap_id = EapID,
 						[Pseudonym | _] = binary:split(Identity, <<$@>>, []),
 						CompressedIMSI = ocs_eap_aka:decrypt_imsi(Pseudonym, Keys),
 						IMSI = ocs_eap_aka:compressed_imsi(CompressedIMSI),
-						gen_fsm:send_event(AucFsm, {self(), IMSI}),
+						gen_fsm:send_event(AucFsm,
+								{self(), IMSI, get_radius_rat(RequestAttributes)}),
 						{next_state, vector, NextStateData, ?TIMEOUT};
 					#eap_packet{code = response, type = ?Identity,
 							identifier = StartEapID,
@@ -315,13 +317,15 @@ eap_start(timeout, #statedata{eap_id = EapID,
 			EapMessage, PortServer, Request, StateData),
 	{next_state, identity, NewStateData, ?TIMEOUT};
 eap_start(timeout, #statedata{request =
-		#diameter_eap_app_DER{'EAP-Payload' = EapMessage}} = StateData) ->
-	eap_start1(EapMessage, StateData);
+		#diameter_eap_app_DER{'EAP-Payload' = EapMessage,
+		'NAS-Port-Type' = NasPortType}} = StateData) ->
+	eap_start1(EapMessage, nas_port_type(NasPortType), StateData);
 eap_start(timeout, #statedata{request =
-		#'3gpp_swm_DER'{'EAP-Payload' = EapMessage}} = StateData) ->
-	eap_start1(EapMessage, StateData).
+		#'3gpp_swm_DER'{'EAP-Payload' = EapMessage,
+		'RAT-Type' = RAT}} = StateData) ->
+	eap_start1(EapMessage, RAT, StateData).
 %% @hidden
-eap_start1(EapMessage, #statedata{sup = Sup, eap_id = EapID,
+eap_start1(EapMessage, RAT, #statedata{sup = Sup, eap_id = EapID,
 		session_id = SessionId, auth_req_type = AuthReqType,
 		request = Request, origin_host = OHost, origin_realm = ORealm,
 		diameter_port_server = PortServer, trusted = Trusted,
@@ -338,7 +342,7 @@ eap_start1(EapMessage, #statedata{sup = Sup, eap_id = EapID,
 				NextStateData = NewStateData#statedata{eap_id = StartEapID,
 						identity = Identity},
 				[IMSI | _] = binary:split(PermanentID, <<$@>>, []),
-				gen_fsm:send_event(AucFsm, {self(), IMSI}),
+				gen_fsm:send_event(AucFsm, {self(), IMSI, RAT}),
 				{next_state, vector, NextStateData, ?TIMEOUT};
 			#eap_packet{code = response, type = ?Identity,
 					identifier = StartEapID,
@@ -349,7 +353,7 @@ eap_start1(EapMessage, #statedata{sup = Sup, eap_id = EapID,
 				[Pseudonym | _] = binary:split(Identity, <<$@>>, []),
 				CompressedIMSI = ocs_eap_aka:decrypt_imsi(Pseudonym, Keys),
 				IMSI = ocs_eap_aka:compressed_imsi(CompressedIMSI),
-				gen_fsm:send_event(AucFsm, {self(), IMSI}),
+				gen_fsm:send_event(AucFsm, {self(), IMSI, RAT}),
 				{next_state, vector, NextStateData, ?TIMEOUT};
 			#eap_packet{code = response, type = ?Identity,
 					identifier = StartEapID,
@@ -446,7 +450,8 @@ identity({#radius{id = RadiusID, authenticator = RequestAuthenticator,
 					#eap_aka_identity{identity = <<?PERM_AKA,
 							PermanentID/binary>> = Identity} when IdReq == full ->
 						[IMSI | _] = binary:split(PermanentID, <<$@>>, []),
-						gen_fsm:send_event(AucFsm, {self(), IMSI}),
+						gen_fsm:send_event(AucFsm,
+								{self(), IMSI, get_radius_rat(RequestAttributes)}),
 						NextStateData = NewStateData#statedata{identity = Identity},
 						{next_state, vector, NextStateData, ?TIMEOUT};
 					#eap_aka_identity{identity = <<?TEMP_AKA:6, _/bits>> = Identity}
@@ -454,7 +459,8 @@ identity({#radius{id = RadiusID, authenticator = RequestAuthenticator,
 						[Pseudonym | _] = binary:split(Identity, <<$@>>, []),
 						CompressedIMSI = ocs_eap_aka:decrypt_imsi(Pseudonym, Keys),
 						IMSI = ocs_eap_aka:compressed_imsi(CompressedIMSI),
-						gen_fsm:send_event(AucFsm, {self(), IMSI}),
+						gen_fsm:send_event(AucFsm,
+								{self(), IMSI, get_radius_rat(RequestAttributes)}),
 						NextStateData = NewStateData#statedata{identity = Identity},
 						{next_state, vector, NextStateData, ?TIMEOUT}
 				end;
@@ -478,14 +484,15 @@ identity({#radius{id = RadiusID, authenticator = RequestAuthenticator,
 					RequestAuthenticator, RequestAttributes, NextStateData1),
 			{next_state, failure, NextStateData1, ?TIMEOUT}
 	end;
-identity(#diameter_eap_app_DER{'EAP-Payload' = EapMessage} = Request,
-		StateData) ->
-	identity1(EapMessage, StateData#statedata{request = Request});
-identity(#'3gpp_swm_DER'{'EAP-Payload' = EapMessage} = Request,
-		StateData) ->
-	identity1(EapMessage, StateData#statedata{request = Request}).
+identity(#diameter_eap_app_DER{'EAP-Payload' = EapMessage,
+		'NAS-Port-Type' = NasPortType} = Request, StateData) ->
+	identity1(EapMessage, nas_port_type(NasPortType),
+			StateData#statedata{request = Request});
+identity(#'3gpp_swm_DER'{'EAP-Payload' = EapMessage,
+		'RAT-Type' = RAT} = Request, StateData) ->
+	identity1(EapMessage, RAT, StateData#statedata{request = Request}).
 %% @hidden
-identity1(EapMessage,
+identity1(EapMessage, RAT,
 		#statedata{eap_id = EapID, session_id = SessionId,
 		request = Request, auth_req_type = AuthReqType,
 		origin_host = OHost, origin_realm = ORealm,
@@ -498,7 +505,7 @@ identity1(EapMessage,
 					#eap_aka_identity{identity = <<?PERM_AKA,
 							PermanentID/binary>> = Identity} when IdReq == full ->
 						[IMSI | _] = binary:split(PermanentID, <<$@>>, []),
-						gen_fsm:send_event(AucFsm, {self(), IMSI}),
+						gen_fsm:send_event(AucFsm, {self(), IMSI, RAT}),
 						NewStateData = StateData#statedata{identity = Identity},
 						{next_state, vector, NewStateData, ?TIMEOUT};
 					#eap_aka_identity{identity = <<?TEMP_AKA:6, _/bits>> = Identity}
@@ -506,7 +513,7 @@ identity1(EapMessage,
 						[Pseudonym | _] = binary:split(Identity, <<$@>>, []),
 						CompressedIMSI = ocs_eap_aka:decrypt_imsi(Pseudonym, Keys),
 						IMSI = ocs_eap_aka:compressed_imsi(CompressedIMSI),
-						gen_fsm:send_event(AucFsm, {self(), IMSI}),
+						gen_fsm:send_event(AucFsm, {self(), IMSI, RAT}),
 						NewStateData = StateData#statedata{identity = Identity},
 						{next_state, vector, NewStateData, ?TIMEOUT}
 				end;
@@ -1255,4 +1262,96 @@ get_radius_eap(RequestAttributes) ->
 		{error, not_found} ->
 			undefined
 	end.
+
+-spec get_radius_rat(Attributes) -> RAT
+	when
+		Attributes :: radius_attributes:attributes(),
+		RAT :: WLAN | Virtual | UTRAN | GERAN | GAN | HSPA | EUTRAN
+				| NBIoT | NGRAN | CDMA2000 | HRPD | UMB | EHRPD,
+		WLAN :: 0,
+		Virtual :: 1,
+		UTRAN :: 1000,
+		GERAN :: 100,
+		GAN :: 1002,
+		HSPA :: 1003,
+		EUTRAN :: 1004,
+		NBIoT :: 1005,
+		NGRAN :: 1006,
+		CDMA2000 :: 2000,
+		HRPD :: 2001,
+		UMB :: 2002,
+		EHRPD :: 2003.
+%% @hidden
+get_radius_rat(Attributes) ->
+	case radius_attributes:find(?'3GPP-RAT-Type', Attributes) of
+		{error, not_found} ->
+			case radius_attributes:find(?NasPortType, Attributes) of
+				{error, not_found} ->
+					1;
+				{_, RAT} ->
+					nas_port_type(RAT)
+			end;
+		{_, 1} ->
+			1000;
+		{_, 2} ->
+			100;
+		{_, 3} ->
+			0;
+		{_, 4} ->
+			1002;
+		{_, 5} ->
+			1003;
+		{_, 6} ->
+			1004;
+		{_, 7} ->
+			1;
+		{_, 8} ->
+			1005;
+		{_, 9} ->
+			1005;
+		{_, 51} ->
+			10006;
+		{_, 102} ->
+			2003;
+		{_, 103} ->
+			2001;
+		{_, 104} ->
+			2000;
+		{_, 105} ->
+			2002;
+		{_, _} ->
+			1
+	end.
+
+-spec nas_port_type(NasPortType) -> RAT
+	when
+		NasPortType :: integer(),
+		RAT :: WLAN | Virtual | UTRAN | GERAN | GAN | HSPA | EUTRAN
+				| NBIoT | NGRAN | CDMA2000 | HRPD | UMB | EHRPD,
+		WLAN :: 0,
+		Virtual :: 1,
+		UTRAN :: 1000,
+		GERAN :: 100,
+		GAN :: 1002,
+		HSPA :: 1003,
+		EUTRAN :: 1004,
+		NBIoT :: 1005,
+		NGRAN :: 1006,
+		CDMA2000 :: 2000,
+		HRPD :: 2001,
+		UMB :: 2002,
+		EHRPD :: 2003.
+%% @hidden
+nas_port_type(5) ->
+	7;
+nas_port_type(19) ->
+	0;
+nas_port_type(22) ->
+	2000;
+nas_port_type(23) ->
+	1000;
+nas_port_type(24) ->
+	2001;
+nas_port_type(_) ->
+	1.
 
