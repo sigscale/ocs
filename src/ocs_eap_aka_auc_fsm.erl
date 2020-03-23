@@ -197,7 +197,9 @@ idle1({error, Reason}, #statedata{aka_fsm = AkaFsm} = StateData) ->
 %% @@see //stdlib/gen_fsm:StateName/2
 %% @private
 %%
-auth({ok, #'3gpp_swx_MAA'{'SIP-Number-Auth-Items' = [1],
+auth({ok, #'3gpp_swx_MAA'{'Origin-Realm' = HssRealm,
+		'Origin-Host' = HssHost,
+		'SIP-Number-Auth-Items' = [1],
 		'SIP-Auth-Data-Item' = [#'3gpp_swx_SIP-Auth-Data-Item'{
 		'SIP-Item-Number' = [1],
 		'SIP-Authenticate' = [<<RAND:8/binary, AUTN:8/binary>>],
@@ -206,7 +208,9 @@ auth({ok, #'3gpp_swx_MAA'{'SIP-Number-Auth-Items' = [1],
 		'Integrity-Key' = [IK]}]}},
 		#statedata{aka_fsm = AkaFsm} = StateData) ->
 	gen_fsm:send_event(AkaFsm, {RAND, AUTN, CK, IK, XRES}),
-	{next_state, idle, StateData};
+	NewStateData  = StateData#statedata{hss_realm = HssRealm,
+			hss_host = HssHost},
+	{next_state, idle, NewStateData};
 auth({error, Reason}, #statedata{aka_fsm = AkaFsm} = StateData) ->
 	gen_fsm:send_event(AkaFsm, {error, Reason}),
 	{next_state, idle, StateData}.
