@@ -19,6 +19,7 @@
 		[ Destination-Host ]
 		[ User-Name ]
 		[ RAT-Type ]
+		[ ANID ]
 		[ Service-Selection ]
 		[ MIP6-Feature-Vector ]
 ;		[ QoS-Capability ]
