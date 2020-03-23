@@ -328,7 +328,7 @@ eap_start(timeout, #statedata{request =
 	eap_start1(EapMessage, nas_port_type(NasPortType), StateData);
 eap_start(timeout, #statedata{request =
 		#'3gpp_sta_DER'{'EAP-Payload' = EapMessage,
-		'RAT-Type' = RAT}} = StateData) ->
+		'RAT-Type' = [RAT]}} = StateData) ->
 	eap_start1(EapMessage, RAT, StateData).
 %% @hidden
 eap_start1(EapMessage, RAT,
@@ -500,7 +500,7 @@ identity(#diameter_eap_app_DER{'EAP-Payload' = EapMessage,
 	identity1(EapMessage, nas_port_type(NasPortType),
 			StateData#statedata{request = Request});
 identity(#'3gpp_sta_DER'{'EAP-Payload' = EapMessage,
-		'RAT-Type' = RAT} = Request, StateData) ->
+		'RAT-Type' = [RAT]} = Request, StateData) ->
 	identity1(EapMessage, RAT, StateData#statedata{request = Request}).
 %% @hidden
 identity1(EapMessage, RAT,
