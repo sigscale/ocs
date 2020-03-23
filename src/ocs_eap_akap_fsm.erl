@@ -490,15 +490,16 @@ identity({#radius{id = RadiusID, authenticator = RequestAuthenticator,
 	end;
 identity(#diameter_eap_app_DER{'EAP-Payload' = EapMessage} = Request,
 		StateData) ->
-	identity1(EapMessage, Request, StateData);
+	identity1(EapMessage, StateData#statedata{request = Request});
 identity(#'3gpp_sta_DER'{'EAP-Payload' = EapMessage} = Request,
 		StateData) ->
-	identity1(EapMessage, Request, StateData).
+	identity1(EapMessage, StateData#statedata{request = Request}).
 %% @hidden
-identity1(EapMessage, Request,
+identity1(EapMessage,
 		#statedata{eap_id = EapID, session_id = SessionId,
-		auth_req_type = AuthReqType, origin_host = OHost,
-		origin_realm = ORealm, auc_fsm = AucFsm, id_req = IdReq,
+		request = Request, auth_req_type = AuthReqType,
+		origin_host = OHost, origin_realm = ORealm,
+		auc_fsm = AucFsm, id_req = IdReq,
 		diameter_port_server = PortServer, keys = Keys} = StateData) ->
 	try
 		case ocs_eap_codec:eap_packet(EapMessage) of
@@ -509,8 +510,7 @@ identity1(EapMessage, Request,
 						[IMSI | _] = binary:split(PermanentID, <<$@>>, []),
 						% @todo handle DIAMETER ANID AVP
 						gen_fsm:send_event(AucFsm, {self(), IMSI, "WLAN"}),
-						NewStateData = StateData#statedata{request = Request,
-								identity = Identity},
+						NewStateData = StateData#statedata{identity = Identity},
 						{next_state, vector, NewStateData, ?TIMEOUT};
 					#eap_aka_identity{identity = <<?TEMP_AKAp:6, _/bits>> = Identity}
 							when IdReq == full ->
@@ -519,8 +519,7 @@ identity1(EapMessage, Request,
 						IMSI = ocs_eap_aka:compressed_imsi(CompressedIMSI),
 						% @todo handle DIAMETER ANID AVP
 						gen_fsm:send_event(AucFsm, {self(), IMSI, "WLAN"}),
-						NewStateData = StateData#statedata{request = Request,
-								identity = Identity},
+						NewStateData = StateData#statedata{identity = Identity},
 						{next_state, vector, NewStateData, ?TIMEOUT}
 				end;
 			#eap_packet{code = response, type = ?LegacyNak, identifier = EapID} ->
