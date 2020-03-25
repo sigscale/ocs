@@ -51,6 +51,7 @@
 
 -include("ocs.hrl").
 -include("diameter_gen_3gpp_swx_application.hrl").
+-include("diameter_3gpp.hrl").
 -include_lib("radius/include/radius.hrl").
 -include_lib("diameter/include/diameter.hrl").
 -include_lib("diameter/include/diameter_gen_base_rfc6733.hrl").
@@ -197,7 +198,8 @@ idle1({error, Reason}, #statedata{aka_fsm = AkaFsm} = StateData) ->
 %% @@see //stdlib/gen_fsm:StateName/2
 %% @private
 %%
-auth({ok, #'3gpp_swx_MAA'{'Origin-Realm' = HssRealm,
+auth({ok, #'3gpp_swx_MAA'{'Result-Code' = [2001],
+		'Origin-Realm' = HssRealm,
 		'Origin-Host' = HssHost,
 		'SIP-Number-Auth-Items' = [1],
 		'SIP-Auth-Data-Item' = [#'3gpp_swx_SIP-Auth-Data-Item'{
@@ -211,7 +213,15 @@ auth({ok, #'3gpp_swx_MAA'{'Origin-Realm' = HssRealm,
 	NewStateData  = StateData#statedata{hss_realm = HssRealm,
 			hss_host = HssHost},
 	{next_state, idle, NewStateData};
-auth({ok, #'3gpp_swx_MAA'{'Result-Code' = ResultCode}},
+auth({ok, #'3gpp_swx_MAA'{'Result-Code' = [ResultCode]} = MAA},
+		#statedata{aka_fsm = AkaFsm} = StateData) ->
+	gen_fsm:send_event(AkaFsm, {error, ResultCode}),
+	{next_state, idle, StateData};
+auth({ok, #'3gpp_swx_MAA'{'Experimental-Result' = [?'DIAMETER_ERROR_USER_UNKNOWN']} = MAA},
+		#statedata{aka_fsm = AkaFsm} = StateData) ->
+	gen_fsm:send_event(AkaFsm, {error, user_unknown}),
+	{next_state, idle, StateData};
+auth({ok, #'3gpp_swx_MAA'{'Experimental-Result' = [ResultCode]} = MAA},
 		#statedata{aka_fsm = AkaFsm} = StateData) ->
 	gen_fsm:send_event(AkaFsm, {error, ResultCode}),
 	{next_state, idle, StateData};
