@@ -115,7 +115,7 @@ the OCS (AAA server). An EAP authentication method (e.g. AKA', PWD, TTLS)
 is negotiated and the peer authenticates directly with the OCS.
 
 #### [EAP-AKA/AKA'](https://tools.ietf.org/html/rfc5448)
-The AKA/AKA' methods authenticate using the credentials (K/OPC) stored
+The AKA/AKA' methods authenticate using the credentials (K/OPc) stored
 on the USIM of a mobile device providing mobile operators the same level
 of security on non-3GPP access (e.f. Wifi) as 3GPP radio access networks.
 
