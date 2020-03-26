@@ -71,8 +71,33 @@ start(normal = _StartType, _Args) ->
 		{error, Reason} ->
 			{error, Reason}
 	end.
+%% @doc Migrate client table, if necessary, to add Trusted field.
 %% @hidden
 start1() ->
+	case mnesia:table_info(client, arity) of
+		9 ->
+			start2();
+		8 ->
+			F = fun({client, Address, Identifier, Port, Protocol,
+						Secret, PasswordRequired, LastModified}) ->
+					#client{address = Address, identifier = Identifier,
+							port = Port, protocol = Protocol, secret = Secret,
+							password_required = PasswordRequired,
+							last_modified = LastModified}
+			end,
+			NewAttributes = record_info(fields, client),
+			case mnesia:transform_table(client, F, NewAttributes) of
+				{atomic, ok} ->
+					error_logger:info_report(["Migrated client table"]),
+					start1();
+				{aborted, Reason} ->
+					error_logger:error_report(["Failed to migrate client table",
+							mnesia:error_description(Reason), {error, Reason}]),
+					{error, Reason}
+			end
+	end.
+%% @hidden
+start2() ->
 	{ok, RadiusConfig} = application:get_env(radius),
 	{ok, DiameterConfig} = application:get_env(diameter),
 	{ok, RotateInterval} = application:get_env(acct_log_rotate),
