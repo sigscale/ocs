@@ -41,6 +41,8 @@ in the reference architecture.
 |SNMP      | Performance Management         |
 |EAP-PWD   | Android, Linux                 |
 |EAP-TTLS  | Android, Linux, Apple, Windows |
+|EAP-AKA   | Android, Linux, Apple          |
+|EAP-AKA'  | Android, Linux                 |
 |IPDR      | Billing Record Files           |
 
 ### Graphical User Interface (GUI)

@@ -1,3 +1,45 @@
+2020-03-26  Vance Shipley <vances@sigscale.org>
+
+	* migrate client table to add trusted field
+	* handle rat-type in swx
+	* hss configuration
+	* add 3gpp swx diameter application
+	* certificate authority should have unique common name
+	* add messages column in product view
+	* support prepaid sms
+	* support messages in product offering price
+	* fix balance amount issue
+	* add aka to default method preferences
+	* add 3gpp sta diameter application
+	* nif for modified sha-1 as prf in eap-aka (rfc4187)
+	* test case for diameter ecur with no credit
+	* test case for diameter scur initial request with no credit
+	* add sms to product specifications collection
+	* correct codec on balance collection [OCS-230]
+	* correct pagination server arguments [OCS-230]
+	* add example pricing logic algorithm (pla) and tariff table
+	* document import file format
+	* add bundle examples
+	* add tariffed voice example
+	* add example product offers to catalog: data
+	* handle trusted client attribute in diameter auth
+	* create add product tab with add service tab
+	* skip topup when no balance value
+	* display 'server generated' modal only when true
+	* show password after add service
+	* correct aka credentials handling (OCS-215 #done)
+	* support k and opc in service view
+	* aka credentials in service (OCS-214 #done)
+	* aka_cred() in service record (OCS-213 #close)
+	* remove otp_mibs package deprecated in otp22
+	* default preference is eap-aka'
+	* 802.11i uses ms-msppe-recv-key only
+	* add 3gpp swx diameter application
+	* update diameter auth service fsm to match acct
+	* better concatenation for list of binaries
+	* correct vendors in capabilities exchange
+	* correct btree search of single file log
+
 2019-06-13  Vance Shipley <vances@sigscale.org>
 
 	* log and ignore unsupported avps

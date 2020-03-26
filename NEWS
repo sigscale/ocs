@@ -1,3 +1,17 @@
+March 26, 2020
+--------------
+	- 3GPP AAA Server Function
+	- DIAMETER SWx
+	- DIAMETER SWm
+	- DIAMETER STa
+	- EAP-AKA'
+	- EAP-AKA
+	- NIF for AKA PRF
+	- K,OPc credentials in Service view
+	- Prepaid SMS
+	- Unit type 'messages'
+	- Example Product Offers installed
+
 June 13, 2019
 -------------
 	- Ignore unsupported DIAMETER AVPs  
