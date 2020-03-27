@@ -292,7 +292,9 @@ eap_aka(<<2, _:16, _Attributes/binary>>) ->
 	#eap_aka_authentication_reject{};
 eap_aka(<<4, _:16, Attributes/binary>>) ->
 	F = fun(?AT_AUTS, Auts, Acc) ->
-				Acc#eap_aka_synchronization_failure{auts = Auts}
+				Acc#eap_aka_synchronization_failure{auts = Auts};
+			(?AT_KDF, KDFs, Acc) ->
+				Acc#eap_aka_synchronization_failure{kdf = KDFs}
 	end,
 	maps:fold(F, #eap_aka_synchronization_failure{}, aka_attr(Attributes));
 eap_aka(<<5, _:16, Attributes/binary>>) ->

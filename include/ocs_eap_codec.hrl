@@ -133,7 +133,7 @@
 		{rand :: binary() | undefined,
 		autn :: binary() | undefined,
 		res :: bitstring() | undefined,
-		kdf :: [integer()] | undefined,
+		kdf :: [1..65535] | undefined,
 		network :: binary() | undefined,
 		next_pseudonym :: binary() | undefined,
 		next_reauth_id :: binary() | undefined,
@@ -171,7 +171,8 @@
 		{}).
 
 -record(eap_aka_synchronization_failure,
-		{auts :: binary() | undefined}).
+		{auts :: binary() | undefined,
+		kdf :: [1..65535] | undefined}).
 
 -record(eap_aka_client_error,
 		{client_error_code :: 0..65535 | undefined}).
