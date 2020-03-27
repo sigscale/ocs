@@ -435,7 +435,7 @@ aka_attr(<<?AT_KDF_INPUT, L1, _/bytes>> = B, Acc) ->
 	<<Name:L3/bytes, _/bytes>> = Data,
 	aka_attr(Rest, Acc#{?AT_KDF_INPUT => Name});
 aka_attr(<<?AT_KDF, 1, KDF:16, Rest/bytes>>, #{?AT_KDF := KDFs} = Acc) ->
-	aka_attr(Rest, Acc#{?AT_KDF => [KDF | KDFs]});
+	aka_attr(Rest, Acc#{?AT_KDF => KDFs ++ [KDF]});
 aka_attr(<<?AT_KDF, 1, KDF:16, Rest/bytes>>, Acc) ->
 	aka_attr(Rest, Acc#{?AT_KDF => [KDF]});
 aka_attr(<<?AT_IV, 5, _:16, Iv:16/bytes, Rest/bytes>>, Acc) ->
