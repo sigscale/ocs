@@ -21,8 +21,9 @@
 %%% 	Key Agreement (EAP-AKA') in the {@link //ocs. ocs} application.
 %%%
 %%% 	The users of this module are the EAP-AKA/AKA' handlers which send
-%%% 	`{AkaFsm, Identity, RAT, ANID}' (AKA') or `{AkaFsm, Identity, RAT}' (AKA)
-%%% 	and expect back `{RAND, AUTN, CKprime, IKprime, XRES}' (AKA'),
+%%% 	`{AkaFsm, Identity, AUTS, RAT, ANID}' (AKA') or
+%%% 	`{AkaFsm, Identity, AUTS, RAT}' (AKA) and expect back
+%%% 	`{RAND, AUTN, CKprime, IKprime, XRES}' (AKA'),
 %%% 	`{RAND, AUTN, CK, IK, XRES}' (AKA) or `{error, Reason}'.
 %%%
 %%% @reference <a href="http://tools.ietf.org/html/rfc4187">
@@ -59,6 +60,8 @@
 -record(statedata,
 		{aka_fsm :: pid() | undefined,
 		identity :: binary() | undefined,
+		rand :: binary() | undefined,
+		auts :: binary() | undefined,
 		rat_type :: non_neg_integer() | undefined,
 		anid :: string() | undefined,
 		service :: term(),
@@ -72,6 +75,10 @@
 -define(SWx_APPLICATION_ID, 16777265).
 -define(SWx_APPLICATION_DICT, diameter_gen_3gpp_swx_application).
 -define(SWx_APPLICATION, ocs_diameter_3gpp_swx_application).
+
+%% support deprecated_time_unit()
+-define(MILLISECOND, milli_seconds).
+%-define(MILLISECOND, millisecond).
 
 %%----------------------------------------------------------------------
 %%  The ocs_eap_aka_auc_fsm API
@@ -124,17 +131,30 @@ init(_Args) ->
 %% @@see //stdlib/gen_fsm:StateName/2
 %% @private
 %%
-idle({AkaFsm, Identity, RAT, ANID}, StateData)
+idle({AkaFsm, Identity, undefined, RAT, ANID}, StateData)
 		when is_pid(AkaFsm), is_binary(Identity),
 		is_integer(RAT), is_list(ANID) ->
 	NewStateData = StateData#statedata{aka_fsm = AkaFsm,
 			identity = Identity, rat_type = RAT, anid = ANID},
 	idle1(ocs:find_service(Identity), NewStateData);
-idle({AkaFsm, Identity, RAT}, StateData)
-		when is_pid(AkaFsm), is_integer(RAT),
-		is_binary(Identity) ->
+idle({AkaFsm, Identity, undefined, RAT}, StateData)
+		when is_pid(AkaFsm), is_binary(Identity),
+		is_integer(RAT) ->
 	NewStateData = StateData#statedata{aka_fsm = AkaFsm,
 			identity = Identity, rat_type = RAT},
+	idle1(ocs:find_service(Identity), NewStateData);
+idle({AkaFsm, Identity, AUTS, RAT, ANID}, StateData)
+		when is_pid(AkaFsm), is_binary(Identity),
+		is_binary(AUTS), is_integer(RAT), is_list(ANID) ->
+	NewStateData = StateData#statedata{aka_fsm = AkaFsm,
+			identity = Identity, auts = AUTS,
+			rat_type = RAT, anid = ANID},
+	idle1(ocs:find_service(Identity), NewStateData);
+idle({AkaFsm, Identity, AUTS, RAT}, StateData)
+		when is_pid(AkaFsm), is_binary(Identity),
+		is_binary(AUTS), is_integer(RAT) ->
+	NewStateData = StateData#statedata{aka_fsm = AkaFsm,
+			identity = Identity, auts = AUTS, rat_type = RAT},
 	idle1(ocs:find_service(Identity), NewStateData).
 %% @hidden
 idle1({ok, #service{enabled = false}},
@@ -142,7 +162,8 @@ idle1({ok, #service{enabled = false}},
 	gen_fsm:send_event(AkaFsm, {error, disabled}),
 	{next_state, idle, StateData};
 idle1({ok, #service{password = #aka_cred{k = K, opc = OPc, dif = DIF}}},
-		#statedata{anid = undefined, aka_fsm = AkaFsm} = StateData) ->
+		#statedata{anid = undefined, auts = undefined,
+		aka_fsm = AkaFsm} = StateData) ->
 	RAND = ocs_milenage:f0(),
 	{XRES, CK, IK, <<AK:48>>} = ocs_milenage:f2345(OPc, K, RAND),
 	SQN = sqn(DIF),
@@ -150,9 +171,10 @@ idle1({ok, #service{password = #aka_cred{k = K, opc = OPc, dif = DIF}}},
 	MAC = ocs_milenage:f1(OPc, K, RAND, <<SQN:48>>, AMF),
 	AUTN = autn(SQN, AK, AMF, MAC),
 	gen_fsm:send_event(AkaFsm, {RAND, AUTN, CK, IK, XRES}),
-	{next_state, idle, StateData};
+	{next_state, idle, StateData#statedata{rand = RAND}};
 idle1({ok, #service{password = #aka_cred{k = K, opc = OPc, dif = DIF}}},
-		#statedata{anid = ANID, aka_fsm = AkaFsm} = StateData) ->
+		#statedata{anid = ANID, auts = undefined,
+		aka_fsm = AkaFsm} = StateData) ->
 	RAND = ocs_milenage:f0(),
 	{XRES, CK, IK, <<AK:48>>} = ocs_milenage:f2345(OPc, K, RAND),
 	SQN = sqn(DIF),
@@ -162,7 +184,69 @@ idle1({ok, #service{password = #aka_cred{k = K, opc = OPc, dif = DIF}}},
 	% if AMF separation bit = 1 use CK'/IK'
 	<<CKprime:16/binary, IKprime:16/binary>> = kdf(CK, IK, ANID, SQN, AK),
 	gen_fsm:send_event(AkaFsm, {RAND, AUTN, CKprime, IKprime, XRES}),
-	{next_state, idle, StateData};
+	{next_state, idle, StateData#statedata{rand = RAND}};
+idle1({ok, #service{password = #aka_cred{k = K, opc = OPc, dif = DIF}}},
+		#statedata{anid = undefined, rand = RAND, identity = Identity,
+		auts = <<SQN:48, MAC_S:8/binary>> = AUTS,
+		aka_fsm = AkaFsm} = StateData) when is_binary(RAND) ->
+	{XRES, CK, IK, <<AK:48>>} = ocs_milenage:f2345(OPc, K, RAND),
+	SQNhe = sqn(DIF),
+	SQNms = sqn_ms(SQN, OPc, K, RAND),
+	AMF = amf(false),
+	case SQNhe - SQNms of
+		A when A =< 268435456 ->
+			MAC_A = ocs_milenage:f1(OPc, K, RAND, <<SQNhe:48>>, AMF),
+			AUTN = autn(SQNhe, AK, AMF, MAC_A),
+			gen_fsm:send_event(AkaFsm, {RAND, AUTN, CK, IK, XRES}),
+			{next_state, idle, StateData#statedata{rand = undefined}};
+		_ ->
+			case ocs_milenage:'f1*'(OPc, K, RAND, <<SQNms:48>>, amf(false)) of
+				MAC_S ->
+					MAC_A = ocs_milenage:f1(OPc, K, RAND, <<SQNms:48>>, AMF),
+					AUTN = autn(SQNms, AK, AMF, MAC_A),
+					gen_fsm:send_event(AkaFsm, {RAND, AUTN, CK, IK, XRES}),
+					save_dif(Identity, dif(SQNms)),
+					{next_state, idle, StateData#statedata{rand = undefined}};
+				_ ->
+					error_logger:error_report(["AUTS verification failed",
+							{identity, Identity}, {auts, AUTS}]),
+					gen_fsm:send_event(AkaFsm, {error, invalid}),
+					{next_state, idle, StateData#statedata{rand = undefined}}
+			end
+	end;
+idle1({ok, #service{password = #aka_cred{k = K, opc = OPc, dif = DIF1}}},
+		#statedata{anid = ANID, rand = RAND, identity = Identity,
+		auts = <<SQN:48, MAC_S:8/binary>> = AUTS,
+		aka_fsm = AkaFsm} = StateData) when is_binary(RAND) ->
+	{XRES, CK, IK, <<AK:48>>} = ocs_milenage:f2345(OPc, K, RAND),
+	SQNhe = sqn(DIF1),
+	SQNms = sqn_ms(SQN, OPc, K, RAND),
+	AMF = amf(true),
+	case SQNhe - SQNms of
+		A when A =< 268435456 ->
+			MAC_A = ocs_milenage:f1(OPc, K, RAND, <<SQNhe:48>>, AMF),
+			AUTN = autn(SQNhe, AK, AMF, MAC_A),
+			<<CKprime:16/binary,
+					IKprime:16/binary>> = kdf(CK, IK, ANID, SQNhe, AK),
+			gen_fsm:send_event(AkaFsm, {RAND, AUTN, CKprime, IKprime, XRES}),
+			{next_state, idle, StateData#statedata{rand = undefined}};
+		_ ->
+			case ocs_milenage:'f1*'(OPc, K, RAND, <<SQNms:48>>, amf(false)) of
+				MAC_S ->
+					MAC_A = ocs_milenage:f1(OPc, K, RAND, <<SQNms:48>>, AMF),
+					AUTN = autn(SQNms, AK, AMF, MAC_A),
+					<<CKprime:16/binary,
+							IKprime:16/binary>> = kdf(CK, IK, ANID, SQNms, AK),
+					gen_fsm:send_event(AkaFsm, {RAND, AUTN, CKprime, IKprime, XRES}),
+					save_dif(Identity, dif(SQNms)),
+					{next_state, idle, StateData#statedata{rand = undefined}};
+				_ ->
+					error_logger:error_report(["AUTS verification failed",
+							{identity, Identity}, {auts, AUTS}]),
+					gen_fsm:send_event(AkaFsm, {error, invalid}),
+					{next_state, idle, StateData#statedata{rand = undefined}}
+			end
+	end;
 idle1({error, not_found}, #statedata{hss_realm = undefined,
 		aka_fsm = AkaFsm} = StateData) ->
 	gen_fsm:send_event(AkaFsm, {error, user_unknown}),
@@ -208,20 +292,20 @@ auth({ok, #'3gpp_swx_MAA'{'Result-Code' = [2001],
 		'SIP-Authorization' = [XRES],
 		'Confidentiality-Key' = [CK],
 		'Integrity-Key' = [IK]}]}},
-		#statedata{aka_fsm = AkaFsm} = StateData) ->
+		#statedata{aka_fsm = AkaFsm, rand = RAND} = StateData) ->
 	gen_fsm:send_event(AkaFsm, {RAND, AUTN, CK, IK, XRES}),
 	NewStateData  = StateData#statedata{hss_realm = HssRealm,
 			hss_host = HssHost},
 	{next_state, idle, NewStateData};
-auth({ok, #'3gpp_swx_MAA'{'Result-Code' = [ResultCode]} = MAA},
+auth({ok, #'3gpp_swx_MAA'{'Result-Code' = [ResultCode]}},
 		#statedata{aka_fsm = AkaFsm} = StateData) ->
 	gen_fsm:send_event(AkaFsm, {error, ResultCode}),
 	{next_state, idle, StateData};
-auth({ok, #'3gpp_swx_MAA'{'Experimental-Result' = [?'DIAMETER_ERROR_USER_UNKNOWN']} = MAA},
+auth({ok, #'3gpp_swx_MAA'{'Experimental-Result' = [?'DIAMETER_ERROR_USER_UNKNOWN']}},
 		#statedata{aka_fsm = AkaFsm} = StateData) ->
 	gen_fsm:send_event(AkaFsm, {error, user_unknown}),
 	{next_state, idle, StateData};
-auth({ok, #'3gpp_swx_MAA'{'Experimental-Result' = [ResultCode]} = MAA},
+auth({ok, #'3gpp_swx_MAA'{'Experimental-Result' = [ResultCode]}},
 		#statedata{aka_fsm = AkaFsm} = StateData) ->
 	gen_fsm:send_event(AkaFsm, {error, ResultCode}),
 	{next_state, idle, StateData};
@@ -343,7 +427,7 @@ code_change(_OldVsn, StateName, StateData, _Extra) ->
 %% 	3GPP RTS 33.102 Annex C.1.1.3.
 %% @private
 sqn(DIF) when is_integer(DIF) ->
-	(erlang:system_time(10) - DIF) bsl 5.
+	(erlang:system_time(10) + DIF) bsl 5.
 
 -spec autn(SQN, AK, AMF, MAC) -> AUTN
 	when
@@ -360,6 +444,35 @@ autn(SQN, AK, AMF, MAC)
 		byte_size(AMF) =:= 2, byte_size(MAC) =:= 8 ->
 	SQNa = SQN bxor AK,
 	<<SQNa:48, AMF/binary, MAC/binary>>.
+
+-spec sqn_ms(SQN, OPc, K, RAND) -> SQN
+	when
+		SQN:: integer(),
+		OPc :: binary(),
+		K :: binary(),
+		RAND :: binary(),
+		SQN :: integer().
+%% @doc Retrieve concealed `SQNms' from AUTS.
+%%
+%% @private
+sqn_ms(SQN, OPc, K, RAND)
+		when is_integer(SQN), byte_size(OPc) =:= 32,
+		byte_size(K) =:= 32, byte_size(RAND) =:= 32 ->
+	<<AK:48>> = ocs_milenage:'f5*'(OPc, K, RAND),
+	SQN bxor AK.
+
+-spec dif(SQN) -> DIF
+	when
+		SQN :: integer(),
+		DIF :: integer().
+%% @doc The DIF value represents the current difference
+%% 	between generated SEQ values for that user and the GLC.
+%%
+%% 	3GPP RTS 33.102 Annex C.1.1.3.
+%% @private
+dif(SQN) when is_integer(SQN), SQN band 2#11111 == 0 ->
+	SEQ = SQN bsr 5,
+	SEQ - erlang:system_time(10).
 
 -spec amf(Seperation) -> AMF
 	when
@@ -394,6 +507,31 @@ kdf(CK, IK, "WLAN", SQN, AK)
 	SQNi = SQN bxor AK,
 	crypto:hmac(sha256, <<CK/binary, IK/binary>>,
 			<<16#20, "WLAN", 4:16, SQNi:48, 6:16>>).
+
+-spec save_dif(Identity, DIF) -> ok
+	when
+		Identity :: binary(),
+		DIF :: integer().
+%% @doc Save the new DIF for subscriber.
+%% @hidden
+save_dif(Identity, DIF)
+		when is_binary(Identity), is_integer(DIF)->
+	Now = erlang:system_time(?MILLISECOND),
+	N = erlang:unique_integer([positive]),
+	LM = {Now, N},
+	F = fun() ->
+			[#service{password = P} = S1] = mnesia:read(service,
+					Identity, write),
+			S2 = S1#service{last_modified = LM,
+					password = P#aka_cred{dif  = DIF}},
+			mnesia:write(service, S2, write)
+	end,
+	case mnesia:transaction(F) of
+		{atomic, ok} ->
+			ok;
+		{aborted, Reason} ->
+			exit(Reason)
+	end.
 
 -spec send_diameter_request(StateData) -> Result
 	when
@@ -436,7 +574,19 @@ send_diameter_request1(Request1, #statedata{anid = ANID,
 			'SIP-Auth-Data-Item' = AuthData},
 	send_diameter_request2(Request2, StateData).
 %% @hidden
-send_diameter_request2(Request1,
+send_diameter_request2(Request,
+		#statedata{auts = undefined} = StateData) ->
+	send_diameter_request3(Request, StateData);
+send_diameter_request2(#'3gpp_swx_MAR'{
+		'SIP-Auth-Data-Item' = AuthData1} = Request1,
+		#statedata{auts = AUTS, rand = RAND} = StateData)
+		when is_binary(AUTS), is_binary(RAND) ->
+	AuthData2 = AuthData1#'3gpp_swx_SIP-Auth-Data-Item'{
+			'SIP-Authorization' = <<RAND/binary, AUTS/binary>>},
+	Request2 = Request1#'3gpp_swx_MAR'{'SIP-Auth-Data-Item' = AuthData2},
+	send_diameter_request3(Request2, StateData).
+%% @hidden
+send_diameter_request3(Request1,
 		#statedata{rat_type = RAT, service = Service} = _StateData) ->
 	Request2 = Request1#'3gpp_swx_MAR'{'Auth-Session-State' = 1,
 			'Vendor-Specific-Application-Id'

@@ -166,7 +166,7 @@
 -record(aka_cred,
 		{k :: binary(),
 		opc :: binary(),
-		dif = 0 :: non_neg_integer()}).
+		dif = 0 :: integer()}).
 -type aka_cred() :: #aka_cred{}.
 
 -record(service,

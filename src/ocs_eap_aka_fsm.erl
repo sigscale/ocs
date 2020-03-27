@@ -664,8 +664,9 @@ challenge(timeout, #statedata{session_id = SessionId} = StateData)->
 	{stop, {shutdown, SessionId}, StateData};
 challenge({#radius{id = RadiusID, authenticator = RequestAuthenticator,
 		attributes = RequestAttributes} = Request, RadiusFsm},
-		#statedata{eap_id = EapID, session_id = SessionId, secret = Secret,
-		identity = Identity, msk = MSK, res = RES, kaut = Kaut} = StateData) ->
+		#statedata{eap_id = EapID, session_id = SessionId,
+		secret = Secret, auc_fsm = AucFsm, identity = Identity,
+		msk = MSK, res = RES, kaut = Kaut} = StateData) ->
 	NewStateData = StateData#statedata{request = Request,
 			radius_fsm = RadiusFsm},
 	try
@@ -718,8 +719,10 @@ challenge({#radius{id = RadiusID, authenticator = RequestAuthenticator,
 				send_radius_response(EapMessage3, ?AccessChallenge, [], RadiusID,
 						RequestAuthenticator, RequestAttributes, NextStateData),
 				{next_state, failure, NextStateData, ?TIMEOUT};
-			% #eap_aka_synchronization_failure{auts = _AUTS} = _EAP ->
-			% @todo handle resynchronization
+			#eap_aka_synchronization_failure{auts = AUTS, kdf = [1]} = _EAP ->
+				gen_fsm:send_event(AucFsm, {self(), Identity, AUTS,
+						get_radius_rat(RequestAttributes)}),
+				{next_state, vector, StateData, ?TIMEOUT};
 			#eap_aka_authentication_reject{} = _EAP ->
 				Notification = #eap_aka_notification{notification = 16384},
 				Data2 = ocs_eap_codec:eap_aka(Notification),
@@ -758,17 +761,18 @@ challenge({#radius{id = RadiusID, authenticator = RequestAuthenticator,
 					RequestAuthenticator, RequestAttributes, NextStateData1),
 			{next_state, failure, NextStateData1, ?TIMEOUT}
 	end;
-challenge(#diameter_eap_app_DER{'EAP-Payload' = EapMessage} = Request,
-		StateData) ->
-	challenge1(EapMessage, Request, StateData);
-challenge(#'3gpp_swm_DER'{'EAP-Payload' = EapMessage} = Request,
-		StateData) ->
-	challenge1(EapMessage, Request, StateData).
+challenge(#diameter_eap_app_DER{'EAP-Payload' = EapMessage,
+		'NAS-Port-Type' = NasPortType} = Request, StateData) ->
+	challenge1(EapMessage, Request, nas_port_type(NasPortType), StateData);
+challenge(#'3gpp_swm_DER'{'EAP-Payload' = EapMessage,
+		'NAS-Port-Type' = NasPortType} = Request, StateData) ->
+	challenge1(EapMessage, Request, nas_port_type(NasPortType),StateData).
 %% @hidden
-challenge1(EapMessage1, Request,
+challenge1(EapMessage1, Request, RAT,
 		#statedata{eap_id = EapID, session_id = SessionId,
 		auth_req_type = AuthReqType, origin_host = OHost,
 		origin_realm = ORealm, diameter_port_server = PortServer,
+		auc_fsm = AucFsm, identity = Identity,
 		res = RES, kaut = Kaut} = StateData) ->
 	try
 		#eap_packet{code = response, type = ?AKA, identifier = EapID,
@@ -809,8 +813,9 @@ challenge1(EapMessage1, Request,
 						?'DIAMETER_BASE_RESULT-CODE_MULTI_ROUND_AUTH',
 						OHost, ORealm, EapMessage3, PortServer, Request, NewStateData),
 				{next_state, failure, NewStateData, ?TIMEOUT};
-			% #eap_aka_synchronization_failure{auts = _AUTS} = _EAP ->
-			% @todo handle resynchronization
+			#eap_aka_synchronization_failure{auts = AUTS, kdf = [1]} = _EAP ->
+				gen_fsm:send_event(AucFsm, {self(), Identity, AUTS, RAT}),
+				{next_state, vector, StateData, ?TIMEOUT};
 			#eap_aka_authentication_reject{} = _EAP ->
 				Notification = #eap_aka_notification{notification = 16384},
 				Data2 = ocs_eap_codec:eap_aka(Notification),
