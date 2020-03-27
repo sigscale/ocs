@@ -292,12 +292,12 @@ auth({ok, #'3gpp_swx_MAA'{'Result-Code' = [2001],
 		'SIP-Authorization' = [XRES],
 		'Confidentiality-Key' = [CK],
 		'Integrity-Key' = [IK]}]}},
-		#statedata{aka_fsm = AkaFsm, rand = RAND} = StateData) ->
+		#statedata{aka_fsm = AkaFsm} = StateData) ->
 	gen_fsm:send_event(AkaFsm, {RAND, AUTN, CK, IK, XRES}),
 	NewStateData  = StateData#statedata{hss_realm = HssRealm,
-			hss_host = HssHost},
+			hss_host = HssHost, rand = RAND},
 	{next_state, idle, NewStateData};
-auth({ok, #'3gpp_swx_MAA'{'Result-Code' = [ResultCode]}},
+auth({ok, #'3gpp_swx_MAA'{'Result-Code' = [ResultCode]} = _MAA},
 		#statedata{aka_fsm = AkaFsm} = StateData) ->
 	gen_fsm:send_event(AkaFsm, {error, ResultCode}),
 	{next_state, idle, StateData};
@@ -582,7 +582,7 @@ send_diameter_request2(#'3gpp_swx_MAR'{
 		#statedata{auts = AUTS, rand = RAND} = StateData)
 		when is_binary(AUTS), is_binary(RAND) ->
 	AuthData2 = AuthData1#'3gpp_swx_SIP-Auth-Data-Item'{
-			'SIP-Authorization' = <<RAND/binary, AUTS/binary>>},
+			'SIP-Authorization' = [<<RAND/binary, AUTS/binary>>]},
 	Request2 = Request1#'3gpp_swx_MAR'{'SIP-Auth-Data-Item' = AuthData2},
 	send_diameter_request3(Request2, StateData).
 %% @hidden
