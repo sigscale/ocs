@@ -580,7 +580,7 @@ send_diameter_request2(Request,
 send_diameter_request2(#'3gpp_swx_MAR'{
 		'SIP-Auth-Data-Item' = AuthData1} = Request1,
 		#statedata{auts = AUTS, rand = RAND} = StateData)
-		when is_binary(AUTS), is_binary(RAND) ->
+		when byte_size(AUTS) =:= 14, byte_size(RAND) =:= 16 ->
 	AuthData2 = AuthData1#'3gpp_swx_SIP-Auth-Data-Item'{
 			'SIP-Authorization' = [<<RAND/binary, AUTS/binary>>]},
 	Request2 = Request1#'3gpp_swx_MAR'{'SIP-Auth-Data-Item' = AuthData2},
