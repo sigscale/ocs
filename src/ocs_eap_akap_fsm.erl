@@ -680,7 +680,8 @@ challenge(timeout, #statedata{session_id = SessionId} = StateData)->
 challenge({#radius{id = RadiusID, authenticator = RequestAuthenticator,
 		attributes = RequestAttributes} = Request, RadiusFsm},
 		#statedata{eap_id = EapID, session_id = SessionId,
-		secret = Secret, auc_fsm = AucFsm, identity = Identity,
+		secret = Secret, auc_fsm = AucFsm,
+		identity = <<?PERM_AKAp, PermanentID/binary>> = Identity,
 		msk = MSK, res = RES, kaut = Kaut} = StateData) ->
 	NewStateData = StateData#statedata{request = Request,
 			radius_fsm = RadiusFsm},
@@ -735,7 +736,8 @@ challenge({#radius{id = RadiusID, authenticator = RequestAuthenticator,
 						RequestAuthenticator, RequestAttributes, NextStateData),
 				{next_state, failure, NextStateData, ?TIMEOUT};
 			#eap_aka_synchronization_failure{auts = AUTS, kdf = [1]} = _EAP ->
-				gen_fsm:send_event(AucFsm, {self(), Identity, AUTS,
+				[IMSI | _] = binary:split(PermanentID, <<$@>>, []),
+				gen_fsm:send_event(AucFsm, {self(), IMSI, AUTS,
 						get_radius_rat(RequestAttributes), "WLAN"}),
 				{next_state, vector, StateData, ?TIMEOUT};
 			#eap_aka_authentication_reject{} = _EAP ->
@@ -787,8 +789,8 @@ challenge1(EapMessage1, Request, RAT,
 		#statedata{eap_id = EapID, session_id = SessionId,
 		auth_req_type = AuthReqType, origin_host = OHost,
 		origin_realm = ORealm, diameter_port_server = PortServer,
-		auc_fsm = AucFsm, identity = Identity,
-		res = RES, kaut = Kaut} = StateData) ->
+		identity = <<?PERM_AKAp, PermanentID/binary>> = _Identity,
+		auc_fsm = AucFsm, res = RES, kaut = Kaut} = StateData) ->
 	try
 		#eap_packet{code = response, type = ?AKAprime, identifier = EapID,
 				data = Data1} = ocs_eap_codec:eap_packet(EapMessage1),
@@ -829,7 +831,8 @@ challenge1(EapMessage1, Request, RAT,
 						OHost, ORealm, EapMessage3, PortServer, Request, NewStateData),
 				{next_state, failure, NewStateData, ?TIMEOUT};
 			#eap_aka_synchronization_failure{auts = AUTS, kdf = [1]} = _EAP ->
-				gen_fsm:send_event(AucFsm, {self(), Identity, AUTS, RAT, "WLAN"}),
+				[IMSI | _] = binary:split(PermanentID, <<$@>>, []),
+				gen_fsm:send_event(AucFsm, {self(), IMSI, AUTS, RAT, "WLAN"}),
 				{next_state, vector, StateData, ?TIMEOUT};
 			#eap_aka_authentication_reject{} = _EAP ->
 				Notification = #eap_aka_notification{notification = 16384},
