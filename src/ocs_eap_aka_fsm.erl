@@ -724,7 +724,7 @@ challenge({#radius{id = RadiusID, authenticator = RequestAuthenticator,
 				[IMSI | _] = binary:split(PermanentID, <<$@>>, []),
 				gen_fsm:send_event(AucFsm, {self(), IMSI, AUTS,
 						get_radius_rat(RequestAttributes)}),
-				{next_state, vector, StateData, ?TIMEOUT};
+				{next_state, vector, NewStateData, ?TIMEOUT};
 			#eap_aka_authentication_reject{} = _EAP ->
 				Notification = #eap_aka_notification{notification = 16384},
 				Data2 = ocs_eap_codec:eap_aka(Notification),
@@ -818,7 +818,7 @@ challenge1(EapMessage1, Request, RAT,
 			#eap_aka_synchronization_failure{auts = AUTS, kdf = [1]} = _EAP ->
 				[IMSI | _] = binary:split(PermanentID, <<$@>>, []),
 				gen_fsm:send_event(AucFsm, {self(), IMSI, AUTS, RAT}),
-				{next_state, vector, StateData, ?TIMEOUT};
+				{next_state, vector, NewStateData, ?TIMEOUT};
 			#eap_aka_authentication_reject{} = _EAP ->
 				Notification = #eap_aka_notification{notification = 16384},
 				Data2 = ocs_eap_codec:eap_aka(Notification),
