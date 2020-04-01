@@ -1,3 +1,7 @@
+2020-04-01  Vance Shipley <vances@sigscale.org>
+
+	* handle resynchronization
+
 2020-03-26  Vance Shipley <vances@sigscale.org>
 
 	* migrate client table to add trusted field
