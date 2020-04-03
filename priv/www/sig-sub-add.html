@@ -596,10 +596,7 @@
 					this.$.addSubscriberAkaOpc.disabled = false;
 					this.$.addSubscriberAkak.value = null;
 					this.$.addSubscriberAkaOpc.value = null;
-					document.getElementById('addproduct10').selected = null;
-					document.getElementById('adduni9').selected = null;
-					this.$.adduni9.value = null;
-					this.$.addproduct10.value = null;
+					this.$.addproduct10.selected= null;
 					this.$.addProductId1.value = null;
 				}
 			},
@@ -610,10 +607,8 @@
 				this.$.addSubscriberPassword.value = null;
 				this.$.addSubscriberAkak.disabled = null;
 				this.$.addSubscriberAkaOpc.disabled = null;
-				this.$.adduni9.value = null;
 				this.$.add8.value = null;
-				document.getElementById('addproduct10').selected = null;
-				document.getElementById('adduni9').selected = null;
+				this.$.adduni9.selected = null;
 				this.$.addProductId1.value = null;
 			},
 			_addServiceResponse: function(event) {
@@ -664,18 +659,18 @@
 				var bucketTop = {name: "channel"};
 				var bunits;
 				var bamount;
-				if(document.getElementById("add8").value) {
-					if(document.getElementById("adduni9").selected == 0) {
+				if(this.$.add8.value) {
+					if(this.$.adduni9.selected == 0) {
 						bunits = "octets";
-					} else if (document.getElementById("adduni9").selected == 1) {
+					} else if (this.$.adduni9.selected == 1) {
 						bunits = "cents";
-					} else if(document.getElementById("adduni9").selected == 2) {
+					} else if(this.$.adduni9.selected == 2) {
 						bunits = "seconds";
 					} else {
 						bunits = "cents";
 					}
-					if(bunits && document.getElementById("add8").value) {
-						var size = document.getElementById("add8").value;
+					if(bunits && this.$.add8.value) {
+						var size = this.$.add8.value;
 						var len = size.length;
 						var m = size.charAt(len - 1);
 						if(isNaN(parseInt(m))) {
@@ -694,7 +689,7 @@
 								bamount = s + "b";
 							}
 						} else if(bunits == "cents") {
-							bamount = document.getElementById("add8").value;
+							bamount = this.$.add8.value;
 						} else if(bunits == "seconds") {
 							var n = Number(s);
 							if(m == "m") {
@@ -717,7 +712,7 @@
 					ajaxBucket.generateRequest();
 				}
 				this.$.addServiceModal.close();
-				document.getElementById("add8").value = null;
+				this.$.add8.value = null;
 			},
 			_addProductError: function(event) {
 				var ajaxBucketRes = this.$.addBucketAjax;
