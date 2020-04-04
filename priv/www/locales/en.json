@@ -796,12 +796,16 @@
     "message": "End Time"
   },
 	"preData": {
-    "description": "PrepaidData",
+    "description": "Prepaid Data",
     "message": "Prepaid Data"
   },
 	"preVoice": {
-    "description": "PrepaidVoice",
+    "description": "Prepaid Voice",
     "message": "Prepaid Voice"
+  },
+	"preSMS": {
+    "description": "Prepaid SMS",
+    "message": "Prepaid SMS"
   },
 	"resSession": {
     "description": "Radius reserve session time",

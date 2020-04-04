@@ -808,12 +808,16 @@
     "message": "Hora de finalización"
   },
 	"preData": {
-    "description": "PrepaidData",
+    "description": "Prepaid Data",
     "message": "Datos prepagos"
   },
 	"preVoice": {
-    "description": "PrepaidVoice",
-    "message": "Voz prepago"
+    "description": "Prepaid Voice",
+    "message": "Voz prepagos"
+  },
+	"preSMS": {
+    "description": "Prepaid SMS",
+    "message": "SMS prepagos"
   },
 	"resSession": {
     "description": "Radius reserve session time",
