@@ -458,11 +458,6 @@ autn(SQN, AK, AMF, MAC)
 sqn_ms(SQN, OPc, K, RAND)
 		when is_integer(SQN), byte_size(OPc) =:= 16,
 		byte_size(K) =:= 16, byte_size(RAND) =:= 16 ->
-ocs_eap_aka_auc_fsm,sqn_ms,
-            [47689806810222,
-             <<0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15>>,
-             <<0,17,34,51,68,85,102,119,136,153,170,187,204,221,238,255>>,
-             <<97,58,73,244,183,137,108,26,80,147,177,253,206,165,166,146>>],
 	<<AK:48>> = ocs_milenage:'f5*'(OPc, K, RAND),
 	SQN bxor AK.
 
