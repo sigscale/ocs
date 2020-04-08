@@ -51,3 +51,42 @@
 		* [ Proxy-Info ]
 		* [ AVP ]
 
+	SAR ::= < Diameter Header: 301, REQ, PXY >
+		< Session-Id >
+		{ Vendor-Specific-Application-Id }
+		{ Auth-Session-State }
+		{ Server-Assignment-Type }
+		{ Origin-Host }
+		{ Origin-Realm }
+		{ Destination-Realm }
+		{ User-Name}
+		[ Destination-Host ]
+		[ DRMP ]
+		[ Service-Selection ]
+		[ Context-Identifier ]
+		[ MIP6-Agent-Info ]
+		[ Visited-Network-Identifier ]
+		* [ Active-APN ]
+		[ OC-Supported-Features ]
+		* [ Supported-Features ]
+		[ Terminal-Information ]
+		[ Emergency-Services ]
+		*[ AVP ]
+
+	SAA ::= < Diameter Header: 301, PXY >
+		< Session-Id >
+		{ Auth-Session-State }
+		{ Origin-Host }
+		{ Origin-Realm }
+		{ User-Name}
+		[ Result-Code ]
+		[ Experimental-Result ]
+		[ DRMP ]
+		[ OC-Supported-Features ]
+		* [ Supported-Features ]
+		[ Non-3GPP-User-Data ]
+		[ 3GPP-AAA-Server-Name ]
+		[ OC-OLR ]
+		* [ Load ]
+		* [ AVP ]
+

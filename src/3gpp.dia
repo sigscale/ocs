@@ -425,7 +425,6 @@
    SMS-Result                                             3409  Unsigned32       VM
    SMSC-Address                                           2017  Address          VM
 ;  Sponsor-Identity                                        531  
-;  SSID                                                   1524  
    Start-of-Charging                                      3419  Time             VM
    Start-Time                                             2041  Time             VM
    Status-AS-Code                                         2702  Enumerated       VM
@@ -514,9 +513,11 @@
    3GPP-GPRS-Negotiated-QoS-Profile                          5  UTF8String       VM
    3GPP-IMEISV                                              20  UTF8String       VM
    ;; 3GPP TS 29.214
-   Media-Component-Number                                  518  Unsigned32       VM
-   Flow-Number                                             509  Unsigned32       VM
    Access-Network-Charging-Identifier                      502  Grouped          VM
+   Flow-Number                                             509  Unsigned32       VM
+   Media-Component-Number                                  518  Unsigned32       VM
+   Extended-Max-Requested-BW-DL                            554  Unsigned32       VM
+   Extended-Max-Requested-BW-UL                            555  Unsigned32       VM
    ;; 3GPP TS 29.212
    QoS-Class-Identifier                                   1028  Enumerated       VM
    Max-Requested-Bandwidth-DL                              515  Unsigned32       VM
@@ -534,20 +535,34 @@
    Pre-emption-Vulnerability                              1048  Enumerated       VM
    UE-Local-IP-Address                                    2805  Address          V
    ;; 3GPP TS 29.273
-   AAA-Failure-Indication                                 1518  Unsigned32       V
-   Access-Network-Info                                    1526  Grouped          V
-   Trace-Info                                             1505  Grouped          V
-   Trace-Data                                             1458  Grouped          VM
-   Mobile-Node-Identifier                                  506  UTF8String        M
    MIP6-Feature-Vector                                     124  Unsigned64        M
-   Visited-Network-Identifier                              600  OctetString      VM
-;  QoS-Capability                                          578  Grouped           M
+   3GPP-AAA-Server-Name                                    318  DiameterIdentity VM
    Service-Selection                                       493  UTF8String        M
+   Mobile-Node-Identifier                                  506  UTF8String        M
+;  QoS-Capability                                          578  Grouped           M
+   Visited-Network-Identifier                              600  OctetString      VM
+   Trace-Data                                             1458  Grouped          VM
+   Non-3GPP-User-Data                                     1500  Grouped          VM
+   Non-3GPP-IP-Access                                     1501  Enumerated       VM
+   Non-3GPP-IP-Access-APN                                 1502  Enumerated       VM
+   ANID                                                   1504  UTF8String       VM
+   Trace-Info                                             1505  Grouped          VM
+   WLAN-Identifier                                        1509  Grouped          VM
+   Access-Authorization-Flags                             1511  Unsigned32       VM
+   TWAN-Default-APN-Context-Id                            1512  Unsigned32       VM
+   AAA-Failure-Indication                                 1518  Unsigned32       VM
+   SSID                                                   1524  UTF8String       VM
+   HESSID                                                 1525  UTF8String       VM
+   Access-Network-Info                                    1526  Grouped          VM
+   Emergency-Services                                     1538  Unsigned32       VM
+   ERP-Authorization                                      1541  Enumerated       VM
    ;; 3GPP TS 29.272
    IMEI                                                   1402  UTF8String       VM
    Software-Version                                       1403  UTF8String       VM
+   Context-Identifier                                     1423  Unsigned32       VM
    APN-OI-Replacement                                     1427  UTF8String       VM
    APN-Configuration                                      1430  Grouped          VM
+   AMBR                                                   1435  Grouped          VM
    Trace-Collection-Entity                                1452  Address          VM
    Trace-Reference                                        1459  OctetString      VM
    Trace-NE-Type-List                                     1463  OctetString      VM
@@ -556,11 +571,14 @@
    Trace-Event-List                                       1465  OctetString      VM
    OMC-Id                                                 1466  OctetString      VM
    3GPP2-MEID                                             1471  OctetString      VM
+   Specific-APN-Info                                      1472  Grouped          VM
+   TWAN-Access-Info                                       1510  Grouped          VM
    E-UTRAN-Cell-Global-Identity                           1602  OctetString      V
    Tracking-Area-Identity                                 1603  OctetString      V
    Cell-Global-Identity                                   1604  OctetString      V
    Routing-Area-Identity                                  1605  OctetString      V
    Location-Area-Identity                                 1606  OctetString      V
+   Active-APN                                             1612  Grouped          V
    MDT-Configuration                                      1622  Grouped          V
    Job-Type                                               1623  Enumerated       V
    Area-Scope                                             1624  Grouped          V
@@ -581,6 +599,7 @@
    Event-Threshold-Event-1F                               1661  Integer32        V
    Event-Threshold-Event-1I                               1662  Integer32        V
    UE-Usage-Type                                          1680  Unsigned32       V
+   Emergency-Info                                         1687  Grouped          VM
    Core-Network-Restrictions                              1704  Unsigned32       V
    ;; 3GPP TS 29.229
    SIP-Number-Auth-Items                                   607  Unsigned32       VM
@@ -590,14 +609,11 @@
    SIP-Authentication-Context                              611  OctetString      VM
    SIP-Auth-Data-Item                                      612  Grouped          VM
    SIP-Item-Number                                         613  Unsigned32       VM
+   Server-Assignment-Type                                  614  Enumerated       VM
    Confidentiality-Key                                     625  OctetString      VM
    Integrity-Key                                           626  OctetString      VM
    Supported-Features                                      628  Grouped          VM
    SIP-Digest-Authenticate                                 635  Grouped          V
-   ;; 3GPP TS 29.273
-   3GPP-AAA-Server-Name                                    318  DiameterIdentity VM
-   ANID                                                   1504  UTF8String       VM
-   Emergency-Services                                     1538  Unsigned32       V
 
 @grouped
 
@@ -637,7 +653,7 @@
      *[ AVP ]
 
    Service-Information ::= <AVP Header: 873>
-;    *[ Subscription-Id ]  ; Rf interface only
+     *[ Subscription-Id ]  ; Rf interface only
 ;     [ AoC-Information ]
       [ PS-Information ]
       [ IMS-Information ]
@@ -1241,9 +1257,9 @@
      *[AVP]
 
    APN-Configuration ::= <AVP Header: 1430>
-;     { Context-Identifier }
+      { Context-Identifier }
 ;     { PDN-Type }
-;     { Service-Selection}
+      { Service-Selection }
     *2[ Served-Party-IP-Address ]
 ;     [ EPS-Subscribed-QoS-Profile ]
 ;     [ VPLMN-Dynamic-Address-Allowed ]
@@ -1251,8 +1267,8 @@
       [ Visited-Network-Identifier ]
 ;     [ PDN-GW-Allocation-Type ]
       [ 3GPP-Charging-Characteristics ]
-;     [ AMBR ]
-;    *[ Specific-APN-Info ]
+      [ AMBR ]
+     *[ Specific-APN-Info ]
       [ APN-OI-Replacement ]
 ;     [ SIPTO-Permission ]
 ;     [ LIPA-Permission ]
@@ -1268,6 +1284,58 @@
 ;     [ RDS-Indicator ]
 ;     [ Interworking-5GS-Indicator ]
      *[ AVP ]
+
+   Specific-APN-Info ::= <AVP Header: 1472>
+      { Service-Selection }
+      [ MIP6-Agent-Info ]
+      [ Visited-Network-Identifier ]
+     *[ AVP ]
+
+   TWAN-Access-Info ::= <AVP Header: 1510 >
+      [ Access-Authorization-Flags ]
+      [ WLAN-Identifier ]
+     *[ AVP ]
+
+   Non-3GPP-User-Data ::= <AVP Header: 1500>
+      [ Subscription-Id ]
+      [ Non-3GPP-IP-Access ]
+      [ Non-3GPP-IP-Access-APN ]
+     *[ RAT-Type ]
+      [ Session-Timeout ]
+      [ MIP6-Feature-Vector ]
+      [ AMBR ]
+      [ 3GPP-Charging-Characteristics ]
+      [ Context-Identifier ]
+      [ APN-OI-Replacement ]
+     *[ APN-Configuration ]
+      [ Trace-Info ]
+      [ TWAN-Default-APN-Context-Id ]
+     *[ TWAN-Access-Info ]
+      [ UE-Usage-Type ]
+      [ Emergency-Info ]
+      [ ERP-Authorization ]
+      [ Core-Network-Restrictions ]
+     *[ AVP ]
+
+   WLAN-Identifier ::= < AVP Header: 1509 >
+      [ SSID ]
+      [ HESSID ]
+     *[ AVP ]
+
+   Active-APN ::= <AVP Header: 1612>
+      { Context-Identifier }
+      [ Service-Selection ]
+      [ MIP6-Agent-Info ]
+      [ Visited-Network-Identifier ]
+     *[ Specific-APN-Info ]
+     *[ AVP ]
+
+   AMBR ::= <AVP Header: 1435>
+      { Max-Requested-Bandwidth-UL }
+      { Max-Requested-Bandwidth-DL }
+      [ Extended-Max-Requested-BW-UL ]
+      [ Extended-Max-Requested-BW-DL ]
+     *[AVP]
 
    SIP-Auth-Data-Item ::= <AVP Header: 612>
       [ SIP-Item-Number ]
@@ -1298,12 +1366,16 @@
      *[ AVP ]
 
    Access-Network-Info ::= < AVP Header: 1526 10415 >
-;     [ SSID ]
+      [ SSID ]
       [ BSSID ]
 ;     [ Location-Information ]
 ;     [ Location-Data ]
 ;     [ Operator-Name ]
 ;     [ Logical-Access-ID ]
+     *[ AVP ]
+
+   Emergency-Info ::= <AVP Header: 1687>
+      [ MIP6-Agent-Info ]
      *[ AVP ]
 
 @enum Trace-Depth
@@ -1712,4 +1784,33 @@
    IP-SM-GW                     1
    SMS-Router_and_IP-SM-GW      2
    SMS-SC                       3
+
+@enum Non-3GPP-IP-Access
+   NON_3GPP_SUBSCRIPTION_ALLOWED 0
+   NON_3GPP_SUBSCRIPTION_BARRED  1
+
+@enum Non-3GPP-IP-Access-APN
+   NON_3GPP_APNS_ENABLE         0
+   NON_3GPP_APNS_DISABLE        1
+
+@enum ERP-Authorization
+   ERP_NOT_AUTHORIZED           0
+   ERP_AUTHORIZED               1
+
+@enum Server-Assignment-Type
+   NO_ASSIGNMENT                            0
+   REGISTRATION                             1
+   RE_REGISTRATION                          2
+   UNREGISTERED_USER                        3
+   TIMEOUT_DEREGISTRATION                   4
+   USER_DEREGISTRATION                      5
+   TIMEOUT_DEREGISTRATION_STORE_SERVER_NAME 6
+   USER_DEREGISTRATION_STORE_SERVER_NAME    7
+   ADMINISTRATIVE_DEREGISTRATION            8
+   AUTHENTICATION_FAILURE                   9
+   AUTHENTICATION_TIMEOUT                  10
+   DEREGISTRATION_TOO_MUCH_DATA            11
+   AAA_USER_DATA_REQUEST                   12
+   PGW_UPDATE                              13
+   RESTORATION                             14
 
