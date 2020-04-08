@@ -470,7 +470,7 @@ sqn_ms(SQN, OPc, K, RAND)
 %%
 %% 	3GPP RTS 33.102 Annex C.1.1.3.
 %% @private
-dif(SQN) when is_integer(SQN), SQN band 2#11111 == 0 ->
+dif(SQN) when is_integer(SQN) ->
 	SEQ = SQN bsr 5,
 	SEQ - erlang:system_time(10).
 
