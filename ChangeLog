@@ -1,3 +1,10 @@
+2020-04-08  Vance Shipley <vances@sigscale.org>
+
+	* fix resynchronization with local auc
+	* gui fix for messages recurring price type
+	* gui cosmetic fixes for prepaid sms
+	* correct balance units on add service
+
 2020-04-01  Vance Shipley <vances@sigscale.org>
 
 	* handle resynchronization
