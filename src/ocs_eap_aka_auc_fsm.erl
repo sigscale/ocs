@@ -76,6 +76,8 @@
 -define(SWx_APPLICATION_DICT, diameter_gen_3gpp_swx_application).
 -define(SWx_APPLICATION, ocs_diameter_3gpp_swx_application).
 
+-define(TIMEOUT, 5000).
+
 %% support deprecated_time_unit()
 -define(MILLISECOND, milli_seconds).
 %-define(MILLISECOND, millisecond).
@@ -255,7 +257,7 @@ idle1({error, not_found},
 		#statedata{hss_realm = _HssRealm} = StateData) ->
 	case send_diameter_request(StateData) of
 		ok ->
-			{next_state, auth, StateData};
+			{next_state, auth, StateData, ?TIMEOUT};
 		{error, Reason} ->
 			{stop, Reason, StateData}
 	end;
@@ -311,6 +313,9 @@ auth({ok, #'3gpp_swx_MAA'{'Experimental-Result' = [ResultCode]}},
 	{next_state, idle, StateData};
 auth({error, Reason}, #statedata{aka_fsm = AkaFsm} = StateData) ->
 	gen_fsm:send_event(AkaFsm, {error, Reason}),
+	{next_state, idle, StateData};
+auth(timeout, #statedata{aka_fsm = AkaFsm} = StateData) ->
+	gen_fsm:send_event(AkaFsm, {error, timeout}),
 	{next_state, idle, StateData}.
 
 -spec handle_event(Event, StateName, StateData) -> Result
