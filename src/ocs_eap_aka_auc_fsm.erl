@@ -337,8 +337,8 @@ auth(timeout, #statedata{aka_fsm = AkaFsm} = StateData) ->
 %% @see //stdlib/gen_fsm:handle_event/3
 %% @private
 %%
-handle_event(_Event, StateName, StateData) ->
-	{next_state, StateName, StateData}.
+handle_event(Event, StateName, StateData) ->
+	{stop, Event, StateData}.
 
 -spec handle_sync_event(Event, From, StateName, StateData) -> Result
 	when
@@ -367,8 +367,8 @@ handle_event(_Event, StateName, StateData) ->
 %% @see //stdlib/gen_fsm:handle_sync_event/4
 %% @private
 %%
-handle_sync_event(_Event, _From, StateName, StateData) ->
-	{reply, ok, StateName, StateData}.
+handle_sync_event(Event, _From, StateName, StateData) ->
+	{stop, Event, StateData}.
 
 -spec handle_info(Info, StateName, StateData) -> Result
 	when
