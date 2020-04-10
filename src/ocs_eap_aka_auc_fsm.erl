@@ -561,7 +561,7 @@ send_diameter_request1(Request1, #statedata{anid = undefined,
 		identity = Identity} = StateData) ->
 	AuthData = #'3gpp_swx_SIP-Auth-Data-Item'{
 			'SIP-Authentication-Scheme' = [<<"EAP-AKA">>]},
-	Request2 = Request1#'3gpp_swx_MAR'{'User-Name' =  [Identity],
+	Request2 = Request1#'3gpp_swx_MAR'{'User-Name' =  Identity,
 			'SIP-Number-Auth-Items' = 1,
 			'SIP-Auth-Data-Item' = AuthData},
 	send_diameter_request2(Request2, StateData);
@@ -569,7 +569,7 @@ send_diameter_request1(Request1, #statedata{anid = ANID,
 		identity = Identity} = StateData) ->
 	AuthData = #'3gpp_swx_SIP-Auth-Data-Item'{
 			'SIP-Authentication-Scheme' = [<<"EAP-AKA'">>]},
-	Request2 = Request1#'3gpp_swx_MAR'{'User-Name' =  [Identity],
+	Request2 = Request1#'3gpp_swx_MAR'{'User-Name' =  Identity,
 			'ANID' = [ANID], 'SIP-Number-Auth-Items' = 1,
 			'SIP-Auth-Data-Item' = AuthData},
 	send_diameter_request2(Request2, StateData).

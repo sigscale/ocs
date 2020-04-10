@@ -17,9 +17,9 @@
 		{ Destination-Realm }
 		{ SIP-Auth-Data-Item }
 		{ SIP-Number-Auth-Items }
+		{ User-Name }
 		[ DRMP ]
 		[ Destination-Host ]
-		[ User-Name ]
 		[ RAT-Type ]
 		[ ANID ]
 		[ Visited-Network-Identifier ]
