@@ -138,3 +138,105 @@
 		* [ Proxy-Info ]
 		* [ AVP ]
 
+	AAR ::= < Diameter Header: 265, REQ, PXY >
+		< Session-Id >
+		{ Auth-Application-Id }
+		{ Origin-Host }
+		{ Origin-Realm }
+		{ Destination-Realm }
+		{ Auth-Request-Type }
+		[ Destination-Host ]
+		[ User-Name ]
+		[ DRMP ]
+		[ OC-Supported-Features ]
+		[ AAR-Flags ]
+		[ UE-Local-IP-Address ]
+		*[ AVP ]
+
+	AAA ::= < Diameter Header: 265, PXY >
+		< Session-Id >
+		{ Auth-Application-Id }
+		{ Origin-Host }
+		{ Origin-Realm }
+		{ Auth-Request-Type }
+		{ Result-Code }
+		[ User-Name ]
+		[ Subscription-Id ]
+		[ DRMP ]
+		[ APN-OI-Replacement ]
+		[ APN-Configuration ]
+		[ 3GPP-Charging-Characteristics ]
+		[ Access-Network-Info ]
+		[ User-Location-Info-Time ]
+		[ Session-Timeout ]
+		[ Trace-Info ]
+		[ OC-Supported-Features ]
+		[ OC-OLR ]
+		*[ Load ]
+		*[ AVP ]
+
+	STR ::= < Diameter Header: 275, REQ, PXY >
+		< Session-Id >
+		{ Auth-Application-Id }
+		{ Origin-Host }
+		{ Origin-Realm }
+		{ Destination-Realm }
+		{ Termination-Cause }
+		[ Destination-Host ]
+		[ User-Name ]
+		[ DRMP ]
+		[ OC-Supported-Features ]
+		*[ AVP ]
+
+	STA ::= < Diameter Header: 275, PXY >
+		< Session-Id >
+		{ Origin-Host }
+		{ Origin-Realm }
+		{ Result-Code }
+		[ DRMP ]
+		[ OC-Supported-Features ]
+		[ OC-OLR ]
+		*[ Load ]
+		*[ AVP ]
+
+	ASR ::= < Diameter Header: 274, REQ, PXY >
+		< Session-Id >
+		{ Auth-Application-Id }
+		{ Origin-Host }
+		{ Origin-Realm }
+		{ Destination-Realm }
+		{ Destination-Host }
+		[ User-Name ]
+		[ Auth-Session-State ]
+		[ DRMP ]
+		*[ AVP ]
+
+	ASA ::= < Diameter Header: 274, PXY >
+		< Session-Id >
+		{ Result-Code }
+		{ Origin-Host }
+		{ Origin-Realm }
+		[ DRMP ]
+		*[ AVP ]
+
+	RAR ::= < Diameter Header: 258, REQ, PXY >
+		< Session-Id >
+		{ Auth-Application-Id }
+		{ Origin-Host }
+		{ Origin-Realm }
+		{ Destination-Realm }
+		{ Destination-Host }
+		{ Re-Auth-Request-Type }
+		[ User-Name ]
+		[ DRMP ]
+		*[ AVP ]
+
+	RAA ::= < Diameter Header: 258, PXY >
+		< Session-Id >
+		{ Result-Code }
+		{ Origin-Host }
+		{ Origin-Realm }
+		[ User-Name ]
+		[ DRMP ]
+		*[ AVP ]
+
