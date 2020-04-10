@@ -719,6 +719,8 @@ challenge({#radius{id = RadiusID, authenticator = RequestAuthenticator,
 						EapMessage3 = ocs_eap_codec:eap_packet(EapPacket1),
 						Response = {EapMessage3, Attr3},
 						NextStateData = NewStateData#statedata{response = Response},
+						[IMSI | _] = binary:split(PermanentID, <<$@>>, []),
+						gen_fsm:send_event(AucFsm, {register, {self(), IMSI}}),
 						{next_state, register, NextStateData, ?TIMEOUT};
 					_MAC ->
 						Notification = #eap_aka_notification{notification = 16384},
@@ -812,6 +814,8 @@ challenge1(EapMessage1, Request, RAT,
 						EapMessage3 = ocs_eap_codec:eap_packet(EapPacket1),
 						Response = {EapMessage3, []},
 						NextStateData = NewStateData#statedata{response = Response},
+						[IMSI | _] = binary:split(PermanentID, <<$@>>, []),
+						gen_fsm:send_event(AucFsm, {register, {self(), IMSI}}),
 						{next_state, register, NextStateData};
 					_MAC ->
 						Notification = #eap_aka_notification{notification = 16384},
