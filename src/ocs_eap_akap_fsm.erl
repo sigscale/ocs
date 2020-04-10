@@ -40,7 +40,8 @@
 -export([]).
 
 %% export the ocs_eap_akap_fsm state callbacks
--export([eap_start/2, identity/2, vector/2, challenge/2, failure/2]).
+-export([eap_start/2, identity/2, vector/2, challenge/2,
+			register/2, failure/2]).
 
 %% export the call backs needed for gen_fsm behaviour
 -export([init/1, handle_event/3, handle_sync_event/4, handle_info/3,
@@ -66,6 +67,8 @@
 				Port :: string(), Peer :: string()},
 		request :: undefined | #diameter_eap_app_DER{} | #'3gpp_sta_DER'{}
 				| #radius{},
+		response :: undefined | {EapMessage :: binary(),
+				radius_attributes:attributes()},
 		secret :: undefined | binary(),
 		eap_id = 0 :: byte(),
 		server_id  ::  binary(),
@@ -205,8 +208,8 @@ eap_start(timeout, #statedata{sup = Sup, eap_id = EapID,
 								identity = Identity},
 						[IMSI | _] = binary:split(PermanentID, <<$@>>, []),
 						% @todo handle RADIUS attribute for ANID
-						gen_fsm:send_event(AucFsm, {self(), IMSI, undefined,
-								get_radius_rat(RequestAttributes), "WLAN"}),
+						gen_fsm:send_event(AucFsm, {vector, {self(), IMSI, undefined,
+								get_radius_rat(RequestAttributes), "WLAN"}}),
 						{next_state, vector, NextStateData, ?TIMEOUT};
 					#eap_packet{code = response, type = ?Identity,
 							identifier = StartEapID,
@@ -218,8 +221,8 @@ eap_start(timeout, #statedata{sup = Sup, eap_id = EapID,
 						CompressedIMSI = ocs_eap_aka:decrypt_imsi(Pseudonym, Keys),
 						IMSI = ocs_eap_aka:compressed_imsi(CompressedIMSI),
 						% @todo handle RADIUS attribute for ANID
-						gen_fsm:send_event(AucFsm, {self(), IMSI, undefined,
-								get_radius_rat(RequestAttributes), "WLAN"}),
+						gen_fsm:send_event(AucFsm, {vector, {self(), IMSI, undefined,
+								get_radius_rat(RequestAttributes), "WLAN"}}),
 						{next_state, vector, NextStateData, ?TIMEOUT};
 					#eap_packet{code = response, type = ?Identity,
 							identifier = StartEapID,
@@ -350,7 +353,8 @@ eap_start1(EapMessage, RAT,
 						identity = Identity},
 				[IMSI | _] = binary:split(PermanentID, <<$@>>, []),
 				% @todo handle DIAMETER ANID AVP
-				gen_fsm:send_event(AucFsm, {self(), IMSI, undefined, RAT, "WLAN"}),
+				gen_fsm:send_event(AucFsm, {vector, {self(),
+						IMSI, undefined, RAT, "WLAN"}}),
 				{next_state, vector, NextStateData, ?TIMEOUT};
 			#eap_packet{code = response, type = ?Identity,
 					identifier = StartEapID,
@@ -362,7 +366,8 @@ eap_start1(EapMessage, RAT,
 				CompressedIMSI = ocs_eap_aka:decrypt_imsi(Pseudonym, Keys),
 				IMSI = ocs_eap_aka:compressed_imsi(CompressedIMSI),
 				% @todo handle DIAMETER ANID AVP
-				gen_fsm:send_event(AucFsm, {self(), IMSI, undefined, RAT, "WLAN"}),
+				gen_fsm:send_event(AucFsm, {vector, {self(),
+						IMSI, undefined, RAT, "WLAN"}}),
 				{next_state, vector, NextStateData, ?TIMEOUT};
 			#eap_packet{code = response, type = ?Identity,
 					identifier = StartEapID,
@@ -460,8 +465,8 @@ identity({#radius{id = RadiusID, authenticator = RequestAuthenticator,
 							PermanentID/binary>> = Identity} when IdReq == full ->
 						[IMSI | _] = binary:split(PermanentID, <<$@>>, []),
 						% @todo handle RADIUS attribute for ANID
-						gen_fsm:send_event(AucFsm, {self(), IMSI, undefined,
-								get_radius_rat(RequestAttributes), "WLAN"}),
+						gen_fsm:send_event(AucFsm, {vector, {self(), IMSI,
+								undefined, get_radius_rat(RequestAttributes), "WLAN"}}),
 						NextStateData = NewStateData#statedata{identity = Identity},
 						{next_state, vector, NextStateData, ?TIMEOUT};
 					#eap_aka_identity{identity = <<?TEMP_AKAp:6, _/bits>> = Identity}
@@ -470,8 +475,8 @@ identity({#radius{id = RadiusID, authenticator = RequestAuthenticator,
 						CompressedIMSI = ocs_eap_aka:decrypt_imsi(Pseudonym, Keys),
 						IMSI = ocs_eap_aka:compressed_imsi(CompressedIMSI),
 						% @todo handle RADIUS attribute for ANID
-						gen_fsm:send_event(AucFsm, {self(), IMSI, undefined,
-								get_radius_rat(RequestAttributes), "WLAN"}),
+						gen_fsm:send_event(AucFsm, {vector, {self(), IMSI,
+								indefined, get_radius_rat(RequestAttributes), "WLAN"}}),
 						NextStateData = NewStateData#statedata{identity = Identity},
 						{next_state, vector, NextStateData, ?TIMEOUT}
 				end;
@@ -517,7 +522,8 @@ identity1(EapMessage, RAT,
 							PermanentID/binary>> = Identity} when IdReq == full ->
 						[IMSI | _] = binary:split(PermanentID, <<$@>>, []),
 						% @todo handle DIAMETER ANID AVP
-						gen_fsm:send_event(AucFsm, {self(), IMSI, undefined, RAT, "WLAN"}),
+						gen_fsm:send_event(AucFsm, {vector, {self(), IMSI,
+								undefined, RAT, "WLAN"}}),
 						NewStateData = StateData#statedata{identity = Identity},
 						{next_state, vector, NewStateData, ?TIMEOUT};
 					#eap_aka_identity{identity = <<?TEMP_AKAp:6, _/bits>> = Identity}
@@ -526,7 +532,8 @@ identity1(EapMessage, RAT,
 						CompressedIMSI = ocs_eap_aka:decrypt_imsi(Pseudonym, Keys),
 						IMSI = ocs_eap_aka:compressed_imsi(CompressedIMSI),
 						% @todo handle DIAMETER ANID AVP
-						gen_fsm:send_event(AucFsm, {self(), IMSI, undefined, RAT, "WLAN"}),
+						gen_fsm:send_event(AucFsm, {vector, {self(), IMSI,
+								undefined, RAT, "WLAN"}}),
 						NewStateData = StateData#statedata{identity = Identity},
 						{next_state, vector, NewStateData, ?TIMEOUT}
 				end;
@@ -569,7 +576,7 @@ identity1(EapMessage, RAT,
 %% @private
 vector(timeout, #statedata{session_id = SessionId} = StateData)->
 	{stop, {shutdown, SessionId}, StateData};
-vector({RAND, AUTN, CKprime, IKprime, XRES}, #statedata{eap_id = EapID,
+vector({ok, {RAND, AUTN, CKprime, IKprime, XRES}}, #statedata{eap_id = EapID,
 		request = #radius{code = ?AccessRequest, id = RadiusID,
 		authenticator = RequestAuthenticator, attributes = RequestAttributes},
 		identity = Identity} = StateData) ->
@@ -591,7 +598,7 @@ vector({RAND, AUTN, CKprime, IKprime, XRES}, #statedata{eap_id = EapID,
 	send_radius_response(EapMessage2, ?AccessChallenge, [], RadiusID,
 			RequestAuthenticator, RequestAttributes, NewStateData),
 	{next_state, challenge, NewStateData};
-vector({RAND, AUTN, CKprime, IKprime, XRES}, #statedata{eap_id = EapID,
+vector({ok, {RAND, AUTN, CKprime, IKprime, XRES}}, #statedata{eap_id = EapID,
 		request = Request, auth_req_type = AuthReqType,
 		origin_host = OHost, origin_realm = ORealm,
 		diameter_port_server = PortServer,
@@ -710,9 +717,9 @@ challenge({#radius{id = RadiusID, authenticator = RequestAuthenticator,
 								?MsMppeSendKey, {Salt, MsMppeSendKey}, Attr2),
 						EapPacket1 = #eap_packet{code = success, identifier = EapID},
 						EapMessage3 = ocs_eap_codec:eap_packet(EapPacket1),
-						send_radius_response(EapMessage3, ?AccessAccept, Attr3, RadiusID,
-								RequestAuthenticator, RequestAttributes, NewStateData),
-						{stop, {shutdown, SessionId}, NewStateData};
+						Response = {EapMessage3, Attr3},
+						NextStateData = NewStateData#statedata{response = Response},
+						{next_state, register, NextStateData, ?TIMEOUT};
 					_MAC ->
 						Notification = #eap_aka_notification{notification = 16384},
 						Data2 = ocs_eap_codec:eap_aka(Notification),
@@ -737,8 +744,8 @@ challenge({#radius{id = RadiusID, authenticator = RequestAuthenticator,
 				{next_state, failure, NextStateData, ?TIMEOUT};
 			#eap_aka_synchronization_failure{auts = AUTS, kdf = [1]} = _EAP ->
 				[IMSI | _] = binary:split(PermanentID, <<$@>>, []),
-				gen_fsm:send_event(AucFsm, {self(), IMSI, AUTS,
-						get_radius_rat(RequestAttributes), "WLAN"}),
+				gen_fsm:send_event(AucFsm, {vector, {self(), IMSI, AUTS,
+						get_radius_rat(RequestAttributes), "WLAN"}}),
 				{next_state, vector, NewStateData, ?TIMEOUT};
 			#eap_aka_authentication_reject{} = _EAP ->
 				Notification = #eap_aka_notification{notification = 16384},
@@ -791,6 +798,7 @@ challenge1(EapMessage1, Request, RAT,
 		origin_realm = ORealm, diameter_port_server = PortServer,
 		identity = <<?PERM_AKAp, PermanentID/binary>> = _Identity,
 		auc_fsm = AucFsm, res = RES, kaut = Kaut} = StateData) ->
+	NewStateData = StateData#statedata{request = Request},
 	try
 		#eap_packet{code = response, type = ?AKAprime, identifier = EapID,
 				data = Data1} = ocs_eap_codec:eap_packet(EapMessage1),
@@ -802,21 +810,20 @@ challenge1(EapMessage1, Request, RAT,
 					MAC ->
 						EapPacket1 = #eap_packet{code = success, identifier = EapID},
 						EapMessage3 = ocs_eap_codec:eap_packet(EapPacket1),
-						send_diameter_response(SessionId, AuthReqType,
-								?'DIAMETER_BASE_RESULT-CODE_SUCCESS',
-								OHost, ORealm, EapMessage3, PortServer, Request, StateData),
-						{stop, {shutdown, SessionId}, StateData};
+						Response = {EapMessage3, []},
+						NextStateData = NewStateData#statedata{response = Response},
+						{next_state, register, NextStateData};
 					_MAC ->
 						Notification = #eap_aka_notification{notification = 16384},
 						Data2 = ocs_eap_codec:eap_aka(Notification),
 						EapPacket1 = #eap_packet{code = request,
 								type = ?AKAprime, identifier = EapID, data = Data2},
 						EapMessage3 = ocs_eap_codec:eap_packet(EapPacket1),
-						NewStateData = StateData#statedata{failure = ?'DIAMETER_BASE_RESULT-CODE_UNABLE_TO_COMPLY'},
+						NextStateData = NewStateData#statedata{failure = ?'DIAMETER_BASE_RESULT-CODE_UNABLE_TO_COMPLY'},
 						send_diameter_response(SessionId, AuthReqType,
 								?'DIAMETER_BASE_RESULT-CODE_MULTI_ROUND_AUTH',
-								OHost, ORealm, EapMessage3, PortServer, Request, NewStateData),
-						{next_state, failure, NewStateData, ?TIMEOUT}
+								OHost, ORealm, EapMessage3, PortServer, Request, NextStateData),
+						{next_state, failure, NextStateData, ?TIMEOUT}
 				end;
 			#eap_aka_challenge{checkcode = CheckCode}
 					when ((CheckCode == undefined) or (CheckCode == <<>>)) ->
@@ -825,37 +832,37 @@ challenge1(EapMessage1, Request, RAT,
 				EapPacket1 = #eap_packet{code = request,
 						type = ?AKAprime, identifier = EapID, data = Data2},
 				EapMessage3 = ocs_eap_codec:eap_packet(EapPacket1),
-				NewStateData = StateData#statedata{failure = ?'DIAMETER_BASE_RESULT-CODE_UNABLE_TO_COMPLY'},
+				NextStateData = NewStateData#statedata{failure = ?'DIAMETER_BASE_RESULT-CODE_UNABLE_TO_COMPLY'},
 				send_diameter_response(SessionId, AuthReqType,
 						?'DIAMETER_BASE_RESULT-CODE_MULTI_ROUND_AUTH',
-						OHost, ORealm, EapMessage3, PortServer, Request, NewStateData),
-				{next_state, failure, NewStateData, ?TIMEOUT};
+						OHost, ORealm, EapMessage3, PortServer, Request, NextStateData),
+				{next_state, failure, NextStateData, ?TIMEOUT};
 			#eap_aka_synchronization_failure{auts = AUTS, kdf = [1]} = _EAP ->
 				[IMSI | _] = binary:split(PermanentID, <<$@>>, []),
-				gen_fsm:send_event(AucFsm, {self(), IMSI, AUTS, RAT, "WLAN"}),
-				{next_state, vector, StateData, ?TIMEOUT};
+				gen_fsm:send_event(AucFsm, {vector, {self(), IMSI, AUTS, RAT, "WLAN"}}),
+				{next_state, vector, NewStateData, ?TIMEOUT};
 			#eap_aka_authentication_reject{} = _EAP ->
 				Notification = #eap_aka_notification{notification = 16384},
 				Data2 = ocs_eap_codec:eap_aka(Notification),
 				EapPacket1 = #eap_packet{code = request,
 						type = ?AKAprime, identifier = EapID, data = Data2},
 				EapMessage3 = ocs_eap_codec:eap_packet(EapPacket1),
-				NewStateData = StateData#statedata{failure = ?'DIAMETER_BASE_RESULT-CODE_UNABLE_TO_COMPLY'},
+				NextStateData = NewStateData#statedata{failure = ?'DIAMETER_BASE_RESULT-CODE_UNABLE_TO_COMPLY'},
 				send_diameter_response(SessionId, AuthReqType,
 						?'DIAMETER_BASE_RESULT-CODE_MULTI_ROUND_AUTH',
-						OHost, ORealm, EapMessage3, PortServer, Request, NewStateData),
-				{next_state, failure, NewStateData, ?TIMEOUT};
+						OHost, ORealm, EapMessage3, PortServer, Request, NextStateData),
+				{next_state, failure, NextStateData, ?TIMEOUT};
 			#eap_aka_client_error{client_error_code = _Code} ->
 				Notification = #eap_aka_notification{notification = 16384},
 				Data2 = ocs_eap_codec:eap_aka(Notification),
 				EapPacket1 = #eap_packet{code = request,
 						type = ?AKAprime, identifier = EapID, data = Data2},
 				EapMessage3 = ocs_eap_codec:eap_packet(EapPacket1),
-				NewStateData = StateData#statedata{failure = ?'DIAMETER_BASE_RESULT-CODE_UNABLE_TO_COMPLY'},
+				NextStateData = NewStateData#statedata{failure = ?'DIAMETER_BASE_RESULT-CODE_UNABLE_TO_COMPLY'},
 				send_diameter_response(SessionId, AuthReqType,
 						?'DIAMETER_BASE_RESULT-CODE_MULTI_ROUND_AUTH',
-						OHost, ORealm, EapMessage3, PortServer, Request, NewStateData),
-				{next_state, failure, NewStateData, ?TIMEOUT}
+						OHost, ORealm, EapMessage3, PortServer, Request, NextStateData),
+				{next_state, failure, NextStateData, ?TIMEOUT}
 		end
 	catch
 		_:Reason ->
@@ -870,9 +877,73 @@ challenge1(EapMessage1, Request, RAT,
 			EapMessage4 = ocs_eap_codec:eap_packet(EapPacket2),
 			send_diameter_response(SessionId, AuthReqType,
 					?'DIAMETER_BASE_RESULT-CODE_MULTI_ROUND_AUTH',
-					OHost, ORealm, EapMessage4, PortServer, Request, StateData),
-			{next_state, failure, StateData, ?TIMEOUT}
+					OHost, ORealm, EapMessage4, PortServer, Request, NewStateData),
+			{next_state, failure, NewStateData, ?TIMEOUT}
 	end.
+
+-spec register(Event, StateData) -> Result
+	when
+		Event :: timeout | term(),
+		StateData :: statedata(),
+		Result :: {next_state, NextStateName, NewStateData}
+				| {next_state, NextStateName, NewStateData, Timeout}
+				| {next_state, NextStateName, NewStateData, hibernate}
+				| {stop, Reason, NewStateData},
+		NextStateName :: atom(),
+		NewStateData :: statedata(),
+		Timeout :: non_neg_integer() | infinity,
+		Reason :: normal | term().
+%% @doc Handle events sent with {@link //stdlib/gen_fsm:send_event/2.
+%%		gen_fsm:send_event/2} in the <b>register</b> state.
+%% @@see //stdlib/gen_fsm:StateName/2
+%% @private
+register(timeout, #statedata{session_id = SessionId} = StateData)->
+	{stop, {shutdown, SessionId}, StateData};
+register({ok, _UserProfile}, #statedata{session_id = SessionId,
+		request = #radius{id = RadiusID,
+		authenticator = RequestAuthenticator,
+		attributes = RequestAttributes},
+		response = {EapMessage, Attributes}} = StateData) ->
+	send_radius_response(EapMessage, ?AccessAccept, Attributes,
+			RadiusID, RequestAuthenticator, RequestAttributes, StateData),
+	{stop, {shutdown, SessionId}, StateData};
+register({ok, _UserProfile}, #statedata{session_id = SessionId,
+		auth_req_type = AuthReqType,
+		origin_host = OHost, origin_realm = ORealm,
+		diameter_port_server = PortServer,
+		request = Request, response = {EapMessage, []}} = StateData) ->
+	send_diameter_response(SessionId, AuthReqType,
+			?'DIAMETER_BASE_RESULT-CODE_SUCCESS',
+			OHost, ORealm, EapMessage, PortServer, Request, StateData),
+	{stop, {shutdown, SessionId}, StateData};
+register({error, _Reason}, #statedata{eap_id = EapID,
+		request = #radius{code = ?AccessRequest, id = RadiusID,
+		authenticator = RequestAuthenticator,
+		attributes = RequestAttributes}} = StateData) ->
+	Notification = #eap_aka_notification{notification = 16384},
+	Data = ocs_eap_codec:eap_aka(Notification),
+	EapPacket = #eap_packet{code = request,
+			type = ?AKAprime, identifier = EapID, data = Data},
+	EapMessage = ocs_eap_codec:eap_packet(EapPacket),
+	NewStateData = StateData#statedata{failure = ?AccessReject},
+	send_radius_response(EapMessage, ?AccessChallenge, [], RadiusID,
+			RequestAuthenticator, RequestAttributes, NewStateData),
+	{next_state, failure, NewStateData, ?TIMEOUT};
+register({error, _Reason}, #statedata{request = Request,
+		eap_id = EapID, auth_req_type = AuthReqType,
+		origin_host = OHost, origin_realm = ORealm,
+		diameter_port_server = PortServer,
+		session_id = SessionId} = StateData) ->
+	Notification = #eap_aka_notification{notification = 16384},
+	Data = ocs_eap_codec:eap_aka(Notification),
+	EapPacket = #eap_packet{code = request,
+			type = ?AKAprime, identifier = EapID, data = Data},
+	EapMessage = ocs_eap_codec:eap_packet(EapPacket),
+	NewStateData = StateData#statedata{failure = ?'DIAMETER_BASE_RESULT-CODE_UNABLE_TO_COMPLY'},
+	send_diameter_response(SessionId, AuthReqType,
+			?'DIAMETER_BASE_RESULT-CODE_MULTI_ROUND_AUTH',
+			OHost, ORealm, EapMessage, PortServer, Request, NewStateData),
+	{next_state, failure, NewStateData, ?TIMEOUT}.
 
 -spec failure(Event, StateData) -> Result
 	when
