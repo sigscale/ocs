@@ -90,3 +90,29 @@
 		* [ Load ]
 		* [ AVP ]
 
+	RTR ::= < Diameter Header: 304, REQ, PXY >
+		< Session-Id >
+		{ Vendor-Specific-Application-Id }
+		{ Auth-Session-State }
+		{ Origin-Host }
+		{ Origin-Realm }
+		{ Destination-Realm }
+		{ Destination-Host }
+		{ User-Name }
+		{ Deregistration-Reason }
+		[ DRMP ]
+		*[ Supported-Features ]
+		*[ AVP ]
+
+	RTA ::= < Diameter Header: 304, PXY >
+		< Session-Id >
+		{ Vendor-Specific-Application-Id }
+		{ Auth-Session-State }
+		{ Origin-Host }
+		{ Origin-Realm }
+		[ Result-Code ]
+		[ Experimental-Result ]
+		[ DRMP ]
+		*[ Supported-Features ]
+		*[ AVP ]
+

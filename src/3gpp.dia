@@ -610,6 +610,9 @@
    SIP-Auth-Data-Item                                      612  Grouped          VM
    SIP-Item-Number                                         613  Unsigned32       VM
    Server-Assignment-Type                                  614  Enumerated       VM
+   Deregistration-Reason                                   615  Grouped          VM
+   Reason-Code                                             616  Enumerated       VM
+   Reason-Info                                             617  UTF8String       VM
    Confidentiality-Key                                     625  OctetString      VM
    Integrity-Key                                           626  OctetString      VM
    Supported-Features                                      628  Grouped          VM
@@ -1352,6 +1355,11 @@
      *[ Line-Identifier ]
      *[ AVP ]
 
+   Deregistration-Reason ::= <AVP Header: 615>
+      { Reason-Code }
+      [ Reason-Info ]
+     *[ AVP ]
+
    Supported-Features ::= <AVP Header: 628>
       { Vendor-Id }
 ;     { Feature-List-ID }
@@ -1813,4 +1821,10 @@
    AAA_USER_DATA_REQUEST                   12
    PGW_UPDATE                              13
    RESTORATION                             14
+
+@enum Reason-Code
+   PERMANENT_TERMINATION        0
+   NEW_SERVER_ASSIGNED          1
+   SERVER_CHANGE                2
+   REMOVE_S-CSCF                3
 
