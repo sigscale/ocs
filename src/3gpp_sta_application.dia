@@ -139,3 +139,107 @@
 		* [ Proxy-Info ]
 		* [ AVP ]
 
+	AAR ::= < Diameter Header: 265, REQ, PXY >
+		< Session-Id >
+		{ Auth-Application-Id }
+		{ Origin-Host }
+		{ Origin-Realm }
+		{ Destination-Realm }
+		{ Auth-Request-Type }
+		[ Destination-Host ]
+		[ User-Name ]
+		[ DRMP ]
+		[ MIP6-Feature-Vector ]
+		[ Access-Network-Info ]
+		[ Local-Time-Zone ]
+		[ OC-Supported-Features ]
+		*[ AVP ]
+
+	AAA ::= < Diameter Header: 265, PXY >
+		< Session-Id >
+		{ Auth-Application-Id }
+		{ Origin-Host }
+		{ Origin-Realm }
+		{ Auth-Request-Type }
+		{ Result-Code }
+		[ Experimental-Result ]
+		[ Subscription-Id ]
+		[ DRMP ]
+		[ Session-Timeout ]
+		[ Acct-Interim-Interval ]
+		[ Context-Identifier ]
+		[ APN-OI-Replacement ]
+		*[ APN-Configuration ]
+		[ 3GPP-Charging-Characteristics ]
+		[ Trace-Info ]
+		[ OC-Supported-Features ]
+		[ OC-OLR ]
+		[ UE-Usage-Type ]
+		[ Emergency-Info]
+		*[ Load ]
+		*[ AVP ]
+
+	STR ::= < Diameter Header: 275, REQ, PXY >
+		< Session-Id >
+		{ Auth-Application-Id }
+		{ Origin-Host }
+		{ Origin-Realm }
+		{ Destination-Realm }
+		{ Termination-Cause }
+		[ Destination-Host ]
+		[ User-Name ]
+		[ DRMP ]
+		[ OC-Supported-Features ]
+		*[ AVP ]
+
+	STA ::= < Diameter Header: 275, PXY >
+		< Session-Id >
+		{ Origin-Host }
+		{ Origin-Realm }
+		{ Result-Code }
+		[ DRMP ]
+		[ OC-Supported-Features ]
+		[ OC-OLR ]
+		*[ Load ]
+		*[ AVP ]
+
+	ASR ::= < Diameter Header: 274, REQ, PXY >
+		< Session-Id >
+		{ Auth-Application-Id }
+		{ Origin-Host }
+		{ Origin-Realm }
+		{ Destination-Realm }
+		{ Destination-Host }
+		[ User-Name ]
+		[ Auth-Session-State ]
+		[ DRMP ]
+		*[ AVP ]
+
+	ASA ::= < Diameter Header: 274, PXY >
+		< Session-Id >
+		{ Result-Code }
+		{ Origin-Host }
+		{ Origin-Realm }
+		[ DRMP ]
+		*[ AVP ]
+
+	RAR ::= < Diameter Header: 258, REQ, PXY >
+		< Session-Id >
+		{ Auth-Application-Id }
+		{ Origin-Host }
+		{ Origin-Realm }
+		{ Destination-Realm }
+		{ Destination-Host }
+		{ Re-Auth-Request-Type }
+		[ DRMP ]
+		*[ AVP ]
+
+	RAA ::= < Diameter Header: 258, PXY >
+		< Session-Id >
+		{ Result-Code }
+		{ Origin-Host }
+		{ Origin-Realm }
+		[ User-Name ]
+		[ DRMP ]
+		*[ AVP ]
+

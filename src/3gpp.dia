@@ -591,6 +591,9 @@
    Event-Threshold-RSRQ                                   1630  Unsigned32       V
    Logging-Interval                                       1631  Enumerated       V
    Logging-Duration                                       1632  Enumerated       V
+   Time-Zone                                              1648  UTF8String       VM
+   Local-Time-Zone                                        1649  Grouped          VM
+   Daylight-Saving-Time                                   1650  Enumerated       VM
    Measurement-Period-UMTS                                1655  Enumerated       V
    Measurement-Period-LTE                                 1656  Enumerated       V
    Collection-Period-RRM-LTE                              1657  Enumerated       V
@@ -1387,6 +1390,11 @@
       [ MIP6-Agent-Info ]
      *[ AVP ]
 
+   Local-Time-Zone ::= <AVP Header: 1649>
+      { Time-Zone }
+      { Daylight-Saving-Time }
+     *[ AVP ]
+ 
 @enum Trace-Depth
    Minimum                                  0
    Medium                                   1
@@ -1828,4 +1836,9 @@
    NEW_SERVER_ASSIGNED          1
    SERVER_CHANGE                2
    REMOVE_S-CSCF                3
+
+@enum Daylight-Saving-Time
+   NO_ADJUSTMENT                0
+   PLUS_ONE_HOUR_ADJUSTMENT     1
+   PLUS_TWO_HOURS_ADJUSTMENT    2
 
