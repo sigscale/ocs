@@ -35,7 +35,6 @@
 -include("diameter_gen_nas_application_rfc7155.hrl").
 -include("diameter_gen_eap_application_rfc4072.hrl").
 -include("diameter_gen_3gpp.hrl").
--include("diameter_gen_3gpp_swx_application.hrl").
 -include("ocs.hrl").
 
 -record(state, {}).

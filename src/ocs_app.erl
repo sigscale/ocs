@@ -392,7 +392,7 @@ install8(Nodes, Acc) ->
 			error_logger:error_report(["Mnesia not started on node",
 					{node, Node}]),
 			{error, Reason};
-		{aborted, {already_exists, bucket }} ->
+		{aborted, {already_exists, bucket}} ->
 			error_logger:info_msg("Found existing bucket table.~n"),
 			install9(Nodes, [bucket | Acc]);
 		{aborted, Reason} ->
@@ -402,90 +402,110 @@ install8(Nodes, Acc) ->
 	end.
 %% @hidden
 install9(Nodes, Acc) ->
-	case application:load(inets) of
-		ok ->
-			error_logger:info_msg("Loaded inets.~n"),
-			install10(Nodes, Acc);
-		{error, {already_loaded, inets}} ->
-			install10(Nodes, Acc)
+	case mnesia:create_table(session, [{ram_copies, Nodes},
+			{attributes, record_info(fields, session)},
+			{index, [#session.imsi]}]) of
+		{atomic, ok} ->
+			error_logger:info_msg("Created new session table.~n"),
+			install10(Nodes, [session | Acc]);
+		{aborted, {not_active, _, Node} = Reason} ->
+			error_logger:error_report(["Mnesia not started on node",
+					{node, Node}]),
+			{error, Reason};
+		{aborted, {already_exists, session}} ->
+			error_logger:info_msg("Found existing session table.~n"),
+			install10(Nodes, [session | Acc]);
+		{aborted, Reason} ->
+			error_logger:error_report([mnesia:error_description(Reason),
+				{error, Reason}]),
+			{error, Reason}
 	end.
 %% @hidden
 install10(Nodes, Acc) ->
+	case application:load(inets) of
+		ok ->
+			error_logger:info_msg("Loaded inets.~n"),
+			install11(Nodes, Acc);
+		{error, {already_loaded, inets}} ->
+			install11(Nodes, Acc)
+	end.
+%% @hidden
+install11(Nodes, Acc) ->
 	case application:get_env(inets, services) of
 		{ok, InetsServices} ->
-			install11(Nodes, Acc, InetsServices);
+			install12(Nodes, Acc, InetsServices);
 		undefined ->
 			error_logger:info_msg("Inets services not defined. "
 					"User table not created~n"),
-			install15(Nodes, Acc)
+			install16(Nodes, Acc)
 	end.
 %% @hidden
-install11(Nodes, Acc, InetsServices) ->
+install12(Nodes, Acc, InetsServices) ->
 	case lists:keyfind(httpd, 1, InetsServices) of
 		{httpd, HttpdInfo} ->
-			install12(Nodes, Acc, lists:keyfind(directory, 1, HttpdInfo));
+			install13(Nodes, Acc, lists:keyfind(directory, 1, HttpdInfo));
 		false ->
 			error_logger:info_msg("Httpd service not defined. "
 					"User table not created~n"),
-			install15(Nodes, Acc)
+			install16(Nodes, Acc)
 	end.
 %% @hidden
-install12(Nodes, Acc, {directory, {_, DirectoryInfo}}) ->
+install13(Nodes, Acc, {directory, {_, DirectoryInfo}}) ->
 	case lists:keyfind(auth_type, 1, DirectoryInfo) of
 		{auth_type, mnesia} ->
-			install13(Nodes, Acc);
+			install14(Nodes, Acc);
 		_ ->
 			error_logger:info_msg("Auth type not mnesia. "
 					"User table not created~n"),
-			install15(Nodes, Acc)
+			install16(Nodes, Acc)
 	end;
-install12(Nodes, Acc, false) ->
+install13(Nodes, Acc, false) ->
 	error_logger:info_msg("Auth directory not defined. "
 			"User table not created~n"),
-	install15(Nodes, Acc).
+	install16(Nodes, Acc).
 %% @hidden
-install13(Nodes, Acc) ->
+install14(Nodes, Acc) ->
 	case mnesia:create_table(httpd_user, [{type, bag},{disc_copies, Nodes},
 			{attributes, record_info(fields, httpd_user)}]) of
 		{atomic, ok} ->
 			error_logger:info_msg("Created new httpd_user table.~n"),
-			install14(Nodes, [httpd_user | Acc]);
+			install15(Nodes, [httpd_user | Acc]);
 		{aborted, {not_active, _, Node} = Reason} ->
 			error_logger:error_report(["Mnesia not started on node",
 					{node, Node}]),
 			{error, Reason};
 		{aborted, {already_exists, httpd_user}} ->
 			error_logger:info_msg("Found existing httpd_user table.~n"),
-			install14(Nodes, [httpd_user | Acc]);
+			install15(Nodes, [httpd_user | Acc]);
 		{aborted, Reason} ->
 			error_logger:error_report([mnesia:error_description(Reason),
 				{error, Reason}]),
 			{error, Reason}
 	end.
 %% @hidden
-install14(Nodes, Acc) ->
+install15(Nodes, Acc) ->
 	case mnesia:create_table(httpd_group, [{type, bag},{disc_copies, Nodes},
 			{attributes, record_info(fields, httpd_group)}]) of
 		{atomic, ok} ->
 			error_logger:info_msg("Created new httpd_group table.~n"),
-			install15(Nodes, [httpd_group | Acc]);
+			install16(Nodes, [httpd_group | Acc]);
 		{aborted, {not_active, _, Node} = Reason} ->
 			error_logger:error_report(["Mnesia not started on node",
 					{node, Node}]),
 			{error, Reason};
 		{aborted, {already_exists, httpd_group}} ->
 			error_logger:info_msg("Found existing httpd_group table.~n"),
-			install15(Nodes, [httpd_group | Acc]);
+			install16(Nodes, [httpd_group | Acc]);
 		{aborted, Reason} ->
 			error_logger:error_report([mnesia:error_description(Reason),
 				{error, Reason}]),
 			{error, Reason}
 	end.
 %% @hidden
-install15(_Nodes, Tables) ->
+install16(_Nodes, Tables) ->
 	case mnesia:wait_for_tables(Tables, ?WAITFORTABLES) of
 		ok ->
-			install16(Tables, lists:member(httpd_user, Tables));
+			install17(Tables, lists:member(httpd_user, Tables));
 		{timeout, Tables} ->
 			error_logger:error_report(["Timeout waiting for tables",
 					{tables, Tables}]),
@@ -496,21 +516,21 @@ install15(_Nodes, Tables) ->
 			{error, Reason}
 	end.
 %% @hidden
-install16(Tables, true) ->
+install17(Tables, true) ->
 	case inets:start() of
 		ok ->
 			error_logger:info_msg("Started inets.~n"),
-			install17(Tables);
+			install18(Tables);
 		{error, {already_started, inets}} ->
-			install17(Tables);
+			install18(Tables);
 		{error, Reason} ->
 			error_logger:error_msg("Failed to start inets~n"),
 			{error, Reason}
 	end;
-install16(Tables, false) ->
+install17(Tables, false) ->
 	{ok, Tables}.
 %% @hidden
-install17(Tables) ->
+install18(Tables) ->
 	case ocs:list_users() of
 		{ok, []} ->
 			case ocs:add_user("admin", "admin", "en") of

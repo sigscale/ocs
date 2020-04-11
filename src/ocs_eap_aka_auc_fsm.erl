@@ -61,7 +61,6 @@
 			terminate/3, code_change/4]).
 
 -include("ocs.hrl").
--include("diameter_gen_3gpp_swx_application.hrl").
 -include("diameter_gen_3gpp.hrl").
 -include("diameter_3gpp.hrl").
 -include_lib("radius/include/radius.hrl").

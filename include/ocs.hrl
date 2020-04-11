@@ -17,6 +17,8 @@
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%%
 
+-include("diameter_gen_3gpp_swx_application.hrl").
+
 -type offer_status() :: in_study | in_design | in_test
 		| active | rejected | launched | retired | obsolete.
 -type bucket_status() :: active | expired | suspended.
@@ -197,4 +199,12 @@
 -record(gtt,
 		{num :: string(),
 		value :: {Description :: string(), Rate :: non_neg_integer(), LastModified :: tuple()} | undefined}).
+
+-record(session,
+		{id :: string(),
+		imsi :: string(),
+		nas_host :: string(),
+		nas_realm :: string(),
+		user_profile :: #'3gpp_swx_Non-3GPP-User-Data'{} | undefined,
+		last_modified :: tuple() | undefined}).
 
