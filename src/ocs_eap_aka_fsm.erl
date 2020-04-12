@@ -288,7 +288,6 @@ eap_start(timeout, #statedata{sup = Sup, eap_id = EapID,
 eap_start(timeout, #statedata{eap_id = EapID,
 		session_id = SessionId, auth_req_type = AuthReqType,
 		request = #diameter_eap_app_DER{'EAP-Payload' = []} = Request,
-		origin_host = OHost, origin_realm = ORealm,
 		diameter_port_server = PortServer, sup = Sup} = StateData) ->
 	Children = supervisor:which_children(Sup),
 	{_, AucFsm, _, _} = lists:keyfind(ocs_eap_aka_auc_fsm, 1, Children),
@@ -299,13 +298,12 @@ eap_start(timeout, #statedata{eap_id = EapID,
 			type = ?AKA, identifier = EapID, data = EapData},
 	EapMessage = ocs_eap_codec:eap_packet(EapPacket),
 	send_diameter_response(SessionId, AuthReqType,
-			?'DIAMETER_BASE_RESULT-CODE_MULTI_ROUND_AUTH', OHost, ORealm,
-			EapMessage, PortServer, Request, StateData),
+			?'DIAMETER_BASE_RESULT-CODE_MULTI_ROUND_AUTH',
+			EapMessage, PortServer, Request, NewStateData),
 	{next_state, identity, NewStateData, ?TIMEOUT};
 eap_start(timeout, #statedata{eap_id = EapID,
 		session_id = SessionId, auth_req_type = AuthReqType,
 		request = #'3gpp_swm_DER'{'EAP-Payload' = []} = Request,
-		origin_host = OHost, origin_realm = ORealm,
 		diameter_port_server = PortServer, sup = Sup} = StateData) ->
 	Children = supervisor:which_children(Sup),
 	{_, AucFsm, _, _} = lists:keyfind(ocs_eap_aka_auc_fsm, 1, Children),
@@ -316,8 +314,8 @@ eap_start(timeout, #statedata{eap_id = EapID,
 			type = ?AKA, identifier = EapID, data = EapData},
 	EapMessage = ocs_eap_codec:eap_packet(EapPacket),
 	send_diameter_response(SessionId, AuthReqType,
-			?'DIAMETER_BASE_RESULT-CODE_MULTI_ROUND_AUTH', OHost, ORealm,
-			EapMessage, PortServer, Request, StateData),
+			?'DIAMETER_BASE_RESULT-CODE_MULTI_ROUND_AUTH',
+			EapMessage, PortServer, Request, NewStateData),
 	{next_state, identity, NewStateData, ?TIMEOUT};
 eap_start(timeout, #statedata{request =
 		#diameter_eap_app_DER{'EAP-Payload' = EapMessage,
@@ -371,7 +369,7 @@ eap_start1(EapMessage, RAT, #statedata{sup = Sup, eap_id = EapID,
 						type = ?AKA, identifier = NextEapID, data = EapData},
 				EapMessage1 = ocs_eap_codec:eap_packet(EapPacket),
 				send_diameter_response(SessionId, AuthReqType,
-						?'DIAMETER_BASE_RESULT-CODE_MULTI_ROUND_AUTH', OHost, ORealm,
+						?'DIAMETER_BASE_RESULT-CODE_MULTI_ROUND_AUTH',
 						EapMessage1, PortServer, Request, NextStateData),
 				{next_state, identity, NextStateData, ?TIMEOUT};
 			#eap_packet{code = response, type = ?Identity,
@@ -384,7 +382,7 @@ eap_start1(EapMessage, RAT, #statedata{sup = Sup, eap_id = EapID,
 						type = ?AKA, identifier = NextEapID, data = EapData},
 				EapMessage1 = ocs_eap_codec:eap_packet(EapPacket),
 				send_diameter_response(SessionId, AuthReqType,
-						?'DIAMETER_BASE_RESULT-CODE_MULTI_ROUND_AUTH', OHost, ORealm,
+						?'DIAMETER_BASE_RESULT-CODE_MULTI_ROUND_AUTH',
 						EapMessage1, PortServer, Request, NextStateData),
 				{next_state, identity, NextStateData, ?TIMEOUT};
 			#eap_packet{code = request, identifier = NewEapID} ->
@@ -392,7 +390,7 @@ eap_start1(EapMessage, RAT, #statedata{sup = Sup, eap_id = EapID,
 						identifier = NewEapID, data = <<0>>},
 				EapMessage1 = ocs_eap_codec:eap_packet(EapPacket),
 				send_diameter_response(SessionId, AuthReqType,
-						?'DIAMETER_BASE_RESULT-CODE_UNABLE_TO_COMPLY', OHost, ORealm,
+						?'DIAMETER_BASE_RESULT-CODE_UNABLE_TO_COMPLY',
 						EapMessage1, PortServer, Request, NewStateData),
 				{stop, {shutdown, SessionId}, NewStateData};
 			#eap_packet{code = Code, type = EapType,
@@ -403,7 +401,7 @@ eap_start1(EapMessage, RAT, #statedata{sup = Sup, eap_id = EapID,
 				EapPacket = #eap_packet{code = failure, identifier = NewEapID},
 				EapMessage1 = ocs_eap_codec:eap_packet(EapPacket),
 				send_diameter_response(SessionId, AuthReqType,
-						?'DIAMETER_BASE_RESULT-CODE_UNABLE_TO_COMPLY', OHost, ORealm,
+						?'DIAMETER_BASE_RESULT-CODE_UNABLE_TO_COMPLY',
 						EapMessage1, PortServer, Request, NewStateData),
 				{stop, {shutdown, SessionId}, NewStateData}
 		end
@@ -416,7 +414,7 @@ eap_start1(EapMessage, RAT, #statedata{sup = Sup, eap_id = EapID,
 			EapPacket1 = #eap_packet{code = failure, identifier = EapID},
 			EapMessage2 = ocs_eap_codec:eap_packet(EapPacket1),
 			send_diameter_response(SessionId, AuthReqType,
-					?'DIAMETER_BASE_RESULT-CODE_UNABLE_TO_COMPLY', OHost, ORealm,
+					?'DIAMETER_BASE_RESULT-CODE_UNABLE_TO_COMPLY',
 					EapMessage2, PortServer, Request, NewStateData),
 			{stop, {shutdown, SessionId}, NewStateData}
 	end.
@@ -537,7 +535,7 @@ identity1(EapMessage, RAT,
 			NewStateData1 = StateData#statedata{failure = ?'DIAMETER_BASE_RESULT-CODE_UNABLE_TO_COMPLY'},
 			send_diameter_response(SessionId, AuthReqType,
 					?'DIAMETER_BASE_RESULT-CODE_MULTI_ROUND_AUTH',
-					OHost, ORealm, EapMessage1, PortServer, Request, NewStateData1),
+					EapMessage1, PortServer, Request, NewStateData1),
 			{next_state, failure, NewStateData1, ?TIMEOUT}
 	end.
 
@@ -582,7 +580,6 @@ vector({ok, {RAND, AUTN, CK, IK, XRES}}, #statedata{eap_id = EapID,
 	{next_state, challenge, NewStateData};
 vector({ok, {RAND, AUTN, CK, IK, XRES}}, #statedata{eap_id = EapID,
 		request = Request, auth_req_type = AuthReqType,
-		origin_host = OHost, origin_realm = ORealm,
 		diameter_port_server = PortServer,
 		session_id = SessionId, identity = Identity} = StateData) ->
 	NextEapID = (EapID rem 255) + 1,
@@ -600,7 +597,7 @@ vector({ok, {RAND, AUTN, CK, IK, XRES}}, #statedata{eap_id = EapID,
 			eap_id = NextEapID, res = XRES, ck = CK, ik = IK,
 			msk = MSK, emsk = EMSK, kaut = Kaut, kencr = Kencr},
 	send_diameter_response(SessionId, AuthReqType,
-			?'DIAMETER_BASE_RESULT-CODE_MULTI_ROUND_AUTH', OHost, ORealm,
+			?'DIAMETER_BASE_RESULT-CODE_MULTI_ROUND_AUTH',
 			EapMessage2, PortServer, Request, NewStateData),
 	{next_state, challenge, NewStateData};
 vector({error, _Reason}, #statedata{eap_id = EapID,
@@ -618,7 +615,6 @@ vector({error, _Reason}, #statedata{eap_id = EapID,
 	{next_state, failure, NewStateData, ?TIMEOUT};
 vector({error, user_unknown}, #statedata{request = Request,
 		eap_id = EapID, auth_req_type = AuthReqType,
-		origin_host = OHost, origin_realm = ORealm,
 		diameter_port_server = PortServer,
 		session_id = SessionId} = StateData) ->
 	Notification = #eap_aka_notification{notification = 16384},
@@ -629,11 +625,10 @@ vector({error, user_unknown}, #statedata{request = Request,
 	NewStateData = StateData#statedata{failure = ?'DIAMETER_ERROR_USER_UNKNOWN'},
 	send_diameter_response(SessionId, AuthReqType,
 			?'DIAMETER_BASE_RESULT-CODE_MULTI_ROUND_AUTH',
-			OHost, ORealm, EapMessage, PortServer, Request, NewStateData),
+			EapMessage, PortServer, Request, NewStateData),
 	{next_state, failure, NewStateData, ?TIMEOUT};
 vector({error, _Reason}, #statedata{request = Request,
 		eap_id = EapID, auth_req_type = AuthReqType,
-		origin_host = OHost, origin_realm = ORealm,
 		diameter_port_server = PortServer,
 		session_id = SessionId} = StateData) ->
 	Notification = #eap_aka_notification{notification = 16384},
@@ -644,7 +639,7 @@ vector({error, _Reason}, #statedata{request = Request,
 	NewStateData = StateData#statedata{failure = ?'DIAMETER_BASE_RESULT-CODE_UNABLE_TO_COMPLY'},
 	send_diameter_response(SessionId, AuthReqType,
 			?'DIAMETER_BASE_RESULT-CODE_MULTI_ROUND_AUTH',
-			OHost, ORealm, EapMessage, PortServer, Request, NewStateData),
+			EapMessage, PortServer, Request, NewStateData),
 	{next_state, failure, NewStateData, ?TIMEOUT}.
 
 -spec challenge(Event, StateData) -> Result
@@ -807,7 +802,7 @@ challenge1(EapMessage1, Request, RAT,
 						NextStateData = NewStateData#statedata{failure = ?'DIAMETER_BASE_RESULT-CODE_UNABLE_TO_COMPLY'},
 						send_diameter_response(SessionId, AuthReqType,
 								?'DIAMETER_BASE_RESULT-CODE_MULTI_ROUND_AUTH',
-								OHost, ORealm, EapMessage3, PortServer, Request, NextStateData),
+								EapMessage3, PortServer, Request, NextStateData),
 						{next_state, failure, NextStateData, ?TIMEOUT}
 				end;
 			#eap_aka_challenge{checkcode = CheckCode}
@@ -820,7 +815,7 @@ challenge1(EapMessage1, Request, RAT,
 				NextStateData = NewStateData#statedata{failure = ?'DIAMETER_BASE_RESULT-CODE_UNABLE_TO_COMPLY'},
 				send_diameter_response(SessionId, AuthReqType,
 						?'DIAMETER_BASE_RESULT-CODE_MULTI_ROUND_AUTH',
-						OHost, ORealm, EapMessage3, PortServer, Request, NextStateData),
+						EapMessage3, PortServer, Request, NextStateData),
 				{next_state, failure, NextStateData, ?TIMEOUT};
 			#eap_aka_synchronization_failure{auts = AUTS, kdf = [1]} = _EAP ->
 				[IMSI | _] = binary:split(PermanentID, <<$@>>, []),
@@ -835,7 +830,7 @@ challenge1(EapMessage1, Request, RAT,
 				NextStateData = NewStateData#statedata{failure = ?'DIAMETER_BASE_RESULT-CODE_UNABLE_TO_COMPLY'},
 				send_diameter_response(SessionId, AuthReqType,
 						?'DIAMETER_BASE_RESULT-CODE_MULTI_ROUND_AUTH',
-						OHost, ORealm, EapMessage3, PortServer, Request, NextStateData),
+						EapMessage3, PortServer, Request, NextStateData),
 				{next_state, failure, NextStateData, ?TIMEOUT};
 			#eap_aka_client_error{client_error_code = _Code} ->
 				Notification = #eap_aka_notification{notification = 16384},
@@ -846,7 +841,7 @@ challenge1(EapMessage1, Request, RAT,
 				NextStateData = NewStateData#statedata{failure = ?'DIAMETER_BASE_RESULT-CODE_UNABLE_TO_COMPLY'},
 				send_diameter_response(SessionId, AuthReqType,
 						?'DIAMETER_BASE_RESULT-CODE_MULTI_ROUND_AUTH',
-						OHost, ORealm, EapMessage3, PortServer, Request, NextStateData),
+						EapMessage3, PortServer, Request, NextStateData),
 				{next_state, failure, NextStateData, ?TIMEOUT}
 		end
 	catch
@@ -863,7 +858,7 @@ challenge1(EapMessage1, Request, RAT,
 			NextStateData1 = NewStateData#statedata{failure = ?'DIAMETER_BASE_RESULT-CODE_UNABLE_TO_COMPLY'},
 			send_diameter_response(SessionId, AuthReqType,
 					?'DIAMETER_BASE_RESULT-CODE_MULTI_ROUND_AUTH',
-					OHost, ORealm, EapMessage4, PortServer, Request, NextStateData1),
+					EapMessage4, PortServer, Request, NextStateData1),
 			{next_state, failure, NextStateData1, ?TIMEOUT}
 	end.
 
@@ -895,12 +890,11 @@ register({ok, _UserProfile}, #statedata{session_id = SessionId,
 	{stop, {shutdown, SessionId}, StateData};
 register({ok, _UserProfile}, #statedata{session_id = SessionId,
 		auth_req_type = AuthReqType,
-		origin_host = OHost, origin_realm = ORealm,
 		diameter_port_server = PortServer,
 		request = Request, response = {EapMessage, []}} = StateData) ->
 	send_diameter_response(SessionId, AuthReqType,
 			?'DIAMETER_BASE_RESULT-CODE_SUCCESS',
-			OHost, ORealm, EapMessage, PortServer, Request, StateData),
+			EapMessage, PortServer, Request, StateData),
 	{stop, {shutdown, SessionId}, StateData};
 register({error, _Reason}, #statedata{eap_id = EapID,
 		request = #radius{code = ?AccessRequest, id = RadiusID,
@@ -917,7 +911,6 @@ register({error, _Reason}, #statedata{eap_id = EapID,
 	{next_state, failure, NewStateData, ?TIMEOUT};
 register({error, _Reason}, #statedata{request = Request,
 		eap_id = EapID, auth_req_type = AuthReqType,
-		origin_host = OHost, origin_realm = ORealm,
 		diameter_port_server = PortServer,
 		session_id = SessionId} = StateData) ->
 	Notification = #eap_aka_notification{notification = 16384},
@@ -928,7 +921,7 @@ register({error, _Reason}, #statedata{request = Request,
 	NewStateData = StateData#statedata{failure = ?'DIAMETER_BASE_RESULT-CODE_UNABLE_TO_COMPLY'},
 	send_diameter_response(SessionId, AuthReqType,
 			?'DIAMETER_BASE_RESULT-CODE_MULTI_ROUND_AUTH',
-			OHost, ORealm, EapMessage, PortServer, Request, NewStateData),
+			EapMessage, PortServer, Request, NewStateData),
 	{next_state, failure, NewStateData, ?TIMEOUT}.
 
 -spec failure(Event, StateData) -> Result
@@ -1002,7 +995,7 @@ failure(EapMessage1, Request, #statedata{eap_id = EapID,
 				EapPacket1 = #eap_packet{code = failure, identifier = EapID},
 				EapMessage2 = ocs_eap_codec:eap_packet(EapPacket1),
 				send_diameter_response(SessionId, AuthReqType, ResultCode,
-						OHost, ORealm, EapMessage2, PortServer, Request, StateData),
+						EapMessage2, PortServer, Request, StateData),
 				{stop, {shutdown, SessionId}, StateData}
 			% #eap_aka_notification{mac = MAC} = _EAP ->
 			% @todo Handle notification when P=0
@@ -1017,7 +1010,7 @@ failure(EapMessage1, Request, #statedata{eap_id = EapID,
 			EapMessage3 = ocs_eap_codec:eap_packet(EapPacket2),
 			send_diameter_response(SessionId, AuthReqType,
 					?'DIAMETER_BASE_RESULT-CODE_UNABLE_TO_COMPLY',
-					OHost, ORealm, EapMessage3, PortServer, Request, StateData),
+					EapMessage3, PortServer, Request, StateData),
 			{stop, {shutdown, SessionId}, StateData}
 	end.
 
@@ -1171,14 +1164,11 @@ send_radius_response(EapMessage, RadiusCode, ResponseAttributes,
 	radius:response(RadiusFsm, {response, ResponsePacket}).
 
 -spec send_diameter_response(SessionId, AuthType, ResultCode,
-		OriginHost, OriginRealm, EapMessage, PortServer,
-		Request, StateData) -> ok
+		EapMessage, PortServer, Request, StateData) -> ok
 	when
 		SessionId :: binary(),
 		AuthType :: integer(),
 		ResultCode :: integer(),
-		OriginHost :: binary(),
-		OriginRealm :: binary(),
 		EapMessage :: binary(),
 		PortServer :: pid(),
 		Request :: #diameter_eap_app_DER{} | #'3gpp_swm_DER'{},
@@ -1188,10 +1178,10 @@ send_radius_response(EapMessage, RadiusCode, ResponseAttributes,
 %% @hidden
 send_diameter_response(SessionId, AuthType,
 		?'DIAMETER_BASE_RESULT-CODE_MULTI_ROUND_AUTH',
-		OriginHost, OriginRealm, EapMessage,
-		PortServer, #diameter_eap_app_DER{} = Request,
+		EapMessage, PortServer, #diameter_eap_app_DER{} = Request,
 		#statedata{server_address = ServerAddress, server_port = ServerPort,
 		client_address = ClientAddress, client_port = ClientPort,
+		origin_host = OriginHost, origin_realm = OriginRealm,
 		identity = Identity} = _StateData)
 		when is_binary(SessionId), is_integer(AuthType),
 		is_binary(OriginHost), is_binary(OriginRealm),
@@ -1208,10 +1198,10 @@ send_diameter_response(SessionId, AuthType,
 	gen_server:cast(PortServer, {self(), Answer});
 send_diameter_response(SessionId, AuthType,
 		?'DIAMETER_BASE_RESULT-CODE_MULTI_ROUND_AUTH',
-		OriginHost, OriginRealm, EapMessage,
-		PortServer, #'3gpp_swm_DER'{} = Request,
+		EapMessage, PortServer, #'3gpp_swm_DER'{} = Request,
 		#statedata{server_address = ServerAddress, server_port = ServerPort,
 		client_address = ClientAddress, client_port = ClientPort,
+		origin_host = OriginHost, origin_realm = OriginRealm,
 		identity = Identity} = _StateData)
 		when is_binary(SessionId), is_integer(AuthType),
 		is_binary(OriginHost), is_binary(OriginRealm),
@@ -1228,10 +1218,10 @@ send_diameter_response(SessionId, AuthType,
 	gen_server:cast(PortServer, {self(), Answer});
 send_diameter_response(SessionId, AuthType,
 		?'DIAMETER_BASE_RESULT-CODE_SUCCESS',
-		OriginHost, OriginRealm, EapMessage,
-		PortServer, #diameter_eap_app_DER{} = Request,
+		EapMessage, PortServer, #diameter_eap_app_DER{} = Request,
 		#statedata{server_address = ServerAddress, server_port = ServerPort,
 		client_address = ClientAddress, client_port = ClientPort,
+		origin_host = OriginHost, origin_realm = OriginRealm,
 		msk = MSK, identity = Identity} = _StateData) when is_binary(SessionId),
 		is_integer(AuthType), is_binary(OriginHost), is_binary(OriginRealm),
 		is_binary(EapMessage), is_pid(PortServer), is_binary(MSK) ->
@@ -1248,10 +1238,10 @@ send_diameter_response(SessionId, AuthType,
 	gen_server:cast(PortServer, {self(), Answer});
 send_diameter_response(SessionId, AuthType,
 		?'DIAMETER_BASE_RESULT-CODE_SUCCESS',
-		OriginHost, OriginRealm, EapMessage,
-		PortServer, #'3gpp_swm_DER'{} = Request,
+		EapMessage, PortServer, #'3gpp_swm_DER'{} = Request,
 		#statedata{server_address = ServerAddress, server_port = ServerPort,
 		client_address = ClientAddress, client_port = ClientPort,
+		origin_host = OriginHost, origin_realm = OriginRealm,
 		msk = MSK, identity = Identity} = _StateData) when is_binary(SessionId),
 		is_integer(AuthType), is_binary(OriginHost), is_binary(OriginRealm),
 		is_binary(EapMessage), is_pid(PortServer), is_binary(MSK) ->
@@ -1268,10 +1258,10 @@ send_diameter_response(SessionId, AuthType,
 	gen_server:cast(PortServer, {self(), Answer});
 send_diameter_response(SessionId, AuthType,
 		?'DIAMETER_ERROR_USER_UNKNOWN',
-		OriginHost, OriginRealm, EapMessage,
-		PortServer, #'3gpp_swm_DER'{} = Request,
+		EapMessage, PortServer, #'3gpp_swm_DER'{} = Request,
 		#statedata{server_address = ServerAddress, server_port = ServerPort,
 		client_address = ClientAddress, client_port = ClientPort,
+		origin_host = OriginHost, origin_realm = OriginRealm,
 		msk = MSK, identity = Identity} = _StateData) when is_binary(SessionId),
 		is_integer(AuthType), is_binary(OriginHost), is_binary(OriginRealm),
 		is_binary(EapMessage), is_pid(PortServer), is_binary(MSK) ->
@@ -1289,11 +1279,11 @@ send_diameter_response(SessionId, AuthType,
 	ok = ocs_log:auth_log(diameter, Server, Client, Request, Answer),
 	gen_server:cast(PortServer, {self(), Answer});
 send_diameter_response(SessionId, AuthType, ResultCode,
-		OriginHost, OriginRealm, EapMessage,
-		PortServer, #diameter_eap_app_DER{} = Request,
-		#statedata{server_address = ServerAddress,
-		server_port = ServerPort, client_address = ClientAddress,
-		client_port = ClientPort, identity = Identity} = _StateData)
+		EapMessage, PortServer, #diameter_eap_app_DER{} = Request,
+		#statedata{server_address = ServerAddress, server_port = ServerPort,
+		client_address = ClientAddress, client_port = ClientPort,
+		origin_host = OriginHost, origin_realm = OriginRealm,
+		identity = Identity} = _StateData)
 		when is_binary(SessionId),
 		is_integer(AuthType), is_integer(ResultCode),
 		is_binary(OriginHost), is_binary(OriginRealm),
@@ -1311,11 +1301,11 @@ send_diameter_response(SessionId, AuthType, ResultCode,
 	ok = ocs_log:auth_log(diameter, Server, Client, Request, Answer),
 	gen_server:cast(PortServer, {self(), Answer});
 send_diameter_response(SessionId, AuthType, ResultCode,
-		OriginHost, OriginRealm, EapMessage,
-		PortServer, #'3gpp_swm_DER'{} = Request,
-		#statedata{server_address = ServerAddress,
-		server_port = ServerPort, client_address = ClientAddress,
-		client_port = ClientPort, identity = Identity} = _StateData)
+		EapMessage, PortServer, #'3gpp_swm_DER'{} = Request,
+		#statedata{server_address = ServerAddress, server_port = ServerPort,
+		client_address = ClientAddress, client_port = ClientPort,
+		origin_host = OriginHost, origin_realm = OriginRealm,
+		identity = Identity} = _StateData)
 		when is_binary(SessionId),
 		is_integer(AuthType), is_integer(ResultCode),
 		is_binary(OriginHost), is_binary(OriginRealm),
