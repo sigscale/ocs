@@ -205,6 +205,8 @@
 		imsi :: string(),
 		nas_host :: string(),
 		nas_realm :: string(),
+		hss_host :: string(),
+		hss_realm :: string(),
 		user_profile :: #'3gpp_swx_Non-3GPP-User-Data'{} | undefined,
 		last_modified :: tuple() | undefined}).
 
