@@ -43,7 +43,7 @@
 %%
 init(Args) ->
 	ChildSpecs = [fsm(ocs_eap_akap_fsm, [self() | Args]),
-			fsm(ocs_eap_aka_auc_fsm, [])],
+			fsm(ocs_eap_aka_auc_fsm, Args)],
 	{ok, {{one_for_one, 0, 1},	ChildSpecs}}.
 
 %% @doc Build a supervisor child specification for a

@@ -74,11 +74,16 @@
 		auts :: binary() | undefined,
 		rat_type :: non_neg_integer() | undefined,
 		anid :: string() | undefined,
-		service :: term(),
+		service :: tuple() | undefined,
 		origin_host :: binary(),
 		origin_realm :: binary(),
 		hss_realm :: string() | undefined,
-		hss_host :: string() | undefined}).
+		hss_host :: string() | undefined,
+		nas_host :: string() | undefined,
+		nas_realm :: string() | undefined,
+		nas_address :: inet:ip_address() | undefined,
+		session_id :: string(),
+		attributes = [] :: radius_attributes:attributes()}).
 -type statedata() :: #statedata{}.
 
 -define(IANA_PEN_3GPP, 10415).
@@ -115,25 +120,41 @@
 %% @see //stdlib/gen_fsm:init/1
 %% @private
 %%
-init(_Args) ->
-	process_flag(trap_exit, true),
-	{ok, HssRealm} = application:get_env(hss_realm),
-	{ok, HssHost} = application:get_env(hss_host),
+init([radius, _ServerAddress, _ServerPort, ClientAddress, _ClientPort,
+		_RadiusFsm, _Secret, _PasswordReq, _Trusted, _SessionId,
+		#radius{attributes = Attributes} = _Request] = _Args) ->
+	SessionAttributes = ocs_rating:session_attributes(Attributes),
 	Service = lists:keyfind(ocs_diameter_auth_service, 1, diameter:services()),
 	OriginRealm = diameter:service_info(Service, 'Origin-Realm'),
 	OriginHost = diameter:service_info(Service, 'Origin-Host'),
-	{ok, idle, #statedata{service = Service,
+	{ok, HssRealm} = application:get_env(hss_realm),
+	{ok, HssHost} = application:get_env(hss_host),
+	process_flag(trap_exit, true),
+	{ok, idle, #statedata{service = Service, session_id = SessionAttributes,
 			origin_host = OriginHost, origin_realm = OriginRealm,
+			nas_address = ClientAddress,
+			hss_realm = HssRealm, hss_host = HssHost}};
+init([diameter, ServerAddress, ServerPort, _ClientAddress, _ClientPort,
+		_PasswordReq, _Trusted, SessionId, _ApplicationId, _AuthReqType,
+		OriginHost, OriginRealm, DestinationHost, DestinationRealm,
+		_Request, _Options] = _Args) ->
+	{ok, HssRealm} = application:get_env(hss_realm),
+	{ok, HssHost} = application:get_env(hss_host),
+	Service = {ocs_diameter_auth, ServerAddress, ServerPort},
+	process_flag(trap_exit, true),
+	{ok, idle, #statedata{service = Service, session_id = SessionId,
+			origin_host = OriginHost, origin_realm = OriginRealm,
+			nas_host = DestinationHost, nas_realm = DestinationRealm,
 			hss_realm = HssRealm, hss_host = HssHost}}.
 
 -spec idle(Event, StateData) -> Result
 	when
 		Event :: timeout | term(),
 		StateData :: statedata(),
-		Result :: {next_state, NextStateName, NewStateData} | {next_state, NextStateName, NewStateData,
-		Timeout}
-		| {next_state, NextStateName, NewStateData, hibernate}
-		| {stop, Reason, NewStateData},
+		Result :: {next_state, NextStateName, NewStateData}
+				| {next_state, NextStateName, NewStateData, Timeout}
+				| {next_state, NextStateName, NewStateData, hibernate}
+				| {stop, Reason, NewStateData},
 		NextStateName :: atom(),
 		NewStateData :: statedata(),
 		Timeout :: non_neg_integer() | infinity,
@@ -168,10 +189,20 @@ idle({vector, {AkaFsm, Identity, AUTS, RAT}}, StateData)
 	NewStateData = StateData#statedata{aka_fsm = AkaFsm,
 			identity = Identity, auts = AUTS, rat_type = RAT},
 	idle1(ocs:find_service(Identity), NewStateData);
-idle({register, {AkaFsm, Identity}}, #statedata{hss_realm = undefined,
-		aka_fsm = AkaFsm, identity = Identity} = StateData)
+idle({register, {AkaFsm, Identity}},
+		#statedata{hss_realm = undefined, aka_fsm = AkaFsm,
+		identity = Identity, attributes = Attributes} = StateData)
 		when is_pid(AkaFsm), is_binary(Identity) ->
-	gen_fsm:send_event(AkaFsm, {ok, []}),
+	SessionTimeout = case radius_attributes:find(?SessionTimeout,
+			Attributes) of
+		{ok, V1} ->
+			[V1];
+		{error, not_found} ->
+			[]
+	end,
+	UserProfile = #'3gpp_swx_Non-3GPP-User-Data'{
+			'Session-Timeout' = SessionTimeout},
+	gen_fsm:send_event(AkaFsm, {ok, UserProfile}),
 	{next_state, idle, StateData};
 idle({register, {AkaFsm, Identity}},
 		#statedata{aka_fsm = AkaFsm, identity = Identity} = StateData)
@@ -187,21 +218,23 @@ idle1({ok, #service{enabled = false}},
 		#statedata{aka_fsm = AkaFsm} = StateData) ->
 	gen_fsm:send_event(AkaFsm, {error, disabled}),
 	{next_state, idle, StateData};
-idle1({ok, #service{password = #aka_cred{k = K, opc = OPc, dif = DIF}}},
-		#statedata{anid = undefined, auts = undefined,
-		aka_fsm = AkaFsm} = StateData) ->
+idle1({ok, #service{password = #aka_cred{k = K, opc = OPc, dif = DIF},
+		attributes = Attributes}}, #statedata{anid = undefined,
+		auts = undefined, aka_fsm = AkaFsm} = StateData) ->
 	RAND = ocs_milenage:f0(),
+	NewStateData = StateData#statedata{rand = RAND, attributes = Attributes},
 	{XRES, CK, IK, <<AK:48>>} = ocs_milenage:f2345(OPc, K, RAND),
 	SQN = sqn(DIF),
 	AMF = amf(false),
 	MAC = ocs_milenage:f1(OPc, K, RAND, <<SQN:48>>, AMF),
 	AUTN = autn(SQN, AK, AMF, MAC),
 	gen_fsm:send_event(AkaFsm, {ok, {RAND, AUTN, CK, IK, XRES}}),
-	{next_state, idle, StateData#statedata{rand = RAND}};
-idle1({ok, #service{password = #aka_cred{k = K, opc = OPc, dif = DIF}}},
-		#statedata{anid = ANID, auts = undefined,
-		aka_fsm = AkaFsm} = StateData) ->
+	{next_state, idle, NewStateData};
+idle1({ok, #service{password = #aka_cred{k = K, opc = OPc, dif = DIF},
+		attributes = Attributes}}, #statedata{anid = ANID,
+		auts = undefined, aka_fsm = AkaFsm} = StateData) ->
 	RAND = ocs_milenage:f0(),
+	NewStateData = StateData#statedata{rand = RAND, attributes = Attributes},
 	{XRES, CK, IK, <<AK:48>>} = ocs_milenage:f2345(OPc, K, RAND),
 	SQN = sqn(DIF),
 	AMF = amf(true),
@@ -210,11 +243,13 @@ idle1({ok, #service{password = #aka_cred{k = K, opc = OPc, dif = DIF}}},
 	% if AMF separation bit = 1 use CK'/IK'
 	<<CKprime:16/binary, IKprime:16/binary>> = kdf(CK, IK, ANID, SQN, AK),
 	gen_fsm:send_event(AkaFsm, {ok, {RAND, AUTN, CKprime, IKprime, XRES}}),
-	{next_state, idle, StateData#statedata{rand = RAND}};
-idle1({ok, #service{password = #aka_cred{k = K, opc = OPc, dif = DIF}}},
-		#statedata{anid = undefined, rand = RAND, identity = Identity,
+	{next_state, idle, NewStateData};
+idle1({ok, #service{password = #aka_cred{k = K, opc = OPc, dif = DIF},
+		attributes = Attributes}}, #statedata{anid = undefined,
+		rand = RAND, identity = Identity,
 		auts = <<SQN:48, MAC_S:8/binary>> = AUTS,
 		aka_fsm = AkaFsm} = StateData) when is_binary(RAND) ->
+	NewStateData = StateData#statedata{rand = undefined, attributes = Attributes},
 	{XRES, CK, IK, <<AK:48>>} = ocs_milenage:f2345(OPc, K, RAND),
 	SQNhe = sqn(DIF),
 	SQNms = sqn_ms(SQN, OPc, K, RAND),
@@ -224,7 +259,7 @@ idle1({ok, #service{password = #aka_cred{k = K, opc = OPc, dif = DIF}}},
 			MAC_A = ocs_milenage:f1(OPc, K, RAND, <<SQNhe:48>>, AMF),
 			AUTN = autn(SQNhe, AK, AMF, MAC_A),
 			gen_fsm:send_event(AkaFsm, {ok, {RAND, AUTN, CK, IK, XRES}}),
-			{next_state, idle, StateData#statedata{rand = undefined}};
+			{next_state, idle, NewStateData};
 		_ ->
 			case ocs_milenage:'f1*'(OPc, K, RAND, <<SQNms:48>>, amf(false)) of
 				MAC_S ->
@@ -232,18 +267,20 @@ idle1({ok, #service{password = #aka_cred{k = K, opc = OPc, dif = DIF}}},
 					AUTN = autn(SQNms, AK, AMF, MAC_A),
 					gen_fsm:send_event(AkaFsm, {ok, {RAND, AUTN, CK, IK, XRES}}),
 					save_dif(Identity, dif(SQNms)),
-					{next_state, idle, StateData#statedata{rand = undefined}};
+					{next_state, idle, NewStateData};
 				_ ->
 					error_logger:error_report(["AUTS verification failed",
 							{identity, Identity}, {auts, AUTS}]),
 					gen_fsm:send_event(AkaFsm, {error, invalid}),
-					{next_state, idle, StateData#statedata{rand = undefined}}
+					{next_state, idle, NewStateData}
 			end
 	end;
-idle1({ok, #service{password = #aka_cred{k = K, opc = OPc, dif = DIF1}}},
-		#statedata{anid = ANID, rand = RAND, identity = Identity,
+idle1({ok, #service{password = #aka_cred{k = K, opc = OPc, dif = DIF1},
+		attributes = Attributes}}, #statedata{anid = ANID,
+		rand = RAND, identity = Identity,
 		auts = <<SQN:48, MAC_S:8/binary>> = AUTS,
 		aka_fsm = AkaFsm} = StateData) when is_binary(RAND) ->
+	NewStateData = StateData#statedata{rand = undefined, attributes = Attributes},
 	{XRES, CK, IK, <<AK:48>>} = ocs_milenage:f2345(OPc, K, RAND),
 	SQNhe = sqn(DIF1),
 	SQNms = sqn_ms(SQN, OPc, K, RAND),
@@ -255,7 +292,7 @@ idle1({ok, #service{password = #aka_cred{k = K, opc = OPc, dif = DIF1}}},
 			<<CKprime:16/binary,
 					IKprime:16/binary>> = kdf(CK, IK, ANID, SQNhe, AK),
 			gen_fsm:send_event(AkaFsm, {ok, {RAND, AUTN, CKprime, IKprime, XRES}}),
-			{next_state, idle, StateData#statedata{rand = undefined}};
+			{next_state, idle, NewStateData};
 		_ ->
 			case ocs_milenage:'f1*'(OPc, K, RAND, <<SQNms:48>>, amf(false)) of
 				MAC_S ->
@@ -265,12 +302,12 @@ idle1({ok, #service{password = #aka_cred{k = K, opc = OPc, dif = DIF1}}},
 							IKprime:16/binary>> = kdf(CK, IK, ANID, SQNms, AK),
 					gen_fsm:send_event(AkaFsm, {ok, {RAND, AUTN, CKprime, IKprime, XRES}}),
 					save_dif(Identity, dif(SQNms)),
-					{next_state, idle, StateData#statedata{rand = undefined}};
+					{next_state, idle, NewStateData};
 				_ ->
 					error_logger:error_report(["AUTS verification failed",
 							{identity, Identity}, {auts, AUTS}]),
 					gen_fsm:send_event(AkaFsm, {error, invalid}),
-					{next_state, idle, StateData#statedata{rand = undefined}}
+					{next_state, idle, NewStateData}
 			end
 	end;
 idle1({error, not_found}, #statedata{hss_realm = undefined,
@@ -295,10 +332,10 @@ idle1({error, Reason}, #statedata{aka_fsm = AkaFsm} = StateData) ->
 	when
 		Event :: timeout | term(),
 		StateData :: statedata(),
-		Result :: {next_state, NextStateName, NewStateData} | {next_state, NextStateName, NewStateData,
-		Timeout}
-		| {next_state, NextStateName, NewStateData, hibernate}
-		| {stop, Reason, NewStateData},
+		Result :: {next_state, NextStateName, NewStateData}
+				| {next_state, NextStateName, NewStateData, Timeout}
+				| {next_state, NextStateName, NewStateData, hibernate}
+				| {stop, Reason, NewStateData},
 		NextStateName :: atom(),
 		NewStateData :: statedata(),
 		Timeout :: non_neg_integer() | infinity,
@@ -346,10 +383,10 @@ vector({error, Reason}, #statedata{aka_fsm = AkaFsm} = StateData) ->
 	when
 		Event :: timeout | term(),
 		StateData :: statedata(),
-		Result :: {next_state, NextStateName, NewStateData} | {next_state, NextStateName, NewStateData,
-		Timeout}
-		| {next_state, NextStateName, NewStateData, hibernate}
-		| {stop, Reason, NewStateData},
+		Result :: {next_state, NextStateName, NewStateData}
+				| {next_state, NextStateName, NewStateData, Timeout}
+				| {next_state, NextStateName, NewStateData, hibernate}
+				| {stop, Reason, NewStateData},
 		NextStateName :: atom(),
 		NewStateData :: statedata(),
 		Timeout :: non_neg_integer() | infinity,
@@ -360,15 +397,45 @@ vector({error, Reason}, #statedata{aka_fsm = AkaFsm} = StateData) ->
 %% @private
 %%
 register({ok, #'3gpp_swx_SAA'{'Result-Code' = [2001],
-		'Origin-Realm' = HssRealm,
-		'Origin-Host' = HssHost,
-		'Non-3GPP-User-Data' = [UserProfile]}},
-		#statedata{aka_fsm = AkaFsm} = StateData) ->
-	gen_fsm:send_event(AkaFsm, {ok, UserProfile}),
-	NewStateData  = StateData#statedata{hss_realm = HssRealm,
-			hss_host = HssHost},
-	{next_state, idle, NewStateData};
-register({ok, #'3gpp_swx_SAA'{'Result-Code' = [ResultCode]} = _MAA},
+		'Origin-Realm' = HssRealm, 'Origin-Host' = HssHost,
+		'Non-3GPP-User-Data' = [#'3gpp_swx_Non-3GPP-User-Data'{} = UserProfile]}},
+		#statedata{session_id = SessionId,
+		nas_address = NasAddress, nas_realm = undefined,
+		identity = Identity, aka_fsm = AkaFsm} = StateData) ->
+	LM = {erlang:system_time(?MILLISECOND), erlang:unique_integer([positive])},
+	Session = #session{id = SessionId, imsi = Identity,
+		nas_address = NasAddress, hss_host = HssHost, hss_realm = HssRealm,
+		user_profile = UserProfile, last_modified = LM},
+	NewStateData  = StateData#statedata{hss_realm = HssRealm, hss_host = HssHost},
+	F = fun() -> mnesia:write(session, Session, write) end,
+	case mnesia:transaction(F) of
+		{atomic, ok} ->
+			gen_fsm:send_event(AkaFsm, {ok, UserProfile}),
+			{next_state, idle, NewStateData};
+		{aborted, Reason} ->
+			{stop, Reason, NewStateData}
+	end;
+register({ok, #'3gpp_swx_SAA'{'Result-Code' = [2001],
+		'Origin-Realm' = HssRealm, 'Origin-Host' = HssHost,
+		'Non-3GPP-User-Data' = [#'3gpp_swx_Non-3GPP-User-Data'{} = UserProfile]}},
+		#statedata{session_id = SessionId,
+		nas_address = undefined, nas_host = NasHost, nas_realm = NasRealm,
+		identity = Identity, aka_fsm = AkaFsm} = StateData) ->
+	LM = {erlang:system_time(?MILLISECOND), erlang:unique_integer([positive])},
+	Session = #session{id = SessionId, imsi = Identity,
+		nas_host = NasHost, nas_realm = NasRealm,
+		hss_host = HssHost, hss_realm = HssRealm,
+		user_profile = UserProfile, last_modified = LM},
+	NewStateData  = StateData#statedata{hss_realm = HssRealm, hss_host = HssHost},
+	F = fun() -> mnesisa:write(session, Session, write) end,
+	case mnesia:transaction(F) of
+		{atomic, ok} ->
+			gen_fsm:send_event(AkaFsm, {ok, UserProfile}),
+			{next_state, idle, NewStateData};
+		{aborted, Reason} ->
+			{stop, Reason, NewStateData}
+	end;
+register({ok, #'3gpp_swx_SAA'{'Result-Code' = [ResultCode]}},
 		#statedata{aka_fsm = AkaFsm} = StateData) ->
 	gen_fsm:send_event(AkaFsm, {error, ResultCode}),
 	{next_state, idle, StateData};
@@ -388,10 +455,10 @@ register(timeout, #statedata{aka_fsm = AkaFsm} = StateData) ->
 		Event :: term(),
 		StateName :: atom(),
       StateData :: statedata(),
-		Result :: {next_state, NextStateName, NewStateData} | {next_state, NextStateName, NewStateData,
-		Timeout}
-		| {next_state, NextStateName, NewStateData, hibernate}
-		| {stop, Reason, NewStateData},
+		Result :: {next_state, NextStateName, NewStateData}
+				| {next_state, NextStateName, NewStateData, Timeout}
+				| {next_state, NextStateName, NewStateData, hibernate}
+				| {stop, Reason, NewStateData},
 		NextStateName :: atom(),
 		NewStateData :: statedata(),
 		Timeout :: non_neg_integer() | infinity,
@@ -414,13 +481,13 @@ handle_event(Event, _StateName, StateData) ->
       StateName :: atom(),
 		StateData :: statedata(),
 		Result :: {reply, Reply, NextStateName, NewStateData}
-		| {reply, Reply, NextStateName, NewStateData, Timeout}
-		| {reply, Reply, NextStateName, NewStateData, hibernate}
-		| {next_state, NextStateName, NewStateData}
-		| {next_state, NextStateName, NewStateData, Timeout}
-		| {next_state, NextStateName, NewStateData, hibernate}
-		| {stop, Reason, Reply, NewStateData}
-		| {stop, Reason, NewStateData},
+			| {reply, Reply, NextStateName, NewStateData, Timeout}
+			| {reply, Reply, NextStateName, NewStateData, hibernate}
+			| {next_state, NextStateName, NewStateData}
+			| {next_state, NextStateName, NewStateData, Timeout}
+			| {next_state, NextStateName, NewStateData, hibernate}
+			| {stop, Reason, Reply, NewStateData}
+			| {stop, Reason, NewStateData},
 		Reply :: term(),
 		NextStateName ::atom(),
 		NewStateData :: statedata(),
@@ -441,7 +508,7 @@ handle_sync_event(Event, _From, _StateName, StateData) ->
 		StateName :: atom(),
 		StateData :: statedata(),
 		Result :: {next_state, NextStateName, NewStateData}
-		| {next_state, NextStateName, NewStateData, Timeout}
+				| {next_state, NextStateName, NewStateData, Timeout}
 		| {next_state, NextStateName, NewStateData, hibernate}
 		| {stop, Reason, NewStateData},
 		NextStateName :: atom(),
