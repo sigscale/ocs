@@ -89,7 +89,7 @@
 		[ Access-Network-Info ]
 		[ User-Location-Info-Time ]
 		[ UE-Usage-Type ]
-;		[ Emergency-Info ]
+		[ Emergency-Info ]
 		[ Core-Network-Restrictions ]
 		[ DRMP ]
 		[ EAP-Reissued-Payload ]
