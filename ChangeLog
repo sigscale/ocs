@@ -1,3 +1,19 @@
+2020-04-13  Vance Shipley <vances@sigscale.org>
+
+	* user profile in dea
+	* use random radius/diameter ports in test suites
+	* update tables in test lib
+	* store hss
+	* add session table for non-3gpp access
+	* codec for sta aar/aaa,asr/asa,str/sta,rtr/rta
+	* codec for swm aar/aaa,asr/asa,str/sta,rtr/rta
+	* codec for swx rtr/rta
+	* send registration request from aka to auc
+	* register aka users; diameter swx sar/saa
+	* handle timeout on swx
+	* user-name mandatory in mar
+	* accept any mobile station sequence number array index
+
 2020-04-08  Vance Shipley <vances@sigscale.org>
 
 	* fix resynchronization with local auc
