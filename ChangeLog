@@ -1,5 +1,7 @@
 2020-04-20  Vance Shipley <vances@sigscale.org>
 
+	* kdf not mandatory in akap sync failure
+	* diameter swx saa missing avp
 	* add avps included in apn-configuration
 
 2020-04-13  Vance Shipley <vances@sigscale.org>
