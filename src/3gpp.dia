@@ -370,8 +370,8 @@
    Route-Header-Transmitted                               3404  UTF8String       VM
 ;  RRC-Cause-Counter                                      4318  
    Scale-Factor                                           2059  Grouped          VM
-;  SCEF-ID                                                3125  
-;  SCEF-Reference-ID                                      3124  
+   SCEF-ID                                                3125  DiameterIdentity VM
+   SCEF-Reference-ID                                      3124  Unsigned32       VM
    SCS-Address                                            3941  Address          VM
 ;  SCS-AS-Address                                         3940  Grouped          VM
    SCS-Realm                                              3942  DiameterIdentity VM
@@ -563,8 +563,12 @@
    Context-Identifier                                     1423  Unsigned32       VM
    APN-OI-Replacement                                     1427  UTF8String       VM
    APN-Configuration                                      1430  Grouped          VM
+   EPS-Subscribed-QoS-Profile                             1431  Grouped          VM
+   VPLMN-Dynamic-Address-Allowed                          1432  Enumerated       VM
    AMBR                                                   1435  Grouped          VM
+   PDN-GW-Allocation-Type                                 1438  Enumerated       VM
    Trace-Collection-Entity                                1452  Address          VM
+   PDN-Type                                               1456  Enumerated       VM
    Trace-Reference                                        1459  OctetString      VM
    Trace-NE-Type-List                                     1463  OctetString      VM
    Trace-Depth                                            1462  Enumerated       VM
@@ -580,6 +584,8 @@
    Routing-Area-Identity                                  1605  OctetString      V
    Location-Area-Identity                                 1606  OctetString      V
    Active-APN                                             1612  Grouped          V
+   SIPTO-Permission                                       1613  Enumerated       VM
+   LIPA-Permission                                        1618  Enumerated       VM
    MDT-Configuration                                      1622  Grouped          V
    Job-Type                                               1623  Enumerated       V
    Area-Scope                                             1624  Grouped          V
@@ -602,9 +608,21 @@
    Measurement-Quantity                                   1660  OctetString      V
    Event-Threshold-Event-1F                               1661  Integer32        V
    Event-Threshold-Event-1I                               1662  Integer32        V
+   Restoration-Priority                                   1663  Unsigned32       VM
+   SIPTO-Local-Network-Permission                         1665  Unsigned32       VM
+   WLAN-offloadability                                    1667  Grouped          VM
+   WLAN-offloadability-EUTRAN                             1668  Unsigned32       VM
+   WLAN-offloadability-UTRAN                              1669  Unsigned32       VM
    UE-Usage-Type                                          1680  Unsigned32       V
+   Non-IP-PDN-Type-Indicator                              1681  Enumerated       VM
+   Non-IP-Data-Delivery-Mechanism                         1682  Unsigned32       VM
+   SCEF-Realm                                             1684  DiameterIdentity VM
+   Preferred-Data-Mode                                    1686  Unsigned32       VM
    Emergency-Info                                         1687  Grouped          VM
+   PDN-Connection-Continuity                              1690  Unsigned32       VM
+   RDS-Indicator                                          1697  Unsigned32       VM
    Core-Network-Restrictions                              1704  Unsigned32       V
+   Interworking-5GS-Indicator                             1706  Enumerated       VM
    ;; 3GPP TS 29.229
    SIP-Number-Auth-Items                                   607  Unsigned32       VM
    SIP-Authentication-Scheme                               608  UTF8String       VM
@@ -979,7 +997,7 @@
 
 ;  CPDT-Information ::= <AVP Header: 3927>
 ;     [ External-Identifier ]
-;     [ SCEF-ID ]
+      [ SCEF-ID ]
 ;     [ Serving Node Identity ]
 ;     [ SGW-Change ]
 ;     [ NIDD-submission ]
@@ -1265,31 +1283,36 @@
 
    APN-Configuration ::= <AVP Header: 1430>
       { Context-Identifier }
-;     { PDN-Type }
+      { PDN-Type }
       { Service-Selection }
     *2[ Served-Party-IP-Address ]
-;     [ EPS-Subscribed-QoS-Profile ]
-;     [ VPLMN-Dynamic-Address-Allowed ]
+      [ EPS-Subscribed-QoS-Profile ]
+      [ VPLMN-Dynamic-Address-Allowed ]
       [ MIP6-Agent-Info ]
       [ Visited-Network-Identifier ]
-;     [ PDN-GW-Allocation-Type ]
+      [ PDN-GW-Allocation-Type ]
       [ 3GPP-Charging-Characteristics ]
       [ AMBR ]
      *[ Specific-APN-Info ]
       [ APN-OI-Replacement ]
-;     [ SIPTO-Permission ]
-;     [ LIPA-Permission ]
-;     [ Restoration-Priority ]
-;     [ SIPTO-Local-Network-Permission ]
-;     [ WLAN-offloadability ]
-;     [ Non-IP-PDN-Type-Indicator ]
-;     [ Non-IP-Data-Delivery-Mechanism ]
-;     [ SCEF-ID ]
-;     [ SCEF-Realm ]
-;     [ Preferred-Data-Mode ]
-;     [ PDN-Connection-Continuity ]
-;     [ RDS-Indicator ]
-;     [ Interworking-5GS-Indicator ]
+      [ SIPTO-Permission ]
+      [ LIPA-Permission ]
+      [ Restoration-Priority ]
+      [ SIPTO-Local-Network-Permission ]
+      [ WLAN-offloadability ]
+      [ Non-IP-PDN-Type-Indicator ]
+      [ Non-IP-Data-Delivery-Mechanism ]
+      [ SCEF-ID ]
+      [ SCEF-Realm ]
+      [ Preferred-Data-Mode ]
+      [ PDN-Connection-Continuity ]
+      [ RDS-Indicator ]
+      [ Interworking-5GS-Indicator ]
+     *[ AVP ]
+
+   EPS-Subscribed-QoS-Profile ::= <AVP Header: 1431>
+      { QoS-Class-Identifier }
+      { Allocation-Retention-Priority }
      *[ AVP ]
 
    Specific-APN-Info ::= <AVP Header: 1472>
@@ -1324,9 +1347,14 @@
       [ Core-Network-Restrictions ]
      *[ AVP ]
 
-   WLAN-Identifier ::= < AVP Header: 1509 >
+   WLAN-Identifier ::= <AVP Header: 1509>
       [ SSID ]
       [ HESSID ]
+     *[ AVP ]
+
+   WLAN-offloadability ::= <AVP Header: 1667>
+      [ WLAN-offloadability-EUTRAN ]
+      [ WLAN-offloadability-UTRAN ]
      *[ AVP ]
 
    Active-APN ::= <AVP Header: 1612>
@@ -1841,4 +1869,35 @@
    NO_ADJUSTMENT                0
    PLUS_ONE_HOUR_ADJUSTMENT     1
    PLUS_TWO_HOURS_ADJUSTMENT    2
+
+@enum PDN-Type
+   IPv4                         0
+   IPv6                         1
+   IPv4v6                       2
+   IPv4_OR_IPv6                 3
+
+@enum PDN-GW-Allocation-Type
+   STATIC                       0
+   DYNAMIC                      1
+
+@enum VPLMN-Dynamic-Address-Allowed
+   NOTALLOWED                   0
+   ALLOWED                      1
+
+@enum SIPTO-Permission
+   SIPTO_above_RAN_ALLOWED      0
+   SIPTO_above_RAN_NOTALLOWED   1
+
+@enum LIPA-Permission
+   LIPA_PROHIBITED              0
+   LIPA_ONLY                    1
+   LIPA_CONDITIONAL             2
+
+@enum Non-IP-PDN-Type-Indicator
+   FALSE                        0
+   TRUE                         1
+
+@enum Interworking-5GS-Indicator
+   NOT-SUBSCRIBED               0
+   SUBSCRIBED                   1
 
