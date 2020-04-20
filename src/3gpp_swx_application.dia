@@ -75,6 +75,7 @@
 
 	SAA ::= < Diameter Header: 301, PXY >
 		< Session-Id >
+		{ Vendor-Specific-Application-Id }
 		{ Auth-Session-State }
 		{ Origin-Host }
 		{ Origin-Realm }
