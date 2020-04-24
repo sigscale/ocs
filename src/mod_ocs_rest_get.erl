@@ -188,6 +188,8 @@ do_get(Resource, ModData, ["catalogManagement", "v2", "resourceCatalog", Id], []
 	do_response(ModData, Resource:get_resource_catalog(Id));
 do_get(Resource, ModData, ["catalogManagement", "v2", "resourceCatalog"], Query) ->
 	do_response(ModData, Resource:get_resource_catalogs(Query));
+do_get(Resource, ModData, ["resourceCatalogManagement", "v2"], Query) ->
+	do_response(ModData, Resource:get_resource_catalogs(Query));
 do_get(Resource, ModData, ["resourceInventoryManagement", "v1", "logicalResource", Id], Query) ->
 	do_response(ModData, Resource:get_resource_inventory(Id, Query));
 do_get(Resource, #mod{parsed_header = Headers} = ModData,
