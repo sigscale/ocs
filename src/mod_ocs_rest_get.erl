@@ -200,6 +200,9 @@ do_get(Resource, ModData, ["productInventoryManagement", "v2", "product", Id], [
 do_get(Resource, #mod{parsed_header = Headers} = ModData,
 		["productInventoryManagement", "v2", "product"], Query) ->
 	do_response(ModData, Resource:get_inventories(Query, Headers));
+do_get(Resource, #mod{parsed_header = Headers} = ModData,
+		["productInventoryManagement", "v2"], Query) ->
+	do_response(ModData, Resource:get_inventories(Query, Headers));
 do_get(Resource, ModData, ["productInventoryManagement", "schema", "OCS.yml"], []) ->
 	do_response(ModData, Resource:get_schema());
 do_get(Resource, #mod{parsed_header = Headers} = ModData,
