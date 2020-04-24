@@ -152,6 +152,10 @@ do_get(Resource, ModData, ["catalogManagement", "v2", "catalog", Id], Query) ->
 	do_response(ModData, Resource:get_catalog(Id, Query));
 do_get(Resource, ModData, ["catalogManagement", "v2", "catalog"], Query) ->
 	do_response(ModData, Resource:get_catalogs(Query));
+
+do_get(Resource, ModData, ["productCatalogManagement", "v2"], Query) ->
+	do_response(ModData, Resource:get_catalogs(Query));
+
 do_get(Resource, ModData, ["catalogManagement", "v2", "category", Id], Query) ->
 	do_response(ModData, Resource:get_category(Id, Query));
 do_get(Resource, ModData, ["catalogManagement", "v2", "category"], Query) ->
