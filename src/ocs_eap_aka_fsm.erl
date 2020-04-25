@@ -25,6 +25,8 @@
 %%% 		Authentication and Key Agreement (EAP-AKA)</a>
 %%% @reference <a href="https://webapp.etsi.org/key/key.asp?GSMSpecPart1=33&amp;GSMSpecPart2=402&amp;Search=search">
 %%% 	3GPP TS 33.402 - Security aspects of non-3GPP accesses</a>
+%%% @reference <a href="https://webapp.etsi.org/key/key.asp?GSMSpecPart1=29&amp;GSMSpecPart2=273">
+%%% 	3GPP TS 29.273 - 3GPP EPS AAA interfaces</a>
 %%% @reference <a href="https://webapp.etsi.org/key/key.asp?GSMSpecPart1=23&amp;GSMSpecPart2=003&amp;Search=search">
 %%% 	3GPP TS 23.003 - Numbering, addressing and identification</a>
 %%%
