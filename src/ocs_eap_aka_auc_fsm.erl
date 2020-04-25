@@ -43,7 +43,9 @@
 %%% 	RFC5448 - Improved Extensible Authentication Protocol Method for
 %%% 		3rd Generation Authentication and Key Agreement (EAP-AKA')</a>
 %%% @reference <a href="http://webapp.etsi.org/key/key.asp?GSMSpecPart1=33&amp;GSMSpecPart2=402">
-%%% 	Security Aspects of non-3GPP Accesses (3GPP TS 33.402)</a>
+%%% 	3GPP TS 33.402 - Security Aspects of non-3GPP Accesses</a>
+%%% @reference <a href="https://webapp.etsi.org/key/key.asp?GSMSpecPart1=29&GSMSpecPart2=273">
+%%% 	3GPP TS 29.273 - 3GPP EPS AAA interfaces</a>
 %%%
 -module(ocs_eap_aka_auc_fsm).
 -copyright('Copyright (c) 2016 - 2018 SigScale Global Inc.').
