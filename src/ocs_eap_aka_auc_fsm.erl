@@ -193,7 +193,9 @@ idle({vector, {AkaFsm, Identity, AUTS, RAT}}, StateData)
 	idle1(ocs:find_service(Identity), NewStateData);
 idle({register, {AkaFsm, Identity}},
 		#statedata{hss_realm = undefined, aka_fsm = AkaFsm,
-		identity = Identity, attributes = Attributes} = StateData)
+		session_id = SessionId, identity = Identity,
+		nas_address = NasAddress, nas_host = NasHost,
+		nas_realm = NasRealm, attributes = Attributes} = StateData)
 		when is_pid(AkaFsm), is_binary(Identity) ->
 	SessionTimeout = case radius_attributes:find(?SessionTimeout,
 			Attributes) of
@@ -204,8 +206,17 @@ idle({register, {AkaFsm, Identity}},
 	end,
 	UserProfile = #'3gpp_swx_Non-3GPP-User-Data'{
 			'Session-Timeout' = SessionTimeout},
-	gen_fsm:send_event(AkaFsm, {ok, UserProfile}),
-	{next_state, idle, StateData};
+	LM = {erlang:system_time(?MILLISECOND), erlang:unique_integer([positive])},
+	Session = #session{id = SessionId, imsi = Identity,
+		nas_address = NasAddress, user_profile = UserProfile, last_modified = LM},
+	F = fun() -> mnesia:write(session, Session, write) end,
+	case mnesia:transaction(F) of
+		{atomic, ok} ->
+			gen_fsm:send_event(AkaFsm, {ok, UserProfile}),
+			{next_state, idle, StateData};
+		{aborted, Reason} ->
+			{stop, Reason, StateData}
+	end;
 idle({register, {AkaFsm, Identity}},
 		#statedata{aka_fsm = AkaFsm, identity = Identity} = StateData)
 		when is_pid(AkaFsm), is_binary(Identity) ->
