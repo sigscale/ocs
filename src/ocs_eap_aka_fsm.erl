@@ -71,7 +71,6 @@
 				radius_attributes:attributes()},
 		secret :: undefined | binary(),
 		eap_id = 0 :: byte(),
-		server_id  ::  binary(),
 		auth_app_id :: undefined | integer(),
 		auth_req_type :: undefined | integer(),
 		origin_host :: undefined | binary(),
@@ -116,7 +115,6 @@
 init([Sup, diameter, ServerAddress, ServerPort, ClientAddress, ClientPort,
 		PasswordReq, Trusted, SessionId, ApplicationId, AuthReqType, OHost, ORealm,
 		_DHost, _DRealm, Request, _Options] = _Args) ->
-	{ok, Hostname} = inet:gethostname(),
 	{ok, Keys} = application:get_env(aka_kpseu),
 	case global:whereis_name({ocs_diameter_auth, ServerAddress, ServerPort}) of
 		undefined ->
@@ -132,18 +130,17 @@ init([Sup, diameter, ServerAddress, ServerPort, ClientAddress, ClientPort,
 					server_address = ServerAddress,
 					server_port = ServerPort, client_address = ClientAddress,
 					client_port = ClientPort, session_id = SessionId,
-					server_id = list_to_binary(Hostname), auth_app_id = ApplicationId,
-					auth_req_type = AuthReqType, origin_host = OHost,
-					origin_realm = ORealm, diameter_port_server = PortServer,
-					request = Request, password_required = PasswordReq,
-					trusted = Trusted, keys = Keys, service_type = ServiceType},
+					auth_app_id = ApplicationId, auth_req_type = AuthReqType,
+					origin_host = OHost, origin_realm = ORealm,
+					diameter_port_server = PortServer, request = Request,
+					password_required = PasswordReq, trusted = Trusted,
+					keys = Keys, service_type = ServiceType},
 			process_flag(trap_exit, true),
 			{ok, eap_start, StateData, 0}
 		end;
 init([Sup, radius, ServerAddress, ServerPort, ClientAddress, ClientPort,
 		RadiusFsm, Secret, PasswordReq, Trusted, SessionId,
 		#radius{attributes = Attributes} = AccessRequest] = _Args) ->
-	{ok, Hostname} = inet:gethostname(),
 	{ok, Keys} = application:get_env(aka_kpseu),
 	ServiceType = case radius_attributes:find(?ServiceType, Attributes) of
 		{error, not_found} ->
@@ -156,9 +153,8 @@ init([Sup, radius, ServerAddress, ServerPort, ClientAddress, ClientPort,
 			server_port = ServerPort, client_address = ClientAddress,
 			client_port = ClientPort, radius_fsm = RadiusFsm,
 			secret = Secret, session_id = SessionId,
-			server_id = list_to_binary(Hostname), request = AccessRequest,
-			password_required = PasswordReq, trusted = Trusted,
-			keys = Keys, service_type = ServiceType},
+			request = AccessRequest, password_required = PasswordReq,
+			trusted = Trusted, keys = Keys, service_type = ServiceType},
 	process_flag(trap_exit, true),
 	{ok, eap_start, StateData, 0}.
 
