@@ -358,7 +358,7 @@ idle1({error, Reason}, #statedata{aka_fsm = AkaFsm} = StateData) ->
 %% @@see //stdlib/gen_fsm:StateName/2
 %% @private
 %%
-vector({ok, #'3gpp_swx_MAA'{'Result-Code' = [2001],
+vector({ok, #'3gpp_swx_MAA'{'Result-Code' = [?'DIAMETER_BASE_RESULT-CODE_SUCCESS'],
 		'Origin-Realm' = HssRealm,
 		'Origin-Host' = HssHost,
 		'SIP-Number-Auth-Items' = [1],
@@ -409,7 +409,7 @@ vector({error, Reason}, #statedata{aka_fsm = AkaFsm} = StateData) ->
 %% @@see //stdlib/gen_fsm:StateName/2
 %% @private
 %%
-register({ok, #'3gpp_swx_SAA'{'Result-Code' = [2001],
+register({ok, #'3gpp_swx_SAA'{'Result-Code' = [?'DIAMETER_BASE_RESULT-CODE_SUCCESS'],
 		'Origin-Realm' = HssRealm, 'Origin-Host' = HssHost,
 		'Non-3GPP-User-Data' = [#'3gpp_swx_Non-3GPP-User-Data'{} = UserProfile]}},
 		#statedata{session_id = SessionId,
@@ -428,7 +428,7 @@ register({ok, #'3gpp_swx_SAA'{'Result-Code' = [2001],
 		{aborted, Reason} ->
 			{stop, Reason, NewStateData}
 	end;
-register({ok, #'3gpp_swx_SAA'{'Result-Code' = [2001],
+register({ok, #'3gpp_swx_SAA'{'Result-Code' = [?'DIAMETER_BASE_RESULT-CODE_SUCCESS'],
 		'Origin-Realm' = HssRealm, 'Origin-Host' = HssHost,
 		'Non-3GPP-User-Data' = [#'3gpp_swx_Non-3GPP-User-Data'{} = UserProfile]}},
 		#statedata{session_id = SessionId,
