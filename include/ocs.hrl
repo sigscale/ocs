@@ -17,8 +17,6 @@
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%%
 
--include("diameter_gen_3gpp_swx_application.hrl").
-
 -type offer_status() :: in_study | in_design | in_test
 		| active | rejected | launched | retired | obsolete.
 -type bucket_status() :: active | expired | suspended.
@@ -203,11 +201,12 @@
 -record(session,
 		{id :: string() | radius_attributes:attributes(),
 		imsi :: binary(),
+		application :: pos_integer(),
 		nas_host :: string() | undefined,
 		nas_realm :: string() | undefined,
 		nas_address :: inet:ip_address() | undefined,
 		hss_host :: string(),
 		hss_realm :: string(),
-		user_profile :: #'3gpp_swx_Non-3GPP-User-Data'{} | undefined,
+		user_profile :: tuple() | undefined,
 		last_modified :: tuple() | undefined}).
 
