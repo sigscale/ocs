@@ -199,14 +199,14 @@
 		value :: {Description :: string(), Rate :: non_neg_integer(), LastModified :: tuple()} | undefined}).
 
 -record(session,
-		{id :: string() | radius_attributes:attributes(),
+		{id :: diameter:'OctetString'() | radius_attributes:attributes(),
 		imsi :: binary(),
-		application :: pos_integer(),
+		application :: pos_integer() | undefined,
 		nas_host :: string() | undefined,
 		nas_realm :: string() | undefined,
 		nas_address :: inet:ip_address() | undefined,
-		hss_host :: string(),
-		hss_realm :: string(),
+		hss_host :: string() | undefined,
+		hss_realm :: string() | undefined,
 		user_profile :: tuple() | undefined,
 		last_modified :: tuple() | undefined}).
 

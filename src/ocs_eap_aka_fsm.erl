@@ -64,7 +64,8 @@
 		client_port :: undefined | pos_integer(),
 		radius_fsm :: undefined | pid(),
 		auc_fsm :: undefined | pid(),
-		session_id:: binary() | {NAS :: inet:ip_address() | string(),
+		session_id:: diameter:'OctetString'()
+				| {NAS :: inet:ip_address() | string(),
 				Port :: string(), Peer :: string()},
 		request :: #diameter_eap_app_DER{} | #'3gpp_swm_DER'{}
 				| #radius{} | undefined,
@@ -1270,7 +1271,7 @@ send_radius_response(EapMessage, ?AccessReject = RadiusCode,
 -spec send_diameter_response(SessionId, AuthType, ResultCode,
 		EapMessage, PortServer, Request, UserProfile, StateData) -> ok
 	when
-		SessionId :: binary(),
+		SessionId :: diameter:'OctetString'(),
 		AuthType :: integer(),
 		ResultCode :: integer(),
 		EapMessage :: binary(),
@@ -1288,9 +1289,8 @@ send_diameter_response(SessionId, AuthType,
 		client_address = ClientAddress, client_port = ClientPort,
 		origin_host = OriginHost, origin_realm = OriginRealm,
 		identity = Identity} = _StateData)
-		when is_binary(SessionId), is_integer(AuthType),
-		is_binary(OriginHost), is_binary(OriginRealm),
-		is_binary(EapMessage), is_pid(PortServer) ->
+		when is_integer(AuthType), is_binary(OriginHost),
+		is_binary(OriginRealm), is_binary(EapMessage), is_pid(PortServer) ->
 	Server = {ServerAddress, ServerPort},
 	Client= {ClientAddress, ClientPort},
 	Answer = #diameter_eap_app_DEA{'Session-Id' = SessionId,
@@ -1308,9 +1308,9 @@ send_diameter_response(SessionId, AuthType,
 		client_address = ClientAddress, client_port = ClientPort,
 		origin_host = OriginHost, origin_realm = OriginRealm,
 		identity = Identity} = _StateData)
-		when is_binary(SessionId), is_integer(AuthType),
-		is_binary(OriginHost), is_binary(OriginRealm),
-		is_binary(EapMessage), is_pid(PortServer) ->
+		when is_integer(AuthType), is_binary(OriginHost),
+		is_binary(OriginRealm), is_binary(EapMessage),
+		is_pid(PortServer) ->
 	Server = {ServerAddress, ServerPort},
 	Client= {ClientAddress, ClientPort},
 	Answer = #'3gpp_swm_DEA'{'Session-Id' = SessionId,
@@ -1327,7 +1327,7 @@ send_diameter_response(SessionId, AuthType,
 		#statedata{server_address = ServerAddress, server_port = ServerPort,
 		client_address = ClientAddress, client_port = ClientPort,
 		origin_host = OriginHost, origin_realm = OriginRealm,
-		msk = MSK, identity = Identity} = _StateData) when is_binary(SessionId),
+		msk = MSK, identity = Identity} = _StateData) when
 		is_integer(AuthType), is_binary(OriginHost), is_binary(OriginRealm),
 		is_binary(EapMessage), is_pid(PortServer), is_binary(MSK) ->
 	Server = {ServerAddress, ServerPort},
@@ -1354,7 +1354,7 @@ send_diameter_response(SessionId, AuthType,
 		#statedata{server_address = ServerAddress, server_port = ServerPort,
 		client_address = ClientAddress, client_port = ClientPort,
 		origin_host = OriginHost, origin_realm = OriginRealm,
-		msk = MSK, identity = Identity} = _StateData) when is_binary(SessionId),
+		msk = MSK, identity = Identity} = _StateData) when
 		is_integer(AuthType), is_binary(OriginHost), is_binary(OriginRealm),
 		is_binary(EapMessage), is_pid(PortServer), is_binary(MSK) ->
 	Server = {ServerAddress, ServerPort},
@@ -1381,7 +1381,7 @@ send_diameter_response(SessionId, AuthType,
 		#statedata{server_address = ServerAddress, server_port = ServerPort,
 		client_address = ClientAddress, client_port = ClientPort,
 		origin_host = OriginHost, origin_realm = OriginRealm,
-		msk = MSK, identity = Identity} = _StateData) when is_binary(SessionId),
+		msk = MSK, identity = Identity} = _StateData) when
 		is_integer(AuthType), is_binary(OriginHost), is_binary(OriginRealm),
 		is_binary(EapMessage), is_pid(PortServer), is_binary(MSK) ->
 	Server = {ServerAddress, ServerPort},
@@ -1403,8 +1403,7 @@ send_diameter_response(SessionId, AuthType, ResultCode, EapMessage,
 		client_address = ClientAddress, client_port = ClientPort,
 		origin_host = OriginHost, origin_realm = OriginRealm,
 		identity = Identity} = _StateData)
-		when is_binary(SessionId),
-		is_integer(AuthType), is_integer(ResultCode),
+		when is_integer(AuthType), is_integer(ResultCode),
 		is_binary(OriginHost), is_binary(OriginRealm),
 		is_binary(EapMessage), is_pid(PortServer) ->
 	Server = {ServerAddress, ServerPort},
@@ -1425,8 +1424,7 @@ send_diameter_response(SessionId, AuthType, ResultCode, EapMessage,
 		client_address = ClientAddress, client_port = ClientPort,
 		origin_host = OriginHost, origin_realm = OriginRealm,
 		identity = Identity} = _StateData)
-		when is_binary(SessionId),
-		is_integer(AuthType), is_integer(ResultCode),
+		when is_integer(AuthType), is_integer(ResultCode),
 		is_binary(OriginHost), is_binary(OriginRealm),
 		is_binary(EapMessage), is_pid(PortServer) ->
 	Server = {ServerAddress, ServerPort},
