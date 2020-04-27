@@ -44,6 +44,10 @@ beam_DATA = ocs.beam \
 			ocs_eap_akap_fsm_sup.beam \
 			ocs_eap_akap_fsm.beam \
 			ocs_eap_aka_auc_fsm.beam \
+			ocs_terminate_fsm_sup.beam \
+			ocs_terminate_fsm.beam \
+			ocs_deregister_fsm_sup.beam \
+			ocs_deregister_fsm.beam \
 			ocs_simple_auth_fsm.beam \
 			ocs_radius_auth_port_server.beam \
 			ocs_radius_accounting.beam \
