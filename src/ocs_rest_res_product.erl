@@ -40,13 +40,13 @@
 -define(MILLISECOND, milli_seconds).
 %-define(MILLISECOND, millisecond).
 
--define(catalogPath, "/catalogManagement/v2/catalog/").
+-define(catalogPath, "/productCatalogManagement/v2/").
 -define(categoryPath, "/catalogManagement/v2/category/").
 -define(productSpecPath, "/catalogManagement/v2/productSpecification/").
 -define(offeringPath, "/catalogManagement/v2/productOffering/").
 -define(plaPath, "/catalogManagement/v2/pla/").
 -define(plaSpecPath, "/catalogManagement/v2/plaSpecification/").
--define(inventoryPath, "/productInventoryManagement/v2/product/").
+-define(inventoryPath, "/productInventoryManagement/v2/").
 -define(servicePath, "/serviceInventoryManagement/v2/service/").
 
 -spec content_types_accepted() -> ContentTypes
