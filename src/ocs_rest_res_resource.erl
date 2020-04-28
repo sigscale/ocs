@@ -28,6 +28,7 @@
 -export([get_resource_catalog/1, get_resource_catalogs/1]).
 -export([get_resource_inventory/2, add_resource_inventory/2, patch_resource_inventory/4,
 			delete_resource_inventory/2]).
+-export([get_pla_specs/1]).
 
 -include("ocs.hrl").
 
@@ -312,6 +313,23 @@ delete_resource_inventory(Table, Id) ->
 		_:_ ->
 			{error, 400}
 	end.
+
+-spec get_pla_specs(Query) -> Result when
+	Query :: [{Key :: string(), Value :: string()}],
+	Result	:: {ok, Headers, Body} | {error, Status},
+	Headers	:: [tuple()],
+	Body		:: iolist(),
+	Status	:: 400 | 404 | 500.
+%% @doc Respond to `GET /resourceCatalogManagement/v2/plaSpecification'.
+%% 	Retrieve all pricing logic algorithm specifications.
+get_pla_specs([] = _Query) ->
+	Headers = [{content_type, "application/json"}],
+	Object = {array, [spec_pla_once(), spec_pla_recurring(),
+			spec_pla_usage(), spec_pla_tariff()]},
+	Body = mochijson:encode(Object),
+	{ok, Headers, Body};
+get_pla_specs(_Query) ->
+	{error, 400}.
 
 %%----------------------------------------------------------------------
 %%  internal functions
