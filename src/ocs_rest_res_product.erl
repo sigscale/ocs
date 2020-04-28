@@ -358,7 +358,7 @@ get_plas(_Query, _Headers) ->
 	Headers	:: [tuple()],
 	Body		:: iolist(),
 	Status	:: 400 | 404 | 412 | 500 .
-%% @doc Respond to `GET /productInventoryManagement/v2/product'.
+%% @doc Respond to `GET /productInventoryManagement/v2/'.
 %% 	Retrieve all Product Inventories.
 get_inventories(Query, Headers) ->
 	try
@@ -411,7 +411,7 @@ get_catalog(_Id, _Query) ->
 	Headers	:: [tuple()],
 	Body		:: iolist(),
 	Status	:: 400 | 404 | 500 .
-%% @doc Respond to `GET /catalogManagement/v2/catalog'.
+%% @doc Respond to `GET /productCatalogManagement/v2'.
 %% 	Retrieve all catalogs .
 get_catalogs([] =  _Query) ->
 	Headers = [{content_type, "application/json"}],
