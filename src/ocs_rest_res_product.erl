@@ -29,7 +29,7 @@
 -export([get_catalog/2, get_catalogs/1]).
 -export([get_category/2, get_categories/1]).
 -export([get_product_spec/2, get_product_specs/1]).
--export([add_pla/1, get_pla/1, get_plas/2, patch_pla/3]).
+-export([add_pla/1, get_pla/1, patch_pla/3]).
 -export([get_pla_spec/2]).
 -export([delete_offer/1, delete_inventory/1, delete_pla/1]).
 -export([get_schema/0]).
@@ -161,7 +161,7 @@ add_inventory(ReqData) ->
 %%    Add a new Product Offering.
 add_pla(ReqData) ->
 	try
-		case ocs:add_pla(pla(mochijson:decode(ReqData))) of
+		case ocs:add_pla(ocs_rest_res_resource:pla(mochijson:decode(ReqData))) of
 			{ok, PricingLogic} ->
 				PricingLogic;
 			{error, Reason} ->
@@ -169,7 +169,7 @@ add_pla(ReqData) ->
 		end
 	of
 		PriceAlgo ->
-			Body = mochijson:encode(pla(PriceAlgo)),
+			Body = mochijson:encode(ocs_rest_res_resource:pla(PriceAlgo)),
 			Etag = ocs_rest:etag(PriceAlgo#pla.last_modified),
 			Href = ?plaPath ++ PriceAlgo#pla.name,
 			Headers = [{location, Href}, {etag, Etag}],
@@ -311,38 +311,7 @@ get_pla(ID) ->
 		end
 	of
 		LogicAlgo ->
-			Body = mochijson:encode(pla(LogicAlgo)),
-			Headers = [{content_type, "application/json"}],
-			{ok, Headers, Body}
-	catch
-		throw:_Reason1 ->
-			{error, 500};
-		_:_ ->
-			{error, 400}
-	end.
-
--spec get_plas(Query, Headers) ->Result when
-	Query :: [{Key :: string(), Value :: string()}],
-	Result :: {ok, Headers, Body} | {error, Status},
-	Headers :: [tuple()],
-	Body :: iolist(),
-	Status :: 400 | 404 | 412 | 500 .
-%% @doc Respond to `GET /catalogManagement/v2/pla'.
-%%    Retrieve all pricing logic algorithms.
-get_plas(_Query, _Headers) -> 
-	try
-		case ocs:get_plas() of
-			PricingLogicAlgorithms
-				when is_list(PricingLogicAlgorithms) ->
-				PricingLogicAlgorithms;
-			{error, not_found} ->
-				throw(404);
-			{error, _Reason} ->
-				throw(500)
-		end
-	of
-		Logic ->
-			Body = mochijson:encode({array, [pla(P) || P <- Logic]}),
+			Body = mochijson:encode(ocs_rest_res_resource:pla(LogicAlgo)),
 			Headers = [{content_type, "application/json"}],
 			{ok, Headers, Body}
 	catch
@@ -676,9 +645,9 @@ patch_pla(Id, Etag, ReqData) ->
 						[Pla1] when
 								Pla1#pla.last_modified == Etag2;
 								Etag2 == undefined ->
-							case catch ocs_rest:patch(Operations, pla(Pla1)) of
+							case catch ocs_rest:patch(Operations, ocs_rest_res_resource:pla(Pla1)) of
 								{struct, _} = Pla2  ->
-									Pla3 = pla(Pla2),
+									Pla3 = ocs_rest_res_resource:pla(Pla2),
 									TS = erlang:system_time(?MILLISECOND),
 									N = erlang:unique_integer([positive]),
 									LM = {TS, N},
@@ -1146,18 +1115,6 @@ spec_pla_tariff() ->
 	Chars = {"usageSpecCharacteristic", {array, []}},
 	{struct, [Id, Name, Href, Description, Version, LastUpdate, Status, Chars]}.
 
--spec pla_chars(Characteristics) -> Characteristics
-	when
-		Characteristics :: {array, list()} | [tuple()].
-%% @doc CODEC for Pricing Logic Algorithm characteristics.
-pla_chars({array, L} = _Characteristics) ->
-	pla_chars(L, []);
-pla_chars(Characteristics) when is_list(Characteristics) ->
-	{array, pla_chars(Characteristics, [])}.
-%% @hidden
-pla_chars([], Acc) ->
-	lists:reverse(Acc).
-
 -spec offer_status(Status) -> Status
 	when
 		Status :: atom() | string().
@@ -1231,84 +1188,6 @@ price_period("daily") -> daily;
 price_period("weekly") -> weekly;
 price_period("monthly") -> monthly;
 price_period("yearly") -> yearly.
-
--spec pla(Pla) -> Pla
-	when
-		Pla :: #pla{} | {struct, [tuple()]}.
-%% @doc CODEC for Pricing login algorithm.
-%% @private
-pla(#pla{} = Pla) ->
-	pla(record_info(fields,pla), Pla, []);
-pla({struct, ObjectMembers}) when is_list(ObjectMembers) ->
-	pla(ObjectMembers, #pla{}).
-%% @hidden
-pla([name | T], #pla{name = Name} = P, Acc) when is_list(Name) ->
-	pla(T, P, [{"name", Name} | Acc]);
-pla([description | T], #pla{description = Description} = P, Acc)
-		when is_list(Description) ->
-	pla(T, P, [{"description", Description} | Acc]);
-pla([status | T], #pla{status = Status} = P, Acc)
-		when Status /= undefined ->
-	StatusPla = product_status(Status),
-	pla(T, P, [{"status", StatusPla} | Acc]);
-pla([start_date | T], #pla{start_date = Start,
-		end_date = undefined} = P, Acc) when is_integer(Start) ->
-	ValidFor = {struct, [{"startDateTime", ocs_rest:iso8601(Start)}]},
-	pla(T, P, [{"validFor", ValidFor} | Acc]);
-pla([start_date | T], #pla{start_date = undefined,
-		end_date = End} = P, Acc) when is_integer(End) ->
-	ValidFor = {struct, [{"endDateTime", ocs_rest:iso8601(End)}]},
-	pla(T, P, [{"validFor", ValidFor} | Acc]);
-pla([start_date | T], #pla{start_date = Start,
-		end_date = End} = P, Acc) when is_integer(Start), is_integer(End) ->
-	ValidFor = {struct, [{"startDateTime", ocs_rest:iso8601(Start)},
-			{"endDateTime", ocs_rest:iso8601(End)}]},
-	pla(T, P, [{"validFor", ValidFor} | Acc]);
-pla([end_date | T], P, Acc) ->
-	pla(T, P, Acc);
-pla([specification | T], #pla{specification = Spec} = P, Acc) ->
-	pla(T, P, [{"plaSpecId", Spec} | Acc]);
-pla([characteristics | T], #pla{characteristics = Chars} = P, Acc) ->
-	pla(T, P, [{"plaSpecCharacteristicValue", pla_chars(Chars)} | Acc]);
-pla([last_modified | T], #pla{last_modified = {Last, _}} = P, Acc)
-		when is_integer(Last) ->
-	pla(T, P, [{"lastUpdate", ocs_rest:iso8601(Last)} | Acc]);
-pla([_H | T], P, Acc) ->
-	pla(T, P, Acc);
-pla([], #pla{name = Name} = _P, Acc) ->
-	{struct, [{"id", Name} | lists:reverse(Acc)]}.
-%% @hidden
-pla([{"name", Name} | T], Acc) when is_list(Name) ->
-	pla(T, Acc#pla{name = Name});
-pla([{"description", Description} | T], Acc) when is_list(Description) ->
-	pla(T, Acc#pla{description = Description});
-pla([{"status", Status} | T], Acc) when is_list(Status) ->
-	pla(T, Acc#pla{status = product_status(Status)});
-pla([{"validFor", {struct, L}} | T], Acc) ->
-	Acc1 = case lists:keyfind("startDateTime", 1, L) of
-		{_, Start} ->
-			Acc#pla{start_date = ocs_rest:iso8601(Start)};
-		false -> 
-			Acc
-	end,
-	Acc2 = case lists:keyfind("endDateTime", 1, L) of
-		{_, End} ->
-			Acc1#pla{end_date = ocs_rest:iso8601(End)};
-		false -> 
-			Acc
-	end,
-	pla(T, Acc2);
-pla([{"plaSpecId", Spec} | T], Acc) when is_list(Spec) ->
-	pla(T, Acc#pla{specification = Spec});
-pla([{"plaSpecCharacteristicValue", {array, Chars}} | T], Acc)
-		when is_list(Chars)->
-	pla(T, Acc#pla{characteristics = pla_chars({array, Chars})});
-pla([{"lastUpdate", LastUpdate} | T], Acc) when is_list(LastUpdate) ->
-	pla(T, Acc);
-pla([_ | T], Acc) ->
-	pla(T, Acc);
-pla([], Acc) ->
-	Acc.
 
 -spec offer(Product) -> Product
 	when

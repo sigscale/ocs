@@ -29,6 +29,7 @@
 -export([get_resource_inventory/2, add_resource_inventory/2, patch_resource_inventory/4,
 			delete_resource_inventory/2]).
 -export([get_pla_specs/1]).
+-export([pla/1, get_plas/2]).
 
 -include("ocs.hrl").
 
@@ -332,6 +333,37 @@ get_pla_specs([] = _Query) ->
 get_pla_specs(_Query) ->
 	{error, 400}.
 
+-spec get_plas(Query, Headers) ->Result when
+	Query :: [{Key :: string(), Value :: string()}],
+	Result :: {ok, Headers, Body} | {error, Status},
+	Headers :: [tuple()],
+	Body :: iolist(),
+	Status :: 400 | 404 | 412 | 500 .
+%% @doc Respond to `GET /catalogManagement/v2/pla'.
+%%    Retrieve all pricing logic algorithms.
+get_plas(_Query, _Headers) -> 
+	try
+		case ocs:get_plas() of
+			PricingLogicAlgorithms
+				when is_list(PricingLogicAlgorithms) ->
+				PricingLogicAlgorithms;
+			{error, not_found} ->
+				throw(404);
+			{error, _Reason} ->
+				throw(500)
+		end
+	of
+		Logic ->
+			Body = mochijson:encode({array, [pla(P) || P <- Logic]}),
+			Headers = [{content_type, "application/json"}],
+			{ok, Headers, Body}
+	catch
+		throw:_Reason1 ->
+			{error, 500};
+		_:_ ->
+			{error, 400}
+	end.
+
 %%----------------------------------------------------------------------
 %%  internal functions
 %%----------------------------------------------------------------------
@@ -497,4 +529,116 @@ spec_pla_tariff() ->
 	Status = {"lifecycleStatus", "Active"},
 	Chars = {"usageSpecCharacteristic", {array, []}},
 	{struct, [Id, Name, Href, Description, Version, LastUpdate, Status, Chars]}.
+
+-spec pla(Pla) -> Pla
+	when
+		Pla :: #pla{} | {struct, [tuple()]}.
+%% @doc CODEC for Pricing login algorithm.
+%% @private
+pla(#pla{} = Pla) ->
+	pla(record_info(fields,pla), Pla, []);
+pla({struct, ObjectMembers}) when is_list(ObjectMembers) ->
+	pla(ObjectMembers, #pla{}).
+%% @hidden
+pla([name | T], #pla{name = Name} = P, Acc) when is_list(Name) ->
+	pla(T, P, [{"name", Name} | Acc]);
+pla([description | T], #pla{description = Description} = P, Acc)
+		when is_list(Description) ->
+	pla(T, P, [{"description", Description} | Acc]);
+pla([status | T], #pla{status = Status} = P, Acc)
+		when Status /= undefined ->
+	StatusPla = product_status(Status),
+	pla(T, P, [{"status", StatusPla} | Acc]);
+pla([start_date | T], #pla{start_date = Start,
+		end_date = undefined} = P, Acc) when is_integer(Start) ->
+	ValidFor = {struct, [{"startDateTime", ocs_rest:iso8601(Start)}]},
+	pla(T, P, [{"validFor", ValidFor} | Acc]);
+pla([start_date | T], #pla{start_date = undefined,
+		end_date = End} = P, Acc) when is_integer(End) ->
+	ValidFor = {struct, [{"endDateTime", ocs_rest:iso8601(End)}]},
+	pla(T, P, [{"validFor", ValidFor} | Acc]);
+pla([start_date | T], #pla{start_date = Start,
+		end_date = End} = P, Acc) when is_integer(Start), is_integer(End) ->
+	ValidFor = {struct, [{"startDateTime", ocs_rest:iso8601(Start)},
+			{"endDateTime", ocs_rest:iso8601(End)}]},
+	pla(T, P, [{"validFor", ValidFor} | Acc]);
+pla([end_date | T], P, Acc) ->
+	pla(T, P, Acc);
+pla([specification | T], #pla{specification = Spec} = P, Acc) ->
+	pla(T, P, [{"plaSpecId", Spec} | Acc]);
+pla([characteristics | T], #pla{characteristics = Chars} = P, Acc) ->
+	pla(T, P, [{"plaSpecCharacteristicValue", pla_chars(Chars)} | Acc]);
+pla([last_modified | T], #pla{last_modified = {Last, _}} = P, Acc)
+		when is_integer(Last) ->
+	pla(T, P, [{"lastUpdate", ocs_rest:iso8601(Last)} | Acc]);
+pla([_H | T], P, Acc) ->
+	pla(T, P, Acc);
+pla([], #pla{name = Name} = _P, Acc) ->
+	{struct, [{"id", Name} | lists:reverse(Acc)]}.
+%% @hidden
+pla([{"name", Name} | T], Acc) when is_list(Name) ->
+	pla(T, Acc#pla{name = Name});
+pla([{"description", Description} | T], Acc) when is_list(Description) ->
+	pla(T, Acc#pla{description = Description});
+pla([{"status", Status} | T], Acc) when is_list(Status) ->
+	pla(T, Acc#pla{status = product_status(Status)});
+pla([{"validFor", {struct, L}} | T], Acc) ->
+	Acc1 = case lists:keyfind("startDateTime", 1, L) of
+		{_, Start} ->
+			Acc#pla{start_date = ocs_rest:iso8601(Start)};
+		false -> 
+			Acc
+	end,
+	Acc2 = case lists:keyfind("endDateTime", 1, L) of
+		{_, End} ->
+			Acc1#pla{end_date = ocs_rest:iso8601(End)};
+		false -> 
+			Acc
+	end,
+	pla(T, Acc2);
+pla([{"plaSpecId", Spec} | T], Acc) when is_list(Spec) ->
+	pla(T, Acc#pla{specification = Spec});
+pla([{"plaSpecCharacteristicValue", {array, Chars}} | T], Acc)
+		when is_list(Chars)->
+	pla(T, Acc#pla{characteristics = pla_chars({array, Chars})});
+pla([{"lastUpdate", LastUpdate} | T], Acc) when is_list(LastUpdate) ->
+	pla(T, Acc);
+pla([_ | T], Acc) ->
+	pla(T, Acc);
+pla([], Acc) ->
+	Acc.
+
+-spec product_status(Status) -> Status
+	when
+		Status :: atom() | string().
+%% @doc CODEC for life cycle status of Product Offering.
+%% @private
+product_status("Created") -> created;
+product_status("Pending Active") -> pending_active;
+product_status("Aborted") -> aborted;
+product_status("Cancelled") -> cancelled;
+product_status("Active") -> active;
+product_status("Suspended") -> suspended;
+product_status("Pending Terminate") -> pending_terminate;
+product_status("Terminated") -> terminated;
+product_status(created) -> "Created";
+product_status(pending_active) -> "Pending Active";
+product_status(aborted) -> "Aborted";
+product_status(cancelled) -> "Cancelled";
+product_status(active) -> "Active";
+product_status(suspended) -> "Suspended";
+product_status(pending_terminate) -> "Pending Terminate";
+product_status(terminated) -> "Terminated".
+
+-spec pla_chars(Characteristics) -> Characteristics
+	when
+		Characteristics :: {array, list()} | [tuple()].
+%% @doc CODEC for Pricing Logic Algorithm characteristics.
+pla_chars({array, L} = _Characteristics) ->
+	pla_chars(L, []);
+pla_chars(Characteristics) when is_list(Characteristics) ->
+	{array, pla_chars(Characteristics, [])}.
+%% @hidden
+pla_chars([], Acc) ->
+	lists:reverse(Acc).
 
