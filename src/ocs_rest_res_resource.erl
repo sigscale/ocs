@@ -28,6 +28,7 @@
 -export([get_resource_catalog/1, get_resource_catalogs/1]).
 -export([get_resource_inventory/2, add_resource_inventory/2, patch_resource_inventory/4,
 			delete_resource_inventory/2]).
+-export([get_pla_specs/1]).
 
 -include("ocs.hrl").
 
@@ -40,6 +41,7 @@
 -define(catalogPath, "/resourceCatalogManagement/v2/").
 -define(categoryPath, "/catalogManagement/v2/resourceCategory/").
 -define(inventoryPath, "/resourceInventoryManagement/v1/logicalResource/").
+-define(plaSpecPath, "/resourceCatalogManagement/v2/plaSpecification/").
 
 -spec content_types_accepted() -> ContentTypes
 	when
@@ -313,6 +315,23 @@ delete_resource_inventory(Table, Id) ->
 			{error, 400}
 	end.
 
+-spec get_pla_specs(Query) -> Result when
+	Query :: [{Key :: string(), Value :: string()}],
+	Result	:: {ok, Headers, Body} | {error, Status},
+	Headers	:: [tuple()],
+	Body		:: iolist(),
+	Status	:: 400 | 404 | 500.
+%% @doc Respond to `GET /resourceCatalogManagement/v2/plaSpecification'.
+%% 	Retrieve all pricing logic algorithm specifications.
+get_pla_specs([] = _Query) ->
+	Headers = [{content_type, "application/json"}],
+	Object = {array, [spec_pla_once(), spec_pla_recurring(),
+			spec_pla_usage(), spec_pla_tariff()]},
+	Body = mochijson:encode(Object),
+	{ok, Headers, Body};
+get_pla_specs(_Query) ->
+	{error, 400}.
+
 %%----------------------------------------------------------------------
 %%  internal functions
 %%----------------------------------------------------------------------
@@ -432,4 +451,50 @@ gtt2([{struct, L} | T], {Prefix, Desc, Rate} = _Acc) ->
 	end;
 gtt2([], Acc) ->
 	Acc.
+
+%% @hidden
+spec_pla_once() ->
+	Id = {"id", "1"},
+	Href = {"href", ?plaSpecPath "1"},
+	Name = {"name", "OneTimePLASpec"},
+	Description = {"description", "Interface specification for a function that rates one time events."},
+	Version = {"version", "1.0"},
+	LastUpdate = {"lastUpdate", "2018-01-10"},
+	Status = {"lifecycleStatus", "Active"},
+	{struct, [Id, Name, Href, Description, Version, LastUpdate, Status]}.
+
+%% @hidden
+spec_pla_recurring() ->
+	Id = {"id", "2"},
+	Href = {"href", ?plaSpecPath "2"},
+	Name = {"name", "RecurringPLASpec"},
+	Description = {"description", "Interface specification for a function that rates recurring events."},
+	Version = {"version", "1.0"},
+	LastUpdate = {"lastUpdate", "2018-01-10"},
+	Status = {"lifecycleStatus", "Active"},
+	{struct, [Id, Name, Href, Description, Version, LastUpdate, Status]}.
+
+%% @hidden
+spec_pla_usage() ->
+	Id = {"id", "3"},
+	Href = {"href", ?plaSpecPath "3"},
+	Name = {"name", "UsagePLASpec"},
+	Description = {"description", "Interface specification for a function that rates usage events."},
+	Version = {"version", "1.0"},
+	LastUpdate = {"lastUpdate", "2018-01-10"},
+	Status = {"lifecycleStatus", "Active"},
+	Chars = {"usageSpecCharacteristic", {array, []}},
+	{struct, [Id, Name, Href, Description, Version, LastUpdate, Status, Chars]}.
+
+%% @hidden
+spec_pla_tariff() ->
+	Id = {"id", "4"},
+	Href = {"href", ?plaSpecPath "4"},
+	Name = {"name", "PrefixTariffTablePLASpec"},
+	Description = {"description", "Destination prefix table lookup of tariff amount."},
+	Version = {"version", "1.0"},
+	LastUpdate = {"lastUpdate", "2018-01-10"},
+	Status = {"lifecycleStatus", "Active"},
+	Chars = {"usageSpecCharacteristic", {array, []}},
+	{struct, [Id, Name, Href, Description, Version, LastUpdate, Status, Chars]}.
 

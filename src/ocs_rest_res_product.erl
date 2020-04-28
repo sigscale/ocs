@@ -30,7 +30,7 @@
 -export([get_category/2, get_categories/1]).
 -export([get_product_spec/2, get_product_specs/1]).
 -export([add_pla/1, get_pla/1, get_plas/2, patch_pla/3]).
--export([get_pla_spec/2, get_pla_specs/1]).
+-export([get_pla_spec/2]).
 -export([delete_offer/1, delete_inventory/1, delete_pla/1]).
 -export([get_schema/0]).
 
@@ -561,23 +561,6 @@ patch_offer(ProdId, Etag, ReqData) ->
 		_:_ ->
 			{error, 400}
 	end.
-
--spec get_pla_specs(Query) -> Result when
-	Query :: [{Key :: string(), Value :: string()}],
-	Result	:: {ok, Headers, Body} | {error, Status},
-	Headers	:: [tuple()],
-	Body		:: iolist(),
-	Status	:: 400 | 404 | 500.
-%% @doc Respond to `GET /catalogManegment/v2/plaSpecification'.
-%% 	Retrieve all pricing logic algorithm specifications.
-get_pla_specs([] = _Query) ->
-	Headers = [{content_type, "application/json"}],
-	Object = {array, [spec_pla_once(), spec_pla_recurring(),
-			spec_pla_usage(), spec_pla_tariff()]},
-	Body = mochijson:encode(Object),
-	{ok, Headers, Body};
-get_pla_specs(_Query) ->
-	{error, 400}.
 
 -spec get_pla_spec(Id, Query) -> Result when
 	Id :: string(),
