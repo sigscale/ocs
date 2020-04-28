@@ -28,6 +28,8 @@
 %%% 		3rd Generation Authentication and Key Agreement (EAP-AKA')</a>
 %%% @reference <a href="https://webapp.etsi.org/key/key.asp?GSMSpecPart1=33&amp;GSMSpecPart2=402&amp;Search=search">
 %%% 	3GPP TS 33.402 - Security aspects of non-3GPP accesses</a>
+%%% @reference <a href="https://webapp.etsi.org/key/key.asp?GSMSpecPart1=29&amp;GSMSpecPart2=273">
+%%% 	3GPP TS 29.273 - 3GPP EPS AAA interfaces</a>
 %%% @reference <a href="https://webapp.etsi.org/key/key.asp?GSMSpecPart1=23&amp;GSMSpecPart2=003&amp;Search=search">
 %%% 	3GPP TS 23.003 - Numbering, addressing and identification</a>
 %%%
@@ -55,6 +57,7 @@
 -include("diameter_gen_3gpp_swx_application.hrl").
 -include("diameter_3gpp.hrl").
 -include("ocs_eap_codec.hrl").
+-include("ocs.hrl").
 
 -record(statedata,
 		{sup :: pid(),
@@ -64,7 +67,8 @@
 		client_port :: undefined | pos_integer(),
 		radius_fsm :: undefined | pid(),
 		auc_fsm :: undefined | pid(),
-		session_id:: binary() | {NAS :: inet:ip_address() | string(),
+		session_id:: diameter:'OctetString'()
+				| {NAS :: inet:ip_address() | string(),
 				Port :: string(), Peer :: string()},
 		request :: undefined | #diameter_eap_app_DER{} | #'3gpp_sta_DER'{}
 				| #radius{},
@@ -72,11 +76,12 @@
 				radius_attributes:attributes()},
 		secret :: undefined | binary(),
 		eap_id = 0 :: byte(),
-		server_id  ::  binary(),
 		auth_app_id :: undefined | integer(),
 		auth_req_type :: undefined | integer(),
 		origin_host :: undefined | binary(),
 		origin_realm :: undefined | binary(),
+		nas_host :: undefined | binary(),
+		nas_realm :: undefined | binary(),
 		diameter_port_server :: undefined | pid(),
 		password_required :: boolean(),
 		trusted :: boolean(),
@@ -107,6 +112,10 @@
 %% 3GPP TS 23.003 19.3.5 Pseudonym
 -define(TEMP_AKAp, $7).
 
+%% support deprecated_time_unit()
+-define(MILLISECOND, milli_seconds).
+%-define(MILLISECOND, millisecond).
+
 %%----------------------------------------------------------------------
 %%  The ocs_eap_akap_fsm API
 %%----------------------------------------------------------------------
@@ -117,8 +126,7 @@
 
 init([Sup, diameter, ServerAddress, ServerPort, ClientAddress, ClientPort,
 		PasswordReq, Trusted, SessionId, ApplicationId, AuthReqType, OHost, ORealm,
-		_DHost, _DRealm, Request, _Options] = _Args) ->
-	{ok, Hostname} = inet:gethostname(),
+		DHost, DRealm, Request, _Options] = _Args) ->
 	{ok, Keys} = application:get_env(aka_kpseu),
 	case global:whereis_name({ocs_diameter_auth, ServerAddress, ServerPort}) of
 		undefined ->
@@ -134,18 +142,18 @@ init([Sup, diameter, ServerAddress, ServerPort, ClientAddress, ClientPort,
 					server_address = ServerAddress,
 					server_port = ServerPort, client_address = ClientAddress,
 					client_port = ClientPort, session_id = SessionId,
-					server_id = list_to_binary(Hostname), auth_app_id = ApplicationId,
-					auth_req_type = AuthReqType, origin_host = OHost,
-					origin_realm = ORealm, diameter_port_server = PortServer,
-					request = Request, password_required = PasswordReq,
-					trusted = Trusted, keys = Keys, service_type = ServiceType},
+					auth_app_id = ApplicationId, auth_req_type = AuthReqType,
+					origin_host = OHost, origin_realm = ORealm,
+					nas_host = DHost, nas_realm = DRealm,
+					diameter_port_server = PortServer, request = Request,
+					password_required = PasswordReq, trusted = Trusted,
+					keys = Keys, service_type = ServiceType},
 			process_flag(trap_exit, true),
 			{ok, eap_start, StateData, 0}
 		end;
 init([Sup, radius, ServerAddress, ServerPort, ClientAddress, ClientPort,
 		RadiusFsm, Secret, PasswordReq, Trusted, SessionId,
 		#radius{attributes = Attributes} = AccessRequest] = _Args) ->
-	{ok, Hostname} = inet:gethostname(),
 	{ok, Keys} = application:get_env(aka_kpseu),
 	ServiceType = case radius_attributes:find(?ServiceType, Attributes) of
 		{error, not_found} ->
@@ -158,9 +166,8 @@ init([Sup, radius, ServerAddress, ServerPort, ClientAddress, ClientPort,
 			server_port = ServerPort, client_address = ClientAddress,
 			client_port = ClientPort, radius_fsm = RadiusFsm,
 			secret = Secret, session_id = SessionId,
-			server_id = list_to_binary(Hostname), request = AccessRequest,
-			password_required = PasswordReq, trusted = Trusted,
-			keys = Keys, service_type = ServiceType},
+			request = AccessRequest, password_required = PasswordReq,
+			trusted = Trusted, keys = Keys, service_type = ServiceType},
 	process_flag(trap_exit, true),
 	{ok, eap_start, StateData, 0}.
 
@@ -918,20 +925,47 @@ register({ok, #'3gpp_swx_Non-3GPP-User-Data'{} = UserProfile},
 		#statedata{session_id = SessionId,
 		request = #radius{id = RadiusID,
 		authenticator = RequestAuthenticator, attributes = RequestAttributes},
+		client_address = ClientAddress, identity = Identity,
 		response = {EapMessage, Attributes}} = StateData) ->
-	send_radius_response(EapMessage, ?AccessAccept,
-			Attributes, RadiusID, RequestAuthenticator,
-			RequestAttributes, UserProfile, StateData),
-	{stop, {shutdown, SessionId}, StateData};
+	LM = {erlang:system_time(?MILLISECOND), erlang:unique_integer([positive])},
+	Session = #session{id = SessionId, imsi = Identity,
+		nas_address = ClientAddress, user_profile = UserProfile,
+		last_modified = LM},
+	F = fun() -> mnesia:write(session, Session, write) end,
+	case mnesia:transaction(F) of
+		{atomic, ok} ->
+			send_radius_response(EapMessage, ?AccessAccept,
+					Attributes, RadiusID, RequestAuthenticator,
+					RequestAttributes, UserProfile, StateData),
+			{stop, {shutdown, SessionId}, StateData};
+		{aborted, Reason} ->
+			{stop, Reason, StateData}
+	end;
 register({ok, #'3gpp_swx_Non-3GPP-User-Data'{} = UserProfile},
 		#statedata{session_id = SessionId,
-		auth_req_type = AuthReqType,
-		diameter_port_server = PortServer,
-		request = Request, response = {EapMessage, []}} = StateData) ->
-	send_diameter_response(SessionId, AuthReqType,
-			?'DIAMETER_BASE_RESULT-CODE_SUCCESS',
-			EapMessage, PortServer, Request, UserProfile, StateData),
-	{stop, {shutdown, SessionId}, StateData};
+		auth_req_type = AuthReqType, diameter_port_server = PortServer,
+		nas_host = NasHost, nas_realm = NasRealm, request = Request,
+		response = {EapMessage, []}, identity = Identity} = StateData) ->
+	Application = case Request of
+		#diameter_eap_app_DER{} ->
+			?EAP_APPLICATION_ID;
+		#'3gpp_sta_DER'{} ->
+			?STa_APPLICATION_ID
+	end,
+	LM = {erlang:system_time(?MILLISECOND), erlang:unique_integer([positive])},
+	Session = #session{id = SessionId, imsi = Identity,
+		application = Application, nas_host = NasHost, nas_realm = NasRealm,
+		user_profile = UserProfile, last_modified = LM},
+	F = fun() -> mnesia:write(session, Session, write) end,
+	case mnesia:transaction(F) of
+		{atomic, ok} ->
+			send_diameter_response(SessionId, AuthReqType,
+					?'DIAMETER_BASE_RESULT-CODE_SUCCESS',
+					EapMessage, PortServer, Request, UserProfile, StateData),
+			{stop, {shutdown, SessionId}, StateData};
+		{aborted, Reason} ->
+			{stop, Reason, StateData}
+	end;
 register({error, _Reason}, #statedata{eap_id = EapID,
 		request = #radius{code = ?AccessRequest, id = RadiusID,
 		authenticator = RequestAuthenticator,
@@ -1257,7 +1291,7 @@ send_radius_response(EapMessage, ?AccessReject = RadiusCode,
 -spec send_diameter_response(SessionId, AuthType, ResultCode,
 		EapMessage, PortServer, Request, UserProfile, StateData) -> ok
 	when
-		SessionId :: binary(),
+		SessionId :: diameter:'OctetString'(),
 		AuthType :: integer(),
 		ResultCode :: integer(),
 		EapMessage :: binary(),
@@ -1275,9 +1309,8 @@ send_diameter_response(SessionId, AuthType,
 		client_address = ClientAddress, client_port = ClientPort,
 		origin_host = OriginHost, origin_realm = OriginRealm,
 		identity = Identity} = _StateData)
-		when is_binary(SessionId), is_integer(AuthType),
-		is_binary(OriginHost), is_binary(OriginRealm),
-		is_binary(EapMessage), is_pid(PortServer) ->
+		when is_integer(AuthType), is_binary(OriginHost),
+		is_binary(OriginRealm), is_binary(EapMessage), is_pid(PortServer) ->
 	Server = {ServerAddress, ServerPort},
 	Client= {ClientAddress, ClientPort},
 	Answer = #diameter_eap_app_DEA{'Session-Id' = SessionId,
@@ -1295,9 +1328,8 @@ send_diameter_response(SessionId, AuthType,
 		client_address = ClientAddress, client_port = ClientPort,
 		origin_host = OriginHost, origin_realm = OriginRealm,
 		identity = Identity} = _StateData)
-		when is_binary(SessionId), is_integer(AuthType),
-		is_binary(OriginHost), is_binary(OriginRealm),
-		is_binary(EapMessage), is_pid(PortServer) ->
+		when is_integer(AuthType), is_binary(OriginHost),
+		is_binary(OriginRealm), is_binary(EapMessage), is_pid(PortServer) ->
 	Server = {ServerAddress, ServerPort},
 	Client= {ClientAddress, ClientPort},
 	Answer = #'3gpp_sta_DEA'{'Session-Id' = SessionId,
@@ -1314,7 +1346,7 @@ send_diameter_response(SessionId, AuthType,
 		#statedata{server_address = ServerAddress, server_port = ServerPort,
 		client_address = ClientAddress, client_port = ClientPort,
 		origin_host = OriginHost, origin_realm = OriginRealm,
-		msk = MSK, identity = Identity} = _StateData) when is_binary(SessionId),
+		msk = MSK, identity = Identity} = _StateData) when
 		is_integer(AuthType), is_binary(OriginHost), is_binary(OriginRealm),
 		is_binary(EapMessage), is_pid(PortServer), is_binary(MSK) ->
 	Server = {ServerAddress, ServerPort},
@@ -1341,7 +1373,7 @@ send_diameter_response(SessionId, AuthType,
 		#statedata{server_address = ServerAddress, server_port = ServerPort,
 		client_address = ClientAddress, client_port = ClientPort,
 		origin_host = OriginHost, origin_realm = OriginRealm,
-		msk = MSK, identity = Identity} = _StateData) when is_binary(SessionId),
+		msk = MSK, identity = Identity} = _StateData) when
 		is_integer(AuthType), is_binary(OriginHost), is_binary(OriginRealm),
 		is_binary(EapMessage), is_pid(PortServer), is_binary(MSK) ->
 	Server = {ServerAddress, ServerPort},
@@ -1368,7 +1400,7 @@ send_diameter_response(SessionId, AuthType,
 		#statedata{server_address = ServerAddress, server_port = ServerPort,
 		client_address = ClientAddress, client_port = ClientPort,
 		origin_host = OriginHost, origin_realm = OriginRealm,
-		msk = MSK, identity = Identity} = _StateData) when is_binary(SessionId),
+		msk = MSK, identity = Identity} = _StateData) when
 		is_integer(AuthType), is_binary(OriginHost), is_binary(OriginRealm),
 		is_binary(EapMessage), is_pid(PortServer), is_binary(MSK) ->
 	Server = {ServerAddress, ServerPort},
@@ -1390,8 +1422,7 @@ send_diameter_response(SessionId, AuthType, ResultCode, EapMessage,
 		client_address = ClientAddress, client_port = ClientPort,
 		origin_host = OriginHost, origin_realm = OriginRealm,
 		identity = Identity} = _StateData)
-		when is_binary(SessionId),
-		is_integer(AuthType), is_integer(ResultCode),
+		when is_integer(AuthType), is_integer(ResultCode),
 		is_binary(OriginHost), is_binary(OriginRealm),
 		is_binary(EapMessage), is_pid(PortServer) ->
 	Server = {ServerAddress, ServerPort},
@@ -1412,8 +1443,7 @@ send_diameter_response(SessionId, AuthType, ResultCode, EapMessage,
 		client_address = ClientAddress, client_port = ClientPort,
 		origin_host = OriginHost, origin_realm = OriginRealm,
 		identity = Identity} = _StateData)
-		when is_binary(SessionId),
-		is_integer(AuthType), is_integer(ResultCode),
+		when is_integer(AuthType), is_integer(ResultCode),
 		is_binary(OriginHost), is_binary(OriginRealm),
 		is_binary(EapMessage), is_pid(PortServer) ->
 	Server = {ServerAddress, ServerPort},

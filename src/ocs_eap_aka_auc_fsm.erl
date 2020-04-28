@@ -43,7 +43,9 @@
 %%% 	RFC5448 - Improved Extensible Authentication Protocol Method for
 %%% 		3rd Generation Authentication and Key Agreement (EAP-AKA')</a>
 %%% @reference <a href="http://webapp.etsi.org/key/key.asp?GSMSpecPart1=33&amp;GSMSpecPart2=402">
-%%% 	Security Aspects of non-3GPP Accesses (3GPP TS 33.402)</a>
+%%% 	3GPP TS 33.402 - Security Aspects of non-3GPP Accesses</a>
+%%% @reference <a href="https://webapp.etsi.org/key/key.asp?GSMSpecPart1=29&amp;GSMSpecPart2=273">
+%%% 	3GPP TS 29.273 - 3GPP EPS AAA interfaces</a>
 %%%
 -module(ocs_eap_aka_auc_fsm).
 -copyright('Copyright (c) 2016 - 2018 SigScale Global Inc.').
@@ -60,12 +62,13 @@
 -export([init/1, handle_event/3, handle_sync_event/4, handle_info/3,
 			terminate/3, code_change/4]).
 
--include("ocs.hrl").
 -include("diameter_gen_3gpp.hrl").
 -include("diameter_3gpp.hrl").
+-include("diameter_gen_3gpp_swx_application.hrl").
 -include_lib("radius/include/radius.hrl").
 -include_lib("diameter/include/diameter.hrl").
 -include_lib("diameter/include/diameter_gen_base_rfc6733.hrl").
+-include("ocs.hrl").
 
 -record(statedata,
 		{aka_fsm :: pid() | undefined,
@@ -345,7 +348,7 @@ idle1({error, Reason}, #statedata{aka_fsm = AkaFsm} = StateData) ->
 %% @@see //stdlib/gen_fsm:StateName/2
 %% @private
 %%
-vector({ok, #'3gpp_swx_MAA'{'Result-Code' = [2001],
+vector({ok, #'3gpp_swx_MAA'{'Result-Code' = [?'DIAMETER_BASE_RESULT-CODE_SUCCESS'],
 		'Origin-Realm' = HssRealm,
 		'Origin-Host' = HssHost,
 		'SIP-Number-Auth-Items' = [1],
@@ -396,45 +399,13 @@ vector({error, Reason}, #statedata{aka_fsm = AkaFsm} = StateData) ->
 %% @@see //stdlib/gen_fsm:StateName/2
 %% @private
 %%
-register({ok, #'3gpp_swx_SAA'{'Result-Code' = [2001],
+register({ok, #'3gpp_swx_SAA'{'Result-Code' = [?'DIAMETER_BASE_RESULT-CODE_SUCCESS'],
 		'Origin-Realm' = HssRealm, 'Origin-Host' = HssHost,
 		'Non-3GPP-User-Data' = [#'3gpp_swx_Non-3GPP-User-Data'{} = UserProfile]}},
-		#statedata{session_id = SessionId,
-		nas_address = NasAddress, nas_realm = undefined,
-		identity = Identity, aka_fsm = AkaFsm} = StateData) ->
-	LM = {erlang:system_time(?MILLISECOND), erlang:unique_integer([positive])},
-	Session = #session{id = SessionId, imsi = Identity,
-		nas_address = NasAddress, hss_host = HssHost, hss_realm = HssRealm,
-		user_profile = UserProfile, last_modified = LM},
+		#statedata{aka_fsm = AkaFsm} = StateData) ->
 	NewStateData  = StateData#statedata{hss_realm = HssRealm, hss_host = HssHost},
-	F = fun() -> mnesia:write(session, Session, write) end,
-	case mnesia:transaction(F) of
-		{atomic, ok} ->
-			gen_fsm:send_event(AkaFsm, {ok, UserProfile}),
-			{next_state, idle, NewStateData};
-		{aborted, Reason} ->
-			{stop, Reason, NewStateData}
-	end;
-register({ok, #'3gpp_swx_SAA'{'Result-Code' = [2001],
-		'Origin-Realm' = HssRealm, 'Origin-Host' = HssHost,
-		'Non-3GPP-User-Data' = [#'3gpp_swx_Non-3GPP-User-Data'{} = UserProfile]}},
-		#statedata{session_id = SessionId,
-		nas_address = undefined, nas_host = NasHost, nas_realm = NasRealm,
-		identity = Identity, aka_fsm = AkaFsm} = StateData) ->
-	LM = {erlang:system_time(?MILLISECOND), erlang:unique_integer([positive])},
-	Session = #session{id = SessionId, imsi = Identity,
-		nas_host = NasHost, nas_realm = NasRealm,
-		hss_host = HssHost, hss_realm = HssRealm,
-		user_profile = UserProfile, last_modified = LM},
-	NewStateData  = StateData#statedata{hss_realm = HssRealm, hss_host = HssHost},
-	F = fun() -> mnesisa:write(session, Session, write) end,
-	case mnesia:transaction(F) of
-		{atomic, ok} ->
-			gen_fsm:send_event(AkaFsm, {ok, UserProfile}),
-			{next_state, idle, NewStateData};
-		{aborted, Reason} ->
-			{stop, Reason, NewStateData}
-	end;
+	gen_fsm:send_event(AkaFsm, {ok, UserProfile}),
+	{next_state, idle, NewStateData};
 register({ok, #'3gpp_swx_SAA'{'Result-Code' = [ResultCode]}},
 		#statedata{aka_fsm = AkaFsm} = StateData) ->
 	gen_fsm:send_event(AkaFsm, {error, ResultCode}),
