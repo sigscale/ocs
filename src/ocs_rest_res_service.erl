@@ -34,9 +34,9 @@
 -define(MILLISECOND, milli_seconds).
 %-define(MILLISECOND, millisecond).
 
--define(servicePath, "catalogManagement/v2/serivce/").
--define(serviceSpecPath, "catalogManagement/v2/serviceSpecification/").
--define(serviceInventoryPath, "serviceInventoryManagement/v2/service/").
+-define(servicePath, "/catalogManagement/v2/serivce/").
+-define(serviceSpecPath, "/catalogManagement/v2/serviceSpecification/").
+-define(serviceInventoryPath, "/serviceInventoryManagement/v2/service/").
 
 -spec content_types_accepted() -> ContentTypes
 	when
