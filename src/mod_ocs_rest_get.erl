@@ -188,8 +188,8 @@ do_get(Resource, ModData, ["catalogManagement", "v2", "resourceCatalog", Id], []
 	do_response(ModData, Resource:get_resource_catalog(Id));
 do_get(Resource, ModData, ["catalogManagement", "v2", "resourceCatalog"], Query) ->
 	do_response(ModData, Resource:get_resource_catalogs(Query));
-do_get(Resource, ModData, ["resourceCatalogManagement", "v2"], Query) ->
-	do_response(ModData, Resource:get_resource_catalogs(Query));
+do_get(Resource, ModData, ["resourceCatalogManagement", "v2", "resourceSpecification"], Query) ->
+	do_response(ModData, Resource:get_resource_specs(Query));
 do_get(Resource, ModData, ["resourceCatalogManagement", "v2", "plaSpecification"], Query) ->
 	do_response(ModData, Resource:get_pla_specs(Query));
 do_get(Resource, ModData, ["resourceInventoryManagement", "v1", "logicalResource", Id], Query) ->
@@ -199,6 +199,8 @@ do_get(Resource, ModData, ["resourceInventoryManagement", "v1", "pla"], Query) -
 do_get(Resource, #mod{parsed_header = Headers} = ModData,
 		["catalogManagement", "v2", "pla"], Query) ->
 	do_response(ModData, Resource:get_plas(Query, Headers));
+do_get(Resource, ModData, ["serviceCatalogManagment", "v2", "serviceSpecification"], Query) ->
+	do_response(ModData, Resource:get_service_specs(Query));
 do_get(Resource, ModData, ["productInventoryManagement", "v2", "product", Id], []) ->
 	do_response(ModData, Resource:get_inventory(Id));
 do_get(Resource, #mod{parsed_header = Headers} = ModData,
@@ -211,6 +213,9 @@ do_get(Resource, ModData, ["productInventoryManagement", "schema", "OCS.yml"], [
 	do_response(ModData, Resource:get_schema());
 do_get(Resource, #mod{parsed_header = Headers} = ModData,
 		["serviceInventoryManagement", "v2", "service"], Query) ->
+	do_response(ModData, Resource:get_inventories(Query, Headers));
+do_get(Resource, #mod{parsed_header = Headers} = ModData,
+		["serviceInventoryManagement", "v2"], Query) ->
 	do_response(ModData, Resource:get_inventories(Query, Headers));
 do_get(Resource, ModData, ["serviceInventoryManagement", "v2", "service", Id], []) ->
 	do_response(ModData, Resource:get_inventory(Id));
