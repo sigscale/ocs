@@ -341,7 +341,7 @@ get_pla_specs(_Query) ->
 	Status :: 400 | 404 | 412 | 500 .
 %% @doc Respond to `GET /catalogManagement/v2/pla'.
 %%    Retrieve all pricing logic algorithms.
-get_plas(_Query, _Headers) -> 
+get_plas(_Query, _Headers) ->
 	try
 		case ocs:get_plas() of
 			PricingLogicAlgorithms
@@ -381,17 +381,17 @@ tariff_table_spec() ->
 	Chars = {array, [{struct, [{"name", "prefix"},
 			{"description", "Call address prefix"},
 			{"valueType", "MatrixCharacteristicSpec"},
-			{"resourceSpecCharacteristicValue", {array, [{struct, 
+			{"resourceSpecCharacteristicValue", {array, [{struct,
 			[{"seqNum", 1}, {"valueType", "String"}]}]}}]},
 			{struct, [{"name", "description"},
 			{"description", "Prefix description"},
 			{"valueType", "MatrixCharacteristicSpec"},
-			{"resourceSpecCharacteristicValue", {array, [{struct, 
+			{"resourceSpecCharacteristicValue", {array, [{struct,
 			[{"seqNum", 2}, {"valueType", "String"}]}]}}]},
 			{struct, [{"name", "rate"},
 			{"description", "Rated price for address"},
 			{"valueType", "MatrixCharacteristicSpec"},
-			{"resourceSpecCharacteristicValue", {array, [{struct, 
+			{"resourceSpecCharacteristicValue", {array, [{struct,
 			[{"seqNum", 3}, {"valueType", "Number"}]}]}}]}]},
 	Characteristic = {"resourceSpecCharacteristic" , Chars},
 	{struct, [Id, Href, Name, Description, Version, Status, LastUpdate, Category, Characteristic]}.
@@ -407,7 +407,7 @@ tariff_table_category() ->
 	Status = {"lifecycleStatus", "Active"},
 	IsRoot = {"isRoot", true},
 	Candidate = {"resourceCandidate", {array, [{struct, [{"id", "1"}, {"href", ?candidatePath "1"},
-			{"version", "1.0"}, {"name", "TariffTableCandidate"}]}]}}, 
+			{"version", "1.0"}, {"name", "TariffTableCandidate"}]}]}},
 	{struct, [Id, Href, Name, Description, Version, Status, LastUpdate, IsRoot, Candidate]}.
 
 %% @hidden
@@ -478,7 +478,7 @@ gtt2([{struct, L} | T], {Prefix, Desc, Rate} = _Acc) ->
 			gtt2(T, {Prefix, Desc1, Rate});
 		{value, {"name", "rate"}, L1} ->
 			{_, {struct, L2}} = lists:keyfind("value", 1, L1),
-			{_, Rate1} = lists:keyfind("value", 1, L2), 
+			{_, Rate1} = lists:keyfind("value", 1, L2),
 			gtt2(T, {Prefix, Desc, Rate1})
 	end;
 gtt2([], Acc) ->
@@ -586,13 +586,13 @@ pla([{"validFor", {struct, L}} | T], Acc) ->
 	Acc1 = case lists:keyfind("startDateTime", 1, L) of
 		{_, Start} ->
 			Acc#pla{start_date = ocs_rest:iso8601(Start)};
-		false -> 
+		false ->
 			Acc
 	end,
 	Acc2 = case lists:keyfind("endDateTime", 1, L) of
 		{_, End} ->
 			Acc1#pla{end_date = ocs_rest:iso8601(End)};
-		false -> 
+		false ->
 			Acc
 	end,
 	pla(T, Acc2);
