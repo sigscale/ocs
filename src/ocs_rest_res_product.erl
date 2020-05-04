@@ -28,7 +28,7 @@
 		get_inventories/2, patch_inventory/3]).
 -export([get_catalog/2, get_catalogs/1]).
 -export([get_category/2, get_categories/1]).
--export([get_product_spec/2, get_product_specs/1]).
+-export([get_product_spec/2, get_product_specs/1, product_status/1]).
 -export([add_pla/1, get_pla/1, patch_pla/3]).
 -export([get_pla_spec/2]).
 -export([delete_offer/1, delete_inventory/1, delete_pla/1]).
@@ -733,6 +733,28 @@ delete_pla(Id) when is_list(Id) ->
 			{ok, [], []}
 	end.
 
+-spec product_status(Status) -> Status
+	when
+		Status :: atom() | string().
+%% @doc CODEC for life cycle status of Product Offering.
+%% @private
+product_status("Created") -> created;
+product_status("Pending Active") -> pending_active;
+product_status("Aborted") -> aborted;
+product_status("Cancelled") -> cancelled;
+product_status("Active") -> active;
+product_status("Suspended") -> suspended;
+product_status("Pending Terminate") -> pending_terminate;
+product_status("Terminated") -> terminated;
+product_status(created) -> "Created";
+product_status(pending_active) -> "Pending Active";
+product_status(aborted) -> "Aborted";
+product_status(cancelled) -> "Cancelled";
+product_status(active) -> "Active";
+product_status(suspended) -> "Suspended";
+product_status(pending_terminate) -> "Pending Terminate";
+product_status(terminated) -> "Terminated".
+
 %%----------------------------------------------------------------------
 %%  internal functions
 %%----------------------------------------------------------------------
@@ -1136,28 +1158,6 @@ offer_status(rejected) -> "Rejected";
 offer_status(launched) -> "Launched";
 offer_status(retired) -> "Retired";
 offer_status(obsolete) -> "Obsolete".
-
--spec product_status(Status) -> Status
-	when
-		Status :: atom() | string().
-%% @doc CODEC for life cycle status of Product Offering.
-%% @private
-product_status("Created") -> created;
-product_status("Pending Active") -> pending_active;
-product_status("Aborted") -> aborted;
-product_status("Cancelled") -> cancelled;
-product_status("Active") -> active;
-product_status("Suspended") -> suspended;
-product_status("Pending Terminate") -> pending_terminate;
-product_status("Terminated") -> terminated;
-product_status(created) -> "Created";
-product_status(pending_active) -> "Pending Active";
-product_status(aborted) -> "Aborted";
-product_status(cancelled) -> "Cancelled";
-product_status(active) -> "Active";
-product_status(suspended) -> "Suspended";
-product_status(pending_terminate) -> "Pending Terminate";
-product_status(terminated) -> "Terminated".
 
 -spec price_type(Type) -> Type
 	when

@@ -581,7 +581,7 @@ pla([{"name", Name} | T], Acc) when is_list(Name) ->
 pla([{"description", Description} | T], Acc) when is_list(Description) ->
 	pla(T, Acc#pla{description = Description});
 pla([{"status", Status} | T], Acc) when is_list(Status) ->
-	pla(T, Acc#pla{status = product_status(Status)});
+	pla(T, Acc#pla{status = ocs_rest_res_product:product_status(Status)});
 pla([{"validFor", {struct, L}} | T], Acc) ->
 	Acc1 = case lists:keyfind("startDateTime", 1, L) of
 		{_, Start} ->
@@ -622,12 +622,12 @@ product_status("Suspended") -> suspended;
 product_status("Pending Terminate") -> pending_terminate;
 product_status("Terminated") -> terminated;
 product_status(created) -> "Created";
-product_status(pending_active) -> "Pending Active";
-product_status(aborted) -> "Aborted";
+%product_status(aborted) -> "Aborted";
 product_status(cancelled) -> "Cancelled";
 product_status(active) -> "Active";
-product_status(suspended) -> "Suspended";
-product_status(pending_terminate) -> "Pending Terminate";
+%product_status(pending_active) -> "Pending Active";
+%product_status(suspended) -> "Suspended";
+%product_status(pending_terminate) -> "Pending Terminate";
 product_status(terminated) -> "Terminated".
 
 -spec pla_chars(Characteristics) -> Characteristics
