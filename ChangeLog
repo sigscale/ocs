@@ -1,3 +1,18 @@
+2020-05-04  Vance Shipley <vances@sigscale.org>
+
+	* correct location header in a response
+	* move get_plas to correct module
+	* move get_pla_specs function to correct module
+	* update paths in edoc; typos
+	* add get_pla_specs function
+	* session termiation and user deregistration
+	* add diameter str and rtr types to auth log
+	* use diameter octetstring type
+	* handle session record in eap_aka[p]_fsm
+	* diameter application in session record
+	* save session in local auc case
+	* add aliases for base paths
+
 2020-04-20  Vance Shipley <vances@sigscale.org>
 
 	* kdf not mandatory in akap sync failure
