@@ -199,7 +199,7 @@ do_get(Resource, ModData, ["resourceInventoryManagement", "v1", "pla"], Query) -
 do_get(Resource, #mod{parsed_header = Headers} = ModData,
 		["catalogManagement", "v2", "pla"], Query) ->
 	do_response(ModData, Resource:get_plas(Query, Headers));
-do_get(Resource, ModData, ["serviceCatalogManagment", "v2", "serviceSpecification"], Query) ->
+do_get(Resource, ModData, ["serviceCatalogManagement", "v2", "serviceSpecification"], Query) ->
 	do_response(ModData, Resource:get_service_specs(Query));
 do_get(Resource, ModData, ["productInventoryManagement", "v2", "product", Id], []) ->
 	do_response(ModData, Resource:get_inventory(Id));
