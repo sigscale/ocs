@@ -134,7 +134,7 @@ do(#mod{method = Method, parsed_header = Headers, request_uri = Uri,
 							check_content_type_header(Headers, Method, ocs_rest_res_resource, Data);
 						["resourceCatalogManagement", "v2", "resourceSpecification" | _] ->
 							check_content_type_header(Headers, Method, ocs_rest_res_resource, Data);
-						["serviceCatalogManagment", "v2", "serviceSpecification" | _] ->
+						["serviceCatalogManagement", "v2", "serviceSpecification" | _] ->
 							check_content_type_header(Headers, Method, ocs_rest_res_service, Data);
 						_ ->
 							{proceed, Data}
