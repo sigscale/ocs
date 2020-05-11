@@ -37,15 +37,23 @@ start() ->
 	{ok, Interval} = application:get_env(charging_interval),
 	start(ScheduledTime, Interval).
 
--spec start(ScheduledTime, Interval) -> ok
+-spec start(ScheduledTime, Interval) -> Result
 	when
 		ScheduledTime :: tuple(),
-		Interval :: pos_integer().
+		Interval :: pos_integer(),
+		Result :: ok | {error, Reason},
+		Reason :: term().
 %% @doc
 start(ScheduledTime, Interval) ->
 	NextInterval = interval(ScheduledTime, Interval),
-	timer:apply_interval(NextInterval, ?MODULE, product_charge, []),
-	ok.
+	case timer:apply_interval(NextInterval, ?MODULE, product_charge, []) of
+		{ok, _TRef} ->
+			ok;
+		{error, Reason} ->
+			error_logger:error_report(["Failed to apply charging schedule interval",
+				{module, ?MODULE}, {interval, NextInterval}, {error, Reason}]),
+			{error, Reason}
+	end.
 
 -spec product_charge() -> ok.
 %% @doc Scheduler update for all the subscriptions.

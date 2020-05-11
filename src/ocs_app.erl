@@ -175,8 +175,12 @@ start2() ->
 	of
 		Sup ->
 			catch ocs_mib:load(),
-			ok = ocs_scheduler:start(),
-			{ok, Sup}
+			case ocs_scheduler:start() of
+				ok ->
+					{ok, Sup};
+				{error, Reason2} ->
+					throw(Reason2)
+			end
 	catch
 		Reason ->
 			error_logger:error_report(["ocs application failed to start",
