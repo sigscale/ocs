@@ -1,3 +1,9 @@
+2020-05-15  Vance Shipley <vances@sigscale.org>
+
+	* refactor recurring charge scheduler for finer grained accuracy
+	* fix recurring octet/second subscription charging
+	* add path aliases to modernize v1/v2 apis
+
 2020-05-04  Vance Shipley <vances@sigscale.org>
 
 	* correct location header in a response
