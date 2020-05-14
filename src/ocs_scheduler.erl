@@ -19,8 +19,11 @@
 -module(ocs_scheduler).
 -copyright('Copyright (c) 2016 - 2017 SigScale Global Inc.').
 
+%% private API
 -export([start/0, start/2]).
 -export([product_charge/0]).
+%% private API
+-export([run_recurring/0]).
 
 -include("ocs.hrl").
 
@@ -29,11 +32,13 @@
 -define(MILLISECOND, milli_seconds).
 %-define(MILLISECOND, millisecond).
 
--export([frp/1]).
--spec start() -> ok.
+-spec start() -> Result
+	when
+		Result :: ok | {error, Reason},
+		Reason :: term().
 %% @equiv start(Interval)
 start() ->
-	{ok, ScheduledTime} = application:get_env(charging_scheduler_time), 
+	{ok, ScheduledTime} = application:get_env(charging_scheduler_time),
 	{ok, Interval} = application:get_env(charging_interval),
 	start(ScheduledTime, Interval).
 
@@ -43,25 +48,25 @@ start() ->
 		Interval :: pos_integer(),
 		Result :: ok | {error, Reason},
 		Reason :: term().
-%% @doc
+%% @doc Starts the schedule of recurring charges.
 start(ScheduledTime, Interval) ->
-	NextInterval = interval(ScheduledTime, Interval),
-	case timer:apply_interval(NextInterval, ?MODULE, product_charge, []) of
+	StartDelay = start_delay(ScheduledTime, Interval),
+	case timer:apply_after(StartDelay, ?MODULE, run_recurring, []) of
 		{ok, _TRef} ->
 			ok;
 		{error, Reason} ->
-			error_logger:error_report(["Failed to apply charging schedule interval",
-				{module, ?MODULE}, {interval, NextInterval}, {error, Reason}]),
+			error_logger:error_report(["Scheduler Failed",
+					{module, ?MODULE}, {delay, StartDelay},
+					{interval, Interval}, {error, Reason}]),
 			{error, Reason}
 	end.
 
 -spec product_charge() -> ok.
-%% @doc Scheduler update for all the subscriptions.
+%% @doc Apply recurring charges to all subscriptions.
 product_charge() ->
 	case get_offers() of
 		{error, Reason} ->
-			error_logger:error_report("Scheduler Failed",
-					[{module, ?MODULE}, {reason, Reason}]);
+			{error, Reason};
 		Offers ->
 			Now = erlang:system_time(?MILLISECOND),
 			product_charge1(get_product(start), Now, frp(Offers))
@@ -112,8 +117,35 @@ product_charge1(ProdRef, Now, Offers) ->
 	end.
 
 %%----------------------------------------------------------------------
+%%  private functions
+%%----------------------------------------------------------------------
+
+-spec run_recurring() -> ok.
+%% @doc Scheduled function runs recurring charging and reschedules itself.
+%% @private
+run_recurring() ->
+	case product_charge() of
+		ok ->
+			{ok, ScheduledTime} = application:get_env(ocs, charging_scheduler_time),
+			{ok, Interval} = application:get_env(ocs, charging_interval),
+			StartDelay = start_delay(ScheduledTime, Interval),
+			case timer:apply_after(StartDelay, ?MODULE, run_recurring, []) of
+				{ok, _TRef} ->
+					ok;
+				{error, Reason} ->
+					error_logger:error_report(["Scheduler Failed",
+							{module, ?MODULE}, {delay, StartDelay},
+							{interval, Interval}, {error, Reason}])
+			end;
+		{error, Reason} ->
+			error_logger:error_report(["Scheduler Failed",
+					{module, ?MODULE}, {error, Reason}])
+	end.
+
+%%----------------------------------------------------------------------
 %%  internal functions
 %%----------------------------------------------------------------------
+
 %% @private
 if_dues([{_, DueDate} | _], Now) when DueDate < Now ->
 	true;
@@ -215,7 +247,19 @@ delete_b([]) ->
 	ok.
 
 %% @hidden
-interval(ScheduledTime, Interval) ->
+start_delay(ScheduledTime, Interval) when Interval < 1440 ->
+	IntervalSecs = Interval * 60,
+	{Date, Time} = erlang:universaltime(),
+	case calendar:datetime_to_gregorian_seconds({Date, ScheduledTime})
+			- calendar:datetime_to_gregorian_seconds({Date, Time}) of
+		Delay when Delay < 0 ->
+			(IntervalSecs - ((0 - Delay) rem IntervalSecs)) * 1000;
+		0 ->
+			IntervalSecs * 1000;
+		Delay when Delay > 0 ->
+			(Delay rem IntervalSecs) * 1000
+	end;
+start_delay(ScheduledTime, Interval) when Interval >= 1440 ->
 	{Date, Time} = erlang:universaltime(),
 	Today = calendar:date_to_gregorian_days(Date),
 	Period = Interval div 1440,
