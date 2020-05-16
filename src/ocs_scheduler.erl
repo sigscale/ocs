@@ -61,7 +61,10 @@ start(ScheduledTime, Interval) ->
 			{error, Reason}
 	end.
 
--spec product_charge() -> ok.
+-spec product_charge() -> Result
+	when
+		Result :: ok | {error, Reason},
+		Reason :: term().
 %% @doc Apply recurring charges to all subscriptions.
 product_charge() ->
 	case get_offers() of
