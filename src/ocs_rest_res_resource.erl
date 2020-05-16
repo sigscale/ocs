@@ -39,7 +39,7 @@
 
 -define(specPath, "/catalogManagement/v2/resourceSpecification/").
 -define(candidatePath, "/catalogManagement/v2/resourceCandidate/").
--define(catalogPath, "/resourceCatalogManagement/v2/").
+-define(catalogPath, "/catalogManagement/v2/resourceCatalog/").
 -define(categoryPath, "/catalogManagement/v2/resourceCategory/").
 -define(inventoryPath, "/resourceInventoryManagement/v1/logicalResource/").
 -define(plaSpecPath, "/resourceCatalogManagement/v2/plaSpecification/").
