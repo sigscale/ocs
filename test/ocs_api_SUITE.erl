@@ -165,8 +165,7 @@ delete_client(Config) ->
 add_service() ->
 	[{userdata, [{doc, "Add service to database"}]}].
 
-add_service(Config) ->
-	OfferId = ?config(product_id, Config),
+add_service(_Config) ->
 	Attribute0 = radius_attributes:new(),
 	Attribute1 = radius_attributes:add(?SessionTimeout, 3600, Attribute0),
 	Attribute2 = radius_attributes:add(?AcctInterimInterval, 60, Attribute0),
@@ -328,7 +327,7 @@ add_user(_Config) ->
 	{ok, #httpd_user{username = User, password = Password,
 			user_data = UserData}} = mod_auth:get_user(User, Address, Port, Dir),
 	{_, Locale} = lists:keyfind(locale, 1, UserData),
-	{_, {E1, E2}} = lists:keyfind(last_modified, 1, UserData).
+	{_, {_, _}} = lists:keyfind(last_modified, 1, UserData).
 
 get_user() ->
 	[{userdata, [{doc, "Look up a user from table"}]}].
