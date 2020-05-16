@@ -83,7 +83,7 @@
    Charging-Characteristics-Selection-Mode                2066  Enumerated       VM
    Charging-Per-IP-CAN-Session-Indicator                  4400  Enumerated       VM
    Charging-Rule-Base-Name                                1004  UTF8String       VM
-;  Class-Identifier                                       1214  Enumerated       VM
+   Class-Identifier                                       1214  Enumerated       VM
    Client-Address                                         2018  Address          VM
 ;  CN-IP-Multicast-Distribution                            921  
    CN-Operator-Selection-Entity                           3421  Enumerated       VM
@@ -107,7 +107,7 @@
    Data-Coding-Scheme                                     2001  Integer32        VM
 ;  DCD-Information                                        2115  
    Deferred-Location-Event-Type                           1230  UTF8String       VM
-;  Delivery-Report-Requested                              1216  Enumerated       VM
+   Delivery-Report-Requested                              1216  Enumerated       VM
 ;  Delivery-Status                                        2104  
 ;  Destination-Interface                                  2002  Grouped          VM
    Diagnostics                                            2039  Integer32        VM
@@ -201,16 +201,16 @@
    Media-Initiator-Flag                                    882  Enumerated       VM
    Media-Initiator-Party                                  1288  UTF8String       VM
    Message-Body                                            889  Grouped          VM
-;  Message-Class                                          1213  Grouped          VM
+   Message-Class                                          1213  Grouped          VM
    Message-ID                                             1210  UTF8String       VM
    Message-Size                                           1212  Unsigned32       VM
-;  Message-Type                                           1211  Enumerated       VM
+   Message-Type                                           1211  Enumerated       VM
 ;  MMBox-Storage-Requested                                1248  Enumerated       VM
 ;  MM-Content-Type                                        1203  Grouped          VM
 ;  MME-Name                                               2402  
 ;  MME-Number-for-MT-SMS                                  1645  
 ;  MME-Realm                                              2408  
-;  MMS-Information                                         877  Grouped          VM
+   MMS-Information                                         877  Grouped          VM
 ;  MMTel-Information                                      2030  Grouped          VM
    MMTel-SService-Type                                    2031  Unsigned32       VM
    Monitored-PLMN-Identifier                              3430  UTF8String       VM
@@ -291,7 +291,7 @@
 ;  Presence-Reporting-Area-Information                    2822  
 ;  Presence-Reporting-Area-Elements-List                  2820  
 ;  Presence-Reporting-Area-Status                         2823  
-;  Priority                                               1209  Enumerated       VM
+   Priority                                               1209  Enumerated       VM
 ;  Priority-Indication                                    3006  
    Priority-Level                                         1046  Unsigned32       VM
    Privacy-Indicator                                      3915  Enumerated       VM
@@ -456,7 +456,7 @@
    Time-Usage                                             2045  Unsigned32       VM
 ;  Time-Window                                            3818  
 ;  TMGI                                                    900  
-;  Token-Text                                             1215  UTF8String       VM
+   Token-Text                                             1215  UTF8String       VM
 ;  Total-Number-Of-Messages-Exploded                      2113  
 ;  Total-Number-Of-Messages-Sent                          2114  
    Traffic-Data-Volumes                                   2046  Grouped          VM
@@ -682,7 +682,7 @@
 ;     [ AoC-Information ]
       [ PS-Information ]
       [ IMS-Information ]
-;     [ MMS-Information ]
+      [ MMS-Information ]
 ;     [ LCS-Information ]
 ;     [ PoC-Information ]
 ;     [ MBMS-Information ]
@@ -826,17 +826,17 @@
       [ TAD-Identifier ]
       [ FE-Identifier-List ]
 
-;  MMS-Information ::= <AVP Header: 877>
-;     [ Originator-Address ]
-;    *[ Recipient-Address ]
-;     [ Submission-Time ]
+   MMS-Information ::= <AVP Header: 877>
+      [ Originator-Address ]
+     *[ Recipient-Address ]
+      [ Submission-Time ]
 ;     [ MM-Content-Type ]
-;     [ Priority ]
-;     [ Message-ID ]
-;     [ Message-Type ]
-;     [ Message-Size ]
-;     [ Message-Class ]
-;     [ Delivery-Report-Requested ]
+      [ Priority ]
+      [ Message-ID ]
+      [ Message-Type ]
+      [ Message-Size ]
+      [ Message-Class ]
+      [ Delivery-Report-Requested ]
 ;     [ Read-Reply-Report-Requested ]
 ;     [ MMBox-Storage-Requested ]
 ;     [ Applic-ID ]
@@ -1422,6 +1422,10 @@
       { Time-Zone }
       { Daylight-Saving-Time }
      *[ AVP ]
+
+   Message-Class ::= <AVP Header: 1213>
+      [ Class-Identifier ]
+      [ Token-Text ]
  
 @enum Trace-Depth
    Minimum                                  0
@@ -1900,4 +1904,36 @@
 @enum Interworking-5GS-Indicator
    NOT-SUBSCRIBED               0
    SUBSCRIBED                   1
+
+@enum Priority
+   Low                          0
+   Normal                       1
+   High                         2
+
+@enum Message-Type
+   m-send-req                   1
+   m-send-conf                  2
+   m-notification-ind           3
+   m-notifyresp-ind             4
+   m-retrieve-conf              5
+   m-acknowledge-ind            6
+   m-delivery-ind               7
+   m-read-rec-ind               8
+   m-read-orig-ind              9
+   m-forward-req               10
+   m-forward-conf              11
+   m-mbox-store-conf           12
+   m-mbox-view-conf            13
+   m-mbox-upload-conf          14
+   m-mbox-delete-conf          15
+
+@enum Class-Identifier
+   Personal                     0
+   Advertisement                1
+   Informational                2
+   Auto                         3
+
+@enum Delivery-Report-Requested
+   No                           0
+   Yes                          1
 
