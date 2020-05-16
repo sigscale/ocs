@@ -100,7 +100,6 @@ init_per_suite(Config) ->
 				when element(1, Info) == up ->
 			Config1;
 		_Other ->
-erlang:display({?MODULE, ?LINE, _Other}),
 			{skip, diameter_client_acct_service_not_started}
 	end.
 
