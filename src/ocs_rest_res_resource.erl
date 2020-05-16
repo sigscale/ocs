@@ -547,7 +547,7 @@ pla([description | T], #pla{description = Description} = P, Acc)
 	pla(T, P, [{"description", Description} | Acc]);
 pla([status | T], #pla{status = Status} = P, Acc)
 		when Status /= undefined ->
-	StatusPla = product_status(Status),
+	StatusPla = pla_status(Status),
 	pla(T, P, [{"status", StatusPla} | Acc]);
 pla([start_date | T], #pla{start_date = Start,
 		end_date = undefined} = P, Acc) when is_integer(Start) ->
@@ -581,7 +581,7 @@ pla([{"name", Name} | T], Acc) when is_list(Name) ->
 pla([{"description", Description} | T], Acc) when is_list(Description) ->
 	pla(T, Acc#pla{description = Description});
 pla([{"status", Status} | T], Acc) when is_list(Status) ->
-	pla(T, Acc#pla{status = ocs_rest_res_product:product_status(Status)});
+	pla(T, Acc#pla{status = pla_status(Status)});
 pla([{"validFor", {struct, L}} | T], Acc) ->
 	Acc1 = case lists:keyfind("startDateTime", 1, L) of
 		{_, Start} ->
@@ -608,27 +608,19 @@ pla([_ | T], Acc) ->
 pla([], Acc) ->
 	Acc.
 
--spec product_status(Status) -> Status
+-spec pla_status(Status) -> Status
 	when
-		Status :: atom() | string().
-%% @doc CODEC for life cycle status of Product Offering.
+		Status :: created | active | cancelled | terminated | string().
+%% @doc CODEC for life cycle status of PLA.
 %% @private
-product_status("Created") -> created;
-product_status("Pending Active") -> pending_active;
-product_status("Aborted") -> aborted;
-product_status("Cancelled") -> cancelled;
-product_status("Active") -> active;
-product_status("Suspended") -> suspended;
-product_status("Pending Terminate") -> pending_terminate;
-product_status("Terminated") -> terminated;
-product_status(created) -> "Created";
-%product_status(aborted) -> "Aborted";
-product_status(cancelled) -> "Cancelled";
-product_status(active) -> "Active";
-%product_status(pending_active) -> "Pending Active";
-%product_status(suspended) -> "Suspended";
-%product_status(pending_terminate) -> "Pending Terminate";
-product_status(terminated) -> "Terminated".
+pla_status(created) -> "Created";
+pla_status(cancelled) -> "Cancelled";
+pla_status(active) -> "Active";
+pla_status(terminated) -> "Terminated";
+pla_status("Created") -> created;
+pla_status("Active") -> active;
+pla_status("Cancelled") -> cancelled;
+pla_status("Terminated") -> terminated.
 
 -spec pla_chars(Characteristics) -> Characteristics
 	when
