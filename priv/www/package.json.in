@@ -1,0 +1,54 @@
+{
+  "name": "online-charging-system",
+  "version": "@VERSION@",
+  "description": "Online Charging System (OCS)",
+  "author": "SigScale Global Inc",
+  "license": "Apache-2.0",
+  "repository": {
+    "type": "git",
+    "url": "https://source.developers.google.com/p/sigscale-oss/r/sigscale-ocs"
+  },
+  "scripts": {
+    "build": "yarn run build:static",
+    "build:static": "polymer build",
+    "lint": "polymer lint",
+    "test": "polymer test",
+    "test:integration": "polymer build # test that psk builds without error with the CLI"
+  },
+  "dependencies": {
+    "@webcomponents/webcomponentsjs": "^2.0.0",
+    "@polymer/app-layout": "^3.0.0-pre.15",
+    "@polymer/app-route": "^3.0.0-pre.15",
+    "@polymer/iron-flex-layout": "^3.0.0-pre.15",
+    "@polymer/iron-iconset-svg": "^3.0.0-pre.15",
+    "@polymer/iron-media-query": "^3.0.0-pre.15",
+    "@polymer/iron-pages": "^3.0.0-pre.15",
+    "@polymer/iron-selector": "^3.0.0-pre.15",
+    "@polymer/paper-dropdown-menu": "^3.0.0-pre.15",
+    "@polymer/paper-listbox": "^3.0.0-pre.25",
+    "@polymer/paper-icon-button": "^3.0.0-pre.15",
+    "@polymer/paper-item": "^3.0.0-pre.15",
+    "@polymer/paper-card": "^3.0.0-pre.15",
+    "@polymer/paper-fab": "^3.0.0-pre.15",
+    "@polymer/paper-dialog": "^3.0.1",
+    "@polymer/paper-input": "^3.0.1",
+    "@polymer/paper-checkbox": "^3.1.0",
+    "@polymer/paper-dropdown-menu": "^3.0.1",
+    "@polymer/paper-listbox": "^3.0.1",
+    "@polymer/paper-button": "^3.0.1",
+    "@polymer/iron-icons": "^3.0.0-pre.15",
+    "@polymer/iron-ajax": "^3.0.1",
+    "@polymer/iron-collapse": "^3.0.1",
+    "@polymer/polymer": "^3.0.0",
+    "@polymer/paper-toast": "^3.0.1",
+    "@polymer/paper-progress": "^3.0.0-pre.25",
+    "@vaadin/vaadin-grid": "^5.1.0-alpha3"
+  },
+  "devDependencies": {
+    "polymer-cli": "^1.7.1",
+    "wct-browser-legacy": "^1.0.0"
+  },
+  "engines": {
+    "node": ">=8.0"
+  }
+}
