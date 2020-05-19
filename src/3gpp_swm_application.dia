@@ -136,7 +136,9 @@
 		[ Redirect-Host-Usage ]
 		[ Redirect-Max-Cache-Time ]
 		* [ Proxy-Info ]
+		* [ Route-Record ]
 		* [ AVP ]
+
 
 	AAR ::= < Diameter Header: 265, REQ, PXY >
 		< Session-Id >
@@ -151,7 +153,9 @@
 		[ OC-Supported-Features ]
 		[ AAR-Flags ]
 		[ UE-Local-IP-Address ]
-		*[ AVP ]
+		* [ Proxy-Info ]
+		* [ Route-Record ]
+		* [ AVP ]
 
 	AAA ::= < Diameter Header: 265, PXY >
 		< Session-Id >
@@ -172,8 +176,10 @@
 		[ Trace-Info ]
 		[ OC-Supported-Features ]
 		[ OC-OLR ]
-		*[ Load ]
-		*[ AVP ]
+		* [ Load ]
+		* [ Proxy-Info ]
+		* [ Route-Record ]
+		* [ AVP ]
 
 	STR ::= < Diameter Header: 275, REQ, PXY >
 		< Session-Id >
@@ -186,7 +192,9 @@
 		[ User-Name ]
 		[ DRMP ]
 		[ OC-Supported-Features ]
-		*[ AVP ]
+		* [ Proxy-Info ]
+		* [ Route-Record ]
+		* [ AVP ]
 
 	STA ::= < Diameter Header: 275, PXY >
 		< Session-Id >
@@ -196,8 +204,10 @@
 		[ DRMP ]
 		[ OC-Supported-Features ]
 		[ OC-OLR ]
-		*[ Load ]
-		*[ AVP ]
+		* [ Load ]
+		* [ Proxy-Info ]
+		* [ Route-Record ]
+		* [ AVP ]
 
 	ASR ::= < Diameter Header: 274, REQ, PXY >
 		< Session-Id >
@@ -209,7 +219,9 @@
 		[ User-Name ]
 		[ Auth-Session-State ]
 		[ DRMP ]
-		*[ AVP ]
+		* [ Proxy-Info ]
+		* [ Route-Record ]
+		* [ AVP ]
 
 	ASA ::= < Diameter Header: 274, PXY >
 		< Session-Id >
@@ -217,7 +229,9 @@
 		{ Origin-Host }
 		{ Origin-Realm }
 		[ DRMP ]
-		*[ AVP ]
+		* [ Proxy-Info ]
+		* [ Route-Record ]
+		* [ AVP ]
 
 	RAR ::= < Diameter Header: 258, REQ, PXY >
 		< Session-Id >
@@ -229,7 +243,9 @@
 		{ Re-Auth-Request-Type }
 		[ User-Name ]
 		[ DRMP ]
-		*[ AVP ]
+		* [ Proxy-Info ]
+		* [ Route-Record ]
+		* [ AVP ]
 
 	RAA ::= < Diameter Header: 258, PXY >
 		< Session-Id >
@@ -238,5 +254,7 @@
 		{ Origin-Realm }
 		[ User-Name ]
 		[ DRMP ]
-		*[ AVP ]
+		* [ Proxy-Info ]
+		* [ Route-Record ]
+		* [ AVP ]
 

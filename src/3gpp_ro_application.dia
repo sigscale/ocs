@@ -73,9 +73,9 @@
         *[ Multiple-Services-Credit-Control ]
          [ CC-Correlation-Id ]
          [ User-Equipment-Info ]
+         [ Service-Information ]
         *[ Proxy-Info ]
         *[ Route-Record ]
-         [ Service-Information ]
         *[ AVP ]
 
    CCA ::= < Diameter Header: 272, PXY >
@@ -96,10 +96,10 @@
         *[ Redirect-Host]
          [ Redirect-Host-Usage ]
          [ Redirect-Max-Cache-Time ]
-        *[ Proxy-Info ]
-        *[ Route-Record ]
          [ Failed-AVP ]
          [ Service-Information ]
+        *[ Proxy-Info ]
+        *[ Route-Record ]
         *[ AVP ]
 
    RAR ::= < Diameter Header: 258, REQ, PXY >
@@ -112,11 +112,11 @@
          { Re-Auth-Request-Type }
          [ User-Name ]
          [ Origin-State-Id ]
-        *[ Proxy-Info ]
-        *[ Route-Record ]
          [ G-S-U-Pool-Identifier ]
          [ Service-Identifier ]
          [ Rating-Group ]
+        *[ Proxy-Info ]
+        *[ Route-Record ]
         *[ AVP ]
 
    RAA ::= < Diameter Header: 258, PXY >
@@ -133,6 +133,7 @@
          [ Redirect-Host-Usage ]
          [ Redirect-Max-Cache-Time ]
         *[ Proxy-Info ]
+        *[ Route-Record ]
         *[ AVP ]
 
 
