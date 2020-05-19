@@ -67,8 +67,8 @@
 		session_id:: diameter:'OctetString'()
 				| {NAS :: inet:ip_address() | string(),
 				Port :: string(), Peer :: string()},
-		request :: #diameter_eap_app_DER{} | #'3gpp_swm_DER'{}
-				| #radius{} | undefined,
+		request :: undefined | #diameter_eap_app_DER{} | #'3gpp_swm_DER'{}
+				| #radius{},
 		response :: undefined | {EapMessage :: binary(),
 				radius_attributes:attributes()},
 		secret :: undefined | binary(),
@@ -212,7 +212,7 @@ eap_start(timeout, #statedata{sup = Sup, eap_id = EapID,
 						NextStateData = NewStateData#statedata{eap_id = StartEapID,
 								identity = Identity},
 						[IMSI | _] = binary:split(PermanentID, <<$@>>, []),
-						gen_fsm:send_event(AucFsm, {vector, {self(), IMSI,
+						gen_fsm:send_event(AucFsm, {vector, {self(), IMSI, undefined,
 								get_radius_rat(RequestAttributes)}}),
 						{next_state, vector, NextStateData, ?TIMEOUT};
 					#eap_packet{code = response, type = ?Identity,
@@ -224,7 +224,7 @@ eap_start(timeout, #statedata{sup = Sup, eap_id = EapID,
 						[Pseudonym | _] = binary:split(Identity, <<$@>>, []),
 						CompressedIMSI = ocs_eap_aka:decrypt_imsi(Pseudonym, Keys),
 						IMSI = ocs_eap_aka:compressed_imsi(CompressedIMSI),
-						gen_fsm:send_event(AucFsm, {vector, {self(), IMSI,
+						gen_fsm:send_event(AucFsm, {vector, {self(), IMSI, undefined,
 								get_radius_rat(RequestAttributes)}}),
 						{next_state, vector, NextStateData, ?TIMEOUT};
 					#eap_packet{code = response, type = ?Identity,
@@ -358,7 +358,7 @@ eap_start1(EapMessage, RAT, #statedata{sup = Sup, eap_id = EapID,
 				NextStateData = NewStateData#statedata{eap_id = StartEapID,
 						identity = Identity},
 				[IMSI | _] = binary:split(PermanentID, <<$@>>, []),
-				gen_fsm:send_event(AucFsm, {vector, {self(), IMSI, RAT}}),
+				gen_fsm:send_event(AucFsm, {vector, {self(), IMSI, undefined, RAT}}),
 				{next_state, vector, NextStateData, ?TIMEOUT};
 			#eap_packet{code = response, type = ?Identity,
 					identifier = StartEapID,
@@ -369,7 +369,7 @@ eap_start1(EapMessage, RAT, #statedata{sup = Sup, eap_id = EapID,
 				[Pseudonym | _] = binary:split(Identity, <<$@>>, []),
 				CompressedIMSI = ocs_eap_aka:decrypt_imsi(Pseudonym, Keys),
 				IMSI = ocs_eap_aka:compressed_imsi(CompressedIMSI),
-				gen_fsm:send_event(AucFsm, {vector, {self(), IMSI, RAT}}),
+				gen_fsm:send_event(AucFsm, {vector, {self(), IMSI, undefined, RAT}}),
 				{next_state, vector, NextStateData, ?TIMEOUT};
 			#eap_packet{code = response, type = ?Identity,
 					identifier = StartEapID,
@@ -466,7 +466,7 @@ identity({#radius{id = RadiusID, authenticator = RequestAuthenticator,
 					#eap_aka_identity{identity = <<?PERM_AKA,
 							PermanentID/binary>> = Identity} when IdReq == full ->
 						[IMSI | _] = binary:split(PermanentID, <<$@>>, []),
-						gen_fsm:send_event(AucFsm, {vector, {self(), IMSI,
+						gen_fsm:send_event(AucFsm, {vector, {self(), IMSI, undefined,
 								get_radius_rat(RequestAttributes)}}),
 						NextStateData = NewStateData#statedata{identity = Identity},
 						{next_state, vector, NextStateData, ?TIMEOUT};
@@ -475,7 +475,7 @@ identity({#radius{id = RadiusID, authenticator = RequestAuthenticator,
 						[Pseudonym | _] = binary:split(Identity, <<$@>>, []),
 						CompressedIMSI = ocs_eap_aka:decrypt_imsi(Pseudonym, Keys),
 						IMSI = ocs_eap_aka:compressed_imsi(CompressedIMSI),
-						gen_fsm:send_event(AucFsm, {vector, {self(), IMSI,
+						gen_fsm:send_event(AucFsm, {vector, {self(), IMSI, undefined,
 								get_radius_rat(RequestAttributes)}}),
 						NextStateData = NewStateData#statedata{identity = Identity},
 						{next_state, vector, NextStateData, ?TIMEOUT}
@@ -522,7 +522,7 @@ identity1(EapMessage, RAT,
 					#eap_aka_identity{identity = <<?PERM_AKA,
 							PermanentID/binary>> = Identity} when IdReq == full ->
 						[IMSI | _] = binary:split(PermanentID, <<$@>>, []),
-						gen_fsm:send_event(AucFsm, {vector, {self(), IMSI, RAT}}),
+						gen_fsm:send_event(AucFsm, {vector, {self(), IMSI, undefined, RAT}}),
 						NewStateData = StateData#statedata{identity = Identity},
 						{next_state, vector, NewStateData, ?TIMEOUT};
 					#eap_aka_identity{identity = <<?TEMP_AKA:6, _/bits>> = Identity}
@@ -530,7 +530,7 @@ identity1(EapMessage, RAT,
 						[Pseudonym | _] = binary:split(Identity, <<$@>>, []),
 						CompressedIMSI = ocs_eap_aka:decrypt_imsi(Pseudonym, Keys),
 						IMSI = ocs_eap_aka:compressed_imsi(CompressedIMSI),
-						gen_fsm:send_event(AucFsm, {vector, {self(), IMSI, RAT}}),
+						gen_fsm:send_event(AucFsm, {vector, {self(), IMSI, undefined, RAT}}),
 						NewStateData = StateData#statedata{identity = Identity},
 						{next_state, vector, NewStateData, ?TIMEOUT}
 				end;
@@ -922,7 +922,8 @@ register({ok, #'3gpp_swx_Non-3GPP-User-Data'{} = UserProfile},
 		{aborted, Reason} ->
 			{stop, Reason, StateData}
 	end;
-register({ok, UserProfile}, #statedata{session_id = SessionId,
+register({ok, #'3gpp_swx_Non-3GPP-User-Data'{} = UserProfile},
+		#statedata{session_id = SessionId,
 		auth_req_type = AuthReqType, diameter_port_server = PortServer,
 		nas_host = NasHost, nas_realm = NasRealm, request = Request,
 		response = {EapMessage, []}, identity = Identity} = StateData) ->
@@ -1309,8 +1310,7 @@ send_diameter_response(SessionId, AuthType,
 		origin_host = OriginHost, origin_realm = OriginRealm,
 		identity = Identity} = _StateData)
 		when is_integer(AuthType), is_binary(OriginHost),
-		is_binary(OriginRealm), is_binary(EapMessage),
-		is_pid(PortServer) ->
+		is_binary(OriginRealm), is_binary(EapMessage), is_pid(PortServer) ->
 	Server = {ServerAddress, ServerPort},
 	Client= {ClientAddress, ClientPort},
 	Answer = #'3gpp_swm_DEA'{'Session-Id' = SessionId,
