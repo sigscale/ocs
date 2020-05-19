@@ -109,7 +109,7 @@
    Deferred-Location-Event-Type                           1230  UTF8String       VM
    Delivery-Report-Requested                              1216  Enumerated       VM
 ;  Delivery-Status                                        2104  
-;  Destination-Interface                                  2002  Grouped          VM
+   Destination-Interface                                  2002  Grouped          VM
    Diagnostics                                            2039  Integer32        VM
    Discoveree-UE-HPLMN-Identifier                         4402  UTF8String       VM
    Discoveree-UE-VPLMN-Identifier                         4403  UTF8String       VM
@@ -897,6 +897,7 @@
       [ SM-Discharge-Time ]
       [ SM-Message-Type ]
       [ Originator-Interface ]
+      [ Destination-Interface ]
       [ SM-Protocol-ID ]
 ;     [ Reply-Path-Requested ]
       [ SM-Status ]
@@ -1072,6 +1073,12 @@
       [ Content-Disposition ]
       [ Originator ]
 
+   Destination-Interface ::= <AVP Header: 2002>
+      [ Interface-Id ]
+      [ Interface-Text ]
+      [ Interface-Port ]
+      [ Interface-Type ]
+
    Originator-Interface ::= <AVP Header: 2009>
       [ Interface-Id ]
       [ Interface-Text ]
@@ -1223,8 +1230,9 @@
       { PS-Free-Format-Data }
       [ PS-Append-Free-Format-Data ]
 
+
    Recipient-Info ::= <AVP Header: 2026>
-;     [ Destination-Interface ]
+      [ Destination-Interface ]
      *[ Recipient-Address ]
 ;    *[ Recipient-Received-Address ]
 ;     [ Recipient-SCCP-Address ]
