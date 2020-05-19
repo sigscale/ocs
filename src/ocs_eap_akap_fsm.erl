@@ -758,7 +758,7 @@ challenge({#radius{id = RadiusID, authenticator = RequestAuthenticator,
 						[], RadiusID, RequestAuthenticator,
 						RequestAttributes, undefined, NextStateData),
 				{next_state, failure, NextStateData, ?TIMEOUT};
-			#eap_aka_synchronization_failure{auts = AUTS} = _EAP ->
+			#eap_aka_synchronization_failure{auts = AUTS, kdf = [1]} = _EAP ->
 				[IMSI | _] = binary:split(PermanentID, <<$@>>, []),
 				gen_fsm:send_event(AucFsm, {vector, {self(), IMSI, AUTS,
 						get_radius_rat(RequestAttributes), "WLAN"}}),
@@ -858,7 +858,7 @@ challenge1(EapMessage1, Request, RAT,
 						?'DIAMETER_BASE_RESULT-CODE_MULTI_ROUND_AUTH',
 						EapMessage3, PortServer, Request, undefined, NextStateData),
 				{next_state, failure, NextStateData, ?TIMEOUT};
-			#eap_aka_synchronization_failure{auts = AUTS} = _EAP ->
+			#eap_aka_synchronization_failure{auts = AUTS, kdf = [1]} = _EAP ->
 				[IMSI | _] = binary:split(PermanentID, <<$@>>, []),
 				gen_fsm:send_event(AucFsm, {vector, {self(), IMSI, AUTS, RAT, "WLAN"}}),
 				{next_state, vector, NewStateData, ?TIMEOUT};
