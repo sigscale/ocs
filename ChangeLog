@@ -1,3 +1,7 @@
+2020-05-19  Vance Shipley <vances@sigscale.org>
+
+	* accept destination-interface in sms-information (not 3gpp 32.274 compliant)
+
 2020-05-16  Vance Shipley <vances@sigscale.org>
 
 	* correct path in response header
