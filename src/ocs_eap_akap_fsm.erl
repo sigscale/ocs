@@ -489,7 +489,7 @@ identity({#radius{id = RadiusID, authenticator = RequestAuthenticator,
 						IMSI = ocs_eap_aka:compressed_imsi(CompressedIMSI),
 						% @todo handle RADIUS attribute for ANID
 						gen_fsm:send_event(AucFsm, {vector, {self(), IMSI,
-								indefined, get_radius_rat(RequestAttributes), "WLAN"}}),
+								undefined, get_radius_rat(RequestAttributes), "WLAN"}}),
 						NextStateData = NewStateData#statedata{identity = Identity},
 						{next_state, vector, NextStateData, ?TIMEOUT}
 				end;
