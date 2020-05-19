@@ -77,7 +77,7 @@
 		auts :: binary() | undefined,
 		rat_type :: non_neg_integer() | undefined,
 		anid :: string() | undefined,
-		service :: tuple() | undefined,
+		service :: tuple() | false,
 		origin_host :: binary(),
 		origin_realm :: binary(),
 		hss_realm :: string() | undefined,
@@ -141,9 +141,9 @@ init([diameter, ServerAddress, ServerPort, _ClientAddress, _ClientPort,
 		_PasswordReq, _Trusted, SessionId, _ApplicationId, _AuthReqType,
 		OriginHost, OriginRealm, DestinationHost, DestinationRealm,
 		_Request, _Options] = _Args) ->
+	Service = {ocs_diameter_auth_service, ServerAddress, ServerPort},
 	{ok, HssRealm} = application:get_env(hss_realm),
 	{ok, HssHost} = application:get_env(hss_host),
-	Service = {ocs_diameter_auth, ServerAddress, ServerPort},
 	process_flag(trap_exit, true),
 	{ok, idle, #statedata{service = Service, session_id = SessionId,
 			origin_host = OriginHost, origin_realm = OriginRealm,
@@ -314,6 +314,10 @@ idle1({ok, #service{password = #aka_cred{k = K, opc = OPc, dif = DIF1},
 			end
 	end;
 idle1({error, not_found}, #statedata{hss_realm = undefined,
+		aka_fsm = AkaFsm} = StateData) ->
+	gen_fsm:send_event(AkaFsm, {error, user_unknown}),
+	{next_state, idle, StateData};
+idle1({error, not_found}, #statedata{service = false,
 		aka_fsm = AkaFsm} = StateData) ->
 	gen_fsm:send_event(AkaFsm, {error, user_unknown}),
 	{next_state, idle, StateData};
