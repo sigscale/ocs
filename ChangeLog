@@ -1,3 +1,12 @@
+2020-05-20  Vance Shipley <vances@sigscale.org>
+
+	* add proxy-info, route-record to all messages
+	* kdf required in rfc5448, not allowed in rfc4187
+	* correct diameter service name; ignore when none
+	* item number conditional in authentication data
+	* update aka with new auc api
+	* align formatting of aka with akap to ease updates
+
 2020-05-19  Vance Shipley <vances@sigscale.org>
 
 	* accept destination-interface in sms-information (not 3gpp 32.274 compliant)
