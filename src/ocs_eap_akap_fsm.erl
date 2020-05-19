@@ -347,8 +347,7 @@ eap_start(timeout, #statedata{request =
 		'RAT-Type' = [RAT]}} = StateData) ->
 	eap_start1(EapMessage, RAT, StateData).
 %% @hidden
-eap_start1(EapMessage, RAT,
-		#statedata{sup = Sup, eap_id = EapID,
+eap_start1(EapMessage, RAT, #statedata{sup = Sup, eap_id = EapID,
 		session_id = SessionId, auth_req_type = AuthReqType,
 		request = Request, origin_host = OHost, origin_realm = ORealm,
 		diameter_port_server = PortServer, trusted = Trusted,
@@ -610,8 +609,8 @@ vector({ok, {RAND, AUTN, CKprime, IKprime, XRES}}, #statedata{eap_id = EapID,
 			eap_id = NextEapID, res = XRES, ck = CKprime, ik = IKprime,
 			msk = MSK, emsk = EMSK, kaut = Kaut, kencr = Kencr, kre = Kre},
 	send_radius_response(EapMessage2, ?AccessChallenge,
-					[], RadiusID, RequestAuthenticator,
-					RequestAttributes, undefined, NewStateData),
+			[], RadiusID, RequestAuthenticator,
+			RequestAttributes, undefined, NewStateData),
 	{next_state, challenge, NewStateData};
 vector({ok, {RAND, AUTN, CKprime, IKprime, XRES}}, #statedata{eap_id = EapID,
 		request = Request, auth_req_type = AuthReqType,
@@ -922,8 +921,7 @@ challenge1(EapMessage1, Request, RAT,
 register(timeout, #statedata{session_id = SessionId} = StateData)->
 	{stop, {shutdown, SessionId}, StateData};
 register({ok, #'3gpp_swx_Non-3GPP-User-Data'{} = UserProfile},
-		#statedata{session_id = SessionId,
-		request = #radius{id = RadiusID,
+		#statedata{session_id = SessionId, request = #radius{id = RadiusID,
 		authenticator = RequestAuthenticator, attributes = RequestAttributes},
 		client_address = ClientAddress, identity = Identity,
 		response = {EapMessage, Attributes}} = StateData) ->
