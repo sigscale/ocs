@@ -73,7 +73,7 @@
 		[ User-Name ]
 		[ EAP-Master-Session-Key ]
 		[ APN-OI-Replacement ]
-		[ APN-Configuration ]
+		* [ APN-Configuration ]
 		[ MIP6-Feature-Vector ]
 		[ Mobile-Node-Identifier ]
 		[ Trace-Info ]
