@@ -1,182 +1,146 @@
-<!--  vim: set ts=3:  -->
-<link rel="import" href="polymer/polymer.html">
-<link rel="import" href="i18n-msg/i18n-msg.html">
-<link rel="import" href="i18n-msg/i18n-msg-behavior.html">
-<link rel="import" href="iron-ajax/iron-ajax.html">
-<link rel="import" href="paper-dialog/paper-dialog.html">
-<link rel="import" href="paper-dropdown-menu/paper-dropdown-menu.html">
-<link rel="import" href="paper-listbox/paper-listbox.html">
-<link rel="import" href="paper-toolbar/paper-toolbar.html">
-<link rel="import" href="paper-input/paper-input.html">
-<link rel="import" href="paper-button/paper-button.html">
-<link rel="import" href="paper-tooltip/paper-tooltip.html">
-<link rel="import" href="paper-toggle-button/paper-toggle-button.html" >
-<link rel="import" href="paper-toast/paper-toast.html">
-<link rel="import" href="paper-styles/color.html">
+/**
+ * @license
+ * Copyright (c) 2020 The Polymer Project Authors. All rights reserved.
+ * This code may only be used under the BSD style license found at http://polymer.github.io/LICENSE.txt
+ * The complete set of authors may be found at http://polymer.github.io/AUTHORS.txt
+ * The complete set of contributors may be found at http://polymer.github.io/CONTRIBUTORS.txt
+ * Code distributed by Google as part of the polymer project is also
+ * subject to an additional IP rights grant found at http://polymer.github.io/PATENTS.txt
+ */
 
-<dom-module id="sig-user-add">
-	<template>
-		<style is="custom-style">
-			paper-dialog {
-				overflow: auto;
-			}
-			paper-item {
-				padding-right: 10px;
-			}
-			paper-toolbar{
-				margin-top: 0px;
-				color: white;
-				background-color: #bc5100;
-			}
-			.add-button {
-				background-color: var(--paper-lime-a700);
-				color: black;
-				width: 8em;
-			}
-			.cancel-button {
-				color: black;
-			}
-		</style>
-		<paper-dialog id="addUserModal" modal>
-			<paper-toolbar>
-				<h2>[[i18n.AddUserTitle]]</h2>
-			</paper-toolbar>
-				<div>
-					<paper-input
-							id="addUserName"
-							name="username"
-							label="[[i18n.userName]]" required>
-					</paper-input>
-					<paper-tooltip>
-						<i18n-msg msgid="userNameTooltip">
-							Name of user
-						</i18n-msg>
-					</paper-tooltip>
-				</div>
-				<div>
-					<paper-input
-							id="addUserPassword"
-							name="password"
-							label="[[i18n.password]]">
-					</paper-input>
-					<paper-tooltip>
-						<i18n-msg msgid="userPasswordTooltip">
-							Name of user
-						</i18n-msg>
-					</paper-tooltip>
-				</div>
-				<div>
-					<paper-dropdown-menu
-							name="locale"
-							label="[[i18n.language]]">
-						<paper-listbox
-								id="addUserLocale"
-								slot="dropdown-content"
-								class="dropdown-content"
-								selected="0">
-							<paper-item value="en">
-								[[i18n.eng]]
-							</paper-item>
-							<paper-item value="es">
-								[[i18n.spa]]
-							</paper-item>
-						</paper-listbox>
-					</paper-dropdown-menu>
-					<paper-tooltip>
-						<i18n-msg msgid="userLangTooltip">
-							Language of user
-						</i18n-msg>
-					</paper-tooltip>
-				</div>
+import { PolymerElement, html } from '@polymer/polymer/polymer-element.js';
+import '@polymer/iron-ajax/iron-ajax.js';
+import '@polymer/paper-dialog/paper-dialog.js';
+import '@polymer/app-layout/app-toolbar/app-toolbar.js';
+import '@polymer/paper-progress/paper-progress.js';
+import '@polymer/paper-dropdown-menu/paper-dropdown-menu.js';
+import '@polymer/paper-input/paper-input.js';
+import '@polymer/paper-input/paper-textarea.js';
+import '@polymer/paper-button/paper-button.js';
+import '@polymer/paper-listbox/paper-listbox.js';
+import '@polymer/paper-item/paper-item.js'
+import './style-element.js';
+
+class userAdd extends PolymerElement {
+	static get template() {
+		return html`
+			<style include="style-element"></style>
+			<paper-dialog class="dialog" id="addUserModal" modal>
+				<app-toolbar>
+					<div main-title>Add User</div>
+				</app-toolbar>
+				<paper-progress
+						indeterminate
+						class="slow red"
+						disabled="{{!loading}}">
+				</paper-progress>
+				<paper-input
+						id="addUserName"
+						label="Username"
+						value="{{userName}}">
+				</paper-input>
+				<paper-input
+						id="addUserPasword"
+						label="Password"
+						value="{{passWord}}">
+				</paper-input>
+				<paper-dropdown-menu
+						class="drop"
+						label="Language"
+						value="{{userLanguage}}">
+					<paper-listbox
+							id="addUserLocale"
+							slot="dropdown-content"
+							selected="0">
+						<paper-item>English</paper-item>
+						<paper-item>Spanish</paper-item>
+					</paper-listbox>
+				</paper-dropdown-menu>
 				<div class="buttons">
 					<paper-button
 							raised
-							class="add-button"
+							class="submit-button"
 							on-tap="_addUserSubmit">
-						<i18n-msg msgid="submit">
-							Submit
-						</i18n-msg>
+						Submit
 					</paper-button>
 					<paper-button
 							class="cancel-button"
 							dialog-dismiss
 							on-tap="cancelDialog">
-						<i18n-msg msgid="cancel">
-							Cancel
-						</i18n-msg>
+						Cancel
 					</paper-button>
 				</div>
-			</form>
-			<paper-toast
-					id="addUserToastError">
-			</paper-toast>
-		</paper-dialog>
-		<iron-ajax
-			id="addUserAjax"
-			url="/partyManagement/v1/individual"
-			method = "post"
-			content-type="application/json"
-			on-loading-changed="_onLoadingChanged"
-			on-response="_addUserResponse"
-			on-error="_addUserError">
-		</iron-ajax>
-	</template>
-	<script>
-		Polymer ({
-			is: 'sig-user-add',
-			behaviors: [i18nMsgBehavior],
-			 _addUserSubmit: function(event) {
-				var user = new Object();
-				user.id = this.$.addUserName.value;
-				var username = new Object();
-				username.name = "username";
-				username.value = this.$.addUserName.value;
-				var password = new Object();
-				password.name = "password";
-				password.value = this.$.addUserPassword.value;
-				var language = new Object();
-				language.name = "locale";
-				if (this.$.addUserLocale.selected == 0) {
-					language.value = "en";
-				} else if (this.$.addUserLocale.selected == 1) {
-					language.value = "es";
-				}
-				if(this.$.addUserName.value) {
-					var characteristic = new Array();
-					characteristic.push(username);
-					characteristic.push(password);
-					characteristic.push(language);
-					user.characteristic = characteristic;
-					this.$.addUserAjax.body = user;
-					this.$.addUserAjax.generateRequest();
-				} else {
-					document.getElementById('addUserToastErrorForm').open();
-				}
+			</paper-dialog>
+			<iron-ajax
+				id="addUserAjax"
+				url="/partyManagement/v1/individual"
+				method = "post"
+				content-type="application/json"
+				loading="{{oading}}"
+				on-response="_addUserResponse">
+			</iron-ajax>
+		`;
+	}
+
+	static get properties() {
+		return {
+			loading: {
+				type: Boolean,
+				value: false
 			},
-			_addUserResponse: function(event) {
-				this.$.addUserModal.close();
-				this.$.addUserName.value = "";
-				this.$.addUserPassword.value = "";
-				document.getElementById('addUserToastSuccess').open();
-				document.getElementById('userGrid').clearCache();
+			userName: {
+				type: String
 			},
-			_addUserError: function(event) {
-				this.$.addUserToastError.text = event.detail.request.xhr.statusText;
-				this.$.addUserToastError.open();
-			},
-			cancelDialog: function() {
-				this.$.addUserName.value = null;
-				this.$.addUserPassword.value = null;
-				this.$.addUserLocale.selected = null;
-				this.$.addUserModal.close();
-			},
-			_onLoadingChanged: function(event) {
-				if (this.$.addUserAjax.loading) {
-					document.getElementById("progress").disabled = false;
-				} else {
-					document.getElementById("progress").disabled = true;
-				}
+			passWord: {
+				type: String
 			}
-		});
-	</script>
-</dom-module>
+		}
+	}
+
+	ready() {
+		super.ready()
+	}
+
+	cancelDialog() {
+		this.$.addUserModal.close();
+		this.userName = null;
+		this.passWord = null;
+	}
+
+	_addUserSubmit() {
+		var ajax = this.$.addUserAjax;
+		var user = new Object();
+		user.id = this.userName;
+		var username = new Object();
+		username.name = "username";
+		username.value = this.userName;
+		var password = new Object();
+		password.name = "password";
+		password.value = this.passWord;
+		var language = new Object();
+		language.name = "locale";
+		if (this.userLanguage == "English") {
+			language.value = "en";
+		} else if (this.userLanguage == "Spanish") {
+			language.value = "es";
+		}
+		if(username.value) {
+			var characteristic = new Array();
+			characteristic.push(username);
+			characteristic.push(password);
+			characteristic.push(language);
+			user.characteristic = characteristic;
+			ajax.body = user;
+			ajax.generateRequest();
+		}
+	}
+
+	_addUserResponse() {
+		this.$.addUserModal.close();
+		this.userName = null;
+		this.passWord = null;
+		document.body.querySelector('sig-app').shadowRoot.getElementById('userList').shadowRoot.getElementById('userGrid').clearCache();
+	}
+}
+
+window.customElements.define('sig-user-add', userAdd);
