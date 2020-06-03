@@ -586,9 +586,9 @@ class SigApp extends PolymerElement {
 //				import('./sig-sub-list.js');
 				break;
 			case 'clientView':
-//				import('./sig-client-add.js');
+				import('./sig-client-add.js');
 //				import('./sig-client-update.js');
-//				import('./sig-client-list.js');
+				import('./sig-client-list.js');
 				break;
 			case 'userView':
 				import('./sig-user-add.js');
