@@ -1,360 +1,308 @@
-<!--  vim: set ts=3:  -->
-<link rel="import" href="polymer/polymer.html">
-<link rel="import" href="app-layout/app-header-layout/app-header-layout.html">
-<link rel="import" href="app-layout/app-header/app-header.html">
-<link rel="import" href="app-layout/app-toolbar/app-toolbar.html">
-<link rel="import" href="app-layout/app-drawer-layout/app-drawer-layout.html">
-<link rel="import" href="app-layout/app-drawer/app-drawer.html">
-<link rel="import" href="i18n-msg/i18n-msg.html">
-<link rel="import" href="i18n-msg/i18n-msg-behavior.html">
-<link rel="import" href="iron-pages/iron-pages.html">
-<link rel="import" href="iron-selector/iron-selector.html">
-<link rel="import" href="iron-ajax/iron-ajax.html">
-<link rel="import" href="paper-dialog/paper-dialog.html">
-<link rel="import" href="paper-button/paper-button.html">
-<link rel="import" href="paper-menu/paper-menu.html"/>
-<link rel="import" href="paper-menu/paper-submenu.html" />
-<link rel="import" href="paper-item/paper-icon-item.html">
-<link rel="import" href="paper-icon-button/paper-icon-button.html">
-<link rel="import" href="paper-progress/paper-progress.html">
-<link rel="import" href="paper-styles/typography.html">
-<link rel="import" href="paper-styles/color.html">
-<link rel="import" href="iron-icons/iron-icons.html">
-<link rel="import" href="iron-icons/maps-icons.html">
-<link rel="import" href="iron-icons/editor-icons.html">
-<link rel="import" href="iron-icons/hardware-icons.html">
-<link rel="import" href="iron-icons/device-icons.html">
-<link rel="import" href="sig-help.html">
-<link rel="import" href="sig-sub-list.html">
-<link rel="import" href="sig-sub-add.html">
-<link rel="import" href="sig-sub-update.html">
-<link rel="import" href="sig-client-list.html">
-<link rel="import" href="sig-client-add.html">
-<link rel="import" href="sig-client-update.html">
-<link rel="import" href="sig-ipdr-log-files-wlan.html">
-<link rel="import" href="sig-ipdr-log-files-voip.html">
-<link rel="import" href="sig-ipdr-list-wlan.html">
-<link rel="import" href="sig-ipdr-list-voip.html">
-<link rel="import" href="sig-access-list.html">
-<link rel="import" href="sig-accounting-list.html">
-<link rel="import" href="sig-http-list.html">
-<link rel="import" href="sig-usage-list.html">
-<link rel="import" href="sig-user-add.html">
-<link rel="import" href="sig-user-list.html">
-<link rel="import" href="sig-user-update.html">
-<link rel="import" href="sig-offer-list.html">
-<link rel="import" href="sig-offer-add.html">
-<link rel="import" href="sig-offer-update.html">
-<link rel="import" href="sig-prefix-list.html">
-<link rel="import" href="sig-prefix-table-add.html">
-<link rel="import" href="sig-prefix-add.html">
-<link rel="import" href="sig-prefix-update.html">
-<link rel="import" href="sig-balance-list.html">
-<link rel="import" href="sig-product-list.html">
-<link rel="import" href="sig-product-add.html">
-<link rel="import" href="sig-bucket-list.html">
-<link rel="import" href="sig-bucket-add.html">
+/**
+ * @license
+ * Copyright (c) 2020 The Polymer Project Authors. All rights reserved.
+ * This code may only be used under the BSD style license found at http://polymer.github.io/LICENSE.txt
+ * The complete set of authors may be found at http://polymer.github.io/AUTHORS.txt
+ * The complete set of contributors may be found at http://polymer.github.io/CONTRIBUTORS.txt
+ * Code distributed by Google as part of the polymer project is also
+ * subject to an additional IP rights grant found at http://polymer.github.io/PATENTS.txt
+ */
 
-<dom-module id="sig-app">
-	<template>
-		<style is="custom-style">
-			:root {
-				@apply(--paper-font-common-base);
-			}
-			app-header-layout {
-			}
-			app-header {
-				color: #fff;
-			}
-			app-toolbar {
-				background: var(--paper-yellow-900);
-			}
-			app-drawer {
-				--app-drawer-content-container: {
-					padding-top: 10px;
-				};
-				height: 100%;
-				top: 64px;
-			}
-			paper-dialog {
-				overflow: auto;
-			}
-			paper-toolbar{
-				margin-top: 0px;
-				color: white;
-				background-color: #bc5100;
-			}
-			paper-progress {
-				display: block;
-				width: 100%;
-				--paper-progress-active-color: var(--paper-lime-a700);
-				--paper-progress-container-color: transparent;
-			}
-			iron-pages {
-				height: 100%;
-			}
-			iron-icon {
-				padding-right: 10px;
-			}
-			.icon-style {
-				min-height: 10px;
-			}
-			.add-button{
-				color: black;
-			}
-			.ok-button {
-				background-color: var(--paper-lime-a700);
-				color: black;
-				width: 8em;
-			}
-			.cancel-button {
-				color: black;
-			}
-			.delete-buttons {
-				background: #EF5350;
-				color: black;
-			}
-			.sublist paper-icon-item {
-				padding-left: 30px;
-			}
-			.sublistipdr paper-icon-item {
-				padding-left: 60px;
-			}
-		</style>
-		<app-header-layout fullbleed>
-			<app-header>
-				<app-toolbar>
-					<paper-icon-button
-							icon="menu"
-							onclick="drawer.toggle()">
-					</paper-icon-button>
-					<div main-title>
-						<i18n-msg msgid="ocs">
-							Online Charging System (OCS)
-						</i18n-msg>
-					</div>
-					<paper-icon-button
-							id="refresh"
-							icon="refresh"
-							on-tap="refresh">
-					</paper-icon-button>
-					<paper-progress
-							id="progress"
-							value="0"
+import { PolymerElement, html } from '@polymer/polymer/polymer-element.js';
+import { setPassiveTouchGestures, setRootPath } from '@polymer/polymer/lib/utils/settings.js';
+import '@polymer/paper-dialog/paper-dialog.js';
+import '@polymer/app-layout/app-drawer/app-drawer.js';
+import '@polymer/app-layout/app-drawer-layout/app-drawer-layout.js';
+import '@polymer/app-layout/app-header/app-header.js';
+import '@polymer/app-layout/app-header-layout/app-header-layout.js';
+import '@polymer/app-layout/app-scroll-effects/app-scroll-effects.js';
+import '@polymer/app-layout/app-toolbar/app-toolbar.js';
+import '@polymer/paper-styles/typography.js';
+import '@polymer/app-route/app-location.js';
+import '@polymer/app-route/app-route.js';
+import '@polymer/iron-pages/iron-pages.js';
+import '@polymer/iron-selector/iron-selector.js';
+import '@polymer/iron-collapse/iron-collapse.js';
+import '@polymer/paper-icon-button/paper-icon-button.js';
+import '@polymer/paper-progress/paper-progress.js';
+import '@polymer/paper-toast/paper-toast.js';
+import './ocs-icons.js';
+import './style-element.js';
+
+// Gesture events like tap and track generated from touch will not be
+// preventable, allowing for better scrolling performance.
+setPassiveTouchGestures(true);
+
+// Set Polymer's root path to the same value we passed to our service worker
+// in `index.html`.
+setRootPath(MyAppGlobals.rootPath);
+
+class SigApp extends PolymerElement {
+	static get template() {
+		return html`
+			<style include="style-element"></style>
+			<app-location
+					route="{{route}}"
+					url-space-regex="^[[rootPath]]">
+			</app-location>
+			<app-route
+					route="{{route}}"
+					pattern="[[rootPath]]:page"
+					data="{{routeData}}"
+					tail="{{subroute}}">
+			</app-route>
+			<app-drawer-layout
+					force-narrow
+					fullbleed>
+				<app-header-layout
+						has-scrolling-region>
+					<app-header
+							slot="header"
+							condenses
+							reveals
+							effects="waterfall">
+						<app-toolbar
+								class="toolbar-top">
+							<paper-icon-button
+									icon="my-icons:menu"
+									drawer-toggle>
+							</paper-icon-button>
+							<div main-title>[[viewTitle]]</div>
+							<paper-icon-button
+								id="refresh"
+								icon="my-icons:refresh"
+								on-click="refresh">
+							</paper-icon-button>
+							<paper-icon-button
+								toggles
+								icon="my-icons:overFlowMenu"
+								id="overFlowIcon"
+								active="{{overFlowActive}}"
+								on-click="_overFlowMenu">
+							</paper-icon-button>
+						</app-toolbar>
+						<paper-progress
 							indeterminate
-							bottom-item
-							disabled="true">
-					</paper-progress>
-					<paper-icon-button
-							icon="icons:more-vert"
-							slot="dropdown-trigger"
-							on-tap="help">
-					</paper-icon-button>
-				</app-toolbar>
-			</app-header>
-			<iron-pages
-					id="loadPage"
-					role="main"
-					selected-attribute="active-page">
-				<sig-offer-list id="offerList" offers="{{offers}}" tables="{{tables}}"></sig-offer-list>
-				<sig-sub-list id="serviceList"></sig-sub-list>
-				<sig-client-list id="clientList"></sig-client-list>
-				<sig-user-list id="userList"></sig-user-list>
-				<sig-access-list id="accessList"></sig-access-list>
-				<sig-accounting-list id="accountingList"></sig-accounting-list>
-				<sig-ipdr-list-wlan id="ipdrLogListWlan"></sig-ipdr-list-wlan>
-				<sig-ipdr-list-voip id="ipdrLogListVoip"></sig-ipdr-list-voip>
-				<sig-http-list></sig-http-list>
-				<sig-prefix-list id="prefixList" table="{{table}}"></sig-prefix-list>
-				<sig-balance-list id="balanceList"></sig-balance-list>
-				<sig-product-list id="productList"></sig-product-list>
-				<sig-bucket-list id="bucketList"></sig-bucket-list>
-			</iron-pages>
-			<app-drawer-layout>
+							class="slow red"
+							disabled="{{!loading}}">
+						</paper-progress>
+					</app-header>
+					<iron-pages
+							id="load"
+							role="main"
+							selected="[[page]]"
+							attr-for-selected="name">
+						<sig-offer-list
+								id="offerList"
+								loading="{{offerLoading}}"
+								offers="{{offers}}"
+								tables="{{tables}}"
+								name="offerView"
+								active-item="{{activeOfferItem}}">
+						</sig-offer-list>
+						<sig-sub-list
+								id="serviceList"
+								loading="{{serviceLoading}}"
+								name="serviceView"
+								active-item="{{activeServiceItem}}">
+						</sig-sub-list>
+						<sig-client-list
+								id="clientList"
+								loading="{{clientLoading}}"
+								name="clientView"
+								active-item="{{activeClientItem}}">
+						</sig-client-list>
+						<sig-user-list
+								id="userList"
+								loading="{{userLoading}}"
+								name="userView"
+								active-item="{{activeUserItem}}">
+						</sig-user-list>
+						<sig-access-list
+								id="accessList"
+								loading="{{accessLoading}}"
+								name="accessView"
+								active-item="{{activeAccessItem}}">
+						</sig-access-list>
+						<sig-accounting-list
+								id="accountingList"
+								loading="{{accountingLoading}}"
+								name="accountingView"
+								active-item="{{activeAccountingItem}}">
+						</sig-accounting-list>
+						<sig-ipdr-list-wlan
+								id="ipdrLogListWlan"
+								loading="{{ipdrWlanLoading}}"
+								name="ipdrWlanView"
+								active-item="{{ipdrWlanItem}}">
+						</sig-ipdr-list-wlan>
+						<sig-ipdr-list-voip
+								id="ipdrLogListVoip"
+								loading="{{ipdrVoipLoading}}"
+								name="ipdrVoipView"
+								active-item="{{ipdrWlanItem}}">
+						</sig-ipdr-list-voip>
+						<sig-http-list
+								id="httpList"
+								loading="{{httpLoading}}"
+								name="httpView">
+						</sig-http-list>
+						<sig-prefix-list
+								id="prefixList"
+								table="{{table}}"
+								loading="{{prefixLoading}}"
+								name="prefixView"
+								active-item="{{activePrefixItem}}">
+						</sig-prefix-list>
+						<sig-balance-list
+								id="balanceList"
+								loading="{{balanceLoading}}"
+								name="balanceView"
+								active-item="{{activeBalanceItem}}">
+						</sig-balance-list>
+						<sig-product-list
+								id="productList"
+								loading="{{productLoading}}"
+								name="productView"
+								active-item="{{activeProductItem}}">
+						</sig-product-list>
+						<sig-bucket-list
+								id="bucketList"
+								loading="{{bucketLoading}}"
+								name="bucketView"
+								active-item="{{activeBucketItem}}">
+						</sig-bucket-list>
+					</iron-pages>
+					<paper-toast
+							id="restError"
+							class="fit-bottom"
+							duration="8000">
+					</paper-toast>
+				</app-header-layout>
 				<app-drawer
 						id="drawer"
-						swipeOpen>
+						slot="drawer">
 					<iron-selector
-							id="pageSelection"
+							selected="[[page]]"
+							attr-for-selected="name"
 							class="drawer-list"
 							role="navigation">
-						<paper-menu id="menu">
-							<paper-submenu>
-								<paper-icon-item
-										class="menu-trigger menuitem">
-									<iron-icon icon ="icons:store" item-icon></iron-icon>
-										<i18n-msg msgid="catalog">
-											Catalog
-										</i18n-msg>
-								</paper-icon-item>
-								<paper-menu id="offerMenu" class="menu-content sublist">
-									<paper-icon-item
-											id="pageOffer"
-											onclick="drawer.toggle()"
-											class="menuitem">
-										<i18n-msg msgid="offering">
-											Offerings
-										</i18n-msg>
-									<iron-icon icon ="maps:local-offer" item-icon></iron-icon>
-									</paper-icon-item>
-									<paper-icon-item
-											id="pagePrices"
-											onclick="drawer.toggle()"
-											class="menuitem" hidden>
-												Prices
-									<iron-icon icon ="editor:monetization-on" item-icon></iron-icon>
-									</paper-icon-item>
-									<paper-submenu>
-										<paper-icon-item
-												on-tap="disTableList"
-												class="menu-trigger menuitem">
-											<iron-icon icon="icons:folder-open" item-icon></iron-icon>
-												<i18n-msg msgid="table">
-													Tables
-												</i18n-msg>
-										</paper-icon-item>
-									</paper-submenu>
-								</paper-menu>
-							</paper-submenu>
-							<paper-submenu>
-								<paper-icon-item
-										class="menu-trigger menuitem">
-									<iron-icon icon="icons:card-membership" item-icon></iron-icon>
-										<i18n-msg msgid="subs">
-											Subscribers
-										</i18n-msg>
-								</paper-icon-item>
-								<paper-menu id="serviceMenu" class="menu-content sublist">
-									<paper-icon-item
-											id="pageService"
-											onclick="drawer.toggle()"
-											class="menuitem">
-										<iron-icon icon="device:devices" item-icon></iron-icon>
-											<i18n-msg msgid="service">
-												Services
-											</i18n-msg>
-									</paper-icon-item>
-									<paper-icon-item
-											id="pageProductInventory"
-											onclick="drawer.toggle()"
-											class="menuitem">
-										<iron-icon icon="maps:local-offer" item-icon></iron-icon>
-											<i18n-msg msgid="prod1">
-												Products
-											</i18n-msg>
-									</paper-icon-item>
-									<paper-icon-item
-											id="pageBucketBalance"
-											onclick="drawer.toggle()"
-											class="menuitem">
-										<iron-icon icon="icons:account-balance" item-icon></iron-icon>
-											<i18n-msg msgid="bucketBal">
-												Balance Buckets
-											</i18n-msg>
-									</paper-icon-item>
-								</paper-menu>
-							</paper-submenu>
-							<paper-icon-item
-									id="pageClients"
-									onclick="drawer.toggle()"
-									class="menuitem">
-								<iron-icon icon="hardware:router" item-icon></iron-icon>
-									<i18n-msg msgid="clients">
-										Clients
-									</i18n-msg>
-							</paper-icon-item>
-							<paper-icon-item
-									id="pageUsers"
-									onclick="drawer.toggle()"
-									class="menuitem">
-								<iron-icon icon ="icons:perm-identity" item-icon></iron-icon>
-									<i18n-msg msgid="users">
-										Users
-									</i18n-msg>
-							</paper-icon-item>
-							<paper-submenu>
-								<paper-icon-item
-										class="menu-trigger menuitem">
-									<iron-icon icon="icons:history" item-icon></iron-icon>
-										<i18n-msg msgid="logs">
-											Logs
-										</i18n-msg>
-								</paper-icon-item>
-								<paper-menu id="logMenu" class="menu-content sublist">
-									<paper-icon-item
-											id="pageAccess"
-											onclick="drawer.toggle()"
-											class="menuitem">
-										<iron-icon icon="device:data-usage" item-icon></iron-icon>
-											<i18n-msg msgid="access">
-												Access
-											</i18n-msg>
-									</paper-icon-item>
-									<paper-icon-item
-											id="pageAccounting"
-											onclick="drawer.toggle()"
-											class="menuitem">
-										<iron-icon icon ="device:data-usage" item-icon></iron-icon>
-											<i18n-msg msgid="accounting">
-												Accounting
-											</i18n-msg>
-									</paper-icon-item>
-									<paper-icon-item
-											id="pageBalance"
-											onclick="drawer.toggle()"
-											class="menuitem">
-										<iron-icon icon ="device:data-usage" item-icon></iron-icon>
-											<i18n-msg msgid="balance">
-												Balance
-											</i18n-msg>
-									</paper-icon-item>
-									<paper-submenu>
-									<paper-icon-item
-											id="pageIPDR"
-											class="menu-trigger menuitem">
-										<iron-icon icon ="device:data-usage" item-icon></iron-icon>
-											<i18n-msg msgid="ipdr">
-												IPDR
-											</i18n-msg>
-									</paper-icon-item>
-									<paper-menu id="ipdrMenu" class="menu-content sublistipdr">
-										<paper-icon-item
-												id="pageIPDRWlan"
-												onclick="drawer.toggle()"
-												class="menuitem">
-											<iron-icon icon ="device:data-usage" item-icon></iron-icon>
-												<i18n-msg msgid="wlan">
-													WLAN
-												</i18n-msg>
-										</paper-icon-item>
-										<paper-icon-item
-												id="pageIPDRVoip"
-												onclick="drawer.toggle()"
-												class="menuitem">
-											<iron-icon icon ="device:data-usage" item-icon></iron-icon>
-												<i18n-msg msgid="voip">
-													VoIP
-												</i18n-msg>
-										</paper-icon-item>
-									</paper-menu>
-									</paper-submenu>
-									<paper-icon-item
-											id="pageHTTP"
-											onclick="drawer.toggle()"
-											class="menuitem">
-										<iron-icon icon ="device:data-usage" item-icon></iron-icon>
-											<i18n-msg msgid="http">
-												HTTP
-											</i18n-msg>
-									</paper-icon-item>
-								</paper-menu>
-							</paper-submenu>
-						</paper-menu>
-						<paper-dialog
-								id="tableList">
-							<paper-toolbar>
-								<h2>[[i18n.listTable]]</h2>
-							</paper-toolbar>
+						<a href="" on-click="_collapseCatalog">
+							<paper-icon-button
+									icon="my-icons:store">
+							</paper-icon-button>
+							Catalog
+						</a>
+						<iron-collapse id="catalog">
+							<a name="offerView" href="[[rootPath]]offerView">
+								<paper-icon-button
+										icon="my-icons:offer">
+								</paper-icon-button>
+								Offerings
+							</a>
+							<a name="prefixView" href="[[rootPath]]prefixView">
+								<paper-icon-button
+										on-click="disTableList"
+										class="menu-trigger menuitem"
+										icon="my-icons:table">
+								</paper-icon-button>
+								Tables
+							</a>
+						</iron-collapse>
+							<a href="" on-click="_collapseSubscriber">
+								<paper-icon-button
+										icon="my-icons:card-membership">
+								</paper-icon-button>
+								Subscribers 
+							</a>
+						<iron-collapse id="subscribers">
+							<a name="serviceView" href="[[rootPath]]serviceView">
+								<paper-icon-button
+										icon="my-icons:devices">
+								</paper-icon-button>
+								Services
+							</a>
+							<a name="productView" href="[[rootPath]]productView">
+								<paper-icon-button
+										icon="my-icons:offer">
+								</paper-icon-button>
+								Products
+							</a>
+							<a name="bucketView" href="[[rootPath]]bucketView">
+								<paper-icon-button
+										icon="my-icons:icons:account-balance">
+								</paper-icon-button>
+								Balance Buckets
+							</a>
+						</iron-collapse>
+						<a name="clientView" href="[[rootPath]]clientView">
+							<paper-icon-button
+								icon="my-icons:router">
+							</paper-icon-button>
+							Clients
+						</a>
+						<a name="userView" href="[[rootPath]]userView">
+							<paper-icon-button
+									icon="my-icons:perm-identity">
+							</paper-icon-button>
+							Users
+						</a>
+						<a href="" on-click="_collapseLogs">
+							<paper-icon-button
+									icon="my-icons:history">
+							</paper-icon-button>
+							Logs
+						</a>
+						<iron-collapse id="logs">
+							<a name="accessView" href="[[rootPath]]accessView">
+								<paper-icon-button
+										icon="my-icons:data-usage">
+								</paper-icon-button>
+								Access
+							</a>
+							<a name="accountingView" href="[[rootPath]]accountingView">
+								<paper-icon-button
+										icon="my-icons:data-usage">
+								</paper-icon-button>
+								Accounting
+							</a>
+							<a name="balanceView" href="[[rootPath]]balanceView">
+								<paper-icon-button
+										icon="my-icons:data-usage">
+								</paper-icon-button>
+								Balance
+							</a>
+							<a href="" on-click="_collapseIpdr">
+								<paper-icon-button
+									icon="my-icons:data-usage">
+								</paper-icon-button>
+								IPDR
+							</a>
+							<iron-collapse id="ipdr">
+								<a name="ipdrWlanView" href="[[rootPath]]ipdrWlanView">
+									<paper-icon-button
+											icon="my-icons:data-usage">
+									</paper-icon-button>
+									WLAN
+								</a>
+								<a name="ipdrVoipView" href="[[rootPath]]ipdrVoipView">
+									<paper-icon-button
+											icon="my-icons:data-usage">
+									</paper-icon-button>
+									VoIP
+								</a>
+							</iron-collapse>
+							<a name="httpView" href="[[rootPath]]httpView">
+								<paper-icon-button
+									icon="my-icons:data-usage">
+								</paper-icon-button>
+								HTTP
+							</a>
+						</iron-collapse>
+						<paper-dialog class="dialog" id="tableList">
+							<app-toolbar>
+								List of Tables
+							</app-toolbar>
 							<div role="listbox">
 								<template id="tableList1" is="dom-repeat" items="[[tables]]">
 									<paper-icon-item
@@ -372,256 +320,325 @@
 										id="tabOkButton"
 										disabled
 										onclick="drawer.toggle()"
-										on-tap="tableOk"
+										on-click="tableOk"
 										class="ok-button">
-									<i18n-msg msgid="ok">
-										Ok
-									</i18n-msg>
+									Ok
 								</paper-button>
 								<paper-button
 										dialog-dismiss
 										class="cancel-button">
-									<i18n-msg msgid="cancel">
-										Cancel
-									</i18n-msg>
+									Cancel
 								</paper-button>
 								<paper-button
 										raised
 										on-tap="tableAdd"
 										class="add-button">
-									<i18n-msg msgid="add">
-										Add
-									</i18n-msg>
+									Add
 								</paper-button>
 								<paper-button
 										raised
 										on-tap="tableDelete"
 										class="delete-buttons">
-									<i18n-msg msgid="delete">
-										Delete
-									</i18n-msg>
+									Delete
 								</paper-button>
 							</div>
 						</paper-dialog>
 					</iron-selector>
 				</app-drawer>
 			</app-drawer-layout>
-		</app-header-layout>
-		<!--Modal Definitions-->
-		<sig-help></sig-help>
-		<sig-offer-add id="addProduct"></sig-offer-add>
-		<sig-sub-add id="subscriberAdd" offers="[[offers]]"></sig-sub-add>
-		<sig-sub-update></sig-sub-update>
-		<sig-client-add></sig-client-add>
-		<sig-client-update></sig-client-update>
-		<sig-user-add></sig-user-add>
-		<sig-user-update></sig-user-update>
-		<sig-offer-update id="updateProduct"></sig-offer-update>
-		<sig-ipdr-log-files-wlan></sig-ipdr-log-files-wlan>
-		<sig-ipdr-log-files-voip></sig-ipdr-log-files-voip>
-		<sig-prefix-table-add></sig-prefix-table-add>
-		<sig-prefix-add></sig-prefix-add>
-		<sig-prefix-update></sig-prefix-update>
-		<sig-bucket-add></sig-bucket-add>
-		<sig-product-add offers="[[offers]]"></sig-product-add>
-		<iron-ajax id="deleteTableAjax"
-			on-response="_deleteTableResponse"
-			on-error="_deleteTableError">
-		</iron-ajax>
-	</template>
-	<script>
-		document.addEventListener('HTMLImportsLoaded', function() {
-			I18nMsg.lang = document.documentElement.lang || 'en';
-			Platform.performMicrotaskCheckpoint();
-		});
-		Polymer ({
-			is: 'sig-app',
-			behaviors: [i18nMsgBehavior],
-			listeners: {
-				'pageSelection.iron-select': 'loadElement'
+			<!--Modal Definitions-->
+			<sig-help></sig-help>
+			<sig-offer-add id="addProduct"></sig-offer-add>
+			<sig-sub-add id="subscriberAdd" offers="[[offers]]"></sig-sub-add>
+			<sig-sub-update></sig-sub-update>
+			<sig-client-add></sig-client-add>
+			<sig-client-update></sig-client-update>
+			<sig-user-add></sig-user-add>
+			<sig-user-update id="userUpdate" active-item="[[activeUserItem]]"></sig-user-update>
+			<sig-offer-update id="updateProduct"></sig-offer-update>
+			<sig-ipdr-log-files-wlan></sig-ipdr-log-files-wlan>
+			<sig-ipdr-log-files-voip></sig-ipdr-log-files-voip>
+			<sig-prefix-table-add></sig-prefix-table-add>
+			<sig-prefix-add></sig-prefix-add>
+			<sig-prefix-update></sig-prefix-update>
+			<sig-bucket-add></sig-bucket-add>
+			<sig-product-add offers="[[offers]]"></sig-product-add>
+			<iron-ajax id="deleteTableAjax"
+				on-response="_deleteTableResponse"
+				on-error="_deleteTableError">
+			</iron-ajax>
+		`;
+	}
+
+
+	_collapseCatalog(event) {
+		var cat = document.body.querySelector('sig-app').shadowRoot.getElementById('catalog');
+		if(cat.opened == false) {
+			cat.show();
+		} else {
+			cat.hide();
+		}
+	}
+
+	_collapseSubscriber(event) {
+		var cat = document.body.querySelector('sig-app').shadowRoot.getElementById('subscribers');
+		if(cat.opened == false) {
+			cat.show();
+		} else {
+			cat.hide();
+		}
+	}
+
+	_collapseLogs(event) {
+		var cat = document.body.querySelector('sig-app').shadowRoot.getElementById('logs');
+		if(cat.opened == false) {
+			cat.show();
+		} else {
+			cat.hide();
+		}
+	}
+
+	_collapseIpdr(event) {
+		var cat = document.body.querySelector('sig-app').shadowRoot.getElementById('ipdr');
+		if(cat.opened == false) {
+			cat.show();
+		} else {
+			cat.hide();
+		}
+	}
+
+	tableOk() {
+		document.body.querySelector('sig-app').shadowRoot.getElementById('prefixList').shadowRoot.getElementById('prefixGrid');
+	}
+
+	disTableList() {
+		this.$.tableList.open();
+//		document.body.querySelector('sig-app').shadowRoot.getElementById('offerList').shadowRoot.getElementById('offerGrid');
+	}
+
+	tableAdd() {
+		document.body.querySelector('sig-app').shadowRoot.getElementById('sig-prefix-table-add').shadowRoot.getElementById('addPrefixTableModal').open();
+		this.$.tableList.close();
+	}
+
+	tableSelection(e) {
+		if(e.model.item && e.model.item.id) {
+			var prefixTab = document.body.querySelector('sig-app').shadowRoot.getElementById('prefixList').table;
+			prefixTab  = e.model.item.id;
+			document.body.querySelector('sig-app').shadowRoot.getElementById('tabOkButton').disabled = false;
+		} else {
+			document.body.querySelector('sig-app').shadowRoot.getElementById('tabOkButton').disabled = true;
+		}
+	}
+
+	tableDelete(event) {
+		this.$.deleteTableAjax.method = "DELETE";
+		this.$.deleteTableAjax.url = "/catalogManagement/v2/pla/" + this.$.prefixList.table;
+		this.$.deleteTableAjax.generateRequest();
+	}
+
+	_deleteTableResponse(event) {
+		this.$.tableList.close();
+		document.body.querySelector('sig-app').shadowRoot.getElementById('offerList').shadowRoot.getElementById('getTableAjax').generateRequest();
+	}
+
+	_overFlowMenu() {
+//		import('./sig-help.js');
+	}
+
+	 static get properties() {
+		return {
+			page: {
+				type: String,
+				reflectToAttribute: true,
+				observer: '_pageChanged'
 			},
-			tableOk: function() {
-				this.$.loadPage.selected = 9;
+			routeData: Object,
+			ubroute: Object,
+			viewTitle: {
+				type: String
 			},
-			disTableList: function() {
-				this.$.tableList.open();
-				this.$.loadPage.selected = 0;
+			loading: {
+				type: Boolean,
+				value: false
 			},
-			tableAdd: function() {
-				document.getElementById("addPrefixTableModal").open();
-				this.$.tableList.close();
+			offerLoading: {
+				type: Boolean
 			},
-			tableSelection: function(e) {
-				if(e.model.item && e.model.item.id) {
-					this.$.prefixList.table = e.model.item.id;
-					this.$.tabOkButton.disabled = false;
-				} else {
-					this.$.tabOkButton.disabled = true;
-				}
+			serviceLoading: {
+				type: Boolean
 			},
-			tableDelete: function(event) {
-				this.$.deleteTableAjax.method = "DELETE";
-				this.$.deleteTableAjax.url = "/catalogManagement/v2/pla/" + this.$.prefixList.table;
-				this.$.deleteTableAjax.generateRequest();
+			clientLoading: {
+				type: Boolean
 			},
-			_deleteTableResponse: function(event) {
-				this.$.tableList.close();
-				document.getElementById('getTableAjax').generateRequest();
+			userLoading: {
+				type: Boolean
 			},
-			loadElement: function(event) {
-				switch(event.detail.item.getAttribute('id')) {
-					case 'pageOffer':
-						this.$.loadPage.selected = 0;
-						this.$.offerMenu.selected = null;
-						this.$.serviceMenu.selected = null;
-						this.$.logMenu.selected = null;
-						this.$.ipdrMenu.selected = null;
-						break;
-					case 'pageService':
-						this.$.loadPage.selected = 0;
-						this.$.loadPage.selected = 1;
-						this.$.offerMenu.selected = null;
-						this.$.serviceMenu.selected = null;
-						this.$.logMenu.selected = null;
-						this.$.ipdrMenu.selected = null;
-						break;
-					case 'pageClients':
-						this.$.loadPage.selected = 2;
-						this.$.offerMenu.selected = null;
-						this.$.serviceMenu.selected = null;
-						this.$.logMenu.selected = null;
-						this.$.ipdrMenu.selected = null;
-						break;
-					case 'pageUsers':
-						this.$.loadPage.selected = 3;
-						this.$.offerMenu.selected = null;
-						this.$.serviceMenu.selected = null;
-						this.$.logMenu.selected = null;
-						this.$.ipdrMenu.selected = null;
-						break;
-					case 'pageAccess':
-						this.$.loadPage.selected = 4;
-						this.$.offerMenu.selected = null;
-						this.$.serviceMenu.selected = null;
-						this.$.logMenu.selected = null;
-						this.$.ipdrMenu.selected = null;
-						break;
-					case 'pageAccounting':
-						this.$.loadPage.selected = 5;
-						this.$.offerMenu.selected = null;
-						this.$.serviceMenu.selected = null;
-						this.$.logMenu.selected = null;
-						this.$.ipdrMenu.selected = null;
-						break;
-					case 'pageIPDRWlan':
-						this.$.loadPage.selected = null;
-						this.$.loadPage.selected = 6;
-						this.$.offerMenu.selected = null;
-						this.$.serviceMenu.selected = null;
-						this.$.logMenu.selected = null;
-						this.$.ipdrMenu.selected = null;
-						break;
-					case 'pageIPDRVoip':
-						this.$.loadPage.selected = null;
-						this.$.loadPage.selected = 7;
-						this.$.offerMenu.selected = null;
-						this.$.serviceMenu.selected = null;
-						this.$.logMenu.selected = null;
-						this.$.ipdrMenu.selected = null;
-						break;
-					case 'pageHTTP':
-						this.$.loadPage.selected = 8;
-						this.$.offerMenu.selected = null;
-						this.$.serviceMenu.selected = null;
-						this.$.logMenu.selected = null;
-						this.$.ipdrMenu.selected = null;
-						break;
-					case 'pagePrefix':
-						this.$.loadPage.selected = 9;
-						this.$.offerMenu.selected = null;
-						this.$.serviceMenu.selected = null;
-						this.$.logMenu.selected = null;
-						this.$.ipdrMenu.selected = null;
-						break;
-					case 'pageBalance':
-						this.$.loadPage.selected = 10;
-						this.$.offerMenu.selected = null;
-						this.$.serviceMenu.selected = null;
-						this.$.logMenu.selected = null;
-						this.$.ipdrMenu.selected = null;
-						break;
-					case 'pageProductInventory':
-						this.$.loadPage.selected = 0;
-						this.$.loadPage.selected = 11;
-						this.$.offerMenu.selected = null;
-						this.$.serviceMenu.selected = null;
-						this.$.logMenu.selected = null;
-						this.$.ipdrMenu.selected = null;
-						break;
-					case 'pageBucketBalance':
-						this.$.loadPage.selected = 12;
-						this.$.offerMenu.selected = null;
-						this.$.serviceMenu.selected = null;
-						this.$.logMenu.selected = null;
-						this.$.ipdrMenu.selected = null;
-						break;
-				}
+			accessLoading: {
+				type: Boolean
 			},
-			help: function(element) {
-				overflow = document.getElementById('helpDrop');
-				overflow.positionTarget = element;
-				overflow.open();
+			accountingLoading: {
+				type: Boolean
 			},
-			refresh: function() {
-				switch(this.$.loadPage.selected) {
-					case 0:
-						document.getElementById('offerGrid').clearCache();
-						break;
-					case 1:
-						document.getElementById('subscriberGrid').clearCache();
-						this.$.serviceList.refreshSub();
-						break;
-					case 2:
-						document.getElementById('clientGrid').clearCache();
-						this.$.clientList.refreshClient();
-						break;
-					case 3:
-						document.getElementById('userGrid').clearCache();
-						break;
-					case 4:
-						document.getElementById('accessGrid').clearCache();
-						this.$.accessList.refreshAccess();
-						break;
-					case 5:
-						document.getElementById('accountingGrid').clearCache();
-						this.$.accountingList.refreshAccounting();
-						break;
-					case 6:
-						document.getElementById('ipdrGrid').clearCache();
-						this.$.ipdrLogList.refreshIpdr();
-						break;
-					case 7:
-						document.getElementById('ipdrGridVoip').clearCache();
-						this.$.ipdrLogList.refreshIPDRVoip();
-						break;
-					case 8:
-						document.getElementById('getHttp').generateRequest();
-						break;
-					case 9:
-						document.getElementById('prefixGrid').clearCache();
-						break;
-					case 10:
-						document.getElementById('balanceGrid').clearCache();
-						break;
-					case 11:
-						document.getElementById('productInventoryGrid').clearCache();
-						this.$.productList.refreshProduct();
-						break;
-					case 12:
-						document.getElementById('balanceBucketGrid').clearCache();
-						break;
-				}
+			ipdrWlanLoading: {
+				type: Boolean
+			},
+			ipdrVoipLoading: {
+				type: Boolean
+			},
+			httpLoading: {
+				type: Boolean
+			},
+			prefixLoading: {
+				type: Boolean
+			},
+			balanceLoading: {
+				type: Boolean
+			},
+			productLoading: {
+				type: Boolean
+			},
+			bucketLoading: {
+				type: Boolean
 			}
-		});
-	</script>
-</dom-module>
+		};
+	}
+
+	static get observers() {
+		return [
+			'_routePageChanged(routeData.page)',
+			'_loadingChanged(offerLoading, serviceLoading, clientLoading, userLoading, accessLoading, accountingLoading, ipdrWlanLoading, ipdrVoipLoading, httpLoading, prefixLoading, balanceLoading, productLoading, bucketLoading)'
+		];
+	}
+
+	_routePageChanged(page) {
+// Show the corresponding page according to the route.
+//
+// If no page was found in the route data, page will be an empty string.
+// Show 'inventoryView' in that case. And if the page doesn't exist, show 'view404'.
+		if (['offerView', 'serviceView', 'clientView', 'userView', 'accessView', 'accountingView', 'ipdrWlanView', 'ipdrVoipView', 'httpView', 'prefixView', 'balanceView', 'productView', 'bucketView'].indexOf(page) !== -1) {
+			this.page = page;
+		}
+		switch (this.page) {
+			case 'offerView':
+				this.viewTitle = 'Product Offering';
+				break;
+			case 'serviceView':
+				this.viewTitle = 'Services';
+				break;
+			case 'clientView':
+				this.viewTitle = 'Clients';
+				break;
+			case 'userView':
+				this.viewTitle = 'Users';
+				break;
+			case 'accessView':
+				this.viewTitle = 'Authentication Log';
+				break;
+			case 'accountingView':
+				this.viewTitle = 'Accounting Log';
+				break;
+			case 'ipdrWlanView':
+				this.viewTitle = 'IPDR WLAN';
+				break;
+			case 'ipdrVoipView':
+				this.viewTitle = 'IPDR Voice';
+				break;
+			case 'httpView':
+				this.viewTitle = 'HTTP Log';
+				break;
+			case 'prefixView':
+				this.viewTitle = 'Tariff Table';
+				break;
+			case 'balanceView':
+				this.viewTitle = 'Accumulated Balance';
+				break;
+			case 'productView':
+				this.viewTitle = 'Product Subscriptions';
+				break;
+			case 'bucketView':
+				this.viewTitle = 'Balance Buckets';
+				break;
+			default:
+				this.viewTitle = 'Online Charging System';
+		}
+// Close a non-persistent drawer when the page & route are changed.
+		if (!this.$.drawer.persistent) {
+			this.$.drawer.close();
+		}
+	}
+
+	_pageChanged(page) {
+// Import the page component on demand.
+//
+// Note: `polymer build` doesn't like string concatenation in the import
+// statement, so break it up.
+		switch (page) {
+			case 'offerView':
+//				import('./sig-offer-add.js');
+//				import('./sig-offer-update.js');
+//				import('./sig-offer-list.js');
+				break;
+			case 'serviceView': 
+//				import('./sig-offer-list.js');
+//				import('./sig-sub-add.js');
+//				import('./sig-sub-update.js');
+//				import('./sig-sub-list.js');
+				break;
+			case 'clientView':
+//				import('./sig-client-add.js');
+//				import('./sig-client-update.js');
+//				import('./sig-client-list.js');
+				break;
+			case 'userView':
+				import('./sig-user-add.js');
+				import('./sig-user-list.js');
+				import('./sig-user-update.js');
+				break;
+			case 'accessView':
+//				import('./sig-access-list.js');
+				break;
+			case 'accountingView':
+//				import('./sig-accounting-list.js');
+				break;
+			case 'ipdrWlanView':
+//				import('./sig-ipdr-list-wlan.js');
+//				import('./sig-ipdr-log-files-wlan.js');
+				break;
+			case 'ipdrVoipView':
+//				import('./sig-ipdr-list-voip.js');
+//				import('./sig-ipdr-log-files-voip.js');
+				break;
+			case 'httpView':
+//				import('./sig-http-list.js');
+				break;
+			case 'prefixView':
+//				import('./sig-prefix-list.js');
+//				import('./sig-prefix-table-add.js');
+//				import('./sig-prefix-update.js');
+				break;
+			case 'balanceView':
+//				import('./sig-balance-list.js');
+				break;
+			case 'productView':
+//				import('./sig-offer-list.js');
+//				import('./sig-product-add.js');
+//				import('./sig-product-list.js');
+				break;
+			case 'bucketView':
+//				import('./sig-bucket-add.js');
+//				import('./sig-bucket-list.js ');
+				break;
+		}
+	}
+
+	_loadingChanged() {
+		if(this.offerLoading || this.serviceLoading || this.clientLoading || this.userLoading || this.accessLoading || this.accountingLoading || this.ipdrWlanLoading || this.ipdrVoipLoading || this.httpLoading || this.prefixLoading || this.balanceLoading || this.productLoading || this.bucketLoading) {
+			this.loading = true;
+		} else {
+			this.loading = false;
+		}
+	}
+}
+
+window.customElements.define('sig-app', SigApp);
