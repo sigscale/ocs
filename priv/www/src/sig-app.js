@@ -352,7 +352,7 @@ class SigApp extends PolymerElement {
 			<sig-sub-add id="subscriberAdd" offers="[[offers]]"></sig-sub-add>
 			<sig-sub-update></sig-sub-update>
 			<sig-client-add></sig-client-add>
-			<sig-client-update></sig-client-update>
+			<sig-client-update id="clientUpdate" active-item="[[activeClientItem]]"></sig-client-update>
 			<sig-user-add></sig-user-add>
 			<sig-user-update id="userUpdate" active-item="[[activeUserItem]]"></sig-user-update>
 			<sig-offer-update id="updateProduct"></sig-offer-update>
@@ -587,7 +587,7 @@ class SigApp extends PolymerElement {
 				break;
 			case 'clientView':
 				import('./sig-client-add.js');
-//				import('./sig-client-update.js');
+				import('./sig-client-update.js');
 				import('./sig-client-list.js');
 				break;
 			case 'userView':
