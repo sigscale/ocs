@@ -297,7 +297,7 @@ process_request(Address, Port,
 			error_logger:warning_report(["Unable to process DIAMETER request",
 					{origin_host, OHost}, {origin_realm, ORealm},
 					{request, Request}, {error, Reason}]),
-			generate_diameter_error(SId, ?'DIAMETER_BASE_RESULT-CODE_UNABLE_TO_COMPLY',
+			diameter_error(SId, ?'DIAMETER_BASE_RESULT-CODE_UNABLE_TO_COMPLY',
 					OHost, ORealm, RequestType, RequestNum)
 	end.
 %% @hidden
@@ -351,28 +351,28 @@ process_request1(?'3GPP_CC-REQUEST-TYPE_INITIAL_REQUEST' = RequestType,
 					[{messages, _}] ->
 						#'3gpp_ro_Granted-Service-Unit'{'CC-Service-Specific-Units' = [GrantedAmount]}
 				end,
-				Reply = generate_diameter_answer(SId, ServiceIdentifier, RatingGroup,
+				Reply = diameter_answer(SId, ServiceIdentifier, RatingGroup,
 						GrantedUnits, ?'DIAMETER_BASE_RESULT-CODE_SUCCESS',
 						OHost, ORealm, RequestType, RequestNum),
 				ok = ocs_log:acct_log(diameter, Server,
 						accounting_event_type(RequestType), Request, Reply, undefined),
 				Reply;
 			{out_of_credit, _SessionList} ->
-				Reply = generate_diameter_answer(SId, ServiceIdentifier, RatingGroup,
+				Reply = diameter_answer(SId, ServiceIdentifier, RatingGroup,
 						undefined, ?'IETF_RESULT-CODE_CREDIT_LIMIT_REACHED',
 						OHost, ORealm, RequestType, RequestNum),
 				ok = ocs_log:acct_log(diameter, Server,
 						accounting_event_type(RequestType), Request, Reply, undefined),
 				Reply;
 			{disabled, _SessionList} ->
-				Reply = generate_diameter_answer(SId, ServiceIdentifier, RatingGroup,
+				Reply = diameter_answer(SId, ServiceIdentifier, RatingGroup,
 						undefined, ?'IETF_RESULT-CODE_END_USER_SERVICE_DENIED', OHost,
 						ORealm, RequestType, RequestNum),
 				ok = ocs_log:acct_log(diameter, Server,
 						accounting_event_type(RequestType), Request, Reply, undefined),
 				Reply;
 			{error, subscriber_not_found} ->
-				Reply = generate_diameter_error(SId, ?'IETF_RESULT-CODE_USER_UNKNOWN',
+				Reply = diameter_error(SId, ?'IETF_RESULT-CODE_USER_UNKNOWN',
 						OHost, ORealm, RequestType, RequestNum),
 				ok = ocs_log:acct_log(diameter, Server,
 						accounting_event_type(RequestType), Request, Reply, undefined),
@@ -383,7 +383,7 @@ process_request1(?'3GPP_CC-REQUEST-TYPE_INITIAL_REQUEST' = RequestType,
 						{origin_host, OHost}, {origin_realm, ORealm},
 						{type, initial}, {subscriber, Subscriber},
 						{destination, Destination}, {reservation, ReserveAmount}]),
-				Reply = generate_diameter_error(SId, ?'IETF_RESULT-CODE_RATING_FAILED',
+				Reply = diameter_error(SId, ?'IETF_RESULT-CODE_RATING_FAILED',
 						OHost, ORealm, RequestType, RequestNum),
 				ok = ocs_log:acct_log(diameter, Server,
 						accounting_event_type(RequestType), Request, Reply, undefined),
@@ -394,7 +394,7 @@ process_request1(?'3GPP_CC-REQUEST-TYPE_INITIAL_REQUEST' = RequestType,
 			error_logger:warning_report(["Unable to process DIAMETER request",
 					{origin_host, OHost}, {origin_realm, ORealm},
 					{request, Request}, {error, Reason1}]),
-			generate_diameter_error(SId, ?'DIAMETER_BASE_RESULT-CODE_UNABLE_TO_COMPLY', OHost,
+			diameter_error(SId, ?'DIAMETER_BASE_RESULT-CODE_UNABLE_TO_COMPLY', OHost,
 					ORealm, RequestType, RequestNum)
 	end;
 process_request1(?'3GPP_CC-REQUEST-TYPE_UPDATE_REQUEST' = RequestType,
@@ -473,28 +473,28 @@ process_request1(?'3GPP_CC-REQUEST-TYPE_UPDATE_REQUEST' = RequestType,
 					[{messages, _}] ->
 						#'3gpp_ro_Granted-Service-Unit'{'CC-Service-Specific-Units' = [GrantedAmount]}
 				end,
-				Reply = generate_diameter_answer(SId, ServiceIdentifier, RatingGroup,
+				Reply = diameter_answer(SId, ServiceIdentifier, RatingGroup,
 						GrantedUnits, ?'DIAMETER_BASE_RESULT-CODE_SUCCESS', OHost, ORealm,
 						RequestType, RequestNum),
 				ok = ocs_log:acct_log(diameter, Server,
 						accounting_event_type(RequestType), Request, Reply, undefined),
 				Reply;
 			{out_of_credit, _SessionList} ->
-				Reply = generate_diameter_answer(SId, ServiceIdentifier, RatingGroup,
+				Reply = diameter_answer(SId, ServiceIdentifier, RatingGroup,
 						undefined, ?'IETF_RESULT-CODE_CREDIT_LIMIT_REACHED', OHost,
 						ORealm, RequestType, RequestNum),
 				ok = ocs_log:acct_log(diameter, Server,
 						accounting_event_type(RequestType), Request, Reply, undefined),
 				Reply;
 			{disabled, _SessionList} ->
-				Reply = generate_diameter_answer(SId, ServiceIdentifier, RatingGroup,
+				Reply = diameter_answer(SId, ServiceIdentifier, RatingGroup,
 						undefined, ?'IETF_RESULT-CODE_END_USER_SERVICE_DENIED', OHost,
 						ORealm, RequestType, RequestNum),
 				ok = ocs_log:acct_log(diameter, Server,
 						accounting_event_type(RequestType), Request, Reply, undefined),
 				Reply;
 			{error, subscriber_not_found} ->
-				Reply = generate_diameter_error(SId, ?'IETF_RESULT-CODE_USER_UNKNOWN',
+				Reply = diameter_error(SId, ?'IETF_RESULT-CODE_USER_UNKNOWN',
 						OHost, ORealm, RequestType, RequestNum),
 				ok = ocs_log:acct_log(diameter, Server,
 						accounting_event_type(RequestType), Request, Reply, undefined),
@@ -506,7 +506,7 @@ process_request1(?'3GPP_CC-REQUEST-TYPE_UPDATE_REQUEST' = RequestType,
 						{type, interim}, {subscriber, Subscriber},
 						{destination, Destination}, {reservation, ReserveAmount},
 						{used, DebitAmount}]),
-				Reply = generate_diameter_error(SId, ?'IETF_RESULT-CODE_RATING_FAILED',
+				Reply = diameter_error(SId, ?'IETF_RESULT-CODE_RATING_FAILED',
 						OHost, ORealm, RequestType, RequestNum),
 				ok = ocs_log:acct_log(diameter, Server,
 						accounting_event_type(RequestType), Request, Reply, undefined),
@@ -517,7 +517,7 @@ process_request1(?'3GPP_CC-REQUEST-TYPE_UPDATE_REQUEST' = RequestType,
 			error_logger:warning_report(["Unable to process DIAMETER request",
 					{origin_host, OHost}, {origin_realm, ORealm},
 					{request, Request}, {error, Reason1}]),
-			generate_diameter_error(SId, ?'DIAMETER_BASE_RESULT-CODE_UNABLE_TO_COMPLY',
+			diameter_error(SId, ?'DIAMETER_BASE_RESULT-CODE_UNABLE_TO_COMPLY',
 					OHost, ORealm, RequestType, RequestNum)
 	end;
 process_request1(?'3GPP_CC-REQUEST-TYPE_TERMINATION_REQUEST' = RequestType,
@@ -559,28 +559,28 @@ process_request1(?'3GPP_CC-REQUEST-TYPE_TERMINATION_REQUEST' = RequestType,
 		case ocs_rating:rate(diameter, ServiceType, ServiceNetwork, Subscriber, Timestamp,
 				Destination, originate, final, DebitAmount, [], [{'Session-Id', SId}]) of
 			{ok, _, 0, Rated} ->
-				Reply = generate_diameter_answer(SId, [], [], undefined,
+				Reply = diameter_answer(SId, [], [], undefined,
 						?'DIAMETER_BASE_RESULT-CODE_SUCCESS',
 						OHost, ORealm, RequestType, RequestNum),
 				ok = ocs_log:acct_log(diameter, Server,
 						accounting_event_type(RequestType), Request, Reply, Rated),
 				Reply;
 			{out_of_credit, _SessionList, Rated} ->
-				Reply = generate_diameter_answer(SId, [], [], undefined,
+				Reply = diameter_answer(SId, [], [], undefined,
 						?'IETF_RESULT-CODE_CREDIT_LIMIT_REACHED',
 						OHost, ORealm, RequestType, RequestNum),
 				ok = ocs_log:acct_log(diameter, Server,
 						accounting_event_type(RequestType), Request, Reply, Rated),
 				Reply;
 			{disabled, _SessionList} ->
-				Reply = generate_diameter_answer(SId, [], [], undefined,
+				Reply = diameter_answer(SId, [], [], undefined,
 						?'IETF_RESULT-CODE_END_USER_SERVICE_DENIED',
 						OHost, ORealm, RequestType, RequestNum),
 				ok = ocs_log:acct_log(diameter, Server,
 						accounting_event_type(RequestType), Request, Reply, undefined),
 				Reply;
 			{error, subscriber_not_found} ->
-				Reply = generate_diameter_error(SId, ?'IETF_RESULT-CODE_USER_UNKNOWN',
+				Reply = diameter_error(SId, ?'IETF_RESULT-CODE_USER_UNKNOWN',
 						OHost, ORealm, RequestType, RequestNum),
 				ok = ocs_log:acct_log(diameter, Server,
 						accounting_event_type(RequestType), Request, Reply, undefined),
@@ -591,7 +591,7 @@ process_request1(?'3GPP_CC-REQUEST-TYPE_TERMINATION_REQUEST' = RequestType,
 						{origin_host, OHost}, {origin_realm, ORealm},
 						{type, final}, {subscriber, Subscriber},
 						{destination, Destination}, {used, DebitAmount}]),
-				Reply = generate_diameter_error(SId, ?'IETF_RESULT-CODE_RATING_FAILED',
+				Reply = diameter_error(SId, ?'IETF_RESULT-CODE_RATING_FAILED',
 						OHost, ORealm, RequestType, RequestNum),
 				ok = ocs_log:acct_log(diameter, Server,
 						accounting_event_type(RequestType), Request, Reply, undefined),
@@ -602,11 +602,11 @@ process_request1(?'3GPP_CC-REQUEST-TYPE_TERMINATION_REQUEST' = RequestType,
 			error_logger:warning_report(["Unable to process DIAMETER request",
 					{origin_host, OHost}, {origin_realm, ORealm},
 					{request, Request}, {error, Reason1}]),
-			generate_diameter_error(SId, ?'DIAMETER_BASE_RESULT-CODE_UNABLE_TO_COMPLY', OHost,
+			diameter_error(SId, ?'DIAMETER_BASE_RESULT-CODE_UNABLE_TO_COMPLY', OHost,
 					ORealm, RequestType, RequestNum)
 	end.
 
--spec generate_diameter_answer(SessionId, ServiceIdentifier, RatingGroup, GrantedUnits,
+-spec diameter_answer(SessionId, ServiceIdentifier, RatingGroup, GrantedUnits,
 		ResultCode, OriginHost, OriginRealm, RequestType, RequestNum) -> Result
 			when
 				SessionId :: string(),
@@ -619,9 +619,9 @@ process_request1(?'3GPP_CC-REQUEST-TYPE_TERMINATION_REQUEST' = RequestType,
 				RequestType :: integer(),
 				RequestNum :: integer(),
 				Result :: #'3gpp_ro_CCA'{}.
-%% @doc Send CCA to DIAMETER client indicating a successful operation.
+%% @doc Build CCA response.
 %% @hidden
-generate_diameter_answer(SId, _ServiceIdentifier, _RatingGroup, undefined,
+diameter_answer(SId, _ServiceIdentifier, _RatingGroup, undefined,
 		?'IETF_RESULT-CODE_CREDIT_LIMIT_REACHED', OHost, ORealm,
 		RequestType, RequestNum) ->
 	#'3gpp_ro_CCA'{'Session-Id' = SId,
@@ -629,13 +629,13 @@ generate_diameter_answer(SId, _ServiceIdentifier, _RatingGroup, undefined,
 			'Origin-Host' = OHost, 'Origin-Realm' = ORealm,
 			'Auth-Application-Id' = ?RO_APPLICATION_ID, 'CC-Request-Type' = RequestType,
 			'CC-Request-Number' = RequestNum};
-generate_diameter_answer(SId, _ServiceIdentifier, _RatingGroup, undefined,
+diameter_answer(SId, _ServiceIdentifier, _RatingGroup, undefined,
 		ResultCode, OHost, ORealm, RequestType, RequestNum) ->
 	#'3gpp_ro_CCA'{'Session-Id' = SId, 'Result-Code' = ResultCode,
 			'Origin-Host' = OHost, 'Origin-Realm' = ORealm,
 			'Auth-Application-Id' = ?RO_APPLICATION_ID, 'CC-Request-Type' = RequestType,
 			'CC-Request-Number' = RequestNum};
-generate_diameter_answer(SId, ServiceIdentifier, RatingGroup, GrantedUnits,
+diameter_answer(SId, ServiceIdentifier, RatingGroup, GrantedUnits,
 		ResultCode, OHost, ORealm, RequestType, RequestNum) ->
 	MultiServices_CC = #'3gpp_ro_Multiple-Services-Credit-Control'{
 			'Service-Identifier' = ServiceIdentifier,
@@ -648,7 +648,7 @@ generate_diameter_answer(SId, ServiceIdentifier, RatingGroup, GrantedUnits,
 			'CC-Request-Number' = RequestNum,
 			'Multiple-Services-Credit-Control' = [MultiServices_CC]}.
 
--spec generate_diameter_error(SessionId, ResultCode, OriginHost,
+-spec diameter_error(SessionId, ResultCode, OriginHost,
 		OriginRealm, RequestType, RequestNum) -> Reply
 	when
 		SessionId :: string(),
@@ -660,12 +660,11 @@ generate_diameter_answer(SId, ServiceIdentifier, RatingGroup, GrantedUnits,
 		Reply :: #'3gpp_ro_CCA'{}.
 %% @doc Send CCA to DIAMETER client indicating an operation failure.
 %% @hidden
-generate_diameter_error(SId, ResultCode, OHost, ORealm, RequestType, RequestNum) ->
-	Reply = #'3gpp_ro_CCA'{'Session-Id' = SId, 'Result-Code' = ResultCode,
+diameter_error(SId, ResultCode, OHost, ORealm, RequestType, RequestNum) ->
+	#'3gpp_ro_CCA'{'Session-Id' = SId, 'Result-Code' = ResultCode,
 			'Origin-Host' = OHost, 'Origin-Realm' = ORealm,
 			'Auth-Application-Id' = ?RO_APPLICATION_ID, 'CC-Request-Type' = RequestType,
-			'CC-Request-Number' = RequestNum},
-	Reply.
+			'CC-Request-Number' = RequestNum}.
 
 -spec accounting_event_type(RequestType) -> EventType
 	when
