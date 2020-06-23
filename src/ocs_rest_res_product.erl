@@ -695,7 +695,7 @@ delete_offer(Id) ->
 		ok ->
 			{ok, [], []};
 		{'EXIT', unable_to_delete} ->
-			{error, 202};
+			{error, 403};
 		{'EXIT', _} ->
 			{error, 500}
 	end.
@@ -712,7 +712,7 @@ delete_inventory(Id) ->
 		ok ->
 			{ok, [], []};
 		{'EXIT', service_exists} ->
-			{error, 202};
+			{error, 403};
 		{'EXIT', _} ->
 			{error, 500}
 	end.
