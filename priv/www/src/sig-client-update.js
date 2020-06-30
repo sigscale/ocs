@@ -167,6 +167,10 @@ class clientUpdate extends PolymerElement {
 				type: Object,
 				observer: '_activeItemChanged'
 			},
+			selected: {
+				type: Number,
+				value: 0
+			},
 			clientUpAddress: {
 				type: String
 			},
