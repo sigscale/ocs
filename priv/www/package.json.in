@@ -43,6 +43,7 @@
     "@polymer/paper-toast": "^3.0.1",
     "@polymer/paper-tabs": "^3.0.1",
     "@polymer/paper-progress": "^3.0.0-pre.25",
+    "@polymer/paper-toggle-button": "^3.0.1",
     "@vaadin/vaadin-grid": "^5.1.0-alpha3"
   },
   "devDependencies": {

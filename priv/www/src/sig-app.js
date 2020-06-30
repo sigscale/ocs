@@ -355,7 +355,7 @@ class SigApp extends PolymerElement {
 			<sig-client-update id="clientUpdate" active-item="[[activeClientItem]]"></sig-client-update>
 			<sig-user-add></sig-user-add>
 			<sig-user-update id="userUpdate" active-item="[[activeUserItem]]"></sig-user-update>
-			<sig-offer-update id="updateProduct"></sig-offer-update>
+			<sig-offer-update id="updateProduct" active-item="[[activeOfferItem]]"></sig-offer-update>
 			<sig-ipdr-log-files-wlan></sig-ipdr-log-files-wlan>
 			<sig-ipdr-log-files-voip></sig-ipdr-log-files-voip>
 			<sig-prefix-table-add></sig-prefix-table-add>
@@ -575,9 +575,9 @@ class SigApp extends PolymerElement {
 // statement, so break it up.
 		switch (page) {
 			case 'offerView':
-//				import('./sig-offer-add.js');
-//				import('./sig-offer-update.js');
-//				import('./sig-offer-list.js');
+				import('./sig-offer-add.js');
+				import('./sig-offer-update.js');
+				import('./sig-offer-list.js');
 				break;
 			case 'serviceView': 
 //				import('./sig-offer-list.js');
