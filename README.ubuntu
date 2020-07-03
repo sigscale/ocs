@@ -1,0 +1,14 @@
+## Ubuntu 16.04 LTS
+## <https://www.youtube.com/watch?v=DLNE528SXNM>
+
+The few simple steps to install SigScale's open source Online Charging System (OCS) on Ubuntu 16.04 LTS (xenial):
+	wget repo.sigscale.org/pool/main/s/sigscale-release/sigscale-release_1.1-1+ubuntu1_all.deb
+	sudo dpkg -i sigscale-release*.deb
+	sudo apt update
+	sudo apt install ocs
+	sudo systemctl enable ocs
+	sudo systemctl start ocs
+	sudo systemctl status ocs
+
+Contact <support@sigscale.com> for further assistance.
+
