@@ -24,7 +24,7 @@ $(PACKAGE_VERSION).tar.gz: $(PACKAGE_VERSION).rel
 	cp -r $(DESTDIR)/$(ERLANG_INSTALL_LIB_DIR)/$(PACKAGE_NAME)-$(PACKAGE_VERSION)/* $(ERLTMP)/lib/$(PACKAGE_NAME)-$(PACKAGE_VERSION)
 	ERL_LIBS=$(ERLTMP)/lib:$(ERL_LIBS) RELDIR=releases $(ERL) -noinput -boot_var OTPHOME lib \
 			-eval "systools:make_script(\"$(PACKAGE_VERSION)\", [{variables, [{\"OTPHOME\", \"$(ERLTMP)\"}]}])" \
-			-eval "systools:make_tar(\"$(PACKAGE_VERSION)\", [{dirs, [include,mibs]}])" \
+			-eval "systools:make_tar(\"$(PACKAGE_VERSION)\", [{dirs, [include,mibs,doc]}])" \
 			-s init stop
 	rm -rf $(ERLTMP)
 

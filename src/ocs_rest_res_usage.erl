@@ -2748,22 +2748,32 @@ query_start1(Type, false, IpdrFile, Query,
 			Name = {name, {ipdr, erlang:unique_integer([positive])}},
 			{ok, Directory} = application:get_env(ocs, ipdr_log_dir),
 			Directory1 = Directory ++ "/" ++ Type,
-			FileName = {file, Directory1 ++ "/" ++ IpdrFile},
-			Mode = {mode, read_only},
-			{ok, {Log, A}} = disk_log:open([Name, FileName, Mode]),
-			Args = [{Log, A}, DateStart, DateEnd, Chars],
-			MFA = [ocs_log, ipdr_query, Args],
-			case supervisor:start_child(ocs_rest_pagination_sup, [MFA]) of
-				{ok, PageServer, Etag} ->
-					query_page(PageServer, Etag, Query, Filters, RangeStart, RangeEnd);
-				{error, _Reason} ->
-					{error, 500}
+			case IpdrFile of
+				IpdrFile when is_list(IpdrFile) ->
+					FileName = {file, Directory1 ++ "/" ++ IpdrFile},
+					Mode = {mode, read_only},
+					{ok, {Log, A}} = disk_log:open([Name, FileName, Mode]),
+					Args = [{Log, A}, DateStart, DateEnd, Chars],
+					MFA = [ocs_log, ipdr_query, Args],
+					case supervisor:start_child(ocs_rest_pagination_sup, [MFA]) of
+						{ok, PageServer, Etag} ->
+							query_page(PageServer, Etag, Query, Filters, RangeStart, RangeEnd);
+						{error, _Reason} ->
+							{error, 500}
+					end;
+				undefined ->
+					{error, 404}
 			end
 	catch
 		_ ->
 			{error, 400}
 	after
-		disk_log:close("log/ipdr/" ++ Type ++ "/" ++ IpdrFile)
+		case IpdrFile of
+			IpdrFile when is_list(IpdrFile) ->
+				disk_log:close("log/ipdr/" ++ Type ++ "/" ++ IpdrFile);
+			undefined ->
+				{error, 404}
+		end
 	end;
 query_start1(_Type, {_, "HTTPTransferUsage"}, undefined, Query,
 		Filters, RangeStart, RangeEnd, _, _) ->
@@ -2978,7 +2988,7 @@ range(Year, Day, [_, _, $:, _, _, $:, _, _, $., _, _ | _] = S) ->
 	ocs_log:iso8601(Year ++ Day ++ S).
 
 %% @hidden
-ipdr_chars([{complex, L1} | T], Chars) -> 
+ipdr_chars([{complex, L1} | T], Chars) ->
 	case lists:keytake("name", 1, L1) of
 		{_, Name, L2} ->
 			case lists:keytake("value", 1, L2) of
@@ -3082,12 +3092,12 @@ ipdr_chars({"name", exact, "gmtSessionEndDateTime"}, {"value", like, Like},
 	Chars2 = add_char(Chars1, {gmtSessionEndDateTime, {like, like(Like)}}),
 	ipdr_chars(T, Chars2);
 ipdr_chars({"name", exact, "chargeableQuantity"}, {"value", Op, ChargeableQuantity},
-		T, Chars1) 
+		T, Chars1)
 		when Op == exact; Op == lt; Op == lte; Op == gt; Op == gte ->
 	Chars2 = add_char(Chars1, {chargeableQuantity, {Op, list_to_integer(ChargeableQuantity)}}),
 	ipdr_chars(T, Chars2);
 ipdr_chars({"name", exact, "taxAmount"}, {"value", Op, TaxAmount},
-		T, Chars1) 
+		T, Chars1)
 		when Op == exact; Op == lt; Op == lte; Op == gt; Op == gte ->
 	Chars2 = add_char(Chars1, {taxAmount, {Op, list_to_integer(TaxAmount)}}),
 	ipdr_chars(T, Chars2).

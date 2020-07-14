@@ -1,5 +1,8 @@
 # [SigScale](http://www.sigscale.org) Online Charging System (OCS)
 
+Prebuilt packages available for [Ubuntu](https://raw.githubusercontent.com/sigscale/ocs/master/README.ubuntu)
+and [Docker](https://raw.githubusercontent.com/sigscale/ocs/master/README.docker).
+
 [Open Issues](https://sigscale.atlassian.net/projects/OCS/issues/?filter=allopenissues "Open Issues")  
 [Create Issue](https://sigscale.atlassian.net/secure/CreateIssue!default.jspa?pid=10100&issuetype=10000 "Create
  Issue")
