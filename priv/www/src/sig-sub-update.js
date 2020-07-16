@@ -1,539 +1,552 @@
-<!--  vim: set ts=3:  -->
-<link rel="import" href="polymer/polymer.html">
-<link rel="import" href="i18n-msg/i18n-msg.html">
-<link rel="import" href="i18n-msg/i18n-msg-behavior.html">
-<link rel="import" href="paper-dialog/paper-dialog.html">
-<link rel="import" href="paper-toolbar/paper-toolbar.html">
-<link rel="import" href="paper-tabs/paper-tabs.html">
-<link rel="import" href="paper-tooltip/paper-tooltip.html">
-<link rel="import" href="paper-button/paper-button.html">
-<link rel="import" href="paper-input/paper-input.html">
-<link rel="import" href="paper-styles/color.html">
-<link rel="import" href="paper-toast/paper-toast.html">
-<link rel="import" href="iron-pages/iron-pages.html">
-<link rel="import" href="iron-selector/iron-selector.html">
-<link rel="import" href="iron-ajax/iron-ajax.html">
+/**
+ * @license
+ * Copyright (c) 2020 The Polymer Project Authors. All rights reserved.
+ * This code may only be used under the BSD style license found at http://polymer.github.io/LICENSE.txt
+ * The complete set of authors may be found at http://polymer.github.io/AUTHORS.txt
+ * The complete set of contributors may be found at http://polymer.github.io/CONTRIBUTORS.txt
+ * Code distributed by Google as part of the polymer project is also
+ * subject to an additional IP rights grant found at http://polymer.github.io/PATENTS.txt
+ */
 
-<dom-module id="sig-sub-update">
-	<template>
-		<style is="custom-style">
-			paper-dialog {
-				overflow: auto;
-			}
-			paper-toolbar {
-				margin-top: 0px;
-				background-color: #bc5100;
-			}
-			paper-input {
-				--paper-input-container-focus-color: var(--paper-yellow-900);
-			}
-			.toggle {
-				display:inline-block;
-			}
-			.update-buttons {
-				background: var(--paper-lime-a700);
-				color: black;
-			}
-			.delete-buttons {
-				background: #EF5350;
-				color: black;
-			}
-			.cancel-btn {
-				color: black;
-			}
-			paper-toggle-button {
-				--paper-toggle-button-checked-bar-color: #ffb04c;
-				--paper-toggle-button-checked-button-color: var(--paper-yellow-900);
-			}
-		</style>
-		<paper-dialog id="updateSubscriberModal" modal>
-			<paper-toolbar>
-				<paper-tabs selected="{{selected}}">
-					<paper-tab id="authen">
-						<h2>[[i18n.AuthTitle]]</h2>
-					</paper-tab>
-					<paper-tab id="autho">
-						<h2>[[i18n.AuthorTitle]]</h2>
-					</paper-tab>
-					<paper-tab id="credit-up">
-						<h2>[[i18n.credit]]</h2>
-					</paper-tab>
-				</paper-tabs>
-			</paper-toolbar>
-			<paper-tooltip for="authen">
-				<i18n-msg msgid="AuthTooltip">
-						Credentials used to authenticate subscriber.
-				</i18n-msg>
-			</paper-tooltip>
-			<paper-tooltip for="autho">
-				<i18n-msg msgid="AuthorTooltip">
-						Services authorized for subscriber.
-				</i18n-msg>
-			</paper-tooltip>
-			<iron-pages selected="{{selected}}">
-				<div id="edit-password" >
-					<paper-input id="updateSubscriberId"
-							name="id"
-							label="[[i18n.identity]]"
-							disabled>
-					</paper-input>
-					<paper-input id="updateSubscriberPassword"
-							name="password"
-							label="[[i18n.secret]]"
-							disabled>
-					</paper-input>
-					<div>
-						<paper-input id="updateSubscriberNewPassword"
-								name="newpassword"
-								label="[[i18n.newpass]]"
-								required
-								auto-validate
-								error-message="[[i18n.newpassError]]">
-						</paper-input>
-						<paper-tooltip>
-							<i18n-msg msgid="subPasswordTooltip">
-									New password of subscriber.
-							</i18n-msg>
-						</paper-tooltip>
-					</div>
-					<div class="buttons">
-						<paper-button
-								onclick="updateSubscriberModal.close()"
-								class="cancel-btn">
-							<i18n-msg msgid="cancel">
-									Cancel
-							</i18n-msg>
-						</paper-button>
-						<paper-button dialog-confirm
-								autofocus
-								on-tap="updateSubscriberAuthentication"
-								class="update-buttons">
-							<i18n-msg msgid="update">
-									Update
-							</i18n-msg>
-						</paper-button>
-						<paper-button
-								toggles
-								raised
-								on-tap="deleteSubscriber"
-								class="delete-buttons">
-							<i18n-msg msgid="delete">
-									Delete
-							</i18n-msg>
-						</paper-button>
-					</div>
-				</div>
-				<div id="edit-attributes">
-					<div>
-						<paper-input id="updateSubscriberTimeout"
-								name="sessionTimeout"
-								type="number"
-								label="[[i18n.ses]]">
-						</paper-input>
-						<paper-tooltip>
-							<i18n-msg msgid="sessionTimeoutTooltip">
-									Time between authorization requests in an active session in seconds
-							</i18n-msg>
-						</paper-tooltip>
-					</div>
-					<div>
-						<paper-input id="updateSubscriberInterval"
-								name="acctSessionInterval"
-								type="number"
-								label="[[i18n.accInt]]">
-						</paper-input>
-						<paper-tooltip>
-							<i18n-msg msgid="intervalTooltip">
-									Time between accouting session updates in seconds.
-							</i18n-msg>
-						</paper-tooltip>
-					</div>
-					<div>
-						<paper-input id="updateSubscriberClass"
-								name="class"
-								type="text"
-								label="[[i18n.class]]">
-						</paper-input>
-					</div></br>
-					<div>
-						<i18n-msg msgid="enable">
-								Enable
-						</i18n-msg>
-						<div style="display:inline-block;">
-							<paper-toggle-button id="updateSubscriberEnabled">
-							</paper-toggle-button>
-							<paper-tooltip>
-								<i18n-msg msgid="intervalTooltip">
-									Enabled for service or temporarily disabled.
-							</i18n-msg>
-						</div>
-						<i18n-msg msgid="multi">
-							Multisession
-						</i18n-msg>
-						<div style="display:inline-block;">
-							<paper-toggle-button id="updateSubscriberMulti">
-							</paper-toggle-button>
-							<paper-tooltip>
-								<i18n-msg msgid="multiTool">
-									Allow multiple simultaneous sessions.
-								</i18n-msg>
-							</paper-tooltip>
-						</div>
-					</div><br>
-					<div class="buttons">
-						<paper-button
-								onclick="updateSubscriberModal.close()"
-								class="cancel-btn">
-							<i18n-msg msgid="cancel">
-									Cancel
-							</i18n-msg>
-						</paper-button>
-						<paper-button dialog-confirm
-								autofocus
-								on-tap="updateSubscriberAuthorization"
-								class="update-buttons">
-							<i18n-msg msgid="update">
-									Update
-							</i18n-msg>
-						</paper-button>
-						<paper-button
-								toggles
-								raised
-								on-tap="deleteSub"
-								class="delete-buttons">
-							<i18n-msg msgid="delete">
-									Delete
-							</i18n-msg>
-						</paper-button>
-					</div>
-				</div>
-				<div id="edit-bal">
-					<div>
-						<paper-input id="updatePro"
-								name="product"
-								label="[[i18n.prod]]"
+import { PolymerElement, html } from '@polymer/polymer/polymer-element.js';
+import '@polymer/iron-ajax/iron-ajax.js';
+import '@polymer/paper-dialog/paper-dialog.js';
+import '@polymer/app-layout/app-toolbar/app-toolbar.js';
+import '@polymer/paper-progress/paper-progress.js';
+import '@polymer/paper-input/paper-input.js';
+import '@polymer/paper-input/paper-textarea.js';
+import '@polymer/paper-button/paper-button.js';
+import '@polymer/paper-dropdown-menu/paper-dropdown-menu.js';
+import '@polymer/paper-listbox/paper-listbox.js';
+import '@polymer/paper-item/paper-item.js'
+import '@polymer/paper-checkbox/paper-checkbox.js'
+import '@polymer/iron-collapse/iron-collapse.js';
+import '@polymer/paper-tabs/paper-tabs.js';
+import '@polymer/iron-pages/iron-pages.js';
+import '@polymer/iron-selector/iron-selector.js';
+import '@polymer/paper-toast/paper-toast.js';
+import '@polymer/paper-icon-button/paper-icon-button.js';
+import '@polymer/paper-toggle-button/paper-toggle-button.js';
+import './style-element.js';
+
+class subUpdate extends PolymerElement {
+	static get template() {
+		return html`
+			<style include="style-element"></style>
+			<paper-dialog id="updateSubscriberModal" modal>
+				<app-toolbar>
+					<paper-tabs selected="{{selected}}">
+						<paper-tab id="authen">
+							<h2>Authentication</h2>
+						</paper-tab>
+						<paper-tab id="autho">
+							<h2>Authorization</h2>
+						</paper-tab>
+						<paper-tab id="credit-up">
+							<h2>Credit</h2>
+						</paper-tab>
+					</paper-tabs>
+				</app-toolbar>
+				<paper-progress
+						indeterminate
+						class="slow red"
+						disabled="{{!loading}}">
+				</paper-progress>
+				<iron-pages
+						selected="{{selected}}">
+					<div id="edit-password" >
+						<paper-input
+								id="updateSubscriberId"
+								name="id"
+								label="Identity"
+								value="{{updateSubId}}"
 								disabled>
 						</paper-input>
-						<paper-tooltip>
-							<i18n-msg msgid="updateSubProTooltip">
-								Select and update the product.
-							</i18n-msg>
-						</paper-tooltip>
-					</div>
-					<div>
-						<paper-input id="edit-amount"
-								name="amount"
-								type="number"
-								label="[[i18n.amount]]">
+						<paper-input
+								id="updateSubscriberPassword"
+								name="password"
+								value="{{updateSubPass}}"
+								label="Secret"
+								disabled>
 						</paper-input>
-						<paper-tooltip>
-							<i18n-msg msgid="updateSubAmountTooltip">
-								Update Subscriber balance amount.
-							</i18n-msg>
-						</paper-tooltip>
+						<paper-input
+								id="updateSubscriberNewPassword"
+								name="newpassword"
+								value="{{updateSubNPass}}"
+								label="New Password"
+								required
+								auto-validate
+								error-message="Wrong Password">
+						</paper-input>
+						<div class="buttons">
+							<paper-button dialog-dismiss
+									on-tap="cancelDialog"
+									class="cancel-button">
+								Cancel
+							</paper-button>
+							<paper-button dialog-confirm
+									autofocus
+									on-tap="updateSubscriberAuthentication"
+									class="update-button">
+								Update
+							</paper-button>
+							<paper-button
+									toggles
+									raised
+									on-tap="deleteSubscriber"
+									class="delete-button">
+								Delete
+							</paper-button>
+						</div>
 					</div>
-					<div>
-						<paper-dropdown-menu
-								id="updateUni"
-								label="[[i18n.unit]]">
-							<paper-listbox
-									id="updateUni1"
-									slot="dropdown-content"
-									class="dropdown-content"
-									selected="0">
-								<paper-item value="octets">
-									<i18n-msg msgid="bytes">
+					<div id="edit-attributes">
+						<paper-input
+								id="updateSubscriberTimeout"
+								name="sessionTimeout"
+								value="{{updateSubSes}}"
+								type="number"
+								label="Session Timeout">
+						</paper-input>
+						<paper-input
+								id="updateSubscriberInterval"
+								name="acctSessionInterval"
+								value="{{updateSubSessInt}}"
+								type="number"
+								label="Accounting Interval">
+						</paper-input>
+						<div>
+							<paper-input
+									id="updateSubscriberClass"
+									name="class"
+									value="{{updateSubClass}}"
+									type="text"
+									label="Class">
+							</paper-input>
+						</div>
+						<div>
+								Enable
+							<div>
+								<paper-toggle-button
+										id="updateSubscriberEnabled"
+										value="{{updateSubEn}}">
+								</paper-toggle-button>
+							</div>
+							Multisession
+							<div>
+								<paper-toggle-button
+										id="updateSubscriberMulti"
+										value="{{updateSubMul}}">
+								</paper-toggle-button>
+							</div>
+						</div>
+						<div class="buttons">
+							<paper-button dialog-dismiss
+									on-tap="cancelDialog"
+									class="cancel-button">
+								Cancel
+							</paper-button>
+							<paper-button dialog-confirm
+									autofocus
+									on-tap="updateSubscriberAuthorization"
+									class="update-button">
+								Update
+							</paper-button>
+							<paper-button
+									toggles
+									raised
+									on-tap="deleteSub"
+									class="delete-button">
+								Delete
+							</paper-button>
+						</div>
+					</div>
+					<div id="edit-bal">
+						<paper-input
+								id="updatePro"
+								name="product"
+								value="{{updateSubPro}}"
+								label="Product"
+								disabled>
+						</paper-input>
+						<paper-input
+								id="edit-amount"
+								name="amount"
+								value="{{updateSubAmo}}"
+								type="number"
+								label="Amount">
+						</paper-input>
+						<div>
+							<paper-dropdown-menu
+									id="updateUni"
+									value="{{updateSubUni}}"
+									label="Units">
+								<paper-listbox
+										id="updateUni1"
+										slot="dropdown-content"
+										selected="0">
+									<paper-item value="octets">
 											Bytes
-									</i18n-msg>
-								</paper-item>
-								<paper-item value="cents">
-									<i18n-msg msgid="cents">
-										Cents
-									</i18n-msg>
-								</paper-item>
-								<paper-item value="seconds">
-									<i18n-msg msgid="seconds">
-										Seconds
-									</i18n-msg>
-								</paper-item>
-							</paper-listbox>
-						</paper-dropdown-menu>
-						<paper-tooltip>
-							<i18n-msg msgid="updateSubUnitTooltip">
-								update subscriber balance units.
-							</i18n-msg>
-						</paper-tooltip>
+									</paper-item>
+									<paper-item value="cents">
+											Cents
+									</paper-item>
+									<paper-item value="seconds">
+											Seconds
+									</paper-item>
+								</paper-listbox>
+							</paper-dropdown-menu>
+						</div>
+						<div class="buttons">
+							<paper-button dialog-dismiss
+									on-tap="cancelDialog"
+									class="cancel-button">
+								Cancel
+							</paper-button>
+							<paper-button dialog-confirm
+									autofocus
+									on-tap="updateSubscriberBalance"
+									class="update-button">
+								Add
+							</paper-button>
+							<paper-button
+									toggles
+									raised
+									on-tap="deleteSub"
+									class="delete-button">
+								Delete
+							</paper-button>
+						</div>
 					</div>
-					<div class="buttons">
-						<paper-button dialog-dismiss
-								onclick="updateSubscriberModal.close()"
-								class="cancel-btn">
-							<i18n-msg msgid="cancel">
-									Cancel
-							</i18n-msg>
-						</paper-button>
-						<paper-button dialog-confirm
-								autofocus
-								on-tap="updateSubscriberBalance"
-								class="update-buttons">
-							<i18n-msg msgid="add">
-									Add
-							</i18n-msg>
-						</paper-button>
-						<paper-button
-								toggles
-								raised
-								on-tap="deleteSub"
-								class="delete-buttons">
-							<i18n-msg msgid="delete">
-									Delete
-							</i18n-msg>
-						</paper-button>
-					</div>
-			</iron-pages>
-			<paper-toast
-					id="updateSubscriberToastError">
-			</paper-toast>
-		</paper-dialog>
-		<iron-ajax id="updateSubscriberAuthenticationAjax"
-				on-response="_updateSubscriberAuthenticationResponse"
-				on-error="_updateSubscriberAuthenticationError">
-		</iron-ajax>
-		<iron-ajax id="updateSubscriberAuthorizationAjax"
-				on-response="_updateSubscriberAuthorizationResponse"
-				on-error="_updateSubscriberAuthorizationError">
-		</iron-ajax>
-		<iron-ajax id="deleteSubscriberAjax"
-				on-response="_deleteSubscriberResponse"
-				on-error="_deleteSubscriberError">
-		</iron-ajax>
-		<iron-ajax id="updateSubscriberBalance"
-				content-type="application/json-patch+json"
-				method="PATCH"
-				on-response="_updateSubscriberBalanceResponse"
-				on-error="_updateSubscriberBalanceError">
-		</iron-ajax>
-		<iron-ajax
-				id="getServiceRespAjax"
-				method = "GET"
-				on-response="_getServiceResponse"
-				on-error="_getServiceError">
-		</iron-ajax>
-		<iron-ajax
-				id="updateSubscriberProductsAjax"
-				url="/catalogManagement/v2/productOffering"
-				method = "GET"
-				on-response="_updateSubscriberProductsResponse"
-				on-error="_updateSubscriberProductsError">
-		</iron-ajax>
-	</template>
-	<script>
-		Polymer ({
-			is: 'sig-sub-update',
-			behaviors: [i18nMsgBehavior],
-			properties: {
-				selected: {
-					type: Number,
-					value: 0
-				},
-				offers: {
-					type: Array,
-					value: function() {
-						return [];
-					}
+				</iron-pages>
+				<paper-toast
+						id="updateSubscriberToastError">
+				</paper-toast>
+			</paper-dialog>
+			<iron-ajax
+					id="updateSubscriberAuthenticationAjax"
+					on-response="_updateSubscriberAuthenticationResponse"
+					on-error="_updateSubscriberAuthenticationError">
+			</iron-ajax>
+			<iron-ajax
+					id="updateSubscriberAuthorizationAjax"
+					on-response="_updateSubscriberAuthorizationResponse"
+					on-error="_updateSubscriberAuthorizationError">
+			</iron-ajax>
+			<iron-ajax
+					id="deleteSubscriberAjax"
+					on-response="_deleteSubscriberResponse"
+					on-error="_deleteSubscriberError">
+			</iron-ajax>
+			<iron-ajax
+					id="updateSubscriberBalance"
+					content-type="application/json-patch+json"
+					method="PATCH"
+					on-response="_updateSubscriberBalanceResponse"
+					on-error="_updateSubscriberBalanceError">
+			</iron-ajax>
+			<iron-ajax
+					id="getServiceRespAjax"
+					method = "GET"
+					on-response="_getServiceResponse"
+					on-error="_getServiceError">
+			</iron-ajax>
+			<iron-ajax
+					id="updateSubscriberProductsAjax"
+					url="/catalogManagement/v2/productOffering"
+					method = "GET"
+					on-response="_updateSubscriberProductsResponse"
+					on-error="_updateSubscriberProductsError">
+			</iron-ajax>
+		`;
+	}
+
+	static get properties() {
+		return {
+			selected: {
+				type: Number,
+				value: 0
+			},
+			offers: {
+				type: Array,
+				value: function() {
+					return [];
 				}
 			},
-			_updateSubscriberProductsResponse: function(event) {
-				var results = event.detail.xhr.response;
-				for (var index in results) {
-					function checkExist(name) {
-						return name == results[index].name;
-					}
-					if(!this.offers.some(checkExist)){
-						this.push('offers', results[index].name);
-					}
-				}
+			etag: {
+				type: String,
+				value: null
 			},
-			_updateSubscriberProductsError: function (event) {
-				this.$.updateSubscriberToastError.text = event.detail.request.xhr.statusText;
-				this.$.updateSubscriberToastError.open();
+			activeItem: {
+				type: Object,
+				observer: '_activeItemChanged'
 			},
-			updateSubscriberAuthentication: function(event) {
-				var id = document.getElementById("updateSubscriberId").value;
-				var getAjax = this.$.getServiceRespAjax; 
-				var etag = getAjax.lastRequest.xhr.getResponseHeader('ETag');
-				var results = getAjax.lastResponse;
-				var editAjax =  this.$.updateSubscriberAuthenticationAjax;
-				editAjax.method = "PATCH";
-				editAjax.headers['If-Match'] = etag;
-				editAjax.contentType = "application/json-patch+json";
-				var id = document.getElementById("updateSubscriberId").value;
-				editAjax.url = "/serviceInventoryManagement/v2/service/" + id;
-				function checkPass(pass) {
-					return pass.name == "servicePassword";
-				}
-				var index = results.serviceCharacteristic.findIndex(checkPass);
+			loading: {
+				type: Boolean,
+				value: false
+			},
+			updateSubPass: {
+				type: String
+			},
+			updateSubNPass: {
+				type: String
+			},
+			updateSubSes: {
+				type: String
+			},
+			updateSubSessInt: {
+				type: String
+			},
+			updateSubClass: {
+				type: String
+			},
+			updateSubAmo: {
+				type: String
+			}
+		}
+	}
+
+	ready() {
+		super.ready()
+	}
+
+	_activeItemChanged(item) {
+		if (item != null){
+			var ajaxCh = this.$.getServiceRespAjax;
+			ajaxCh.url = "/serviceInventoryManagement/v2/service/" + item.id;
+			ajaxCh.generateRequest();
+			this.$.updateSubscriberProductsAjax.generateRequest();
+			this.updateSubId = item.id;
+			this.updateSubPass = item.password;
+			this.updateSubPro = item.product;
+			this.updateSubSes = item.sessionTimeout;
+			this.updateSubSessInt = item.acctInterimInterval;
+			this.updateSubClass =  item.class;
+			this.$.updateSubscriberEnabled.checked =  item.enabled;
+			this.$.updateSubscriberMulti.checked =  item.multisession;
+			this.$.updateSubscriberModal.open();
+		} else {
+			this.updateSubId = null;
+			this.updateSubPass = null;
+			this.updateSubPro = null;
+			this.updateSubSes = null;
+			this.updateSubSessInt = null;
+			this.updateSubClass = null;
+		}
+	}
+
+	_updateSubscriberProductsResponse(event) {
+		var results = event.detail.xhr.response;
+		for (var index in results) {
+			function checkExist(name) {
+				return name == results[index].name;
+			}
+			if(!this.offers.some(checkExist)){
+				this.push('offers', results[index].name);
+			}
+		}
+	}
+
+	_updateSubscriberProductsError(event) {
+		this.$.updateSubscriberToastError.text = event.detail.request.xhr.statusText;
+		this.$.updateSubscriberToastError.open();
+	}
+
+	updateSubscriberAuthentication(event) {
+		var id = this.updateSubId;
+		var getAjax = this.$.getServiceRespAjax; 
+		var etag = getAjax.lastRequest.xhr.getResponseHeader('ETag');
+		var results = getAjax.lastResponse;
+		var editAjax =  this.$.updateSubscriberAuthenticationAjax;
+		editAjax.method = "PATCH";
+		editAjax.headers['If-Match'] = etag;
+		editAjax.contentType = "application/json-patch+json";
+		var id = this.updateSubId; 
+		editAjax.url = "/serviceInventoryManagement/v2/service/" + id;
+		function checkPass(pass) {
+			return pass.name == "servicePassword";
+		}
+		var index = results.serviceCharacteristic.findIndex(checkPass);
+		var sub = new Object();
+		sub.op = "replace";
+		sub.path = "/serviceCharacteristic/" + index;
+		var servicePass = new Object();
+		servicePass.name = "servicePassword";
+		servicePass.value = this.updateSubNPass; 
+		sub.value = servicePass;
+		editAjax.body = JSON.stringify([sub]);
+		editAjax.generateRequest();
+	}
+
+	_updateSubscriberAuthenticationResponse(event) {
+		this.$.updateSubscriberNewPassword.value = "";
+		document.body.querySelector('sig-app').shadowRoot.getElementById('serviceList').shadowRoot.getElementById('subscriberGrid').clearCache();
+	}
+
+	_updateSubscriberAuthenticationError(event) {
+		this.$.updateSubscriberToastError.text = event.detail.request.xhr.statusText;
+		this.$.updateSubscriberToastError.open();
+	}
+
+	updateSubscriberBalance(event) {
+		var editAjax =  this.$.updateSubscriberBalance;
+		editAjax.url = "/ocs/v1/subscriber/" + this.updateSubId;
+		var sub = new Object();
+		sub.op = "add";
+		sub.path = "/buckets/-";
+		var totalBal;
+		if(this.updateSubUni == "Bytes"){
+			totalBal = {"remainAmount":parseInt(this.updateSubAmo)};
+			totalBal.units = "octets";
+		}
+		if(this.updateSubUni == "cents"){
+			totalBal = {"remainAmount":parseInt(this.updateSubAmo)};
+			totalBal.units = "cents";
+		}
+		if(this.updateSubUni == "seconds"){
+			totalBal = {"remainAmount":parseInt(this.updateSubAmo)};
+			totalBal.units = "seconds";
+		}
+		//totalBal.product = document.getElementById("updatePro").value;
+		sub.value = totalBal;
+		editAjax.body = JSON.stringify([sub]);
+		editAjax.generateRequest();
+	}
+
+	_updateSubscriberBalanceResponse(event) {
+		document.getElementById("getSubscriberAjax").generateRequest();
+	}
+
+	_updateSubscriberBalanceError(event) {
+		this.$.updateSubscriberToastError.text = event.detail.request.xhr.statusText;
+		this.$.updateSubscriberToastError.open();
+	}
+
+	updateSubscriberAuthorization(event) {
+		var getAjax = this.$.getServiceRespAjax;
+		var results = getAjax.lastResponse;
+		var editAjax =  this.$.updateSubscriberAuthorizationAjax;
+		editAjax.method = "PATCH";
+		editAjax.contentType = "application/json-patch+json";
+		editAjax.url = "/serviceInventoryManagement/v2/service/" + this.updateSubId;
+		var patch = new Array();
+		var ena = new Object();
+		ena.op = "replace";
+		ena.path = "/isServiceEnabled";
+		ena.value = this.$.updateSubscriberEnabled.checked;
+		patch.push(ena);
+		if(this.updateSubSes) {
+			function checkTimeout(sessionTime) {
+				return sessionTime.name == "sessionTimeout";
+			}
+			var indexSession = results.serviceCharacteristic.findIndex(checkTimeout);
+			var sub = new Object();
+			sub.op = "replace";
+			sub.path = "/serviceCharacteristic/" + indexSession;
+			var sessionTimeout = new Object();
+			sessionTimeout.name = "sessionTimeout";
+			sessionTimeout.value = parseInt(this.updateSubSes);
+			sub.value = sessionTimeout;
+			patch.push(sub);
+		} else {
+			function checkTimeout(sessionTime) {
+				return sessionTime.name == "sessionTimeout";
+			}
+			var indexSession = results.serviceCharacteristic.findIndex(checkTimeout);
+			if(indexSession != -1) {
 				var sub = new Object();
 				sub.op = "replace";
-				sub.path = "/serviceCharacteristic/" + index;
-				var servicePass = new Object();
-				servicePass.name = "servicePassword";
-				servicePass.value = document.getElementById("updateSubscriberNewPassword").value;
-				sub.value = servicePass;
-				editAjax.body = JSON.stringify([sub]);;
-				editAjax.generateRequest();
-			},
-			_updateSubscriberAuthenticationResponse: function (event) {
-				document.getElementById("updateSubscriberToastSuccess").open();
-				this.$.updateSubscriberNewPassword.value = "";
-				document.getElementById("subscriberGrid").clearCache();
-			},
-			_updateSubscriberAuthenticationError: function(event) {
-				this.$.updateSubscriberToastError.text = event.detail.request.xhr.statusText;
-				this.$.updateSubscriberToastError.open();
-			},
-			updateSubscriberBalance: function(event) {
-				var editAjax =  document.getElementById("updateSubscriberBalance");
-				var id = this.$.updateSubscriberId.value;
-				editAjax.url = "/ocs/v1/subscriber/" + id;
-				var sub = new Object();
-				sub.op = "add";
-				sub.path = "/buckets/-";
-				var totalBal;
-				if(document.getElementById("updateUni1").selected == 0){
-					totalBal = {"remainAmount":parseInt(document.getElementById("edit-amount").value)};
-					totalBal.units = "octets";
-				}
-				if(document.getElementById("updateUni1").selected == 1){
-					totalBal = {"remainAmount":document.getElementById("edit-amount").value};
-					totalBal.units = "cents";
-				}
-				if(document.getElementById("updateUni1").selected == 2){
-					totalBal = {"remainAmount":parseInt(document.getElementById("edit-amount").value)};
-					totalBal.units = "seconds";
-				}
-				//totalBal.product = document.getElementById("updatePro").value;
-				sub.value = totalBal;
-				editAjax.body = JSON.stringify([sub]);
-				editAjax.generateRequest();
-			},
-			_updateSubscriberBalanceResponse: function (event) {
-				document.getElementById("updateSubscriberToastSuccess").open();
-				document.getElementById("getSubscriberAjax").generateRequest();
-			},
-			_updateSubscriberBalanceError: function(event) {
-				this.$.updateSubscriberToastError.text = event.detail.request.xhr.statusText;
-				this.$.updateSubscriberToastError.open();
-			},
-			updateSubscriberAuthorization: function(event) {
-				var getAjax = this.$.getServiceRespAjax;
-				var results = getAjax.lastResponse;
-				var editAjax =  this.$.updateSubscriberAuthorizationAjax;
-				editAjax.method = "PATCH";
-				editAjax.contentType = "application/json-patch+json";
-				editAjax.url = "/serviceInventoryManagement/v2/service/" + this.$.updateSubscriberId.value;
-				var patch = new Array();
-				var ena = new Object();
-				ena.op = "replace";
-				ena.path = "/isServiceEnabled";
-				ena.value = this.$.updateSubscriberEnabled.checked;
-				patch.push(ena);
-				if(this.$.updateSubscriberTimeout.value) {
-					function checkTimeout(sessionTime) {
-						return sessionTime.name == "sessionTimeout";
-					}
-					var indexSession = results.serviceCharacteristic.findIndex(checkTimeout);
-					var sub = new Object();
-					sub.op = "replace";
-					sub.path = "/serviceCharacteristic/" + indexSession;
-					var sessionTimeout = new Object();
-					sessionTimeout.name = "sessionTimeout";
-					sessionTimeout.value = parseInt(this.$.updateSubscriberTimeout.value);
-					sub.value = sessionTimeout;
-					patch.push(sub);
-				} else {
-					function checkTimeout(sessionTime) {
-						return sessionTime.name == "sessionTimeout";
-					}
-					var indexSession = results.serviceCharacteristic.findIndex(checkTimeout);
-					if(indexSession != -1) {
-						var sub = new Object();
-						sub.op = "replace";
-						sub.path = "/serviceCharacteristic/" + indexSession;
-						var sessionTimeout = new Object();
-						sessionTimeout.name = "sessionTimeout";
-						sessionTimeout.value = results.serviceCharacteristic[indexSession].value;
-						sub.value = sessionTimeout;
-						patch.push(sub);
-					}
-				}
-				if(this.$.updateSubscriberInterval.value) {
-					function checkSessionInt(sessionInterval) {
-						return sessionInterval.name == "acctSessionInterval";
-					}
-					var indexSessionInt = results.serviceCharacteristic.findIndex(checkSessionInt);
-					var sub1 = new Object();
-					sub1.op = "replace";
-					sub1.path = "/serviceCharacteristic/" + indexSessionInt;
-					var acctSessionInterval = new Object();
-					acctSessionInterval.name = "acctSessionInterval";
-					acctSessionInterval.value = parseInt(this.$.updateSubscriberInterval.value);
-					sub1.value = acctSessionInterval;
-					patch.push(sub1);
-				} else{
-					function checkSessionInt(sessionInterval) {
-						return sessionInterval.name == "acctSessionInterval";
-					}
-					var indexSessionInt = results.serviceCharacteristic.findIndex(checkSessionInt);
-					if(indexSessionInt != -1) {
-						var sub1 = new Object();
-						sub1.op = "replace";
-						sub1.path = "/serviceCharacteristic/" + indexSessionInt;
-						var acctSessionInterval = new Object();
-						acctSessionInterval.name = "acctSessionInterval";
-						acctSessionInterval.value = results.serviceCharacteristic[indexSessionInt].value;
-						sub1.value = acctSessionInterval;
-						patch.push(sub1);
-					}
-				}
-				function checkMulti(multiSess) {
-					return multiSess.name == "multiSession";
-				}
-				var indexMulti = results.serviceCharacteristic.findIndex(checkMulti);
-				var sub2 = new Object();
-				sub2.op = "replace";
-				sub2.path = "/serviceCharacteristic/" + indexMulti;
-				var multi = new Object();
-				multi.name = "multiSession";
-				multi.value = this.$.updateSubscriberMulti.checked;
-				sub2.value = multi;
-				patch.push(sub2);
-				editAjax.body = JSON.stringify(patch);
-				editAjax.generateRequest();
-			},
-			_updateSubscriberAuthorizationResponse: function (event) {
-				document.getElementById("updateSubscriberToastSuccess").open();
-				document.getElementById("subscriberGrid").clearCache();
-			},
-			_updateSubscriberAuthorizationError: function(event) {
-				this.$.updateSubscriberToastError.text = event.detail.request.xhr.statusText;
-				this.$.updateSubscriberToastError.open();
-			},
-			deleteSubscriber: function(event) {
-				this.$.deleteSubscriberAjax.method = "DELETE";
-				this.$.deleteSubscriberAjax.url = "/serviceInventoryManagement/v2/service/"
-						+ document.getElementById("subscriberGrid").selectedItems[0].id;
-				this.$.deleteSubscriberAjax.generateRequest();
-			},
-			_deleteSubscriberResponse: function(event) {
-				this.$.updateSubscriberModal.close();
-				document.getElementById("deleteSubscriberToastSuccess").open();
-				document.getElementById("subscriberGrid").clearCache();
-			},
-			_deleteSubscriberError: function(event) {
-				this.$.updateSubscriberToastError.text = event.detail.request.xhr.statusText;
-				this.$.updateSubscriberToastError.open();
+				sub.path = "/serviceCharacteristic/" + indexSession;
+				var sessionTimeout = new Object();
+				sessionTimeout.name = "sessionTimeout";
+				sessionTimeout.value = results.serviceCharacteristic[indexSession].value;
+				sub.value = sessionTimeout;
+				patch.push(sub);
 			}
-		});
-	</script>
-</dom-module>
+		}
+		if(this.updateSubSessInt) {
+			function checkSessionInt(sessionInterval) {
+				return sessionInterval.name == "acctSessionInterval";
+			}
+			var indexSessionInt = results.serviceCharacteristic.findIndex(checkSessionInt);
+			var sub1 = new Object();
+			sub1.op = "replace";
+			sub1.path = "/serviceCharacteristic/" + indexSessionInt;
+			var acctSessionInterval = new Object();
+			acctSessionInterval.name = "acctSessionInterval";
+			acctSessionInterval.value = parseInt(this.updateSubSessInt);
+			sub1.value = acctSessionInterval;
+			patch.push(sub1);
+		} else{
+			function checkSessionInt(sessionInterval) {
+				return sessionInterval.name == "acctSessionInterval";
+			}
+			var indexSessionInt = results.serviceCharacteristic.findIndex(checkSessionInt);
+			if(indexSessionInt != -1) {
+				var sub1 = new Object();
+				sub1.op = "replace";
+				sub1.path = "/serviceCharacteristic/" + indexSessionInt;
+				var acctSessionInterval = new Object();
+				acctSessionInterval.name = "acctSessionInterval";
+				acctSessionInterval.value = results.serviceCharacteristic[indexSessionInt].value;
+				sub1.value = acctSessionInterval;
+				patch.push(sub1);
+			}
+		}
+		function checkMulti(multiSess) {
+			return multiSess.name == "multiSession";
+		}
+		var indexMulti = results.serviceCharacteristic.findIndex(checkMulti);
+		var sub2 = new Object();
+		sub2.op = "replace";
+		sub2.path = "/serviceCharacteristic/" + indexMulti;
+		var multi = new Object();
+		multi.name = "multiSession";
+		multi.value = this.updateSubMul;
+		sub2.value = multi;
+		patch.push(sub2);
+		editAjax.body = JSON.stringify(patch);
+		editAjax.generateRequest();
+	}
+
+	_updateSubscriberAuthorizationResponse(event) {
+		document.body.querySelector('sig-app').shadowRoot.getElementById('serviceList').shadowRoot.getElementById('subscriberGrid').clearCache();
+	}
+
+	_updateSubscriberAuthorizationError(event) {
+		this.$.updateSubscriberToastError.text = event.detail.request.xhr.statusText;
+		this.$.updateSubscriberToastError.open();
+	}
+
+	deleteSubscriber(event) {
+		var delSub = this.$.deleteSubscriberAjax;
+		delSub.method = "DELETE";
+		delSub.url = "/serviceInventoryManagement/v2/service/" + this.updateSubId;
+		delSub.generateRequest();
+	}
+
+	_deleteSubscriberResponse(event) {
+		document.body.querySelector('sig-app').shadowRoot.getElementById('serviceList').shadowRoot.getElementById('subscriberGrid').clearCache();
+		this.$.updateSubscriberModal.close();
+	}
+
+	_deleteSubscriberError(event) {
+		this.$.updateSubscriberToastError.text = event.detail.request.xhr.statusText;
+		this.$.updateSubscriberToastError.open();
+	}
+
+	cancelDialog() {
+		this.updateSubId = null;
+		this.updateSubPass = null;
+		this.updateSubPro = null;
+		this.updateSubSes = null;
+		this.updateSubSessInt = null;
+		this.updateSubClass = null;
+		this.updateSubNPass = null;
+		this.updateSubUni = null;
+		this.updateSubSes = null;
+		this.updateSubSessInt = null;
+		this.updateSubMul = null;
+	}
+}
+
+window.customElements.define('sig-sub-update', subUpdate);
