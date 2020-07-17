@@ -123,47 +123,47 @@ class productList extends PolymerElement {
 
 	static get properties() {
 		return {
-         loading: {
-            type: Boolean,
-            notify: true
-         },
-         etag: {
-            type: String,
-            value: null
-         },
+			loading: {
+				type: Boolean,
+				notify: true
+			},
+			etag: {
+				type: String,
+				value: null
+			},
 			activeItem: {
 				type: Object,
 				notify: true,
 				observer: '_activeItemChanged',
 			},
-         _filterProId: {
-            type: Boolean,
-            observer: '_filterChanged'
-         },
-         _filterIdentity: {
-            type: Boolean,
-            observer: '_filterChanged'
-         },
-         _filterOffer: {
-            type: Boolean,
-            observer: '_filterChanged'
-         },
+			_filterProId: {
+				type: Boolean,
+				observer: '_filterChanged'
+			},
+			_filterIdentity: {
+				type: Boolean,
+				observer: '_filterChanged'
+			},
+			_filterOffer: {
+				type: Boolean,
+				observer: '_filterChanged'
+			},
 		}
 	}
 
 	ready() {
 		super.ready();
-     	var grid = this.shadowRoot.getElementById('productInventoryGrid');
-      grid.dataProvider = this._getProduct;
-   }
+		var grid = this.shadowRoot.getElementById('productInventoryGrid');
+		grid.dataProvider = this._getProduct;
+	}
 
 	_activeItemChanged(item) {
 		if(item) {
 			this.$.productInventoryGrid.selectedItems = item ? [item] : [];
 		} else {
 			this.$.productInventoryGrid.selectedItems = [];
-      }
-   }
+		}
+	}
 
 	_getProduct(params, callback) {
 		var grid = this;
@@ -208,7 +208,7 @@ class productList extends PolymerElement {
 						if(request.response[index].balance[indexPro].totalBalance) {
 							if(request.response[index].balance[indexPro]
 										.totalBalance.units == "cents") {
-								if(!request.response[index].balance[indexPro].totalBalance.amount)	{
+								if(!request.response[index].balance[indexPro].totalBalance.amount) {
 											newRecord.cents = request.response[index].balance[indexPro].totalBalance.amount;
 								} else {
 									newRecord.cents = request.response[index].balance[indexPro].totalBalance.amount;
@@ -286,11 +286,11 @@ class productList extends PolymerElement {
 		}
 	}
 
-   _filterChanged(filter) {
-      this.etag = null;
-      var grid = this.shadowRoot.getElementById('productInventoryGrid');
-      grid.size = 0;
-   }
+	_filterChanged(filter) {
+		this.etag = null;
+		var grid = this.shadowRoot.getElementById('productInventoryGrid');
+		grid.size = 0;
+	}
 }
 
 window.customElements.define('sig-product-list', productList);
