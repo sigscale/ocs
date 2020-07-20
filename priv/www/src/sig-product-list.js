@@ -291,10 +291,10 @@ class productList extends PolymerElement {
 		var grid = this.shadowRoot.getElementById('productInventoryGrid');
 		grid.size = 0;
 	}
+
+	showAddProductInven(event) {
+		document.body.querySelector('sig-app').shadowRoot.querySelector('sig-product-add').shadowRoot.getElementById('addProductInvenModal').open();
+	}
 }
 
 window.customElements.define('sig-product-list', productList);
-
-//		showAddProductInven: function(event) {
-//				document.getElementById("addProductInvenModal").open();
-//			}
