@@ -15,17 +15,11 @@ import '@polymer/app-layout/app-toolbar/app-toolbar.js';
 import '@polymer/paper-progress/paper-progress.js';
 import '@polymer/paper-dropdown-menu/paper-dropdown-menu.js';
 import '@polymer/paper-input/paper-input.js';
-import '@polymer/paper-input/paper-textarea.js';
 import '@polymer/paper-button/paper-button.js';
 import '@polymer/paper-listbox/paper-listbox.js';
 import '@polymer/paper-item/paper-item.js';
-import '@polymer/paper-checkbox/paper-checkbox.js';
 import '@polymer/iron-icons/iron-icons.js';
 import '@polymer/paper-icon-button/paper-icon-button.js';
-import '@polymer/iron-collapse/iron-collapse.js';
-import '@polymer/paper-tabs/paper-tabs.js';
-import '@polymer/paper-toggle-button/paper-toggle-button.js';
-import '@polymer/paper-toast/paper-toast.js';
 import './style-element.js';
 
 class productAddClass extends PolymerElement {
