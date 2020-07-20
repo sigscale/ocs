@@ -1,105 +1,53 @@
-<!--  vim: set ts=3:  -->
-<link rel="import" href="polymer/polymer.html">
-<link rel="import" href="i18n-msg/i18n-msg.html">
-<link rel="import" href="i18n-msg/i18n-msg-behavior.html">
-<link rel="import" href="paper-dialog/paper-dialog.html">
-<link rel="import" href="paper-toolbar/paper-toolbar.html">
-<link rel="import" href="paper-tabs/paper-tabs.html">
-<link rel="import" href="paper-input/paper-input.html">
-<link rel="import" href="paper-item/paper-icon-item.html">
-<link rel="import" href="paper-item/paper-item-body.html">
-<link rel="import" href="paper-tooltip/paper-tooltip.html">
-<link rel="import" href="paper-button/paper-button.html">
-<link rel="import" href="paper-toggle-button/paper-toggle-button.html" >
-<link rel="import" href="paper-toast/paper-toast.html">
-<link rel="import" href="paper-styles/color.html">
-<link rel="import" href="iron-ajax/iron-ajax.html">
-<link rel="import" href="iron-pages/iron-pages.html">
-<link rel="import" href="paper-checkbox/paper-checkbox.html">
-<link rel="import" href="iron-icons/iron-icons.html">
-<link rel="import" href="iron-icons/communication-icons.html">
-<link rel="import" href="paper-tags/paper-tags-input.html">
+/**
+ * @license
+ * Copyright (c) 2020 The Polymer Project Authors. All rights reserved.
+ * This code may only be used under the BSD style license found at http://polymer.github.io/LICENSE.txt
+ * The complete set of authors may be found at http://polymer.github.io/AUTHORS.txt
+ * The complete set of contributors may be found at http://polymer.github.io/CONTRIBUTORS.txt
+ * Code distributed by Google as part of the polymer project is also
+ * subject to an additional IP rights grant found at http://polymer.github.io/PATENTS.txt
+ */
 
-<dom-module id="sig-product-add">
-	<template>
-		<style is="custom-style">
-			paper-dialog {
-				overflow: auto;
-			}
-			paper-input {
-				--paper-input-container-focus-color: var(--paper-yellow-900);
-			}
-			paper-toolbar {
-				margin-top: 0px;
-				color: white;
-				background-color: #bc5100;
-			}
-			paper-item-body {
-				--paper-item-body-secondary: {
-					font-weight: bold;
-					font-size: larger;
-				}
-			}
-			paper-toast.error {
-				background-color: var(--paper-red-a400);
-			}
-			paper-toggle-button {
-				--paper-toggle-button-checked-bar-color: #ffb04c;
-				--paper-toggle-button-checked-button-color: var(--paper-yellow-900);
-			}
-			paper-checkbox {
-				--paper-checkbox-checked-color: #ffb04c;
-				--paper-checkbox-checkmark-color: var(--paper-yellow-900);
-			}
-			.toggle {
-				display:inline-block;
-			}
-			.generate {
-				display: inline-block;
-				width: 8em;
-			}
-			.identity {
-				display: inline-block;
-			}
-			.password {
-				display: inline-block;
-			}
-			.add-button {
-				background-color: var(--paper-lime-a700);
-				color: black;
-				float: right;
-				width: 8em;
-			}
-			.delete-buttons {
-				background: #EF5350;
-				color: black;
-			}
-			.cancel-button {
-				color: black;
-			}
-			.generated {
-				padding: 10px;
-				overflow: auto;
-			}
-			.close {
-				background-color: var(--paper-lime-a700);
-				color: black;
-				float: right;
-				width: 5em;
-			}
-		</style>
-		<paper-dialog id="addProductInvenModal" modal>
-			<paper-toolbar>
-				<h2>Add Product</h2>
-			</paper-toolbar>
-			<div>
+import { PolymerElement, html } from '@polymer/polymer/polymer-element.js';
+import '@polymer/iron-ajax/iron-ajax.js';
+import '@polymer/paper-dialog/paper-dialog.js';
+import '@polymer/app-layout/app-toolbar/app-toolbar.js';
+import '@polymer/paper-progress/paper-progress.js';
+import '@polymer/paper-dropdown-menu/paper-dropdown-menu.js';
+import '@polymer/paper-input/paper-input.js';
+import '@polymer/paper-input/paper-textarea.js';
+import '@polymer/paper-button/paper-button.js';
+import '@polymer/paper-listbox/paper-listbox.js';
+import '@polymer/paper-item/paper-item.js';
+import '@polymer/paper-checkbox/paper-checkbox.js';
+import '@polymer/iron-icons/iron-icons.js';
+import '@polymer/paper-icon-button/paper-icon-button.js';
+import '@polymer/iron-collapse/iron-collapse.js';
+import '@polymer/paper-tabs/paper-tabs.js';
+import '@polymer/paper-toggle-button/paper-toggle-button.js';
+import '@polymer/paper-toast/paper-toast.js';
+import './style-element.js';
+
+class productAddClass extends PolymerElement {
+	static get template() {
+		return html`
+			<style include="style-element"></style>
+			<paper-dialog class="dialog" id="addProductInvenModal" modal>
+				<app-toolbar>
+					<h2>Add Product</h2>
+				</app-toolbar>
+            <paper-progress
+                  indeterminate
+                  class="slow red"
+                  disabled="{{!loading}}">
+            </paper-progress>
 				<paper-dropdown-menu
 						id="addProDrop"
-						label="[[i18n.proOffer]]">
+						label="Product Offer"
+						value="{{proAdd}}">
 					<paper-listbox
 							id="addProDropList"
-							slot="dropdown-content"
-							class="dropdown-content">
+							slot="dropdown-content">
 						<template is="dom-repeat" items="[[offers]]">
 							<paper-item>
 								{{item}}
@@ -107,157 +55,147 @@
 						</template>
 					</paper-listbox>
 				</paper-dropdown-menu>
-				<paper-tags-input
-					id="addService1"
-					label="[[i18n.servId]]"
-					items="[]">
-				</paper-tags-input>
-			</div>
-			<div class="buttons">
-				<paper-button dialog-confirm
-					raised
-					class="add-button"
-					on-tap="_productinvenAddSubmit">
-					<i18n-msg msgid="submit">
-						Submit
-					</i18n-msg>
-				</paper-button>
-				<paper-button dialog-dismiss
-					class="cancel-button"
-					onclick="addProductInvenModal.close()">
-					<i18n-msg msgid="cancel">
-						Cancel
-					</i18n-msg>
-				</paper-button>
-			</div>
-		</paper-dialog>
-		<paper-dialog
-				id="deleteProductModal" modal>
-			<paper-toolbar>
-				<h2>Delete Product</h2>
-			</paper-toolbar>
-			<div>
 				<paper-input
-						id="deleteProId"
-						name="ProductId"
-						label="Product Id"
-						required
-						disabled>
+						id="servId"
+						name="ServiceId"
+						value="{{proService}}"
+						label="Service Id">
 				</paper-input>
-			</div>
-			<div class="buttons">
-				<paper-button raised
-						id="proDelButton"
-						on-tap="productDelete"
-						class="delete-buttons">
-					Delete
-				</paper-button>
-				<paper-button dialog-dismiss
-						class="cancel-button"
-						onclick="deleteProductModal.close()">
-					Cancel
-				</paper-button>
-			</div>
-		</paper-dialog>
-		<iron-ajax
-				id="deleteProductAjax"
-				url="/productInventoryManagement/v2/product/"
-				method="delete"
-				on-response="_deleteProductResponse"
-				on-error="_deleteProductrror">
-		</iron-ajax>
-		<iron-ajax
-				id="addProductAjax"
-				url="/productInventoryManagement/v2/product"
-				method = "post"
-				content-type="application/json"
-				on-loading-changed="_onLoadingChanged"
-				on-response="_addProductResponse"
-				on-error="_addProductrror">
-		</iron-ajax>
-	</template>
-	<script>
-		Polymer ({
-			is: 'sig-product-add',
-			behaviors: [i18nMsgBehavior],
-			properties: {
-				selected: {
-					type: Number,
-					value: 0
-				},
-				offers: {
-					type: Array,
-					value: function() {
-						return []
-					}
-				},
-				product: {
-					type: String,
+				<div class="buttons">
+					<paper-button dialog-confirm
+							raised
+							class="submit-button"
+							on-tap="_productinvenAddSubmit">
+						Add
+					</paper-button>
+					<paper-button dialog-dismiss
+							class="cancel-button"
+							on-tap="cancelPro">
+						Cancel
+					</paper-button>
+				</div>
+			</paper-dialog>
+			<paper-dialog
+					class="dialog" id="deleteProductModal" modal>
+				<app-toolbar>
+					<h2>Delete Product</h2>
+				</app-toolbar>
+				<div>
+					<paper-input
+							id="deleteProId"
+							name="ProductId"
+							value="{{delProId}}"
+							label="Product Id"
+							required
+							disabled>
+					</paper-input>
+				</div>
+				<div class="buttons">
+					<paper-button raised
+							id="proDelButton"
+							on-tap="productDelete"
+							class="delete-button">
+						Delete
+					</paper-button>
+					<paper-button dialog-dismiss
+							class="cancel-button"
+							on-tap="cancelDel">
+						Cancel
+					</paper-button>
+				</div>
+			</paper-dialog>
+			<iron-ajax
+					id="deleteProductAjax"
+					url="/productInventoryManagement/v2/product/"
+					method="delete"
+					on-response="_deleteProductResponse"
+					on-error="_deleteProductrror">
+			</iron-ajax>
+			<iron-ajax
+					id="addProductAjax"
+					url="/productInventoryManagement/v2/product"
+					method = "post"
+					content-type="application/json"
+					on-loading-changed="_onLoadingChanged"
+					on-response="_addProductResponse"
+					on-error="_addProductrror">
+			</iron-ajax>
+		`;
+	}
+
+	static get properties() {
+		return {
+			selected: {
+				type: Number,
+				value: 0
+			},
+			offers: {
+				type: Array,
+				value: function() {
+					return []
 				}
 			},
-			productDelete: function(event) {
-				var delProduct = this.$.deleteProId.value;
-				var deleteAjax = this.$.deleteProductAjax;
-				deleteAjax.url = "/productInventoryManagement/v2/product/" + delProduct;
-				deleteAjax.generateRequest();
+			product: {
+				type: String
 			},
-			_deleteProductResponse: function(event) {
-				this.$.deleteProductModal.close();
-				document.getElementById('getProductInventory').generateRequest();
+			delProId: {
+				type: String
 			},
-			_productinvenAddSubmit: function(event) {
-				var ajaxPro = this.$.addProductAjax;
-				var productRes = new Object();
-				var productAdd = new Object();
-				productAdd.id = this.$.addProDrop.value;
-				productAdd.name = this.$.addProDrop.value;
-				productAdd.href = "/catalogManagement/v2/productOffering/" + this.$.addProDrop.value; 
-				productRes.productOffering = productAdd;
-				var productServi = new Array();
-				var services = this.$.addService1.items
-				for(var index in services) {
-					bla = new Object();
-					bla.id = services[index];
-					bla.href = "/serviceInventoryManagement/v2/service/" + services[index];
-					productServi.push(bla);
-				}
-				productRes.realizingService= productServi;
-				ajaxPro.body = productRes;
-				ajaxPro.generateRequest();
-				this.$.addProDrop.value = null;
-				this.$.addService1.value = null;
-				this.$.addProductInvenModal.close();
+			proService: {
+				type: String
 			},
-			_addProductResponse: function(event) {
-				this.$.addProductInvenModal.close();
-				document.getElementById("productInventoryGrid").clearCache();
-				document.getElementById("addSubscriberToastSuccess").open();
-			},
-			_addProductrror: function(event) {
-				document.getElementById("addSubscriberToastError").text = event.detail.request.xhr.statusText;
-				document.getElementById("addSubscriberToastError").open();
-			},
-			_onLoadingChanged: function(event) {
-				if (this.$.addProductAjax.loading) {
-					document.getElementById("progress").disabled = false;
-				} else {
-					document.getElementById("progress").disabled = true;
-				}
-			},
-			subcheckboxchanged: function(event) {
-				if (event.target.checked) {
-					this.$.addSubscriberPassword.disabled = true;
-				} else {
-					this.$.addSubscriberPassword.disabled = false;
-				}
-			},
-			subcheckchanged: function(event) {
-				if (event.target.checked) {
-					this.$.addSubscriberId.disabled = true;
-				} else {
-					this.$.addSubscriberId.disabled = false;
-				}
-			}
-		});
-	</script>
-</dom-module>
+		}
+	}
+
+   ready() {
+      super.ready()
+   }
+
+	productDelete() {
+		var delProduct = this.delProId;
+		var deleteAjax = this.$.deleteProductAjax;
+		deleteAjax.url = "/productInventoryManagement/v2/product/" + delProduct;
+		deleteAjax.generateRequest();
+	}
+
+	_deleteProductResponse() {
+		this.$.deleteProductModal.close();
+		document.body.querySelector('sig-app').shadowRoot.getElementById('productList').shadowRoot.getElementById('getProductInventory').generateRequest();
+	}
+
+	_productinvenAddSubmit() {
+		var ajaxPro = this.$.addProductAjax;
+		var productRes = new Object();
+		var productAdd = new Object();
+		productAdd.id = this.proAdd;
+		productAdd.name = this.proAdd;
+		productAdd.href = "/catalogManagement/v2/productOffering/" + this.proAdd; 
+		productRes.productOffering = productAdd;
+		var productServi = new Array();
+		var productSer = new Object();
+		productSer.id = this.proService;
+		productSer.href = "/serviceInventoryManagement/v2/service/" + this.proService;
+		productServi.push(productSer);		
+//		var productServi = new Array();
+//		var services = this.proService;
+//		for(var index in services) {
+//			bla = new Object();
+//			bla.id = services[index];
+//			bla.href = "/serviceInventoryManagement/v2/service/" + services[index];
+//			productServi.push(bla);
+//		}
+		productRes.realizingService= productServi;
+		ajaxPro.body = productRes;
+		ajaxPro.generateRequest();
+		this.proAdd = null;
+		this.proService = null;
+		this.$.addProductInvenModal.close();
+	}
+
+	_addProductResponse() {
+		this.$.addProductInvenModal.close();
+		document.body.querySelector('sig-app').shadowRoot.getElementById('productList').shadowRoot.getElementById('productInventoryGrid').clearCache();
+	}
+}
+
+window.customElements.define('sig-product-add', productAddClass);
