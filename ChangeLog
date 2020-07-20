@@ -1,3 +1,13 @@
+2020-07-20  Vance Shipley <vances@sigscale.org>
+
+	* allow + in prefix
+	* forward received rtr to ue deregistration handler
+	* forward received str to session termination handler
+	* readmes for packages
+	* return correct error code for product resources
+	* include doc directory in tarball package
+	* reconcile conflict with 3gpp ts 29.273 sections 5.2.2.1.2 and 7.2.2.1.2
+
 2020-05-20  Vance Shipley <vances@sigscale.org>
 
 	* add proxy-info, route-record to all messages
