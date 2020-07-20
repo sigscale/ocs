@@ -30,11 +30,11 @@ class productAddClass extends PolymerElement {
 				<app-toolbar>
 					<h2>Add Product</h2>
 				</app-toolbar>
-            <paper-progress
-                  indeterminate
-                  class="slow red"
-                  disabled="{{!loading}}">
-            </paper-progress>
+				<paper-progress
+						indeterminate
+						class="slow red"
+						disabled="{{!loading}}">
+				</paper-progress>
 				<paper-dropdown-menu
 						id="addProDrop"
 						label="Product Offer"
@@ -141,9 +141,9 @@ class productAddClass extends PolymerElement {
 		}
 	}
 
-   ready() {
-      super.ready()
-   }
+	ready() {
+		super.ready()
+	}
 
 	productDelete() {
 		var delProduct = this.delProId;
@@ -169,7 +169,7 @@ class productAddClass extends PolymerElement {
 		var productSer = new Object();
 		productSer.id = this.proService;
 		productSer.href = "/serviceInventoryManagement/v2/service/" + this.proService;
-		productServi.push(productSer);		
+		productServi.push(productSer);
 //		var productServi = new Array();
 //		var services = this.proService;
 //		for(var index in services) {
