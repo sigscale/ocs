@@ -123,6 +123,10 @@ class productAddClass extends PolymerElement {
 				type: Number,
 				value: 0
 			},
+         activeItem: {
+            type: Object,
+            observer: '_activeItemChanged'
+         },
 			offers: {
 				type: Array,
 				value: function() {
@@ -143,6 +147,13 @@ class productAddClass extends PolymerElement {
 
 	ready() {
 		super.ready()
+	}
+
+	_activeItemChanged(item) {
+		if(item != null) {
+			this.delProId = item.id;
+			this.$.deleteProductModal.open();
+		}
 	}
 
 	productDelete() {
