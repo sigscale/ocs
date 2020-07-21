@@ -166,6 +166,7 @@ class productAddClass extends PolymerElement {
 	_deleteProductResponse() {
 		this.$.deleteProductModal.close();
 		document.body.querySelector('sig-app').shadowRoot.getElementById('productList').shadowRoot.getElementById('getProductInventory').generateRequest();
+		document.body.querySelector('sig-app').shadowRoot.getElementById('productList').shadowRoot.getElementById('productInventoryGrid').clearCache();
 	}
 
 	_productinvenAddSubmit() {
