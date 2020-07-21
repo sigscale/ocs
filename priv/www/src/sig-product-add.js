@@ -123,10 +123,10 @@ class productAddClass extends PolymerElement {
 				type: Number,
 				value: 0
 			},
-         activeItem: {
-            type: Object,
-            observer: '_activeItemChanged'
-         },
+			activeItem: {
+				type: Object,
+				observer: '_activeItemChanged'
+			},
 			offers: {
 				type: Array,
 				value: function() {
