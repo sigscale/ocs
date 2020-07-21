@@ -1,132 +1,112 @@
-<!--  vim: set ts=3:  -->
-<link rel="import" href="polymer/polymer.html">
-<link rel="import" href="vaadin-grid/vaadin-grid.html">
-<link rel="import" href="vaadin-grid/vaadin-grid-filter.html">
-<link rel="import" href="vaadin-grid/vaadin-grid-column-group.html">
-<link rel="import" href="i18n-msg/i18n-msg-behavior.html">
-<link rel="import" href="iron-ajax/iron-ajax.html">
-<link rel="import" href="paper-fab/paper-fab.html" >
-<link rel="import" href="paper-toast/paper-toast.html">
-<link rel="import" href="paper-styles/color.html">
-<link rel="import" href="sig-sub-add.html">
+/**
+ * @license
+ * Copyright (c) 2020 The Polymer Project Authors. All rights reserved.
+ * This code may only be used under the BSD style license found at http://polymer.github.io/LICENSE.txt
+ * The complete set of authors may be found at http://polymer.github.io/AUTHORS.txt
+ * The complete set of contributors may be found at http://polymer.github.io/CONTRIBUTORS.txt
+ * Code distributed by Google as part of the polymer project is also
+ * subject to an additional IP rights grant found at http://polymer.github.io/PATENTS.txt
+ */
 
-<dom-module id="sig-bucket-list">
-	<template>
-		<style is="custom-style">
-			::-webkit-input-placeholder { /* Chrome/Opera/Safari */
-				color: initial;
-				font-weight: bold;
-			}
-			::-moz-placeholder { /* Firefox 19+ */
-				color: initial;
-				font-weight: bold;
-			}
-			:-ms-input-placeholder { /* IE 10+ */
-				color: initial;
-				font-weight: bold;
-			}
-			:-moz-placeholder { /* Firefox 18- */
-				color: initial;
-				font-weight: bold;
-			}
-			.add-button {
-				right: 2%;
-				position: fixed;
-				bottom: 5%;
-				z-index: 100;
-			}
-			paper-fab {
-				background: var(--paper-lime-a700);
-				color: black;
-			}
-			vaadin-grid {
-				height: 100%;
-				--vaadin-grid-header-cell: {
-					background: #ffb04c;
-				};
-			}
-			vaadin-grid .grouptitle {
-				text-align: center;
-				border-bottom-style: solid;
-				border-color: var(--paper-yellow-900);
-			}
-			vaadin-grid .cell.numeric{
-				text-align: left;
-			}
-			vaadin-grid input {
-				font-size: inherit;
-				background: #ffb04c;
-				border-style: none;
-			}
-			.yellow-button {
-				text-transform: none;
-				color: #eeff41;
-			}
-		</style>
-		<vaadin-grid id="balanceBucketGrid" active-item="{{activeItem}}">
-			<vaadin-grid-column width="15ex" flex-grow="5">
-				<template class="header">
-					<vaadin-grid-filter aria-label="[[i18n.bucketId]]" path="id" value="[[_filterBucId]]">
-						<input placeholder="[[i18n.bucketId]]" value="{{_filterBucId::input}}" focus-target>
-					</vaadin-grid-filter>
-				</template>
-				<template>[[item.id]]</template>
-			</vaadin-grid-column>
-			<vaadin-grid-column width="15ex" flex-grow="5">
-				<template class="header">
-					<vaadin-grid-filter aria-label="[[i18n.prodId]]" path="product" value="[[_filterProdId]]">
-						<input placeholder="[[i18n.prodId]]" value="{{_filterProdId::input}}" focus-target>
+import { PolymerElement, html } from '@polymer/polymer/polymer-element.js';
+import '@polymer/iron-ajax/iron-ajax.js';
+import '@polymer/paper-fab/paper-fab.js';
+import '@polymer/iron-icons/iron-icons.js';
+import '@vaadin/vaadin-grid/vaadin-grid.js';
+import '@vaadin/vaadin-grid/vaadin-grid-filter.js';
+import '@vaadin/vaadin-grid/vaadin-grid-sorter.js';
+import '@vaadin/vaadin-grid/vaadin-grid-column-group.js';
+import '@polymer/paper-toast/paper-toast.js';
+import './style-element.js'
+
+class bucketList extends PolymerElement {
+	static get template() {
+		return html`
+			<style include="style-element"></style>
+			<vaadin-grid
+					id="balanceBucketGrid"
+					loading="{{loading}}"
+					active-item="{{activeItem}}">
+				<vaadin-grid-column width="15ex" flex-grow="5">
+					<template class="header">
+						<vaadin-grid-filter
+								aria-label="Bucket Id"
+								path="id"
+								value="[[_filterBucId]]">
+							<input
+									placeholder="Bucket Id"
+									value="{{_filterBucId::input}}"
+									focus-target>
+						</vaadin-grid-filter>
+					</template>
+					<template>[[item.id]]</template>
+				</vaadin-grid-column>
+				<vaadin-grid-column width="15ex" flex-grow="5">
+					<template class="header">
+						<vaadin-grid-filter
+								aria-label="Product Id"
+								path="product"
+								value="[[_filterProdId]]">
+							<input
+									placeholder="Product Id"
+									value="{{_filterProdId::input}}"
+									focus-target>
 					</vaadin-grid-filter>
 				</template>
 				<template>[[item.product]]</template>
+				<vaadin-grid-column-group>
+					<template class="header">
+						<div class="grouptitle">Balance</div>
+					</template>
+					<vaadin-grid-column width="12ex" flex-grow="2">
+						<template class="header">
+								Cents
+						</template>
+						<template>
+							<div class="cell numeric">[[item.cents]]</div>
+						</template>
+					</vaadin-grid-column>
+					<vaadin-grid-column width="12ex" flex-grow="2">
+						<template class="header">
+								Bytes
+						</template>
+						<template>
+							<div class="cell numeric">[[item.remainedAmount]]</div>
+						</template>
+					</vaadin-grid-column>
+					<vaadin-grid-column width="12ex" flex-grow="2">
+						<template class="header">
+								Seconds
+						</template>
+						<template>
+							<div class="cell numeric">[[item.seconds]]</div>
+						</template>
+					</vaadin-grid-column>
+				</vaadin-grid-column-group>
 			</vaadin-grid-column>
-			<vaadin-grid-column-group>
-				<template class="header">
-					<div class="grouptitle">[[i18n.balance]]</div>
-				</template>
-				<vaadin-grid-column width="12ex" flex-grow="2">
-					<template class="header">
-						<i18n-msg msgid="cents">
-							Cents
-						</i18n-msg>
-					</template>
-					<template>
-						<div class="cell numeric">[[item.cents]]</div>
-					</template>
-				</vaadin-grid-column>
-				<vaadin-grid-column width="12ex" flex-grow="2">
-					<template class="header">
-						<i18n-msg msgid="bytes">
-							Bytes
-						</i18n-msg>
-					</template>
-					<template>
-						<div class="cell numeric">[[item.remainedAmount]]</div>
-					</template>
-				</vaadin-grid-column>
-				<vaadin-grid-column width="12ex" flex-grow="2">
-					<template class="header">
-						<i18n-msg msgid="seconds">
-							Seconds
-						</i18n-msg>
-					</template>
-					<template>
-						<div class="cell numeric">[[item.seconds]]</div>
-					</template>
-				</vaadin-grid-column>
-			</vaadin-grid-column-group>
+			<div class="add-button">
+				<paper-fab
+						icon="add"
+						on-tap="showAddBucket">
+				</paper-fab>
+			</div>
+			<iron-ajax
+					id="getBucketBalance"
+					url="/balanceManagement/v1/bucket/"
+					rejectWithRequest>
+			</iron-ajax>
+		`;		
+	}
+
+	static get properties() {
+		return {
+		}
+	}
+}
+
+/*<dom-module id="sig-bucket-list">
+	<template>
 		</vaadin-grid>
-		<div class="add-button">
-			<paper-fab
-				icon="add"
-				on-tap="showAddBucket">
-			</paper-fab>
-		</div>
-		<iron-ajax
-			id="getBucketBalance"
-			url="/balanceManagement/v1/bucket/"
-			rejectWithRequest>
-		</iron-ajax>
 	</template>
 	<script>
 		Polymer ({
@@ -269,4 +249,4 @@
 			},
 		});
 	</script>
-</dom-module>
+</dom-module>*/
