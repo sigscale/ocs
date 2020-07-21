@@ -362,7 +362,7 @@ class SigApp extends PolymerElement {
 			<sig-prefix-add></sig-prefix-add>
 			<sig-prefix-update></sig-prefix-update>
 			<sig-bucket-add></sig-bucket-add>
-			<sig-product-add offers="[[offers]]"></sig-product-add>
+			<sig-product-add active-item="[[activeProductItem]]" offers="[[offers]]"></sig-product-add>
 			<iron-ajax id="deleteTableAjax"
 				on-response="_deleteTableResponse"
 				on-error="_deleteTableError">
