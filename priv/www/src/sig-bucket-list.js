@@ -95,40 +95,40 @@ class bucketList extends PolymerElement {
 					url="/balanceManagement/v1/bucket/"
 					rejectWithRequest>
 			</iron-ajax>
-		`;		
+		`;	
 	}
 
 	static get properties() {
 		return {
-         loading: {
-            type: Boolean,
-            notify: true
-         },
-         etag: {
-            type: String,
-            value: null
-         },
-         activeItem: {
-            type: Object,
-            notify: true,
-            observer: '_activeItemChanged'
-         },
+			loading: {
+				type: Boolean,
+				notify: true
+			},
+			etag: {
+				type: String,
+				value: null
+			},
+			activeItem: {
+				type: Object,
+				notify: true,
+				observer: '_activeItemChanged'
+			},
 			_filterBucId: {
-            type: Boolean,
-            observer: '_filterChanged'
+				type: Boolean,
+				observer: '_filterChanged'
 			},
 			_filterProdId: {
-            type: Boolean,
-            observer: '_filterChanged'
+				type: Boolean,
+				observer: '_filterChanged'
 			}
 		}
 	}
 
-   ready() {
-      super.ready();
-      var grid = this.shadowRoot.getElementById('balanceBucketGrid');
-      grid.dataProvider = this._getBuckets;
-   }	
+	ready() {
+		super.ready();
+		var grid = this.shadowRoot.getElementById('balanceBucketGrid');
+		grid.dataProvider = this._getBuckets;
+	}
 
 	_getBuckets(params, callback) {
 		var grid = this;
