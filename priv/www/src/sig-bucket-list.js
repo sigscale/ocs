@@ -100,150 +100,143 @@ class bucketList extends PolymerElement {
 
 	static get properties() {
 		return {
+         loading: {
+            type: Boolean,
+            notify: true
+         },
+         etag: {
+            type: String,
+            value: null
+         },
+         activeItem: {
+            type: Object,
+            notify: true,
+            observer: '_activeItemChanged'
+         },
+			_filterBucId: {
+            type: Boolean,
+            observer: '_filterChanged'
+			},
+			_filterProdId: {
+            type: Boolean,
+            observer: '_filterChanged'
+			}
+		}
+	}
+
+   ready() {
+      super.ready();
+      var grid = this.shadowRoot.getElementById('balanceBucketGrid');
+      grid.dataProvider = this._getBuckets;
+   }	
+
+	_getBuckets(params, callback) {
+		var grid = this;
+		var bucketList = document.body.querySelector('sig-app').shadowRoot.querySelector('sig-bucket-list');
+		var ajax = bucketList.shadowRoot.getElementById("getBucketBalance");
+		delete ajax.params['filter'];
+		function checkHead(param) {
+			return param.path == "id" || param.path == "product";
+		}
+		params.filters.filter(checkHead).forEach(function(filter) {
+			if (filter.value) {
+				if(ajax.params['filter']) {
+					ajax.params['filter'] += "]," + filter.path + ".like=[" + filter.value + "%";
+				} else {
+					ajax.params['filter'] = "\"[{" + filter.path + ".like=[" + filter.value + "%";
+				}
+			}
+		});
+		if (ajax.params['filter']) {
+			ajax.params['filter'] += "]}]\"";
+		}
+		var handleAjaxResponse = function(request) {
+			if(request) {
+				bucketList.etag = request.xhr.getResponseHeader('ETag');
+				var range = request.xhr.getResponseHeader('Content-Range');
+				var range1 = range.split("/");
+				var range2 = range1[0].split("-");
+				if (range1[1] != "*") {
+					grid.size = Number(range1[1]);
+				} else {
+					grid.size = Number(range2[1]) + grid.pageSize * 2;
+				}
+				var vaadinItems = new Array();
+				function checkChar(characteristic){
+					return characteristic.name == "id";
+				}
+				for (var index in request.response) {
+					var newRecord = new Object();
+					newRecord.id = request.response[index].id;
+					if(request.response[index].product.id) {
+						newRecord.product = request.response[index].product.id;
+					}
+					if(request.response[index].remainedAmount) {
+						if(request.response[index].remainedAmount.units == "cents") {
+							newRecord.cents = request.response[index].remainedAmount.amount;
+						}
+						if(request.response[index].remainedAmount.units == "seconds") {
+							var Str = request.response[index].remainedAmount.amount;
+							if(Str.includes("b")){
+								var NewStrSec = Str.substring(0, Str.length - 1);
+								newRecord.seconds = NewStrSec;
+							}
+						}
+						if(request.response[index].remainedAmount.units == "octets") {
+							var Str = request.response[index].remainedAmount.amount;
+							if(Str.includes("b")){
+								var NewStr = Str.substring(0, Str.length - 1);
+								newRecord.remainedAmount = NewStr;
+							}
+						}
+					}
+					vaadinItems[index] = newRecord;
+				}
+				callback(vaadinItems);
+			} else {
+				grid.size = 0;
+				callback([]);
+			}
+		};
+		var handleAjaxError = function(error) {
+			bucketList.etag = null;
+			var toast = document.getElementById('userToastError');
+			toast.text = error;
+			toast.open();
+			if(!grid.size) {
+				grid.size = 0;
+			}
+			callback([]);
+		}
+		if (ajax.loading) {
+			ajax.lastRequest.completes.then(function(request) {
+			var startRange = params.page * params.pageSize + 1;
+			var endRange = startRange + params.pageSize - 1;
+			ajax.headers['Range'] = "items=" + startRange + "-" + endRange;
+			if (bucketList.etag && params.page > 0) {
+				ajax.headers['If-Range'] = bucketList.etag;
+			} else {
+				delete ajax.headers['If-Range'];
+			}
+			return ajax.generateRequest().completes;
+			}, handleAjaxError).then(handleAjaxResponse, handleAjaxError);
+		} else {
+			var startRange = params.page * params.pageSize + 1;
+			var endRange = startRange + params.pageSize - 1;
+			ajax.headers['Range'] = "items=" + startRange + "-" + endRange;
+			if (bucketList.etag && params.page > 0) {
+				ajax.headers['If-Range'] = bucketList.etag;
+			} else {
+				delete ajax.headers['If-Range'];
+			}
+			ajax.generateRequest().completes.then(handleAjaxResponse, handleAjaxError);
 		}
 	}
 }
 
+window.customElements.define('sig-bucket-list', bucketList);
+
 /*<dom-module id="sig-bucket-list">
-	<template>
-		</vaadin-grid>
-	</template>
-	<script>
-		Polymer ({
-			is: 'sig-bucket-list',
-			behaviors: [i18nMsgBehavior],
-			properties: {
-				activePage: {
-					type: Boolean,
-					value: false,
-					observer: '_activePageChanged'
-				}
-			},
-			_activePageChanged: function(active) {
-				if(active) {
-					var grid = this.$.balanceBucketGrid;
-					grid.columns = [
-						{
-							name: "id" 
-						},
-						{
-							name: "product"
-						},
-						{
-							name: "remainedAmount"
-						},
-						{
-							name: "cents"
-						},
-						{
-							name: "seconds"
-						}
-					];
-					grid.dataProvider = this._getBuckets;
-				}
-			},
-			_getBuckets: function(params, callback) {
-				var grid = document.getElementById('balanceBucketGrid');
-				var ajax = document.getElementById("getBucketBalance");
-				delete ajax.params['filter'];
-				function checkHead(param) {
-					return param.path == "id" || param.path == "product";
-				}
-				params.filters.filter(checkHead).forEach(function(filter) {
-					if (filter.value) {
-						if(ajax.params['filter']) {
-							ajax.params['filter'] += "]," + filter.path + ".like=[" + filter.value + "%";
-						} else {
-							ajax.params['filter'] = "\"[{" + filter.path + ".like=[" + filter.value + "%";
-						}
-					}
-				});
-				if (ajax.params['filter']) {
-					ajax.params['filter'] += "]}]\"";
-				}
-				var bucketList = document.getElementById('bucketList');
-				var handleAjaxResponse = function(request) {
-					if(request) {
-						bucketList.etag = request.xhr.getResponseHeader('ETag');
-						var range = request.xhr.getResponseHeader('Content-Range');
-						var range1 = range.split("/");
-						var range2 = range1[0].split("-");
-						if (range1[1] != "*") {
-							grid.size = Number(range1[1]);
-						} else {
-							grid.size = Number(range2[1]) + grid.pageSize * 2;
-						}
-						var vaadinItems = new Array();
-						function checkChar(characteristic){
-							return characteristic.name == "id";
-						}
-						for (var index in request.response) {
-							var newRecord = new Object();
-							newRecord.id = request.response[index].id;
-							if(request.response[index].product.id) {
-								newRecord.product = request.response[index].product.id;
-							}
-							if(request.response[index].remainedAmount) {
-								if(request.response[index].remainedAmount.units == "cents") {
-									newRecord.cents = request.response[index].remainedAmount.amount;
-								}
-								if(request.response[index].remainedAmount.units == "seconds") {
-									var Str = request.response[index].remainedAmount.amount;
-									if(Str.includes("b")){
-										var NewStrSec = Str.substring(0, Str.length - 1);
-										newRecord.seconds = NewStrSec;
-									}
-								}
-								if(request.response[index].remainedAmount.units == "octets") {
-									var Str = request.response[index].remainedAmount.amount;
-									if(Str.includes("b")){
-										var NewStr = Str.substring(0, Str.length - 1);
-										newRecord.remainedAmount = NewStr;
-									}
-								}
-							}
-							vaadinItems[index] = newRecord;
-						}
-						callback(vaadinItems);
-					} else {
-						grid.size = 0;
-						callback([]);
-					}
-				};
-				var handleAjaxError = function(error) {
-					bucketList.etag = null;
-					var toast = document.getElementById('userToastError');
-					toast.text = error;
-					toast.open();
-					if(!grid.size) {
-						grid.size = 0;
-					}
-					callback([]);
-				}
-				if (ajax.loading) {
-					ajax.lastRequest.completes.then(function(request) {
-						var startRange = params.page * params.pageSize + 1;
-						var endRange = startRange + params.pageSize - 1;
-						ajax.headers['Range'] = "items=" + startRange + "-" + endRange;
-						if (bucketList.etag && params.page > 0) {
-							ajax.headers['If-Range'] = bucketList.etag;
-						} else {
-							delete ajax.headers['If-Range'];
-						}
-						return ajax.generateRequest().completes;
-					}, handleAjaxError).then(handleAjaxResponse, handleAjaxError);
-				} else {
-					var startRange = params.page * params.pageSize + 1;
-					var endRange = startRange + params.pageSize - 1;
-					ajax.headers['Range'] = "items=" + startRange + "-" + endRange;
-					if (bucketList.etag && params.page > 0) {
-						ajax.headers['If-Range'] = bucketList.etag;
-					} else {
-						delete ajax.headers['If-Range'];
-					}
-				ajax.generateRequest().completes.then(handleAjaxResponse, handleAjaxError);
-				}
-			},
 			showAddBucket: function(event) {
 				document.getElementById("addBucketModal").open();
 			},
