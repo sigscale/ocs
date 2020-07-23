@@ -83,11 +83,11 @@ class bucketList extends PolymerElement {
 						</template>
 					</vaadin-grid-column>
 				</vaadin-grid-column-group>
-			</vaadin-grid-column>
+			</vaadin-grid>
 			<div class="add-button">
 				<paper-fab
 						icon="add"
-						on-tap="showAddBucket">
+						on-tap = "showAddBucket">
 				</paper-fab>
 			</div>
 			<iron-ajax
@@ -232,14 +232,10 @@ class bucketList extends PolymerElement {
 			ajax.generateRequest().completes.then(handleAjaxResponse, handleAjaxError);
 		}
 	}
+
+	showAddBucket(event) {
+		document.body.querySelector('sig-app').shadowRoot.querySelector('sig-bucket-add').shadowRoot.getElementById('addBucketModal').open();
+	}
 }
 
 window.customElements.define('sig-bucket-list', bucketList);
-
-/*<dom-module id="sig-bucket-list">
-			showAddBucket: function(event) {
-				document.getElementById("addBucketModal").open();
-			},
-		});
-	</script>
-</dom-module>*/
