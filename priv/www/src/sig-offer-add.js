@@ -717,42 +717,6 @@ class offerAdd extends PolymerElement {
 		super.ready()
 	}
 
-	_addProductStartDateOfferPick(date) {
-		if (this.$.addProductStartDatePickOff.opened) {
-			this.addProductStartDateOffer = moment(date).format('YYYY-MM-DD');
-		}
-	}
-
-	_addProductEndDateOfferPick(date) {
-		if (this.$.addProductEndDatePickOff.opened) {
-			this.addProductEndDateOffer = moment(date).format('YYYY-MM-DD');
-		}
-	}
-
-	_addProductStartDatePricePick(date) {
-		if (this.$.addProductStartDatePickPrice.opened) {
-			this.addProductStartDatePrice = moment(date).format('YYYY-MM-DD');
-		}
-	}
-
-	_addProductEndDatePricePick(date) {
-		if (this.$.addProductEndDatePickPrice.opened) {
-			this.addProductEndDatePrice = moment(date).format('YYYY-MM-DD');
-		}
-	}
-
-	_addProductStartDateAltPick(date) {
-		if (this.$.addProductStartDatePickAlt.opened) {
-			this.addProductStartDateAlt = moment(date).format('YYYY-MM-DD');
-		}
-	}
-
-	_addProductEndDateAltPick(date) {
-		if (this.$.addProductEndDatePickAlt.opened) {
-			this.addProductEndDateAlt = moment(date).format('YYYY-MM-DD');
-		}
-	}
-
 	_getProductsResponse(event) {
 		var results = event.detail.xhr.response;
 		for (var index in results) {
@@ -1764,10 +1728,6 @@ class offerAdd extends PolymerElement {
 		this.$.addOfferCharReserveSession.value = null;
 		this.addProductStartDateOffer = null;
 		this.addProductEndDateOffer = null;
-		this.$.addProductStartDatePickPrice.hide();
-		this.$.addProductEndDatePickPrice.hide();
-		this.$.addProductStartDatePickAlt.hide();
-		this.$.addProductEndDatePickAlt.hide();
 		this.$.addPriceName.value = null;
 		this.$.addPriceDesc.value = null;
 		this.$.addPriceStartDate.value = null;
