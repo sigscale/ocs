@@ -626,7 +626,7 @@ class SigApp extends PolymerElement {
 				import('./sig-product-list.js');
 				break;
 			case 'bucketView':
-//				import('./sig-bucket-add.js');
+				import('./sig-bucket-add.js');
 				import('./sig-bucket-list.js ');
 				break;
 		}
