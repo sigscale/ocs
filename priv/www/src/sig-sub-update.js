@@ -247,7 +247,6 @@ class subUpdate extends PolymerElement {
 			<iron-ajax
 					id="getServiceRespAjax"
 					method = "GET"
-					on-response="_getServiceResponse"
 					on-error="_getServiceError">
 			</iron-ajax>
 			<iron-ajax
