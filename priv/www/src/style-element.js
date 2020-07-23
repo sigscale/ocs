@@ -139,7 +139,12 @@ styleElement.innerHTML = `<template>
 			font-weight: bold;
 			font-size: inherit;
 		}
-		[part="row"]:last-child [part~="header-cell"] {
+		vaadin-grid .grouptitle {
+			text-align: center;
+			border-bottom-style: solid;
+			border-color: var(--paper-yellow-900);
+		}
+		[part~="header-cell"] {
 			background-color: #ffb04c;
 		}
 		paper-fab {
