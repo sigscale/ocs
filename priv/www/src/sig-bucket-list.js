@@ -25,8 +25,7 @@ class bucketList extends PolymerElement {
 			<style include="style-element"></style>
 			<vaadin-grid
 					id="balanceBucketGrid"
-					loading="{{loading}}"
-					active-item="{{activeItem}}">
+					loading="{{loading}}">
 				<vaadin-grid-column width="15ex" flex-grow="5">
 					<template class="header">
 						<vaadin-grid-filter
@@ -107,11 +106,6 @@ class bucketList extends PolymerElement {
 			etag: {
 				type: String,
 				value: null
-			},
-			activeItem: {
-				type: Object,
-				notify: true,
-				observer: '_activeItemChanged'
 			},
 			_filterBucId: {
 				type: Boolean,
