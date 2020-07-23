@@ -130,7 +130,6 @@ class clientAdd extends PolymerElement {
 					url="/ocs/v1/client"
 					method = "post"
 					content-type="application/json"
-					on-loading-changed="_onLoadingChanged"
 					on-response="_addClientResponse"
 					on-error="_addClientError">
 			</iron-ajax>
