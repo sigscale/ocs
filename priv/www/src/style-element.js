@@ -100,10 +100,9 @@ styleElement.innerHTML = `<template>
 			z-index: 100;
 		}
 		.submit-button {
+			right: 2%;
 			background-color: var(--paper-lime-a700);
 			color: black;
-			float: right;
-			width: 8em;
 		}
 		.update-button {
 			background-color: var(--paper-lime-a700);
