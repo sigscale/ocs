@@ -105,6 +105,7 @@ styleElement.innerHTML = `<template>
 			color: black;
 		}
 		.update-button {
+			right: 2%;
 			background-color: var(--paper-lime-a700);
 			color: black;
 		}
@@ -150,39 +151,39 @@ styleElement.innerHTML = `<template>
 			background: var(--paper-lime-a700);
 			color: black;
 		}
-			paper-checkbox {
-				--paper-checkbox-checked-color: #ffb04c;
-				--paper-checkbox-checkmark-color: var(--paper-yellow-900);
+		paper-checkbox {
+			--paper-checkbox-checked-color: #ffb04c;
+			--paper-checkbox-checkmark-color: var(--paper-yellow-900);
+		}
+		.generate {
+			display: inline-block;
+			width: 8em;
+		}
+		.passwordless {
+			width: 8em;
+			padding-left: 10px;
+		}
+		.secret {
+			display: inline-block;
+		}
+		.generated {
+			padding: 10px;
+			overflow: auto;
+		}
+		.close {
+			background-color: var(--paper-lime-a700);
+			color: black;
+			float: right;
+			width: 5em;
+		}
+		paper-item-body {
+			padding-left: 80px;
+			--paper-item-body-secondary: {
+				font-weight: bold;
+				font-size: larger;
 			}
-			.generate {
-				display: inline-block;
-				width: 8em;
-			}
-			.passwordless {
-				width: 8em;
-				padding-left: 10px;
-			}
-			.secret {
-				display: inline-block;
-			}
-			.generated {
-				padding: 10px;
-				overflow: auto;
-			}
-			.close {
-				background-color: var(--paper-lime-a700);
-				color: black;
-				float: right;
-				width: 5em;
-			}
-			paper-item-body {
-				padding-left: 80px;
-				--paper-item-body-secondary: {
-					font-weight: bold;
-					font-size: larger;
-				}
-			}
-		</style>
-	</template>`;
+		}
+	</style>
+</template>`;
 
 styleElement.register('style-element');
