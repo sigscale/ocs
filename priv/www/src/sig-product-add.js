@@ -93,7 +93,7 @@ class productAddClass extends PolymerElement {
 					</paper-button>
 					<paper-button dialog-dismiss
 							class="cancel-button"
-							on-tap="cancelDel">
+							on-tap="cancelPro">
 						Cancel
 					</paper-button>
 				</div>
@@ -202,6 +202,12 @@ class productAddClass extends PolymerElement {
 		this.$.addProductInvenModal.close();
 		document.body.querySelector('sig-app').shadowRoot.getElementById('productList').shadowRoot.getElementById('productInventoryGrid').clearCache();
 	}
+
+	cancelPro() {
+		this.proAdd = null;
+		this.proService = null;
+	}
+
 }
 
 window.customElements.define('sig-product-add', productAddClass);
