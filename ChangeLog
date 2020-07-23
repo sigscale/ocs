@@ -1,3 +1,7 @@
+2020-07-22  Vance Shipley <vances@sigscale.org>
+
+	* select default apn from apn-configuration in non-3gpp-user-data
+
 2020-07-20  Vance Shipley <vances@sigscale.org>
 
 	* allow + in prefix
