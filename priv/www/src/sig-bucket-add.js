@@ -35,7 +35,7 @@ class offerAdd extends PolymerElement {
 					id="addBucketModal"
 					modal>
 				<app-toolbar>
-					<h2>Add Bucket</h2>
+					<h3>Add Bucket</h3>
 				</app-toolbar>
 				<paper-progress
 						indeterminate

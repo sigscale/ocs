@@ -28,7 +28,7 @@ class productAddClass extends PolymerElement {
 			<style include="style-element"></style>
 			<paper-dialog class="dialog" id="addProductInvenModal" modal>
 				<app-toolbar>
-					<h2>Add Product</h2>
+					<h3>Add Product</h3>
 				</app-toolbar>
 				<paper-progress
 						indeterminate
@@ -72,7 +72,7 @@ class productAddClass extends PolymerElement {
 			<paper-dialog
 					class="dialog" id="deleteProductModal" modal>
 				<app-toolbar>
-					<h2>Delete Product</h2>
+					<h3>Delete Product</h3>
 				</app-toolbar>
 				<div>
 					<paper-input
