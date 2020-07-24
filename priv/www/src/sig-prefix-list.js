@@ -1,121 +1,108 @@
-<!--  vim: set ts=3:  -->
-<link rel="import" href="polymer/polymer.html">
-<link rel="import" href="vaadin-grid/vaadin-grid.html">
-<link rel="import" href="paper-fab/paper-fab.html" >
-<link rel="import" href="i18n-msg/i18n-msg.html">
-<link rel="import" href="i18n-msg/i18n-msg-behavior.html">
-<link rel="import" href="paper-styles/color.html">
-<link rel="import" href="iron-ajax/iron-ajax.html">
+/**
+ * @license
+ * Copyright (c) 2020 The Polymer Project Authors. All rights reserved.
+ * This code may only be used under the BSD style license found at http://polymer.github.io/LICENSE.txt
+ * The complete set of authors may be found at http://polymer.github.io/AUTHORS.txt
+ * The complete set of contributors may be found at http://polymer.github.io/CONTRIBUTORS.txt
+ * Code distributed by Google as part of the polymer project is also
+ * subject to an additional IP rights grant found at http://polymer.github.io/PATENTS.txt
+ */
 
-<dom-module id="sig-prefix-list">
-	<template>
-		<style>
-			.add-button {
-				right: 2%;
-				position: fixed;
-				bottom: 5%;
-				z-index: 100;
-			}
-			paper-fab {
-				background: var(--paper-lime-a700);
-				color: black;
-			}
-			vaadin-grid {
-				height: 100%;
-				--vaadin-grid-header-cell: {
-					background: #ffb04c;
-				};
-			}
-			vaadin-grid input {
-				font-size: inherit;
-				background: #ffb04c;
-				border-style: none;
-			}
-		</style>
-		<vaadin-grid id="prefixGrid" active-item="{{activeItem}}">
-			<vaadin-grid-column width="15ex">
-				<template class="header">
-					<i18n-msg msgid="prefix">
+import { PolymerElement, html } from '@polymer/polymer/polymer-element.js';
+import '@polymer/iron-ajax/iron-ajax.js';
+import '@polymer/paper-fab/paper-fab.js';
+import '@polymer/iron-icons/iron-icons.js';
+import '@vaadin/vaadin-grid/vaadin-grid.js';
+import './style-element.js'
+
+class prefixList extends PolymerElement {
+	static get template() {
+		return html`
+			<style include="style-element"></style>
+			<vaadin-grid
+					id="prefixGrid"
+					loading="{{loading}}"
+					active-item="{{activeItem}}">
+				<vaadin-grid-column width="15ex">
+					<template class="header">
 						Prefix
-					</i18n-msg>
-				</template>
-				<template>[[item.prefix]]</template>
-			</vaadin-grid-column>
-			<vaadin-grid-column width="15ex">
-				<template class="header">
-					<i18n-msg msgid="des">
+					</template>
+					<template>[[item.prefix]]</template>
+				</vaadin-grid-column>
+				<vaadin-grid-column width="15ex">
+					<template class="header">
 						Description	
-					</i18n-msg>
-				</template>
-				<template>[[item.description]]</template>
-			</vaadin-grid-column>
-			<vaadin-grid-column width="15ex">
-				<template class="header">
-					<i18n-msg msgid="rate">
+					</template>
+					<template>[[item.description]]</template>
+				</vaadin-grid-column>
+				<vaadin-grid-column width="15ex">
+					<template class="header">
 						Rate
-					</i18n-msg>
-				</template>
-				<template>[[item.rate]]</template>
-			</vaadin-grid-column>
-		</vaadin-grid>
-		<div class="add-button">
-			<paper-fab
-					icon="add"
-					on-tap="showAddPrefixModal">
-			</paper-fab>
-		</div>
-		<iron-ajax id="getTableContentAjax"
-			on-response="_getTableContentResponse"
-			on-error="_getTableContentError">
-		</iron-ajax>
-	</template>
-	<script>
-		var cbPrefix;
-		Polymer ({
-			is: 'sig-prefix-list',
-			behaviors: [i18nMsgBehavior],
-			properties: {
-				table: {
-					type: String
-				},
-				activePage: {
-					type: Boolean,
-					value: false,
-					observer: '_activePageChanged'
-				},
-				activeItem: {
-					observer: '_activeItemChanged'
-				}
+					</template>
+					<template>[[item.rate]]</template>
+				</vaadin-grid-column>
+			</vaadin-grid>
+			<div class="add-button">
+				<paper-fab
+						icon="add"
+						on-tap="showAddPrefixModal">
+				</paper-fab>
+			</div>
+			<iron-ajax id="getTableContentAjax"
+					on-response="_getTableContentResponse"
+					on-error="_getTableContentError">
+			</iron-ajax>
+		`;
+	}
+
+	static get properties() {
+		return {
+         loading: {
+            type: Boolean,
+            notify: true
+         },
+         etag: {
+            type: String,
+            value: null
+         },
+			table: {
+				type: String
 			},
-			_activePageChanged: function(active) {
-				if (active) {
-					var grid = this.$.prefixGrid;
-					grid.columns = [
-						{
-							name: "prefix"
-						},
-						{
-							name: "description"
-						},
-						{
-							name: "rate"
-						}
-					];
-					grid.dataProvider = function(params, callback) {
-						cbPrefix = callback;
-						var ajax = document.getElementById('getTableContentAjax');
-						var table = document.getElementById('prefixList').table;
-						ajax.url = "/resourceInventoryManagement/v1/logicalResource/" + table;
-						ajax.generateRequest();
-					};
-				}
-			},
-			_getTableContentResponse: function(event) {
-				var grid = this.$.prefixGrid;
-				var results = event.detail.xhr.response;
-				var vaadinItems = new Array();
-				for (var index in results) {
-					var resChar = results[index].resourceCharacteristic;
+         activeItem: {
+            type: Object,
+            notify: true,
+            observer: '_activeItemChanged'
+         }
+		}
+	}
+
+   ready() {
+      super.ready();
+      var grid = this.shadowRoot.getElementById('prefixGrid');
+      grid.dataProvider = this._getPreTable;
+   }
+
+	_getPreTable(params, callback) {
+		var grid = this;
+      var prefixList = document.body.querySelector('sig-app').shadowRoot.querySelector('sig-prefix-list');
+//		var table = document.getElementById('prefixList').table;
+		var table = document.body.querySelector('sig-app').shadowRoot.getElementById('prefixList');
+      var ajax = prefixList.shadowRoot.getElementById('getTableContentAjax');
+		ajax.url = "/resourceInventoryManagement/v1/logicalResource/" + table;
+		var handleAjaxResponse = function(request) {
+			if(request) {
+				prefixList.etag = request.xhr.getResponseHeader('ETag');
+            var range = request.xhr.getResponseHeader('Content-Range');
+            var range1 = range.split("/");
+            var range2 = range1[0].split("-");
+            if (range1[1] != "*") {
+               grid.size = Number(range1[1]);
+            } else {
+               grid.size = Number(range2[1]) + grid.pageSize * 2;
+            }
+            var vaadinItems = new Array();
+				for (var index in request.response) {
+					var resChar = request.response[index].resourceCharacteristic;
 					var tabObj = new Object();
 					for (var indexRes in resChar) {
 						if(resChar[indexRes].name == "prefix") {
@@ -130,6 +117,66 @@
 						vaadinItems[index] = tabObj;
 					}
 				}
+            callback(vaadinItems);
+         } else {
+            callback([]);
+         }
+      };
+      var handleAjaxError = function(error) {
+         prefixList.etag = null;
+         var toast = document.body.querySelector('sig-app').shadowRoot.getElementById('restError');
+         toast.text = error;
+         toast.open();
+         if(!grid.size) {
+            grid.size = 0;
+         }
+         callback([]);
+      }
+      if (ajax.loading) {
+         ajax.lastRequest.completes.then(function(request) {
+         var startRange = params.page * params.pageSize + 1;
+         var endRange = startRange + params.pageSize - 1;
+         ajax.headers['Range'] = "items=" + startRange + "-" + endRange;
+         if (prefixList.etag && params.page > 0) {
+            ajax.headers['If-Range'] = prefixList.etag;
+         } else {
+            delete ajax.headers['If-Range'];
+         }
+         return ajax.generateRequest().completes;
+            }, handleAjaxError).then(handleAjaxResponse, handleAjaxError);
+      } else {
+         var startRange = params.page * params.pageSize + 1;
+         var endRange = startRange + params.pageSize - 1;
+         ajax.headers['Range'] = "items=" + startRange + "-" + endRange;
+         if (prefixList.etag && params.page > 0) {
+            ajax.headers['If-Range'] = prefixList.etag;
+         } else {
+            delete ajax.headers['If-Range'];
+         }
+         ajax.generateRequest().completes.then(handleAjaxResponse, handleAjaxError);
+      }
+	}
+}
+
+window.customElements.define('sig-prefix-list', prefixList);
+
+/*<dom-module id="sig-prefix-list">
+	<template>
+	</template>
+	<script>
+					grid.dataProvider = function(params, callback) {
+						cbPrefix = callback;
+						var ajax = document.getElementById('getTableContentAjax');
+						var table = document.getElementById('prefixList').table;
+						ajax.url = "/resourceInventoryManagement/v1/logicalResource/" + table;
+						ajax.generateRequest();
+					};
+				}
+			},
+			_getTableContentResponse: function(event) {
+				var grid = this.$.prefixGrid;
+				var results = event.detail.xhr.response;
+				var vaadinItems = new Array();
 				grid.size = vaadinItems.length;
 				cbPrefix(vaadinItems);
 			},
@@ -147,4 +194,4 @@
 			}
 		});
 	</script>
-</dom-module>
+</dom-module>*/
