@@ -31,7 +31,7 @@ class prefixList extends PolymerElement {
 				</vaadin-grid-column>
 				<vaadin-grid-column width="15ex">
 					<template class="header">
-						Description	
+						Description
 					</template>
 					<template>[[item.description]]</template>
 				</vaadin-grid-column>
@@ -57,50 +57,50 @@ class prefixList extends PolymerElement {
 
 	static get properties() {
 		return {
-         loading: {
-            type: Boolean,
-            notify: true
-         },
-         etag: {
-            type: String,
-            value: null
-         },
+			loading: {
+				type: Boolean,
+				notify: true
+			},
+			etag: {
+				type: String,
+				value: null
+			},
 			table: {
 				type: String
 			},
-         activeItem: {
-            type: Object,
-            notify: true,
-            observer: '_activeItemChanged'
-         }
+			activeItem: {
+				type: Object,
+				notify: true,
+				observer: '_activeItemChanged'
+			}
 		}
 	}
 
-   ready() {
-      super.ready();
-      var grid = this.shadowRoot.getElementById('prefixGrid');
-      grid.dataProvider = this._getPreTable;
-   }
+	ready() {
+		super.ready();
+		var grid = this.shadowRoot.getElementById('prefixGrid');
+		grid.dataProvider = this._getPreTable;
+	}
 
 	_getPreTable(params, callback) {
 		var grid = this;
-      var prefixList = document.body.querySelector('sig-app').shadowRoot.querySelector('sig-prefix-list');
+		var prefixList = document.body.querySelector('sig-app').shadowRoot.querySelector('sig-prefix-list');
 //		var table = document.getElementById('prefixList').table;
 		var table = document.body.querySelector('sig-app').shadowRoot.getElementById('prefixList');
-      var ajax = prefixList.shadowRoot.getElementById('getTableContentAjax');
+		var ajax = prefixList.shadowRoot.getElementById('getTableContentAjax');
 		ajax.url = "/resourceInventoryManagement/v1/logicalResource/" + table;
 		var handleAjaxResponse = function(request) {
 			if(request) {
 				prefixList.etag = request.xhr.getResponseHeader('ETag');
-            var range = request.xhr.getResponseHeader('Content-Range');
-            var range1 = range.split("/");
-            var range2 = range1[0].split("-");
-            if (range1[1] != "*") {
-               grid.size = Number(range1[1]);
-            } else {
-               grid.size = Number(range2[1]) + grid.pageSize * 2;
-            }
-            var vaadinItems = new Array();
+				var range = request.xhr.getResponseHeader('Content-Range');
+				var range1 = range.split("/");
+				var range2 = range1[0].split("-");
+				if (range1[1] != "*") {
+					grid.size = Number(range1[1]);
+				} else {
+					grid.size = Number(range2[1]) + grid.pageSize * 2;
+				}
+				var vaadinItems = new Array();
 				for (var index in request.response) {
 					var resChar = request.response[index].resourceCharacteristic;
 					var tabObj = new Object();
@@ -117,44 +117,44 @@ class prefixList extends PolymerElement {
 						vaadinItems[index] = tabObj;
 					}
 				}
-            callback(vaadinItems);
-         } else {
-            callback([]);
-         }
-      };
-      var handleAjaxError = function(error) {
-         prefixList.etag = null;
-         var toast = document.body.querySelector('sig-app').shadowRoot.getElementById('restError');
-         toast.text = error;
-         toast.open();
-         if(!grid.size) {
-            grid.size = 0;
-         }
-         callback([]);
-      }
-      if (ajax.loading) {
-         ajax.lastRequest.completes.then(function(request) {
-         var startRange = params.page * params.pageSize + 1;
-         var endRange = startRange + params.pageSize - 1;
-         ajax.headers['Range'] = "items=" + startRange + "-" + endRange;
-         if (prefixList.etag && params.page > 0) {
-            ajax.headers['If-Range'] = prefixList.etag;
-         } else {
-            delete ajax.headers['If-Range'];
-         }
-         return ajax.generateRequest().completes;
-            }, handleAjaxError).then(handleAjaxResponse, handleAjaxError);
-      } else {
-         var startRange = params.page * params.pageSize + 1;
-         var endRange = startRange + params.pageSize - 1;
-         ajax.headers['Range'] = "items=" + startRange + "-" + endRange;
-         if (prefixList.etag && params.page > 0) {
-            ajax.headers['If-Range'] = prefixList.etag;
-         } else {
-            delete ajax.headers['If-Range'];
-         }
-         ajax.generateRequest().completes.then(handleAjaxResponse, handleAjaxError);
-      }
+				callback(vaadinItems);
+			} else {
+				callback([]);
+			}
+		};
+		var handleAjaxError = function(error) {
+			prefixList.etag = null;
+			var toast = document.body.querySelector('sig-app').shadowRoot.getElementById('restError');
+			toast.text = error;
+			toast.open();
+			if(!grid.size) {
+				grid.size = 0;
+			}
+			callback([]);
+		}
+		if (ajax.loading) {
+			ajax.lastRequest.completes.then(function(request) {
+			var startRange = params.page * params.pageSize + 1;
+			var endRange = startRange + params.pageSize - 1;
+			ajax.headers['Range'] = "items=" + startRange + "-" + endRange;
+			if (prefixList.etag && params.page > 0) {
+				ajax.headers['If-Range'] = prefixList.etag;
+			} else {
+				delete ajax.headers['If-Range'];
+			}
+			return ajax.generateRequest().completes;
+					}, handleAjaxError).then(handleAjaxResponse, handleAjaxError);
+		} else {
+			var startRange = params.page * params.pageSize + 1;
+			var endRange = startRange + params.pageSize - 1;
+			ajax.headers['Range'] = "items=" + startRange + "-" + endRange;
+			if (prefixList.etag && params.page > 0) {
+				ajax.headers['If-Range'] = prefixList.etag;
+			} else {
+				delete ajax.headers['If-Range'];
+			}
+			ajax.generateRequest().completes.then(handleAjaxResponse, handleAjaxError);
+		}
 	}
 }
 
