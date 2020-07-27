@@ -413,7 +413,7 @@ class SigApp extends PolymerElement {
 
 	disTableList() {
 		this.$.tableList.open();
-//		document.body.querySelector('sig-app').shadowRoot.getElementById('offerList').shadowRoot.getElementById('offerGrid');
+		document.body.querySelector('sig-app').shadowRoot.getElementById('offerList').shadowRoot.getElementById('offerGrid');
 	}
 
 	tableAdd() {
