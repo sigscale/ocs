@@ -221,11 +221,12 @@ request(ServiceName, Capabilities, Request, []) ->
 process_request(ServiceName, #diameter_caps{origin_host = {OHost, _DHost},
 		origin_realm = {ORealm, _DRealm}} = Capabilities,
 		#'3gpp_swm_DER'{'Session-Id' = SId,
-				'Auth-Application-Id' = ?SWm_APPLICATION_ID} = Request,
+				'Auth-Application-Id' = ?SWm_APPLICATION_ID,
+				'EAP-Payload' = EapPayload} = Request,
 		Address, Port, PasswordReq, Trusted) ->
 	try
 		process_request1(ServiceName, Capabilities,
-				Request, Address, Port, PasswordReq, Trusted)
+				Request, Address, Port, PasswordReq, Trusted, {eap, EapPayload})
 	catch
 		_:_Reason ->
 			{reply, #'3gpp_swm_DEA'{'Session-Id' = SId,
@@ -240,7 +241,7 @@ process_request(ServiceName, #diameter_caps{origin_host = {OHost, _DHost},
 		Address, Port, PasswordReq, Trusted) ->
 	try
 		process_request1(ServiceName, Capabilities,
-				Request, Address, Port, PasswordReq, Trusted)
+				Request, Address, Port, PasswordReq, Trusted, none)
 	catch
 		_:_Reason ->
 			{reply, #'3gpp_swm_STA'{'Session-Id' = SId,
@@ -249,7 +250,7 @@ process_request(ServiceName, #diameter_caps{origin_host = {OHost, _DHost},
 	end.
 %% @hidden
 process_request1(ServiceName, Capabilities,
-		Request, Address, Port, PasswordReq, Trusted) ->
+		Request, Address, Port, PasswordReq, Trusted, Eap) ->
 	[Info] = diameter:service_info(ServiceName, transport),
 	case lists:keyfind(options, 1, Info) of
 		{options, Options} ->
@@ -264,7 +265,7 @@ process_request1(ServiceName, Capabilities,
 							Answer = gen_server:call(PortServer,
 									{diameter_request, Capabilities,
 											Address, Port, PasswordReq, Trusted,
-											Request, none}),
+											Request, Eap}),
 							{reply, Answer}
 					end;
 				false ->
