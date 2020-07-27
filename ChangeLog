@@ -1,3 +1,7 @@
+2020-07-27  Vance Shipley <vances@sigscale.org>
+
+	* correct missing eap in swm der (regression)
+
 2020-07-22  Vance Shipley <vances@sigscale.org>
 
 	* select default apn from apn-configuration in non-3gpp-user-data
