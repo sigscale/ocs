@@ -26,6 +26,7 @@ import '@polymer/iron-collapse/iron-collapse.js';
 import '@polymer/paper-icon-button/paper-icon-button.js';
 import '@polymer/paper-progress/paper-progress.js';
 import '@polymer/paper-toast/paper-toast.js';
+import '@polymer/paper-item/paper-item.js';
 import './ocs-icons.js';
 import './style-element.js';
 
@@ -303,17 +304,15 @@ class SigApp extends PolymerElement {
 							<app-toolbar>
 								List of Tables
 							</app-toolbar>
-							<div role="listbox">
-								<template id="tableList1" is="dom-repeat" items="[[tables]]">
-									<paper-icon-item
-											id="pagePrefix"
-											class="menuitem"
-											on-focused-changed="tableSelection">
-										<iron-icon icon ="icons:view-list" item-icon></iron-icon>
-											{{item.id}}
-									</paper-icon-item>
-								</template>
-							</div>
+							<template id="tableList1" is="dom-repeat" items="[[tables]]">
+								<paper-item
+										id="pagePrefix"
+										class="menuitem"
+										on-focused-changed="tableSelection">
+									<iron-icon icon ="icons:view-list" item-icon></iron-icon>
+										{{item.id}}
+								</paper-item>
+							</template>
 							<div class="buttons">
 								<paper-button
 										raised
@@ -416,18 +415,17 @@ class SigApp extends PolymerElement {
 		document.body.querySelector('sig-app').shadowRoot.getElementById('offerList').shadowRoot.getElementById('offerGrid');
 	}
 
-	tableAdd() {
-		document.body.querySelector('sig-app').shadowRoot.getElementById('sig-prefix-table-add').shadowRoot.getElementById('addPrefixTableModal').open();
-		this.$.tableList.close();
-	}
+//	tableAdd() {
+//		document.body.querySelector('sig-app').shadowRoot.getElementById('sig-prefix-table-add').shadowRoot.getElementById('addPrefixTableModal').open();
+//		this.$.tableList.close();
+//	}
 
 	tableSelection(e) {
 		if(e.model.item && e.model.item.id) {
-			var prefixTab = document.body.querySelector('sig-app').shadowRoot.getElementById('prefixList').table;
-			prefixTab  = e.model.item.id;
-			document.body.querySelector('sig-app').shadowRoot.getElementById('tabOkButton').disabled = false;
+			this.$.prefixList.table = e.model.item.id;
+			this.$.tabOkButton.disabled = false;
 		} else {
-			document.body.querySelector('sig-app').shadowRoot.getElementById('tabOkButton').disabled = true;
+			this.$.tabOkButton.disabled = true;
 		}
 	}
 
