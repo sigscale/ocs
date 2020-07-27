@@ -44,6 +44,13 @@
 		denominator :: quantity()}).
 -type rate() :: #rate{}.
 
+-record(hub,
+		{callback :: string() | undefined,
+		id :: string() | undefined,
+		href :: string() | undefined,
+		query :: string() | undefined}).
+-type hub() :: #hub{}.
+
 -record(client,
 		{address :: inet:ip_address() | undefined | '_',
 		identifier = <<>> :: binary() | '_',
