@@ -85,9 +85,9 @@ class prefixList extends PolymerElement {
 	_getPreTable(params, callback) {
 		var grid = this;
 		var prefixList = document.body.querySelector('sig-app').shadowRoot.querySelector('sig-prefix-list');
-//		var table = document.getElementById('prefixList').table;
-		var table = document.body.querySelector('sig-app').shadowRoot.getElementById('prefixList');
 		var ajax = prefixList.shadowRoot.getElementById('getTableContentAjax');
+//		var table = document.getElementById('prefixList').table;
+		var table = document.body.querySelector('sig-app').shadowRoot.querySelector('sig-prefix-list').table;
 		ajax.url = "/resourceInventoryManagement/v1/logicalResource/" + table;
 		var handleAjaxResponse = function(request) {
 			if(request) {
@@ -156,15 +156,15 @@ class prefixList extends PolymerElement {
 			ajax.generateRequest().completes.then(handleAjaxResponse, handleAjaxError);
 		}
 	}
+
+	showAddPrefixModal() {
+		document.body.querySelector('sig-app').shadowRoot.querySelector('sig-prefix-add').shadowRoot.getElementById('addPrefixModal').open();
+	}
 }
 
 window.customElements.define('sig-prefix-list', prefixList);
 
 /*<dom-module id="sig-prefix-list">
-	<template>
-	</template>
-	<script>
-					grid.dataProvider = function(params, callback) {
 						cbPrefix = callback;
 						var ajax = document.getElementById('getTableContentAjax');
 						var table = document.getElementById('prefixList').table;
@@ -189,9 +189,6 @@ window.customElements.define('sig-prefix-list', prefixList);
 					document.getElementById("updateRate").value = item.rate;
 				}
 			},
-			showAddPrefixModal: function() {
-				document.getElementById("addPrefixModal").open();
-			}
 		});
 	</script>
 </dom-module>*/
