@@ -97,6 +97,8 @@ do_post(Resource, ModData, Body, ["balanceManagement", "v1", "service", Id, "bal
 	do_response(ModData, Resource:top_up_service(Id, Body));
 do_post(Resource, ModData, Body, ["balanceManagement", "v1", "balanceAdjustment"]) ->
 	do_response(ModData, Resource:balance_adjustment(Body));
+do_post(Resource, ModData, Body, ["balanceManagement", "v1", "hub"]) ->
+	do_response(ModData, Resource:post_hub(Body));
 do_post(Resource, ModData, Body, ["catalogManagement", "v2", "productOffering"]) ->
 	do_response(ModData, Resource:add_offer(Body));
 do_post(Resource, ModData, Body, ["productInventoryManagement", "v2", "product"]) ->
