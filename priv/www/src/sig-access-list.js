@@ -114,14 +114,14 @@ class accessList extends PolymerElement {
 
 	static get properties() {
 		return {
-         loading: {
-            type: Boolean,
-            notify: true
-         },
-         etag: {
-            type: String,
-            value: null
-         },
+			loading: {
+				type: Boolean,
+				notify: true
+			},
+			etag: {
+				type: String,
+				value: null
+			},
 			filterAccessTimeStamp: {
 				type: Boolean,
 				observer: '_filterChanged'
@@ -144,12 +144,12 @@ class accessList extends PolymerElement {
 			}
 		}
 	}
-	
-   ready() {
-      super.ready();
-      var grid = this.shadowRoot.getElementById('accessGrid');
-      grid.dataProvider = this._getAccess;
-   }
+
+	ready() {
+		super.ready();
+		var grid = this.shadowRoot.getElementById('accessGrid');
+		grid.dataProvider = this._getAccess;
+	}
 
 	_getAccess(params, callback) {
 		var grid = this;
