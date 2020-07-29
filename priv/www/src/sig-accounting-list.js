@@ -170,14 +170,14 @@ class accountingList extends PolymerElement {
 
 	static get properties() {
 		return {
-         loading: {
-            type: Boolean,
-            notify: true
-         },
-         etag: {
-            type: String,
-            value: null
-         },
+			loading: {
+				type: Boolean,
+				notify: true
+			},
+			etag: {
+				type: String,
+				value: null
+			},
 			filterTimeStamp: {
 				type: Boolean,
 				observer: '_filterChanged'
@@ -217,11 +217,11 @@ class accountingList extends PolymerElement {
 		}
 	}
 
-   ready() {
-      super.ready();
-      var grid = this.shadowRoot.getElementById('accountingGrid');
-      grid.dataProvider = this._getAccounting;
-   }
+	ready() {
+		super.ready();
+		var grid = this.shadowRoot.getElementById('accountingGrid');
+		grid.dataProvider = this._getAccounting;
+	}
 
 	_getAccounting(params, callback) {
 		var grid = this;
@@ -377,13 +377,11 @@ class accountingList extends PolymerElement {
 		}
 	}
 
-   _filterChanged(filter) {
-      this.etag = null;
-      var grid = this.shadowRoot.getElementById('accountingGrid');
-      grid.size = 0;
-   }
-
+	_filterChanged(filter) {
+		this.etag = null;
+		var grid = this.shadowRoot.getElementById('accountingGrid');
+		grid.size = 0;
+	}
 }
 
 window.customElements.define('sig-accounting-list', accountingList);
-
