@@ -25,9 +25,29 @@
 -behaviour(gen_event).
 -include("ocs.hrl").
 
+%% export the ocs_event API
+-export([notify/3]).
+
 %% export the callbacks needed for gen_event behaviour
 -export([init/1, handle_call/2, handle_event/2, handle_info/2,
 			terminate/2, code_change/3]).
+
+%%----------------------------------------------------------------------
+%%  The ocs_event API
+%%----------------------------------------------------------------------
+
+-spec notify(EventType, EventPayLoad, Category) -> ok
+	when
+		EventType :: create | attributeValueChange | stateChange | remove,
+		EventPayLoad :: #bucket{},
+		Category :: balance | product | service.
+%% @doc Send a notification event.
+%%
+%% The `EventPayload' should contain the entire new Alarm (create),
+%% the updated attributes only (attributeValueChange) or only
+%% `id' and `href' (remove).
+notify(EventType, EventPayLoad, Category) ->
+	gen_event:notify(?MODULE, {EventType, EventPayLoad, Category}).
 
 %%----------------------------------------------------------------------
 %%  The ocs_event gen_event callbacks
