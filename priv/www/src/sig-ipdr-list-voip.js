@@ -270,6 +270,11 @@ class ipdrListVoip extends PolymerElement {
 		}
 	}
 
+	_filterChanged(filter) {
+		this.etag = null;
+		var grid = this.shadowRoot.getElementById('ipdrGridVoip');
+		grid.size = 0;
+	}
 }
 
 window.customElements.define('sig-ipdr-list-voip', ipdrListVoip);
