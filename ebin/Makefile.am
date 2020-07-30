@@ -93,6 +93,7 @@ beam_DATA = ocs.beam \
 			ocs_diameter_3gpp_sta_application_cb.beam \
 			ocs_diameter_3gpp_swm_application_cb.beam \
 			ocs_diameter_3gpp_swx_application_cb.beam \
+			ocs_diameter_codec.beam \
 			ocs_rest_res_http.beam \
 			ocs_rest_res_resource.beam \
 			ocs_rest_pagination_sup.beam \
