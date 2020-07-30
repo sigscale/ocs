@@ -146,5 +146,6 @@
 				{hss_host, undefined},
 				{rest_page_size, 1000},
 				{rest_page_timeout, 60000},
-				{hub_profile, hub}]},
+				{hub_profile, hub},
+				{hub_options, [{keep_alive_timeout, 4000}]}]},
 		{mod, {ocs_app, []}}]}.
