@@ -604,7 +604,7 @@ class SigApp extends PolymerElement {
 //				import('./sig-ipdr-log-files-wlan.js');
 				break;
 			case 'ipdrVoipView':
-//				import('./sig-ipdr-list-voip.js');
+				import('./sig-ipdr-list-voip.js');
 //				import('./sig-ipdr-log-files-voip.js');
 				break;
 			case 'httpView':
