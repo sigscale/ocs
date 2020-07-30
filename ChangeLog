@@ -1,3 +1,9 @@
+2020-07-30  Vance Shipley <vances@sigscale.org>
+
+	* use all apn configurations (revert from select default apn)
+	* decode swx apn-configuration as swm apn-configuration for pass thru
+	* specialized diameter codec
+
 2020-07-27  Vance Shipley <vances@sigscale.org>
 
 	* correct missing eap in swm der (regression)
