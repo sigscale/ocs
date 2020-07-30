@@ -47,7 +47,7 @@ content_types_provided() ->
 
 -spec post_hub(ReqBody) -> Result
 	when
-		ReqBody :: map(),
+		ReqBody :: list(),
 		Result :: {ok, Headers :: [tuple()], Body :: iolist()}
 			| {error, ErrorCode :: integer()}.
 %% @doc Hub event to disk.
