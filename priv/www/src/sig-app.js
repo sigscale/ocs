@@ -356,7 +356,7 @@ class SigApp extends PolymerElement {
 			<sig-user-update id="userUpdate" active-item="[[activeUserItem]]"></sig-user-update>
 			<sig-offer-update id="updateProduct" active-item="[[activeOfferItem]]"></sig-offer-update>
 			<sig-ipdr-log-files-wlan></sig-ipdr-log-files-wlan>
-			<sig-ipdr-log-files-voip></sig-ipdr-log-files-voip>
+			<sig-ipdr-log-files-voip id="ipdrLogs"></sig-ipdr-log-files-voip>
 			<sig-prefix-table-add></sig-prefix-table-add>
 			<sig-prefix-add></sig-prefix-add>
 			<sig-prefix-update></sig-prefix-update>
@@ -605,7 +605,6 @@ class SigApp extends PolymerElement {
 				break;
 			case 'ipdrVoipView':
 				import('./sig-ipdr-list-voip.js');
-//				import('./sig-ipdr-log-files-voip.js');
 				break;
 			case 'httpView':
 //				import('./sig-http-list.js');
