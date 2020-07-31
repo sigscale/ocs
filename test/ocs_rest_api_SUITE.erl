@@ -167,7 +167,7 @@ all() ->
 	get_product, add_product, add_product_sms,
 	update_product_realizing_service, delete_product,
 	ignore_delete_product, query_product, filter_product,
-	post_hub,
+	post_hub, delete_hub,
 	notify_create_bucket].
 
 %%%%%---------------------------------------------------------------------
@@ -2552,6 +2552,24 @@ post_hub(Config) ->
 	{_, Callback} = lists:keyfind("callback", 1, HubList),
 	{_, Id} = lists:keyfind("id", 1, HubList),
 	{_, null} = lists:keyfind("query", 1, HubList).
+
+delete_hub() ->
+	[{userdata, [{doc, "Unregister hub listener"}]}].
+
+delete_hub(Config) ->
+	HostUrl = ?config(host_url, Config),
+	PathHub = ?PathBalanceHub,
+	CollectionUrl = HostUrl ++ PathHub,
+	Callback = "http://in.listener.com",
+	RequestBody = "{\"callback\":\"" ++ Callback ++ "\"}",
+	ContentType = "application/json",
+	Accept = {"accept", "application/json"},
+	Request = {CollectionUrl, [Accept, auth_header()], ContentType, RequestBody},
+	{ok, {{_, 201, _}, _, ResponseBody}} = httpc:request(post, Request, [], []),
+	{struct, HubList} = mochijson:decode(ResponseBody),
+	{_, Id} = lists:keyfind("id", 1, HubList),
+	Request1 = {HostUrl ++ PathHub ++ Id, [Accept, auth_header()]},
+	{ok, {{_, 204, _}, _, []}} = httpc:request(delete, Request1, [], []).
 
 notify_create_bucket() ->
 	[{userdata, [{doc, "Receive balance creation notification."}]}].
