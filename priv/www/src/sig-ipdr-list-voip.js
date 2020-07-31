@@ -13,6 +13,11 @@ import '@polymer/iron-ajax/iron-ajax.js';
 import '@polymer/paper-fab/paper-fab.js';
 import '@vaadin/vaadin-grid/vaadin-grid.js';
 import '@vaadin/vaadin-grid/vaadin-grid-filter.js';
+import '@polymer/paper-dialog/paper-dialog.js';
+import '@polymer/app-layout/app-toolbar/app-toolbar.js';
+import '@polymer/paper-dialog-scrollable/paper-dialog-scrollable.js';
+import '@polymer/iron-list/iron-list.js';
+import '@polymer/paper-button/paper-button.js';
 import './style-element.js'
 
 class ipdrListVoip extends PolymerElement {
@@ -131,10 +136,37 @@ class ipdrListVoip extends PolymerElement {
 					</template>
 				</vaadin-grid-column>
 			</vaadin-grid>
+			<paper-dialog class="dialog" id="selectLogFileModalVoip">
+				<app-toolbar>
+					<h2>Select Log File</h2>
+				</app-toolbar>
+				<paper-dialog-scrollable>
+					<iron-list id="logFilesVoip"
+							as="item">
+						<template>
+							<div class="item" on-tap="getLogContentVoip">
+								<iron-icon icon="assignment"></iron-icon>
+										[[item]]
+							</div>
+						</template>
+					</iron-list>
+				</paper-dialog-scrollable>
+				<div class="cancel-button">
+					<paper-button dialog-dismiss>
+							Cancel
+					</paper-button>
+				</div>
+			</paper-dialog>
 			<iron-ajax id="getIpdrVoip"
 					rejectWithRequest>
 			</iron-ajax>
-		`;		
+			<iron-ajax id="getLogsAjaxVoip"
+					method = "GET"
+					headers='{"Accept": "application/json"}'
+					on-response="getLogsResponseVoip"
+					on-error="getLogsErrorVoip">
+			</iron-ajax>
+		`;	
 	}
 
 	static get properties() {
@@ -143,10 +175,10 @@ class ipdrListVoip extends PolymerElement {
 				type: String,
 				value: null
 			},
-         loading: {
-            type: Boolean,
-            notify: true
-         },
+			loading: {
+				type: Boolean,
+				notify: true
+			},
 			activePage: {
 				type: Boolean,
 				value: false,
@@ -180,24 +212,30 @@ class ipdrListVoip extends PolymerElement {
 	}
 
 	_activePageChanged(active) {
-		if(active) {
-			var voipAjax = document.getElementById("getLogsAjaxVoip");
-			voipAjax.url = "/ocs/v1/log/ipdr/voip";
-			voipAjax.generateRequest();
-			document.body.querySelector('sig-app').shadowRoot.querySelector('sig-ipdr-log-files-voip').shadowRoot.getElementById('selectLogFileModalVoip').open();
-		}
+		var voipAjax = this.$.getLogsAjaxVoip; 
+		voipAjax.url = "/ocs/v1/log/ipdr/voip";
+		voipAjax.generateRequest();
+		this.$.selectLogFileModalVoip.open();
 	}
 
-   intializeGrid(event) {
-      super.ready();
-      var grid = this.shadowRoot.getElementById('ipdrGridVoip');
+	intializeGrid(event) {
+		super.ready();
+		var grid = this.shadowRoot.getElementById('ipdrGridVoip');
 		grid.size = 0;
 		var getIpdr = document.body.querySelector('sig-app').shadowRoot.querySelector('sig-ipdr-list-voip');
 		var ajax = getIpdr.shadowRoot.getElementById('getIpdrVoip');
 		ajax.url = "/usageManagement/v1/usage/ipdr/voip/" + event.model.item;
-		document.body.querySelector('sig-app').shadowRoot.querySelector('sig-ipdr-log-files-voip').shadowRoot.getElementById('selectLogFileModalVoip').open();
-      grid.dataProvider = this.getLogContentResponseVoip;
-   }
+		this.$.selectLogFileModalVoip.open();
+		grid.dataProvider = this.getLogContentResponseVoip;
+	}
+
+	getLogsResponseVoip(event){
+		this.$.logFilesVoip.items = event.detail.response;
+	}
+
+	getLogContentVoip(event) {
+		document.body.querySelector('sig-app').shadowRoot.querySelector('sig-ipdr-list-voip').shadowRoot.getElementById("ipdrListVoip").intializeGrid(event);
+	}
 
 	getLogContentResponseVoip(params, callback) {
 		var grid = this;
