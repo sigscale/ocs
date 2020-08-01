@@ -1,3 +1,7 @@
+2020-08-02  Vance Shipley <vances@sigscale.org>
+
+	* centralized unit determination [OCS-173]
+
 2020-07-30  Vance Shipley <vances@sigscale.org>
 
 	* use all apn configurations (revert from select default apn)
