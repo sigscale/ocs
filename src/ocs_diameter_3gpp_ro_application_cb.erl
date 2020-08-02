@@ -312,19 +312,19 @@ process_request1(?'3GPP_CC-REQUEST-TYPE_INITIAL_REQUEST' = RequestType,
 			#'3gpp_ro_Multiple-Services-Credit-Control'{'Service-Identifier' = SI,
 					'Rating-Group' = RG, 'Requested-Service-Unit'
 					= [#'3gpp_ro_Requested-Service-Unit'{'CC-Time'
-					= [CCTime]}]} when CCTime =/= [] ->
+					= [CCTime]}]} when is_integer(CCTime) ->
 				{SI, RG, [{seconds, CCTime}]};
 			#'3gpp_ro_Multiple-Services-Credit-Control'{'Service-Identifier' = SI,
 					'Rating-Group' = RG, 'Requested-Service-Unit'
 					= [#'3gpp_ro_Requested-Service-Unit'{'CC-Total-Octets'
-					= [CCTotalOctets]}]} ->
+					= [CCTotalOctets]}]} when is_integer(CCTotalOctets) ->
 				{SI, RG, [{octets, CCTotalOctets}]};
 			#'3gpp_ro_Multiple-Services-Credit-Control'{'Service-Identifier' = SI,
 					'Rating-Group' = RG, 'Requested-Service-Unit'
 					= [#'3gpp_ro_Requested-Service-Unit'{'CC-Output-Octets'
 					= [CCOutputOctets], 'CC-Input-Octets' = [CCInputOctets]}]}
 					when is_integer(CCInputOctets), is_integer(CCOutputOctets) ->
-				{SI, RG, [{octets, CCOutputOctets + CCOutputOctets}]};
+				{SI, RG, [{octets, CCInputOctets + CCOutputOctets}]};
 			#'3gpp_ro_Multiple-Services-Credit-Control'{'Service-Identifier' = SI,
 					'Rating-Group' = RG, 'Requested-Service-Unit'
 					= [#'3gpp_ro_Requested-Service-Unit'{'CC-Service-Specific-Units'
@@ -422,19 +422,19 @@ process_request1(?'3GPP_CC-REQUEST-TYPE_UPDATE_REQUEST' = RequestType,
 			#'3gpp_ro_Multiple-Services-Credit-Control'{'Service-Identifier' = SI,
 					'Rating-Group' = RG, 'Requested-Service-Unit'
 					= [#'3gpp_ro_Requested-Service-Unit'{'CC-Time'
-					= [CCTime]}]} when CCTime =/= [] ->
+					= [CCTime]}]} when is_integer(CCTime) ->
 				{SI, RG, [{seconds, CCTime}]};
 			#'3gpp_ro_Multiple-Services-Credit-Control'{'Service-Identifier' = SI,
 					'Rating-Group' = RG, 'Requested-Service-Unit'
 					= [#'3gpp_ro_Requested-Service-Unit'{'CC-Total-Octets'
-					= [CCTotalOctets]}]} ->
+					= [CCTotalOctets]}]} when is_integer(CCTotalOctets) ->
 				{SI, RG, [{octets, CCTotalOctets}]};
 			#'3gpp_ro_Multiple-Services-Credit-Control'{'Service-Identifier' = SI,
 					'Rating-Group' = RG, 'Requested-Service-Unit'
 					= [#'3gpp_ro_Requested-Service-Unit'{'CC-Output-Octets'
 					= [CCOutputOctets], 'CC-Input-Octets' = [CCInputOctets]}]}
 					when is_integer(CCInputOctets), is_integer(CCOutputOctets) ->
-				{SI, RG, [{octets, CCOutputOctets + CCOutputOctets}]};
+				{SI, RG, [{octets, CCInputOctets + CCOutputOctets}]};
 			#'3gpp_ro_Multiple-Services-Credit-Control'{'Service-Identifier' = SI,
 					'Rating-Group' = RG, 'Requested-Service-Unit'
 					= [#'3gpp_ro_Requested-Service-Unit'{'CC-Service-Specific-Units'
@@ -449,11 +449,11 @@ process_request1(?'3GPP_CC-REQUEST-TYPE_UPDATE_REQUEST' = RequestType,
 		DebitAmount = case MSCC of
 			#'3gpp_ro_Multiple-Services-Credit-Control'{'Used-Service-Unit'
 					= [#'3gpp_ro_Used-Service-Unit'{'CC-Time'
-					= [UsedCCTime]}]} when UsedCCTime =/= [] ->
+					= [UsedCCTime]}]} when is_integer(UsedCCTime) ->
 				[{seconds, UsedCCTime}];
 			#'3gpp_ro_Multiple-Services-Credit-Control'{'Used-Service-Unit'
 					= [#'3gpp_ro_Used-Service-Unit'{'CC-Total-Octets'
-					= [UsedCCTotalOctets]}]} ->
+					= [UsedCCTotalOctets]}]} when is_integer(UsedCCTotalOctets) ->
 				[{octets, UsedCCTotalOctets}];
 			#'3gpp_ro_Multiple-Services-Credit-Control'{'Used-Service-Unit'
 					= [#'3gpp_ro_Used-Service-Unit'{'CC-Output-Octets'
@@ -557,11 +557,11 @@ process_request1(?'3GPP_CC-REQUEST-TYPE_TERMINATION_REQUEST' = RequestType,
 		DebitAmount = case MSCC of
 			#'3gpp_ro_Multiple-Services-Credit-Control'{'Used-Service-Unit'
 					= [#'3gpp_ro_Used-Service-Unit'{'CC-Time'
-					= [UsedCCTime]}]} when UsedCCTime =/= [] ->
+					= [UsedCCTime]}]} when is_integer(UsedCCTime) ->
 				[{seconds, UsedCCTime}];
 			#'3gpp_ro_Multiple-Services-Credit-Control'{'Used-Service-Unit'
 					= [#'3gpp_ro_Used-Service-Unit'{'CC-Total-Octets'
-					= [UsedCCTotalOctets]}]} ->
+					= [UsedCCTotalOctets]}]} when is_integer(UsedCCTotalOctets) ->
 				[{octets, UsedCCTotalOctets}];
 			#'3gpp_ro_Multiple-Services-Credit-Control'{'Used-Service-Unit'
 					= [#'3gpp_ro_Used-Service-Unit'{'CC-Output-Octets'
