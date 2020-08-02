@@ -330,9 +330,6 @@ process_request1(?'3GPP_CC-REQUEST-TYPE_INITIAL_REQUEST' = RequestType,
 					= [#'3gpp_ro_Requested-Service-Unit'{'CC-Service-Specific-Units'
 					= [CCSpecUnits]}]} when is_integer(CCSpecUnits) ->
 				{SI, RG, [{messages, CCSpecUnits}]};
-			#'3gpp_ro_Multiple-Services-Credit-Control'{'Requested-Service-Unit'
-					= [#'3gpp_ro_Requested-Service-Unit'{}]} ->
-				throw(unsupported_request_units);
 			#'3gpp_ro_Multiple-Services-Credit-Control'{} ->
 				{[], [], []}
 		end,
@@ -440,9 +437,6 @@ process_request1(?'3GPP_CC-REQUEST-TYPE_UPDATE_REQUEST' = RequestType,
 					= [#'3gpp_ro_Requested-Service-Unit'{'CC-Service-Specific-Units'
 					= [CCSpecUnits]}]} when is_integer(CCSpecUnits) ->
 				{SI, RG, [{messages, CCSpecUnits}]};
-			#'3gpp_ro_Multiple-Services-Credit-Control'{'Requested-Service-Unit'
-					= [#'3gpp_ro_Requested-Service-Unit'{}]} ->
-				throw(unsupported_request_units);
 			#'3gpp_ro_Multiple-Services-Credit-Control'{} ->
 				{[], [], []}
 		end,
