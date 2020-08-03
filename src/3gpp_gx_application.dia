@@ -6,6 +6,18 @@
 @inherits diameter_gen_base_rfc6733
 @inherits diameter_gen_3gpp
 @inherits diameter_gen_ietf
+   Called-Station-Id
+   Framed-IP-Address
+   DRMP
+   Load
+   OC-OLR
+   OC-Supported-Features
+   User-Equipment-Info
+   CC-Request-Type
+   CC-Request-Number
+   Subscription-Id
+   Rating-Group
+   Service-Identifier
 
 @messages
 
@@ -215,10 +227,13 @@
 
 @avp_types
 
-	Charging-Rule-Install    1001 Grouped   MV
-	Charging-Rule-Remove     1002 Grouped   MV
-	Charging-Rule-Definition 1003 Grouped   MV
-	
+   Charging-Rule-Install    1001  Grouped     MV
+   Charging-Rule-Remove     1002  Grouped     MV
+   Charging-Rule-Definition 1003  Grouped     MV
+   Offline                  1008  Enumerated  MV
+   Online                   1009  Enumerated  MV
+   Network-Request-Support  1024  Enumerated  MV
+
 @grouped
 
    Charging-Rule-Install ::= < AVP Header: 1001 >
@@ -273,4 +288,16 @@
 ;        [ Traffic-Steering-Policy-Identifier-UL ]
 ;        [ Content-Version ]
         *[ AVP ]
+
+@enum Offline
+   DISABLE_OFFLINE 0
+   ENABLE_OFFLINE  1
+
+@enum Online
+   DISABLE_ONLINE  0
+   ENABLE_ONLINE   1
+
+@enum Network-Request-Support
+   NETWORK_REQUEST_NOT_SUPPORTED  0
+   NETWORK_REQUEST_SUPPORTED      1
 
