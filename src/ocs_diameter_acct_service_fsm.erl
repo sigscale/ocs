@@ -343,7 +343,7 @@ service_options(Options) ->
 		{'Product-Name', "SigScale OCS"},
 		{'Firmware-Revision', Version},
 		{'Supported-Vendor-Id', [?IANA_PEN_3GPP]},
-		{'Auth-Application-Id', [?RO_APPLICATION_ID, ?Gx_APPLICATION_DICT]},
+		{'Auth-Application-Id', [?RO_APPLICATION_ID, ?Gx_APPLICATION_ID]},
 		{restrict_connections, false},
 		{string_decode, false},
 		{application, [{alias, ?BASE_APPLICATION},
