@@ -1,0 +1,276 @@
+
+@id 16777238
+@name   diameter_gen_3gpp_gx_application
+@vendor 10415 3GPP
+@prefix 3gpp_gx
+@inherits diameter_gen_base_rfc6733
+@inherits diameter_gen_3gpp
+@inherits diameter_gen_ietf
+
+@messages
+
+   CCR ::= < Diameter Header: 272, REQ, PXY >
+         < Session-Id >
+         { Auth-Application-Id }
+         { Origin-Host }
+         { Origin-Realm }
+         { Destination-Realm }
+         { CC-Request-Type }
+         { CC-Request-Number }
+;        [ Credit-Management-Status ]
+         [ Destination-Host ]
+         [ Origin-State-Id ]
+        *[ Subscription-Id ]
+         [ OC-Supported-Features ]
+        *[ Supported-Features ]
+;        [ TDF-Information ]
+;        [ Network-Request-Support ]
+;       *[ Packet-Filter-Information ]
+;        [ Packet-Filter-Operation ]
+         [ Bearer-Identifier ]
+;        [ Bearer-Operation ]
+         [ Dynamic-Address-Flag ]
+         [ Dynamic-Address-Flag-Extension ]
+         [ PDN-Connection-Charging-ID ]
+         [ Framed-IP-Address ]
+;        [ Framed-Ipv6-Prefix ]
+         [ IP-CAN-Type ]
+         [ 3GPP-RAT-Type ]
+;        [ AN-Trusted ]
+         [ RAT-Type ]
+         [ Termination-Cause ]
+         [ User-Equipment-Info ]
+         [ QoS-Information ]
+;        [ QoS-Negotiation ]
+;        [ QoS-Upgrade ]
+;        [ Default-EPS-Bearer-QoS ]
+;        [ Default-QoS-Information ]
+;     0*2[ AN-GW-Address ]
+;        [ AN-GW-Status ]
+         [ 3GPP-SGSN-MCC-MNC ]
+;        [ 3GPP-SGSN-Address ]
+;        [ 3GPP-SGSN-Ipv6-Address ]
+;        [ 3GPP-GGSN-Address ]
+;        [ 3GPP-GGSN-Ipv6-Address ]
+         [ 3GPP-Selection-Mode ]
+;        [ RAI ]
+         [ 3GPP-User-Location-Info ]
+;        [ Fixed-User-Location-Info ]
+         [ User-Location-Info-Time ]
+;        [ User-CSG-Information ]
+;        [ TWAN-Identifier ]
+         [ 3GPP-MS-TimeZone ]
+;       *[ RAN-NAS-Release-Cause ]
+         [ 3GPP-Charging-Characteristics ]
+         [ Called-Station-Id ]
+;        [ PDN-Connection-ID ]
+;        [ Bearer-Usage ]
+;        [ Online ]
+;        [ Offline ]
+;       *[ TFT-Packet-Filter-Information ]
+;       *[ Charging-Rule-Report ]
+;       *[ Application-Detection-Information ]
+;       *[ Event-Trigger ]
+;        [ Event-Report-Indication ]
+;        [ Access-Network-Charging-Address ]
+;       *[ Access-Network-Charging-Identifier-Gx ]
+;       *[ CoA-Information ]
+;       *[ Usage-Monitoring-Information ]
+;        [ NBIFOM-Support ]
+;        [ NBIFOM-Mode ]
+;        [ Default-Access ]
+;        [ Origination-Time-Stamp ]
+;        [ Maximum-Wait-Time ]
+;        [ Access-Availability-Change-Reason ]
+;        [ Routing-Rule-Install ]
+;        [ Routing-Rule-Remove ]
+;        [ HeNB-Local-IP-Address ]
+         [ UE-Local-IP-Address ]
+;        [ UDP-Source-Port ]
+;        [ TCP-Source-Port ]
+;       *[ Presence-Reporting-Area-Information ]
+;        [ Logical-Access-ID ]
+;        [ Physical-Access-ID ]
+        *[ Proxy-Info ]
+        *[ Route-Record ]
+         [ 3GPP-PS-Data-Off-Status ]
+         [ DRMP ]
+        *[ AVP ]
+
+   CCA ::= < Diameter Header: 272, PXY >
+         < Session-Id >
+         { Auth-Application-Id }
+         { Origin-Host }
+         { Origin-Realm }
+         { CC-Request-Type }
+         { CC-Request-Number }
+         [ Result-Code ]
+         [ Experimental-Result ]
+         [ OC-Supported-Features ]
+         [ OC-OLR ]
+        *[ Supported-Features ]
+;        [ Bearer-Control-Mode ]
+;       *[ Event-Trigger ]
+;        [ Event-Report-Indication ]
+         [ Origin-State-Id ]
+        *[ Redirect-Host ]
+         [ Redirect-Host-Usage ]
+         [ Redirect-Max-Cache-Time ]
+        *[ Charging-Rule-Remove ]
+        *[ Charging-Rule-Install ]
+;        [ Charging-Information ]
+;        [ Online ]
+;        [ Offline ]
+        *[ QoS-Information ]
+;        [ Revalidation-Time ]
+;        [ Default-EPS-Bearer-QoS ]
+;        [ Default-QoS-Information ]
+;        [ Bearer-Usage ]
+;       *[ Usage-Monitoring-Information ]
+;       *[ CSG-Information-Reporting ]
+;        [ User-CSG-Information ]
+;        [ PRA-Install ]
+;        [ PRA-Remove ]
+;        [ Presence-Reporting-Area-Information ]
+;        [ Session-Release-Cause ]
+;        [ NBIFOM-Support ]
+;        [ NBIFOM-Mode ]
+;        [ Default-Access ]
+;        [ RAN-Rule-Support ]
+;       *[ Routing-Rule-Report ]
+;     0*4[ Conditional-Policy-Information ]
+;        [ Removal-Of-Access ]
+         [ IP-CAN-Type ]
+         [ Error-Message ]
+         [ Error-Reporting-Host ]
+         [ Failed-AVP ]
+        *[ Proxy-Info ]
+        *[ Route-Record ]
+        *[ Load ]
+         [ DRMP ]
+        *[ AVP ]
+
+   RAR ::= < Diameter Header: 258, REQ, PXY >
+         < Session-Id >
+         { Auth-Application-Id }
+         { Origin-Host }
+         { Origin-Realm }
+         { Destination-Realm }
+         { Destination-Host }
+         { Re-Auth-Request-Type }
+;        [ Session-Release-Cause ]
+         [ Origin-State-Id ]
+         [ OC-Supported-Features ]
+;       *[ Event-Trigger ]
+;        [ Event-Report-Indication ]
+        *[ Charging-Rule-Remove ]
+        *[ Charging-Rule-Install ]
+;        [ Default-EPS-Bearer-QoS ]
+        *[ QoS-Information ]
+;        [ Default-QoS-Information ]
+;        [ Revalidation-Time ]
+;       *[ Usage-Monitoring-Information ]
+;        [ PCSCF-Restoration-Indication ]
+;     0*4[ Conditional-Policy-Information ]
+;        [ Removal-Of-Access ]
+         [ IP-CAN-Type ]
+;        [ PRA-Install ]
+;        [ PRA-Remove ]
+;       *[ CSG-Information-Reporting ]
+        *[ Proxy-Info ]
+        *[ Route-Record ]
+         [ DRMP ]
+        *[ AVP ]
+
+   RAA ::= < Diameter Header: 258, PXY >
+         < Session-Id >
+         { Origin-Host }
+         { Origin-Realm }
+         [ Result-Code ]
+         [ Experimental-Result ]
+         [ Origin-State-Id ]
+         [ OC-Supported-Features ]
+         [ OC-OLR ]
+         [ IP-CAN-Type ]
+         [ RAT-Type ]
+;        [ AN-Trusted ]
+;     0*2[ AN-GW-Address ]
+         [ 3GPP-SGSN-MCC-MNC ]
+;        [ 3GPP-SGSN-Address ]
+;        [ 3GPP-SGSN-Ipv6-Address ]
+;        [ RAI ]
+         [ 3GPP-User-Location-Info ]
+         [ User-Location-Info-Time ]
+;        [ NetLoc-Access-Support ]
+;        [ User-CSG-Information ]
+         [ 3GPP-MS-TimeZone ]
+;        [ Default-QoS-Information ]
+;       *[ Charging-Rule-Report]
+         [ Error-Message ]
+         [ Error-Reporting-Host ]
+         [ Failed-AVP ]
+        *[ Proxy-Info ]
+         [ DRMP ]
+        *[ AVP ]
+
+@avp_types
+
+	Charging-Rule-Install    1001 Grouped   MV
+	Charging-Rule-Remove     1002 Grouped   MV
+	Charging-Rule-Definition 1003 Grouped   MV
+	
+@grouped
+
+   Charging-Rule-Install ::= < AVP Header: 1001 >
+        *[ Charging-Rule-Definition ]
+;       *[ Charging-Rule-Name ]
+        *[ Charging-Rule-Base-Name ]
+         [ Bearer-Identifier ]
+;        [ Monitoring-Flags ]
+;        [ Rule-Activation-Time ]
+;        [ Rule-Deactivation-Time ]
+;        [ Resource-Allocation-Notification ]
+;        [ Charging-Correlation-Indicator ]
+         [ IP-CAN-Type ]
+        *[ AVP ]
+
+   Charging-Rule-Remove ::= < AVP Header: 1002 >
+;       *[ Charging-Rule-Name ]
+        *[ Charging-Rule-Base-Name ]
+;       *[ Required-Access-Info ]
+;        [ Resource-Release-Notification ]
+        *[ AVP ]
+
+   Charging-Rule-Definition ::= <AVP Header: 1003 >
+;        { Charging-Rule-Name }
+         [ Service-Identifier ]
+         [ Rating-Group ]
+;       *[ Flow-Information ]
+;        [ Default-Bearer-Indication ]
+;        [ TDF-Application-Identifier ]
+;        [ Flow-Status ]
+         [ QoS-Information ]
+;        [ PS-to-CS-Session-Continuity ]
+;        [ Reporting-Level ]
+;        [ Online ]
+;        [ Offline ]
+;        [ Max-PLR-DL ]
+;        [ Max-PLR-UL ]
+;        [ Metering-Method ]
+;        [ Precedence ]
+         [ AF-Charging-Identifier ]
+        *[ Flows ]
+;        [ Monitoring-Key]
+;        [ Redirect-Information ]
+;        [ Mute-Notification ]
+;        [ AF-Signalling-Protocol ]
+;        [ Sponsor-Identity ]
+;        [ Application-Service-Provider-Identity ]
+;       *[ Required-Access-Info ]
+;        [ Sharing-Key-DL ]
+;        [ Sharing-Key-UL ]
+;        [ Traffic-Steering-Policy-Identifier-DL ]
+;        [ Traffic-Steering-Policy-Identifier-UL ]
+;        [ Content-Version ]
+        *[ AVP ]
+

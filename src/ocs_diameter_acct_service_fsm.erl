@@ -54,6 +54,10 @@
 -define(RO_APPLICATION, ocs_diameter_3gpp_ro_application).
 -define(RO_APPLICATION_DICT, diameter_gen_3gpp_ro_application).
 -define(RO_APPLICATION_CALLBACK, ocs_diameter_3gpp_ro_application_cb).
+-define(Gx_APPLICATION_ID, 16777238).
+-define(Gx_APPLICATION, ocs_diameter_3gpp_gx_application).
+-define(Gx_APPLICATION_DICT, diameter_gen_3gpp_gx_application).
+-define(Gx_APPLICATION_CALLBACK, ocs_diameter_3gpp_gx_application_cb).
 -define(IANA_PEN_3GPP, 10415).
 -define(IANA_PEN_SigScale, 50386).
 -define(WAIT_STOP, 11000).
@@ -339,7 +343,7 @@ service_options(Options) ->
 		{'Product-Name', "SigScale OCS"},
 		{'Firmware-Revision', Version},
 		{'Supported-Vendor-Id', [?IANA_PEN_3GPP]},
-		{'Auth-Application-Id', [?RO_APPLICATION_ID]},
+		{'Auth-Application-Id', [?RO_APPLICATION_ID, ?Gx_APPLICATION_DICT]},
 		{restrict_connections, false},
 		{string_decode, false},
 		{application, [{alias, ?BASE_APPLICATION},
@@ -349,6 +353,10 @@ service_options(Options) ->
 		{application, [{alias, ?RO_APPLICATION},
 				{dictionary, ?RO_APPLICATION_DICT},
 				{module, ?RO_APPLICATION_CALLBACK},
+				{request_errors, callback}]},
+		{application, [{alias, ?Gx_APPLICATION},
+				{dictionary, ?Gx_APPLICATION_DICT},
+				{module, ?Gx_APPLICATION_CALLBACK},
 				{request_errors, callback}]}].
 
 -spec transport_options(Transport, Address, Port) -> Options

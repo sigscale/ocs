@@ -82,6 +82,7 @@ beam_DATA = ocs.beam \
 			diameter_gen_3gpp_sta_application.beam \
 			diameter_gen_3gpp_swm_application.beam \
 			diameter_gen_3gpp_swx_application.beam \
+			diameter_gen_3gpp_gx_application.beam \
 			diameter_gen_nas_application_rfc7155.beam \
 			diameter_gen_cc_application_rfc4006.beam \
 			diameter_gen_eap_application_rfc4072.beam \
@@ -93,6 +94,7 @@ beam_DATA = ocs.beam \
 			ocs_diameter_3gpp_sta_application_cb.beam \
 			ocs_diameter_3gpp_swm_application_cb.beam \
 			ocs_diameter_3gpp_swx_application_cb.beam \
+			ocs_diameter_3gpp_gx_application_cb.beam \
 			ocs_diameter_codec.beam \
 			ocs_rest_res_http.beam \
 			ocs_rest_res_resource.beam \
@@ -110,6 +112,7 @@ beam_DATA = ocs.beam \
 		$(top_builddir)/include/diameter_gen_3gpp_sta_application.hrl \
 		$(top_builddir)/include/diameter_gen_3gpp_swm_application.hrl \
 		$(top_builddir)/include/diameter_gen_3gpp_swx_application.hrl \
+		$(top_builddir)/include/diameter_gen_3gpp_gx_application.hrl \
 		$(top_builddir)/include/diameter_gen_nas_application_rfc7155.hrl \
 		$(top_builddir)/include/diameter_gen_cc_application_rfc4006.hrl \
 		$(top_builddir)/include/diameter_gen_eap_application_rfc4072.hrl
@@ -141,6 +144,10 @@ diameter_gen_3gpp_swm_application.beam:$(top_builddir)/src/diameter_gen_3gpp_swm
 
 diameter_gen_3gpp_swx_application.beam:$(top_builddir)/src/diameter_gen_3gpp_swx_application.erl \
 		$(top_builddir)/include/diameter_gen_3gpp_swx_application.hrl
+	$(ERLC) $(ERLCFLAGS) -I $(top_builddir)/include $<
+
+diameter_gen_3gpp_gx_application.beam:$(top_builddir)/src/diameter_gen_3gpp_gx_application.erl \
+		$(top_builddir)/include/diameter_gen_3gpp_gx_application.hrl
 	$(ERLC) $(ERLCFLAGS) -I $(top_builddir)/include $<
 
 diameter_gen_nas_application_rfc7155.beam:$(top_builddir)/src/diameter_gen_nas_application_rfc7155.erl \
