@@ -535,11 +535,7 @@
    Pre-emption-Vulnerability                              1048  Enumerated       VM
    UE-Local-IP-Address                                    2805  Address          V
    ;; 3GPP TS 29.273
-   MIP6-Feature-Vector                                     124  Unsigned64        M
    3GPP-AAA-Server-Name                                    318  DiameterIdentity VM
-   Service-Selection                                       493  UTF8String        M
-   Mobile-Node-Identifier                                  506  UTF8String        M
-;  QoS-Capability                                          578  Grouped           M
    Visited-Network-Identifier                              600  OctetString      VM
    Trace-Data                                             1458  Grouped          VM
    Non-3GPP-User-Data                                     1500  Grouped          VM

@@ -6,20 +6,20 @@
 @inherits diameter_gen_base_rfc6733
 @inherits diameter_gen_3gpp
 @inherits diameter_gen_ietf
-;   Framed-IP-Address
-;   Called-Station-Id
-;   DRMP
-;   Load
-;   OC-OLR
-;   OC-Supported-Features
-;   User-Equipment-Info
-;   CC-Request-Type
-;   CC-Request-Number
-;   Subscription-Id
-;   Subscription-Id-Type
-;   Subscription-Id-Data
-;   Rating-Group
-;   Service-Identifier
+    Framed-IP-Address
+    Called-Station-Id
+    DRMP
+    Load
+    OC-OLR
+    OC-Supported-Features
+    User-Equipment-Info
+    CC-Request-Type
+    CC-Request-Number
+    Subscription-Id
+    Subscription-Id-Type
+    Subscription-Id-Data
+    Rating-Group
+    Service-Identifier
 
 @messages
 
