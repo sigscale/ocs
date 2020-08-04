@@ -20,7 +20,6 @@
 %%% 	for the 3GPP DIAMETER SWx in the {@link //ocs. ocs} application.
 %%%
 %%% @reference 3GPP TS TS 29.273 EPS AAA Interfaces
-%%% @reference 3GPP TS TS 33.402 Security Aspects of non-3GPP Accesses
 %%%
 -module(ocs_diameter_3gpp_swx_application_cb).
 -copyright('Copyright (c) 2016 - 2020 SigScale Global Inc.').
@@ -32,9 +31,7 @@
 -include_lib("diameter/include/diameter.hrl").
 -include_lib("diameter/include/diameter_gen_base_rfc6733.hrl").
 -include("diameter_gen_ietf.hrl").
--include("diameter_gen_nas_application_rfc7155.hrl").
--include("diameter_gen_eap_application_rfc4072.hrl").
--include("diameter_gen_3gpp.hrl").
+-include("diameter_gen_3gpp_swx_application.hrl").
 -include("ocs.hrl").
 
 -record(state, {}).
@@ -226,9 +223,45 @@ request(ServiceName, Capabilities, Request, []) ->
 %% @doc Process a received DIAMETER packet.
 %% @private
 %% @todo Handle SWx requests.
-process_request(ServiceName, Capabilities, Request,
-		 Address, Port, PasswordReq, Trusted) ->
-	discard.
+process_request(ServiceName, #diameter_caps{origin_host = {OHost, _DHost},
+		origin_realm = {ORealm, _DRealm}} = Capabilities,
+		#'3gpp_swx_RTR'{'Session-Id' = SId} = Request,
+		Address, Port, PasswordReq, Trusted) ->
+	try
+		process_request1(ServiceName, Capabilities,
+				Request, Address, Port, PasswordReq, Trusted)
+	catch
+		_:_Reason ->
+			{reply, #'3gpp_swx_RTA'{'Session-Id' = SId,
+					'Result-Code' = ?'DIAMETER_BASE_RESULT-CODE_INVALID_AVP_BITS',
+					'Origin-Host' = OHost, 'Origin-Realm' = ORealm}}
+	end.
+%% @hidden
+process_request1(ServiceName, Capabilities,
+		Request, Address, Port, PasswordReq, Trusted) ->
+	[Info] = diameter:service_info(ServiceName, transport),
+	case lists:keyfind(options, 1, Info) of
+		{options, Options} ->
+			case lists:keyfind(transport_config, 1, Options) of
+				{transport_config, TC} ->
+					{ip, Sip} = lists:keyfind(ip, 1, TC),
+					{port, Sport} = lists:keyfind(port, 1, TC),
+					case global:whereis_name({ocs_diameter_auth, Sip, Sport}) of
+						undefined ->
+							discard;
+						PortServer ->
+							Answer = gen_server:call(PortServer,
+									{diameter_request, Capabilities,
+											Address, Port, PasswordReq, Trusted,
+											Request, none}),
+							{reply, Answer}
+					end;
+				false ->
+					discard
+			end;
+		false ->
+			discard
+	end.
 
 -spec errors(ServiceName, Capabilities, Request, Errors) -> Result
 	when
@@ -287,6 +320,6 @@ errors(_ServiceName, _Capabilities, _Request, [{ResultCode, _} | _]) ->
 	{error, ResultCode};
 errors(_ServiceName, _Capabilities, _Request, [ResultCode | _]) ->
 	{error, ResultCode};
-errors(ServiceName, Capabilities, Request, []) ->
+errors(_ServiceName, _Capabilities, _Request, []) ->
 	ok.
 

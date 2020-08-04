@@ -1,3 +1,31 @@
+2020-08-02  Vance Shipley <vances@sigscale.org>
+
+	* centralized unit determination [OCS-173]
+
+2020-07-30  Vance Shipley <vances@sigscale.org>
+
+	* use all apn configurations (revert from select default apn)
+	* decode swx apn-configuration as swm apn-configuration for pass thru
+	* specialized diameter codec
+
+2020-07-27  Vance Shipley <vances@sigscale.org>
+
+	* correct missing eap in swm der (regression)
+
+2020-07-22  Vance Shipley <vances@sigscale.org>
+
+	* select default apn from apn-configuration in non-3gpp-user-data
+
+2020-07-20  Vance Shipley <vances@sigscale.org>
+
+	* allow + in prefix
+	* forward received rtr to ue deregistration handler
+	* forward received str to session termination handler
+	* readmes for packages
+	* return correct error code for product resources
+	* include doc directory in tarball package
+	* reconcile conflict with 3gpp ts 29.273 sections 5.2.2.1.2 and 7.2.2.1.2
+
 2020-05-20  Vance Shipley <vances@sigscale.org>
 
 	* add proxy-info, route-record to all messages

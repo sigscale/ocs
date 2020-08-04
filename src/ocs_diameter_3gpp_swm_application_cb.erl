@@ -207,11 +207,10 @@ request(ServiceName, Capabilities, Request, []) ->
 	errors(ServiceName, Capabilities, Request, [?'DIAMETER_BASE_RESULT-CODE_UNKNOWN_PEER']).
 
 -spec process_request(ServiceName, Capabilities, Request,
-		Address, Port, PasswordReq, Trusted) -> Result
-	when
+		Address, Port, PasswordReq, Trusted) -> Result when
 		ServiceName :: term(),
 		Capabilities :: capabilities(),
-		Request :: #'3gpp_swm_DER'{},
+		Request :: #'3gpp_swm_DER'{} | #'3gpp_swm_STR'{},
 		Address :: inet:ip_address(),
 		Port :: inet:port(),
 		PasswordReq :: boolean(),
@@ -226,35 +225,54 @@ process_request(ServiceName, #diameter_caps{origin_host = {OHost, _DHost},
 				'EAP-Payload' = EapPayload} = Request,
 		Address, Port, PasswordReq, Trusted) ->
 	try
-		[Info] = diameter:service_info(ServiceName, transport),
-		case lists:keyfind(options, 1, Info) of
-			{options, Options} ->
-				case lists:keyfind(transport_config, 1, Options) of
-					{transport_config, TC} ->
-						{ip, Sip} = lists:keyfind(ip, 1, TC),
-						{port, Sport} = lists:keyfind(port, 1, TC),
-						case global:whereis_name({ocs_diameter_auth, Sip, Sport}) of
-							undefined ->
-								discard;
-							PortServer ->
-								Answer = gen_server:call(PortServer,
-										{diameter_request, Capabilities,
-												Address, Port, PasswordReq, Trusted,
-												Request, {eap, EapPayload}}),
-								{reply, Answer}
-						end;
-					false ->
-						discard
-				end;
-			false ->
-				discard
-		end
+		process_request1(ServiceName, Capabilities,
+				Request, Address, Port, PasswordReq, Trusted, {eap, EapPayload})
 	catch
 		_:_Reason ->
 			{reply, #'3gpp_swm_DEA'{'Session-Id' = SId,
 					'Result-Code' = ?'DIAMETER_BASE_RESULT-CODE_INVALID_AVP_BITS',
 					'Origin-Host' = OHost, 'Origin-Realm' = ORealm,
 					'Auth-Application-Id' = ?SWm_APPLICATION_ID}}
+	end;
+process_request(ServiceName, #diameter_caps{origin_host = {OHost, _DHost},
+		origin_realm = {ORealm, _DRealm}} = Capabilities,
+		#'3gpp_swm_STR'{'Session-Id' = SId,
+				'Auth-Application-Id' = ?SWm_APPLICATION_ID} = Request,
+		Address, Port, PasswordReq, Trusted) ->
+	try
+		process_request1(ServiceName, Capabilities,
+				Request, Address, Port, PasswordReq, Trusted, none)
+	catch
+		_:_Reason ->
+			{reply, #'3gpp_swm_STA'{'Session-Id' = SId,
+					'Result-Code' = ?'DIAMETER_BASE_RESULT-CODE_INVALID_AVP_BITS',
+					'Origin-Host' = OHost, 'Origin-Realm' = ORealm}}
+	end.
+%% @hidden
+process_request1(ServiceName, Capabilities,
+		Request, Address, Port, PasswordReq, Trusted, Eap) ->
+	[Info] = diameter:service_info(ServiceName, transport),
+	case lists:keyfind(options, 1, Info) of
+		{options, Options} ->
+			case lists:keyfind(transport_config, 1, Options) of
+				{transport_config, TC} ->
+					{ip, Sip} = lists:keyfind(ip, 1, TC),
+					{port, Sport} = lists:keyfind(port, 1, TC),
+					case global:whereis_name({ocs_diameter_auth, Sip, Sport}) of
+						undefined ->
+							discard;
+						PortServer ->
+							Answer = gen_server:call(PortServer,
+									{diameter_request, Capabilities,
+											Address, Port, PasswordReq, Trusted,
+											Request, Eap}),
+							{reply, Answer}
+					end;
+				false ->
+					discard
+			end;
+		false ->
+			discard
 	end.
 
 -spec errors(ServiceName, Capabilities, Request, Errors) -> Action

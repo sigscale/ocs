@@ -46,9 +46,10 @@
 			<div>
 				<paper-input
 					id="addPrefix"
-					type="number"
 					name="Prefix"
-					allowed-pattern="[0-9]"
+					allowed-pattern="[+0-9]"
+					pattern="^\+?[0-9]*$"
+					auto-validate
 					label="[[i18n.prefix]]">
 				</paper-input>
 			</div>
@@ -106,7 +107,9 @@
 			_tableRow: function(event) {
 				var table = document.getElementById('prefixList').table;
 				var rowName = new Object();
+console.log(this.$.addPrefix.value);
 				rowName.id = this.$.addPrefix.value;
+console.log(rowName.id);
 				rowName.href = "/resourceInventoryManagement/v1/logicalResource/" + table + "/" + rowName.id;
 				var resource = new Array();
 				var resPre = new Object();

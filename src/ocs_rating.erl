@@ -21,7 +21,7 @@
 -module(ocs_rating).
 -copyright('Copyright (c) 2016 - 2017 SigScale Global Inc.').
 
--export([rate/11]).
+-export([rate/12]).
 -export([authorize/8]).
 -export([session_attributes/1]).
 
@@ -50,21 +50,23 @@
 		product :: #product{},
 		chars = [] :: [tuple()],
 		service_type :: integer() | binary(),
-		service_network :: binary() | undefined,
+		charging_key :: integer() | undefined,
+		service_network :: string() | undefined,
 		roaming_tb_prefix :: string() | undefined,
 		session_id :: [tuple()],
 		rated = #rated{} :: #rated{}}).
 
--spec rate(Protocol, ServiceType, ServiceNetwork, SubscriberID, Timestamp,
-		Address, Direction, Flag, DebitAmounts, ReserveAmounts,
+-spec rate(Protocol, ServiceType, ChargingKey, ServiceNetwork, SubscriberID,
+		Timestamp, Address, Direction, Flag, DebitAmounts, ReserveAmounts,
 		SessionAttributes) -> Result
 	when
 		Protocol :: radius | diameter,
 		ServiceType :: integer() | binary(),
-		ServiceNetwork :: string() | undefined,
+		ChargingKey :: integer() | undefined,
+		ServiceNetwork :: string() | binary() | undefined,
 		SubscriberID :: string() | binary(),
 		Timestamp :: calendar:datetime(),
-		Address :: string(),
+		Address :: string() | binary() | undefined,
 		Direction :: answer | originate | undefined,
 		Flag :: initial | interim | final,
 		DebitAmounts :: [{Type, Amount}],
@@ -100,17 +102,37 @@
 %% 	cases subscriber's balance is debited.  `SessionList' describes the
 %% 	known active sessions which should be disconnected.
 %%
-rate(Protocol, ServiceType, ServiceNetwork, SubscriberID, Timestamp, Address,
-		Direction, Flag, DebitAmounts, ReserveAmounts, SessionAttributes)
-		when is_list(SubscriberID)->
-	rate(Protocol, ServiceType, ServiceNetwork, list_to_binary(SubscriberID),
+rate(Protocol, ServiceType, ChargingKey, ServiceNetwork, SubscriberID,
 		Timestamp, Address, Direction, Flag, DebitAmounts, ReserveAmounts,
-		SessionAttributes);
-rate(Protocol, ServiceType, ServiceNetwork, SubscriberID, Timestamp, Address,
-		Direction, Flag, DebitAmounts, ReserveAmounts, SessionAttributes) when
-		((Protocol == radius) or (Protocol == diameter)), is_binary(SubscriberID),
+		SessionAttributes) when is_list(SubscriberID) ->
+	rate(Protocol, ServiceType, ChargingKey, ServiceNetwork,
+		list_to_binary(SubscriberID), Timestamp, Address, Direction,
+		Flag, DebitAmounts, ReserveAmounts, SessionAttributes);
+rate(Protocol, ServiceType, ChargingKey, ServiceNetwork, SubscriberID,
+		Timestamp, Address, Direction, Flag, DebitAmounts, ReserveAmounts,
+		SessionAttributes) when is_binary(ServiceNetwork) ->
+	rate(Protocol, ServiceType, ChargingKey, binary_to_list(ServiceNetwork),
+		SubscriberID, Timestamp, Address, Direction,
+		Flag, DebitAmounts, ReserveAmounts, SessionAttributes);
+rate(Protocol, ServiceType, ChargingKey, ServiceNetwork, SubscriberID,
+		Timestamp, Address, Direction, Flag, DebitAmounts, ReserveAmounts,
+		SessionAttributes) when is_binary(Address) ->
+	rate(Protocol, ServiceType, ChargingKey, ServiceNetwork,
+		SubscriberID, Timestamp, binary_to_list(Address), Direction,
+		Flag, DebitAmounts, ReserveAmounts, SessionAttributes);
+rate(Protocol, ServiceType, ChargingKey, ServiceNetwork, SubscriberID,
+		{{_, _, _}, {_, _, _}} = Timestamp, Address, Direction, Flag,
+		DebitAmounts, ReserveAmounts, SessionAttributes)
+		when ((Protocol == radius) or (Protocol == diameter)),
+		(is_integer(ChargingKey) or (ChargingKey == undefined)), 
+		(is_list(ServiceNetwork) or (ServiceNetwork == undefined)),
+		is_binary(SubscriberID),
+		(is_list(Address) or (Address == undefined)),
+		((Direction == answer) or (Direction == originate)
+				or (Direction == undefined)),
 		((Flag == initial) or (Flag == interim) or (Flag == final)),
-		is_list(DebitAmounts), is_list(ReserveAmounts), length(SessionAttributes) > 0 ->
+		is_list(DebitAmounts), is_list(ReserveAmounts),
+		length(SessionAttributes) > 0 ->
 	F = fun() ->
 			case mnesia:read(service, SubscriberID, sticky_write) of
 				[#service{product = ProdRef, session_attributes = SessionList} = Service] ->
@@ -119,7 +141,8 @@ rate(Protocol, ServiceType, ServiceNetwork, SubscriberID, Timestamp, Address,
 								balance = BucketRefs} = Product] ->
 							case mnesia:read(offer, OfferId, read) of
 								[#offer{} = Offer] ->
-									Buckets = lists:flatten([mnesia:read(bucket, Id, sticky_write) || Id <- BucketRefs]),
+									Buckets = lists:flatten([mnesia:read(bucket, Id, sticky_write)
+											|| Id <- BucketRefs]),
 									F2 = fun(#bucket{units = cents, remain_amount = RM}) when RM < 0 ->
 												false;
 											(_) ->
@@ -131,6 +154,7 @@ rate(Protocol, ServiceType, ServiceNetwork, SubscriberID, Timestamp, Address,
 													product  = Product,
 													chars = Chars,
 													service_type = ServiceType,
+													charging_key = ChargingKey,
 													service_network = ServiceNetwork,
 													session_id = get_session_id(SessionAttributes)},
 											rate1(Protocol, Service, Buckets,
@@ -300,7 +324,8 @@ rate3(Protocol, Service, Buckets, Address,
 							{address, Address}, {result, Other}]),
 					throw(table_lookup_failed)
 			end;
-		#char_value_use{values = [#char_value{value = TariffTable}]} ->
+		#char_value_use{values = [#char_value{value = TariffTable}]}
+				when ServiceNetwork /= undefined ->
 			Table1 = list_to_existing_atom(RoamingTable),
 			case catch ocs:find_sn_network(Table1, ServiceNetwork) of
 				{_, _, _Description, TabPrefix} ->
@@ -341,7 +366,7 @@ rate4(Protocol, Service, Buckets,
 		#price{type = tariff} = Price, Flag, DebitAmounts, ReserveAmounts,
 		#state{roaming_tb_prefix = RoamingTable, service_network = ServiceNetwork,
 		rated = Rated} = State)
-		when is_list(RoamingTable)->
+		when is_list(RoamingTable), is_list(ServiceNetwork) ->
 	Table = list_to_existing_atom(RoamingTable),
 	case catch ocs:find_sn_network(Table, ServiceNetwork) of
 		{_, _, Description, Amount} ->
@@ -379,6 +404,40 @@ rate5(radius, Service, Buckets, #price{units = Units} = Price,
 			get_reserve(Price)
 	end,
 	rate6(Service, Buckets, Price, interim, 0, ReserveAmount, State);
+rate5(_Protocol, Service, Buckets,
+		#price{units = Units, size = Size} = Price,
+		Flag, DebitAmounts, [], State)
+		when ((Flag == initial) or (Flag == interim)) ->
+	DebitAmount = case lists:keyfind(Units, 1, DebitAmounts) of
+		{_, DebitUnits} ->
+			DebitUnits;
+		false ->
+			0
+	end,
+	ReserveAmount = case Units of
+		octets ->
+			case application:get_env(ocs, min_reserve_octets) of
+				{ok, Value} when Value < Size ->
+					Size;
+				{ok, Value} ->
+					Value
+			end;
+		seconds ->
+			case application:get_env(ocs,min_reserve_seconds) of
+				{ok, Value} when Value < Size ->
+					Size;
+				{ok, Value} ->
+					Value
+			end;
+		messages ->
+			case application:get_env(ocs, min_reserve_messages) of
+				{ok, Value} when Value < Size ->
+					Size;
+				{ok, Value} ->
+					Value
+			end
+	end,
+	rate6(Service, Buckets, Price, Flag, DebitAmount, ReserveAmount, State);
 rate5(_Protocol, Service, Buckets, #price{units = Units} = Price,
 		Flag, DebitAmounts, ReserveAmounts, State) ->
 	DebitAmount = case lists:keyfind(Units, 1, DebitAmounts) of

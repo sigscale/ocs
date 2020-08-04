@@ -305,43 +305,54 @@ process_request1(?'3GPP_CC-REQUEST-TYPE_INITIAL_REQUEST' = RequestType,
 		#'3gpp_ro_CCR'{'Multiple-Services-Credit-Control' = [MSCC | _],
 		'Service-Information' = ServiceInformation,
 		'Service-Context-Id' = SvcContextId,
-		'Event-Timestamp' = Timestamp} = Request, SId, RequestNum, Subscriber,
+		'Event-Timestamp' = EventTimestamp} = Request, SId, RequestNum, Subscriber,
 		OHost, _DHost, ORealm, _DRealm, Address, Port) ->
 	try
 		{ServiceIdentifier, RatingGroup, ReserveAmount} = case MSCC of
 			#'3gpp_ro_Multiple-Services-Credit-Control'{'Service-Identifier' = SI,
 					'Rating-Group' = RG, 'Requested-Service-Unit'
 					= [#'3gpp_ro_Requested-Service-Unit'{'CC-Time'
-					= [CCTime]}]} when CCTime =/= [] ->
+					= [CCTime]}]} when is_integer(CCTime) ->
 				{SI, RG, [{seconds, CCTime}]};
 			#'3gpp_ro_Multiple-Services-Credit-Control'{'Service-Identifier' = SI,
 					'Rating-Group' = RG, 'Requested-Service-Unit'
 					= [#'3gpp_ro_Requested-Service-Unit'{'CC-Total-Octets'
-					= [CCTotalOctets]}]} ->
+					= [CCTotalOctets]}]} when is_integer(CCTotalOctets) ->
 				{SI, RG, [{octets, CCTotalOctets}]};
 			#'3gpp_ro_Multiple-Services-Credit-Control'{'Service-Identifier' = SI,
 					'Rating-Group' = RG, 'Requested-Service-Unit'
 					= [#'3gpp_ro_Requested-Service-Unit'{'CC-Output-Octets'
 					= [CCOutputOctets], 'CC-Input-Octets' = [CCInputOctets]}]}
 					when is_integer(CCInputOctets), is_integer(CCOutputOctets) ->
-				{SI, RG, [{octets, CCOutputOctets + CCOutputOctets}]};
+				{SI, RG, [{octets, CCInputOctets + CCOutputOctets}]};
 			#'3gpp_ro_Multiple-Services-Credit-Control'{'Service-Identifier' = SI,
 					'Rating-Group' = RG, 'Requested-Service-Unit'
 					= [#'3gpp_ro_Requested-Service-Unit'{'CC-Service-Specific-Units'
 					= [CCSpecUnits]}]} when is_integer(CCSpecUnits) ->
 				{SI, RG, [{messages, CCSpecUnits}]};
-			#'3gpp_ro_Multiple-Services-Credit-Control'{'Requested-Service-Unit'
-					= [#'3gpp_ro_Requested-Service-Unit'{}]} ->
-				throw(unsupported_request_units);
 			#'3gpp_ro_Multiple-Services-Credit-Control'{} ->
 				{[], [], []}
 		end,
 		Destination = call_destination(ServiceInformation),
 		ServiceType = service_type(SvcContextId),
+		ChargingKey = case RatingGroup of
+			[CK] ->
+				CK;
+			[] ->
+				undefined 
+		end,
 		ServiceNetwork = service_network(ServiceInformation),
 		Server = {Address, Port},
-		case ocs_rating:rate(diameter, ServiceType, ServiceNetwork, Subscriber, Timestamp,
-				Destination, originate, initial, [], ReserveAmount, [{'Session-Id', SId}]) of
+		Timestamp = case EventTimestamp of
+			[{{_, _, _}, {_, _, _}} = TS] ->
+				TS;
+			_ ->
+				calendar:universal_time()
+		end,
+erlang:display({?MODULE, ?LINE, ocs_rating, rate, diameter, ServiceType, ChargingKey, ServiceNetwork, Subscriber, Timestamp, Destination, originate, initial, [], ReserveAmount, [{'Session-Id', SId}]}),
+		case ocs_rating:rate(diameter, ServiceType, ChargingKey, ServiceNetwork,
+				Subscriber, Timestamp, Destination, originate, initial, [],
+				ReserveAmount, [{'Session-Id', SId}]) of
 			{ok, _, GrantedAmount} ->
 				GrantedUnits = case ReserveAmount of
 					[{seconds, _}] ->
@@ -401,45 +412,42 @@ process_request1(?'3GPP_CC-REQUEST-TYPE_UPDATE_REQUEST' = RequestType,
 		#'3gpp_ro_CCR'{'Multiple-Services-Credit-Control' = [MSCC | _],
 		'Service-Information' = ServiceInformation,
 		'Service-Context-Id' = SvcContextId,
-		'Event-Timestamp' = Timestamp} = Request, SId, RequestNum, Subscriber,
+		'Event-Timestamp' = EventTimestamp} = Request, SId, RequestNum, Subscriber,
 		OHost, _DHost, ORealm, _DRealm, Address, Port) ->
 	try
 		{ServiceIdentifier, RatingGroup, ReserveAmount} = case MSCC of
 			#'3gpp_ro_Multiple-Services-Credit-Control'{'Service-Identifier' = SI,
 					'Rating-Group' = RG, 'Requested-Service-Unit'
 					= [#'3gpp_ro_Requested-Service-Unit'{'CC-Time'
-					= [CCTime]}]} when CCTime =/= [] ->
+					= [CCTime]}]} when is_integer(CCTime) ->
 				{SI, RG, [{seconds, CCTime}]};
 			#'3gpp_ro_Multiple-Services-Credit-Control'{'Service-Identifier' = SI,
 					'Rating-Group' = RG, 'Requested-Service-Unit'
 					= [#'3gpp_ro_Requested-Service-Unit'{'CC-Total-Octets'
-					= [CCTotalOctets]}]} ->
+					= [CCTotalOctets]}]} when is_integer(CCTotalOctets) ->
 				{SI, RG, [{octets, CCTotalOctets}]};
 			#'3gpp_ro_Multiple-Services-Credit-Control'{'Service-Identifier' = SI,
 					'Rating-Group' = RG, 'Requested-Service-Unit'
 					= [#'3gpp_ro_Requested-Service-Unit'{'CC-Output-Octets'
 					= [CCOutputOctets], 'CC-Input-Octets' = [CCInputOctets]}]}
 					when is_integer(CCInputOctets), is_integer(CCOutputOctets) ->
-				{SI, RG, [{octets, CCOutputOctets + CCOutputOctets}]};
+				{SI, RG, [{octets, CCInputOctets + CCOutputOctets}]};
 			#'3gpp_ro_Multiple-Services-Credit-Control'{'Service-Identifier' = SI,
 					'Rating-Group' = RG, 'Requested-Service-Unit'
 					= [#'3gpp_ro_Requested-Service-Unit'{'CC-Service-Specific-Units'
 					= [CCSpecUnits]}]} when is_integer(CCSpecUnits) ->
 				{SI, RG, [{messages, CCSpecUnits}]};
-			#'3gpp_ro_Multiple-Services-Credit-Control'{'Requested-Service-Unit'
-					= [#'3gpp_ro_Requested-Service-Unit'{}]} ->
-				throw(unsupported_request_units);
 			#'3gpp_ro_Multiple-Services-Credit-Control'{} ->
 				{[], [], []}
 		end,
 		DebitAmount = case MSCC of
 			#'3gpp_ro_Multiple-Services-Credit-Control'{'Used-Service-Unit'
 					= [#'3gpp_ro_Used-Service-Unit'{'CC-Time'
-					= [UsedCCTime]}]} when UsedCCTime =/= [] ->
+					= [UsedCCTime]}]} when is_integer(UsedCCTime) ->
 				[{seconds, UsedCCTime}];
 			#'3gpp_ro_Multiple-Services-Credit-Control'{'Used-Service-Unit'
 					= [#'3gpp_ro_Used-Service-Unit'{'CC-Total-Octets'
-					= [UsedCCTotalOctets]}]} ->
+					= [UsedCCTotalOctets]}]} when is_integer(UsedCCTotalOctets) ->
 				[{octets, UsedCCTotalOctets}];
 			#'3gpp_ro_Multiple-Services-Credit-Control'{'Used-Service-Unit'
 					= [#'3gpp_ro_Used-Service-Unit'{'CC-Output-Octets'
@@ -459,11 +467,24 @@ process_request1(?'3GPP_CC-REQUEST-TYPE_UPDATE_REQUEST' = RequestType,
 		end,
 		Destination = call_destination(ServiceInformation),
 		ServiceType = service_type(SvcContextId),
+		ChargingKey = case RatingGroup of
+			[CK] ->
+				CK;
+			[] ->
+				undefined 
+		end,
 		ServiceNetwork = service_network(ServiceInformation),
 		Server = {Address, Port},
-		case ocs_rating:rate(diameter, ServiceType, ServiceNetwork, Subscriber,
-				Timestamp, Destination, originate, interim, DebitAmount, ReserveAmount,
-				[{'Session-Id', SId}]) of
+		Timestamp = case EventTimestamp of
+			[{{_, _, _}, {_, _, _}} = TS] ->
+				TS;
+			_ ->
+				calendar:universal_time()
+		end,
+erlang:display({?MODULE, ?LINE, ocs_rating, rate, diameter, ServiceType, ChargingKey, ServiceNetwork, Subscriber, Timestamp, Destination, originate, interim, DebitAmount, ReserveAmount, [{'Session-Id', SId}]}),
+		case ocs_rating:rate(diameter, ServiceType, ChargingKey, ServiceNetwork,
+				Subscriber, Timestamp, Destination, originate, interim,
+				DebitAmount, ReserveAmount, [{'Session-Id', SId}]) of
 			{ok, _, GrantedAmount} ->
 				GrantedUnits = case ReserveAmount of
 					[{seconds, _}] ->
@@ -524,17 +545,17 @@ process_request1(?'3GPP_CC-REQUEST-TYPE_TERMINATION_REQUEST' = RequestType,
 		#'3gpp_ro_CCR'{'Multiple-Services-Credit-Control' = [MSCC | _],
 		'Service-Information' = ServiceInformation,
 		'Service-Context-Id' = SvcContextId,
-		'Event-Timestamp' = Timestamp} = Request, SId, RequestNum, Subscriber,
+		'Event-Timestamp' = EventTimestamp} = Request, SId, RequestNum, Subscriber,
 		OHost, _DHost, ORealm, _DRealm, Address, Port) ->
 	try
 		DebitAmount = case MSCC of
 			#'3gpp_ro_Multiple-Services-Credit-Control'{'Used-Service-Unit'
 					= [#'3gpp_ro_Used-Service-Unit'{'CC-Time'
-					= [UsedCCTime]}]} when UsedCCTime =/= [] ->
+					= [UsedCCTime]}]} when is_integer(UsedCCTime) ->
 				[{seconds, UsedCCTime}];
 			#'3gpp_ro_Multiple-Services-Credit-Control'{'Used-Service-Unit'
 					= [#'3gpp_ro_Used-Service-Unit'{'CC-Total-Octets'
-					= [UsedCCTotalOctets]}]} ->
+					= [UsedCCTotalOctets]}]} when is_integer(UsedCCTotalOctets) ->
 				[{octets, UsedCCTotalOctets}];
 			#'3gpp_ro_Multiple-Services-Credit-Control'{'Used-Service-Unit'
 					= [#'3gpp_ro_Used-Service-Unit'{'CC-Output-Octets'
@@ -556,8 +577,16 @@ process_request1(?'3GPP_CC-REQUEST-TYPE_TERMINATION_REQUEST' = RequestType,
 		ServiceType = service_type(SvcContextId),
 		ServiceNetwork = service_network(ServiceInformation),
 		Server = {Address, Port},
-		case ocs_rating:rate(diameter, ServiceType, ServiceNetwork, Subscriber, Timestamp,
-				Destination, originate, final, DebitAmount, [], [{'Session-Id', SId}]) of
+		Timestamp = case EventTimestamp of
+			[{{_, _, _}, {_, _, _}} = TS] ->
+				TS;
+			_ ->
+				calendar:universal_time()
+		end,
+erlang:display({?MODULE, ?LINE, ocs_rating, rate, diameter, ServiceType, undefined, ServiceNetwork, Subscriber, Timestamp, Destination, originate, final, DebitAmount, [], [{'Session-Id', SId}]}),
+		case ocs_rating:rate(diameter, ServiceType, undefined, ServiceNetwork,
+				Subscriber, Timestamp, Destination, originate, final, DebitAmount,
+				[], [{'Session-Id', SId}]) of
 			{ok, _, 0, Rated} ->
 				Reply = diameter_answer(SId, [], [], undefined,
 						?'DIAMETER_BASE_RESULT-CODE_SUCCESS',
