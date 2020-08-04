@@ -6,18 +6,20 @@
 @inherits diameter_gen_base_rfc6733
 @inherits diameter_gen_3gpp
 @inherits diameter_gen_ietf
-   Called-Station-Id
-   Framed-IP-Address
-   DRMP
-   Load
-   OC-OLR
-   OC-Supported-Features
-   User-Equipment-Info
-   CC-Request-Type
-   CC-Request-Number
-   Subscription-Id
-   Rating-Group
-   Service-Identifier
+;   Framed-IP-Address
+;   Called-Station-Id
+;   DRMP
+;   Load
+;   OC-OLR
+;   OC-Supported-Features
+;   User-Equipment-Info
+;   CC-Request-Type
+;   CC-Request-Number
+;   Subscription-Id
+;   Subscription-Id-Type
+;   Subscription-Id-Data
+;   Rating-Group
+;   Service-Identifier
 
 @messages
 
@@ -36,7 +38,7 @@
          [ OC-Supported-Features ]
         *[ Supported-Features ]
 ;        [ TDF-Information ]
-;        [ Network-Request-Support ]
+         [ Network-Request-Support ]
 ;       *[ Packet-Filter-Information ]
 ;        [ Packet-Filter-Operation ]
          [ Bearer-Identifier ]
@@ -77,8 +79,8 @@
          [ Called-Station-Id ]
 ;        [ PDN-Connection-ID ]
 ;        [ Bearer-Usage ]
-;        [ Online ]
-;        [ Offline ]
+         [ Online ]
+         [ Offline ]
 ;       *[ TFT-Packet-Filter-Information ]
 ;       *[ Charging-Rule-Report ]
 ;       *[ Application-Detection-Information ]
@@ -131,8 +133,8 @@
         *[ Charging-Rule-Remove ]
         *[ Charging-Rule-Install ]
 ;        [ Charging-Information ]
-;        [ Online ]
-;        [ Offline ]
+         [ Online ]
+         [ Offline ]
         *[ QoS-Information ]
 ;        [ Revalidation-Time ]
 ;        [ Default-EPS-Bearer-QoS ]
@@ -267,8 +269,8 @@
          [ QoS-Information ]
 ;        [ PS-to-CS-Session-Continuity ]
 ;        [ Reporting-Level ]
-;        [ Online ]
-;        [ Offline ]
+         [ Online ]
+         [ Offline ]
 ;        [ Max-PLR-DL ]
 ;        [ Max-PLR-UL ]
 ;        [ Metering-Method ]
