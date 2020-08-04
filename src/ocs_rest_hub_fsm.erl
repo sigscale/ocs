@@ -183,14 +183,8 @@ registered({Type, Resource, balance} = _Event, #statedata{sync = Sync,
 	EventType = case Type of
 		create ->
 			"ResourceCreateEvent";
-		attributeValueChange ->
-			"ResourceAttributeValueChangeEvent";
-		change ->
-			"ResourceChangeEvent";
-		stateChange ->
-			"ResourceStateChangeEvent";
-		remove ->
-			"ResourceDeleteEvent"
+		expired ->
+			"ResourceExpiredEvent"
 	end,
 	EventStruct = {struct, [{"eventId", EventId}, {"eventTime", EventTime},
 			{"eventType", EventType},
