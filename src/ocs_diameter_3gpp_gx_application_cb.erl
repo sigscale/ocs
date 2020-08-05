@@ -304,7 +304,7 @@ process_request(Address, Port,
 %% @doc Send CCA to DIAMETER client indicating an operation failure.
 %% @hidden
 diameter_error(SId, ResultCode, OHost, ORealm, RequestType, RequestNum) ->
-	#'3gpp_gx_CCA'{'Session-Id' = SId, 'Result-Code' = ResultCode,
+	#'3gpp_gx_CCA'{'Session-Id' = SId, 'Result-Code' = [ResultCode],
 			'Origin-Host' = OHost, 'Origin-Realm' = ORealm,
 			'Auth-Application-Id' = ?Gx_APPLICATION_ID, 'CC-Request-Type' = RequestType,
 			'CC-Request-Number' = RequestNum}.
