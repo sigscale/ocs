@@ -99,6 +99,7 @@
 				ocs_rest_hub_sup,
 				ocs_rest_hub_fsm,
 				ocs_rest_hub_balance,
+				ocs_rest_hub_product,
 				ocs_event]},
 		{registered, [ocs]},
 		{applications, [crypto, inets, asn1, public_key, ssl, mochiweb, radius, diameter]},
