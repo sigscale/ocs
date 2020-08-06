@@ -24,7 +24,7 @@
 %% common_test required callbacks
 -export([suite/0, sequences/0, all/0]).
 -export([init_per_suite/1, end_per_suite/1]).
--export([init_per_testcase/2, end_per_testcase/2, notifycreate/3]).
+-export([init_per_testcase/2, end_per_testcase/2]).
 
 %% Note: This directive should only be used in test suites.
 -compile(export_all).
@@ -2582,7 +2582,7 @@ notify_create_bucket(Config) ->
 	ListenerPort = ?config(listener_port, Config),
 	ListenerServer = "http://localhost:" ++ integer_to_list(ListenerPort),
 	Callback = ListenerServer ++ "/listener/"
-			++ atom_to_list(?MODULE) ++ "/notifycreate",
+			++ atom_to_list(?MODULE) ++ "/notifycreatebucket",
 	RequestBody = "{\n"
 			++ "\t\"callback\": \"" ++ Callback ++ "\",\n"
 			++ "}\n",
@@ -2693,16 +2693,16 @@ notify_create_product(Config) ->
 %%  Internal functions
 %%---------------------------------------------------------------------
 
--spec notifycreate(SessionID :: term(), Env :: list(),
+-spec notifycreatebucket(SessionID :: term(), Env :: list(),
 		Input :: string()) -> any().
-%% @doc Notification callback for notify_create test case.
-notifycreate(SessionID, _Env, Input) ->
+%% @doc Notification callback for notify_create_bucket test case.
+notifycreatebucket(SessionID, _Env, Input) ->
 	mod_esi:deliver(SessionID, "status: 201 Created\r\n\r\n"),
 	notify_create_bucket ! Input.
 
 -spec notifyexpiredbucket(SessionID :: term(), Env :: list(),
 		Input :: string()) -> any().
-%% @doc Notification callback for notify_create test case.
+%% @doc Notification callback for notify_delete_expired_bucket test case.
 notifyexpiredbucket(SessionID, _Env, Input) ->
 	mod_esi:deliver(SessionID, "status: 201 Created\r\n\r\n"),
 	notify_delete_expired_bucket ! Input.
