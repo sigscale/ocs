@@ -44,6 +44,7 @@
 %-define(MILLISECOND, millisecond).
 
 -define(PathBalanceHub, "/balanceManagement/v1/hub/").
+-define(PathProductHub, "/productInventoryManagement/v2/hub/").
 
 %%---------------------------------------------------------------------
 %%  Test server callback functions
@@ -113,7 +114,8 @@ end_per_suite(Config) ->
 %% Initialization before each test case.
 %%
 init_per_testcase(TestCase, Config) when TestCase == notify_create_bucket;
-		TestCase == notify_delete_expired_bucket ->
+		TestCase == notify_delete_expired_bucket;
+		TestCase == notify_create_product ->
 	true = register(TestCase, self()),
 	case inets:start(httpd, [{port, 0},
 			{server_name, atom_to_list(?MODULE)},
@@ -168,7 +170,7 @@ all() ->
 	update_product_realizing_service, delete_product,
 	ignore_delete_product, query_product, filter_product,
 	post_hub, delete_hub,
-	notify_create_bucket, notify_delete_expired_bucket].
+	notify_create_bucket, notify_delete_expired_bucket, notify_create_product].
 
 %%%%%---------------------------------------------------------------------
 %%  Test cases
@@ -2653,6 +2655,40 @@ notify_delete_expired_bucket(Config) ->
 			lists:keyfind("id", 1, BalanceList)
 	end.
 
+notify_create_product() ->
+	[{userdata, [{doc, "Receive product creation notification."}]}].
+
+notify_create_product(Config) ->
+	HostUrl = ?config(host_url, Config),
+	CollectionUrl = HostUrl ++ ?PathProductHub,
+	ListenerPort = ?config(listener_port, Config),
+	ListenerServer = "http://localhost:" ++ integer_to_list(ListenerPort),
+	Callback = ListenerServer ++ "/listener/"
+			++ atom_to_list(?MODULE) ++ "/notifycreateproduct",
+	RequestBody = "{\n"
+			++ "\t\"callback\": \"" ++ Callback ++ "\",\n"
+			++ "}\n",
+	ContentType = "application/json",
+	Accept = {"accept", "application/json"},
+	Request = {CollectionUrl, [Accept, auth_header()], ContentType, RequestBody},
+	{ok, {{_, 201, _}, _, _}} = httpc:request(post, Request, [], []),
+	Price = #price{name = ocs:generate_identity(),
+			type = usage, units = octets, size = 1000, amount = 100},
+	Offer = #offer{name = ocs:generate_identity(),
+			price = [Price], specification = 4},
+	{ok, #offer{name = OfferId}} = ocs:add_offer(Offer),
+	{ok, #product{id = ProductId}} = ocs:add_product(OfferId, [], []),
+	Product = receive
+		Input ->
+			{struct, ProductEvent} = mochijson:decode(Input),
+			{_, "ResourceCreateEvent"}
+					= lists:keyfind("eventType", 1, ProductEvent),
+			{_, {struct, ProductList}} = lists:keyfind("event", 1, ProductEvent),
+			ProductList
+	end,
+	{_, ProductId} = lists:keyfind("id", 1, Product),
+	{_, OfferId} = lists:keyfind("product", 1, Product).
+
 %%---------------------------------------------------------------------
 %%  Internal functions
 %%---------------------------------------------------------------------
@@ -2670,6 +2706,13 @@ notifycreate(SessionID, _Env, Input) ->
 notifyexpiredbucket(SessionID, _Env, Input) ->
 	mod_esi:deliver(SessionID, "status: 201 Created\r\n\r\n"),
 	notify_delete_expired_bucket ! Input.
+
+-spec notifycreateproduct(SessionID :: term(), Env :: list(),
+		Input :: string()) -> any().
+%% @doc Notification callback for notify_create_product test case.
+notifycreateproduct(SessionID, _Env, Input) ->
+	mod_esi:deliver(SessionID, "status: 201 Created\r\n\r\n"),
+	notify_create_product ! Input.
 
 product_offer() ->
 	CatalogHref = "/catalogManagement/v2",
