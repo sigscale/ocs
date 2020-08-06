@@ -112,6 +112,8 @@ do(#mod{method = Method, parsed_header = Headers, request_uri = Uri,
 							check_content_type_header(Headers, Method, ocs_rest_res_resource, Data);
 						["productInventoryManagement", "v2", "product" | _] ->
 							check_content_type_header(Headers, Method, ocs_rest_res_product, Data);
+						["productInventoryManagement", "v2", "hub" | _] ->
+							check_content_type_header(Headers, Method, ocs_rest_hub_product, Data);
 						["productInventoryManagement", "schema", "OCS.yml" | _] ->
 							check_content_type_header(Headers, Method, ocs_rest_res_product, Data);
 						["catalogManagement", "v2", "resourceSpecification" | _] ->
