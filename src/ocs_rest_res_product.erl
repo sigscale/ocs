@@ -33,6 +33,7 @@
 -export([get_pla_spec/2]).
 -export([delete_offer/1, delete_inventory/1, delete_pla/1]).
 -export([get_schema/0]).
+-export([inventory/1]).
 
 -include("ocs.hrl").
 

@@ -609,6 +609,7 @@ add_product(OfferId, ServiceRefs, StartDate, EndDate, Characteristics)
 	end,
 	case mnesia:transaction(F) of
 		{atomic, Product} ->
+			ocs_event:notify(create, Product, product),
 			{ok, Product};
 		{aborted, {throw, Reason}} ->
 			{error, Reason};

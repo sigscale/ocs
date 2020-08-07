@@ -149,7 +149,7 @@ register(timeout, State) ->
 	when
 		Event :: {Type, Resource, Category},
 		Type :: create | attributeValueChange | stateChange | remove,
-		Resource :: #bucket{},
+		Resource :: #bucket{} | #product{},
 		Category :: balance | product | service,
 		State :: statedata(),
 		Result :: {next_state, NextStateName, NewStateData}
@@ -161,7 +161,7 @@ register(timeout, State) ->
 		Reason :: normal | term().
 %% @doc Handle event received in `registered' state.
 %% @private
-registered({Type, Resource, balance} = _Event, #statedata{sync = Sync,
+registered({Type, Resource, Category} = _Event, #statedata{sync = Sync,
 		profile = Profile, callback = Callback,
 		authorization = Authorization} = StateData) ->
 	Options = case Sync of
@@ -186,9 +186,14 @@ registered({Type, Resource, balance} = _Event, #statedata{sync = Sync,
 		expired ->
 			"ResourceExpiredEvent"
 	end,
+	Event = case Category of
+		balance ->
+			ocs_rest_res_balance:bucket(Resource);
+		product ->
+			ocs_rest_res_product:inventory(Resource)
+	end,
 	EventStruct = {struct, [{"eventId", EventId}, {"eventTime", EventTime},
-			{"eventType", EventType},
-			{"event", ocs_rest_res_balance:bucket(Resource)}]},
+			{"eventType", EventType}, {"event", Event}]},
 	Body = lists:flatten(mochijson:encode(EventStruct)),
 	Request = {Callback, Headers, "application/json", Body},
 	case httpc:request(post, Request, [], Options, Profile) of
