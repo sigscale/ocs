@@ -2596,13 +2596,21 @@ notify_create_bucket(Config) ->
 			price = [Price], specification = 4},
 	{ok, #offer{name = OfferId}} = ocs:add_offer(Offer),
 	{ok, #product{id = ProdRef}} = ocs:add_product(OfferId, [], []),
+	receive
+		Input1 ->
+			{struct, ProductEvent} = mochijson:decode(Input1),
+			{_, "ResourceCreateEvent"}
+					= lists:keyfind("eventType", 1, ProductEvent),
+			{_, {struct, ProductList}} = lists:keyfind("event", 1, ProductEvent),
+			{_, ProdRef} = lists:keyfind("id", 1, ProductList)
+	end,
 	Bucket = #bucket{units = cents, remain_amount = 100,
 			start_date = erlang:system_time(milli_seconds),
 			end_date = erlang:system_time(milli_seconds) + 2592000000},
 	{ok, _, #bucket{}} = ocs:add_bucket(ProdRef, Bucket),
 	Balance = receive
-		Input ->
-			{struct, BalanceEvent} = mochijson:decode(Input),
+		Input2 ->
+			{struct, BalanceEvent} = mochijson:decode(Input2),
 			{_, "ResourceCreateEvent"}
 					= lists:keyfind("eventType", 1, BalanceEvent),
 			{_, {struct, BalanceList}} = lists:keyfind("event", 1, BalanceEvent),
@@ -2636,19 +2644,27 @@ notify_delete_expired_bucket(Config) ->
 			price = [Price], specification = 4},
 	{ok, #offer{name = OfferId}} = ocs:add_offer(Offer),
 	{ok, #product{id = ProdRef}} = ocs:add_product(OfferId, [], []),
+	receive
+		Input1 ->
+			{struct, ProductEvent} = mochijson:decode(Input1),
+			{_, "ResourceCreateEvent"}
+					= lists:keyfind("eventType", 1, ProductEvent),
+			{_, {struct, ProductList}} = lists:keyfind("event", 1, ProductEvent),
+			{_, ProdRef} = lists:keyfind("id", 1, ProductList)
+	end,
 	Bucket = #bucket{units = cents, remain_amount = 100,
 			start_date = erlang:system_time(milli_seconds),
 			end_date = erlang:system_time(milli_seconds) + 2592000000},
 	{ok, _, #bucket{id = Id}} = ocs:add_bucket(ProdRef, Bucket),
 	{_, "ResourceCreateEvent"} = receive
-		Input1 ->
-			{struct, BalanceEvent1} = mochijson:decode(Input1),
+		Input2 ->
+			{struct, BalanceEvent1} = mochijson:decode(Input2),
 			lists:keyfind("eventType", 1, BalanceEvent1)
 	end,
 	ok = ocs:delete_bucket(Id),
 	{_, Id} = receive
-		Input2 ->
-			{struct, BalanceEvent2} = mochijson:decode(Input2),
+		Input3 ->
+			{struct, BalanceEvent2} = mochijson:decode(Input3),
 			{_, "ResourceExpiredEvent"}
 					= lists:keyfind("eventType", 1, BalanceEvent2),
 			{_, {struct, BalanceList}} = lists:keyfind("event", 1, BalanceEvent2),
