@@ -600,7 +600,7 @@ class SigApp extends PolymerElement {
 				import('./sig-accounting-list.js');
 				break;
 			case 'ipdrWlanView':
-//				import('./sig-ipdr-list-wlan.js');
+				import('./sig-ipdr-list-wlan.js');
 //				import('./sig-ipdr-log-files-wlan.js');
 				break;
 			case 'ipdrVoipView':
