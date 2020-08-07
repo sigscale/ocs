@@ -169,7 +169,7 @@ all() ->
 	get_product, add_product, add_product_sms,
 	update_product_realizing_service, delete_product,
 	ignore_delete_product, query_product, filter_product,
-	post_hub, delete_hub,
+	post_hub_balance, delete_hub_balance,
 	notify_create_bucket, notify_delete_expired_bucket, notify_create_product].
 
 %%%%%---------------------------------------------------------------------
@@ -2529,10 +2529,10 @@ update_client_attributes_json_patch(Config) ->
 	{_, Secret} = lists:keyfind("secret", 1, Object1),
 	ok = ssl:close(SslSock).
 
-post_hub() ->
-	[{userdata, [{doc, "Register hub listener"}]}].
+post_hub_balance() ->
+	[{userdata, [{doc, "Register hub listener for balance"}]}].
 
-post_hub(Config) ->
+post_hub_balance(Config) ->
 	HostUrl = ?config(host_url, Config),
 	PathHub = ?PathBalanceHub,
 	CollectionUrl = HostUrl ++ PathHub,
@@ -2555,10 +2555,10 @@ post_hub(Config) ->
 	{_, Id} = lists:keyfind("id", 1, HubList),
 	{_, null} = lists:keyfind("query", 1, HubList).
 
-delete_hub() ->
-	[{userdata, [{doc, "Unregister hub listener"}]}].
+delete_hub_balance() ->
+	[{userdata, [{doc, "Unregister hub listener for balance"}]}].
 
-delete_hub(Config) ->
+delete_hub_balance(Config) ->
 	HostUrl = ?config(host_url, Config),
 	PathHub = ?PathBalanceHub,
 	CollectionUrl = HostUrl ++ PathHub,
