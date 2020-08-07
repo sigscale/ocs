@@ -1,78 +1,68 @@
-<!--  vim: set ts=3:  -->
-<link rel="import" href="polymer/polymer.html">
-<link rel="import" href="paper-dialog/paper-dialog.html">
-<link rel="import" href="paper-toolbar/paper-toolbar.html">
-<link rel="import" href="paper-dialog-scrollable/paper-dialog-scrollable.html">
-<link rel="import" href="paper-button/paper-button.html">
-<link rel="import" href="iron-list/iron-list.html">
-<link rel="import" href="iron-ajax/iron-ajax.html">
-<link rel="import" href="iron-icon/iron-icon.html">
+/**
+ * @license
+ * Copyright (c) 2020 The Polymer Project Authors. All rights reserved.
+ * This code may only be used under the BSD style license found at http://polymer.github.io/LICENSE.txt
+ * The complete set of authors may be found at http://polymer.github.io/AUTHORS.txt
+ * The complete set of contributors may be found at http://polymer.github.io/CONTRIBUTORS.txt
+ * Code distributed by Google as part of the polymer project is also
+ * subject to an additional IP rights grant found at http://polymer.github.io/PATENTS.txt
+ */
 
-<dom-module id="sig-ipdr-log-files-voip">
-	<template>
-		<style is="custom-style">
-			paper-dialog {
-				overflow: auto;
+import { PolymerElement, html } from '@polymer/polymer/polymer-element.js';
+import '@polymer/iron-ajax/iron-ajax.js';
+import '@polymer/paper-dialog/paper-dialog.js';
+import '@polymer/app-layout/app-toolbar/app-toolbar.js';
+import '@polymer/paper-progress/paper-progress.js';
+import '@polymer/paper-dialog-scrollable/paper-dialog-scrollable.js';
+import '@polymer/iron-list/iron-list.js';
+import '@polymer/paper-button/paper-button.js';
+import './style-element.js';
+
+class ipdrLogVoip extends PolymerElement {
+	static get template() {
+		return html`
+			<style include="style-element"></style>
+			<paper-dialog class="dialog" id="selectLogFileModalVoip" modal>
+				<app-toolbar>
+					<h2>Select Log File</h2>
+				</app-toolbar>
+				<paper-dialog-scrollable>
+					<iron-list id="logFilesVoip"
+							as="item">
+						<template>
+							<div class="item" on-tap="getLogContentVoip">
+								<iron-icon icon="assignment"></iron-icon>
+										[[item]]
+							</div>
+						</template>
+					</iron-list>
+				</paper-dialog-scrollable>
+				<div class="cancel-button">
+					<paper-button dialog-dismiss>
+							Cancel
+					</paper-button>
+				</div>
+			</paper-dialog>
+		`;	
+	}
+
+	static get properties() {
+		return {
+			loading: {
+				type: Boolean,
+				notify: true
 			}
-			paper-dialog > *:first-child {
-				margin-top: 0px;
-			}
-			paper-toolbar {
-				margin-top: 0px;
-				background-color: #bc5100;
-			}
-			.cancel-button {
-				color: black;
-			}
-			iron-list {
-				height: 40vh;
-			}
-			.item {
-				cursor: pointer;
-				padding: 5px;
-			}
-		</style>
-		<paper-dialog id="selectLogFileModalVoip" modal>
-			<paper-toolbar>
-				<h2>Select Log File</h2>
-			</paper-toolbar>
-			<paper-dialog-scrollable>
-				<iron-list id="logFilesVoip"
-						as="item">
-					<template>
-						<div class="item" on-tap="getLogContentVoip">
-							<iron-icon icon="assignment"></iron-icon>
-									[[item]]
-						</div>
-					</template>
-				</iron-list>
-			</paper-dialog-scrollable>
-			<div class="cancel-button">
-				<paper-button dialog-dismiss>
-						Cancel
-				</paper-button>
-			</div>
-		</paper-dialog>
-		<iron-ajax id="getLogsAjaxVoip"
-				method = "GET"
-				headers='{"Accept": "application/json"}'
-				on-response="getLogsResponseVoip"
-				on-error="getLogsErrorVoip">
-		</iron-ajax>
-	</template>
-	<script>
-		Polymer ({
-			is: 'sig-ipdr-log-files-voip',
-			getLogContentVoip: function(event) {
-				document.getElementById("ipdrLogListVoip").intializeGrid(event);
-			},
-			getLogsResponseVoip: function(event){
-				this.$.logFilesVoip.items = event.detail.response;
-			},
-			getLogsErrorVoip: function(event) {
-				this.$.addLogToastError.text = event.detail.request.xhr.statusText;
-				this.$.addLogToastError.open();
-			}
-		});
-	</script>
-</dom-module>
+		}
+	}
+
+	ready() {
+      super.ready();
+   }
+
+	getLogContentVoip(event) {
+		document.body.querySelector('sig-app').shadowRoot.querySelector('sig-ipdr-list-voip').shadowRoot.getElementById("ipdrListVoip").intializeGrid(event);
+	}
+}
+
+
+window.customElements.define('sig-ipdr-log-files-voip', ipdrLogVoip);
