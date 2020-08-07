@@ -215,7 +215,34 @@ class ipdrListWlan extends PolymerElement {
 					</template>
 					<template>[[item.sessionTerminateCause]]</template>
 				</vaadin-grid-column>
-			</vaadin-grid/>
+			</vaadin-grid>
+			<paper-dialog id="selectLogFileModalWlan">
+				<app-toolbar>
+					<h2>Select Log File</h2>
+				</app-toolbar>
+				<paper-dialog-scrollable>
+					<iron-list id="logFilesWlan"
+							as="item">
+						<template>
+							<div class="item" on-tap="getLogContentWlan">
+								<iron-icon icon="assignment"></iron-icon>
+										[[item]]
+							</div>
+						</template>
+					</iron-list>
+				</paper-dialog-scrollable>
+				<div class="cancel-button">
+					<paper-button dialog-dismiss>
+							Cancel
+					</paper-button>
+				</div>
+			</paper-dialog>
+			<iron-ajax id="getLogsAjaxWlan"
+					method = "GET"
+					headers='{"Accept": "application/json"}'
+					on-response="getLogsResponseWlan"
+					on-error="getLogsErrorWlan">
+			</iron-ajax>
 			<iron-ajax id="getIpdr"
 					rejectWithRequest>
 			</iron-ajax>
@@ -228,65 +255,63 @@ class ipdrListWlan extends PolymerElement {
 				type: String,
 				value: null
 			},
-         loading: {
-            type: Boolean,
-            notify: true
-         },
-         activePage: {
-            type: Boolean,
-            value: false,
-            observer: '_activePageChanged'
-         },
-         _filterIPDRCreationTime: {
-            type: Boolean,
-            observer: '_filterChanged'
-         },
-         _filterUserName: {
-            type: Boolean,
-            observer: '_filterChanged'
-         },
-         _filterAcctSessionId: {
-            type: Boolean,
-            observer: '_filterChanged'
-         },
-         _filterCallingStationId: {
-            type: Boolean,
-            observer: '_filterChanged'
-         },
-         _filterCalledStationId: {
-            type: Boolean,
-            observer: '_filterChanged'
-         },
-         _filterNasIpAddress: {
-            type: Boolean,
-            observer: '_filterChanged'
-         },
-         _filterNasId: {
-            type: Boolean,
-            observer: '_filterChanged'
-         },
-         _filterGmtSessionStartDateTime: {
-            type: Boolean,
-            observer: '_filterChanged'
-         },
-         _filterGmtSessionEndDateTime: {
-            type: Boolean,
-            observer: '_filterChanged'
-         },
-         _filterSessionTerminateCause: {
-            type: Boolean,
-            observer: '_filterChanged'
-         }
+			loading: {
+				type: Boolean,
+				notify: true
+			},
+			activePage: {
+				type: Boolean,
+				value: false,
+				observer: '_activePageChanged'
+			},
+			_filterIPDRCreationTime: {
+				type: Boolean,
+				observer: '_filterChanged'
+			},
+			_filterUserName: {
+				type: Boolean,
+				observer: '_filterChanged'
+			},
+			_filterAcctSessionId: {
+				type: Boolean,
+				observer: '_filterChanged'
+			},
+			_filterCallingStationId: {
+				type: Boolean,
+				observer: '_filterChanged'
+			},
+			_filterCalledStationId: {
+				type: Boolean,
+				observer: '_filterChanged'
+			},
+			_filterNasIpAddress: {
+				type: Boolean,
+				observer: '_filterChanged'
+			},
+			_filterNasId: {
+				type: Boolean,
+				observer: '_filterChanged'
+			},
+			_filterGmtSessionStartDateTime: {
+				type: Boolean,
+				observer: '_filterChanged'
+			},
+			_filterGmtSessionEndDateTime: {
+				type: Boolean,
+				observer: '_filterChanged'
+			},
+			_filterSessionTerminateCause: {
+				type: Boolean,
+				observer: '_filterChanged'
+			}
 		}
 	}
 
 	_activePageChanged(active) {
-		if (active) {
-			var wlanAjax = this.$.getLogsAjaxWlan;
-			wlanAjax.url = "/ocs/v1/log/ipdr/wlan";
-			wlanAjax.generateRequest();
-			this.$.selectLogFileModalWlan.open();
-		}
+		var wlanAjax = this.$.getLogsAjaxWlan;
+		wlanAjax.url = "/ocs/v1/log/ipdr/wlan";
+		wlanAjax.generateRequest();
+		this.$.selectLogFileModalWlan.open();
 	}
 
 	intializeGrid(event) {
@@ -295,8 +320,16 @@ class ipdrListWlan extends PolymerElement {
 		var getIpdrWlan = document.body.querySelector('sig-app').shadowRoot.querySelector('sig-ipdr-list-wlan');
 		var ajax = getIpdrWlan.shadowRoot.getElementById('getIpdr');
 		ajax.url = "/usageManagement/v1/usage/ipdr/wlan/" + event.model.item;
-		this.$.selectLogFileModalWlan.close();
-		grid.dataProvider = this.getLogContentResponse;	
+		this.$.selectLogFileModalWlan.open();
+		grid.dataProvider = this.getLogContentResponse;
+	}
+
+	getLogContentWlan(event) {
+		document.body.querySelector('sig-app').shadowRoot.querySelector('sig-ipdr-list-wlan').shadowRoot.getElementById("ipdrListWlan").intializeGrid(event);
+	}
+
+	getLogsResponseWlan(event){
+		this.$.logFilesWlan.items = event.detail.response;
 	}
 
 	getLogContentResponse(params, callback) {
@@ -369,6 +402,12 @@ class ipdrListWlan extends PolymerElement {
 			}
 			ajax.generateRequest().completes.then(handleAjaxResponse, handleAjaxError);
 		}
+	}
+
+	_filterChanged(filter) {
+		this.etag = null;
+		var grid = this.shadowRoot.getElementById('ipdrGrid');
+		grid.size = 0;
 	}
 }
 
