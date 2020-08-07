@@ -169,7 +169,7 @@ all() ->
 	get_product, add_product, add_product_sms,
 	update_product_realizing_service, delete_product,
 	ignore_delete_product, query_product, filter_product,
-	post_hub_balance, delete_hub_balance,
+	post_hub_balance, delete_hub_balance, post_hub_product,
 	notify_create_bucket, notify_delete_expired_bucket, notify_create_product].
 
 %%%%%---------------------------------------------------------------------
@@ -2670,6 +2670,32 @@ notify_delete_expired_bucket(Config) ->
 			{_, {struct, BalanceList}} = lists:keyfind("event", 1, BalanceEvent2),
 			lists:keyfind("id", 1, BalanceList)
 	end.
+
+post_hub_product() ->
+	[{userdata, [{doc, "Register hub listener for product"}]}].
+
+post_hub_product(Config) ->
+	HostUrl = ?config(host_url, Config),
+	PathHub = ?PathProductHub,
+	CollectionUrl = HostUrl ++ PathHub,
+	Callback = "http://in.listener.com",
+	RequestBody = "{\n"
+			++ "\t\"callback\": \"" ++ Callback ++ "\",\n"
+			++ "}\n",
+	ContentType = "application/json",
+	Accept = {"accept", "application/json"},
+	Request = {CollectionUrl, [Accept, auth_header()], ContentType, RequestBody},
+	{ok, Result} = httpc:request(post, Request, [], []),
+	{{"HTTP/1.1", 201, _Created}, Headers, ResponseBody} = Result,
+	{_, "application/json"} = lists:keyfind("content-type", 1, Headers),
+	ContentLength = integer_to_list(length(ResponseBody)),
+	{_, ContentLength} = lists:keyfind("content-length", 1, Headers),
+	{_, Location} = lists:keyfind("location", 1, Headers),
+	Id = string:substr(Location, string:rstr(Location, PathHub) + length(PathHub)),
+	{struct, HubList} = mochijson:decode(ResponseBody),
+	{_, Callback} = lists:keyfind("callback", 1, HubList),
+	{_, Id} = lists:keyfind("id", 1, HubList),
+	{_, null} = lists:keyfind("query", 1, HubList).
 
 notify_create_product() ->
 	[{userdata, [{doc, "Receive product creation notification."}]}].
