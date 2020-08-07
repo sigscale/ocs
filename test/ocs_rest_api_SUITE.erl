@@ -2687,7 +2687,8 @@ notify_create_product(Config) ->
 			ProductList
 	end,
 	{_, ProductId} = lists:keyfind("id", 1, Product),
-	{_, OfferId} = lists:keyfind("product", 1, Product).
+	{_, {struct, OfferStruct}} = lists:keyfind("productOffering", 1, Product),
+	{_, OfferId} = lists:keyfind("id", 1, OfferStruct).
 
 %%---------------------------------------------------------------------
 %%  Internal functions
