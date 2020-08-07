@@ -25,7 +25,7 @@
 		delete_hub/1]).
 -export([hub/1]).
 
--define(balancehubPath, "/balanceManagement/v1/hub/").
+-define(BalancehubPath, "/balanceManagement/v1/hub/").
 
 %%----------------------------------------------------------------------
 %%  The hub public API
@@ -69,7 +69,7 @@ post_hub(ReqBody) ->
 					{ok, _PageServer, Id} ->
 						Body = mochijson:encode(hub(HubRecord#hub{id = Id})),
 						Headers = [{content_type, "application/json"},
-								{location, ?balancehubPath ++ Id}],
+								{location, ?BalancehubPath ++ Id}],
 						{ok, Headers, Body};
 					{error, _Reason} ->
 						{error, 500}
@@ -79,7 +79,7 @@ post_hub(ReqBody) ->
 					{ok, _PageServer, Id} ->
 						Body = mochijson:encode(hub(HubRecord#hub{id = Id})),
 						Headers = [{content_type, "application/json"},
-								{location, ?balancehubPath ++ Id}],
+								{location, ?BalancehubPath ++ Id}],
 						{ok, Headers, Body};
 					{error, _Reason} ->
 						{error, 500}
