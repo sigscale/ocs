@@ -45,7 +45,7 @@
 
 -include_lib("diameter/include/diameter.hrl").
 -include_lib("kernel/include/inet.hrl").
--include("diameter_gen_3gpp.hrl").
+-include_lib("diameter/include/diameter_gen_base_rfc6733.hrl").
 
 -record(statedata,
 		{transport_ref :: undefined | reference(),
@@ -363,7 +363,7 @@ service_options(Options) ->
 				?STa_APPLICATION_ID, ?SWm_APPLICATION_ID,
 				?SWx_APPLICATION_ID, ?S6a_APPLICATION_ID]},
 		{'Vendor-Specific-Application-Id',
-				[#'3gpp_Vendor-Specific-Application-Id'{
+				[#'diameter_base_Vendor-Specific-Application-Id'{
 						'Vendor-Id' = ?IANA_PEN_3GPP,
 						'Auth-Application-Id' = [?STa_APPLICATION_ID,
 								?SWm_APPLICATION_ID, ?SWx_APPLICATION_ID,

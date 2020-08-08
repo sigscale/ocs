@@ -346,7 +346,8 @@ service_options(Options) ->
 		{'Supported-Vendor-Id', [?IANA_PEN_3GPP]},
 		{'Auth-Application-Id', [?RO_APPLICATION_ID, ?Gx_APPLICATION_ID]},
 		{'Vendor-Specific-Application-Id',
-				[#'diameter_base_Vendor-Specific-Application-Id'{'Vendor-Id' = 10415,
+				[#'diameter_base_Vendor-Specific-Application-Id'{
+						'Vendor-Id' = ?IANA_PEN_3GPP,
 						'Auth-Application-Id' = [?Gx_APPLICATION_ID]}]},
 		{restrict_connections, false},
 		{string_decode, false},
