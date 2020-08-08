@@ -38,6 +38,7 @@
 			terminate/3, code_change/4]).
 
 -include_lib("diameter/include/diameter.hrl").
+-include_lib("diameter/include/diameter_gen_base_rfc6733.hrl").
 -include_lib("kernel/include/inet.hrl").
 
 -record(statedata,
@@ -344,6 +345,9 @@ service_options(Options) ->
 		{'Firmware-Revision', Version},
 		{'Supported-Vendor-Id', [?IANA_PEN_3GPP]},
 		{'Auth-Application-Id', [?RO_APPLICATION_ID, ?Gx_APPLICATION_ID]},
+		{'Vendor-Specific-Application-Id',
+				[#'diameter_base_Vendor-Specific-Application-Id'{'Vendor-Id' = 10415,
+						'Auth-Application-Id' = [?Gx_APPLICATION_ID]}]},
 		{restrict_connections, false},
 		{string_decode, false},
 		{application, [{alias, ?BASE_APPLICATION},
