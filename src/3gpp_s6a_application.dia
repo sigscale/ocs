@@ -27,6 +27,7 @@
      *[ Supported-Features]
      *[ Proxy-Info ]
      *[ Route-Record ]
+      [ Origin-State-Id ]
      *[ AVP ]
 
    AIA::= < Diameter Header: 318, PXY >
@@ -47,6 +48,7 @@
       [ UE-Usage-Type ]
       [ Failed-AVP ]
      *[ Proxy-Info ]
+      [ Origin-State-Id ]
      *[ Route-Record ]
      *[ AVP ]
 
