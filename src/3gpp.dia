@@ -492,7 +492,6 @@
    Variable-Part-Value                                    3910  UTF8String       VM
 ;  VASP-Id                                                1101  
 ;  VCS-Information                                        3410  Grouped          VM
-;  Visited-PLMN-Id                                        1407  
    VLR-Number                                             3420  OctetString      VM
    Volume-Quota-Threshold                                  869  Unsigned32       VM
 ;  WLAN-Link-Layer-Id                                     3821  
@@ -554,8 +553,27 @@
    AAR-Flags                                              1539  Unsigned32       VM
    ERP-Authorization                                      1541  Enumerated       VM
    ;; 3GPP TS 29.272
+;  Subscription-Data                                      1400  Grouped          VM
+;  Terminal-Information                                   1401  Grouped          VM
    IMEI                                                   1402  UTF8String       VM
    Software-Version                                       1403  UTF8String       VM
+   QoS-Subscribed                                         1404  OctetString      VM
+   ULR-Flags                                              1405  Unsigned32       VM
+   ULA-Flags                                              1406  Unsigned32       VM
+   Visited-PLMN-Id                                        1407  OctetString      VM
+   Requested-EUTRAN-Authentication-Info                   1408  Grouped          VM
+   Requested-UTRAN-GERAN-Authentication-Info              1409  Grouped          VM
+   Number-Of-Requested-Vectors                            1410  Unsigned32       VM
+   Re-Synchronization-Info                                1411  OctetString      VM
+   Immediate-Response-Preferred                           1412  Unsigned32       VM
+   Authentication-Info                                    1413  Grouped          VM
+   E-UTRAN-Vector                                         1414  Grouped          VM
+   UTRAN-Vector                                           1415  Grouped          VM
+   GERAN-Vector                                           1416  Grouped          VM
+   Network-Access-Mode                                    1417  Enumerated       VM
+   HPLMN-ODB                                              1418  Unsigned32       VM
+   Item-Number                                            1419  Unsigned32       VM
+;  Cancellation-Type                                      1420  Enumerated       VM
    Context-Identifier                                     1423  Unsigned32       VM
    APN-OI-Replacement                                     1427  UTF8String       VM
    APN-Configuration                                      1430  Grouped          VM
@@ -564,6 +582,12 @@
    AMBR                                                   1435  Grouped          VM
    PDN-GW-Allocation-Type                                 1438  Enumerated       VM
    Trace-Collection-Entity                                1452  Address          VM
+   RAND                                                   1447  OctetString      VM
+   XRES                                                   1448  OctetString      VM
+   AUTN                                                   1449  OctetString      VM
+   KASME                                                  1450  OctetString      VM
+   Kc                                                     1453  OctetString      VM
+   SRES                                                   1454  OctetString      VM
    PDN-Type                                               1456  Enumerated       VM
    Trace-Reference                                        1459  OctetString      VM
    Trace-NE-Type-List                                     1463  OctetString      VM
@@ -1430,6 +1454,48 @@
    Message-Class ::= <AVP Header: 1213>
       [ Class-Identifier ]
       [ Token-Text ]
+
+   Requested-EUTRAN-Authentication-Info ::= <AVP Header: 1408>
+      [ Number-Of-Requested-Vectors ]
+      [ Immediate-Response-Preferred ]
+      [ Re-Synchronization-Info ]
+     *[ AVP ] 
+
+   Requested-UTRAN-GERAN-Authentication-Info ::= <AVP Header: 1409>
+      [ Number-Of-Requested-Vectors ]
+      [ Immediate-Response-Preferred ]
+      [ Re-Synchronization-Info ]
+     *[ AVP ] 
+ 
+   Authentication-Info ::= <AVP Header: 1413>
+     *[ E-UTRAN-Vector]
+     *[ UTRAN-Vector]
+     *[ GERAN-Vector ] 
+     *[ AVP ] 
+
+   E-UTRAN-Vector ::= <AVP Header: 1414>
+      { RAND }
+      { XRES }
+      { AUTN }
+      { KASME }
+      [ Item-Number ]
+     *[ AVP ] 
+
+   UTRAN-Vector ::= <AVP Header: 1415>
+      { RAND }
+      { XRES }
+      { AUTN }
+      { Confidentiality-Key }
+      { Integrity-Key } 
+      [ Item-Number ]
+     *[ AVP ] 
+ 
+   GERAN-Vector ::= <AVP Header: 1416>
+      { RAND }
+      { SRES }
+      { Kc }
+      [ Item-Number ]
+     *[ AVP ] 
  
 @enum Trace-Depth
    Minimum                                  0
@@ -1940,4 +2006,9 @@
 @enum Delivery-Report-Requested
    No                           0
    Yes                          1
+
+@enum Network-Access-Mode
+   PACKET_AND_CIRCUIT           0
+   Reserved                     1
+   ONLY_PACKET                  2
 

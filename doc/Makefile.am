@@ -20,6 +20,7 @@ modhtml = ocs.html \
 			diameter_gen_3gpp_sta_application.html \
 			diameter_gen_3gpp_swm_application.html \
 			diameter_gen_3gpp_swx_application.html \
+			diameter_gen_3gpp_s6a_application.html \
 			diameter_gen_3gpp_gx_application.html \
 			diameter_gen_cc_application_rfc4006.html \
 			diameter_gen_nas_application_rfc7155.html \
@@ -29,6 +30,7 @@ modhtml = ocs.html \
 			ocs_diameter_3gpp_sta_application_cb.html \
 			ocs_diameter_3gpp_swm_application_cb.html \
 			ocs_diameter_3gpp_swx_application_cb.html \
+			ocs_diameter_3gpp_s6a_application_cb.html \
 			ocs_diameter_3gpp_gx_application_cb.html \
 			ocs_diameter_cc_application_cb.html \
 			ocs_diameter_nas_application_cb.html \

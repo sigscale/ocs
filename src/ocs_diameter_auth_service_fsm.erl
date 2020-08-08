@@ -45,6 +45,7 @@
 
 -include_lib("diameter/include/diameter.hrl").
 -include_lib("kernel/include/inet.hrl").
+-include("diameter_gen_3gpp.hrl").
 
 -record(statedata,
 		{transport_ref :: undefined | reference(),
@@ -77,6 +78,10 @@
 -define(SWx_APPLICATION_ID, 16777265).
 -define(SWx_APPLICATION_DICT, diameter_gen_3gpp_swx_application).
 -define(SWx_APPLICATION_CALLBACK, ocs_diameter_3gpp_swx_application_cb).
+-define(S6a_APPLICATION, ocs_diameter_3gpp_s6a_application).
+-define(S6a_APPLICATION_ID, 16777251).
+-define(S6a_APPLICATION_DICT, diameter_gen_3gpp_s6a_application).
+-define(S6a_APPLICATION_CALLBACK, ocs_diameter_3gpp_s6a_application_cb).
 -define(IANA_PEN_3GPP, 10415).
 -define(IANA_PEN_SigScale, 50386).
 
@@ -353,9 +358,16 @@ service_options(Options) ->
 		{'Product-Name', "SigScale AAA"},
 		{'Firmware-Revision', Version},
 		{'Supported-Vendor-Id',[?IANA_PEN_3GPP]},
-		{'Auth-Application-Id', [?NAS_APPLICATION_ID,
-				?EAP_APPLICATION_ID, ?STa_APPLICATION_ID,
-				?SWm_APPLICATION_ID, ?SWx_APPLICATION_ID]},
+		{'Auth-Application-Id',
+				[?NAS_APPLICATION_ID, ?EAP_APPLICATION_ID,
+				?STa_APPLICATION_ID, ?SWm_APPLICATION_ID,
+				?SWx_APPLICATION_ID, ?S6a_APPLICATION_ID]},
+		{'Vendor-Specific-Application-Id',
+				[#'3gpp_Vendor-Specific-Application-Id'{
+						'Vendor-Id' = ?IANA_PEN_3GPP,
+						'Auth-Application-Id' = [?STa_APPLICATION_ID,
+								?SWm_APPLICATION_ID, ?SWx_APPLICATION_ID,
+								?S6a_APPLICATION_ID]}]},
 		{restrict_connections, false},
 		{string_decode, false},
 		{application,
@@ -387,6 +399,12 @@ service_options(Options) ->
 				[{alias, ?SWx_APPLICATION},
 				{dictionary, ?SWx_APPLICATION_DICT},
 				{module, ?SWx_APPLICATION_CALLBACK},
+				{answer_errors, callback},
+				{request_errors, callback}]},
+		{application,
+				[{alias, ?S6a_APPLICATION},
+				{dictionary, ?S6a_APPLICATION_DICT},
+				{module, ?S6a_APPLICATION_CALLBACK},
 				{answer_errors, callback},
 				{request_errors, callback}]}].
 

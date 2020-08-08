@@ -1,0 +1,52 @@
+
+@id 16777251
+@name   diameter_gen_3gpp_s6a_application
+@vendor 10415 3GPP
+@prefix 3gpp_s6a
+@inherits diameter_gen_base_rfc6733
+@inherits diameter_gen_ietf
+@inherits diameter_gen_3gpp
+
+@messages
+
+   AIR ::= < Diameter Header: 318, REQ, PXY >
+      < Session-Id >
+      { Auth-Session-State }
+      { Origin-Host }
+      { Origin-Realm }
+      { Destination-Realm }
+      { User-Name }
+      { Visited-PLMN-Id }
+      [ Destination-Host ]
+      [ DRMP ]
+      [ Vendor-Specific-Application-Id ]
+      [ OC-Supported-Features ]
+      [ Requested-EUTRAN-Authentication-Info ]
+      [ Requested-UTRAN-GERAN-Authentication-Info ]
+;     [ AIR-Flags ]
+     *[ Supported-Features]
+     *[ Proxy-Info ]
+     *[ Route-Record ]
+     *[ AVP ]
+
+   AIA::= < Diameter Header: 318, PXY >
+      < Session-Id >
+      { Auth-Session-State }
+      { Origin-Host }
+      { Origin-Realm }
+      [ DRMP ]
+      [ Vendor-Specific-Application-Id ]
+      [ Result-Code ]
+      [ Experimental-Result-Code ]
+;     [ Errors-Diagnostic ]
+      [ OC-Supported-Features ]
+      [ OC-OLR ]
+     *[ Load ]
+     *[ Supported-Features]
+      [ Authentication-Info ]
+      [ UE-Usage-Type ]
+      [ Failed-AVP ]
+     *[ Proxy-Info ]
+     *[ Route-Record ]
+     *[ AVP ]
+
