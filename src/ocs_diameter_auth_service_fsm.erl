@@ -365,9 +365,16 @@ service_options(Options) ->
 		{'Vendor-Specific-Application-Id',
 				[#'diameter_base_Vendor-Specific-Application-Id'{
 						'Vendor-Id' = ?IANA_PEN_3GPP,
-						'Auth-Application-Id' = [?STa_APPLICATION_ID,
-								?SWm_APPLICATION_ID, ?SWx_APPLICATION_ID,
-								?S6a_APPLICATION_ID]}]},
+						'Auth-Application-Id' = [?STa_APPLICATION_ID]},
+				#'diameter_base_Vendor-Specific-Application-Id'{
+						'Vendor-Id' = ?IANA_PEN_3GPP,
+						'Auth-Application-Id' = [?SWm_APPLICATION_ID]},
+				#'diameter_base_Vendor-Specific-Application-Id'{
+						'Vendor-Id' = ?IANA_PEN_3GPP,
+						'Auth-Application-Id' = [?SWx_APPLICATION_ID]},
+				#'diameter_base_Vendor-Specific-Application-Id'{
+						'Vendor-Id' = ?IANA_PEN_3GPP,
+						'Auth-Application-Id' = [?S6a_APPLICATION_ID]}]},
 		{restrict_connections, false},
 		{string_decode, false},
 		{application,
