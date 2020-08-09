@@ -36,8 +36,20 @@
 
 -record(state, {}).
 
--define(EPOCH_OFFSET, 2208988800).
 -define(S6a_APPLICATION_ID, 16777251).
+-define(IANA_PEN_3GPP, 10415).
+-define(DIAMETER_AUTHENTICATION_DATA_UNAVAILABLE,  4181).
+-define(DIAMETER_ERROR_CAMEL_SUBSCRIPTION_PRESENT, 4182).
+-define(DIAMETER_ERROR_USER_UNKNOWN,               5001).
+-define(DIAMETER_ERROR_ROAMING_NOT_ALLOWED,        5004).
+-define(DIAMETER_ERROR_UNKNOWN_EPS_SUBSCRIPTION,   5420).
+-define(DIAMETER_ERROR_RAT_NOT_ALLOWED,            5421).
+-define(DIAMETER_ERROR_EQUIPMENT_UNKNOWN,          5422).
+-define(DIAMETER_ERROR_UNKOWN_SERVING_NODE,        5423).
+
+%% support deprecated_time_unit()
+-define(MILLISECOND, milli_seconds).
+%-define(MILLISECOND, millisecond).
 
 -type state() :: #state{}.
 -type capabilities() :: #diameter_caps{}.
@@ -197,10 +209,8 @@ request(ServiceName, Capabilities, Request) ->
 %% @hidden
 request(ServiceName, Capabilities, Request, [H | T]) ->
 	case ocs:find_client(H) of
-		{ok, #client{protocol = diameter, port = Port,
-				password_required = PasswordReq, trusted = Trusted}} ->
-			process_request(ServiceName, Capabilities, Request,
-					H, Port, PasswordReq, Trusted);
+		{ok, #client{protocol = diameter}} ->
+			process_request(ServiceName, Capabilities, Request);
 		{error, not_found} ->
 			request(ServiceName, Capabilities, Request, T)
 	end;
@@ -209,62 +219,142 @@ request(ServiceName, Capabilities, Request, []) ->
 			[?'DIAMETER_BASE_RESULT-CODE_UNKNOWN_PEER']),
 	{answer_message, Error}.
 
--spec process_request(ServiceName, Capabilities, Request,
-		Address, Port, PasswordReq, Trusted) -> Result
+-spec process_request(ServiceName, Capabilities, Request) -> Result
 	when
 		ServiceName :: term(),
 		Capabilities :: capabilities(),
 		Request :: term(),
-		Address :: inet:ip_address(),
-		Port :: inet:port(),
-		PasswordReq :: boolean(),
-		Trusted :: boolean(),
 		Result :: {reply, packet()} | discard.
 %% @doc Process a received DIAMETER packet.
 %% @private
 %% @todo Handle S6a/S6d requests.
-process_request(ServiceName, _Capabilities, Request,
-		Address, Port, PasswordReq, Trusted) ->
-erlang:display({?MODULE, ?LINE, Request}), discard;
-process_request(ServiceName, #diameter_caps{origin_host = {OHost, _DHost},
+process_request(ServiceName,
+		#diameter_caps{origin_host = {OHost, _DHost},
 		origin_realm = {ORealm, _DRealm}} = Capabilities,
-		#'3gpp_s6a_AIR'{'Session-Id' = SId} = Request,
-		Address, Port, PasswordReq, Trusted) ->
+		#'3gpp_s6a_AIR'{'Session-Id' = SId} = Request) ->
+erlang:display({?MODULE, ?LINE, Request}),
 	try
-		process_request1(ServiceName, Capabilities,
-				Request, Address, Port, PasswordReq, Trusted)
+		authentication_information(ServiceName, Capabilities, Request)
 	catch
 		_:_Reason ->
 			{reply, #'3gpp_s6a_AIA'{'Session-Id' = SId,
 					'Result-Code' = ?'DIAMETER_BASE_RESULT-CODE_INVALID_AVP_BITS',
 					'Origin-Host' = OHost, 'Origin-Realm' = ORealm}}
+	end;
+process_request(ServiceName,
+		#diameter_caps{origin_host = {OHost, _DHost},
+		origin_realm = {ORealm, _DRealm}} = Capabilities,
+		#'3gpp_s6a_ULR'{'Session-Id' = SId} = Request) ->
+erlang:display({?MODULE, ?LINE, Request}),
+	try
+		update_location(ServiceName, Capabilities, Request)
+	catch
+		_:_Reason ->
+			{reply, #'3gpp_s6a_ULA'{'Session-Id' = SId,
+					'Result-Code' = ?'DIAMETER_BASE_RESULT-CODE_INVALID_AVP_BITS',
+					'Origin-Host' = OHost, 'Origin-Realm' = ORealm}}
 	end.
+
 %% @hidden
-process_request1(ServiceName, Capabilities,
-		Request, Address, Port, PasswordReq, Trusted) ->
-	[Info] = diameter:service_info(ServiceName, transport),
-	case lists:keyfind(options, 1, Info) of
-		{options, Options} ->
-			case lists:keyfind(transport_config, 1, Options) of
-				{transport_config, TC} ->
-					{ip, Sip} = lists:keyfind(ip, 1, TC),
-					{port, Sport} = lists:keyfind(port, 1, TC),
-					case global:whereis_name({ocs_diameter_auth, Sip, Sport}) of
-						undefined ->
-							discard;
-						PortServer ->
-							Answer = gen_server:call(PortServer,
-									{diameter_request, Capabilities,
-											Address, Port, PasswordReq, Trusted,
-											Request, none}),
-							{reply, Answer}
+authentication_information(ServiceName,
+		#diameter_caps{origin_host = {OHost, _DHost},
+		origin_realm = {ORealm, _DRealm}} = _Capabilities,
+		#'3gpp_s6a_AIR'{'Session-Id' = SId, 'User-Name' = IMSI,
+		'Requested-EUTRAN-Authentication-Info' = ReqEutranAuth}) ->
+	case ocs:find_service(IMSI) of
+		{ok, #service{enabled = false}} ->
+			{reply, #'3gpp_s6a_AIA'{'Session-Id' = SId,
+					'Result-Code' = ?'DIAMETER_BASE_RESULT-CODE_AUTHORIZATION_REJECTED',
+					'Origin-Host' = OHost, 'Origin-Realm' = ORealm}};
+		{ok, #service{password = #aka_cred{k = K, opc = OPc, dif = DIF},
+				attributes = _Attributes}} ->
+			% @todo Handle two digit MNC!
+			<<Mcc1, Mcc2, Mcc3, Mnc1, Mnc2, Mnc3, _/binary>> = IMSI,
+			SN = <<Mcc2:4, Mcc1:4, Mnc3:4, Mcc3:4, Mnc2:4, Mnc1:4>>,
+			AMF = <<0:16>>,
+			case ReqEutranAuth of
+				[#'3gpp_s6a_Requested-EUTRAN-Authentication-Info'{
+						'Re-Synchronization-Info' = []}] ->
+					RAND = ocs_milenage:f0(),
+					{XRES, CK, IK, <<AK:48>>} = ocs_milenage:f2345(OPc, K, RAND),
+					SQN = sqn(DIF),
+					MAC = ocs_milenage:f1(OPc, K, RAND, <<SQN:48>>, AMF),
+					AUTN = autn(SQN, AK, AMF, MAC),
+					KASME = kdf(CK, IK, SN, SQN, AK),
+					EutranVector = #'3gpp_s6a_E-UTRAN-Vector'{'Item-Number' = 1,
+							'RAND' = RAND, 'XRES' = XRES, 'AUTN' = AUTN,
+							'KASME' = KASME},
+					AuthInfo = #'3gpp_s6a_Authentication-Info'{'E-UTRAN-Vector' = EutranVector},
+					{reply, #'3gpp_s6a_AIA'{'Session-Id' = SId,
+							'Result-Code' = ?'DIAMETER_BASE_RESULT-CODE_SUCCESS',
+							'Origin-Host' = OHost, 'Origin-Realm' = ORealm,
+							'Authentication-Info' = AuthInfo}};
+				[#'3gpp_s6a_Requested-EUTRAN-Authentication-Info'{
+						'Re-Synchronization-Info' = <<RAND:16/binary, SQN:48, MAC_S:8/binary>>}] ->
+					{XRES, CK, IK, <<AK:48>>} = ocs_milenage:f2345(OPc, K, RAND),
+					SQNhe = sqn(DIF),
+					SQNms = sqn_ms(SQN, OPc, K, RAND),
+					case SQNhe - SQNms of
+						A when A =< 268435456 ->
+							MAC_A = ocs_milenage:f1(OPc, K, RAND, <<SQNhe:48>>, AMF),
+							AUTN = autn(SQNhe, AK, AMF, MAC_A),
+							KASME = kdf(CK, IK, SN, SQNhe, AK),
+							EutranVector = #'3gpp_s6a_E-UTRAN-Vector'{'Item-Number' = 1,
+									'RAND' = RAND, 'XRES' = XRES, 'AUTN' = AUTN,
+									'KASME' = KASME},
+							AuthInfo = #'3gpp_s6a_Authentication-Info'{'E-UTRAN-Vector' = EutranVector},
+							{reply, #'3gpp_s6a_AIA'{'Session-Id' = SId,
+									'Result-Code' = ?'DIAMETER_BASE_RESULT-CODE_SUCCESS',
+									'Origin-Host' = OHost, 'Origin-Realm' = ORealm,
+									'Authentication-Info' = AuthInfo}};
+						_ ->
+							case ocs_milenage:'f1*'(OPc, K, RAND, <<SQNms:48>>, AMF) of
+								MAC_S ->
+									MAC_A = ocs_milenage:f1(OPc, K, RAND, <<SQNms:48>>, AMF),
+									AUTN = autn(SQNms, AK, AMF, MAC_A),
+									KASME = kdf(CK, IK, SN, SQNms, AK),
+									save_dif(IMSI, dif(SQNms)),
+									EutranVector = #'3gpp_s6a_E-UTRAN-Vector'{'Item-Number' = 1,
+											'RAND' = RAND, 'XRES' = XRES, 'AUTN' = AUTN,
+											'KASME' = KASME},
+									AuthInfo = #'3gpp_s6a_Authentication-Info'{'E-UTRAN-Vector' = EutranVector},
+									{reply, #'3gpp_s6a_AIA'{'Session-Id' = SId,
+											'Result-Code' = ?'DIAMETER_BASE_RESULT-CODE_SUCCESS',
+											'Origin-Host' = OHost, 'Origin-Realm' = ORealm,
+											'Authentication-Info' = AuthInfo}};
+								_ ->
+									error_logger:error_report(["AUTS verification failed",
+											{service, ServiceName}, {identity, IMSI},
+											{auts, <<SQN:48, MAC_S/binary>>}]),
+									{reply, #'3gpp_s6a_AIA'{'Session-Id' = SId,
+											'Experimental-Result' = #'3gpp_s6a_Experimental-Result'{
+											'Vendor-Id' = ?IANA_PEN_3GPP,
+											'Experimental-Result-Code' = ?'DIAMETER_AUTHENTICATION_DATA_UNAVAILABLE'},
+											'Origin-Host' = OHost, 'Origin-Realm' = ORealm}}
+							end
 					end;
-				false ->
-					discard
+				[] ->
+					{reply, #'3gpp_s6a_AIA'{'Session-Id' = SId,
+							'Result-Code' = ?'DIAMETER_BASE_RESULT-CODE_SUCCESS',
+							'Origin-Host' = OHost, 'Origin-Realm' = ORealm}}
 			end;
-		false ->
-			discard
+		{error, not_found} ->
+			{reply, #'3gpp_s6a_AIA'{'Session-Id' = SId,
+					'Experimental-Result' = #'3gpp_s6a_Experimental-Result'{
+					'Vendor-Id' = ?IANA_PEN_3GPP,
+					'Experimental-Result-Code' = ?'DIAMETER_ERROR_USER_UNKNOWN'},
+					'Origin-Host' = OHost, 'Origin-Realm' = ORealm}};
+		{error, Reason} ->
+			error_logger:error_report(["Service lookup failure",
+					{service, ServiceName}, {module, ?MODULE}, {error, Reason}]),
+			{reply, #'3gpp_s6a_AIA'{'Session-Id' = SId,
+					'Result-Code' = ?'DIAMETER_BASE_RESULT-CODE_UNABLE_TO_COMPLY',
+					'Origin-Host' = OHost, 'Origin-Realm' = ORealm}}
 	end.
+
+%% @hidden
+update_location(ServiceName, Capabilities, Request) ->
+	discard.
 
 -spec errors(ServiceName, Capabilities, Request, Errors) -> Result
 	when
@@ -325,4 +415,110 @@ errors(_ServiceName, _Capabilities, _Request, [ResultCode | _]) ->
 	{error, ResultCode};
 errors(_ServiceName, _Capabilities, _Request, []) ->
 	ok.
+
+-spec sqn(DIF) -> SQN
+	when
+		DIF :: integer(),
+		SQN :: integer().
+%% @doc Sequence Number (SQN).
+%%
+%% 	3GPP RTS 33.102 Annex C.1.1.3.
+%% @private
+sqn(DIF) when is_integer(DIF) ->
+	(erlang:system_time(10) + DIF) bsl 5.
+
+-spec autn(SQN, AK, AMF, MAC) -> AUTN
+	when
+		SQN :: integer(),
+		AK :: integer(),
+		AMF :: binary(),
+		MAC :: binary(),
+		AUTN :: binary().
+%% @doc Network Authentication Token (AUTN).
+%%
+%% @private
+autn(SQN, AK, AMF, MAC)
+		when is_integer(SQN), is_integer(AK),
+		byte_size(AMF) =:= 2, byte_size(MAC) =:= 8 ->
+	SQNa = SQN bxor AK,
+	<<SQNa:48, AMF/binary, MAC/binary>>.
+
+-spec sqn_ms(SQN, OPc, K, RAND) -> SQN
+	when
+		SQN:: integer(),
+		OPc :: binary(),
+		K :: binary(),
+		RAND :: binary(),
+		SQN :: integer().
+%% @doc Retrieve concealed `SQNms' from AUTS.
+%%
+%% @private
+sqn_ms(SQN, OPc, K, RAND)
+		when is_integer(SQN), byte_size(OPc) =:= 16,
+		byte_size(K) =:= 16, byte_size(RAND) =:= 16 ->
+	<<AK:48>> = ocs_milenage:'f5*'(OPc, K, RAND),
+	SQN bxor AK.
+
+-spec dif(SQN) -> DIF
+	when
+		SQN :: integer(),
+		DIF :: integer().
+%% @doc The DIF value represents the current difference
+%% 	between generated SEQ values for that user and the GLC.
+%%
+%% 	3GPP RTS 33.102 Annex C.1.1.3.
+%% @private
+dif(SQN) when is_integer(SQN) ->
+	SEQ = SQN bsr 5,
+	SEQ - erlang:system_time(10).
+
+-spec kdf(CK, IK, SN, SQN, AK) -> MSK
+	when
+		CK :: binary(),
+		IK :: binary(),
+		SN :: binary(),
+		SQN :: integer(),
+		AK :: integer(),
+		MSK :: binary().
+%% @doc Key Derivation Function (KDF).
+%%
+%% 	See 3GPP TS 33.402 Annex A,
+%% 	    3GPP TS 32.220 Annex B.
+%% @private
+kdf(CK, IK, SN, SQN, AK)
+		when byte_size(CK) =:= 16,
+		byte_size(IK) =:= 16,
+		((byte_size(SN) =:= 3) or (byte_size(SN) =:= 2)),
+		is_integer(SQN), is_integer(AK) ->
+	FC = 16#10,
+	P0 = SN,
+	L0 = byte_size(SN),
+	P1 = SQN bxor AK,
+	L1 = 6,
+	crypto:hmac(sha256, <<CK/binary, IK/binary>>,
+			<<FC, P0/bytes, L0:16, P1:48, L1:16>>).
+
+-spec save_dif(IMSI, DIF) -> ok
+	when
+		IMSI :: binary(),
+		DIF :: integer().
+%% @doc Save the new DIF for subscriber.
+%% @hidden
+save_dif(IMSI, DIF)
+		when is_binary(IMSI), is_integer(DIF)->
+	Now = erlang:system_time(?MILLISECOND),
+	N = erlang:unique_integer([positive]),
+	LM = {Now, N},
+	F = fun() ->
+			[#service{password = P} = S1] = mnesia:read(service, IMSI, write),
+			S2 = S1#service{last_modified = LM,
+					password = P#aka_cred{dif  = DIF}},
+			mnesia:write(service, S2, write)
+	end,
+	case mnesia:transaction(F) of
+		{atomic, ok} ->
+			ok;
+		{aborted, Reason} ->
+			exit(Reason)
+	end.
 
