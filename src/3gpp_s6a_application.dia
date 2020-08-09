@@ -23,11 +23,11 @@
       [ OC-Supported-Features ]
       [ Requested-EUTRAN-Authentication-Info ]
       [ Requested-UTRAN-GERAN-Authentication-Info ]
-;     [ AIR-Flags ]
+      [ AIR-Flags ]
      *[ Supported-Features]
+      [ Origin-State-Id ]
      *[ Proxy-Info ]
      *[ Route-Record ]
-      [ Origin-State-Id ]
      *[ AVP ]
 
    AIA::= < Diameter Header: 318, PXY >
@@ -47,8 +47,64 @@
       [ Authentication-Info ]
       [ UE-Usage-Type ]
       [ Failed-AVP ]
-     *[ Proxy-Info ]
       [ Origin-State-Id ]
+     *[ Proxy-Info ]
+     *[ Route-Record ]
+     *[ AVP ]
+
+   ULR ::= < Diameter Header: 316, REQ, PXY >
+      < Session-Id >
+      { Auth-Session-State }
+      { Origin-Host }
+      { Origin-Realm }
+      { Destination-Realm }
+      { User-Name }
+      { Visited-PLMN-Id }
+      { RAT-Type }
+      { ULR-Flags }
+      [ Destination-Host ]
+      [ DRMP ]
+      [ Vendor-Specific-Application-Id ]
+      [ OC-Supported-Features ]
+     *[ Supported-Features ]
+      [ Terminal-Information ]
+      [ UE-SRVCC-Capability ]
+      [ SGSN-Number ]
+      [ Homogeneous-Support-of-IMS-Voice-Over-PS-Sessions ]
+;     [ GMLC-Address ]
+     *[ Active-APN ]
+      [ Equivalent-PLMN-List ]
+      [ MME-Number-for-MT-SMS ]
+      [ SMS-Register-Request ]
+      [ SGs-MME-Identity ]
+      [ Coupled-Node-Diameter-ID ]
+      [ Adjacent-PLMNs ]
+      [ Supported-Services ]
+      [ Origin-State-Id ]
+     *[ Proxy-Info ]
+     *[ Route-Record ]
+     *[ AVP ]
+
+   ULA ::= < Diameter Header: 316, PXY >
+      < Session-Id >
+      { Auth-Session-State }
+      { Origin-Host }
+      { Origin-Realm }
+      [ DRMP ]
+      [ Vendor-Specific-Application-Id ]
+      [ Result-Code ]
+      [ Experimental-Result ]
+;     [ Error-Diagnostic ]
+      [ OC-Supported-Features ]
+      [ OC-OLR ]
+     *[ Load ]
+     *[ Supported-Features ]
+      [ ULA-Flags ]
+      [ Subscription-Data ]
+     *[ Reset-ID ]
+      [ Failed-AVP ]
+      [ Origin-State-Id ]
+     *[ Proxy-Info ]
      *[ Route-Record ]
      *[ AVP ]
 
