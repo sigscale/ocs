@@ -38,7 +38,7 @@
       [ DRMP ]
       [ Vendor-Specific-Application-Id ]
       [ Result-Code ]
-      [ Experimental-Result-Code ]
+      [ Experimental-Result ]
 ;     [ Errors-Diagnostic ]
       [ OC-Supported-Features ]
       [ OC-OLR ]
