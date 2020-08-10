@@ -1,304 +1,288 @@
-<!--  vim: set ts=3:  -->
-<link rel="import" href="polymer/polymer.html">
-<link rel="import" href="i18n-msg/i18n-msg-behavior.html">
-<link rel="import" href="vaadin-grid/vaadin-grid.html">
-<link rel="import" href="vaadin-grid/vaadin-grid-filter.html">
-<link rel="import" href="vaadin-grid/vaadin-grid-column-group.html">
-<link rel="import" href="iron-ajax/iron-ajax.html">
+/**
+ * @license
+ * Copyright (c) 2020 The Polymer Project Authors. All rights reserved.
+ * This code may only be used under the BSD style license found at http://polymer.github.io/LICENSE.txt
+ * The complete set of authors may be found at http://polymer.github.io/AUTHORS.txt
+ * The complete set of contributors may be found at http://polymer.github.io/CONTRIBUTORS.txt
+ * Code distributed by Google as part of the polymer project is also
+ * subject to an additional IP rights grant found at http://polymer.github.io/PATENTS.txt
+ */
 
-<dom-module id="sig-balance-list">
-	<template>
-		<style>
-			::-webkit-input-placeholder { /* Chrome/Opera/Safari */
-				color: initial;
-				font-weight: bold;
-			}
-			::-moz-placeholder { /* Firefox 19+ */
-				color: initial;
-				font-weight: bold;
-			}
-			:-ms-input-placeholder { /* IE 10+ */
-				color: initial;
-				font-weight: bold;
-			}
-			:-moz-placeholder { /* Firefox 18- */
-				color: initial;
-				font-weight: bold;
-			}
-			vaadin-grid col {
-				font-size: 46px
-			}
-			vaadin-grid {
-				height: 100%;
-				--vaadin-grid-header-cell: {
-					background: #ffb04c;
-				};
-			}
-			vaadin-grid .grouptitle {
-				text-align: center;
-				border-bottom-style: solid;
-				border-color: var(--paper-yellow-900);
-			}
-			vaadin-grid input {
-				font-size: inherit;
-				background: #ffb04c;
-				border-style: none;
-			}
-			.yellow-button {
-				text-transform: none;
-				color: #eeff41;
-			}
-		</style>
-		<vaadin-grid id="balanceGrid">
-			<vaadin-grid-column width="24ex">
-				<template class="header">
-					<vaadin-grid-filter aria-label="[[i18n.timeStamp]]" path="timeStamp"
-						value="[[filterTime]]">
-						<input placeholder="[[i18n.timeStamp]]" value="{{filterTime::input}}"
-							focus-target>
-					</vaadin-grid-filter>
-				</template>
-				<template>[[item.timeStamp]]</template>
-			</vaadin-grid-column>
-			<vaadin-grid-column id="check" width="10ex" flex-grow="2">
-				<template class="header">
-					<vaadin-grid-filter aria-label="[[i18n.type]]" path="type"
-						value="[[filterType]]">
-						<input placeholder="[[i18n.type]]" value="{{filterType::input}}"
-							focus-target>
-					</vaadin-grid-filter>
-				</template>
-				<template>[[item.type]]</template>
-			</vaadin-grid-column>
-			<vaadin-grid-column id="check1"width="14ex">
-				<template class="header">
-					<vaadin-grid-filter aria-label="[[i18n.prod]]" path="product"
-						value="[[filterProduct]]">
-						<input placeholder="[[i18n.prod]]" value="{{filterProduct::input}}"
-							focus-target>
-					</vaadin-grid-filter>
-				</template>
-				<template>[[item.product]]</template>
-			</vaadin-grid-column>
-			<vaadin-grid-column id="check2" width="12ex" flex-grow="2">
-				<template class="header">
-					<vaadin-grid-filter aria-label="[[i18n.bucket]]" path="bucket"
-						value="[[filterBucket]]">
-						<input placeholder="[[i18n.bucket]]" value="{{filterBucket::input}}"
-							focus-target>
-					</vaadin-grid-filter>
-				</template>
-				<template>[[item.bucket]]</template>
-			</vaadin-grid-column>
-			<vaadin-grid-column id="check3" width="13ex" flex-grow="2">
-				<template class="header">
-					<vaadin-grid-filter aria-label="[[i18n.amountTransaction]]" path="amount"
-						value="[[filterAmount]]">
-						<input placeholder="[[i18n.amountTransaction]]" value="{{filterAmount::input}}"
-							focus-target>
-					</vaadin-grid-filter>
-				</template>
-				<template>[[item.amount]]</template>
-			</vaadin-grid-column>
-			<vaadin-grid-column-group id="check4">
-				<template class="header">
-					<div class="grouptitle">Remain Amount</div>
-				</template>
-				<vaadin-grid-column id="check5" width="10ex" flex-grow="2">
+import { PolymerElement, html } from '@polymer/polymer/polymer-element.js';
+import '@polymer/iron-ajax/iron-ajax.js';
+import '@polymer/paper-fab/paper-fab.js';
+import '@vaadin/vaadin-grid/vaadin-grid.js';
+import '@vaadin/vaadin-grid/vaadin-grid-filter.js';
+import '@vaadin/vaadin-grid/vaadin-grid-column-group.js';
+import './style-element.js'
+
+class balanceList extends PolymerElement {
+	static get template() {
+		return html`
+			<style include="style-element"></style>
+			<vaadin-grid
+					id="balanceGrid"
+					loading="{{loading}}">
+				<vaadin-grid-column
+						width="24ex">
 					<template class="header">
-						<vaadin-grid-filter aria-label="[[i18n.amountAfter]]" path="amountAfter"
-							value="[[filterAfter]]">
-							<input placeholder="[[i18n.amountAfter]]" value="{{filterAfter::input}}"
-								focus-target>
+						<vaadin-grid-filter
+								aria-label="timeStamp"
+								path="timeStamp"
+								value="{{filterTime}}">
+							<input
+									placeholder="Time Stamp"
+									value="{{filterTime::input}}"
+									focus-target>
 						</vaadin-grid-filter>
 					</template>
-					<template>[[item.amountAfter]]</template>
+					<template>[[item.timeStamp]]</template>
 				</vaadin-grid-column>
-				<vaadin-grid-column id="check6" width="12ex">
+				<vaadin-grid-column
+						id="check"
+						width="10ex"
+						flex-grow="2">
 					<template class="header">
-						<vaadin-grid-filter aria-label="[[i18n.amountBefore]]" path="amountBefore"
-							value="[[filterBefore]]">
-							<input placeholder="[[i18n.amountBefore]]" value="{{filterBefore::input}}"
-								focus-target>
+						<vaadin-grid-filter
+								aria-label="Type"
+								path="type"
+								value="{{filterType}}">
+							<input
+									placeholder="Type"
+									value="{{filterType::input}}"
+									focus-target>
 						</vaadin-grid-filter>
 					</template>
-					<template>[[item.amountBefore]]</template>
+					<template>[[item.type]]</template>
 				</vaadin-grid-column>
-			</vaadin-grid-column-group>
-		</vaadin-grid>
-		<iron-ajax id="getBalanceAjax"
-			url="/ocs/v1/log/balance"
-			rejectWithRequest>
-		</iron-ajax>
-	</template>
-	<script>
-		Polymer ({
-			is: 'sig-balance-list',
-			behaviors: [i18nMsgBehavior],
-			properties: {
-				activePage: {
-					type: Boolean,
-					value: false,
-					observer: '_activePageChanged'
-				},
-				filterTime: {
-					observer: '_filterChangedTime'
-				},
-				filterType: {
-					observer: '_filterChangedType'
-				},
-				filterProduct: {
-					observer: '_filterChangedProduct'
-				},
-				filterBucket: {
-					observer: '_filterChangedBucket'
-				},
-				filterAmount: {
-					observer: '_filterChangedAmount'
-				},
-				filterAfter: {
-					observer: '_filterChangedAfter'
-				},
-				filterBefore: {
-					observer: '_filterChangedBefore'
-				}
+				<vaadin-grid-column
+						id="check1"
+						width="14ex">
+					<template class="header">
+						<vaadin-grid-filter
+								aria-label="product"
+								path="product"
+								value="{{filterProduct}}">
+							<input
+									placeholder="Product"
+									value="{{filterProduct::input}}"
+									focus-target>
+						</vaadin-grid-filter>
+					</template>
+					<template>[[item.product]]</template>
+				</vaadin-grid-column>
+				<vaadin-grid-column
+						id="check2"
+						width="12ex"
+						flex-grow="2">
+					<template class="header">
+						<vaadin-grid-filter
+								aria-label="bucket"
+								path="bucket"
+								value="{{filterBucket}}">
+							<input
+									placeholder="Bucket"
+									value="{{filterBucket::input}}"
+									focus-target>
+						</vaadin-grid-filter>
+					</template>
+					<template>[[item.bucket]]</template>
+				</vaadin-grid-column>
+				<vaadin-grid-column
+						id="check3"
+						width="13ex"
+						flex-grow="2">
+					<template class="header">
+						<vaadin-grid-filter
+								aria-label="amount"
+								path="amount"
+								value="{{filterAmount}}">
+							<input
+									placeholder="Amount"
+									value="{{filterAmount::input}}"
+									focus-target>
+						</vaadin-grid-filter>
+					</template>
+					<template>[[item.amount]]</template>
+				</vaadin-grid-column>
+				<vaadin-grid-column-group>
+					<template class="header">
+							<div class="grouptitle">Remain Amount</div>
+					</template>
+					<vaadin-grid-column
+							id="check5"
+							width="10ex"
+							flex-grow="2">
+						<template class="header">
+							<vaadin-grid-filter
+									aria-label="amountAfter"
+									path="amountAfter"
+									value="{{filterAfter}}">
+								<input
+										placeholder="After"
+										value="{{filterAfter::input}}"
+										focus-target>
+							</vaadin-grid-filter>
+						</template>
+						<template>[[item.amountAfter]]</template>
+					</vaadin-grid-column>
+					<vaadin-grid-column
+							id="check6"
+							width="12ex">
+						<template class="header">
+							<vaadin-grid-filter
+									aria-label="amountBefore"
+									path="amountBefore"
+									value="{{filterBefore}}">
+								<input
+										placeholder="Before"
+										value="{{filterBefore::input}}"
+										focus-target>
+							</vaadin-grid-filter>
+						</template>
+						<template>[[item.amountBefore]]</template>
+					</vaadin-grid-column>
+				</vaadin-grid-column-group>
+			</vaadin-grid>
+			<iron-ajax id="getBalanceAjax"
+				url="/ocs/v1/log/balance"
+				rejectWithRequest>
+			</iron-ajax>
+		`;
+	}
+
+	static get properties() {
+		return {
+			loading: {
+				type: Boolean,
+				notify: true
 			},
-			_activePageChanged: function(active) {
-				if(active) {
-					var grid = this.$.balanceGrid;
-					grid.columns = [
-						{
-							name: "timeStamp"
-						},
-						{
-							name: "type"
-						},
-						{
-							name: "product"
-						},
-						{
-							name: "bucket"
-						},
-						{
-							name: "amount"
-						},
-						{
-							name: "amountBefore"
-						},
-						{
-							name: "amountAfter"
-						}
-					];
-					grid.dataProvider = this._getBalanceResponse;
-				}
+			etag: {
+				type: String,
+				value: null
 			},
-			_filterChangedTime: function(filter) {
-				this.etag = null;
-				this.$.balanceGrid.size = 0;
+			filterTime: {
+				type: Boolean,
+				observer: '_filterChanged'
 			},
-			_filterChangedType: function(filter) {
-				this.etag = null;
-				this.$.balanceGrid.size = 0;
+			filterType: {
+				type: Boolean,
+				observer: '_filterChanged'
 			},
-			_filterChangedProduct: function(filter) {
-				this.etag = null;
-				this.$.balanceGrid.size = 0;
+			filterProduct: {
+				type: Boolean,
+				observer: '_filterChanged'
 			},
-			_filterChangedBucket: function(filter) {
-				this.etag = null;
-				this.$.balanceGrid.size = 0;
+			filterBucket: {
+				type: Boolean,
+				observer: '_filterChanged'
 			},
-			_filterChangedAmount: function(filter) {
-				this.etag = null;
-				this.$.balanceGrid.size = 0;
+			filterAmount: {
+				type: Boolean,
+				observer: '_filterChanged'
 			},
-			_filterChangedAfter: function(filter) {
-				this.etag = null;
-				this.$.balanceGrid.size = 0;
+			filterAfter: {
+				type: Boolean,
+				observer: '_filterChanged'
 			},
-			_filterChangedBefore: function(filter) {
-				this.etag = null;
-				this.$.balanceGrid.size = 0;
-			},
-			_getBalanceResponse: function(params, callback) {
-				var grid = document.getElementById('balanceGrid');
-				var ajax = document.getElementById('getBalanceAjax');
-				delete ajax.params['filter'];
-				function checkHead(param) {
-					return param.path == "timeStamp" || param.path == "type" ||
-					param.path == "amount" || param.path == "bucket" ||
-					param.path == "amountBefore" || param.path == "amountAfter" ||
-					param.path == "product";
-				}
-				params.filters.filter(checkHead).forEach(function(filter) {
-					if (filter.value) {
-						if(ajax.params['filter']) {
-							ajax.params['filter'] += "]," + filter.path + ".like=[" + filter.value;
-						} else {
-							ajax.params['filter'] = "\"[{" + filter.path + ".like=[" + filter.value;
-						}
-					}
-				});
-				if (ajax.params['filter']) {
-					ajax.params['filter'] += "]}]\"";
-				}
-				var balanceList = document.getElementById('balanceList');
-				var handleAjaxResponse = function(request) {
-				if (request) {
-					grid.size = 100;
-					var vaadinItems = new Array();
-					var results = request.response;
-					for (var index in results) {
-						var balanceLog = new Object();
-						balanceLog.timeStamp = results[index].date;
-						balanceLog.type = results[index].type;
-						balanceLog.amount = results[index].amount.amount;
-						balanceLog.bucket = results[index].bucketBalance.id;
-						balanceLog.amountBefore = results[index].amountBefore.amount;
-						balanceLog.amountAfter = results[index].amountAfter.amount;
-						balanceLog.product = results[index].product.id;
-						vaadinItems[index] = balanceLog;
-					}
-					callback(vaadinItems);
-				} else {
-					grid.size = 0;
-					callback([]);
-				}
-			};
-			var handleAjaxError = function(event) {
-				balanceList.etag = null;
-				var toast = document.getElementById('usageToastError');
-				this.$.balanceErrorToast.text = event.detail.request.xhr.statusText;
-				this.$.balanceErrorToast.open();
-				if(!grid.size) {
-					grid.size = 0;
-				}
-				callback([]);
+			filterBefore: {
+				type: Boolean,
+				observer: '_filterChanged'
 			}
-			if (ajax.loading) {
-				ajax.lastRequest.completes.then(function(request) {
-				var startRange = params.page * params.pageSize + 1;
-				var endRange = startRange + params.pageSize - 1;
-				ajax.headers['Range'] = "items=" + startRange + "-" + endRange;
-				if (balanceList.etag && params.page > 0) {
-					ajax.headers['If-Range'] = balanceList.etag;
+		}
+	}
+
+	ready() {
+		super.ready();
+		var grid = this.shadowRoot.getElementById('balanceGrid');
+		grid.dataProvider = this._getBalanceResponse;
+	}
+
+	_getBalanceResponse(params, callback) {
+		var grid = this; 
+		var balanceList = document.body.querySelector('sig-app').shadowRoot.querySelector('sig-balance-list');
+		var ajax = balanceList.shadowRoot.getElementById('getBalanceAjax');
+
+		function checkHead(param) {
+			return param.path == "timeStamp" || param.path == "type" ||
+				param.path == "amount" || param.path == "bucket" ||
+				param.path == "amountBefore" || param.path == "amountAfter" ||
+				param.path == "product";
+		}
+		params.filters.filter(checkHead).forEach(function(filter) {
+			if (filter.value) {
+				if(ajax.params['filter']) {
+					ajax.params['filter'] += "]," + filter.path + ".like=[" + filter.value;
 				} else {
-					delete ajax.headers['If-Range'];
-				}
-				return ajax.generateRequest().completes;
-				}, handleAjaxError).then(handleAjaxResponse, handleAjaxError);
-				} else {
-					var startRange = params.page * params.pageSize + 1;
-					var endRange = startRange + params.pageSize - 1;
-					ajax.headers['Range'] = "items=" + startRange + "-" + endRange;
-					if (balanceList.etag && params.page > 0) {
-						ajax.headers['If-Range'] = balanceList.etag;
-					} else {
-						delete ajax.headers['If-Range'];
-					}
-					ajax.generateRequest().completes.then(handleAjaxResponse, handleAjaxError);
+					ajax.params['filter'] = "\"[{" + filter.path + ".like=[" + filter.value;
 				}
 			}
 		});
-	</script>
-</dom-module>
+		if (ajax.params['filter']) {
+			ajax.params['filter'] += "]}]\"";
+		}
+		var handleAjaxResponse = function(request) {
+			if (request) {
+				grid.size = 100;
+				var vaadinItems = new Array();
+				var results = request.response;
+				for (var index in results) {
+					var balanceLog = new Object();
+					balanceLog.timeStamp = results[index].date;
+					balanceLog.type = results[index].type;
+					balanceLog.amount = results[index].amount.amount;
+					balanceLog.bucket = results[index].bucketBalance.id;
+					balanceLog.amountBefore = results[index].amountBefore.amount;
+					balanceLog.amountAfter = results[index].amountAfter.amount;
+					balanceLog.product = results[index].product.id;
+					vaadinItems[index] = balanceLog;
+				}
+				callback(vaadinItems);
+			} else {
+				grid.size = 0;
+				callback([]);
+			}
+		}
+		var handleAjaxError = function(event) {
+			balanceList.etag = null;
+			var toast = document.getElementById('usageToastError');
+			this.$.balanceErrorToast.text = event.detail.request.xhr.statusText;
+			this.$.balanceErrorToast.open();
+			if(!grid.size) {
+				grid.size = 0;
+			}
+			callback([]);
+		}
+		if (ajax.loading) {
+			ajax.lastRequest.completes.then(function(request) {
+			var startRange = params.page * params.pageSize + 1;
+			var endRange = startRange + params.pageSize - 1;
+			ajax.headers['Range'] = "items=" + startRange + "-" + endRange;
+			if (balanceList.etag && params.page > 0) {
+				ajax.headers['If-Range'] = balanceList.etag;
+			} else {
+				delete ajax.headers['If-Range'];
+			}
+			return ajax.generateRequest().completes;
+			}, handleAjaxError).then(handleAjaxResponse, handleAjaxError);
+		} else {
+			var startRange = params.page * params.pageSize + 1;
+			var endRange = startRange + params.pageSize - 1;
+			ajax.headers['Range'] = "items=" + startRange + "-" + endRange;
+			if (balanceList.etag && params.page > 0) {
+				ajax.headers['If-Range'] = balanceList.etag;
+			} else {
+				delete ajax.headers['If-Range'];
+			}
+			ajax.generateRequest().completes.then(handleAjaxResponse, handleAjaxError);
+		}
+	}
+
+	_filterChanged(filter) {
+		this.etag = null;
+		var grid = this.shadowRoot.getElementById('balanceGrid');
+		grid.size = 0;
+	}
+}
+
+window.customElements.define('sig-balance-list', balanceList);
