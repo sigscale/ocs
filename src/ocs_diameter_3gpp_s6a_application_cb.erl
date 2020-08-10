@@ -239,6 +239,7 @@ erlang:display({?MODULE, ?LINE, Request}),
 		_:_Reason ->
 			{reply, #'3gpp_s6a_AIA'{'Session-Id' = SId,
 					'Result-Code' = ?'DIAMETER_BASE_RESULT-CODE_INVALID_AVP_BITS',
+					'Auth-Session-State' =  ?'3GPP_S6A_AUTH-SESSION-STATE_NO_STATE_MAINTAINED',
 					'Origin-Host' = OHost, 'Origin-Realm' = ORealm}}
 	end;
 process_request(ServiceName,
@@ -265,6 +266,7 @@ authentication_information(ServiceName,
 		{ok, #service{enabled = false}} ->
 			{reply, #'3gpp_s6a_AIA'{'Session-Id' = SId,
 					'Result-Code' = ?'DIAMETER_BASE_RESULT-CODE_AUTHORIZATION_REJECTED',
+					'Auth-Session-State' =  ?'3GPP_S6A_AUTH-SESSION-STATE_NO_STATE_MAINTAINED',
 					'Origin-Host' = OHost, 'Origin-Realm' = ORealm}};
 		{ok, #service{password = #aka_cred{k = K, opc = OPc, dif = DIF},
 				attributes = _Attributes}} ->
@@ -287,6 +289,7 @@ authentication_information(ServiceName,
 					AuthInfo = #'3gpp_s6a_Authentication-Info'{'E-UTRAN-Vector' = EutranVector},
 					{reply, #'3gpp_s6a_AIA'{'Session-Id' = SId,
 							'Result-Code' = ?'DIAMETER_BASE_RESULT-CODE_SUCCESS',
+							'Auth-Session-State' =  ?'3GPP_S6A_AUTH-SESSION-STATE_NO_STATE_MAINTAINED',
 							'Origin-Host' = OHost, 'Origin-Realm' = ORealm,
 							'Authentication-Info' = AuthInfo}};
 				[#'3gpp_s6a_Requested-EUTRAN-Authentication-Info'{
@@ -305,6 +308,7 @@ authentication_information(ServiceName,
 							AuthInfo = #'3gpp_s6a_Authentication-Info'{'E-UTRAN-Vector' = EutranVector},
 							{reply, #'3gpp_s6a_AIA'{'Session-Id' = SId,
 									'Result-Code' = ?'DIAMETER_BASE_RESULT-CODE_SUCCESS',
+									'Auth-Session-State' =  ?'3GPP_S6A_AUTH-SESSION-STATE_NO_STATE_MAINTAINED',
 									'Origin-Host' = OHost, 'Origin-Realm' = ORealm,
 									'Authentication-Info' = AuthInfo}};
 						_ ->
@@ -320,6 +324,7 @@ authentication_information(ServiceName,
 									AuthInfo = #'3gpp_s6a_Authentication-Info'{'E-UTRAN-Vector' = EutranVector},
 									{reply, #'3gpp_s6a_AIA'{'Session-Id' = SId,
 											'Result-Code' = ?'DIAMETER_BASE_RESULT-CODE_SUCCESS',
+											'Auth-Session-State' =  ?'3GPP_S6A_AUTH-SESSION-STATE_NO_STATE_MAINTAINED',
 											'Origin-Host' = OHost, 'Origin-Realm' = ORealm,
 											'Authentication-Info' = AuthInfo}};
 								_ ->
@@ -330,12 +335,14 @@ authentication_information(ServiceName,
 											'Experimental-Result' = #'3gpp_s6a_Experimental-Result'{
 											'Vendor-Id' = ?IANA_PEN_3GPP,
 											'Experimental-Result-Code' = ?'DIAMETER_AUTHENTICATION_DATA_UNAVAILABLE'},
+											'Auth-Session-State' =  ?'3GPP_S6A_AUTH-SESSION-STATE_NO_STATE_MAINTAINED',
 											'Origin-Host' = OHost, 'Origin-Realm' = ORealm}}
 							end
 					end;
 				[] ->
 					{reply, #'3gpp_s6a_AIA'{'Session-Id' = SId,
 							'Result-Code' = ?'DIAMETER_BASE_RESULT-CODE_SUCCESS',
+							'Auth-Session-State' =  ?'3GPP_S6A_AUTH-SESSION-STATE_NO_STATE_MAINTAINED',
 							'Origin-Host' = OHost, 'Origin-Realm' = ORealm}}
 			end;
 		{error, not_found} ->
@@ -343,12 +350,14 @@ authentication_information(ServiceName,
 					'Experimental-Result' = #'3gpp_s6a_Experimental-Result'{
 					'Vendor-Id' = ?IANA_PEN_3GPP,
 					'Experimental-Result-Code' = ?'DIAMETER_ERROR_USER_UNKNOWN'},
+					'Auth-Session-State' =  ?'3GPP_S6A_AUTH-SESSION-STATE_NO_STATE_MAINTAINED',
 					'Origin-Host' = OHost, 'Origin-Realm' = ORealm}};
 		{error, Reason} ->
 			error_logger:error_report(["Service lookup failure",
 					{service, ServiceName}, {module, ?MODULE}, {error, Reason}]),
 			{reply, #'3gpp_s6a_AIA'{'Session-Id' = SId,
 					'Result-Code' = ?'DIAMETER_BASE_RESULT-CODE_UNABLE_TO_COMPLY',
+					'Auth-Session-State' =  ?'3GPP_S6A_AUTH-SESSION-STATE_NO_STATE_MAINTAINED',
 					'Origin-Host' = OHost, 'Origin-Realm' = ORealm}}
 	end.
 
