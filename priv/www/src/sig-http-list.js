@@ -1,178 +1,218 @@
-<!--  vim: set ts=3:  -->
-<link rel="import" href="polymer/polymer.html">
-<link rel="import" href="i18n-msg/i18n-msg-behavior.html">
-<link rel="import" href="vaadin-grid/vaadin-grid.html">
-<link rel="import" href="vaadin-grid/vaadin-grid-filter.html">
-<link rel="import" href="iron-ajax/iron-ajax.html">
+/**
+ * @license
+ * Copyright (c) 2020 The Polymer Project Authors. All rights reserved.
+ * This code may only be used under the BSD style license found at http://polymer.github.io/LICENSE.txt
+ * The complete set of authors may be found at http://polymer.github.io/AUTHORS.txt
+ * The complete set of contributors may be found at http://polymer.github.io/CONTRIBUTORS.txt
+ * Code distributed by Google as part of the polymer project is also
+ * subject to an additional IP rights grant found at http://polymer.github.io/PATENTS.txt
+ */
 
-<dom-module id="sig-http-list">
-	<template>
-		<style>
-			::-webkit-input-placeholder { /* Chrome/Opera/Safari */
-				color: initial;
-				font-weight: bold;
-			}
-			::-moz-placeholder { /* Firefox 19+ */
-				color: initial;
-				font-weight: bold;
-			}
-			:-ms-input-placeholder { /* IE 10+ */
-				color: initial;
-				font-weight: bold;
-			}
-			:-moz-placeholder { /* Firefox 18- */
-				color: initial;
-				font-weight: bold;
-			}
-			vaadin-grid col {
-				font-size: 46px
-			}
-			vaadin-grid {
-				height: 100%;
-				--vaadin-grid-header-cell: {
-					background: #ffb04c;
-				};
-			}
-			vaadin-grid input {
-				font-size: inherit;
-				background: #ffb04c;
-				border-style: none;
-			}
-			.yellow-button {
-				text-transform: none;
-				color: #eeff41;
-			}
-		</style>
-		<vaadin-grid id="httpGrid">
-			<vaadin-grid-column width="28ex" flex-grow="2">
-				<template class="header">
-					<vaadin-grid-filter aria-label="[[i18n.dateTime]]" path="datetime" value="[[_filterDateTime]]">
-						<input placeholder="[[i18n.dateTime]]" value="{{_filterDateTime::input}}" focus-target>
-					</vaadin-grid-filter>
-				</template>
-				<template>[[item.datetime]]</template>
-			</vaadin-grid-column>
-			<vaadin-grid-column width="15ex" flex-grow="4">
-				<template class="header">
-					<vaadin-grid-filter aria-label="[[i18n.host]]" path="host" value="[[_filterHost]]">
-						<input placeholder="[[i18n.host]]" value="{{_filterHost::input}}" focus-target>
-					</vaadin-grid-filter>
-				</template>
-				<template>[[item.host]]</template>
-			</vaadin-grid-column>
-			<vaadin-grid-column width="8ex" flex-grow="5">
-				<template class="header">
-					<vaadin-grid-filter aria-label="[[i18n.user]]" path="user" value="[[_filterUser]]">
-						<input placeholder="[[i18n.user]]" value="{{_filterUser::input}}" focus-target>
-					</vaadin-grid-filter>
-				</template>
-				<template>[[item.user]]</template>
-			</vaadin-grid-column>
-			<vaadin-grid-column width="8ex" flex-grow="2">
-				<template class="header">
-					<vaadin-grid-filter aria-label="[[i18n.method]]" path="method" value="[[_filterMethod]]">
-						<input placeholder="[[i18n.method]]" value="{{_filterMethod::input}}" focus-target>
-					</vaadin-grid-filter>
-				</template>
-				<template>[[item.method]]</template>
-			</vaadin-grid-column>
-			<vaadin-grid-column width="40ex" flex-grow="15">
-				<template class="header">
-					<vaadin-grid-filter aria-label="[[i18n.resource]]" path="uri" value="[[_filterResource]]">
-						<input placeholder="[[i18n.resource]]" value="{{_filterResource::input}}" focus-target>
-					</vaadin-grid-filter>
-				</template>
-				<template>[[item.uri]]</template>
-			</vaadin-grid-column>
-			<vaadin-grid-column width="7ex" flex-grow="0">
-				<template class="header">
-					<vaadin-grid-filter aria-label="[[i18n.status]]" path="httpStatus" value="[[_filterStatus]]">
-						<input placeholder="[[i18n.status]]" value="{{_filterStatus::input}}" focus-target>
-					</vaadin-grid-filter>
-				</template>
-				<template>[[item.httpStatus]]</template>
-			</vaadin-grid-column>
-		</vaadin-grid>
-		<paper-toast id="httpErrorToast" duration="0">
-			<paper-button
-					class="yellow-button"
-					onclick="httpErrorToast.toggle()">
-				Close
-			</paper-button>
-		</paper-toast>
-		<iron-ajax id="getHttp"
-			url="/ocs/v1/log/http"
-			method = "GET"
-			headers='{"Accept": "application/json"}'
-			on-loading-changed="_onLoadingChanged"
-			on-response="getHttpResponse"
-			on-error="getHttpError">
-		</iron-ajax>
-	</template>
-	<script>
-		Polymer ({
-			is: 'sig-http-list',
-			behaviors: [i18nMsgBehavior],
-			properties: {
-				activePage: {
-					type: Boolean,
-					value: false,
-					observer: '_activePageChanged'
-				}
+import { PolymerElement, html } from '@polymer/polymer/polymer-element.js';
+import '@polymer/iron-ajax/iron-ajax.js';
+import '@polymer/paper-fab/paper-fab.js';
+import '@polymer/iron-icons/iron-icons.js';
+import '@vaadin/vaadin-grid/vaadin-grid.js';
+import '@vaadin/vaadin-grid/vaadin-grid-filter.js';
+import '@vaadin/vaadin-grid/vaadin-grid-column-group.js';
+import './style-element.js'
+
+class httpList extends PolymerElement {
+	static get template() {
+		return html`
+			<style include="style-element"></style>
+			<vaadin-grid
+					id="httpGrid"
+					loading="{{loading}}">
+				<vaadin-grid-column
+						width="28ex"
+						flex-grow="2">
+					<template class="header">
+						<vaadin-grid-filter
+								aria-label="dateTime"
+								path="datetime"
+								value="{{_filterDateTime}}">
+							<input
+									placeholder="Date & Time"
+									value="{{_filterDateTime::input}}"
+									focus-target>
+						</vaadin-grid-filter>
+					</template>
+					<template>[[item.datetime]]</template>
+				</vaadin-grid-column>
+				<vaadin-grid-column
+						width="15ex"
+						flex-grow="4">
+					<template class="header">
+						<vaadin-grid-filter
+								aria-label="host"
+								path="host"
+								value="{{_filterHost}}">
+							<input
+									placeholder="Host"
+									value="{{_filterHost::input}}"
+									focus-target>
+						</vaadin-grid-filter>
+					</template>
+					<template>[[item.host]]</template>
+				</vaadin-grid-column>
+				<vaadin-grid-column
+						width="8ex"
+						flex-grow="5">
+					<template class="header">
+						<vaadin-grid-filter
+								aria-label="user"
+								path="user"
+								value="{{_filterUser}}">
+							<input
+									placeholder="User"
+									value="{{_filterUser::input}}"
+									focus-target>
+						</vaadin-grid-filter>
+					</template>
+					<template>[[item.user]]</template>
+				</vaadin-grid-column>
+				<vaadin-grid-column
+						width="8ex"
+						flex-grow="2">
+					<template class="header">
+						<vaadin-grid-filter
+								aria-label="method"
+								path="method"
+								value="{{_filterMethod}}">
+							<input
+									placeholder="Method"
+									value="{{_filterMethod::input}}"
+									focus-target>
+						</vaadin-grid-filter>
+					</template>
+					<template>[[item.method]]</template>
+				</vaadin-grid-column>
+				<vaadin-grid-column
+						width="40ex"
+						flex-grow="15">
+					<template class="header">
+						<vaadin-grid-filter
+								aria-label="resource"
+								path="uri"
+								value="{{_filterResource}}">
+							<input
+									placeholder="Resource"
+									value="{{_filterResource::input}}"
+									focus-target>
+						</vaadin-grid-filter>
+					</template>
+					<template>[[item.uri]]</template>
+				</vaadin-grid-column>
+				<vaadin-grid-column
+						width="7ex"
+						flex-grow="0">
+					<template class="header">
+						<vaadin-grid-filter
+								aria-label="status"
+								path="httpStatus"
+								value="{{_filterStatus}}">
+							<input
+									placeholder="Status"
+									value="{{_filterStatus::input}}"
+									focus-target>
+						</vaadin-grid-filter>
+					</template>
+					<template>[[item.httpStatus]]</template>
+				</vaadin-grid-column>
+			</vaadin-grid>
+			<iron-ajax id="getHttp"
+					url="/ocs/v1/log/http"
+					rejectWithRequest>
+			</iron-ajax>
+		`;
+	}
+
+	static get properties() {
+		return {
+			loading: {
+				type: Boolean,
+				notify: true
 			},
-			_activePageChanged: function(active) {
-				if (active) {
-					this.$.getHttp.generateRequest();
+			activePage: {
+				type: Boolean,
+				value: false,
+				observer: '_activePageChanged'
+			}
+		}
+	}
+
+	ready() {
+		super.ready();
+		var grid = this.shadowRoot.getElementById('httpGrid');
+		grid.dataProvider = this._getHttpResponse;
+	}
+
+	_getHttpResponse(params, callback) {
+		var grid = this;
+		var httpList = document.body.querySelector('sig-app').shadowRoot.querySelector('sig-http-list').shadowRoot.getElementById('getHttp');
+		var httpList1 = document.body.querySelector('sig-app').shadowRoot.querySelector('sig-http-list');
+		var handleAjaxResponse = function(request) {
+			if(request) {
+				httpList1.etag = request.xhr.getResponseHeader('ETag');
+				var range = request.xhr.getResponseHeader('Content-Range');
+				var range1 = range.split("/");
+				var range2 = range1[0].split("-");
+				if (range1[1] != "*") {
+					grid.size = Number(range1[1]);
+				} else {
+					grid.size = Number(range2[1]) + grid.pageSize * 2;
 				}
-			},
-			getHttpResponse: function(event) {
-				var grid = this.$.httpGrid;
-				var results = event.detail.xhr.response;
 				var vaadinItems = new Array();
-				for (var index in results) {
+				for (var index in request.response) {
 					var newRecord = new Object();
-					newRecord.datetime = results[index].datetime;
-					newRecord.host = results[index].host;
-					newRecord.user = results[index].user;
-					newRecord.method = results[index].method;
-					newRecord.uri = results[index].uri;
-					newRecord.httpStatus = results[index].httpStatus;
+					newRecord.datetime = request.response[index].datetime;
+					newRecord.host = request.response[index].host;
+					newRecord.user = request.response[index].user;
+					newRecord.method = request.response[index].method;
+					newRecord.uri = request.response[index].uri;
+					newRecord.httpStatus = request.response[index].httpStatus;
 					vaadinItems[index] = newRecord;
 				}
-				grid.items = vaadinItems;
-				grid.frozenColumns = 2;
-				grid.columns = [
-					{
-						name: "datetime"
-					},
-					{
-						name: "host"
-					},
-					{
-						name: "user"
-					},
-					{
-						name: "method"
-					},
-					{
-						name: "uri"
-					},
-					{
-						name: "httpStatus"
-					}
-				];
-			},
-			getHttpError: function (event) {
-				this.$.httpErrorToast.text = event.detail.request.xhr.statusText;
-				this.$.httpErrorToast.open();
-			},
-			_onLoadingChanged: function(event) {
-				if (this.$.getHttp.loading) {
-					document.getElementById("progress").disabled = false;
-				} else {
-					document.getElementById("progress").disabled = true;
-				}
+				callback(vaadinItems);
+			} else {
+				grid.size = 0;
+				callback([]);
 			}
-		});
-	</script>
-</dom-module>
+		};
+		var handleAjaxError = function(error) {
+			httpList1.etag = null;
+			var toast = document.body.querySelector('sig-app').shadowRoot.getElementById('restError');
+			toast.text = error;
+			toast.open();
+			if(!grid.size) {
+				grid.size = 0;
+			}
+			callback([]);
+		}
+		if(httpList.loading) {
+			httpList.lastRequest.completes.then(function(request) {
+				var startRange = params.page * params.pageSize + 1;
+				httpList.headers['Range'] = "items=" + startRange + "-" + endRange;
+				if (httpList1.etag && params.page > 0) {
+					httpList.headers['If-Range'] = httpList1.etag;
+				} else {
+					delete httpList.headers['If-Range'];
+				}
+			return httpList.generateRequest().completes;
+			}, handleAjaxError).then(handleAjaxResponse, handleAjaxError);
+		} else {
+			var startRange = params.page * params.pageSize + 1;
+			var endRange = startRange + params.pageSize - 1;
+			httpList.headers['Range'] = "items=" + startRange + "-" + endRange;
+			if (httpList1.etag && params.page > 0) {
+				httpList.headers['If-Range'] = httpList1.etag;
+			} else {
+				delete httpList.headers['If-Range'];
+			}
+			httpList.generateRequest().completes.then(handleAjaxResponse, handleAjaxError);
+		}
+	}
+}
+
+window.customElements.define('sig-http-list', httpList);
