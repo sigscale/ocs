@@ -6,6 +6,15 @@
 @inherits diameter_gen_base_rfc6733
 @inherits diameter_gen_ietf
 @inherits diameter_gen_3gpp
+
+@custom_types ocs_diameter_codec
+
+	APN-Configuration
+	EPS-Subscribed-QoS-Profile
+	AMBR
+	Specific-APN-Info
+	WLAN-offloadability
+
 @messages
 
 	MAR ::= < Diameter Header: 303, REQ, PXY >
@@ -49,6 +58,7 @@
 		* [ Load ]
 		* [ Supported-Features ]
 		* [ Proxy-Info ]
+		* [ Route-Record ]
 		* [ AVP ]
 
 	SAR ::= < Diameter Header: 301, REQ, PXY >
@@ -71,7 +81,9 @@
 		* [ Supported-Features ]
 		[ Terminal-Information ]
 		[ Emergency-Services ]
-		*[ AVP ]
+		* [ Proxy-Info ]
+		* [ Route-Record ]
+		* [ AVP ]
 
 	SAA ::= < Diameter Header: 301, PXY >
 		< Session-Id >
@@ -89,6 +101,8 @@
 		[ 3GPP-AAA-Server-Name ]
 		[ OC-OLR ]
 		* [ Load ]
+		* [ Proxy-Info ]
+		* [ Route-Record ]
 		* [ AVP ]
 
 	RTR ::= < Diameter Header: 304, REQ, PXY >
@@ -102,8 +116,10 @@
 		{ User-Name }
 		{ Deregistration-Reason }
 		[ DRMP ]
-		*[ Supported-Features ]
-		*[ AVP ]
+		* [ Supported-Features ]
+		* [ Proxy-Info ]
+		* [ Route-Record ]
+		* [ AVP ]
 
 	RTA ::= < Diameter Header: 304, PXY >
 		< Session-Id >
@@ -114,6 +130,8 @@
 		[ Result-Code ]
 		[ Experimental-Result ]
 		[ DRMP ]
-		*[ Supported-Features ]
-		*[ AVP ]
+		* [ Supported-Features ]
+		* [ Proxy-Info ]
+		* [ Route-Record ]
+		* [ AVP ]
 

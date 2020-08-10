@@ -100,7 +100,6 @@ init_per_suite(Config) ->
 				when element(1, Info) == up ->
 			Config1;
 		_Other ->
-erlang:display({?MODULE, ?LINE, _Other}),
 			{skip, diameter_client_acct_service_not_started}
 	end.
 
@@ -423,7 +422,7 @@ diameter_scur() ->
 	[{userdata, [{doc, "DIAMETER Session Charging with Unit Reservation (SCUR)"}]}].
 
 diameter_scur(_Config) ->
-	P1 = price(usage, octets, rand:uniform(10000), rand:uniform(1000000)),
+	P1 = price(usage, octets, rand:uniform(10000000), rand:uniform(1000000)),
 	OfferId = add_offer([P1], 4),
 	ProdRef = add_product(OfferId),
 	Username = list_to_binary(ocs:generate_identity()),

@@ -731,7 +731,6 @@ send_radius_identity(Socket, Address, Port, NasId,
 receive_radius_id(Socket, Address, Port, Secret, ReqAuth, RadId) ->
 	EapMsg = radius_access_challenge(Socket, Address, Port,
 			Secret, RadId, ReqAuth),
-erlang:display({?MODULE, ?LINE,  ocs_eap_codec:eap_packet(EapMsg)}),
 	#eap_packet{code = request, type = ?PWD, identifier = EapId,
 			data = EapData} = ocs_eap_codec:eap_packet(EapMsg),
 	#eap_pwd{length = false, more = false, pwd_exch = id,

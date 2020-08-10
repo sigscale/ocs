@@ -26,7 +26,6 @@
 		| active | inactive | terminated.
 -type pla_status() :: created | active | cancelled | terminated.
 -type product_price_type() :: recurring | one_time | usage | tariff.
--type unit_of_measure() :: octets | cents | seconds | messages.
 -type recur_period() :: hourly | daily | weekly | monthly | yearly.
 
 -record(quantity,
@@ -61,7 +60,7 @@
 		end_date :: pos_integer() | undefined,
 		type :: product_price_type() | undefined,
 		period :: recur_period() | undefined,
-		units :: unit_of_measure() | undefined,
+		units :: cents | octets | seconds | messages | undefined,
 		size :: integer() | undefined,
 		amount :: integer() | undefined,
 		currency :: string() | undefined}).
@@ -96,7 +95,7 @@
 		end_date :: pos_integer() | undefined,
 		type :: product_price_type() | undefined,
 		period :: recur_period() | undefined,
-		units :: unit_of_measure() | undefined,
+		units :: octets | seconds | messages | undefined,
 		size :: integer() | undefined,
 		amount :: integer() | undefined,
 		currency :: string() | undefined,

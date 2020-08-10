@@ -877,7 +877,7 @@ update_product_realizing_service(Config) ->
 	{_, "application/json"} = lists:keyfind("content-type", 1, Headers1),
 	{_, Etag} = lists:keyfind("etag", 1, Headers1),
 	NewRSObj = {struct, [{"id", ServiceId},
-			{"href", "serviceInventoryManagement/v2/service/"++ ServiceId}]},
+			{"href", "/serviceInventoryManagement/v2/service/"++ ServiceId}]},
 	JSON = {array, [{struct, [{op, "add"},
 			{path, "/realizingService/-"},
 			{value, NewRSObj}]}]},
@@ -913,7 +913,7 @@ update_product_realizing_service(Config) ->
 	F3 = fun({struct, Obj}) ->
 			try
 				{_, ServiceId} = lists:keyfind("id", 1, Obj),
-				{_, "serviceInventoryManagement/v2/service/" ++ ServiceId} = lists:keyfind("href", 1, Obj),
+				{_, "/serviceInventoryManagement/v2/service/" ++ ServiceId} = lists:keyfind("href", 1, Obj),
 				true
 			catch
 				_:_ ->
@@ -1093,7 +1093,7 @@ add_service_inventory(Config) ->
 	{_, "application/json"} = lists:keyfind("content-type", 1, Headers),
 	{_, _} = lists:keyfind("etag", 1, Headers),
 	{_, URI} = lists:keyfind("location", 1, Headers),
-	{"serviceInventoryManagement/v2/service/" ++ ID, _} = httpd_util:split_path(URI),
+	{"/serviceInventoryManagement/v2/service/" ++ ID, _} = httpd_util:split_path(URI),
 	ContentLength = integer_to_list(length(ResponseBody)),
 	{_, ContentLength} = lists:keyfind("content-length", 1, Headers),
 	{struct, Object} = mochijson:decode(ResponseBody),
@@ -1129,7 +1129,7 @@ add_service_inventory_without_password(Config) ->
 	{_, "application/json"} = lists:keyfind("content-type", 1, Headers),
 	{_, _} = lists:keyfind("etag", 1, Headers),
 	{_, URI} = lists:keyfind("location", 1, Headers),
-	{"serviceInventoryManagement/v2/service/" ++ ID, _} = httpd_util:split_path(URI),
+	{"/serviceInventoryManagement/v2/service/" ++ ID, _} = httpd_util:split_path(URI),
 	ContentLength = integer_to_list(length(ResponseBody)),
 	{_, ContentLength} = lists:keyfind("content-length", 1, Headers),
 	{struct, Object} = mochijson:decode(ResponseBody),
@@ -1173,7 +1173,7 @@ add_service_aka(Config) ->
 	{_, "application/json"} = lists:keyfind("content-type", 1, Headers),
 	{_, _} = lists:keyfind("etag", 1, Headers),
 	{_, URI} = lists:keyfind("location", 1, Headers),
-	{"serviceInventoryManagement/v2/service/" ++ IMSI, _} = httpd_util:split_path(URI),
+	{"/serviceInventoryManagement/v2/service/" ++ IMSI, _} = httpd_util:split_path(URI),
 	ContentLength = integer_to_list(length(ResponseBody)),
 	{_, ContentLength} = lists:keyfind("content-length", 1, Headers),
 	{struct, Object} = mochijson:decode(ResponseBody),
@@ -1205,7 +1205,7 @@ get_service_inventory(Config) ->
 	{_, "application/json"} = lists:keyfind("content-type", 1, Headers),
 	{_, _} = lists:keyfind("etag", 1, Headers),
 	{_, URI} = lists:keyfind("location", 1, Headers),
-	{"serviceInventoryManagement/v2/service/" ++ ID, _} = httpd_util:split_path(URI),
+	{"/serviceInventoryManagement/v2/service/" ++ ID, _} = httpd_util:split_path(URI),
 	ContentLength = integer_to_list(length(ResponseBody)),
 	{_, ContentLength} = lists:keyfind("content-length", 1, Headers),
 	{struct, Object} = mochijson:decode(ResponseBody),

@@ -40,13 +40,13 @@
 -define(MILLISECOND, milli_seconds).
 %-define(MILLISECOND, millisecond).
 
--define(catalogPath, "/productCatalogManagement/v2/").
+-define(catalogPath, "/catalogManagement/v2/catalog/").
 -define(categoryPath, "/catalogManagement/v2/category/").
 -define(productSpecPath, "/catalogManagement/v2/productSpecification/").
 -define(offeringPath, "/catalogManagement/v2/productOffering/").
 -define(plaPath, "/catalogManagement/v2/pla/").
 -define(plaSpecPath, "/catalogManagement/v2/plaSpecification/").
--define(inventoryPath, "/productInventoryManagement/v2/").
+-define(inventoryPath, "/productInventoryManagement/v2/product/").
 -define(servicePath, "/serviceInventoryManagement/v2/service/").
 
 -spec content_types_accepted() -> ContentTypes
@@ -695,7 +695,7 @@ delete_offer(Id) ->
 		ok ->
 			{ok, [], []};
 		{'EXIT', unable_to_delete} ->
-			{error, 202};
+			{error, 403};
 		{'EXIT', _} ->
 			{error, 500}
 	end.
@@ -712,7 +712,7 @@ delete_inventory(Id) ->
 		ok ->
 			{ok, [], []};
 		{'EXIT', service_exists} ->
-			{error, 202};
+			{error, 403};
 		{'EXIT', _} ->
 			{error, 500}
 	end.
