@@ -607,7 +607,7 @@ class SigApp extends PolymerElement {
 				import('./sig-ipdr-list-voip.js');
 				break;
 			case 'httpView':
-//				import('./sig-http-list.js');
+				import('./sig-http-list.js');
 				break;
 			case 'prefixView':
 				import('./sig-prefix-list.js');
