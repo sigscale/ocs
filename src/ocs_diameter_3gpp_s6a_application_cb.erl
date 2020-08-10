@@ -232,13 +232,12 @@ process_request(ServiceName,
 		#diameter_caps{origin_host = {OHost, _DHost},
 		origin_realm = {ORealm, _DRealm}} = Capabilities,
 		#'3gpp_s6a_AIR'{'Session-Id' = SId} = Request) ->
-erlang:display({?MODULE, ?LINE, Request}),
 	try
 		authentication_information(ServiceName, Capabilities, Request)
 	catch
 		_:_Reason ->
 			{reply, #'3gpp_s6a_AIA'{'Session-Id' = SId,
-					'Result-Code' = ?'DIAMETER_BASE_RESULT-CODE_INVALID_AVP_BITS',
+					'Result-Code' = [?'DIAMETER_BASE_RESULT-CODE_INVALID_AVP_BITS'],
 					'Auth-Session-State' =  ?'3GPP_S6A_AUTH-SESSION-STATE_NO_STATE_MAINTAINED',
 					'Origin-Host' = OHost, 'Origin-Realm' = ORealm}}
 	end;
@@ -246,13 +245,12 @@ process_request(ServiceName,
 		#diameter_caps{origin_host = {OHost, _DHost},
 		origin_realm = {ORealm, _DRealm}} = Capabilities,
 		#'3gpp_s6a_ULR'{'Session-Id' = SId} = Request) ->
-erlang:display({?MODULE, ?LINE, Request}),
 	try
 		update_location(ServiceName, Capabilities, Request)
 	catch
 		_:_Reason ->
 			{reply, #'3gpp_s6a_ULA'{'Session-Id' = SId,
-					'Result-Code' = ?'DIAMETER_BASE_RESULT-CODE_INVALID_AVP_BITS',
+					'Result-Code' = [?'DIAMETER_BASE_RESULT-CODE_INVALID_AVP_BITS'],
 					'Origin-Host' = OHost, 'Origin-Realm' = ORealm}}
 	end.
 
@@ -263,13 +261,13 @@ authentication_information(ServiceName,
 		#'3gpp_s6a_AIR'{'Session-Id' = SId, 'User-Name' = IMSI,
 		'Requested-EUTRAN-Authentication-Info' = ReqEutranAuth}) ->
 	case ocs:find_service(IMSI) of
-		{ok, #service{enabled = false}} ->
+		{ok, #service{enabled = false} = _Service} ->
 			{reply, #'3gpp_s6a_AIA'{'Session-Id' = SId,
-					'Result-Code' = ?'DIAMETER_BASE_RESULT-CODE_AUTHORIZATION_REJECTED',
+					'Result-Code' = [?'DIAMETER_BASE_RESULT-CODE_AUTHORIZATION_REJECTED'],
 					'Auth-Session-State' =  ?'3GPP_S6A_AUTH-SESSION-STATE_NO_STATE_MAINTAINED',
 					'Origin-Host' = OHost, 'Origin-Realm' = ORealm}};
 		{ok, #service{password = #aka_cred{k = K, opc = OPc, dif = DIF},
-				attributes = _Attributes}} ->
+				attributes = _Attributes} = _Service} ->
 			% @todo Handle two digit MNC!
 			<<Mcc1, Mcc2, Mcc3, Mnc1, Mnc2, Mnc3, _/binary>> = IMSI,
 			SN = <<Mcc2:4, Mcc1:4, Mnc3:4, Mcc3:4, Mnc2:4, Mnc1:4>>,
@@ -283,17 +281,16 @@ authentication_information(ServiceName,
 					MAC = ocs_milenage:f1(OPc, K, RAND, <<SQN:48>>, AMF),
 					AUTN = autn(SQN, AK, AMF, MAC),
 					KASME = kdf(CK, IK, SN, SQN, AK),
-					EutranVector = #'3gpp_s6a_E-UTRAN-Vector'{'Item-Number' = 1,
-							'RAND' = RAND, 'XRES' = XRES, 'AUTN' = AUTN,
-							'KASME' = KASME},
-					AuthInfo = #'3gpp_s6a_Authentication-Info'{'E-UTRAN-Vector' = EutranVector},
+					EutranVector = #'3gpp_s6a_E-UTRAN-Vector'{'Item-Number' = [1],
+							'RAND' = RAND, 'XRES' = XRES, 'AUTN' = AUTN, 'KASME' = KASME},
+					AuthInfo = #'3gpp_s6a_Authentication-Info'{'E-UTRAN-Vector' = [EutranVector]},
 					{reply, #'3gpp_s6a_AIA'{'Session-Id' = SId,
-							'Result-Code' = ?'DIAMETER_BASE_RESULT-CODE_SUCCESS',
-							'Auth-Session-State' =  ?'3GPP_S6A_AUTH-SESSION-STATE_NO_STATE_MAINTAINED',
+							'Result-Code' = [?'DIAMETER_BASE_RESULT-CODE_SUCCESS'],
+							'Auth-Session-State' = ?'3GPP_S6A_AUTH-SESSION-STATE_NO_STATE_MAINTAINED',
 							'Origin-Host' = OHost, 'Origin-Realm' = ORealm,
-							'Authentication-Info' = AuthInfo}};
+							'Authentication-Info' = [AuthInfo]}};
 				[#'3gpp_s6a_Requested-EUTRAN-Authentication-Info'{
-						'Re-Synchronization-Info' = <<RAND:16/binary, SQN:48, MAC_S:8/binary>>}] ->
+						'Re-Synchronization-Info' = [<<RAND:16/binary, SQN:48, MAC_S:8/binary>>]}] ->
 					{XRES, CK, IK, <<AK:48>>} = ocs_milenage:f2345(OPc, K, RAND),
 					SQNhe = sqn(DIF),
 					SQNms = sqn_ms(SQN, OPc, K, RAND),
@@ -302,61 +299,59 @@ authentication_information(ServiceName,
 							MAC_A = ocs_milenage:f1(OPc, K, RAND, <<SQNhe:48>>, AMF),
 							AUTN = autn(SQNhe, AK, AMF, MAC_A),
 							KASME = kdf(CK, IK, SN, SQNhe, AK),
-							EutranVector = #'3gpp_s6a_E-UTRAN-Vector'{'Item-Number' = 1,
-									'RAND' = RAND, 'XRES' = XRES, 'AUTN' = AUTN,
-									'KASME' = KASME},
-							AuthInfo = #'3gpp_s6a_Authentication-Info'{'E-UTRAN-Vector' = EutranVector},
+							EutranVector = #'3gpp_s6a_E-UTRAN-Vector'{'Item-Number' = [1],
+									'RAND' = RAND, 'XRES' = XRES, 'AUTN' = AUTN, 'KASME' = KASME},
+							AuthInfo = #'3gpp_s6a_Authentication-Info'{'E-UTRAN-Vector' = [EutranVector]},
 							{reply, #'3gpp_s6a_AIA'{'Session-Id' = SId,
-									'Result-Code' = ?'DIAMETER_BASE_RESULT-CODE_SUCCESS',
+									'Result-Code' = [?'DIAMETER_BASE_RESULT-CODE_SUCCESS'],
 									'Auth-Session-State' =  ?'3GPP_S6A_AUTH-SESSION-STATE_NO_STATE_MAINTAINED',
 									'Origin-Host' = OHost, 'Origin-Realm' = ORealm,
-									'Authentication-Info' = AuthInfo}};
-						_ ->
+									'Authentication-Info' = [AuthInfo]}};
+						_A ->
 							case ocs_milenage:'f1*'(OPc, K, RAND, <<SQNms:48>>, AMF) of
 								MAC_S ->
 									MAC_A = ocs_milenage:f1(OPc, K, RAND, <<SQNms:48>>, AMF),
 									AUTN = autn(SQNms, AK, AMF, MAC_A),
 									KASME = kdf(CK, IK, SN, SQNms, AK),
 									save_dif(IMSI, dif(SQNms)),
-									EutranVector = #'3gpp_s6a_E-UTRAN-Vector'{'Item-Number' = 1,
-											'RAND' = RAND, 'XRES' = XRES, 'AUTN' = AUTN,
-											'KASME' = KASME},
-									AuthInfo = #'3gpp_s6a_Authentication-Info'{'E-UTRAN-Vector' = EutranVector},
+									EutranVector = #'3gpp_s6a_E-UTRAN-Vector'{'Item-Number' = [1],
+											'RAND' = RAND, 'XRES' = XRES, 'AUTN' = AUTN, 'KASME' = KASME},
+									AuthInfo = #'3gpp_s6a_Authentication-Info'{'E-UTRAN-Vector' = [EutranVector]},
 									{reply, #'3gpp_s6a_AIA'{'Session-Id' = SId,
-											'Result-Code' = ?'DIAMETER_BASE_RESULT-CODE_SUCCESS',
+											'Result-Code' = [?'DIAMETER_BASE_RESULT-CODE_SUCCESS'],
 											'Auth-Session-State' =  ?'3GPP_S6A_AUTH-SESSION-STATE_NO_STATE_MAINTAINED',
 											'Origin-Host' = OHost, 'Origin-Realm' = ORealm,
-											'Authentication-Info' = AuthInfo}};
+											'Authentication-Info' = [AuthInfo]}};
 								_ ->
 									error_logger:error_report(["AUTS verification failed",
 											{service, ServiceName}, {identity, IMSI},
 											{auts, <<SQN:48, MAC_S/binary>>}]),
 									{reply, #'3gpp_s6a_AIA'{'Session-Id' = SId,
-											'Experimental-Result' = #'3gpp_s6a_Experimental-Result'{
+											'Experimental-Result' = [#'3gpp_s6a_Experimental-Result'{
 											'Vendor-Id' = ?IANA_PEN_3GPP,
-											'Experimental-Result-Code' = ?'DIAMETER_AUTHENTICATION_DATA_UNAVAILABLE'},
+											'Experimental-Result-Code' = ?'DIAMETER_AUTHENTICATION_DATA_UNAVAILABLE'}],
 											'Auth-Session-State' =  ?'3GPP_S6A_AUTH-SESSION-STATE_NO_STATE_MAINTAINED',
 											'Origin-Host' = OHost, 'Origin-Realm' = ORealm}}
 							end
 					end;
 				[] ->
 					{reply, #'3gpp_s6a_AIA'{'Session-Id' = SId,
-							'Result-Code' = ?'DIAMETER_BASE_RESULT-CODE_SUCCESS',
+							'Result-Code' = [?'DIAMETER_BASE_RESULT-CODE_SUCCESS'],
 							'Auth-Session-State' =  ?'3GPP_S6A_AUTH-SESSION-STATE_NO_STATE_MAINTAINED',
 							'Origin-Host' = OHost, 'Origin-Realm' = ORealm}}
 			end;
 		{error, not_found} ->
 			{reply, #'3gpp_s6a_AIA'{'Session-Id' = SId,
-					'Experimental-Result' = #'3gpp_s6a_Experimental-Result'{
+					'Experimental-Result' = [#'3gpp_s6a_Experimental-Result'{
 					'Vendor-Id' = ?IANA_PEN_3GPP,
-					'Experimental-Result-Code' = ?'DIAMETER_ERROR_USER_UNKNOWN'},
+					'Experimental-Result-Code' = ?'DIAMETER_ERROR_USER_UNKNOWN'}],
 					'Auth-Session-State' =  ?'3GPP_S6A_AUTH-SESSION-STATE_NO_STATE_MAINTAINED',
 					'Origin-Host' = OHost, 'Origin-Realm' = ORealm}};
 		{error, Reason} ->
 			error_logger:error_report(["Service lookup failure",
 					{service, ServiceName}, {module, ?MODULE}, {error, Reason}]),
 			{reply, #'3gpp_s6a_AIA'{'Session-Id' = SId,
-					'Result-Code' = ?'DIAMETER_BASE_RESULT-CODE_UNABLE_TO_COMPLY',
+					'Result-Code' = [?'DIAMETER_BASE_RESULT-CODE_UNABLE_TO_COMPLY'],
 					'Auth-Session-State' =  ?'3GPP_S6A_AUTH-SESSION-STATE_NO_STATE_MAINTAINED',
 					'Origin-Host' = OHost, 'Origin-Realm' = ORealm}}
 	end.
@@ -367,38 +362,42 @@ update_location(ServiceName,
 		origin_realm = {ORealm, _DRealm}} = _Capabilities,
 		#'3gpp_s6a_ULR'{'Session-Id' = SId,
 		'User-Name' = IMSI, 'ULR-Flags' = RequestFlags}) ->
+	SkipSub = case RequestFlags of
+		[<<_:29, 1:1, _:2>>] ->
+			true;
+		_ ->
+			false
+	end,
 	case ocs:find_service(IMSI) of
-		{ok, #service{}} when (RequestFlags band 4) =:= 4 ->
+		{ok, #service{}} when SkipSub ->
 			{reply, #'3gpp_s6a_ULA'{'Session-Id' = SId,
-					'Result-Code' = ?'DIAMETER_BASE_RESULT-CODE_SUCCESS',
+					'Result-Code' = [?'DIAMETER_BASE_RESULT-CODE_SUCCESS'],
 					'Auth-Session-State' =  ?'3GPP_S6A_AUTH-SESSION-STATE_NO_STATE_MAINTAINED',
 					'Origin-Host' = OHost, 'Origin-Realm' = ORealm}};
 		{ok, #service{}} ->
-			_AMBR = #'3gpp_s6a_AMBR'{'Max-Requested-Bandwidth-UL' = 4294967296,
-					'Max-Requested-Bandwidth-DL' = 4294967296},
 			ApnConfig = #'3gpp_s6a_APN-Configuration'{'Service-Selection' = "*",
 					'PDN-Type' =  ?'3GPP_S6A_3GPP-PDP-TYPE_IPV4'},
 			ApnProfile = #'3gpp_s6a_APN-Configuration-Profile'{'Context-Identifier' = 1,
-					'APN-Configuration' = ApnConfig},
-			SubscriptionData = #'3gpp_s6a_Subscription-Data'{'AMBR' = [],
-					'APN-Configuration-Profile' = ApnProfile},
+					'APN-Configuration' = [ApnConfig]},
+			SubscriptionData = #'3gpp_s6a_Subscription-Data'{
+					'APN-Configuration-Profile' = [ApnProfile]},
 			{reply, #'3gpp_s6a_ULA'{'Session-Id' = SId,
-					'Result-Code' = ?'DIAMETER_BASE_RESULT-CODE_SUCCESS',
+					'Result-Code' = [?'DIAMETER_BASE_RESULT-CODE_SUCCESS'],
 					'Auth-Session-State' =  ?'3GPP_S6A_AUTH-SESSION-STATE_NO_STATE_MAINTAINED',
 					'Origin-Host' = OHost, 'Origin-Realm' = ORealm,
-					'Subscription-Data' = SubscriptionData}};
+					'Subscription-Data' = [SubscriptionData]}};
 		{error, not_found} ->
 			{reply, #'3gpp_s6a_AIA'{'Session-Id' = SId,
-					'Experimental-Result' = #'3gpp_s6a_Experimental-Result'{
+					'Experimental-Result' = [#'3gpp_s6a_Experimental-Result'{
 					'Vendor-Id' = ?IANA_PEN_3GPP,
-					'Experimental-Result-Code' = ?'DIAMETER_ERROR_USER_UNKNOWN'},
+					'Experimental-Result-Code' = ?'DIAMETER_ERROR_USER_UNKNOWN']},
 					'Auth-Session-State' =  ?'3GPP_S6A_AUTH-SESSION-STATE_NO_STATE_MAINTAINED',
 					'Origin-Host' = OHost, 'Origin-Realm' = ORealm}};
 		{error, Reason} ->
 			error_logger:error_report(["Service lookup failure",
 					{service, ServiceName}, {module, ?MODULE}, {error, Reason}]),
 			{reply, #'3gpp_s6a_ULA'{'Session-Id' = SId,
-					'Result-Code' = ?'DIAMETER_BASE_RESULT-CODE_UNABLE_TO_COMPLY',
+					'Result-Code' = [?'DIAMETER_BASE_RESULT-CODE_UNABLE_TO_COMPLY'],
 					'Auth-Session-State' =  ?'3GPP_S6A_AUTH-SESSION-STATE_NO_STATE_MAINTAINED',
 					'Origin-Host' = OHost, 'Origin-Realm' = ORealm}}
 	end.
