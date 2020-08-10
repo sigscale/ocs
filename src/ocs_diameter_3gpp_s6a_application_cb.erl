@@ -390,7 +390,7 @@ update_location(ServiceName,
 			{reply, #'3gpp_s6a_AIA'{'Session-Id' = SId,
 					'Experimental-Result' = [#'3gpp_s6a_Experimental-Result'{
 					'Vendor-Id' = ?IANA_PEN_3GPP,
-					'Experimental-Result-Code' = ?'DIAMETER_ERROR_USER_UNKNOWN']},
+					'Experimental-Result-Code' = ?'DIAMETER_ERROR_USER_UNKNOWN'}],
 					'Auth-Session-State' =  ?'3GPP_S6A_AUTH-SESSION-STATE_NO_STATE_MAINTAINED',
 					'Origin-Host' = OHost, 'Origin-Realm' = ORealm}};
 		{error, Reason} ->
