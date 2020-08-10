@@ -584,7 +584,7 @@
 				specService.id = "1";
 				specService.href = "/catalogManagement/v2/serviceSpecification/1";
 				subscriber.serviceSpecification = specService;
-				if(subscriber.id != "") {
+				if(this.$.addSubscriberId.value || this.$.idCheck.checked) {
 					var ajax = this.$.addServiceAjax;
 					ajax.headers['Content-type'] = "application/json";
 					ajax.body = subscriber;

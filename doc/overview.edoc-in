@@ -1292,6 +1292,12 @@ Content-Length: 0
 ==Configuration==
 The {@link //ocs. ocs} application is configured using the following environment variables:
 <dl>
+	<dt>min_reserve_octets</dt>
+		<dd>Centralized Unit Determination: minimum size of octets reserved</dd>
+	<dt>min_reserve_seconds</dt>
+		<dd>Centralized Unit Determination: minimum size of seconds reserved</dd>
+	<dt>min_reserve_messages</dt>
+		<dd>Centralized Unit Determination: minimum number of messages reserved</dd>
 	<dt>acct_log_dir</dt>
 		<dd>Path of directory to store accounting logs.</dd>
 	<dt>acct_log_files</dt>
@@ -1374,6 +1380,9 @@ The {@link //inets. inets} application's {@link //inets/httpd. httpd} server con
                              {eap_method_order, [pwd, ttls]}]}]},
                {acct,
                      [{{0,0,0,0}, 3869, []}]}]},
+      {min_reserve_octets, 5000000},
+      {min_reserve_seconds, 60},
+      {min_reserve_messages, 1},
       {acct_log_rotate, 1440},
       {acct_log_dir, "log/acct"},
       {acct_log_files, 100},

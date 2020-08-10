@@ -274,14 +274,15 @@ request1(?AccountingStart, AcctSessionId, Id,
 	{ServiceType, Direction, CallAddress} = get_service_type(Attributes),
 	Timestamp = case radius_attributes:find(?AcctDelayTime, Attributes) of
 		{ok, AcctDelayTime} ->
-			Now = calendar:local_time(),
+			Now = calendar:universal_time(),
 			Seconds = calendar:datetime_to_gregorian_seconds(Now),
 			calendar:gregorian_seconds_to_datetime(Seconds - AcctDelayTime);
 		{error, not_found} ->
-			calendar:local_time()
+			calendar:universal_time()
 	end,
-	case ocs_rating:rate(radius, ServiceType, undefined, Subscriber, Timestamp,
-			CallAddress, Direction, initial, [], [], SessionAttributes) of
+	case ocs_rating:rate(radius, ServiceType, undefined, undefined,
+			Subscriber, Timestamp, CallAddress, Direction, initial,
+			[], [], SessionAttributes) of
 		{ok, #service{}, _} ->
 			ok = ocs_log:acct_log(radius,
 					{ServerAddress, ServerPort}, start, Attributes, undefined, undefined),
@@ -322,14 +323,15 @@ request1(?AccountingStop, AcctSessionId, Id,
 	{ServiceType, Direction, CallAddress} = get_service_type(Attributes),
 	Timestamp = case radius_attributes:find(?AcctDelayTime, Attributes) of
 		{ok, AcctDelayTime} ->
-			Now = calendar:local_time(),
+			Now = calendar:universal_time(),
 			Seconds = calendar:datetime_to_gregorian_seconds(Now),
 			calendar:gregorian_seconds_to_datetime(Seconds - AcctDelayTime);
 		{error, not_found} ->
-			calendar:local_time()
+			calendar:universal_time()
 	end,
-	case ocs_rating:rate(radius, ServiceType, undefined, Subscriber, Timestamp,
-			CallAddress, Direction, final, DebitAmount, [], SessionAttributes) of
+	case ocs_rating:rate(radius, ServiceType, undefined, undefined,
+			Subscriber, Timestamp, CallAddress, Direction, final,
+			DebitAmount, [], SessionAttributes) of
 		{ok, #service{}, _, Rated} ->
 			ok = ocs_log:acct_log(radius,
 					{ServerAddress, ServerPort}, stop, Attributes, undefined, Rated),
@@ -378,14 +380,15 @@ request1(?AccountingInterimUpdate, AcctSessionId, Id,
 	{ServiceType, Direction, CallAddress} = get_service_type(Attributes),
 	Timestamp = case radius_attributes:find(?AcctDelayTime, Attributes) of
 		{ok, AcctDelayTime} ->
-			Now = calendar:local_time(),
+			Now = calendar:universal_time(),
 			Seconds = calendar:datetime_to_gregorian_seconds(Now),
 			calendar:gregorian_seconds_to_datetime(Seconds - AcctDelayTime);
 		{error, not_found} ->
-			calendar:local_time()
+			calendar:universal_time()
 	end,
-	case ocs_rating:rate(radius, ServiceType, undefined, Subscriber, Timestamp,
-			CallAddress, Direction, interim, [], ReserveAmount, SessionAttributes) of
+	case ocs_rating:rate(radius, ServiceType, undefined, undefined,
+			Subscriber, Timestamp, CallAddress, Direction, interim,
+			[], ReserveAmount, SessionAttributes) of
 		{ok, #service{}, _} ->
 			{reply, {ok, response(Id, Authenticator, Secret)}, State};
 		{out_of_credit, SessionList} ->

@@ -1,3 +1,11 @@
+August 2, 2020
+--------------
+	- Centralized Unit Determination:
+	  In an initial or interim DIAMETER CCR if an RSU with units isn't present
+	  the unit type will be taken from the matched Product Offer Price (POP)
+	  and the number of units reserved will be the POP unit size or a default
+	  minimum in an application environment variable.
+
 July 20, 2020
 -------------
 	- DIAMETER STR and RTR for AAA
