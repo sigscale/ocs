@@ -616,7 +616,7 @@ class SigApp extends PolymerElement {
 //				import('./sig-prefix-update.js');
 				break;
 			case 'balanceView':
-//				import('./sig-balance-list.js');
+				import('./sig-balance-list.js');
 				break;
 			case 'productView':
 				import('./sig-offer-list.js');
