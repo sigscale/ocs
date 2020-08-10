@@ -564,7 +564,8 @@
    Operator-Determined-Barring                            1425  Unsigned32       VM
    Access-Restriction-Data                                1426  Unsigned32       VM
    APN-OI-Replacement                                     1427  UTF8String       VM
-;  APN-Configuration-Profile                              1429  Grouped          VM
+   All-APN-Configurations-Included-Indicator              1428  Enumerated       VM
+   APN-Configuration-Profile                              1429  Grouped          VM
    APN-Configuration                                      1430  Grouped          VM
    EPS-Subscribed-QoS-Profile                             1431  Grouped          VM
    VPLMN-Dynamic-Address-Allowed                          1432  Enumerated       VM
@@ -656,6 +657,7 @@
    UE-Usage-Type                                          1680  Unsigned32       V
    Non-IP-PDN-Type-Indicator                              1681  Enumerated       V
    Non-IP-Data-Delivery-Mechanism                         1682  Unsigned32       V
+   Additional-Context-Identifier                          1683  Unsigned32       V
    SCEF-Realm                                             1684  DiameterIdentity V
    Preferred-Data-Mode                                    1686  Unsigned32       V
    Emergency-Info                                         1687  Grouped          V
@@ -1567,7 +1569,7 @@
 ;    *[ Call-Barring-Info ]
       [ 3GPP-Charging-Characteristics ]
       [ AMBR ]
-;     [ APN-Configuration-Profile ]
+      [ APN-Configuration-Profile ]
       [ RAT-Frequency-Selection-Priority-ID ]
       [ Trace-Data ]
 ;     [ GPRS-Subscription-Data ]
@@ -1605,6 +1607,13 @@
 
    Supported-Services::= <AVP Header: 3143>
       [ Supported-Monitoring-Events ]
+     *[ AVP ]
+
+APN-Configuration-Profile ::= <AVP Header: 1429>
+      { Context-Identifier }
+      { All-APN-Configurations-Included-Indicator }
+    1*{ APN-Configuration }
+      [ Additional-Context-Identifier ]
      *[ AVP ]
 
 @enum Trace-Depth
@@ -2139,3 +2148,6 @@
    SMS_REGISTRATION_NOT_PREFERRED 1
    NO_PREFERENCE                  2
 
+@enum All-APN-Configurations-Included-Indicator
+   All_APN_CONFIGURATIONS_INCLUDED            0
+   MODIFIED_ADDED_APN_CONFIGURATIONS_INCLUDED 1
