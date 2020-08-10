@@ -362,8 +362,46 @@ authentication_information(ServiceName,
 	end.
 
 %% @hidden
-update_location(ServiceName, Capabilities, Request) ->
-	discard.
+update_location(ServiceName,
+		#diameter_caps{origin_host = {OHost, _DHost},
+		origin_realm = {ORealm, _DRealm}} = _Capabilities,
+		#'3gpp_s6a_ULR'{'Session-Id' = SId,
+		'User-Name' = IMSI, 'ULR-Flags' = RequestFlags}) ->
+	case ocs:find_service(IMSI) of
+		{ok, #service{}} when (RequestFlags band 4) =:= 4 ->
+			{reply, #'3gpp_s6a_ULA'{'Session-Id' = SId,
+					'Result-Code' = ?'DIAMETER_BASE_RESULT-CODE_SUCCESS',
+					'Auth-Session-State' =  ?'3GPP_S6A_AUTH-SESSION-STATE_NO_STATE_MAINTAINED',
+					'Origin-Host' = OHost, 'Origin-Realm' = ORealm}};
+		{ok, #service{}} ->
+			_AMBR = #'3gpp_s6a_AMBR'{'Max-Requested-Bandwidth-UL' = 4294967296,
+					'Max-Requested-Bandwidth-DL' = 4294967296},
+			ApnConfig = #'3gpp_s6a_APN-Configuration'{'Service-Selection' = "*",
+					'PDN-Type' =  ?'3GPP_S6A_3GPP-PDP-TYPE_IPV4'},
+			ApnProfile = #'3gpp_s6a_APN-Configuration-Profile'{'Context-Identifier' = 1,
+					'APN-Configuration' = ApnConfig},
+			SubscriptionData = #'3gpp_s6a_Subscription-Data'{'AMBR' = [],
+					'APN-Configuration-Profile' = ApnProfile},
+			{reply, #'3gpp_s6a_ULA'{'Session-Id' = SId,
+					'Result-Code' = ?'DIAMETER_BASE_RESULT-CODE_SUCCESS',
+					'Auth-Session-State' =  ?'3GPP_S6A_AUTH-SESSION-STATE_NO_STATE_MAINTAINED',
+					'Origin-Host' = OHost, 'Origin-Realm' = ORealm,
+					'Subscription-Data' = SubscriptionData}};
+		{error, not_found} ->
+			{reply, #'3gpp_s6a_AIA'{'Session-Id' = SId,
+					'Experimental-Result' = #'3gpp_s6a_Experimental-Result'{
+					'Vendor-Id' = ?IANA_PEN_3GPP,
+					'Experimental-Result-Code' = ?'DIAMETER_ERROR_USER_UNKNOWN'},
+					'Auth-Session-State' =  ?'3GPP_S6A_AUTH-SESSION-STATE_NO_STATE_MAINTAINED',
+					'Origin-Host' = OHost, 'Origin-Realm' = ORealm}};
+		{error, Reason} ->
+			error_logger:error_report(["Service lookup failure",
+					{service, ServiceName}, {module, ?MODULE}, {error, Reason}]),
+			{reply, #'3gpp_s6a_ULA'{'Session-Id' = SId,
+					'Result-Code' = ?'DIAMETER_BASE_RESULT-CODE_UNABLE_TO_COMPLY',
+					'Auth-Session-State' =  ?'3GPP_S6A_AUTH-SESSION-STATE_NO_STATE_MAINTAINED',
+					'Origin-Host' = OHost, 'Origin-Realm' = ORealm}}
+	end.
 
 -spec errors(ServiceName, Capabilities, Request, Errors) -> Result
 	when
@@ -459,7 +497,7 @@ autn(SQN, AK, AMF, MAC)
 		K :: binary(),
 		RAND :: binary(),
 		SQN :: integer().
-%% @doc Retrieve concealed `SQNms' from AUTS.
+%% @doc Retrieve concealed `SQNms' from `AUTS'.
 %%
 %% @private
 sqn_ms(SQN, OPc, K, RAND)
