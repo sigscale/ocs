@@ -18,7 +18,6 @@
    Access-Transfer-Type                                   2710  Enumerated       VM
    Account-Expiration                                     2309  Time             VM
 ;  Accumulated-Cost                                       2052  Grouped          VM
-;  Accuracy                                               3137
 ;  Adaptations                                            1217  Enumerated       VM
    ADC-Rule-Base-Name                                     1095  UTF8String       VM
 ;  Additional-Content-Information                         1207  Grouped          VM
@@ -131,7 +130,6 @@
    Event-Charging-TimeStamp                               1258  Time             VM
    Event-Type                                              823  Grouped          VM
    Expires                                                 888  Unsigned32       VM
-;  External-Identifier                                    3111  
    FE-Identifier-List                                     4413  UTF8String       VM
 ;  File-Repair-Supported                                  1224  Enumerated       VM
 ;  Fixed-User-Location-Info                               2825  
@@ -186,8 +184,6 @@
    Low-Balance-Indication                                 2020  Enumerated       VM
    Low-Priority-Indicator                                 2602  Enumerated       VM
    Mandatory-Capability                                    604  Unsigned32       VM
-;  Maximum-Detection-Time                                 3131  
-;  Maximum-Number-of-Reports                              3128  
 ;  MBMS-2G-3G-Indicator                                    907  
 ;  MBMS-Charged-Party                                     2323  Enumerated       VM
 ;  MBMS-Data-Transfer-Start                                929  
@@ -208,26 +204,20 @@
 ;  MMBox-Storage-Requested                                1248  Enumerated       VM
 ;  MM-Content-Type                                        1203  Grouped          VM
 ;  MME-Name                                               2402  
-;  MME-Number-for-MT-SMS                                  1645  
 ;  MME-Realm                                              2408  
    MMS-Information                                         877  Grouped          VM
 ;  MMTel-Information                                      2030  Grouped          VM
    MMTel-SService-Type                                    2031  Unsigned32       VM
    Monitored-PLMN-Identifier                              3430  UTF8String       VM
-;  Monitoring-Duration                                    3130  
-;  Monitoring-Event-Config-Status                         3142  
    Monitoring-Event-Configuration-Activity                3919  Integer32        VM
    Monitoring-Event-Functionality                         3922  Integer32        VM
 ;  Monitoring-Event-Information                           3921  Grouped          VM
 ;  Monitoring-Event-Report-Data                           3920  Grouped          VM
    Monitoring-Event-Report-Number                         3923  Unsigned32       VM
-;  Monitoring-Type                                        3127  
    Monitoring-UE-HPLMN-Identifier                         3431  UTF8String       VM
    Monitoring-UE-Identifier                               3432  UTF8String       VM
    Monitoring-UE-VPLMN-Identifier                         3433  UTF8String       VM
-;  MONTE-Location-Type                                    3136  
    MSC-Address                                            3417  OctetString      VM
-;  MSISDN                                                  701  
    MTC-IWF-Address                                        3406  Address          VM
 ;  NBIFOM-Mode                                            2830  
 ;  NBIFOM-Support                                         2831  
@@ -337,7 +327,6 @@
    Rate-Control-Max-Rate                                  3938  Unsigned32       VM
    Rate-Control-Time-Unit                                 3939  Unsigned32       VM
    Rate-Element                                           2058  Grouped          VM
-;  Reachability-Information                               3140  
 ;  Read-Reply-Report-Requested                            1222  Enumerated       VM
    Real-Time-Tariff-Information                           2305  Grouped          VM
    Reason-Header                                          3401  UTF8String       VM
@@ -370,8 +359,6 @@
    Route-Header-Transmitted                               3404  UTF8String       VM
 ;  RRC-Cause-Counter                                      4318  
    Scale-Factor                                           2059  Grouped          VM
-   SCEF-ID                                                3125  DiameterIdentity VM
-   SCEF-Reference-ID                                      3124  Unsigned32       VM
    SCS-Address                                            3941  Address          VM
 ;  SCS-AS-Address                                         3940  Grouped          VM
    SCS-Realm                                              3942  DiameterIdentity VM
@@ -442,7 +429,6 @@
    Tariff-XML                                             2306  UTF8String       VM
    TDF-IP-Address                                         1091  Address          VM
    Teleservice                                            3413  OctetString      VM
-   Terminal-Information                                   1401  Grouped          VM
    Terminating-IOI                                         840  UTF8String       VM
    Time-First-Reception                                   3466  Time             VM
    Time-First-Transmission                                3467  Time             VM
@@ -469,18 +455,17 @@
    Trigger-Type                                            870  Enumerated       VM
    Trunk-Group-Id                                          851  Grouped          VM
    TWAG-Address                                           3903  Address          VM
+   TWAN-Access-Info                                       1510  Grouped          VM
 ;  TWAN-User-Location-Info                                2714  Grouped          VM
 ;  Type-Number                                            1204  Enumerated       VM
 ;  UDP-Source-Port                                        2806  
 ;  UE-Local-IP-Address                                    2805  
-;  UE-Reachability-Configuration                          3129  
 ;  UNI-PDU-CP-Only-Flag                                   3932  Enumerated       VM
    Unit-Cost                                              2061  Grouped          VM
    Unit-Quota-Threshold                                   1226  Unsigned32       VM
    Unused-Quota-Timer                                      407  Unsigned32       VM
    Usage-Information-Report-Sequence-Number               3439  Integer32        VM
 ;  User-CSG-Information                                   2319  Grouped          VM
-;  User-Data                                               606  
    User-Location-Info-Time                                2812  Time             VM
 ;  User-Participating-Type                                1279  Enumerated       VM
    User-Session-Id                                         830  UTF8String       VM
@@ -553,8 +538,8 @@
    AAR-Flags                                              1539  Unsigned32       VM
    ERP-Authorization                                      1541  Enumerated       VM
    ;; 3GPP TS 29.272
-;  Subscription-Data                                      1400  Grouped          VM
-;  Terminal-Information                                   1401  Grouped          VM
+   Subscription-Data                                      1400  Grouped          VM
+   Terminal-Information                                   1401  Grouped          VM
    IMEI                                                   1402  UTF8String       VM
    Software-Version                                       1403  UTF8String       VM
    QoS-Subscribed                                         1404  OctetString      VM
@@ -575,37 +560,56 @@
    Item-Number                                            1419  Unsigned32       VM
 ;  Cancellation-Type                                      1420  Enumerated       VM
    Context-Identifier                                     1423  Unsigned32       VM
+   Subscriber-Status                                      1424  Enumerated       VM
+   Operator-Determined-Barring                            1425  Unsigned32       VM
+   Access-Restriction-Data                                1426  Unsigned32       VM
    APN-OI-Replacement                                     1427  UTF8String       VM
+;  APN-Configuration-Profile                              1429  Grouped          VM
    APN-Configuration                                      1430  Grouped          VM
    EPS-Subscribed-QoS-Profile                             1431  Grouped          VM
    VPLMN-Dynamic-Address-Allowed                          1432  Enumerated       VM
+   STN-SR                                                 1433  OctetString      VM
    AMBR                                                   1435  Grouped          VM
+;  CSG-Subscription-Data                                  1436  Grouped          VM
    PDN-GW-Allocation-Type                                 1438  Enumerated       VM
-   Trace-Collection-Entity                                1452  Address          VM
+   RAT-Frequency-Selection-Priority-ID                    1440  Unsigned32       VM
+   Regional-Subscription-Zone-Code                        1446  OctetString      VM
    RAND                                                   1447  OctetString      VM
    XRES                                                   1448  OctetString      VM
    AUTN                                                   1449  OctetString      VM
    KASME                                                  1450  OctetString      VM
+   Trace-Collection-Entity                                1452  Address          VM
    Kc                                                     1453  OctetString      VM
    SRES                                                   1454  OctetString      VM
    PDN-Type                                               1456  Enumerated       VM
+;  Roaming-Restricted-Due-To-Unsupported-Feature          1456  Enumerated       VM
    Trace-Reference                                        1459  OctetString      VM
    Trace-NE-Type-List                                     1463  OctetString      VM
    Trace-Depth                                            1462  Enumerated       VM
    Trace-Interface-List                                   1464  OctetString      VM
    Trace-Event-List                                       1465  OctetString      VM
    OMC-Id                                                 1466  OctetString      VM
+;  GPRS-Subscription-Data                                 1467  Grouped          VM
    3GPP2-MEID                                             1471  OctetString      VM
    Specific-APN-Info                                      1472  Grouped          VM
-   TWAN-Access-Info                                       1510  Grouped          VM
+;  LCS-Info                                               1473  Grouped          VM
+;  ICS-Indicator                                          1491  Enumerated       V
+;  Teleservice-List                                       1486  Grouped          VM
+;  Call-Barring-Info                                      1488  Grouped          VM
+   SGSN-Number                                            1489  OctetString      VM
+   Homogeneous-Support-of-IMS-Voice-Over-PS-Sessions      1493  Enumerated       V
    E-UTRAN-Cell-Global-Identity                           1602  OctetString      V
    Tracking-Area-Identity                                 1603  OctetString      V
    Cell-Global-Identity                                   1604  OctetString      V
    Routing-Area-Identity                                  1605  OctetString      V
    Location-Area-Identity                                 1606  OctetString      V
    Active-APN                                             1612  Grouped          V
-   SIPTO-Permission                                       1613  Enumerated       VM
-   LIPA-Permission                                        1618  Enumerated       VM
+   SIPTO-Permission                                       1613  Enumerated       V
+   UE-SRVCC-Capability                                    1615  Enumerated       V
+   MPS-Priority                                           1616  Unsigned32       V
+;  VPLMN-LIPA-Allowed                                     1617  Enumerated       V
+   LIPA-Permission                                        1618  Enumerated       V
+   Subscribed-Periodic-RAU-TAU-Timer                      1619  Unsigned32       V
    MDT-Configuration                                      1622  Grouped          V
    Job-Type                                               1623  Enumerated       V
    Area-Scope                                             1624  Grouped          V
@@ -617,9 +621,18 @@
    Event-Threshold-RSRQ                                   1630  Unsigned32       V
    Logging-Interval                                       1631  Enumerated       V
    Logging-Duration                                       1632  Enumerated       V
-   Time-Zone                                              1648  UTF8String       VM
-   Local-Time-Zone                                        1649  Grouped          VM
-   Daylight-Saving-Time                                   1650  Enumerated       VM
+;  Relay-Node-Indicator                                   1633  Enumerated       V
+;  MDT-User-Consent                                       1634  Enumerated       V
+;  Subscribed-VSRVCC                                      1636  Enumerated       V
+   Equivalent-PLMN-List                                   1637  Grouped          V
+   A-MSISDN                                               1643  OctetString      V
+   SGs-MME-Identity                                       1644  UTF8String       V
+   MME-Number-for-MT-SMS                                  1645  OctetString      V
+   Time-Zone                                              1642  UTF8String       V
+   SMS-Register-Request                                   1648  Enumerated       V
+   Local-Time-Zone                                        1649  Grouped          V
+   Daylight-Saving-Time                                   1650  Enumerated       V
+   Subscription-Data-Flags                                1654  Unsigned32       V
    Measurement-Period-UMTS                                1655  Enumerated       V
    Measurement-Period-LTE                                 1656  Enumerated       V
    Collection-Period-RRM-LTE                              1657  Enumerated       V
@@ -628,21 +641,34 @@
    Measurement-Quantity                                   1660  OctetString      V
    Event-Threshold-Event-1F                               1661  Integer32        V
    Event-Threshold-Event-1I                               1662  Integer32        V
-   Restoration-Priority                                   1663  Unsigned32       VM
-   SIPTO-Local-Network-Permission                         1665  Unsigned32       VM
-   WLAN-offloadability                                    1667  Grouped          VM
-   WLAN-offloadability-EUTRAN                             1668  Unsigned32       VM
-   WLAN-offloadability-UTRAN                              1669  Unsigned32       VM
+   Restoration-Priority                                   1663  Unsigned32       V
+   Coupled-Node-Diameter-ID                               1666  DiameterIdentity V
+   SIPTO-Local-Network-Permission                         1665  Unsigned32       V
+   WLAN-offloadability                                    1667  Grouped          V
+   WLAN-offloadability-EUTRAN                             1668  Unsigned32       V
+   WLAN-offloadability-UTRAN                              1669  Unsigned32       V
+   Reset-ID                                               1670  OctetString      V
+   Adjacent-PLMNs                                         1672  Grouped          V
+;  Adjacent-Access-Restriction-Data                       1673  Grouped          V
+   DL-Buffering-Suggested-Packet-Count                    1674  Integer32        V
+;  IMSI-Group-Id                                          1675  Grouped          V
+   AIR-Flags                                              1679  Unsigned32       V
    UE-Usage-Type                                          1680  Unsigned32       V
-   Non-IP-PDN-Type-Indicator                              1681  Enumerated       VM
-   Non-IP-Data-Delivery-Mechanism                         1682  Unsigned32       VM
-   SCEF-Realm                                             1684  DiameterIdentity VM
-   Preferred-Data-Mode                                    1686  Unsigned32       VM
-   Emergency-Info                                         1687  Grouped          VM
-   PDN-Connection-Continuity                              1690  Unsigned32       VM
-   RDS-Indicator                                          1697  Unsigned32       VM
+   Non-IP-PDN-Type-Indicator                              1681  Enumerated       V
+   Non-IP-Data-Delivery-Mechanism                         1682  Unsigned32       V
+   SCEF-Realm                                             1684  DiameterIdentity V
+   Preferred-Data-Mode                                    1686  Unsigned32       V
+   Emergency-Info                                         1687  Grouped          V
+;  V2X-Subscription-Data                                  1688  Grouped          V
+   PDN-Connection-Continuity                              1690  Unsigned32       V
+;  eDRX-Cycle-Length                                      1691  Grouped          V
+   RDS-Indicator                                          1697  Unsigned32       V
+   Service-Gap-Time                                       1698  Unsigned32       V
+   Aerial-UE-Subscription-Information                     1699  Unsigned32       V
+   Broadcast-Location-Assistance-Data-Types               1700  Unsigned64       V
+;  Paging-Time-Window                                     1701  Grouped          V
    Core-Network-Restrictions                              1704  Unsigned32       V
-   Interworking-5GS-Indicator                             1706  Enumerated       VM
+   Interworking-5GS-Indicator                             1706  Enumerated       V
    ;; 3GPP TS 29.229
    SIP-Number-Auth-Items                                   607  Unsigned32       VM
    SIP-Authentication-Scheme                               608  UTF8String       VM
@@ -659,6 +685,29 @@
    Integrity-Key                                           626  OctetString      VM
    Supported-Features                                      628  Grouped          VM
    SIP-Digest-Authenticate                                 635  Grouped          V
+   ;; 3GPP TS 29.329
+;  User-Identity                                           700  Grouped          VM
+   MSISDN                                                  701  OctetString      VM
+   User-Data                                               702  OctetString      VM
+   ;; 3GPP TS 29.336
+;  IP-SM-GW-Number                                        3100  OctetString      VM
+;  IP-SM-GW-Name                                          3101  DiameterIdentity VM
+;  User-Identifier                                        3102  Grouped          VM
+   External-Identifier                                    3111  UTF8String       VM
+;  AESE-Communication-Pattern                             3113  Grouped          VM
+   SCEF-ID                                                3125  DiameterIdentity VM
+   SCEF-Reference-ID                                      3124  Unsigned32       VM
+;  Monitoring-Type                                        3127  Unsigned32       VM
+;  Maximum-Number-of-Reports                              3128  Unsigned32       VM
+;  UE-Reachability-Configuration                          3129  Grouped          VM
+;  Monitoring-Duration                                    3130  Time             VM
+;  Maximum-Detection-Time                                 3131  Unsigned32       VM`
+;  MONTE-Location-Type                                    3136  Unsigned32       VM
+;  Accuracy                                               3137  Unsigned32       VM
+;  Reachability-Information                               3140  Unsigned32       VM
+;  Monitoring-Event-Config-Status                         3142  Grouped          VM
+   Supported-Services                                     3143  Grouped          VM
+   Supported-Monitoring-Events                            3144  Unsigned64       VM
 
 @grouped
 
@@ -770,7 +819,7 @@
       [ Low-Priority-Indicator ]
 ;     [ NBIFOM-Mode ]
 ;     [ NBIFOM-Support ]
-;     [ MME-Number-for-MT-SMS ]
+      [ MME-Number-for-MT-SMS ]
 ;     [ MME-Name ]
 ;     [ MME-Realm ]
 ;     [ Logical-Access-ID ]
@@ -932,7 +981,7 @@
 ;     [ SM-Device-Trigger-Information ]
       [ MTC-IWF-Address ]
 ;     [ Application-Port-Identifier ]
-;     [ External-Identifier ]
+      [ External-Identifier ]
 
 ;  VCS-Information :: = < AVP Header: 3410>
 ;     [ Bearer-Capability ]
@@ -1018,7 +1067,7 @@
 
 ;  CPDT-Information ::= <AVP Header: 3927>
 ;     [ External-Identifier ]
-      [ SCEF-ID ]
+;     [ SCEF-ID ]
 ;     [ Serving Node Identity ]
 ;     [ SGW-Change ]
 ;     [ NIDD-submission ]
@@ -1459,19 +1508,19 @@
       [ Number-Of-Requested-Vectors ]
       [ Immediate-Response-Preferred ]
       [ Re-Synchronization-Info ]
-     *[ AVP ] 
+     *[ AVP ]
 
    Requested-UTRAN-GERAN-Authentication-Info ::= <AVP Header: 1409>
       [ Number-Of-Requested-Vectors ]
       [ Immediate-Response-Preferred ]
       [ Re-Synchronization-Info ]
-     *[ AVP ] 
- 
+     *[ AVP ]
+
    Authentication-Info ::= <AVP Header: 1413>
      *[ E-UTRAN-Vector]
      *[ UTRAN-Vector]
-     *[ GERAN-Vector ] 
-     *[ AVP ] 
+     *[ GERAN-Vector ]
+     *[ AVP ]
 
    E-UTRAN-Vector ::= <AVP Header: 1414>
       { RAND }
@@ -1479,24 +1528,85 @@
       { AUTN }
       { KASME }
       [ Item-Number ]
-     *[ AVP ] 
+     *[ AVP ]
 
    UTRAN-Vector ::= <AVP Header: 1415>
       { RAND }
       { XRES }
       { AUTN }
       { Confidentiality-Key }
-      { Integrity-Key } 
+      { Integrity-Key }
       [ Item-Number ]
-     *[ AVP ] 
- 
+     *[ AVP ]
+
    GERAN-Vector ::= <AVP Header: 1416>
       { RAND }
       { SRES }
       { Kc }
       [ Item-Number ]
-     *[ AVP ] 
- 
+     *[ AVP ]
+
+   Adjacent-PLMNs ::= <AVP Header:  1672>
+    1*{ Visited-PLMN-Id }
+     *[ AVP ]
+
+   Subscription-Data ::= <AVP Header: 1400>
+      [ Subscriber-Status ]
+      [ MSISDN ]
+      [ A-MSISDN ]
+      [ STN-SR ]
+;     [ ICS-Indicator ]
+      [ Network-Access-Mode ]
+      [ Operator-Determined-Barring ]
+      [ HPLMN-ODB ]
+   *10[ Regional-Subscription-Zone-Code ]
+      [ Access-Restriction-Data ]
+      [ APN-OI-Replacement ]
+;     [ LCS-Info ]
+;     [ Teleservice-List ]
+;    *[ Call-Barring-Info ]
+      [ 3GPP-Charging-Characteristics ]
+      [ AMBR ]
+;     [ APN-Configuration-Profile ]
+      [ RAT-Frequency-Selection-Priority-ID ]
+      [ Trace-Data ]
+;     [ GPRS-Subscription-Data ]
+;    *[ CSG-Subscription-Data ]
+;     [ Roaming-Restricted-Due-To-Unsupported-Feature ]
+      [ Subscribed-Periodic-RAU-TAU-Timer ]
+      [ MPS-Priority ]
+;     [ VPLMN-LIPA-Allowed ]
+;     [ Relay-Node-Indicator ]
+;     [ MDT-User-Consent ]
+;     [ Subscribed-VSRVCC ]
+;     [ ProSe-Subscription-Data ]
+      [ Subscription-Data-Flags ]
+;    *[ Adjacent-Access-Restriction-Data ]
+      [ DL-Buffering-Suggested-Packet-Count ]
+;    *[ IMSI-Group-Id ]
+      [ UE-Usage-Type ]
+;    *[ AESE-Communication-Pattern ]
+;    *[ Monitoring-Event-Configuration ]
+      [ Emergency-Info ]
+;     [ V2X-Subscription-Data ]
+;    *[ eDRX-Cycle-Length ]
+      [ External-Identifier ]
+;     [ Active-Time ]
+      [ Service-Gap-Time ]
+      [ Broadcast-Location-Assistance-Data-Types ]
+      [ Aerial-UE-Subscription-Information ]
+      [ Core-Network-Restrictions ]
+;    *[ Paging-Time-Window ]
+     *[ AVP ]
+
+   Equivalent-PLMN-List ::= <AVP Header: 1637>
+    1*{ Visited-PLMN-Id }
+     *[ AVP ]
+
+   Supported-Services::= <AVP Header: 3143>
+      [ Supported-Monitoring-Events ]
+     *[ AVP ]
+
 @enum Trace-Depth
    Minimum                                  0
    Medium                                   1
@@ -2011,4 +2121,21 @@
    PACKET_AND_CIRCUIT           0
    Reserved                     1
    ONLY_PACKET                  2
+
+@enum UE-SRVCC-Capability
+   UE-SRVCC-NOT-SUPPORTED       0
+   UE-SRVCC-SUPPORTED           1
+
+@enum Homogeneous-Support-of-IMS-Voice-Over-PS-Sessions
+   NOT_SUPPORTED                0
+   SUPPORTED                    1
+
+@enum Subscriber-Status
+   SERVICE_GRANTED              0
+   OPERATOR_DETERMINED_BARRING  1
+
+@enum SMS-Register-Request
+   SMS_REGISTRATION_REQUIRED      0
+   SMS_REGISTRATION_NOT_PREFERRED 1
+   NO_PREFERENCE                  2
 
