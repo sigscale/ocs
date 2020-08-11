@@ -203,8 +203,7 @@ class SigApp extends PolymerElement {
 							</a>
 							<a name="prefixView" href="[[rootPath]]prefixView">
 								<paper-icon-button
-										on-click="disTableList"
-										class="menu-trigger menuitem"
+										on-focused-changed="disTableList"
 										icon="my-icons:table">
 								</paper-icon-button>
 								Tables
@@ -304,7 +303,7 @@ class SigApp extends PolymerElement {
 							<app-toolbar>
 								List of Tables
 							</app-toolbar>
-							<template id="tableList1" is="dom-repeat" items="[[tables]]">
+							<template is="dom-repeat" items="[[tables]]">
 								<paper-item
 										id="pagePrefix"
 										class="menuitem"
@@ -331,13 +330,13 @@ class SigApp extends PolymerElement {
 								<paper-button
 										raised
 										on-tap="tableAdd"
-										class="add-button">
+										class="submit-button">
 									Add
 								</paper-button>
 								<paper-button
 										raised
 										on-tap="tableDelete"
-										class="delete-buttons">
+										class="delete-button">
 									Delete
 								</paper-button>
 							</div>
@@ -410,15 +409,16 @@ class SigApp extends PolymerElement {
 		document.body.querySelector('sig-app').shadowRoot.getElementById('prefixList').shadowRoot.getElementById('prefixGrid');
 	}
 
-	disTableList() {
+	disTableList(event) {
+console.log("alaert");
 		this.$.tableList.open();
-		document.body.querySelector('sig-app').shadowRoot.getElementById('offerList').shadowRoot.getElementById('offerGrid');
+//		document.body.querySelector('sig-app').shadowRoot.getElementById('offerList').shadowRoot.getElementById('offerGrid');
 	}
 
-//	tableAdd() {
-//		document.body.querySelector('sig-app').shadowRoot.getElementById('sig-prefix-table-add').shadowRoot.getElementById('addPrefixTableModal').open();
-//		this.$.tableList.close();
-//	}
+	tableAdd() {
+		document.body.querySelector('sig-app').shadowRoot.getElementById('sig-prefix-table-add').shadowRoot.getElementById('addPrefixTableModal').open();
+		this.$.tableList.close();
+	}
 
 	tableSelection(e) {
 		if(e.model.item && e.model.item.id) {
