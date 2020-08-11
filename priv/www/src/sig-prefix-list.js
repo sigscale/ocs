@@ -86,20 +86,11 @@ class prefixList extends PolymerElement {
 		var grid = this;
 		var prefixList = document.body.querySelector('sig-app').shadowRoot.querySelector('sig-prefix-list');
 		var ajax = prefixList.shadowRoot.getElementById('getTableContentAjax');
-//		var table = document.getElementById('prefixList').table;
-		var table = document.body.querySelector('sig-app').shadowRoot.querySelector('sig-prefix-list').table;
+		var table = document.body.querySelector('sig-app').shadowRoot.querySelector('prefixList').table;
 		ajax.url = "/resourceInventoryManagement/v1/logicalResource/" + table;
 		var handleAjaxResponse = function(request) {
 			if(request) {
-				prefixList.etag = request.xhr.getResponseHeader('ETag');
-				var range = request.xhr.getResponseHeader('Content-Range');
-				var range1 = range.split("/");
-				var range2 = range1[0].split("-");
-				if (range1[1] != "*") {
-					grid.size = Number(range1[1]);
-				} else {
-					grid.size = Number(range2[1]) + grid.pageSize * 2;
-				}
+				grid.size = 100;
 				var vaadinItems = new Array();
 				for (var index in request.response) {
 					var resChar = request.response[index].resourceCharacteristic;
