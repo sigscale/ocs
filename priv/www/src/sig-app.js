@@ -612,7 +612,7 @@ class SigApp extends PolymerElement {
 			case 'prefixView':
 				import('./sig-prefix-list.js');
 				import('./sig-prefix-add.js');
-//				import('./sig-prefix-table-add.js');
+				import('./sig-prefix-table-add.js');
 //				import('./sig-prefix-update.js');
 				break;
 			case 'balanceView':
