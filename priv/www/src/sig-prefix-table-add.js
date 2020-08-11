@@ -1,214 +1,171 @@
-<!--  vim: set ts=3:  -->
-<link rel="import" href="polymer/polymer.html">
-<link rel="import" href="i18n-msg/i18n-msg.html">
-<link rel="import" href="i18n-msg/i18n-msg-behavior.html">
-<link rel="import" href="iron-ajax/iron-ajax.html">
-<link rel="import" href="paper-dialog/paper-dialog.html">
-<link rel="import" href="paper-dropdown-menu/paper-dropdown-menu.html">
-<link rel="import" href="paper-listbox/paper-listbox.html">
-<link rel="import" href="paper-toolbar/paper-toolbar.html">
-<link rel="import" href="paper-input/paper-input.html">
-<link rel="import" href="paper-button/paper-button.html">
-<link rel="import" href="paper-tooltip/paper-tooltip.html">
-<link rel="import" href="paper-styles/color.html">
-<link rel="import" href="paper-menu-button/paper-menu-button.html" />
-<link rel="import" href="paper-icon-button/paper-icon-button.html">
-<link rel="import" href="paper-date-picker/paper-date-picker.html">
-<link rel="import" href="iron-icon/iron-icon.html">
-<link rel="import" href="iron-icons/iron-icons.html">
+/**
+ * @license
+ * Copyright (c) 2020 The Polymer Project Authors. All rights reserved.
+ * This code may only be used under the BSD style license found at http://polymer.github.io/LICENSE.txt
+ * The complete set of authors may be found at http://polymer.github.io/AUTHORS.txt
+ * The complete set of contributors may be found at http://polymer.github.io/CONTRIBUTORS.txt
+ * Code distributed by Google as part of the polymer project is also
+ * subject to an additional IP rights grant found at http://polymer.github.io/PATENTS.txt
+ */
 
-<dom-module id="sig-prefix-table-add">
-	<style>
-		paper-dialog {
-			overflow: auto;
-		}
-		paper-input {
-			--paper-input-container-focus-color: var(--paper-yellow-900);
-		}
-		paper-toolbar{
-			margin-top: 0px;
-			color: white;
-			background-color: #bc5100;
-		}
-		.add-button {
-			background-color: var(--paper-lime-a700);
-			color: black;
-			width: 8em;
-		}
-		.cancel-button {
-			color: black;
-		}
-	</style>
-	<template>
-		<paper-dialog id="addPrefixTableModal" modal>
-			<paper-toolbar>
-				<h2>[[i18n.addTable]]</h2>
-			</paper-toolbar>
-			<div>
+import { PolymerElement, html } from '@polymer/polymer/polymer-element.js';
+import '@polymer/iron-ajax/iron-ajax.js';
+import '@polymer/paper-dialog/paper-dialog.js';
+import '@polymer/app-layout/app-toolbar/app-toolbar.js';
+import '@polymer/paper-progress/paper-progress.js';
+import '@polymer/paper-dropdown-menu/paper-dropdown-menu.js';
+import '@polymer/paper-input/paper-input.js';
+import '@polymer/paper-button/paper-button.js';
+import '@polymer/paper-listbox/paper-listbox.js';
+import '@polymer/paper-item/paper-item.js'
+import '@polymer/paper-checkbox/paper-checkbox.js'
+import './style-element.js';
+
+class tablePreAdd extends PolymerElement {
+	static get template() {
+		return html`
+			<style include="style-element"></style>
+			<paper-dialog id="addPrefixTableModal" modal>
+				<app-toolbar>
+					<h2>Add Table</h2>
+				</app-toolbar>
+            <paper-progress
+                  indeterminate
+                  class="slow red"
+                  disabled="{{!loading}}">
+            </paper-progress>
 				<paper-input
 						id="addTableName"
 						name="name"
-						label="[[i18n.name]]"
-						onfocus="tableTimeStart.hide(); tableTimeEnd.hide();">
+						label="Name"
+						value="{{addName}}">
 				</paper-input>
-			</div>
-			<div>
 				<paper-input
 						id="addTableDesc"
 						name="description"
-						label="[[i18n.des]]"
-						onfocus="tableTimeStart.hide(); tableTimeEnd.hide();">
+						label="Description"
+						value="{{addDesc}}">
 				</paper-input>
-			</div>
-			<div>
-				<iron-collapse id="tableTimeStart">
-					<paper-date-picker id="addTablePickerStart" date="{{startTableTime}}">
-					</paper-date-picker>
-				</iron-collapse>
 				<paper-input
 						id="addTableStart"
-						value="[[startTableTimePick]]"
+						value="{{startTableTimePick}}"
 						name="startDate"
-						label="[[i18n.start]]"
-						onfocus="tableTimeStart.show(); tableTimeEnd.hide();">
+						label="Start Date">
 				</paper-input>
-			</div>
-			<div>
-				<iron-collapse id="tableTimeEnd">
-					<paper-date-picker id="addTablePickerEnd" date="{{endTableTime}}">
-					</paper-date-picker>
-				</iron-collapse>
 				<paper-input
 						id="addTableEnd"
-						value="[[endTableTimePick]]"
+						value="{{endTableTimePick}}"
 						name="endDate"
-						label="[[i18n.end]]"
-						onfocus="tableTimeEnd.show(); tableTimeStart.hide();">
+						label="End Date">
 				</paper-input>
-			</div>
-			<div class="buttons">
-				<paper-button
-						dialog-confirm
-						raised
-						on-tap="_tableAdd"
-						class="add-button">
-					<i18n-msg msgid="submit">
+				<div class="buttons">
+					<paper-button
+							dialog-confirm
+							raised
+							on-tap="_tableAdd"
+							class="add-button">
 						Submit
-					</i18n-msg>
-				</paper-button>
-				<paper-button
-						dialog-dismiss
-						on-tap="_cancel"
-						class="cancel-button">
-					<i18n-msg msgid="cancel">
+					</paper-button>
+					<paper-button
+							dialog-dismiss
+							on-tap="_cancel"
+							class="cancel-button">
 						Cancel
-					<i18n-msg>
-				</paper-button>
-			</div>
-		</paper-dialog>
-		<paper-toast
-			id="addTableToastError">
-		</paper-toast>
-		<iron-ajax
-			id="addTableAjax"
-			url="/catalogManagement/v2/pla"
-			method = "POST"
-			content-type="application/json"
-			on-loading-changed="_onLoadingChanged"
-			on-response="_addTableResponse"
-			on-error="_addTableError">
-		</iron-ajax>
-	</template>
-	<script>
-		Polymer ({
-			is: 'sig-prefix-table-add',
-			behaviors: [i18nMsgBehavior],
-			properties: {
-				startTableTimePick: {
-					type: String,
-					value: ""
-				},
-				endTableTimePick: {
-					type: String,
-					value: ""
-				},
-				startTableTime: {
-					observer: '_startTableTime'
-				},
-				endTableTime: {
-					observer: '_endTableTime'
-				},
+					</paper-button>
+				</div>
+			</paper-dialog>
+			<paper-toast
+					id="addTableToastError">
+			</paper-toast>
+			<iron-ajax
+					id="addTableAjax"
+					url="/catalogManagement/v2/pla"
+					method = "POST"
+					content-type="application/json"
+					loading="{{loading}}"
+					on-response="_addTableResponse"
+					on-error="_addTableError">
+			</iron-ajax>
+		`;
+	}
+
+	static get properties() {
+		return {
+			loading: {
+				type: Boolean,
+				value: false
 			},
-			_startTableTime: function(date) {
-				if(this.$.tableTimeStart.opened){
-					this.startTableTimePick = moment(date).format('YYYY-MM-DD');
-				}
+			addName: {
+				type: String
 			},
-			_endTableTime: function(date) {
-				if(this.$.tableTimeEnd.opened) {
-					this.endTableTimePick = moment(date).format('YYYY-MM-DD');
-				}
+			addDesc: {
+				type: String
 			},
-			_tableAdd: function(event) {
-				var tabName = new Object();
-				if(this.$.addTableName.value) {
-					tabName.name = this.$.addTableName.value;
-				}
-				if(this.$.addTableDesc.value) {
-					tabName.description = this.$.addTableDesc.value;
-				}
-				if(this.$.addTableStart.value) {
-					var startDateTime = this.$.addTableStart.value
-				}
-				if(this.$.addTableEnd.value) {
-					var endDateTime = this.$.addTableEnd.value;
-				}
-				if(endDateTime < startDateTime) {
-					this.$.addTableToastError.text = event.detail.request.xhr.statusText;
-					this.$.addTableToastError.open();
-				} else if(startDateTime && endDateTime) {
-					tabName.validFor = {startDateTime, endDateTime};
-				} else if(startDateTime && !endDateTime) {
-					tabName.validFor = {startDateTime};
-				} else if(!startDateTime && !endDateTime) {
-					tabName.validFor = {endDateTime};
-				}
-				if(tabName.name) {
-					var ajax = this.$.addTableAjax;
-					ajax.body = tabName;
-					ajax.generateRequest();
-				}
-				this.$.addTableName.value = null;
-				this.$.addTableDesc.value = null;
-				this.$.addTableStart.value = null;
-				this.$.addTableEnd.value = null;
+			startTableTimePick: {
+				type: String
 			},
-			_addTableResponse: function(event) {
-				var results = event.detail.response;
-				var tableRecord = new Object();
-				tableRecord.id = results.id;
-				tableRecord.href = results.href;
-				tableRecord.plaSpecId = results.plaSpecId;
-					document.getElementById("offerList").push('tables', tableRecord);
-				this.$.addPrefixTableModal.close();
-			},
-			_addTableError: function(event) {
-				this.$.addTableToastError.text = event.detail.request.xhr.statusText;
-				this.$.addTableToastError.open();
-			},
-			_cancel: function() {
-				this.$.addTableName.value = null;
-				this.$.addTableDesc.value = null;
-				this.$.addTableStart.value = null;
-				this.$.addTableEnd.value = null;
-			},
-			_onLoadingChanged: function(event) {
-				if (this.$.addTableAjax.loading) {
-					document.getElementById("progress").disabled = false;
-				} else {
-					document.getElementById("progress").disabled = true;
-				}
+			endTableTimePick: {
+				type: String
 			}
-		});
-	</script>
-</dom-module>
+		}
+	}
+
+	_tableAdd(event) {
+		var tabName = new Object();
+		if(this.addName) {
+			tabName.name = this.addName;
+		}
+		if(this.addDesc) {
+			tabName.description = this.addDesc;
+		}
+		if(this.startTableTimePick) {
+			var startDateTime = this.startTableTimePick;
+		}
+		if(this.endTableTimePick) {
+			var endDateTime = this.endTableTimePick;
+		}
+		if(endDateTime < startDateTime) {
+			this.$.addTableToastError.text = event.detail.request.xhr.statusText;
+			this.$.addTableToastError.open();
+		} else if(startDateTime && endDateTime) {
+			tabName.validFor = {startDateTime, endDateTime};
+		} else if(startDateTime && !endDateTime) {
+			tabName.validFor = {startDateTime};
+		} else if(!startDateTime && !endDateTime) {
+			tabName.validFor = {endDateTime};
+		}
+		if(tabName.name) {
+			var ajax = this.$.addTableAjax;
+			ajax.body = tabName;
+			ajax.generateRequest();
+		}
+		this.addName = null;
+		this.addDesc = null;
+		this.startTableTimePick = null;
+		this.endTableTimePick = null;
+	}
+
+	_addTableResponse(event) {
+		var results = event.detail.response;
+		var tableRecord = new Object();
+		tableRecord.id = results.id;
+		tableRecord.href = results.href;
+		tableRecord.plaSpecId = results.plaSpecId;
+		document.body.querySelector('sig-app').shadowRoot.getElementById('offerList').push('tables', tableRecord);
+		this.$.addPrefixTableModal.close();
+	}
+
+	_addTableError(event) {
+		this.$.addTableToastError.text = event.detail.request.xhr.statusText;
+		this.$.addTableToastError.open();
+	}
+
+	_cancel() {
+		this.addName = null;
+		this.addDesc = null;
+		this.startTableTimePick = null;
+		this.endTableTimePick = null;
+	}
+}
+
+window.customElements.define('sig-prefix-table-add', tablePreAdd);
