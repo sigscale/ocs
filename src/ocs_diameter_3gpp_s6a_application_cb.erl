@@ -271,7 +271,7 @@ authentication_information(ServiceName,
 			% @todo Handle two digit MNC!
 			<<Mcc1, Mcc2, Mcc3, Mnc1, Mnc2, Mnc3, _/binary>> = IMSI,
 			SN = <<Mcc2:4, Mcc1:4, Mnc3:4, Mcc3:4, Mnc2:4, Mnc1:4>>,
-			AMF = <<0:16>>,
+			AMF = <<1:16>>,
 			case ReqEutranAuth of
 				[#'3gpp_s6a_Requested-EUTRAN-Authentication-Info'{
 						'Re-Synchronization-Info' = []}] ->
