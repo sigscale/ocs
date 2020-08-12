@@ -779,6 +779,7 @@ add_service(undefined, Password, State, ProductRef, Chars,
 	end,
 	case mnesia:transaction(F1) of
 		{atomic, Service} ->
+			ocs_event:notify(create, Service, service),
 			{ok, Service};
 		{aborted, Reason} ->
 			{error, Reason}
@@ -794,6 +795,7 @@ add_service(Identity, Password, State, ProductRef, Chars, Attributes,
 	end,
 	case mnesia:transaction(F1) of
 		{atomic, Service} ->
+			ocs_event:notify(create, Service, service),
 			{ok, Service};
 		{aborted, {throw, Reason}} ->
 			{error, Reason};

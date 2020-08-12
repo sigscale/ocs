@@ -149,7 +149,7 @@ register(timeout, State) ->
 	when
 		Event :: {Type, Resource, Category},
 		Type :: create | attributeValueChange | stateChange | remove,
-		Resource :: #bucket{} | #product{},
+		Resource :: #bucket{} | #product{} | #service{},
 		Category :: balance | product | service,
 		State :: statedata(),
 		Result :: {next_state, NextStateName, NewStateData}
@@ -190,7 +190,9 @@ registered({Type, Resource, Category} = _Event, #statedata{sync = Sync,
 		balance ->
 			ocs_rest_res_balance:bucket(Resource);
 		product ->
-			ocs_rest_res_product:inventory(Resource)
+			ocs_rest_res_product:inventory(Resource);
+		service ->
+			ocs_rest_res_service:inventory(Resource)
 	end,
 	EventStruct = {struct, [{"eventId", EventId}, {"eventTime", EventTime},
 			{"eventType", EventType}, {"event", Event}]},
