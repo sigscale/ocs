@@ -173,7 +173,7 @@ all() ->
 	post_hub_balance, delete_hub_balance, notify_create_bucket,
 	notify_delete_expired_bucket,
 	post_hub_product, delete_hub_product, notify_create_product,
-	post_hub_service, notify_create_service].
+	post_hub_service, delete_hub_service, notify_create_service].
 
 %%%%%---------------------------------------------------------------------
 %%  Test cases
@@ -2817,6 +2817,24 @@ notify_create_service(Config) ->
 				false
 	end,
 	[Password] = lists:filtermap(F, Chars).
+
+delete_hub_service() ->
+	[{userdata, [{doc, "Unregister hub listener for service"}]}].
+
+delete_hub_service(Config) ->
+	HostUrl = ?config(host_url, Config),
+	PathHub = ?PathServiceHub,
+	CollectionUrl = HostUrl ++ PathHub,
+	Callback = "http://in.listener.com",
+	RequestBody = "{\"callback\":\"" ++ Callback ++ "\"}",
+	ContentType = "application/json",
+	Accept = {"accept", "application/json"},
+	Request = {CollectionUrl, [Accept, auth_header()], ContentType, RequestBody},
+	{ok, {{_, 201, _}, _, ResponseBody}} = httpc:request(post, Request, [], []),
+	{struct, HubList} = mochijson:decode(ResponseBody),
+	{_, Id} = lists:keyfind("id", 1, HubList),
+	Request1 = {HostUrl ++ PathHub ++ Id, [Accept, auth_header()]},
+	{ok, {{_, 204, _}, _, []}} = httpc:request(delete, Request1, [], []).
 
 %%---------------------------------------------------------------------
 %%  Internal functions
