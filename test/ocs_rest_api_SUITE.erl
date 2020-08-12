@@ -116,7 +116,7 @@ end_per_suite(Config) ->
 %%
 init_per_testcase(TestCase, Config) when TestCase == notify_create_bucket;
 		TestCase == notify_delete_expired_bucket;
-		TestCase == notify_create_product ->
+		TestCase == notify_create_product; TestCase == notify_create_service ->
 	true = register(TestCase, self()),
 	case inets:start(httpd, [{port, 0},
 			{server_name, atom_to_list(?MODULE)},
@@ -173,7 +173,7 @@ all() ->
 	post_hub_balance, delete_hub_balance, notify_create_bucket,
 	notify_delete_expired_bucket,
 	post_hub_product, delete_hub_product, notify_create_product,
-	post_hub_service].
+	post_hub_service, notify_create_service].
 
 %%%%%---------------------------------------------------------------------
 %%  Test cases
@@ -2779,6 +2779,45 @@ post_hub_service(Config) ->
 	{_, Id} = lists:keyfind("id", 1, HubList),
 	{_, null} = lists:keyfind("query", 1, HubList).
 
+notify_create_service() ->
+	[{userdata, [{doc, "Receive service creation notification."}]}].
+
+notify_create_service(Config) ->
+	HostUrl = ?config(host_url, Config),
+	CollectionUrl = HostUrl ++ ?PathServiceHub,
+	ListenerPort = ?config(listener_port, Config),
+	ListenerServer = "http://localhost:" ++ integer_to_list(ListenerPort),
+	Callback = ListenerServer ++ "/listener/"
+			++ atom_to_list(?MODULE) ++ "/notifycreateservice",
+	RequestBody = "{\n"
+			++ "\t\"callback\": \"" ++ Callback ++ "\",\n"
+			++ "}\n",
+	ContentType = "application/json",
+	Accept = {"accept", "application/json"},
+	Request = {CollectionUrl, [Accept, auth_header()], ContentType, RequestBody},
+	{ok, {{_, 201, _}, _, _}} = httpc:request(post, Request, [], []),
+	Identity = ocs:generate_identity(),
+	Password = ocs:generate_password(),
+	{ok, #service{}} = ocs:add_service(Identity, Password),
+	Service = receive
+		Input ->
+			{struct, ServiceEvent} = mochijson:decode(Input),
+			{_, "ResourceCreateEvent"}
+					= lists:keyfind("eventType", 1, ServiceEvent),
+			{_, {struct, ServiceList}} = lists:keyfind("event", 1, ServiceEvent),
+			ServiceList
+	end,
+	{_, Identity} = lists:keyfind("id", 1, Service),
+	{_, {array, Chars}} = lists:keyfind("serviceCharacteristic", 1, Service),
+	F = fun({struct, [{"name", "servicePassword"}, {"value", Value}]}) ->
+				{true, Value};
+			({struct, [{"value", Value}, {"name", "servicePassword"}]}) ->
+				{true, Value};
+			(_) ->
+				false
+	end,
+	[Password] = lists:filtermap(F, Chars).
+
 %%---------------------------------------------------------------------
 %%  Internal functions
 %%---------------------------------------------------------------------
@@ -2803,6 +2842,13 @@ notifyexpiredbucket(SessionID, _Env, Input) ->
 notifycreateproduct(SessionID, _Env, Input) ->
 	mod_esi:deliver(SessionID, "status: 201 Created\r\n\r\n"),
 	notify_create_product ! Input.
+
+-spec notifycreateservice(SessionID :: term(), Env :: list(),
+		Input :: string()) -> any().
+%% @doc Notification callback for notify_create_service test case.
+notifycreateservice(SessionID, _Env, Input) ->
+	mod_esi:deliver(SessionID, "status: 201 Created\r\n\r\n"),
+	notify_create_service ! Input.
 
 product_offer() ->
 	CatalogHref = "/catalogManagement/v2",
