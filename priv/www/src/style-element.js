@@ -19,6 +19,13 @@ styleElement.innerHTML = `<template>
 			border-bottom: 1px solid #eee;
 			color: #fff;
 		}
+		 paper-toolbar {
+			color: white;
+			background-color: #bc5100;
+		}
+		iron-icon {
+			padding-right: 10px;
+		}
 		.toolbar-top {
 			background-color: var(--app-primary-color);
 		}
@@ -46,6 +53,15 @@ styleElement.innerHTML = `<template>
 			text-decoration: none;
 			color: black;
 			line-height: 40px;
+		}
+		paper-dialog {
+			position: fixed;
+			min-width: 20em;
+			right: -36px;
+			top: 41px;
+			overflow: auto;
+			padding: 0px;
+			display: inline-grid;
 		}
 		.dialog {
 			overflow: auto;
