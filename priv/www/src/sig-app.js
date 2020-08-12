@@ -203,7 +203,7 @@ class SigApp extends PolymerElement {
 							</a>
 							<a name="prefixView" href="[[rootPath]]prefixView">
 								<paper-icon-button
-										on-focused-changed="disTableList"
+										on-click="disTableList"
 										icon="my-icons:table">
 								</paper-icon-button>
 								Tables
@@ -409,7 +409,7 @@ class SigApp extends PolymerElement {
 		document.body.querySelector('sig-app').shadowRoot.getElementById('prefixList').shadowRoot.getElementById('prefixGrid');
 	}
 
-	disTableList(event) {
+	disTableList() {
 console.log("alaert");
 		this.$.tableList.open();
 //		document.body.querySelector('sig-app').shadowRoot.getElementById('offerList').shadowRoot.getElementById('offerGrid');
@@ -613,7 +613,7 @@ console.log("alaert");
 				import('./sig-prefix-list.js');
 				import('./sig-prefix-add.js');
 				import('./sig-prefix-table-add.js');
-//				import('./sig-prefix-update.js');
+				import('./sig-prefix-update.js');
 				break;
 			case 'balanceView':
 				import('./sig-balance-list.js');
