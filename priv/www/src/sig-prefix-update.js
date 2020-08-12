@@ -1,180 +1,200 @@
-<!--  vim: set ts=3:  -->
-<link rel="import" href="polymer/polymer.html">
-<link rel="import" href="i18n-msg/i18n-msg.html">
-<link rel="import" href="i18n-msg/i18n-msg-behavior.html">
-<link rel="import" href="iron-ajax/iron-ajax.html">
-<link rel="import" href="paper-dialog/paper-dialog.html">
-<link rel="import" href="paper-item/paper-item.html">
-<link rel="import" href="paper-item/paper-icon-item.html">
-<link rel="import" href="paper-toolbar/paper-toolbar.html">
-<link rel="import" href="paper-input/paper-input.html">
-<link rel="import" href="paper-button/paper-button.html">
-<link rel="import" href="paper-tooltip/paper-tooltip.html">
-<link rel="import" href="paper-styles/color.html">
-<link rel="import" href="iron-icons/iron-icons.html">
-<link rel="import" href="iron-icons/communication-icons.html">
+/**
+ * @license
+ * Copyright (c) 2020 The Polymer Project Authors. All rights reserved.
+ * This code may only be used under the BSD style license found at http://polymer.github.io/LICENSE.txt
+ * The complete set of authors may be found at http://polymer.github.io/AUTHORS.txt
+ * The complete set of contributors may be found at http://polymer.github.io/CONTRIBUTORS.txt
+ * Code distributed by Google as part of the polymer project is also
+ * subject to an additional IP rights grant found at http://polymer.github.io/PATENTS.txt
+ */
 
-<dom-module id="sig-prefix-update">
-	<template>
-		<style is="custom-style">
-			paper-dialog {
-				overflow: auto;
-			}
-			paper-input {
-				--paper-input-container-focus-color: var(--paper-yellow-900);
-			}
-			paper-toolbar{
-				margin-top: 0px;
-				color: white;
-				background-color: #bc5100;
-			}
-			.add-button {
-				background-color: var(--paper-lime-a700);
-				color: black;
-				width: 8em;
-			}
-			.cancel-button {
-				color: black;
-			}
-			.delete-buttons {
-				background: #EF5350;
-				color: black;
-			}
-		</style>
-		<paper-dialog id="updatePrefixModal" modal>
-			<paper-toolbar>
-				<h2>[[i18n.updatePrefix]]</h2>
-			</paper-toolbar>
-			<div>
+import { PolymerElement, html } from '@polymer/polymer/polymer-element.js';
+import '@polymer/iron-ajax/iron-ajax.js';
+import '@polymer/paper-dialog/paper-dialog.js';
+import '@polymer/app-layout/app-toolbar/app-toolbar.js';
+import '@polymer/paper-progress/paper-progress.js';
+import '@polymer/paper-input/paper-input.js';
+import '@polymer/paper-input/paper-textarea.js';
+import '@polymer/paper-button/paper-button.js';
+import '@polymer/paper-dropdown-menu/paper-dropdown-menu.js';
+import '@polymer/paper-listbox/paper-listbox.js';
+import '@polymer/paper-item/paper-item.js'
+import '@polymer/paper-checkbox/paper-checkbox.js'
+import '@polymer/paper-toast/paper-toast.js';
+import '@polymer/iron-collapse/iron-collapse.js';
+import '@polymer/paper-tabs/paper-tabs.js';
+import '@polymer/iron-pages/iron-pages.js';
+import '@polymer/iron-selector/iron-selector.js';
+import './style-element.js';
+
+class tableUpdate extends PolymerElement {
+	static get template() {
+		return html`
+			<style include="style-element"></style>
+			<paper-dialog id="updatePrefixModal" modal>
+				<app-toolbar>
+					<h2>Update Prefix</h2>
+				</app-toolbar>
+				<paper-progress
+						indeterminate
+						class="slow red"
+						disabled="{{!loading}}">
+				</paper-progress>
 				<paper-input
-					id="updatePrefix"
-					name="Prefix"
-					label="[[i18n.prefix]]"
-					disabled>
+						id="updatePrefix"
+						name="Prefix"
+						label="Prefix"
+						value="{{upPrefix}}"
+						disabled>
 				</paper-input>
-			</div>
-			<div>
 				<paper-input
-					id="updateDescription"
-					name="Description"
-					label="[[i18n.des]]">
+						id="updateDescription"
+						name="Description"
+						label="Description"
+						value="{{upDesc}}">
 				</paper-input>
-			</div>
-			<div>
 				<paper-input
-					id="updateRate"
-					name="rateUpdate"
-					label="[[i18n.rate]]"
-					type="number">
+						id="updateRate"
+						name="rateUpdate"
+						label="Rate"
+						type="number"
+						value="{{upRate}}">
 				</paper-input>
-			</div>
-			<div class="buttons">
-				<paper-button dialog-confirm
-						raised
-						class="add-button"
-						on-tap="UpdateButton">
-					<i18n-msg msgid="update">
-							Update
-					</i18n-msg>
-				</paper-button>
-				<paper-button dialog-dismiss
-						class="cancel-button"
-						dialog-dismiss
-						on-tap="cancelUpdate">
-					<i18n-msg msgid="cancel">
-							Cancel
-					</i18n-msg>
-				</paper-button>
-				<paper-button toggles
-						raised
-						on-tap="deleteUpdate"
-						class="delete-buttons">
-					<i18n-msg msgid="delete">
+				<div class="buttons">
+					<paper-button dialog-confirm
+							raised
+							class="update-button"
+							on-tap="UpdateButton">
+						Update
+					</paper-button>
+					<paper-button dialog-dismiss
+							class="cancel-button"
+							dialog-dismiss
+							on-tap="cancelUpdate">
+						Cancel
+					</paper-button>
+					<paper-button toggles
+							raised
+							on-tap="delete-button"
+							class="delete-buttons">
 						Delete
-					<i18n-msg>
-				</paper-button>
-			</div>
-		</paper-dialog>
-		<paper-toast
-			id="updateTableRowToastError">
-		</paper-toast>
-		<paper-toast
-			id="deleteTableRowToastError">
-		</paper-toast>
-		<iron-ajax id="updateTableRowAjax"
-			on-response="_updateTableRowResponse"
-			on-error="_updateTableRowError"
-			on-loading-changed="_onLoadingChanged">
-		</iron-ajax>
-		<iron-ajax id="deleteTableRowAjax"
-			on-response="_deleteTableRowResponse"
-			on-error="_deleteTableRowError">
-		</iron-ajax>
-	</template>
-	<script>
-		Polymer ({
-			is: 'sig-prefix-update',
-			behaviors: [i18nMsgBehavior],
-			UpdateButton: function(event) {
-				var Ajax = this.$.updateTableRowAjax;
-				Ajax.method = "PATCH";
-				Ajax.contentType = "application/json-patch+json";
-				var Table = document.getElementById('prefixList').table;
-				var Id = this.$.updatePrefix.value;
-				Ajax.url = "/resourceInventoryManagement/v1/logicalResource/" + Table + "/" + Id;
-				var ResArray = new Array();
-				var Desc = new Object(); 
-				Desc.op = "add";
-				Desc.path = "/resourceCharacteristic/1/value/value";
-				Desc.value = this.$.updateDescription.value;
-				ResArray.push(Desc);
-				var Rate = new Object();
-				Rate.op = "add";
-				Rate.path = "/resourceCharacteristic/2/value/value";
-				Rate.value = this.$.updateRate.value; 
-				ResArray.push(Rate);
-				Ajax.body = JSON.stringify(ResArray);
-				Ajax.generateRequest();
-				this.$.updatePrefix.value = null;
-				this.$.updateDescription.value = null;
-				this.$.updateRate.value = null;
+					</paper-button>
+				</div>
+			</paper-dialog>
+			<paper-toast
+					id="updateTableRowToastError">
+			</paper-toast>
+			<paper-toast
+					id="deleteTableRowToastError">
+			</paper-toast>
+			<iron-ajax id="updateTableRowAjax"
+					on-response="_updateTableRowResponse"
+					on-error="_updateTableRowError"
+					on-loading-changed="_onLoadingChanged">
+			</iron-ajax>
+			<iron-ajax id="deleteTableRowAjax"
+				on-response="_deleteTableRowResponse"
+				on-error="_deleteTableRowError">
+			</iron-ajax>
+		`;
+	}
+
+	static get properties() {
+		return {
+         loading: {
+            type: Boolean,
+            value: false
+         },
+         activeItem: {
+            type: Object,
+            observer: '_activeItemChanged'
+         },
+			upPrefix: {
+				type: String
 			},
-			_updateTableRowResponse: function(event) {
-				this.$.updatePrefixModal.close();
-				document.getElementById("prefixGrid").clearCache();
-			},
-			_updateTableRowError: function(event) {
-				this.$.updateTableRowToastError.text = event.detail.request.xhr.statusText;
-				this.$.updateTableRowToastError.open();
-			},
-			deleteUpdate: function(event) {
-				var Table = document.getElementById('prefixList').table;
-				var Id = this.$.updatePrefix.value;
-				this.$.deleteTableRowAjax.method = "DELETE";
-				this.$.deleteTableRowAjax.url = "/resourceInventoryManagement/v1/logicalResource/"
-						+ Table + "/" + Id;
-				this.$.deleteTableRowAjax.generateRequest();
-			},
-			_deleteTableRowResponse: function(event) {
-				this.$.updatePrefixModal.close();
-				document.getElementById("prefixGrid").clearCache();
-			},
-			_deleteTableRowError: function(event) {
-				this.$.deleteTableRowToastError.text = event.detail.request.xhr.statusText;
-				this.$.deleteTableRowToastError.open();
-			},
-			cancelUpdate: function() {
-				this.$.updatePrefix.value = null;
-				this.$.updateDescription.value = null;
-				this.$.updateRate.value = null;
-			},
-			_onLoadingChanged: function(event) {
-				if (this.$.updateTableRowAjax.loading) {
-					document.getElementById("progress").disabled = false;
-				} else {
-					document.getElementById("progress").disabled = true;
-				}
+			upDesc: {
+				type: String
 			}
-		});
-	</script>
-</dom-module>
+		}
+	}
+
+   ready() {
+      super.ready()
+   }
+
+	_activeItemChanged(item) {
+		if(item) {
+			this.upPrefix = item.prefix;
+			this.upDesc = item.description;
+			this.upRate = item.rate;
+         this.$.updatePrefixModal.open();
+		} else {
+			this.upPrefix = null;
+			this.upDesc = null;
+			this.upRate = null;
+		}
+	}
+
+	UpdateButton(event) {
+		var Ajax = this.$.updateTableRowAjax;
+		Ajax.method = "PATCH";
+		Ajax.contentType = "application/json-patch+json";
+		var Table = document.body.querySelector('sig-app').shadowRoot.getElementById('prefixList').table;
+		var Id = this.$.upPrefix;
+		Ajax.url = "/resourceInventoryManagement/v1/logicalResource/" + Table + "/" + Id;
+		var ResArray = new Array();
+		var Desc = new Object(); 
+		Desc.op = "add";
+		Desc.path = "/resourceCharacteristic/1/value/value";
+		Desc.value = this.$.upDesc;
+		ResArray.push(Desc);
+		var Rate = new Object();
+		Rate.op = "add";
+		Rate.path = "/resourceCharacteristic/2/value/value";
+		Rate.value = this.$.upRate;
+		ResArray.push(Rate);
+		Ajax.body = JSON.stringify(ResArray);
+		Ajax.generateRequest();
+		this.$.upPrefix = null;
+		this.$.upDesc = null;
+		this.$.upRate = null;
+	}
+
+	_updateTableRowResponse(event) {
+		this.$.updatePrefixModal.close();
+		document.body.querySelector('sig-app').shadowRoot.getElementById('prefixList').shadowRoot.getElementById('prefixGrid').clearCache();
+	}
+
+	_updateTableRowError(event) {
+		this.$.updateTableRowToastError.text = event.detail.request.xhr.statusText;
+		this.$.updateTableRowToastError.open();
+	}
+
+	deleteUpdate(event) {
+		var Table = document.body.querySelector('sig-app').shadowRoot.getElementById('prefixList').table;
+		var Id = this.upPrefix;
+		this.$.deleteTableRowAjax.method = "DELETE";
+		this.$.deleteTableRowAjax.url = "/resourceInventoryManagement/v1/logicalResource/"
+				+ Table + "/" + Id;
+		this.$.deleteTableRowAjax.generateRequest();
+	}
+
+	_deleteTableRowResponse(event) {
+		this.$.updatePrefixModal.close();
+		document.body.querySelector('sig-app').shadowRoot.getElementById('prefixList').shadowRoot.getElementById('prefixGrid').clearCache();
+	}
+
+	_deleteTableRowError(event) {
+		this.$.deleteTableRowToastError.text = event.detail.request.xhr.statusText;
+		this.$.deleteTableRowToastError.open();
+	}
+
+	cancelUpdate() {
+		this.$.upPrefix = null;
+		this.$.upDesc = null;
+		this.$.upRate = null;
+	}
+
+}
+
+window.customElements.define('sig-prefix-update', tableUpdate);
