@@ -106,6 +106,7 @@ beam_DATA = ocs.beam \
 			ocs_rest_hub_fsm.beam \
 			ocs_rest_hub_balance.beam \
 			ocs_rest_hub_product.beam \
+			ocs_rest_hub_service.beam \
 			ocs_event.beam
 
 %.beam:$(top_srcdir)/src/%.erl	$(top_srcdir)/include/ocs.hrl \

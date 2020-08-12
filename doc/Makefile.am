@@ -102,6 +102,7 @@ modhtml = ocs.html \
 			ocs_rest_hub_fsm.html \
 			ocs_rest_hub_balance.html \
 			ocs_rest_hub_product.html \
+			ocs_rest_hub_service.html \
 			ocs_event.html
 
 doc_DATA = overview.edoc $(modhtml) \
