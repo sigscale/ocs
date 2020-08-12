@@ -345,7 +345,7 @@ class SigApp extends PolymerElement {
 				</app-drawer>
 			</app-drawer-layout>
 			<!--Modal Definitions-->
-			<sig-help></sig-help>
+			<sig-help id="ocsGetHelp" active="[[overFlowActive]]"></sig-help>
 			<sig-offer-add id="addProduct"></sig-offer-add>
 			<sig-sub-add id="subscriberAdd" offers="[[offers]]"></sig-sub-add>
 			<sig-sub-update active-item="[[activeServiceItem]]"></sig-sub-update>
@@ -441,7 +441,7 @@ console.log("alaert");
 	}
 
 	_overFlowMenu() {
-//		import('./sig-help.js');
+		import('./sig-help.js');
 	}
 
 	 static get properties() {
