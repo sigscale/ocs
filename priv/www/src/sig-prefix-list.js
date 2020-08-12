@@ -82,12 +82,20 @@ class prefixList extends PolymerElement {
 		grid.dataProvider = this._getPreTable;
 	}
 
+   _activeItemChanged(item) {
+      if(item) {
+			this.$.prefixGrid.selectedItems = item ? [item] : [];
+      } else {
+			this.$.prefixGrid.selectedItems = [];
+      }
+   }
+
 	_getPreTable(params, callback) {
 		var grid = this;
 		var prefixList = document.body.querySelector('sig-app').shadowRoot.querySelector('sig-prefix-list');
 		var ajax = prefixList.shadowRoot.getElementById('getTableContentAjax');
-		var table = document.body.querySelector('sig-app').shadowRoot.querySelector('prefixList').table;
-		ajax.url = "/resourceInventoryManagement/v1/logicalResource/" + table;
+//		var table = document.body.querySelector('sig-app').shadowRoot.querySelector('prefixList').table;
+		ajax.url = "/resourceInventoryManagement/v1/logicalResource/" + "Srilanka";
 		var handleAjaxResponse = function(request) {
 			if(request) {
 				grid.size = 100;
