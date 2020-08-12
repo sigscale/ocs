@@ -107,6 +107,8 @@ do_post(Resource, ModData, Body, ["productInventoryManagement", "v2", "hub"]) ->
 	do_response(ModData, Resource:post_hub(Body));
 do_post(Resource, ModData, Body, ["serviceInventoryManagement", "v2", "service"]) ->
 	do_response(ModData, Resource:add_inventory(Body));
+do_post(Resource, ModData, Body, ["serviceInventoryManagement", "v2", "hub"]) ->
+	do_response(ModData, Resource:post_hub(Body));
 do_post(Resource, ModData, Body, ["catalogManagement", "v2", "pla"]) ->
 	do_response(ModData, Resource:add_pla(Body));
 do_post(Resource, ModData, Body, ["resourceInventoryManagement", "v1", "logicalResource", Table]) ->
