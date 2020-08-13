@@ -109,6 +109,10 @@ styleElement.innerHTML = `<template>
 		.drawer-list iron-collapse#ipdr {
 			padding-left: 36px;
 		}
+		.yellow-button {
+			text-transform: none;
+			color: #eeff41;
+		}
 		.add-button {
 			right: 2%;
 			position: fixed;
