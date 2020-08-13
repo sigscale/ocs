@@ -91,6 +91,8 @@ do_post(Resource, ModData, Body, ["ocs", "v1", "subscriber"]) ->
 	do_response(ModData, Resource:post_subscriber(Body));
 do_post(Resource, ModData, Body, ["partyManagement", "v1", "individual"]) ->
 	do_response(ModData, Resource:post_user(Body));
+do_post(Resource, ModData, Body, ["partyManagement", "v1", "hub"]) ->
+	do_response(ModData, Resource:post_hub(Body));
 do_post(Resource, ModData, Body, ["balanceManagement", "v1", "product", Id, "balanceTopup"]) ->
 	do_response(ModData, Resource:top_up(Id, Body));
 do_post(Resource, ModData, Body, ["balanceManagement", "v1", "service", Id, "balanceTopup"]) ->
