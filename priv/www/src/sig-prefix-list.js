@@ -11,7 +11,6 @@
 import { PolymerElement, html } from '@polymer/polymer/polymer-element.js';
 import '@polymer/iron-ajax/iron-ajax.js';
 import '@polymer/paper-fab/paper-fab.js';
-import '@polymer/iron-icons/iron-icons.js';
 import '@vaadin/vaadin-grid/vaadin-grid.js';
 import './style-element.js'
 
@@ -82,13 +81,13 @@ class prefixList extends PolymerElement {
 		grid.dataProvider = this._getPreTable;
 	}
 
-   _activeItemChanged(item) {
-      if(item) {
+	_activeItemChanged(item) {
+		if(item) {
 			this.$.prefixGrid.selectedItems = item ? [item] : [];
-      } else {
+		} else {
 			this.$.prefixGrid.selectedItems = [];
-      }
-   }
+		}
+	}
 
 	_getPreTable(params, callback) {
 		var grid = this;

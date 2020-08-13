@@ -11,7 +11,6 @@
 import { PolymerElement, html } from '@polymer/polymer/polymer-element.js';
 import '@polymer/iron-ajax/iron-ajax.js';
 import '@polymer/paper-fab/paper-fab.js';
-import '@polymer/iron-icons/iron-icons.js';
 import '@vaadin/vaadin-grid/vaadin-grid.js';
 import '@vaadin/vaadin-grid/vaadin-grid-filter.js';
 import './style-element.js';
@@ -86,9 +85,6 @@ class userList extends PolymerElement {
 _activeItemChanged(item) {
 		if(item) {
 			this.$.userGrid.selectedItems = item ? [item] : [];
-//			var modal = document.body.querySelector('sig-app').shadowRoot.querySelector('sig-user-update').shadowRoot.getElementById('updateUserModal').open();
-//			document.getElementById("userUpdateUsername").value = item.id;
-//			document.getElementById("userUpdatePassword").value = item.password;
 		} else {
 			this.$.userGrid.selectedItems = [];
 		}

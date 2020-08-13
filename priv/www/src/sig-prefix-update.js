@@ -14,17 +14,8 @@ import '@polymer/paper-dialog/paper-dialog.js';
 import '@polymer/app-layout/app-toolbar/app-toolbar.js';
 import '@polymer/paper-progress/paper-progress.js';
 import '@polymer/paper-input/paper-input.js';
-import '@polymer/paper-input/paper-textarea.js';
 import '@polymer/paper-button/paper-button.js';
-import '@polymer/paper-dropdown-menu/paper-dropdown-menu.js';
-import '@polymer/paper-listbox/paper-listbox.js';
-import '@polymer/paper-item/paper-item.js'
-import '@polymer/paper-checkbox/paper-checkbox.js'
 import '@polymer/paper-toast/paper-toast.js';
-import '@polymer/iron-collapse/iron-collapse.js';
-import '@polymer/paper-tabs/paper-tabs.js';
-import '@polymer/iron-pages/iron-pages.js';
-import '@polymer/iron-selector/iron-selector.js';
 import './style-element.js';
 
 class tableUpdate extends PolymerElement {
@@ -101,14 +92,14 @@ class tableUpdate extends PolymerElement {
 
 	static get properties() {
 		return {
-         loading: {
-            type: Boolean,
-            value: false
-         },
-         activeItem: {
-            type: Object,
-            observer: '_activeItemChanged'
-         },
+			loading: {
+				type: Boolean,
+				value: false
+			},
+			activeItem: {
+				type: Object,
+				observer: '_activeItemChanged'
+			},
 			upPrefix: {
 				type: String
 			},
@@ -118,16 +109,16 @@ class tableUpdate extends PolymerElement {
 		}
 	}
 
-   ready() {
-      super.ready()
-   }
+	ready() {
+		super.ready()
+	}
 
 	_activeItemChanged(item) {
 		if(item) {
 			this.upPrefix = item.prefix;
 			this.upDesc = item.description;
 			this.upRate = item.rate;
-         this.$.updatePrefixModal.open();
+			this.$.updatePrefixModal.open();
 		} else {
 			this.upPrefix = null;
 			this.upDesc = null;
@@ -194,7 +185,6 @@ class tableUpdate extends PolymerElement {
 		this.$.upDesc = null;
 		this.$.upRate = null;
 	}
-
 }
 
 window.customElements.define('sig-prefix-update', tableUpdate);
