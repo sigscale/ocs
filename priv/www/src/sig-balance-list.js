@@ -10,7 +10,7 @@
 
 import { PolymerElement, html } from '@polymer/polymer/polymer-element.js';
 import '@polymer/iron-ajax/iron-ajax.js';
-import '@polymer/paper-fab/paper-fab.js';
+import '@polymer/paper-toast/paper-toast.js';
 import '@vaadin/vaadin-grid/vaadin-grid.js';
 import '@vaadin/vaadin-grid/vaadin-grid-filter.js';
 import '@vaadin/vaadin-grid/vaadin-grid-column-group.js';
@@ -245,7 +245,6 @@ class balanceList extends PolymerElement {
 		}
 		var handleAjaxError = function(event) {
 			balanceList.etag = null;
-			var toast = document.getElementById('usageToastError');
 			this.$.balanceErrorToast.text = event.detail.request.xhr.statusText;
 			this.$.balanceErrorToast.open();
 			if(!grid.size) {
