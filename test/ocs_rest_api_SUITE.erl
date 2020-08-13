@@ -46,6 +46,7 @@
 -define(PathBalanceHub, "/balanceManagement/v1/hub/").
 -define(PathProductHub, "/productInventoryManagement/v2/hub/").
 -define(PathServiceHub, "/serviceInventoryManagement/v2/hub/").
+-define(PathUserHub, "/partyManagement/v1/hub/").
 
 %%---------------------------------------------------------------------
 %%  Test server callback functions
@@ -173,7 +174,8 @@ all() ->
 	post_hub_balance, delete_hub_balance, notify_create_bucket,
 	notify_delete_expired_bucket,
 	post_hub_product, delete_hub_product, notify_create_product,
-	post_hub_service, delete_hub_service, notify_create_service].
+	post_hub_service, delete_hub_service, notify_create_service,
+	post_hub_user].
 
 %%%%%---------------------------------------------------------------------
 %%  Test cases
@@ -2835,6 +2837,32 @@ delete_hub_service(Config) ->
 	{_, Id} = lists:keyfind("id", 1, HubList),
 	Request1 = {HostUrl ++ PathHub ++ Id, [Accept, auth_header()]},
 	{ok, {{_, 204, _}, _, []}} = httpc:request(delete, Request1, [], []).
+
+post_hub_user() ->
+	[{userdata, [{doc, "Register hub listener for service"}]}].
+
+post_hub_user(Config) ->
+	HostUrl = ?config(host_url, Config),
+	PathHub = ?PathUserHub,
+	CollectionUrl = HostUrl ++ PathHub,
+	Callback = "http://in.listener.com",
+	RequestBody = "{\n"
+			++ "\t\"callback\": \"" ++ Callback ++ "\",\n"
+			++ "}\n",
+	ContentType = "application/json",
+	Accept = {"accept", "application/json"},
+	Request = {CollectionUrl, [Accept, auth_header()], ContentType, RequestBody},
+	{ok, Result} = httpc:request(post, Request, [], []),
+	{{"HTTP/1.1", 201, _Created}, Headers, ResponseBody} = Result,
+	{_, "application/json"} = lists:keyfind("content-type", 1, Headers),
+	ContentLength = integer_to_list(length(ResponseBody)),
+	{_, ContentLength} = lists:keyfind("content-length", 1, Headers),
+	{_, Location} = lists:keyfind("location", 1, Headers),
+	Id = string:substr(Location, string:rstr(Location, PathHub) + length(PathHub)),
+	{struct, HubList} = mochijson:decode(ResponseBody),
+	{_, Callback} = lists:keyfind("callback", 1, HubList),
+	{_, Id} = lists:keyfind("id", 1, HubList),
+	{_, null} = lists:keyfind("query", 1, HubList).
 
 %%---------------------------------------------------------------------
 %%  Internal functions
