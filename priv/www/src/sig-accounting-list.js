@@ -10,8 +10,8 @@
 
 import { PolymerElement, html } from '@polymer/polymer/polymer-element.js';
 import '@polymer/iron-ajax/iron-ajax.js';
-import '@polymer/paper-fab/paper-fab.js';
-import '@polymer/iron-icons/iron-icons.js';
+import '@polymer/paper-toast/paper-toast.js';
+import '@polymer/paper-button/paper-button.js';
 import '@vaadin/vaadin-grid/vaadin-grid.js';
 import '@vaadin/vaadin-grid/vaadin-grid-filter.js';
 import '@vaadin/vaadin-grid/vaadin-grid-column-group.js';
@@ -161,6 +161,13 @@ class accountingList extends PolymerElement {
 					<template>[[item.type]]</template>
 				</vaadin-grid-column>
 			</vaadin-grid>
+			<paper-toast id="accountingErrorToast" duration="0">
+				<paper-button
+						class="yellow-button"
+						onclick="accountingErrorToast.toggle()">
+					Close
+				</paper-button>
+			</paper-toast>
 			<iron-ajax id="getAccounting"
 					url="/usageManagement/v1/usage"
 					rejectWithRequest>
