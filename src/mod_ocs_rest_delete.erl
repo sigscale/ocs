@@ -77,6 +77,8 @@ do_delete(Resource, ModData, ["catalogManagement", "v2", "pla", Identity]) ->
 	do_response(ModData, Resource:delete_pla(Identity));
 do_delete(Resource, ModData, ["partyManagement", "v1", "individual", Identity]) ->
 	do_response(ModData, Resource:delete_user(Identity));
+do_delete(Resource, ModData, ["partyManagement", "v1", "hub", Identity]) ->
+	do_response(ModData, Resource:delete_hub(Identity));
 do_delete(Resource, ModData, ["productInventoryManagement", "v2", "product", Identity]) ->
 	do_response(ModData, Resource:delete_inventory(Identity));
 do_delete(Resource, ModData, ["productInventoryManagement", "v2", "hub", Identity]) ->
