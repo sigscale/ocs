@@ -377,8 +377,10 @@ update_location(ServiceName,
 					'Origin-Host' = OHost, 'Origin-Realm' = ORealm}};
 		{ok, #service{}} ->
 			ApnConfig = #'3gpp_s6a_APN-Configuration'{'Service-Selection' = "*",
+					'Context-Identifier' = 1,
 					'PDN-Type' =  ?'3GPP_S6A_3GPP-PDP-TYPE_IPV4'},
 			ApnProfile = #'3gpp_s6a_APN-Configuration-Profile'{'Context-Identifier' = 1,
+					'All-APN-Configurations-Included-Indicator' = 0,
 					'APN-Configuration' = [ApnConfig]},
 			SubscriptionData = #'3gpp_s6a_Subscription-Data'{
 					'APN-Configuration-Profile' = [ApnProfile]},
