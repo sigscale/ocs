@@ -309,7 +309,7 @@ authentication_information(ServiceName,
 									'Origin-Host' = OHost, 'Origin-Realm' = ORealm,
 									'Authentication-Info' = [AuthInfo]}};
 						_A ->
-							case ocs_milenage:'f1*'(OPc, K, RAND, <<SQNms:48>>, AMF) of
+							case ocs_milenage:'f1*'(OPc, K, RAND, <<SQNms:48>>, <<0:16>>) of
 								MAC_S ->
 									MAC_A = ocs_milenage:f1(OPc, K, RAND, <<SQNms:48>>, AMF),
 									AUTN = autn(SQNms, AK, AMF, MAC_A),
