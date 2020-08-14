@@ -512,6 +512,7 @@
    3GPP-GPRS-Negotiated-QoS-Profile                          5  UTF8String       VM
    3GPP-IMEISV                                              20  UTF8String       VM
    ;; 3GPP TS 29.214
+   Access-Network-Charging-Address                         501  Address          VM
    Access-Network-Charging-Identifier                      502  Grouped          VM
    Flow-Number                                             509  Unsigned32       VM
    Media-Component-Number                                  518  Unsigned32       VM
@@ -520,6 +521,7 @@
    ;; 3GPP TS 29.212
    Max-Requested-Bandwidth-DL                              515  Unsigned32       VM
    Max-Requested-Bandwidth-UL                              516  Unsigned32       VM
+   Bearer-Usage                                           1000  Enumerated       VM
    Charging-Rule-Install                                  1001  Grouped          VM
    Charging-Rule-Remove                                   1002  Grouped          VM
    Charging-Rule-Definition                               1003  Grouped          VM
