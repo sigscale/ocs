@@ -291,12 +291,14 @@ process_request(_Address, _Port,
 				'Subscription-Id' = [#'3gpp_gx_Subscription-Id'{
 						'Subscription-Id-Data' = Subscriber} | _]} = Request) ->
 	try
+		ChargingRuleInstall = #'3gpp_gx_Charging-Rule-Install'{'Charging-Rule-Name' = ["default"]},
 		#'3gpp_gx_CCA'{'Session-Id' = SId,
 				'Result-Code' = [?'DIAMETER_BASE_RESULT-CODE_SUCCESS'],
 				'Origin-Host' = OHost, 'Origin-Realm' = ORealm,
 				'Auth-Application-Id' = ?Gx_APPLICATION_ID,
 				'CC-Request-Type' = RequestType,
-				'CC-Request-Number' = RequestNum}
+				'CC-Request-Number' = RequestNum,
+				'Charging-Rule-Install' = [ChargingRuleInstall]}
 	catch
 		_:Reason ->
 			error_logger:warning_report(["Unable to process DIAMETER request",
