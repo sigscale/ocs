@@ -201,7 +201,6 @@ class SigApp extends PolymerElement {
 							</a>
 							<a name="prefixView" href="[[rootPath]]prefixView">
 								<paper-icon-button
-										on-click="disTableList"
 										icon="my-icons:table">
 								</paper-icon-button>
 								Tables
@@ -297,48 +296,6 @@ class SigApp extends PolymerElement {
 								HTTP
 							</a>
 						</iron-collapse>
-						<paper-dialog class="dialog" id="tableList">
-							<app-toolbar>
-								List of Tables
-							</app-toolbar>
-							<template is="dom-repeat" items="[[tables]]">
-								<paper-item
-										id="pagePrefix"
-										class="menuitem"
-										on-focused-changed="tableSelection">
-									<iron-icon icon ="icons:view-list" item-icon></iron-icon>
-										{{item.id}}
-								</paper-item>
-							</template>
-							<div class="buttons">
-								<paper-button
-										raised
-										id="tabOkButton"
-										disabled
-										onclick="drawer.toggle()"
-										on-click="tableOk"
-										class="ok-button">
-									Ok
-								</paper-button>
-								<paper-button
-										dialog-dismiss
-										class="cancel-button">
-									Cancel
-								</paper-button>
-								<paper-button
-										raised
-										on-tap="tableAdd"
-										class="submit-button">
-									Add
-								</paper-button>
-								<paper-button
-										raised
-										on-tap="tableDelete"
-										class="delete-button">
-									Delete
-								</paper-button>
-							</div>
-						</paper-dialog>
 					</iron-selector>
 				</app-drawer>
 			</app-drawer-layout>
@@ -359,10 +316,6 @@ class SigApp extends PolymerElement {
 			<sig-prefix-update></sig-prefix-update>
 			<sig-bucket-add></sig-bucket-add>
 			<sig-product-add active-item="[[activeProductItem]]" offers="[[offers]]"></sig-product-add>
-			<iron-ajax id="deleteTableAjax"
-				on-response="_deleteTableResponse"
-				on-error="_deleteTableError">
-			</iron-ajax>
 		`;
 	}
 
@@ -403,40 +356,6 @@ class SigApp extends PolymerElement {
 		}
 	}
 
-	tableOk() {
-		document.body.querySelector('sig-app').shadowRoot.getElementById('prefixList').shadowRoot.getElementById('prefixGrid');
-	}
-
-	disTableList() {
-console.log("alaert");
-		this.$.tableList.open();
-//		document.body.querySelector('sig-app').shadowRoot.getElementById('offerList').shadowRoot.getElementById('offerGrid');
-	}
-
-	tableAdd() {
-		document.body.querySelector('sig-app').shadowRoot.getElementById('sig-prefix-table-add').shadowRoot.getElementById('addPrefixTableModal').open();
-		this.$.tableList.close();
-	}
-
-	tableSelection(e) {
-		if(e.model.item && e.model.item.id) {
-			this.$.prefixList.table = e.model.item.id;
-			this.$.tabOkButton.disabled = false;
-		} else {
-			this.$.tabOkButton.disabled = true;
-		}
-	}
-
-	tableDelete(event) {
-		this.$.deleteTableAjax.method = "DELETE";
-		this.$.deleteTableAjax.url = "/catalogManagement/v2/pla/" + this.$.prefixList.table;
-		this.$.deleteTableAjax.generateRequest();
-	}
-
-	_deleteTableResponse(event) {
-		this.$.tableList.close();
-		document.body.querySelector('sig-app').shadowRoot.getElementById('offerList').shadowRoot.getElementById('getTableAjax').generateRequest();
-	}
 
 	_overFlowMenu() {
 		import('./sig-help.js');
