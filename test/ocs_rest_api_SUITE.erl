@@ -176,7 +176,7 @@ all() ->
 	notify_delete_expired_bucket,
 	post_hub_product, delete_hub_product, notify_create_product,
 	post_hub_service, delete_hub_service, notify_create_service,
-	post_hub_user, delete_hub_user, post_hub_catalog].
+	post_hub_user, delete_hub_user, post_hub_catalog, delete_hub_catalog].
 
 %%%%%---------------------------------------------------------------------
 %%  Test cases
@@ -2908,6 +2908,24 @@ post_hub_catalog(Config) ->
 	{_, Callback} = lists:keyfind("callback", 1, HubList),
 	{_, Id} = lists:keyfind("id", 1, HubList),
 	{_, null} = lists:keyfind("query", 1, HubList).
+
+delete_hub_catalog() ->
+	[{userdata, [{doc, "Unregister hub listener for catalog"}]}].
+
+delete_hub_catalog(Config) ->
+	HostUrl = ?config(host_url, Config),
+	PathHub = ?PathCatalogHub,
+	CollectionUrl = HostUrl ++ PathHub,
+	Callback = "http://in.listener.com",
+	RequestBody = "{\"callback\":\"" ++ Callback ++ "\"}",
+	ContentType = "application/json",
+	Accept = {"accept", "application/json"},
+	Request = {CollectionUrl, [Accept, auth_header()], ContentType, RequestBody},
+	{ok, {{_, 201, _}, _, ResponseBody}} = httpc:request(post, Request, [], []),
+	{struct, HubList} = mochijson:decode(ResponseBody),
+	{_, Id} = lists:keyfind("id", 1, HubList),
+	Request1 = {HostUrl ++ PathHub ++ Id, [Accept, auth_header()]},
+	{ok, {{_, 204, _}, _, []}} = httpc:request(delete, Request1, [], []).
 
 %%---------------------------------------------------------------------
 %%  Internal functions
