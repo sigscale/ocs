@@ -91,6 +91,8 @@ do_delete(Resource, ModData, ["resourceInventoryManagement", "v1", "logicalResou
 	do_response(ModData, Resource:delete_resource_inventory(Table, Identity));
 do_delete(Resource, ModData, ["balanceManagement", "v1", "hub", Identity]) ->
 	do_response(ModData, Resource:delete_hub(Identity));
+do_delete(Resource, ModData, ["productCatalog", "v2", "hub", Identity]) ->
+	do_response(ModData, Resource:delete_hub_catalog(Identity));
 do_delete(_Resource, #mod{data = Data} = _ModData, _) ->
 	Response = "<h2>HTTP Error 404 - Not Found</h2>",
 	{proceed, [{response, {404, Response}} | Data]}.

@@ -22,7 +22,7 @@
 -include("ocs.hrl").
 
 -export([content_types_accepted/0, content_types_provided/0, post_hub/1,
-		delete_hub/1, post_hub_catalog/1]).
+		delete_hub/1, post_hub_catalog/1, delete_hub_catalog/1]).
 -export([hub/1]).
 
 -define(PathProductHub, "/productInventoryManagement/v2/hub/").
@@ -90,6 +90,15 @@ post_hub(ReqBody) ->
 		_:_ ->
 			{error, 400}
 	end.
+
+-spec delete_hub_catalog(Id) -> Result
+	when
+		Id :: string(),
+		Result :: {ok, Headers :: [tuple()], Body :: iolist()}
+			| {error, ErrorCode :: integer()}.
+%% @doc Delete by id.
+delete_hub_catalog(Id) ->
+	{gen_fsm:send_all_state_event({global, Id}, shutdown), [], []}.
 
 -spec post_hub_catalog(ReqBody) -> Result
 	when
