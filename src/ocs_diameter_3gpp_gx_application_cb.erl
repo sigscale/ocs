@@ -38,7 +38,9 @@
 -record(state, {}).
 
 -define(EPOCH_OFFSET, 2208988800).
+-define(IANA_PEN_3GPP, 10415).
 -define(Gx_APPLICATION_ID, 16777238).
+-define(DIAMETER_ERROR_INITIAL_PARAMETERS, 5140).
 
 -type state() :: #state{}.
 -type capabilities() :: #diameter_caps{}.
@@ -267,20 +269,28 @@ errors(ServiceName, Capabilities, Request, []) ->
 		Result :: packet() | message().
 %% @doc Process a received DIAMETER Accounting packet.
 %% @private
-process_request(Address, Port,
+process_request(_Address, _Port,
 		#diameter_caps{origin_host = {OHost, _DHost}, origin_realm = {ORealm, _DRealm}},
 		#'3gpp_gx_CCR'{'Session-Id' = SId,
 				'Auth-Application-Id' = ?Gx_APPLICATION_ID,
 				'CC-Request-Type' = RequestType,
 				'CC-Request-Number' = RequestNum,
-				'Subscription-Id' = SubscriptionIds} = Request) ->
+				'Subscription-Id' = []} = Request) ->
+			error_logger:warning_report(["Unable to process DIAMETER request",
+					{origin_host, OHost}, {origin_realm, ORealm},
+					{session_id, SId}, {request, Request},
+					{error, missing_subscription_id}]),
+			diameter_error(SId, ?'DIAMETER_ERROR_INITIAL_PARAMETERS',
+					OHost, ORealm, RequestType, RequestNum);
+process_request(_Address, _Port,
+		#diameter_caps{origin_host = {OHost, _DHost}, origin_realm = {ORealm, _DRealm}},
+		#'3gpp_gx_CCR'{'Session-Id' = SId,
+				'Auth-Application-Id' = ?Gx_APPLICATION_ID,
+				'CC-Request-Type' = RequestType,
+				'CC-Request-Number' = RequestNum,
+				'Subscription-Id' = [#'3gpp_gx_Subscription-Id'{
+						'Subscription-Id-Data' = Subscriber} | _]} = Request) ->
 	try
-		Subscriber = case SubscriptionIds of
-			[#'3gpp_gx_Subscription-Id'{'Subscription-Id-Data' = Sub} | _] ->
-				Sub;
-			[] ->
-				throw(no_subscriber_identification_information)
-		end,
 		#'3gpp_gx_CCA'{'Session-Id' = SId,
 				'Result-Code' = [?'DIAMETER_BASE_RESULT-CODE_SUCCESS'],
 				'Origin-Host' = OHost, 'Origin-Realm' = ORealm,
@@ -291,7 +301,7 @@ process_request(Address, Port,
 		_:Reason ->
 			error_logger:warning_report(["Unable to process DIAMETER request",
 					{origin_host, OHost}, {origin_realm, ORealm},
-					{request, Request}, {error, Reason}]),
+					{session_id, SId}, {request, Request}, {error, Reason}]),
 			diameter_error(SId, ?'DIAMETER_BASE_RESULT-CODE_UNABLE_TO_COMPLY',
 					OHost, ORealm, RequestType, RequestNum)
 	end.
@@ -308,9 +318,18 @@ process_request(Address, Port,
 		Reply :: #'3gpp_gx_CCA'{}.
 %% @doc Send CCA to DIAMETER client indicating an operation failure.
 %% @hidden
+diameter_error(SId, ?'DIAMETER_ERROR_INITIAL_PARAMETERS' = ResultCode,
+		OHost, ORealm, RequestType, RequestNum) ->
+	#'3gpp_gx_CCA'{'Session-Id' = SId,
+			'Experimental-Result' = [#'3gpp_gx_Experimental-Result'{
+					'Vendor-Id' = ?IANA_PEN_3GPP,
+					'Experimental-Result-Code' = ResultCode}],
+			'Origin-Host' = OHost, 'Origin-Realm' = ORealm,
+			'Auth-Application-Id' = ?Gx_APPLICATION_ID,
+			'CC-Request-Type' = RequestType, 'CC-Request-Number' = RequestNum};
 diameter_error(SId, ResultCode, OHost, ORealm, RequestType, RequestNum) ->
 	#'3gpp_gx_CCA'{'Session-Id' = SId, 'Result-Code' = [ResultCode],
 			'Origin-Host' = OHost, 'Origin-Realm' = ORealm,
-			'Auth-Application-Id' = ?Gx_APPLICATION_ID, 'CC-Request-Type' = RequestType,
-			'CC-Request-Number' = RequestNum}.
+			'Auth-Application-Id' = ?Gx_APPLICATION_ID,
+			'CC-Request-Type' = RequestType, 'CC-Request-Number' = RequestNum}.
 
