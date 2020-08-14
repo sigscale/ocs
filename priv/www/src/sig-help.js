@@ -15,14 +15,13 @@ import '@polymer/paper-input/paper-input.js';
 import '@polymer/iron-collapse/iron-collapse.js';
 import '@polymer/paper-icon-button/paper-icon-button.js';
 import '@polymer/app-layout/app-toolbar/app-toolbar.js';
-import '@polymer/paper-toolbar/paper-toolbar.js';
 import './style-element.js';
 
 class ocsHelp extends PolymerElement {
 	static get template() {
 		return html`
 			<style include="style-element"></style>
-			<paper-dialog id="helpDrop">
+			<paper-dialog class="helpdialog" id="helpDrop">
 				<paper-icon-item class="menu-trigger menuitem"
 					on-click="_collapseLogsContact">
 					<iron-icon icon="my-icons:contactUs" item-icon></iron-icon>
@@ -65,7 +64,7 @@ class ocsHelp extends PolymerElement {
 						About
 				</paper-icon-item>
 			</paper-dialog>
-			<paper-dialog id="helpMenu">
+			<paper-dialog class="helpdialog" id="helpMenu">
 				<app-toolbar>
 						Help
 				</app-toolbar>
@@ -106,7 +105,7 @@ class ocsHelp extends PolymerElement {
 					Filtering
 				</paper-icon-item>
 			</paper-dialog>
-			<paper-dialog id="helpToolbar">
+			<paper-dialog class="helpdialog" id="helpToolbar">
 				<paper-dialog-scrollable>
 					<app-toolbar>
 						<paper-icon-button
@@ -141,7 +140,7 @@ class ocsHelp extends PolymerElement {
 					<img alt="screenshot" src="/progress.png" height="96" width="298">
 				</paper-dialog-scrollable>
 			</paper-dialog>
-			<paper-dialog id="helpSubscribers">
+			<paper-dialog class="helpdialog" id="helpSubscribers">
 				<app-toolbar>
 					<paper-icon-button
 							icon="my-icons:arrow-back"
@@ -211,7 +210,7 @@ class ocsHelp extends PolymerElement {
 					includes a <b>DELETE</b> button.</p>
 				</paper-dialog-scrollable>
 			</paper-dialog>
-			<paper-dialog id="helpClients">
+			<paper-dialog class="helpdialog" id="helpClients">
 				<app-toolbar>
 					<paper-icon-button
 						icon="my-icons:arrow-back"
@@ -268,7 +267,7 @@ class ocsHelp extends PolymerElement {
 					includes a <b>DELETE</b> button.</p>
 				</paper-dialog-scrollable>
 			</paper-dialog>
-			<paper-dialog id="helpLogs">
+			<paper-dialog class="helpdialog" id="helpLogs">
 				<app-toolbar>
 					<paper-icon-button
 						icon="my-icons:arrow-back"
@@ -391,7 +390,7 @@ class ocsHelp extends PolymerElement {
 					</dl>
 				</paper-dialog-scrollable>
 			</paper-dialog>
-			<paper-dialog id="helpUsers">
+			<paper-dialog class="helpdialog" id="helpUsers">
 				<app-toolbar>
 					<paper-icon-button
 							icon="my-icons:arrow-back"
@@ -428,7 +427,7 @@ class ocsHelp extends PolymerElement {
 					includes a <b>DELETE</b> button.</p>
 				</paper-dialog-scrollable>
 			</paper-dialog>
-			<paper-dialog id="helpFiltering">
+			<paper-dialog class="helpdialog" id="helpFiltering">
 				<app-toolbar>
 					<paper-icon-button
 						icon="my-icons:arrow-back"
@@ -451,7 +450,7 @@ class ocsHelp extends PolymerElement {
 					<img alt="screenshot" src="/filter.png" height="118" width="320">
 				</paper-dialog-scrollable>
 			</paper-dialog>
-			<paper-dialog id="helpProduct">
+			<paper-dialog class="helpdialog" id="helpProduct">
 				<app-toolbar>
 					<paper-icon-button
 						icon="my-icons:arrow-back"
@@ -493,7 +492,7 @@ class ocsHelp extends PolymerElement {
 					</dl></p>
 				</paper-dialog-scrollable>
 			</paper-dialog>
-			<paper-dialog id="aboutHelp">
+			<paper-dialog class="helpdialog" id="aboutHelp">
 				<app-toolbar>
 					<h2>About</h2>
 				</app-toolbar>

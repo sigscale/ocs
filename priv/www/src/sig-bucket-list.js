@@ -15,6 +15,7 @@ import '@vaadin/vaadin-grid/vaadin-grid.js';
 import '@vaadin/vaadin-grid/vaadin-grid-filter.js';
 import '@vaadin/vaadin-grid/vaadin-grid-column-group.js';
 import '@polymer/paper-toast/paper-toast.js';
+import '@polymer/iron-icons/iron-icons.js';
 import './style-element.js'
 
 class bucketList extends PolymerElement {

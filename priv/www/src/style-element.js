@@ -54,7 +54,7 @@ styleElement.innerHTML = `<template>
 			color: black;
 			line-height: 40px;
 		}
-		paper-dialog {
+		.helpdialog {
 			position: fixed;
 			min-width: 20em;
 			right: -36px;
