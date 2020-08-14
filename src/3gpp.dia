@@ -81,7 +81,6 @@
    Charged-Party                                           857  UTF8String       VM
    Charging-Characteristics-Selection-Mode                2066  Enumerated       VM
    Charging-Per-IP-CAN-Session-Indicator                  4400  Enumerated       VM
-   Charging-Rule-Base-Name                                1004  UTF8String       VM
    Class-Identifier                                       1214  Enumerated       VM
    Client-Address                                         2018  Address          VM
 ;  CN-IP-Multicast-Distribution                            921  
@@ -503,21 +502,32 @@
    Extended-Max-Requested-BW-DL                            554  Unsigned32       VM
    Extended-Max-Requested-BW-UL                            555  Unsigned32       VM
    ;; 3GPP TS 29.212
-   QoS-Class-Identifier                                   1028  Enumerated       VM
    Max-Requested-Bandwidth-DL                              515  Unsigned32       VM
    Max-Requested-Bandwidth-UL                              516  Unsigned32       VM
+   Charging-Rule-Install                                  1001  Grouped          VM
+   Charging-Rule-Remove                                   1002  Grouped          VM
+   Charging-Rule-Definition                               1003  Grouped          VM
+   Charging-Rule-Base-Name                                1004  UTF8String       VM
+   Charging-Rule-Name                                     1005  OctetString      VM
+   IP-CAN-Type                                            1006  Enumerated       VM
+   Offline                                                1008  Enumerated       VM
+   Online                                                 1009  Enumerated       VM
+   Bearer-Identifier                                      1020  OctetString      VM
    Guaranteed-Bitrate-DL                                  1025  Unsigned32       VM
    Guaranteed-Bitrate-UL                                  1026  Unsigned32       VM
-   Bearer-Identifier                                      1020  OctetString      VM
-   Conditional-APN-Aggregate-Max-Bitrate                  2818  Grouped          VM
+   QoS-Class-Identifier                                   1028  Enumerated       VM
+   Network-Request-Support                                1024  Enumerated       VM
+   RAT-Type                                               1032  Enumerated       V
    Allocation-Retention-Priority                          1034  Grouped          VM
    APN-Aggregate-Max-Bitrate-DL                           1040  Unsigned32       VM
    APN-Aggregate-Max-Bitrate-UL                           1041  Unsigned32       VM
-   IP-CAN-Type                                            1027  Enumerated       VM
-   RAT-Type                                               1032  Enumerated       VM
    Pre-emption-Capability                                 1047  Enumerated       VM
-   Pre-emption-Vulnerability                              1048  Enumerated       VM
+   Pre-emption-Vulnerability                              1048  Enumerated       V
+   Default-EPS-Bearer-QoS                                 1049  Grouped          V
    UE-Local-IP-Address                                    2805  Address          V
+   Default-QoS-Information                                2816  Grouped          V
+   Default-QoS-Name                                       2817  UTF8String       V
+   Conditional-APN-Aggregate-Max-Bitrate                  2818  Grouped          V
    ;; 3GPP TS 29.273
    3GPP-AAA-Server-Name                                    318  DiameterIdentity VM
    Visited-Network-Identifier                              600  OctetString      VM
@@ -1609,11 +1619,76 @@
       [ Supported-Monitoring-Events ]
      *[ AVP ]
 
-APN-Configuration-Profile ::= <AVP Header: 1429>
+   APN-Configuration-Profile ::= <AVP Header: 1429>
       { Context-Identifier }
       { All-APN-Configurations-Included-Indicator }
     1*{ APN-Configuration }
       [ Additional-Context-Identifier ]
+     *[ AVP ]
+
+   Charging-Rule-Install ::= < AVP Header: 1001 >
+        *[ Charging-Rule-Definition ]
+        *[ Charging-Rule-Name ]
+        *[ Charging-Rule-Base-Name ]
+         [ Bearer-Identifier ]
+;        [ Monitoring-Flags ]
+;        [ Rule-Activation-Time ]
+;        [ Rule-Deactivation-Time ]
+;        [ Resource-Allocation-Notification ]
+;        [ Charging-Correlation-Indicator ]
+         [ IP-CAN-Type ]
+        *[ AVP ]
+
+   Charging-Rule-Remove ::= < AVP Header: 1002 >
+        *[ Charging-Rule-Name ]
+        *[ Charging-Rule-Base-Name ]
+;       *[ Required-Access-Info ]
+;        [ Resource-Release-Notification ]
+        *[ AVP ]
+
+   Charging-Rule-Definition ::= <AVP Header: 1003 >
+         { Charging-Rule-Name }
+         [ Service-Identifier ]
+         [ Rating-Group ]
+;       *[ Flow-Information ]
+;        [ Default-Bearer-Indication ]
+;        [ TDF-Application-Identifier ]
+;        [ Flow-Status ]
+         [ QoS-Information ]
+;        [ PS-to-CS-Session-Continuity ]
+;        [ Reporting-Level ]
+         [ Online ]
+         [ Offline ]
+;        [ Max-PLR-DL ]
+;        [ Max-PLR-UL ]
+;        [ Metering-Method ]
+;        [ Precedence ]
+         [ AF-Charging-Identifier ]
+        *[ Flows ]
+;        [ Monitoring-Key]
+;        [ Redirect-Information ]
+;        [ Mute-Notification ]
+;        [ AF-Signalling-Protocol ]
+;        [ Sponsor-Identity ]
+;        [ Application-Service-Provider-Identity ]
+;       *[ Required-Access-Info ]
+;        [ Sharing-Key-DL ]
+;        [ Sharing-Key-UL ]
+;        [ Traffic-Steering-Policy-Identifier-DL ]
+;        [ Traffic-Steering-Policy-Identifier-UL ]
+;        [ Content-Version ]
+        *[ AVP ]
+
+   Default-EPS-Bearer-QoS ::= <AVP Header: 1049>
+      [ QoS-Class-Identifier ]
+      [ Allocation-Retention-Priority ]
+     *[ AVP ]
+
+   Default-QoS-Information ::= < AVP Header: 2816 >
+      [ QoS-Class-Identifier ]
+      [ Max-Requested-Bandwidth-UL ]
+      [ Max-Requested-Bandwidth-DL ]
+      [ Default-QoS-Name ]
      *[ AVP ]
 
 @enum Trace-Depth
@@ -2151,3 +2226,16 @@ APN-Configuration-Profile ::= <AVP Header: 1429>
 @enum All-APN-Configurations-Included-Indicator
    All_APN_CONFIGURATIONS_INCLUDED            0
    MODIFIED_ADDED_APN_CONFIGURATIONS_INCLUDED 1
+
+@enum Offline
+   DISABLE_OFFLINE 0
+   ENABLE_OFFLINE  1
+
+@enum Online
+   DISABLE_ONLINE  0
+   ENABLE_ONLINE   1
+
+@enum Network-Request-Support
+   NETWORK_REQUEST_NOT_SUPPORTED  0
+   NETWORK_REQUEST_SUPPORTED      1
+
