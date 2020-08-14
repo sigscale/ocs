@@ -22,10 +22,11 @@
 -include("ocs.hrl").
 
 -export([content_types_accepted/0, content_types_provided/0, post_hub/1,
-		delete_hub/1]).
+		delete_hub/1, post_hub_catalog/1]).
 -export([hub/1]).
 
 -define(PathProductHub, "/productInventoryManagement/v2/hub/").
+-define(PathCatalogHub, "/productCatalog/v2/hub/").
 
 %%----------------------------------------------------------------------
 %%  The hub public API
@@ -80,6 +81,41 @@ post_hub(ReqBody) ->
 						Body = mochijson:encode(hub(HubRecord#hub{id = Id})),
 						Headers = [{content_type, "application/json"},
 								{location, ?PathProductHub ++ Id}],
+						{ok, Headers, Body};
+					{error, _Reason} ->
+						{error, 500}
+				end
+		end
+	catch
+		_:_ ->
+			{error, 400}
+	end.
+
+-spec post_hub_catalog(ReqBody) -> Result
+	when
+		ReqBody :: list(),
+		Result :: {ok, Headers :: [tuple()], Body :: iolist()}
+			| {error, ErrorCode :: integer()}.
+%% @doc Hub event to disk.
+post_hub_catalog(ReqBody) ->
+	try
+		case hub(mochijson:decode(ReqBody)) of
+			#hub{callback = Callback, query = undefined} = HubRecord ->
+				case supervisor:start_child(ocs_rest_hub_sup, [null, Callback]) of
+					{ok, _PageServer, Id} ->
+						Body = mochijson:encode(hub(HubRecord#hub{id = Id})),
+						Headers = [{content_type, "application/json"},
+								{location, ?PathCatalogHub ++ Id}],
+						{ok, Headers, Body};
+					{error, _Reason} ->
+						{error, 500}
+				end;
+			#hub{callback = Callback, query = Query} = HubRecord ->
+				case supervisor:start_child(ocs_rest_hub_sup, [Query, Callback]) of
+					{ok, _PageServer, Id} ->
+						Body = mochijson:encode(hub(HubRecord#hub{id = Id})),
+						Headers = [{content_type, "application/json"},
+								{location, ?PathCatalogHub ++ Id}],
 						{ok, Headers, Body};
 					{error, _Reason} ->
 						{error, 500}
