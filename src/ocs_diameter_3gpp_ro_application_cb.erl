@@ -330,8 +330,9 @@ process_request1(?'3GPP_CC-REQUEST-TYPE_INITIAL_REQUEST' = RequestType,
 					= [#'3gpp_ro_Requested-Service-Unit'{'CC-Service-Specific-Units'
 					= [CCSpecUnits]}]} when is_integer(CCSpecUnits) ->
 				{SI, RG, [{messages, CCSpecUnits}]};
-			#'3gpp_ro_Multiple-Services-Credit-Control'{} ->
-				{[], [], []}
+			#'3gpp_ro_Multiple-Services-Credit-Control'{'Service-Identifier' = SI,
+					'Rating-Group' = RG} ->
+				{SI, RG, []}
 		end,
 		Destination = call_destination(ServiceInformation),
 		ServiceType = service_type(SvcContextId),
@@ -349,7 +350,6 @@ process_request1(?'3GPP_CC-REQUEST-TYPE_INITIAL_REQUEST' = RequestType,
 			_ ->
 				calendar:universal_time()
 		end,
-erlang:display({?MODULE, ?LINE, ocs_rating, rate, diameter, ServiceType, ChargingKey, ServiceNetwork, Subscriber, Timestamp, Destination, originate, initial, [], ReserveAmount, [{'Session-Id', SId}]}),
 		case ocs_rating:rate(diameter, ServiceType, ChargingKey, ServiceNetwork,
 				Subscriber, Timestamp, Destination, originate, initial, [],
 				ReserveAmount, [{'Session-Id', SId}]) of
@@ -437,8 +437,9 @@ process_request1(?'3GPP_CC-REQUEST-TYPE_UPDATE_REQUEST' = RequestType,
 					= [#'3gpp_ro_Requested-Service-Unit'{'CC-Service-Specific-Units'
 					= [CCSpecUnits]}]} when is_integer(CCSpecUnits) ->
 				{SI, RG, [{messages, CCSpecUnits}]};
-			#'3gpp_ro_Multiple-Services-Credit-Control'{} ->
-				{[], [], []}
+			#'3gpp_ro_Multiple-Services-Credit-Control'{'Service-Identifier' = SI,
+					'Rating-Group' = RG} ->
+				{SI, RG, []}
 		end,
 		DebitAmount = case MSCC of
 			#'3gpp_ro_Multiple-Services-Credit-Control'{'Used-Service-Unit'
@@ -481,7 +482,6 @@ process_request1(?'3GPP_CC-REQUEST-TYPE_UPDATE_REQUEST' = RequestType,
 			_ ->
 				calendar:universal_time()
 		end,
-erlang:display({?MODULE, ?LINE, ocs_rating, rate, diameter, ServiceType, ChargingKey, ServiceNetwork, Subscriber, Timestamp, Destination, originate, interim, DebitAmount, ReserveAmount, [{'Session-Id', SId}]}),
 		case ocs_rating:rate(diameter, ServiceType, ChargingKey, ServiceNetwork,
 				Subscriber, Timestamp, Destination, originate, interim,
 				DebitAmount, ReserveAmount, [{'Session-Id', SId}]) of
@@ -583,7 +583,6 @@ process_request1(?'3GPP_CC-REQUEST-TYPE_TERMINATION_REQUEST' = RequestType,
 			_ ->
 				calendar:universal_time()
 		end,
-erlang:display({?MODULE, ?LINE, ocs_rating, rate, diameter, ServiceType, undefined, ServiceNetwork, Subscriber, Timestamp, Destination, originate, final, DebitAmount, [], [{'Session-Id', SId}]}),
 		case ocs_rating:rate(diameter, ServiceType, undefined, ServiceNetwork,
 				Subscriber, Timestamp, Destination, originate, final, DebitAmount,
 				[], [{'Session-Id', SId}]) of
