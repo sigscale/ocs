@@ -1848,6 +1848,7 @@
    3GPP-EPS      5
    Non-3GPP-EPS  6
    FBA           7
+	Non-3GPP-5GS  9
 
 @enum RAT-Type
    WLAN              0
@@ -2170,15 +2171,4 @@
    GENERAL         0
    IMS_SIGNALLING  1
 
-@enum IP-CAN-Type
-	3GPP-GPRS       0
-	DOCSIS          1
-	xDSL            2
-	WiMAX           3
-	3GPP2           4
-	3GPP-EPS        5
-	Non-3GPP-EPS    6
-	FBA             7
-	3GPP-5GS        8
-	Non-3GPP-5GS    9
 
