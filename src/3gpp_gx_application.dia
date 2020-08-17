@@ -179,7 +179,7 @@
 ;        [ Event-Report-Indication ]
         *[ Charging-Rule-Remove ]
         *[ Charging-Rule-Install ]
-;        [ Default-EPS-Bearer-QoS ]
+         [ Default-EPS-Bearer-QoS ]
         *[ QoS-Information ]
 ;        [ Default-QoS-Information ]
 ;        [ Revalidation-Time ]

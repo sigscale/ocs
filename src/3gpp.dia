@@ -527,7 +527,7 @@
    Charging-Rule-Definition                               1003  Grouped          VM
    Charging-Rule-Base-Name                                1004  UTF8String       VM
    Charging-Rule-Name                                     1005  OctetString      VM
-   IP-CAN-Type                                            1006  Enumerated       VM
+   IP-CAN-Type                                            1027  Enumerated       VM
    Offline                                                1008  Enumerated       VM
    Online                                                 1009  Enumerated       VM
    Bearer-Identifier                                      1020  OctetString      VM
@@ -2165,4 +2165,20 @@
 @enum Network-Request-Support
    NETWORK_REQUEST_NOT_SUPPORTED  0
    NETWORK_REQUEST_SUPPORTED      1
+
+@enum Bearer-Usage
+   GENERAL         0
+   IMS_SIGNALLING  1
+
+@enum IP-CAN-Type
+	3GPP-GPRS       0
+	DOCSIS          1
+	xDSL            2
+	WiMAX           3
+	3GPP2           4
+	3GPP-EPS        5
+	Non-3GPP-EPS    6
+	FBA             7
+	3GPP-5GS        8
+	Non-3GPP-5GS    9
 
