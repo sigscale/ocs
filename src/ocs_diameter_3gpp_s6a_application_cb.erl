@@ -269,9 +269,9 @@ authentication_information(ServiceName,
 					'Origin-Host' = OHost, 'Origin-Realm' = ORealm}};
 		{ok, #service{password = #aka_cred{k = K, opc = OPc, dif = DIF},
 				attributes = _Attributes} = _Service} ->
-			% @todo Handle two digit MNC!
+			% @todo Handle three digit MNC!
 			<<Mcc1, Mcc2, Mcc3, Mnc1, Mnc2, Mnc3, _/binary>> = IMSI,
-			SN = <<Mcc2:4, Mcc1:4, Mnc3:4, Mcc3:4, Mnc2:4, Mnc1:4>>,
+			SN = <<Mcc2:4, Mcc1:4, 15:4, Mcc3:4, Mnc2:4, Mnc1:4>>,
 			AMF = <<1:1, 0:15>>,
 			case ReqEutranAuth of
 				[#'3gpp_s6a_Requested-EUTRAN-Authentication-Info'{
@@ -376,12 +376,19 @@ update_location(ServiceName,
 					'Auth-Session-State' =  ?'3GPP_S6A_AUTH-SESSION-STATE_NO_STATE_MAINTAINED',
 					'Origin-Host' = OHost, 'Origin-Realm' = ORealm}};
 		{ok, #service{}} ->
-			ApnConfig = #'3gpp_s6a_APN-Configuration'{'Service-Selection' = "*",
+			ApnConfig1 = #'3gpp_s6a_APN-Configuration'{'Service-Selection' = "oai.ipv4",
 					'Context-Identifier' = 1,
-					'PDN-Type' =  ?'3GPP_S6A_3GPP-PDP-TYPE_IPV4'},
+					'PDN-Type' =  ?'3GPP_S6A_3GPP-PDP-TYPE_IPV4',
+					'AMBR' = [#'3gpp_s6a_AMBR'{'Max-Requested-Bandwidth-UL' = 1000000000,
+							 'Max-Requested-Bandwidth-DL' = 1000000000}]},
+			ApnConfig2 = #'3gpp_s6a_APN-Configuration'{'Service-Selection' = "*",
+					'Context-Identifier' = 2,
+					'PDN-Type' =  ?'3GPP_S6A_3GPP-PDP-TYPE_IPV4',
+					'AMBR' = [#'3gpp_s6a_AMBR'{'Max-Requested-Bandwidth-UL' = 1000000000,
+							 'Max-Requested-Bandwidth-DL' = 1000000000}]},
 			ApnProfile = #'3gpp_s6a_APN-Configuration-Profile'{'Context-Identifier' = 1,
 					'All-APN-Configurations-Included-Indicator' = 0,
-					'APN-Configuration' = [ApnConfig]},
+					'APN-Configuration' = [ApnConfig1, ApnConfig2]},
 			SubscriptionData = #'3gpp_s6a_Subscription-Data'{
 					'APN-Configuration-Profile' = [ApnProfile]},
 			{reply, #'3gpp_s6a_ULA'{'Session-Id' = SId,
