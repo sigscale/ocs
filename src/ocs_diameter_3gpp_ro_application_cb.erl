@@ -542,37 +542,35 @@ process_request1(?'3GPP_CC-REQUEST-TYPE_UPDATE_REQUEST' = RequestType,
 					OHost, ORealm, RequestType, RequestNum)
 	end;
 process_request1(?'3GPP_CC-REQUEST-TYPE_TERMINATION_REQUEST' = RequestType,
-		#'3gpp_ro_CCR'{'Multiple-Services-Credit-Control' = MSCC,
+		#'3gpp_ro_CCR'{'Multiple-Services-Credit-Control' = [MSCC | _],
 		'Service-Information' = ServiceInformation,
 		'Service-Context-Id' = SvcContextId,
 		'Event-Timestamp' = EventTimestamp} = Request, SId, RequestNum, Subscriber,
 		OHost, _DHost, ORealm, _DRealm, Address, Port) ->
 	try
 		DebitAmount = case MSCC of
-			[#'3gpp_ro_Multiple-Services-Credit-Control'{'Used-Service-Unit'
+			#'3gpp_ro_Multiple-Services-Credit-Control'{'Used-Service-Unit'
 					= [#'3gpp_ro_Used-Service-Unit'{'CC-Time'
-					= [UsedCCTime]}]} | _] when is_integer(UsedCCTime) ->
+					= [UsedCCTime]}]} when is_integer(UsedCCTime) ->
 				[{seconds, UsedCCTime}];
-			[#'3gpp_ro_Multiple-Services-Credit-Control'{'Used-Service-Unit'
+			#'3gpp_ro_Multiple-Services-Credit-Control'{'Used-Service-Unit'
 					= [#'3gpp_ro_Used-Service-Unit'{'CC-Total-Octets'
-					= [UsedCCTotalOctets]}]} | _] when is_integer(UsedCCTotalOctets) ->
+					= [UsedCCTotalOctets]}]} when is_integer(UsedCCTotalOctets) ->
 				[{octets, UsedCCTotalOctets}];
-			[#'3gpp_ro_Multiple-Services-Credit-Control'{'Used-Service-Unit'
+			#'3gpp_ro_Multiple-Services-Credit-Control'{'Used-Service-Unit'
 					= [#'3gpp_ro_Used-Service-Unit'{'CC-Output-Octets'
 					= [UsedCCOutputOctets], 'CC-Input-Octets'
-					= [UsedCCInputOctets]}]} | _] when is_integer(UsedCCInputOctets),
+					= [UsedCCInputOctets]}]} when is_integer(UsedCCInputOctets),
 					is_integer(UsedCCOutputOctets) ->
 				[{octets, UsedCCInputOctets + UsedCCOutputOctets}];
-			[#'3gpp_ro_Multiple-Services-Credit-Control'{'Used-Service-Unit'
+			#'3gpp_ro_Multiple-Services-Credit-Control'{'Used-Service-Unit'
 					= [#'3gpp_ro_Used-Service-Unit'{'CC-Service-Specific-Units'
-					= [UsedCCSpecUnits]}]} | _] when is_integer(UsedCCSpecUnits) ->
+					= [UsedCCSpecUnits]}]} when is_integer(UsedCCSpecUnits) ->
 				[{messages, UsedCCSpecUnits}];
-			[#'3gpp_ro_Multiple-Services-Credit-Control'{'Used-Service-Unit'
-					= [#'3gpp_ro_Used-Service-Unit'{}]} | _] ->
+			#'3gpp_ro_Multiple-Services-Credit-Control'{'Used-Service-Unit'
+					= [#'3gpp_ro_Used-Service-Unit'{}]} ->
 				throw(unsupported_used_units);
-			[#'3gpp_ro_Multiple-Services-Credit-Control'{} | _] ->
-				[];
-			[] ->
+			#'3gpp_ro_Multiple-Services-Credit-Control'{} ->
 				[]
 		end,
 		Destination = call_destination(ServiceInformation),
@@ -634,7 +632,17 @@ process_request1(?'3GPP_CC-REQUEST-TYPE_TERMINATION_REQUEST' = RequestType,
 					{request, Request}, {error, Reason1}]),
 			diameter_error(SId, ?'DIAMETER_BASE_RESULT-CODE_UNABLE_TO_COMPLY', OHost,
 					ORealm, RequestType, RequestNum)
-	end.
+	end;
+process_request1(?'3GPP_CC-REQUEST-TYPE_TERMINATION_REQUEST' = RequestType,
+		#'3gpp_ro_CCR'{'Multiple-Services-Credit-Control' = []} = Request,
+		SId, RequestNum, _Subscriber, OHost, _DHost,
+		ORealm, _DRealm, Address, Port) ->
+	Reply = diameter_answer(SId, [], [], undefined,
+			?'DIAMETER_BASE_RESULT-CODE_SUCCESS',
+			OHost, ORealm, RequestType, RequestNum),
+	ok = ocs_log:acct_log(diameter, {Address, Port},
+			accounting_event_type(RequestType), Request, Reply, undefined),
+	Reply.
 
 -spec diameter_answer(SessionId, ServiceIdentifier, RatingGroup, GrantedUnits,
 		ResultCode, OriginHost, OriginRealm, RequestType, RequestNum) -> Result
