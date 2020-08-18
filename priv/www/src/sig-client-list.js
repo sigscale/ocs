@@ -156,6 +156,14 @@ class clientList extends PolymerElement {
 		}
 	}
 
+	refreshClient() {
+		this.etag = null;
+		delete this.$.getClientAjax.headers['If-Range'];
+		delete this.$.getClientAjax.params['filter'];
+		this._filterAddress = null;
+		this._filterPort = null;
+	}
+
 	ready() {
 		super.ready();
 		var grid = this.shadowRoot.getElementById('clientGrid');

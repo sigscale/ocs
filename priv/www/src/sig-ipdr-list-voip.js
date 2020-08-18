@@ -210,6 +210,13 @@ class ipdrListVoip extends PolymerElement {
 		}
 	}
 
+	refreshIPDRVoip() {
+		this.etag = null;
+		delete this.$.getIpdrVoip.params['date'];
+		this.$.getLogsAjaxVoip.generateRequest();
+		document.body.querySelector('sig-app').shadowRoot.getElementById('ipdrLogListVoip').shadowRoot.getElementById('ipdrGridVoip').clearCache();
+	}
+
 	_activePageChanged(active) {
 		var voipAjax = this.$.getLogsAjaxVoip; 
 		voipAjax.url = "/ocs/v1/log/ipdr/voip";

@@ -308,6 +308,13 @@ class ipdrListWlan extends PolymerElement {
 		}
 	}
 
+	refreshIpdr() {
+		this.etag = null;
+		delete this.$.getIpdr.params['date'];
+		this.$.getLogsAjaxWlan.generateRequest();
+		document.body.querySelector('sig-app').shadowRoot.getElementById('ipdrLogListWlan').shadowRoot.getElementById('ipdrGrid').clearCache();
+	}
+
 	_activePageChanged(active) {
 		var wlanAjax = this.$.getLogsAjaxWlan;
 		wlanAjax.url = "/ocs/v1/log/ipdr/wlan";

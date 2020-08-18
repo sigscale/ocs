@@ -150,6 +150,15 @@ class productList extends PolymerElement {
 		}
 	}
 
+	refreshProduct() {
+		this.etag = null;
+		delete this.$.getProductInventory.headers['If-Range'];
+		delete this.$.getProductInventory.params['filter'];
+		this._filterProId = null;
+		this._filterIdentity = null;
+		this._filterOffer = null;
+	}
+
 	ready() {
 		super.ready();
 		var grid = this.shadowRoot.getElementById('productInventoryGrid');

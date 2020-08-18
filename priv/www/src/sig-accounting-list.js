@@ -224,6 +224,20 @@ class accountingList extends PolymerElement {
 		}
 	}
 
+	refreshAccounting() {
+		this.etag = null;
+		delete this.$.getAccounting.headers['If-Range'];
+		this.filterTimeStamp = null;
+		this.filterclientIdentityAcc = null;
+		this.filteracctSessiontime = null;
+		this.filterout = null;
+		this.filterin = null;
+		this.filtertotal = null;
+		this.filterUserName = null;
+		this.filterPrices = null;
+		this.filterType = null
+	}
+
 	ready() {
 		super.ready();
 		var grid = this.shadowRoot.getElementById('accountingGrid');

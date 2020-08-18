@@ -153,6 +153,18 @@ class accessList extends PolymerElement {
 		}
 	}
 
+	refreshAccess() {
+		this.etag = null;
+		delete this.$.getAccess.headers['If-Range'];
+		delete this.$.getAccess.params['filter'];
+		this.filterAccessTimeStamp = null;
+		this.filterClientAddress = null;
+		this.filterclientIdentity = null;
+		this.filtercalledStation = null;
+		this.filterUserName = null;
+		this.filterType = null
+	}
+
 	ready() {
 		super.ready();
 		var grid = this.shadowRoot.getElementById('accessGrid');

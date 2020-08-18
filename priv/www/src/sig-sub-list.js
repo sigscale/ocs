@@ -119,6 +119,14 @@ class subList extends PolymerElement {
 		}
 	}
 
+	refreshSub() {
+		this.etag = null;
+		delete this.$.getSubscriberAjax.headers['If-Range'];
+		delete this.$.getSubscriberAjax.params['filter'];
+		this._filterIdentity = null;
+		this._filterBalance = null;
+	}
+
 	ready() {
 		super.ready();
 		var grid = this.shadowRoot.getElementById('subscriberGrid');
