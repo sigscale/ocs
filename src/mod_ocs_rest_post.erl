@@ -116,7 +116,9 @@ do_post(Resource, ModData, Body, ["catalogManagement", "v2", "pla"]) ->
 do_post(Resource, ModData, Body, ["productCatalog", "v2", "hub"]) ->
 	do_response(ModData, Resource:post_hub_catalog(Body));
 do_post(Resource, ModData, Body, ["resourceInventoryManagement", "v1", "logicalResource", Table]) ->
-	do_response(ModData, Resource:add_resource_inventory(Table, Body)).
+	do_response(ModData, Resource:add_resource_inventory(Table, Body));
+do_post(Resource, ModData, Body, ["resourceInventory", "v1", "hub"]) ->
+	do_response(ModData, Resource:post_hub(Body)).
 
 %% @hidden
 do_response(#mod{data = Data} = ModData, {ok, [] = Headers,
