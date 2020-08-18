@@ -1932,6 +1932,7 @@
    APPLICATION_TERMINATION 4
 
 @enum QoS-Class-Identifier
+   Reserved 0
    QCI_1    1
    QCI_2    2
    QCI_3    3
