@@ -25,7 +25,7 @@
 		delete_hub/1]).
 -export([hub/1]).
 
--define(PathServiceHub, "/serviceInventoryManagement/v2/hub/").
+-define(PathServiceHub, "/serviceInventory/v2/hub/").
 
 %%----------------------------------------------------------------------
 %%  The hub public API

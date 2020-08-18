@@ -44,8 +44,8 @@
 %-define(MILLISECOND, millisecond).
 
 -define(PathBalanceHub, "/balanceManagement/v1/hub/").
--define(PathProductHub, "/productInventoryManagement/v2/hub/").
--define(PathServiceHub, "/serviceInventoryManagement/v2/hub/").
+-define(PathProductHub, "/productInventory/v2/hub/").
+-define(PathServiceHub, "/serviceInventory/v2/hub/").
 -define(PathUserHub, "/partyManagement/v1/hub/").
 -define(PathCatalogHub, "/productCatalog/v2/hub/").
 

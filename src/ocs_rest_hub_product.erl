@@ -25,7 +25,7 @@
 		delete_hub/1, post_hub_catalog/1, delete_hub_catalog/1]).
 -export([hub/1]).
 
--define(PathProductHub, "/productInventoryManagement/v2/hub/").
+-define(PathProductHub, "/productInventory/v2/hub/").
 -define(PathCatalogHub, "/productCatalog/v2/hub/").
 
 %%----------------------------------------------------------------------
