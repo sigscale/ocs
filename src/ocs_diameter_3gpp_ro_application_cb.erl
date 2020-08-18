@@ -542,35 +542,37 @@ process_request1(?'3GPP_CC-REQUEST-TYPE_UPDATE_REQUEST' = RequestType,
 					OHost, ORealm, RequestType, RequestNum)
 	end;
 process_request1(?'3GPP_CC-REQUEST-TYPE_TERMINATION_REQUEST' = RequestType,
-		#'3gpp_ro_CCR'{'Multiple-Services-Credit-Control' = [MSCC | _],
+		#'3gpp_ro_CCR'{'Multiple-Services-Credit-Control' = MSCC,
 		'Service-Information' = ServiceInformation,
 		'Service-Context-Id' = SvcContextId,
 		'Event-Timestamp' = EventTimestamp} = Request, SId, RequestNum, Subscriber,
 		OHost, _DHost, ORealm, _DRealm, Address, Port) ->
 	try
 		DebitAmount = case MSCC of
-			#'3gpp_ro_Multiple-Services-Credit-Control'{'Used-Service-Unit'
+			[#'3gpp_ro_Multiple-Services-Credit-Control'{'Used-Service-Unit'
 					= [#'3gpp_ro_Used-Service-Unit'{'CC-Time'
-					= [UsedCCTime]}]} when is_integer(UsedCCTime) ->
+					= [UsedCCTime]}]} | _] when is_integer(UsedCCTime) ->
 				[{seconds, UsedCCTime}];
-			#'3gpp_ro_Multiple-Services-Credit-Control'{'Used-Service-Unit'
+			[#'3gpp_ro_Multiple-Services-Credit-Control'{'Used-Service-Unit'
 					= [#'3gpp_ro_Used-Service-Unit'{'CC-Total-Octets'
-					= [UsedCCTotalOctets]}]} when is_integer(UsedCCTotalOctets) ->
+					= [UsedCCTotalOctets]}]} | _] when is_integer(UsedCCTotalOctets) ->
 				[{octets, UsedCCTotalOctets}];
-			#'3gpp_ro_Multiple-Services-Credit-Control'{'Used-Service-Unit'
+			[#'3gpp_ro_Multiple-Services-Credit-Control'{'Used-Service-Unit'
 					= [#'3gpp_ro_Used-Service-Unit'{'CC-Output-Octets'
 					= [UsedCCOutputOctets], 'CC-Input-Octets'
-					= [UsedCCInputOctets]}]} when is_integer(UsedCCInputOctets),
+					= [UsedCCInputOctets]}]} | _] when is_integer(UsedCCInputOctets),
 					is_integer(UsedCCOutputOctets) ->
 				[{octets, UsedCCInputOctets + UsedCCOutputOctets}];
-			#'3gpp_ro_Multiple-Services-Credit-Control'{'Used-Service-Unit'
+			[#'3gpp_ro_Multiple-Services-Credit-Control'{'Used-Service-Unit'
 					= [#'3gpp_ro_Used-Service-Unit'{'CC-Service-Specific-Units'
-					= [UsedCCSpecUnits]}]} when is_integer(UsedCCSpecUnits) ->
+					= [UsedCCSpecUnits]}]} | _] when is_integer(UsedCCSpecUnits) ->
 				[{messages, UsedCCSpecUnits}];
-			#'3gpp_ro_Multiple-Services-Credit-Control'{'Used-Service-Unit'
-					= [#'3gpp_ro_Used-Service-Unit'{}]} ->
+			[#'3gpp_ro_Multiple-Services-Credit-Control'{'Used-Service-Unit'
+					= [#'3gpp_ro_Used-Service-Unit'{}]} | _] ->
 				throw(unsupported_used_units);
-			#'3gpp_ro_Multiple-Services-Credit-Control'{} ->
+			[#'3gpp_ro_Multiple-Services-Credit-Control'{} | _] ->
+				[];
+			[] ->
 				[]
 		end,
 		Destination = call_destination(ServiceInformation),
