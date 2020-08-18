@@ -103,6 +103,7 @@
 				ocs_rest_hub_product,
 				ocs_rest_hub_service,
 				ocs_rest_hub_user,
+				ocs_rest_hub_resource,
 				ocs_event]},
 		{registered, [ocs]},
 		{applications, [crypto, inets, asn1, public_key, ssl, mochiweb, radius, diameter]},

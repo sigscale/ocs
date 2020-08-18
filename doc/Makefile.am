@@ -104,6 +104,7 @@ modhtml = ocs.html \
 			ocs_rest_hub_product.html \
 			ocs_rest_hub_service.html \
 			ocs_rest_hub_user.html \
+			ocs_rest_hub_resource.html \
 			ocs_event.html
 
 doc_DATA = overview.edoc $(modhtml) \
