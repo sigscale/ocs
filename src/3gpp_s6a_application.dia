@@ -108,3 +108,40 @@
      *[ Route-Record ]
      *[ AVP ]
 
+   PUR ::= < Diameter Header: 321, REQ, PXY >
+      < Session-Id >
+      { Auth-Session-State }
+      { Origin-Host }
+      { Origin-Realm }
+      { Destination-Realm }
+      { User-Name }
+      [ Destination-Host ]
+      [ DRMP ]
+      [ Vendor-Specific-Application-Id ]
+      [ OC-Supported-Features ]
+      [ PUR-Flags ]
+     *[ Supported-Features ]
+      [ EPS-Location-Information ]
+     *[ Proxy-Info ]
+     *[ Route-Record ]
+     *[ AVP ]
+
+   PUA ::= < Diameter Header: 321, PXY >
+      < Session-Id >
+      { Auth-Session-State }
+      { Origin-Host }
+      { Origin-Realm }
+      [ DRMP ]
+      [ Vendor-Specific-Application-Id ]
+     *[ Supported-Features ]
+      [ Result-Code ]
+      [ Experimental-Result ]
+      [ OC-Supported-Features ]
+      [ OC-OLR ]
+     *[ Load ]
+      [ PUA-Flags ]
+      [ Failed-AVP ]
+     *[ Proxy-Info ]
+     *[ Route-Record ]
+     *[ AVP ]
+

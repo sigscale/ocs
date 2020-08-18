@@ -124,7 +124,6 @@
    Envelope-Reporting                                     1268  Enumerated       VM
    Envelope-Start-Time                                    1269  Time             VM
    EPDG-Address                                           3425  Address          VM
-;  EPS-Location-Information                               1496  
    Event                                                   825  UTF8String       VM
    Event-Charging-TimeStamp                               1258  Time             VM
    Event-Type                                              823  Grouped          VM
@@ -586,6 +585,7 @@
 ;  CSG-Subscription-Data                                  1436  Grouped          VM
    PDN-GW-Allocation-Type                                 1438  Enumerated       VM
    RAT-Frequency-Selection-Priority-ID                    1440  Unsigned32       VM
+   PUA-Flags                                              1442  Unsigned32       VM
    Regional-Subscription-Zone-Code                        1446  OctetString      VM
    RAND                                                   1447  OctetString      VM
    XRES                                                   1448  OctetString      VM
@@ -611,6 +611,9 @@
 ;  Call-Barring-Info                                      1488  Grouped          VM
    SGSN-Number                                            1489  OctetString      VM
    Homogeneous-Support-of-IMS-Voice-Over-PS-Sessions      1493  Enumerated       V
+   EPS-Location-Information                               1496  Grouped          V
+   MME-Location-Information                               1600  Grouped          V
+   SGSN-Location-Information                              1601  Grouped          V
    E-UTRAN-Cell-Global-Identity                           1602  OctetString      V
    Tracking-Area-Identity                                 1603  OctetString      V
    Cell-Global-Identity                                   1604  OctetString      V
@@ -636,6 +639,7 @@
    Logging-Duration                                       1632  Enumerated       V
 ;  Relay-Node-Indicator                                   1633  Enumerated       V
 ;  MDT-User-Consent                                       1634  Enumerated       V
+   PUR-Flags                                              1635  Unsigned32       V
 ;  Subscribed-VSRVCC                                      1636  Enumerated       V
    Equivalent-PLMN-List                                   1637  Grouped          V
    A-MSISDN                                               1643  OctetString      V
@@ -1686,11 +1690,40 @@
       [ Allocation-Retention-Priority ]
      *[ AVP ]
 
-   Default-QoS-Information ::= < AVP Header: 2816 >
+   Default-QoS-Information ::= <AVP Header: 2816>
       [ QoS-Class-Identifier ]
       [ Max-Requested-Bandwidth-UL ]
       [ Max-Requested-Bandwidth-DL ]
       [ Default-QoS-Name ]
+     *[ AVP ]
+
+   EPS-Location-Information ::= <AVP Header: 1496>
+      [ MME-Location-Information ]
+      [ SGSN-Location-Information ]
+     *[ AVP ]
+
+   MME-Location-Information ::= <AVP Header: 1600>
+      [ E-UTRAN-Cell-Global-Identity ]
+      [ Tracking-Area-Identity ]
+;     [ Geographical-Information ]
+;     [ Geodetic-Information ]
+;     [ Current-Location-Retrieved ]
+;     [ Age-Of-Location-Information ]
+;     [ User-CSG-Information ]
+;     [ eNodeB-ID ]
+;     [ Extended-eNodeB-ID ]
+     *[ AVP ]
+
+   SGSN-Location-Information ::= <AVP Header: 1601>
+      [ Cell-Global-Identity ]
+      [ Location-Area-Identity ]
+;     [ Service-Area-Identity ]
+      [ Routing-Area-Identity ]
+;     [ Geographical-Information ]
+;     [ Geodetic-Information ]
+;     [ Current-Location-Retrieved ]
+;     [ Age-Of-Location-Information ]
+;     [ User-CSG-Information ]
      *[ AVP ]
 
 @enum Trace-Depth

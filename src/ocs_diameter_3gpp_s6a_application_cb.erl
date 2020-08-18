@@ -253,6 +253,18 @@ process_request(ServiceName,
 			{reply, #'3gpp_s6a_ULA'{'Session-Id' = SId,
 					'Result-Code' = [?'DIAMETER_BASE_RESULT-CODE_INVALID_AVP_BITS'],
 					'Origin-Host' = OHost, 'Origin-Realm' = ORealm}}
+	end;
+process_request(ServiceName,
+		#diameter_caps{origin_host = {OHost, _DHost},
+		origin_realm = {ORealm, _DRealm}} = Capabilities,
+		#'3gpp_s6a_PUR'{'Session-Id' = SId} = Request) ->
+	try
+		purge_ue(ServiceName, Capabilities, Request)
+	catch
+		_:_Reason ->
+			{reply, #'3gpp_s6a_PUA'{'Session-Id' = SId,
+					'Result-Code' = [?'DIAMETER_BASE_RESULT-CODE_INVALID_AVP_BITS'],
+					'Origin-Host' = OHost, 'Origin-Realm' = ORealm}}
 	end.
 
 %% @hidden
@@ -407,6 +419,33 @@ update_location(ServiceName,
 			error_logger:error_report(["Service lookup failure",
 					{service, ServiceName}, {module, ?MODULE}, {error, Reason}]),
 			{reply, #'3gpp_s6a_ULA'{'Session-Id' = SId,
+					'Result-Code' = [?'DIAMETER_BASE_RESULT-CODE_UNABLE_TO_COMPLY'],
+					'Auth-Session-State' =  ?'3GPP_S6A_AUTH-SESSION-STATE_NO_STATE_MAINTAINED',
+					'Origin-Host' = OHost, 'Origin-Realm' = ORealm}}
+	end.
+
+%% @hidden
+purge_ue(ServiceName,
+		#diameter_caps{origin_host = {OHost, _DHost},
+		origin_realm = {ORealm, _DRealm}} = _Capabilities,
+		#'3gpp_s6a_PUR'{'Session-Id' = SId, 'User-Name' = IMSI}) ->
+	case ocs:find_service(IMSI) of
+		{ok, #service{} = _Service} ->
+			{reply, #'3gpp_s6a_AIA'{'Session-Id' = SId,
+					'Result-Code' = [?'DIAMETER_BASE_RESULT-CODE_SUCCESS'],
+					'Auth-Session-State' = ?'3GPP_S6A_AUTH-SESSION-STATE_NO_STATE_MAINTAINED',
+					'Origin-Host' = OHost, 'Origin-Realm' = ORealm}};
+		{error, not_found} ->
+			{reply, #'3gpp_s6a_PUA'{'Session-Id' = SId,
+					'Experimental-Result' = [#'3gpp_s6a_Experimental-Result'{
+					'Vendor-Id' = ?IANA_PEN_3GPP,
+					'Experimental-Result-Code' = ?'DIAMETER_ERROR_USER_UNKNOWN'}],
+					'Auth-Session-State' =  ?'3GPP_S6A_AUTH-SESSION-STATE_NO_STATE_MAINTAINED',
+					'Origin-Host' = OHost, 'Origin-Realm' = ORealm}};
+		{error, Reason} ->
+			error_logger:error_report(["Service lookup failure",
+					{service, ServiceName}, {module, ?MODULE}, {error, Reason}]),
+			{reply, #'3gpp_s6a_PUA'{'Session-Id' = SId,
 					'Result-Code' = [?'DIAMETER_BASE_RESULT-CODE_UNABLE_TO_COMPLY'],
 					'Auth-Session-State' =  ?'3GPP_S6A_AUTH-SESSION-STATE_NO_STATE_MAINTAINED',
 					'Origin-Host' = OHost, 'Origin-Realm' = ORealm}}
