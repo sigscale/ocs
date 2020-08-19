@@ -2971,7 +2971,6 @@ delete_hub_inventory(Config) ->
 	{_, Id} = lists:keyfind("id", 1, HubList),
 	Request1 = {HostUrl ++ PathHub ++ Id, [Accept, auth_header()]},
 	{ok, {{_, 204, _}, _, []}} = httpc:request(delete, Request1, [], []).
->>>>>>> 6a5a596d4d2c7ffcbc83d95ea2b0154c08a4d354
 
 %%---------------------------------------------------------------------
 %%  Internal functions
