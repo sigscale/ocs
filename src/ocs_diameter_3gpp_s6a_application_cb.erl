@@ -439,7 +439,7 @@ purge_ue(ServiceName,
 		#'3gpp_s6a_PUR'{'Session-Id' = SId, 'User-Name' = IMSI}) ->
 	case ocs:find_service(IMSI) of
 		{ok, #service{} = _Service} ->
-			{reply, #'3gpp_s6a_AIA'{'Session-Id' = SId,
+			{reply, #'3gpp_s6a_PUA'{'Session-Id' = SId,
 					'Result-Code' = [?'DIAMETER_BASE_RESULT-CODE_SUCCESS'],
 					'Auth-Session-State' = ?'3GPP_S6A_AUTH-SESSION-STATE_NO_STATE_MAINTAINED',
 					'Origin-Host' = OHost, 'Origin-Realm' = ORealm}};
