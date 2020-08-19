@@ -49,7 +49,10 @@ init([LogRotateTime, LogRotateInterval] = _Args) ->
 					[wlan, LogRotateTime, LogRotateInterval]),
 			supervisor(ocs_rest_pagination_sup,
 					ocs_rest_pagination_sup, []),
-			server(ocs_server, [self()])],
+			supervisor(ocs_rest_hub_sup,
+					ocs_rest_hub_sup, []),
+			server(ocs_server, [self()]),
+			event(ocs_event)],
 	{ok, {{one_for_one, 10, 60}, ChildSpecs}}.
 
 %%----------------------------------------------------------------------
@@ -105,4 +108,17 @@ log_server(StartMod, [Type | _] = Args) ->
 	StartArgs = [StartMod, Args, []],
 	StartFunc = {gen_server, start_link, StartArgs},
 	{{StartMod, Type},  StartFunc, permanent, 4000, worker, [StartMod]}.
+
+-spec event(StartMod) -> Result
+	when
+		StartMod :: atom(),
+		Result :: supervisor:child_spec().
+%% @doc Build a supervisor child specification for a
+%%		{@link //stdlib/gen_event. gen_event} behaviour.
+%% @private
+%%
+event(StartMod) ->
+	StartArgs = [{local, StartMod}],
+	StartFunc = {gen_event, start_link, StartArgs},
+	{StartMod, StartFunc, permanent, 4000, worker, [StartMod]}.
 
