@@ -84,6 +84,7 @@
 				mod_ocs_rest_get,
 				mod_ocs_rest_patch,
 				mod_ocs_rest_post,
+				mod_oauth,
 				diameter_gen_3gpp,
 				diameter_gen_3gpp_ro_application,
 				diameter_gen_3gpp_sta_application,
@@ -145,5 +146,8 @@
 				{hss_realm, undefined},
 				{hss_host, undefined},
 				{rest_page_size, 1000},
-				{rest_page_timeout, 60000}]},
+				{rest_page_timeout, 60000},
+				{oauth_issuer, undefined},
+				{oauth_audience, "sigscale"},
+				{oauth_key, undefined}]},
 		{mod, {ocs_app, []}}]}.
