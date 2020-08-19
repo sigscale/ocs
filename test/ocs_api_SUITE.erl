@@ -104,7 +104,12 @@ client() ->
 
 client(Config) ->
 	{ok, [{auth, AuthInstance}, {acct, _AcctInstance}]} = application:get_env(ocs, radius),
-	[{Address, _, _}] = AuthInstance,
+	Address = case AuthInstance of
+		[{{0, 0, 0, 0}, _, _}] ->
+			{127, 0, 0, 1};
+		[{Addr, _, _}] ->
+			Addr
+	end,
 	SharedSecret = ct:get_config(radius_shared_secret, Config),
 	Protocol = ct:get_config(protocol),
 	{ok, _} = ocs:add_client(Address, 3799, Protocol, SharedSecret, true),
@@ -155,7 +160,12 @@ delete_client() ->
 
 delete_client(Config) ->
 	{ok, [{auth, AuthInstance}, {acct, _AcctInstance}]} = application:get_env(ocs, radius),
-	[{Address, _, _}] = AuthInstance,
+	Address = case AuthInstance of
+		[{{0, 0, 0, 0}, _, _}] ->
+			{127, 0, 0, 1};
+		[{Addr, _, _}] ->
+			Addr
+	end,
 	SharedSecret = ct:get_config(radius_shared_secret, Config),
 	Protocol = ct:get_config(protocol),
 	{ok, _} = ocs:add_client(Address, 3799, Protocol, SharedSecret, true),
