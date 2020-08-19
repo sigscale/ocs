@@ -147,7 +147,7 @@ handle_auth(#mod{data = Data, config_db = ConfigDb} = Info,
 	end.
 
 require(#mod{parsed_header = ParsedHeader} = Info, Directory, DirectoryData) ->
-	 ValidUsers  = lists:keyfind(require_user, 1, DirectoryData),
+	 {_, ValidUsers}  = lists:keyfind(require_user, 1, DirectoryData),
 	{_, ValidGroups} = lists:keyfind(require_group, 1, DirectoryData),
 	case ValidGroups of
 		false when ValidUsers =:= false ->
@@ -162,10 +162,10 @@ require(#mod{parsed_header = ParsedHeader} = Info, Directory, DirectoryData) ->
 							require1(Info, Directory, DirectoryData, ValidUsers, ValidGroups,
 									EncodedHeader, EncodedPayload, EncodedSignature);
 						_ ->
-							{status, {401, none, "mod_oauth" ++ "Bad credentials" ++ Credentials}}
+							{status, {401, none, "mod_oauth : " ++ "Bad credentials" ++ Credentials}}
 					end;
 				BadCredentials ->
-					{status, {401, none, "mod_auth : " +"Bad credentials" ++ BadCredentials}}
+					{status, {401, none, "mod_auth : " ++ "Bad credentials" ++ BadCredentials}}
 			end
 	end.
 %% @hidden
@@ -192,7 +192,7 @@ require1(Info, Directory, DirectoryData, ValidUsers, ValidGroups,
 
 %% @hidden
 authorization_required(DirectoryData) ->
-	case lists:keyfind(auth_name, DirectoryData) of
+	case lists:keyfind(auth_name, 1, DirectoryData) of
 		false ->
 			{status, {500, none, "mod_auth : " ++ "AuthName directive not specified"}};
 		Realm ->
@@ -298,7 +298,9 @@ validate_header1(_DecodedHeader) ->
 		ValidUsers :: list(),
 		ValidGroups :: list(),
 		DecodedPayload :: map(),
-		Result :: {authorized, User} |  {error, Reason},
+		Result :: {authorized, User} | {authorization_required, Reason} |
+				{'status',{StatusCode ,none, Reason}},
+		StatusCode :: integer(),
 		User :: string(),
 		Reason :: term().
 validate_user(Info, Directory, DirectoryData,
@@ -419,9 +421,8 @@ sub_chars1([], Acc) ->
 	when
 		Path :: string(),
 		ConfigDb :: term(),
-		Result :: {yes, Directory} | {error, Reason},
-		Directory :: list(),
-		Reason :: term().
+		Result :: {yes, Directory} | no,
+		Directory :: list().
 %% @doc Look up the configuration directory.
 directory_path(Path, ConfigDB)
 		when is_list(Path) ->
