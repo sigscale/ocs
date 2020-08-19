@@ -36,29 +36,39 @@
 do(#mod{data = Data} = Info) ->
 	case lists:keyfind(status, 1, Data) of
 		false ->
+erlang:display({?MODULE, ?LINE}),
 			case lists:keyfind(response, 1, Data) of
 				false ->
+erlang:display({?MODULE, ?LINE}),
 					do1(Data, Info);
 				_ ->
+erlang:display({?MODULE, ?LINE}),
 					{proceed, Data}
 			end;
 		{_StatusCode, _PhraseArgs, _Reason} ->
+erlang:display({?MODULE, ?LINE}),
 			{proceed, Data}
 	end.
 do1(Data, #mod{config_db = ConfigDb,
 		request_uri= RequestUri} = Info) ->
+erlang:display({?MODULE, ?LINE}),
 	Path = mod_alias:path(Data, ConfigDb, RequestUri),
 	case directory_path(Path, ConfigDb) of
 		{yes, {Directory, DirectoryData}} ->
+erlang:display({?MODULE, ?LINE}),
 			case proplists:get_value(auth_type, DirectoryData) of
 				undefined ->
+erlang:display({?MODULE, ?LINE}),
 					{proceed, Data};
 				none ->
+erlang:display({?MODULE, ?LINE}),
 					{proceed, Data};
 				AuthType ->
+erlang:display({?MODULE, ?LINE}),
 					handle_auth(Info, Directory, DirectoryData, AuthType)
 			end;
 		no ->
+erlang:display({?MODULE, ?LINE}),
 			{proceed, Data}
 	end.
 
@@ -72,6 +82,7 @@ do1(Data, #mod{config_db = ConfigDb,
 %% @doc Look up a directory and set a new context.
 load(Directory, DirectoryData)
 		when is_list(Directory), is_list(DirectoryData) ->
+erlang:display({?MODULE, ?LINE}),
 	mod_auth:load(Directory, DirectoryData).
 
 -spec store(Options, Config) -> Result
@@ -86,10 +97,13 @@ load(Directory, DirectoryData)
 %% @doc Check the validity of configuration options and save them in the internal database
 store({oauth_key, Value}, _ConfigList)
 		when is_list(Value) ->
+erlang:display({?MODULE, ?LINE}),
 	case file:read_file(Value) of
 		{ok, PemBin} ->
+erlang:display({?MODULE, ?LINE}),
 			store1(public_key:pem_decode(PemBin));
 		{error, Reason} ->
+erlang:display({?MODULE, ?LINE}),
 			{error, Reason}
 end;
 store({oauth_key, #'RSAPublicKey'{} = Value}, _ConfigList) ->
@@ -130,12 +144,16 @@ store1([#'RSAPublicKey'{} = RSAPubEntry]) ->
 		Result :: {proceed, #mod{}}.
 handle_auth(#mod{data = Data, config_db = ConfigDb} = Info,
 		Directory, DirectoryData, _AuthType) ->
+erlang:display({?MODULE, ?LINE}),
 	case require(Info, Directory, DirectoryData) of
 		authorized ->
+erlang:display({?MODULE, ?LINE}),
 			{proceed, Data};
 		{authorized, User} ->
+erlang:display({?MODULE, ?LINE}),
 			{proceed, [{remote_user, User} | Data]};
 		{authorization_required, Realm} ->
+erlang:display({?MODULE, ?LINE}),
 			Message = httpd_util:message(401, none, ConfigDb),
 			{proceed,
 					[{response, {401, ["WWW-Authenticate: Bearer realm=\"",Realm,
@@ -147,18 +165,24 @@ handle_auth(#mod{data = Data, config_db = ConfigDb} = Info,
 	end.
 
 require(#mod{parsed_header = ParsedHeader} = Info, Directory, DirectoryData) ->
-	 {_, ValidUsers}  = lists:keyfind(require_user, 1, DirectoryData),
-	{_, ValidGroups} = lists:keyfind(require_group, 1, DirectoryData),
+erlang:display({?MODULE, ?LINE}),
+erlang:display({?MODULE, ?LINE, lists:keyfind(require_user, 1, DirectoryData)}),
+	ValidUsers  = proplists:get_value(require_user, DirectoryData),
+	ValidGroups = proplists:get_value(require_group, DirectoryData),
+erlang:display({?MODULE, ?LINE}),
 	case ValidGroups of
-		false when ValidUsers =:= false ->
+		undefined when ValidUsers =:= undefined ->
 			authorized;
 		_ ->
-			case lists:keyfind("authorization", 1, ParsedHeader) of
+erlang:display({?MODULE, ?LINE}),
+			case proplists:get_value("authorization", ParsedHeader) of
 				false ->
+erlang:display({?MODULE, ?LINE}),
 					authorization_required(DirectoryData);
-				{_, "Bearer" ++ EncodedString} = Credentials ->
+				"Bearer" ++ EncodedString = Credentials ->
 					case string:tokens(EncodedString, ".") of
 						[EncodedHeader, EncodedPayload, EncodedSignature] ->
+erlang:display({?MODULE, ?LINE}),
 							require1(Info, Directory, DirectoryData, ValidUsers, ValidGroups,
 									EncodedHeader, EncodedPayload, EncodedSignature);
 						_ ->
@@ -172,15 +196,20 @@ require(#mod{parsed_header = ParsedHeader} = Info, Directory, DirectoryData) ->
 require1(Info, Directory, DirectoryData, ValidUsers, ValidGroups,
 		EncodedHeader, EncodedPayload, EncodedSignature)
 		when is_list(EncodedHeader), is_list(EncodedPayload), is_list(EncodedSignature) ->
+erlang:display({?MODULE, ?LINE}),
 	case validate_header(EncodedHeader) of
 	{valid, _DecodedHeader} ->
+erlang:display({?MODULE, ?LINE}),
 		case validate_payload(EncodedPayload) of
 		{valid, DecodedPayload} ->
+erlang:display({?MODULE, ?LINE}),
 			case validate_cert(EncodedHeader, EncodedPayload, EncodedSignature) of
 					authenticated ->
+erlang:display({?MODULE, ?LINE}),
 						validate_user(Info, Directory, DirectoryData,
 								ValidUsers, ValidGroups, DecodedPayload);
 					{error, _Reason} ->
+erlang:display({?MODULE, ?LINE}),
 						authorization_required(DirectoryData)
 			end;
 		{error, _Reason} ->
@@ -305,36 +334,46 @@ validate_header1(_DecodedHeader) ->
 		Reason :: term().
 validate_user(Info, Directory, DirectoryData,
 		ValidUsers, ValidGroups, #{"email" := Email}) when is_list(Email) ->
+erlang:display({?MODULE, ?LINE}),
 	case user_accepted(Email, ValidUsers) of
 		true ->
+erlang:display({?MODULE, ?LINE}),
 			{yes, Email};
 		false ->
+erlang:display({?MODULE, ?LINE}),
 			case user_group_check(Info, Email,
 					ValidGroups, Directory,  DirectoryData) of
 				true ->
+erlang:display({?MODULE, ?LINE}),
 					{authorized, Email};
 				false ->
+erlang:display({?MODULE, ?LINE}),
 					authorization_required(DirectoryData)
 			end
 	end;
 validate_user(Info, Directory, DirectoryData,
 		ValidUsers, ValidGroups, #{"preferred_username" := PrefUserName})
 		when is_list(PrefUserName) ->
+erlang:display({?MODULE, ?LINE, PrefUserName, ValidUsers}),
 	case user_accepted(PrefUserName, ValidUsers) of
 		true ->
+erlang:display({?MODULE, ?LINE}),
 			{yes, PrefUserName};
 		false ->
+erlang:display({?MODULE, ?LINE}),
 			case user_group_check(Info, PrefUserName,
 					ValidGroups, Directory, DirectoryData) of
 				true ->
+erlang:display({?MODULE, ?LINE}),
 					{authorized, PrefUserName};
 				_ ->
+erlang:display({?MODULE, ?LINE}),
 					authorization_required(DirectoryData)
 			end
 	end.
 
 %% @hidden
-user_accepted(_User, false) ->
+user_accepted(_User, undefined) ->
 	false;
 user_accepted(User, ValidUsers) ->
 	lists:member(User, ValidUsers).
