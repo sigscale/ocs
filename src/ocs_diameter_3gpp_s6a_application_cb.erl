@@ -409,6 +409,7 @@ update_location(ServiceName,
 					'All-APN-Configurations-Included-Indicator' = 0,
 					'APN-Configuration' = [ApnConfig1, ApnConfig2]},
 			SubscriptionData = #'3gpp_s6a_Subscription-Data'{
+					'Subscriber-Status' = ?'3GPP_S6A_SUBSCRIBER-STATUS_SERVICE_GRANTED',
 					'APN-Configuration-Profile' = [ApnProfile]},
 			{reply, #'3gpp_s6a_ULA'{'Session-Id' = SId,
 					'Result-Code' = [?'DIAMETER_BASE_RESULT-CODE_SUCCESS'],
