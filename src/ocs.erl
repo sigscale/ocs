@@ -1025,7 +1025,6 @@ delete_bucket(BucketId) ->
 	end,
 	case mnesia:transaction(F) of
 		{atomic, ok} ->
-			ocs_event:notify(expired, #bucket{id = BucketId}, balance),
 			ok;
 		{aborted, {throw, Reason}} ->
 			exit(Reason);

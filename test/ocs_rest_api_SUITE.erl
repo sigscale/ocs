@@ -174,7 +174,6 @@ all() ->
 	update_product_realizing_service, delete_product,
 	ignore_delete_product, query_product, filter_product,
 	post_hub_balance, delete_hub_balance, notify_create_bucket,
-	notify_delete_expired_bucket,
 	post_hub_product, delete_hub_product, notify_create_product,
 	post_hub_service, delete_hub_service, notify_create_service,
 	post_hub_user, delete_hub_user, post_hub_catalog, delete_hub_catalog,
@@ -2628,56 +2627,6 @@ notify_create_bucket(Config) ->
 	{_, "cents"} = lists:keyfind("units", 1, RemainAmount),
 	{_, MillionthsOut} = lists:keyfind("amount", 1, RemainAmount),
 	100 = ocs_rest:millionths_in(MillionthsOut).
-
-notify_delete_expired_bucket() ->
-	[{userdata, [{doc, "Receive expired bucket deletion notification."}]}].
-
-notify_delete_expired_bucket(Config) ->
-	HostUrl = ?config(host_url, Config),
-	CollectionUrl = HostUrl ++ ?PathBalanceHub,
-	ListenerPort = ?config(listener_port, Config),
-	ListenerServer = "http://localhost:" ++ integer_to_list(ListenerPort),
-	Callback = ListenerServer ++ "/listener/"
-			++ atom_to_list(?MODULE) ++ "/notifyexpiredbucket",
-	RequestBody = "{\n"
-			++ "\t\"callback\": \"" ++ Callback ++ "\",\n"
-			++ "}\n",
-	ContentType = "application/json",
-	Accept = {"accept", "application/json"},
-	Request = {CollectionUrl, [Accept, auth_header()], ContentType, RequestBody},
-	{ok, {{_, 201, _}, _, _}} = httpc:request(post, Request, [], []),
-	Price = #price{name = ocs:generate_identity(),
-			type = usage, units = octets, size = 1000, amount = 100},
-	Offer = #offer{name = ocs:generate_identity(),
-			price = [Price], specification = 4},
-	{ok, #offer{name = OfferId}} = ocs:add_offer(Offer),
-	{ok, #product{id = ProdRef}} = ocs:add_product(OfferId, [], []),
-	receive
-		Input1 ->
-			{struct, ProductEvent} = mochijson:decode(Input1),
-			{_, "ResourceCreateEvent"}
-					= lists:keyfind("eventType", 1, ProductEvent),
-			{_, {struct, ProductList}} = lists:keyfind("event", 1, ProductEvent),
-			{_, ProdRef} = lists:keyfind("id", 1, ProductList)
-	end,
-	Bucket = #bucket{units = cents, remain_amount = 100,
-			start_date = erlang:system_time(milli_seconds),
-			end_date = erlang:system_time(milli_seconds) + 2592000000},
-	{ok, _, #bucket{id = Id}} = ocs:add_bucket(ProdRef, Bucket),
-	{_, "ResourceCreateEvent"} = receive
-		Input2 ->
-			{struct, BalanceEvent1} = mochijson:decode(Input2),
-			lists:keyfind("eventType", 1, BalanceEvent1)
-	end,
-	ok = ocs:delete_bucket(Id),
-	{_, Id} = receive
-		Input3 ->
-			{struct, BalanceEvent2} = mochijson:decode(Input3),
-			{_, "ResourceExpiredEvent"}
-					= lists:keyfind("eventType", 1, BalanceEvent2),
-			{_, {struct, BalanceList}} = lists:keyfind("event", 1, BalanceEvent2),
-			lists:keyfind("id", 1, BalanceList)
-	end.
 
 post_hub_product() ->
 	[{userdata, [{doc, "Register hub listener for product"}]}].
