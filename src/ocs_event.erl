@@ -38,7 +38,7 @@
 
 -spec notify(EventType, EventPayLoad, Category) -> ok
 	when
-		EventType :: create | expired,
+		EventType :: create_bucket | create_product | create_service,
 		EventPayLoad :: #bucket{} | #product{} | #service{},
 		Category :: balance | product | service.
 %% @doc Send a notification event.

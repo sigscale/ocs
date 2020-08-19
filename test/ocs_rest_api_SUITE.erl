@@ -2606,7 +2606,7 @@ notify_create_bucket(Config) ->
 	receive
 		Input1 ->
 			{struct, ProductEvent} = mochijson:decode(Input1),
-			{_, "ResourceCreateEvent"}
+			{_, "ProductCreationNotification"}
 					= lists:keyfind("eventType", 1, ProductEvent),
 			{_, {struct, ProductList}} = lists:keyfind("event", 1, ProductEvent),
 			{_, ProdRef} = lists:keyfind("id", 1, ProductList)
@@ -2618,7 +2618,7 @@ notify_create_bucket(Config) ->
 	Balance = receive
 		Input2 ->
 			{struct, BalanceEvent} = mochijson:decode(Input2),
-			{_, "ResourceCreateEvent"}
+			{_, "BalanceTopupCreationNotification"}
 					= lists:keyfind("eventType", 1, BalanceEvent),
 			{_, {struct, BalanceList}} = lists:keyfind("event", 1, BalanceEvent),
 			BalanceList
@@ -2698,7 +2698,7 @@ notify_create_product(Config) ->
 	Product = receive
 		Input ->
 			{struct, ProductEvent} = mochijson:decode(Input),
-			{_, "ResourceCreateEvent"}
+			{_, "ProductCreationNotification"}
 					= lists:keyfind("eventType", 1, ProductEvent),
 			{_, {struct, ProductList}} = lists:keyfind("event", 1, ProductEvent),
 			ProductList
@@ -2756,7 +2756,7 @@ notify_create_service(Config) ->
 	Service = receive
 		Input ->
 			{struct, ServiceEvent} = mochijson:decode(Input),
-			{_, "ResourceCreateEvent"}
+			{_, "ServiceCreationNotification"}
 					= lists:keyfind("eventType", 1, ServiceEvent),
 			{_, {struct, ServiceList}} = lists:keyfind("event", 1, ServiceEvent),
 			ServiceList

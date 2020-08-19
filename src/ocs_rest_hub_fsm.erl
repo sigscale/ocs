@@ -148,7 +148,7 @@ register(timeout, State) ->
 -spec registered(Event, State) -> Result
 	when
 		Event :: {Type, Resource, Category},
-		Type :: create | attributeValueChange | stateChange | remove,
+		Type :: create_bucket | create_product | create_service,
 		Resource :: #bucket{} | #product{} | #service{},
 		Category :: balance | product | service,
 		State :: statedata(),
@@ -181,10 +181,12 @@ registered({Type, Resource, Category} = _Event, #statedata{sync = Sync,
 	{EventId, TS} = unique(),
 	EventTime = ocs_rest:iso8601(TS),
 	EventType = case Type of
-		create ->
-			"ResourceCreateEvent";
-		expired ->
-			"ResourceExpiredEvent"
+		create_bucket ->
+			"BalanceTopupCreationNotification";
+		create_product ->
+			"ProductCreationNotification";
+		create_service ->
+			"ServiceCreationNotification"
 	end,
 	Event = case Category of
 		balance ->
