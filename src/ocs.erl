@@ -609,6 +609,7 @@ add_product(OfferId, ServiceRefs, StartDate, EndDate, Characteristics)
 	end,
 	case mnesia:transaction(F) of
 		{atomic, Product} ->
+			ocs_event:notify(create_product, Product, product),
 			{ok, Product};
 		{aborted, {throw, Reason}} ->
 			{error, Reason};
@@ -778,6 +779,7 @@ add_service(undefined, Password, State, ProductRef, Chars,
 	end,
 	case mnesia:transaction(F1) of
 		{atomic, Service} ->
+			ocs_event:notify(create_service, Service, service),
 			{ok, Service};
 		{aborted, Reason} ->
 			{error, Reason}
@@ -793,6 +795,7 @@ add_service(Identity, Password, State, ProductRef, Chars, Attributes,
 	end,
 	case mnesia:transaction(F1) of
 		{atomic, Service} ->
+			ocs_event:notify(create_service, Service, service),
 			{ok, Service};
 		{aborted, {throw, Reason}} ->
 			{error, Reason};
@@ -866,8 +869,11 @@ add_bucket(ProductRef, #bucket{id = undefined} = Bucket) when is_list(ProductRef
 	case mnesia:transaction(F) of
 		{atomic, {ok, OldBucket, NewBucket}} ->
 			[ProdRef | _] = NewBucket#bucket.product,
-			ocs_log:abmf_log(topup, undefined, NewBucket#bucket.id, cents, ProdRef, 0, 0,
-				NewBucket#bucket.remain_amount, undefined, undefined, undefined, undefined, undefined, undefined, NewBucket#bucket.status),
+			ocs_log:abmf_log(topup, undefined, NewBucket#bucket.id, cents,
+					ProdRef, 0, 0, NewBucket#bucket.remain_amount, undefined,
+					undefined, undefined, undefined, undefined, undefined,
+					NewBucket#bucket.status),
+			ocs_event:notify(create_bucket, NewBucket, balance),
 			{ok, OldBucket, NewBucket};
 		{aborted, Reason} ->
 			{error, Reason}

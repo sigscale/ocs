@@ -95,9 +95,18 @@ modhtml = ocs.html \
 			mod_ocs_rest_get.html \
 			mod_ocs_rest_patch.html \
 			mod_ocs_rest_post.html \
+			mod_oauth.html \
 			ocs_rest_query_scanner.html \
 			ocs_rest_query_parser.html \
-			ocs_mib.html
+			ocs_mib.html \
+			ocs_rest_hub_sup.html \
+			ocs_rest_hub_fsm.html \
+			ocs_rest_hub_balance.html \
+			ocs_rest_hub_product.html \
+			ocs_rest_hub_service.html \
+			ocs_rest_hub_user.html \
+			ocs_rest_hub_resource.html \
+			ocs_event.html
 
 doc_DATA = overview.edoc $(modhtml) \
 		modules-frame.html overview-summary.html \

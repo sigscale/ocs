@@ -80,6 +80,8 @@ do(#mod{method = Method, parsed_header = Headers, request_uri = Uri,
 							check_content_type_header(Headers, Method, ocs_rest_res_user, Data);
 						["partyManagement", "v1", "individual", _Id] ->
 							check_content_type_header(Headers, Method, ocs_rest_res_user, Data);
+						["partyManagement", "v1", "hub" | _] ->
+							check_content_type_header(Headers, Method, ocs_rest_hub_user, Data);
 						["balanceManagement", "v1", "product",_Id, "balanceTopup"] ->
 							check_content_type_header(Headers, Method, ocs_rest_res_balance, Data);
 						["balanceManagement", "v1", "service",_Id, "balanceTopup"] ->
@@ -94,6 +96,10 @@ do(#mod{method = Method, parsed_header = Headers, request_uri = Uri,
 							check_content_type_header(Headers, Method, ocs_rest_res_balance, Data);
 						["balanceManagement", "v1", "balanceAdjustment"] ->
 							check_content_type_header(Headers, Method, ocs_rest_res_balance, Data);
+						["balanceManagement", "v1", "hub"] ->
+							check_content_type_header(Headers, Method, ocs_rest_hub_balance, Data);
+						["balanceManagement", "v1", "hub" | _] ->
+							check_content_type_header(Headers, Method, ocs_rest_hub_balance, Data);
 						["catalogManagement", "v2", "productOffering" | _] ->
 							check_content_type_header(Headers, Method, ocs_rest_res_product, Data);
 						["catalogManagement", "v2", "catalog" | _] ->
@@ -108,6 +114,8 @@ do(#mod{method = Method, parsed_header = Headers, request_uri = Uri,
 							check_content_type_header(Headers, Method, ocs_rest_res_resource, Data);
 						["productInventoryManagement", "v2", "product" | _] ->
 							check_content_type_header(Headers, Method, ocs_rest_res_product, Data);
+						["productInventory", "v2", "hub" | _] ->
+							check_content_type_header(Headers, Method, ocs_rest_hub_product, Data);
 						["productInventoryManagement", "schema", "OCS.yml" | _] ->
 							check_content_type_header(Headers, Method, ocs_rest_res_product, Data);
 						["catalogManagement", "v2", "resourceSpecification" | _] ->
@@ -122,14 +130,20 @@ do(#mod{method = Method, parsed_header = Headers, request_uri = Uri,
 							check_content_type_header(Headers, Method, ocs_rest_res_resource, Data);
 						["resourceInventoryManagement", "v1", "pla" | _] ->
 							check_content_type_header(Headers, Method, ocs_rest_res_resource, Data);
+						["resourceInventory", "v1", "hub" | _] ->
+							check_content_type_header(Headers, Method, ocs_rest_hub_resource, Data);
 						["catalogManagement", "v2", "serviceSpecification" | _] ->
 							check_content_type_header(Headers, Method, ocs_rest_res_service, Data);
 						["serviceInventoryManagement", "v2", "service" | _] ->
 							check_content_type_header(Headers, Method, ocs_rest_res_service, Data);
+						["serviceInventory", "v2", "hub" | _] ->
+							check_content_type_header(Headers, Method, ocs_rest_hub_service, Data);
 						["serviceInventoryManagement", "schema", "OCS.yml" | _] ->
 							check_content_type_header(Headers, Method, ocs_rest_res_service, Data);
 						["productCatalogManagement", "v2", "productSpecification"] ->
 							check_content_type_header(Headers, Method, ocs_rest_res_product, Data);
+						["productCatalog", "v2", "hub" | _] ->
+							check_content_type_header(Headers, Method, ocs_rest_hub_product, Data);
 						["resourceCatalogManagement", "v2", "plaSpecification" | _] ->
 							check_content_type_header(Headers, Method, ocs_rest_res_resource, Data);
 						["resourceCatalogManagement", "v2", "resourceSpecification" | _] ->
