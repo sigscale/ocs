@@ -291,7 +291,14 @@ process_request(_Address, _Port,
 				'Subscription-Id' = [#'3gpp_gx_Subscription-Id'{
 						'Subscription-Id-Data' = Subscriber} | _]} = Request) ->
 	try
-		ChargingRuleInstall = #'3gpp_gx_Charging-Rule-Install'{'Charging-Rule-Name' = ["default"]},
+		ChargingRuleInstall = #'3gpp_gx_Charging-Rule-Install'{
+				'Charging-Rule-Definition' = [#'3gpp_gx_Charging-Rule-Definition'{
+						'Charging-Rule-Name' = ["default"],
+						'QoS-Information' = [#'3gpp_gx_QoS-Information'{
+								'QoS-Class-Identifier' = [?'3GPP_GX_QOS-CLASS-IDENTIFIER_QCI_9'],
+								'Max-Requested-Bandwidth-UL' = [1000000000],
+								'Max-Requested-Bandwidth-DL' = [1000000000]}],
+						'Online' = [?'3GPP_GX_ONLINE_ENABLE_ONLINE']}]},
 		#'3gpp_gx_CCA'{'Session-Id' = SId,
 				'Result-Code' = [?'DIAMETER_BASE_RESULT-CODE_SUCCESS'],
 				'Origin-Host' = OHost, 'Origin-Realm' = ORealm,
