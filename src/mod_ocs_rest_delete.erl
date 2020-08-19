@@ -77,12 +77,24 @@ do_delete(Resource, ModData, ["catalogManagement", "v2", "pla", Identity]) ->
 	do_response(ModData, Resource:delete_pla(Identity));
 do_delete(Resource, ModData, ["partyManagement", "v1", "individual", Identity]) ->
 	do_response(ModData, Resource:delete_user(Identity));
+do_delete(Resource, ModData, ["partyManagement", "v1", "hub", Identity]) ->
+	do_response(ModData, Resource:delete_hub(Identity));
 do_delete(Resource, ModData, ["productInventoryManagement", "v2", "product", Identity]) ->
 	do_response(ModData, Resource:delete_inventory(Identity));
+do_delete(Resource, ModData, ["productInventory", "v2", "hub", Identity]) ->
+	do_response(ModData, Resource:delete_hub(Identity));
 do_delete(Resource, ModData, ["serviceInventoryManagement", "v2", "service", Identity]) ->
 	do_response(ModData, Resource:delete_inventory(Identity));
+do_delete(Resource, ModData, ["serviceInventory", "v2", "hub", Identity]) ->
+	do_response(ModData, Resource:delete_hub(Identity));
 do_delete(Resource, ModData, ["resourceInventoryManagement", "v1", "logicalResource", Table, Identity]) ->
 	do_response(ModData, Resource:delete_resource_inventory(Table, Identity));
+do_delete(Resource, ModData, ["resourceInventory", "v1", "hub", Identity]) ->
+	do_response(ModData, Resource:delete_hub(Identity));
+do_delete(Resource, ModData, ["balanceManagement", "v1", "hub", Identity]) ->
+	do_response(ModData, Resource:delete_hub(Identity));
+do_delete(Resource, ModData, ["productCatalog", "v2", "hub", Identity]) ->
+	do_response(ModData, Resource:delete_hub_catalog(Identity));
 do_delete(_Resource, #mod{data = Data} = _ModData, _) ->
 	Response = "<h2>HTTP Error 404 - Not Found</h2>",
 	{proceed, [{response, {404, Response}} | Data]}.

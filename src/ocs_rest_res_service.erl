@@ -25,6 +25,7 @@
 -export([add_inventory/1, get_inventory/1, get_inventories/2,
 		delete_inventory/1, patch_inventory/3, get_schema/0]).
 -export([get_service_specs/1, get_service_spec/2]).
+-export([inventory/1]).
 
 -include("ocs.hrl").
 -include_lib("inets/include/mod_auth.hrl").

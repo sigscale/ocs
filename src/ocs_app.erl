@@ -72,12 +72,47 @@ start(normal = _StartType, _Args) ->
 		{error, Reason} ->
 			{error, Reason}
 	end.
-%% @doc Migrate client table, if necessary, to add Trusted field.
 %% @hidden
 start1() ->
+	case inets:services_info() of
+		ServicesInfo when is_list(ServicesInfo) ->
+			{ok, Profile} = application:get_env(hub_profile),
+			start2(Profile, ServicesInfo);
+		{error, Reason} ->
+			{error, Reason}
+	end.
+%% @hidden
+start2(Profile, [{httpc, _Pid, Info} | T]) ->
+	case proplists:lookup(profile, Info) of
+		{profile, Profile} ->
+			start3(Profile);
+		_ ->
+			start2(Profile, T)
+	end;
+start2(Profile, [_ | T]) ->
+	start2(Profile, T);
+start2(Profile, []) ->
+	case inets:start(httpc, [{profile, Profile}]) of
+		{ok, _Pid} ->
+			start3(Profile);
+		{error, Reason} ->
+			{error, Reason}
+	end.
+%% @hidden
+start3(Profile) ->
+	{ok, Options} = application:get_env(hub_options),
+	case httpc:set_options(Options, Profile) of
+		ok ->
+			start4();
+		{error, Reason} ->
+			{error, Reason}
+	end.
+%% @doc Migrate client table, if necessary, to add Trusted field.
+%% @hidden
+start4() ->
 	case mnesia:table_info(client, arity) of
 		9 ->
-			start2();
+			start5();
 		8 ->
 			F = fun({client, Address, Identifier, Port, Protocol,
 						Secret, PasswordRequired, LastModified}) ->
@@ -90,7 +125,7 @@ start1() ->
 			case mnesia:transform_table(client, F, NewAttributes) of
 				{atomic, ok} ->
 					error_logger:info_report(["Migrated client table"]),
-					start1();
+					start4();
 				{aborted, Reason} ->
 					error_logger:error_report(["Failed to migrate client table",
 							mnesia:error_description(Reason), {error, Reason}]),
@@ -98,7 +133,7 @@ start1() ->
 			end
 	end.
 %% @hidden
-start2() ->
+start5() ->
 	{ok, RadiusConfig} = application:get_env(radius),
 	{ok, DiameterConfig} = application:get_env(diameter),
 	{ok, RotateInterval} = application:get_env(acct_log_rotate),

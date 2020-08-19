@@ -72,6 +72,9 @@ check_DATA = .dialyzer_ok .common_test_ok
 		fi)
 	if [ ! -f ocs_eap_ttls_SUITE_data/CAcert.pem ]; then \
 		cp $(CERT_DIR)/CAcert.pem ocs_eap_ttls_SUITE_data; \
+	fi; \
+	if [ ! -f ocs_rest_api_SUITE_data/CAcert.pem ]; then \
+		cp $(CERT_DIR)/CAcert.pem ocs_rest_api_SUITE_data; \
 	fi
 	NODENAME=`id -un`
 	ct_run -no_auto_compile -pa $(top_builddir)/ebin -logdir log -config ct.cfg -spec test.spec -dir . -erl_args -noshell -config sys -sname $(LOGNAME)-ct
