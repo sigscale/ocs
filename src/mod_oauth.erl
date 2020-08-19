@@ -26,7 +26,6 @@
 
 -include_lib("inets/include/httpd.hrl").
 -include_lib("inets/include/mod_auth.hrl").
--include_lib("inets/src/http_server/httpd_internal.hrl").
 -include_lib("public_key/include/public_key.hrl").
 
 %%----------------------------------------------------------------------
