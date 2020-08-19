@@ -204,7 +204,6 @@ handle_request(#diameter_packet{msg = Request, errors = Errors} = _Packet,
 %% @doc Handle received request.
 %% @private
 request(ServiceName, Capabilities, Request) ->
-erlang:display({?MODULE, ?LINE, Request}),
 	#diameter_caps{host_ip_address = {_, HostIpAddresses}} = Capabilities,
 	request(ServiceName, Capabilities, Request, HostIpAddresses).
 %% @hidden
@@ -391,11 +390,19 @@ update_location(ServiceName,
 			ApnConfig1 = #'3gpp_s6a_APN-Configuration'{'Service-Selection' = "oai.ipv4",
 					'Context-Identifier' = 1,
 					'PDN-Type' =  ?'3GPP_S6A_3GPP-PDP-TYPE_IPV4',
+					'EPS-Subscribed-QoS-Profile' = [#'3gpp_s6a_EPS-Subscribed-QoS-Profile'{
+					'QoS-Class-Identifier' = ?'3GPP_S6A_QOS-CLASS-IDENTIFIER_QCI_9',
+					'Allocation-Retention-Priority' = #'3gpp_s6a_Allocation-Retention-Priority'{
+					'Priority-Level' = 15}}],
 					'AMBR' = [#'3gpp_s6a_AMBR'{'Max-Requested-Bandwidth-UL' = 1000000000,
 							 'Max-Requested-Bandwidth-DL' = 1000000000}]},
 			ApnConfig2 = #'3gpp_s6a_APN-Configuration'{'Service-Selection' = "*",
 					'Context-Identifier' = 2,
 					'PDN-Type' =  ?'3GPP_S6A_3GPP-PDP-TYPE_IPV4',
+					'EPS-Subscribed-QoS-Profile' = [#'3gpp_s6a_EPS-Subscribed-QoS-Profile'{
+					'QoS-Class-Identifier' = ?'3GPP_S6A_QOS-CLASS-IDENTIFIER_QCI_9',
+					'Allocation-Retention-Priority' = #'3gpp_s6a_Allocation-Retention-Priority'{
+					'Priority-Level' = 15}}],
 					'AMBR' = [#'3gpp_s6a_AMBR'{'Max-Requested-Bandwidth-UL' = 1000000000,
 							 'Max-Requested-Bandwidth-DL' = 1000000000}]},
 			ApnProfile = #'3gpp_s6a_APN-Configuration-Profile'{'Context-Identifier' = 1,
