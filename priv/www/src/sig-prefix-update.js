@@ -22,7 +22,7 @@ class tableUpdate extends PolymerElement {
 	static get template() {
 		return html`
 			<style include="style-element"></style>
-			<paper-dialog id="updatePrefixModal" modal>
+			<paper-dialog class="dialog" id="updatePrefixModal" modal>
 				<app-toolbar>
 					<h2>Update Prefix</h2>
 				</app-toolbar>

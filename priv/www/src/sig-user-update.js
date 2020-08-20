@@ -24,7 +24,7 @@ class userUpdate extends PolymerElement {
 	static get template() {
 		return html`
 			<style include="style-element"></style>
-			<paper-dialog id="updateUserModal" modal>
+			<paper-dialog class="dialog" id="updateUserModal" modal>
 				<app-toolbar>
 					<div main-title>Update User</div>
 				</app-toolbar>

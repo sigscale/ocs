@@ -30,7 +30,7 @@ class offerUpdate extends PolymerElement {
 	static get template() {
 		return html`
 			<style include="style-element"></style>
-			<paper-dialog id="updateProductModal" modal>
+			<paper-dialog class="dialog" id="updateProductModal" modal>
 				<app-toolbar>
 					<paper-tabs selected="{{selected}}">
 						<paper-tab id="offer-add">

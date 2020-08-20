@@ -27,7 +27,7 @@ class clientUpdate extends PolymerElement {
 	static get template() {
 		return html`
 			<style include="style-element"></style>
-			<paper-dialog id="updateClientModal" modal>
+			<paper-dialog class="dialog" id="updateClientModal" modal>
 				<app-toolbar>
 					<paper-tabs selected="{{selected}}">
 						<paper-tab id="authenticate-client">

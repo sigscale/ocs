@@ -29,7 +29,7 @@ class subUpdate extends PolymerElement {
 	static get template() {
 		return html`
 			<style include="style-element"></style>
-			<paper-dialog id="updateSubscriberModal" modal>
+			<paper-dialog class="dialog" id="updateSubscriberModal" modal>
 				<app-toolbar>
 					<paper-tabs selected="{{selected}}">
 						<paper-tab id="authen">
