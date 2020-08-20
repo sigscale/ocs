@@ -1340,6 +1340,15 @@ RADIUS servers may be configured with the following environment variables of the
 	<dt>sock_opts</dt>
 		<dd>UDP socket options. ({@link //kernel/gen_udp:option(). gen_udp:option()})</dd>
 </dl>
+The mod_oauth module may be configured with the following environment variables :
+<dl>
+	<dt>oauth_audience</dt>
+		<dd>Defines the recipient for who the JWT is intended: {string()}</dd>
+	<dt>oauth_issuer</dt>
+		<dd>Defines the issuer of the JWT: {string()}</dd>
+	<dt>oauth_key</dt>
+		<dd>Path of the file containing a publicKey in PEM format: {string()}</dd>
+</dl>
 The {@link //inets. inets} application's {@link //inets/httpd. httpd} server configuration includes these environment variables:
 <dl>
 	<dt>{port, integer()}</dt>
@@ -1394,7 +1403,10 @@ The {@link //inets. inets} application's {@link //inets/httpd. httpd} server con
       {rest_page_size, 1000}]},
       {tls_key, "ssl/key.pem"},
       {tls_cert, "ssl/cert.pem"},
-      {tls_cacert, "ssl/ca.pem"}]},
+      {tls_cacert, "ssl/ca.pem"},
+      {oauth_audience, "account"},
+      {oauth_issuer, "sigscale"},
+      {oauth_key, ssl/sigscale.pem}]},
 {radius,
       [{sock_opts, [{recbuf, 131072}, {sndbuf, 131072}]}]},
 {snmp,
