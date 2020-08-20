@@ -20,8 +20,6 @@
 -module(mod_oauth).
 -copyright('Copyright (c) 2016 - 2020 SigScale Global Inc.').
 
-%% The functions that the webbserver call on startup stop
-%% and when the server traverse the modules.
 -export([do/1, load/2, store/2]).
 
 -include_lib("inets/include/httpd.hrl").
