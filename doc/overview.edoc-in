@@ -1332,7 +1332,7 @@ The {@link //ocs. ocs} application is configured using the following environment
 		<dd>Private key for TLS over EAP.</dd>
 	<dt>tls_cacert</dt>
 		<dd>Certificate Authority certificate for TLS over EAP.</dd>
-	<dt>rest_page_size}</dt>
+	<dt>rest_page_size</dt>
 		<dd>Defines the maximum number of items to return for a REST collection.</dd>
 </dl>
 RADIUS servers may be configured with the following environment variables of the {@link //radius. radius} application:
