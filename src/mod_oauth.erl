@@ -17,6 +17,7 @@
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%%
 
+
 -module(mod_oauth).
 -copyright('Copyright (c) 2016 - 2020 SigScale Global Inc.').
 
@@ -162,7 +163,7 @@ require(#mod{parsed_header = ParsedHeader} = Info, Directory, DirectoryData) ->
 							{status, {401, none, "mod_oauth : " ++ "Bad credentials" ++ Credentials}}
 					end;
 				BadCredentials ->
-					{status, {401, none, "mod_auth : " ++ "Bad credentials" ++ BadCredentials}}
+					{status, {401, none, "mod_oauth : " ++ "Bad credentials" ++ BadCredentials}}
 			end
 	end.
 %% @hidden
@@ -431,7 +432,7 @@ directory_path(Path, ConfigDB)
 		no ->
 			no
 	end.
-	
+
 %% @hidden
 path_check(_Path, []) ->
 	no;
@@ -445,7 +446,7 @@ path_check(Path, Directories) ->
 	end,
 	[{_, Directory} | _] = lists:sort(F, List),
 	{yes, Directory}.
-			
+
 %% @hidden
 convert(Path,[[H] | T], Acc) ->
 	convert(Path, T, [{Path, H} | Acc]);
