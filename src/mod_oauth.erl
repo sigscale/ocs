@@ -17,16 +17,14 @@
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%%
 
+
 -module(mod_oauth).
 -copyright('Copyright (c) 2016 - 2020 SigScale Global Inc.').
 
-%% The functions that the webbserver call on startup stop
-%% and when the server traverse the modules.
 -export([do/1, load/2, store/2]).
 
 -include_lib("inets/include/httpd.hrl").
 -include_lib("inets/include/mod_auth.hrl").
--include_lib("inets/src/http_server/httpd_internal.hrl").
 -include_lib("public_key/include/public_key.hrl").
 
 %%----------------------------------------------------------------------
@@ -147,16 +145,16 @@ handle_auth(#mod{data = Data, config_db = ConfigDb} = Info,
 	end.
 
 require(#mod{parsed_header = ParsedHeader} = Info, Directory, DirectoryData) ->
-	 {_, ValidUsers}  = lists:keyfind(require_user, 1, DirectoryData),
-	{_, ValidGroups} = lists:keyfind(require_group, 1, DirectoryData),
+	ValidUsers  = proplists:get_value(require_user, DirectoryData),
+	ValidGroups = proplists:get_value(require_group, DirectoryData),
 	case ValidGroups of
-		false when ValidUsers =:= false ->
+		undefined when ValidUsers =:= undefined ->
 			authorized;
 		_ ->
-			case lists:keyfind("authorization", 1, ParsedHeader) of
+			case proplists:get_value("authorization", ParsedHeader) of
 				false ->
 					authorization_required(DirectoryData);
-				{_, "Bearer" ++ EncodedString} = Credentials ->
+				"Bearer" ++ EncodedString = Credentials ->
 					case string:tokens(EncodedString, ".") of
 						[EncodedHeader, EncodedPayload, EncodedSignature] ->
 							require1(Info, Directory, DirectoryData, ValidUsers, ValidGroups,
@@ -165,7 +163,7 @@ require(#mod{parsed_header = ParsedHeader} = Info, Directory, DirectoryData) ->
 							{status, {401, none, "mod_oauth : " ++ "Bad credentials" ++ Credentials}}
 					end;
 				BadCredentials ->
-					{status, {401, none, "mod_auth : " ++ "Bad credentials" ++ BadCredentials}}
+					{status, {401, none, "mod_oauth : " ++ "Bad credentials" ++ BadCredentials}}
 			end
 	end.
 %% @hidden
@@ -334,7 +332,7 @@ validate_user(Info, Directory, DirectoryData,
 	end.
 
 %% @hidden
-user_accepted(_User, false) ->
+user_accepted(_User, undefined) ->
 	false;
 user_accepted(User, ValidUsers) ->
 	lists:member(User, ValidUsers).
@@ -434,7 +432,7 @@ directory_path(Path, ConfigDB)
 		no ->
 			no
 	end.
-	
+
 %% @hidden
 path_check(_Path, []) ->
 	no;
@@ -448,7 +446,7 @@ path_check(Path, Directories) ->
 	end,
 	[{_, Directory} | _] = lists:sort(F, List),
 	{yes, Directory}.
-			
+
 %% @hidden
 convert(Path,[[H] | T], Acc) ->
 	convert(Path, T, [{Path, H} | Acc]);
