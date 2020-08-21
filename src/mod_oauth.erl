@@ -16,6 +16,38 @@
 %%% limitations under the License.
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%%
+%% @doc This module handles Oauth user authentication using
+%% textual files or Mnesia databases.
+%%
+%% The module implements the
+%% <a href="https://tools.ietf.org/html/rfc6749">OAuth 2.0 authorization framework</a>.
+%% Authentication is carried out using a Bearer scheme using
+%% <a href="https://tools.ietf.org/html/rfc7519">JSON Web Token (JWT)</a> instead of using
+%% the resource owner's credentials. The JSON Web Token is validated with
+%% the certificate for the issuer using <a href="https://tools.ietf.org/html/rfc7517">JSON Web Key (JWK)</a>.
+%%
+%% The following environment variables must be configured in the {@link //ocs. ocs} application.
+%%
+%% <dl>
+%%   <dt>oauth_audience</dt>
+%%      <dd>Defines the recipient for who the JWT is intended: {string()}</dd>
+%%   <dt>oauth_issuer</dt>
+%%      <dd>Defines the issuer of the JWT: {string()}</dd>
+%%   <dt>oauth_key</dt>
+%%      <dd>Path of the file containing a publicKey in PEM format: {string()}</dd>
+%% </dl>
+%%
+%% The mod_oauth module must be include in the list of
+%% {@link //inets. inets} application's web server modules {@link //inets/httpd. httpd}.
+%%	<dl>
+%%		<dt>{modules, [mod_auth]}</dt>
+%%			<dd>The modules httpd environment variable contains the list of inets modules
+%%				that are to be run in the order specified.</dd>
+%%	</dl>
+%%
+%% Note: if mod_oauth is the specified authentication module, mod_auth cannot be listed
+%% in the same module list.
+
 
 
 -module(mod_oauth).
