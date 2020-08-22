@@ -111,6 +111,7 @@ init_per_suite(Config) ->
 %% Cleanup after the whole suite.
 %%
 end_per_suite(Config) ->
+	ok = ocs_test_lib:stop(),
 	Config.
 
 -spec init_per_testcase(TestCase :: atom(), Config :: [tuple()]) -> Config :: [tuple()].
@@ -978,8 +979,8 @@ delete_product(Config) ->
 	{error, not_found} = ocs:find_product(ProdRef).
 
 ignore_delete_product() ->
-	[{userdata, [{doc,"ignore Delete product inventory if
-			service any service related with product inventory"}]}].
+	[{userdata, [{doc,"Ignore delete product inventory if
+			any service related with product instance"}]}].
 
 ignore_delete_product(Config) ->
 	P1 = price(usage, octets, rand:uniform(10000), rand:uniform(100)),
