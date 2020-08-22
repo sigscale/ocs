@@ -1,3 +1,13 @@
+2020-08-22  Vance Shipley <vances@sigscale.org>
+
+	* test case for diameter scur with centralized unit determination
+	* refactor rating to include unit type in response
+	* stop applications on end in rest api test suite
+	* add mod_oauth module edoc
+	* document mod oauth enviroment variables
+	* remove unused (internal) inets header file from mod_oauth
+	* handle service address of all zeroes in test suite
+
 2020-08-19  Vance Shipley <vances@sigscale.org>
 
 	* gui - correct recurring amount initialization
