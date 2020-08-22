@@ -353,17 +353,26 @@ process_request1(?'3GPP_CC-REQUEST-TYPE_INITIAL_REQUEST' = RequestType,
 		case ocs_rating:rate(diameter, ServiceType, ChargingKey, ServiceNetwork,
 				Subscriber, Timestamp, Destination, originate, initial, [],
 				ReserveAmount, [{'Session-Id', SId}]) of
-			{ok, _, GrantedAmount} ->
-				GrantedUnits = case ReserveAmount of
-					[{seconds, _}] ->
-						#'3gpp_ro_Granted-Service-Unit'{'CC-Time' = [GrantedAmount]};
-					[{octets, _}] ->
-						#'3gpp_ro_Granted-Service-Unit'{'CC-Total-Octets' = [GrantedAmount]};
-					[{messages, _}] ->
-						#'3gpp_ro_Granted-Service-Unit'{'CC-Service-Specific-Units' = [GrantedAmount]}
-				end,
-				Reply = diameter_answer(SId, ServiceIdentifier, RatingGroup,
-						GrantedUnits, ?'DIAMETER_BASE_RESULT-CODE_SUCCESS',
+			{ok, _, {seconds, Amount} = _GrantedAmount} ->
+				GSU = #'3gpp_ro_Granted-Service-Unit'{'CC-Time' = [Amount]},
+				Reply = diameter_answer(SId, ServiceIdentifier, RatingGroup, GSU,
+						?'DIAMETER_BASE_RESULT-CODE_SUCCESS',
+						OHost, ORealm, RequestType, RequestNum),
+				ok = ocs_log:acct_log(diameter, Server,
+						accounting_event_type(RequestType), Request, Reply, undefined),
+				Reply;
+			{ok, _, {octets, Amount} = _GrantedAmount} ->
+				GSU = #'3gpp_ro_Granted-Service-Unit'{'CC-Total-Octets' = [Amount]},
+				Reply = diameter_answer(SId, ServiceIdentifier, RatingGroup, GSU,
+						?'DIAMETER_BASE_RESULT-CODE_SUCCESS',
+						OHost, ORealm, RequestType, RequestNum),
+				ok = ocs_log:acct_log(diameter, Server,
+						accounting_event_type(RequestType), Request, Reply, undefined),
+				Reply;
+			{ok, _, {messages, Amount} = _GrantedAmount} ->
+				GSU = #'3gpp_ro_Granted-Service-Unit'{'CC-Service-Specific-Units' = [Amount]},
+				Reply = diameter_answer(SId, ServiceIdentifier, RatingGroup, GSU,
+						?'DIAMETER_BASE_RESULT-CODE_SUCCESS',
 						OHost, ORealm, RequestType, RequestNum),
 				ok = ocs_log:acct_log(diameter, Server,
 						accounting_event_type(RequestType), Request, Reply, undefined),
@@ -485,18 +494,27 @@ process_request1(?'3GPP_CC-REQUEST-TYPE_UPDATE_REQUEST' = RequestType,
 		case ocs_rating:rate(diameter, ServiceType, ChargingKey, ServiceNetwork,
 				Subscriber, Timestamp, Destination, originate, interim,
 				DebitAmount, ReserveAmount, [{'Session-Id', SId}]) of
-			{ok, _, GrantedAmount} ->
-				GrantedUnits = case ReserveAmount of
-					[{seconds, _}] ->
-						#'3gpp_ro_Granted-Service-Unit'{'CC-Time' = [GrantedAmount]};
-					[{octets, _}] ->
-						#'3gpp_ro_Granted-Service-Unit'{'CC-Total-Octets' = [GrantedAmount]};
-					[{messages, _}] ->
-						#'3gpp_ro_Granted-Service-Unit'{'CC-Service-Specific-Units' = [GrantedAmount]}
-				end,
-				Reply = diameter_answer(SId, ServiceIdentifier, RatingGroup,
-						GrantedUnits, ?'DIAMETER_BASE_RESULT-CODE_SUCCESS', OHost, ORealm,
-						RequestType, RequestNum),
+			{ok, _, {seconds, Amount} = _GrantedAmount} ->
+				GSU = #'3gpp_ro_Granted-Service-Unit'{'CC-Time' = [Amount]},
+				Reply = diameter_answer(SId, ServiceIdentifier, RatingGroup, GSU,
+						?'DIAMETER_BASE_RESULT-CODE_SUCCESS',
+						OHost, ORealm, RequestType, RequestNum),
+				ok = ocs_log:acct_log(diameter, Server,
+						accounting_event_type(RequestType), Request, Reply, undefined),
+				Reply;
+			{ok, _, {octets, Amount} = _GrantedAmount} ->
+				GSU = #'3gpp_ro_Granted-Service-Unit'{'CC-Total-Octets' = [Amount]},
+				Reply = diameter_answer(SId, ServiceIdentifier, RatingGroup, GSU,
+						?'DIAMETER_BASE_RESULT-CODE_SUCCESS',
+						OHost, ORealm, RequestType, RequestNum),
+				ok = ocs_log:acct_log(diameter, Server,
+						accounting_event_type(RequestType), Request, Reply, undefined),
+				Reply;
+			{ok, _, {messages, Amount} = _GrantedAmount} ->
+				GSU = #'3gpp_ro_Granted-Service-Unit'{'CC-Service-Specific-Units' = [Amount]},
+				Reply = diameter_answer(SId, ServiceIdentifier, RatingGroup, GSU,
+						?'DIAMETER_BASE_RESULT-CODE_SUCCESS',
+						OHost, ORealm, RequestType, RequestNum),
 				ok = ocs_log:acct_log(diameter, Server,
 						accounting_event_type(RequestType), Request, Reply, undefined),
 				Reply;
@@ -586,7 +604,7 @@ process_request1(?'3GPP_CC-REQUEST-TYPE_TERMINATION_REQUEST' = RequestType,
 		case ocs_rating:rate(diameter, ServiceType, undefined, ServiceNetwork,
 				Subscriber, Timestamp, Destination, originate, final, DebitAmount,
 				[], [{'Session-Id', SId}]) of
-			{ok, _, 0, Rated} ->
+			{ok, _, Rated} when is_list(Rated) ->
 				Reply = diameter_answer(SId, [], [], undefined,
 						?'DIAMETER_BASE_RESULT-CODE_SUCCESS',
 						OHost, ORealm, RequestType, RequestNum),

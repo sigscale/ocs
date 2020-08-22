@@ -332,7 +332,7 @@ request1(?AccountingStop, AcctSessionId, Id,
 	case ocs_rating:rate(radius, ServiceType, undefined, undefined,
 			Subscriber, Timestamp, CallAddress, Direction, final,
 			DebitAmount, [], SessionAttributes) of
-		{ok, #service{}, _, Rated} ->
+		{ok, #service{}, Rated} when is_list(Rated) ->
 			ok = ocs_log:acct_log(radius,
 					{ServerAddress, ServerPort}, stop, Attributes, undefined, Rated),
 			{reply, {ok, response(Id, Authenticator, Secret)}, State};
