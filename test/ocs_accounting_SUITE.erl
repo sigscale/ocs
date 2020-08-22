@@ -144,6 +144,7 @@ init_per_testcase1(TestCase, Config) when
 	[{radius_nas_socket, Socket}, {radius_nas_client, Address} | Config];
 init_per_testcase1(TestCase, Config) when
 		TestCase == diameter_scur;
+		TestCase == diameter_scur_cud;
 		TestCase == diameter_scur_no_credit;
 		TestCase == diameter_scur_depletion;
 		TestCase == diameter_ecur;
@@ -169,6 +170,7 @@ end_per_testcase(TestCase, Config) when
 	ok = ocs:delete_client(Address);
 end_per_testcase(TestCase, Config) when
 		TestCase == diameter_scur;
+		TestCase == diameter_scur_cud;
 		TestCase == diameter_scur_no_credit;
 		TestCase == diameter_scur_depletion;
 		TestCase == diameter_ecur;
@@ -188,7 +190,8 @@ sequences() ->
 all() ->
 	[radius_accounting, radius_disconnect_session,
 	radius_multisession_disallowed, radius_multisession,
-	diameter_scur, diameter_scur_no_credit, diameter_scur_depletion,
+	diameter_scur, diameter_scur_cud,
+	diameter_scur_no_credit, diameter_scur_depletion,
 	diameter_ecur, diameter_ecur_no_credit].
 
 %%---------------------------------------------------------------------
@@ -448,6 +451,61 @@ diameter_scur(_Config) ->
 	#'3gpp_ro_CCA'{'Result-Code' = ?'DIAMETER_BASE_RESULT-CODE_SUCCESS',
 			'Auth-Application-Id' = ?RO_APPLICATION_ID,
 			'CC-Request-Type' = ?'3GPP_CC-REQUEST-TYPE_TERMINATION_REQUEST',
+			'CC-Request-Number' = NewRequestNum} = Answer1.
+
+diamneter_scur_cud() ->
+	[{userdata, [{doc, "DIAMETER SCUR with Centralized Unit Determination"}]}].
+
+diameter_scur_cud(_Config) ->
+	Units = 123456789,
+	P1 = price(usage, octets, Units, rand:uniform(1000000)),
+	OfferId = add_offer([P1], 4),
+	ProdRef = add_product(OfferId),
+	MSISDN = list_to_binary(ocs:generate_identity()),
+	{ok, #service{}} = ocs:add_service(MSISDN, undefined, ProdRef, []),
+	Balance = rand:uniform(1000000000),
+	B1 = bucket(octets, Balance),
+	_BId = add_bucket(ProdRef, B1),
+	Ref = erlang:ref_to_list(make_ref()),
+	SId = diameter:session_id(Ref),
+	SubscriptionId = #'3gpp_ro_Subscription-Id'{
+			'Subscription-Id-Type' = ?'3GPP_RO_SUBSCRIPTION-ID-TYPE_END_USER_E164',
+			'Subscription-Id-Data' = MSISDN},
+	RSU = #'3gpp_ro_Requested-Service-Unit' {},
+	MSCC1 = #'3gpp_ro_Multiple-Services-Credit-Control'{
+			'Requested-Service-Unit' = [RSU]},
+	CallingPartyAddress = "tel:+" ++ ocs:generate_identity(),
+	CalledPartyAddress = "tel:+" ++ ocs:generate_identity(),
+	ServiceInformation = #'3gpp_ro_Service-Information'{'IMS-Information' =
+			[#'3gpp_ro_IMS-Information'{
+					'Node-Functionality' = ?'3GPP_RO_NODE-FUNCTIONALITY_AS',
+					'Role-Of-Node' = [?'3GPP_RO_ROLE-OF-NODE_ORIGINATING_ROLE'],
+					'Calling-Party-Address' = [CallingPartyAddress],
+					'Called-Party-Address' = [CalledPartyAddress]}]},
+	CCR = #'3gpp_ro_CCR'{'Session-Id' = SId,
+			'Auth-Application-Id' = ?RO_APPLICATION_ID,
+			'Service-Context-Id' = "32260@3gpp.org",
+			'User-Name' = [MSISDN],
+			'CC-Request-Type' = ?'3GPP_RO_CC-REQUEST-TYPE_INITIAL_REQUEST',
+			'CC-Request-Number' = 0,
+			'Event-Timestamp' = [calendar:universal_time()],
+			'Subscription-Id' = [SubscriptionId],
+			'Multiple-Services-Credit-Control' = [MSCC1],
+			'Service-Information' = [ServiceInformation]},
+	{ok, Answer0} = diameter:call(?MODULE, cc_app_test, CCR, []),
+	#'3gpp_ro_CCA'{'Result-Code' = ?'DIAMETER_BASE_RESULT-CODE_SUCCESS',
+			'Auth-Application-Id' = ?RO_APPLICATION_ID,
+			'CC-Request-Type' = ?'3GPP_CC-REQUEST-TYPE_INITIAL_REQUEST',
+			'CC-Request-Number' = RequestNum,
+			'Multiple-Services-Credit-Control' = [MSCC2]} = Answer0,
+	#'3gpp_ro_Multiple-Services-Credit-Control'{
+			'Granted-Service-Unit' = [GSU]} = MSCC2,
+	#'3gpp_ro_Granted-Service-Unit'{'CC-Total-Octets' = [Units]} = GSU,
+	NewRequestNum = RequestNum + 1,
+	Answer1 = diameter_scur_stop(SId, MSISDN, NewRequestNum, Units),
+	#'3gpp_ro_CCA'{'Result-Code' = ?'DIAMETER_BASE_RESULT-CODE_SUCCESS',
+			'Auth-Application-Id' = ?RO_APPLICATION_ID,
+			'CC-Request-Type' = ?'3GPP_RO_CC-REQUEST-TYPE_TERMINATION_REQUEST',
 			'CC-Request-Number' = NewRequestNum} = Answer1.
 
 diameter_scur_no_credit() ->
