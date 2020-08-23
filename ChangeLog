@@ -1,3 +1,9 @@
+2020-08-23  Vance Shipley <vances@sigscale.org>
+
+	* rate incoming voice using calling address
+	* test cases for diameter scur incoming and outgoing voice
+	* correct final debit amount rounding up to price unit size
+
 2020-08-22  Vance Shipley <vances@sigscale.org>
 
 	* test case for diameter scur with centralized unit determination
