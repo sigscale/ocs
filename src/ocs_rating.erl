@@ -565,15 +565,14 @@ rate6(Service, Buckets,
 		{Units, Amount} = DebitAmount, {Units, 0} = ReserveAmount,
 		#state{rated = Rated1, session_id = SessionId} = State) ->
 	Rated2 = Rated1#rated{price_type = PriceType, currency = Currency},
-	case charge_session(Units, Amount, SessionId, Buckets) of
-		{Amount, Buckets2} ->
+	{UnitCharge, PriceCharge} = price_units(Amount, UnitSize, UnitPrice),
+	case charge_session(Units, UnitCharge, SessionId, Buckets) of
+		{UnitCharge, Buckets2} ->
 			Rated3 = Rated2#rated{bucket_type = Units, usage_rating_tag = included},
-			rate7(Service, Buckets2, final, DebitAmount, DebitAmount,
+			rate7(Service, Buckets2, final, DebitAmount, {Units, UnitCharge},
 					ReserveAmount, ReserveAmount, State#state{rated = Rated3});
 		{UnitsCharged, Buckets2} ->
-			PriceChargeUnits = Amount - UnitsCharged,
-			{UnitCharge, PriceCharge} = price_units(PriceChargeUnits,
-					UnitSize, UnitPrice),
+			PriceChargeUnits = UnitCharge - UnitsCharged,
 			Rated3 = Rated2#rated{bucket_type = cents, usage_rating_tag = non_included},
 			case charge_session(cents, PriceCharge, SessionId, Buckets2) of
 				{PriceCharge, Buckets3} ->
