@@ -184,10 +184,10 @@ request(ServiceName, Capabilities, Request) ->
 	#diameter_caps{host_ip_address = {_, HostIpAddresses}} = Capabilities,
 	request(ServiceName, Capabilities, Request, HostIpAddresses).
 %% @hidden
-request({_, Address, Port} = ServiceName, Capabilities, Request, [H | T]) ->
+request({_, IpAddress, Port} = ServiceName, Capabilities, Request, [H | T]) ->
 	case ocs:find_client(H) of
 		{ok, #client{protocol = diameter}} ->
-			{reply, process_request(Address, Port, Capabilities, Request)};
+			{reply, process_request(IpAddress, Port, Capabilities, Request)};
 		{error, not_found} ->
 			request(ServiceName, Capabilities, Request, T)
 	end;
@@ -260,16 +260,16 @@ errors(_ServiceName, _Capabilities, _Request, [ResultCode | _]) ->
 errors(ServiceName, Capabilities, Request, []) ->
 	request(ServiceName, Capabilities, Request).
 
--spec process_request(Address, Port, Caps, Request) -> Result
+-spec process_request(IpAddress, Port, Caps, Request) -> Result
 	when
-		Address :: inet:ip_address(),
+		IpAddress :: inet:ip_address(),
 		Port :: inet:port_number(),
 		Request :: #'3gpp_ro_CCR'{},
 		Caps :: capabilities(),
 		Result :: packet() | message().
 %% @doc Process a received DIAMETER Accounting packet.
 %% @private
-process_request(Address, Port,
+process_request(IpAddress, Port,
 		#diameter_caps{origin_host = {OHost, DHost}, origin_realm = {ORealm, DRealm}},
 		#'3gpp_ro_CCR'{'Session-Id' = SId, 'User-Name' = NAISpecUName,
 				'Auth-Application-Id' = ?RO_APPLICATION_ID,
@@ -291,7 +291,7 @@ process_request(Address, Port,
 				end
 		end,
 		process_request1(RequestType, Request, SId, RequestNum,
-				Subscriber, OHost, DHost, ORealm, DRealm, Address, Port)
+				Subscriber, OHost, DHost, ORealm, DRealm, IpAddress, Port)
 	catch
 		_:Reason ->
 			error_logger:warning_report(["Unable to process DIAMETER request",
@@ -306,7 +306,7 @@ process_request1(?'3GPP_CC-REQUEST-TYPE_INITIAL_REQUEST' = RequestType,
 		'Service-Information' = ServiceInformation,
 		'Service-Context-Id' = SvcContextId,
 		'Event-Timestamp' = EventTimestamp} = Request, SId, RequestNum, Subscriber,
-		OHost, _DHost, ORealm, _DRealm, Address, Port) ->
+		OHost, _DHost, ORealm, _DRealm, IpAddress, Port) ->
 	try
 		{ServiceIdentifier, RatingGroup, ReserveAmount} = case MSCC of
 			#'3gpp_ro_Multiple-Services-Credit-Control'{'Service-Identifier' = SI,
@@ -334,7 +334,7 @@ process_request1(?'3GPP_CC-REQUEST-TYPE_INITIAL_REQUEST' = RequestType,
 					'Rating-Group' = RG} ->
 				{SI, RG, []}
 		end,
-		Destination = call_destination(ServiceInformation),
+		{Direction, Address} = direction_address(ServiceInformation),
 		ServiceType = service_type(SvcContextId),
 		ChargingKey = case RatingGroup of
 			[CK] ->
@@ -343,7 +343,7 @@ process_request1(?'3GPP_CC-REQUEST-TYPE_INITIAL_REQUEST' = RequestType,
 				undefined 
 		end,
 		ServiceNetwork = service_network(ServiceInformation),
-		Server = {Address, Port},
+		Server = {IpAddress, Port},
 		Timestamp = case EventTimestamp of
 			[{{_, _, _}, {_, _, _}} = TS] ->
 				TS;
@@ -351,7 +351,7 @@ process_request1(?'3GPP_CC-REQUEST-TYPE_INITIAL_REQUEST' = RequestType,
 				calendar:universal_time()
 		end,
 		case ocs_rating:rate(diameter, ServiceType, ChargingKey, ServiceNetwork,
-				Subscriber, Timestamp, Destination, originate, initial, [],
+				Subscriber, Timestamp, Address, Direction, initial, [],
 				ReserveAmount, [{'Session-Id', SId}]) of
 			{ok, _, {seconds, Amount} = _GrantedAmount} ->
 				GSU = #'3gpp_ro_Granted-Service-Unit'{'CC-Time' = [Amount]},
@@ -402,7 +402,8 @@ process_request1(?'3GPP_CC-REQUEST-TYPE_INITIAL_REQUEST' = RequestType,
 						{module, ?MODULE}, {error, Reason},
 						{origin_host, OHost}, {origin_realm, ORealm},
 						{type, initial}, {subscriber, Subscriber},
-						{destination, Destination}, {reservation, ReserveAmount}]),
+						{address, Address}, {direction, Direction},
+						{reservation, ReserveAmount}]),
 				Reply = diameter_error(SId, ?'IETF_RESULT-CODE_RATING_FAILED',
 						OHost, ORealm, RequestType, RequestNum),
 				ok = ocs_log:acct_log(diameter, Server,
@@ -422,7 +423,7 @@ process_request1(?'3GPP_CC-REQUEST-TYPE_UPDATE_REQUEST' = RequestType,
 		'Service-Information' = ServiceInformation,
 		'Service-Context-Id' = SvcContextId,
 		'Event-Timestamp' = EventTimestamp} = Request, SId, RequestNum, Subscriber,
-		OHost, _DHost, ORealm, _DRealm, Address, Port) ->
+		OHost, _DHost, ORealm, _DRealm, IpAddress, Port) ->
 	try
 		{ServiceIdentifier, RatingGroup, ReserveAmount} = case MSCC of
 			#'3gpp_ro_Multiple-Services-Credit-Control'{'Service-Identifier' = SI,
@@ -475,7 +476,7 @@ process_request1(?'3GPP_CC-REQUEST-TYPE_UPDATE_REQUEST' = RequestType,
 			#'3gpp_ro_Multiple-Services-Credit-Control'{} ->
 				[]
 		end,
-		Destination = call_destination(ServiceInformation),
+		{Direction, Address} = direction_address(ServiceInformation),
 		ServiceType = service_type(SvcContextId),
 		ChargingKey = case RatingGroup of
 			[CK] ->
@@ -484,7 +485,7 @@ process_request1(?'3GPP_CC-REQUEST-TYPE_UPDATE_REQUEST' = RequestType,
 				undefined 
 		end,
 		ServiceNetwork = service_network(ServiceInformation),
-		Server = {Address, Port},
+		Server = {IpAddress, Port},
 		Timestamp = case EventTimestamp of
 			[{{_, _, _}, {_, _, _}} = TS] ->
 				TS;
@@ -492,7 +493,7 @@ process_request1(?'3GPP_CC-REQUEST-TYPE_UPDATE_REQUEST' = RequestType,
 				calendar:universal_time()
 		end,
 		case ocs_rating:rate(diameter, ServiceType, ChargingKey, ServiceNetwork,
-				Subscriber, Timestamp, Destination, originate, interim,
+				Subscriber, Timestamp, Address, Direction, interim,
 				DebitAmount, ReserveAmount, [{'Session-Id', SId}]) of
 			{ok, _, {seconds, Amount} = _GrantedAmount} ->
 				GSU = #'3gpp_ro_Granted-Service-Unit'{'CC-Time' = [Amount]},
@@ -543,8 +544,8 @@ process_request1(?'3GPP_CC-REQUEST-TYPE_UPDATE_REQUEST' = RequestType,
 						{module, ?MODULE}, {error, Reason},
 						{origin_host, OHost}, {origin_realm, ORealm},
 						{type, interim}, {subscriber, Subscriber},
-						{destination, Destination}, {reservation, ReserveAmount},
-						{used, DebitAmount}]),
+						{address, Address}, {direction, Direction},
+						{reservation, ReserveAmount}, {used, DebitAmount}]),
 				Reply = diameter_error(SId, ?'IETF_RESULT-CODE_RATING_FAILED',
 						OHost, ORealm, RequestType, RequestNum),
 				ok = ocs_log:acct_log(diameter, Server,
@@ -564,7 +565,7 @@ process_request1(?'3GPP_CC-REQUEST-TYPE_TERMINATION_REQUEST' = RequestType,
 		'Service-Information' = ServiceInformation,
 		'Service-Context-Id' = SvcContextId,
 		'Event-Timestamp' = EventTimestamp} = Request, SId, RequestNum, Subscriber,
-		OHost, _DHost, ORealm, _DRealm, Address, Port) ->
+		OHost, _DHost, ORealm, _DRealm, IpAddress, Port) ->
 	try
 		DebitAmount = case MSCC of
 			#'3gpp_ro_Multiple-Services-Credit-Control'{'Used-Service-Unit'
@@ -591,10 +592,10 @@ process_request1(?'3GPP_CC-REQUEST-TYPE_TERMINATION_REQUEST' = RequestType,
 			#'3gpp_ro_Multiple-Services-Credit-Control'{} ->
 				[]
 		end,
-		Destination = call_destination(ServiceInformation),
+		{Direction, Address} = direction_address(ServiceInformation),
 		ServiceType = service_type(SvcContextId),
 		ServiceNetwork = service_network(ServiceInformation),
-		Server = {Address, Port},
+		Server = {IpAddress, Port},
 		Timestamp = case EventTimestamp of
 			[{{_, _, _}, {_, _, _}} = TS] ->
 				TS;
@@ -602,7 +603,7 @@ process_request1(?'3GPP_CC-REQUEST-TYPE_TERMINATION_REQUEST' = RequestType,
 				calendar:universal_time()
 		end,
 		case ocs_rating:rate(diameter, ServiceType, undefined, ServiceNetwork,
-				Subscriber, Timestamp, Destination, originate, final, DebitAmount,
+				Subscriber, Timestamp, Address, Direction, final, DebitAmount,
 				[], [{'Session-Id', SId}]) of
 			{ok, _, Rated} when is_list(Rated) ->
 				Reply = diameter_answer(SId, [], [], undefined,
@@ -636,7 +637,8 @@ process_request1(?'3GPP_CC-REQUEST-TYPE_TERMINATION_REQUEST' = RequestType,
 						{module, ?MODULE}, {error, Reason},
 						{origin_host, OHost}, {origin_realm, ORealm},
 						{type, final}, {subscriber, Subscriber},
-						{destination, Destination}, {used, DebitAmount}]),
+						{address, Address}, {direction, Direction},
+						{used, DebitAmount}]),
 				Reply = diameter_error(SId, ?'IETF_RESULT-CODE_RATING_FAILED',
 						OHost, ORealm, RequestType, RequestNum),
 				ok = ocs_log:acct_log(diameter, Server,
@@ -654,11 +656,11 @@ process_request1(?'3GPP_CC-REQUEST-TYPE_TERMINATION_REQUEST' = RequestType,
 process_request1(?'3GPP_CC-REQUEST-TYPE_TERMINATION_REQUEST' = RequestType,
 		#'3gpp_ro_CCR'{'Multiple-Services-Credit-Control' = []} = Request,
 		SId, RequestNum, _Subscriber, OHost, _DHost,
-		ORealm, _DRealm, Address, Port) ->
+		ORealm, _DRealm, IpAddress, Port) ->
 	Reply = diameter_answer(SId, [], [], undefined,
 			?'DIAMETER_BASE_RESULT-CODE_SUCCESS',
 			OHost, ORealm, RequestType, RequestNum),
-	ok = ocs_log:acct_log(diameter, {Address, Port},
+	ok = ocs_log:acct_log(diameter, {IpAddress, Port},
 			accounting_event_type(RequestType), Request, Reply, undefined),
 	Reply.
 
@@ -732,19 +734,25 @@ accounting_event_type(2) -> interim;
 accounting_event_type(3) -> stop.
 
 %% @hidden
-call_destination([#'3gpp_ro_Service-Information'{
+direction_address([#'3gpp_ro_Service-Information'{
 		'SMS-Information' = [#'3gpp_ro_SMS-Information'{
 		'Recipient-Info' = [#'3gpp_ro_Recipient-Info'{
 		'Recipient-Address' = [#'3gpp_ro_Recipient-Address'{
 		'Address-Data' = [RecipientAddress]}]}]}]}]) ->
 	% @todo handle multiple SMS recipients
-	RecipientAddress;
-call_destination([#'3gpp_ro_Service-Information'{
+	{originate, RecipientAddress};
+direction_address([#'3gpp_ro_Service-Information'{
 		'IMS-Information' = [#'3gpp_ro_IMS-Information'{
+		'Role-Of-Node' = [?'3GPP_RO_ROLE-OF-NODE_ORIGINATING_ROLE'],
 		'Called-Party-Address' = [CalledParty]}]}]) ->
-	destination(CalledParty);
-call_destination(_) ->
-	undefined.
+	{originate, destination(CalledParty)};
+direction_address([#'3gpp_ro_Service-Information'{
+		'IMS-Information' = [#'3gpp_ro_IMS-Information'{
+		'Role-Of-Node' = [?'3GPP_RO_ROLE-OF-NODE_TERMINATING_ROLE'],
+		'Calling-Party-Address' = [CallingParty]}]}]) ->
+	{answer, destination(CallingParty)};
+direction_address(_) ->
+	{undefined, undefined}.
 
 %% @hidden
 destination(<<"tel:", Dest/binary>>) ->
