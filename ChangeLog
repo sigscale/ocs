@@ -1,3 +1,57 @@
+2020-08-23  Vance Shipley <vances@sigscale.org>
+
+	* rate incoming voice using calling address
+	* test cases for diameter scur incoming and outgoing voice
+	* correct final debit amount rounding up to price unit size
+
+2020-08-22  Vance Shipley <vances@sigscale.org>
+
+	* test case for diameter scur with centralized unit determination
+	* refactor rating to include unit type in response
+	* stop applications on end in rest api test suite
+	* add mod_oauth module edoc
+	* document mod oauth enviroment variables
+	* remove unused (internal) inets header file from mod_oauth
+	* handle service address of all zeroes in test suite
+
+2020-08-19  Vance Shipley <vances@sigscale.org>
+
+	* gui - correct recurring amount initialization
+	* oauth (rfc6549) inets module
+	* oauth testcase
+	* types - missing cents in price units
+	* diameter - no rating on ccr terminate with no mscc
+	* diameter - ccr terminate may have missing mscc
+	* rest - api for unregistering hub listener for resource inventory
+	* rest - api for registering hub listener for resource
+	* rest - use shorter uri in product and service resources
+	* diameter - encode for orthoganality in custom codec
+	* use service-identifier and rating-group in case of rsu missing
+	* rest - api for unregistering hub listener for catalog
+	* testcase for unregistering hub listener for catalog
+	* rest - api for registering hub listener for catalog
+	* test - case for regestering hub listener for catalog
+	* rest - api of unregistering hub listener for user
+	* test - case for unregistering hub listener for user
+	* rest - api for registering hub listener for user
+	* rest - create rest hub module for user
+	* test case for registering hub listener for user
+	* rest - api for unregistering service hub listener
+	* test case for unregistering hub listener for service
+	* rest - handle notifications for add service
+	* test case for service inventory management notifications
+	* rest - api to create a new listener for service inventory
+	* test case for registering hub listener for service
+	* rest - api for unregistering existing product hub listener
+	* test case for unregistering existing product hub listener
+	* test case for registering hub listener for product
+	* validate id, password in add service
+	* handle notifications for add product
+	* test case for product inventory management notifications
+	* notification for expired bucket deletion
+	* accept empty rsu
+	* correct rsu input + output octets case
+
 2020-08-02  Vance Shipley <vances@sigscale.org>
 
 	* centralized unit determination [OCS-173]
