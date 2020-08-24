@@ -462,8 +462,8 @@ diamneter_scur_cud() ->
 	[{userdata, [{doc, "DIAMETER SCUR with Centralized Unit Determination"}]}].
 
 diameter_scur_cud(_Config) ->
-	Units = 123456789,
-	P1 = price(usage, octets, Units, rand:uniform(1000000)),
+	UnitSize = 123456789,
+	P1 = price(usage, octets, UnitSize, rand:uniform(1000000)),
 	OfferId = add_offer([P1], 4),
 	ProdRef = add_product(OfferId),
 	MSISDN = list_to_binary(ocs:generate_identity()),
@@ -505,9 +505,9 @@ diameter_scur_cud(_Config) ->
 			'Multiple-Services-Credit-Control' = [MSCC2]} = Answer0,
 	#'3gpp_ro_Multiple-Services-Credit-Control'{
 			'Granted-Service-Unit' = [GSU]} = MSCC2,
-	#'3gpp_ro_Granted-Service-Unit'{'CC-Total-Octets' = [Units]} = GSU,
+	#'3gpp_ro_Granted-Service-Unit'{'CC-Total-Octets' = [UnitSize]} = GSU,
 	NewRequestNum = RequestNum + 1,
-	Answer1 = diameter_scur_stop(SId, MSISDN, NewRequestNum, Units),
+	Answer1 = diameter_scur_stop(SId, MSISDN, NewRequestNum, UnitSize),
 	#'3gpp_ro_CCA'{'Result-Code' = ?'DIAMETER_BASE_RESULT-CODE_SUCCESS',
 			'Auth-Application-Id' = ?RO_APPLICATION_ID,
 			'CC-Request-Type' = ?'3GPP_RO_CC-REQUEST-TYPE_TERMINATION_REQUEST',
@@ -693,13 +693,13 @@ diameter_voice_out() ->
 	[{userdata, [{doc, "DIAMETER SCUR for outgoing voice call"}]}].
 
 diameter_voice_out(_Config) ->
-	Units = 6,
-	P1 = price(usage, seconds, Units, rand:uniform(1000000)),
+	UnitSize = 6,
+	P1 = price(usage, seconds, UnitSize, rand:uniform(1000000)),
 	Incoming = #char_value{value = "answer"},
 	CallDirection1 = #char_value_use{name = "callDirection",
 			specification = "5", values = [Incoming]},
 	P2 = P1#price{char_value_use = [CallDirection1]},
-	P3 = price(usage, seconds, Units, rand:uniform(1000000)),
+	P3 = price(usage, seconds, UnitSize, rand:uniform(1000000)),
 	Outgoing = #char_value{value = "originate"},
 	CallDirection2 = #char_value_use{name = "callDirection",
 			specification = "5", values = [Outgoing]},
@@ -761,11 +761,11 @@ diameter_voice_out(_Config) ->
 			'Auth-Application-Id' = ?RO_APPLICATION_ID,
 			'CC-Request-Type' = ?'3GPP_RO_CC-REQUEST-TYPE_TERMINATION_REQUEST',
 			'CC-Request-Number' = NewRequestNum} = Answer2,
-	ChargedUnits = case UsedUnits rem 6 of
+	ChargedUnits = case UsedUnits rem UnitSize of
 		0 ->
 			UsedUnits;
 		N ->
-			UsedUnits + (6 - N)
+			UsedUnits + (UnitSize - N)
 	end,
 	Balance2 = Balance1 - ChargedUnits,
 	{ok, #bucket{remain_amount = Balance2}} = ocs:find_bucket(B1ref).
@@ -774,13 +774,13 @@ diameter_voice_in() ->
 	[{userdata, [{doc, "DIAMETER SCUR for answered voice call"}]}].
 
 diameter_voice_in(_Config) ->
-	Units = 6,
-	P1 = price(usage, seconds, Units, rand:uniform(1000000)),
+	UnitSize = 6,
+	P1 = price(usage, seconds, UnitSize, rand:uniform(1000000)),
 	Incoming = #char_value{value = "answer"},
 	CallDirection1 = #char_value_use{name = "callDirection",
 			specification = "5", values = [Incoming]},
 	P2 = P1#price{char_value_use = [CallDirection1]},
-	P3 = price(usage, seconds, Units, rand:uniform(1000000)),
+	P3 = price(usage, seconds, UnitSize, rand:uniform(1000000)),
 	Outgoing = #char_value{value = "originate"},
 	CallDirection2 = #char_value_use{name = "callDirection",
 			specification = "5", values = [Outgoing]},
@@ -842,11 +842,11 @@ diameter_voice_in(_Config) ->
 			'Auth-Application-Id' = ?RO_APPLICATION_ID,
 			'CC-Request-Type' = ?'3GPP_RO_CC-REQUEST-TYPE_TERMINATION_REQUEST',
 			'CC-Request-Number' = NewRequestNum} = Answer2,
-	ChargedUnits = case UsedUnits rem 6 of
+	ChargedUnits = case UsedUnits rem UnitSize of
 		0 ->
 			UsedUnits;
 		N ->
-			UsedUnits + (6 - N)
+			UsedUnits + (UnitSize - N)
 	end,
 	Balance2 = Balance1 - ChargedUnits,
 	{ok, #bucket{remain_amount = Balance2}} = ocs:find_bucket(B1ref).
