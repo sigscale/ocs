@@ -1397,7 +1397,7 @@ class offerAdd extends PolymerElement {
 			this.$.addPriceCharReserveTime.disabled = true;
 			this.$.addPriceCharReserveBytes.disabled = true;
 			this.$.addPriceUnits.selected = 1;
-			this.$.addPriceAmount.false= false;
+			this.$.addPriceAmount.disabled = false;
 		} else if(this.priceAddType == "One Time") {
 			this.$.addPricePerioddrop.disabled = true;
 			this.$.priceBytes.disabled = true;
