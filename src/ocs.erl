@@ -2316,6 +2316,9 @@ charge(_ProdRef, Amount, [#bucket{units = cents,
 charge(_ProdRef, Amount, [#bucket{units = cents,
 		remain_amount = Remain} = B], Acc) ->
 	lists:reverse([B#bucket{remain_amount = Remain - Amount} | Acc]);
+charge(ProdRef, Amount, [#bucket{units = cents,
+		remain_amount = Remain} | T], Acc) when Remain > 0 ->
+	charge(ProdRef, Amount - Remain, T, Acc);
 charge(ProdRef, Amount, [H | T], Acc) ->
 	charge(ProdRef, Amount, T, [H | Acc]);
 charge(ProdRef, Amount, [], Acc) ->
