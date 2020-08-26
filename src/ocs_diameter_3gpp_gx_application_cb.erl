@@ -298,7 +298,6 @@ process_request(_Address, _Port,
 								'QoS-Class-Identifier' = [?'3GPP_GX_QOS-CLASS-IDENTIFIER_QCI_9'],
 								'Max-Requested-Bandwidth-UL' = [1000000000],
 								'Max-Requested-Bandwidth-DL' = [1000000000]}],
-						'Online' = [?'3GPP_GX_ONLINE_ENABLE_ONLINE'],
 						'Reporting-Level' = [?'3GPP_GX_REPORTING-LEVEL_RATING_GROUP_LEVEL'],
 						'Rating-Group' = [1]}]},
 		#'3gpp_gx_CCA'{'Session-Id' = SId,
@@ -307,6 +306,7 @@ process_request(_Address, _Port,
 				'Auth-Application-Id' = ?Gx_APPLICATION_ID,
 				'CC-Request-Type' = RequestType,
 				'CC-Request-Number' = RequestNum,
+				'Online' = [?'3GPP_GX_ONLINE_ENABLE_ONLINE'],
 				'Charging-Rule-Install' = [ChargingRuleInstall]}
 	catch
 		_:Reason ->
