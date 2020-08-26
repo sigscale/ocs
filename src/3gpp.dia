@@ -510,6 +510,7 @@
    Charging-Rule-Definition                               1003  Grouped          VM
    Charging-Rule-Base-Name                                1004  UTF8String       VM
    Charging-Rule-Name                                     1005  OctetString      VM
+   Reporting-Level                                        1011  Enumerated       VM
    IP-CAN-Type                                            1027  Enumerated       VM
    Offline                                                1008  Enumerated       VM
    Online                                                 1009  Enumerated       VM
@@ -1662,7 +1663,7 @@
 ;        [ Flow-Status ]
          [ QoS-Information ]
 ;        [ PS-to-CS-Session-Continuity ]
-;        [ Reporting-Level ]
+         [ Reporting-Level ]
          [ Online ]
          [ Offline ]
 ;        [ Max-PLR-DL ]
@@ -2279,4 +2280,9 @@
 @enum Bearer-Usage
    GENERAL         0
    IMS_SIGNALLING  1
+
+@enum Reporting-Level
+	SERVICE_IDENTIFIER_LEVEL       0
+   RATING_GROUP_LEVEL             1
+   SPONSORED_CONNECTIVITY_LEVEL   2
 
