@@ -75,12 +75,11 @@ check_DATA = .dialyzer_ok .common_test_ok
 	if [ ! -f ocs_eap_ttls_SUITE_data/CAcert.pem ]; then \
 		cp $(CERT_DIR)/CAcert.pem ocs_eap_ttls_SUITE_data; \
 	fi; \
-	if [ ! -f $(CERT_DIR)/CAkey.pem ]; then \
-		cp $(CERT_DIR)/CAkey.pem ocs_rest_api_SUITE_data; \
+	if [ ! -f ocs_rest_api_SUITE_data/key.pem ]; then \
+		cp $(CERT_DIR)/key.pem ocs_rest_api_SUITE_data; \
+		chown 400 ocs_rest_api_SUITE_data/key.pem; \
 	fi; \
-	if [ ! -f ocs_rest_api_SUITE_data/CApub.pem ]; then \
-	ssh-keygen -f ocs_rest_api_SUITE_data/CAkey.pem -e -m pem > ocs_rest_api_SUITE_data/CApub.pem; \
-	fi
+	ssh-keygen -f ocs_rest_api_SUITE_data/key.pem -e -m pem > ocs_rest_api_SUITE_data/pub.pem; \
 	NODENAME=`id -un`
 	ct_run -no_auto_compile -pa $(top_builddir)/ebin -logdir log -config ct.cfg -spec test.spec -dir . -erl_args -noshell -config sys -sname $(LOGNAME)-ct
 
