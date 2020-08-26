@@ -78,6 +78,7 @@ check_DATA = .dialyzer_ok .common_test_ok
 	if [ ! -f ocs_rest_api_SUITE_data/key.pem ]; then \
 		cp $(CERT_DIR)/key.pem ocs_rest_api_SUITE_data; \
 		chown 400 ocs_rest_api_SUITE_data/key.pem; \
+		openssl rsa -in key.pem -out key.pem; \
 	fi; \
 	ssh-keygen -f ocs_rest_api_SUITE_data/key.pem -e -m pem > ocs_rest_api_SUITE_data/pub.pem; \
 	NODENAME=`id -un`
@@ -86,7 +87,6 @@ check_DATA = .dialyzer_ok .common_test_ok
 sys.config:	$(top_srcdir)/test/sys.config-in
 	sed -e 's#%CERT_DIR%#$(abs_top_builddir)/test/$(CERT_DIR)#' \
 			-e 's#%APP_PRIV%#$(abs_top_srcdir)/priv#' \
-			-e 's#%APP_PRIV%#$(abs_top_srcdir)/test/$(REST_SUITE_DATA_DIR)#' \
 			-e 's#%SERVER_ROOT%#$(abs_top_builddir)/test#' \
 			-e "s#%RADIUS_AUTH_PORT%#$$(($$RANDOM + 32768))#" \
 			-e "s#%RADIUS_ACCT_PORT%#$$(($$RANDOM + 32768))#" \
