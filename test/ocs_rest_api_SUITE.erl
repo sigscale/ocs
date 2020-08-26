@@ -2546,47 +2546,6 @@ update_client_attributes_json_patch(Config) ->
 	{_, Secret} = lists:keyfind("secret", 1, Object1),
 	ok = ssl:close(SslSock).
 
-oauth_authenticaton()->
-	[{userdata, [{doc, "Authenticate a JWT using oauth"}]}].
-
-oauth_authentication(Config)->
-	ID = "cornflakes",
-	Locale = "es",
-	{ok, _} = ocs:add_user(ID, "", Locale),
-	ok = application:set_env(ocs, oauth_issuer, "joe"),
-	ok = application:set_env(ocs, oauth_audience, "network-subscriber.sigscale-ocs"),
-	HostUrl = ?config(host_url, Config),
-	Accept = {"accept", "application/json"},
-	Header = #{"alg" => "RS256", "typ" => "JWT"},
-	Payload = #{"iss" => "joe", "exp" => 1300819380, "email" => "cornflakes",
-			"aud" => ["network-subscriber.sigscale-ocs", "account"],
-			"preferred_username" => "flakes"},
-	EncodedHeader = encode_base64url(zj:encode(Header)),
-	EncodedPayload = encode_base64url(zj:encode(Payload)),
-	Signature = <<5,28,91,40,142,205,65,150,197,116,165,163,34,221,115,
-			144,124,212,188,53,102,142,230,240,77,4,250,178,73,118,
-			93,40,76,113,191,119,61,3,127,3,123,208,35,141,135,3,
-			154,191,188,102,241,123,28,229,128,16,57,139,200,230,61,
-			15,9,98,122,148,248,82,140,27,102,51,230,83,54,188,189,
-			124,200,93,234,208,223,80,215,83,45,4,91,87,111,115,152,
-			22,255,165,236,60,72,167,186,21,96,160,41,59,103,181,43,
-			249,57,10,49,98,220,235,195,157,78,140,221,105,190,67,
-			137,89,41,100,2,105,192,34,101,140,103,34,239,106,190,
-			30,184,203,24,19,76,10,153,106,140,159,2,148,133,1,209,
-			161,189,164,117,7,62,69,130,170,128,46,228,37,191,113,
-			182,84,166,151,221,25,19,249,123,213,51,59,49,44,183,90,
-			244,210,56,1,105,200,140,14,204,13,226,73,63,167,31,224,
-			214,10,223,241,67,127,33,38,32,159,148,15,213,146,242,
-			118,84,43,4,200,147,227,3,240,38,4,90,161,75,149,33,174,
-			144,116,98,175,183,111,131,78,116,136,240,211,20,134,
-			231,102,92,100,43,82,155,230>>,
-	EncodedSignature = encode_base64url(binary_to_list(Signature)),
-	AuthKey = "Bearer " ++ EncodedHeader ++ "." ++ EncodedPayload ++ "." ++ EncodedSignature,
-	Authentication = {"authorization", AuthKey},
-	Request = {HostUrl, [Accept, Authentication]},
-	{ok, Result} = httpc:request(get, Request, [], []),
-	{{"HTTP/1.1", 200, _}, _, _} = Result.
-
 post_hub_balance() ->
 	[{userdata, [{doc, "Register hub listener for balance"}]}].
 
@@ -2972,6 +2931,38 @@ delete_hub_inventory(Config) ->
 	{_, Id} = lists:keyfind("id", 1, HubList),
 	Request1 = {HostUrl ++ PathHub ++ Id, [Accept, auth_header()]},
 	{ok, {{_, 204, _}, _, []}} = httpc:request(delete, Request1, [], []).
+
+oauth_authenticaton()->
+	[{userdata, [{doc, "Authenticate a JWT using oauth"}]}].
+
+oauth_authentication(Config)->
+erlang:display({?MODULE, ?LINE, Config}),
+	ID = "cornflakes",
+	Locale = "es",
+	{ok, _} = ocs:add_user(ID, "", Locale),
+	ok = application:set_env(ocs, oauth_issuer, "joe"),
+	ok = application:set_env(ocs, oauth_audience, "network-subscriber.sigscale-ocs"),
+	HostUrl = ?config(host_url, Config),
+	Accept = {"accept", "application/json"},
+	Header = #{"alg" => "RS256", "typ" => "JWT"},
+	Payload = #{"iss" => "joe", "exp" => 1300819380, "email" => "cornflakes",
+			"aud" => ["network-subscriber.sigscale-ocs", "account"],
+			"preferred_username" => "flakes"},
+	EncodedHeader = encode_base64url(zj:encode(Header)),
+	EncodedPayload = encode_base64url(zj:encode(Payload)),
+	Path = ?config(data_dir, Config),
+	KeyPath = Path ++ "key.pem",
+	{ok, PrivBin} = file:read_file(KeyPath),
+	[RSAPrivEntry] = public_key:pem_decode(PrivBin),
+	Key = public_key:pem_entry_decode(RSAPrivEntry),
+	Msg = list_to_binary(EncodedHeader ++ "." ++ EncodedPayload),
+	Signature = public_key:sign(Msg, sha256, Key),
+	EncodedSignature = encode_base64url(binary_to_list(Signature)),
+	AuthKey = "Bearer " ++ EncodedHeader ++ "." ++ EncodedPayload ++ "." ++ EncodedSignature,
+	Authentication = {"authorization", AuthKey},
+	Request = {HostUrl, [Accept, Authentication]},
+	{ok, Result} = httpc:request(get, Request, [], []),
+	{{"HTTP/1.1", 200, _}, _, _} = Result.
 
 %%---------------------------------------------------------------------
 %%  Internal functions
