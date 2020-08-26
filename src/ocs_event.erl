@@ -38,9 +38,9 @@
 
 -spec notify(EventType, EventPayLoad, Category) -> ok
 	when
-		EventType :: create_bucket | create_product | create_service,
-		EventPayLoad :: #bucket{} | #product{} | #service{},
-		Category :: balance | product | service.
+		EventType :: create_bucket | create_product | create_service | charge,
+		EventPayLoad :: #bucket{} | #product{} | #service{} | [#adjustment{}],
+		Category :: balance | product | service | adjustment.
 %% @doc Send a notification event.
 %%
 %% The `EventPayload' should contain the entire new Alarm (create),

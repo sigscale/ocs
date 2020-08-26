@@ -148,9 +148,9 @@ register(timeout, State) ->
 -spec registered(Event, State) -> Result
 	when
 		Event :: {Type, Resource, Category},
-		Type :: create_bucket | create_product | create_service,
-		Resource :: #bucket{} | #product{} | #service{},
-		Category :: balance | product | service,
+		Type :: create_bucket | create_product | create_service | charge,
+		Resource :: #bucket{} | #product{} | #service{} | [#adjustment{}],
+		Category :: balance | product | service | adjustment,
 		State :: statedata(),
 		Result :: {next_state, NextStateName, NewStateData}
 			| {next_state, NextStateName, NewStateData, timeout}
@@ -186,7 +186,9 @@ registered({Type, Resource, Category} = _Event, #statedata{sync = Sync,
 		create_product ->
 			"ProductCreationNotification";
 		create_service ->
-			"ServiceCreationNotification"
+			"ServiceCreationNotification";
+		charge ->
+			"BalanceAdjustmentCreationNotification"
 	end,
 	Event = case Category of
 		balance ->
@@ -194,7 +196,11 @@ registered({Type, Resource, Category} = _Event, #statedata{sync = Sync,
 		product ->
 			ocs_rest_res_product:inventory(Resource);
 		service ->
-			ocs_rest_res_service:inventory(Resource)
+			ocs_rest_res_service:inventory(Resource);
+		adjustment ->
+			AdjStructs = [ocs_rest_res_balance:adjustment(Adjustment)
+					|| Adjustment <- Resource],
+			{array, AdjStructs}
 	end,
 	EventStruct = {struct, [{"eventId", EventId}, {"eventTime", EventTime},
 			{"eventType", EventType}, {"event", Event}]},
