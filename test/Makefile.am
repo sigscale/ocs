@@ -3,6 +3,8 @@
 ##
 ## Process this file with automake to produce Makefile.in
 
+REST_SUITE_DATA_DIR = ocs_rest_api_SUITE_data
+
 CERT_DIR = certificates
 
 testmods = ocs_api_SUITE \
@@ -73,8 +75,11 @@ check_DATA = .dialyzer_ok .common_test_ok
 	if [ ! -f ocs_eap_ttls_SUITE_data/CAcert.pem ]; then \
 		cp $(CERT_DIR)/CAcert.pem ocs_eap_ttls_SUITE_data; \
 	fi; \
-	if [ ! -f ocs_rest_api_SUITE_data/CAcert.pem ]; then \
-		cp $(CERT_DIR)/CAcert.pem ocs_rest_api_SUITE_data; \
+	if [ ! -f $(CERT_DIR)/CAkey.pem ]; then \
+		cp $(CERT_DIR)/CAkey.pem ocs_rest_api_SUITE_data; \
+	fi; \
+	if [ ! -f ocs_rest_api_SUITE_data/CApub.pem ]; then \
+	ssh-keygen -f ocs_rest_api_SUITE_data/CAkey.pem -e -m pem > ocs_rest_api_SUITE_data/CApub.pem; \
 	fi
 	NODENAME=`id -un`
 	ct_run -no_auto_compile -pa $(top_builddir)/ebin -logdir log -config ct.cfg -spec test.spec -dir . -erl_args -noshell -config sys -sname $(LOGNAME)-ct
@@ -82,6 +87,7 @@ check_DATA = .dialyzer_ok .common_test_ok
 sys.config:	$(top_srcdir)/test/sys.config-in
 	sed -e 's#%CERT_DIR%#$(abs_top_builddir)/test/$(CERT_DIR)#' \
 			-e 's#%APP_PRIV%#$(abs_top_srcdir)/priv#' \
+			-e 's#%APP_PRIV%#$(abs_top_srcdir)/test/$(REST_SUITE_DATA_DIR)#' \
 			-e 's#%SERVER_ROOT%#$(abs_top_builddir)/test#' \
 			-e "s#%RADIUS_AUTH_PORT%#$$(($$RANDOM + 32768))#" \
 			-e "s#%RADIUS_ACCT_PORT%#$$(($$RANDOM + 32768))#" \
