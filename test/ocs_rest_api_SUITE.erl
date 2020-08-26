@@ -119,7 +119,8 @@ end_per_suite(Config) ->
 %%
 init_per_testcase(TestCase, Config) when TestCase == notify_create_bucket;
 		TestCase == notify_delete_expired_bucket;
-		TestCase == notify_create_product; TestCase == notify_create_service ->
+		TestCase == notify_create_product; TestCase == notify_create_service;
+		TestCase == notify_product_charge ->
 	true = register(TestCase, self()),
 	case inets:start(httpd, [{port, 0},
 			{server_name, atom_to_list(?MODULE)},
@@ -177,7 +178,7 @@ all() ->
 	post_hub_product, delete_hub_product, notify_create_product,
 	post_hub_service, delete_hub_service, notify_create_service,
 	post_hub_user, delete_hub_user, post_hub_catalog, delete_hub_catalog,
-	post_hub_inventory, delete_hub_inventory].
+	post_hub_inventory, delete_hub_inventory, notify_product_charge].
 
 %%%%%---------------------------------------------------------------------
 %%  Test cases
@@ -2922,6 +2923,90 @@ delete_hub_inventory(Config) ->
 	Request1 = {HostUrl ++ PathHub ++ Id, [Accept, auth_header()]},
 	{ok, {{_, 204, _}, _, []}} = httpc:request(delete, Request1, [], []).
 
+notify_product_charge() ->
+	[{userdata, [{doc, "Receive product charged notification"}]}].
+
+notify_product_charge(Config) ->
+	HostUrl = ?config(host_url, Config),
+	CollectionUrl = HostUrl ++ ?PathServiceHub,
+	ListenerPort = ?config(listener_port, Config),
+	ListenerServer = "http://localhost:" ++ integer_to_list(ListenerPort),
+	Callback = ListenerServer ++ "/listener/"
+			++ atom_to_list(?MODULE) ++ "/notifyproductcharge",
+	RequestBody = "{\n"
+			++ "\t\"callback\": \"" ++ Callback ++ "\",\n"
+			++ "}\n",
+	ContentType = "application/json",
+	Accept = {"accept", "application/json"},
+	Request = {CollectionUrl, [Accept, auth_header()], ContentType, RequestBody},
+	{ok, {{_, 201, _}, _, _}} = httpc:request(post, Request, [], []),
+	SD = erlang:system_time(?MILLISECOND),
+	Alteration = #alteration{name = ocs:generate_identity(), start_date = SD,
+			type = usage, period = undefined,
+			units = octets, size = 100000000000, amount = 0},
+	Amount = 1250,
+	Price = #price{name = ocs:generate_identity(), start_date = SD,
+			type = recurring, period = monthly,
+			amount = Amount, alteration = Alteration},
+	OfferId = ocs:generate_identity(),
+	Offer = #offer{name = OfferId, start_date = SD,
+			status = active, price = [Price]},
+	{ok, #offer{}} = ocs:add_offer(Offer),
+	{ok, #product{id = ProdId} = P} = ocs:add_product(OfferId, []),
+	receive
+		Input1 ->
+			{struct, ProductEvent} = mochijson:decode(Input1),
+			{_, "ProductCreationNotification"}
+					= lists:keyfind("eventType", 1, ProductEvent),
+			{_, {struct, ProductList}} = lists:keyfind("event", 1, ProductEvent),
+			{_, ProdId} = lists:keyfind("id", 1, ProductList)
+	end,
+	Expired = erlang:system_time(?MILLISECOND) - 3599000,
+	ok = mnesia:dirty_write(product, P#product{payment =
+			[{Price#price.name, Expired}]}),
+	B1 = #bucket{units = cents, remain_amount = 1000,
+			start_date = erlang:system_time(?MILLISECOND),
+			end_date = erlang:system_time(?MILLISECOND) + 2592000000},
+	{ok, _, #bucket{id = BId1}} = ocs:add_bucket(ProdId, B1),
+	receive
+		Input2 ->
+			{struct, BalanceEvent1} = mochijson:decode(Input2),
+			{_, "BalanceTopupCreationNotification"}
+					= lists:keyfind("eventType", 1, BalanceEvent1),
+			{_, {struct, BalanceList1}} = lists:keyfind("event", 1, BalanceEvent1),
+			{_, BId1} = lists:keyfind("id", 1, BalanceList1)
+	end,
+	B2 = #bucket{units = cents, remain_amount = 1000,
+			start_date = erlang:system_time(?MILLISECOND),
+			end_date = erlang:system_time(?MILLISECOND) + 2592000000},
+	{ok, _, #bucket{id = BId2}} = ocs:add_bucket(ProdId, B2),
+	receive
+		Input3 ->
+			{struct, BalanceEvent2} = mochijson:decode(Input3),
+			{_, "BalanceTopupCreationNotification"}
+					= lists:keyfind("eventType", 1, BalanceEvent2),
+			{_, {struct, BalanceList2}} = lists:keyfind("event", 1, BalanceEvent2),
+			{_, BId2} = lists:keyfind("id", 1, BalanceList2)
+	end,
+	ok = ocs_scheduler:product_charge(),
+	AdjustmentStructs = receive
+		Input ->
+			{struct, AdjustmentEvent} = mochijson:decode(Input),
+			{_, "BalanceAdjustmentCreationNotification"}
+					= lists:keyfind("eventType", 1, AdjustmentEvent),
+			{_, {array, AdjStructList}}
+					= lists:keyfind("event", 1, AdjustmentEvent),
+			AdjStructList
+	end,
+	Adjustments = [ocs_rest_res_balance:adjustment(AdjustmentStruct)
+			|| AdjustmentStruct <- AdjustmentStructs],
+	Fcents = fun(#adjustment{amount = Value, units = cents}) ->
+				{true, Value};
+			(_) ->
+				false
+	end,
+	Amount = lists:sum(lists:filtermap(Fcents, Adjustments)).
+
 %%---------------------------------------------------------------------
 %%  Internal functions
 %%---------------------------------------------------------------------
@@ -2953,6 +3038,13 @@ notifycreateproduct(SessionID, _Env, Input) ->
 notifycreateservice(SessionID, _Env, Input) ->
 	mod_esi:deliver(SessionID, "status: 201 Created\r\n\r\n"),
 	notify_create_service ! Input.
+
+-spec notifyproductcharge(SessionID :: term(), Env :: list(),
+		Input :: string()) -> any().
+%% @doc Notification callback for notify_product_charge test case.
+notifyproductcharge(SessionID, _Env, Input) ->
+	mod_esi:deliver(SessionID, "status: 201 Created\r\n\r\n"),
+	notify_product_charge ! Input.
 
 product_offer() ->
 	CatalogHref = "/catalogManagement/v2",
