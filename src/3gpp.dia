@@ -522,7 +522,7 @@
    Allocation-Retention-Priority                          1034  Grouped          VM
    APN-Aggregate-Max-Bitrate-DL                           1040  Unsigned32       VM
    APN-Aggregate-Max-Bitrate-UL                           1041  Unsigned32       VM
-   Pre-emption-Capability                                 1047  Enumerated       VM
+   Pre-emption-Capability                                 1047  Enumerated       V
    Pre-emption-Vulnerability                              1048  Enumerated       V
    Default-EPS-Bearer-QoS                                 1049  Grouped          V
    UE-Local-IP-Address                                    2805  Address          V
@@ -2279,5 +2279,4 @@
 @enum Bearer-Usage
    GENERAL         0
    IMS_SIGNALLING  1
-
 
