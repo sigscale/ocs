@@ -2613,8 +2613,8 @@ notify_create_bucket(Config) ->
 			{_, ProdRef} = lists:keyfind("id", 1, ProductList)
 	end,
 	Bucket = #bucket{units = cents, remain_amount = 100,
-			start_date = erlang:system_time(milli_seconds),
-			end_date = erlang:system_time(milli_seconds) + 2592000000},
+			start_date = erlang:system_time(?MILLISECOND),
+			end_date = erlang:system_time(?MILLISECOND) + 2592000000},
 	{ok, _, #bucket{}} = ocs:add_bucket(ProdRef, Bucket),
 	Balance = receive
 		Input2 ->
