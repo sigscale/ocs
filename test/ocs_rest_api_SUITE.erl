@@ -2928,7 +2928,7 @@ notify_product_charge() ->
 
 notify_product_charge(Config) ->
 	HostUrl = ?config(host_url, Config),
-	CollectionUrl = HostUrl ++ ?PathServiceHub,
+	CollectionUrl = HostUrl ++ ?PathProductHub,
 	ListenerPort = ?config(listener_port, Config),
 	ListenerServer = "http://localhost:" ++ integer_to_list(ListenerPort),
 	Callback = ListenerServer ++ "/listener/"
