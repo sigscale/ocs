@@ -78,7 +78,7 @@ check_DATA = .dialyzer_ok .common_test_ok
 	if [ ! -f ocs_rest_api_SUITE_data/key.pem ]; then \
 		cp $(CERT_DIR)/key.pem ocs_rest_api_SUITE_data; \
 		chown 400 ocs_rest_api_SUITE_data/key.pem; \
-		openssl rsa -in key.pem -out key.pem; \
+		openssl rsa -in ocs_rest_api_SUITE_data/key.pem -out ocs_rest_api_SUITE_data/key.pem; \
 	fi; \
 	ssh-keygen -f ocs_rest_api_SUITE_data/key.pem -e -m pem > ocs_rest_api_SUITE_data/pub.pem; \
 	NODENAME=`id -un`
