@@ -204,19 +204,24 @@ require1(Info, Directory, DirectoryData, ValidUsers, ValidGroups,
 		when is_list(EncodedHeader), is_list(EncodedPayload), is_list(EncodedSignature) ->
 	case validate_header(EncodedHeader) of
 	{valid, _DecodedHeader} ->
+erlang:display({?MODULE, ?LINE}),
 		case validate_payload(EncodedPayload) of
-		{valid, DecodedPayload} ->
+			{valid, DecodedPayload} ->
+erlang:display({?MODULE, ?LINE}),
 			case validate_cert(EncodedHeader, EncodedPayload, EncodedSignature) of
 					authenticated ->
+erlang:display({?MODULE, ?LINE}),
 						validate_user(Info, Directory, DirectoryData,
 								ValidUsers, ValidGroups, DecodedPayload);
 					{error, _Reason} ->
+erlang:display({?MODULE, ?LINE}),
 						authorization_required(DirectoryData)
 			end;
 		{error, _Reason} ->
 			authorization_required(DirectoryData)
 		end;
 	{error, _Reason} ->
+erlang:display({?MODULE, ?LINE}),
 		authorization_required(DirectoryData)
 	end.
 
@@ -268,8 +273,9 @@ validate_cert1(_, _, _DecodedSignature) ->
 		Reason :: term().
 %% @doc Validate a JWT payload.
 validate_payload(EncodedPayload) ->
-		{ok, DecodedPayLoad} = zj:decode(decode_base64url(EncodedPayload)),
-		validate_payload1(DecodedPayLoad).
+		DecodedPayLoad = mochijson:decode(decode_base64url(EncodedPayload)),
+erlang:display({?MODULE, ?LINE, DecodedPayLoad}),
+		validate_payload1(struct_to_map(DecodedPayLoad)).
 %% @hidden
 validate_payload1(#{"aud" := AudList, "iss" := Iss, "exp" := Exp} = DecodedPayload)
 		when is_list(AudList), is_list(Iss) ->
@@ -311,8 +317,8 @@ check_aud(Aud, AudList) ->
 %% @doc Validate a JWT header.
 validate_header(EncodedHeader) ->
 	EncodedHeader1 = string:strip(EncodedHeader, left),
-	{ok, DecodedHeader} = zj:decode(decode_base64url(EncodedHeader1)),
-	validate_header1(DecodedHeader).
+	DecodedHeader = mochijson:decode(decode_base64url(EncodedHeader1)),
+	validate_header1(struct_to_map(DecodedHeader)).
 %% @hidden
 validate_header1(#{"alg" := "RS256", "typ" := "JWT"} = DecodedHeader) ->
 	{valid, DecodedHeader};
@@ -485,3 +491,17 @@ convert(Path,[[H] | T], Acc) ->
 convert(Path, [], Acc) ->
 	[{Path, []} | Acc].
 
+-spec struct_to_map(Struct) -> Map
+	when
+		Struct :: {struct, [tuple()]},
+		Map :: map().
+%% @doc Convert mochijson struct to a map.
+struct_to_map({struct, List}) ->
+	struct_to_map(List, #{}).
+
+struct_to_map([{Name, {array, Value}} | T ], Acc) ->
+	struct_to_map(T, Acc#{Name => Value});
+struct_to_map([{Name, Value} | T ], Acc) ->
+	struct_to_map(T, Acc#{Name => Value});
+struct_to_map([], Acc) ->
+	Acc.
