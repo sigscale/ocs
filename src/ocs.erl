@@ -1304,15 +1304,15 @@ add_offer(#offer{price = Prices} = Offer) when length(Prices) > 0 ->
 				false
 	end,
 	Fvalp = fun(#price{name = Name, type = one_time, period = undefined,
-					amount = Amount, alteration = Alteration})
-					when length(Name) > 0, is_integer(Amount), Amount > 0 ->
+					amount = Amount, alteration = #alteration{} = Alteration})
+					when length(Name) > 0, is_integer(Amount) ->
 				Fvala(Alteration);
 			(#price{name = Name, type = recurring, period = Period,
-					amount = Amount, alteration = Alteration})
+					amount = Amount, alteration = #alteration{} = Alteration})
 					when length(Name) > 0, ((Period == hourly)
 					or (Period == daily) or (Period == weekly)
 					or (Period == monthly) or (Period == yearly)),
-					is_integer(Amount), Amount > 0 ->
+					is_integer(Amount) ->
 				Fvala(Alteration);
 			(#price{name = Name, type = usage, units = Units,
 					size = Size, amount = Amount, alteration = undefined})
