@@ -73,21 +73,17 @@ stop() ->
 
 add_offer() ->
 	Price1 = #price{name = ocs:generate_password(),
-			type = recurring, period = monthly,
-			amount = 1995, size = undefined,
-			units = undefined,
+			type = recurring, period = monthly, amount = 1995,
 			alteration = #alteration{name = ocs:generate_password(),
-					type = usage, units = octets,
-					size = 2000000000, amount = 295}},
+					type = recurring, period = monthly,
+					units = octets, size = 2000000000, amount = 0}},
 	Price2 = #price{name = ocs:generate_password(),
 			type = usage, units = octets,
-			size = 1000000000, amount = 100},
+			size = 100000000, amount = 100},
 	Prices = [Price1, Price2],
 	OfferName = ocs:generate_password(),
-	Offer = #offer{name = OfferName,
-			status = active,
-			specification = 8,
-			price = Prices},
+	Offer = #offer{name = OfferName, status = active,
+			specification = 8, price = Prices},
 	case ocs:add_offer(Offer) of
 		{ok, _Offer1} ->
 			{ok, OfferName};

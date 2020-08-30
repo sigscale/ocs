@@ -1283,56 +1283,86 @@ delete_service(Identity) when is_binary(Identity) ->
 		Reason :: validation_failed | term().
 %% @doc Add a new entry in offer table.
 add_offer(#offer{price = Prices} = Offer) when length(Prices) > 0 ->
-	Fvala = fun(undefined) ->
-				true;
-			(#alteration{name = Name, type = one_time, period = undefined,
-					amount = Amount}) when length(Name) > 0, is_integer(Amount) ->
-				true;
-			(#alteration{name = Name, type = recurring, period = Period,
-					amount = Amount}) when length(Name) > 0, ((Period == hourly)
-					or (Period == daily) or (Period == weekly)
-					or (Period == monthly) or (Period == yearly)),
-					is_integer(Amount) ->
-				true;
-			(#alteration{name = Name, type = usage, period = undefined,
+	Fvala = fun(#alteration{name = Name, type = one_time, period = undefined,
 					units = Units, size = Size, amount = Amount})
 					when length(Name) > 0, ((Units == octets)
 					or (Units == seconds) or (Units == messages)),
+					is_integer(Size), Size > 0, is_integer(Amount) ->
+				true;
+			(#alteration{name = Name, type = recurring, period = Period,
+					units = Units, size = Size, amount = Amount})
+					when length(Name) > 0, ((Period == hourly)
+					or (Period == daily) or (Period == weekly)
+					or (Period == monthly) or (Period == yearly)),
+					((Units == octets) or (Units == seconds) or (Units == messages)),
+					is_integer(Size), Size > 0, is_integer(Amount) ->
+				true;
+			(#alteration{name = Name, type = usage, period = undefined,
+					units = Units, size = Size, amount = Amount})
+					when length(Name) > 0,
+					((Units == octets) or (Units == seconds) or (Units == messages)),
 					is_integer(Size), Size > 0, is_integer(Amount) ->
 				true;
 			(#alteration{}) ->
 				false
 	end,
 	Fvalp = fun(#price{name = Name, type = one_time, period = undefined,
-					amount = Amount, alteration = #alteration{} = Alteration})
+					units = undefined, size = undefined, amount = Amount,
+					alteration = undefined})
+					when length(Name) > 0, is_integer(Amount), Amount > 0 ->
+				true;
+			(#price{name = Name, type = one_time, period = undefined,
+					units = undefined, size = undefined, amount = Amount,
+					alteration = #alteration{type = Type} = Alteration})
 					when length(Name) > 0, is_integer(Amount) ->
 				Fvala(Alteration);
 			(#price{name = Name, type = recurring, period = Period,
-					amount = Amount, alteration = #alteration{} = Alteration})
+					units = undefined, size = undefined, amount = Amount,
+					alteration = undefined})
 					when length(Name) > 0, ((Period == hourly)
 					or (Period == daily) or (Period == weekly)
 					or (Period == monthly) or (Period == yearly)),
-					is_integer(Amount) ->
-				Fvala(Alteration);
-			(#price{name = Name, type = usage, units = Units,
-					size = Size, amount = Amount, alteration = undefined})
-					when length(Name) > 0, Units == messages, is_integer(Size),
-					Size > 0, is_integer(Amount), Amount > 0 ->
+					is_integer(Amount), Amount > 0 ->
 				true;
+			(#price{name = Name, type = recurring, period = Period,
+					units = undefined, size = undefined, amount = Amount,
+					alteration = #alteration{} = Alteration})
+					when length(Name) > 0, ((Period == hourly)
+					or (Period == daily) or (Period == weekly)
+					or (Period == monthly) or (Period == yearly)),
+					is_integer(Amount)  ->
+				Fvala(Alteration);
 			(#price{name = Name, type = usage, period = undefined,
-					units = Units, size = Size,
-					amount = Amount, alteration = Alteration})
+					units = Units, size = Size, amount = Amount,
+					alteration = undefined})
 					when length(Name) > 0, ((Units == octets)
 					or (Units == seconds) or (Units == messages)),
 					is_integer(Size), Size > 0, is_integer(Amount),
 					Amount > 0 ->
+				true;
+			(#price{name = Name, type = usage, period = undefined,
+					units = Units, size = Size, amount = Amount,
+					alteration = #alteration{type = AltType} = Alteration})
+					when length(Name) > 0, ((Units == octets)
+					or (Units == seconds) or (Units == messages)),
+					is_integer(Size), Size > 0, is_integer(Amount),
+					AltType /= usage ->
 				Fvala(Alteration);
-			(#price{type = tariff, alteration = undefined,
-					size = Size, units = Units, amount = Amount})
+			(#price{type = tariff, period = undefined,
+					units = Units, size = Size, amount = Amount,
+					alteration = undefined})
 					when is_integer(Size), Size > 0, ((Units == octets)
 					or (Units == seconds) or (Units == messages)),
 					((Amount == undefined) or (Amount == 0)) ->
 				true;
+			(#price{type = tariff, period = undefined,
+					units = Units, size = Size, amount = Amount,
+					alteration = #alteration{type = AltType} = Alteration})
+					when is_integer(Size), Size > 0, ((Units == octets)
+					or (Units == seconds) or (Units == messages)),
+					((Amount == undefined) or (Amount == 0)),
+					AltType /= usage  ->
+				Fvala(Alteration);
 			(#price{}) ->
 				false
 	end,

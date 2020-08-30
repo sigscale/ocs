@@ -391,7 +391,7 @@ recurring_charge_monthly(_Config) ->
 	Amount1 = 2995,
 	P1 = one_time(SD, Amount1),
 	Amount2 = 100000000000,
-	Alteration = alteration(SD, usage, octets, Amount2),
+	Alteration = alteration(SD, recurring, monthly, octets, Amount2, 0),
 	Amount3 = 1250,
 	P2 = recurring(SD, monthly, Amount3, Alteration),
 	P3 = overage(SD, usage, octets, 100, 1000000000),
