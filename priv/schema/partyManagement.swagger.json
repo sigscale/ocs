@@ -7,7 +7,7 @@
     "title": "API Party Management"
   },
   "host": "serverRoot",
-  "basePath": "/tmf-api/partyManagement/v1/",
+  "basePath": "/partyManagement/v1/",
   "schemes": [
     "https"
   ],
