@@ -291,15 +291,24 @@ process_request(_Address, _Port,
 				'Subscription-Id' = [#'3gpp_gx_Subscription-Id'{
 						'Subscription-Id-Data' = Subscriber} | _]} = Request) ->
 	try
+		QosInformation = #'3gpp_gx_QoS-Information'{
+				'QoS-Class-Identifier' = [?'3GPP_GX_QOS-CLASS-IDENTIFIER_QCI_9'],
+				'Max-Requested-Bandwidth-UL' = [1000000000],
+				'Max-Requested-Bandwidth-DL' = [1000000000]},
+		FlowInformationUp = #'3gpp_gx_Flow-Information'{
+				 'Flow-Description' = ["permit in ip from any to any"],
+				 'Flow-Direction' = [?'3GPP_GX_FLOW-DIRECTION_UPLINK']},
+		FlowInformationDown = #'3gpp_gx_Flow-Information'{
+				 'Flow-Description' = ["permit out ip from any to any"],
+				 'Flow-Direction' = [?'3GPP_GX_FLOW-DIRECTION_DOWNLINK']},
+		ChargingRuleDefinition = #'3gpp_gx_Charging-Rule-Definition'{
+				'Charging-Rule-Name' = ["default"],
+				'QoS-Information' = [QosInformation],
+%				'Reporting-Level' = [?'3GPP_GX_REPORTING-LEVEL_RATING_GROUP_LEVEL'],
+				'Rating-Group' = [1],
+				'Flow-Information' = [FlowInformationUp, FlowInformationDown]},
 		ChargingRuleInstall = #'3gpp_gx_Charging-Rule-Install'{
-				'Charging-Rule-Definition' = [#'3gpp_gx_Charging-Rule-Definition'{
-						'Charging-Rule-Name' = ["default"],
-						'QoS-Information' = [#'3gpp_gx_QoS-Information'{
-								'QoS-Class-Identifier' = [?'3GPP_GX_QOS-CLASS-IDENTIFIER_QCI_9'],
-								'Max-Requested-Bandwidth-UL' = [1000000000],
-								'Max-Requested-Bandwidth-DL' = [1000000000]}],
-						'Reporting-Level' = [?'3GPP_GX_REPORTING-LEVEL_RATING_GROUP_LEVEL'],
-						'Rating-Group' = [1]}]},
+				'Charging-Rule-Definition' = [ChargingRuleDefinition]},
 		#'3gpp_gx_CCA'{'Session-Id' = SId,
 				'Result-Code' = [?'DIAMETER_BASE_RESULT-CODE_SUCCESS'],
 				'Origin-Host' = OHost, 'Origin-Realm' = ORealm,
