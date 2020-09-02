@@ -87,6 +87,7 @@ all() ->
 			add_once_allowance_bundle, add_recurring,
 			add_recurring_bundle, add_recurring_allowance,
 			add_recurring_usage_allowance, add_once_usage_allowance,
+			add_usage_once_allowance,
 			add_recurring_allowance_bundle,
 			recurring_charge_monthly, recurring_charge_hourly,
 			recurring_charge_yearly, recurring_charge_daily].
@@ -336,6 +337,28 @@ add_once_usage_allowance(_Config) ->
 	Buckets = lists:flatten([mnesia:dirty_read(bucket, BRef) || BRef <- BRefs]),
 	{_, #bucket{remain_amount = UnitSize}, []} = lists:keytake(octets,
 			#bucket.units, Buckets).
+
+add_usage_once_allowance() ->
+	[{userdata, [{doc, "Usage allowances attached to one time price
+			at subscription instantiation"}]}].
+
+add_usage_once_allowance(_Config) ->
+	SD = erlang:system_time(?MILLISECOND),
+	OfferId = ocs:generate_password(),
+	Amount = 1000,
+	UnitSize = 100000000000,
+	Alteration = alteration(SD, usage, undefined, octets, UnitSize, Amount),
+	Price = one_time(SD, Amount, Alteration),
+	Offer = #offer{name = OfferId, status = active,
+			specification = 8, price = [Price]},
+	{ok, _} = ocs:add_offer(Offer),
+	{ok, #product{balance = BRefs}} = ocs:add_product(OfferId, []),
+	Buckets = lists:flatten([mnesia:dirty_read(bucket, BRef) || BRef <- BRefs]),
+	{_, #bucket{remain_amount = -2000}, Buckets2} = lists:keytake(cents,
+			#bucket.units, Buckets),
+	{_, #bucket{remain_amount = UnitSize}, []} = lists:keytake(octets,
+			#bucket.units, Buckets2).
+
 
 add_recurring_allowance_bundle() ->
 	[{userdata, [{doc, "Recurring allowances at instantiation of product bundle"}]}].
