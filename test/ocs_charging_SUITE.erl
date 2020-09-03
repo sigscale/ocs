@@ -298,8 +298,9 @@ add_recurring_allowance(_Config) ->
 	Buckets = lists:flatten([mnesia:dirty_read(bucket, BRef) || BRef <- BRefs]),
 	{_, #bucket{remain_amount = -1000}, Buckets1} = lists:keytake(cents,
 			#bucket.units, Buckets),
-	{_, #bucket{remain_amount = UnitSize}, []} = lists:keytake(octets,
-			#bucket.units, Buckets1).
+	EndDate = ocs:end_period(SD, monthly),
+	{_, #bucket{remain_amount = UnitSize, end_date = EndDate}, []}
+			= lists:keytake(octets, #bucket.units, Buckets1).
 
 add_recurring_usage_allowance() ->
 	[{userdata, [{doc, "Recurring allowances attached to usage price
