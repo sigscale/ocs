@@ -302,37 +302,39 @@ process_request(IpAddress, Port,
 	end.
 %% @hidden
 process_request1(?'3GPP_CC-REQUEST-TYPE_INITIAL_REQUEST' = RequestType,
-		#'3gpp_ro_CCR'{'Multiple-Services-Credit-Control' = [MSCC | _],
+		#'3gpp_ro_CCR'{'Multiple-Services-Credit-Control' = MSCC,
 		'Service-Information' = ServiceInformation,
 		'Service-Context-Id' = SvcContextId,
 		'Event-Timestamp' = EventTimestamp} = Request, SId, RequestNum, Subscriber,
 		OHost, _DHost, ORealm, _DRealm, IpAddress, Port) ->
 	try
 		{ServiceIdentifier, RatingGroup, ReserveAmount} = case MSCC of
-			#'3gpp_ro_Multiple-Services-Credit-Control'{'Service-Identifier' = SI,
+			[#'3gpp_ro_Multiple-Services-Credit-Control'{'Service-Identifier' = SI,
 					'Rating-Group' = RG, 'Requested-Service-Unit'
 					= [#'3gpp_ro_Requested-Service-Unit'{'CC-Time'
-					= [CCTime]}]} when is_integer(CCTime) ->
+					= [CCTime]}]} | _] when is_integer(CCTime) ->
 				{SI, RG, [{seconds, CCTime}]};
-			#'3gpp_ro_Multiple-Services-Credit-Control'{'Service-Identifier' = SI,
+			[#'3gpp_ro_Multiple-Services-Credit-Control'{'Service-Identifier' = SI,
 					'Rating-Group' = RG, 'Requested-Service-Unit'
 					= [#'3gpp_ro_Requested-Service-Unit'{'CC-Total-Octets'
-					= [CCTotalOctets]}]} when is_integer(CCTotalOctets) ->
+					= [CCTotalOctets]}]} | _] when is_integer(CCTotalOctets) ->
 				{SI, RG, [{octets, CCTotalOctets}]};
-			#'3gpp_ro_Multiple-Services-Credit-Control'{'Service-Identifier' = SI,
+			[#'3gpp_ro_Multiple-Services-Credit-Control'{'Service-Identifier' = SI,
 					'Rating-Group' = RG, 'Requested-Service-Unit'
 					= [#'3gpp_ro_Requested-Service-Unit'{'CC-Output-Octets'
-					= [CCOutputOctets], 'CC-Input-Octets' = [CCInputOctets]}]}
+					= [CCOutputOctets], 'CC-Input-Octets' = [CCInputOctets]}]} | _]
 					when is_integer(CCInputOctets), is_integer(CCOutputOctets) ->
 				{SI, RG, [{octets, CCInputOctets + CCOutputOctets}]};
-			#'3gpp_ro_Multiple-Services-Credit-Control'{'Service-Identifier' = SI,
+			[#'3gpp_ro_Multiple-Services-Credit-Control'{'Service-Identifier' = SI,
 					'Rating-Group' = RG, 'Requested-Service-Unit'
 					= [#'3gpp_ro_Requested-Service-Unit'{'CC-Service-Specific-Units'
-					= [CCSpecUnits]}]} when is_integer(CCSpecUnits) ->
+					= [CCSpecUnits]}]} | _] when is_integer(CCSpecUnits) ->
 				{SI, RG, [{messages, CCSpecUnits}]};
-			#'3gpp_ro_Multiple-Services-Credit-Control'{'Service-Identifier' = SI,
-					'Rating-Group' = RG} ->
-				{SI, RG, []}
+			[#'3gpp_ro_Multiple-Services-Credit-Control'{'Service-Identifier' = SI,
+					'Rating-Group' = RG} | _] ->
+				{SI, RG, []};
+			[] ->
+				{[], [], []}
 		end,
 		{Direction, Address} = direction_address(ServiceInformation),
 		ServiceType = service_type(SvcContextId),
