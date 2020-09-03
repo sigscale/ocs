@@ -2177,8 +2177,9 @@ subscription(#product{id = ProdRef} = Product, Now, true,
 subscription(Product, Now, false, Buckets, [#price{type = one_time} | T]) ->
 	subscription(Product, Now, false, Buckets, T);
 subscription(#product{id = ProdRef} = Product, Now, true, Buckets,
-		[#price{type = usage, alteration = #alteration{type = one_time,
-			units = Units, size = Size, amount = AlterationAmount}} | T]) ->
+		[#price{type = Type, alteration = #alteration{type = one_time,
+			units = Units, size = Size, amount = AlterationAmount}} | T])
+		when ((Type == usage) or (Type == tariff)) ->
 	N = erlang:unique_integer([positive]),
 	NewBuckets = charge(ProdRef, AlterationAmount,
 		[#bucket{id = generate_bucket_id(), units = Units,
@@ -2186,7 +2187,8 @@ subscription(#product{id = ProdRef} = Product, Now, true, Buckets,
 			| Buckets]),
 	subscription(Product, Now, true, NewBuckets, T);
 subscription(Product, Now, false, Buckets,
-		[#price{type = usage, alteration = #alteration{type = one_time}} | T]) ->
+		[#price{type = Type, alteration = #alteration{type = one_time}} | T])
+		when ((Type == usage) or (Type == tariff)) ->
 	subscription(Product, Now, false, Buckets, T);
 subscription(#product{id = ProdRef, payment = Payments} = Product,
 		Now, true, Buckets, [#price{type = recurring, period = Period,
@@ -2232,9 +2234,10 @@ subscription(#product{id = ProdRef, payment = Payments} = Product,
 	Product1 = Product#product{payment = NewPayments},
 	subscription(Product1, Now, false, NewBuckets2, T);
 subscription(#product{id = ProdRef, payment = Payments} = Product, Now, true,
-		Buckets, [#price{type = usage, alteration = #alteration{type = recurring,
+		Buckets, [#price{type = Type, alteration = #alteration{type = recurring,
 		period = Period, units = Units, size = Size, amount = Amount}, name = Name}
-		| T]) when Period /= undefined, Units == octets; Units == seconds; Units == messages ->
+		| T]) when Period /= undefined, Units == octets; Units == seconds;
+		Units == messages, ((Type == usage) or (Type == tariff)) ->
 	N = erlang:unique_integer([positive]),
 	NewBuckets = charge(ProdRef, Amount, [#bucket{id = generate_bucket_id(),
 			units = Units, remain_amount = Size, product = [ProdRef],
@@ -2244,10 +2247,10 @@ subscription(#product{id = ProdRef, payment = Payments} = Product, Now, true,
 	Product1 = Product#product{payment = NewPayments},
 	subscription(Product1, Now, true, NewBuckets, T);
 subscription(#product{id = ProdRef, payment = Payments}
-		= Product, Now, false, Buckets, [#price{type = usage, name = Name,
+		= Product, Now, false, Buckets, [#price{type = Type, name = Name,
 		alteration = #alteration{type = recurring, period = Period, units = Units,
 		size = Size, amount = Amount}} | T]) when Period /= undefined, Units == octets;
-		Units == seconds; Units == messages ->
+		Units == seconds; Units == messages, ((Type == usage) or (Type == tariff)) ->
 	{NewPayments, NewBuckets1} = dues(Payments, Now, Buckets, Name, Period, Amount, ProdRef),
 	N = erlang:unique_integer([positive]),
 	NewBuckets2 = charge(ProdRef, Amount, [#bucket{id = generate_bucket_id(),
