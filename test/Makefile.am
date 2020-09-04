@@ -64,6 +64,7 @@ check_DATA = .dialyzer_ok .common_test_ok
 		openssl req -newkey rsa:2048 -nodes \
 				-subj /C=CA/ST=Ontario/L=Toronto/O=Example/CN=$$(hostname)\/emailAddress=support@$$(hostname) \
 				-keyout key.pem -out cert.csr; \
+				chmod 400 key.pem; \
 		fi; \
 		if [ ! -f extensions ]; then \
 			echo "extendedKeyUsage = serverAuth" > extensions; \
@@ -77,11 +78,9 @@ check_DATA = .dialyzer_ok .common_test_ok
 		cp $(CERT_DIR)/CAcert.pem ocs_eap_ttls_SUITE_data; \
 	fi; \
 	if [ ! -f ocs_rest_api_SUITE_data/key.pem ]; then \
-		cp $(CERT_DIR)/key.pem ocs_rest_api_SUITE_data; \
-		chown 400 ocs_rest_api_SUITE_data/key.pem; \
-		openssl rsa -in ocs_rest_api_SUITE_data/key.pem -out ocs_rest_api_SUITE_data/key.pem; \
+		openssl rsa -in $(CERT_DIR)/key.pem -out ocs_rest_api_SUITE_data/key.pem; \
+		chmod 400 ocs_rest_api_SUITE_data/key.pem; \
 	fi; \
-	ssh-keygen -f ocs_rest_api_SUITE_data/key.pem -e -m pem > ocs_rest_api_SUITE_data/pub.pem; \
 	NODENAME=`id -un`
 	ct_run -no_auto_compile -pa $(top_builddir)/ebin -logdir log -config ct.cfg -spec test.spec -dir . -erl_args -noshell -config sys -sname $(LOGNAME)-ct
 
