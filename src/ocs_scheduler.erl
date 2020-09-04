@@ -181,61 +181,6 @@ get_product(start) ->
 get_product(SId) ->
 	ets:next(product, SId).
 
--spec get_offers() -> Result
-	when
-		Result :: Offers | {error, Reason},
-		Offers :: [#offer{}],
-		Reason :: term().
-%% @private
-get_offers() ->
-	MatchSpec = [{'_', [], ['$_']}],
-	F = fun F(start, Acc) ->
-				F(mnesia:select(offer, MatchSpec,
-						?CHUNKSIZE, read), Acc);
-			F ('$end_of_table', Acc) ->
-				lists:flatten(lists:reverse(Acc));
-			F({error, Reason}, _Acc) ->
-				{error, Reason};
-			F({Offers, Cont}, Acc) ->
-				F(mnesia:select(Cont), [Offers | Acc])
-	end,
-	case mnesia:transaction(F, [start, []]) of
-		{aborted, Reason} ->
-			{error, Reason};
-		{atomic, Result} ->
-			Result
-	end.
-
--spec frp(Offers) -> FilterOffer
-	when
-		Offers :: [#offer{}],
-		FilterOffer :: [{OfferId, Offer}],
-		OfferId :: string(),
-		Offer :: #offer{}.
-%% @doc Filter recurring prices
-%% @private
-frp(Offers) ->
-	frp1(Offers, []).
-%% @hidden
-frp1([#offer{name = OfferId, price = Prices} = Offer | T], Acc) ->
-	case lists:any(fun frp2/1, Prices) of
-		false ->
-			frp1(T, Acc);
-		true ->
-			frp1(T, [{OfferId, Offer}] ++ Acc)
-	end;
-frp1([], Acc) ->
-	lists:reverse(Acc).
-%% @hidden
-frp2(#price{type = Bundle}) when Bundle /= [] ->
-	true;
-frp2(#price{type = recurring}) ->
-	true;
-frp2(#price{alteration = #alteration{type = recurring}}) ->
-	true;
-frp2(_) ->
-	false.
-
 %% @private
 update_buckets(BRefs, OldB, NewB) ->
 	AllNewKeys = [B#bucket.id || B <- NewB],
