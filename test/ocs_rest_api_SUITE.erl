@@ -31,6 +31,7 @@
 
 -include_lib("radius/include/radius.hrl").
 -include_lib("inets/include/mod_auth.hrl").
+-include_lib("public_key/include/public_key.hrl").
 -include("ocs.hrl").
 -include("ocs_eap_codec.hrl").
 -include_lib("common_test/include/ct.hrl").
@@ -2952,6 +2953,12 @@ oauth_authentication(Config)->
 	{ok, PrivBin} = file:read_file(KeyPath),
 	[RSAPrivEntry] = public_key:pem_decode(PrivBin),
 	Key = public_key:pem_entry_decode(RSAPrivEntry),
+	M = Key#'RSAPrivateKey'.modulus,
+	E = Key#'RSAPrivateKey'.publicExponent,
+	RSAPublicKey = #'RSAPublicKey'{modulus = M, publicExponent = E},
+	PemEntry = public_key:pem_entry_encode('RSAPublicKey', RSAPublicKey),
+	PemBin = public_key:pem_encode([PemEntry]),
+	file:write_file(Path ++ "pub.pem", PemBin),
 	Msg = list_to_binary(EncodedHeader ++ "." ++ EncodedPayload),
 	Signature = public_key:sign(Msg, sha256, Key),
 	EncodedSignature = encode_base64url(binary_to_list(Signature)),
