@@ -51,16 +51,6 @@ suite() ->
 %%
 init_per_suite(Config) ->
 	ok = ocs_test_lib:initialize_db(),
-	RadiusAuthPort = rand:uniform(64511) + 1024,
-	RadiusAcctPort = rand:uniform(64511) + 1024,
-	RadiusAppVar = [{auth, [{{127,0,0,1}, RadiusAuthPort, []}]},
-			{acct, [{{127,0,0,1}, RadiusAcctPort, []}]}],
-	ok = application:set_env(ocs, radius, RadiusAppVar, [{persistent, true}]),
-	DiameterAuthPort = rand:uniform(64511) + 1024,
-	DiameterAcctPort = rand:uniform(64511) + 1024,
-	DiameterAppVar = [{auth, [{{127,0,0,1}, DiameterAuthPort, []}]},
-		{acct, [{{127,0,0,1}, DiameterAcctPort, []}]}],
-	ok = application:set_env(ocs, diameter, DiameterAppVar, [{persistent, true}]),
 	ok = ocs_test_lib:start(),
 	Config.
 
@@ -68,8 +58,6 @@ init_per_suite(Config) ->
 %% Cleanup after the whole suite.
 %%
 end_per_suite(Config) ->
-	ok = application:unset_env(ocs, radius, [{persistent, true}]),
-	ok = application:unset_env(ocs, diameter, [{persistent, true}]),
 	ok = ocs_test_lib:stop(),
 	Config.
 
@@ -98,7 +86,10 @@ all() ->
 	[add_once, add_once_bundle, add_once_allowance,
 			add_once_allowance_bundle, add_recurring,
 			add_recurring_bundle, add_recurring_allowance,
-			add_recurring_usage_allowance,
+			add_recurring_usage_allowance, add_once_usage_allowance,
+			add_once_tariff_allowance, add_recurring_tariff_allowance,
+			add_usage_once_allowance, add_usage_recurring_allowance,
+			add_once_recurring_allowance,
 			add_recurring_allowance_bundle,
 			recurring_charge_monthly, recurring_charge_hourly,
 			recurring_charge_yearly, recurring_charge_daily].
@@ -307,8 +298,9 @@ add_recurring_allowance(_Config) ->
 	Buckets = lists:flatten([mnesia:dirty_read(bucket, BRef) || BRef <- BRefs]),
 	{_, #bucket{remain_amount = -1000}, Buckets1} = lists:keytake(cents,
 			#bucket.units, Buckets),
-	{_, #bucket{remain_amount = UnitSize}, []} = lists:keytake(octets,
-			#bucket.units, Buckets1).
+	EndDate = ocs:end_period(SD, monthly),
+	{_, #bucket{remain_amount = UnitSize, end_date = EndDate}, []}
+			= lists:keytake(octets, #bucket.units, Buckets1).
 
 add_recurring_usage_allowance() ->
 	[{userdata, [{doc, "Recurring allowances attached to usage price
@@ -327,6 +319,129 @@ add_recurring_usage_allowance(_Config) ->
 	{ok, #product{balance = BRefs}} = ocs:add_product(OfferId, []),
 	Buckets = lists:flatten([mnesia:dirty_read(bucket, BRef) || BRef <- BRefs]),
 	{_, #bucket{remain_amount = -1000}, Buckets2} = lists:keytake(cents,
+			#bucket.units, Buckets),
+	{_, #bucket{remain_amount = UnitSize}, []} = lists:keytake(octets,
+			#bucket.units, Buckets2).
+
+add_once_usage_allowance() ->
+	[{userdata, [{doc, "One time allowances attached to usage price
+			at subscription instantiation"}]}].
+
+add_once_usage_allowance(_Config) ->
+	SD = erlang:system_time(?MILLISECOND),
+	OfferId = ocs:generate_password(),
+	UnitSize = 1000000000,
+	Alteration = alteration(SD, one_time, undefined, octets, UnitSize, 0),
+	Price = overage(SD, usage, octets, 100, 1000000000, Alteration),
+	Offer = #offer{name = OfferId, status = active,
+			specification = 8, price = [Price]},
+	{ok, _} = ocs:add_offer(Offer),
+	{ok, #product{balance = BRefs}} = ocs:add_product(OfferId, []),
+	Buckets = lists:flatten([mnesia:dirty_read(bucket, BRef) || BRef <- BRefs]),
+	{_, #bucket{remain_amount = UnitSize}, []} = lists:keytake(octets,
+			#bucket.units, Buckets).
+
+add_once_tariff_allowance() ->
+	[{userdata, [{doc, "One time allowances attached to tariff price
+			at subscription instantiation"}]}].
+
+add_once_tariff_allowance(_Config) ->
+	SD = erlang:system_time(?MILLISECOND),
+	OfferId = ocs:generate_password(),
+	UnitSize = 100000000000,
+	Alteration = alteration(SD, one_time, undefined, octets, UnitSize, 0),
+	Price = #price{name = ocs:generate_identity(), start_date = SD,
+			type = tariff, size = 1000000000, amount = 0,
+			units = octets, alteration = Alteration},
+	Offer = #offer{name = OfferId, status = active,
+			specification = 8, price = [Price]},
+	{ok, _} = ocs:add_offer(Offer),
+	{ok, #product{balance = BRefs}} = ocs:add_product(OfferId, []),
+	Buckets = lists:flatten([mnesia:dirty_read(bucket, BRef) || BRef <- BRefs]),
+	{_, #bucket{remain_amount = UnitSize}, []} = lists:keytake(octets,
+			#bucket.units, Buckets).
+
+add_recurring_tariff_allowance() ->
+	[{userdata, [{doc, "Recurring allowances attached to tariff price
+			at subscription instantiation"}]}].
+
+add_recurring_tariff_allowance(_Config) ->
+	SD = erlang:system_time(?MILLISECOND),
+	OfferId = ocs:generate_password(),
+	UnitSize = 100000000000,
+	Amount = 1000,
+	Alteration = alteration(SD, recurring, monthly, octets, UnitSize, Amount),
+	Price = #price{name = ocs:generate_identity(), start_date = SD,
+			type = tariff, size = 1000, amount = 0,
+			units = seconds, alteration = Alteration},
+	Offer = #offer{name = OfferId, status = active,
+			specification = 8, price = [Price]},
+	{ok, _} = ocs:add_offer(Offer),
+	{ok, #product{balance = BRefs}} = ocs:add_product(OfferId, []),
+	Buckets = lists:flatten([mnesia:dirty_read(bucket, BRef) || BRef <- BRefs]),
+	{_, #bucket{remain_amount = -1000}, Buckets2} = lists:keytake(cents,
+			#bucket.units, Buckets),
+	{_, #bucket{remain_amount = UnitSize}, []} = lists:keytake(octets,
+			#bucket.units, Buckets2).
+
+add_usage_once_allowance() ->
+	[{userdata, [{doc, "Usage allowances attached to one time price
+			at subscription instantiation"}]}].
+
+add_usage_once_allowance(_Config) ->
+	SD = erlang:system_time(?MILLISECOND),
+	OfferId = ocs:generate_password(),
+	Amount = 1000,
+	UnitSize = 100000000000,
+	Alteration = alteration(SD, usage, undefined, octets, UnitSize, Amount),
+	Price = one_time(SD, Amount, Alteration),
+	Offer = #offer{name = OfferId, status = active,
+			specification = 8, price = [Price]},
+	{ok, _} = ocs:add_offer(Offer),
+	{ok, #product{balance = BRefs}} = ocs:add_product(OfferId, []),
+	Buckets = lists:flatten([mnesia:dirty_read(bucket, BRef) || BRef <- BRefs]),
+	{_, #bucket{remain_amount = -2000}, Buckets2} = lists:keytake(cents,
+			#bucket.units, Buckets),
+	{_, #bucket{remain_amount = UnitSize}, []} = lists:keytake(octets,
+			#bucket.units, Buckets2).
+
+add_usage_recurring_allowance() ->
+	[{userdata, [{doc, "Usage allowances attached to recurring price
+			at subscription instantiation"}]}].
+
+add_usage_recurring_allowance(_Config) ->
+	SD = erlang:system_time(?MILLISECOND),
+	OfferId = ocs:generate_password(),
+	Amount = 1000,
+	UnitSize = 100000000000,
+	Alteration = alteration(SD, usage, undefined, octets, UnitSize, Amount),
+	Price = recurring(SD, monthly, 0, Alteration),
+	Offer = #offer{name = OfferId, status = active,
+			specification = 8, price = [Price]},
+	{ok, _} = ocs:add_offer(Offer),
+	{ok, #product{balance = BRefs}} = ocs:add_product(OfferId, []),
+	Buckets = lists:flatten([mnesia:dirty_read(bucket, BRef) || BRef <- BRefs]),
+	{_, #bucket{remain_amount = -1000}, Buckets2} = lists:keytake(cents,
+			#bucket.units, Buckets),
+	{_, #bucket{remain_amount = UnitSize}, []} = lists:keytake(octets,
+			#bucket.units, Buckets2).
+
+add_once_recurring_allowance() ->
+	[{userdata, [{doc, "Usage allowances attached to recurring price
+			at subscription instantiation"}]}].
+
+add_once_recurring_allowance(_Config) ->
+	SD = erlang:system_time(?MILLISECOND),
+	OfferId = ocs:generate_password(),
+	UnitSize = 100000000000,
+	Alteration = alteration(SD, usage, undefined, octets, UnitSize, 1000),
+	Price = recurring(SD, monthly, 100, Alteration),
+	Offer = #offer{name = OfferId, status = active,
+			specification = 8, price = [Price]},
+	{ok, _} = ocs:add_offer(Offer),
+	{ok, #product{balance = BRefs}} = ocs:add_product(OfferId, []),
+	Buckets = lists:flatten([mnesia:dirty_read(bucket, BRef) || BRef <- BRefs]),
+	{_, #bucket{remain_amount = -1100}, Buckets2} = lists:keytake(cents,
 			#bucket.units, Buckets),
 	{_, #bucket{remain_amount = UnitSize}, []} = lists:keytake(octets,
 			#bucket.units, Buckets2).
@@ -391,7 +506,7 @@ recurring_charge_monthly(_Config) ->
 	Amount1 = 2995,
 	P1 = one_time(SD, Amount1),
 	Amount2 = 100000000000,
-	Alteration = alteration(SD, usage, octets, Amount2),
+	Alteration = alteration(SD, recurring, monthly, octets, Amount2, 0),
 	Amount3 = 1250,
 	P2 = recurring(SD, monthly, Amount3, Alteration),
 	P3 = overage(SD, usage, octets, 100, 1000000000),

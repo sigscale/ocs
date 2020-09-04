@@ -72,16 +72,18 @@ suite() ->
 %%
 init_per_suite(Config) ->
 	ok = ocs_test_lib:initialize_db(),
+	ok = ocs_test_lib:load(ocs),
+	Address = {127,0,0,1},
 	RadiusAuthPort = rand:uniform(64511) + 1024,
 	RadiusAcctPort = rand:uniform(64511) + 1024,
-	RadiusAppVar = [{auth, [{{127,0,0,1}, RadiusAuthPort, []}]},
-			{acct, [{{127,0,0,1}, RadiusAcctPort, []}]}],
-	ok = application:set_env(ocs, radius, RadiusAppVar, [{persistent, true}]),
+	RadiusAppVar = [{auth, [{Address, RadiusAuthPort, []}]},
+			{acct, [{Address, RadiusAcctPort, []}]}],
+	ok = application:set_env(ocs, radius, RadiusAppVar),
 	DiameterAuthPort = rand:uniform(64511) + 1024,
 	DiameterAcctPort = rand:uniform(64511) + 1024,
-	DiameterAppVar = [{auth, [{{127,0,0,1}, DiameterAuthPort, []}]},
-		{acct, [{{127,0,0,1}, DiameterAcctPort, []}]}],
-	ok = application:set_env(ocs, diameter, DiameterAppVar, [{persistent, true}]),
+	DiameterAppVar = [{auth, [{Address, DiameterAuthPort, []}]},
+		{acct, [{Address, DiameterAcctPort, []}]}],
+	ok = application:set_env(ocs, diameter, DiameterAppVar),
 	ok = ocs_test_lib:start(),
 	{ok, ProdID} = ocs_test_lib:add_offer(),
 	ok = ct_snmp:start(Config, snmp_mgr_agent, snmp_app),
@@ -97,14 +99,12 @@ init_per_suite(Config) ->
 			MibDir ++ "RADIUS-AUTH-SERVER-MIB",
 			MibDir ++ "RADIUS-ACC-SERVER-MIB"],
 	ok = ct_snmp:load_mibs(Mibs),
-	{ok, EnvList} = application:get_env(ocs, diameter),
-	{acct, [{Address, Port, _} | _]} = lists:keyfind(acct, 1, EnvList),
 	Host = atom_to_list(?MODULE),
 	Realm = "snmp.sigscale.org",
 	Config1 = [{host, Host}, {realm, Realm} | Config],
 	ok = diameter:start_service(?MODULE, client_acct_service_opts(Config1)),
 	true = diameter:subscribe(?MODULE),
-	{ok, _} = connect(?MODULE, Address, Port, diameter_tcp),
+	{ok, _} = connect(?MODULE, Address, DiameterAcctPort, diameter_tcp),
 	receive
 		#diameter_event{service = ?MODULE, info = Up}
 				when element(1, Up) == up ->
@@ -118,8 +118,8 @@ init_per_suite(Config) ->
 %% Cleanup after the whole suite.
 %%
 end_per_suite(Config) ->
-	ok = application:unset_env(ocs, radius, [{persistent, true}]),
-	ok = application:unset_env(ocs, diameter, [{persistent, true}]),
+	ok = diameter:stop_service(?MODULE),
+	ok = diameter:remove_transport(?MODULE, true),
 	ok = ocs_mib:unload(),
 	ok = sigscale_mib:unload(),
 	ok = application:stop(sigscale_mibs),

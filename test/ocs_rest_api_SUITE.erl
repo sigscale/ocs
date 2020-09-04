@@ -845,7 +845,7 @@ add_product() ->
 	[{userdata, [{doc,"Create a new product inventory."}]}].
 
 add_product(Config) ->
-	P1 = price(one_time, undefined, rand:uniform(1000), rand:uniform(100)),
+	P1 = price(one_time, undefined, undefined, rand:uniform(100)),
 	P2 = price(usage, octets, rand:uniform(1000000), rand:uniform(500)),
 	OfferId = offer_add([P1, P2], 4),
 	HostUrl = ?config(host_url, Config),
@@ -871,7 +871,7 @@ get_product() ->
 			with given product inventory reference"}]}].
 
 get_product(Config) ->
-	P1 = price(one_time, undefined, rand:uniform(1000), rand:uniform(100)),
+	P1 = price(one_time, undefined, undefined, rand:uniform(100)),
 	P2 = price(usage, octets, rand:uniform(1000000), rand:uniform(500)),
 	OfferId = offer_add([P1, P2], 4),
 	ProdRef = product_add(OfferId),
@@ -1002,8 +1002,7 @@ query_product(Config) ->
 	F = fun F(0, Acc) ->
 					Acc;
 			F(N, Acc) ->
-				Price1 = #price{name = ocs:generate_identity(), units = octets,
-						type = one_time, amount = rand:uniform(100)},
+				Price1 = price(one_time, undefined, undefined, rand:uniform(100)),
 				Prices = [Price1],
 				OfferId = ocs:generate_identity(),
 				Offer = #offer{name = OfferId,
@@ -1038,8 +1037,7 @@ filter_product(Config) ->
 	F = fun F(0, Acc) ->
 					Acc;
 			F(N, Acc) ->
-				Price1 = #price{name = ocs:generate_identity(), units = cents,
-						type = one_time, amount = rand:uniform(100)},
+				Price1 = price(one_time, undefined, undefined, rand:uniform(100)),
 				Prices = [Price1],
 				OfferId = ocs:generate_identity(),
 				Offer = #offer{name = OfferId,
@@ -3018,8 +3016,18 @@ product_offer() ->
 	POPPriceCurrency1 = {"currencyCode", "USD"},
 	POPPrice1 = {"price", {struct, [POPPriceTaxInclude1, POPPriceCurrency1]}},
 	POPRecChargPeriod1 = {"recurringChargePeriod", "monthly"},
+	ProdAlterName = {"name", "allowance"},
+	ProdAlterDescription = {"description", ocs:generate_password()},
+	ProdAlterValidFor = {"validFor", {struct, [POPStartDateTime1]}},
+	ProdAlterPriceType = {"priceType", "usage"},
+	ProdAlterUOMeasure = {"unitOfMeasure", "100g"},
+	ProdAlterAmount = {"taxIncludedAmount", "0"},
+	POPPAlterCurrency = {"currencyCode", "USD"},
+	ProdAlterPrice = {"price", {struct, [ProdAlterAmount, POPPAlterCurrency]}},
+	POPAlteration = {"productOfferPriceAlteration", {struct, [ProdAlterName, ProdAlterDescription,
+		ProdAlterValidFor, ProdAlterPriceType, ProdAlterUOMeasure, ProdAlterPrice]}},
 	ProdOfferPrice1 = {struct, [POPName1, POPDescription1, POPValidFor1,
-			POPPriceType1, POPPrice1, POPRecChargPeriod1]},
+			POPPriceType1, POPPrice1, POPRecChargPeriod1, POPAlteration]},
 	POPName2 = {"name", "usage"},
 	POPDescription2 = {"description", ocs:generate_password()},
 	POPStratDateTime2 = {"startDateTime", ocs_rest:iso8601(erlang:system_time(?MILLISECOND))},
@@ -3031,18 +3039,8 @@ product_offer() ->
 			integer_to_list(rand:uniform(1000)) ++ "." ++ integer_to_list(rand:uniform(999999))},
 	POPPriceCurrency2 = {"currencyCode", "USD"},
 	POPPrice2 = {"price", {struct, [POPPriceTaxInclude2, POPPriceCurrency2]}},
-	ProdAlterName = {"name", "allowance"},
-	ProdAlterDescription = {"description", ocs:generate_password()},
-	ProdAlterValidFor = {"validFor", {struct, [POPStartDateTime1]}},
-	ProdAlterPriceType = {"priceType", "usage"},
-	ProdAlterUOMeasure = {"unitOfMeasure", "100g"},
-	ProdAlterAmount = {"taxIncludedAmount", "0"},
-	POPPAlterCurrency = {"currencyCode", "USD"},
-	ProdAlterPrice = {"price", {struct, [ProdAlterAmount, POPPAlterCurrency]}},
-	POPAlteration = {"productOfferPriceAlteration", {struct, [ProdAlterName, ProdAlterDescription,
-		ProdAlterValidFor, ProdAlterPriceType, ProdAlterUOMeasure, ProdAlterPrice]}},
 	ProdOfferPrice2 = {struct, [POPName2, POPDescription2, POPValidFor2, POPPriceType2,
-			POPPrice2, POPUOMeasure2, POPAlteration]},
+			POPPrice2, POPUOMeasure2]},
 	ProdOfferPrice = {"productOfferingPrice", {array, [ProdOfferPrice1, ProdOfferPrice2]}},
 	[ProdName, ProdDescirption, IsBundle, IsCustomerVisible, ValidFor, ProdSpec, Status, ProdOfferPrice].
 
@@ -3141,28 +3139,28 @@ prod_price_type() ->
 pp_alter_name() ->
 	Name = ocs:generate_password(),
 	Op = {"op", "replace"},
-	Path = {"path", "/productOfferingPrice/1/productOfferPriceAlteration/name"},
+	Path = {"path", "/productOfferingPrice/0/productOfferPriceAlteration/name"},
 	Value = {"value", Name},
 	{struct, [Op, Path, Value]}.
 
 pp_alter_description() ->
 	Description = ocs:generate_password(),
 	Op = {"op", "replace"},
-	Path = {"path", "/productOfferingPrice/1/productOfferPriceAlteration/description"},
+	Path = {"path", "/productOfferingPrice/0/productOfferPriceAlteration/description"},
 	Value = {"value", Description},
 	{struct, [Op, Path, Value]}.
 
 pp_alter_type() ->
 	PT = "recurring",
 	Op = {"op", "replace"},
-	Path = {"path", "/productOfferingPrice/1/productOfferPriceAlteration/priceType"},
+	Path = {"path", "/productOfferingPrice/0/productOfferPriceAlteration/priceType"},
 	Value = {"value", PT},
 	{struct, [Op, Path, Value]}.
 
 pp_alter_ufm() ->
 	UFM = "1000b",
 	Op = {"op", "replace"},
-	Path = {"path", "/productOfferingPrice/1/productOfferPriceAlteration/unitOfMeasure"},
+	Path = {"path", "/productOfferingPrice/0/productOfferPriceAlteration/unitOfMeasure"},
 	Value = {"value", UFM},
 	{struct, [Op, Path, Value]}.
 
@@ -3184,10 +3182,22 @@ auth_header() ->
 	{"authorization", basic_auth()}.
 
 %% @hidden
-price(Type, Units, Size, Amount) ->
+price(Type, undefined, undefined, Amount)
+		when ((Type == one_time) or (Type == recurring)),
+		is_integer(Amount) ->
 	#price{name = ocs:generate_identity(),
-			type = Type, units = Units,
-			size = Size, amount = Amount}.
+			type = Type, amount = Amount};
+price(usage, Units, Size, Amount)
+		when ((Units == octets) or (Units == seconds) or (Units == messages)),
+		is_integer(Size), Size > 0,
+		is_integer(Amount), Amount > 0 ->
+	#price{name = ocs:generate_identity(),
+			type = usage, units = Units, size = Size, amount = Amount};
+price(tariff, Units, Size, undefined)
+		when ((Units == octets) or (Units == seconds) or (Units == messages)),
+		is_integer(Size), Size > 0 ->
+	#price{name = ocs:generate_identity(),
+			type = tariff, units = Units, size = Size}.
 
 %% @hidden
 b(Units, RA) ->

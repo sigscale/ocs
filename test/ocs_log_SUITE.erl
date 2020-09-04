@@ -54,16 +54,7 @@ suite() ->
 %%
 init_per_suite(Config) ->
 	ok = ocs_test_lib:initialize_db(),
-	RadiusAuthPort = rand:uniform(64511) + 1024,
-	RadiusAcctPort = rand:uniform(64511) + 1024,
-	RadiusAppVar = [{auth, [{{127,0,0,1}, RadiusAuthPort, []}]},
-			{acct, [{{127,0,0,1}, RadiusAcctPort, []}]}],
-	ok = application:set_env(ocs, radius, RadiusAppVar, [{persistent, true}]),
-	DiameterAuthPort = rand:uniform(64511) + 1024,
-	DiameterAcctPort = rand:uniform(64511) + 1024,
-	DiameterAppVar = [{auth, [{{127,0,0,1}, DiameterAuthPort, []}]},
-		{acct, [{{127,0,0,1}, DiameterAcctPort, []}]}],
-	ok = application:set_env(ocs, diameter, DiameterAppVar, [{persistent, true}]),
+	ok = ocs_test_lib:load(ocs),
 	ok = ocs_test_lib:start(),
 	Config.
 
@@ -71,8 +62,6 @@ init_per_suite(Config) ->
 %% Cleanup after the whole suite.
 %%
 end_per_suite(Config) ->
-	ok = application:unset_env(ocs, radius, [{persistent, true}]),
-	ok = application:unset_env(ocs, diameter, [{persistent, true}]),
 	ok = ocs_test_lib:stop(),
 	Config.
 
@@ -841,7 +830,7 @@ fill_acct(N, Protocal) ->
 	Server = {{0, 0, 0, 0}, 1812},
 	I3 = rand:uniform(256) - 1,
 	I4 = rand:uniform(254),
-	ClientAddress = {192, 168, I3, I4},
+	ClientAddress = <<"10.0.0.1">>,
 	NASn = integer_to_list((I3 bsl 8) + I4),
 	NasIdentifier = "ap-" ++ NASn ++ ".sigscale.net",
 	Type = case rand:uniform(3) of
@@ -861,8 +850,8 @@ fill_acct(N, Protocal) ->
 			ok = ocs_log:acct_log(radius, Server, Type, Attrs, undefined, undefined),
 			fill_acct(N - 1, radius);
 		diameter ->
-			Record = #'3gpp_ro_CCR'{'Origin-Host' = ClientAddress, 'Service-Context-Id' = 2, 'Subscription-Id' = [#'3gpp_ro_Subscription-Id'{'Subscription-Id-Data'
-						= UserName}], 'Multiple-Services-Credit-Control' = [#'3gpp_ro_Multiple-Services-Credit-Control'{'Requested-Service-Unit' = [#'3gpp_ro_Requested-Service-Unit'{'CC-Time'
+			Record = #'3gpp_ro_CCR'{'Origin-Host' = ClientAddress, 'Service-Context-Id' = <<"10.234567.3gpp.org">>, 'Subscription-Id' = [#'3gpp_ro_Subscription-Id'{'Subscription-Id-Data'
+						= list_to_binary(UserName)}], 'Multiple-Services-Credit-Control' = [#'3gpp_ro_Multiple-Services-Credit-Control'{'Requested-Service-Unit' = [#'3gpp_ro_Requested-Service-Unit'{'CC-Time'
 						= AcctSessionTime, 'CC-Input-Octets' = AcctInputOctets, 'CC-Output-Octets' = AcctOutputOctets}]}], 'Service-Information' = [{'3gpp_ro_Service-Information', [],
 							[#'3gpp_ro_IMS-Information'{'Calling-Party-Address' = ocs_test_lib:mac(), 'Called-Party-Address' = ocs_test_lib:mac()}]}]},
 			ok = ocs_log:acct_log(diameter, Server, Type, Record, undefined, undefined),
