@@ -35,6 +35,7 @@
 -include("diameter_gen_ietf.hrl").
 -include("diameter_gen_3gpp.hrl").
 -include("diameter_gen_3gpp_ro_application.hrl").
+-include("diameter_gen_cc_application_rfc4006.hrl").
 -include("ocs.hrl").
 
 -record(state, {}).
@@ -381,20 +382,20 @@ process_request1(?'3GPP_CC-REQUEST-TYPE_INITIAL_REQUEST' = RequestType,
 				Reply;
 			{out_of_credit, _SessionList} ->
 				Reply = diameter_answer(SId, ServiceIdentifier, RatingGroup,
-						undefined, ?'IETF_RESULT-CODE_CREDIT_LIMIT_REACHED',
+						undefined, ?'DIAMETER_CC_APP_RESULT-CODE_CREDIT_LIMIT_REACHED',
 						OHost, ORealm, RequestType, RequestNum),
 				ok = ocs_log:acct_log(diameter, Server,
 						accounting_event_type(RequestType), Request, Reply, undefined),
 				Reply;
 			{disabled, _SessionList} ->
 				Reply = diameter_answer(SId, ServiceIdentifier, RatingGroup,
-						undefined, ?'IETF_RESULT-CODE_END_USER_SERVICE_DENIED', OHost,
+						undefined, ?'DIAMETER_CC_APP_RESULT-CODE_END_USER_SERVICE_DENIED', OHost,
 						ORealm, RequestType, RequestNum),
 				ok = ocs_log:acct_log(diameter, Server,
 						accounting_event_type(RequestType), Request, Reply, undefined),
 				Reply;
 			{error, subscriber_not_found} ->
-				Reply = diameter_error(SId, ?'IETF_RESULT-CODE_USER_UNKNOWN',
+				Reply = diameter_error(SId, ?'DIAMETER_CC_APP_RESULT-CODE_USER_UNKNOWN',
 						OHost, ORealm, RequestType, RequestNum),
 				ok = ocs_log:acct_log(diameter, Server,
 						accounting_event_type(RequestType), Request, Reply, undefined),
@@ -406,7 +407,7 @@ process_request1(?'3GPP_CC-REQUEST-TYPE_INITIAL_REQUEST' = RequestType,
 						{type, initial}, {subscriber, Subscriber},
 						{address, Address}, {direction, Direction},
 						{reservation, ReserveAmount}]),
-				Reply = diameter_error(SId, ?'IETF_RESULT-CODE_RATING_FAILED',
+				Reply = diameter_error(SId, ?'DIAMETER_CC_APP_RESULT-CODE_RATING_FAILED',
 						OHost, ORealm, RequestType, RequestNum),
 				ok = ocs_log:acct_log(diameter, Server,
 						accounting_event_type(RequestType), Request, Reply, undefined),
@@ -523,20 +524,20 @@ process_request1(?'3GPP_CC-REQUEST-TYPE_UPDATE_REQUEST' = RequestType,
 				Reply;
 			{out_of_credit, _SessionList} ->
 				Reply = diameter_answer(SId, ServiceIdentifier, RatingGroup,
-						undefined, ?'IETF_RESULT-CODE_CREDIT_LIMIT_REACHED', OHost,
+						undefined, ?'DIAMETER_CC_APP_RESULT-CODE_CREDIT_LIMIT_REACHED', OHost,
 						ORealm, RequestType, RequestNum),
 				ok = ocs_log:acct_log(diameter, Server,
 						accounting_event_type(RequestType), Request, Reply, undefined),
 				Reply;
 			{disabled, _SessionList} ->
 				Reply = diameter_answer(SId, ServiceIdentifier, RatingGroup,
-						undefined, ?'IETF_RESULT-CODE_END_USER_SERVICE_DENIED', OHost,
+						undefined, ?'DIAMETER_CC_APP_RESULT-CODE_END_USER_SERVICE_DENIED', OHost,
 						ORealm, RequestType, RequestNum),
 				ok = ocs_log:acct_log(diameter, Server,
 						accounting_event_type(RequestType), Request, Reply, undefined),
 				Reply;
 			{error, subscriber_not_found} ->
-				Reply = diameter_error(SId, ?'IETF_RESULT-CODE_USER_UNKNOWN',
+				Reply = diameter_error(SId, ?'DIAMETER_CC_APP_RESULT-CODE_USER_UNKNOWN',
 						OHost, ORealm, RequestType, RequestNum),
 				ok = ocs_log:acct_log(diameter, Server,
 						accounting_event_type(RequestType), Request, Reply, undefined),
@@ -548,7 +549,7 @@ process_request1(?'3GPP_CC-REQUEST-TYPE_UPDATE_REQUEST' = RequestType,
 						{type, interim}, {subscriber, Subscriber},
 						{address, Address}, {direction, Direction},
 						{reservation, ReserveAmount}, {used, DebitAmount}]),
-				Reply = diameter_error(SId, ?'IETF_RESULT-CODE_RATING_FAILED',
+				Reply = diameter_error(SId, ?'DIAMETER_CC_APP_RESULT-CODE_RATING_FAILED',
 						OHost, ORealm, RequestType, RequestNum),
 				ok = ocs_log:acct_log(diameter, Server,
 						accounting_event_type(RequestType), Request, Reply, undefined),
@@ -616,20 +617,20 @@ process_request1(?'3GPP_CC-REQUEST-TYPE_TERMINATION_REQUEST' = RequestType,
 				Reply;
 			{out_of_credit, _SessionList, Rated} ->
 				Reply = diameter_answer(SId, [], [], undefined,
-						?'IETF_RESULT-CODE_CREDIT_LIMIT_REACHED',
+						?'DIAMETER_CC_APP_RESULT-CODE_CREDIT_LIMIT_REACHED',
 						OHost, ORealm, RequestType, RequestNum),
 				ok = ocs_log:acct_log(diameter, Server,
 						accounting_event_type(RequestType), Request, Reply, Rated),
 				Reply;
 			{disabled, _SessionList} ->
 				Reply = diameter_answer(SId, [], [], undefined,
-						?'IETF_RESULT-CODE_END_USER_SERVICE_DENIED',
+						?'DIAMETER_CC_APP_RESULT-CODE_END_USER_SERVICE_DENIED',
 						OHost, ORealm, RequestType, RequestNum),
 				ok = ocs_log:acct_log(diameter, Server,
 						accounting_event_type(RequestType), Request, Reply, undefined),
 				Reply;
 			{error, subscriber_not_found} ->
-				Reply = diameter_error(SId, ?'IETF_RESULT-CODE_USER_UNKNOWN',
+				Reply = diameter_error(SId, ?'DIAMETER_CC_APP_RESULT-CODE_USER_UNKNOWN',
 						OHost, ORealm, RequestType, RequestNum),
 				ok = ocs_log:acct_log(diameter, Server,
 						accounting_event_type(RequestType), Request, Reply, undefined),
@@ -641,7 +642,7 @@ process_request1(?'3GPP_CC-REQUEST-TYPE_TERMINATION_REQUEST' = RequestType,
 						{type, final}, {subscriber, Subscriber},
 						{address, Address}, {direction, Direction},
 						{used, DebitAmount}]),
-				Reply = diameter_error(SId, ?'IETF_RESULT-CODE_RATING_FAILED',
+				Reply = diameter_error(SId, ?'DIAMETER_CC_APP_RESULT-CODE_RATING_FAILED',
 						OHost, ORealm, RequestType, RequestNum),
 				ok = ocs_log:acct_log(diameter, Server,
 						accounting_event_type(RequestType), Request, Reply, undefined),
@@ -682,10 +683,10 @@ process_request1(?'3GPP_CC-REQUEST-TYPE_TERMINATION_REQUEST' = RequestType,
 %% @doc Build CCA response.
 %% @hidden
 diameter_answer(SId, _ServiceIdentifier, _RatingGroup, undefined,
-		?'IETF_RESULT-CODE_CREDIT_LIMIT_REACHED', OHost, ORealm,
+		?'DIAMETER_CC_APP_RESULT-CODE_CREDIT_LIMIT_REACHED', OHost, ORealm,
 		RequestType, RequestNum) ->
 	#'3gpp_ro_CCA'{'Session-Id' = SId,
-			'Result-Code' = ?'IETF_RESULT-CODE_CREDIT_LIMIT_REACHED',
+			'Result-Code' = ?'DIAMETER_CC_APP_RESULT-CODE_CREDIT_LIMIT_REACHED',
 			'Origin-Host' = OHost, 'Origin-Realm' = ORealm,
 			'Auth-Application-Id' = ?RO_APPLICATION_ID, 'CC-Request-Type' = RequestType,
 			'CC-Request-Number' = RequestNum};
