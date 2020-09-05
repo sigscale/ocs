@@ -303,6 +303,43 @@ process_request(IpAddress, Port,
 	end.
 %% @hidden
 process_request1(?'3GPP_CC-REQUEST-TYPE_INITIAL_REQUEST' = RequestType,
+		#'3gpp_ro_CCR'{'Multiple-Services-Credit-Control' = []} = Request,
+		SId, RequestNum, Subscriber, OHost, _DHost, ORealm, _DRealm,
+		IpAddress, Port) ->
+	try
+		Server = {IpAddress, Port},
+		case mnesia:transaction(fun() -> mnesia:read(service, Subscriber, read) end) of
+			{atomic, [#service{enabled = true}]} ->
+				Reply = diameter_answer(SId, [], [], undefined,
+						?'DIAMETER_BASE_RESULT-CODE_SUCCESS',
+						OHost, ORealm, RequestType, RequestNum),
+				ok = ocs_log:acct_log(diameter, Server,
+						accounting_event_type(RequestType), Request, Reply, undefined),
+				Reply;
+			{atomic, [#service{enabled = false}]} ->
+				Reply = diameter_error(SId, ?'DIAMETER_BASE_RESULT-CODE_AUTHORIZATION_REJECTED',
+						OHost, ORealm, RequestType, RequestNum),
+				ok = ocs_log:acct_log(diameter, Server,
+						accounting_event_type(RequestType), Request, Reply, undefined),
+				Reply;
+			{atomic, []} ->
+				Reply = diameter_error(SId, ?'DIAMETER_CC_APP_RESULT-CODE_USER_UNKNOWN',
+						OHost, ORealm, RequestType, RequestNum),
+				ok = ocs_log:acct_log(diameter, Server,
+						accounting_event_type(RequestType), Request, Reply, undefined),
+				Reply;
+			{aborted, Reason} ->
+				throw(Reason)
+		end
+	catch
+		_:Reason1 ->
+			error_logger:warning_report(["Unable to process DIAMETER request",
+					{origin_host, OHost}, {origin_realm, ORealm},
+					{request, Request}, {error, Reason1}]),
+			diameter_error(SId, ?'DIAMETER_BASE_RESULT-CODE_UNABLE_TO_COMPLY', OHost,
+					ORealm, RequestType, RequestNum)
+	end;
+process_request1(?'3GPP_CC-REQUEST-TYPE_INITIAL_REQUEST' = RequestType,
 		#'3gpp_ro_CCR'{'Multiple-Services-Credit-Control' = MSCC,
 		'Service-Information' = ServiceInformation,
 		'Service-Context-Id' = SvcContextId,
@@ -333,9 +370,7 @@ process_request1(?'3GPP_CC-REQUEST-TYPE_INITIAL_REQUEST' = RequestType,
 				{SI, RG, [{messages, CCSpecUnits}]};
 			[#'3gpp_ro_Multiple-Services-Credit-Control'{'Service-Identifier' = SI,
 					'Rating-Group' = RG} | _] ->
-				{SI, RG, []};
-			[] ->
-				{[], [], []}
+				{SI, RG, []}
 		end,
 		{Direction, Address} = direction_address(ServiceInformation),
 		ServiceType = service_type(SvcContextId),
