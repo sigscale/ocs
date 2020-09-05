@@ -67,56 +67,56 @@ start(ScheduledTime, Interval) ->
 		Reason :: term().
 %% @doc Apply recurring charges to all subscriptions.
 product_charge() ->
-	case get_offers() of
-		{error, Reason} ->
-			{error, Reason};
-		Offers ->
-			Now = erlang:system_time(?MILLISECOND),
-			product_charge1(get_product(start), Now, frp(Offers))
-	end.
+	Now = erlang:system_time(?MILLISECOND),
+	product_charge1(get_product(start), Now).
 %% @hidden
-product_charge1('$end_of_table', _Now, _Offers) ->
+product_charge1('$end_of_table', _Now) ->
 	ok;
-product_charge1(ProdRef, Now, Offers) ->
+product_charge1(ProdRef, Now) ->
 	F = fun() ->
 			case mnesia:read(product, ProdRef, write) of
 				[#product{product = OfferId,
 						payment = Payments,
 						balance = BucketRefs} = Product] ->
-					case if_recur(OfferId, Offers) of
-						{true, Offer} ->
-							case if_dues(Payments, Now) of
+					case mnesia:read(offer, OfferId, read) of
+						[#offer{name = OfferId, price = Prices} = Offer] ->
+							case if_recur(Prices) of
 								true ->
-									Buckets1 = lists:flatten([mnesia:select(bucket,
-											[{'$1',
-											[
-												{'==', Id, {element, #bucket.id, '$1'}}
-											],
-											['$1']}]) || Id <- BucketRefs]),
-									{NewProduct1, Buckets3} = ocs:subscription(Product, Offer,
-											Buckets1, false),
-									NewBRefs = update_buckets(BucketRefs, Buckets1, Buckets3),
-									NewProduct2 = NewProduct1#product{balance = NewBRefs},
-									ok = mnesia:write(NewProduct2);
+									case if_dues(Payments, Now) of
+										true ->
+											Buckets1 = lists:flatten([mnesia:select(bucket,
+													[{'$1',
+													[
+														{'==', Id, {element, #bucket.id, '$1'}}
+													],
+													['$1']}]) || Id <- BucketRefs]),
+											{NewProduct1, Buckets3} = ocs:subscription(Product, Offer,
+													Buckets1, false),
+											NewBRefs = update_buckets(BucketRefs, Buckets1, Buckets3),
+											NewProduct2 = NewProduct1#product{balance = NewBRefs},
+											ok = mnesia:write(NewProduct2);
+										false ->
+											ok
+									end;
 								false ->
 									ok
 							end;
-						false ->
-							ok
+						[] ->
+							throw(offer_not_found)
 					end;
 				[] ->
-					throw(product_ref_nof_found)
+					throw(product_ref_not_found)
 			end
 	end,
 	case mnesia:transaction(F) of
 		{atomic, ok} ->
-			product_charge1(get_product(ProdRef), Now, Offers);
+			product_charge1(get_product(ProdRef), Now);
 		{aborted, Reason} ->
 			error_logger:error_report("Scheduler Update Failed",
 					[{module, ?MODULE}, {product_id, ProdRef},
 					{time, erlang:system_time(?MILLISECOND)},
 					{reason, Reason}]),
-			product_charge1(get_product(ProdRef), Now, Offers)
+			product_charge1(get_product(ProdRef), Now)
 	end.
 
 %%----------------------------------------------------------------------
@@ -127,22 +127,17 @@ product_charge1(ProdRef, Now, Offers) ->
 %% @doc Scheduled function runs recurring charging and reschedules itself.
 %% @private
 run_recurring() ->
-	case product_charge() of
-		ok ->
-			{ok, ScheduledTime} = application:get_env(ocs, charging_scheduler_time),
-			{ok, Interval} = application:get_env(ocs, charging_interval),
-			StartDelay = start_delay(ScheduledTime, Interval),
-			case timer:apply_after(StartDelay, ?MODULE, run_recurring, []) of
-				{ok, _TRef} ->
-					ok;
-				{error, Reason} ->
-					error_logger:error_report(["Scheduler Failed",
-							{module, ?MODULE}, {delay, StartDelay},
-							{interval, Interval}, {error, Reason}])
-			end;
+	ok = product_charge(),
+	{ok, ScheduledTime} = application:get_env(ocs, charging_scheduler_time),
+	{ok, Interval} = application:get_env(ocs, charging_interval),
+	StartDelay = start_delay(ScheduledTime, Interval),
+	case timer:apply_after(StartDelay, ?MODULE, run_recurring, []) of
+		{ok, _TRef} ->
+			ok;
 		{error, Reason} ->
 			error_logger:error_report(["Scheduler Failed",
-					{module, ?MODULE}, {error, Reason}])
+					{module, ?MODULE}, {delay, StartDelay},
+					{interval, Interval}, {error, Reason}])
 	end.
 
 %%----------------------------------------------------------------------
@@ -157,13 +152,27 @@ if_dues([_ | T], Now) ->
 if_dues([], _Now)  ->
 	false.
 
+-spec if_recur(Prices) -> Result
+	when
+		Prices :: [#price{}],
+		Result :: boolean().
 %% @private
-if_recur(OfferId, Offers) ->
-	case lists:keyfind(OfferId, 1, Offers) of
-		{_, Offer} ->
-			{true, Offer};
+if_recur(Prices) ->
+	F = fun(#price{type = Bundle}) when Bundle /= [] ->
+				true;
+			(#price{type = recurring}) ->
+				true;
+			(#price{alteration
+					= #alteration{type = recurring}}) ->
+				true;
+			(_) ->
+				false
+	end,
+	case lists:any(F, Prices) of
 		false ->
-			false
+			false;
+		true ->
+			true
 	end.
 
 %% @private
@@ -171,61 +180,6 @@ get_product(start) ->
 	ets:first(product);
 get_product(SId) ->
 	ets:next(product, SId).
-
--spec get_offers() -> Result
-	when
-		Result :: Offers | {error, Reason},
-		Offers :: [#offer{}],
-		Reason :: term().
-%% @private
-get_offers() ->
-	MatchSpec = [{'_', [], ['$_']}],
-	F = fun F(start, Acc) ->
-				F(mnesia:select(offer, MatchSpec,
-						?CHUNKSIZE, read), Acc);
-			F ('$end_of_table', Acc) ->
-				lists:flatten(lists:reverse(Acc));
-			F({error, Reason}, _Acc) ->
-				{error, Reason};
-			F({Offers, Cont}, Acc) ->
-				F(mnesia:select(Cont), [Offers | Acc])
-	end,
-	case mnesia:transaction(F, [start, []]) of
-		{aborted, Reason} ->
-			{error, Reason};
-		{atomic, Result} ->
-			Result
-	end.
-
--spec frp(Offers) -> FilterOffer
-	when
-		Offers :: [#offer{}],
-		FilterOffer :: [{OfferId, Offer}],
-		OfferId :: string(),
-		Offer :: #offer{}.
-%% @doc Filter recurring prices
-%% @private
-frp(Offers) ->
-	frp1(Offers, []).
-%% @hidden
-frp1([#offer{name = OfferId, price = Prices} = Offer | T], Acc) ->
-	case lists:any(fun frp2/1, Prices) of
-		false ->
-			frp1(T, Acc);
-		true ->
-			frp1(T, [{OfferId, Offer}] ++ Acc)
-	end;
-frp1([], Acc) ->
-	lists:reverse(Acc).
-%% @hidden
-frp2(#price{type = Bundle}) when Bundle /= [] ->
-	true;
-frp2(#price{type = recurring}) ->
-	true;
-frp2(#price{alteration = #alteration{type = recurring}}) ->
-	true;
-frp2(_) ->
-	false.
 
 %% @private
 update_buckets(BRefs, OldB, NewB) ->
