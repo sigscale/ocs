@@ -683,14 +683,6 @@ process_request1(?'3GPP_CC-REQUEST-TYPE_TERMINATION_REQUEST' = RequestType,
 %% @doc Build CCA response.
 %% @hidden
 diameter_answer(SId, _ServiceIdentifier, _RatingGroup, undefined,
-		?'DIAMETER_CC_APP_RESULT-CODE_CREDIT_LIMIT_REACHED', OHost, ORealm,
-		RequestType, RequestNum) ->
-	#'3gpp_ro_CCA'{'Session-Id' = SId,
-			'Result-Code' = ?'DIAMETER_CC_APP_RESULT-CODE_CREDIT_LIMIT_REACHED',
-			'Origin-Host' = OHost, 'Origin-Realm' = ORealm,
-			'Auth-Application-Id' = ?RO_APPLICATION_ID, 'CC-Request-Type' = RequestType,
-			'CC-Request-Number' = RequestNum};
-diameter_answer(SId, _ServiceIdentifier, _RatingGroup, undefined,
 		ResultCode, OHost, ORealm, RequestType, RequestNum) ->
 	#'3gpp_ro_CCA'{'Session-Id' = SId, 'Result-Code' = ResultCode,
 			'Origin-Host' = OHost, 'Origin-Realm' = ORealm,
