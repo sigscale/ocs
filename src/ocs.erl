@@ -2339,22 +2339,37 @@ get_params5(_, _, _, false) ->
 %% @doc Charge `Amount' to `Buckets'.
 %% @private
 charge(ProdRef, Amount, Buckets) ->
-	charge(ProdRef, Amount, Buckets, []).
+	charge(ProdRef, Amount, sort(Buckets), []).
 %% @hidden
 charge(_ProdRef, 0, T, Acc) ->
 	lists:reverse(Acc) ++ T;
 charge(_ProdRef, Amount, [#bucket{units = cents,
-		remain_amount = Remain} = B | T], Acc) when Amount < Remain ->
+		remain_amount = Remain} = B | T], Acc)
+		when ((Amount < Remain) or  (Remain < 0)) ->
 	lists:reverse(Acc) ++ [B#bucket{remain_amount = Remain - Amount} | T];
-charge(_ProdRef, Amount, [#bucket{units = cents,
-		remain_amount = Remain} = B], Acc) ->
-	lists:reverse([B#bucket{remain_amount = Remain - Amount} | Acc]);
+charge(ProdRef, Amount, [#bucket{units = cents,
+		remain_amount = Remain} = B | T], Acc) when Remain > 0 ->
+	charge(ProdRef, Amount - Remain, T, [B#bucket{remain_amount = 0} | Acc]);
 charge(ProdRef, Amount, [H | T], Acc) ->
 	charge(ProdRef, Amount, T, [H | Acc]);
 charge(ProdRef, Amount, [], Acc) ->
-	lists:reverse([#bucket{id = generate_bucket_id(),
-			units = cents, remain_amount = - Amount,
-			product = [ProdRef]} | Acc]).
+	[#bucket{id = generate_bucket_id(), units = cents,
+			remain_amount = - Amount, product = [ProdRef]}
+			| lists:reverse(Acc)].
+
+-spec sort(Buckets) -> Buckets
+	when
+		Buckets :: [#bucket{}].
+%% @doc Sort `Buckets' oldest first.
+%% @private
+sort(Buckets) ->
+	F = fun(#bucket{end_date = T1},
+				#bucket{end_date = T2}) when T1 =< T2 ->
+			true;
+		(_, _)->
+			false
+	end,
+	lists:sort(F, Buckets).
 
 %% @private 
 generate_bucket_id() ->
