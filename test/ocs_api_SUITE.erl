@@ -104,7 +104,12 @@ client() ->
 
 client(Config) ->
 	{ok, [{auth, AuthInstance}, {acct, _AcctInstance}]} = application:get_env(ocs, radius),
-	[{Address, _, _}] = AuthInstance,
+	Address = case AuthInstance of
+		[{{0, 0, 0, 0}, _, _}] ->
+			{127, 0, 0, 1};
+		[{Addr, _, _}] ->
+			Addr
+	end,
 	SharedSecret = ct:get_config(radius_shared_secret, Config),
 	Protocol = ct:get_config(protocol),
 	{ok, _} = ocs:add_client(Address, 3799, Protocol, SharedSecret, true),
@@ -155,7 +160,12 @@ delete_client() ->
 
 delete_client(Config) ->
 	{ok, [{auth, AuthInstance}, {acct, _AcctInstance}]} = application:get_env(ocs, radius),
-	[{Address, _, _}] = AuthInstance,
+	Address = case AuthInstance of
+		[{{0, 0, 0, 0}, _, _}] ->
+			{127, 0, 0, 1};
+		[{Addr, _, _}] ->
+			Addr
+	end,
 	SharedSecret = ct:get_config(radius_shared_secret, Config),
 	Protocol = ct:get_config(protocol),
 	{ok, _} = ocs:add_client(Address, 3799, Protocol, SharedSecret, true),
@@ -243,7 +253,7 @@ find_offer(_Config) ->
 			size = 1000000, amount = 6, units = octets,
 			alteration = #alteration{name = "A2",
 					start_date = SD, end_date = ED,
-					type = usage, units = octets,
+					type = one_time, units = octets,
 					size = 150000000, amount = 0}},
 	Prices = [Price1, Price2],
 	ProductName = "PD1",
@@ -266,7 +276,7 @@ get_offers(_Config) ->
 		Price2 = #price{name = ocs:generate_password(),
 				type = usage, size = 1000000, amount = 6, units = octets,
 				alteration = #alteration{name = ocs:generate_password(),
-						type = usage, units = octets,
+						type = one_time, units = octets,
 						size = 150000000, amount = 0}},
 		Prices = [Price1, Price2],
 		Product = #offer{name = ProductName,

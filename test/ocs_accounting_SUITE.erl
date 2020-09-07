@@ -67,34 +67,31 @@ suite() ->
 %%
 init_per_suite(Config) ->
 	ok = ocs_test_lib:initialize_db(),
+	ok = ocs_test_lib:load(ocs),
+	Address = {127,0,0,1},
 	RadiusAuthPort = rand:uniform(64511) + 1024,
 	RadiusAcctPort = rand:uniform(64511) + 1024,
-	RadiusAppVar = [{auth, [{{127,0,0,1}, RadiusAuthPort, []}]},
-			{acct, [{{127,0,0,1}, RadiusAcctPort, []}]}],
-	ok = application:set_env(ocs, radius, RadiusAppVar, [{persistent, true}]),
+	RadiusAppVar = [{auth, [{Address, RadiusAuthPort, []}]},
+			{acct, [{Address, RadiusAcctPort, []}]}],
+	ok = application:set_env(ocs, radius, RadiusAppVar),
 	DiameterAuthPort = rand:uniform(64511) + 1024,
 	DiameterAcctPort = rand:uniform(64511) + 1024,
-	DiameterAppVar = [{auth, [{{127,0,0,1}, DiameterAuthPort, []}]},
-		{acct, [{{127,0,0,1}, DiameterAcctPort, []}]}],
-	ok = application:set_env(ocs, diameter, DiameterAppVar, [{persistent, true}]),
+	DiameterAppVar = [{auth, [{Address, DiameterAuthPort, []}]},
+		{acct, [{Address, DiameterAcctPort, []}]}],
+	ok = application:set_env(ocs, diameter, DiameterAppVar),
 	ok = ocs_test_lib:start(),
 	{ok, ProdID} = ocs_test_lib:add_offer(),
-	{ok, Radius} = application:get_env(ocs, radius),
-	{_, [{RauthAddress, RauthPort, _} | _]} = lists:keyfind(auth, 1, Radius),
-	{_, [{RacctAddress, RacctPort, _} | _]} = lists:keyfind(acct, 1, Radius),
-	{ok, Diameter} = application:get_env(ocs, diameter),
-	{_, [{Daddress, Dport, _} | _]} = lists:keyfind(acct, 1, Diameter),
 	Host = atom_to_list(?MODULE),
 	Realm = "acct.sigscale.org",
 	Config1 = [{host, Host}, {realm, Realm}, {product_id, ProdID},
-			{radius_auth_address, RauthAddress},
-			{radius_auth_port, RauthPort},
-			{radius_acct_address, RacctAddress},
-			{radius_acct_port, RacctPort},
-			{diameter_acct_address, Daddress} | Config],
+			{radius_auth_address, Address},
+			{radius_auth_port, RadiusAuthPort},
+			{radius_acct_address, Address},
+			{radius_acct_port, RadiusAcctPort},
+			{diameter_acct_address, Address} | Config],
 	ok = diameter:start_service(?MODULE, client_acct_service_opts(Config1)),
 	true = diameter:subscribe(?MODULE),
-	{ok, _Ref2} = connect(?MODULE, Daddress, Dport, diameter_tcp),
+	{ok, _Ref2} = connect(?MODULE, Address, DiameterAcctPort, diameter_tcp),
 	receive
 		#diameter_event{service = ?MODULE, info = Info}
 				when element(1, Info) == up ->
@@ -107,9 +104,8 @@ init_per_suite(Config) ->
 %% Cleanup after the whole suite.
 %%
 end_per_suite(Config) ->
-	ok = application:unset_env(ocs, radius, [{persistent, true}]),
-	ok = application:unset_env(ocs, diameter, [{persistent, true}]),
 	ok = diameter:stop_service(?MODULE),
+	ok = diameter:remove_transport(?MODULE, true),
 	ok = ocs_test_lib:stop(),
 	ok = ocs:delete_service("25252525"),
 	Config.
@@ -144,10 +140,15 @@ init_per_testcase1(TestCase, Config) when
 	[{radius_nas_socket, Socket}, {radius_nas_client, Address} | Config];
 init_per_testcase1(TestCase, Config) when
 		TestCase == diameter_scur;
+		TestCase == diameter_scur_cud;
 		TestCase == diameter_scur_no_credit;
 		TestCase == diameter_scur_depletion;
 		TestCase == diameter_ecur;
-		TestCase == diameter_ecur_no_credit ->
+		TestCase == diameter_ecur_no_credit;
+		TestCase == diameter_voice_out;
+		TestCase == diameter_voice_in;
+		TestCase == diameter_voice_out_tariff;
+		TestCase == diameter_voice_in_tariff ->
 	Address = ?config(diameter_acct_address, Config),
 	{ok, _} = ocs:add_client(Address, undefined, diameter, undefined, true),
 	Config.
@@ -169,10 +170,15 @@ end_per_testcase(TestCase, Config) when
 	ok = ocs:delete_client(Address);
 end_per_testcase(TestCase, Config) when
 		TestCase == diameter_scur;
+		TestCase == diameter_scur_cud;
 		TestCase == diameter_scur_no_credit;
 		TestCase == diameter_scur_depletion;
 		TestCase == diameter_ecur;
-		TestCase == diameter_ecur_no_credit ->
+		TestCase == diameter_ecur_no_credit;
+		TestCase == diameter_voice_out;
+		TestCase == diameter_voice_in;
+		TestCase == diameter_voice_out_tariff;
+		TestCase == diameter_voice_in_tariff ->
 	Address = ?config(diameter_acct_address, Config),
 	ok = ocs:delete_client(Address).
 
@@ -188,8 +194,11 @@ sequences() ->
 all() ->
 	[radius_accounting, radius_disconnect_session,
 	radius_multisession_disallowed, radius_multisession,
-	diameter_scur, diameter_scur_no_credit, diameter_scur_depletion,
-	diameter_ecur, diameter_ecur_no_credit].
+	diameter_scur, diameter_scur_cud,
+	diameter_scur_no_credit, diameter_scur_depletion,
+	diameter_ecur, diameter_ecur_no_credit,
+	diameter_voice_out, diameter_voice_in,
+	diameter_voice_out_tariff, diameter_voice_in_tariff].
 
 %%---------------------------------------------------------------------
 %%  Test cases
@@ -450,6 +459,61 @@ diameter_scur(_Config) ->
 			'CC-Request-Type' = ?'3GPP_CC-REQUEST-TYPE_TERMINATION_REQUEST',
 			'CC-Request-Number' = NewRequestNum} = Answer1.
 
+diamneter_scur_cud() ->
+	[{userdata, [{doc, "DIAMETER SCUR with Centralized Unit Determination"}]}].
+
+diameter_scur_cud(_Config) ->
+	UnitSize = 123456789,
+	P1 = price(usage, octets, UnitSize, rand:uniform(1000000)),
+	OfferId = add_offer([P1], 4),
+	ProdRef = add_product(OfferId),
+	MSISDN = list_to_binary(ocs:generate_identity()),
+	{ok, #service{}} = ocs:add_service(MSISDN, undefined, ProdRef, []),
+	Balance = UnitSize + rand:uniform(100000000),
+	B1 = bucket(octets, Balance),
+	_BId = add_bucket(ProdRef, B1),
+	Ref = erlang:ref_to_list(make_ref()),
+	SId = diameter:session_id(Ref),
+	SubscriptionId = #'3gpp_ro_Subscription-Id'{
+			'Subscription-Id-Type' = ?'3GPP_RO_SUBSCRIPTION-ID-TYPE_END_USER_E164',
+			'Subscription-Id-Data' = MSISDN},
+	RSU = #'3gpp_ro_Requested-Service-Unit' {},
+	MSCC1 = #'3gpp_ro_Multiple-Services-Credit-Control'{
+			'Requested-Service-Unit' = [RSU]},
+	CallingPartyAddress = "tel:+" ++ ocs:generate_identity(),
+	CalledPartyAddress = "tel:+" ++ ocs:generate_identity(),
+	ServiceInformation = #'3gpp_ro_Service-Information'{'IMS-Information' =
+			[#'3gpp_ro_IMS-Information'{
+					'Node-Functionality' = ?'3GPP_RO_NODE-FUNCTIONALITY_AS',
+					'Role-Of-Node' = [?'3GPP_RO_ROLE-OF-NODE_ORIGINATING_ROLE'],
+					'Calling-Party-Address' = [CallingPartyAddress],
+					'Called-Party-Address' = [CalledPartyAddress]}]},
+	CCR = #'3gpp_ro_CCR'{'Session-Id' = SId,
+			'Auth-Application-Id' = ?RO_APPLICATION_ID,
+			'Service-Context-Id' = "32260@3gpp.org",
+			'User-Name' = [MSISDN],
+			'CC-Request-Type' = ?'3GPP_RO_CC-REQUEST-TYPE_INITIAL_REQUEST',
+			'CC-Request-Number' = 0,
+			'Event-Timestamp' = [calendar:universal_time()],
+			'Subscription-Id' = [SubscriptionId],
+			'Multiple-Services-Credit-Control' = [MSCC1],
+			'Service-Information' = [ServiceInformation]},
+	{ok, Answer0} = diameter:call(?MODULE, cc_app_test, CCR, []),
+	#'3gpp_ro_CCA'{'Result-Code' = ?'DIAMETER_BASE_RESULT-CODE_SUCCESS',
+			'Auth-Application-Id' = ?RO_APPLICATION_ID,
+			'CC-Request-Type' = ?'3GPP_CC-REQUEST-TYPE_INITIAL_REQUEST',
+			'CC-Request-Number' = RequestNum,
+			'Multiple-Services-Credit-Control' = [MSCC2]} = Answer0,
+	#'3gpp_ro_Multiple-Services-Credit-Control'{
+			'Granted-Service-Unit' = [GSU]} = MSCC2,
+	#'3gpp_ro_Granted-Service-Unit'{'CC-Total-Octets' = [UnitSize]} = GSU,
+	NewRequestNum = RequestNum + 1,
+	Answer1 = diameter_scur_stop(SId, MSISDN, NewRequestNum, UnitSize),
+	#'3gpp_ro_CCA'{'Result-Code' = ?'DIAMETER_BASE_RESULT-CODE_SUCCESS',
+			'Auth-Application-Id' = ?RO_APPLICATION_ID,
+			'CC-Request-Type' = ?'3GPP_RO_CC-REQUEST-TYPE_TERMINATION_REQUEST',
+			'CC-Request-Number' = NewRequestNum} = Answer1.
+
 diameter_scur_no_credit() ->
 	[{userdata, [{doc, "DIAMETER SCUR with insufficient credit"}]}].
 
@@ -625,6 +689,358 @@ diameter_ecur_no_credit(_Config) ->
 			'Auth-Application-Id' = ?RO_APPLICATION_ID,
 			'CC-Request-Type' = ?'3GPP_CC-REQUEST-TYPE_INITIAL_REQUEST',
 			'CC-Request-Number' = 0} = Answer1.
+
+diameter_voice_out() ->
+	[{userdata, [{doc, "DIAMETER SCUR for outgoing voice call"}]}].
+
+diameter_voice_out(_Config) ->
+	UnitSize = 6,
+	P1 = price(usage, seconds, UnitSize, rand:uniform(1000000)),
+	Incoming = #char_value{value = "answer"},
+	CallDirection1 = #char_value_use{name = "callDirection",
+			specification = "5", values = [Incoming]},
+	P2 = P1#price{char_value_use = [CallDirection1]},
+	P3 = price(usage, seconds, UnitSize, rand:uniform(1000000)),
+	Outgoing = #char_value{value = "originate"},
+	CallDirection2 = #char_value_use{name = "callDirection",
+			specification = "5", values = [Outgoing]},
+	P4 = P3#price{char_value_use = [CallDirection2]},
+	OfferId = add_offer([P2, P4], 9),
+	ProdRef = add_product(OfferId),
+	MSISDN = list_to_binary(ocs:generate_identity()),
+	{ok, #service{}} = ocs:add_service(MSISDN, undefined, ProdRef, []),
+	Balance1 = rand:uniform(1000000000),
+	B1 = bucket(seconds, Balance1),
+	B1ref = add_bucket(ProdRef, B1),
+	Ref = erlang:ref_to_list(make_ref()),
+	SId = diameter:session_id(Ref),
+	SubscriptionId = #'3gpp_ro_Subscription-Id'{
+			'Subscription-Id-Type' = ?'3GPP_RO_SUBSCRIPTION-ID-TYPE_END_USER_E164',
+			'Subscription-Id-Data' = MSISDN},
+	RSU = #'3gpp_ro_Requested-Service-Unit' {},
+	MSCC1 = #'3gpp_ro_Multiple-Services-Credit-Control'{
+			'Requested-Service-Unit' = [RSU]},
+	CallingPartyAddress = "tel:+" ++ ocs:generate_identity(),
+	CalledPartyAddress = "tel:+" ++ ocs:generate_identity(),
+	ServiceInformation = #'3gpp_ro_Service-Information'{'IMS-Information' =
+			[#'3gpp_ro_IMS-Information'{
+					'Node-Functionality' = ?'3GPP_RO_NODE-FUNCTIONALITY_AS',
+					'Role-Of-Node' = [?'3GPP_RO_ROLE-OF-NODE_ORIGINATING_ROLE'],
+					'Calling-Party-Address' = [CallingPartyAddress],
+					'Called-Party-Address' = [CalledPartyAddress]}]},
+	CCR1 = #'3gpp_ro_CCR'{'Session-Id' = SId,
+			'Auth-Application-Id' = ?RO_APPLICATION_ID,
+			'Service-Context-Id' = "32260@3gpp.org",
+			'User-Name' = [MSISDN],
+			'CC-Request-Type' = ?'3GPP_RO_CC-REQUEST-TYPE_INITIAL_REQUEST',
+			'CC-Request-Number' = 0,
+			'Event-Timestamp' = [calendar:universal_time()],
+			'Subscription-Id' = [SubscriptionId],
+			'Multiple-Services-Credit-Control' = [MSCC1],
+			'Service-Information' = [ServiceInformation]},
+	{ok, Answer1} = diameter:call(?MODULE, cc_app_test, CCR1, []),
+	#'3gpp_ro_CCA'{'Result-Code' = ?'DIAMETER_BASE_RESULT-CODE_SUCCESS',
+			'Auth-Application-Id' = ?RO_APPLICATION_ID,
+			'CC-Request-Type' = ?'3GPP_CC-REQUEST-TYPE_INITIAL_REQUEST',
+			'CC-Request-Number' = RequestNum,
+			'Multiple-Services-Credit-Control' = [MSCC2]} = Answer1,
+	#'3gpp_ro_Multiple-Services-Credit-Control'{
+			'Granted-Service-Unit' = [GSU]} = MSCC2,
+	#'3gpp_ro_Granted-Service-Unit'{'CC-Time' = [GrantedUnits]} = GSU,
+	NewRequestNum = RequestNum + 1,
+	UsedUnits = rand:uniform(GrantedUnits),
+	USU = #'3gpp_ro_Used-Service-Unit'{'CC-Time' = [UsedUnits]},
+	MSCC3 = #'3gpp_ro_Multiple-Services-Credit-Control'{
+			'Used-Service-Unit' = [USU]},
+	CCR2 = CCR1#'3gpp_ro_CCR'{'Session-Id' = SId,
+			'CC-Request-Type' = ?'3GPP_CC-REQUEST-TYPE_TERMINATION_REQUEST',
+			'CC-Request-Number' = NewRequestNum,
+			'Multiple-Services-Credit-Control' = [MSCC3],
+			'Event-Timestamp' = [calendar:universal_time()]},
+	{ok, Answer2} = diameter:call(?MODULE, cc_app_test, CCR2, []),
+	#'3gpp_ro_CCA'{'Result-Code' = ?'DIAMETER_BASE_RESULT-CODE_SUCCESS',
+			'Auth-Application-Id' = ?RO_APPLICATION_ID,
+			'CC-Request-Type' = ?'3GPP_RO_CC-REQUEST-TYPE_TERMINATION_REQUEST',
+			'CC-Request-Number' = NewRequestNum} = Answer2,
+	ChargedUnits = case UsedUnits rem UnitSize of
+		0 ->
+			UsedUnits;
+		N ->
+			UsedUnits + (UnitSize - N)
+	end,
+	Balance2 = Balance1 - ChargedUnits,
+	{ok, #bucket{remain_amount = Balance2}} = ocs:find_bucket(B1ref).
+
+diameter_voice_in() ->
+	[{userdata, [{doc, "DIAMETER SCUR for answered voice call"}]}].
+
+diameter_voice_in(_Config) ->
+	UnitSize = 6,
+	P1 = price(usage, seconds, UnitSize, rand:uniform(1000000)),
+	Incoming = #char_value{value = "answer"},
+	CallDirection1 = #char_value_use{name = "callDirection",
+			specification = "5", values = [Incoming]},
+	P2 = P1#price{char_value_use = [CallDirection1]},
+	P3 = price(usage, seconds, UnitSize, rand:uniform(1000000)),
+	Outgoing = #char_value{value = "originate"},
+	CallDirection2 = #char_value_use{name = "callDirection",
+			specification = "5", values = [Outgoing]},
+	P4 = P3#price{char_value_use = [CallDirection2]},
+	OfferId = add_offer([P2, P4], 9),
+	ProdRef = add_product(OfferId),
+	MSISDN = list_to_binary(ocs:generate_identity()),
+	{ok, #service{}} = ocs:add_service(MSISDN, undefined, ProdRef, []),
+	Balance1 = rand:uniform(1000000000),
+	B1 = bucket(seconds, Balance1),
+	B1ref = add_bucket(ProdRef, B1),
+	Ref = erlang:ref_to_list(make_ref()),
+	SId = diameter:session_id(Ref),
+	SubscriptionId = #'3gpp_ro_Subscription-Id'{
+			'Subscription-Id-Type' = ?'3GPP_RO_SUBSCRIPTION-ID-TYPE_END_USER_E164',
+			'Subscription-Id-Data' = MSISDN},
+	RSU = #'3gpp_ro_Requested-Service-Unit' {},
+	MSCC1 = #'3gpp_ro_Multiple-Services-Credit-Control'{
+			'Requested-Service-Unit' = [RSU]},
+	CallingPartyAddress = "tel:+" ++ ocs:generate_identity(),
+	CalledPartyAddress = "tel:+" ++ ocs:generate_identity(),
+	ServiceInformation = #'3gpp_ro_Service-Information'{'IMS-Information' =
+			[#'3gpp_ro_IMS-Information'{
+					'Node-Functionality' = ?'3GPP_RO_NODE-FUNCTIONALITY_AS',
+					'Role-Of-Node' = [?'3GPP_RO_ROLE-OF-NODE_TERMINATING_ROLE'],
+					'Calling-Party-Address' = [CallingPartyAddress],
+					'Called-Party-Address' = [CalledPartyAddress]}]},
+	CCR1 = #'3gpp_ro_CCR'{'Session-Id' = SId,
+			'Auth-Application-Id' = ?RO_APPLICATION_ID,
+			'Service-Context-Id' = "32260@3gpp.org",
+			'User-Name' = [MSISDN],
+			'CC-Request-Type' = ?'3GPP_RO_CC-REQUEST-TYPE_INITIAL_REQUEST',
+			'CC-Request-Number' = 0,
+			'Event-Timestamp' = [calendar:universal_time()],
+			'Subscription-Id' = [SubscriptionId],
+			'Multiple-Services-Credit-Control' = [MSCC1],
+			'Service-Information' = [ServiceInformation]},
+	{ok, Answer1} = diameter:call(?MODULE, cc_app_test, CCR1, []),
+	#'3gpp_ro_CCA'{'Result-Code' = ?'DIAMETER_BASE_RESULT-CODE_SUCCESS',
+			'Auth-Application-Id' = ?RO_APPLICATION_ID,
+			'CC-Request-Type' = ?'3GPP_CC-REQUEST-TYPE_INITIAL_REQUEST',
+			'CC-Request-Number' = RequestNum,
+			'Multiple-Services-Credit-Control' = [MSCC2]} = Answer1,
+	#'3gpp_ro_Multiple-Services-Credit-Control'{
+			'Granted-Service-Unit' = [GSU]} = MSCC2,
+	#'3gpp_ro_Granted-Service-Unit'{'CC-Time' = [GrantedUnits]} = GSU,
+	NewRequestNum = RequestNum + 1,
+	UsedUnits = rand:uniform(GrantedUnits),
+	USU = #'3gpp_ro_Used-Service-Unit'{'CC-Time' = [UsedUnits]},
+	MSCC3 = #'3gpp_ro_Multiple-Services-Credit-Control'{
+			'Used-Service-Unit' = [USU]},
+	CCR2 = CCR1#'3gpp_ro_CCR'{'Session-Id' = SId,
+			'CC-Request-Type' = ?'3GPP_CC-REQUEST-TYPE_TERMINATION_REQUEST',
+			'CC-Request-Number' = NewRequestNum,
+			'Multiple-Services-Credit-Control' = [MSCC3],
+			'Event-Timestamp' = [calendar:universal_time()]},
+	{ok, Answer2} = diameter:call(?MODULE, cc_app_test, CCR2, []),
+	#'3gpp_ro_CCA'{'Result-Code' = ?'DIAMETER_BASE_RESULT-CODE_SUCCESS',
+			'Auth-Application-Id' = ?RO_APPLICATION_ID,
+			'CC-Request-Type' = ?'3GPP_RO_CC-REQUEST-TYPE_TERMINATION_REQUEST',
+			'CC-Request-Number' = NewRequestNum} = Answer2,
+	ChargedUnits = case UsedUnits rem UnitSize of
+		0 ->
+			UsedUnits;
+		N ->
+			UsedUnits + (UnitSize - N)
+	end,
+	Balance2 = Balance1 - ChargedUnits,
+	{ok, #bucket{remain_amount = Balance2}} = ocs:find_bucket(B1ref).
+
+diameter_voice_out_tariff() ->
+	[{userdata, [{doc, "DIAMETER SCUR for originated voice call using tariff table"}]}].
+
+diameter_voice_out_tariff(_Config) ->
+	UnitSize = 6,
+	TariffRateIn = rand:uniform(100000),
+	TariffRateOut = rand:uniform(100000),
+	CallingAddress = ocs:generate_identity(),
+	CalledAddress = ocs:generate_identity(),
+	TableName = ocs:generate_password(),
+	PLA = #pla{name = TableName, specification = "4"},
+	{ok, _} = ocs:add_pla(PLA),
+	{ok, _} = ocs_gtt:insert(TableName, CallingAddress, {"in", TariffRateIn}),
+	{ok, _} = ocs_gtt:insert(TableName, CalledAddress, {"out", TariffRateOut}),
+	TableNameValue = #char_value{value = TableName},
+	TariffTable = #char_value_use{name = "destPrefixTariffTable",
+			specification = "3", values = [TableNameValue]},
+	Incoming = #char_value{value = "answer"},
+	CallDirection1 = #char_value_use{name = "callDirection",
+			specification = "5", values = [Incoming]},
+	P1 = #price{name = ocs:generate_identity(),
+			type = tariff, units = seconds, size = UnitSize,
+			char_value_use = [CallDirection1, TariffTable]},
+	Outgoing = #char_value{value = "originate"},
+	CallDirection2 = #char_value_use{name = "callDirection",
+			specification = "5", values = [Outgoing]},
+	P2 = #price{name = ocs:generate_identity(),
+			type = tariff, units = seconds, size = UnitSize,
+			char_value_use = [CallDirection2, TariffTable]},
+	OfferId = add_offer([P1, P2], 9),
+	ProdRef = add_product(OfferId),
+	MSISDN = list_to_binary(ocs:generate_identity()),
+	{ok, #service{}} = ocs:add_service(MSISDN, undefined, ProdRef, []),
+	Balance1 = rand:uniform(1000000000),
+	B1 = bucket(cents, Balance1),
+	B1ref = add_bucket(ProdRef, B1),
+	Ref = erlang:ref_to_list(make_ref()),
+	SId = diameter:session_id(Ref),
+	SubscriptionId = #'3gpp_ro_Subscription-Id'{
+			'Subscription-Id-Type' = ?'3GPP_RO_SUBSCRIPTION-ID-TYPE_END_USER_E164',
+			'Subscription-Id-Data' = MSISDN},
+	RSU = #'3gpp_ro_Requested-Service-Unit' {},
+	MSCC1 = #'3gpp_ro_Multiple-Services-Credit-Control'{
+			'Requested-Service-Unit' = [RSU]},
+	CallingPartyAddress = list_to_binary("tel:" ++ CallingAddress),
+	CalledPartyAddress = list_to_binary("tel:" ++ CalledAddress),
+	ServiceInformation = #'3gpp_ro_Service-Information'{'IMS-Information' =
+			[#'3gpp_ro_IMS-Information'{
+					'Node-Functionality' = ?'3GPP_RO_NODE-FUNCTIONALITY_AS',
+					'Role-Of-Node' = [?'3GPP_RO_ROLE-OF-NODE_ORIGINATING_ROLE'],
+					'Calling-Party-Address' = [CallingPartyAddress],
+					'Called-Party-Address' = [CalledPartyAddress]}]},
+	CCR1 = #'3gpp_ro_CCR'{'Session-Id' = SId,
+			'Auth-Application-Id' = ?RO_APPLICATION_ID,
+			'Service-Context-Id' = "32260@3gpp.org",
+			'User-Name' = [MSISDN],
+			'CC-Request-Type' = ?'3GPP_RO_CC-REQUEST-TYPE_INITIAL_REQUEST',
+			'CC-Request-Number' = 0,
+			'Event-Timestamp' = [calendar:universal_time()],
+			'Subscription-Id' = [SubscriptionId],
+			'Multiple-Services-Credit-Control' = [MSCC1],
+			'Service-Information' = [ServiceInformation]},
+	{ok, Answer1} = diameter:call(?MODULE, cc_app_test, CCR1, []),
+	#'3gpp_ro_CCA'{'Result-Code' = ?'DIAMETER_BASE_RESULT-CODE_SUCCESS',
+			'Auth-Application-Id' = ?RO_APPLICATION_ID,
+			'CC-Request-Type' = ?'3GPP_CC-REQUEST-TYPE_INITIAL_REQUEST',
+			'CC-Request-Number' = RequestNum,
+			'Multiple-Services-Credit-Control' = [MSCC2]} = Answer1,
+	#'3gpp_ro_Multiple-Services-Credit-Control'{
+			'Granted-Service-Unit' = [GSU]} = MSCC2,
+	#'3gpp_ro_Granted-Service-Unit'{'CC-Time' = [GrantedUnits]} = GSU,
+	NewRequestNum = RequestNum + 1,
+	UsedUnits = rand:uniform(GrantedUnits),
+	USU = #'3gpp_ro_Used-Service-Unit'{'CC-Time' = [UsedUnits]},
+	MSCC3 = #'3gpp_ro_Multiple-Services-Credit-Control'{
+			'Used-Service-Unit' = [USU]},
+	CCR2 = CCR1#'3gpp_ro_CCR'{'Session-Id' = SId,
+			'CC-Request-Type' = ?'3GPP_CC-REQUEST-TYPE_TERMINATION_REQUEST',
+			'CC-Request-Number' = NewRequestNum,
+			'Multiple-Services-Credit-Control' = [MSCC3],
+			'Event-Timestamp' = [calendar:universal_time()]},
+	{ok, Answer2} = diameter:call(?MODULE, cc_app_test, CCR2, []),
+	#'3gpp_ro_CCA'{'Result-Code' = ?'DIAMETER_BASE_RESULT-CODE_SUCCESS',
+			'Auth-Application-Id' = ?RO_APPLICATION_ID,
+			'CC-Request-Type' = ?'3GPP_RO_CC-REQUEST-TYPE_TERMINATION_REQUEST',
+			'CC-Request-Number' = NewRequestNum} = Answer2,
+	Charge = case UsedUnits rem UnitSize of
+		0 ->
+			(UsedUnits div UnitSize) * TariffRateOut;
+		_ ->
+			((UsedUnits div UnitSize) + 1) * TariffRateOut
+	end,
+	Balance2 = Balance1 - Charge,
+	{ok, #bucket{remain_amount = Balance2}} = ocs:find_bucket(B1ref).
+
+diameter_voice_in_tariff() ->
+	[{userdata, [{doc, "DIAMETER SCUR for answered voice call using tariff table"}]}].
+
+diameter_voice_in_tariff(_Config) ->
+	UnitSize = 6,
+	TariffRateIn = rand:uniform(100000),
+	TariffRateOut = rand:uniform(100000),
+	CallingAddress = ocs:generate_identity(),
+	CalledAddress = ocs:generate_identity(),
+	TableName = ocs:generate_password(),
+	PLA = #pla{name = TableName, specification = "4"},
+	{ok, _} = ocs:add_pla(PLA),
+	{ok, _} = ocs_gtt:insert(TableName, CallingAddress, {"in", TariffRateIn}),
+	{ok, _} = ocs_gtt:insert(TableName, CalledAddress, {"out", TariffRateOut}),
+	TableNameValue = #char_value{value = TableName},
+	TariffTable = #char_value_use{name = "destPrefixTariffTable",
+			specification = "3", values = [TableNameValue]},
+	Incoming = #char_value{value = "answer"},
+	CallDirection1 = #char_value_use{name = "callDirection",
+			specification = "5", values = [Incoming]},
+	P1 = #price{name = ocs:generate_identity(),
+			type = tariff, units = seconds, size = UnitSize,
+			char_value_use = [CallDirection1, TariffTable]},
+	Outgoing = #char_value{value = "originate"},
+	CallDirection2 = #char_value_use{name = "callDirection",
+			specification = "5", values = [Outgoing]},
+	P2 = #price{name = ocs:generate_identity(),
+			type = tariff, units = seconds, size = UnitSize,
+			char_value_use = [CallDirection2, TariffTable]},
+	OfferId = add_offer([P1, P2], 9),
+	ProdRef = add_product(OfferId),
+	MSISDN = list_to_binary(ocs:generate_identity()),
+	{ok, #service{}} = ocs:add_service(MSISDN, undefined, ProdRef, []),
+	Balance1 = rand:uniform(1000000000),
+	B1 = bucket(cents, Balance1),
+	B1ref = add_bucket(ProdRef, B1),
+	Ref = erlang:ref_to_list(make_ref()),
+	SId = diameter:session_id(Ref),
+	SubscriptionId = #'3gpp_ro_Subscription-Id'{
+			'Subscription-Id-Type' = ?'3GPP_RO_SUBSCRIPTION-ID-TYPE_END_USER_E164',
+			'Subscription-Id-Data' = MSISDN},
+	RSU = #'3gpp_ro_Requested-Service-Unit' {},
+	MSCC1 = #'3gpp_ro_Multiple-Services-Credit-Control'{
+			'Requested-Service-Unit' = [RSU]},
+	CallingPartyAddress = list_to_binary("tel:" ++ CallingAddress),
+	CalledPartyAddress = list_to_binary("tel:" ++ CalledAddress),
+	ServiceInformation = #'3gpp_ro_Service-Information'{'IMS-Information' =
+			[#'3gpp_ro_IMS-Information'{
+					'Node-Functionality' = ?'3GPP_RO_NODE-FUNCTIONALITY_AS',
+					'Role-Of-Node' = [?'3GPP_RO_ROLE-OF-NODE_TERMINATING_ROLE'],
+					'Calling-Party-Address' = [CallingPartyAddress],
+					'Called-Party-Address' = [CalledPartyAddress]}]},
+	CCR1 = #'3gpp_ro_CCR'{'Session-Id' = SId,
+			'Auth-Application-Id' = ?RO_APPLICATION_ID,
+			'Service-Context-Id' = "32260@3gpp.org",
+			'User-Name' = [MSISDN],
+			'CC-Request-Type' = ?'3GPP_RO_CC-REQUEST-TYPE_INITIAL_REQUEST',
+			'CC-Request-Number' = 0,
+			'Event-Timestamp' = [calendar:universal_time()],
+			'Subscription-Id' = [SubscriptionId],
+			'Multiple-Services-Credit-Control' = [MSCC1],
+			'Service-Information' = [ServiceInformation]},
+	{ok, Answer1} = diameter:call(?MODULE, cc_app_test, CCR1, []),
+	#'3gpp_ro_CCA'{'Result-Code' = ?'DIAMETER_BASE_RESULT-CODE_SUCCESS',
+			'Auth-Application-Id' = ?RO_APPLICATION_ID,
+			'CC-Request-Type' = ?'3GPP_CC-REQUEST-TYPE_INITIAL_REQUEST',
+			'CC-Request-Number' = RequestNum,
+			'Multiple-Services-Credit-Control' = [MSCC2]} = Answer1,
+	#'3gpp_ro_Multiple-Services-Credit-Control'{
+			'Granted-Service-Unit' = [GSU]} = MSCC2,
+	#'3gpp_ro_Granted-Service-Unit'{'CC-Time' = [GrantedUnits]} = GSU,
+	NewRequestNum = RequestNum + 1,
+	UsedUnits = rand:uniform(GrantedUnits),
+	USU = #'3gpp_ro_Used-Service-Unit'{'CC-Time' = [UsedUnits]},
+	MSCC3 = #'3gpp_ro_Multiple-Services-Credit-Control'{
+			'Used-Service-Unit' = [USU]},
+	CCR2 = CCR1#'3gpp_ro_CCR'{'Session-Id' = SId,
+			'CC-Request-Type' = ?'3GPP_CC-REQUEST-TYPE_TERMINATION_REQUEST',
+			'CC-Request-Number' = NewRequestNum,
+			'Multiple-Services-Credit-Control' = [MSCC3],
+			'Event-Timestamp' = [calendar:universal_time()]},
+	{ok, Answer2} = diameter:call(?MODULE, cc_app_test, CCR2, []),
+	#'3gpp_ro_CCA'{'Result-Code' = ?'DIAMETER_BASE_RESULT-CODE_SUCCESS',
+			'Auth-Application-Id' = ?RO_APPLICATION_ID,
+			'CC-Request-Type' = ?'3GPP_RO_CC-REQUEST-TYPE_TERMINATION_REQUEST',
+			'CC-Request-Number' = NewRequestNum} = Answer2,
+	Charge = case UsedUnits rem UnitSize of
+		0 ->
+			(UsedUnits div UnitSize) * TariffRateIn;
+		_ ->
+			((UsedUnits div UnitSize) + 1) * TariffRateIn
+	end,
+	Balance2 = Balance1 - Charge,
+	{ok, #bucket{remain_amount = Balance2}} = ocs:find_bucket(B1ref).
 
 %%---------------------------------------------------------------------
 %%  Internal functions

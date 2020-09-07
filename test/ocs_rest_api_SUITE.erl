@@ -31,6 +31,7 @@
 
 -include_lib("radius/include/radius.hrl").
 -include_lib("inets/include/mod_auth.hrl").
+-include_lib("public_key/include/public_key.hrl").
 -include("ocs.hrl").
 -include("ocs_eap_codec.hrl").
 -include_lib("common_test/include/ct.hrl").
@@ -117,6 +118,11 @@ end_per_suite(Config) ->
 -spec init_per_testcase(TestCase :: atom(), Config :: [tuple()]) -> Config :: [tuple()].
 %% Initialization before each test case.
 %%
+init_per_testcase(oauth_authentication, Config) ->
+	ok = set_inet_mod(),
+	application:stop(inets),
+	application:start(inets),
+	Config;
 init_per_testcase(TestCase, Config) when TestCase == notify_create_bucket;
 		TestCase == notify_delete_expired_bucket;
 		TestCase == notify_create_product; TestCase == notify_create_service;
@@ -141,6 +147,10 @@ init_per_testcase(_TestCase, Config) ->
 -spec end_per_testcase(TestCase :: atom(), Config :: [tuple()]) -> any().
 %% Cleanup after each test case.
 %%
+end_per_testcase(oauth_authentication, _Config) ->
+	ok = set_inet_mod(),
+	application:stop(inets),
+	application:start(inets);
 end_per_testcase(_TestCase, _Config) ->
 	ok.
 
@@ -178,11 +188,13 @@ all() ->
 	post_hub_product, delete_hub_product, notify_create_product,
 	post_hub_service, delete_hub_service, notify_create_service,
 	post_hub_user, delete_hub_user, post_hub_catalog, delete_hub_catalog,
-	post_hub_inventory, delete_hub_inventory, notify_product_charge].
+	post_hub_inventory, delete_hub_inventory, notify_product_charge,
+	oauth_authentication].
 
-%%%%%---------------------------------------------------------------------
+%%---------------------------------------------------------------------
 %%  Test cases
 %%---------------------------------------------------------------------
+
 authenticate_user_request() ->
 	[{userdata, [{doc, "Authorized user request to the server"}]}].
 
@@ -836,7 +848,7 @@ add_product() ->
 	[{userdata, [{doc,"Create a new product inventory."}]}].
 
 add_product(Config) ->
-	P1 = price(one_time, undefined, rand:uniform(1000), rand:uniform(100)),
+	P1 = price(one_time, undefined, undefined, rand:uniform(100)),
 	P2 = price(usage, octets, rand:uniform(1000000), rand:uniform(500)),
 	OfferId = offer_add([P1, P2], 4),
 	HostUrl = ?config(host_url, Config),
@@ -862,7 +874,7 @@ get_product() ->
 			with given product inventory reference"}]}].
 
 get_product(Config) ->
-	P1 = price(one_time, undefined, rand:uniform(1000), rand:uniform(100)),
+	P1 = price(one_time, undefined, undefined, rand:uniform(100)),
 	P2 = price(usage, octets, rand:uniform(1000000), rand:uniform(500)),
 	OfferId = offer_add([P1, P2], 4),
 	ProdRef = product_add(OfferId),
@@ -970,8 +982,8 @@ delete_product(Config) ->
 	{error, not_found} = ocs:find_product(ProdRef).
 
 ignore_delete_product() ->
-	[{userdata, [{doc,"ignore Delete product inventory if
-			service any service related with product inventory"}]}].
+	[{userdata, [{doc,"Ignore delete product inventory if
+			any service related with product instance"}]}].
 
 ignore_delete_product(Config) ->
 	P1 = price(usage, octets, rand:uniform(10000), rand:uniform(100)),
@@ -993,8 +1005,7 @@ query_product(Config) ->
 	F = fun F(0, Acc) ->
 					Acc;
 			F(N, Acc) ->
-				Price1 = #price{name = ocs:generate_identity(), units = octets,
-						type = one_time, amount = rand:uniform(100)},
+				Price1 = price(one_time, undefined, undefined, rand:uniform(100)),
 				Prices = [Price1],
 				OfferId = ocs:generate_identity(),
 				Offer = #offer{name = OfferId,
@@ -1029,8 +1040,7 @@ filter_product(Config) ->
 	F = fun F(0, Acc) ->
 					Acc;
 			F(N, Acc) ->
-				Price1 = #price{name = ocs:generate_identity(), units = cents,
-						type = one_time, amount = rand:uniform(100)},
+				Price1 = price(one_time, undefined, undefined, rand:uniform(100)),
 				Prices = [Price1],
 				OfferId = ocs:generate_identity(),
 				Offer = #offer{name = OfferId,
@@ -3007,6 +3017,43 @@ notify_product_charge(Config) ->
 	end,
 	Amount = lists:sum(lists:filtermap(Fcents, Adjustments)).
 
+oauth_authenticaton()->
+	[{userdata, [{doc, "Authenticate a JWT using oauth"}]}].
+
+oauth_authentication(Config)->
+	ID = "cornflakes",
+	Locale = "es",
+	{ok, _} = ocs:add_user(ID, "", Locale),
+	ok = application:set_env(ocs, oauth_issuer, "joe"),
+	ok = application:set_env(ocs, oauth_audience, "network-subscriber.sigscale-ocs"),
+	HostUrl = ?config(host_url, Config),
+	Accept = {"accept", "application/json"},
+	Header = {struct, [{"alg", "RS256"}, {"typ", "JWT"}]},
+	Payload = {struct, [{"iss", "joe"}, {"exp", 1300819380}, {"email", "cornflakes"},
+			{"aud", {array, ["network-subscriber.sigscale-ocs", "account"]}},
+			{"preferred_username","flakes"}]},
+	EncodedHeader = encode_base64url(lists:flatten(mochijson:encode(Header))),
+	EncodedPayload = encode_base64url(lists:flatten(mochijson:encode(Payload))),
+	Path = ?config(data_dir, Config),
+	KeyPath = Path ++ "key.pem",
+	{ok, PrivBin} = file:read_file(KeyPath),
+	[RSAPrivEntry] = public_key:pem_decode(PrivBin),
+	Key = public_key:pem_entry_decode(RSAPrivEntry),
+	M = Key#'RSAPrivateKey'.modulus,
+	E = Key#'RSAPrivateKey'.publicExponent,
+	RSAPublicKey = #'RSAPublicKey'{modulus = M, publicExponent = E},
+	PemEntry = public_key:pem_entry_encode('RSAPublicKey', RSAPublicKey),
+	PemBin = public_key:pem_encode([PemEntry]),
+	file:write_file(Path ++ "pub.pem", PemBin),
+	Msg = list_to_binary(EncodedHeader ++ "." ++ EncodedPayload),
+	Signature = public_key:sign(Msg, sha256, Key),
+	EncodedSignature = encode_base64url(binary_to_list(Signature)),
+	AuthKey = "Bearer " ++ EncodedHeader ++ "." ++ EncodedPayload ++ "." ++ EncodedSignature,
+	Authentication = {"authorization", AuthKey},
+	Request = {HostUrl, [Accept, Authentication]},
+	{ok, Result} = httpc:request(get, Request, [], []),
+	{{"HTTP/1.1", 200, _}, _, _} = Result.
+
 %%---------------------------------------------------------------------
 %%  Internal functions
 %%---------------------------------------------------------------------
@@ -3069,8 +3116,18 @@ product_offer() ->
 	POPPriceCurrency1 = {"currencyCode", "USD"},
 	POPPrice1 = {"price", {struct, [POPPriceTaxInclude1, POPPriceCurrency1]}},
 	POPRecChargPeriod1 = {"recurringChargePeriod", "monthly"},
+	ProdAlterName = {"name", "allowance"},
+	ProdAlterDescription = {"description", ocs:generate_password()},
+	ProdAlterValidFor = {"validFor", {struct, [POPStartDateTime1]}},
+	ProdAlterPriceType = {"priceType", "usage"},
+	ProdAlterUOMeasure = {"unitOfMeasure", "100g"},
+	ProdAlterAmount = {"taxIncludedAmount", "0"},
+	POPPAlterCurrency = {"currencyCode", "USD"},
+	ProdAlterPrice = {"price", {struct, [ProdAlterAmount, POPPAlterCurrency]}},
+	POPAlteration = {"productOfferPriceAlteration", {struct, [ProdAlterName, ProdAlterDescription,
+		ProdAlterValidFor, ProdAlterPriceType, ProdAlterUOMeasure, ProdAlterPrice]}},
 	ProdOfferPrice1 = {struct, [POPName1, POPDescription1, POPValidFor1,
-			POPPriceType1, POPPrice1, POPRecChargPeriod1]},
+			POPPriceType1, POPPrice1, POPRecChargPeriod1, POPAlteration]},
 	POPName2 = {"name", "usage"},
 	POPDescription2 = {"description", ocs:generate_password()},
 	POPStratDateTime2 = {"startDateTime", ocs_rest:iso8601(erlang:system_time(?MILLISECOND))},
@@ -3082,18 +3139,8 @@ product_offer() ->
 			integer_to_list(rand:uniform(1000)) ++ "." ++ integer_to_list(rand:uniform(999999))},
 	POPPriceCurrency2 = {"currencyCode", "USD"},
 	POPPrice2 = {"price", {struct, [POPPriceTaxInclude2, POPPriceCurrency2]}},
-	ProdAlterName = {"name", "allowance"},
-	ProdAlterDescription = {"description", ocs:generate_password()},
-	ProdAlterValidFor = {"validFor", {struct, [POPStartDateTime1]}},
-	ProdAlterPriceType = {"priceType", "usage"},
-	ProdAlterUOMeasure = {"unitOfMeasure", "100g"},
-	ProdAlterAmount = {"taxIncludedAmount", "0"},
-	POPPAlterCurrency = {"currencyCode", "USD"},
-	ProdAlterPrice = {"price", {struct, [ProdAlterAmount, POPPAlterCurrency]}},
-	POPAlteration = {"productOfferPriceAlteration", {struct, [ProdAlterName, ProdAlterDescription,
-		ProdAlterValidFor, ProdAlterPriceType, ProdAlterUOMeasure, ProdAlterPrice]}},
 	ProdOfferPrice2 = {struct, [POPName2, POPDescription2, POPValidFor2, POPPriceType2,
-			POPPrice2, POPUOMeasure2, POPAlteration]},
+			POPPrice2, POPUOMeasure2]},
 	ProdOfferPrice = {"productOfferingPrice", {array, [ProdOfferPrice1, ProdOfferPrice2]}},
 	[ProdName, ProdDescirption, IsBundle, IsCustomerVisible, ValidFor, ProdSpec, Status, ProdOfferPrice].
 
@@ -3192,28 +3239,28 @@ prod_price_type() ->
 pp_alter_name() ->
 	Name = ocs:generate_password(),
 	Op = {"op", "replace"},
-	Path = {"path", "/productOfferingPrice/1/productOfferPriceAlteration/name"},
+	Path = {"path", "/productOfferingPrice/0/productOfferPriceAlteration/name"},
 	Value = {"value", Name},
 	{struct, [Op, Path, Value]}.
 
 pp_alter_description() ->
 	Description = ocs:generate_password(),
 	Op = {"op", "replace"},
-	Path = {"path", "/productOfferingPrice/1/productOfferPriceAlteration/description"},
+	Path = {"path", "/productOfferingPrice/0/productOfferPriceAlteration/description"},
 	Value = {"value", Description},
 	{struct, [Op, Path, Value]}.
 
 pp_alter_type() ->
 	PT = "recurring",
 	Op = {"op", "replace"},
-	Path = {"path", "/productOfferingPrice/1/productOfferPriceAlteration/priceType"},
+	Path = {"path", "/productOfferingPrice/0/productOfferPriceAlteration/priceType"},
 	Value = {"value", PT},
 	{struct, [Op, Path, Value]}.
 
 pp_alter_ufm() ->
 	UFM = "1000b",
 	Op = {"op", "replace"},
-	Path = {"path", "/productOfferingPrice/1/productOfferPriceAlteration/unitOfMeasure"},
+	Path = {"path", "/productOfferingPrice/0/productOfferPriceAlteration/unitOfMeasure"},
 	Value = {"value", UFM},
 	{struct, [Op, Path, Value]}.
 
@@ -3235,10 +3282,22 @@ auth_header() ->
 	{"authorization", basic_auth()}.
 
 %% @hidden
-price(Type, Units, Size, Amount) ->
+price(Type, undefined, undefined, Amount)
+		when ((Type == one_time) or (Type == recurring)),
+		is_integer(Amount) ->
 	#price{name = ocs:generate_identity(),
-			type = Type, units = Units,
-			size = Size, amount = Amount}.
+			type = Type, amount = Amount};
+price(usage, Units, Size, Amount)
+		when ((Units == octets) or (Units == seconds) or (Units == messages)),
+		is_integer(Size), Size > 0,
+		is_integer(Amount), Amount > 0 ->
+	#price{name = ocs:generate_identity(),
+			type = usage, units = Units, size = Size, amount = Amount};
+price(tariff, Units, Size, undefined)
+		when ((Units == octets) or (Units == seconds) or (Units == messages)),
+		is_integer(Size), Size > 0 ->
+	#price{name = ocs:generate_identity(),
+			type = tariff, units = Units, size = Size}.
 
 %% @hidden
 b(Units, RA) ->
@@ -3281,8 +3340,49 @@ binary_to_hex(B) ->
 %% @hidden
 binary_to_hex(<<N:4, Rest/bits>>, Acc) when N >= 10 ->
 	binary_to_hex(Rest, [N - 10 + $a | Acc]);
+
 binary_to_hex(<<N:4, Rest/bits>>, Acc) ->
 	binary_to_hex(Rest, [N + $0 | Acc]);
 binary_to_hex(<<>>, Acc) ->
 	lists:reverse(Acc).
+
+-spec encode_base64url(Value) -> EncodedValue 
+	when
+		Value :: string(),
+		EncodedValue :: list().
+%% @doc Encode a value using base64url encoding.
+encode_base64url(Value)
+		when is_list(Value) ->
+	EncodedValue = base64:encode_to_string(Value),
+	StrippedValue = string:strip(EncodedValue, both, $=),
+	sub_chars_en(StrippedValue, []).
+
+%% @hidden 
+sub_chars_en([$/ | T], Acc) ->
+	sub_chars_en(T, [$_ | Acc]);
+sub_chars_en([$+ | T], Acc) ->
+	sub_chars_en(T, [$- | Acc]);
+sub_chars_en([H | T], Acc) ->
+	sub_chars_en(T, [H | Acc]);
+sub_chars_en([], Acc) ->
+	lists:reverse(Acc).
+
+set_inet_mod() ->
+	{ok, EnvObj} = application:get_env(inets, services),
+	[{httpd, Services}] = EnvObj,
+	NewModTuple = replace_mod(lists:keyfind(modules, 1, Services), []),
+	NewServices = lists:keyreplace(modules, 1, Services, NewModTuple),
+	ok = application:set_env(inets, services, [{httpd, NewServices}]).
+	
+replace_mod({modules, Mods}, Acc) ->
+	replace_mod1(Mods, Acc).
+%% @hidden
+replace_mod1([mod_auth | T], Acc) ->
+	replace_mod1(T, [mod_oauth | Acc]);
+replace_mod1([mod_oauth | T], Acc) ->
+	replace_mod1(T, [mod_auth | Acc]);
+replace_mod1([H | T], Acc) ->
+	replace_mod1(T, [H | Acc]);
+replace_mod1([], Acc) ->
+	{modules, lists:reverse(Acc)}.
 

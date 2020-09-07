@@ -102,7 +102,7 @@
 		end_date :: pos_integer() | undefined,
 		type :: product_price_type() | undefined,
 		period :: recur_period() | undefined,
-		units :: octets | seconds | messages | undefined,
+		units :: cents | octets | seconds | messages | undefined,
 		size :: integer() | undefined,
 		amount :: integer() | undefined,
 		currency :: string() | undefined,
