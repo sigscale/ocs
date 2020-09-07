@@ -1,4 +1,11 @@
-August 19, ,2020
+September 7, 2020
+----------------
+	- Configuration options supporting SCTP 
+	- Improvements to scheduled subscription charges
+	- Support Ericsson mode of Centralized Unit Determination
+	- Correct Product Price and Alteration validation
+
+August 19, 2020
 ----------------
 	- HTTP: Federated Authentication
 		- OAUTH (RFC6549)
