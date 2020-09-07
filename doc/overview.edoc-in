@@ -1290,7 +1290,7 @@ Content-Length: 0
 <img src="schema.png" alt="Schema" height="501" width="619" />
 
 ==Configuration==
-The {@link //ocs. ocs} application is configured using the following environment variables:
+The {@link //ocs. ocs} application may be configured using the following environment variables:
 <dl>
 	<dt>min_reserve_octets</dt>
 		<dd>Centralized Unit Determination: minimum size of octets reserved</dd>
@@ -1320,10 +1320,6 @@ The {@link //ocs. ocs} application is configured using the following environment
 		<dd>Path of directory to store exported files.</dd>
 	<dt>radius</dt>
 		<dd>Configuration groups for RADIUS: {radius, [{auth | acct, ip_address(), port(), [option()}]}</dd>
-			<dt>eap_method_prefer</dt>
-				<dd>The EAP method which the server will offer first.</dd>
-			<dt>eap_method_order</dt>
-				<dd>The list of EAP methods supported in order of preference.</dd>
 	<dt>diameter</dt>
 		<dd>Configuration groups for DIAMETER: {diameter, [{auth | acct, ip_address(), port(), [option()}]}</dd>
 	<dt>tls_cert</dt>
@@ -1335,11 +1331,52 @@ The {@link //ocs. ocs} application is configured using the following environment
 	<dt>rest_page_size</dt>
 		<dd>Defines the maximum number of items to return for a REST collection.</dd>
 </dl>
+
+=== DIAMETER Configuration ===
+DIAMETER services may be configured with the following (optional) configuration group options: 
+<dl>
+	<dt>'Origin-Host'</dt>
+		<dd>DiameterIdentity of this host. (default: inet:gethostname())</dd>
+	<dt>'Origin-Realm'</dt>
+		<dd>DiameterIdentity of this realm (default: inet_db:res_option(domain)).</dd>
+	<dt>'Host-IP-Address',</dt>
+		<dd>List of IP source addresses to be used.</dd>
+	<dt>'Auth-Application-Id'</dt>
+		<dd>List of IANA-assigned Application IDs. (default: [[5,16777250,16777264,16777265])</dd>
+	<dt>capx_timeout</dt>
+		<dd>Time for a transport to complete capabilities exchange. (default: 10000)</dd>
+	<dt>incoming_maxlen</dt>
+		<dd>Maximum of size of incoming Diameter messages. (default: 16777215)</dd>
+	<dt>pool_size</dt>
+		<dd>Poolsize of socket listeners.</dd>
+	<dt>watchdog_timer</dt>
+		<dd>TwInit value for watchdog timer.</dd>
+	<dt>transport_module</dt>
+		<dd>Transport module may be <tt>diameter_tcp | diameter_sctp</tt>. (default: diameter_tcp)</dd>
+	<dt>transport_config</dt>
+		<dd></dd>
+	<dt>eap_method_prefer</dt>
+		<dd>The EAP method which will be offered first. (default: akap)</dd>
+	<dt>eap_method_order</dt>
+		<dd>The list of EAP methods supported in order of preference. (default: [akap, aka, pwd, ttls])</dd>
+</dl>
+
+=== RADIUS Configuration ===
+RADIUS services may be configured with the following (optional) configuration group options: 
+<dl>
+	<dt>eap_method_prefer</dt>
+		<dd>The EAP method which will be offered first. (default: akap)</dd>
+	<dt>eap_method_order</dt>
+		<dd>The list of EAP methods supported in order of preference. (default: [akap, aka, pwd, ttls])</dd>
+</dl>
+
 RADIUS servers may be configured with the following environment variables of the {@link //radius. radius} application:
 <dl>
 	<dt>sock_opts</dt>
 		<dd>UDP socket options. ({@link //kernel/gen_udp:option(). gen_udp:option()})</dd>
 </dl>
+
+=== HTTP Configuration ===
 The mod_oauth module may be configured with the following environment variables :
 <dl>
 	<dt>oauth_audience</dt>
