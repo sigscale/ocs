@@ -552,26 +552,24 @@ positive_adjustment(_Config) ->
 	Price1 = #price{name = ocs:generate_identity(), type = usage, units = octets,
 			size = rand:uniform(100000000), amount = rand:uniform(100)},
 	OfferId = ocs:generate_identity(),
-	Offer = #offer{name = OfferId, price = [Price1],
-			specification = "4"},
+	Offer = #offer{name = OfferId, price = [Price1], specification = "4"},
 	{ok, #offer{}} = ocs:add_offer(Offer),
 	{ok, #product{id = ProdRef}} = ocs:add_product(OfferId, []),
 	Bucket1 = #bucket{units = octets, remain_amount = rand:uniform(10000000),
 			start_date = erlang:system_time(?MILLISECOND),
 			end_date = erlang:system_time(?MILLISECOND) + 2592000000},
-	{ok, _, #bucket{}} = ocs:add_bucket(ProdRef, Bucket1),
+	{ok, _, #bucket{id = BucketRef1}} = ocs:add_bucket(ProdRef, Bucket1),
 	Amount = rand:uniform(10000000),
 	Units = cents,
 	Adjustment = #adjustment{units = Units, amount = Amount,
 			start_date = erlang:system_time(?MILLISECOND), product = ProdRef,
 			end_date = erlang:system_time(?MILLISECOND) + 2592000000},
 	ok = ocs:adjustment(Adjustment),
-	{atomic, [#product{balance = BalanceRefs}]} = mnesia:transaction(fun() ->
+	{atomic, [#product{balance = BucketRefs}]} = mnesia:transaction(fun() ->
 			mnesia:read(product, ProdRef, read) end),
-	BId = lists:last(BalanceRefs),
-	{atomic, [Bucket2]} = mnesia:transaction(fun() -> mnesia:read(bucket, BId, read) end),
-	Units = Bucket2#bucket.units,
-	Amount = Bucket2#bucket.remain_amount.
+	[BucketRef2] = BucketRefs -- [BucketRef1],
+	{ok, #bucket{units = cents,
+			remain_amount = Amount}} = ocs:find_bucket(BucketRef2).
 
 negative_adjustment_high() ->
 	[{userdata, [{doc, "Applying high negative adjustment"}]}].

@@ -1,3 +1,36 @@
+2020-09-07  Vance Shipley <vances@sigscale.org>
+
+	* diameter: refactor service/transport configuration options (to support sctp)
+	* scheduler: debit subscription charge from available buckets in expiry order
+	* diameter: missing mscc in initial ccr as authentication (only) (required by ericsson)
+	* scheduler: eliminate reading entire offer table into memory
+	* diameter:correct unknown subscriber result-code
+	* tests: remove redundent public key; change permissons on private keys
+	* tests: generate public key
+	* tests: fix accounting log typo
+	* test: validate end date of an allowance
+	* scheduler: handle tariff price type when subscription is charged
+	* tests: case for tariff price with recurring alteration
+	* tests: case for tariff price with one time alteration
+	* tests: case for recurring price with one_time alteration
+	* tests: case for recurring price with usage alteration
+	* tests: case for one_time price with usage alteration
+	* tests: case for usage price with one time alteration
+	* rest: update base path in swagger file
+	* tests: suite for product creation
+	* tests: manage loading and unloading ocs application for per suite ports
+	* align product offer price validation with currently supported scheme:
+		A Product Offer Price (POP) Alteration realizes an allowance. If the
+		POP type is 'one_time' or 'recurring' an Alteration with type 'usage'
+		is assumed to be an allowance. If POP type is usage Alteration type
+		must be 'one_time' or 'recurring'.
+	* one time and recurring prices, with alterations, may have zero amount
+	* tests: refactor oauth authentication test case
+	* tests: rest suite data directory variable
+	* tests: generate rsa privatekey; remove incorrect variable
+	* tests: cases for incoming and outgoing tariff table prices
+	* gtt: allow string table name references
+
 2020-08-23  Vance Shipley <vances@sigscale.org>
 
 	* rate incoming voice using calling address
