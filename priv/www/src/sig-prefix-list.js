@@ -98,6 +98,10 @@ class prefixList extends PolymerElement {
 				on-response="_deleteTableResponse"
 				on-error="_deleteTableError">
 			</iron-ajax>
+         <iron-ajax id="getTableAjax"
+               on-response="_getTableResponse"
+               on-error="_getTableError">
+         </iron-ajax>
 		`;
 	}
 
@@ -111,6 +115,14 @@ class prefixList extends PolymerElement {
 				type: String,
 				value: null
 			},
+         tables: {
+            type: Array,
+            readOnly: true,
+            notify: true,
+            value: function() {
+               return []
+            }
+         },
 			table: {
 				type: String
 			},
@@ -125,6 +137,9 @@ class prefixList extends PolymerElement {
 	ready() {
 		super.ready();
 		var grid = this.shadowRoot.getElementById('prefixGrid');
+      var ajax1 = document.body.querySelector('sig-app').shadowRoot.querySelector('sig-prefix-list').shadowRoot.getElementById('getTableAjax');
+      ajax1.url = "/catalogManagement/v2/pla";
+      ajax1.generateRequest();
 		this.$.tableList.open();
 		grid.dataProvider = this._getPreTable;
 	}
@@ -136,6 +151,19 @@ class prefixList extends PolymerElement {
 			this.$.prefixGrid.selectedItems = [];
 		}
 	}
+
+   _getTableResponse(event) {
+      var results = event.detail.xhr.response;
+      this.splice("tables", 0, this.tables.length)
+      for (var indexTable in results) {
+         var tableRecord = new Object();
+         tableRecord.id = results[indexTable].id;
+         tableRecord.href = results[indexTable].href;
+         tableRecord.description = results[indexTable].description;
+         tableRecord.plaSpecId = results[indexTable].plaSpecId;
+         this.push('tables', tableRecord);
+      }
+   }
 
 	tableOk() {
 		document.body.querySelector('sig-app').shadowRoot.getElementById('prefixList').shadowRoot.getElementById('prefixGrid');

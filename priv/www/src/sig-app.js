@@ -148,6 +148,7 @@ class SigApp extends PolymerElement {
 						</sig-http-list>
 						<sig-prefix-list
 								id="prefixList"
+								tables="{{tables}}"
 								table="{{table}}"
 								loading="{{prefixLoading}}"
 								name="prefixView"
