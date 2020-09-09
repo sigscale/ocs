@@ -122,7 +122,9 @@ product_charge1(ProdRef, Now) ->
 %% @doc Scheduled function runs recurring charging and reschedules itself.
 %% @private
 run_recurring() ->
+	error_logger:info_report(["Start scheduled charging"]),
 	ok = product_charge(),
+	error_logger:info_report(["End scheduled charging"]),
 	{ok, ScheduledTime} = application:get_env(ocs, charging_scheduler_time),
 	{ok, Interval} = application:get_env(ocs, charging_interval),
 	StartDelay = start_delay(ScheduledTime, Interval),
