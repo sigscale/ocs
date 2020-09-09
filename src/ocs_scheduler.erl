@@ -84,14 +84,9 @@ product_charge1(ProdRef, Now) ->
 								true ->
 									case if_dues(Payments, Now) of
 										true ->
-											Buckets1 = lists:flatten([mnesia:select(bucket,
-													[{'$1',
-													[
-														{'==', Id, {element, #bucket.id, '$1'}}
-													],
-													['$1']}]) || Id <- BucketRefs]),
+											Buckets1 = [mnesia:read(bucket, B) || B <- BucketRefs],
 											{NewProduct1, Buckets3} = ocs:subscription(Product, Offer,
-													Buckets1, false),
+													lists:flatten(Buckets1), false),
 											NewBRefs = update_buckets(BucketRefs, Buckets1, Buckets3),
 											NewProduct2 = NewProduct1#product{balance = NewBRefs},
 											ok = mnesia:write(NewProduct2);
