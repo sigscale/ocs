@@ -1052,27 +1052,46 @@ delete_bucket1(BId, ProdRefs) ->
 		Reason :: term().
 %% @doc Applying balance adjustment.
 adjustment(#adjustment{amount = Amount, product = ProductRef, units = Units,
-		start_date = StartDate, end_date = EndDatae})
-		when is_list(ProductRef), is_integer(Amount), Amount > 0 ->
-	F = fun() ->
+		start_date = StartDate, end_date = EndDate})
+		when is_list(ProductRef), is_integer(Amount), Amount >= 0 ->
+	F1 = fun() ->
 		case mnesia:read(product, ProductRef, write) of
-			[#product{balance = B} = P] ->
-				BId = generate_bucket_id(),
-				Bucket = #bucket{id = BId, start_date = StartDate, end_date = EndDatae,
-						remain_amount = Amount, units = Units, product = [ProductRef],
-						last_modified = calendar:local_time()},
-				ok = mnesia:write(bucket, Bucket, write),
-				Product = P#product{balance = B ++ [BId]},
-				ok = mnesia:write(product, Product, write),
-				Bucket;
+			[#product{balance = BucketRefs1} = P1] ->
+				Buckets1 = lists:flatten([mnesia:read(bucket, B1, write)
+						|| B1 <- BucketRefs1]),
+				F2 = fun(B2) -> mnesia:delete(bucket, B2, write) end,
+				F3 = fun(B3) -> mnesia:write(B3) end,
+				case credit(Units, Amount, Buckets1) of
+					{0, DeleteRefs, Buckets2} ->
+						lists:foreach(F2, DeleteRefs),
+						lists:foreach(F3, Buckets2),
+						BucketRefs2 = [B5 || #bucket{id = B5} <- Buckets2],
+						P2 = P1#product{balance = BucketRefs2},
+						mnesia:write(product, P2, write),
+						{0, undefined};
+					{RemainAmount, DeleteRefs, Buckets2} ->
+						B4 = #bucket{id = generate_bucket_id(),
+								start_date = StartDate, end_date = EndDate,
+								remain_amount = RemainAmount, units = Units,
+								product = [ProductRef],
+								last_modified = calendar:local_time()},
+						mnesia:write(B4),
+						lists:foreach(F2, DeleteRefs),
+						lists:foreach(F3, Buckets2),
+						BucketRefs2 = [B5 || #bucket{id = B5} <- Buckets2],
+						P2 = P1#product{balance = [B4#bucket.id | BucketRefs2]},
+						mnesia:write(product, P2, write),
+						{RemainAmount, B4#bucket.id}
+				end;
 			[] ->
 				mnesia:abort(not_found)
 		end
 	end,
-	case mnesia:transaction(F) of
-		{atomic, #bucket{id = Id}} ->
-			ocs_log:abmf_log(adjustment, undefined, Id, Units, ProductRef, Amount,
-					0, Amount, undefined, undefined, undefined, undefined, undefined,
+	case mnesia:transaction(F1) of
+		{atomic, {AmountAfter, NewBucketRef}} ->
+			ocs_log:abmf_log(adjustment, undefined, NewBucketRef, Units,
+					ProductRef, Amount, AmountAfter - Amount, AmountAfter,
+					undefined, undefined, undefined, undefined, undefined,
 					undefined, undefined);
 		{aborted, Reason} ->
 			{error, Reason}
@@ -2339,22 +2358,66 @@ get_params5(_, _, _, false) ->
 %% @doc Charge `Amount' to `Buckets'.
 %% @private
 charge(ProdRef, Amount, Buckets) ->
-	charge(ProdRef, Amount, Buckets, []).
+	charge(ProdRef, Amount, sort(Buckets), []).
 %% @hidden
 charge(_ProdRef, 0, T, Acc) ->
 	lists:reverse(Acc) ++ T;
 charge(_ProdRef, Amount, [#bucket{units = cents,
-		remain_amount = Remain} = B | T], Acc) when Amount < Remain ->
+		remain_amount = Remain} = B | T], Acc)
+		when ((Amount < Remain) or  (Remain < 0)) ->
 	lists:reverse(Acc) ++ [B#bucket{remain_amount = Remain - Amount} | T];
-charge(_ProdRef, Amount, [#bucket{units = cents,
-		remain_amount = Remain} = B], Acc) ->
-	lists:reverse([B#bucket{remain_amount = Remain - Amount} | Acc]);
+charge(ProdRef, Amount, [#bucket{units = cents,
+		remain_amount = Remain} = B | T], Acc) when Remain > 0 ->
+	charge(ProdRef, Amount - Remain, T, [B#bucket{remain_amount = 0} | Acc]);
 charge(ProdRef, Amount, [H | T], Acc) ->
 	charge(ProdRef, Amount, T, [H | Acc]);
 charge(ProdRef, Amount, [], Acc) ->
-	lists:reverse([#bucket{id = generate_bucket_id(),
-			units = cents, remain_amount = - Amount,
-			product = [ProdRef]} | Acc]).
+	[#bucket{id = generate_bucket_id(), units = cents,
+			remain_amount = - Amount, product = [ProdRef]}
+			| lists:reverse(Acc)].
+
+-spec credit(Units, Amount, Buckets) -> Result
+	when
+		Units :: cents | octets | seconds | messages,
+		Amount :: pos_integer(),
+		Buckets :: [#bucket{}],
+		Result :: {RemainAmount, DeleteRefs, Buckets},
+		RemainAmount :: non_neg_integer(),
+		DeleteRefs :: [string()].
+%% @doc Credit `Amount' on `Buckets'.
+%% @private
+credit(Units, Amount, Buckets) ->
+	credit(Units, Amount, Buckets, [], []).
+%% @hidden
+credit(_Units, 0, Buckets, DeleteRefs, Acc) ->
+	{0, DeleteRefs, lists:reverse(Acc) ++ Buckets};
+credit(Units, Amount,
+		[#bucket{units = Units, remain_amount = Remain} = B | T],
+		DeleteRefs, Acc) when Remain < 0, (Remain + Amount) < 0 ->
+	{0, DeleteRefs, lists:reverse(Acc)
+			++ [B#bucket{remain_amount = Remain + Amount} | T]};
+credit(Units, Amount,
+		[#bucket{id = Ref, units = Units, remain_amount = Remain} | T],
+		DeleteRefs, Acc) when Remain < 0, (Remain + Amount) >= 0  ->
+	credit(Units, Remain + Amount, T, [Ref | DeleteRefs],  Acc);
+credit(Units, Amount, [H | T], DeleteRefs, Acc) ->
+	credit(Units, Amount, T, DeleteRefs, [H | Acc]);
+credit(_Units, Amount, [], DeleteRefs, Acc) ->
+	{Amount, DeleteRefs, lists:reverse(Acc)}.
+
+-spec sort(Buckets) -> Buckets
+	when
+		Buckets :: [#bucket{}].
+%% @doc Sort `Buckets' oldest first.
+%% @private
+sort(Buckets) ->
+	F = fun(#bucket{end_date = T1},
+				#bucket{end_date = T2}) when T1 =< T2 ->
+			true;
+		(_, _)->
+			false
+	end,
+	lists:sort(F, Buckets).
 
 %% @private 
 generate_bucket_id() ->
