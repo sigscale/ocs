@@ -1,5 +1,12 @@
 2020-09-07  Vance Shipley <vances@sigscale.org>
 
+	* optimize bucket table reads to avoid table lock
+	* log scheduler start/end
+	* simple table record reads in scheduler
+	* refactor and correct positive balance adjustment
+
+2020-09-07  Vance Shipley <vances@sigscale.org>
+
 	* diameter: refactor service/transport configuration options (to support sctp)
 	* scheduler: debit subscription charge from available buckets in expiry order
 	* diameter: missing mscc in initial ccr as authentication (only) (required by ericsson)

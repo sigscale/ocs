@@ -1,5 +1,11 @@
+September 9, 2020
+-----------------
+	- Scheduled charging improved to avoid blocking
+	- Retrieve bucket inventory improved to avoid blocking
+	- Balance adjustment API now applies for existing buckets
+
 September 7, 2020
-----------------
+-----------------
 	- Configuration options supporting SCTP 
 	- Improvements to scheduled subscription charges
 	- Support Ericsson mode of Centralized Unit Determination
