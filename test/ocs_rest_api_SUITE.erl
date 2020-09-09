@@ -124,7 +124,7 @@ init_per_testcase(oauth_authentication, Config) ->
 	application:start(inets),
 	Config;
 init_per_testcase(TestCase, Config) when TestCase == notify_create_bucket;
-		TestCase == notify_delete_expired_bucket;
+		TestCase == notify_delete_bucket;
 		TestCase == notify_create_product; TestCase == notify_create_service;
 		TestCase == notify_product_charge ->
 	true = register(TestCase, self()),
@@ -185,6 +185,7 @@ all() ->
 	update_product_realizing_service, delete_product,
 	ignore_delete_product, query_product, filter_product,
 	post_hub_balance, delete_hub_balance, notify_create_bucket,
+	notify_delete_bucket,
 	post_hub_product, delete_hub_product, notify_create_product,
 	post_hub_service, delete_hub_service, notify_create_service,
 	post_hub_user, delete_hub_user, post_hub_catalog, delete_hub_catalog,
@@ -2639,6 +2640,83 @@ notify_create_bucket(Config) ->
 	{_, MillionthsOut} = lists:keyfind("amount", 1, RemainAmount),
 	100 = ocs_rest:millionths_in(MillionthsOut).
 
+notify_delete_bucket() ->
+	[{userdata, [{doc, "Notify deletion of bucket"}]}].
+
+notify_delete_bucket(Config) ->
+	HostUrl = ?config(host_url, Config),
+	CollectionUrl = HostUrl ++ ?PathBalanceHub,
+	ListenerPort = ?config(listener_port, Config),
+	ListenerServer = "http://localhost:" ++ integer_to_list(ListenerPort),
+	Callback = ListenerServer ++ "/listener/"
+			++ atom_to_list(?MODULE) ++ "/notifydeletebucket",
+	RequestBody = "{\n"
+			++ "\t\"callback\": \"" ++ Callback ++ "\",\n"
+			++ "}\n",
+	ContentType = "application/json",
+	Accept = {"accept", "application/json"},
+	Request = {CollectionUrl, [Accept, auth_header()], ContentType, RequestBody},
+	{ok, {{_, 201, _}, _, _}} = httpc:request(post, Request, [], []),
+	PackagePrice = 100,
+	PackageSize = 1000,
+	P1 = #price{name = ocs:generate_identity(), type = usage, units = octets,
+			size = PackageSize, amount = PackagePrice},
+	Offer = #offer{name = ocs:generate_identity(), price = [P1],
+			specification = "4"},
+	{ok, #offer{name = OfferId}} = ocs:add_offer(Offer),
+	{ok, #product{id = ProdRef}} = ocs:add_product(OfferId, [], []),
+	receive
+		Input1 ->
+			{struct, ProductEvent} = mochijson:decode(Input1),
+			{_, "ProductCreationNotification"}
+					= lists:keyfind("eventType", 1, ProductEvent),
+			{_, {struct, ProductList}} = lists:keyfind("event", 1, ProductEvent),
+			{_, ProdRef} = lists:keyfind("id", 1, ProductList)
+	end,
+	{ok, #service{name = ServiceId}} = ocs:add_service(ocs:generate_identity(),
+			ocs:generate_password(), ProdRef, []),
+	receive
+		Input2 ->
+			{struct, ServiceEvent} = mochijson:decode(Input2),
+			{_, "ServiceCreationNotification"}
+					= lists:keyfind("eventType", 1, ServiceEvent),
+			{_, {struct, ServiceList}} = lists:keyfind("event", 1, ServiceEvent),
+			ListServiceId = binary_to_list(ServiceId),
+			{_, ListServiceId} = lists:keyfind("id", 1, ServiceList)
+	end,
+	B1 = #bucket{units = cents, remain_amount = 100,
+			start_date = erlang:system_time(milli_seconds),
+			end_date = erlang:system_time(milli_seconds) + 2592000000},
+	B2 = B1#bucket{start_date = erlang:system_time(milli_seconds) - (2 * 2592000000),
+			end_date = erlang:system_time(milli_seconds) - 2592000000},
+	{ok, _, #bucket{id = BId}} = ocs:add_bucket(ProdRef, B2),
+	receive
+		Input3 ->
+			{struct, BalanceEvent} = mochijson:decode(Input3),
+			{_, "BalanceTopupCreationNotification"}
+					= lists:keyfind("eventType", 1, BalanceEvent),
+			{_, {struct, BalanceList}} = lists:keyfind("event", 1, BalanceEvent),
+			{_, BId} = lists:keyfind("id", 1, BalanceList)
+	end,
+	Timestamp = calendar:local_time(),
+	SessionId = [{'Session-Id', list_to_binary(ocs:generate_password())}],
+	ServiceType = 32251,
+	{out_of_credit, _} = ocs_rating:rate(diameter, ServiceType, undefined,
+			undefined, ServiceId, Timestamp, undefined, undefined, initial,
+			[], [{octets, PackageSize}], SessionId),
+	DeletedBalance = receive
+		Input4 ->
+			{struct, BalDelEvent} = mochijson:decode(Input4),
+			{_, "BucketDeleteEvent"}
+					= lists:keyfind("eventType", 1, BalDelEvent),
+			{_, {struct, DeletedBalList}} = lists:keyfind("event", 1, BalDelEvent),
+			DeletedBalList
+	end,
+	{_, {struct, RemainAmount}}
+			= lists:keyfind("remainedAmount", 1, DeletedBalance),
+	{_, MillionthsOut} = lists:keyfind("amount", 1, RemainAmount),
+	PackagePrice = ocs_rest:millionths_in(MillionthsOut).
+
 post_hub_product() ->
 	[{userdata, [{doc, "Register hub listener for product"}]}].
 
@@ -3065,12 +3143,12 @@ notifycreatebucket(SessionID, _Env, Input) ->
 	mod_esi:deliver(SessionID, "status: 201 Created\r\n\r\n"),
 	notify_create_bucket ! Input.
 
--spec notifyexpiredbucket(SessionID :: term(), Env :: list(),
+-spec notifydeletebucket(SessionID :: term(), Env :: list(),
 		Input :: string()) -> any().
-%% @doc Notification callback for notify_delete_expired_bucket test case.
-notifyexpiredbucket(SessionID, _Env, Input) ->
+%% @doc Notification callback for notify_delete_bucket test case.
+notifydeletebucket(SessionID, _Env, Input) ->
 	mod_esi:deliver(SessionID, "status: 201 Created\r\n\r\n"),
-	notify_delete_expired_bucket ! Input.
+	notify_delete_bucket ! Input.
 
 -spec notifycreateproduct(SessionID :: term(), Env :: list(),
 		Input :: string()) -> any().
