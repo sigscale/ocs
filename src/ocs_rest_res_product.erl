@@ -2014,22 +2014,12 @@ inventory([service | T], #product{service = ServiceRefs} = Product, Acc) ->
 inventory([balance | T], #product{balance = []} = Product, Acc) ->
 	inventory(T, Product, Acc);
 inventory([balance | T], #product{balance = BucketRefs} = Product, Acc) ->
-	F1 = case BucketRefs of
-		[BucketRef] ->
-			fun() ->
-					MatchHead = #bucket{id = BucketRef, _ = '_'},
-					mnesia:select(bucket, [{MatchHead, [], ['$_']}])
-			end;
-		BucketRefs ->
-			fun() ->
-					MatchHead = #bucket{id = '$1', _ = '_'},
-					MatchIds = [{'==', Id, '$1'} || Id <- BucketRefs],
-					MatchConditions = [list_to_tuple(['or' | MatchIds])],
-					mnesia:select(bucket, [{MatchHead, MatchConditions, ['$_']}])
-			end
+	F1 = fun() ->
+			[mnesia:read(bucket, BucketRef) || BucketRef <- BucketRefs]
 	end,
 	case catch mnesia:transaction(F1) of
-		{atomic, Buckets} ->
+		{atomic, Buckets1} ->
+			Buckets2 = lists:flatten(Buckets1),
 			F2 = fun(#bucket{units = cents, remain_amount = N}, {undefined, B, S}) ->
 						{N, B, S};
 					(#bucket{units = cents, remain_amount = N}, {C, B, S}) ->
@@ -2043,7 +2033,8 @@ inventory([balance | T], #product{balance = BucketRefs} = Product, Acc) ->
 					(#bucket{units = seconds, remain_amount = N}, {C, B, S}) ->
 						{C , B, S + N}
 			end,
-			{Cents, Bytes, Seconds} = lists:foldl(F2, {undefined, undefined, undefined}, Buckets),
+			{Cents, Bytes, Seconds} = lists:foldl(F2,
+					{undefined, undefined, undefined}, Buckets2),
 			CentsBalance = case Cents of
 				Cents when is_integer(Cents) ->
 					[{struct, [{"name", "cents"}, {"totalBalance",
