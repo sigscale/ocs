@@ -38,7 +38,8 @@
 
 -spec notify(EventType, EventPayLoad, Category) -> ok
 	when
-		EventType :: create_bucket | create_product | create_service | charge,
+		EventType :: create_bucket | create_product | create_service | charge
+				| depleted,
 		EventPayLoad :: #bucket{} | #product{} | #service{} | [#adjustment{}],
 		Category :: balance | product | service | adjustment.
 %% @doc Send a notification event.

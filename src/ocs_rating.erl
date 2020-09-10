@@ -167,7 +167,7 @@ rate(Protocol, ServiceType, ChargingKey, ServiceNetwork, SubscriberID,
 													Timestamp, Address, Direction, Offer,
 													Flag, DebitAmounts, ReserveAmounts, State);
 										false ->
-											{out_of_credit, SessionList}
+											{out_of_credit, SessionList, []}
 									end;
 								[] ->
 									throw(offer_not_found)
@@ -175,21 +175,26 @@ rate(Protocol, ServiceType, ChargingKey, ServiceNetwork, SubscriberID,
 						[] ->
 							throw(product_not_found)
 					end;
-
 				[] ->
 					throw(service_not_found)
 			end
 	end,
 	case mnesia:transaction(F) of
-		{atomic, {ok, Sub, Rated}} when is_list(Rated) ->
+		{atomic, {ok, Sub, Rated, DeletedBuckets}} when is_list(Rated) ->
+			ok = send_notifications(DeletedBuckets),
 			{ok, Sub, Rated};
-		{atomic, {out_of_credit, SL, Rated}} ->
+		{atomic, {out_of_credit, SL, Rated, DeletedBuckets}} ->
+			ok = send_notifications(DeletedBuckets),
 			{out_of_credit, SL, Rated};
-		{atomic, {grant, Sub, {_Units, Amount} = Granted}} when is_integer(Amount) ->
+		{atomic, {grant, Sub, {_Units, Amount} = Granted, DeletedBuckets}}
+				when is_integer(Amount) ->
+			ok = send_notifications(DeletedBuckets),
 			{ok, Sub, Granted};
-		{atomic, {out_of_credit, SL}} ->
+		{atomic, {out_of_credit, SL, DeletedBuckets}} ->
+			ok = send_notifications(DeletedBuckets),
 			{out_of_credit, SL};
-		{atomic, {disabled, SL}} ->
+		{atomic, {disabled, SL, DeletedBuckets}} ->
+			ok = send_notifications(DeletedBuckets),
 			{disabled, SL};
 		{aborted, {throw, Reason}} ->
 			{error, Reason};
@@ -597,61 +602,67 @@ rate7(#service{session_attributes = SessionList} = Service1, Buckets, final,
 		buckets = OldBuckets}) when Charged >= Charge ->
 	NewBuckets = refund(SessionId, Buckets),
 	{Seconds, Octets, Cents, Msgs, NewBuckets2} = get_debits(SessionId, NewBuckets),
-	NewBRefs = update_buckets(P#product.balance, OldBuckets, NewBuckets2),
+	{NewBRefs, DeletedBuckets}
+			= update_buckets(P#product.balance, OldBuckets, NewBuckets2),
 	ok = mnesia:write(P#product{balance = NewBRefs}),
 	Rated1 = rated(Seconds, Octets, Cents, Msgs, Rated),
 	NewSessionList = remove_session(SessionId, SessionList),
 	Service2 = Service1#service{session_attributes = NewSessionList},
 	ok = mnesia:write(Service2),
-	{ok, Service2, Rated1};
+	{ok, Service2, Rated1, DeletedBuckets};
 rate7(#service{session_attributes = SessionList} = Service1, Buckets, final,
 		{Units, _Charge}, {Units, _Charged}, {Units, 0}, {Units, 0},
 		#state{rated = Rated, product = P, session_id = SessionId,
 		buckets = OldBuckets}) ->
 	NewBuckets = refund(SessionId, Buckets),
 	{Seconds, Octets, Cents, Msgs, NewBuckets2} = get_debits(SessionId, NewBuckets),
-	NewBRefs = update_buckets(P#product.balance, OldBuckets, NewBuckets2),
+	{NewBRefs, DeletedBuckets}
+			= update_buckets(P#product.balance, OldBuckets, NewBuckets2),
 	ok = mnesia:write(P#product{balance = NewBRefs}),
 	Rated1 = rated(Seconds, Octets, Cents, Msgs, Rated),
 	Service2 = Service1#service{session_attributes = []},
 	ok = mnesia:write(Service2),
-	{out_of_credit, SessionList, Rated1};
+	{out_of_credit, SessionList, Rated1, DeletedBuckets};
 rate7(#service{enabled = false, session_attributes = SessionList} = Service1,
 		Buckets, _Flag, {Units, _Charge}, {Units, _Charged},
 		{Units, _Reserve}, {Units, _Reserved},
 		#state{session_id = SessionId, buckets = OldBuckets, product = P}) ->
 	NewBuckets = refund(SessionId, Buckets),
-	NewBRefs = update_buckets(P#product.balance, OldBuckets, NewBuckets),
+	{NewBRefs, DeletedBuckets}
+			= update_buckets(P#product.balance, OldBuckets, NewBuckets),
 	ok = mnesia:write(P#product{balance = NewBRefs}),
 	Service2 = Service1#service{session_attributes = []},
 	ok = mnesia:write(Service2),
-	{disabled, SessionList};
+	{disabled, SessionList, DeletedBuckets};
 rate7(#service{session_attributes = SessionList} = Service1, Buckets, _Flag,
 		{Units, Charge}, {Units, Charged}, {Units, Reserve}, {Units, Reserved},
 		#state{session_id = SessionId, buckets = OldBuckets,
 		product = P}) when Charged < Charge; Reserved <  Reserve ->
 	NewBuckets = refund(SessionId, Buckets),
-	NewBRefs = update_buckets(P#product.balance, OldBuckets, NewBuckets),
+	{NewBRefs, DeletedBuckets}
+			= update_buckets(P#product.balance, OldBuckets, NewBuckets),
 	ok = mnesia:write(P#product{balance = NewBRefs}),
 	Service2 = Service1#service{session_attributes = []},
 	ok = mnesia:write(Service2),
-	{out_of_credit, SessionList};
+	{out_of_credit, SessionList, DeletedBuckets};
 rate7(#service{session_attributes = SessionList} = Service1, Buckets, initial,
 		{Units, 0}, {Units, 0}, {Units, _Reserve}, {Units, Reserved},
 		#state{buckets = OldBuckets, session_id = SessionId, product = P}) ->
-	NewBRefs = update_buckets(P#product.balance, OldBuckets, Buckets),
+	{NewBRefs, DeletedBuckets}
+			= update_buckets(P#product.balance, OldBuckets, Buckets),
 	ok = mnesia:write(P#product{balance = NewBRefs}),
 	NewSessionList = add_session(SessionId, SessionList),
 	Service2 = Service1#service{session_attributes = NewSessionList},
 	ok = mnesia:write(Service2),
-	{grant, Service2, {Units, Reserved}};
+	{grant, Service2, {Units, Reserved}, DeletedBuckets};
 rate7(Service, Buckets, interim, {Units, _Charge}, {Units, _Charged},
 		{Units, _Reserve}, {Units, Reserved},
 		#state{buckets = OldBuckets, product = P}) ->
-	NewBRefs = update_buckets(P#product.balance, OldBuckets, Buckets),
+	{NewBRefs, DeletedBuckets}
+			= update_buckets(P#product.balance, OldBuckets, Buckets),
 	ok = mnesia:write(P#product{balance = NewBRefs}),
 	ok = mnesia:write(Service),
-	{grant, Service, {Units, Reserved}}.
+	{grant, Service, {Units, Reserved}, DeletedBuckets}.
 
 -spec authorize(Protocol, ServiceType, SubscriberId, Password,
 		Timestamp, Address, Direction, SessionAttributes) -> Result
@@ -1685,9 +1696,17 @@ rated(0, 0, 0, 0, Rated) ->
 update_buckets(BRefs, OldB, NewB) ->
 	AllNewKeys = [B#bucket.id || B <- NewB],
 	UpdatedB = NewB -- OldB,
+	DeletedBRefs = BRefs -- AllNewKeys,
+	Fdel = fun F([BucketId | T], Acc) ->
+				DelBucket = lists:keyfind(BucketId, #bucket.id, OldB),
+				F(T, [DelBucket | Acc]);
+			F([], Acc) ->
+				Acc
+	end,
+	DeletedBuckets = Fdel(DeletedBRefs, []),
 	update_b(UpdatedB),
-	ok = delete_b(BRefs -- AllNewKeys),
-	AllNewKeys.
+	ok = delete_b(DeletedBRefs),
+	{AllNewKeys, DeletedBuckets}.
 
 %% @hidden
 update_b([B | T])	->
@@ -1719,4 +1738,11 @@ generate_bucket_id() ->
 	TS = erlang:system_time(?MILLISECOND),
 	N = erlang:unique_integer([positive]),
 	integer_to_list(TS) ++ "-" ++ integer_to_list(N).
+
+%% @private
+send_notifications([]) ->
+	ok;
+send_notifications([DeletedBucket | T]) ->
+	ocs_event:notify(depleted, DeletedBucket, balance),
+	send_notifications(T).
 

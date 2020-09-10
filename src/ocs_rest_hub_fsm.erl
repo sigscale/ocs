@@ -148,7 +148,8 @@ register(timeout, State) ->
 -spec registered(Event, State) -> Result
 	when
 		Event :: {Type, Resource, Category},
-		Type :: create_bucket | create_product | create_service | charge,
+		Type :: create_bucket | create_product | create_service | charge
+				| depleted,
 		Resource :: #bucket{} | #product{} | #service{} | [#adjustment{}],
 		Category :: balance | product | service | adjustment,
 		State :: statedata(),
@@ -188,7 +189,9 @@ registered({Type, Resource, Category} = _Event, #statedata{sync = Sync,
 		create_service ->
 			"ServiceCreationNotification";
 		charge ->
-			"BalanceAdjustmentCreationNotification"
+			"BalanceAdjustmentCreationNotification";
+		depleted ->
+			"BucketDeleteEvent"
 	end,
 	Event = case Category of
 		balance ->
