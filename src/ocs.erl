@@ -641,17 +641,21 @@ find_product(ProductRef) when is_list(ProductRef) ->
 		Result :: ok.
 %% @doc Delete an entry from product table
 delete_product(ProductRef) when is_list(ProductRef) ->
-	F1 = fun(#service{product = PRef}, _) when PRef == ProductRef ->
-					throw(service_exists);
-			(_, Acc) ->
-					Acc
+	F1 = fun() ->
+			case mnesia:read(product, ProductRef, write) of
+				[#product{service = Services}] when length(Services) > 0 ->
+					mnesia:abort(service_exists);
+				[#product{balance = Buckets}] ->
+					F2 = fun(B) ->
+							mnesia:delete(bucket, B, write)
+					end,
+					{lists:foreach(F2, Buckets), Buckets};
+				[] ->
+					mnesia:abort(not_found)
+			end
 	end,
-	F2 = fun() ->
-			[] = mnesia:foldl(F1, [], service),
-			mnesia:delete(product, ProductRef, write)
-	end,
-	case mnesia:transaction(F2) of
-		{atomic, _} ->
+	case mnesia:transaction(F1) of
+		{atomic, {ok, DeletedBuckets}} ->
 			ok;
 		{aborted, Reason} ->
 			exit(Reason)
@@ -1015,35 +1019,31 @@ query_bucket2('$end_of_table', _MatchProduct) ->
 		BucketId :: term().
 %% @doc Delete entry in the bucket table.
 delete_bucket(BucketId) ->
-	F = fun() ->
+	F1 = fun(ProdRef) ->
+			case mnesia:read(product, ProdRef, write) of
+				[#product{balance = Buckets1} = Product1] ->
+					Buckets2 = lists:delete(BucketId, Buckets1),
+					Product2 = Product1#product{balance = Buckets2},
+					mnesia:write(Product2);
+				[] ->
+					ok
+			end
+	end,
+	F2 = fun() ->
 		case mnesia:read(bucket, BucketId, write) of
 			[#bucket{product = ProdRefs}] ->
-				delete_bucket1(BucketId, ProdRefs);
+				lists:foreach(F1, ProdRefs),
+				mnesia:delete(bucket, BucketId, write);
 			[] ->
-				throw(not_found)
+				mnesia:abort(not_found)
 		end
 	end,
-	case mnesia:transaction(F) of
+	case mnesia:transaction(F2) of
 		{atomic, ok} ->
 			ok;
-		{aborted, {throw, Reason}} ->
-			exit(Reason);
 		{aborted, Reason} ->
 			exit(Reason)
 	end.
-%% @hidden
-delete_bucket1(BId, ProdRefs) ->
-	F = fun(ProdRef) ->
-			case mnesia:read(product, ProdRef, write) of
-				[#product{balance = Balance} = P] ->
-					ok = mnesia:write(P#product{balance = Balance -- [BId]}),
-					true;
-				[] ->
-					true
-			end
-	end,
-	true = lists:all(F, ProdRefs),
-	ok = mnesia:delete(bucket, BId, write).
 
 -spec adjustment(Adjustment) -> Result
 	when
