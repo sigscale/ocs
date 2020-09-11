@@ -26,9 +26,8 @@
 		get_balance_log/2, balance_adjustment/1]).
 
 -export([get_bucket/1, get_buckets/2]).
--export([abmf/1, adjustment/1]).
+-export([abmf/1, adjustment/1, bucket/1, acc_balance/1]).
 -export([quantity/1]).
--export([bucket/1]).
 
 -include("ocs.hrl").
 
@@ -574,6 +573,65 @@ adjustment([start_date | T], #adjustment{start_date = Start,
 adjustment([_ | T], A, Acc) ->
 	adjustment(T, A, Acc);
 adjustment([], _A, Acc) ->
+	{struct, lists:reverse(Acc)}.
+
+-spec acc_balance(AccBalance) -> AccBalance
+	when
+		AccBalance :: #acc_balance{} | {struct, list()}.
+%% @doc CODEC for acc_balance
+acc_balance({struct, Object}) ->
+	acc_balance(Object, #acc_balance{});
+acc_balance(#acc_balance{} = AccBalance) ->
+	acc_balance(record_info(fields, acc_balance), AccBalance, []).
+%% @hidden
+acc_balance([{"id", ID} | T], AccBalance) ->
+	acc_balance(T, AccBalance#acc_balance{id = ID});
+acc_balance([{"name", Name} | T], AccBalance) when is_list(Name) ->
+	acc_balance(T, AccBalance#acc_balance{name = Name});
+acc_balance([{"totalBalance", {struct, _} = Q} | T], AccBalance) ->
+	#quantity{amount = Amount, units = Units} = quantity(Q),
+	acc_balance(T, AccBalance#acc_balance{units = Units,
+			total_balance = Amount});
+acc_balance([{"product", {array, [{struct, ProdRefList}]}} | T], AccBalance) ->
+	{_, ProdRef} = lists:keyfind("id", 1, ProdRefList),
+	acc_balance(T, AccBalance#acc_balance{product = [ProdRef]});
+acc_balance([{"buckets", {array, BucketRefStructs}} | T], AccBalance) ->
+	F = fun({struct, BucketRefList}) ->
+			{_, BucketId} = lists:keyfind("id", 1, BucketRefList),
+			BucketId
+	end,
+	acc_balance(T, AccBalance#acc_balance{bucket
+			= lists:map(F, BucketRefStructs)});
+acc_balance([_ | T], AccBalance) ->
+	acc_balance(T, AccBalance);
+acc_balance([], AccBalance) ->
+	AccBalance.
+%% @hidden
+acc_balance([id | T], #acc_balance{id = ID} = AccBal, Acc) when ID /= undefined ->
+	acc_balance(T, AccBal, [{"id", ID},
+			{"href", ?balancePath ++ ID} | Acc]);
+acc_balance([name | T], #acc_balance{name = Name} = AccBal, Acc)
+		when is_list(Name) ->
+	acc_balance(T, AccBal, [{"name", Name} | Acc]);
+acc_balance([total_balance | T], #acc_balance{units = Units,
+		total_balance = Amount} = AccBal, Acc) when is_integer(Amount) ->
+	Q = #quantity{amount = Amount, units = Units},
+	acc_balance(T, AccBal, [{"totalBalance", quantity(Q)} | Acc]);
+acc_balance([product | T], #acc_balance{product = [ProdRef]} = AccBal, Acc)
+		when is_list(ProdRef) ->
+	Id = {"id", ProdRef},
+	Href = {"href", ?productInventoryPath ++ ProdRef},
+	acc_balance(T, AccBal, [{"product", {struct, [Id, Href]}} | Acc]);
+acc_balance([bucket | T], #acc_balance{bucket = BucketRefs} = AccBal, Acc)
+		when is_list(BucketRefs) ->
+	F = fun(BucketId) ->
+			{struct, [{"id", BucketId}, {"href", ?bucketPath ++ BucketId}]}
+	end,
+	acc_balance(T, AccBal, [{"buckets",
+			{array, lists:map(F, BucketRefs)}} | Acc]);
+acc_balance([_ | T], B, Acc) ->
+	acc_balance(T, B, Acc);
+acc_balance([], _B, Acc) ->
 	{struct, lists:reverse(Acc)}.
 
 -spec abmfs(Abmf, Acc) -> Result
