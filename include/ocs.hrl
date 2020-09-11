@@ -156,6 +156,15 @@
 		product :: ProdRef :: term() | '_',
 		bucket :: BucketRef :: term() | '_'}).
 
+-record(acc_balance,
+		{id :: string() | undefined,
+		name :: string(),
+		total_balance :: integer(),
+		units :: octets | cents | seconds | messages,
+		bucket :: [string()],
+		product :: [string()]}).
+-type acc_balance() :: #acc_balance{}.
+
 -record(product,
 		{id :: string() | undefined | '_' | '$1',
 		name :: string() | undefined | '_' | '$2',
