@@ -649,6 +649,7 @@ delete_product(ProductRef) when is_list(ProductRef) ->
 					F2 = fun(B) ->
 							mnesia:delete(bucket, B, write)
 					end,
+					mnesia:delete(product, ProductRef, write),
 					{lists:foreach(F2, Buckets), Buckets};
 				[] ->
 					mnesia:abort(not_found)
