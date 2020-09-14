@@ -197,14 +197,10 @@ get_balance_service(Identity) ->
 			F2 = fun(#bucket{id = Id}) ->
 					{struct, [{"id", Id}, {"href", ?bucketPath ++ Id}]}
 			end,
-			Buckets4 = {"buckets", {array, lists:map(F2, Buckets3)}},
-			Total = {"totalBalance", {struct,
-					[{"amount", ocs_rest:millionths_out(TotalAmount)}]}},
-			Id = {"id", Identity},
-			Href = {"href", ?balancePath ++ "service/" ++ Identity ++ "/accumulatedBalance"},
-			Product = {"product", {array, [{struct, [{"id", ProductRef1}, Href]}]}},
-			Json = {struct, [Id, Href, Total, Buckets4, Product]},
-			Body  = mochijson:encode(Json),
+			AccBalance = #acc_balance{id = Identity, total_balance = TotalAmount,
+					units = cents, bucket = lists:map(F2, Buckets3),
+					product = [ProductRef1]},
+			Body  = mochijson:encode(acc_balance(AccBalance)),
 			Headers = [{content_type, "application/json"}],
 			{ok, Headers, Body}
 	catch
