@@ -231,16 +231,12 @@ get_balance(ProdRef) ->
 			Buckets3 = lists:filter(F1, Buckets2),
 			TotalAmount = lists:sum([B#bucket.remain_amount || B <- Buckets3]),
 			F2 = fun(#bucket{id = Id}) ->
-					{struct, [{"id", Id}, {"href", ?bucketPath ++ Id}]}
+					Id
 			end,
-			Buckets4 = {"buckets", {array, lists:map(F2, Buckets3)}},
-			Total = {"totalBalance", {struct,
-					[{"amount", ocs_rest:millionths_out(TotalAmount)}]}},
-			Id = {"id", ProdRef},
-			Href = {"href", ?balancePath ++ "product/" ++ ProdRef ++ "/accumulatedBalance"},
-			Product = {"product", {array, [{struct, [Id, Href]}]}},
-			Json = {struct, [Id, Href, Total, Buckets4, Product]},
-			Body  = mochijson:encode(Json),
+			AccBalance = #acc_balance{id = ProdRef, total_balance = TotalAmount,
+					units = cents, bucket = lists:map(F2, Buckets3),
+					product = [ProdRef]},
+			Body  = mochijson:encode(acc_balance(AccBalance)),
 			Headers = [{content_type, "application/json"}],
 			{ok, Headers, Body}
 	catch
@@ -603,10 +599,14 @@ acc_balance([_ | T], AccBalance) ->
 acc_balance([], AccBalance) ->
 	AccBalance.
 %% @hidden
-acc_balance([id | T], #acc_balance{id = ID} = AccBal, Acc)
-		when ID /= undefined ->
-	acc_balance(T, AccBal, [{"id", ID}, {"href", ?balancePath
-			++ "service/" ++ ID ++ "/accumulatedBalance"} | Acc]);
+acc_balance([id | T], #acc_balance{id = ProdRef, product = [ProdRef]} = AccBal,
+		Acc) when ProdRef /= undefined ->
+	acc_balance(T, AccBal, [{"id", ProdRef}, {"href", ?balancePath
+			++ "product/" ++ ProdRef ++ "/accumulatedBalance"} | Acc]);
+acc_balance([id | T], #acc_balance{id = ServiceId} = AccBal, Acc)
+		when ServiceId /= undefined ->
+	acc_balance(T, AccBal, [{"id", ServiceId}, {"href", ?balancePath
+			++ "service/" ++ ServiceId ++ "/accumulatedBalance"} | Acc]);
 acc_balance([name | T], #acc_balance{name = Name} = AccBal, Acc)
 		when is_list(Name) ->
 	acc_balance(T, AccBal, [{"name", Name} | Acc]);
@@ -615,9 +615,16 @@ acc_balance([total_balance | T], #acc_balance{units = Units,
 	Q = #quantity{amount = Amount, units = Units},
 	acc_balance(T, AccBal, [{"totalBalance", quantity(Q)} | Acc]);
 acc_balance([product | T], #acc_balance{product = [ProdRef],
-		id = ID} = AccBal, Acc) when is_list(ProdRef) ->
+		id = ProdRef} = AccBal, Acc) when is_list(ProdRef) ->
 	Id = {"id", ProdRef},
-	Href = {"href", ?balancePath ++ "service/" ++ ID ++ "/accumulatedBalance"},
+	Href = {"href", ?balancePath ++ "product/"
+			++ ProdRef ++ "/accumulatedBalance"},
+	acc_balance(T, AccBal, [{"product", {array, [{struct, [Id, Href]}]}} | Acc]);
+acc_balance([product | T], #acc_balance{product = [ProdRef],
+		id = ServiceId} = AccBal, Acc) when is_list(ProdRef) ->
+	Id = {"id", ServiceId},
+	Href = {"href", ?balancePath ++ "service/"
+			++ ServiceId ++ "/accumulatedBalance"},
 	acc_balance(T, AccBal, [{"product", {array, [{struct, [Id, Href]}]}} | Acc]);
 acc_balance([bucket | T], #acc_balance{bucket = BucketRefs} = AccBal, Acc)
 		when is_list(BucketRefs) ->
