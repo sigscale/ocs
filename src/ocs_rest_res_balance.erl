@@ -195,7 +195,7 @@ get_balance_service(Identity) ->
 			Buckets3 = lists:filter(F1, Buckets2),
 			TotalAmount = lists:sum([B#bucket.remain_amount || B <- Buckets3]),
 			F2 = fun(#bucket{id = Id}) ->
-					{struct, [{"id", Id}, {"href", ?bucketPath ++ Id}]}
+					Id
 			end,
 			AccBalance = #acc_balance{id = Identity, total_balance = TotalAmount,
 					units = cents, bucket = lists:map(F2, Buckets3),
@@ -622,7 +622,7 @@ acc_balance([product | T], #acc_balance{product = [ProdRef],
 	acc_balance(T, AccBal, [{"product", {array, [{struct, [Id, Href]}]}} | Acc]);
 acc_balance([product | T], #acc_balance{product = [ProdRef],
 		id = ServiceId} = AccBal, Acc) when is_list(ProdRef) ->
-	Id = {"id", ServiceId},
+	Id = {"id", ProdRef},
 	Href = {"href", ?balancePath ++ "service/"
 			++ ServiceId ++ "/accumulatedBalance"},
 	acc_balance(T, AccBal, [{"product", {array, [{struct, [Id, Href]}]}} | Acc]);
