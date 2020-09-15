@@ -395,12 +395,20 @@ class offerAdd extends PolymerElement {
 								</paper-input>
 							</div>
 							<div>
-								<paper-input
+								<paper-dropdown-menu
 										id="destPrefixTariff"
-										type="string"
 										value="{{priceAddTariff}}"
 										label="Prefix Tariff Table">
-								</paper-input>
+									<paper-listbox
+											id="addPricTariff"
+											slot="dropdown-content">
+										<template is="dom-repeat" items="{{tables}}">
+											<paper-item>
+												{{item.id}}
+											</paper-item>
+										</template>
+									</paper-listbox>
+								</paper-dropdown-menu>
 							</div>
 							<div>
 								<paper-input
@@ -588,12 +596,16 @@ class offerAdd extends PolymerElement {
 					on-error="_addProductError">
 			</iron-ajax>
 			<iron-ajax
-				id="getProductsAjax"
-				url="/catalogManagement/v2/productOffering"
-				method="GET"
-				on-response="_getProductsResponse"
-				on-error="_getProductsError">
+					id="getProductsAjax"
+					url="/catalogManagement/v2/productOffering"
+					method="GET"
+					on-response="_getProductsResponse"
+					on-error="_getProductsError">
 			</iron-ajax>
+		<iron-ajax id="getTableAjax"
+			on-response="_getTableResponse"
+			on-error="_getTableError">
+		</iron-ajax>
 		`;
 	}
 
@@ -622,6 +634,19 @@ class offerAdd extends PolymerElement {
 					return [];
 				}
 			},
+				tables: {
+					type: Array,
+					readOnly: true,
+					notify: true,
+					value: function() {
+						return []
+					}
+				},
+				activePage: {
+					type: Boolean,
+					value: false,
+					observer: '_activePageChanged'
+				},
 			offers: {
 				type: Array,
 				value: function() {
@@ -690,9 +715,6 @@ class offerAdd extends PolymerElement {
 			priceAddCurrency: {
 				type: String
 			},
-			priceAddTariff: {
-				type: String
-			},
 			priceAddRoaming: {
 				type: String
 			},
@@ -712,8 +734,29 @@ class offerAdd extends PolymerElement {
 	}
 
 	ready() {
-		super.ready()
+		super.ready();
 	}
+
+			_activePageChanged(active) {
+					var grid = this.$.offerGrid;
+					var ajax1 = this.$.getTableAjax;
+					ajax1.url = "/catalogManagement/v2/pla";
+					ajax1.generateRequest();
+			}
+
+			_getTableResponse(event) {
+				var grid = this.$.offerGrid;
+				var results = event.detail.xhr.response;
+				this.splice("tables", 0, this.tables.length)
+				for (var indexTable in results) {
+					var tableRecord = new Object();
+					tableRecord.id = results[indexTable].id;
+					tableRecord.href = results[indexTable].href;
+					tableRecord.description = results[indexTable].description;
+					tableRecord.plaSpecId = results[indexTable].plaSpecId;
+					this.push('tables', tableRecord);
+				}
+			}
 
 	_getProductsResponse(event) {
 		var results = event.detail.xhr.response;
