@@ -200,8 +200,10 @@
 						for (var index in request.response) {
 							var newRecord = new Object();
 							newRecord.id = request.response[index].id;
-							if(request.response[index].product.id) {
-								newRecord.product = request.response[index].product.id;
+							if(request.response[index].product) {
+								if(request.response[index].product.id) {
+									newRecord.product = request.response[index].product.id;
+								}
 							}
 							if(request.response[index].remainedAmount) {
 								if(request.response[index].remainedAmount.units == "cents") {

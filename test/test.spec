@@ -12,6 +12,7 @@
 		ocs_milenage_SUITE,
 		ocs_log_SUITE,
 		ocs_rating_SUITE,
+		ocs_product_SUITE,
 		ocs_charging_SUITE,
 		ocs_snmp_SUITE]}.
 {skip_cases, ".",

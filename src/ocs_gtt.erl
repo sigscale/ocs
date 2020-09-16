@@ -55,7 +55,7 @@
 
 -spec new(Table, Options) -> ok
 	when
-		Table :: atom(),
+		Table :: atom() | string(),
 		Options :: [{Copies, Nodes}],
 		Copies :: disc_copies | disc_only_copies | ram_copies,
 		Nodes :: [atom()].
@@ -66,6 +66,8 @@
 new(Table, []) ->
 	Nodes = [node() | nodes()],
 	new(Table, [{disc_copies, Nodes}]);
+new(Table, Options) when is_list(Table) ->
+	new(list_to_existing_atom(Table), Options);
 new(Table, Options) when is_list(Options) ->
 	case mnesia:create_table(Table, Options ++
 			[{attributes, record_info(fields, gtt)},
@@ -78,7 +80,7 @@ new(Table, Options) when is_list(Options) ->
 
 -spec new(Table, Options, Items) -> ok
 	when
-		Table :: atom(),
+		Table :: atom() | string(),
 		Options :: [{Copies, Nodes}],
 		Copies :: disc_copies | disc_only_copies | ram_copies,
 		Nodes :: [atom()],
@@ -95,6 +97,8 @@ new(Table, Options) when is_list(Options) ->
 new(Table, [], Items) ->
 	Nodes = [node() | nodes()],
 	new(Table, [{disc_copies, Nodes}], Items);
+new(Table, Options, Items) when is_list(Table) ->
+	new(list_to_existing_atom(Table), Options, Items);
 new(Table, Options, Items) when is_list(Options), is_list(Items) ->
 	mnesia:create_table(Table, Options ++
 			[{attributes, record_info(fields, gtt)},
@@ -125,15 +129,15 @@ new(Table, Options, Items) when is_list(Options), is_list(Items) ->
 
 -spec insert(Table, Number, Value) -> Result
 	when
-		Table :: atom(),
+		Table :: atom() | string(),
 		Number :: string(),
 		Value :: term(),
 		Result :: {ok, #gtt{}}.
 %% @doc Insert a table entry.
 %% 
-insert(Table, Number, Value) 
-		when is_atom(Table),
-		is_list(Number) ->
+insert(Table, Number, Value) when is_list(Table) ->
+	insert(list_to_existing_atom(Table), Number, Value);
+insert(Table, Number, Value) when is_atom(Table), is_list(Number) ->
 	F = fun() -> insert(Table, Number, Value, []) end,
 	case mnesia:transaction(F) of
 		{atomic, {_NumWrites, Gtt}} ->
@@ -144,7 +148,7 @@ insert(Table, Number, Value)
 	
 -spec insert(Table, Items) -> ok
 	when
-		Table :: atom(),
+		Table :: atom() | string(),
 		Items :: [{Number, Value}],
 		Number :: string(),
 		Value :: term().
@@ -153,6 +157,8 @@ insert(Table, Number, Value)
 %% 	are added to the table or, if an entry insertion fails, none at
 %% 	all.
 %% 
+insert(Table, Items) when is_list(Table) ->
+	insert(list_to_existing_atom(Table), Items);
 insert(Table, Items) when is_atom(Table), is_list(Items)  ->
 	InsFun = fun({Number, Value}) -> insert(Table, Number, Value) end,
 	TransFun = fun() -> lists:foreach(InsFun, Items) end,
@@ -161,10 +167,12 @@ insert(Table, Items) when is_atom(Table), is_list(Items)  ->
 
 -spec delete(Table, Number) -> ok
 	when
-		Table :: atom(),
+		Table :: atom() | string(),
 		Number :: string().
 %% @doc Delete a table entry.
 %% 
+delete(Table, Number) when is_list(Table) ->
+	delete(list_to_existing_atom(Table), Number);
 delete(Table, Number) when is_atom(Table), is_list(Number) ->
 	Fun = fun() -> mnesia:delete(Table, Number, write) end,
 	case mnesia:transaction(Fun) of
@@ -176,11 +184,13 @@ delete(Table, Number) when is_atom(Table), is_list(Number) ->
 	
 -spec lookup_first(Table, Number) -> Value
 	when
-		Table :: atom(),
+		Table :: atom() | string(),
 		Number :: string(),
 		Value :: term().
 %% @doc Lookup the value of the first matching table entry.
 %% 
+lookup_first(Table, Number) when is_list(Table) ->
+	lookup_first(list_to_existing_atom(Table), Number);
 lookup_first(Table, [Digit | Rest]) when is_atom(Table) ->
 	Fun1 = fun(F, [H|T], [#gtt{num = Prefix, value = undefined}]) ->
 				F(F, T, mnesia:read(Table, Prefix ++ [H], read));
@@ -194,11 +204,13 @@ lookup_first(Table, [Digit | Rest]) when is_atom(Table) ->
 
 -spec lookup_last(Table, Number) -> Value
 	when
-		Table :: atom(),
+		Table :: atom() | string(),
 		Number :: string(),
 		Value :: term().
 %% @doc Lookup the value of the longest matching table entry.
 %% 
+lookup_last(Table, Number) when is_list(Table) ->
+	lookup_last(list_to_existing_atom(Table), Number);
 lookup_last(Table, Number) when is_atom(Table) ->
 	Fun1 = fun(F, [_|T], []) ->
 				F(F, T, mnesia:read(Table, lists:reverse(T), read));
@@ -216,11 +228,13 @@ lookup_last(Table, Number) when is_atom(Table) ->
 
 -spec lookup_all(Table, Number) -> Value
 	when
-		Table :: atom(),
+		Table :: atom() | string(),
 		Number :: string(),
 		Value :: term().
 %% @doc Lookup the values of matching table entries.
 %% 
+lookup_all(Table, Number) when is_list(Table) ->
+	lookup_all(list_to_existing_atom(Table), Number);
 lookup_all(Table, [Digit | Rest]) when is_atom(Table) ->
 	Fun1 = fun(F, [H|T], [#gtt{num = Prefix, value = undefined}], Acc) ->
 				F(F, T, mnesia:read(Table, Prefix ++ [H], read), Acc);
@@ -234,10 +248,13 @@ lookup_all(Table, [Digit | Rest]) when is_atom(Table) ->
 
 -spec backup(Tables, File) -> ok
 	when
-		Tables :: atom() | [atom()],
+		Tables :: Table | [Table],
+		Table :: atom() | string(),
 		File :: string().
 %% @doc Create a backup of the named table(s) in `File.BUPTMP'.
 %% 
+backup(Table, File) when is_list(Table) ->
+	backup(list_to_existing_atom(Table), File);
 backup(Table, File) when is_atom(Table) ->
 	backup([Table], File);
 backup(Tables, File) when is_list(Tables), is_list(File) ->
@@ -256,11 +273,14 @@ backup(Tables, File) when is_list(Tables), is_list(File) ->
 
 -spec restore(Tables, File) -> {ok,  RestoredTabs}
 	when
-		Tables :: atom() | [atom()],
+		Tables :: Table | [Table],
+		Table :: atom() | string(),
 		File :: string(),
 		RestoredTabs :: [atom()].
 %% @doc Restore the named table(s) from the backup in `File.BUPTMP'.
 %% 
+restore(Table, File) when is_list(Table) ->
+	restore(list_to_existing_atom(Table), File);
 restore(Table, File) when is_atom(Table) ->
 	restore([Table], File);
 restore(Tables, File) when is_list(Tables), is_list(File) ->

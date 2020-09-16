@@ -30,65 +30,75 @@
 %%  ocs_diameter_codec public API
 %%----------------------------------------------------------------------
 
--spec 'APN-Configuration'(decode, Type, Data, Opts) -> Result
+-spec 'APN-Configuration'(Operation, Type, Data, Opts) -> Result
 	when
+		Operation :: decode | encode,
 		Type :: 'Grouped',
 		Data :: binary(),
 		Opts :: map(),
 		Result :: {#'3gpp_swm_APN-Configuration'{}, list()}.
 %% @doc Specialized CODEC for 3GPP APN-Configuration.
-'APN-Configuration'(decode, _Type, Data, Opts) ->
-erlang:display({?MODULE, ?LINE, 'APN-Configuration', decode, _Type, Data, Opts}),
+'APN-Configuration'(decode = Operation, 'Grouped' = _Type, Data, Opts) ->
 	Mod = diameter_gen_3gpp_swm_application,
-	Mod:grouped_avp(decode, 'APN-Configuration', Data, Opts#{app_dictionary := Mod, module := Mod}).
+	Mod:grouped_avp(Operation, 'APN-Configuration', Data, Opts#{app_dictionary := Mod, module := Mod});
+'APN-Configuration'(encode = Operation, 'Grouped' = _Type, Data, #{mode := Mod} = Opts) ->
+	Mod:grouped_avp(Operation, 'APN-Configuration', Data, Opts).
 
--spec 'EPS-Subscribed-QoS-Profile'(decode, Type, Data, Opts) -> Result
+-spec 'EPS-Subscribed-QoS-Profile'(Operation, Type, Data, Opts) -> Result
 	when
+		Operation :: decode | encode,
 		Type :: 'Grouped',
 		Data :: binary(),
 		Opts :: map(),
 		Result :: {#'3gpp_swm_EPS-Subscribed-QoS-Profile'{}, list()}.
 %% @doc Specialized CODEC for 3GPP EPS-Subscribed-QoS-Profile.
-'EPS-Subscribed-QoS-Profile'(decode, _Type, Data, Opts) ->
-erlang:display({?MODULE, ?LINE, 'EPS-Subscribed-QoS-Profile', decode, _Type, Data, Opts}),
+'EPS-Subscribed-QoS-Profile'(decode = Operation, 'Grouped' = _Type, Data, Opts) ->
 	Mod = diameter_gen_3gpp_swm_application,
-	Mod:grouped_avp(decode, 'EPS-Subscribed-QoS-Profile', Data, Opts#{app_dictionary := Mod, module := Mod}).
+	Mod:grouped_avp(Operation, 'EPS-Subscribed-QoS-Profile', Data, Opts#{app_dictionary := Mod, module := Mod});
+'EPS-Subscribed-QoS-Profile'(encode = Operation, 'Grouped' = _Type, Data, #{mode := Mod} = Opts) ->
+	Mod:grouped_avp(Operation, 'EPS-Subscribed-QoS-Profile', Data, Opts).
 
--spec 'AMBR'(decode, Type, Data, Opts) -> Result
+-spec 'AMBR'(Operation, Type, Data, Opts) -> Result
 	when
+		Operation :: decode | encode,
 		Type :: 'Grouped',
 		Data :: binary(),
 		Opts :: map(),
 		Result :: {#'3gpp_swm_AMBR'{}, list()}.
 %% @doc Specialized CODEC for 3GPP AMBR.
-'AMBR'(decode, _Type, Data, Opts) ->
-erlang:display({?MODULE, ?LINE, 'AMBR', decode, _Type, Data, Opts}),
+'AMBR'(decode = Operation, 'Grouped' = _Type, Data, Opts) ->
 	Mod = diameter_gen_3gpp_swm_application,
-	Mod:grouped_avp(decode, 'AMBR', Data, Opts#{app_dictionary := Mod, module := Mod}).
+	Mod:grouped_avp(Operation, 'AMBR', Data, Opts#{app_dictionary := Mod, module := Mod});
+'AMBR'(encode = Operation, 'Grouped' = _Type, Data, #{mode := Mod} = Opts) ->
+	Mod:grouped_avp(Operation, 'AMBR', Data, Opts).
 
--spec 'Specific-APN-Info'(decode, Type, Data, Opts) -> Result
+-spec 'Specific-APN-Info'(Operation, Type, Data, Opts) -> Result
 	when
+		Operation :: decode | encode,
 		Type :: 'Grouped',
 		Data :: binary(),
 		Opts :: map(),
 		Result :: {#'3gpp_swm_Specific-APN-Info'{}, list()}.
 %% @doc Specialized CODEC for 3GPP Specific-APN-Info.
-'Specific-APN-Info'(decode, _Type, Data, Opts) ->
-erlang:display({?MODULE, ?LINE, 'Specific-APN-Info', decode, _Type, Data, Opts}),
+'Specific-APN-Info'(decode = Operation, 'Grouped' = _Type, Data, Opts) ->
 	Mod = diameter_gen_3gpp_swm_application,
-	Mod:grouped_avp(decode, 'Specific-APN-Info', Data, Opts#{app_dictionary := Mod, module := Mod}).
+	Mod:grouped_avp(Operation, 'Specific-APN-Info', Data, Opts#{app_dictionary := Mod, module := Mod});
+'Specific-APN-Info'(encode = Operation, 'Grouped' = _Type, Data, #{mode := Mod} = Opts) ->
+	Mod:grouped_avp(Operation, 'Specific-APN-Info', Data, Opts).
 
--spec 'WLAN-offloadability'(decode, Type, Data, Opts) -> Result
+-spec 'WLAN-offloadability'(Operation, Type, Data, Opts) -> Result
 	when
+		Operation :: decode | encode,
 		Type :: 'Grouped',
 		Data :: binary(),
 		Opts :: map(),
 		Result :: {#'3gpp_swm_WLAN-offloadability'{}, list()}.
 %% @doc Specialized CODEC for 3GPP WLAN-offloadability.
-'WLAN-offloadability'(decode, _Type, Data, Opts) ->
-erlang:display({?MODULE, ?LINE, 'WLAN-offloadability', decode, _Type, Data, Opts}),
+'WLAN-offloadability'(decode = Operation, 'Grouped' = _Type, Data, Opts) ->
 	Mod = diameter_gen_3gpp_swm_application,
-	Mod:grouped_avp(decode, 'WLAN-offloadability', Data, Opts#{app_dictionary := Mod, module := Mod}).
+	Mod:grouped_avp(Operation, 'WLAN-offloadability', Data, Opts#{app_dictionary := Mod, module := Mod});
+'WLAN-offloadability'(encode = Operation, 'Grouped' = _Type, Data, #{mode := Mod} = Opts) ->
+	Mod:grouped_avp(Operation, 'WLAN-offloadability', Data, Opts).
 
 %%----------------------------------------------------------------------
 %%  internal functions

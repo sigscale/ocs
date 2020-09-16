@@ -1,3 +1,31 @@
+September 9, 2020
+-----------------
+	- Scheduled charging improved to avoid blocking
+	- Retrieve bucket inventory improved to avoid blocking
+	- Balance adjustment API now applies for existing buckets
+
+September 7, 2020
+-----------------
+	- Configuration options supporting SCTP 
+	- Improvements to scheduled subscription charges
+	- Support Ericsson mode of Centralized Unit Determination
+	- Correct Product Price and Alteration validation
+
+August 19, 2020
+----------------
+	- HTTP: Federated Authentication
+		- OAUTH (RFC6549)
+		- JSON Web Token (JWT) (RFC7519)
+		- JSON Web Key (JWK) (RFC7517)
+	- REST: Notification Pattern
+		- Event Notification Hub (TMF630)
+		- Product Inventory Notifications (TMF637)
+		- Product Catalog Notifications (TMF620)
+		- Service Inventory Notifications (TMF638)
+		- Resource Inventory Notifications (TMF639)
+		- Party Management Notifications (TMF632)
+		- Balance Management Notifications (TMF654)
+
 August 2, 2020
 --------------
 	- Centralized Unit Determination:

@@ -43,6 +43,13 @@
 		denominator :: quantity()}).
 -type rate() :: #rate{}.
 
+-record(hub,
+		{callback :: string() | undefined,
+		id :: string() | undefined,
+		href :: string() | undefined,
+		query :: string() | undefined}).
+-type hub() :: #hub{}.
+
 -record(client,
 		{address :: inet:ip_address() | undefined | '_',
 		identifier = <<>> :: binary() | '_',
@@ -95,7 +102,7 @@
 		end_date :: pos_integer() | undefined,
 		type :: product_price_type() | undefined,
 		period :: recur_period() | undefined,
-		units :: octets | seconds | messages | undefined,
+		units :: cents | octets | seconds | messages | undefined,
 		size :: integer() | undefined,
 		amount :: integer() | undefined,
 		currency :: string() | undefined,

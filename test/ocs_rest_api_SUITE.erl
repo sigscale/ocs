@@ -31,6 +31,7 @@
 
 -include_lib("radius/include/radius.hrl").
 -include_lib("inets/include/mod_auth.hrl").
+-include_lib("public_key/include/public_key.hrl").
 -include("ocs.hrl").
 -include("ocs_eap_codec.hrl").
 -include_lib("common_test/include/ct.hrl").
@@ -42,6 +43,13 @@
 %% support deprecated_time_unit()
 -define(MILLISECOND, milli_seconds).
 %-define(MILLISECOND, millisecond).
+
+-define(PathBalanceHub, "/balanceManagement/v1/hub/").
+-define(PathProductHub, "/productInventory/v2/hub/").
+-define(PathServiceHub, "/serviceInventory/v2/hub/").
+-define(PathUserHub, "/partyManagement/v1/hub/").
+-define(PathCatalogHub, "/productCatalog/v2/hub/").
+-define(PathResourceHub, "/resourceInventory/v1/hub/").
 
 %%---------------------------------------------------------------------
 %%  Test server callback functions
@@ -110,12 +118,38 @@ end_per_suite(Config) ->
 -spec init_per_testcase(TestCase :: atom(), Config :: [tuple()]) -> Config :: [tuple()].
 %% Initialization before each test case.
 %%
+init_per_testcase(oauth_authentication, Config) ->
+	ok = set_inet_mod(),
+	application:stop(inets),
+	application:start(inets),
+	Config;
+init_per_testcase(TestCase, Config) when TestCase == notify_create_bucket;
+		TestCase == notify_delete_expired_bucket;
+		TestCase == notify_create_product; TestCase == notify_create_service ->
+	true = register(TestCase, self()),
+	case inets:start(httpd, [{port, 0},
+			{server_name, atom_to_list(?MODULE)},
+			{server_root, "./"},
+			{document_root, ?config(data_dir, Config)},
+			{modules, [mod_esi]},
+			{erl_script_alias, {"/listener", [?MODULE]}}]) of
+		{ok, Pid} ->
+			[{port, Port}] = httpd:info(Pid, [port]),
+			[{listener_port, Port},
+					{listener_pid, Pid} | Config];
+		{error, Reason} ->
+			{error, Reason}
+	end;
 init_per_testcase(_TestCase, Config) ->
 	Config.
 
 -spec end_per_testcase(TestCase :: atom(), Config :: [tuple()]) -> any().
 %% Cleanup after each test case.
 %%
+end_per_testcase(oauth_authentication, _Config) ->
+	ok = set_inet_mod(),
+	application:stop(inets),
+	application:start(inets);
 end_per_testcase(_TestCase, _Config) ->
 	ok.
 
@@ -148,11 +182,17 @@ all() ->
 	top_up, get_balance, simultaneous_updates_on_client_failure,
 	get_product, add_product, add_product_sms,
 	update_product_realizing_service, delete_product,
-	ignore_delete_product, query_product, filter_product].
+	ignore_delete_product, query_product, filter_product,
+	post_hub_balance, delete_hub_balance, notify_create_bucket,
+	post_hub_product, delete_hub_product, notify_create_product,
+	post_hub_service, delete_hub_service, notify_create_service,
+	post_hub_user, delete_hub_user, post_hub_catalog, delete_hub_catalog,
+	post_hub_inventory, delete_hub_inventory, oauth_authentication].
 
-%%%%%---------------------------------------------------------------------
+%%---------------------------------------------------------------------
 %%  Test cases
 %%---------------------------------------------------------------------
+
 authenticate_user_request() ->
 	[{userdata, [{doc, "Authorized user request to the server"}]}].
 
@@ -806,7 +846,7 @@ add_product() ->
 	[{userdata, [{doc,"Create a new product inventory."}]}].
 
 add_product(Config) ->
-	P1 = price(one_time, undefined, rand:uniform(1000), rand:uniform(100)),
+	P1 = price(one_time, undefined, undefined, rand:uniform(100)),
 	P2 = price(usage, octets, rand:uniform(1000000), rand:uniform(500)),
 	OfferId = offer_add([P1, P2], 4),
 	HostUrl = ?config(host_url, Config),
@@ -832,7 +872,7 @@ get_product() ->
 			with given product inventory reference"}]}].
 
 get_product(Config) ->
-	P1 = price(one_time, undefined, rand:uniform(1000), rand:uniform(100)),
+	P1 = price(one_time, undefined, undefined, rand:uniform(100)),
 	P2 = price(usage, octets, rand:uniform(1000000), rand:uniform(500)),
 	OfferId = offer_add([P1, P2], 4),
 	ProdRef = product_add(OfferId),
@@ -940,8 +980,8 @@ delete_product(Config) ->
 	{error, not_found} = ocs:find_product(ProdRef).
 
 ignore_delete_product() ->
-	[{userdata, [{doc,"ignore Delete product inventory if
-			service any service related with product inventory"}]}].
+	[{userdata, [{doc,"Ignore delete product inventory if
+			any service related with product instance"}]}].
 
 ignore_delete_product(Config) ->
 	P1 = price(usage, octets, rand:uniform(10000), rand:uniform(100)),
@@ -963,8 +1003,7 @@ query_product(Config) ->
 	F = fun F(0, Acc) ->
 					Acc;
 			F(N, Acc) ->
-				Price1 = #price{name = ocs:generate_identity(), units = octets,
-						type = one_time, amount = rand:uniform(100)},
+				Price1 = price(one_time, undefined, undefined, rand:uniform(100)),
 				Prices = [Price1],
 				OfferId = ocs:generate_identity(),
 				Offer = #offer{name = OfferId,
@@ -999,8 +1038,7 @@ filter_product(Config) ->
 	F = fun F(0, Acc) ->
 					Acc;
 			F(N, Acc) ->
-				Price1 = #price{name = ocs:generate_identity(), units = cents,
-						type = one_time, amount = rand:uniform(100)},
+				Price1 = price(one_time, undefined, undefined, rand:uniform(100)),
 				Prices = [Price1],
 				OfferId = ocs:generate_identity(),
 				Offer = #offer{name = OfferId,
@@ -2507,9 +2545,460 @@ update_client_attributes_json_patch(Config) ->
 	{_, Secret} = lists:keyfind("secret", 1, Object1),
 	ok = ssl:close(SslSock).
 
+post_hub_balance() ->
+	[{userdata, [{doc, "Register hub listener for balance"}]}].
+
+post_hub_balance(Config) ->
+	HostUrl = ?config(host_url, Config),
+	PathHub = ?PathBalanceHub,
+	CollectionUrl = HostUrl ++ PathHub,
+	Callback = "http://in.listener.com",
+	RequestBody = "{\n"
+			++ "\t\"callback\": \"" ++ Callback ++ "\",\n"
+			++ "}\n",
+	ContentType = "application/json",
+	Accept = {"accept", "application/json"},
+	Request = {CollectionUrl, [Accept, auth_header()], ContentType, RequestBody},
+	{ok, Result} = httpc:request(post, Request, [], []),
+	{{"HTTP/1.1", 201, _Created}, Headers, ResponseBody} = Result,
+	{_, "application/json"} = lists:keyfind("content-type", 1, Headers),
+	ContentLength = integer_to_list(length(ResponseBody)),
+	{_, ContentLength} = lists:keyfind("content-length", 1, Headers),
+	{_, Location} = lists:keyfind("location", 1, Headers),
+	Id = string:substr(Location, string:rstr(Location, PathHub) + length(PathHub)),
+	{struct, HubList} = mochijson:decode(ResponseBody),
+	{_, Callback} = lists:keyfind("callback", 1, HubList),
+	{_, Id} = lists:keyfind("id", 1, HubList),
+	{_, null} = lists:keyfind("query", 1, HubList).
+
+delete_hub_balance() ->
+	[{userdata, [{doc, "Unregister hub listener for balance"}]}].
+
+delete_hub_balance(Config) ->
+	HostUrl = ?config(host_url, Config),
+	PathHub = ?PathBalanceHub,
+	CollectionUrl = HostUrl ++ PathHub,
+	Callback = "http://in.listener.com",
+	RequestBody = "{\"callback\":\"" ++ Callback ++ "\"}",
+	ContentType = "application/json",
+	Accept = {"accept", "application/json"},
+	Request = {CollectionUrl, [Accept, auth_header()], ContentType, RequestBody},
+	{ok, {{_, 201, _}, _, ResponseBody}} = httpc:request(post, Request, [], []),
+	{struct, HubList} = mochijson:decode(ResponseBody),
+	{_, Id} = lists:keyfind("id", 1, HubList),
+	Request1 = {HostUrl ++ PathHub ++ Id, [Accept, auth_header()]},
+	{ok, {{_, 204, _}, _, []}} = httpc:request(delete, Request1, [], []).
+
+notify_create_bucket() ->
+	[{userdata, [{doc, "Receive balance creation notification."}]}].
+
+notify_create_bucket(Config) ->
+	HostUrl = ?config(host_url, Config),
+	CollectionUrl = HostUrl ++ ?PathBalanceHub,
+	ListenerPort = ?config(listener_port, Config),
+	ListenerServer = "http://localhost:" ++ integer_to_list(ListenerPort),
+	Callback = ListenerServer ++ "/listener/"
+			++ atom_to_list(?MODULE) ++ "/notifycreatebucket",
+	RequestBody = "{\n"
+			++ "\t\"callback\": \"" ++ Callback ++ "\",\n"
+			++ "}\n",
+	ContentType = "application/json",
+	Accept = {"accept", "application/json"},
+	Request = {CollectionUrl, [Accept, auth_header()], ContentType, RequestBody},
+	{ok, {{_, 201, _}, _, _}} = httpc:request(post, Request, [], []),
+	Price = #price{name = ocs:generate_identity(),
+			type = usage, units = octets, size = 1000, amount = 100},
+	Offer = #offer{name = ocs:generate_identity(),
+			price = [Price], specification = 4},
+	{ok, #offer{name = OfferId}} = ocs:add_offer(Offer),
+	{ok, #product{id = ProdRef}} = ocs:add_product(OfferId, [], []),
+	receive
+		Input1 ->
+			{struct, ProductEvent} = mochijson:decode(Input1),
+			{_, "ProductCreationNotification"}
+					= lists:keyfind("eventType", 1, ProductEvent),
+			{_, {struct, ProductList}} = lists:keyfind("event", 1, ProductEvent),
+			{_, ProdRef} = lists:keyfind("id", 1, ProductList)
+	end,
+	Bucket = #bucket{units = cents, remain_amount = 100,
+			start_date = erlang:system_time(milli_seconds),
+			end_date = erlang:system_time(milli_seconds) + 2592000000},
+	{ok, _, #bucket{}} = ocs:add_bucket(ProdRef, Bucket),
+	Balance = receive
+		Input2 ->
+			{struct, BalanceEvent} = mochijson:decode(Input2),
+			{_, "BalanceTopupCreationNotification"}
+					= lists:keyfind("eventType", 1, BalanceEvent),
+			{_, {struct, BalanceList}} = lists:keyfind("event", 1, BalanceEvent),
+			BalanceList
+	end,
+	{_, {struct, RemainAmount}} = lists:keyfind("remainedAmount", 1, Balance),
+	{_, "cents"} = lists:keyfind("units", 1, RemainAmount),
+	{_, MillionthsOut} = lists:keyfind("amount", 1, RemainAmount),
+	100 = ocs_rest:millionths_in(MillionthsOut).
+
+post_hub_product() ->
+	[{userdata, [{doc, "Register hub listener for product"}]}].
+
+post_hub_product(Config) ->
+	HostUrl = ?config(host_url, Config),
+	PathHub = ?PathProductHub,
+	CollectionUrl = HostUrl ++ PathHub,
+	Callback = "http://in.listener.com",
+	RequestBody = "{\n"
+			++ "\t\"callback\": \"" ++ Callback ++ "\",\n"
+			++ "}\n",
+	ContentType = "application/json",
+	Accept = {"accept", "application/json"},
+	Request = {CollectionUrl, [Accept, auth_header()], ContentType, RequestBody},
+	{ok, Result} = httpc:request(post, Request, [], []),
+	{{"HTTP/1.1", 201, _Created}, Headers, ResponseBody} = Result,
+	{_, "application/json"} = lists:keyfind("content-type", 1, Headers),
+	ContentLength = integer_to_list(length(ResponseBody)),
+	{_, ContentLength} = lists:keyfind("content-length", 1, Headers),
+	{_, Location} = lists:keyfind("location", 1, Headers),
+	Id = string:substr(Location, string:rstr(Location, PathHub) + length(PathHub)),
+	{struct, HubList} = mochijson:decode(ResponseBody),
+	{_, Callback} = lists:keyfind("callback", 1, HubList),
+	{_, Id} = lists:keyfind("id", 1, HubList),
+	{_, null} = lists:keyfind("query", 1, HubList).
+
+delete_hub_product() ->
+	[{userdata, [{doc, "Unregister hub listener for product"}]}].
+
+delete_hub_product(Config) ->
+	HostUrl = ?config(host_url, Config),
+	PathHub = ?PathProductHub,
+	CollectionUrl = HostUrl ++ PathHub,
+	Callback = "http://in.listener.com",
+	RequestBody = "{\"callback\":\"" ++ Callback ++ "\"}",
+	ContentType = "application/json",
+	Accept = {"accept", "application/json"},
+	Request = {CollectionUrl, [Accept, auth_header()], ContentType, RequestBody},
+	{ok, {{_, 201, _}, _, ResponseBody}} = httpc:request(post, Request, [], []),
+	{struct, HubList} = mochijson:decode(ResponseBody),
+	{_, Id} = lists:keyfind("id", 1, HubList),
+	Request1 = {HostUrl ++ PathHub ++ Id, [Accept, auth_header()]},
+	{ok, {{_, 204, _}, _, []}} = httpc:request(delete, Request1, [], []).
+
+notify_create_product() ->
+	[{userdata, [{doc, "Receive product creation notification."}]}].
+
+notify_create_product(Config) ->
+	HostUrl = ?config(host_url, Config),
+	CollectionUrl = HostUrl ++ ?PathProductHub,
+	ListenerPort = ?config(listener_port, Config),
+	ListenerServer = "http://localhost:" ++ integer_to_list(ListenerPort),
+	Callback = ListenerServer ++ "/listener/"
+			++ atom_to_list(?MODULE) ++ "/notifycreateproduct",
+	RequestBody = "{\n"
+			++ "\t\"callback\": \"" ++ Callback ++ "\",\n"
+			++ "}\n",
+	ContentType = "application/json",
+	Accept = {"accept", "application/json"},
+	Request = {CollectionUrl, [Accept, auth_header()], ContentType, RequestBody},
+	{ok, {{_, 201, _}, _, _}} = httpc:request(post, Request, [], []),
+	Price = #price{name = ocs:generate_identity(),
+			type = usage, units = octets, size = 1000, amount = 100},
+	Offer = #offer{name = ocs:generate_identity(),
+			price = [Price], specification = 4},
+	{ok, #offer{name = OfferId}} = ocs:add_offer(Offer),
+	{ok, #product{id = ProductId}} = ocs:add_product(OfferId, [], []),
+	Product = receive
+		Input ->
+			{struct, ProductEvent} = mochijson:decode(Input),
+			{_, "ProductCreationNotification"}
+					= lists:keyfind("eventType", 1, ProductEvent),
+			{_, {struct, ProductList}} = lists:keyfind("event", 1, ProductEvent),
+			ProductList
+	end,
+	{_, ProductId} = lists:keyfind("id", 1, Product),
+	{_, {struct, OfferStruct}} = lists:keyfind("productOffering", 1, Product),
+	{_, OfferId} = lists:keyfind("id", 1, OfferStruct).
+
+post_hub_service() ->
+	[{userdata, [{doc, "Register hub listener for service"}]}].
+
+post_hub_service(Config) ->
+	HostUrl = ?config(host_url, Config),
+	PathHub = ?PathServiceHub,
+	CollectionUrl = HostUrl ++ PathHub,
+	Callback = "http://in.listener.com",
+	RequestBody = "{\n"
+			++ "\t\"callback\": \"" ++ Callback ++ "\",\n"
+			++ "}\n",
+	ContentType = "application/json",
+	Accept = {"accept", "application/json"},
+	Request = {CollectionUrl, [Accept, auth_header()], ContentType, RequestBody},
+	{ok, Result} = httpc:request(post, Request, [], []),
+	{{"HTTP/1.1", 201, _Created}, Headers, ResponseBody} = Result,
+	{_, "application/json"} = lists:keyfind("content-type", 1, Headers),
+	ContentLength = integer_to_list(length(ResponseBody)),
+	{_, ContentLength} = lists:keyfind("content-length", 1, Headers),
+	{_, Location} = lists:keyfind("location", 1, Headers),
+	Id = string:substr(Location, string:rstr(Location, PathHub) + length(PathHub)),
+	{struct, HubList} = mochijson:decode(ResponseBody),
+	{_, Callback} = lists:keyfind("callback", 1, HubList),
+	{_, Id} = lists:keyfind("id", 1, HubList),
+	{_, null} = lists:keyfind("query", 1, HubList).
+
+notify_create_service() ->
+	[{userdata, [{doc, "Receive service creation notification."}]}].
+
+notify_create_service(Config) ->
+	HostUrl = ?config(host_url, Config),
+	CollectionUrl = HostUrl ++ ?PathServiceHub,
+	ListenerPort = ?config(listener_port, Config),
+	ListenerServer = "http://localhost:" ++ integer_to_list(ListenerPort),
+	Callback = ListenerServer ++ "/listener/"
+			++ atom_to_list(?MODULE) ++ "/notifycreateservice",
+	RequestBody = "{\n"
+			++ "\t\"callback\": \"" ++ Callback ++ "\",\n"
+			++ "}\n",
+	ContentType = "application/json",
+	Accept = {"accept", "application/json"},
+	Request = {CollectionUrl, [Accept, auth_header()], ContentType, RequestBody},
+	{ok, {{_, 201, _}, _, _}} = httpc:request(post, Request, [], []),
+	Identity = ocs:generate_identity(),
+	Password = ocs:generate_password(),
+	{ok, #service{}} = ocs:add_service(Identity, Password),
+	Service = receive
+		Input ->
+			{struct, ServiceEvent} = mochijson:decode(Input),
+			{_, "ServiceCreationNotification"}
+					= lists:keyfind("eventType", 1, ServiceEvent),
+			{_, {struct, ServiceList}} = lists:keyfind("event", 1, ServiceEvent),
+			ServiceList
+	end,
+	{_, Identity} = lists:keyfind("id", 1, Service),
+	{_, {array, Chars}} = lists:keyfind("serviceCharacteristic", 1, Service),
+	F = fun({struct, [{"name", "servicePassword"}, {"value", Value}]}) ->
+				{true, Value};
+			({struct, [{"value", Value}, {"name", "servicePassword"}]}) ->
+				{true, Value};
+			(_) ->
+				false
+	end,
+	[Password] = lists:filtermap(F, Chars).
+
+delete_hub_service() ->
+	[{userdata, [{doc, "Unregister hub listener for service"}]}].
+
+delete_hub_service(Config) ->
+	HostUrl = ?config(host_url, Config),
+	PathHub = ?PathServiceHub,
+	CollectionUrl = HostUrl ++ PathHub,
+	Callback = "http://in.listener.com",
+	RequestBody = "{\"callback\":\"" ++ Callback ++ "\"}",
+	ContentType = "application/json",
+	Accept = {"accept", "application/json"},
+	Request = {CollectionUrl, [Accept, auth_header()], ContentType, RequestBody},
+	{ok, {{_, 201, _}, _, ResponseBody}} = httpc:request(post, Request, [], []),
+	{struct, HubList} = mochijson:decode(ResponseBody),
+	{_, Id} = lists:keyfind("id", 1, HubList),
+	Request1 = {HostUrl ++ PathHub ++ Id, [Accept, auth_header()]},
+	{ok, {{_, 204, _}, _, []}} = httpc:request(delete, Request1, [], []).
+
+post_hub_user() ->
+	[{userdata, [{doc, "Register hub listener for service"}]}].
+
+post_hub_user(Config) ->
+	HostUrl = ?config(host_url, Config),
+	PathHub = ?PathUserHub,
+	CollectionUrl = HostUrl ++ PathHub,
+	Callback = "http://in.listener.com",
+	RequestBody = "{\n"
+			++ "\t\"callback\": \"" ++ Callback ++ "\",\n"
+			++ "}\n",
+	ContentType = "application/json",
+	Accept = {"accept", "application/json"},
+	Request = {CollectionUrl, [Accept, auth_header()], ContentType, RequestBody},
+	{ok, Result} = httpc:request(post, Request, [], []),
+	{{"HTTP/1.1", 201, _Created}, Headers, ResponseBody} = Result,
+	{_, "application/json"} = lists:keyfind("content-type", 1, Headers),
+	ContentLength = integer_to_list(length(ResponseBody)),
+	{_, ContentLength} = lists:keyfind("content-length", 1, Headers),
+	{_, Location} = lists:keyfind("location", 1, Headers),
+	Id = string:substr(Location, string:rstr(Location, PathHub) + length(PathHub)),
+	{struct, HubList} = mochijson:decode(ResponseBody),
+	{_, Callback} = lists:keyfind("callback", 1, HubList),
+	{_, Id} = lists:keyfind("id", 1, HubList),
+	{_, null} = lists:keyfind("query", 1, HubList).
+
+delete_hub_user() ->
+	[{userdata, [{doc, "Unregister hub listener for user"}]}].
+
+delete_hub_user(Config) ->
+	HostUrl = ?config(host_url, Config),
+	PathHub = ?PathUserHub,
+	CollectionUrl = HostUrl ++ PathHub,
+	Callback = "http://in.listener.com",
+	RequestBody = "{\"callback\":\"" ++ Callback ++ "\"}",
+	ContentType = "application/json",
+	Accept = {"accept", "application/json"},
+	Request = {CollectionUrl, [Accept, auth_header()], ContentType, RequestBody},
+	{ok, {{_, 201, _}, _, ResponseBody}} = httpc:request(post, Request, [], []),
+	{struct, HubList} = mochijson:decode(ResponseBody),
+	{_, Id} = lists:keyfind("id", 1, HubList),
+	Request1 = {HostUrl ++ PathHub ++ Id, [Accept, auth_header()]},
+	{ok, {{_, 204, _}, _, []}} = httpc:request(delete, Request1, [], []).
+
+post_hub_catalog() ->
+	[{userdata, [{doc, "Register hub listener for catalog"}]}].
+
+post_hub_catalog(Config) ->
+	HostUrl = ?config(host_url, Config),
+	PathHub = ?PathCatalogHub,
+	CollectionUrl = HostUrl ++ PathHub,
+	Callback = "http://in.listener.com",
+	RequestBody = "{\n"
+			++ "\t\"callback\": \"" ++ Callback ++ "\",\n"
+			++ "}\n",
+	ContentType = "application/json",
+	Accept = {"accept", "application/json"},
+	Request = {CollectionUrl, [Accept, auth_header()], ContentType, RequestBody},
+	{ok, Result} = httpc:request(post, Request, [], []),
+	{{"HTTP/1.1", 201, _Created}, Headers, ResponseBody} = Result,
+	{_, "application/json"} = lists:keyfind("content-type", 1, Headers),
+	ContentLength = integer_to_list(length(ResponseBody)),
+	{_, ContentLength} = lists:keyfind("content-length", 1, Headers),
+	{_, Location} = lists:keyfind("location", 1, Headers),
+	Id = string:substr(Location, string:rstr(Location, PathHub) + length(PathHub)),
+	{struct, HubList} = mochijson:decode(ResponseBody),
+	{_, Callback} = lists:keyfind("callback", 1, HubList),
+	{_, Id} = lists:keyfind("id", 1, HubList),
+	{_, null} = lists:keyfind("query", 1, HubList).
+
+delete_hub_catalog() ->
+	[{userdata, [{doc, "Unregister hub listener for catalog"}]}].
+
+delete_hub_catalog(Config) ->
+	HostUrl = ?config(host_url, Config),
+	PathHub = ?PathCatalogHub,
+	CollectionUrl = HostUrl ++ PathHub,
+	Callback = "http://in.listener.com",
+	RequestBody = "{\"callback\":\"" ++ Callback ++ "\"}",
+	ContentType = "application/json",
+	Accept = {"accept", "application/json"},
+	Request = {CollectionUrl, [Accept, auth_header()], ContentType, RequestBody},
+	{ok, {{_, 201, _}, _, ResponseBody}} = httpc:request(post, Request, [], []),
+	{struct, HubList} = mochijson:decode(ResponseBody),
+	{_, Id} = lists:keyfind("id", 1, HubList),
+	Request1 = {HostUrl ++ PathHub ++ Id, [Accept, auth_header()]},
+	{ok, {{_, 204, _}, _, []}} = httpc:request(delete, Request1, [], []).
+
+post_hub_inventory() ->
+	[{userdata, [{doc, "Register hub listener for inventory"}]}].
+
+post_hub_inventory(Config) ->
+	HostUrl = ?config(host_url, Config),
+	PathHub = ?PathResourceHub,
+	CollectionUrl = HostUrl ++ PathHub,
+	Callback = "http://in.listener.com",
+	RequestBody = "{\n"
+			++ "\t\"callback\": \"" ++ Callback ++ "\",\n"
+			++ "}\n",
+	ContentType = "application/json",
+	Accept = {"accept", "application/json"},
+	Request = {CollectionUrl, [Accept, auth_header()], ContentType, RequestBody},
+	{ok, Result} = httpc:request(post, Request, [], []),
+	{{"HTTP/1.1", 201, _Created}, Headers, ResponseBody} = Result,
+	{_, "application/json"} = lists:keyfind("content-type", 1, Headers),
+	ContentLength = integer_to_list(length(ResponseBody)),
+	{_, ContentLength} = lists:keyfind("content-length", 1, Headers),
+	{_, Location} = lists:keyfind("location", 1, Headers),
+	Id = string:substr(Location, string:rstr(Location, PathHub) + length(PathHub)),
+	{struct, HubList} = mochijson:decode(ResponseBody),
+	{_, Callback} = lists:keyfind("callback", 1, HubList),
+	{_, Id} = lists:keyfind("id", 1, HubList),
+	{_, null} = lists:keyfind("query", 1, HubList).
+
+delete_hub_inventory() ->
+	[{userdata, [{doc, "Unregister hub listener for catalog"}]}].
+
+delete_hub_inventory(Config) ->
+	HostUrl = ?config(host_url, Config),
+	PathHub = ?PathResourceHub,
+	CollectionUrl = HostUrl ++ PathHub,
+	Callback = "http://in.listener.com",
+	RequestBody = "{\"callback\":\"" ++ Callback ++ "\"}",
+	ContentType = "application/json",
+	Accept = {"accept", "application/json"},
+	Request = {CollectionUrl, [Accept, auth_header()], ContentType, RequestBody},
+	{ok, {{_, 201, _}, _, ResponseBody}} = httpc:request(post, Request, [], []),
+	{struct, HubList} = mochijson:decode(ResponseBody),
+	{_, Id} = lists:keyfind("id", 1, HubList),
+	Request1 = {HostUrl ++ PathHub ++ Id, [Accept, auth_header()]},
+	{ok, {{_, 204, _}, _, []}} = httpc:request(delete, Request1, [], []).
+
+oauth_authenticaton()->
+	[{userdata, [{doc, "Authenticate a JWT using oauth"}]}].
+
+oauth_authentication(Config)->
+	ID = "cornflakes",
+	Locale = "es",
+	{ok, _} = ocs:add_user(ID, "", Locale),
+	ok = application:set_env(ocs, oauth_issuer, "joe"),
+	ok = application:set_env(ocs, oauth_audience, "network-subscriber.sigscale-ocs"),
+	HostUrl = ?config(host_url, Config),
+	Accept = {"accept", "application/json"},
+	Header = {struct, [{"alg", "RS256"}, {"typ", "JWT"}]},
+	Payload = {struct, [{"iss", "joe"}, {"exp", 1300819380}, {"email", "cornflakes"},
+			{"aud", {array, ["network-subscriber.sigscale-ocs", "account"]}},
+			{"preferred_username","flakes"}]},
+	EncodedHeader = encode_base64url(lists:flatten(mochijson:encode(Header))),
+	EncodedPayload = encode_base64url(lists:flatten(mochijson:encode(Payload))),
+	Path = ?config(data_dir, Config),
+	KeyPath = Path ++ "key.pem",
+	{ok, PrivBin} = file:read_file(KeyPath),
+	[RSAPrivEntry] = public_key:pem_decode(PrivBin),
+	Key = public_key:pem_entry_decode(RSAPrivEntry),
+	M = Key#'RSAPrivateKey'.modulus,
+	E = Key#'RSAPrivateKey'.publicExponent,
+	RSAPublicKey = #'RSAPublicKey'{modulus = M, publicExponent = E},
+	PemEntry = public_key:pem_entry_encode('RSAPublicKey', RSAPublicKey),
+	PemBin = public_key:pem_encode([PemEntry]),
+	file:write_file(Path ++ "pub.pem", PemBin),
+	Msg = list_to_binary(EncodedHeader ++ "." ++ EncodedPayload),
+	Signature = public_key:sign(Msg, sha256, Key),
+	EncodedSignature = encode_base64url(binary_to_list(Signature)),
+	AuthKey = "Bearer " ++ EncodedHeader ++ "." ++ EncodedPayload ++ "." ++ EncodedSignature,
+	Authentication = {"authorization", AuthKey},
+	Request = {HostUrl, [Accept, Authentication]},
+	{ok, Result} = httpc:request(get, Request, [], []),
+	{{"HTTP/1.1", 200, _}, _, _} = Result.
+
 %%---------------------------------------------------------------------
 %%  Internal functions
 %%---------------------------------------------------------------------
+
+-spec notifycreatebucket(SessionID :: term(), Env :: list(),
+		Input :: string()) -> any().
+%% @doc Notification callback for notify_create_bucket test case.
+notifycreatebucket(SessionID, _Env, Input) ->
+	mod_esi:deliver(SessionID, "status: 201 Created\r\n\r\n"),
+	notify_create_bucket ! Input.
+
+-spec notifyexpiredbucket(SessionID :: term(), Env :: list(),
+		Input :: string()) -> any().
+%% @doc Notification callback for notify_delete_expired_bucket test case.
+notifyexpiredbucket(SessionID, _Env, Input) ->
+	mod_esi:deliver(SessionID, "status: 201 Created\r\n\r\n"),
+	notify_delete_expired_bucket ! Input.
+
+-spec notifycreateproduct(SessionID :: term(), Env :: list(),
+		Input :: string()) -> any().
+%% @doc Notification callback for notify_create_product test case.
+notifycreateproduct(SessionID, _Env, Input) ->
+	mod_esi:deliver(SessionID, "status: 201 Created\r\n\r\n"),
+	notify_create_product ! Input.
+
+-spec notifycreateservice(SessionID :: term(), Env :: list(),
+		Input :: string()) -> any().
+%% @doc Notification callback for notify_create_service test case.
+notifycreateservice(SessionID, _Env, Input) ->
+	mod_esi:deliver(SessionID, "status: 201 Created\r\n\r\n"),
+	notify_create_service ! Input.
 
 product_offer() ->
 	CatalogHref = "/catalogManagement/v2",
@@ -2534,8 +3023,18 @@ product_offer() ->
 	POPPriceCurrency1 = {"currencyCode", "USD"},
 	POPPrice1 = {"price", {struct, [POPPriceTaxInclude1, POPPriceCurrency1]}},
 	POPRecChargPeriod1 = {"recurringChargePeriod", "monthly"},
+	ProdAlterName = {"name", "allowance"},
+	ProdAlterDescription = {"description", ocs:generate_password()},
+	ProdAlterValidFor = {"validFor", {struct, [POPStartDateTime1]}},
+	ProdAlterPriceType = {"priceType", "usage"},
+	ProdAlterUOMeasure = {"unitOfMeasure", "100g"},
+	ProdAlterAmount = {"taxIncludedAmount", "0"},
+	POPPAlterCurrency = {"currencyCode", "USD"},
+	ProdAlterPrice = {"price", {struct, [ProdAlterAmount, POPPAlterCurrency]}},
+	POPAlteration = {"productOfferPriceAlteration", {struct, [ProdAlterName, ProdAlterDescription,
+		ProdAlterValidFor, ProdAlterPriceType, ProdAlterUOMeasure, ProdAlterPrice]}},
 	ProdOfferPrice1 = {struct, [POPName1, POPDescription1, POPValidFor1,
-			POPPriceType1, POPPrice1, POPRecChargPeriod1]},
+			POPPriceType1, POPPrice1, POPRecChargPeriod1, POPAlteration]},
 	POPName2 = {"name", "usage"},
 	POPDescription2 = {"description", ocs:generate_password()},
 	POPStratDateTime2 = {"startDateTime", ocs_rest:iso8601(erlang:system_time(?MILLISECOND))},
@@ -2547,18 +3046,8 @@ product_offer() ->
 			integer_to_list(rand:uniform(1000)) ++ "." ++ integer_to_list(rand:uniform(999999))},
 	POPPriceCurrency2 = {"currencyCode", "USD"},
 	POPPrice2 = {"price", {struct, [POPPriceTaxInclude2, POPPriceCurrency2]}},
-	ProdAlterName = {"name", "allowance"},
-	ProdAlterDescription = {"description", ocs:generate_password()},
-	ProdAlterValidFor = {"validFor", {struct, [POPStartDateTime1]}},
-	ProdAlterPriceType = {"priceType", "usage"},
-	ProdAlterUOMeasure = {"unitOfMeasure", "100g"},
-	ProdAlterAmount = {"taxIncludedAmount", "0"},
-	POPPAlterCurrency = {"currencyCode", "USD"},
-	ProdAlterPrice = {"price", {struct, [ProdAlterAmount, POPPAlterCurrency]}},
-	POPAlteration = {"productOfferPriceAlteration", {struct, [ProdAlterName, ProdAlterDescription,
-		ProdAlterValidFor, ProdAlterPriceType, ProdAlterUOMeasure, ProdAlterPrice]}},
 	ProdOfferPrice2 = {struct, [POPName2, POPDescription2, POPValidFor2, POPPriceType2,
-			POPPrice2, POPUOMeasure2, POPAlteration]},
+			POPPrice2, POPUOMeasure2]},
 	ProdOfferPrice = {"productOfferingPrice", {array, [ProdOfferPrice1, ProdOfferPrice2]}},
 	[ProdName, ProdDescirption, IsBundle, IsCustomerVisible, ValidFor, ProdSpec, Status, ProdOfferPrice].
 
@@ -2657,28 +3146,28 @@ prod_price_type() ->
 pp_alter_name() ->
 	Name = ocs:generate_password(),
 	Op = {"op", "replace"},
-	Path = {"path", "/productOfferingPrice/1/productOfferPriceAlteration/name"},
+	Path = {"path", "/productOfferingPrice/0/productOfferPriceAlteration/name"},
 	Value = {"value", Name},
 	{struct, [Op, Path, Value]}.
 
 pp_alter_description() ->
 	Description = ocs:generate_password(),
 	Op = {"op", "replace"},
-	Path = {"path", "/productOfferingPrice/1/productOfferPriceAlteration/description"},
+	Path = {"path", "/productOfferingPrice/0/productOfferPriceAlteration/description"},
 	Value = {"value", Description},
 	{struct, [Op, Path, Value]}.
 
 pp_alter_type() ->
 	PT = "recurring",
 	Op = {"op", "replace"},
-	Path = {"path", "/productOfferingPrice/1/productOfferPriceAlteration/priceType"},
+	Path = {"path", "/productOfferingPrice/0/productOfferPriceAlteration/priceType"},
 	Value = {"value", PT},
 	{struct, [Op, Path, Value]}.
 
 pp_alter_ufm() ->
 	UFM = "1000b",
 	Op = {"op", "replace"},
-	Path = {"path", "/productOfferingPrice/1/productOfferPriceAlteration/unitOfMeasure"},
+	Path = {"path", "/productOfferingPrice/0/productOfferPriceAlteration/unitOfMeasure"},
 	Value = {"value", UFM},
 	{struct, [Op, Path, Value]}.
 
@@ -2700,10 +3189,22 @@ auth_header() ->
 	{"authorization", basic_auth()}.
 
 %% @hidden
-price(Type, Units, Size, Amount) ->
+price(Type, undefined, undefined, Amount)
+		when ((Type == one_time) or (Type == recurring)),
+		is_integer(Amount) ->
 	#price{name = ocs:generate_identity(),
-			type = Type, units = Units,
-			size = Size, amount = Amount}.
+			type = Type, amount = Amount};
+price(usage, Units, Size, Amount)
+		when ((Units == octets) or (Units == seconds) or (Units == messages)),
+		is_integer(Size), Size > 0,
+		is_integer(Amount), Amount > 0 ->
+	#price{name = ocs:generate_identity(),
+			type = usage, units = Units, size = Size, amount = Amount};
+price(tariff, Units, Size, undefined)
+		when ((Units == octets) or (Units == seconds) or (Units == messages)),
+		is_integer(Size), Size > 0 ->
+	#price{name = ocs:generate_identity(),
+			type = tariff, units = Units, size = Size}.
 
 %% @hidden
 b(Units, RA) ->
@@ -2746,8 +3247,49 @@ binary_to_hex(B) ->
 %% @hidden
 binary_to_hex(<<N:4, Rest/bits>>, Acc) when N >= 10 ->
 	binary_to_hex(Rest, [N - 10 + $a | Acc]);
+
 binary_to_hex(<<N:4, Rest/bits>>, Acc) ->
 	binary_to_hex(Rest, [N + $0 | Acc]);
 binary_to_hex(<<>>, Acc) ->
 	lists:reverse(Acc).
+
+-spec encode_base64url(Value) -> EncodedValue 
+	when
+		Value :: string(),
+		EncodedValue :: list().
+%% @doc Encode a value using base64url encoding.
+encode_base64url(Value)
+		when is_list(Value) ->
+	EncodedValue = base64:encode_to_string(Value),
+	StrippedValue = string:strip(EncodedValue, both, $=),
+	sub_chars_en(StrippedValue, []).
+
+%% @hidden 
+sub_chars_en([$/ | T], Acc) ->
+	sub_chars_en(T, [$_ | Acc]);
+sub_chars_en([$+ | T], Acc) ->
+	sub_chars_en(T, [$- | Acc]);
+sub_chars_en([H | T], Acc) ->
+	sub_chars_en(T, [H | Acc]);
+sub_chars_en([], Acc) ->
+	lists:reverse(Acc).
+
+set_inet_mod() ->
+	{ok, EnvObj} = application:get_env(inets, services),
+	[{httpd, Services}] = EnvObj,
+	NewModTuple = replace_mod(lists:keyfind(modules, 1, Services), []),
+	NewServices = lists:keyreplace(modules, 1, Services, NewModTuple),
+	ok = application:set_env(inets, services, [{httpd, NewServices}]).
+	
+replace_mod({modules, Mods}, Acc) ->
+	replace_mod1(Mods, Acc).
+%% @hidden
+replace_mod1([mod_auth | T], Acc) ->
+	replace_mod1(T, [mod_oauth | Acc]);
+replace_mod1([mod_oauth | T], Acc) ->
+	replace_mod1(T, [mod_auth | Acc]);
+replace_mod1([H | T], Acc) ->
+	replace_mod1(T, [H | Acc]);
+replace_mod1([], Acc) ->
+	{modules, lists:reverse(Acc)}.
 

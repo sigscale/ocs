@@ -4,6 +4,7 @@
 -module(ocs_test_lib).
 
 -export([initialize_db/0, start/0, stop/0]).
+-export([load/1, unload/1]).
 -export([ipv4/0, port/0, mac/0]).
 -export([add_offer/0]).
 -export([write_csv/2]).
@@ -39,7 +40,7 @@ initialize_db() ->
 
 start() ->
 	start([crypto, inets, asn1, public_key, ssl, xmerl, compiler,
-		syntax_tools, mochiweb, radius, diameter, ocs]).
+			syntax_tools, mochiweb, radius, diameter, ocs]).
 
 start([H | T]) ->
 	case application:start(H) of
@@ -56,6 +57,7 @@ start([]) ->
 stop() ->
 	case application:stop(ocs) of
 		ok ->
+			ok = unload(ocs),
 			case application:stop(radius) of
 				ok ->
 					case application:stop(diameter) of
@@ -71,23 +73,43 @@ stop() ->
 			{error, Reason}
 	end.
 
+load(Application) ->
+	case application:load(Application) of
+		ok ->
+			ok;
+		{error, {already_loaded, Application}} ->
+			ok = unload(Application),
+			load(Application);
+		{error, {running, Application}} ->
+			ok = application:stop(Application),
+			ok = unload(Application),
+			load(Application)
+	end.
+
+unload(Application) ->
+	case application:unload(Application) of
+		ok ->
+			ok;
+		{error, {running, Application}} ->
+			ok = application:stop(Application),
+			unload(Application);
+		{error, {not_loaded, Application}} ->
+			ok
+	end.
+
 add_offer() ->
 	Price1 = #price{name = ocs:generate_password(),
-			type = recurring, period = monthly,
-			amount = 1995, size = undefined,
-			units = undefined,
+			type = recurring, period = monthly, amount = 1995,
 			alteration = #alteration{name = ocs:generate_password(),
-					type = usage, units = octets,
-					size = 2000000000, amount = 295}},
+					type = recurring, period = monthly,
+					units = octets, size = 2000000000, amount = 0}},
 	Price2 = #price{name = ocs:generate_password(),
 			type = usage, units = octets,
-			size = 1000000000, amount = 100},
+			size = 100000000, amount = 100},
 	Prices = [Price1, Price2],
 	OfferName = ocs:generate_password(),
-	Offer = #offer{name = OfferName,
-			status = active,
-			specification = 8,
-			price = Prices},
+	Offer = #offer{name = OfferName, status = active,
+			specification = 8, price = Prices},
 	case ocs:add_offer(Offer) of
 		{ok, _Offer1} ->
 			{ok, OfferName};

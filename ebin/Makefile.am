@@ -68,6 +68,7 @@ beam_DATA = ocs.beam \
 			mod_ocs_rest_post.beam \
 			mod_ocs_rest_patch.beam \
 			mod_ocs_rest_delete.beam \
+			mod_oauth.beam \
 			ocs_rest.beam \
 			ocs_rest_res_client.beam \
 			ocs_rest_res_usage.beam \
@@ -103,7 +104,15 @@ beam_DATA = ocs.beam \
 			ocs_scheduler.beam \
 			ocs_rest_query_scanner.beam \
 			ocs_rest_query_parser.beam \
-			ocs_mib.beam
+			ocs_mib.beam \
+			ocs_rest_hub_sup.beam \
+			ocs_rest_hub_fsm.beam \
+			ocs_rest_hub_balance.beam \
+			ocs_rest_hub_product.beam \
+			ocs_rest_hub_service.beam \
+			ocs_rest_hub_user.beam \
+			ocs_rest_hub_resource.beam \
+			ocs_event.beam
 
 %.beam:$(top_srcdir)/src/%.erl	$(top_srcdir)/include/ocs.hrl \
 		$(top_srcdir)/include/ocs_log.hrl \

@@ -91,22 +91,34 @@ do_post(Resource, ModData, Body, ["ocs", "v1", "subscriber"]) ->
 	do_response(ModData, Resource:post_subscriber(Body));
 do_post(Resource, ModData, Body, ["partyManagement", "v1", "individual"]) ->
 	do_response(ModData, Resource:post_user(Body));
+do_post(Resource, ModData, Body, ["partyManagement", "v1", "hub"]) ->
+	do_response(ModData, Resource:post_hub(Body));
 do_post(Resource, ModData, Body, ["balanceManagement", "v1", "product", Id, "balanceTopup"]) ->
 	do_response(ModData, Resource:top_up(Id, Body));
 do_post(Resource, ModData, Body, ["balanceManagement", "v1", "service", Id, "balanceTopup"]) ->
 	do_response(ModData, Resource:top_up_service(Id, Body));
 do_post(Resource, ModData, Body, ["balanceManagement", "v1", "balanceAdjustment"]) ->
 	do_response(ModData, Resource:balance_adjustment(Body));
+do_post(Resource, ModData, Body, ["balanceManagement", "v1", "hub"]) ->
+	do_response(ModData, Resource:post_hub(Body));
 do_post(Resource, ModData, Body, ["catalogManagement", "v2", "productOffering"]) ->
 	do_response(ModData, Resource:add_offer(Body));
 do_post(Resource, ModData, Body, ["productInventoryManagement", "v2", "product"]) ->
 	do_response(ModData, Resource:add_inventory(Body));
+do_post(Resource, ModData, Body, ["productInventory", "v2", "hub"]) ->
+	do_response(ModData, Resource:post_hub(Body));
 do_post(Resource, ModData, Body, ["serviceInventoryManagement", "v2", "service"]) ->
 	do_response(ModData, Resource:add_inventory(Body));
+do_post(Resource, ModData, Body, ["serviceInventory", "v2", "hub"]) ->
+	do_response(ModData, Resource:post_hub(Body));
 do_post(Resource, ModData, Body, ["catalogManagement", "v2", "pla"]) ->
 	do_response(ModData, Resource:add_pla(Body));
+do_post(Resource, ModData, Body, ["productCatalog", "v2", "hub"]) ->
+	do_response(ModData, Resource:post_hub_catalog(Body));
 do_post(Resource, ModData, Body, ["resourceInventoryManagement", "v1", "logicalResource", Table]) ->
-	do_response(ModData, Resource:add_resource_inventory(Table, Body)).
+	do_response(ModData, Resource:add_resource_inventory(Table, Body));
+do_post(Resource, ModData, Body, ["resourceInventory", "v1", "hub"]) ->
+	do_response(ModData, Resource:post_hub(Body)).
 
 %% @hidden
 do_response(#mod{data = Data} = ModData, {ok, [] = Headers,
