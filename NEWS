@@ -1,3 +1,10 @@
+September 16, 2020
+------------------
+	- PCRF function
+		- Gx DIAMETER application support
+	- HSS function
+		- S6a DIAMETER application support
+
 September 9, 2020
 -----------------
 	- Scheduled charging improved to avoid blocking
