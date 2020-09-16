@@ -32,7 +32,6 @@ class prefixAdd extends PolymerElement {
 				</paper-progress>
 				<paper-input
 						id="addPrefix"
-						type="number"
 						name="Prefix"
 						allowed-pattern="[0-9]"
 						label="Prefix"
@@ -100,27 +99,27 @@ class prefixAdd extends PolymerElement {
 
 	_tableRow(event) {
 //		var table = document.getElementById('prefixList').table;
-		var table = document.body.querySelector('sig-app').shadowRoot.getElementById('prefixList');
+		var table = document.body.querySelector('sig-app').shadowRoot.getElementById('prefixList').table;
 		var rowName = new Object();
 		rowName.id = this.addPre;
 		rowName.href = "/resourceInventoryManagement/v1/logicalResource/" + table + "/" + rowName.id;
 		var resource = new Array();
 		var resPre = new Object();
 		resPre.name = "prefix";
-		seqNum = 1;
-		value = this.addPre;
+		var seqNum = 1;
+		var value = this.addPre;
 		resPre.value = {seqNum, value};
 		resource.push(resPre);
 		var resDes = new Object();
 		resDes.name = "description";
-		seqNum = 2;
-		value = this.addPreDesc;
+		var seqNum = 2;
+		var value = this.addPreDesc;
 		resDes.value = {seqNum, value};
 		resource.push(resDes);
 		var resRate = new Object();
 		resRate.name = "rate";
-		seqNum = 3;
-		value = this.addPreRate;
+		var seqNum = 3;
+		var value = this.addPreRate;
 		resRate.value = {seqNum, value};
 		resource.push(resRate);
 		rowName.resourceCharacteristic = resource;
