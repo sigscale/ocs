@@ -60,8 +60,7 @@ class prefixList extends PolymerElement {
 							raised
 							id="tabOkButton"
 							disabled
-							onclick="drawer.toggle()"
-							on-click="tableOk"
+							on-tap="tableOk"
 							class="ok-button">
 						Ok
 					</paper-button>
@@ -141,7 +140,6 @@ class prefixList extends PolymerElement {
       ajax1.url = "/catalogManagement/v2/pla";
       ajax1.generateRequest();
 		this.$.tableList.open();
-		grid.dataProvider = this._getPreTable;
 	}
 
 	_activeItemChanged(item) {
@@ -166,11 +164,13 @@ class prefixList extends PolymerElement {
    }
 
 	tableOk() {
+		var grid = this.shadowRoot.getElementById('prefixGrid');
 		document.body.querySelector('sig-app').shadowRoot.getElementById('prefixList').shadowRoot.getElementById('prefixGrid');
+		grid.dataProvider = this._getPreTable;
 	}
 
 	tableAdd() {
-		document.body.querySelector('sig-app').shadowRoot.getElementById('sig-prefix-table-add').shadowRoot.getElementById('addPrefixTableModal').open();
+		document.body.querySelector('sig-app').shadowRoot.querySelector('sig-prefix-table-add').shadowRoot.getElementById('addPrefixTableModal').open();
 		this.$.tableList.close();
 	}
 
@@ -187,7 +187,7 @@ class prefixList extends PolymerElement {
 
 	tableSelection(e) {
 		if(e.model.item && e.model.item.id) {
-			this.$.prefixList.table = e.model.item.id;
+			document.body.querySelector('sig-app').shadowRoot.getElementById('prefixList').table = e.model.item.id;
 			this.$.tabOkButton.disabled = false;
 		} else {
 			this.$.tabOkButton.disabled = true;
@@ -198,8 +198,7 @@ class prefixList extends PolymerElement {
 		var grid = this;
 		var prefixList = document.body.querySelector('sig-app').shadowRoot.querySelector('sig-prefix-list');
 		var ajax = prefixList.shadowRoot.getElementById('getTableContentAjax');
-console.log("Table param", this.table);
-		ajax.url = "/resourceInventoryManagement/v1/logicalResource/" + this.table;
+		ajax.url = "/resourceInventoryManagement/v1/logicalResource/" + prefixList.table;
 		var handleAjaxResponse = function(request) {
 			if(request) {
 				grid.size = 100;
