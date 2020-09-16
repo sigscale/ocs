@@ -167,6 +167,7 @@ class prefixList extends PolymerElement {
 		var grid = this.shadowRoot.getElementById('prefixGrid');
 		document.body.querySelector('sig-app').shadowRoot.getElementById('prefixList').shadowRoot.getElementById('prefixGrid');
 		grid.dataProvider = this._getPreTable;
+		this.$.tableList.close();
 	}
 
 	tableAdd() {
