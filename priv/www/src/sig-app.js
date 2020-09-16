@@ -314,7 +314,7 @@ class SigApp extends PolymerElement {
 			<sig-ipdr-log-files-voip id="ipdrLogs"></sig-ipdr-log-files-voip>
 			<sig-prefix-table-add></sig-prefix-table-add>
 			<sig-prefix-add></sig-prefix-add>
-			<sig-prefix-update></sig-prefix-update>
+			<sig-prefix-update active-item="[[activePrefixItem]]"></sig-prefix-update>
 			<sig-bucket-add></sig-bucket-add>
 			<sig-product-add active-item="[[activeProductItem]]" offers="[[offers]]"></sig-product-add>
 		`;
