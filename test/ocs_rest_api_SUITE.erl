@@ -124,7 +124,7 @@ init_per_testcase(oauth_authentication, Config) ->
 	application:start(inets),
 	Config;
 init_per_testcase(TestCase, Config) when TestCase == notify_create_bucket;
-		TestCase == notify_delete_bucket;
+		TestCase == notify_delete_bucket; TestCase == notify_accumulated_balance;
 		TestCase == notify_create_product; TestCase == notify_create_service;
 		TestCase == notify_product_charge ->
 	true = register(TestCase, self()),
@@ -185,7 +185,7 @@ all() ->
 	add_product_sms, update_product_realizing_service, delete_product,
 	ignore_delete_product, query_product, filter_product,
 	post_hub_balance, delete_hub_balance, notify_create_bucket,
-	notify_delete_bucket,
+	notify_delete_bucket, notify_accumulated_balance,
 	post_hub_product, delete_hub_product, notify_create_product,
 	post_hub_service, delete_hub_service, notify_create_service,
 	post_hub_user, delete_hub_user, post_hub_catalog, delete_hub_catalog,
@@ -2717,6 +2717,104 @@ notify_delete_bucket(Config) ->
 	{_, MillionthsOut} = lists:keyfind("amount", 1, RemainAmount),
 	PackagePrice = ocs_rest:millionths_in(MillionthsOut).
 
+notify_accumulated_balance() ->
+	[{userdata, [{doc, "Notify accumulated balance of buckets"}]}].
+
+notify_accumulated_balance(Config) ->
+	HostUrl = ?config(host_url, Config),
+	CollectionUrl = HostUrl ++ ?PathBalanceHub,
+	ListenerPort = ?config(listener_port, Config),
+	ListenerServer = "http://localhost:" ++ integer_to_list(ListenerPort),
+	Callback = ListenerServer ++ "/listener/"
+			++ atom_to_list(?MODULE) ++ "/notifyaccumulatedbalance",
+	RequestBody = "{\n"
+			++ "\t\"callback\": \"" ++ Callback ++ "\",\n"
+			++ "}\n",
+	ContentType = "application/json",
+	Accept = {"accept", "application/json"},
+	Request = {CollectionUrl, [Accept, auth_header()], ContentType, RequestBody},
+	{ok, {{_, 201, _}, _, _}} = httpc:request(post, Request, [], []),
+	PackagePrice = 5000000,
+	PackageSize = 100000000,
+	P1 = #price{name = ocs:generate_identity(), type = usage, units = octets,
+			size = PackageSize, amount = PackagePrice},
+	OfferId = add_offer([P1], 4),
+	{ok, #product{id = ProdRef}} = ocs:add_product(OfferId, [], []),
+	receive
+		Input1 ->
+			{struct, ProductEvent} = mochijson:decode(Input1),
+			{_, {struct, ProductList}} = lists:keyfind("event", 1, ProductEvent),
+			{_, ProdRef} = lists:keyfind("id", 1, ProductList)
+	end,
+	{ok, #service{name = ServiceId}} = ocs:add_service(ocs:generate_identity(),
+			ocs:generate_password(), ProdRef, []),
+	receive
+		Input2 ->
+			{struct, ServiceEvent} = mochijson:decode(Input2),
+			{_, {struct, ServiceList}} = lists:keyfind("event", 1, ServiceEvent),
+			ListServiceId = binary_to_list(ServiceId),
+			{_, ListServiceId} = lists:keyfind("id", 1, ServiceList)
+	end,
+	RA1 = 50000000,
+	BId1 = add_bucket(ProdRef, cents, RA1),
+	receive
+		Input3 ->
+			{struct, BalanceEvent1} = mochijson:decode(Input3),
+			{_, {struct, BalanceList1}} = lists:keyfind("event", 1, BalanceEvent1),
+			{_, BId1} = lists:keyfind("id", 1, BalanceList1)
+	end,
+	RA2 = 500000000,
+	BId2 = add_bucket(ProdRef, octets, RA2),
+	receive
+		Input4 ->
+			{struct, BalanceEvent2} = mochijson:decode(Input4),
+			{_, {struct, BalanceList2}} = lists:keyfind("event", 1, BalanceEvent2),
+			{_, BId2} = lists:keyfind("id", 1, BalanceList2)
+	end,
+	RA3 = 100000000,
+	BId3 = add_bucket(ProdRef, cents, RA3),
+	receive
+		Input5 ->
+			{struct, BalanceEvent3} = mochijson:decode(Input5),
+			{_, {struct, BalanceList3}} = lists:keyfind("event", 1, BalanceEvent3),
+			{_, BId3} = lists:keyfind("id", 1, BalanceList3)
+	end,
+	Timestamp = calendar:local_time(),
+	SessionId = [{'Session-Id', list_to_binary(ocs:generate_password())}],
+	ServiceType = 32251,
+	{ok, #service{}, _} = ocs_rating:rate(diameter, ServiceType, undefined,
+			undefined, ServiceId, Timestamp, undefined, undefined, initial,
+			[], [{octets, PackageSize}], SessionId),
+%	DeletedBalance = receive
+%		Input4 ->
+%			{struct, BalDelEvent} = mochijson:decode(Input4),
+%			{_, "BucketDeleteEvent"}
+%					= lists:keyfind("eventType", 1, BalDelEvent),
+%			{_, {struct, DeletedBalList}} = lists:keyfind("event", 1, BalDelEvent),
+%			DeletedBalList
+%	end,
+%	{_, {struct, RemainAmount}}
+%			= lists:keyfind("remainedAmount", 1, DeletedBalance),
+%	{_, MillionthsOut} = lists:keyfind("amount", 1, RemainAmount),
+%	PackagePrice = ocs_rest:millionths_in(MillionthsOut).
+	AccBalanceStructs = receive
+		Input6 ->
+			{struct, AccBalanceEvent} = mochijson:decode(Input6),
+			{_, "AccumulatedBalanceCreationNotification"}
+					= lists:keyfind("eventType", 1, AccBalanceEvent),
+			{_, {array, AccStructList}}
+					= lists:keyfind("event", 1, AccBalanceEvent),
+			AccStructList
+	end,
+	AccBalanceRecords = [ocs_rest_res_balance:acc_balance(AccBalanceStruct)
+			|| AccBalanceStruct <- AccBalanceStructs],
+	CentsTotalAmount = RA1 + RA3,
+	{_, #acc_balance{total_balance = CentsTotalAmount}}
+			= lists:keyfind(cents, #acc_balance.units, AccBalanceRecords),
+	BytesTotalAmount = RA2 - PackageSize,
+	{_, #acc_balance{total_balance = BytesTotalAmount}}
+			= lists:keyfind(octets, #acc_balance.units, AccBalanceRecords).
+
 post_hub_product() ->
 	[{userdata, [{doc, "Register hub listener for product"}]}].
 
@@ -3150,6 +3248,13 @@ notifydeletebucket(SessionID, _Env, Input) ->
 	mod_esi:deliver(SessionID, "status: 201 Created\r\n\r\n"),
 	notify_delete_bucket ! Input.
 
+-spec notifyaccumulatedbalance(SessionID :: term(), Env :: list(),
+		Input :: string()) -> any().
+%% @doc Notification callback for notify_accumulated_balance test case.
+notifyaccumulatedbalance(SessionID, _Env, Input) ->
+	mod_esi:deliver(SessionID, "status: 201 Created\r\n\r\n"),
+	notify_accumulated_balance ! Input.
+
 -spec notifycreateproduct(SessionID :: term(), Env :: list(),
 		Input :: string()) -> any().
 %% @doc Notification callback for notify_create_product test case.
@@ -3463,4 +3568,21 @@ replace_mod1([H | T], Acc) ->
 	replace_mod1(T, [H | Acc]);
 replace_mod1([], Acc) ->
 	{modules, lists:reverse(Acc)}.
+
+%% @hidden
+add_offer(Prices, Spec) when is_integer(Spec) ->
+	add_offer(Prices, integer_to_list(Spec));
+add_offer(Prices, Spec) ->
+	Offer = #offer{name = ocs:generate_identity(),
+	price = Prices, specification = Spec},
+	{ok, #offer{name = OfferId}} = ocs:add_offer(Offer),
+	OfferId.
+
+%% @hidden
+add_bucket(ProdRef, Units, RA) ->
+	Bucket = #bucket{units = Units, remain_amount = RA,
+			start_date = erlang:system_time(?MILLISECOND),
+			end_date = erlang:system_time(?MILLISECOND) + 2592000000},
+	{ok, _, #bucket{id = BId}} = ocs:add_bucket(ProdRef, Bucket),
+	BId.
 
