@@ -25,6 +25,8 @@
 -export([authorize/8]).
 -export([session_attributes/1]).
 
+-export([accumulated_balance/2]).
+
 -include("ocs.hrl").
 -include("ocs_log.hrl").
 -include_lib("radius/include/radius.hrl").
@@ -1745,4 +1747,74 @@ send_notifications([]) ->
 send_notifications([DeletedBucket | T]) ->
 	ocs_event:notify(depleted, DeletedBucket, balance),
 	send_notifications(T).
+
+%% @private
+accumulated_balance(Buckets, ProdRef) when is_list(Buckets) ->
+	Fcents = fun(#bucket{units = cents}) ->
+				true;
+			(_) ->
+				false
+	end,
+	{CentsBuckets, AccBalance} = case lists:filter(Fcents, Buckets) of
+		[] ->
+			{[], []};
+		BucketList ->
+			AccBal = build_acc(BucketList, "accumulated cents", cents,
+					ProdRef, []),
+			{BucketList, AccBal}
+	end,
+	Fbytes = fun(#bucket{units = octets}) ->
+				true;
+			(_) ->
+				false
+	end,
+	Buckets1 = Buckets -- CentsBuckets,
+	{BytesBuckets, AccBalance1} = case lists:filter(Fbytes, Buckets1) of
+		[] ->
+			{[], AccBalance};
+		BucketList1 ->
+			AccBal1 = build_acc(BucketList1, "accumulated octets", octets,
+					ProdRef, AccBalance),
+			{BucketList1, AccBal1}
+	end,
+	Fseconds = fun(#bucket{units = seconds}) ->
+				true;
+			(_) ->
+				false
+	end,
+	Buckets2 = Buckets1 -- BytesBuckets,
+	{SecondsBuckets, AccBalance2} = case lists:filter(Fseconds, Buckets2) of
+		[] ->
+			{[], AccBalance1};
+		BucketList2 ->
+			AccBal2 = build_acc(BucketList2, "accumulated seconds", seconds,
+					ProdRef, AccBalance1),
+			{BucketList2, AccBal2}
+	end,
+	Fmessages = fun(#bucket{units = messages}) ->
+				true;
+			(_) ->
+				false
+	end,
+	Buckets3 = Buckets2 -- SecondsBuckets,
+	{_MessagesBuckets, AccBalance3} = case lists:filter(Fmessages, Buckets3) of
+		[] ->
+			{[], AccBalance2};
+		BucketList3 ->
+			AccBal3 = build_acc(BucketList3, "accumulated messages", messages,
+					ProdRef, AccBalance2),
+			{BucketList3, AccBal3}
+	end,
+	AccBalance3.
+
+%% @private
+build_acc(Buckets, Name, Units, ProdRef, AccBalance) ->
+	case lists:sum([RA || #bucket{remain_amount = RA} <- Buckets]) of
+		0 ->
+			AccBalance;
+		TotalBalance ->
+			BucketRefs = [Id || #bucket{id = Id} <- Buckets],
+			[#acc_balance{name = Name, product = [ProdRef], units = Units,
+					total_balance = TotalBalance, bucket = BucketRefs} | AccBalance]
+	end.
 
