@@ -1566,7 +1566,7 @@ alteration([amount | T], #alteration{amount = Amount, currency = Currency} = A, 
 	Price = {struct, [{"taxIncludedAmount", ocs_rest:millionths_out(Amount)},
 			{"currencyCode", Currency}]},
 	alteration(T, A, [{"price", Price} | Acc]);
-alteration([amount | T], #alteration{units = cents, amount = Amount} = A, Acc)
+alteration([amount | T], #alteration{amount = Amount} = A, Acc)
 		when is_integer(Amount) ->
 	Price = {struct, [{"taxIncludedAmount", ocs_rest:millionths_out(Amount)}]},
 	alteration(T, A, [{"price", Price} | Acc]);
