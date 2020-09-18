@@ -2785,18 +2785,6 @@ notify_accumulated_balance(Config) ->
 	{ok, #service{}, _} = ocs_rating:rate(diameter, ServiceType, undefined,
 			undefined, ServiceId, Timestamp, undefined, undefined, initial,
 			[], [{octets, PackageSize}], SessionId),
-%	DeletedBalance = receive
-%		Input4 ->
-%			{struct, BalDelEvent} = mochijson:decode(Input4),
-%			{_, "BucketDeleteEvent"}
-%					= lists:keyfind("eventType", 1, BalDelEvent),
-%			{_, {struct, DeletedBalList}} = lists:keyfind("event", 1, BalDelEvent),
-%			DeletedBalList
-%	end,
-%	{_, {struct, RemainAmount}}
-%			= lists:keyfind("remainedAmount", 1, DeletedBalance),
-%	{_, MillionthsOut} = lists:keyfind("amount", 1, RemainAmount),
-%	PackagePrice = ocs_rest:millionths_in(MillionthsOut).
 	AccBalanceStructs = receive
 		Input6 ->
 			{struct, AccBalanceEvent} = mochijson:decode(Input6),
@@ -2809,10 +2797,10 @@ notify_accumulated_balance(Config) ->
 	AccBalanceRecords = [ocs_rest_res_balance:acc_balance(AccBalanceStruct)
 			|| AccBalanceStruct <- AccBalanceStructs],
 	CentsTotalAmount = RA1 + RA3,
-	{_, #acc_balance{total_balance = CentsTotalAmount}}
+	#acc_balance{total_balance = CentsTotalAmount}
 			= lists:keyfind(cents, #acc_balance.units, AccBalanceRecords),
 	BytesTotalAmount = RA2 - PackageSize,
-	{_, #acc_balance{total_balance = BytesTotalAmount}}
+	#acc_balance{total_balance = BytesTotalAmount}
 			= lists:keyfind(octets, #acc_balance.units, AccBalanceRecords).
 
 post_hub_product() ->
