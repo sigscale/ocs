@@ -1830,7 +1830,8 @@ build_acc(Buckets, Name, Units, ProdRef, AccBalance) ->
 			AccBalance;
 		TotalBalance ->
 			BucketRefs = [Id || #bucket{id = Id} <- Buckets],
-			[#acc_balance{name = Name, product = [ProdRef], units = Units,
-					total_balance = TotalBalance, bucket = BucketRefs} | AccBalance]
+			[#acc_balance{id = ProdRef, name = Name, product = [ProdRef],
+					units = Units, total_balance = TotalBalance,
+					bucket = BucketRefs} | AccBalance]
 	end.
 
