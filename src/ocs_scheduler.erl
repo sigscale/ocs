@@ -114,7 +114,7 @@ product_charge1(ProdRef, Now) ->
 		{atomic, ok} ->
 			product_charge1(get_product(ProdRef), Now);
 		{atomic, {ok, Adjustments}} ->
-			ocs_event:notify(charge, Adjustments, adjustment),
+			ocs_event:notify(charge, Adjustments, balance),
 			product_charge1(get_product(ProdRef), Now);
 		{aborted, Reason} ->
 			error_logger:error_report("Scheduler Update Failed",

@@ -1762,7 +1762,7 @@ send_notifications([DeletedBucket | T]) ->
 notify_accumulated_balance([]) ->
 	ok;
 notify_accumulated_balance(AccBlance) ->
-	ocs_event:notify(accumulated, AccBlance, acc_balance).
+	ocs_event:notify(accumulated, AccBlance, balance).
 
 %% @private
 accumulated_balance(Buckets, ProdRef) when is_list(Buckets) ->

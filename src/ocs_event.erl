@@ -42,7 +42,7 @@
 				| depleted | accumulated,
 		EventPayLoad :: #bucket{} | #product{} | #service{} | [#adjustment{}]
 				| [#acc_balance{}],
-		Category :: balance | product | service | adjustment | acc_balance.
+		Category :: balance | product | service.
 %% @doc Send a notification event.
 %%
 %% The `EventPayload' should contain the entire new Alarm (create),

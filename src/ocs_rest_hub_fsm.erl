@@ -152,8 +152,7 @@ register(timeout, State) ->
 				| depleted | accumulated,
 		Resource :: #bucket{} | #product{} | #service{} | [#adjustment{}]
 				| [#acc_balance{}],
-		Category :: balance | product | service | adjustment | acc_balance,
-%		Category :: balance | product | service,
+		Category :: balance | product | service,
 		State :: statedata(),
 		Result :: {next_state, NextStateName, NewStateData}
 			| {next_state, NextStateName, NewStateData, timeout}
@@ -199,19 +198,26 @@ registered({Type, Resource, Category} = _Event, #statedata{sync = Sync,
 	end,
 	Event = case Category of
 		balance ->
-			ocs_rest_res_balance:bucket(Resource);
+			case Resource of
+				#bucket{} ->
+					ocs_rest_res_balance:bucket(Resource);
+				[H | _] ->
+					case element(1, H) of
+						adjustment ->
+							AdjStructs = [ocs_rest_res_balance:adjustment(Adjustment)
+									|| Adjustment <- Resource],
+							{array, AdjStructs};
+						acc_balance ->
+							AccBalStructs =
+									[ocs_rest_res_balance:acc_balance(AccBalance)
+									|| AccBalance <- Resource],
+							{array, AccBalStructs}
+					end
+			end;
 		product ->
 			ocs_rest_res_product:inventory(Resource);
 		service ->
-			ocs_rest_res_service:inventory(Resource);
-		adjustment ->
-			AdjStructs = [ocs_rest_res_balance:adjustment(Adjustment)
-					|| Adjustment <- Resource],
-			{array, AdjStructs};
-		acc_balance ->
-			AccBalStructs = [ocs_rest_res_balance:acc_balance(AccBalance)
-					|| AccBalance <- Resource],
-			{array, AccBalStructs}
+			ocs_rest_res_service:inventory(Resource)
 	end,
 	EventStruct = {struct, [{"eventId", EventId}, {"eventTime", EventTime},
 			{"eventType", EventType}, {"event", Event}]},
