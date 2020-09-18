@@ -149,9 +149,11 @@ register(timeout, State) ->
 	when
 		Event :: {Type, Resource, Category},
 		Type :: create_bucket | create_product | create_service | charge
-				| depleted,
-		Resource :: #bucket{} | #product{} | #service{} | [#adjustment{}],
-		Category :: balance | product | service | adjustment,
+				| depleted | accumulated,
+		Resource :: #bucket{} | #product{} | #service{} | [#adjustment{}]
+				| [#acc_balance{}],
+		Category :: balance | product | service | adjustment | acc_balance,
+%		Category :: balance | product | service,
 		State :: statedata(),
 		Result :: {next_state, NextStateName, NewStateData}
 			| {next_state, NextStateName, NewStateData, timeout}
@@ -191,7 +193,9 @@ registered({Type, Resource, Category} = _Event, #statedata{sync = Sync,
 		charge ->
 			"BalanceAdjustmentCreationNotification";
 		depleted ->
-			"BucketDeleteEvent"
+			"BucketDeleteEvent";
+		accumulated ->
+			"AccumulatedBalanceCreationNotification"
 	end,
 	Event = case Category of
 		balance ->
@@ -203,7 +207,11 @@ registered({Type, Resource, Category} = _Event, #statedata{sync = Sync,
 		adjustment ->
 			AdjStructs = [ocs_rest_res_balance:adjustment(Adjustment)
 					|| Adjustment <- Resource],
-			{array, AdjStructs}
+			{array, AdjStructs};
+		acc_balance ->
+			AccBalStructs = [ocs_rest_res_balance:acc_balance(AccBalance)
+					|| AccBalance <- Resource],
+			{array, AccBalStructs}
 	end,
 	EventStruct = {struct, [{"eventId", EventId}, {"eventTime", EventTime},
 			{"eventType", EventType}, {"event", Event}]},

@@ -25,8 +25,6 @@
 -export([authorize/8]).
 -export([session_attributes/1]).
 
--export([accumulated_balance/2]).
-
 -include("ocs.hrl").
 -include("ocs_log.hrl").
 -include_lib("radius/include/radius.hrl").
@@ -169,7 +167,7 @@ rate(Protocol, ServiceType, ChargingKey, ServiceNetwork, SubscriberID,
 													Timestamp, Address, Direction, Offer,
 													Flag, DebitAmounts, ReserveAmounts, State);
 										false ->
-											{out_of_credit, SessionList, []}
+											{out_of_credit, SessionList, [], []}
 									end;
 								[] ->
 									throw(offer_not_found)
@@ -182,21 +180,27 @@ rate(Protocol, ServiceType, ChargingKey, ServiceNetwork, SubscriberID,
 			end
 	end,
 	case mnesia:transaction(F) of
-		{atomic, {ok, Sub, Rated, DeletedBuckets}} when is_list(Rated) ->
+		{atomic, {ok, Sub, Rated, DeletedBuckets, AccBalance}}
+				when is_list(Rated) ->
 			ok = send_notifications(DeletedBuckets),
+			ok = notify_accumulated_balance(AccBalance),
 			{ok, Sub, Rated};
-		{atomic, {out_of_credit, SL, Rated, DeletedBuckets}} ->
+		{atomic, {out_of_credit, SL, Rated, DeletedBuckets, AccBalance}} ->
 			ok = send_notifications(DeletedBuckets),
+			ok = notify_accumulated_balance(AccBalance),
 			{out_of_credit, SL, Rated};
-		{atomic, {grant, Sub, {_Units, Amount} = Granted, DeletedBuckets}}
-				when is_integer(Amount) ->
+		{atomic, {grant, Sub, {_Units, Amount} = Granted, DeletedBuckets,
+				AccBalance}} when is_integer(Amount) ->
 			ok = send_notifications(DeletedBuckets),
+			ok = notify_accumulated_balance(AccBalance),
 			{ok, Sub, Granted};
-		{atomic, {out_of_credit, SL, DeletedBuckets}} ->
+		{atomic, {out_of_credit, SL, DeletedBuckets, AccBalance}} ->
 			ok = send_notifications(DeletedBuckets),
+			ok = notify_accumulated_balance(AccBalance),
 			{out_of_credit, SL};
-		{atomic, {disabled, SL, DeletedBuckets}} ->
+		{atomic, {disabled, SL, DeletedBuckets, AccBalance}} ->
 			ok = send_notifications(DeletedBuckets),
+			ok = notify_accumulated_balance(AccBalance),
 			{disabled, SL};
 		{aborted, {throw, Reason}} ->
 			{error, Reason};
@@ -611,7 +615,8 @@ rate7(#service{session_attributes = SessionList} = Service1, Buckets, final,
 	NewSessionList = remove_session(SessionId, SessionList),
 	Service2 = Service1#service{session_attributes = NewSessionList},
 	ok = mnesia:write(Service2),
-	{ok, Service2, Rated1, DeletedBuckets};
+	{ok, Service2, Rated1, DeletedBuckets,
+			accumulated_balance(NewBuckets2, P#product.id)};
 rate7(#service{session_attributes = SessionList} = Service1, Buckets, final,
 		{Units, _Charge}, {Units, _Charged}, {Units, 0}, {Units, 0},
 		#state{rated = Rated, product = P, session_id = SessionId,
@@ -624,7 +629,8 @@ rate7(#service{session_attributes = SessionList} = Service1, Buckets, final,
 	Rated1 = rated(Seconds, Octets, Cents, Msgs, Rated),
 	Service2 = Service1#service{session_attributes = []},
 	ok = mnesia:write(Service2),
-	{out_of_credit, SessionList, Rated1, DeletedBuckets};
+	{out_of_credit, SessionList, Rated1, DeletedBuckets,
+			accumulated_balance(NewBuckets2, P#product.id)};
 rate7(#service{enabled = false, session_attributes = SessionList} = Service1,
 		Buckets, _Flag, {Units, _Charge}, {Units, _Charged},
 		{Units, _Reserve}, {Units, _Reserved},
@@ -635,7 +641,8 @@ rate7(#service{enabled = false, session_attributes = SessionList} = Service1,
 	ok = mnesia:write(P#product{balance = NewBRefs}),
 	Service2 = Service1#service{session_attributes = []},
 	ok = mnesia:write(Service2),
-	{disabled, SessionList, DeletedBuckets};
+	{disabled, SessionList, DeletedBuckets,
+			accumulated_balance(NewBuckets, P#product.id)};
 rate7(#service{session_attributes = SessionList} = Service1, Buckets, _Flag,
 		{Units, Charge}, {Units, Charged}, {Units, Reserve}, {Units, Reserved},
 		#state{session_id = SessionId, buckets = OldBuckets,
@@ -646,7 +653,8 @@ rate7(#service{session_attributes = SessionList} = Service1, Buckets, _Flag,
 	ok = mnesia:write(P#product{balance = NewBRefs}),
 	Service2 = Service1#service{session_attributes = []},
 	ok = mnesia:write(Service2),
-	{out_of_credit, SessionList, DeletedBuckets};
+	{out_of_credit, SessionList, DeletedBuckets,
+			accumulated_balance(NewBuckets, P#product.id)};
 rate7(#service{session_attributes = SessionList} = Service1, Buckets, initial,
 		{Units, 0}, {Units, 0}, {Units, _Reserve}, {Units, Reserved},
 		#state{buckets = OldBuckets, session_id = SessionId, product = P}) ->
@@ -656,7 +664,8 @@ rate7(#service{session_attributes = SessionList} = Service1, Buckets, initial,
 	NewSessionList = add_session(SessionId, SessionList),
 	Service2 = Service1#service{session_attributes = NewSessionList},
 	ok = mnesia:write(Service2),
-	{grant, Service2, {Units, Reserved}, DeletedBuckets};
+	{grant, Service2, {Units, Reserved}, DeletedBuckets,
+			accumulated_balance(Buckets, P#product.id)};
 rate7(Service, Buckets, interim, {Units, _Charge}, {Units, _Charged},
 		{Units, _Reserve}, {Units, Reserved},
 		#state{buckets = OldBuckets, product = P}) ->
@@ -664,7 +673,8 @@ rate7(Service, Buckets, interim, {Units, _Charge}, {Units, _Charged},
 			= update_buckets(P#product.balance, OldBuckets, Buckets),
 	ok = mnesia:write(P#product{balance = NewBRefs}),
 	ok = mnesia:write(Service),
-	{grant, Service, {Units, Reserved}, DeletedBuckets}.
+	{grant, Service, {Units, Reserved}, DeletedBuckets,
+			accumulated_balance(Buckets, P#product.id)}.
 
 -spec authorize(Protocol, ServiceType, SubscriberId, Password,
 		Timestamp, Address, Direction, SessionAttributes) -> Result
@@ -1747,6 +1757,12 @@ send_notifications([]) ->
 send_notifications([DeletedBucket | T]) ->
 	ocs_event:notify(depleted, DeletedBucket, balance),
 	send_notifications(T).
+
+%% @private
+notify_accumulated_balance([]) ->
+	ok;
+notify_accumulated_balance(AccBlance) ->
+	ocs_event:notify(accumulated, AccBlance, acc_balance).
 
 %% @private
 accumulated_balance(Buckets, ProdRef) when is_list(Buckets) ->
