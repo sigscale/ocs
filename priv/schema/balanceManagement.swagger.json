@@ -3,7 +3,7 @@
   "info": {
     "description": "TMF654 Prepay Balance Management enables consumers to manage the balance, recharge (top-up), transfer, reserve, unreserve, deduct and balance adjustments of a bucket. A bucket is understood in the context of this API to be an entity that keeps track of the balance available to use services. Every bucket will measure balance in different units, it can be monetary or non-monetary (e.g.: number of sms that are available, number of GB of data available). \n\n### Resources \n- Bucket \n- TopupBalance \n- AdjustBalance \n- TransferBalance \n- AccumulatedBalance\n \n### Operations \n Prepay Balance management API performs the following operations : \n- Retrieve the balance information on a bucket for a given product (individual or aggregated).\n- Perform a new top up operation (recharge).\n- Perform a new adjustment operation\n- Reserve a balance on a bucket.\n- Unreserve a balance on a bucket.\n- Retrieve aggregated (accumulative) balances for a bucket.",
     "version": "1.0.0",
-    "title": "API PartyManagement"
+    "title": "API BalanceManagement"
   },
   "host": "serverRoot",
   "basePath": "/balanceManagement/v1/",
