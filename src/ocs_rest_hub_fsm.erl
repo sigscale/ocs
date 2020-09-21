@@ -182,37 +182,20 @@ registered({Type, Resource, Category} = _Event, #statedata{sync = Sync,
 	end,
 	{EventId, TS} = unique(),
 	EventTime = ocs_rest:iso8601(TS),
-	EventType = case Type of
-		create_bucket ->
-			"BucketBalanceCreationNotification";
-		create_product ->
-			"ProductCreationNotification";
-		create_service ->
-			"ServiceCreationNotification";
-		charge ->
-			"BalanceAdjustmentCreationNotification";
-		depleted ->
-			"BucketBalanceDeletionEvent";
-		accumulated ->
-			"AccumulatedBalanceCreationNotification"
-	end,
 	Event = case Category of
 		balance ->
 			case Resource of
 				#bucket{} ->
 					ocs_rest_res_balance:bucket(Resource);
-				[H | _] ->
-					case element(1, H) of
-						adjustment ->
-							AdjStructs = [ocs_rest_res_balance:adjustment(Adjustment)
-									|| Adjustment <- Resource],
-							{array, AdjStructs};
-						acc_balance ->
-							AccBalStructs =
-									[ocs_rest_res_balance:acc_balance(AccBalance)
-									|| AccBalance <- Resource],
-							{array, AccBalStructs}
-					end
+				[#adjustment{} | _] ->
+					AdjStructs = [ocs_rest_res_balance:adjustment(Adjustment)
+							|| Adjustment <- Resource],
+					{array, AdjStructs};
+				[#acc_balance{} | _] ->
+					AccBalStructs =
+							[ocs_rest_res_balance:acc_balance(AccBalance)
+							|| AccBalance <- Resource],
+					{array, AccBalStructs}
 			end;
 		product ->
 			ocs_rest_res_product:inventory(Resource);
@@ -220,7 +203,7 @@ registered({Type, Resource, Category} = _Event, #statedata{sync = Sync,
 			ocs_rest_res_service:inventory(Resource)
 	end,
 	EventStruct = {struct, [{"eventId", EventId}, {"eventTime", EventTime},
-			{"eventType", EventType}, {"event", Event}]},
+			{"eventType", event_type(Type)}, {"event", Event}]},
 	Body = lists:flatten(mochijson:encode(EventStruct)),
 	Request = {Callback, Headers, "application/json", Body},
 	case httpc:request(post, Request, [], Options, Profile) of
@@ -387,4 +370,21 @@ unique() ->
 	N = erlang:unique_integer([positive]),
 	ID = integer_to_list(TS) ++ integer_to_list(N),
 	{ID, TS}.
+
+%% @hidden
+event_type(Type) ->
+	case Type of
+		create_bucket ->
+			"BucketBalanceCreationNotification";
+		create_product ->
+			"ProductCreationNotification";
+		create_service ->
+			"ServiceCreationNotification";
+		charge ->
+			"BalanceAdjustmentCreationNotification";
+		depleted ->
+			"BucketBalanceDeletionEvent";
+		accumulated ->
+			"AccumulatedBalanceCreationNotification"
+	end.
 
