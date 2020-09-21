@@ -196,7 +196,7 @@ handle_request(#diameter_packet{msg = Request, errors = Errors} = _Packet,
 		Request :: message(),
 		Action :: Reply | {relay, [Opt]} | discard
 			| {eval|eval_packet, Action, PostF},
-		Reply :: {reply, packet() | message()}
+		Reply :: {reply, message()}
 			| {answer_message, 3000..3999|5000..5999}
 			| {protocol_error, 3000..3999},
 		Opt :: diameter:call_opt(),
@@ -224,7 +224,7 @@ request(ServiceName, Capabilities, Request, []) ->
 		ServiceName :: term(),
 		Capabilities :: capabilities(),
 		Request :: term(),
-		Result :: {reply, packet()} | discard.
+		Result :: {reply, message()} | discard.
 %% @doc Process a received DIAMETER packet.
 %% @private
 %% @todo Handle S6a/S6d requests.
