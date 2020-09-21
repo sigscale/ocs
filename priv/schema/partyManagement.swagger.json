@@ -1,14 +1,14 @@
 {
-  "$id": "http://sigscale.org/schema/partyManagement.swagger.json",
   "swagger": "2.0",
   "info": {
-    "description": "## TMF API Reference : TMF 632 - Party Management\n\n### Release : 14.5 - June 2015\n\nThe party management API provides standardized mechanism for party management such as creation, update, retrieval, deletion and notification of events. Party can be an individual or an organization that has any kind of relation with the enterprise. Party is created to record individual or organization information before the assignment of any role. For example, within the context of a split billing mechanism, Party management API allows creation of the individual or organization that will play the role of 3 rd payer for a given offer and, then, allows consultation or update of his information.\n\n### Resources\n- Individual\n\n### Operations\nParty management API performs the following operations :\n- Retrieve an individual\n- Retrieve individuals according given criteria\n- Create a new individual\n- Update an existing individual\n- Delete an existing individual",
+    "description": "TMF632 Party Management provides a standardised mechanism for party management such as creation, update, retrieval, import and export of a collection of data. A Party can be an individual or an organization that has any kind of relation with the enterprise. Party is created to record individual or organization information. \n### Resources \n- Individual \n### Operations \nParty management API performs the following operations : \n- Retrieve an individual\n- Retrieve individuals according given criteria \n- Create a new individual \n- Update an existing individual \n- Delete an existing individual",
     "version": "1.0.0",
-    "title": "API Party Management"
+    "title": "API PartyManagement"
   },
   "host": "serverRoot",
   "basePath": "/partyManagement/v1/",
   "schemes": [
+    "http",
     "https"
   ],
   "consumes": [
@@ -31,7 +31,7 @@
         ],
         "operationId": "individualCreate",
         "summary": "Create an individual",
-        "description": "This operation is used to create an individual entity.\n\nSpecific business errors for current operation will be encapsulated in\n\nHTTP Response 422 Unprocessable entity\n",
+        "description": "This operation is used to create an individual entity.",
         "deprecated": false,
         "parameters": [
           {
@@ -52,34 +52,13 @@
             }
           },
           "400": {
-            "description": "Bad Request\n\nList of supported error codes:\n- 20: Invalid URL parameter value\n- 21: Missing body\n- 22: Invalid body\n- 23: Missing body field\n- 24: Invalid body field\n- 25: Missing header\n- 26: Invalid header value\n- 27: Missing query-string parameter\n- 28: Invalid query-string parameter value",
-            "schema": {
-              "$ref": "#/definitions/ErrorRepresentation"
-            }
+            "description": "Bad Request\n\nList of supported error codes:\n- 20: Invalid URL parameter value\n- 21: Missing body\n- 22: Invalid body\n- 23: Missing body field\n- 24: Invalid body field\n- 25: Missing header\n- 26: Invalid header value\n- 27: Missing query-string parameter\n- 28: Invalid query-string parameter value"
           },
           "404": {
-            "description": "Not Found\n\nList of supported error codes:\n- 60: Resource not found",
-            "schema": {
-              "$ref": "#/definitions/ErrorRepresentation"
-            }
-          },
-          "405": {
-            "description": "Method Not Allowed\n\nList of supported error codes:\n- 61: Method not allowed",
-            "schema": {
-              "$ref": "#/definitions/ErrorRepresentation"
-            }
-          },
-          "422": {
-            "description": "Unprocessable entity\n\nFunctional error",
-            "schema": {
-              "$ref": "#/definitions/ErrorRepresentation"
-            }
+            "description": "Not Found\n\nList of supported error codes:\n- 60: Resource not found"
           },
           "500": {
-            "description": "Internal Server Error\n\nList of supported error codes:\n- 1: Internal error",
-            "schema": {
-              "$ref": "#/definitions/ErrorRepresentation"
-            }
+            "description": "Internal Server Error\n\nList of supported error codes:\n- 1: Internal error"
           }
         }
       },
@@ -89,31 +68,9 @@
         ],
         "operationId": "individualFind",
         "summary": "List individuals",
-        "description": "This operation lists individual entities (physical persons).\nAttribute selection is enabled for all first level attributes.\nFiltering may be available depending on the compliance level supported by an implementation.\n\nSpecific business errors for current operation will be encapsulated in\n\nHTTP Response 422 Unprocessable entity\n",
+        "description": "This operation lists individual entities (physical persons)",
         "deprecated": false,
-        "parameters": [
-          {
-            "name": "fields",
-            "required": false,
-            "in": "query",
-            "description": "Attribute selection",
-            "type": "string"
-          },
-          {
-            "name": "offset",
-            "required": false,
-            "in": "query",
-            "description": "Requested index for start of resources to be provided in response requested by client",
-            "type": "string"
-          },
-          {
-            "name": "limit",
-            "required": false,
-            "in": "query",
-            "description": "Requested number of resources to be provided in response requested by client",
-            "type": "string"
-          }
-        ],
+        "parameters": [],
         "responses": {
           "200": {
             "description": "Success",
@@ -122,49 +79,16 @@
               "items": {
                 "$ref": "#/definitions/Individual"
               }
-            },
-            "headers": {
-              "X-Total-Count": {
-                "description": "Total number of items matching criteria",
-                "type": "integer",
-                "format": "int32"
-              },
-              "X-Result-Count": {
-                "description": "Actual nulber of items returned in the response body",
-                "type": "integer",
-                "format": "int32"
-              }
             }
           },
           "400": {
-            "description": "Bad Request\n\nList of supported error codes:\n- 20: Invalid URL parameter value\n- 21: Missing body\n- 22: Invalid body\n- 23: Missing body field\n- 24: Invalid body field\n- 25: Missing header\n- 26: Invalid header value\n- 27: Missing query-string parameter\n- 28: Invalid query-string parameter value",
-            "schema": {
-              "$ref": "#/definitions/ErrorRepresentation"
-            }
+            "description": "Bad Request\n\nList of supported error codes:\n- 20: Invalid URL parameter value\n- 21: Missing body\n- 22: Invalid body\n- 23: Missing body field\n- 24: Invalid body field\n- 25: Missing header\n- 26: Invalid header value\n- 27: Missing query-string parameter\n- 28: Invalid query-string parameter value"
           },
           "404": {
-            "description": "Not Found\n\nList of supported error codes:\n- 60: Resource not found",
-            "schema": {
-              "$ref": "#/definitions/ErrorRepresentation"
-            }
-          },
-          "405": {
-            "description": "Method Not Allowed\n\nList of supported error codes:\n- 61: Method not allowed",
-            "schema": {
-              "$ref": "#/definitions/ErrorRepresentation"
-            }
-          },
-          "422": {
-            "description": "Unprocessable entity\n\nFunctional error",
-            "schema": {
-              "$ref": "#/definitions/ErrorRepresentation"
-            }
+            "description": "Not Found\n\nList of supported error codes:\n- 60: Resource not found"
           },
           "500": {
-            "description": "Internal Server Error\n\nList of supported error codes:\n- 1: Internal error",
-            "schema": {
-              "$ref": "#/definitions/ErrorRepresentation"
-            }
+            "description": "Internal Server Error\n\nList of supported error codes:\n- 1: Internal error"
           }
         }
       }
@@ -176,7 +100,7 @@
         ],
         "operationId": "individualGet",
         "summary": "Retrieve an individual",
-        "description": "This operation retrieves an individual entity (physical person).\nAttribute selection is enabled for all first level attributes.\nFiltering on sub-resources may be available depending on the compliance level supported by an implementation.\n\nSpecific business errors for current operation will be encapsulated in\n\nHTTP Response 422 Unprocessable entity\n",
+        "description": "This operation retrieves an individual entity (physical person).",
         "deprecated": false,
         "parameters": [
           {
@@ -202,34 +126,13 @@
             }
           },
           "400": {
-            "description": "Bad Request\n\nList of supported error codes:\n- 20: Invalid URL parameter value\n- 21: Missing body\n- 22: Invalid body\n- 23: Missing body field\n- 24: Invalid body field\n- 25: Missing header\n- 26: Invalid header value\n- 27: Missing query-string parameter\n- 28: Invalid query-string parameter value",
-            "schema": {
-              "$ref": "#/definitions/ErrorRepresentation"
-            }
+            "description": "Bad Request\n\nList of supported error codes:\n- 20: Invalid URL parameter value\n- 21: Missing body\n- 22: Invalid body\n- 23: Missing body field\n- 24: Invalid body field\n- 25: Missing header\n- 26: Invalid header value\n- 27: Missing query-string parameter\n- 28: Invalid query-string parameter value"
           },
           "404": {
-            "description": "Not Found\n\nList of supported error codes:\n- 60: Resource not found",
-            "schema": {
-              "$ref": "#/definitions/ErrorRepresentation"
-            }
-          },
-          "405": {
-            "description": "Method Not Allowed\n\nList of supported error codes:\n- 61: Method not allowed",
-            "schema": {
-              "$ref": "#/definitions/ErrorRepresentation"
-            }
-          },
-          "422": {
-            "description": "Unprocessable entity\n\nFunctional error",
-            "schema": {
-              "$ref": "#/definitions/ErrorRepresentation"
-            }
+            "description": "Not Found\n\nList of supported error codes:\n- 60: Resource not found"
           },
           "500": {
-            "description": "Internal Server Error\n\nList of supported error codes:\n- 1: Internal error",
-            "schema": {
-              "$ref": "#/definitions/ErrorRepresentation"
-            }
+            "description": "Internal Server Error\n\nList of supported error codes:\n- 1: Internal error"
           }
         }
       },
@@ -239,7 +142,7 @@
         ],
         "operationId": "individualPatch",
         "summary": "Update partially an individual",
-        "description": "This operation partially updates an individual entity.\n\nSpecific business errors for current operation will be encapsulated in\n\nHTTP Response 422 Unprocessable entity\n",
+        "description": "This operation partially updates an individual entity",
         "deprecated": false,
         "parameters": [
           {
@@ -267,34 +170,13 @@
             }
           },
           "400": {
-            "description": "Bad Request\n\nList of supported error codes:\n- 20: Invalid URL parameter value\n- 21: Missing body\n- 22: Invalid body\n- 23: Missing body field\n- 24: Invalid body field\n- 25: Missing header\n- 26: Invalid header value\n- 27: Missing query-string parameter\n- 28: Invalid query-string parameter value",
-            "schema": {
-              "$ref": "#/definitions/ErrorRepresentation"
-            }
+            "description": "Bad Request\n\nList of supported error codes:\n- 20: Invalid URL parameter value\n- 21: Missing body\n- 22: Invalid body\n- 23: Missing body field\n- 24: Invalid body field\n- 25: Missing header\n- 26: Invalid header value\n- 27: Missing query-string parameter\n- 28: Invalid query-string parameter value"
           },
           "404": {
-            "description": "Not Found\n\nList of supported error codes:\n- 60: Resource not found",
-            "schema": {
-              "$ref": "#/definitions/ErrorRepresentation"
-            }
-          },
-          "405": {
-            "description": "Method Not Allowed\n\nList of supported error codes:\n- 61: Method not allowed",
-            "schema": {
-              "$ref": "#/definitions/ErrorRepresentation"
-            }
-          },
-          "422": {
-            "description": "Unprocessable entity\n\nFunctional error",
-            "schema": {
-              "$ref": "#/definitions/ErrorRepresentation"
-            }
+            "description": "Not Found\n\nList of supported error codes:\n- 60: Resource not found"
           },
           "500": {
-            "description": "Internal Server Error\n\nList of supported error codes:\n- 1: Internal error",
-            "schema": {
-              "$ref": "#/definitions/ErrorRepresentation"
-            }
+            "description": "Internal Server Error\n\nList of supported error codes:\n- 1: Internal error"
           }
         }
       },
@@ -304,7 +186,7 @@
         ],
         "operationId": "individualDelete",
         "summary": "Delete an individual",
-        "description": "This operation is used to delete an existing individual entity.\nNote: this operation is available only to ADMIN API users.\n\nSpecific business errors for current operation will be encapsulated in\n\nHTTP Response 422 Unprocessable entity\n",
+        "description": "This operation is used to delete an existing individual entity.",
         "deprecated": false,
         "parameters": [
           {
@@ -320,79 +202,19 @@
             "description": "Success"
           },
           "400": {
-            "description": "Bad Request\n\nList of supported error codes:\n- 20: Invalid URL parameter value\n- 21: Missing body\n- 22: Invalid body\n- 23: Missing body field\n- 24: Invalid body field\n- 25: Missing header\n- 26: Invalid header value\n- 27: Missing query-string parameter\n- 28: Invalid query-string parameter value",
-            "schema": {
-              "$ref": "#/definitions/ErrorRepresentation"
-            }
+            "description": "Bad Request\n\nList of supported error codes:\n- 20: Invalid URL parameter value\n- 21: Missing body\n- 22: Invalid body\n- 23: Missing body field\n- 24: Invalid body field\n- 25: Missing header\n- 26: Invalid header value\n- 27: Missing query-string parameter\n- 28: Invalid query-string parameter value"
           },
           "404": {
-            "description": "Not Found\n\nList of supported error codes:\n- 60: Resource not found",
-            "schema": {
-              "$ref": "#/definitions/ErrorRepresentation"
-            }
-          },
-          "405": {
-            "description": "Method Not Allowed\n\nList of supported error codes:\n- 61: Method not allowed",
-            "schema": {
-              "$ref": "#/definitions/ErrorRepresentation"
-            }
-          },
-          "422": {
-            "description": "Unprocessable entity\n\nFunctional error",
-            "schema": {
-              "$ref": "#/definitions/ErrorRepresentation"
-            }
+            "description": "Not Found\n\nList of supported error codes:\n- 60: Resource not found"
           },
           "500": {
-            "description": "Internal Server Error\n\nList of supported error codes:\n- 1: Internal error",
-            "schema": {
-              "$ref": "#/definitions/ErrorRepresentation"
-            }
+            "description": "Internal Server Error\n\nList of supported error codes:\n- 1: Internal error"
           }
         }
       }
     }
   },
   "definitions": {
-    "ErrorRepresentation": {
-      "description": "Standard tmf error representation",
-      "required": [
-        "code",
-        "reason"
-      ],
-      "type": "object",
-      "properties": {
-        "code": {
-          "description": "Application related code (as defined in the API or from a common list)",
-          "type": "integer",
-          "format": "int32"
-        },
-        "reason": {
-          "description": "Text that explains the reason for error. This can be shown to a client user.",
-          "type": "string"
-        },
-        "message": {
-          "description": "Text that provides more details and corrective actions related to the error. This can be shown to a client user.",
-          "type": "string"
-        },
-        "status": {
-          "description": "http error code extension like 400-2",
-          "type": "string"
-        },
-        "referenceError": {
-          "description": "url pointing to documentation describing the error",
-          "type": "string"
-        },
-        "@type": {
-          "description": "Class type of the resource",
-          "type": "string"
-        },
-        "@schemaLocation": {
-          "description": "Link to schema describing this REST resource",
-          "type": "string"
-        }
-      }
-    },
     "Individual": {
       "description": "",
       "required": [
