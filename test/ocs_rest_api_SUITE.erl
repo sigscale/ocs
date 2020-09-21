@@ -2661,15 +2661,11 @@ notify_delete_bucket(Config) ->
 	PackageSize = 1000,
 	P1 = #price{name = ocs:generate_identity(), type = usage, units = octets,
 			size = PackageSize, amount = PackagePrice},
-	Offer = #offer{name = ocs:generate_identity(), price = [P1],
-			specification = "4"},
-	{ok, #offer{name = OfferId}} = ocs:add_offer(Offer),
+	OfferId = add_offer([P1], 4),
 	{ok, #product{id = ProdRef}} = ocs:add_product(OfferId, [], []),
 	receive
 		Input1 ->
 			{struct, ProductEvent} = mochijson:decode(Input1),
-			{_, "ProductCreationNotification"}
-					= lists:keyfind("eventType", 1, ProductEvent),
 			{_, {struct, ProductList}} = lists:keyfind("event", 1, ProductEvent),
 			{_, ProdRef} = lists:keyfind("id", 1, ProductList)
 	end,
@@ -2678,23 +2674,17 @@ notify_delete_bucket(Config) ->
 	receive
 		Input2 ->
 			{struct, ServiceEvent} = mochijson:decode(Input2),
-			{_, "ServiceCreationNotification"}
-					= lists:keyfind("eventType", 1, ServiceEvent),
 			{_, {struct, ServiceList}} = lists:keyfind("event", 1, ServiceEvent),
 			ListServiceId = binary_to_list(ServiceId),
 			{_, ListServiceId} = lists:keyfind("id", 1, ServiceList)
 	end,
-	B1 = #bucket{units = cents, remain_amount = 100,
-			start_date = erlang:system_time(milli_seconds),
-			end_date = erlang:system_time(milli_seconds) + 2592000000},
-	B2 = B1#bucket{start_date = erlang:system_time(milli_seconds) - (2 * 2592000000),
-			end_date = erlang:system_time(milli_seconds) - 2592000000},
-	{ok, _, #bucket{id = BId}} = ocs:add_bucket(ProdRef, B2),
+	Bucket = #bucket{units = cents, remain_amount = 100,
+			start_date = erlang:system_time(?MILLISECOND) - (2 * 2592000000),
+			end_date = erlang:system_time(?MILLISECOND) - 2592000000},
+	{ok, _, #bucket{id = BId}} = ocs:add_bucket(ProdRef, Bucket),
 	receive
 		Input3 ->
 			{struct, BalanceEvent} = mochijson:decode(Input3),
-			{_, "BucketBalanceCreationNotification"}
-					= lists:keyfind("eventType", 1, BalanceEvent),
 			{_, {struct, BalanceList}} = lists:keyfind("event", 1, BalanceEvent),
 			{_, BId} = lists:keyfind("id", 1, BalanceList)
 	end,
