@@ -554,7 +554,7 @@ console.log(this.offAddPro);
 		var result = event.detail.xhr.response;
 		var serviceId = ajaxServices1.lastResponse.id;
 		var ajaxBucket = this.$.addBucketAjax;
-		var bucketTop = {name: "channel"};
+		var bucketTop = {type: "buckettype"};
 		var bunits;
 		var bamount;
 		if(this.$.add8.value) {
@@ -603,10 +603,10 @@ console.log(this.offAddPro);
 				bucketTop.amount = {units: bunits, amount: bamount};
 			}
 			bucketTop.product = {id: result.id,
-				href: "/productInventoryManagement/v2/product/" + this.product};
+				href: "/productInventoryManagement/v2/product/" + result.id};
 			ajaxBucket.headers['Content-type'] = "application/json";
 			ajaxBucket.body = bucketTop;
-			ajaxBucket.url="/balanceManagement/v1/product/" + result.id + "/balanceTopup";
+			ajaxBucket.url="/balanceManagement/v1/balanceAdjustment";
 			ajaxBucket.generateRequest();
 		}
 		this.$.addServiceModal.close();

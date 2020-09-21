@@ -66,26 +66,26 @@ suite() ->
 %%
 init_per_suite(Config) ->
 	ok = ocs_test_lib:initialize_db(),
+	ok = ocs_test_lib:load(ocs),
+	Address = {127,0,0,1},
 	RadiusAuthPort = rand:uniform(64511) + 1024,
 	RadiusAcctPort = rand:uniform(64511) + 1024,
-	RadiusAppVar = [{auth, [{{127,0,0,1}, RadiusAuthPort, []}]},
+	RadiusAppVar = [{auth, [{Address, RadiusAuthPort, []}]},
 			{acct, [{{127,0,0,1}, RadiusAcctPort, []}]}],
-	ok = application:set_env(ocs, radius, RadiusAppVar, [{persistent, true}]),
+	ok = application:set_env(ocs, radius, RadiusAppVar),
 	DiameterAuthPort = rand:uniform(64511) + 1024,
 	DiameterAcctPort = rand:uniform(64511) + 1024,
-	DiameterAppVar = [{auth, [{{127,0,0,1}, DiameterAuthPort, []}]},
+	DiameterAppVar = [{auth, [{Address, DiameterAuthPort, []}]},
 		{acct, [{{127,0,0,1}, DiameterAcctPort, []}]}],
-	ok = application:set_env(ocs, diameter, DiameterAppVar, [{persistent, true}]),
+	ok = application:set_env(ocs, diameter, DiameterAppVar),
 	ok = ocs_test_lib:start(),
-	{ok, DiameterConfig} = application:get_env(ocs, diameter),
-	{auth, [{Address, Port, _} | _]} = lists:keyfind(auth, 1, DiameterConfig),
 	Host = atom_to_list(?MODULE),
 	Realm = "simple.sigscale.org",
 	Config1 = [{host, Host}, {realm, Realm},
 			{diameter_client, Address} | Config],
 	ok = diameter:start_service(?MODULE, client_service_opts(Config1)),
 	true = diameter:subscribe(?MODULE),
-	{ok, _Ref} = connect(?MODULE, Address, Port, diameter_tcp),
+	{ok, _Ref} = connect(?MODULE, Address, DiameterAuthPort, diameter_tcp),
 	receive
 		#diameter_event{service = ?MODULE, info = Info}
 				when element(1, Info) == up ->
@@ -98,9 +98,8 @@ init_per_suite(Config) ->
 %% Cleanup after the whole suite.
 %%
 end_per_suite(Config) ->
-	ok = application:unset_env(ocs, radius, [{persistent, true}]),
-	ok = application:unset_env(ocs, diameter, [{persistent, true}]),
 	ok = diameter:stop_service(?MODULE),
+	ok = diameter:remove_transport(?MODULE, true),
 	ok = ocs_test_lib:stop(),
 	Config.
 

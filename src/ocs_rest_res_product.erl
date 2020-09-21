@@ -33,6 +33,7 @@
 -export([get_pla_spec/2]).
 -export([delete_offer/1, delete_inventory/1, delete_pla/1]).
 -export([get_schema/0]).
+-export([inventory/1]).
 
 -include("ocs.hrl").
 
@@ -1565,7 +1566,7 @@ alteration([amount | T], #alteration{amount = Amount, currency = Currency} = A, 
 	Price = {struct, [{"taxIncludedAmount", ocs_rest:millionths_out(Amount)},
 			{"currencyCode", Currency}]},
 	alteration(T, A, [{"price", Price} | Acc]);
-alteration([amount | T], #alteration{units = cents, amount = Amount} = A, Acc)
+alteration([amount | T], #alteration{amount = Amount} = A, Acc)
 		when is_integer(Amount) ->
 	Price = {struct, [{"taxIncludedAmount", ocs_rest:millionths_out(Amount)}]},
 	alteration(T, A, [{"price", Price} | Acc]);
@@ -2013,22 +2014,12 @@ inventory([service | T], #product{service = ServiceRefs} = Product, Acc) ->
 inventory([balance | T], #product{balance = []} = Product, Acc) ->
 	inventory(T, Product, Acc);
 inventory([balance | T], #product{balance = BucketRefs} = Product, Acc) ->
-	F1 = case BucketRefs of
-		[BucketRef] ->
-			fun() ->
-					MatchHead = #bucket{id = BucketRef, _ = '_'},
-					mnesia:select(bucket, [{MatchHead, [], ['$_']}])
-			end;
-		BucketRefs ->
-			fun() ->
-					MatchHead = #bucket{id = '$1', _ = '_'},
-					MatchIds = [{'==', Id, '$1'} || Id <- BucketRefs],
-					MatchConditions = [list_to_tuple(['or' | MatchIds])],
-					mnesia:select(bucket, [{MatchHead, MatchConditions, ['$_']}])
-			end
+	F1 = fun() ->
+			[mnesia:read(bucket, BucketRef) || BucketRef <- BucketRefs]
 	end,
 	case catch mnesia:transaction(F1) of
-		{atomic, Buckets} ->
+		{atomic, Buckets1} ->
+			Buckets2 = lists:flatten(Buckets1),
 			F2 = fun(#bucket{units = cents, remain_amount = N}, {undefined, B, S}) ->
 						{N, B, S};
 					(#bucket{units = cents, remain_amount = N}, {C, B, S}) ->
@@ -2042,7 +2033,8 @@ inventory([balance | T], #product{balance = BucketRefs} = Product, Acc) ->
 					(#bucket{units = seconds, remain_amount = N}, {C, B, S}) ->
 						{C , B, S + N}
 			end,
-			{Cents, Bytes, Seconds} = lists:foldl(F2, {undefined, undefined, undefined}, Buckets),
+			{Cents, Bytes, Seconds} = lists:foldl(F2,
+					{undefined, undefined, undefined}, Buckets2),
 			CentsBalance = case Cents of
 				Cents when is_integer(Cents) ->
 					[{struct, [{"name", "cents"}, {"totalBalance",

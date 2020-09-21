@@ -7,12 +7,12 @@
 @avp_types
    ;; RFC4006 DIAMETER Credit Control Application (DCCA)
    Accounting-EAP-Auth-Method                              465  Unsigned64       -
-   Callback-Id                                              20  UTF8String       MV
+   Callback-Id                                              20  UTF8String       M
    Called-Station-Id                                        30  UTF8String       M
-   Calling-Station-Id                                       31  UTF8String       MV
-   Callback-Number                                          19  UTF8String       MV
-   Connect-Info                                             77  UTF8String       MV
-   Configuration-Token                                      78  OctetString      MV
+   Calling-Station-Id                                       31  UTF8String       M
+   Callback-Number                                          19  UTF8String       M
+   Connect-Info                                             77  UTF8String       M
+   Configuration-Token                                      78  OctetString      M
    CC-Correlation-Id                                       411  OctetString      -
    CC-Input-Octets                                         412  Unsigned64       M
    CC-Money                                                413  Grouped          -
@@ -37,66 +37,66 @@
    Filter-Id                                                11  UTF8String       M
    Final-Unit-Action                                       449  Enumerated       M
    Final-Unit-Indication                                   430  Grouped          M
-   Framed-Appletalk-Link                                    37  Unsigned32       MV
-   Framed-Appletalk-Network                                 38  Unsigned32       MV
+   Framed-Appletalk-Link                                    37  Unsigned32       M
+   Framed-Appletalk-Network                                 38  Unsigned32       M
    Framed-Appletalk-Zone                                    39  OctetString      M
-   Framed-Compression                                       13  Enumerated       MV
-   Framed-Interface-Id                                      96  Unsigned64       MV
-   Framed-IP-Address                                         8  OctetString      MV
-   Framed-IP-Netmask                                         9  OctetString      MV
-   Framed-IPv6-Pool                                        100  OctetString      MV
-   Framed-IPv6-Prefix                                       97  OctetString      MV
-   Framed-IPv6-Route                                        99  UTF8String       MV
-   Framed-IPX-Network                                       23  Unsigned32       MV
-   Framed-MTU                                               12  Unsigned32       MV
-   Framed-Pool                                              88  OctetString      MV
-   Framed-Protocol                                           7  Enumerated       MV
-   Framed-Route                                             22  UTF8String       MV
-   Framed-Routing                                           10  Enumerated       MV
+   Framed-Compression                                       13  Enumerated       M
+   Framed-Interface-Id                                      96  Unsigned64       M
+   Framed-IP-Address                                         8  OctetString      M
+   Framed-IP-Netmask                                         9  OctetString      M
+   Framed-IPv6-Pool                                        100  OctetString      M
+   Framed-IPv6-Prefix                                       97  OctetString      M
+   Framed-IPv6-Route                                        99  UTF8String       M
+   Framed-IPX-Network                                       23  Unsigned32       M
+   Framed-MTU                                               12  Unsigned32       M
+   Framed-Pool                                              88  OctetString      M
+   Framed-Protocol                                           7  Enumerated       M
+   Framed-Route                                             22  UTF8String       M
+   Framed-Routing                                           10  Enumerated       M
    Granted-Service-Unit                                    431  Grouped          M
    G-S-U-Pool-Identifier                                   453  Unsigned32       M
    G-S-U-Pool-Reference                                    457  Grouped          M
-   Idle-Timeout                                             28  Unsigned32       MV
+   Idle-Timeout                                             28  Unsigned32       M
    Multiple-Services-Credit-Control                        456  Grouped          M
    Multiple-Services-Indicator                             455  Enumerated       M
    NAS-Identifier                                           32  UTF8String       M
    NAS-IP-Address                                            4  OctetString      M
    NAS-IPv6-Address                                         95  OctetString      M
-   NAS-Filter-Rule                                         400  IPFilterRule     MV
-   NAS-Port                                                  5  Unsigned32       MV
-   NAS-Port-Id                                              87  UTF8String       MV
-   NAS-Port-Type                                            61  Enumerated       MV
-   Originating-Line-Info                                    94  OctetString      MV
-   Port-Limit                                               62  Unsigned32       MV
+   NAS-Filter-Rule                                         400  IPFilterRule     M
+   NAS-Port                                                  5  Unsigned32       M
+   NAS-Port-Id                                              87  UTF8String       M
+   NAS-Port-Type                                            61  Enumerated       M
+   Originating-Line-Info                                    94  OctetString      M
+   Port-Limit                                               62  Unsigned32       M
    QoS-Filter-Rule                                         407  QoSFilterRule    -
    Rating-Group                                            432  Unsigned32       M
    Redirect-Address-Type                                   433  Enumerated       M
    Redirect-Server                                         434  Grouped          M
    Redirect-Server-Address                                 435  UTF8String       M
-   Reply-Message                                            18  UTF8String       MV
+   Reply-Message                                            18  UTF8String       M
    Requested-Action                                        436  Enumerated       M
    Requested-Service-Unit                                  437  Grouped          M
    Restriction-Filter-Rule                                 438  OctetString      M
    Service-Context-Id                                      461  UTF8String       M
    Service-Identifier                                      439  Unsigned32       M
-   Service-Type                                              6  Enumerated       MV
+   Service-Type                                              6  Enumerated       M
    State                                                    24  OctetString      M
    Subscription-Id                                         443  Grouped          M
    Subscription-Id-Data                                    444  UTF8String       M
    Subscription-Id-Type                                    450  Enumerated       M
    Tariff-Change-Usage                                     452  Enumerated       M
    Tariff-Time-Change                                      451  Time             M
-   Tunneling                                               401  Grouped          MV
-   Tunnel-Type                                              64  Enumerated       MV
-   Tunnel-Medium-Type                                       65  Enumerated       MV
-   Tunnel-Client-Endpoint                                   66  UTF8String       MV
-   Tunnel-Server-Endpoint                                   67  UTF8String       MV
-   Tunnel-Password                                          69  OctetString      MV
-   Tunnel-Private-Group-Id                                  81  OctetString      MV
-   Tunnel-Assignment-Id                                     82  OctetString      MV
-   Tunnel-Preference                                        83  Unsigned32       MV
-   Tunnel-Client-Auth-Id                                    90  UTF8String       MV
-   Tunnel-Server-Auth-Id                                    91  UTF8String       MV
+   Tunneling                                               401  Grouped          M
+   Tunnel-Type                                              64  Enumerated       M
+   Tunnel-Medium-Type                                       65  Enumerated       M
+   Tunnel-Client-Endpoint                                   66  UTF8String       M
+   Tunnel-Server-Endpoint                                   67  UTF8String       M
+   Tunnel-Password                                          69  OctetString      M
+   Tunnel-Private-Group-Id                                  81  OctetString      M
+   Tunnel-Assignment-Id                                     82  OctetString      M
+   Tunnel-Preference                                        83  Unsigned32       M
+   Tunnel-Client-Auth-Id                                    90  UTF8String       M
+   Tunnel-Server-Auth-Id                                    91  UTF8String       M
    Unit-Value                                              445  Grouped          M
    Used-Service-Unit                                       446  Grouped          M
    User-Equipment-Info                                     458  Grouped          -
@@ -105,32 +105,39 @@
    Value-Digits                                            447  Integer64        M
    Validity-Time                                           448  Unsigned32       M
    ;; RFC7683 DIAMETER Overload Indication Conveyance(DOIC)
-   OC-Supported-Features                                   621  Grouped          V
-   OC-Feature-Vector                                       622  Unsigned64       V
-   OC-OLR                                                  623  Grouped          V
-   OC-Sequence-Number                                      624  Unsigned64       V
-   OC-Validity-Duration                                    625  Unsigned32       V
-   OC-Report-Type                                          626  Enumerated       V
-   OC-Reduction-Percentage                                 627  Unsigned32       V
+   OC-Supported-Features                                   621  Grouped          -
+   OC-Feature-Vector                                       622  Unsigned64       -
+   OC-OLR                                                  623  Grouped          -
+   OC-Sequence-Number                                      624  Unsigned64       -
+   OC-Validity-Duration                                    625  Unsigned32       -
+   OC-Report-Type                                          626  Enumerated       -
+   OC-Reduction-Percentage                                 627  Unsigned32       -
    ;; RFC7944 DIAMETER Routing Message Priority(DRMP)
-   DRMP                                                    301  Enumerated       V
+   DRMP                                                    301  Enumerated       -
    ;; RFC5447 DIAMETER Mobile IPv6
    MIP6-Agent-Info                                         486  Grouped          -
    MIP6-Home-Link-Prefix                                   125  OctetString      M
+   MIP6-Feature-Vector                                     124  Unsigned64       M
    ;; RFC4004 DIAMETER Mobile IPv4 Application
    MIP-Home-Agent-Address                                  334  Address          -
    MIP-Home-Agent-Host                                     348  Grouped          -
    ;; RFC8581 DIAMETER Agent Overload and the Peer Overload Report
-   SourceID                                                649  DiameterIdentity V
+   SourceID                                                649  DiameterIdentity -
    ;; RFC8583 DIAMETER Load Information Conveyance
-   Load                                                    650  Grouped          V
-   Load-Type                                               651  Enumerated       V
-   Load-Value                                              652  Unsigned64       V
+   Load                                                    650  Grouped          -
+   Load-Type                                               651  Enumerated       -
+   Load-Value                                              652  Unsigned64       -
    ;; RFC4590 RADIUS Extension for Digest Authentication
    Digest-Realm                                            104  UTF8String       M
    Digest-QoP                                              110  UTF8String       M
    Digest-Algorithm                                        111  UTF8String       M
    Digest-HA1                                              121  UTF8String       M
+   ;; RFC5777 Traffic Classification and Quality of Service (QoS) Attributes for Diameter
+;  QoS-Capability                                          578  Grouped          M
+   ;; RFC5778 Diameter Mobile IPv6: Support for Home Agent to Diameter Server Interaction
+   Service-Selection                                       493  UTF8String       M
+   ;; RFC5779 Diameter Proxy Mobile IPv6: Mobile Access Gateway and Local Mobility Anchor Interaction with Diameter Server
+   Mobile-Node-Identifier                                  506  UTF8String       M
 
 
 @grouped

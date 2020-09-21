@@ -425,6 +425,7 @@ class offerUpdate extends PolymerElement {
 								value=1>
 						</paper-input>
 						<paper-dropdown-menu
+								id="updateAltsUnitsdrop"
 								value= "{{altUpdateUnits}}"
 								label="Units">
 							<paper-listbox
@@ -1496,7 +1497,7 @@ class offerUpdate extends PolymerElement {
 			var alterationType = new Object();
 			alterationType.op = "add";
 			alterationType.path = "/productOfferingPrice/" + indexAlt + "/productOfferPriceAlteration/priceType";
-			switch(this.$.updateAltTypedrop.selected) {
+			switch(this.$.updateAltType.selected) {
 				case 0:
 					alterationType.value = "recurring";
 					break;
@@ -1509,13 +1510,82 @@ class offerUpdate extends PolymerElement {
 			}
 			updateAlterationNew.push(alterationType);
 		}
-		if(this.$.updateAltSize.value != this.alterations[indexAlt].unitOfMeasure) {
+		if(this.$.updateAltSize.value) {
 			var alterationSize = new Object();
 			alterationSize.op = "add";
 			alterationSize.path = "/productOfferingPrice/" + indexAlt + "/productOfferPriceAlteration/unitOfMeasure";
-			alterationSize.value = this.$.updateAltSize.value;
-			updateAlterationNew.push(alterationSize);
+			for(var indexUnit1 in this.alterations) {
+				if(this.$.updateAltsUnitsdrop.value == "Seconds") {
+					this.alterations[indexUnit1].unit = "s";
+				}
+				if(this.$.updateAltsUnitsdrop.value == "Bytes") {
+					this.alterations[indexUnit1].unit = "b";
+				}
+				var unitDrop = this.alterations[indexUnit1].unit;
+				var sizeVal = this.$.updateAltSize.value + unitDrop;
+				if(unitDrop && sizeVal) {
+					var len = sizeVal.length;
+					var m = sizeVal.charAt(len - 1);
+					if(isNaN(parseInt(m))) {
+						var s = sizeVal.slice(0, (len - 1));
+					} else {
+						var s = sizeVal.size;
+					}
+					if(unitDrop == "b") {
+						if (m == "m") {
+							alterationSize.value = s + "000000b";
+						} else if(m == "g") {
+							alterationSize.value = s + "000000000b";
+						} else if(m == "k") {
+							alterationSize.value = s + "000b";
+						} else {
+							alterationSize.value = s + "b";
+						}
+					} else if(unitDrop == "s") {
+						var n = Number(s);
+						if(m == "m") {
+							n = n * 60;
+							alterationSize.value = n.toString() + "s";
+						} else if(m == "h") {
+							n = n * 3600;
+							alterationSize.value = n.toString() + "s";
+						} else {
+							alterationSize.value = n.toString() + "s";
+						}
+					}
+				}
+				updateAlterationNew.push(alterationSize);
+			}
 		}
+		if(this.$.updateAltAmount.value) {
+			var altAmount = new Object();
+			altAmount.op = "add";
+			altAmount.path = "/productOfferingPrice/" + indexAlt + "/price/taxIncludedAmount";
+			altAmount.value = this.$.updateAltAmount.value;
+			updateAlterationNew.push(altAmount);
+		}
+		if(this.$.addalt5drop.value && !this.$.addalt5drop.disabled) {
+			var altCharge = new Object();
+			altCharge.op = "add";
+			altCharge.path = "/productOfferingPrice/" + indexAlt + "/recurringChargePeriod";
+			switch(this.$.updateAltPeriod.selected) {
+				case 0:
+					altCharge.value = "hourly";
+					break;
+				case 1:
+					altCharge.value = "daily";
+					break;
+				case 2:
+					altCharge.value = "weekly";
+					break;
+				case 3:
+					altCharge.value = "monthly";
+					break;
+				case 4:
+					altCharge.value = "yearly";
+			}
+			updateAlterationNew.push(altCharge);
+		} 
 		ajax.body = JSON.stringify(updateAlterationNew);
 		ajax.generateRequest();
 	}

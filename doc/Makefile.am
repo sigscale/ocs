@@ -20,6 +20,8 @@ modhtml = ocs.html \
 			diameter_gen_3gpp_sta_application.html \
 			diameter_gen_3gpp_swm_application.html \
 			diameter_gen_3gpp_swx_application.html \
+			diameter_gen_3gpp_s6a_application.html \
+			diameter_gen_3gpp_gx_application.html \
 			diameter_gen_cc_application_rfc4006.html \
 			diameter_gen_nas_application_rfc7155.html \
 			diameter_gen_eap_application_rfc4072.html \
@@ -28,6 +30,8 @@ modhtml = ocs.html \
 			ocs_diameter_3gpp_sta_application_cb.html \
 			ocs_diameter_3gpp_swm_application_cb.html \
 			ocs_diameter_3gpp_swx_application_cb.html \
+			ocs_diameter_3gpp_s6a_application_cb.html \
+			ocs_diameter_3gpp_gx_application_cb.html \
 			ocs_diameter_cc_application_cb.html \
 			ocs_diameter_nas_application_cb.html \
 			ocs_diameter_eap_application_cb.html \
@@ -95,9 +99,18 @@ modhtml = ocs.html \
 			mod_ocs_rest_get.html \
 			mod_ocs_rest_patch.html \
 			mod_ocs_rest_post.html \
+			mod_oauth.html \
 			ocs_rest_query_scanner.html \
 			ocs_rest_query_parser.html \
-			ocs_mib.html
+			ocs_mib.html \
+			ocs_rest_hub_sup.html \
+			ocs_rest_hub_fsm.html \
+			ocs_rest_hub_balance.html \
+			ocs_rest_hub_product.html \
+			ocs_rest_hub_service.html \
+			ocs_rest_hub_user.html \
+			ocs_rest_hub_resource.html \
+			ocs_event.html
 
 doc_DATA = overview.edoc $(modhtml) \
 		modules-frame.html overview-summary.html \

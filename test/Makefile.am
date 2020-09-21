@@ -3,6 +3,8 @@
 ##
 ## Process this file with automake to produce Makefile.in
 
+REST_SUITE_DATA_DIR = ocs_rest_api_SUITE_data
+
 CERT_DIR = certificates
 
 testmods = ocs_api_SUITE \
@@ -18,6 +20,7 @@ testmods = ocs_api_SUITE \
 			ocs_accounting_SUITE \
 			ocs_log_SUITE \
 			ocs_rating_SUITE \
+			ocs_product_SUITE \
 			ocs_charging_SUITE \
 			ocs_snmp_SUITE \
 			peer_tls_transport \
@@ -35,6 +38,7 @@ check_DATA = .dialyzer_ok .common_test_ok
 .common_test_ok:	$(addsuffix .beam, $(testmods)) sys.config
 	@if [ ! -d $(CERT_DIR) ]; then mkdir $(CERT_DIR); fi
 	@if [ ! -d ocs_eap_ttls_SUITE_data ]; then mkdir ocs_eap_ttls_SUITE_data; fi
+	@if [ ! -d ocs_rest_api_SUITE_data ]; then mkdir ocs_rest_api_SUITE_data; fi
 	@if [ ! -d log ]; then mkdir log; fi
 	@if [ ! -f ct.cfg ]; then cp $(top_srcdir)/test/ct.cfg .; fi
 	@if [ ! -f test.spec ]; then cp $(top_srcdir)/test/test.spec .; fi
@@ -60,6 +64,7 @@ check_DATA = .dialyzer_ok .common_test_ok
 		openssl req -newkey rsa:2048 -nodes \
 				-subj /C=CA/ST=Ontario/L=Toronto/O=Example/CN=$$(hostname)\/emailAddress=support@$$(hostname) \
 				-keyout key.pem -out cert.csr; \
+				chmod 400 key.pem; \
 		fi; \
 		if [ ! -f extensions ]; then \
 			echo "extendedKeyUsage = serverAuth" > extensions; \
@@ -71,13 +76,18 @@ check_DATA = .dialyzer_ok .common_test_ok
 		fi)
 	if [ ! -f ocs_eap_ttls_SUITE_data/CAcert.pem ]; then \
 		cp $(CERT_DIR)/CAcert.pem ocs_eap_ttls_SUITE_data; \
-	fi
+	fi; \
+	if [ ! -f ocs_rest_api_SUITE_data/key.pem ]; then \
+		openssl rsa -in $(CERT_DIR)/key.pem -out ocs_rest_api_SUITE_data/key.pem; \
+		chmod 400 ocs_rest_api_SUITE_data/key.pem; \
+	fi; \
 	NODENAME=`id -un`
 	ct_run -no_auto_compile -pa $(top_builddir)/ebin -logdir log -config ct.cfg -spec test.spec -dir . -erl_args -noshell -config sys -sname $(LOGNAME)-ct
 
 sys.config:	$(top_srcdir)/test/sys.config-in
 	sed -e 's#%CERT_DIR%#$(abs_top_builddir)/test/$(CERT_DIR)#' \
 			-e 's#%APP_PRIV%#$(abs_top_srcdir)/priv#' \
+			-e 's#%REST_SUITE_DATA_DIR%#$(abs_top_builddir)/test/$(REST_SUITE_DATA_DIR)#' \
 			-e 's#%SERVER_ROOT%#$(abs_top_builddir)/test#' \
 			-e "s#%RADIUS_AUTH_PORT%#$$(($$RANDOM + 32768))#" \
 			-e "s#%RADIUS_ACCT_PORT%#$$(($$RANDOM + 32768))#" \

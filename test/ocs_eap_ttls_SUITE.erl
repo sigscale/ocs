@@ -87,29 +87,28 @@ suite() ->
 %%
 init_per_suite(Config) ->
 	ok = ocs_test_lib:initialize_db(),
+	ok = ocs_test_lib:load(ocs),
+	Address = {127,0,0,1},
 	RadiusPort = rand:uniform(64511) + 1024,
 	Options = [{eap_method_prefer, ttls}, {eap_method_order, [ttls]}],
-	RadiusAppVar = [{auth, [{{127,0,0,1}, RadiusPort, Options}]}],
-	ok = application:set_env(ocs, radius, RadiusAppVar, [{persistent, true}]),
+	RadiusAppVar = [{auth, [{Address, RadiusPort, Options}]}],
+	ok = application:set_env(ocs, radius, RadiusAppVar),
 	DiameterPort = rand:uniform(64511) + 1024,
-	DiameterAppVar = [{auth, [{{127,0,0,1}, DiameterPort, Options}]}],
-	ok = application:set_env(ocs, diameter, DiameterAppVar, [{persistent, true}]),
+	DiameterAppVar = [{auth, [{Address, DiameterPort, Options}]}],
+	ok = application:set_env(ocs, diameter, DiameterAppVar),
 	ok = ocs_test_lib:start(),
 	{ok, ProdID} = ocs_test_lib:add_offer(),
-	AuthAddress = {127, 0, 0, 1},
 	Protocol = ct:get_config(protocol),
 	SharedSecret = ct:get_config(radius_shared_secret),
-	{ok, _} = ocs:add_client(AuthAddress, 3799, Protocol, SharedSecret, true),
+	{ok, _} = ocs:add_client(Address, 3799, Protocol, SharedSecret, true),
 	Host = atom_to_list(?MODULE),
 	Realm = "ttls.sigscale.org",
 	NasId = atom_to_list(node()),
-	{ok, DiameterConfig} = application:get_env(ocs, diameter),
-	{auth, [{Address, Port, _} | _]} = lists:keyfind(auth, 1, DiameterConfig),
 	Config1 = [{host, Host}, {realm, Realm}, {nas_id, NasId},
 			{product_id, ProdID} | Config],
 	ok = diameter:start_service(?MODULE, client_service_opts(Config1)),
 	true = diameter:subscribe(?MODULE),
-	{ok, _Ref} = connect(?MODULE, Address, Port, diameter_tcp),
+	{ok, _Ref} = connect(?MODULE, Address, DiameterPort, diameter_tcp),
 	receive
 		#diameter_event{service = ?MODULE, info = Info}
 				when element(1, Info) == up ->
@@ -122,9 +121,8 @@ init_per_suite(Config) ->
 %% Cleanup after the whole suite.
 %%
 end_per_suite(Config) ->
-	ok = application:unset_env(ocs, radius, [{persistent, true}]),
-	ok = application:unset_env(ocs, diameter, [{persistent, true}]),
 	ok = diameter:stop_service(?MODULE),
+	ok = diameter:remove_transport(?MODULE, true),
 	ok = ocs_test_lib:stop(),
 	Config.
 

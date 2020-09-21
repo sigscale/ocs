@@ -609,6 +609,7 @@ add_product(OfferId, ServiceRefs, StartDate, EndDate, Characteristics)
 	end,
 	case mnesia:transaction(F) of
 		{atomic, Product} ->
+			ocs_event:notify(create_product, Product, product),
 			{ok, Product};
 		{aborted, {throw, Reason}} ->
 			{error, Reason};
@@ -640,17 +641,22 @@ find_product(ProductRef) when is_list(ProductRef) ->
 		Result :: ok.
 %% @doc Delete an entry from product table
 delete_product(ProductRef) when is_list(ProductRef) ->
-	F1 = fun(#service{product = PRef}, _) when PRef == ProductRef ->
-					throw(service_exists);
-			(_, Acc) ->
-					Acc
+	F1 = fun() ->
+			case mnesia:read(product, ProductRef, write) of
+				[#product{service = Services}] when length(Services) > 0 ->
+					mnesia:abort(service_exists);
+				[#product{balance = Buckets}] ->
+					F2 = fun(B) ->
+							mnesia:delete(bucket, B, write)
+					end,
+					mnesia:delete(product, ProductRef, write),
+					{lists:foreach(F2, Buckets), Buckets};
+				[] ->
+					mnesia:abort(not_found)
+			end
 	end,
-	F2 = fun() ->
-			[] = mnesia:foldl(F1, [], service),
-			mnesia:delete(product, ProductRef, write)
-	end,
-	case mnesia:transaction(F2) of
-		{atomic, _} ->
+	case mnesia:transaction(F1) of
+		{atomic, {ok, DeletedBuckets}} ->
 			ok;
 		{aborted, Reason} ->
 			exit(Reason)
@@ -778,6 +784,7 @@ add_service(undefined, Password, State, ProductRef, Chars,
 	end,
 	case mnesia:transaction(F1) of
 		{atomic, Service} ->
+			ocs_event:notify(create_service, Service, service),
 			{ok, Service};
 		{aborted, Reason} ->
 			{error, Reason}
@@ -793,6 +800,7 @@ add_service(Identity, Password, State, ProductRef, Chars, Attributes,
 	end,
 	case mnesia:transaction(F1) of
 		{atomic, Service} ->
+			ocs_event:notify(create_service, Service, service),
 			{ok, Service};
 		{aborted, {throw, Reason}} ->
 			{error, Reason};
@@ -866,8 +874,11 @@ add_bucket(ProductRef, #bucket{id = undefined} = Bucket) when is_list(ProductRef
 	case mnesia:transaction(F) of
 		{atomic, {ok, OldBucket, NewBucket}} ->
 			[ProdRef | _] = NewBucket#bucket.product,
-			ocs_log:abmf_log(topup, undefined, NewBucket#bucket.id, cents, ProdRef, 0, 0,
-				NewBucket#bucket.remain_amount, undefined, undefined, undefined, undefined, undefined, undefined, NewBucket#bucket.status),
+			ocs_log:abmf_log(topup, undefined, NewBucket#bucket.id, cents,
+					ProdRef, 0, 0, NewBucket#bucket.remain_amount, undefined,
+					undefined, undefined, undefined, undefined, undefined,
+					NewBucket#bucket.status),
+			ocs_event:notify(create_bucket, NewBucket, balance),
 			{ok, OldBucket, NewBucket};
 		{aborted, Reason} ->
 			{error, Reason}
@@ -1009,35 +1020,31 @@ query_bucket2('$end_of_table', _MatchProduct) ->
 		BucketId :: term().
 %% @doc Delete entry in the bucket table.
 delete_bucket(BucketId) ->
-	F = fun() ->
+	F1 = fun(ProdRef) ->
+			case mnesia:read(product, ProdRef, write) of
+				[#product{balance = Buckets1} = Product1] ->
+					Buckets2 = lists:delete(BucketId, Buckets1),
+					Product2 = Product1#product{balance = Buckets2},
+					mnesia:write(Product2);
+				[] ->
+					ok
+			end
+	end,
+	F2 = fun() ->
 		case mnesia:read(bucket, BucketId, write) of
 			[#bucket{product = ProdRefs}] ->
-				delete_bucket1(BucketId, ProdRefs);
+				lists:foreach(F1, ProdRefs),
+				mnesia:delete(bucket, BucketId, write);
 			[] ->
-				throw(not_found)
+				mnesia:abort(not_found)
 		end
 	end,
-	case mnesia:transaction(F) of
+	case mnesia:transaction(F2) of
 		{atomic, ok} ->
 			ok;
-		{aborted, {throw, Reason}} ->
-			exit(Reason);
 		{aborted, Reason} ->
 			exit(Reason)
 	end.
-%% @hidden
-delete_bucket1(BId, ProdRefs) ->
-	F = fun(ProdRef) ->
-			case mnesia:read(product, ProdRef, write) of
-				[#product{balance = Balance} = P] ->
-					ok = mnesia:write(P#product{balance = Balance -- [BId]}),
-					true;
-				[] ->
-					true
-			end
-	end,
-	true = lists:all(F, ProdRefs),
-	ok = mnesia:delete(bucket, BId, write).
 
 -spec adjustment(Adjustment) -> Result
 	when
@@ -1046,27 +1053,46 @@ delete_bucket1(BId, ProdRefs) ->
 		Reason :: term().
 %% @doc Applying balance adjustment.
 adjustment(#adjustment{amount = Amount, product = ProductRef, units = Units,
-		start_date = StartDate, end_date = EndDatae})
-		when is_list(ProductRef), is_integer(Amount), Amount > 0 ->
-	F = fun() ->
+		start_date = StartDate, end_date = EndDate})
+		when is_list(ProductRef), is_integer(Amount), Amount >= 0 ->
+	F1 = fun() ->
 		case mnesia:read(product, ProductRef, write) of
-			[#product{balance = B} = P] ->
-				BId = generate_bucket_id(),
-				Bucket = #bucket{id = BId, start_date = StartDate, end_date = EndDatae,
-						remain_amount = Amount, units = Units, product = [ProductRef],
-						last_modified = calendar:local_time()},
-				ok = mnesia:write(bucket, Bucket, write),
-				Product = P#product{balance = B ++ [BId]},
-				ok = mnesia:write(product, Product, write),
-				Bucket;
+			[#product{balance = BucketRefs1} = P1] ->
+				Buckets1 = lists:flatten([mnesia:read(bucket, B1, write)
+						|| B1 <- BucketRefs1]),
+				F2 = fun(B2) -> mnesia:delete(bucket, B2, write) end,
+				F3 = fun(B3) -> mnesia:write(B3) end,
+				case credit(Units, Amount, Buckets1) of
+					{0, DeleteRefs, Buckets2} ->
+						lists:foreach(F2, DeleteRefs),
+						lists:foreach(F3, Buckets2),
+						BucketRefs2 = [B5 || #bucket{id = B5} <- Buckets2],
+						P2 = P1#product{balance = BucketRefs2},
+						mnesia:write(product, P2, write),
+						{0, undefined};
+					{RemainAmount, DeleteRefs, Buckets2} ->
+						B4 = #bucket{id = generate_bucket_id(),
+								start_date = StartDate, end_date = EndDate,
+								remain_amount = RemainAmount, units = Units,
+								product = [ProductRef],
+								last_modified = calendar:local_time()},
+						mnesia:write(B4),
+						lists:foreach(F2, DeleteRefs),
+						lists:foreach(F3, Buckets2),
+						BucketRefs2 = [B5 || #bucket{id = B5} <- Buckets2],
+						P2 = P1#product{balance = [B4#bucket.id | BucketRefs2]},
+						mnesia:write(product, P2, write),
+						{RemainAmount, B4#bucket.id}
+				end;
 			[] ->
 				mnesia:abort(not_found)
 		end
 	end,
-	case mnesia:transaction(F) of
-		{atomic, #bucket{id = Id}} ->
-			ocs_log:abmf_log(adjustment, undefined, Id, Units, ProductRef, Amount,
-					0, Amount, undefined, undefined, undefined, undefined, undefined,
+	case mnesia:transaction(F1) of
+		{atomic, {AmountAfter, NewBucketRef}} ->
+			ocs_log:abmf_log(adjustment, undefined, NewBucketRef, Units,
+					ProductRef, Amount, AmountAfter - Amount, AmountAfter,
+					undefined, undefined, undefined, undefined, undefined,
 					undefined, undefined);
 		{aborted, Reason} ->
 			{error, Reason}
@@ -1277,56 +1303,86 @@ delete_service(Identity) when is_binary(Identity) ->
 		Reason :: validation_failed | term().
 %% @doc Add a new entry in offer table.
 add_offer(#offer{price = Prices} = Offer) when length(Prices) > 0 ->
-	Fvala = fun(undefined) ->
-				true;
-			(#alteration{name = Name, type = one_time, period = undefined,
-					amount = Amount}) when length(Name) > 0, is_integer(Amount) ->
-				true;
-			(#alteration{name = Name, type = recurring, period = Period,
-					amount = Amount}) when length(Name) > 0, ((Period == hourly)
-					or (Period == daily) or (Period == weekly)
-					or (Period == monthly) or (Period == yearly)),
-					is_integer(Amount) ->
-				true;
-			(#alteration{name = Name, type = usage, period = undefined,
+	Fvala = fun(#alteration{name = Name, type = one_time, period = undefined,
 					units = Units, size = Size, amount = Amount})
 					when length(Name) > 0, ((Units == octets)
 					or (Units == seconds) or (Units == messages)),
+					is_integer(Size), Size > 0, is_integer(Amount) ->
+				true;
+			(#alteration{name = Name, type = recurring, period = Period,
+					units = Units, size = Size, amount = Amount})
+					when length(Name) > 0, ((Period == hourly)
+					or (Period == daily) or (Period == weekly)
+					or (Period == monthly) or (Period == yearly)),
+					((Units == octets) or (Units == seconds) or (Units == messages)),
+					is_integer(Size), Size > 0, is_integer(Amount) ->
+				true;
+			(#alteration{name = Name, type = usage, period = undefined,
+					units = Units, size = Size, amount = Amount})
+					when length(Name) > 0,
+					((Units == octets) or (Units == seconds) or (Units == messages)),
 					is_integer(Size), Size > 0, is_integer(Amount) ->
 				true;
 			(#alteration{}) ->
 				false
 	end,
 	Fvalp = fun(#price{name = Name, type = one_time, period = undefined,
-					amount = Amount, alteration = Alteration})
+					units = undefined, size = undefined, amount = Amount,
+					alteration = undefined})
 					when length(Name) > 0, is_integer(Amount), Amount > 0 ->
+				true;
+			(#price{name = Name, type = one_time, period = undefined,
+					units = undefined, size = undefined, amount = Amount,
+					alteration = #alteration{type = Type} = Alteration})
+					when length(Name) > 0, is_integer(Amount) ->
 				Fvala(Alteration);
 			(#price{name = Name, type = recurring, period = Period,
-					amount = Amount, alteration = Alteration})
+					units = undefined, size = undefined, amount = Amount,
+					alteration = undefined})
 					when length(Name) > 0, ((Period == hourly)
 					or (Period == daily) or (Period == weekly)
 					or (Period == monthly) or (Period == yearly)),
 					is_integer(Amount), Amount > 0 ->
-				Fvala(Alteration);
-			(#price{name = Name, type = usage, units = Units,
-					size = Size, amount = Amount, alteration = undefined})
-					when length(Name) > 0, Units == messages, is_integer(Size),
-					Size > 0, is_integer(Amount), Amount > 0 ->
 				true;
+			(#price{name = Name, type = recurring, period = Period,
+					units = undefined, size = undefined, amount = Amount,
+					alteration = #alteration{} = Alteration})
+					when length(Name) > 0, ((Period == hourly)
+					or (Period == daily) or (Period == weekly)
+					or (Period == monthly) or (Period == yearly)),
+					is_integer(Amount)  ->
+				Fvala(Alteration);
 			(#price{name = Name, type = usage, period = undefined,
-					units = Units, size = Size,
-					amount = Amount, alteration = Alteration})
+					units = Units, size = Size, amount = Amount,
+					alteration = undefined})
 					when length(Name) > 0, ((Units == octets)
 					or (Units == seconds) or (Units == messages)),
 					is_integer(Size), Size > 0, is_integer(Amount),
 					Amount > 0 ->
+				true;
+			(#price{name = Name, type = usage, period = undefined,
+					units = Units, size = Size, amount = Amount,
+					alteration = #alteration{type = AltType} = Alteration})
+					when length(Name) > 0, ((Units == octets)
+					or (Units == seconds) or (Units == messages)),
+					is_integer(Size), Size > 0, is_integer(Amount),
+					AltType /= usage ->
 				Fvala(Alteration);
-			(#price{type = tariff, alteration = undefined,
-					size = Size, units = Units, amount = Amount})
+			(#price{type = tariff, period = undefined,
+					units = Units, size = Size, amount = Amount,
+					alteration = undefined})
 					when is_integer(Size), Size > 0, ((Units == octets)
 					or (Units == seconds) or (Units == messages)),
 					((Amount == undefined) or (Amount == 0)) ->
 				true;
+			(#price{type = tariff, period = undefined,
+					units = Units, size = Size, amount = Amount,
+					alteration = #alteration{type = AltType} = Alteration})
+					when is_integer(Size), Size > 0, ((Units == octets)
+					or (Units == seconds) or (Units == messages)),
+					((Amount == undefined) or (Amount == 0)),
+					AltType /= usage  ->
+				Fvala(Alteration);
 			(#price{}) ->
 				false
 	end,
@@ -2141,8 +2197,9 @@ subscription(#product{id = ProdRef} = Product, Now, true,
 subscription(Product, Now, false, Buckets, [#price{type = one_time} | T]) ->
 	subscription(Product, Now, false, Buckets, T);
 subscription(#product{id = ProdRef} = Product, Now, true, Buckets,
-		[#price{type = usage, alteration = #alteration{type = one_time,
-			units = Units, size = Size, amount = AlterationAmount}} | T]) ->
+		[#price{type = Type, alteration = #alteration{type = one_time,
+			units = Units, size = Size, amount = AlterationAmount}} | T])
+		when ((Type == usage) or (Type == tariff)) ->
 	N = erlang:unique_integer([positive]),
 	NewBuckets = charge(ProdRef, AlterationAmount,
 		[#bucket{id = generate_bucket_id(), units = Units,
@@ -2150,7 +2207,8 @@ subscription(#product{id = ProdRef} = Product, Now, true, Buckets,
 			| Buckets]),
 	subscription(Product, Now, true, NewBuckets, T);
 subscription(Product, Now, false, Buckets,
-		[#price{type = usage, alteration = #alteration{type = one_time}} | T]) ->
+		[#price{type = Type, alteration = #alteration{type = one_time}} | T])
+		when ((Type == usage) or (Type == tariff)) ->
 	subscription(Product, Now, false, Buckets, T);
 subscription(#product{id = ProdRef, payment = Payments} = Product,
 		Now, true, Buckets, [#price{type = recurring, period = Period,
@@ -2196,9 +2254,10 @@ subscription(#product{id = ProdRef, payment = Payments} = Product,
 	Product1 = Product#product{payment = NewPayments},
 	subscription(Product1, Now, false, NewBuckets2, T);
 subscription(#product{id = ProdRef, payment = Payments} = Product, Now, true,
-		Buckets, [#price{type = usage, alteration = #alteration{type = recurring,
+		Buckets, [#price{type = Type, alteration = #alteration{type = recurring,
 		period = Period, units = Units, size = Size, amount = Amount}, name = Name}
-		| T]) when Period /= undefined, Units == octets; Units == seconds; Units == messages ->
+		| T]) when Period /= undefined, Units == octets; Units == seconds;
+		Units == messages, ((Type == usage) or (Type == tariff)) ->
 	N = erlang:unique_integer([positive]),
 	NewBuckets = charge(ProdRef, Amount, [#bucket{id = generate_bucket_id(),
 			units = Units, remain_amount = Size, product = [ProdRef],
@@ -2208,10 +2267,10 @@ subscription(#product{id = ProdRef, payment = Payments} = Product, Now, true,
 	Product1 = Product#product{payment = NewPayments},
 	subscription(Product1, Now, true, NewBuckets, T);
 subscription(#product{id = ProdRef, payment = Payments}
-		= Product, Now, false, Buckets, [#price{type = usage, name = Name,
+		= Product, Now, false, Buckets, [#price{type = Type, name = Name,
 		alteration = #alteration{type = recurring, period = Period, units = Units,
 		size = Size, amount = Amount}} | T]) when Period /= undefined, Units == octets;
-		Units == seconds; Units == messages ->
+		Units == seconds; Units == messages, ((Type == usage) or (Type == tariff)) ->
 	{NewPayments, NewBuckets1} = dues(Payments, Now, Buckets, Name, Period, Amount, ProdRef),
 	N = erlang:unique_integer([positive]),
 	NewBuckets2 = charge(ProdRef, Amount, [#bucket{id = generate_bucket_id(),
@@ -2300,22 +2359,66 @@ get_params5(_, _, _, false) ->
 %% @doc Charge `Amount' to `Buckets'.
 %% @private
 charge(ProdRef, Amount, Buckets) ->
-	charge(ProdRef, Amount, Buckets, []).
+	charge(ProdRef, Amount, sort(Buckets), []).
 %% @hidden
 charge(_ProdRef, 0, T, Acc) ->
 	lists:reverse(Acc) ++ T;
 charge(_ProdRef, Amount, [#bucket{units = cents,
-		remain_amount = Remain} = B | T], Acc) when Amount < Remain ->
+		remain_amount = Remain} = B | T], Acc)
+		when ((Amount < Remain) or  (Remain < 0)) ->
 	lists:reverse(Acc) ++ [B#bucket{remain_amount = Remain - Amount} | T];
-charge(_ProdRef, Amount, [#bucket{units = cents,
-		remain_amount = Remain} = B], Acc) ->
-	lists:reverse([B#bucket{remain_amount = Remain - Amount} | Acc]);
+charge(ProdRef, Amount, [#bucket{units = cents,
+		remain_amount = Remain} = B | T], Acc) when Remain > 0 ->
+	charge(ProdRef, Amount - Remain, T, [B#bucket{remain_amount = 0} | Acc]);
 charge(ProdRef, Amount, [H | T], Acc) ->
 	charge(ProdRef, Amount, T, [H | Acc]);
 charge(ProdRef, Amount, [], Acc) ->
-	lists:reverse([#bucket{id = generate_bucket_id(),
-			units = cents, remain_amount = - Amount,
-			product = [ProdRef]} | Acc]).
+	[#bucket{id = generate_bucket_id(), units = cents,
+			remain_amount = - Amount, product = [ProdRef]}
+			| lists:reverse(Acc)].
+
+-spec credit(Units, Amount, Buckets) -> Result
+	when
+		Units :: cents | octets | seconds | messages,
+		Amount :: pos_integer(),
+		Buckets :: [#bucket{}],
+		Result :: {RemainAmount, DeleteRefs, Buckets},
+		RemainAmount :: non_neg_integer(),
+		DeleteRefs :: [string()].
+%% @doc Credit `Amount' on `Buckets'.
+%% @private
+credit(Units, Amount, Buckets) ->
+	credit(Units, Amount, Buckets, [], []).
+%% @hidden
+credit(_Units, 0, Buckets, DeleteRefs, Acc) ->
+	{0, DeleteRefs, lists:reverse(Acc) ++ Buckets};
+credit(Units, Amount,
+		[#bucket{units = Units, remain_amount = Remain} = B | T],
+		DeleteRefs, Acc) when Remain < 0, (Remain + Amount) < 0 ->
+	{0, DeleteRefs, lists:reverse(Acc)
+			++ [B#bucket{remain_amount = Remain + Amount} | T]};
+credit(Units, Amount,
+		[#bucket{id = Ref, units = Units, remain_amount = Remain} | T],
+		DeleteRefs, Acc) when Remain < 0, (Remain + Amount) >= 0  ->
+	credit(Units, Remain + Amount, T, [Ref | DeleteRefs],  Acc);
+credit(Units, Amount, [H | T], DeleteRefs, Acc) ->
+	credit(Units, Amount, T, DeleteRefs, [H | Acc]);
+credit(_Units, Amount, [], DeleteRefs, Acc) ->
+	{Amount, DeleteRefs, lists:reverse(Acc)}.
+
+-spec sort(Buckets) -> Buckets
+	when
+		Buckets :: [#bucket{}].
+%% @doc Sort `Buckets' oldest first.
+%% @private
+sort(Buckets) ->
+	F = fun(#bucket{end_date = T1},
+				#bucket{end_date = T2}) when T1 =< T2 ->
+			true;
+		(_, _)->
+			false
+	end,
+	lists:sort(F, Buckets).
 
 %% @private 
 generate_bucket_id() ->

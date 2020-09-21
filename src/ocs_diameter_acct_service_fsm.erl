@@ -38,6 +38,7 @@
 			terminate/3, code_change/4]).
 
 -include_lib("diameter/include/diameter.hrl").
+-include_lib("diameter/include/diameter_gen_base_rfc6733.hrl").
 -include_lib("kernel/include/inet.hrl").
 
 -record(statedata,
@@ -54,6 +55,10 @@
 -define(RO_APPLICATION, ocs_diameter_3gpp_ro_application).
 -define(RO_APPLICATION_DICT, diameter_gen_3gpp_ro_application).
 -define(RO_APPLICATION_CALLBACK, ocs_diameter_3gpp_ro_application_cb).
+-define(Gx_APPLICATION_ID, 16777238).
+-define(Gx_APPLICATION, ocs_diameter_3gpp_gx_application).
+-define(Gx_APPLICATION_DICT, diameter_gen_3gpp_gx_application).
+-define(Gx_APPLICATION_CALLBACK, ocs_diameter_3gpp_gx_application_cb).
 -define(IANA_PEN_3GPP, 10415).
 -define(IANA_PEN_SigScale, 50386).
 -define(WAIT_STOP, 11000).
@@ -83,13 +88,14 @@
 %%
 init([Address, Port, Options] = _Args) ->
 	process_flag(trap_exit, true),
-	SOptions = service_options(Options),
-	TOptions = transport_options(diameter_tcp, Address, Port),
+	{TOptions1, SOptions1} = split_options(Options),
+	TOptions2 = transport_options(TOptions1, Address, Port),
+	SOptions2 = service_options(SOptions1),
 	SvcName = ?DIAMETER_ACCT_SERVICE(Address, Port),
 	diameter:subscribe(SvcName),
-	case diameter:start_service(SvcName, SOptions) of
+	case diameter:start_service(SvcName, SOptions2) of
 		ok ->
-			case diameter:add_transport(SvcName, TOptions) of
+			case diameter:add_transport(SvcName, TOptions2) of
 				{ok, Ref} ->
 					StateData = #statedata{transport_ref = Ref, address = Address,
 							port = Port, options = Options},
@@ -306,26 +312,24 @@ code_change(_OldVsn, StateName, StateData, _Extra) ->
 
 -spec service_options(Options) -> Options
 	when
-		Options :: list().
+		Options :: [tuple()].
 %% @doc Returns options for a DIAMETER service
 %% @hidden
 service_options(Options) ->
 	{ok, Vsn} = application:get_key(vsn),
 	Version = list_to_integer([C || C <- Vsn, C /= $.]),
 	{ok, Hostname} = inet:gethostname(),
-	Options1 = lists:keydelete(eap_method_prefer, 1, Options),
-	Options2 = lists:keydelete(eap_method_order, 1, Options1),
-	Options3 = case lists:keymember('Origin-Host', 1, Options2) of
+	Options1 = case lists:keymember('Origin-Host', 1, Options) of
 		true ->
-			Options2;
+			Options;
 		false when length(Hostname) > 0 ->
-			[{'Origin-Host', Hostname} | Options2];
+			[{'Origin-Host', Hostname} | Options];
 		false ->
-			[{'Origin-Host', "ocs"} | Options2]
+			[{'Origin-Host', "ocs"} | Options]
 	end,
-	Options4 = case lists:keymember('Origin-Realm', 1, Options3) of
+	Options2 = case lists:keymember('Origin-Realm', 1, Options1) of
 		true ->
-			Options3;
+			Options1;
 		false ->
 			OriginRealm = case inet_db:res_option(domain) of
 				S when length(S) > 0 ->
@@ -333,13 +337,17 @@ service_options(Options) ->
 				_ ->
 					"example.net"
 			end,
-			[{'Origin-Realm', OriginRealm} | Options3]
+			[{'Origin-Realm', OriginRealm} | Options1]
 	end,
-	Options4 ++ [{'Vendor-Id', ?IANA_PEN_SigScale},
+	Options2 ++ [{'Vendor-Id', ?IANA_PEN_SigScale},
 		{'Product-Name', "SigScale OCS"},
 		{'Firmware-Revision', Version},
 		{'Supported-Vendor-Id', [?IANA_PEN_3GPP]},
-		{'Auth-Application-Id', [?RO_APPLICATION_ID]},
+		{'Auth-Application-Id', [?RO_APPLICATION_ID, ?Gx_APPLICATION_ID]},
+		{'Vendor-Specific-Application-Id',
+				[#'diameter_base_Vendor-Specific-Application-Id'{
+						'Vendor-Id' = ?IANA_PEN_3GPP,
+						'Auth-Application-Id' = [?Gx_APPLICATION_ID]}]},
 		{restrict_connections, false},
 		{string_decode, false},
 		{application, [{alias, ?BASE_APPLICATION},
@@ -349,20 +357,96 @@ service_options(Options) ->
 		{application, [{alias, ?RO_APPLICATION},
 				{dictionary, ?RO_APPLICATION_DICT},
 				{module, ?RO_APPLICATION_CALLBACK},
+				{request_errors, callback}]},
+		{application, [{alias, ?Gx_APPLICATION},
+				{dictionary, ?Gx_APPLICATION_DICT},
+				{module, ?Gx_APPLICATION_CALLBACK},
 				{request_errors, callback}]}].
 
--spec transport_options(Transport, Address, Port) -> Options
+-spec transport_options(Options, Address, Port) -> Result
 	when
-		Transport :: diameter_tcp | diameter_sctp,
+		Options :: [tuple()],
 		Address :: inet:ip_address(),
 		Port :: inet:port_number(),
-		Options :: tuple().
+		Result :: {listen, Options}.
 %% @doc Returns options for a DIAMETER transport layer
 %% @hidden
-transport_options(Transport, Address, Port) ->
-	Opts = [{transport_module, Transport},
-			{transport_config, [{reuseaddr, true},
-					{ip, Address},
-					{port, Port}]}],
-	{listen, Opts}.
+transport_options(Options, Address, Port) ->
+	Options1 = case lists:keymember(transport_module, 1, Options) of
+		true ->
+			Options;
+		false ->
+			[{transport_module, diameter_tcp} | Options]
+	end,
+	Options2 = case lists:keyfind(transport_config, 1, Options1) of
+		{transport_config, Opts} ->
+			Opts1 = lists:keystore(reuseaddr, 1, Opts, {reuseaddr, true}),
+			Opts2 = lists:keystore(ip, 1, Opts1, {ip, Address}),
+			Opts3 = lists:keystore(port, 1, Opts2, {port, Port}),
+			lists:keyreplace(transport_config, 1, Options1, {transport_config, Opts3});
+		false ->
+			Opts = [{reuseaddr, true}, {ip, Address}, {port, Port}],
+			[{transport_config, Opts} | Options1]
+	end,
+	{listen, Options2}.
+
+-spec split_options(Options) -> Result
+	when
+		Options :: [tuple()],
+		Result :: {TOptions, SOptions},
+		TOptions :: [tuple()],
+		SOptions :: [tuple()].
+%% @doc Split `Options' list into transport and service options.
+split_options(Options) ->
+	split_options(Options, [], []).
+%% @hidden
+split_options([{'Origin-Host', DiameterIdentity} = H | T], Acc1, Acc2)
+		when is_list(DiameterIdentity) ->
+	split_options(T, Acc1, [H | Acc2]);
+split_options([{'Origin-Realm', DiameterIdentity} = H | T], Acc1, Acc2)
+		when is_list(DiameterIdentity) ->
+	split_options(T, Acc1, [H | Acc2]);
+split_options([{'Host-IP-Address', Addresses} = H | T], Acc1, Acc2)
+		when is_list(Addresses), is_tuple(hd(Addresses)) ->
+	split_options(T, Acc1, [H | Acc2]);
+split_options([{'Vendor-Id', _} | T], Acc1, Acc2) ->
+	split_options(T, Acc1, Acc2);
+split_options([{'Product-Name', _} | T], Acc1, Acc2) ->
+	split_options(T, Acc1, Acc2);
+split_options([{'Origin-State-Id', _} | T], Acc1, Acc2) ->
+	split_options(T, Acc1, Acc2);
+split_options([{'Supported-Vendor-Id', _} | T], Acc1, Acc2) ->
+	split_options(T, Acc1, Acc2);
+split_options([{'Auth-Application-Id', _} | T], Acc1, Acc2) ->
+	split_options(T, Acc1, Acc2);
+split_options([{'Acct-Application-Id', _} | T], Acc1, Acc2) ->
+	split_options(T, Acc1, Acc2);
+split_options([{'Inband-Security-Id', _} | T], Acc1, Acc2) ->
+	split_options(T, Acc1, Acc2);
+split_options([{'Vendor-Specific-Application-Id', _} | T], Acc1, Acc2) ->
+	split_options(T, Acc1, Acc2);
+split_options([{'Firmware-Revision', _} | T], Acc1, Acc2) ->
+	split_options(T, Acc1, Acc2);
+split_options([{capx_timeout, Timeout} = H | T], Acc1, Acc2)
+		when is_integer(Timeout) ->
+	split_options(T, [H | Acc1], Acc2);
+split_options([{incoming_maxlen, MaxLength} = H | T], Acc1, Acc2)
+		when is_integer(MaxLength) ->
+	split_options(T, [H | Acc1], Acc2);
+split_options([{pool_size, PoolSize} = H | T], Acc1, Acc2)
+		when is_integer(PoolSize) ->
+	split_options(T, [H | Acc1], Acc2);
+split_options([{watchdog_timer, TwInit} = H | T], Acc1, Acc2)
+		when is_integer(TwInit) ->
+	split_options(T, [H | Acc1], Acc2);
+split_options([{transport_module, diameter_tcp} = H | T], Acc1, Acc2) ->
+	split_options(T, [H | Acc1], Acc2);
+split_options([{transport_module, diameter_sctp} = H | T], Acc1, Acc2) ->
+	split_options(T, [H | Acc1], Acc2);
+split_options([{transport_config, _} = H | T], Acc1, Acc2) ->
+	split_options(T, [H | Acc1], Acc2);
+split_options([_H | T], Acc1, Acc2) ->
+	split_options(T, Acc1, Acc2);
+split_options([], Acc1, Acc2) ->
+	{Acc1, Acc2}.
 

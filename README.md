@@ -28,25 +28,31 @@ services are consumed.  When a subscriber's account balance is
 depleted authorization may be withdrawn and ongoing session(s)
 terminated.
 
+## PCRF
+A Policy Control and Charging Rules Function (PCRF) encompasses
+policy control decision and flow based charging control functionalities. 
+The PCRF provides network control regarding the service data flow
+detection, gating, QoS and flow based charging,
+
 ## 3GPP
 This application conforms to 3GPP specifications for the interfaces,
-protocols and procedures of the OCS and 3GPP AAA Server functions
-in the reference architecture.
+protocols and procedures of the OCS, PCRF, HSS and 3GPP AAA Server
+functions in the reference architecture.
 
 ## Interfaces
-|Interface | Description                    |
-|----------|--------------------------------|
-|GUI       | Polymer Web Components         |
-|REST      | TM Forum Open APIs             |
-|CLI       | Erlang API                     |
-|RADIUS    | AAA NAS Clients                |
-|DIAMETER  | 3GPP Ro/Gy/Wo,SWm/STa,SWx      |
-|SNMP      | Performance Management         |
-|EAP-PWD   | Android, Linux                 |
-|EAP-TTLS  | Android, Linux, Apple, Windows |
-|EAP-AKA   | Android, Linux, Apple          |
-|EAP-AKA'  | Android, Linux                 |
-|IPDR      | Billing Record Files           |
+|Interface | Description                      |
+|----------|----------------------------------|
+|GUI       | Polymer Web Components           |
+|REST      | TM Forum Open APIs               |
+|CLI       | Erlang API                       |
+|RADIUS    | AAA NAS Clients                  |
+|DIAMETER  | 3GPP Ro/Gy/Wo,Gx,SWm/STa,SWx,S6a |
+|SNMP      | Performance Management           |
+|EAP-PWD   | Android, Linux                   |
+|EAP-TTLS  | Android, Linux, Apple, Windows   |
+|EAP-AKA   | Android, Linux, Apple            |
+|EAP-AKA'  | Android, Linux                   |
+|IPDR      | Billing Record Files             |
 
 ### Graphical User Interface (GUI)
 A web front end built with Google [Polymer](https://www.polymer-project.org)
@@ -77,11 +83,13 @@ using the Erlang public API, either manually on the command line
 module development.
 
 ### [DIAMETER](http://tools.ietf.org/html/rfc6733)
-SigScale OCS acts as either or both 3GPP AAA Server and 3GPP OCS.
-The DIAMETER Ro/Gy/Wo interface (3GPP 32.299) supports Session Charging with
+SigScale OCS supports the DIAMETER applications for the 3GPP interafces
+of an OCS (Ro/Gy/Wo) (3GPP 32.299), PCRF (Gx), HSS (S6a) and AAA Server
+(STa/SWm/SWx), The OCS function supports Session Charging with
 Unit Reservation (SCUR) and Event Charging with Unit Reservation (ECUR)
-in PS and IMS domains. Non-3GPP access is supported with DIAMETER SWm/STa
-while DIAMETER SWx provides HSS interworking.
+in CS, PS and IMS domains with both centralized and distributed unit 
+determination. Non-3GPP access is supported with for ePDG with either
+internal HSS or proxy over SWm to external HSS.
 
 ### [RADIUS](http://tools.ietf.org/html/rfc2865)
 The OCS acts as an authentication, authorization and accounting (AAA) server

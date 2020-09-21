@@ -5,7 +5,7 @@
 ##
 ## Boilerplate:  standard boilerplate code
 ##
-AC_INIT([ocs], [3.1.34], [issues@sigscale.org])
+AC_INIT([ocs], [3.1.39], [issues@sigscale.org])
 AC_COPYRIGHT([Copyright (c) 2016 - 2020 SigScale Global Inc.])
 AC_PREREQ(2.63)
 AC_CONFIG_SRCDIR([src/ocs_app.erl])
@@ -75,6 +75,7 @@ docdir=$ERLANG_INSTALL_LIB_DIR/$PACKAGE_NAME-$PACKAGE_VERSION/doc
 libdir=$ERLANG_INSTALL_LIB_DIR/$PACKAGE_NAME-$PACKAGE_VERSION/priv/lib
 wwwdir=$ERLANG_INSTALL_LIB_DIR/$PACKAGE_NAME-$PACKAGE_VERSION/priv/www
 examplesdir=$ERLANG_INSTALL_LIB_DIR/$PACKAGE_NAME-$PACKAGE_VERSION/priv/examples
+schemadir=$ERLANG_INSTALL_LIB_DIR/$PACKAGE_NAME-$PACKAGE_VERSION/priv/schema
 reldir=$ERLANG_INSTALL_LIB_DIR/../releases
 envdir=/etc/default
 AC_SUBST(appdir)
@@ -86,6 +87,7 @@ AC_SUBST(eincludedir)
 AC_SUBST(privdir)
 AC_SUBST(wwwdir)
 AC_SUBST(examplesdir)
+AC_SUBST(schemadir)
 AC_SUBST(reldir)
 AC_SUBST(envdir)
 AC_LANG_POP([Erlang])
@@ -151,5 +153,6 @@ AC_OUTPUT([Makefile include/Makefile src/Makefile ebin/Makefile doc/Makefile
 		c_src/Makefile priv/Makefile priv/lib/Makefile
 		priv/mibs/Makefile mibs/Makefile priv/www/Makefile priv/examples/Makefile
 		priv/www/package.json
+		priv/schema/Makefile
 		test/Makefile ocs.rel sys.config ebin/ocs.appup])
 

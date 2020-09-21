@@ -28,6 +28,7 @@
 -export([get_bucket/1, get_buckets/2]).
 -export([abmf/1, adjustment/1]).
 -export([quantity/1]).
+-export([bucket/1]).
 
 -include("ocs.hrl").
 

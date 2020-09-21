@@ -10,6 +10,8 @@ erl_DATA = diameter_gen_ietf.erl \
 		diameter_gen_3gpp_sta_application.erl \
 		diameter_gen_3gpp_swm_application.erl \
 		diameter_gen_3gpp_swx_application.erl \
+		diameter_gen_3gpp_s6a_application.erl \
+		diameter_gen_3gpp_gx_application.erl \
 		diameter_gen_nas_application_rfc7155.erl \
 		diameter_gen_cc_application_rfc4006.erl \
 		diameter_gen_eap_application_rfc4072.erl \
@@ -55,6 +57,18 @@ diameter_gen_3gpp_swx_application.erl:	3gpp_swx_application.dia $(top_builddir)/
 	$(DIAMETERC) -i $(top_builddir)/ebin -H $<
 
 diameter_gen_3gpp_swx_application.hrl:	3gpp_swx_application.dia $(top_builddir)/ebin/diameter_gen_3gpp.beam
+	$(DIAMETERC) -i $(top_builddir)/ebin -E $<
+
+diameter_gen_3gpp_s6a_application.erl:	3gpp_s6a_application.dia $(top_builddir)/ebin/diameter_gen_3gpp.beam
+	$(DIAMETERC) -i $(top_builddir)/ebin -H $<
+
+diameter_gen_3gpp_s6a_application.hrl:	3gpp_s6a_application.dia $(top_builddir)/ebin/diameter_gen_3gpp.beam
+	$(DIAMETERC) -i $(top_builddir)/ebin -E $<
+
+diameter_gen_3gpp_gx_application.erl:	3gpp_gx_application.dia $(top_builddir)/ebin/diameter_gen_3gpp.beam
+	$(DIAMETERC) -i $(top_builddir)/ebin -H $<
+
+diameter_gen_3gpp_gx_application.hrl:	3gpp_gx_application.dia $(top_builddir)/ebin/diameter_gen_3gpp.beam
 	$(DIAMETERC) -i $(top_builddir)/ebin -E $<
 
 diameter_gen_nas_application_rfc7155.erl:	nas_application_rfc7155.dia
