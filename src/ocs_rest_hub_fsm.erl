@@ -184,7 +184,7 @@ registered({Type, Resource, Category} = _Event, #statedata{sync = Sync,
 	EventTime = ocs_rest:iso8601(TS),
 	EventType = case Type of
 		create_bucket ->
-			"BalanceTopupCreationNotification";
+			"BucketBalanceCreationNotification";
 		create_product ->
 			"ProductCreationNotification";
 		create_service ->
@@ -192,7 +192,7 @@ registered({Type, Resource, Category} = _Event, #statedata{sync = Sync,
 		charge ->
 			"BalanceAdjustmentCreationNotification";
 		depleted ->
-			"BucketDeleteEvent";
+			"BucketBalanceDeletionEvent";
 		accumulated ->
 			"AccumulatedBalanceCreationNotification"
 	end,

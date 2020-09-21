@@ -2630,7 +2630,7 @@ notify_create_bucket(Config) ->
 	Balance = receive
 		Input2 ->
 			{struct, BalanceEvent} = mochijson:decode(Input2),
-			{_, "BalanceTopupCreationNotification"}
+			{_, "BucketBalanceCreationNotification"}
 					= lists:keyfind("eventType", 1, BalanceEvent),
 			{_, {struct, BalanceList}} = lists:keyfind("event", 1, BalanceEvent),
 			BalanceList
@@ -2693,7 +2693,7 @@ notify_delete_bucket(Config) ->
 	receive
 		Input3 ->
 			{struct, BalanceEvent} = mochijson:decode(Input3),
-			{_, "BalanceTopupCreationNotification"}
+			{_, "BucketBalanceCreationNotification"}
 					= lists:keyfind("eventType", 1, BalanceEvent),
 			{_, {struct, BalanceList}} = lists:keyfind("event", 1, BalanceEvent),
 			{_, BId} = lists:keyfind("id", 1, BalanceList)
@@ -2707,7 +2707,7 @@ notify_delete_bucket(Config) ->
 	DeletedBalance = receive
 		Input4 ->
 			{struct, BalDelEvent} = mochijson:decode(Input4),
-			{_, "BucketDeleteEvent"}
+			{_, "BucketBalanceDeletionEvent"}
 					= lists:keyfind("eventType", 1, BalDelEvent),
 			{_, {struct, DeletedBalList}} = lists:keyfind("event", 1, BalDelEvent),
 			DeletedBalList
@@ -3145,7 +3145,7 @@ notify_product_charge(Config) ->
 	receive
 		Input2 ->
 			{struct, BalanceEvent1} = mochijson:decode(Input2),
-			{_, "BalanceTopupCreationNotification"}
+			{_, "BucketBalanceCreationNotification"}
 					= lists:keyfind("eventType", 1, BalanceEvent1),
 			{_, {struct, BalanceList1}} = lists:keyfind("event", 1, BalanceEvent1),
 			{_, BId1} = lists:keyfind("id", 1, BalanceList1)
@@ -3157,7 +3157,7 @@ notify_product_charge(Config) ->
 	receive
 		Input3 ->
 			{struct, BalanceEvent2} = mochijson:decode(Input3),
-			{_, "BalanceTopupCreationNotification"}
+			{_, "BucketBalanceCreationNotification"}
 					= lists:keyfind("eventType", 1, BalanceEvent2),
 			{_, {struct, BalanceList2}} = lists:keyfind("event", 1, BalanceEvent2),
 			{_, BId2} = lists:keyfind("id", 1, BalanceList2)
