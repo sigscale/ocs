@@ -5,6 +5,10 @@
     "version": "1.0.0",
     "title": "API Party Management"
   },
+  "externalDocs": {
+    "description": "SigScale OCS Developer's User Guide",
+    "href": "/doc/index.html"
+  },
   "basePath": "/usageManagement/v1/",
   "schemes": [
     "http",

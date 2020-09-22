@@ -5,6 +5,10 @@
     "version": "2.0.0",
     "title": "Resource Catalog Management API"
   },
+  "externalDocs": {
+    "description": "SigScale OCS Developer's User Guide",
+    "href": "/doc/index.html"
+  },
   "basePath": "/resourceCatalogManagement/v2/",
   "schemes": [
     "http",
