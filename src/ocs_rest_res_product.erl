@@ -29,9 +29,8 @@
 -export([get_catalog/2, get_catalogs/1]).
 -export([get_category/2, get_categories/1]).
 -export([get_product_spec/2, get_product_specs/1, product_status/1]).
--export([add_pla/1, get_pla/1, patch_pla/3]).
 -export([get_pla_spec/2]).
--export([delete_offer/1, delete_inventory/1, delete_pla/1]).
+-export([delete_offer/1, delete_inventory/1]).
 -export([get_schema/0]).
 -export([inventory/1]).
 
@@ -152,38 +151,6 @@ add_inventory(ReqData) ->
 			{error, 400}
 	end.
 
--spec add_pla(ReqData) -> Result when
-	ReqData :: [tuple()],
-	Result   :: {ok, Headers, Body} | {error, Status},
-	Headers  :: [tuple()],
-	Body     :: iolist(),
-	Status   :: 400 | 500 .
-%% @doc Respond to `POST /catalogManagement/v2/pla'.
-%%    Add a new Product Offering.
-add_pla(ReqData) ->
-	try
-		case ocs:add_pla(ocs_rest_res_resource:pla(mochijson:decode(ReqData))) of
-			{ok, PricingLogic} ->
-				PricingLogic;
-			{error, Reason} ->
-				throw(Reason)
-		end
-	of
-		PriceAlgo ->
-			Body = mochijson:encode(ocs_rest_res_resource:pla(PriceAlgo)),
-			Etag = ocs_rest:etag(PriceAlgo#pla.last_modified),
-			Href = ?plaPath ++ PriceAlgo#pla.name,
-			Headers = [{location, Href}, {etag, Etag}],
-			{ok, Headers, Body}
-	catch
-		throw:validation_failed ->
-			{error, 400};
-		throw:_Reason1 ->
-			{error, 500};
-		_:_ ->
-			{error, 400}
-	end.
-
 -spec get_offer(ID) -> Result when
 	ID			:: string(),
 	Result	:: {ok, Headers, Body} | {error, Status},
@@ -292,36 +259,6 @@ get_offers(Query, Headers) ->
 			{error, 400}
 		end.
 				
--spec get_pla(ID) -> Result when
-	ID	:: string(),
-	Result :: {ok, Headers, Body} | {error, Status},
-	Headers :: [tuple()],
-	Body :: iolist(),
-	Status :: 400 | 404 | 500.
-%% @doc Respond to `GET /catalogManagement/v2/pla/{id}'.
-%%    Retrieve a pricing logic algorothm.
-get_pla(ID) ->
-	try
-		case ocs:find_pla(ID) of
-			{ok, PricingLogicAlgorithm} ->
-				PricingLogicAlgorithm;
-			{error, not_found} ->
-				{throw, 404};
-			{error, _Reason} ->
-				{throw, 500}
-		end
-	of
-		LogicAlgo ->
-			Body = mochijson:encode(ocs_rest_res_resource:pla(LogicAlgo)),
-			Headers = [{content_type, "application/json"}],
-			{ok, Headers, Body}
-	catch
-		throw:_Reason1 ->
-			{error, 500};
-		_:_ ->
-			{error, 400}
-	end.
-
 -spec get_inventories(Query, Headers) -> Result when
 	Query :: [{Key :: string(), Value :: string()}],
 	Result	:: {ok, Headers, Body} | {error, Status},
@@ -619,71 +556,6 @@ patch_inventory(ProdId, Etag, ReqData) ->
 			{error, 400}
 	end.
 
--spec patch_pla(Id, Etag, ReqData) -> Result
-	when
-		Id	:: string(),
-		Etag		:: undefined | list(),
-		ReqData	:: [tuple()],
-		Result	:: {ok, Headers, Body} | {error, Status},
-		Headers	:: [tuple()],
-		Body		:: iolist(),
-		Status	:: 400 | 404 | 412 | 500 .
-%% @doc Respond to `PATCH /catalogManagement/v2/pla/{id}'.
-%% 	Update a pricing logic algorithm using JSON patch method
-patch_pla(Id, Etag, ReqData) ->
-	try
-		Etag1 = case Etag of
-			undefined ->
-				undefined;
-			Etag ->
-				ocs_rest:etag(Etag)
-		end,
-		{Etag1, mochijson:decode(ReqData)}
-	of
-		{Etag2, {array, _} = Operations} ->
-			F = fun() ->
-					case mnesia:read(pla, Id, write) of
-						[Pla1] when
-								Pla1#pla.last_modified == Etag2;
-								Etag2 == undefined ->
-							case catch ocs_rest:patch(Operations, ocs_rest_res_resource:pla(Pla1)) of
-								{struct, _} = Pla2  ->
-									Pla3 = ocs_rest_res_resource:pla(Pla2),
-									TS = erlang:system_time(?MILLISECOND),
-									N = erlang:unique_integer([positive]),
-									LM = {TS, N},
-									Pla4 = Pla3#pla{last_modified = LM},
-									ok = mnesia:write(Pla4),
-									{Pla2, LM};
-								_ ->
-									throw(bad_request)
-							end;
-						[#pla{}] ->
-							throw(precondition_failed);
-						[] ->
-							throw(not_found)
-					end
-			end,
-			case mnesia:transaction(F) of
-				{atomic, {Pla, Etag3}} ->
-					Location = ?plaPath ++ Id,
-					Headers = [{location, Location}, {etag, ocs_rest:etag(Etag3)}],
-					Body = mochijson:encode(Pla),
-					{ok, Headers, Body};
-				{aborted, {throw, bad_request}} ->
-					{error, 400};
-				{aborted, {throw, not_found}} ->
-					{error, 404};
-				{aborted, {throw, precondition_failed}} ->
-					{error, 412};
-				{aborted, _Reason} ->
-					{error, 500}
-			end
-	catch
-		_:_ ->
-			{error, 400}
-	end.
-
 -spec delete_offer(Id) -> Result
 	when
 		Id :: string(),
@@ -716,22 +588,6 @@ delete_inventory(Id) ->
 			{error, 403};
 		{'EXIT', _} ->
 			{error, 500}
-	end.
-
--spec delete_pla(Id) -> Result
-	when
-		Id :: string(),
-		Result :: {ok, Headers :: [tuple()], Body :: iolist()}
-				| {error, ErrorCode :: integer()} .
-%% @doc Respond to `DELETE /catalogManagement/v2/pla/{id}'
-%% 	request to remove a `Pla'.
-delete_pla(Id) when is_list(Id) ->
-	case catch list_to_existing_atom(Id) of
-		{'EXIT', _Reason} ->
-			{error, 404};
-		TableName when is_atom(TableName) ->
-			ok = ocs:delete_pla(Id),
-			{ok, [], []}
 	end.
 
 -spec product_status(Status) -> Status
