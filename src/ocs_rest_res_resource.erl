@@ -77,7 +77,7 @@ get_resource_spec(_) ->
 	Headers	:: [tuple()],
 	Body		:: iolist(),
 	Status	:: 400 | 404 | 500.
-%% @doc Respond to `GET /catalogManegment/v2/resourceSpecification'.
+%% @doc Respond to `GET /resourceCatalogManagement/v2/resourceSpecification'.
 %% 	Retrieve all Resource specifications.
 get_resource_specs([] = _Query) ->
 	Headers = [{content_type, "application/json"}],
