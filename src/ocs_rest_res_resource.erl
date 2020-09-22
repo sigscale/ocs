@@ -29,7 +29,7 @@
 -export([get_resource_inventory/2, add_resource_inventory/2, patch_resource_inventory/4,
 			delete_resource_inventory/2]).
 -export([get_pla_specs/1]).
--export([pla/1, get_plas/2]).
+-export([pla/1, add_pla/1, get_plas/2]).
 
 -include("ocs.hrl").
 
@@ -43,6 +43,7 @@
 -define(categoryPath, "/catalogManagement/v2/resourceCategory/").
 -define(inventoryPath, "/resourceInventoryManagement/v1/logicalResource/").
 -define(plaSpecPath, "/resourceCatalogManagement/v2/plaSpecification/").
+-define(plaPath, "/catalogManagement/v2/pla/").
 
 -spec content_types_accepted() -> ContentTypes
 	when
@@ -248,6 +249,42 @@ add_resource_inventory(Table, ReqData) ->
 		_:_ ->
 			{error, 400}
 	end.
+
+-spec add_pla(ReqData) -> Result when
+	ReqData :: tuple(),
+	Result   :: {ok, Headers, Body} | {error, Status},
+	Headers  :: [tuple()],
+	Body     :: iolist(),
+	Status   :: 400 | 500 .
+%% @doc Respond to `POST /catalogManagement/v2/pla'.
+%%    Add a new Product Offering.
+add_pla(ReqData) ->
+erlang:display({?MODULE, ?LINE, "alert"}),
+erlang:display({?MODULE, ?LINE, ReqData}),
+erlang:display({?MODULE, ?LINE, mochijson:decode(ReqData)}),
+	try
+		case ocs:add_pla(ocs_rest_res_resource:pla(mochijson:decode(ReqData))) of
+			{ok, PricingLogic} ->
+				PricingLogic;
+			{error, Reason} ->
+				throw(Reason)
+		end
+	of
+		PriceAlgo ->
+			Body = mochijson:encode(ocs_rest_res_resource:pla(PriceAlgo)),
+			Etag = ocs_rest:etag(PriceAlgo#pla.last_modified),
+			Href = ?plaPath ++ PriceAlgo#pla.name,
+			Headers = [{location, Href}, {etag, Etag}],
+			{ok, Headers, Body}
+	catch
+		throw:validation_failed ->
+			{error, 400};
+		throw:_Reason1 ->
+			{error, 500};
+		_:_ ->
+			{error, 400}
+	end.
+
 
 -spec patch_resource_inventory(Table, Id, Etag, ReqData) -> Result
 	when

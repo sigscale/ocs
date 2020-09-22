@@ -29,7 +29,7 @@
 -export([get_catalog/2, get_catalogs/1]).
 -export([get_category/2, get_categories/1]).
 -export([get_product_spec/2, get_product_specs/1, product_status/1]).
--export([add_pla/1, get_pla/1, patch_pla/3]).
+-export([get_pla/1, patch_pla/3]).
 -export([get_pla_spec/2]).
 -export([delete_offer/1, delete_inventory/1, delete_pla/1]).
 -export([get_schema/0]).
@@ -149,38 +149,6 @@ add_inventory(ReqData) ->
 		throw:_Reason1 ->
 			{error, 500};
 		_:_Reason1 ->
-			{error, 400}
-	end.
-
--spec add_pla(ReqData) -> Result when
-	ReqData :: [tuple()],
-	Result   :: {ok, Headers, Body} | {error, Status},
-	Headers  :: [tuple()],
-	Body     :: iolist(),
-	Status   :: 400 | 500 .
-%% @doc Respond to `POST /catalogManagement/v2/pla'.
-%%    Add a new Product Offering.
-add_pla(ReqData) ->
-	try
-		case ocs:add_pla(ocs_rest_res_resource:pla(mochijson:decode(ReqData))) of
-			{ok, PricingLogic} ->
-				PricingLogic;
-			{error, Reason} ->
-				throw(Reason)
-		end
-	of
-		PriceAlgo ->
-			Body = mochijson:encode(ocs_rest_res_resource:pla(PriceAlgo)),
-			Etag = ocs_rest:etag(PriceAlgo#pla.last_modified),
-			Href = ?plaPath ++ PriceAlgo#pla.name,
-			Headers = [{location, Href}, {etag, Etag}],
-			{ok, Headers, Body}
-	catch
-		throw:validation_failed ->
-			{error, 400};
-		throw:_Reason1 ->
-			{error, 500};
-		_:_ ->
 			{error, 400}
 	end.
 
