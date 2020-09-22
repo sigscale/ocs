@@ -5,10 +5,6 @@
     "version": "1.0.0",
     "title": "API BalanceManagement"
   },
-  "externalDocs": {
-    "description": "SigScale OCS Developer's User Guide",
-    "href": "/doc/index.html"
-  },
   "basePath": "/balanceManagement/v1/",
   "schemes": [
     "http",
