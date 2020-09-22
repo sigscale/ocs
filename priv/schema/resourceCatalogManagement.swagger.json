@@ -1,7 +1,7 @@
 {
   "swagger": "2.0",
   "info": {
-    "description": "",
+    "description": "TMF634 Resource Catalog Management provides a standardised mechanism for resource catalog management such as creation, update, retrieval, import and export of a collection of data.\n\n### Resources \n- ResourceSpecification. \n- PlaSpecification. \n### Operations \n- Retrieve the list 'ResourceSpecification' entities.  \n- Retrieve the list 'PlaSpecification' entities.",
     "version": "2.0.0",
     "title": "Resource Catalog Management API"
   },
