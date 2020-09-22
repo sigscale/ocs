@@ -54,7 +54,7 @@ class prefixAdd extends PolymerElement {
 					<paper-button dialog-confirm
 							raised
 							on-tap="_tableRow"
-							class="add-button">
+							class="submit-button">
 						Submit
 					</paper-button>
 					<paper-button
