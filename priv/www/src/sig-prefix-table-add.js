@@ -59,7 +59,7 @@ class tablePreAdd extends PolymerElement {
 							dialog-confirm
 							raised
 							on-tap="_tableAdd"
-							class="add-button">
+							class="submit-button">
 						Submit
 					</paper-button>
 					<paper-button
