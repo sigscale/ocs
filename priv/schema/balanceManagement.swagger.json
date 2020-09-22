@@ -5,7 +5,6 @@
     "version": "1.0.0",
     "title": "API BalanceManagement"
   },
-  "host": "serverRoot",
   "basePath": "/balanceManagement/v1/",
   "schemes": [
     "http",

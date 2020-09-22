@@ -1,11 +1,10 @@
 {
   "swagger": "2.0",
   "info": {
-    "description": "TMF639 Resource Inventory Management provides a standardised mechanism for resource inventory management such as creation, update, retrieval, import and export of a collection of data.\n### Resources\n- logicalResource \n- pla \n- notificaions\n### Operations \n- Retrieve resource entities according given criteria \n- Create resource entities \n- Patch resource entites \n- Delete resource entites",
+    "description": "TMF639 Resource Inventory Management",
     "version": "1.0.0",
     "title": " Resource Inventory Management API"
   },
-  "host": "serverRoot",
   "basePath": "/resourceInventoryManagement/v1/",
   "schemes": [
     "http",
