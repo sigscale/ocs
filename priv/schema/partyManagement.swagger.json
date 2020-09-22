@@ -3,7 +3,7 @@
   "info": {
     "description": "TMF632 Party Management provides a standardised mechanism for party management such as creation, update, retrieval, import and export of a collection of data. A Party can be an individual or an organization that has any kind of relation with the enterprise. Party is created to record individual or organization information. \n### Resources \n- Individual \n### Operations \nParty management API performs the following operations : \n- Retrieve an individual\n- Retrieve individuals according given criteria \n- Create a new individual \n- Update an existing individual \n- Delete an existing individual",
     "version": "1.0.0",
-    "title": "PartyManagement API"
+    "title": "API PartyManagement"
   },
   "host": "serverRoot",
   "basePath": "/partyManagement/v1/",

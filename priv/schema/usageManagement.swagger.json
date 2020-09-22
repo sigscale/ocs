@@ -3,7 +3,7 @@
   "info": {
     "description": "TMF635 Usage Management provides a standardised mechanism for usage management such as creation, update, retrieval, import and export of a collection of data. A usage represents an event that is of interest to a billing system, and can have charges applied to it. It is composed of characteristics which define all attributes known for a particular type of usage.\n### Resources\n- usage\n- usageSpecification \n### Operations \n- Retrieve usage entities \n- Retrieve usage entities according given criteria \n- Retrieve usageSpecification entities \n- Retrieve usageSpecification entities according given criteria",
     "version": "1.0.0",
-    "title": "Party Management API"
+    "title": "API Party Management"
   },
   "host": "serverRoot",
   "basePath": "/usageManagement/v1/",

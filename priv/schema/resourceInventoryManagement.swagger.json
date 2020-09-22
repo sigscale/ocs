@@ -86,7 +86,7 @@
           },
           {
             "schema": {
-              "$ref": "#/definitions/CreateLogicalResource"
+              "$ref": "#/definitions/LogicalResource_Create"
             },
             "required": true,
             "in": "body",
@@ -94,8 +94,8 @@
             "description": "The Logical Resource to be created"
           }
         ],
-        "operationId": "CreateLogicalResourceEntry",
-        "summary": "CreateLogicalResourceEntry",
+        "operationId": "createLogicalResourceEntry",
+        "summary": "createLogicalResourceEntry",
         "description": "Add a new row in logical resource inventory management",
         "deprecated": false,
         "responses": {
@@ -134,7 +134,7 @@
           },
           {
             "schema": {
-              "$ref": "#/definitions/UpdateLogicalResource"
+              "$ref": "#/definitions/LogicalResource_Update"
             },
             "required": true,
             "in": "body",
@@ -142,8 +142,8 @@
             "description": "The Logical Resource to be updated"
           }
         ],
-        "operationId": "UpdateLogicalResource",
-        "summary": "UpdateLogicalResource",
+        "operationId": "updateLogicalResource",
+        "summary": "updateLogicalResource",
         "description": "Updates a 'LogicalResource' by Id",
         "deprecated": false,
         "responses": {
@@ -291,7 +291,7 @@
         }
       }
     },
-    "CreateLogicalResource": {
+    "LogicalResource_Create": {
       "type": "object",
       "description": "Logic resource is a type of resource that describes the common set of attributes shared by all concrete logical resources (e.g. TPE, MSISDN, IP Addresses) in the inventory.\nSkipped properties: id,href",
       "properties": {
@@ -337,7 +337,7 @@
         }
       }
     },
-    "UpdateLogicalResource": {
+    "LogicalResource_Update": {
       "type": "object",
       "description": "Logic resource is a type of resource that describes the common set of attributes shared by all concrete logical resources (e.g. TPE, MSISDN, IP Addresses) in the inventory.\nSkipped properties: id,href",
       "properties": {
