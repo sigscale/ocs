@@ -29,7 +29,7 @@
 -export([get_resource_inventory/2, add_resource_inventory/2, patch_resource_inventory/4,
 			delete_resource_inventory/2]).
 -export([get_pla_specs/1]).
--export([pla/1, add_pla/1, get_plas/2]).
+-export([pla/1, add_pla/1, get_plas/2, delete_pla/1]).
 
 -include("ocs.hrl").
 
@@ -285,6 +285,21 @@ erlang:display({?MODULE, ?LINE, mochijson:decode(ReqData)}),
 			{error, 400}
 	end.
 
+-spec delete_pla(Id) -> Result
+	when
+		Id :: string(),
+		Result :: {ok, Headers :: [tuple()], Body :: iolist()}
+				| {error, ErrorCode :: integer()} .
+%% @doc Respond to `DELETE /catalogManagement/v2/pla/{id}'
+%% 	request to remove a `Pla'.
+delete_pla(Id) when is_list(Id) ->
+	case catch list_to_existing_atom(Id) of
+		{'EXIT', _Reason} ->
+			{error, 404};
+		TableName when is_atom(TableName) ->
+			ok = ocs:delete_pla(Id),
+			{ok, [], []}
+	end.
 
 -spec patch_resource_inventory(Table, Id, Etag, ReqData) -> Result
 	when

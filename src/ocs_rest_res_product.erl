@@ -31,7 +31,7 @@
 -export([get_product_spec/2, get_product_specs/1, product_status/1]).
 -export([get_pla/1, patch_pla/3]).
 -export([get_pla_spec/2]).
--export([delete_offer/1, delete_inventory/1, delete_pla/1]).
+-export([delete_offer/1, delete_inventory/1]).
 -export([get_schema/0]).
 -export([inventory/1]).
 
@@ -686,21 +686,6 @@ delete_inventory(Id) ->
 			{error, 500}
 	end.
 
--spec delete_pla(Id) -> Result
-	when
-		Id :: string(),
-		Result :: {ok, Headers :: [tuple()], Body :: iolist()}
-				| {error, ErrorCode :: integer()} .
-%% @doc Respond to `DELETE /catalogManagement/v2/pla/{id}'
-%% 	request to remove a `Pla'.
-delete_pla(Id) when is_list(Id) ->
-	case catch list_to_existing_atom(Id) of
-		{'EXIT', _Reason} ->
-			{error, 404};
-		TableName when is_atom(TableName) ->
-			ok = ocs:delete_pla(Id),
-			{ok, [], []}
-	end.
 
 -spec product_status(Status) -> Status
 	when
