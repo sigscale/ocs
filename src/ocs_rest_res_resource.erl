@@ -44,7 +44,6 @@
 -define(inventoryPath, "/resourceInventoryManagement/v1/logicalResource/").
 -define(plaPath, "/catalogManagement/v2/pla/").
 -define(plaSpecPath, "/resourceCatalogManagement/v2/plaSpecification/").
--define(plaPath, "/catalogManagement/v2/pla/").
 
 -spec content_types_accepted() -> ContentTypes
 	when
