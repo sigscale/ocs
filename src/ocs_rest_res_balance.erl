@@ -192,7 +192,12 @@ get_balance_service(Identity) ->
 		end
 	of
 		{ProductRef1, Buckets2} ->
-			F1 = fun(#bucket{units = cents}) -> true; (_) -> false end,
+			Now = erlang:system_time(?MILLISECOND),
+			F1 = fun(#bucket{units = cents, end_date = EndDate})
+					when EndDate == undefined; EndDate > Now ->
+						true;
+					(_) -> false
+			end,
 			Buckets3 = lists:filter(F1, Buckets2),
 			TotalAmount = lists:sum([B#bucket.remain_amount || B <- Buckets3]),
 			F2 = fun(#bucket{id = Id}) ->
@@ -232,7 +237,12 @@ get_balance(ProdRef) ->
 		end
 	of
 		Buckets2 ->
-			F1 = fun(#bucket{units = cents}) -> true; (_) -> false end,
+			Now = erlang:system_time(?MILLISECOND),
+			F1 = fun(#bucket{units = cents, end_date = EndDate})
+					when EndDate == undefined; EndDate > Now ->
+						true;
+					(_) -> false
+			end,
 			Buckets3 = lists:filter(F1, Buckets2),
 			TotalAmount = lists:sum([B#bucket.remain_amount || B <- Buckets3]),
 			F2 = fun(#bucket{id = Id}) ->
