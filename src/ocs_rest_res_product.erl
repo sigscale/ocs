@@ -2020,18 +2020,30 @@ inventory([balance | T], #product{balance = BucketRefs} = Product, Acc) ->
 	case catch mnesia:transaction(F1) of
 		{atomic, Buckets1} ->
 			Buckets2 = lists:flatten(Buckets1),
-			F2 = fun(#bucket{units = cents, remain_amount = N}, {undefined, B, S}) ->
+			Now = erlang:system_time(?MILLISECOND),
+			F2 = fun(#bucket{units = cents, remain_amount = N, end_date = EndDate},
+							{undefined, B, S}) when EndDate == undefined;
+							EndDate > Now ->
 						{N, B, S};
-					(#bucket{units = cents, remain_amount = N}, {C, B, S}) ->
+					(#bucket{units = cents, remain_amount = N, end_date = EndDate},
+							{C, B, S}) when EndDate == undefined; EndDate > Now ->
 						{C + N, B, S};
-					(#bucket{units = octets, remain_amount = N}, {C, undefined, S}) ->
+					(#bucket{units = octets, remain_amount = N, end_date = EndDate},
+							{C, undefined, S}) when EndDate == undefined;
+							EndDate > Now ->
 						{C , N, S};
-					(#bucket{units = octets, remain_amount = N}, {C, B, S}) ->
+					(#bucket{units = octets, remain_amount = N, end_date = EndDate},
+							{C, B, S}) when EndDate == undefined; EndDate > Now ->
 						{C , B + N, S};
-					(#bucket{units = seconds, remain_amount = N}, {C, B, undefined}) ->
+					(#bucket{units = seconds, remain_amount = N, end_date = EndDate},
+							{C, B, undefined}) when EndDate == undefined;
+							EndDate > Now ->
 						{C , B, N};
-					(#bucket{units = seconds, remain_amount = N}, {C, B, S}) ->
-						{C , B, S + N}
+					(#bucket{units = seconds, remain_amount = N, end_date = EndDate},
+							{C, B, S}) when EndDate == undefined; EndDate > Now ->
+						{C , B, S + N};
+					(_, {C, B, S}) ->
+						{C , B, S}
 			end,
 			{Cents, Bytes, Seconds} = lists:foldl(F2,
 					{undefined, undefined, undefined}, Buckets2),
