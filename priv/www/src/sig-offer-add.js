@@ -503,11 +503,12 @@ class offerAdd extends PolymerElement {
 						</div>
 						<div>
 							<paper-dropdown-menu
+									id="addAltUnitsdrop"
 									value="{{altAddUnit}}"
+									on-selected-item-changed="checkPatternAlt"
 									label="Units">
 								<paper-listbox
 										id="addAltUnitDrop"
-										on-selected-item-changed="checkPatternAlt"
 										slot="dropdown-content">
 									<paper-item id="altBytes">
 											Bytes
@@ -1414,19 +1415,22 @@ class offerAdd extends PolymerElement {
 		if(this.altAddUnit == "Bytes") {
 			this.$.addAltSize.allowedPattern = "[0-9kmg]";
 			this.$.addAltSize.pattern = "^[0-9]+[kmg]?$";
-			this.$.addAltSize.disabled= false;
-		} else if(this.altAddUnit == "Cents") {
+			this.$.addAltSize.disabled = false;
+		} 
+		if(this.altAddUnit == "Cents") {
 			this.$.addAltSize.allowedPattern = "[0-9]";
 			this.$.addAltSize.pattern = "^[0-9]+$";
-			this.$.addAltSize.disabled= true;
-		} else if(this.altAddUnit == "Seconds") {
+			this.$.addAltSize.disabled = true;
+		}
+		if(this.altAddUnit == "Seconds") {
 			this.$.addAltSize.allowedPattern = "[0-9mh]";
 			this.$.addAltSize.pattern = "^[0-9]+[mh]?$";
 			this.$.addAltSize.disabled = false;
-		} else if(this.altAddUnit == "Messages") {
+		}
+		if(this.altAddUnit == "Messages") {
 			this.$.addAltSize.allowedPattern = "[0-9]";
 			this.$.addAltSize.pattern = "^[0-9]+$";
-			this.$.addAltSize.disabled= false;
+			this.$.addAltSize.disabled = false;
 		}
 	}
 
