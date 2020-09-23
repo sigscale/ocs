@@ -194,7 +194,7 @@ get_balance_service(Identity) ->
 		{ProductRef1, Buckets2} ->
 			Now = erlang:system_time(?MILLISECOND),
 			F1 = fun(#bucket{units = cents, end_date = EndDate})
-					when EndDate > Now ->
+					when EndDate == undefined; EndDate > Now ->
 						true;
 					(_) -> false
 			end,
@@ -239,7 +239,7 @@ get_balance(ProdRef) ->
 		Buckets2 ->
 			Now = erlang:system_time(?MILLISECOND),
 			F1 = fun(#bucket{units = cents, end_date = EndDate})
-					when EndDate > Now ->
+					when EndDate == undefined; EndDate > Now ->
 						true;
 					(_) -> false
 			end,
