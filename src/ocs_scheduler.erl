@@ -84,16 +84,12 @@ product_charge1(ProdRef, Now) ->
 								true ->
 									case if_dues(Payments, Now) of
 										true ->
-											Buckets1 = lists:flatten([mnesia:select(bucket,
-													[{'$1',
-													[
-														{'==', Id, {element, #bucket.id, '$1'}}
-													],
-													['$1']}]) || Id <- BucketRefs]),
+											Buckets1 = [mnesia:read(bucket, B) || B <- BucketRefs],
+											Buckets2 = lists:flatten(Buckets1),
 											{NewProduct1, Buckets3} = ocs:subscription(Product, Offer,
-													Buckets1, false),
+													Buckets2, false),
 											BucketAdjustments = bucket_adjustment(ProdRef,
-													BucketRefs, Buckets1, Buckets3),
+													BucketRefs, Buckets2, Buckets3),
 											NewBRefs = update_buckets(BucketRefs, Buckets1, Buckets3),
 											NewProduct2 = NewProduct1#product{balance = NewBRefs},
 											{mnesia:write(NewProduct2), BucketAdjustments};
@@ -132,7 +128,9 @@ product_charge1(ProdRef, Now) ->
 %% @doc Scheduled function runs recurring charging and reschedules itself.
 %% @private
 run_recurring() ->
+	error_logger:info_report(["Start scheduled charging"]),
 	ok = product_charge(),
+	error_logger:info_report(["End scheduled charging"]),
 	{ok, ScheduledTime} = application:get_env(ocs, charging_scheduler_time),
 	{ok, Interval} = application:get_env(ocs, charging_interval),
 	StartDelay = start_delay(ScheduledTime, Interval),

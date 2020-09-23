@@ -204,24 +204,19 @@ require1(Info, Directory, DirectoryData, ValidUsers, ValidGroups,
 		when is_list(EncodedHeader), is_list(EncodedPayload), is_list(EncodedSignature) ->
 	case validate_header(EncodedHeader) of
 	{valid, _DecodedHeader} ->
-erlang:display({?MODULE, ?LINE}),
 		case validate_payload(EncodedPayload) of
 			{valid, DecodedPayload} ->
-erlang:display({?MODULE, ?LINE}),
 			case validate_cert(EncodedHeader, EncodedPayload, EncodedSignature) of
 					authenticated ->
-erlang:display({?MODULE, ?LINE}),
 						validate_user(Info, Directory, DirectoryData,
 								ValidUsers, ValidGroups, DecodedPayload);
 					{error, _Reason} ->
-erlang:display({?MODULE, ?LINE}),
 						authorization_required(DirectoryData)
 			end;
 		{error, _Reason} ->
 			authorization_required(DirectoryData)
 		end;
 	{error, _Reason} ->
-erlang:display({?MODULE, ?LINE}),
 		authorization_required(DirectoryData)
 	end.
 
@@ -274,7 +269,6 @@ validate_cert1(_, _, _DecodedSignature) ->
 %% @doc Validate a JWT payload.
 validate_payload(EncodedPayload) ->
 		DecodedPayLoad = mochijson:decode(decode_base64url(EncodedPayload)),
-erlang:display({?MODULE, ?LINE, DecodedPayLoad}),
 		validate_payload1(struct_to_map(DecodedPayLoad)).
 %% @hidden
 validate_payload1(#{"aud" := AudList, "iss" := Iss, "exp" := Exp} = DecodedPayload)

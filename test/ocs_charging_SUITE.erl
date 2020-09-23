@@ -112,12 +112,15 @@ add_once(_Config) ->
 	Offer = #offer{name = OfferId, status = active,
 			specification = 8, price = Prices},
 	{ok, _} = ocs:add_offer(Offer),
-	Amount3 = Amount1 + Amount2,
 	{ok, #product{balance = BRefs}} = ocs:add_product(OfferId, []),
-	Buckets = lists:flatten([mnesia:dirty_read(bucket, BRef) || BRef <- BRefs]),
-	{_, #bucket{remain_amount = Amount4}, []} = lists:keytake(cents,
-			#bucket.units, Buckets),
-	0 = Amount4 + Amount3.
+	F = fun() ->
+				[mnesia:read(bucket, I, read) || I <- BRefs]
+	end,
+	{atomic, Buckets} = mnesia:transaction(F),
+	RemainAmounts = [B#bucket.remain_amount
+			|| [B] <- Buckets, B#bucket.units == cents],
+	Charge = 0 - Amount1 - Amount2,
+	Charge = lists:sum(RemainAmounts).
 
 add_once_bundle() ->
 	[{userdata, [{doc, "One time charges instantiating product bundle"}]}].

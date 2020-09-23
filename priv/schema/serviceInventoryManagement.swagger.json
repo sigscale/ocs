@@ -1,11 +1,11 @@
 {
   "swagger": "2.0",
   "info": {
-    "description": "TMF632 Party Management",
-    "version": "1.0.0",
-    "title": "API PartyManagement"
+    "description": "TMF638 Service Inventory Management",
+    "version": "2.0.0",
+    "title": "API Service Inventory Management"
   },
-  "basePath": "/partyManagement/v1/",
+  "basePath": "/serviceInventoryManagement/v2/",
   "schemes": [
     "http",
     "https"
@@ -18,43 +18,40 @@
   ],
   "tags": [
     {
-      "name": "Individual",
+      "name": "service",
       "description": ""
     }
   ],
   "paths": {
-    "/individual": {
+    "/service": {
       "post": {
         "tags": [
-          "Individual"
+          "service"
         ],
-        "operationId": "individualCreate",
-        "summary": "Create an individual",
-        "description": "This operation is used to create an individual entity.",
-        "deprecated": false,
         "parameters": [
           {
-            "name": "Individual",
+            "name": "Service",
             "required": true,
             "in": "body",
             "description": "",
             "schema": {
-              "$ref": "#/definitions/Individual"
+              "$ref": "#/definitions/Service"
             }
           }
         ],
+        "operationId": "serviceCreate",
+        "summary": "serviceCreate",
+        "description": "Create a service entity",
+        "deprecated": false,
         "responses": {
           "201": {
-            "description": "Success",
+            "description": "Created",
             "schema": {
-              "$ref": "#/definitions/Individual"
+              "$ref": "#/definitions/Service"
             }
           },
           "400": {
             "description": "Bad Request\n\nList of supported error codes:\n- 20: Invalid URL parameter value\n- 21: Missing body\n- 22: Invalid body\n- 23: Missing body field\n- 24: Invalid body field\n- 25: Missing header\n- 26: Invalid header value\n- 27: Missing query-string parameter\n- 28: Invalid query-string parameter value"
-          },
-          "404": {
-            "description": "Not Found\n\nList of supported error codes:\n- 60: Resource not found"
           },
           "500": {
             "description": "Internal Server Error\n\nList of supported error codes:\n- 1: Internal error"
@@ -63,20 +60,20 @@
       },
       "get": {
         "tags": [
-          "Individual"
+          "service"
         ],
-        "operationId": "individualFind",
-        "summary": "List individuals",
-        "description": "This operation lists individual entities (physical persons)",
-        "deprecated": false,
         "parameters": [],
+        "operationId": "serviceFind",
+        "summary": "serviceFind",
+        "description": "List all service entites",
+        "deprecated": false,
         "responses": {
           "200": {
             "description": "Success",
             "schema": {
               "type": "array",
               "items": {
-                "$ref": "#/definitions/Individual"
+                "$ref": "#/definitions/Service"
               }
             }
           },
@@ -92,36 +89,32 @@
         }
       }
     },
-    "/individual/{individualId}": {
+    "/service/{id}": {
       "get": {
         "tags": [
-          "Individual"
+          "service"
         ],
-        "operationId": "individualGet",
-        "summary": "Retrieve an individual",
-        "description": "This operation retrieves an individual entity (physical person).",
-        "deprecated": false,
         "parameters": [
           {
-            "name": "individualId",
+            "name": "id",
             "in": "path",
             "required": true,
             "type": "string",
-            "description": "Unique identifier of the individual"
-          },
-          {
-            "name": "fields",
-            "required": false,
-            "in": "query",
-            "description": "Attribute selection",
-            "type": "string"
+            "description": ""
           }
         ],
+        "operationId": "serviceGet",
+        "summary": "serviceGet",
+        "description": "This operation lists a individual service entity",
+        "deprecated": false,
         "responses": {
           "200": {
             "description": "Success",
             "schema": {
-              "$ref": "#/definitions/Individual"
+              "type": "array",
+              "items": {
+                "$ref": "#/definitions/Service"
+              }
             }
           },
           "400": {
@@ -137,35 +130,38 @@
       },
       "patch": {
         "tags": [
-          "Individual"
+          "service"
         ],
-        "operationId": "individualPatch",
-        "summary": "Update partially an individual",
-        "description": "This operation partially updates an individual entity",
-        "deprecated": false,
         "parameters": [
           {
-            "name": "individualId",
+            "name": "id",
             "in": "path",
             "required": true,
             "type": "string",
-            "description": "Unique identifier of the individual"
+            "description": ""
           },
           {
-            "name": "Individual",
+            "name": "Service",
             "required": true,
             "in": "body",
             "description": "",
             "schema": {
-              "$ref": "#/definitions/Individual"
+              "$ref": "#/definitions/Service"
             }
           }
         ],
+        "operationId": "servicePatch",
+        "summary": "servicePatch",
+        "description": "Patch a individual service entity",
+        "deprecated": false,
         "responses": {
           "200": {
             "description": "Success",
             "schema": {
-              "$ref": "#/definitions/Individual"
+              "type": "array",
+              "items": {
+                "$ref": "#/definitions/Service"
+              }
             }
           },
           "400": {
@@ -181,21 +177,21 @@
       },
       "delete": {
         "tags": [
-          "Individual"
+          "service"
         ],
-        "operationId": "individualDelete",
-        "summary": "Delete an individual",
-        "description": "This operation is used to delete an existing individual entity.",
-        "deprecated": false,
         "parameters": [
           {
-            "name": "individualId",
+            "name": "id",
             "in": "path",
             "required": true,
             "type": "string",
-            "description": "Unique identifier of the individual"
+            "description": ""
           }
         ],
+        "operationId": "serviceDelete",
+        "summary": "serviceDelete",
+        "description": "Delete a individual service entity",
+        "deprecated": false,
         "responses": {
           "204": {
             "description": "Success"
@@ -214,23 +210,91 @@
     }
   },
   "definitions": {
-    "Individual": {
+    "Service": {
+      "description": "Service is an abstract base class for defining the Service hierarchy. All Services are characterized as either being possibly visible and usable by a Customer or not. This gives rise to the two subclasses of Service: CustomerFacingService and ResourceFacingService.",
+      "type": "object",
+      "properties": {
+        "id": {
+          "description": "Unique identifier of the service",
+          "type": "string"
+        },
+        "href": {
+          "description": "Reference of the service",
+          "type": "string"
+        },
+        "type": {
+          "description": "Service type",
+          "type": "string"
+        },
+        "name": {
+          "description": "Name of the service",
+          "type": "string"
+        },
+        "@type": {
+          "description": "",
+          "type": "string"
+        },
+        "@baseType": {
+          "description": "",
+          "type": "string"
+        },
+        "@schemaLocation": {
+          "description": "",
+          "type": "string"
+        },
+        "state": {
+          "$ref": "#/definitions/stateValues"
+        },
+        "isServiceEnabled": {
+          "description": "For use. If the value of this attribute is FALSE, then this means that this particular Service has NOT been enabled for use",
+          "type": "boolean"
+        },
+        "serviceCharacteristic": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/ServiceCharacteristic"
+          }
+        }
+      }
+    },
+    "stateValues": {
       "description": "",
+      "type": "string",
+      "enum": [
+        "feasibilityChecked",
+        "designed",
+        "reserved",
+        "inactive",
+        "active",
+        "terminated"
+      ]
+    },
+    "ServiceCharacteristic": {
+      "description": "A list of name value pairs that define the service characteristics",
       "required": [
-        "id"
+        "name"
       ],
       "type": "object",
       "properties": {
         "name": {
-          "description": "Name of the individual",
+          "description": "Name of the characteristic",
           "type": "string"
         },
-        "password": {
-          "description": "Password of the individual",
+        "value": {
+          "$ref": "#/definitions/Value"
+        }
+      }
+    },
+    "Value": {
+      "description": "Structure used to describe characteristic value",
+      "type": "object",
+      "properties": {
+        "@type": {
+          "description": "",
           "type": "string"
         },
-        "locale": {
-          "description": "Language of the individual",
+        "@schemaLocation": {
+          "description": "",
           "type": "string"
         }
       }
