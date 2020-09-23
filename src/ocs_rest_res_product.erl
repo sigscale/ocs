@@ -369,7 +369,7 @@ get_categories(_Query) ->
 	Headers	:: [tuple()],
 	Body		:: iolist(),
 	Status	:: 400 | 404 | 500 .
-%% @doc Respond to `GET /catalogManegment/v2/productSpecification/{id}'.
+%% @doc Respond to `GET /productCatalogManagement/v2/productSpecification/{id}'.
 %% 	Retrieve a product specification.
 get_product_spec(ID, [] = _Query) ->
 	case product_spec(ID) of
@@ -389,7 +389,7 @@ get_product_spec(_Id, _Query) ->
 	Headers	:: [tuple()],
 	Body		:: iolist(),
 	Status	:: 400 | 404 | 500 .
-%% @doc Respond to `GET /catalogManagment/v2/productSpecification'.
+%% @doc Respond to `GET /productCatalogManagement/v2/productSpecification'.
 %% 	Retrieve all product specifications.
 get_product_specs([] = _Query) ->
 	Headers = [{content_type, "application/json"}],
