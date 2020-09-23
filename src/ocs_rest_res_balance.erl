@@ -115,7 +115,7 @@ get_balance_log(Query, _Headers) ->
 		BucketId :: string(),
 		Result :: {ok, Headers :: [tuple()], Body :: iolist()}
 				| {error, ErrorCode :: integer()}.
-%% @doc Body producing function for `GET /balanceManagment/v1/bucket/{id}',
+%% @doc Body producing function for `GET /balanceManagement/v1/bucket/{id}',
 get_bucket(BucketId) ->
 	try
 		case ocs:find_bucket(BucketId) of
@@ -144,7 +144,7 @@ get_bucket(BucketId) ->
 		Headers	:: [tuple()],
 		Result :: {ok, Headers :: [tuple()], Body :: iolist()}
 				| {error, ErrorCode :: integer()}.
-%% @doc Body producing function for `GET /balanceManagment/v1/bucket/',
+%% @doc Body producing function for `GET /balanceManagement/v1/bucket/',
 get_buckets(Query, Headers) -> 
 	try
 		case lists:keytake("filter", 1, Query) of
@@ -176,7 +176,7 @@ get_buckets(Query, Headers) ->
 		Result :: {ok, Headers :: [tuple()], Body :: iolist()}
 				| {error, ErrorCode :: integer()}.
 %% @doc Body producing function for
-%% `GET /balanceManagment/v1/service/{id}/accumulatedBalance' request
+%% `GET /balanceManagement/v1/service/{id}/accumulatedBalance' request
 get_balance_service(Identity) ->
 	try
 		case ocs:find_service(Identity) of
@@ -221,7 +221,7 @@ get_balance_service(Identity) ->
 		Result :: {ok, Headers :: [tuple()], Body :: iolist()}
 				| {error, ErrorCode :: integer()}.
 %% @doc Body producing function for
-%%	`GET /balanceManagment/v1/product/{id}/accumulatedBalance' request
+%%	`GET /balanceManagement/v1/product/{id}/accumulatedBalance' request
 get_balance(ProdRef) ->
 	try
 		case ocs:get_buckets(ProdRef) of

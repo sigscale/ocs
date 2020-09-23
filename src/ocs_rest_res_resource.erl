@@ -29,7 +29,7 @@
 -export([get_resource_inventory/2, add_resource_inventory/2, patch_resource_inventory/4,
 			delete_resource_inventory/2]).
 -export([get_pla_specs/1]).
--export([pla/1, add_pla/1, get_plas/2, delete_pla/1]).
+-export([pla/1, add_pla/1, get_pla/1, patch_pla/3, get_plas/2, delete_pla/1]).
 
 -include("ocs.hrl").
 
@@ -42,6 +42,7 @@
 -define(catalogPath, "/catalogManagement/v2/resourceCatalog/").
 -define(categoryPath, "/catalogManagement/v2/resourceCategory/").
 -define(inventoryPath, "/resourceInventoryManagement/v1/logicalResource/").
+-define(plaPath, "/catalogManagement/v2/pla/").
 -define(plaSpecPath, "/resourceCatalogManagement/v2/plaSpecification/").
 -define(plaPath, "/catalogManagement/v2/pla/").
 
@@ -78,7 +79,7 @@ get_resource_spec(_) ->
 	Headers	:: [tuple()],
 	Body		:: iolist(),
 	Status	:: 400 | 404 | 500.
-%% @doc Respond to `GET /catalogManegment/v2/resourceSpecification'.
+%% @doc Respond to `GET /resourceCatalogManagement/v2/resourceSpecification'.
 %% 	Retrieve all Resource specifications.
 get_resource_specs([] = _Query) ->
 	Headers = [{content_type, "application/json"}],
@@ -251,7 +252,7 @@ add_resource_inventory(Table, ReqData) ->
 	end.
 
 -spec add_pla(ReqData) -> Result when
-	ReqData :: tuple(),
+	ReqData :: [tuple()],
 	Result   :: {ok, Headers, Body} | {error, Status},
 	Headers  :: [tuple()],
 	Body     :: iolist(),
@@ -259,9 +260,6 @@ add_resource_inventory(Table, ReqData) ->
 %% @doc Respond to `POST /catalogManagement/v2/pla'.
 %%    Add a new Product Offering.
 add_pla(ReqData) ->
-erlang:display({?MODULE, ?LINE, "alert"}),
-erlang:display({?MODULE, ?LINE, ReqData}),
-erlang:display({?MODULE, ?LINE, mochijson:decode(ReqData)}),
 	try
 		case ocs:add_pla(ocs_rest_res_resource:pla(mochijson:decode(ReqData))) of
 			{ok, PricingLogic} ->
@@ -285,6 +283,71 @@ erlang:display({?MODULE, ?LINE, mochijson:decode(ReqData)}),
 			{error, 400}
 	end.
 
+-spec patch_pla(Id, Etag, ReqData) -> Result
+	when
+		Id	:: string(),
+		Etag		:: undefined | list(),
+		ReqData	:: [tuple()],
+		Result	:: {ok, Headers, Body} | {error, Status},
+		Headers	:: [tuple()],
+		Body		:: iolist(),
+		Status	:: 400 | 404 | 412 | 500 .
+%% @doc Respond to `PATCH /catalogManagement/v2/pla/{id}'.
+%% 	Update a pricing logic algorithm using JSON patch method
+patch_pla(Id, Etag, ReqData) ->
+	try
+		Etag1 = case Etag of
+			undefined ->
+				undefined;
+			Etag ->
+				ocs_rest:etag(Etag)
+		end,
+		{Etag1, mochijson:decode(ReqData)}
+	of
+		{Etag2, {array, _} = Operations} ->
+			F = fun() ->
+					case mnesia:read(pla, Id, write) of
+						[Pla1] when
+								Pla1#pla.last_modified == Etag2;
+								Etag2 == undefined ->
+							case catch ocs_rest:patch(Operations, ocs_rest_res_resource:pla(Pla1)) of
+								{struct, _} = Pla2  ->
+									Pla3 = ocs_rest_res_resource:pla(Pla2),
+									TS = erlang:system_time(?MILLISECOND),
+									N = erlang:unique_integer([positive]),
+									LM = {TS, N},
+									Pla4 = Pla3#pla{last_modified = LM},
+									ok = mnesia:write(Pla4),
+									{Pla2, LM};
+								_ ->
+									throw(bad_request)
+							end;
+						[#pla{}] ->
+							throw(precondition_failed);
+						[] ->
+							throw(not_found)
+					end
+			end,
+			case mnesia:transaction(F) of
+				{atomic, {Pla, Etag3}} ->
+					Location = ?plaPath ++ Id,
+					Headers = [{location, Location}, {etag, ocs_rest:etag(Etag3)}],
+					Body = mochijson:encode(Pla),
+					{ok, Headers, Body};
+				{aborted, {throw, bad_request}} ->
+					{error, 400};
+				{aborted, {throw, not_found}} ->
+					{error, 404};
+				{aborted, {throw, precondition_failed}} ->
+					{error, 412};
+				{aborted, _Reason} ->
+					{error, 500}
+			end
+	catch
+		_:_ ->
+			{error, 400}
+	end.
+
 -spec delete_pla(Id) -> Result
 	when
 		Id :: string(),
@@ -300,6 +363,84 @@ delete_pla(Id) when is_list(Id) ->
 			ok = ocs:delete_pla(Id),
 			{ok, [], []}
 	end.
+
+-spec get_pla(ID) -> Result when
+	ID	:: string(),
+	Result :: {ok, Headers, Body} | {error, Status},
+	Headers :: [tuple()],
+	Body :: iolist(),
+	Status :: 400 | 404 | 500.
+%% @doc Respond to `GET /catalogManagement/v2/pla/{id}'.
+%%    Retrieve a pricing logic algorothm.
+get_pla(ID) ->
+	try
+		case ocs:find_pla(ID) of
+			{ok, PricingLogicAlgorithm} ->
+				PricingLogicAlgorithm;
+			{error, not_found} ->
+				{throw, 404};
+			{error, _Reason} ->
+				{throw, 500}
+		end
+	of
+		LogicAlgo ->
+			Body = mochijson:encode(ocs_rest_res_resource:pla(LogicAlgo)),
+			Headers = [{content_type, "application/json"}],
+			{ok, Headers, Body}
+	catch
+		throw:_Reason1 ->
+			{error, 500};
+		_:_ ->
+			{error, 400}
+	end.
+
+-spec get_plas(Query, Headers) ->Result when
+	Query :: [{Key :: string(), Value :: string()}],
+	Result :: {ok, Headers, Body} | {error, Status},
+	Headers :: [tuple()],
+	Body :: iolist(),
+	Status :: 400 | 404 | 412 | 500 .
+%% @doc Respond to `GET /catalogManagement/v2/pla'.
+%%    Retrieve all pricing logic algorithms.
+get_plas(_Query, _Headers) ->
+	try
+		case ocs:get_plas() of
+			PricingLogicAlgorithms
+				when is_list(PricingLogicAlgorithms) ->
+				PricingLogicAlgorithms;
+			{error, not_found} ->
+				throw(404);
+			{error, _Reason} ->
+				throw(500)
+		end
+	of
+		Logic ->
+			Body = mochijson:encode({array, [pla(P) || P <- Logic]}),
+			Headers = [{content_type, "application/json"}],
+			{ok, Headers, Body}
+	catch
+		throw:_Reason1 ->
+			{error, 500};
+		_:_ ->
+			{error, 400}
+	end.
+
+-spec get_pla_specs(Query) -> Result when
+	Query :: [{Key :: string(), Value :: string()}],
+	Result	:: {ok, Headers, Body} | {error, Status},
+	Headers	:: [tuple()],
+	Body		:: iolist(),
+	Status	:: 400 | 404 | 500.
+%% @doc Respond to `GET /resourceCatalogManagement/v2/plaSpecification'.
+%% 	Retrieve all pricing logic algorithm specifications.
+get_pla_specs([] = _Query) ->
+	Headers = [{content_type, "application/json"}],
+	Object = {array, [spec_pla_once(), spec_pla_recurring(),
+			spec_pla_usage(), spec_pla_tariff()]},
+	Body = mochijson:encode(Object),
+	{ok, Headers, Body};
+get_pla_specs(_Query) ->
+	{error, 400}.
 
 -spec patch_resource_inventory(Table, Id, Etag, ReqData) -> Result
 	when
@@ -364,54 +505,6 @@ delete_resource_inventory(Table, Id) ->
 	catch
 		error:badarg ->
 			{error, 404};
-		_:_ ->
-			{error, 400}
-	end.
-
--spec get_pla_specs(Query) -> Result when
-	Query :: [{Key :: string(), Value :: string()}],
-	Result	:: {ok, Headers, Body} | {error, Status},
-	Headers	:: [tuple()],
-	Body		:: iolist(),
-	Status	:: 400 | 404 | 500.
-%% @doc Respond to `GET /resourceCatalogManagement/v2/plaSpecification'.
-%% 	Retrieve all pricing logic algorithm specifications.
-get_pla_specs([] = _Query) ->
-	Headers = [{content_type, "application/json"}],
-	Object = {array, [spec_pla_once(), spec_pla_recurring(),
-			spec_pla_usage(), spec_pla_tariff()]},
-	Body = mochijson:encode(Object),
-	{ok, Headers, Body};
-get_pla_specs(_Query) ->
-	{error, 400}.
-
--spec get_plas(Query, Headers) ->Result when
-	Query :: [{Key :: string(), Value :: string()}],
-	Result :: {ok, Headers, Body} | {error, Status},
-	Headers :: [tuple()],
-	Body :: iolist(),
-	Status :: 400 | 404 | 412 | 500 .
-%% @doc Respond to `GET /catalogManagement/v2/pla'.
-%%    Retrieve all pricing logic algorithms.
-get_plas(_Query, _Headers) ->
-	try
-		case ocs:get_plas() of
-			PricingLogicAlgorithms
-				when is_list(PricingLogicAlgorithms) ->
-				PricingLogicAlgorithms;
-			{error, not_found} ->
-				throw(404);
-			{error, _Reason} ->
-				throw(500)
-		end
-	of
-		Logic ->
-			Body = mochijson:encode({array, [pla(P) || P <- Logic]}),
-			Headers = [{content_type, "application/json"}],
-			{ok, Headers, Body}
-	catch
-		throw:_Reason1 ->
-			{error, 500};
 		_:_ ->
 			{error, 400}
 	end.
