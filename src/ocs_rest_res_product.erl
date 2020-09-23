@@ -41,7 +41,7 @@
 %-define(MILLISECOND, millisecond).
 
 -define(catalogPath, "/productCatalogManagement/v2/catalog/").
--define(categoryPath, "/catalogManagement/v2/category/").
+-define(categoryPath, "/productCatalogManagement/v2/category/").
 -define(productSpecPath, "/productCatalogManagement/v2/productSpecification/").
 -define(offeringPath, "/catalogManagement/v2/productOffering/").
 -define(plaPath, "/catalogManagement/v2/pla/").
@@ -335,7 +335,7 @@ get_catalogs(_Query) ->
 	Headers	:: [tuple()],
 	Body		:: iolist(),
 	Status	:: 400 | 404 | 500 .
-%% @doc Respond to `GET /catalogManagement/v2/category/{id}'.
+%% @doc Respond to `GET /productCatalogManagement/v2/category/{id}'.
 %% 	Retrieve a category.
 get_category("1", [] =  _Query) ->
 	Headers = [{content_type, "application/json"}],
@@ -352,7 +352,7 @@ get_category(_Id, _Query) ->
 	Headers	:: [tuple()],
 	Body		:: iolist(),
 	Status	:: 400 | 404 | 500 .
-%% @doc Respond to `GET /catalogManagement/v2/catalog'.
+%% @doc Respond to `GET /productCatalogManagement/v2/catalog'.
 %% 	Retrieve all catalogs .
 get_categories([] =  _Query) ->
 	Headers = [{content_type, "application/json"}],
