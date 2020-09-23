@@ -61,7 +61,7 @@ class prefixList extends PolymerElement {
 							id="tabOkButton"
 							disabled
 							on-tap="tableOk"
-							class="ok-button">
+							class="submit-button">
 						Ok
 					</paper-button>
 					<paper-button
@@ -177,7 +177,8 @@ class prefixList extends PolymerElement {
 
 	tableDelete(event) {
 		this.$.deleteTableAjax.method = "DELETE";
-		this.$.deleteTableAjax.url = "/catalogManagement/v2/pla/" + this.$.prefixList.table;
+		var prefixListDel = document.body.querySelector('sig-app').shadowRoot.querySelector('sig-prefix-list');
+		this.$.deleteTableAjax.url = "/catalogManagement/v2/pla/" + prefixListDel.table;
 		this.$.deleteTableAjax.generateRequest();
 	}
 
