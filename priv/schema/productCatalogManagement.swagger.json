@@ -1,0 +1,806 @@
+{
+  "swagger": "2.0",
+  "info": {
+    "description": "TMF620 Product Catalog Management",
+    "version": "2.0.0",
+    "title": "API Product Catalog Management"
+  },
+  "basePath": "/productCatalogManagement/v2/",
+  "schemes": [
+    "http",
+    "https"
+  ],
+  "consumes": [
+    "application/json;charset=utf-8"
+  ],
+  "produces": [
+    "application/json;charset=utf-8"
+  ],
+  "tags": [
+    {
+      "name": "catalog",
+      "description": ""
+    },
+    {
+      "name": "category",
+      "description": ""
+    },
+    {
+      "name": "productOffering",
+      "description": ""
+    },
+    {
+      "name": "productSpecification",
+      "description": ""
+    }
+  ],
+  "paths": {
+    "/catalog": {
+      "get": {
+        "tags": [
+          "catalog"
+        ],
+        "parameters": [],
+        "operationId": "listCatalog",
+        "summary": "listCatalog",
+        "description": "This operation lists all 'Catalog' entites",
+        "deprecated": false,
+        "responses": {
+          "200": {
+            "description": "Success",
+            "schema": {
+              "type": "array",
+              "items": {
+                "$ref": "#/definitions/Catalog"
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request\n\nList of supported error codes:\n- 20: Invalid URL parameter value\n- 21: Missing body\n- 22: Invalid body\n- 23: Missing body field\n- 24: Invalid body field\n- 25: Missing header\n- 26: Invalid header value\n- 27: Missing query-string parameter\n- 28: Invalid query-string parameter value"
+          },
+          "404": {
+            "description": "Not Found\n\nList of supported error codes:\n- 60: Resource not found"
+          },
+          "500": {
+            "description": "Internal Server Error\n\nList of supported error codes:\n- 1: Internal error"
+          }
+        }
+      }
+    },
+    "/catalog/{id}": {
+      "get": {
+        "tags": [
+          "catalog"
+        ],
+        "parameters": [
+          {
+            "required": true,
+            "type": "string",
+            "name": "id",
+            "in": "path",
+            "description": "Identifier of the Catalog"
+          }
+        ],
+        "operationId": "retrieveCatalog",
+        "summary": "retrieveCatalog",
+        "description": "This operation retrives a 'Catalog' entity",
+        "deprecated": false,
+        "responses": {
+          "200": {
+            "description": "Success",
+            "schema": {
+              "type": "array",
+              "items": {
+                "$ref": "#/definitions/Catalog"
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request\n\nList of supported error codes:\n- 20: Invalid URL parameter value\n- 21: Missing body\n- 22: Invalid body\n- 23: Missing body field\n- 24: Invalid body field\n- 25: Missing header\n- 26: Invalid header value\n- 27: Missing query-string parameter\n- 28: Invalid query-string parameter value"
+          },
+          "404": {
+            "description": "Not Found\n\nList of supported error codes:\n- 60: Resource not found"
+          },
+          "500": {
+            "description": "Internal Server Error\n\nList of supported error codes:\n- 1: Internal error"
+          }
+        }
+      }
+    },
+    "/category": {
+      "get": {
+        "tags": [
+          "category"
+        ],
+        "parameters": [],
+        "operationId": "listCategory",
+        "summary": "listCategory",
+        "description": "This operation lists all 'Category' entites",
+        "deprecated": false,
+        "responses": {
+          "200": {
+            "description": "Success",
+            "schema": {
+              "type": "array",
+              "items": {
+                "$ref": "#/definitions/Category"
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request\n\nList of supported error codes:\n- 20: Invalid URL parameter value\n- 21: Missing body\n- 22: Invalid body\n- 23: Missing body field\n- 24: Invalid body field\n- 25: Missing header\n- 26: Invalid header value\n- 27: Missing query-string parameter\n- 28: Invalid query-string parameter value"
+          },
+          "404": {
+            "description": "Not Found\n\nList of supported error codes:\n- 60: Resource not found"
+          },
+          "500": {
+            "description": "Internal Server Error\n\nList of supported error codes:\n- 1: Internal error"
+          }
+        }
+      }
+    },
+    "/category/{id}": {
+      "get": {
+        "tags": [
+          "category"
+        ],
+        "parameters": [
+          {
+            "required": true,
+            "type": "string",
+            "name": "id",
+            "in": "path",
+            "description": "Identifier of the Category"
+          }
+        ],
+        "operationId": "retrieveCategory",
+        "summary": "retrieveCategory",
+        "description": "This operation retrives a 'Category' entity",
+        "deprecated": false,
+        "responses": {
+          "200": {
+            "description": "Success",
+            "schema": {
+              "type": "array",
+              "items": {
+                "$ref": "#/definitions/Category"
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request\n\nList of supported error codes:\n- 20: Invalid URL parameter value\n- 21: Missing body\n- 22: Invalid body\n- 23: Missing body field\n- 24: Invalid body field\n- 25: Missing header\n- 26: Invalid header value\n- 27: Missing query-string parameter\n- 28: Invalid query-string parameter value"
+          },
+          "404": {
+            "description": "Not Found\n\nList of supported error codes:\n- 60: Resource not found"
+          },
+          "500": {
+            "description": "Internal Server Error\n\nList of supported error codes:\n- 1: Internal error"
+          }
+        }
+      }
+    },
+    "/productOffering": {
+      "post": {
+        "tags": [
+          "productOffering"
+        ],
+        "parameters": [
+          {
+            "name": "productOffering",
+            "description": "The ProductOffering to be created",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/CreateProductOffering"
+            },
+            "in": "body"
+          }
+        ],
+        "operationId": "createProductOffering",
+        "summary": "createProductOffering",
+        "description": "Create a 'ProductOffering' entity",
+        "deprecated": false,
+        "responses": {
+          "201": {
+            "description": "Created",
+            "schema": {
+              "$ref": "#/definitions/ProductOffering"
+            }
+          },
+          "400": {
+            "description": "Bad Request\n\nList of supported error codes:\n- 20: Invalid URL parameter value\n- 21: Missing body\n- 22: Invalid body\n- 23: Missing body field\n- 24: Invalid body field\n- 25: Missing header\n- 26: Invalid header value\n- 27: Missing query-string parameter\n- 28: Invalid query-string parameter value"
+          },
+          "404": {
+            "description": "Not Found\n\nList of supported error codes:\n- 60: Resource not found"
+          },
+          "500": {
+            "description": "Internal Server Error\n\nList of supported error codes:\n- 1: Internal error"
+          }
+        }
+      },
+      "get": {
+        "tags": [
+          "productOffering"
+        ],
+        "parameters": [
+          {
+            "name": "fields",
+            "required": false,
+            "in": "query",
+            "description": "Attributes selection",
+            "type": "string"
+          },
+          {
+            "type": "string",
+            "required": false,
+            "in": "query",
+            "name": "id",
+            "description": "Identity of the productOffering"
+          },
+          {
+            "type": "string",
+            "required": false,
+            "in": "query",
+            "name": "description",
+            "description": "description of the productOffering"
+          },
+          {
+            "type": "string",
+            "required": false,
+            "in": "query",
+            "name": "lifecycleStatus",
+            "description": "Used to indicate the current lifecycle status"
+          },
+          {
+            "name": "startDate",
+            "format": "date-time",
+            "required": false,
+            "in": "query",
+            "type": "string",
+            "description": "An instant of time, starting at the TimePeriod"
+          },
+          {
+            "name": "endDate",
+            "format": "date-time",
+            "required": false,
+            "in": "query",
+            "type": "string",
+            "description": "An instant of time, ending at the TimePeriod."
+          },
+          {
+            "type": "string",
+            "required": false,
+            "in": "query",
+            "name": "price",
+            "description": "For filtering: Could be minutes, GB..."
+          }
+        ],
+        "operationId": "productFind",
+        "summary": "productFind",
+        "description": "This operation lists all 'ProductOffering' entites",
+        "deprecated": false,
+        "responses": {
+          "200": {
+            "description": "Success",
+            "schema": {
+              "type": "array",
+              "items": {
+                "$ref": "#/definitions/ProductOffering"
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request\n\nList of supported error codes:\n- 20: Invalid URL parameter value\n- 21: Missing body\n- 22: Invalid body\n- 23: Missing body field\n- 24: Invalid body field\n- 25: Missing header\n- 26: Invalid header value\n- 27: Missing query-string parameter\n- 28: Invalid query-string parameter value"
+          },
+          "404": {
+            "description": "Not Found\n\nList of supported error codes:\n- 60: Resource not found"
+          },
+          "500": {
+            "description": "Internal Server Error\n\nList of supported error codes:\n- 1: Internal error"
+          }
+        }
+      }
+    },
+    "/productOffering/{id}": {
+      "get": {
+        "tags": [
+          "productSpecification"
+        ],
+        "parameters": [
+          {
+            "required": true,
+            "type": "string",
+            "name": "id",
+            "in": "path",
+            "description": "Identifier of the Product Specification"
+          }
+        ],
+        "operationId": "retrieveproductSpecification",
+        "summary": "retrieveproductSpecification",
+        "description": "This operation lists a 'ProductSpecification' by Id",
+        "deprecated": false,
+        "responses": {
+          "200": {
+            "description": "Success",
+            "schema": {
+              "type": "array",
+              "items": {
+                "$ref": "#/definitions/ProductSpecification"
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request\n\nList of supported error codes:\n- 20: Invalid URL parameter value\n- 21: Missing body\n- 22: Invalid body\n- 23: Missing body field\n- 24: Invalid body field\n- 25: Missing header\n- 26: Invalid header value\n- 27: Missing query-string parameter\n- 28: Invalid query-string parameter value"
+          },
+          "404": {
+            "description": "Not Found\n\nList of supported error codes:\n- 60: Resource not found"
+          },
+          "500": {
+            "description": "Internal Server Error\n\nList of supported error codes:\n- 1: Internal error"
+          }
+        }
+      },
+      "patch": {
+        "tags": [
+          "productOffering"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "type": "string",
+            "description": "identity of the ProductSpecification"
+          },
+          {
+            "name": "product",
+            "required": true,
+            "in": "body",
+            "description": "",
+            "schema": {
+              "$ref": "#/definitions/ProductSpecification"
+            }
+          }
+        ],
+        "operationId": "productSpecificationPatch",
+        "summary": "productSpecificationPatch",
+        "description": "This operation patches a 'ProductSpecification' by Id",
+        "deprecated": false,
+        "responses": {
+          "200": {
+            "description": "Success",
+            "schema": {
+              "$ref": "#/definitions/ProductSpecification"
+            }
+          },
+          "400": {
+            "description": "Bad Request\n\nList of supported error codes:\n- 20: Invalid URL parameter value\n- 21: Missing body\n- 22: Invalid body\n- 23: Missing body field\n- 24: Invalid body field\n- 25: Missing header\n- 26: Invalid header value\n- 27: Missing query-string parameter\n- 28: Invalid query-string parameter value"
+          },
+          "404": {
+            "description": "Not Found\n\nList of supported error codes:\n- 60: Resource not found"
+          },
+          "500": {
+            "description": "Internal Server Error\n\nList of supported error codes:\n- 1: Internal error"
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "product"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "type": "string",
+            "description": "identity of the ProductSpecification"
+          }
+        ],
+        "operationId": "productSpecificationDelete",
+        "summary": "productSpecificationDelete",
+        "description": "This operation deletes a 'ProductSpecification' by Id",
+        "deprecated": false,
+        "responses": {
+          "204": {
+            "description": "Success"
+          },
+          "400": {
+            "description": "Bad Request\n\nList of supported error codes:\n- 20: Invalid URL parameter value\n- 21: Missing body\n- 22: Invalid body\n- 23: Missing body field\n- 24: Invalid body field\n- 25: Missing header\n- 26: Invalid header value\n- 27: Missing query-string parameter\n- 28: Invalid query-string parameter value"
+          },
+          "404": {
+            "description": "Not Found\n\nList of supported error codes:\n- 60: Resource not found"
+          },
+          "500": {
+            "description": "Internal Server Error\n\nList of supported error codes:\n- 1: Internal error"
+          }
+        }
+      }
+    },
+    "/productSpecification": {
+      "post": {
+        "tags": [
+          "productSpecification"
+        ],
+        "parameters": [
+          {
+            "name": "productOffering",
+            "description": "The ProductSpecification to be created",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/ProductSpecification"
+            },
+            "in": "body"
+          }
+        ],
+        "operationId": "createProductSpecification",
+        "summary": "createProductSpecification",
+        "description": "Create a 'ProductSpecification' entity",
+        "deprecated": false,
+        "responses": {
+          "201": {
+            "description": "Created",
+            "schema": {
+              "$ref": "#/definitions/ProductSpecification"
+            }
+          },
+          "400": {
+            "description": "Bad Request\n\nList of supported error codes:\n- 20: Invalid URL parameter value\n- 21: Missing body\n- 22: Invalid body\n- 23: Missing body field\n- 24: Invalid body field\n- 25: Missing header\n- 26: Invalid header value\n- 27: Missing query-string parameter\n- 28: Invalid query-string parameter value"
+          },
+          "404": {
+            "description": "Not Found\n\nList of supported error codes:\n- 60: Resource not found"
+          },
+          "500": {
+            "description": "Internal Server Error\n\nList of supported error codes:\n- 1: Internal error"
+          }
+        }
+      },
+      "get": {
+        "tags": [
+          "productSpecification"
+        ],
+        "parameters": [],
+        "operationId": "getProductSpecifications",
+        "summary": "getProductSpecifications",
+        "description": "This operation lists all 'ProductSpecification' entites",
+        "deprecated": false,
+        "responses": {
+          "200": {
+            "description": "Success",
+            "schema": {
+              "type": "array",
+              "items": {
+                "$ref": "#/definitions/ProductSpecification"
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request\n\nList of supported error codes:\n- 20: Invalid URL parameter value\n- 21: Missing body\n- 22: Invalid body\n- 23: Missing body field\n- 24: Invalid body field\n- 25: Missing header\n- 26: Invalid header value\n- 27: Missing query-string parameter\n- 28: Invalid query-string parameter value"
+          },
+          "404": {
+            "description": "Not Found\n\nList of supported error codes:\n- 60: Resource not found"
+          },
+          "500": {
+            "description": "Internal Server Error\n\nList of supported error codes:\n- 1: Internal error"
+          }
+        }
+      }
+    }
+  },
+  "definitions": {
+    "ProductOffering": {
+      "type": "object",
+      "description": "Represents entities that are orderable from the provider of the catalog, this resource includes pricing information.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier of the productOffering"
+        },
+        "href": {
+          "type": "string",
+          "description": "Reference of the ProductOffering"
+        },
+        "name": {
+          "type": "string",
+          "description": "Name of the productOffering"
+        },
+        "description": {
+          "type": "string",
+          "description": "Description of the productOffering"
+        },
+        "isBundle": {
+          "type": "boolean",
+          "description": "isBundle determines whether a productOffering represents a single productOffering (false), or a bundle of productOfferings (true)."
+        },
+        "lastUpdate": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Date and time of the last update"
+        },
+        "productOfferingPrice": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/ProductOfferingPriceRef"
+          }
+        },
+        "bundledProductOffering": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/BundledProductOffering"
+          }
+        }
+      }
+    },
+    "Catalog": {
+      "type": "object",
+      "description": "A collection of entity catalog items",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier of the Catalog"
+        },
+        "href": {
+          "type": "string",
+          "description": "Unique reference of the catalog"
+        },
+        "name": {
+          "type": "string",
+          "description": "Name of the catalog"
+        },
+        "type": {
+          "type": "string",
+          "description": "Indicates the (class) type of catalog. For entity catalogs, this will be 'EntityCatalog'."
+        },
+        "version": {
+          "type": "string",
+          "description": "Catalog version"
+        },
+        "lastUpdate": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Date and time of the last update"
+        },
+        "category": {
+          "$ref": "#/definitions/Category",
+          "description": "Product category"
+        }
+      }
+    },
+    "Category": {
+      "type": "object",
+      "description": "A collection categroy items",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier of the category"
+        },
+        "href": {
+          "type": "string",
+          "description": "Unique reference of the category"
+        },
+        "name": {
+          "type": "string",
+          "description": "Name of the category"
+        },
+        "description": {
+          "type": "string",
+          "description": "Description of this category"
+        },
+        "version": {
+          "type": "string",
+          "description": "category version"
+        },
+        "lifecycleStatus": {
+          "type": "string",
+          "description": "Used to indicate the current lifecycle status"
+        },
+        "lastUpdate": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Date and time of the last update"
+        },
+        "isRoot": {
+          "type": "boolean",
+          "description": "If true, this Boolean indicates that the category is a root of categories"
+        }
+      }
+    },
+    "CreateProductOffering": {
+      "type": "object",
+      "description": "Represents entities that are orderable from the provider of the catalog, this resource includes pricing information.\nSkipped properties: id,href",
+      "required": [
+        "name"
+      ],
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier of the productOffering"
+        },
+        "description": {
+          "type": "string",
+          "description": "Description of the productOffering"
+        },
+        "isBundle": {
+          "type": "boolean",
+          "description": "isBundle determines whether a productOffering represents a single productOffering (false), or a bundle of productOfferings (true)."
+        },
+        "lastUpdate": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Date and time of the last update"
+        },
+        "name": {
+          "type": "string",
+          "description": "Name of the productOffering"
+        },
+        "bundledProductOffering": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/BundledProductOffering"
+          }
+        },
+        "productOfferingPrice": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/ProductOfferingPriceRef"
+          }
+        }
+      }
+    },
+    "BundledProductOffering": {
+      "type": "object",
+      "description": "A type of ProductOffering that belongs to a grouping of ProductOfferings made available to the market. It inherits of all attributes of ProductOffering.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier of the BundledProductOffering"
+        },
+        "href": {
+          "type": "string",
+          "description": "Unique reference of the BundledProductOffering"
+        },
+        "name": {
+          "type": "string",
+          "description": "Name of the BundledProductOffering"
+        }
+      }
+    },
+    "ProductOfferingPriceRef": {
+      "type": "object",
+      "description": "ProductPriceOffering reference. An amount, usually of money, that is asked for or allowed when a ProductOffering is bought, rented, or leased",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier of the ProductOfferingPriceRef"
+        },
+        "name": {
+          "type": "string",
+          "description": "Name of the related entity."
+        },
+        "description": {
+          "type": "string",
+          "description": "Description of the ProductOfferingPriceRef"
+        },
+        "price": {
+          "$ref": "#/definitions/Price",
+          "description": "The amount of money that characterizes the price."
+        },
+        "prodSpecCharValueUse": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/ProdSpecCharValueUse"
+          }
+        }
+      },
+      "required": [
+        "id"
+      ]
+    },
+    "ProdSpecCharValueUse": {
+      "type": "object",
+      "description": "A ProductOffering to which additional properties (attributes) apply or override the properties of similar properties contained in ProdSpecCharacteristicValue.",
+      "properties": {
+        "name": {
+          "type": "string",
+          "description": "Name of the associated productSpecCharacteristic"
+        },
+        "description": {
+          "type": "string",
+          "description": "A narrative that explains in detail what the productSpecCharacteristic is"
+        }
+      }
+    },
+    "Price": {
+      "type": "object",
+      "description": "A base / value business entity used to represent money",
+      "properties": {
+        "unit": {
+          "type": "string",
+          "description": "Currency (ISO4217 norm uses 3 letters to define the currency)"
+        },
+        "value": {
+          "type": "number",
+          "format": "float",
+          "description": "A positive floating point number"
+        }
+      }
+    },
+    "ProductSpecification": {
+      "type": "object",
+      "description": "Is a detailed description of a tangible or intangible object made available externally in the form of a ProductOffering to customers or other parties playing a party role.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier of the product specification"
+        },
+        "href": {
+          "type": "string",
+          "description": "Reference of the product specification"
+        },
+        "name": {
+          "type": "string",
+          "description": "Name of the product specification"
+        },
+        "description": {
+          "type": "string",
+          "description": "A narrative that explains in detail what the product specification is"
+        },
+        "lifecycleStatus": {
+          "type": "string",
+          "description": "Used to indicate the current lifecycle status"
+        },
+        "version": {
+          "type": "string",
+          "description": "Product specification version"
+        },
+        "productSpecCharacteristic": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/ProductSpecCharacteristic"
+          }
+        }
+      }
+    },
+    "ProductSpecCharacteristic": {
+      "type": "object",
+      "description": "A characteristic quality or distinctive feature of a ProductSpecification.  The characteristic can be take on a discrete value, such as color, can take on a range of values, (for example, sensitivity of 100-240 mV), or can be derived from a formula (for example, usage time (hrs) = 30 - talk time *3). Certain characteristics, such as color, may be configured during the ordering or some other process.",
+      "properties": {
+        "name": {
+          "type": "string",
+          "description": "Name of the productSpecCharacteristic"
+        },
+        "description": {
+          "type": "string",
+          "description": "A narrative that explains in detail what the productSpecCharacteristic is"
+        },
+        "valueType": {
+          "type": "string",
+          "description": "A kind of value that the characteristic can take on, such as numeric, text and so forth"
+        },
+        "configurable": {
+          "type": "boolean",
+          "description": "If true, the Boolean indicates that the productSpecCharacteristic is configurable"
+        },
+        "productSpecCharacteristicValue": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/ProductSpecCharacteristicValue"
+          }
+        }
+      }
+    },
+    "ProductSpecCharacteristicValue": {
+      "type": "object",
+      "description": "A number or text that can be assigned to a ProductSpecCharacteristic.",
+      "properties": {
+        "unitOfMeasure": {
+          "type": "string",
+          "description": "Could be minutes, GB..."
+        },
+        "valueType": {
+          "type": "string",
+          "description": "A kind of value that the characteristic can take on, such as numeric, text, and so forth"
+        }
+      }
+    }
+  }
+}
