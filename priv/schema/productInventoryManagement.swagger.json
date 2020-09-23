@@ -1,11 +1,11 @@
 {
   "swagger": "2.0",
   "info": {
-    "description": "TMF632 Party Management",
-    "version": "1.0.0",
-    "title": "API PartyManagement"
+    "description": "TMF637 Product Inventory Management",
+    "version": "2.0.0",
+    "title": "API Product Inventory Management"
   },
-  "basePath": "/partyManagement/v1/",
+  "basePath": "/productInventoryManagement/v2/",
   "schemes": [
     "http",
     "https"
@@ -18,36 +18,36 @@
   ],
   "tags": [
     {
-      "name": "Individual",
+      "name": "product",
       "description": ""
     }
   ],
   "paths": {
-    "/individual": {
+    "/product": {
       "post": {
         "tags": [
-          "Individual"
+          "product"
         ],
-        "operationId": "individualCreate",
-        "summary": "Create an individual",
-        "description": "This operation is used to create an individual entity.",
-        "deprecated": false,
         "parameters": [
           {
-            "name": "Individual",
+            "name": "product",
             "required": true,
             "in": "body",
             "description": "",
             "schema": {
-              "$ref": "#/definitions/Individual"
+              "$ref": "#/definitions/Product"
             }
           }
         ],
+        "operationId": "productCreate",
+        "summary": "productCreate",
+        "description": "Create a product entity",
+        "deprecated": false,
         "responses": {
           "201": {
-            "description": "Success",
+            "description": "Created",
             "schema": {
-              "$ref": "#/definitions/Individual"
+              "$ref": "#/definitions/Product"
             }
           },
           "400": {
@@ -63,20 +63,28 @@
       },
       "get": {
         "tags": [
-          "Individual"
+          "product"
         ],
-        "operationId": "individualFind",
-        "summary": "List individuals",
-        "description": "This operation lists individual entities (physical persons)",
+        "parameters": [
+          {
+            "name": "fields",
+            "required": false,
+            "in": "query",
+            "description": "Attributes selection",
+            "type": "string"
+          }
+        ],
+        "operationId": "productFind",
+        "summary": "productFind",
+        "description": "This operation lists all product entites",
         "deprecated": false,
-        "parameters": [],
         "responses": {
           "200": {
             "description": "Success",
             "schema": {
               "type": "array",
               "items": {
-                "$ref": "#/definitions/Individual"
+                "$ref": "#/definitions/Product"
               }
             }
           },
@@ -92,36 +100,36 @@
         }
       }
     },
-    "/individual/{individualId}": {
+    "/product/{id}": {
       "get": {
         "tags": [
-          "Individual"
+          "product"
         ],
-        "operationId": "individualGet",
-        "summary": "Retrieve an individual",
-        "description": "This operation retrieves an individual entity (physical person).",
-        "deprecated": false,
         "parameters": [
           {
-            "name": "individualId",
+            "name": "id",
             "in": "path",
             "required": true,
             "type": "string",
-            "description": "Unique identifier of the individual"
+            "description": "identity of the product"
           },
           {
             "name": "fields",
             "required": false,
             "in": "query",
-            "description": "Attribute selection",
+            "description": "Attributes selection",
             "type": "string"
           }
         ],
+        "operationId": "productGet",
+        "summary": "productGet",
+        "description": "This operation retrives a product entity",
+        "deprecated": false,
         "responses": {
           "200": {
             "description": "Success",
             "schema": {
-              "$ref": "#/definitions/Individual"
+              "$ref": "#/definitions/Product"
             }
           },
           "400": {
@@ -137,35 +145,35 @@
       },
       "patch": {
         "tags": [
-          "Individual"
+          "product"
         ],
-        "operationId": "individualPatch",
-        "summary": "Update partially an individual",
-        "description": "This operation partially updates an individual entity",
-        "deprecated": false,
         "parameters": [
           {
-            "name": "individualId",
+            "name": "id",
             "in": "path",
             "required": true,
             "type": "string",
-            "description": "Unique identifier of the individual"
+            "description": "identity of the product"
           },
           {
-            "name": "Individual",
+            "name": "product",
             "required": true,
             "in": "body",
             "description": "",
             "schema": {
-              "$ref": "#/definitions/Individual"
+              "$ref": "#/definitions/Product"
             }
           }
         ],
+        "operationId": "productPatch",
+        "summary": "productPatch",
+        "description": "This operation patches a product entity",
+        "deprecated": false,
         "responses": {
           "200": {
             "description": "Success",
             "schema": {
-              "$ref": "#/definitions/Individual"
+              "$ref": "#/definitions/Product"
             }
           },
           "400": {
@@ -181,21 +189,21 @@
       },
       "delete": {
         "tags": [
-          "Individual"
+          "product"
         ],
-        "operationId": "individualDelete",
-        "summary": "Delete an individual",
-        "description": "This operation is used to delete an existing individual entity.",
-        "deprecated": false,
         "parameters": [
           {
-            "name": "individualId",
+            "name": "id",
             "in": "path",
             "required": true,
             "type": "string",
-            "description": "Unique identifier of the individual"
+            "description": "identity of the product"
           }
         ],
+        "operationId": "productDelete",
+        "summary": "productDelete",
+        "description": "This operation deletes a product entity",
+        "deprecated": false,
         "responses": {
           "204": {
             "description": "Success"
@@ -214,23 +222,106 @@
     }
   },
   "definitions": {
-    "Individual": {
-      "description": "",
+    "Product": {
+      "description": "A Product represents the subscription of a ProductOffering by a Party playing a PartyRole, such as a Customer.  For example, Jean has subscribed to company ABC’s internet ProductOffering.\nThe association between ProductSpecification and Product allows ProductSpecification, to be instantiated as Product and related to customers or other involved parties.",
       "required": [
         "id"
       ],
       "type": "object",
       "properties": {
+        "id": {
+          "description": "Unique identifier of the product",
+          "type": "string"
+        },
+        "href": {
+          "description": "Reference of the product",
+          "type": "string"
+        },
+        "@baseType": {
+          "description": "Indicates the base type of the resource. Here can be 'Product'",
+          "type": "string"
+        },
+        "@type": {
+          "description": "Indicated the type of resource.",
+          "type": "string"
+        },
+        "@schemaLocation": {
+          "description": "A link to the schema describing this REST resource.",
+          "type": "string"
+        },
+        "productOffering": {
+          "$ref": "#/definitions/ProductOfferingRef"
+        },
+        "characteristic": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/ProductCharacteristic"
+          }
+        },
+        "realizingService": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/RealizingService"
+          }
+        }
+      }
+    },
+    "ProductOfferingRef": {
+      "description": "ProductOffering reference. A product offering represents entities that are orderable from the provider of the catalog, this resource includes pricing information.",
+      "required": [
+        "id"
+      ],
+      "type": "object",
+      "properties": {
+        "id": {
+          "description": "Unique identifier of the product offering",
+          "type": "string"
+        },
+        "href": {
+          "description": "Reference of the product offering",
+          "type": "string"
+        },
         "name": {
-          "description": "Name of the individual",
+          "description": "Name of the product offering",
+          "type": "string"
+        }
+      }
+    },
+    "ProductCharacteristic": {
+      "description": "Characteristics of the product to instantiate or to modify.",
+      "type": "object",
+      "properties": {
+        "name": {
+          "description": "Name of the characteristic",
           "type": "string"
         },
-        "password": {
-          "description": "Password of the individual",
+        "value": {
+          "description": "Value of the characteristic",
           "type": "string"
         },
-        "locale": {
-          "description": "Language of the individual",
+        "@type": {
+          "description": "Indicates the (class) type of resource",
+          "type": "string"
+        },
+        "@schemaLocation": {
+          "description": "This field provided a link to the schema describing this REST resource.",
+          "type": "string"
+        }
+      }
+    },
+    "RealizingService": {
+      "description": "RealizingService reference. RealizingService is a link to the service that realizes the product.",
+      "required": [
+        "id"
+      ],
+      "type": "object",
+      "properties": {
+        "id": {
+          "description": "Unique identifier of the service",
+          "type": "string"
+        },
+        "href": {
+          "description": "Reference of the service",
           "type": "string"
         }
       }
