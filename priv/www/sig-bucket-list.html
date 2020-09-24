@@ -137,6 +137,9 @@
 					type: Boolean,
 					value: false,
 					observer: '_activePageChanged'
+				},
+				activeItem: {
+					observer: '_activeItemChanged',
 				}
 			},
 			_activePageChanged: function(active) {
@@ -160,6 +163,14 @@
 						}
 					];
 					grid.dataProvider = this._getBuckets;
+				}
+			},
+			_activeItemChanged: function(item) {
+				if(item != null) {
+					var grid = document.getElementById('balanceBucketGrid'); 
+					grid.selectedItems = item ? [item] : [];
+					document.getElementById('deleteBucketModal').open();
+					document.getElementById('deleteBucId').value = item.id;
 				}
 			},
 			_getBuckets: function(params, callback) {
