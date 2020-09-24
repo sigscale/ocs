@@ -109,6 +109,38 @@
             "description": "Internal Server Error\n\nList of supported error codes:\n- 1: Internal error"
           }
         }
+      },
+      "delete": {
+        "tags": [
+          "bucket"
+        ],
+        "parameters": [
+          {
+            "name": "bucketId",
+            "in": "path",
+            "required": true,
+            "type": "string",
+            "description": "identity of the bucket"
+          }
+        ],
+        "operationId": "bucketDelete",
+        "summary": "bucketDelete",
+        "description": "This operation deletes a 'bucket' by Id",
+        "deprecated": false,
+        "responses": {
+          "204": {
+            "description": "Success"
+          },
+          "400": {
+            "description": "Bad Request\n\nList of supported error codes:\n- 20: Invalid URL parameter value\n- 21: Missing body\n- 22: Invalid body\n- 23: Missing body field\n- 24: Invalid body field\n- 25: Missing header\n- 26: Invalid header value\n- 27: Missing query-string parameter\n- 28: Invalid query-string parameter value"
+          },
+          "404": {
+            "description": "Not Found\n\nList of supported error codes:\n- 60: Resource not found"
+          },
+          "500": {
+            "description": "Internal Server Error\n\nList of supported error codes:\n- 1: Internal error"
+          }
+        }
       }
     },
     "/product/{id}/accumulatedbalance": {
