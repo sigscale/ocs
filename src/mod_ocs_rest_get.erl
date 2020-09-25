@@ -137,6 +137,9 @@ do_get(Resource, ModData, ["partyManagement", "v1", "individual", Id], Query) ->
 	do_response(ModData, Resource:get_user(Id, Query));
 do_get(Resource, ModData, ["balanceManagement", "v1", "product", Id, "accumulatedBalance"], []) ->
 	do_response(ModData, Resource:get_balance(Id));
+do_get(Resource, ModData, ["balanceManagement", "v1", "product", Id,
+		"accumulatedBalance"], Query) ->
+	do_response(ModData, Resource:get_balance(Id, Query));
 do_get(Resource, ModData, ["balanceManagement", "v1", "service", Id, "accumulatedBalance"], []) ->
 	do_response(ModData, Resource:get_balance_service(Id));
 do_get(Resource, #mod{parsed_header = Headers} = ModData, ["balanceManagement", "v1", "bucket"], Query) ->

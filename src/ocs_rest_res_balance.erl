@@ -22,8 +22,8 @@
 -copyright('Copyright (c) 2016 - 2017 SigScale Global Inc.').
 
 -export([content_types_accepted/0, content_types_provided/0,
-		top_up/2, top_up_service/2, get_balance/1, get_balance_service/1,
-		get_balance_log/2, balance_adjustment/1]).
+		top_up/2, top_up_service/2, get_balance/1, get_balance/2,
+		get_balance_service/1, get_balance_log/2, balance_adjustment/1]).
 
 -export([get_bucket/1, get_buckets/2]).
 -export([abmf/1, adjustment/1, bucket/1, acc_balance/1]).
@@ -214,7 +214,7 @@ get_balance_service(Identity) ->
 		_Error ->
 			{error, 400}
 	end.
- 
+
 -spec get_balance(ProdRef) -> Result
 	when
 		ProdRef :: list(),
@@ -246,6 +246,52 @@ get_balance(ProdRef) ->
 			AccBalance = #acc_balance{id = ProdRef, total_balance = TotalAmount,
 					units = cents, bucket = lists:map(F2, Buckets3),
 					product = [ProdRef]},
+			Body  = mochijson:encode(acc_balance(AccBalance)),
+			Headers = [{content_type, "application/json"}],
+			{ok, Headers, Body}
+	catch
+		_:product_not_found ->
+			{error, 404};
+		_Error ->
+			{error, 400}
+	end.
+
+-spec get_balance(ProdRef, Query) -> Result
+	when
+		ProdRef :: list(),
+		Query :: [{Key :: string(), Value :: string()}],
+		Result :: {ok, Headers :: [tuple()], Body :: iolist()}
+				| {error, ErrorCode :: integer()}.
+%% @doc Body producing function for
+%%	`GET /balanceManagement/v1/product/{id}/accumulatedBalance'
+% with query request
+get_balance(ProdRef, Query) ->
+	try
+		case ocs:get_buckets(ProdRef) of
+			Buckets1 when is_list(Buckets1) ->
+				Buckets1;
+			{error, Reason} ->
+				throw(Reason)
+		end
+	of
+		Buckets2 ->
+			{_, Value} = lists:keyfind("totalBalance.units", 1, Query),
+			Now = erlang:system_time(?MILLISECOND),
+			Units = list_to_existing_atom(Value),
+			F = fun(#bucket{units = U, end_date = EndDate})
+							when EndDate == undefined; EndDate > Now, U == Units ->
+						true;
+					(_) ->
+						false
+			end,
+			Buckets3 = lists:filter(F, Buckets2),
+			TotalAmount = lists:sum([B#bucket.remain_amount || B <- Buckets3]),
+			BucketIds = [B#bucket.id || B <- Buckets3],
+			AccBalance = #acc_balance{id = ProdRef, total_balance = TotalAmount,
+					units = Units, bucket = BucketIds, product = [ProdRef]},
+			[{Condition, S}] = Query -- [{"totalBalance.units", Value}],
+			ok = send_notification(Condition, TotalAmount,
+					list_to_integer(S), AccBalance),
 			Body  = mochijson:encode(acc_balance(AccBalance)),
 			Headers = [{content_type, "application/json"}],
 			{ok, Headers, Body}
@@ -917,4 +963,11 @@ match_abmf(Key, Complex, _Query) ->
 		false ->
 			'_'
 	end.
+
+%% @hidden
+send_notification("totalBalance.amount.lt", TotalAmount, Threshold, AccBalance)
+		when TotalAmount < Threshold ->
+	ocs_event:notify(accumulated, balance, [AccBalance]);
+send_notification(_, _TotalAmount, _Threshold, _AccBalance) ->
+	ok.
 
