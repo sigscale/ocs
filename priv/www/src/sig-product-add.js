@@ -180,15 +180,9 @@ class productAddClass extends PolymerElement {
 		productSer.id = this.proService;
 		productSer.href = "/serviceInventoryManagement/v2/service/" + this.proService;
 		productServi.push(productSer);
-//		var productServi = new Array();
-//		var services = this.proService;
-//		for(var index in services) {
-//			bla = new Object();
-//			bla.id = services[index];
-//			bla.href = "/serviceInventoryManagement/v2/service/" + services[index];
-//			productServi.push(bla);
-//		}
-		productRes.realizingService= productServi;
+		if(productServi.length > 1) {
+			productRes.realizingService= productServi;
+		}
 		ajaxPro.body = productRes;
 		ajaxPro.generateRequest();
 		this.proAdd = null;
