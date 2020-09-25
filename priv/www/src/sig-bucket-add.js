@@ -85,6 +85,41 @@ class offerAdd extends PolymerElement {
 					</paper-button>
 				</div>
 			</paper-dialog>
+			<paper-dialog
+					class="dialog"
+					id="deleteBucketModal" modal>
+				<app-toolbar>
+					<h2>Delete Bucket</h2>
+				</app-toolbar>
+				<paper-input
+						id="deleteBucId"
+						value="{{delBuc}}"
+						name="BucketId"
+						label="Bucket Id"
+						required
+						disabled>
+				</paper-input>
+				<div class="buttons">
+					<paper-button raised
+							id="bucDelButton"
+							on-tap="bucketDelete"
+							class="delete-buttons">
+						Delete
+					</paper-button>
+					<paper-button dialog-dismiss
+							class="cancel-button"
+							onclick="deleteProductModal.close()">
+						Cancel
+					</paper-button>
+				</div>
+			</paper-dialog>
+			<iron-ajax
+					id="deleteBucketAjax"
+					url="/balanceManagement/v1/bucket/"
+					method="delete"
+					on-response="_deleteBucketResponse"
+					on-error="_deleteBucketError">
+			</iron-ajax>
 			<iron-ajax
 					id="addBucketAjax"
 					method = "post"
@@ -107,12 +142,27 @@ class offerAdd extends PolymerElement {
 			},
 			proAmount: {
 				type: String
+			},
+			delBuc: {
+				type: String
 			}
 		}
 	}
 
 	ready() {
 		super.ready()
+	}
+
+	bucketDelete(event) {
+		var delBucket = this.delBuc;
+		var deleteAjax = this.$.deleteBucketAjax;
+		deleteAjax.url = "/balanceManagement/v1/bucket/" + delBucket;
+		deleteAjax.generateRequest();
+	}
+
+	_deleteBucketResponse(event) {
+		this.$.deleteBucketModal.close();
+		document.body.querySelector('sig-app').shadowRoot.querySelector('sig-bucket-list').shadowRoot.getElementById('balanceBucketGrid').clearCache();
 	}
 
 	_bucketAddSubmit(event) {

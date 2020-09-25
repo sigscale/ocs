@@ -40,10 +40,10 @@
 -define(MILLISECOND, milli_seconds).
 %-define(MILLISECOND, millisecond).
 
--define(catalogPath, "/catalogManagement/v2/catalog/").
--define(categoryPath, "/catalogManagement/v2/category/").
--define(productSpecPath, "/catalogManagement/v2/productSpecification/").
--define(offeringPath, "/catalogManagement/v2/productOffering/").
+-define(catalogPath, "/productCatalogManagement/v2/catalog/").
+-define(categoryPath, "/productCatalogManagement/v2/category/").
+-define(productSpecPath, "/productCatalogManagement/v2/productSpecification/").
+-define(offeringPath, "/productCatalogManagement/v2/productOffering/").
 -define(plaPath, "/catalogManagement/v2/pla/").
 -define(plaSpecPath, "/catalogManagement/v2/plaSpecification/").
 -define(inventoryPath, "/productInventoryManagement/v2/product/").
@@ -90,7 +90,7 @@ get_schema() ->
 	Headers	:: [tuple()],
 	Body		:: iolist(),
 	Status	:: 400 | 500 .
-%% @doc Respond to `POST /catalogManagement/v2/productOffering'.
+%% @doc Respond to `POST /productCatalogManagement/v2/productOffering'.
 %% 	Add a new Product Offering.
 add_offer(ReqData) ->
 	try
@@ -157,7 +157,7 @@ add_inventory(ReqData) ->
 	Headers	:: [tuple()],
 	Body		:: iolist(),
 	Status	:: 400 | 404 | 500 .
-%% @doc Respond to `GET /catalogManagement/v2/productOffering/{id}'.
+%% @doc Respond to `GET /productCatalogManagement/v2/productOffering/{id}'.
 %% 	Retrieve a Product Offering.
 get_offer(ID) ->
 	try
@@ -223,7 +223,7 @@ get_inventory(ID) ->
 	Headers	:: [tuple()],
 	Body		:: iolist(),
 	Status	:: 400 | 404 | 412 | 500 .
-%% @doc Respond to `GET /catalogManagement/v2/productOffering'.
+%% @doc Respond to `GET /productCatalogManagement/v2/productOffering'.
 %% 	Retrieve all Product Offerings.
 %% @todo Filtering
 get_offers(Query, Headers) ->
@@ -335,7 +335,7 @@ get_catalogs(_Query) ->
 	Headers	:: [tuple()],
 	Body		:: iolist(),
 	Status	:: 400 | 404 | 500 .
-%% @doc Respond to `GET /catalogManagement/v2/category/{id}'.
+%% @doc Respond to `GET /productCatalogManagement/v2/category/{id}'.
 %% 	Retrieve a category.
 get_category("1", [] =  _Query) ->
 	Headers = [{content_type, "application/json"}],
@@ -352,7 +352,7 @@ get_category(_Id, _Query) ->
 	Headers	:: [tuple()],
 	Body		:: iolist(),
 	Status	:: 400 | 404 | 500 .
-%% @doc Respond to `GET /catalogManagement/v2/catalog'.
+%% @doc Respond to `GET /productCatalogManagement/v2/catalog'.
 %% 	Retrieve all catalogs .
 get_categories([] =  _Query) ->
 	Headers = [{content_type, "application/json"}],
@@ -369,7 +369,7 @@ get_categories(_Query) ->
 	Headers	:: [tuple()],
 	Body		:: iolist(),
 	Status	:: 400 | 404 | 500 .
-%% @doc Respond to `GET /catalogManegment/v2/productSpecification/{id}'.
+%% @doc Respond to `GET /productCatalogManagement/v2/productSpecification/{id}'.
 %% 	Retrieve a product specification.
 get_product_spec(ID, [] = _Query) ->
 	case product_spec(ID) of
@@ -389,7 +389,7 @@ get_product_spec(_Id, _Query) ->
 	Headers	:: [tuple()],
 	Body		:: iolist(),
 	Status	:: 400 | 404 | 500 .
-%% @doc Respond to `GET /catalogManagment/v2/productSpecification'.
+%% @doc Respond to `GET /productCatalogManagement/v2/productSpecification'.
 %% 	Retrieve all product specifications.
 get_product_specs([] = _Query) ->
 	Headers = [{content_type, "application/json"}],
@@ -412,7 +412,7 @@ get_product_specs(_Query) ->
 		Headers	:: [tuple()],
 		Body		:: iolist(),
 		Status	:: 400 | 404 | 412 | 500 .
-%% @doc Respond to `PATCH /catalogManagement/v2/productOffering/{id}'.
+%% @doc Respond to `PATCH /productCatalogManagement/v2/productOffering/{id}'.
 %% 	Update a Product Offering using JSON patch method
 %% 	<a href="http://tools.ietf.org/html/rfc6902">RFC6902</a>.
 patch_offer(ProdId, Etag, ReqData) ->
@@ -561,7 +561,7 @@ patch_inventory(ProdId, Etag, ReqData) ->
 		Id :: string(),
 		Result :: {ok, Headers :: [tuple()], Body :: iolist()}
 				| {error, ErrorCode :: integer()} .
-%% @doc Respond to `DELETE /catalogManagement/v1/productOffering/{id}'
+%% @doc Respond to `DELETE /productCatalogManagement/v2/productOffering/{id}'
 %% 	request to remove a `Product Offering'.
 delete_offer(Id) ->
 	case catch ocs:delete_offer(Id) of
@@ -1876,18 +1876,30 @@ inventory([balance | T], #product{balance = BucketRefs} = Product, Acc) ->
 	case catch mnesia:transaction(F1) of
 		{atomic, Buckets1} ->
 			Buckets2 = lists:flatten(Buckets1),
-			F2 = fun(#bucket{units = cents, remain_amount = N}, {undefined, B, S}) ->
+			Now = erlang:system_time(?MILLISECOND),
+			F2 = fun(#bucket{units = cents, remain_amount = N, end_date = EndDate},
+							{undefined, B, S}) when EndDate == undefined;
+							EndDate > Now ->
 						{N, B, S};
-					(#bucket{units = cents, remain_amount = N}, {C, B, S}) ->
+					(#bucket{units = cents, remain_amount = N, end_date = EndDate},
+							{C, B, S}) when EndDate == undefined; EndDate > Now ->
 						{C + N, B, S};
-					(#bucket{units = octets, remain_amount = N}, {C, undefined, S}) ->
+					(#bucket{units = octets, remain_amount = N, end_date = EndDate},
+							{C, undefined, S}) when EndDate == undefined;
+							EndDate > Now ->
 						{C , N, S};
-					(#bucket{units = octets, remain_amount = N}, {C, B, S}) ->
+					(#bucket{units = octets, remain_amount = N, end_date = EndDate},
+							{C, B, S}) when EndDate == undefined; EndDate > Now ->
 						{C , B + N, S};
-					(#bucket{units = seconds, remain_amount = N}, {C, B, undefined}) ->
+					(#bucket{units = seconds, remain_amount = N, end_date = EndDate},
+							{C, B, undefined}) when EndDate == undefined;
+							EndDate > Now ->
 						{C , B, N};
-					(#bucket{units = seconds, remain_amount = N}, {C, B, S}) ->
-						{C , B, S + N}
+					(#bucket{units = seconds, remain_amount = N, end_date = EndDate},
+							{C, B, S}) when EndDate == undefined; EndDate > Now ->
+						{C , B, S + N};
+					(_, {C, B, S}) ->
+						{C , B, S}
 			end,
 			{Cents, Bytes, Seconds} = lists:foldl(F2,
 					{undefined, undefined, undefined}, Buckets2),

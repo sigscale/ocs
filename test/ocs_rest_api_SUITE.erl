@@ -179,9 +179,9 @@ all() ->
 	get_auth_usage, get_auth_usage_id, get_auth_usage_filter,
 	get_auth_usage_range, get_acct_usage, get_acct_usage_id,
 	get_acct_usage_filter, get_acct_usage_range, get_ipdr_usage,
-	top_up, get_balance, simultaneous_updates_on_client_failure,
-	get_product, add_product, add_product_sms,
-	update_product_realizing_service, delete_product,
+	top_up, get_balance, get_balance_service,
+	simultaneous_updates_on_client_failure, get_product, add_product,
+	add_product_sms, update_product_realizing_service, delete_product,
 	ignore_delete_product, query_product, filter_product,
 	post_hub_balance, delete_hub_balance, notify_create_bucket,
 	post_hub_product, delete_hub_product, notify_create_product,
@@ -872,10 +872,18 @@ get_product() ->
 			with given product inventory reference"}]}].
 
 get_product(Config) ->
-	P1 = price(one_time, undefined, undefined, rand:uniform(100)),
+	Amount1 = 200,
+	P1 = price(one_time, undefined, undefined, Amount1),
 	P2 = price(usage, octets, rand:uniform(1000000), rand:uniform(500)),
 	OfferId = offer_add([P1, P2], 4),
 	ProdRef = product_add(OfferId),
+	Amount2 = 1000,
+	B1 = b(cents, Amount2),
+	B2 = #bucket{units = cents, remain_amount = 5000,
+			start_date = erlang:system_time(?MILLISECOND) - (2 * 2592000000),
+			end_date = erlang:system_time(?MILLISECOND) - 2592000000},
+	{_, _, #bucket{}} = ocs:add_bucket(ProdRef, B1),
+	{_, _, #bucket{}} = ocs:add_bucket(ProdRef, B2),
 	ServiceId = service_add(ProdRef),
 	HostUrl = ?config(host_url, Config),
 	Accept = {"accept", "application/json"},
@@ -886,12 +894,21 @@ get_product(Config) ->
 	{_, "application/json"} = lists:keyfind("content-type", 1, Headers),
 	{struct, Object} = mochijson:decode(ResponseBody),
 	{_, ProdRef} = lists:keyfind("id", 1, Object),
-	{_, "/productInventoryManagement/v2/product/" ++ ProdRef} = lists:keyfind("href", 1, Object),
+	{_, "/productInventoryManagement/v2/product/" ++ ProdRef}
+			= lists:keyfind("href", 1, Object),
 	{_, {struct, ProductOffering}} = lists:keyfind("productOffering", 1, Object),
 	{_, OfferId} = lists:keyfind("id", 1, ProductOffering),
-	{_, "/catalogManagement/v2/productOffering/" ++ OfferId} = lists:keyfind("href", 1, ProductOffering),
-	{_, {array, RealizeingServices}} = lists:keyfind("realizingService", 1, Object),
-	F = fun({struct, [{"id", SId}, {"href","/serviceInventoryManagement/v2/service/" ++ SId}]})
+	{_, "/catalogManagement/v2/productOffering/" ++ OfferId}
+			= lists:keyfind("href", 1, ProductOffering),
+	{_, {array, RealizeingServices}}
+			= lists:keyfind("realizingService", 1, Object),
+	{_, {array, [{struct, BalanceList}]}} = lists:keyfind("balance", 1, Object),
+	{_, {struct, TotalBalanceList}}
+			= lists:keyfind("totalBalance", 1, BalanceList),
+	{_, CentsBalance} = lists:keyfind("amount", 1, TotalBalanceList),
+	CentsBalance = ocs_rest:millionths_out(Amount2 - Amount1),
+	F = fun({struct, [{"id", SId},
+					{"href","/serviceInventoryManagement/v2/service/" ++ SId}]})
 					when ServiceId == SId ->
 				true;
 			(_) ->
@@ -2278,8 +2295,12 @@ get_balance(Config) ->
 	ProdRef = product_add(OfferId),
 	B1 = b(cents, 10000),
 	B2 = b(cents, 5),
+	B3 = #bucket{units = cents, remain_amount = 500,
+			start_date = erlang:system_time(?MILLISECOND) - (2 * 2592000000),
+			end_date = erlang:system_time(?MILLISECOND) - 2592000000},
 	{_, _, #bucket{id = BId1}} = ocs:add_bucket(ProdRef, B1),
 	{_, _, #bucket{id = BId2}} = ocs:add_bucket(ProdRef, B2),
+	{_, _, #bucket{}} = ocs:add_bucket(ProdRef, B3),
 	AcceptValue = "application/json",
 	Accept = {"accept", AcceptValue},
 	Balance = B1#bucket.remain_amount + B2#bucket.remain_amount,
@@ -2321,8 +2342,12 @@ get_balance_service(Config) ->
 	ProdRef = product_add(OfferId),
 	B1 = b(cents, 10000),
 	B2 = b(cents, 5),
+	B3 = #bucket{units = cents, remain_amount = 500,
+			start_date = erlang:system_time(?MILLISECOND) - (2 * 2592000000),
+			end_date = erlang:system_time(?MILLISECOND) - 2592000000},
 	{_, _, #bucket{id = BId1}} = ocs:add_bucket(ProdRef, B1),
 	{_, _, #bucket{id = BId2}} = ocs:add_bucket(ProdRef, B2),
+	{_, _, #bucket{}} = ocs:add_bucket(ProdRef, B3),
 	ServiceId = service_add(ProdRef),
 	AcceptValue = "application/json",
 	Accept = {"accept", AcceptValue},

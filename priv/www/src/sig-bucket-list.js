@@ -24,6 +24,7 @@ class bucketList extends PolymerElement {
 			<style include="style-element"></style>
 			<vaadin-grid
 					id="balanceBucketGrid"
+					active-item="{{activeItem}}"
 					loading="{{loading}}">
 				<vaadin-grid-column width="15ex" flex-grow="5">
 					<template class="header">
@@ -113,6 +114,9 @@ class bucketList extends PolymerElement {
 			_filterProdId: {
 				type: Boolean,
 				observer: '_filterChanged'
+			},
+			activeItem: {
+				observer: '_activeItemChanged',
 			}
 		}
 	}
@@ -121,6 +125,15 @@ class bucketList extends PolymerElement {
 		super.ready();
 		var grid = this.shadowRoot.getElementById('balanceBucketGrid');
 		grid.dataProvider = this._getBuckets;
+	}
+
+	_activeItemChanged(item) {
+		if(item != null) {
+			var grid = this.shadowRoot.getElementById('balanceBucketGrid'); 
+			grid.selectedItems = item ? [item] : [];
+			document.body.querySelector('sig-app').shadowRoot.querySelector('sig-bucket-add').shadowRoot.getElementById('deleteBucketModal').open();
+			document.body.querySelector('sig-app').shadowRoot.querySelector('sig-bucket-add').shadowRoot.getElementById('deleteBucId').value = item.id;
+		}
 	}
 
 	_getBuckets(params, callback) {
