@@ -792,6 +792,7 @@
 ;     [ DCD-Information ]
 ;     [ M2M-Information ]
 ;     [ CPDT-Information ]
+     *[ AVP ]
 
   PS-Information ::= <AVP Header: 874>
       [ 3GPP-Charging-Id ]
@@ -867,6 +868,7 @@
       [ Unused-Quota-Timer ]
       [ 3GPP-GPRS-Negotiated-QoS-Profile ]
       [ 3GPP-IMEISV ]
+     *[ AVP ]
 
    IMS-Information ::= <AVP Header: 876>
       { Node-Functionality }
@@ -922,6 +924,7 @@
       [ Instance-Id ]
       [ TAD-Identifier ]
       [ FE-Identifier-List ]
+     *[ AVP ]
 
    MMS-Information ::= <AVP Header: 877>
       [ Originator-Address ]
@@ -944,6 +947,7 @@
 ;     [ Adaptations ]
 ;     [ VASP-Id ]
 ;     [ VAS-Id ]
+     *[ AVP ]
 
 ;  LCS-Information ::= <AVP Header: 878>
 ;     [ LCS-Client-ID ]
@@ -1010,6 +1014,7 @@
       [ MTC-IWF-Address ]
 ;     [ Application-Port-Identifier ]
       [ External-Identifier ]
+     *[ AVP ]
 
 ;  VCS-Information :: = < AVP Header: 3410>
 ;     [ Bearer-Capability ]
