@@ -24,7 +24,7 @@
 -export([content_types_accepted/0, content_types_provided/0,
 		top_up/2, top_up_service/2, get_balance/1, get_balance_service/1,
 		get_balance_log/2, balance_adjustment/1]).
-
+-export([delete_bucket/1]).
 -export([get_bucket/1, get_buckets/2]).
 -export([abmf/1, adjustment/1]).
 -export([quantity/1]).
@@ -110,12 +110,29 @@ get_balance_log(Query, _Headers) ->
 			{error, 400}
 	end.
 
+-spec delete_bucket(Id) -> Result
+	when
+		Id :: string(),
+		Result :: {ok, Headers :: [tuple()], Body :: iolist()}
+				| {error, ErrorCode :: integer()} .
+%% @doc Respond to `DELETE /balanceManagement/v1/bucket/{id}'
+%% 	request to remove a `Balance Bucket'.
+delete_bucket(Id) ->
+	case catch ocs:delete_bucket(Id) of
+		ok ->
+			{ok, [], []};
+		{'EXIT', service_exists} ->
+			{error, 403};
+		{'EXIT', _} ->
+			{error, 500}
+	end.
+
 -spec get_bucket(BucketId) -> Result
 	when
 		BucketId :: string(),
 		Result :: {ok, Headers :: [tuple()], Body :: iolist()}
 				| {error, ErrorCode :: integer()}.
-%% @doc Body producing function for `GET /balanceManagment/v1/bucket/{id}',
+%% @doc Body producing function for `GET /balanceManagement/v1/bucket/{id}',
 get_bucket(BucketId) ->
 	try
 		case ocs:find_bucket(BucketId) of
@@ -144,7 +161,7 @@ get_bucket(BucketId) ->
 		Headers	:: [tuple()],
 		Result :: {ok, Headers :: [tuple()], Body :: iolist()}
 				| {error, ErrorCode :: integer()}.
-%% @doc Body producing function for `GET /balanceManagment/v1/bucket/',
+%% @doc Body producing function for `GET /balanceManagement/v1/bucket/',
 get_buckets(Query, Headers) -> 
 	try
 		case lists:keytake("filter", 1, Query) of
@@ -176,7 +193,7 @@ get_buckets(Query, Headers) ->
 		Result :: {ok, Headers :: [tuple()], Body :: iolist()}
 				| {error, ErrorCode :: integer()}.
 %% @doc Body producing function for
-%% `GET /balanceManagment/v1/service/{id}/accumulatedBalance' request
+%% `GET /balanceManagement/v1/service/{id}/accumulatedBalance' request
 get_balance_service(Identity) ->
 	try
 		case ocs:find_service(Identity) of
@@ -192,7 +209,12 @@ get_balance_service(Identity) ->
 		end
 	of
 		{ProductRef1, Buckets2} ->
-			F1 = fun(#bucket{units = cents}) -> true; (_) -> false end,
+			Now = erlang:system_time(?MILLISECOND),
+			F1 = fun(#bucket{units = cents, end_date = EndDate})
+					when EndDate == undefined; EndDate > Now ->
+						true;
+					(_) -> false
+			end,
 			Buckets3 = lists:filter(F1, Buckets2),
 			TotalAmount = lists:sum([B#bucket.remain_amount || B <- Buckets3]),
 			F2 = fun(#bucket{id = Id}) ->
@@ -221,7 +243,7 @@ get_balance_service(Identity) ->
 		Result :: {ok, Headers :: [tuple()], Body :: iolist()}
 				| {error, ErrorCode :: integer()}.
 %% @doc Body producing function for
-%%	`GET /balanceManagment/v1/product/{id}/accumulatedBalance' request
+%%	`GET /balanceManagement/v1/product/{id}/accumulatedBalance' request
 get_balance(ProdRef) ->
 	try
 		case ocs:get_buckets(ProdRef) of
@@ -232,7 +254,12 @@ get_balance(ProdRef) ->
 		end
 	of
 		Buckets2 ->
-			F1 = fun(#bucket{units = cents}) -> true; (_) -> false end,
+			Now = erlang:system_time(?MILLISECOND),
+			F1 = fun(#bucket{units = cents, end_date = EndDate})
+					when EndDate == undefined; EndDate > Now ->
+						true;
+					(_) -> false
+			end,
 			Buckets3 = lists:filter(F1, Buckets2),
 			TotalAmount = lists:sum([B#bucket.remain_amount || B <- Buckets3]),
 			F2 = fun(#bucket{id = Id}) ->

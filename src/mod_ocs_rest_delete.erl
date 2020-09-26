@@ -93,8 +93,12 @@ do_delete(Resource, ModData, ["resourceInventory", "v1", "hub", Identity]) ->
 	do_response(ModData, Resource:delete_hub(Identity));
 do_delete(Resource, ModData, ["balanceManagement", "v1", "hub", Identity]) ->
 	do_response(ModData, Resource:delete_hub(Identity));
+do_delete(Resource, ModData, ["balanceManagement", "v1", "bucket", Identity]) ->
+	do_response(ModData, Resource:delete_bucket(Identity));
 do_delete(Resource, ModData, ["productCatalog", "v2", "hub", Identity]) ->
 	do_response(ModData, Resource:delete_hub_catalog(Identity));
+do_delete(Resource, ModData, ["productCatalogManagement", "v2", "productOffering", Identity]) ->
+	do_response(ModData, Resource:delete_offer(Identity));
 do_delete(_Resource, #mod{data = Data} = _ModData, _) ->
 	Response = "<h2>HTTP Error 404 - Not Found</h2>",
 	{proceed, [{response, {404, Response}} | Data]}.

@@ -157,6 +157,41 @@
 				</paper-button>
 			</div>
 		</paper-dialog>
+		<paper-dialog
+				id="deleteBucketModal" modal>
+			<paper-toolbar>
+				<h2>Delete Bucket</h2>
+			</paper-toolbar>
+			<div>
+				<paper-input
+						id="deleteBucId"
+						name="BucketId"
+						label="Bucket Id"
+						required
+						disabled>
+				</paper-input>
+			</div>
+			<div class="buttons">
+				<paper-button raised
+						id="bucDelButton"
+						on-tap="bucketDelete"
+						class="delete-buttons">
+					Delete
+				</paper-button>
+				<paper-button dialog-dismiss
+						class="cancel-button"
+						onclick="deleteProductModal.close()">
+					Cancel
+				</paper-button>
+			</div>
+		</paper-dialog>
+		<iron-ajax
+				id="deleteBucketAjax"
+				url="/balanceManagement/v1/bucket/"
+				method="delete"
+				on-response="_deleteBucketResponse"
+				on-error="_deleteBucketError">
+		</iron-ajax>
 		<iron-ajax
 				id="addBucketAjax"
 				method = "post"
@@ -178,6 +213,17 @@
 				product: {
 					type: String,
 				}
+			},
+			bucketDelete: function(event) {
+				var delBucket = this.$.deleteBucId.value;
+				var deleteAjax = this.$.deleteBucketAjax;
+				deleteAjax.url = "/balanceManagement/v1/bucket/" + delBucket;
+				deleteAjax.generateRequest();
+			},
+			_deleteBucketResponse: function(event) {
+				this.$.deleteBucketModal.close();
+				document.getElementById('getProductAjax').generateRequest();
+				document.getElementById("balanceBucketGrid").clearCache();
 			},
 			_bucketAddSubmit: function(event) {
 				var ajaxBucket = this.$.addBucketAjax;

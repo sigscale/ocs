@@ -29,9 +29,8 @@
 -export([get_catalog/2, get_catalogs/1]).
 -export([get_category/2, get_categories/1]).
 -export([get_product_spec/2, get_product_specs/1, product_status/1]).
--export([add_pla/1, get_pla/1, patch_pla/3]).
 -export([get_pla_spec/2]).
--export([delete_offer/1, delete_inventory/1, delete_pla/1]).
+-export([delete_offer/1, delete_inventory/1]).
 -export([get_schema/0]).
 -export([inventory/1]).
 
@@ -41,10 +40,10 @@
 -define(MILLISECOND, milli_seconds).
 %-define(MILLISECOND, millisecond).
 
--define(catalogPath, "/catalogManagement/v2/catalog/").
--define(categoryPath, "/catalogManagement/v2/category/").
--define(productSpecPath, "/catalogManagement/v2/productSpecification/").
--define(offeringPath, "/catalogManagement/v2/productOffering/").
+-define(catalogPath, "/productCatalogManagement/v2/catalog/").
+-define(categoryPath, "/productCatalogManagement/v2/category/").
+-define(productSpecPath, "/productCatalogManagement/v2/productSpecification/").
+-define(offeringPath, "/productCatalogManagement/v2/productOffering/").
 -define(plaPath, "/catalogManagement/v2/pla/").
 -define(plaSpecPath, "/catalogManagement/v2/plaSpecification/").
 -define(inventoryPath, "/productInventoryManagement/v2/product/").
@@ -91,7 +90,7 @@ get_schema() ->
 	Headers	:: [tuple()],
 	Body		:: iolist(),
 	Status	:: 400 | 500 .
-%% @doc Respond to `POST /catalogManagement/v2/productOffering'.
+%% @doc Respond to `POST /productCatalogManagement/v2/productOffering'.
 %% 	Add a new Product Offering.
 add_offer(ReqData) ->
 	try
@@ -152,45 +151,13 @@ add_inventory(ReqData) ->
 			{error, 400}
 	end.
 
--spec add_pla(ReqData) -> Result when
-	ReqData :: [tuple()],
-	Result   :: {ok, Headers, Body} | {error, Status},
-	Headers  :: [tuple()],
-	Body     :: iolist(),
-	Status   :: 400 | 500 .
-%% @doc Respond to `POST /catalogManagement/v2/pla'.
-%%    Add a new Product Offering.
-add_pla(ReqData) ->
-	try
-		case ocs:add_pla(ocs_rest_res_resource:pla(mochijson:decode(ReqData))) of
-			{ok, PricingLogic} ->
-				PricingLogic;
-			{error, Reason} ->
-				throw(Reason)
-		end
-	of
-		PriceAlgo ->
-			Body = mochijson:encode(ocs_rest_res_resource:pla(PriceAlgo)),
-			Etag = ocs_rest:etag(PriceAlgo#pla.last_modified),
-			Href = ?plaPath ++ PriceAlgo#pla.name,
-			Headers = [{location, Href}, {etag, Etag}],
-			{ok, Headers, Body}
-	catch
-		throw:validation_failed ->
-			{error, 400};
-		throw:_Reason1 ->
-			{error, 500};
-		_:_ ->
-			{error, 400}
-	end.
-
 -spec get_offer(ID) -> Result when
 	ID			:: string(),
 	Result	:: {ok, Headers, Body} | {error, Status},
 	Headers	:: [tuple()],
 	Body		:: iolist(),
 	Status	:: 400 | 404 | 500 .
-%% @doc Respond to `GET /catalogManagement/v2/productOffering/{id}'.
+%% @doc Respond to `GET /productCatalogManagement/v2/productOffering/{id}'.
 %% 	Retrieve a Product Offering.
 get_offer(ID) ->
 	try
@@ -256,7 +223,7 @@ get_inventory(ID) ->
 	Headers	:: [tuple()],
 	Body		:: iolist(),
 	Status	:: 400 | 404 | 412 | 500 .
-%% @doc Respond to `GET /catalogManagement/v2/productOffering'.
+%% @doc Respond to `GET /productCatalogManagement/v2/productOffering'.
 %% 	Retrieve all Product Offerings.
 %% @todo Filtering
 get_offers(Query, Headers) ->
@@ -292,36 +259,6 @@ get_offers(Query, Headers) ->
 			{error, 400}
 		end.
 				
--spec get_pla(ID) -> Result when
-	ID	:: string(),
-	Result :: {ok, Headers, Body} | {error, Status},
-	Headers :: [tuple()],
-	Body :: iolist(),
-	Status :: 400 | 404 | 500.
-%% @doc Respond to `GET /catalogManagement/v2/pla/{id}'.
-%%    Retrieve a pricing logic algorothm.
-get_pla(ID) ->
-	try
-		case ocs:find_pla(ID) of
-			{ok, PricingLogicAlgorithm} ->
-				PricingLogicAlgorithm;
-			{error, not_found} ->
-				{throw, 404};
-			{error, _Reason} ->
-				{throw, 500}
-		end
-	of
-		LogicAlgo ->
-			Body = mochijson:encode(ocs_rest_res_resource:pla(LogicAlgo)),
-			Headers = [{content_type, "application/json"}],
-			{ok, Headers, Body}
-	catch
-		throw:_Reason1 ->
-			{error, 500};
-		_:_ ->
-			{error, 400}
-	end.
-
 -spec get_inventories(Query, Headers) -> Result when
 	Query :: [{Key :: string(), Value :: string()}],
 	Result	:: {ok, Headers, Body} | {error, Status},
@@ -398,7 +335,7 @@ get_catalogs(_Query) ->
 	Headers	:: [tuple()],
 	Body		:: iolist(),
 	Status	:: 400 | 404 | 500 .
-%% @doc Respond to `GET /catalogManagement/v2/category/{id}'.
+%% @doc Respond to `GET /productCatalogManagement/v2/category/{id}'.
 %% 	Retrieve a category.
 get_category("1", [] =  _Query) ->
 	Headers = [{content_type, "application/json"}],
@@ -415,7 +352,7 @@ get_category(_Id, _Query) ->
 	Headers	:: [tuple()],
 	Body		:: iolist(),
 	Status	:: 400 | 404 | 500 .
-%% @doc Respond to `GET /catalogManagement/v2/catalog'.
+%% @doc Respond to `GET /productCatalogManagement/v2/catalog'.
 %% 	Retrieve all catalogs .
 get_categories([] =  _Query) ->
 	Headers = [{content_type, "application/json"}],
@@ -432,7 +369,7 @@ get_categories(_Query) ->
 	Headers	:: [tuple()],
 	Body		:: iolist(),
 	Status	:: 400 | 404 | 500 .
-%% @doc Respond to `GET /catalogManegment/v2/productSpecification/{id}'.
+%% @doc Respond to `GET /productCatalogManagement/v2/productSpecification/{id}'.
 %% 	Retrieve a product specification.
 get_product_spec(ID, [] = _Query) ->
 	case product_spec(ID) of
@@ -452,7 +389,7 @@ get_product_spec(_Id, _Query) ->
 	Headers	:: [tuple()],
 	Body		:: iolist(),
 	Status	:: 400 | 404 | 500 .
-%% @doc Respond to `GET /catalogManagment/v2/productSpecification'.
+%% @doc Respond to `GET /productCatalogManagement/v2/productSpecification'.
 %% 	Retrieve all product specifications.
 get_product_specs([] = _Query) ->
 	Headers = [{content_type, "application/json"}],
@@ -475,7 +412,7 @@ get_product_specs(_Query) ->
 		Headers	:: [tuple()],
 		Body		:: iolist(),
 		Status	:: 400 | 404 | 412 | 500 .
-%% @doc Respond to `PATCH /catalogManagement/v2/productOffering/{id}'.
+%% @doc Respond to `PATCH /productCatalogManagement/v2/productOffering/{id}'.
 %% 	Update a Product Offering using JSON patch method
 %% 	<a href="http://tools.ietf.org/html/rfc6902">RFC6902</a>.
 patch_offer(ProdId, Etag, ReqData) ->
@@ -619,77 +556,12 @@ patch_inventory(ProdId, Etag, ReqData) ->
 			{error, 400}
 	end.
 
--spec patch_pla(Id, Etag, ReqData) -> Result
-	when
-		Id	:: string(),
-		Etag		:: undefined | list(),
-		ReqData	:: [tuple()],
-		Result	:: {ok, Headers, Body} | {error, Status},
-		Headers	:: [tuple()],
-		Body		:: iolist(),
-		Status	:: 400 | 404 | 412 | 500 .
-%% @doc Respond to `PATCH /catalogManagement/v2/pla/{id}'.
-%% 	Update a pricing logic algorithm using JSON patch method
-patch_pla(Id, Etag, ReqData) ->
-	try
-		Etag1 = case Etag of
-			undefined ->
-				undefined;
-			Etag ->
-				ocs_rest:etag(Etag)
-		end,
-		{Etag1, mochijson:decode(ReqData)}
-	of
-		{Etag2, {array, _} = Operations} ->
-			F = fun() ->
-					case mnesia:read(pla, Id, write) of
-						[Pla1] when
-								Pla1#pla.last_modified == Etag2;
-								Etag2 == undefined ->
-							case catch ocs_rest:patch(Operations, ocs_rest_res_resource:pla(Pla1)) of
-								{struct, _} = Pla2  ->
-									Pla3 = ocs_rest_res_resource:pla(Pla2),
-									TS = erlang:system_time(?MILLISECOND),
-									N = erlang:unique_integer([positive]),
-									LM = {TS, N},
-									Pla4 = Pla3#pla{last_modified = LM},
-									ok = mnesia:write(Pla4),
-									{Pla2, LM};
-								_ ->
-									throw(bad_request)
-							end;
-						[#pla{}] ->
-							throw(precondition_failed);
-						[] ->
-							throw(not_found)
-					end
-			end,
-			case mnesia:transaction(F) of
-				{atomic, {Pla, Etag3}} ->
-					Location = ?plaPath ++ Id,
-					Headers = [{location, Location}, {etag, ocs_rest:etag(Etag3)}],
-					Body = mochijson:encode(Pla),
-					{ok, Headers, Body};
-				{aborted, {throw, bad_request}} ->
-					{error, 400};
-				{aborted, {throw, not_found}} ->
-					{error, 404};
-				{aborted, {throw, precondition_failed}} ->
-					{error, 412};
-				{aborted, _Reason} ->
-					{error, 500}
-			end
-	catch
-		_:_ ->
-			{error, 400}
-	end.
-
 -spec delete_offer(Id) -> Result
 	when
 		Id :: string(),
 		Result :: {ok, Headers :: [tuple()], Body :: iolist()}
 				| {error, ErrorCode :: integer()} .
-%% @doc Respond to `DELETE /catalogManagement/v1/productOffering/{id}'
+%% @doc Respond to `DELETE /productCatalogManagement/v2/productOffering/{id}'
 %% 	request to remove a `Product Offering'.
 delete_offer(Id) ->
 	case catch ocs:delete_offer(Id) of
@@ -716,22 +588,6 @@ delete_inventory(Id) ->
 			{error, 403};
 		{'EXIT', _} ->
 			{error, 500}
-	end.
-
--spec delete_pla(Id) -> Result
-	when
-		Id :: string(),
-		Result :: {ok, Headers :: [tuple()], Body :: iolist()}
-				| {error, ErrorCode :: integer()} .
-%% @doc Respond to `DELETE /catalogManagement/v2/pla/{id}'
-%% 	request to remove a `Pla'.
-delete_pla(Id) when is_list(Id) ->
-	case catch list_to_existing_atom(Id) of
-		{'EXIT', _Reason} ->
-			{error, 404};
-		TableName when is_atom(TableName) ->
-			ok = ocs:delete_pla(Id),
-			{ok, [], []}
 	end.
 
 -spec product_status(Status) -> Status
@@ -2020,18 +1876,30 @@ inventory([balance | T], #product{balance = BucketRefs} = Product, Acc) ->
 	case catch mnesia:transaction(F1) of
 		{atomic, Buckets1} ->
 			Buckets2 = lists:flatten(Buckets1),
-			F2 = fun(#bucket{units = cents, remain_amount = N}, {undefined, B, S}) ->
+			Now = erlang:system_time(?MILLISECOND),
+			F2 = fun(#bucket{units = cents, remain_amount = N, end_date = EndDate},
+							{undefined, B, S}) when EndDate == undefined;
+							EndDate > Now ->
 						{N, B, S};
-					(#bucket{units = cents, remain_amount = N}, {C, B, S}) ->
+					(#bucket{units = cents, remain_amount = N, end_date = EndDate},
+							{C, B, S}) when EndDate == undefined; EndDate > Now ->
 						{C + N, B, S};
-					(#bucket{units = octets, remain_amount = N}, {C, undefined, S}) ->
+					(#bucket{units = octets, remain_amount = N, end_date = EndDate},
+							{C, undefined, S}) when EndDate == undefined;
+							EndDate > Now ->
 						{C , N, S};
-					(#bucket{units = octets, remain_amount = N}, {C, B, S}) ->
+					(#bucket{units = octets, remain_amount = N, end_date = EndDate},
+							{C, B, S}) when EndDate == undefined; EndDate > Now ->
 						{C , B + N, S};
-					(#bucket{units = seconds, remain_amount = N}, {C, B, undefined}) ->
+					(#bucket{units = seconds, remain_amount = N, end_date = EndDate},
+							{C, B, undefined}) when EndDate == undefined;
+							EndDate > Now ->
 						{C , B, N};
-					(#bucket{units = seconds, remain_amount = N}, {C, B, S}) ->
-						{C , B, S + N}
+					(#bucket{units = seconds, remain_amount = N, end_date = EndDate},
+							{C, B, S}) when EndDate == undefined; EndDate > Now ->
+						{C , B, S + N};
+					(_, {C, B, S}) ->
+						{C , B, S}
 			end,
 			{Cents, Bytes, Seconds} = lists:foldl(F2,
 					{undefined, undefined, undefined}, Buckets2),

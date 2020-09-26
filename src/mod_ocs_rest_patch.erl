@@ -130,6 +130,12 @@ do_patch("application/json-patch+json", Body, Resource, ModData, Etag,
 do_patch("application/json-patch+json", Body, Resource, ModData, Etag,
 		["serviceInventoryManagement", "v2", "service", ServiceId]) ->
 	do_response(ModData, Resource:patch_inventory(ServiceId, Etag, Body));
+do_patch("application/json-patch+json", Body, Resource, ModData, Etag,
+		["productCatalogManagement", "v2", "productOffering", ProdId]) ->
+	do_response(ModData, Resource:patch_offer(ProdId, Etag, Body));
+do_patch("application/merge-patch+json", Body, Resource, ModData, Etag,
+		["productCatalogManagement", "v2", "productOffering", ProdId]) ->
+	do_response(ModData, Resource:merge_patch_offer(ProdId, Etag, Body));
 do_patch(#mod{data = Data} = _ModData, _, _, _, _, _) ->
 	Response = "<h2>HTTP Error 404 - Not Found</h2>",
 	{proceed, [{response, {404, Response}} | Data]}.

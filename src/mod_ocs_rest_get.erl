@@ -152,8 +152,23 @@ do_get(Resource, ModData, ["catalogManagement", "v2", "catalog", Id], Query) ->
 	do_response(ModData, Resource:get_catalog(Id, Query));
 do_get(Resource, ModData, ["catalogManagement", "v2", "catalog"], Query) ->
 	do_response(ModData, Resource:get_catalogs(Query));
+do_get(Resource, ModData, ["productCatalogManagement", "v2", "productSpecification", Id], Query) ->
+	do_response(ModData, Resource:get_product_spec(Id, Query));
 do_get(Resource, ModData, ["productCatalogManagement", "v2", "productSpecification"], Query) ->
 	do_response(ModData, Resource:get_product_specs(Query));
+do_get(Resource, ModData, ["productCatalogManagement", "v2", "catalog", Id], Query) ->
+	do_response(ModData, Resource:get_catalog(Id, Query));
+do_get(Resource, ModData, ["productCatalogManagement", "v2", "catalog"], Query) ->
+	do_response(ModData, Resource:get_catalogs(Query));
+do_get(Resource, ModData, ["productCatalogManagement", "v2", "category", Id], Query) ->
+	do_response(ModData, Resource:get_category(Id, Query));
+do_get(Resource, ModData, ["productCatalogManagement", "v2", "category"], Query) ->
+	do_response(ModData, Resource:get_categorys(Query));
+do_get(Resource, #mod{parsed_header = Headers} = ModData,
+		["productCatalogManagement", "v2", "productOffering"], Query) ->
+	do_response(ModData, Resource:get_offers(Query, Headers));
+do_get(Resource, ModData, ["productCatalogManagement", "v2", "productOffering", Id], []) ->
+	do_response(ModData, Resource:get_offer(Id));
 do_get(Resource, ModData, ["catalogManagement", "v2", "category", Id], Query) ->
 	do_response(ModData, Resource:get_category(Id, Query));
 do_get(Resource, ModData, ["catalogManagement", "v2", "category"], Query) ->
