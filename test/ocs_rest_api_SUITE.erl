@@ -125,6 +125,7 @@ init_per_testcase(oauth_authentication, Config) ->
 	Config;
 init_per_testcase(TestCase, Config) when TestCase == notify_create_bucket;
 		TestCase == notify_delete_bucket; TestCase == notify_accumulated_balance;
+		TestCase == notify_accumulated_threshold;
 		TestCase == notify_create_product; TestCase == notify_create_service;
 		TestCase == notify_product_charge ->
 	true = register(TestCase, self()),
@@ -186,6 +187,7 @@ all() ->
 	ignore_delete_product, query_product, filter_product,
 	post_hub_balance, delete_hub_balance, notify_create_bucket,
 	notify_delete_bucket, notify_accumulated_balance,
+	notify_accumulated_threshold,
 	post_hub_product, delete_hub_product, notify_create_product,
 	post_hub_service, delete_hub_service, notify_create_service,
 	post_hub_user, delete_hub_user, post_hub_catalog, delete_hub_catalog,
@@ -2818,6 +2820,74 @@ notify_accumulated_balance(Config) ->
 	#acc_balance{total_balance = BytesTotalAmount}
 			= lists:keyfind(octets, #acc_balance.units, AccBalanceRecords).
 
+notify_accumulated_threshold() ->
+	[{userdata, [{doc, "Notify accumulated credit threshold"}]}].
+
+notify_accumulated_threshold(Config) ->
+	HostUrl = ?config(host_url, Config),
+	CollectionUrl = HostUrl ++ ?PathBalanceHub,
+	ListenerPort = ?config(listener_port, Config),
+	ListenerServer = "http://localhost:" ++ integer_to_list(ListenerPort),
+	Callback = ListenerServer ++ "/listener/"
+			++ atom_to_list(?MODULE) ++ "/notifyaccumulatedthreshold",
+	RequestBody = "{\n"
+			++ "\t\"callback\": \"" ++ Callback ++ "\",\n"
+			++ "}\n",
+	ContentType = "application/json",
+	Accept = {"accept", "application/json"},
+	Request1 = {CollectionUrl, [Accept, auth_header()], ContentType, RequestBody},
+	{ok, {{_, 201, _}, _, _}} = httpc:request(post, Request1, [], []),
+	PackagePrice = 5000000,
+	PackageSize = 100000000,
+	P1 = #price{name = ocs:generate_identity(), type = usage, units = octets,
+			size = PackageSize, amount = PackagePrice},
+	OfferId = add_offer([P1], 4),
+	{ok, #product{id = ProdRef}} = ocs:add_product(OfferId, [], []),
+	receive
+		Input1 ->
+			{struct, ProductEvent} = mochijson:decode(Input1),
+			{_, {struct, ProductList}} = lists:keyfind("event", 1, ProductEvent),
+			{_, ProdRef} = lists:keyfind("id", 1, ProductList)
+	end,
+	RA1 = 50000000,
+	BId1 = add_bucket(ProdRef, cents, RA1),
+	receive
+		Input3 ->
+			{struct, BalanceEvent1} = mochijson:decode(Input3),
+			{_, {struct, BalanceList1}} = lists:keyfind("event", 1, BalanceEvent1),
+			{_, BId1} = lists:keyfind("id", 1, BalanceList1)
+	end,
+	RA2 = 100000000,
+	BId2 = add_bucket(ProdRef, cents, RA2),
+	receive
+		Input4 ->
+			{struct, BalanceEvent2} = mochijson:decode(Input4),
+			{_, {struct, BalanceList2}} = lists:keyfind("event", 1, BalanceEvent2),
+			{_, BId2} = lists:keyfind("id", 1, BalanceList2)
+	end,
+	Threshold = 100,
+	Query = "?totalBalance.units=cents&totalBalance.amount.lt="
+			++ integer_to_list(Threshold),
+	Request2 = {HostUrl ++ "/balanceManagement/v1/product/" ++ ProdRef
+			++ "/accumulatedBalance" ++ Query, [Accept, auth_header()]},
+	{ok, {{_, 200, _}, _, _}} = httpc:request(get, Request2, [], []),
+	ok = ocs:delete_bucket(BId2),
+	{ok, {{_, 200, _}, _, _}} = httpc:request(get, Request2, [], []),
+	AccBalanceStructs = receive
+		Input6 ->
+			{struct, AccBalanceEvent} = mochijson:decode(Input6),
+			{_, "AccumulatedBalanceCreationNotification"}
+					= lists:keyfind("eventType", 1, AccBalanceEvent),
+			{_, {array, AccStructList}}
+					= lists:keyfind("event", 1, AccBalanceEvent),
+			AccStructList
+	end,
+	AccBalanceRecords = [ocs_rest_res_balance:acc_balance(AccBalanceStruct)
+			|| AccBalanceStruct <- AccBalanceStructs],
+	#acc_balance{total_balance = RA1}
+			= lists:keyfind(cents, #acc_balance.units, AccBalanceRecords),
+	RA1 < Threshold.
+
 post_hub_product() ->
 	[{userdata, [{doc, "Register hub listener for product"}]}].
 
@@ -3257,6 +3327,13 @@ notifydeletebucket(SessionID, _Env, Input) ->
 notifyaccumulatedbalance(SessionID, _Env, Input) ->
 	mod_esi:deliver(SessionID, "status: 201 Created\r\n\r\n"),
 	notify_accumulated_balance ! Input.
+
+-spec notifyaccumulatedthreshold(SessionID :: term(), Env :: list(),
+		Input :: string()) -> any().
+%% @doc Notification callback for notify_accumulated_threshold test case.
+notifyaccumulatedthreshold(SessionID, _Env, Input) ->
+	mod_esi:deliver(SessionID, "status: 201 Created\r\n\r\n"),
+	notify_accumulated_threshold ! Input.
 
 -spec notifycreateproduct(SessionID :: term(), Env :: list(),
 		Input :: string()) -> any().
