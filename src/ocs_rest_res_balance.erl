@@ -291,7 +291,7 @@ get_balance(ProdRef, Query) ->
 					units = Units, bucket = BucketIds, product = [ProdRef]},
 			[{Condition, S}] = Query -- [{"totalBalance.units", Value}],
 			ok = send_notification(Condition, TotalAmount,
-					list_to_integer(S), AccBalance),
+					ocs_rest:millionths_in(S), AccBalance),
 			Body  = mochijson:encode(acc_balance(AccBalance)),
 			Headers = [{content_type, "application/json"}],
 			{ok, Headers, Body}
@@ -967,7 +967,7 @@ match_abmf(Key, Complex, _Query) ->
 %% @hidden
 send_notification("totalBalance.amount.lt", TotalAmount, Threshold, AccBalance)
 		when TotalAmount < Threshold ->
-	ocs_event:notify(accumulated, balance, [AccBalance]);
+	ocs_event:notify(accumulated, [AccBalance], balance);
 send_notification(_, _TotalAmount, _Threshold, _AccBalance) ->
 	ok.
 
