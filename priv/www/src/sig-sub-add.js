@@ -225,52 +225,53 @@ class subAdd extends PolymerElement {
 						</div>
 					</div>
 					<div id="add-divtwo">
-					<div>
+						<div>
+							<paper-input
+									id="AddUpdatePro"
+									name="product"
+									label="[[i18n.prod]]"
+									disabled
+									hidden>
+							</paper-input>
+						</div>
+						<div>
+							<paper-input
+									id="AddUpdateProId"
+									name="productId"
+									label="[[i18n.prodId]]"
+									disabled
+									hidden>
+							</paper-input>
+						</div>
 						<paper-input
-								id="AddUpdatePro"
-								name="product"
-								label="[[i18n.prod]]"
-								disabled
-								hidden>
+								id="add8"
+								name="amount"
+								allowed-pattern="[0-9kmg]"
+								pattern="^[0-9]+[kmg]?$"
+								value="{{amoAddCre}}"
+								label="Amount"
+								auto-validate>
 						</paper-input>
-					</div>
-					<div>
-						<paper-input
-								id="AddUpdateProId"
-								name="productId"
-								label="[[i18n.prodId]]"
-								disabled
-								hidden>
-						</paper-input>
-					</div>
-					<paper-input
-							id="add8"
-							name="amount"
-							allowed-pattern="[0-9kmg]"
-							pattern="^[0-9]+[kmg]?$"
-							value="{{amoAddCre}}"
-							label="Amount"
-							auto-validate>
-					</paper-input>
-					<div>
-						<paper-dropdown-menu
-								value="{{uniAddCre}}"
-								label="Units">
-							<paper-listbox
-									id="adduni9"
-									slot="dropdown-content"
-									selected="1">
-								<paper-item>
-										Bytes
-								</paper-item>
-								<paper-item>
-										Cents
-								</paper-item>
-								<paper-item>
-										Seconds
-								</paper-item>
-							</paper-listbox>
-						</paper-dropdown-menu>
+						<div>
+							<paper-dropdown-menu
+									value="{{uniAddCre}}"
+									label="Units">
+								<paper-listbox
+										id="adduni9"
+										slot="dropdown-content"
+										selected="1">
+									<paper-item>
+											Bytes
+									</paper-item>
+									<paper-item>
+											Cents
+									</paper-item>
+									<paper-item>
+											Seconds
+									</paper-item>
+								</paper-listbox>
+							</paper-dropdown-menu>
+						</div>
 						<div class="buttons">
 							<paper-button dialog-confirm
 									raised
@@ -519,6 +520,8 @@ console.log(event.detail.xhr.response);
 		if(this.$.idCheck.checked || this.$.idCheckPass.checked) {
 			this.$.idCheck.checked = false;
 			this.$.idCheckPass.checked = false;
+console.log("open");
+console.log("open12", this.$.addSubscriberSecretModal);
 			this.$.addSubscriberSecretModal.open();
 		}
 		if(!this.productId) {
