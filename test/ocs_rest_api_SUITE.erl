@@ -126,7 +126,8 @@ init_per_testcase(oauth_authentication, Config) ->
 init_per_testcase(TestCase, Config) when TestCase == notify_create_bucket;
 		TestCase == notify_delete_bucket; TestCase == notify_accumulated_balance;
 		TestCase == notify_accumulated_threshold;
-		TestCase == notify_create_product; TestCase == notify_create_service;
+		TestCase == notify_create_product; TestCase == notify_delete_product;
+		TestCase == notify_create_service;
 		TestCase == notify_product_charge ->
 	true = register(TestCase, self()),
 	case inets:start(httpd, [{port, 0},
@@ -189,6 +190,7 @@ all() ->
 	notify_delete_bucket, notify_accumulated_balance,
 	notify_accumulated_threshold,
 	post_hub_product, delete_hub_product, notify_create_product,
+	notify_delete_product,
 	post_hub_service, delete_hub_service, notify_create_service,
 	post_hub_user, delete_hub_user, post_hub_catalog, delete_hub_catalog,
 	post_hub_inventory, delete_hub_inventory, notify_product_charge,
@@ -2967,6 +2969,47 @@ notify_create_product(Config) ->
 	{_, {struct, OfferStruct}} = lists:keyfind("productOffering", 1, Product),
 	{_, OfferId} = lists:keyfind("id", 1, OfferStruct).
 
+notify_delete_product() ->
+	[{userdata, [{doc, "Notify deletion of product"}]}].
+
+notify_delete_product(Config) ->
+	HostUrl = ?config(host_url, Config),
+	CollectionUrl = HostUrl ++ ?PathProductHub,
+	ListenerPort = ?config(listener_port, Config),
+	ListenerServer = "http://localhost:" ++ integer_to_list(ListenerPort),
+	Callback = ListenerServer ++ "/listener/"
+			++ atom_to_list(?MODULE) ++ "/notifydeleteproduct",
+	RequestBody = "{\n"
+			++ "\t\"callback\": \"" ++ Callback ++ "\",\n"
+			++ "}\n",
+	ContentType = "application/json",
+	Accept = {"accept", "application/json"},
+	Request = {CollectionUrl, [Accept, auth_header()], ContentType, RequestBody},
+	{ok, {{_, 201, _}, _, _}} = httpc:request(post, Request, [], []),
+	PackagePrice = 100,
+	PackageSize = 1000,
+	P1 = #price{name = ocs:generate_identity(), type = usage, units = octets,
+			size = PackageSize, amount = PackagePrice},
+	OfferId = add_offer([P1], 4),
+	{ok, #product{id = ProdRef}} = ocs:add_product(OfferId, [], []),
+	receive
+		Input1 ->
+			{struct, ProductEvent} = mochijson:decode(Input1),
+			{_, {struct, ProductList}} = lists:keyfind("event", 1, ProductEvent),
+			{_, ProdRef} = lists:keyfind("id", 1, ProductList)
+	end,
+	ok = ocs:delete_product(ProdRef),
+	ProductStuct2 = receive
+		Input4 ->
+			{struct, ProductDelEvent} = mochijson:decode(Input4),
+			{_, "ProductRemoveNotification"}
+					= lists:keyfind("eventType", 1, ProductDelEvent),
+			{_, ProductStuct1}
+					= lists:keyfind("event", 1, ProductDelEvent),
+			ProductStuct1
+	end,
+	#product{} = ocs_rest_res_product:inventory(ProductStuct2).
+
 post_hub_service() ->
 	[{userdata, [{doc, "Register hub listener for service"}]}].
 
@@ -3341,6 +3384,13 @@ notifyaccumulatedthreshold(SessionID, _Env, Input) ->
 notifycreateproduct(SessionID, _Env, Input) ->
 	mod_esi:deliver(SessionID, "status: 201 Created\r\n\r\n"),
 	notify_create_product ! Input.
+
+-spec notifydeleteproduct(SessionID :: term(), Env :: list(),
+		Input :: string()) -> any().
+%% @doc Notification callback for notify_delete_product test case.
+notifydeleteproduct(SessionID, _Env, Input) ->
+	mod_esi:deliver(SessionID, "status: 201 Created\r\n\r\n"),
+	notify_delete_product ! Input.
 
 -spec notifycreateservice(SessionID :: term(), Env :: list(),
 		Input :: string()) -> any().
