@@ -1,7 +1,7 @@
 {
   "swagger": "2.0",
   "info": {
-    "description": "TMF654 Prepay Balance Management enables consumers to manage the balance, recharge (top-up), transfer, reserve, unreserve, deduct and balance adjustments of a bucket. A bucket is understood in the context of this API to be an entity that keeps track of the balance available to use services. Every bucket will measure balance in different units, it can be monetary or non-monetary (e.g.: number of sms that are available, number of GB of data available). \n\n### Resources \n- Bucket \n- TopupBalance \n- AdjustBalance \n- TransferBalance \n- AccumulatedBalance\n \n### Operations \n Prepay Balance management API performs the following operations : \n- Retrieve the balance information on a bucket for a given product (individual or aggregated).\n- Perform a new top up operation (recharge).\n- Perform a new adjustment operation\n- Reserve a balance on a bucket.\n- Unreserve a balance on a bucket.\n- Retrieve aggregated (accumulative) balances for a bucket.",
+    "description": "TMF654 Prepay Balance Management",
     "version": "1.0.0",
     "title": "API BalanceManagement"
   },
@@ -98,6 +98,38 @@
             "schema": {
               "$ref": "#/definitions/BucketBalance"
             }
+          },
+          "400": {
+            "description": "Bad Request\n\nList of supported error codes:\n- 20: Invalid URL parameter value\n- 21: Missing body\n- 22: Invalid body\n- 23: Missing body field\n- 24: Invalid body field\n- 25: Missing header\n- 26: Invalid header value\n- 27: Missing query-string parameter\n- 28: Invalid query-string parameter value"
+          },
+          "404": {
+            "description": "Not Found\n\nList of supported error codes:\n- 60: Resource not found"
+          },
+          "500": {
+            "description": "Internal Server Error\n\nList of supported error codes:\n- 1: Internal error"
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "bucket"
+        ],
+        "parameters": [
+          {
+            "name": "bucketId",
+            "in": "path",
+            "required": true,
+            "type": "string",
+            "description": "identity of the bucket"
+          }
+        ],
+        "operationId": "bucketDelete",
+        "summary": "bucketDelete",
+        "description": "This operation deletes a 'bucket' by Id",
+        "deprecated": false,
+        "responses": {
+          "204": {
+            "description": "Success"
           },
           "400": {
             "description": "Bad Request\n\nList of supported error codes:\n- 20: Invalid URL parameter value\n- 21: Missing body\n- 22: Invalid body\n- 23: Missing body field\n- 24: Invalid body field\n- 25: Missing header\n- 26: Invalid header value\n- 27: Missing query-string parameter\n- 28: Invalid query-string parameter value"

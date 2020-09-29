@@ -10,6 +10,7 @@ schema_DATA = $(abs_builddir)/partyManagement.swagger.json \
 				$(abs_builddir)/serviceInventoryManagement.swagger.json \
 				$(abs_builddir)/serviceCatalogManagement.swagger.json \
 				$(abs_builddir)/productInventoryManagement.swagger.json \
+				$(abs_builddir)/productCatalogManagement.swagger.json \
 				$(abs_builddir)/balanceManagement.swagger.json
 
 
@@ -37,6 +38,8 @@ check_DATA = .validation_ok
 		if ! ajv compile -s serviceCatalogManagement.swagger.json; \
          then exit 1; fi; \
 		if ! ajv compile -s productInventoryManagement.swagger.json; \
+         then exit 1; fi; \
+		if ! ajv compile -s productCatalogManagement.swagger.json; \
          then exit 1; fi; \
 	else \
       echo "ajv-cli needed to validate JSON Schema"; \
