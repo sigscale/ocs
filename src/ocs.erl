@@ -645,18 +645,19 @@ delete_product(ProductRef) when is_list(ProductRef) ->
 			case mnesia:read(product, ProductRef, write) of
 				[#product{service = Services}] when length(Services) > 0 ->
 					mnesia:abort(service_exists);
-				[#product{balance = Buckets}] ->
+				[#product{balance = Buckets} = Product] ->
 					F2 = fun(B) ->
 							mnesia:delete(bucket, B, write)
 					end,
 					mnesia:delete(product, ProductRef, write),
-					{lists:foreach(F2, Buckets), Buckets};
+					{lists:foreach(F2, Buckets), Product};
 				[] ->
 					mnesia:abort(not_found)
 			end
 	end,
 	case mnesia:transaction(F1) of
-		{atomic, {ok, DeletedBuckets}} ->
+		{atomic, {ok, Product}} ->
+			ocs_event:notify(delete_product, Product, product),
 			ok;
 		{aborted, Reason} ->
 			exit(Reason)
