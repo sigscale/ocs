@@ -129,9 +129,7 @@ class offerList extends PolymerElement {
 						on-tap = "showAddOfferModal">
 				</paper-fab>
 			</div>
-			<paper-toast
-					id="getOfferToast"
-					duration="0">
+			<paper-toast id="getOfferToast" duration="0">
 			</paper-toast>
 			<iron-ajax id="getProductAjax"
 					url="/catalogManagement/v2/productOffering"
@@ -312,7 +310,6 @@ class offerList extends PolymerElement {
 			offerList.etag = null;
 			var offToast = document.body.querySelector('sig-app').shadowRoot.querySelector('sig-offer-list').shadowRoot.getElementById('getOfferToast');
 			offToast.text = event.detail.xhr.status + event.detail.xhr.statusText;
-			offToast.duration = 0;
 			offToast.open();
 			if(!grid.size) {
 				grid.size = 0;
@@ -358,7 +355,6 @@ class offerList extends PolymerElement {
 		}
 		var offToast1 = document.body.querySelector('sig-app').shadowRoot.querySelector('sig-offer-list').shadowRoot.getElementById('getOfferToast');
 		offToast1.text = "Success";
-		offToast1.duration = 0;
 		offToast1.open();
 	}
 
@@ -368,7 +364,6 @@ class offerList extends PolymerElement {
 		if (!lastItem && event.detail.request.xhr.status != 416) {
 			var offToast2 = document.body.querySelector('sig-app').shadowRoot.querySelector('sig-offer-list').shadowRoot.getElementById('getOfferToast');
 			offToast2.text = event.detail.xhr.status + event.detail.xhr.statusText;
-			offToast2.duration = 0;
 			offToast2.open();
 		}
 	}
