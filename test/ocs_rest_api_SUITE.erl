@@ -124,7 +124,8 @@ init_per_testcase(oauth_authentication, Config) ->
 	application:start(inets),
 	Config;
 init_per_testcase(TestCase, Config) when TestCase == notify_create_bucket;
-		TestCase == notify_delete_bucket; TestCase == notify_accumulated_balance;
+		TestCase == notify_rating_deleted_bucket;
+		TestCase == notify_accumulated_balance;
 		TestCase == notify_accumulated_threshold;
 		TestCase == notify_create_product; TestCase == notify_delete_product;
 		TestCase == notify_create_service;
@@ -187,7 +188,7 @@ all() ->
 	add_product_sms, update_product_realizing_service, delete_product,
 	ignore_delete_product, query_product, filter_product,
 	post_hub_balance, delete_hub_balance, notify_create_bucket,
-	notify_delete_bucket, notify_accumulated_balance,
+	notify_rating_deleted_bucket, notify_accumulated_balance,
 	notify_accumulated_threshold,
 	post_hub_product, delete_hub_product, notify_create_product,
 	notify_delete_product,
@@ -2669,16 +2670,16 @@ notify_create_bucket(Config) ->
 	{_, MillionthsOut} = lists:keyfind("amount", 1, RemainAmount),
 	100 = ocs_rest:millionths_in(MillionthsOut).
 
-notify_delete_bucket() ->
-	[{userdata, [{doc, "Notify deletion of bucket"}]}].
+notify_rating_deleted_bucket() ->
+	[{userdata, [{doc, "Notify deletion of bucket during rating"}]}].
 
-notify_delete_bucket(Config) ->
+notify_rating_deleted_bucket(Config) ->
 	HostUrl = ?config(host_url, Config),
 	CollectionUrl = HostUrl ++ ?PathBalanceHub,
 	ListenerPort = ?config(listener_port, Config),
 	ListenerServer = "http://localhost:" ++ integer_to_list(ListenerPort),
 	Callback = ListenerServer ++ "/listener/"
-			++ atom_to_list(?MODULE) ++ "/notifydeletebucket",
+			++ atom_to_list(?MODULE) ++ "/notifyratingdeletedbucket",
 	RequestBody = "{\n"
 			++ "\t\"callback\": \"" ++ Callback ++ "\",\n"
 			++ "}\n",
@@ -3357,12 +3358,12 @@ notifycreatebucket(SessionID, _Env, Input) ->
 	mod_esi:deliver(SessionID, "status: 201 Created\r\n\r\n"),
 	notify_create_bucket ! Input.
 
--spec notifydeletebucket(SessionID :: term(), Env :: list(),
+-spec notifyratingdeletedbucket(SessionID :: term(), Env :: list(),
 		Input :: string()) -> any().
-%% @doc Notification callback for notify_delete_bucket test case.
-notifydeletebucket(SessionID, _Env, Input) ->
+%% @doc Notification callback for notify_rating_deleted_bucket test case.
+notifyratingdeletedbucket(SessionID, _Env, Input) ->
 	mod_esi:deliver(SessionID, "status: 201 Created\r\n\r\n"),
-	notify_delete_bucket ! Input.
+	notify_rating_deleted_bucket ! Input.
 
 -spec notifyaccumulatedbalance(SessionID :: term(), Env :: list(),
 		Input :: string()) -> any().
