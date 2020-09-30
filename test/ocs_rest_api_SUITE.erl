@@ -2920,6 +2920,13 @@ notify_accumulated_threshold(Config) ->
 			++ "/accumulatedBalance" ++ Query, [Accept, auth_header()]},
 	{ok, {{_, 200, _}, _, _}} = httpc:request(get, Request2, [], []),
 	ok = ocs:delete_bucket(BId2),
+	receive
+		Input5 ->
+			{struct, BalanceDelEvent} = mochijson:decode(Input5),
+			{_, {struct, BalanceDelList}}
+					= lists:keyfind("event", 1, BalanceDelEvent),
+			{_, BId2} = lists:keyfind("id", 1, BalanceDelList)
+	end,
 	{ok, {{_, 200, _}, _, _}} = httpc:request(get, Request2, [], []),
 	AccBalanceStructs = receive
 		Input6 ->
