@@ -124,6 +124,7 @@ init_per_testcase(oauth_authentication, Config) ->
 	application:start(inets),
 	Config;
 init_per_testcase(TestCase, Config) when TestCase == notify_create_bucket;
+		TestCase == notify_delete_bucket;
 		TestCase == notify_rating_deleted_bucket;
 		TestCase == notify_accumulated_balance;
 		TestCase == notify_accumulated_threshold;
@@ -188,8 +189,8 @@ all() ->
 	add_product_sms, update_product_realizing_service, delete_product,
 	ignore_delete_product, query_product, filter_product,
 	post_hub_balance, delete_hub_balance, notify_create_bucket,
-	notify_rating_deleted_bucket, notify_accumulated_balance,
-	notify_accumulated_threshold,
+	notify_delete_bucket, notify_rating_deleted_bucket,
+	notify_accumulated_balance, notify_accumulated_threshold,
 	post_hub_product, delete_hub_product, notify_create_product,
 	notify_delete_product,
 	post_hub_service, delete_hub_service, notify_create_service,
@@ -2670,6 +2671,50 @@ notify_create_bucket(Config) ->
 	{_, MillionthsOut} = lists:keyfind("amount", 1, RemainAmount),
 	100 = ocs_rest:millionths_in(MillionthsOut).
 
+notify_delete_bucket() ->
+	[{userdata, [{doc, "Notify deletion of bucket"}]}].
+
+notify_delete_bucket(Config) ->
+	HostUrl = ?config(host_url, Config),
+	CollectionUrl = HostUrl ++ ?PathBalanceHub,
+	ListenerPort = ?config(listener_port, Config),
+	ListenerServer = "http://localhost:" ++ integer_to_list(ListenerPort),
+	Callback = ListenerServer ++ "/listener/"
+			++ atom_to_list(?MODULE) ++ "/notifydeletebucket",
+	RequestBody = "{\n"
+			++ "\t\"callback\": \"" ++ Callback ++ "\",\n"
+			++ "}\n",
+	ContentType = "application/json",
+	Accept = {"accept", "application/json"},
+	Request = {CollectionUrl, [Accept, auth_header()], ContentType, RequestBody},
+	{ok, {{_, 201, _}, _, _}} = httpc:request(post, Request, [], []),
+	PackagePrice = 100,
+	PackageSize = 1000,
+	P1 = #price{name = ocs:generate_identity(), type = usage, units = octets,
+			size = PackageSize, amount = PackagePrice},
+	OfferId = add_offer([P1], 4),
+	{ok, #product{id = ProdRef}} = ocs:add_product(OfferId, [], []),
+	receive
+		Input1 ->
+			{struct, ProductEvent} = mochijson:decode(Input1),
+			{_, {struct, ProductList}} = lists:keyfind("event", 1, ProductEvent),
+			{_, ProdRef} = lists:keyfind("id", 1, ProductList)
+	end,
+	BId = add_bucket(ProdRef, cents, 100000000),
+	receive
+		Input3 ->
+			{struct, BalanceEvent} = mochijson:decode(Input3),
+			{_, {struct, BalanceList}} = lists:keyfind("event", 1, BalanceEvent),
+			{_, BId} = lists:keyfind("id", 1, BalanceList)
+	end,
+	ok = ocs:delete_bucket(BId),
+	receive
+		Input4 ->
+			{struct, BalDelEvent} = mochijson:decode(Input4),
+			{_, "BucketBalanceDeletionEvent"}
+					= lists:keyfind("eventType", 1, BalDelEvent)
+	end.
+
 notify_rating_deleted_bucket() ->
 	[{userdata, [{doc, "Notify deletion of bucket during rating"}]}].
 
@@ -3357,6 +3402,13 @@ oauth_authentication(Config)->
 notifycreatebucket(SessionID, _Env, Input) ->
 	mod_esi:deliver(SessionID, "status: 201 Created\r\n\r\n"),
 	notify_create_bucket ! Input.
+
+-spec notifydeletebucket(SessionID :: term(), Env :: list(),
+		Input :: string()) -> any().
+%% @doc Notification callback for notify_delete_bucket test case.
+notifydeletebucket(SessionID, _Env, Input) ->
+	mod_esi:deliver(SessionID, "status: 201 Created\r\n\r\n"),
+	notify_delete_bucket ! Input.
 
 -spec notifyratingdeletedbucket(SessionID :: term(), Env :: list(),
 		Input :: string()) -> any().
