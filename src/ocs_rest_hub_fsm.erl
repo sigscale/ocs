@@ -148,8 +148,8 @@ register(timeout, State) ->
 -spec registered(Event, State) -> Result
 	when
 		Event :: {Type, Resource, Category},
-		Type :: create_bucket | create_product | delete_product | create_service
-				| charge | depleted | accumulated,
+		Type :: create_bucket | delete_bucket | create_product | delete_product
+				| create_service | charge | depleted | accumulated,
 		Resource :: #bucket{} | #product{} | #service{} | [#adjustment{}]
 				| [#acc_balance{}],
 		Category :: balance | product | service,
@@ -385,6 +385,8 @@ event_type(Type) ->
 		charge ->
 			"BalanceAdjustmentCreationNotification";
 		depleted ->
+			"BucketBalanceDeletionEvent";
+		delete_bucket ->
 			"BucketBalanceDeletionEvent";
 		accumulated ->
 			"AccumulatedBalanceCreationNotification"
