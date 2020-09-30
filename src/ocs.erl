@@ -1033,15 +1033,16 @@ delete_bucket(BucketId) ->
 	end,
 	F2 = fun() ->
 		case mnesia:read(bucket, BucketId, write) of
-			[#bucket{product = ProdRefs}] ->
+			[#bucket{product = ProdRefs} = Bucket] ->
 				lists:foreach(F1, ProdRefs),
-				mnesia:delete(bucket, BucketId, write);
+				{mnesia:delete(bucket, BucketId, write), Bucket};
 			[] ->
 				mnesia:abort(not_found)
 		end
 	end,
 	case mnesia:transaction(F2) of
-		{atomic, ok} ->
+		{atomic, {ok, Bucket}} ->
+			ocs_event:notify(delete_bucket, Bucket, balance),
 			ok;
 		{aborted, Reason} ->
 			exit(Reason)
