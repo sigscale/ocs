@@ -126,11 +126,10 @@ init_per_testcase(oauth_authentication, Config) ->
 init_per_testcase(TestCase, Config) when TestCase == notify_create_bucket;
 		TestCase == notify_delete_bucket;
 		TestCase == notify_rating_deleted_bucket;
-		TestCase == notify_accumulated_balance;
+		TestCase == notify_accumulated_balance; TestCase == notify_product_charge;
 		TestCase == notify_accumulated_threshold;
 		TestCase == notify_create_product; TestCase == notify_delete_product;
-		TestCase == notify_create_service;
-		TestCase == notify_product_charge ->
+		TestCase == notify_create_service; TestCase == notify_delete_service ->
 	true = register(TestCase, self()),
 	case inets:start(httpd, [{port, 0},
 			{server_name, atom_to_list(?MODULE)},
@@ -192,8 +191,8 @@ all() ->
 	notify_delete_bucket, notify_rating_deleted_bucket,
 	notify_accumulated_balance, notify_accumulated_threshold,
 	post_hub_product, delete_hub_product, notify_create_product,
-	notify_delete_product,
-	post_hub_service, delete_hub_service, notify_create_service,
+	notify_delete_product, post_hub_service, delete_hub_service,
+	notify_create_service, notify_delete_service,
 	post_hub_user, delete_hub_user, post_hub_catalog, delete_hub_catalog,
 	post_hub_inventory, delete_hub_inventory, notify_product_charge,
 	oauth_authentication].
@@ -3128,6 +3127,41 @@ notify_create_service(Config) ->
 	end,
 	[Password] = lists:filtermap(F, Chars).
 
+notify_delete_service() ->
+	[{userdata, [{doc, "Notify deletion of service"}]}].
+
+notify_delete_service(Config) ->
+	HostUrl = ?config(host_url, Config),
+	CollectionUrl = HostUrl ++ ?PathServiceHub,
+	ListenerPort = ?config(listener_port, Config),
+	ListenerServer = "http://localhost:" ++ integer_to_list(ListenerPort),
+	Callback = ListenerServer ++ "/listener/"
+			++ atom_to_list(?MODULE) ++ "/notifydeleteservice",
+	RequestBody = "{\n"
+			++ "\t\"callback\": \"" ++ Callback ++ "\",\n"
+			++ "}\n",
+	ContentType = "application/json",
+	Accept = {"accept", "application/json"},
+	Request = {CollectionUrl, [Accept, auth_header()], ContentType, RequestBody},
+	{ok, {{_, 201, _}, _, _}} = httpc:request(post, Request, [], []),
+
+	Identity = ocs:generate_identity(),
+	Password = ocs:generate_password(),
+	{ok, #service{}} = ocs:add_service(Identity, Password),
+	receive
+		Input1 ->
+			{struct, ServiceEvent} = mochijson:decode(Input1),
+			{_, {struct, ServiceList}} = lists:keyfind("event", 1, ServiceEvent),
+			{_, Identity} = lists:keyfind("id", 1, ServiceList)
+	end,
+	ok = ocs:delete_service(Identity),
+	receive
+		Input2 ->
+			{struct, ServiceDelEvent} = mochijson:decode(Input2),
+			{_, "ServiceDeleteNotification"}
+					= lists:keyfind("eventType", 1, ServiceDelEvent)
+	end.
+
 delete_hub_service() ->
 	[{userdata, [{doc, "Unregister hub listener for service"}]}].
 
@@ -3458,6 +3492,13 @@ notifydeleteproduct(SessionID, _Env, Input) ->
 notifycreateservice(SessionID, _Env, Input) ->
 	mod_esi:deliver(SessionID, "status: 201 Created\r\n\r\n"),
 	notify_create_service ! Input.
+
+-spec notifydeleteservice(SessionID :: term(), Env :: list(),
+		Input :: string()) -> any().
+%% @doc Notification callback for notify_delete_service test case.
+notifydeleteservice(SessionID, _Env, Input) ->
+	mod_esi:deliver(SessionID, "status: 201 Created\r\n\r\n"),
+	notify_delete_service ! Input.
 
 -spec notifyproductcharge(SessionID :: term(), Env :: list(),
 		Input :: string()) -> any().
