@@ -1275,24 +1275,25 @@ delete_service(Identity) when is_list(Identity) ->
 	delete_service(list_to_binary(Identity));
 delete_service(Identity) when is_binary(Identity) ->
 	F = fun() ->
-		case mnesia:read(service, Identity, write) of
-			[#service{product = undefined}] ->
-				mnesia:delete(service, Identity, write);
-			[#service{product = ProdRef}] ->
-				case mnesia:read(product, ProdRef, write) of
-					[#product{service = ServiceRefs} = P] ->
-						P1 = P#product{service = ServiceRefs -- [Identity]},
-						ok = mnesia:write(P1),
-						mnesia:delete(service, Identity, write);
-					[] ->
-						mnesia:delete(service, Identity, write)
-				end;
-			[] ->
-				ok
-		end
+			case mnesia:read(service, Identity, write) of
+				[#service{product = undefined} = Service] ->
+					{mnesia:delete(service, Identity, write), Service};
+				[#service{product = ProdRef} = Service] ->
+					case mnesia:read(product, ProdRef, write) of
+						[#product{service = ServiceRefs} = P] ->
+							P1 = P#product{service = ServiceRefs -- [Identity]},
+							ok = mnesia:write(P1),
+							{mnesia:delete(service, Identity, write), Service};
+						[] ->
+							{mnesia:delete(service, Identity, write), Service}
+					end;
+				[] ->
+					mnesia:abort(not_found)
+			end
 	end,
 	case mnesia:transaction(F) of
-		{atomic, ok} ->
+		{atomic, {ok, Service}} ->
+			ocs_event:notify(delete_service, Service, service),
 			ok;
 		{aborted, Reason} ->
 			exit(Reason)
