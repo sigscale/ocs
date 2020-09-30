@@ -15,6 +15,7 @@ import '@polymer/paper-fab/paper-fab.js';
 import '@vaadin/vaadin-grid/vaadin-grid.js';
 import '@vaadin/vaadin-grid/vaadin-grid-filter.js';
 import '@polymer/iron-icons/iron-icons.js';
+import '@polymer/paper-toast/paper-toast.js';
 import './style-element.js'
 
 class offerList extends PolymerElement {
@@ -128,6 +129,10 @@ class offerList extends PolymerElement {
 						on-tap = "showAddOfferModal">
 				</paper-fab>
 			</div>
+			<paper-toast
+					id="getOfferToast"
+					duration="0">
+			</paper-toast>
 			<iron-ajax id="getProductAjax"
 					url="/catalogManagement/v2/productOffering"
 					rejectWithRequest>
@@ -305,9 +310,10 @@ class offerList extends PolymerElement {
 		};
 		var handleAjaxError = function(error) {
 			offerList.etag = null;
-			var toast = document.getElementById('userToastError');
-			toast.text = error;
-			toast.open();
+			var offToast = document.body.querySelector('sig-app').shadowRoot.querySelector('sig-offer-list').shadowRoot.getElementById('getOfferToast');
+			offToast.text = event.detail.xhr.status + event.detail.xhr.statusText;
+			offToast.duration = 0;
+			offToast.open();
 			if(!grid.size) {
 				grid.size = 0;
 			}
@@ -350,14 +356,20 @@ class offerList extends PolymerElement {
 			tableRecord.plaSpecId = results[indexTable].plaSpecId;
 			this.push('tables', tableRecord);
 		}
+		var offToast1 = document.body.querySelector('sig-app').shadowRoot.querySelector('sig-offer-list').shadowRoot.getElementById('getOfferToast');
+		offToast1.text = "Success";
+		offToast1.duration = 0;
+		offToast1.open();
 	}
 
 	_getTableError(event) {
 		this.shadowRoot.getElementById('offerGrid').size = 0;
 		cbProduct([]);
 		if (!lastItem && event.detail.request.xhr.status != 416) {
-			this.$.getProductErrorToast.text = event.detail.request.xhr.statusText;
-			this.$.getProductErrorToast.open();
+			var offToast2 = document.body.querySelector('sig-app').shadowRoot.querySelector('sig-offer-list').shadowRoot.getElementById('getOfferToast');
+			offToast2.text = event.detail.xhr.status + event.detail.xhr.statusText;
+			offToast2.duration = 0;
+			offToast2.open();
 		}
 	}
 
@@ -370,7 +382,6 @@ class offerList extends PolymerElement {
 	showAddOfferModal() {
 		var offerList = document.body.querySelector('sig-app').shadowRoot.querySelector('sig-offer-list');
 		offerList.shadowRoot.getElementById("getProductAjax").generateRequest();
-//		document.getElementById("addProduct").selected = 0;
 		document.body.querySelector('sig-app').shadowRoot.querySelector('sig-offer-add').shadowRoot.getElementById('addProductModal').open();
 	}
 }
