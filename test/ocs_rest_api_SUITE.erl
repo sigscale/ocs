@@ -649,7 +649,7 @@ add_offer() ->
 	[{userdata, [{doc,"Create a new product offering."}]}].
 
 add_offer(Config) ->
-	CatalogHref = "/catalogManagement/v2",
+	CatalogHref = "/productCatalogManagement/v2",
 	HostUrl = ?config(host_url, Config),
 	Accept = {"accept", "application/json"},
 	ContentType = "application/json",
@@ -665,7 +665,7 @@ get_offer() ->
 	[{userdata, [{doc,"Get offer for given Offer Id"}]}].
 
 get_offer(Config) ->
-	CatalogHref = "/catalogManagement/v2",
+	CatalogHref = "/productCatalogManagement/v2",
 	HostUrl = ?config(host_url, Config),
 	Accept = {"accept", "application/json"},
 	ContentType = "application/json",
@@ -783,7 +783,7 @@ update_offer() ->
 	[{userdata, [{doc,"Use PATCH for update product offering entity"}]}].
 
 update_offer(Config) ->
-	CatalogHref = "/catalogManagement/v2",
+	CatalogHref = "/productCatalogManagement/v2",
 	HostUrl = ?config(host_url, Config),
 	Accept = {"accept", "application/json"},
 	ContentType = "application/json",
@@ -819,7 +819,7 @@ delete_offer(Config) ->
 	OfferId = offer_add([P1], 4),
 	{ok, #offer{}} = ocs:find_offer(OfferId),
 	HostUrl = ?config(host_url, Config),
-	URI = "/catalogManagement/v2/productOffering/" ++ OfferId,
+	URI = "/productCatalogManagement/v2/productOffering/" ++ OfferId,
 	Request = {HostUrl ++ URI, [auth_header()]},
 	{ok, Result} = httpc:request(delete, Request, [], []),
 	{{"HTTP/1.1", 204, _NoContent}, Headers, []} = Result,
@@ -836,7 +836,7 @@ ignore_delete_offer(Config) ->
 	{ok, #offer{}} = ocs:find_offer(OfferId),
 	_ProdRef = product_add(OfferId),
 	HostUrl = ?config(host_url, Config),
-	URI = "/catalogManagement/v2/productOffering/" ++ OfferId,
+	URI = "/productCatalogManagement/v2/productOffering/" ++ OfferId,
 	Request = {HostUrl ++ URI, [auth_header()]},
 	{ok, Result} = httpc:request(delete, Request, [], []),
 	{{"HTTP/1.1", 202, _Accepted}, _Headers, _} = Result,
@@ -854,7 +854,7 @@ add_product(Config) ->
 	ContentType = "application/json",
 	InventoryHref = "/productInventoryManagement/v2",
 	ProdOffer = {"productOffering", {struct,[{"id", OfferId}, {"name", OfferId},
-			{"href","/catalogManagement/v2/productOffering/" ++ OfferId}]}},
+			{"href","/productCatalogManagement/v2/productOffering/" ++ OfferId}]}},
 	StartDate = {"startDate", ocs_rest:iso8601(erlang:system_time(?MILLISECOND))},
 	EndDate = {"terminationDate", ocs_rest:iso8601(erlang:system_time(?MILLISECOND) + 10000000)},
 	Inventory = {struct, [ProdOffer, StartDate, EndDate]},
@@ -898,7 +898,7 @@ get_product(Config) ->
 			= lists:keyfind("href", 1, Object),
 	{_, {struct, ProductOffering}} = lists:keyfind("productOffering", 1, Object),
 	{_, OfferId} = lists:keyfind("id", 1, ProductOffering),
-	{_, "/catalogManagement/v2/productOffering/" ++ OfferId}
+	{_, "/productCatalogManagement/v2/productOffering/" ++ OfferId}
 			= lists:keyfind("href", 1, ProductOffering),
 	{_, {array, RealizeingServices}}
 			= lists:keyfind("realizingService", 1, Object),
@@ -1078,7 +1078,7 @@ filter_product(Config) ->
 	ProdRefs3 = ProdRefs1 -- ProdRefs2.
 
 add_product_sms(Config) ->
-	CatalogHref = "/catalogManagement/v2",
+	CatalogHref = "/productCatalogManagement/v2",
 	HostUrl = ?config(host_url, Config),
 	Accept = {"accept", "application/json"},
 	ContentType = "application/json",
@@ -3026,7 +3026,7 @@ notifycreateservice(SessionID, _Env, Input) ->
 	notify_create_service ! Input.
 
 product_offer() ->
-	CatalogHref = "/catalogManagement/v2",
+	CatalogHref = "/productCatalogManagement/v2",
 	ProdName = {"name", ocs:generate_password()},
 	ProdDescirption = {"description", ocs:generate_password()},
 	IsBundle = {"isBundle", false},
@@ -3082,7 +3082,7 @@ patch_request(SslSock, Port, ContentType, Etag, AuthKey, ProdID, ReqBody) when i
 patch_request(SslSock, Port, ContentType, Etag, AuthKey, ProdID, ReqBody) ->
 	Timeout = 1500,
 	Length = size(ReqBody),
-	CatalogHref = "/catalogManagement/v2",
+	CatalogHref = "/productCatalogManagement/v2",
 	PatchURI = CatalogHref ++ "/productOffering/" ++ ProdID,
 	Request =
 			["PATCH ", PatchURI, " HTTP/1.1",$\r,$\n,
