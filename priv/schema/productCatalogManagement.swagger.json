@@ -274,8 +274,8 @@
             "description": "For filtering: Could be minutes, GB..."
           }
         ],
-        "operationId": "productFind",
-        "summary": "productFind",
+        "operationId": "productOfferingFind",
+        "summary": "productOfferingFind",
         "description": "This operation lists all 'ProductOffering' entites",
         "deprecated": false,
         "responses": {
