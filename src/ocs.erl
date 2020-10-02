@@ -1407,11 +1407,11 @@ add_offer1(Offer) ->
 		TS = erlang:system_time(?MILLISECOND),
 		N = erlang:unique_integer([positive]),
 		Offer1 = Offer#offer{last_modified = {TS, N}},
-		ok = mnesia:write(offer, Offer1, write),
-		Offer1
+		{mnesia:write(offer, Offer1, write), Offer1}
 	end,
 	case mnesia:transaction(Fadd) of
-		{atomic, Offer2} ->
+		{atomic, {ok, Offer2}} ->
+%			ocs_event:notify(create_offer, Offer2, product),
 			{ok, Offer2};
 		{aborted, Reason} ->
 			{error, Reason}
