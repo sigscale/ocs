@@ -129,7 +129,8 @@ init_per_testcase(TestCase, Config) when TestCase == notify_create_bucket;
 		TestCase == notify_accumulated_balance; TestCase == notify_product_charge;
 		TestCase == notify_accumulated_threshold;
 		TestCase == notify_create_product; TestCase == notify_delete_product;
-		TestCase == notify_create_service; TestCase == notify_delete_service ->
+		TestCase == notify_create_service; TestCase == notify_delete_service;
+		TestCase == notify_create_offer ->
 	true = register(TestCase, self()),
 	case inets:start(httpd, [{port, 0},
 			{server_name, atom_to_list(?MODULE)},
@@ -194,6 +195,7 @@ all() ->
 	notify_delete_product, post_hub_service, delete_hub_service,
 	notify_create_service, notify_delete_service,
 	post_hub_user, delete_hub_user, post_hub_catalog, delete_hub_catalog,
+	notify_create_offer,
 	post_hub_inventory, delete_hub_inventory, notify_product_charge,
 	oauth_authentication].
 
@@ -3268,6 +3270,35 @@ delete_hub_catalog(Config) ->
 	Request1 = {HostUrl ++ PathHub ++ Id, [Accept, auth_header()]},
 	{ok, {{_, 204, _}, _, []}} = httpc:request(delete, Request1, [], []).
 
+notify_create_offer() ->
+	[{userdata, [{doc, "Receive offer creation notification."}]}].
+
+notify_create_offer(Config) ->
+	HostUrl = ?config(host_url, Config),
+	CollectionUrl = HostUrl ++ ?PathCatalogHub,
+	ListenerPort = ?config(listener_port, Config),
+	ListenerServer = "http://localhost:" ++ integer_to_list(ListenerPort),
+	Callback = ListenerServer ++ "/listener/"
+			++ atom_to_list(?MODULE) ++ "/notifycreateoffer",
+	RequestBody = "{\n"
+			++ "\t\"callback\": \"" ++ Callback ++ "\",\n"
+			++ "}\n",
+	ContentType = "application/json",
+	Accept = {"accept", "application/json"},
+	Request = {CollectionUrl, [Accept, auth_header()], ContentType, RequestBody},
+	{ok, {{_, 201, _}, _, _}} = httpc:request(post, Request, [], []),
+	Price1 = price(one_time, undefined, undefined, 1000),
+	Price2 = price(usage, octets, 1000000000, 100),
+	OfferId = add_offer([Price1, Price2], 4),
+	receive
+		Input ->
+			{struct, OfferEvent} = mochijson:decode(Input),
+			{_, "ProductOfferingCreationNotification"}
+					= lists:keyfind("eventType", 1, OfferEvent),
+			{_, {struct, OfferList}} = lists:keyfind("event", 1, OfferEvent),
+			{_, OfferId} = lists:keyfind("id", 1, OfferList)
+	end.
+
 post_hub_inventory() ->
 	[{userdata, [{doc, "Register hub listener for inventory"}]}].
 
@@ -3472,6 +3503,13 @@ notifyaccumulatedthreshold(SessionID, _Env, Input) ->
 	mod_esi:deliver(SessionID, "status: 201 Created\r\n\r\n"),
 	notify_accumulated_threshold ! Input.
 
+-spec notifyproductcharge(SessionID :: term(), Env :: list(),
+		Input :: string()) -> any().
+%% @doc Notification callback for notify_product_charge test case.
+notifyproductcharge(SessionID, _Env, Input) ->
+	mod_esi:deliver(SessionID, "status: 201 Created\r\n\r\n"),
+	notify_product_charge ! Input.
+
 -spec notifycreateproduct(SessionID :: term(), Env :: list(),
 		Input :: string()) -> any().
 %% @doc Notification callback for notify_create_product test case.
@@ -3493,19 +3531,19 @@ notifycreateservice(SessionID, _Env, Input) ->
 	mod_esi:deliver(SessionID, "status: 201 Created\r\n\r\n"),
 	notify_create_service ! Input.
 
+-spec notifycreateoffer(SessionID :: term(), Env :: list(),
+		Input :: string()) -> any().
+%% @doc Notification callback for notify_create_offer test case.
+notifycreateoffer(SessionID, _Env, Input) ->
+	mod_esi:deliver(SessionID, "status: 201 Created\r\n\r\n"),
+	notify_create_offer ! Input.
+
 -spec notifydeleteservice(SessionID :: term(), Env :: list(),
 		Input :: string()) -> any().
 %% @doc Notification callback for notify_delete_service test case.
 notifydeleteservice(SessionID, _Env, Input) ->
 	mod_esi:deliver(SessionID, "status: 201 Created\r\n\r\n"),
 	notify_delete_service ! Input.
-
--spec notifyproductcharge(SessionID :: term(), Env :: list(),
-		Input :: string()) -> any().
-%% @doc Notification callback for notify_product_charge test case.
-notifyproductcharge(SessionID, _Env, Input) ->
-	mod_esi:deliver(SessionID, "status: 201 Created\r\n\r\n"),
-	notify_product_charge ! Input.
 
 product_offer() ->
 	CatalogHref = "/catalogManagement/v2",
