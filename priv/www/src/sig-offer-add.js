@@ -604,12 +604,12 @@ class offerAdd extends PolymerElement {
 					on-response="_getProductsResponse"
 					on-error="_getProductsError">
 			</iron-ajax>
-		<iron-ajax id="getTableAjax"
-			on-response="_getTableResponse"
-			on-error="_getTableError">
-		</iron-ajax>
-		<paper-toast id="getAddOfferToast" duration="0">
-		</paper-toast>
+			<iron-ajax id="getTableAjax"
+					on-response="_getTableResponse"
+					on-error="_getTableError">
+			</iron-ajax>
+			<paper-toast id="getAddOfferToast" duration="0">
+			</paper-toast>
 		`;
 	}
 
@@ -638,19 +638,19 @@ class offerAdd extends PolymerElement {
 					return [];
 				}
 			},
-				tables: {
-					type: Array,
-					readOnly: true,
-					notify: true,
-					value: function() {
-						return []
-					}
-				},
-				activePage: {
-					type: Boolean,
-					value: false,
-					observer: '_activePageChanged'
-				},
+			tables: {
+				type: Array,
+				readOnly: true,
+				notify: true,
+				value: function() {
+				return []
+				}
+			},
+			activePage: {
+				type: Boolean,
+				value: false,
+				observer: '_activePageChanged'
+			},
 			offers: {
 				type: Array,
 				value: function() {
@@ -741,29 +741,29 @@ class offerAdd extends PolymerElement {
 		super.ready();
 	}
 
-			_activePageChanged(active) {
-					var grid = this.$.offerGrid;
-					var ajax1 = this.$.getTableAjax;
-					ajax1.url = "/catalogManagement/v2/pla";
-					ajax1.generateRequest();
-			}
+	_activePageChanged(active) {
+		var grid = this.$.offerGrid;
+		var ajax1 = this.$.getTableAjax;
+		ajax1.url = "/catalogManagement/v2/pla";
+		ajax1.generateRequest();
+	}
 
-			_getTableResponse(event) {
-				var grid = this.$.offerGrid;
-				var results = event.detail.xhr.response;
-				this.splice("tables", 0, this.tables.length)
-				for (var indexTable in results) {
-					var tableRecord = new Object();
-					tableRecord.id = results[indexTable].id;
-					tableRecord.href = results[indexTable].href;
-					tableRecord.description = results[indexTable].description;
-					tableRecord.plaSpecId = results[indexTable].plaSpecId;
-					this.push('tables', tableRecord);
-				}
-				var offAddToast = document.body.querySelector('sig-app').shadowRoot.querySelector('sig-offer-add').shadowRoot.getElementById('getAddOfferToast');
-				offAddToast.text = "Success";
-				offAddToast.open();
-			}
+	_getTableResponse(event) {
+		var grid = this.$.offerGrid;
+		var results = event.detail.xhr.response;
+		this.splice("tables", 0, this.tables.length)
+		for (var indexTable in results) {
+			var tableRecord = new Object();
+			tableRecord.id = results[indexTable].id;
+			tableRecord.href = results[indexTable].href;
+			tableRecord.description = results[indexTable].description;
+			tableRecord.plaSpecId = results[indexTable].plaSpecId;
+			this.push('tables', tableRecord);
+		}
+		var offAddToast = document.body.querySelector('sig-app').shadowRoot.querySelector('sig-offer-add').shadowRoot.getElementById('getAddOfferToast');
+		offAddToast.text = "Success";
+		offAddToast.open();
+	}
 
 	_getProductsResponse(event) {
 		var results = event.detail.xhr.response;
