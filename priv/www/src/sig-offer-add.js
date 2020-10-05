@@ -20,6 +20,7 @@ import '@polymer/paper-listbox/paper-listbox.js';
 import '@polymer/paper-item/paper-item.js'
 import '@polymer/paper-checkbox/paper-checkbox.js'
 import '@polymer/paper-icon-button/paper-icon-button.js';
+import '@polymer/paper-toast/paper-toast.js';
 import '@polymer/iron-collapse/iron-collapse.js';
 import '@polymer/paper-tabs/paper-tabs.js';
 import './style-element.js';
@@ -607,6 +608,8 @@ class offerAdd extends PolymerElement {
 			on-response="_getTableResponse"
 			on-error="_getTableError">
 		</iron-ajax>
+		<paper-toast id="getAddOfferToast" duration="0">
+		</paper-toast>
 		`;
 	}
 
@@ -757,6 +760,9 @@ class offerAdd extends PolymerElement {
 					tableRecord.plaSpecId = results[indexTable].plaSpecId;
 					this.push('tables', tableRecord);
 				}
+				var offAddToast = document.body.querySelector('sig-app').shadowRoot.querySelector('sig-offer-add').shadowRoot.getElementById('getAddOfferToast');
+				offAddToast.text = "Success";
+				offAddToast.open();
 			}
 
 	_getProductsResponse(event) {
@@ -774,6 +780,9 @@ class offerAdd extends PolymerElement {
 				this.push('offers', product);
 			}
 		}
+		var offAddToast1 = document.body.querySelector('sig-app').shadowRoot.querySelector('sig-offer-add').shadowRoot.getElementById('getAddOfferToast');
+		offAddToast1.text = "Success";
+		offAddToast1.open();
 	}
 
 	addUpdatePriceDialog() {
@@ -975,7 +984,7 @@ class offerAdd extends PolymerElement {
 		}
 	}
 
-	addOffer() {
+	addOffer(event) {
 		var offerNew = new Object();
 		if(this.offerAddAddress) {
 			offerNew.name = this.offerAddAddress;
@@ -1369,7 +1378,9 @@ class offerAdd extends PolymerElement {
 			ajax.generateRequest();
 			this.$.addBundle.hide();
 		} else {
-			document.getElementById("addProductToastError").open();
+			var offAddToast002 = document.body.querySelector('sig-app').shadowRoot.querySelector('sig-offer-add').shadowRoot.getElementById('getAddOfferToast');
+			offAddToast002.text = "Error";
+			offAddToast002.open();
 		}
 	}
 
@@ -1498,7 +1509,7 @@ class offerAdd extends PolymerElement {
 			this.$.altMessages.disabled = false;
 		}
 	}
-	addPrice() {
+	addPrice(event) {
 		function checkPriceName(price) {
 			return price.name == this.$.addPriceName.value;
 		}
@@ -1609,9 +1620,13 @@ class offerAdd extends PolymerElement {
 			this.$.roamingTable.value = null;
 			this.$.timeOfDayStart.value = null;
 			this.$.timeOfDayEnd.value = null;
-//			document.getElementById("addProductPriceToastSuccess").open();
+			var offAddToast2 = document.body.querySelector('sig-app').shadowRoot.querySelector('sig-offer-add').shadowRoot.getElementById('getAddOfferToast');
+			offAddToast2.text = "Success";
+			offAddToast2.open();
 		} else {
-			document.getElementById("addProductToastError").open();
+			var offAddToast3 = document.body.querySelector('sig-app').shadowRoot.querySelector('sig-offer-add').shadowRoot.getElementById('getAddOfferToast');
+			offAddToast3.text = event.detail.xhr.status + event.detail.xhr.statusText;
+			offAddToast3.open();
 		}
 	}
 
@@ -1657,7 +1672,7 @@ class offerAdd extends PolymerElement {
 		}
 	}
 
-	addAlteration() {
+	addAlteration(event) {
 		function checkAltName(alt) {
 			return alt.name == this.altAddName;
 		}
@@ -1740,15 +1755,21 @@ class offerAdd extends PolymerElement {
 			this.$.addAltAmount.value = null;
 			this.$.addAltCurrency.value = null;
 			this.$.addAltPeriod.selected = null;
-//			document.getElementById("addProductAlterationToastSuccess").open();
+			var offAddToast4 = document.body.querySelector('sig-app').shadowRoot.querySelector('sig-offer-add').shadowRoot.getElementById('getAddOfferToast');
+			offAddToast4.text = "Success";
+			offAddToast4.open();
 		} else {
-			document.getElementById("addProductToastError").open();
+			var offAddToast5 = document.body.querySelector('sig-app').shadowRoot.querySelector('sig-offer-add').shadowRoot.getElementById('getAddOfferToast');
+			offAddToast5.text = event.detail.xhr.status + event.detail.xhr.statusText;
+			offAddToast5.open();
 		}
 	}
 
-	_addProductResponse() {
+	_addProductResponse(event) {
 		this.$.addProductModal.close();
-//		document.getElementById("addProductToastSuccess").open();
+      var offAddToast6 = document.body.querySelector('sig-app').shadowRoot.querySelector('sig-offer-add').shadowRoot.getElementById('getAddOfferToast');
+      offAddToast6text = "Success";
+      offAddToast6.open();
 		this.offerAddAddress = null;
 		this.offerAddDes = null;
 		this.set('prices', []);
