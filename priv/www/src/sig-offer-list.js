@@ -129,7 +129,7 @@ class offerList extends PolymerElement {
 						on-tap = "showAddOfferModal">
 				</paper-fab>
 			</div>
-			<paper-toast id="getOfferToast" duration="0">
+			<paper-toast id="getOfferToast">
 			</paper-toast>
 			<iron-ajax id="getProductAjax"
 					url="/catalogManagement/v2/productOffering"
@@ -301,6 +301,7 @@ class offerList extends PolymerElement {
 					vaadinItems[index] = newRecord;
 				}
 				callback(vaadinItems);
+console.log(request);
 			} else {
 				grid.size = 0;
 				callback([]);
@@ -309,7 +310,7 @@ class offerList extends PolymerElement {
 		var handleAjaxError = function(error) {
 			offerList.etag = null;
 			var offToast = document.body.querySelector('sig-app').shadowRoot.querySelector('sig-offer-list').shadowRoot.getElementById('getOfferToast');
-			offToast.text = event.detail.xhr.status + event.detail.xhr.statusText;
+			offToast.text = "Error";
 			offToast.open();
 			if(!grid.size) {
 				grid.size = 0;
@@ -353,9 +354,6 @@ class offerList extends PolymerElement {
 			tableRecord.plaSpecId = results[indexTable].plaSpecId;
 			this.push('tables', tableRecord);
 		}
-		var offToast1 = document.body.querySelector('sig-app').shadowRoot.querySelector('sig-offer-list').shadowRoot.getElementById('getOfferToast');
-		offToast1.text = "Success";
-		offToast1.open();
 	}
 
 	_getTableError(event) {
