@@ -42,7 +42,7 @@
 -define(catalogPath, "/catalogManagement/v2/resourceCatalog/").
 -define(categoryPath, "/catalogManagement/v2/resourceCategory/").
 -define(inventoryPath, "/resourceInventoryManagement/v1/logicalResource/").
--define(plaPath, "/catalogManagement/v2/pla/").
+-define(plaPath, "/resourceInventoryManagement/v2/pla/").
 -define(plaSpecPath, "/resourceCatalogManagement/v2/plaSpecification/").
 
 -spec content_types_accepted() -> ContentTypes
@@ -256,7 +256,7 @@ add_resource_inventory(Table, ReqData) ->
 	Headers  :: [tuple()],
 	Body     :: iolist(),
 	Status   :: 400 | 500 .
-%% @doc Respond to `POST /catalogManagement/v2/pla'.
+%% @doc Respond to `POST /resourceInventoryManagement/v2/pla'.
 %%    Add a new Product Offering.
 add_pla(ReqData) ->
 	try
@@ -292,7 +292,7 @@ add_pla(ReqData) ->
 		Headers	:: [tuple()],
 		Body		:: iolist(),
 		Status	:: 400 | 404 | 412 | 500 .
-%% @doc Respond to `PATCH /catalogManagement/v2/pla/{id}'.
+%% @doc Respond to `PATCH /resourceInventoryManagement/v2/pla/{id}'.
 %% 	Update a pricing logic algorithm using JSON patch method
 patch_pla(Id, Etag, ReqData) ->
 	try
@@ -353,7 +353,7 @@ patch_pla(Id, Etag, ReqData) ->
 		Id :: string(),
 		Result :: {ok, Headers :: [tuple()], Body :: iolist()}
 				| {error, ErrorCode :: integer()} .
-%% @doc Respond to `DELETE /catalogManagement/v2/pla/{id}'
+%% @doc Respond to `DELETE /resourceInventoryManagement/v2/pla/{id}'
 %% 	request to remove a `Pla'.
 delete_pla(Id) when is_list(Id) ->
 	case catch list_to_existing_atom(Id) of
@@ -370,7 +370,7 @@ delete_pla(Id) when is_list(Id) ->
 	Headers :: [tuple()],
 	Body :: iolist(),
 	Status :: 400 | 404 | 500.
-%% @doc Respond to `GET /catalogManagement/v2/pla/{id}'.
+%% @doc Respond to `GET /resourceInventoryManagement/v2/pla/{id}'.
 %%    Retrieve a pricing logic algorothm.
 get_pla(ID) ->
 	try
@@ -400,7 +400,7 @@ get_pla(ID) ->
 	Headers :: [tuple()],
 	Body :: iolist(),
 	Status :: 400 | 404 | 412 | 500 .
-%% @doc Respond to `GET /catalogManagement/v2/pla'.
+%% @doc Respond to `GET /resourceInventoryManagement/v2/pla'.
 %%    Retrieve all pricing logic algorithms.
 get_plas(_Query, _Headers) ->
 	try
