@@ -130,7 +130,7 @@ init_per_testcase(TestCase, Config) when TestCase == notify_create_bucket;
 		TestCase == notify_accumulated_threshold;
 		TestCase == notify_create_product; TestCase == notify_delete_product;
 		TestCase == notify_create_service; TestCase == notify_delete_service;
-		TestCase == notify_create_offer ->
+		TestCase == notify_create_offer; TestCase == notify_delete_offer ->
 	true = register(TestCase, self()),
 	case inets:start(httpd, [{port, 0},
 			{server_name, atom_to_list(?MODULE)},
@@ -195,7 +195,7 @@ all() ->
 	notify_delete_product, post_hub_service, delete_hub_service,
 	notify_create_service, notify_delete_service,
 	post_hub_user, delete_hub_user, post_hub_catalog, delete_hub_catalog,
-	notify_create_offer,
+	notify_create_offer, notify_delete_offer,
 	post_hub_inventory, delete_hub_inventory, notify_product_charge,
 	oauth_authentication].
 
@@ -3299,6 +3299,34 @@ notify_create_offer(Config) ->
 			{_, OfferId} = lists:keyfind("id", 1, OfferList)
 	end.
 
+notify_delete_offer() ->
+	[{userdata, [{doc, "Notify deletion of offer"}]}].
+
+notify_delete_offer(Config) ->
+	HostUrl = ?config(host_url, Config),
+	CollectionUrl = HostUrl ++ ?PathCatalogHub,
+	ListenerPort = ?config(listener_port, Config),
+	ListenerServer = "http://localhost:" ++ integer_to_list(ListenerPort),
+	Callback = ListenerServer ++ "/listener/"
+			++ atom_to_list(?MODULE) ++ "/notifydeleteoffer",
+	RequestBody = "{\n"
+			++ "\t\"callback\": \"" ++ Callback ++ "\",\n"
+			++ "}\n",
+	ContentType = "application/json",
+	Accept = {"accept", "application/json"},
+	Request = {CollectionUrl, [Accept, auth_header()], ContentType, RequestBody},
+	{ok, {{_, 201, _}, _, _}} = httpc:request(post, Request, [], []),
+	P1 = #price{name = ocs:generate_identity(), type = usage, units = octets,
+			size = 1000, amount = 100},
+	OfferId = add_offer([P1], 4),
+	ok = ocs:delete_offer(OfferId),
+	receive
+		Input4 ->
+			{struct, BalDelEvent} = mochijson:decode(Input4),
+			{_, "ProductOfferingRemoveNotification"}
+					= lists:keyfind("eventType", 1, BalDelEvent)
+	end.
+
 post_hub_inventory() ->
 	[{userdata, [{doc, "Register hub listener for inventory"}]}].
 
@@ -3531,6 +3559,13 @@ notifycreateservice(SessionID, _Env, Input) ->
 	mod_esi:deliver(SessionID, "status: 201 Created\r\n\r\n"),
 	notify_create_service ! Input.
 
+-spec notifydeleteservice(SessionID :: term(), Env :: list(),
+		Input :: string()) -> any().
+%% @doc Notification callback for notify_delete_service test case.
+notifydeleteservice(SessionID, _Env, Input) ->
+	mod_esi:deliver(SessionID, "status: 201 Created\r\n\r\n"),
+	notify_delete_service ! Input.
+
 -spec notifycreateoffer(SessionID :: term(), Env :: list(),
 		Input :: string()) -> any().
 %% @doc Notification callback for notify_create_offer test case.
@@ -3538,12 +3573,12 @@ notifycreateoffer(SessionID, _Env, Input) ->
 	mod_esi:deliver(SessionID, "status: 201 Created\r\n\r\n"),
 	notify_create_offer ! Input.
 
--spec notifydeleteservice(SessionID :: term(), Env :: list(),
+-spec notifydeleteoffer(SessionID :: term(), Env :: list(),
 		Input :: string()) -> any().
-%% @doc Notification callback for notify_delete_service test case.
-notifydeleteservice(SessionID, _Env, Input) ->
+%% @doc Notification callback for notify_delete_offer test case.
+notifydeleteoffer(SessionID, _Env, Input) ->
 	mod_esi:deliver(SessionID, "status: 201 Created\r\n\r\n"),
-	notify_delete_service ! Input.
+	notify_delete_offer ! Input.
 
 product_offer() ->
 	CatalogHref = "/catalogManagement/v2",
