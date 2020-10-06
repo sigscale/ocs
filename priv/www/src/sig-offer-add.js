@@ -608,7 +608,7 @@ class offerAdd extends PolymerElement {
 					on-response="_getTableResponse"
 					on-error="_getTableError">
 			</iron-ajax>
-			<paper-toast id="getAddOfferToast" duration="0">
+			<paper-toast id="getAddOfferToast">
 			</paper-toast>
 		`;
 	}
@@ -760,9 +760,6 @@ class offerAdd extends PolymerElement {
 			tableRecord.plaSpecId = results[indexTable].plaSpecId;
 			this.push('tables', tableRecord);
 		}
-		var offAddToast = document.body.querySelector('sig-app').shadowRoot.querySelector('sig-offer-add').shadowRoot.getElementById('getAddOfferToast');
-		offAddToast.text = "Success";
-		offAddToast.open();
 	}
 
 	_getProductsResponse(event) {
