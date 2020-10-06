@@ -149,9 +149,10 @@ register(timeout, State) ->
 	when
 		Event :: {Type, Resource, Category},
 		Type :: create_bucket | delete_bucket | charge | depleted | accumulated
-				| create_product | delete_product | create_service | delete_service,
-		Resource :: #bucket{} | #product{} | #service{} | [#adjustment{}]
-				| [#acc_balance{}],
+				| create_product | delete_product | create_service | delete_service
+				| delete_offer,
+		Resource :: #bucket{} | #product{} | #service{} | #offer{}
+				| [#adjustment{}] | [#acc_balance{}],
 		Category :: balance | product | service,
 		State :: statedata(),
 		Result :: {next_state, NextStateName, NewStateData}
@@ -198,7 +199,12 @@ registered({Type, Resource, Category} = _Event, #statedata{sync = Sync,
 					{array, AccBalStructs}
 			end;
 		product ->
-			ocs_rest_res_product:inventory(Resource);
+			case Resource of
+				#product{} ->
+					ocs_rest_res_product:inventory(Resource);
+				#offer{} ->
+					ocs_rest_res_product:offer(Resource)
+			end;
 		service ->
 			ocs_rest_res_service:inventory(Resource)
 	end,
@@ -391,6 +397,8 @@ event_type(Type) ->
 		create_service ->
 			"ServiceCreationNotification";
 		delete_service ->
-			"ServiceDeleteNotification"
+			"ServiceDeleteNotification";
+		delete_offer ->
+			"ProductOfferingRemoveNotification"
 	end.
 
