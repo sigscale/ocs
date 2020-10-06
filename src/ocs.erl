@@ -1511,16 +1511,23 @@ get_offers() ->
 %% @doc Delete an entry from the offer table.
 delete_offer(OfferID) ->
 	F = fun() ->
-		MatchSpec = [{'$1', [{'==', OfferID, {element, #product.product, '$1'}}], ['$1']}],
-		case mnesia:select(product, MatchSpec) of
-			[] ->
-				mnesia:delete(offer, OfferID, write);
-			_ ->
-				throw(unable_to_delete)
-		end
+			case mnesia:read(offer, OfferID) of
+				[#offer{} = Offer] ->
+					MatchSpec = [{'$1', [{'==', OfferID,
+							{element, #product.product, '$1'}}], ['$1']}],
+					case mnesia:select(product, MatchSpec) of
+						[] ->
+							{mnesia:delete(offer, OfferID, write), Offer};
+						_ ->
+							throw(unable_to_delete)
+					end;
+				[] ->
+					mnesia:abort(not_found)
+			end
 	end,
 	case mnesia:transaction(F) of
-		{atomic, _} ->
+		{atomic, {ok, Offer}} ->
+			ocs_event:notify(delete_offer, Offer, product),
 			ok;
 		{aborted, {throw, Reason}} ->
 			exit(Reason);
