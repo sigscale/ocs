@@ -550,6 +550,8 @@ class offerUpdate extends PolymerElement {
 					on-response="_getProductUpdateResponse"
 					on-error="_getProductsError">
 			</iron-ajax>
+			<paper-toast id="getUpdateOfferToast">
+			</paper-toast>
 		`;
 	}
 
@@ -794,6 +796,15 @@ class offerUpdate extends PolymerElement {
 				this.offers[ind].checked = true;
 			}
 		}
+		var offUpdateToast = document.body.querySelector('sig-app').shadowRoot.querySelector('sig-offer-update').shadowRoot.getElementById('getUpdateOfferToast');
+		offUpdateToast.text = "Success";
+		offUpdateToast.open();
+	}
+
+	_getProductsError(event) {
+		var offUpdateToast1 = document.body.querySelector('sig-app').shadowRoot.querySelector('sig-offer-update').shadowRoot.getElementById('getUpdateOfferToast');
+		offUpdateToast1.text = event.detail.xhr.status + event.detail.xhr.statusText;
+		offUpdateToast1.open();
 	}
 
 	_updateOnClickOfferChars() {
@@ -1131,6 +1142,15 @@ class offerUpdate extends PolymerElement {
 				ell.checked = false;
 			}
 		});
+		var offUpdateToast2 = document.body.querySelector('sig-app').shadowRoot.querySelector('sig-offer-update').shadowRoot.getElementById('getUpdateOfferToast');
+		offUpdateToast2.text = "Added update offer Successfully";
+		offUpdateToast2.open();
+	}
+
+	_updateProductOfferError(event) {
+		var offUpdateToast3 = document.body.querySelector('sig-app').shadowRoot.querySelector('sig-offer-update').shadowRoot.getElementById('getUpdateOfferToast');
+		offUpdateToast3.text = event.detail.xhr.status + event.detail.xhr.statusText;
+		offUpdateToast3.open();
 	}
 
 	updateProductPrice(event) {
@@ -1467,6 +1487,15 @@ class offerUpdate extends PolymerElement {
 	_updateProductPriceResponse(event) {
 		this.$.updateProductModal.close();
 		document.body.querySelector('sig-app').shadowRoot.getElementById('offerList').shadowRoot.getElementById('offerGrid').clearCache();
+		var offUpdateToast4 = document.body.querySelector('sig-app').shadowRoot.querySelector('sig-offer-update').shadowRoot.getElementById('getUpdateOfferToast');
+		offUpdateToast4.text = "Added product price successfully";
+		offUpdateToast4.open();
+	}
+
+	_updateProductPriceError(event) {
+		var offUpdateToast5 = document.body.querySelector('sig-app').shadowRoot.querySelector('sig-offer-update').shadowRoot.getElementById('getUpdateOfferToast');
+		offUpdateToast5.text = event.detail.xhr.status + event.detail.xhr.statusText;
+		offUpdateToast5.open();
 	}
 
 	updateProductAlteration(event) {
@@ -1592,7 +1621,16 @@ class offerUpdate extends PolymerElement {
 
 	_updateProductAlterationResponse(event) {
 		this.$.updateProductModal.close();
-		document.body.querySelector('sig-app').shadowRoot.getElementById('offerList').shadowRoot.getElementById('offerGrid').clearCache();;
+		document.body.querySelector('sig-app').shadowRoot.getElementById('offerList').shadowRoot.getElementById('offerGrid').clearCache();
+		var offUpdateToast6 = document.body.querySelector('sig-app').shadowRoot.querySelector('sig-offer-update').shadowRoot.getElementById('getUpdateOfferToast');
+		offUpdateToast6.text = "Added product alteration successfully";
+		offUpdateToast6.open();
+	}
+
+	_updateProductAlterationError(event) {
+		var offUpdateToast7 = document.body.querySelector('sig-app').shadowRoot.querySelector('sig-offer-update').shadowRoot.getElementById('getUpdateOfferToast');
+		offUpdateToast7.text = event.detail.xhr.status + event.detail.xhr.statusText;
+		offUpdateToast7.open();
 	}
 
 	checkPattern() {
@@ -1880,8 +1918,9 @@ class offerUpdate extends PolymerElement {
 			this.$.updateCheckOut.checked = false;
 			this.priceUpdateAlt = null;
 		} else {
-			this.$.updateProductToastError.text = "Validation failed";
-			this.$.updateProductToastError.open();
+			var offUpdateToast8 = document.body.querySelector('sig-app').shadowRoot.querySelector('sig-offer-update').shadowRoot.getElementById('getUpdateOfferToast');
+			offUpdateToast8.text = "validation failed";
+			offUpdateToast8.open();
 		}
 	}
 
@@ -1957,8 +1996,9 @@ class offerUpdate extends PolymerElement {
 			this.altUpdateCurr = null;
 			this.$.updateAltAmount.value = null;
 		} else {
-			this.$.updateProductToastError.text = "Validation failed";
-			this.$.updateProductToastError.open();
+			var offUpdateToast9 = document.body.querySelector('sig-app').shadowRoot.querySelector('sig-offer-update').shadowRoot.getElementById('getUpdateOfferToast');
+			offUpdateToast9.text = "validation failed";
+			offUpdateToast9.open();
 		}
 	}
 
@@ -1983,6 +2023,15 @@ class offerUpdate extends PolymerElement {
 	_deleteProductResponse(event) {
 		this.$.updateProductModal.close();
 		document.body.querySelector('sig-app').shadowRoot.getElementById('offerList').shadowRoot.getElementById('offerGrid').clearCache();
+		var offUpdateToast10 = document.body.querySelector('sig-app').shadowRoot.querySelector('sig-offer-update').shadowRoot.getElementById('getUpdateOfferToast');
+		offUpdateToast10.text = "delete product successfully";
+		offUpdateToast10.open();
+	}
+
+	_deleteProductError(event) {
+		var offUpdateToast11 = document.body.querySelector('sig-app').shadowRoot.querySelector('sig-offer-update').shadowRoot.getElementById('getUpdateOfferToast');
+		offUpdateToast11.text = event.detail.xhr.status + event.detail.xhr.statusText;
+		offUpdateToast11.open();
 	}
 
 	_onLoadingChanged(event) {
