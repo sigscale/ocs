@@ -782,6 +782,12 @@ class offerAdd extends PolymerElement {
 		offAddToast1.open();
 	}
 
+	_getProductsError(event) {
+		var offAddToast01 = document.body.querySelector('sig-app').shadowRoot.querySelector('sig-offer-add').shadowRoot.getElementById('getAddOfferToast');
+		offAddToast01.text = event.detail.xhr.statusText;
+		offAddToast01.open();
+	}
+
 	addUpdatePriceDialog() {
 		function checkPriceUpdateName(price) {
 			return price.name == this.priceAddName;
@@ -1618,7 +1624,7 @@ class offerAdd extends PolymerElement {
 			this.$.timeOfDayStart.value = null;
 			this.$.timeOfDayEnd.value = null;
 			var offAddToast2 = document.body.querySelector('sig-app').shadowRoot.querySelector('sig-offer-add').shadowRoot.getElementById('getAddOfferToast');
-			offAddToast2.text = "Success";
+			offAddToast2.text = "Added price";
 			offAddToast2.open();
 		} else {
 			var offAddToast3 = document.body.querySelector('sig-app').shadowRoot.querySelector('sig-offer-add').shadowRoot.getElementById('getAddOfferToast');
@@ -1753,7 +1759,7 @@ class offerAdd extends PolymerElement {
 			this.$.addAltCurrency.value = null;
 			this.$.addAltPeriod.selected = null;
 			var offAddToast4 = document.body.querySelector('sig-app').shadowRoot.querySelector('sig-offer-add').shadowRoot.getElementById('getAddOfferToast');
-			offAddToast4.text = "Success";
+			offAddToast4.text = "Added Alteration";
 			offAddToast4.open();
 		} else {
 			var offAddToast5 = document.body.querySelector('sig-app').shadowRoot.querySelector('sig-offer-add').shadowRoot.getElementById('getAddOfferToast');
@@ -1764,15 +1770,21 @@ class offerAdd extends PolymerElement {
 
 	_addProductResponse(event) {
 		this.$.addProductModal.close();
-      var offAddToast6 = document.body.querySelector('sig-app').shadowRoot.querySelector('sig-offer-add').shadowRoot.getElementById('getAddOfferToast');
-      offAddToast6text = "Success";
-      offAddToast6.open();
 		this.offerAddAddress = null;
 		this.offerAddDes = null;
 		this.set('prices', []);
 		this.set('alterations', []);
 		document.body.querySelector('sig-app').shadowRoot.getElementById('offerList').shadowRoot.getElementById('offerGrid').clearCache();
+      var offAddToast06 = document.body.querySelector('sig-app').shadowRoot.querySelector('sig-offer-add').shadowRoot.getElementById('getAddOfferToast');
+      offAddToast06.text = "Error";
+      offAddToast06.open();
 		this.cancelDialog();
+	}
+
+	_addProductError(event) {
+      var offAddToast6 = document.body.querySelector('sig-app').shadowRoot.querySelector('sig-offer-add').shadowRoot.getElementById('getAddOfferToast');
+      offAddToast6text = "Error";
+      offAddToast6.open();
 	}
 
 	cancelDialog() {
