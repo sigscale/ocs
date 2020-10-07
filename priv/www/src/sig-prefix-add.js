@@ -15,6 +15,7 @@ import '@polymer/app-layout/app-toolbar/app-toolbar.js';
 import '@polymer/paper-progress/paper-progress.js';
 import '@polymer/paper-input/paper-input.js';
 import '@polymer/paper-button/paper-button.js';
+import '@polymer/paper-toast/paper-toast.js';
 import './style-element.js';
 
 class prefixAdd extends PolymerElement {
@@ -77,6 +78,8 @@ class prefixAdd extends PolymerElement {
 					on-response="_addTableResponse"
 					on-error="_addTableError">
 			</iron-ajax>
+			<paper-toast id="getAddPrefixToast">
+			</paper-toast>
 		`;
 	}
 	static get properties() {
@@ -135,11 +138,15 @@ class prefixAdd extends PolymerElement {
 	_addTableResponse(event) {
 		this.$.addPrefixModal.close();
 		document.body.querySelector('sig-app').shadowRoot.getElementById('prefixList').shadowRoot.getElementById('prefixGrid').clearCache();
+		var offAddToast = document.body.querySelector('sig-app').shadowRoot.querySelector('sig-prefix-add').shadowRoot.getElementById('getAddPrefixToast');
+		offAddToast.text = "Added successfully";
+		offAddToast.open();
 	}
 
 	_addTableError(event) {
-		this.$.addTableRowToastError.text = event.detail.request.xhr.statusText;
-		this.$.addTableRowToastError.open();
+		var offAddToast1 = document.body.querySelector('sig-app').shadowRoot.querySelector('sig-prefix-add').shadowRoot.getElementById('getAddPrefixToast');
+		offAddToast1.text = event.detail.xhr.status + event.detail.xhr.statusText;
+		offAddToast1.open();
 	}
 
 	_cancel() {
