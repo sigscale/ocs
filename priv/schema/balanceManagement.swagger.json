@@ -290,44 +290,6 @@
         }
       }
     },
-    "/balanceTransfer": {
-      "post": {
-        "tags": [
-          "transferBalance"
-        ],
-        "operationId": "createTransfer",
-        "summary": "Request a new transfer operation for a given product",
-        "deprecated": false,
-        "parameters": [
-          {
-            "name": "TransferBody",
-            "in": "body",
-            "description": "The Transfer to be modify.",
-            "required": true,
-            "schema": {
-              "$ref": "#/definitions/BalanceTransferBody"
-            }
-          }
-        ],
-        "responses": {
-          "201": {
-            "description": "Successful",
-            "schema": {
-              "$ref": "#/definitions/BalanceTransferBody"
-            }
-          },
-          "400": {
-            "description": "Bad Request"
-          },
-          "404": {
-            "description": "Not Found"
-          },
-          "500": {
-            "description": "Internal Server Error"
-          }
-        }
-      }
-    },
     "/balanceAdjustment": {
       "post": {
         "tags": [
@@ -428,36 +390,6 @@
         }
       }
     },
-    "BalanceTransferBody": {
-      "properties": {
-        "type": {
-          "type": "string",
-          "description": "A preconfigured value that describes a TopUp type which determines the prepay balance bucket in which the top-up is done (national-voice, roaming-voice, promotional-voice, data, ....)"
-        },
-        "channel": {
-          "$ref": "#/definitions/ChannelRefType",
-          "description": "Indicator for the channel used to request the top-up operation. Structure including at least attribute “name”"
-        },
-        "targetId": {
-          "type": "string",
-          "description": "Identifier for the entity that receives the transfer (reference to a product via a commercial identifier such as an msisidn that relates to an internal product id)"
-        },
-        "amount": {
-          "$ref": "#/definitions/QuantityType",
-          "description": "Amount (can be monetary or non-monetary) to be transferred"
-        },
-        "product": {
-          "$ref": "#/definitions/ProductRefType",
-          "description": "A reference to the product related to the bucket that is impacted by the balance related operation"
-        }
-      },
-      "required": [
-        "type",
-        "channel",
-        "targetId",
-        "amount"
-      ]
-    },
     "BalanceAdjustmentBody": {
       "properties": {
         "type": {
@@ -473,94 +405,6 @@
           "description": "A reference to the product related to the bucket that is impacted by the balance related operation"
         }
       }
-    },
-    "ChannelRefType": {
-      "description": "link to the resource that holds information about the channel used to initiate the topup operation request",
-      "properties": {
-        "id": {
-          "type": "string",
-          "description": "Unique identifier for the channel entity"
-        },
-        "href": {
-          "type": "string",
-          "description": "A resource URI pointing to the resource in the OB that stores the channel information"
-        },
-        "name": {
-          "type": "string",
-          "description": "Name of the channel"
-        }
-      },
-      "required": [
-        "id",
-        "href"
-      ]
-    },
-    "PaymentMethodRefOrValueType": {
-      "description": "link to the resource that holds information about the payment mean used to complete the operation",
-      "properties": {
-        "id": {
-          "type": "string",
-          "description": "Unique identifier for the channel entity"
-        },
-        "href": {
-          "type": "string",
-          "description": "A resource URI pointing to the resource in the OB that stores the channel information"
-        },
-        "name": {
-          "type": "string",
-          "description": "Name of the channel"
-        },
-        "type": {
-          "type": "string",
-          "description": "Type of payment method (bankcard, voucher, …)"
-        },
-        "details": {
-          "$ref": "#/definitions/RelatedPartyRefType",
-          "description": "The list of parameters depends on the type of payment method"
-        }
-      },
-      "required": [
-        "id",
-        "href"
-      ]
-    },
-    "BalanceTransferStatusTypeModify": {
-      "properties": {
-        "status": {
-          "type": "string"
-        }
-      },
-      "required": [
-        "status"
-      ]
-    },
-    "BalanceTopupStatusTypeModify": {
-      "properties": {
-        "status": {
-          "type": "string",
-          "description": "Current status of the operation request"
-        }
-      },
-      "required": [
-        "status"
-      ]
-    },
-    "BalanceTopupStatusType": {
-      "allOf": [
-        {
-          "$ref": "#/definitions/BalanceTopupStatusTypeModify"
-        }
-      ],
-      "description": "Structure including specific information about change of status for the topup operation",
-      "properties": {
-        "statusChangeDate": {
-          "type": "string",
-          "description": "Date in which the latest change of status was requested"
-        }
-      },
-      "required": [
-        "statusChangeDate"
-      ]
     },
     "BucketBalanceRefType": {
       "description": "link to the resource that holds bucket balance information",
@@ -625,80 +469,6 @@
           "format": "date-time",
           "type": "string",
           "description": "End date of the period"
-        }
-      },
-      "required": [
-        "startDateTime"
-      ]
-    },
-    "PartyAccountRefType": {
-      "description": "Information about a resource that holds information about the account that owns the bucket",
-      "properties": {
-        "id": {
-          "type": "string",
-          "description": "Unique identifier for the account entity"
-        },
-        "href": {
-          "type": "string",
-          "description": "A resource URI pointing to the resource in the OB that stores the account information"
-        },
-        "name": {
-          "type": "string",
-          "description": "Name of the account"
-        }
-      },
-      "required": [
-        "id",
-        "href"
-      ]
-    },
-    "RelatedPartyRefType": {
-      "description": "Information about an associated entity and its role",
-      "properties": {
-        "id": {
-          "type": "string",
-          "description": "Unique identifier for the account entity"
-        },
-        "href": {
-          "type": "string",
-          "description": "A resource URI pointing to the resource in the OB that stores the account information"
-        },
-        "name": {
-          "type": "string",
-          "description": "Name of the account"
-        },
-        "role": {
-          "type": "string",
-          "description": "Role describing the relationship with the related element"
-        }
-      },
-      "required": [
-        "role",
-        "name"
-      ]
-    },
-    "RealizingResourceRefType": {
-      "description": "Information about a resource that holds realizes the product that is linked to the bucket balance",
-      "properties": {
-        "id": {
-          "type": "string",
-          "description": "Unique identifier of the related party"
-        },
-        "href": {
-          "type": "string",
-          "description": "Reference to the party"
-        },
-        "name": {
-          "type": "string",
-          "description": "Name of the resource"
-        },
-        "@Type": {
-          "type": "string",
-          "description": "Indicates the type of resource"
-        },
-        "value": {
-          "type": "string",
-          "description": "The resource value that can be used to identify a resource with a public key (e.g.: a tel nr, an msisdn)"
         }
       }
     }
