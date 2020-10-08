@@ -40,7 +40,7 @@
 	when
 		EventType :: create_bucket | delete_bucket | charge | depleted
 				| accumulated | create_product | delete_product
-				| create_service | delete_service | delete_offer,
+				| create_service | delete_service | create_offer | delete_offer,
 		EventPayLoad :: #bucket{} | #product{} | #service{} | #offer{}
 				| [#adjustment{}] | [#acc_balance{}],
 		Category :: balance | product | service.

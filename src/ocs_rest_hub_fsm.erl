@@ -150,7 +150,7 @@ register(timeout, State) ->
 		Event :: {Type, Resource, Category},
 		Type :: create_bucket | delete_bucket | charge | depleted | accumulated
 				| create_product | delete_product | create_service | delete_service
-				| delete_offer,
+				| create_offer | delete_offer,
 		Resource :: #bucket{} | #product{} | #service{} | #offer{}
 				| [#adjustment{}] | [#acc_balance{}],
 		Category :: balance | product | service,
@@ -398,6 +398,8 @@ event_type(Type) ->
 			"ServiceCreationNotification";
 		delete_service ->
 			"ServiceDeleteNotification";
+		create_offer ->
+			"ProductOfferingCreationNotification";
 		delete_offer ->
 			"ProductOfferingRemoveNotification"
 	end.

@@ -1411,7 +1411,7 @@ add_offer1(Offer) ->
 	end,
 	case mnesia:transaction(Fadd) of
 		{atomic, {ok, Offer2}} ->
-%			ocs_event:notify(create_offer, Offer2, product),
+			ocs_event:notify(create_offer, Offer2, product),
 			{ok, Offer2};
 		{aborted, Reason} ->
 			{error, Reason}
