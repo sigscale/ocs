@@ -50,7 +50,8 @@
 %% the updated attributes only (attributeValueChange) or only
 %% `id' and `href' (remove).
 notify(EventType, EventPayLoad, Category) ->
-	gen_event:notify(?MODULE, {EventType, EventPayLoad, Category}).
+	catch gen_event:notify(?MODULE, {EventType, EventPayLoad, Category}),
+	ok.
 
 %%----------------------------------------------------------------------
 %%  The ocs_event gen_event callbacks
