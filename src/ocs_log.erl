@@ -1022,10 +1022,9 @@ abmf_log(Type, ServiceId, Bucket, Units, Product, Amount,
 		when ((Type == transfer) orelse (Type == topup) orelse
 		(Type == adjustment) orelse (Type == deduct) orelse (Type == reserve)
 		orelse (Type == unreserve)), ((is_binary(ServiceId)) orelse (ServiceId == undefined)),
-		is_list(Bucket) orelse (Bucket == undefined), ((Units == cents) orelse (Units == seconds)
-		orelse (Units == octets) orelse (Units == messages)), (is_integer(AmountBefore)
-		orelse (AmountBefore == undefined)), (is_integer(AmountAfter) orelse (AmountAfter == undefined)),
-		is_list(Product), is_integer(Amount) ->
+		is_list(Bucket), ((Units == cents) orelse (Units == seconds) orelse (Units == octets)
+		orelse (Units == messages)), (is_integer(AmountBefore) orelse (AmountBefore == undefined)),
+		(is_integer(AmountAfter) orelse (AmountAfter == undefined)), is_list(Product), is_integer(Amount)->
 	Event = [node(), Type, ServiceId, Bucket, Units, Product, Amount,
 			AmountBefore, AmountAfter, Validity, Channel, Requestor,
 			RelatedParty, PaymentMeans, Action, Status],
