@@ -541,9 +541,8 @@ class subAdd extends PolymerElement {
 	_addServiceError(event) {
 		this.$.idCheck.checked = false;
 		this.$.idCheckPass.checked = false;
-      var serAddToast01 = document.body.querySelector('sig-app').shadowRoot.querySelector('sig-sub-add').shadowRoot.getElementById('getAddsubToast');
-      serAddToast01.text = event.detail.xhr.status + event.detail.xhr.statusText;
-      serAddToast01.open();
+      this.$.getAddsubToast.text = event.detail.xhr.status + event.detail.xhr.statusText;
+      this.$.getAddsubToast.open();
 	}
 
 	_addProductResponse(event) {
@@ -612,14 +611,15 @@ class subAdd extends PolymerElement {
 	}
 
 	_addProductError(event) {
-      var serAddToast02 = document.body.querySelector('sig-app').shadowRoot.querySelector('sig-sub-add').shadowRoot.getElementById('getAddsubToast');
-      serAddToast02.text = event.detail.xhr.status + event.detail.xhr.statusText;
-      serAddToast02.open();
+      this.$.getAddsubToast.text = event.detail.xhr.status + event.detail.xhr.statusText;
+      this.$.getAddsubToast.open();
 		var ajaxBucketRes = this.$.addBucketAjax;
 	}
 
 	_addBucketResponse(event) {
 		this.$.addServiceModal.close();
+      this.$.getAddsubToast.text = "Bucket added successfully ";
+      this.$.getAddsubToast.open();
 		document.body.querySelector('sig-app').shadowRoot.getElementById('serviceList').shadowRoot.getElementById('subscriberGrid').clearCache();
 	}
 

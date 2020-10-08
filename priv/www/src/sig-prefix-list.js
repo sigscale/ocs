@@ -188,15 +188,13 @@ class prefixList extends PolymerElement {
 	_deleteTableResponse(event) {
 		this.$.tableList.close();
 		document.body.querySelector('sig-app').shadowRoot.getElementById('offerList').shadowRoot.getElementById('getTableAjax').generateRequest();
-		var offDelToast = document.body.querySelector('sig-app').shadowRoot.querySelector('sig-prefix-list').shadowRoot.getElementById('getPrefixToast');
-		offDelToast.text = "Deleted successfully";
-		offDelToast.open();
+      this.$.getPrefixToast.text = "Deleted successfully";
+      this.$.getPrefixToast.open();
 	}
 
 	_deleteTableError(event) {
-		var offDelToast1 = document.body.querySelector('sig-app').shadowRoot.querySelector('sig-prefix-list').shadowRoot.getElementById('getPrefixToast');
-		offDelToast1.text = event.detail.xhr.status + event.detail.xhr.statusText;
-		offDelToast1.open();
+      this.$.getPrefixToast.text = event.detail.xhr.status + event.detail.xhr.statusText;
+      this.$.getPrefixToast.open();
 	}
 
 	tableSelection(e) {
@@ -240,9 +238,8 @@ class prefixList extends PolymerElement {
 		};
 		var handleAjaxError = function(error) {
 			prefixList.etag = null;
-		var offDelToast2 = document.body.querySelector('sig-app').shadowRoot.querySelector('sig-prefix-list').shadowRoot.getElementById('getPrefixToast');
-		offDelToast2.text = event.detail.xhr.status + event.detail.xhr.statusText;
-		offDelToast2.open();
+      	this.$.getPrefixToast.text = event.detail.xhr.status + event.detail.xhr.statusText;
+      	this.$.getPrefixToast.open();
 			if(!grid.size) {
 				grid.size = 0;
 			}

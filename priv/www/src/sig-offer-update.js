@@ -796,15 +796,13 @@ class offerUpdate extends PolymerElement {
 				this.offers[ind].checked = true;
 			}
 		}
-		var offUpdateToast = document.body.querySelector('sig-app').shadowRoot.querySelector('sig-offer-update').shadowRoot.getElementById('getUpdateOfferToast');
-		offUpdateToast.text = "Success";
-		offUpdateToast.open();
+      this.$.getUpdateOfferToast.text = "success";
+      this.$.getUpdateOfferToast.open();
 	}
 
 	_getProductsError(event) {
-		var offUpdateToast1 = document.body.querySelector('sig-app').shadowRoot.querySelector('sig-offer-update').shadowRoot.getElementById('getUpdateOfferToast');
-		offUpdateToast1.text = event.detail.xhr.status + event.detail.xhr.statusText;
-		offUpdateToast1.open();
+      this.$.getUpdateOfferToast.text = event.detail.xhr.status + event.detail.xhr.statusText;
+      this.$.getUpdateOfferToast.open();
 	}
 
 	_updateOnClickOfferChars() {
@@ -1142,15 +1140,13 @@ class offerUpdate extends PolymerElement {
 				ell.checked = false;
 			}
 		});
-		var offUpdateToast2 = document.body.querySelector('sig-app').shadowRoot.querySelector('sig-offer-update').shadowRoot.getElementById('getUpdateOfferToast');
-		offUpdateToast2.text = "Added update offer Successfully";
-		offUpdateToast2.open();
+      this.$.getUpdateOfferToast.text = "Added update offer Successfully";
+      this.$.getUpdateOfferToast.open();
 	}
 
 	_updateProductOfferError(event) {
-		var offUpdateToast3 = document.body.querySelector('sig-app').shadowRoot.querySelector('sig-offer-update').shadowRoot.getElementById('getUpdateOfferToast');
-		offUpdateToast3.text = event.detail.xhr.status + event.detail.xhr.statusText;
-		offUpdateToast3.open();
+      this.$.getUpdateOfferToast.text = event.detail.xhr.status + event.detail.xhr.statusText;
+      this.$.getUpdateOfferToast.open();
 	}
 
 	updateProductPrice(event) {
@@ -1487,15 +1483,13 @@ class offerUpdate extends PolymerElement {
 	_updateProductPriceResponse(event) {
 		this.$.updateProductModal.close();
 		document.body.querySelector('sig-app').shadowRoot.getElementById('offerList').shadowRoot.getElementById('offerGrid').clearCache();
-		var offUpdateToast4 = document.body.querySelector('sig-app').shadowRoot.querySelector('sig-offer-update').shadowRoot.getElementById('getUpdateOfferToast');
-		offUpdateToast4.text = "Added product price successfully";
-		offUpdateToast4.open();
+      this.$.getUpdateOfferToast.text = "Added product price successfully";
+      this.$.getUpdateOfferToast.open();
 	}
 
 	_updateProductPriceError(event) {
-		var offUpdateToast5 = document.body.querySelector('sig-app').shadowRoot.querySelector('sig-offer-update').shadowRoot.getElementById('getUpdateOfferToast');
-		offUpdateToast5.text = event.detail.xhr.status + event.detail.xhr.statusText;
-		offUpdateToast5.open();
+      this.$.getUpdateOfferToast.text = event.detail.xhr.status + event.detail.xhr.statusText;
+      this.$.getUpdateOfferToast.open();
 	}
 
 	updateProductAlteration(event) {
@@ -1622,15 +1616,13 @@ class offerUpdate extends PolymerElement {
 	_updateProductAlterationResponse(event) {
 		this.$.updateProductModal.close();
 		document.body.querySelector('sig-app').shadowRoot.getElementById('offerList').shadowRoot.getElementById('offerGrid').clearCache();
-		var offUpdateToast6 = document.body.querySelector('sig-app').shadowRoot.querySelector('sig-offer-update').shadowRoot.getElementById('getUpdateOfferToast');
-		offUpdateToast6.text = "Added product alteration successfully";
-		offUpdateToast6.open();
+      this.$.getUpdateOfferToast.text = "Added product alteration successfully";
+      this.$.getUpdateOfferToast.open();
 	}
 
 	_updateProductAlterationError(event) {
-		var offUpdateToast7 = document.body.querySelector('sig-app').shadowRoot.querySelector('sig-offer-update').shadowRoot.getElementById('getUpdateOfferToast');
-		offUpdateToast7.text = event.detail.xhr.status + event.detail.xhr.statusText;
-		offUpdateToast7.open();
+      this.$.getUpdateOfferToast.text = event.detail.xhr.status + event.detail.xhr.statusText;
+      this.$.getUpdateOfferToast.open();
 	}
 
 	checkPattern() {
@@ -1918,9 +1910,8 @@ class offerUpdate extends PolymerElement {
 			this.$.updateCheckOut.checked = false;
 			this.priceUpdateAlt = null;
 		} else {
-			var offUpdateToast8 = document.body.querySelector('sig-app').shadowRoot.querySelector('sig-offer-update').shadowRoot.getElementById('getUpdateOfferToast');
-			offUpdateToast8.text = "validation failed";
-			offUpdateToast8.open();
+      	this.$.getUpdateOfferToast.text = "validation failed";
+      	this.$.getUpdateOfferToast.open();
 		}
 	}
 
@@ -1996,9 +1987,8 @@ class offerUpdate extends PolymerElement {
 			this.altUpdateCurr = null;
 			this.$.updateAltAmount.value = null;
 		} else {
-			var offUpdateToast9 = document.body.querySelector('sig-app').shadowRoot.querySelector('sig-offer-update').shadowRoot.getElementById('getUpdateOfferToast');
-			offUpdateToast9.text = "validation failed";
-			offUpdateToast9.open();
+      	this.$.getUpdateOfferToast.text = "validation failed";
+      	this.$.getUpdateOfferToast.open();
 		}
 	}
 
@@ -2023,15 +2013,13 @@ class offerUpdate extends PolymerElement {
 	_deleteProductResponse(event) {
 		this.$.updateProductModal.close();
 		document.body.querySelector('sig-app').shadowRoot.getElementById('offerList').shadowRoot.getElementById('offerGrid').clearCache();
-		var offUpdateToast10 = document.body.querySelector('sig-app').shadowRoot.querySelector('sig-offer-update').shadowRoot.getElementById('getUpdateOfferToast');
-		offUpdateToast10.text = "delete product successfully";
-		offUpdateToast10.open();
+      this.$.getUpdateOfferToast.text = "delete product successfully"; 
+      this.$.getUpdateOfferToast.open();
 	}
 
 	_deleteProductError(event) {
-		var offUpdateToast11 = document.body.querySelector('sig-app').shadowRoot.querySelector('sig-offer-update').shadowRoot.getElementById('getUpdateOfferToast');
-		offUpdateToast11.text = event.detail.xhr.status + event.detail.xhr.statusText;
-		offUpdateToast11.open();
+      this.$.getUpdateOfferToast.text = event.detail.xhr.status + event.detail.xhr.statusText; 
+      this.$.getUpdateOfferToast.open();
 	}
 
 	_onLoadingChanged(event) {

@@ -219,9 +219,8 @@ class subList extends PolymerElement {
 		};
 		var handleAjaxError = function(error) {
 			serviceList.etag = null;
-      	var offSubToast = document.body.querySelector('sig-app').shadowRoot.querySelector('sig-sub-list').shadowRoot.getElementById('getSubToast');
-      	offSubToast.text = event.detail.xhr.status + event.detail.xhr.statusText;
-      	offSubToast.open();
+			this.$.getSubToast.text = event.detail.xhr.status + event.detail.xhr.statusText;
+			this.$.getSubToast.open();
 			if(!grid.size) {
 				grid.size = 0;
 			}

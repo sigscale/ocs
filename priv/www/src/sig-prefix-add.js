@@ -66,9 +66,6 @@ class prefixAdd extends PolymerElement {
 					</paper-button>
 				</div>
 			</paper-dialog>
-			<paper-toast
-					id="addTableRowToastError">
-			</paper-toast>
 			<iron-ajax
 					id="addTableRowAjax"
 					url="/catalogManagement/v2/pla"
@@ -138,15 +135,13 @@ class prefixAdd extends PolymerElement {
 	_addTableResponse(event) {
 		this.$.addPrefixModal.close();
 		document.body.querySelector('sig-app').shadowRoot.getElementById('prefixList').shadowRoot.getElementById('prefixGrid').clearCache();
-		var offAddToast = document.body.querySelector('sig-app').shadowRoot.querySelector('sig-prefix-add').shadowRoot.getElementById('getAddPrefixToast');
-		offAddToast.text = "Added successfully";
-		offAddToast.open();
+		this.$.getAddPrefixToast.text = "Added successfully";
+		this.$.getAddPrefixToast.open();
 	}
 
 	_addTableError(event) {
-		var offAddToast1 = document.body.querySelector('sig-app').shadowRoot.querySelector('sig-prefix-add').shadowRoot.getElementById('getAddPrefixToast');
-		offAddToast1.text = event.detail.xhr.status + event.detail.xhr.statusText;
-		offAddToast1.open();
+		this.$.getAddPrefixToast.text = event.detail.xhr.status + event.detail.xhr.statusText;
+		this.$.getAddPrefixToast.open();
 	}
 
 	_cancel() {

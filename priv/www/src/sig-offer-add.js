@@ -777,15 +777,13 @@ class offerAdd extends PolymerElement {
 				this.push('offers', product);
 			}
 		}
-		var offAddToast1 = document.body.querySelector('sig-app').shadowRoot.querySelector('sig-offer-add').shadowRoot.getElementById('getAddOfferToast');
-		offAddToast1.text = "Success";
-		offAddToast1.open();
+		this.$.getAddOfferToast.text = "Success";
+		this.$.getAddOfferToast.open();
 	}
 
 	_getProductsError(event) {
-		var offAddToast01 = document.body.querySelector('sig-app').shadowRoot.querySelector('sig-offer-add').shadowRoot.getElementById('getAddOfferToast');
-		offAddToast01.text = event.detail.xhr.statusText;
-		offAddToast01.open();
+		this.$.getAddOfferToast.text = event.detail.xhr.status + event.detail.xhr.statusText;
+		this.$.getAddOfferToast.open();
 	}
 
 	addUpdatePriceDialog() {
@@ -1381,9 +1379,8 @@ class offerAdd extends PolymerElement {
 			ajax.generateRequest();
 			this.$.addBundle.hide();
 		} else {
-			var offAddToast002 = document.body.querySelector('sig-app').shadowRoot.querySelector('sig-offer-add').shadowRoot.getElementById('getAddOfferToast');
-			offAddToast002.text = "Error";
-			offAddToast002.open();
+			this.$.getAddOfferToast.text = event.detail.xhr.status + event.detail.xhr.statusText;
+			this.$.getAddOfferToast.open();
 		}
 	}
 
@@ -1623,13 +1620,11 @@ class offerAdd extends PolymerElement {
 			this.$.roamingTable.value = null;
 			this.$.timeOfDayStart.value = null;
 			this.$.timeOfDayEnd.value = null;
-			var offAddToast2 = document.body.querySelector('sig-app').shadowRoot.querySelector('sig-offer-add').shadowRoot.getElementById('getAddOfferToast');
-			offAddToast2.text = "Added price";
-			offAddToast2.open();
+			this.$.getAddOfferToast.text = "Added price";
+			this.$.getAddOfferToast.open();
 		} else {
-			var offAddToast3 = document.body.querySelector('sig-app').shadowRoot.querySelector('sig-offer-add').shadowRoot.getElementById('getAddOfferToast');
-			offAddToast3.text = event.detail.xhr.status + event.detail.xhr.statusText;
-			offAddToast3.open();
+			this.$.getAddOfferToast.text = event.detail.xhr.status + event.detail.xhr.statusText;
+			this.$.getAddOfferToast.open();
 		}
 	}
 
@@ -1758,13 +1753,11 @@ class offerAdd extends PolymerElement {
 			this.$.addAltAmount.value = null;
 			this.$.addAltCurrency.value = null;
 			this.$.addAltPeriod.selected = null;
-			var offAddToast4 = document.body.querySelector('sig-app').shadowRoot.querySelector('sig-offer-add').shadowRoot.getElementById('getAddOfferToast');
-			offAddToast4.text = "Added Alteration";
-			offAddToast4.open();
+			this.$.getAddOfferToast.text = "Added Alteration";
+			this.$.getAddOfferToast.open();
 		} else {
-			var offAddToast5 = document.body.querySelector('sig-app').shadowRoot.querySelector('sig-offer-add').shadowRoot.getElementById('getAddOfferToast');
-			offAddToast5.text = event.detail.xhr.status + event.detail.xhr.statusText;
-			offAddToast5.open();
+			this.$.getAddOfferToast.text = event.detail.xhr.status + event.detail.xhr.statusText;
+			this.$.getAddOfferToast.open();
 		}
 	}
 
@@ -1775,16 +1768,14 @@ class offerAdd extends PolymerElement {
 		this.set('prices', []);
 		this.set('alterations', []);
 		document.body.querySelector('sig-app').shadowRoot.getElementById('offerList').shadowRoot.getElementById('offerGrid').clearCache();
-      var offAddToast06 = document.body.querySelector('sig-app').shadowRoot.querySelector('sig-offer-add').shadowRoot.getElementById('getAddOfferToast');
-      offAddToast06.text = "Error";
-      offAddToast06.open();
+		this.$.getAddOfferToast.text = "Success";
+		this.$.getAddOfferToast.open();
 		this.cancelDialog();
 	}
 
 	_addProductError(event) {
-      var offAddToast6 = document.body.querySelector('sig-app').shadowRoot.querySelector('sig-offer-add').shadowRoot.getElementById('getAddOfferToast');
-      offAddToast6text = "Error";
-      offAddToast6.open();
+		this.$.getAddOfferToast.text = event.detail.xhr.status + event.detail.xhr.statusText;
+		this.$.getAddOfferToast.open();
 	}
 
 	cancelDialog() {

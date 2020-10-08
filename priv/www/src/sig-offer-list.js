@@ -309,9 +309,8 @@ console.log(request);
 		};
 		var handleAjaxError = function(error) {
 			offerList.etag = null;
-			var offToast = document.body.querySelector('sig-app').shadowRoot.querySelector('sig-offer-list').shadowRoot.getElementById('getOfferToast');
-			offToast.text = "Error";
-			offToast.open();
+			this.$.getOfferToast.text = event.detail.request.xhr.statusText;
+			this.$.getOfferToast.open();
 			if(!grid.size) {
 				grid.size = 0;
 			}
@@ -360,9 +359,8 @@ console.log(request);
 		this.shadowRoot.getElementById('offerGrid').size = 0;
 		cbProduct([]);
 		if (!lastItem && event.detail.request.xhr.status != 416) {
-			var offToast2 = document.body.querySelector('sig-app').shadowRoot.querySelector('sig-offer-list').shadowRoot.getElementById('getOfferToast');
-			offToast2.text = event.detail.xhr.status + event.detail.xhr.statusText;
-			offToast2.open();
+			this.$.getOfferToast.text = event.detail.request.xhr.statusText;
+			this.$.getOfferToast.open();
 		}
 	}
 
