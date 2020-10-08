@@ -21,6 +21,7 @@ import '@polymer/paper-item/paper-item.js'
 import '@polymer/paper-checkbox/paper-checkbox.js'
 import '@polymer/paper-tabs/paper-tabs.js';
 import '@polymer/paper-toggle-button/paper-toggle-button.js';
+import '@polymer/paper-toast/paper-toast.js';
 import '@polymer/iron-pages/iron-pages.js';
 import './style-element.js';
 
@@ -356,6 +357,8 @@ class subAdd extends PolymerElement {
 					on-response="_updateSubscriberProductsResponse1"
 					on-error="_updateSubscriberProductsError1">
 			</iron-ajax>
+         <paper-toast id="getAddsubToast">
+         </paper-toast>
 		`;
 	}
 	static get properties() {
@@ -407,9 +410,7 @@ class subAdd extends PolymerElement {
 
 	_productSelected(){
 		var product = this.offers[this.$.addproduct10.selected];
-console.log(product);
 		if(product) {
-//			document.getElementById("AddUpdatePro").value = product;
 			document.getElementById("subscriberAdd").product = product;
 		}
 	}
@@ -417,14 +418,12 @@ console.log(product);
 	onEnter() {
 		var productId = this.proAddPro;
 		if(productId) {
-//			document.getElementById("AddUpdateProId").value = productId;
 			document.getElementById("subscriberAdd").productId = productId;
 			this.proAddPro = null;
 		}
 	}
 
 	_serviceAddSubmit(event) {
-console.log(this.offAddPro);
 		var subscriber = new Object();
 		var serviceChar = new Array();
 		if(this.idAddAuthe) {
@@ -506,7 +505,6 @@ console.log(this.offAddPro);
 	}
 
 	_addServiceResponse(event) {
-console.log(event.detail.xhr.response);
 		this.identity = event.detail.xhr.response.id;
 		function checkPasswordResp(pass) {
 			return pass.name == "servicePassword";
@@ -520,16 +518,12 @@ console.log(event.detail.xhr.response);
 		if(this.$.idCheck.checked || this.$.idCheckPass.checked) {
 			this.$.idCheck.checked = false;
 			this.$.idCheckPass.checked = false;
-console.log("open");
-console.log("open12", this.$.addSubscriberSecretModal);
 			this.$.addSubscriberSecretModal.open();
 		}
 		if(!this.productId) {
 			var ajaxProduct = this.$.addProductAjax;
 			var productSer = new Object();
 			var productRef = new Object();
-console.log(this.product);
-console.log(this.offAddPro);
 			productRef.id = this.offAddPro;
 			productRef.name = this.offAddPro;
 			productRef.href = "/catalogManagement/v2/productOffering/" + this.product;
