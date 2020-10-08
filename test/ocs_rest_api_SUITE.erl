@@ -2646,10 +2646,16 @@ notify_create_bucket(Config) ->
 	Offer = #offer{name = ocs:generate_identity(),
 			price = [Price], specification = 4},
 	{ok, #offer{name = OfferId}} = ocs:add_offer(Offer),
-	{ok, #product{id = ProdRef}} = ocs:add_product(OfferId, [], []),
 	receive
 		Input1 ->
-			{struct, ProductEvent} = mochijson:decode(Input1),
+			{struct, OfferEvent} = mochijson:decode(Input1),
+			{_, "ProductOfferingCreationNotification"}
+					= lists:keyfind("eventType", 1, OfferEvent)
+	end,
+	{ok, #product{id = ProdRef}} = ocs:add_product(OfferId, [], []),
+	receive
+		Input2 ->
+			{struct, ProductEvent} = mochijson:decode(Input2),
 			{_, "ProductCreationNotification"}
 					= lists:keyfind("eventType", 1, ProductEvent),
 			{_, {struct, ProductList}} = lists:keyfind("event", 1, ProductEvent),
@@ -2660,8 +2666,8 @@ notify_create_bucket(Config) ->
 			end_date = erlang:system_time(?MILLISECOND) + 2592000000},
 	{ok, _, #bucket{}} = ocs:add_bucket(ProdRef, Bucket),
 	Balance = receive
-		Input2 ->
-			{struct, BalanceEvent} = mochijson:decode(Input2),
+		Input3 ->
+			{struct, BalanceEvent} = mochijson:decode(Input3),
 			{_, "BucketBalanceCreationNotification"}
 					= lists:keyfind("eventType", 1, BalanceEvent),
 			{_, {struct, BalanceList}} = lists:keyfind("event", 1, BalanceEvent),
@@ -2694,10 +2700,16 @@ notify_delete_bucket(Config) ->
 	P1 = #price{name = ocs:generate_identity(), type = usage, units = octets,
 			size = PackageSize, amount = PackagePrice},
 	OfferId = add_offer([P1], 4),
-	{ok, #product{id = ProdRef}} = ocs:add_product(OfferId, [], []),
 	receive
 		Input1 ->
-			{struct, ProductEvent} = mochijson:decode(Input1),
+			{struct, OfferEvent} = mochijson:decode(Input1),
+			{_, "ProductOfferingCreationNotification"}
+					= lists:keyfind("eventType", 1, OfferEvent)
+	end,
+	{ok, #product{id = ProdRef}} = ocs:add_product(OfferId, [], []),
+	receive
+		Input2 ->
+			{struct, ProductEvent} = mochijson:decode(Input2),
 			{_, {struct, ProductList}} = lists:keyfind("event", 1, ProductEvent),
 			{_, ProdRef} = lists:keyfind("id", 1, ProductList)
 	end,
@@ -2738,18 +2750,24 @@ notify_rating_deleted_bucket(Config) ->
 	P1 = #price{name = ocs:generate_identity(), type = usage, units = octets,
 			size = PackageSize, amount = PackagePrice},
 	OfferId = add_offer([P1], 4),
-	{ok, #product{id = ProdRef}} = ocs:add_product(OfferId, [], []),
 	receive
 		Input1 ->
-			{struct, ProductEvent} = mochijson:decode(Input1),
+			{struct, OfferEvent} = mochijson:decode(Input1),
+			{_, "ProductOfferingCreationNotification"}
+					= lists:keyfind("eventType", 1, OfferEvent)
+	end,
+	{ok, #product{id = ProdRef}} = ocs:add_product(OfferId, [], []),
+	receive
+		Input2 ->
+			{struct, ProductEvent} = mochijson:decode(Input2),
 			{_, {struct, ProductList}} = lists:keyfind("event", 1, ProductEvent),
 			{_, ProdRef} = lists:keyfind("id", 1, ProductList)
 	end,
 	{ok, #service{name = ServiceId}} = ocs:add_service(ocs:generate_identity(),
 			ocs:generate_password(), ProdRef, []),
 	receive
-		Input2 ->
-			{struct, ServiceEvent} = mochijson:decode(Input2),
+		Input3 ->
+			{struct, ServiceEvent} = mochijson:decode(Input3),
 			{_, {struct, ServiceList}} = lists:keyfind("event", 1, ServiceEvent),
 			ListServiceId = binary_to_list(ServiceId),
 			{_, ListServiceId} = lists:keyfind("id", 1, ServiceList)
@@ -2759,8 +2777,8 @@ notify_rating_deleted_bucket(Config) ->
 			end_date = erlang:system_time(?MILLISECOND) - 2592000000},
 	{ok, _, #bucket{id = BId}} = ocs:add_bucket(ProdRef, Bucket),
 	receive
-		Input3 ->
-			{struct, BalanceEvent} = mochijson:decode(Input3),
+		Input4 ->
+			{struct, BalanceEvent} = mochijson:decode(Input4),
 			{_, {struct, BalanceList}} = lists:keyfind("event", 1, BalanceEvent),
 			{_, BId} = lists:keyfind("id", 1, BalanceList)
 	end,
@@ -2771,8 +2789,8 @@ notify_rating_deleted_bucket(Config) ->
 			undefined, ServiceId, Timestamp, undefined, undefined, initial,
 			[], [{octets, PackageSize}], SessionId),
 	DeletedBalance = receive
-		Input4 ->
-			{struct, BalDelEvent} = mochijson:decode(Input4),
+		Input5 ->
+			{struct, BalDelEvent} = mochijson:decode(Input5),
 			{_, "BucketBalanceDeletionEvent"}
 					= lists:keyfind("eventType", 1, BalDelEvent),
 			{_, {struct, DeletedBalList}} = lists:keyfind("event", 1, BalDelEvent),
@@ -2805,18 +2823,24 @@ notify_accumulated_balance(Config) ->
 	P1 = #price{name = ocs:generate_identity(), type = usage, units = octets,
 			size = PackageSize, amount = PackagePrice},
 	OfferId = add_offer([P1], 4),
-	{ok, #product{id = ProdRef}} = ocs:add_product(OfferId, [], []),
 	receive
 		Input1 ->
-			{struct, ProductEvent} = mochijson:decode(Input1),
+			{struct, OfferEvent} = mochijson:decode(Input1),
+			{_, "ProductOfferingCreationNotification"}
+					= lists:keyfind("eventType", 1, OfferEvent)
+	end,
+	{ok, #product{id = ProdRef}} = ocs:add_product(OfferId, [], []),
+	receive
+		Input2 ->
+			{struct, ProductEvent} = mochijson:decode(Input2),
 			{_, {struct, ProductList}} = lists:keyfind("event", 1, ProductEvent),
 			{_, ProdRef} = lists:keyfind("id", 1, ProductList)
 	end,
 	{ok, #service{name = ServiceId}} = ocs:add_service(ocs:generate_identity(),
 			ocs:generate_password(), ProdRef, []),
 	receive
-		Input2 ->
-			{struct, ServiceEvent} = mochijson:decode(Input2),
+		Input3 ->
+			{struct, ServiceEvent} = mochijson:decode(Input3),
 			{_, {struct, ServiceList}} = lists:keyfind("event", 1, ServiceEvent),
 			ListServiceId = binary_to_list(ServiceId),
 			{_, ListServiceId} = lists:keyfind("id", 1, ServiceList)
@@ -2824,24 +2848,24 @@ notify_accumulated_balance(Config) ->
 	RA1 = 50000000,
 	BId1 = add_bucket(ProdRef, cents, RA1),
 	receive
-		Input3 ->
-			{struct, BalanceEvent1} = mochijson:decode(Input3),
+		Input4 ->
+			{struct, BalanceEvent1} = mochijson:decode(Input4),
 			{_, {struct, BalanceList1}} = lists:keyfind("event", 1, BalanceEvent1),
 			{_, BId1} = lists:keyfind("id", 1, BalanceList1)
 	end,
 	RA2 = 500000000,
 	BId2 = add_bucket(ProdRef, octets, RA2),
 	receive
-		Input4 ->
-			{struct, BalanceEvent2} = mochijson:decode(Input4),
+		Input5 ->
+			{struct, BalanceEvent2} = mochijson:decode(Input5),
 			{_, {struct, BalanceList2}} = lists:keyfind("event", 1, BalanceEvent2),
 			{_, BId2} = lists:keyfind("id", 1, BalanceList2)
 	end,
 	RA3 = 100000000,
 	BId3 = add_bucket(ProdRef, cents, RA3),
 	receive
-		Input5 ->
-			{struct, BalanceEvent3} = mochijson:decode(Input5),
+		Input6 ->
+			{struct, BalanceEvent3} = mochijson:decode(Input6),
 			{_, {struct, BalanceList3}} = lists:keyfind("event", 1, BalanceEvent3),
 			{_, BId3} = lists:keyfind("id", 1, BalanceList3)
 	end,
@@ -2852,8 +2876,8 @@ notify_accumulated_balance(Config) ->
 			undefined, ServiceId, Timestamp, undefined, undefined, initial,
 			[], [{octets, PackageSize}], SessionId),
 	AccBalanceStructs = receive
-		Input6 ->
-			{struct, AccBalanceEvent} = mochijson:decode(Input6),
+		Input7 ->
+			{struct, AccBalanceEvent} = mochijson:decode(Input7),
 			{_, "AccumulatedBalanceCreationNotification"}
 					= lists:keyfind("eventType", 1, AccBalanceEvent),
 			{_, {array, AccStructList}}
@@ -2891,10 +2915,16 @@ notify_accumulated_threshold(Config) ->
 	P1 = #price{name = ocs:generate_identity(), type = usage, units = octets,
 			size = PackageSize, amount = PackagePrice},
 	OfferId = add_offer([P1], 4),
-	{ok, #product{id = ProdRef}} = ocs:add_product(OfferId, [], []),
 	receive
 		Input1 ->
-			{struct, ProductEvent} = mochijson:decode(Input1),
+			{struct, OfferEvent} = mochijson:decode(Input1),
+			{_, "ProductOfferingCreationNotification"}
+					= lists:keyfind("eventType", 1, OfferEvent)
+	end,
+	{ok, #product{id = ProdRef}} = ocs:add_product(OfferId, [], []),
+	receive
+		Input2 ->
+			{struct, ProductEvent} = mochijson:decode(Input2),
 			{_, {struct, ProductList}} = lists:keyfind("event", 1, ProductEvent),
 			{_, ProdRef} = lists:keyfind("id", 1, ProductList)
 	end,
@@ -3010,10 +3040,16 @@ notify_create_product(Config) ->
 	Offer = #offer{name = ocs:generate_identity(),
 			price = [Price], specification = 4},
 	{ok, #offer{name = OfferId}} = ocs:add_offer(Offer),
+	receive
+		Input1 ->
+			{struct, OfferEvent} = mochijson:decode(Input1),
+			{_, "ProductOfferingCreationNotification"}
+					= lists:keyfind("eventType", 1, OfferEvent)
+	end,
 	{ok, #product{id = ProductId}} = ocs:add_product(OfferId, [], []),
 	Product = receive
-		Input ->
-			{struct, ProductEvent} = mochijson:decode(Input),
+		Input2 ->
+			{struct, ProductEvent} = mochijson:decode(Input2),
 			{_, "ProductCreationNotification"}
 					= lists:keyfind("eventType", 1, ProductEvent),
 			{_, {struct, ProductList}} = lists:keyfind("event", 1, ProductEvent),
@@ -3045,17 +3081,23 @@ notify_delete_product(Config) ->
 	P1 = #price{name = ocs:generate_identity(), type = usage, units = octets,
 			size = PackageSize, amount = PackagePrice},
 	OfferId = add_offer([P1], 4),
-	{ok, #product{id = ProdRef}} = ocs:add_product(OfferId, [], []),
 	receive
 		Input1 ->
-			{struct, ProductEvent} = mochijson:decode(Input1),
+			{struct, OfferEvent} = mochijson:decode(Input1),
+			{_, "ProductOfferingCreationNotification"}
+					= lists:keyfind("eventType", 1, OfferEvent)
+	end,
+	{ok, #product{id = ProdRef}} = ocs:add_product(OfferId, [], []),
+	receive
+		Input2 ->
+			{struct, ProductEvent} = mochijson:decode(Input2),
 			{_, {struct, ProductList}} = lists:keyfind("event", 1, ProductEvent),
 			{_, ProdRef} = lists:keyfind("id", 1, ProductList)
 	end,
 	ok = ocs:delete_product(ProdRef),
 	ProductStuct2 = receive
-		Input4 ->
-			{struct, ProductDelEvent} = mochijson:decode(Input4),
+		Input3 ->
+			{struct, ProductDelEvent} = mochijson:decode(Input3),
 			{_, "ProductRemoveNotification"}
 					= lists:keyfind("eventType", 1, ProductDelEvent),
 			{_, ProductStuct1}
@@ -3319,12 +3361,18 @@ notify_delete_offer(Config) ->
 	P1 = #price{name = ocs:generate_identity(), type = usage, units = octets,
 			size = 1000, amount = 100},
 	OfferId = add_offer([P1], 4),
+	receive
+		Input1 ->
+			{struct, OfferEvent} = mochijson:decode(Input1),
+			{_, "ProductOfferingCreationNotification"}
+					= lists:keyfind("eventType", 1, OfferEvent)
+	end,
 	ok = ocs:delete_offer(OfferId),
 	receive
-		Input4 ->
-			{struct, BalDelEvent} = mochijson:decode(Input4),
+		Input2 ->
+			{struct, OfferDelEvent} = mochijson:decode(Input2),
 			{_, "ProductOfferingRemoveNotification"}
-					= lists:keyfind("eventType", 1, BalDelEvent)
+					= lists:keyfind("eventType", 1, OfferDelEvent)
 	end.
 
 post_hub_inventory() ->
@@ -3396,14 +3444,17 @@ notify_product_charge(Config) ->
 	Price = #price{name = ocs:generate_identity(), start_date = SD,
 			type = recurring, period = monthly,
 			amount = Amount, alteration = Alteration},
-	OfferId = ocs:generate_identity(),
-	Offer = #offer{name = OfferId, start_date = SD,
-			status = active, price = [Price]},
-	{ok, #offer{}} = ocs:add_offer(Offer),
-	{ok, #product{id = ProdId} = P} = ocs:add_product(OfferId, []),
+	OfferId = add_offer([Price], 4),
 	receive
 		Input1 ->
-			{struct, ProductEvent} = mochijson:decode(Input1),
+			{struct, OfferEvent} = mochijson:decode(Input1),
+			{_, "ProductOfferingCreationNotification"}
+					= lists:keyfind("eventType", 1, OfferEvent)
+	end,
+	{ok, #product{id = ProdId} = P} = ocs:add_product(OfferId, []),
+	receive
+		Input2 ->
+			{struct, ProductEvent} = mochijson:decode(Input2),
 			{_, "ProductCreationNotification"}
 					= lists:keyfind("eventType", 1, ProductEvent),
 			{_, {struct, ProductList}} = lists:keyfind("event", 1, ProductEvent),
@@ -3417,8 +3468,8 @@ notify_product_charge(Config) ->
 			end_date = erlang:system_time(?MILLISECOND) + 2592000000},
 	{ok, _, #bucket{id = BId1}} = ocs:add_bucket(ProdId, B1),
 	receive
-		Input2 ->
-			{struct, BalanceEvent1} = mochijson:decode(Input2),
+		Input3 ->
+			{struct, BalanceEvent1} = mochijson:decode(Input3),
 			{_, "BucketBalanceCreationNotification"}
 					= lists:keyfind("eventType", 1, BalanceEvent1),
 			{_, {struct, BalanceList1}} = lists:keyfind("event", 1, BalanceEvent1),
@@ -3429,8 +3480,8 @@ notify_product_charge(Config) ->
 			end_date = erlang:system_time(?MILLISECOND) + 2592000000},
 	{ok, _, #bucket{id = BId2}} = ocs:add_bucket(ProdId, B2),
 	receive
-		Input3 ->
-			{struct, BalanceEvent2} = mochijson:decode(Input3),
+		Input4 ->
+			{struct, BalanceEvent2} = mochijson:decode(Input4),
 			{_, "BucketBalanceCreationNotification"}
 					= lists:keyfind("eventType", 1, BalanceEvent2),
 			{_, {struct, BalanceList2}} = lists:keyfind("event", 1, BalanceEvent2),
