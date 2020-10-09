@@ -40,7 +40,7 @@
 -define(specPath, "/catalogManagement/v2/resourceSpecification/").
 -define(candidatePath, "/catalogManagement/v2/resourceCandidate/").
 -define(catalogPath, "/resourceCatalogManagement/v2/resourceCatalog/").
--define(categoryPath, "/catalogManagement/v2/resourceCategory/").
+-define(categoryPath, "/resourceCatalogManagement/v2/resourceCategory/").
 -define(inventoryPath, "/resourceInventoryManagement/v1/logicalResource/").
 -define(plaPath, "/resourceInventoryManagement/v2/pla/").
 -define(plaSpecPath, "/resourceCatalogManagement/v2/plaSpecification/").
@@ -92,7 +92,8 @@ get_resource_specs(_Query) ->
 	when
 		ID :: string(),
 		Result :: {struct, [tuple()]} | {error, 404}.
-%% @doc Get Resource Category by ID.
+%% @doc Respond to `GET /resourceCatalogManagement/v2/resourceCategory/{id}'.
+%% 	Retrieve a Resource category by Id.
 get_resource_category("1") ->
 	ResourceCatagory = tariff_table_category(),
 	Body = mochijson:encode(ResourceCatagory),
@@ -107,7 +108,7 @@ get_resource_category(_) ->
 	Headers	:: [tuple()],
 	Body		:: iolist(),
 	Status	:: 400 | 404 | 500.
-%% @doc Respond to `GET /catalogManegment/v2/resourceCategory'.
+%% @doc Respond to `GET /resourceCatalogManagement/v2/resourceCategory'.
 %% 	Retrieve all Resource categories.
 get_resource_categories([] = _Query) ->
 	Headers = [{content_type, "application/json"}],
