@@ -93,7 +93,8 @@ all() ->
 	delete_offer, add_user, get_user, delete_user, add_bucket,
 	find_bucket, delete_bucket, get_buckets, positive_adjustment,
 	negative_adjustment_high, negative_adjustment_equal, negative_adjustment_low,
-	add_product, find_product, delete_product, query_product, add_offer_event].
+	add_product, find_product, delete_product, query_product, add_offer_event,
+	gtt_insert_event].
 
 %%---------------------------------------------------------------------
 %%  Test cases
@@ -674,6 +675,21 @@ add_offer_event(_Config) ->
 	receive
 		{create_offer, Offer, product} ->
 		OfferName = Offer#offer.name
+	end.
+
+gtt_insert_event() ->
+	[{userdata, [{doc, "Event received on adding offer"}]}].
+
+gtt_insert_event(_Config) ->
+	ok = gen_event:add_handler(ocs_event, test_event, [self()]),
+	[Table | _] = ocs_gtt:list(),
+	Prefix = "1519240",
+	Description = "Bell Mobility",
+	Amount = 10000,
+	ocs_gtt:insert(Table, Prefix, {Description, Amount}),
+	receive
+		{insert_gtt, #gtt{num = Prefix, value = Value}, resource} ->
+		{Description, Amount, _} = Value
 	end.
 
 %%---------------------------------------------------------------------
