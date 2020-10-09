@@ -37,7 +37,7 @@
 -define(MILLISECOND, milli_seconds).
 %-define(MILLISECOND, millisecond).
 
--define(specPath, "/catalogManagement/v2/resourceSpecification/").
+-define(specPath, "/resourceCatalogManagement/v2/resourceSpecification/").
 -define(candidatePath, "/resourceCatalogManagement/v2/resourceCandidate/").
 -define(catalogPath, "/resourceCatalogManagement/v2/resourceCatalog/").
 -define(categoryPath, "/resourceCatalogManagement/v2/resourceCategory/").
