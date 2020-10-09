@@ -39,7 +39,7 @@
 
 -define(specPath, "/catalogManagement/v2/resourceSpecification/").
 -define(candidatePath, "/catalogManagement/v2/resourceCandidate/").
--define(catalogPath, "/catalogManagement/v2/resourceCatalog/").
+-define(catalogPath, "/resourceCatalogManagement/v2/resourceCatalog/").
 -define(categoryPath, "/catalogManagement/v2/resourceCategory/").
 -define(inventoryPath, "/resourceInventoryManagement/v1/logicalResource/").
 -define(plaPath, "/resourceInventoryManagement/v2/pla/").
@@ -150,7 +150,8 @@ get_resource_candidates(_Query) ->
 	when
 		ID :: string(),
 		Result :: {struct, [tuple()]} | {error, 404}.
-%% @doc Get Resource Catalog by ID.
+%% @doc Respond to `GET /resourceCatalogManagement/v2/{id}'.
+%%		Get Resource Catalog by ID.
 get_resource_catalog("1") ->
 	ResourceCatalog = tariff_table_catalog(),
 	Body = mochijson:encode(ResourceCatalog),
