@@ -19,7 +19,7 @@
 %%% 	for a REST server in the {@link //ocs. ocs} application.
 %%%
 -module(ocs_rest_res_resource).
--copyright('Copyright (c) 2016 - 2018 SigScale Global Inc.').
+-copyright('Copyright (c) 2016 - 2020 SigScale Global Inc.').
 
 -export([content_types_accepted/0, content_types_provided/0]).
 -export([get_resource_spec/1, get_resource_specs/1]).
@@ -38,7 +38,7 @@
 %-define(MILLISECOND, millisecond).
 
 -define(specPath, "/catalogManagement/v2/resourceSpecification/").
--define(candidatePath, "/catalogManagement/v2/resourceCandidate/").
+-define(candidatePath, "/resourceCatalogManagement/v2/resourceCandidate/").
 -define(catalogPath, "/resourceCatalogManagement/v2/resourceCatalog/").
 -define(categoryPath, "/resourceCatalogManagement/v2/resourceCategory/").
 -define(inventoryPath, "/resourceInventoryManagement/v1/logicalResource/").
@@ -122,7 +122,8 @@ get_resource_categories(_Query) ->
 	when
 		ID :: string(),
 		Result :: {struct, [tuple()]} | {error, 404}.
-%% @doc Get Resource Candidate by ID.
+%% @doc Respond to `GET /resourceCatalogManagement/v2/resourceCandidate/{id}'.
+%%		Get Resource Candidate by ID.
 get_resource_candidate("1") ->
 	ResourceCandidate = tariff_table_candidate(),
 	Body = mochijson:encode(ResourceCandidate),
@@ -151,7 +152,7 @@ get_resource_candidates(_Query) ->
 	when
 		ID :: string(),
 		Result :: {struct, [tuple()]} | {error, 404}.
-%% @doc Respond to `GET /resourceCatalogManagement/v2/{id}'.
+%% @doc Respond to `GET /resourceCatalogManagement/v2/resourceCatalog/{id}'.
 %%		Get Resource Catalog by ID.
 get_resource_catalog("1") ->
 	ResourceCatalog = tariff_table_catalog(),
@@ -167,7 +168,7 @@ get_resource_catalog(_) ->
 	Headers	:: [tuple()],
 	Body		:: iolist(),
 	Status	:: 400 | 404 | 500.
-%% @doc Respond to `GET /resourceCatalogManagement/v2'.
+%% @doc Respond to `GET /resourceCatalogManagement/v2/resourceCatalog'.
 %% 	Retrieve all Resource catalogs.
 get_resource_catalogs([] = _Query) ->
 	Headers = [{content_type, "application/json"}],
