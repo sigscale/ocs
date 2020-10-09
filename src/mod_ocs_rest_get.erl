@@ -203,6 +203,10 @@ do_get(Resource, ModData, ["catalogManagement", "v2", "resourceCatalog", Id], []
 	do_response(ModData, Resource:get_resource_catalog(Id));
 do_get(Resource, ModData, ["catalogManagement", "v2", "resourceCatalog"], Query) ->
 	do_response(ModData, Resource:get_resource_catalogs(Query));
+do_get(Resource, ModData, ["resourceCatalogManagement", "v2", "resourceCatalog", Id], []) ->
+	do_response(ModData, Resource:get_resource_catalog(Id));
+do_get(Resource, ModData, ["resourceCatalogManagement", "v2", "resourceCatalog"], Query) ->
+	do_response(ModData, Resource:get_resource_catalogs(Query));
 do_get(Resource, ModData, ["resourceCatalogManagement", "v2", "resourceSpecification"], Query) ->
 	do_response(ModData, Resource:get_resource_specs(Query));
 do_get(Resource, ModData, ["resourceCatalogManagement", "v2", "plaSpecification"], Query) ->
