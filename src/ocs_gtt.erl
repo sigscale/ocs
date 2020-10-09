@@ -141,6 +141,7 @@ insert(Table, Number, Value) when is_atom(Table), is_list(Number) ->
 	F = fun() -> insert(Table, Number, Value, []) end,
 	case mnesia:transaction(F) of
 		{atomic, {_NumWrites, Gtt}} ->
+			ocs_event:notify(insert_gtt, Gtt, resource),
 			{ok, Gtt};
 		{aborted, Reason} ->
 			exit(Reason)
