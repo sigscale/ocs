@@ -93,7 +93,7 @@ all() ->
 	delete_offer, add_user, get_user, delete_user, add_bucket,
 	find_bucket, delete_bucket, get_buckets, positive_adjustment,
 	negative_adjustment_high, negative_adjustment_equal, negative_adjustment_low,
-	add_product, find_product, delete_product, query_product].
+	add_product, find_product, delete_product, query_product, add_offer_event].
 
 %%---------------------------------------------------------------------
 %%  Test cases
@@ -664,6 +664,17 @@ negative_adjustment_low(_Config) ->
 	3 = length(Buckets),
 	[#bucket{remain_amount = RA}] = [B || #bucket{units = U} = B <- Buckets, U == Units],
 	2000 = RA.
+
+add_offer_event() ->
+	[{userdata, [{doc, "Event received on adding offer"}]}].
+
+add_offer_event(_Config) ->
+	ok = gen_event:add_handler(ocs_event, test_event, [self()]),
+	{ok, OfferName} = ocs_test_lib:add_offer(),
+	receive
+		{create_offer, Offer, product} ->
+		OfferName = Offer#offer.name
+	end.
 
 %%---------------------------------------------------------------------
 %%  Internal functions
