@@ -25,6 +25,7 @@ testmods = ocs_api_SUITE \
 			ocs_snmp_SUITE \
 			peer_tls_transport \
 			diameter_test_client_cb \
+			test_event \
 			ocs_test_lib
 
 check_DATA = .dialyzer_ok .common_test_ok
