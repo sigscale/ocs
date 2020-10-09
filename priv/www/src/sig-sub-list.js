@@ -91,8 +91,8 @@ class subList extends PolymerElement {
 					on-response="_getProductResponse"
 					on-error="_getProductError">
 			</iron-ajax>
-         <paper-toast id="getSubToast">
-         </paper-toast>
+			<paper-toast id="getSubToast">
+			</paper-toast>
 		`;
 	}
 
@@ -219,7 +219,7 @@ class subList extends PolymerElement {
 		};
 		var handleAjaxError = function(error) {
 			serviceList.etag = null;
-			this.$.getSubToast.text = event.detail.xhr.status + event.detail.xhr.statusText;
+			this.$.getSubToast.text = "Error";
 			this.$.getSubToast.open();
 			if(!grid.size) {
 				grid.size = 0;

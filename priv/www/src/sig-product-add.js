@@ -18,6 +18,7 @@ import '@polymer/paper-input/paper-input.js';
 import '@polymer/paper-button/paper-button.js';
 import '@polymer/paper-listbox/paper-listbox.js';
 import '@polymer/paper-item/paper-item.js';
+import '@polymer/paper-toast/paper-toast.js';
 import './style-element.js';
 
 class productAddClass extends PolymerElement {
@@ -112,6 +113,8 @@ class productAddClass extends PolymerElement {
 					on-response="_addProductResponse"
 					on-error="_addProductrror">
 			</iron-ajax>
+			<paper-toast id="getAddProductToast">
+			</paper-toast>
 		`;
 	}
 
@@ -162,9 +165,16 @@ class productAddClass extends PolymerElement {
 	}
 
 	_deleteProductResponse() {
+		this.$.getAddProductToast.text = "Deleted Product";
+		this.$.getAddProductToast.open();
 		this.$.deleteProductModal.close();
 		document.body.querySelector('sig-app').shadowRoot.getElementById('productList').shadowRoot.getElementById('getProductInventory').generateRequest();
 		document.body.querySelector('sig-app').shadowRoot.getElementById('productList').shadowRoot.getElementById('productInventoryGrid').clearCache();
+	}
+
+	_deleteProductrror() {
+		this.$.getAddProductToast.text = "Error";
+		this.$.getAddProductToast.open();
 	}
 
 	_productinvenAddSubmit() {
@@ -191,15 +201,21 @@ class productAddClass extends PolymerElement {
 	}
 
 	_addProductResponse() {
+		this.$.getAddProductToast.text = "Added Product";
+		this.$.getAddProductToast.open();
 		this.$.addProductInvenModal.close();
 		document.body.querySelector('sig-app').shadowRoot.getElementById('productList').shadowRoot.getElementById('productInventoryGrid').clearCache();
+	}
+
+	_addProductrror() {
+		this.$.getAddProductToast.text = "Error";
+		this.$.getAddProductToast.open();
 	}
 
 	cancelPro() {
 		this.proAdd = null;
 		this.proService = null;
 	}
-
 }
 
 window.customElements.define('sig-product-add', productAddClass);

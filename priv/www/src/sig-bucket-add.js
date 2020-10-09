@@ -18,6 +18,7 @@ import '@polymer/paper-input/paper-input.js';
 import '@polymer/paper-button/paper-button.js';
 import '@polymer/paper-listbox/paper-listbox.js';
 import '@polymer/paper-item/paper-item.js'
+import '@polymer/paper-toast/paper-toast.js';
 import './style-element.js';
 
 class offerAdd extends PolymerElement {
@@ -128,6 +129,8 @@ class offerAdd extends PolymerElement {
 					on-response="_addBucketResponse"
 					on-error="_addBucketError">
 			</iron-ajax>
+			<paper-toast id="getAddBucketToast">
+			</paper-toast>
 		`;
 	}
 
@@ -158,6 +161,11 @@ class offerAdd extends PolymerElement {
 		var deleteAjax = this.$.deleteBucketAjax;
 		deleteAjax.url = "/balanceManagement/v1/bucket/" + delBucket;
 		deleteAjax.generateRequest();
+	}
+
+	_deleteBucketError(event) {
+		this.$.getAddBucketToast.text = "Error";
+		this.$.getAddBucketToast.open();
 	}
 
 	_deleteBucketResponse(event) {
@@ -240,6 +248,11 @@ class offerAdd extends PolymerElement {
 	_addBucketResponse(event) {
 		this.$.addBucketModal.close();
 		document.body.querySelector('sig-app').shadowRoot.getElementById('bucketList').shadowRoot.getElementById('balanceBucketGrid').clearCache();
+	}
+
+	_addBucketError(event) {
+		this.$.getAddBucketToast.text = "Error";
+		this.$.getAddBucketToast.open();
 	}
 }
 

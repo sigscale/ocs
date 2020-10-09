@@ -17,6 +17,7 @@ import '@polymer/paper-input/paper-input.js';
 import '@polymer/paper-button/paper-button.js';
 import '@polymer/paper-dropdown-menu/paper-dropdown-menu.js';
 import '@polymer/paper-listbox/paper-listbox.js';
+import '@polymer/paper-toast/paper-toast.js';
 import '@polymer/paper-item/paper-item.js'
 import './style-element.js';
 
@@ -93,6 +94,8 @@ class userUpdate extends PolymerElement {
 					on-response="_deleteUserResponse"
 					on-error="_updateUserError">
 			</iron-ajax>
+			<paper-toast id="getUpdateUserToast">
+			</paper-toast>
 		`;
 	}
 
@@ -171,6 +174,8 @@ class userUpdate extends PolymerElement {
 	}
 
 	_updateUserResponse() {
+		this.$.getUpdateUserToast.text = "Success";
+		this.$.getUpdateUserToast.open();
 		this.$.updateUserModal.close();
 		document.body.querySelector('sig-app').shadowRoot.getElementById('userList').shadowRoot.getElementById('userGrid').clearCache();
 	}
@@ -183,6 +188,8 @@ class userUpdate extends PolymerElement {
 	}
 
 	_deleteUserResponse() {
+		this.$.getUpdateUserToast.text = "Success";
+		this.$.getUpdateUserToast.open();
 		this.$.updateUserModal.close();
 		document.body.querySelector('sig-app').shadowRoot.getElementById('userList').shadowRoot.getElementById('userGrid').clearCache();
 	}

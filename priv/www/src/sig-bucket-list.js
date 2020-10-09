@@ -94,7 +94,9 @@ class bucketList extends PolymerElement {
 					url="/balanceManagement/v1/bucket/"
 					rejectWithRequest>
 			</iron-ajax>
-		`;	
+			<paper-toast id="getBucketToast">
+			</paper-toast>
+		`;
 	}
 
 	static get properties() {
@@ -208,9 +210,8 @@ class bucketList extends PolymerElement {
 		};
 		var handleAjaxError = function(error) {
 			bucketList.etag = null;
-			var toast = document.getElementById('userToastError');
-			toast.text = error;
-			toast.open();
+			this.$.getBucketToast.text = "Error";
+			this.$.getBucketToast.open();
 			if(!grid.size) {
 				grid.size = 0;
 			}

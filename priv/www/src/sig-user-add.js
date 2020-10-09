@@ -18,6 +18,7 @@ import '@polymer/paper-input/paper-input.js';
 import '@polymer/paper-button/paper-button.js';
 import '@polymer/paper-listbox/paper-listbox.js';
 import '@polymer/paper-item/paper-item.js'
+import '@polymer/paper-toast/paper-toast.js';
 import './style-element.js';
 
 class userAdd extends PolymerElement {
@@ -78,6 +79,8 @@ class userAdd extends PolymerElement {
 				loading="{{loading}}"
 				on-response="_addUserResponse">
 			</iron-ajax>
+			<paper-toast id="getAddUserToast">
+			</paper-toast>
 		`;
 	}
 
@@ -135,6 +138,8 @@ class userAdd extends PolymerElement {
 	}
 
 	_addUserResponse() {
+      this.$.getAddUserToast.text = "Success";
+      this.$.getAddUserToast.open();
 		this.$.addUserModal.close();
 		this.userName = null;
 		this.passWord = null;

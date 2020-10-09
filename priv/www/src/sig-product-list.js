@@ -117,6 +117,8 @@ class productList extends PolymerElement {
 				url="/productInventoryManagement/v2/product/"
 				rejectWithRequest>
 			</iron-ajax>
+			<paper-toast id="getProductToast">
+			</paper-toast>
 		`;
 	}
 
@@ -261,9 +263,8 @@ class productList extends PolymerElement {
 		}
 		var handleAjaxError = function(error) {
 			productList.etag = null;
-			var toast = document.body.querySelector('sig-app').shadowRoot.getElementById('restError');
-			toast.text = error;
-			toast.open();
+			this.$.getProductToast.text = "Error";
+			this.$.getProductToast.open();
 			if(!grid.size) {
 				grid.size = 0;
 			}

@@ -148,6 +148,8 @@ class balanceList extends PolymerElement {
 				url="/ocs/v1/log/balance"
 				rejectWithRequest>
 			</iron-ajax>
+			<paper-toast id="getBalanceToast">
+			</paper-toast>
 		`;
 	}
 
@@ -245,8 +247,8 @@ class balanceList extends PolymerElement {
 		}
 		var handleAjaxError = function(event) {
 			balanceList.etag = null;
-			this.$.balanceErrorToast.text = event.detail.request.xhr.statusText;
-			this.$.balanceErrorToast.open();
+			this.$.getBalanceToast.text = "Error";
+			this.$.getBalanceToast.open();
 			if(!grid.size) {
 				grid.size = 0;
 			}

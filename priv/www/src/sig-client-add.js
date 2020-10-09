@@ -19,6 +19,7 @@ import '@polymer/paper-button/paper-button.js';
 import '@polymer/paper-listbox/paper-listbox.js';
 import '@polymer/paper-item/paper-item.js'
 import '@polymer/paper-checkbox/paper-checkbox.js'
+import '@polymer/paper-toast/paper-toast.js';
 import './style-element.js';
 
 class clientAdd extends PolymerElement {
@@ -132,6 +133,8 @@ class clientAdd extends PolymerElement {
 					on-response="_addClientResponse"
 					on-error="_addClientError">
 			</iron-ajax>
+			<paper-toast id="getAddClientToast">
+			</paper-toast>
 		`;
 	}
 
@@ -200,6 +203,8 @@ class clientAdd extends PolymerElement {
 	}
 
 	_addClientResponse() {
+		this.$.getAddClientToast.text = "Client added successfully";
+		this.$.getAddClientToast.open();
 		this.$.clientAddModal.close();
 		if ((this.$.addClientAjax.body.secret == undefined)
 					&& this.$.addClientAjax.lastResponse.secret) {
@@ -217,8 +222,8 @@ class clientAdd extends PolymerElement {
 	}
 
 	_addClientError(event) {
-		this.$.addClientToastError.text = event.detail.request.xhr.statusText;
-		this.$.addClientToastError.open();
+		this.$.getAddClientToast.text = "Error";
+		this.$.getAddClientToast.open();
 	}
 }
 

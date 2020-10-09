@@ -161,17 +161,12 @@ class accountingList extends PolymerElement {
 					<template>[[item.type]]</template>
 				</vaadin-grid-column>
 			</vaadin-grid>
-			<paper-toast id="accountingErrorToast" duration="0">
-				<paper-button
-						class="yellow-button"
-						onclick="accountingErrorToast.toggle()">
-					Close
-				</paper-button>
-			</paper-toast>
 			<iron-ajax id="getAccounting"
 					url="/usageManagement/v1/usage"
 					rejectWithRequest>
 			</iron-ajax>
+			<paper-toast id="getAccountingToast">
+			</paper-toast>
 		`;
 	}
 
@@ -365,9 +360,8 @@ class accountingList extends PolymerElement {
 	}
 	var handleAjaxError = function(error) {
 		accountingList.etag = null;
-		var toast = document.body.querySelector('sig-app').shadowRoot.getElementById('restError');
-		toast.text = error;
-		toast.open();
+		this.$.getAccountingToast.text = "Error";
+		this.$.getAccountingToast.open();
 		if(!grid.size) {
 			grid.size = 0;
 		}

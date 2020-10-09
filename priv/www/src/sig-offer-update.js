@@ -796,13 +796,13 @@ class offerUpdate extends PolymerElement {
 				this.offers[ind].checked = true;
 			}
 		}
-      this.$.getUpdateOfferToast.text = "success";
-      this.$.getUpdateOfferToast.open();
+		this.$.getUpdateOfferToast.text = "success";
+		this.$.getUpdateOfferToast.open();
 	}
 
 	_getProductsError(event) {
-      this.$.getUpdateOfferToast.text = event.detail.xhr.status + event.detail.xhr.statusText;
-      this.$.getUpdateOfferToast.open();
+		this.$.getUpdateOfferToast.text = "Error";
+		this.$.getUpdateOfferToast.open();
 	}
 
 	_updateOnClickOfferChars() {
@@ -1140,13 +1140,13 @@ class offerUpdate extends PolymerElement {
 				ell.checked = false;
 			}
 		});
-      this.$.getUpdateOfferToast.text = "Added update offer Successfully";
-      this.$.getUpdateOfferToast.open();
+		this.$.getUpdateOfferToast.text = "Added update offer Successfully";
+		this.$.getUpdateOfferToast.open();
 	}
 
 	_updateProductOfferError(event) {
-      this.$.getUpdateOfferToast.text = event.detail.xhr.status + event.detail.xhr.statusText;
-      this.$.getUpdateOfferToast.open();
+		this.$.getUpdateOfferToast.text = "Error";
+		this.$.getUpdateOfferToast.open();
 	}
 
 	updateProductPrice(event) {
@@ -1483,13 +1483,13 @@ class offerUpdate extends PolymerElement {
 	_updateProductPriceResponse(event) {
 		this.$.updateProductModal.close();
 		document.body.querySelector('sig-app').shadowRoot.getElementById('offerList').shadowRoot.getElementById('offerGrid').clearCache();
-      this.$.getUpdateOfferToast.text = "Added product price successfully";
-      this.$.getUpdateOfferToast.open();
+		this.$.getUpdateOfferToast.text = "Added product price successfully";
+		this.$.getUpdateOfferToast.open();
 	}
 
 	_updateProductPriceError(event) {
-      this.$.getUpdateOfferToast.text = event.detail.xhr.status + event.detail.xhr.statusText;
-      this.$.getUpdateOfferToast.open();
+		this.$.getUpdateOfferToast.text = "Error";
+		this.$.getUpdateOfferToast.open();
 	}
 
 	updateProductAlteration(event) {
@@ -1616,13 +1616,13 @@ class offerUpdate extends PolymerElement {
 	_updateProductAlterationResponse(event) {
 		this.$.updateProductModal.close();
 		document.body.querySelector('sig-app').shadowRoot.getElementById('offerList').shadowRoot.getElementById('offerGrid').clearCache();
-      this.$.getUpdateOfferToast.text = "Added product alteration successfully";
-      this.$.getUpdateOfferToast.open();
+		this.$.getUpdateOfferToast.text = "Added product alteration successfully";
+		this.$.getUpdateOfferToast.open();
 	}
 
 	_updateProductAlterationError(event) {
-      this.$.getUpdateOfferToast.text = event.detail.xhr.status + event.detail.xhr.statusText;
-      this.$.getUpdateOfferToast.open();
+		this.$.getUpdateOfferToast.text = "Error";
+		this.$.getUpdateOfferToast.open();
 	}
 
 	checkPattern() {
@@ -1910,8 +1910,8 @@ class offerUpdate extends PolymerElement {
 			this.$.updateCheckOut.checked = false;
 			this.priceUpdateAlt = null;
 		} else {
-      	this.$.getUpdateOfferToast.text = "validation failed";
-      	this.$.getUpdateOfferToast.open();
+			this.$.getUpdateOfferToast.text = "validation failed";
+			this.$.getUpdateOfferToast.open();
 		}
 	}
 
@@ -1987,8 +1987,8 @@ class offerUpdate extends PolymerElement {
 			this.altUpdateCurr = null;
 			this.$.updateAltAmount.value = null;
 		} else {
-      	this.$.getUpdateOfferToast.text = "validation failed";
-      	this.$.getUpdateOfferToast.open();
+			this.$.getUpdateOfferToast.text = "validation failed";
+			this.$.getUpdateOfferToast.open();
 		}
 	}
 
@@ -2013,13 +2013,13 @@ class offerUpdate extends PolymerElement {
 	_deleteProductResponse(event) {
 		this.$.updateProductModal.close();
 		document.body.querySelector('sig-app').shadowRoot.getElementById('offerList').shadowRoot.getElementById('offerGrid').clearCache();
-      this.$.getUpdateOfferToast.text = "delete product successfully"; 
-      this.$.getUpdateOfferToast.open();
+		this.$.getUpdateOfferToast.text = "delete product successfully"; 
+		this.$.getUpdateOfferToast.open();
 	}
 
 	_deleteProductError(event) {
-      this.$.getUpdateOfferToast.text = event.detail.xhr.status + event.detail.xhr.statusText; 
-      this.$.getUpdateOfferToast.open();
+		this.$.getUpdateOfferToast.text = "Error"; 
+		this.$.getUpdateOfferToast.open();
 	}
 
 	_onLoadingChanged(event) {

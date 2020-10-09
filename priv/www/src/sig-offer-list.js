@@ -301,7 +301,6 @@ class offerList extends PolymerElement {
 					vaadinItems[index] = newRecord;
 				}
 				callback(vaadinItems);
-console.log(request);
 			} else {
 				grid.size = 0;
 				callback([]);
@@ -309,7 +308,7 @@ console.log(request);
 		};
 		var handleAjaxError = function(error) {
 			offerList.etag = null;
-			this.$.getOfferToast.text = event.detail.request.xhr.statusText;
+			this.$.getOfferToast.text = "Error";
 			this.$.getOfferToast.open();
 			if(!grid.size) {
 				grid.size = 0;
@@ -359,7 +358,7 @@ console.log(request);
 		this.shadowRoot.getElementById('offerGrid').size = 0;
 		cbProduct([]);
 		if (!lastItem && event.detail.request.xhr.status != 416) {
-			this.$.getOfferToast.text = event.detail.request.xhr.statusText;
+			this.$.getOfferToast.text = "Error";
 			this.$.getOfferToast.open();
 		}
 	}

@@ -140,7 +140,7 @@ class prefixAdd extends PolymerElement {
 	}
 
 	_addTableError(event) {
-		this.$.getAddPrefixToast.text = event.detail.xhr.status + event.detail.xhr.statusText;
+		this.$.getAddPrefixToast.text = "Error";
 		this.$.getAddPrefixToast.open();
 	}
 

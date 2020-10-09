@@ -12,6 +12,7 @@ import { PolymerElement, html } from '@polymer/polymer/polymer-element.js';
 import '@polymer/iron-ajax/iron-ajax.js';
 import '@polymer/paper-fab/paper-fab.js';
 import '@polymer/iron-icons/iron-icons.js';
+import '@polymer/paper-toast/paper-toast.js';
 import '@vaadin/vaadin-grid/vaadin-grid.js';
 import '@vaadin/vaadin-grid/vaadin-grid-filter.js';
 import './style-element.js';
@@ -56,6 +57,8 @@ class userList extends PolymerElement {
 				url="/partyManagement/v1/individual"
 				rejectWithRequest>
 			</iron-ajax>
+			<paper-toast id="getUserToast">
+			</paper-toast>
 		`;
 	}
 
@@ -83,7 +86,7 @@ class userList extends PolymerElement {
 		grid.dataProvider = this._getUsers;
 	}
 
-_activeItemChanged(item) {
+	_activeItemChanged(item) {
 		if(item) {
 			this.$.userGrid.selectedItems = item ? [item] : [];
 		} else {
@@ -157,9 +160,8 @@ _activeItemChanged(item) {
 		};
 		var handleAjaxError = function(error) {
 			userList.etag = null;
-			var toast = document.body.querySelector('inventory-management').shadowRoot.getElementById('restError');
-			toast.text = error;
-			toast.open();
+			this.$.getUserToast.text = "Error";
+			this.$.getUserToast.open();
 			callback([]);
 		}
 		if(ajax.loading) {

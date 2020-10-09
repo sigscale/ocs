@@ -357,8 +357,8 @@ class subAdd extends PolymerElement {
 					on-response="_updateSubscriberProductsResponse1"
 					on-error="_updateSubscriberProductsError1">
 			</iron-ajax>
-         <paper-toast id="getAddsubToast">
-         </paper-toast>
+			<paper-toast id="getAddsubToast">
+			</paper-toast>
 		`;
 	}
 	static get properties() {
@@ -541,8 +541,8 @@ class subAdd extends PolymerElement {
 	_addServiceError(event) {
 		this.$.idCheck.checked = false;
 		this.$.idCheckPass.checked = false;
-      this.$.getAddsubToast.text = event.detail.xhr.status + event.detail.xhr.statusText;
-      this.$.getAddsubToast.open();
+		this.$.getAddsubToast.text = "Error";
+		this.$.getAddsubToast.open();
 	}
 
 	_addProductResponse(event) {
@@ -611,15 +611,15 @@ class subAdd extends PolymerElement {
 	}
 
 	_addProductError(event) {
-      this.$.getAddsubToast.text = event.detail.xhr.status + event.detail.xhr.statusText;
-      this.$.getAddsubToast.open();
+		this.$.getAddsubToast.text = "Error";
+		this.$.getAddsubToast.open();
 		var ajaxBucketRes = this.$.addBucketAjax;
 	}
 
 	_addBucketResponse(event) {
 		this.$.addServiceModal.close();
-      this.$.getAddsubToast.text = "Bucket added successfully ";
-      this.$.getAddsubToast.open();
+		this.$.getAddsubToast.text = "Bucket added successfully ";
+		this.$.getAddsubToast.open();
 		document.body.querySelector('sig-app').shadowRoot.getElementById('serviceList').shadowRoot.getElementById('subscriberGrid').clearCache();
 	}
 

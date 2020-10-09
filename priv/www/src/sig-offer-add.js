@@ -782,7 +782,7 @@ class offerAdd extends PolymerElement {
 	}
 
 	_getProductsError(event) {
-		this.$.getAddOfferToast.text = event.detail.xhr.status + event.detail.xhr.statusText;
+		this.$.getAddOfferToast.text = "Error";
 		this.$.getAddOfferToast.open();
 	}
 
@@ -1379,7 +1379,7 @@ class offerAdd extends PolymerElement {
 			ajax.generateRequest();
 			this.$.addBundle.hide();
 		} else {
-			this.$.getAddOfferToast.text = event.detail.xhr.status + event.detail.xhr.statusText;
+			this.$.getAddOfferToast.text = "Error";
 			this.$.getAddOfferToast.open();
 		}
 	}
@@ -1623,7 +1623,7 @@ class offerAdd extends PolymerElement {
 			this.$.getAddOfferToast.text = "Added price";
 			this.$.getAddOfferToast.open();
 		} else {
-			this.$.getAddOfferToast.text = event.detail.xhr.status + event.detail.xhr.statusText;
+			this.$.getAddOfferToast.text = "Error";
 			this.$.getAddOfferToast.open();
 		}
 	}
@@ -1756,7 +1756,7 @@ class offerAdd extends PolymerElement {
 			this.$.getAddOfferToast.text = "Added Alteration";
 			this.$.getAddOfferToast.open();
 		} else {
-			this.$.getAddOfferToast.text = event.detail.xhr.status + event.detail.xhr.statusText;
+			this.$.getAddOfferToast.text = "Error";
 			this.$.getAddOfferToast.open();
 		}
 	}
@@ -1774,7 +1774,7 @@ class offerAdd extends PolymerElement {
 	}
 
 	_addProductError(event) {
-		this.$.getAddOfferToast.text = event.detail.xhr.status + event.detail.xhr.statusText;
+		this.$.getAddOfferToast.text = "Error";
 		this.$.getAddOfferToast.open();
 	}
 

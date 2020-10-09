@@ -26,11 +26,11 @@ class tablePreAdd extends PolymerElement {
 				<app-toolbar>
 					<h2>Add Table</h2>
 				</app-toolbar>
-            <paper-progress
-                  indeterminate
-                  class="slow red"
-                  disabled="{{!loading}}">
-            </paper-progress>
+				<paper-progress
+						indeterminate
+						class="slow red"
+						disabled="{{!loading}}">
+				</paper-progress>
 				<paper-input
 						id="addTableName"
 						name="name"
@@ -122,7 +122,7 @@ class tablePreAdd extends PolymerElement {
 			var endDateTime = this.endTableTimePick;
 		}
 		if(endDateTime < startDateTime) {
-			this.$.addTableToastError.text = event.detail.request.xhr.statusText;
+			this.$.addTableToastError.text = "Error";
 			this.$.addTableToastError.open();
 		} else if(startDateTime && endDateTime) {
 			tabName.validFor = {startDateTime, endDateTime};
@@ -153,7 +153,7 @@ class tablePreAdd extends PolymerElement {
 	}
 
 	_addTableError(event) {
-		this.$.addTableToastError.text = event.detail.request.xhr.statusText;
+		this.$.addTableToastError.text = "Error";
 		this.$.addTableToastError.open();
 	}
 

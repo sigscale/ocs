@@ -21,6 +21,7 @@ import '@polymer/paper-item/paper-item.js'
 import '@polymer/paper-checkbox/paper-checkbox.js'
 import '@polymer/paper-tabs/paper-tabs.js';
 import '@polymer/iron-pages/iron-pages.js';
+import '@polymer/paper-toast/paper-toast.js';
 import './style-element.js';
 
 class clientUpdate extends PolymerElement {
@@ -151,6 +152,8 @@ class clientUpdate extends PolymerElement {
 				on-response="_deleteClientResponse"
 				on-error="_deleteClientError">
 			</iron-ajax>
+			<paper-toast id="getUpdateClientToast">
+			</paper-toast>
 		`;
 	}
 
@@ -236,7 +239,14 @@ class clientUpdate extends PolymerElement {
 	}
 
 	_updateClientAuthResponse() {
+		this.$.getUpdateClientToast.text = "Updated Authentication";
+		this.$.getUpdateClientToast.open();
 		document.body.querySelector('sig-app').shadowRoot.getElementById('clientList').shadowRoot.getElementById('clientGrid').clearCache();
+	}
+
+	_updateClientAuthError() {
+		this.$.getOfferToast.text = "Error";
+		this.$.getOfferToast.open();
 	}
 
 	updateClientProp() {
@@ -260,7 +270,14 @@ class clientUpdate extends PolymerElement {
 	}
 
 	_updateClientPropertiesResponse() {
+		this.$.getUpdateClientToast.text = "Updated Properties";
+		this.$.getUpdateClientToast.open();
 		document.body.querySelector('sig-app').shadowRoot.getElementById('clientList').shadowRoot.getElementById('clientGrid').clearCache();
+	}
+
+	_updateClientPropertiesError() {
+		this.$.getUpdateClientToast.text = "Error";
+		this.$.getUpdateClientToast.open();
 	}
 
 	checkProto() {
@@ -278,9 +295,17 @@ class clientUpdate extends PolymerElement {
 	}
 
 	_deleteClientResponse() {
+		this.$.getUpdateClientToast.text = "Deleted Successfully";
+		this.$.getUpdateClientToast.open();
 		this.$.updateClientModal.close();
 		document.body.querySelector('sig-app').shadowRoot.getElementById('clientList').shadowRoot.getElementById('clientGrid').clearCache();
 	}
+
+	_deleteClientError() {
+		this.$.getUpdateClientToast.text = "Error";
+		this.$.getUpdateClientToast.open();
+	}
+
 }
 
 window.customElements.define('sig-client-update', clientUpdate);

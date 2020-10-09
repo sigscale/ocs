@@ -19,6 +19,7 @@ import '@polymer/paper-dialog-scrollable/paper-dialog-scrollable.js';
 import '@polymer/iron-list/iron-list.js';
 import '@polymer/iron-icons/iron-icons.js';
 import '@polymer/paper-button/paper-button.js';
+import '@polymer/paper-toast/paper-toast.js';
 import './style-element.js'
 
 class ipdrListWlan extends PolymerElement {
@@ -247,6 +248,8 @@ class ipdrListWlan extends PolymerElement {
 			<iron-ajax id="getIpdr"
 					rejectWithRequest>
 			</iron-ajax>
+			<paper-toast id="getIpdrWlanToast">
+			</paper-toast>
 		`;
 	}
 
@@ -382,9 +385,8 @@ class ipdrListWlan extends PolymerElement {
 		}
 		handleAjaxError = function(error) {
 			ipdrLogListWlan.etag = null;
-			var toast = document.getElementById('usageToastError');
-			toast.text = error;
-			toast.open();
+         this.$.getIpdrWlanToast.text = "Error";
+         this.$.getIpdrWlanToast.open();
 			callback([]);
 		}
 		if (ajax.loading) {

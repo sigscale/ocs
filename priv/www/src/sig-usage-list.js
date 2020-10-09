@@ -200,9 +200,8 @@
 				};
 				var handleAjaxError = function(error) {
 					usageList.etag = null;
-					var toast = document.getElementById('usageToastError');
-					toast.text = error;
-					toast.open();
+					this.$.usageToastError.text = "Error";
+					this.$.usageToastError.open();
 					if(!grid.size) {
 						grid.size = 0;
 					}

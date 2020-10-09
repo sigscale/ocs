@@ -188,13 +188,13 @@ class prefixList extends PolymerElement {
 	_deleteTableResponse(event) {
 		this.$.tableList.close();
 		document.body.querySelector('sig-app').shadowRoot.getElementById('offerList').shadowRoot.getElementById('getTableAjax').generateRequest();
-      this.$.getPrefixToast.text = "Deleted successfully";
-      this.$.getPrefixToast.open();
+		this.$.getPrefixToast.text = "Deleted successfully";
+		this.$.getPrefixToast.open();
 	}
 
 	_deleteTableError(event) {
-      this.$.getPrefixToast.text = event.detail.xhr.status + event.detail.xhr.statusText;
-      this.$.getPrefixToast.open();
+		this.$.getPrefixToast.text = "Error";
+		this.$.getPrefixToast.open();
 	}
 
 	tableSelection(e) {
@@ -238,8 +238,8 @@ class prefixList extends PolymerElement {
 		};
 		var handleAjaxError = function(error) {
 			prefixList.etag = null;
-      	this.$.getPrefixToast.text = event.detail.xhr.status + event.detail.xhr.statusText;
-      	this.$.getPrefixToast.open();
+			this.$.getPrefixToast.text = "Error";
+			this.$.getPrefixToast.open();
 			if(!grid.size) {
 				grid.size = 0;
 			}

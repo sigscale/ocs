@@ -43,7 +43,7 @@ class ipdrLogVoip extends PolymerElement {
 					</paper-button>
 				</div>
 			</paper-dialog>
-		`;	
+		`;
 	}
 
 	static get properties() {
@@ -56,13 +56,12 @@ class ipdrLogVoip extends PolymerElement {
 	}
 
 	ready() {
-      super.ready();
-   }
+		super.ready();
+	}
 
 	getLogContentVoip(event) {
 		document.body.querySelector('sig-app').shadowRoot.querySelector('sig-ipdr-list-voip').shadowRoot.getElementById("ipdrListVoip").intializeGrid(event);
 	}
 }
-
 
 window.customElements.define('sig-ipdr-log-files-voip', ipdrLogVoip);
