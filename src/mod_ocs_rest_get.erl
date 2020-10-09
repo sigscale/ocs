@@ -211,6 +211,10 @@ do_get(Resource, ModData, ["resourceCatalogManagement", "v2", "resourceSpecifica
 	do_response(ModData, Resource:get_resource_specs(Query));
 do_get(Resource, ModData, ["resourceCatalogManagement", "v2", "plaSpecification"], Query) ->
 	do_response(ModData, Resource:get_pla_specs(Query));
+do_get(Resource, ModData, ["resourceCatalogManagement", "v2", "resourceCategory", Id], []) ->
+	do_response(ModData, Resource:get_resource_category(Id));
+do_get(Resource, ModData, ["resourceCatalogManagement", "v2", "resourceCategory"], Query) ->
+	do_response(ModData, Resource:get_resource_categories(Query));
 do_get(Resource, ModData, ["resourceInventoryManagement", "v1", "logicalResource", Id], Query) ->
 	do_response(ModData, Resource:get_resource_inventory(Id, Query));
 do_get(Resource, ModData, ["resourceInventoryManagement", "v1", "pla"], Query) ->
