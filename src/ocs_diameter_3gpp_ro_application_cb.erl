@@ -350,23 +350,26 @@ process_request1(?'3GPP_CC-REQUEST-TYPE_INITIAL_REQUEST' = RequestType,
 			[#'3gpp_ro_Multiple-Services-Credit-Control'{'Service-Identifier' = SI,
 					'Rating-Group' = RG, 'Requested-Service-Unit'
 					= [#'3gpp_ro_Requested-Service-Unit'{'CC-Time'
-					= [CCTime]}]} | _] when is_integer(CCTime) ->
+					= [CCTime]}]} | _] when is_integer(CCTime), CCTime > 0 ->
 				{SI, RG, [{seconds, CCTime}]};
 			[#'3gpp_ro_Multiple-Services-Credit-Control'{'Service-Identifier' = SI,
 					'Rating-Group' = RG, 'Requested-Service-Unit'
 					= [#'3gpp_ro_Requested-Service-Unit'{'CC-Total-Octets'
-					= [CCTotalOctets]}]} | _] when is_integer(CCTotalOctets) ->
+					= [CCTotalOctets]}]} | _] when is_integer(CCTotalOctets),
+					CCTotalOctets > 0 ->
 				{SI, RG, [{octets, CCTotalOctets}]};
 			[#'3gpp_ro_Multiple-Services-Credit-Control'{'Service-Identifier' = SI,
 					'Rating-Group' = RG, 'Requested-Service-Unit'
 					= [#'3gpp_ro_Requested-Service-Unit'{'CC-Output-Octets'
 					= [CCOutputOctets], 'CC-Input-Octets' = [CCInputOctets]}]} | _]
-					when is_integer(CCInputOctets), is_integer(CCOutputOctets) ->
+					when is_integer(CCInputOctets), is_integer(CCOutputOctets),
+					CCInputOctets > 0, CCOutputOctets > 0 ->
 				{SI, RG, [{octets, CCInputOctets + CCOutputOctets}]};
 			[#'3gpp_ro_Multiple-Services-Credit-Control'{'Service-Identifier' = SI,
 					'Rating-Group' = RG, 'Requested-Service-Unit'
 					= [#'3gpp_ro_Requested-Service-Unit'{'CC-Service-Specific-Units'
-					= [CCSpecUnits]}]} | _] when is_integer(CCSpecUnits) ->
+					= [CCSpecUnits]}]} | _] when is_integer(CCSpecUnits),
+					CCSpecUnits > 0 ->
 				{SI, RG, [{messages, CCSpecUnits}]};
 			[#'3gpp_ro_Multiple-Services-Credit-Control'{'Service-Identifier' = SI,
 					'Rating-Group' = RG} | _] ->
@@ -464,26 +467,29 @@ process_request1(?'3GPP_CC-REQUEST-TYPE_UPDATE_REQUEST' = RequestType,
 		OHost, _DHost, ORealm, _DRealm, IpAddress, Port) ->
 	try
 		{ServiceIdentifier, RatingGroup, ReserveAmount} = case MSCC of
-			#'3gpp_ro_Multiple-Services-Credit-Control'{'Service-Identifier' = SI,
+			[#'3gpp_ro_Multiple-Services-Credit-Control'{'Service-Identifier' = SI,
 					'Rating-Group' = RG, 'Requested-Service-Unit'
 					= [#'3gpp_ro_Requested-Service-Unit'{'CC-Time'
-					= [CCTime]}]} when is_integer(CCTime) ->
+					= [CCTime]}]} | _] when is_integer(CCTime), CCTime > 0 ->
 				{SI, RG, [{seconds, CCTime}]};
-			#'3gpp_ro_Multiple-Services-Credit-Control'{'Service-Identifier' = SI,
+			[#'3gpp_ro_Multiple-Services-Credit-Control'{'Service-Identifier' = SI,
 					'Rating-Group' = RG, 'Requested-Service-Unit'
 					= [#'3gpp_ro_Requested-Service-Unit'{'CC-Total-Octets'
-					= [CCTotalOctets]}]} when is_integer(CCTotalOctets) ->
+					= [CCTotalOctets]}]} | _] when is_integer(CCTotalOctets),
+					CCTotalOctets > 0 ->
 				{SI, RG, [{octets, CCTotalOctets}]};
-			#'3gpp_ro_Multiple-Services-Credit-Control'{'Service-Identifier' = SI,
+			[#'3gpp_ro_Multiple-Services-Credit-Control'{'Service-Identifier' = SI,
 					'Rating-Group' = RG, 'Requested-Service-Unit'
 					= [#'3gpp_ro_Requested-Service-Unit'{'CC-Output-Octets'
-					= [CCOutputOctets], 'CC-Input-Octets' = [CCInputOctets]}]}
-					when is_integer(CCInputOctets), is_integer(CCOutputOctets) ->
+					= [CCOutputOctets], 'CC-Input-Octets' = [CCInputOctets]}]} | _]
+					when is_integer(CCInputOctets), is_integer(CCOutputOctets),
+					CCInputOctets > 0, CCOutputOctets > 0 ->
 				{SI, RG, [{octets, CCInputOctets + CCOutputOctets}]};
-			#'3gpp_ro_Multiple-Services-Credit-Control'{'Service-Identifier' = SI,
+			[#'3gpp_ro_Multiple-Services-Credit-Control'{'Service-Identifier' = SI,
 					'Rating-Group' = RG, 'Requested-Service-Unit'
 					= [#'3gpp_ro_Requested-Service-Unit'{'CC-Service-Specific-Units'
-					= [CCSpecUnits]}]} when is_integer(CCSpecUnits) ->
+					= [CCSpecUnits]}]} | _] when is_integer(CCSpecUnits),
+					CCSpecUnits > 0 ->
 				{SI, RG, [{messages, CCSpecUnits}]};
 			#'3gpp_ro_Multiple-Services-Credit-Control'{'Service-Identifier' = SI,
 					'Rating-Group' = RG} ->
