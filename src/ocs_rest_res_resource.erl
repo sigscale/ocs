@@ -259,13 +259,8 @@ add_resource_inventory(Table, ReqData) ->
 	Headers  :: [tuple()],
 	Body     :: iolist(),
 	Status   :: 400 | 500 .
-<<<<<<< HEAD
-%% @doc Respond to `POST resourceCatalogManagement/v2/pla'.
-%%    Add a new Pricing Logic Algorithm (PLA).
-=======
 %% @doc Respond to `POST /resourceInventoryManagement/v2/pla'.
-%%    Add a new Product Offering.
->>>>>>> ffdda031f74a5fd4651cc69cde671faf5604f9a9
+%%    Add a new Pricing Logic Algorithm (PLA).
 add_pla(ReqData) ->
 	try
 		case ocs:add_pla(ocs_rest_res_resource:pla(mochijson:decode(ReqData))) of
