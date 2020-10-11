@@ -130,7 +130,7 @@ rate(Protocol, ServiceType, ChargingKey, ServiceNetwork, SubscriberID,
 		{{_, _, _}, {_, _, _}} = Timestamp, Address, Direction, Flag,
 		DebitAmounts, ReserveAmounts, SessionAttributes)
 		when ((Protocol == radius) or (Protocol == diameter)),
-		(is_integer(ChargingKey) or (ChargingKey == undefined)), 
+		(is_integer(ChargingKey) or (ChargingKey == undefined)),
 		(is_list(ServiceNetwork) or (ServiceNetwork == undefined)),
 		is_binary(SubscriberID),
 		(is_list(Address) or (Address == undefined)),
@@ -549,21 +549,16 @@ rate6(Service, Buckets,
 		#state{session_id = SessionId} = State) ->
 	case update_session(Units, Damount, Ramount, SessionId, Buckets) of
 		{Damount, UnitsReserved, Buckets2} when UnitsReserved >= Ramount ->
-erlang:display({?MODULE, ?LINE, Damount, UnitsReserved, Buckets}),
 			rate7(Service, Buckets2, interim, DebitAmount, DebitAmount,
 					ReserveAmount, {Units, UnitsReserved}, State);
 		{Damount, UnitsReserved, Buckets2} when UnitsReserved < Ramount ->
-erlang:display({?MODULE, ?LINE, Damount, Ramount, UnitsReserved, Buckets2}),
 			NewReserveUnits = Ramount - UnitsReserved,
 			{UnitReserve, PriceReserve} = price_units(NewReserveUnits,
 					UnitSize, UnitPrice),
-erlang:display({?MODULE, ?LINE, PriceReserve, Units, UnitReserve, SessionId}),
 			case convert(PriceReserve, Units, UnitReserve, SessionId, Buckets2) of
 				{ok, Buckets3} ->
-erlang:display({?MODULE, ?LINE, Buckets3}),
 					{0, UnitReserve, Buckets4} = update_session(Units, 0,
 							NewReserveUnits, SessionId, Buckets3),
-erlang:display({?MODULE, ?LINE, Buckets4}),
 					rate7(Service, Buckets4, interim,
 							DebitAmount, DebitAmount, ReserveAmount,
 							{Units, UnitsReserved + UnitReserve}, State);
@@ -578,12 +573,10 @@ erlang:display({?MODULE, ?LINE, Buckets4}),
 			{UnitReserve, _} = price_units(Ramount, UnitSize, UnitPrice),
 			case convert(PriceReserve, Units, ConvertReserve, SessionId, Buckets2) of
 				{ok, Buckets3} ->
-erlang:display({?MODULE, ?LINE, Buckets3}),
 					case update_session(Units, NewChargeUnits, UnitReserve,
 							SessionId, Buckets3) of
 						{NewChargeUnits, UnitsReserved, Buckets4}
 								when UnitsReserved >= UnitReserve ->
-erlang:display({?MODULE, ?LINE, NewChargeUnits, UnitsReserved, Buckets4}),
 							rate7(Service, Buckets4, interim, DebitAmount,
 									{Units, UnitsCharged + NewChargeUnits},
 									ReserveAmount, {Units, UnitsReserved}, State);
@@ -1086,33 +1079,26 @@ update_session(Type, Charge, Reserve, Now, SessionId,
 		reservations = Reservations} = B | T],
 		Acc, Charged, Reserved) ->
 	case lists:keytake(SessionId, 4, Reservations) of
-% charge and reserve (done)
 		{value, {_, DebitedAmount, ReservedAmount, _}, NewReservations}
 				when ReservedAmount >= Charge, Remain >= Reserve ->
-erlang:display({?MODULE, ?LINE, Type, Charge, Reserve, DebitedAmount, ReservedAmount}),
 			NewReservedAmount = (ReservedAmount - Charge) + Reserve,
 			NewReservation = {Now, DebitedAmount + Charge, NewReservedAmount, SessionId},
 			NewRemain = Remain - Reserve,
 			NewBuckets = lists:reverse(Acc) ++ [B#bucket{remain_amount = NewRemain,
 					last_modified = {Now, erlang:unique_integer([positive])},
 					reservations = [NewReservation | NewReservations]} | T],
-erlang:display({?MODULE, ?LINE, Charged + Charge, Reserved + Reserve, NewBuckets}),
 			{Charged + Charge, Reserved + Reserve, NewBuckets};
-% charge and reserve (done)
 		{value, {_, DebitedAmount, ReservedAmount, _}, NewReservations}
 				when ReservedAmount =< Charge,
 				Remain >= ((Charge - ReservedAmount) + Reserve) ->
-erlang:display({?MODULE, ?LINE, Type, Charge, Reserve, DebitedAmount, ReservedAmount}),
 			NewReservation = {Now, DebitedAmount + Charge, Reserve, SessionId},
 			NewRemain = Remain - (Charge - ReservedAmount) - Reserve,
 			NewBuckets = lists:reverse(Acc) ++ [B#bucket{remain_amount = NewRemain,
 					last_modified = {Now, erlang:unique_integer([positive])},
 					reservations = [NewReservation | NewReservations]} | T],
 			{Charged + Charge, Reserved + Reserve, NewBuckets};
-% (partial) charge only
 		{value, {_, DebitedAmount, ReservedAmount, _}, NewReservations}
 				when Remain >= 0, (Remain + ReservedAmount) =< Charge ->
-erlang:display({?MODULE, ?LINE, Type, Charge, Reserve, DebitedAmount, ReservedAmount}),
 			NewDebitedAmount = DebitedAmount + Remain + ReservedAmount,
 			NewReservation = {Now, NewDebitedAmount, 0, SessionId},
 			NewAcc = [B#bucket{remain_amount = 0,
@@ -1121,10 +1107,8 @@ erlang:display({?MODULE, ?LINE, Type, Charge, Reserve, DebitedAmount, ReservedAm
 			update_session(Type, Charge - (Remain + ReservedAmount), Reserve,
 					Now, SessionId, T, NewAcc,
 					Charged + ReservedAmount + Remain, Reserved);
-% charge and partial reserve
 		{value, {_, DebitedAmount, ReservedAmount, _}, NewReservations}
 				when ReservedAmount >= Charge, Remain >= 0, Reserve > Remain ->
-erlang:display({?MODULE, ?LINE, Type, Charge, Reserve, DebitedAmount, ReservedAmount}),
 			NewDebitedAmount = DebitedAmount + Charge,
 			NewReserve = (ReservedAmount - Charge) + Remain,
 			NewReservation = {Now, NewDebitedAmount, NewReserve, SessionId},
@@ -1133,11 +1117,9 @@ erlang:display({?MODULE, ?LINE, Type, Charge, Reserve, DebitedAmount, ReservedAm
 					reservations = [NewReservation | NewReservations]} | Acc],
 			update_session(Type, 0, Reserve - Remain, Now, SessionId,
 					T, NewAcc, Charged + Charge, Reserved + Remain);
-% charge and partial reserve
 		{value, {_, DebitedAmount, ReservedAmount, _}, NewReservations}
 				when Charge > ReservedAmount, Remain >= (Charge - ReservedAmount),
 				Reserve > (Remain + (Charge - ReservedAmount)) ->
-erlang:display({?MODULE, ?LINE, Type, Charge, Reserve, DebitedAmount, ReservedAmount}),
 			NewDebitedAmount = DebitedAmount + Charge,
 			NewReserve = Remain - (Charge - ReservedAmount),
 			NewReservation = {Now, NewDebitedAmount, NewReserve, SessionId},
@@ -1147,17 +1129,14 @@ erlang:display({?MODULE, ?LINE, Type, Charge, Reserve, DebitedAmount, ReservedAm
 			update_session(Type, 0, Reserve - NewReserve, Now, SessionId,
 					T, NewAcc, Charged + Charge, Reserved + NewReserve);
 		_Other ->
-erlang:display({?MODULE, ?LINE, Type, Charge, Reserve, _Other}),
 			update_session(Type, Charge, Reserve, Now, SessionId,
 					T, [B | Acc], Charged, Reserved)
 	end;
 update_session(Type, Charge, Reserve, Now, SessionId,
 		[H | T], Acc, Charged, Reserved) ->
-erlang:display({?MODULE, ?LINE, Type, Charge, Reserve, Charged, Reserved}),
 	update_session(Type, Charge, Reserve, Now, SessionId,
 			T, [H | Acc], Charged, Reserved);
 update_session(_, 0, Reserved, _, _, [], Acc, Charged, Reserved) ->
-erlang:display({?MODULE, ?LINE, Charged, Reserved, lists:reverse(Acc)}),
 	{Charged, Reserved, lists:reverse(Acc)};
 update_session(Type, Charge, Reserve, Now, SessionId, [], Acc, Charged, Reserved) ->
 	update(Type, Charge, Reserve, Now, SessionId, lists:reverse(Acc), [], Charged, Reserved).
