@@ -1657,11 +1657,13 @@ get_debits(_, [], Debit, Refund, Acc) ->
 -spec rated(Debits, Rated) -> Result
 	when
 		Debits :: #{},
-		Rated :: #rated{},
+		Rated :: #rated{} | [#rated{}],
 		Result :: [Rated].
 %% @doc Construct rated product usage.
 %% @hidden
 rated(Debits, #rated{} = Rated) ->
+	rated(Debits, [Rated]);
+rated(Debits, [#rated{} = Rated | T]) ->
 	F = fun(cents, Amount, Acc) ->
 				[Rated#rated{bucket_type = cents, bucket_value = Amount,
 						usage_rating_tag = non_included, is_billed = true,
@@ -1671,7 +1673,7 @@ rated(Debits, #rated{} = Rated) ->
 						usage_rating_tag = included, is_billed = true,
 						bucket_type = Units} | Acc]
 	end,
-	maps:fold(F, [], Debits).
+	maps:fold(F, T, Debits).
 
 %% @hidden
 update_buckets(BRefs, OldB, NewB) ->
