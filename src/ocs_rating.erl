@@ -1661,7 +1661,7 @@ get_debits(_, [], Debit, Refund, Acc) ->
 		Result :: [Rated].
 %% @doc Construct rated product usage.
 %% @hidden
-rated(Debits, Rated) ->
+rated(Debits, #rated{} = Rated) ->
 	F = fun(cents, Amount, Acc) ->
 				[Rated#rated{bucket_type = cents, bucket_value = Amount,
 						usage_rating_tag = non_included, is_billed = true,
