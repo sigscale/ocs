@@ -511,6 +511,7 @@
    Charging-Rule-Definition                               1003  Grouped          VM
    Charging-Rule-Base-Name                                1004  UTF8String       VM
    Charging-Rule-Name                                     1005  OctetString      VM
+   Precedence                                             1010  Unsigned32       VM
    Reporting-Level                                        1011  Enumerated       VM
    IP-CAN-Type                                            1027  Enumerated       VM
    Offline                                                1008  Enumerated       VM
@@ -1667,7 +1668,7 @@
 ;        [ Resource-Release-Notification ]
         *[ AVP ]
 
-   Charging-Rule-Definition ::= <AVP Header: 1003 >
+   Charging-Rule-Definition ::= <AVP Header: 1003>
          { Charging-Rule-Name }
          [ Service-Identifier ]
          [ Rating-Group ]
@@ -1683,7 +1684,7 @@
 ;        [ Max-PLR-DL ]
 ;        [ Max-PLR-UL ]
 ;        [ Metering-Method ]
-;        [ Precedence ]
+         [ Precedence ]
          [ AF-Charging-Identifier ]
         *[ Flows ]
 ;        [ Monitoring-Key]

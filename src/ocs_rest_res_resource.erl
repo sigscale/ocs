@@ -19,7 +19,7 @@
 %%% 	for a REST server in the {@link //ocs. ocs} application.
 %%%
 -module(ocs_rest_res_resource).
--copyright('Copyright (c) 2016 - 2018 SigScale Global Inc.').
+-copyright('Copyright (c) 2016 - 2020 SigScale Global Inc.').
 
 -export([content_types_accepted/0, content_types_provided/0]).
 -export([get_resource_spec/1, get_resource_specs/1]).
@@ -37,12 +37,12 @@
 -define(MILLISECOND, milli_seconds).
 %-define(MILLISECOND, millisecond).
 
--define(specPath, "/catalogManagement/v2/resourceSpecification/").
--define(candidatePath, "/catalogManagement/v2/resourceCandidate/").
--define(catalogPath, "/catalogManagement/v2/resourceCatalog/").
--define(categoryPath, "/catalogManagement/v2/resourceCategory/").
+-define(specPath, "/resourceCatalogManagement/v2/resourceSpecification/").
+-define(candidatePath, "/resourceCatalogManagement/v2/resourceCandidate/").
+-define(catalogPath, "/resourceCatalogManagement/v2/resourceCatalog/").
+-define(categoryPath, "/resourceCatalogManagement/v2/resourceCategory/").
 -define(inventoryPath, "/resourceInventoryManagement/v1/logicalResource/").
--define(plaPath, "/catalogManagement/v2/pla/").
+-define(plaPath, "/resourceInventoryManagement/v2/pla/").
 -define(plaSpecPath, "/resourceCatalogManagement/v2/plaSpecification/").
 
 -spec content_types_accepted() -> ContentTypes
@@ -92,7 +92,8 @@ get_resource_specs(_Query) ->
 	when
 		ID :: string(),
 		Result :: {struct, [tuple()]} | {error, 404}.
-%% @doc Get Resource Category by ID.
+%% @doc Respond to `GET /resourceCatalogManagement/v2/resourceCategory/{id}'.
+%% 	Retrieve a Resource category by Id.
 get_resource_category("1") ->
 	ResourceCatagory = tariff_table_category(),
 	Body = mochijson:encode(ResourceCatagory),
@@ -107,7 +108,7 @@ get_resource_category(_) ->
 	Headers	:: [tuple()],
 	Body		:: iolist(),
 	Status	:: 400 | 404 | 500.
-%% @doc Respond to `GET /catalogManegment/v2/resourceCategory'.
+%% @doc Respond to `GET /resourceCatalogManagement/v2/resourceCategory'.
 %% 	Retrieve all Resource categories.
 get_resource_categories([] = _Query) ->
 	Headers = [{content_type, "application/json"}],
@@ -121,7 +122,8 @@ get_resource_categories(_Query) ->
 	when
 		ID :: string(),
 		Result :: {struct, [tuple()]} | {error, 404}.
-%% @doc Get Resource Candidate by ID.
+%% @doc Respond to `GET /resourceCatalogManagement/v2/resourceCandidate/{id}'.
+%%		Get Resource Candidate by ID.
 get_resource_candidate("1") ->
 	ResourceCandidate = tariff_table_candidate(),
 	Body = mochijson:encode(ResourceCandidate),
@@ -136,7 +138,7 @@ get_resource_candidate(_) ->
 	Headers	:: [tuple()],
 	Body		:: iolist(),
 	Status	:: 400 | 404 | 500.
-%% @doc Respond to `GET /catalogManegment/v2/resourceCandidate'.
+%% @doc Respond to `GET /catalogManagement/v2/resourceCandidate'.
 %% 	Retrieve all Resource candidate.
 get_resource_candidates([] = _Query) ->
 	Headers = [{content_type, "application/json"}],
@@ -150,7 +152,8 @@ get_resource_candidates(_Query) ->
 	when
 		ID :: string(),
 		Result :: {struct, [tuple()]} | {error, 404}.
-%% @doc Get Resource Catalog by ID.
+%% @doc Respond to `GET /resourceCatalogManagement/v2/resourceCatalog/{id}'.
+%%		Get Resource Catalog by ID.
 get_resource_catalog("1") ->
 	ResourceCatalog = tariff_table_catalog(),
 	Body = mochijson:encode(ResourceCatalog),
@@ -165,7 +168,7 @@ get_resource_catalog(_) ->
 	Headers	:: [tuple()],
 	Body		:: iolist(),
 	Status	:: 400 | 404 | 500.
-%% @doc Respond to `GET /resourceCatalogManagement/v2'.
+%% @doc Respond to `GET /resourceCatalogManagement/v2/resourceCatalog'.
 %% 	Retrieve all Resource catalogs.
 get_resource_catalogs([] = _Query) ->
 	Headers = [{content_type, "application/json"}],
@@ -256,8 +259,8 @@ add_resource_inventory(Table, ReqData) ->
 	Headers  :: [tuple()],
 	Body     :: iolist(),
 	Status   :: 400 | 500 .
-%% @doc Respond to `POST /catalogManagement/v2/pla'.
-%%    Add a new Product Offering.
+%% @doc Respond to `POST /resourceInventoryManagement/v2/pla'.
+%%    Add a new Pricing Logic Algorithm (PLA).
 add_pla(ReqData) ->
 	try
 		case ocs:add_pla(ocs_rest_res_resource:pla(mochijson:decode(ReqData))) of
@@ -292,8 +295,8 @@ add_pla(ReqData) ->
 		Headers	:: [tuple()],
 		Body		:: iolist(),
 		Status	:: 400 | 404 | 412 | 500 .
-%% @doc Respond to `PATCH /catalogManagement/v2/pla/{id}'.
-%% 	Update a pricing logic algorithm using JSON patch method
+%% @doc Respond to `PATCH /resourceInventoryManagement/v2/pla/{id}'.
+%% 	Update a Pricing Logic Algorithm (PLA) using JSON patch method.
 patch_pla(Id, Etag, ReqData) ->
 	try
 		Etag1 = case Etag of
@@ -353,8 +356,8 @@ patch_pla(Id, Etag, ReqData) ->
 		Id :: string(),
 		Result :: {ok, Headers :: [tuple()], Body :: iolist()}
 				| {error, ErrorCode :: integer()} .
-%% @doc Respond to `DELETE /catalogManagement/v2/pla/{id}'
-%% 	request to remove a `Pla'.
+%% @doc Respond to `DELETE /resourceInventoryManagement/v2/pla/{id}'
+%%    request to remove a Pricing Logic Algorithm (PLA).
 delete_pla(Id) when is_list(Id) ->
 	case catch list_to_existing_atom(Id) of
 		{'EXIT', _Reason} ->
@@ -370,8 +373,8 @@ delete_pla(Id) when is_list(Id) ->
 	Headers :: [tuple()],
 	Body :: iolist(),
 	Status :: 400 | 404 | 500.
-%% @doc Respond to `GET /catalogManagement/v2/pla/{id}'.
-%%    Retrieve a pricing logic algorothm.
+%% @doc Respond to `GET /resourceInventoryManagement/v2/pla/{id}'.
+%%    Retrieve a Pricing Logic Algorothm (PLA).
 get_pla(ID) ->
 	try
 		case ocs:find_pla(ID) of
@@ -400,8 +403,8 @@ get_pla(ID) ->
 	Headers :: [tuple()],
 	Body :: iolist(),
 	Status :: 400 | 404 | 412 | 500 .
-%% @doc Respond to `GET /catalogManagement/v2/pla'.
-%%    Retrieve all pricing logic algorithms.
+%% @doc Respond to `GET /resourceInventoryManagement/v2/pla'.
+%%    Retrieve all Pricing Logic Algorithms (PLA).
 get_plas(_Query, _Headers) ->
 	try
 		case ocs:get_plas() of
@@ -433,7 +436,7 @@ get_plas(_Query, _Headers) ->
 	Body		:: iolist(),
 	Status	:: 400 | 404 | 500.
 %% @doc Respond to `GET /resourceCatalogManagement/v2/plaSpecification'.
-%% 	Retrieve all pricing logic algorithm specifications.
+%% 	Retrieve all Pricing Logic Algorithm (PLA) specifications.
 get_pla_specs([] = _Query) ->
 	Headers = [{content_type, "application/json"}],
 	Object = {array, [spec_pla_once(), spec_pla_recurring(),
@@ -454,7 +457,7 @@ get_pla_specs(_Query) ->
 		Body		:: iolist(),
 		Status	:: 400 | 404 | 500 .
 %% @doc Respond to `PATCH /resourceInventoryManagement/v1/logicalResource/{table}/{id}'.
-%% 	Update a table row using JSON patch method
+%% 	Update a table row using JSON patch method.
 patch_resource_inventory(Table, Id, _Etag, ReqData) ->
 	try
 		Table1 = list_to_existing_atom(Table),
@@ -495,7 +498,7 @@ patch_resource_inventory(Table, Id, _Etag, ReqData) ->
       Result :: {ok, Headers :: [tuple()], Body :: iolist()}
             | {error, ErrorCode :: integer()} .
 %% @doc Respond to `DELETE /resourceInventoryManagement/v1/logicalResource/{table}/{id}''
-%%    request to remove a `Table row'.
+%%    request to remove a table row.
 delete_resource_inventory(Table, Id) ->
 	try
 		Name = list_to_existing_atom(Table),

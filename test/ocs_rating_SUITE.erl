@@ -1,7 +1,7 @@
 %%% ocs_rating_SUITE.erl
 %%% vim: ts=3
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-%%% @copyright 2016 - 2017 SigScale Global Inc.
+%%% @copyright 2016 - 2020 SigScale Global Inc.
 %%% @end
 %%% Licensed under the Apache License, Version 2.0 (the "License");
 %%% you may not use this file except in compliance with the License.
@@ -18,7 +18,7 @@
 %%%  @doc Test suite for rating API of the {@link //ocs. ocs} application.
 %%%
 -module(ocs_rating_SUITE).
--copyright('Copyright (c) 2016 - 2017 SigScale Global Inc.').
+-copyright('Copyright (c) 2016 - 2020 SigScale Global Inc.').
 
 %% common_test required callbacks
 -export([suite/0, sequences/0, all/0]).
@@ -88,7 +88,8 @@ all() ->
 	[initial_exact_fit, initial_insufficient,
 	initial_insufficient_multisession, initial_overhead,
 	initial_multiple_buckets, initial_expire_buckets,
-	initial_ignore_expired_buckets, initial_add_session,
+	initial_ignore_expired_buckets,
+	initial_negative_balance, initial_add_session,
 	interim_reserve, initial_negative_balance,
 	interim_reserve_within_unit_size,
 	interim_reserve_available,
@@ -103,7 +104,7 @@ all() ->
 	interim_debit_and_reserve_insufficient3,
 	interim_debit_and_reserve_insufficient4,
 	interim_out_of_credit_voice, final_remove_session,
-	final_refund_octets, final_refund_seconds, final_refund,
+	final_refund_octets, final_refund_seconds,
 	final_voice, final_multiple_buckets,
 	reserve_data, reserve_voice, interim_voice, time_of_day,
 	authorize_voice, authorize_voice_with_partial_reservation,
@@ -116,17 +117,18 @@ all() ->
 %%---------------------------------------------------------------------
 %%  Test cases
 %%---------------------------------------------------------------------
+
 initial_exact_fit() ->
 	[{userdata, [{doc, "Cents balance exactly equal to reservation price"}]}].
 
 initial_exact_fit(_Config) ->
-	PackagePrice = 100,
-	PackageSize = 1000,
+	PackagePrice = 10 + rand:uniform(90),
+	PackageSize = 500000 + rand:uniform(9000000),
 	PackageUnits = octets,
 	P1 = price(usage, PackageUnits, PackageSize, PackagePrice),
 	OfferId = add_offer([P1], 4),
 	ProdRef = add_product(OfferId),
-	ServiceId =  add_service(ProdRef),
+	ServiceId = add_service(ProdRef),
 	B1 = bucket(cents, PackagePrice),
 	BId = add_bucket(ProdRef, B1),
 	ServiceType = 32251,
@@ -137,20 +139,20 @@ initial_exact_fit(_Config) ->
 			undefined, undefined, initial, [],
 			[{PackageUnits, PackageSize}], SessionId),
 	{ok, #bucket{remain_amount = 0,
-			reservations = [{_, 0, PackagePrice, _}]}} = ocs:find_bucket(BId).
+			reservations = [{_, PackagePrice, 0, SessionId}]}} = ocs:find_bucket(BId).
 
 initial_insufficient() ->
 	[{userdata, [{doc, "Insufficient cents balance for initial reservation"}]}].
 
 initial_insufficient(_Config) ->
-	PackagePrice = 100,
-	PackageSize = 1000,
+	PackagePrice = 10 + rand:uniform(90),
+	PackageSize = 5000000 + rand:uniform(9000000),
 	PackageUnits = octets,
 	P1 = price(usage, PackageUnits, PackageSize, PackagePrice),
 	OfferId = add_offer([P1], 4),
 	ProdRef = add_product(OfferId),
-	ServiceId =  add_service(ProdRef),
-	RemAmount = 13,
+	ServiceId = add_service(ProdRef),
+	RemAmount = PackagePrice - 1,
 	B1 = bucket(cents, RemAmount),
 	BId = add_bucket(ProdRef, B1),
 	Timestamp = calendar:local_time(),
@@ -166,13 +168,13 @@ initial_insufficient_multisession() ->
 	[{userdata, [{doc, "Insufficient cents balance on initial reservation of additional session"}]}].
 
 initial_insufficient_multisession(_Config) ->
-	PackagePrice = 100,
-	PackageSize = 1000,
+	PackagePrice = 10 + rand:uniform(90),
+	PackageSize = 5000000 + rand:uniform(9000000),
 	PackageUnits = octets,
 	P1 = price(usage, PackageUnits, PackageSize, PackagePrice),
 	OfferId = add_offer([P1], 4),
 	ProdRef = add_product(OfferId),
-	ServiceId =  add_service(ProdRef),
+	ServiceId = add_service(ProdRef),
 	RemAmount = 13,
 	B1 = bucket(cents, RemAmount),
 	SessionId1 = [{'Session-Id', list_to_binary(ocs:generate_password())}],
@@ -191,13 +193,13 @@ initial_add_session() ->
 	[{userdata, [{doc, "Add a session"}]}].
 
 initial_add_session(_Config) ->
-	PackagePrice = 100,
-	PackageSize = 1000,
+	PackagePrice = 10 + rand:uniform(90),
+	PackageSize = 5000000 + rand:uniform(9000000),
 	PackageUnits = octets,
 	P1 = price(usage, PackageUnits, PackageSize, PackagePrice),
 	OfferId = add_offer([P1], 4),
 	ProdRef = add_product(OfferId),
-	ServiceId =  add_service(ProdRef),
+	ServiceId = add_service(ProdRef),
 	RemAmount = 1000,
 	B1 = bucket(cents, RemAmount),
 	BId = add_bucket(ProdRef, B1),
@@ -206,25 +208,24 @@ initial_add_session(_Config) ->
 	AcctSessionId = {?AcctSessionId, list_to_binary(ocs:generate_password())},
 	NasIp = {?NasIpAddress, "192.168.1.150"},
 	NasId = {?NasIdentifier, ocs:generate_password()},
-	SessionId = lists:keysort(1, [AcctSessionId, NasIp, NasId]),
 	SessionAttr = [NasId, NasIp, AcctSessionId, {?ServiceType, ServiceType}],
 	{ok, #service{session_attributes = [{_, SessionId}]},
 			{PackageUnits, PackageSize}} = ocs_rating:rate(radius, ServiceType,
 			undefined, undefined, ServiceId, Timestamp, undefined, undefined,
 			initial, [], [{PackageUnits, PackageSize}], SessionAttr),
-	{ok, #bucket{reservations = [{_, 0, PackagePrice, _}]}} = ocs:find_bucket(BId).
+	{ok, #bucket{reservations = [{_, PackagePrice, 0, SessionId}]}} = ocs:find_bucket(BId).
 
 initial_overhead() ->
 	[{userdata, [{doc, "Reserved amount greater than requested reservation amount"}]}].
 
 initial_overhead(_Config) ->
-	PackagePrice = 100,
-	PackageSize = 1000,
+	PackagePrice = 10 + rand:uniform(90),
+	PackageSize = 5000000 + rand:uniform(9000000),
 	PackageUnits = octets,
 	P1 = price(usage, PackageUnits, PackageSize, PackagePrice),
 	OfferId = add_offer([P1], 4),
 	ProdRef = add_product(OfferId),
-	ServiceId =  add_service(ProdRef),
+	ServiceId = add_service(ProdRef),
 	RemAmount1 = 233,
 	B1 = bucket(cents, RemAmount1),
 	BId = add_bucket(ProdRef, B1),
@@ -252,23 +253,23 @@ initial_multiple_buckets() ->
 	[{userdata, [{doc, "Reservation over multiple cents buckets"}]}].
 
 initial_multiple_buckets(_Config) ->
-	PackagePrice = 100,
-	PackageSize = 1000,
+	UnitPrice = 10 + rand:uniform(90),
+	UnitSize = 5000000 + rand:uniform(9000000),
 	PackageUnits = octets,
-	P1 = price(usage, PackageUnits, PackageSize, PackagePrice),
+	P1 = price(usage, PackageUnits, UnitSize, UnitPrice),
 	OfferId = add_offer([P1], 4),
 	ProdRef = add_product(OfferId),
-	ServiceId =  add_service(ProdRef),
-	B1 = bucket(cents, 50),
+	ServiceId = add_service(ProdRef),
+	B1 = bucket(cents, (UnitPrice div 2) + rand:uniform(UnitPrice div 2)),
 	_BId1 = add_bucket(ProdRef, B1),
-	B2 = bucket(cents, 100),
+	B2 = bucket(cents, (UnitPrice div 2) + rand:uniform(UnitPrice div 2)),
 	_BId2 = add_bucket(ProdRef, B2),
-	B3 = bucket(cents, 75),
+	B3 = bucket(cents, (UnitPrice div 2) + rand:uniform(UnitPrice div 2)),
 	_BId3 = add_bucket(ProdRef, B3),
 	Balance1 = lists:sum([R || #bucket{remain_amount = R} <- [B1, B2, B3]]),
 	Timestamp = calendar:local_time(),
 	ServiceType = 2,
-	Reservation = 1111,
+	Reservation = (UnitSize div 2) + rand:uniform(UnitSize div 2),
 	SessionId = [{'Session-Id', list_to_binary(ocs:generate_password())}],
 	{ok, #service{}, {PackageUnits,  Reserved}} = ocs_rating:rate(radius,
 			ServiceType, undefined, undefined, ServiceId, Timestamp,
@@ -276,30 +277,31 @@ initial_multiple_buckets(_Config) ->
 			[{PackageUnits, Reservation}], SessionId),
 	[#product{balance = BucketRefs}] = mnesia:dirty_read(product, ProdRef),
 	RatedBuckets = lists:flatten([mnesia:dirty_read(bucket, Id) || Id <- BucketRefs]),
-	Balance2 = lists:sum([R || #bucket{remain_amount = R} <- RatedBuckets]),
-	F = fun(A) when (A rem PackageSize) == 0 ->
-			(A div PackageSize) * PackagePrice;
+	Balance2 = lists:sum([B#bucket.remain_amount || B <- RatedBuckets,
+			B#bucket.units == cents]),
+	F = fun(A) when (A rem UnitSize) == 0 ->
+			(A div UnitSize) * UnitPrice;
 		(A) ->
-			(A div PackageSize + 1) * PackagePrice
+			(A div UnitSize + 1) * UnitPrice
 	end,
 	Balance2 = Balance1 - F(Reservation),
-	0 = Reserved rem PackageSize,
+	0 = Reserved rem UnitSize,
 	true = Reserved > Reservation,
-	Balance3 = lists:sum([R || #bucket{reservations = [{_, 0, R, SId}]}
-			<- RatedBuckets, SId == SessionId]),
-	Balance3 = F(Reservation).
+	#bucket{reservations = [{_, 0, Reserved, SessionId}],
+			remain_amount = 0} = lists:keyfind(octets,
+			#bucket.units, RatedBuckets).
 
 initial_expire_buckets() ->
 	[{userdata, [{doc, "Remove expired buckets"}]}].
 
 initial_expire_buckets(_Config) ->
-	PackagePrice = 100,
-	PackageSize = 1000,
+	PackagePrice = 10 + rand:uniform(90),
+	PackageSize = 5000000 + rand:uniform(9000000),
 	PackageUnits = octets,
 	P1 = price(usage, PackageUnits, PackageSize, PackagePrice),
 	OfferId = add_offer([P1], 4),
 	ProdRef = add_product(OfferId),
-	ServiceId =  add_service(ProdRef),
+	ServiceId = add_service(ProdRef),
 	RemAmount = 100,
 	B1 = bucket(cents, RemAmount),
 	B2= B1#bucket{start_date = erlang:system_time(?MILLISECOND) -  (2 * 2592000000),
@@ -318,21 +320,23 @@ initial_ignore_expired_buckets() ->
 	[{userdata, [{doc, "Ignore expired buckets with sessions"}]}].
 
 initial_ignore_expired_buckets(_Config) ->
-	PackagePrice = 100,
-	PackageSize = 1000,
+	PackagePrice = 10 + rand:uniform(90),
+	PackageSize = 5000000 + rand:uniform(9000000),
 	PackageUnits = octets,
 	P1 = price(usage, PackageUnits, PackageSize, PackagePrice),
 	OfferId = add_offer([P1], 4),
 	ProdRef = add_product(OfferId),
-	ServiceId =  add_service(ProdRef),
+	ServiceId = add_service(ProdRef),
 	SessionId1 = [{'Session-Id', list_to_binary(ocs:generate_password())}],
-	ExpiredBucket = #bucket{units = cents, remain_amount = 1000,
-		reservations = [{erlang:system_time(?MILLISECOND) - 3666000, 123, SessionId1}],
-		start_date = erlang:system_time(?MILLISECOND) - (2 * 2592000000),
-		end_date = erlang:system_time(?MILLISECOND) - 2592000000},
-	RemAmount = 565,
-	_BId1 = add_bucket(ProdRef, ExpiredBucket),
-	CurrentBucket = bucket(cents, RemAmount),
+	Now = erlang:system_time(?MILLISECOND),
+	RemAmount1 = rand:uniform(PackagePrice * 10),
+	ExpiredBucket = #bucket{units = cents, remain_amount = RemAmount1,
+			reservations = [{Now - 3666000, rand:uniform(PackagePrice * 3),
+			0, SessionId1}], start_date = Now - (2 * 2592000000),
+			end_date = Now - 2592000000},
+	BId1 = add_bucket(ProdRef, ExpiredBucket),
+	RemAmount2 = PackagePrice + rand:uniform(PackagePrice * 10),
+	CurrentBucket = bucket(cents, RemAmount2),
 	_BId2 = add_bucket(ProdRef, CurrentBucket),
 	Timestamp = calendar:local_time(),
 	Reservation = rand:uniform(PackageSize),
@@ -341,87 +345,73 @@ initial_ignore_expired_buckets(_Config) ->
 	{ok, #service{}, {PackageUnits, PackageSize}} = ocs_rating:rate(diameter,
 			ServiceType, undefined, undefined, ServiceId, Timestamp, undefined,
 			undefined, initial, [], [{PackageUnits, Reservation}], SessionId2),
-	{ok, #product{balance = BucketRefs}} = ocs:find_product(ProdRef),
-	2 = length(BucketRefs).
+	{ok, #bucket{remain_amount = RemAmount1}} = ocs:find_bucket(BId1).
 
 initial_negative_balance() ->
 	[{userdata, [{doc, "Handle negative balance and ignore"}]}].
 
 initial_negative_balance(_Config) ->
-	PackagePrice = 100,
-	PackageSize = 1000,
+	PackagePrice = 10 + rand:uniform(90),
+	PackageSize = 5000000 + rand:uniform(9000000),
 	PackageUnits = octets,
+	PackageAmount = 100 + rand:uniform(2000),
 	P1 = #price{name = "subscription", type = recurring,
-			period = monthly, amount = 2000},
+			period = monthly, amount = PackageAmount},
 	P2 = price(usage, PackageUnits, PackageSize, PackagePrice),
 	OfferId = add_offer([P1, P2], 4),
 	ProdRef = add_product(OfferId),
-	ServiceId =  add_service(ProdRef),
-	{ok, #product{balance = BucketRefs1}} = ocs:find_product(ProdRef),
+	ServiceId = add_service(ProdRef),
 	Timestamp = calendar:local_time(),
-	Buckets1 = lists:flatten([mnesia:dirty_read(bucket, Id)
-			|| Id <- BucketRefs1]),
-	Balance = lists:sum([R || #bucket{remain_amount = R} <- Buckets1]),
 	Reservation = rand:uniform(PackageSize),
 	SessionId = [{'Session-Id', list_to_binary(ocs:generate_password())}],
 	ServiceType = 32251,
 	{out_of_credit, _} = ocs_rating:rate(diameter, ServiceType, undefined,
 			undefined, ServiceId, Timestamp, undefined, undefined, initial,
-			[], [{PackageUnits, Reservation}], SessionId),
-	{ok, #product{balance = BucketRefs2}} = ocs:find_product(ProdRef),
-	Buckets2 = lists:flatten([mnesia:dirty_read(bucket, Id)
-			|| Id <- BucketRefs2]),
-	Balance = lists:sum([R || #bucket{remain_amount = R} <- Buckets2]).
+			[], [{PackageUnits, Reservation}], SessionId).
 
 interim_reserve() ->
 	[{userdata, [{doc, "Reservation amount equal to package size"}]}].
 
 interim_reserve(_Config) ->
-	PackagePrice = 100,
-	PackageSize = 1000,
+	PackagePrice = 10 + rand:uniform(90),
+	PackageSize = 5000000 + rand:uniform(9000000),
 	PackageUnits = octets,
 	P1 = price(usage, PackageUnits, PackageSize, PackagePrice),
 	OfferId = add_offer([P1], 4),
 	ProdRef = add_product(OfferId),
-	ServiceId =  add_service(ProdRef),
-	RemAmount = 200,
-	B1 = bucket(cents, RemAmount),
+	ServiceId = add_service(ProdRef),
+	RemAmount1 = (2 * PackagePrice) + rand:uniform(PackagePrice * 6),
+	B1 = bucket(cents, RemAmount1),
 	BId = add_bucket(ProdRef, B1),
 	Timestamp = calendar:local_time(),
 	TS = calendar:datetime_to_gregorian_seconds(Timestamp),
 	ServiceType = 2,
-	InitialReservation = 100,
 	SessionId = [{'Session-Id', list_to_binary(ocs:generate_password())}],
-	{ok, _Service, {PackageUnits, PackageSize}} = ocs_rating:rate(radius,
+	{ok, _Service, {PackageUnits, PackageSize}} = ocs_rating:rate(diameter,
 			ServiceType, undefined, undefined, ServiceId, Timestamp, undefined,
-			undefined, initial, [], [{PackageUnits, InitialReservation}], SessionId),
-	InterimReservation = PackageSize + InitialReservation,
-	{ok, #service{}, _Reservation} = ocs_rating:rate(radius, ServiceType,
+			undefined, initial, [], [{PackageUnits, PackageSize}], SessionId),
+	{ok, #service{}, _Reservation} = ocs_rating:rate(diameter, ServiceType,
 			undefined, undefined, ServiceId,
 			calendar:gregorian_seconds_to_datetime(TS + 60), undefined,
-			undefined, interim, [], [{PackageUnits, InterimReservation}], SessionId),
-	{ok, #bucket{remain_amount = 0,
-			reservations = [{_, 0, Reserved, _}]}} = ocs:find_bucket(BId),
-	F = fun(Reserve) when (Reserve rem PackageSize) == 0 ->
-			(Reserve div PackageSize) * PackagePrice;
-		(Reserve) ->
-			(Reserve div PackageSize + 1) * PackagePrice
-	end,
-	Reserved = F(InterimReservation).
+			undefined, interim, [], [{PackageUnits, PackageSize}], SessionId),
+	RemAmount2 = RemAmount1 - (2 * PackagePrice),
+	{ok, #bucket{remain_amount = RemAmount2,
+			reservations = [{_, Debited, _, SessionId}]}} = ocs:find_bucket(BId),
+	Debited = 2 * PackagePrice.
 
 interim_reserve_within_unit_size() ->
 	[{userdata, [{doc, "Reservation amounts less than package size"}]}].
 
 interim_reserve_within_unit_size(_Config) ->
-	PackagePrice = 100,
-	PackageSize = 1000,
+	PackagePrice = 10 + rand:uniform(90),
+	PackageSize = 5000000 + rand:uniform(9000000),
 	PackageUnits = octets,
 	P1 = price(usage, PackageUnits, PackageSize, PackagePrice),
 	OfferId = add_offer([P1], 4),
 	ProdRef = add_product(OfferId),
-	ServiceId =  add_service(ProdRef),
-	RemAmount = 200,
-	B1 = bucket(cents, RemAmount),
+	ServiceId = add_service(ProdRef),
+	RemAmount1 = PackagePrice * 10,
+	B1 = bucket(cents, RemAmount1),
 	BId = add_bucket(ProdRef, B1),
 	Timestamp = calendar:local_time(),
 	TS = calendar:datetime_to_gregorian_seconds(Timestamp),
@@ -432,47 +422,43 @@ interim_reserve_within_unit_size(_Config) ->
 		(Reserve) ->
 			(Reserve div PackageSize + 1) * PackagePrice
 	end,
-	%% 1st Reservation
-	Reservation1 = 100,
+	Reservation1 = rand:uniform(PackageSize - 1),
 	{ok, #service{}, {PackageUnits, PackageSize}} = ocs_rating:rate(diameter,
 			ServiceType, undefined, undefined, ServiceId, Timestamp, undefined,
 			undefined, initial, [], [{PackageUnits, Reservation1}], SessionId),
-	{ok, #bucket{remain_amount = CentsRemain1,
-			reservations = [{_, 0, Reserved1, _}]}} = ocs:find_bucket(BId),
-	CentsRemain1 = RemAmount - F(Reservation1),
-	Reserved1 = F(Reservation1),
-	%% 2nd Reservation
-	Reservation2 = 300,
+	{ok, #bucket{remain_amount = RemAmount2,
+			reservations = [{_, PackagePrice, _, SessionId}]}} = ocs:find_bucket(BId),
+	RemAmount2 = RemAmount1 - F(Reservation1),
+	Reservation2 = rand:uniform(PackageSize - 1),
 	{ok, #service{}, {PackageUnits, PackageSize}} = ocs_rating:rate(diameter,
 			ServiceType, undefined, undefined, ServiceId,
 			calendar:gregorian_seconds_to_datetime(TS + 60), undefined, undefined,
 			interim, [], [{PackageUnits, Reservation2}], SessionId),
-	{ok, #bucket{remain_amount = CentsRemain2,
-			reservations = [{_, 0, Reserved2, _}]}} = ocs:find_bucket(BId),
-	CentsRemain2 = RemAmount - F(Reservation2),
-	Reserved2 = F(Reservation2),
-	%% 3rd Reservation
-	Reservation3 = 700,
+	{ok, #bucket{remain_amount = RemAmount3,
+			reservations = [{_, Reserved1, _, SessionId}]}} = ocs:find_bucket(BId),
+	RemAmount3 = RemAmount2 - F(Reservation2),
+	Reserved1 = PackagePrice + F(Reservation2),
+	Reservation3 = rand:uniform(PackageSize - 1),
 	{ok, #service{}, {PackageUnits, PackageSize}} = ocs_rating:rate(diameter,
 			ServiceType, undefined, undefined, ServiceId,
 			calendar:gregorian_seconds_to_datetime(TS + 120), undefined, undefined,
 			interim, [], [{PackageUnits, Reservation3}], SessionId),
-	{ok, #bucket{remain_amount = CentsRemain3,
-			reservations = [{_, 0, Reserved3, _}]}} = ocs:find_bucket(BId),
-	CentsRemain3 = RemAmount - F(Reservation3),
-	Reserved3 = F(Reservation3).
+	{ok, #bucket{remain_amount = RemAmount4,
+			reservations = [{_, Reserved2, _, SessionId}]}} = ocs:find_bucket(BId),
+	RemAmount4 = RemAmount3 - F(Reservation3),
+	Reserved2 = Reserved1 + F(Reservation3).
 
 interim_reserve_available() ->
 	[{userdata, [{doc, "Reservation amount equal to balance and package size"}]}].
 
 interim_reserve_available(_Config) ->
-	PackagePrice = 100,
-	PackageSize = 1000,
+	PackagePrice = 10 + rand:uniform(90),
+	PackageSize = 5000000 + rand:uniform(9000000),
 	PackageUnits = octets,
 	P1 = price(usage, PackageUnits, PackageSize, PackagePrice),
 	OfferId = add_offer([P1], 4),
 	ProdRef = add_product(OfferId),
-	ServiceId =  add_service(ProdRef),
+	ServiceId = add_service(ProdRef),
 	B1 = bucket(cents, (2 * PackagePrice)),
 	BId = add_bucket(ProdRef, B1),
 	ServiceType = 32251,
@@ -485,82 +471,73 @@ interim_reserve_available(_Config) ->
 	{ok, #service{}, {PackageUnits, PackageSize}} = ocs_rating:rate(diameter,
 			ServiceType, undefined, undefined, ServiceId,
 			calendar:gregorian_seconds_to_datetime(TS + 60),
-			undefined, undefined, interim, [{PackageUnits, PackageSize}],
+			undefined, undefined, interim, [],
 			[{PackageUnits, PackageSize}], SessionId),
 	{ok, #bucket{remain_amount = 0,
-			reservations = [{_, PackagePrice, PackagePrice, _}]}} =
-			ocs:find_bucket(BId).
+			reservations = [{_, Debit, _, SessionId}]}} =
+			ocs:find_bucket(BId),
+	Debit = 2 * PackagePrice.
 
 interim_reserve_out_of_credit() ->
 	[{userdata, [{doc, "Out of credit on reservation"}]}].
 
 interim_reserve_out_of_credit(_Config) ->
-	UnitPrice = 100,
-	UnitSize = 1000000,
+	UnitPrice = 10 + rand:uniform(90),
+	UnitSize = 5000000 + rand:uniform(9000000),
 	PackageUnits = octets,
 	P1 = price(usage, PackageUnits, UnitSize, UnitPrice),
 	OfferId = add_offer([P1], 4),
 	ProdRef = add_product(OfferId),
-	ServiceId =  add_service(ProdRef),
-	StartingAmount = 110,
+	ServiceId = add_service(ProdRef),
+	StartingAmount = UnitPrice + rand:uniform(UnitPrice - 1),
 	B1 = bucket(cents, StartingAmount),
-	_BId = add_bucket(ProdRef, B1),
+	BId = add_bucket(ProdRef, B1),
 	ServiceType = 32251,
 	Timestamp = calendar:local_time(),
 	TS = calendar:datetime_to_gregorian_seconds(Timestamp),
 	SessionId = [{'Session-Id', list_to_binary(ocs:generate_password())}],
-	ReserveSize = UnitSize,
+	ReserveSize = rand:uniform(UnitSize),
 	{ok, _Service2, _} = ocs_rating:rate(diameter, ServiceType, undefined,
 			undefined, ServiceId, Timestamp, undefined, undefined,
 			initial, [], [{PackageUnits, ReserveSize}], SessionId),
-	DebitSize = UnitSize + 1,
 	{out_of_credit, _} = ocs_rating:rate(diameter, ServiceType, undefined,
 			undefined, ServiceId,
 			calendar:gregorian_seconds_to_datetime(TS + 60), undefined,
-			undefined, interim, [{PackageUnits, DebitSize}],
-			[{PackageUnits, ReserveSize}], SessionId),
-	{ok, #product{balance = BucketRefs}} = ocs:find_product(ProdRef),
-	RatedBuckets = lists:flatten([mnesia:dirty_read(bucket, Id)
-			|| Id <- BucketRefs]),
-	RemainAmount = case DebitSize rem UnitSize of
-		0 ->
-			StartingAmount - (DebitSize div UnitSize) * UnitPrice;
-		_ ->
-			StartingAmount - (DebitSize div UnitSize + 1) * UnitPrice
-	end,
-	RemainAmount = lists:sum([R || #bucket{units = cents, remain_amount = R} <- RatedBuckets]),
-	F = fun(Reservations) -> lists:sum([D || {_, D, _, _} <- Reservations]) end,
-	StartingAmount = lists:sum([F(R) || #bucket{reservations = R} <- RatedBuckets]).
+			undefined, interim, [], [{PackageUnits, ReserveSize}], SessionId),
+	Remain = StartingAmount - UnitPrice,
+	{ok, #bucket{remain_amount = Remain}} = ocs:find_bucket(BId).
 
 interim_reserve_remove_session() ->
 	[{userdata, [{doc, "Out of credit remove session attributes from subscriber record"}]}].
 
 interim_reserve_remove_session(_Config) ->
+	UnitPrice = 10 + rand:uniform(90),
+	UnitSize = 5000000 + rand:uniform(9000000),
 	PackageUnits = octets,
-	P1 = price(usage, PackageUnits, 1000, 100),
+	P1 = price(usage, PackageUnits, UnitSize, UnitPrice),
 	OfferId = add_offer([P1], 4),
 	ProdRef = add_product(OfferId),
-	ServiceId =  add_service(ProdRef),
-	RemAmount = 110,
+	ServiceId = add_service(ProdRef),
+	RemAmount = UnitPrice + rand:uniform(UnitPrice - 1),
 	B1 = bucket(cents, RemAmount),
 	_BId = add_bucket(ProdRef, B1),
 	Timestamp = calendar:local_time(),
 	TS = calendar:datetime_to_gregorian_seconds(Timestamp),
-	Reservation1 = 100,
+	Reservation1 = rand:uniform(UnitSize),
 	ServiceType = 32251,
 	SessionId = {'Session-Id', list_to_binary(ocs:generate_password())},
 	NasIp = {?NasIpAddress, "10.0.0.1"},
 	NasId = {?NasIdentifier, "rate@sigscale"},
 	SessionAttributes  = [NasId, NasIp, SessionId],
-	{ok, _, _} = ocs_rating:rate(diameter, ServiceType, undefined,
+	{ok, _, _} = ocs_rating:rate(radius, ServiceType, undefined,
 			undefined, ServiceId, Timestamp, undefined, undefined,
 			initial, [], [{PackageUnits, Reservation1}], SessionAttributes),
-	Reservation2 = 1100,
-	{out_of_credit, SessionList} = ocs_rating:rate(diameter, ServiceType,
+	Reservation2 = rand:uniform(UnitSize),
+	{out_of_credit, SessionList} = ocs_rating:rate(radius, ServiceType,
 			undefined, undefined, ServiceId,
 			calendar:gregorian_seconds_to_datetime(TS + 60),
-			undefined, undefined, initial, [], [{PackageUnits, Reservation2}],
-			SessionAttributes),
+			undefined, undefined, initial, [],
+			[{PackageUnits, Reservation2}], SessionAttributes),
 	[{_, [SessionId]}] = SessionList,
 	{ok, #service{session_attributes = []}} = ocs:find_service(ServiceId).
 
@@ -568,118 +545,83 @@ interim_reserve_multiple_buckets_available() ->
 	[{userdata, [{doc, "Reservation with multiple buckets"}]}].
 
 interim_reserve_multiple_buckets_available(_Config) ->
-	PackagePrice = 100,
-	PackageSize = 1000,
+	PackagePrice = 10 + rand:uniform(90),
+	PackageSize = 5000000 + rand:uniform(9000000),
 	PackageUnits = octets,
-	P1 = price(usage, PackageUnits, 1000, 100),
+	P1 = price(usage, PackageUnits, PackageSize, PackagePrice),
 	OfferId = add_offer([P1], 4),
 	ProdRef = add_product(OfferId),
-	ServiceId =  add_service(ProdRef),
-	RemAmount = 110,
-	B1 = bucket(cents, RemAmount),
+	ServiceId = add_service(ProdRef),
+	RemAmount1 = (PackagePrice div 3) + rand:uniform(PackagePrice div 3),
+	B1 = bucket(cents, RemAmount1),
 	_BId1 = add_bucket(ProdRef, B1),
-	B2 = bucket(cents, RemAmount),
+	RemAmount2 = (PackagePrice div 3) + rand:uniform(PackagePrice div 2),
+	B2 = bucket(cents, RemAmount2),
 	_BId2 = add_bucket(ProdRef, B2),
+	RemAmount3 = PackagePrice + rand:uniform(PackagePrice div 3),
+	B3 = bucket(cents, RemAmount3),
+	_BId3 = add_bucket(ProdRef, B3),
 	ServiceType = 32251,
-	Reservation1 = 1000,
+	Reservation1 = rand:uniform(PackageSize),
 	Timestamp = calendar:local_time(),
 	TS = calendar:datetime_to_gregorian_seconds(Timestamp),
-	SessionId = {'Session-Id', list_to_binary(ocs:generate_password())},
-	NasIp = {?NasIpAddress, "10.0.0.1"},
-	NasId = {?NasIdentifier, ocs:generate_password() ++ "@sigscalelab"},
-	SessionAttributes = [NasIp, NasId, SessionId],
+	SessionId = [{'Session-Id', list_to_binary(ocs:generate_password())}],
 	{ok, _, _} = ocs_rating:rate(diameter, ServiceType, undefined,
 			undefined, ServiceId, Timestamp, undefined, undefined,
-			initial, [], [{PackageUnits, Reservation1}], SessionAttributes),
-	{ok, #product{balance = BucketRefs1}} = ocs:find_product(ProdRef),
-	RatedBuckets1 = lists:flatten([mnesia:dirty_read(bucket, Id)
-			|| Id <- BucketRefs1]),
-	F1 = fun(F1, Type, [#bucket{units = Type, reservations = Res} | T], R) when Res =/= [] ->
-			{_, _, Reserved, _} = lists:keyfind([SessionId], 4, Res),
-			F1(F1, Type, T, Reserved + R);
-		(F1, Type, [_ | T], R) ->
-			F1(F1, Type, T, R);
-		(_, _, [], R) ->
-			R
-	end,
-	F2 = fun(Reserve) when (Reserve rem PackageSize) == 0 ->
-				(Reserve div PackageSize) * PackagePrice;
-			(Reserve) ->
-				(Reserve div PackageSize + 1) * PackagePrice
-	end,
-	Reserved1 = F1(F1, cents, RatedBuckets1, 0),
-	Reserved1 = F2(Reservation1),
-	Reservation2 = 1100,
+			initial, [], [{PackageUnits, Reservation1}], SessionId),
+	Reservation2 = rand:uniform(PackageSize),
 	{ok, _, _} = ocs_rating:rate(diameter, ServiceType,
 			undefined, undefined, ServiceId,
 			calendar:gregorian_seconds_to_datetime(TS + 60), undefined,
-			undefined, interim, [], [{PackageUnits, Reservation2}], SessionAttributes),
-	{ok, #product{balance = BucketRefs2}} = ocs:find_product(ProdRef),
-	RatedBuckets2 = lists:flatten([mnesia:dirty_read(bucket, Id)
-			|| Id <- BucketRefs2]),
-	Reserved2 = F1(F1, cents, RatedBuckets2, 0),
-	Reserved2 = F2(Reservation2).
+			undefined, interim, [], [{PackageUnits, Reservation2}],
+			SessionId).
+
 
 interim_reserve_multiple_buckets_out_of_credit() ->
 	[{userdata, [{doc, "Out of credit with multiple cents buckets"}]}].
 
 interim_reserve_multiple_buckets_out_of_credit(_Config) ->
-	UnitPrice = 100,
-	UnitSize = 1000000,
+	PackagePrice = 10 + rand:uniform(90),
+	PackageSize = 5000000 + rand:uniform(9000000),
 	PackageUnits = octets,
-	P1 = price(usage, PackageUnits, UnitSize, UnitPrice),
+	P1 = price(usage, PackageUnits, PackageSize, PackagePrice),
 	OfferId = add_offer([P1], 4),
 	ProdRef = add_product(OfferId),
-	ServiceId =  add_service(ProdRef),
-	StartAmount1 = 110,
-	B1 = bucket(cents, StartAmount1),
+	ServiceId = add_service(ProdRef),
+	RemAmount1 = (PackagePrice div 2),
+	B1 = bucket(cents, RemAmount1),
 	_BId1 = add_bucket(ProdRef, B1),
-	StartAmount2 = 50,
-	B2 = bucket(cents, StartAmount2),
+	RemAmount2 = (PackagePrice div 2),
+	B2 = bucket(cents, RemAmount2),
 	_BId2 = add_bucket(ProdRef, B2),
-	ServiceType = 2,
+	RemAmount3 = (PackagePrice div 2),
+	B3 = bucket(cents, RemAmount3),
+	_BId3 = add_bucket(ProdRef, B3),
+	ServiceType = 32251,
 	Timestamp = calendar:local_time(),
 	TS = calendar:datetime_to_gregorian_seconds(Timestamp),
-	SessionId = {'Session-Id', list_to_binary(ocs:generate_password())},
-	NasIp = {?NasIpAddress, "10.0.0.1"},
-	NasId = {?NasIdentifier, ocs:generate_password()},
-	SessionAttributes = [NasIp, SessionId, NasId],
-	Reservation1 = UnitSize,
+	SessionId = [{'Session-Id', list_to_binary(ocs:generate_password())}],
 	{ok, _, _} = ocs_rating:rate(diameter, ServiceType, undefined,
 			undefined, ServiceId, Timestamp, undefined, undefined,
-			initial, [], [{PackageUnits, Reservation1}], SessionAttributes),
-	Reservation2 = UnitSize,
-	DebitAmount = Reservation1,
+			initial, [], [{PackageUnits, PackageSize}], SessionId),
 	{out_of_credit, _} = ocs_rating:rate(diameter, ServiceType,
 			undefined, undefined, ServiceId,
 			calendar:gregorian_seconds_to_datetime(TS + 60), undefined,
-			undefined, interim, [{PackageUnits, DebitAmount}], [{PackageUnits, Reservation2}],
-			SessionAttributes),
-	{ok, #product{balance = BucketRefs}} = ocs:find_product(ProdRef),
-	Buckets2 = lists:flatten([mnesia:dirty_read(bucket, Id)
-			|| Id <- BucketRefs]),
-	StartAmount3 = StartAmount1 + StartAmount2,
-	RemainAmount = case DebitAmount rem UnitPrice of
-		0 ->
-			StartAmount3 - (DebitAmount div UnitSize) * UnitPrice;
-		_ ->
-			StartAmount3 - (DebitAmount div UnitSize + 1) * UnitPrice
-	end,
-	RemainAmount = lists:foldl(fun(#bucket{remain_amount = A}, Acc) -> A + Acc end, 0, Buckets2).
+			undefined, interim, [{PackageUnits, PackageSize}],
+			[], SessionId).
 
 interim_debit_exact_balance() ->
 	[{userdata, [{doc, "Debit amount equal to package size"}]}].
 
 interim_debit_exact_balance(_Config) ->
-	PackagePrice = 100,
-	PackageSize = 10000000,
+	PackagePrice = 10 + rand:uniform(90),
+	PackageSize = 5000000 + rand:uniform(9000000),
 	PackageUnits = octets,
 	P1 = price(usage, PackageUnits, PackageSize, PackagePrice),
 	OfferId = add_offer([P1], 4),
 	ProdRef = add_product(OfferId),
-	ServiceId =  add_service(ProdRef),
-	RemAmount = 2 * PackagePrice,
-	B1 = bucket(cents, RemAmount),
+	ServiceId = add_service(ProdRef),
+	B1 = bucket(cents, PackageSize),
 	_BId = add_bucket(ProdRef, B1),
 	ServiceType = 32251,
 	Timestamp = calendar:local_time(),
@@ -689,30 +631,19 @@ interim_debit_exact_balance(_Config) ->
 			initial, [], [{PackageUnits, PackageSize}], SessionId),
 	{ok, _, _} = ocs_rating:rate(diameter, ServiceType, undefined,
 			undefined, ServiceId, Timestamp, undefined,
-			undefined, interim, [{PackageUnits, PackageSize}], [], SessionId),
-	{ok, #product{balance = BucketRefs}} = ocs:find_product(ProdRef),
-	RatedBuckets = lists:flatten([mnesia:dirty_read(bucket, Id)
-			|| Id <- BucketRefs]),
-	#bucket{remain_amount = 0, reservations = Reservations} =
-			lists:keyfind(cents, #bucket.units, RatedBuckets),
-	F = fun(F, [{_, D, _, _} | T], Debit) ->
-				F(F, T, D + Debit);
-			(_F, [], Debit) ->
-				Debit
-	end,
-	PackagePrice = F(F, Reservations, 0).
+			undefined, interim, [{PackageUnits, PackageSize}], [], SessionId).
 
 interim_debit_under_unit_size() ->
 	[{userdata, [{doc, "Debit amount less than package size"}]}].
 
 interim_debit_under_unit_size(_Config) ->
-	PackagePrice = 100,
-	PackageSize = 10000000,
+	PackagePrice = 10 + rand:uniform(90),
+	PackageSize = 5000000 + rand:uniform(9000000),
 	PackageUnits = octets,
 	P1 = price(usage, PackageUnits, PackageSize, PackagePrice),
 	OfferId = add_offer([P1], 4),
 	ProdRef = add_product(OfferId),
-	ServiceId =  add_service(ProdRef),
+	ServiceId = add_service(ProdRef),
 	RemAmount = (2 * PackagePrice) + 1,
 	B1 = bucket(cents, RemAmount),
 	_BId = add_bucket(ProdRef, B1),
@@ -723,27 +654,22 @@ interim_debit_under_unit_size(_Config) ->
 			undefined, ServiceId, Timestamp, undefined, undefined,
 			initial, [], [{PackageUnits, PackageSize}], SessionId),
 	{ok, _, _} = ocs_rating:rate(diameter, ServiceType, undefined,
-			undefined, ServiceId, Timestamp, undefined,
-			undefined, interim, [{PackageUnits, 1000000}], [], SessionId),
-	{ok, #product{balance = BucketRefs}} = ocs:find_product(ProdRef),
-	RatedBuckets = lists:flatten([mnesia:dirty_read(bucket, Id)
-			|| Id <- BucketRefs]),
-	#bucket{remain_amount = 1} = lists:keyfind(cents, #bucket.units, RatedBuckets).
+			undefined, ServiceId, Timestamp, undefined, undefined,
+			interim, [{PackageUnits, PackageSize div 3}], [{PackageUnits, 0}], SessionId).
 
 interim_debit_out_of_credit() ->
 	[{userdata, [{doc, "Insufficient amount to debit"}]}].
 
 interim_debit_out_of_credit(_Config) ->
-	AccountAmount = 200,
-	PackageAmount = 100,
-	PackageSize = 1000,
+	PackagePrice = 10 + rand:uniform(90),
+	PackageSize = 5000000 + rand:uniform(9000000),
 	PackageUnits = octets,
-	P1 = price(usage, PackageUnits, PackageSize, PackageAmount),
+	P1 = price(usage, PackageUnits, PackageSize, PackagePrice),
 	OfferId = add_offer([P1], 4),
 	ProdRef = add_product(OfferId),
-	ServiceId =  add_service(ProdRef),
-	B1 = bucket(cents, AccountAmount),
-	BId = add_bucket(ProdRef, B1),
+	ServiceId = add_service(ProdRef),
+	B1 = bucket(cents, PackagePrice),
+	_BId = add_bucket(ProdRef, B1),
 	ServiceType = 32251,
 	Timestamp = calendar:local_time(),
 	TS = calendar:datetime_to_gregorian_seconds(Timestamp),
@@ -751,268 +677,186 @@ interim_debit_out_of_credit(_Config) ->
 	{ok, _Service1, {PackageUnits, PackageSize}} = ocs_rating:rate(diameter,
 			ServiceType, undefined, undefined, ServiceId, Timestamp, undefined,
 			undefined, initial, [], [{PackageUnits, PackageSize}], SessionId),
-	{ok, _Service2, {PackageUnits, PackageSize}} = ocs_rating:rate(diameter,
-			ServiceType, undefined, undefined, ServiceId,
-			calendar:gregorian_seconds_to_datetime(TS + 60),
-			undefined, undefined, interim, [{PackageUnits, PackageSize}],
-			[{PackageUnits, PackageSize}], SessionId),
 	{out_of_credit, _} = ocs_rating:rate(diameter, ServiceType, undefined, 
 			undefined, ServiceId, calendar:gregorian_seconds_to_datetime(TS + 60),
-			undefined, undefined, interim, [{PackageUnits, PackageSize}],
-			[{PackageUnits, PackageSize}], SessionId),
-	{ok, #bucket{reservations = Reservations}} = ocs:find_bucket(BId),
-	[{_, AccountAmount, 0, _}] = Reservations.
+			undefined, undefined, interim,
+			[{PackageUnits, PackageSize + 1}], [{PackageUnits, 0}], SessionId).
 
 interim_debit_remove_session() ->
 	[{userdata, [{doc, "Out of credit remove session attributes from subscriber record"}]}].
 
 interim_debit_remove_session(_Config) ->
+	PackagePrice = 10 + rand:uniform(90),
+	PackageSize = 5000000 + rand:uniform(9000000),
 	PackageUnits = octets,
-	P1 = price(usage, PackageUnits, 1000, 100),
+	P1 = price(usage, PackageUnits, PackageSize, PackagePrice),
 	OfferId = add_offer([P1], 4),
 	ProdRef = add_product(OfferId),
-	ServiceId =  add_service(ProdRef),
+	ServiceId = add_service(ProdRef),
 	RemAmount = 10,
 	_BId = add_bucket(ProdRef, bucket(cents, RemAmount)),
 	SessionAttributes = [{erlang:system_time(?MILLISECOND), [{?AcctSessionId, "1020303"},
 		{?NasIdentifier, "rate@sigscale"}, {?NasIpAddress, "10.0.0.1"}]}],
-	F = fun() ->
-		[Service] = mnesia:read(service, list_to_binary(ServiceId), read),
-		mnesia:write(Service#service{session_attributes = SessionAttributes})
-	end,
-	{atomic, ok} = mnesia:transaction(F),
-	ServiceType = 32251,
+	ServiceType = 2,
 	Timestamp = calendar:local_time(),
-	SessionId = [{'Session-Id', list_to_binary(ocs:generate_password())}],
 	Debit = 100,
-	{out_of_credit, _} = ocs_rating:rate(diameter, ServiceType,
+	{ok, _,  _} = ocs_rating:rate(radius, ServiceType,
 			undefined, undefined, ServiceId, Timestamp, undefined, undefined,
-			interim, [{PackageUnits, Debit}], [], SessionId),
+			initial, [], [], SessionAttributes),
+	{ok, #service{session_attributes = [SessionAttributes]}} = ocs:find_service(ServiceId),
+	{out_of_credit, _} = ocs_rating:rate(radius, ServiceType,
+			undefined, undefined, ServiceId, Timestamp, undefined, undefined,
+			interim, [{PackageUnits, Debit}], [{PackageUnits, 0}], SessionAttributes),
 	{ok, #service{session_attributes = []}} = ocs:find_service(ServiceId).
 
 interim_debit_and_reserve_available() ->
 	[{userdata, [{doc, "Debit given usage and check for reservation, sufficient balance exists"}]}].
 
 interim_debit_and_reserve_available(_Config) ->
-	PackagePrice = 100,
-	PackageSize = 1000,
+	PackagePrice = 10 + rand:uniform(90),
+	PackageSize = 5000000 + rand:uniform(9000000),
 	PackageUnits = octets,
 	P1 = price(usage, PackageUnits, PackageSize, PackagePrice),
 	OfferId = add_offer([P1], 4),
 	ProdRef = add_product(OfferId),
-	ServiceId =  add_service(ProdRef),
-	RemAmount = 300,
-	B1 = bucket(cents, RemAmount),
-	_BId = add_bucket(ProdRef, B1),
-	Debit = 1000,
+	ServiceId = add_service(ProdRef),
+	RemAmount1 = PackagePrice * 100,
+	B1 = bucket(cents, RemAmount1),
+	BId = add_bucket(ProdRef, B1),
 	ServiceType = 32251,
-	Reservation = 1000,
+	Reservation1 = rand:uniform(PackageSize),
 	Timestamp = calendar:local_time(),
 	TS = calendar:datetime_to_gregorian_seconds(Timestamp),
 	SessionId = [{'Session-Id', list_to_binary(ocs:generate_password())}],
 	{ok, _, _} = ocs_rating:rate(diameter, ServiceType, undefined,
 			undefined, ServiceId, Timestamp, undefined, undefined,
-			initial, [], [{PackageUnits, Reservation}], SessionId),
-	{ok, #product{balance = BucketRefs1}} = ocs:find_product(ProdRef),
-	RatedBuckets1 = lists:flatten([mnesia:dirty_read(bucket, Id)
-			|| Id <- BucketRefs1]),
-	#bucket{remain_amount = CentsRemain1, reservations = Reservations1} =
-			lists:keyfind(cents, #bucket.units, RatedBuckets1),
-	F1 = fun(A) when (A rem PackageSize) == 0 ->
-			(A div PackageSize) * PackagePrice;
-		(A) ->
-			(A div PackageSize + 1) * PackagePrice
-	end,
-	F3 = fun(Deb, Reserve, 0) ->
-				(Deb + Reserve);
-			(Deb, Reserve, Reserved) ->
-				case Deb rem Reserved of
-					0 ->
-						Reserve;
-					_ ->
-						(PackagePrice + Reserve)
-				end
-	end,
-	F2 = fun(Deb, Reserve, Reserved) -> F3(F1(Deb), F1(Reserve), Reserved) end,
-	CentsRemain1 = RemAmount - F1(Reservation),
-	{_, 0, Reservation1, _} = lists:keyfind(SessionId, 4, Reservations1),
-	Reservation1 = F2(0, Reservation, 0),
+			initial, [], [{PackageUnits, Reservation1}], SessionId),
+	RemAmount2 = RemAmount1 - PackagePrice,
+	{ok, #bucket{reservations = [{_, PackagePrice, _, SessionId}],
+			remain_amount = RemAmount2}} = ocs:find_bucket(BId),
+	Reservation2 = rand:uniform(PackageSize),
+	Debit = rand:uniform(Reservation2),
 	{ok, _, _} = ocs_rating:rate(diameter, ServiceType,
 			undefined, undefined, ServiceId,
 			calendar:gregorian_seconds_to_datetime(TS + 60), undefined,
-			undefined, interim, [{PackageUnits, Debit}], [{PackageUnits, Reservation}],
-			SessionId),
-	{ok, #product{balance = BucketRefs2}} = ocs:find_product(ProdRef),
-	RatedBuckets2 = lists:flatten([mnesia:dirty_read(bucket, Id)
-			|| Id <- BucketRefs2]),
-	#bucket{remain_amount = CentsRemain2, reservations = Reservations2} =
-			lists:keyfind(cents, #bucket.units, RatedBuckets2),
-	CentsRemain2 = CentsRemain1 - F1(Debit),
-	{_, Debit2, Reservation2, _} = lists:keyfind(SessionId, 4, Reservations2),
-	Debit2 = F1(Debit),
-	Reservation2 = F2(Debit, Reservation, Reservation1).
+			undefined, interim, [{PackageUnits, Debit}],
+			[{PackageUnits, Reservation2}], SessionId),
+	Debited = case (Debit + Reservation2) of
+		N when N =< PackageSize ->
+			PackagePrice * 2;
+		_  ->
+			PackagePrice * 3
+	end,
+	RemAmount3 = RemAmount1 - Debited,
+	{ok, #bucket{reservations = [{_, Debited, _, SessionId}],
+			remain_amount = RemAmount3}} = ocs:find_bucket(BId).
 
 interim_debit_and_reserve_insufficient1() ->
 	[{userdata, [{doc, "Debit amount less than package size and reservation amount
-			less than available balance, sufficient balance exists"}]}].
+			less than available balance, insufficient balance exists"}]}].
 
 interim_debit_and_reserve_insufficient1(_Config) ->
-	PackagePrice = 100,
-	PackageSize = 1000,
+	PackagePrice = 10 + rand:uniform(90),
+	PackageSize = 5000000 + rand:uniform(9000000),
 	PackageUnits = octets,
 	P1 = price(usage, PackageUnits, PackageSize, PackagePrice),
 	OfferId = add_offer([P1], 4),
 	ProdRef = add_product(OfferId),
-	ServiceId =  add_service(ProdRef),
-	RemAmount = 201,
-	_BId = add_bucket(ProdRef, bucket(cents, RemAmount)),
-	Debit = 100,
-	Reservation = 100,
+	ServiceId = add_service(ProdRef),
+	RemAmount1 = (PackagePrice * 2) + rand:uniform(PackagePrice),
+	BId = add_bucket(ProdRef, bucket(cents, RemAmount1)),
+	Reservation1 = rand:uniform(PackageSize),
 	ServiceType = 32251,
 	Timestamp = calendar:local_time(),
 	TS = calendar:datetime_to_gregorian_seconds(Timestamp),
 	SessionId = [{'Session-Id', list_to_binary(ocs:generate_password())}],
 	{ok, _, _} = ocs_rating:rate(diameter, ServiceType, undefined,
 			undefined, ServiceId, Timestamp, undefined, undefined,
-			initial, [], [{PackageUnits, Reservation}], SessionId),
-	{ok, #product{balance = BucketRefs1}} = ocs:find_product(ProdRef),
-	RatedBuckets1 = lists:flatten([mnesia:dirty_read(bucket, Id)
-			|| Id <- BucketRefs1]),
-	#bucket{remain_amount = CentsRemain1,
-			reservations = Reservations1} = lists:keyfind(cents,
-			#bucket.units, RatedBuckets1),
-	F1 = fun(A) when (A rem PackageSize) == 0 ->
-			(A div PackageSize) * PackagePrice;
-		(A) ->
-			(A div PackageSize + 1) * PackagePrice
-	end,
-	F3 = fun(Deb, Reserve, 0) ->
-				(Deb + Reserve);
-			(Deb, Reserve, Reserved) ->
-				case Deb rem Reserved of
-					0 ->
-						Reserve;
-					_ ->
-						(PackagePrice + Reserve)
-				end
-	end,
-	F2 = fun(Deb, Reserve, Reserved) -> F3(F1(Deb), F1(Reserve), Reserved) end,
-	CentsRemain1 = RemAmount - F1(Reservation),
-	{_, 0, Reservation1, _} = lists:keyfind(SessionId, 4, Reservations1),
-	Reservation1 = F2(0, Reservation, 0),
-	{ok, _, _} = ocs_rating:rate(diameter, ServiceType,
+			initial, [], [{PackageUnits, Reservation1}], SessionId),
+	Debit = rand:uniform(PackageSize),
+	Reservation2 = PackageSize + rand:uniform(PackageSize),
+	{out_of_credit, _} = ocs_rating:rate(diameter, ServiceType,
 			undefined, undefined, ServiceId,
 			calendar:gregorian_seconds_to_datetime(TS + 60), undefined,
-			undefined, interim, [{PackageUnits, Debit}], [{PackageUnits, Reservation}],
-			SessionId),
-	{ok, #product{balance = BucketRefs2}} = ocs:find_product(ProdRef),
-	RatedBuckets2 = lists:flatten([mnesia:dirty_read(bucket, Id)
-			|| Id <- BucketRefs2]),
-	#bucket{remain_amount = CentsRemain2, reservations = Reservations2} =
-			lists:keyfind(cents, #bucket.units, RatedBuckets2),
-	CentsRemain2 = CentsRemain1 - F1(Debit),
-	{_, Debit2, Reservation2, _} = lists:keyfind(SessionId, 4, Reservations2),
-	Debit2 = F1(Debit),
-	Reservation2 = F2(Debit, Reservation, Reservation1).
+			undefined, interim, [{PackageUnits, Debit}],
+			[{PackageUnits, Reservation2}], SessionId),
+	RemAmount2 = RemAmount1 - PackagePrice,
+	{ok, #bucket{remain_amount = RemAmount2}} = ocs:find_bucket(BId).
 
 interim_debit_and_reserve_insufficient2() ->
 	[{userdata, [{doc, "Debit amount equal to unit size and
 			reservation amount greater than available balance"}]}].
 
 interim_debit_and_reserve_insufficient2(_Config) ->
-	UnitPrice = 100,
-	UnitSize = 1000000,
+	PackagePrice = 10 + rand:uniform(90),
+	PackageSize = 5000000 + rand:uniform(9000000),
 	PackageUnits = octets,
-	P1 = price(usage, PackageUnits, UnitSize, UnitPrice),
+	P1 = price(usage, PackageUnits, PackageSize, PackagePrice),
 	OfferId = add_offer([P1], 4),
 	ProdRef = add_product(OfferId),
-	ServiceId =  add_service(ProdRef),
-	StartAmount = 199,
-	B1 = bucket(cents, StartAmount),
-	_BId = add_bucket(ProdRef, B1),
+	ServiceId = add_service(ProdRef),
+	RemAmount1 = (2 * PackagePrice) + rand:uniform(PackagePrice),
+	BId = add_bucket(ProdRef, bucket(cents, RemAmount1)),
+	Reservation1 = rand:uniform(PackageSize),
 	ServiceType = 32251,
 	Timestamp = calendar:local_time(),
 	TS = calendar:datetime_to_gregorian_seconds(Timestamp),
 	SessionId = [{'Session-Id', list_to_binary(ocs:generate_password())}],
 	{ok, _, _} = ocs_rating:rate(diameter, ServiceType, undefined,
 			undefined, ServiceId, Timestamp, undefined, undefined,
-			initial, [], [{PackageUnits, UnitSize}], SessionId),
+			initial, [], [{PackageUnits, Reservation1}], SessionId),
+	Reservation2 = PackageSize + rand:uniform(PackageSize),
 	{out_of_credit, _} = ocs_rating:rate(diameter, ServiceType,
 			undefined, undefined, ServiceId,
-			calendar:gregorian_seconds_to_datetime(TS + 60), undefined, undefined,
-			interim, [{PackageUnits, UnitSize}], [{PackageUnits, UnitSize}], SessionId),
-	{ok, #product{balance = BucketRefs2}} = ocs:find_product(ProdRef),
-	RatedBuckets2 = lists:flatten([mnesia:dirty_read(bucket, Id)
-			|| Id <- BucketRefs2]),
-	RemainAmount = StartAmount - UnitPrice,
-	#bucket{remain_amount = RemainAmount} = lists:keyfind(cents, #bucket.units, RatedBuckets2).
+			calendar:gregorian_seconds_to_datetime(TS + 60), undefined,
+			undefined, interim, [{PackageUnits, PackageSize}],
+			[{PackageUnits, Reservation2}], SessionId),
+	RemAmount2 = RemAmount1 - PackagePrice,
+	{ok, #bucket{remain_amount = RemAmount2}} = ocs:find_bucket(BId).
 
 interim_debit_and_reserve_insufficient3() ->
 	[{userdata, [{doc, "Suffient balance for debit but not reservation"}]}].
 
 interim_debit_and_reserve_insufficient3(_Config) ->
-	PackagePrice = 100,
-	PackageSize = 1000,
+	PackagePrice = 10 + rand:uniform(90),
+	PackageSize = 5000000 + rand:uniform(9000000),
 	PackageUnits = octets,
 	P1 = price(usage, PackageUnits, PackageSize, PackagePrice),
 	OfferId = add_offer([P1], 4),
 	ProdRef = add_product(OfferId),
-	ServiceId =  add_service(ProdRef),
-	RemAmount = 200,
-	B1 = bucket(cents, RemAmount),
-	BId = add_bucket(ProdRef, B1),
+	ServiceId = add_service(ProdRef),
+	RemAmount1 = PackagePrice + rand:uniform(PackagePrice),
+	BId = add_bucket(ProdRef, bucket(cents, RemAmount1)),
+	Reservation1 = rand:uniform(PackageSize),
 	ServiceType = 32251,
-	Debit = 1500,
-	Reservation = 1000,
 	Timestamp = calendar:local_time(),
 	TS = calendar:datetime_to_gregorian_seconds(Timestamp),
 	SessionId = [{'Session-Id', list_to_binary(ocs:generate_password())}],
 	{ok, _, _} = ocs_rating:rate(diameter, ServiceType, undefined,
 			undefined, ServiceId, Timestamp, undefined, undefined,
-			initial, [], [{PackageUnits, Reservation}], SessionId),
-	{ok, #product{balance = BucketRefs1}} = ocs:find_product(ProdRef),
-	RatedBuckets1 = lists:flatten([mnesia:dirty_read(bucket, Id)
-			|| Id <- BucketRefs1]),
-	#bucket{remain_amount = CentsRemain1, reservations = Reservations1} =
-			lists:keyfind(cents, #bucket.units, RatedBuckets1),
-	F1 = fun(A) when (A rem PackageSize) == 0 ->
-			(A div PackageSize) * PackagePrice;
-		(A) ->
-			(A div PackageSize + 1) * PackagePrice
-	end,
-	F3 = fun(Deb, Reserve, 0) ->
-				(Deb + Reserve);
-			(Deb, Reserve, Reserved) ->
-				case Deb rem Reserved of
-					0 ->
-						Reserve;
-					_ ->
-						(PackagePrice + Reserve)
-				end
-	end,
-	F2 = fun(Deb, Reserve, Reserved) -> F3(F1(Deb), F1(Reserve), Reserved) end,
-	CentsRemain1 = RemAmount - F1(Reservation),
-	{_, 0, Reservation1, _} = lists:keyfind(SessionId, 4, Reservations1),
-	Reservation1 = F2(0, Reservation, 0),
+			initial, [], [{PackageUnits, Reservation1}], SessionId),
+	UsedUnits = rand:uniform(Reservation1),
+	Reservation2 = PackageSize,
 	{out_of_credit, _} = ocs_rating:rate(diameter, ServiceType,
 			undefined, undefined, ServiceId,
-			calendar:gregorian_seconds_to_datetime(TS + 60), undefined, undefined,
-			interim, [{PackageUnits, Debit}], [{PackageUnits, Reservation}], SessionId),
-	{ok, #bucket{reservations = [InterimReservation]}} = ocs:find_bucket(BId),
-	element(2, InterimReservation) == F1(Debit).
+			calendar:gregorian_seconds_to_datetime(TS + 60), undefined,
+			undefined, interim, [{PackageUnits, UsedUnits}],
+			[{PackageUnits, Reservation2}], SessionId),
+	RemAmount2 = RemAmount1 - PackagePrice,
+	{ok, #bucket{remain_amount = RemAmount2}} = ocs:find_bucket(BId).
 
 interim_debit_and_reserve_insufficient4() ->
 	[{userdata, [{doc, "Insuffient amount for debit and reservation"}]}].
 
 interim_debit_and_reserve_insufficient4(_Config) ->
-	PackagePrice = 100,
-	PackageSize = 1000,
+	PackagePrice = 10 + rand:uniform(90),
+	PackageSize = 5000000 + rand:uniform(9000000),
 	PackageUnits = octets,
 	P1 = price(usage, PackageUnits, PackageSize, PackagePrice),
 	OfferId = add_offer([P1], 4),
 	ProdRef = add_product(OfferId),
-	ServiceId =  add_service(ProdRef),
-	RemAmount = 150,
+	ServiceId = add_service(ProdRef),
+	RemAmount = PackagePrice + rand:uniform(PackagePrice - 1),
 	B1 = bucket(cents, RemAmount),
 	_BId = add_bucket(ProdRef, B1),
 	Debit = 2500,
@@ -1028,67 +872,49 @@ interim_debit_and_reserve_insufficient4(_Config) ->
 	{out_of_credit, _} = ocs_rating:rate(diameter, ServiceType,
 			undefined, undefined, ServiceId,
 			calendar:gregorian_seconds_to_datetime(TS + 60), undefined, undefined,
-			interim, [{PackageUnits, Debit}], [{PackageUnits, Reservation}], SessionId),
-	{ok, #product{balance = BucketRefs}} = ocs:find_product(ProdRef),
-	RatedBuckets = lists:flatten([mnesia:dirty_read(bucket, Id)
-			|| Id <- BucketRefs]),
-	-150 = lists:sum([R || #bucket{remain_amount = R, units = cents} <- RatedBuckets]),
-	F = fun(Res1) -> lists:sum([D || {_, D, _, _} <- Res1]) end,
-	RemAmount = lists:sum([F(R) || #bucket{reservations = R, units = cents} <- RatedBuckets]).
+			interim, [{PackageUnits, Debit}], [{PackageUnits, Reservation}], SessionId).
 
 interim_out_of_credit_voice() ->
 	[{userdata, [{doc, "Voice call out of credit during call"}]}].
 
 interim_out_of_credit_voice(_Config) ->
-	UnitPrice = 10,
-	UnitSize = 60,
+	UnitPrice = 10 + rand:uniform(90),
+	UnitSize = 5000000 + rand:uniform(9000000),
 	P1 = price(usage, seconds, UnitSize, UnitPrice),
 	OfferId = add_offer([P1], 9),
 	ProdRef = add_product(OfferId),
-	ServiceId =  add_service(ProdRef),
-	StartingAmount = 11,
+	ServiceId = add_service(ProdRef),
+	StartingAmount = UnitPrice + rand:uniform(UnitPrice - 1),
 	B1 = bucket(cents, StartingAmount),
-	_BId = add_bucket(ProdRef, B1),
-	ReserveUnits = 60,
+	BId = add_bucket(ProdRef, B1),
+	ReserveUnits1 = rand:uniform(UnitSize),
 	ServiceType = 32260,
 	Timestamp = calendar:local_time(),
 	TS = calendar:datetime_to_gregorian_seconds(Timestamp),
 	SessionId = [{'Session-Id', list_to_binary(ocs:generate_password())}],
 	{ok, _, _} = ocs_rating:rate(diameter, ServiceType, undefined,
 			undefined, ServiceId, Timestamp, undefined, undefined,
-			initial, [], [{seconds, ReserveUnits}], SessionId),
-	{ok, #product{balance = BucketRefs1}} = ocs:find_product(ProdRef),
-	Buckets1 = lists:flatten([mnesia:dirty_read(bucket, Id)
-			|| Id <- BucketRefs1]),
-	#bucket{remain_amount = Amount1} = lists:keyfind(cents, #bucket.units, Buckets1),
-	ReservedUnits = case (ReserveUnits rem UnitSize) of
-		0 ->
-			ReserveUnits div UnitSize;
-		_ ->
-			ReserveUnits div UnitSize + 1
-	end,
-	Amount1 = StartingAmount - ReservedUnits * UnitPrice,
+			initial, [], [{seconds, ReserveUnits1}], SessionId),
+	UsedUnits = rand:uniform(UnitSize),
+	ReserveUnits2 = rand:uniform(UnitSize),
 	{out_of_credit, _} = ocs_rating:rate(diameter, ServiceType,
 			undefined, undefined, ServiceId,
 			calendar:gregorian_seconds_to_datetime(TS + 60), undefined, undefined,
-			interim, [{seconds, ReserveUnits}], [{seconds, ReserveUnits}], SessionId),
-	{ok, #product{balance = BucketRefs2}} = ocs:find_product(ProdRef),
-	Buckets2 = lists:flatten([mnesia:dirty_read(bucket, Id)
-			|| Id <- BucketRefs2]),
-	#bucket{remain_amount = Amount2, reservations = [InterimReservation]}
-			= lists:keyfind(cents, #bucket.units, Buckets2),
-	UnitPrice = element(2, InterimReservation),
-	Amount2 = StartingAmount - ReservedUnits * UnitPrice.
+			interim, [{seconds, UsedUnits}], [{seconds, ReserveUnits2}], SessionId),
+	Remain = StartingAmount - UnitPrice,
+	{ok, #bucket{remain_amount = Remain}} = ocs:find_bucket(BId).
 
 final_remove_session() ->
 	[{userdata, [{doc, "Final call remove session attributes from subscriber record"}]}].
 
 final_remove_session(_Config) ->
+	PackagePrice = 10 + rand:uniform(90),
+	PackageSize = 5000000 + rand:uniform(9000000),
 	PackageUnits = octets,
-	P1 = price(usage, PackageUnits, 10000000, 100),
+	P1 = price(usage, PackageUnits, PackageSize, PackagePrice),
 	OfferId = add_offer([P1], 4),
 	ProdRef = add_product(OfferId),
-	ServiceId =  add_service(ProdRef),
+	ServiceId = add_service(ProdRef),
 	RemAmount = 1000,
 	B1 = bucket(cents, RemAmount),
 	_BId = add_bucket(ProdRef, B1),
@@ -1119,36 +945,32 @@ final_refund_octets() ->
 	[{userdata, [{doc, "Refund unused amount of octets reservation"}]}].
 
 final_refund_octets(_Config) ->
-	UnitPrice = 100,
-	UnitSize = 1000000,
+	UnitPrice = 10 + rand:uniform(90),
+	UnitSize = 5000000 + rand:uniform(9000000),
 	PackageUnits = octets,
 	P1 = price(usage, PackageUnits, UnitSize, UnitPrice),
 	OfferId = add_offer([P1], 4),
 	ProdRef = add_product(OfferId),
-	ServiceId =  add_service(ProdRef),
+	ServiceId = add_service(ProdRef),
 	StartingAmount = UnitSize * 4,
 	B1 = bucket(octets, StartingAmount),
-	_BId = add_bucket(ProdRef, B1),
+	BId = add_bucket(ProdRef, B1),
 	ServiceType = 32251,
 	Timestamp = calendar:local_time(),
 	TS = calendar:datetime_to_gregorian_seconds(Timestamp),
-	Reserve1 = 2 * UnitSize,
+	Reserve1 = rand:uniform(UnitSize),
 	SessionId1 = [{'Session-Id', list_to_binary(ocs:generate_password())}],
 	{ok, _, _} = ocs_rating:rate(diameter, ServiceType, undefined,
 			undefined, ServiceId, Timestamp, undefined, undefined,
 			initial, [], [{PackageUnits, Reserve1}], SessionId1),
-	UsedUnits1 = rand:uniform(UnitSize),
-	{ok, _, [#rated{}]} = ocs_rating:rate(diameter, ServiceType,
+	UsedUnits1 = rand:uniform(Reserve1),
+	{ok, _, _} = ocs_rating:rate(diameter, ServiceType,
 			undefined, undefined, ServiceId,
 			calendar:gregorian_seconds_to_datetime(TS + 60),
 			undefined, undefined, final,
 			[{PackageUnits, UsedUnits1}], [], SessionId1),
-	{ok, #product{balance = BucketRefs2}} = ocs:find_product(ProdRef),
-	RatedBuckets1 = lists:flatten([mnesia:dirty_read(bucket, Id)
-			|| Id <- BucketRefs2]),
 	Remain1 = StartingAmount - UsedUnits1,
-	#bucket{remain_amount = Remain1, reservations = []} =
-			lists:keyfind(octets, #bucket.units, RatedBuckets1),
+	{ok, #bucket{remain_amount = Remain1}} = ocs:find_bucket(BId),
 	SessionId2 = [{'Session-Id', list_to_binary(ocs:generate_password())}],
 	{ok, _, _} = ocs_rating:rate(diameter, ServiceType,
 			undefined, undefined, ServiceId,
@@ -1162,52 +984,44 @@ final_refund_octets(_Config) ->
 			undefined, undefined, interim, [{PackageUnits, UsedUnits2}],
 			[{PackageUnits, UnitSize}], SessionId2),
 	UsedUnits3 = rand:uniform(UnitSize div 2),
-	{ok, _, [#rated{}]} = ocs_rating:rate(diameter, ServiceType,
+	{ok, _, _} = ocs_rating:rate(diameter, ServiceType,
 			undefined, undefined, ServiceId,
 			calendar:gregorian_seconds_to_datetime(TS + 240),
 			undefined, undefined, final,
 			[{PackageUnits, UsedUnits3}], [], SessionId2),
-	{ok, #product{balance = BucketRefs3}} = ocs:find_product(ProdRef),
-	RatedBuckets2 = lists:flatten([mnesia:dirty_read(bucket, Id)
-			|| Id <- BucketRefs3]),
 	Remain2 = Remain1 - UsedUnits2 - UsedUnits3,
-	#bucket{remain_amount = Remain2} = lists:keyfind(octets,
-			#bucket.units, RatedBuckets2).
+	{ok, #bucket{remain_amount = Remain2}} = ocs:find_bucket(BId).
 
 final_refund_seconds() ->
 	[{userdata, [{doc, "Refund unused amount of seconds reservation"}]}].
 
 final_refund_seconds(_Config) ->
-	UnitPrice = 100,
-	UnitSize = 1000000,
+	UnitPrice = 10 + rand:uniform(90),
+	UnitSize = 5000000 + rand:uniform(9000000),
 	PackageUnits = seconds,
 	P1 = price(usage, PackageUnits, UnitSize, UnitPrice),
 	OfferId = add_offer([P1], 4),
 	ProdRef = add_product(OfferId),
-	ServiceId =  add_service(ProdRef),
+	ServiceId = add_service(ProdRef),
 	StartingAmount = UnitSize * 4,
 	B1 = bucket(seconds, StartingAmount),
-	_BId = add_bucket(ProdRef, B1),
+	BId = add_bucket(ProdRef, B1),
 	ServiceType = 32251,
 	Timestamp = calendar:local_time(),
 	TS = calendar:datetime_to_gregorian_seconds(Timestamp),
-	Reserve1 = 2 * UnitSize,
+	Reserve1 = rand:uniform(UnitSize),
 	SessionId1 = [{'Session-Id', list_to_binary(ocs:generate_password())}],
 	{ok, _, _} = ocs_rating:rate(diameter, ServiceType, undefined,
 			undefined, ServiceId, Timestamp, undefined, undefined,
 			initial, [], [{PackageUnits, Reserve1}], SessionId1),
-	UsedUnits1 = rand:uniform(UnitSize),
-	{ok, _, [#rated{}]} = ocs_rating:rate(diameter, ServiceType,
+	UsedUnits1 = rand:uniform(Reserve1),
+	{ok, _, _} = ocs_rating:rate(diameter, ServiceType,
 			undefined, undefined, ServiceId,
 			calendar:gregorian_seconds_to_datetime(TS + 60),
 			undefined, undefined, final,
 			[{PackageUnits, UsedUnits1}], [], SessionId1),
-	{ok, #product{balance = BucketRefs2}} = ocs:find_product(ProdRef),
-	RatedBuckets1 = lists:flatten([mnesia:dirty_read(bucket, Id)
-			|| Id <- BucketRefs2]),
 	Remain1 = StartingAmount - UsedUnits1,
-	#bucket{remain_amount = Remain1, reservations = []} =
-			lists:keyfind(seconds, #bucket.units, RatedBuckets1),
+	{ok, #bucket{remain_amount = Remain1}} = ocs:find_bucket(BId),
 	SessionId2 = [{'Session-Id', list_to_binary(ocs:generate_password())}],
 	{ok, _, _} = ocs_rating:rate(diameter, ServiceType,
 			undefined, undefined, ServiceId,
@@ -1221,76 +1035,25 @@ final_refund_seconds(_Config) ->
 			undefined, undefined, interim, [{PackageUnits, UsedUnits2}],
 			[{PackageUnits, UnitSize}], SessionId2),
 	UsedUnits3 = rand:uniform(UnitSize div 2),
-	{ok, _, [#rated{}]} = ocs_rating:rate(diameter, ServiceType,
+	{ok, _, _} = ocs_rating:rate(diameter, ServiceType,
 			undefined, undefined, ServiceId,
 			calendar:gregorian_seconds_to_datetime(TS + 240),
 			undefined, undefined, final,
 			[{PackageUnits, UsedUnits3}], [], SessionId2),
-	{ok, #product{balance = BucketRefs3}} = ocs:find_product(ProdRef),
-	RatedBuckets2 = lists:flatten([mnesia:dirty_read(bucket, Id)
-			|| Id <- BucketRefs3]),
 	Remain2 = Remain1 - UsedUnits2 - UsedUnits3,
-	#bucket{remain_amount = Remain2} = lists:keyfind(seconds,
-			#bucket.units, RatedBuckets2).
-
-final_refund() ->
-	[{userdata, [{doc, "Refund unused amount of reservation"}]}].
-
-final_refund(_Config) ->
-	UnitPrice = 100,
-	UnitSize = 1000000,
-	PackageUnits = octets,
-	P1 = price(usage, PackageUnits, UnitSize, UnitPrice),
-	OfferId = add_offer([P1], 4),
-	ProdRef = add_product(OfferId),
-	ServiceId =  add_service(ProdRef),
-	StartingAmount = UnitPrice,
-	B1 = bucket(cents, StartingAmount),
-	_BId = add_bucket(ProdRef, B1),
-	ServiceType = 32251,
-	Timestamp = calendar:local_time(),
-	TS = calendar:datetime_to_gregorian_seconds(Timestamp),
-	SessionId1 = [{'Session-Id', list_to_binary(ocs:generate_password())}],
-	{ok, _, _} = ocs_rating:rate(diameter, ServiceType, undefined,
-			undefined, ServiceId, Timestamp, undefined, undefined,
-			initial, [], [{PackageUnits, UnitSize}], SessionId1),
-	{ok, #product{balance = BucketRefs1}} = ocs:find_product(ProdRef),
-	RatedBuckets1 = lists:flatten([mnesia:dirty_read(bucket, Id)
-			|| Id <- BucketRefs1]),
-	#bucket{remain_amount = 0, reservations = Reserved1} =
-			lists:keyfind(cents, #bucket.units, RatedBuckets1),
-	[{_, _, UnitPrice, SessionId1}] = Reserved1,
-	{ok, _, _} = ocs_rating:rate(diameter, ServiceType,
-			undefined, undefined, ServiceId,
-			calendar:gregorian_seconds_to_datetime(TS + 60),
-			undefined, undefined, final, [{PackageUnits, 0}], [], SessionId1),
-	{ok, #product{balance = BucketRefs2}} = ocs:find_product(ProdRef),
-	RatedBuckets2 = lists:flatten([mnesia:dirty_read(bucket, Id)
-			|| Id <- BucketRefs2]),
-	#bucket{remain_amount = UnitPrice, reservations = []} =
-			lists:keyfind(cents, #bucket.units, RatedBuckets2),
-	SessionId2 = [{'Session-Id', list_to_binary(ocs:generate_password())}],
-	{ok, _, _} = ocs_rating:rate(diameter, ServiceType,
-			undefined, undefined, ServiceId,
-			calendar:gregorian_seconds_to_datetime(TS + 60),
-			undefined, undefined, initial, [], [{PackageUnits, UnitSize}], SessionId2),
-	{ok, #product{balance = BucketRefs3}} = ocs:find_product(ProdRef),
-	RatedBuckets3 = lists:flatten([mnesia:dirty_read(bucket, Id)
-			|| Id <- BucketRefs3]),
-	#bucket{remain_amount = 0, reservations = Reserved2} = lists:keyfind(cents, #bucket.units, RatedBuckets3),
-	[{_, 0, UnitPrice, SessionId2}] = Reserved2.
+	{ok, #bucket{remain_amount = Remain2}} = ocs:find_bucket(BId).
 
 final_multiple_buckets() ->
 	[{userdata, [{doc, "Debit applied to one of several available buckets"}]}].
 
 final_multiple_buckets(_Config) ->
-	UnitPrice = 1,
-	UnitSize = 1000000,
+	UnitPrice = 10 + rand:uniform(90),
+	UnitSize = 5000000 + rand:uniform(9000000),
 	PackageUnits = octets,
 	P1 = price(usage, PackageUnits, UnitSize, UnitPrice),
 	OfferId = add_offer([P1], 8),
 	ProdRef = add_product(OfferId),
-	ServiceId =  add_service(ProdRef),
+	ServiceId = add_service(ProdRef),
 	Balance = 10000000,
 	NumBuckets = 3,
 	F1 = fun F(0) ->
@@ -1325,9 +1088,9 @@ final_voice() ->
 	[{userdata, [{doc, "Final RADIUS accounting request for voice call"}]}].
 
 final_voice(_Config) ->
-	UnitPrice = 5,
+	UnitPrice = rand:uniform(10),
 	UnitSize = 60,
-	ReserveTime = 300,
+	ReserveTime = rand:uniform(10) * UnitSize,
 	P1 = #price{name = "Calls", type = usage,
 			units = seconds, size = UnitSize, amount = UnitPrice,
 			char_value_use = [#char_value_use{name = "radiusReserveTime",
@@ -1336,48 +1099,40 @@ final_voice(_Config) ->
 	Chars = [{"radiusReserveSessionTime", 3600}],
 	OfferId = add_offer([P1], 9),
 	ProdRef = add_product(OfferId, Chars),
-	ServiceId =  add_service(ProdRef),
-	StartingAmount = 305,
+	ServiceId = add_service(ProdRef),
+	StartingAmount = (((ReserveTime * 4) div UnitSize) * UnitPrice)
+			+ rand:uniform(UnitPrice),
 	B1 = bucket(cents, StartingAmount),
-	_BId = add_bucket(ProdRef, B1),
+	BId = add_bucket(ProdRef, B1),
 	ServiceType = 12,
 	Timestamp = calendar:local_time(),
 	CallAddress = ocs:generate_identity(),
 	AcctSessionId = {?AcctSessionId, list_to_binary(ocs:generate_password())},
 	NasIp = {?NasIpAddress, "192.168.1.150"},
 	NasId = {?NasIdentifier, ocs:generate_password()},
-	Attributes = [NasIp, NasId, AcctSessionId],
+	SessionAttributes = [NasIp, NasId, AcctSessionId],
 	{ok, _, _} = ocs_rating:rate(radius, ServiceType, undefined,
 			undefined, ServiceId, Timestamp, CallAddress, originate, initial,
-			[], [], Attributes),
-	UsedSeconds1 = rand:uniform(ReserveTime),
+			[], [], SessionAttributes),
+	UsedSeconds1 = rand:uniform(ReserveTime - 1),
 	{ok, _, _} = ocs_rating:rate(radius, ServiceType, undefined,
 			undefined, ServiceId, Timestamp, CallAddress, originate, interim,
-			[], [{seconds, UsedSeconds1}], Attributes),
-	UsedSeconds2 = rand:uniform(ReserveTime),
+			[{seconds, UsedSeconds1}], [], SessionAttributes),
+	UsedSeconds2 = rand:uniform(ReserveTime - 1),
 	{ok, _, _} = ocs_rating:rate(radius, ServiceType, undefined,
 			undefined, ServiceId, Timestamp, CallAddress, undefined, final,
-			[{seconds, UsedSeconds1 + UsedSeconds2}], [], Attributes),
-	{ok, #product{balance = BucketRefs1}} = ocs:find_product(ProdRef),
-	Buckets1 = lists:flatten([mnesia:dirty_read(bucket, Id)
-			|| Id <- BucketRefs1]),
-	#bucket{remain_amount = RemainAmount,
-			reservations = []} = lists:keyfind(cents, #bucket.units, Buckets1),
-	UsedUnits = case (UsedSeconds1 + UsedSeconds2) rem UnitSize of
-		0 ->
-			(UsedSeconds1 + UsedSeconds2) div UnitSize;
-		_ ->
-			(UsedSeconds1 + UsedSeconds2) div UnitSize + 1
-	end,
-	RemainAmount = StartingAmount - UsedUnits * UnitPrice.
+			[{seconds, UsedSeconds2}], [], SessionAttributes),
+	{ok, #bucket{remain_amount = RemainAmount}} = ocs:find_bucket(BId),
+	RemainAmount = StartingAmount - (((ReserveTime div UnitSize)
+			* 2) * UnitPrice).
 
 reserve_data() ->
 	[{userdata, [{doc, "Reservation for data session"}]}].
 
 reserve_data(_Config) ->
 	DataAmount = 2,
-	DataSize = 1000000,
-	ReserveOctets = 1000000000,
+	DataSize = rand:uniform(10000000),
+	ReserveOctets = 1000000 * rand:uniform(10),
 	DataPrice = #price{name = "Data", type = usage,
 			units = octets, size = DataSize, amount = DataAmount,
 			char_value_use = [#char_value_use{name = "radiusReserveOctets",
@@ -1398,20 +1153,17 @@ reserve_data(_Config) ->
 					#bundled_po{name = VoiceOfferId}]},
 	{ok, #offer{name = BundleOfferId}} = ocs:add_offer(BundleOffer),
 	ProdRef = add_product(BundleOfferId),
-	ServiceId =  add_service(ProdRef),
+	ServiceId = add_service(ProdRef),
 	StartingAmount = 2579,
 	B1 = bucket(cents, StartingAmount),
-	_BId = add_bucket(ProdRef, B1),
+	BId = add_bucket(ProdRef, B1),
 	ServiceType = 2,
 	Timestamp = calendar:local_time(),
 	SessionId = [{?AcctSessionId, list_to_binary(ocs:generate_password())}],
 	{ok, _, _} = ocs_rating:rate(radius, ServiceType, undefined,
 			undefined, ServiceId, Timestamp, undefined, undefined, initial,
 			[], [], SessionId),
-	{ok, #product{balance = BucketRefs1}} = ocs:find_product(ProdRef),
-	Buckets1 = lists:flatten([mnesia:dirty_read(bucket, Id)
-			|| Id <- BucketRefs1]),
-	#bucket{remain_amount = Amount} = lists:keyfind(cents, #bucket.units, Buckets1),
+	{ok, #bucket{remain_amount = Amount}} = ocs:find_bucket(BId),
 	ReservedUnits = case (ReserveOctets rem DataSize) of
 		0 ->
 			ReserveOctets div DataSize;
@@ -1425,8 +1177,8 @@ reserve_voice() ->
 
 reserve_voice(_Config) ->
 	DataAmount = 2,
-	DataSize = 1000000,
-	ReserveOctets = 1000000000,
+	DataSize = rand:uniform(10000000),
+	ReserveOctets = 1000000 * rand:uniform(10),
 	DataPrice = #price{name = "Data", type = usage,
 			units = octets, size = DataSize, amount = DataAmount,
 			char_value_use = [#char_value_use{name = "radiusReserveOctets",
@@ -1448,10 +1200,10 @@ reserve_voice(_Config) ->
 					#bundled_po{name = VoiceOfferId}]},
 	{ok, _} = ocs:add_offer(BundleProduct),
 	ProdRef = add_product(BundleOfferId),
-	ServiceId =  add_service(ProdRef),
+	ServiceId = add_service(ProdRef),
 	StartingAmount = 2567,
 	B1 = bucket(cents, StartingAmount),
-	_BId = add_bucket(ProdRef, B1),
+	BId = add_bucket(ProdRef, B1),
 	ServiceType = 12,
 	Timestamp = calendar:local_time(),
 	CallAddress = ocs:generate_identity(),
@@ -1459,10 +1211,7 @@ reserve_voice(_Config) ->
 	{ok, _, _} = ocs_rating:rate(radius, ServiceType, undefined,
 			undefined, ServiceId, Timestamp, CallAddress, undefined,
 			initial, [], [], SessionId),
-	{ok, #product{balance = BucketRefs1}} = ocs:find_product(ProdRef),
-	Buckets1 = lists:flatten([mnesia:dirty_read(bucket, Id)
-			|| Id <- BucketRefs1]),
-	#bucket{remain_amount = Amount} = lists:keyfind(cents, #bucket.units, Buckets1),
+	{ok, #bucket{remain_amount = Amount}} = ocs:find_bucket(BId),
 	ReservedUnits = case (ReserveTime rem VoiceSize) of
 		0 ->
 			ReserveTime div VoiceSize;
@@ -1476,8 +1225,8 @@ reserve_incoming_voice() ->
 
 reserve_incoming_voice(_Config) ->
 	DataAmount = 2,
-	DataSize = 1000000,
-	ReserveOctets = 1000000000,
+	DataSize = rand:uniform(10000000),
+	ReserveOctets = 1000000 * rand:uniform(10),
 	DataPrice = #price{name = "Data", type = usage,
 			units = octets, size = DataSize, amount = DataAmount,
 			char_value_use = [#char_value_use{name = "radiusReserveOctets",
@@ -1511,10 +1260,10 @@ reserve_incoming_voice(_Config) ->
 					#bundled_po{name = VoiceOfferId}]},
 	{ok, _} = ocs:add_offer(BundleProduct),
 	ProdRef = add_product(BundleOfferId),
-	ServiceId =  add_service(ProdRef),
+	ServiceId = add_service(ProdRef),
 	StartingAmount = 1000,
 	B1 = bucket(cents, StartingAmount),
-	_BId = add_bucket(ProdRef, B1),
+	BId = add_bucket(ProdRef, B1),
 	ServiceType = 12,
 	Timestamp = calendar:local_time(),
 	CallAddress = ocs:generate_identity(),
@@ -1522,10 +1271,7 @@ reserve_incoming_voice(_Config) ->
 	{ok, _, _} = ocs_rating:rate(radius, ServiceType, undefined,
 			undefined, ServiceId, Timestamp, CallAddress, answer,
 			initial, [], [], SessionId),
-	{ok, #product{balance = BucketRefs1}} = ocs:find_product(ProdRef),
-	Buckets1 = lists:flatten([mnesia:dirty_read(bucket, Id)
-			|| Id <- BucketRefs1]),
-	#bucket{remain_amount = Amount} = lists:keyfind(cents, #bucket.units, Buckets1),
+	{ok, #bucket{remain_amount = Amount}} = ocs:find_bucket(BId),
 	ReservedUnits = case (ReserveTime rem VoiceSize) of
 		0 ->
 			ReserveTime div VoiceSize;
@@ -1538,18 +1284,18 @@ interim_voice() ->
 	[{userdata, [{doc, "Interim reservation for voice call"}]}].
 
 interim_voice(_Config) ->
-	DataAmount = 2,
-	DataSize = 1000000,
-	ReserveOctets = 1000000000,
+	DataAmount = rand:uniform(10),
+	DataSize = rand:uniform(10000000),
+	ReserveOctets = 1000000 * rand:uniform(10),
 	DataPrice = #price{name = "Data", type = usage,
 			units = octets, size = DataSize, amount = DataAmount,
 			char_value_use = [#char_value_use{name = "radiusReserveOctets",
 			min = 1, max = 1, values = [#char_value{default = true,
 			units = octets, value = ReserveOctets}]}]},
 	DataOfferId = add_offer([DataPrice], 8),
-	VoiceAmount = 2,
+	VoiceAmount = rand:uniform(10),
 	VoiceSize = 60,
-	ReserveTime = 300,
+	ReserveTime = VoiceSize * rand:uniform(10),
 	VoicePrice = #price{name = "Calls", type = usage,
 			units = seconds, size = VoiceSize, amount = VoiceAmount,
 			char_value_use = [#char_value_use{name = "radiusReserveTime",
@@ -1565,7 +1311,7 @@ interim_voice(_Config) ->
 	ProdRef = add_product(BundleOfferId),
 	ServiceId = add_service(ProdRef),
 	B1 = bucket(cents, StartingAmount),
-	_Bid = add_bucket(ProdRef, B1),
+	BId = add_bucket(ProdRef, B1),
 	ServiceType = 12,
 	Timestamp = calendar:local_time(),
 	CallAddress = ocs:generate_identity(),
@@ -1573,22 +1319,14 @@ interim_voice(_Config) ->
 	{ok, _, _} = ocs_rating:rate(radius, ServiceType, undefined,
 			undefined, ServiceId, Timestamp, CallAddress, undefined,
 			initial, [], [], SessionId),
-	UsedOctets = rand:uniform(ReserveOctets),
-	UsedSeconds = rand:uniform(ReserveTime),
+	UsedOctets = rand:uniform(ReserveOctets - 1),
+	UsedSeconds = rand:uniform(ReserveTime - 1),
 	{ok, _, _} = ocs_rating:rate(radius, ServiceType, undefined,
 			undefined, ServiceId, Timestamp, CallAddress, undefined,
-			interim, [], [{octets, UsedOctets}, {seconds, UsedSeconds}], SessionId),
-	{ok, #product{balance = BucketRefs1}} = ocs:find_product(ProdRef),
-	Buckets1 = lists:flatten([mnesia:dirty_read(bucket, Id)
-			|| Id <- BucketRefs1]),
-	#bucket{remain_amount = Amount} = lists:keyfind(cents, #bucket.units, Buckets1),
-	ReservedUnits = case ((ReserveTime + UsedSeconds) rem VoiceSize) of
-		0 ->
-			(ReserveTime + UsedSeconds) div VoiceSize;
-		_ ->
-			(ReserveTime + UsedSeconds) div VoiceSize + 1
-	end,
-	Amount = StartingAmount - ReservedUnits * VoiceAmount.
+			interim, [{octets, UsedOctets}, {seconds, UsedSeconds}], [], SessionId),
+	{ok, #bucket{remain_amount = RemainAmount}} = ocs:find_bucket(BId),
+	RemainAmount = StartingAmount - (((ReserveTime div VoiceSize)
+			* VoiceAmount) * 2).
 
 time_of_day() ->
 	[{userdata, [{doc, "Time of day price matching"}]}].
@@ -1613,7 +1351,7 @@ time_of_day(_Config) ->
 	ProdRef = add_product(DataOfferId),
 	StartingAmount = 1000,
 	B1 = bucket(cents, StartingAmount),
-	_BId = add_bucket(ProdRef, B1),
+	BId = add_bucket(ProdRef, B1),
 	ServiceId = add_service(ProdRef),
 	ServiceType = 2,
 	{Date, _} = calendar:local_time(),
@@ -1626,10 +1364,7 @@ time_of_day(_Config) ->
 	{ok, _, _} = ocs_rating:rate(radius, ServiceType, undefined,
 			undefined, ServiceId, Timestamp1, undefined, undefined,
 			final, [{octets, UsedOctets1}], [], SessionId1),
-	{ok, #product{balance = BucketRefs1}} = ocs:find_product(ProdRef),
-	Buckets1 = lists:flatten([mnesia:dirty_read(bucket, Id)
-			|| Id <- BucketRefs1]),
-	#bucket{remain_amount = Amount1} = lists:keyfind(cents, #bucket.units, Buckets1),
+	{ok, #bucket{remain_amount = Amount1}} = ocs:find_bucket(BId),
 	UsedUnits1 = case UsedOctets1 rem DataSize of
 		0 ->
 			UsedOctets1 div DataSize;
@@ -1646,10 +1381,7 @@ time_of_day(_Config) ->
 	{ok, _, _} = ocs_rating:rate(radius, ServiceType, undefined,
 			undefined, ServiceId, Timestamp2, undefined, undefined,
 			final, [{octets, UsedOctets2}], [], SessionId2),
-	{ok, #product{balance = BucketRefs2}} = ocs:find_product(ProdRef),
-	Buckets2 = lists:flatten([mnesia:dirty_read(bucket, Id)
-			|| Id <- BucketRefs2]),
-	#bucket{remain_amount = Amount2} = lists:keyfind(cents, #bucket.units, Buckets2),
+	{ok, #bucket{remain_amount = Amount2}} = ocs:find_bucket(BId),
 	UsedUnits2 = case UsedOctets2 rem DataSize of
 		0 ->
 			UsedOctets2 div DataSize;
@@ -1673,7 +1405,7 @@ authorize_voice(_Config) ->
 	{ok, _Service1} = ocs:add_service(ServiceId, Password,  ProdRef, Chars),
 	RemAmount = 100,
 	B1 = bucket(cents, RemAmount),
-	_BId = add_bucket(ProdRef, B1),
+	BId = add_bucket(ProdRef, B1),
 	ServiceType = 12,
 	Timestamp = calendar:local_time(),
 	CallAddress = ocs:generate_identity(),
@@ -1681,10 +1413,7 @@ authorize_voice(_Config) ->
 	{authorized, _, Attr, _} = ocs_rating:authorize(radius, ServiceType,
 			ServiceId, Password, Timestamp, CallAddress, undefined, SessionId),
 	{?SessionTimeout, 60} = lists:keyfind(?SessionTimeout, 1, Attr),
-	{ok, #product{balance = BucketRefs1}} = ocs:find_product(ProdRef),
-	Buckets1 = lists:flatten([mnesia:dirty_read(bucket, Id)
-			|| Id <- BucketRefs1]),
-	#bucket{remain_amount = RemAmount} = lists:keyfind(cents, #bucket.units, Buckets1).
+	{ok, #bucket{remain_amount = RemAmount}} = ocs:find_bucket(BId).
 
 authorize_voice_with_partial_reservation() ->
 	[{userdata, [{doc, "Authorize voice call with and set the
@@ -1702,7 +1431,7 @@ authorize_voice_with_partial_reservation(_Config) ->
 	{ok, _Service1} = ocs:add_service(ServiceId, Password,  ProdRef, Chars),
 	RemAmount = 20,
 	B1 = bucket(cents, RemAmount),
-	_Bid = add_bucket(ProdRef, B1),
+	BId = add_bucket(ProdRef, B1),
 	ServiceType = 12,
 	Timestamp = calendar:local_time(),
 	CallAddress = ocs:generate_identity(),
@@ -1711,10 +1440,7 @@ authorize_voice_with_partial_reservation(_Config) ->
 			ServiceId, Password, Timestamp, CallAddress, undefined, SessionId),
 	{?SessionTimeout, SessionTimeout} = lists:keyfind(?SessionTimeout, 1, Attr),
 	SessionTimeout = RemAmount * PackageSize,
-	{ok, #product{balance = BucketRefs1}} = ocs:find_product(ProdRef),
-	Buckets1 = lists:flatten([mnesia:dirty_read(bucket, Id)
-			|| Id <- BucketRefs1]),
-	#bucket{remain_amount = RemAmount} = lists:keyfind(cents, #bucket.units, Buckets1).
+	{ok, #bucket{remain_amount = RemAmount}} = ocs:find_bucket(BId).
 
 authorize_incoming_voice() ->
 	[{userdata, [{doc, "Authorize incoming voice call"}]}].
@@ -1743,7 +1469,7 @@ authorize_incoming_voice(_Config) ->
 	{ok, _Service1} = ocs:add_service(ServiceId, Password,  ProdRef, Chars),
 	StartingAmount = 1000,
 	B1 = bucket(cents, StartingAmount),
-	_Bid = add_bucket(ProdRef, B1),
+	BId = add_bucket(ProdRef, B1),
 	ServiceType = 12,
 	Timestamp = calendar:local_time(),
 	CallAddress = ocs:generate_identity(),
@@ -1751,10 +1477,7 @@ authorize_incoming_voice(_Config) ->
 	{authorized, _, RespAttr, _} = ocs_rating:authorize(radius, ServiceType,
 			ServiceId, Password, Timestamp, CallAddress, answer, SessionId),
 	{?SessionTimeout, ReserveTime} = lists:keyfind(?SessionTimeout, 1, RespAttr),
-	{ok, #product{balance = BucketRefs1}} = ocs:find_product(ProdRef),
-	Buckets1 = lists:flatten([mnesia:dirty_read(bucket, Id)
-			|| Id <- BucketRefs1]),
-	#bucket{remain_amount = StartingAmount} = lists:keyfind(cents, #bucket.units, Buckets1).
+	{ok, #bucket{remain_amount = StartingAmount}} = ocs:find_bucket(BId).
 
 authorize_outgoing_voice() ->
 	[{userdata, [{doc, "Authorize outgoing voice call"}]}].
@@ -1783,7 +1506,7 @@ authorize_outgoing_voice(_Config) ->
 	{ok, _Service1} = ocs:add_service(ServiceId, Password,  ProdRef, Chars),
 	StartingAmount = 1000,
 	B1 = bucket(cents, StartingAmount),
-	_Bid = add_bucket(ProdRef, B1),
+	BId = add_bucket(ProdRef, B1),
 	ServiceType = 12,
 	Timestamp = calendar:local_time(),
 	CallAddress = ocs:generate_identity(),
@@ -1791,10 +1514,7 @@ authorize_outgoing_voice(_Config) ->
 	{authorized, _, RespAttr, _} = ocs_rating:authorize(radius, ServiceType,
 			ServiceId, Password, Timestamp, CallAddress, originate, SessionId),
 	{?SessionTimeout, ReserveTime} = lists:keyfind(?SessionTimeout, 1, RespAttr),
-	{ok, #product{balance = BucketRefs1}} = ocs:find_product(ProdRef),
-	Buckets1 = lists:flatten([mnesia:dirty_read(bucket, Id)
-			|| Id <- BucketRefs1]),
-	#bucket{remain_amount = StartingAmount} = lists:keyfind(cents, #bucket.units, Buckets1).
+	{ok, #bucket{remain_amount = StartingAmount}} = ocs:find_bucket(BId).
 
 authorize_default_voice() ->
 	[{userdata, [{doc, "Authorize default outgoing voice call"}]}].
@@ -1820,7 +1540,7 @@ authorize_default_voice(_Config) ->
 	{ok, _Service1} = ocs:add_service(ServiceId, Password,  ProdRef, Chars),
 	StartingAmount = 1000,
 	B1 = bucket(cents, StartingAmount),
-	_Bid = add_bucket(ProdRef, B1),
+	BId = add_bucket(ProdRef, B1),
 	ServiceType = 12,
 	Timestamp = calendar:local_time(),
 	CallAddress = ocs:generate_identity(),
@@ -1828,10 +1548,7 @@ authorize_default_voice(_Config) ->
 	{authorized, _, RespAttr, _} = ocs_rating:authorize(radius, ServiceType,
 			ServiceId, Password, Timestamp, CallAddress, undefined, SessionId),
 	{?SessionTimeout, ReserveTime} = lists:keyfind(?SessionTimeout, 1, RespAttr),
-	{ok, #product{balance = BucketRefs1}} = ocs:find_product(ProdRef),
-	Buckets1 = lists:flatten([mnesia:dirty_read(bucket, Id)
-			|| Id <- BucketRefs1]),
-	#bucket{remain_amount = StartingAmount} = lists:keyfind(cents, #bucket.units, Buckets1).
+	{ok, #bucket{remain_amount = StartingAmount}} = ocs:find_bucket(BId).
 
 authorize_data_1() ->
 	[{userdata, [{doc, "Athorize data access when price rated on seconds"}]}].
@@ -1849,16 +1566,13 @@ authorize_data_1(_Config) ->
 	Timestamp = calendar:local_time(),
 	RemAmount = 100,
 	B1 = bucket(cents, RemAmount),
-	_Bid = add_bucket(ProdRef, B1),
+	BId = add_bucket(ProdRef, B1),
 	ServiceType = 2,
 	SessionId = [{?AcctSessionId, list_to_binary(ocs:generate_password())}],
 	{authorized, _, Attr, _} = ocs_rating:authorize(radius, ServiceType,
 			ServiceId, Password, Timestamp, undefined, undefined, SessionId),
 	{?SessionTimeout, 60} = lists:keyfind(?SessionTimeout, 1, Attr),
-	{ok, #product{balance = BucketRefs1}} = ocs:find_product(ProdRef),
-	Buckets1 = lists:flatten([mnesia:dirty_read(bucket, Id)
-			|| Id <- BucketRefs1]),
-	#bucket{remain_amount = RemAmount} = lists:keyfind(cents, #bucket.units, Buckets1).
+	{ok, #bucket{remain_amount = RemAmount}} = ocs:find_bucket(BId).
 
 authorize_data_2() ->
 	[{userdata, [{doc, "Athorize data access when price rated on octets"}]}].
@@ -1876,15 +1590,12 @@ authorize_data_2(_Config) ->
 	Timestamp = calendar:local_time(),
 	RemAmount = 100,
 	B1 = bucket(cents, RemAmount),
-	_Bid = add_bucket(ProdRef, B1),
+	BId = add_bucket(ProdRef, B1),
 	ServiceType = 2,
 	SessionId = [{?AcctSessionId, list_to_binary(ocs:generate_password())}],
 	{authorized, _, _Attr, _} = ocs_rating:authorize(radius, ServiceType,
 			ServiceId, Password, Timestamp, undefined, undefined, SessionId),
-	{ok, #product{balance = BucketRefs1}} = ocs:find_product(ProdRef),
-	Buckets1 = lists:flatten([mnesia:dirty_read(bucket, Id)
-			|| Id <- BucketRefs1]),
-	#bucket{units = cents, remain_amount = RemAmount} = lists:keyfind(cents, #bucket.units, Buckets1).
+	{ok, #bucket{remain_amount = RemAmount}} = ocs:find_bucket(BId).
 
 authorize_data_with_partial_reservation() ->
 	[{userdata, [{doc, "Athorize data access when price
@@ -1903,17 +1614,14 @@ authorize_data_with_partial_reservation(_Config) ->
 	Timestamp = calendar:local_time(),
 	RemAmount = 20,
 	B1 = bucket(cents, RemAmount),
-	_Bid = add_bucket(ProdRef, B1),
+	BId = add_bucket(ProdRef, B1),
 	ServiceType = 2,
 	SessionId = [{?AcctSessionId, list_to_binary(ocs:generate_password())}],
 	{authorized, _, Attr, _} = ocs_rating:authorize(radius, ServiceType,
 			ServiceId, Password, Timestamp, undefined, undefibed, SessionId),
 	{?SessionTimeout, SessionTimeout} = lists:keyfind(?SessionTimeout, 1, Attr),
 	SessionTimeout = RemAmount * PackageSize,
-	{ok, #product{balance = BucketRefs1}} = ocs:find_product(ProdRef),
-	Buckets1 = lists:flatten([mnesia:dirty_read(bucket, Id)
-			|| Id <- BucketRefs1]),
-	#bucket{remain_amount = RemAmount} = lists:keyfind(cents, #bucket.units, Buckets1).
+	{ok, #bucket{remain_amount = RemAmount}} = ocs:find_bucket(BId).
 
 authorize_negative_balance() ->
 	[{userdata, [{doc, "Handle negative balance and deny"}]}].
@@ -1928,7 +1636,7 @@ authorize_negative_balance(_Config) ->
 	{ok, _Service1} = ocs:add_service(ServiceId, Password,  ProdRef, Chars),
 	Timestamp = calendar:local_time(),
 	B1 = bucket(cents, -100),
-	_Bid = add_bucket(ProdRef, B1),
+	_BId = add_bucket(ProdRef, B1),
 	AcctSessionId = {?AcctSessionId, list_to_binary(ocs:generate_password())},
 	{unauthorized, out_of_credit, _} = ocs_rating:authorize(radius, 12,
 			ServiceId, Password, Timestamp, "5551234", originate, [AcctSessionId]).
@@ -1949,7 +1657,7 @@ unauthorize_bad_password(_Config) ->
 	Timestamp = calendar:local_time(),
 	RemAmount = 100,
 	B1 = bucket(cents, RemAmount),
-	_Bid = add_bucket(ProdRef, B1),
+	_BId = add_bucket(ProdRef, B1),
 	ServiceType = 2,
 	SessionId = [{?AcctSessionId, list_to_binary(ocs:generate_password())}],
 	{unauthorized, bad_password, []} = ocs_rating:authorize(radius,
@@ -1971,7 +1679,7 @@ unauthorize_out_of_credit(_Config) ->
 	{ok, _Service1} = ocs:add_service(ServiceId, Password,  ProdRef, Chars),
 	Timestamp = calendar:local_time(),
 	B1 = bucket(octets, 100),
-	_Bid = add_bucket(ProdRef, B1),
+	_BId = add_bucket(ProdRef, B1),
 	CallAddress = ocs:generate_identity(),
 	SessionId = [{?AcctSessionId, list_to_binary(ocs:generate_password())}],
 	ServiceType = 12,
@@ -2033,9 +1741,9 @@ debit_sms(_Config) ->
 			undefined, ServiceId, Timestamp, undefined, undefined,
 			final, [{messages, NumOfEvents}], [],
 		SessionId),
+	R2 = RemAmount - (PackagePrice * NumOfEvents),
 	{ok, #bucket{remain_amount = R2, reservations = []}} = ocs:find_bucket(BId),
-	[#rated{bucket_type = messages, bucket_value = NumOfEvents}] = Rated,
-	R2 = RemAmount - (PackagePrice * NumOfEvents).
+	[#rated{bucket_type = messages, bucket_value = NumOfEvents}] = Rated.
 
 roaming_table_data() ->
 	[{userdata, [{doc, "Data rating for roaming with prefix table"}]}].
@@ -2073,7 +1781,7 @@ roaming_table_data(Config) ->
 	Timestamp = calendar:local_time(),
 	RemAmount = ocs_rest:millionths_in(1000),
 	B1 = bucket(cents, RemAmount),
-	_Bid = add_bucket(ProdRef, B1),
+	_BId = add_bucket(ProdRef, B1),
 	ServiceType = 32251,
 	SessionId = [{'Session-Id', list_to_binary(ocs:generate_password())}],
 	{ok, _A, {PackageUnits, PackageSize}} = ocs_rating:rate(diameter,
@@ -2133,7 +1841,7 @@ roaming_table_voice(Config) ->
 	Timestamp = calendar:local_time(),
 	RemAmount = ocs_rest:millionths_in(1000),
 	B1 = bucket(cents, RemAmount),
-	_Bid = add_bucket(ProdRef, B1),
+	_BId = add_bucket(ProdRef, B1),
 	ServiceType = 32260,
 	SessionId = [{'Session-Id', list_to_binary(ocs:generate_password())}],
 	{ok, _A, {PackageUnits, PackageSize}} = ocs_rating:rate(diameter,
@@ -2193,7 +1901,7 @@ roaming_table_sms(Config) ->
 	Timestamp = calendar:local_time(),
 	RemAmount = ocs_rest:millionths_in(1000),
 	B1 = bucket(cents, RemAmount),
-	_Bid = add_bucket(ProdRef, B1),
+	_BId = add_bucket(ProdRef, B1),
 	ServiceType = 32274,
 	SessionId = [{'Session-Id', list_to_binary(ocs:generate_password())}],
 	{ok, _A, {PackageUnits, PackageSize}} = ocs_rating:rate(diameter,
@@ -2247,4 +1955,19 @@ add_service(ProdRef) ->
 add_bucket(ProdRef, Bucket) ->
 	{ok, _, #bucket{id = BId}} = ocs:add_bucket(ProdRef, Bucket),
 	BId.
+
+-spec units_cost(UsedUnits, UnitSize, UnitPrice) -> Cost
+	when
+		UsedUnits :: non_neg_integer(),
+		UnitSize :: pos_integer(),
+		UnitPrice :: pos_integer(),
+		Cost :: pos_integer().
+%% @hidden
+units_cost(UsedUnits, UnitSize, UnitPrice) ->
+	case UsedUnits rem UnitSize of
+		0 ->
+			(UsedUnits div UnitSize) * UnitPrice;
+		_ ->
+			((UsedUnits div UnitSize) + 1) * UnitPrice
+	end.
 

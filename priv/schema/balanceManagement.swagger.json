@@ -11,14 +11,17 @@
     "https"
   ],
   "consumes": [
-    "application/json;charset=utf-8"
+    "application/json"
   ],
   "produces": [
-    "application/json;charset=utf-8"
+    "application/json"
   ],
   "tags": [
     {
       "name": "bucket"
+    },
+    {
+      "name": "accumulatedBalance"
     },
     {
       "name": "topupBalance"
@@ -28,48 +31,32 @@
     },
     {
       "name": "transferBalance"
-    },
-    {
-      "name": "accumulatedBalance"
-    },
-    {
-      "name": "notification"
     }
   ],
   "paths": {
-    "/usage": {
+    "/bucket": {
       "get": {
         "tags": [
           "bucket"
         ],
         "operationId": "retrieveBuckets",
-        "summary": "retrieveBuckets",
-        "description": "This operation lists all bucket entites",
+        "summary": "List or find 'bucket' objects",
         "deprecated": false,
-        "parameters": [
-          {
-            "name": "product.id",
-            "required": true,
-            "in": "query",
-            "description": "Id of the product",
-            "type": "string"
-          }
-        ],
         "responses": {
           "200": {
-            "description": "Balance information was returned successfully",
+            "description": "Successful",
             "schema": {
               "$ref": "#/definitions/BucketBalance"
             }
           },
           "400": {
-            "description": "Bad Request\n\nList of supported error codes:\n- 20: Invalid URL parameter value\n- 21: Missing body\n- 22: Invalid body\n- 23: Missing body field\n- 24: Invalid body field\n- 25: Missing header\n- 26: Invalid header value\n- 27: Missing query-string parameter\n- 28: Invalid query-string parameter value"
+            "description": "Bad Request"
           },
           "404": {
-            "description": "Not Found\n\nList of supported error codes:\n- 60: Resource not found"
+            "description": "Not found"
           },
           "500": {
-            "description": "Internal Server Error\n\nList of supported error codes:\n- 1: Internal error"
+            "description": "Internal Server Error"
           }
         }
       }
@@ -80,8 +67,7 @@
           "bucket"
         ],
         "operationId": "retrieveBucket",
-        "summary": "retrieveBucket",
-        "description": "This operation lists a individual bucket entites",
+        "summary": "This operation lists a individual bucket entites",
         "deprecated": false,
         "parameters": [
           {
@@ -94,19 +80,19 @@
         ],
         "responses": {
           "200": {
-            "description": "Balance information was returned successfully",
+            "description": "Successful",
             "schema": {
               "$ref": "#/definitions/BucketBalance"
             }
           },
           "400": {
-            "description": "Bad Request\n\nList of supported error codes:\n- 20: Invalid URL parameter value\n- 21: Missing body\n- 22: Invalid body\n- 23: Missing body field\n- 24: Invalid body field\n- 25: Missing header\n- 26: Invalid header value\n- 27: Missing query-string parameter\n- 28: Invalid query-string parameter value"
+            "description": "Bad Request"
           },
           "404": {
-            "description": "Not Found\n\nList of supported error codes:\n- 60: Resource not found"
+            "description": "Not Found"
           },
           "500": {
-            "description": "Internal Server Error\n\nList of supported error codes:\n- 1: Internal error"
+            "description": "Internal Server Error"
           }
         }
       },
@@ -124,33 +110,31 @@
           }
         ],
         "operationId": "bucketDelete",
-        "summary": "bucketDelete",
-        "description": "This operation deletes a 'bucket' by Id",
+        "summary": "This operation deletes a 'bucket' by Id",
         "deprecated": false,
         "responses": {
           "204": {
             "description": "Success"
           },
           "400": {
-            "description": "Bad Request\n\nList of supported error codes:\n- 20: Invalid URL parameter value\n- 21: Missing body\n- 22: Invalid body\n- 23: Missing body field\n- 24: Invalid body field\n- 25: Missing header\n- 26: Invalid header value\n- 27: Missing query-string parameter\n- 28: Invalid query-string parameter value"
+            "description": "Bad Request"
           },
           "404": {
-            "description": "Not Found\n\nList of supported error codes:\n- 60: Resource not found"
+            "description": "Not Found"
           },
           "500": {
-            "description": "Internal Server Error\n\nList of supported error codes:\n- 1: Internal error"
+            "description": "Internal Server Error"
           }
         }
       }
     },
-    "/product/{id}/accumulatedbalance": {
+    "/product/{id}/accumulatedBalance": {
       "get": {
         "tags": [
           "accumulatedBalance"
         ],
         "operationId": "retrieveAccumulatedBalanceOfProduct",
-        "summary": "retrieveAccumulatedBalanceOfProduct",
-        "description": "This operation lists total balance or an aggregation of a set of buckets",
+        "summary": "This operation lists total balance or an aggregation of a set of buckets",
         "deprecated": false,
         "parameters": [
           {
@@ -169,25 +153,24 @@
             }
           },
           "400": {
-            "description": "Bad Request\n\nList of supported error codes:\n- 20: Invalid URL parameter value\n- 21: Missing body\n- 22: Invalid body\n- 23: Missing body field\n- 24: Invalid body field\n- 25: Missing header\n- 26: Invalid header value\n- 27: Missing query-string parameter\n- 28: Invalid query-string parameter value"
+            "description": "Bad Request"
           },
           "404": {
-            "description": "Not Found\n\nList of supported error codes:\n- 60: Resource not found"
+            "description": "Not Found"
           },
           "500": {
-            "description": "Internal Server Error\n\nList of supported error codes:\n- 1: Internal error"
+            "description": "Internal Server Error"
           }
         }
       }
     },
-    "/service/{id}/accumulatedbalance": {
+    "/service/{id}/accumulatedBalance": {
       "get": {
         "tags": [
           "accumulatedBalance"
         ],
         "operationId": "retrieveAccumulatedBalanceOfService",
-        "summary": "retrieveAccumulatedBalanceOfService",
-        "description": "This operation lists total balance or an aggregation of a set of buckets",
+        "summary": "This operation lists total balance or an aggregation of a set of buckets",
         "deprecated": false,
         "parameters": [
           {
@@ -206,13 +189,13 @@
             }
           },
           "400": {
-            "description": "Bad Request\n\nList of supported error codes:\n- 20: Invalid URL parameter value\n- 21: Missing body\n- 22: Invalid body\n- 23: Missing body field\n- 24: Invalid body field\n- 25: Missing header\n- 26: Invalid header value\n- 27: Missing query-string parameter\n- 28: Invalid query-string parameter value"
+            "description": "Bad Request"
           },
           "404": {
-            "description": "Not Found\n\nList of supported error codes:\n- 60: Resource not found"
+            "description": "Not Found"
           },
           "500": {
-            "description": "Internal Server Error\n\nList of supported error codes:\n- 1: Internal error"
+            "description": "Internal Server Error"
           }
         }
       }
@@ -223,8 +206,7 @@
           "topupBalance"
         ],
         "operationId": "createNewTopupProduct",
-        "summary": "createNewTopup",
-        "description": "Create a new top-up operation for a given prodcut",
+        "summary": "Create a new top-up operation for a given prodcut",
         "deprecated": false,
         "parameters": [
           {
@@ -233,23 +215,32 @@
             "in": "path",
             "description": "Id of the product",
             "type": "string"
+          },
+          {
+            "name": "TopUp Body",
+            "in": "body",
+            "description": "The request body.",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/BalanceTopupBody"
+            }
           }
         ],
         "responses": {
           "201": {
-            "description": "Successful top-up operation request (resource created)",
+            "description": "Successful",
             "schema": {
               "$ref": "#/definitions/BalanceTopupBody"
             }
           },
           "400": {
-            "description": "Bad Request\n\nList of supported error codes:\n- 20: Invalid URL parameter value\n- 21: Missing body\n- 22: Invalid body\n- 23: Missing body field\n- 24: Invalid body field\n- 25: Missing header\n- 26: Invalid header value\n- 27: Missing query-string parameter\n- 28: Invalid query-string parameter value"
+            "description": "Bad Request"
           },
           "404": {
-            "description": "Not Found\n\nList of supported error codes:\n- 60: Resource not found"
+            "description": "Not Found"
           },
           "500": {
-            "description": "Internal Server Error\n\nList of supported error codes:\n- 1: Internal error"
+            "description": "Internal Server Error"
           }
         }
       }
@@ -260,8 +251,7 @@
           "topupBalance"
         ],
         "operationId": "createNewTopupService",
-        "summary": "createNewTopup",
-        "description": "Create a new top-up operation for a given service",
+        "summary": "Create a new top-up operation for a given service",
         "deprecated": false,
         "parameters": [
           {
@@ -270,62 +260,32 @@
             "in": "path",
             "description": "Id of the service",
             "type": "string"
+          },
+          {
+            "name": "TopUp Body",
+            "in": "body",
+            "description": "The request body.",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/BalanceTopupBody"
+            }
           }
         ],
         "responses": {
           "201": {
-            "description": "Successful top-up operation request (resource created)",
+            "description": "Successful",
             "schema": {
               "$ref": "#/definitions/BalanceTopupBody"
             }
           },
           "400": {
-            "description": "Bad Request\n\nList of supported error codes:\n- 20: Invalid URL parameter value\n- 21: Missing body\n- 22: Invalid body\n- 23: Missing body field\n- 24: Invalid body field\n- 25: Missing header\n- 26: Invalid header value\n- 27: Missing query-string parameter\n- 28: Invalid query-string parameter value"
+            "description": "Bad Request"
           },
           "404": {
-            "description": "Not Found\n\nList of supported error codes:\n- 60: Resource not found"
+            "description": "Not Found"
           },
           "500": {
-            "description": "Internal Server Error\n\nList of supported error codes:\n- 1: Internal error"
-          }
-        }
-      }
-    },
-    "/balanceTransfer": {
-      "post": {
-        "tags": [
-          "transferBalance"
-        ],
-        "operationId": "createTransfer",
-        "summary": "createTransfer",
-        "description": "Request a new transfer operation for a given product (or commercial id reference to a product instance consuming the credit held in a bucket for a specific service).",
-        "deprecated": false,
-        "parameters": [
-          {
-            "name": "TransferBody",
-            "in": "body",
-            "description": "The Transfer to be modify.",
-            "required": true,
-            "schema": {
-              "$ref": "#/definitions/BalanceTransferBody"
-            }
-          }
-        ],
-        "responses": {
-          "201": {
-            "description": "Transfer operation successful (resource created)",
-            "schema": {
-              "$ref": "#/definitions/BalanceTransferBody"
-            }
-          },
-          "400": {
-            "description": "Bad Request\n\nList of supported error codes:\n- 20: Invalid URL parameter value\n- 21: Missing body\n- 22: Invalid body\n- 23: Missing body field\n- 24: Invalid body field\n- 25: Missing header\n- 26: Invalid header value\n- 27: Missing query-string parameter\n- 28: Invalid query-string parameter value"
-          },
-          "404": {
-            "description": "Not Found\n\nList of supported error codes:\n- 60: Resource not found"
-          },
-          "500": {
-            "description": "Internal Server Error\n\nList of supported error codes:\n- 1: Internal error"
+            "description": "Internal Server Error"
           }
         }
       }
@@ -336,8 +296,7 @@
           "adjustBalance"
         ],
         "operationId": "CreateAdjustment",
-        "summary": "CreateAdjustment",
-        "description": "Perform a balance adjustment for a given bucket on a product (or commercial id reference to a product instance consuming the credit held in a bucket for a specific service).",
+        "summary": "Perform a balance adjustment",
         "deprecated": false,
         "parameters": [
           {
@@ -351,92 +310,17 @@
           }
         ],
         "responses": {
-          "201": {
-            "description": "Successful adjustment operation (resource created)",
-            "schema": {
-              "$ref": "#/definitions/BalanceTransferBody"
-            }
+          "204": {
+            "description": "Adjusted"
           },
           "400": {
-            "description": "Bad Request\n\nList of supported error codes:\n- 20: Invalid URL parameter value\n- 21: Missing body\n- 22: Invalid body\n- 23: Missing body field\n- 24: Invalid body field\n- 25: Missing header\n- 26: Invalid header value\n- 27: Missing query-string parameter\n- 28: Invalid query-string parameter value"
+            "description": "Bad Request"
           },
           "404": {
-            "description": "Not Found\n\nList of supported error codes:\n- 60: Resource not found"
+            "description": "Not Found"
           },
           "500": {
-            "description": "Internal Server Error\n\nList of supported error codes:\n- 1: Internal error"
-          }
-        }
-      }
-    },
-    "/hub": {
-      "post": {
-        "tags": [
-          "notification"
-        ],
-        "operationId": "createNotification",
-        "summary": "createNotification",
-        "description": "Sets the communication endpoint address the service instance must use to deliver information.",
-        "deprecated": false,
-        "parameters": [
-          {
-            "name": "NotificationBody",
-            "in": "body",
-            "description": "The Notification to be created.",
-            "required": true,
-            "schema": {
-              "$ref": "#/definitions/NotificationRequest"
-            }
-          }
-        ],
-        "responses": {
-          "201": {
-            "description": "Created",
-            "schema": {
-              "$ref": "#/definitions/NotificationResponse"
-            }
-          },
-          "400": {
-            "description": "Bad Request\n\nList of supported error codes:\n- 20: Invalid URL parameter value\n- 21: Missing body\n- 22: Invalid body\n- 23: Missing body field\n- 24: Invalid body field\n- 25: Missing header\n- 26: Invalid header value\n- 27: Missing query-string parameter\n- 28: Invalid query-string parameter value"
-          },
-          "404": {
-            "description": "Not Found\n\nList of supported error codes:\n- 60: Resource not found"
-          },
-          "500": {
-            "description": "Internal Server Error\n\nList of supported error codes:\n- 1: Internal error"
-          }
-        }
-      }
-    },
-    "/hub/{id}": {
-      "post": {
-        "tags": [
-          "notification"
-        ],
-        "operationId": "deleteNotification",
-        "summary": "deleteNotification",
-        "description": "Clears the communication endpoint address that was set by creating the Hub.",
-        "deprecated": false,
-        "parameters": [
-          {
-            "name": "id",
-            "in": "path",
-            "required": true,
-            "type": "string"
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Notification deleted successfully"
-          },
-          "400": {
-            "description": "Bad Request\n\nList of supported error codes:\n- 20: Invalid URL parameter value\n- 21: Missing body\n- 22: Invalid body\n- 23: Missing body field\n- 24: Invalid body field\n- 25: Missing header\n- 26: Invalid header value\n- 27: Missing query-string parameter\n- 28: Invalid query-string parameter value"
-          },
-          "404": {
-            "description": "Not Found\n\nList of supported error codes:\n- 60: Resource not found"
-          },
-          "500": {
-            "description": "Internal Server Error\n\nList of supported error codes:\n- 1: Internal error"
+            "description": "Internal Server Error"
           }
         }
       }
@@ -454,61 +338,29 @@
           "type": "string",
           "description": "A resource URI pointing to the resource in the OB that stores the detailed information for the bucket"
         },
-        "name": {
-          "type": "string",
-          "description": "Friendly name to identify the bucket"
-        },
-        "description": {
-          "type": "string",
-          "description": "Text describing the contents of the balance managed by the bucket"
-        },
-        "bucketType": {
-          "type": "string",
-          "description": "Type of prepay balance bucket (e.g.: promotion, deposit, bonus, data, voice, or any other service type)"
-        },
         "remainedAmount": {
           "$ref": "#/definitions/QuantityType",
           "description": "Amount remained in the bucket"
         },
-        "reservedAmount": {
-          "$ref": "#/definitions/QuantityType",
-          "description": "Indicate the reserved amount on the bucket"
-        },
-        "endDate": {
+        "validFor": {
           "$ref": "#/definitions/TimePeriodType",
           "description": "The period for which the balance in the bucket is valid"
-        },
-        "status": {
-          "type": "string",
-          "description": "Status for the balance (active, expired, suspended)"
         },
         "product": {
           "type": "array",
           "items": {
             "$ref": "#/definitions/ProductRefType"
           },
-          "description": "A reference to the product whose consumption is managed by the bucket. This is an array to allow scenarios where a given bucket is shared between different products."
+          "description": "A reference to the product whose consumption is managed by the bucket."
         }
-      },
-      "required": [
-        "id",
-        "href",
-        "bucketType",
-        "validFor",
-        "status",
-        "product"
-      ]
+      }
     },
     "AccumulatedBalance": {
       "description": "Represents and tracks the aggregated amount remained or owed in certain account which is owned by certain customer for a set of buckets.",
       "properties": {
-        "name": {
+        "id": {
           "type": "string",
-          "description": "Friendly name to identify the aggregated balance"
-        },
-        "description": {
-          "type": "string",
-          "description": "Text describing the contents of the aggregated balance"
+          "description": "Unique Identifier within the server for the product"
         },
         "totalBalance": {
           "$ref": "#/definitions/QuantityType",
@@ -528,68 +380,15 @@
           },
           "description": "A reference to the product whose consumption is managed by the bucket . This is an array to allow scenarios where a buckets are shared between different products"
         }
-      },
-      "required": [
-        "name",
-        "totalBalance",
-        "bucket",
-        "product"
-      ]
+      }
     },
     "BalanceTopupBody": {
       "properties": {
-        "type": {
-          "type": "string",
-          "description": "A preconfigured value that describes a TopUp type which determines the prepay balance bucket in which the top-up is done (national-voice, roaming-voice, promotional-voice, data, ....)"
-        },
-        "channel": {
-          "$ref": "#/definitions/ChannelRefType",
-          "description": "Indicator for the channel used to request the top-up operation. Structure including at least attribute “name”"
-        },
-        "amount": {
+        "remainedAmount": {
           "$ref": "#/definitions/QuantityType",
           "description": "Amount (can be monetary or non-monetary) to be recharged in the bucket"
-        },
-        "product": {
-          "$ref": "#/definitions/ProductRefType",
-          "description": "A reference to the product related to the bucket that is impacted by the balance related operation"
         }
-      },
-      "required": [
-        "type",
-        "channel",
-        "amount"
-      ]
-    },
-    "BalanceTransferBody": {
-      "properties": {
-        "type": {
-          "type": "string",
-          "description": "A preconfigured value that describes a TopUp type which determines the prepay balance bucket in which the top-up is done (national-voice, roaming-voice, promotional-voice, data, ....)"
-        },
-        "channel": {
-          "$ref": "#/definitions/ChannelRefType",
-          "description": "Indicator for the channel used to request the top-up operation. Structure including at least attribute “name”"
-        },
-        "targetId": {
-          "type": "string",
-          "description": "Identifier for the entity that receives the transfer (reference to a product via a commercial identifier such as an msisidn that relates to an internal product id)"
-        },
-        "amount": {
-          "$ref": "#/definitions/QuantityType",
-          "description": "Amount (can be monetary or non-monetary) to be transferred"
-        },
-        "product": {
-          "$ref": "#/definitions/ProductRefType",
-          "description": "A reference to the product related to the bucket that is impacted by the balance related operation"
-        }
-      },
-      "required": [
-        "type",
-        "channel",
-        "targetId",
-        "amount"
-      ]
+      }
     },
     "BalanceAdjustmentBody": {
       "properties": {
@@ -605,99 +404,7 @@
           "$ref": "#/definitions/ProductRefType",
           "description": "A reference to the product related to the bucket that is impacted by the balance related operation"
         }
-      },
-      "required": [
-        "type",
-        "amount"
-      ]
-    },
-    "ChannelRefType": {
-      "description": "link to the resource that holds information about the channel used to initiate the topup operation request",
-      "properties": {
-        "id": {
-          "type": "string",
-          "description": "Unique identifier for the channel entity"
-        },
-        "href": {
-          "type": "string",
-          "description": "A resource URI pointing to the resource in the OB that stores the channel information"
-        },
-        "name": {
-          "type": "string",
-          "description": "Name of the channel"
-        }
-      },
-      "required": [
-        "id",
-        "href"
-      ]
-    },
-    "PaymentMethodRefOrValueType": {
-      "description": "link to the resource that holds information about the payment mean used to complete the operation",
-      "properties": {
-        "id": {
-          "type": "string",
-          "description": "Unique identifier for the channel entity"
-        },
-        "href": {
-          "type": "string",
-          "description": "A resource URI pointing to the resource in the OB that stores the channel information"
-        },
-        "name": {
-          "type": "string",
-          "description": "Name of the channel"
-        },
-        "type": {
-          "type": "string",
-          "description": "Type of payment method (bankcard, voucher, …)"
-        },
-        "details": {
-          "$ref": "#/definitions/RelatedPartyRefType",
-          "description": "The list of parameters depends on the type of payment method"
-        }
-      },
-      "required": [
-        "id",
-        "href"
-      ]
-    },
-    "BalanceTransferStatusTypeModify": {
-      "properties": {
-        "status": {
-          "type": "string"
-        }
-      },
-      "required": [
-        "status"
-      ]
-    },
-    "BalanceTopupStatusTypeModify": {
-      "properties": {
-        "status": {
-          "type": "string",
-          "description": "Current status of the operation request"
-        }
-      },
-      "required": [
-        "status"
-      ]
-    },
-    "BalanceTopupStatusType": {
-      "allOf": [
-        {
-          "$ref": "#/definitions/BalanceTopupStatusTypeModify"
-        }
-      ],
-      "description": "Structure including specific information about change of status for the topup operation",
-      "properties": {
-        "statusChangeDate": {
-          "type": "string",
-          "description": "Date in which the latest change of status was requested"
-        }
-      },
-      "required": [
-        "statusChangeDate"
-      ]
+      }
     },
     "BucketBalanceRefType": {
       "description": "link to the resource that holds bucket balance information",
@@ -738,22 +445,17 @@
       ]
     },
     "QuantityType": {
-      "description": "Representation of a quantity of something. I can also be used to represent a quantity range",
+      "description": "Representation of a quantity of something",
       "properties": {
         "amount": {
-          "format": "decimal",
-          "type": "number",
+          "type": "string",
           "description": "Measured amount"
         },
         "units": {
           "type": "string",
           "description": "Units the quantity is measured in"
         }
-      },
-      "required": [
-        "units",
-        "amount"
-      ]
+      }
     },
     "TimePeriodType": {
       "description": "Representation of a time period",
@@ -768,127 +470,7 @@
           "type": "string",
           "description": "End date of the period"
         }
-      },
-      "required": [
-        "startDateTime"
-      ]
-    },
-    "PartyAccountRefType": {
-      "description": "Information about a resource that holds information about the account that owns the bucket",
-      "properties": {
-        "id": {
-          "type": "string",
-          "description": "Unique identifier for the account entity"
-        },
-        "href": {
-          "type": "string",
-          "description": "A resource URI pointing to the resource in the OB that stores the account information"
-        },
-        "name": {
-          "type": "string",
-          "description": "Name of the account"
-        }
-      },
-      "required": [
-        "id",
-        "href"
-      ]
-    },
-    "RelatedPartyRefType": {
-      "description": "Information about an associated entity and its role",
-      "properties": {
-        "id": {
-          "type": "string",
-          "description": "Unique identifier for the account entity"
-        },
-        "href": {
-          "type": "string",
-          "description": "A resource URI pointing to the resource in the OB that stores the account information"
-        },
-        "name": {
-          "type": "string",
-          "description": "Name of the account"
-        },
-        "role": {
-          "type": "string",
-          "description": "Role describing the relationship with the related element"
-        }
-      },
-      "required": [
-        "role",
-        "name"
-      ]
-    },
-    "RealizingResourceRefType": {
-      "description": "Information about a resource that holds realizes the product that is linked to the bucket balance",
-      "properties": {
-        "id": {
-          "type": "string",
-          "description": "Unique identifier of the related party"
-        },
-        "href": {
-          "type": "string",
-          "description": "Reference to the party"
-        },
-        "name": {
-          "type": "string",
-          "description": "Name of the resource"
-        },
-        "@Type": {
-          "type": "string",
-          "description": "Indicates the type of resource"
-        },
-        "value": {
-          "type": "string",
-          "description": "The resource value that can be used to identify a resource with a public key (e.g.: a tel nr, an msisdn)"
-        }
       }
-    },
-    "NotificationRequest": {
-      "properties": {
-        "callback": {
-          "type": "string"
-        }
-      },
-      "required": [
-        "callback"
-      ]
-    },
-    "NotificationResponse": {
-      "properties": {
-        "id": {
-          "type": "string"
-        },
-        "callback": {
-          "type": "string"
-        },
-        "query": {
-          "type": "string"
-        }
-      },
-      "required": [
-        "id",
-        "callback",
-        "query"
-      ]
-    },
-    "ListenerRequest": {
-      "properties": {
-        "eventId": {
-          "type": "string"
-        },
-        "eventType": {
-          "type": "string"
-        },
-        "event": {
-          "$ref": "#/definitions/NotificationResponse"
-        }
-      },
-      "required": [
-        "eventId",
-        "eventType",
-        "event"
-      ]
     }
   }
 }

@@ -150,9 +150,15 @@ do(#mod{method = Method, parsed_header = Headers, request_uri = Uri,
 							check_content_type_header(Headers, Method, ocs_rest_res_product, Data);
 						["productCatalog", "v2", "hub" | _] ->
 							check_content_type_header(Headers, Method, ocs_rest_hub_product, Data);
+						["resourceCatalogManagement", "v2", "resourceCatalog" | _] ->
+							check_content_type_header(Headers, Method, ocs_rest_res_resource, Data);
 						["resourceCatalogManagement", "v2", "plaSpecification" | _] ->
 							check_content_type_header(Headers, Method, ocs_rest_res_resource, Data);
 						["resourceCatalogManagement", "v2", "resourceSpecification" | _] ->
+							check_content_type_header(Headers, Method, ocs_rest_res_resource, Data);
+						["resourceCatalogManagement", "v2", "resourceCategory" | _] ->
+							check_content_type_header(Headers, Method, ocs_rest_res_resource, Data);
+						["resourceCatalogManagement", "v2", "resourceCandidate" | _] ->
 							check_content_type_header(Headers, Method, ocs_rest_res_resource, Data);
 						["serviceCatalogManagement", "v2", "serviceSpecification" | _] ->
 							check_content_type_header(Headers, Method, ocs_rest_res_service, Data);

@@ -11,10 +11,10 @@
     "https"
   ],
   "consumes": [
-    "application/json;charset=utf-8"
+    "application/json"
   ],
   "produces": [
-    "application/json;charset=utf-8"
+    "application/json"
   ],
   "tags": [
     {
@@ -274,8 +274,8 @@
             "description": "For filtering: Could be minutes, GB..."
           }
         ],
-        "operationId": "productFind",
-        "summary": "productFind",
+        "operationId": "productGet",
+        "summary": "productGet",
         "description": "This operation lists all 'ProductOffering' entites",
         "deprecated": false,
         "responses": {
@@ -361,15 +361,15 @@
             }
           }
         ],
-        "operationId": "productSpecificationPatch",
-        "summary": "productSpecificationPatch",
-        "description": "This operation patches a 'ProductSpecification' by Id",
+        "operationId": "productOfferingPatch",
+        "summary": "productOfferingPatch",
+        "description": "This operation patches a 'ProductOffering' by Id",
         "deprecated": false,
         "responses": {
           "200": {
             "description": "Success",
             "schema": {
-              "$ref": "#/definitions/ProductSpecification"
+              "$ref": "#/definitions/ProductOffering"
             }
           },
           "400": {
@@ -385,7 +385,7 @@
       },
       "delete": {
         "tags": [
-          "product"
+          "productOffering"
         ],
         "parameters": [
           {
@@ -393,12 +393,12 @@
             "in": "path",
             "required": true,
             "type": "string",
-            "description": "identity of the ProductSpecification"
+            "description": "identity of the ProductOffering"
           }
         ],
-        "operationId": "productSpecificationDelete",
-        "summary": "productSpecificationDelete",
-        "description": "This operation deletes a 'ProductSpecification' by Id",
+        "operationId": "productOfferingDelete",
+        "summary": "productOfferingDelete",
+        "description": "This operation deletes a 'ProductOffering' by Id",
         "deprecated": false,
         "responses": {
           "204": {
@@ -762,7 +762,7 @@
     },
     "ProductSpecCharacteristic": {
       "type": "object",
-      "description": "A characteristic quality or distinctive feature of a ProductSpecification.  The characteristic can be take on a discrete value, such as color, can take on a range of values, (for example, sensitivity of 100-240 mV), or can be derived from a formula (for example, usage time (hrs) = 30 - talk time *3). Certain characteristics, such as color, may be configured during the ordering or some other process.",
+      "description": "A characteristic quality or distinctive feature of a ProductSpecification.",
       "properties": {
         "name": {
           "type": "string",
