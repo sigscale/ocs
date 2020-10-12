@@ -130,7 +130,8 @@ init_per_testcase(TestCase, Config) when TestCase == notify_create_bucket;
 		TestCase == notify_accumulated_threshold;
 		TestCase == notify_create_product; TestCase == notify_delete_product;
 		TestCase == notify_create_service; TestCase == notify_delete_service;
-		TestCase == notify_create_offer; TestCase == notify_delete_offer ->
+		TestCase == notify_create_offer; TestCase == notify_delete_offer;
+		TestCase == notify_insert_gtt ->
 	true = register(TestCase, self()),
 	case inets:start(httpd, [{port, 0},
 			{server_name, atom_to_list(?MODULE)},
@@ -195,7 +196,7 @@ all() ->
 	notify_delete_product, post_hub_service, delete_hub_service,
 	notify_create_service, notify_delete_service,
 	post_hub_user, delete_hub_user, post_hub_catalog, delete_hub_catalog,
-	notify_create_offer, notify_delete_offer,
+	notify_create_offer, notify_delete_offer, notify_insert_gtt,
 	post_hub_inventory, delete_hub_inventory, notify_product_charge,
 	oauth_authentication].
 
@@ -3419,6 +3420,37 @@ delete_hub_inventory(Config) ->
 	Request1 = {HostUrl ++ PathHub ++ Id, [Accept, auth_header()]},
 	{ok, {{_, 204, _}, _, []}} = httpc:request(delete, Request1, [], []).
 
+notify_insert_gtt() ->
+	[{userdata, [{doc, "Receive logical resource creation notification."}]}].
+
+notify_insert_gtt(Config) ->
+	HostUrl = ?config(host_url, Config),
+	CollectionUrl = HostUrl ++ ?PathResourceHub,
+	ListenerPort = ?config(listener_port, Config),
+	ListenerServer = "http://localhost:" ++ integer_to_list(ListenerPort),
+	Callback = ListenerServer ++ "/listener/"
+			++ atom_to_list(?MODULE) ++ "/notifyinsertgtt",
+	RequestBody = "{\n"
+			++ "\t\"callback\": \"" ++ Callback ++ "\",\n"
+			++ "}\n",
+	ContentType = "application/json",
+	Accept = {"accept", "application/json"},
+	Request = {CollectionUrl, [Accept, auth_header()], ContentType, RequestBody},
+	{ok, {{_, 201, _}, _, _}} = httpc:request(post, Request, [], []),
+	[Table | _] = ocs_gtt:list(),
+	Prefix = "1519240",
+	Description = "Bell Mobility",
+	Amount = 10000,
+	ocs_gtt:insert(Table, Prefix, {Description, Amount}),
+	receive
+		Input ->
+			{struct, GttEvent} = mochijson:decode(Input),
+			{_, "LogicalResourceCreationNotification"}
+					= lists:keyfind("eventType", 1, GttEvent),
+			{_, {struct, GttList}} = lists:keyfind("event", 1, GttEvent),
+			{_, Prefix} = lists:keyfind("id", 1, GttList)
+	end.
+
 notify_product_charge() ->
 	[{userdata, [{doc, "Receive product charged notification"}]}].
 
@@ -3630,6 +3662,13 @@ notifycreateoffer(SessionID, _Env, Input) ->
 notifydeleteoffer(SessionID, _Env, Input) ->
 	mod_esi:deliver(SessionID, "status: 201 Created\r\n\r\n"),
 	notify_delete_offer ! Input.
+
+-spec notifyinsertgtt(SessionID :: term(), Env :: list(),
+		Input :: string()) -> any().
+%% @doc Notification callback for notify_insert_gtt test case.
+notifyinsertgtt(SessionID, _Env, Input) ->
+	mod_esi:deliver(SessionID, "status: 201 Created\r\n\r\n"),
+	notify_insert_gtt ! Input.
 
 product_offer() ->
 	CatalogHref = "/productCatalogManagement/v2",
