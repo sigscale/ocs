@@ -42,8 +42,9 @@
 				| accumulated | create_product | delete_product
 				| create_service | delete_service | create_offer | delete_offer
 				| insert_gtt,
-		EventPayLoad :: #bucket{} | #product{} | #service{} | #offer{} | #gtt{}
-				| [#adjustment{}] | [#acc_balance{}],
+		EventPayLoad :: #bucket{} | #product{} | #service{} | #offer{}
+				| {Table, #gtt{}} | [#adjustment{}] | [#acc_balance{}],
+		Table :: atom(),
 		Category :: balance | product | service | resource.
 %% @doc Send a notification event.
 %%

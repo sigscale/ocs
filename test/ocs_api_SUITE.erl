@@ -688,7 +688,7 @@ gtt_insert_event(_Config) ->
 	Amount = 10000,
 	ocs_gtt:insert(Table, Prefix, {Description, Amount}),
 	receive
-		{insert_gtt, #gtt{num = Prefix, value = Value}, resource} ->
+		{insert_gtt, {Table, #gtt{num = Prefix, value = Value}}, resource} ->
 		{Description, Amount, _} = Value
 	end.
 
