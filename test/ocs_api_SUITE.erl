@@ -678,7 +678,7 @@ add_offer_event(_Config) ->
 	end.
 
 gtt_insert_event() ->
-	[{userdata, [{doc, "Event received on adding offer"}]}].
+	[{userdata, [{doc, "Event received on inserting logical resource"}]}].
 
 gtt_insert_event(_Config) ->
 	ok = gen_event:add_handler(ocs_event, test_event, [self()]),
