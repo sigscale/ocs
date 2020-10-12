@@ -151,8 +151,9 @@ register(timeout, State) ->
 		Type :: create_bucket | delete_bucket | charge | depleted | accumulated
 				| create_product | delete_product | create_service | delete_service
 				| create_offer | delete_offer | insert_gtt,
-		Resource :: #bucket{} | #product{} | #service{} | #offer{} | #gtt{}
-				| [#adjustment{}] | [#acc_balance{}],
+		Resource :: #bucket{} | #product{} | #service{} | #offer{}
+				| {Table, #gtt{}} | [#adjustment{}] | [#acc_balance{}],
+		Table :: atom(),
 		Category :: balance | product | service | resource,
 		State :: statedata(),
 		Result :: {next_state, NextStateName, NewStateData}
@@ -209,8 +210,9 @@ registered({Type, Resource, Category} = _Event, #statedata{sync = Sync,
 			ocs_rest_res_service:inventory(Resource);
 		resource ->
 			case Resource of
-				#gtt{num = Prefix, value = {Description, Rate, _}} ->
-					ocs_rest_res_resource:gtt([], {Prefix, Description, Rate})
+				{Table, #gtt{num = Prefix, value = {Description, Rate, _}}} ->
+					ocs_rest_res_resource:gtt(atom_to_list(Table),
+							{Prefix, Description, Rate})
 			end
 	end,
 	EventStruct = {struct, [{"eventId", EventId}, {"eventTime", EventTime},
