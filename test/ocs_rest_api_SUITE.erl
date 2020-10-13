@@ -131,7 +131,7 @@ init_per_testcase(TestCase, Config) when TestCase == notify_create_bucket;
 		TestCase == notify_create_product; TestCase == notify_delete_product;
 		TestCase == notify_create_service; TestCase == notify_delete_service;
 		TestCase == notify_create_offer; TestCase == notify_delete_offer;
-		TestCase == notify_insert_gtt ->
+		TestCase == notify_insert_gtt; TestCase == notify_delete_gtt ->
 	true = register(TestCase, self()),
 	case inets:start(httpd, [{port, 0},
 			{server_name, atom_to_list(?MODULE)},
@@ -197,6 +197,7 @@ all() ->
 	notify_create_service, notify_delete_service,
 	post_hub_user, delete_hub_user, post_hub_catalog, delete_hub_catalog,
 	notify_create_offer, notify_delete_offer, notify_insert_gtt,
+	notify_delete_gtt,
 	post_hub_inventory, delete_hub_inventory, notify_product_charge,
 	oauth_authentication].
 
@@ -3451,6 +3452,46 @@ notify_insert_gtt(Config) ->
 			{_, Prefix} = lists:keyfind("id", 1, GttList)
 	end.
 
+notify_delete_gtt() ->
+	[{userdata, [{doc, "Receive logical resource deletion notification."}]}].
+
+notify_delete_gtt(Config) ->
+	HostUrl = ?config(host_url, Config),
+	CollectionUrl = HostUrl ++ ?PathResourceHub,
+	ListenerPort = ?config(listener_port, Config),
+	ListenerServer = "http://localhost:" ++ integer_to_list(ListenerPort),
+	Callback = ListenerServer ++ "/listener/"
+			++ atom_to_list(?MODULE) ++ "/notifydeletegtt",
+	RequestBody = "{\n"
+			++ "\t\"callback\": \"" ++ Callback ++ "\",\n"
+			++ "}\n",
+	ContentType = "application/json",
+	Accept = {"accept", "application/json"},
+	Request = {CollectionUrl, [Accept, auth_header()], ContentType, RequestBody},
+	{ok, {{_, 201, _}, _, _}} = httpc:request(post, Request, [], []),
+	[Table | _] = ocs_gtt:list(),
+	Prefix = "1519240",
+	Description = "Bell Mobility",
+	Amount = 10000,
+	ocs_gtt:insert(Table, Prefix, {Description, Amount}),
+	receive
+		Receive1 ->
+			{struct, GttEvent1} = mochijson:decode(Receive1),
+			{_, "LogicalResourceCreationNotification"}
+					= lists:keyfind("eventType", 1, GttEvent1),
+			{_, {struct, GttList1}} = lists:keyfind("event", 1, GttEvent1),
+			{_, Prefix} = lists:keyfind("id", 1, GttList1)
+	end,
+	ocs_gtt:delete(Table, Prefix),
+	receive
+		Receive2 ->
+			{struct, GttEvent2} = mochijson:decode(Receive2),
+			{_, "LogicalResourceRemoveNotification"}
+					= lists:keyfind("eventType", 1, GttEvent2),
+			{_, {struct, GttList2}} = lists:keyfind("event", 1, GttEvent2),
+			{_, Prefix} = lists:keyfind("id", 1, GttList2)
+	end.
+
 notify_product_charge() ->
 	[{userdata, [{doc, "Receive product charged notification"}]}].
 
@@ -3669,6 +3710,13 @@ notifydeleteoffer(SessionID, _Env, Input) ->
 notifyinsertgtt(SessionID, _Env, Input) ->
 	mod_esi:deliver(SessionID, "status: 201 Created\r\n\r\n"),
 	notify_insert_gtt ! Input.
+
+-spec notifydeletegtt(SessionID :: term(), Env :: list(),
+		Input :: string()) -> any().
+%% @doc Notification callback for notify_delete_gtt test case.
+notifydeletegtt(SessionID, _Env, Input) ->
+	mod_esi:deliver(SessionID, "status: 201 Created\r\n\r\n"),
+	notify_delete_gtt ! Input.
 
 product_offer() ->
 	CatalogHref = "/productCatalogManagement/v2",
