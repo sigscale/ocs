@@ -94,7 +94,7 @@ all() ->
 	find_bucket, delete_bucket, get_buckets, positive_adjustment,
 	negative_adjustment_high, negative_adjustment_equal, negative_adjustment_low,
 	add_product, find_product, delete_product, query_product, add_offer_event,
-	gtt_insert_event, gtt_delete_event].
+	gtt_insert_event, gtt_delete_event, add_pla_event].
 
 %%---------------------------------------------------------------------
 %%  Test cases
@@ -710,6 +710,24 @@ gtt_delete_event(_Config) ->
 	receive
 		{delete_gtt, {Table, #gtt{num = Prefix, value = Value2}}, resource} ->
 		{Description, Amount, _} = Value2
+	end.
+
+add_pla_event() ->
+	[{userdata, [{doc, "Event received on adding pla"}]}].
+
+add_pla_event(_Config) ->
+	ok = gen_event:add_handler(ocs_event, test_event, [self()]),
+	[Table | _] = ocs_gtt:list(),
+	SD = erlang:system_time(?MILLISECOND),
+	ED = erlang:system_time(?MILLISECOND) + rand:uniform(10000000000),
+	Status = created,
+	Name = atom_to_list(Table),
+	Pla = #pla{name = Name, start_date = SD,
+			end_date = ED, status = Status},
+	{ok, #pla{}} = ocs:add_pla(Pla),
+	receive
+		{create_pla, #pla{name = Name, status = Status}, resource} ->
+		Table = list_to_existing_atom(Name)
 	end.
 
 %%---------------------------------------------------------------------
