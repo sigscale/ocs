@@ -94,7 +94,7 @@ all() ->
 	find_bucket, delete_bucket, get_buckets, positive_adjustment,
 	negative_adjustment_high, negative_adjustment_equal, negative_adjustment_low,
 	add_product, find_product, delete_product, query_product, add_offer_event,
-	gtt_insert_event].
+	gtt_insert_event, gtt_delete_event].
 
 %%---------------------------------------------------------------------
 %%  Test cases
@@ -690,6 +690,26 @@ gtt_insert_event(_Config) ->
 	receive
 		{insert_gtt, {Table, #gtt{num = Prefix, value = Value}}, resource} ->
 		{Description, Amount, _} = Value
+	end.
+
+gtt_delete_event() ->
+	[{userdata, [{doc, "Event received on deleting logical resource"}]}].
+
+gtt_delete_event(_Config) ->
+	ok = gen_event:add_handler(ocs_event, test_event, [self()]),
+	[Table | _] = ocs_gtt:list(),
+	Prefix = "1519241",
+	Description = "Bell Mobility",
+	Amount = 10000,
+	ocs_gtt:insert(Table, Prefix, {Description, Amount}),
+	receive
+		{insert_gtt, {Table, #gtt{num = Prefix, value = Value1}}, resource} ->
+		{Description, Amount, _} = Value1
+	end,
+	ocs_gtt:delete(Table, Prefix),
+	receive
+		{delete_gtt, {Table, #gtt{num = Prefix, value = Value2}}, resource} ->
+		{Description, Amount, _} = Value2
 	end.
 
 %%---------------------------------------------------------------------
