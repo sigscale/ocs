@@ -686,7 +686,7 @@ gtt_insert_event(_Config) ->
 	Prefix = "1519240",
 	Description = "Bell Mobility",
 	Amount = 10000,
-	ocs_gtt:insert(Table, Prefix, {Description, Amount}),
+	{ok, #gtt{}} = ocs_gtt:insert(Table, Prefix, {Description, Amount}),
 	receive
 		{insert_gtt, {Table, #gtt{num = Prefix, value = Value}}, resource} ->
 		{Description, Amount, _} = Value
@@ -701,12 +701,12 @@ gtt_delete_event(_Config) ->
 	Prefix = "1519241",
 	Description = "Bell Mobility",
 	Amount = 10000,
-	ocs_gtt:insert(Table, Prefix, {Description, Amount}),
+	{ok, #gtt{}} = ocs_gtt:insert(Table, Prefix, {Description, Amount}),
 	receive
 		{insert_gtt, {Table, #gtt{num = Prefix, value = Value1}}, resource} ->
 		{Description, Amount, _} = Value1
 	end,
-	ocs_gtt:delete(Table, Prefix),
+	ok = ocs_gtt:delete(Table, Prefix),
 	receive
 		{delete_gtt, {Table, #gtt{num = Prefix, value = Value2}}, resource} ->
 		{Description, Amount, _} = Value2

@@ -3443,7 +3443,7 @@ notify_insert_gtt(Config) ->
 	Prefix = "1519240",
 	Description = "Bell Mobility",
 	Amount = 10000,
-	ocs_gtt:insert(Table, Prefix, {Description, Amount}),
+	{ok, #gtt{}} = ocs_gtt:insert(Table, Prefix, {Description, Amount}),
 	receive
 		Input ->
 			{struct, GttEvent} = mochijson:decode(Input),
@@ -3474,7 +3474,7 @@ notify_delete_gtt(Config) ->
 	Prefix = "1519240",
 	Description = "Bell Mobility",
 	Amount = 10000,
-	ocs_gtt:insert(Table, Prefix, {Description, Amount}),
+	{ok, #gtt{}} = ocs_gtt:insert(Table, Prefix, {Description, Amount}),
 	receive
 		Receive1 ->
 			{struct, GttEvent1} = mochijson:decode(Receive1),
@@ -3483,7 +3483,7 @@ notify_delete_gtt(Config) ->
 			{_, {struct, GttList1}} = lists:keyfind("event", 1, GttEvent1),
 			{_, Prefix} = lists:keyfind("id", 1, GttList1)
 	end,
-	ocs_gtt:delete(Table, Prefix),
+	ok = ocs_gtt:delete(Table, Prefix),
 	receive
 		Receive2 ->
 			{struct, GttEvent2} = mochijson:decode(Receive2),

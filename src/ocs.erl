@@ -609,7 +609,7 @@ add_product(OfferId, ServiceRefs, StartDate, EndDate, Characteristics)
 	end,
 	case mnesia:transaction(F) of
 		{atomic, Product} ->
-			ocs_event:notify(create_product, Product, product),
+			ok = ocs_event:notify(create_product, Product, product),
 			{ok, Product};
 		{aborted, {throw, Reason}} ->
 			{error, Reason};
@@ -657,7 +657,7 @@ delete_product(ProductRef) when is_list(ProductRef) ->
 	end,
 	case mnesia:transaction(F1) of
 		{atomic, {ok, Product}} ->
-			ocs_event:notify(delete_product, Product, product),
+			ok = ocs_event:notify(delete_product, Product, product),
 			ok;
 		{aborted, Reason} ->
 			exit(Reason)
@@ -785,7 +785,7 @@ add_service(undefined, Password, State, ProductRef, Chars,
 	end,
 	case mnesia:transaction(F1) of
 		{atomic, Service} ->
-			ocs_event:notify(create_service, Service, service),
+			ok = ocs_event:notify(create_service, Service, service),
 			{ok, Service};
 		{aborted, Reason} ->
 			{error, Reason}
@@ -801,7 +801,7 @@ add_service(Identity, Password, State, ProductRef, Chars, Attributes,
 	end,
 	case mnesia:transaction(F1) of
 		{atomic, Service} ->
-			ocs_event:notify(create_service, Service, service),
+			ok = ocs_event:notify(create_service, Service, service),
 			{ok, Service};
 		{aborted, {throw, Reason}} ->
 			{error, Reason};
@@ -879,7 +879,7 @@ add_bucket(ProductRef, #bucket{id = undefined} = Bucket) when is_list(ProductRef
 					ProdRef, 0, 0, NewBucket#bucket.remain_amount, undefined,
 					undefined, undefined, undefined, undefined, undefined,
 					NewBucket#bucket.status),
-			ocs_event:notify(create_bucket, NewBucket, balance),
+			ok = ocs_event:notify(create_bucket, NewBucket, balance),
 			{ok, OldBucket, NewBucket};
 		{aborted, Reason} ->
 			{error, Reason}
@@ -1042,7 +1042,7 @@ delete_bucket(BucketId) ->
 	end,
 	case mnesia:transaction(F2) of
 		{atomic, {ok, Bucket}} ->
-			ocs_event:notify(delete_bucket, Bucket, balance),
+			ok = ocs_event:notify(delete_bucket, Bucket, balance),
 			ok;
 		{aborted, Reason} ->
 			exit(Reason)
@@ -1351,7 +1351,7 @@ delete_service(Identity) when is_binary(Identity) ->
 	end,
 	case mnesia:transaction(F) of
 		{atomic, {ok, Service}} ->
-			ocs_event:notify(delete_service, Service, service),
+			ok = ocs_event:notify(delete_service, Service, service),
 			ok;
 		{aborted, Reason} ->
 			exit(Reason)
@@ -1469,7 +1469,7 @@ add_offer1(Offer) ->
 	end,
 	case mnesia:transaction(Fadd) of
 		{atomic, {ok, Offer2}} ->
-			ocs_event:notify(create_offer, Offer2, product),
+			ok = ocs_event:notify(create_offer, Offer2, product),
 			{ok, Offer2};
 		{aborted, Reason} ->
 			{error, Reason}
@@ -1587,7 +1587,7 @@ delete_offer(OfferID) ->
 	end,
 	case mnesia:transaction(F) of
 		{atomic, {ok, Offer}} ->
-			ocs_event:notify(delete_offer, Offer, product),
+			ok = ocs_event:notify(delete_offer, Offer, product),
 			ok;
 		{aborted, {throw, Reason}} ->
 			exit(Reason);
