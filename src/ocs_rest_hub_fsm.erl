@@ -150,7 +150,7 @@ register(timeout, State) ->
 		Event :: {Type, Resource, Category},
 		Type :: create_bucket | delete_bucket | charge | depleted | accumulated
 				| create_product | delete_product | create_service | delete_service
-				| create_offer | delete_offer | insert_gtt,
+				| create_offer | delete_offer | insert_gtt | delete_gtt,
 		Resource :: #bucket{} | #product{} | #service{} | #offer{}
 				| {Table, #gtt{}} | [#adjustment{}] | [#acc_balance{}],
 		Table :: atom(),
@@ -410,6 +410,8 @@ event_type(Type) ->
 		delete_offer ->
 			"ProductOfferingRemoveNotification";
 		insert_gtt ->
-			"LogicalResourceCreationNotification"
+			"LogicalResourceCreationNotification";
+		delete_gtt ->
+			"LogicalResourceRemoveNotification"
 	end.
 
