@@ -1494,8 +1494,10 @@ add_pla(#pla{} = Pla) ->
 			case catch list_to_existing_atom(Name) of
 				{'EXIT', _Reason} ->
 					ok = ocs_gtt:new(list_to_atom(Name), []),
+					ok = ocs_event:notify(create_pla, Pla1, resource),
 					{ok, Pla1};
 				_ ->
+					ok = ocs_event:notify(create_pla, Pla1, resource),
 					{ok, Pla1}
 			end;
 		{aborted, Reason} ->
