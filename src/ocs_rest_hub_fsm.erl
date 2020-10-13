@@ -185,41 +185,9 @@ registered({Type, Resource, Category} = _Event, #statedata{sync = Sync,
 	end,
 	{EventId, TS} = unique(),
 	EventTime = ocs_rest:iso8601(TS),
-	Event = case Category of
-		balance ->
-			case Resource of
-				#bucket{} ->
-					ocs_rest_res_balance:bucket(Resource);
-				[#adjustment{} | _] ->
-					AdjStructs = [ocs_rest_res_balance:adjustment(Adjustment)
-							|| Adjustment <- Resource],
-					{array, AdjStructs};
-				[#acc_balance{} | _] ->
-					AccBalStructs =
-							[ocs_rest_res_balance:acc_balance(AccBalance)
-							|| AccBalance <- Resource],
-					{array, AccBalStructs}
-			end;
-		product ->
-			case Resource of
-				#product{} ->
-					ocs_rest_res_product:inventory(Resource);
-				#offer{} ->
-					ocs_rest_res_product:offer(Resource)
-			end;
-		service ->
-			ocs_rest_res_service:inventory(Resource);
-		resource ->
-			case Resource of
-				#pla{} ->
-					ocs_rest_res_resource:pla(Resource);
-				{Table, #gtt{num = Prefix, value = {Description, Rate, _}}} ->
-					ocs_rest_res_resource:gtt(atom_to_list(Table),
-							{Prefix, Description, Rate})
-			end
-	end,
 	EventStruct = {struct, [{"eventId", EventId}, {"eventTime", EventTime},
-			{"eventType", event_type(Type)}, {"event", Event}]},
+			{"eventType", event_type(Type)},
+			{"event", event(Resource, Category)}]},
 	Body = lists:flatten(mochijson:encode(EventStruct)),
 	Request = {Callback, Headers, "application/json", Body},
 	case httpc:request(post, Request, [], Options, Profile) of
@@ -386,6 +354,41 @@ unique() ->
 	N = erlang:unique_integer([positive]),
 	ID = integer_to_list(TS) ++ integer_to_list(N),
 	{ID, TS}.
+
+event(Resource, Category) ->
+	case Category of
+		balance ->
+			case Resource of
+				#bucket{} ->
+					ocs_rest_res_balance:bucket(Resource);
+				[#adjustment{} | _] ->
+					AdjStructs = [ocs_rest_res_balance:adjustment(Adjustment)
+							|| Adjustment <- Resource],
+					{array, AdjStructs};
+				[#acc_balance{} | _] ->
+					AccBalStructs =
+							[ocs_rest_res_balance:acc_balance(AccBalance)
+							|| AccBalance <- Resource],
+					{array, AccBalStructs}
+			end;
+		product ->
+			case Resource of
+				#product{} ->
+					ocs_rest_res_product:inventory(Resource);
+				#offer{} ->
+					ocs_rest_res_product:offer(Resource)
+			end;
+		service ->
+			ocs_rest_res_service:inventory(Resource);
+		resource ->
+			case Resource of
+				#pla{} ->
+					ocs_rest_res_resource:pla(Resource);
+				{Table, #gtt{num = Prefix, value = {Description, Rate, _}}} ->
+					ocs_rest_res_resource:gtt(atom_to_list(Table),
+							{Prefix, Description, Rate})
+			end
+	end.
 
 %% @hidden
 event_type(Type) ->
