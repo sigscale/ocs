@@ -175,9 +175,17 @@ insert(Table, Items) when is_atom(Table), is_list(Items)  ->
 delete(Table, Number) when is_list(Table) ->
 	delete(list_to_existing_atom(Table), Number);
 delete(Table, Number) when is_atom(Table), is_list(Number) ->
-	Fun = fun() -> mnesia:delete(Table, Number, write) end,
+	Fun = fun() ->
+			case mnesia:read(Table, Number) of
+				[#gtt{} = Gtt] ->
+					{mnesia:delete(Table, Number, write), Gtt};
+				[] ->
+					mnesia:abort(not_found)
+			end
+	end,
 	case mnesia:transaction(Fun) of
-		{atomic, ok} ->
+		{atomic, {ok, Gtt}} ->
+			ocs_event:notify(delete_gtt, {Table, Gtt}, resource),
 			ok;
 		{aborted, Reason} ->
 			exit(Reason)
