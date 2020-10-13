@@ -131,7 +131,8 @@ init_per_testcase(TestCase, Config) when TestCase == notify_create_bucket;
 		TestCase == notify_create_product; TestCase == notify_delete_product;
 		TestCase == notify_create_service; TestCase == notify_delete_service;
 		TestCase == notify_create_offer; TestCase == notify_delete_offer;
-		TestCase == notify_insert_gtt; TestCase == notify_delete_gtt ->
+		TestCase == notify_insert_gtt; TestCase == notify_delete_gtt;
+		TestCase == notify_add_pla ->
 	true = register(TestCase, self()),
 	case inets:start(httpd, [{port, 0},
 			{server_name, atom_to_list(?MODULE)},
@@ -197,7 +198,7 @@ all() ->
 	notify_create_service, notify_delete_service,
 	post_hub_user, delete_hub_user, post_hub_catalog, delete_hub_catalog,
 	notify_create_offer, notify_delete_offer, notify_insert_gtt,
-	notify_delete_gtt,
+	notify_delete_gtt, notify_add_pla,
 	post_hub_inventory, delete_hub_inventory, notify_product_charge,
 	oauth_authentication].
 
@@ -3492,6 +3493,40 @@ notify_delete_gtt(Config) ->
 			{_, Prefix} = lists:keyfind("id", 1, GttList2)
 	end.
 
+notify_add_pla() ->
+	[{userdata, [{doc, "Receive pla creation notification."}]}].
+
+notify_add_pla(Config) ->
+	HostUrl = ?config(host_url, Config),
+	CollectionUrl = HostUrl ++ ?PathResourceHub,
+	ListenerPort = ?config(listener_port, Config),
+	ListenerServer = "http://localhost:" ++ integer_to_list(ListenerPort),
+	Callback = ListenerServer ++ "/listener/"
+			++ atom_to_list(?MODULE) ++ "/notifyaddpla",
+	RequestBody = "{\n"
+			++ "\t\"callback\": \"" ++ Callback ++ "\",\n"
+			++ "}\n",
+	ContentType = "application/json",
+	Accept = {"accept", "application/json"},
+	Request = {CollectionUrl, [Accept, auth_header()], ContentType, RequestBody},
+	{ok, {{_, 201, _}, _, _}} = httpc:request(post, Request, [], []),
+	[Table | _] = ocs_gtt:list(),
+	SD = erlang:system_time(?MILLISECOND),
+	ED = erlang:system_time(?MILLISECOND) + rand:uniform(10000000000),
+	Status = created,
+	Name = atom_to_list(Table),
+	Pla = #pla{name = Name, start_date = SD,
+			end_date = ED, status = Status},
+	{ok, #pla{}} = ocs:add_pla(Pla),
+	receive
+		Receive ->
+			{struct, PlaEvent} = mochijson:decode(Receive),
+			{_, "PlaCreationNotification"}
+					= lists:keyfind("eventType", 1, PlaEvent),
+			{_, {struct, PlaList}} = lists:keyfind("event", 1, PlaEvent),
+			{_, Name} = lists:keyfind("id", 1, PlaList)
+	end.
+
 notify_product_charge() ->
 	[{userdata, [{doc, "Receive product charged notification"}]}].
 
@@ -3717,6 +3752,13 @@ notifyinsertgtt(SessionID, _Env, Input) ->
 notifydeletegtt(SessionID, _Env, Input) ->
 	mod_esi:deliver(SessionID, "status: 201 Created\r\n\r\n"),
 	notify_delete_gtt ! Input.
+
+-spec notifyaddpla(SessionID :: term(), Env :: list(),
+		Input :: string()) -> any().
+%% @doc Notification callback for notify_add_pla test case.
+notifyaddpla(SessionID, _Env, Input) ->
+	mod_esi:deliver(SessionID, "status: 201 Created\r\n\r\n"),
+	notify_add_pla ! Input.
 
 product_offer() ->
 	CatalogHref = "/productCatalogManagement/v2",
