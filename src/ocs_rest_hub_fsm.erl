@@ -150,9 +150,10 @@ register(timeout, State) ->
 		Event :: {Type, Resource, Category},
 		Type :: create_bucket | delete_bucket | charge | depleted | accumulated
 				| create_product | delete_product | create_service | delete_service
-				| create_offer | delete_offer | insert_gtt | delete_gtt,
+				| create_offer | delete_offer | insert_gtt | delete_gtt
+				| create_pla,
 		Resource :: #bucket{} | #product{} | #service{} | #offer{}
-				| {Table, #gtt{}} | [#adjustment{}] | [#acc_balance{}],
+				| {Table, #gtt{}} | #pla{} | [#adjustment{}] | [#acc_balance{}],
 		Table :: atom(),
 		Category :: balance | product | service | resource,
 		State :: statedata(),
@@ -210,6 +211,8 @@ registered({Type, Resource, Category} = _Event, #statedata{sync = Sync,
 			ocs_rest_res_service:inventory(Resource);
 		resource ->
 			case Resource of
+				#pla{} ->
+					ocs_rest_res_resource:pla(Resource);
 				{Table, #gtt{num = Prefix, value = {Description, Rate, _}}} ->
 					ocs_rest_res_resource:gtt(atom_to_list(Table),
 							{Prefix, Description, Rate})
@@ -412,6 +415,8 @@ event_type(Type) ->
 		insert_gtt ->
 			"LogicalResourceCreationNotification";
 		delete_gtt ->
-			"LogicalResourceRemoveNotification"
+			"LogicalResourceRemoveNotification";
+		create_pla ->
+			"PlaCreationNotification"
 	end.
 
