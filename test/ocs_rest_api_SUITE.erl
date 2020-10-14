@@ -132,7 +132,7 @@ init_per_testcase(TestCase, Config) when TestCase == notify_create_bucket;
 		TestCase == notify_create_service; TestCase == notify_delete_service;
 		TestCase == notify_create_offer; TestCase == notify_delete_offer;
 		TestCase == notify_insert_gtt; TestCase == notify_delete_gtt;
-		TestCase == notify_add_pla ->
+		TestCase == notify_add_pla; TestCase == notify_delete_pla ->
 	true = register(TestCase, self()),
 	case inets:start(httpd, [{port, 0},
 			{server_name, atom_to_list(?MODULE)},
@@ -198,7 +198,7 @@ all() ->
 	notify_create_service, notify_delete_service,
 	post_hub_user, delete_hub_user, post_hub_catalog, delete_hub_catalog,
 	notify_create_offer, notify_delete_offer, notify_insert_gtt,
-	notify_delete_gtt, notify_add_pla,
+	notify_delete_gtt, notify_add_pla, notify_delete_pla,
 	post_hub_inventory, delete_hub_inventory, notify_product_charge,
 	oauth_authentication].
 
@@ -3527,6 +3527,46 @@ notify_add_pla(Config) ->
 			{_, Name} = lists:keyfind("id", 1, PlaList)
 	end.
 
+notify_delete_pla() ->
+	[{userdata, [{doc, "Receive pla deletion notification."}]}].
+
+notify_delete_pla(Config) ->
+	HostUrl = ?config(host_url, Config),
+	CollectionUrl = HostUrl ++ ?PathResourceHub,
+	ListenerPort = ?config(listener_port, Config),
+	ListenerServer = "http://localhost:" ++ integer_to_list(ListenerPort),
+	Callback = ListenerServer ++ "/listener/"
+			++ atom_to_list(?MODULE) ++ "/notifydeletepla",
+	RequestBody = "{\n"
+			++ "\t\"callback\": \"" ++ Callback ++ "\",\n"
+			++ "}\n",
+	ContentType = "application/json",
+	Accept = {"accept", "application/json"},
+	Request = {CollectionUrl, [Accept, auth_header()], ContentType, RequestBody},
+	{ok, {{_, 201, _}, _, _}} = httpc:request(post, Request, [], []),
+	SD = erlang:system_time(?MILLISECOND),
+	ED = erlang:system_time(?MILLISECOND) + rand:uniform(10000000000),
+	Status = created,
+	Name = "test_notification2",
+	Pla = #pla{name = Name, start_date = SD,
+			end_date = ED, status = Status},
+	{ok, #pla{}} = ocs:add_pla(Pla),
+	receive
+		Receive1 ->
+			{struct, PlaEvent1} = mochijson:decode(Receive1),
+			{_, "PlaCreationNotification"}
+					= lists:keyfind("eventType", 1, PlaEvent1)
+	end,
+	ok = ocs:delete_pla(Name),
+	receive
+		Receive2 ->
+			{struct, PlaEvent2} = mochijson:decode(Receive2),
+			{_, "PlaRemoveNotification"}
+					= lists:keyfind("eventType", 1, PlaEvent2),
+			{_, {struct, PlaList}} = lists:keyfind("event", 1, PlaEvent2),
+			{_, Name} = lists:keyfind("id", 1, PlaList)
+	end.
+
 notify_product_charge() ->
 	[{userdata, [{doc, "Receive product charged notification"}]}].
 
@@ -3759,6 +3799,13 @@ notifydeletegtt(SessionID, _Env, Input) ->
 notifyaddpla(SessionID, _Env, Input) ->
 	mod_esi:deliver(SessionID, "status: 201 Created\r\n\r\n"),
 	notify_add_pla ! Input.
+
+-spec notifydeletepla(SessionID :: term(), Env :: list(),
+		Input :: string()) -> any().
+%% @doc Notification callback for notify_delete_pla test case.
+notifydeletepla(SessionID, _Env, Input) ->
+	mod_esi:deliver(SessionID, "status: 201 Created\r\n\r\n"),
+	notify_delete_pla ! Input.
 
 product_offer() ->
 	CatalogHref = "/productCatalogManagement/v2",
