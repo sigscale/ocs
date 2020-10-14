@@ -674,7 +674,7 @@ add_offer_event(_Config) ->
 	{ok, OfferName} = ocs_test_lib:add_offer(),
 	receive
 		{create_offer, Offer, product} ->
-		OfferName = Offer#offer.name
+			OfferName = Offer#offer.name
 	end.
 
 gtt_insert_event() ->
@@ -689,7 +689,7 @@ gtt_insert_event(_Config) ->
 	{ok, #gtt{}} = ocs_gtt:insert(Table, Prefix, {Description, Amount}),
 	receive
 		{insert_gtt, {Table, #gtt{num = Prefix, value = Value}}, resource} ->
-		{Description, Amount, _} = Value
+			{Description, Amount, _} = Value
 	end.
 
 gtt_delete_event() ->
@@ -709,7 +709,7 @@ gtt_delete_event(_Config) ->
 	ok = ocs_gtt:delete(Table, Prefix),
 	receive
 		{delete_gtt, {Table, #gtt{num = Prefix, value = Value2}}, resource} ->
-		{Description, Amount, _} = Value2
+			{Description, Amount, _} = Value2
 	end.
 
 add_pla_event() ->
@@ -727,7 +727,7 @@ add_pla_event(_Config) ->
 	{ok, #pla{}} = ocs:add_pla(Pla),
 	receive
 		{create_pla, #pla{name = Name, status = Status}, resource} ->
-		Table = list_to_existing_atom(Name)
+			Table = list_to_existing_atom(Name)
 	end.
 
 delete_pla_event() ->
@@ -738,7 +738,7 @@ delete_pla_event(_Config) ->
 	SD = erlang:system_time(?MILLISECOND),
 	ED = erlang:system_time(?MILLISECOND) + rand:uniform(10000000000),
 	Status = created,
-	Name = "test_notification",
+	Name = "test_notification1",
 	Pla = #pla{name = Name, start_date = SD,
 			end_date = ED, status = Status},
 	{ok, #pla{}} = ocs:add_pla(Pla),
