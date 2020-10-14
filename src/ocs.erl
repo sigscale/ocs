@@ -1730,11 +1730,17 @@ find_pla(ID) ->
 %% @doc Delete an entry from the pla table.
 delete_pla(ID) ->
 	F = fun() ->
-		mnesia:delete(pla, ID, write)
+			case mnesia:read(pla, ID) of
+				[#pla{} = Pla] ->
+					{mnesia:delete(pla, ID, write), Pla};
+				[] ->
+					mnesia:abort(not_found)
+			end
 	end,
 	case mnesia:transaction(F) of
-		{atomic, ok} ->
+		{atomic, {ok, Pla}} ->
 			{atomic, ok} = mnesia:delete_table(list_to_existing_atom(ID)),
+			ok = ocs_event:notify(delete_pla, Pla, resource),
 			ok;
 		{aborted, Reason} ->
 			exit(Reason)

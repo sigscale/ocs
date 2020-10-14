@@ -41,7 +41,7 @@
 		EventType :: create_bucket | delete_bucket | charge | depleted
 				| accumulated | create_product | delete_product
 				| create_service | delete_service | create_offer | delete_offer
-				| insert_gtt | delete_gtt | create_pla,
+				| insert_gtt | delete_gtt | create_pla | delete_pla,
 		EventPayLoad :: #bucket{} | #product{} | #service{} | #offer{}
 				| {Table, #gtt{}} | #pla{} | [#adjustment{}] | [#acc_balance{}],
 		Table :: atom(),
