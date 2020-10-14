@@ -20,6 +20,7 @@ import '@polymer/paper-listbox/paper-listbox.js';
 import '@polymer/paper-item/paper-item.js'
 import '@polymer/paper-checkbox/paper-checkbox.js'
 import '@polymer/paper-toast/paper-toast.js';
+import '@polymer/paper-tooltip/paper-tooltip.js';
 import './style-element.js';
 
 class clientAdd extends PolymerElement {
@@ -43,7 +44,13 @@ class clientAdd extends PolymerElement {
 						value="{{address}}"
 						required>
 				</paper-input>
+				<paper-tooltip
+						for="addClientAddress"
+						offset="0">
+					Add client IP Address (eg:xxx.xxx.xxx.xxx)
+				</paper-tooltip>
 				<paper-dropdown-menu
+						id="clientProtoTool"
 						class="drop"
 						label="Protocol"
 						value="{{clientProto}}"
@@ -60,6 +67,11 @@ class clientAdd extends PolymerElement {
 						</paper-item>
 					</paper-listbox>
 				</paper-dropdown-menu>
+				<paper-tooltip
+						for="clientProtoTool"
+						offset="0">
+					Select a protocol ("Radius | Diameter")
+				</paper-tooltip>
 				<iron-collapse id="addClientRadiusHide">
 					<paper-input
 							id="addClientSecret"
@@ -68,6 +80,11 @@ class clientAdd extends PolymerElement {
 							value="{{clientSecret}}"
 							label="Secret">
 					</paper-input>
+					<paper-tooltip
+							for="addClientSecret"
+							offset="0">
+						Provide client password
+					</paper-tooltip>
 					<div class="generate">
 						<paper-checkbox
 								id="check"
@@ -82,6 +99,11 @@ class clientAdd extends PolymerElement {
 							type="number"
 							value=3799>
 					</paper-input>
+					<paper-tooltip
+							for="addClientPort"
+							offset="0">
+						Provide client port
+					</paper-tooltip>
 					<paper-checkbox
 							class="passwordless"
 							value="{{checkPasswordless}}"

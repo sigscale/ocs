@@ -23,6 +23,7 @@ import '@polymer/paper-icon-button/paper-icon-button.js';
 import '@polymer/paper-toast/paper-toast.js';
 import '@polymer/iron-collapse/iron-collapse.js';
 import '@polymer/paper-tabs/paper-tabs.js';
+import '@polymer/paper-tooltip/paper-tooltip.js';
 import './style-element.js';
 
 class offerAdd extends PolymerElement {
@@ -58,6 +59,11 @@ class offerAdd extends PolymerElement {
 									label="Name"
 									value="{{offerAddAddress}}">
 							</paper-input>
+							<paper-tooltip
+									for="addOffName"
+									offset="0">
+								Offer Name
+							</paper-tooltip>
 						</div>
 						<div>
 							<paper-input id="addOffDesc"
@@ -65,6 +71,11 @@ class offerAdd extends PolymerElement {
 									label="Descrtiption"
 									value="{{offerAddDes}}">
 							</paper-input>
+							<paper-tooltip
+									for="addOffDesc"
+									offset="0">
+								Offer Description
+							</paper-tooltip>
 						</div>
 						<div>
 							<span>Bundled Products</span>
@@ -104,6 +115,11 @@ class offerAdd extends PolymerElement {
 									</paper-item>
 								</paper-listbox>
 							</paper-dropdown-menu>
+							<paper-tooltip
+									for="addOffProductSpecificationDrop"
+									offset="0">
+								Offer product specification
+							</paper-tooltip>
 						</div>
 						<div>
 							<paper-input
@@ -112,6 +128,11 @@ class offerAdd extends PolymerElement {
 									name="addProductStartDateOffer"
 									label="Start Date"
 							</paper-input>
+							<paper-tooltip
+									for="addOffStart"
+									offset="0">
+								start date for product
+							</paper-tooltip>
 						</div>
 						<div>
 							<paper-input id="addOffEnd"
@@ -119,6 +140,11 @@ class offerAdd extends PolymerElement {
 									name="addProductEndDateOffer"
 									label="End Date">
 							</paper-input>
+							<paper-tooltip
+									for="addOffEnd"
+									offset="0">
+								end date for product
+							</paper-tooltip>
 						</div>
 						<div>
 							<span>Characteristics</span>
@@ -139,6 +165,11 @@ class offerAdd extends PolymerElement {
 										label="RADIUS Reserve Session Time"
 										value=0>
 								</paper-input>
+								<paper-tooltip
+										for="addOfferCharReserveSession"
+										offset="0">
+									Offer character reserving session
+								</paper-tooltip>
 							</div>
 						</iron-collapse>
 						<div class="buttons">
@@ -170,6 +201,11 @@ class offerAdd extends PolymerElement {
 									value="{{priceAddName}}"
 									on-value-changed="addUpdatePriceDialog">
 							</paper-input>
+							<paper-tooltip
+									for="addPriceName"
+									offset="0">
+								Name for add a price
+							</paper-tooltip>
 						</div>
 						<div>
 							<paper-input
@@ -178,6 +214,11 @@ class offerAdd extends PolymerElement {
 									value="{{priceAddDes}}"
 									label="Description">
 							</paper-input>
+							<paper-tooltip
+									for="addPriceDesc"
+									offset="0">
+								Description for add a price
+							</paper-tooltip>
 						</div>
 						<div>
 							<paper-input
@@ -186,6 +227,11 @@ class offerAdd extends PolymerElement {
 								name="addProductStartDatePrice"
 								label="Start Date">
 							</paper-input>
+							<paper-tooltip
+									for="addPriceStartDate"
+									offset="0">
+								Starting date for add a price
+							</paper-tooltip>
 						</div>
 						<div>
 							<paper-input id="addPriceEndDate"
@@ -193,6 +239,11 @@ class offerAdd extends PolymerElement {
 									name="addProductEndDatePrice"
 									label="End Date">
 							</paper-input>
+							<paper-tooltip
+									for="addPriceEndDate"
+									offset="0">
+								End date for add a price
+							</paper-tooltip>
 						</div>
 						<div>
 							<paper-dropdown-menu
@@ -217,6 +268,11 @@ class offerAdd extends PolymerElement {
 									</paper-item>
 								</paper-listbox>
 							</paper-dropdown-menu>
+							<paper-tooltip
+									for="addPriceTypedrop"
+									offset="0">
+								Choose type of add a price (Recurring | Onetime | Usage | Tariff)
+							</paper-tooltip>
 						</div>
 						<div>
 							<paper-input
@@ -229,6 +285,11 @@ class offerAdd extends PolymerElement {
 									label="Unit Size"
 									auto-validate>
 							</paper-input>
+							<paper-tooltip
+									for="addPriceSize"
+									offset="0">
+								Unit of measure (Bytes=(MB="m", GB="g", KB="k"), Seconds=(Minutes="m",Hour="h"), Messages=(Messages="msg"))
+							</paper-tooltip>
 						</div>
 						<div>
 							<paper-dropdown-menu
@@ -253,6 +314,11 @@ class offerAdd extends PolymerElement {
 									</paper-item>
 								</paper-listbox>
 							</paper-dropdown-menu>
+							<paper-tooltip
+									for="addPriceUnitsdrop"
+									offset="0">
+								Select price units (Bytes | Cents | Seconds | Messages)
+							</paper-tooltip>
 						</div>
 						<div>
 							<paper-input
@@ -265,6 +331,11 @@ class offerAdd extends PolymerElement {
 									label="Amount"
 									value=0>
 							</paper-input>
+							<paper-tooltip
+									for="addPriceAmount"
+									offset="0">
+								Amount of price
+							</paper-tooltip>
 						</div>
 						<div>
 							<paper-input
@@ -273,6 +344,11 @@ class offerAdd extends PolymerElement {
 									value="{{priceAddCurrency}}"
 									label="Currency">
 							</paper-input>
+							<paper-tooltip
+									for="addPriceCurrency"
+									offset="0">
+								Currency of price
+							</paper-tooltip>
 						</div>
 						<div>
 							<paper-dropdown-menu
@@ -300,6 +376,11 @@ class offerAdd extends PolymerElement {
 									</paper-item>
 								</paper-listbox>
 							</paper-dropdown-menu>
+							<paper-tooltip
+									for="addPricePerioddrop"
+									offset="0">
+								Select period for price (Hourly | Daily | Weekly | Monthly | Yearly)
+							</paper-tooltip>
 						</div>
 						<div>
 							<paper-dropdown-menu
@@ -316,6 +397,11 @@ class offerAdd extends PolymerElement {
 									</template>
 								</paper-listbox>
 							</paper-dropdown-menu>
+							<paper-tooltip
+									for="addPriceDrop"
+									offset="0">
+								Bind price alteration
+							</paper-tooltip>
 						</div>
 						<div>
 							<span>Characteristics</span>
@@ -343,12 +429,22 @@ class offerAdd extends PolymerElement {
 										name="addProductTimePriceStart"
 										label="Start Time">
 								</paper-input>
+								<paper-tooltip
+										for="timeOfDayStart"
+										offset="0">
+									Start time of day
+								</paper-tooltip>
 								<paper-input
 										id="timeOfDayEnd"
 										value="{{endTime}}"
 										name="addProductTimePriceEnd"
 										label="End Time">
 								</paper-input>
+								<paper-tooltip
+										for="timeOfDayEnd"
+										offset="0">
+									End time of day
+								</paper-tooltip>
 							</iron-collapse>
 							<div>
 								<span>Call Direction</span>
@@ -384,6 +480,11 @@ class offerAdd extends PolymerElement {
 										label="RADIUS Reserve Time"
 										value=0>
 								</paper-input>
+								<paper-tooltip
+										for="addPriceCharReserveTime"
+										offset="0">
+									Character reserve time of price
+								</paper-tooltip>
 							</div>
 							<div>
 								<paper-input
@@ -394,6 +495,11 @@ class offerAdd extends PolymerElement {
 										label="RADIUS Reserve Data"
 										value=0>
 								</paper-input>
+								<paper-tooltip
+										for="addPriceCharReserveBytes"
+										offset="0">
+									Character reserve bytes of price
+								</paper-tooltip>
 							</div>
 							<div>
 								<paper-dropdown-menu
@@ -410,6 +516,11 @@ class offerAdd extends PolymerElement {
 										</template>
 									</paper-listbox>
 								</paper-dropdown-menu>
+								<paper-tooltip
+										for="destPrefixTariff"
+										offset="0">
+									Destination prefix tariff table
+								</paper-tooltip>
 							</div>
 							<div>
 								<paper-input
@@ -418,6 +529,11 @@ class offerAdd extends PolymerElement {
 										value="{{priceAddRoaming}}"
 										label="Roaming Table">
 								</paper-input>
+								<paper-tooltip
+										for="roamingTable"
+										offset="0">
+									Roaming table
+								</paper-tooltip>
 							</div>
 						</iron-collapse>
 						<div class="buttons">

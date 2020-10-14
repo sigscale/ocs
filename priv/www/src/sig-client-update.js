@@ -22,6 +22,7 @@ import '@polymer/paper-checkbox/paper-checkbox.js'
 import '@polymer/paper-tabs/paper-tabs.js';
 import '@polymer/iron-pages/iron-pages.js';
 import '@polymer/paper-toast/paper-toast.js';
+import '@polymer/paper-tooltip/paper-tooltip.js';
 import './style-element.js';
 
 class clientUpdate extends PolymerElement {
@@ -67,6 +68,11 @@ class clientUpdate extends PolymerElement {
 								label="New Password"
 								value="{{clientUpNewPass}}">
 						</paper-input>
+						<paper-tooltip
+								for="updateClientNewPassword"
+								offset="0">
+							New client password
+						</paper-tooltip>
 						<paper-checkbox
 								class="passwordless"
 								value="{{updatePasswordless}}"
@@ -110,6 +116,11 @@ class clientUpdate extends PolymerElement {
 								<paper-item>DIAMETER</paper-item>
 							</paper-listbox>
 						</paper-dropdown-menu>
+						<paper-tooltip
+								for="updateClientProtocol"
+								offset="0">
+							Choose the protocol from dropdown list
+						</paper-tooltip>
 						<paper-input
 								id="updateClientDisconnectPort"
 								name="Port"
@@ -117,6 +128,11 @@ class clientUpdate extends PolymerElement {
 								type="number"
 								value="{{clientUpDisPort}}">
 						</paper-input>
+						<paper-tooltip
+								for="updateClientDisconnectPort"
+								offset="0">
+							New disconnectPort
+						</paper-tooltip>
 						<div class="buttons">
 							<paper-button
 									raised

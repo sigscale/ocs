@@ -19,6 +19,7 @@ import '@polymer/paper-button/paper-button.js';
 import '@polymer/paper-listbox/paper-listbox.js';
 import '@polymer/paper-item/paper-item.js'
 import '@polymer/paper-toast/paper-toast.js';
+import '@polymer/paper-tooltip/paper-tooltip.js';
 import './style-element.js';
 
 class offerAdd extends PolymerElement {
@@ -43,8 +44,14 @@ class offerAdd extends PolymerElement {
 						value="{{proProduct}}"
 						label="Product">
 				</paper-input>
+				<paper-tooltip
+						for="addProduct"
+						offset="0">
+					Product Name
+				</paper-tooltip>
 				<div>
 					<paper-dropdown-menu
+							id="proBucUnit"
 							value="{{proUnit}}"
 							label="Units">
 						<paper-listbox
@@ -61,6 +68,11 @@ class offerAdd extends PolymerElement {
 							</paper-item>
 						</paper-listbox>
 					</paper-dropdown-menu>
+					<paper-tooltip
+							for="proBucUnit"
+							offset="0">
+						Select units from dropdown list ("Bytes | Cents | Seconds")
+					</paper-tooltip>
 				</div>
 				<paper-input
 						id="amount"
@@ -72,6 +84,11 @@ class offerAdd extends PolymerElement {
 						value="{{proAmount}}"
 						auto-validate>
 				</paper-input>
+				<paper-tooltip
+						for="amount"
+						offset="0">
+					Add bucket amount value
+				</paper-tooltip>
 				<div class="buttons">
 					<paper-button
 							raised
@@ -100,6 +117,11 @@ class offerAdd extends PolymerElement {
 						required
 						disabled>
 				</paper-input>
+				<paper-tooltip
+						for="deleteBucId"
+						offset="0">
+					Bucket id
+				</paper-tooltip>
 				<div class="buttons">
 					<paper-button raised
 							id="bucDelButton"
@@ -109,7 +131,7 @@ class offerAdd extends PolymerElement {
 					</paper-button>
 					<paper-button dialog-dismiss
 							class="cancel-button"
-							onclick="deleteProductModal.close()">
+							onclick="deleteBucketModal.close()">
 						Cancel
 					</paper-button>
 				</div>
