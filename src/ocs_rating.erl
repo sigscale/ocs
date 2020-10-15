@@ -557,7 +557,7 @@ rate6(Service, Buckets,
 					UnitSize, UnitPrice),
 			case convert(PriceReserve, Units, UnitReserve, SessionId, Buckets2) of
 				{ok, Buckets3} ->
-					{0, UnitReserve, Buckets4} = update_session(Units, 0,
+					{0, NewReserveUnits, Buckets4} = update_session(Units, 0,
 							NewReserveUnits, SessionId, Buckets3),
 					rate7(Service, Buckets4, interim,
 							DebitAmount, DebitAmount, ReserveAmount,
