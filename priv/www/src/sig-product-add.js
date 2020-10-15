@@ -19,6 +19,7 @@ import '@polymer/paper-button/paper-button.js';
 import '@polymer/paper-listbox/paper-listbox.js';
 import '@polymer/paper-item/paper-item.js';
 import '@polymer/paper-toast/paper-toast.js';
+import '@polymer/paper-tooltip/paper-tooltip.js';
 import './style-element.js';
 
 class productAddClass extends PolymerElement {
@@ -48,12 +49,22 @@ class productAddClass extends PolymerElement {
 						</template>
 					</paper-listbox>
 				</paper-dropdown-menu>
+				<paper-tooltip
+						for="addProDrop"
+						offset="0">
+					Select an product from the product list
+				</paper-tooltip>
 				<paper-input
 						id="servId"
 						name="ServiceId"
 						value="{{proService}}"
 						label="Service Id">
 				</paper-input>
+				<paper-tooltip
+						for="servId"
+						offset="0">
+					service ID
+				</paper-tooltip>
 				<div class="buttons">
 					<paper-button dialog-confirm
 							raised

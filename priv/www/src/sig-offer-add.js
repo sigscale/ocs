@@ -564,6 +564,11 @@ class offerAdd extends PolymerElement {
 									label="Name"
 									on-value-changed="updateAltsDialog">
 							</paper-input>
+							<paper-tooltip
+									for="addAltName"
+									offset="0">
+								Price alteration name
+							</paper-tooltip>
 						</div>
 						<div>
 							<paper-input id="addAltDesc"
@@ -571,6 +576,11 @@ class offerAdd extends PolymerElement {
 									value="{{altAddDesc}}"
 									label="Description">
 							</paper-input>
+							<paper-tooltip
+									for="addAltDesc"
+									offset="0">
+								Price alteration description
+							</paper-tooltip>
 						</div>
 						<div>
 							<paper-input id="addAltStartDate"
@@ -578,6 +588,11 @@ class offerAdd extends PolymerElement {
 									name="addProductStartDateAlt"
 									label="Start Date"
 							</paper-input>
+							<paper-tooltip
+									for="addAltStartDate"
+									offset="0">
+								Price alteration startDate
+							</paper-tooltip>
 						</div>
 						<div>
 							<paper-input id="addAltEndDate"
@@ -585,9 +600,15 @@ class offerAdd extends PolymerElement {
 									name="addProductEndDateAlt"
 									label="End Date"
 							</paper-input>
+							<paper-tooltip
+									for="addAltEndDate"
+									offset="0">
+								Price alteration endDate
+							</paper-tooltip>
 						</div>
 						<div>
 							<paper-dropdown-menu
+									id="altPriType"
 									label="Price Type"
 									value="{{altAddType}}"
 									on-selected-item-changed="checkRecureAlt">
@@ -605,6 +626,11 @@ class offerAdd extends PolymerElement {
 									</paper-item>
 								</paper-listbox>
 							</paper-dropdown-menu>
+							<paper-tooltip
+									for="altPriType"
+									offset="0">
+								Select price alteration type (Recurring | Onetime | Usage)
+							</paper-tooltip>
 						</div>
 						<div>
 							<paper-input
@@ -617,6 +643,11 @@ class offerAdd extends PolymerElement {
 									pattern="^[0-9]+[kmg]?$"
 									auto-validate>
 							</paper-input>
+							<paper-tooltip
+									for="addAltSize"
+									offset="0">
+								Unit of measure (Bytes=(MB="m", GB="g", KB="k"), Seconds=(Minutes="m",Hour="h"), Messages=(Messages="msg"))
+							</paper-tooltip>
 						</div>
 						<div>
 							<paper-dropdown-menu
@@ -641,6 +672,11 @@ class offerAdd extends PolymerElement {
 									</paper-item>
 								</paper-listbox>
 							</paper-dropdown-menu>
+							<paper-tooltip
+									for="addAltUnitsdrop"
+									offset="0">
+								Select price units (Bytes | Cents | Seconds | Messages)
+							</paper-tooltip>
 						</div>
 						<div>
 							<paper-input id="addAltAmount"
@@ -652,6 +688,11 @@ class offerAdd extends PolymerElement {
 									auto-validate
 									value=0>
 							</paper-input>
+							<paper-tooltip
+									for="addAltAmount"
+									offset="0">
+								Price alteration tax included amount
+							</paper-tooltip>
 						</div>
 						<div>
 							<paper-input
@@ -660,6 +701,11 @@ class offerAdd extends PolymerElement {
 									value="{{altAddCurrency}}"
 									label="Currency">
 							</paper-input>
+							<paper-tooltip
+									for="addAltCurrency"
+									offset="0">
+								Price alteration currency
+							</paper-tooltip>
 						</div>
 						<div>
 							<paper-dropdown-menu
@@ -686,6 +732,11 @@ class offerAdd extends PolymerElement {
 									</paper-item>
 								</paper-listbox>
 							</paper-dropdown-menu>
+							<paper-tooltip
+									for="addalt5drop"
+									offset="0">
+								Select period for price (Hourly | Daily | Weekly | Monthly | Yearly)
+							</paper-tooltip>
 						</div>
 						<div class="buttons">
 							<paper-button

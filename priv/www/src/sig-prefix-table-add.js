@@ -16,6 +16,7 @@ import '@polymer/paper-progress/paper-progress.js';
 import '@polymer/paper-input/paper-input.js';
 import '@polymer/paper-button/paper-button.js';
 import '@polymer/paper-toast/paper-toast.js';
+import '@polymer/paper-tooltip/paper-tooltip.js';
 import './style-element.js';
 
 class tablePreAdd extends PolymerElement {
@@ -37,24 +38,44 @@ class tablePreAdd extends PolymerElement {
 						label="Name"
 						value="{{addName}}">
 				</paper-input>
+				<paper-tooltip
+						for="addTableName"
+						offset="0">
+					Table name
+				</paper-tooltip>
 				<paper-input
 						id="addTableDesc"
 						name="description"
 						label="Description"
 						value="{{addDesc}}">
 				</paper-input>
+				<paper-tooltip
+						for="addTableDesc"
+						offset="0">
+					Table description
+				</paper-tooltip>
 				<paper-input
 						id="addTableStart"
 						value="{{startTableTimePick}}"
 						name="startDate"
 						label="Start Date">
 				</paper-input>
+				<paper-tooltip
+						for="addTableStart"
+						offset="0">
+					Table start date time
+				</paper-tooltip>
 				<paper-input
 						id="addTableEnd"
 						value="{{endTableTimePick}}"
 						name="endDate"
 						label="End Date">
 				</paper-input>
+				<paper-tooltip
+						for="addTableEnd"
+						offset="0">
+					Table end date time
+				</paper-tooltip>
 				<div class="buttons">
 					<paper-button
 							dialog-confirm

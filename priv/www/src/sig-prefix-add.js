@@ -16,6 +16,7 @@ import '@polymer/paper-progress/paper-progress.js';
 import '@polymer/paper-input/paper-input.js';
 import '@polymer/paper-button/paper-button.js';
 import '@polymer/paper-toast/paper-toast.js';
+import '@polymer/paper-tooltip/paper-tooltip.js';
 import './style-element.js';
 
 class prefixAdd extends PolymerElement {
@@ -38,12 +39,22 @@ class prefixAdd extends PolymerElement {
 						label="Prefix"
 						value="{{addPre}}">
 				</paper-input>
+				<paper-tooltip
+						for="addPrefix"
+						offset="0">
+					Prefix number
+				</paper-tooltip>
 				<paper-input
 						id="addDesc"
 						name="Description"
 						label="Description"
 						value="{{addPreDesc}}">
 				</paper-input>
+				<paper-tooltip
+						for="addDesc"
+						offset="0">
+					Prefix description
+				</paper-tooltip>
 				<paper-input
 						id="addRateRow"
 						type="number"
@@ -51,6 +62,11 @@ class prefixAdd extends PolymerElement {
 						label="Rate"
 						value="{{addPreRate}}">
 				</paper-input>
+				<paper-tooltip
+						for="addRateRow"
+						offset="0">
+					Prefix rate
+				</paper-tooltip>
 				<div class="buttons">
 					<paper-button dialog-confirm
 							raised

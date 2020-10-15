@@ -16,6 +16,7 @@ import '@polymer/paper-progress/paper-progress.js';
 import '@polymer/paper-input/paper-input.js';
 import '@polymer/paper-button/paper-button.js';
 import '@polymer/paper-toast/paper-toast.js';
+import '@polymer/paper-tooltip/paper-tooltip.js';
 import './style-element.js';
 
 class tableUpdate extends PolymerElement {
@@ -38,12 +39,22 @@ class tableUpdate extends PolymerElement {
 						value="{{upPrefix}}"
 						disabled>
 				</paper-input>
+				<paper-tooltip
+						for="updatePrefix"
+						offset="0">
+					Value to update prefix number
+				</paper-tooltip>
 				<paper-input
 						id="updateDescription"
 						name="Description"
 						label="Description"
 						value="{{upDesc}}">
 				</paper-input>
+				<paper-tooltip
+						for="updateDescription"
+						offset="0">
+					Value to update prefix description
+				</paper-tooltip>
 				<paper-input
 						id="updateRate"
 						name="rateUpdate"
@@ -51,6 +62,11 @@ class tableUpdate extends PolymerElement {
 						type="number"
 						value="{{upRate}}">
 				</paper-input>
+				<paper-tooltip
+						for="updateRate"
+						offset="0">
+					Value to update prefix rate
+				</paper-tooltip>
 				<div class="buttons">
 					<paper-button dialog-confirm
 							raised

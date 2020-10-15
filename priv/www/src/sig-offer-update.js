@@ -24,6 +24,7 @@ import '@polymer/paper-tabs/paper-tabs.js';
 import '@polymer/iron-pages/iron-pages.js';
 import '@polymer/paper-toast/paper-toast.js';
 import '@polymer/paper-icon-button/paper-icon-button.js';
+import '@polymer/paper-tooltip/paper-tooltip.js';
 import './style-element.js';
 
 class offerUpdate extends PolymerElement {
@@ -65,6 +66,11 @@ class offerUpdate extends PolymerElement {
 								name="description"
 								label="Description">
 						</paper-input>
+						<paper-tooltip
+								for="updateOffDesc"
+								offset="0">
+							Add a value to update the offer description
+						</paper-tooltip>
 						<div>
 							<span>Bundled Products</span>
 							<paper-icon-button
@@ -88,16 +94,31 @@ class offerUpdate extends PolymerElement {
 								label="Product Specification"
 								disabled>
 						</paper-input>
+						<paper-tooltip
+								for="updateOffSpec"
+								offset="0">
+							Add a value to update the offer specification
+						</paper-tooltip>
 						<paper-input id="updateOffStart"
 								value="{{updateProductStartDateOffer}}"
 								name="updateProductStartDateOffer"
 								label="Start Date">
 						</paper-input>
+						<paper-tooltip
+								for="updateOffStart"
+								offset="0">
+							Add a value to update the offer start date
+						</paper-tooltip>
 						<paper-input id="updateOffEnd"
 								value="{{updateProductEndDateOffer}}"
 								name="updateProductEndDateOffer"
 								label="End Date">
 						</paper-input>
+						<paper-tooltip
+								for="updateOffEnd"
+								offset="0">
+							Add a value to update the offer end date
+						</paper-tooltip>
 						<div>
 							<span>Characteristics</span>
 							<paper-icon-button
@@ -116,6 +137,11 @@ class offerUpdate extends PolymerElement {
 									label="RADIUS Reserve Session"
 									value=0>
 							</paper-input>
+							<paper-tooltip
+									for="updateReserveSession"
+									offset="0">
+								Add a value to update the offer reserve session
+							</paper-tooltip>
 						</iron-collapse>
 						<div class="buttons">
 							<paper-button
@@ -149,21 +175,41 @@ class offerUpdate extends PolymerElement {
 								list="updatePriceNames"
 								value="{{priceUpdateName::input}}"
 								placeholder="Name"/>
+						<paper-tooltip
+								for="updatePriceName"
+								offset="0">
+							Add a value to update the offer price name
+						</paper-tooltip>
 						<paper-input id="updatePriceDesc"
 								name="description"
 								value="{{priceUpdateDesc}}"
 								label="Description">
 						</paper-input>
+						<paper-tooltip
+								for="updatePriceDesc"
+								offset="0">
+							Add a value to update the offer price description
+						</paper-tooltip>
 						<paper-input id="updatePriceStartDate"
 								value="{{updateProductStartDatePrice}}"
 								name="updateProductStartDatePrice"
 								label="Start Date">
 						</paper-input>
+						<paper-tooltip
+								for="updatePriceStartDate"
+								offset="0">
+							Add a value to update the offer price start date
+						</paper-tooltip>
 						<paper-input id="updatePriceEndDate"
 								value="{{updateProductEndDatePrice}}"
 								name="updateProductEndDatePrice"
 								label="End Date">
 						</paper-input>
+						<paper-tooltip
+								for="updatePriceEndDate"
+								offset="0">
+							Add a value to update the offer price end date
+						</paper-tooltip>
 						<paper-dropdown-menu id="updatePriceTypedrop"
 								label="Price Type"
 								value="{{priceUpdateType}}"
@@ -185,6 +231,11 @@ class offerUpdate extends PolymerElement {
 								</paper-item>
 							</paper-listbox>
 						</paper-dropdown-menu>
+						<paper-tooltip
+								for="updatePriceTypedrop"
+								offset="0">
+							Select a value to update the offer price type (Recurring | Onetime | Usage | Tariff)
+						</paper-tooltip>
 						<paper-input id="updatePriceSize"
 								name="size"
 								value="{{priceUpdateSize}}"
@@ -193,6 +244,11 @@ class offerUpdate extends PolymerElement {
 								label="Unit Size"
 								auto-validate>
 						</paper-input>
+						<paper-tooltip
+								for="updatePriceSize"
+								offset="0">
+							Unit of measure (Bytes=(MB="m", GB="g", KB="k"), Seconds=(Minutes="m",Hour="h"), Messages=(Messages="msg"))
+						</paper-tooltip>
 						<paper-dropdown-menu id="updatePriceUnitsdrop"
 								label="Units"
 								value="{{priceUpdateUnits}}"
@@ -211,6 +267,11 @@ class offerUpdate extends PolymerElement {
 								</paper-item>
 							</paper-listbox>
 						</paper-dropdown-menu>
+						<paper-tooltip
+								for="updatePriceUnitsdrop"
+								offset="0">
+							Select a value to update the offer price unit (Bytes | Cents | Seconds)
+						</paper-tooltip>
 						<paper-input id="updatePriceAmount"
 								name="amount"
 								type="text"
@@ -220,11 +281,21 @@ class offerUpdate extends PolymerElement {
 								label="Amount"
 								value=0>
 						</paper-input>
+						<paper-tooltip
+								for="updatePriceAmount"
+								offset="0">
+							Add a value to update the offer price tax included amount
+						</paper-tooltip>
 						<paper-input id="updatePriceCurrency"
 								name="currency"
 								value="{{priceUpdateCurrency}}"
 								label="Currency">
 						</paper-input>
+						<paper-tooltip
+								for="updatePriceCurrency"
+								offset="0">
+							Add a value to update the offer price tax currency
+						</paper-tooltip>
 						<paper-dropdown-menu id="updatePricePerioddrop"
 								value="{{priceUpdatePeriod}}"
 								label="Period">
@@ -249,21 +320,31 @@ class offerUpdate extends PolymerElement {
 								</paper-item>
 							</paper-listbox>
 						</paper-dropdown-menu>
+						<paper-tooltip
+								for="updatePricePeriod"
+								offset="0">
+							Add a value to update the offer price period (Hour | Daily | Weekly | Monthly | Yearly)
+						</paper-tooltip>
 						<div>
-						<paper-dropdown-menu
-								id="addUpdatePriceDrop"
-								value="{{priceUpdateAlt}}"
-								label="Alterations">
-							<paper-listbox
-									id="addUpdatePriceAlteration"
-									slot="dropdown-content">
+							<paper-dropdown-menu
+									id="addUpdatePriceDrop"
+									value="{{priceUpdateAlt}}"
+									label="Alterations">
+								<paper-listbox
+										id="addUpdatePriceAlteration"
+										slot="dropdown-content">
 									<template is="dom-repeat" items="[[alterations]]">
 										<paper-item>
 											{{item.name}}
 										</paper-item>
 									</template>
-							</paper-listbox>
-						</paper-dropdown-menu>
+								</paper-listbox>
+							</paper-dropdown-menu>
+							<paper-tooltip
+									for="addUpdatePriceDrop"
+									offset="0">
+								Add a value to update the offer price alteration
+							</paper-tooltip>
 						</div>
 						<div>
 							<span>Characteristics</span>
@@ -291,12 +372,22 @@ class offerUpdate extends PolymerElement {
 										name="updateProductTimePriceStart"
 										label="Start Time">
 								</paper-input>
+								<paper-tooltip
+										for="updateTimeOfDayStart"
+										offset="0">
+									Add a value to update the offer price start time of day
+								</paper-tooltip>
 								<paper-input
 										id="updateTimeOfDayEnd"
 										value="{{endTimeUpdate}}"
 										name="updateProductTimePriceEnd"
 										label="End Time">
 								</paper-input>
+								<paper-tooltip
+										for="updateTimeOfDayEnd"
+										offset="0">
+									Add a value to update the offer price end time of day
+								</paper-tooltip>
 							</iron-collapse>
 							<div>
 								<span>Call Direction</span>
@@ -325,18 +416,33 @@ class offerUpdate extends PolymerElement {
 									label="RADIUS Reserve Time"
 									value=0>
 							</paper-input>
+							<paper-tooltip
+									for="updateAddPriceCharReserveTime"
+									offset="0">
+								Add a value to update the offer price characteristic reserve time
+							</paper-tooltip>
 							<paper-input
 									id="updateAddPriceCharReserveBytes"
 									type="number"
 									label="RADIUS Reserve Data"
 									value=0>
 							</paper-input>
+							<paper-tooltip
+									for="updateAddPriceCharReserveBytes"
+									offset="0">
+								Add a value to update the offer price characteristic reserve bytes
+							</paper-tooltip>
 							<paper-input
 									id="updateDestPrefixTariff"
 									value="{{priceUpdateTariff}}"
 									type="string"
 									label="Prefix Tariff Table">
 							</paper-input>
+							<paper-tooltip
+									for="updateDestPrefixTariff"
+									offset="0">
+								Add a value to update the offer price destination prefix tariff
+							</paper-tooltip>
 						</iron-collapse>
 						<div class="buttons">
 							<paper-button
@@ -380,22 +486,42 @@ class offerUpdate extends PolymerElement {
 									list="updateAltNames" 
 									value="{{AltUpdateName::input}}"
 									placeholder="Name"/>
+							<paper-tooltip
+									for="updateAltName"
+									offset="0">
+								Add a value to update the offer price alteration name
+							</paper-tooltip>
 						</div>
 						<paper-input id="updateAltDesc"
 								name="description"
 								value="{{AltUpdateDesc}}"
 								label="Description">
 						</paper-input>
+						<paper-tooltip
+								for="updateAltDesc"
+								offset="0">
+							Add a value to update the offer price alteration description
+						</paper-tooltip>
 						<paper-input id="updateAltStartDate"
 								value="{{updateProductStartDateAlt}}"
 								name="updateProductStartDateAlt"
 								label="Start Date">
 						</paper-input>
+						<paper-tooltip
+								for="updateAltStartDate"
+								offset="0">
+							Add a value to update the offer price alteration start date
+						</paper-tooltip>
 						<paper-input id="updateAltEndDate"
 								value="{{updateProductEndDateAlt}}"
 								name="updateProductEndDateAlt"
 								label="End Date">
 						</paper-input>
+						<paper-tooltip
+								for="updateAltEndDate"
+								offset="0">
+							Add a value to update the offer price alteration end date
+						</paper-tooltip>
 						<paper-dropdown-menu
 								id="updateAltTypedrop"
 								label="Price Type"
@@ -415,6 +541,11 @@ class offerUpdate extends PolymerElement {
 								</paper-item>
 							</paper-listbox>
 						</paper-dropdown-menu>
+						<paper-tooltip
+								for="updateAltTypedrop"
+								offset="0">
+							Add a value to update the offer price alteration type (Recurring | Onetime | Usage)
+						</paper-tooltip>
 						<paper-input id="updateAltSize"
 								name="size"
 								label="Unit Size"
@@ -424,6 +555,11 @@ class offerUpdate extends PolymerElement {
 								auto-validate
 								value=1>
 						</paper-input>
+						<paper-tooltip
+								for="updateAltSize"
+								offset="0">
+							Unit of measure (Bytes=(MB="m", GB="g", KB="k"), Seconds=(Minutes="m",Hour="h"), Messages=(Messages="msg"))
+						</paper-tooltip>
 						<paper-dropdown-menu
 								id="updateAltsUnitsdrop"
 								value= "{{altUpdateUnits}}"
@@ -443,6 +579,11 @@ class offerUpdate extends PolymerElement {
 									</paper-item>
 							</paper-listbox>
 						</paper-dropdown-menu>
+						<paper-tooltip
+								for="updateAltsUnitsdrop"
+								offset="0">
+							Select a value to update the offer price alteration unit (Bytes | Cents | Seconds)
+						</paper-tooltip>
 						<paper-input id="updateAltAmount"
 								name="amount"
 								label="Amount"
@@ -452,11 +593,21 @@ class offerUpdate extends PolymerElement {
 								auto-validate
 								value=0>
 						</paper-input>
+						<paper-tooltip
+								for="updateAltAmount"
+								offset="0">
+							Add a value to update the offer price alteration tax included amount
+						</paper-tooltip>
 						<paper-input id="updateAltCurr"
 								value="{{altUpdateCurr}}"
 								name="currency"
 								label="Currency">
 						</paper-input>
+						<paper-tooltip
+								for="updateAltCurr"
+								offset="0">
+							Add a value to update the offer price alteration currency
+						</paper-tooltip>
 						<paper-dropdown-menu id="addalt5drop"
 								label="Period"
 								value="{{AltUpdatePer}}">
@@ -481,6 +632,11 @@ class offerUpdate extends PolymerElement {
 								</paper-item>
 							</paper-listbox>
 						</paper-dropdown-menu>
+						<paper-tooltip
+								for="addalt5drop"
+								offset="0">
+							Add a value to update the offer price alteration period (Hour | Daily | Weekly | Monthly | Yearly)
+						</paper-tooltip>
 						<div class="buttons">
 							<paper-button
 									id="updateProductAlterationButton"
