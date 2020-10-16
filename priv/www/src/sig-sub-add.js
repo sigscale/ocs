@@ -23,6 +23,7 @@ import '@polymer/paper-tabs/paper-tabs.js';
 import '@polymer/paper-toggle-button/paper-toggle-button.js';
 import '@polymer/paper-toast/paper-toast.js';
 import '@polymer/iron-pages/iron-pages.js';
+import '@polymer/paper-tooltip/paper-tooltip.js';
 import './style-element.js';
 
 class subAdd extends PolymerElement {
@@ -56,6 +57,7 @@ class subAdd extends PolymerElement {
 					<div id="add-divpro">
 						<div>
 							<paper-dropdown-menu
+									id="proAddOff"
 									value="{{offAddPro}}"
 									label="Offers"
 									on-selected-item-changed="_productSelected">
@@ -69,6 +71,11 @@ class subAdd extends PolymerElement {
 									</template>
 								</paper-listbox>
 							</paper-dropdown-menu>
+							<paper-tooltip
+									for="proAddOff"
+									offset="0">
+								Select a product from the list
+							</paper-tooltip>
 						</div>
 						<div>
 							<iron-a11y-keys id="a11y"
@@ -82,6 +89,11 @@ class subAdd extends PolymerElement {
 									value="{{proAddPro}}"
 									label="ProductId">
 							</paper-input>
+							<paper-tooltip
+									for="addProductId1"
+									offset="0">
+								Enter product ID
+							</paper-tooltip>
 						</div>
 						<div class="buttons">
 							<paper-button
@@ -108,6 +120,11 @@ class subAdd extends PolymerElement {
 								label="Identity"
 								required>
 							</paper-input>
+							<paper-tooltip
+									for="addSubscriberId"
+									offset="0">
+								Add a service authentication ID
+							</paper-tooltip>
 							<div>
 								<paper-checkbox
 										id="idCheck"
@@ -124,6 +141,11 @@ class subAdd extends PolymerElement {
 									value="{{PassAddAuthe}}"
 									label="Password">
 							</paper-input>
+							<paper-tooltip
+									for="addSubscriberPassword"
+									offset="0">
+								Add a service authentication Password
+							</paper-tooltip>
 							<div>
 								<paper-checkbox
 										id="idCheckPass"
@@ -144,6 +166,11 @@ class subAdd extends PolymerElement {
 								value="{{akaAddAuthe}}"
 								label="AKA K">
 						</paper-input>
+						<paper-tooltip
+								for="addSubscriberAkak"
+								offset="0">
+							Add a service authentication Akak
+						</paper-tooltip>
 						<paper-input
 								id="addSubscriberAkaOpc"
 								name="akaOpc"
@@ -154,6 +181,11 @@ class subAdd extends PolymerElement {
 								value="{{akaopcAddAuthe}}"
 								label="AKA OPc">
 						</paper-input>
+						<paper-tooltip
+								for="addSubscriberAkaOpc"
+								offset="0">
+							Add a service authentication Aka Opc
+						</paper-tooltip>
 						<div class="buttons">
 							<paper-button
 									raised
@@ -178,18 +210,33 @@ class subAdd extends PolymerElement {
 								value="{{accSessAddAutho}}"
 								label="Session Interval">
 						</paper-input>
+						<paper-tooltip
+								for="addAcctSessionInterval"
+								offset="0">
+							Add a service authorization session interval
+						</paper-tooltip>
 						<paper-input
 								id="addSessionTimeout"
 								name="addSessionTimeout"
 								value="{{sessTimAddAutho}}"
 								label="Session Timeout">
 						</paper-input>
+						<paper-tooltip
+								for="addSessionTimeout"
+								offset="0">
+							Add a service authorization session timeout
+						</paper-tooltip>
 						<paper-input
 								id="addSubscriberClass"
 								name="class"
 								value="{{classAddAutho}}"
 								label="Class">
 						</paper-input>
+						<paper-tooltip
+								for="addSubscriberClass"
+								offset="0">
+							Add a service authorization class
+						</paper-tooltip>
 						<div>
 							Enable
 							<div>
@@ -253,8 +300,14 @@ class subAdd extends PolymerElement {
 								label="Amount"
 								auto-validate>
 						</paper-input>
+						<paper-tooltip
+								for="add8"
+								offset="0">
+							Add balance amount
+						</paper-tooltip>
 						<div>
 							<paper-dropdown-menu
+									id="creUnits"
 									value="{{uniAddCre}}"
 									label="Units">
 								<paper-listbox
@@ -272,6 +325,11 @@ class subAdd extends PolymerElement {
 									</paper-item>
 								</paper-listbox>
 							</paper-dropdown-menu>
+							<paper-tooltip
+									for="creUnits"
+									offset="0">
+								Select balance units (Bytes | Cents | Seconds)
+							</paper-tooltip>
 						</div>
 						<div class="buttons">
 							<paper-button dialog-confirm

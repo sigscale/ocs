@@ -19,6 +19,7 @@ import '@polymer/paper-dropdown-menu/paper-dropdown-menu.js';
 import '@polymer/paper-listbox/paper-listbox.js';
 import '@polymer/paper-toast/paper-toast.js';
 import '@polymer/paper-item/paper-item.js'
+import '@polymer/paper-tooltip/paper-tooltip.js';
 import './style-element.js';
 
 class userUpdate extends PolymerElement {
@@ -41,12 +42,22 @@ class userUpdate extends PolymerElement {
 						value="{{userUpdateUsername}}"
 						disabled>
 				</paper-input>
+				<paper-tooltip
+						for="updateUserName"
+						offset="0">
+					Add a value to update username
+				</paper-tooltip>
 				<paper-input
 						id="updateUserPassword"
 						name="password"
 						value="{{userUpdatePassword}}"
 						label="Password">
 				</paper-input>
+				<paper-tooltip
+						for="updateUserPassword"
+						offset="0">
+					Add a value to update password
+				</paper-tooltip>
 				<paper-dropdown-menu
 						class="drop"
 						id="updateUserLocale"
@@ -60,6 +71,11 @@ class userUpdate extends PolymerElement {
 						<paper-item>Spanish</paper-item>
 					</paper-listbox>
 				</paper-dropdown-menu>
+				<paper-tooltip
+						for="updateUserLocale"
+						offset="0">
+					Select a value to update user language
+				</paper-tooltip>
 				<div class="buttons">
 					<paper-button
 							raised

@@ -19,6 +19,7 @@ import '@polymer/paper-button/paper-button.js';
 import '@polymer/paper-listbox/paper-listbox.js';
 import '@polymer/paper-item/paper-item.js'
 import '@polymer/paper-toast/paper-toast.js';
+import '@polymer/paper-tooltip/paper-tooltip.js';
 import './style-element.js';
 
 class userAdd extends PolymerElement {
@@ -39,12 +40,23 @@ class userAdd extends PolymerElement {
 						label="Username"
 						value="{{userName}}">
 				</paper-input>
+				<paper-tooltip
+						for="addUserName"
+						offset="0">
+					User name
+				</paper-tooltip>
 				<paper-input
 						id="addUserPasword"
 						label="Password"
 						value="{{passWord}}">
 				</paper-input>
+				<paper-tooltip
+						for="addUserPasword"
+						offset="0">
+					User password
+				</paper-tooltip>
 				<paper-dropdown-menu
+						id="addUserLoc"
 						class="drop"
 						label="Language"
 						value="{{userLanguage}}">
@@ -56,6 +68,12 @@ class userAdd extends PolymerElement {
 						<paper-item>Spanish</paper-item>
 					</paper-listbox>
 				</paper-dropdown-menu>
+				<paper-tooltip
+						for="addUserLoc"
+						offset="0">
+					Select user language from list
+				</paper-tooltip>
+
 				<div class="buttons">
 					<paper-button
 							raised

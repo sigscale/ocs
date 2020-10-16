@@ -23,6 +23,7 @@ import '@polymer/paper-tabs/paper-tabs.js';
 import '@polymer/iron-pages/iron-pages.js';
 import '@polymer/paper-toast/paper-toast.js';
 import '@polymer/paper-toggle-button/paper-toggle-button.js';
+import '@polymer/paper-tooltip/paper-tooltip.js';
 import './style-element.js';
 
 class subUpdate extends PolymerElement {
@@ -74,6 +75,11 @@ class subUpdate extends PolymerElement {
 								auto-validate
 								error-message="Wrong Password">
 						</paper-input>
+						<paper-tooltip
+								for="updateSubscriberNewPassword"
+								offset="0">
+							Add a new value to update the service authentication password
+						</paper-tooltip>
 						<div class="buttons">
 							<paper-button dialog-dismiss
 									on-tap="cancelDialog"
@@ -103,6 +109,11 @@ class subUpdate extends PolymerElement {
 								type="number"
 								label="Session Timeout">
 						</paper-input>
+						<paper-tooltip
+								for="updateSubscriberTimeout"
+								offset="0">
+							Add a new value to update the service authorization timeout
+						</paper-tooltip>
 						<paper-input
 								id="updateSubscriberInterval"
 								name="acctSessionInterval"
@@ -110,6 +121,11 @@ class subUpdate extends PolymerElement {
 								type="number"
 								label="Accounting Interval">
 						</paper-input>
+						<paper-tooltip
+								for="updateSubscriberInterval"
+								offset="0">
+							Add a new value to update the service authorization interval
+						</paper-tooltip>
 						<div>
 							<paper-input
 									id="updateSubscriberClass"
@@ -118,6 +134,11 @@ class subUpdate extends PolymerElement {
 									type="text"
 									label="Class">
 							</paper-input>
+							<paper-tooltip
+									for="updateSubscriberClass"
+									offset="0">
+								Add a new value to update the service authorization class
+							</paper-tooltip>
 						</div>
 						<div>
 								Enable
@@ -171,6 +192,11 @@ class subUpdate extends PolymerElement {
 								type="number"
 								label="Amount">
 						</paper-input>
+						<paper-tooltip
+								for="edit-amount"
+								offset="0">
+							Add a new value to update the service credit amount
+						</paper-tooltip>
 						<div>
 							<paper-dropdown-menu
 									id="updateUni"
@@ -191,6 +217,11 @@ class subUpdate extends PolymerElement {
 									</paper-item>
 								</paper-listbox>
 							</paper-dropdown-menu>
+							<paper-tooltip
+									for="updateUni"
+									offset="0">
+								Select a new value to update the service credit units (Bytes | Cents | Seconds)
+							</paper-tooltip>
 						</div>
 						<div class="buttons">
 							<paper-button dialog-dismiss
