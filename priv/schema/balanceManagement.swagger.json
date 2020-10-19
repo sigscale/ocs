@@ -429,20 +429,8 @@
         "id": {
           "type": "string",
           "description": "Unique identifier for the product entity"
-        },
-        "href": {
-          "type": "string",
-          "description": "A resource URI pointing to the resource in the OB that stores the product information"
-        },
-        "name": {
-          "type": "string",
-          "description": "Name of the product"
         }
-      },
-      "required": [
-        "id",
-        "href"
-      ]
+      }
     },
     "QuantityType": {
       "description": "Representation of a quantity of something",
