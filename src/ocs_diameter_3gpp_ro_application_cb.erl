@@ -463,7 +463,7 @@ process_request1(?'3GPP_CC-REQUEST-TYPE_TERMINATION_REQUEST' = RequestType,
 		case rate(ServiceType, ServiceNetwork, Subscriber,
 				Timestamp, Address, Direction, final, SessionId,
 				Amounts) of
-			{MSCC2, ResultCode} ->
+			{MSCC2, ResultCode} when is_list(MSCC2) ->
 				Reply = diameter_answer(SessionId, MSCC2,
 						ResultCode, OHost, ORealm, RequestType, RequestNum),
 				ok = ocs_log:acct_log(diameter, Server,
@@ -613,8 +613,8 @@ service_network(_) ->
 		MSCC :: [#'3gpp_ro_Multiple-Services-Credit-Control'{}],
 		Result :: [{ServiceIdentifier, RatingGroup,
 				UsedAmounts, ReserveAmounts}],
-		ServiceIdentifier :: undefined | pos_integer(),
-		RatingGroup :: undefined | pos_integer(),
+		ServiceIdentifier :: [pos_integer()],
+		RatingGroup :: [pos_integer()],
 		UsedAmounts :: [{Units, pos_integer()}],
 		ReserveAmounts :: [{Units, pos_integer()}],
 		Units :: octets | seconds | messages.
@@ -682,12 +682,18 @@ get_usu(#'3gpp_ro_Multiple-Services-Credit-Control'{}) ->
 	[].
 
 %% @hidden
-get_si(#'3gpp_ro_Multiple-Services-Credit-Control'{'Service-Identifier' = SI}) ->
-	SI.
+get_si(#'3gpp_ro_Multiple-Services-Credit-Control'{'Service-Identifier' = [SI]})
+		when is_integer(SI) ->
+	[SI];
+get_si(_) ->
+	[].
 
 %% @hidden
-get_rg(#'3gpp_ro_Multiple-Services-Credit-Control'{'Rating-Group' = RG}) ->
-	RG.
+get_rg(#'3gpp_ro_Multiple-Services-Credit-Control'{'Rating-Group' = [RG]})
+		when is_integer(RG) ->
+	[RG];
+get_rg(_) ->
+	[].
 
 -spec rate(ServiceType, ServiceNetwork, Subscriber, Timestamp,
 		Address, Direction, Flag, SessionId, Amounts) -> Result
