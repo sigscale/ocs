@@ -96,7 +96,7 @@ all() ->
 	add_product, find_product, delete_product, query_product, add_offer_event,
 	delete_offer_event, gtt_insert_event, gtt_delete_event, add_pla_event,
 	delete_pla_event, add_service_event, delete_service_event,
-	add_product_event].
+	add_product_event, delete_product_event].
 
 %%---------------------------------------------------------------------
 %%  Test cases
@@ -825,6 +825,34 @@ add_product_event(_Config) ->
 		{create_product, Product, product} ->
 			ProductId = Product#product.id,
 			OfferId = Product#product.product
+	end.
+
+delete_product_event() ->
+	[{userdata, [{doc, "Event received on deleting service"}]}].
+
+delete_product_event(_Config) ->
+	ok = gen_event:add_handler(ocs_event, test_event, [self()]),
+	Price = #price{name = ocs:generate_identity(),
+			type = usage, units = octets, size = 1000, amount = 100},
+	OfferName = ocs:generate_identity(),
+	Offer1 = #offer{name = OfferName,
+			price = [Price], specification = 4},
+	{ok, #offer{name = OfferId}} = ocs:add_offer(Offer1),
+	receive
+		{create_offer, Offer2, product} ->
+			OfferName = Offer2#offer.name
+	end,
+	{ok, #product{id = ProductId}} = ocs:add_product(OfferId, [], []),
+	receive
+		{create_product, Product1, product} ->
+			ProductId = Product1#product.id,
+			OfferId = Product1#product.product
+	end,
+	ok = ocs:delete_product(ProductId),
+	receive
+		{delete_product, Product2, product} ->
+			ProductId = Product2#product.id,
+			OfferId = Product2#product.product
 	end.
 
 %%---------------------------------------------------------------------
