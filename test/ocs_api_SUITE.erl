@@ -94,6 +94,7 @@ all() ->
 	find_bucket, delete_bucket, get_buckets, positive_adjustment,
 	negative_adjustment_high, negative_adjustment_equal, negative_adjustment_low,
 	add_product, find_product, delete_product, query_product, add_offer_event,
+	delete_offer_event,
 	gtt_insert_event, gtt_delete_event, add_pla_event, delete_pla_event].
 
 %%---------------------------------------------------------------------
@@ -674,6 +675,22 @@ add_offer_event(_Config) ->
 	{ok, OfferName} = ocs_test_lib:add_offer(),
 	receive
 		{create_offer, Offer, product} ->
+			OfferName = Offer#offer.name
+	end.
+
+delete_offer_event() ->
+	[{userdata, [{doc, "Event received on deleting offer"}]}].
+
+delete_offer_event(_Config) ->
+	ok = gen_event:add_handler(ocs_event, test_event, [self()]),
+	{ok, OfferName} = ocs_test_lib:add_offer(),
+	receive
+		{create_offer, Offer, product} ->
+			OfferName = Offer#offer.name
+	end,
+	ok = ocs:delete_offer(OfferName),
+	receive
+		{delete_offer, Offer, product} ->
 			OfferName = Offer#offer.name
 	end.
 
