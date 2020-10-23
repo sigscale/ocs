@@ -155,9 +155,7 @@ rate(Protocol, ServiceType, ChargingKey, ServiceNetwork, SubscriberID,
 												true
 									end,
 									case lists:all(F2, Buckets) of
-										false when Flag == initial ->
-											{out_of_credit, SessionList};
-										_ ->
+										true ->
 											State = #state{buckets = Buckets,
 													product  = Product,
 													chars = Chars,
@@ -167,7 +165,9 @@ rate(Protocol, ServiceType, ChargingKey, ServiceNetwork, SubscriberID,
 													session_id = get_session_id(SessionAttributes)},
 											rate1(Protocol, Service, Buckets,
 													Timestamp, Address, Direction, Offer,
-													Flag, DebitAmounts, ReserveAmounts, State)
+													Flag, DebitAmounts, ReserveAmounts, State);
+										false ->
+											{out_of_credit, SessionList}
 									end;
 								[] ->
 									throw(offer_not_found)
