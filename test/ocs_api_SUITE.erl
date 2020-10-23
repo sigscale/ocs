@@ -95,7 +95,7 @@ all() ->
 	negative_adjustment_high, negative_adjustment_equal, negative_adjustment_low,
 	add_product, find_product, delete_product, query_product, add_offer_event,
 	delete_offer_event, gtt_insert_event, gtt_delete_event, add_pla_event,
-	delete_pla_event, add_service_event].
+	delete_pla_event, add_service_event, delete_service_event].
 
 %%---------------------------------------------------------------------
 %%  Test cases
@@ -782,6 +782,26 @@ add_service_event(_Config) ->
 		{create_service, #service{name = Name, password = Pass}, service} ->
 			Name = list_to_binary(Identity),
 			Pass = list_to_binary(Password)
+	end.
+
+delete_service_event() ->
+	[{userdata, [{doc, "Event received on deleting service"}]}].
+
+delete_service_event(_Config) ->
+	ok = gen_event:add_handler(ocs_event, test_event, [self()]),
+	Identity = ocs:generate_identity(),
+	Password = ocs:generate_password(),
+	{ok, #service{}} = ocs:add_service(Identity, Password),
+	receive
+		{create_service, #service{name = Name1, password = Pass1}, service} ->
+			Name1 = list_to_binary(Identity),
+			Pass1 = list_to_binary(Password)
+	end,
+	ok = ocs:delete_service(Identity),
+	receive
+		{delete_service, #service{name = Name2, password = Pass2}, service} ->
+			Name2 = list_to_binary(Identity),
+			Pass2 = list_to_binary(Password)
 	end.
 
 %%---------------------------------------------------------------------
