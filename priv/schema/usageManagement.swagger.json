@@ -36,6 +36,15 @@
         "summary": "usageGet",
         "description": "This operation lists all usage entites",
         "deprecated": false,
+        "parameters": [
+          {
+            "name": "type",
+            "in": "query",
+            "description": "Usage type to be looked up",
+            "required": true,
+            "type": "string"
+          }
+        ],
         "responses": {
           "200": {
             "description": "Usage",

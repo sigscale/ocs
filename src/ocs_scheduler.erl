@@ -79,8 +79,18 @@ product_charge1(ProdRef, Now) ->
 						payment = Payments,
 						balance = BucketRefs} = Product] ->
 					case mnesia:read(offer, OfferId, read) of
-						[#offer{name = OfferId, price = Prices} = Offer] ->
-							case if_recur(Prices) of
+						[#offer{name = OfferId, price = Prices,
+								bundle = Bundle} = Offer] when is_list(Bundle) ->
+							Fbundle = fun(#bundled_po{name = OfferName}) ->
+										case mnesia:read(offer, OfferName, read) of
+											[#offer{price = Prices, bundle = []}] ->
+												Prices;
+											[] ->
+												throw(offer_not_found)
+										end
+							end,
+							BundledOfferPrices = lists:map(Fbundle, Bundle),
+							case if_recur(Prices ++ BundledOfferPrices) of
 								true ->
 									case if_dues(Payments, Now) of
 										true ->
@@ -155,9 +165,7 @@ if_dues([], _Now)  ->
 		Result :: boolean().
 %% @private
 if_recur(Prices) ->
-	F = fun(#price{type = Bundle}) when Bundle /= [] ->
-				true;
-			(#price{type = recurring}) ->
+	F = fun(#price{type = recurring}) ->
 				true;
 			(#price{alteration
 					= #alteration{type = recurring}}) ->
