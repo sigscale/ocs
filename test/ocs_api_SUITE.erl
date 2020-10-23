@@ -95,7 +95,8 @@ all() ->
 	negative_adjustment_high, negative_adjustment_equal, negative_adjustment_low,
 	add_product, find_product, delete_product, query_product, add_offer_event,
 	delete_offer_event, gtt_insert_event, gtt_delete_event, add_pla_event,
-	delete_pla_event, add_service_event, delete_service_event].
+	delete_pla_event, add_service_event, delete_service_event,
+	add_product_event].
 
 %%---------------------------------------------------------------------
 %%  Test cases
@@ -802,6 +803,28 @@ delete_service_event(_Config) ->
 		{delete_service, #service{name = Name2, password = Pass2}, service} ->
 			Name2 = list_to_binary(Identity),
 			Pass2 = list_to_binary(Password)
+	end.
+
+add_product_event() ->
+	[{userdata, [{doc, "Event received on adding service"}]}].
+
+add_product_event(_Config) ->
+	ok = gen_event:add_handler(ocs_event, test_event, [self()]),
+	Price = #price{name = ocs:generate_identity(),
+			type = usage, units = octets, size = 1000, amount = 100},
+	OfferName = ocs:generate_identity(),
+	Offer1 = #offer{name = OfferName,
+			price = [Price], specification = 4},
+	{ok, #offer{name = OfferId}} = ocs:add_offer(Offer1),
+	receive
+		{create_offer, Offer2, product} ->
+			OfferName = Offer2#offer.name
+	end,
+	{ok, #product{id = ProductId}} = ocs:add_product(OfferId, [], []),
+	receive
+		{create_product, Product, product} ->
+			ProductId = Product#product.id,
+			OfferId = Product#product.product
 	end.
 
 %%---------------------------------------------------------------------
