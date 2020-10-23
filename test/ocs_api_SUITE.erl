@@ -96,7 +96,8 @@ all() ->
 	add_product, find_product, delete_product, query_product, add_offer_event,
 	delete_offer_event, gtt_insert_event, gtt_delete_event, add_pla_event,
 	delete_pla_event, add_service_event, delete_service_event,
-	add_product_event, delete_product_event, add_bucket_event].
+	add_product_event, delete_product_event, add_bucket_event,
+	delete_bucket_event].
 
 %%---------------------------------------------------------------------
 %%  Test cases
@@ -886,6 +887,44 @@ add_bucket_event(_Config) ->
 			BucketId = Bucket2#bucket.id,
 			Units = Bucket2#bucket.units,
 			Amount = Bucket2#bucket.remain_amount
+	end.
+
+delete_bucket_event() ->
+	[{userdata, [{doc, "Event received on deleting bucket"}]}].
+
+delete_bucket_event(_Config) ->
+	ok = gen_event:add_handler(ocs_event, test_event, [self()]),
+	Price = #price{name = ocs:generate_identity(),
+			type = usage, units = octets, size = 1000, amount = 100},
+	Offer1 = #offer{name = ocs:generate_identity(),
+			price = [Price], specification = 4},
+	{ok, #offer{name = OfferId}} = ocs:add_offer(Offer1),
+	receive
+		{create_offer, Offer2, product} ->
+			OfferId = Offer2#offer.name
+	end,
+	{ok, #product{id = ProdRef}} = ocs:add_product(OfferId, [], []),
+	receive
+		{create_product, Product1, product} ->
+			ProdRef = Product1#product.id,
+			OfferId = Product1#product.product
+	end,
+	Amount = 100,
+	Units = cents,
+	Bucket1 = #bucket{units = Units, remain_amount = Amount,
+			start_date = erlang:system_time(?MILLISECOND),
+			end_date = erlang:system_time(?MILLISECOND) + 2592000000},
+	{ok, _, #bucket{id = BucketId}} = ocs:add_bucket(ProdRef, Bucket1),
+	receive
+		{create_bucket, Bucket2, balance} ->
+			BucketId = Bucket2#bucket.id
+	end,
+	ok = ocs:delete_bucket(BucketId),
+	receive
+		{delete_bucket, Bucket3, balance} ->
+			BucketId = Bucket3#bucket.id,
+			Units = Bucket3#bucket.units,
+			Amount = Bucket3#bucket.remain_amount
 	end.
 
 %%---------------------------------------------------------------------
