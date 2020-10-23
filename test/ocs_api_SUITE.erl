@@ -94,8 +94,8 @@ all() ->
 	find_bucket, delete_bucket, get_buckets, positive_adjustment,
 	negative_adjustment_high, negative_adjustment_equal, negative_adjustment_low,
 	add_product, find_product, delete_product, query_product, add_offer_event,
-	delete_offer_event,
-	gtt_insert_event, gtt_delete_event, add_pla_event, delete_pla_event].
+	delete_offer_event, gtt_insert_event, gtt_delete_event, add_pla_event,
+	delete_pla_event, add_service_event].
 
 %%---------------------------------------------------------------------
 %%  Test cases
@@ -685,13 +685,13 @@ delete_offer_event(_Config) ->
 	ok = gen_event:add_handler(ocs_event, test_event, [self()]),
 	{ok, OfferName} = ocs_test_lib:add_offer(),
 	receive
-		{create_offer, Offer, product} ->
-			OfferName = Offer#offer.name
+		{create_offer, Offer1, product} ->
+			OfferName = Offer1#offer.name
 	end,
 	ok = ocs:delete_offer(OfferName),
 	receive
-		{delete_offer, Offer, product} ->
-			OfferName = Offer#offer.name
+		{delete_offer, Offer2, product} ->
+			OfferName = Offer2#offer.name
 	end.
 
 gtt_insert_event() ->
@@ -768,6 +768,20 @@ delete_pla_event(_Config) ->
 	receive
 		{delete_pla, #pla{name = Name, status = Status}, resource} ->
 			true
+	end.
+
+add_service_event() ->
+	[{userdata, [{doc, "Event received on adding service"}]}].
+
+add_service_event(_Config) ->
+	ok = gen_event:add_handler(ocs_event, test_event, [self()]),
+	Identity = ocs:generate_identity(),
+	Password = ocs:generate_password(),
+	{ok, #service{}} = ocs:add_service(Identity, Password),
+	receive
+		{create_service, #service{name = Name, password = Pass}, service} ->
+			Name = list_to_binary(Identity),
+			Pass = list_to_binary(Password)
 	end.
 
 %%---------------------------------------------------------------------
