@@ -3588,10 +3588,9 @@ notify_product_charge(Config) ->
 	Alteration = #alteration{name = ocs:generate_identity(), start_date = SD,
 			type = usage, period = undefined,
 			units = octets, size = 100000000000, amount = 0},
-	Amount = 1250,
 	Price = #price{name = ocs:generate_identity(), start_date = SD,
 			type = recurring, period = monthly,
-			amount = Amount, alteration = Alteration},
+			amount = 1250000000, alteration = Alteration},
 	OfferId = add_offer([Price], 4),
 	receive
 		Input1 ->
@@ -3611,7 +3610,7 @@ notify_product_charge(Config) ->
 	Expired = erlang:system_time(?MILLISECOND) - 3599000,
 	ok = mnesia:dirty_write(product, P#product{payment =
 			[{Price#price.name, Expired}]}),
-	B1 = #bucket{units = cents, remain_amount = 1000,
+	B1 = #bucket{units = cents, remain_amount = 1000000000,
 			start_date = erlang:system_time(?MILLISECOND),
 			end_date = erlang:system_time(?MILLISECOND) + 2592000000},
 	{ok, _, #bucket{id = BId1}} = ocs:add_bucket(ProdId, B1),
@@ -3623,7 +3622,7 @@ notify_product_charge(Config) ->
 			{_, {struct, BalanceList1}} = lists:keyfind("event", 1, BalanceEvent1),
 			{_, BId1} = lists:keyfind("id", 1, BalanceList1)
 	end,
-	B2 = #bucket{units = cents, remain_amount = 1000,
+	B2 = #bucket{units = cents, remain_amount = 1000000000,
 			start_date = erlang:system_time(?MILLISECOND),
 			end_date = erlang:system_time(?MILLISECOND) + 2592000000},
 	{ok, _, #bucket{id = BId2}} = ocs:add_bucket(ProdId, B2),
@@ -3645,14 +3644,17 @@ notify_product_charge(Config) ->
 					= lists:keyfind("event", 1, AdjustmentEvent),
 			AdjStructList
 	end,
-	Adjustments = [ocs_rest_res_balance:adjustment(AdjustmentStruct)
-			|| AdjustmentStruct <- AdjustmentStructs],
-	Fcents = fun(#adjustment{amount = Value, units = cents}) ->
-				{true, Value};
-			(_) ->
-				false
+	Fcents = fun({struct, AdjustmentList}) ->
+				case lists:keyfind("amount", 1, AdjustmentList) of
+					{_, {struct, [{"amount", Amount}, {"units","cents"}]}} ->
+						{true, list_to_integer(Amount)};
+					{_, {struct, [{"units","cents"}, {"amount", Amount}]}} ->
+						{true, list_to_integer(Amount)};
+					_ ->
+						false
+				end
 	end,
-	Amount = lists:sum(lists:filtermap(Fcents, Adjustments)).
+	-1250 = lists:sum(lists:filtermap(Fcents, AdjustmentStructs)).
 
 oauth_authenticaton()->
 	[{userdata, [{doc, "Authenticate a JWT using oauth"}]}].
