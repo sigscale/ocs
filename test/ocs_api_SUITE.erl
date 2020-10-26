@@ -97,7 +97,7 @@ all() ->
 	delete_offer_event, gtt_insert_event, gtt_delete_event, add_pla_event,
 	delete_pla_event, add_service_event, delete_service_event,
 	add_product_event, delete_product_event, add_bucket_event,
-	delete_bucket_event].
+	delete_bucket_event, product_charge_event].
 
 %%---------------------------------------------------------------------
 %%  Test cases
@@ -927,9 +927,75 @@ delete_bucket_event(_Config) ->
 			Amount = Bucket3#bucket.remain_amount
 	end.
 
+product_charge_event() ->
+	[{userdata, [{doc, "Event received on produc subscription charge"}]}].
+
+product_charge_event(_Config) ->
+	ok = gen_event:add_handler(ocs_event, test_event, [self()]),
+	SD = erlang:system_time(?MILLISECOND),
+	UnitSize = 100000000000,
+	Alteration = #alteration{name = ocs:generate_identity(), start_date = SD,
+			type = usage, period = undefined,
+			units = octets, size = UnitSize, amount = 0},
+	Amount = 1250,
+	Price = #price{name = ocs:generate_identity(), start_date = SD,
+			type = recurring, period = monthly,
+			amount = Amount, alteration = Alteration},
+	OfferId = add_offer([Price], 4),
+	receive
+		{create_offer, Offer, product} ->
+			OfferId = Offer#offer.name
+	end,
+	{ok, #product{id = ProdId} = P} = ocs:add_product(OfferId, []),
+	receive
+		{create_product, Product, product} ->
+			ProdId = Product#product.id,
+			OfferId = Product#product.product
+	end,
+	Expired = erlang:system_time(?MILLISECOND) - 3599000,
+	ok = mnesia:dirty_write(product, P#product{payment =
+			[{Price#price.name, Expired}]}),
+	B1 = #bucket{units = cents, remain_amount = 1000,
+			start_date = erlang:system_time(?MILLISECOND),
+			end_date = erlang:system_time(?MILLISECOND) + 2592000000},
+	{ok, _, #bucket{id = BId1}} = ocs:add_bucket(ProdId, B1),
+	receive
+		{create_bucket, Bucket1, balance} ->
+			BId1 = Bucket1#bucket.id
+	end,
+	B2 = #bucket{units = cents, remain_amount = 1000,
+			start_date = erlang:system_time(?MILLISECOND),
+			end_date = erlang:system_time(?MILLISECOND) + 2592000000},
+	{ok, _, #bucket{id = BId2}} = ocs:add_bucket(ProdId, B2),
+	receive
+		{create_bucket, Bucket2, balance} ->
+			BId2 = Bucket2#bucket.id
+	end,
+	ok = ocs_scheduler:product_charge(),
+	receive
+		{charge, Adjustments, balance} ->
+			Fcents = fun(#adjustment{amount = Value, units = cents}) ->
+						{true, Value};
+					(_) ->
+						false
+			end,
+			CentsAmount = Amount * -1,
+			CentsAmount = lists:sum(lists:filtermap(Fcents, Adjustments)),
+			#adjustment{amount = UnitSize, units = octets}
+					= lists:keyfind(octets, #adjustment.units, Adjustments)
+	end.
+
 %%---------------------------------------------------------------------
 %%  Internal functions
 %%---------------------------------------------------------------------
+
+add_offer(Prices, Spec) when is_integer(Spec) ->
+	add_offer(Prices, integer_to_list(Spec));
+add_offer(Prices, Spec) ->
+	Offer = #offer{name = ocs:generate_identity(),
+	price = Prices, specification = Spec},
+	{ok, #offer{name = OfferId}} = ocs:add_offer(Offer),
+	OfferId.
 
 get_params() ->
 	{_, _, Info} = lists:keyfind(httpd, 1, inets:services_info()),
