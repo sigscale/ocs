@@ -97,7 +97,7 @@ all() ->
 	delete_offer_event, gtt_insert_event, gtt_delete_event, add_pla_event,
 	delete_pla_event, add_service_event, delete_service_event,
 	add_product_event, delete_product_event, add_bucket_event,
-	delete_bucket_event, product_charge_event].
+	delete_bucket_event, product_charge_event, rating_deleted_bucket_event].
 
 %%---------------------------------------------------------------------
 %%  Test cases
@@ -928,7 +928,7 @@ delete_bucket_event(_Config) ->
 	end.
 
 product_charge_event() ->
-	[{userdata, [{doc, "Event received on produc subscription charge"}]}].
+	[{userdata, [{doc, "Event received on product subscription charge"}]}].
 
 product_charge_event(_Config) ->
 	ok = gen_event:add_handler(ocs_event, test_event, [self()]),
@@ -983,6 +983,52 @@ product_charge_event(_Config) ->
 			CentsAmount = lists:sum(lists:filtermap(Fcents, Adjustments)),
 			#adjustment{amount = UnitSize, units = octets}
 					= lists:keyfind(octets, #adjustment.units, Adjustments)
+	end.
+
+rating_deleted_bucket_event() ->
+	[{userdata, [{doc, "Event received on deletion of bucket during rating"}]}].
+
+rating_deleted_bucket_event(_Config) ->
+	ok = gen_event:add_handler(ocs_event, test_event, [self()]),
+	PackagePrice = 100,
+	PackageSize = 1000,
+	P1 = #price{name = ocs:generate_identity(), type = usage, units = octets,
+			size = PackageSize, amount = PackagePrice},
+	OfferId = add_offer([P1], 4),
+	receive
+		{create_offer, Offer, product} ->
+			OfferId = Offer#offer.name
+	end,
+	{ok, #product{id = ProdRef}} = ocs:add_product(OfferId, [], []),
+	receive
+		{create_product, Product, product} ->
+			ProdRef = Product#product.id,
+			OfferId = Product#product.product
+	end,
+	{ok, #service{name = ServiceId}} = ocs:add_service(ocs:generate_identity(),
+			ocs:generate_password(), ProdRef, []),
+	receive
+		{create_service, #service{name = Name}, service} ->
+			ServiceId = Name
+	end,
+	Units = cents,
+	Bucket1 = #bucket{units = Units, remain_amount = PackagePrice,
+			start_date = erlang:system_time(?MILLISECOND) - (2 * 2592000000),
+			end_date = erlang:system_time(?MILLISECOND) - 2592000000},
+	{ok, _, #bucket{id = BId}} = ocs:add_bucket(ProdRef, Bucket1),
+	receive
+		{create_bucket, Bucket2, balance} ->
+			BId = Bucket2#bucket.id
+	end,
+	Timestamp = calendar:local_time(),
+	SessionId = [{'Session-Id', list_to_binary(ocs:generate_password())}],
+	ServiceType = 32251,
+	{out_of_credit, _} = ocs_rating:rate(diameter, ServiceType, undefined,
+			undefined, ServiceId, Timestamp, undefined, undefined, initial,
+			[], [{octets, PackageSize}], SessionId),
+	receive
+		{depleted, #bucket{units = Units, remain_amount = RA}, balance} ->
+			PackagePrice = RA
 	end.
 
 %%---------------------------------------------------------------------
