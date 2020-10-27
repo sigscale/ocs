@@ -97,7 +97,8 @@ all() ->
 	delete_offer_event, gtt_insert_event, gtt_delete_event, add_pla_event,
 	delete_pla_event, add_service_event, delete_service_event,
 	add_product_event, delete_product_event, add_bucket_event,
-	delete_bucket_event, product_charge_event, rating_deleted_bucket_event].
+	delete_bucket_event, product_charge_event, rating_deleted_bucket_event,
+	accumulated_balance_event].
 
 %%---------------------------------------------------------------------
 %%  Test cases
@@ -1031,6 +1032,66 @@ rating_deleted_bucket_event(_Config) ->
 			PackagePrice = RA
 	end.
 
+accumulated_balance_event() ->
+	[{userdata, [{doc, "Event received on accumulated balance after rating"}]}].
+
+accumulated_balance_event(_Config) ->
+	ok = gen_event:add_handler(ocs_event, test_event, [self()]),
+	PackagePrice = 5000000,
+	PackageSize = 100000000,
+	P1 = #price{name = ocs:generate_identity(), type = usage, units = octets,
+			size = PackageSize, amount = PackagePrice},
+	OfferId = add_offer([P1], 4),
+	receive
+		{create_offer, Offer, product} ->
+			OfferId = Offer#offer.name
+	end,
+	{ok, #product{id = ProdRef}} = ocs:add_product(OfferId, [], []),
+	receive
+		{create_product, Product, product} ->
+			ProdRef = Product#product.id,
+			OfferId = Product#product.product
+	end,
+	{ok, #service{name = ServiceId}} = ocs:add_service(ocs:generate_identity(),
+			ocs:generate_password(), ProdRef, []),
+	receive
+		{create_service, #service{name = Name}, service} ->
+			ServiceId = Name
+	end,
+	RA1 = 50000000,
+	BId1 = add_bucket(ProdRef, cents, RA1),
+	receive
+		{create_bucket, Bucket1, balance} ->
+			BId1 = Bucket1#bucket.id
+	end,
+	RA2 = 500000000,
+	BId2 = add_bucket(ProdRef, octets, RA2),
+	receive
+		{create_bucket, Bucket2, balance} ->
+			BId2 = Bucket2#bucket.id
+	end,
+	RA3 = 100000000,
+	BId3 = add_bucket(ProdRef, cents, RA3),
+	receive
+		{create_bucket, Bucket3, balance} ->
+			BId3 = Bucket3#bucket.id
+	end,
+	Timestamp = calendar:local_time(),
+	SessionId = [{'Session-Id', list_to_binary(ocs:generate_password())}],
+	ServiceType = 32251,
+	{ok, #service{}, _} = ocs_rating:rate(diameter, ServiceType, undefined,
+			undefined, ServiceId, Timestamp, undefined, undefined, initial,
+			[], [{octets, PackageSize}], SessionId),
+	receive
+		{accumulated, AccBlance, balance} ->
+			CentsTotalAmount = RA1 + RA3,
+			#acc_balance{total_balance = CentsTotalAmount}
+					= lists:keyfind(cents, #acc_balance.units, AccBlance),
+			BytesTotalAmount = RA2 - PackageSize,
+			#acc_balance{total_balance = BytesTotalAmount}
+					= lists:keyfind(octets, #acc_balance.units, AccBlance)
+	end.
+
 %%---------------------------------------------------------------------
 %%  Internal functions
 %%---------------------------------------------------------------------
@@ -1042,6 +1103,14 @@ add_offer(Prices, Spec) ->
 	price = Prices, specification = Spec},
 	{ok, #offer{name = OfferId}} = ocs:add_offer(Offer),
 	OfferId.
+
+%% @hidden
+add_bucket(ProdRef, Units, RA) ->
+	Bucket = #bucket{units = Units, remain_amount = RA,
+			start_date = erlang:system_time(?MILLISECOND),
+			end_date = erlang:system_time(?MILLISECOND) + 2592000000},
+	{ok, _, #bucket{id = BId}} = ocs:add_bucket(ProdRef, Bucket),
+	BId.
 
 get_params() ->
 	{_, _, Info} = lists:keyfind(httpd, 1, inets:services_info()),
