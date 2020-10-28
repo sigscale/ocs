@@ -107,11 +107,11 @@
 						</template>
 					</paper-listbox>
 				</paper-dropdown-menu>
-				<paper-tags-input
-					id="addService1"
-					label="[[i18n.servId]]"
-					items="[]">
-				</paper-tags-input>
+				<paper-input
+						id="addService1"
+						name="ServiceId"
+						label="[[i18n.servId]]">
+				</paper-input>
 			</div>
 			<div class="buttons">
 				<paper-button dialog-confirm
@@ -191,6 +191,12 @@
 						return []
 					}
 				},
+				serviceIds: {
+					type: Array,
+					value: function() {
+						return []
+					}
+				},
 				product: {
 					type: String,
 				}
@@ -214,13 +220,10 @@
 				productAdd.href = "/catalogManagement/v2/productOffering/" + this.$.addProDrop.value; 
 				productRes.productOffering = productAdd;
 				var productServi = new Array();
-				var services = this.$.addService1.items
-				for(var index in services) {
-					bla = new Object();
-					bla.id = services[index];
-					bla.href = "/serviceInventoryManagement/v2/service/" + services[index];
-					productServi.push(bla);
-				}
+				bla = new Object();
+				bla.id = this.$.addService1.value;
+				bla.href = "/serviceInventoryManagement/v2/service/" + this.$.addService1.value;
+				productServi.push(bla);
 				productRes.realizingService= productServi;
 				ajaxPro.body = productRes;
 				ajaxPro.generateRequest();
