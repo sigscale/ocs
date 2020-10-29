@@ -95,11 +95,14 @@ product_charge1(ProdRef, Now) ->
 									case if_dues(Payments, Now) of
 										true ->
 											Buckets1 = [mnesia:read(bucket, B) || B <- BucketRefs],
+											Buckets2 = lists:flatten(Buckets1),
 											{NewProduct1, Buckets3} = ocs:subscription(Product, Offer,
-													lists:flatten(Buckets1), false),
+													Buckets2, false),
+											BucketAdjustments = bucket_adjustment(ProdRef,
+													BucketRefs, Buckets2, Buckets3),
 											NewBRefs = update_buckets(BucketRefs, Buckets1, Buckets3),
 											NewProduct2 = NewProduct1#product{balance = NewBRefs},
-											ok = mnesia:write(NewProduct2);
+											{mnesia:write(NewProduct2), BucketAdjustments};
 										false ->
 											ok
 									end;
@@ -115,6 +118,9 @@ product_charge1(ProdRef, Now) ->
 	end,
 	case mnesia:transaction(F) of
 		{atomic, ok} ->
+			product_charge1(get_product(ProdRef), Now);
+		{atomic, {ok, Adjustments}} ->
+			ocs_event:notify(charge, Adjustments, balance),
 			product_charge1(get_product(ProdRef), Now);
 		{aborted, Reason} ->
 			error_logger:error_report("Scheduler Update Failed",
@@ -150,6 +156,36 @@ run_recurring() ->
 %%----------------------------------------------------------------------
 %%  internal functions
 %%----------------------------------------------------------------------
+
+%% @private
+bucket_adjustment(ProductRef, OldBucketRefs, OldBuckets, NewBuckets) ->
+	NewBucketRefs = [B#bucket.id || B <- NewBuckets],
+	Fdel = fun F([BucketId | T], Acc) ->
+				#bucket{remain_amount = Amount, units = Units}
+						= lists:keyfind(BucketId, #bucket.id, OldBuckets),
+				F(T, [#adjustment{type = "recurring",
+						reason = "scheduled", amount = -Amount,
+						units = Units, product = ProductRef} | Acc]);
+			F([], Acc) ->
+				Acc
+	end,
+	DelBucketAdj = Fdel(OldBucketRefs -- NewBucketRefs, []),
+	Fupdate = fun F([#bucket{id = Id, remain_amount = Amount,
+			units = cents} | T], Acc) ->
+				#bucket{remain_amount = PrevAmount}
+						= lists:keyfind(Id, #bucket.id, OldBuckets),
+				F(T, [#adjustment{type = "recurring",
+						reason = "scheduled", amount = Amount - PrevAmount,
+						units = cents, product = ProductRef} | Acc]);
+			F([#bucket{remain_amount = Amount, units = Units} | T], Acc) ->
+				F(T, [#adjustment{type = "recurring",
+						reason = "scheduled", amount = Amount,
+						units = Units, product = ProductRef} | Acc]);
+			F([], Acc) ->
+				Acc
+	end,
+	UpdatedBucketAdj = Fupdate(NewBuckets -- OldBuckets, []),
+	DelBucketAdj ++ UpdatedBucketAdj.
 
 %% @private
 if_dues([{_, DueDate} | _], Now) when DueDate < Now ->

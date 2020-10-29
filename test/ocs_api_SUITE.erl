@@ -93,7 +93,12 @@ all() ->
 	delete_offer, add_user, get_user, delete_user, add_bucket,
 	find_bucket, delete_bucket, get_buckets, positive_adjustment,
 	negative_adjustment_high, negative_adjustment_equal, negative_adjustment_low,
-	add_product, find_product, delete_product, query_product].
+	add_product, find_product, delete_product, query_product, add_offer_event,
+	delete_offer_event, gtt_insert_event, gtt_delete_event, add_pla_event,
+	delete_pla_event, add_service_event, delete_service_event,
+	add_product_event, delete_product_event, add_bucket_event,
+	delete_bucket_event, product_charge_event, rating_deleted_bucket_event,
+	accumulated_balance_event].
 
 %%---------------------------------------------------------------------
 %%  Test cases
@@ -665,9 +670,447 @@ negative_adjustment_low(_Config) ->
 	[#bucket{remain_amount = RA}] = [B || #bucket{units = U} = B <- Buckets, U == Units],
 	2000 = RA.
 
+add_offer_event() ->
+	[{userdata, [{doc, "Event received on adding offer"}]}].
+
+add_offer_event(_Config) ->
+	ok = gen_event:add_handler(ocs_event, test_event, [self()]),
+	{ok, OfferName} = ocs_test_lib:add_offer(),
+	receive
+		{create_offer, Offer, product} ->
+			OfferName = Offer#offer.name
+	end.
+
+delete_offer_event() ->
+	[{userdata, [{doc, "Event received on deleting offer"}]}].
+
+delete_offer_event(_Config) ->
+	ok = gen_event:add_handler(ocs_event, test_event, [self()]),
+	{ok, OfferName} = ocs_test_lib:add_offer(),
+	receive
+		{create_offer, Offer1, product} ->
+			OfferName = Offer1#offer.name
+	end,
+	ok = ocs:delete_offer(OfferName),
+	receive
+		{delete_offer, Offer2, product} ->
+			OfferName = Offer2#offer.name
+	end.
+
+gtt_insert_event() ->
+	[{userdata, [{doc, "Event received on inserting logical resource"}]}].
+
+gtt_insert_event(_Config) ->
+	ok = gen_event:add_handler(ocs_event, test_event, [self()]),
+	[Table | _] = ocs_gtt:list(),
+	Prefix = "1519240",
+	Description = "Bell Mobility",
+	Amount = 10000,
+	{ok, #gtt{}} = ocs_gtt:insert(Table, Prefix, {Description, Amount}),
+	receive
+		{insert_gtt, {Table, #gtt{num = Prefix, value = Value}}, resource} ->
+			{Description, Amount, _} = Value
+	end.
+
+gtt_delete_event() ->
+	[{userdata, [{doc, "Event received on deleting logical resource"}]}].
+
+gtt_delete_event(_Config) ->
+	ok = gen_event:add_handler(ocs_event, test_event, [self()]),
+	[Table | _] = ocs_gtt:list(),
+	Prefix = "1519241",
+	Description = "Bell Mobility",
+	Amount = 10000,
+	{ok, #gtt{}} = ocs_gtt:insert(Table, Prefix, {Description, Amount}),
+	receive
+		{insert_gtt, {Table, #gtt{num = Prefix, value = Value1}}, resource} ->
+		{Description, Amount, _} = Value1
+	end,
+	ok = ocs_gtt:delete(Table, Prefix),
+	receive
+		{delete_gtt, {Table, #gtt{num = Prefix, value = Value2}}, resource} ->
+			{Description, Amount, _} = Value2
+	end.
+
+add_pla_event() ->
+	[{userdata, [{doc, "Event received on adding pla"}]}].
+
+add_pla_event(_Config) ->
+	ok = gen_event:add_handler(ocs_event, test_event, [self()]),
+	[Table | _] = ocs_gtt:list(),
+	SD = erlang:system_time(?MILLISECOND),
+	ED = erlang:system_time(?MILLISECOND) + rand:uniform(10000000000),
+	Status = created,
+	Name = atom_to_list(Table),
+	Pla = #pla{name = Name, start_date = SD,
+			end_date = ED, status = Status},
+	{ok, #pla{}} = ocs:add_pla(Pla),
+	receive
+		{create_pla, #pla{name = Name, status = Status}, resource} ->
+			Table = list_to_existing_atom(Name)
+	end.
+
+delete_pla_event() ->
+	[{userdata, [{doc, "Event received on deleting pla"}]}].
+
+delete_pla_event(_Config) ->
+	ok = gen_event:add_handler(ocs_event, test_event, [self()]),
+	SD = erlang:system_time(?MILLISECOND),
+	ED = erlang:system_time(?MILLISECOND) + rand:uniform(10000000000),
+	Status = created,
+	Name = "test_notification1",
+	Pla = #pla{name = Name, start_date = SD,
+			end_date = ED, status = Status},
+	{ok, #pla{}} = ocs:add_pla(Pla),
+	receive
+		{create_pla, #pla{name = Name, status = Status,
+				last_modified = LM}, resource} ->
+			true = is_tuple(LM)
+	end,
+	ok = ocs:delete_pla(Name),
+	receive
+		{delete_pla, #pla{name = Name, status = Status}, resource} ->
+			true
+	end.
+
+add_service_event() ->
+	[{userdata, [{doc, "Event received on adding service"}]}].
+
+add_service_event(_Config) ->
+	ok = gen_event:add_handler(ocs_event, test_event, [self()]),
+	Identity = ocs:generate_identity(),
+	Password = ocs:generate_password(),
+	{ok, #service{}} = ocs:add_service(Identity, Password),
+	receive
+		{create_service, #service{name = Name, password = Pass}, service} ->
+			Name = list_to_binary(Identity),
+			Pass = list_to_binary(Password)
+	end.
+
+delete_service_event() ->
+	[{userdata, [{doc, "Event received on deleting service"}]}].
+
+delete_service_event(_Config) ->
+	ok = gen_event:add_handler(ocs_event, test_event, [self()]),
+	Identity = ocs:generate_identity(),
+	Password = ocs:generate_password(),
+	{ok, #service{}} = ocs:add_service(Identity, Password),
+	receive
+		{create_service, #service{name = Name1, password = Pass1}, service} ->
+			Name1 = list_to_binary(Identity),
+			Pass1 = list_to_binary(Password)
+	end,
+	ok = ocs:delete_service(Identity),
+	receive
+		{delete_service, #service{name = Name2, password = Pass2}, service} ->
+			Name2 = list_to_binary(Identity),
+			Pass2 = list_to_binary(Password)
+	end.
+
+add_product_event() ->
+	[{userdata, [{doc, "Event received on adding service"}]}].
+
+add_product_event(_Config) ->
+	ok = gen_event:add_handler(ocs_event, test_event, [self()]),
+	Price = #price{name = ocs:generate_identity(),
+			type = usage, units = octets, size = 1000, amount = 100},
+	OfferName = ocs:generate_identity(),
+	Offer1 = #offer{name = OfferName,
+			price = [Price], specification = 4},
+	{ok, #offer{name = OfferId}} = ocs:add_offer(Offer1),
+	receive
+		{create_offer, Offer2, product} ->
+			OfferName = Offer2#offer.name
+	end,
+	{ok, #product{id = ProductId}} = ocs:add_product(OfferId, [], []),
+	receive
+		{create_product, Product, product} ->
+			ProductId = Product#product.id,
+			OfferId = Product#product.product
+	end.
+
+delete_product_event() ->
+	[{userdata, [{doc, "Event received on deleting service"}]}].
+
+delete_product_event(_Config) ->
+	ok = gen_event:add_handler(ocs_event, test_event, [self()]),
+	Price = #price{name = ocs:generate_identity(),
+			type = usage, units = octets, size = 1000, amount = 100},
+	OfferName = ocs:generate_identity(),
+	Offer1 = #offer{name = OfferName,
+			price = [Price], specification = 4},
+	{ok, #offer{name = OfferId}} = ocs:add_offer(Offer1),
+	receive
+		{create_offer, Offer2, product} ->
+			OfferName = Offer2#offer.name
+	end,
+	{ok, #product{id = ProductId}} = ocs:add_product(OfferId, [], []),
+	receive
+		{create_product, Product1, product} ->
+			ProductId = Product1#product.id,
+			OfferId = Product1#product.product
+	end,
+	ok = ocs:delete_product(ProductId),
+	receive
+		{delete_product, Product2, product} ->
+			ProductId = Product2#product.id,
+			OfferId = Product2#product.product
+	end.
+
+add_bucket_event() ->
+	[{userdata, [{doc, "Event received on adding bucket"}]}].
+
+add_bucket_event(_Config) ->
+	ok = gen_event:add_handler(ocs_event, test_event, [self()]),
+	Price = #price{name = ocs:generate_identity(),
+			type = usage, units = octets, size = 1000, amount = 100},
+	Offer1 = #offer{name = ocs:generate_identity(),
+			price = [Price], specification = 4},
+	{ok, #offer{name = OfferId}} = ocs:add_offer(Offer1),
+	receive
+		{create_offer, Offer2, product} ->
+			OfferId = Offer2#offer.name
+	end,
+	{ok, #product{id = ProdRef}} = ocs:add_product(OfferId, [], []),
+	receive
+		{create_product, Product1, product} ->
+			ProdRef = Product1#product.id,
+			OfferId = Product1#product.product
+	end,
+	Amount = 100,
+	Units = cents,
+	Bucket1 = #bucket{units = Units, remain_amount = Amount,
+			start_date = erlang:system_time(?MILLISECOND),
+			end_date = erlang:system_time(?MILLISECOND) + 2592000000},
+	{ok, _, #bucket{id = BucketId}} = ocs:add_bucket(ProdRef, Bucket1),
+	receive
+		{create_bucket, Bucket2, balance} ->
+			BucketId = Bucket2#bucket.id,
+			Units = Bucket2#bucket.units,
+			Amount = Bucket2#bucket.remain_amount
+	end.
+
+delete_bucket_event() ->
+	[{userdata, [{doc, "Event received on deleting bucket"}]}].
+
+delete_bucket_event(_Config) ->
+	ok = gen_event:add_handler(ocs_event, test_event, [self()]),
+	Price = #price{name = ocs:generate_identity(),
+			type = usage, units = octets, size = 1000, amount = 100},
+	Offer1 = #offer{name = ocs:generate_identity(),
+			price = [Price], specification = 4},
+	{ok, #offer{name = OfferId}} = ocs:add_offer(Offer1),
+	receive
+		{create_offer, Offer2, product} ->
+			OfferId = Offer2#offer.name
+	end,
+	{ok, #product{id = ProdRef}} = ocs:add_product(OfferId, [], []),
+	receive
+		{create_product, Product1, product} ->
+			ProdRef = Product1#product.id,
+			OfferId = Product1#product.product
+	end,
+	Amount = 100,
+	Units = cents,
+	Bucket1 = #bucket{units = Units, remain_amount = Amount,
+			start_date = erlang:system_time(?MILLISECOND),
+			end_date = erlang:system_time(?MILLISECOND) + 2592000000},
+	{ok, _, #bucket{id = BucketId}} = ocs:add_bucket(ProdRef, Bucket1),
+	receive
+		{create_bucket, Bucket2, balance} ->
+			BucketId = Bucket2#bucket.id
+	end,
+	ok = ocs:delete_bucket(BucketId),
+	receive
+		{delete_bucket, Bucket3, balance} ->
+			BucketId = Bucket3#bucket.id,
+			Units = Bucket3#bucket.units,
+			Amount = Bucket3#bucket.remain_amount
+	end.
+
+product_charge_event() ->
+	[{userdata, [{doc, "Event received on product subscription charge"}]}].
+
+product_charge_event(_Config) ->
+	ok = gen_event:add_handler(ocs_event, test_event, [self()]),
+	SD = erlang:system_time(?MILLISECOND),
+	UnitSize = 100000000000,
+	Alteration = #alteration{name = ocs:generate_identity(), start_date = SD,
+			type = usage, period = undefined,
+			units = octets, size = UnitSize, amount = 0},
+	Amount = 1250,
+	Price = #price{name = ocs:generate_identity(), start_date = SD,
+			type = recurring, period = monthly,
+			amount = Amount, alteration = Alteration},
+	OfferId = add_offer([Price], 4),
+	receive
+		{create_offer, Offer, product} ->
+			OfferId = Offer#offer.name
+	end,
+	{ok, #product{id = ProdId} = P} = ocs:add_product(OfferId, []),
+	receive
+		{create_product, Product, product} ->
+			ProdId = Product#product.id,
+			OfferId = Product#product.product
+	end,
+	Expired = erlang:system_time(?MILLISECOND) - 3599000,
+	ok = mnesia:dirty_write(product, P#product{payment =
+			[{Price#price.name, Expired}]}),
+	B1 = #bucket{units = cents, remain_amount = 1000,
+			start_date = erlang:system_time(?MILLISECOND),
+			end_date = erlang:system_time(?MILLISECOND) + 2592000000},
+	{ok, _, #bucket{id = BId1}} = ocs:add_bucket(ProdId, B1),
+	receive
+		{create_bucket, Bucket1, balance} ->
+			BId1 = Bucket1#bucket.id
+	end,
+	B2 = #bucket{units = cents, remain_amount = 1000,
+			start_date = erlang:system_time(?MILLISECOND),
+			end_date = erlang:system_time(?MILLISECOND) + 2592000000},
+	{ok, _, #bucket{id = BId2}} = ocs:add_bucket(ProdId, B2),
+	receive
+		{create_bucket, Bucket2, balance} ->
+			BId2 = Bucket2#bucket.id
+	end,
+	ok = ocs_scheduler:product_charge(),
+	receive
+		{charge, Adjustments, balance} ->
+			Fcents = fun(#adjustment{amount = Value, units = cents}) ->
+						{true, Value};
+					(_) ->
+						false
+			end,
+			CentsAmount = Amount * -1,
+			CentsAmount = lists:sum(lists:filtermap(Fcents, Adjustments)),
+			#adjustment{amount = UnitSize, units = octets}
+					= lists:keyfind(octets, #adjustment.units, Adjustments)
+	end.
+
+rating_deleted_bucket_event() ->
+	[{userdata, [{doc, "Event received on deletion of bucket during rating"}]}].
+
+rating_deleted_bucket_event(_Config) ->
+	ok = gen_event:add_handler(ocs_event, test_event, [self()]),
+	PackagePrice = 100,
+	PackageSize = 1000,
+	P1 = #price{name = ocs:generate_identity(), type = usage, units = octets,
+			size = PackageSize, amount = PackagePrice},
+	OfferId = add_offer([P1], 4),
+	receive
+		{create_offer, Offer, product} ->
+			OfferId = Offer#offer.name
+	end,
+	{ok, #product{id = ProdRef}} = ocs:add_product(OfferId, [], []),
+	receive
+		{create_product, Product, product} ->
+			ProdRef = Product#product.id,
+			OfferId = Product#product.product
+	end,
+	{ok, #service{name = ServiceId}} = ocs:add_service(ocs:generate_identity(),
+			ocs:generate_password(), ProdRef, []),
+	receive
+		{create_service, #service{name = Name}, service} ->
+			ServiceId = Name
+	end,
+	Units = cents,
+	Bucket1 = #bucket{units = Units, remain_amount = PackagePrice,
+			start_date = erlang:system_time(?MILLISECOND) - (2 * 2592000000),
+			end_date = erlang:system_time(?MILLISECOND) - 2592000000},
+	{ok, _, #bucket{id = BId}} = ocs:add_bucket(ProdRef, Bucket1),
+	receive
+		{create_bucket, Bucket2, balance} ->
+			BId = Bucket2#bucket.id
+	end,
+	Timestamp = calendar:local_time(),
+	SessionId = [{'Session-Id', list_to_binary(ocs:generate_password())}],
+	ServiceType = 32251,
+	{out_of_credit, _} = ocs_rating:rate(diameter, ServiceType, undefined,
+			undefined, ServiceId, Timestamp, undefined, undefined, initial,
+			[], [{octets, PackageSize}], SessionId),
+	receive
+		{depleted, #bucket{units = Units, remain_amount = RA}, balance} ->
+			PackagePrice = RA
+	end.
+
+accumulated_balance_event() ->
+	[{userdata, [{doc, "Event received on accumulated balance after rating"}]}].
+
+accumulated_balance_event(_Config) ->
+	ok = gen_event:add_handler(ocs_event, test_event, [self()]),
+	PackagePrice = 5000000,
+	PackageSize = 100000000,
+	P1 = #price{name = ocs:generate_identity(), type = usage, units = octets,
+			size = PackageSize, amount = PackagePrice},
+	OfferId = add_offer([P1], 4),
+	receive
+		{create_offer, Offer, product} ->
+			OfferId = Offer#offer.name
+	end,
+	{ok, #product{id = ProdRef}} = ocs:add_product(OfferId, [], []),
+	receive
+		{create_product, Product, product} ->
+			ProdRef = Product#product.id,
+			OfferId = Product#product.product
+	end,
+	{ok, #service{name = ServiceId}} = ocs:add_service(ocs:generate_identity(),
+			ocs:generate_password(), ProdRef, []),
+	receive
+		{create_service, #service{name = Name}, service} ->
+			ServiceId = Name
+	end,
+	RA1 = 50000000,
+	BId1 = add_bucket(ProdRef, cents, RA1),
+	receive
+		{create_bucket, Bucket1, balance} ->
+			BId1 = Bucket1#bucket.id
+	end,
+	RA2 = 500000000,
+	BId2 = add_bucket(ProdRef, octets, RA2),
+	receive
+		{create_bucket, Bucket2, balance} ->
+			BId2 = Bucket2#bucket.id
+	end,
+	RA3 = 100000000,
+	BId3 = add_bucket(ProdRef, cents, RA3),
+	receive
+		{create_bucket, Bucket3, balance} ->
+			BId3 = Bucket3#bucket.id
+	end,
+	Timestamp = calendar:local_time(),
+	SessionId = [{'Session-Id', list_to_binary(ocs:generate_password())}],
+	ServiceType = 32251,
+	{ok, #service{}, _} = ocs_rating:rate(diameter, ServiceType, undefined,
+			undefined, ServiceId, Timestamp, undefined, undefined, initial,
+			[], [{octets, PackageSize}], SessionId),
+	receive
+		{accumulated, AccBlance, balance} ->
+			CentsTotalAmount = RA1 + RA3,
+			#acc_balance{total_balance = CentsTotalAmount}
+					= lists:keyfind(cents, #acc_balance.units, AccBlance),
+			BytesTotalAmount = RA2 - PackageSize,
+			#acc_balance{total_balance = BytesTotalAmount}
+					= lists:keyfind(octets, #acc_balance.units, AccBlance)
+	end.
+
 %%---------------------------------------------------------------------
 %%  Internal functions
 %%---------------------------------------------------------------------
+
+add_offer(Prices, Spec) when is_integer(Spec) ->
+	add_offer(Prices, integer_to_list(Spec));
+add_offer(Prices, Spec) ->
+	Offer = #offer{name = ocs:generate_identity(),
+	price = Prices, specification = Spec},
+	{ok, #offer{name = OfferId}} = ocs:add_offer(Offer),
+	OfferId.
+
+%% @hidden
+add_bucket(ProdRef, Units, RA) ->
+	Bucket = #bucket{units = Units, remain_amount = RA,
+			start_date = erlang:system_time(?MILLISECOND),
+			end_date = erlang:system_time(?MILLISECOND) + 2592000000},
+	{ok, _, #bucket{id = BId}} = ocs:add_bucket(ProdRef, Bucket),
+	BId.
 
 get_params() ->
 	{_, _, Info} = lists:keyfind(httpd, 1, inets:services_info()),

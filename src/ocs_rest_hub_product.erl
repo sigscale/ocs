@@ -52,7 +52,8 @@ content_types_provided() ->
 		Id :: string(),
 		Result :: {ok, Headers :: [tuple()], Body :: iolist()}
 			| {error, ErrorCode :: integer()}.
-%% @doc Delete by id.
+%% Delete by id.
+%% @doc Respond to `POST /productInventory/v2/hub/{id}'
 delete_hub(Id) ->
 	{gen_fsm:send_all_state_event({global, Id}, shutdown), [], []}.
 
@@ -61,7 +62,8 @@ delete_hub(Id) ->
 		ReqBody :: list(),
 		Result :: {ok, Headers :: [tuple()], Body :: iolist()}
 			| {error, ErrorCode :: integer()}.
-%% @doc Hub event to disk.
+%% Hub event to disk.
+%% @doc Respond to `POST /productInventory/v2/hub/'
 post_hub(ReqBody) ->
 	try
 		case hub(mochijson:decode(ReqBody)) of
@@ -96,7 +98,8 @@ post_hub(ReqBody) ->
 		Id :: string(),
 		Result :: {ok, Headers :: [tuple()], Body :: iolist()}
 			| {error, ErrorCode :: integer()}.
-%% @doc Delete by id.
+%% Delete by id.
+%% @doc Respond to `POST /productCatalog/v2/hub/{id}'
 delete_hub_catalog(Id) ->
 	{gen_fsm:send_all_state_event({global, Id}, shutdown), [], []}.
 
@@ -105,7 +108,8 @@ delete_hub_catalog(Id) ->
 		ReqBody :: list(),
 		Result :: {ok, Headers :: [tuple()], Body :: iolist()}
 			| {error, ErrorCode :: integer()}.
-%% @doc Hub event to disk.
+%% Hub event to disk.
+%% @doc Respond to `POST /productCatalog/v2/hub'
 post_hub_catalog(ReqBody) ->
 	try
 		case hub(mochijson:decode(ReqBody)) of
