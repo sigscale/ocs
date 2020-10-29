@@ -850,24 +850,6 @@ class offerAdd extends PolymerElement {
 			addProductEndDateAlt: {
 				type: String
 			},
-			addProductStartDateOfferPick: {
-				observer: '_addProductStartDateOfferPick'
-			},
-			addProductEndDateOfferPick: {
-				observer: '_addProductEndDateOfferPick'
-			},
-			addProductStartDatePricePick: {
-				observer: '_addProductStartDatePricePick'
-			},
-			addProductEndDatePricePick: {
-				observer: '_addProductEndDatePricePick'
-			},
-			addProductStartDateAltPick: {
-				observer: '_addProductStartDateAltPick'
-			},
-			addProductEndDateAltPick: {
-				observer: '_addProductEndDateAltPick'
-			},
 			offerAddAddress: {
 				type: String
 			},

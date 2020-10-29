@@ -137,8 +137,7 @@ class httpList extends PolymerElement {
 			},
 			activePage: {
 				type: Boolean,
-				value: false,
-				observer: '_activePageChanged'
+				value: false
 			}
 		}
 	}

@@ -110,12 +110,10 @@ class bucketList extends PolymerElement {
 				value: null
 			},
 			_filterBucId: {
-				type: Boolean,
-				observer: '_filterChanged'
+				type: Boolean
 			},
 			_filterProdId: {
-				type: Boolean,
-				observer: '_filterChanged'
+				type: Boolean
 			},
 			activeItem: {
 				observer: '_activeItemChanged',

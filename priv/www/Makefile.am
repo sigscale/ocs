@@ -11,9 +11,7 @@ MODULES = sig-ipdr-list-wlan.js \
 		sig-ipdr-list-voip.js \
 		sig-access-list.js \
 		sig-accounting-list.js \
-		sig-usage-list.js \
 		sig-http-list.js \
-		sig-ipdr-log-files-wlan.js \
 		sig-ipdr-log-files-voip.js \
 		sig-app.js \
 		sig-help.js \
