@@ -303,7 +303,7 @@
     "/productOffering/{id}": {
       "get": {
         "tags": [
-          "productSpecification"
+          "productOffering"
         ],
         "parameters": [
           {
@@ -311,12 +311,12 @@
             "type": "string",
             "name": "id",
             "in": "path",
-            "description": "Identifier of the Product Specification"
+            "description": "Identifier of the Product Offering"
           }
         ],
         "operationId": "retrieveproductSpecification",
         "summary": "retrieveproductSpecification",
-        "description": "This operation lists a 'ProductSpecification' by Id",
+        "description": "This operation lists a 'ProductOffering' by Id",
         "deprecated": false,
         "responses": {
           "200": {
@@ -324,7 +324,7 @@
             "schema": {
               "type": "array",
               "items": {
-                "$ref": "#/definitions/ProductSpecification"
+                "$ref": "#/definitions/ProductOffering"
               }
             }
           },
