@@ -747,8 +747,7 @@ interim_debit_and_reserve_available(_Config) ->
 			PackagePrice * 3
 	end,
 	RemAmount3 = RemAmount1 - Debited,
-	{ok, #bucket{reservations = [{_, Debited, _, SessionId}],
-			remain_amount = RemAmount3}} = ocs:find_bucket(BId).
+	{ok, #bucket{remain_amount = RemAmount3}} = ocs:find_bucket(BId).
 
 interim_debit_and_reserve_insufficient1() ->
 	[{userdata, [{doc, "Debit amount less than package size and reservation amount
