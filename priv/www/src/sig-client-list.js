@@ -235,9 +235,9 @@ class clientList extends PolymerElement {
 			}
 		};
 		var handleAjaxError = function(error) {
-			clientList.etag = null;
 			this.$.getClientToast.text = "Error";
 			this.$.getClientToast.open();
+			clientList.etag = null;
 			if(!grid.size) {
 				grid.size = 0;
 			}
