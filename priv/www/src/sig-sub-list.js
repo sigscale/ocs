@@ -218,9 +218,9 @@ class subList extends PolymerElement {
 			}
 		};
 		var handleAjaxError = function(error) {
-			serviceList.etag = null;
 			this.$.getSubToast.text = "Error";
 			this.$.getSubToast.open();
+			serviceList.etag = null;
 			if(!grid.size) {
 				grid.size = 0;
 			}
