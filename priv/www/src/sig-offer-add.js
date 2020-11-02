@@ -937,7 +937,7 @@ class offerAdd extends PolymerElement {
 
 	addUpdatePriceDialog() {
 		function checkPriceUpdateName(price) {
-			return price.name == this.priceAddName;
+			return price.name == null;
 		}
 		if(this.prices != undefined) {
 			var indexPrice = this.prices.findIndex(checkPriceUpdateName);
@@ -1660,7 +1660,7 @@ class offerAdd extends PolymerElement {
 	}
 	addPrice(event) {
 		function checkPriceName(price) {
-			return price.name == this.$.addPriceName.value;
+			return price.name == null;
 		}
 		var indexPrice = this.prices.findIndex(checkPriceName);
 		if (indexPrice == -1) {
