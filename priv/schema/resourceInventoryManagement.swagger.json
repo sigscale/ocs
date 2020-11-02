@@ -52,22 +52,24 @@
             "type": "string"
           }
         ],
-        "operationId": "listLogicalResource",
-        "summary": "listResource",
-        "description": "This operation lists a individual loglcalResource entity",
+        "operationId": "listLogicalResources",
+        "summary": "This operation lists a individual loglcalResource entity",
         "deprecated": false,
         "responses": {
           "200": {
-            "description": "Usage",
+            "description": "Success",
             "schema": {
               "$ref": "#/definitions/LogicalResource"
             }
           },
+          "400": {
+            "description": "Bad Request"
+          },
           "404": {
-            "description": "Not Found\n\nList of supported error codes:\n- 60: Resource not found"
+            "description": "Not Found"
           },
           "500": {
-            "description": "Internal Server Error\n\nList of supported error codes:\n- 1: Internal error"
+            "description": "Internal Server Error"
           }
         }
       },
@@ -94,21 +96,62 @@
           }
         ],
         "operationId": "createLogicalResourceEntry",
-        "summary": "createLogicalResourceEntry",
-        "description": "Add a new row in logical resource inventory management",
+        "summary": "Add a new row in logical resource inventory management",
         "deprecated": false,
         "responses": {
           "201": {
-            "description": "Created",
+            "description": "Success",
             "schema": {
               "$ref": "#/definitions/LogicalResource"
             }
           },
+          "400": {
+            "description": "Bad Request"
+          },
           "404": {
-            "description": "Not Found\n\nList of supported error codes:\n- 60: Resource not found"
+            "description": "Not Found"
           },
           "500": {
-            "description": "Internal Server Error\n\nList of supported error codes:\n- 1: Internal error"
+            "description": "Internal Server Error"
+          }
+        }
+      }
+    },
+    "/logicalResource/{Id}": {
+      "get": {
+        "tags": [
+          "logicalResource"
+        ],
+        "parameters": [
+          {
+            "name": "Id",
+            "required": true,
+            "in": "path",
+            "description": "Id of the logical resource",
+            "type": "string"
+          }
+        ],
+        "operationId": "listLogicalResource",
+        "summary": "This operation lists a individual loglcalResource entity",
+        "deprecated": false,
+        "responses": {
+          "200": {
+            "description": "Usage",
+            "schema": {
+              "items": {
+                "$ref": "#/definitions/LogicalResource"
+              },
+              "type": "array"
+            }
+          },
+          "400": {
+            "description": "Bad Request"
+          },
+          "404": {
+            "description": "Not Found"
+          },
+          "500": {
+            "description": "Internal Server Error"
           }
         }
       },
@@ -118,16 +161,9 @@
         ],
         "parameters": [
           {
-            "name": "table",
+            "name": "Id",
             "required": true,
-            "in": "query",
-            "description": "Name of resource table",
-            "type": "string"
-          },
-          {
-            "name": "id",
-            "required": true,
-            "in": "query",
+            "in": "path",
             "description": "Id of the logical resource",
             "type": "string"
           },
@@ -142,8 +178,7 @@
           }
         ],
         "operationId": "updateLogicalResource",
-        "summary": "updateLogicalResource",
-        "description": "Updates a 'LogicalResource' by Id",
+        "summary": "Patches a 'LogicalResource' by Id",
         "deprecated": false,
         "responses": {
           "201": {
@@ -152,17 +187,56 @@
               "$ref": "#/definitions/LogicalResource"
             }
           },
+          "400": {
+            "description": "Bad Request"
+          },
           "404": {
-            "description": "Not Found\n\nList of supported error codes:\n- 60: Resource not found"
+            "description": "Not Found"
           },
           "500": {
-            "description": "Internal Server Error\n\nList of supported error codes:\n- 1: Internal error"
+            "description": "Internal Server Error"
           }
         }
       },
       "delete": {
         "tags": [
           "logicalResource"
+        ],
+        "parameters": [
+          {
+            "name": "Id",
+            "required": true,
+            "in": "path",
+            "description": "Id of the logical resource",
+            "type": "string"
+          }
+        ],
+        "operationId": "deleteLogicalResource",
+        "summary": "Deletes a 'LogicalResource' by Id",
+        "deprecated": false,
+        "responses": {
+          "204": {
+            "description": "Deleted",
+            "schema": {
+              "$ref": "#/definitions/LogicalResource"
+            }
+          },
+          "400": {
+            "description": "Bad Request"
+          },
+          "404": {
+            "description": "Not Found"
+          },
+          "500": {
+            "description": "Internal Server Error"
+          }
+        }
+      }
+    },
+    "/pla": {
+      "post": {
+        "tags": [
+          "pla"
         ],
         "parameters": [
           {
@@ -173,29 +247,62 @@
             "type": "string"
           },
           {
-            "name": "id",
+            "schema": {
+              "$ref": "#/definitions/PlaResource"
+            },
             "required": true,
-            "in": "query",
-            "description": "Id of the logical resource",
-            "type": "string"
+            "in": "body",
+            "name": "plaResource",
+            "description": "The Pla Resource to be created"
           }
         ],
-        "operationId": "deleteLogicalResource",
-        "summary": "deleteLogicalResource",
-        "description": "Deletes a 'LogicalResource' by Id",
+        "operationId": "createPlaResourceEntry",
+        "summary": "Add a new row in logical resource inventory management",
         "deprecated": false,
         "responses": {
-          "204": {
-            "description": "Deleted",
+          "201": {
+            "description": "Created",
             "schema": {
-              "$ref": "#/definitions/LogicalResource"
+              "$ref": "#/definitions/PlaResource"
             }
           },
+          "400": {
+            "description": "Bad Request"
+          },
           "404": {
-            "description": "Not Found\n\nList of supported error codes:\n- 60: Resource not found"
+            "description": "Not Found"
           },
           "500": {
-            "description": "Internal Server Error\n\nList of supported error codes:\n- 1: Internal error"
+            "description": "Internal Server Error"
+          }
+        }
+      },
+      "get": {
+        "tags": [
+          "pla"
+        ],
+        "parameters": [],
+        "operationId": "getPlasResources",
+        "summary": "This operation lists a individual pla entity",
+        "deprecated": false,
+        "responses": {
+          "200": {
+            "description": "Pla",
+            "schema": {
+              "items": {
+                "$ref": "#/definitions/PlaResource"
+              },
+              "type": "array"
+            }
+          },
+          "400": {
+            "description": "Bad Request"
+          },
+          "404": {
+            "description": "Not Found"
+          },
+          "500": {
+            "description": "Internal Server Error"
           }
         }
       }
@@ -215,8 +322,7 @@
           }
         ],
         "operationId": "listPlaResource",
-        "summary": "listResource",
-        "description": "This operation lists a individual  pla entity",
+        "summary": "This operation lists a individual  pla entity",
         "deprecated": false,
         "responses": {
           "200": {
@@ -225,11 +331,91 @@
               "$ref": "#/definitions/PlaResource"
             }
           },
+          "400": {
+            "description": "Bad Request"
+          },
           "404": {
-            "description": "Not Found\n\nList of supported error codes:\n- 60: Resource not found"
+            "description": "Not Found"
           },
           "500": {
-            "description": "Internal Server Error\n\nList of supported error codes:\n- 1: Internal error"
+            "description": "Internal Server Error"
+          }
+        }
+      },
+      "patch": {
+        "tags": [
+          "pla"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "description": "Id of the pla resource",
+            "type": "string"
+          },
+          {
+            "schema": {
+              "$ref": "#/definitions/PlaResource"
+            },
+            "required": true,
+            "in": "body",
+            "name": "logicalResource",
+            "description": "The Pla Resource to be updated"
+          }
+        ],
+        "operationId": "updatePlaResource",
+        "summary": "Updates a 'PlaResource' by Id",
+        "deprecated": false,
+        "responses": {
+          "201": {
+            "description": "Updated",
+            "schema": {
+              "$ref": "#/definitions/PlaResource"
+            }
+          },
+          "400": {
+            "description": "Bad Request"
+          },
+          "404": {
+            "description": "Not Found"
+          },
+          "500": {
+            "description": "Internal Server Error"
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "pla"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "description": "Id of the pla resource",
+            "type": "string"
+          }
+        ],
+        "operationId": "deletePlaResource",
+        "summary": "Deletes a 'PlaResource' by Id",
+        "deprecated": false,
+        "responses": {
+          "204": {
+            "description": "Deleted",
+            "schema": {
+              "$ref": "#/definitions/PlaResource"
+            }
+          },
+          "400": {
+            "description": "Bad Request"
+          },
+          "404": {
+            "description": "Not Found"
+          },
+          "500": {
+            "description": "Internal Server Error"
           }
         }
       }
