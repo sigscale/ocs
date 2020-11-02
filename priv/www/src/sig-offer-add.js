@@ -68,7 +68,7 @@ class offerAdd extends PolymerElement {
 						<div>
 							<paper-input id="addOffDesc"
 									name="description"
-									label="Descrtiption"
+									label="Description"
 									value="{{offerAddDes}}">
 							</paper-input>
 							<paper-tooltip
