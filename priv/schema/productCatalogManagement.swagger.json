@@ -42,8 +42,7 @@
         ],
         "parameters": [],
         "operationId": "listCatalog",
-        "summary": "listCatalog",
-        "description": "This operation lists all 'Catalog' entites",
+        "summary": "This operation lists all 'Catalog' entites",
         "deprecated": false,
         "responses": {
           "200": {
@@ -56,13 +55,13 @@
             }
           },
           "400": {
-            "description": "Bad Request\n\nList of supported error codes:\n- 20: Invalid URL parameter value\n- 21: Missing body\n- 22: Invalid body\n- 23: Missing body field\n- 24: Invalid body field\n- 25: Missing header\n- 26: Invalid header value\n- 27: Missing query-string parameter\n- 28: Invalid query-string parameter value"
+            "description": "Bad Request"
           },
           "404": {
-            "description": "Not Found\n\nList of supported error codes:\n- 60: Resource not found"
+            "description": "Not Found"
           },
           "500": {
-            "description": "Internal Server Error\n\nList of supported error codes:\n- 1: Internal error"
+            "description": "Internal Server Error"
           }
         }
       }
@@ -82,8 +81,7 @@
           }
         ],
         "operationId": "retrieveCatalog",
-        "summary": "retrieveCatalog",
-        "description": "This operation retrives a 'Catalog' entity",
+        "summary": "This operation retrives a 'Catalog' entity",
         "deprecated": false,
         "responses": {
           "200": {
@@ -96,13 +94,13 @@
             }
           },
           "400": {
-            "description": "Bad Request\n\nList of supported error codes:\n- 20: Invalid URL parameter value\n- 21: Missing body\n- 22: Invalid body\n- 23: Missing body field\n- 24: Invalid body field\n- 25: Missing header\n- 26: Invalid header value\n- 27: Missing query-string parameter\n- 28: Invalid query-string parameter value"
+            "description": "Bad Request"
           },
           "404": {
-            "description": "Not Found\n\nList of supported error codes:\n- 60: Resource not found"
+            "description": "Not Found"
           },
           "500": {
-            "description": "Internal Server Error\n\nList of supported error codes:\n- 1: Internal error"
+            "description": "Internal Server Error"
           }
         }
       }
@@ -114,8 +112,7 @@
         ],
         "parameters": [],
         "operationId": "listCategory",
-        "summary": "listCategory",
-        "description": "This operation lists all 'Category' entites",
+        "summary": "This operation lists all 'Category' entites",
         "deprecated": false,
         "responses": {
           "200": {
@@ -128,13 +125,13 @@
             }
           },
           "400": {
-            "description": "Bad Request\n\nList of supported error codes:\n- 20: Invalid URL parameter value\n- 21: Missing body\n- 22: Invalid body\n- 23: Missing body field\n- 24: Invalid body field\n- 25: Missing header\n- 26: Invalid header value\n- 27: Missing query-string parameter\n- 28: Invalid query-string parameter value"
+            "description": "Bad Request"
           },
           "404": {
-            "description": "Not Found\n\nList of supported error codes:\n- 60: Resource not found"
+            "description": "Not Found"
           },
           "500": {
-            "description": "Internal Server Error\n\nList of supported error codes:\n- 1: Internal error"
+            "description": "Internal Server Error"
           }
         }
       }
@@ -154,8 +151,7 @@
           }
         ],
         "operationId": "retrieveCategory",
-        "summary": "retrieveCategory",
-        "description": "This operation retrives a 'Category' entity",
+        "summary": "This operation retrives a 'Category' entity",
         "deprecated": false,
         "responses": {
           "200": {
@@ -168,13 +164,13 @@
             }
           },
           "400": {
-            "description": "Bad Request\n\nList of supported error codes:\n- 20: Invalid URL parameter value\n- 21: Missing body\n- 22: Invalid body\n- 23: Missing body field\n- 24: Invalid body field\n- 25: Missing header\n- 26: Invalid header value\n- 27: Missing query-string parameter\n- 28: Invalid query-string parameter value"
+            "description": "Bad Request"
           },
           "404": {
-            "description": "Not Found\n\nList of supported error codes:\n- 60: Resource not found"
+            "description": "Not Found"
           },
           "500": {
-            "description": "Internal Server Error\n\nList of supported error codes:\n- 1: Internal error"
+            "description": "Internal Server Error"
           }
         }
       }
@@ -196,8 +192,7 @@
           }
         ],
         "operationId": "createProductOffering",
-        "summary": "createProductOffering",
-        "description": "Create a 'ProductOffering' entity",
+        "summary": "Create a 'ProductOffering' entity",
         "deprecated": false,
         "responses": {
           "201": {
@@ -207,13 +202,13 @@
             }
           },
           "400": {
-            "description": "Bad Request\n\nList of supported error codes:\n- 20: Invalid URL parameter value\n- 21: Missing body\n- 22: Invalid body\n- 23: Missing body field\n- 24: Invalid body field\n- 25: Missing header\n- 26: Invalid header value\n- 27: Missing query-string parameter\n- 28: Invalid query-string parameter value"
+            "description": "Bad Request"
           },
           "404": {
-            "description": "Not Found\n\nList of supported error codes:\n- 60: Resource not found"
+            "description": "Not Found"
           },
           "500": {
-            "description": "Internal Server Error\n\nList of supported error codes:\n- 1: Internal error"
+            "description": "Internal Server Error"
           }
         }
       },
@@ -275,8 +270,7 @@
           }
         ],
         "operationId": "productGet",
-        "summary": "productGet",
-        "description": "This operation lists all 'ProductOffering' entites",
+        "summary": "This operation lists all 'ProductOffering' entites",
         "deprecated": false,
         "responses": {
           "200": {
@@ -289,13 +283,13 @@
             }
           },
           "400": {
-            "description": "Bad Request\n\nList of supported error codes:\n- 20: Invalid URL parameter value\n- 21: Missing body\n- 22: Invalid body\n- 23: Missing body field\n- 24: Invalid body field\n- 25: Missing header\n- 26: Invalid header value\n- 27: Missing query-string parameter\n- 28: Invalid query-string parameter value"
+            "description": "Bad Request"
           },
           "404": {
-            "description": "Not Found\n\nList of supported error codes:\n- 60: Resource not found"
+            "description": "Not Found"
           },
           "500": {
-            "description": "Internal Server Error\n\nList of supported error codes:\n- 1: Internal error"
+            "description": "Internal Server Error"
           }
         }
       }
@@ -314,8 +308,8 @@
             "description": "Identifier of the Product Offering"
           }
         ],
-        "operationId": "retrieveproductSpecification",
-        "summary": "retrieveproductSpecification",
+        "operationId": "retrieveproductOffering",
+        "summary": "retrieveproductOffering",
         "description": "This operation lists a 'ProductOffering' by Id",
         "deprecated": false,
         "responses": {
@@ -329,13 +323,13 @@
             }
           },
           "400": {
-            "description": "Bad Request\n\nList of supported error codes:\n- 20: Invalid URL parameter value\n- 21: Missing body\n- 22: Invalid body\n- 23: Missing body field\n- 24: Invalid body field\n- 25: Missing header\n- 26: Invalid header value\n- 27: Missing query-string parameter\n- 28: Invalid query-string parameter value"
+            "description": "Bad Request"
           },
           "404": {
-            "description": "Not Found\n\nList of supported error codes:\n- 60: Resource not found"
+            "description": "Not Found"
           },
           "500": {
-            "description": "Internal Server Error\n\nList of supported error codes:\n- 1: Internal error"
+            "description": "Internal Server Error"
           }
         }
       },
@@ -373,13 +367,13 @@
             }
           },
           "400": {
-            "description": "Bad Request\n\nList of supported error codes:\n- 20: Invalid URL parameter value\n- 21: Missing body\n- 22: Invalid body\n- 23: Missing body field\n- 24: Invalid body field\n- 25: Missing header\n- 26: Invalid header value\n- 27: Missing query-string parameter\n- 28: Invalid query-string parameter value"
+            "description": "Bad Request"
           },
           "404": {
-            "description": "Not Found\n\nList of supported error codes:\n- 60: Resource not found"
+            "description": "Not Found"
           },
           "500": {
-            "description": "Internal Server Error\n\nList of supported error codes:\n- 1: Internal error"
+            "description": "Internal Server Error"
           }
         }
       },
@@ -397,21 +391,20 @@
           }
         ],
         "operationId": "productOfferingDelete",
-        "summary": "productOfferingDelete",
-        "description": "This operation deletes a 'ProductOffering' by Id",
+        "summary": "This operation deletes a 'ProductOffering' by Id",
         "deprecated": false,
         "responses": {
           "204": {
             "description": "Success"
           },
           "400": {
-            "description": "Bad Request\n\nList of supported error codes:\n- 20: Invalid URL parameter value\n- 21: Missing body\n- 22: Invalid body\n- 23: Missing body field\n- 24: Invalid body field\n- 25: Missing header\n- 26: Invalid header value\n- 27: Missing query-string parameter\n- 28: Invalid query-string parameter value"
+            "description": "Bad Request"
           },
           "404": {
-            "description": "Not Found\n\nList of supported error codes:\n- 60: Resource not found"
+            "description": "Not Found"
           },
           "500": {
-            "description": "Internal Server Error\n\nList of supported error codes:\n- 1: Internal error"
+            "description": "Internal Server Error"
           }
         }
       }
@@ -433,8 +426,7 @@
           }
         ],
         "operationId": "createProductSpecification",
-        "summary": "createProductSpecification",
-        "description": "Create a 'ProductSpecification' entity",
+        "summary": "Create a 'ProductSpecification' entity",
         "deprecated": false,
         "responses": {
           "201": {
@@ -444,13 +436,13 @@
             }
           },
           "400": {
-            "description": "Bad Request\n\nList of supported error codes:\n- 20: Invalid URL parameter value\n- 21: Missing body\n- 22: Invalid body\n- 23: Missing body field\n- 24: Invalid body field\n- 25: Missing header\n- 26: Invalid header value\n- 27: Missing query-string parameter\n- 28: Invalid query-string parameter value"
+            "description": "Bad Request"
           },
           "404": {
-            "description": "Not Found\n\nList of supported error codes:\n- 60: Resource not found"
+            "description": "Not Found"
           },
           "500": {
-            "description": "Internal Server Error\n\nList of supported error codes:\n- 1: Internal error"
+            "description": "Internal Server Error"
           }
         }
       },
@@ -460,8 +452,7 @@
         ],
         "parameters": [],
         "operationId": "getProductSpecifications",
-        "summary": "getProductSpecifications",
-        "description": "This operation lists all 'ProductSpecification' entites",
+        "summary": "This operation lists all 'ProductSpecification' entites",
         "deprecated": false,
         "responses": {
           "200": {
@@ -474,13 +465,13 @@
             }
           },
           "400": {
-            "description": "Bad Request\n\nList of supported error codes:\n- 20: Invalid URL parameter value\n- 21: Missing body\n- 22: Invalid body\n- 23: Missing body field\n- 24: Invalid body field\n- 25: Missing header\n- 26: Invalid header value\n- 27: Missing query-string parameter\n- 28: Invalid query-string parameter value"
+            "description": "Bad Request"
           },
           "404": {
-            "description": "Not Found\n\nList of supported error codes:\n- 60: Resource not found"
+            "description": "Not Found"
           },
           "500": {
-            "description": "Internal Server Error\n\nList of supported error codes:\n- 1: Internal error"
+            "description": "Internal Server Error "
           }
         }
       }
