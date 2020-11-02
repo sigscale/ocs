@@ -33,7 +33,7 @@
             "type": "string",
             "required": false,
             "in": "query",
-            "name": "id",
+            "name": "query",
             "description": ""
           }
         ],
@@ -51,7 +51,46 @@
             }
           },
           "400": {
-            "description": "Bad Reques"
+            "description": "Bad Request"
+          },
+          "404": {
+            "description": "Not Found"
+          },
+          "500": {
+            "description": "Internal Server Error"
+          }
+        }
+      }
+    },
+    "/serviceSpecification/{id}": {
+      "get": {
+        "tags": [
+          "serviceSpecification"
+        ],
+        "parameters": [
+          {
+            "type": "string",
+            "required": true,
+            "in": "path",
+            "name": "id",
+            "description": "Id of specification"
+          },
+        ],
+        "operationId": "listServiceSpecificationById",
+        "summary": "List or find 'ServiceSpecification' by Id",
+        "deprecated": false,
+        "responses": {
+          "200": {
+            "description": "Success",
+            "schema": {
+              "type": "array",
+              "items": {
+                "$ref": "#/definitions/ServiceSpecification"
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request"
           },
           "404": {
             "description": "Not Found"
@@ -62,6 +101,7 @@
         }
       }
     }
+
   },
   "definitions": {
     "ServiceSpecification": {
