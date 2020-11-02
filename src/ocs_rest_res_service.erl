@@ -35,7 +35,7 @@
 -define(MILLISECOND, milli_seconds).
 %-define(MILLISECOND, millisecond).
 
--define(servicePath, "/catalogManagement/v2/serivce/").
+-define(servicePath, "/serviceInventoryManagement/v2/serivce/").
 -define(serviceSpecPath, "/serviceCatalogManagement/v2/serviceSpecification/").
 -define(serviceInventoryPath, "/serviceInventoryManagement/v2/service/").
 
