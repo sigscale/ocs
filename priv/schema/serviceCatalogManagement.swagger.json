@@ -74,7 +74,7 @@
             "in": "path",
             "name": "id",
             "description": "Id of specification"
-          },
+          }
         ],
         "operationId": "listServiceSpecificationById",
         "summary": "List or find 'ServiceSpecification' by Id",
