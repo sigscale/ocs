@@ -36,7 +36,7 @@
 %-define(MILLISECOND, millisecond).
 
 -define(servicePath, "/catalogManagement/v2/serivce/").
--define(serviceSpecPath, "/catalogManagement/v2/serviceSpecification/").
+-define(serviceSpecPath, "/serviceCatalogManagement/v2/serviceSpecification/").
 -define(serviceInventoryPath, "/serviceInventoryManagement/v2/service/").
 
 -spec content_types_accepted() -> ContentTypes
@@ -260,7 +260,7 @@ patch_inventory(ServiceId, Etag, ReqData) ->
 	Headers	:: [tuple()],
 	Body		:: iolist(),
 	Status	:: 400 | 404 | 500 .
-%% @doc Respond to `GET /catalogManegment/v2/serviceSpecification/'.
+%% @doc Respond to `GET /serviceCatalogManagement/v2/serviceSpecification/'.
 %% 	Retrieve all service specifications.
 get_service_specs([] = _Query) ->
 	Headers = [{content_type, "application/json"}],
@@ -277,7 +277,7 @@ get_service_specs(_Query) ->
 	Headers	:: [tuple()],
 	Body		:: iolist(),
 	Status	:: 400 | 404 | 500 .
-%% @doc Respond to `GET /catalogManagement/v2/serviceSpecification/{id}'.
+%% @doc Respond to `GET /serviceCatalogManagement/v2/serviceSpecification/{id}'.
 %% 	Retrieve a service specification.
 get_service_spec(ID, [] = _Query) ->
 	case service_spec(ID) of
