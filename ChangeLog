@@ -1,3 +1,46 @@
+2020-11-02  Vance Shipley <vances@sigscale.org>
+
+	* mnesia must be started before ocs
+	* rest: add open api specifications "swagger")
+	* rest: add msisdn and imsi to acct usage spec
+	* rest: include uris in api functions
+	* rest: table name in payload
+	* rest: query syntax in get accumulated balance by product id
+	* rest: delete bucket
+	* rest: additional parameters in get product specification
+	* gui: remove paper-tags for realizing service
+	* gui: delete buckets in balance grid view
+	* gui: bytes for tariff in add offer dialog
+	* gui: balance adjustment to add credit in add service dialog
+	* notifications: accumulated balance threshold
+	* notifications: balance bucket add, delete
+	* notifications: offer add, delete
+	* notifications: product add, delete
+	* notifications: service add, delete
+	* notifications: subscription charge
+	* notifications: pla add, delete
+	* notifications: gtt insert, delete
+	* check for recurring prices in the bundled offers
+	* correct type of rating group and service identifier in mscc
+	* correct expected reserve value in response from update_session
+	* rate multiple mscc
+	* handle list of rated in log
+	* log effected buckets
+	* handle yateucn broken rsu (all zero values)
+	* refactor rating for in session conversion of cents to units
+	* install pcc rules for internal (rfc1918) and external rating groups
+	* add precedence avp for gx
+	* ignore unknown avps in service-information
+	* accept validity period in balance attribute of product resource
+	* no restrictions if end_date is undefined
+	* accept validity period in get balance by service id
+	* accept validity period in get balance by product id
+	* refactor final charging for simplification and minor corrections
+	* refactor and correct final reservation refunds
+	* test cases for debit used units octets/seconds same type bucket with refund
+	* do not round up final used units (octet/seconds/messages) to unit size in price
+	* fix tax included amount in codec
+
 2020-09-16  Vance Shipley <vances@sigscale.org>
 
 	+ merge branch pcrf
