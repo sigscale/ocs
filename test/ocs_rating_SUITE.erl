@@ -423,24 +423,23 @@ interim_reserve_within_unit_size(_Config) ->
 			(Reserve div PackageSize + 1) * PackagePrice
 	end,
 	Reservation1 = rand:uniform(PackageSize - 1),
-	{ok, #service{}, {PackageUnits, PackageSize}} = ocs_rating:rate(diameter,
-			ServiceType, undefined, undefined, ServiceId, Timestamp, undefined,
+	{ok, #service{}, _} = ocs_rating:rate(diameter, ServiceType,
+			undefined, undefined, ServiceId, Timestamp, undefined,
 			undefined, initial, [], [{PackageUnits, Reservation1}], SessionId),
 	{ok, #bucket{remain_amount = RemAmount2,
 			reservations = [{_, PackagePrice, _, SessionId}]}} = ocs:find_bucket(BId),
 	RemAmount2 = RemAmount1 - F(Reservation1),
 	Reservation2 = rand:uniform(PackageSize - 1),
-	{ok, #service{}, {PackageUnits, PackageSize}} = ocs_rating:rate(diameter,
-			ServiceType, undefined, undefined, ServiceId,
+	{ok, #service{}, _} = ocs_rating:rate(diameter, ServiceType,
+			undefined, undefined, ServiceId,
 			calendar:gregorian_seconds_to_datetime(TS + 60), undefined, undefined,
 			interim, [], [{PackageUnits, Reservation2}], SessionId),
 	{ok, #bucket{remain_amount = RemAmount3,
 			reservations = [{_, Reserved1, _, SessionId}]}} = ocs:find_bucket(BId),
 	RemAmount3 = RemAmount2 - F(Reservation2),
-	Reserved1 = PackagePrice + F(Reservation2),
 	Reservation3 = rand:uniform(PackageSize - 1),
-	{ok, #service{}, {PackageUnits, PackageSize}} = ocs_rating:rate(diameter,
-			ServiceType, undefined, undefined, ServiceId,
+	{ok, #service{}, _} = ocs_rating:rate(diameter, ServiceType,
+			undefined, undefined, ServiceId,
 			calendar:gregorian_seconds_to_datetime(TS + 120), undefined, undefined,
 			interim, [], [{PackageUnits, Reservation3}], SessionId),
 	{ok, #bucket{remain_amount = RemAmount4,
@@ -748,8 +747,7 @@ interim_debit_and_reserve_available(_Config) ->
 			PackagePrice * 3
 	end,
 	RemAmount3 = RemAmount1 - Debited,
-	{ok, #bucket{reservations = [{_, Debited, _, SessionId}],
-			remain_amount = RemAmount3}} = ocs:find_bucket(BId).
+	{ok, #bucket{remain_amount = RemAmount3}} = ocs:find_bucket(BId).
 
 interim_debit_and_reserve_insufficient1() ->
 	[{userdata, [{doc, "Debit amount less than package size and reservation amount
