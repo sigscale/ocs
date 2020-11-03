@@ -578,7 +578,7 @@ delete_offer(Id) ->
 		Id :: string(),
 		Result :: {ok, Headers :: [tuple()], Body :: iolist()}
 				| {error, ErrorCode :: integer()} .
-%% @doc Respond to `DELETE /productInventoryManagement/v1/product/{id}'
+%% @doc Respond to `DELETE /productInventoryManagement/v2/product/{id}'
 %% 	request to remove a `Product Invenotry'.
 delete_inventory(Id) ->
 	case catch ocs:delete_product(Id) of
