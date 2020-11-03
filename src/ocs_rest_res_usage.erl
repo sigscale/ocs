@@ -2068,11 +2068,18 @@ usage_characteristics(Attributes) ->
 	lists:reverse(char_attr_username(Attributes, [])).
 
 %% @hidden
-char_attr_username(#'3gpp_ro_CCR'{'Subscription-Id'
-		= [#'3gpp_ro_Subscription-Id'{'Subscription-Id-Data' = ID}]} = CCR,
-		Acc) when is_binary(ID) ->
-	NewAcc = [{struct, [{"name", "username"},
-			{"value", binary_to_list(ID)}]} | Acc],
+char_attr_username(#'3gpp_ro_CCR'{'Subscription-Id' = SubscriptionIdData} = CCR, Acc)
+		when length(SubscriptionIdData) > 0 ->
+	F = fun(#'3gpp_ro_Subscription-Id'{'Subscription-Id-Type' = ?'3GPP_RO_SUBSCRIPTION-ID-TYPE_END_USER_E164',
+				'Subscription-Id-Data' = MSISDN}, Acc1) ->
+			[{struct, [{"name", "msisdn"}, {"value", binary_to_list(MSISDN)}]} | Acc1];
+		(#'3gpp_ro_Subscription-Id'{'Subscription-Id-Type' = ?'3GPP_RO_SUBSCRIPTION-ID-TYPE_END_USER_IMSI',
+				'Subscription-Id-Data' = IMSI}, Acc1) ->
+			[{struct, [{"name", "imsi"}, {"value", binary_to_list(IMSI)}]} | Acc1];
+		(_, Acc1) ->
+			Acc1
+	end,
+	NewAcc = lists:foldl(F, Acc, SubscriptionIdData),
 	char_attr_nas_ip(CCR, NewAcc);
 char_attr_username(#'3gpp_ro_CCR'{'User-Name' = [Username]} = CCR, Acc)
 		when is_binary(Username) ->
@@ -3152,12 +3159,12 @@ characteristic({"name", exact, "username"}, {"value", like, Like},
 		T, radius, Types, ReqAttrs1, RespAttrs, N) when is_list(Like) ->
 	ReqAttrs2 = add_char(ReqAttrs1, {?UserName, {like, like(Like)}}),
 	characteristic(T, radius, Types, ReqAttrs2, RespAttrs, N);
-characteristic({"name", exact, "username"}, {"value", Op, UserName},
-		T, diameter, Types, '_', RespAttrs, N) when is_list(UserName) ->
+characteristic({"name", exact, UserName}, {"value", Op, UserNameValue},
+		T, diameter, Types, '_', RespAttrs, N) when is_list(UserNameValue) ->
 	VarMatch = build_var_match(N),
-	case lists:last(UserName) of
+	case lists:last(UserNameValue) of
 		$% when Op == gte ->
-			Pre = lists:droplast(UserName),
+			Pre = lists:droplast(UserNameValue),
 			Prefix = list_to_binary(Pre),
 			I = list_to_integer(Pre),
 			Prefix2 = integer_to_binary(I + 1),
@@ -3166,10 +3173,50 @@ characteristic({"name", exact, "username"}, {"value", Op, UserName},
 					= VarMatch, _ = '_'}], _ = '_'},
 					[{'=<', Prefix, VarMatch}, {'>', Prefix2, VarMatch}]}];
 		_ when Op == exact ->
-			Prefix = list_to_binary(UserName),
+			Prefix = list_to_binary(UserNameValue),
 			ReqAttrs2 = [{#'3gpp_ro_CCR'{'Subscription-Id'
 					= [#'3gpp_ro_Subscription-Id'{'Subscription-Id-Data'
 					= Prefix, _ = '_'}], _ = '_'}, []}]
+	end,
+	characteristic(T, diameter, Types, ReqAttrs2, RespAttrs, N + 1);
+characteristic({"name", exact, "msisdn"}, {"value", Op, UserName},
+		T, diameter, Types, [{CCR, _MC}], RespAttrs, N) when is_list(UserName) ->
+	VarMatch = build_var_match(N),
+	case lists:last(UserName) of
+		$% when Op == gte ->
+			Pre = lists:droplast(UserName),
+			Prefix = list_to_binary(Pre),
+			I = list_to_integer(Pre),
+			Prefix2 = integer_to_binary(I + 1),
+			ReqAttrs2 = [{CCR#'3gpp_ro_CCR'{'Subscription-Id'
+					= [#'3gpp_ro_Subscription-Id'{'Subscription-Id-Data'
+					= VarMatch, _ = '_'}]},
+					[{'=<', Prefix, VarMatch}, {'>', Prefix2, VarMatch}]}];
+		_ when Op == exact ->
+			Prefix = list_to_binary(UserName),
+			ReqAttrs2 = [{CCR#'3gpp_ro_CCR'{'Subscription-Id'
+					= [#'3gpp_ro_Subscription-Id'{'Subscription-Id-Data'
+					= Prefix, _ = '_'}]}, []}]
+	end,
+	characteristic(T, diameter, Types, ReqAttrs2, RespAttrs, N + 1);
+characteristic({"name", exact, "imsi"}, {"value", Op, UserName},
+		T, diameter, Types, [{CCR, _MC}], RespAttrs, N) when is_list(UserName) ->
+	VarMatch = build_var_match(N),
+	case lists:last(UserName) of
+		$% when Op == gte ->
+			Pre = lists:droplast(UserName),
+			Prefix = list_to_binary(Pre),
+			I = list_to_integer(Pre),
+			Prefix2 = integer_to_binary(I + 1),
+			ReqAttrs2 = [{CCR#'3gpp_ro_CCR'{'Subscription-Id'
+					= [#'3gpp_ro_Subscription-Id'{'Subscription-Id-Data'
+					= VarMatch, _ = '_'}]},
+					[{'=<', Prefix, VarMatch}, {'>', Prefix2, VarMatch}]}];
+		_ when Op == exact ->
+			Prefix = list_to_binary(UserName),
+			ReqAttrs2 = [{CCR#'3gpp_ro_CCR'{'Subscription-Id'
+					= [#'3gpp_ro_Subscription-Id'{'Subscription-Id-Data'
+					= Prefix, _ = '_'}]}, []}]
 	end,
 	characteristic(T, diameter, Types, ReqAttrs2, RespAttrs, N + 1);
 characteristic({"name", exact, "username"}, {"value", Op, UserName},
