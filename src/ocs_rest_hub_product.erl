@@ -22,7 +22,7 @@
 -include("ocs.hrl").
 
 -export([content_types_accepted/0, content_types_provided/0, post_hub/1,
-		delete_hub/1, post_hub_catalog/1, delete_hub_catalog/1]).
+		delete_hub/1, post_hub_catalog/2, delete_hub_catalog/1]).
 -export([hub/1]).
 
 -define(PathProductHub, "/productInventory/v2/hub/").
@@ -103,18 +103,20 @@ post_hub(ReqBody) ->
 delete_hub_catalog(Id) ->
 	{gen_fsm:send_all_state_event({global, Id}, shutdown), [], []}.
 
--spec post_hub_catalog(ReqBody) -> Result
+-spec post_hub_catalog(ReqBody, Authorization) -> Result
 	when
 		ReqBody :: list(),
+		Authorization :: string(),
 		Result :: {ok, Headers :: [tuple()], Body :: iolist()}
 			| {error, ErrorCode :: integer()}.
 %% Hub event to disk.
 %% @doc Respond to `POST /productCatalog/v2/hub'
-post_hub_catalog(ReqBody) ->
+post_hub_catalog(ReqBody, Authorization) ->
 	try
 		case hub(mochijson:decode(ReqBody)) of
 			#hub{callback = Callback, query = undefined} = HubRecord ->
-				case supervisor:start_child(ocs_rest_hub_sup, [null, Callback]) of
+				case supervisor:start_child(ocs_rest_hub_sup,
+						[null, Callback, Authorization]) of
 					{ok, _PageServer, Id} ->
 						Body = mochijson:encode(hub(HubRecord#hub{id = Id})),
 						Headers = [{content_type, "application/json"},
@@ -124,7 +126,8 @@ post_hub_catalog(ReqBody) ->
 						{error, 500}
 				end;
 			#hub{callback = Callback, query = Query} = HubRecord ->
-				case supervisor:start_child(ocs_rest_hub_sup, [Query, Callback]) of
+				case supervisor:start_child(ocs_rest_hub_sup,
+						[Query, Callback, Authorization]) of
 					{ok, _PageServer, Id} ->
 						Body = mochijson:encode(hub(HubRecord#hub{id = Id})),
 						Headers = [{content_type, "application/json"},

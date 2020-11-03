@@ -115,8 +115,9 @@ do_post(Resource, ModData, Body, ["serviceInventory", "v2", "hub"]) ->
 	do_response(ModData, Resource:post_hub(Body));
 do_post(Resource, ModData, Body, ["catalogManagement", "v2", "pla"]) ->
 	do_response(ModData, Resource:add_pla(Body));
-do_post(Resource, ModData, Body, ["productCatalog", "v2", "hub"]) ->
-	do_response(ModData, Resource:post_hub_catalog(Body));
+do_post(Resource, #mod{parsed_header = Headers} = ModData, Body, ["productCatalog", "v2", "hub"]) ->
+	{_, Authorization} = lists:keyfind("authorization", 1, Headers),
+	do_response(ModData, Resource:post_hub_catalog(Body, Authorization));
 do_post(Resource, ModData, Body, ["resourceInventoryManagement", "v1", "logicalResource", Table]) ->
 	do_response(ModData, Resource:add_resource_inventory(Table, Body));
 do_post(Resource, ModData, Body, ["resourceInventory", "v1", "hub"]) ->
