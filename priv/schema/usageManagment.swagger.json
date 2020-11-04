@@ -1,11 +1,11 @@
 {
   "swagger": "2.0",
   "info": {
-    "description": "TMF637 Product Inventory Management",
-    "version": "2.0.0",
-    "title": "API Product Inventory Management"
+    "description": "TMF635 Usage Management",
+    "version": "1.0.0",
+    "title": "API Party Management"
   },
-  "basePath": "/productInventoryManagement/v2/",
+  "basePath": "/usageManagement/v1/",
   "schemes": [
     "http",
     "https"
@@ -18,74 +18,38 @@
   ],
   "tags": [
     {
-      "name": "product"
+      "name": "usage"
+    },
+    {
+      "name": "usageSpecification"
     },
     {
       "name": "eventsSubscription"
     }
   ],
   "paths": {
-    "/product": {
-      "post": {
-        "tags": [
-          "product"
-        ],
-        "parameters": [
-          {
-            "name": "product",
-            "required": true,
-            "in": "body",
-            "description": "",
-            "schema": {
-              "$ref": "#/definitions/Product"
-            }
-          }
-        ],
-        "operationId": "productCreate",
-        "summary": "Create a product entity",
-        "deprecated": false,
-        "responses": {
-          "201": {
-            "description": "Created",
-            "schema": {
-              "$ref": "#/definitions/Product"
-            }
-          },
-          "400": {
-            "description": "Bad Request"
-          },
-          "404": {
-            "description": "Not Found"
-          },
-          "500": {
-            "description": "Internal Server Error"
-          }
-        }
-      },
+    "/usage": {
       "get": {
         "tags": [
-          "product"
+          "usage"
         ],
+        "operationId": "usageGet",
+        "summary": "This operation lists all usage entites",
+        "deprecated": false,
         "parameters": [
           {
-            "name": "fields",
-            "required": false,
+            "name": "type",
             "in": "query",
-            "description": "Attributes selection",
+            "description": "Usage type to be looked up",
+            "required": true,
             "type": "string"
           }
         ],
-        "operationId": "productFind",
-        "summary": "This operation lists all product entites",
-        "deprecated": false,
         "responses": {
           "200": {
             "description": "Success",
             "schema": {
-              "type": "array",
-              "items": {
-                "$ref": "#/definitions/Product"
-              }
+              "$ref": "#/definitions/Usage"
             }
           },
           "400": {
@@ -100,35 +64,34 @@
         }
       }
     },
-    "/product/{id}": {
+    "/usage/{usageId}": {
       "get": {
         "tags": [
-          "product"
+          "usage"
         ],
+        "operationId": "individualUsage",
+        "summary": "This operation finds a specific usage entity",
+        "deprecated": false,
         "parameters": [
           {
-            "name": "id",
+            "name": "usageId",
             "in": "path",
             "required": true,
-            "type": "string",
-            "description": "identity of the product"
+            "type": "string"
           },
           {
             "name": "fields",
-            "required": false,
             "in": "query",
-            "description": "Attributes selection",
+            "required": false,
+            "description": "",
             "type": "string"
           }
         ],
-        "operationId": "productGet",
-        "summary": "This operation retrives a product entity",
-        "deprecated": false,
         "responses": {
           "200": {
             "description": "Success",
             "schema": {
-              "$ref": "#/definitions/Product"
+              "$ref": "#/definitions/Usage"
             }
           },
           "400": {
@@ -141,37 +104,22 @@
             "description": "Internal Server Error"
           }
         }
-      },
-      "patch": {
+      }
+    },
+    "/usageSpecification": {
+      "get": {
         "tags": [
-          "product"
+          "usageSpecification"
         ],
-        "parameters": [
-          {
-            "name": "id",
-            "in": "path",
-            "required": true,
-            "type": "string",
-            "description": "identity of the product"
-          },
-          {
-            "name": "product",
-            "required": true,
-            "in": "body",
-            "description": "",
-            "schema": {
-              "$ref": "#/definitions/Product"
-            }
-          }
-        ],
-        "operationId": "productPatch",
-        "summary": "This operation patches a product entity",
+        "operationId": "getUsageSpecification",
+        "summary": "This operation lists all UsageSpecification entities",
         "deprecated": false,
+        "parameters": [],
         "responses": {
           "200": {
             "description": "Success",
             "schema": {
-              "$ref": "#/definitions/Product"
+              "$ref": "#/definitions/UsageSpecification"
             }
           },
           "400": {
@@ -184,26 +132,30 @@
             "description": "Internal Server Error"
           }
         }
-      },
-      "delete": {
+      }
+    },
+    "/usageSpecification/{Id}": {
+      "get": {
         "tags": [
-          "product"
+          "usageSpecification"
         ],
+        "operationId": "individualUsageSpecification",
+        "summary": "This operation finds a specific UsageSpecification entity",
+        "deprecated": false,
         "parameters": [
           {
-            "name": "id",
+            "name": "Id",
             "in": "path",
             "required": true,
-            "type": "string",
-            "description": "identity of the product"
+            "type": "string"
           }
         ],
-        "operationId": "productDelete",
-        "summary": "This operation deletes a product entity",
-        "deprecated": false,
         "responses": {
-          "204": {
-            "description": "Success"
+          "200": {
+            "description": "Success",
+            "schema": {
+              "$ref": "#/definitions/UsageSpecification"
+            }
           },
           "400": {
             "description": "Bad Request"
@@ -287,107 +239,209 @@
     }
   },
   "definitions": {
-    "Product": {
-      "description": "A Product represents the subscription of a ProductOffering by a Party playing a PartyRole, such as a Customer.",
-      "required": [
-        "id"
-      ],
+    "Usage": {
       "type": "object",
       "properties": {
         "id": {
-          "description": "Unique identifier of the product",
-          "type": "string"
+          "type": "integer",
+          "format": "int64"
         },
         "href": {
-          "description": "Reference of the product",
           "type": "string"
         },
-        "@baseType": {
-          "description": "Indicates the base type of the resource. Here can be 'Product'",
+        "date": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "type": {
           "type": "string"
         },
-        "@type": {
-          "description": "Indicated the type of resource.",
+        "description": {
           "type": "string"
         },
-        "@schemaLocation": {
-          "description": "A link to the schema describing this REST resource.",
-          "type": "string"
+        "status": {
+          "type": "string",
+          "enum": [
+            "Received",
+            "Rejected",
+            "Recycled",
+            "Guided",
+            "Rated",
+            "Rerate",
+            "Billed"
+          ]
         },
-        "productOffering": {
-          "$ref": "#/definitions/ProductOfferingRef"
+        "usageSpecification": {
+          "$ref": "#/definitions/UsageSpecification"
         },
-        "characteristic": {
+        "usageCharacteristic": {
           "type": "array",
           "items": {
-            "$ref": "#/definitions/ProductCharacteristic"
+            "$ref": "#/definitions/UsageCharacteristic"
           }
         },
-        "realizingService": {
+        "relatedParty": {
           "type": "array",
           "items": {
-            "$ref": "#/definitions/RealizingService"
+            "$ref": "#/definitions/Reference"
+          }
+        },
+        "ratedProductUsage": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/RatedProductUsage"
           }
         }
       }
     },
-    "ProductOfferingRef": {
-      "description": "ProductOffering reference. A product offering represents entities that are orderable from the provider of the catalog, this resource includes pricing information.",
-      "required": [
-        "id"
-      ],
+    "UsageSpecification": {
       "type": "object",
       "properties": {
         "id": {
-          "description": "Unique identifier of the product offering",
-          "type": "string"
+          "type": "integer",
+          "format": "int64"
         },
         "href": {
-          "description": "Reference of the product offering",
           "type": "string"
         },
         "name": {
-          "description": "Name of the product offering",
+          "type": "string"
+        },
+        "description": {
+          "type": "string"
+        },
+        "validFor": {
+          "$ref": "#/definitions/ValidFor"
+        },
+        "usageSpecCharacteristic": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/UsageSpecCharacteristic"
+          }
+        }
+      }
+    },
+    "RatedProductUsage": {
+      "type": "object",
+      "properties": {
+        "ratingDate": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "usageRatingTag": {
+          "type": "string"
+        },
+        "isBilled": {
+          "type": "boolean"
+        },
+        "ratingAmountType": {
+          "type": "string"
+        },
+        "taxIncludedRatingAmount": {
+          "type": "number",
+          "format": "float"
+        },
+        "taxExcludedRatingAmount": {
+          "type": "number",
+          "format": "float"
+        },
+        "taxRate": {
+          "type": "number",
+          "format": "float"
+        },
+        "isTaxExempt": {
+          "type": "boolean"
+        },
+        "offerTariffType": {
+          "type": "string"
+        },
+        "bucketValueConvertedInAmount": {
+          "type": "number",
+          "format": "float"
+        },
+        "currencyCode": {
+          "type": "string"
+        },
+        "productRef": {
           "type": "string"
         }
       }
     },
-    "ProductCharacteristic": {
-      "description": "Characteristics of the product to instantiate or to modify.",
+    "Reference": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "href": {
+          "type": "string"
+        },
+        "role": {
+          "type": "string"
+        }
+      }
+    },
+    "UsageCharacteristic": {
       "type": "object",
       "properties": {
         "name": {
-          "description": "Name of the characteristic",
           "type": "string"
         },
         "value": {
-          "description": "Value of the characteristic",
-          "type": "string"
-        },
-        "@type": {
-          "description": "Indicates the (class) type of resource",
-          "type": "string"
-        },
-        "@schemaLocation": {
-          "description": "This field provided a link to the schema describing this REST resource.",
           "type": "string"
         }
       }
     },
-    "RealizingService": {
-      "description": "RealizingService reference. RealizingService is a link to the service that realizes the product.",
-      "required": [
-        "id"
-      ],
+    "UsageSpecCharacteristic": {
       "type": "object",
       "properties": {
-        "id": {
-          "description": "Unique identifier of the service",
+        "name": {
           "type": "string"
         },
-        "href": {
-          "description": "Reference of the service",
+        "description": {
           "type": "string"
+        },
+        "configurable": {
+          "type": "boolean"
+        },
+        "usageSpecCharacteristicValue": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/UsageSpecCharacteristicValue"
+          }
+        }
+      }
+    },
+    "UsageSpecCharacteristicValue": {
+      "type": "object",
+      "properties": {
+        "valueType": {
+          "type": "string"
+        },
+        "default": {
+          "type": "boolean"
+        },
+        "value": {
+          "type": "string"
+        },
+        "valueFrom": {
+          "type": "string"
+        },
+        "valueTo": {
+          "type": "string"
+        }
+      }
+    },
+    "ValidFor": {
+      "type": "object",
+      "properties": {
+        "startDateTime": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "endDateTime": {
+          "type": "string",
+          "format": "date-time"
         }
       }
     },
