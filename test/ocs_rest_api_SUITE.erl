@@ -2606,8 +2606,7 @@ post_hub_balance(Config) ->
 	Id = string:substr(Location, string:rstr(Location, PathHub) + length(PathHub)),
 	{struct, HubList} = mochijson:decode(ResponseBody),
 	{_, Callback} = lists:keyfind("callback", 1, HubList),
-	{_, Id} = lists:keyfind("id", 1, HubList),
-	{_, null} = lists:keyfind("query", 1, HubList).
+	{_, Id} = lists:keyfind("id", 1, HubList).
 
 delete_hub_balance() ->
 	[{userdata, [{doc, "Unregister hub listener for balance"}]}].
@@ -3000,8 +2999,7 @@ post_hub_product(Config) ->
 	Id = string:substr(Location, string:rstr(Location, PathHub) + length(PathHub)),
 	{struct, HubList} = mochijson:decode(ResponseBody),
 	{_, Callback} = lists:keyfind("callback", 1, HubList),
-	{_, Id} = lists:keyfind("id", 1, HubList),
-	{_, null} = lists:keyfind("query", 1, HubList).
+	{_, Id} = lists:keyfind("id", 1, HubList).
 
 delete_hub_product() ->
 	[{userdata, [{doc, "Unregister hub listener for product"}]}].
@@ -3132,8 +3130,7 @@ post_hub_service(Config) ->
 	Id = string:substr(Location, string:rstr(Location, PathHub) + length(PathHub)),
 	{struct, HubList} = mochijson:decode(ResponseBody),
 	{_, Callback} = lists:keyfind("callback", 1, HubList),
-	{_, Id} = lists:keyfind("id", 1, HubList),
-	{_, null} = lists:keyfind("query", 1, HubList).
+	{_, Id} = lists:keyfind("id", 1, HubList).
 
 notify_create_service() ->
 	[{userdata, [{doc, "Receive service creation notification."}]}].
@@ -3250,8 +3247,7 @@ post_hub_user(Config) ->
 	Id = string:substr(Location, string:rstr(Location, PathHub) + length(PathHub)),
 	{struct, HubList} = mochijson:decode(ResponseBody),
 	{_, Callback} = lists:keyfind("callback", 1, HubList),
-	{_, Id} = lists:keyfind("id", 1, HubList),
-	{_, null} = lists:keyfind("query", 1, HubList).
+	{_, Id} = lists:keyfind("id", 1, HubList).
 
 delete_hub_user() ->
 	[{userdata, [{doc, "Unregister hub listener for user"}]}].
@@ -3294,8 +3290,7 @@ post_hub_catalog(Config) ->
 	Id = string:substr(Location, string:rstr(Location, PathHub) + length(PathHub)),
 	{struct, HubList} = mochijson:decode(ResponseBody),
 	{_, Callback} = lists:keyfind("callback", 1, HubList),
-	{_, Id} = lists:keyfind("id", 1, HubList),
-	{_, null} = lists:keyfind("query", 1, HubList).
+	{_, Id} = lists:keyfind("id", 1, HubList).
 
 delete_hub_catalog() ->
 	[{userdata, [{doc, "Unregister hub listener for catalog"}]}].
@@ -3401,8 +3396,7 @@ post_hub_inventory(Config) ->
 	Id = string:substr(Location, string:rstr(Location, PathHub) + length(PathHub)),
 	{struct, HubList} = mochijson:decode(ResponseBody),
 	{_, Callback} = lists:keyfind("callback", 1, HubList),
-	{_, Id} = lists:keyfind("id", 1, HubList),
-	{_, null} = lists:keyfind("query", 1, HubList).
+	{_, Id} = lists:keyfind("id", 1, HubList).
 
 delete_hub_inventory() ->
 	[{userdata, [{doc, "Unregister hub listener for catalog"}]}].
