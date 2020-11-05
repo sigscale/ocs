@@ -51,7 +51,8 @@ content_types_provided() ->
 		Id :: string(),
 		Result :: {ok, Headers :: [tuple()], Body :: iolist()}
 			| {error, ErrorCode :: integer()}.
-%% @doc Delete by id.
+%% Delete by id.
+%% @doc Respond to `POST /serviceInventory/v2/hub/{id}'
 delete_hub(Id) ->
 	{gen_fsm:send_all_state_event({global, Id}, shutdown), [], []}.
 
@@ -60,7 +61,8 @@ delete_hub(Id) ->
 		ReqBody :: list(),
 		Result :: {ok, Headers :: [tuple()], Body :: iolist()}
 			| {error, ErrorCode :: integer()}.
-%% @doc Hub event to disk.
+%% Hub event to disk.
+%% @doc Respond to `POST /serviceInventory/v2/hub'
 post_hub(ReqBody) ->
 	try
 		case hub(mochijson:decode(ReqBody)) of

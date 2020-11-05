@@ -137,6 +137,9 @@ do_get(Resource, ModData, ["partyManagement", "v1", "individual", Id], Query) ->
 	do_response(ModData, Resource:get_user(Id, Query));
 do_get(Resource, ModData, ["balanceManagement", "v1", "product", Id, "accumulatedBalance"], []) ->
 	do_response(ModData, Resource:get_balance(Id));
+do_get(Resource, ModData, ["balanceManagement", "v1", "product", Id,
+		"accumulatedBalance"], Query) ->
+	do_response(ModData, Resource:get_balance(Id, Query));
 do_get(Resource, ModData, ["balanceManagement", "v1", "service", Id, "accumulatedBalance"], []) ->
 	do_response(ModData, Resource:get_balance_service(Id));
 do_get(Resource, #mod{parsed_header = Headers} = ModData, ["balanceManagement", "v1", "bucket"], Query) ->
@@ -203,10 +206,22 @@ do_get(Resource, ModData, ["catalogManagement", "v2", "resourceCatalog", Id], []
 	do_response(ModData, Resource:get_resource_catalog(Id));
 do_get(Resource, ModData, ["catalogManagement", "v2", "resourceCatalog"], Query) ->
 	do_response(ModData, Resource:get_resource_catalogs(Query));
+do_get(Resource, ModData, ["resourceCatalogManagement", "v2", "resourceCatalog", Id], []) ->
+	do_response(ModData, Resource:get_resource_catalog(Id));
+do_get(Resource, ModData, ["resourceCatalogManagement", "v2", "resourceCatalog"], Query) ->
+	do_response(ModData, Resource:get_resource_catalogs(Query));
 do_get(Resource, ModData, ["resourceCatalogManagement", "v2", "resourceSpecification"], Query) ->
 	do_response(ModData, Resource:get_resource_specs(Query));
 do_get(Resource, ModData, ["resourceCatalogManagement", "v2", "plaSpecification"], Query) ->
 	do_response(ModData, Resource:get_pla_specs(Query));
+do_get(Resource, ModData, ["resourceCatalogManagement", "v2", "resourceCategory", Id], []) ->
+	do_response(ModData, Resource:get_resource_category(Id));
+do_get(Resource, ModData, ["resourceCatalogManagement", "v2", "resourceCategory"], Query) ->
+	do_response(ModData, Resource:get_resource_categories(Query));
+do_get(Resource, ModData, ["resourceCatalogManagement", "v2", "resourceCandidate", Id], []) ->
+	do_response(ModData, Resource:get_resource_candidate(Id));
+do_get(Resource, ModData, ["resourceCatalogManagement", "v2", "resourceCandidate"], Query) ->
+	do_response(ModData, Resource:get_resource_candidates(Query));
 do_get(Resource, ModData, ["resourceInventoryManagement", "v1", "logicalResource", Id], Query) ->
 	do_response(ModData, Resource:get_resource_inventory(Id, Query));
 do_get(Resource, ModData, ["resourceInventoryManagement", "v1", "pla"], Query) ->

@@ -511,6 +511,7 @@
    Charging-Rule-Definition                               1003  Grouped          VM
    Charging-Rule-Base-Name                                1004  UTF8String       VM
    Charging-Rule-Name                                     1005  OctetString      VM
+   Precedence                                             1010  Unsigned32       VM
    Reporting-Level                                        1011  Enumerated       VM
    IP-CAN-Type                                            1027  Enumerated       VM
    Offline                                                1008  Enumerated       VM
@@ -792,6 +793,7 @@
 ;     [ DCD-Information ]
 ;     [ M2M-Information ]
 ;     [ CPDT-Information ]
+     *[ AVP ]
 
   PS-Information ::= <AVP Header: 874>
       [ 3GPP-Charging-Id ]
@@ -867,6 +869,7 @@
       [ Unused-Quota-Timer ]
       [ 3GPP-GPRS-Negotiated-QoS-Profile ]
       [ 3GPP-IMEISV ]
+     *[ AVP ]
 
    IMS-Information ::= <AVP Header: 876>
       { Node-Functionality }
@@ -922,6 +925,7 @@
       [ Instance-Id ]
       [ TAD-Identifier ]
       [ FE-Identifier-List ]
+     *[ AVP ]
 
    MMS-Information ::= <AVP Header: 877>
       [ Originator-Address ]
@@ -944,6 +948,7 @@
 ;     [ Adaptations ]
 ;     [ VASP-Id ]
 ;     [ VAS-Id ]
+     *[ AVP ]
 
 ;  LCS-Information ::= <AVP Header: 878>
 ;     [ LCS-Client-ID ]
@@ -1010,6 +1015,7 @@
       [ MTC-IWF-Address ]
 ;     [ Application-Port-Identifier ]
       [ External-Identifier ]
+     *[ AVP ]
 
 ;  VCS-Information :: = < AVP Header: 3410>
 ;     [ Bearer-Capability ]
@@ -1662,7 +1668,7 @@
 ;        [ Resource-Release-Notification ]
         *[ AVP ]
 
-   Charging-Rule-Definition ::= <AVP Header: 1003 >
+   Charging-Rule-Definition ::= <AVP Header: 1003>
          { Charging-Rule-Name }
          [ Service-Identifier ]
          [ Rating-Group ]
@@ -1678,7 +1684,7 @@
 ;        [ Max-PLR-DL ]
 ;        [ Max-PLR-UL ]
 ;        [ Metering-Method ]
-;        [ Precedence ]
+         [ Precedence ]
          [ AF-Charging-Identifier ]
         *[ Flows ]
 ;        [ Monitoring-Key]

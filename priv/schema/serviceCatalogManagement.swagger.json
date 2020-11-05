@@ -11,10 +11,10 @@
     "https"
   ],
   "consumes": [
-    "application/json;charset=utf-8"
+    "application/json"
   ],
   "produces": [
-    "application/json;charset=utf-8"
+    "application/json"
   ],
   "tags": [
     {
@@ -33,13 +33,12 @@
             "type": "string",
             "required": false,
             "in": "query",
-            "name": "id",
+            "name": "query",
             "description": ""
           }
         ],
         "operationId": "listServiceSpecification",
-        "summary": "serviceFind",
-        "description": "List or find 'ServiceSpecification' entites",
+        "summary": "List or find 'ServiceSpecification' entites",
         "deprecated": false,
         "responses": {
           "200": {
@@ -52,22 +51,62 @@
             }
           },
           "400": {
-            "description": "Bad Request\n\nList of supported error codes:\n- 20: Invalid URL parameter value\n- 21: Missing body\n- 22: Invalid body\n- 23: Missing body field\n- 24: Invalid body field\n- 25: Missing header\n- 26: Invalid header value\n- 27: Missing query-string parameter\n- 28: Invalid query-string parameter value"
+            "description": "Bad Request"
           },
           "404": {
-            "description": "Not Found\n\nList of supported error codes:\n- 60: Resource not found"
+            "description": "Not Found"
           },
           "500": {
-            "description": "Internal Server Error\n\nList of supported error codes:\n- 1: Internal error"
+            "description": "Internal Server Error"
+          }
+        }
+      }
+    },
+    "/serviceSpecification/{id}": {
+      "get": {
+        "tags": [
+          "serviceSpecification"
+        ],
+        "parameters": [
+          {
+            "type": "string",
+            "required": true,
+            "in": "path",
+            "name": "id",
+            "description": "Id of specification"
+          }
+        ],
+        "operationId": "listServiceSpecificationById",
+        "summary": "List or find 'ServiceSpecification' by Id",
+        "deprecated": false,
+        "responses": {
+          "200": {
+            "description": "Success",
+            "schema": {
+              "type": "array",
+              "items": {
+                "$ref": "#/definitions/ServiceSpecification"
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request"
+          },
+          "404": {
+            "description": "Not Found"
+          },
+          "500": {
+            "description": "Internal Server Error"
           }
         }
       }
     }
+
   },
   "definitions": {
     "ServiceSpecification": {
       "type": "object",
-      "description": "ServiceSpecification is a class that offers characteristics to describe a type of service.\nFunctionally, it acts as a template by which Services may be instantiated. By sharing the same  specification, these services would therefore share the same set of characteristics.",
+      "description": "ServiceSpecification is a class that offers characteristics to describe a type of service.",
       "properties": {
         "id": {
           "type": "string",
@@ -103,13 +142,13 @@
           "items": {
             "$ref": "#/definitions/ServiceSpecCharacteristic"
           },
-          "description": "A list of service spec characteristics (ServiceSpecCharacteristic [*]). This class represents the key features of this service specification."
+          "description": "A list of service spec characteristics."
         }
       }
     },
     "ServiceSpecCharacteristic": {
       "type": "object",
-      "description": "This class represents the key features of this service specification. For example, bandwidth is a characteristic of many different types of services; if bandwidth is a relevant characteristic (e.g., from the point-of-view of a Customer obtaining this Service via a Product) then bandwidth would be a ServiceSpecCharacteristic for that particular Service.",
+      "description": "This class represents the key features of this service specification.",
       "properties": {
         "configurable": {
           "type": "boolean",
@@ -132,13 +171,13 @@
           "items": {
             "$ref": "#/definitions/ServiceSpecCharacteristicValue"
           },
-          "description": "A list of service spec characteristic values (ServiceSpecCharacteristicValue [*]). A ServiceSpecCharacteristicValue object is used to define a set of attributes, each of which can be assigned to a corresponding set of attributes in a ServiceSpecCharacteristic object. The values of the attributes in the ServiceSpecCharacteristicValue object describe the values of the attributes that a corresponding ServiceSpecCharacteristic object can take on."
+          "description": "A list of service spec characteristic values"
         }
       }
     },
     "ServiceSpecCharacteristicValue": {
       "type": "object",
-      "description": "A ServiceSpecCharacteristicValue object is used to define a set of attributes, each of which can be assigned to a corresponding set of attributes in a ServiceSpecCharacteristic object. The values of the attributes in the ServiceSpecCharacteristicValue object describe the values of the attributes that a corresponding ServiceSpecCharacteristic object can take on.",
+      "description": "A ServiceSpecCharacteristicValue object is used to define a set of attributes, each of which can be assigned to a corresponding set of attributes in a ServiceSpecCharacteristic object.",
       "properties": {
         "valueType": {
           "type": "string",

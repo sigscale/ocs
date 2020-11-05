@@ -295,20 +295,47 @@ process_request(_Address, _Port,
 				'QoS-Class-Identifier' = [?'3GPP_GX_QOS-CLASS-IDENTIFIER_QCI_9'],
 				'Max-Requested-Bandwidth-UL' = [1000000000],
 				'Max-Requested-Bandwidth-DL' = [1000000000]},
-		FlowInformationUp = #'3gpp_gx_Flow-Information'{
+		FlowInformationUp1 = #'3gpp_gx_Flow-Information'{
+				 'Flow-Description' = ["permit in ip from any to 10/8"],
+				 'Flow-Direction' = [?'3GPP_GX_FLOW-DIRECTION_UPLINK']},
+		FlowInformationDown1 = #'3gpp_gx_Flow-Information'{
+				 'Flow-Description' = ["permit out ip from 10/8 to any"],
+				 'Flow-Direction' = [?'3GPP_GX_FLOW-DIRECTION_DOWNLINK']},
+		FlowInformationUp2 = #'3gpp_gx_Flow-Information'{
+				 'Flow-Description' = ["permit in ip from any to 172.16/12"],
+				 'Flow-Direction' = [?'3GPP_GX_FLOW-DIRECTION_UPLINK']},
+		FlowInformationDown2 = #'3gpp_gx_Flow-Information'{
+				 'Flow-Description' = ["permit out ip from 172.16/12 to any"],
+				 'Flow-Direction' = [?'3GPP_GX_FLOW-DIRECTION_DOWNLINK']},
+		FlowInformationUp3 = #'3gpp_gx_Flow-Information'{
+				 'Flow-Description' = ["permit in ip from any to 168/16"],
+				 'Flow-Direction' = [?'3GPP_GX_FLOW-DIRECTION_UPLINK']},
+		FlowInformationDown3 = #'3gpp_gx_Flow-Information'{
+				 'Flow-Description' = ["permit out ip from 168/16 to any"],
+				 'Flow-Direction' = [?'3GPP_GX_FLOW-DIRECTION_DOWNLINK']},
+		FlowInformationUp4 = #'3gpp_gx_Flow-Information'{
 				 'Flow-Description' = ["permit in ip from any to any"],
 				 'Flow-Direction' = [?'3GPP_GX_FLOW-DIRECTION_UPLINK']},
-		FlowInformationDown = #'3gpp_gx_Flow-Information'{
+		FlowInformationDown4 = #'3gpp_gx_Flow-Information'{
 				 'Flow-Description' = ["permit out ip from any to any"],
 				 'Flow-Direction' = [?'3GPP_GX_FLOW-DIRECTION_DOWNLINK']},
-		ChargingRuleDefinition = #'3gpp_gx_Charging-Rule-Definition'{
-				'Charging-Rule-Name' = ["default"],
+		ChargingRuleDefinition1 = #'3gpp_gx_Charging-Rule-Definition'{
+				'Charging-Rule-Name' = ["internal"],
 				'QoS-Information' = [QosInformation],
-%				'Reporting-Level' = [?'3GPP_GX_REPORTING-LEVEL_RATING_GROUP_LEVEL'],
 				'Rating-Group' = [1],
-				'Flow-Information' = [FlowInformationUp, FlowInformationDown]},
+				'Flow-Information' = [FlowInformationUp1, FlowInformationDown1,
+						FlowInformationUp2, FlowInformationDown2,
+						FlowInformationUp3, FlowInformationDown3],
+				'Precedence' = [2]},
+		ChargingRuleDefinition2 = #'3gpp_gx_Charging-Rule-Definition'{
+				'Charging-Rule-Name' = ["external"],
+				'QoS-Information' = [QosInformation],
+				'Rating-Group' = [32],
+				'Flow-Information' = [FlowInformationUp4, FlowInformationDown4],
+				'Precedence' = [1]},
 		ChargingRuleInstall = #'3gpp_gx_Charging-Rule-Install'{
-				'Charging-Rule-Definition' = [ChargingRuleDefinition]},
+				'Charging-Rule-Definition' = [ChargingRuleDefinition1,
+						ChargingRuleDefinition2]},
 		#'3gpp_gx_CCA'{'Session-Id' = SId,
 				'Result-Code' = [?'DIAMETER_BASE_RESULT-CODE_SUCCESS'],
 				'Origin-Host' = OHost, 'Origin-Realm' = ORealm,

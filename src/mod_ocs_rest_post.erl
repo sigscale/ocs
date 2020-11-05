@@ -103,6 +103,8 @@ do_post(Resource, ModData, Body, ["balanceManagement", "v1", "hub"]) ->
 	do_response(ModData, Resource:post_hub(Body));
 do_post(Resource, ModData, Body, ["catalogManagement", "v2", "productOffering"]) ->
 	do_response(ModData, Resource:add_offer(Body));
+do_post(Resource, ModData, Body, ["productCatalogManagement", "v2", "productOffering"]) ->
+	do_response(ModData, Resource:add_offer(Body));
 do_post(Resource, ModData, Body, ["productInventoryManagement", "v2", "product"]) ->
 	do_response(ModData, Resource:add_inventory(Body));
 do_post(Resource, ModData, Body, ["productInventory", "v2", "hub"]) ->

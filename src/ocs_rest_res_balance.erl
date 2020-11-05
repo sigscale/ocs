@@ -22,13 +22,12 @@
 -copyright('Copyright (c) 2016 - 2017 SigScale Global Inc.').
 
 -export([content_types_accepted/0, content_types_provided/0,
-		top_up/2, top_up_service/2, get_balance/1, get_balance_service/1,
-		get_balance_log/2, balance_adjustment/1]).
+		top_up/2, top_up_service/2, get_balance/1, get_balance/2,
+		get_balance_service/1, get_balance_log/2, balance_adjustment/1]).
 -export([delete_bucket/1]).
 -export([get_bucket/1, get_buckets/2]).
--export([abmf/1, adjustment/1]).
+-export([abmf/1, adjustment/1, bucket/1, acc_balance/1]).
 -export([quantity/1]).
--export([bucket/1]).
 
 -include("ocs.hrl").
 
@@ -218,16 +217,12 @@ get_balance_service(Identity) ->
 			Buckets3 = lists:filter(F1, Buckets2),
 			TotalAmount = lists:sum([B#bucket.remain_amount || B <- Buckets3]),
 			F2 = fun(#bucket{id = Id}) ->
-					{struct, [{"id", Id}, {"href", ?bucketPath ++ Id}]}
+					Id
 			end,
-			Buckets4 = {"buckets", {array, lists:map(F2, Buckets3)}},
-			Total = {"totalBalance", {struct,
-					[{"amount", ocs_rest:millionths_out(TotalAmount)}]}},
-			Id = {"id", Identity},
-			Href = {"href", ?balancePath ++ "service/" ++ Identity ++ "/accumulatedBalance"},
-			Product = {"product", {array, [{struct, [{"id", ProductRef1}, Href]}]}},
-			Json = {struct, [Id, Href, Total, Buckets4, Product]},
-			Body  = mochijson:encode(Json),
+			AccBalance = #acc_balance{id = Identity, total_balance = TotalAmount,
+					units = cents, bucket = lists:map(F2, Buckets3),
+					product = [ProductRef1]},
+			Body  = mochijson:encode(acc_balance(AccBalance)),
 			Headers = [{content_type, "application/json"}],
 			{ok, Headers, Body}
 	catch
@@ -236,7 +231,7 @@ get_balance_service(Identity) ->
 		_Error ->
 			{error, 400}
 	end.
- 
+
 -spec get_balance(ProdRef) -> Result
 	when
 		ProdRef :: list(),
@@ -263,16 +258,58 @@ get_balance(ProdRef) ->
 			Buckets3 = lists:filter(F1, Buckets2),
 			TotalAmount = lists:sum([B#bucket.remain_amount || B <- Buckets3]),
 			F2 = fun(#bucket{id = Id}) ->
-					{struct, [{"id", Id}, {"href", ?bucketPath ++ Id}]}
+					Id
 			end,
-			Buckets4 = {"buckets", {array, lists:map(F2, Buckets3)}},
-			Total = {"totalBalance", {struct,
-					[{"amount", ocs_rest:millionths_out(TotalAmount)}]}},
-			Id = {"id", ProdRef},
-			Href = {"href", ?balancePath ++ "product/" ++ ProdRef ++ "/accumulatedBalance"},
-			Product = {"product", {array, [{struct, [Id, Href]}]}},
-			Json = {struct, [Id, Href, Total, Buckets4, Product]},
-			Body  = mochijson:encode(Json),
+			AccBalance = #acc_balance{id = ProdRef, total_balance = TotalAmount,
+					units = cents, bucket = lists:map(F2, Buckets3),
+					product = [ProdRef]},
+			Body  = mochijson:encode(acc_balance(AccBalance)),
+			Headers = [{content_type, "application/json"}],
+			{ok, Headers, Body}
+	catch
+		_:product_not_found ->
+			{error, 404};
+		_Error ->
+			{error, 400}
+	end.
+
+-spec get_balance(ProdRef, Query) -> Result
+	when
+		ProdRef :: list(),
+		Query :: [{Key :: string(), Value :: string()}],
+		Result :: {ok, Headers :: [tuple()], Body :: iolist()}
+				| {error, ErrorCode :: integer()}.
+%% @doc Body producing function for
+%%	`GET /balanceManagement/v1/product/{id}/accumulatedBalance'
+% with query request
+get_balance(ProdRef, Query) ->
+	try
+		case ocs:get_buckets(ProdRef) of
+			Buckets1 when is_list(Buckets1) ->
+				Buckets1;
+			{error, Reason} ->
+				throw(Reason)
+		end
+	of
+		Buckets2 ->
+			{_, Value} = lists:keyfind("totalBalance.units", 1, Query),
+			Now = erlang:system_time(?MILLISECOND),
+			Units = list_to_existing_atom(Value),
+			F = fun(#bucket{units = U, end_date = EndDate})
+							when EndDate == undefined; EndDate > Now, U == Units ->
+						true;
+					(_) ->
+						false
+			end,
+			Buckets3 = lists:filter(F, Buckets2),
+			TotalAmount = lists:sum([B#bucket.remain_amount || B <- Buckets3]),
+			BucketIds = [B#bucket.id || B <- Buckets3],
+			AccBalance = #acc_balance{id = ProdRef, total_balance = TotalAmount,
+					units = Units, bucket = BucketIds, product = [ProdRef]},
+			[{Condition, S}] = Query -- [{"totalBalance.units", Value}],
+			ok = send_notification(Condition, TotalAmount,
+					ocs_rest:millionths_in(S), AccBalance),
+			Body  = mochijson:encode(acc_balance(AccBalance)),
 			Headers = [{content_type, "application/json"}],
 			{ok, Headers, Body}
 	catch
@@ -603,6 +640,77 @@ adjustment([_ | T], A, Acc) ->
 adjustment([], _A, Acc) ->
 	{struct, lists:reverse(Acc)}.
 
+-spec acc_balance(AccBalance) -> AccBalance
+	when
+		AccBalance :: #acc_balance{} | {struct, list()}.
+%% @doc CODEC for acc_balance
+acc_balance({struct, Object}) ->
+	acc_balance(Object, #acc_balance{});
+acc_balance(#acc_balance{} = AccBalance) ->
+	acc_balance(record_info(fields, acc_balance), AccBalance, []).
+%% @hidden
+acc_balance([{"id", ID} | T], AccBalance) ->
+	acc_balance(T, AccBalance#acc_balance{id = ID});
+acc_balance([{"name", Name} | T], AccBalance) when is_list(Name) ->
+	acc_balance(T, AccBalance#acc_balance{name = Name});
+acc_balance([{"totalBalance", {struct, _} = Q} | T], AccBalance) ->
+	#quantity{amount = Amount, units = Units} = quantity(Q),
+	acc_balance(T, AccBalance#acc_balance{units = Units,
+			total_balance = Amount});
+acc_balance([{"product", {array, [{struct, ProdRefList}]}} | T], AccBalance) ->
+	{_, ProdRef} = lists:keyfind("id", 1, ProdRefList),
+	acc_balance(T, AccBalance#acc_balance{product = [ProdRef]});
+acc_balance([{"buckets", {array, BucketRefStructs}} | T], AccBalance) ->
+	F = fun({struct, BucketRefList}) ->
+			{_, BucketId} = lists:keyfind("id", 1, BucketRefList),
+			BucketId
+	end,
+	acc_balance(T, AccBalance#acc_balance{bucket
+			= lists:map(F, BucketRefStructs)});
+acc_balance([_ | T], AccBalance) ->
+	acc_balance(T, AccBalance);
+acc_balance([], AccBalance) ->
+	AccBalance.
+%% @hidden
+acc_balance([id | T], #acc_balance{id = ProdRef, product = [ProdRef]} = AccBal,
+		Acc) when ProdRef /= undefined ->
+	acc_balance(T, AccBal, [{"id", ProdRef}, {"href", ?balancePath
+			++ "product/" ++ ProdRef ++ "/accumulatedBalance"} | Acc]);
+acc_balance([id | T], #acc_balance{id = ServiceId} = AccBal, Acc)
+		when ServiceId /= undefined ->
+	acc_balance(T, AccBal, [{"id", ServiceId}, {"href", ?balancePath
+			++ "service/" ++ ServiceId ++ "/accumulatedBalance"} | Acc]);
+acc_balance([name | T], #acc_balance{name = Name} = AccBal, Acc)
+		when is_list(Name) ->
+	acc_balance(T, AccBal, [{"name", Name} | Acc]);
+acc_balance([total_balance | T], #acc_balance{units = Units,
+		total_balance = Amount} = AccBal, Acc) when is_integer(Amount) ->
+	Q = #quantity{amount = Amount, units = Units},
+	acc_balance(T, AccBal, [{"totalBalance", quantity(Q)} | Acc]);
+acc_balance([product | T], #acc_balance{product = [ProdRef],
+		id = ProdRef} = AccBal, Acc) when is_list(ProdRef) ->
+	Id = {"id", ProdRef},
+	Href = {"href", ?balancePath ++ "product/"
+			++ ProdRef ++ "/accumulatedBalance"},
+	acc_balance(T, AccBal, [{"product", {array, [{struct, [Id, Href]}]}} | Acc]);
+acc_balance([product | T], #acc_balance{product = [ProdRef],
+		id = ServiceId} = AccBal, Acc) when is_list(ProdRef) ->
+	Id = {"id", ProdRef},
+	Href = {"href", ?balancePath ++ "service/"
+			++ ServiceId ++ "/accumulatedBalance"},
+	acc_balance(T, AccBal, [{"product", {array, [{struct, [Id, Href]}]}} | Acc]);
+acc_balance([bucket | T], #acc_balance{bucket = BucketRefs} = AccBal, Acc)
+		when is_list(BucketRefs) ->
+	F = fun(BucketId) ->
+			{struct, [{"id", BucketId}, {"href", ?bucketPath ++ BucketId}]}
+	end,
+	acc_balance(T, AccBal, [{"buckets",
+			{array, lists:map(F, BucketRefs)}} | Acc]);
+acc_balance([_ | T], B, Acc) ->
+	acc_balance(T, B, Acc);
+acc_balance([], _B, Acc) ->
+	{struct, lists:reverse(Acc)}.
+
 -spec abmfs(Abmf, Acc) -> Result
 	when
 		Abmf :: list(),
@@ -872,4 +980,11 @@ match_abmf(Key, Complex, _Query) ->
 		false ->
 			'_'
 	end.
+
+%% @hidden
+send_notification("totalBalance.amount.lt", TotalAmount, Threshold, AccBalance)
+		when TotalAmount < Threshold ->
+	ocs_event:notify(accumulated, [AccBalance], balance);
+send_notification(_, _TotalAmount, _Threshold, _AccBalance) ->
+	ok.
 
