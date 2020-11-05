@@ -43,7 +43,7 @@ class ocsHelp extends PolymerElement {
 				</iron-collapse>
 				<paper-icon-item class="menu-trigger menuitem">
 					<iron-icon icon="my-icons:feedback" item-icon></iron-icon>
-					<a target="_blank" href="https://sigscale.atlassian.net/secure/CreateIssue!default.jspa?pid=10302&issuetype=10000">
+					<a target="_blank" href="https://sigscale.atlassian.net/secure/CreateIssue!default.jspa?pid=10100&issuetype=10000">
 						Send Feedback
 					</a>
 				</paper-icon-item>
