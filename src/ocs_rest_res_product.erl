@@ -26,6 +26,7 @@
 -export([get_offer/1, get_offers/2,
 		patch_offer/3, get_inventory/1,
 		get_inventories/2, patch_inventory/3]).
+-export([sync_offer/1]).
 -export([get_catalog/2, get_catalogs/1]).
 -export([get_category/2, get_categories/1]).
 -export([get_product_spec/2, get_product_specs/1, product_status/1]).
@@ -589,6 +590,41 @@ delete_inventory(Id) ->
 		{'EXIT', _} ->
 			{error, 500}
 	end.
+
+-spec sync_offer(ReqData) -> Result when
+	ReqData	:: [tuple()],
+	Result	:: {ok, Headers, Body} | {error, Status},
+	Headers	:: [tuple()],
+	Body		:: iolist(),
+	Status	:: 400 | 500 .
+%% @doc Respond to `POST /productCatalogManagement/v2/syncOffer'.
+%% 	Sync a Product Offering.
+sync_offer(ReqData) ->
+	{struct, EventStructList} = mochijson:decode(ReqData),
+	{_, OfferEvent} = lists:keyfind("event", 1, EventStructList),
+	sync_offer(lists:keyfind("eventType", 1, EventStructList), offer(OfferEvent)).
+sync_offer({_, "ProductOfferingCreationNotification"}, #offer{} = Offer1) ->
+	case ocs:add_offer(Offer1) of
+		{ok, #offer{} = Offer2} ->
+			Body = mochijson:encode(offer(Offer2)),
+			Etag = ocs_rest:etag(Offer2#offer.last_modified),
+			Href = ?offeringPath ++ Offer2#offer.name,
+			Headers = [{location, Href}, {etag, Etag}],
+			{ok, Headers, Body};
+		{error, Reason} ->
+			{error, Reason}
+	end;
+sync_offer({_, "ProductOfferingRemoveNotification"}, #offer{name = Name}) ->
+	case catch ocs:delete_offer(Name) of
+		ok ->
+			{ok, [], []};
+		{'EXIT', unable_to_delete} ->
+			{error, 403};
+		{'EXIT', _} ->
+			{error, 500}
+	end;
+sync_offer(false, _) ->
+	{error, 400}.
 
 -spec product_status(Status) -> Status
 	when

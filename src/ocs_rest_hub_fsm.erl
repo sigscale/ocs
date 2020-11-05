@@ -58,7 +58,7 @@
 
 -spec start_link(Query, Callback) -> Result
 	when
-		Query :: null | string(),
+		Query :: string(),
 		Callback :: string(),
 		Result :: {ok, PageServer} | {error, Reason},
 		PageServer :: pid(),
@@ -76,7 +76,7 @@ start_link(Query, Callback) ->
 
 -spec start_link(Query, Callback, Authorization) -> Result
 	when
-		Query :: null | string(),
+		Query :: string(),
 		Callback :: string(),
 		Authorization :: string(),
 		Result :: {ok, PageServer} | {error, Reason},

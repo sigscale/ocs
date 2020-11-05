@@ -21,7 +21,7 @@
 
 -include("ocs.hrl").
 
--export([content_types_accepted/0, content_types_provided/0, post_hub/1,
+-export([content_types_accepted/0, content_types_provided/0, post_hub/2,
 		delete_hub/1]).
 -export([hub/1]).
 
@@ -56,18 +56,20 @@ content_types_provided() ->
 delete_hub(Id) ->
 	{gen_fsm:send_all_state_event({global, Id}, shutdown), [], []}.
 
--spec post_hub(ReqBody) -> Result
+-spec post_hub(ReqBody, Authorization) -> Result
 	when
 		ReqBody :: list(),
+		Authorization :: string(),
 		Result :: {ok, Headers :: [tuple()], Body :: iolist()}
 			| {error, ErrorCode :: integer()}.
 %% Hub event to disk.
 %% @doc Respond to `POST /balanceManagement/v1/hub'
-post_hub(ReqBody) ->
+post_hub(ReqBody, Authorization) ->
 	try
 		case hub(mochijson:decode(ReqBody)) of
 			#hub{callback = Callback, query = undefined} = HubRecord ->
-				case supervisor:start_child(ocs_rest_hub_sup, [null, Callback]) of
+				case supervisor:start_child(ocs_rest_hub_sup,
+						[[], Callback, Authorization]) of
 					{ok, _PageServer, Id} ->
 						Body = mochijson:encode(hub(HubRecord#hub{id = Id})),
 						Headers = [{content_type, "application/json"},
@@ -77,7 +79,8 @@ post_hub(ReqBody) ->
 						{error, 500}
 				end;
 			#hub{callback = Callback, query = Query} = HubRecord ->
-				case supervisor:start_child(ocs_rest_hub_sup, [Query, Callback]) of
+				case supervisor:start_child(ocs_rest_hub_sup,
+						[Query, Callback, Authorization]) of
 					{ok, _PageServer, Id} ->
 						Body = mochijson:encode(hub(HubRecord#hub{id = Id})),
 						Headers = [{content_type, "application/json"},
@@ -121,9 +124,7 @@ hub([id | T], #hub{id = Id} = H, Acc) when is_list(Id) ->
 	hub(T, H, [{"id", Id} | Acc]);
 hub([href | T], #hub{href = Href} = H, Acc) when is_list(Href) ->
 	hub(T, H, [{"href", Href} | Acc]);
-hub([query | T], #hub{query = undefined} = H, Acc) ->
-	hub(T, H, [{"query", null} | Acc]);
-hub([query | T], #hub{query = Query} = H, Acc) when is_list(Query) ->
+hub([query | T], #hub{query = Query} = H, Acc) when length(Query) > 0 ->
 	hub(T, H, [{"query", Query} | Acc]);
 hub([_ | T], H, Acc) ->
 	hub(T, H, Acc);
