@@ -121,7 +121,7 @@ class ocsHelp extends PolymerElement {
 					<p>The <b>Toolbar</b> appears across the top of the screen in
 					all views. In the center of the toolbar is the title of the
 					application:</p>
-					<img alt="screenshot" src="/toolbar.png" height="36" width="320">
+					<img alt="screenshot" src="../images/toolbar.png" height="36" width="320">
 					<p>To the left of the title is the <b>Navigation Menu</b> icon:
 					<iron-icon class="iconHelp" icon="menu"></iron-icon>. Selecting
 					this opens the <b>Navigation Drawer</b> which contains the main
@@ -137,7 +137,7 @@ class ocsHelp extends PolymerElement {
 					<p>When loading data from OCS takes a few seconds a progress
 					bar appears underneath the toolbar to indicate that it is
 					working on loading the page requested:</p>
-					<img alt="screenshot" src="/progress.png" height="96" width="298">
+					<img alt="screenshot" src="../images/progress.png" height="96" width="298">
 				</paper-dialog-scrollable>
 			</paper-dialog>
 			<paper-dialog class="helpdialog" id="helpSubscribers">
@@ -447,7 +447,7 @@ class ocsHelp extends PolymerElement {
 					<p>In the example below the filter "AP2" is entered in the
 					<b>NAS Identifier</b> column header of the <b>Clients</b> view
 					resulting in only rows with a matching prefix appearing:</p>
-					<img alt="screenshot" src="/filter.png" height="118" width="320">
+					<img alt="screenshot" src="../images/filter.png" height="118" width="320">
 				</paper-dialog-scrollable>
 			</paper-dialog>
 			<paper-dialog class="helpdialog" id="helpProduct">
