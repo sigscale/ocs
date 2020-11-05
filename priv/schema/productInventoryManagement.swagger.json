@@ -11,10 +11,10 @@
     "https"
   ],
   "consumes": [
-    "application/json;charset=utf-8"
+    "application/json"
   ],
   "produces": [
-    "application/json;charset=utf-8"
+    "application/json"
   ],
   "tags": [
     {
@@ -40,8 +40,7 @@
           }
         ],
         "operationId": "productCreate",
-        "summary": "productCreate",
-        "description": "Create a product entity",
+        "summary": "Create a product entity",
         "deprecated": false,
         "responses": {
           "201": {
@@ -51,13 +50,13 @@
             }
           },
           "400": {
-            "description": "Bad Request\n\nList of supported error codes:\n- 20: Invalid URL parameter value\n- 21: Missing body\n- 22: Invalid body\n- 23: Missing body field\n- 24: Invalid body field\n- 25: Missing header\n- 26: Invalid header value\n- 27: Missing query-string parameter\n- 28: Invalid query-string parameter value"
+            "description": "Bad Request"
           },
           "404": {
-            "description": "Not Found\n\nList of supported error codes:\n- 60: Resource not found"
+            "description": "Not Found"
           },
           "500": {
-            "description": "Internal Server Error\n\nList of supported error codes:\n- 1: Internal error"
+            "description": "Internal Server Error"
           }
         }
       },
@@ -75,8 +74,7 @@
           }
         ],
         "operationId": "productFind",
-        "summary": "productFind",
-        "description": "This operation lists all product entites",
+        "summary": "This operation lists all product entites",
         "deprecated": false,
         "responses": {
           "200": {
@@ -89,13 +87,13 @@
             }
           },
           "400": {
-            "description": "Bad Request\n\nList of supported error codes:\n- 20: Invalid URL parameter value\n- 21: Missing body\n- 22: Invalid body\n- 23: Missing body field\n- 24: Invalid body field\n- 25: Missing header\n- 26: Invalid header value\n- 27: Missing query-string parameter\n- 28: Invalid query-string parameter value"
+            "description": "Bad Request"
           },
           "404": {
-            "description": "Not Found\n\nList of supported error codes:\n- 60: Resource not found"
+            "description": "Not Found"
           },
           "500": {
-            "description": "Internal Server Error\n\nList of supported error codes:\n- 1: Internal error"
+            "description": "Internal Server Error"
           }
         }
       }
@@ -122,8 +120,7 @@
           }
         ],
         "operationId": "productGet",
-        "summary": "productGet",
-        "description": "This operation retrives a product entity",
+        "summary": "This operation retrives a product entity",
         "deprecated": false,
         "responses": {
           "200": {
@@ -133,13 +130,13 @@
             }
           },
           "400": {
-            "description": "Bad Request\n\nList of supported error codes:\n- 20: Invalid URL parameter value\n- 21: Missing body\n- 22: Invalid body\n- 23: Missing body field\n- 24: Invalid body field\n- 25: Missing header\n- 26: Invalid header value\n- 27: Missing query-string parameter\n- 28: Invalid query-string parameter value"
+            "description": "Bad Request"
           },
           "404": {
-            "description": "Not Found\n\nList of supported error codes:\n- 60: Resource not found"
+            "description": "Not Found"
           },
           "500": {
-            "description": "Internal Server Error\n\nList of supported error codes:\n- 1: Internal error"
+            "description": "Internal Server Error"
           }
         }
       },
@@ -166,8 +163,7 @@
           }
         ],
         "operationId": "productPatch",
-        "summary": "productPatch",
-        "description": "This operation patches a product entity",
+        "summary": "This operation patches a product entity",
         "deprecated": false,
         "responses": {
           "200": {
@@ -177,13 +173,13 @@
             }
           },
           "400": {
-            "description": "Bad Request\n\nList of supported error codes:\n- 20: Invalid URL parameter value\n- 21: Missing body\n- 22: Invalid body\n- 23: Missing body field\n- 24: Invalid body field\n- 25: Missing header\n- 26: Invalid header value\n- 27: Missing query-string parameter\n- 28: Invalid query-string parameter value"
+            "description": "Bad Request"
           },
           "404": {
-            "description": "Not Found\n\nList of supported error codes:\n- 60: Resource not found"
+            "description": "Not Found"
           },
           "500": {
-            "description": "Internal Server Error\n\nList of supported error codes:\n- 1: Internal error"
+            "description": "Internal Server Error"
           }
         }
       },
@@ -201,21 +197,20 @@
           }
         ],
         "operationId": "productDelete",
-        "summary": "productDelete",
-        "description": "This operation deletes a product entity",
+        "summary": "This operation deletes a product entity",
         "deprecated": false,
         "responses": {
           "204": {
             "description": "Success"
           },
           "400": {
-            "description": "Bad Request\n\nList of supported error codes:\n- 20: Invalid URL parameter value\n- 21: Missing body\n- 22: Invalid body\n- 23: Missing body field\n- 24: Invalid body field\n- 25: Missing header\n- 26: Invalid header value\n- 27: Missing query-string parameter\n- 28: Invalid query-string parameter value"
+            "description": "Bad Request"
           },
           "404": {
-            "description": "Not Found\n\nList of supported error codes:\n- 60: Resource not found"
+            "description": "Not Found"
           },
           "500": {
-            "description": "Internal Server Error\n\nList of supported error codes:\n- 1: Internal error"
+            "description": "Internal Server Error"
           }
         }
       }
@@ -223,7 +218,7 @@
   },
   "definitions": {
     "Product": {
-      "description": "A Product represents the subscription of a ProductOffering by a Party playing a PartyRole, such as a Customer.  For example, Jean has subscribed to company ABC’s internet ProductOffering.\nThe association between ProductSpecification and Product allows ProductSpecification, to be instantiated as Product and related to customers or other involved parties.",
+      "description": "A Product represents the subscription of a ProductOffering by a Party playing a PartyRole, such as a Customer.",
       "required": [
         "id"
       ],

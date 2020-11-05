@@ -235,7 +235,7 @@ headers may be included in requests and responses.
 			<td><a href="#delete-offer">Delete a Product Offering</a></td>
 		</tr>
 		<tr>
-			<td><a href="#get-product">Get a Product Instance</a></td>
+			<td><a href="#get-product">Get a Product Offering</a></td>
 		</tr>
 		<tr>
 			<td><a href="#add-client">Add a Client</a></td>
@@ -465,7 +465,7 @@ HTTP/1.1 204 No Content
 	<caption class="op"><b>Get a Product Instance</b></caption>
 	<tr class="op">
 		<td id="opl">Resource URI</td>
-		<td id="opr">/catalogManagement/v2/product/{id}</td>
+		<td id="opr">/catalogManagement/v2/productOffering/{id}</td>
 	</tr>
 	<tr class="op">
 		<td id="opl">Request Methods</td>
@@ -493,7 +493,7 @@ HTTP/1.1 204 No Content
 	</tr>
 </table>
 <p>Example request:<pre>
-GET /catalogManagement/v2/product/Wi-Fi HTTP/1.1
+GET /catalogManagement/v2/productOffering/Wi-Fi HTTP/1.1
 Accept: application/json
 </pre></p>
 <p>Example response:<pre>
@@ -503,7 +503,7 @@ Content-Length: 2761
 
 {
  "name": "Wi-Fi",
- "href": "/product/product/01",
+ "href": "/catalogManagement/v2/productOffering/Wi-Fi",
  "isBundle": false,
  "startDate": "2017-09-11T00:00",
  "terminationDate": "2018-09-12T00:00",

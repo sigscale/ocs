@@ -844,7 +844,8 @@ spec_aaa_acct() ->
 	Valid = {"validFor", {struct, [Start, End]}},
 	Chars = [spec_protocol(), spec_node(), spec_server_address(),
 			spec_server_port(), spec_type_accounting(),
-			spec_attr_username(), spec_attr_nas_ip(), spec_attr_nas_port(),
+			spec_attr_username(),  spec_attr_msisdn(), spec_attr_imsi(),
+			spec_attr_nas_ip(), spec_attr_nas_port(),
 			spec_attr_service_type(), spec_attr_framed_address(),
 			spec_attr_framed_netmask(), spec_attr_framed_routing(),
 			spec_attr_filter_id(), spec_attr_framed_mtu(),
@@ -1569,6 +1570,24 @@ spec_attr_username() ->
 	Value1 = {struct, [Typ]},
 	Value = {"usageSpecCharacteristicValue", {array, [Value1]}},
 	{struct, [Name, Desc, Conf, Value]}.
+
+%% @hidden
+spec_attr_msisdn() ->
+	Name = {"name", "msisdn"},
+	Desc = {"description", "Mobile Station International Subscriber Directory Number (MSISDN)."},
+	Typ = {"valueType", "String"},
+	Value1 = {struct, [Typ]},
+	Value = {"usageSpecCharacteristicValue", {array, [Value1]}},
+	{struct, [Name, Desc, Value]}.
+
+%% @hidden
+spec_attr_imsi() ->
+	Name = {"name", "imsi"},
+	Desc = {"description", "International Mobile Subscriber Identity (IMSI)"},
+	Typ = {"valueType", "String"},
+	Value1 = {struct, [Typ]},
+	Value = {"usageSpecCharacteristicValue", {array, [Value1]}},
+	{struct, [Name, Desc, Value]}.
 
 %% @hidden
 spec_attr_nas_ip() ->

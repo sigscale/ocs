@@ -148,9 +148,14 @@ register(timeout, State) ->
 -spec registered(Event, State) -> Result
 	when
 		Event :: {Type, Resource, Category},
-		Type :: create_bucket | create_product | create_service,
-		Resource :: #bucket{} | #product{} | #service{},
-		Category :: balance | product | service,
+		Type :: create_bucket | delete_bucket | charge | depleted | accumulated
+				| create_product | delete_product | create_service | delete_service
+				| create_offer | delete_offer | insert_gtt | delete_gtt
+				| create_pla | delete_pla,
+		Resource :: #bucket{} | #product{} | #service{} | #offer{}
+				| {Table, #gtt{}} | #pla{} | [#adjustment{}] | [#acc_balance{}],
+		Table :: atom(),
+		Category :: balance | product | service | resource,
 		State :: statedata(),
 		Result :: {next_state, NextStateName, NewStateData}
 			| {next_state, NextStateName, NewStateData, timeout}
@@ -180,24 +185,9 @@ registered({Type, Resource, Category} = _Event, #statedata{sync = Sync,
 	end,
 	{EventId, TS} = unique(),
 	EventTime = ocs_rest:iso8601(TS),
-	EventType = case Type of
-		create_bucket ->
-			"BalanceTopupCreationNotification";
-		create_product ->
-			"ProductCreationNotification";
-		create_service ->
-			"ServiceCreationNotification"
-	end,
-	Event = case Category of
-		balance ->
-			ocs_rest_res_balance:bucket(Resource);
-		product ->
-			ocs_rest_res_product:inventory(Resource);
-		service ->
-			ocs_rest_res_service:inventory(Resource)
-	end,
 	EventStruct = {struct, [{"eventId", EventId}, {"eventTime", EventTime},
-			{"eventType", EventType}, {"event", Event}]},
+			{"eventType", event_type(Type)},
+			{"event", event(Resource, Category)}]},
 	Body = lists:flatten(mochijson:encode(EventStruct)),
 	Request = {Callback, Headers, "application/json", Body},
 	case httpc:request(post, Request, [], Options, Profile) of
@@ -364,4 +354,74 @@ unique() ->
 	N = erlang:unique_integer([positive]),
 	ID = integer_to_list(TS) ++ integer_to_list(N),
 	{ID, TS}.
+
+event(Resource, Category) ->
+	case Category of
+		balance ->
+			case Resource of
+				#bucket{} ->
+					ocs_rest_res_balance:bucket(Resource);
+				[#adjustment{} | _] ->
+					AdjStructs = [ocs_rest_res_balance:adjustment(Adjustment)
+							|| Adjustment <- Resource],
+					{array, AdjStructs};
+				[#acc_balance{} | _] ->
+					AccBalStructs =
+							[ocs_rest_res_balance:acc_balance(AccBalance)
+							|| AccBalance <- Resource],
+					{array, AccBalStructs}
+			end;
+		product ->
+			case Resource of
+				#product{} ->
+					ocs_rest_res_product:inventory(Resource);
+				#offer{} ->
+					ocs_rest_res_product:offer(Resource)
+			end;
+		service ->
+			ocs_rest_res_service:inventory(Resource);
+		resource ->
+			case Resource of
+				#pla{} ->
+					ocs_rest_res_resource:pla(Resource);
+				{Table, #gtt{num = Prefix, value = {Description, Rate, _}}} ->
+					ocs_rest_res_resource:gtt(atom_to_list(Table),
+							{Prefix, Description, Rate})
+			end
+	end.
+
+%% @hidden
+event_type(Type) ->
+	case Type of
+		create_bucket ->
+			"BucketBalanceCreationNotification";
+		depleted ->
+			"BucketBalanceDeletionEvent";
+		delete_bucket ->
+			"BucketBalanceDeletionEvent";
+		charge ->
+			"BalanceAdjustmentCreationNotification";
+		accumulated ->
+			"AccumulatedBalanceCreationNotification";
+		create_product ->
+			"ProductCreationNotification";
+		delete_product ->
+			"ProductRemoveNotification";
+		create_service ->
+			"ServiceCreationNotification";
+		delete_service ->
+			"ServiceDeleteNotification";
+		create_offer ->
+			"ProductOfferingCreationNotification";
+		delete_offer ->
+			"ProductOfferingRemoveNotification";
+		insert_gtt ->
+			"LogicalResourceCreationNotification";
+		delete_gtt ->
+			"LogicalResourceRemoveNotification";
+		create_pla ->
+			"PlaCreationNotification";
+		delete_pla ->
+			"PlaRemoveNotification"
+	end.
 

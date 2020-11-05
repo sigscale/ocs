@@ -997,7 +997,7 @@ abmf_open() ->
 	when
 		Type :: deduct | reserve | unreserve | transfer | topup | adjustment,
 		ServiceId :: undefined | binary(),
-		Bucket :: undefined | string(),
+		Bucket :: string(),
 		Units :: cents | seconds | octets | messages,
 		Product :: string(),
 		Amount :: integer(),

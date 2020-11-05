@@ -762,13 +762,7 @@ diameter_voice_out(_Config) ->
 			'Auth-Application-Id' = ?RO_APPLICATION_ID,
 			'CC-Request-Type' = ?'3GPP_RO_CC-REQUEST-TYPE_TERMINATION_REQUEST',
 			'CC-Request-Number' = NewRequestNum} = Answer2,
-	ChargedUnits = case UsedUnits rem UnitSize of
-		0 ->
-			UsedUnits;
-		N ->
-			UsedUnits + (UnitSize - N)
-	end,
-	Balance2 = Balance1 - ChargedUnits,
+	Balance2 = Balance1 - UsedUnits,
 	{ok, #bucket{remain_amount = Balance2}} = ocs:find_bucket(B1ref).
 
 diameter_voice_in() ->
@@ -843,13 +837,7 @@ diameter_voice_in(_Config) ->
 			'Auth-Application-Id' = ?RO_APPLICATION_ID,
 			'CC-Request-Type' = ?'3GPP_RO_CC-REQUEST-TYPE_TERMINATION_REQUEST',
 			'CC-Request-Number' = NewRequestNum} = Answer2,
-	ChargedUnits = case UsedUnits rem UnitSize of
-		0 ->
-			UsedUnits;
-		N ->
-			UsedUnits + (UnitSize - N)
-	end,
-	Balance2 = Balance1 - ChargedUnits,
+	Balance2 = Balance1 - UsedUnits,
 	{ok, #bucket{remain_amount = Balance2}} = ocs:find_bucket(B1ref).
 
 diameter_voice_out_tariff() ->

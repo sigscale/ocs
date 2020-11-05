@@ -11,10 +11,10 @@
     "https"
   ],
   "consumes": [
-    "application/json;charset=utf-8"
+    "application/json"
   ],
   "produces": [
-    "application/json;charset=utf-8"
+    "application/json"
   ],
   "tags": [
     {
@@ -29,8 +29,7 @@
           "Individual"
         ],
         "operationId": "individualCreate",
-        "summary": "Create an individual",
-        "description": "This operation is used to create an individual entity.",
+        "summary": "This operation is used to create an individual entity.",
         "deprecated": false,
         "parameters": [
           {
@@ -51,13 +50,13 @@
             }
           },
           "400": {
-            "description": "Bad Request\n\nList of supported error codes:\n- 20: Invalid URL parameter value\n- 21: Missing body\n- 22: Invalid body\n- 23: Missing body field\n- 24: Invalid body field\n- 25: Missing header\n- 26: Invalid header value\n- 27: Missing query-string parameter\n- 28: Invalid query-string parameter value"
+            "description": "Bad Request"
           },
           "404": {
-            "description": "Not Found\n\nList of supported error codes:\n- 60: Resource not found"
+            "description": "Not Found"
           },
           "500": {
-            "description": "Internal Server Error\n\nList of supported error codes:\n- 1: Internal error"
+            "description": "Internal Server Error"
           }
         }
       },
@@ -66,8 +65,7 @@
           "Individual"
         ],
         "operationId": "individualFind",
-        "summary": "List individuals",
-        "description": "This operation lists individual entities (physical persons)",
+        "summary": "This operation lists individual entities (physical persons)",
         "deprecated": false,
         "parameters": [],
         "responses": {
@@ -81,13 +79,13 @@
             }
           },
           "400": {
-            "description": "Bad Request\n\nList of supported error codes:\n- 20: Invalid URL parameter value\n- 21: Missing body\n- 22: Invalid body\n- 23: Missing body field\n- 24: Invalid body field\n- 25: Missing header\n- 26: Invalid header value\n- 27: Missing query-string parameter\n- 28: Invalid query-string parameter value"
+            "description": "Bad Request"
           },
           "404": {
-            "description": "Not Found\n\nList of supported error codes:\n- 60: Resource not found"
+            "description": "Not Found"
           },
           "500": {
-            "description": "Internal Server Error\n\nList of supported error codes:\n- 1: Internal error"
+            "description": "Internal Server Error"
           }
         }
       }
@@ -98,8 +96,7 @@
           "Individual"
         ],
         "operationId": "individualGet",
-        "summary": "Retrieve an individual",
-        "description": "This operation retrieves an individual entity (physical person).",
+        "summary": "This operation retrieves an individual entity (physical person).",
         "deprecated": false,
         "parameters": [
           {
@@ -125,13 +122,13 @@
             }
           },
           "400": {
-            "description": "Bad Request\n\nList of supported error codes:\n- 20: Invalid URL parameter value\n- 21: Missing body\n- 22: Invalid body\n- 23: Missing body field\n- 24: Invalid body field\n- 25: Missing header\n- 26: Invalid header value\n- 27: Missing query-string parameter\n- 28: Invalid query-string parameter value"
+            "description": "Bad Request"
           },
           "404": {
-            "description": "Not Found\n\nList of supported error codes:\n- 60: Resource not found"
+            "description": "Not Found"
           },
           "500": {
-            "description": "Internal Server Error\n\nList of supported error codes:\n- 1: Internal error"
+            "description": "Internal Server Error"
           }
         }
       },
@@ -140,8 +137,7 @@
           "Individual"
         ],
         "operationId": "individualPatch",
-        "summary": "Update partially an individual",
-        "description": "This operation partially updates an individual entity",
+        "summary": "This operation partially updates an individual entity",
         "deprecated": false,
         "parameters": [
           {
@@ -169,13 +165,13 @@
             }
           },
           "400": {
-            "description": "Bad Request\n\nList of supported error codes:\n- 20: Invalid URL parameter value\n- 21: Missing body\n- 22: Invalid body\n- 23: Missing body field\n- 24: Invalid body field\n- 25: Missing header\n- 26: Invalid header value\n- 27: Missing query-string parameter\n- 28: Invalid query-string parameter value"
+            "description": "Bad Request"
           },
           "404": {
-            "description": "Not Found\n\nList of supported error codes:\n- 60: Resource not found"
+            "description": "Not Found"
           },
           "500": {
-            "description": "Internal Server Error\n\nList of supported error codes:\n- 1: Internal error"
+            "description": "Internal Server Error"
           }
         }
       },
@@ -184,8 +180,7 @@
           "Individual"
         ],
         "operationId": "individualDelete",
-        "summary": "Delete an individual",
-        "description": "This operation is used to delete an existing individual entity.",
+        "summary": "This operation is used to delete an existing individual entity.",
         "deprecated": false,
         "parameters": [
           {
@@ -201,13 +196,13 @@
             "description": "Success"
           },
           "400": {
-            "description": "Bad Request\n\nList of supported error codes:\n- 20: Invalid URL parameter value\n- 21: Missing body\n- 22: Invalid body\n- 23: Missing body field\n- 24: Invalid body field\n- 25: Missing header\n- 26: Invalid header value\n- 27: Missing query-string parameter\n- 28: Invalid query-string parameter value"
+            "description": "Bad Request"
           },
           "404": {
-            "description": "Not Found\n\nList of supported error codes:\n- 60: Resource not found"
+            "description": "Not Found"
           },
           "500": {
-            "description": "Internal Server Error\n\nList of supported error codes:\n- 1: Internal error"
+            "description": "Internal Server Error"
           }
         }
       }

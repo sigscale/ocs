@@ -11,12 +11,24 @@
     "https"
   ],
   "consumes": [
-    "application/json;charset=utf-8"
+    "application/json"
   ],
   "produces": [
-    "application/json;charset=utf-8"
+    "application/json"
   ],
   "tags": [
+    {
+      "name": "resourceCatalog",
+      "description": ""
+    },
+    {
+      "name": "resourceCategory",
+      "description": ""
+    },
+    {
+      "name": "resourceCandidate",
+      "description": ""
+    },
     {
       "name": "resourceSpecification",
       "description": ""
@@ -27,6 +39,198 @@
     }
   ],
   "paths": {
+    "/resourceCatalog": {
+      "get": {
+        "tags": [
+          "resourceCatalog"
+        ],
+        "parameters": [],
+        "operationId": "listResourceCatalogs",
+        "summary": "List or find 'ResourceCatalog' entities",
+        "deprecated": false,
+        "responses": {
+          "200": {
+            "description": "Successful",
+            "schema": {
+              "items": {
+                "$ref": "#/definitions/ResourceCatalog"
+              },
+              "type": "array"
+            }
+          },
+          "404": {
+            "description": "Not Found"
+          },
+          "500": {
+            "description": "Internal Server Error"
+          }
+        }
+      }
+    },
+    "/resourceCatalog/{id}": {
+      "get": {
+        "tags": [
+          "resourceCatalog"
+        ],
+        "parameters": [
+          {
+            "required": true,
+            "type": "string",
+            "name": "id",
+            "in": "path",
+            "description": "Identifier of the Resource Catalog"
+          }
+        ],
+        "operationId": "listResourceCatalog",
+        "summary": "Retrieves a 'ResourceCatalog' by Id",
+        "deprecated": false,
+        "responses": {
+          "200": {
+            "description": "Successful",
+            "schema": {
+              "items": {
+                "$ref": "#/definitions/ResourceCatalog"
+              },
+              "type": "array"
+            }
+          },
+          "404": {
+            "description": "Not Found"
+          },
+          "500": {
+            "description": "Internal Server Error"
+          }
+        }
+      }
+    },
+    "/resourceCategory": {
+      "get": {
+        "tags": [
+          "resourceCategory"
+        ],
+        "parameters": [],
+        "operationId": "listResourceCategories",
+        "summary": "List or find 'ResourceCategory' entities",
+        "deprecated": false,
+        "responses": {
+          "200": {
+            "description": "Successful",
+            "schema": {
+              "items": {
+                "$ref": "#/definitions/ResourceCategory"
+              },
+              "type": "array"
+            }
+          },
+          "404": {
+            "description": "Not Found"
+          },
+          "500": {
+            "description": "Internal Server Error"
+          }
+        }
+      }
+    },
+    "/resourceCategory/{id}": {
+      "get": {
+        "tags": [
+          "resourceCategory"
+        ],
+        "parameters": [
+          {
+            "required": true,
+            "type": "string",
+            "name": "id",
+            "in": "path",
+            "description": "Identifier of the Resource Category"
+          }
+        ],
+        "operationId": "listResourceCategory",
+        "summary": "Retrieves a 'ResourceCategory' by Id",
+        "deprecated": false,
+        "responses": {
+          "200": {
+            "description": "Successful",
+            "schema": {
+              "items": {
+                "$ref": "#/definitions/ResourceCategory"
+              },
+              "type": "array"
+            }
+          },
+          "404": {
+            "description": "Not Found"
+          },
+          "500": {
+            "description": "Internal Server Error"
+          }
+        }
+      }
+    },
+    "/resourceCandidate": {
+      "get": {
+        "tags": [
+          "resourceCandidate"
+        ],
+        "parameters": [],
+        "operationId": "listResourceCandidate",
+        "summary": "List or find 'ResourceCandidate' entities",
+        "deprecated": false,
+        "responses": {
+          "200": {
+            "description": "Successful",
+            "schema": {
+              "items": {
+                "$ref": "#/definitions/ResourceCandidate"
+              },
+              "type": "array"
+            }
+          },
+          "404": {
+            "description": "Not Found"
+          },
+          "500": {
+            "description": "Internal Server Error"
+          }
+        }
+      }
+    },
+    "/resourceCandidate/{id}": {
+      "get": {
+        "tags": [
+          "resourceCandidate"
+        ],
+        "parameters": [
+          {
+            "required": true,
+            "type": "string",
+            "name": "id",
+            "in": "path",
+            "description": "Identifier of the Resource Candidate "
+          }
+        ],
+        "operationId": "listResourceCandidates",
+        "summary": "Retrieves a 'ResourceCandidate' by Id",
+        "deprecated": false,
+        "responses": {
+          "200": {
+            "description": "Successful",
+            "schema": {
+              "items": {
+                "$ref": "#/definitions/ResourceCandidate"
+              },
+              "type": "array"
+            }
+          },
+          "404": {
+            "description": "Not Found"
+          },
+          "500": {
+            "description": "Internal Server Error"
+          }
+        }
+      }
+    },
     "/resourceSpecification": {
       "get": {
         "tags": [
@@ -165,7 +369,7 @@
     },
     "PlaSpecification": {
       "type": "object",
-      "description": "Resources are physical or non-physical components (or some combination of these) within an enterprise's infrastructure or inventory. They are typically consumed or used by services (for example a physical port assigned to a service) or contribute to the realization of a Product (for example, a SIM card). They can be drawn from the Application, Computing and Network domains, and include, for example, Network Elements, software, IT systems, content and information, and technology components.\nA ResourceSpecification is an abstract base class for representing a generic means for implementing a particular type of Resource. In essence, a ResourceSpecification defines the common attributes and relationships of a set of related Resources, while Resource defines a specific instance that is based on a particular ResourceSpecification.",
+      "description": "Resources are physical or non-physical components (or some combination of these) within an enterprise's infrastructure or inventory.",
       "properties": {
         "id": {
           "type": "string",
@@ -195,6 +399,202 @@
         "lifecycleStatus": {
           "type": "string",
           "description": "Used to indicate the current lifecycle status of the resource specification"
+        }
+      }
+    },
+    "ResourceCatalog": {
+      "type": "object",
+      "description": "The root entity for resource catalog management",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier of the Catalog"
+        },
+        "href": {
+          "type": "string",
+          "description": "Unique reference of the catalog"
+        },
+        "name": {
+          "type": "string",
+          "description": "Name of the catalog"
+        },
+        "description": {
+          "type": "string",
+          "description": "Description of this catalog"
+        },
+        "version": {
+          "type": "string",
+          "description": "Catalog version"
+        },
+        "lastUpdate": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Date and time of the last update"
+        },
+        "lifecycleStatus": {
+          "type": "string",
+          "description": "Used to indicate the current lifecycle status"
+        },
+        "category": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/CategoryRef"
+          }
+        }
+      }
+    },
+    "CategoryRef": {
+      "type": "object",
+      "description": "Category reference.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique reference of the category"
+        },
+        "href": {
+          "type": "string",
+          "description": "Unique reference of the category"
+        },
+        "version": {
+          "type": "string",
+          "description": "Category version"
+        },
+        "name": {
+          "type": "string",
+          "description": "Name of the category"
+        }
+      }
+    },
+    "ResourceCategory": {
+      "type": "object",
+      "description": "The (resource) category resource is used to group resource candidates in logical containers. Categories can contain other categories.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier of the category"
+        },
+        "href": {
+          "type": "string",
+          "description": "Hyperlink reference to the category"
+        },
+        "name": {
+          "type": "string",
+          "description": "Name of the category"
+        },
+        "description": {
+          "type": "string",
+          "description": "Description of the category"
+        },
+        "version": {
+          "type": "string",
+          "description": "Category version"
+        },
+        "lifecycleStatus": {
+          "type": "string",
+          "description": "Used to indicate the current lifecycle status"
+        },
+        "lastUpdate": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Date and time of the last update"
+        },
+        "isRoot": {
+          "type": "boolean",
+          "description": "If true, this Boolean indicates that the category is a root of categories"
+        },
+        "resourceCandidate": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/ResourceCandidateRef"
+          }
+        }
+      }
+    },
+    "ResourceCandidateRef": {
+      "type": "object",
+      "description": "ResourceCandidate reference: A resource candidate is an entity that makes a ResourceSpecification available to a catalog.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier of the resource candidate"
+        },
+        "href": {
+          "type": "string",
+          "description": "Reference of the resource candidate"
+        },
+        "version": {
+          "type": "string",
+          "description": "Version of the resource candidate"
+        },
+        "name": {
+          "type": "string",
+          "description": "Name of the resource candidate"
+        }
+      }
+    },
+    "ResourceCandidate": {
+      "type": "object",
+      "description": "ResourceCandidate is an entity that makes a resource specification available to a catalog.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier of this REST resource"
+        },
+        "href": {
+          "type": "string",
+          "description": "Hyperlink reference to this REST resource"
+        },
+        "name": {
+          "type": "string",
+          "description": "Name given to this REST resource"
+        },
+        "description": {
+          "type": "string",
+          "description": "Description of this REST resource"
+        },
+        "version": {
+          "type": "string",
+          "description": "the version of resource candidate"
+        },
+        "lastUpdate": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Date and time of the last update of this REST resource"
+        },
+        "lifecycleStatus": {
+          "type": "string",
+          "description": "Used to indicate the current lifecycle status of the resource candidate."
+        },
+        "category": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/CategoryRef"
+          }
+        },
+        "resourceSpecification": {
+          "$ref": "#/definitions/ResourceSpecificationRef"
+        }
+      }
+    },
+    "ResourceSpecificationRef": {
+      "type": "object",
+      "description": "Resource Specification reference: The ResourceSpecification is required to realize a ProductSpecification.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier of the resource specification"
+        },
+        "href": {
+          "type": "string",
+          "description": "Reference of the resource specification"
+        },
+        "name": {
+          "type": "string",
+          "description": "Name of the requiredResourceSpecification"
+        },
+        "version": {
+          "type": "string",
+          "description": "Resource specification version"
         }
       }
     }

@@ -33,8 +33,7 @@
           "usage"
         ],
         "operationId": "usageGet",
-        "summary": "usageGet",
-        "description": "This operation lists all usage entites",
+        "summary": "This operation lists all usage entites",
         "deprecated": false,
         "parameters": [
           {
@@ -47,16 +46,19 @@
         ],
         "responses": {
           "200": {
-            "description": "Usage",
+            "description": "Success",
             "schema": {
               "$ref": "#/definitions/Usage"
             }
           },
+          "400": {
+            "description": "Bad Request"
+          },
           "404": {
-            "description": "Not Found\n\nList of supported error codes:\n- 60: Resource not found"
+            "description": "Not Found"
           },
           "500": {
-            "description": "Internal Server Error\n\nList of supported error codes:\n- 1: Internal error"
+            "description": "Internal Server Error"
           }
         }
       }
@@ -67,8 +69,7 @@
           "usage"
         ],
         "operationId": "individualUsage",
-        "summary": "usageGet",
-        "description": "This operation finds a specific usage entity",
+        "summary": "This operation finds a specific usage entity",
         "deprecated": false,
         "parameters": [
           {
@@ -87,19 +88,19 @@
         ],
         "responses": {
           "200": {
-            "description": "Usage",
+            "description": "Success",
             "schema": {
               "$ref": "#/definitions/Usage"
             }
           },
           "400": {
-            "description": "Bad Request\n\nList of supported error codes:\n- 20: Invalid URL parameter value\n- 21: Missing body\n- 22: Invalid body\n- 23: Missing body field\n- 24: Invalid body field\n- 25: Missing header\n- 26: Invalid header value\n- 27: Missing query-string parameter\n- 28: Invalid query-string parameter value"
+            "description": "Bad Request"
           },
           "404": {
-            "description": "Not Found\n\nList of supported error codes:\n- 60: Resource not found"
+            "description": "Not Found"
           },
           "500": {
-            "description": "Internal Server Error\n\nList of supported error codes:\n- 1: Internal error"
+            "description": "Internal Server Error"
           }
         }
       }
@@ -110,22 +111,24 @@
           "usageSpecification"
         ],
         "operationId": "getUsageSpecification",
-        "summary": "usageSpecificationGet",
-        "description": "This operation lists all UsageSpecification entities",
+        "summary": "This operation lists all UsageSpecification entities",
         "deprecated": false,
         "parameters": [],
         "responses": {
           "200": {
-            "description": "UsageSpecification",
+            "description": "Success",
             "schema": {
               "$ref": "#/definitions/UsageSpecification"
             }
           },
+          "400": {
+            "description": "Bad Request"
+          },
           "404": {
-            "description": "Not Found\n\nList of supported error codes:\n- 60: Resource not found"
+            "description": "Not Found"
           },
           "500": {
-            "description": "Internal Server Error\n\nList of supported error codes:\n- 1: Internal error"
+            "description": "Internal Server Error"
           }
         }
       }
@@ -136,8 +139,7 @@
           "usageSpecification"
         ],
         "operationId": "individualUsageSpecification",
-        "summary": "individualUsageSpecificationGet",
-        "description": "This operation finds a specific UsageSpecification entity",
+        "summary": "This operation finds a specific UsageSpecification entity",
         "deprecated": false,
         "parameters": [
           {
@@ -155,13 +157,13 @@
             }
           },
           "400": {
-            "description": "Bad Request\n\nList of supported error codes:\n- 20: Invalid URL parameter value\n- 21: Missing body\n- 22: Invalid body\n- 23: Missing body field\n- 24: Invalid body field\n- 25: Missing header\n- 26: Invalid header value\n- 27: Missing query-string parameter\n- 28: Invalid query-string parameter value"
+            "description": "Bad Request"
           },
           "404": {
-            "description": "Not Found\n\nList of supported error codes:\n- 60: Resource not found"
+            "description": "Not Found"
           },
           "500": {
-            "description": "Internal Server Error\n\nList of supported error codes:\n- 1: Internal error"
+            "description": "Internal Server Error"
           }
         }
       }
