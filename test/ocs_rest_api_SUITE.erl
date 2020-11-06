@@ -130,6 +130,7 @@ init_per_testcase(TestCase, Config) when TestCase == notify_create_bucket;
 		TestCase == notify_accumulated_threshold;
 		TestCase == notify_create_product; TestCase == notify_delete_product;
 		TestCase == notify_create_service; TestCase == notify_delete_service;
+		TestCase == notify_query_service;
 		TestCase == notify_create_offer; TestCase == notify_delete_offer;
 		TestCase == notify_insert_gtt; TestCase == notify_delete_gtt;
 		TestCase == notify_add_pla; TestCase == notify_delete_pla ->
@@ -195,7 +196,7 @@ all() ->
 	notify_accumulated_balance, notify_accumulated_threshold,
 	post_hub_product, delete_hub_product, notify_create_product,
 	notify_delete_product, post_hub_service, delete_hub_service,
-	notify_create_service, notify_delete_service,
+	notify_create_service, notify_delete_service, notify_query_service,
 	post_hub_user, delete_hub_user, post_hub_catalog, delete_hub_catalog,
 	notify_create_offer, notify_delete_offer, notify_insert_gtt,
 	notify_delete_gtt, notify_add_pla, notify_delete_pla,
@@ -3224,6 +3225,49 @@ delete_hub_service(Config) ->
 	Request1 = {HostUrl ++ PathHub ++ Id, [Accept, auth_header()]},
 	{ok, {{_, 204, _}, _, []}} = httpc:request(delete, Request1, [], []).
 
+notify_query_service() ->
+	[{userdata, [{doc, "Query service notification."}]}].
+
+notify_query_service(Config) ->
+	HostUrl = ?config(host_url, Config),
+	CollectionUrl = HostUrl ++ ?PathServiceHub,
+	ListenerPort = ?config(listener_port, Config),
+	ListenerServer = "http://localhost:" ++ integer_to_list(ListenerPort),
+	Callback = ListenerServer ++ "/listener/"
+			++ atom_to_list(?MODULE) ++ "/notifyqueryservice",
+	Identity = ocs:generate_identity(),
+	Query = "eventType=ServiceDeleteNotification&id=" ++ Identity,
+	RequestBody = "{\n"
+			++ "\t\"callback\": \"" ++ Callback ++ "\",\n"
+			++ "\t\"query\": \"" ++ Query ++ "\"\n"
+			++ "}\n",
+	ContentType = "application/json",
+	Accept = {"accept", "application/json"},
+	Request = {CollectionUrl, [Accept, auth_header()], ContentType, RequestBody},
+	{ok, {{_, 201, _}, _, _}} = httpc:request(post, Request, [], []),
+	Password = ocs:generate_password(),
+	{ok, #service{}} = ocs:add_service(Identity, Password),
+	ok = ocs:delete_service(Identity),
+	Service = receive
+		Input ->
+			{struct, ServiceDelEvent} = mochijson:decode(Input),
+			{_, "ServiceDeleteNotification"}
+					= lists:keyfind("eventType", 1, ServiceDelEvent),
+			{_, {struct, ServiceList}}
+					= lists:keyfind("event", 1, ServiceDelEvent),
+			ServiceList
+	end,
+	{_, Identity} = lists:keyfind("id", 1, Service),
+	{_, {array, Chars}} = lists:keyfind("serviceCharacteristic", 1, Service),
+	F = fun({struct, [{"name", "servicePassword"}, {"value", Value}]}) ->
+				{true, Value};
+			({struct, [{"value", Value}, {"name", "servicePassword"}]}) ->
+				{true, Value};
+			(_) ->
+				false
+	end,
+	[Password] = lists:filtermap(F, Chars).
+
 post_hub_user() ->
 	[{userdata, [{doc, "Register hub listener for service"}]}].
 
@@ -3760,6 +3804,13 @@ notifycreateservice(SessionID, _Env, Input) ->
 notifydeleteservice(SessionID, _Env, Input) ->
 	mod_esi:deliver(SessionID, "status: 201 Created\r\n\r\n"),
 	notify_delete_service ! Input.
+
+-spec notifyqueryservice(SessionID :: term(), Env :: list(),
+		Input :: string()) -> any().
+%% @doc Notification callback for notify_query_service test case.
+notifyqueryservice(SessionID, _Env, Input) ->
+	mod_esi:deliver(SessionID, "status: 201 Created\r\n\r\n"),
+	notify_query_service ! Input.
 
 -spec notifycreateoffer(SessionID :: term(), Env :: list(),
 		Input :: string()) -> any().
