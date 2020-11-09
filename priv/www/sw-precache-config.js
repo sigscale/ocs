@@ -10,13 +10,12 @@
 
 module.exports = {
   staticFileGlobs: [
-    'src/**/*',
+    '/index.html',
+    '/node_modules/@webcomponents/webcomponentsjs/webcomponents-bundle.js',
+    '/images/*'
+    'src/*.js',
     'manifest.json'
   ],
-  runtimeCaching: [
-    {
-      urlPattern: /\/@webcomponents\/webcomponentsjs\//,
-      handler: 'fastest'
-    }
-  ]
+  navigateFallback: '/index.html',
+  navigateFallbackWhitelist: [/^(?!.*\.js$|\/data\/).*/]
 }
