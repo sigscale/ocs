@@ -166,47 +166,20 @@ register(timeout, State) ->
 		Reason :: normal | term().
 %% @doc Handle event received in `registered' state.
 %% @private
-registered({Type, Resource, Category} = _Event, #statedata{sync = Sync,
-		profile = Profile, callback = Callback,
-		authorization = Authorization} = StateData) ->
-	Options = case Sync of
-		true ->
-			[{sync, true}];
-		false ->
-			MFA = {?MODULE, handle_async, [self()]},
-			[{sync, false}, {receiver, MFA}]
+registered({Type, Resource, Category}, #statedata{query = []} = StateData) ->
+	send_request({Type, Resource, Category}, StateData);
+registered({Type, Resource, Category}, #statedata{query = Query} = StateData) ->
+	{ResourceId, QueryEventType} = case string:tokens(Query, "&=") of
+		["eventType", QueryType, "id", Id] ->
+			{Id, QueryType};
+		["id", Id, "eventType", QueryType] ->
+			{Id, QueryType}
 	end,
-	Headers = case Authorization of
-		undefined ->
-			[{"accept", "application/json"}, {"content_type", "application/json"}];
-		Authorization ->
-			[{"accept", "application/json"},
-					{"authorization", Authorization}]
-	end,
-	{EventId, TS} = unique(),
-	EventTime = ocs_rest:iso8601(TS),
-	EventStruct = {struct, [{"eventId", EventId}, {"eventTime", EventTime},
-			{"eventType", event_type(Type)},
-			{"event", event(Resource, Category)}]},
-	Body = lists:flatten(mochijson:encode(EventStruct)),
-	Request = {Callback, Headers, "application/json", Body},
-	case httpc:request(post, Request, [], Options, Profile) of
-		{ok, RequestId} when is_reference(RequestId), Sync == false  ->
-			{next_state, registered, StateData};
-		{ok, {{_HttpVersion, StatusCode, _ReasonPhrase}, _Headers, _Body}}
-				when StatusCode >= 200, StatusCode  < 300 ->
-			{next_state, registered, StateData#statedata{sync = false}};
-		{ok, {{_HttpVersion, StatusCode, Reason}, _Headers, _Body}} ->
-			error_logger:warning_report(["Notification delivery failed",
-					{module, ?MODULE}, {fsm, self()},
-					{status, StatusCode}, {reason, Reason}]),
-			{stop, {shutdown, StatusCode}, StateData};
-		{error, {failed_connect, _} = Reason} ->
-			error_logger:warning_report(["Notification delivery failed",
-					{module, ?MODULE}, {fsm, self()}, {error, Reason}]),
-			{stop, {shutdown, Reason}, StateData};
-		{error, Reason} ->
-			{stop, Reason, StateData}
+	case {get_resource_id(Resource), event_type(Type)} of
+		{ResourceId, QueryEventType} ->
+			send_request({Type, Resource, Category}, StateData);
+		{_, _} ->
+			{next_state, registered, StateData}
 	end.
 
 -spec handle_event(Event, StateName, State) -> Result
@@ -355,6 +328,7 @@ unique() ->
 	ID = integer_to_list(TS) ++ integer_to_list(N),
 	{ID, TS}.
 
+%% @hidden
 event(Resource, Category) ->
 	case Category of
 		balance ->
@@ -391,6 +365,13 @@ event(Resource, Category) ->
 	end.
 
 %% @hidden
+get_resource_id(Resource) ->
+	case Resource of
+		#service{name = Name} ->
+			binary_to_list(Name)
+	end.
+
+%% @hidden
 event_type(Type) ->
 	case Type of
 		create_bucket ->
@@ -423,5 +404,49 @@ event_type(Type) ->
 			"PlaCreationNotification";
 		delete_pla ->
 			"PlaRemoveNotification"
+	end.
+
+%% @hidden
+send_request( {Type, Resource, Category} = _Event, #statedata{sync = Sync,
+		profile = Profile, callback = Callback,
+		authorization = Authorization} = StateData) ->
+	Options = case Sync of
+		true ->
+			[{sync, true}];
+		false ->
+			MFA = {?MODULE, handle_async, [self()]},
+			[{sync, false}, {receiver, MFA}]
+	end,
+	Headers = case Authorization of
+		undefined ->
+			[{"accept", "application/json"}, {"content_type", "application/json"}];
+		Authorization ->
+			[{"accept", "application/json"},
+					{"authorization", Authorization}]
+	end,
+	{EventId, TS} = unique(),
+	EventTime = ocs_rest:iso8601(TS),
+	EventStruct = {struct, [{"eventId", EventId}, {"eventTime", EventTime},
+			{"eventType", event_type(Type)},
+			{"event", event(Resource, Category)}]},
+	Body = lists:flatten(mochijson:encode(EventStruct)),
+	Request = {Callback, Headers, "application/json", Body},
+	case httpc:request(post, Request, [], Options, Profile) of
+		{ok, RequestId} when is_reference(RequestId), Sync == false  ->
+			{next_state, registered, StateData};
+		{ok, {{_HttpVersion, StatusCode, _ReasonPhrase}, _Headers, _Body}}
+				when StatusCode >= 200, StatusCode  < 300 ->
+			{next_state, registered, StateData#statedata{sync = false}};
+		{ok, {{_HttpVersion, StatusCode, Reason}, _Headers, _Body}} ->
+			error_logger:warning_report(["Notification delivery failed",
+					{module, ?MODULE}, {fsm, self()},
+					{status, StatusCode}, {reason, Reason}]),
+			{stop, {shutdown, StatusCode}, StateData};
+		{error, {failed_connect, _} = Reason} ->
+			error_logger:warning_report(["Notification delivery failed",
+					{module, ?MODULE}, {fsm, self()}, {error, Reason}]),
+			{stop, {shutdown, Reason}, StateData};
+		{error, Reason} ->
+			{stop, Reason, StateData}
 	end.
 
