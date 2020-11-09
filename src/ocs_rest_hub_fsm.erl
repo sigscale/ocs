@@ -368,7 +368,9 @@ event(Resource, Category) ->
 get_resource_id(Resource) ->
 	case Resource of
 		#service{name = Name} ->
-			binary_to_list(Name)
+			binary_to_list(Name);
+		#product{id = Id} ->
+			Id
 	end.
 
 %% @hidden
