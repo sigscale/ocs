@@ -173,7 +173,9 @@ registered({Type, Resource, Category}, #statedata{query = Query} = StateData) ->
 		["eventType", QueryType, "id", Id] ->
 			{Id, QueryType};
 		["id", Id, "eventType", QueryType] ->
-			{Id, QueryType}
+			{Id, QueryType};
+		_ ->
+			throw({error, 400})
 	end,
 	case {get_resource_id(Resource), event_type(Type)} of
 		{ResourceId, QueryEventType} ->
