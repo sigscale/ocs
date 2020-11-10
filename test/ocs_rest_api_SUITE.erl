@@ -133,6 +133,7 @@ init_per_testcase(TestCase, Config) when TestCase == notify_create_bucket;
 		TestCase == notify_create_service; TestCase == notify_delete_service;
 		TestCase == notify_query_service;
 		TestCase == notify_create_offer; TestCase == notify_delete_offer;
+		TestCase == notify_query_offer;
 		TestCase == notify_insert_gtt; TestCase == notify_delete_gtt;
 		TestCase == notify_add_pla; TestCase == notify_delete_pla ->
 	true = register(TestCase, self()),
@@ -200,8 +201,8 @@ all() ->
 	delete_hub_service,
 	notify_create_service, notify_delete_service, notify_query_service,
 	post_hub_user, delete_hub_user, post_hub_catalog, delete_hub_catalog,
-	notify_create_offer, notify_delete_offer, notify_insert_gtt,
-	notify_delete_gtt, notify_add_pla, notify_delete_pla,
+	notify_create_offer, notify_delete_offer, notify_query_offer,
+	notify_insert_gtt, notify_delete_gtt, notify_add_pla, notify_delete_pla,
 	post_hub_inventory, delete_hub_inventory, notify_product_charge,
 	oauth_authentication].
 
@@ -3456,6 +3457,40 @@ notify_delete_offer(Config) ->
 					= lists:keyfind("eventType", 1, OfferDelEvent)
 	end.
 
+notify_query_offer() ->
+	[{userdata, [{doc, "Query offer notification"}]}].
+
+notify_query_offer(Config) ->
+	P1 = #price{name = ocs:generate_identity(), type = usage, units = octets,
+			size = 1000, amount = 100},
+	OfferId1 = add_offer([P1], 4),
+	HostUrl = ?config(host_url, Config),
+	CollectionUrl = HostUrl ++ ?PathCatalogHub,
+	ListenerPort = ?config(listener_port, Config),
+	ListenerServer = "http://localhost:" ++ integer_to_list(ListenerPort),
+	Callback = ListenerServer ++ "/listener/"
+			++ atom_to_list(?MODULE) ++ "/notifyqueryoffer",
+	Query = "eventType=ProductOfferingRemoveNotification&id=" ++ OfferId1,
+	RequestBody = "{\n"
+			++ "\t\"callback\": \"" ++ Callback ++ "\",\n"
+			++ "\t\"query\": \"" ++ Query ++ "\"\n"
+			++ "}\n",
+	ContentType = "application/json",
+	Accept = {"accept", "application/json"},
+	Request = {CollectionUrl, [Accept, auth_header()], ContentType, RequestBody},
+	{ok, {{_, 201, _}, _, _}} = httpc:request(post, Request, [], []),
+	_OfferId2 = add_offer([P1], 4),
+	ok = ocs:delete_offer(OfferId1),
+	receive
+		Input2 ->
+			{struct, OfferDelEvent} = mochijson:decode(Input2),
+			{_, "ProductOfferingRemoveNotification"}
+					= lists:keyfind("eventType", 1, OfferDelEvent),
+			{_, {struct, StructList}}
+					= lists:keyfind("event", 1, OfferDelEvent),
+			{_, OfferId1} = lists:keyfind("id", 1, StructList)
+	end.
+
 post_hub_inventory() ->
 	[{userdata, [{doc, "Register hub listener for inventory"}]}].
 
@@ -3871,6 +3906,13 @@ notifycreateoffer(SessionID, _Env, Input) ->
 notifydeleteoffer(SessionID, _Env, Input) ->
 	mod_esi:deliver(SessionID, "status: 201 Created\r\n\r\n"),
 	notify_delete_offer ! Input.
+
+-spec notifyqueryoffer(SessionID :: term(), Env :: list(),
+		Input :: string()) -> any().
+%% @doc Notification callback for notify_query_offer test case.
+notifyqueryoffer(SessionID, _Env, Input) ->
+	mod_esi:deliver(SessionID, "status: 201 Created\r\n\r\n"),
+	notify_query_offer ! Input.
 
 -spec notifyinsertgtt(SessionID :: term(), Env :: list(),
 		Input :: string()) -> any().
