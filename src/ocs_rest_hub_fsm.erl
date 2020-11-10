@@ -380,7 +380,9 @@ get_resource_id(Resource) ->
 		#service{name = Name} ->
 			binary_to_list(Name);
 		#product{id = Id} ->
-			Id
+			Id;
+		#offer{name = Name} ->
+			Name
 	end.
 
 %% @hidden
