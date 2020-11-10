@@ -174,11 +174,19 @@ registered({Type, Resource, Category}, #statedata{query = Query} = StateData) ->
 			{Id, QueryType};
 		["id", Id, "eventType", QueryType] ->
 			{Id, QueryType};
+		["id", Id] ->
+			{Id, undefined};
+		["eventType", QueryType] ->
+			{undefined, QueryType};
 		_ ->
 			throw({error, 400})
 	end,
 	case {get_resource_id(Resource), event_type(Type)} of
 		{ResourceId, QueryEventType} ->
+			send_request({Type, Resource, Category}, StateData);
+		{ResourceId, _} when QueryEventType == undefined ->
+			send_request({Type, Resource, Category}, StateData);
+		{_, QueryEventType} when ResourceId == undefined ->
 			send_request({Type, Resource, Category}, StateData);
 		{_, _} ->
 			{next_state, registered, StateData}
