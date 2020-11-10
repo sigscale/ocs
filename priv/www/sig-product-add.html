@@ -159,6 +159,9 @@
 				</paper-button>
 			</div>
 		</paper-dialog>
+         <paper-toast
+               id="deleteProToastError">
+         </paper-toast>
 		<iron-ajax
 				id="deleteProductAjax"
 				url="/productInventoryManagement/v2/product/"
@@ -210,6 +213,10 @@
 			_deleteProductResponse: function(event) {
 				this.$.deleteProductModal.close();
 				document.getElementById('getProductInventory').generateRequest();
+			},
+			_deleteProductrror: function(event) {
+            this.$.deleteProToastError.text = "Delete failed";
+            this.$.deleteProToastError.open();
 			},
 			_productinvenAddSubmit: function(event) {
 				var ajaxPro = this.$.addProductAjax;
