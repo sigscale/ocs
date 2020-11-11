@@ -382,7 +382,9 @@ get_resource_id(Resource) ->
 		#product{id = Id} ->
 			Id;
 		#offer{name = Name} ->
-			Name
+			Name;
+		#bucket{id = Id} ->
+			Id
 	end.
 
 %% @hidden
