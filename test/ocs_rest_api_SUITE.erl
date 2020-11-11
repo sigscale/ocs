@@ -127,7 +127,7 @@ init_per_testcase(TestCase, Config) when TestCase == notify_create_bucket;
 		TestCase == notify_delete_bucket;
 		TestCase == notify_rating_deleted_bucket;
 		TestCase == notify_accumulated_balance; TestCase == notify_product_charge;
-		TestCase == notify_accumulated_threshold;
+		TestCase == notify_accumulated_threshold; TestCase == notify_query_bucket;
 		TestCase == notify_create_product; TestCase == notify_delete_product;
 		TestCase == notify_query_product;
 		TestCase == notify_create_service; TestCase == notify_delete_service;
@@ -196,6 +196,7 @@ all() ->
 	post_hub_balance, delete_hub_balance, notify_create_bucket,
 	notify_delete_bucket, notify_rating_deleted_bucket,
 	notify_accumulated_balance, notify_accumulated_threshold,
+	notify_query_bucket,
 	post_hub_product, delete_hub_product, notify_create_product,
 	notify_delete_product, notify_query_product, post_hub_service,
 	delete_hub_service,
@@ -2980,6 +2981,44 @@ notify_accumulated_threshold(Config) ->
 			= lists:keyfind(cents, #acc_balance.units, AccBalanceRecords),
 	RA1 < Threshold.
 
+notify_query_bucket() ->
+	[{userdata, [{doc, "Query bucket notification"}]}].
+
+notify_query_bucket(Config) ->
+	PackagePrice = 100,
+	PackageSize = 1000,
+	P1 = #price{name = ocs:generate_identity(), type = usage, units = octets,
+			size = PackageSize, amount = PackagePrice},
+	OfferId = add_offer([P1], 4),
+	{ok, #product{id = ProdRef}} = ocs:add_product(OfferId, [], []),
+	BId1 = add_bucket(ProdRef, cents, 100000000),
+	HostUrl = ?config(host_url, Config),
+	CollectionUrl = HostUrl ++ ?PathBalanceHub,
+	ListenerPort = ?config(listener_port, Config),
+	ListenerServer = "http://localhost:" ++ integer_to_list(ListenerPort),
+	Callback = ListenerServer ++ "/listener/"
+			++ atom_to_list(?MODULE) ++ "/notifyquerybucket",
+	Query = "eventType=BucketBalanceDeletionEvent&id=" ++ BId1,
+	RequestBody = "{\n"
+			++ "\t\"callback\": \"" ++ Callback ++ "\",\n"
+			++ "\t\"query\": \"" ++ Query ++ "\"\n"
+			++ "}\n",
+	ContentType = "application/json",
+	Accept = {"accept", "application/json"},
+	Request = {CollectionUrl, [Accept, auth_header()], ContentType, RequestBody},
+	{ok, {{_, 201, _}, _, _}} = httpc:request(post, Request, [], []),
+	_BId2 = add_bucket(ProdRef, octets, 100000000),
+	ok = ocs:delete_bucket(BId1),
+	receive
+		Receive ->
+			{struct, BalDelEvent} = mochijson:decode(Receive),
+			{_, "BucketBalanceDeletionEvent"}
+					= lists:keyfind("eventType", 1, BalDelEvent),
+			{_, {struct, StructList}}
+					= lists:keyfind("event", 1, BalDelEvent),
+			{_, BId1} = lists:keyfind("id", 1, StructList)
+	end.
+
 post_hub_product() ->
 	[{userdata, [{doc, "Register hub listener for product"}]}].
 
@@ -3850,6 +3889,13 @@ notifyaccumulatedthreshold(SessionID, _Env, Input) ->
 notifyproductcharge(SessionID, _Env, Input) ->
 	mod_esi:deliver(SessionID, "status: 201 Created\r\n\r\n"),
 	notify_product_charge ! Input.
+
+-spec notifyquerybucket(SessionID :: term(), Env :: list(),
+		Input :: string()) -> any().
+%% @doc Notification callback for notify_query_bucket test case.
+notifyquerybucket(SessionID, _Env, Input) ->
+	mod_esi:deliver(SessionID, "status: 201 Created\r\n\r\n"),
+	notify_query_bucket ! Input.
 
 -spec notifycreateproduct(SessionID :: term(), Env :: list(),
 		Input :: string()) -> any().
