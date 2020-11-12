@@ -135,6 +135,7 @@ init_per_testcase(TestCase, Config) when TestCase == notify_create_bucket;
 		TestCase == notify_create_offer; TestCase == notify_delete_offer;
 		TestCase == notify_query_offer;
 		TestCase == notify_insert_gtt; TestCase == notify_delete_gtt;
+		TestCase == query_gtt_notification;
 		TestCase == notify_add_pla; TestCase == notify_delete_pla ->
 	true = register(TestCase, self()),
 	case inets:start(httpd, [{port, 0},
@@ -203,7 +204,8 @@ all() ->
 	notify_create_service, notify_delete_service, notify_query_service,
 	post_hub_user, delete_hub_user, post_hub_catalog, delete_hub_catalog,
 	notify_create_offer, notify_delete_offer, notify_query_offer,
-	notify_insert_gtt, notify_delete_gtt, notify_add_pla, notify_delete_pla,
+	notify_insert_gtt, notify_delete_gtt, query_gtt_notification,
+	notify_add_pla, notify_delete_pla,
 	post_hub_inventory, delete_hub_inventory, notify_product_charge,
 	oauth_authentication].
 
@@ -3644,6 +3646,40 @@ notify_delete_gtt(Config) ->
 			{_, Prefix} = lists:keyfind("id", 1, GttList2)
 	end.
 
+query_gtt_notification() ->
+	[{userdata, [{doc, "Query gtt notifications"}]}].
+
+query_gtt_notification(Config) ->
+	HostUrl = ?config(host_url, Config),
+	CollectionUrl = HostUrl ++ ?PathResourceHub,
+	ListenerPort = ?config(listener_port, Config),
+	ListenerServer = "http://localhost:" ++ integer_to_list(ListenerPort),
+	Callback = ListenerServer ++ "/listener/"
+			++ atom_to_list(?MODULE) ++ "/querygttnotification",
+	Prefix = "1519240",
+	Query = "eventType=LogicalResourceRemoveNotification&id=" ++ Prefix,
+	RequestBody = "{\n"
+			++ "\t\"callback\": \"" ++ Callback ++ "\",\n"
+			++ "\t\"query\": \"" ++ Query ++ "\"\n"
+			++ "}\n",
+	ContentType = "application/json",
+	Accept = {"accept", "application/json"},
+	Request = {CollectionUrl, [Accept, auth_header()], ContentType, RequestBody},
+	{ok, {{_, 201, _}, _, _}} = httpc:request(post, Request, [], []),
+	[Table | _] = ocs_gtt:list(),
+	Description = "Bell Mobility",
+	Amount = 10000,
+	{ok, #gtt{}} = ocs_gtt:insert(Table, Prefix, {Description, Amount}),
+	ok = ocs_gtt:delete(Table, Prefix),
+	receive
+		Receive ->
+			{struct, GttEvent} = mochijson:decode(Receive),
+			{_, "LogicalResourceRemoveNotification"}
+					= lists:keyfind("eventType", 1, GttEvent),
+			{_, {struct, GttList}} = lists:keyfind("event", 1, GttEvent),
+			{_, Prefix} = lists:keyfind("id", 1, GttList)
+	end.
+
 notify_add_pla() ->
 	[{userdata, [{doc, "Receive pla creation notification."}]}].
 
@@ -3973,6 +4009,13 @@ notifyinsertgtt(SessionID, _Env, Input) ->
 notifydeletegtt(SessionID, _Env, Input) ->
 	mod_esi:deliver(SessionID, "status: 201 Created\r\n\r\n"),
 	notify_delete_gtt ! Input.
+
+-spec querygttnotification(SessionID :: term(), Env :: list(),
+		Input :: string()) -> any().
+%% @doc Notification callback for query_gtt_notification test case.
+querygttnotification(SessionID, _Env, Input) ->
+	mod_esi:deliver(SessionID, "status: 201 Created\r\n\r\n"),
+	query_gtt_notification ! Input.
 
 -spec notifyaddpla(SessionID :: term(), Env :: list(),
 		Input :: string()) -> any().
