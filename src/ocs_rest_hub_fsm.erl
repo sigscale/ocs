@@ -384,7 +384,9 @@ get_resource_id(Resource) ->
 		#offer{name = Name} ->
 			Name;
 		#bucket{id = Id} ->
-			Id
+			Id;
+		{_, #gtt{num = Num}} ->
+			Num
 	end.
 
 %% @hidden
