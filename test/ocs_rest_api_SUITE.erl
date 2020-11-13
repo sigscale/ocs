@@ -127,14 +127,15 @@ init_per_testcase(TestCase, Config) when TestCase == notify_create_bucket;
 		TestCase == notify_delete_bucket;
 		TestCase == notify_rating_deleted_bucket;
 		TestCase == notify_accumulated_balance; TestCase == notify_product_charge;
-		TestCase == notify_accumulated_threshold;
+		TestCase == notify_accumulated_threshold; TestCase == query_bucket_notification;
 		TestCase == notify_create_product; TestCase == notify_delete_product;
-		TestCase == notify_query_product;
+		TestCase == query_product_notification;
 		TestCase == notify_create_service; TestCase == notify_delete_service;
-		TestCase == notify_query_service;
+		TestCase == query_service_notification;
 		TestCase == notify_create_offer; TestCase == notify_delete_offer;
-		TestCase == notify_query_offer;
+		TestCase == query_offer_notification;
 		TestCase == notify_insert_gtt; TestCase == notify_delete_gtt;
+		TestCase == query_gtt_notification;
 		TestCase == notify_add_pla; TestCase == notify_delete_pla ->
 	true = register(TestCase, self()),
 	case inets:start(httpd, [{port, 0},
@@ -196,13 +197,15 @@ all() ->
 	post_hub_balance, delete_hub_balance, notify_create_bucket,
 	notify_delete_bucket, notify_rating_deleted_bucket,
 	notify_accumulated_balance, notify_accumulated_threshold,
+	query_bucket_notification,
 	post_hub_product, delete_hub_product, notify_create_product,
-	notify_delete_product, notify_query_product, post_hub_service,
+	notify_delete_product, query_product_notification, post_hub_service,
 	delete_hub_service,
-	notify_create_service, notify_delete_service, notify_query_service,
+	notify_create_service, notify_delete_service, query_service_notification,
 	post_hub_user, delete_hub_user, post_hub_catalog, delete_hub_catalog,
-	notify_create_offer, notify_delete_offer, notify_query_offer,
-	notify_insert_gtt, notify_delete_gtt, notify_add_pla, notify_delete_pla,
+	notify_create_offer, notify_delete_offer, query_offer_notification,
+	notify_insert_gtt, notify_delete_gtt, query_gtt_notification,
+	notify_add_pla, notify_delete_pla,
 	post_hub_inventory, delete_hub_inventory, notify_product_charge,
 	oauth_authentication].
 
@@ -2980,6 +2983,44 @@ notify_accumulated_threshold(Config) ->
 			= lists:keyfind(cents, #acc_balance.units, AccBalanceRecords),
 	RA1 < Threshold.
 
+query_bucket_notification() ->
+	[{userdata, [{doc, "Query bucket notification"}]}].
+
+query_bucket_notification(Config) ->
+	PackagePrice = 100,
+	PackageSize = 1000,
+	P1 = #price{name = ocs:generate_identity(), type = usage, units = octets,
+			size = PackageSize, amount = PackagePrice},
+	OfferId = add_offer([P1], 4),
+	{ok, #product{id = ProdRef}} = ocs:add_product(OfferId, [], []),
+	BId1 = add_bucket(ProdRef, cents, 100000000),
+	HostUrl = ?config(host_url, Config),
+	CollectionUrl = HostUrl ++ ?PathBalanceHub,
+	ListenerPort = ?config(listener_port, Config),
+	ListenerServer = "http://localhost:" ++ integer_to_list(ListenerPort),
+	Callback = ListenerServer ++ "/listener/"
+			++ atom_to_list(?MODULE) ++ "/querybucketnotification",
+	Query = "eventType=BucketBalanceDeletionEvent&id=" ++ BId1,
+	RequestBody = "{\n"
+			++ "\t\"callback\": \"" ++ Callback ++ "\",\n"
+			++ "\t\"query\": \"" ++ Query ++ "\"\n"
+			++ "}\n",
+	ContentType = "application/json",
+	Accept = {"accept", "application/json"},
+	Request = {CollectionUrl, [Accept, auth_header()], ContentType, RequestBody},
+	{ok, {{_, 201, _}, _, _}} = httpc:request(post, Request, [], []),
+	_BId2 = add_bucket(ProdRef, octets, 100000000),
+	ok = ocs:delete_bucket(BId1),
+	receive
+		Receive ->
+			{struct, BalDelEvent} = mochijson:decode(Receive),
+			{_, "BucketBalanceDeletionEvent"}
+					= lists:keyfind("eventType", 1, BalDelEvent),
+			{_, {struct, StructList}}
+					= lists:keyfind("event", 1, BalDelEvent),
+			{_, BId1} = lists:keyfind("id", 1, StructList)
+	end.
+
 post_hub_product() ->
 	[{userdata, [{doc, "Register hub listener for product"}]}].
 
@@ -3111,10 +3152,10 @@ notify_delete_product(Config) ->
 	end,
 	#product{} = ocs_rest_res_product:inventory(ProductStuct2).
 
-notify_query_product() ->
+query_product_notification() ->
 	[{userdata, [{doc, "Query product notification"}]}].
 
-notify_query_product(Config) ->
+query_product_notification(Config) ->
 	PackagePrice = 100,
 	PackageSize = 1000,
 	P1 = #price{name = ocs:generate_identity(), type = usage, units = octets,
@@ -3126,7 +3167,7 @@ notify_query_product(Config) ->
 	ListenerPort = ?config(listener_port, Config),
 	ListenerServer = "http://localhost:" ++ integer_to_list(ListenerPort),
 	Callback = ListenerServer ++ "/listener/"
-			++ atom_to_list(?MODULE) ++ "/notifyqueryproduct",
+			++ atom_to_list(?MODULE) ++ "/queryproductnotification",
 	Query = "eventType=ProductRemoveNotification&id=" ++ ProdRef1,
 	RequestBody = "{\n"
 			++ "\t\"callback\": \"" ++ Callback ++ "\",\n"
@@ -3265,16 +3306,16 @@ delete_hub_service(Config) ->
 	Request1 = {HostUrl ++ PathHub ++ Id, [Accept, auth_header()]},
 	{ok, {{_, 204, _}, _, []}} = httpc:request(delete, Request1, [], []).
 
-notify_query_service() ->
+query_service_notification() ->
 	[{userdata, [{doc, "Query service notification"}]}].
 
-notify_query_service(Config) ->
+query_service_notification(Config) ->
 	HostUrl = ?config(host_url, Config),
 	CollectionUrl = HostUrl ++ ?PathServiceHub,
 	ListenerPort = ?config(listener_port, Config),
 	ListenerServer = "http://localhost:" ++ integer_to_list(ListenerPort),
 	Callback = ListenerServer ++ "/listener/"
-			++ atom_to_list(?MODULE) ++ "/notifyqueryservice",
+			++ atom_to_list(?MODULE) ++ "/queryservicenotification",
 	Identity = ocs:generate_identity(),
 	Query = "eventType=ServiceDeleteNotification&id=" ++ Identity,
 	RequestBody = "{\n"
@@ -3457,10 +3498,10 @@ notify_delete_offer(Config) ->
 					= lists:keyfind("eventType", 1, OfferDelEvent)
 	end.
 
-notify_query_offer() ->
+query_offer_notification() ->
 	[{userdata, [{doc, "Query offer notification"}]}].
 
-notify_query_offer(Config) ->
+query_offer_notification(Config) ->
 	P1 = #price{name = ocs:generate_identity(), type = usage, units = octets,
 			size = 1000, amount = 100},
 	OfferId1 = add_offer([P1], 4),
@@ -3469,7 +3510,7 @@ notify_query_offer(Config) ->
 	ListenerPort = ?config(listener_port, Config),
 	ListenerServer = "http://localhost:" ++ integer_to_list(ListenerPort),
 	Callback = ListenerServer ++ "/listener/"
-			++ atom_to_list(?MODULE) ++ "/notifyqueryoffer",
+			++ atom_to_list(?MODULE) ++ "/queryoffernotification",
 	Query = "eventType=ProductOfferingRemoveNotification&id=" ++ OfferId1,
 	RequestBody = "{\n"
 			++ "\t\"callback\": \"" ++ Callback ++ "\",\n"
@@ -3603,6 +3644,40 @@ notify_delete_gtt(Config) ->
 					= lists:keyfind("eventType", 1, GttEvent2),
 			{_, {struct, GttList2}} = lists:keyfind("event", 1, GttEvent2),
 			{_, Prefix} = lists:keyfind("id", 1, GttList2)
+	end.
+
+query_gtt_notification() ->
+	[{userdata, [{doc, "Query gtt notifications"}]}].
+
+query_gtt_notification(Config) ->
+	HostUrl = ?config(host_url, Config),
+	CollectionUrl = HostUrl ++ ?PathResourceHub,
+	ListenerPort = ?config(listener_port, Config),
+	ListenerServer = "http://localhost:" ++ integer_to_list(ListenerPort),
+	Callback = ListenerServer ++ "/listener/"
+			++ atom_to_list(?MODULE) ++ "/querygttnotification",
+	Prefix = "1519240",
+	Query = "eventType=LogicalResourceRemoveNotification&id=" ++ Prefix,
+	RequestBody = "{\n"
+			++ "\t\"callback\": \"" ++ Callback ++ "\",\n"
+			++ "\t\"query\": \"" ++ Query ++ "\"\n"
+			++ "}\n",
+	ContentType = "application/json",
+	Accept = {"accept", "application/json"},
+	Request = {CollectionUrl, [Accept, auth_header()], ContentType, RequestBody},
+	{ok, {{_, 201, _}, _, _}} = httpc:request(post, Request, [], []),
+	[Table | _] = ocs_gtt:list(),
+	Description = "Bell Mobility",
+	Amount = 10000,
+	{ok, #gtt{}} = ocs_gtt:insert(Table, Prefix, {Description, Amount}),
+	ok = ocs_gtt:delete(Table, Prefix),
+	receive
+		Receive ->
+			{struct, GttEvent} = mochijson:decode(Receive),
+			{_, "LogicalResourceRemoveNotification"}
+					= lists:keyfind("eventType", 1, GttEvent),
+			{_, {struct, GttList}} = lists:keyfind("event", 1, GttEvent),
+			{_, Prefix} = lists:keyfind("id", 1, GttList)
 	end.
 
 notify_add_pla() ->
@@ -3851,6 +3926,13 @@ notifyproductcharge(SessionID, _Env, Input) ->
 	mod_esi:deliver(SessionID, "status: 201 Created\r\n\r\n"),
 	notify_product_charge ! Input.
 
+-spec querybucketnotification(SessionID :: term(), Env :: list(),
+		Input :: string()) -> any().
+%% @doc Notification callback for query_bucket_notification test case.
+querybucketnotification(SessionID, _Env, Input) ->
+	mod_esi:deliver(SessionID, "status: 201 Created\r\n\r\n"),
+	query_bucket_notification ! Input.
+
 -spec notifycreateproduct(SessionID :: term(), Env :: list(),
 		Input :: string()) -> any().
 %% @doc Notification callback for notify_create_product test case.
@@ -3865,12 +3947,12 @@ notifydeleteproduct(SessionID, _Env, Input) ->
 	mod_esi:deliver(SessionID, "status: 201 Created\r\n\r\n"),
 	notify_delete_product ! Input.
 
--spec notifyqueryproduct(SessionID :: term(), Env :: list(),
+-spec queryproductnotification(SessionID :: term(), Env :: list(),
 		Input :: string()) -> any().
-%% @doc Notification callback for notify_query_product test case.
-notifyqueryproduct(SessionID, _Env, Input) ->
+%% @doc Notification callback for query_product_notification test case.
+queryproductnotification(SessionID, _Env, Input) ->
 	mod_esi:deliver(SessionID, "status: 201 Created\r\n\r\n"),
-	notify_query_product ! Input.
+	query_product_notification ! Input.
 
 -spec notifycreateservice(SessionID :: term(), Env :: list(),
 		Input :: string()) -> any().
@@ -3886,12 +3968,12 @@ notifydeleteservice(SessionID, _Env, Input) ->
 	mod_esi:deliver(SessionID, "status: 201 Created\r\n\r\n"),
 	notify_delete_service ! Input.
 
--spec notifyqueryservice(SessionID :: term(), Env :: list(),
+-spec queryservicenotification(SessionID :: term(), Env :: list(),
 		Input :: string()) -> any().
-%% @doc Notification callback for notify_query_service test case.
-notifyqueryservice(SessionID, _Env, Input) ->
+%% @doc Notification callback for query_service_notification test case.
+queryservicenotification(SessionID, _Env, Input) ->
 	mod_esi:deliver(SessionID, "status: 201 Created\r\n\r\n"),
-	notify_query_service ! Input.
+	query_service_notification ! Input.
 
 -spec notifycreateoffer(SessionID :: term(), Env :: list(),
 		Input :: string()) -> any().
@@ -3907,12 +3989,12 @@ notifydeleteoffer(SessionID, _Env, Input) ->
 	mod_esi:deliver(SessionID, "status: 201 Created\r\n\r\n"),
 	notify_delete_offer ! Input.
 
--spec notifyqueryoffer(SessionID :: term(), Env :: list(),
+-spec queryoffernotification(SessionID :: term(), Env :: list(),
 		Input :: string()) -> any().
-%% @doc Notification callback for notify_query_offer test case.
-notifyqueryoffer(SessionID, _Env, Input) ->
+%% @doc Notification callback for query_offer_notification test case.
+queryoffernotification(SessionID, _Env, Input) ->
 	mod_esi:deliver(SessionID, "status: 201 Created\r\n\r\n"),
-	notify_query_offer ! Input.
+	query_offer_notification ! Input.
 
 -spec notifyinsertgtt(SessionID :: term(), Env :: list(),
 		Input :: string()) -> any().
@@ -3927,6 +4009,13 @@ notifyinsertgtt(SessionID, _Env, Input) ->
 notifydeletegtt(SessionID, _Env, Input) ->
 	mod_esi:deliver(SessionID, "status: 201 Created\r\n\r\n"),
 	notify_delete_gtt ! Input.
+
+-spec querygttnotification(SessionID :: term(), Env :: list(),
+		Input :: string()) -> any().
+%% @doc Notification callback for query_gtt_notification test case.
+querygttnotification(SessionID, _Env, Input) ->
+	mod_esi:deliver(SessionID, "status: 201 Created\r\n\r\n"),
+	query_gtt_notification ! Input.
 
 -spec notifyaddpla(SessionID :: term(), Env :: list(),
 		Input :: string()) -> any().
