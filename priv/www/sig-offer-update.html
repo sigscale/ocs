@@ -1513,7 +1513,7 @@
 							this.prices[indexUnit].unit = "b";
 						}
 						var unitDrop = this.prices[indexUnit].unit;
-						var sizeVal = this.$.updatePriceSize.value + unitDrop;
+						var sizeVal = this.$.updatePriceSize.value;
 						if(unitDrop && sizeVal) {
 							var len = sizeVal.length;
 							var m = sizeVal.charAt(len - 1);
@@ -1988,7 +1988,7 @@
 				} else if(this.$.updatePriceType.selected == 3) {
 					this.$.updatePricePerioddrop.disabled = true;
 					this.$.priceCents.disabled = true;
-					this.$.priceBytes.disabled = true;
+					this.$.priceBytes.disabled = false;
 					this.$.priceSeconds.disabled = false;
 					this.$.updatePriceUnits.selected = 2;
 					this.$.updatePriceAmount.disabled = true;
