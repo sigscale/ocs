@@ -44,8 +44,10 @@ $(abs_builddir)/index.html:
 			$(LN_S) $(srcdir)/$$i; \
 		fi; \
 	done
-	if [ ! -e $(abs_builddir)/polymer.json ]; then \
-		cp $(srcdir)/polymer.json $(abs_builddir); \
+
+$(abs_builddir)/sw-precache-config.js:
+	if [ ! -e $(abs_builddir)/sw-precache-config.js ]; then \
+		cp $(srcdir)/sw-precache-config.js $(abs_builddir); \
 	fi
 
 package.json: yarn.lock
@@ -54,7 +56,10 @@ yarn.lock:
 	yarn add d3
 	yarn install
 
-$(abs_builddir)/build/polymer.json: package.json $(abs_builddir)/index.html ${patsubst %,$(abs_builddir)/src/%,$(MODULES)}
+$(abs_builddir)/build/polymer.json: package.json $(abs_builddir)/index.html $(abs_builddir)/sw-precache-config.js ${patsubst %,$(abs_builddir)/src/%,$(MODULES)}
+	if [ ! -e $(abs_builddir)/polymer.json ]; then \
+		cp $(srcdir)/polymer.json $(abs_builddir); \
+	fi
 	polymer build
 
 check_DATA = .polymer_lint_ok
