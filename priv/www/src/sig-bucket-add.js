@@ -18,7 +18,6 @@ import '@polymer/paper-input/paper-input.js';
 import '@polymer/paper-button/paper-button.js';
 import '@polymer/paper-listbox/paper-listbox.js';
 import '@polymer/paper-item/paper-item.js'
-import '@polymer/paper-toast/paper-toast.js';
 import '@polymer/paper-tooltip/paper-tooltip.js';
 import './style-element.js';
 
@@ -151,8 +150,6 @@ class offerAdd extends PolymerElement {
 					on-response="_addBucketResponse"
 					on-error="_addBucketError">
 			</iron-ajax>
-			<paper-toast id="getAddBucketToast">
-			</paper-toast>
 		`;
 	}
 
@@ -186,8 +183,9 @@ class offerAdd extends PolymerElement {
 	}
 
 	_deleteBucketError(event) {
-		this.$.getAddBucketToast.text = "Error";
-		this.$.getAddBucketToast.open();
+		var toast = document.body.querySelector('sig-app').shadowRoot.getElementById('restError');
+		toast.text = "Error";
+		toast.open();
 	}
 
 	_deleteBucketResponse(event) {
@@ -273,8 +271,9 @@ class offerAdd extends PolymerElement {
 	}
 
 	_addBucketError(event) {
-		this.$.getAddBucketToast.text = "Error";
-		this.$.getAddBucketToast.open();
+		var toast = document.body.querySelector('sig-app').shadowRoot.getElementById('restError');
+		toast.text = "Error";
+		toast.open();
 	}
 }
 

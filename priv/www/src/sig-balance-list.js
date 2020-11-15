@@ -10,7 +10,6 @@
 
 import { PolymerElement, html } from '@polymer/polymer/polymer-element.js';
 import '@polymer/iron-ajax/iron-ajax.js';
-import '@polymer/paper-toast/paper-toast.js';
 import '@vaadin/vaadin-grid/theme/material/vaadin-grid.js';
 import '@vaadin/vaadin-grid/vaadin-grid.js';
 import '@vaadin/vaadin-grid/vaadin-grid-filter.js';
@@ -157,8 +156,6 @@ class balanceList extends PolymerElement {
 				url="/ocs/v1/log/balance"
 				rejectWithRequest>
 			</iron-ajax>
-			<paper-toast id="getBalanceToast">
-			</paper-toast>
 		`;
 	}
 
@@ -256,8 +253,9 @@ class balanceList extends PolymerElement {
 		}
 		var handleAjaxError = function(event) {
 			balanceList.etag = null;
-			this.$.getBalanceToast.text = "Error";
-			this.$.getBalanceToast.open();
+			var toast = document.body.querySelector('sig-app').shadowRoot.getElementById('restError');
+			toast.text = "Error";
+			toast.open();
 			if(!grid.size) {
 				grid.size = 0;
 			}

@@ -14,7 +14,6 @@ import '@vaadin/vaadin-grid/theme/material/vaadin-grid.js';
 import '@vaadin/vaadin-grid/vaadin-grid.js';
 import '@vaadin/vaadin-grid/vaadin-grid-filter.js';
 import '@vaadin/vaadin-grid/vaadin-grid-column-group.js';
-import '@polymer/paper-toast/paper-toast.js';
 import './style-element.js'
 
 class httpList extends PolymerElement {
@@ -132,8 +131,6 @@ class httpList extends PolymerElement {
 					url="/ocs/v1/log/http"
 					rejectWithRequest>
 			</iron-ajax>
-			<paper-toast id="gethttpToast">
-			</paper-toast>
 		`;
 	}
 
@@ -190,8 +187,9 @@ class httpList extends PolymerElement {
 		};
 		var handleAjaxError = function(error) {
 			httpList1.etag = null;
-         this.$.gethttpToasttext = event.detail.request.xhr.statusText;
-         this.$.gethttpToast.open();
+			var toast = document.body.querySelector('sig-app').shadowRoot.getElementById('restError');
+			toast.text = "Error";
+			toast.open();
 			if(!grid.size) {
 				grid.size = 0;
 			}

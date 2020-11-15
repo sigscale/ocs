@@ -15,7 +15,6 @@ import '@polymer/iron-icons/iron-icons.js';
 import '@vaadin/vaadin-grid/theme/material/vaadin-grid.js';
 import '@vaadin/vaadin-grid/vaadin-grid.js';
 import '@vaadin/vaadin-grid/vaadin-grid-filter.js';
-import '@polymer/paper-toast/paper-toast.js';
 import './style-element.js'
 
 class subList extends PolymerElement {
@@ -92,8 +91,6 @@ class subList extends PolymerElement {
 					on-response="_getProductResponse"
 					on-error="_getProductError">
 			</iron-ajax>
-			<paper-toast id="getSubToast">
-			</paper-toast>
 		`;
 	}
 
@@ -219,9 +216,10 @@ class subList extends PolymerElement {
 			}
 		};
 		var handleAjaxError = function(error) {
-			this.$.getSubToast.text = "Error";
-			this.$.getSubToast.open();
 			serviceList.etag = null;
+			var toast = document.body.querySelector('sig-app').shadowRoot.getElementById('restError');
+			toast.text = "Error";
+			toast.open();
 			if(!grid.size) {
 				grid.size = 0;
 			}

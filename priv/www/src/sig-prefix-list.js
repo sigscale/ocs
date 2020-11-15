@@ -14,7 +14,6 @@ import '@polymer/paper-fab/paper-fab.js';
 import '@polymer/iron-icons/iron-icons.js';
 import '@vaadin/vaadin-grid/theme/material/vaadin-grid.js';
 import '@vaadin/vaadin-grid/vaadin-grid.js';
-import '@polymer/paper-toast/paper-toast.js';
 import './style-element.js'
 
 class prefixList extends PolymerElement {
@@ -104,8 +103,6 @@ class prefixList extends PolymerElement {
 				on-response="_getTableResponse"
 				on-error="_getTableError">
 			</iron-ajax>
-			<paper-toast id="getPrefixToast">
-			</paper-toast>
 		`;
 	}
 
@@ -190,13 +187,15 @@ class prefixList extends PolymerElement {
 	_deleteTableResponse(event) {
 		this.$.tableList.close();
 		document.body.querySelector('sig-app').shadowRoot.getElementById('offerList').shadowRoot.getElementById('getTableAjax').generateRequest();
-		this.$.getPrefixToast.text = "Deleted successfully";
-		this.$.getPrefixToast.open();
+		var toast = document.body.querySelector('sig-app').shadowRoot.getElementById('restError');
+		toast.text = "Success";
+		toast.open();
 	}
 
 	_deleteTableError(event) {
-		this.$.getPrefixToast.text = "Error";
-		this.$.getPrefixToast.open();
+		var toast = document.body.querySelector('sig-app').shadowRoot.getElementById('restError');
+		toast.text = "Error";
+		toast.open();
 	}
 
 	tableSelection(e) {
@@ -240,8 +239,9 @@ class prefixList extends PolymerElement {
 		};
 		var handleAjaxError = function(error) {
 			prefixList.etag = null;
-			this.$.getPrefixToast.text = "Error";
-			this.$.getPrefixToast.open();
+			var toast = document.body.querySelector('sig-app').shadowRoot.getElementById('restError');
+			toast.text = "Error";
+			toast.open();
 			if(!grid.size) {
 				grid.size = 0;
 			}

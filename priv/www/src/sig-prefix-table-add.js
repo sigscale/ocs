@@ -15,7 +15,6 @@ import '@polymer/app-layout/app-toolbar/app-toolbar.js';
 import '@polymer/paper-progress/paper-progress.js';
 import '@polymer/paper-input/paper-input.js';
 import '@polymer/paper-button/paper-button.js';
-import '@polymer/paper-toast/paper-toast.js';
 import '@polymer/paper-tooltip/paper-tooltip.js';
 import './style-element.js';
 
@@ -92,9 +91,6 @@ class tablePreAdd extends PolymerElement {
 					</paper-button>
 				</div>
 			</paper-dialog>
-			<paper-toast
-					id="addTableToastError">
-			</paper-toast>
 			<iron-ajax
 					id="addTableAjax"
 					url="/catalogManagement/v2/pla"
@@ -143,8 +139,9 @@ class tablePreAdd extends PolymerElement {
 			var endDateTime = this.endTableTimePick;
 		}
 		if(endDateTime < startDateTime) {
-			this.$.addTableToastError.text = "Error";
-			this.$.addTableToastError.open();
+			var toast = document.body.querySelector('sig-app').shadowRoot.getElementById('restError');
+			toast.text = "Error";
+			toast.open();
 		} else if(startDateTime && endDateTime) {
 			tabName.validFor = {startDateTime, endDateTime};
 		} else if(startDateTime && !endDateTime) {
@@ -174,8 +171,9 @@ class tablePreAdd extends PolymerElement {
 	}
 
 	_addTableError(event) {
-		this.$.addTableToastError.text = "Error";
-		this.$.addTableToastError.open();
+		var toast = document.body.querySelector('sig-app').shadowRoot.getElementById('restError');
+		toast.text = "Error";
+		toast.open();
 	}
 
 	_cancel() {

@@ -21,7 +21,6 @@ import '@polymer/paper-item/paper-item.js'
 import '@polymer/paper-checkbox/paper-checkbox.js'
 import '@polymer/paper-tabs/paper-tabs.js';
 import '@polymer/iron-pages/iron-pages.js';
-import '@polymer/paper-toast/paper-toast.js';
 import '@polymer/paper-tooltip/paper-tooltip.js';
 import './style-element.js';
 
@@ -168,8 +167,6 @@ class clientUpdate extends PolymerElement {
 				on-response="_deleteClientResponse"
 				on-error="_deleteClientError">
 			</iron-ajax>
-			<paper-toast id="getUpdateClientToast">
-			</paper-toast>
 		`;
 	}
 
@@ -255,14 +252,16 @@ class clientUpdate extends PolymerElement {
 	}
 
 	_updateClientAuthResponse() {
-		this.$.getUpdateClientToast.text = "Updated Authentication";
-		this.$.getUpdateClientToast.open();
+		var toast = document.body.querySelector('sig-app').shadowRoot.getElementById('restError');
+		toast.text = "Success";
+		toast.open();
 		document.body.querySelector('sig-app').shadowRoot.getElementById('clientList').shadowRoot.getElementById('clientGrid').clearCache();
 	}
 
 	_updateClientAuthError() {
-		this.$.getOfferToast.text = "Error";
-		this.$.getOfferToast.open();
+		var toast = document.body.querySelector('sig-app').shadowRoot.getElementById('restError');
+		toast.text = "Error";
+		toast.open();
 	}
 
 	updateClientProp() {

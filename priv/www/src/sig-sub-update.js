@@ -21,7 +21,6 @@ import '@polymer/paper-item/paper-item.js'
 import '@polymer/paper-checkbox/paper-checkbox.js'
 import '@polymer/paper-tabs/paper-tabs.js';
 import '@polymer/iron-pages/iron-pages.js';
-import '@polymer/paper-toast/paper-toast.js';
 import '@polymer/paper-toggle-button/paper-toggle-button.js';
 import '@polymer/paper-tooltip/paper-tooltip.js';
 import './style-element.js';
@@ -245,9 +244,6 @@ class subUpdate extends PolymerElement {
 						</div>
 					</div>
 				</iron-pages>
-				<paper-toast
-						id="updateSubscriberToastError">
-				</paper-toast>
 			</paper-dialog>
 			<iron-ajax
 					id="updateSubscriberAuthenticationAjax"
@@ -373,8 +369,9 @@ class subUpdate extends PolymerElement {
 	}
 
 	_updateSubscriberProductsError(event) {
-		this.$.updateSubscriberToastError.text = event.detail.request.xhr.statusText;
-		this.$.updateSubscriberToastError.open();
+		var toast = document.body.querySelector('sig-app').shadowRoot.getElementById('restError');
+		toast.text = "Error";
+		toast.open();
 	}
 
 	updateSubscriberAuthentication(event) {
@@ -409,8 +406,9 @@ class subUpdate extends PolymerElement {
 	}
 
 	_updateSubscriberAuthenticationError(event) {
-		this.$.updateSubscriberToastError.text = event.detail.request.xhr.statusText;
-		this.$.updateSubscriberToastError.open();
+		var toast = document.body.querySelector('sig-app').shadowRoot.getElementById('restError');
+		toast.text = "Error";
+		toast.open();
 	}
 
 	updateSubscriberBalance(event) {
@@ -443,8 +441,9 @@ class subUpdate extends PolymerElement {
 	}
 
 	_updateSubscriberBalanceError(event) {
-		this.$.updateSubscriberToastError.text = event.detail.request.xhr.statusText;
-		this.$.updateSubscriberToastError.open();
+		var toast = document.body.querySelector('sig-app').shadowRoot.getElementById('restError');
+		toast.text = "Error";
+		toast.open();
 	}
 
 	updateSubscriberAuthorization(event) {
@@ -539,8 +538,9 @@ class subUpdate extends PolymerElement {
 	}
 
 	_updateSubscriberAuthorizationError(event) {
-		this.$.updateSubscriberToastError.text = event.detail.request.xhr.statusText;
-		this.$.updateSubscriberToastError.open();
+		var toast = document.body.querySelector('sig-app').shadowRoot.getElementById('restError');
+		toast.text = "Error";
+		toast.open();
 	}
 
 	deleteSubscriber(event) {
@@ -556,8 +556,9 @@ class subUpdate extends PolymerElement {
 	}
 
 	_deleteSubscriberError(event) {
-		this.$.updateSubscriberToastError.text = event.detail.request.xhr.statusText;
-		this.$.updateSubscriberToastError.open();
+		var toast = document.body.querySelector('sig-app').shadowRoot.getElementById('restError');
+		toast.text = "Error";
+		toast.open();
 	}
 
 	cancelDialog() {

@@ -18,7 +18,6 @@ import '@polymer/paper-input/paper-input.js';
 import '@polymer/paper-button/paper-button.js';
 import '@polymer/paper-listbox/paper-listbox.js';
 import '@polymer/paper-item/paper-item.js';
-import '@polymer/paper-toast/paper-toast.js';
 import '@polymer/paper-tooltip/paper-tooltip.js';
 import './style-element.js';
 
@@ -113,7 +112,7 @@ class productAddClass extends PolymerElement {
 					url="/productInventoryManagement/v2/product/"
 					method="delete"
 					on-response="_deleteProductResponse"
-					on-error="_deleteProductrror">
+					on-error="_deleteProductError">
 			</iron-ajax>
 			<iron-ajax
 					id="addProductAjax"
@@ -122,10 +121,8 @@ class productAddClass extends PolymerElement {
 					content-type="application/json"
 					on-loading-changed="_onLoadingChanged"
 					on-response="_addProductResponse"
-					on-error="_addProductrror">
+					on-error="_addProductError">
 			</iron-ajax>
-			<paper-toast id="getAddProductToast">
-			</paper-toast>
 		`;
 	}
 
@@ -176,16 +173,17 @@ class productAddClass extends PolymerElement {
 	}
 
 	_deleteProductResponse() {
-		this.$.getAddProductToast.text = "Deleted Product";
-		this.$.getAddProductToast.open();
-		this.$.deleteProductModal.close();
+		var toast = document.body.querySelector('sig-app').shadowRoot.getElementById('restError');
+		toast.text = "Success";
+		toast.open();
 		document.body.querySelector('sig-app').shadowRoot.getElementById('productList').shadowRoot.getElementById('getProductInventory').generateRequest();
 		document.body.querySelector('sig-app').shadowRoot.getElementById('productList').shadowRoot.getElementById('productInventoryGrid').clearCache();
 	}
 
-	_deleteProductrror() {
-		this.$.getAddProductToast.text = "Error";
-		this.$.getAddProductToast.open();
+	_deleteProductError() {
+		var toast = document.body.querySelector('sig-app').shadowRoot.getElementById('restError');
+		toast.text = "Error";
+		toast.open();
 	}
 
 	_productinvenAddSubmit() {
@@ -212,15 +210,16 @@ class productAddClass extends PolymerElement {
 	}
 
 	_addProductResponse() {
-		this.$.getAddProductToast.text = "Added Product";
-		this.$.getAddProductToast.open();
-		this.$.addProductInvenModal.close();
+		var toast = document.body.querySelector('sig-app').shadowRoot.getElementById('restError');
+		toast.text = "Success";
+		toast.open();
 		document.body.querySelector('sig-app').shadowRoot.getElementById('productList').shadowRoot.getElementById('productInventoryGrid').clearCache();
 	}
 
-	_addProductrror() {
-		this.$.getAddProductToast.text = "Error";
-		this.$.getAddProductToast.open();
+	_addProductError() {
+		var toast = document.body.querySelector('sig-app').shadowRoot.getElementById('restError');
+		toast.text = "Error";
+		toast.open();
 	}
 
 	cancelPro() {

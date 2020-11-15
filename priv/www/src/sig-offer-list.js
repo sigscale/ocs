@@ -16,7 +16,6 @@ import '@vaadin/vaadin-grid/theme/material/vaadin-grid.js';
 import '@vaadin/vaadin-grid/vaadin-grid.js';
 import '@vaadin/vaadin-grid/vaadin-grid-filter.js';
 import '@polymer/iron-icons/iron-icons.js';
-import '@polymer/paper-toast/paper-toast.js';
 import './style-element.js'
 
 class offerList extends PolymerElement {
@@ -125,8 +124,6 @@ class offerList extends PolymerElement {
 						on-tap = "showAddOfferModal">
 				</paper-fab>
 			</div>
-			<paper-toast id="getOfferToast">
-			</paper-toast>
 			<iron-ajax id="getProductAjax"
 					url="/catalogManagement/v2/productOffering"
 					rejectWithRequest>
@@ -304,8 +301,9 @@ class offerList extends PolymerElement {
 		};
 		var handleAjaxError = function(error) {
 			offerList.etag = null;
-			this.$.getOfferToast.text = "Error";
-			this.$.getOfferToast.open();
+			var toast = document.body.querySelector('sig-app').shadowRoot.getElementById('restError');
+			toast.text = "Error";
+			toast.open();
 			if(!grid.size) {
 				grid.size = 0;
 			}
@@ -354,8 +352,9 @@ class offerList extends PolymerElement {
 		this.shadowRoot.getElementById('offerGrid').size = 0;
 		cbProduct([]);
 		if (!lastItem && event.detail.request.xhr.status != 416) {
-			this.$.getOfferToast.text = "Error";
-			this.$.getOfferToast.open();
+			var toast = document.body.querySelector('sig-app').shadowRoot.getElementById('restError');
+			toast.text = "Error";
+			toast.open();
 		}
 	}
 

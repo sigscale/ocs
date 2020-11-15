@@ -15,7 +15,6 @@ import '@vaadin/vaadin-grid/theme/material/vaadin-grid.js';
 import '@vaadin/vaadin-grid/vaadin-grid.js';
 import '@vaadin/vaadin-grid/vaadin-grid-filter.js';
 import '@vaadin/vaadin-grid/vaadin-grid-column-group.js';
-import '@polymer/paper-toast/paper-toast.js';
 import '@polymer/iron-icons/iron-icons.js';
 import './style-element.js'
 
@@ -98,8 +97,6 @@ class bucketList extends PolymerElement {
 					url="/balanceManagement/v1/bucket/"
 					rejectWithRequest>
 			</iron-ajax>
-			<paper-toast id="getBucketToast">
-			</paper-toast>
 		`;
 	}
 
@@ -212,8 +209,9 @@ class bucketList extends PolymerElement {
 		};
 		var handleAjaxError = function(error) {
 			bucketList.etag = null;
-			this.$.getBucketToast.text = "Error";
-			this.$.getBucketToast.open();
+			var toast = document.body.querySelector('sig-app').shadowRoot.getElementById('restError');
+			toast.text = "Error";
+			toast.open();
 			if(!grid.size) {
 				grid.size = 0;
 			}

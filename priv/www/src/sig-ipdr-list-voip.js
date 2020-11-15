@@ -18,7 +18,6 @@ import '@polymer/app-layout/app-toolbar/app-toolbar.js';
 import '@polymer/paper-dialog-scrollable/paper-dialog-scrollable.js';
 import '@polymer/iron-list/iron-list.js';
 import '@polymer/paper-button/paper-button.js';
-import '@polymer/paper-toast/paper-toast.js';
 import './style-element.js'
 
 class ipdrListVoip extends PolymerElement {
@@ -168,8 +167,6 @@ class ipdrListVoip extends PolymerElement {
 					on-response="getLogsResponseVoip"
 					on-error="getLogsErrorVoip">
 			</iron-ajax>
-			<paper-toast id="getIpdrVoipToast">
-			</paper-toast>
 		`;
 	}
 
@@ -289,8 +286,9 @@ class ipdrListVoip extends PolymerElement {
 		}
 		var handleAjaxError = function(error) {
 			ipdrLogListVoip.etag = null;
-			this.$.getIpdrVoipToast.text = "Error";
-			this.$.getIpdrVoipToast.open();
+			var toast = document.body.querySelector('sig-app').shadowRoot.getElementById('restError');
+			toast.text = "Error";
+			toast.open();
 			callback([]);
 		}
 		if (ajax.loading) {

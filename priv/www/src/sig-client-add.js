@@ -19,7 +19,6 @@ import '@polymer/paper-button/paper-button.js';
 import '@polymer/paper-listbox/paper-listbox.js';
 import '@polymer/paper-item/paper-item.js'
 import '@polymer/paper-checkbox/paper-checkbox.js'
-import '@polymer/paper-toast/paper-toast.js';
 import '@polymer/paper-tooltip/paper-tooltip.js';
 import './style-element.js';
 
@@ -155,8 +154,6 @@ class clientAdd extends PolymerElement {
 					on-response="_addClientResponse"
 					on-error="_addClientError">
 			</iron-ajax>
-			<paper-toast id="getAddClientToast">
-			</paper-toast>
 		`;
 	}
 
@@ -225,9 +222,9 @@ class clientAdd extends PolymerElement {
 	}
 
 	_addClientResponse() {
-		this.$.getAddClientToast.text = "Client added successfully";
-		this.$.getAddClientToast.open();
-		this.$.clientAddModal.close();
+		var toast = document.body.querySelector('sig-app').shadowRoot.getElementById('restError');
+		toast.text = "Success";
+		toast.open();
 		if ((this.$.addClientAjax.body.secret == undefined)
 					&& this.$.addClientAjax.lastResponse.secret) {
 			this.secret = this.$.addClientAjax.lastResponse.secret;
@@ -244,8 +241,9 @@ class clientAdd extends PolymerElement {
 	}
 
 	_addClientError(event) {
-		this.$.getAddClientToast.text = "Error";
-		this.$.getAddClientToast.open();
+		var toast = document.body.querySelector('sig-app').shadowRoot.getElementById('restError');
+		toast.text = "Error";
+		toast.open();
 	}
 }
 

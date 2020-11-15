@@ -15,7 +15,6 @@ import '@polymer/app-layout/app-toolbar/app-toolbar.js';
 import '@polymer/paper-progress/paper-progress.js';
 import '@polymer/paper-input/paper-input.js';
 import '@polymer/paper-button/paper-button.js';
-import '@polymer/paper-toast/paper-toast.js';
 import '@polymer/paper-tooltip/paper-tooltip.js';
 import './style-element.js';
 
@@ -88,12 +87,6 @@ class tableUpdate extends PolymerElement {
 					</paper-button>
 				</div>
 			</paper-dialog>
-			<paper-toast
-					id="updateTableRowToastError">
-			</paper-toast>
-			<paper-toast
-					id="deleteTableRowToastError">
-			</paper-toast>
 			<iron-ajax id="updateTableRowAjax"
 					on-response="_updateTableRowResponse"
 					on-error="_updateTableRowError"
@@ -173,8 +166,9 @@ class tableUpdate extends PolymerElement {
 	}
 
 	_updateTableRowError(event) {
-		this.$.updateTableRowToastError.text = event.detail.request.xhr.statusText;
-		this.$.updateTableRowToastError.open();
+		var toast = document.body.querySelector('sig-app').shadowRoot.getElementById('restError');
+		toast.text = "Error";
+		toast.open();
 	}
 
 	deleteUpdate(event) {
@@ -192,8 +186,9 @@ class tableUpdate extends PolymerElement {
 	}
 
 	_deleteTableRowError(event) {
-		this.$.deleteTableRowToastError.text = event.detail.request.xhr.statusText;
-		this.$.deleteTableRowToastError.open();
+		var toast = document.body.querySelector('sig-app').shadowRoot.getElementById('restError');
+		toast.text = "Error";
+		toast.open();
 	}
 
 	cancelUpdate() {

@@ -14,7 +14,6 @@ import '@polymer/paper-button/paper-button.js';
 import '@vaadin/vaadin-grid/theme/material/vaadin-grid.js';
 import '@vaadin/vaadin-grid/vaadin-grid.js';
 import '@vaadin/vaadin-grid/vaadin-grid-filter.js';
-import '@polymer/paper-toast/paper-toast.js';
 import './style-element.js'
 
 
@@ -112,8 +111,6 @@ class accessList extends PolymerElement {
 					url="/usageManagement/v1/usage"
 					rejectWithRequest>
 			</iron-ajax>
-			<paper-toast id="accessToast">
-			</paper-toast>
 		`;
 	}
 
@@ -266,8 +263,9 @@ class accessList extends PolymerElement {
 		};
 		var handleAjaxError = function(error) {
 			accessList.etag = null;
-			this.$.accessToast.text = "Error";
-			this.$.accessToast.open();
+			var toast = document.body.querySelector('sig-app').shadowRoot.getElementById('restError');
+			toast.text = "Error";
+			toast.open();
 			if(!grid.size) {
 				grid.size = 0;
 			}

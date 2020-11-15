@@ -21,7 +21,6 @@ import '@polymer/paper-item/paper-item.js'
 import '@polymer/paper-checkbox/paper-checkbox.js'
 import '@polymer/paper-tabs/paper-tabs.js';
 import '@polymer/paper-toggle-button/paper-toggle-button.js';
-import '@polymer/paper-toast/paper-toast.js';
 import '@polymer/iron-pages/iron-pages.js';
 import '@polymer/paper-tooltip/paper-tooltip.js';
 import './style-element.js';
@@ -415,8 +414,6 @@ class subAdd extends PolymerElement {
 					on-response="_updateSubscriberProductsResponse1"
 					on-error="_updateSubscriberProductsError1">
 			</iron-ajax>
-			<paper-toast id="getAddsubToast">
-			</paper-toast>
 		`;
 	}
 	static get properties() {
@@ -599,8 +596,9 @@ class subAdd extends PolymerElement {
 	_addServiceError(event) {
 		this.$.idCheck.checked = false;
 		this.$.idCheckPass.checked = false;
-		this.$.getAddsubToast.text = "Error";
-		this.$.getAddsubToast.open();
+		var toast = document.body.querySelector('sig-app').shadowRoot.getElementById('restError');
+		toast.text = "Error";
+		toast.open();
 	}
 
 	_addProductResponse(event) {
@@ -669,15 +667,17 @@ class subAdd extends PolymerElement {
 	}
 
 	_addProductError(event) {
-		this.$.getAddsubToast.text = "Error";
-		this.$.getAddsubToast.open();
+		var toast = document.body.querySelector('sig-app').shadowRoot.getElementById('restError');
+		toast.text = "Error";
+		toast.open();
 		var ajaxBucketRes = this.$.addBucketAjax;
 	}
 
 	_addBucketResponse(event) {
 		this.$.addServiceModal.close();
-		this.$.getAddsubToast.text = "Bucket added successfully ";
-		this.$.getAddsubToast.open();
+		var toast = document.body.querySelector('sig-app').shadowRoot.getElementById('restError');
+		toast.text = "Success";
+		toast.open();
 		document.body.querySelector('sig-app').shadowRoot.getElementById('serviceList').shadowRoot.getElementById('subscriberGrid').clearCache();
 	}
 

@@ -16,7 +16,6 @@ import '@vaadin/vaadin-grid/theme/material/vaadin-grid.js';
 import '@vaadin/vaadin-grid/vaadin-grid.js';
 import '@vaadin/vaadin-grid/vaadin-grid-filter.js';
 import '@vaadin/vaadin-grid/vaadin-grid-column-group.js';
-import '@polymer/paper-toast/paper-toast.js';
 import './style-element.js'
 
 class productList extends PolymerElement {
@@ -122,8 +121,6 @@ class productList extends PolymerElement {
 				url="/productInventoryManagement/v2/product/"
 				rejectWithRequest>
 			</iron-ajax>
-			<paper-toast id="getProductToast">
-			</paper-toast>
 		`;
 	}
 
@@ -268,8 +265,9 @@ class productList extends PolymerElement {
 		}
 		var handleAjaxError = function(error) {
 			productList.etag = null;
-			this.$.getProductToast.text = "Error";
-			this.$.getProductToast.open();
+			var toast = document.body.querySelector('sig-app').shadowRoot.getElementById('restError');
+			toast.text = "Error";
+			toast.open();
 			if(!grid.size) {
 				grid.size = 0;
 			}
