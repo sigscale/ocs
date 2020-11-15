@@ -35,6 +35,7 @@ class productList extends PolymerElement {
 								path="id"
 								value="{{_filterProId}}">
 							<input
+									slot="filter"
 									placeholder="Product Id"
 									value="{{_filterProId::input}}"
 									focus-target>
@@ -49,6 +50,7 @@ class productList extends PolymerElement {
 								path="service"
 								value="{{_filterIdentity}}">
 							<input
+									slot="filter"
 									placeholder="Services"
 									value="{{_filterIdentity::input}}"
 									focus-target>
@@ -100,6 +102,7 @@ class productList extends PolymerElement {
 								path="product"
 								value="{{_filterOffer}}">
 							<input
+									slot="filter"
 									placeholder="Offering"
 									value="{{_filterOffer::input}}"
 									focus-target>

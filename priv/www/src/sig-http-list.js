@@ -34,6 +34,7 @@ class httpList extends PolymerElement {
 								path="datetime"
 								value="{{_filterDateTime}}">
 							<input
+									slot="filter"
 									placeholder="Date & Time"
 									value="{{_filterDateTime::input}}"
 									focus-target>
@@ -50,6 +51,7 @@ class httpList extends PolymerElement {
 								path="host"
 								value="{{_filterHost}}">
 							<input
+									slot="filter"
 									placeholder="Host"
 									value="{{_filterHost::input}}"
 									focus-target>
@@ -66,6 +68,7 @@ class httpList extends PolymerElement {
 								path="user"
 								value="{{_filterUser}}">
 							<input
+									slot="filter"
 									placeholder="User"
 									value="{{_filterUser::input}}"
 									focus-target>
@@ -82,6 +85,7 @@ class httpList extends PolymerElement {
 								path="method"
 								value="{{_filterMethod}}">
 							<input
+									slot="filter"
 									placeholder="Method"
 									value="{{_filterMethod::input}}"
 									focus-target>
@@ -98,6 +102,7 @@ class httpList extends PolymerElement {
 								path="uri"
 								value="{{_filterResource}}">
 							<input
+									slot="filter"
 									placeholder="Resource"
 									value="{{_filterResource::input}}"
 									focus-target>
@@ -114,6 +119,7 @@ class httpList extends PolymerElement {
 								path="httpStatus"
 								value="{{_filterStatus}}">
 							<input
+									slot="filter"
 									placeholder="Status"
 									value="{{_filterStatus::input}}"
 									focus-target>

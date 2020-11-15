@@ -30,7 +30,6 @@ class clientList extends PolymerElement {
 				<vaadin-grid-column>
 					<template class="header">
 						<vaadin-grid-filter
-								id="filter"
 								aria-label="address"
 								path="id"
 								value="{{_filterAddress}}">
@@ -46,7 +45,6 @@ class clientList extends PolymerElement {
 				<vaadin-grid-column>
 					<template class="header">
 						<vaadin-grid-filter
-								id="filter"
 								aria-label="port"
 								path="port"
 								value="[[_filterPort]]">
@@ -67,7 +65,11 @@ class clientList extends PolymerElement {
 								aria-label="identifier"
 								path="identifier"
 								value="[[_filterIdentifier]]">
-							<input placeholder="Identifier" value="{{_filterIdentifier::input}}" focus-target>
+							<input
+									slot="filter"
+									placeholder="Identifier"
+									value="{{_filterIdentifier::input}}"
+									focus-target>
 						</vaadin-grid-filter>
 					</template>
 					<template>
@@ -81,6 +83,7 @@ class clientList extends PolymerElement {
 								path="secret"
 								value="[[_filterSecret]]">
 							<input
+									slot="filter"
 									placeholder="Secret"
 									value="{{_filterSecret::input}}"
 									focus-target>
@@ -97,6 +100,7 @@ class clientList extends PolymerElement {
 								path="protocol"
 								value="[[_filterProtocol]]">
 							<input
+									slot="filter"
 									placeholder="Protocol"
 									value="{{_filterProtocol::input}}"
 									focus-target>

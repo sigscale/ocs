@@ -35,6 +35,7 @@ class bucketList extends PolymerElement {
 								path="id"
 								value="[[_filterBucId]]">
 							<input
+									slot="filter"
 									placeholder="Bucket Id"
 									value="{{_filterBucId::input}}"
 									focus-target>
@@ -49,6 +50,7 @@ class bucketList extends PolymerElement {
 								path="product"
 								value="[[_filterProdId]]">
 							<input
+									slot="filter"
 									placeholder="Product Id"
 									value="{{_filterProdId::input}}"
 									focus-target>

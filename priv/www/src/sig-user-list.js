@@ -29,8 +29,15 @@ class userList extends PolymerElement {
 					theme="no-border">
 				<vaadin-grid-column>
 					<template class="header">
-						<vaadin-grid-filter slot="filter" id="filterId" aria-label="User Name" path="id" value="{{_filterId}}">
-							<input placeholder="Username" value="{{_filterId::input}}" focus-target>
+						<vaadin-grid-filter
+								aria-label="User Name"
+								path="id"
+								value="{{_filterId}}">
+							<input
+									slot="filter"
+									placeholder="Username"
+									value="{{_filterId::input}}"
+									focus-target>
 						</vaadin-grid-filter>
 					</template>
 					<template>
@@ -39,8 +46,15 @@ class userList extends PolymerElement {
 				</vaadin-grid-column>
 				<vaadin-grid-column>
 					<template class="header">
-						<vaadin-grid-filter slot="filter" id="filterLanguage" aria-label="Language" path="language" value="{{_filterLanguage}}">
-							<input placeholder="Language" value="{{_filterLanguage::input}}" focus-target>
+						<vaadin-grid-filter
+								aria-label="Language"
+								path="language"
+								value="{{_filterLanguage}}">
+							<input
+									slot="filter"
+									placeholder="Language"
+									value="{{_filterLanguage::input}}"
+									focus-target>
 						</vaadin-grid-filter>
 					</template>
 					<template>

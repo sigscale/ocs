@@ -30,7 +30,6 @@ class subList extends PolymerElement {
 				<vaadin-grid-column>
 					<template class="header">
 						<vaadin-grid-filter
-							id="filter"
 							aria-label="Identity"
 							path="id"
 							value="{{_filterIdentity}}">

@@ -31,7 +31,6 @@ class offerList extends PolymerElement {
 				<vaadin-grid-column>
 					<template class="header">
 						<vaadin-grid-filter
-								id="filter"
 								aria-label="name"
 								path="id"
 								value="{{_filterName}}">
@@ -47,7 +46,6 @@ class offerList extends PolymerElement {
 				<vaadin-grid-column>
 					<template class="header">
 						<vaadin-grid-filter
-								id="filter"
 								aria-label="description"
 								path="description"
 								value="{{_filterDescription}}">
@@ -63,7 +61,6 @@ class offerList extends PolymerElement {
 				<vaadin-grid-column>
 					<template class="header">
 						<vaadin-grid-filter
-								id="filter"
 								aria-label="startDate"
 								path="startDate"
 								value="{{_filterStart}}">
@@ -79,7 +76,6 @@ class offerList extends PolymerElement {
 				<vaadin-grid-column>
 					<template class="header">
 						<vaadin-grid-filter
-								id="filter"
 								aria-label="endDate"
 								path="endDate"
 								value="{{_filterEnd}}">
@@ -95,7 +91,6 @@ class offerList extends PolymerElement {
 				<vaadin-grid-column>
 					<template class="header">
 						<vaadin-grid-filter
-								id="filter"
 								aria-label="status"
 								path="status"
 								value="{{_filterStatus}}">
@@ -111,7 +106,6 @@ class offerList extends PolymerElement {
 				<vaadin-grid-column>
 					<template class="header">
 						<vaadin-grid-filter
-								id="filter"
 								aria-label="price"
 								path="price"
 								value="{{_filterPrice}}">

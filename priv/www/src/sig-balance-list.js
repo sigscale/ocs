@@ -33,6 +33,7 @@ class balanceList extends PolymerElement {
 								path="timeStamp"
 								value="{{filterTime}}">
 							<input
+									slot="filter"
 									placeholder="Time Stamp"
 									value="{{filterTime::input}}"
 									focus-target>
@@ -50,6 +51,7 @@ class balanceList extends PolymerElement {
 								path="type"
 								value="{{filterType}}">
 							<input
+									slot="filter"
 									placeholder="Type"
 									value="{{filterType::input}}"
 									focus-target>
@@ -66,6 +68,7 @@ class balanceList extends PolymerElement {
 								path="product"
 								value="{{filterProduct}}">
 							<input
+									slot="filter"
 									placeholder="Product"
 									value="{{filterProduct::input}}"
 									focus-target>
@@ -83,6 +86,7 @@ class balanceList extends PolymerElement {
 								path="bucket"
 								value="{{filterBucket}}">
 							<input
+									slot="filter"
 									placeholder="Bucket"
 									value="{{filterBucket::input}}"
 									focus-target>
@@ -100,6 +104,7 @@ class balanceList extends PolymerElement {
 								path="amount"
 								value="{{filterAmount}}">
 							<input
+									slot="filter"
 									placeholder="Amount"
 									value="{{filterAmount::input}}"
 									focus-target>
@@ -121,6 +126,7 @@ class balanceList extends PolymerElement {
 									path="amountAfter"
 									value="{{filterAfter}}">
 								<input
+										slot="filter"
 										placeholder="After"
 										value="{{filterAfter::input}}"
 										focus-target>
@@ -137,6 +143,7 @@ class balanceList extends PolymerElement {
 									path="amountBefore"
 									value="{{filterBefore}}">
 								<input
+										slot="filter"
 										placeholder="Before"
 										value="{{filterBefore::input}}"
 										focus-target>

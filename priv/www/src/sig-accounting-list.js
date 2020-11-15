@@ -33,6 +33,7 @@ class accountingList extends PolymerElement {
 								path="date"
 								value="{{filterTimeStamp}}">
 							<input
+									slot="filter"
 									placeholder="Time Stamp"
 									value="{{filterTimeStamp::input}}"
 									focus-target>
@@ -47,6 +48,7 @@ class accountingList extends PolymerElement {
 								path="nasIdentifier"
 								value="{{filterclientIdentityAcc}}">
 							<input
+									slot="filter"
 									placeholder="Client Identity"
 									value="{{filterclientIdentityAcc::input}}"
 									focus-target>
@@ -65,6 +67,7 @@ class accountingList extends PolymerElement {
 									path="acctSessiontime"
 									value="{{filteracctSessiontime}}">
 								<input
+										slot="filter"
 										placeholder="Duration"
 										value="{{filteracctSessiontime::input}}"
 										focus-target>
@@ -84,6 +87,7 @@ class accountingList extends PolymerElement {
 									path="acctOutputoctets"
 									value="{{filterout}}">
 								<input
+										slot="filter"
 										placeholder="Out"
 										value="{{filterout::input}}"
 										focus-target>
@@ -98,6 +102,7 @@ class accountingList extends PolymerElement {
 									path="acctInputoctets"
 									value="{{filterin}}">
 								<input
+										slot="filter"
 										placeholder="In"
 										value="{{filterin::input}}"
 										focus-target>
@@ -112,6 +117,7 @@ class accountingList extends PolymerElement {
 									path="acctTotaloctets"
 									value="{{filtertotal}}">
 								<input
+										slot="filter"
 										placeholder="Total"
 										value="{{filtertotal::input}}"
 										focus-target>
@@ -127,6 +133,7 @@ class accountingList extends PolymerElement {
 								path="prices"
 								value="{{filterPrices}}">
 							<input
+									slot="filter"
 									placeholder="Price"
 									value="{{filterPrices::input}}"
 									focus-target>
@@ -141,6 +148,7 @@ class accountingList extends PolymerElement {
 								path="username"
 								value="{{filterUserName}}">
 							<input
+									slot="filter"
 									placeholder="User Name"
 									value="{{filterUserName::input}}"
 									focus-target>
@@ -155,6 +163,7 @@ class accountingList extends PolymerElement {
 								path="type"
 								value="{{filterType}}">
 							<input
+									slot="filter"
 									placeholder="Type"
 									value="{{filterType::input}}"
 									focus-target>
