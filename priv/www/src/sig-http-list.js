@@ -10,6 +10,7 @@
 
 import { PolymerElement, html } from '@polymer/polymer/polymer-element.js';
 import '@polymer/iron-ajax/iron-ajax.js';
+import '@vaadin/vaadin-grid/theme/material/vaadin-grid.js';
 import '@vaadin/vaadin-grid/vaadin-grid.js';
 import '@vaadin/vaadin-grid/vaadin-grid-filter.js';
 import '@vaadin/vaadin-grid/vaadin-grid-column-group.js';
@@ -22,7 +23,8 @@ class httpList extends PolymerElement {
 			<style include="style-element"></style>
 			<vaadin-grid
 					id="httpGrid"
-					loading="{{loading}}">
+					loading="{{loading}}"
+					theme="no-border">
 				<vaadin-grid-column
 						width="28ex"
 						flex-grow="2">

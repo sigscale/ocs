@@ -10,6 +10,7 @@
 
 import { PolymerElement, html } from '@polymer/polymer/polymer-element.js';
 import '@polymer/iron-ajax/iron-ajax.js';
+import '@vaadin/vaadin-grid/theme/material/vaadin-grid.js';
 import '@vaadin/vaadin-grid/vaadin-grid.js';
 import '@vaadin/vaadin-grid/vaadin-grid-filter.js';
 import '@polymer/paper-dialog/paper-dialog.js';
@@ -26,7 +27,8 @@ class ipdrListVoip extends PolymerElement {
 			<style include="style-element"></style>
 			<vaadin-grid
 					id="ipdrGridVoip"
-					loading="{{loading}}">
+					loading="{{loading}}"
+					theme="no-border">
 				<vaadin-grid-column
 						width="19ex"
 						flex-grow="1">

@@ -11,6 +11,7 @@
 import { PolymerElement, html } from '@polymer/polymer/polymer-element.js';
 import '@polymer/iron-ajax/iron-ajax.js';
 import '@polymer/paper-button/paper-button.js';
+import '@vaadin/vaadin-grid/theme/material/vaadin-grid.js';
 import '@vaadin/vaadin-grid/vaadin-grid.js';
 import '@vaadin/vaadin-grid/vaadin-grid-filter.js';
 import '@polymer/paper-toast/paper-toast.js';
@@ -23,7 +24,8 @@ class accessList extends PolymerElement {
 			<style include="style-element"></style>
 			<vaadin-grid 
 					id="accessGrid"
-					loading="{{loading}}">
+					loading="{{loading}}"
+					theme="no-border">
 				<vaadin-grid-column width="24ex">
 					<template class="header">
 						<vaadin-grid-filter

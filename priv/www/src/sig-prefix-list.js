@@ -12,6 +12,7 @@ import { PolymerElement, html } from '@polymer/polymer/polymer-element.js';
 import '@polymer/iron-ajax/iron-ajax.js';
 import '@polymer/paper-fab/paper-fab.js';
 import '@polymer/iron-icons/iron-icons.js';
+import '@vaadin/vaadin-grid/theme/material/vaadin-grid.js';
 import '@vaadin/vaadin-grid/vaadin-grid.js';
 import '@polymer/paper-toast/paper-toast.js';
 import './style-element.js'
@@ -23,7 +24,8 @@ class prefixList extends PolymerElement {
 			<vaadin-grid
 					id="prefixGrid"
 					loading="{{loading}}"
-					active-item="{{activeItem}}">
+					active-item="{{activeItem}}"
+					theme="no-border">
 				<vaadin-grid-column width="15ex">
 					<template class="header">
 						Prefix

@@ -13,6 +13,7 @@ import '@polymer/iron-ajax/iron-ajax.js';
 import '@polymer/paper-fab/paper-fab.js';
 import '@polymer/iron-icons/iron-icons.js';
 import '@polymer/paper-toast/paper-toast.js';
+import '@vaadin/vaadin-grid/theme/material/vaadin-grid.js';
 import '@vaadin/vaadin-grid/vaadin-grid.js';
 import '@vaadin/vaadin-grid/vaadin-grid-filter.js';
 import './style-element.js';
@@ -24,7 +25,8 @@ class userList extends PolymerElement {
 			<vaadin-grid
 					id="userGrid"
 					loading="{{loading}}"
-					active-item="{{activeItem}}">
+					active-item="{{activeItem}}"
+					theme="no-border">
 				<vaadin-grid-column>
 					<template class="header">
 						<vaadin-grid-filter slot="filter" id="filterId" aria-label="User Name" path="id" value="{{_filterId}}">

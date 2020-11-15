@@ -11,6 +11,7 @@
 import { PolymerElement, html } from '@polymer/polymer/polymer-element.js';
 import '@polymer/iron-ajax/iron-ajax.js';
 import '@polymer/paper-fab/paper-fab.js';
+import '@vaadin/vaadin-grid/theme/material/vaadin-grid.js';
 import '@vaadin/vaadin-grid/vaadin-grid.js';
 import '@vaadin/vaadin-grid/vaadin-grid-filter.js';
 import '@vaadin/vaadin-grid/vaadin-grid-column-group.js';
@@ -25,7 +26,8 @@ class bucketList extends PolymerElement {
 			<vaadin-grid
 					id="balanceBucketGrid"
 					active-item="{{activeItem}}"
-					loading="{{loading}}">
+					loading="{{loading}}"
+					theme="no-border">
 				<vaadin-grid-column width="15ex" flex-grow="5">
 					<template class="header">
 						<vaadin-grid-filter
