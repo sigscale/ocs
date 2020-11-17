@@ -44,6 +44,7 @@ class offerAdd extends PolymerElement {
 					</paper-tabs>
 				</app-toolbar>
 				<paper-progress
+						id="progressId"
 						indeterminate
 						class="slow red"
 						disabled="{{!loading}}">
@@ -1975,6 +1976,14 @@ class offerAdd extends PolymerElement {
 		this.$.timeOfDayStart.value = null;
 		this.$.timeOfDayEnd.value = null;
 		this.$.addProductModal.close();
+	}
+
+	_onLoadingChanged(event) {
+		if (this.$.addProductAjax.loading) {
+			this.$.progressId.disabled = false;
+		} else {
+			this.$.progressId.disabled = true;
+		}
 	}
 }
 

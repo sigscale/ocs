@@ -30,6 +30,7 @@ class productAddClass extends PolymerElement {
 					<h3>Add Product</h3>
 				</app-toolbar>
 				<paper-progress
+						id="progressId"
 						indeterminate
 						class="slow red"
 						disabled="{{!loading}}">
@@ -225,6 +226,14 @@ class productAddClass extends PolymerElement {
 	cancelPro() {
 		this.proAdd = null;
 		this.proService = null;
+	}
+
+	_onLoadingChanged(event) {
+		if (this.$.addProductAjax.loading) {
+			this.$.progressId.disabled = false;
+		} else {
+			this.$.progressId.disabled = true;
+		}
 	}
 }
 

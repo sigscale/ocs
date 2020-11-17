@@ -27,6 +27,7 @@ class tableUpdate extends PolymerElement {
 					<h2>Update Prefix</h2>
 				</app-toolbar>
 				<paper-progress
+						id="progressId"
 						indeterminate
 						class="slow red"
 						disabled="{{!loading}}">
@@ -195,6 +196,14 @@ class tableUpdate extends PolymerElement {
 		this.$.upPrefix = null;
 		this.$.upDesc = null;
 		this.$.upRate = null;
+	}
+
+	_onLoadingChanged(event) {
+		if (this.$.updateTableRowAjax.loading) {
+			this.$.progressId.disabled = false;
+		} else {
+			this.$.progressId.disabled = true;
+		}
 	}
 }
 

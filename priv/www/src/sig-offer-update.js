@@ -45,6 +45,7 @@ class offerUpdate extends PolymerElement {
 					</paper-tabs>
 				</app-toolbar>
 				<paper-progress
+						id="progressId"
 						indeterminate
 						class="slow red"
 						disabled="{{!loading}}">
@@ -2188,10 +2189,10 @@ class offerUpdate extends PolymerElement {
 	}
 
 	_onLoadingChanged(event) {
-		if (this.$.updateProductAjax.loading) {
-			document.getElementById("progress").disabled = false;
+		if (this.$.updateAddProductAjax.loading) {
+			this.$.progressId.disabled = false;
 		} else {
-			document.getElementById("progress").disabled = true;
+			this.$.progressId.disabled = true;
 		}
 	}
 

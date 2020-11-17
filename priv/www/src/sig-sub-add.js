@@ -47,6 +47,7 @@ class subAdd extends PolymerElement {
 					</paper-tabs>
 				</app-toolbar>
 				<paper-progress
+						id="progressId"
 						indeterminate
 						class="slow red"
 						disabled="{{!loading}}">
@@ -395,7 +396,7 @@ class subAdd extends PolymerElement {
 					url="/productInventoryManagement/v2/product"
 					method = "post"
 					content-type="application/json"
-					on-loading-changed="_onLoadingChanged"
+					on-loading-changed="_onLoadingChanged1"
 					on-response="_addProductResponse"
 					on-error="_addProductError">
 			</iron-ajax>
@@ -403,7 +404,7 @@ class subAdd extends PolymerElement {
 					id="addBucketAjax"
 					method = "post"
 					content-type="application/json"
-					on-loading-changed="_onLoadingChanged"
+					on-loading-changed="_onLoadingChanged2"
 					on-response="_addBucketResponse"
 					on-error="_addBucketError">
 			</iron-ajax>
@@ -702,6 +703,28 @@ class subAdd extends PolymerElement {
 			this.$.addSubscriberId.disabled = true;
 		} else {
 			this.$.addSubscriberId.disabled = false;
+		}
+	}
+
+	_onLoadingChanged(event) {
+		if (this.$.addServiceAjax.loading) {
+			this.$.progressId.disabled = false;
+		} else {
+			this.$.progressId.disabled = true;
+		}
+	}
+	_onLoadingChanged1(event) {
+		if (this.$.addProductAjax.loading) {
+			this.$.progressId.disabled = false;
+		} else {
+			this.$.progressId.disabled = true;
+		}
+	}
+	_onLoadingChanged2(event) {
+		if (this.$.addBucketAjax.loading) {
+			this.$.progressId.disabled = false;
+		} else {
+			this.$.progressId.disabled = true;
 		}
 	}
 }

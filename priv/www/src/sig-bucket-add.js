@@ -34,6 +34,7 @@ class offerAdd extends PolymerElement {
 				</app-toolbar>
 				<paper-progress
 						indeterminate
+						id="progressId"
 						class="slow red"
 						disabled="{{!loading}}">
 				</paper-progress>
@@ -274,6 +275,14 @@ class offerAdd extends PolymerElement {
 		var toast = document.body.querySelector('sig-app').shadowRoot.getElementById('restError');
 		toast.text = "Error";
 		toast.open();
+	}
+
+	_onLoadingChanged(event) {
+		if (this.$.addBucketAjax.loading) {
+			this.$.progressId.disabled = false;
+		} else {
+			this.$.progressId.disabled = true;
+		}
 	}
 }
 

@@ -27,6 +27,7 @@ class prefixAdd extends PolymerElement {
 					<h2>Add Prefix</h2>
 				</app-toolbar>
 				<paper-progress
+						id="progressId"
 						indeterminate
 						class="slow red"
 						disabled="{{!loading}}">
@@ -163,6 +164,14 @@ class prefixAdd extends PolymerElement {
 		this.addPre = null;
 		this.addDesc = null;
 		this.addRateRow = null;
+	}
+
+	_onLoadingChanged(event) {
+		if (this.$.addTableRowAjax.loading) {
+			this.$.progressId.disabled = false;
+		} else {
+			this.$.progressId.disabled = true;
+		}
 	}
 }
 
