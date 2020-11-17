@@ -44,76 +44,31 @@ class offerList extends PolymerElement {
 				</vaadin-grid-column>
 				<vaadin-grid-column>
 					<template class="header">
-						<vaadin-grid-filter
-								aria-label="description"
-								path="description"
-								value="{{_filterDescription}}">
-							<input
-									slot="filter"
-									placeholder="Description"
-									value="{{_filterDescription::input}}"
-									focus-target>
-						</vaadin-grid-filter>
+							Description
 					</template>
 					<template>[[item.description]]</template>
 				</vaadin-grid-column>
 				<vaadin-grid-column>
 					<template class="header">
-						<vaadin-grid-filter
-								aria-label="startDate"
-								path="startDate"
-								value="{{_filterStart}}">
-							<input
-									slot="filter"
-									placeholder="Start Date"
-									value="{{_filterStart::input}}"
-									focus-target>
-						</vaadin-grid-filter>
+							Start Date
 					</template>
 					<template>[[item.startDate]]</template>
 				</vaadin-grid-column>
 				<vaadin-grid-column>
 					<template class="header">
-						<vaadin-grid-filter
-								aria-label="endDate"
-								path="endDate"
-								value="{{_filterEnd}}">
-							<input
-									slot="filter"
-									placeholder="End Date"
-									value="{{_filterEnd::input}}"
-									focus-target>
-						</vaadin-grid-filter>
+							End Date
 					</template>
 					<template>[[item.endDate]]</template>
 				</vaadin-grid-column>
 				<vaadin-grid-column>
 					<template class="header">
-						<vaadin-grid-filter
-								aria-label="status"
-								path="status"
-								value="{{_filterStatus}}">
-							<input
-									slot="filter"
-									placeholder="Status"
-									value="{{_filterStatus::input}}"
-									focus-target>
-						</vaadin-grid-filter>
+							Status
 					</template>
 					<template>[[item.status]]</template>
 				</vaadin-grid-column>
 				<vaadin-grid-column>
 					<template class="header">
-						<vaadin-grid-filter
-								aria-label="price"
-								path="price"
-								value="{{_filterPrice}}">
-							<input
-									slot="filter"
-									placeholder="Price"
-									value="{{_filterPrice::input}}"
-									focus-target>
-						</vaadin-grid-filter>
+							Price
 					</template>
 					<template>[[item.price]]</template>
 				</vaadin-grid-column>
@@ -169,26 +124,6 @@ class offerList extends PolymerElement {
 			_filterName: {
 				type: Boolean,
 				observer: '_filterChanged'
-			},
-			_filterDescription: {
-				type: Boolean,
-				observer: '_filterChanged'
-			},
-			_filterStart: {
-				type: Boolean,
-				observer: '_filterChanged'
-			},
-			_filterEnd: {
-				type: Boolean,
-				observer: '_filterChanged'
-			},
-			_filterStatus: {
-				type: Boolean,
-				observer: '_filterChanged'
-			},
-			_filterPrice: {
-				type: Boolean,
-				observer: '_filterChanged'
 			}
 		}
 	}
@@ -238,7 +173,7 @@ class offerList extends PolymerElement {
 				} else {
 					ajax.params['filter'] += "],";
 				}
-				ajax.params['filter'] += "characteristic.contains=[{name=language" + ",value.like=[" + filter.value + "%]}";
+				ajax.params['filter'] += "characteristic.contains=[{name=description" + ",value.like=[" + filter.value + "%]}";
 			}
 		});
 		if (ajax.params['filter']) {
