@@ -2488,11 +2488,17 @@ auth_query5(_Attributes, []) ->
 		Continuation :: {Continuation2, Events},
 		Continuation2 :: eof | disk_log:continuation(),
 		Events :: [abmf_event()],
-		Type :: transfer | topup | adjustment | '_',
-		Subscriber :: binary() | '_',
-		Bucket :: string() | '_',
-		Units :: cents | seconds | octets | messages | '_',
-		Product :: string() | '_',
+		Type :: {type, {MatchType, TypeValue}} | '_',
+		TypeValue :: transfer | topup | adjustment | '_',
+		Subscriber :: {subscriber, {MatchType, SubscriberValue}} | '_',
+		SubscriberValue :: binary() | '_',
+		Bucket :: {bucket, {MatchType, BucketValue}} | '_',
+		BucketValue :: string() | '_',
+		Units :: {units, {MatchType, UnitsValue}} | '_',
+		UnitsValue :: cents | seconds | octets | messages | '_',
+		Product :: {units, {MatchType, ProductValue}} | '_',
+		ProductValue :: string() | '_',
+		MatchType :: exact | like,
 		Result :: {Continuation2, Events}.
 %% @private
 %% @doc Query balance activity log events with filters.
@@ -2562,23 +2568,23 @@ abmf_query5([], _Product, Acc) ->
 	lists:reverse(Acc).
 %% @hidden
 abmf_query6(Attributes, [{_Attribute, {exact, Match}} | _])
-		when Match == element(4, Attributes)->
+		when Match == element(4, Attributes) ->
 	true;
 abmf_query6(Attributes, [{_Attribute, {exact, Match}} | _])
-		when Match == element(5, Attributes)->
+		when Match == element(5, Attributes) ->
 	true;
 abmf_query6(Attributes, [{_Attribute, {exact, Match}} | _])
-		when Match == element(6, Attributes)->
+		when Match == element(6, Attributes) ->
 	true;
 abmf_query6(Attributes, [{_Attribute, {exact, Match}} | _])
-		when Match == element(7, Attributes)->
+		when Match == element(7, Attributes) ->
 	true;
 abmf_query6(Attributes, [{_Attribute, {exact, Match}} | _])
-		when Match == element(8, Attributes)->
+		when Match == element(8, Attributes) ->
 	true;
 
 abmf_query6(Attributes, [{type, {like, [H | _T1]}} | _])
-		when is_atom(element(4, Attributes))->
+		when is_atom(element(4, Attributes)) ->
 		case lists:prefix(H, atom_to_list(element(4, Attributes))) of
 			true ->
 				true;
