@@ -322,53 +322,44 @@ class SigApp extends PolymerElement {
 	}
 
 	refresh() {
-		switch(this.$.load.selected) {
-			case 0:
-				document.body.querySelector('sig-app').shadowRoot.getElementById('offerList').shadowRoot.getElementById('offerGrid').clearCache();
-				break;
-			case 1:
-				document.body.querySelector('sig-app').shadowRoot.getElementById('serviceList').shadowRoot.getElementById('subscriberGrid').clearCache();
-				document.body.querySelector('sig-app').shadowRoot.getElementById('serviceList').refreshSub();
-				break;
-			case 2:
-				document.body.querySelector('sig-app').shadowRoot.getElementById('clientList').shadowRoot.getElementById('clientGrid').clearCache();
-				document.body.querySelector('sig-app').shadowRoot.getElementById('clientList').refreshClient();
-				break;
-			case 3:
-				document.body.querySelector('sig-app').shadowRoot.getElementById('userList').shadowRoot.getElementById('userGrid').clearCache();
-				break;
-			case 4:
-				document.body.querySelector('sig-app').shadowRoot.getElementById('accessList').shadowRoot.getElementById('accessGrid').clearCache();
-				document.body.querySelector('sig-app').shadowRoot.getElementById('accessList').refreshAccess();
-				break;
-			case 5:
-				document.body.querySelector('sig-app').shadowRoot.getElementById('accountingList').shadowRoot.getElementById('accountingGrid').clearCache();
-				document.body.querySelector('sig-app').shadowRoot.getElementById('accountingList').refreshAccounting();
-				break;
-			case 6:
-				document.body.querySelector('sig-app').shadowRoot.getElementById('ipdrLogListWlan').shadowRoot.getElementById('ipdrGrid').clearCache();
-				document.body.querySelector('sig-app').shadowRoot.getElementById('ipdrLogListWlan').refreshIpdr();
-				break;
-			case 7:
-				document.body.querySelector('sig-app').shadowRoot.getElementById('ipdrLogListVoip').shadowRoot.getElementById('ipdrGridVoip').clearCache();
-				document.body.querySelector('sig-app').shadowRoot.getElementById('ipdrLogListVoip').refreshIPDRVoip();
-				break;
-			case 8:
-				document.body.querySelector('sig-app').shadowRoot.getElementById('httpList').shadowRoot.getElementById('getHttp').generateRequest();
-				break;
-			case 9:
-				document.body.querySelector('sig-app').shadowRoot.getElementById('prefixList').shadowRoot.getElementById('prefixGrid').clearCache();
-				break;
-			case 10:
-				document.body.querySelector('sig-app').shadowRoot.getElementById('balanceList').shadowRoot.getElementById('balanceGrid').clearCache();
-				break;
-			case 11:
-				document.body.querySelector('sig-app').shadowRoot.getElementById('productList').shadowRoot.getElementById('productInventoryGrid').clearCache();
-				document.body.querySelector('sig-app').shadowRoot.getElementById('productList').refreshProduct();
-				break;
-			case 12:
-				document.body.querySelector('sig-app').shadowRoot.getElementById('bucketList').shadowRoot.getElementById('balanceBucketGrid').clearCache();
-				break;
+		if(this.$.load.selected == "offerView") {
+			document.body.querySelector('sig-app').shadowRoot.getElementById('offerList').shadowRoot.getElementById('offerGrid').clearCache();
+		}
+		if(this.$.load.selected == "serviceView") {
+			document.body.querySelector('sig-app').shadowRoot.getElementById('serviceList').shadowRoot.getElementById('subscriberGrid').clearCache();
+		}
+		if(this.$.load.selected == "clientView") {
+			document.body.querySelector('sig-app').shadowRoot.getElementById('clientList').shadowRoot.getElementById('clientGrid').clearCache();
+		}
+		if(this.$.load.selected == "userView") {
+			document.body.querySelector('sig-app').shadowRoot.getElementById('userList').shadowRoot.getElementById('userGrid').clearCache();
+		}
+		if(this.$.load.selected == "accessView") {
+			document.body.querySelector('sig-app').shadowRoot.getElementById('accessList').shadowRoot.getElementById('accessGrid').clearCache();
+		}
+		if(this.$.load.selected == "accountingView") {
+			document.body.querySelector('sig-app').shadowRoot.getElementById('accountingList').shadowRoot.getElementById('accountingGrid').clearCache();
+		}
+		if(this.$.load.selected == "ipdrWlanView") {
+			document.body.querySelector('sig-app').shadowRoot.getElementById('ipdrLogListWlan').shadowRoot.getElementById('ipdrGrid').clearCache();
+		}
+		if(this.$.load.selected == "ipdrVoipView") {
+			document.body.querySelector('sig-app').shadowRoot.getElementById('ipdrLogListVoip').shadowRoot.getElementById('ipdrGridVoip').clearCache();
+		}
+		if(this.$.load.selected == "httpView") {
+			document.body.querySelector('sig-app').shadowRoot.getElementById('httpList').shadowRoot.getElementById('getHttp').generateRequest();
+		}
+		if(this.$.load.selected == "prefixView") {
+			document.body.querySelector('sig-app').shadowRoot.getElementById('prefixList').shadowRoot.getElementById('prefixGrid').clearCache();
+		}
+		if(this.$.load.selected == "balanceView") {
+			document.body.querySelector('sig-app').shadowRoot.getElementById('balanceList').shadowRoot.getElementById('balanceGrid').clearCache();
+		}
+		if(this.$.load.selected == "productView") {
+			document.body.querySelector('sig-app').shadowRoot.getElementById('productList').shadowRoot.getElementById('productInventoryGrid').clearCache();
+		}
+		if(this.$.load.selected == "bucketView") {
+			document.body.querySelector('sig-app').shadowRoot.getElementById('bucketList').shadowRoot.getElementById('balanceBucketGrid').clearCache();
 		}
 	}
 
