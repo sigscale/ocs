@@ -136,7 +136,8 @@ init_per_testcase(TestCase, Config) when TestCase == notify_create_bucket;
 		TestCase == query_offer_notification;
 		TestCase == notify_insert_gtt; TestCase == notify_delete_gtt;
 		TestCase == query_gtt_notification;
-		TestCase == notify_add_pla; TestCase == notify_delete_pla ->
+		TestCase == notify_add_pla; TestCase == notify_delete_pla;
+		TestCase == query_pla_notification ->
 	true = register(TestCase, self()),
 	case inets:start(httpd, [{port, 0},
 			{server_name, atom_to_list(?MODULE)},
@@ -205,7 +206,7 @@ all() ->
 	post_hub_user, delete_hub_user, post_hub_catalog, delete_hub_catalog,
 	notify_create_offer, notify_delete_offer, query_offer_notification,
 	notify_insert_gtt, notify_delete_gtt, query_gtt_notification,
-	notify_add_pla, notify_delete_pla,
+	notify_add_pla, notify_delete_pla, query_pla_notification,
 	post_hub_inventory, delete_hub_inventory, notify_product_charge,
 	oauth_authentication].
 
@@ -3715,7 +3716,7 @@ notify_add_pla(Config) ->
 	end.
 
 notify_delete_pla() ->
-	[{userdata, [{doc, "Receive pla deletion notification."}]}].
+	[{userdata, [{doc, "Receive pla deletion notification"}]}].
 
 notify_delete_pla(Config) ->
 	HostUrl = ?config(host_url, Config),
@@ -3751,6 +3752,42 @@ notify_delete_pla(Config) ->
 			{_, "PlaRemoveNotification"}
 					= lists:keyfind("eventType", 1, PlaEvent2),
 			{_, {struct, PlaList}} = lists:keyfind("event", 1, PlaEvent2),
+			{_, Name} = lists:keyfind("id", 1, PlaList)
+	end.
+
+query_pla_notification() ->
+	[{userdata, [{doc, "Query pla notifications"}]}].
+
+query_pla_notification(Config) ->
+	HostUrl = ?config(host_url, Config),
+	CollectionUrl = HostUrl ++ ?PathResourceHub,
+	ListenerPort = ?config(listener_port, Config),
+	ListenerServer = "http://localhost:" ++ integer_to_list(ListenerPort),
+	Callback = ListenerServer ++ "/listener/"
+			++ atom_to_list(?MODULE) ++ "/queryplanotification",
+	Name = "test_notification3",
+	Query = "eventType=PlaRemoveNotification&id=" ++ Name,
+	RequestBody = "{\n"
+			++ "\t\"callback\": \"" ++ Callback ++ "\",\n"
+			++ "\t\"query\": \"" ++ Query ++ "\"\n"
+			++ "}\n",
+	ContentType = "application/json",
+	Accept = {"accept", "application/json"},
+	Request = {CollectionUrl, [Accept, auth_header()], ContentType, RequestBody},
+	{ok, {{_, 201, _}, _, _}} = httpc:request(post, Request, [], []),
+	SD = erlang:system_time(?MILLISECOND),
+	ED = erlang:system_time(?MILLISECOND) + rand:uniform(10000000000),
+	Status = created,
+	Pla = #pla{name = Name, start_date = SD,
+			end_date = ED, status = Status},
+	{ok, #pla{}} = ocs:add_pla(Pla),
+	ok = ocs:delete_pla(Name),
+	receive
+		Receive ->
+			{struct, PlaEvent} = mochijson:decode(Receive),
+			{_, "PlaRemoveNotification"}
+					= lists:keyfind("eventType", 1, PlaEvent),
+			{_, {struct, PlaList}} = lists:keyfind("event", 1, PlaEvent),
 			{_, Name} = lists:keyfind("id", 1, PlaList)
 	end.
 
@@ -4030,6 +4067,13 @@ notifyaddpla(SessionID, _Env, Input) ->
 notifydeletepla(SessionID, _Env, Input) ->
 	mod_esi:deliver(SessionID, "status: 201 Created\r\n\r\n"),
 	notify_delete_pla ! Input.
+
+-spec queryplanotification(SessionID :: term(), Env :: list(),
+		Input :: string()) -> any().
+%% @doc Notification callback for query_pla_notification test case.
+queryplanotification(SessionID, _Env, Input) ->
+	mod_esi:deliver(SessionID, "status: 201 Created\r\n\r\n"),
+	query_pla_notification ! Input.
 
 product_offer() ->
 	CatalogHref = "/productCatalogManagement/v2",

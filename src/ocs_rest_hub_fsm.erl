@@ -168,7 +168,8 @@ register(timeout, State) ->
 %% @private
 registered({Type, Resource, Category}, #statedata{query = []} = StateData) ->
 	send_request({Type, Resource, Category}, StateData);
-registered({Type, Resource, Category}, #statedata{query = Query} = StateData) ->
+registered({Type, Resource, Category}, #statedata{query = Query} = StateData)
+		when is_list(Query) ->
 	{ResourceId, QueryEventType} = case string:tokens(Query, "&=") of
 		["eventType", QueryType, "id", Id] ->
 			{Id, QueryType};
@@ -386,7 +387,9 @@ get_resource_id(Resource) ->
 		#bucket{id = Id} ->
 			Id;
 		{_, #gtt{num = Num}} ->
-			Num
+			Num;
+		#pla{name = Name} ->
+			Name
 	end.
 
 %% @hidden
