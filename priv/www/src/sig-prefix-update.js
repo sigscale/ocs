@@ -81,8 +81,8 @@ class tableUpdate extends PolymerElement {
 					</paper-button>
 					<paper-button toggles
 							raised
-							on-tap="delete-button"
-							class="delete-buttons">
+							on-tap="deleteUpdate"
+							class="delete-button">
 						Delete
 					</paper-button>
 				</div>
