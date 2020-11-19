@@ -255,6 +255,7 @@ class clientUpdate extends PolymerElement {
 		var toast = document.body.querySelector('sig-app').shadowRoot.getElementById('restError');
 		toast.text = "Success";
 		toast.open();
+		this.$.updateClientModal.close();
 		document.body.querySelector('sig-app').shadowRoot.getElementById('clientList').shadowRoot.getElementById('clientGrid').clearCache();
 	}
 
