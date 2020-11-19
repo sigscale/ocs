@@ -167,13 +167,6 @@ class subUpdate extends PolymerElement {
 									class="update-button">
 								Update
 							</paper-button>
-							<paper-button
-									toggles
-									raised
-									on-tap="deleteSub"
-									class="delete-button">
-								Delete
-							</paper-button>
 						</div>
 					</div>
 					<div id="edit-bal">
@@ -233,13 +226,6 @@ class subUpdate extends PolymerElement {
 									on-tap="updateSubscriberBalance"
 									class="update-button">
 								Add
-							</paper-button>
-							<paper-button
-									toggles
-									raised
-									on-tap="deleteSub"
-									class="delete-button">
-								Delete
 							</paper-button>
 						</div>
 					</div>
