@@ -164,7 +164,6 @@ class userUpdate extends PolymerElement {
 	_updateUserSubmit() {
 		var getAjax = this.$.getUserAjaxUp;
 		var results = getAjax.lastResponse;
-console.log(results);
 		var ajax = this.$.updateUserAjax;
 		ajax.url = "/partyManagement/v1/individual/" + this.userUpdateUsername;
 		function checkLoc(chara) {
