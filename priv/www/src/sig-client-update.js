@@ -285,14 +285,16 @@ class clientUpdate extends PolymerElement {
 	}
 
 	_updateClientPropertiesResponse() {
-		this.$.getUpdateClientToast.text = "Updated Properties";
-		this.$.getUpdateClientToast.open();
+		var getUpdateClientToast = document.body.querySelector('sig-app').shadowRoot.getElementById('restError');
+		getUpdateClientToast.text = "Updated Properties";
+		getUpdateClientToast.open();
 		document.body.querySelector('sig-app').shadowRoot.getElementById('clientList').shadowRoot.getElementById('clientGrid').clearCache();
 	}
 
 	_updateClientPropertiesError() {
-		this.$.getUpdateClientToast.text = "Error";
-		this.$.getUpdateClientToast.open();
+		var getUpdateClientToast = document.body.querySelector('sig-app').shadowRoot.getElementById('restError');
+		getUpdateClientToast.text = "Error";
+		getUpdateClientToast.open();
 	}
 
 	checkProto() {
@@ -310,15 +312,17 @@ class clientUpdate extends PolymerElement {
 	}
 
 	_deleteClientResponse() {
-		this.$.getUpdateClientToast.text = "Deleted Successfully";
-		this.$.getUpdateClientToast.open();
+		var getUpdateClientToast = document.body.querySelector('sig-app').shadowRoot.getElementById('restError');
+		getUpdateClientToast.text = "Deleted Successfully";
+		getUpdateClientToast.open();
 		this.$.updateClientModal.close();
 		document.body.querySelector('sig-app').shadowRoot.getElementById('clientList').shadowRoot.getElementById('clientGrid').clearCache();
 	}
 
 	_deleteClientError() {
-		this.$.getUpdateClientToast.text = "Error";
-		this.$.getUpdateClientToast.open();
+		var getUpdateClientToast = document.body.querySelector('sig-app').shadowRoot.getElementById('restError');
+		getUpdateClientToast.text = "Error";
+		getUpdateClientToast.open();
 	}
 
 }
