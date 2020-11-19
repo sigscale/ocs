@@ -126,7 +126,7 @@ class offerAdd extends PolymerElement {
 					<paper-button raised
 							id="bucDelButton"
 							on-tap="bucketDelete"
-							class="delete-buttons">
+							class="delete-button">
 						Delete
 					</paper-button>
 					<paper-button dialog-dismiss
