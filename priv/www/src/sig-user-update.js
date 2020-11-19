@@ -109,6 +109,10 @@ class userUpdate extends PolymerElement {
 					on-response="_deleteUserResponse"
 					on-error="_updateUserError">
 			</iron-ajax>
+			<iron-ajax
+				id="getUserAjaxUp"
+				method="GET">
+			</iron-ajax>
 		`;
 	}
 
@@ -137,6 +141,9 @@ class userUpdate extends PolymerElement {
 
 	_activeItemChanged(item) {
 		if(item) {
+			var ajaxCh = this.$.getUserAjaxUp;
+			ajaxCh.url = "/partyManagement/v1/individual/" + item.id;
+			ajaxCh.generateRequest();
 			this.userUpdateUsername = item.id;
 			this.userUpdatePassword = item.password;
 			this.userUpLang = item.language;
@@ -155,8 +162,15 @@ class userUpdate extends PolymerElement {
 	}
 
 	_updateUserSubmit() {
+		var getAjax = this.$.getUserAjaxUp;
+		var results = getAjax.lastResponse;
+console.log(results);
 		var ajax = this.$.updateUserAjax;
 		ajax.url = "/partyManagement/v1/individual/" + this.userUpdateUsername;
+		function checkLoc(chara) {
+			return chara.name == "locale";
+		}
+		var index = results.characteristic.findIndex(checkLoc);
 		var patch = new Array();
 		var language;
 		if (this.userUpLang == "English") {
@@ -167,22 +181,24 @@ class userUpdate extends PolymerElement {
 		if (this.userUpLang) {
 			var op0 = new Object();
 			op0.op = "replace";
-			op0.path = "/characteristic/";
-			op0.value = new Object();
-			op0.value.name = "locale";
-			op0.value.value = language;
+			op0.path = "/characteristic/" + index;
+			var charlocal = new Object();
+			charlocal.name = "locale";
+			charlocal.value = language;
+			op0.value = charlocal;
 			patch.push(op0);
 		}
 		if (this.userUpdatePassword) {
 			var op1 = new Object();
 			op1.op = "add";
 			op1.path = "/characteristic/-";
-			op1.value = new Object();
-			op1.value.name = "password";
-			op1.value.value = this.userUpdatePassword;
+			var charPass = new Object();
+			charPass.name = "password";
+			charPass.value = this.userUpdatePassword;
+			op1.value = charPass;
 			patch.push(op1);
 		}
-		ajax.body = patch;
+		ajax.body = JSON.stringify(patch);
 		ajax.generateRequest();
 	}
 
