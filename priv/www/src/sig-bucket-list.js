@@ -53,9 +53,10 @@ class bucketList extends PolymerElement {
 									placeholder="Product Id"
 									value="{{_filterProdId::input}}"
 									focus-target>
-					</vaadin-grid-filter>
-				</template>
-				<template>[[item.product]]</template>
+						</vaadin-grid-filter>
+					</template>
+					<template>[[item.product]]</template>
+				</vaadin-grid-column>
 				<vaadin-grid-column-group>
 					<template class="header">
 						<div class="grouptitle">Balance</div>
