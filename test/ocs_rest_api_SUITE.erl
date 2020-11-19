@@ -126,7 +126,8 @@ init_per_testcase(oauth_authentication, Config) ->
 init_per_testcase(TestCase, Config) when TestCase == notify_create_bucket;
 		TestCase == notify_delete_bucket;
 		TestCase == notify_rating_deleted_bucket;
-		TestCase == notify_accumulated_balance; TestCase == notify_product_charge;
+		TestCase == notify_accumulated_balance_threshold;
+		TestCase == notify_product_charge;
 		TestCase == query_accumulated_balance_notification;
 		TestCase == query_bucket_notification;
 		TestCase == notify_create_product; TestCase == notify_delete_product;
@@ -198,7 +199,7 @@ all() ->
 	ignore_delete_product, query_product, filter_product,
 	post_hub_balance, delete_hub_balance, notify_create_bucket,
 	notify_delete_bucket, notify_rating_deleted_bucket,
-	notify_accumulated_balance, query_accumulated_balance_notification,
+	notify_accumulated_balance_threshold, query_accumulated_balance_notification,
 	query_bucket_notification,
 	post_hub_product, delete_hub_product, notify_create_product,
 	notify_delete_product, query_product_notification, post_hub_service,
@@ -2812,97 +2813,62 @@ notify_rating_deleted_bucket(Config) ->
 	{_, MillionthsOut} = lists:keyfind("amount", 1, RemainAmount),
 	PackagePrice = ocs_rest:millionths_in(MillionthsOut).
 
-notify_accumulated_balance() ->
-	[{userdata, [{doc, "Notify accumulated balance of buckets"}]}].
+notify_accumulated_balance_threshold() ->
+	[{userdata, [{doc, "Notify accumulated balance while rating if total balance"
+			" is less than unit threshold"}]}].
 
-notify_accumulated_balance(Config) ->
-	HostUrl = ?config(host_url, Config),
-	CollectionUrl = HostUrl ++ ?PathBalanceHub,
-	ListenerPort = ?config(listener_port, Config),
-	ListenerServer = "http://localhost:" ++ integer_to_list(ListenerPort),
-	Callback = ListenerServer ++ "/listener/"
-			++ atom_to_list(?MODULE) ++ "/notifyaccumulatedbalance",
-	RequestBody = "{\n"
-			++ "\t\"callback\": \"" ++ Callback ++ "\",\n"
-			++ "}\n",
-	ContentType = "application/json",
-	Accept = {"accept", "application/json"},
-	Request = {CollectionUrl, [Accept, auth_header()], ContentType, RequestBody},
-	{ok, {{_, 201, _}, _, _}} = httpc:request(post, Request, [], []),
+notify_accumulated_balance_threshold(Config) ->
 	PackagePrice = 5000000,
 	PackageSize = 100000000,
 	P1 = #price{name = ocs:generate_identity(), type = usage, units = octets,
 			size = PackageSize, amount = PackagePrice},
 	OfferId = add_offer([P1], 4),
-	receive
-		Input1 ->
-			{struct, OfferEvent} = mochijson:decode(Input1),
-			{_, "ProductOfferingCreationNotification"}
-					= lists:keyfind("eventType", 1, OfferEvent)
-	end,
 	{ok, #product{id = ProdRef}} = ocs:add_product(OfferId, [], []),
-	receive
-		Input2 ->
-			{struct, ProductEvent} = mochijson:decode(Input2),
-			{_, {struct, ProductList}} = lists:keyfind("event", 1, ProductEvent),
-			{_, ProdRef} = lists:keyfind("id", 1, ProductList)
-	end,
 	{ok, #service{name = ServiceId}} = ocs:add_service(ocs:generate_identity(),
 			ocs:generate_password(), ProdRef, []),
-	receive
-		Input3 ->
-			{struct, ServiceEvent} = mochijson:decode(Input3),
-			{_, {struct, ServiceList}} = lists:keyfind("event", 1, ServiceEvent),
-			ListServiceId = binary_to_list(ServiceId),
-			{_, ListServiceId} = lists:keyfind("id", 1, ServiceList)
-	end,
-	RA1 = 50000000,
-	BId1 = add_bucket(ProdRef, cents, RA1),
-	receive
-		Input4 ->
-			{struct, BalanceEvent1} = mochijson:decode(Input4),
-			{_, {struct, BalanceList1}} = lists:keyfind("event", 1, BalanceEvent1),
-			{_, BId1} = lists:keyfind("id", 1, BalanceList1)
-	end,
-	RA2 = 500000000,
-	BId2 = add_bucket(ProdRef, octets, RA2),
-	receive
-		Input5 ->
-			{struct, BalanceEvent2} = mochijson:decode(Input5),
-			{_, {struct, BalanceList2}} = lists:keyfind("event", 1, BalanceEvent2),
-			{_, BId2} = lists:keyfind("id", 1, BalanceList2)
-	end,
-	RA3 = 100000000,
-	BId3 = add_bucket(ProdRef, cents, RA3),
-	receive
-		Input6 ->
-			{struct, BalanceEvent3} = mochijson:decode(Input6),
-			{_, {struct, BalanceList3}} = lists:keyfind("event", 1, BalanceEvent3),
-			{_, BId3} = lists:keyfind("id", 1, BalanceList3)
-	end,
+	_BId1 = add_bucket(ProdRef, cents, 50000000),
+	RA = 500000000,
+	_BId2 = add_bucket(ProdRef, octets, RA),
+	_BId3 = add_bucket(ProdRef, cents, 100000000),
+	HostUrl = ?config(host_url, Config),
+	CollectionUrl = HostUrl ++ ?PathBalanceHub,
+	ListenerPort = ?config(listener_port, Config),
+	ListenerServer = "http://localhost:" ++ integer_to_list(ListenerPort),
+	Callback = ListenerServer ++ "/listener/"
+			++ atom_to_list(?MODULE) ++ "/notifyaccumulatedbalancethreshold",
+	Threshold = 500000000,
+	Query = "totalBalance.units=octets&totalBalance.amount.lt="
+			++ integer_to_list(Threshold),
+	RequestBody = "{\n"
+			++ "\t\"callback\": \"" ++ Callback ++ "\",\n"
+			++ "\t\"query\": \"" ++ Query ++ "\"\n"
+			++ "}\n",
+	ContentType = "application/json",
+	Accept = {"accept", "application/json"},
+	Request = {CollectionUrl, [Accept, auth_header()], ContentType, RequestBody},
+	{ok, {{_, 201, _}, _, _}} = httpc:request(post, Request, [], []),
 	Timestamp = calendar:local_time(),
 	SessionId = [{'Session-Id', list_to_binary(ocs:generate_password())}],
 	ServiceType = 32251,
 	{ok, #service{}, _} = ocs_rating:rate(diameter, ServiceType, undefined,
 			undefined, ServiceId, Timestamp, undefined, undefined, initial,
 			[], [{octets, PackageSize}], SessionId),
-	AccBalanceStructs = receive
+	receive
 		Input7 ->
 			{struct, AccBalanceEvent} = mochijson:decode(Input7),
 			{_, "AccumulatedBalanceCreationNotification"}
 					= lists:keyfind("eventType", 1, AccBalanceEvent),
-			{_, {array, AccStructList}}
+			{_, {array, [{struct, AccList}]}}
 					= lists:keyfind("event", 1, AccBalanceEvent),
-			AccStructList
-	end,
-	AccBalanceRecords = [ocs_rest_res_balance:acc_balance(AccBalanceStruct)
-			|| AccBalanceStruct <- AccBalanceStructs],
-	CentsTotalAmount = RA1 + RA3,
-	#acc_balance{total_balance = CentsTotalAmount}
-			= lists:keyfind(cents, #acc_balance.units, AccBalanceRecords),
-	BytesTotalAmount = RA2 - PackageSize,
-	#acc_balance{total_balance = BytesTotalAmount}
-			= lists:keyfind(octets, #acc_balance.units, AccBalanceRecords).
+			case lists:keyfind("totalBalance", 1, AccList) of
+				{_, {struct, [{"amount", Amount}, {"units", "octets"}]}} ->
+					OctetsAmount = list_to_integer(lists:droplast(Amount)),
+					OctetsAmount = RA - PackageSize;
+				{_, {struct, [{"units", "octets"}, {"amount", Amount}]}} ->
+					OctetsAmount = list_to_integer(lists:droplast(Amount)),
+					OctetsAmount = RA - PackageSize
+			end
+	end.
 
 query_accumulated_balance_notification() ->
 	[{userdata, [{doc, "Query accumulated balance notification"}]}].
@@ -3919,12 +3885,13 @@ notifyratingdeletedbucket(SessionID, _Env, Input) ->
 	mod_esi:deliver(SessionID, "status: 201 Created\r\n\r\n"),
 	notify_rating_deleted_bucket ! Input.
 
--spec notifyaccumulatedbalance(SessionID :: term(), Env :: list(),
+-spec notifyaccumulatedbalancethreshold(SessionID :: term(), Env :: list(),
 		Input :: string()) -> any().
-%% @doc Notification callback for notify_accumulated_balance test case.
-notifyaccumulatedbalance(SessionID, _Env, Input) ->
+%% @doc Notification callback for notify_accumulated_balance_threshold
+%% test case.
+notifyaccumulatedbalancethreshold(SessionID, _Env, Input) ->
 	mod_esi:deliver(SessionID, "status: 201 Created\r\n\r\n"),
-	notify_accumulated_balance ! Input.
+	notify_accumulated_balance_threshold ! Input.
 
 -spec queryaccumulatedbalancenotification(SessionID :: term(), Env :: list(),
 		Input :: string()) -> any().
