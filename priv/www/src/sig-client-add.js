@@ -56,8 +56,7 @@ class clientAdd extends PolymerElement {
 						on-selected-item-changed="checkProto">
 					<paper-listbox
 							id="addClientProtocol"
-							slot="dropdown-content"
-							selected="0">
+							slot="dropdown-content">
 						<paper-item>
 								RADIUS
 						</paper-item>
