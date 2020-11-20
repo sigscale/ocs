@@ -181,7 +181,8 @@ class subUpdate extends PolymerElement {
 								id="edit-amount"
 								name="amount"
 								value="{{updateSubAmo}}"
-								type="number"
+								allowed-pattern="[0-9kmg]"
+								pattern="^[0-9]+[kmg]?$"
 								label="Amount">
 						</paper-input>
 						<paper-tooltip
@@ -225,7 +226,7 @@ class subUpdate extends PolymerElement {
 									autofocus
 									on-tap="updateSubscriberBalance"
 									class="update-button">
-								Add
+								Update
 							</paper-button>
 						</div>
 					</div>
@@ -402,20 +403,59 @@ class subUpdate extends PolymerElement {
 		editAjax.url = "/ocs/v1/subscriber/" + this.updateSubId;
 		var sub = new Object();
 		sub.op = "add";
-		sub.path = "/buckets/-";
+		sub.path = "/buckets/remainedAmount";
 		var totalBal;
-		if(this.updateSubUni == "Bytes"){
-			totalBal = {"remainAmount":parseInt(this.updateSubAmo)};
-			totalBal.units = "octets";
+		if(this.updateSubAmo && this.updateSubUni) {
+			var len = this.updateSubAmo.length;
+			var m = this.updateSubAmo.charAt(len - 1);
+			if(isNaN(parseInt(m))) {
+				var s = this.updateSubAmo.slice(0, (len - 1));
+			} else {
+				var s = this.updateSubAmo;
+			}
+			if(this.updateSubUni == "Bytes"){
+				if (m == "m") {
+					var subM = s + "000000b";
+					totalBal = {"amount":subM};;
+					totalBal.units = "octets";
+				} else if(m == "g") {
+					var subG = s + "000000000b";
+					totalBal = {"amount":subG};
+					totalBal.units = "octets";
+				} else if(m == "k") {
+					var subK = s + "000b";
+					totalBal = {"amount":subK};
+					totalBal.units = "octets";
+				} else {
+					var subB = s + "b";
+					totalBal = {"amount":subB};
+					totalBal.units = "octets";
+				}
+			}
+			if(this.updateSubUni == "Seconds"){
+				var n = Number(s);
+				if (m == "m") {
+					n = n * 60;
+					var subMM = n.toString() + "s";
+					totalBal = {"amount":subMM};
+					totalBal.units = "seconds";
+				} else if(m == "h") {
+					n = n * 3600;
+					var subMH = n.toString() + "s";
+					totalBal = {"amount":parseInt(subMH)};
+					totalBal.units = "seconds";
+				} else {
+					var subMS = n.toString() + "s";
+					totalBal = {"remainAmount":parseInt(subMS)};
+					totalBal.units = "seconds";
+				}
+			}
+			if(this.updateSubUni == "Cents"){
+				totalBal = {"remainAmount":parseInt(this.updateSubAmo)};
+				totalBal.units = "cents";
+			}
 		}
-		if(this.updateSubUni == "cents"){
-			totalBal = {"remainAmount":parseInt(this.updateSubAmo)};
-			totalBal.units = "cents";
-		}
-		if(this.updateSubUni == "seconds"){
-			totalBal = {"remainAmount":parseInt(this.updateSubAmo)};
-			totalBal.units = "seconds";
-		}
+console.log(totalBal);
 		//totalBal.product = document.getElementById("updatePro").value;
 		sub.value = totalBal;
 		editAjax.body = JSON.stringify([sub]);
