@@ -190,17 +190,16 @@ class offerAdd extends PolymerElement {
 					<div id="addPrice-tab">
 						<div>
 							<datalist id="price">
-								<template is="dom-repeat" items="[[prices]]">
+								<template is="dom-repeat" items="{{prices}}">
 									<option value="{{item.name}}" />
 								</template>
 							</datalist>
-							<paper-input
+							<input
 									id="addPriceName"
 									list="price"
-									label="Name"
-									value="{{priceAddName}}"
-									on-value-changed="addUpdatePriceDialog">
-							</paper-input>
+									placeholder="Name"
+									value="{{priceAddName::input}}"
+									on-value-changed="addUpdatePriceDialog"/>
 							<paper-tooltip
 									for="addPriceName"
 									offset="0">
