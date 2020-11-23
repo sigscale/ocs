@@ -79,11 +79,13 @@ init_per_suite(Config) ->
 	DiameterAppVar = [{auth, [{Address, DiameterAuthPort, []}]},
 		{acct, [{Address, DiameterAcctPort, []}]}],
 	ok = application:set_env(ocs, diameter, DiameterAppVar),
+	ok = application:set_env(ocs, min_reserve_octets, 1000000),
+	ok = application:set_env(ocs, min_reserve_seconds, 60),
+	ok = application:set_env(ocs, min_reserve_messages, 1),
 	ok = ocs_test_lib:start(),
-	{ok, ProdID} = ocs_test_lib:add_offer(),
 	Host = atom_to_list(?MODULE),
 	Realm = "acct.sigscale.org",
-	Config1 = [{host, Host}, {realm, Realm}, {product_id, ProdID},
+	Config1 = [{host, Host}, {realm, Realm},
 			{radius_auth_address, Address},
 			{radius_auth_port, RadiusAuthPort},
 			{radius_acct_address, Address},
@@ -103,12 +105,10 @@ init_per_suite(Config) ->
 -spec end_per_suite(Config :: [tuple()]) -> any().
 %% Cleanup after the whole suite.
 %%
-end_per_suite(Config) ->
+end_per_suite(_Config) ->
 	ok = diameter:stop_service(?MODULE),
 	ok = diameter:remove_transport(?MODULE, true),
-	ok = ocs_test_lib:stop(),
-	ok = ocs:delete_service("25252525"),
-	Config.
+	ok = ocs_test_lib:stop().
 
 -spec init_per_testcase(TestCase :: atom(), Config :: [tuple()]) -> Config :: [tuple()].
 %% Initialization before each test case.
@@ -460,17 +460,17 @@ diameter_scur(_Config) ->
 			'CC-Request-Number' = NewRequestNum} = Answer1.
 
 diamneter_scur_cud() ->
-	[{userdata, [{doc, "DIAMETER SCUR with Centralized Unit Determination"}]}].
+	[{userdata, [{doc, "DIAMETER SCUR voice with Centralized Unit Determination"}]}].
 
 diameter_scur_cud(_Config) ->
-	UnitSize = 123456789,
-	P1 = price(usage, octets, UnitSize, rand:uniform(1000000)),
-	OfferId = add_offer([P1], 4),
+	UnitSize = 60,
+	P1 = price(usage, seconds, UnitSize, rand:uniform(10000000)),
+	OfferId = add_offer([P1], 5),
 	ProdRef = add_product(OfferId),
 	MSISDN = list_to_binary(ocs:generate_identity()),
 	{ok, #service{}} = ocs:add_service(MSISDN, undefined, ProdRef, []),
-	Balance = UnitSize + rand:uniform(100000000),
-	B1 = bucket(octets, Balance),
+	Balance = UnitSize * rand:uniform(100),
+	B1 = bucket(seconds, Balance),
 	_BId = add_bucket(ProdRef, B1),
 	Ref = erlang:ref_to_list(make_ref()),
 	SId = diameter:session_id(Ref),
@@ -506,7 +506,7 @@ diameter_scur_cud(_Config) ->
 			'Multiple-Services-Credit-Control' = [MSCC2]} = Answer0,
 	#'3gpp_ro_Multiple-Services-Credit-Control'{
 			'Granted-Service-Unit' = [GSU]} = MSCC2,
-	#'3gpp_ro_Granted-Service-Unit'{'CC-Total-Octets' = [UnitSize]} = GSU,
+	#'3gpp_ro_Granted-Service-Unit'{'CC-Time' = [UnitSize]} = GSU,
 	NewRequestNum = RequestNum + 1,
 	Answer1 = diameter_scur_stop(SId, MSISDN, NewRequestNum, UnitSize),
 	#'3gpp_ro_CCA'{'Result-Code' = ?'DIAMETER_BASE_RESULT-CODE_SUCCESS',
@@ -518,9 +518,9 @@ diameter_scur_no_credit() ->
 	[{userdata, [{doc, "DIAMETER SCUR with insufficient credit"}]}].
 
 diameter_scur_no_credit(_Config) ->
-	Size = rand:uniform(10000),
+	UnitSize = 1000000 + rand:uniform(10000),
 	Amount = rand:uniform(100),
-	P1 = price(usage, octets, Size, Amount),
+	P1 = price(usage, octets, UnitSize, Amount),
 	OfferId = add_offer([P1], 4),
 	ProdRef = add_product(OfferId),
 	ServiceID = list_to_binary(ocs:generate_identity()),
@@ -541,12 +541,13 @@ diameter_scur_depletion() ->
 	[{userdata, [{doc, "DIAMETER SCUR mid-session out of credit"}]}].
 
 diameter_scur_depletion(_Config) ->
-	P1 = price(usage, octets, 1000000, rand:uniform(1000000)),
+	UnitSize = 1000000 + rand:uniform(10000),
+	P1 = price(usage, octets, UnitSize, rand:uniform(1000000)),
 	OfferId = add_offer([P1], 4),
 	ProdRef = add_product(OfferId),
 	ServiceID = ocs:generate_identity(),
 	{ok, #service{}} = ocs:add_service(ServiceID, undefined, ProdRef, []),
-	Balance = rand:uniform(1000000000),
+	Balance = 1000000 + rand:uniform(1000000000),
 	B1 = bucket(octets, Balance),
 	_BId = add_bucket(ProdRef, B1),
 	Ref = erlang:ref_to_list(make_ref()),
@@ -612,7 +613,7 @@ diameter_ecur(_Config) ->
 			'Requested-Service-Unit' = [RSU]},
 	CCR1 = #'3gpp_ro_CCR'{'Session-Id' = SId,
 			'Auth-Application-Id' = ?RO_APPLICATION_ID,
-			'Service-Context-Id' = "nas45.32274@3gpp.org",
+			'Service-Context-Id' = "32274@3gpp.org",
 			'User-Name' = [CallingParty],
 			'CC-Request-Type' = ?'3GPP_CC-REQUEST-TYPE_INITIAL_REQUEST',
 			'CC-Request-Number' = 0,
@@ -634,7 +635,7 @@ diameter_ecur(_Config) ->
 			'Used-Service-Unit' = [USU]},
 	CCR2 = #'3gpp_ro_CCR'{'Session-Id' = SId,
 			'Auth-Application-Id' = ?RO_APPLICATION_ID,
-			'Service-Context-Id' = "nas45.32251@3gpp.org" ,
+			'Service-Context-Id' = "32251@3gpp.org" ,
 			'User-Name' = [CalledParty],
 			'CC-Request-Type' = ?'3GPP_CC-REQUEST-TYPE_TERMINATION_REQUEST',
 			'CC-Request-Number' = 1,
@@ -694,7 +695,7 @@ diameter_voice_out() ->
 	[{userdata, [{doc, "DIAMETER SCUR for outgoing voice call"}]}].
 
 diameter_voice_out(_Config) ->
-	UnitSize = 6,
+	UnitSize = 60,
 	P1 = price(usage, seconds, UnitSize, rand:uniform(1000000)),
 	Incoming = #char_value{value = "answer"},
 	CallDirection1 = #char_value_use{name = "callDirection",
@@ -769,7 +770,7 @@ diameter_voice_in() ->
 	[{userdata, [{doc, "DIAMETER SCUR for answered voice call"}]}].
 
 diameter_voice_in(_Config) ->
-	UnitSize = 6,
+	UnitSize = 60,
 	P1 = price(usage, seconds, UnitSize, rand:uniform(1000000)),
 	Incoming = #char_value{value = "answer"},
 	CallDirection1 = #char_value_use{name = "callDirection",
@@ -844,7 +845,7 @@ diameter_voice_out_tariff() ->
 	[{userdata, [{doc, "DIAMETER SCUR for originated voice call using tariff table"}]}].
 
 diameter_voice_out_tariff(_Config) ->
-	UnitSize = 6,
+	UnitSize = 60,
 	TariffRateIn = rand:uniform(100000),
 	TariffRateOut = rand:uniform(100000),
 	CallingAddress = ocs:generate_identity(),
@@ -939,7 +940,7 @@ diameter_voice_in_tariff() ->
 	[{userdata, [{doc, "DIAMETER SCUR for answered voice call using tariff table"}]}].
 
 diameter_voice_in_tariff(_Config) ->
-	UnitSize = 6,
+	UnitSize = 60,
 	TariffRateIn = rand:uniform(100000),
 	TariffRateOut = rand:uniform(100000),
 	CallingAddress = ocs:generate_identity(),
@@ -1161,7 +1162,7 @@ client_acct_service_opts(Config) ->
 			{'Vendor-Id', ?IANA_PEN_SigScale},
 			{'Supported-Vendor-Id', [?IANA_PEN_3GPP]},
 			{'Product-Name', "SigScale Test Client (Acct)"},
-			{'Auth-Application-Id', [?BASE_APPLICATION_ID, ?RO_APPLICATION_ID]},
+			{'Auth-Application-Id', [?RO_APPLICATION_ID]},
 			{string_decode, false},
 			{restrict_connections, false},
 			{application, [{alias, base_app_test},
@@ -1190,14 +1191,18 @@ diameter_scur_start(SId, Username, RequestNum, Requested) ->
 			'CC-Total-Octets' = [Requested]},
 	MultiServices_CC = #'3gpp_ro_Multiple-Services-Credit-Control'{
 			'Requested-Service-Unit' = [RequestedUnits]},
-	ServiceInformation = #'3gpp_ro_Service-Information'{'IMS-Information' =
-			[#'3gpp_ro_IMS-Information'{
-					'Node-Functionality' = ?'3GPP_NODE-FUNCTIONALITY_AS',
-					'Calling-Party-Address' = [<<"tel:110493422">>],
-					'Called-Party-Address' = [<<"tel:0110493488">>]}]},
+	ServiceInformation = #'3gpp_ro_Service-Information'{'PS-Information' =
+			[#'3gpp_ro_PS-Information'{
+					'3GPP-PDP-Type' = [3],
+					'Serving-Node-Type' = [2],
+					'SGSN-Address' = [{10,1,2,3}],
+					'GGSN-Address' = [{10,4,5,6}],
+					'3GPP-IMSI-MCC-MNC' = [<<"001001">>],
+					'3GPP-GGSN-MCC-MNC' = [<<"001001">>],
+					'3GPP-SGSN-MCC-MNC' = [<<"001001">>]}]},
 	CC_CCR = #'3gpp_ro_CCR'{'Session-Id' = SId,
 			'Auth-Application-Id' = ?RO_APPLICATION_ID,
-			'Service-Context-Id' = "nas45.32251@3gpp.org",
+			'Service-Context-Id' = "32251@3gpp.org",
 			'User-Name' = [Username],
 			'CC-Request-Type' = ?'3GPP_CC-REQUEST-TYPE_INITIAL_REQUEST',
 			'CC-Request-Number' = RequestNum,
@@ -1216,14 +1221,18 @@ diameter_scur_stop(SId, Username, RequestNum, Used) ->
 	UsedUnits = #'3gpp_ro_Used-Service-Unit'{'CC-Total-Octets' = [Used]},
 	MultiServices_CC = #'3gpp_ro_Multiple-Services-Credit-Control'{
 			'Used-Service-Unit' = [UsedUnits]},
-	ServiceInformation = #'3gpp_ro_Service-Information'{'IMS-Information' =
-			[#'3gpp_ro_IMS-Information'{
-					'Node-Functionality' = ?'3GPP_NODE-FUNCTIONALITY_AS',
-					'Calling-Party-Address' = [<<"tel:110493422">>],
-					'Called-Party-Address' = [<<"tel:0110493488">>]}]},
+	ServiceInformation = #'3gpp_ro_Service-Information'{'PS-Information' =
+			[#'3gpp_ro_PS-Information'{
+					'3GPP-PDP-Type' = [3],
+					'Serving-Node-Type' = [2],
+					'SGSN-Address' = [{10,1,2,3}],
+					'GGSN-Address' = [{10,4,5,6}],
+					'3GPP-IMSI-MCC-MNC' = [<<"001001">>],
+					'3GPP-GGSN-MCC-MNC' = [<<"001001">>],
+					'3GPP-SGSN-MCC-MNC' = [<<"001001">>]}]},
 	CC_CCR = #'3gpp_ro_CCR'{'Session-Id' = SId,
 			'Auth-Application-Id' = ?RO_APPLICATION_ID,
-			'Service-Context-Id' = "nas45.32251@3gpp.org" ,
+			'Service-Context-Id' = "32251@3gpp.org" ,
 			'User-Name' = [Username],
 			'CC-Request-Type' = ?'3GPP_CC-REQUEST-TYPE_TERMINATION_REQUEST',
 			'CC-Request-Number' = RequestNum,
@@ -1245,14 +1254,18 @@ diameter_scur_interim(SId, Username, RequestNum, Used, Requested) ->
 	MultiServices_CC = #'3gpp_ro_Multiple-Services-Credit-Control'{
 			'Used-Service-Unit' = [UsedUnits],
 			'Requested-Service-Unit' = [RequestedUnits]},
-	ServiceInformation = #'3gpp_ro_Service-Information'{'IMS-Information' =
-			[#'3gpp_ro_IMS-Information'{
-					'Node-Functionality' = ?'3GPP_NODE-FUNCTIONALITY_AS',
-					'Calling-Party-Address' = [<<"tel:110493422">>],
-					'Called-Party-Address' = [<<"tel:0110493488">>]}]},
+	ServiceInformation = #'3gpp_ro_Service-Information'{'PS-Information' =
+			[#'3gpp_ro_PS-Information'{
+					'3GPP-PDP-Type' = [3],
+					'Serving-Node-Type' = [2],
+					'SGSN-Address' = [{10,1,2,3}],
+					'GGSN-Address' = [{10,4,5,6}],
+					'3GPP-IMSI-MCC-MNC' = [<<"001001">>],
+					'3GPP-GGSN-MCC-MNC' = [<<"001001">>],
+					'3GPP-SGSN-MCC-MNC' = [<<"001001">>]}]},
 	CC_CCR = #'3gpp_ro_CCR'{'Session-Id' = SId,
 			'Auth-Application-Id' = ?RO_APPLICATION_ID,
-			'Service-Context-Id' = "nas45.32251@3gpp.org" ,
+			'Service-Context-Id' = "32251@3gpp.org" ,
 			'User-Name' = [Username],
 			'CC-Request-Type' = ?'3GPP_CC-REQUEST-TYPE_UPDATE_REQUEST',
 			'CC-Request-Number' = RequestNum,

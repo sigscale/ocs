@@ -1686,6 +1686,8 @@ get_debits(_, [], Debit, Refund, Acc) ->
 %% @hidden
 rated(Debits, #rated{} = Rated) ->
 	rated(Debits, [Rated]);
+rated(#{} = Debits, Rated) ->
+	Rated;
 rated(Debits, [#rated{} = Rated | T]) ->
 	F = fun(cents, Amount, Acc) ->
 				[Rated#rated{bucket_type = cents, bucket_value = Amount,

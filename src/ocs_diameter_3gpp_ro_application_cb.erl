@@ -775,12 +775,12 @@ rate(ServiceType, ServiceNetwork, Subscriber,
 			ResultCode2 = ?'DIAMETER_BASE_RESULT-CODE_SUCCESS',
 			rate(ServiceType, ServiceNetwork, Subscriber,
 					Timestamp, Address, Direction, Flag, SessionId,
-					T, Acc, ResultCode2, Rated1);
+					T, Acc, ResultCode2, Rated2);
 		{ok, _, Rated2} when is_list(Rated2), is_list(Rated1) ->
 			ResultCode2 = ?'DIAMETER_BASE_RESULT-CODE_SUCCESS',
 			rate(ServiceType, ServiceNetwork, Subscriber,
 					Timestamp, Address, Direction, Flag, SessionId,
-					T, Acc, ResultCode2, Rated1);
+					T, Acc, ResultCode2, Rated1 ++ Rated2);
 		{out_of_credit, _SessionList} ->
 			ResultCode2 = ?'DIAMETER_CC_APP_RESULT-CODE_CREDIT_LIMIT_REACHED',
 			ResultCode3 = case ResultCode1 of
