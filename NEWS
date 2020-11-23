@@ -1,4 +1,10 @@
-Novenber 2, 2020
+November 22, 2020
+----------------
+	- REST: Notification Pattern
+		- Support Queries in Subscriptions
+	- Correct Empty RSU VS Missing RSU Handling
+
+November 2, 2020
 ----------------
 	- Open API Specification (OAS) ("swagger") reflecting this implemenation
 	- Event notifications for all APIs
