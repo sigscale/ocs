@@ -109,6 +109,7 @@
 				ocs_rest_hub_service,
 				ocs_rest_hub_user,
 				ocs_rest_hub_resource,
+				ocs_rest_hub_usage,
 				ocs_event]},
 		{registered, [ocs]},
 		{applications, [mnesia, crypto, inets, asn1, public_key, ssl, mochiweb, radius, diameter]},
