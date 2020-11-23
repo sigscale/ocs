@@ -50,6 +50,7 @@
 -define(PathUserHub, "/partyManagement/v1/hub/").
 -define(PathCatalogHub, "/productCatalog/v2/hub/").
 -define(PathResourceHub, "/resourceInventory/v1/hub/").
+-define(PathUsageHub, "/usageManagement/v1/hub/").
 
 %%---------------------------------------------------------------------
 %%  Test server callback functions
@@ -210,6 +211,7 @@ all() ->
 	notify_insert_gtt, notify_delete_gtt, query_gtt_notification,
 	notify_add_pla, notify_delete_pla, query_pla_notification,
 	post_hub_inventory, delete_hub_inventory,
+	post_hub_usage,
 	oauth_authentication].
 
 %%---------------------------------------------------------------------
@@ -3822,6 +3824,31 @@ query_pla_notification(Config) ->
 			{_, {struct, PlaList}} = lists:keyfind("event", 1, PlaEvent),
 			{_, Name} = lists:keyfind("id", 1, PlaList)
 	end.
+
+post_hub_usage() ->
+	[{userdata, [{doc, "Register hub listener for usage"}]}].
+
+post_hub_usage(Config) ->
+	HostUrl = ?config(host_url, Config),
+	PathHub = ?PathUsageHub,
+	CollectionUrl = HostUrl ++ PathHub,
+	Callback = "http://in.listener.com",
+	RequestBody = "{\n"
+			++ "\t\"callback\": \"" ++ Callback ++ "\",\n"
+			++ "}\n",
+	ContentType = "application/json",
+	Accept = {"accept", "application/json"},
+	Request = {CollectionUrl, [Accept, auth_header()], ContentType, RequestBody},
+	{ok, Result} = httpc:request(post, Request, [], []),
+	{{"HTTP/1.1", 201, _Created}, Headers, ResponseBody} = Result,
+	{_, "application/json"} = lists:keyfind("content-type", 1, Headers),
+	ContentLength = integer_to_list(length(ResponseBody)),
+	{_, ContentLength} = lists:keyfind("content-length", 1, Headers),
+	{_, Location} = lists:keyfind("location", 1, Headers),
+	Id = string:substr(Location, string:rstr(Location, PathHub) + length(PathHub)),
+	{struct, HubList} = mochijson:decode(ResponseBody),
+	{_, Callback} = lists:keyfind("callback", 1, HubList),
+	{_, Id} = lists:keyfind("id", 1, HubList).
 
 oauth_authenticaton()->
 	[{userdata, [{doc, "Authenticate a JWT using oauth"}]}].
