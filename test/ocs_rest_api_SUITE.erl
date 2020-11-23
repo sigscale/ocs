@@ -208,10 +208,10 @@ all() ->
 	notify_create_service, notify_delete_service, query_service_notification,
 	post_hub_user, delete_hub_user, post_hub_catalog, delete_hub_catalog,
 	notify_create_offer, notify_delete_offer, query_offer_notification,
+	post_hub_inventory, delete_hub_inventory,
 	notify_insert_gtt, notify_delete_gtt, query_gtt_notification,
 	notify_add_pla, notify_delete_pla, query_pla_notification,
-	post_hub_inventory, delete_hub_inventory,
-	post_hub_usage,
+	post_hub_usage, delete_hub_usage,
 	oauth_authentication].
 
 %%---------------------------------------------------------------------
@@ -3849,6 +3849,24 @@ post_hub_usage(Config) ->
 	{struct, HubList} = mochijson:decode(ResponseBody),
 	{_, Callback} = lists:keyfind("callback", 1, HubList),
 	{_, Id} = lists:keyfind("id", 1, HubList).
+
+delete_hub_usage() ->
+	[{userdata, [{doc, "Unregister hub listener for usage"}]}].
+
+delete_hub_usage(Config) ->
+	HostUrl = ?config(host_url, Config),
+	PathHub = ?PathUsageHub,
+	CollectionUrl = HostUrl ++ PathHub,
+	Callback = "http://in.listener.com",
+	RequestBody = "{\"callback\":\"" ++ Callback ++ "\"}",
+	ContentType = "application/json",
+	Accept = {"accept", "application/json"},
+	Request = {CollectionUrl, [Accept, auth_header()], ContentType, RequestBody},
+	{ok, {{_, 201, _}, _, ResponseBody}} = httpc:request(post, Request, [], []),
+	{struct, HubList} = mochijson:decode(ResponseBody),
+	{_, Id} = lists:keyfind("id", 1, HubList),
+	Request1 = {HostUrl ++ PathHub ++ Id, [Accept, auth_header()]},
+	{ok, {{_, 204, _}, _, []}} = httpc:request(delete, Request1, [], []).
 
 oauth_authenticaton()->
 	[{userdata, [{doc, "Authenticate a JWT using oauth"}]}].
