@@ -21,7 +21,8 @@
 
 -include("ocs.hrl").
 
--export([content_types_accepted/0, content_types_provided/0, post_hub/2]).
+-export([content_types_accepted/0, content_types_provided/0, post_hub/2,
+		delete_hub/1]).
 -export([hub/1]).
 
 -define(PathUsageHub, "/usageManagement/v1/hub/").
@@ -44,6 +45,16 @@ content_types_accepted() ->
 %% @doc Provides list of resource representations available.
 content_types_provided() ->
 	["application/json"].
+
+-spec delete_hub(Id) -> Result
+	when
+		Id :: string(),
+		Result :: {ok, Headers :: [tuple()], Body :: iolist()}
+			| {error, ErrorCode :: integer()}.
+%% Delete by id.
+%% @doc Respond to `POST /usageManagement/v1/hub/{id}'
+delete_hub(Id) ->
+	{gen_fsm:send_all_state_event({global, Id}, shutdown), [], []}.
 
 -spec post_hub(ReqBody, Authorization) -> Result
 	when
