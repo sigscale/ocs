@@ -1,4 +1,4 @@
-%%% ocs_rest_hub_balance.erl
+%%% ocs_rest_hub_usage.erl
 %%% vim: ts=3
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%% @copyright 2020 SigScale Global Inc.
@@ -16,16 +16,15 @@
 %%% limitations under the License.
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%%
--module(ocs_rest_hub_balance).
+-module(ocs_rest_hub_usage).
 -copyright('Copyright (c) 2020 SigScale Global Inc.').
 
 -include("ocs.hrl").
 
--export([content_types_accepted/0, content_types_provided/0, post_hub/2,
-		delete_hub/1]).
+-export([content_types_accepted/0, content_types_provided/0, post_hub/2]).
 -export([hub/1]).
 
--define(BalancehubPath, "/balanceManagement/v1/hub/").
+-define(PathUsageHub, "/usageManagement/v1/hub/").
 
 %%----------------------------------------------------------------------
 %%  The hub public API
@@ -46,16 +45,6 @@ content_types_accepted() ->
 content_types_provided() ->
 	["application/json"].
 
--spec delete_hub(Id) -> Result
-	when
-		Id :: string(),
-		Result :: {ok, Headers :: [tuple()], Body :: iolist()}
-			| {error, ErrorCode :: integer()}.
-%% Delete by id.
-%% @doc Respond to `POST /balanceManagement/v1/hub/{id}'
-delete_hub(Id) ->
-	{gen_fsm:send_all_state_event({global, Id}, shutdown), [], []}.
-
 -spec post_hub(ReqBody, Authorization) -> Result
 	when
 		ReqBody :: list(),
@@ -63,7 +52,7 @@ delete_hub(Id) ->
 		Result :: {ok, Headers :: [tuple()], Body :: iolist()}
 			| {error, ErrorCode :: integer()}.
 %% Hub event to disk.
-%% @doc Respond to `POST /balanceManagement/v1/hub'
+%% @doc Respond to `POST /usageManagement/v1/hub/'
 post_hub(ReqBody, Authorization) ->
 	try
 		case hub(mochijson:decode(ReqBody)) of
@@ -73,19 +62,18 @@ post_hub(ReqBody, Authorization) ->
 					{ok, _PageServer, Id} ->
 						Body = mochijson:encode(hub(HubRecord#hub{id = Id})),
 						Headers = [{content_type, "application/json"},
-								{location, ?BalancehubPath ++ Id}],
+								{location, ?PathUsageHub ++ Id}],
 						{ok, Headers, Body};
 					{error, _Reason} ->
 						{error, 500}
 				end;
 			#hub{callback = Callback, query = Query} = HubRecord ->
-				ok = set_threshold(string:tokens(Query, "=&")),
 				case supervisor:start_child(ocs_rest_hub_sup,
 						[Query, Callback, Authorization]) of
 					{ok, _PageServer, Id} ->
 						Body = mochijson:encode(hub(HubRecord#hub{id = Id})),
 						Headers = [{content_type, "application/json"},
-								{location, ?BalancehubPath ++ Id}],
+								{location, ?PathUsageHub ++ Id}],
 						{ok, Headers, Body};
 					{error, _Reason} ->
 						{error, 500}
@@ -95,26 +83,10 @@ post_hub(ReqBody, Authorization) ->
 		_:_ ->
 			{error, 400}
 	end.
-	
+
 %%----------------------------------------------------------------------
 %%  The internal functions
 %%----------------------------------------------------------------------
-
-%% @hidden
-set_threshold(["totalBalance.units", "cents",
-		"totalBalance.amount.lt", Threshold]) when is_list(Threshold) ->
-	application:set_env(ocs, threshold_cents, list_to_integer(Threshold));
-set_threshold(["totalBalance.units", "octets",
-		"totalBalance.amount.lt", Threshold]) when is_list(Threshold) ->
-	application:set_env(ocs, threshold_bytes, list_to_integer(Threshold));
-set_threshold(["totalBalance.units", "seconds",
-		"totalBalance.amount.lt", Threshold]) when is_list(Threshold) ->
-	application:set_env(ocs, threshold_seconds, list_to_integer(Threshold));
-set_threshold(["totalBalance.units", "messages",
-		"totalBalance.amount.lt", Threshold]) when is_list(Threshold) ->
-	application:set_env(ocs, threshold_messages, list_to_integer(Threshold));
-set_threshold(_) ->
-	ok.
 
 -spec hub(Hub) -> Hub
 	when

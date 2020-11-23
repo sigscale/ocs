@@ -169,27 +169,22 @@ register(timeout, State) ->
 registered({Type, Resource, Category}, #statedata{query = []} = StateData) ->
 	send_request({Type, Resource, Category}, StateData);
 registered({Type, Resource, Category}, #statedata{query = Query} = StateData)
+		when is_list(Query), is_list(Resource) ->
+	send_request({Type, Resource, Category}, StateData);
+registered({Type, Resource, Category}, #statedata{query = Query} = StateData)
 		when is_list(Query) ->
-	{ResourceId, QueryEventType} = case string:tokens(Query, "&=") of
-		["eventType", QueryType, "id", Id] ->
-			{Id, QueryType};
-		["id", Id, "eventType", QueryType] ->
-			{Id, QueryType};
-		["id", Id] ->
-			{Id, undefined};
-		["eventType", QueryType] ->
-			{undefined, QueryType};
+	ResourceId = get_resource_id(Resource),
+	EventType = event_type(Type),
+	case string:tokens(Query, "&=") of
+		["eventType", EventType, "id", ResourceId] ->
+			send_request({Type, Resource, Category}, StateData);
+		["id", ResourceId, "eventType", EventType] ->
+			send_request({Type, Resource, Category}, StateData);
+		["id", ResourceId] ->
+			send_request({Type, Resource, Category}, StateData);
+		["eventType", EventType] ->
+			send_request({Type, Resource, Category}, StateData);
 		_ ->
-			throw({error, 400})
-	end,
-	case {get_resource_id(Resource), event_type(Type)} of
-		{ResourceId, QueryEventType} ->
-			send_request({Type, Resource, Category}, StateData);
-		{ResourceId, _} when QueryEventType == undefined ->
-			send_request({Type, Resource, Category}, StateData);
-		{_, QueryEventType} when ResourceId == undefined ->
-			send_request({Type, Resource, Category}, StateData);
-		{_, _} ->
 			{next_state, registered, StateData}
 	end.
 

@@ -1686,6 +1686,8 @@ get_debits(_, [], Debit, Refund, Acc) ->
 %% @hidden
 rated(Debits, #rated{} = Rated) ->
 	rated(Debits, [Rated]);
+rated(#{} = Debits, Rated) ->
+	Rated;
 rated(Debits, [#rated{} = Rated | T]) ->
 	F = fun(cents, Amount, Acc) ->
 				[Rated#rated{bucket_type = cents, bucket_value = Amount,
@@ -1761,7 +1763,21 @@ notify_accumulated_balance(AccBlance) ->
 	ocs_event:notify(accumulated, AccBlance, balance).
 
 %% @private
-accumulated_balance(Buckets, ProdRef) when is_list(Buckets) ->
+accumulated_balance(Buckets, ProdRef) ->
+	F = fun(UnitThresholdName) ->
+			case application:get_env(ocs, UnitThresholdName) of
+				{ok, undefined} ->
+					false;
+				{ok, Threshold} when is_integer(Threshold) ->
+					true
+			end
+	end,
+	UnitThresholdNames = [threshold_cents, threshold_bytes,
+			threshold_seconds, threshold_messages],
+	accumulated_balance(Buckets, ProdRef, lists:any(F, UnitThresholdNames)).
+accumulated_balance(_Buckets, _ProdRef, false) ->
+	[];
+accumulated_balance(Buckets, ProdRef, true) when is_list(Buckets) ->
 	Fcents = fun(#bucket{units = cents}) ->
 				true;
 			(_) ->
@@ -1770,9 +1786,9 @@ accumulated_balance(Buckets, ProdRef) when is_list(Buckets) ->
 	{CentsBuckets, AccBalance} = case lists:filter(Fcents, Buckets) of
 		[] ->
 			{[], []};
-		BucketList ->
+		BucketList when is_list(BucketList) ->
 			AccBal = build_acc(BucketList, "accumulated cents", cents,
-					ProdRef, []),
+					ProdRef, application:get_env(ocs, threshold_cents), []),
 			{BucketList, AccBal}
 	end,
 	Fbytes = fun(#bucket{units = octets}) ->
@@ -1784,9 +1800,9 @@ accumulated_balance(Buckets, ProdRef) when is_list(Buckets) ->
 	{BytesBuckets, AccBalance1} = case lists:filter(Fbytes, Buckets1) of
 		[] ->
 			{[], AccBalance};
-		BucketList1 ->
+		BucketList1 when is_list(BucketList1) ->
 			AccBal1 = build_acc(BucketList1, "accumulated octets", octets,
-					ProdRef, AccBalance),
+					ProdRef, application:get_env(ocs, threshold_bytes), AccBalance),
 			{BucketList1, AccBal1}
 	end,
 	Fseconds = fun(#bucket{units = seconds}) ->
@@ -1798,9 +1814,9 @@ accumulated_balance(Buckets, ProdRef) when is_list(Buckets) ->
 	{SecondsBuckets, AccBalance2} = case lists:filter(Fseconds, Buckets2) of
 		[] ->
 			{[], AccBalance1};
-		BucketList2 ->
+		BucketList2 when is_list(BucketList2) ->
 			AccBal2 = build_acc(BucketList2, "accumulated seconds", seconds,
-					ProdRef, AccBalance1),
+					ProdRef, application:get_env(ocs, threshold_seconds), AccBalance),
 			{BucketList2, AccBal2}
 	end,
 	Fmessages = fun(#bucket{units = messages}) ->
@@ -1812,22 +1828,28 @@ accumulated_balance(Buckets, ProdRef) when is_list(Buckets) ->
 	{_MessagesBuckets, AccBalance3} = case lists:filter(Fmessages, Buckets3) of
 		[] ->
 			{[], AccBalance2};
-		BucketList3 ->
+		BucketList3 when is_list(BucketList3) ->
 			AccBal3 = build_acc(BucketList3, "accumulated messages", messages,
-					ProdRef, AccBalance2),
+					ProdRef, application:get_env(ocs, threshold_messages), AccBalance),
 			{BucketList3, AccBal3}
 	end,
 	AccBalance3.
 
 %% @private
-build_acc(Buckets, Name, Units, ProdRef, AccBalance) ->
+build_acc(_Buckets, _Name, _Units, _ProdRef, {ok, undefined}, AccBalance) ->
+	AccBalance;
+build_acc(Buckets, Name, Units, ProdRef, {ok, UnitThreshold}, AccBalance)
+		when is_integer(UnitThreshold), UnitThreshold > 0 ->
 	case lists:sum([RA || #bucket{remain_amount = RA} <- Buckets]) of
 		0 ->
 			AccBalance;
-		TotalBalance ->
+		TotalBalance when is_integer(TotalBalance),
+				TotalBalance < UnitThreshold ->
 			BucketRefs = [Id || #bucket{id = Id} <- Buckets],
 			[#acc_balance{id = ProdRef, name = Name, product = [ProdRef],
 					units = Units, total_balance = TotalBalance,
-					bucket = BucketRefs} | AccBalance]
+					bucket = BucketRefs} | AccBalance];
+		_ ->
+			AccBalance
 	end.
 

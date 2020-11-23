@@ -114,8 +114,8 @@ beam_DATA = ocs.beam \
 			ocs_rest_hub_service.beam \
 			ocs_rest_hub_user.beam \
 			ocs_rest_hub_resource.beam \
-			ocs_event.beam \
-			user_default.beam
+			ocs_rest_hub_usage.beam \
+			ocs_event.beam
 
 %.beam:$(top_srcdir)/src/%.erl	$(top_srcdir)/include/ocs.hrl \
 		$(top_srcdir)/include/ocs_log.hrl \

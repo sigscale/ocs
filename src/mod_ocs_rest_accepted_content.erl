@@ -76,6 +76,8 @@ do(#mod{method = Method, parsed_header = Headers, request_uri = Uri,
 							check_content_type_header(Headers, Method, ocs_rest_res_usage, Data);
 						["usageManagement", "v1", "usageSpecification" | _] ->
 							check_content_type_header(Headers, Method, ocs_rest_res_usage, Data);
+						["usageManagement", "v1", "hub"] ->
+							check_content_type_header(Headers, Method, ocs_rest_hub_usage, Data);
 						["partyManagement", "v1", "individual"] ->
 							check_content_type_header(Headers, Method, ocs_rest_res_user, Data);
 						["partyManagement", "v1", "individual", _Id] ->
