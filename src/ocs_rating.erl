@@ -70,7 +70,7 @@
 		Direction :: answer | originate | undefined,
 		Flag :: initial | interim | final,
 		DebitAmounts :: [{Type, Amount}],
-		ReserveAmounts :: [{Type, Amount}],
+		ReserveAmounts :: [{Type, Amount}] | undefined,
 		SessionAttributes :: [tuple()],
 		Type :: octets | seconds | messages,
 		Amount :: integer(),
@@ -93,7 +93,7 @@
 %% 	determines the price used to calculate the amount to be
 %% 	permanently debited from available `cents' buckets.
 %%
-%% 	If no `ReserveAmounts' are provided in `initial' and `interim'
+%% 	If empty `ReserveAmounts' are provided in `initial' and `interim'
 %% 	requests the `Type' and `Amount' are determined by applicable
 %% 	product offer price.
 %%
@@ -137,7 +137,8 @@ rate(Protocol, ServiceType, ChargingKey, ServiceNetwork, SubscriberID,
 		((Direction == answer) or (Direction == originate)
 				or (Direction == undefined)),
 		((Flag == initial) or (Flag == interim) or (Flag == final)),
-		is_list(DebitAmounts), is_list(ReserveAmounts),
+		is_list(DebitAmounts),
+		(is_list(ReserveAmounts) or (ReserveAmounts == undefined)),
 		length(SessionAttributes) > 0 ->
 	F = fun() ->
 			case mnesia:read(service, SubscriberID, sticky_write) of
@@ -466,7 +467,18 @@ rate5(_Protocol, Service, Buckets,
 	end,
 	rate6(Service, Buckets, Price, Flag, DebitAmount, ReserveAmount, State);
 rate5(_Protocol, Service, Buckets, #price{units = Units} = Price,
-		Flag, DebitAmounts, ReserveAmounts, State) ->
+		Flag, DebitAmounts, undefined, State) ->
+	DebitAmount = case lists:keyfind(Units, 1, DebitAmounts) of
+		{Units, DebitUnits} ->
+			{Units, DebitUnits};
+		false ->
+			{Units, 0}
+	end,
+	ReserveAmount = {Units, 0},
+	rate6(Service, Buckets, Price, Flag, DebitAmount, ReserveAmount, State);
+rate5(_Protocol, Service, Buckets, #price{units = Units} = Price,
+		Flag, DebitAmounts, ReserveAmounts, State)
+		when is_list(ReserveAmounts) ->
 	DebitAmount = case lists:keyfind(Units, 1, DebitAmounts) of
 		{Units, DebitUnits} ->
 			{Units, DebitUnits};
@@ -1686,7 +1698,7 @@ get_debits(_, [], Debit, Refund, Acc) ->
 %% @hidden
 rated(Debits, #rated{} = Rated) ->
 	rated(Debits, [Rated]);
-rated(#{} = Debits, Rated) ->
+rated(#{}, Rated) ->
 	Rated;
 rated(Debits, [#rated{} = Rated | T]) ->
 	F = fun(cents, Amount, Acc) ->

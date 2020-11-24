@@ -615,8 +615,8 @@ service_network(_) ->
 				UsedAmounts, ReserveAmounts}],
 		ServiceIdentifier :: [pos_integer()],
 		RatingGroup :: [pos_integer()],
-		UsedAmounts :: [{Units, pos_integer()}],
-		ReserveAmounts :: [{Units, pos_integer()}],
+		UsedAmounts :: [{Units, pos_integer()}] | undefined,
+		ReserveAmounts :: [{Units, pos_integer()}] | undefined,
 		Units :: octets | seconds | messages.
 %% @doc Parse out the USU and RSU unit amounts from MSCCs.
 %% @hidden
@@ -652,8 +652,11 @@ get_rsu(#'3gpp_ro_Multiple-Services-Credit-Control'{
 		'CC-Service-Specific-Units' = [CCSpecUnits]}]})
 		when is_integer(CCSpecUnits), CCSpecUnits > 0 ->
 	[{messages, CCSpecUnits}];
+get_rsu(#'3gpp_ro_Multiple-Services-Credit-Control'{
+		'Requested-Service-Unit' = [#'3gpp_ro_Requested-Service-Unit'{}]}) ->
+	[];
 get_rsu(#'3gpp_ro_Multiple-Services-Credit-Control'{}) ->
-	[].
+	undefined.
 
 %% @hidden
 get_usu(#'3gpp_ro_Multiple-Services-Credit-Control'{

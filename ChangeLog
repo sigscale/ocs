@@ -1,3 +1,40 @@
+2020-11-23  Refath Wadood <refath@sigscale.org>
+
+	* test: ignore reservations, verify balance deducted
+	* test: ignore sessions, verify balance deduction
+	* test: query support in service inventory subscriptions
+	* test: query support in product inventory subscriptions
+	* test: query support in product catalog subscriptions
+	* test: query gtt notification
+	* test: query pla notification
+	* test: group product subscription charge
+	* test: usage subscription
+	* test: diameter scur, rated in acct log
+	* test suite: remove cruft; correct unit sizes and types
+	* gui: error message when product delete failed
+	* gui: allow bytes for product offering price tariff type
+	* gui: make tarriff table active when prepaid data selected
+	* gui: fix update product offering price unit of measure
+	* rest: query support in service inventory subscriptions
+	* rest: query support in product inventory subscriptions
+	* rest: query support in product catalog subscriptions
+	* notificatons: accumulated balance is less than its threshold
+	* handle msisdn and imsi values in codec
+	* implement the handler for product catalog synchronization
+	* set authorization from subscription request 
+	* add user default module
+	* handle only resource id or eventype in the subscription query
+	* return error for unsupported subscription query
+	* handling bucket id for subscription query
+	* handling pla num for subscription query
+	* handle accumulated subscription balance query
+	* environment variables for threshold limits with default undefined
+	* set environment variable for threshold
+	* register ocs_rest_hub_usage module
+	* corrections for rated in acct log
+	* correct empty rsu vs missing rsu handling
+	* add service id when a abmf log entry is made
+
 2020-11-02  Vance Shipley <vances@sigscale.org>
 
 	* mnesia must be started before ocs
