@@ -349,8 +349,7 @@ rate3(Protocol, Service, Buckets, Address,
 				{_, _, _Description, TabPrefix} ->
 						Table2 = list_to_existing_atom(TabPrefix ++ "-" ++ TariffTable),
 						case catch ocs_gtt:lookup_last(Table2, Address) of
-				{Description, Amount, _} when is_integer(Amount) ->
-							{Description1, Amount, _} ->
+							{Description1, Amount, _} when is_integer(Amount) ->
 								case Amount of
 									N when N >= 0 ->
 										rate5(Protocol, Service, Buckets,
