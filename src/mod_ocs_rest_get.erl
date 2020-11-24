@@ -123,6 +123,8 @@ do_get(Resource, ModData,
 do_get(Resource, ModData,
 		["usageManagement", "v1", "usageSpecification", Id], Query) ->
 	do_response(ModData, Resource:get_usagespec(Id, Query));
+do_get(Resource, ModData, ["usageManagement", "v1", "hub"], []) ->
+	do_response(ModData, Resource:get_usage_hubs());
 do_get(Resource, ModData, ["ocs", "v1", "log", "ipdr", Type], Query) ->
 	do_response(ModData, Resource:get_ipdr(Type, Query));
 do_get(Resource, ModData, ["ocs", "v1", "log", "http"], []) ->

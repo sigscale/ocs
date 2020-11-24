@@ -22,7 +22,7 @@
 -include("ocs.hrl").
 
 -export([content_types_accepted/0, content_types_provided/0, post_hub/2,
-		delete_hub/1]).
+		delete_hub/1, get_usage_hubs/0]).
 -export([hub/1]).
 
 -define(PathUsageHub, "/usageManagement/v1/hub/").
@@ -94,6 +94,26 @@ post_hub(ReqBody, Authorization) ->
 		_:_ ->
 			{error, 400}
 	end.
+
+-spec get_usage_hubs() -> Result
+	when
+		Result :: {ok, Headers :: [tuple()], Body :: iolist()}
+				| {error, ErrorCode :: integer()}.
+%% @doc Body producing function for
+%% 	`GET|HEAD /usageManagement/v1/hub/'
+%% 	requests.
+get_usage_hubs() ->
+	get_usage_hubs(supervisor:which_children(ocs_rest_hub_sup), []).
+%% @hidden
+get_usage_hubs([{_, Pid, _, _} | T], Acc) ->
+	#{"callback" := Callback, "href" := Href, "id" := Id, "query" := Query}
+			= gen_fsm:sync_send_all_state_event(Pid, get),
+	get_usage_hubs(T, [#hub{id = Id, callback = Callback,
+			href = Href, query = Query} | Acc]);
+get_usage_hubs([], Acc) ->
+	Body = mochijson:encode({array, [hub(Hub) || Hub <- Acc]}),
+	Headers = [{content_type, "application/json"}],
+	{ok, Headers, Body}.
 
 %%----------------------------------------------------------------------
 %%  The internal functions
