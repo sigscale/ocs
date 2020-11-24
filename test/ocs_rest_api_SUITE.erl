@@ -211,7 +211,7 @@ all() ->
 	post_hub_inventory, delete_hub_inventory,
 	notify_insert_gtt, notify_delete_gtt, query_gtt_notification,
 	notify_add_pla, notify_delete_pla, query_pla_notification,
-	post_hub_usage, delete_hub_usage,
+	post_hub_usage, get_usage_hubs, delete_hub_usage,
 	oauth_authentication].
 
 %%---------------------------------------------------------------------
@@ -3849,6 +3849,33 @@ post_hub_usage(Config) ->
 	{struct, HubList} = mochijson:decode(ResponseBody),
 	{_, Callback} = lists:keyfind("callback", 1, HubList),
 	{_, Id} = lists:keyfind("id", 1, HubList).
+
+get_usage_hubs() ->
+	[{userdata, [{doc, "Get usage hub listeners"}]}].
+
+get_usage_hubs(Config) ->
+	HostUrl = ?config(host_url, Config),
+	CollectionUrl = HostUrl ++ ?PathUsageHub,
+	Callback1 = "http://in.listener1.com",
+	Callback2 = "http://in.listener2.com",
+	RequestBody1 = "{\"callback\":\"" ++ Callback1 ++ "\"}",
+	RequestBody2 = "{\"callback\":\"" ++ Callback2 ++ "\"}",
+	ContentType = "application/json",
+	Accept = {"accept", "application/json"},
+	Request1 = {CollectionUrl, [Accept, auth_header()], ContentType, RequestBody1},
+	{ok, Result1} = httpc:request(post, Request1, [], []),
+	{{_, 201, _}, _, _} = Result1,
+	Request2 = {CollectionUrl, [Accept, auth_header()], ContentType, RequestBody2},
+	{ok, Result2} = httpc:request(post, Request2, [], []),
+	{{_, 201, _}, _, _} = Result2,
+	Request3 = {CollectionUrl, [Accept, auth_header()]},
+	{ok, Result3} = httpc:request(get, Request3, [], []),
+	{{"HTTP/1.1", 200, _OK}, Headers, ResponseBody} = Result3,
+	{_, "application/json"} = lists:keyfind("content-type", 1, Headers),
+	ContentLength = integer_to_list(length(ResponseBody)),
+	{_, ContentLength} = lists:keyfind("content-length", 1, Headers),
+	{array, HubStructs} = mochijson:decode(ResponseBody),
+	true = length(HubStructs) >= 2.
 
 delete_hub_usage() ->
 	[{userdata, [{doc, "Unregister hub listener for usage"}]}].
