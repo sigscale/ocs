@@ -22,7 +22,7 @@
 -include("ocs.hrl").
 
 -export([content_types_accepted/0, content_types_provided/0, post_hub/2,
-		delete_hub/1, get_usage_hubs/0]).
+		delete_hub/1, get_usage_hubs/0, get_usage_hub/1]).
 -export([hub/1]).
 
 -define(PathUsageHub, "/usageManagement/v1/hub/").
@@ -114,6 +114,27 @@ get_usage_hubs([], Acc) ->
 	Body = mochijson:encode({array, [hub(Hub) || Hub <- Acc]}),
 	Headers = [{content_type, "application/json"}],
 	{ok, Headers, Body}.
+
+-spec get_usage_hub(Id) -> Result
+	when
+		Id :: string(),
+		Result :: {ok, Headers :: [tuple()], Body :: iolist()}
+				| {error, ErrorCode :: integer()}.
+%% @doc Body producing function for
+%% 	`GET|HEAD /usageManagement/v1/hub/{id}'
+%% 	requests.
+get_usage_hub(Id) ->
+	case global:whereis_name(Id) of
+		Fsm when is_pid(Fsm) ->
+			#{"callback" := Callback, "href" := Href, "id" := Id,
+					"query" := Query} = gen_fsm:sync_send_all_state_event(Fsm, get),
+			Body = mochijson:encode(hub(#hub{id = Id, callback = Callback,
+					href = Href, query = Query})),
+			Headers = [{content_type, "application/json"}],
+			{ok, Headers, Body};
+		undefined ->
+			{error, 404}
+	end.
 
 %%----------------------------------------------------------------------
 %%  The internal functions
