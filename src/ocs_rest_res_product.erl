@@ -954,7 +954,7 @@ characteristic_product_voice() ->
 	Description2 = {"description", "Constrain price to incoming or outgoing calls"},
 	ValueType2 = {"valueType", "String"},
 	Char2 = {struct, [Name2, Description2, ValueType2]},
-	Name3 = {"name", "romingTable"},
+	Name3 = {"name", "roamingTable"},
 	Description3 = {"description", "Roaming partners table name"},
 	ValueType3 = {"valueType", "String"},
 	Char3 = {struct, [Name3, Description3, ValueType3]},
@@ -962,7 +962,7 @@ characteristic_product_voice() ->
 
 %% @hidden
 characteristic_product_data() ->
-	Name1 = {"name", "romingTable"},
+	Name1 = {"name", "roamingTable"},
 	Description1 = {"description", "Roaming partners table name"},
 	ValueType1 = {"valueType", "String"},
 	Char1 = {struct, [Name1, Description1, ValueType1]},
