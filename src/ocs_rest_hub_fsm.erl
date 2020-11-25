@@ -51,8 +51,6 @@
 -define(MILLISECOND, milli_seconds).
 %-define(MILLISECOND, millisecond).
 
--define(hubPath, "/balanceManagement/v1/hub/").
-
 %%----------------------------------------------------------------------
 %%  The ocs_rest_hub_fsm API
 %%----------------------------------------------------------------------
@@ -238,9 +236,9 @@ handle_event(Reason, _StateName, State) ->
 %% @private
 %%
 handle_sync_event(get, _From, StateName,
-		#statedata{id = Id, query = Query, callback = Callback} = StateData) ->
-	Hub = #{"id" => Id, "query" => Query, "callback" => Callback,
-		"href" => ?hubPath ++ Id},
+		#statedata{id = Id, query = Query, callback = Callback,
+		href = Href} = StateData) ->
+	Hub = #hub{id = Id, query = Query, callback = Callback, href = Href},
 	{reply, Hub, StateName, StateData}.
 
 -spec handle_info(Info, StateName, StateData) -> Result

@@ -126,12 +126,14 @@ get_usage_hubs([], Acc) ->
 get_usage_hub(Id) ->
 	case global:whereis_name(Id) of
 		Fsm when is_pid(Fsm) ->
-			#{"callback" := Callback, "href" := Href, "id" := Id,
-					"query" := Query} = gen_fsm:sync_send_all_state_event(Fsm, get),
-			Body = mochijson:encode(hub(#hub{id = Id, callback = Callback,
-					href = Href, query = Query})),
-			Headers = [{content_type, "application/json"}],
-			{ok, Headers, Body};
+			case gen_fsm:sync_send_all_state_event(Fsm, get) of
+				#hub{id = Id} = Hub ->
+					Body = mochijson:encode(hub(Hub)),
+					Headers = [{content_type, "application/json"}],
+					{ok, Headers, Body};
+				_ ->
+					{error, 404}
+			end;
 		undefined ->
 			{error, 404}
 	end.
