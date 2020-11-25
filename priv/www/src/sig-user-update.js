@@ -62,7 +62,7 @@ class userUpdate extends PolymerElement {
 						id="updateUserLocale"
 						label="Language"
 						value="{{userUpLang}}"
-						noAnimations="true"
+						no-animations="true"
 						selected="0">
 					<paper-listbox
 							slot="dropdown-content">

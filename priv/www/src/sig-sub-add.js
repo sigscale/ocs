@@ -60,6 +60,7 @@ class subAdd extends PolymerElement {
 									id="proAddOff"
 									value="{{offAddPro}}"
 									label="Offers"
+									no-animations="true"
 									on-selected-item-changed="_productSelected">
 								<paper-listbox
 										id="addproduct10"
@@ -309,6 +310,7 @@ class subAdd extends PolymerElement {
 							<paper-dropdown-menu
 									id="creUnits"
 									value="{{uniAddCre}}"
+									no-animations="true"
 									label="Units">
 								<paper-listbox
 										id="adduni9"

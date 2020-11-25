@@ -53,6 +53,7 @@ class clientAdd extends PolymerElement {
 						class="drop"
 						label="Protocol"
 						value="{{clientProto}}"
+						no-animations="true"
 						on-selected-item-changed="checkProto">
 					<paper-listbox
 							id="addClientProtocol"

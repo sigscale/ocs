@@ -194,6 +194,7 @@ class subUpdate extends PolymerElement {
 							<paper-dropdown-menu
 									id="updateUni"
 									value="{{updateSubUni}}"
+									no-animations="true"
 									label="Units">
 								<paper-listbox
 										id="updateUni1"

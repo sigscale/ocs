@@ -38,6 +38,7 @@ class productAddClass extends PolymerElement {
 				<paper-dropdown-menu
 						id="addProDrop"
 						label="Product Offer"
+						no-animations="true"
 						value="{{proAdd}}">
 					<paper-listbox
 							id="addProDropList"

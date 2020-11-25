@@ -213,6 +213,7 @@ class offerUpdate extends PolymerElement {
 						<paper-dropdown-menu id="updatePriceTypedrop"
 								label="Price Type"
 								value="{{priceUpdateType}}"
+								no-animations="true"
 								on-selected-item-changed="checkRecure">
 							<paper-listbox
 									id="updatePriceType"
@@ -252,6 +253,7 @@ class offerUpdate extends PolymerElement {
 						<paper-dropdown-menu id="updatePriceUnitsdrop"
 								label="Units"
 								value="{{priceUpdateUnits}}"
+								no-animations="true"
 								on-selected-item-changed="checkPattern">
 							<paper-listbox
 									id="updatePriceUnits"
@@ -298,6 +300,7 @@ class offerUpdate extends PolymerElement {
 						</paper-tooltip>
 						<paper-dropdown-menu id="updatePricePerioddrop"
 								value="{{priceUpdatePeriod}}"
+								no-animations="true"
 								label="Period">
 							<paper-listbox
 									id="updatePricePeriod"
@@ -329,6 +332,7 @@ class offerUpdate extends PolymerElement {
 							<paper-dropdown-menu
 									id="addUpdatePriceDrop"
 									value="{{priceUpdateAlt}}"
+									no-animations="true"
 									label="Alterations">
 								<paper-listbox
 										id="addUpdatePriceAlteration"
@@ -526,6 +530,7 @@ class offerUpdate extends PolymerElement {
 								id="updateAltTypedrop"
 								label="Price Type"
 								value="{{altUpdateType}}"
+								no-animations="true"
 								on-selected-item-changed="checkRecureAlt">
 							<paper-listbox
 									id="updateAltType"
@@ -563,6 +568,7 @@ class offerUpdate extends PolymerElement {
 						<paper-dropdown-menu
 								id="updateAltsUnitsdrop"
 								value= "{{altUpdateUnits}}"
+								no-animations="true"
 								label="Units">
 							<paper-listbox
 									id="updateUnitDrop"
@@ -610,6 +616,7 @@ class offerUpdate extends PolymerElement {
 						</paper-tooltip>
 						<paper-dropdown-menu id="addalt5drop"
 								label="Period"
+								no-animations="true"
 								value="{{AltUpdatePer}}">
 							<paper-listbox
 									id="updateAltPeriod"

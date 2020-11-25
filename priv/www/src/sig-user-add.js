@@ -58,6 +58,7 @@ class userAdd extends PolymerElement {
 						id="addUserLoc"
 						class="drop"
 						label="Language"
+						no-animations="true"
 						value="{{userLanguage}}">
 					<paper-listbox
 							id="addUserLocale"

@@ -53,6 +53,7 @@ class offerAdd extends PolymerElement {
 					<paper-dropdown-menu
 							id="proBucUnit"
 							value="{{proUnit}}"
+							no-animations="true"
 							label="Units">
 						<paper-listbox
 								id="addUnitsBucket"

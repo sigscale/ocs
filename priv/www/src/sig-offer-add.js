@@ -100,6 +100,7 @@ class offerAdd extends PolymerElement {
 									id="addOffProductSpecificationDrop"
 									on-selected-item-changed="checkProductSpec"
 									value="{{offerAddSpec}}"
+									no-animations="true"
 									label="Product Specification">
 								<paper-listbox
 										id="addOffProductSpecification"
@@ -249,6 +250,7 @@ class offerAdd extends PolymerElement {
 									id="addPriceTypedrop"
 									label="Price Type"
 									value="{{priceAddType}}"
+									no-animations="true"
 									on-selected-item-changed="checkRecure">
 								<paper-listbox
 										id="addPriceType"
@@ -295,6 +297,7 @@ class offerAdd extends PolymerElement {
 									id="addPriceUnitsdrop"
 									value="{{priceAddUnits}}"
 									label="Units"
+									no-animations="true"
 									on-selected-item-changed="checkPattern">
 								<paper-listbox
 										id="addPriceUnits"
@@ -353,6 +356,7 @@ class offerAdd extends PolymerElement {
 							<paper-dropdown-menu
 									id="addPricePerioddrop"
 									value="{{priceAddPeriod}}"
+									no-animations="true"
 									label="Period">
 								<paper-listbox
 										id="addPricePeriod"
@@ -385,6 +389,7 @@ class offerAdd extends PolymerElement {
 							<paper-dropdown-menu
 									id="addPriceDrop"
 									value="{{priceAddAlter}}"
+									no-animations="true"
 									label="Alteration">
 								<paper-listbox
 										id="addPriceAlteration"
@@ -504,6 +509,7 @@ class offerAdd extends PolymerElement {
 								<paper-dropdown-menu
 										id="destPrefixTariff"
 										value="{{priceAddTariff}}"
+										no-animations="true"
 										label="Prefix Tariff Table">
 									<paper-listbox
 											id="addPricTariff"
@@ -610,6 +616,7 @@ class offerAdd extends PolymerElement {
 									id="altPriType"
 									label="Price Type"
 									value="{{altAddType}}"
+									no-animations="true"
 									on-selected-item-changed="checkRecureAlt">
 								<paper-listbox
 										id="addAltType"
@@ -653,6 +660,7 @@ class offerAdd extends PolymerElement {
 									id="addAltUnitsdrop"
 									value="{{altAddUnit}}"
 									on-selected-item-changed="checkPatternAlt"
+									no-animations="true"
 									label="Units">
 								<paper-listbox
 										id="addAltUnitDrop"
@@ -710,6 +718,7 @@ class offerAdd extends PolymerElement {
 							<paper-dropdown-menu
 									id="addalt5drop"
 									label="Period"
+									no-animations="true"
 									value="{{altAddPeriod}}">
 								<paper-listbox
 										id="addAltPeriod"
