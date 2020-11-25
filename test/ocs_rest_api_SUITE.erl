@@ -3910,7 +3910,9 @@ get_usage_hub(Config) ->
 	{_, ContentLength} = lists:keyfind("content-length", 1, Headers2),
 	{struct, HubList} = mochijson:decode(ResponseBody),
 	{_, Callback} = lists:keyfind("callback", 1, HubList),
-	{_, Id} = lists:keyfind("id", 1, HubList).
+	{_, Id} = lists:keyfind("id", 1, HubList),
+	Href = PathHub ++ Id,
+	{_, Href} = lists:keyfind("href", 1, HubList).
 
 delete_hub_usage() ->
 	[{userdata, [{doc, "Unregister hub listener for usage"}]}].
