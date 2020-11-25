@@ -3875,7 +3875,16 @@ get_usage_hubs(Config) ->
 	ContentLength = integer_to_list(length(ResponseBody)),
 	{_, ContentLength} = lists:keyfind("content-length", 1, Headers),
 	{array, HubStructs} = mochijson:decode(ResponseBody),
-	true = length(HubStructs) >= 2.
+	true = length(HubStructs) >= 2,
+	F = fun({struct, HubList}) ->
+			case lists:keyfind("href", 1, HubList) of
+				{_, "/usageManagement/v1/hub/" ++ _} ->
+					true;
+				_ ->
+					false
+			end
+	end,
+	true = lists:all(F, HubStructs).
 
 get_usage_hub() ->
 	[{userdata, [{doc, "Get hub listener"}]}].
