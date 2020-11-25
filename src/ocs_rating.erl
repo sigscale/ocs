@@ -1104,9 +1104,10 @@ update_session(Type, Charge, Reserve, SessionId, Buckets) ->
 			sort(Buckets), [], 0, 0).
 %% @hidden
 update_session(Type, Charge, Reserve, Now, SessionId,
-		[#bucket{end_date = Expires, reservations = [],
-		remain_amount = Remain} | T], Acc, Charged, Reserved)
-		when Expires /= undefined, Expires =< Now, Remain >= 0 ->
+		[#bucket{start_date = Start, end_date = Expires,
+		reservations = [], remain_amount = Remain} | T],
+		Acc, Charged, Reserved) when Expires /= undefined,
+		Start =/= Expires, Expires =< Now, Remain >= 0 ->
 	update_session(Type, Charge, Reserve,
 			Now, SessionId, T, Acc, Charged, Reserved);
 update_session(Type, Charge, Reserve, Now, SessionId,
@@ -1243,8 +1244,9 @@ charge_session(Type, Charge, SessionId, Buckets) ->
 %% @hidden
 charge_session(Type, Charge, Now, SessionId,
 		[#bucket{remain_amount = Remain, reservations = [],
-		end_date = Expires} | T], Charged, Acc)
-		when Remain >= 0, Expires /= undefined, Expires =< Now ->
+		start_date = Start, end_date = Expires} | T], Charged, Acc)
+		when Remain >= 0, Expires /= undefined, Expires =/= Start,
+		Expires =< Now ->
 	charge_session(Type, Charge, Now, SessionId, T, Charged, Acc);
 charge_session(Type, Charge, Now, SessionId,
 		[#bucket{units = Type, remain_amount = Remain,
