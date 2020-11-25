@@ -252,7 +252,7 @@ rate1(Protocol, Service, Buckets, Timestamp, Address,
 		State#state{rated = #rated{product = OfferName}}).
 %% @hidden
 rate2(Protocol, Service, Buckets, Timestamp, Address,
-		Direction, #offer{specification = ProdSpec, price = Prices},
+		Direction, #offer{specification = ProdSpec, price = Prices} = Offer,
 		Flag, DebitAmounts, ReserveAmounts, State)
 		when ProdSpec == "10"; ProdSpec == "11" ->
 	F = fun(#price{type = usage, units = messages}) ->
@@ -276,7 +276,7 @@ rate2(Protocol, Service, Buckets, Timestamp, Address,
 			throw(price_not_found)
 	end;
 rate2(Protocol, Service, Buckets, Timestamp, Address,
-		Direction, #offer{specification = ProdSpec, price = Prices},
+		Direction, #offer{specification = ProdSpec, price = Prices} = Offer,
 		Flag, DebitAmounts, ReserveAmounts, State)
 		when ProdSpec == "5"; ProdSpec == "9" ->
 	F = fun(#price{type = tariff, units = seconds}) ->
@@ -298,7 +298,7 @@ rate2(Protocol, Service, Buckets, Timestamp, Address,
 			throw(price_not_found)
 	end;
 rate2(Protocol, Service, Buckets, Timestamp, _Address, _Direction,
-		#offer{price = Prices}, Flag, DebitAmounts, ReserveAmounts, State) ->
+		#offer{price = Prices} = Offer, Flag, DebitAmounts, ReserveAmounts, State) ->
 	F = fun(#price{type = tariff, units = octets}) ->
 				true;
 			(#price{type = usage}) ->
@@ -349,8 +349,7 @@ rate3(Protocol, Service, Buckets, Address,
 				{_, _, _Description, TabPrefix} ->
 						Table2 = list_to_existing_atom(TabPrefix ++ "-" ++ TariffTable),
 						case catch ocs_gtt:lookup_last(Table2, Address) of
-				{Description, Amount, _} when is_integer(Amount) ->
-							{Description1, Amount, _} ->
+							{Description1, Amount, _} when is_integer(Amount)->
 								case Amount of
 									N when N >= 0 ->
 										rate5(Protocol, Service, Buckets,
@@ -387,8 +386,8 @@ rate4(Protocol, Service, Buckets,
 		rated = Rated} = State)
 		when is_list(RoamingTable), is_list(ServiceNetwork) ->
 	Table = list_to_existing_atom(RoamingTable),
-	case catch ocs:find_sn_network(Table, ServiceNetwork) of
-		{_, _, Description, Amount} ->
+	case catch ocs_gtt:lookup_last(Table, ServiceNetwork) of
+		{Description, Amount, _} when is_integer(Amount) ->
 			case Amount of
 				N when N >= 0 ->
 					rate5(Protocol, Service, Buckets,
