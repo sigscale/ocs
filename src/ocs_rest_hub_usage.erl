@@ -106,10 +106,12 @@ get_usage_hubs() ->
 	get_usage_hubs(supervisor:which_children(ocs_rest_hub_sup), []).
 %% @hidden
 get_usage_hubs([{_, Pid, _, _} | T], Acc) ->
-	#{"callback" := Callback, "href" := Href, "id" := Id, "query" := Query}
-			= gen_fsm:sync_send_all_state_event(Pid, get),
-	get_usage_hubs(T, [#hub{id = Id, callback = Callback,
-			href = Href, query = Query} | Acc]);
+	case gen_fsm:sync_send_all_state_event(Pid, get) of
+		#hub{href = "/usageManagement/v1/hub/" ++ _} = Hub ->
+			get_usage_hubs(T, [Hub | Acc]);
+		_Hub ->
+			get_usage_hubs(T, Acc)
+	end;
 get_usage_hubs([], Acc) ->
 	Body = mochijson:encode({array, [hub(Hub) || Hub <- Acc]}),
 	Headers = [{content_type, "application/json"}],
