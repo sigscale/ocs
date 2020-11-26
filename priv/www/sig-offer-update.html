@@ -576,6 +576,13 @@
 								</i18n-msg>
 							</paper-tooltip>
 						</div>
+						<div>
+							<paper-input
+									id="chargingKey"
+									type="number"
+									label="chargingKey">
+							</paper-input>
+						</div>
 					</iron-collapse>
 					<div class="buttons">
 						<paper-button
@@ -1026,6 +1033,9 @@
 							if(prodPrice.prodSpecCharValueUse[indexChar].name == "destPrefixTariffTable") {
 								specChar[indexChar] = {name: "destPrefixTariffTable", value: prodPrice.prodSpecCharValueUse[indexChar].productSpecCharacteristicValue[0].value};
 							}
+							if(prodPrice.prodSpecCharValueUse[indexChar].name == "chargingKey") {
+								specChar[indexChar] = {name: "chargingKey", value: prodPrice.prodSpecCharValueUse[indexChar].productSpecCharacteristicValue[0].value};
+							}
 						}
 					}
 					newPrice.prodSpecCharValueUse = specChar;
@@ -1215,7 +1225,7 @@
 						this.$.updateAddPriceCharReserveBytes.value = null;
 						this.$.updateDestPrefixTariff.value = null;
 						this.$.updateReserveSession.value = null;
-						this.$.updateDestPrefixTariff.value = null;
+						this.$.chargingKey.value = null;
 						this.$.updateTimeOfDayStart.value = null;
 						this.$.updateTimeOfDayEnd.value = null;
 						this.$.updateCheckIn.checked = false;
@@ -1286,6 +1296,9 @@
 							for (var indexCharVal in prodPriceUpdate.prodSpecCharValueUse) {
 								if(prodPriceUpdate.prodSpecCharValueUse[indexCharVal].name == "destPrefixTariffTable") {
 									this.$.updateDestPrefixTariff.value = prodPriceUpdate.prodSpecCharValueUse[indexCharVal].value;
+								}
+								if(prodPriceUpdate.prodSpecCharValueUse[indexCharVal].name == "chargingKey") {
+									this.$.chargingKey.value = prodPriceUpdate.prodSpecCharValueUse[indexCharVal].value;
 								}
 								if(prodPriceUpdate.prodSpecCharValueUse[indexCharVal].name == "radiusReserveTime") {
 									this.$.updateAddPriceCharReserveTime.value = prodPriceUpdate.prodSpecCharValueUse[indexCharVal].value;
@@ -1649,6 +1662,40 @@
 						updatePriceNew.push(destTariff);
 					}
 				}
+
+				if(this.$.chargingKey.value) {
+					function checkCharge(charge) {
+						return charge.name == "chargingKey";
+					}
+					var resCharge = this.prices[indexPrices].prodSpecCharValueUse.findIndex(checkCharge);
+					if(resCharge == -1) {
+						indexCharPrices = "-";
+						var key = new Object();
+						key.op = "add";
+						key.path = "/productOfferingPrice/" + indexPrices + "/prodSpecCharValueUse/" + indexCharPrices;
+						var key1 = new Object();
+						key1.name = "chargingKey";
+						var key2Arr = new Array();
+						var key2 = new Object();
+						key2.value = this.$.chargingKey.value;
+						key2Arr.push(key2);
+						key1.productSpecCharacteristicValue = key2Arr;
+						var key3 = new Object();
+						key3.id = "3";
+						key3.href = "/catalogManagement/v2/productSpecification/3";
+						key1.productSpecification = key3;
+						key.value = key1;
+						updatePriceNew.push(key);
+					} else {
+						indexCharPrices = resCharge;
+						var keyE = new Object();
+						keyE.op = "add";
+						keyE.path = "/productOfferingPrice/" + indexPrices + "/prodSpecCharValueUse/" + indexCharPrices + "/productSpecCharacteristicValue/0/value";
+						keyE.value = this.$.chargingKey.value;
+						updatePriceNew.push(keyE);
+					}
+				}
+
 				if(this.$.updateAddPriceCharReserveBytes.value) {
 					function checkChar1(charVal) {
 						return charVal.name == "radiusReserveOctets";
@@ -1785,6 +1832,7 @@
 				this.$.updatePricePerioddrop.value = null;
 				this.$.updateAddPriceCharReserveTime.value = null;
 				this.$.updateDestPrefixTariff.value = null;
+				this.$.chargingKey.value = null;
 				this.$.updateAddPriceCharReserveBytes.value = null;
 				this.$.updateCheckIn.checked = false;
 				this.$.updateCheckOut.checked = false;
@@ -2202,6 +2250,7 @@
 					this.$.updateAddPriceCharReserveTime.value = null;
 					this.$.updateAddPriceCharReserveBytes.value = null;
 					this.$.updateDestPrefixTariff.value = null;
+					this.$.chargingKey.value =  null;
 					this.$.updateReserveSession.value = null;
 					this.$.updateTimeOfDayStart.value = null;
 					this.$.updateTimeOfDayEnd.value = null;
@@ -2374,6 +2423,7 @@
 				this.$.updateAddPriceCharReserveTime.value = null;
 				this.$.updateAddPriceCharReserveBytes.value = null;
 				this.$.updateDestPrefixTariff.value = null;
+				this.$.chargingKey.value = null;
 				this.$.updateReserveSession.value = null;
 				this.$.updateTimeOfDayStart.value = null;
 				this.$.updateTimeOfDayEnd.value = null;
