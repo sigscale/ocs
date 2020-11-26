@@ -924,9 +924,15 @@ characteristic_product_network() ->
 characteristic_product_rated_plan() ->
 	Name1 = {"name", "timeOfDayRange"},
 	Description1 = {"description", "Start and End of time of day range"},
+	Config1 = {"configurable", true},
 	ValueType1 = {"valueType", "Range"},
-	Char1 = {struct, [Name1, Description1, ValueType1]},
-	[Char1].
+	Char1 = {struct, [Name1, Description1, Config1, ValueType1]},
+	Name2 = {"name", "chargingKey"},
+	Description2 = {"description", "Charging Key"},
+	Config2 = {"configurable", true},
+	ValueType2 = {"valueType", "Number"},
+	Char2 = {struct, [Name2, Description2, Config2, ValueType2]},
+	[Char1, Char2].
 
 %% @hidden
 characteristic_product_prepaid() ->
