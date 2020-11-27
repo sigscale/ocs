@@ -813,8 +813,6 @@ quantity({struct, [{"amount", Amount}, {"units", "cents"}]}) ->
 	#quantity{units = cents, amount = ocs_rest:millionths_in(Amount)};
 quantity({struct, [{"units", "cents"}, {"amount", Amount}]}) ->
 	#quantity{units = cents, amount = ocs_rest:millionths_in(Amount)};
-quantity({struct, [{"amount", Amount}, {"units", Units}]}) when is_list(Amount) ->
-	quantity({struct, [{"units", Units}, {"amount", Amount}]});
 quantity({struct, [{"amount", Amount}, {"units", Units}]}) ->
 	quantity({struct, [{"units", Units}, {"amount", Amount}]});
 quantity({struct, [{"units", Units}, {"amount", Amount}]}) when is_list(Amount)->
