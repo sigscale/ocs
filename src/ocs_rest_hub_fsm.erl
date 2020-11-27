@@ -23,7 +23,7 @@
 -include("ocs.hrl").
 
 %% export the public API
--export([start_link/2, start_link/3]).
+-export([start_link/3, start_link/4]).
 
 %% export the private API
 -export([handle_async/2]).
@@ -41,6 +41,7 @@
 		function :: atom(),
 		query :: string(),
 		callback :: string(),
+		href :: string(),
 		authorization :: string() | undefined,
 		args :: list() | undefined,
 		sync = true :: boolean()}).
@@ -50,43 +51,43 @@
 -define(MILLISECOND, milli_seconds).
 %-define(MILLISECOND, millisecond).
 
--define(hubPath, "/balanceManagement/v1/hub/").
-
 %%----------------------------------------------------------------------
 %%  The ocs_rest_hub_fsm API
 %%----------------------------------------------------------------------
 
--spec start_link(Query, Callback) -> Result
+-spec start_link(Query, Callback, Uri) -> Result
 	when
 		Query :: string(),
 		Callback :: string(),
+		Uri :: string(),
 		Result :: {ok, PageServer} | {error, Reason},
 		PageServer :: pid(),
 		Reason :: term().
 %% @doc Start a hub fsm
-start_link(Query, Callback) ->
+start_link(Query, Callback, Uri) ->
 	{Id, _} = unique(),
 	case gen_fsm:start_link({global, Id}, ?MODULE,
-			[Id, Query, Callback], []) of
+			[Id, Query, Callback, Uri], []) of
 		{ok, Child} ->
 			{ok, Child, Id};
 		{error, Reason} ->
 			{error, Reason}
 	end.
 
--spec start_link(Query, Callback, Authorization) -> Result
+-spec start_link(Query, Callback, Uri, Authorization) -> Result
 	when
 		Query :: string(),
 		Callback :: string(),
+		Uri :: string(),
 		Authorization :: string(),
 		Result :: {ok, PageServer} | {error, Reason},
 		PageServer :: pid(),
 		Reason :: term().
 %% @doc Start a hub fsm
-start_link(Query, Callback, Authorization) ->
+start_link(Query, Callback, Uri, Authorization) ->
 	{Id, _} = unique(),
 	case gen_fsm:start_link({global, Id}, ?MODULE,
-			[Id, Query, Callback, Authorization], []) of
+			[Id, Query, Callback, Uri, Authorization], []) of
 		{ok, Child} ->
 			{ok, Child, Id};
 		{error, Reason} ->
@@ -110,17 +111,17 @@ start_link(Query, Callback, Authorization) ->
 %% @see //stdlib/gen_fsm:init/1
 %% @private
 %%
-init([Id, Query, Callback] = _Args) ->
+init([Id, Query, Callback, Uri] = _Args) ->
 	process_flag(trap_exit, true),
 	{ok, Profile} = application:get_env(hub_profile),
 	State = #statedata{id = Id, profile = Profile,
-			query = Query, callback = Callback},
+			query = Query, callback = Callback, href = Uri ++ Id},
 	{ok, register, State, 0};
-init([Id, Query, Callback, Authorization] = _Args) ->
+init([Id, Query, Callback, Uri, Authorization] = _Args) ->
 	process_flag(trap_exit, true),
 	{ok, Profile} = application:get_env(hub_profile),
 	State = #statedata{id = Id, profile = Profile,
-			query = Query, callback = Callback,
+			query = Query, callback = Callback, href = Uri ++ Id,
 			authorization = Authorization},
 	{ok, register, State, 0}.
 
@@ -235,9 +236,9 @@ handle_event(Reason, _StateName, State) ->
 %% @private
 %%
 handle_sync_event(get, _From, StateName,
-		#statedata{id = Id, query = Query, callback = Callback} = StateData) ->
-	Hub = #{"id" => Id, "query" => Query, "callback" => Callback,
-		"href" => ?hubPath ++ Id},
+		#statedata{id = Id, query = Query, callback = Callback,
+		href = Href} = StateData) ->
+	Hub = #hub{id = Id, query = Query, callback = Callback, href = Href},
 	{reply, Hub, StateName, StateData}.
 
 -spec handle_info(Info, StateName, StateData) -> Result

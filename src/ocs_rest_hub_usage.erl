@@ -21,7 +21,8 @@
 
 -include("ocs.hrl").
 
--export([content_types_accepted/0, content_types_provided/0, post_hub/2]).
+-export([content_types_accepted/0, content_types_provided/0, post_hub/2,
+		delete_hub/1, get_usage_hubs/0, get_usage_hub/1]).
 -export([hub/1]).
 
 -define(PathUsageHub, "/usageManagement/v1/hub/").
@@ -45,6 +46,16 @@ content_types_accepted() ->
 content_types_provided() ->
 	["application/json"].
 
+-spec delete_hub(Id) -> Result
+	when
+		Id :: string(),
+		Result :: {ok, Headers :: [tuple()], Body :: iolist()}
+			| {error, ErrorCode :: integer()}.
+%% Delete by id.
+%% @doc Respond to `POST /usageManagement/v1/hub/{id}'
+delete_hub(Id) ->
+	{gen_fsm:send_all_state_event({global, Id}, shutdown), [], []}.
+
 -spec post_hub(ReqBody, Authorization) -> Result
 	when
 		ReqBody :: list(),
@@ -58,7 +69,7 @@ post_hub(ReqBody, Authorization) ->
 		case hub(mochijson:decode(ReqBody)) of
 			#hub{callback = Callback, query = undefined} = HubRecord ->
 				case supervisor:start_child(ocs_rest_hub_sup,
-						[[], Callback, Authorization]) of
+						[[], Callback, ?PathUsageHub, Authorization]) of
 					{ok, _PageServer, Id} ->
 						Body = mochijson:encode(hub(HubRecord#hub{id = Id})),
 						Headers = [{content_type, "application/json"},
@@ -69,7 +80,7 @@ post_hub(ReqBody, Authorization) ->
 				end;
 			#hub{callback = Callback, query = Query} = HubRecord ->
 				case supervisor:start_child(ocs_rest_hub_sup,
-						[Query, Callback, Authorization]) of
+						[Query, Callback, ?PathUsageHub, Authorization]) of
 					{ok, _PageServer, Id} ->
 						Body = mochijson:encode(hub(HubRecord#hub{id = Id})),
 						Headers = [{content_type, "application/json"},
@@ -82,6 +93,51 @@ post_hub(ReqBody, Authorization) ->
 	catch
 		_:_ ->
 			{error, 400}
+	end.
+
+-spec get_usage_hubs() -> Result
+	when
+		Result :: {ok, Headers :: [tuple()], Body :: iolist()}
+				| {error, ErrorCode :: integer()}.
+%% @doc Body producing function for
+%% 	`GET|HEAD /usageManagement/v1/hub/'
+%% 	requests.
+get_usage_hubs() ->
+	get_usage_hubs(supervisor:which_children(ocs_rest_hub_sup), []).
+%% @hidden
+get_usage_hubs([{_, Pid, _, _} | T], Acc) ->
+	case gen_fsm:sync_send_all_state_event(Pid, get) of
+		#hub{href = "/usageManagement/v1/hub/" ++ _} = Hub ->
+			get_usage_hubs(T, [Hub | Acc]);
+		_Hub ->
+			get_usage_hubs(T, Acc)
+	end;
+get_usage_hubs([], Acc) ->
+	Body = mochijson:encode({array, [hub(Hub) || Hub <- Acc]}),
+	Headers = [{content_type, "application/json"}],
+	{ok, Headers, Body}.
+
+-spec get_usage_hub(Id) -> Result
+	when
+		Id :: string(),
+		Result :: {ok, Headers :: [tuple()], Body :: iolist()}
+				| {error, ErrorCode :: integer()}.
+%% @doc Body producing function for
+%% 	`GET|HEAD /usageManagement/v1/hub/{id}'
+%% 	requests.
+get_usage_hub(Id) ->
+	case global:whereis_name(Id) of
+		Fsm when is_pid(Fsm) ->
+			case gen_fsm:sync_send_all_state_event(Fsm, get) of
+				#hub{id = Id} = Hub ->
+					Body = mochijson:encode(hub(Hub)),
+					Headers = [{content_type, "application/json"}],
+					{ok, Headers, Body};
+				_ ->
+					{error, 404}
+			end;
+		undefined ->
+			{error, 404}
 	end.
 
 %%----------------------------------------------------------------------

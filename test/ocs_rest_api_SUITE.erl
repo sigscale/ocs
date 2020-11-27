@@ -208,10 +208,10 @@ all() ->
 	notify_create_service, notify_delete_service, query_service_notification,
 	post_hub_user, delete_hub_user, post_hub_catalog, delete_hub_catalog,
 	notify_create_offer, notify_delete_offer, query_offer_notification,
+	post_hub_inventory, delete_hub_inventory,
 	notify_insert_gtt, notify_delete_gtt, query_gtt_notification,
 	notify_add_pla, notify_delete_pla, query_pla_notification,
-	post_hub_inventory, delete_hub_inventory,
-	post_hub_usage,
+	post_hub_usage, get_usage_hubs, get_usage_hub, delete_hub_usage,
 	oauth_authentication].
 
 %%---------------------------------------------------------------------
@@ -3849,6 +3849,88 @@ post_hub_usage(Config) ->
 	{struct, HubList} = mochijson:decode(ResponseBody),
 	{_, Callback} = lists:keyfind("callback", 1, HubList),
 	{_, Id} = lists:keyfind("id", 1, HubList).
+
+get_usage_hubs() ->
+	[{userdata, [{doc, "Get usage hub listeners"}]}].
+
+get_usage_hubs(Config) ->
+	HostUrl = ?config(host_url, Config),
+	CollectionUrl = HostUrl ++ ?PathUsageHub,
+	Callback1 = "http://in.listener1.com",
+	Callback2 = "http://in.listener2.com",
+	RequestBody1 = "{\"callback\":\"" ++ Callback1 ++ "\"}",
+	RequestBody2 = "{\"callback\":\"" ++ Callback2 ++ "\"}",
+	ContentType = "application/json",
+	Accept = {"accept", "application/json"},
+	Request1 = {CollectionUrl, [Accept, auth_header()], ContentType, RequestBody1},
+	{ok, Result1} = httpc:request(post, Request1, [], []),
+	{{_, 201, _}, _, _} = Result1,
+	Request2 = {CollectionUrl, [Accept, auth_header()], ContentType, RequestBody2},
+	{ok, Result2} = httpc:request(post, Request2, [], []),
+	{{_, 201, _}, _, _} = Result2,
+	Request3 = {CollectionUrl, [Accept, auth_header()]},
+	{ok, Result3} = httpc:request(get, Request3, [], []),
+	{{"HTTP/1.1", 200, _OK}, Headers, ResponseBody} = Result3,
+	{_, "application/json"} = lists:keyfind("content-type", 1, Headers),
+	ContentLength = integer_to_list(length(ResponseBody)),
+	{_, ContentLength} = lists:keyfind("content-length", 1, Headers),
+	{array, HubStructs} = mochijson:decode(ResponseBody),
+	true = length(HubStructs) >= 2,
+	F = fun({struct, HubList}) ->
+			case lists:keyfind("href", 1, HubList) of
+				{_, "/usageManagement/v1/hub/" ++ _} ->
+					true;
+				_ ->
+					false
+			end
+	end,
+	true = lists:all(F, HubStructs).
+
+get_usage_hub() ->
+	[{userdata, [{doc, "Get hub listener"}]}].
+
+get_usage_hub(Config) ->
+	HostUrl = ?config(host_url, Config),
+	PathHub = ?PathUsageHub,
+	CollectionUrl = HostUrl ++ PathHub,
+	Callback = "http://in.listener.com",
+	RequestBody = "{\"callback\":\"" ++ Callback ++ "\"}",
+	ContentType = "application/json",
+	Accept = {"accept", "application/json"},
+	Request1 = {CollectionUrl, [Accept, auth_header()], ContentType, RequestBody},
+	{ok, Result1} = httpc:request(post, Request1, [], []),
+	{{_, 201, _}, Headers1, _} = Result1,
+	{_, Location} = lists:keyfind("location", 1, Headers1),
+	Id = string:substr(Location, string:rstr(Location, PathHub) + length(PathHub)),
+	Request2 = {CollectionUrl ++ Id, [Accept, auth_header()]},
+	{ok, Result2} = httpc:request(get, Request2, [], []),
+	{{"HTTP/1.1", 200, _OK}, Headers2, ResponseBody} = Result2,
+	{_, "application/json"} = lists:keyfind("content-type", 1, Headers2),
+	ContentLength = integer_to_list(length(ResponseBody)),
+	{_, ContentLength} = lists:keyfind("content-length", 1, Headers2),
+	{struct, HubList} = mochijson:decode(ResponseBody),
+	{_, Callback} = lists:keyfind("callback", 1, HubList),
+	{_, Id} = lists:keyfind("id", 1, HubList),
+	Href = PathHub ++ Id,
+	{_, Href} = lists:keyfind("href", 1, HubList).
+
+delete_hub_usage() ->
+	[{userdata, [{doc, "Unregister hub listener for usage"}]}].
+
+delete_hub_usage(Config) ->
+	HostUrl = ?config(host_url, Config),
+	PathHub = ?PathUsageHub,
+	CollectionUrl = HostUrl ++ PathHub,
+	Callback = "http://in.listener.com",
+	RequestBody = "{\"callback\":\"" ++ Callback ++ "\"}",
+	ContentType = "application/json",
+	Accept = {"accept", "application/json"},
+	Request = {CollectionUrl, [Accept, auth_header()], ContentType, RequestBody},
+	{ok, {{_, 201, _}, _, ResponseBody}} = httpc:request(post, Request, [], []),
+	{struct, HubList} = mochijson:decode(ResponseBody),
+	{_, Id} = lists:keyfind("id", 1, HubList),
+	Request1 = {HostUrl ++ PathHub ++ Id, [Accept, auth_header()]},
+	{ok, {{_, 204, _}, _, []}} = httpc:request(delete, Request1, [], []).
 
 oauth_authenticaton()->
 	[{userdata, [{doc, "Authenticate a JWT using oauth"}]}].
