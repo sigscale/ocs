@@ -138,7 +138,7 @@
 		reservations = [] :: [{TS :: pos_integer(),
 				DebitAmount :: non_neg_integer(),
 				ReservedAmount :: non_neg_integer(),
-				SessionId :: string() | binary()}] | '_',
+				SessionId :: list()}] | '_',
 		units :: octets | cents | seconds | messages | undefined | '_',
 		prices = [] :: list() | '_',
 		product  = [] :: [ProdRef :: term()] | '_',
