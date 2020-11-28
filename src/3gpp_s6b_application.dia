@@ -1,0 +1,133 @@
+
+@id 16777272
+@name   diameter_gen_3gpp_s6b_application
+@vendor 10415 3GPP
+@prefix 3gpp_s6b
+@inherits diameter_gen_base_rfc6733
+@inherits diameter_gen_ietf
+@inherits diameter_gen_3gpp
+@messages
+
+	AAR ::= < Diameter Header: 265, REQ, PXY >
+		< Session-Id >
+		{ Auth-Application-Id }
+		{ Origin-Host }
+		{ Origin-Realm }
+		{ Destination-Realm }
+		{ Auth-Request-Type }
+		[ User-Name ]
+		[ DRMP ]
+		[ MIP6-Agent-Info ]
+		[ MIP6-Feature-Vector ]
+		[ Visited-Network-Identifier ]
+		[ QoS-Capability ]
+		[ Service-Selection ]
+		[ OC-Supported-Features ]
+;		[ Origination-Time-Stamp ]
+;		[ Maximum-Wait-Time ]
+		* [ Supported-Features ]
+		[ Emergency-Services ] 
+		* [ Proxy-Info ]
+		* [ Route-Record ]
+		* [ AVP ]
+
+	AAA ::= < Diameter Header: 265, PXY >
+		< Session-Id >
+		{ Auth-Application-Id }
+		{ Origin-Host }
+		{ Origin-Realm }
+		{ Auth-Request-Type }
+		{ Result-Code }
+		[ DRMP ]
+		[ MIP6-Feature-Vector ]
+		[ Session-Timeout ]
+		[ APN-Configuration ]
+		[ QoS-Resources ]
+		[ AN-Trusted ]
+		* [ Redirect-Host ]
+		[ Trace-Info ]
+		[ Supported-Features ]
+		[ OC-Supported-Features ]
+		[ OC-OLR ]
+		* [ Load ]
+		* [ Proxy-Info ]
+		* [ Route-Record ]
+		* [ AVP ]
+
+	STR ::= < Diameter Header: 275, REQ, PXY >
+		< Session-Id >
+		{ Auth-Application-Id }
+		{ Origin-Host }
+		{ Origin-Realm }
+		{ Destination-Realm }
+		{ Termination-Cause }
+		[ Destination-Host ]
+		[ User-Name ]
+		[ DRMP ]
+		[ OC-Supported-Features ]
+		* [ Proxy-Info ]
+		* [ Route-Record ]
+		* [ AVP ]
+
+	STA ::= < Diameter Header: 275, PXY >
+		< Session-Id >
+		{ Origin-Host }
+		{ Origin-Realm }
+		{ Result-Code }
+		[ DRMP ]
+		[ OC-Supported-Features ]
+		[ OC-OLR ]
+		* [ Load ]
+		* [ Proxy-Info ]
+		* [ Route-Record ]
+		* [ AVP ]
+
+	ASR ::= < Diameter Header: 274, REQ, PXY >
+		< Session-Id >
+		{ Auth-Application-Id }
+		{ Origin-Host }
+		{ Origin-Realm }
+		{ Destination-Realm }
+		{ Destination-Host }
+		[ User-Name ]
+		[ Auth-Session-State ]
+		[ DRMP ]
+		* [ Proxy-Info ]
+		* [ Route-Record ]
+		* [ AVP ]
+
+	ASA ::= < Diameter Header: 274, PXY >
+		< Session-Id >
+		{ Result-Code }
+		{ Origin-Host }
+		{ Origin-Realm }
+		[ DRMP ]
+		* [ Proxy-Info ]
+		* [ Route-Record ]
+		* [ AVP ]
+
+	RAR ::= < Diameter Header: 258, REQ, PXY >
+		< Session-Id >
+		{ Auth-Application-Id }
+		{ Origin-Host }
+		{ Origin-Realm }
+		{ Destination-Realm }
+		{ Destination-Host }
+		{ Re-Auth-Request-Type }
+		[ DRMP ]
+		[ RAR-Flags ]
+		* [ Proxy-Info ]
+		* [ Route-Record ]
+		* [ AVP ]
+
+	RAA ::= < Diameter Header: 258, PXY >
+		< Session-Id >
+		{ Result-Code }
+		{ Origin-Host }
+		{ Origin-Realm }
+		[ User-Name ]
+		[ DRMP ]
+		* [ Proxy-Info ]
+		* [ Route-Record ]
+		* [ AVP ]
+

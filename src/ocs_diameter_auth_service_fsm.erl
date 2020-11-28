@@ -82,6 +82,10 @@
 -define(S6a_APPLICATION_ID, 16777251).
 -define(S6a_APPLICATION_DICT, diameter_gen_3gpp_s6a_application).
 -define(S6a_APPLICATION_CALLBACK, ocs_diameter_3gpp_s6a_application_cb).
+-define(S6b_APPLICATION, ocs_diameter_3gpp_s6b_application).
+-define(S6b_APPLICATION_ID,  16777272).
+-define(S6b_APPLICATION_DICT, diameter_gen_3gpp_s6b_application).
+-define(S6b_APPLICATION_CALLBACK, ocs_diameter_3gpp_s6b_application_cb).
 -define(IANA_PEN_3GPP, 10415).
 -define(IANA_PEN_SigScale, 50386).
 
@@ -359,7 +363,8 @@ service_options(Options) ->
 		false ->
 			ApplicationIds = [?NAS_APPLICATION_ID, ?EAP_APPLICATION_ID,
 					?STa_APPLICATION_ID, ?SWm_APPLICATION_ID,
-					?SWx_APPLICATION_ID, ?S6a_APPLICATION_ID],
+					?SWx_APPLICATION_ID, ?S6a_APPLICATION_ID,
+					?S6b_APPLICATION_ID],
 			[{'Auth-Application-Id', ApplicationIds} | Options2]
 	end,
 	Options4 = case lists:keymember('Auth-Application-Id', 1, Options3) of
@@ -378,7 +383,10 @@ service_options(Options) ->
 							'Auth-Application-Id' = [?SWx_APPLICATION_ID]},
 					#'diameter_base_Vendor-Specific-Application-Id'{
 							'Vendor-Id' = ?IANA_PEN_3GPP,
-							'Auth-Application-Id' = [?S6a_APPLICATION_ID]}]}
+							'Auth-Application-Id' = [?S6a_APPLICATION_ID]},
+					#'diameter_base_Vendor-Specific-Application-Id'{
+							'Vendor-Id' = ?IANA_PEN_3GPP,
+							'Auth-Application-Id' = [?S6b_APPLICATION_ID]}]}
 	end,
 	Options4 ++ [{'Vendor-Id', ?IANA_PEN_SigScale},
 		{'Product-Name', "SigScale AAA"},
@@ -421,6 +429,12 @@ service_options(Options) ->
 				[{alias, ?S6a_APPLICATION},
 				{dictionary, ?S6a_APPLICATION_DICT},
 				{module, ?S6a_APPLICATION_CALLBACK},
+				{answer_errors, callback},
+				{request_errors, callback}]},
+		{application,
+				[{alias, ?S6b_APPLICATION},
+				{dictionary, ?S6b_APPLICATION_DICT},
+				{module, ?S6b_APPLICATION_CALLBACK},
 				{answer_errors, callback},
 				{request_errors, callback}]}].
 
