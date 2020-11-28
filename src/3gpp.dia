@@ -8,7 +8,7 @@
 
 @avp_types
 
-   ;; 3GPP TS 29.299 Table 7.2.0.1: 3GPP Specific AVPs
+   ;; 3GPP TS 32.299 Table 7.2.0.1: 3GPP Specific AVPs
    3GPP-PS-Data-Off-Status                                4406  Enumerated       VM
 ;  Access-Availability-Change-Reason                      2833  Grouped          VM
    Access-Network-Charging-Identifier-Value                503  OctetString      VM
@@ -479,53 +479,53 @@
    Volume-Quota-Threshold                                  869  Unsigned32       VM
 ;  WLAN-Link-Layer-Id                                     3821  
    ;;; 3GPP RS  29.061
-   3GPP-Charging-Characteristics                            13  UTF8String       VM
-   3GPP-Charging-Id                                          2  OctetString      VM
-   3GPP-GGSN-MCC-MNC                                         9  UTF8String       VM
-   3GPP-IMSI                                                 1  UTF8String       VM
-   3GPP-IMSI-MCC-MNC                                         8  UTF8String       VM
-   3GPP-MS-TimeZone                                         23  OctetString      VM
-   3GPP-NSAPI                                               10  OctetString      VM
-   3GPP-PDP-Type                                             3  Enumerated       VM
-   3GPP-RAT-Type                                            21  OctetString      VM
-   3GPP-Selection-Mode                                      12  UTF8String       VM
-   3GPP-Session-Stop-Indicator                              11  OctetString      VM
-   3GPP-SGSN-MCC-MNC                                        18  UTF8String       VM
-   3GPP-User-Location-Info                                  22  OctetString      VM
-   3GPP-GPRS-Negotiated-QoS-Profile                          5  UTF8String       VM
-   3GPP-IMEISV                                              20  UTF8String       VM
+   3GPP-IMSI                                                 1  UTF8String       V
+   3GPP-Charging-Id                                          2  OctetString      V
+   3GPP-PDP-Type                                             3  Enumerated       V
+   3GPP-GPRS-Negotiated-QoS-Profile                          5  UTF8String       V
+   3GPP-IMSI-MCC-MNC                                         8  UTF8String       V
+   3GPP-GGSN-MCC-MNC                                         9  UTF8String       V
+   3GPP-NSAPI                                               10  OctetString      V
+   3GPP-Session-Stop-Indicator                              11  OctetString      V
+   3GPP-Selection-Mode                                      12  UTF8String       V
+   3GPP-Charging-Characteristics                            13  UTF8String       V
+   3GPP-SGSN-MCC-MNC                                        18  UTF8String       V
+   3GPP-IMEISV                                              20  UTF8String       V
+   3GPP-RAT-Type                                            21  OctetString      V
+   3GPP-User-Location-Info                                  22  OctetString      V
+   3GPP-MS-TimeZone                                         23  OctetString      V
    ;; 3GPP TS 29.214
    Access-Network-Charging-Address                         501  Address          VM
    Access-Network-Charging-Identifier                      502  Grouped          VM
    Flow-Description                                        507  IPFilterRule     VM
    Flow-Number                                             509  Unsigned32       VM
-   Media-Component-Number                                  518  Unsigned32       VM
-   Extended-Max-Requested-BW-DL                            554  Unsigned32       VM
-   Extended-Max-Requested-BW-UL                            555  Unsigned32       VM
-   ;; 3GPP TS 29.212
    Max-Requested-Bandwidth-DL                              515  Unsigned32       VM
    Max-Requested-Bandwidth-UL                              516  Unsigned32       VM
+   Media-Component-Number                                  518  Unsigned32       VM
+   Extended-Max-Requested-BW-DL                            554  Unsigned32       V
+   Extended-Max-Requested-BW-UL                            555  Unsigned32       V
+   ;; 3GPP TS 29.212
    Bearer-Usage                                           1000  Enumerated       VM
    Charging-Rule-Install                                  1001  Grouped          VM
    Charging-Rule-Remove                                   1002  Grouped          VM
    Charging-Rule-Definition                               1003  Grouped          VM
    Charging-Rule-Base-Name                                1004  UTF8String       VM
    Charging-Rule-Name                                     1005  OctetString      VM
-   Precedence                                             1010  Unsigned32       VM
-   Reporting-Level                                        1011  Enumerated       VM
-   IP-CAN-Type                                            1027  Enumerated       VM
    Offline                                                1008  Enumerated       VM
    Online                                                 1009  Enumerated       VM
+   Precedence                                             1010  Unsigned32       VM
+   Reporting-Level                                        1011  Enumerated       VM
    ToS-Traffic-Class                                      1014  OctetString      VM
    Bearer-Identifier                                      1020  OctetString      VM
+   Network-Request-Support                                1024  Enumerated       VM
    Guaranteed-Bitrate-DL                                  1025  Unsigned32       VM
    Guaranteed-Bitrate-UL                                  1026  Unsigned32       VM
+   IP-CAN-Type                                            1027  Enumerated       VM
    QoS-Class-Identifier                                   1028  Enumerated       VM
-   Network-Request-Support                                1024  Enumerated       VM
    RAT-Type                                               1032  Enumerated       V
-   Allocation-Retention-Priority                          1034  Grouped          VM
-   APN-Aggregate-Max-Bitrate-DL                           1040  Unsigned32       VM
-   APN-Aggregate-Max-Bitrate-UL                           1041  Unsigned32       VM
+   Allocation-Retention-Priority                          1034  Grouped          V
+   APN-Aggregate-Max-Bitrate-DL                           1040  Unsigned32       V
+   APN-Aggregate-Max-Bitrate-UL                           1041  Unsigned32       V
    Pre-emption-Capability                                 1047  Enumerated       V
    Pre-emption-Vulnerability                              1048  Enumerated       V
    Default-EPS-Bearer-QoS                                 1049  Grouped          V
@@ -543,26 +543,25 @@
    ;; 3GPP TS 29.273
    3GPP-AAA-Server-Name                                    318  DiameterIdentity VM
    Visited-Network-Identifier                              600  OctetString      VM
-   Trace-Data                                             1458  Grouped          VM
    Non-3GPP-User-Data                                     1500  Grouped          VM
    Non-3GPP-IP-Access                                     1501  Enumerated       VM
    Non-3GPP-IP-Access-APN                                 1502  Enumerated       VM
    AN-Trusted                                             1503  Enumerated       VM
    ANID                                                   1504  UTF8String       VM
-   Trace-Info                                             1505  Grouped          VM
-   WLAN-Identifier                                        1509  Grouped          VM
-   Access-Authorization-Flags                             1511  Unsigned32       VM
-   TWAN-Default-APN-Context-Id                            1512  Unsigned32       VM
-   AAA-Failure-Indication                                 1518  Unsigned32       VM
+   Trace-Info                                             1505  Grouped          V
+   WLAN-Identifier                                        1509  Grouped          V
+   Access-Authorization-Flags                             1511  Unsigned32       V
+   TWAN-Default-APN-Context-Id                            1512  Unsigned32       V
+   AAA-Failure-Indication                                 1518  Unsigned32       V
    RAR-Flags                                              1522  Unsigned32       V
-   SSID                                                   1524  UTF8String       VM
-   HESSID                                                 1525  UTF8String       VM
-   Access-Network-Info                                    1526  Grouped          VM
+   SSID                                                   1524  UTF8String       V
+   HESSID                                                 1525  UTF8String       V
+   Access-Network-Info                                    1526  Grouped          V
    Origination-Time-Stamp                                 1536  Unsigned64       V
    Maximum-Wait-Time                                      1537  Unsigned32       V
    Emergency-Services                                     1538  Unsigned32       V
-   AAR-Flags                                              1539  Unsigned32       VM
-   ERP-Authorization                                      1541  Enumerated       VM
+   AAR-Flags                                              1539  Unsigned32       V
+   ERP-Authorization                                      1541  Enumerated       V
    ;; 3GPP TS 29.272
    Subscription-Data                                      1400  Grouped          VM
    Terminal-Information                                   1401  Grouped          VM
@@ -611,6 +610,7 @@
    SRES                                                   1454  OctetString      VM
    PDN-Type                                               1456  Enumerated       VM
 ;  Roaming-Restricted-Due-To-Unsupported-Feature          1456  Enumerated       VM
+   Trace-Data                                             1458  Grouped          VM
    Trace-Reference                                        1459  OctetString      VM
    Trace-NE-Type-List                                     1463  OctetString      VM
    Trace-Depth                                            1462  Enumerated       VM
@@ -621,10 +621,10 @@
    3GPP2-MEID                                             1471  OctetString      VM
    Specific-APN-Info                                      1472  Grouped          VM
 ;  LCS-Info                                               1473  Grouped          VM
-;  ICS-Indicator                                          1491  Enumerated       V
 ;  Teleservice-List                                       1486  Grouped          VM
 ;  Call-Barring-Info                                      1488  Grouped          VM
    SGSN-Number                                            1489  OctetString      VM
+;  ICS-Indicator                                          1491  Enumerated       V
    Homogeneous-Support-of-IMS-Voice-Over-PS-Sessions      1493  Enumerated       V
    EPS-Location-Information                               1496  Grouped          V
    MME-Location-Information                               1600  Grouped          V
