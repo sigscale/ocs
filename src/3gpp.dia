@@ -547,16 +547,20 @@
    Non-3GPP-User-Data                                     1500  Grouped          VM
    Non-3GPP-IP-Access                                     1501  Enumerated       VM
    Non-3GPP-IP-Access-APN                                 1502  Enumerated       VM
+   AN-Trusted                                             1503  Enumerated       VM
    ANID                                                   1504  UTF8String       VM
    Trace-Info                                             1505  Grouped          VM
    WLAN-Identifier                                        1509  Grouped          VM
    Access-Authorization-Flags                             1511  Unsigned32       VM
    TWAN-Default-APN-Context-Id                            1512  Unsigned32       VM
    AAA-Failure-Indication                                 1518  Unsigned32       VM
+   RAR-Flags                                              1522  Unsigned32       V
    SSID                                                   1524  UTF8String       VM
    HESSID                                                 1525  UTF8String       VM
    Access-Network-Info                                    1526  Grouped          VM
-   Emergency-Services                                     1538  Unsigned32       VM
+   Origination-Time-Stamp                                 1536  Unsigned64       V
+   Maximum-Wait-Time                                      1537  Unsigned32       V
+   Emergency-Services                                     1538  Unsigned32       V
    AAR-Flags                                              1539  Unsigned32       VM
    ERP-Authorization                                      1541  Enumerated       VM
    ;; 3GPP TS 29.272
@@ -2169,6 +2173,10 @@
 @enum Non-3GPP-IP-Access-APN
    NON_3GPP_APNS_ENABLE         0
    NON_3GPP_APNS_DISABLE        1
+
+@enum AN-Trusted
+   TRUSTED                      0
+   UNTRUSTED                    1
 
 @enum ERP-Authorization
    ERP_NOT_AUTHORIZED           0
