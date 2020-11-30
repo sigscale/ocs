@@ -1,5 +1,47 @@
 2020-11-30  Vance Shipley <vances@sigscale.org>
 
+	* dispatch sta/swm session termination requests to dereg fsm
+	* dispatch swx ue registration termination requests to terminate fsm
+	* dispatch s6b requests to pwg fsm
+	* fsm module for handling pgw registrations
+	* rest handling of acct log notification
+	* send notification of acct logging
+	* export accounting usage codec
+	* test: receive notification of diameter acct log
+	* correct application in response
+	* no mscc in response if zero granted
+	* handle s6b in terminate fsm
+	* use representative auth-request-type in aaa
+	* store user profiles as swx, specialized codecs to encode user profile in sta, swm or s6b
+	* export legacy as well as current api fpr specialized decode
+	* sort 32.299 avps by code
+	* correct mandatory flags on some avps
+	* do nor send empty gsu
+	* include origination timestamp avp for gx
+	* add s6b diameter application to auth service
+	* s6b avps
+	* add rfc5777 avps
+	* correct type of session-id in bucket reservation
+	* guard against adding 'b' multiplier to other than octets in quantity
+	* implement update facility for chargingKey
+	* add chargingKey in add offer price
+	* filter prices by charging key (OCS-369 #done)
+	* product specification characteristic for charging key in price (OCS-201 #done)
+	* filter only usage management subscriptions
+	* return hub record with specific href
+	* recognize in session buckets
+	* test: validate href of the subscription
+	* look up values in tariff table using gtt
+	* test: validate all the hubs are usage type
+	* rest api of getting an usage subscription
+	* test: get a usage subscription
+	* list usage hub subscriptions
+	* test: list usage subscriptions
+	* guard against bad table result
+	* rest api for unregistering a usage listener
+
+2020-11-23  Refath Wadood <refath@sigscale.org>
+
 	* test: ignore reservations, verify balance deducted
 	* test: ignore sessions, verify balance deduction
 	* test: query support in service inventory subscriptions
