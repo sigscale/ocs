@@ -42,6 +42,7 @@
 -include("diameter_3gpp.hrl").
 -include("diameter_gen_3gpp_sta_application.hrl").
 -include("diameter_gen_3gpp_swm_application.hrl").
+-include("diameter_gen_3gpp_s6b_application.hrl").
 -include("diameter_gen_3gpp_swx_application.hrl").
 -include_lib("diameter/include/diameter.hrl").
 -include_lib("diameter/include/diameter_gen_base_rfc6733.hrl").
@@ -49,9 +50,11 @@
 -define(IANA_PEN_3GPP, 10415).
 -define(STa_APPLICATION_ID, 16777250).
 -define(SWm_APPLICATION_ID, 16777264).
+-define(S6b_APPLICATION_ID,  16777272).
 -define(SWx_APPLICATION_ID, 16777265).
 -define(STa_APPLICATION, ocs_diameter_3gpp_sta_application).
 -define(SWm_APPLICATION, ocs_diameter_3gpp_swm_application).
+-define(S6b_APPLICATION, ocs_diameter_3gpp_s6b_application).
 -define(SWx_APPLICATION, ocs_diameter_3gpp_swx_application).
 -define(TIMEOUT, 5000).
 
@@ -69,7 +72,7 @@
 		nas_host :: string() | undefined,
 		nas_realm :: string() | undefined,
 		nas_address :: inet:ip_address() | undefined,
-		request :: #'3gpp_sta_STR'{} | #'3gpp_swm_STR'{},
+		request :: #'3gpp_sta_STR'{} | #'3gpp_swm_STR'{} | #'3gpp_s6b_STR'{},
 		session_id :: string()}).
 -type statedata() :: #statedata{}.
 
@@ -133,11 +136,14 @@ init([diameter, ServerAddress, ServerPort, ClientAddress, ClientPort,
 idle(timeout, #statedata{request = Request,
 			session_id = SessionId} = StateData)
 		when is_record(Request, '3gpp_sta_STR');
-		is_record(Request, '3gpp_swm_STR') ->
+		is_record(Request, '3gpp_swm_STR'),
+		is_record(Request, '3gpp_s6b_STR') ->
 	Identity = case Request of
 		#'3gpp_sta_STR'{'User-Name' = [UserName]} ->
 			UserName;
 		#'3gpp_swm_STR'{'User-Name' = [UserName]} ->
+			UserName;
+		#'3gpp_s6b_STR'{'User-Name' = [UserName]} ->
 			UserName
 	end,
 	NewStateData = StateData#statedata{identity = Identity},
@@ -354,6 +360,22 @@ send_diameter_response(ResultCode,
 	gen_server:cast(Service, {self(), Answer});
 send_diameter_response(ResultCode,
 		#statedata{request = #'3gpp_swm_STR'{} = Request,
+		session_id = SessionId, service = Service,
+		server_address = ServerAddress, server_port = ServerPort,
+		client_address = ClientAddress, client_port = ClientPort,
+		origin_host = OriginHost, origin_realm = OriginRealm} = _StateData)
+		when is_integer(ResultCode), is_binary(OriginHost),
+		is_binary(OriginRealm) ->
+	Server = {ServerAddress, ServerPort},
+	Client = {ClientAddress, ClientPort},
+	Answer = #'3gpp_swm_STA'{'Session-Id' = SessionId,
+			'Result-Code' = ResultCode,
+			'Origin-Host' = OriginHost,
+			'Origin-Realm' = OriginRealm},
+	ok = ocs_log:auth_log(diameter, Server, Client, Request, Answer),
+	gen_server:cast(Service, {self(), Answer});
+send_diameter_response(ResultCode,
+		#statedata{request = #'3gpp_s6b_STR'{} = Request,
 		session_id = SessionId, service = Service,
 		server_address = ServerAddress, server_port = ServerPort,
 		client_address = ClientAddress, client_port = ClientPort,
