@@ -59,6 +59,8 @@ modhtml = ocs.html \
 			ocs_eap_akap_fsm_sup.html \
 			ocs_eap_akap_fsm.html \
 			ocs_eap_aka_auc_fsm.html \
+			ocs_pgw_fsm_sup.html \
+			ocs_pgw_fsm.html \
 			ocs_terminate_fsm_sup.html \
 			ocs_terminate_fsm.html \
 			ocs_deregister_fsm_sup.html \

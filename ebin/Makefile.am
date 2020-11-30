@@ -44,6 +44,8 @@ beam_DATA = ocs.beam \
 			ocs_eap_akap_fsm_sup.beam \
 			ocs_eap_akap_fsm.beam \
 			ocs_eap_aka_auc_fsm.beam \
+			ocs_pgw_fsm_sup.beam \
+			ocs_pgw_fsm.beam \
 			ocs_terminate_fsm_sup.beam \
 			ocs_terminate_fsm.beam \
 			ocs_deregister_fsm_sup.beam \

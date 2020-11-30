@@ -233,11 +233,13 @@ auth_log(Protocol, Server, Client, Type, RequestAttributes, ResponseAttributes) 
 		Request :: #diameter_nas_app_AAR{} | #diameter_eap_app_DER{}
 				| #'3gpp_sta_DER'{} | #'3gpp_swm_DER'{}
 				| #'3gpp_sta_STR'{} | #'3gpp_swm_STR'{}
-				| #'3gpp_s6b_STR'{} | #'3gpp_swx_RTR'{},
+				| #'3gpp_s6b_STR'{} | #'3gpp_swx_RTR'{}
+				| #'3gpp_s6b_AAR'{},
 		Response :: #diameter_nas_app_AAA{} | #diameter_eap_app_DEA{}
 				| #'3gpp_sta_DEA'{} | #'3gpp_swm_DEA'{}
 				| #'3gpp_sta_STA'{} | #'3gpp_swm_STA'{}
-				| #'3gpp_s6b_STA'{} | #'3gpp_swx_RTA'{},
+				| #'3gpp_s6b_STA'{} | #'3gpp_swx_RTA'{}
+				| #'3gpp_s6b_AAA'{},
 		Result :: ok | {error, Reason},
 		Reason :: term().
 %% @doc Write a DIAMETER event to authorization log.
