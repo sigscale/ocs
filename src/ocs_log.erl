@@ -2087,7 +2087,14 @@ write_log(Log, Event) ->
 	TS = erlang:system_time(?MILLISECOND),
 	N = erlang:unique_integer([positive]),
 	LogEvent = list_to_tuple([TS, N | Event]),
-	disk_log:log(Log, LogEvent).
+	Result = disk_log:log(Log, LogEvent),
+	case Log of
+		ocs_acct ->
+			ok = ocs_event:notify(log_acct, LogEvent, usage),
+			Result;
+		_ ->
+			Result
+	end.
 
 -spec close_log(Log) -> Result
 	when
