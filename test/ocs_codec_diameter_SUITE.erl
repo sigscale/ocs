@@ -161,7 +161,7 @@ encode_s6b_aaa(_Config) ->
 			'Auth-Application-Id' = ?STa_APPLICATION_ID,
 			'Origin-Host' = OriginHost,
 			'Origin-Realm' = OriginRealm,
-			'Auth-Request-Type' = 3,
+			'Auth-Request-Type' = 2,
 			'Result-Code' = 2001,
 			'APN-Configuration' = APNConfiguration},
 	#diameter_packet{bin = B} = diameter_codec:encode(diameter_gen_3gpp_s6b_application, AAA),
