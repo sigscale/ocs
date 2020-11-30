@@ -6,6 +6,15 @@
 @inherits diameter_gen_base_rfc6733
 @inherits diameter_gen_ietf
 @inherits diameter_gen_3gpp
+
+@custom_types ocs_diameter_codec_swm
+
+	APN-Configuration
+	EPS-Subscribed-QoS-Profile
+	AMBR
+	Specific-APN-Info
+	WLAN-offloadability
+
 @messages
 
 	DER ::= < Diameter Header: 268, REQ, PXY >

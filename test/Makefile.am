@@ -10,6 +10,7 @@ CERT_DIR = certificates
 testmods = ocs_api_SUITE \
 			ocs_rest_api_SUITE \
 			ocs_rest_lib_SUITE \
+			ocs_codec_diameter_SUITE \
 			ocs_codec_eap_SUITE \
 			ocs_eap_pwd_SUITE \
 			ocs_eap_aka_SUITE \

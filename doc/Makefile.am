@@ -35,7 +35,9 @@ modhtml = ocs.html \
 			ocs_diameter_cc_application_cb.html \
 			ocs_diameter_nas_application_cb.html \
 			ocs_diameter_eap_application_cb.html \
-			ocs_diameter_codec.html \
+			ocs_diameter_codec_swm.html \
+			ocs_diameter_codec_sta.html \
+			ocs_diameter_codec_s6b.html \
 			ocs_diameter_disconnect_fsm_sup.html\
 			ocs_diameter_disconnect_fsm.html\
 			ocs_radius_acct_port_server.html \
@@ -57,6 +59,8 @@ modhtml = ocs.html \
 			ocs_eap_akap_fsm_sup.html \
 			ocs_eap_akap_fsm.html \
 			ocs_eap_aka_auc_fsm.html \
+			ocs_pgw_fsm_sup.html \
+			ocs_pgw_fsm.html \
 			ocs_terminate_fsm_sup.html \
 			ocs_terminate_fsm.html \
 			ocs_deregister_fsm_sup.html \
