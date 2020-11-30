@@ -384,7 +384,7 @@ send_diameter_response(ResultCode,
 		is_binary(OriginRealm) ->
 	Server = {ServerAddress, ServerPort},
 	Client = {ClientAddress, ClientPort},
-	Answer = #'3gpp_swm_STA'{'Session-Id' = SessionId,
+	Answer = #'3gpp_s6b_STA'{'Session-Id' = SessionId,
 			'Result-Code' = ResultCode,
 			'Origin-Host' = OriginHost,
 			'Origin-Realm' = OriginRealm},
