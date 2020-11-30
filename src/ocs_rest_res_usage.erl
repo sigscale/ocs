@@ -24,6 +24,7 @@
 -export([content_types_accepted/0, content_types_provided/0,
 		get_usages/2, get_usages/3, get_usages/4, get_usage/3, get_ipdr/2,
 		get_usagespec/1, get_usagespec/2, characteristic/8]).
+-export([usage_aaa_acct/2]).
 
 -include_lib("radius/include/radius.hrl").
 -include("ocs_log.hrl").
