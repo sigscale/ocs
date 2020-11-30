@@ -152,11 +152,12 @@ register(timeout, State) ->
 		Type :: create_bucket | delete_bucket | charge | depleted | accumulated
 				| create_product | delete_product | create_service | delete_service
 				| create_offer | delete_offer | insert_gtt | delete_gtt
-				| create_pla | delete_pla,
+				| create_pla | delete_pla | log_acct,
 		Resource :: #bucket{} | #product{} | #service{} | #offer{}
-				| {Table, #gtt{}} | #pla{} | [#adjustment{}] | [#acc_balance{}],
+				| {Table, #gtt{}} | #pla{} | [#adjustment{}] | [#acc_balance{}]
+				| ocs_log:acct_event(),
 		Table :: atom(),
-		Category :: balance | product | service | resource,
+		Category :: balance | product | service | resource | usage,
 		State :: statedata(),
 		Result :: {next_state, NextStateName, NewStateData}
 			| {next_state, NextStateName, NewStateData, timeout}
@@ -368,7 +369,9 @@ event(Resource, Category) ->
 				{Table, #gtt{num = Prefix, value = {Description, Rate, _}}} ->
 					ocs_rest_res_resource:gtt(atom_to_list(Table),
 							{Prefix, Description, Rate})
-			end
+			end;
+		usage ->
+			ocs_rest_res_usage:usage_aaa_acct(Resource, [])
 	end.
 
 %% @hidden
@@ -420,7 +423,9 @@ event_type(Type) ->
 		create_pla ->
 			"PlaCreationNotification";
 		delete_pla ->
-			"PlaRemoveNotification"
+			"PlaRemoveNotification";
+		log_acct ->
+			"UsageCreationEvent"
 	end.
 
 %% @hidden
