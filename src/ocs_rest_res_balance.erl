@@ -813,8 +813,6 @@ quantity({struct, [{"amount", Amount}, {"units", "cents"}]}) ->
 	#quantity{units = cents, amount = ocs_rest:millionths_in(Amount)};
 quantity({struct, [{"units", "cents"}, {"amount", Amount}]}) ->
 	#quantity{units = cents, amount = ocs_rest:millionths_in(Amount)};
-quantity({struct, [{"amount", Amount}, {"units", Units}]}) when is_list(Amount) ->
-	quantity({struct, [{"units", Units}, {"amount", Amount}]});
 quantity({struct, [{"amount", Amount}, {"units", Units}]}) ->
 	quantity({struct, [{"units", Units}, {"amount", Amount}]});
 quantity({struct, [{"units", Units}, {"amount", Amount}]}) when is_list(Amount)->
@@ -846,7 +844,7 @@ quantity(#quantity{} = Quantity) ->
 %% @hidden
 quantity([amount | T], #quantity{units = cents, amount = Amount} = Q, Acc) ->
 	quantity(T, Q, [{"amount", ocs_rest:millionths_out(Amount)} | Acc]);
-quantity([amount | T], #quantity{amount = Amount} = Q, Acc) ->
+quantity([amount | T], #quantity{units = octets, amount = Amount} = Q, Acc) ->
 	quantity(T, Q, [{"amount", integer_to_list(Amount) ++ "b"} | Acc]);
 quantity([units | T], #quantity{units = undefined} = Q, Acc) ->
 	quantity(T, Q, Acc);

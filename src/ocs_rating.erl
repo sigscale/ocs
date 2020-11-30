@@ -251,9 +251,10 @@ rate1(Protocol, Service, Buckets, Timestamp, Address,
 		Direction, Offer, Flag, DebitAmounts, ReserveAmounts,
 		State#state{rated = #rated{product = OfferName}}).
 %% @hidden
-rate2(Protocol, Service, Buckets, Timestamp, Address,
-		Direction, #offer{specification = ProdSpec, price = Prices} = Offer,
-		Flag, DebitAmounts, ReserveAmounts, State)
+rate2(Protocol, Service, Buckets, Timestamp, Address, Direction,
+		#offer{specification = ProdSpec, price = Prices} = Offer,
+		Flag, DebitAmounts, ReserveAmounts,
+		#state{charging_key = ChargingKey} = State)
 		when ProdSpec == "10"; ProdSpec == "11" ->
 	F = fun(#price{type = usage, units = messages}) ->
 				true;
@@ -265,8 +266,9 @@ rate2(Protocol, Service, Buckets, Timestamp, Address,
 				false
 	end,
 	FilteredPrices1 = lists:filter(F, Prices),
-	FilteredPrices2 = filter_prices_tod(Timestamp, FilteredPrices1),
-	case filter_prices_dir(Direction, FilteredPrices2) of
+	FilteredPrices2 = filter_prices_key(ChargingKey, FilteredPrices1),
+	FilteredPrices3 = filter_prices_tod(Timestamp, FilteredPrices2),
+	case filter_prices_dir(Direction, FilteredPrices3) of
 		[Price | _] ->
 			RoamingTable = roaming_table_prefix(Price),
 			rate3(Protocol, Service, Buckets, Address,
@@ -275,9 +277,10 @@ rate2(Protocol, Service, Buckets, Timestamp, Address,
 		_ ->
 			throw(price_not_found)
 	end;
-rate2(Protocol, Service, Buckets, Timestamp, Address,
-		Direction, #offer{specification = ProdSpec, price = Prices} = Offer,
-		Flag, DebitAmounts, ReserveAmounts, State)
+rate2(Protocol, Service, Buckets, Timestamp, Address, Direction,
+		#offer{specification = ProdSpec, price = Prices} = Offer,
+		Flag, DebitAmounts, ReserveAmounts,
+		#state{charging_key = ChargingKey} = State)
 		when ProdSpec == "5"; ProdSpec == "9" ->
 	F = fun(#price{type = tariff, units = seconds}) ->
 				true;
@@ -287,8 +290,9 @@ rate2(Protocol, Service, Buckets, Timestamp, Address,
 				false
 	end,
 	FilteredPrices1 = lists:filter(F, Prices),
-	FilteredPrices2 = filter_prices_tod(Timestamp, FilteredPrices1),
-	case filter_prices_dir(Direction, FilteredPrices2) of
+	FilteredPrices2 = filter_prices_key(ChargingKey, FilteredPrices1),
+	FilteredPrices3 = filter_prices_tod(Timestamp, FilteredPrices2),
+	case filter_prices_dir(Direction, FilteredPrices3) of
 		[Price | _] ->
 			RoamingTable = roaming_table_prefix(Price),
 			rate3(Protocol, Service, Buckets, Address,
@@ -298,7 +302,8 @@ rate2(Protocol, Service, Buckets, Timestamp, Address,
 			throw(price_not_found)
 	end;
 rate2(Protocol, Service, Buckets, Timestamp, _Address, _Direction,
-		#offer{price = Prices} = Offer, Flag, DebitAmounts, ReserveAmounts, State) ->
+		#offer{price = Prices} = Offer, Flag, DebitAmounts, ReserveAmounts,
+		#state{charging_key = ChargingKey} = State) ->
 	F = fun(#price{type = tariff, units = octets}) ->
 				true;
 			(#price{type = usage}) ->
@@ -307,7 +312,8 @@ rate2(Protocol, Service, Buckets, Timestamp, _Address, _Direction,
 				false
 	end,
 	FilteredPrices1 = lists:filter(F, Prices),
-	case filter_prices_tod(Timestamp, FilteredPrices1) of
+	FilteredPrices2 = filter_prices_key(ChargingKey, FilteredPrices1),
+	case filter_prices_tod(Timestamp, FilteredPrices2) of
 		[Price | _] ->
 			RoamingTable = roaming_table_prefix(Price),
 			rate4(Protocol, Service, Buckets, Price,
@@ -1638,6 +1644,29 @@ filter_prices_dir(Direction, [#price{char_value_use = CharValueUse} = P | T], Ac
 			filter_prices_dir(Direction, T, [P | Acc])
 	end;
 filter_prices_dir(_, [], Acc) ->
+	lists:reverse(Acc).
+
+-spec filter_prices_key(ChargingKey, Prices) -> Prices
+	when
+		ChargingKey :: non_neg_integer(),
+		Prices :: [#price{}].
+%% @doc Filter prices with `chargingKey'.
+%% @hidden
+filter_prices_key(undefined, Prices) ->
+	Prices;
+filter_prices_key(ChargingKey, Prices) when is_integer(ChargingKey) ->
+	filter_prices_key(ChargingKey, Prices, []).
+%% @hidden
+filter_prices_key(ChargingKey, [#price{char_value_use = CharValueUse} = P | T], Acc) ->
+	case lists:keyfind("chargingKey", #char_value_use.name, CharValueUse) of
+		#char_value_use{values = [#char_value{value = ChargingKey}]} ->
+			filter_prices_key(ChargingKey, T, [P | Acc]);
+		#char_value_use{values = [#char_value{}]} ->
+			filter_prices_key(ChargingKey, T, Acc);
+		_ ->
+			filter_prices_key(ChargingKey, T, [P | Acc])
+	end;
+filter_prices_key(_, [], Acc) ->
 	lists:reverse(Acc).
 
 -spec get_final(SessionId, Buckets) -> Result

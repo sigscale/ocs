@@ -600,6 +600,13 @@
 									label="[[i18n.RomaingTab]]">
 							</paper-input>
 						</div>
+						<div>
+							<paper-input
+									id="chargingKey"
+									type="number"
+									label="chargingKey">
+							</paper-input>
+						</div>
 					</iron-collapse>
 					<div class="buttons">
 						<paper-button
@@ -1069,6 +1076,7 @@
 						this.$.checkOut.value = this.prices[indexPrice].callDirection;
 						this.$.destPrefixTariff.value = this.prices[indexPrice].prefixTariff;
 						this.$.roamingTable.value = this.prices[indexPrice].roamingTable;
+						this.$.chargingKey.value = this.prices[indexPrice].chargingKey;
 					}
 				}
 			},
@@ -1439,6 +1447,20 @@
 						charValueUse.productSpecification = prodSpec;
 						prodSpecCharValueUse.push(charValueUse);
 					}
+					if (item.chargingKey) {
+						var charValue = new Object();
+						var charValueUse = new Object();
+						charValueUse.name = "chargingKey";
+						charValue.value = item.chargingKey;
+						var charValues = new Array();
+						charValues.push(charValue);
+						charValueUse.productSpecCharacteristicValue = charValues;
+						var prodSpec = new Object();
+						prodSpec.id = "3";
+						prodSpec.href = "/catalogManagement/v2/productSpecification/3";
+						charValueUse.productSpecification = prodSpec;
+						prodSpecCharValueUse.push(charValueUse);
+					}
 					if (item.reserveTime) {
 						var charValue = new Object();
 						charValue.unitOfMeasure = "seconds";
@@ -1768,6 +1790,7 @@
 				}
 				priceNew.prefixTariff = this.$.destPrefixTariff.value;
 				priceNew.roamingTable = this.$.roamingTable.value;
+				priceNew.chargingKey = parseInt(this.$.chargingKey.value);
 				if(priceNew.name
 						&& priceNew.type
 						&& priceNew.unit
@@ -1958,6 +1981,7 @@
 				this.$.addBundle.hide();
 				this.$.destPrefixTariff.value = null;
 				this.$.roamingTable.value = null;
+				this.$.chargingKey.value = null;
 				this.$.addOfferCharReserveSession.value = null;
 				this.$.addProductStartDatePickOff.hide()
 				this.$.addProductEndDatePickOff.hide()

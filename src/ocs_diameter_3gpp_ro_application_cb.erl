@@ -741,7 +741,7 @@ rate(ServiceType, ServiceNetwork, Subscriber,
 	case ocs_rating:rate(diameter, ServiceType, ChargingKey, ServiceNetwork,
 			Subscriber, Timestamp, Address, Direction, Flag, Debits,
 			Reserves, [{'Session-Id', SessionId}]) of
-		{ok, _, {seconds, Amount} = _GrantedAmount} ->
+		{ok, _, {seconds, Amount} = _GrantedAmount} when Amount > 0 ->
 			ResultCode2 = ?'DIAMETER_BASE_RESULT-CODE_SUCCESS',
 			GSU = #'3gpp_ro_Granted-Service-Unit'{'CC-Time' = [Amount]},
 			MSCC = #'3gpp_ro_Multiple-Services-Credit-Control'{
@@ -752,7 +752,7 @@ rate(ServiceType, ServiceNetwork, Subscriber,
 			rate(ServiceType, ServiceNetwork, Subscriber,
 					Timestamp, Address, Direction, Flag, SessionId,
 					T, [MSCC | Acc], ResultCode2, Rated1);
-		{ok, _, {octets, Amount} = _GrantedAmount} ->
+		{ok, _, {octets, Amount} = _GrantedAmount} when Amount > 0 ->
 			ResultCode2 = ?'DIAMETER_BASE_RESULT-CODE_SUCCESS',
 			GSU = #'3gpp_ro_Granted-Service-Unit'{'CC-Total-Octets' = [Amount]},
 			MSCC = #'3gpp_ro_Multiple-Services-Credit-Control'{
@@ -763,7 +763,7 @@ rate(ServiceType, ServiceNetwork, Subscriber,
 			rate(ServiceType, ServiceNetwork, Subscriber,
 					Timestamp, Address, Direction, Flag, SessionId,
 					T, [MSCC | Acc], ResultCode2, Rated1);
-		{ok, _, {messages, Amount} = _GrantedAmount} ->
+		{ok, _, {messages, Amount} = _GrantedAmount} when Amount > 0 ->
 			ResultCode2 = ?'DIAMETER_BASE_RESULT-CODE_SUCCESS',
 			GSU = #'3gpp_ro_Granted-Service-Unit'{'CC-Service-Specific-Units' = [Amount]},
 			MSCC = #'3gpp_ro_Multiple-Services-Credit-Control'{
@@ -774,6 +774,11 @@ rate(ServiceType, ServiceNetwork, Subscriber,
 			rate(ServiceType, ServiceNetwork, Subscriber,
 					Timestamp, Address, Direction, Flag, SessionId,
 					T, [MSCC | Acc], ResultCode2, Rated1);
+		{ok, _, {_, 0} = _GrantedAmount} ->
+			ResultCode2 = ?'DIAMETER_BASE_RESULT-CODE_SUCCESS',
+			rate(ServiceType, ServiceNetwork, Subscriber,
+					Timestamp, Address, Direction, Flag, SessionId,
+					T, Acc, ResultCode2, Rated1);
 		{ok, _, Rated2} when is_list(Rated2), Rated1 == undefined ->
 			ResultCode2 = ?'DIAMETER_BASE_RESULT-CODE_SUCCESS',
 			rate(ServiceType, ServiceNetwork, Subscriber,
