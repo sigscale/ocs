@@ -1,4 +1,4 @@
-2020-11-23  Refath Wadood <refath@sigscale.org>
+2020-11-30  Vance Shipley <vances@sigscale.org>
 
 	* test: ignore reservations, verify balance deducted
 	* test: ignore sessions, verify balance deduction

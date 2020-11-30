@@ -1,3 +1,13 @@
+November 30, 2020
+----------------
+	- 3GPP S6b interface to PDN Gateway
+	- non-3GPP access network initiated session termination handling
+	- HSS initiated UE registration termination handling
+	- Balance theshold notifications
+	- Query support in notification subscription requests
+	- Correct missing tarif information in accounting log
+	- Correct handling of missing RSU
+
 November 22, 2020
 ----------------
 	- REST: Notification Pattern
