@@ -24,7 +24,9 @@
 -export(['APN-Configuration'/3, 'APN-Configuration'/4,
 		'EPS-Subscribed-QoS-Profile'/3, 'EPS-Subscribed-QoS-Profile'/4,
 		'AMBR'/3, 'AMBR'/4, 'Specific-APN-Info'/3, 'Specific-APN-Info'/4,
-		'WLAN-offloadability'/3, 'WLAN-offloadability'/4]).
+		'WLAN-offloadability'/3, 'WLAN-offloadability'/4,
+		'Trace-Info'/3, 'Trace-Info'/4, 'Emergency-Info'/3, 'Emergency-Info'/4,
+		'Subscription-Id'/3, 'Subscription-Id'/4]).
 
 -include("diameter_gen_3gpp_swx_application.hrl").
 -include("diameter_gen_3gpp_s6b_application.hrl").
@@ -236,6 +238,123 @@
 		#'3gpp_s6b_WLAN-offloadability'{} = Data, Opts) ->
 	Mod = diameter_gen_3gpp_s6b_application,
 	Mod:grouped_avp(Operation, 'WLAN-offloadability', Data, Opts).
+
+-spec 'Trace-Info'(Operation, Type, Data) -> Result
+	when
+		Operation :: decode | encode,
+		Type :: 'Grouped',
+		Data :: binary() | #'3gpp_swx_Trace-Info'{} | #'3gpp_s6b_Trace-Info'{},
+		Result :: {#'3gpp_s6b_Trace-Info'{}, list()} | binary().
+%% @doc Specialized CODEC for Trace-Info (legacy API).
+'Trace-Info'(decode = Operation, 'Grouped' = _Type, Data) ->
+	Mod = diameter_gen_3gpp_s6b_application,
+	Mod:grouped_avp(Operation, 'Trace-Info', Data);
+'Trace-Info'(encode = Operation, 'Grouped' = _Type,
+		#'3gpp_swx_Trace-Info'{} = Data) ->
+	Mod = diameter_gen_3gpp_swx_application,
+	Mod:grouped_avp(Operation, 'Trace-Info', Data);
+'Trace-Info'(encode = Operation, 'Grouped' = _Type,
+		#'3gpp_s6b_Trace-Info'{} = Data) ->
+	Mod = diameter_gen_3gpp_s6b_application,
+	Mod:grouped_avp(Operation, 'Trace-Info', Data).
+
+-spec 'Trace-Info'(Operation, Type, Data, Opts) -> Result
+	when
+		Operation :: decode | encode,
+		Type :: 'Grouped',
+		Data :: binary() | #'3gpp_swx_Trace-Info'{} | #'3gpp_s6b_Trace-Info'{},
+		Opts :: map(),
+		Result :: {#'3gpp_s6b_Trace-Info'{}, list()} | binary().
+%% @doc Specialized CODEC for Trace-Info.
+'Trace-Info'(decode = Operation, 'Grouped' = _Type, Data, Opts) ->
+	Mod = diameter_gen_3gpp_s6b_application,
+	Mod:grouped_avp(Operation, 'Trace-Info', Data, Opts);
+'Trace-Info'(encode = Operation, 'Grouped' = _Type,
+		#'3gpp_swx_Trace-Info'{} = Data, Opts) ->
+	Mod = diameter_gen_3gpp_swx_application,
+	Mod:grouped_avp(Operation, 'Trace-Info', Data, Opts);
+'Trace-Info'(encode = Operation, 'Grouped' = _Type,
+		#'3gpp_s6b_Trace-Info'{} = Data, Opts) ->
+	Mod = diameter_gen_3gpp_s6b_application,
+	Mod:grouped_avp(Operation, 'Trace-Info', Data, Opts).
+
+-spec 'Emergency-Info'(Operation, Type, Data) -> Result
+	when
+		Operation :: decode | encode,
+		Type :: 'Grouped',
+		Data :: binary() | #'3gpp_swx_Emergency-Info'{} | #'3gpp_s6b_Emergency-Info'{},
+		Result :: {#'3gpp_s6b_Emergency-Info'{}, list()} | binary().
+%% @doc Specialized CODEC for Emergency-Info (legacy API).
+'Emergency-Info'(decode = Operation, 'Grouped' = _Type, Data) ->
+	Mod = diameter_gen_3gpp_s6b_application,
+	Mod:grouped_avp(Operation, 'Emergency-Info', Data);
+'Emergency-Info'(encode = Operation, 'Grouped' = _Type,
+		#'3gpp_swx_Emergency-Info'{} = Data) ->
+	Mod = diameter_gen_3gpp_swx_application,
+	Mod:grouped_avp(Operation, 'Emergency-Info', Data);
+'Emergency-Info'(encode = Operation, 'Grouped' = _Type,
+		#'3gpp_s6b_Emergency-Info'{} = Data) ->
+	Mod = diameter_gen_3gpp_s6b_application,
+	Mod:grouped_avp(Operation, 'Emergency-Info', Data).
+
+-spec 'Emergency-Info'(Operation, Type, Data, Opts) -> Result
+	when
+		Operation :: decode | encode,
+		Type :: 'Grouped',
+		Data :: binary() | #'3gpp_swx_Emergency-Info'{} | #'3gpp_s6b_Emergency-Info'{},
+		Opts :: map(),
+		Result :: {#'3gpp_s6b_Emergency-Info'{}, list()} | binary().
+%% @doc Specialized CODEC for Emergency-Info.
+'Emergency-Info'(decode = Operation, 'Grouped' = _Type, Data, Opts) ->
+	Mod = diameter_gen_3gpp_s6b_application,
+	Mod:grouped_avp(Operation, 'Emergency-Info', Data, Opts);
+'Emergency-Info'(encode = Operation, 'Grouped' = _Type,
+		#'3gpp_swx_Emergency-Info'{} = Data, Opts) ->
+	Mod = diameter_gen_3gpp_swx_application,
+	Mod:grouped_avp(Operation, 'Emergency-Info', Data, Opts);
+'Emergency-Info'(encode = Operation, 'Grouped' = _Type,
+		#'3gpp_s6b_Emergency-Info'{} = Data, Opts) ->
+	Mod = diameter_gen_3gpp_s6b_application,
+	Mod:grouped_avp(Operation, 'Emergency-Info', Data, Opts).
+
+-spec 'Subscription-Id'(Operation, Type, Data) -> Result
+	when
+		Operation :: decode | encode,
+		Type :: 'Grouped',
+		Data :: binary() | #'3gpp_swx_Subscription-Id'{} | #'3gpp_s6b_Subscription-Id'{},
+		Result :: {#'3gpp_s6b_Subscription-Id'{}, list()} | binary().
+%% @doc Specialized CODEC for Subscription-Id (legacy API).
+'Subscription-Id'(decode = Operation, 'Grouped' = _Type, Data) ->
+	Mod = diameter_gen_3gpp_s6b_application,
+	Mod:grouped_avp(Operation, 'Subscription-Id', Data);
+'Subscription-Id'(encode = Operation, 'Grouped' = _Type,
+		#'3gpp_swx_Subscription-Id'{} = Data) ->
+	Mod = diameter_gen_3gpp_swx_application,
+	Mod:grouped_avp(Operation, 'Subscription-Id', Data);
+'Subscription-Id'(encode = Operation, 'Grouped' = _Type,
+		#'3gpp_s6b_Subscription-Id'{} = Data) ->
+	Mod = diameter_gen_3gpp_s6b_application,
+	Mod:grouped_avp(Operation, 'Subscription-Id', Data).
+
+-spec 'Subscription-Id'(Operation, Type, Data, Opts) -> Result
+	when
+		Operation :: decode | encode,
+		Type :: 'Grouped',
+		Data :: binary() | #'3gpp_swx_Subscription-Id'{} | #'3gpp_s6b_Subscription-Id'{},
+		Opts :: map(),
+		Result :: {#'3gpp_s6b_Subscription-Id'{}, list()} | binary().
+%% @doc Specialized CODEC for Subscription-Id.
+'Subscription-Id'(decode = Operation, 'Grouped' = _Type, Data, Opts) ->
+	Mod = diameter_gen_3gpp_s6b_application,
+	Mod:grouped_avp(Operation, 'Subscription-Id', Data, Opts);
+'Subscription-Id'(encode = Operation, 'Grouped' = _Type,
+		#'3gpp_swx_Subscription-Id'{} = Data, Opts) ->
+	Mod = diameter_gen_3gpp_swx_application,
+	Mod:grouped_avp(Operation, 'Subscription-Id', Data, Opts);
+'Subscription-Id'(encode = Operation, 'Grouped' = _Type,
+		#'3gpp_s6b_Subscription-Id'{} = Data, Opts) ->
+	Mod = diameter_gen_3gpp_s6b_application,
+	Mod:grouped_avp(Operation, 'Subscription-Id', Data, Opts).
 
 %%----------------------------------------------------------------------
 %%  internal functions
