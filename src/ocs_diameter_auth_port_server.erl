@@ -326,8 +326,8 @@ request(Caps, ClientAddress, ClientPort, none, _PasswordReq, _Trusted,
 		#state{address = ServerAddress, port = ServerPort,
 		dereg_sup = Sup} = State) ->
 	#diameter_caps{origin_host = {OHost, DHost}, origin_realm = {ORealm, DRealm}} = Caps,
-	ChildSpec = [ServerAddress, ServerPort, ClientAddress, ClientPort,
-		SessionId, OHost, ORealm, DHost, DRealm, Request],
+	ChildSpec = [[ServerAddress, ServerPort, ClientAddress, ClientPort,
+		SessionId, OHost, ORealm, DHost, DRealm, Request], []],
 	case supervisor:start_child(Sup, ChildSpec) of
 		{ok, _Fsm} ->
 			{noreply, State};
@@ -344,8 +344,8 @@ request(Caps, ClientAddress, ClientPort, none, _PasswordReq, _Trusted,
 		#state{address = ServerAddress, port = ServerPort,
 		dereg_sup = Sup} = State) ->
 	#diameter_caps{origin_host = {OHost, DHost}, origin_realm = {ORealm, DRealm}} = Caps,
-	ChildSpec = [ServerAddress, ServerPort, ClientAddress, ClientPort,
-		SessionId, OHost, ORealm, DHost, DRealm, Request],
+	ChildSpec = [[ServerAddress, ServerPort, ClientAddress, ClientPort,
+		SessionId, OHost, ORealm, DHost, DRealm, Request], []],
 	case supervisor:start_child(Sup, ChildSpec) of
 		{ok, _Fsm} ->
 			{noreply, State};
@@ -362,8 +362,8 @@ request(Caps, ClientAddress, ClientPort, none, _PasswordReq, _Trusted,
 		#state{address = ServerAddress, port = ServerPort,
 		dereg_sup = Sup} = State) ->
 	#diameter_caps{origin_host = {OHost, DHost}, origin_realm = {ORealm, DRealm}} = Caps,
-	ChildSpec = [ServerAddress, ServerPort, ClientAddress, ClientPort,
-		SessionId, OHost, ORealm, DHost, DRealm, Request],
+	ChildSpec = [[ServerAddress, ServerPort, ClientAddress, ClientPort,
+		SessionId, OHost, ORealm, DHost, DRealm, Request], []],
 	case supervisor:start_child(Sup, ChildSpec) of
 		{ok, _Fsm} ->
 			{noreply, State};
@@ -380,8 +380,8 @@ request(Caps, ClientAddress, ClientPort, none, _PasswordReq, _Trusted,
 		#state{address = ServerAddress, port = ServerPort,
 		pgw_sup = Sup} = State) ->
 	#diameter_caps{origin_host = {OHost, DHost}, origin_realm = {ORealm, DRealm}} = Caps,
-	ChildSpec = [ServerAddress, ServerPort, ClientAddress, ClientPort,
-		SessionId, OHost, ORealm, DHost, DRealm, Request],
+	ChildSpec = [[ServerAddress, ServerPort, ClientAddress, ClientPort,
+		SessionId, OHost, ORealm, DHost, DRealm, Request], []],
 	case supervisor:start_child(Sup, ChildSpec) of
 		{ok, _Fsm} ->
 			{noreply, State};
