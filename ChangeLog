@@ -1,3 +1,7 @@
+2020-12-02  Vance Shipley <vances@sigscale.org>
+
+	*  include optional origin-state-id in all diameter command/response
+
 2020-12-01  Vance Shipley <vances@sigscale.org>
 
 	* non-3gpp: correct dispatch of session/registration termination
