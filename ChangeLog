@@ -1,3 +1,9 @@
+2020-12-01  Vance Shipley <vances@sigscale.org>
+
+	* non-3gpp: correct dispatch of session/registration termination
+	* non-3gpp: add all (optional) avps in user profile to specialized decode
+	* reorder httpd aliases in sys.config for clarity
+
 2020-11-30  Vance Shipley <vances@sigscale.org>
 
 	* dispatch sta/swm session termination requests to dereg fsm
