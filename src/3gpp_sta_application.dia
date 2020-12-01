@@ -166,6 +166,7 @@
 		[ Access-Network-Info ]
 		[ Local-Time-Zone ]
 		[ OC-Supported-Features ]
+      [ Origin-State-Id ]
 		* [ Proxy-Info ]
 		* [ Route-Record ]
 		* [ AVP ]
@@ -191,6 +192,7 @@
 		[ OC-OLR ]
 		[ UE-Usage-Type ]
 		[ Emergency-Info]
+      [ Origin-State-Id ]
 		* [ Load ]
 		* [ Proxy-Info ]
 		* [ Route-Record ]
@@ -207,6 +209,7 @@
 		[ User-Name ]
 		[ DRMP ]
 		[ OC-Supported-Features ]
+      [ Origin-State-Id ]
 		* [ Proxy-Info ]
 		* [ Route-Record ]
 		* [ AVP ]
@@ -219,6 +222,7 @@
 		[ DRMP ]
 		[ OC-Supported-Features ]
 		[ OC-OLR ]
+      [ Origin-State-Id ]
 		* [ Load ]
 		* [ Proxy-Info ]
 		* [ Route-Record ]
@@ -234,6 +238,7 @@
 		[ User-Name ]
 		[ Auth-Session-State ]
 		[ DRMP ]
+      [ Origin-State-Id ]
 		* [ Proxy-Info ]
 		* [ Route-Record ]
 		* [ AVP ]
@@ -244,6 +249,7 @@
 		{ Origin-Host }
 		{ Origin-Realm }
 		[ DRMP ]
+      [ Origin-State-Id ]
 		* [ Proxy-Info ]
 		* [ Route-Record ]
 		* [ AVP ]
@@ -257,6 +263,7 @@
 		{ Destination-Host }
 		{ Re-Auth-Request-Type }
 		[ DRMP ]
+      [ Origin-State-Id ]
 		* [ Proxy-Info ]
 		* [ Route-Record ]
 		* [ AVP ]
@@ -268,6 +275,7 @@
 		{ Origin-Realm }
 		[ User-Name ]
 		[ DRMP ]
+      [ Origin-State-Id ]
 		* [ Proxy-Info ]
 		* [ Route-Record ]
 		* [ AVP ]
