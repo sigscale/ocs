@@ -540,6 +540,14 @@ class offerAdd extends PolymerElement {
 									Roaming table
 								</paper-tooltip>
 							</div>
+							<div>
+								<paper-input
+										id="chargingKey"
+										type="number"
+										value="{{chargingKey}}"
+										label="chargingKey">
+								</paper-input>
+							</div>
 						</iron-collapse>
 						<div class="buttons">
 							<paper-button
@@ -877,6 +885,9 @@ class offerAdd extends PolymerElement {
 			priceAddRoaming: {
 				type: String
 			},
+			chargingKey: {
+				type: Number
+			},
 			altAddName: {
 				type: String
 			},
@@ -1034,6 +1045,7 @@ class offerAdd extends PolymerElement {
 				this.priceCheckIn = this.prices[indexPrice].callDirection;
 				this.priceAddTariff = this.prices[indexPrice].prefixTariff;
 				this.priceAddRoaming = this.prices[indexPrice].roamingTable;
+				this.chargingKey = this.prices[indexPrice].chargingKey;
 			}
 		}
 	}
@@ -1408,6 +1420,20 @@ class offerAdd extends PolymerElement {
 				charValueUse.productSpecification = prodSpec;
 				prodSpecCharValueUse.push(charValueUse);
 			}
+			if (item.chargingKey) {
+				var charValue = new Object();
+				var charValueUse = new Object();
+				charValueUse.name = "chargingKey";
+				charValue.value = item.chargingKey;
+				var charValues = new Array();
+				charValues.push(charValue);
+				charValueUse.productSpecCharacteristicValue = charValues;
+				var prodSpec = new Object();
+				prodSpec.id = "3";
+				prodSpec.href = "/catalogManagement/v2/productSpecification/3";
+				charValueUse.productSpecification = prodSpec;
+				prodSpecCharValueUse.push(charValueUse);
+			}
 			if (item.reserveTime) {
 				var charValue = new Object();
 				charValue.unitOfMeasure = "seconds";
@@ -1750,6 +1776,7 @@ class offerAdd extends PolymerElement {
 		}
 		priceNew.prefixTariff = this.priceAddTariff;
 		priceNew.roamingTable = this.priceAddRoaming;
+		priceNew.chargingKey = parseInt(this.chargingKey);
 		if(priceNew.name
 					&& priceNew.type
 					&& priceNew.unit
@@ -1956,6 +1983,7 @@ class offerAdd extends PolymerElement {
 		this.$.addBundle.hide();
 		this.$.destPrefixTariff.value = null;
 		this.$.roamingTable.value = null;
+		this.$.chargingKey.value = null;
 		this.$.addOfferCharReserveSession.value = null;
 		this.addProductStartDateOffer = null;
 		this.addProductEndDateOffer = null;
