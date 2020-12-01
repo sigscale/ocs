@@ -106,7 +106,7 @@
 %%
 init([ServerAddress, ServerPort, ClientAddress, ClientPort, SessionId,
 		OriginHost, OriginRealm, DestinationHost, DestinationRealm,
-		Request, _Options] = _Args) ->
+		Request] = _Args) ->
 	Service = {ocs_diameter_auth, ServerAddress, ServerPort},
 	process_flag(trap_exit, true),
 	{ok, idle, #statedata{service = Service,
