@@ -342,7 +342,7 @@ request(Caps, ClientAddress, ClientPort, none, _PasswordReq, _Trusted,
 request(Caps, ClientAddress, ClientPort, none, _PasswordReq, _Trusted,
 		#'3gpp_sta_STR'{'Session-Id' = SessionId} = Request, _CbProc,
 		#state{address = ServerAddress, port = ServerPort,
-		dereg_sup = Sup} = State) ->
+		term_sup = Sup} = State) ->
 	#diameter_caps{origin_host = {OHost, DHost}, origin_realm = {ORealm, DRealm}} = Caps,
 	ChildSpec = [[ServerAddress, ServerPort, ClientAddress, ClientPort,
 		SessionId, OHost, ORealm, DHost, DRealm, Request], []],
@@ -360,7 +360,7 @@ request(Caps, ClientAddress, ClientPort, none, _PasswordReq, _Trusted,
 request(Caps, ClientAddress, ClientPort, none, _PasswordReq, _Trusted,
 		#'3gpp_swm_STR'{'Session-Id' = SessionId} = Request, _CbProc,
 		#state{address = ServerAddress, port = ServerPort,
-		dereg_sup = Sup} = State) ->
+		term_sup = Sup} = State) ->
 	#diameter_caps{origin_host = {OHost, DHost}, origin_realm = {ORealm, DRealm}} = Caps,
 	ChildSpec = [[ServerAddress, ServerPort, ClientAddress, ClientPort,
 		SessionId, OHost, ORealm, DHost, DRealm, Request], []],
