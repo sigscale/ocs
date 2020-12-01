@@ -110,7 +110,6 @@ init([ServerAddress, ServerPort, ClientAddress, ClientPort, SessionId,
 		{ok, HH} ->
 			HH
 	end,
-	{ok, HssHost} = application:get_env(hss_host),
 	{ok, idle, #statedata{service = Service,
 			server_address = ServerAddress, server_port = ServerPort,
 			client_address = ClientAddress, client_port = ClientPort,
