@@ -20,7 +20,6 @@
 %%% 	for 3GPP DIAMETER S6b in the {@link //ocs. ocs} application.
 %%%
 %%% @reference 3GPP TS TS 29.273 EPS AAA Interfaces
-%%% @reference 3GPP TS TS 33.402 Security Aspects of non-3GPP Accesses
 %%%
 -module(ocs_diameter_3gpp_s6b_application_cb).
 -copyright('Copyright (c) 2016 - 2020 SigScale Global Inc.').
@@ -31,16 +30,12 @@
 
 -include_lib("diameter/include/diameter.hrl").
 -include_lib("diameter/include/diameter_gen_base_rfc6733.hrl").
--include("diameter_gen_ietf.hrl").
--include("diameter_gen_nas_application_rfc7155.hrl").
--include("diameter_gen_eap_application_rfc4072.hrl").
 -include("diameter_gen_3gpp.hrl").
 -include("diameter_gen_3gpp_s6b_application.hrl").
 -include("ocs.hrl").
 
 -record(state, {}).
 
--define(EPOCH_OFFSET, 2208988800).
 -define(S6b_APPLICATION_ID, 16777272).
 
 -type state() :: #state{}.
@@ -99,17 +94,8 @@ pick_peer([Peer | _] = _LocalCandidates, _RemoteCandidates, _ServiceName, _State
 		Reason :: term(),
 		PostF :: diameter:evaluable().
 %% @doc Invoked to return a request for encoding and transport 
-prepare_request(#diameter_packet{msg = ['RAR' = T | Avps]} = _Packet,
-		_ServiceName, {_, Caps} = _Peer) ->
-	#diameter_caps{origin_host = {OH, DH}, origin_realm = {OR, DR}} = Caps,
-	{send, [T, {'Origin-Host', OH}, {'Origin-Realm', OR},
-			{'Destination-Host', DH}, {'Destination-Realm', DR} | Avps]};
-prepare_request(#diameter_packet{msg = Record} = _Packet,
-		_ServiceName, {_, Caps} = _Peer) ->
-	#diameter_caps{origin_host = {OH, DH}, origin_realm = {OR, DR}} = Caps,
-	ASR = Record#diameter_base_ASR{'Origin-Host' = OH, 'Origin-Realm' = OR,
-	'Destination-Host' = DH, 'Destination-Realm' = DR},
-	{send, ASR}.
+prepare_request(Packet, _ServiceName,  _Peer) ->
+	{send, Packet}.
 
 -spec prepare_retransmit(Packet, ServiceName, Peer) -> Action
 	when
@@ -195,24 +181,20 @@ request(ServiceName, #diameter_caps{origin_host = {OHost, DHost},
 		host_ip_address = {_, ClientAddresses}} = Capabilities,
 		Request) ->
 	[Info] = diameter:service_info(ServiceName, transport),
-	case lists:keyfind(options, 1, Info) of
-		{options, Options} ->
-			{ServerAddress, ServerPort} = case lists:keyfind(transport_config,
-					1, Options) of
-				{transport_config, TcpOpts} ->
-					{ip, IP} = lists:keyfind(ip, 1, TcpOpts),
-					{port, Port} = lists:keyfind(port, 1, TcpOpts),
-					{IP, Port};
-				{transport_config, SctpOpts, _} ->
-					{ip, IP} = lists:keyfind(ip, 1, SctpOpts),
-					{port, Port} = lists:keyfind(port, 1, SctpOpts),
-					{IP, Port}
-			end,
-			request(ServiceName, Capabilities, ServerAddress, ServerPort,
-					OHost, ORealm, DHost, DRealm, Request, ClientAddresses);
-		false ->
-			discard
-	end.
+	{options, Options} = lists:keyfind(options, 1, Info),
+	{ServerAddress, ServerPort} = case lists:keyfind(transport_config,
+			1, Options) of
+		{transport_config, TcpOpts} ->
+			{ip, IP} = lists:keyfind(ip, 1, TcpOpts),
+			{port, Port} = lists:keyfind(port, 1, TcpOpts),
+			{IP, Port};
+		{transport_config, SctpOpts, _} ->
+			{ip, IP} = lists:keyfind(ip, 1, SctpOpts),
+			{port, Port} = lists:keyfind(port, 1, SctpOpts),
+			{IP, Port}
+	end,
+	request(ServiceName, Capabilities, ServerAddress, ServerPort,
+			OHost, ORealm, DHost, DRealm, Request, ClientAddresses).
 %% @hidden
 request(ServiceName, Capabilities, ServerAddress, ServerPort,
 		OHost, ORealm, DHost, DRealm, Request, [H | T]) ->
