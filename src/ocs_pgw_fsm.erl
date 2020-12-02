@@ -197,14 +197,14 @@ erlang:display({?MODULE, ?LINE, SessionId, []}),
 %% @@see //stdlib/gen_fsm:StateName/2
 %% @private
 %%
-register(#'3gpp_swx_SAA'{'Result-Code'
-		= [?'DIAMETER_BASE_RESULT-CODE_SUCCESS']} = _Answer,
+register({ok, #'3gpp_swx_SAA'{'Result-Code'
+		= [?'DIAMETER_BASE_RESULT-CODE_SUCCESS']} = _Answer},
 		#statedata{from = Caller} = StateData) ->
 	ResultCode = ?'DIAMETER_BASE_RESULT-CODE_SUCCESS',
 	gen_fsm:reply(Caller, response(ResultCode, StateData)),
 	{stop, shutdown, StateData};
-register(#'3gpp_swx_SAA'{'Result-Code' = [ResultCode],
-		'Origin-Host' = Host, 'Origin-Realm' = Realm} = _Answer,
+register({ok, #'3gpp_swx_SAA'{'Result-Code' = [ResultCode],
+		'Origin-Host' = Host, 'Origin-Realm' = Realm} = _Answer},
 		#statedata{from = Caller, session_id = SessionId,
 		identity = Identity} = StateData) ->
 	error_logger:error_report(["Unexpected registration result",
@@ -214,8 +214,8 @@ register(#'3gpp_swx_SAA'{'Result-Code' = [ResultCode],
 	ResultCode = ?'DIAMETER_BASE_RESULT-CODE_UNABLE_TO_COMPLY',
 	gen_fsm:reply(Caller, response(ResultCode, StateData)),
 	{stop, shutdown, StateData};
-register(#'3gpp_swx_SAA'{'Experimental-Result' = [ResultCode],
-		'Origin-Host' = Host, 'Origin-Realm' = Realm} = _Answer,
+register({ok, #'3gpp_swx_SAA'{'Experimental-Result' = [ResultCode],
+		'Origin-Host' = Host, 'Origin-Realm' = Realm} = _Answer},
 		#statedata{from = Caller, session_id = SessionId,
 		identity = Identity} = StateData) ->
 	error_logger:error_report(["Unexpected registration result",
@@ -243,19 +243,19 @@ register(#'3gpp_swx_SAA'{'Experimental-Result' = [ResultCode],
 %% @@see //stdlib/gen_fsm:StateName/2
 %% @private
 %%
-profile(#'3gpp_swx_SAA'{'Result-Code' = [?'DIAMETER_BASE_RESULT-CODE_SUCCESS'],
-		'3GPP-AAA-Server-Name' = []} = _Answer,
+profile({ok, #'3gpp_swx_SAA'{'Result-Code' = [?'DIAMETER_BASE_RESULT-CODE_SUCCESS'],
+		'3GPP-AAA-Server-Name' = []} = _Answer},
 		#statedata{from = Caller} = StateData) ->
 	ResultCode = ?'DIAMETER_BASE_RESULT-CODE_SUCCESS',
 	gen_fsm:reply(Caller, response(ResultCode, StateData)),
 	{stop, shutdown, StateData};
-profile(#'3gpp_swx_SAA'{'Result-Code' = [?'DIAMETER_BASE_RESULT-CODE_SUCCESS'],
-		'3GPP-AAA-Server-Name' = [AaaServerName]} = _Answer,
+profile({ok, #'3gpp_swx_SAA'{'Result-Code' = [?'DIAMETER_BASE_RESULT-CODE_SUCCESS'],
+		'3GPP-AAA-Server-Name' = [AaaServerName]} = _Answer},
 		#statedata{from = Caller} = StateData) ->
 	gen_fsm:reply(Caller, response(AaaServerName, StateData)),
 	{stop, shutdown, StateData};
-profile(#'3gpp_swx_SAA'{'Experimental-Result' = [?'DIAMETER_ERROR_USER_UNKNOWN'],
-		'Origin-Host' = Host, 'Origin-Realm' = Realm} = _Answer,
+profile({ok, #'3gpp_swx_SAA'{'Experimental-Result' = [?'DIAMETER_ERROR_USER_UNKNOWN'],
+		'Origin-Host' = Host, 'Origin-Realm' = Realm} = _Answer},
 		#statedata{from = Caller, session_id = SessionId,
 		identity = Identity} = StateData) ->
 	error_logger:error_report(["Unkown user",
@@ -265,8 +265,8 @@ profile(#'3gpp_swx_SAA'{'Experimental-Result' = [?'DIAMETER_ERROR_USER_UNKNOWN']
 	ResultCode = ?'DIAMETER_ERROR_USER_UNKNOWN',
 	gen_fsm:reply(Caller, response(ResultCode, StateData)),
 	{stop, shutdown, StateData};
-profile(#'3gpp_swx_SAA'{'Result-Code' = [ResultCode],
-		'Origin-Host' = Host, 'Origin-Realm' = Realm} = _Answer,
+profile({ok, #'3gpp_swx_SAA'{'Result-Code' = [ResultCode],
+		'Origin-Host' = Host, 'Origin-Realm' = Realm} = _Answer},
 		#statedata{from = Caller, session_id = SessionId,
 		identity = Identity} = StateData) ->
 	error_logger:error_report(["Unexpected get user profile result",
@@ -276,8 +276,8 @@ profile(#'3gpp_swx_SAA'{'Result-Code' = [ResultCode],
 	ResultCode = ?'DIAMETER_BASE_RESULT-CODE_UNABLE_TO_COMPLY',
 	gen_fsm:reply(Caller, response(ResultCode, StateData)),
 	{stop, shutdown, StateData};
-profile(#'3gpp_swx_SAA'{'Experimental-Result' = [ResultCode],
-		'Origin-Host' = Host, 'Origin-Realm' = Realm} = _Answer,
+profile({ok, #'3gpp_swx_SAA'{'Experimental-Result' = [ResultCode],
+		'Origin-Host' = Host, 'Origin-Realm' = Realm} = _Answer},
 		#statedata{from = Caller, session_id = SessionId,
 		identity = Identity} = StateData) ->
 	error_logger:error_report(["Unexpected get user profile result",

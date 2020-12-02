@@ -194,22 +194,22 @@ idle(#'3gpp_swx_RTR'{'User-Name' = [Identity]} = Request,
 %% @@see //stdlib/gen_fsm:StateName/2
 %% @private
 %%
-abort(#'3gpp_sta_ASA'{'Result-Code' = [?'DIAMETER_BASE_RESULT-CODE_SUCCESS']},
+abort({ok, #'3gpp_sta_ASA'{'Result-Code' = [?'DIAMETER_BASE_RESULT-CODE_SUCCESS']}},
 		#statedata{from = Caller} = StateData) ->
 	ResultCode = ?'DIAMETER_BASE_RESULT-CODE_SUCCESS',
 	gen_fsm:reply(Caller, response(ResultCode, StateData)),
 	{stop, shutdown, StateData};
-abort(#'3gpp_swm_ASA'{'Result-Code' = [?'DIAMETER_BASE_RESULT-CODE_SUCCESS']},
+abort({ok, #'3gpp_swm_ASA'{'Result-Code' = [?'DIAMETER_BASE_RESULT-CODE_SUCCESS']}},
 		#statedata{from = Caller} = StateData) ->
 	ResultCode = ?'DIAMETER_BASE_RESULT-CODE_SUCCESS',
 	gen_fsm:reply(Caller, response(ResultCode, StateData)),
 	{stop, shutdown, StateData};
-abort(#'3gpp_sta_ASA'{'Result-Code' = [?'DIAMETER_ERROR_USER_UNKNOWN']},
+abort({ok, #'3gpp_sta_ASA'{'Result-Code' = [?'DIAMETER_ERROR_USER_UNKNOWN']}},
 		#statedata{from = Caller} = StateData) ->
 	ResultCode = ?'DIAMETER_BASE_RESULT-CODE_UNKNOWN_SESSION_ID',
 	gen_fsm:reply(Caller, response(ResultCode, StateData)),
 	{stop, shutdown, StateData};
-abort(#'3gpp_swm_ASA'{'Result-Code' = [?'DIAMETER_ERROR_USER_UNKNOWN']},
+abort({ok, #'3gpp_swm_ASA'{'Result-Code' = [?'DIAMETER_ERROR_USER_UNKNOWN']}},
 		#statedata{from = Caller} = StateData) ->
 	ResultCode = ?'DIAMETER_BASE_RESULT-CODE_UNKNOWN_SESSION_ID',
 	gen_fsm:reply(Caller, response(ResultCode, StateData)),

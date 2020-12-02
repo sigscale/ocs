@@ -143,7 +143,7 @@ idle(Request, From, #statedata{session_id = SessionId,
 			UserName
 	end,
 	NewStateData = StateData#statedata{from = From,
-			identity = Identity},
+			request = Request, identity = Identity},
 	F = fun() ->
 			case mnesia:read(session, SessionId, write) of
 				[#session{imsi = Identity, hss_realm = undefined}] ->
@@ -157,7 +157,7 @@ idle(Request, From, #statedata{session_id = SessionId,
 	case mnesia:transaction(F) of
 		{atomic, ok} ->
 			response(?'DIAMETER_BASE_RESULT-CODE_SUCCESS', NewStateData),
-			{stop, {shutdown, SessionId}, NewStateData};
+			{stop, shutdown, NewStateData};
 		{atomic, {HssRealm, HssHost}} ->
 			NextStateData = StateData#statedata{hss_realm = HssRealm, hss_host = HssHost},
 			send_deregister(NextStateData),
@@ -193,14 +193,14 @@ idle(Request, From, #statedata{session_id = SessionId,
 %% @@see //stdlib/gen_fsm:StateName/2
 %% @private
 %%
-deregister(#'3gpp_swx_SAA'{'Result-Code'
-		= [?'DIAMETER_BASE_RESULT-CODE_SUCCESS']} = _Answer,
+deregister({ok, #'3gpp_swx_SAA'{'Result-Code'
+		= [?'DIAMETER_BASE_RESULT-CODE_SUCCESS']} = _Answer},
 		#statedata{from = Caller} = StateData) ->
 	ResultCode = ?'DIAMETER_BASE_RESULT-CODE_SUCCESS',
 	gen_fsm:reply(Caller, response(ResultCode, StateData)),
 	deregister1(StateData);
-deregister(#'3gpp_swx_SAA'{'Experimental-Result'
-		= [?'DIAMETER_ERROR_IDENTITY_NOT_REGISTERED']} = _Answer,
+deregister({ok, #'3gpp_swx_SAA'{'Experimental-Result'
+		= [?'DIAMETER_ERROR_IDENTITY_NOT_REGISTERED']} = _Answer},
 		#statedata{session_id = SessionId, identity = Identity,
 		hss_realm = HssRealm, hss_host = HssHost,
 		from = Caller} = StateData) ->
@@ -211,7 +211,7 @@ deregister(#'3gpp_swx_SAA'{'Experimental-Result'
 	ResultCode = ?'DIAMETER_BASE_RESULT-CODE_SUCCESS',
 	gen_fsm:reply(Caller, response(ResultCode, StateData)),
 	deregister1(StateData);
-deregister(#'3gpp_swx_SAA'{'Result-Code' = [ResultCode]} = _Answer,
+deregister({ok, #'3gpp_swx_SAA'{'Result-Code' = [ResultCode]} = _Answer},
 		#statedata{session_id = SessionId, identity = Identity,
 		hss_realm = HssRealm, hss_host = HssHost,
 		from = Caller} = StateData) ->
@@ -222,7 +222,7 @@ deregister(#'3gpp_swx_SAA'{'Result-Code' = [ResultCode]} = _Answer,
 	ResultCode = ?'DIAMETER_BASE_RESULT-CODE_UNABLE_TO_COMPLY',
 	gen_fsm:reply(Caller, response(ResultCode, StateData)),
 	{stop, shutdown, StateData};
-deregister(#'3gpp_swx_SAA'{'Experimental-Result' = [ResultCode]} = _Answer,
+deregister({ok, #'3gpp_swx_SAA'{'Experimental-Result' = [ResultCode]} = _Answer},
 		#statedata{session_id = SessionId, identity = Identity,
 		hss_realm = HssRealm, hss_host = HssHost,
 		from = Caller} = StateData) ->
