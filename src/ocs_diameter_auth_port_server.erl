@@ -46,7 +46,6 @@
 -include("diameter_gen_eap_application_rfc4072.hrl").
 -include("diameter_gen_3gpp_sta_application.hrl").
 -include("diameter_gen_3gpp_swm_application.hrl").
--include("diameter_gen_3gpp_s6b_application.hrl").
 -include("diameter_gen_3gpp_swx_application.hrl").
 -include("ocs_eap_codec.hrl").
 -include("ocs.hrl").
@@ -258,13 +257,13 @@ code_change(_OldVsn, State, _Extra) ->
 		Trusted :: boolean(),
 		Request :: #diameter_nas_app_AAR{} | #diameter_nas_app_STR{}
 				| #diameter_eap_app_DER{} | #'3gpp_sta_DER'{}
-				| #'3gpp_swm_DER'{} | #'3gpp_s6b_AAR'{},
+				| #'3gpp_swm_DER'{},
 		CbProc :: {pid(), term()},
 		State :: state(),
 		Reply :: {reply, Answer, State} | {noreply, State},
 		Answer ::#diameter_nas_app_AAA{} | #diameter_nas_app_STA{}
 				| #diameter_eap_app_DEA{} | #'3gpp_sta_DEA'{}
-				| #'3gpp_swm_DEA'{} | #'3gpp_s6b_AAA'{}.
+				| #'3gpp_swm_DEA'{}.
 %% @doc Generate appropriate DIAMETER answer.
 %% @hidden
 request(Caps, Address, Port, none, PasswordReq, Trusted, Request, CbProc, State)
@@ -371,24 +370,6 @@ request(Caps, ClientAddress, ClientPort, none, _PasswordReq, _Trusted,
 			error_logger:error_report(["Error starting SWm session termination handler",
 					{error, Reason}, {supervisor, Sup}, {session_id, SessionId}]),
 			Answer = #'3gpp_swm_STA'{'Session-Id' = SessionId,
-					'Result-Code' = ?'DIAMETER_BASE_RESULT-CODE_UNABLE_TO_COMPLY',
-					'Origin-Host' = OHost, 'Origin-Realm' = ORealm},
-			{reply, Answer, State}
-	end;
-request(Caps, ClientAddress, ClientPort, none, _PasswordReq, _Trusted,
-		#'3gpp_s6b_AAR'{'Session-Id' = SessionId} = Request, _CbProc,
-		#state{address = ServerAddress, port = ServerPort,
-		pgw_sup = Sup} = State) ->
-	#diameter_caps{origin_host = {OHost, DHost}, origin_realm = {ORealm, DRealm}} = Caps,
-	ChildSpec = [[ServerAddress, ServerPort, ClientAddress, ClientPort,
-		SessionId, OHost, ORealm, DHost, DRealm, Request], []],
-	case supervisor:start_child(Sup, ChildSpec) of
-		{ok, _Fsm} ->
-			{noreply, State};
-		{error, Reason} ->
-			error_logger:error_report(["Error starting PGW session handler",
-					{error, Reason}, {supervisor, Sup}, {session_id, SessionId}]),
-			Answer = #'3gpp_s6b_AAA'{'Session-Id' = SessionId,
 					'Result-Code' = ?'DIAMETER_BASE_RESULT-CODE_UNABLE_TO_COMPLY',
 					'Origin-Host' = OHost, 'Origin-Realm' = ORealm},
 			{reply, Answer, State}
