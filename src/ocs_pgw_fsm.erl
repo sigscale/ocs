@@ -97,10 +97,10 @@
 %% @see //stdlib/gen_fsm:init/1
 %% @private
 %%
-init([ServerAddress, ServerPort, ClientAddress, ClientPort, SessionId,
-		OriginHost, OriginRealm, DestinationHost, DestinationRealm] = _Args) ->
+init([ServiceName, ServerAddress, ServerPort, ClientAddress,
+		ClientPort, SessionId, OriginHost, OriginRealm,
+		DestinationHost, DestinationRealm] = _Args) ->
 erlang:display({?MODULE, ?LINE, SessionId}),
-	Service = {ocs_diameter_auth, ServerAddress, ServerPort},
 	process_flag(trap_exit, true),
 	{ok, HssRealm} = application:get_env(hss_realm),
 	HssHost = case application:get_env(hss_host) of
@@ -109,7 +109,7 @@ erlang:display({?MODULE, ?LINE, SessionId}),
 		{ok, HH} ->
 			HH
 	end,
-	{ok, idle, #statedata{service = Service,
+	{ok, idle, #statedata{service = ServiceName,
 			server_address = ServerAddress, server_port = ServerPort,
 			client_address = ClientAddress, client_port = ClientPort,
 			session_id = SessionId,
