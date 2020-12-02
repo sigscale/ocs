@@ -252,7 +252,6 @@ profile(#'3gpp_swx_SAA'{'Result-Code' = [?'DIAMETER_BASE_RESULT-CODE_SUCCESS'],
 profile(#'3gpp_swx_SAA'{'Result-Code' = [?'DIAMETER_BASE_RESULT-CODE_SUCCESS'],
 		'3GPP-AAA-Server-Name' = [AaaServerName]} = _Answer,
 		#statedata{from = Caller} = StateData) ->
-	ResultCode = ?'DIAMETER_BASE_RESULT-CODE_SUCCESS',
 	gen_fsm:reply(Caller, response(AaaServerName, StateData)),
 	{stop, shutdown, StateData};
 profile(#'3gpp_swx_SAA'{'Experimental-Result' = [?'DIAMETER_ERROR_USER_UNKNOWN'],
@@ -458,7 +457,7 @@ erlang:display({?MODULE, ?LINE, SessionId, Request}),
 %% @hidden
 response(ResultCode = _Arg,
 		#statedata{request = #'3gpp_s6b_AAR'{} = Request,
-		session_id = SessionId, service = Service,
+		session_id = SessionId,
 		server_address = ServerAddress, server_port = ServerPort,
 		client_address = ClientAddress, client_port = ClientPort,
 		orig_host = OriginHost, orig_realm = OriginRealm} = _StateData)
@@ -474,7 +473,7 @@ erlang:display({?MODULE, ?LINE, SessionId, Answer}),
 	Answer;
 response(RedirectHost,
 		#statedata{request = #'3gpp_s6b_AAR'{} = Request,
-		session_id = SessionId, service = Service,
+		session_id = SessionId,
 		server_address = ServerAddress, server_port = ServerPort,
 		client_address = ClientAddress, client_port = ClientPort,
 		orig_host = OriginHost, orig_realm = OriginRealm} = _StateData)
