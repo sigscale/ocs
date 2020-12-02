@@ -240,10 +240,12 @@ process_request(ServiceName,
 		origin_host = {OHost, _}} = Capabilities,
 		ServerAddress, ServerPort, ClientAddress, Trusted,
 		#'3gpp_sta_DER'{'Session-Id' = SessionId,
-				'Auth-Application-Id' = ?STa_APPLICATION_ID} = Request) ->
+				'Auth-Application-Id' = ?STa_APPLICATION_ID,
+				'EAP-Payload' = EapPayload} = Request) ->
 	try
 		process_request1(ServiceName, Capabilities,
-				ServerAddress, ServerPort, ClientAddress,Trusted, Request)
+				ServerAddress, ServerPort, ClientAddress,
+				Trusted, {eap, EapPayload}, Request)
 	catch
 		_:_Reason ->
 			{reply, #'3gpp_sta_DEA'{'Session-Id' = SessionId,
@@ -268,12 +270,12 @@ process_request(ServiceName,
 	end.
 %% @hidden
 process_request1(_ServiceName, Capabilities,
-		ServerAddress, ServerPort, _ClientAddress, Trusted, Request) ->
+		ServerAddress, ServerPort, _ClientAddress, Trusted, EAP, Request) ->
 	PortServer = global:whereis_name({ocs_diameter_auth,
 			ServerAddress, ServerPort}),
 	Answer = gen_server:call(PortServer,
 			{diameter_request, Capabilities, ServerAddress, ServerPort,
-			true, Trusted, Request, none}),
+			true, Trusted, Request, EAP}),
 	{reply, Answer}.
 %% @hidden
 process_request2(ServiceName,
