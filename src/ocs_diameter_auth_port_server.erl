@@ -60,9 +60,6 @@
 		aka_sup :: undefined | pid(),
 		akap_sup :: undefined | pid(),
 		pwd_sup :: undefined | pid(),
-		dereg_sup :: undefined | pid(),
-		term_sup :: undefined | pid(),
-		pgw_sup :: undefined | pid(),
 		cb_fsms = gb_trees:empty() :: gb_trees:tree(
 				Key :: (AuthFsm :: pid()), Value :: (CbProc :: pid())),
 		handlers = gb_trees:empty() :: gb_trees:tree(
@@ -176,13 +173,9 @@ handle_info(timeout, #state{auth_port_sup = AuthPortSup} = State) ->
 	{_, TtlsSup, _, _} = lists:keyfind(ocs_eap_ttls_fsm_sup_sup, 1, Children),
 	{_, AkaSup, _, _} = lists:keyfind(ocs_eap_aka_fsm_sup_sup, 1, Children),
 	{_, AkapSup, _, _} = lists:keyfind(ocs_eap_akap_fsm_sup_sup, 1, Children),
-	{_, DeregSup, _, _} = lists:keyfind(ocs_deregister_fsm_sup, 1, Children),
-	{_, TermSup, _, _} = lists:keyfind(ocs_deregister_fsm_sup, 1, Children),
-	{_, PgwSup, _, _} = lists:keyfind(ocs_pgw_fsm_sup, 1, Children),
 	NewState = State#state{simple_auth_sup = SimpleAuthSup,
 			pwd_sup = PwdSup, ttls_sup = TtlsSup,
-			aka_sup = AkaSup, akap_sup = AkapSup,
-			dereg_sup = DeregSup, term_sup = TermSup, pgw_sup = PgwSup},
+			aka_sup = AkaSup, akap_sup = AkapSup},
 	{noreply, NewState};
 handle_info({'EXIT', Fsm, {shutdown, SessionId}},
 		#state{handlers = Handlers} = State) ->
