@@ -104,10 +104,9 @@
 %% @see //stdlib/gen_fsm:init/1
 %% @private
 %%
-init([diameter, ServerAddress, ServerPort, ClientAddress, ClientPort,
-		_PasswordReq, _Trusted, SessionId, _ApplicationId, _AuthReqType,
+init([ServerAddress, ServerPort, ClientAddress, ClientPort, SessionId,
 		OriginHost, OriginRealm, DestinationHost, DestinationRealm,
-		Request, _Options] = _Args) ->
+		Request] = _Args) ->
 	Service = {ocs_diameter_auth, ServerAddress, ServerPort},
 	process_flag(trap_exit, true),
 	{ok, idle, #statedata{service = Service,

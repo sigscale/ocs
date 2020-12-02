@@ -6,6 +6,18 @@
 @inherits diameter_gen_base_rfc6733
 @inherits diameter_gen_ietf
 @inherits diameter_gen_3gpp
+
+@custom_types ocs_diameter_codec_swm
+
+	APN-Configuration
+	EPS-Subscribed-QoS-Profile
+	AMBR
+	Specific-APN-Info
+	WLAN-offloadability
+	Trace-Info
+	Emergency-Info
+	Subscription-Id
+
 @messages
 
 	DER ::= < Diameter Header: 268, REQ, PXY >
@@ -153,6 +165,7 @@
 		[ OC-Supported-Features ]
 		[ AAR-Flags ]
 		[ UE-Local-IP-Address ]
+      [ Origin-State-Id ]
 		* [ Proxy-Info ]
 		* [ Route-Record ]
 		* [ AVP ]
@@ -176,6 +189,7 @@
 		[ Trace-Info ]
 		[ OC-Supported-Features ]
 		[ OC-OLR ]
+      [ Origin-State-Id ]
 		* [ Load ]
 		* [ Proxy-Info ]
 		* [ Route-Record ]
@@ -192,6 +206,7 @@
 		[ User-Name ]
 		[ DRMP ]
 		[ OC-Supported-Features ]
+      [ Origin-State-Id ]
 		* [ Proxy-Info ]
 		* [ Route-Record ]
 		* [ AVP ]
@@ -204,6 +219,7 @@
 		[ DRMP ]
 		[ OC-Supported-Features ]
 		[ OC-OLR ]
+      [ Origin-State-Id ]
 		* [ Load ]
 		* [ Proxy-Info ]
 		* [ Route-Record ]
@@ -219,6 +235,7 @@
 		[ User-Name ]
 		[ Auth-Session-State ]
 		[ DRMP ]
+      [ Origin-State-Id ]
 		* [ Proxy-Info ]
 		* [ Route-Record ]
 		* [ AVP ]
@@ -229,6 +246,7 @@
 		{ Origin-Host }
 		{ Origin-Realm }
 		[ DRMP ]
+      [ Origin-State-Id ]
 		* [ Proxy-Info ]
 		* [ Route-Record ]
 		* [ AVP ]
@@ -243,6 +261,7 @@
 		{ Re-Auth-Request-Type }
 		[ User-Name ]
 		[ DRMP ]
+      [ Origin-State-Id ]
 		* [ Proxy-Info ]
 		* [ Route-Record ]
 		* [ AVP ]
@@ -254,6 +273,7 @@
 		{ Origin-Realm }
 		[ User-Name ]
 		[ DRMP ]
+      [ Origin-State-Id ]
 		* [ Proxy-Info ]
 		* [ Route-Record ]
 		* [ AVP ]

@@ -30,6 +30,7 @@
 -compile(export_all).
 
 -include_lib("radius/include/radius.hrl").
+-include_lib("../include/diameter_gen_3gpp_ro_application.hrl").
 -include_lib("inets/include/mod_auth.hrl").
 -include_lib("public_key/include/public_key.hrl").
 -include("ocs.hrl").
@@ -140,7 +141,8 @@ init_per_testcase(TestCase, Config) when TestCase == notify_create_bucket;
 		TestCase == notify_insert_gtt; TestCase == notify_delete_gtt;
 		TestCase == query_gtt_notification;
 		TestCase == notify_add_pla; TestCase == notify_delete_pla;
-		TestCase == query_pla_notification ->
+		TestCase == query_pla_notification;
+		TestCase == notify_diameter_acct_log ->
 	true = register(TestCase, self()),
 	case inets:start(httpd, [{port, 0},
 			{server_name, atom_to_list(?MODULE)},
@@ -212,6 +214,7 @@ all() ->
 	notify_insert_gtt, notify_delete_gtt, query_gtt_notification,
 	notify_add_pla, notify_delete_pla, query_pla_notification,
 	post_hub_usage, get_usage_hubs, get_usage_hub, delete_hub_usage,
+	notify_diameter_acct_log,
 	oauth_authentication].
 
 %%---------------------------------------------------------------------
@@ -3932,6 +3935,45 @@ delete_hub_usage(Config) ->
 	Request1 = {HostUrl ++ PathHub ++ Id, [Accept, auth_header()]},
 	{ok, {{_, 204, _}, _, []}} = httpc:request(delete, Request1, [], []).
 
+notify_diameter_acct_log() ->
+	[{userdata, [{doc, "Receive DIAMETER CCR/CCA logging notification"}]}].
+
+notify_diameter_acct_log(Config) ->
+	HostUrl = ?config(host_url, Config),
+	CollectionUrl = HostUrl ++ ?PathUsageHub,
+	ListenerPort = ?config(listener_port, Config),
+	ListenerServer = "http://localhost:" ++ integer_to_list(ListenerPort),
+	Callback = ListenerServer ++ "/listener/"
+			++ atom_to_list(?MODULE) ++ "/notifydiameteracctlog",
+	RequestBody = "{\n"
+			++ "\t\"callback\": \"" ++ Callback ++ "\",\n"
+			++ "}\n",
+	ContentType = "application/json",
+	Accept = {"accept", "application/json"},
+	Request = {CollectionUrl, [Accept, auth_header()], ContentType, RequestBody},
+	{ok, {{_, 201, _}, _, _}} = httpc:request(post, Request, [], []),
+	Protocol = diameter,
+	ServerAddress = {0, 0, 0, 0},
+	ServerPort = 1813,
+	Server = {ServerAddress, ServerPort},
+	RequestType = start,
+	ok = ocs_log:acct_log(Protocol, Server, RequestType,
+			#'3gpp_ro_CCR'{'Origin-Host' = <<"diameter-89.sigscale.net">>,
+			'Service-Context-Id' = <<"92.32156.3gpp.org">>}, #'3gpp_ro_CCA'{},
+			undefined),
+	receive
+		Receive ->
+			{struct, AcctLogEvent} = mochijson:decode(Receive),
+			{_, "UsageCreationEvent"}
+					= lists:keyfind("eventType", 1, AcctLogEvent),
+			{_, {struct, AcctUsageList}}
+					= lists:keyfind("event", 1, AcctLogEvent),
+			{_, "/usageManagement/v1/usage/acct-" ++ _}
+					= lists:keyfind("href", 1, AcctUsageList),
+			{_, "AAAAccountingUsage"}
+					= lists:keyfind("type", 1, AcctUsageList)
+	end.
+
 oauth_authenticaton()->
 	[{userdata, [{doc, "Authenticate a JWT using oauth"}]}].
 
@@ -4128,6 +4170,13 @@ notifydeletepla(SessionID, _Env, Input) ->
 queryplanotification(SessionID, _Env, Input) ->
 	mod_esi:deliver(SessionID, "status: 201 Created\r\n\r\n"),
 	query_pla_notification ! Input.
+
+-spec notifydiameteracctlog(SessionID :: term(), Env :: list(),
+		Input :: string()) -> any().
+%% @doc Notification callback for notify_diameter_acct_log test case.
+notifydiameteracctlog(SessionID, _Env, Input) ->
+	mod_esi:deliver(SessionID, "status: 201 Created\r\n\r\n"),
+	notify_diameter_acct_log ! Input.
 
 product_offer() ->
 	CatalogHref = "/productCatalogManagement/v2",

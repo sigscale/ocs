@@ -133,7 +133,77 @@
    Digest-Algorithm                                        111  UTF8String       M
    Digest-HA1                                              121  UTF8String       M
    ;; RFC5777 Traffic Classification and Quality of Service (QoS) Attributes for Diameter
-;  QoS-Capability                                          578  Grouped          M
+   QoS-Resources                                           508  Grouped          M
+   Filter-Rule                                             509  Grouped          -
+   Filter-Rule-Precedence                                  510  Unsigned32       -
+   Classifier                                              511  Grouped          -
+   Classifier-ID                                           512  OctetString      -
+   Protocol                                                513  Enumerated       -
+   Direction                                               514  Enumerated       -
+   From-Spec                                               515  Grouped          -
+   To-Spec                                                 516  Grouped          -
+   Negated                                                 517  Enumerated       -
+   IP-Address                                              518  Address          -
+   IP-Address-Range                                        519  Grouped          -
+   IP-Address-Start                                        520  Address          -
+   IP-Address-End                                          521  Address          -
+   IP-Address-Mask                                         522  Grouped          -
+   IP-Bit-Mask-Width                                       523  Unsigned32       -
+   MAC-Address                                             524  OctetString      -
+   MAC-Address-Mask                                        525  Grouped          -
+   MAC-Address-Mask-Pattern                                526  OctetString      -
+   EUI64-Address                                           527  OctetString      -
+   EUI64-Address-Mask                                      528  Grouped          -
+   EUI64-Address-Mask-Pattern                              529  OctetString      -
+   Port                                                    530  Integer32        -
+   Port-Range                                              531  Grouped          -
+   Port-Start                                              532  Integer32        -
+   Port-End                                                533  Integer32        -
+   Use-Assigned-Address                                    534  Enumerated       -
+   Diffserv-Code-Point                                     535  Enumerated       -
+   Fragmentation-Flag                                      536  Enumerated       -
+   IP-Option                                               537  Grouped          -
+   IP-Option-Type                                          538  Enumerated       -
+   IP-Option-Value                                         539  OctetString      -
+   TCP-Option                                              540  Grouped          -
+   TCP-Option-Type                                         541  Enumerated       -
+   TCP-Option-Value                                        542  OctetString      -
+   TCP-Flags                                               543  Grouped          -
+   TCP-Flag-Type                                           544  Unsigned32       -
+   ICMP-Type                                               545  Grouped          -
+   ICMP-Type-Number                                        546  Enumerated       -
+   ICMP-Code                                               547  Enumerated       -
+   ETH-Option                                              548  Grouped          -
+   ETH-Proto-Type                                          549  Grouped          -
+   ETH-Ether-Type                                          550  OctetString      -
+   ETH-SAP                                                 551  OctetString      -
+   VLAN-ID-Range                                           552  Grouped          -
+   S-VID-Start                                             553  Unsigned32       -
+   S-VID-End                                               554  Unsigned32       -
+   C-VID-Start                                             555  Unsigned32       -
+   C-VID-End                                               556  Unsigned32       -
+   User-Priority-Range                                     557  Grouped          -
+   Low-User-Priority                                       558  Unsigned32       -
+   High-User-Priority                                      559  Unsigned32       -
+   Time-Of-Day-Condition                                   560  Grouped          -
+   Time-Of-Day-Start                                       561  Unsigned32       -
+   Time-Of-Day-End                                         562  Unsigned32       -
+   Day-Of-Week-Mask                                        563  Unsigned32       -
+   Day-Of-Month-Mask                                       564  Unsigned32       -
+   Month-Of-Year-Mask                                      565  Unsigned32       -
+   Absolute-Start-Time                                     566  Time             -
+   Absolute-Start-Fractional-Seconds                       567  Unsigned32       -
+   Absolute-End-Time                                       568  Time             -
+   Absolute-End-Fractional-Seconds                         569  Unsigned32       -
+   Timezone-Flag                                           570  Enumerated       -
+   Timezone-Offset                                         571  Integer32        -
+   Treatment-Action                                        572  Enumerated       -
+   QoS-Profile-Id                                          573  Unsigned32       -
+   QoS-Profile-Template                                    574  Grouped          -
+   QoS-Semantics                                           575  Enumerated       -
+   QoS-Parameters                                          576  Grouped          -
+   Excess-Treatment                                        577  Grouped          -
+   QoS-Capability                                          578  Grouped          M
    ;; RFC5778 Diameter Mobile IPv6: Support for Home Agent to Diameter Server Interaction
    Service-Selection                                       493  UTF8String       M
    ;; RFC5779 Diameter Proxy Mobile IPv6: Mobile Access Gateway and Local Mobility Anchor Interaction with Diameter Server
@@ -263,6 +333,164 @@
       [ Tunnel-Assignment-Id ]
       [ Tunnel-Password ]
       [ Tunnel-Private-Group-Id ]
+
+   QoS-Resources ::= <AVP Header: 508>
+    1*{ Filter-Rule }
+     *[ AVP ]
+
+   Filter-Rule ::= <AVP Header: 509>
+      [ Filter-Rule-Precedence ]
+      [ Classifier ]
+     *[ Time-Of-Day-Condition ]
+      [ Treatment-Action ]
+      [ QoS-Semantics ]
+      [ QoS-Profile-Template ]
+      [ QoS-Parameters ]
+      [ Excess-Treatment ]
+     *[ AVP ]
+
+   Classifier ::= <AVP Header: 511>
+      { Classifier-ID }
+      [ Protocol ]
+      [ Direction ]
+     *[ From-Spec ]
+     *[ To-Spec ]
+     *[ Diffserv-Code-Point ]
+      [ Fragmentation-Flag ]
+     *[ IP-Option ]
+     *[ TCP-Option ]
+      [ TCP-Flags ]
+     *[ ICMP-Type ]
+     *[ ETH-Option ]
+     *[ AVP ]
+
+   From-Spec ::= <AVP Header: 515>
+     *[ IP-Address ]
+     *[ IP-Address-Range ]
+     *[ IP-Address-Mask ]
+     *[ MAC-Address ]
+     *[ MAC-Address-Mask]
+     *[ EUI64-Address ]
+     *[ EUI64-Address-Mask]
+     *[ Port ]
+     *[ Port-Range ]
+      [ Negated ]
+      [ Use-Assigned-Address ]
+     *[ AVP ]
+
+   To-Spec ::= <AVP Header: 516>
+     *[ IP-Address ]
+     *[ IP-Address-Range ]
+     *[ IP-Address-Mask ]
+     *[ MAC-Address ]
+     *[ MAC-Address-Mask]
+     *[ EUI64-Address ]
+     *[ EUI64-Address-Mask]
+     *[ Port ]
+     *[ Port-Range ]
+      [ Negated ]
+      [ Use-Assigned-Address ]
+     *[ AVP ]
+
+   IP-Address-Range ::= <AVP Header: 519>
+      [ IP-Address-Start ]
+      [ IP-Address-End ]
+     *[ AVP ]
+
+   IP-Address-Mask ::= <AVP Header: 522>
+      { IP-Address }
+      { IP-Bit-Mask-Width }
+     *[ AVP ]
+
+   MAC-Address-Mask ::= <AVP Header: 525>
+      { MAC-Address }
+      { MAC-Address-Mask-Pattern }
+     *[ AVP ]
+
+   EUI64-Address-Mask ::= <AVP Header: 528>
+      { EUI64-Address }
+      { EUI64-Address-Mask-Pattern }
+     *[ AVP ]
+
+   Port-Range ::= <AVP Header: 531>
+      [ Port-Start ]
+      [ Port-End ]
+     *[ AVP ]
+
+   IP-Option ::= <AVP Header: 537>
+      { IP-Option-Type }
+     *[ IP-Option-Value ]
+      [ Negated ]
+     *[ AVP ]
+
+   TCP-Option ::= <AVP Header: 540>
+      { TCP-Option-Type }
+     *[ TCP-Option-Value ]
+      [ Negated ]
+     *[ AVP ]
+
+   TCP-Flags ::= <AVP Header: 543>
+      { TCP-Flag-Type }
+      [ Negated ]
+     *[ AVP ]
+
+   ICMP-Type ::= <AVP Header: 545>
+      { ICMP-Type-Number }
+     *[ ICMP-Code ]
+      [ Negated ]
+     *[ AVP ]
+
+   ETH-Option ::= <AVP Header: 548>
+      { ETH-Proto-Type }
+     *[ VLAN-ID-Range ]
+     *[ User-Priority-Range ]
+     *[ AVP ]
+
+   ETH-Proto-Type ::= <AVP Header: 549>
+     *[ ETH-Ether-Type ]
+     *[ ETH-SAP ]
+     *[ AVP ]
+
+   VLAN-ID-Range ::= < AVP Header: 552 >
+      [ S-VID-Start ]
+      [ S-VID-End ]
+      [ C-VID-Start ]
+      [ C-VID-End ]
+     *[ AVP ]
+
+   User-Priority-Range ::= <AVP Header: 557>
+     *[ Low-User-Priority ]
+     *[ High-User-Priority ]
+     *[ AVP ]
+
+   Time-Of-Day-Condition ::= < AVP Header: 560 >
+      [ Time-Of-Day-Start ]
+      [ Time-Of-Day-End ]
+      [ Day-Of-Week-Mask ]
+      [ Day-Of-Month-Mask ]
+      [ Month-Of-Year-Mask ]
+      [ Absolute-Start-Time ]
+      [ Absolute-End-Time ]
+      [ Timezone-Flag ]
+     *[ AVP ]
+
+   QoS-Profile-Template ::= <AVP Header: 574>
+      { Vendor-Id }
+      { QoS-Profile-Id }
+     *[ AVP ]
+
+   QoS-Parameters  ::= <AVP Header: 576>
+     *[ AVP ]
+
+   Excess-Treatment ::= <AVP Header: 577>
+      { Treatment-Action }
+      [ QoS-Profile-Template ]
+      [ QoS-Parameters ]
+     *[ AVP ]
+
+   QoS-Capability ::= <AVP Header: 578>
+    1*{ QoS-Profile-Template }
+     *[ AVP ]
 
 @enum OC-Report-Type
    HOST_REPORT                      0
@@ -456,4 +684,126 @@
    WIRELESS_UMTS                   23
    WIRELESS_1X_EV                  24
    IAPP                            25
+
+@enum Negated
+   False                            0
+   True                             1
+
+@enum Use-Assigned-Address
+   False                            0
+   True                             1
+
+@enum Diffserv-Code-Point
+   CS0	                           0
+   CS1	                           8
+   CS2	                          16
+   CS3	                          24
+   CS4	                          32
+   CS5	                          40
+   CS6	                          48
+   CS7	                          56
+   AF11	                          10
+   AF12	                          12
+   AF13	                          14
+   AF21	                          18
+   AF22	                          20
+   AF23	                          22
+   AF31	                          26
+   AF32	                          28
+   AF33	                          30
+   AF41	                          34
+   AF42	                          36
+   AF43	                          38
+   EF	                             46
+   VOICE-ADMIT	                    44
+   LE	                              1
+
+@enum Fragmentation-Flag
+   DF                               0
+   MF                               1
+
+@enum IP-Option-Type
+   EOOL                             0
+   NOP                              1
+   SEC                            130
+   LSR                            131
+   TS                              68
+   E-SEC                          133
+   CIPSO                          134
+   RR                               7
+   SID                            136
+   SSR                            137
+   ZSU                             10
+   MTUP                            11
+   MTUR                            12
+   FINN                           205
+   VISA                           142
+   ENCODE                          15
+   IMITD                          144
+   EIP                            145
+   TR                              82
+   ADDEXT                         147
+   RTRALT                         148
+   SDB                            149
+   DPS                            151
+   UMP                            152
+   QS                              25
+
+@enum TCP-Option-Type
+   MSS                              1
+   SACK                             5
+   SNAP                            24
+   TCP-AO                          29
+   MPTCP                           30
+   TVP-ENO                         69
+
+@enum ICMP-Type-Number
+   ECHO_REPLY                       0
+   DESTINATION_UNREACHABLE          3
+   REDIRECT                         5
+   UNASSIGNED                       7
+   ECHO                             8
+   ROUTER_ADVERTISEMENT             9
+   ROUTER_SOLICITATION             10
+   TIME_EXCEEDED                   11
+   PARAMETER_PROBLEM               12
+   TIMESTAMP                       13
+   TIMESTAMP_REPLY                 14
+   PHOTURIS                        40
+
+@enum ICMP-Code
+   NETWORK_UNREACHABLE              0
+   HOST_UNREACHABLE                 1
+   PROTOCOL_UNREACHABLE             2
+   PORT_UNREACHABLE                 3
+   FRAGMENTATION_NEEDED             4
+   SOURCE_ROUTE_FAILED              5
+   NETWORK_UNKNOWN                  6
+   HOST_UNKNOWN                     7
+   SOURCE_HOST_ISOLATED             8
+   NETWORK_PROHIBITED               9
+   HOST_PROHIBITED                 10
+   NETWORK_UNREACHABLE_SERVICE     11
+   HOST_UNREACHABLE_SERVICE        12
+   PROHIBITED                      13
+   HOST_PRECEDENCE_VIOLATION       14
+   PRECEDENCE_CUTOFF               15
+   
+@enum Timezone-Flag
+   UTC                              0
+   LOCAL                            1
+   OFFSET                           2
+
+@enum Treatment-Action
+   DROP                             0
+   SHAPE                            1
+   MARK                             2
+   PERMIT                           3
+
+@enum QoS-Semantics
+   QOS_DESIRED                      0
+   QOS_AVAILABLE                    1
+   QOS_DELIVERED                    2
+   MINIMUM_QOS                      3
+   QOS_AUTHORIZED                   4
 

@@ -7,14 +7,6 @@
 @inherits diameter_gen_ietf
 @inherits diameter_gen_3gpp
 
-@custom_types ocs_diameter_codec
-
-	APN-Configuration
-	EPS-Subscribed-QoS-Profile
-	AMBR
-	Specific-APN-Info
-	WLAN-offloadability
-
 @messages
 
 	MAR ::= < Diameter Header: 303, REQ, PXY >
@@ -35,6 +27,7 @@
 		[ Terminal-Information ]
 		[AAA-Failure-Indication ]
 		[ OC-Supported-Features ]
+      [ Origin-State-Id ]
 		* [ Supported-Features ]
 		* [ Proxy-Info ]
 		* [ Route-Record ]
@@ -55,6 +48,7 @@
 		[ 3GPP-AAA-Server-Name ]
 		[ OC-Supported-Features ]
 		[ OC-OLR ]
+      [ Origin-State-Id ]
 		* [ Load ]
 		* [ Supported-Features ]
 		* [ Proxy-Info ]
@@ -81,6 +75,7 @@
 		* [ Supported-Features ]
 		[ Terminal-Information ]
 		[ Emergency-Services ]
+      [ Origin-State-Id ]
 		* [ Proxy-Info ]
 		* [ Route-Record ]
 		* [ AVP ]
@@ -100,6 +95,7 @@
 		[ Non-3GPP-User-Data ]
 		[ 3GPP-AAA-Server-Name ]
 		[ OC-OLR ]
+      [ Origin-State-Id ]
 		* [ Load ]
 		* [ Proxy-Info ]
 		* [ Route-Record ]
@@ -116,6 +112,7 @@
 		{ User-Name }
 		{ Deregistration-Reason }
 		[ DRMP ]
+      [ Origin-State-Id ]
 		* [ Supported-Features ]
 		* [ Proxy-Info ]
 		* [ Route-Record ]
@@ -130,6 +127,7 @@
 		[ Result-Code ]
 		[ Experimental-Result ]
 		[ DRMP ]
+      [ Origin-State-Id ]
 		* [ Supported-Features ]
 		* [ Proxy-Info ]
 		* [ Route-Record ]
