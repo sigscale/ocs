@@ -450,7 +450,7 @@ erlang:display({?MODULE, ?LINE, SessionId, Request}),
 	when
 		Arg :: ResultCode | RedirectHost,
 		ResultCode :: pos_integer(),
-		RedirectHost :: pos_integer(),
+		RedirectHost :: binary(),
 		StateData :: #statedata{},
 		Result :: #'3gpp_s6b_AAA'{}.
 %% @doc Create DIAMETER response.
