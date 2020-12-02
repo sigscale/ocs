@@ -190,88 +190,107 @@ handle_request(#diameter_packet{msg = Request, errors = Errors} = _Packet,
 %% 	to the authorization port server matching the service the
 %% 	request was received on.
 %% @private
-request(ServiceName, Capabilities, Request) ->
-	#diameter_caps{host_ip_address = {_, HostIpAddresses}} = Capabilities,
-	request(ServiceName, Capabilities, Request, HostIpAddresses).
+request(ServiceName,
+		#diameter_caps{host_ip_address = {_, ClientAddresses}} = Capabilities,
+		Request) ->
+	[Info] = diameter:service_info(ServiceName, transport),
+	{options, Options} = lists:keyfind(options, 1, Info),
+	{ServerAddress, ServerPort} = case lists:keyfind(transport_config,
+			1, Options) of
+		{transport_config, TcpOpts} ->
+			{ip, IP} = lists:keyfind(ip, 1, TcpOpts),
+			{port, Port} = lists:keyfind(port, 1, TcpOpts),
+			{IP, Port};
+		{transport_config, SctpOpts, _} ->
+			{ip, IP} = lists:keyfind(ip, 1, SctpOpts),
+			{port, Port} = lists:keyfind(port, 1, SctpOpts),
+			{IP, Port}
+	end,
+	request(ServiceName, Capabilities,
+			ServerAddress, ServerPort, Request, ClientAddresses).
 %% @hidden
-request(ServiceName, Capabilities, Request, [H | T]) ->
+request(ServiceName, Capabilities,
+		ServerAddress, ServerPort, Request, [H | T]) ->
 	case ocs:find_client(H) of
-		{ok, #client{protocol = diameter, port = Port,
-				password_required = PasswordReq, trusted = Trusted}} ->
-			process_request(ServiceName, Capabilities, Request,
-					H, Port, PasswordReq, Trusted);
+		{ok, #client{protocol = diameter, trusted = Trusted}} ->
+			process_request(ServiceName, Capabilities,
+					ServerAddress, ServerPort, H, Trusted, Request);
 		{error, not_found} ->
-			request(ServiceName, Capabilities, Request, T)
+			request(ServiceName, Capabilities,
+					ServerAddress, ServerPort, Request, T)
 	end;
-request(ServiceName, Capabilities, Request, []) ->
+request(ServiceName, Capabilities, _, _, Request, []) ->
 	errors(ServiceName, Capabilities, Request, [?'DIAMETER_BASE_RESULT-CODE_UNKNOWN_PEER']).
 
--spec process_request(ServiceName, Capabilities, Request,
-		Address, Port, PasswordReq, Trusted) -> Result when
+-spec process_request(ServiceName, Capabilities,
+		ServerAddress, ServerPort, ClientAddress, Trusted, Request) -> Result
+	when
 		ServiceName :: term(),
 		Capabilities :: capabilities(),
-		Request :: #'3gpp_sta_DER'{} | #'3gpp_sta_STR'{},
-		Address :: inet:ip_address(),
-		Port :: inet:port(),
-		PasswordReq :: boolean(),
+		ServerAddress :: inet:ip_address(),
+		ServerPort :: inet:ip_port(),
+		ClientAddress :: inet:ip_address(),
 		Trusted :: boolean(),
+		Request :: #'3gpp_sta_DER'{} | #'3gpp_sta_STR'{},
 		Result :: {reply, packet()} | discard.
 %% @doc Process a received DIAMETER Authorization packet.
 %% @private
-process_request(ServiceName, #diameter_caps{origin_host = {OHost, _DHost},
-		origin_realm = {ORealm, _DRealm}} = Capabilities,
-		#'3gpp_sta_DER'{'Session-Id' = SId,
-				'Auth-Application-Id' = ?STa_APPLICATION_ID} = Request,
-		Address, Port, PasswordReq, Trusted) ->
+process_request(ServiceName,
+		#diameter_caps{origin_realm = {ORealm, _},
+		origin_host = {OHost, _}} = Capabilities,
+		ServerAddress, ServerPort, ClientAddress, Trusted,
+		#'3gpp_sta_DER'{'Session-Id' = SessionId,
+				'Auth-Application-Id' = ?STa_APPLICATION_ID} = Request) ->
 	try
 		process_request1(ServiceName, Capabilities,
-				Request, Address, Port, PasswordReq, Trusted)
+				ServerAddress, ServerPort, ClientAddress,Trusted, Request)
 	catch
 		_:_Reason ->
-			{reply, #'3gpp_sta_DEA'{'Session-Id' = SId,
+			{reply, #'3gpp_sta_DEA'{'Session-Id' = SessionId,
 					'Result-Code' = ?'DIAMETER_BASE_RESULT-CODE_INVALID_AVP_BITS',
 					'Origin-Host' = OHost, 'Origin-Realm' = ORealm,
 					'Auth-Application-Id' = ?STa_APPLICATION_ID}}
 	end;
-process_request(ServiceName, #diameter_caps{origin_host = {OHost, _DHost},
-		origin_realm = {ORealm, _DRealm}} = Capabilities,
-		#'3gpp_sta_STR'{'Session-Id' = SId,
-				'Auth-Application-Id' = ?STa_APPLICATION_ID} = Request,
-		Address, Port, PasswordReq, Trusted) ->
+process_request(ServiceName,
+		#diameter_caps{origin_realm = {ORealm, _},
+		origin_host = {OHost, _}} = Capabilities,
+		ServerAddress, ServerPort, ClientAddress, _Trusted,
+		#'3gpp_sta_STR'{'Session-Id' = SessionId,
+				'Auth-Application-Id' = ?STa_APPLICATION_ID} = Request) ->
 	try
-		process_request1(ServiceName, Capabilities,
-				Request, Address, Port, PasswordReq, Trusted)
+		process_request2(ServiceName, Capabilities,
+				ServerAddress, ServerPort, ClientAddress, SessionId, Request)
 	catch
 		_:_Reason ->
-			{reply, #'3gpp_sta_STA'{'Session-Id' = SId,
+			{reply, #'3gpp_sta_STA'{'Session-Id' = SessionId,
 					'Result-Code' = ?'DIAMETER_BASE_RESULT-CODE_INVALID_AVP_BITS',
 					'Origin-Host' = OHost, 'Origin-Realm' = ORealm}}
 	end.
 %% @hidden
-process_request1(ServiceName, Capabilities,
-		Request, Address, Port, PasswordReq, Trusted) ->
-	[Info] = diameter:service_info(ServiceName, transport),
-	case lists:keyfind(options, 1, Info) of
-		{options, Options} ->
-			case lists:keyfind(transport_config, 1, Options) of
-				{transport_config, TC} ->
-					{ip, Sip} = lists:keyfind(ip, 1, TC),
-					{port, Sport} = lists:keyfind(port, 1, TC),
-					case global:whereis_name({ocs_diameter_auth, Sip, Sport}) of
-						undefined ->
-							discard;
-						PortServer ->
-							Answer = gen_server:call(PortServer,
-									{diameter_request, Capabilities,
-											Address, Port, PasswordReq, Trusted,
-											Request, none}),
-							{reply, Answer}
-					end;
-				false ->
-					discard
-			end;
-		false ->
-			discard
+process_request1(_ServiceName, Capabilities,
+		ServerAddress, ServerPort, _ClientAddress, Trusted, Request) ->
+	PortServer = global:whereis_name({ocs_diameter_auth,
+			ServerAddress, ServerPort}),
+	Answer = gen_server:call(PortServer,
+			{diameter_request, Capabilities, ServerAddress, ServerPort,
+			true, Trusted, Request, none}),
+	{reply, Answer}.
+%% @hidden
+process_request2(ServiceName,
+		#diameter_caps{origin_host = {OHost, DHost},
+		origin_realm = {ORealm, DRealm}},
+		ServerAddress, ServerPort, ClientAddress, SessionId, Request) ->
+	Sup = global:whereis_name({ocs_terminate_fsm_sup,
+			ServerAddress, ServerPort}),
+	ChildSpec = [[ServiceName, ServerAddress, ServerPort, ClientAddress,
+			undefined, SessionId, OHost, ORealm, DHost, DRealm], []],
+	case supervisor:start_child(Sup, ChildSpec) of
+		{ok, Fsm} ->
+			{reply, gen_fsm:sync_send_event(Fsm, Request)};
+		{error, Reason} ->
+			error_logger:error_report(["Error starting terminate session handler",
+					{error, Reason}, {supervisor, Sup}, {session_id, SessionId}]),
+			throw(Reason)
 	end.
 
 -spec errors(ServiceName, Capabilities, Request, Errors) -> Action

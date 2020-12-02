@@ -318,42 +318,6 @@ request(Caps, _Address, _Port, none, _PasswordReq, _Trusted, Request, _CbProc, S
 					'Result-Code' = ?'DIAMETER_BASE_RESULT-CODE_UNABLE_TO_COMPLY',
 					'Origin-Host' = OHost, 'Origin-Realm' = ORealm},
 			{reply, Answer, State}
-	end;
-request(Caps, ClientAddress, ClientPort, none, _PasswordReq, _Trusted,
-		#'3gpp_sta_STR'{'Session-Id' = SessionId} = Request, _CbProc,
-		#state{address = ServerAddress, port = ServerPort,
-		term_sup = Sup} = State) ->
-	#diameter_caps{origin_host = {OHost, DHost}, origin_realm = {ORealm, DRealm}} = Caps,
-	ChildSpec = [[ServerAddress, ServerPort, ClientAddress, ClientPort,
-		SessionId, OHost, ORealm, DHost, DRealm, Request], []],
-	case supervisor:start_child(Sup, ChildSpec) of
-		{ok, _Fsm} ->
-			{noreply, State};
-		{error, Reason} ->
-			error_logger:error_report(["Error starting STa session termination handler",
-					{error, Reason}, {supervisor, Sup}, {session_id, SessionId}]),
-			Answer = #'3gpp_sta_STA'{'Session-Id' = SessionId,
-					'Result-Code' = ?'DIAMETER_BASE_RESULT-CODE_UNABLE_TO_COMPLY',
-					'Origin-Host' = OHost, 'Origin-Realm' = ORealm},
-			{reply, Answer, State}
-	end;
-request(Caps, ClientAddress, ClientPort, none, _PasswordReq, _Trusted,
-		#'3gpp_swm_STR'{'Session-Id' = SessionId} = Request, _CbProc,
-		#state{address = ServerAddress, port = ServerPort,
-		term_sup = Sup} = State) ->
-	#diameter_caps{origin_host = {OHost, DHost}, origin_realm = {ORealm, DRealm}} = Caps,
-	ChildSpec = [[ServerAddress, ServerPort, ClientAddress, ClientPort,
-		SessionId, OHost, ORealm, DHost, DRealm, Request], []],
-	case supervisor:start_child(Sup, ChildSpec) of
-		{ok, _Fsm} ->
-			{noreply, State};
-		{error, Reason} ->
-			error_logger:error_report(["Error starting SWm session termination handler",
-					{error, Reason}, {supervisor, Sup}, {session_id, SessionId}]),
-			Answer = #'3gpp_swm_STA'{'Session-Id' = SessionId,
-					'Result-Code' = ?'DIAMETER_BASE_RESULT-CODE_UNABLE_TO_COMPLY',
-					'Origin-Host' = OHost, 'Origin-Realm' = ORealm},
-			{reply, Answer, State}
 	end.
 
 %% @hidden
