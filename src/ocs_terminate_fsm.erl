@@ -75,6 +75,13 @@
 		from :: {pid(), reference()} | undefined}).
 -type statedata() :: #statedata{}.
 
+%% 3GPP TS 23.003 19.3.2 Root NAI
+-define(PERM_AKA,  $0).
+%% 3GPP TS 23.003 19.3.4 Fast Re-auth
+-define(FAST_AKA,  $4).
+%% 3GPP TS 23.003 19.3.5 Pseudonym
+-define(TEMP_AKA,  $2).
+
 %%----------------------------------------------------------------------
 %%  The ocs_terminate_fsm API
 %%----------------------------------------------------------------------
@@ -143,9 +150,18 @@ idle(Request, From, #statedata{session_id = SessionId,
 		#'3gpp_swm_STR'{'User-Name' = [UserName]} ->
 			UserName
 	end,
-	[IMSI | _] = binary:split(Identity, <<$@>>, []),
-	NewStateData = StateData#statedata{from = From,
-			request = Request, imsi = IMSI, identity = Identity},
+	IMSI = case Identity of
+		<<?PERM_AKA, PermanentID/binary>> ->
+			[H | _] = binary:split(PermanentID, <<$@>>, []),
+			H;
+		<<?TEMP_AKA:6, _/bits>> ->
+			{ok, Keys} = application:get_env(aka_kpseu),
+			[Pseudonym | _] = binary:split(Identity, <<$@>>, []),
+			CompressedIMSI = ocs_eap_aka:decrypt_imsi(Pseudonym, Keys),
+			ocs_eap_aka:compressed_imsi(CompressedIMSI)
+%		<<?FAST_AKA:6, _/bits>> ->
+	end,
+	NewStateData = StateData#statedata{imsi = IMSI, identity = Identity},
 	F = fun() ->
 			case mnesia:read(session, SessionId, write) of
 				[#session{imsi = IMSI, hss_realm = undefined}] ->
@@ -161,7 +177,8 @@ idle(Request, From, #statedata{session_id = SessionId,
 			response(?'DIAMETER_BASE_RESULT-CODE_SUCCESS', NewStateData),
 			{stop, shutdown, NewStateData};
 		{atomic, {HssRealm, HssHost}} ->
-			NextStateData = StateData#statedata{hss_realm = HssRealm, hss_host = HssHost},
+			NextStateData = NewStateData#statedata{hss_realm = HssRealm,
+					hss_host = HssHost},
 			send_deregister(NextStateData),
 			{next_state, deregister, NextStateData, ?TIMEOUT};
 		{atomic, not_found} ->
@@ -398,18 +415,18 @@ response(ResultCode,
 		Reason :: term().
 %% @doc Send DIAMETER Server-Assignment-Request (SAR) deregistration. 
 %% @hidden
-send_deregister(#statedata{identity = Identity,
+send_deregister(#statedata{imsi = IMSI,
 		origin_host = OriginHost, origin_realm = OriginRealm,
 		hss_host = HssHost, hss_realm = HssRealm,
 		service = Service} = _StateData) ->
 	SessionId = diameter:session_id([OriginHost]),
 	Request = #'3gpp_swx_SAR'{'Session-Id' = SessionId,
-			'User-Name' = [Identity],
+			'User-Name' = [IMSI],
 			'Origin-Realm' = OriginRealm, 'Origin-Host' = OriginHost,
-			'Destination-Realm' = HssRealm, 'Destination-Host' = HssHost,
+			'Destination-Realm' = HssRealm, 'Destination-Host' = [HssHost],
 			'Vendor-Specific-Application-Id' = #'3gpp_swx_Vendor-Specific-Application-Id'{
 					'Vendor-Id' = ?IANA_PEN_3GPP,
-			'Auth-Application-Id' = [?SWx_APPLICATION_ID]},
+					'Auth-Application-Id' = [?SWx_APPLICATION_ID]},
 			'Auth-Session-State' = ?'DIAMETER_BASE_AUTH-SESSION-STATE_NO_STATE_MAINTAINED',
 			'Server-Assignment-Type' = ?'3GPP_SWX_SERVER-ASSIGNMENT-TYPE_USER_DEREGISTRATION'},
 	diameter:call(Service, ?SWx_APPLICATION,
