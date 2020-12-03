@@ -45,6 +45,7 @@
 -include_lib("diameter/include/diameter_gen_base_rfc6733.hrl").
 
 -define(IANA_PEN_3GPP, 10415).
+-define(S6b_APPLICATION_ID, 16777272).
 -define(SWx_APPLICATION_ID, 16777265).
 -define(SWx_APPLICATION, ocs_diameter_3gpp_swx_application).
 -define(TIMEOUT, 10000).
@@ -461,7 +462,8 @@ erlang:display({?MODULE, ?LINE, SessionId, Request}),
 %% @doc Create DIAMETER response.
 %% @hidden
 response(ResultCode = _Arg,
-		#statedata{request = #'3gpp_s6b_AAR'{} = Request,
+		#statedata{request = #'3gpp_s6b_AAR'{
+				'Auth-Request-Type' = AuthRequestType} = Request,
 		session_id = SessionId,
 		server_address = ServerAddress, server_port = ServerPort,
 		client_address = ClientAddress, client_port = ClientPort,
@@ -473,11 +475,14 @@ response(ResultCode = _Arg,
 			'Result-Code' = ResultCode,
 			'Origin-Host' = OriginHost,
 			'Origin-Realm' = OriginRealm},
+			'Auth-Application-Id' = ?S6b_APPLICATION_ID,
+			'Auth-Request-Type' = AuthRequestType`},
 erlang:display({?MODULE, ?LINE, SessionId, Answer}),
 	ok = ocs_log:auth_log(diameter, Server, Client, Request, Answer),
 	Answer;
 response(RedirectHost,
-		#statedata{request = #'3gpp_s6b_AAR'{} = Request,
+		#statedata{request = #'3gpp_s6b_AAR'{
+				'Auth-Request-Type' = AuthRequestType} = Request,
 		session_id = SessionId,
 		server_address = ServerAddress, server_port = ServerPort,
 		client_address = ClientAddress, client_port = ClientPort,
@@ -490,6 +495,8 @@ response(RedirectHost,
 			'Redirect-Host' = RedirectHost,
 			'Origin-Host' = OriginHost,
 			'Origin-Realm' = OriginRealm},
+			'Auth-Application-Id' = ?S6b_APPLICATION_ID,
+			'Auth-Request-Type' = AuthRequestType`},
 erlang:display({?MODULE, ?LINE, SessionId, Answer}),
 	ok = ocs_log:auth_log(diameter, Server, Client, Request, Answer),
 	Answer.

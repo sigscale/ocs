@@ -407,6 +407,10 @@ send_deregister(#statedata{identity = Identity,
 			'User-Name' = [Identity],
 			'Origin-Realm' = OriginRealm, 'Origin-Host' = OriginHost,
 			'Destination-Realm' = HssRealm, 'Destination-Host' = HssHost,
+			'Vendor-Specific-Application-Id' = #'3gpp_swx_Vendor-Specific-Application-Id'{
+					'Vendor-Id' = ?IANA_PEN_3GPP,
+			'Auth-Application-Id' = [?SWx_APPLICATION_ID]},
+			'Auth-Session-State' = ?'DIAMETER_BASE_AUTH-SESSION-STATE_NO_STATE_MAINTAINED',
 			'Server-Assignment-Type' = ?'3GPP_SWX_SERVER-ASSIGNMENT-TYPE_USER_DEREGISTRATION'},
 	diameter:call(Service, ?SWx_APPLICATION,
 			Request, [detach, {extra, [self()]}]).
