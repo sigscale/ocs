@@ -49,6 +49,7 @@
 
 -record(statedata,
 		{identity :: binary() | undefined,
+		imsi :: binary() | undefined,
 		origin_host :: binary(),
 		origin_realm :: binary(),
 		server_address :: inet:ip_address(),
@@ -141,24 +142,27 @@ init([ServiceName, ServerAddress, ServerPort, ClientAddress,
 idle(#'3gpp_swx_RTR'{'User-Name' = [Identity]} = Request,
 		From, #statedata{session_id = SessionId, hss_host = HssHost,
 		hss_realm = HssRealm} = StateData) ->
+	[IMSI | _] = binary:split(Identity, <<$@>>, []),
 	F = fun() ->
-			mnesia:index_read(session, Identity, #session.imsi)
+			mnesia:index_read(session, IMSI, #session.imsi)
 	end,
 	case mnesia:transaction(F) of
-		{atomic, [#session{id = AccessSessionId, imsi = Identity,
+		{atomic, [#session{id = AccessSessionId,
 				application = undefined, nas_address = NasAddress}]} ->
 			NewStateData = StateData#statedata{request = Request,
-					session_index = AccessSessionId, identity = Identity,
+					session_index = AccessSessionId,
+					imsi = IMSI, identity = Identity,
 					nas_address = NasAddress, from = From},
 			start_radius_disconnect(NewStateData),
 			ResultCode = ?'DIAMETER_BASE_RESULT-CODE_SUCCESS',
 			Reply = response(ResultCode, NewStateData),
 			{stop, shutdown,  Reply, NewStateData};
-		{atomic, [#session{id = AccessSessionId, imsi = Identity,
+		{atomic, [#session{id = AccessSessionId,
 				application = Application, nas_address = undefined,
 				nas_host = NasHost, nas_realm = NasRealm}]} ->
 			NewStateData = StateData#statedata{request = Request,
-					session_index = AccessSessionId, identity = Identity,
+					session_index = AccessSessionId,
+					imsi = IMSI, identity = Identity,
 					application = Application, nas_host = NasHost,
 					nas_realm = NasRealm, from = From},
 			send_abort(NewStateData),
@@ -170,7 +174,7 @@ idle(#'3gpp_swx_RTR'{'User-Name' = [Identity]} = Request,
 		{aborted, Reason} ->
 			error_logger:error_report(["Failed user lookup",
 					{hss_host, HssHost}, {hss_realm, HssRealm},
-					{imsi, Identity}, {session, SessionId},
+					{imsi, IMSI}, {session, SessionId},
 					{error, Reason}]),
 			ResultCode = ?'DIAMETER_BASE_RESULT-CODE_UNABLE_TO_COMPLY',
 			Reply = response(ResultCode, StateData),
@@ -383,11 +387,11 @@ send_abort(#statedata{application = ?SWm_APPLICATION_ID,
 %% @doc Start a RADIUS disconnect.
 %% @hidden
 start_radius_disconnect(#statedata{session_index = SessionId,
-		identity = Identity, nas_address = Address} = _StateData) ->
+		identity = Identity, imsi = IMSI, nas_address = Address} = _StateData) ->
 	case pg2:get_closest_pid(ocs_radius_acct_port_sup) of
 		{error, Reason} ->
 			error_logger:error_report(["Failed to initiate session disconnect",
-					{module, ?MODULE}, {imsi, Identity}, {address, Address},
+					{module, ?MODULE}, {imsi, IMSI}, {address, Address},
 					{session, SessionId}, {error, Reason}]);
 		DiscSup ->
 			DiscArgs = [Identity, SessionId],

@@ -57,6 +57,7 @@
 
 -record(statedata,
 		{identity :: binary() | undefined,
+		imsi :: binary() | undefined,
 		origin_host :: binary(),
 		origin_realm :: binary(),
 		server_address :: inet:ip_address(),
@@ -142,13 +143,14 @@ idle(Request, From, #statedata{session_id = SessionId,
 		#'3gpp_swm_STR'{'User-Name' = [UserName]} ->
 			UserName
 	end,
+	[IMSI | _] = binary:split(Identity, <<$@>>, []),
 	NewStateData = StateData#statedata{from = From,
-			request = Request, identity = Identity},
+			request = Request, imsi = IMSI, identity = Identity},
 	F = fun() ->
 			case mnesia:read(session, SessionId, write) of
-				[#session{imsi = Identity, hss_realm = undefined}] ->
+				[#session{imsi = IMSI, hss_realm = undefined}] ->
 					mnesia:delete(session, SessionId, write);
-				[#session{imsi = Identity, hss_realm = HR, hss_host = HH}] ->
+				[#session{imsi = IMSI, hss_realm = HR, hss_host = HH}] ->
 					{HR, HH};
 				[] ->
 					not_found
@@ -169,8 +171,7 @@ idle(Request, From, #statedata{session_id = SessionId,
 		{aborted, Reason} ->
 			error_logger:error_report(["Failed user lookup",
 					{nas_host, NasHost}, {nas_realm, NasRealm},
-					{imsi, Identity}, {session, SessionId},
-					{error, Reason}]),
+					{imsi, IMSI}, {session, SessionId}, {error, Reason}]),
 			ResultCode = ?'DIAMETER_BASE_RESULT-CODE_UNABLE_TO_COMPLY',
 			Reply = response(ResultCode, StateData),
 			{stop, Reason, Reply, StateData}

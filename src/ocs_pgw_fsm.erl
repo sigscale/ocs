@@ -51,6 +51,7 @@
 
 -record(statedata,
 		{identity :: binary() | undefined,
+		imsi :: binary() | undefined,
 		user_profile :: #'3gpp_swx_Non-3GPP-User-Data'{} | undefined,
 		orig_host :: diameter:'OctetString'(),
 		orig_realm :: diameter:'OctetString'(),
@@ -145,10 +146,11 @@ idle(#'3gpp_s6b_AAR'{'User-Name' = [Identity], 'Session-Id' = SessionId,
 		'Auth-Request-Type' = ?'3GPP_SWX_AUTH-REQUEST-TYPE_AUTHORIZE_ONLY',
 		'MIP6-Agent-Info' = PGW, 'Visited-Network-Identifier' = VPLMN,
 		'Service-Selection' = [APN]} = Request, From, StateData) ->
+	[IMSI | _] = binary:split(Identity, <<$@>>, []),
 	NewStateData = StateData#statedata{from = From, request = Request,
-			identity = Identity, pgw_id = PGW, pgw_plmn = VPLMN},
+			identity = Identity, imsi = IMSI, pgw_id = PGW, pgw_plmn = VPLMN},
 	F = fun() ->
-			mnesia:index_read(session, Identity, #session.imsi)
+			mnesia:index_read(session, IMSI, #session.imsi)
 	end,
 	case mnesia:transaction(F) of
 		{atomic, [#session{user_profile = UserProfile,
@@ -173,7 +175,7 @@ erlang:display({?MODULE, ?LINE, SessionId, []}),
 		{aborted, Reason} ->
 			error_logger:error_report(["Failed user lookup",
 					{pgw_host, Host}, {pgw_realm, Realm},
-					{imsi, Identity}, {session, SessionId},
+					{imsi, IMSI}, {session, SessionId},
 					{error, Reason}]),
 			ResultCode = ?'DIAMETER_BASE_RESULT-CODE_UNABLE_TO_COMPLY',
 			Reply = response(ResultCode, NewStateData),
@@ -206,10 +208,10 @@ register({ok, #'3gpp_swx_SAA'{'Result-Code'
 register({ok, #'3gpp_swx_SAA'{'Result-Code' = [ResultCode1],
 		'Origin-Host' = Host, 'Origin-Realm' = Realm} = _Answer},
 		#statedata{from = Caller, session_id = SessionId,
-		identity = Identity} = StateData) ->
+		imsi = IMSI} = StateData) ->
 	error_logger:error_report(["Unexpected registration result",
 			{hss_host, Host}, {hss_realm, Realm},
-			{imsi, Identity}, {session, SessionId},
+			{imsi, IMSI}, {session, SessionId},
 			{result, ResultCode1}]),
 	ResultCode2 = ?'DIAMETER_BASE_RESULT-CODE_UNABLE_TO_COMPLY',
 	gen_fsm:reply(Caller, response(ResultCode2, StateData)),
@@ -218,10 +220,10 @@ register({ok, #'3gpp_swx_SAA'{'Experimental-Result'
 		= [#'3gpp_Experimental-Result'{'Experimental-Result-Code' = ResultCode1}],
 		'Origin-Host' = Host, 'Origin-Realm' = Realm} = _Answer},
 		#statedata{from = Caller, session_id = SessionId,
-		identity = Identity} = StateData) ->
+		imsi = IMSI} = StateData) ->
 	error_logger:error_report(["Unexpected registration result",
 			{hss_host, Host}, {hss_realm, Realm},
-			{imsi, Identity}, {session, SessionId},
+			{imsi, IMSI}, {session, SessionId},
 			{result, ResultCode1}]),
 	ResultCode1 = ?'DIAMETER_BASE_RESULT-CODE_UNABLE_TO_COMPLY',
 	gen_fsm:reply(Caller, response(ResultCode1, StateData)),
@@ -259,10 +261,10 @@ profile({ok, #'3gpp_swx_SAA'{'Experimental-Result' = [#'3gpp_Experimental-Result
 		'Experimental-Result-Code' = ?'DIAMETER_ERROR_USER_UNKNOWN'}],
 		'Origin-Host' = Host, 'Origin-Realm' = Realm} = _Answer},
 		#statedata{from = Caller, session_id = SessionId,
-		identity = Identity} = StateData) ->
+		imsi = IMSI} = StateData) ->
 	error_logger:warning_report(["Unkown user",
 			{hss_host, Host}, {hss_realm, Realm},
-			{imsi, Identity}, {session, SessionId},
+			{imsi, IMSI}, {session, SessionId},
 			{result, ?'DIAMETER_ERROR_USER_UNKNOWN'}]),
 	ResultCode = ?'DIAMETER_ERROR_USER_UNKNOWN',
 	gen_fsm:reply(Caller, response(ResultCode, StateData)),
@@ -270,10 +272,10 @@ profile({ok, #'3gpp_swx_SAA'{'Experimental-Result' = [#'3gpp_Experimental-Result
 profile({ok, #'3gpp_swx_SAA'{'Result-Code' = [ResultCode1],
 		'Origin-Host' = Host, 'Origin-Realm' = Realm} = _Answer},
 		#statedata{from = Caller, session_id = SessionId,
-		identity = Identity} = StateData) ->
+		imsi = IMSI} = StateData) ->
 	error_logger:error_report(["Unexpected get user profile result",
 			{hss_host, Host}, {hss_realm, Realm},
-			{imsi, Identity}, {session, SessionId},
+			{imsi, IMSI}, {session, SessionId},
 			{result, ResultCode1}]),
 	ResultCode2 = ?'DIAMETER_BASE_RESULT-CODE_UNABLE_TO_COMPLY',
 	gen_fsm:reply(Caller, response(ResultCode2, StateData)),
@@ -282,10 +284,10 @@ profile({ok, #'3gpp_swx_SAA'{'Experimental-Result'
 		= [#'3gpp_Experimental-Result'{'Experimental-Result-Code' = ResultCode1}],
 		'Origin-Host' = Host, 'Origin-Realm' = Realm} = _Answer},
 		#statedata{from = Caller, session_id = SessionId,
-		identity = Identity} = StateData) ->
+		imsi = IMSI} = StateData) ->
 	error_logger:error_report(["Unexpected get user profile result",
 			{hss_host, Host}, {hss_realm, Realm},
-			{imsi, Identity}, {session, SessionId},
+			{imsi, IMSI}, {session, SessionId},
 			{result, ResultCode1}]),
 	ResultCode2 = ?'DIAMETER_BASE_RESULT-CODE_UNABLE_TO_COMPLY',
 	gen_fsm:reply(Caller, response(ResultCode2, StateData)),
@@ -404,13 +406,13 @@ code_change(_OldVsn, StateName, StateData, _Extra) ->
 %% @doc Send DIAMETER Server-Assignment-Request (SAR)
 %% 	registration request. 
 %% @hidden
-send_register(#statedata{identity = Identity,
+send_register(#statedata{imsi = IMSI,
 		orig_host = OriginHost, orig_realm = OriginRealm,
 		hss_host = HssHost, hss_realm = HssRealm, service = Service,
 		pgw_id = PGW, pgw_plmn = VPLMN} = _StateData) ->
 	SessionId = diameter:session_id([OriginHost]),
 	Request = #'3gpp_swx_SAR'{'Session-Id' = SessionId,
-			'User-Name' = [Identity],
+			'User-Name' = [IMSI],
 			'Origin-Realm' = OriginRealm, 'Origin-Host' = OriginHost,
 			'Destination-Realm' = HssRealm, 'Destination-Host' = HssHost,
 			'Vendor-Specific-Application-Id' = #'3gpp_swx_Vendor-Specific-Application-Id'{
@@ -431,13 +433,13 @@ erlang:display({?MODULE, ?LINE, SessionId, Request}),
 %% @doc Send DIAMETER Server-Assignment-Request (SAR)
 %% 	subscriber user profile request. 
 %% @hidden
-send_profile(#statedata{identity = Identity,
+send_profile(#statedata{imsi = IMSI,
 		orig_host = OriginHost, orig_realm = OriginRealm,
 		hss_realm = HssRealm, hss_host = HssHost,
 		service = Service} = _StateData) ->
 	SessionId = diameter:session_id([OriginHost]),
 	Request = #'3gpp_swx_SAR'{'Session-Id' = SessionId,
-			'User-Name' = [Identity],
+			'User-Name' = [IMSI],
 			'Origin-Realm' = OriginRealm, 'Origin-Host' = OriginHost,
 			'Destination-Realm' = HssRealm, 'Destination-Host' = HssHost,
 			'Vendor-Specific-Application-Id' = #'3gpp_swx_Vendor-Specific-Application-Id'{
