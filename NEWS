@@ -1,3 +1,10 @@
+December 3, 2020
+----------------
+	- 3GPP AAA improvements
+		- session table indexing and serving hss
+		- DIAMETER dispatcher
+		- session termination
+
 November 30, 2020
 ----------------
 	- 3GPP S6b interface to PDN Gateway

@@ -1,3 +1,15 @@
+2020-12-03  Vance Shipley <vances@sigscale.org>
+
+	* aaa: store serving hss in session table
+	* aaa: session table secondary index imsi should not be nai
+	* aaa: correct experimental result code
+	* aaa: start terminate handler fsm from diameter sta/swm callback
+	* aaa: start deregister handler fsm from diameter swx callback
+	* aaa: start pgw handler fsm from diameter s6b callback
+	* aaa: throw errors instead of silent discard
+	* aaa: register pgw, terminate and deregister supervisors
+	* gui: fix charging key label
+
 2020-12-02  Vance Shipley <vances@sigscale.org>
 
 	*  include optional origin-state-id in all diameter command/response
