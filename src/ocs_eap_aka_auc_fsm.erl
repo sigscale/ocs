@@ -408,7 +408,7 @@ register({ok, #'3gpp_swx_SAA'{'Result-Code' = [?'DIAMETER_BASE_RESULT-CODE_SUCCE
 		'Non-3GPP-User-Data' = [#'3gpp_swx_Non-3GPP-User-Data'{} = UserProfile]}},
 		#statedata{aka_fsm = AkaFsm} = StateData) ->
 	NewStateData  = StateData#statedata{hss_realm = HssRealm, hss_host = HssHost},
-	gen_fsm:send_event(AkaFsm, {ok, UserProfile}),
+	gen_fsm:send_event(AkaFsm, {ok, UserProfile, HssRealm, HssHost}),
 	{next_state, idle, NewStateData};
 register({ok, #'3gpp_swx_SAA'{'Result-Code' = [ResultCode]}},
 		#statedata{aka_fsm = AkaFsm} = StateData) ->

@@ -904,13 +904,15 @@ challenge1(EapMessage1, Request, RAT,
 %% @private
 register(timeout, #statedata{session_id = SessionId} = StateData)->
 	{stop, {shutdown, SessionId}, StateData};
-register({ok, #'3gpp_swx_Non-3GPP-User-Data'{} = UserProfile},
-		#statedata{session_id = SessionId, request = #radius{id = RadiusID,
+register({ok, #'3gpp_swx_Non-3GPP-User-Data'{} = UserProfile,
+		HssRealm, HssHost}, #statedata{session_id = SessionId,
+		request = #radius{id = RadiusID,
 		authenticator = RequestAuthenticator, attributes = RequestAttributes},
 		client_address = ClientAddress, imsi = IMSI,
 		response = {EapMessage, Attributes}} = StateData) ->
 	LM = {erlang:system_time(?MILLISECOND), erlang:unique_integer([positive])},
 	Session = #session{id = SessionId, imsi = IMSI,
+		hss_realm = HssRealm, hss_host = HssHost,
 		nas_address = ClientAddress, user_profile = UserProfile,
 		last_modified = LM},
 	F = fun() -> mnesia:write(session, Session, write) end,
@@ -923,8 +925,8 @@ register({ok, #'3gpp_swx_Non-3GPP-User-Data'{} = UserProfile},
 		{aborted, Reason} ->
 			{stop, Reason, StateData}
 	end;
-register({ok, #'3gpp_swx_Non-3GPP-User-Data'{} = UserProfile},
-		#statedata{session_id = SessionId,
+register({ok, #'3gpp_swx_Non-3GPP-User-Data'{} = UserProfile,
+		HssRealm, HssHost}, #statedata{session_id = SessionId,
 		auth_req_type = AuthReqType, diameter_port_server = PortServer,
 		nas_host = NasHost, nas_realm = NasRealm, request = Request,
 		response = {EapMessage, []}, imsi = IMSI} = StateData) ->
@@ -936,7 +938,8 @@ register({ok, #'3gpp_swx_Non-3GPP-User-Data'{} = UserProfile},
 	end,
 	LM = {erlang:system_time(?MILLISECOND), erlang:unique_integer([positive])},
 	Session = #session{id = SessionId, imsi = IMSI,
-		application = Application, nas_host = NasHost, nas_realm = NasRealm,
+		hss_realm = HssRealm, hss_host = HssHost, application = Application,
+		nas_host = NasHost, nas_realm = NasRealm,
 		user_profile = UserProfile, last_modified = LM},
 	F = fun() -> mnesia:write(session, Session, write) end,
 	case mnesia:transaction(F) of
