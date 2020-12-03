@@ -89,6 +89,7 @@
 		keys :: [{pos_integer(), binary()}],
 		id_req :: any | full | permanent | undefined,
 		identity = [] :: binary() | [],
+		imsi :: binary() | undefined,
 		res :: binary() | undefined,
 		ck :: binary() | undefined,
 		ik :: binary() | undefined,
@@ -213,9 +214,9 @@ eap_start(timeout, #statedata{sup = Sup, eap_id = EapID,
 							identifier = StartEapID,
 							data = <<?PERM_AKAp, PermanentID/binary>> = Identity}
 							when Trusted == true ->
-						NextStateData = NewStateData#statedata{eap_id = StartEapID,
-								identity = Identity},
 						[IMSI | _] = binary:split(PermanentID, <<$@>>, []),
+						NextStateData = NewStateData#statedata{eap_id = StartEapID,
+								imsi = IMSI, identity = Identity},
 						% @todo handle RADIUS attribute for ANID
 						gen_fsm:send_event(AucFsm, {vector, {self(), IMSI, undefined,
 								get_radius_rat(RequestAttributes), "WLAN"}}),
@@ -224,11 +225,11 @@ eap_start(timeout, #statedata{sup = Sup, eap_id = EapID,
 							identifier = StartEapID,
 							data = <<?TEMP_AKAp:6, _/bits>> = Identity}
 							when Trusted == true ->
-						NextStateData = NewStateData#statedata{eap_id = StartEapID,
-								identity = Identity},
 						[Pseudonym | _] = binary:split(Identity, <<$@>>, []),
 						CompressedIMSI = ocs_eap_aka:decrypt_imsi(Pseudonym, Keys),
 						IMSI = ocs_eap_aka:compressed_imsi(CompressedIMSI),
+						NextStateData = NewStateData#statedata{eap_id = StartEapID,
+								imsi = IMSI, identity = Identity},
 						% @todo handle RADIUS attribute for ANID
 						gen_fsm:send_event(AucFsm, {vector, {self(), IMSI, undefined,
 								get_radius_rat(RequestAttributes), "WLAN"}}),
@@ -361,9 +362,9 @@ eap_start1(EapMessage, RAT, #statedata{sup = Sup, eap_id = EapID,
 					identifier = StartEapID,
 					data = <<?PERM_AKAp, PermanentID/binary>> = Identity}
 					when Trusted == true ->
-				NextStateData = NewStateData#statedata{eap_id = StartEapID,
-						identity = Identity},
 				[IMSI | _] = binary:split(PermanentID, <<$@>>, []),
+				NextStateData = NewStateData#statedata{eap_id = StartEapID,
+						imsi = IMSI, identity = Identity},
 				% @todo handle DIAMETER ANID AVP
 				gen_fsm:send_event(AucFsm, {vector, {self(),
 						IMSI, undefined, RAT, "WLAN"}}),
@@ -372,11 +373,11 @@ eap_start1(EapMessage, RAT, #statedata{sup = Sup, eap_id = EapID,
 					identifier = StartEapID,
 					data = <<?TEMP_AKAp:6, _/bits>> = Identity}
 					when Trusted == true ->
-				NextStateData = NewStateData#statedata{eap_id = StartEapID,
-						identity = Identity},
 				[Pseudonym | _] = binary:split(Identity, <<$@>>, []),
 				CompressedIMSI = ocs_eap_aka:decrypt_imsi(Pseudonym, Keys),
 				IMSI = ocs_eap_aka:compressed_imsi(CompressedIMSI),
+				NextStateData = NewStateData#statedata{eap_id = StartEapID,
+						imsi = IMSI, identity = Identity},
 				% @todo handle DIAMETER ANID AVP
 				gen_fsm:send_event(AucFsm, {vector, {self(),
 						IMSI, undefined, RAT, "WLAN"}}),
@@ -479,7 +480,8 @@ identity({#radius{id = RadiusID, authenticator = RequestAuthenticator,
 						% @todo handle RADIUS attribute for ANID
 						gen_fsm:send_event(AucFsm, {vector, {self(), IMSI,
 								undefined, get_radius_rat(RequestAttributes), "WLAN"}}),
-						NextStateData = NewStateData#statedata{identity = Identity},
+						NextStateData = NewStateData#statedata{imsi = IMSI,
+								identity = Identity},
 						{next_state, vector, NextStateData, ?TIMEOUT};
 					#eap_aka_identity{identity = <<?TEMP_AKAp:6, _/bits>> = Identity}
 							when IdReq == full ->
@@ -489,7 +491,8 @@ identity({#radius{id = RadiusID, authenticator = RequestAuthenticator,
 						% @todo handle RADIUS attribute for ANID
 						gen_fsm:send_event(AucFsm, {vector, {self(), IMSI,
 								undefined, get_radius_rat(RequestAttributes), "WLAN"}}),
-						NextStateData = NewStateData#statedata{identity = Identity},
+						NextStateData = NewStateData#statedata{identity = Identity,
+								imsi = IMSI},
 						{next_state, vector, NextStateData, ?TIMEOUT}
 				end;
 			#eap_packet{code = response, type = ?LegacyNak, identifier = EapID} ->
@@ -537,7 +540,8 @@ identity1(EapMessage, RAT,
 						% @todo handle DIAMETER ANID AVP
 						gen_fsm:send_event(AucFsm, {vector, {self(), IMSI,
 								undefined, RAT, "WLAN"}}),
-						NewStateData = StateData#statedata{identity = Identity},
+						NewStateData = StateData#statedata{identity = Identity,
+								imsi = IMSI},
 						{next_state, vector, NewStateData, ?TIMEOUT};
 					#eap_aka_identity{identity = <<?TEMP_AKAp:6, _/bits>> = Identity}
 							when IdReq == full ->
@@ -547,7 +551,8 @@ identity1(EapMessage, RAT,
 						% @todo handle DIAMETER ANID AVP
 						gen_fsm:send_event(AucFsm, {vector, {self(), IMSI,
 								undefined, RAT, "WLAN"}}),
-						NewStateData = StateData#statedata{identity = Identity},
+						NewStateData = StateData#statedata{identity = Identity,
+								imsi = IMSI},
 						{next_state, vector, NewStateData, ?TIMEOUT}
 				end;
 			#eap_packet{code = response, type = ?LegacyNak, identifier = EapID} ->
@@ -700,8 +705,8 @@ challenge({#radius{id = RadiusID, authenticator = RequestAuthenticator,
 		attributes = RequestAttributes} = Request, RadiusFsm},
 		#statedata{eap_id = EapID, session_id = SessionId,
 		secret = Secret, auc_fsm = AucFsm,
-		identity = <<?PERM_AKAp, PermanentID/binary>> = Identity,
-		msk = MSK, res = RES, kaut = Kaut} = StateData) ->
+		identity = <<?PERM_AKAp, _PermanentID/binary>> = Identity,
+		imsi = IMSI, msk = MSK, res = RES, kaut = Kaut} = StateData) ->
 	NewStateData = StateData#statedata{request = Request,
 			radius_fsm = RadiusFsm},
 	try
@@ -731,7 +736,6 @@ challenge({#radius{id = RadiusID, authenticator = RequestAuthenticator,
 						EapMessage3 = ocs_eap_codec:eap_packet(EapPacket1),
 						Response = {EapMessage3, Attr3},
 						NextStateData = NewStateData#statedata{response = Response},
-						[IMSI | _] = binary:split(PermanentID, <<$@>>, []),
 						gen_fsm:send_event(AucFsm, {register, {self(), IMSI}}),
 						{next_state, register, NextStateData, ?TIMEOUT};
 					_MAC ->
@@ -759,7 +763,6 @@ challenge({#radius{id = RadiusID, authenticator = RequestAuthenticator,
 						RequestAttributes, undefined, NextStateData),
 				{next_state, failure, NextStateData, ?TIMEOUT};
 			#eap_aka_synchronization_failure{auts = AUTS, kdf = [1]} = _EAP ->
-				[IMSI | _] = binary:split(PermanentID, <<$@>>, []),
 				gen_fsm:send_event(AucFsm, {vector, {self(), IMSI, AUTS,
 						get_radius_rat(RequestAttributes), "WLAN"}}),
 				{next_state, vector, NewStateData, ?TIMEOUT};
@@ -815,8 +818,8 @@ challenge1(EapMessage1, Request, RAT,
 		#statedata{eap_id = EapID, session_id = SessionId,
 		auth_req_type = AuthReqType, origin_host = OHost,
 		origin_realm = ORealm, diameter_port_server = PortServer,
-		identity = <<?PERM_AKAp, PermanentID/binary>> = _Identity,
-		auc_fsm = AucFsm, res = RES, kaut = Kaut} = StateData) ->
+		identity = <<?PERM_AKAp, _PermanentID/binary>> = _Identity,
+		imsi = IMSI, auc_fsm = AucFsm, res = RES, kaut = Kaut} = StateData) ->
 	NewStateData = StateData#statedata{request = Request},
 	try
 		#eap_packet{code = response, type = ?AKAprime, identifier = EapID,
@@ -831,7 +834,6 @@ challenge1(EapMessage1, Request, RAT,
 						EapMessage3 = ocs_eap_codec:eap_packet(EapPacket1),
 						Response = {EapMessage3, []},
 						NextStateData = NewStateData#statedata{response = Response},
-						[IMSI | _] = binary:split(PermanentID, <<$@>>, []),
 						gen_fsm:send_event(AucFsm, {register, {self(), IMSI}}),
 						{next_state, register, NextStateData};
 					_MAC ->
@@ -859,7 +861,6 @@ challenge1(EapMessage1, Request, RAT,
 						EapMessage3, PortServer, Request, undefined, NextStateData),
 				{next_state, failure, NextStateData, ?TIMEOUT};
 			#eap_aka_synchronization_failure{auts = AUTS, kdf = [1]} = _EAP ->
-				[IMSI | _] = binary:split(PermanentID, <<$@>>, []),
 				gen_fsm:send_event(AucFsm, {vector, {self(), IMSI, AUTS, RAT, "WLAN"}}),
 				{next_state, vector, NewStateData, ?TIMEOUT};
 			#eap_aka_authentication_reject{} = _EAP ->
@@ -920,13 +921,15 @@ challenge1(EapMessage1, Request, RAT,
 %% @private
 register(timeout, #statedata{session_id = SessionId} = StateData)->
 	{stop, {shutdown, SessionId}, StateData};
-register({ok, #'3gpp_swx_Non-3GPP-User-Data'{} = UserProfile},
-		#statedata{session_id = SessionId, request = #radius{id = RadiusID,
+register({ok, #'3gpp_swx_Non-3GPP-User-Data'{} = UserProfile,
+		HssRealm, HssHost}, #statedata{session_id = SessionId,
+		request = #radius{id = RadiusID,
 		authenticator = RequestAuthenticator, attributes = RequestAttributes},
-		client_address = ClientAddress, identity = Identity,
+		client_address = ClientAddress, imsi = IMSI,
 		response = {EapMessage, Attributes}} = StateData) ->
 	LM = {erlang:system_time(?MILLISECOND), erlang:unique_integer([positive])},
-	Session = #session{id = SessionId, imsi = Identity,
+	Session = #session{id = SessionId, imsi = IMSI,
+		hss_realm = HssRealm, hss_host = HssHost,
 		nas_address = ClientAddress, user_profile = UserProfile,
 		last_modified = LM},
 	F = fun() -> mnesia:write(session, Session, write) end,
@@ -939,11 +942,11 @@ register({ok, #'3gpp_swx_Non-3GPP-User-Data'{} = UserProfile},
 		{aborted, Reason} ->
 			{stop, Reason, StateData}
 	end;
-register({ok, #'3gpp_swx_Non-3GPP-User-Data'{} = UserProfile},
-		#statedata{session_id = SessionId,
+register({ok, #'3gpp_swx_Non-3GPP-User-Data'{} = UserProfile,
+		HssRealm, HssHost}, #statedata{session_id = SessionId,
 		auth_req_type = AuthReqType, diameter_port_server = PortServer,
 		nas_host = NasHost, nas_realm = NasRealm, request = Request,
-		response = {EapMessage, []}, identity = Identity} = StateData) ->
+		response = {EapMessage, []}, imsi = IMSI} = StateData) ->
 	Application = case Request of
 		#diameter_eap_app_DER{} ->
 			?EAP_APPLICATION_ID;
@@ -951,8 +954,9 @@ register({ok, #'3gpp_swx_Non-3GPP-User-Data'{} = UserProfile},
 			?STa_APPLICATION_ID
 	end,
 	LM = {erlang:system_time(?MILLISECOND), erlang:unique_integer([positive])},
-	Session = #session{id = SessionId, imsi = Identity,
-		application = Application, nas_host = NasHost, nas_realm = NasRealm,
+	Session = #session{id = SessionId, imsi = IMSI,
+		hss_realm = HssRealm, hss_host = HssHost, application = Application,
+		nas_host = NasHost, nas_realm = NasRealm,
 		user_profile = UserProfile, last_modified = LM},
 	F = fun() -> mnesia:write(session, Session, write) end,
 	case mnesia:transaction(F) of
