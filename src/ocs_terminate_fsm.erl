@@ -200,11 +200,12 @@ deregister({ok, #'3gpp_swx_SAA'{'Result-Code'
 	gen_fsm:reply(Caller, response(ResultCode, StateData)),
 	deregister1(StateData);
 deregister({ok, #'3gpp_swx_SAA'{'Experimental-Result'
-		= [?'DIAMETER_ERROR_IDENTITY_NOT_REGISTERED']} = _Answer},
+		= [#'3gpp_Experimental-Result'{'Experimental-Result-Code'
+		= ?'DIAMETER_ERROR_IDENTITY_NOT_REGISTERED'}]} = _Answer},
 		#statedata{session_id = SessionId, identity = Identity,
 		hss_realm = HssRealm, hss_host = HssHost,
 		from = Caller} = StateData) ->
-	error_logger:error_report(["Identity not registered",
+	error_logger:warning_report(["Identity not registered",
 			{hss_host, HssHost}, {hss_realm, HssRealm},
 			{imsi, Identity}, {session, SessionId},
 			{result, ?'DIAMETER_ERROR_IDENTITY_NOT_REGISTERED'}]),
@@ -222,16 +223,17 @@ deregister({ok, #'3gpp_swx_SAA'{'Result-Code' = [ResultCode]} = _Answer},
 	ResultCode = ?'DIAMETER_BASE_RESULT-CODE_UNABLE_TO_COMPLY',
 	gen_fsm:reply(Caller, response(ResultCode, StateData)),
 	{stop, shutdown, StateData};
-deregister({ok, #'3gpp_swx_SAA'{'Experimental-Result' = [ResultCode]} = _Answer},
+deregister({ok, #'3gpp_swx_SAA'{'Experimental-Result'
+		= [#'3gpp_Experimental-Result'{'Experimental-Result-Code' = ResultCode1}]}},
 		#statedata{session_id = SessionId, identity = Identity,
 		hss_realm = HssRealm, hss_host = HssHost,
 		from = Caller} = StateData) ->
 	error_logger:error_report(["Unexpected deregistration result",
 			{hss_host, HssHost}, {hss_realm, HssRealm},
 			{imsi, Identity}, {session, SessionId},
-			{result, ResultCode}]),
-	ResultCode = ?'DIAMETER_BASE_RESULT-CODE_UNABLE_TO_COMPLY',
-	gen_fsm:reply(Caller, response(ResultCode, StateData)),
+			{result, ResultCode1}]),
+	ResultCode2 = ?'DIAMETER_BASE_RESULT-CODE_UNABLE_TO_COMPLY',
+	gen_fsm:reply(Caller, response(ResultCode2, StateData)),
 	{stop, shutdown, StateData}.
 %% @hidden
 deregister1(#statedata{session_id = SessionId} = StateData) ->
