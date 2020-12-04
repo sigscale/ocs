@@ -1280,6 +1280,17 @@ ipdr_codec(Event) when size(Event) > 6,
 %% @hidden
 ipdr_codec1(Protocol, TimeStamp, ReqType,
 		#'3gpp_ro_CCR'{'Service-Context-Id' = Id,
+		'Service-Information' = []} = Req, Res, Rated) ->
+	case binary:part(Id, size(Id), -8) of
+		<<"3gpp.org">> ->
+			ServiceType = binary:part(Id, byte_size(Id) - 14, 5),
+			ipdr_codec2([], ServiceType, Protocol,
+							TimeStamp, ReqType, Req, Res, Rated);
+		_ ->
+			exit(service_type_not_found)
+	end;
+ipdr_codec1(Protocol, TimeStamp, ReqType,
+		#'3gpp_ro_CCR'{'Service-Context-Id' = Id,
 		'Service-Information' = [ServiceInfo]} = Req, Res, Rated) ->
 	case binary:part(Id, size(Id), -8) of
 		<<"3gpp.org">> ->
