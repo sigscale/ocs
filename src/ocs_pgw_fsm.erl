@@ -102,7 +102,6 @@
 init([ServiceName, ServerAddress, ServerPort, ClientAddress,
 		ClientPort, SessionId, OriginHost, OriginRealm,
 		DestinationHost, DestinationRealm] = _Args) ->
-erlang:display({?MODULE, ?LINE, SessionId}),
 	process_flag(trap_exit, true),
 	{ok, HssRealm} = application:get_env(hss_realm),
 	HssHost = case application:get_env(hss_host) of
@@ -155,7 +154,7 @@ idle(#'3gpp_s6b_AAR'{'User-Name' = [Identity], 'Session-Id' = SessionId,
 	end,
 	case mnesia:transaction(F) of
 		{atomic, [#session{user_profile = UserProfile,
-				hss_realm = HssRealm, hss_host = HssHost}]} ->
+				hss_realm = HssRealm, hss_host = HssHost} | _]} ->
 			NextStateData = NewStateData#statedata{user_profile = UserProfile,
 					hss_realm = HssRealm, hss_host = HssHost},
 			case lists:keyfind(APN,
@@ -164,13 +163,12 @@ idle(#'3gpp_s6b_AAR'{'User-Name' = [Identity], 'Session-Id' = SessionId,
 				#'3gpp_swx_APN-Configuration'{} = APN ->
 					send_register(NextStateData),
 					{next_state, profile, NextStateData, ?TIMEOUT};
-				_ ->
+				_Other ->
 					ResultCode = ?'DIAMETER_BASE_RESULT-CODE_AUTHORIZATION_REJECTED',
 					Reply = response(ResultCode, NextStateData),
 					{stop, shutdown,  Reply, NextStateData}
 			end;
 		{atomic, []} ->
-erlang:display({?MODULE, ?LINE, SessionId, []}),
 			send_profile(NewStateData),
 			{next_state, profile, NewStateData, ?TIMEOUT};
 		{aborted, Reason} ->
@@ -422,7 +420,6 @@ send_register(#statedata{imsi = IMSI,
 			'Auth-Session-State' = ?'DIAMETER_BASE_AUTH-SESSION-STATE_NO_STATE_MAINTAINED',
 			'Server-Assignment-Type' = ?'3GPP_SWX_SERVER-ASSIGNMENT-TYPE_PGW_UPDATE',
 			'MIP6-Agent-Info' = PGW, 'Visited-Network-Identifier' = VPLMN},
-erlang:display({?MODULE, ?LINE, SessionId, Request}),
 	diameter:call(Service, ?SWx_APPLICATION,
 			Request, [detach, {extra, [self()]}]).
 
@@ -448,7 +445,6 @@ send_profile(#statedata{imsi = IMSI,
          		'Auth-Application-Id' = [?SWx_APPLICATION_ID]},
 			'Auth-Session-State' = ?'DIAMETER_BASE_AUTH-SESSION-STATE_NO_STATE_MAINTAINED',
 			'Server-Assignment-Type' = ?'3GPP_SWX_SERVER-ASSIGNMENT-TYPE_AAA_USER_DATA_REQUEST'},
-erlang:display({?MODULE, ?LINE, SessionId, Request}),
 	diameter:call(Service, ?SWx_APPLICATION,
 			Request, [detach, {extra, [self()]}]).
 
@@ -477,7 +473,6 @@ response(ResultCode = _Arg,
 			'Origin-Realm' = OriginRealm,
 			'Auth-Application-Id' = ?S6b_APPLICATION_ID,
 			'Auth-Request-Type' = AuthRequestType},
-erlang:display({?MODULE, ?LINE, SessionId, Answer}),
 	ok = ocs_log:auth_log(diameter, Server, Client, Request, Answer),
 	Answer;
 response(RedirectHost,
@@ -497,7 +492,6 @@ response(RedirectHost,
 			'Origin-Realm' = OriginRealm,
 			'Auth-Application-Id' = ?S6b_APPLICATION_ID,
 			'Auth-Request-Type' = AuthRequestType},
-erlang:display({?MODULE, ?LINE, SessionId, Answer}),
 	ok = ocs_log:auth_log(diameter, Server, Client, Request, Answer),
 	Answer.
 
