@@ -1,3 +1,11 @@
+2020-12-05  Vance Shipley <vances@sigscale.org>
+
+	* ccr: immediate event charging (iec) [OCS-331 #close]
+	* ccr: handle empty service information on initial
+	* aaa: expect multiple sessions for an imsi
+	* aaa: correct deregistration on swx
+	* aaa: missing mandatory avps
+
 2020-12-03  Vance Shipley <vances@sigscale.org>
 
 	* aaa: store serving hss in session table
