@@ -68,7 +68,7 @@
 		Timestamp :: calendar:datetime(),
 		Address :: string() | binary() | undefined,
 		Direction :: answer | originate | undefined,
-		Flag :: initial | interim | final,
+		Flag :: initial | interim | final | event,
 		DebitAmounts :: [{Type, Amount}],
 		ReserveAmounts :: [{Type, Amount}] | undefined,
 		SessionAttributes :: [tuple()],
@@ -76,6 +76,7 @@
 		Amount :: integer(),
 		Result :: {ok, Service, GrantedAmount}
 				| {ok, Service, Rated}
+				| {ok, Service, GrantedAmount, Rated}
 				| {out_of_credit, SessionList}
 				| {out_of_credit, SessionList, Rated}
 				| {disabled, SessionList}
@@ -93,13 +94,13 @@
 %% 	determines the price used to calculate the amount to be
 %% 	permanently debited from available `cents' buckets.
 %%
-%% 	If empty `ReserveAmounts' are provided in `initial' and `interim'
-%% 	requests the `Type' and `Amount' are determined by applicable
-%% 	product offer price.
+%% 	If empty `ReserveAmounts' are provided in `initial', `interim'
+%% 	and `event' requests the `Type' and `Amount' are determined by
+%% 	applicable product offer price.
 %%
 %% 	If successful returns `{ok, Service, GrantedAmount}' for `initial'
-%% 	and `interim' updates or `{ok, Service, Rated}' for
-%% 	`final'.
+%% 	and `interim' updates, `{ok, Service, Rated}' for `final' or
+%% 	`{ok, Service, GrantedAmount, Rated}' for `event'.
 %%
 %% 	If subscriber's balance is insufficient to cover the `DebitAmounts'
 %% 	and `ReserveAmounts' returns `{out_of_credit, SessionList}' for interim
@@ -136,7 +137,7 @@ rate(Protocol, ServiceType, ChargingKey, ServiceNetwork, SubscriberID,
 		(is_list(Address) or (Address == undefined)),
 		((Direction == answer) or (Direction == originate)
 				or (Direction == undefined)),
-		((Flag == initial) or (Flag == interim) or (Flag == final)),
+		((Flag == initial) or (Flag == interim) or (Flag == final) or (Flag == event)),
 		is_list(DebitAmounts),
 		(is_list(ReserveAmounts) or (ReserveAmounts == undefined)),
 		length(SessionAttributes) > 0 ->
@@ -186,6 +187,11 @@ rate(Protocol, ServiceType, ChargingKey, ServiceNetwork, SubscriberID,
 			ok = send_notifications(DeletedBuckets),
 			ok = notify_accumulated_balance(AccBalance),
 			{ok, Sub, Rated};
+		{atomic, {ok, Sub, Granted, Rated, DeletedBuckets, AccBalance}}
+				when is_list(Rated) ->
+			ok = send_notifications(DeletedBuckets),
+			ok = notify_accumulated_balance(AccBalance),
+			{ok, Sub, Granted, Rated};
 		{atomic, {out_of_credit, SL, Rated, DeletedBuckets, AccBalance}} ->
 			ok = send_notifications(DeletedBuckets),
 			ok = notify_accumulated_balance(AccBalance),
@@ -472,6 +478,21 @@ rate5(_Protocol, Service, Buckets,
 			end
 	end,
 	rate6(Service, Buckets, Price, Flag, DebitAmount, ReserveAmount, State);
+rate5(_Protocol, Service, Buckets, #price{units = Units, size = Size} = Price,
+		event, _DebitAmounts, undefined, State) ->
+	DebitAmount = {Units, Size},
+	ReserveAmount = {Units, 0},
+	rate6(Service, Buckets, Price, event, DebitAmount, ReserveAmount, State);
+rate5(_Protocol, Service, Buckets, #price{units = Units, size = Size} = Price,
+		event, _DebitAmounts, ReserveAmounts, State) ->
+	DebitAmount = case lists:keyfind(Units, 1, ReserveAmounts) of
+		{Units, DebitUnits} ->
+			{Units, DebitUnits};
+		false ->
+			{Units, Size}
+	end,
+	ReserveAmount = {Units, 0},
+	rate6(Service, Buckets, Price, event, DebitAmount, ReserveAmount, State);
 rate5(_Protocol, Service, Buckets, #price{units = Units} = Price,
 		Flag, DebitAmounts, undefined, State) ->
 	DebitAmount = case lists:keyfind(Units, 1, DebitAmounts) of
@@ -674,6 +695,41 @@ rate6(Service, Buckets1,
 					rate7(Service, Buckets5, final, DebitAmount, {Units, TotalUnits},
 							ReserveAmount, ReserveAmount, State#state{rated = Rated3})
 			end
+	end;
+rate6(Service, Buckets1,
+		#price{units = Units, size = UnitSize, amount = UnitPrice,
+		type = PriceType, currency = Currency}, event,
+		{Units, Amount} = DebitAmount, {Units, 0} = ReserveAmount,
+		#state{rated = Rated1, session_id = SessionId} = State) ->
+	Rated2 = Rated1#rated{price_type = PriceType, currency = Currency},
+	case charge_event(Units, Amount, Buckets1) of
+		{Amount, Buckets2} ->
+			Rated3 = rated(#{Units => Amount}, Rated2),
+			rate7(Service, Buckets2, event, DebitAmount, DebitAmount,
+					ReserveAmount, ReserveAmount, State#state{rated = Rated3});
+		{UnitsCharged, Buckets2} when UnitsCharged < Amount ->
+			{UnitCharge, PriceCharge} = price_units(Amount - UnitsCharged,
+					UnitSize, UnitPrice),
+			case charge_event(cents, PriceCharge, Buckets2) of
+				{PriceCharge, Buckets3} ->
+					TotalUnits = UnitsCharged + UnitCharge,
+					Rated3 = rated(#{Units => Amount, cents => PriceCharge}, Rated2),
+					rate7(Service, Buckets3, event, DebitAmount, {Units, TotalUnits},
+							ReserveAmount, ReserveAmount, State#state{rated = Rated3});
+				{PriceCharged, Buckets3}  when PriceCharged < PriceCharge ->
+					TotalUnits = UnitsCharged + (PriceCharged div UnitPrice),
+					Rated3 = rated(#{Units => Amount, cents => PriceCharged}, Rated2),
+					Now = erlang:system_time(?MILLISECOND),
+					NewReservation = {Now, UnitsCharged, 0, SessionId},
+					LM = make_lm(),
+					Buckets4 = [#bucket{id = make_id(LM), last_modified = LM,
+							start_date = Now,
+							remain_amount = PriceCharged - PriceCharge,
+							reservations = [NewReservation],
+							units = cents} | Buckets3],
+					rate7(Service, Buckets4, event, DebitAmount, {Units, TotalUnits},
+							ReserveAmount, ReserveAmount, State#state{rated = Rated3})
+			end
 	end.
 %% @hidden
 rate7(#service{session_attributes = SessionList} = Service1, Buckets, final,
@@ -746,6 +802,26 @@ rate7(Service, Buckets, interim, {Units, _Charge}, {Units, _Charged},
 	ok = mnesia:write(P#product{balance = NewBRefs}),
 	ok = mnesia:write(Service),
 	{grant, Service, {Units, Reserved}, DeletedBuckets,
+			accumulated_balance(Buckets, P#product.id)};
+rate7(Service, Buckets, event,
+		{Units, Charge}, {Units, Charged}, {Units, 0}, {Units, 0},
+		#state{rated = Rated, product = P, buckets = OldBuckets})
+		when Charged >= Charge ->
+	{NewBRefs, DeletedBuckets}
+			= update_buckets(P#product.balance, OldBuckets, Buckets),
+	ok = mnesia:write(P#product{balance = NewBRefs}),
+	ok = mnesia:write(Service),
+	{ok, Service, {Units, Charged}, Rated, DeletedBuckets,
+			accumulated_balance(Buckets, P#product.id)};
+rate7(#service{session_attributes = SessionList} = Service1, Buckets, event,
+		{Units, _Charge}, {Units, _Charged}, {Units, 0}, {Units, 0},
+		#state{rated = Rated, product = P, buckets = OldBuckets}) ->
+	{NewBRefs, DeletedBuckets}
+			= update_buckets(P#product.balance, OldBuckets, Buckets),
+	ok = mnesia:write(P#product{balance = NewBRefs}),
+	Service2 = Service1#service{session_attributes = []},
+	ok = mnesia:write(Service2),
+	{out_of_credit, SessionList, Rated, DeletedBuckets,
 			accumulated_balance(Buckets, P#product.id)}.
 
 -spec authorize(Protocol, ServiceType, SubscriberId, Password,
@@ -1325,6 +1401,51 @@ charge(_Type, 0, _Now, _SessionId, Buckets, Acc, Charged) ->
 charge(Type, Charge, Now, SessionId, [H | T], Acc, Charged) ->
 	charge(Type, Charge, Now, SessionId, T, [H | Acc], Charged);
 charge(_, _, _, _, [], Acc, Charged) ->
+	{Charged, lists:reverse(Acc)}.
+
+-spec charge_event(Type, Charge, Buckets) -> Result
+	when
+		Type :: octets | seconds | cents | messages,
+		Charge :: non_neg_integer(),
+		Buckets :: [#bucket{}],
+		Result :: {Charged, NewBuckets},
+		Charged :: non_neg_integer(),
+		NewBuckets :: [#bucket{}].
+%% @doc Peform immediate event charging (IEC).
+%%
+%% 	Returns `{Charged, NewBuckets}' where
+%% 	`Charged' is the total amount debited from the buckets
+%% 	and `NewBuckets' is the updated bucket list.
+%%
+%% @private
+charge_event(Type, Charge, Buckets) ->
+	Now = erlang:system_time(?MILLISECOND),
+	charge_event(Type, Charge, Now, sort(Buckets), 0, []).
+%% @hidden
+charge_event(Type, Charge, Now,
+		[#bucket{remain_amount = Remain, reservations = [],
+		start_date = Start, end_date = Expires} | T], Charged, Acc)
+		when Remain >= 0, Expires /= undefined, Expires =/= Start,
+		Expires =< Now ->
+	charge_event(Type, Charge, Now, T, Charged, Acc);
+charge_event(Type, Charge, Now,
+		[#bucket{units = Type, remain_amount = Remain} = B | T],
+		Charged, Acc) when Charge > 0, Remain >= Charge ->
+	NewAcc = [B#bucket{remain_amount = Remain - Charge,
+			last_modified = {Now, erlang:unique_integer([positive])}} | Acc],
+	{Charged + Charge, lists:reverse(NewAcc) ++ T};
+charge_event(Type, Charge, Now,
+		[#bucket{units = Type, remain_amount = Remain} = B | T],
+		Charged, Acc) when Charge > 0, Remain > 0, Remain < Charge ->
+	NewAcc = [B#bucket{remain_amount = 0,
+			last_modified = {Now, erlang:unique_integer([positive])}} | Acc],
+	charge_event(Type, Charge - Remain,
+			Now, T, Charged + Remain, NewAcc);
+charge_event(_, 0, _, Buckets, Charged, Acc) ->
+	{Charged, lists:reverse(Acc) ++ Buckets};
+charge_event(Type, Charge, Now, [H | T], Charged, Acc) ->
+	charge_event(Type, Charge, Now, T, Charged, [H | Acc]);
+charge_event(_, _, _, [], Charged, Acc) ->
 	{Charged, lists:reverse(Acc)}.
 
 -spec convert(Price, Type, Size, SessionId, Buckets) -> Result
