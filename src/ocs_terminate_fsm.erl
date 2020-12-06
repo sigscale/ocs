@@ -139,7 +139,7 @@ erlang:display({?MODULE, ?LINE, SessionId}),
 %% @@see //stdlib/gen_fsm:StateName/3
 %% @private
 %%
-idle(Request, From, #statedata{session_id = SessionId } = StateData)
+idle(Request, From, #statedata{session_id = SessionId} = StateData)
 		when is_record(Request, '3gpp_sta_STR');
 		is_record(Request, '3gpp_swm_STR') ->
 	{Identity, NasRealm, NasHost} = case Request of
