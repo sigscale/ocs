@@ -216,6 +216,7 @@
 -record(session,
 		{id :: diameter:'OctetString'() | radius_attributes:attributes(),
 		imsi :: binary(),
+		identity :: string() | undefined,
 		application :: pos_integer() | undefined,
 		nas_host :: string() | undefined,
 		nas_realm :: string() | undefined,
