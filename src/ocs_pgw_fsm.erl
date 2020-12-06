@@ -174,8 +174,8 @@ idle(#'3gpp_s6b_AAR'{'User-Name' = [Identity], 'Session-Id' = SessionId,
 		{aborted, Reason} ->
 			error_logger:error_report(["Failed user lookup",
 					{pgw_host, Host}, {pgw_realm, Realm},
-					{imsi, IMSI}, {session, SessionId},
-					{error, Reason}]),
+					{imsi, IMSI}, {identity, Identity},
+					{session, SessionId}, {error, Reason}]),
 			ResultCode = ?'DIAMETER_BASE_RESULT-CODE_UNABLE_TO_COMPLY',
 			Reply = response(ResultCode, NewStateData),
 			{stop, Reason, Reply, NewStateData}
@@ -207,11 +207,11 @@ register({ok, #'3gpp_swx_SAA'{'Result-Code'
 register({ok, #'3gpp_swx_SAA'{'Result-Code' = [ResultCode1],
 		'Origin-Host' = Host, 'Origin-Realm' = Realm} = _Answer},
 		#statedata{from = Caller, session_id = SessionId,
-		imsi = IMSI} = StateData) ->
+		imsi = IMSI, identity = Identity} = StateData) ->
 	error_logger:error_report(["Unexpected registration result",
 			{hss_host, Host}, {hss_realm, Realm},
-			{imsi, IMSI}, {session, SessionId},
-			{result, ResultCode1}]),
+			{imsi, IMSI}, {identity, Identity},
+			{session, SessionId}, {result, ResultCode1}]),
 	ResultCode2 = ?'DIAMETER_BASE_RESULT-CODE_UNABLE_TO_COMPLY',
 	gen_fsm:reply(Caller, response(ResultCode2, StateData)),
 	{stop, shutdown, StateData};
@@ -219,11 +219,11 @@ register({ok, #'3gpp_swx_SAA'{'Experimental-Result'
 		= [#'3gpp_Experimental-Result'{'Experimental-Result-Code' = ResultCode1}],
 		'Origin-Host' = Host, 'Origin-Realm' = Realm} = _Answer},
 		#statedata{from = Caller, session_id = SessionId,
-		imsi = IMSI} = StateData) ->
+		imsi = IMSI, identity = Identity} = StateData) ->
 	error_logger:error_report(["Unexpected registration result",
 			{hss_host, Host}, {hss_realm, Realm},
-			{imsi, IMSI}, {session, SessionId},
-			{result, ResultCode1}]),
+			{imsi, IMSI}, {identity, Identity},
+			{session, SessionId}, {result, ResultCode1}]),
 	ResultCode1 = ?'DIAMETER_BASE_RESULT-CODE_UNABLE_TO_COMPLY',
 	gen_fsm:reply(Caller, response(ResultCode1, StateData)),
 	{stop, shutdown, StateData}.
@@ -260,10 +260,10 @@ profile({ok, #'3gpp_swx_SAA'{'Experimental-Result' = [#'3gpp_Experimental-Result
 		'Experimental-Result-Code' = ?'DIAMETER_ERROR_USER_UNKNOWN'}],
 		'Origin-Host' = Host, 'Origin-Realm' = Realm} = _Answer},
 		#statedata{from = Caller, session_id = SessionId,
-		imsi = IMSI} = StateData) ->
+		imsi = IMSI, identity = Identity} = StateData) ->
 	error_logger:warning_report(["Unkown user",
 			{hss_host, Host}, {hss_realm, Realm},
-			{imsi, IMSI}, {session, SessionId},
+			{imsi, IMSI}, {identity, Identity}, {session, SessionId},
 			{result, ?'DIAMETER_ERROR_USER_UNKNOWN'}]),
 	ResultCode = ?'DIAMETER_ERROR_USER_UNKNOWN',
 	gen_fsm:reply(Caller, response(ResultCode, StateData)),
@@ -271,11 +271,11 @@ profile({ok, #'3gpp_swx_SAA'{'Experimental-Result' = [#'3gpp_Experimental-Result
 profile({ok, #'3gpp_swx_SAA'{'Result-Code' = [ResultCode1],
 		'Origin-Host' = Host, 'Origin-Realm' = Realm} = _Answer},
 		#statedata{from = Caller, session_id = SessionId,
-		imsi = IMSI} = StateData) ->
+		imsi = IMSI, identity = Identity} = StateData) ->
 	error_logger:error_report(["Unexpected get user profile result",
 			{hss_host, Host}, {hss_realm, Realm},
-			{imsi, IMSI}, {session, SessionId},
-			{result, ResultCode1}]),
+			{imsi, IMSI}, {identity, Identity},
+			{session, SessionId}, {result, ResultCode1}]),
 	ResultCode2 = ?'DIAMETER_BASE_RESULT-CODE_UNABLE_TO_COMPLY',
 	gen_fsm:reply(Caller, response(ResultCode2, StateData)),
 	{stop, shutdown, StateData};
@@ -283,11 +283,11 @@ profile({ok, #'3gpp_swx_SAA'{'Experimental-Result'
 		= [#'3gpp_Experimental-Result'{'Experimental-Result-Code' = ResultCode1}],
 		'Origin-Host' = Host, 'Origin-Realm' = Realm} = _Answer},
 		#statedata{from = Caller, session_id = SessionId,
-		imsi = IMSI} = StateData) ->
+		imsi = IMSI, identity = Identity} = StateData) ->
 	error_logger:error_report(["Unexpected get user profile result",
 			{hss_host, Host}, {hss_realm, Realm},
-			{imsi, IMSI}, {session, SessionId},
-			{result, ResultCode1}]),
+			{imsi, IMSI}, {identity, Identity},
+			{session, SessionId}, {result, ResultCode1}]),
 	ResultCode2 = ?'DIAMETER_BASE_RESULT-CODE_UNABLE_TO_COMPLY',
 	gen_fsm:reply(Caller, response(ResultCode2, StateData)),
 	{stop, shutdown, StateData}.

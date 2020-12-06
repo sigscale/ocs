@@ -174,8 +174,8 @@ idle(#'3gpp_swx_RTR'{'User-Name' = [Identity]} = Request,
 		{aborted, Reason} ->
 			error_logger:error_report(["Failed user lookup",
 					{hss_host, HssHost}, {hss_realm, HssRealm},
-					{imsi, IMSI}, {session, SessionId},
-					{error, Reason}]),
+					{imsi, IMSI}, {identity, Identity},
+					{session, SessionId}, {error, Reason}]),
 			ResultCode = ?'DIAMETER_BASE_RESULT-CODE_UNABLE_TO_COMPLY',
 			Reply = response(ResultCode, StateData),
 			{stop, shutdown,  Reply, StateData}
@@ -397,7 +397,8 @@ start_radius_disconnect(#statedata{session_index = SessionId,
 	case pg2:get_closest_pid(ocs_radius_acct_port_sup) of
 		{error, Reason} ->
 			error_logger:error_report(["Failed to initiate session disconnect",
-					{module, ?MODULE}, {imsi, IMSI}, {address, Address},
+					{module, ?MODULE}, {address, Address},
+					{imsi, IMSI}, {identity, Identity},
 					{session, SessionId}, {error, Reason}]);
 		DiscSup ->
 			DiscArgs = [Identity, SessionId],

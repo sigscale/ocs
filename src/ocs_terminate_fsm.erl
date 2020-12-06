@@ -189,7 +189,8 @@ idle(Request, From, #statedata{session_id = SessionId,
 		{aborted, Reason} ->
 			error_logger:error_report(["Failed user lookup",
 					{nas_host, NasHost}, {nas_realm, NasRealm},
-					{imsi, IMSI}, {session, SessionId}, {error, Reason}]),
+					{imsi, IMSI}, {identity, Identity},
+					{session, SessionId}, {error, Reason}]),
 			ResultCode = ?'DIAMETER_BASE_RESULT-CODE_UNABLE_TO_COMPLY',
 			Reply = response(ResultCode, StateData),
 			{stop, Reason, Reply, StateData}
@@ -221,36 +222,36 @@ deregister({ok, #'3gpp_swx_SAA'{'Result-Code'
 deregister({ok, #'3gpp_swx_SAA'{'Experimental-Result'
 		= [#'3gpp_Experimental-Result'{'Experimental-Result-Code'
 		= ?'DIAMETER_ERROR_IDENTITY_NOT_REGISTERED'}]} = _Answer},
-		#statedata{session_id = SessionId, identity = Identity,
+		#statedata{session_id = SessionId, imsi = IMSI, identity = Identity,
 		hss_realm = HssRealm, hss_host = HssHost,
 		from = Caller} = StateData) ->
 	error_logger:warning_report(["Identity not registered",
 			{hss_host, HssHost}, {hss_realm, HssRealm},
-			{imsi, Identity}, {session, SessionId},
+			{imsi, IMSI}, {identity, Identity}, {session, SessionId},
 			{result, ?'DIAMETER_ERROR_IDENTITY_NOT_REGISTERED'}]),
 	ResultCode = ?'DIAMETER_BASE_RESULT-CODE_SUCCESS',
 	gen_fsm:reply(Caller, response(ResultCode, StateData)),
 	deregister1(StateData);
 deregister({ok, #'3gpp_swx_SAA'{'Result-Code' = [ResultCode]} = _Answer},
-		#statedata{session_id = SessionId, identity = Identity,
+		#statedata{session_id = SessionId, imsi = IMSI, identity = Identity,
 		hss_realm = HssRealm, hss_host = HssHost,
 		from = Caller} = StateData) ->
 	error_logger:error_report(["Unexpected deregistration result",
 			{hss_host, HssHost}, {hss_realm, HssRealm},
-			{imsi, Identity}, {session, SessionId},
-			{result, ResultCode}]),
+			{imsi, IMSI}, {identity, Identity},
+			{session, SessionId}, {result, ResultCode}]),
 	ResultCode = ?'DIAMETER_BASE_RESULT-CODE_UNABLE_TO_COMPLY',
 	gen_fsm:reply(Caller, response(ResultCode, StateData)),
 	{stop, shutdown, StateData};
 deregister({ok, #'3gpp_swx_SAA'{'Experimental-Result'
 		= [#'3gpp_Experimental-Result'{'Experimental-Result-Code' = ResultCode1}]}},
-		#statedata{session_id = SessionId, identity = Identity,
+		#statedata{session_id = SessionId, imsi = IMSI, identity = Identity,
 		hss_realm = HssRealm, hss_host = HssHost,
 		from = Caller} = StateData) ->
 	error_logger:error_report(["Unexpected deregistration result",
 			{hss_host, HssHost}, {hss_realm, HssRealm},
-			{imsi, Identity}, {session, SessionId},
-			{result, ResultCode1}]),
+			{imsi, IMSI}, {identity, Identity},
+			{session, SessionId}, {result, ResultCode1}]),
 	ResultCode2 = ?'DIAMETER_BASE_RESULT-CODE_UNABLE_TO_COMPLY',
 	gen_fsm:reply(Caller, response(ResultCode2, StateData)),
 	{stop, shutdown, StateData}.
