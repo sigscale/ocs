@@ -107,15 +107,14 @@
 %%
 init([ServiceName, ServerAddress, ServerPort, ClientAddress,
 		ClientPort, SessionId, OriginHost, OriginRealm,
-		DestinationHost, DestinationRealm] = _Args) ->
+		_DestinationHost, _DestinationRealm] = _Args) ->
 erlang:display({?MODULE, ?LINE, SessionId}),
 	process_flag(trap_exit, true),
 	{ok, idle, #statedata{service = ServiceName,
 			server_address = ServerAddress, server_port = ServerPort,
 			client_address = ClientAddress, client_port = ClientPort,
 			session_id = SessionId,
-			origin_host = OriginHost, origin_realm = OriginRealm,
-			nas_host = DestinationHost, nas_realm = DestinationRealm}}.
+			origin_host = OriginHost, origin_realm = OriginRealm}}.
 
 -spec idle(Event, From, StateData) -> Result
 	when
@@ -140,15 +139,16 @@ erlang:display({?MODULE, ?LINE, SessionId}),
 %% @@see //stdlib/gen_fsm:StateName/3
 %% @private
 %%
-idle(Request, From, #statedata{session_id = SessionId,
-		nas_host = NasHost, nas_realm = NasRealm} = StateData)
+idle(Request, From, #statedata{session_id = SessionId } = StateData)
 		when is_record(Request, '3gpp_sta_STR');
 		is_record(Request, '3gpp_swm_STR') ->
-	Identity = case Request of
-		#'3gpp_sta_STR'{'User-Name' = [UserName]} ->
-			UserName;
-		#'3gpp_swm_STR'{'User-Name' = [UserName]} ->
-			UserName
+	{Identity, NasRealm, NasHost} = case Request of
+		#'3gpp_sta_STR'{'User-Name' = [UserName],
+				'Origin-Realm' = OR, 'Origin-Host' = OH} ->
+			{UserName, OR, OH};
+		#'3gpp_swm_STR'{'User-Name' = [UserName],
+				'Origin-Realm' = OR, 'Origin-Host' = OH} ->
+			{UserName, OR, OH}
 	end,
 	IMSI = case Identity of
 		<<?PERM_AKA, PermanentID/binary>> ->
@@ -162,7 +162,8 @@ idle(Request, From, #statedata{session_id = SessionId,
 %		<<?FAST_AKA:6, _/bits>> ->
 	end,
 	NewStateData = StateData#statedata{request = Request,
-			from = From, imsi = IMSI, identity = Identity},
+			from = From, nas_realm = NasRealm, nas_host = NasHost,
+			imsi = IMSI, identity = Identity},
 	F = fun() ->
 			case mnesia:read(session, SessionId, write) of
 				[#session{imsi = IMSI, hss_realm = undefined}] ->
