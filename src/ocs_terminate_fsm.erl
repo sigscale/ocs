@@ -161,7 +161,8 @@ idle(Request, From, #statedata{session_id = SessionId,
 			ocs_eap_aka:compressed_imsi(CompressedIMSI)
 %		<<?FAST_AKA:6, _/bits>> ->
 	end,
-	NewStateData = StateData#statedata{imsi = IMSI, identity = Identity},
+	NewStateData = StateData#statedata{request = Request,
+			imsi = IMSI, identity = Identity},
 	F = fun() ->
 			case mnesia:read(session, SessionId, write) of
 				[#session{imsi = IMSI, hss_realm = undefined}] ->
