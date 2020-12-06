@@ -160,7 +160,7 @@ idle(#'3gpp_s6b_AAR'{'User-Name' = [Identity], 'Session-Id' = SessionId,
 			case lists:keyfind(APN,
 					#'3gpp_swx_APN-Configuration'.'Service-Selection',
 					UserProfile#'3gpp_swx_Non-3GPP-User-Data'.'APN-Configuration') of
-				#'3gpp_swx_APN-Configuration'{} = APN ->
+				#'3gpp_swx_APN-Configuration'{} ->
 					send_register(NextStateData),
 					{next_state, profile, NextStateData, ?TIMEOUT};
 				_Other ->
