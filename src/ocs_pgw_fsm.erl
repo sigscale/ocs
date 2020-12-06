@@ -62,7 +62,7 @@
 		client_port :: pos_integer(),
 		service :: tuple(),
 		hss_realm :: diameter:'OctetString'() | undefined,
-		hss_host = [] :: [diameter:'OctetString'()]
+		hss_host = [] :: [diameter:'OctetString'()],
 		pgw_realm :: diameter:'OctetString'() | undefined,
 		pgw_host = [] :: diameter:'OctetString'(),
 		pgw_id = [] :: [diameter:'OctetString'()],
@@ -304,7 +304,6 @@ profile({ok, #'3gpp_swx_SAA'{'Experimental-Result'
 		pgw_host = PgwHost, pgw_realm = PgwRealm,
 		pgw_id = PGW, pgw_plmn = VPLMN,
 		imsi = IMSI, identity = Identity} = StateData) ->
-	error_logger:error_report(["Unexpected get user profile result",
 	error_logger:error_report(["Unexpected get user profile result",
 			{hss_host, HssHost}, {hss_realm, HssRealm},
 			{pgw_host, PgwHost}, {pgw_realm, PgwRealm},
