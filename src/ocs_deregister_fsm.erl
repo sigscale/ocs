@@ -77,7 +77,7 @@
 -define(SWm_APPLICATION, ocs_diameter_3gpp_swm_application).
 -define(SWx_APPLICATION, ocs_diameter_3gpp_swx_application).
 
--define(TIMEOUT, 5000).
+-define(TIMEOUT, 10000).
 
 %% support deprecated_time_unit()
 -define(MILLISECOND, milli_seconds).

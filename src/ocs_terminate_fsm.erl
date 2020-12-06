@@ -53,7 +53,7 @@
 -define(STa_APPLICATION, ocs_diameter_3gpp_sta_application).
 -define(SWm_APPLICATION, ocs_diameter_3gpp_swm_application).
 -define(SWx_APPLICATION, ocs_diameter_3gpp_swx_application).
--define(TIMEOUT, 5000).
+-define(TIMEOUT, 10000).
 
 -record(statedata,
 		{identity :: binary() | undefined,
