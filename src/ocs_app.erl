@@ -125,15 +125,41 @@ start4() ->
 			case mnesia:transform_table(client, F, NewAttributes) of
 				{atomic, ok} ->
 					error_logger:info_report(["Migrated client table"]),
-					start4();
+					start5();
 				{aborted, Reason} ->
 					error_logger:error_report(["Failed to migrate client table",
 							mnesia:error_description(Reason), {error, Reason}]),
 					{error, Reason}
 			end
 	end.
+%% @doc Migrate session table, if necessary, to add Identity field.
 %% @hidden
 start5() ->
+	case mnesia:table_info(session, arity) of
+		12 ->
+			start6();
+		11 ->
+			F = fun({session, Id, IMSI, App, NasHost, NasRealm, NasAddress,
+					HssHost, HssRealm, UserProfile, LM}) ->
+				#session{id = Id, imsi = IMSI, application = App,
+						nas_host = NasHost, nas_realm = NasRealm,
+						nas_address = NasAddress, hss_host = HssHost,
+						hss_realm = HssRealm, user_profile = UserProfile,
+						last_modified = LM}
+			end,
+			NewAttributes = record_info(fields, session),
+			case mnesia:transform_table(session, F, NewAttributes) of
+				{atomic, ok} ->
+					error_logger:info_report(["Migrated session table"]),
+					start6();
+				{aborted, Reason} ->
+					error_logger:error_report(["Failed to migrate session table",
+							mnesia:error_description(Reason), {error, Reason}]),
+					{error, Reason}
+			end
+	end.
+%% @hidden
+start6() ->
 	{ok, RadiusConfig} = application:get_env(radius),
 	{ok, DiameterConfig} = application:get_env(diameter),
 	{ok, RotateInterval} = application:get_env(acct_log_rotate),
