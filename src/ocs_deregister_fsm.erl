@@ -394,10 +394,12 @@ response(ResultCode,
 	ok = ocs_log:auth_log(diameter, Server, Client, Request, Answer),
 	Answer.
 
--spec send_abort(Sessions, StateData) -> StateData
+-spec send_abort(Sessions, StateData) -> Result
 	when
 		Sessions :: [#session{}],
-		StateData :: #statedata{}.
+		StateData :: #statedata{},
+		Result :: {next_state, abort, StateData, Timeout},
+		Timeout :: non_neg_integer().
 %% @doc Send DIAMETER Abort-Session-Reqest (ASR).
 %% @hidden
 send_abort([#session{id = AccessSessionId, application = ?STa_APPLICATION_ID,
