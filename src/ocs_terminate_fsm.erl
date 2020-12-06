@@ -223,9 +223,11 @@ deregister({ok, #'3gpp_swx_SAA'{'Experimental-Result'
 		= [#'3gpp_Experimental-Result'{'Experimental-Result-Code'
 		= ?'DIAMETER_ERROR_IDENTITY_NOT_REGISTERED'}]} = _Answer},
 		#statedata{session_id = SessionId, imsi = IMSI, identity = Identity,
+		nas_realm = HssRealm, nas_host = HssHost,
 		hss_realm = HssRealm, hss_host = HssHost,
 		from = Caller} = StateData) ->
 	error_logger:warning_report(["Identity not registered",
+			{nas_host, HssHost}, {nas_realm, HssRealm},
 			{hss_host, HssHost}, {hss_realm, HssRealm},
 			{imsi, IMSI}, {identity, Identity}, {session, SessionId},
 			{result, ?'DIAMETER_ERROR_IDENTITY_NOT_REGISTERED'}]),
@@ -234,9 +236,11 @@ deregister({ok, #'3gpp_swx_SAA'{'Experimental-Result'
 	deregister1(StateData);
 deregister({ok, #'3gpp_swx_SAA'{'Result-Code' = [ResultCode]} = _Answer},
 		#statedata{session_id = SessionId, imsi = IMSI, identity = Identity,
+		nas_realm = HssRealm, nas_host = HssHost,
 		hss_realm = HssRealm, hss_host = HssHost,
 		from = Caller} = StateData) ->
 	error_logger:error_report(["Unexpected deregistration result",
+			{nas_host, HssHost}, {nas_realm, HssRealm},
 			{hss_host, HssHost}, {hss_realm, HssRealm},
 			{imsi, IMSI}, {identity, Identity},
 			{session, SessionId}, {result, ResultCode}]),
@@ -246,9 +250,11 @@ deregister({ok, #'3gpp_swx_SAA'{'Result-Code' = [ResultCode]} = _Answer},
 deregister({ok, #'3gpp_swx_SAA'{'Experimental-Result'
 		= [#'3gpp_Experimental-Result'{'Experimental-Result-Code' = ResultCode1}]}},
 		#statedata{session_id = SessionId, imsi = IMSI, identity = Identity,
+		nas_realm = HssRealm, nas_host = HssHost,
 		hss_realm = HssRealm, hss_host = HssHost,
 		from = Caller} = StateData) ->
 	error_logger:error_report(["Unexpected deregistration result",
+			{nas_host, HssHost}, {nas_realm, HssRealm},
 			{hss_host, HssHost}, {hss_realm, HssRealm},
 			{imsi, IMSI}, {identity, Identity},
 			{session, SessionId}, {result, ResultCode1}]),
