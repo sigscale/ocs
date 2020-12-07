@@ -230,7 +230,7 @@ register({ok, #'3gpp_swx_SAA'{'Result-Code' = [ResultCode1],
 	error_logger:error_report(["Unexpected registration result",
 			{hss_host, HssHost}, {hss_realm, HssRealm},
 			{pgw_host, PgwHost}, {pgw_realm, PgwRealm},
-			{pgw_id, PGW}, {pgw_plmn, VPLMN},
+			{pgw_id, pgw_id(PGW)}, {pgw_plmn, VPLMN},
 			{imsi, IMSI}, {identity, Identity},
 			{session, SessionId}, {result, ResultCode1}]),
 	ResultCode2 = ?'DIAMETER_BASE_RESULT-CODE_UNABLE_TO_COMPLY',
@@ -246,7 +246,7 @@ register({ok, #'3gpp_swx_SAA'{'Experimental-Result'
 	error_logger:error_report(["Unexpected registration result",
 			{hss_host, HssHost}, {hss_realm, HssRealm},
 			{pgw_host, PgwHost}, {pgw_realm, PgwRealm},
-			{pgw_id, PGW}, {pgw_plmn, VPLMN},
+			{pgw_id, pgw_id(PGW)}, {pgw_plmn, VPLMN},
 			{imsi, IMSI}, {identity, Identity},
 			{session, SessionId}, {result, ResultCode1}]),
 	ResultCode1 = ?'DIAMETER_BASE_RESULT-CODE_UNABLE_TO_COMPLY',
@@ -291,7 +291,7 @@ profile({ok, #'3gpp_swx_SAA'{'Experimental-Result' = [#'3gpp_Experimental-Result
 	error_logger:warning_report(["Unkown user",
 			{hss_host, HssHost}, {hss_realm, HssRealm},
 			{pgw_host, PgwHost}, {pgw_realm, PgwRealm},
-			{pgw_id, PGW}, {pgw_plmn, VPLMN},
+			{pgw_id, pgw_id(PGW)}, {pgw_plmn, VPLMN},
 			{imsi, IMSI}, {identity, Identity},
 			{session, SessionId},
 			{result, ?'DIAMETER_ERROR_USER_UNKNOWN'}]),
@@ -307,7 +307,7 @@ profile({ok, #'3gpp_swx_SAA'{'Result-Code' = [ResultCode1],
 	error_logger:error_report(["Unexpected get user profile result",
 			{hss_host, HssHost}, {hss_realm, HssRealm},
 			{pgw_host, PgwHost}, {pgw_realm, PgwRealm},
-			{pgw_id, PGW}, {pgw_plmn, VPLMN},
+			{pgw_id, pgw_id(PGW)}, {pgw_plmn, VPLMN},
 			{imsi, IMSI}, {identity, Identity},
 			{session, SessionId}, {result, ResultCode1}]),
 	ResultCode2 = ?'DIAMETER_BASE_RESULT-CODE_UNABLE_TO_COMPLY',
@@ -323,7 +323,7 @@ profile({ok, #'3gpp_swx_SAA'{'Experimental-Result'
 	error_logger:error_report(["Unexpected get user profile result",
 			{hss_host, HssHost}, {hss_realm, HssRealm},
 			{pgw_host, PgwHost}, {pgw_realm, PgwRealm},
-			{pgw_id, PGW}, {pgw_plmn, VPLMN},
+			{pgw_id, pgw_id(PGW)}, {pgw_plmn, VPLMN},
 			{imsi, IMSI}, {identity, Identity},
 			{session, SessionId}, {result, ResultCode1}]),
 	ResultCode2 = ?'DIAMETER_BASE_RESULT-CODE_UNABLE_TO_COMPLY',
@@ -534,4 +534,16 @@ response(RedirectHost,
 			'Auth-Request-Type' = AuthRequestType},
 	ok = ocs_log:auth_log(diameter, Server, Client, Request, Answer),
 	Answer.
+
+-spec pgw_id(PGW) -> Result
+	when
+		PGW :: [#'3gpp_swx_MIP6-Agent-Info'{}],
+		Result :: diameter:'OctetString'() | undefined.
+%% @doc Get the PGWID hostname.
+pgw_id([#'3gpp_swx_MIP6-Agent-Info'{'MIP-Home-Agent-Host'
+		= [#'3gpp_swx_MIP-Home-Agent-Host'{'Destination-Host'
+		= HomeAgentHostHost}]}]) when is_binary(HomeAgentHostHost) ->
+	HomeAgentHostHost;
+pgw_id(_) ->
+	undefined.
 
