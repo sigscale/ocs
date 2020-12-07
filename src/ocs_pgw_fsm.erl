@@ -143,9 +143,25 @@ init([ServiceName, ServerAddress, ServerPort, ClientAddress,
 idle(#'3gpp_s6b_AAR'{'User-Name' = [Identity], 'Session-Id' = SessionId,
 		'Origin-Host' = PgwHost, 'Origin-Realm' = PgwRealm,
 		'Auth-Request-Type' = ?'3GPP_SWX_AUTH-REQUEST-TYPE_AUTHORIZE_ONLY',
-		'MIP6-Agent-Info' = PGW, 'Visited-Network-Identifier' = VPLMN,
+		'MIP6-Agent-Info' = AgentInfo, 'Visited-Network-Identifier' = VPLMN,
 		'Service-Selection' = [APN]} = Request, From, StateData) ->
 	[IMSI | _] = binary:split(Identity, <<$@>>, []),
+	PGW = case AgentInfo of
+		[#'3gpp_s6b_MIP6-Agent-Info'{
+				'MIP-Home-Agent-Address' = HomeAgentAddress,
+				'MIP-Home-Agent-Host' = [#'3gpp_s6b_MIP-Home-Agent-Host'{
+						'Destination-Realm' = HomeAgentHostRealm,
+						'Destination-Host' = HomeAgentHostHost}],
+				'MIP6-Home-Link-Prefix' = HomeLinkPrefix}] ->
+			[#'3gpp_swx_MIP6-Agent-Info'{
+					'MIP-Home-Agent-Address' = HomeAgentAddress,
+					'MIP-Home-Agent-Host' = [#'3gpp_swx_MIP-Home-Agent-Host'{
+							'Destination-Realm' = HomeAgentHostRealm,
+							'Destination-Host' = HomeAgentHostHost}],
+					'MIP6-Home-Link-Prefix' = HomeLinkPrefix}];
+		[] ->
+			[]
+	end,
 	NewStateData = StateData#statedata{from = From, request = Request,
 			identity = Identity, imsi = IMSI,
 			pgw_host = PgwHost, pgw_realm = PgwRealm,
