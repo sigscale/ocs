@@ -185,16 +185,16 @@ idle(Request, From, #statedata{session_id = SessionId} = StateData)
 			{next_state, deregister, NextStateData, ?TIMEOUT};
 		{atomic, not_found} ->
 			ResultCode = ?'DIAMETER_BASE_RESULT-CODE_UNKNOWN_SESSION_ID',
-			Reply = response(ResultCode, StateData),
-			{stop, shutdown, Reply, StateData};
+			Reply = response(ResultCode, NewStateData),
+			{stop, shutdown, Reply, NewStateData};
 		{aborted, Reason} ->
 			error_logger:error_report(["Failed user lookup",
 					{nas_host, NasHost}, {nas_realm, NasRealm},
 					{imsi, IMSI}, {identity, Identity},
 					{session, SessionId}, {error, Reason}]),
 			ResultCode = ?'DIAMETER_BASE_RESULT-CODE_UNABLE_TO_COMPLY',
-			Reply = response(ResultCode, StateData),
-			{stop, Reason, Reply, StateData}
+			Reply = response(ResultCode, NewStateData),
+			{stop, Reason, Reply, NewStateData}
 	end.
 
 -spec deregister(Event, StateData) -> Result

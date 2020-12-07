@@ -152,18 +152,18 @@ idle(#'3gpp_swx_RTR'{'User-Name' = [Identity],
 	case mnesia:transaction(F) of
 		{atomic, []} ->
 			ResultCode = ?'DIAMETER_BASE_RESULT-CODE_UNKNOWN_SESSION_ID',
-			Reply = response(ResultCode, StateData),
-			{stop, shutdown,  Reply, StateData};
+			Reply = response(ResultCode, NewStateData),
+			{stop, shutdown,  Reply, NewStateData};
 		{atomic, Sessions}
 				when ReasonCode =:= ?'3GPP_SWX_REASON-CODE_PERMANENT_TERMINATION' ->
 			ResultCode = ?'DIAMETER_BASE_RESULT-CODE_SUCCESS',
-			gen_fsm:reply(From, response(ResultCode, StateData)),
+			gen_fsm:reply(From, response(ResultCode, NewStateData)),
 			send_abort(Sessions, NewStateData);
 		{atomic, _Sessions}
 				when ReasonCode =:= ?'3GPP_SWX_REASON-CODE_NEW_SERVER_ASSIGNED' ->
 			ResultCode = ?'DIAMETER_BASE_RESULT-CODE_SUCCESS',
-			Reply = response(ResultCode, StateData),
-			{stop, shutdown,  Reply, StateData};
+			Reply = response(ResultCode, NewStateData),
+			{stop, shutdown,  Reply, NewStateData};
 		{aborted, Reason} ->
 			error_logger:error_report(["Failed user lookup",
 					{hss_host, HssHost}, {hss_realm, HssRealm},
@@ -171,8 +171,8 @@ idle(#'3gpp_swx_RTR'{'User-Name' = [Identity],
 					{reason_info, ReasonInfo}, {session, SessionId},
 					{error, Reason}]),
 			ResultCode = ?'DIAMETER_BASE_RESULT-CODE_UNABLE_TO_COMPLY',
-			Reply = response(ResultCode, StateData),
-			{stop, shutdown,  Reply, StateData}
+			Reply = response(ResultCode, NewStateData),
+			{stop, shutdown,  Reply, NewStateData}
 	end.
 
 -spec abort(Event, StateData) -> Result
