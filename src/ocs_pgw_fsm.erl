@@ -182,7 +182,7 @@ idle(#'3gpp_s6b_AAR'{'User-Name' = [Identity], 'Session-Id' = SessionId,
 				#'3gpp_swx_APN-Configuration'{'Context-Identifier' = Context} ->
 					NextStateData1 = NextStateData#statedata{apn_context = Context},
 					send_register(NextStateData1),
-					{next_state, profile, NextStateData1, ?TIMEOUT};
+					{next_state, register, NextStateData1, ?TIMEOUT};
 				_Other ->
 					ResultCode = ?'DIAMETER_BASE_RESULT-CODE_AUTHORIZATION_REJECTED',
 					Reply = response(ResultCode, NextStateData),
