@@ -108,7 +108,6 @@
 init([ServiceName, ServerAddress, ServerPort, ClientAddress,
 		ClientPort, SessionId, OriginHost, OriginRealm,
 		_DestinationHost, _DestinationRealm] = _Args) ->
-erlang:display({?MODULE, ?LINE, SessionId}),
 	process_flag(trap_exit, true),
 	{ok, idle, #statedata{service = ServiceName,
 			server_address = ServerAddress, server_port = ServerPort,

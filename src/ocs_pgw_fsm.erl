@@ -448,7 +448,6 @@ send_register(#statedata{imsi = IMSI,
 		hss_host = HssHost, hss_realm = HssRealm, service = Service,
 		pgw_id = PGW, pgw_plmn = VPLMN} = _StateData) ->
 	SessionId = diameter:session_id([OriginHost]),
-erlang:display({?MODULE, ?LINE, IMSI, HssRealm, HssHost, PGW, VPLMN}),
 	Request = #'3gpp_swx_SAR'{'Session-Id' = SessionId,
 			'User-Name' = [IMSI],
 			'Origin-Realm' = OriginRealm, 'Origin-Host' = OriginHost,
@@ -459,7 +458,6 @@ erlang:display({?MODULE, ?LINE, IMSI, HssRealm, HssHost, PGW, VPLMN}),
 			'Auth-Session-State' = ?'DIAMETER_BASE_AUTH-SESSION-STATE_NO_STATE_MAINTAINED',
 			'Server-Assignment-Type' = ?'3GPP_SWX_SERVER-ASSIGNMENT-TYPE_PGW_UPDATE',
 			'MIP6-Agent-Info' = PGW, 'Visited-Network-Identifier' = VPLMN},
-erlang:display({?MODULE, ?LINE, Request}),
 	diameter:call(Service, ?SWx_APPLICATION,
 			Request, [detach, {extra, [self()]}]).
 
