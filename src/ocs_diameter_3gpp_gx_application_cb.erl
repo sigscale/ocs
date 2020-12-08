@@ -308,10 +308,10 @@ process_request(_Address, _Port,
 				 'Flow-Description' = ["permit out ip from 172.16/12 to any"],
 				 'Flow-Direction' = [?'3GPP_GX_FLOW-DIRECTION_DOWNLINK']},
 		FlowInformationUp3 = #'3gpp_gx_Flow-Information'{
-				 'Flow-Description' = ["permit in ip from any to 168/16"],
+				 'Flow-Description' = ["permit in ip from any to 192.168/16"],
 				 'Flow-Direction' = [?'3GPP_GX_FLOW-DIRECTION_UPLINK']},
 		FlowInformationDown3 = #'3gpp_gx_Flow-Information'{
-				 'Flow-Description' = ["permit out ip from 168/16 to any"],
+				 'Flow-Description' = ["permit out ip from 192.168/16 to any"],
 				 'Flow-Direction' = [?'3GPP_GX_FLOW-DIRECTION_DOWNLINK']},
 		FlowInformationUp4 = #'3gpp_gx_Flow-Information'{
 				 'Flow-Description' = ["permit in ip from any to any"],
