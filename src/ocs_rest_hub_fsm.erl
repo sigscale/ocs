@@ -429,7 +429,7 @@ event_type(Type) ->
 	end.
 
 %% @hidden
-send_request( {Type, Resource, Category} = _Event, #statedata{sync = Sync,
+send_request({Type, Resource, Category} = _Event, #statedata{sync = Sync,
 		profile = Profile, callback = Callback,
 		authorization = Authorization} = StateData) ->
 	Options = case Sync of
