@@ -908,10 +908,10 @@ register({ok, #'3gpp_swx_Non-3GPP-User-Data'{} = UserProfile,
 		HssRealm, HssHost}, #statedata{session_id = SessionId,
 		request = #radius{id = RadiusID,
 		authenticator = RequestAuthenticator, attributes = RequestAttributes},
-		client_address = ClientAddress, imsi = IMSI,
+		client_address = ClientAddress, imsi = IMSI, identity = Identity,
 		response = {EapMessage, Attributes}} = StateData) ->
 	LM = {erlang:system_time(?MILLISECOND), erlang:unique_integer([positive])},
-	Session = #session{id = SessionId, imsi = IMSI,
+	Session = #session{id = SessionId, imsi = IMSI, identity = Identity,
 		hss_realm = HssRealm, hss_host = HssHost,
 		nas_address = ClientAddress, user_profile = UserProfile,
 		last_modified = LM},
@@ -928,8 +928,9 @@ register({ok, #'3gpp_swx_Non-3GPP-User-Data'{} = UserProfile,
 register({ok, #'3gpp_swx_Non-3GPP-User-Data'{} = UserProfile,
 		HssRealm, HssHost}, #statedata{session_id = SessionId,
 		auth_req_type = AuthReqType, diameter_port_server = PortServer,
-		nas_host = NasHost, nas_realm = NasRealm, request = Request,
-		response = {EapMessage, []}, imsi = IMSI} = StateData) ->
+		nas_host = NasHost, nas_realm = NasRealm,
+		request = Request, response = {EapMessage, []},
+		imsi = IMSI, identity = Identity} = StateData) ->
 	Application = case Request of
 		#diameter_eap_app_DER{} ->
 			?EAP_APPLICATION_ID;
@@ -937,7 +938,7 @@ register({ok, #'3gpp_swx_Non-3GPP-User-Data'{} = UserProfile,
 			?SWm_APPLICATION_ID
 	end,
 	LM = {erlang:system_time(?MILLISECOND), erlang:unique_integer([positive])},
-	Session = #session{id = SessionId, imsi = IMSI,
+	Session = #session{id = SessionId, imsi = IMSI, identity = Identity,
 		hss_realm = HssRealm, hss_host = HssHost, application = Application,
 		nas_host = NasHost, nas_realm = NasRealm,
 		user_profile = UserProfile, last_modified = LM},

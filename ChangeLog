@@ -1,3 +1,20 @@
+2020-12-07  Vance Shipley <vances@sigscale.org>
+
+	* aaa: ue deregistration from hss of all sessions
+	* aaa: store identity in session table
+	* aaa: include nas/pgw in log report
+	* aaa: correct encoding of destination-host in sar
+	* aaa: correct matching apn selection
+	* ccr: test cases for immediate event charging
+
+2020-12-05  Vance Shipley <vances@sigscale.org>
+
+	* ccr: immediate event charging (iec) [OCS-331 #close]
+	* ccr: handle empty service information on initial
+	* aaa: expect multiple sessions for an imsi
+	* aaa: correct deregistration on swx
+	* aaa: missing mandatory avps
+
 2020-12-03  Vance Shipley <vances@sigscale.org>
 
 	* aaa: store serving hss in session table

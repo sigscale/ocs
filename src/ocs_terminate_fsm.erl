@@ -53,7 +53,7 @@
 -define(STa_APPLICATION, ocs_diameter_3gpp_sta_application).
 -define(SWm_APPLICATION, ocs_diameter_3gpp_swm_application).
 -define(SWx_APPLICATION, ocs_diameter_3gpp_swx_application).
--define(TIMEOUT, 5000).
+-define(TIMEOUT, 10000).
 
 -record(statedata,
 		{identity :: binary() | undefined,
@@ -107,15 +107,13 @@
 %%
 init([ServiceName, ServerAddress, ServerPort, ClientAddress,
 		ClientPort, SessionId, OriginHost, OriginRealm,
-		DestinationHost, DestinationRealm] = _Args) ->
-erlang:display({?MODULE, ?LINE, SessionId}),
+		_DestinationHost, _DestinationRealm] = _Args) ->
 	process_flag(trap_exit, true),
 	{ok, idle, #statedata{service = ServiceName,
 			server_address = ServerAddress, server_port = ServerPort,
 			client_address = ClientAddress, client_port = ClientPort,
 			session_id = SessionId,
-			origin_host = OriginHost, origin_realm = OriginRealm,
-			nas_host = DestinationHost, nas_realm = DestinationRealm}}.
+			origin_host = OriginHost, origin_realm = OriginRealm}}.
 
 -spec idle(Event, From, StateData) -> Result
 	when
@@ -140,15 +138,16 @@ erlang:display({?MODULE, ?LINE, SessionId}),
 %% @@see //stdlib/gen_fsm:StateName/3
 %% @private
 %%
-idle(Request, From, #statedata{session_id = SessionId,
-		nas_host = NasHost, nas_realm = NasRealm} = StateData)
+idle(Request, From, #statedata{session_id = SessionId} = StateData)
 		when is_record(Request, '3gpp_sta_STR');
 		is_record(Request, '3gpp_swm_STR') ->
-	Identity = case Request of
-		#'3gpp_sta_STR'{'User-Name' = [UserName]} ->
-			UserName;
-		#'3gpp_swm_STR'{'User-Name' = [UserName]} ->
-			UserName
+	{Identity, NasRealm, NasHost} = case Request of
+		#'3gpp_sta_STR'{'User-Name' = [UserName],
+				'Origin-Realm' = OR, 'Origin-Host' = OH} ->
+			{UserName, OR, OH};
+		#'3gpp_swm_STR'{'User-Name' = [UserName],
+				'Origin-Realm' = OR, 'Origin-Host' = OH} ->
+			{UserName, OR, OH}
 	end,
 	IMSI = case Identity of
 		<<?PERM_AKA, PermanentID/binary>> ->
@@ -161,7 +160,9 @@ idle(Request, From, #statedata{session_id = SessionId,
 			ocs_eap_aka:compressed_imsi(CompressedIMSI)
 %		<<?FAST_AKA:6, _/bits>> ->
 	end,
-	NewStateData = StateData#statedata{imsi = IMSI, identity = Identity},
+	NewStateData = StateData#statedata{request = Request,
+			from = From, nas_realm = NasRealm, nas_host = NasHost,
+			imsi = IMSI, identity = Identity},
 	F = fun() ->
 			case mnesia:read(session, SessionId, write) of
 				[#session{imsi = IMSI, hss_realm = undefined}] ->
@@ -183,15 +184,16 @@ idle(Request, From, #statedata{session_id = SessionId,
 			{next_state, deregister, NextStateData, ?TIMEOUT};
 		{atomic, not_found} ->
 			ResultCode = ?'DIAMETER_BASE_RESULT-CODE_UNKNOWN_SESSION_ID',
-			Reply = response(ResultCode, StateData),
-			{stop, shutdown, Reply, StateData};
+			Reply = response(ResultCode, NewStateData),
+			{stop, shutdown, Reply, NewStateData};
 		{aborted, Reason} ->
 			error_logger:error_report(["Failed user lookup",
 					{nas_host, NasHost}, {nas_realm, NasRealm},
-					{imsi, IMSI}, {session, SessionId}, {error, Reason}]),
+					{imsi, IMSI}, {identity, Identity},
+					{session, SessionId}, {error, Reason}]),
 			ResultCode = ?'DIAMETER_BASE_RESULT-CODE_UNABLE_TO_COMPLY',
-			Reply = response(ResultCode, StateData),
-			{stop, Reason, Reply, StateData}
+			Reply = response(ResultCode, NewStateData),
+			{stop, Reason, Reply, NewStateData}
 	end.
 
 -spec deregister(Event, StateData) -> Result
@@ -220,36 +222,42 @@ deregister({ok, #'3gpp_swx_SAA'{'Result-Code'
 deregister({ok, #'3gpp_swx_SAA'{'Experimental-Result'
 		= [#'3gpp_Experimental-Result'{'Experimental-Result-Code'
 		= ?'DIAMETER_ERROR_IDENTITY_NOT_REGISTERED'}]} = _Answer},
-		#statedata{session_id = SessionId, identity = Identity,
+		#statedata{session_id = SessionId, imsi = IMSI, identity = Identity,
+		nas_realm = NasRealm, nas_host = NasHost,
 		hss_realm = HssRealm, hss_host = HssHost,
 		from = Caller} = StateData) ->
 	error_logger:warning_report(["Identity not registered",
+			{nas_host, NasHost}, {nas_realm, NasRealm},
 			{hss_host, HssHost}, {hss_realm, HssRealm},
-			{imsi, Identity}, {session, SessionId},
+			{imsi, IMSI}, {identity, Identity}, {session, SessionId},
 			{result, ?'DIAMETER_ERROR_IDENTITY_NOT_REGISTERED'}]),
 	ResultCode = ?'DIAMETER_BASE_RESULT-CODE_SUCCESS',
 	gen_fsm:reply(Caller, response(ResultCode, StateData)),
 	deregister1(StateData);
 deregister({ok, #'3gpp_swx_SAA'{'Result-Code' = [ResultCode]} = _Answer},
-		#statedata{session_id = SessionId, identity = Identity,
+		#statedata{session_id = SessionId, imsi = IMSI, identity = Identity,
+		nas_realm = NasRealm, nas_host = NasHost,
 		hss_realm = HssRealm, hss_host = HssHost,
 		from = Caller} = StateData) ->
 	error_logger:error_report(["Unexpected deregistration result",
+			{nas_host, NasHost}, {nas_realm, NasRealm},
 			{hss_host, HssHost}, {hss_realm, HssRealm},
-			{imsi, Identity}, {session, SessionId},
-			{result, ResultCode}]),
+			{imsi, IMSI}, {identity, Identity},
+			{session, SessionId}, {result, ResultCode}]),
 	ResultCode = ?'DIAMETER_BASE_RESULT-CODE_UNABLE_TO_COMPLY',
 	gen_fsm:reply(Caller, response(ResultCode, StateData)),
 	{stop, shutdown, StateData};
 deregister({ok, #'3gpp_swx_SAA'{'Experimental-Result'
 		= [#'3gpp_Experimental-Result'{'Experimental-Result-Code' = ResultCode1}]}},
-		#statedata{session_id = SessionId, identity = Identity,
+		#statedata{session_id = SessionId, imsi = IMSI, identity = Identity,
+		nas_realm = NasRealm, nas_host = NasHost,
 		hss_realm = HssRealm, hss_host = HssHost,
 		from = Caller} = StateData) ->
 	error_logger:error_report(["Unexpected deregistration result",
+			{nas_host, NasHost}, {nas_realm, NasRealm},
 			{hss_host, HssHost}, {hss_realm, HssRealm},
-			{imsi, Identity}, {session, SessionId},
-			{result, ResultCode1}]),
+			{imsi, IMSI}, {identity, Identity},
+			{session, SessionId}, {result, ResultCode1}]),
 	ResultCode2 = ?'DIAMETER_BASE_RESULT-CODE_UNABLE_TO_COMPLY',
 	gen_fsm:reply(Caller, response(ResultCode2, StateData)),
 	{stop, shutdown, StateData}.
