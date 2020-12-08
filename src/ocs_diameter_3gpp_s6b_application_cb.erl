@@ -20,7 +20,6 @@
 %%% 	for 3GPP DIAMETER S6b in the {@link //ocs. ocs} application.
 %%%
 %%% @reference 3GPP TS TS 29.273 EPS AAA Interfaces
-%%% @reference 3GPP TS TS 33.402 Security Aspects of non-3GPP Accesses
 %%%
 -module(ocs_diameter_3gpp_s6b_application_cb).
 -copyright('Copyright (c) 2016 - 2020 SigScale Global Inc.').
@@ -31,16 +30,12 @@
 
 -include_lib("diameter/include/diameter.hrl").
 -include_lib("diameter/include/diameter_gen_base_rfc6733.hrl").
--include("diameter_gen_ietf.hrl").
--include("diameter_gen_nas_application_rfc7155.hrl").
--include("diameter_gen_eap_application_rfc4072.hrl").
 -include("diameter_gen_3gpp.hrl").
 -include("diameter_gen_3gpp_s6b_application.hrl").
 -include("ocs.hrl").
 
 -record(state, {}).
 
--define(EPOCH_OFFSET, 2208988800).
 -define(S6b_APPLICATION_ID, 16777272).
 
 -type state() :: #state{}.
@@ -99,17 +94,8 @@ pick_peer([Peer | _] = _LocalCandidates, _RemoteCandidates, _ServiceName, _State
 		Reason :: term(),
 		PostF :: diameter:evaluable().
 %% @doc Invoked to return a request for encoding and transport 
-prepare_request(#diameter_packet{msg = ['RAR' = T | Avps]} = _Packet,
-		_ServiceName, {_, Caps} = _Peer) ->
-	#diameter_caps{origin_host = {OH, DH}, origin_realm = {OR, DR}} = Caps,
-	{send, [T, {'Origin-Host', OH}, {'Origin-Realm', OR},
-			{'Destination-Host', DH}, {'Destination-Realm', DR} | Avps]};
-prepare_request(#diameter_packet{msg = Record} = _Packet,
-		_ServiceName, {_, Caps} = _Peer) ->
-	#diameter_caps{origin_host = {OH, DH}, origin_realm = {OR, DR}} = Caps,
-	ASR = Record#diameter_base_ASR{'Origin-Host' = OH, 'Origin-Realm' = OR,
-	'Destination-Host' = DH, 'Destination-Realm' = DR},
-	{send, ASR}.
+prepare_request(Packet, _ServiceName,  _Peer) ->
+	{send, Packet}.
 
 -spec prepare_retransmit(Packet, ServiceName, Peer) -> Action
 	when
@@ -190,88 +176,96 @@ handle_request(#diameter_packet{msg = Request, errors = Errors} = _Packet,
 %% 	to the authorization port server matching the service the
 %% 	request was received on.
 %% @private
-request(ServiceName, Capabilities, Request) ->
-	#diameter_caps{host_ip_address = {_, HostIpAddresses}} = Capabilities,
-	request(ServiceName, Capabilities, Request, HostIpAddresses).
+request(ServiceName, #diameter_caps{origin_host = {OHost, DHost},
+		origin_realm = {ORealm, DRealm},
+		host_ip_address = {_, ClientAddresses}} = Capabilities,
+		Request) ->
+	[Info] = diameter:service_info(ServiceName, transport),
+	{options, Options} = lists:keyfind(options, 1, Info),
+	{ServerAddress, ServerPort} = case lists:keyfind(transport_config,
+			1, Options) of
+		{transport_config, TcpOpts} ->
+			{ip, IP} = lists:keyfind(ip, 1, TcpOpts),
+			{port, Port} = lists:keyfind(port, 1, TcpOpts),
+			{IP, Port};
+		{transport_config, SctpOpts, _} ->
+			{ip, IP} = lists:keyfind(ip, 1, SctpOpts),
+			{port, Port} = lists:keyfind(port, 1, SctpOpts),
+			{IP, Port}
+	end,
+	request(ServiceName, Capabilities, ServerAddress, ServerPort,
+			OHost, ORealm, DHost, DRealm, Request, ClientAddresses).
 %% @hidden
-request(ServiceName, Capabilities, Request, [H | T]) ->
+request(ServiceName, Capabilities, ServerAddress, ServerPort,
+		OHost, ORealm, DHost, DRealm, Request, [H | T]) ->
 	case ocs:find_client(H) of
-		{ok, #client{protocol = diameter, port = Port,
-				password_required = PasswordReq, trusted = Trusted}} ->
-			process_request(ServiceName, Capabilities, Request,
-					H, Port, PasswordReq, Trusted);
+		{ok, #client{protocol = diameter}} ->
+			process_request(ServiceName, ServerAddress, ServerPort,
+					H, OHost, ORealm, DHost, DRealm, Request);
 		{error, not_found} ->
-			request(ServiceName, Capabilities, Request, T)
+			request(ServiceName, Capabilities, ServerAddress, ServerPort,
+					OHost, ORealm, DHost, DRealm, Request, T)
 	end;
-request(ServiceName, Capabilities, Request, []) ->
+request(ServiceName, Capabilities, _, _, _, _, _, _, Request, []) ->
 	errors(ServiceName, Capabilities, Request, [?'DIAMETER_BASE_RESULT-CODE_UNKNOWN_PEER']).
 
--spec process_request(ServiceName, Capabilities, Request,
-		Address, Port, PasswordReq, Trusted) -> Result when
+-spec process_request(ServiceName, ServerAddress, ServerPort,
+		ClientAddress, OHost, ORealm, DHost, DRealm, Request) -> Result
+	when
 		ServiceName :: term(),
-		Capabilities :: capabilities(),
+		ServerAddress :: inet:ip_address(),
+		ServerPort :: inet:ip_port(),
+		ClientAddress :: inet:ip_address(),
+		OHost :: diameter:'DiameterIdentity'(),
+		ORealm :: diameter:'DiameterIdentity'(),
+		DHost :: diameter:'DiameterIdentity'(),
+		DRealm :: diameter:'DiameterIdentity'(),
 		Request :: #'3gpp_s6b_AAR'{} | #'3gpp_s6b_STR'{},
-		Address :: inet:ip_address(),
-		Port :: inet:port(),
-		PasswordReq :: boolean(),
-		Trusted :: boolean(),
 		Result :: {reply, packet()} | discard.
 %% @doc Process a received DIAMETER Authorization packet.
 %% @private
-process_request(ServiceName, #diameter_caps{origin_host = {OHost, _DHost},
-		origin_realm = {ORealm, _DRealm}} = Capabilities,
-		#'3gpp_s6b_AAR'{'Session-Id' = SId,
-				'Auth-Application-Id' = ?S6b_APPLICATION_ID} = Request,
-		Address, Port, PasswordReq, Trusted) ->
+process_request(ServiceName, ServerAddress, ServerPort, ClientAddress,
+		OHost, ORealm, DHost, DRealm,
+		#'3gpp_s6b_AAR'{'Session-Id' = SessionId,
+				'Auth-Application-Id' = ?S6b_APPLICATION_ID} = Request) ->
 	try
-		process_request1(ServiceName, Capabilities,
-				Request, Address, Port, PasswordReq, Trusted)
+		process_request1(ServiceName,
+				ServerAddress, ServerPort, ClientAddress,
+				OHost, ORealm, DHost, DRealm, SessionId, Request)
 	catch
 		_:_Reason ->
-			{reply, #'3gpp_s6b_AAA'{'Session-Id' = SId,
-					'Result-Code' = ?'DIAMETER_BASE_RESULT-CODE_INVALID_AVP_BITS',
-					'Origin-Host' = OHost, 'Origin-Realm' = ORealm,
-					'Auth-Application-Id' = ?S6b_APPLICATION_ID}}
+			{reply, #'3gpp_s6b_AAA'{'Session-Id' = SessionId,
+					'Result-Code' = ?'DIAMETER_BASE_RESULT-CODE_UNABLE_TO_COMPLY',
+					'Origin-Host' = OHost, 'Origin-Realm' = ORealm}}
 	end;
-process_request(ServiceName, #diameter_caps{origin_host = {OHost, _DHost},
-		origin_realm = {ORealm, _DRealm}} = Capabilities,
-		#'3gpp_s6b_STR'{'Session-Id' = SId,
-				'Auth-Application-Id' = ?S6b_APPLICATION_ID} = Request,
-		Address, Port, PasswordReq, Trusted) ->
+process_request(ServiceName, ServerAddress, ServerPort, ClientAddress,
+		OHost, ORealm, DHost, DRealm,
+		#'3gpp_s6b_STR'{'Session-Id' = SessionId,
+				'Auth-Application-Id' = ?S6b_APPLICATION_ID} = Request) ->
 	try
-		process_request1(ServiceName, Capabilities,
-				Request, Address, Port, PasswordReq, Trusted)
+		process_request1(ServiceName,
+				ServerAddress, ServerPort, ClientAddress,
+				OHost, ORealm, DHost, DRealm, SessionId, Request)
 	catch
 		_:_Reason ->
-			{reply, #'3gpp_s6b_STA'{'Session-Id' = SId,
-					'Result-Code' = ?'DIAMETER_BASE_RESULT-CODE_INVALID_AVP_BITS',
+			{reply, #'3gpp_s6b_STA'{'Session-Id' = SessionId,
+					'Result-Code' = ?'DIAMETER_BASE_RESULT-CODE_UNABLE_TO_COMPLY',
 					'Origin-Host' = OHost, 'Origin-Realm' = ORealm}}
 	end.
 %% @hidden
-process_request1(ServiceName, Capabilities,
-		Request, Address, Port, PasswordReq, Trusted) ->
-	[Info] = diameter:service_info(ServiceName, transport),
-	case lists:keyfind(options, 1, Info) of
-		{options, Options} ->
-			case lists:keyfind(transport_config, 1, Options) of
-				{transport_config, TC} ->
-					{ip, Sip} = lists:keyfind(ip, 1, TC),
-					{port, Sport} = lists:keyfind(port, 1, TC),
-					case global:whereis_name({ocs_diameter_auth, Sip, Sport}) of
-						undefined ->
-							discard;
-						PortServer ->
-							Answer = gen_server:call(PortServer,
-									{diameter_request, Capabilities,
-											Address, Port, PasswordReq, Trusted,
-											Request, none}),
-							{reply, Answer}
-					end;
-				false ->
-					discard
-			end;
-		false ->
-			discard
+process_request1(ServiceName, ServerAddress, ServerPort, ClientAddress,
+		OHost, ORealm, DHost, DRealm, SessionId, Request) ->
+	Sup = global:whereis_name({ocs_pgw_fsm_sup,
+			ServerAddress, ServerPort}),
+	ChildSpec = [[ServiceName, ServerAddress, ServerPort, ClientAddress,
+			undefined, SessionId, OHost, ORealm, DHost, DRealm], []],
+	case supervisor:start_child(Sup, ChildSpec) of
+		{ok, Fsm} ->
+			{reply, gen_fsm:sync_send_event(Fsm, Request)};
+		{error, Reason} ->
+			error_logger:error_report(["Error starting PGW session handler",
+					{error, Reason}, {supervisor, Sup}, {session_id, SessionId}]),
+			throw(Reason)
 	end.
 
 -spec errors(ServiceName, Capabilities, Request, Errors) -> Action

@@ -1763,7 +1763,7 @@ roaming_table_data(Config) ->
 	SNPrefix = ocs:generate_identity(),
 	ok = file:write(File, SNPrefix ++ "," ++ ocs:generate_password() ++
 			"," ++ integer_to_list(rand:uniform(100)) ++ "\n"),
-	ok = ocs:import(CsvFile, data),
+	ok = ocs_gtt:import(CsvFile),
 	PackageSize = 200,
 	PackageUnits = octets,
 	CharValueUse = [#char_value_use{name = "roamingTable",

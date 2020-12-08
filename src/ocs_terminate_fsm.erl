@@ -31,7 +31,7 @@
 -export([]).
 
 %% export the ocs_terminate_fsm state callbacks
--export([idle/2, deregister/2]).
+-export([idle/3, deregister/2]).
 
 %% export the call backs needed for gen_fsm behaviour
 -export([init/1, handle_event/3, handle_sync_event/4, handle_info/3,
@@ -53,10 +53,11 @@
 -define(STa_APPLICATION, ocs_diameter_3gpp_sta_application).
 -define(SWm_APPLICATION, ocs_diameter_3gpp_swm_application).
 -define(SWx_APPLICATION, ocs_diameter_3gpp_swx_application).
--define(TIMEOUT, 5000).
+-define(TIMEOUT, 10000).
 
 -record(statedata,
 		{identity :: binary() | undefined,
+		imsi :: binary() | undefined,
 		origin_host :: binary(),
 		origin_realm :: binary(),
 		server_address :: inet:ip_address(),
@@ -70,12 +71,16 @@
 		nas_realm :: string() | undefined,
 		nas_address :: inet:ip_address() | undefined,
 		request :: #'3gpp_sta_STR'{} | #'3gpp_swm_STR'{},
-		session_id :: string()}).
+		session_id :: string(),
+		from :: {pid(), reference()} | undefined}).
 -type statedata() :: #statedata{}.
 
-%% support deprecated_time_unit()
--define(MILLISECOND, milli_seconds).
-%-define(MILLISECOND, millisecond).
+%% 3GPP TS 23.003 19.3.2 Root NAI
+-define(PERM_AKA,  $0).
+%% 3GPP TS 23.003 19.3.4 Fast Re-auth
+-define(FAST_AKA,  $4).
+%% 3GPP TS 23.003 19.3.5 Pseudonym
+-define(TEMP_AKA,  $2).
 
 %%----------------------------------------------------------------------
 %%  The ocs_terminate_fsm API
@@ -100,51 +105,69 @@
 %% @see //stdlib/gen_fsm:init/1
 %% @private
 %%
-init([ServerAddress, ServerPort, ClientAddress, ClientPort, SessionId,
-		OriginHost, OriginRealm, DestinationHost, DestinationRealm,
-		Request] = _Args) ->
-	Service = {ocs_diameter_auth, ServerAddress, ServerPort},
+init([ServiceName, ServerAddress, ServerPort, ClientAddress,
+		ClientPort, SessionId, OriginHost, OriginRealm,
+		_DestinationHost, _DestinationRealm] = _Args) ->
 	process_flag(trap_exit, true),
-	{ok, idle, #statedata{service = Service,
+	{ok, idle, #statedata{service = ServiceName,
 			server_address = ServerAddress, server_port = ServerPort,
 			client_address = ClientAddress, client_port = ClientPort,
-			session_id = SessionId, request = Request,
-			origin_host = OriginHost, origin_realm = OriginRealm,
-			nas_host = DestinationHost, nas_realm = DestinationRealm}, 0}.
+			session_id = SessionId,
+			origin_host = OriginHost, origin_realm = OriginRealm}}.
 
--spec idle(Event, StateData) -> Result
+-spec idle(Event, From, StateData) -> Result
 	when
 		Event :: timeout | term(),
+		From :: {pid(), reference()},
 		StateData :: statedata(),
-		Result :: {next_state, NextStateName, NewStateData}
-				| {next_state, NextStateName, NewStateData, Timeout}
-				| {next_state, NextStateName, NewStateData, hibernate}
-				| {stop, Reason, NewStateData},
+		Result :: {reply, Reply, NextStateName, NewStateData}
+			| {reply, Reply, NextStateName, NewStateData, Timeout}
+			| {reply, Reply, NextStateName, NewStateData, hibernate}
+			| {next_state, NextStateName, NewStateData}
+			| {next_state, NextStateName, NewStateData, Timeout}
+			| {next_state, NextStateName, NewStateData, hibernate}
+			| {stop, Reason, Reply, NewStateData}
+			| {stop, Reason, NewStateData},
+		Reply :: term(),
 		NextStateName :: atom(),
 		NewStateData :: statedata(),
 		Timeout :: non_neg_integer() | infinity,
 		Reason :: normal | term().
-%% @doc Handle events sent with {@link //stdlib/gen_fsm:send_event/2.
-%%		gen_fsm:send_event/2} in the <b>idle</b> state.
-%% @@see //stdlib/gen_fsm:StateName/2
+%% @doc Handle events sent with {@link //stdlib/gen_fsm:sync_send_event/2.
+%%		gen_fsm:sync_send_event/2} in the <b>idle</b> state.
+%% @@see //stdlib/gen_fsm:StateName/3
 %% @private
 %%
-idle(timeout, #statedata{request = Request,
-			session_id = SessionId} = StateData)
+idle(Request, From, #statedata{session_id = SessionId} = StateData)
 		when is_record(Request, '3gpp_sta_STR');
 		is_record(Request, '3gpp_swm_STR') ->
-	Identity = case Request of
-		#'3gpp_sta_STR'{'User-Name' = [UserName]} ->
-			UserName;
-		#'3gpp_swm_STR'{'User-Name' = [UserName]} ->
-			UserName
+	{Identity, NasRealm, NasHost} = case Request of
+		#'3gpp_sta_STR'{'User-Name' = [UserName],
+				'Origin-Realm' = OR, 'Origin-Host' = OH} ->
+			{UserName, OR, OH};
+		#'3gpp_swm_STR'{'User-Name' = [UserName],
+				'Origin-Realm' = OR, 'Origin-Host' = OH} ->
+			{UserName, OR, OH}
 	end,
-	NewStateData = StateData#statedata{identity = Identity},
+	IMSI = case Identity of
+		<<?PERM_AKA, PermanentID/binary>> ->
+			[H | _] = binary:split(PermanentID, <<$@>>, []),
+			H;
+		<<?TEMP_AKA:6, _/bits>> ->
+			{ok, Keys} = application:get_env(aka_kpseu),
+			[Pseudonym | _] = binary:split(Identity, <<$@>>, []),
+			CompressedIMSI = ocs_eap_aka:decrypt_imsi(Pseudonym, Keys),
+			ocs_eap_aka:compressed_imsi(CompressedIMSI)
+%		<<?FAST_AKA:6, _/bits>> ->
+	end,
+	NewStateData = StateData#statedata{request = Request,
+			from = From, nas_realm = NasRealm, nas_host = NasHost,
+			imsi = IMSI, identity = Identity},
 	F = fun() ->
 			case mnesia:read(session, SessionId, write) of
-				[#session{imsi = Identity, hss_realm = undefined}] ->
+				[#session{imsi = IMSI, hss_realm = undefined}] ->
 					mnesia:delete(session, SessionId, write);
-				[#session{imsi = Identity, hss_realm = HR, hss_host = HH}] ->
+				[#session{imsi = IMSI, hss_realm = HR, hss_host = HH}] ->
 					{HR, HH};
 				[] ->
 					not_found
@@ -152,18 +175,25 @@ idle(timeout, #statedata{request = Request,
 	end,
 	case mnesia:transaction(F) of
 		{atomic, ok} ->
-			send_diameter_response(?'DIAMETER_BASE_RESULT-CODE_SUCCESS', NewStateData),
-			{stop, {shutdown, SessionId}, NewStateData};
+			response(?'DIAMETER_BASE_RESULT-CODE_SUCCESS', NewStateData),
+			{stop, shutdown, NewStateData};
 		{atomic, {HssRealm, HssHost}} ->
-			NextStateData = StateData#statedata{hss_realm = HssRealm, hss_host = HssHost},
-			send_diameter_deregister(NextStateData),
+			NextStateData = NewStateData#statedata{hss_realm = HssRealm,
+					hss_host = HssHost},
+			send_deregister(NextStateData),
 			{next_state, deregister, NextStateData, ?TIMEOUT};
 		{atomic, not_found} ->
-			send_diameter_response(?'DIAMETER_BASE_RESULT-CODE_UNKNOWN_SESSION_ID', NewStateData),
-			{stop, {shutdown, SessionId}, NewStateData};
+			ResultCode = ?'DIAMETER_BASE_RESULT-CODE_UNKNOWN_SESSION_ID',
+			Reply = response(ResultCode, NewStateData),
+			{stop, shutdown, Reply, NewStateData};
 		{aborted, Reason} ->
-			send_diameter_response(?'DIAMETER_BASE_RESULT-CODE_UNABLE_TO_COMPLY', NewStateData),
-			{stop, Reason, NewStateData}
+			error_logger:error_report(["Failed user lookup",
+					{nas_host, NasHost}, {nas_realm, NasRealm},
+					{imsi, IMSI}, {identity, Identity},
+					{session, SessionId}, {error, Reason}]),
+			ResultCode = ?'DIAMETER_BASE_RESULT-CODE_UNABLE_TO_COMPLY',
+			Reply = response(ResultCode, NewStateData),
+			{stop, Reason, Reply, NewStateData}
 	end.
 
 -spec deregister(Event, StateData) -> Result
@@ -183,43 +213,60 @@ idle(timeout, #statedata{request = Request,
 %% @@see //stdlib/gen_fsm:StateName/2
 %% @private
 %%
-deregister(#'3gpp_swx_SAA'{'Result-Code'
-		= [?'DIAMETER_BASE_RESULT-CODE_SUCCESS']} = _Answer, StateData) ->
-	send_diameter_response(?'DIAMETER_BASE_RESULT-CODE_SUCCESS', StateData),
+deregister({ok, #'3gpp_swx_SAA'{'Result-Code'
+		= [?'DIAMETER_BASE_RESULT-CODE_SUCCESS']} = _Answer},
+		#statedata{from = Caller} = StateData) ->
+	ResultCode = ?'DIAMETER_BASE_RESULT-CODE_SUCCESS',
+	gen_fsm:reply(Caller, response(ResultCode, StateData)),
 	deregister1(StateData);
-deregister(#'3gpp_swx_SAA'{'Experimental-Result'
-		= [?'DIAMETER_ERROR_IDENTITY_NOT_REGISTERED']} = _Answer,
-		#statedata{session_id = SessionId, identity = Identity,
-		hss_realm = HssRealm, hss_host = HssHost} = StateData) ->
-	error_logger:error_report(["Identity not registered",
-			{imsi, Identity}, {hss_realm, HssRealm},
-			{hss_host, HssHost}, {session, SessionId}]),
-	send_diameter_response(?'DIAMETER_BASE_RESULT-CODE_SUCCESS', StateData),
+deregister({ok, #'3gpp_swx_SAA'{'Experimental-Result'
+		= [#'3gpp_Experimental-Result'{'Experimental-Result-Code'
+		= ?'DIAMETER_ERROR_IDENTITY_NOT_REGISTERED'}]} = _Answer},
+		#statedata{session_id = SessionId, imsi = IMSI, identity = Identity,
+		nas_realm = NasRealm, nas_host = NasHost,
+		hss_realm = HssRealm, hss_host = HssHost,
+		from = Caller} = StateData) ->
+	error_logger:warning_report(["Identity not registered",
+			{nas_host, NasHost}, {nas_realm, NasRealm},
+			{hss_host, HssHost}, {hss_realm, HssRealm},
+			{imsi, IMSI}, {identity, Identity}, {session, SessionId},
+			{result, ?'DIAMETER_ERROR_IDENTITY_NOT_REGISTERED'}]),
+	ResultCode = ?'DIAMETER_BASE_RESULT-CODE_SUCCESS',
+	gen_fsm:reply(Caller, response(ResultCode, StateData)),
 	deregister1(StateData);
-deregister(#'3gpp_swx_SAA'{'Result-Code' = [ResultCode]} = _Answer,
-		#statedata{session_id = SessionId, identity = Identity,
-		hss_realm = HssRealm, hss_host = HssHost} = StateData) ->
+deregister({ok, #'3gpp_swx_SAA'{'Result-Code' = [ResultCode]} = _Answer},
+		#statedata{session_id = SessionId, imsi = IMSI, identity = Identity,
+		nas_realm = NasRealm, nas_host = NasHost,
+		hss_realm = HssRealm, hss_host = HssHost,
+		from = Caller} = StateData) ->
 	error_logger:error_report(["Unexpected deregistration result",
-			{imsi, Identity}, {hss_realm, HssRealm},
-			{hss_host, HssHost}, {session, SessionId},
-			{result, ResultCode}]),
-	send_diameter_response(?'DIAMETER_BASE_RESULT-CODE_UNABLE_TO_COMPLY', StateData),
-	{stop, {shutdown, SessionId}, StateData};
-deregister(#'3gpp_swx_SAA'{'Experimental-Result' = [ResultCode]} = _Answer,
-		#statedata{session_id = SessionId, identity = Identity,
-		hss_realm = HssRealm, hss_host = HssHost} = StateData) ->
+			{nas_host, NasHost}, {nas_realm, NasRealm},
+			{hss_host, HssHost}, {hss_realm, HssRealm},
+			{imsi, IMSI}, {identity, Identity},
+			{session, SessionId}, {result, ResultCode}]),
+	ResultCode = ?'DIAMETER_BASE_RESULT-CODE_UNABLE_TO_COMPLY',
+	gen_fsm:reply(Caller, response(ResultCode, StateData)),
+	{stop, shutdown, StateData};
+deregister({ok, #'3gpp_swx_SAA'{'Experimental-Result'
+		= [#'3gpp_Experimental-Result'{'Experimental-Result-Code' = ResultCode1}]}},
+		#statedata{session_id = SessionId, imsi = IMSI, identity = Identity,
+		nas_realm = NasRealm, nas_host = NasHost,
+		hss_realm = HssRealm, hss_host = HssHost,
+		from = Caller} = StateData) ->
 	error_logger:error_report(["Unexpected deregistration result",
-			{imsi, Identity}, {hss_realm, HssRealm},
-			{hss_host, HssHost}, {session, SessionId},
-			{result, ResultCode}]),
-	send_diameter_response(?'DIAMETER_BASE_RESULT-CODE_UNABLE_TO_COMPLY', StateData),
-	{stop, {shutdown, SessionId}, StateData}.
+			{nas_host, NasHost}, {nas_realm, NasRealm},
+			{hss_host, HssHost}, {hss_realm, HssRealm},
+			{imsi, IMSI}, {identity, Identity},
+			{session, SessionId}, {result, ResultCode1}]),
+	ResultCode2 = ?'DIAMETER_BASE_RESULT-CODE_UNABLE_TO_COMPLY',
+	gen_fsm:reply(Caller, response(ResultCode2, StateData)),
+	{stop, shutdown, StateData}.
 %% @hidden
 deregister1(#statedata{session_id = SessionId} = StateData) ->
 	F = fun() -> mnesia:delete(session, SessionId, write) end,
 	case mnesia:transaction(F) of
 		{atomic, ok} ->
-			{stop, {shutdown, SessionId}, StateData};
+			{stop, shutdown, StateData};
 		{aborted, Reason} ->
 			{stop, Reason, StateData}
 	end.
@@ -329,15 +376,16 @@ code_change(_OldVsn, StateName, StateData, _Extra) ->
 %%  internal functions
 %%----------------------------------------------------------------------
 
--spec send_diameter_response(ResultCode, StateData) -> ok
+-spec response(ResultCode, StateData) -> Answer
 	when
 		ResultCode :: pos_integer(),
-		StateData :: #statedata{}.
-%% @doc Send DIAMETER response.
+		StateData :: #statedata{},
+		Answer ::  #'3gpp_sta_STA'{} | #'3gpp_swm_STA'{}.
+%% @doc Send DIAMETER Session-Termination-Answer (STA) response.
 %% @hidden
-send_diameter_response(ResultCode,
+response(ResultCode,
 		#statedata{request = #'3gpp_sta_STR'{} = Request,
-		session_id = SessionId, service = Service,
+		session_id = SessionId,
 		server_address = ServerAddress, server_port = ServerPort,
 		client_address = ClientAddress, client_port = ClientPort,
 		origin_host = OriginHost, origin_realm = OriginRealm} = _StateData)
@@ -350,10 +398,10 @@ send_diameter_response(ResultCode,
 			'Origin-Host' = OriginHost,
 			'Origin-Realm' = OriginRealm},
 	ok = ocs_log:auth_log(diameter, Server, Client, Request, Answer),
-	gen_server:cast(Service, {self(), Answer});
-send_diameter_response(ResultCode,
+	Answer;
+response(ResultCode,
 		#statedata{request = #'3gpp_swm_STR'{} = Request,
-		session_id = SessionId, service = Service,
+		session_id = SessionId,
 		server_address = ServerAddress, server_port = ServerPort,
 		client_address = ClientAddress, client_port = ClientPort,
 		origin_host = OriginHost, origin_realm = OriginRealm} = _StateData)
@@ -366,24 +414,28 @@ send_diameter_response(ResultCode,
 			'Origin-Host' = OriginHost,
 			'Origin-Realm' = OriginRealm},
 	ok = ocs_log:auth_log(diameter, Server, Client, Request, Answer),
-	gen_server:cast(Service, {self(), Answer}).
+	Answer.
 
--spec send_diameter_deregister(StateData) -> Result
+-spec send_deregister(StateData) -> Result
 	when
 		StateData :: #statedata{},
 		Result :: ok | {error, Reason},
 		Reason :: term().
 %% @doc Send DIAMETER Server-Assignment-Request (SAR) deregistration. 
 %% @hidden
-send_diameter_deregister(#statedata{identity = Identity,
+send_deregister(#statedata{imsi = IMSI,
 		origin_host = OriginHost, origin_realm = OriginRealm,
-		nas_host = NasHost, nas_realm = NasRealm,
+		hss_host = HssHost, hss_realm = HssRealm,
 		service = Service} = _StateData) ->
 	SessionId = diameter:session_id([OriginHost]),
 	Request = #'3gpp_swx_SAR'{'Session-Id' = SessionId,
-			'User-Name' = [Identity], 'Origin-Realm' = OriginRealm,
-			'Origin-Host' = OriginHost, 'Destination-Realm' = NasRealm,
-			'Destination-Host' = NasHost,
+			'User-Name' = [IMSI],
+			'Origin-Realm' = OriginRealm, 'Origin-Host' = OriginHost,
+			'Destination-Realm' = HssRealm, 'Destination-Host' = [HssHost],
+			'Vendor-Specific-Application-Id' = #'3gpp_swx_Vendor-Specific-Application-Id'{
+					'Vendor-Id' = ?IANA_PEN_3GPP,
+					'Auth-Application-Id' = [?SWx_APPLICATION_ID]},
+			'Auth-Session-State' = ?'DIAMETER_BASE_AUTH-SESSION-STATE_NO_STATE_MAINTAINED',
 			'Server-Assignment-Type' = ?'3GPP_SWX_SERVER-ASSIGNMENT-TYPE_USER_DEREGISTRATION'},
 	diameter:call(Service, ?SWx_APPLICATION,
 			Request, [detach, {extra, [self()]}]).

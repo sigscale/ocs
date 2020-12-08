@@ -46,8 +46,6 @@
 -include("diameter_gen_eap_application_rfc4072.hrl").
 -include("diameter_gen_3gpp_sta_application.hrl").
 -include("diameter_gen_3gpp_swm_application.hrl").
--include("diameter_gen_3gpp_s6b_application.hrl").
--include("diameter_gen_3gpp_swx_application.hrl").
 -include("ocs_eap_codec.hrl").
 -include("ocs.hrl").
 
@@ -62,9 +60,6 @@
 		aka_sup :: undefined | pid(),
 		akap_sup :: undefined | pid(),
 		pwd_sup :: undefined | pid(),
-		dereg_sup :: undefined | pid(),
-		term_sup :: undefined | pid(),
-		pgw_sup :: undefined | pid(),
 		cb_fsms = gb_trees:empty() :: gb_trees:tree(
 				Key :: (AuthFsm :: pid()), Value :: (CbProc :: pid())),
 		handlers = gb_trees:empty() :: gb_trees:tree(
@@ -178,13 +173,9 @@ handle_info(timeout, #state{auth_port_sup = AuthPortSup} = State) ->
 	{_, TtlsSup, _, _} = lists:keyfind(ocs_eap_ttls_fsm_sup_sup, 1, Children),
 	{_, AkaSup, _, _} = lists:keyfind(ocs_eap_aka_fsm_sup_sup, 1, Children),
 	{_, AkapSup, _, _} = lists:keyfind(ocs_eap_akap_fsm_sup_sup, 1, Children),
-	{_, DeregSup, _, _} = lists:keyfind(ocs_deregister_fsm_sup, 1, Children),
-	{_, TermSup, _, _} = lists:keyfind(ocs_deregister_fsm_sup, 1, Children),
-	{_, PgwSup, _, _} = lists:keyfind(ocs_pgw_fsm_sup, 1, Children),
 	NewState = State#state{simple_auth_sup = SimpleAuthSup,
 			pwd_sup = PwdSup, ttls_sup = TtlsSup,
-			aka_sup = AkaSup, akap_sup = AkapSup,
-			dereg_sup = DeregSup, term_sup = TermSup, pgw_sup = PgwSup},
+			aka_sup = AkaSup, akap_sup = AkapSup},
 	{noreply, NewState};
 handle_info({'EXIT', Fsm, {shutdown, SessionId}},
 		#state{handlers = Handlers} = State) ->
@@ -258,13 +249,13 @@ code_change(_OldVsn, State, _Extra) ->
 		Trusted :: boolean(),
 		Request :: #diameter_nas_app_AAR{} | #diameter_nas_app_STR{}
 				| #diameter_eap_app_DER{} | #'3gpp_sta_DER'{}
-				| #'3gpp_swm_DER'{} | #'3gpp_s6b_AAR'{},
+				| #'3gpp_swm_DER'{},
 		CbProc :: {pid(), term()},
 		State :: state(),
 		Reply :: {reply, Answer, State} | {noreply, State},
 		Answer ::#diameter_nas_app_AAA{} | #diameter_nas_app_STA{}
 				| #diameter_eap_app_DEA{} | #'3gpp_sta_DEA'{}
-				| #'3gpp_swm_DEA'{} | #'3gpp_s6b_AAA'{}.
+				| #'3gpp_swm_DEA'{}.
 %% @doc Generate appropriate DIAMETER answer.
 %% @hidden
 request(Caps, Address, Port, none, PasswordReq, Trusted, Request, CbProc, State)
@@ -317,78 +308,6 @@ request(Caps, _Address, _Port, none, _PasswordReq, _Trusted, Request, _CbProc, S
 	catch
 		_:_ ->
 			Answer = #diameter_nas_app_STA{'Session-Id' = SessionId,
-					'Result-Code' = ?'DIAMETER_BASE_RESULT-CODE_UNABLE_TO_COMPLY',
-					'Origin-Host' = OHost, 'Origin-Realm' = ORealm},
-			{reply, Answer, State}
-	end;
-request(Caps, ClientAddress, ClientPort, none, _PasswordReq, _Trusted,
-		#'3gpp_swx_RTR'{'Session-Id' = SessionId} = Request, _CbProc,
-		#state{address = ServerAddress, port = ServerPort,
-		dereg_sup = Sup} = State) ->
-	#diameter_caps{origin_host = {OHost, DHost}, origin_realm = {ORealm, DRealm}} = Caps,
-	ChildSpec = [[ServerAddress, ServerPort, ClientAddress, ClientPort,
-		SessionId, OHost, ORealm, DHost, DRealm, Request], []],
-	case supervisor:start_child(Sup, ChildSpec) of
-		{ok, _Fsm} ->
-			{noreply, State};
-		{error, Reason} ->
-			error_logger:error_report(["Error starting SWx UE deregister handler",
-					{error, Reason}, {supervisor, Sup}, {session_id, SessionId}]),
-			Answer = #'3gpp_swx_RTA'{'Session-Id' = SessionId,
-					'Result-Code' = ?'DIAMETER_BASE_RESULT-CODE_UNABLE_TO_COMPLY',
-					'Origin-Host' = OHost, 'Origin-Realm' = ORealm},
-			{reply, Answer, State}
-	end;
-request(Caps, ClientAddress, ClientPort, none, _PasswordReq, _Trusted,
-		#'3gpp_sta_STR'{'Session-Id' = SessionId} = Request, _CbProc,
-		#state{address = ServerAddress, port = ServerPort,
-		term_sup = Sup} = State) ->
-	#diameter_caps{origin_host = {OHost, DHost}, origin_realm = {ORealm, DRealm}} = Caps,
-	ChildSpec = [[ServerAddress, ServerPort, ClientAddress, ClientPort,
-		SessionId, OHost, ORealm, DHost, DRealm, Request], []],
-	case supervisor:start_child(Sup, ChildSpec) of
-		{ok, _Fsm} ->
-			{noreply, State};
-		{error, Reason} ->
-			error_logger:error_report(["Error starting STa session termination handler",
-					{error, Reason}, {supervisor, Sup}, {session_id, SessionId}]),
-			Answer = #'3gpp_sta_STA'{'Session-Id' = SessionId,
-					'Result-Code' = ?'DIAMETER_BASE_RESULT-CODE_UNABLE_TO_COMPLY',
-					'Origin-Host' = OHost, 'Origin-Realm' = ORealm},
-			{reply, Answer, State}
-	end;
-request(Caps, ClientAddress, ClientPort, none, _PasswordReq, _Trusted,
-		#'3gpp_swm_STR'{'Session-Id' = SessionId} = Request, _CbProc,
-		#state{address = ServerAddress, port = ServerPort,
-		term_sup = Sup} = State) ->
-	#diameter_caps{origin_host = {OHost, DHost}, origin_realm = {ORealm, DRealm}} = Caps,
-	ChildSpec = [[ServerAddress, ServerPort, ClientAddress, ClientPort,
-		SessionId, OHost, ORealm, DHost, DRealm, Request], []],
-	case supervisor:start_child(Sup, ChildSpec) of
-		{ok, _Fsm} ->
-			{noreply, State};
-		{error, Reason} ->
-			error_logger:error_report(["Error starting SWm session termination handler",
-					{error, Reason}, {supervisor, Sup}, {session_id, SessionId}]),
-			Answer = #'3gpp_swm_STA'{'Session-Id' = SessionId,
-					'Result-Code' = ?'DIAMETER_BASE_RESULT-CODE_UNABLE_TO_COMPLY',
-					'Origin-Host' = OHost, 'Origin-Realm' = ORealm},
-			{reply, Answer, State}
-	end;
-request(Caps, ClientAddress, ClientPort, none, _PasswordReq, _Trusted,
-		#'3gpp_s6b_AAR'{'Session-Id' = SessionId} = Request, _CbProc,
-		#state{address = ServerAddress, port = ServerPort,
-		pgw_sup = Sup} = State) ->
-	#diameter_caps{origin_host = {OHost, DHost}, origin_realm = {ORealm, DRealm}} = Caps,
-	ChildSpec = [[ServerAddress, ServerPort, ClientAddress, ClientPort,
-		SessionId, OHost, ORealm, DHost, DRealm, Request], []],
-	case supervisor:start_child(Sup, ChildSpec) of
-		{ok, _Fsm} ->
-			{noreply, State};
-		{error, Reason} ->
-			error_logger:error_report(["Error starting PGW session handler",
-					{error, Reason}, {supervisor, Sup}, {session_id, SessionId}]),
-			Answer = #'3gpp_s6b_AAA'{'Session-Id' = SessionId,
 					'Result-Code' = ?'DIAMETER_BASE_RESULT-CODE_UNABLE_TO_COMPLY',
 					'Origin-Host' = OHost, 'Origin-Realm' = ORealm},
 			{reply, Answer, State}

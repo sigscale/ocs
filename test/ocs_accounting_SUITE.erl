@@ -145,6 +145,8 @@ init_per_testcase1(TestCase, Config) when
 		TestCase == diameter_scur_depletion;
 		TestCase == diameter_ecur;
 		TestCase == diameter_ecur_no_credit;
+		TestCase == diameter_iec_cud;
+		TestCase == diameter_iec_dud;
 		TestCase == diameter_voice_out;
 		TestCase == diameter_voice_in;
 		TestCase == diameter_voice_out_tariff;
@@ -174,6 +176,8 @@ end_per_testcase(TestCase, Config) when
 		TestCase == diameter_scur_no_credit;
 		TestCase == diameter_scur_depletion;
 		TestCase == diameter_ecur;
+		TestCase == diameter_iec_cud;
+		TestCase == diameter_iec_dud;
 		TestCase == diameter_ecur_no_credit;
 		TestCase == diameter_voice_out;
 		TestCase == diameter_voice_in;
@@ -197,6 +201,7 @@ all() ->
 	diameter_scur, diameter_scur_cud,
 	diameter_scur_no_credit, diameter_scur_depletion,
 	diameter_ecur, diameter_ecur_no_credit,
+	diameter_iec_cud, diameter_iec_dud,
 	diameter_voice_out, diameter_voice_in,
 	diameter_voice_out_tariff, diameter_voice_in_tariff].
 
@@ -690,6 +695,97 @@ diameter_ecur_no_credit(_Config) ->
 			'Auth-Application-Id' = ?RO_APPLICATION_ID,
 			'CC-Request-Type' = ?'3GPP_CC-REQUEST-TYPE_INITIAL_REQUEST',
 			'CC-Request-Number' = 0} = Answer1.
+
+diameter_iec_dud() ->
+	[{userdata, [{doc, "DIAMETER Immediate Event Charging (IEC) with decentralized unit determination"}]}].
+
+diameter_iec_dud(_Config) ->
+	P1 = price(usage, messages, 1, rand:uniform(1000000)),
+	OfferId = add_offer([P1], 11),
+	ProdRef = add_product(OfferId),
+	CalledParty = ocs:generate_identity(),
+	CallingParty = ocs:generate_identity(),
+	{ok, #service{}} = ocs:add_service(CallingParty, undefined, ProdRef, []),
+	B1 = bucket(messages, 5),
+	BId = add_bucket(ProdRef, B1),
+	Ref = erlang:ref_to_list(make_ref()),
+	SId = diameter:session_id(Ref),
+	SubscriptionId = #'3gpp_ro_Subscription-Id'{
+			'Subscription-Id-Type' = ?'3GPP_SUBSCRIPTION-ID-TYPE_END_USER_E164',
+			'Subscription-Id-Data' = CallingParty},
+	RSU = #'3gpp_ro_Requested-Service-Unit' {
+			'CC-Service-Specific-Units' = [1]},
+	ServiceInformation = #'3gpp_ro_Service-Information'{
+			'SMS-Information' = [#'3gpp_ro_SMS-Information'{
+			'Recipient-Info' = [#'3gpp_ro_Recipient-Info'{
+			'Recipient-Address' = [#'3gpp_ro_Recipient-Address'{
+			'Address-Data' = [CalledParty]}]}]}]},
+	MSCC1 = #'3gpp_ro_Multiple-Services-Credit-Control'{
+			'Requested-Service-Unit' = [RSU]},
+	CCR1 = #'3gpp_ro_CCR'{'Session-Id' = SId,
+			'Auth-Application-Id' = ?RO_APPLICATION_ID,
+			'Service-Context-Id' = "32274@3gpp.org",
+			'User-Name' = [CallingParty],
+			'CC-Request-Type' = ?'3GPP_CC-REQUEST-TYPE_EVENT_REQUEST',
+			'CC-Request-Number' = 0,
+			'Requested-Action' = [?'3GPP_RO_REQUESTED-ACTION_DIRECT_DEBITING'],
+			'Event-Timestamp' = [calendar:universal_time()],
+			'Subscription-Id' = [SubscriptionId],
+			'Multiple-Services-Credit-Control' = [MSCC1],
+			'Service-Information' = [ServiceInformation]},
+	{ok, Answer1} = diameter:call(?MODULE, cc_app_test, CCR1, []),
+	#'3gpp_ro_CCA'{'Result-Code' = ?'DIAMETER_BASE_RESULT-CODE_SUCCESS',
+			'Auth-Application-Id' = ?RO_APPLICATION_ID,
+			'CC-Request-Type' = ?'3GPP_CC-REQUEST-TYPE_EVENT_REQUEST',
+			'CC-Request-Number' = 0,
+			'Multiple-Services-Credit-Control' = [MSCC2]} = Answer1,
+	#'3gpp_ro_Multiple-Services-Credit-Control'{
+			'Granted-Service-Unit' = [GSU]} = MSCC2,
+	#'3gpp_ro_Granted-Service-Unit'{'CC-Service-Specific-Units' = [1]} = GSU,
+	{ok, #bucket{remain_amount = 4}} = ocs:find_bucket(BId).
+
+diameter_iec_cud() ->
+	[{userdata, [{doc, "DIAMETER Immediate Event Charging (IEC) with centralized unit determination"}]}].
+
+diameter_iec_cud(_Config) ->
+	P1 = price(usage, messages, 1, rand:uniform(1000000)),
+	OfferId = add_offer([P1], 11),
+	ProdRef = add_product(OfferId),
+	CalledParty = ocs:generate_identity(),
+	CallingParty = ocs:generate_identity(),
+	{ok, #service{}} = ocs:add_service(CallingParty, undefined, ProdRef, []),
+	B1 = bucket(messages, 5),
+	BId = add_bucket(ProdRef, B1),
+	Ref = erlang:ref_to_list(make_ref()),
+	SId = diameter:session_id(Ref),
+	SubscriptionId = #'3gpp_ro_Subscription-Id'{
+			'Subscription-Id-Type' = ?'3GPP_SUBSCRIPTION-ID-TYPE_END_USER_E164',
+			'Subscription-Id-Data' = CallingParty},
+	ServiceInformation = #'3gpp_ro_Service-Information'{
+			'SMS-Information' = [#'3gpp_ro_SMS-Information'{
+			'Recipient-Info' = [#'3gpp_ro_Recipient-Info'{
+			'Recipient-Address' = [#'3gpp_ro_Recipient-Address'{
+			'Address-Data' = [CalledParty]}]}]}]},
+	CCR1 = #'3gpp_ro_CCR'{'Session-Id' = SId,
+			'Auth-Application-Id' = ?RO_APPLICATION_ID,
+			'Service-Context-Id' = "32274@3gpp.org",
+			'User-Name' = [CallingParty],
+			'CC-Request-Type' = ?'3GPP_CC-REQUEST-TYPE_EVENT_REQUEST',
+			'CC-Request-Number' = 0,
+			'Requested-Action' = [?'3GPP_RO_REQUESTED-ACTION_DIRECT_DEBITING'],
+			'Event-Timestamp' = [calendar:universal_time()],
+			'Subscription-Id' = [SubscriptionId],
+			'Service-Information' = [ServiceInformation]},
+	{ok, Answer1} = diameter:call(?MODULE, cc_app_test, CCR1, []),
+	#'3gpp_ro_CCA'{'Result-Code' = ?'DIAMETER_BASE_RESULT-CODE_SUCCESS',
+			'Auth-Application-Id' = ?RO_APPLICATION_ID,
+			'CC-Request-Type' = ?'3GPP_CC-REQUEST-TYPE_EVENT_REQUEST',
+			'CC-Request-Number' = 0,
+			'Multiple-Services-Credit-Control' = [MSCC]} = Answer1,
+	#'3gpp_ro_Multiple-Services-Credit-Control'{
+			'Granted-Service-Unit' = [GSU]} = MSCC,
+	#'3gpp_ro_Granted-Service-Unit'{'CC-Service-Specific-Units' = [1]} = GSU,
+	{ok, #bucket{remain_amount = 4}} = ocs:find_bucket(BId).
 
 diameter_voice_out() ->
 	[{userdata, [{doc, "DIAMETER SCUR for outgoing voice call"}]}].
