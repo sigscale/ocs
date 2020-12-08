@@ -447,7 +447,7 @@ process_request1(?'3GPP_CC-REQUEST-TYPE_TERMINATION_REQUEST' = RequestType,
 		'Service-Context-Id' = SvcContextId,
 		'Event-Timestamp' = EventTimestamp} = Request, SessionId,
 		RequestNum, Subscriber, OHost, _DHost, ORealm, _DRealm,
-		IpAddress, Port) when length(MSCC1) > 0 ->
+		IpAddress, Port) ->
 	try
 		{Direction, Address} = direction_address(ServiceInformation),
 		ServiceType = service_type(SvcContextId),
@@ -459,7 +459,12 @@ process_request1(?'3GPP_CC-REQUEST-TYPE_TERMINATION_REQUEST' = RequestType,
 			_ ->
 				calendar:universal_time()
 		end,
-		Amounts = get_mscc(MSCC1),
+		Amounts = case get_mscc(MSCC1) of
+			[] ->
+				[{undefined, undefined, [], []}];
+			As ->
+				As
+		end,
 		case rate(ServiceType, ServiceNetwork, Subscriber,
 				Timestamp, Address, Direction, final, SessionId,
 				Amounts) of
@@ -481,7 +486,7 @@ process_request1(?'3GPP_CC-REQUEST-TYPE_TERMINATION_REQUEST' = RequestType,
 						{origin_host, OHost}, {origin_realm, ORealm},
 						{type, final}, {subscriber, Subscriber},
 						{address, Address}, {direction, Direction},
-						{amounts, amounts}]),
+						{amounts, Amounts}]),
 				Reply = diameter_error(SessionId, ?'DIAMETER_CC_APP_RESULT-CODE_RATING_FAILED',
 						OHost, ORealm, RequestType, RequestNum),
 				ok = ocs_log:acct_log(diameter, Server,
@@ -495,17 +500,7 @@ process_request1(?'3GPP_CC-REQUEST-TYPE_TERMINATION_REQUEST' = RequestType,
 					{request, Request}, {error, Reason1}]),
 			diameter_error(SessionId, ?'DIAMETER_BASE_RESULT-CODE_UNABLE_TO_COMPLY',
 					OHost, ORealm, RequestType, RequestNum)
-	end;
-process_request1(?'3GPP_CC-REQUEST-TYPE_TERMINATION_REQUEST' = RequestType,
-		#'3gpp_ro_CCR'{'Multiple-Services-Credit-Control' = []} = Request,
-		SessionId, RequestNum, _Subscriber, OHost, _DHost,
-		ORealm, _DRealm, IpAddress, Port) ->
-	Reply = diameter_answer(SessionId, [],
-			?'DIAMETER_BASE_RESULT-CODE_SUCCESS',
-			OHost, ORealm, RequestType, RequestNum),
-	ok = ocs_log:acct_log(diameter, {IpAddress, Port},
-			accounting_event_type(RequestType), Request, Reply, undefined),
-	Reply.
+	end.
 
 -spec diameter_answer(SessionId, MSCC, ResultCode,
 		OriginHost, OriginRealm, RequestType, RequestNum) -> Result
