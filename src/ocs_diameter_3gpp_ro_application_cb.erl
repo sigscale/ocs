@@ -653,7 +653,6 @@ process_request1(?'3GPP_CC-REQUEST-TYPE_EVENT_REQUEST' = RequestType,
 					{request, Request}, {error, Reason1}]),
 			diameter_error(SessionId, ?'DIAMETER_BASE_RESULT-CODE_UNABLE_TO_COMPLY',
 					OHost, ORealm, RequestType, RequestNum)
->>>>>>> ceb9757476292240ed0496599f90e9da83806164
 	end.
 
 -spec diameter_answer(SessionId, MSCC, ResultCode,
