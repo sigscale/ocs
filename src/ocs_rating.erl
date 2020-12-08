@@ -362,7 +362,6 @@ rate3(Protocol, Service, Buckets, Address,
 												Price#price{amount = N}, Flag, DebitAmounts, ReserveAmounts,
 												State#state{rated = Rated#rated{price_type = tariff,
 												description = Description1}});
-
 									_N ->
 										throw(negative_amount)
 								end;
