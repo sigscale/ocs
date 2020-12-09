@@ -37,6 +37,7 @@
 -export([add_offer/1, find_offer/1, get_offers/0, delete_offer/1,
 		query_offer/7]).
 -export([add_pla/1, add_pla/2, find_pla/1, get_plas/0, delete_pla/1, query_table/6]).
+-export([add_policy/1]).
 -export([generate_password/0, generate_identity/0]).
 -export([start/4, start/5]).
 %% export the ocs private API
@@ -2196,7 +2197,26 @@ find_sn_network(Table, Id) ->
 			exit(Reason)
 	end.
 
-%
+-spec add_policy(Policy) -> Result
+	when
+		Policy :: #policy{},
+		Result :: {ok, #policy{}} | {error, Reason},
+		Reason :: term().
+%% @doc Add a new entry in policy table.
+add_policy(#policy{} = Policy) ->
+	F = fun() ->
+		TS = erlang:system_time(?MILLISECOND),
+		N = erlang:unique_integer([positive]),
+		Policy1 = Policy#policy{last_modified = {TS, N}},
+		{mnesia:write(policy, Policy1, write), Policy1}
+	end,
+	case mnesia:transaction(F) of
+		{atomic, {ok, #policy{} = Policy1}} ->
+			{ok, Policy1};
+		{aborted, Reason} ->
+			{error, Reason}
+	end.
+
 %%----------------------------------------------------------------------
 %%  internal functions
 %%----------------------------------------------------------------------
