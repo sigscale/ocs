@@ -226,3 +226,12 @@
 		user_profile :: tuple() | undefined,
 		last_modified :: tuple() | undefined}).
 
+-record(policy,
+		{name :: string(),
+		qos :: map(),
+		charging_rule :: pos_integer(),
+		flow :: [map()],
+		precedence :: pos_integer(),
+		last_modified :: tuple() | undefined}).
+-type policy() :: #policy{}.
+
