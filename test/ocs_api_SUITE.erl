@@ -98,7 +98,7 @@ all() ->
 	delete_pla_event, add_service_event, delete_service_event,
 	add_product_event, delete_product_event, add_bucket_event,
 	delete_bucket_event, product_charge_event, rating_deleted_bucket_event,
-	accumulated_balance_event].
+	accumulated_balance_event, add_policy].
 
 %%---------------------------------------------------------------------
 %%  Test cases
@@ -1088,6 +1088,30 @@ accumulated_balance_event(_Config) ->
 				units = octets}], balance} ->
 			BytesTotalAmount = RA2 - PackageSize
 	end.
+
+add_policy() ->
+	[{userdata, [{doc, "Add a new policy"}]}].
+
+add_policy(_Config) ->
+	PolicyName = "internal",
+	QosInformation = #{"QoS-Class-Identifier" => 9,
+			"Max-Requested-Bandwidth-UL" => 1000000000,
+			"Max-Requested-Bandwidth-DL" => 1000000000},
+	FlowInformationUp1 = #{"Flow-Description" => "permit in ip from any to 10/8",
+			"Flow-Direction" => 2},
+	FlowInformationDown1 = #{"Flow-Description" => "permit out ip from 10/8 to any",
+			'Flow-Direction' => 1},
+	Policy = #policy{name = PolicyName,
+			qos = QosInformation, charging_rule = 1,
+			flow = [FlowInformationUp1, FlowInformationDown1], precedence = 2},
+	{ok, #policy{}} = ocs:add_policy(Policy),
+	{atomic, [P]} = mnesia:transaction(
+			fun() -> mnesia:read(policy, PolicyName, read) end),
+	PolicyName = P#policy.name,
+	true = is_map(P#policy.qos),
+	true = is_integer(P#policy.charging_rule),
+	true = is_list(P#policy.flow),
+	true = is_integer(P#policy.precedence).
 
 %%---------------------------------------------------------------------
 %%  Internal functions
