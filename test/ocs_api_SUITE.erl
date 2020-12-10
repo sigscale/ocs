@@ -98,7 +98,7 @@ all() ->
 	delete_pla_event, add_service_event, delete_service_event,
 	add_product_event, delete_product_event, add_bucket_event,
 	delete_bucket_event, product_charge_event, rating_deleted_bucket_event,
-	accumulated_balance_event, add_policy].
+	accumulated_balance_event, add_policy, get_policy].
 
 %%---------------------------------------------------------------------
 %%  Test cases
@@ -1112,6 +1112,24 @@ add_policy(_Config) ->
 	true = is_integer(P#policy.charging_rule),
 	true = is_list(P#policy.flow),
 	true = is_integer(P#policy.precedence).
+
+get_policy() ->
+	[{userdata, [{doc, "Lookup policy with given policy reference"}]}].
+
+get_policy(_Config) ->
+	PolicyName = "external",
+	QosInformation = #{"QoS-Class-Identifier" => 9,
+			"Max-Requested-Bandwidth-UL" => 1000000000,
+			"Max-Requested-Bandwidth-DL" => 1000000000},
+	FlowInformationUp1 = #{"Flow-Description" => "permit in ip from any to 172.16/12",
+			"Flow-Direction" => 2},
+	FlowInformationDown1 = #{"Flow-Description" => "permit out ip from 172.16/12 to any",
+			'Flow-Direction' => 1},
+	Policy = #policy{name = PolicyName,
+			qos = QosInformation, charging_rule = 32,
+			flow = [FlowInformationUp1, FlowInformationDown1], precedence = 1},
+	{ok, #policy{}} = ocs:add_policy(Policy),
+	{ok, #policy{}} = ocs:get_policy(PolicyName).
 
 %%---------------------------------------------------------------------
 %%  Internal functions
