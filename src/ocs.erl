@@ -37,7 +37,7 @@
 -export([add_offer/1, find_offer/1, get_offers/0, delete_offer/1,
 		query_offer/7]).
 -export([add_pla/1, add_pla/2, find_pla/1, get_plas/0, delete_pla/1, query_table/6]).
--export([add_policy/1]).
+-export([add_policy/1, get_policy/1]).
 -export([generate_password/0, generate_identity/0]).
 -export([start/4, start/5]).
 %% export the ocs private API
@@ -2213,6 +2213,24 @@ add_policy(#policy{} = Policy) ->
 	case mnesia:transaction(F) of
 		{atomic, {ok, #policy{} = Policy1}} ->
 			{ok, Policy1};
+		{aborted, Reason} ->
+			{error, Reason}
+	end.
+
+-spec get_policy(PolicyName) -> Result
+	when
+		PolicyName :: string(),
+		Result :: {ok, Policy} | {error, Reason},
+		Policy :: #policy{},
+		Reason :: not_found | term().
+%% @doc Look up an entry in the policy table.
+get_policy(PolicyName) ->
+	F = fun() -> mnesia:read(policy, PolicyName, read) end,
+	case mnesia:transaction(F) of
+		{atomic, [#policy{} = P]} ->
+			{ok, P};
+		{atomic, []} ->
+			{error, not_found};
 		{aborted, Reason} ->
 			{error, Reason}
 	end.
