@@ -229,7 +229,7 @@
           "enum" : [ "Received", "Rejected", "Recycled", "Guided", "Rated", "Rerate", "Billed" ]
         },
         "usageSpecification" : {
-          "$ref" : "#/definitions/UsageSpecification"
+          "$ref" : "#/definitions/UsageSpecificationRef"
         },
         "usageCharacteristic" : {
           "type" : "array",
@@ -250,6 +250,9 @@
           }
         }
       }
+    },
+    "UsageSpecificationRef" : {
+      "$ref" : "#/definitions/Reference"
     },
     "UsageSpecification" : {
       "description" : "Description of the characteristics, attributes and relationships of a type of usage.",
