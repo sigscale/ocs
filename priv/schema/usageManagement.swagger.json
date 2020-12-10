@@ -35,7 +35,10 @@
           "200" : {
             "description" : "Usage",
             "schema" : {
-              "$ref" : "#/definitions/Usage"
+              "type" : "array",
+              "items" : {
+                "$ref" : "#/definitions/Usage"
+              }
             }
           },
           "404" : {
