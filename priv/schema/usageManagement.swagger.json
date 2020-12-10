@@ -3,7 +3,7 @@
   "info": {
     "description": "TMF635 Usage Management",
     "version": "1.0.0",
-    "title": "API Party Management"
+    "title": "Usage Management"
   },
   "basePath": "/usageManagement/v1/",
   "schemes": [

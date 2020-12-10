@@ -3,7 +3,7 @@
   "info": {
     "description": "TMF637 Product Inventory Management",
     "version": "2.0.0",
-    "title": "API Product Inventory Management"
+    "title": "Product Inventory Management"
   },
   "basePath": "/productInventoryManagement/v2/",
   "schemes": [

@@ -3,7 +3,7 @@
   "info": {
     "description": "TMF634 Resource Catalog Management",
     "version": "2.0.0",
-    "title": "Resource Catalog Management API"
+    "title": "Resource Catalog Management"
   },
   "basePath": "/resourceCatalogManagement/v2/",
   "schemes": [
