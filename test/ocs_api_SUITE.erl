@@ -98,7 +98,8 @@ all() ->
 	delete_pla_event, add_service_event, delete_service_event,
 	add_product_event, delete_product_event, add_bucket_event,
 	delete_bucket_event, product_charge_event, rating_deleted_bucket_event,
-	accumulated_balance_event, add_policy, get_policy, get_policies].
+	accumulated_balance_event,
+	add_policy, get_policy, get_policies, delete_policy].
 
 %%---------------------------------------------------------------------
 %%  Test cases
@@ -1164,6 +1165,25 @@ get_policies(_Config) ->
 				false
 	end,
 	true = lists:all(F, Policies).
+
+delete_policy() ->
+	[{userdata, [{doc, "Remove a policy from the table"}]}].
+
+delete_policy(_Config) ->
+	PolicyName = "internal",
+	QosInformation = #{"QoS-Class-Identifier" => 9,
+			"Max-Requested-Bandwidth-UL" => 1000000000,
+			"Max-Requested-Bandwidth-DL" => 1000000000},
+	FlowInformationUp1 = #{"Flow-Description" => "permit in ip from any to 10/8",
+			"Flow-Direction" => 2},
+	FlowInformationDown1 = #{"Flow-Description" => "permit out ip from 10/8 to any",
+			'Flow-Direction' => 1},
+	Policy = #policy{name = PolicyName,
+			qos = QosInformation, charging_rule = 1,
+			flow = [FlowInformationUp1, FlowInformationDown1], precedence = 2},
+	{ok, #policy{}} = ocs:add_policy(Policy),
+	ok = ocs:delete_policy(PolicyName),
+	{error, not_found} = ocs:get_policy(PolicyName).
 
 %%---------------------------------------------------------------------
 %%  Internal functions
