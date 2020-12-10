@@ -37,7 +37,7 @@
 -export([add_offer/1, find_offer/1, get_offers/0, delete_offer/1,
 		query_offer/7]).
 -export([add_pla/1, add_pla/2, find_pla/1, get_plas/0, delete_pla/1, query_table/6]).
--export([add_policy/1, get_policy/1]).
+-export([add_policy/1, get_policy/1, get_policies/0]).
 -export([generate_password/0, generate_identity/0]).
 -export([start/4, start/5]).
 %% export the ocs private API
@@ -2236,6 +2236,30 @@ get_policy(PolicyName) ->
 			{error, not_found};
 		{aborted, Reason} ->
 			{error, Reason}
+	end.
+
+-spec get_policies() -> Result
+	when
+		Result :: [#policy{}] | {error, Reason},
+		Reason :: term().
+%% @doc List all entries in the policy table.
+get_policies() ->
+	MatchSpec = [{'_', [], ['$_']}],
+	F = fun(F, start, Acc) ->
+				F(F, mnesia:select(policy, MatchSpec,
+						?CHUNKSIZE, read), Acc);
+			(_F, '$end_of_table', Acc) ->
+				lists:flatten(lists:reverse(Acc));
+			(_F, {error, Reason}, _Acc) ->
+				{error, Reason};
+			(F,{Offer, Cont}, Acc) ->
+				F(F, mnesia:select(Cont), [Offer | Acc])
+	end,
+	case mnesia:transaction(F, [F, start, []]) of
+		{aborted, Reason} ->
+			{error, Reason};
+		{atomic, Result} ->
+			Result
 	end.
 
 %%----------------------------------------------------------------------
