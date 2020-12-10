@@ -2203,7 +2203,10 @@ find_sn_network(Table, Id) ->
 		Result :: {ok, #policy{}} | {error, Reason},
 		Reason :: term().
 %% @doc Add a new entry in policy table.
-add_policy(#policy{} = Policy) ->
+add_policy(#policy{name = Name, qos = QoS, charging_rule = Rule, flow = Flow,
+		precedence = Precedence} = Policy) when is_list(Name), is_map(QoS),
+		is_integer(Rule), Rule > 0, is_list(Flow),
+		is_integer(Precedence), Precedence > 0 ->
 	F = fun() ->
 		TS = erlang:system_time(?MILLISECOND),
 		N = erlang:unique_integer([positive]),
