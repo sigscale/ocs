@@ -98,7 +98,7 @@ all() ->
 	delete_pla_event, add_service_event, delete_service_event,
 	add_product_event, delete_product_event, add_bucket_event,
 	delete_bucket_event, product_charge_event, rating_deleted_bucket_event,
-	accumulated_balance_event, add_policy, get_policy].
+	accumulated_balance_event, add_policy, get_policy, get_policies].
 
 %%---------------------------------------------------------------------
 %%  Test cases
@@ -1130,6 +1130,40 @@ get_policy(_Config) ->
 			flow = [FlowInformationUp1, FlowInformationDown1], precedence = 1},
 	{ok, #policy{}} = ocs:add_policy(Policy),
 	{ok, #policy{}} = ocs:get_policy(PolicyName).
+
+get_policies() ->
+	[{userdata, [{doc, "List all the policies in the table"}]}].
+
+get_policies(_Config) ->
+	QosInformation = #{"QoS-Class-Identifier" => 9,
+			"Max-Requested-Bandwidth-UL" => 1000000000,
+			"Max-Requested-Bandwidth-DL" => 1000000000},
+	PolicyName1 = "internal",
+	FlowInformationUp1 = #{"Flow-Description" => "permit in ip from any to 10/8",
+			"Flow-Direction" => 2},
+	FlowInformationDown1 = #{"Flow-Description" => "permit out ip from 10/8 to any",
+			'Flow-Direction' => 1},
+	Policy1 = #policy{name = PolicyName1,
+			qos = QosInformation, charging_rule = 1,
+			flow = [FlowInformationUp1, FlowInformationDown1], precedence = 2},
+	{ok, #policy{}} = ocs:add_policy(Policy1),
+	PolicyName2 = "external",
+	FlowInformationUp2 = #{"Flow-Description" => "permit in ip from any to 172.16/12",
+			"Flow-Direction" => 2},
+	FlowInformationDown2 = #{"Flow-Description" => "permit out ip from 172.16/12 to any",
+			'Flow-Direction' => 1},
+	Policy2 = #policy{name = PolicyName2,
+			qos = QosInformation, charging_rule = 32,
+			flow = [FlowInformationUp2, FlowInformationDown2], precedence = 1},
+	{ok, #policy{}} = ocs:add_policy(Policy2),
+	Policies = ocs:get_policies(),
+	true = length(Policies) >= 2,
+	F = fun(#policy{}) ->
+				true;
+			(_) ->
+				false
+	end,
+	true = lists:all(F, Policies).
 
 %%---------------------------------------------------------------------
 %%  Internal functions
