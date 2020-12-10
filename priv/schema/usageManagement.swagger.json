@@ -154,7 +154,10 @@
           "200" : {
             "description" : "UsageSpecification",
             "schema" : {
-              "$ref" : "#/definitions/UsageSpecification"
+              "type" : "array",
+              "items" : {
+                "$ref" : "#/definitions/UsageSpecification"
+              }
             }
           },
           "404" : {
