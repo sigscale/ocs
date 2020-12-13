@@ -1,0 +1,189 @@
+{
+  "swagger": "2.0",
+  "info": {
+    "description": "TMF633 Service Catalog Management",
+    "version": "2.0.0",
+    "title": "Service Catalog Management"
+  },
+  "basePath": "/serviceCatalogManagement/v2/",
+  "schemes": [
+    "http",
+    "https"
+  ],
+  "consumes": [
+    "application/json"
+  ],
+  "produces": [
+    "application/json"
+  ],
+  "tags": [
+    {
+      "name": "serviceSpecification",
+      "description": ""
+    }
+  ],
+  "paths": {
+    "/serviceSpecification": {
+      "get": {
+        "tags": [
+          "serviceSpecification"
+        ],
+        "parameters": [
+          {
+            "type": "string",
+            "required": false,
+            "in": "query",
+            "name": "query",
+            "description": ""
+          }
+        ],
+        "operationId": "listServiceSpecification",
+        "summary": "List or find 'ServiceSpecification' entites",
+        "deprecated": false,
+        "responses": {
+          "200": {
+            "description": "Success",
+            "schema": {
+              "type": "array",
+              "items": {
+                "$ref": "#/definitions/ServiceSpecification"
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request"
+          },
+          "404": {
+            "description": "Not Found"
+          },
+          "500": {
+            "description": "Internal Server Error"
+          }
+        }
+      }
+    },
+    "/serviceSpecification/{id}": {
+      "get": {
+        "tags": [
+          "serviceSpecification"
+        ],
+        "parameters": [
+          {
+            "type": "string",
+            "required": true,
+            "in": "path",
+            "name": "id",
+            "description": "Id of specification"
+          }
+        ],
+        "operationId": "listServiceSpecificationById",
+        "summary": "List or find 'ServiceSpecification' by Id",
+        "deprecated": false,
+        "responses": {
+          "200": {
+            "description": "Success",
+            "schema": {
+              "type": "array",
+              "items": {
+                "$ref": "#/definitions/ServiceSpecification"
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request"
+          },
+          "404": {
+            "description": "Not Found"
+          },
+          "500": {
+            "description": "Internal Server Error"
+          }
+        }
+      }
+    }
+
+  },
+  "definitions": {
+    "ServiceSpecification": {
+      "type": "object",
+      "description": "ServiceSpecification is a class that offers characteristics to describe a type of service.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier of the service specification"
+        },
+        "href": {
+          "type": "string",
+          "description": "Reference of the service specification"
+        },
+        "description": {
+          "type": "string",
+          "description": "A narrative that explains in detail what the service specification is"
+        },
+        "lastUpdate": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Date and time of the last update of the service specification"
+        },
+        "lifecycleStatus": {
+          "type": "string",
+          "description": "Used to indicate the current lifecycle status of the service specification"
+        },
+        "name": {
+          "type": "string",
+          "description": "Name of the service specification"
+        },
+        "version": {
+          "type": "string",
+          "description": "Service specification version"
+        },
+        "serviceSpecCharacteristic": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/ServiceSpecCharacteristic"
+          },
+          "description": "A list of service spec characteristics."
+        }
+      }
+    },
+    "ServiceSpecCharacteristic": {
+      "type": "object",
+      "description": "This class represents the key features of this service specification.",
+      "properties": {
+        "configurable": {
+          "type": "boolean",
+          "description": "If true, the Boolean indicates that the serviceSpecCharacteristic is configurable"
+        },
+        "description": {
+          "type": "string",
+          "description": "A narrative that explains in detail what the serviceSpecCharacteristic is"
+        },
+        "extensible": {
+          "type": "boolean",
+          "description": "An indicator that specifies that the values for the characteristic can be extended by adding new values when instantiating a characteristic for an Entity."
+        },
+        "name": {
+          "type": "string",
+          "description": "A word, term, or phrase by which this characteristic specification is known and distinguished from other characteristic specifications."
+        },
+        "serviceSpecCharacteristicValue": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/ServiceSpecCharacteristicValue"
+          },
+          "description": "A list of service spec characteristic values"
+        }
+      }
+    },
+    "ServiceSpecCharacteristicValue": {
+      "type": "object",
+      "description": "A ServiceSpecCharacteristicValue object is used to define a set of attributes, each of which can be assigned to a corresponding set of attributes in a ServiceSpecCharacteristic object.",
+      "properties": {
+        "valueType": {
+          "type": "string",
+          "description": "A kind of value that the characteristic can take on, such as numeric, text, and so forth"
+        }
+      }
+    }
+  }
+}
