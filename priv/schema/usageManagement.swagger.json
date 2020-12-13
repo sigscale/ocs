@@ -1,7 +1,7 @@
 {
   "swagger" : "2.0",
   "info" : {
-    "description" : "### TMF635 Usage Management\nSigScale OCS uses the TM Forum 635 API for usage events. Usages of a specific types and/or usages associated with a particular Service identifier may be retrieved. A date/time range for should be provided in detail queries as events are stored in sequential disk logs. Usage event notifications may be subscribed to for realtime delivery.  \n",
+    "description" : "TMF635 Usage Management",
     "version" : "1.0.0",
     "title" : "Usage Management"
   },
