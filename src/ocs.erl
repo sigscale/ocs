@@ -37,6 +37,7 @@
 -export([add_offer/1, find_offer/1, get_offers/0, delete_offer/1,
 		query_offer/7]).
 -export([add_pla/1, add_pla/2, find_pla/1, get_plas/0, delete_pla/1, query_table/6]).
+-export([add_policy_table/1]).
 -export([add_policy/1, get_policy/1, get_policies/0, delete_policy/1]).
 -export([generate_password/0, generate_identity/0]).
 -export([start/4, start/5]).
@@ -2193,6 +2194,24 @@ find_sn_network(Table, Id) ->
 			R;
 		{atomic, []} ->
 			exit(not_found);
+		{aborted, Reason} ->
+			exit(Reason)
+	end.
+
+-spec add_policy_table(Table) -> Result
+	when
+		Table :: atom() | string(),
+		Result :: {ok, #policy{}} | {error, Reason},
+		Reason :: term().
+%% @doc Create a new policy table.
+add_policy_table(Table) when is_list(Table) ->
+	add_policy_table(list_to_existing_atom(Table));
+add_policy_table(Table) ->
+	Nodes = [node() | nodes()],
+	case mnesia:create_table(Table, [{disc_copies, Nodes}, {attributes,
+			record_info(fields, policy)}, {record_name, policy}]) of
+		{atomic, ok} ->
+			ok;
 		{aborted, Reason} ->
 			exit(Reason)
 	end.
