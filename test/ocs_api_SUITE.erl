@@ -98,7 +98,7 @@ all() ->
 	delete_pla_event, add_service_event, delete_service_event,
 	add_product_event, delete_product_event, add_bucket_event,
 	delete_bucket_event, product_charge_event, rating_deleted_bucket_event,
-	accumulated_balance_event,
+	accumulated_balance_event, add_policy_table,
 	add_policy, get_policy, get_policies, delete_policy].
 
 %%---------------------------------------------------------------------
@@ -1089,6 +1089,15 @@ accumulated_balance_event(_Config) ->
 				units = octets}], balance} ->
 			BytesTotalAmount = RA2 - PackageSize
 	end.
+
+add_policy_table() ->
+	[{userdata, [{doc, "Add a new policy table"}]}].
+
+add_policy_table(_Config) ->
+	TableName = test_policy,
+	ok = ocs:add_policy_table(atom_to_list(TableName)),
+	{atomic, policy} = mnesia:transaction(
+			fun() -> mnesia:table_info(TableName, record_name) end).
 
 add_policy() ->
 	[{userdata, [{doc, "Add a new policy"}]}].
