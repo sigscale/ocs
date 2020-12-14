@@ -2201,7 +2201,7 @@ find_sn_network(Table, Id) ->
 -spec add_policy_table(Table) -> Result
 	when
 		Table :: atom() | string(),
-		Result :: {ok, #policy{}} | {error, Reason},
+		Result :: ok | {error, Reason},
 		Reason :: term().
 %% @doc Create a new policy table.
 add_policy_table(Table) when is_list(Table) ->
