@@ -38,7 +38,7 @@
 		query_offer/7]).
 -export([add_pla/1, add_pla/2, find_pla/1, get_plas/0, delete_pla/1, query_table/6]).
 -export([add_policy_table/1, delete_policy_table/1]).
--export([add_policy/1, get_policy/1, get_policies/0, delete_policy/1]).
+-export([add_policy/2, get_policy/1, get_policies/0, delete_policy/1]).
 -export([generate_password/0, generate_identity/0]).
 -export([start/4, start/5]).
 %% export the ocs private API
@@ -2232,27 +2232,33 @@ delete_policy_table(PolicyTable) when is_atom(PolicyTable) ->
 			exit(Reason)
 	end.
 
--spec add_policy(Policy) -> Result
+-spec add_policy(TableName, Policy) -> Result
 	when
+		TableName :: string(),
 		Policy :: #policy{},
 		Result :: {ok, #policy{}} | {error, Reason},
 		Reason :: term().
 %% @doc Add a new entry in policy table.
-add_policy(#policy{name = Name, qos = QoS, charging_rule = Rule, flow = Flow,
-		precedence = Precedence} = Policy) when is_list(Name), is_map(QoS),
-		is_integer(Rule), Rule > 0, is_list(Flow),
+add_policy(TableName, #policy{name = Name, qos = QoS, charging_rule = Rule,
+		flow = Flow, precedence = Precedence} = Policy) when is_list(TableName),
+		is_list(Name), is_map(QoS), is_integer(Rule), Rule > 0, is_list(Flow),
 		is_integer(Precedence), Precedence > 0 ->
-	F = fun() ->
-		TS = erlang:system_time(?MILLISECOND),
-		N = erlang:unique_integer([positive]),
-		Policy1 = Policy#policy{last_modified = {TS, N}},
-		{mnesia:write(policy, Policy1, write), Policy1}
-	end,
-	case mnesia:transaction(F) of
-		{atomic, {ok, #policy{} = Policy1}} ->
-			{ok, Policy1};
-		{aborted, Reason} ->
-			{error, Reason}
+	case catch list_to_existing_atom(TableName) of
+		{'EXIT', Reason} ->
+			{error, Reason};
+		Table ->
+			F = fun() ->
+					TS = erlang:system_time(?MILLISECOND),
+					N = erlang:unique_integer([positive]),
+					Policy1 = Policy#policy{last_modified = {TS, N}},
+					{mnesia:write(Table, Policy1, write), Policy1}
+			end,
+			case mnesia:transaction(F) of
+				{atomic, {ok, #policy{} = Policy1}} ->
+					{ok, Policy1};
+				{aborted, Reason} ->
+					{error, Reason}
+			end
 	end.
 
 -spec get_policy(PolicyName) -> Result

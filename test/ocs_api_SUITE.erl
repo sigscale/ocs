@@ -1113,6 +1113,8 @@ add_policy() ->
 	[{userdata, [{doc, "Add a new policy"}]}].
 
 add_policy(_Config) ->
+	TableName = test_policy3,
+	ok = ocs:add_policy_table(atom_to_list(TableName)),
 	PolicyName = "internal",
 	QosInformation = #{"QoS-Class-Identifier" => 9,
 			"Max-Requested-Bandwidth-UL" => 1000000000,
@@ -1124,9 +1126,9 @@ add_policy(_Config) ->
 	Policy = #policy{name = PolicyName,
 			qos = QosInformation, charging_rule = 1,
 			flow = [FlowInformationUp1, FlowInformationDown1], precedence = 2},
-	{ok, #policy{}} = ocs:add_policy(Policy),
+	{ok, #policy{}} = ocs:add_policy(atom_to_list(TableName), Policy),
 	{atomic, [P]} = mnesia:transaction(
-			fun() -> mnesia:read(policy, PolicyName, read) end),
+			fun() -> mnesia:read(TableName, PolicyName, read) end),
 	PolicyName = P#policy.name,
 	true = is_map(P#policy.qos),
 	true = is_integer(P#policy.charging_rule),
