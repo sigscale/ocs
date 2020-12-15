@@ -194,7 +194,7 @@
                         }
                       }, {
                         "serviceContextId" : "32251@3gpp.org",
-                        "serviceId" : null,
+                        "serviceId" : 1,
                         "ratingGroup" : 32,
                         "grantedUnit" : {
                           "totalVolume" : 100000000
