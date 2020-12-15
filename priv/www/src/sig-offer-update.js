@@ -1379,7 +1379,7 @@ class offerUpdate extends PolymerElement {
 					this.prices[indexUnit].unit = "b";
 				}
 				var unitDrop = this.prices[indexUnit].unit;
-				var sizeVal = priceUpdateSize + unitDrop;
+				var sizeVal = this.priceUpdateSize + unitDrop;
 				if(unitDrop && sizeVal) {
 					var len = sizeVal.length;
 					var m = sizeVal.charAt(len - 1);
@@ -1530,7 +1530,6 @@ class offerUpdate extends PolymerElement {
 				key1.name = "chargingKey";
 				var key2Arr = new Array();
 				var key2 = new Object();
-conaole.log(this.chargingKey);
 				key2.value = this.chargingKey;
 				key2Arr.push(key2);
 				key1.productSpecCharacteristicValue = key2Arr;
