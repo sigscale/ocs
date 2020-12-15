@@ -964,10 +964,6 @@
         }, {
           "$ref" : "https://www.3gpp.org/ftp/Specs/archive/OpenAPI/Rel-16/TS32291_Nchf_ConvergedCharging.yaml#/components/schemas/LocationReportingChargingInformation"
         }, {
-          "$ref" : "https://www.3gpp.org/ftp/Specs/archive/OpenAPI/Rel-16/TS32291_Nchf_ConvergedCharging.yaml#/components/schemas/NSPAChargingInformation"
-        }, {
-          "$ref" : "https://www.3gpp.org/ftp/Specs/archive/OpenAPI/Rel-16/TS32291_Nchf_ConvergedCharging.yaml#/components/schemas/NSMChargingInformation"
-        }, {
           "$ref" : "#/components/schemas/PsInformation"
         }, {
           "$ref" : "#/components/schemas/SmsInformation"
