@@ -1110,7 +1110,7 @@ delete_policy_table(_Config) ->
 			fun() -> mnesia:table_info(TableName, all) end).
 
 add_policy() ->
-	[{userdata, [{doc, "Add a new policy"}]}].
+	[{userdata, [{doc, "Add a new policy in a specified table"}]}].
 
 add_policy(_Config) ->
 	TableName = test_policy3,
@@ -1119,10 +1119,10 @@ add_policy(_Config) ->
 	QosInformation = #{"QoS-Class-Identifier" => 9,
 			"Max-Requested-Bandwidth-UL" => 1000000000,
 			"Max-Requested-Bandwidth-DL" => 1000000000},
-	FlowInformationUp1 = #{"Flow-Description" => "permit in ip from any to 10/8",
-			"Flow-Direction" => 2},
-	FlowInformationDown1 = #{"Flow-Description" => "permit out ip from 10/8 to any",
-			'Flow-Direction' => 1},
+	FlowInformationUp1 = #{"Flow-Description" =>
+			"permit in ip from any to 10/8", "Flow-Direction" => 2},
+	FlowInformationDown1 = #{"Flow-Description" =>
+			"permit out ip from 10/8 to any", 'Flow-Direction' => 1},
 	Policy = #policy{name = PolicyName,
 			qos = QosInformation, charging_rule = 1,
 			flow = [FlowInformationUp1, FlowInformationDown1], precedence = 2},
@@ -1166,17 +1166,17 @@ get_policies(_Config) ->
 	PolicyName1 = "internal",
 	FlowInformationUp1 = #{"Flow-Description" => "permit in ip from any to 10/8",
 			"Flow-Direction" => 2},
-	FlowInformationDown1 = #{"Flow-Description" => "permit out ip from 10/8 to any",
-			'Flow-Direction' => 1},
+	FlowInformationDown1 = #{"Flow-Description" =>
+			"permit out ip from 10/8 to any", 'Flow-Direction' => 1},
 	Policy1 = #policy{name = PolicyName1,
 			qos = QosInformation, charging_rule = 1,
 			flow = [FlowInformationUp1, FlowInformationDown1], precedence = 2},
 	{ok, #policy{}} = ocs:add_policy(TableName, Policy1),
 	PolicyName2 = "external",
-	FlowInformationUp2 = #{"Flow-Description" => "permit in ip from any to 172.16/12",
-			"Flow-Direction" => 2},
-	FlowInformationDown2 = #{"Flow-Description" => "permit out ip from 172.16/12 to any",
-			'Flow-Direction' => 1},
+	FlowInformationUp2 = #{"Flow-Description" =>
+			"permit in ip from any to 172.16/12", "Flow-Direction" => 2},
+	FlowInformationDown2 = #{"Flow-Description" =>
+			"permit out ip from 172.16/12 to any", 'Flow-Direction' => 1},
 	Policy2 = #policy{name = PolicyName2,
 			qos = QosInformation, charging_rule = 32,
 			flow = [FlowInformationUp2, FlowInformationDown2], precedence = 1},
@@ -1201,8 +1201,8 @@ delete_policy(_Config) ->
 			"Max-Requested-Bandwidth-DL" => 1000000000},
 	FlowInformationUp1 = #{"Flow-Description" => "permit in ip from any to 10/8",
 			"Flow-Direction" => 2},
-	FlowInformationDown1 = #{"Flow-Description" => "permit out ip from 10/8 to any",
-			'Flow-Direction' => 1},
+	FlowInformationDown1 = #{"Flow-Description" =>
+			"permit out ip from 10/8 to any", 'Flow-Direction' => 1},
 	Policy = #policy{name = PolicyName,
 			qos = QosInformation, charging_rule = 1,
 			flow = [FlowInformationUp1, FlowInformationDown1], precedence = 2},
