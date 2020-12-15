@@ -624,23 +624,20 @@
             } ]
           },
           "invocationTimeStamp" : {
+            "description" : "The time at which the request is sent.",
             "allOf" : [ {
-              "description" : "The time at which the request is sent."
-            }, {
               "$ref" : "https://api.swaggerhub.com/domains/SigScale/TS29571_CommonData/1.2.1#/components/schemas/DateTime"
             } ]
           },
           "beginTimeStamp" : {
+            "description" : "The time of the service activation request.",
             "allOf" : [ {
-              "description" : "The time of the service activation request."
-            }, {
               "$ref" : "https://api.swaggerhub.com/domains/SigScale/TS29571_CommonData/1.2.1#/components/schemas/DateTime"
             } ]
           },
           "invocationSequenceNumber" : {
+            "description" : "The sequence number of the rating service invocation by the network function (NF) consumer.",
             "allOf" : [ {
-              "description" : "The sequence number of the rating service invocation by the network function (NF) consumer."
-            }, {
               "$ref" : "https://api.swaggerhub.com/domains/SigScale/TS29571_CommonData/1.2.1#/components/schemas/Uint32"
             } ]
           },
@@ -672,23 +669,20 @@
         "type" : "object",
         "properties" : {
           "invocationTimeStamp" : {
+            "description" : "The time at which the response is sent.",
             "allOf" : [ {
-              "description" : "The time at which the response is sent."
-            }, {
               "$ref" : "https://api.swaggerhub.com/domains/SigScale/TS29571_CommonData/1.2.1#/components/schemas/DateTime"
             } ]
           },
           "invocationSequenceNumber" : {
+            "description" : "The sequence number of the rating service invocation by the network function (NF) consumer.",
             "allOf" : [ {
-              "description" : "The sequence number of the rating service invocation by the network function (NF) consumer."
-            }, {
               "$ref" : "https://api.swaggerhub.com/domains/SigScale/TS29571_CommonData/1.2.1#/components/schemas/Uint32"
             } ]
           },
           "invocationResult" : {
+            "description" : "Holds the result of rating service invocation by the network function (NF) consumer.",
             "allOf" : [ {
-              "description" : "Holds the result of rating service invocation by the network function (NF) consumer."
-            }, {
               "$ref" : "#/components/schemas/InvocationResult"
             } ]
           },
@@ -740,16 +734,14 @@
         "type" : "object",
         "properties" : {
           "serviceId" : {
+            "description" : "Identifies the service for which the rating request was sent. This ID with the serviceContextId together forms a unique identification of the service.",
             "allOf" : [ {
-              "description" : "Identifies the service for which the rating request was sent. This ID with the serviceContextId together forms a unique identification of the service."
-            }, {
               "$ref" : "https://api.swaggerhub.com/domains/SigScale/TS29571_CommonData/1.2.1#/components/schemas/ServiceId"
             } ]
           },
           "ratingGroup" : {
+            "description" : "Identifies the charging key for the service.",
             "allOf" : [ {
-              "description" : "Identifies the charging key for the service."
-            }, {
               "$ref" : "https://api.swaggerhub.com/domains/SigScale/TS29571_CommonData/1.2.1#/components/schemas/RatingGroup"
             } ]
           },
@@ -764,9 +756,8 @@
             "$ref" : "#/components/schemas/ServiceContextId"
           },
           "serviceInformation" : {
+            "description" : "The structure of serviceInformation is defined in the \"middle-tier\" documents and formally specified in TS 32.299. The content of this parameter corresponds to the service indicated by serviceContextId.",
             "allOf" : [ {
-              "description" : "The structure of serviceInformation is defined in the \"middle-tier\" documents and formally specified in TS 32.299. The content of this parameter corresponds to the service indicated by serviceContextId."
-            }, {
               "$ref" : "#/components/schemas/ServiceInformation"
             } ]
           },
@@ -778,9 +769,8 @@
             }
           },
           "basicPriceTimeStamp" : {
+            "description" : "The timestamp of the last rating of the Basic Price, if applicable for the service indicated by the serviceId.",
             "allOf" : [ {
-              "description" : "The timestamp of the last rating of the Basic Price, if applicable for the service indicated by the serviceId."
-            }, {
               "$ref" : "https://api.swaggerhub.com/domains/SigScale/TS29571_CommonData/1.2.1#/components/schemas/DateTime"
             } ]
           },
@@ -794,23 +784,20 @@
             } ]
           },
           "requestedUnit" : {
+            "description" : "The number of requested units from the service.",
             "allOf" : [ {
-              "description" : "The number of requested units from the service."
-            }, {
               "$ref" : "#/components/schemas/RequestedUnit"
             } ]
           },
           "consumedUnit" : {
+            "description" : "The number of consumed units of the service.",
             "allOf" : [ {
-              "description" : "The number of consumed units of the service."
-            }, {
               "$ref" : "#/components/schemas/ConsumedUnit"
             } ]
           },
           "consumedUnitAfterTariffSwitch" : {
+            "description" : "The number of consumed units of the service since previous request after tariff switch occurred. This parameter is mandatory if the tariff switch occurred since the previous request.",
             "allOf" : [ {
-              "description" : "The number of consumed units of the service since previous request after tariff switch occurred. This parameter is mandatory if the tariff switch occurred since the previous request."
-            }, {
               "$ref" : "#/components/schemas/ConsumedUnit"
             } ]
           }
@@ -820,9 +807,8 @@
         "type" : "object",
         "properties" : {
           "serviceId" : {
+            "description" : "Identifies the service for which the rating request was sent. This ID with the serviceContextId together forms a unique identification of the service.",
             "allOf" : [ {
-              "description" : "Identifies the service for which the rating request was sent. This ID with the serviceContextId together forms a unique identification of the service."
-            }, {
               "$ref" : "https://api.swaggerhub.com/domains/SigScale/TS29571_CommonData/1.2.1#/components/schemas/ServiceId"
             } ]
           },
@@ -833,9 +819,8 @@
             "$ref" : "#/components/schemas/Price"
           },
           "grantedUnit" : {
+            "description" : "The number of granted units for the service.",
             "allOf" : [ {
-              "description" : "The number of granted units for the service."
-            }, {
               "$ref" : "#/components/schemas/GrantedUnit"
             } ]
           },
@@ -844,9 +829,8 @@
             "type" : "string"
           },
           "basicPrice" : {
+            "description" : "Contains a basic fee, that is applicable (e.g. only once per day). If the basicPrice is received by an NF consumer, the NF will deduct this price from the subscriber's account balance, and it will store the current system time internally as timestamp for the last charging of the basic price.",
             "allOf" : [ {
-              "description" : "Contains a basic fee, that is applicable (e.g. only once per day). If the basicPrice is received by an NF consumer, the NF will deduct this price from the subscriber's account balance, and it will store the current system time internally as timestamp for the last charging of the basic price."
-            }, {
               "$ref" : "#/components/schemas/Price"
             } ]
           },
@@ -865,44 +849,38 @@
             }
           },
           "tariffSwitchTime" : {
+            "description" : "Time period in seconds from the time included in actualTime of the request until the next tariff switch occurs. A value \"0\" means, that the tariff switch occurs immediately, i.e. the tariff information contained in nextMonetaryTariff is valid immediately.",
             "allOf" : [ {
-              "description" : "Time period in seconds from the time included in actualTime of the request until the next tariff switch occurs. A value \"0\" means, that the tariff switch occurs immediately, i.e. the tariff information contained in nextMonetaryTariff is valid immediately."
-            }, {
               "$ref" : "https://api.swaggerhub.com/domains/SigScale/TS29571_CommonData/1.2.1#/components/schemas/Uint32"
             } ]
           },
           "currentTariff" : {
+            "description" : "Tariff that is currently valid.",
             "allOf" : [ {
-              "description" : "Tariff that is currently valid."
-            }, {
               "$ref" : "#/components/schemas/Tariff"
             } ]
           },
           "nextTariff" : {
+            "description" : "Tariff after the next tariff switch.",
             "allOf" : [ {
-              "description" : "Tariff after the next tariff switch."
-            }, {
               "$ref" : "#/components/schemas/Tariff"
             } ]
           },
           "expiryTime" : {
+            "description" : "Time period in seconds from the time in actualTime of the request until the expiration of all tariff information contained in this response message. This attribute may be used e.g. if multiple tariff switches are foreseen, or if interworking between limited valid units and tariff switches needs to be ensured.",
             "allOf" : [ {
-              "description" : "Time period in seconds from the time in actualTime of the request until the expiration of all tariff information contained in this response message. This attribute may be used e.g. if multiple tariff switches are foreseen, or if interworking between limited valid units and tariff switches needs to be ensured."
-            }, {
               "$ref" : "https://api.swaggerhub.com/domains/SigScale/TS29571_CommonData/1.2.1#/components/schemas/Uint32"
             } ]
           },
           "validUnits" : {
+            "description" : "Defines for how many units the tariff is valid.",
             "allOf" : [ {
-              "description" : "Defines for how many units the tariff is valid."
-            }, {
               "$ref" : "https://api.swaggerhub.com/domains/SigScale/TS29571_CommonData/1.2.1#/components/schemas/Uint64"
             } ]
           },
           "tariffAfterValidUnits" : {
+            "description" : "Tariff after all valid units have been used. This attribute may be used to optimize service availability in scenarios with limited valid units.",
             "allOf" : [ {
-              "description" : "Tariff after all valid units have been used. This attribute may be used to optimize service availability in scenarios with limited valid units."
-            }, {
               "$ref" : "#/components/schemas/Tariff"
             } ]
           },
@@ -972,9 +950,8 @@
         "type" : "object",
         "properties" : {
           "sgsnMccMnc" : {
+            "description" : "The serving gateway MCC/MNC.",
             "allOf" : [ {
-              "description" : "The serving gateway MCC/MNC."
-            }, {
               "$ref" : "https://api.swaggerhub.com/domains/SigScale/TS29571_CommonData/1.2.1#/components/schemas/PlmnId"
             } ]
           }
@@ -1042,93 +1019,80 @@
         "type" : "object",
         "properties" : {
           "counterId" : {
+            "description" : "Used to address a specific counter, i.e. it identifies the counter. Therefore, the counterID shall be unique for each subscriber.",
             "allOf" : [ {
-              "description" : "Used to address a specific counter, i.e. it identifies the counter. Therefore, the counterID shall be unique for each subscriber."
-            }, {
               "$ref" : "https://api.swaggerhub.com/domains/SigScale/TS29571_CommonData/1.2.1#/components/schemas/Uint32"
             } ]
           },
           "counterType" : {
+            "description" : "An operator specific value which characterizes the counter. Used only for descriptive purposes. In contrast to the counterID, the counterType may be not unique.",
             "allOf" : [ {
-              "description" : "An operator specific value which characterizes the counter. Used only for descriptive purposes. In contrast to the counterID, the counterType may be not unique."
-            }, {
               "$ref" : "https://api.swaggerhub.com/domains/SigScale/TS29571_CommonData/1.2.1#/components/schemas/Uint32"
             } ]
           },
           "counterChangePerSession" : {
+            "description" : "The value, with which the counter shall be incremented or decremented once for the whole online charging session.",
             "allOf" : [ {
-              "description" : "The value, with which the counter shall be incremented or decremented once for the whole online charging session."
-            }, {
               "$ref" : "https://api.swaggerhub.com/domains/SigScale/TS29571_CommonData/1.2.1#/components/schemas/Int32"
             } ]
           },
           "counterChangePerConsumedServiceUnit" : {
+            "description" : "The value, with which the counter shall be incremented or decremented per consumed service unit.",
             "allOf" : [ {
-              "description" : "The value, with which the counter shall be incremented or decremented per consumed service unit."
-            }, {
               "$ref" : "https://api.swaggerhub.com/domains/SigScale/TS29571_CommonData/1.2.1#/components/schemas/Int32"
             } ]
           },
           "counterChangeForFirstChargeableTimeUnit" : {
+            "description" : "The value, with which the counter shall be incremented or decremented for the first chargeable time unit. The first chargeable time unit is defined by unitType in rateElement of monetaryTariff.",
             "allOf" : [ {
-              "description" : "The value, with which the counter shall be incremented or decremented for the first chargeable time unit. The first chargeable time unit is defined by unitType in rateElement of monetaryTariff."
-            }, {
               "$ref" : "https://api.swaggerhub.com/domains/SigScale/TS29571_CommonData/1.2.1#/components/schemas/Int32"
             } ]
           },
           "counterChangePerSubsequentChargeableTimeUnit" : {
+            "description" : "The value, with which the counter shall be incremented or decremented per chargeable time unit, except for the first chargeable time unit. The subsequent chargeable time unit is defined by unitType in rateElement of currentTariff.",
             "allOf" : [ {
-              "description" : "The value, with which the counter shall be incremented or decremented per chargeable time unit, except for the first chargeable time unit. The subsequent chargeable time unit is defined by unitType in rateElement of currentTariff."
-            }, {
               "$ref" : "https://api.swaggerhub.com/domains/SigScale/TS29571_CommonData/1.2.1#/components/schemas/Int32"
             } ]
           },
           "counterChangePerChargeableVolumeUnit" : {
+            "description" : "The value, with which the counter shall be incremented or decremented per chargeable volume unit.  The chargeable volume unit is defined by unitType in rateElement of currentTariff.",
             "allOf" : [ {
-              "description" : "The value, with which the counter shall be incremented or decremented per chargeable volume unit.  The chargeable volume unit is defined by unitType in rateElement of currentTariff."
-            }, {
               "$ref" : "https://api.swaggerhub.com/domains/SigScale/TS29571_CommonData/1.2.1#/components/schemas/Int32"
             } ]
           },
           "counterChangeForFirstChargeableTimeUnitAfterSwitch" : {
+            "description" : "The value, with which the counter shall be incremented or decremented for the first chargeable time unit, if a tariff switch has occurred immediately at the beginning of the online charging session. The first chargeable time unit is defined by unitType in rateElement of nextTariff.",
             "allOf" : [ {
-              "description" : "The value, with which the counter shall be incremented or decremented for the first chargeable time unit, if a tariff switch has occurred immediately at the beginning of the online charging session. The first chargeable time unit is defined by unitType in rateElement of nextTariff."
-            }, {
               "$ref" : "https://api.swaggerhub.com/domains/SigScale/TS29571_CommonData/1.2.1#/components/schemas/Int32"
             } ]
           },
           "counterChangePerSubsequentChargeableTimeUnitAfterSwitch" : {
+            "description" : "The value, with which the counter shall be incremented or decremented per chargeable time unit (except for the first chargeable time unit), after a tariff switch has occurred. The chargeable time unit is defined by unitType in rateElement of a nextTariff.",
             "allOf" : [ {
-              "description" : "The value, with which the counter shall be incremented or decremented per chargeable time unit (except for the first chargeable time unit), after a tariff switch has occurred. The chargeable time unit is defined by unitType in rateElement of a nextTariff."
-            }, {
               "$ref" : "https://api.swaggerhub.com/domains/SigScale/TS29571_CommonData/1.2.1#/components/schemas/Int32"
             } ]
           },
           "counterChangePerChargeableVolumeUnitAfterSwitch" : {
+            "description" : "The value, with which the counter shall be incremented or decremented per chargeable volume unit after a tariff switch has occurred.  The chargeable volume unit is defined by unitType in rateElement of a nextTariff.",
             "allOf" : [ {
-              "description" : "The value, with which the counter shall be incremented or decremented per chargeable volume unit after a tariff switch has occurred.  The chargeable volume unit is defined by unitType in rateElement of a nextTariff."
-            }, {
               "$ref" : "https://api.swaggerhub.com/domains/SigScale/TS29571_CommonData/1.2.1#/components/schemas/Int32"
             } ]
           },
           "counterThreshold" : {
+            "description" : "A threshold value for the counter. If the value of the specified counter reaches this threshold value, all tariff information contained in the request expires, and the NF consumer shall send a new request to the RF.",
             "allOf" : [ {
-              "description" : "A threshold value for the counter. If the value of the specified counter reaches this threshold value, all tariff information contained in the request expires, and the NF consumer shall send a new request to the RF."
-            }, {
               "$ref" : "https://api.swaggerhub.com/domains/SigScale/TS29571_CommonData/1.2.1#/components/schemas/Int32"
             } ]
           },
           "setCounterTo" : {
+            "description" : "The value, to which the counter shall be set (e.g. to reset counters).",
             "allOf" : [ {
-              "description" : "The value, to which the counter shall be set (e.g. to reset counters)."
-            }, {
               "$ref" : "https://api.swaggerhub.com/domains/SigScale/TS29571_CommonData/1.2.1#/components/schemas/Int32"
             } ]
           },
           "counterExpiryDate" : {
+            "description" : "The timestamp, at which the current value of the counter expires.",
             "allOf" : [ {
-              "description" : "The timestamp, at which the current value of the counter expires."
-            }, {
               "$ref" : "https://api.swaggerhub.com/domains/SigScale/TS29571_CommonData/1.2.1#/components/schemas/DateTime"
             } ]
           }
@@ -1138,30 +1102,26 @@
         "type" : "object",
         "properties" : {
           "counterId" : {
+            "description" : "Used to address a specific counter, i.e. it identifies the counter. Therefore, the counterID shall be unique for each subscriber.",
             "allOf" : [ {
-              "description" : "Used to address a specific counter, i.e. it identifies the counter. Therefore, the counterID shall be unique for each subscriber."
-            }, {
               "$ref" : "https://api.swaggerhub.com/domains/SigScale/TS29571_CommonData/1.2.1#/components/schemas/Uint32"
             } ]
           },
           "counterValueBegin" : {
+            "description" : "The value for the counter at the beginning of the current online changing session.",
             "allOf" : [ {
-              "description" : "The value for the counter at the beginning of the current online changing session."
-            }, {
               "$ref" : "https://api.swaggerhub.com/domains/SigScale/TS29571_CommonData/1.2.1#/components/schemas/Int32"
             } ]
           },
           "counterValueChange" : {
+            "description" : "Contains the change of the value for the counter as result of the current online charging session.",
             "allOf" : [ {
-              "description" : "Contains the change of the value for the counter as result of the current online charging session."
-            }, {
               "$ref" : "https://api.swaggerhub.com/domains/SigScale/TS29571_CommonData/1.2.1#/components/schemas/Int32"
             } ]
           },
           "counterValueEnd" : {
+            "description" : "Contains the change of the value for the counter at the end of the current online charging session.",
             "allOf" : [ {
-              "description" : "Contains the change of the value for the counter at the end of the current online charging session."
-            }, {
               "$ref" : "https://api.swaggerhub.com/domains/SigScale/TS29571_CommonData/1.2.1#/components/schemas/Int32"
             } ]
           }
@@ -1172,37 +1132,32 @@
         "type" : "object",
         "properties" : {
           "time" : {
+            "description" : "This field holds the amount of requested time.",
             "allOf" : [ {
-              "description" : "This field holds the amount of requested time."
-            }, {
               "$ref" : "https://api.swaggerhub.com/domains/SigScale/TS29571_CommonData/1.2.1#/components/schemas/Uint32"
             } ]
           },
           "totalVolume" : {
+            "description" : "This field holds the amount of requested volume in both uplink and downlink directions.",
             "allOf" : [ {
-              "description" : "This field holds the amount of requested volume in both uplink and downlink directions."
-            }, {
               "$ref" : "https://api.swaggerhub.com/domains/SigScale/TS29571_CommonData/1.2.1#/components/schemas/Uint64"
             } ]
           },
           "uplinkVolume" : {
+            "description" : "This field holds the amount of requested volume in uplink direction.",
             "allOf" : [ {
-              "description" : "This field holds the amount of requested volume in uplink direction."
-            }, {
               "$ref" : "https://api.swaggerhub.com/domains/SigScale/TS29571_CommonData/1.2.1#/components/schemas/Uint64"
             } ]
           },
           "downlinkVolume" : {
+            "description" : "This field holds the amount of requested volume in downlink direction.",
             "allOf" : [ {
-              "description" : "This field holds the amount of requested volume in downlink direction."
-            }, {
               "$ref" : "https://api.swaggerhub.com/domains/SigScale/TS29571_CommonData/1.2.1#/components/schemas/Uint64"
             } ]
           },
           "serviceSpecificUnits" : {
+            "description" : "This field holds the amount of requested service specific units.",
             "allOf" : [ {
-              "description" : "This field holds the amount of requested service specific units."
-            }, {
               "$ref" : "https://api.swaggerhub.com/domains/SigScale/TS29571_CommonData/1.2.1#/components/schemas/Uint64"
             } ]
           }
@@ -1212,37 +1167,32 @@
         "type" : "object",
         "properties" : {
           "time" : {
+            "description" : "This field holds the amount of granted time.",
             "allOf" : [ {
-              "description" : "This field holds the amount of granted time."
-            }, {
               "$ref" : "https://api.swaggerhub.com/domains/SigScale/TS29571_CommonData/1.2.1#/components/schemas/Uint32"
             } ]
           },
           "totalVolume" : {
+            "description" : "This field holds the amount of granted volume in both uplink and downlink directions.",
             "allOf" : [ {
-              "description" : "This field holds the amount of granted volume in both uplink and downlink directions."
-            }, {
               "$ref" : "https://api.swaggerhub.com/domains/SigScale/TS29571_CommonData/1.2.1#/components/schemas/Uint64"
             } ]
           },
           "uplinkVolume" : {
+            "description" : "This field holds the amount of granted volume in uplink direction.",
             "allOf" : [ {
-              "description" : "This field holds the amount of granted volume in uplink direction."
-            }, {
               "$ref" : "https://api.swaggerhub.com/domains/SigScale/TS29571_CommonData/1.2.1#/components/schemas/Uint64"
             } ]
           },
           "downlinkVolume" : {
+            "description" : "This field holds the amount of granted volume in downlink direction.",
             "allOf" : [ {
-              "description" : "This field holds the amount of granted volume in downlink direction."
-            }, {
               "$ref" : "https://api.swaggerhub.com/domains/SigScale/TS29571_CommonData/1.2.1#/components/schemas/Uint64"
             } ]
           },
           "serviceSpecificUnits" : {
+            "description" : "This field holds the amount of granted service specific units.",
             "allOf" : [ {
-              "description" : "This field holds the amount of granted service specific units."
-            }, {
               "$ref" : "https://api.swaggerhub.com/domains/SigScale/TS29571_CommonData/1.2.1#/components/schemas/Uint64"
             } ]
           }
@@ -1252,37 +1202,32 @@
         "type" : "object",
         "properties" : {
           "time" : {
+            "description" : "This field holds the amount of consumed time.",
             "allOf" : [ {
-              "description" : "This field holds the amount of consumed time."
-            }, {
               "$ref" : "https://api.swaggerhub.com/domains/SigScale/TS29571_CommonData/1.2.1#/components/schemas/Uint32"
             } ]
           },
           "totalVolume" : {
+            "description" : "This field holds the amount of consumed volume in both uplink and downlink directions.",
             "allOf" : [ {
-              "description" : "This field holds the amount of consumed volume in both uplink and downlink directions."
-            }, {
               "$ref" : "https://api.swaggerhub.com/domains/SigScale/TS29571_CommonData/1.2.1#/components/schemas/Uint64"
             } ]
           },
           "uplinkVolume" : {
+            "description" : "This field holds the amount of consumed volume in uplink direction.",
             "allOf" : [ {
-              "description" : "This field holds the amount of consumed volume in uplink direction."
-            }, {
               "$ref" : "https://api.swaggerhub.com/domains/SigScale/TS29571_CommonData/1.2.1#/components/schemas/Uint64"
             } ]
           },
           "downlinkVolume" : {
+            "description" : "This field holds the amount of consumed volume in downlink direction.",
             "allOf" : [ {
-              "description" : "This field holds the amount of consumed volume in downlink direction."
-            }, {
               "$ref" : "https://api.swaggerhub.com/domains/SigScale/TS29571_CommonData/1.2.1#/components/schemas/Uint64"
             } ]
           },
           "serviceSpecificUnits" : {
+            "description" : "This field holds the amount of consumed service specific units.",
             "allOf" : [ {
-              "description" : "This field holds the amount of consumed service specific units."
-            }, {
               "$ref" : "https://api.swaggerhub.com/domains/SigScale/TS29571_CommonData/1.2.1#/components/schemas/Uint64"
             } ]
           }
@@ -1296,9 +1241,8 @@
             "$ref" : "#/components/schemas/CurrencyCode"
           },
           "amount" : {
+            "description" : "The price amount for the rated service.",
             "allOf" : [ {
-              "description" : "The price amount for the rated service."
-            }, {
               "$ref" : "#/components/schemas/UnitValue"
             } ]
           }
@@ -1313,9 +1257,8 @@
             "$ref" : "#/components/schemas/CurrencyCode"
           },
           "scaleFactor" : {
+            "description" : "Holds a simple multiplication factor.",
             "allOf" : [ {
-              "description" : "Holds a simple multiplication factor."
-            }, {
               "$ref" : "#/components/schemas/UnitValue"
             } ]
           },
@@ -1348,16 +1291,14 @@
         "type" : "object",
         "properties" : {
           "valueDigits" : {
+            "description" : "The significand of the floating point value.",
             "allOf" : [ {
-              "description" : "The significand of the floating point value."
-            }, {
               "$ref" : "https://api.swaggerhub.com/domains/SigScale/TS29571_CommonData/1.2.1#/components/schemas/Uint64"
             } ]
           },
           "exponent" : {
+            "description" : "The exponent of the floating point value",
             "allOf" : [ {
-              "description" : "The exponent of the floating point value"
-            }, {
               "$ref" : "https://api.swaggerhub.com/domains/SigScale/TS29571_CommonData/1.2.1#/components/schemas/Int32"
             } ]
           }
@@ -1387,23 +1328,20 @@
             } ]
           },
           "unitValue" : {
+            "description" : "Holds rate element unit size.",
             "allOf" : [ {
-              "description" : "Holds rate element unit size."
-            }, {
               "$ref" : "#/components/schemas/UnitValue"
             } ]
           },
           "unitCost" : {
+            "description" : "Holds rate element monetary value.",
             "allOf" : [ {
-              "description" : "Holds rate element monetary value."
-            }, {
               "$ref" : "#/components/schemas/UnitValue"
             } ]
           },
           "unitQuotaThreshold" : {
+            "description" : "Denotes the durability of a rating element within a Tariff. i.e. if the service consumed unitQuotaThreshold number of unitTypes, the next rating element becomes in effect.",
             "allOf" : [ {
-              "description" : "Denotes the durability of a rating element within a Tariff. i.e. if the service consumed unitQuotaThreshold number of unitTypes, the next rating element becomes in effect."
-            }, {
               "$ref" : "https://api.swaggerhub.com/domains/SigScale/TS29571_CommonData/1.2.1#/components/schemas/Uint32"
             } ]
           }
