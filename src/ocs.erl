@@ -38,7 +38,7 @@
 		query_offer/7]).
 -export([add_pla/1, add_pla/2, find_pla/1, get_plas/0, delete_pla/1, query_table/6]).
 -export([add_policy_table/1, delete_policy_table/1]).
--export([add_policy/2, get_policy/2, get_policies/1, delete_policy/1]).
+-export([add_policy/2, get_policy/2, get_policies/1, delete_policy/2]).
 -export([generate_password/0, generate_identity/0]).
 -export([start/4, start/5]).
 %% export the ocs private API
@@ -2307,14 +2307,15 @@ get_policies(TableName) ->
 			Result
 	end.
 
--spec delete_policy(PolicyRef) -> Result
+-spec delete_policy(TableName, PolicyRef) -> Result
 	when
+		TableName :: string(),
 		PolicyRef :: string(),
 		Result :: ok.
 %% @doc Delete an entry from policy table
-delete_policy(PolicyRef) when is_list(PolicyRef) ->
+delete_policy(TableName, PolicyRef) when is_list(TableName), is_list(PolicyRef) ->
 	F = fun() ->
-			mnesia:delete(policy, PolicyRef, write)
+			mnesia:delete(list_to_existing_atom(TableName), PolicyRef, write)
 	end,
 	case mnesia:transaction(F) of
 		{atomic, ok} ->

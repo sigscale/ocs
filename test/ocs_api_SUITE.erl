@@ -1194,6 +1194,7 @@ delete_policy() ->
 	[{userdata, [{doc, "Remove a policy from the table"}]}].
 
 delete_policy(_Config) ->
+	TableName = "policy",
 	PolicyName = "internal",
 	QosInformation = #{"QoS-Class-Identifier" => 9,
 			"Max-Requested-Bandwidth-UL" => 1000000000,
@@ -1205,9 +1206,9 @@ delete_policy(_Config) ->
 	Policy = #policy{name = PolicyName,
 			qos = QosInformation, charging_rule = 1,
 			flow = [FlowInformationUp1, FlowInformationDown1], precedence = 2},
-	{ok, #policy{}} = ocs:add_policy(Policy),
-	ok = ocs:delete_policy(PolicyName),
-	{error, not_found} = ocs:get_policy(PolicyName).
+	{ok, #policy{}} = ocs:add_policy(TableName, Policy),
+	ok = ocs:delete_policy(TableName, PolicyName),
+	{error, not_found} = ocs:get_policy(TableName, PolicyName).
 
 %%---------------------------------------------------------------------
 %%  Internal functions
