@@ -609,18 +609,12 @@
             }
           },
           "tenantIdentifier" : {
-            "allOf" : [ {
-              "description" : "Identifier of the tenant."
-            }, {
-              "type" : "string"
-            } ]
+            "description" : "Identifier of the tenant.",
+            "type" : "string"
           },
           "mnSConsumerIdentifier" : {
-            "allOf" : [ {
-              "description" : "Management service (MnS) consumer Identifier."
-            }, {
-              "type" : "string"
-            } ]
+            "description" : "Management service (MnS) consumer Identifier.",
+            "type" : "string"
           },
           "nfConsumerIdentification" : {
             "allOf" : [ {
