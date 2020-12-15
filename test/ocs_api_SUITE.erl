@@ -1136,27 +1136,30 @@ add_policy(_Config) ->
 	true = is_integer(P#policy.precedence).
 
 get_policy() ->
-	[{userdata, [{doc, "Lookup policy with given policy reference"}]}].
+	[{userdata, [{doc, "Lookup policy in a specified table with given policy"
+			"reference"}]}].
 
 get_policy(_Config) ->
+	TableName = "policy",
 	PolicyName = "external",
 	QosInformation = #{"QoS-Class-Identifier" => 9,
 			"Max-Requested-Bandwidth-UL" => 1000000000,
 			"Max-Requested-Bandwidth-DL" => 1000000000},
-	FlowInformationUp1 = #{"Flow-Description" => "permit in ip from any to 172.16/12",
-			"Flow-Direction" => 2},
-	FlowInformationDown1 = #{"Flow-Description" => "permit out ip from 172.16/12 to any",
-			'Flow-Direction' => 1},
+	FlowInformationUp1 = #{"Flow-Description" =>
+			"permit in ip from any to 172.16/12", "Flow-Direction" => 2},
+	FlowInformationDown1 = #{"Flow-Description" =>
+			"permit out ip from 172.16/12 to any", 'Flow-Direction' => 1},
 	Policy = #policy{name = PolicyName,
 			qos = QosInformation, charging_rule = 32,
 			flow = [FlowInformationUp1, FlowInformationDown1], precedence = 1},
-	{ok, #policy{}} = ocs:add_policy(Policy),
-	{ok, #policy{}} = ocs:get_policy(PolicyName).
+	{ok, #policy{}} = ocs:add_policy(TableName, Policy),
+	{ok, #policy{}} = ocs:get_policy(TableName, PolicyName).
 
 get_policies() ->
-	[{userdata, [{doc, "List all the policies in the table"}]}].
+	[{userdata, [{doc, "List all the policies in a specified table"}]}].
 
 get_policies(_Config) ->
+	TableName = "policy",
 	QosInformation = #{"QoS-Class-Identifier" => 9,
 			"Max-Requested-Bandwidth-UL" => 1000000000,
 			"Max-Requested-Bandwidth-DL" => 1000000000},
@@ -1168,7 +1171,7 @@ get_policies(_Config) ->
 	Policy1 = #policy{name = PolicyName1,
 			qos = QosInformation, charging_rule = 1,
 			flow = [FlowInformationUp1, FlowInformationDown1], precedence = 2},
-	{ok, #policy{}} = ocs:add_policy(Policy1),
+	{ok, #policy{}} = ocs:add_policy(TableName, Policy1),
 	PolicyName2 = "external",
 	FlowInformationUp2 = #{"Flow-Description" => "permit in ip from any to 172.16/12",
 			"Flow-Direction" => 2},
@@ -1177,8 +1180,8 @@ get_policies(_Config) ->
 	Policy2 = #policy{name = PolicyName2,
 			qos = QosInformation, charging_rule = 32,
 			flow = [FlowInformationUp2, FlowInformationDown2], precedence = 1},
-	{ok, #policy{}} = ocs:add_policy(Policy2),
-	Policies = ocs:get_policies(),
+	{ok, #policy{}} = ocs:add_policy(TableName, Policy2),
+	Policies = ocs:get_policies(TableName),
 	true = length(Policies) >= 2,
 	F = fun(#policy{}) ->
 				true;

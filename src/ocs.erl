@@ -38,7 +38,7 @@
 		query_offer/7]).
 -export([add_pla/1, add_pla/2, find_pla/1, get_plas/0, delete_pla/1, query_table/6]).
 -export([add_policy_table/1, delete_policy_table/1]).
--export([add_policy/2, get_policy/1, get_policies/0, delete_policy/1]).
+-export([add_policy/2, get_policy/2, get_policies/1, delete_policy/1]).
 -export([generate_password/0, generate_identity/0]).
 -export([start/4, start/5]).
 %% export the ocs private API
@@ -2261,15 +2261,18 @@ add_policy(TableName, #policy{name = Name, qos = QoS, charging_rule = Rule,
 			end
 	end.
 
--spec get_policy(PolicyName) -> Result
+-spec get_policy(TableName, PolicyName) -> Result
 	when
+		TableName :: string(),
 		PolicyName :: string(),
 		Result :: {ok, Policy} | {error, Reason},
 		Policy :: #policy{},
 		Reason :: not_found | term().
 %% @doc Look up an entry in the policy table.
-get_policy(PolicyName) ->
-	F = fun() -> mnesia:read(policy, PolicyName, read) end,
+get_policy(TableName, PolicyName) ->
+	F = fun() ->
+			mnesia:read(list_to_existing_atom(TableName), PolicyName, read)
+	end,
 	case mnesia:transaction(F) of
 		{atomic, [#policy{} = P]} ->
 			{ok, P};
@@ -2279,15 +2282,16 @@ get_policy(PolicyName) ->
 			{error, Reason}
 	end.
 
--spec get_policies() -> Result
+-spec get_policies(TableName) -> Result
 	when
+		TableName :: string(),
 		Result :: [#policy{}] | {error, Reason},
 		Reason :: term().
 %% @doc List all entries in the policy table.
-get_policies() ->
+get_policies(TableName) ->
 	MatchSpec = [{'_', [], ['$_']}],
 	F = fun(F, start, Acc) ->
-				F(F, mnesia:select(policy, MatchSpec,
+				F(F, mnesia:select(list_to_existing_atom(TableName), MatchSpec,
 						?CHUNKSIZE, read), Acc);
 			(_F, '$end_of_table', Acc) ->
 				lists:flatten(lists:reverse(Acc));
