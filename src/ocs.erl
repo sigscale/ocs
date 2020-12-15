@@ -2269,7 +2269,8 @@ add_policy(TableName, #policy{name = Name, qos = QoS, charging_rule = Rule,
 		Policy :: #policy{},
 		Reason :: not_found | term().
 %% @doc Look up an entry in the policy table.
-get_policy(TableName, PolicyName) ->
+get_policy(TableName, PolicyName) when is_list(TableName),
+		is_list(PolicyName) ->
 	F = fun() ->
 			mnesia:read(list_to_existing_atom(TableName), PolicyName, read)
 	end,
@@ -2288,7 +2289,7 @@ get_policy(TableName, PolicyName) ->
 		Result :: [#policy{}] | {error, Reason},
 		Reason :: term().
 %% @doc List all entries in the policy table.
-get_policies(TableName) ->
+get_policies(TableName) when is_list(TableName) ->
 	MatchSpec = [{'_', [], ['$_']}],
 	F = fun(F, start, Acc) ->
 				F(F, mnesia:select(list_to_existing_atom(TableName), MatchSpec,
