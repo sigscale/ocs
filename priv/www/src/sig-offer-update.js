@@ -448,6 +448,12 @@ class offerUpdate extends PolymerElement {
 								Add a value to update the offer price destination prefix tariff
 							</paper-tooltip>
 							<paper-input
+									id="roamingTable"
+									type="string"
+									value="{{priceAddRoaming}}"
+									label="Roaming Table">
+							</paper-input>
+							<paper-input
 									id="chargingKey"
 									value="{{chargingKey}}"
 									type="number"
@@ -889,6 +895,9 @@ class offerUpdate extends PolymerElement {
 					if(prodPrice.prodSpecCharValueUse[indexChar].name == "destPrefixTariffTable") {
 						specChar[indexChar] = {name: "destPrefixTariffTable", value: prodPrice.prodSpecCharValueUse[indexChar].productSpecCharacteristicValue[0].value};
 					}
+					if(prodPrice.prodSpecCharValueUse[indexChar].name == "roamingTable") {
+						specChar[indexChar] = {name: "roamingTable", value: prodPrice.prodSpecCharValueUse[indexChar].productSpecCharacteristicValue[0].value};
+					}
 					if(prodPrice.prodSpecCharValueUse[indexChar].name == "chargingKey") {
 						specChar[indexChar] = {name: "chargingKey", value: prodPrice.prodSpecCharValueUse[indexChar].productSpecCharacteristicValue[0].value};
 					}
@@ -1068,6 +1077,7 @@ class offerUpdate extends PolymerElement {
 				this.$.updateAddPriceCharReserveTime.value = null;
 				this.$.updateAddPriceCharReserveBytes.value = null;
 				this.$.updateReserveSession.value = null;
+				this.priceAddRoaming = null;
 				this.chargingKey = null;
 				this.priceUpdateTariff = null;
 				this.startTimeUpdate = null;
@@ -1140,6 +1150,9 @@ class offerUpdate extends PolymerElement {
 					for (var indexCharVal in prodPriceUpdate.prodSpecCharValueUse) {
 						if(prodPriceUpdate.prodSpecCharValueUse[indexCharVal].name == "destPrefixTariffTable") {
 							this.priceUpdateTariff = prodPriceUpdate.prodSpecCharValueUse[indexCharVal].value;
+						}
+						if(prodPriceUpdate.prodSpecCharValueUse[indexCharVal].name == "roamingTable") {
+							this.priceAddRoaming = prodPriceUpdate.prodSpecCharValueUse[indexCharVal].value;
 						}
 						if(prodPriceUpdate.prodSpecCharValueUse[indexCharVal].name == "chargingKey") {
 							this.chargingKey = prodPriceUpdate.prodSpecCharValueUse[indexCharVal].value;
@@ -1548,6 +1561,42 @@ class offerUpdate extends PolymerElement {
 				updatePriceNew.push(keyE);
 			}
 		}
+
+		if(this.priceAddRoaming) {
+			function checkName(char) {
+				return char.name == "roamingTable";
+			}
+			var res = this.prices[indexPrices].prodSpecCharValueUse.findIndex(checkName);
+			if(res == -1) {
+				indexCharPrices = "-";
+				var roam = new Object();
+				roam.op = "add";
+				roam.path = "/productOfferingPrice/" + indexPrices + "/prodSpecCharValueUse/" + indexCharPrices;
+				var roam1 = new Object();
+				roam1.name = "roamingTable";
+				roam1.maxCardinality = 1;
+				var roam2Arr = new Array();
+				var roam2 = new Object();
+				roam2.default = true;
+				roam2.value = this.priceAddRoaming;
+				roam2Arr.push(roam2);
+				roam1.productSpecCharacteristicValue = roam2Arr;
+				var roam3 = new Object();
+				roam3.id = "3";
+				roam3.href = "/catalogManagement/v2/productSpecification/3";
+				roam1.productSpecification = roam3;
+				roam.value = roam1;
+				updatePriceNew.push(roam);
+			} else {
+				indexCharPrices = res.toString();
+				var roam = new Object();
+				roam.op = "add";
+				roam.path = "/productOfferingPrice/" + indexPrices + "/prodSpecCharValueUse/" + indexCharPrices + "/productSpecCharacteristicValue/0/value";
+				roam.value = this.$.roamingTable.value;
+				updatePriceNew.push(roam);
+			}
+		}
+
 		if(this.$.updateAddPriceCharReserveBytes.value) {
 			function checkChar1(charVal) {
 				return charVal.name == "radiusReserveOctets";
@@ -1684,6 +1733,7 @@ class offerUpdate extends PolymerElement {
 		this.priceUpdatePeriod = null;
 		this.$.updateAddPriceCharReserveTime.value = null;
 		this.$.updateDestPrefixTariff.value = null;
+		this.priceAddRoaming = null;
 		this.chargingKey = null;
 		this.$.updateAddPriceCharReserveBytes.value = null;
 		this.$.updateCheckIn.checked = false;
@@ -2303,6 +2353,7 @@ class offerUpdate extends PolymerElement {
 		this.$.updateAddPriceCharReserveTime.value = null;
 		this.$.updateAddPriceCharReserveBytes.value = null;
 		this.priceUpdateTariff = null;
+		this.priceAddRoaming = null;
 		this.chargingKey = null;
 		this.$.updateReserveSession.value = null;
 		this.startTimeUpdate = null;

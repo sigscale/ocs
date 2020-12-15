@@ -528,6 +528,7 @@ class subAdd extends PolymerElement {
 			serviceChar.push(multiSess);
 		}
 		subscriber.serviceCharacteristic = serviceChar;
+		subscriber.product = this.$.addProductId1.value;
 		subscriber.isServiceEnabled = this.enableAddAutho.checked;
 		subscriber.state = "active";
 		var specService = new Object();
