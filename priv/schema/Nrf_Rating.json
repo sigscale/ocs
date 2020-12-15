@@ -617,9 +617,8 @@
             "type" : "string"
           },
           "nfConsumerIdentification" : {
+            "description" : "Contains a set of information identifying the network function (NF) consumer of the rating service.",
             "allOf" : [ {
-              "description" : "Contains a set of information identifying the network function (NF) consumer of the rating service."
-            }, {
               "$ref" : "#/components/schemas/NFIdentification"
             } ]
           },
