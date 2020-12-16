@@ -3,7 +3,7 @@
   "info": {
     "description": "TMF639 Resource Inventory Management",
     "version": "1.0.0",
-    "title": " Resource Inventory Management API"
+    "title": "Resource Inventory Management"
   },
   "basePath": "/resourceInventoryManagement/v1/",
   "schemes": [

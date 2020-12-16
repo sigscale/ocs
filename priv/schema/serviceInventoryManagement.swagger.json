@@ -3,7 +3,7 @@
   "info": {
     "description": "TMF638 Service Inventory Management",
     "version": "2.0.0",
-    "title": "API Service Inventory Management"
+    "title": "Service Inventory Management"
   },
   "basePath": "/serviceInventoryManagement/v2/",
   "schemes": [

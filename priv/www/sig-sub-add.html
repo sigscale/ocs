@@ -578,6 +578,7 @@
 					serviceChar.push(multiSess);
 				}
 				subscriber.serviceCharacteristic = serviceChar;
+				subscriber.product = this.$.addProductId1.value;
 				subscriber.isServiceEnabled = this.$.addSubscriberEnabled.checked;
 				subscriber.state = "active";
 				var specService = new Object();
