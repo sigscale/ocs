@@ -151,10 +151,9 @@ register(timeout, State) ->
 		Event :: {Type, Resource, Category},
 		Type :: create_bucket | delete_bucket | charge | depleted | accumulated
 				| create_product | delete_product | create_service | delete_service
-				| create_offer | delete_offer | insert_gtt | delete_gtt
-				| create_pla | delete_pla | log_acct,
+				| create_offer | delete_offer | insert_gtt | delete_gtt | log_acct,
 		Resource :: #bucket{} | #product{} | #service{} | #offer{}
-				| {Table, #gtt{}} | #pla{} | [#adjustment{}] | [#acc_balance{}]
+				| {Table, #gtt{}} | [#adjustment{}] | [#acc_balance{}]
 				| ocs_log:acct_event(),
 		Table :: atom(),
 		Category :: balance | product | service | resource | usage,
@@ -364,8 +363,6 @@ event(Resource, Category) ->
 			ocs_rest_res_service:inventory(Resource);
 		resource ->
 			case Resource of
-				#pla{} ->
-					ocs_rest_res_resource:pla(Resource);
 				{Table, #gtt{num = Prefix, value = {Description, Rate, _}}} ->
 					ocs_rest_res_resource:gtt(atom_to_list(Table),
 							{Prefix, Description, Rate})
@@ -386,9 +383,7 @@ get_resource_id(Resource) ->
 		#bucket{id = Id} ->
 			Id;
 		{_, #gtt{num = Num}} ->
-			Num;
-		#pla{name = Name} ->
-			Name
+			Num
 	end.
 
 %% @hidden
@@ -420,10 +415,6 @@ event_type(Type) ->
 			"LogicalResourceCreationNotification";
 		delete_gtt ->
 			"LogicalResourceRemoveNotification";
-		create_pla ->
-			"PlaCreationNotification";
-		delete_pla ->
-			"PlaRemoveNotification";
 		log_acct ->
 			"UsageCreationEvent"
 	end.

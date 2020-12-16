@@ -36,7 +36,7 @@
 		query_users/3, update_user/3]).
 -export([add_offer/1, find_offer/1, get_offers/0, delete_offer/1,
 		query_offer/7]).
--export([add_pla/1, add_pla/2, find_pla/1, get_plas/0, delete_pla/1, query_table/6]).
+-export([query_table/6]).
 -export([add_policy_table/1, delete_policy_table/1]).
 -export([add_policy/2, get_policy/2, get_policies/1, delete_policy/2]).
 -export([generate_password/0, generate_identity/0]).
@@ -1529,53 +1529,6 @@ add_offer1(Offer) ->
 			{error, Reason}
 	end.
 
--spec add_pla(Pla) -> Result
-	when
-		Pla :: #pla{},
-		Result :: {ok, #pla{}} | {error, Reason},
-		Reason :: validation_failed | term().
-%% @doc Add a new entry in pricing logic algorithm table.
-add_pla(#pla{} = Pla) ->
-	F = fun() ->
-		TS = erlang:system_time(?MILLISECOND),
-		N = erlang:unique_integer([positive]),
-		R = Pla#pla{last_modified = {TS, N}},
-		ok = mnesia:write(pla, R, write),
-		R
-	end,
-	case mnesia:transaction(F) of
-		{atomic, #pla{name = Name} = Pla1} ->
-			case catch list_to_existing_atom(Name) of
-				{'EXIT', _Reason} ->
-					ok = ocs_gtt:new(list_to_atom(Name), []),
-					ok = ocs_event:notify(create_pla, Pla1, resource),
-					{ok, Pla1};
-				_ ->
-					ok = ocs_event:notify(create_pla, Pla1, resource),
-					{ok, Pla1}
-			end;
-		{aborted, Reason} ->
-			{error, Reason}
-	end.
-
--spec add_pla(Pla, File) -> Result
-	when
-		Pla :: #pla{},
-		File :: file:filename(),
-		Result :: {ok, #pla{}} | {error, Reason},
-		Reason :: validation_failed | term().
-%% @doc Add a new entry in pricing logic algorithm table.
-%% 	Import table rows from CSV file.
-add_pla(#pla{} = Pla, File) when is_list(File) ->
-	case catch ocs_gtt:import(File) of
-		ok ->
-			Basename = filename:basename(File),
-			Name = string:sub_string(Basename, 1, string:rchr(Basename, $.) - 1),
-			add_pla(Pla#pla{name = Name});
-		{'EXIT', Reason} ->
-			{error, Reason}
-	end.
-
 -spec find_offer(OfferID) -> Result
 	when
 		OfferID :: string(),
@@ -1734,71 +1687,6 @@ query_table1([], Acc) ->
 	{eof, lists:reverse(Acc)};
 query_table1(Pla, _Acc) ->
 	{eof, Pla}.
-
--spec get_plas() -> Result
-	when
-		Result :: [#pla{}] | {error, Reason},
-		Reason :: term().
-%% @doc Get all entries in the pla table.
-get_plas() ->
-	MatchSpec = [{'_', [], ['$_']}],
-	F = fun(F, start, Acc) ->
-				F(F, mnesia:select(pla, MatchSpec,
-						?CHUNKSIZE, read), Acc);
-			(_F, '$end_of_table', Acc) ->
-				lists:flatten(lists:reverse(Acc));
-			(_F, {error, Reason}, _Acc) ->
-				{error, Reason};
-			(F,{Pla, Cont}, Acc) ->
-				F(F, mnesia:select(Cont), [Pla | Acc])
-	end,
-	case mnesia:transaction(F, [F, start, []]) of
-		{aborted, Reason} ->
-			{error, Reason};
-		{atomic, Result} ->
-			Result
-	end.
-
--spec find_pla(ID) -> Result
-	when
-		ID :: string(),
-		Result :: {ok, Pla} | {error, Reason},
-		Pla :: #pla{},
-		Reason :: term().
-%% @doc Find pricing logic algorithm by id.
-find_pla(ID) ->
-	F = fun() -> mnesia:read(pla, ID) end,
-	case mnesia:transaction(F) of
-		{atomic, [#pla{} = Pla]} ->
-			{ok, Pla};
-		{atomic, []} ->
-			{error, not_found};
-		{aborted, Reason} ->
-			{error, Reason}
-	end.
-
--spec delete_pla(ID) -> Result
-	when
-		ID :: string(),
-		Result :: ok.
-%% @doc Delete an entry from the pla table.
-delete_pla(ID) ->
-	F = fun() ->
-			case mnesia:read(pla, ID) of
-				[#pla{} = Pla] ->
-					{mnesia:delete(pla, ID, write), Pla};
-				[] ->
-					mnesia:abort(not_found)
-			end
-	end,
-	case mnesia:transaction(F) of
-		{atomic, {ok, Pla}} ->
-			{atomic, ok} = mnesia:delete_table(list_to_existing_atom(ID)),
-			ok = ocs_event:notify(delete_pla, Pla, resource),
-			ok;
-		{aborted, Reason} ->
-			exit(Reason)
-	end.
 
 -type password() :: [50..57 | 97..104 | 106..107 | 109..110 | 112..116 | 119..122].
 -spec generate_password() -> password().
