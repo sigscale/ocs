@@ -71,7 +71,7 @@ get_resource_spec("1") ->
 	Headers = [{content_type, "application/json"}],
 	{ok, Headers, Body};
 get_resource_spec("2") ->
-	ResourceSpec = policy_table_spec(),
+	ResourceSpec = policy_row_spec(),
 	Body = mochijson:encode(ResourceSpec),
 	Headers = [{content_type, "application/json"}],
 	{ok, Headers, Body};
@@ -551,7 +551,7 @@ tariff_table_spec() ->
 	{struct, [Id, Href, Name, Description, Version, Status, LastUpdate, Category, Characteristic]}.
 
 %% @hidden
-policy_table_spec() ->
+policy_row_spec() ->
 	Id = {"id", "2"},
 	Href = {"href", ?specPath "2"},
 	Name = {"name", "PolicyTableSpec"},
