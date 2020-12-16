@@ -65,7 +65,7 @@
 		hss_host = [] :: [diameter:'OctetString'()],
 		pgw_realm :: diameter:'OctetString'() | undefined,
 		pgw_host = [] :: diameter:'OctetString'(),
-		pgw_id = [] :: [diameter:'OctetString'()],
+		pgw_id = [] ::  [#'3gpp_swx_MIP6-Agent-Info'{}],
 		pgw_plmn = [] :: [diameter:'OctetString'()],
 		request :: #'3gpp_s6b_AAR'{} | undefined,
 		session_id :: string(),
@@ -449,7 +449,7 @@ code_change(_OldVsn, StateName, StateData, _Extra) ->
 send_register(#statedata{imsi = IMSI,
 		orig_host = OriginHost, orig_realm = OriginRealm,
 		hss_host = HssHost, hss_realm = HssRealm, service = Service,
-		apn_context = Context, apn_name = APN,
+		apn_context = _Context, apn_name = APN,
 		pgw_id = PGW, pgw_plmn = VPLMN} = _StateData) ->
 	SessionId = diameter:session_id([OriginHost]),
 	Request = #'3gpp_swx_SAR'{'Session-Id' = SessionId,
