@@ -70,6 +70,11 @@ get_resource_spec("1") ->
 	Body = mochijson:encode(ResourceSpec),
 	Headers = [{content_type, "application/json"}],
 	{ok, Headers, Body};
+get_resource_spec("2") ->
+	ResourceSpec = policy_table_spec(),
+	Body = mochijson:encode(ResourceSpec),
+	Headers = [{content_type, "application/json"}],
+	{ok, Headers, Body};
 get_resource_spec(_) ->
 	{error, 404}.
 
@@ -285,7 +290,6 @@ add_pla(ReqData) ->
 		_:_ ->
 			{error, 400}
 	end.
-
 
 -spec patch_pla(Id, Etag, ReqData) -> Result
 	when
@@ -543,6 +547,49 @@ tariff_table_spec() ->
 			{"valueType", "MatrixCharacteristicSpec"},
 			{"resourceSpecCharacteristicValue", {array, [{struct,
 			[{"seqNum", 3}, {"valueType", "Number"}]}]}}]}]},
+	Characteristic = {"resourceSpecCharacteristic" , Chars},
+	{struct, [Id, Href, Name, Description, Version, Status, LastUpdate, Category, Characteristic]}.
+
+%% @hidden
+policy_table_spec() ->
+	Id = {"id", "2"},
+	Href = {"href", ?specPath "2"},
+	Name = {"name", "PolicyTableSpec"},
+	Description = {"description", "Rating policy table"},
+	Status = {"lifecycleStatus", "Active"},
+	Version = {"version", "1.0"},
+	LastUpdate = {"lastUpdate", "2020-12-16"},
+	Category = {"category", "PolicyTable"},
+	Chars = {array, [{struct, [{"name", "name"},
+			{"description", "Name of the policy"},
+			{"valueType", "MatrixCharacteristicSpec"},
+			{"resourceSpecCharacteristicValue", {array, [{struct,
+			[{"seqNum", 1}, {"valueType", "String"}]}]}}]},
+			{struct, [{"name", "qosInformation"},
+			{"description", "Quality of Service Information"},
+			{"valueType", "MatrixCharacteristicSpec"},
+			{"resourceSpecCharacteristicValue", {array, [{struct,
+			[{"seqNum", 2}, {"valueType", {struct,
+			[{"qosClassIdentifier", "Number"},
+			{"maxRequestedBandwidthUL", "Number"},
+			{"maxRequestedBandwidthDL", "Number"}]}}]}]}}]},
+			{struct, [{"name", "chargingRule"},
+			{"description", "Charging rule"},
+			{"valueType", "MatrixCharacteristicSpec"},
+			{"resourceSpecCharacteristicValue", {array, [{struct,
+			[{"seqNum", 3}, {"valueType", "String"}]}]}}]},
+			{struct, [{"name", "flowInformation"},
+			{"description", "Flow Information"},
+			{"valueType", "MatrixCharacteristicSpec"},
+			{"resourceSpecCharacteristicValue", {array, [{struct,
+			[{"seqNum", 4}, {"valueType", {array, [
+			{struct, [{"flowDescription", "String"},
+			{"flowDirection", "Number"}]}]}}]}]}}]},
+			{struct, [{"name", "precedence"},
+			{"description", "Priority of the policy"},
+			{"valueType", "MatrixCharacteristicSpec"},
+			{"resourceSpecCharacteristicValue", {array, [{struct,
+			[{"seqNum", 5}, {"valueType", "Number"}]}]}}]}]},
 	Characteristic = {"resourceSpecCharacteristic" , Chars},
 	{struct, [Id, Href, Name, Description, Version, Status, LastUpdate, Category, Characteristic]}.
 
