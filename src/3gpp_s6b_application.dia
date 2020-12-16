@@ -51,6 +51,7 @@
 		{ Origin-Realm }
 		{ Auth-Request-Type }
 		{ Result-Code }
+		[ User-Name ]
 		[ DRMP ]
 		[ MIP6-Feature-Vector ]
 		[ Session-Timeout ]
