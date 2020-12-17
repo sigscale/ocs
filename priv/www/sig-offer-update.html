@@ -578,6 +578,13 @@
 						</div>
 						<div>
 							<paper-input
+									id="roamingTable"
+									type="string"
+									label="[[i18n.RomaingTab]]">
+							</paper-input>
+						</div>
+						<div>
+							<paper-input
 									id="chargingKey"
 									type="number"
 									label="Charging Key">
@@ -1033,6 +1040,9 @@
 							if(prodPrice.prodSpecCharValueUse[indexChar].name == "destPrefixTariffTable") {
 								specChar[indexChar] = {name: "destPrefixTariffTable", value: prodPrice.prodSpecCharValueUse[indexChar].productSpecCharacteristicValue[0].value};
 							}
+							if(prodPrice.prodSpecCharValueUse[indexChar].name == "roamingTable") {
+								specChar[indexChar] = {name: "roamingTable", value: prodPrice.prodSpecCharValueUse[indexChar].productSpecCharacteristicValue[0].value};
+							}
 							if(prodPrice.prodSpecCharValueUse[indexChar].name == "chargingKey") {
 								specChar[indexChar] = {name: "chargingKey", value: prodPrice.prodSpecCharValueUse[indexChar].productSpecCharacteristicValue[0].value};
 							}
@@ -1224,6 +1234,7 @@
 						this.$.updateAddPriceCharReserveTime.value = null;
 						this.$.updateAddPriceCharReserveBytes.value = null;
 						this.$.updateDestPrefixTariff.value = null;
+						this.$.roamingTable.value = null;
 						this.$.updateReserveSession.value = null;
 						this.$.chargingKey.value = null;
 						this.$.updateTimeOfDayStart.value = null;
@@ -1296,6 +1307,9 @@
 							for (var indexCharVal in prodPriceUpdate.prodSpecCharValueUse) {
 								if(prodPriceUpdate.prodSpecCharValueUse[indexCharVal].name == "destPrefixTariffTable") {
 									this.$.updateDestPrefixTariff.value = prodPriceUpdate.prodSpecCharValueUse[indexCharVal].value;
+								}
+								if(prodPriceUpdate.prodSpecCharValueUse[indexCharVal].name == "roamingTable") {
+									this.$.roamingTable.value = prodPriceUpdate.prodSpecCharValueUse[indexCharVal].value;
 								}
 								if(prodPriceUpdate.prodSpecCharValueUse[indexCharVal].name == "chargingKey") {
 									this.$.chargingKey.value = prodPriceUpdate.prodSpecCharValueUse[indexCharVal].value;
@@ -1663,6 +1677,41 @@
 					}
 				}
 
+				if(this.$.roamingTable.value) {
+					function checkName(char) {
+						return char.name == "roamingTable";
+					}
+					var res = this.prices[indexPrices].prodSpecCharValueUse.findIndex(checkName);
+					if(res == -1) {
+						indexCharPrices = "-";
+						var roam = new Object();
+						roam.op = "add";
+						roam.path = "/productOfferingPrice/" + indexPrices + "/prodSpecCharValueUse/" + indexCharPrices;
+						var roam1 = new Object();
+						roam1.name = "roamingTable";
+						roam1.maxCardinality = 1;
+						var roam2Arr = new Array();
+						var roam2 = new Object();
+						roam2.default = true;
+						roam2.value = this.$.roamingTable.value;
+						roam2Arr.push(roam2);
+						roam1.productSpecCharacteristicValue = roam2Arr;
+						var roam3 = new Object();
+						roam3.id = "3";
+						roam3.href = "/catalogManagement/v2/productSpecification/3";
+						roam1.productSpecification = roam3;
+						roam.value = roam1;
+						updatePriceNew.push(roam);
+					} else {
+						indexCharPrices = res.toString();
+						var roam = new Object();
+						roam.op = "add";
+						roam.path = "/productOfferingPrice/" + indexPrices + "/prodSpecCharValueUse/" + indexCharPrices + "/productSpecCharacteristicValue/0/value";
+						roam.value = this.$.roamingTable.value;
+						updatePriceNew.push(roam);
+					}
+				}
+
 				if(this.$.chargingKey.value) {
 					function checkCharge(charge) {
 						return charge.name == "chargingKey";
@@ -1832,6 +1881,7 @@
 				this.$.updatePricePerioddrop.value = null;
 				this.$.updateAddPriceCharReserveTime.value = null;
 				this.$.updateDestPrefixTariff.value = null;
+				this.$.roamingTable.value = null;
 				this.$.chargingKey.value = null;
 				this.$.updateAddPriceCharReserveBytes.value = null;
 				this.$.updateCheckIn.checked = false;
@@ -2250,6 +2300,7 @@
 					this.$.updateAddPriceCharReserveTime.value = null;
 					this.$.updateAddPriceCharReserveBytes.value = null;
 					this.$.updateDestPrefixTariff.value = null;
+					this.$.roamingTable.value = null;
 					this.$.chargingKey.value =  null;
 					this.$.updateReserveSession.value = null;
 					this.$.updateTimeOfDayStart.value = null;
@@ -2423,6 +2474,7 @@
 				this.$.updateAddPriceCharReserveTime.value = null;
 				this.$.updateAddPriceCharReserveBytes.value = null;
 				this.$.updateDestPrefixTariff.value = null;
+				this.$.roamingTable.value = null;
 				this.$.chargingKey.value = null;
 				this.$.updateReserveSession.value = null;
 				this.$.updateTimeOfDayStart.value = null;

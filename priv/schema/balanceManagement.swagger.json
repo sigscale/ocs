@@ -3,7 +3,7 @@
   "info": {
     "description": "TMF654 Prepay Balance Management",
     "version": "1.0.0",
-    "title": "API BalanceManagement"
+    "title": "Balance Management"
   },
   "basePath": "/balanceManagement/v1/",
   "schemes": [

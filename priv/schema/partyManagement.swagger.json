@@ -3,7 +3,7 @@
   "info": {
     "description": "TMF632 Party Management",
     "version": "1.0.0",
-    "title": "API PartyManagement"
+    "title": "Party Management"
   },
   "basePath": "/partyManagement/v1/",
   "schemes": [

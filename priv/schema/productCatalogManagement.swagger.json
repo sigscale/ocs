@@ -3,7 +3,7 @@
   "info": {
     "description": "TMF620 Product Catalog Management",
     "version": "2.0.0",
-    "title": "API Product Catalog Management"
+    "title": "Product Catalog Management"
   },
   "basePath": "/productCatalogManagement/v2/",
   "schemes": [

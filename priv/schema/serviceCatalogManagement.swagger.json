@@ -3,7 +3,7 @@
   "info": {
     "description": "TMF633 Service Catalog Management",
     "version": "2.0.0",
-    "title": "API Service Catalog Management"
+    "title": "Service Catalog Management"
   },
   "basePath": "/serviceCatalogManagement/v2/",
   "schemes": [
