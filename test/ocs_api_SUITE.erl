@@ -100,7 +100,7 @@ all() ->
 	delete_bucket_event, product_charge_event, rating_deleted_bucket_event,
 	accumulated_balance_event, add_policy_table, delete_policy_table,
 	add_policy, get_policy, get_policies, delete_policy,
-	add_resource, get_resources].
+	add_resource, get_resources, get_resource].
 
 %%---------------------------------------------------------------------
 %%  Test cases
@@ -1256,6 +1256,24 @@ get_resources(_Config) ->
 				false
 	end,
 	true = lists:all(F, Resources).
+
+get_resource() ->
+	[{userdata, [{doc, "Get resource by identifier"}]}].
+
+get_resource(_Config) ->
+	Resource = #resource{name = "Example",
+			description = "Example voice tariff", category = "tariff",
+			state = "created", start_date = erlang:system_time(?MILLISECOND),
+			related = [#resource_rel{id = "1000000000-01", name = "example rel",
+					href = "/resourceInventory/v4/resource/1000000000-01",
+					type = "contained"}],
+			specification = #specification_ref{id = "4",
+					href = "/resourceCatalogManagement/v3/resourceSpecification/4",
+					name = "Example spec", version = "1.0"}},
+	{ok, #resource{id = ResouceId}} = ocs:add_resource(Resource),
+	{ok, #resource{id = ResouceId} = Resource1} = ocs:get_resource(ResouceId),
+	true = is_list(Resource1#resource.id),
+	true = is_tuple(Resource1#resource.last_modified).
 
 %%---------------------------------------------------------------------
 %%  Internal functions
