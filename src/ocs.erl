@@ -36,7 +36,7 @@
 		query_users/3, update_user/3]).
 -export([add_offer/1, find_offer/1, get_offers/0, delete_offer/1,
 		query_offer/7]).
--export([add_resource/1, query_table/6]).
+-export([add_resource/1, get_resources/0, query_table/6]).
 -export([add_policy_table/1, delete_policy_table/1]).
 -export([add_policy/2, get_policy/2, get_policies/1, delete_policy/2]).
 -export([generate_password/0, generate_identity/0]).
@@ -1673,6 +1673,29 @@ add_resource(#resource{id = undefined,
 			{error, Reason};
 		{atomic, NewResource} ->
 			{ok, NewResource}
+	end.
+
+-spec get_resources() -> Result
+	when
+		Result :: [#resource{}] | {error, Reason},
+		Reason :: term().
+%% @doc List all entries in the resource table.
+get_resources() ->
+	MatchSpec = [{'_', [], ['$_']}],
+	F = fun(F, start, Acc) ->
+				F(F, mnesia:select(resource, MatchSpec, ?CHUNKSIZE, read), Acc);
+			(_F, '$end_of_table', Acc) ->
+				lists:flatten(lists:reverse(Acc));
+			(_F, {error, Reason}, _Acc) ->
+				{error, Reason};
+			(F,{Offer, Cont}, Acc) ->
+				F(F, mnesia:select(Cont), [Offer | Acc])
+	end,
+	case mnesia:transaction(F, [F, start, []]) of
+		{aborted, Reason} ->
+			{error, Reason};
+		{atomic, Result} ->
+			Result
 	end.
 
 -spec query_table(Cont, Name, Prefix, Description, Rate, LM) -> Result
