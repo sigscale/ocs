@@ -1231,8 +1231,8 @@ add_resource(_Config) ->
 	{atomic, [Resource1]} = mnesia:transaction(fun() ->
 			mnesia:read(resource, ResouceId, read)
 	end),
-	true = is_list(Resource#resource.id),
-	true = is_tuple(Resource#resource.last_modified).
+	true = is_list(Resource1#resource.id),
+	true = is_tuple(Resource1#resource.last_modified).
 
 get_resources() ->
 	[{userdata, [{doc, "List all the resources in the table"}]}].
