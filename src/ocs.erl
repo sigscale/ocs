@@ -36,7 +36,7 @@
 		query_users/3, update_user/3]).
 -export([add_offer/1, find_offer/1, get_offers/0, delete_offer/1,
 		query_offer/7]).
--export([add_resource/1, get_resources/0, query_table/6]).
+-export([add_resource/1, get_resources/0, get_resource/1, query_table/6]).
 -export([add_policy_table/1, delete_policy_table/1]).
 -export([add_policy/2, get_policy/2, get_policies/1, delete_policy/2]).
 -export([generate_password/0, generate_identity/0]).
@@ -1696,6 +1696,26 @@ get_resources() ->
 			{error, Reason};
 		{atomic, Result} ->
 			Result
+	end.
+
+-spec get_resource(ResourceID) -> Result
+	when
+		ResourceID :: string(),
+		Result :: {ok, Resource} | {error, Reason},
+		Resource :: resource(),
+		Reason :: not_found | term().
+%% @doc Get a Resource by identifier.
+get_resource(ResourceID) when is_list(ResourceID) ->
+	F = fun() ->
+			mnesia:read(resource, ResourceID, read)
+	end,
+	case mnesia:transaction(F) of
+		{aborted, Reason} ->
+			{error, Reason};
+		{atomic, [Resource]} ->
+			{ok, Resource};
+		{atomic, []} ->
+			{error, not_found}
 	end.
 
 -spec query_table(Cont, Name, Prefix, Description, Rate, LM) -> Result
