@@ -36,7 +36,7 @@
 		query_users/3, update_user/3]).
 -export([add_offer/1, find_offer/1, get_offers/0, delete_offer/1,
 		query_offer/7]).
--export([query_table/6]).
+-export([add_resource/1, query_table/6]).
 -export([add_policy_table/1, delete_policy_table/1]).
 -export([add_policy/2, get_policy/2, get_policies/1, delete_policy/2]).
 -export([generate_password/0, generate_identity/0]).
@@ -59,6 +59,8 @@
 
 % calendar:datetime_to_gregorian_seconds({{1970,1,1},{0,0,0}})
 -define(EPOCH, 62167219200).
+
+-define(PathInventory, "/resourceInventoryManagement/v1/").
 
 %%----------------------------------------------------------------------
 %%  The ocs public API
@@ -1647,6 +1649,31 @@ query_offer2({Offers, Cont}, '_', '_', '_', '_', '_') ->
 	{Cont, Offers};
 query_offer2('$end_of_table', _Description, _Status, _STD, _EDT, _Price) ->
 	{eof, []}.
+
+-spec add_resource(Resource) -> Result
+	when
+		Result :: {ok, Resource} | {error, Reason},
+		Reason :: term().
+%% @doc Create a new Resource.
+add_resource(#resource{id = undefined,
+		last_modified = undefined} = Resource) ->
+	F = fun() ->
+			TS = erlang:system_time(?MILLISECOND),
+			N = erlang:unique_integer([positive]),
+			Id = integer_to_list(TS) ++ integer_to_list(N),
+			LM = {TS, N},
+			Href = ?PathInventory ++ "resource/" ++ Id,
+			NewResource = Resource#resource{id = Id,
+					href = Href, last_modified = LM},
+			ok = mnesia:write(NewResource),
+			NewResource
+	end,
+	case mnesia:transaction(F) of
+		{aborted, Reason} ->
+			{error, Reason};
+		{atomic, NewResource} ->
+			{ok, NewResource}
+	end.
 
 -spec query_table(Cont, Name, Prefix, Description, Rate, LM) -> Result
 	when
