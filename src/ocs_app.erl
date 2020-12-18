@@ -55,7 +55,7 @@
 %% @see //kernel/application:start/2
 %%
 start(normal = _StartType, _Args) ->
-	Tables = [client, service, offer, product, pla,
+	Tables = [client, service, offer, product, resource,
 			bucket, httpd_user, httpd_group],
 	case mnesia:wait_for_tables(Tables, ?WAITFORTABLES) of
 		ok ->
@@ -405,18 +405,18 @@ install5(Nodes, Acc) ->
 	end.
 %% @hidden
 install6(Nodes, Acc) ->
-	case mnesia:create_table(pla, [{disc_copies, Nodes},
-			{attributes, record_info(fields, pla)}]) of
+	case mnesia:create_table(resource, [{disc_copies, Nodes},
+			{attributes, record_info(fields, resource)}]) of
 		{atomic, ok} ->
-			error_logger:info_msg("Created new pricing logic algorithm table.~n"),
-			install7(Nodes, [pla | Acc]);
+			error_logger:info_msg("Created new resource table.~n"),
+			install7(Nodes, [resource | Acc]);
 		{aborted, {not_active, _, Node} = Reason} ->
 			error_logger:error_report(["Mnesia not started on node",
 					{node, Node}]),
 			{error, Reason};
-		{aborted, {already_exists, pla}} ->
-			error_logger:info_msg("Found existing pricing logic algorithm table.~n"),
-			install7(Nodes, [pla | Acc]);
+		{aborted, {already_exists, resource}} ->
+			error_logger:info_msg("Found existing resource table.~n"),
+			install7(Nodes, [resource | Acc]);
 		{aborted, Reason} ->
 			error_logger:error_report([mnesia:error_description(Reason),
 				{error, Reason}]),
