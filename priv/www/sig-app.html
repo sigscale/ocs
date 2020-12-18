@@ -54,6 +54,8 @@
 <link rel="import" href="sig-product-add.html">
 <link rel="import" href="sig-bucket-list.html">
 <link rel="import" href="sig-bucket-add.html">
+<link rel="import" href="sig-policy-list.html">
+<link rel="import" href="sig-policy-add.html">
 
 <dom-module id="sig-app">
 	<template>
@@ -169,6 +171,7 @@
 				<sig-balance-list id="balanceList"></sig-balance-list>
 				<sig-product-list id="productList"></sig-product-list>
 				<sig-bucket-list id="bucketList"></sig-bucket-list>
+				<sig-policy-list id="policyList"></sig-policy-list>
 			</iron-pages>
 			<app-drawer-layout>
 				<app-drawer
@@ -214,6 +217,13 @@
 												</i18n-msg>
 										</paper-icon-item>
 									</paper-submenu>
+									<paper-icon-item
+										id="pagePolicy"
+										onclick="drawer.toggle()"
+										class="menuitem">
+											Policy
+										<iron-icon icon ="icons:verified-user" item-icon></iron-icon>
+									</paper-icon-item>
 								</paper-menu>
 							</paper-submenu>
 							<paper-submenu>
@@ -423,6 +433,7 @@
 		<sig-prefix-add></sig-prefix-add>
 		<sig-prefix-update></sig-prefix-update>
 		<sig-bucket-add></sig-bucket-add>
+		<sig-policy-add></sig-policy-add>
 		<sig-product-add offers="[[offers]]"></sig-product-add>
 		<iron-ajax id="deleteTableAjax"
 			on-response="_deleteTableResponse"
@@ -565,6 +576,12 @@
 						this.$.logMenu.selected = null;
 						this.$.ipdrMenu.selected = null;
 						break;
+					case 'pagePolicy':
+						this.$.loadPage.selected = 13;
+						this.$.offerMenu.selected = null;
+						this.$.serviceMenu.selected = null;
+						this.$.logMenu.selected = null;
+						this.$.ipdrMenu.selected = null;
 				}
 			},
 			help: function(element) {
