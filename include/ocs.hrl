@@ -209,6 +209,51 @@
 		characteristics = [] :: [{Name :: string(), Value :: term()}],
 		last_modified :: tuple() | undefined}).
 
+-record(resource,
+		{id :: string() | undefined,
+		href :: string() | undefined,
+		name :: string() | undefined,
+		description :: string() | undefined,
+		category :: string() | undefined,
+		class_type :: string() | undefined,
+		base_type :: string() | undefined,
+		schema :: string() | undefined,
+		state :: string() | undefined,
+		substate :: string() | undefined,
+		version :: string() | undefined,
+		start_date :: pos_integer() | undefined,
+		end_date :: pos_integer() | undefined,
+		last_modified :: {TS :: pos_integer(), N :: pos_integer()}
+				| undefined,
+		related = [] :: [resource_rel()],
+		specification :: specification_ref() | undefined,
+		characteristic = [] :: [resource_char()]}).
+-type resource() :: #resource{}.
+
+-record(resource_rel,
+		{id :: string() | undefined | '_',
+		href :: string() | undefined | '_',
+		name :: string() | undefined | '_',
+		type :: string() | undefined | '_',
+		referred_type :: string() | undefined | '_',
+		start_date :: pos_integer() | undefined | '_',
+		end_date :: pos_integer() | undefined | '_'}).
+-type resource_rel() :: #resource_rel{}.
+
+-record(specification_ref,
+		{id :: string() | undefined | '_',
+		href :: string() | undefined | '_',
+		name :: string() | undefined | '_',
+		version :: string() | undefined | '_'}).
+-type specification_ref() :: #specification_ref{}.
+
+-record(resource_char,
+		{name :: string() | undefined | '_',
+		class_type :: string() | undefined | '_',
+		schema :: string() | undefined | '_',
+		value :: term() | undefined | '_'}).
+-type resource_char() :: #resource_char{}.
+
 -record(gtt,
 		{num :: string(),
 		value :: {Description :: string(), Rate :: non_neg_integer(), LastModified :: tuple()} | undefined}).
