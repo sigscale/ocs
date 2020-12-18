@@ -107,6 +107,10 @@
 			is: 'sig-policy-list',
 			behaviors: [i18nMsgBehavior],
 			properties: {},
+
+			showAddPolicyModal: function(event) {
+				document.getElementById("addPolicyModal").open();
+			}
 		});
 	</script>
 </dom-module>
