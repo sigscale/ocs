@@ -200,8 +200,8 @@ all() ->
 	simultaneous_updates_on_client_failure, get_product, add_product,
 	add_product_sms, update_product_realizing_service, delete_product,
 	ignore_delete_product, query_product, filter_product,
-	post_hub_balance, delete_hub_balance, get_balance_hubs, notify_create_bucket,
-	notify_delete_bucket, notify_rating_deleted_bucket,
+	post_hub_balance, delete_hub_balance, get_balance_hubs, get_balance_hub,
+	notify_create_bucket, notify_delete_bucket, notify_rating_deleted_bucket,
 	notify_accumulated_balance_threshold, query_accumulated_balance_notification,
 	query_bucket_notification,
 	post_hub_product, delete_hub_product, notify_create_product,
@@ -2676,6 +2676,34 @@ get_balance_hubs(Config) ->
 			end
 	end,
 	true = lists:all(F, HubStructs).
+
+get_balance_hub() ->
+	[{userdata, [{doc, "Get hub listener"}]}].
+
+get_balance_hub(Config) ->
+	HostUrl = ?config(host_url, Config),
+	PathHub = ?PathUsageHub,
+	CollectionUrl = HostUrl ++ PathHub,
+	Callback = "http://in.listener.com",
+	RequestBody = "{\"callback\":\"" ++ Callback ++ "\"}",
+	ContentType = "application/json",
+	Accept = {"accept", "application/json"},
+	Request1 = {CollectionUrl, [Accept, auth_header()], ContentType, RequestBody},
+	{ok, Result1} = httpc:request(post, Request1, [], []),
+	{{_, 201, _}, Headers1, _} = Result1,
+	{_, Location} = lists:keyfind("location", 1, Headers1),
+	Id = string:substr(Location, string:rstr(Location, PathHub) + length(PathHub)),
+	Request2 = {CollectionUrl ++ Id, [Accept, auth_header()]},
+	{ok, Result2} = httpc:request(get, Request2, [], []),
+	{{"HTTP/1.1", 200, _OK}, Headers2, ResponseBody} = Result2,
+	{_, "application/json"} = lists:keyfind("content-type", 1, Headers2),
+	ContentLength = integer_to_list(length(ResponseBody)),
+	{_, ContentLength} = lists:keyfind("content-length", 1, Headers2),
+	{struct, HubList} = mochijson:decode(ResponseBody),
+	{_, Callback} = lists:keyfind("callback", 1, HubList),
+	{_, Id} = lists:keyfind("id", 1, HubList),
+	Href = PathHub ++ Id,
+	{_, Href} = lists:keyfind("href", 1, HubList).
 
 notify_create_bucket() ->
 	[{userdata, [{doc, "Receive balance creation notification."}]}].
