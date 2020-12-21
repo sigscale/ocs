@@ -22,7 +22,7 @@
 -include("ocs.hrl").
 
 -export([content_types_accepted/0, content_types_provided/0, post_hub/2,
-		delete_hub/1, get_hubs/0]).
+		delete_hub/1, get_hubs/0, get_hub/1]).
 -export([hub/1]).
 
 -define(BalancehubPath, "/balanceManagement/v1/hub/").
@@ -116,6 +116,29 @@ get_hubs([], Acc) ->
 	Body = mochijson:encode({array, [hub(Hub) || Hub <- Acc]}),
 	Headers = [{content_type, "application/json"}],
 	{ok, Headers, Body}.
+
+-spec get_hub(Id) -> Result
+	when
+		Id :: string(),
+		Result :: {ok, Headers :: [tuple()], Body :: iolist()}
+				| {error, ErrorCode :: integer()}.
+%% @doc Body producing function for
+%% 	`GET|HEAD /balanceManagement/v1/hub/{id}'
+%% 	requests.
+get_hub(Id) ->
+	case global:whereis_name(Id) of
+		Fsm when is_pid(Fsm) ->
+			case gen_fsm:sync_send_all_state_event(Fsm, get) of
+				#hub{id = Id} = Hub ->
+					Body = mochijson:encode(hub(Hub)),
+					Headers = [{content_type, "application/json"}],
+					{ok, Headers, Body};
+				_ ->
+					{error, 404}
+			end;
+		undefined ->
+			{error, 404}
+	end.
 	
 %%----------------------------------------------------------------------
 %%  The internal functions

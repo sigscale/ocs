@@ -152,6 +152,8 @@ do_get(Resource, ModData, ["balanceManagement", "v1", "bucket", Id], []) ->
 	do_response(ModData, Resource:get_bucket(Id));
 do_get(Resource, ModData, ["balanceManagement", "v1", "hub"], []) ->
 	do_response(ModData, Resource:get_hubs());
+do_get(Resource, ModData, ["balanceManagement", "v1", "hub", Id], []) ->
+	do_response(ModData, Resource:get_hub(Id));
 do_get(Resource, #mod{parsed_header = Headers} = ModData,
 		["catalogManagement", "v2", "productOffering"], Query) ->
 	do_response(ModData, Resource:get_offers(Query, Headers));
