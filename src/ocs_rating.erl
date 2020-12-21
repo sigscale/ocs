@@ -1175,8 +1175,14 @@ session_attributes(Attributes) ->
 %%
 %% 	Returns `{Charged, Reserved, NewBuckets}' where
 %% 	`Charged' is the total amount debited from bucket(s),
-%% 	`Reserved' is the total amount of reservation(s) made,
+%% 	`Reserved' is the total amount of quota reservation,
 %% 	and `NewBuckets' is the updated bucket list.
+%%
+%% 	The `Reserve' amount is not additive, the `Reserved'
+%% 	amount is the new total reservation.
+%%
+%% 	3GPP RS 32.299 6.3.8 Support of re-authorization:
+%% 	"New quota allocations [...] override any remaining held quota"
 %%
 %% @private
 update_session(Type, Charge, Reserve, SessionId, Buckets) ->
@@ -1194,69 +1200,93 @@ update_session(Type, Charge, Reserve, Now, SessionId,
 update_session(Type, Charge, Reserve, Now, SessionId,
 		[#bucket{units = Type, remain_amount = Remain,
 		reservations = Reservations} = B | T],
-		Acc, Charged, Reserved) ->
+		Acc, Charged, Reserved) when length(Reservations) > 0 ->
+	NewCharge = Charge - Charged,
+	NewReserve = Reserve - Reserved,
 	case lists:keytake(SessionId, 4, Reservations) of
 		{value, {_, DebitedAmount, ReservedAmount, _}, NewReservations}
-				when ReservedAmount >= Charge, Remain >= Reserve ->
-			NewReservedAmount = (ReservedAmount - Charge) + Reserve,
-			NewReservation = {Now, DebitedAmount + Charge, NewReservedAmount, SessionId},
-			NewRemain = Remain - Reserve,
-			NewBuckets = lists:reverse(Acc) ++ [B#bucket{remain_amount = NewRemain,
-					last_modified = {Now, erlang:unique_integer([positive])},
-					reservations = [NewReservation | NewReservations]} | T],
-			{Charged + Charge, Reserved + Reserve, NewBuckets};
-		{value, {_, DebitedAmount, ReservedAmount, _}, NewReservations}
-				when ReservedAmount =< Charge,
-				Remain >= ((Charge - ReservedAmount) + Reserve) ->
-			NewReservation = {Now, DebitedAmount + Charge, Reserve, SessionId},
-			NewRemain = Remain - (Charge - ReservedAmount) - Reserve,
-			NewBuckets = lists:reverse(Acc) ++ [B#bucket{remain_amount = NewRemain,
-					last_modified = {Now, erlang:unique_integer([positive])},
-					reservations = [NewReservation | NewReservations]} | T],
-			{Charged + Charge, Reserved + Reserve, NewBuckets};
-		{value, {_, DebitedAmount, ReservedAmount, _}, NewReservations}
-				when Remain >= 0, (Remain + ReservedAmount) =< Charge ->
-			NewDebitedAmount = DebitedAmount + Remain + ReservedAmount,
-			NewReservation = {Now, NewDebitedAmount, 0, SessionId},
-			NewAcc = [B#bucket{remain_amount = 0,
+				when (ReservedAmount - NewCharge) > NewReserve ->
+			NewRemain = Remain + ((ReservedAmount - NewCharge) - NewReserve),
+			NewReservation = {Now, DebitedAmount + NewCharge, NewReserve, SessionId},
+			NewAcc = [B#bucket{remain_amount = NewRemain,
 					last_modified = {Now, erlang:unique_integer([positive])},
 					reservations = [NewReservation | NewReservations]} | Acc],
-			update_session(Type, Charge - (Remain + ReservedAmount), Reserve,
-					Now, SessionId, T, NewAcc,
-					Charged + ReservedAmount + Remain, Reserved);
+			update_session(Type, Charge, Reserve, Now, SessionId, T,
+					NewAcc, Charged + NewCharge, Reserved + NewReserve);
 		{value, {_, DebitedAmount, ReservedAmount, _}, NewReservations}
-				when ReservedAmount >= Charge, Remain >= 0, Reserve > Remain ->
-			NewDebitedAmount = DebitedAmount + Charge,
-			NewReserve = (ReservedAmount - Charge) + Remain,
-			NewReservation = {Now, NewDebitedAmount, NewReserve, SessionId},
-			NewAcc = [B#bucket{remain_amount = 0,
-					last_modified = {Now, erlang:unique_integer([positive])},
+				when (ReservedAmount - NewCharge) >= 0 ->
+			NewReserved = ReservedAmount - NewCharge,
+			NewReservation = {Now, DebitedAmount + NewCharge, NewReserved, SessionId},
+			NewAcc = [B#bucket{last_modified = {Now, erlang:unique_integer([positive])},
 					reservations = [NewReservation | NewReservations]} | Acc],
-			update_session(Type, 0, Reserve - Remain, Now, SessionId,
-					T, NewAcc, Charged + Charge, Reserved + Remain);
+			update_session(Type, Charge, Reserve, Now, SessionId, T,
+					NewAcc, Charged + NewCharge, Reserved + NewReserved);
 		{value, {_, DebitedAmount, ReservedAmount, _}, NewReservations}
-				when Charge > ReservedAmount, Remain >= (Charge - ReservedAmount),
-				Reserve > (Remain + (Charge - ReservedAmount)) ->
-			NewDebitedAmount = DebitedAmount + Charge,
-			NewReserve = Remain - (Charge - ReservedAmount),
-			NewReservation = {Now, NewDebitedAmount, NewReserve, SessionId},
-			NewAcc = [B#bucket{remain_amount = 0,
-					last_modified = {Now, erlang:unique_integer([positive])},
+				when NewCharge > ReservedAmount ->
+			NewReservation = {Now, DebitedAmount + ReservedAmount, 0, SessionId},
+			NewAcc = [B#bucket{last_modified = {Now, erlang:unique_integer([positive])},
 					reservations = [NewReservation | NewReservations]} | Acc],
-			update_session(Type, 0, Reserve - NewReserve, Now, SessionId,
-					T, NewAcc, Charged + Charge, Reserved + NewReserve);
+			update_session(Type, Charge, Reserve, Now, SessionId, T,
+					NewAcc, Charged + ReservedAmount, Reserved);
 		_Other ->
 			update_session(Type, Charge, Reserve, Now, SessionId,
 					T, [B | Acc], Charged, Reserved)
 	end;
+update_session(_, Charge, Reserve,_Now, _, [], Acc, Charged, Reserved)
+		when Charge =:= Charged, Reserve =:= Reserved ->
+	{Charged, Reserved, lists:reverse(Acc)};
 update_session(Type, Charge, Reserve, Now, SessionId,
 		[H | T], Acc, Charged, Reserved) ->
 	update_session(Type, Charge, Reserve, Now, SessionId,
 			T, [H | Acc], Charged, Reserved);
-update_session(_, 0, Reserved, _, _, [], Acc, Charged, Reserved) ->
-	{Charged, Reserved, lists:reverse(Acc)};
+update_session(Type, Charge, Reserve, Now, SessionId, [], Acc, Charged, Reserved)
+		when Reserved < Reserve ->
+	update_session1(Type, Charge, Reserve, Now, SessionId,
+			lists:reverse(Acc), [], Charged, Reserved);
 update_session(Type, Charge, Reserve, Now, SessionId, [], Acc, Charged, Reserved) ->
-	update(Type, Charge, Reserve, Now, SessionId, lists:reverse(Acc), [], Charged, Reserved).
+	update(Type, Charge, Reserve, Now, SessionId,
+			lists:reverse(Acc), [], Charged, Reserved).
+%% @hidden
+update_session1(Type, Charge, Reserve, Now, SessionId,
+		[#bucket{units = Type, remain_amount = Remain,
+		reservations = Reservations} = B | T],
+		Acc, Charged, Reserved) when remain > 0 ->
+	NewReserve = Reserve - Reserved,
+	case lists:keytake(SessionId, 4, Reservations) of
+		{value, {_, DebitedAmount, ReservedAmount, _}, NewReservations}
+				when Remain >= NewReserve ->
+			NewRemain = Remain - NewReserve,
+			NewReservation = {Now, DebitedAmount, ReservedAmount + NewReserve, SessionId},
+			NewAcc = [B#bucket{remain_amount = NewRemain,
+					last_modified = {Now, erlang:unique_integer([positive])},
+					reservations = [NewReservation | NewReservations]} | Acc],
+			update_session1(Type, Charge, Reserve, Now, SessionId, T,
+					NewAcc, Charged, Reserved + NewReserve);
+		{value, {_, DebitedAmount, ReservedAmount, _}, NewReservations}
+				when Remain > 0 ->
+			NewReservation = {Now, DebitedAmount, ReservedAmount + Remain, SessionId},
+			NewAcc = [B#bucket{last_modified = {Now, erlang:unique_integer([positive])},
+					reservations = [NewReservation | NewReservations]} | Acc],
+			update_session1(Type, Charge, Reserve, Now, SessionId, T,
+					NewAcc, Charged, Reserved + Remain);
+		_Other ->
+			update_session1(Type, Charge, Reserve, Now, SessionId,
+					T, [B | Acc], Charged, Reserved)
+	end;
+update_session1(_, Charge, Reserve, _, _, Buckets, Acc, Charged, Reserved)
+		when Charge =:= Charged, Reserve =:= Reserved ->
+	{Charged, Reserved, lists:reverse(Acc) ++ Buckets};
+update_session1(Type, Charge, Reserve, Now, SessionId, Buckets, Acc, Charged, Reserved)
+		when Reserve =:= Reserved ->
+	update(Type, Charge, Reserve, Now, SessionId,
+			lists:reverse(Acc) ++ Buckets, [], Charged, Reserved);
+update_session1(Type, Charge, Reserve, Now, SessionId,
+		[H | T], Acc, Charged, Reserved) ->
+	update_session1(Type, Charge, Reserve, Now, SessionId,
+			T, [H | Acc], Charged, Reserved);
+update_session1(Type, Charge, Reserve, Now, SessionId, [], Acc, Charged, Reserved) ->
+	update(Type, Charge, Reserve, Now, SessionId,
+			lists:reverse(Acc), [], Charged, Reserved).
 
 %% @hidden
 update(Type, Charge, Reserve, Now, SessionId,
@@ -1268,35 +1298,41 @@ update(Type, Charge, Reserve, Now, SessionId, [#bucket{units = Type,
 		remain_amount = Remain, end_date = Expires,
 		reservations = Reservations} = B | T], Acc, Charged, Reserved)
 		when ((Expires == undefined) or (Now < Expires)),
-		Remain >= (Charge + Reserve) ->
-	NewReservation = {Now, Charge, Reserve, SessionId},
-	NewBuckets = [B#bucket{remain_amount = Remain - (Charge + Reserve),
+		Remain >= ((Charge - Charged) + (Reserve - Reserved)) ->
+	NewCharge = Charge - Charged,
+	NewReserve = Reserve - Reserved,
+	NewReservation = {Now, NewCharge, NewReserve, SessionId},
+	NewBuckets = [B#bucket{remain_amount = Remain - (NewCharge + NewReserve),
 		last_modified = {Now, erlang:unique_integer([positive])},
 		reservations = [NewReservation | Reservations]} | Acc],
-	{Charged + Charge, Reserved + Reserve, lists:reverse(NewBuckets) ++ T};
+	{Charged + NewCharge, Reserved + NewReserve, lists:reverse(NewBuckets) ++ T};
 update(Type, Charge, Reserve, Now, SessionId, [#bucket{units = Type,
 		remain_amount = Remain, end_date = Expires,
 		reservations = Reservations} = B | T], Acc, Charged, Reserved)
 		when ((Expires == undefined) or (Now < Expires)),
-		Remain > 0, Remain =< Charge ->
-	NewReservation = {Now, Remain, 0, SessionId},
+		Remain > 0, Remain >= (Charge - Charged) ->
+	NewCharge = Charge - Charged,
+	NewReserve = Remain - NewCharge,
+	NewReservation = {Now, NewCharge, NewReserve, SessionId},
 	NewAcc = [B#bucket{remain_amount = 0,
 			last_modified = {Now, erlang:unique_integer([positive])},
 			reservations = [NewReservation | Reservations]} | Acc],
-	update(Type, Charge - Remain, Reserve, Now,
-			SessionId, T, NewAcc, Charged + Remain, Reserved);
-update(Type, 0, Reserve, Now, SessionId, [#bucket{units = Type,
+	update(Type, Charge, Reserve, Now,
+			SessionId, T, NewAcc, Charged + NewCharge, Reserved + NewReserve);
+update(Type, Charge, Reserve, Now, SessionId, [#bucket{units = Type,
 		remain_amount = Remain, end_date = Expires,
 		reservations = Reservations} = B | T], Acc, Charged, Reserved)
 		when ((Expires == undefined) or (Now < Expires)),
-		Remain > 0, Remain =< Reserve ->
-	NewReservation = {Now, 0, Remain, SessionId},
+		Remain > 0, Remain < (Charge - Charged) ->
+	NewCharge = Charge - Charged,
+	NewReservation = {Now, NewCharge, 0, SessionId},
 	NewAcc = [B#bucket{remain_amount = 0,
-		last_modified = {Now, erlang:unique_integer([positive])},
-		reservations = [NewReservation | Reservations]} | Acc],
-	update(Type, 0, Reserve - Remain, Now,
-			SessionId, T, NewAcc, Charged, Reserved + Remain);
-update(_Type, 0, 0, _Now, _SessionId, Buckets, Acc, Charged, Reserved) ->
+			last_modified = {Now, erlang:unique_integer([positive])},
+			reservations = [NewReservation | Reservations]} | Acc],
+	update(Type, Charge, Reserve, Now,
+			SessionId, T, NewAcc, Charged + NewCharge, Reserved);
+update(_Type, Charge, Reserve, _Now, _SessionId, Buckets, Acc, Charged, Reserved)
+		when Charge =:= Charged, Reserve =:= Reserved ->
 	{Charged, Reserved, lists:reverse(Acc) ++ Buckets};
 update(Type, Charge, Reserve, Now, SessionId, [H | T], Acc, Charged, Reserved) ->
 	update(Type, Charge, Reserve, Now, SessionId, T, [H | Acc], Charged, Reserved);

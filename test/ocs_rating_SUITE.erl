@@ -394,10 +394,9 @@ interim_reserve(_Config) ->
 			undefined, undefined, ServiceId,
 			calendar:gregorian_seconds_to_datetime(TS + 60), undefined,
 			undefined, interim, [], [{PackageUnits, PackageSize}], SessionId),
-	RemAmount2 = RemAmount1 - (2 * PackagePrice),
+	RemAmount2 = RemAmount1 - PackagePrice,
 	{ok, #bucket{remain_amount = RemAmount2,
-			reservations = [{_, Debited, _, SessionId}]}} = ocs:find_bucket(BId),
-	Debited = 2 * PackagePrice.
+			reservations = [{_, PackagePrice, 0, SessionId}]}} = ocs:find_bucket(BId).
 
 interim_reserve_within_unit_size() ->
 	[{userdata, [{doc, "Reservation amounts less than package size"}]}].
@@ -436,16 +435,16 @@ interim_reserve_within_unit_size(_Config) ->
 			interim, [], [{PackageUnits, Reservation2}], SessionId),
 	{ok, #bucket{remain_amount = RemAmount3,
 			reservations = [{_, Reserved1, _, SessionId}]}} = ocs:find_bucket(BId),
-	RemAmount3 = RemAmount2 - F(Reservation2),
+	RemAmount3 = RemAmount1 - F(Reservation2),
 	Reservation3 = rand:uniform(PackageSize - 1),
 	{ok, #service{}, _} = ocs_rating:rate(diameter, ServiceType,
 			undefined, undefined, ServiceId,
 			calendar:gregorian_seconds_to_datetime(TS + 120), undefined, undefined,
 			interim, [], [{PackageUnits, Reservation3}], SessionId),
 	{ok, #bucket{remain_amount = RemAmount4,
-			reservations = [{_, Reserved2, _, SessionId}]}} = ocs:find_bucket(BId),
-	RemAmount4 = RemAmount3 - F(Reservation3),
-	Reserved2 = Reserved1 + F(Reservation3).
+			reservations = [{_, Reserved2, 0, SessionId}]}} = ocs:find_bucket(BId),
+	RemAmount4 = RemAmount1 - F(Reservation3),
+	Reserved2 = F(Reservation3).
 
 interim_reserve_available() ->
 	[{userdata, [{doc, "Reservation amount equal to balance and package size"}]}].
@@ -458,7 +457,7 @@ interim_reserve_available(_Config) ->
 	OfferId = add_offer([P1], 4),
 	ProdRef = add_product(OfferId),
 	ServiceId = add_service(ProdRef),
-	B1 = bucket(cents, (2 * PackagePrice)),
+	B1 = bucket(cents, PackagePrice),
 	BId = add_bucket(ProdRef, B1),
 	ServiceType = 32251,
 	Timestamp = calendar:local_time(),
@@ -473,9 +472,8 @@ interim_reserve_available(_Config) ->
 			undefined, undefined, interim, [],
 			[{PackageUnits, PackageSize}], SessionId),
 	{ok, #bucket{remain_amount = 0,
-			reservations = [{_, Debit, _, SessionId}]}} =
-			ocs:find_bucket(BId),
-	Debit = 2 * PackagePrice.
+			reservations = [{_, PackagePrice, 0, SessionId}]}} =
+			ocs:find_bucket(BId).
 
 interim_reserve_out_of_credit() ->
 	[{userdata, [{doc, "Out of credit on reservation"}]}].
@@ -502,7 +500,7 @@ interim_reserve_out_of_credit(_Config) ->
 	{out_of_credit, _} = ocs_rating:rate(diameter, ServiceType, undefined,
 			undefined, ServiceId,
 			calendar:gregorian_seconds_to_datetime(TS + 60), undefined,
-			undefined, interim, [], [{PackageUnits, ReserveSize}], SessionId),
+			undefined, interim, [], [{PackageUnits, UnitSize * 2}], SessionId),
 	Remain = StartingAmount - UnitPrice,
 	{ok, #bucket{remain_amount = Remain}} = ocs:find_bucket(BId).
 
@@ -531,7 +529,7 @@ interim_reserve_remove_session(_Config) ->
 	{ok, _, _} = ocs_rating:rate(radius, ServiceType, undefined,
 			undefined, ServiceId, Timestamp, undefined, undefined,
 			initial, [], [{PackageUnits, Reservation1}], SessionAttributes),
-	Reservation2 = rand:uniform(UnitSize),
+	Reservation2 = rand:uniform(UnitSize) + UnitSize,
 	{out_of_credit, SessionList} = ocs_rating:rate(radius, ServiceType,
 			undefined, undefined, ServiceId,
 			calendar:gregorian_seconds_to_datetime(TS + 60),
@@ -692,20 +690,19 @@ interim_debit_remove_session(_Config) ->
 	OfferId = add_offer([P1], 4),
 	ProdRef = add_product(OfferId),
 	ServiceId = add_service(ProdRef),
-	RemAmount = 10,
+	RemAmount = rand:uniform(PackagePrice - 1),
 	_BId = add_bucket(ProdRef, bucket(cents, RemAmount)),
 	SessionAttributes = [{erlang:system_time(?MILLISECOND), [{?AcctSessionId, "1020303"},
 		{?NasIdentifier, "rate@sigscale"}, {?NasIpAddress, "10.0.0.1"}]}],
 	ServiceType = 2,
 	Timestamp = calendar:local_time(),
-	Debit = 100,
 	{ok, _,  _} = ocs_rating:rate(radius, ServiceType,
 			undefined, undefined, ServiceId, Timestamp, undefined, undefined,
 			initial, [], [], SessionAttributes),
 	{ok, #service{session_attributes = [SessionAttributes]}} = ocs:find_service(ServiceId),
 	{out_of_credit, _} = ocs_rating:rate(radius, ServiceType,
 			undefined, undefined, ServiceId, Timestamp, undefined, undefined,
-			interim, [{PackageUnits, Debit}], [{PackageUnits, 0}], SessionAttributes),
+			interim, [{PackageUnits, PackagePrice}], [{PackageUnits, 0}], SessionAttributes),
 	{ok, #service{session_attributes = []}} = ocs:find_service(ServiceId).
 
 interim_debit_and_reserve_available() ->
@@ -723,31 +720,23 @@ interim_debit_and_reserve_available(_Config) ->
 	B1 = bucket(cents, RemAmount1),
 	BId = add_bucket(ProdRef, B1),
 	ServiceType = 32251,
-	Reservation1 = rand:uniform(PackageSize),
+	Reservation = rand:uniform(PackageSize),
 	Timestamp = calendar:local_time(),
 	TS = calendar:datetime_to_gregorian_seconds(Timestamp),
 	SessionId = [{'Session-Id', list_to_binary(ocs:generate_password())}],
 	{ok, _, _} = ocs_rating:rate(diameter, ServiceType, undefined,
 			undefined, ServiceId, Timestamp, undefined, undefined,
-			initial, [], [{PackageUnits, Reservation1}], SessionId),
+			initial, [], [{PackageUnits, Reservation}], SessionId),
 	RemAmount2 = RemAmount1 - PackagePrice,
 	{ok, #bucket{reservations = [{_, PackagePrice, _, SessionId}],
 			remain_amount = RemAmount2}} = ocs:find_bucket(BId),
-	Reservation2 = rand:uniform(PackageSize),
-	Debit = rand:uniform(Reservation2),
+	Debit = rand:uniform(Reservation),
 	{ok, _, _} = ocs_rating:rate(diameter, ServiceType,
 			undefined, undefined, ServiceId,
 			calendar:gregorian_seconds_to_datetime(TS + 60), undefined,
 			undefined, interim, [{PackageUnits, Debit}],
-			[{PackageUnits, Reservation2}], SessionId),
-	Debited = case (Debit + Reservation2) of
-		N when N =< PackageSize ->
-			PackagePrice * 2;
-		_  ->
-			PackagePrice * 3
-	end,
-	RemAmount3 = RemAmount1 - Debited,
-	{ok, #bucket{remain_amount = RemAmount3}} = ocs:find_bucket(BId).
+			[{PackageUnits, Reservation}], SessionId),
+	{ok, #bucket{remain_amount = RemAmount2}} = ocs:find_bucket(BId).
 
 interim_debit_and_reserve_insufficient1() ->
 	[{userdata, [{doc, "Debit amount less than package size and reservation amount
@@ -761,7 +750,7 @@ interim_debit_and_reserve_insufficient1(_Config) ->
 	OfferId = add_offer([P1], 4),
 	ProdRef = add_product(OfferId),
 	ServiceId = add_service(ProdRef),
-	RemAmount1 = (PackagePrice * 2) + rand:uniform(PackagePrice),
+	RemAmount1 = PackagePrice + rand:uniform(PackagePrice - 1),
 	BId = add_bucket(ProdRef, bucket(cents, RemAmount1)),
 	Reservation1 = rand:uniform(PackageSize),
 	ServiceType = 32251,
@@ -771,8 +760,8 @@ interim_debit_and_reserve_insufficient1(_Config) ->
 	{ok, _, _} = ocs_rating:rate(diameter, ServiceType, undefined,
 			undefined, ServiceId, Timestamp, undefined, undefined,
 			initial, [], [{PackageUnits, Reservation1}], SessionId),
-	Debit = rand:uniform(PackageSize),
-	Reservation2 = PackageSize + rand:uniform(PackageSize),
+	Debit = rand:uniform(PackageSize - 1),
+	Reservation2 = PackageSize * 2,
 	{out_of_credit, _} = ocs_rating:rate(diameter, ServiceType,
 			undefined, undefined, ServiceId,
 			calendar:gregorian_seconds_to_datetime(TS + 60), undefined,
@@ -793,7 +782,7 @@ interim_debit_and_reserve_insufficient2(_Config) ->
 	OfferId = add_offer([P1], 4),
 	ProdRef = add_product(OfferId),
 	ServiceId = add_service(ProdRef),
-	RemAmount1 = (2 * PackagePrice) + rand:uniform(PackagePrice),
+	RemAmount1 = (2 * PackagePrice) + rand:uniform(PackagePrice - 1),
 	BId = add_bucket(ProdRef, bucket(cents, RemAmount1)),
 	Reservation1 = rand:uniform(PackageSize),
 	ServiceType = 32251,
@@ -823,7 +812,7 @@ interim_debit_and_reserve_insufficient3(_Config) ->
 	OfferId = add_offer([P1], 4),
 	ProdRef = add_product(OfferId),
 	ServiceId = add_service(ProdRef),
-	RemAmount1 = PackagePrice + rand:uniform(PackagePrice),
+	RemAmount1 = PackagePrice + rand:uniform(PackagePrice - 1),
 	BId = add_bucket(ProdRef, bucket(cents, RemAmount1)),
 	Reservation1 = rand:uniform(PackageSize),
 	ServiceType = 32251,
@@ -857,20 +846,20 @@ interim_debit_and_reserve_insufficient4(_Config) ->
 	RemAmount = PackagePrice + rand:uniform(PackagePrice - 1),
 	B1 = bucket(cents, RemAmount),
 	_BId = add_bucket(ProdRef, B1),
-	Debit = 2500,
-	Reservation = 1000,
+	Debit = PackagePrice * 2,
 	ServiceType = 2,
 	Timestamp = calendar:local_time(),
 	TS = calendar:datetime_to_gregorian_seconds(Timestamp),
 	SessionId = [{'Session-Id', list_to_binary(ocs:generate_password())}],
 	{ok, _, _} = ocs_rating:rate(diameter, ServiceType, undefined,
 			undefined, ServiceId, Timestamp, undefined, undefined,
-			initial, [], [{PackageUnits, Reservation}],
+			initial, [], [{PackageUnits, PackageSize}],
 			SessionId),
 	{out_of_credit, _} = ocs_rating:rate(diameter, ServiceType,
 			undefined, undefined, ServiceId,
-			calendar:gregorian_seconds_to_datetime(TS + 60), undefined, undefined,
-			interim, [{PackageUnits, Debit}], [{PackageUnits, Reservation}], SessionId).
+			calendar:gregorian_seconds_to_datetime(TS + 60),
+			undefined, undefined, interim, [{PackageUnits, Debit}],
+			[{PackageUnits, PackageSize}], SessionId).
 
 interim_out_of_credit_voice() ->
 	[{userdata, [{doc, "Voice call out of credit during call"}]}].
@@ -893,7 +882,7 @@ interim_out_of_credit_voice(_Config) ->
 	{ok, _, _} = ocs_rating:rate(diameter, ServiceType, undefined,
 			undefined, ServiceId, Timestamp, undefined, undefined,
 			initial, [], [{seconds, ReserveUnits1}], SessionId),
-	UsedUnits = rand:uniform(UnitSize),
+	UsedUnits = (UnitSize * 2) + rand:uniform(UnitSize),
 	ReserveUnits2 = rand:uniform(UnitSize),
 	{out_of_credit, _} = ocs_rating:rate(diameter, ServiceType,
 			undefined, undefined, ServiceId,
