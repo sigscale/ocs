@@ -204,7 +204,7 @@ all() ->
 	notify_create_bucket, notify_delete_bucket, notify_rating_deleted_bucket,
 	notify_accumulated_balance_threshold, query_accumulated_balance_notification,
 	query_bucket_notification,
-	post_hub_product, delete_hub_product, get_product_hubs,
+	post_hub_product, delete_hub_product, get_product_hubs, get_product_hub,
 	notify_create_product, notify_delete_product, notify_product_charge,
 	query_product_notification, post_hub_service, delete_hub_service,
 	notify_create_service, notify_delete_service, query_service_notification,
@@ -3112,6 +3112,34 @@ get_product_hubs(Config) ->
 			end
 	end,
 	true = lists:all(F, HubStructs).
+
+get_product_hub() ->
+	[{userdata, [{doc, "Get product inventory hub listener by identifier"}]}].
+
+get_product_hub(Config) ->
+	HostUrl = ?config(host_url, Config),
+	PathHub = ?PathProductHub,
+	CollectionUrl = HostUrl ++ PathHub,
+	Callback = "http://in.listener.com",
+	RequestBody = "{\"callback\":\"" ++ Callback ++ "\"}",
+	ContentType = "application/json",
+	Accept = {"accept", "application/json"},
+	Request1 = {CollectionUrl, [Accept, auth_header()], ContentType, RequestBody},
+	{ok, Result1} = httpc:request(post, Request1, [], []),
+	{{_, 201, _}, Headers1, _} = Result1,
+	{_, Location} = lists:keyfind("location", 1, Headers1),
+	Id = string:substr(Location, string:rstr(Location, PathHub) + length(PathHub)),
+	Request2 = {CollectionUrl ++ Id, [Accept, auth_header()]},
+	{ok, Result2} = httpc:request(get, Request2, [], []),
+	{{"HTTP/1.1", 200, _OK}, Headers2, ResponseBody} = Result2,
+	{_, "application/json"} = lists:keyfind("content-type", 1, Headers2),
+	ContentLength = integer_to_list(length(ResponseBody)),
+	{_, ContentLength} = lists:keyfind("content-length", 1, Headers2),
+	{struct, HubList} = mochijson:decode(ResponseBody),
+	{_, Callback} = lists:keyfind("callback", 1, HubList),
+	{_, Id} = lists:keyfind("id", 1, HubList),
+	Href = PathHub ++ Id,
+	{_, Href} = lists:keyfind("href", 1, HubList).
 
 notify_create_product() ->
 	[{userdata, [{doc, "Receive product creation notification."}]}].
