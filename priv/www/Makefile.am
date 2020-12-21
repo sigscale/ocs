@@ -40,7 +40,8 @@ www_DATA = favicon.ico \
 	sig-bucket-list.html \
 	sig-bucket-add.html \
 	sig-policy-list.html \
-	sig-policy-add.html
+	sig-policy-add.html \
+	sig-policy-update.html
 
 install-data-local:	$(srcdir)/bower.json
 	@if [ ! -e $(builddir)/bower.json ]; then \
