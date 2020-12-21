@@ -257,7 +257,9 @@
           "default" : {
             "$ref" : "https://api.swaggerhub.com/domains/SigScale/TS29571_CommonData/1.2.1#/components/responses/default"
           }
-        }
+        },
+        "summary" : "Create rating data for a new event or session",
+        "description" : "The rating data collection represents instances of rating requests."
       }
     },
     "/ratingdata/{RatingDataRef}/update" : {
@@ -397,7 +399,9 @@
           "default" : {
             "$ref" : "https://api.swaggerhub.com/domains/SigScale/TS29571_CommonData/1.2.1#/components/responses/default"
           }
-        }
+        },
+        "summary" : "In session interim rating data update.",
+        "description" : "Provides an interim update for on going session.  May contain reservation requests and/or reports of used units."
       }
     },
     "/ratingdata/{RatingDataRef}/release" : {
@@ -578,7 +582,9 @@
           "default" : {
             "$ref" : "https://api.swaggerhub.com/domains/SigScale/TS29571_CommonData/1.2.1#/components/responses/default"
           }
-        }
+        },
+        "summary" : "End of session rating data update.",
+        "description" : "Indicates the end of an existing session.  May contain  reports of used units."
       }
     }
   },
@@ -921,27 +927,56 @@
       },
       "ServiceInformation" : {
         "description" : "This parameter holds the individual service specific parameters as defined in the corresponding \"middle tier\" 3GPP TS.",
-        "type" : "object",
         "oneOf" : [ {
-          "$ref" : "https://www.3gpp.org/ftp/Specs/archive/OpenAPI/Rel-16/TS32291_Nchf_ConvergedCharging.yaml#/components/schemas/PDUSessionChargingInformation"
+          "description" : "5G Data Connectivity Charging Information",
+          "allOf" : [ {
+            "$ref" : "https://www.3gpp.org/ftp/Specs/archive/OpenAPI/Rel-16/TS32291_Nchf_ConvergedCharging.yaml#/components/schemas/PDUSessionChargingInformation"
+          } ]
         }, {
-          "$ref" : "https://www.3gpp.org/ftp/Specs/archive/OpenAPI/Rel-16/TS32291_Nchf_ConvergedCharging.yaml#/components/schemas/SMSChargingInformation"
+          "description" : "5G SMS Charging Information",
+          "allOf" : [ {
+            "$ref" : "https://www.3gpp.org/ftp/Specs/archive/OpenAPI/Rel-16/TS32291_Nchf_ConvergedCharging.yaml#/components/schemas/SMSChargingInformation"
+          } ]
         }, {
-          "$ref" : "https://www.3gpp.org/ftp/Specs/archive/OpenAPI/Rel-16/TS32291_Nchf_ConvergedCharging.yaml#/components/schemas/NEFChargingInformation"
+          "description" : "5G Exposure Function Northbound API Charging Information",
+          "allOf" : [ {
+            "$ref" : "https://www.3gpp.org/ftp/Specs/archive/OpenAPI/Rel-16/TS32291_Nchf_ConvergedCharging.yaml#/components/schemas/NEFChargingInformation"
+          } ]
         }, {
-          "$ref" : "https://www.3gpp.org/ftp/Specs/archive/OpenAPI/Rel-16/TS32291_Nchf_ConvergedCharging.yaml#/components/schemas/RegistrationChargingInformation"
+          "description" : "5G Registration Charging Information",
+          "allOf" : [ {
+            "$ref" : "https://www.3gpp.org/ftp/Specs/archive/OpenAPI/Rel-16/TS32291_Nchf_ConvergedCharging.yaml#/components/schemas/RegistrationChargingInformation"
+          } ]
         }, {
-          "$ref" : "https://www.3gpp.org/ftp/Specs/archive/OpenAPI/Rel-16/TS32291_Nchf_ConvergedCharging.yaml#/components/schemas/N2ConnectionChargingInformation"
+          "description" : "5G N2 Connection Charging Information",
+          "allOf" : [ {
+            "$ref" : "https://www.3gpp.org/ftp/Specs/archive/OpenAPI/Rel-16/TS32291_Nchf_ConvergedCharging.yaml#/components/schemas/N2ConnectionChargingInformation"
+          } ]
         }, {
-          "$ref" : "https://www.3gpp.org/ftp/Specs/archive/OpenAPI/Rel-16/TS32291_Nchf_ConvergedCharging.yaml#/components/schemas/LocationReportingChargingInformation"
+          "description" : "5G Location Reporting Charging Information",
+          "allOf" : [ {
+            "$ref" : "https://www.3gpp.org/ftp/Specs/archive/OpenAPI/Rel-16/TS32291_Nchf_ConvergedCharging.yaml#/components/schemas/LocationReportingChargingInformation"
+          } ]
         }, {
-          "$ref" : "#/components/schemas/PsInformation"
+          "description" : "PS Domain Charging Information",
+          "allOf" : [ {
+            "$ref" : "#/components/schemas/PsInformation"
+          } ]
         }, {
-          "$ref" : "#/components/schemas/SmsInformation"
+          "description" : "SMS Charging Information",
+          "allOf" : [ {
+            "$ref" : "#/components/schemas/SmsInformation"
+          } ]
         }, {
-          "$ref" : "#/components/schemas/ImsInformation"
+          "description" : "IMS Charging Information",
+          "allOf" : [ {
+            "$ref" : "#/components/schemas/ImsInformation"
+          } ]
         }, {
-          "$ref" : "#/components/schemas/VcsInformation"
+          "description" : "Voice Call Charging Information",
+          "allOf" : [ {
+            "$ref" : "#/components/schemas/VcsInformation"
+          } ]
         } ]
       },
       "PsInformation" : {
