@@ -1,3 +1,12 @@
+December 21, 2020
+----------------
+	- Remove session on deregister failure
+	- Interim reservations replace existing reservations
+	- REST : Notification Pattern
+		- Support GET calls on all hub ids
+		- Support GET calls on specific hub ids
+	- Correct Missing MSCC handling
+
 December 5, 2020
 ----------------
 	- Expanded SMS support

@@ -1,3 +1,40 @@
+2020-12-21  Refath Wadood <refath@sigscale.org>
+
+	* map s6b agent-info to swx agent-info
+	* error log pgw identity hostname
+	* include apn selection in pgw update
+	* typo in rfc1918 network number
+	* remove old swagger file left in error
+	* simply api titles in swagger files
+	* include resource specification in tariff codec
+	* validate rating openapi specification
+	* correct type for pgw id in state
+	* aaa: include user-name in s6b aaa
+	* aaa: include user-name in s6b aaa
+	* diameter: handle missing mscc
+	* diameter: remove session on deregister failure
+	* diameter: interim reservations replace existing, they are not cumulative
+	* rest: add notifications operations to usage api specification
+	* rest: correct type of body for get usage response
+	* rest: correct type of response body for get usage specification collection
+	* rest: operation ids, summaries and descriptions in usage api
+	* rest: usage specification reference, not value, in usage in swagger
+	* rest: add openapi specification for rating function interface (re)
+	* rest: restore files deleted by swaggerhub
+	* rest: remove unresolved references to two 5g charging  information types
+	* rest: missing service id value in scur response example
+	* rest: remove 'any of' in simple type definition of request data response
+	* rest: refactored pattern of describing references
+	* rest: service id in examples different for sms and ps
+	* rest: refactored pattern of describing references
+	* rest: api for getting all balance management hubs
+	* rest: api for getting a balance management hub by id
+	* gui: fix add service with product
+	* gui: add roaming table field
+	* test: import csv file correctly for roaming_table_data testcase
+	* test: get all balance management hubs
+	* test: get balance management hub by id
+
 2020-12-07  Vance Shipley <vances@sigscale.org>
 
 	* aaa: ue deregistration from hss of all sessions
