@@ -2682,7 +2682,7 @@ get_balance_hub() ->
 
 get_balance_hub(Config) ->
 	HostUrl = ?config(host_url, Config),
-	PathHub = ?PathUsageHub,
+	PathHub = ?PathBalanceHub,
 	CollectionUrl = HostUrl ++ PathHub,
 	Callback = "http://in.listener.com",
 	RequestBody = "{\"callback\":\"" ++ Callback ++ "\"}",
