@@ -2803,8 +2803,8 @@ notify_rating_deleted_bucket(Config) ->
 	SessionId = [{'Session-Id', list_to_binary(ocs:generate_password())}],
 	ServiceType = 32251,
 	{out_of_credit, _} = ocs_rating:rate(diameter, ServiceType, undefined,
-			undefined, ServiceId, Timestamp, undefined, undefined, initial,
-			[], [{octets, PackageSize}], SessionId),
+			undefined, undefined, ServiceId, Timestamp, undefined, undefined,
+			initial, [], [{octets, PackageSize}], SessionId),
 	DeletedBalance = receive
 		Input5 ->
 			{struct, BalDelEvent} = mochijson:decode(Input5),
@@ -2856,8 +2856,8 @@ notify_accumulated_balance_threshold(Config) ->
 	SessionId = [{'Session-Id', list_to_binary(ocs:generate_password())}],
 	ServiceType = 32251,
 	{ok, #service{}, _} = ocs_rating:rate(diameter, ServiceType, undefined,
-			undefined, ServiceId, Timestamp, undefined, undefined, initial,
-			[], [{octets, PackageSize}], SessionId),
+			undefined, undefined, ServiceId, Timestamp, undefined, undefined,
+			initial, [], [{octets, PackageSize}], SessionId),
 	receive
 		Input7 ->
 			{struct, AccBalanceEvent} = mochijson:decode(Input7),

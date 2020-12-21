@@ -530,9 +530,9 @@ process_request1(?'3GPP_CC-REQUEST-TYPE_EVENT_REQUEST' = RequestType,
 			_ ->
 				calendar:universal_time()
 		end,
-		case ocs_rating:rate(diameter, ServiceType, undefined, ServiceNetwork,
-				Subscriber, Timestamp, Address, Direction, event, [], [],
-				[{'Session-Id', SessionId}]) of
+		case ocs_rating:rate(diameter, ServiceType, undefined, undefined,
+				ServiceNetwork, Subscriber, Timestamp, Address, Direction,
+				event, [], [], [{'Session-Id', SessionId}]) of
 			{ok, _, {octets, Amount}, Rated} ->
 				ResultCode = ?'DIAMETER_BASE_RESULT-CODE_SUCCESS',
 				GSU = #'3gpp_ro_Granted-Service-Unit'{'CC-Total-Octets' = [Amount]},
@@ -881,15 +881,21 @@ rate(ServiceType, ServiceNetwork, Subscriber, Timestamp,
 rate(ServiceType, ServiceNetwork, Subscriber,
 		Timestamp, Address, Direction, Flag, SessionId,
 		[{SI, RG, Debits, Reserves} | T], Acc, ResultCode1, Rated1) ->
+	ServiceId = case SI of
+		[] ->
+			undefined;
+		[N1] ->
+			N1
+	end,
 	ChargingKey = case RG of
 		[] ->
 			undefined;
-		[N] ->
-			N
+		[N2] ->
+			N2
 	end,
-	case ocs_rating:rate(diameter, ServiceType, ChargingKey, ServiceNetwork,
-			Subscriber, Timestamp, Address, Direction, Flag, Debits,
-			Reserves, [{'Session-Id', SessionId}]) of
+	case ocs_rating:rate(diameter, ServiceType, ServiceId, ChargingKey,
+			ServiceNetwork, Subscriber, Timestamp, Address, Direction, Flag,
+			Debits, Reserves, [{'Session-Id', SessionId}]) of
 		{ok, _, {seconds, Amount} = _GrantedAmount} when Amount > 0 ->
 			ResultCode2 = ?'DIAMETER_BASE_RESULT-CODE_SUCCESS',
 			GSU = #'3gpp_ro_Granted-Service-Unit'{'CC-Time' = [Amount]},
