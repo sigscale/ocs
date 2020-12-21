@@ -200,7 +200,7 @@ all() ->
 	simultaneous_updates_on_client_failure, get_product, add_product,
 	add_product_sms, update_product_realizing_service, delete_product,
 	ignore_delete_product, query_product, filter_product,
-	post_hub_balance, delete_hub_balance, notify_create_bucket,
+	post_hub_balance, delete_hub_balance, get_balance_hubs, notify_create_bucket,
 	notify_delete_bucket, notify_rating_deleted_bucket,
 	notify_accumulated_balance_threshold, query_accumulated_balance_notification,
 	query_bucket_notification,
@@ -2640,6 +2640,42 @@ delete_hub_balance(Config) ->
 	{_, Id} = lists:keyfind("id", 1, HubList),
 	Request1 = {HostUrl ++ PathHub ++ Id, [Accept, auth_header()]},
 	{ok, {{_, 204, _}, _, []}} = httpc:request(delete, Request1, [], []).
+
+get_balance_hubs() ->
+	[{userdata, [{doc, "Get balance hub listeners"}]}].
+
+get_balance_hubs(Config) ->
+	HostUrl = ?config(host_url, Config),
+	CollectionUrl = HostUrl ++ ?PathBalanceHub,
+	Callback1 = "http://in.listener1.com",
+	Callback2 = "http://in.listener2.com",
+	RequestBody1 = "{\"callback\":\"" ++ Callback1 ++ "\"}",
+	RequestBody2 = "{\"callback\":\"" ++ Callback2 ++ "\"}",
+	ContentType = "application/json",
+	Accept = {"accept", "application/json"},
+	Request1 = {CollectionUrl, [Accept, auth_header()], ContentType, RequestBody1},
+	{ok, Result1} = httpc:request(post, Request1, [], []),
+	{{_, 201, _}, _, _} = Result1,
+	Request2 = {CollectionUrl, [Accept, auth_header()], ContentType, RequestBody2},
+	{ok, Result2} = httpc:request(post, Request2, [], []),
+	{{_, 201, _}, _, _} = Result2,
+	Request3 = {CollectionUrl, [Accept, auth_header()]},
+	{ok, Result3} = httpc:request(get, Request3, [], []),
+	{{"HTTP/1.1", 200, _OK}, Headers, ResponseBody} = Result3,
+	{_, "application/json"} = lists:keyfind("content-type", 1, Headers),
+	ContentLength = integer_to_list(length(ResponseBody)),
+	{_, ContentLength} = lists:keyfind("content-length", 1, Headers),
+	{array, HubStructs} = mochijson:decode(ResponseBody),
+	true = length(HubStructs) >= 2,
+	F = fun({struct, HubList}) ->
+			case lists:keyfind("href", 1, HubList) of
+				{_, ?PathBalanceHub ++ _} ->
+					true;
+				_ ->
+					false
+			end
+	end,
+	true = lists:all(F, HubStructs).
 
 notify_create_bucket() ->
 	[{userdata, [{doc, "Receive balance creation notification."}]}].
