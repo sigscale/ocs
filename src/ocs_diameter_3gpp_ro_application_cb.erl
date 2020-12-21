@@ -501,16 +501,6 @@ process_request1(?'3GPP_CC-REQUEST-TYPE_TERMINATION_REQUEST' = RequestType,
 			diameter_error(SessionId, ?'DIAMETER_BASE_RESULT-CODE_UNABLE_TO_COMPLY',
 					OHost, ORealm, RequestType, RequestNum)
 	end;
-process_request1(?'3GPP_CC-REQUEST-TYPE_TERMINATION_REQUEST' = RequestType,
-		#'3gpp_ro_CCR'{'Multiple-Services-Credit-Control' = []} = Request,
-		SessionId, RequestNum, _Subscriber, OHost, _DHost,
-		ORealm, _DRealm, IpAddress, Port) ->
-	Reply = diameter_answer(SessionId, [],
-			?'DIAMETER_BASE_RESULT-CODE_SUCCESS',
-			OHost, ORealm, RequestType, RequestNum),
-	ok = ocs_log:acct_log(diameter, {IpAddress, Port},
-			accounting_event_type(RequestType), Request, Reply, undefined),
-	Reply;
 process_request1(?'3GPP_CC-REQUEST-TYPE_EVENT_REQUEST' = RequestType,
 		#'3gpp_ro_CCR'{'Multiple-Services-Credit-Control' = [],
 		'Requested-Action' = [?'3GPP_RO_REQUESTED-ACTION_DIRECT_DEBITING'],
