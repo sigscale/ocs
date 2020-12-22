@@ -211,7 +211,7 @@ all() ->
 	post_hub_user, delete_hub_user, post_hub_catalog, delete_hub_catalog,
 	get_catalog_hubs, get_catalog_hub,
 	notify_create_offer, notify_delete_offer, query_offer_notification,
-	post_hub_inventory, delete_hub_inventory,
+	post_hub_inventory, delete_hub_inventory, get_inventory_hubs,
 	notify_insert_gtt, notify_delete_gtt, query_gtt_notification,
 	notify_add_pla, notify_delete_pla, query_pla_notification,
 	post_hub_usage, get_usage_hubs, get_usage_hub, delete_hub_usage,
@@ -3805,6 +3805,42 @@ delete_hub_inventory(Config) ->
 	{_, Id} = lists:keyfind("id", 1, HubList),
 	Request1 = {HostUrl ++ PathHub ++ Id, [Accept, auth_header()]},
 	{ok, {{_, 204, _}, _, []}} = httpc:request(delete, Request1, [], []).
+
+get_inventory_hubs() ->
+	[{userdata, [{doc, "Get resource inventory hub listeners"}]}].
+
+get_inventory_hubs(Config) ->
+	HostUrl = ?config(host_url, Config),
+	CollectionUrl = HostUrl ++ ?PathResourceHub,
+	Callback1 = "http://in.listener1.com",
+	Callback2 = "http://in.listener2.com",
+	RequestBody1 = "{\"callback\":\"" ++ Callback1 ++ "\"}",
+	RequestBody2 = "{\"callback\":\"" ++ Callback2 ++ "\"}",
+	ContentType = "application/json",
+	Accept = {"accept", "application/json"},
+	Request1 = {CollectionUrl, [Accept, auth_header()], ContentType, RequestBody1},
+	{ok, Result1} = httpc:request(post, Request1, [], []),
+	{{_, 201, _}, _, _} = Result1,
+	Request2 = {CollectionUrl, [Accept, auth_header()], ContentType, RequestBody2},
+	{ok, Result2} = httpc:request(post, Request2, [], []),
+	{{_, 201, _}, _, _} = Result2,
+	Request3 = {CollectionUrl, [Accept, auth_header()]},
+	{ok, Result3} = httpc:request(get, Request3, [], []),
+	{{"HTTP/1.1", 200, _OK}, Headers, ResponseBody} = Result3,
+	{_, "application/json"} = lists:keyfind("content-type", 1, Headers),
+	ContentLength = integer_to_list(length(ResponseBody)),
+	{_, ContentLength} = lists:keyfind("content-length", 1, Headers),
+	{array, HubStructs} = mochijson:decode(ResponseBody),
+	true = length(HubStructs) >= 2,
+	F = fun({struct, HubList}) ->
+			case lists:keyfind("href", 1, HubList) of
+				{_, ?PathResourceHub ++ _} ->
+					true;
+				_ ->
+					false
+			end
+	end,
+	true = lists:all(F, HubStructs).
 
 notify_insert_gtt() ->
 	[{userdata, [{doc, "Receive logical resource creation notification."}]}].
