@@ -164,7 +164,7 @@ post_hub_catalog(ReqBody, Authorization) ->
 		case hub(mochijson:decode(ReqBody)) of
 			#hub{callback = Callback, query = undefined} = HubRecord ->
 				case supervisor:start_child(ocs_rest_hub_sup,
-						[[], Callback, Authorization]) of
+						[[], Callback, ?PathCatalogHub, Authorization]) of
 					{ok, _PageServer, Id} ->
 						Body = mochijson:encode(hub(HubRecord#hub{id = Id})),
 						Headers = [{content_type, "application/json"},
@@ -175,7 +175,7 @@ post_hub_catalog(ReqBody, Authorization) ->
 				end;
 			#hub{callback = Callback, query = Query} = HubRecord ->
 				case supervisor:start_child(ocs_rest_hub_sup,
-						[Query, Callback, Authorization]) of
+						[Query, Callback, ?PathCatalogHub, Authorization]) of
 					{ok, _PageServer, Id} ->
 						Body = mochijson:encode(hub(HubRecord#hub{id = Id})),
 						Headers = [{content_type, "application/json"},
