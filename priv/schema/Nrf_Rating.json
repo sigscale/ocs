@@ -907,6 +907,8 @@
             "anyOf" : [ {
               "type" : "string",
               "enum" : [ "SUCCESS", "END_USER_SERVICE_DENIED", "QUOTA_MANAGEMENT_NOT_APPLICABLE", "QUOTA_LIMIT_REACHED", "END_USER_SERVICE_REJECTED", "USER_UNKNOWN", "RATING_FAILED" ]
+            }, {
+              "type" : "string"
             } ]
           }
         },
