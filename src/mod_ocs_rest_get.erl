@@ -271,6 +271,8 @@ do_get(Resource, ModData, ["serviceInventoryManagement", "v2", "service", Id], [
 	do_response(ModData, Resource:get_inventory(Id));
 do_get(Resource, ModData, ["serviceInventoryManagement", "schema", "OCS.yml"], []) ->
 	do_response(ModData, Resource:get_schema());
+do_get(Resource, ModData, ["serviceInventory", "v2", "hub"], []) ->
+	do_response(ModData, Resource:get_hubs());
 do_get(_, #mod{data = Data} = _ModData, _, _) ->
 	Response = "<h2>HTTP Error 404 - Not Found</h2>",
 	{proceed, [{response, {404, Response}} | Data]}.
