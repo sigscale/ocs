@@ -2679,7 +2679,7 @@ get_balance_hubs(Config) ->
 	true = lists:all(F, HubStructs).
 
 get_balance_hub() ->
-	[{userdata, [{doc, "Get hub listener"}]}].
+	[{userdata, [{doc, "Get balance hub listener by identifier"}]}].
 
 get_balance_hub(Config) ->
 	HostUrl = ?config(host_url, Config),
