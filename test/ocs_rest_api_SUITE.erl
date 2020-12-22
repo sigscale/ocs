@@ -3977,7 +3977,7 @@ get_inventory_hub() ->
 
 get_inventory_hub(Config) ->
 	HostUrl = ?config(host_url, Config),
-	PathHub = ?PathCatalogHub,
+	PathHub = ?PathResourceHub,
 	CollectionUrl = HostUrl ++ PathHub,
 	Callback = "http://in.listener.com",
 	RequestBody = "{\"callback\":\"" ++ Callback ++ "\"}",
