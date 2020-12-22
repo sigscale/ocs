@@ -182,6 +182,8 @@ do_get(Resource, ModData, ["productCatalogManagement", "v2", "productOffering", 
 	do_response(ModData, Resource:get_offer(Id));
 do_get(Resource, ModData, ["productCatalog", "v2", "hub"], []) ->
 	do_response(ModData, Resource:get_catalog_hubs());
+do_get(Resource, ModData, ["productCatalog", "v2", "hub", Id], []) ->
+	do_response(ModData, Resource:get_catalog_hub(Id));
 do_get(Resource, ModData, ["catalogManagement", "v2", "category", Id], Query) ->
 	do_response(ModData, Resource:get_category(Id, Query));
 do_get(Resource, ModData, ["catalogManagement", "v2", "category"], Query) ->

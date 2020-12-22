@@ -22,8 +22,8 @@
 -include("ocs.hrl").
 
 -export([content_types_accepted/0, content_types_provided/0, post_hub/2,
-		delete_hub/1, get_product_hubs/0, get_product_hub/1,
-		post_hub_catalog/2, delete_hub_catalog/1, get_catalog_hubs/0]).
+		delete_hub/1, get_product_hubs/0, get_product_hub/1, post_hub_catalog/2,
+		delete_hub_catalog/1, get_catalog_hubs/0, get_catalog_hub/1]).
 -export([hub/1]).
 
 -define(PathProductHub, "/productInventory/v2/hub/").
@@ -210,6 +210,28 @@ get_catalog_hubs([], Acc) ->
 	Body = mochijson:encode({array, [hub(Hub) || Hub <- Acc]}),
 	Headers = [{content_type, "application/json"}],
 	{ok, Headers, Body}.
+
+-spec get_catalog_hub(Id) -> Result
+	when
+		Id :: string(),
+		Result :: {ok, Headers :: [tuple()], Body :: iolist()}
+				| {error, ErrorCode :: integer()}.
+%% @doc Body producing function for
+%% 	`GET|HEAD /productCatalog/v2/hub/{id}'
+get_catalog_hub(Id) ->
+	case global:whereis_name(Id) of
+		Fsm when is_pid(Fsm) ->
+			case gen_fsm:sync_send_all_state_event(Fsm, get) of
+				#hub{id = Id} = Hub ->
+					Body = mochijson:encode(hub(Hub)),
+					Headers = [{content_type, "application/json"}],
+					{ok, Headers, Body};
+				_ ->
+					{error, 404}
+			end;
+		undefined ->
+			{error, 404}
+	end.
 	
 %%----------------------------------------------------------------------
 %%  The internal functions
