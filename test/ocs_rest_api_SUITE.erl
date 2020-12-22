@@ -209,8 +209,8 @@ all() ->
 	query_product_notification, post_hub_service, delete_hub_service,
 	get_service_hubs, get_service_hub,
 	notify_create_service, notify_delete_service, query_service_notification,
-	post_hub_user, delete_hub_user, post_hub_catalog, delete_hub_catalog,
-	get_catalog_hubs, get_catalog_hub,
+	post_hub_user, delete_hub_user, get_user_hubs,
+	post_hub_catalog, delete_hub_catalog, get_catalog_hubs, get_catalog_hub,
 	notify_create_offer, notify_delete_offer, query_offer_notification,
 	post_hub_inventory, delete_hub_inventory, get_inventory_hubs,
 	get_inventory_hub,
@@ -3624,6 +3624,42 @@ delete_hub_user(Config) ->
 	{_, Id} = lists:keyfind("id", 1, HubList),
 	Request1 = {HostUrl ++ PathHub ++ Id, [Accept, auth_header()]},
 	{ok, {{_, 204, _}, _, []}} = httpc:request(delete, Request1, [], []).
+
+get_user_hubs() ->
+	[{userdata, [{doc, "Get party management hub listeners"}]}].
+
+get_user_hubs(Config) ->
+	HostUrl = ?config(host_url, Config),
+	CollectionUrl = HostUrl ++ ?PathUserHub,
+	Callback1 = "http://in.listener1.com",
+	Callback2 = "http://in.listener2.com",
+	RequestBody1 = "{\"callback\":\"" ++ Callback1 ++ "\"}",
+	RequestBody2 = "{\"callback\":\"" ++ Callback2 ++ "\"}",
+	ContentType = "application/json",
+	Accept = {"accept", "application/json"},
+	Request1 = {CollectionUrl, [Accept, auth_header()], ContentType, RequestBody1},
+	{ok, Result1} = httpc:request(post, Request1, [], []),
+	{{_, 201, _}, _, _} = Result1,
+	Request2 = {CollectionUrl, [Accept, auth_header()], ContentType, RequestBody2},
+	{ok, Result2} = httpc:request(post, Request2, [], []),
+	{{_, 201, _}, _, _} = Result2,
+	Request3 = {CollectionUrl, [Accept, auth_header()]},
+	{ok, Result3} = httpc:request(get, Request3, [], []),
+	{{"HTTP/1.1", 200, _OK}, Headers, ResponseBody} = Result3,
+	{_, "application/json"} = lists:keyfind("content-type", 1, Headers),
+	ContentLength = integer_to_list(length(ResponseBody)),
+	{_, ContentLength} = lists:keyfind("content-length", 1, Headers),
+	{array, HubStructs} = mochijson:decode(ResponseBody),
+	true = length(HubStructs) >= 2,
+	F = fun({struct, HubList}) ->
+			case lists:keyfind("href", 1, HubList) of
+				{_, ?PathUserHub ++ _} ->
+					true;
+				_ ->
+					false
+			end
+	end,
+	true = lists:all(F, HubStructs).
 
 post_hub_catalog() ->
 	[{userdata, [{doc, "Register hub listener for catalog"}]}].
