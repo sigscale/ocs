@@ -89,7 +89,7 @@
                       },
                       "requestSubType" : "RESERVE",
                       "requestedUnit" : {
-                        "serviceSpecificUnits" : 1
+                        "serviceSpecificUnit" : 1
                       }
                     } ]
                   }
@@ -154,7 +154,7 @@
                           }
                         },
                         "consumedUnit" : {
-                          "serviceSpecificUnits" : 1
+                          "serviceSpecificUnit" : 1
                         },
                         "resultCode" : "SUCCESS"
                       }
@@ -176,7 +176,7 @@
                           }
                         },
                         "grantedUnit" : {
-                          "serviceSpecificUnits" : 1
+                          "serviceSpecificUnit" : 1
                         },
                         "resultCode" : "SUCCESS"
                       }
@@ -443,7 +443,7 @@
                       },
                       "requestSubType" : "DEBIT",
                       "consumedUnit" : {
-                        "serviceSpecificUnits" : 1
+                        "serviceSpecificUnit" : 1
                       }
                     } ]
                   }
@@ -506,7 +506,7 @@
                           }
                         },
                         "consumedUnit" : {
-                          "serviceSpecificUnits" : 1
+                          "serviceSpecificUnit" : 1
                         },
                         "resultCode" : "SUCCESS"
                       } ]
@@ -1205,7 +1205,7 @@
               "$ref" : "https://api.swaggerhub.com/domains/SigScale/TS29571_CommonData/1.2.1#/components/schemas/Uint64"
             } ]
           },
-          "serviceSpecificUnits" : {
+          "serviceSpecificUnit" : {
             "description" : "This field holds the amount of requested service specific units.",
             "allOf" : [ {
               "$ref" : "https://api.swaggerhub.com/domains/SigScale/TS29571_CommonData/1.2.1#/components/schemas/Uint64"
@@ -1240,7 +1240,7 @@
               "$ref" : "https://api.swaggerhub.com/domains/SigScale/TS29571_CommonData/1.2.1#/components/schemas/Uint64"
             } ]
           },
-          "serviceSpecificUnits" : {
+          "serviceSpecificUnit" : {
             "description" : "This field holds the amount of granted service specific units.",
             "allOf" : [ {
               "$ref" : "https://api.swaggerhub.com/domains/SigScale/TS29571_CommonData/1.2.1#/components/schemas/Uint64"
@@ -1275,7 +1275,7 @@
               "$ref" : "https://api.swaggerhub.com/domains/SigScale/TS29571_CommonData/1.2.1#/components/schemas/Uint64"
             } ]
           },
-          "serviceSpecificUnits" : {
+          "serviceSpecificUnit" : {
             "description" : "This field holds the amount of consumed service specific units.",
             "allOf" : [ {
               "$ref" : "https://api.swaggerhub.com/domains/SigScale/TS29571_CommonData/1.2.1#/components/schemas/Uint64"
