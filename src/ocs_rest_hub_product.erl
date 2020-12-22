@@ -23,7 +23,7 @@
 
 -export([content_types_accepted/0, content_types_provided/0, post_hub/2,
 		delete_hub/1, get_product_hubs/0, get_product_hub/1,
-		post_hub_catalog/2, delete_hub_catalog/1]).
+		post_hub_catalog/2, delete_hub_catalog/1, get_catalog_hubs/0]).
 -export([hub/1]).
 
 -define(PathProductHub, "/productInventory/v2/hub/").
@@ -189,6 +189,27 @@ post_hub_catalog(ReqBody, Authorization) ->
 		_:_ ->
 			{error, 400}
 	end.
+
+-spec get_catalog_hubs() -> Result
+	when
+		Result :: {ok, Headers :: [tuple()], Body :: iolist()}
+				| {error, ErrorCode :: integer()}.
+%% @doc Body producing function for
+%% 	`GET|HEAD /productCatalog/v2/hub/'
+get_catalog_hubs() ->
+	get_catalog_hubs(supervisor:which_children(ocs_rest_hub_sup), []).
+%% @hidden
+get_catalog_hubs([{_, Pid, _, _} | T], Acc) ->
+	case gen_fsm:sync_send_all_state_event(Pid, get) of
+		#hub{href = ?PathCatalogHub ++ _} = Hub ->
+			get_catalog_hubs(T, [Hub | Acc]);
+		_Hub ->
+			get_catalog_hubs(T, Acc)
+	end;
+get_catalog_hubs([], Acc) ->
+	Body = mochijson:encode({array, [hub(Hub) || Hub <- Acc]}),
+	Headers = [{content_type, "application/json"}],
+	{ok, Headers, Body}.
 	
 %%----------------------------------------------------------------------
 %%  The internal functions
