@@ -902,9 +902,15 @@
             "items" : {
               "$ref" : "https://api.swaggerhub.com/domains/SigScale/TS29571_CommonData/1.2.1#/components/schemas/Uint32"
             }
+          },
+          "resultCode" : {
+            "anyOf" : [ {
+              "type" : "string",
+              "enum" : [ "SUCCESS", "END_USER_SERVICE_DENIED", "QUOTA_MANAGEMENT_NOT_APPLICABLE", "QUOTA_LIMIT_REACHED", "END_USER_SERVICE_REJECTED", "USER_UNKNOWN", "RATING_FAILED" ]
+            } ]
           }
         },
-        "required" : [ "serviceId" ]
+        "required" : [ "serviceId", "resultCode" ]
       },
       "DestinationId" : {
         "type" : "object",
