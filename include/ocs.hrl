@@ -138,6 +138,8 @@
 		reservations = [] :: [{TS :: pos_integer(),
 				DebitAmount :: non_neg_integer(),
 				ReservedAmount :: non_neg_integer(),
+				ServiceId :: non_neg_integer() | undefined,
+				ChargingKey :: non_neg_integer() | undefined,
 				SessionId :: list()}] | '_',
 		units :: octets | cents | seconds | messages | undefined | '_',
 		prices = [] :: list() | '_',

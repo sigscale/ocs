@@ -281,8 +281,8 @@ request1(?AccountingStart, AcctSessionId, Id,
 			calendar:universal_time()
 	end,
 	case ocs_rating:rate(radius, ServiceType, undefined, undefined,
-			Subscriber, Timestamp, CallAddress, Direction, initial,
-			[], [], SessionAttributes) of
+			undefined, Subscriber, Timestamp, CallAddress, Direction,
+			initial, [], [], SessionAttributes) of
 		{ok, #service{}, _} ->
 			ok = ocs_log:acct_log(radius,
 					{ServerAddress, ServerPort}, start, Attributes, undefined, undefined),
@@ -330,7 +330,7 @@ request1(?AccountingStop, AcctSessionId, Id,
 			calendar:universal_time()
 	end,
 	case ocs_rating:rate(radius, ServiceType, undefined, undefined,
-			Subscriber, Timestamp, CallAddress, Direction, final,
+			undefined, Subscriber, Timestamp, CallAddress, Direction, final,
 			DebitAmount, [], SessionAttributes) of
 		{ok, #service{}, Rated} when is_list(Rated) ->
 			ok = ocs_log:acct_log(radius,
@@ -387,8 +387,8 @@ request1(?AccountingInterimUpdate, AcctSessionId, Id,
 			calendar:universal_time()
 	end,
 	case ocs_rating:rate(radius, ServiceType, undefined, undefined,
-			Subscriber, Timestamp, CallAddress, Direction, interim,
-			[], ReserveAmount, SessionAttributes) of
+			undefined, Subscriber, Timestamp, CallAddress, Direction,
+			interim, [], ReserveAmount, SessionAttributes) of
 		{ok, #service{}, _} ->
 			{reply, {ok, response(Id, Authenticator, Secret)}, State};
 		{out_of_credit, SessionList} ->

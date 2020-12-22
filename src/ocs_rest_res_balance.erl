@@ -519,17 +519,17 @@ bucket([reservations | T], #bucket{reservations = []} = B, Acc) ->
 	bucket(T, B, Acc);
 bucket([reservations | T], #bucket{units = undefined,
 		reservations = Reservations} = B, Acc) ->
-	Amount = lists:sum([A || {_, _, A, _} <- Reservations]),
+	Amount = lists:sum([A || {_, _, A, _, _, _} <- Reservations]),
 	Reserved = [{"amount", Amount}],
 	bucket(T, B, [{"reservedAmount", {struct, Reserved}}| Acc]);
 bucket([reservations | T], #bucket{reservations = Reservations,
 		units = cents} = B, Acc) ->
-	Amount = lists:sum([A || {_, _, A, _} <- Reservations]),
+	Amount = lists:sum([A || {_, _, A, _, _, _} <- Reservations]),
 	Reserved = [{"amount", ocs_rest:millionths_out(Amount)}, {"units", "cents"}],
 	bucket(T, B, [{"reservedAmount", {struct, Reserved}}| Acc]);
 bucket([reservations | T], #bucket{reservations = Reservations,
 		units = Units} = B, Acc) ->
-	Amount = lists:sum([A || {_, _, A, _} <- Reservations]),
+	Amount = lists:sum([A || {_, _, A, _, _, _} <- Reservations]),
 	Reserved = [{"amount", Amount}, {"units", units(Units)}],
 	bucket(T, B, [{"reservedAmount", {struct, Reserved}}| Acc]);
 bucket([start_date | T], #bucket{start_date = undefined,
