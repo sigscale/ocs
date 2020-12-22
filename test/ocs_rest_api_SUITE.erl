@@ -207,6 +207,7 @@ all() ->
 	post_hub_product, delete_hub_product, get_product_hubs, get_product_hub,
 	notify_create_product, notify_delete_product, notify_product_charge,
 	query_product_notification, post_hub_service, delete_hub_service,
+	get_service_hubs,
 	notify_create_service, notify_delete_service, query_service_notification,
 	post_hub_user, delete_hub_user, post_hub_catalog, delete_hub_catalog,
 	get_catalog_hubs, get_catalog_hub,
@@ -3473,6 +3474,42 @@ delete_hub_service(Config) ->
 	{_, Id} = lists:keyfind("id", 1, HubList),
 	Request1 = {HostUrl ++ PathHub ++ Id, [Accept, auth_header()]},
 	{ok, {{_, 204, _}, _, []}} = httpc:request(delete, Request1, [], []).
+
+get_service_hubs() ->
+	[{userdata, [{doc, "Get service inventory hub listeners"}]}].
+
+get_service_hubs(Config) ->
+	HostUrl = ?config(host_url, Config),
+	CollectionUrl = HostUrl ++ ?PathServiceHub,
+	Callback1 = "http://in.listener1.com",
+	Callback2 = "http://in.listener2.com",
+	RequestBody1 = "{\"callback\":\"" ++ Callback1 ++ "\"}",
+	RequestBody2 = "{\"callback\":\"" ++ Callback2 ++ "\"}",
+	ContentType = "application/json",
+	Accept = {"accept", "application/json"},
+	Request1 = {CollectionUrl, [Accept, auth_header()], ContentType, RequestBody1},
+	{ok, Result1} = httpc:request(post, Request1, [], []),
+	{{_, 201, _}, _, _} = Result1,
+	Request2 = {CollectionUrl, [Accept, auth_header()], ContentType, RequestBody2},
+	{ok, Result2} = httpc:request(post, Request2, [], []),
+	{{_, 201, _}, _, _} = Result2,
+	Request3 = {CollectionUrl, [Accept, auth_header()]},
+	{ok, Result3} = httpc:request(get, Request3, [], []),
+	{{"HTTP/1.1", 200, _OK}, Headers, ResponseBody} = Result3,
+	{_, "application/json"} = lists:keyfind("content-type", 1, Headers),
+	ContentLength = integer_to_list(length(ResponseBody)),
+	{_, ContentLength} = lists:keyfind("content-length", 1, Headers),
+	{array, HubStructs} = mochijson:decode(ResponseBody),
+	true = length(HubStructs) >= 2,
+	F = fun({struct, HubList}) ->
+			case lists:keyfind("href", 1, HubList) of
+				{_, ?PathServiceHub ++ _} ->
+					true;
+				_ ->
+					false
+			end
+	end,
+	true = lists:all(F, HubStructs).
 
 query_service_notification() ->
 	[{userdata, [{doc, "Query service notification"}]}].
