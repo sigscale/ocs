@@ -238,6 +238,8 @@ do_get(Resource, ModData, ["resourceInventoryManagement", "v1", "logicalResource
 	do_response(ModData, Resource:get_resource_inventory(Id, Query));
 do_get(Resource, ModData, ["resourceInventoryManagement", "v1", "pla"], Query) ->
 	do_response(ModData, Resource:get_pla(Query));
+do_get(Resource, ModData, ["resourceInventory", "v1", "hub"], []) ->
+	do_response(ModData, Resource:get_hubs());
 do_get(Resource, #mod{parsed_header = Headers} = ModData,
 		["catalogManagement", "v2", "pla"], Query) ->
 	do_response(ModData, Resource:get_plas(Query, Headers));
