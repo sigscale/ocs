@@ -141,6 +141,8 @@ do_get(Resource, ModData, ["partyManagement", "v1", "individual", Id], Query) ->
 	do_response(ModData, Resource:get_user(Id, Query));
 do_get(Resource, ModData, ["partyManagement", "v1", "hub"], []) ->
 	do_response(ModData, Resource:get_hubs());
+do_get(Resource, ModData, ["partyManagement", "v1", "hub", Id], []) ->
+	do_response(ModData, Resource:get_hub(Id));
 do_get(Resource, ModData, ["balanceManagement", "v1", "product", Id, "accumulatedBalance"], []) ->
 	do_response(ModData, Resource:get_balance(Id));
 do_get(Resource, ModData, ["balanceManagement", "v1", "product", Id,
