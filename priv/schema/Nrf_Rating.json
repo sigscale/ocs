@@ -155,7 +155,8 @@
                         },
                         "consumedUnit" : {
                           "serviceSpecificUnits" : 1
-                        }
+                        },
+                        "resultCode" : "SUCCESS"
                       }
                     }
                   },
@@ -176,7 +177,8 @@
                         },
                         "grantedUnit" : {
                           "serviceSpecificUnits" : 1
-                        }
+                        },
+                        "resultCode" : "SUCCESS"
                       }
                     }
                   },
@@ -191,14 +193,16 @@
                         "ratingGroup" : 2,
                         "grantedUnit" : {
                           "totalVolume" : 100000000
-                        }
+                        },
+                        "resultCode" : "SUCCESS"
                       }, {
                         "serviceContextId" : "32251@3gpp.org",
                         "serviceId" : 1,
                         "ratingGroup" : 32,
                         "grantedUnit" : {
                           "totalVolume" : 100000000
-                        }
+                        },
+                        "resultCode" : "SUCCESS"
                       } ]
                     }
                   }
