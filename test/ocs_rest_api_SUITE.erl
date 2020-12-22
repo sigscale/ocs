@@ -207,7 +207,7 @@ all() ->
 	post_hub_product, delete_hub_product, get_product_hubs, get_product_hub,
 	notify_create_product, notify_delete_product, notify_product_charge,
 	query_product_notification, post_hub_service, delete_hub_service,
-	get_service_hubs,
+	get_service_hubs, get_service_hub,
 	notify_create_service, notify_delete_service, query_service_notification,
 	post_hub_user, delete_hub_user, post_hub_catalog, delete_hub_catalog,
 	get_catalog_hubs, get_catalog_hub,
@@ -3510,6 +3510,34 @@ get_service_hubs(Config) ->
 			end
 	end,
 	true = lists:all(F, HubStructs).
+
+get_service_hub() ->
+	[{userdata, [{doc, "Get service inventory hub listener by identifier"}]}].
+
+get_service_hub(Config) ->
+	HostUrl = ?config(host_url, Config),
+	PathHub = ?PathServiceHub,
+	CollectionUrl = HostUrl ++ PathHub,
+	Callback = "http://in.listener.com",
+	RequestBody = "{\"callback\":\"" ++ Callback ++ "\"}",
+	ContentType = "application/json",
+	Accept = {"accept", "application/json"},
+	Request1 = {CollectionUrl, [Accept, auth_header()], ContentType, RequestBody},
+	{ok, Result1} = httpc:request(post, Request1, [], []),
+	{{_, 201, _}, Headers1, _} = Result1,
+	{_, Location} = lists:keyfind("location", 1, Headers1),
+	Id = string:substr(Location, string:rstr(Location, PathHub) + length(PathHub)),
+	Request2 = {CollectionUrl ++ Id, [Accept, auth_header()]},
+	{ok, Result2} = httpc:request(get, Request2, [], []),
+	{{"HTTP/1.1", 200, _OK}, Headers2, ResponseBody} = Result2,
+	{_, "application/json"} = lists:keyfind("content-type", 1, Headers2),
+	ContentLength = integer_to_list(length(ResponseBody)),
+	{_, ContentLength} = lists:keyfind("content-length", 1, Headers2),
+	{struct, HubList} = mochijson:decode(ResponseBody),
+	{_, Callback} = lists:keyfind("callback", 1, HubList),
+	{_, Id} = lists:keyfind("id", 1, HubList),
+	Href = PathHub ++ Id,
+	{_, Href} = lists:keyfind("href", 1, HubList).
 
 query_service_notification() ->
 	[{userdata, [{doc, "Query service notification"}]}].
