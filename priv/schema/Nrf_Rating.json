@@ -89,7 +89,7 @@
                       },
                       "requestSubType" : "RESERVE",
                       "requestedUnit" : {
-                        "serviceSpecificUnits" : 1
+                        "serviceSpecificUnit" : 1
                       }
                     } ]
                   }
@@ -154,8 +154,9 @@
                           }
                         },
                         "consumedUnit" : {
-                          "serviceSpecificUnits" : 1
-                        }
+                          "serviceSpecificUnit" : 1
+                        },
+                        "resultCode" : "SUCCESS"
                       }
                     }
                   },
@@ -175,8 +176,9 @@
                           }
                         },
                         "grantedUnit" : {
-                          "serviceSpecificUnits" : 1
-                        }
+                          "serviceSpecificUnit" : 1
+                        },
+                        "resultCode" : "SUCCESS"
                       }
                     }
                   },
@@ -191,14 +193,16 @@
                         "ratingGroup" : 2,
                         "grantedUnit" : {
                           "totalVolume" : 100000000
-                        }
+                        },
+                        "resultCode" : "SUCCESS"
                       }, {
                         "serviceContextId" : "32251@3gpp.org",
                         "serviceId" : 1,
                         "ratingGroup" : 32,
                         "grantedUnit" : {
                           "totalVolume" : 100000000
-                        }
+                        },
+                        "resultCode" : "SUCCESS"
                       } ]
                     }
                   }
@@ -333,14 +337,16 @@
                         "ratingGroup" : 32,
                         "consumedUnit" : {
                           "totalVolume" : 83256442
-                        }
+                        },
+                        "resultCode" : "SUCCESS"
                       }, {
                         "serviceContextId" : "32251@3gpp.org",
                         "serviceId" : 1,
                         "ratingGroup" : 32,
                         "grantedUnit" : {
                           "totalVolume" : 100000000
-                        }
+                        },
+                        "resultCode" : "SUCCESS"
                       } ]
                     }
                   }
@@ -437,7 +443,7 @@
                       },
                       "requestSubType" : "DEBIT",
                       "consumedUnit" : {
-                        "serviceSpecificUnits" : 1
+                        "serviceSpecificUnit" : 1
                       }
                     } ]
                   }
@@ -500,8 +506,9 @@
                           }
                         },
                         "consumedUnit" : {
-                          "serviceSpecificUnits" : 1
-                        }
+                          "serviceSpecificUnit" : 1
+                        },
+                        "resultCode" : "SUCCESS"
                       } ]
                     }
                   },
@@ -523,7 +530,8 @@
                             "valueDigits" : 20,
                             "exponent" : -10
                           }
-                        }
+                        },
+                        "resultCode" : "SUCCESS"
                       } ]
                     }
                   }
@@ -902,9 +910,17 @@
             "items" : {
               "$ref" : "https://api.swaggerhub.com/domains/SigScale/TS29571_CommonData/1.2.1#/components/schemas/Uint32"
             }
+          },
+          "resultCode" : {
+            "anyOf" : [ {
+              "type" : "string",
+              "enum" : [ "SUCCESS", "END_USER_SERVICE_DENIED", "QUOTA_MANAGEMENT_NOT_APPLICABLE", "QUOTA_LIMIT_REACHED", "END_USER_SERVICE_REJECTED", "USER_UNKNOWN", "RATING_FAILED" ]
+            }, {
+              "type" : "string"
+            } ]
           }
         },
-        "required" : [ "serviceId" ]
+        "required" : [ "serviceId", "resultCode" ]
       },
       "DestinationId" : {
         "type" : "object",
@@ -1189,7 +1205,7 @@
               "$ref" : "https://api.swaggerhub.com/domains/SigScale/TS29571_CommonData/1.2.1#/components/schemas/Uint64"
             } ]
           },
-          "serviceSpecificUnits" : {
+          "serviceSpecificUnit" : {
             "description" : "This field holds the amount of requested service specific units.",
             "allOf" : [ {
               "$ref" : "https://api.swaggerhub.com/domains/SigScale/TS29571_CommonData/1.2.1#/components/schemas/Uint64"
@@ -1224,7 +1240,7 @@
               "$ref" : "https://api.swaggerhub.com/domains/SigScale/TS29571_CommonData/1.2.1#/components/schemas/Uint64"
             } ]
           },
-          "serviceSpecificUnits" : {
+          "serviceSpecificUnit" : {
             "description" : "This field holds the amount of granted service specific units.",
             "allOf" : [ {
               "$ref" : "https://api.swaggerhub.com/domains/SigScale/TS29571_CommonData/1.2.1#/components/schemas/Uint64"
@@ -1259,7 +1275,7 @@
               "$ref" : "https://api.swaggerhub.com/domains/SigScale/TS29571_CommonData/1.2.1#/components/schemas/Uint64"
             } ]
           },
-          "serviceSpecificUnits" : {
+          "serviceSpecificUnit" : {
             "description" : "This field holds the amount of consumed service specific units.",
             "allOf" : [ {
               "$ref" : "https://api.swaggerhub.com/domains/SigScale/TS29571_CommonData/1.2.1#/components/schemas/Uint64"
