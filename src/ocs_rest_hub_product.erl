@@ -22,7 +22,8 @@
 -include("ocs.hrl").
 
 -export([content_types_accepted/0, content_types_provided/0, post_hub/2,
-		delete_hub/1, post_hub_catalog/2, delete_hub_catalog/1]).
+		delete_hub/1, get_product_hubs/0, get_product_hub/1, post_hub_catalog/2,
+		delete_hub_catalog/1, get_catalog_hubs/0, get_catalog_hub/1]).
 -export([hub/1]).
 
 -define(PathProductHub, "/productInventory/v2/hub/").
@@ -96,6 +97,50 @@ post_hub(ReqBody, Authorization) ->
 			{error, 400}
 	end.
 
+-spec get_product_hubs() -> Result
+	when
+		Result :: {ok, Headers :: [tuple()], Body :: iolist()}
+				| {error, ErrorCode :: integer()}.
+%% @doc Body producing function for
+%% 	`GET|HEAD /productInventory/v2/hub/'
+get_product_hubs() ->
+	get_product_hubs(supervisor:which_children(ocs_rest_hub_sup), []).
+%% @hidden
+get_product_hubs([{_, Pid, _, _} | T], Acc) ->
+	case gen_fsm:sync_send_all_state_event(Pid, get) of
+		#hub{href = ?PathProductHub ++ _} = Hub ->
+			get_product_hubs(T, [Hub | Acc]);
+		_Hub ->
+			get_product_hubs(T, Acc)
+	end;
+get_product_hubs([], Acc) ->
+	Body = mochijson:encode({array, [hub(Hub) || Hub <- Acc]}),
+	Headers = [{content_type, "application/json"}],
+	{ok, Headers, Body}.
+
+-spec get_product_hub(Id) -> Result
+	when
+		Id :: string(),
+		Result :: {ok, Headers :: [tuple()], Body :: iolist()}
+				| {error, ErrorCode :: integer()}.
+%% @doc Body producing function for
+%% 	`GET|HEAD /productInventory/v2/hub/{id}'
+%% 	requests.
+get_product_hub(Id) ->
+	case global:whereis_name(Id) of
+		Fsm when is_pid(Fsm) ->
+			case gen_fsm:sync_send_all_state_event(Fsm, get) of
+				#hub{id = Id} = Hub ->
+					Body = mochijson:encode(hub(Hub)),
+					Headers = [{content_type, "application/json"}],
+					{ok, Headers, Body};
+				_ ->
+					{error, 404}
+			end;
+		undefined ->
+			{error, 404}
+	end.
+
 -spec delete_hub_catalog(Id) -> Result
 	when
 		Id :: string(),
@@ -119,7 +164,7 @@ post_hub_catalog(ReqBody, Authorization) ->
 		case hub(mochijson:decode(ReqBody)) of
 			#hub{callback = Callback, query = undefined} = HubRecord ->
 				case supervisor:start_child(ocs_rest_hub_sup,
-						[[], Callback, Authorization]) of
+						[[], Callback, ?PathCatalogHub, Authorization]) of
 					{ok, _PageServer, Id} ->
 						Body = mochijson:encode(hub(HubRecord#hub{id = Id})),
 						Headers = [{content_type, "application/json"},
@@ -130,7 +175,7 @@ post_hub_catalog(ReqBody, Authorization) ->
 				end;
 			#hub{callback = Callback, query = Query} = HubRecord ->
 				case supervisor:start_child(ocs_rest_hub_sup,
-						[Query, Callback, Authorization]) of
+						[Query, Callback, ?PathCatalogHub, Authorization]) of
 					{ok, _PageServer, Id} ->
 						Body = mochijson:encode(hub(HubRecord#hub{id = Id})),
 						Headers = [{content_type, "application/json"},
@@ -143,6 +188,49 @@ post_hub_catalog(ReqBody, Authorization) ->
 	catch
 		_:_ ->
 			{error, 400}
+	end.
+
+-spec get_catalog_hubs() -> Result
+	when
+		Result :: {ok, Headers :: [tuple()], Body :: iolist()}
+				| {error, ErrorCode :: integer()}.
+%% @doc Body producing function for
+%% 	`GET|HEAD /productCatalog/v2/hub/'
+get_catalog_hubs() ->
+	get_catalog_hubs(supervisor:which_children(ocs_rest_hub_sup), []).
+%% @hidden
+get_catalog_hubs([{_, Pid, _, _} | T], Acc) ->
+	case gen_fsm:sync_send_all_state_event(Pid, get) of
+		#hub{href = ?PathCatalogHub ++ _} = Hub ->
+			get_catalog_hubs(T, [Hub | Acc]);
+		_Hub ->
+			get_catalog_hubs(T, Acc)
+	end;
+get_catalog_hubs([], Acc) ->
+	Body = mochijson:encode({array, [hub(Hub) || Hub <- Acc]}),
+	Headers = [{content_type, "application/json"}],
+	{ok, Headers, Body}.
+
+-spec get_catalog_hub(Id) -> Result
+	when
+		Id :: string(),
+		Result :: {ok, Headers :: [tuple()], Body :: iolist()}
+				| {error, ErrorCode :: integer()}.
+%% @doc Body producing function for
+%% 	`GET|HEAD /productCatalog/v2/hub/{id}'
+get_catalog_hub(Id) ->
+	case global:whereis_name(Id) of
+		Fsm when is_pid(Fsm) ->
+			case gen_fsm:sync_send_all_state_event(Fsm, get) of
+				#hub{id = Id} = Hub ->
+					Body = mochijson:encode(hub(Hub)),
+					Headers = [{content_type, "application/json"}],
+					{ok, Headers, Body};
+				_ ->
+					{error, 404}
+			end;
+		undefined ->
+			{error, 404}
 	end.
 	
 %%----------------------------------------------------------------------
