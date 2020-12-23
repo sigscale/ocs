@@ -1,3 +1,17 @@
+2020-12-23  Refath Wadood <refath@sigscale.org>
+
+	* test: list all product inventory hub listeners
+	* test: get product inventory hub listeners by id
+	* test: get product catalog hub listener by id
+	* test: get all product catalog hub listeners
+	* test: get all product catalog hub listeners
+	* rest: list all product inventory hub listeners
+	* rest: get all product catalog hub listeners
+	* rest: get product inventory hub listener by id
+	* diameter: reservations unique to service-id, charging-key and session-id
+	* diameter: correct termination ccr failure due to bad si/rg type
+	* pass uri to create href for product catalog listeners
+
 2020-12-21  Refath Wadood <refath@sigscale.org>
 
 	* map s6b agent-info to swx agent-info
