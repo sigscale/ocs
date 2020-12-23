@@ -1,3 +1,8 @@
+December 23, 2020
+----------------
+	- Reservations unique to Service-Id, Charging-Key and Session-Id
+	- Correct termination CCR failure due to bad SI/RG type
+
 December 21, 2020
 ----------------
 	- Remove session on deregister failure

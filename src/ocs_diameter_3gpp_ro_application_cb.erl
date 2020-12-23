@@ -461,7 +461,7 @@ process_request1(?'3GPP_CC-REQUEST-TYPE_TERMINATION_REQUEST' = RequestType,
 		end,
 		Amounts = case get_mscc(MSCC1) of
 			[] ->
-				[{undefined, undefined, [], []}];
+				[{[], [], [], []}];
 			As ->
 				As
 		end,
