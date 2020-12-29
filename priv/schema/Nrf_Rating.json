@@ -293,7 +293,7 @@
                       "serviceId" : 1,
                       "ratingGroup" : 32,
                       "requestSubType" : "DEBIT",
-                      "usedUnits" : {
+                      "consumedUnit" : {
                         "totalVolume" : 83256442
                       }
                     }, {
