@@ -65,7 +65,7 @@ content_types_provided() ->
 		Result :: {struct, [tuple()]} | {error, 404}.
 %% @doc Get Resource Specification by ID.
 get_resource_spec("1") ->
-	ResourceSpec = tariff_table_spec(),
+	ResourceSpec = tariff_row_spec(),
 	Body = mochijson:encode(ResourceSpec),
 	Headers = [{content_type, "application/json"}],
 	{ok, Headers, Body};
@@ -87,7 +87,7 @@ get_resource_spec(_) ->
 %% 	Retrieve all Resource specifications.
 get_resource_specs([] = _Query) ->
 	Headers = [{content_type, "application/json"}],
-	Object = {array, [tariff_table_spec()]},
+	Object = {array, [tariff_row_spec()]},
 	Body = mochijson:encode(Object),
 	{ok, Headers, Body};
 get_resource_specs(_Query) ->
@@ -347,7 +347,7 @@ delete_resource_inventory(Table, Id) ->
 %%----------------------------------------------------------------------
 
 %% @hidden
-tariff_table_spec() ->
+tariff_row_spec() ->
 	Id = {"id", "1"},
 	Href = {"href", ?specPath "1"},
 	Name = {"name", "TariffTableSpec"},
