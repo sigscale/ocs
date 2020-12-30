@@ -62,19 +62,19 @@
 			</vaadin-grid-column>
 			<vaadin-grid-column width="15ex" flex-grow="16">
 				<template class="header">
-					Service Quality	
+					Service Quality
 				</template>
 				<template>[[item.qos]]</template>
 			</vaadin-grid-column>
 			<vaadin-grid-column width="15ex" flex-grow="14">
 				<template class="header">
-					Charging Rule 	
+					Charging Rule
 				</template>
 				<template>[[item.chargingRule]]</template>
 			</vaadin-grid-column>
 			<vaadin-grid-column width="15ex" flex-grow="5">
 				<template class="header">
-					flow	
+					flow
 				</template>
 				<template>[[item.flow]]</template>
 			</vaadin-grid-column>
@@ -94,8 +94,8 @@
 		<paper-toast
 				id="PolicyToast">
 		</paper-toast>
-		<iron-ajax id="getProductAjax"
-			url="/catalogManagement/v2/productOffering"
+		<iron-ajax id="getPolicyAjax"
+			url="/catalogManagement/v2/policy"
 			rejectWithRequest>
 		</iron-ajax>
 	</template>
@@ -106,7 +106,109 @@
 		Polymer ({
 			is: 'sig-policy-list',
 			behaviors: [i18nMsgBehavior],
-			properties: {},
+			properties: {
+				activePage: {
+					type: Boolean,
+					value: false,
+					observer: '_activePageChanged'
+				},
+				activeItem: {
+					observer: '_activeItemChanged'
+				}
+			},
+
+			_activePageChanged: function(active) {
+				if (active) {
+					var grid = this.$.policyGrid;
+					grid.columns = [
+						{
+							name: "name",
+						},
+						{
+							name: "Service Quality",
+						},
+						{
+							name: "Charging Rule",
+						},
+						{
+							name: "flow"
+						},
+						{
+							name: "Precedence"
+						}
+					];
+					grid.dataProvider = this._getPolicy;
+				}
+			},
+
+			_getPolicy: function(params, callback) {
+				var grid = document.getElementById('policyGrid');
+				var ajax = document.getElementById('getPolicyAjax');
+				var clientList = document.getElementById('policyList');
+				var handleAjaxResponse = function(request) {
+					if(request) {
+							clientList.etag = request.xhr.getResponseHeader('ETag');
+							var range = request.xhr.getResponseHeader('Content-Range');
+							var range1 = range.split("/");
+							var range2 = range1[0].split("-");
+							if (range1[1] != "*") {
+							grid.size = Number(range1[1]);
+							} else {
+							grid.size = Number(range2[1]) + grid.pageSize * 2;
+							}
+							var vaadinItems = new Array();
+							function checkChar(characteristic) {
+							return characteristic.name == "name"
+							}
+							for (var index in request.response) {
+							var newRecord = new Object();
+							newRecord.name = request.response[index].name;
+							newRecord.service = request.response[index].service;
+							newRecord.chargingRule = request.response[index].chargingRule;
+							newRecord.flow = request.response[index].flow;
+							newRecord.precedence= request.response[index].precedence;
+							vaadinItems[index] = newRecord;
+							}
+							callback(vaadinItems);
+					} else {
+							grid.size = 0;
+							callback([]);
+					}
+				};
+				var handleAjaxError = function(error) {
+					clientList.etag = null;
+					var toast = document.getElementById('PolicyToast');
+					toast.text = error;
+					toast.open();
+					if(!grid.size) {
+							grid.size = 0;
+					}
+					callback([]);
+				}
+				if (ajax.loading) {
+					ajax.lastRequest.completes.then(function(request) {
+							var startRange = params.page * params.pageSize + 1;
+							var endRange = startRange + params.pageSize - 1;
+							ajax.headers['Range'] = "items=" + startRange + "-" + endRange;
+							if (clientList.etag && params.page > 0) {
+							ajax.headers['If-Range'] = clientList.etag;
+							} else {
+							delete ajax.headers['If-Range'];
+							}
+							return ajax.generateRequest().completes;
+					}, handleAjaxError).then(handleAjaxResponse, handleAjaxError);
+				} else {
+					var startRange = params.page * params.pageSize + 1;
+					var endRange = startRange + params.pageSize - 1;
+					ajax.headers['Range'] = "items=" + startRange + "-" + endRange;
+					if (clientList.etag && params.page > 0) {
+							ajax.headers['If-Range'] = clientList.etag;
+					} else {
+							delete ajax.headers['If-Range'];
+					}
+					ajax.generateRequest().completes.then(handleAjaxResponse, handleAjaxError);
+				}
+			},
 
 			showAddPolicyModal: function(event) {
 				document.getElementById("addPolicyModal").open();
