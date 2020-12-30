@@ -36,8 +36,7 @@
 		query_users/3, update_user/3]).
 -export([add_offer/1, find_offer/1, get_offers/0, delete_offer/1,
 		query_offer/7]).
--export([add_resource/1, get_resources/0, get_resource/1, delete_resource/1,
-		query_table/6]).
+-export([add_resource/1, get_resources/0, get_resource/1, delete_resource/1]).
 -export([add_policy_table/1, delete_policy_table/1]).
 -export([add_policy/2, get_policy/2, get_policies/1, delete_policy/2]).
 -export([generate_password/0, generate_identity/0]).
@@ -1735,46 +1734,6 @@ delete_resource(ResourceID) when is_list(ResourceID) ->
 		{atomic, ok} ->
 			ok
 	end.
-
--spec query_table(Cont, Name, Prefix, Description, Rate, LM) -> Result
-	when
-		Cont :: start | any(),
-		Name :: undefined | '_' | atom(),
-		Prefix :: undefined | '_' | string(),
-		Description :: undefined | '_' | string(),
-		Rate :: undefined | '_' | string(),
-		LM :: undefined | '_' | tuple(),
-		Result :: {Cont1, [#gtt{}]} | {error, Reason},
-		Cont1 :: eof | any(),
-		Reason :: term().
-%% @doc Query pricing logic algorithm entires
-query_table(Cont, Name, Prefix, Description, Rate, undefined) ->
-	query_table(Cont, Name, Prefix, Description, Rate, '_');
-query_table(Cont, Name, Prefix, Description, undefined, LM) ->
-	query_table(Cont, Name, Prefix, Description, '_', LM);
-query_table(Cont, Name, Prefix, undefined, Rate, LM) ->
-	query_table(Cont, Name, Prefix, '_', Rate, LM);
-query_table(Cont, Name, undefined, Description, Rate, LM) ->
-	query_table(Cont, Name, '_', Description, Rate, LM);
-query_table(start, Name, Prefix, Description, Rate, LM) ->
-	MatchHead = #gtt{num = Prefix, value = {Description, Rate, LM}},
-	MatchSpec = MatchSpec = [{MatchHead, [], ['$_']}],
-	F = fun() ->
-		mnesia:select(Name, MatchSpec, read)
-	end,
-	case mnesia:transaction(F) of
-		{atomic, Pla} ->
-			query_table1(Pla, []);
-		{aborted, Reason} ->
-			{error, Reason}
-	end;
-query_table(eof, _Name, _Prefix, _Description, _Rate, _LM) ->
-	{eof, []}.
-%% @hidden
-query_table1([], Acc) ->
-	{eof, lists:reverse(Acc)};
-query_table1(Pla, _Acc) ->
-	{eof, Pla}.
 
 -type password() :: [50..57 | 97..104 | 106..107 | 109..110 | 112..116 | 119..122].
 -spec generate_password() -> password().
