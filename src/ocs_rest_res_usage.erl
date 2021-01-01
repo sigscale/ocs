@@ -2843,6 +2843,7 @@ query_page(PageServer, Etag, Query, Filters, Start, End) ->
 	end.
 %% @hidden
 query_page1(PageServer, Etag, Decoder, Filters, Start, End) ->
+erlang:display({?MODULE, ?LINE, Filters}),
 	case gen_server:call(PageServer, {Start, End}, infinity) of
 		{error, Status} ->
 			{error, Status};
@@ -3171,13 +3172,13 @@ characteristic({"name", exact, "msisdn"}, {"value", Op, UserNameValue},
 			Prefix2 = integer_to_binary(I + 1),
 			ReqAttrs2 = [{#'3gpp_ro_CCR'{'Subscription-Id'
 					= [#'3gpp_ro_Subscription-Id'{'Subscription-Id-Data'
-					= VarMatch, _ = '_'}], _ = '_'},
+					= VarMatch, _ = '_'} | '_'], _ = '_'},
 					[{'=<', Prefix, VarMatch}, {'>', Prefix2, VarMatch}]}];
 		_ when Op == exact ->
 			Prefix = list_to_binary(UserNameValue),
 			ReqAttrs2 = [{#'3gpp_ro_CCR'{'Subscription-Id'
 					= [#'3gpp_ro_Subscription-Id'{'Subscription-Id-Data'
-					= Prefix, _ = '_'}], _ = '_'}, []}]
+					= Prefix, _ = '_'} | '_'], _ = '_'}, []}]
 	end,
 	characteristic(T, diameter, Types, ReqAttrs2, RespAttrs, N + 1);
 characteristic({"name", exact, "imsi"}, {"value", Op, UserNameValue},
