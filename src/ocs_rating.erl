@@ -1613,30 +1613,35 @@ convert(Price1, Type, Size, ServiceId, ChargingKey, SessionId, Now,
 		[#bucket{remain_amount = R, end_date = Expires,
 		reservations = Reservations1} = B1 | T], UnitsBuckets, Acc)
 		when Price1 > 0, R > 0, ((Expires == undefined) or (Now < Expires)) ->
-	{Price2, B2} = case lists:keytake(SessionId, 6, Reservations1) of
-		{value, {_, DebitedAmount, ReservedAmount,
-				ServiceId, ChargingKey, _}, Reservations2}
-				when R >= Price1->
+	F = fun({_, _, _, ServiceId1, ChargingKey1, SessionId1})
+					when ServiceId1 =:= ServiceId,
+					ChargingKey1 =:= ChargingKey, SessionId1 == SessionId ->
+				true;
+			({_, _, _, _, _, _}) ->
+				false
+	end,
+	{Price2, B2} = case lists:partition(F, Reservations1) of
+		{[{_, DebitedAmount, ReservedAmount, _, _, _}], Reservations2}
+				when R >= Price1 ->
 			NewReservations = [{Now, DebitedAmount + Price1, ReservedAmount,
 					ServiceId, ChargingKey, SessionId} | Reservations2],
 			{0, B1#bucket{remain_amount = R - Price1,
 					last_modified = {Now, erlang:unique_integer([positive])},
 					reservations = NewReservations}};
-		{value, {_, DebitedAmount, ReservedAmount,
-				ServiceId, ChargingKey, _}, Reservations2}
+		{[{_, DebitedAmount, ReservedAmount, _, _, _}], Reservations2}
 				when R < Price1 ->
 			NewReservations = [{Now, DebitedAmount + R, ReservedAmount,
 					ServiceId, ChargingKey, SessionId} | Reservations2],
 			{Price1 - R, B1#bucket{remain_amount = 0,
 					last_modified = {Now, erlang:unique_integer([positive])},
 					reservations = NewReservations}};
-		false when R >= Price1 ->
+		{[], _} when R >= Price1 ->
 			NewReservations = [{Now, Price1, 0,
 					ServiceId, ChargingKey, SessionId} | Reservations1],
 			{0, B1#bucket{remain_amount = R - Price1,
 					last_modified = {Now, erlang:unique_integer([positive])},
 					reservations = NewReservations}};
-		false when R < Price1 ->
+		{[], _} when R < Price1 ->
 			NewReservations = [{Now, R, 0,
 					ServiceId, ChargingKey, SessionId} | Reservations1],
 			{Price1 - R, B1#bucket{remain_amount = 0,
@@ -1655,13 +1660,20 @@ convert(Price, _, _, _, _, _, _, [], _, _) when Price > 0 ->
 convert1(Type, Size, ServiceId, ChargingKey, SessionId, Now, CentsBuckets,
 		[#bucket{units = Type, name = "session", remain_amount = R,
 		reservations = Reservations} = B | T], Acc) ->
-	case lists:keyfind(SessionId, 6, Reservations) of
-		{_, _, _, ServiceId, ChargingKey, _} ->
+	F = fun({_, _, _, ServiceId1, ChargingKey1, SessionId1})
+					when ServiceId1 =:= ServiceId,
+					ChargingKey1 =:= ChargingKey, SessionId1 == SessionId ->
+				true;
+			({_, _, _, _, _, _}) ->
+				false
+	end,
+	case lists:any(F, Reservations) of
+		true -> ->
 			NewBucket = B#bucket{remain_amount = R + Size,
 					last_modified = {Now, erlang:unique_integer([positive])}},
 			NewBuckets = CentsBuckets ++ lists:reverse(Acc) ++ [NewBucket | T],
 			{ok, NewBuckets};
-		_ ->
+		false ->
 			convert1(Type, Size, ServiceId, ChargingKey, SessionId,
 					Now, CentsBuckets, T, [B | Acc])
 	end;
