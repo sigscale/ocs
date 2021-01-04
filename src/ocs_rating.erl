@@ -1668,7 +1668,7 @@ convert1(Type, Size, ServiceId, ChargingKey, SessionId, Now, CentsBuckets,
 				false
 	end,
 	case lists:any(F, Reservations) of
-		true -> ->
+		true ->
 			NewBucket = B#bucket{remain_amount = R + Size,
 					last_modified = {Now, erlang:unique_integer([positive])}},
 			NewBuckets = CentsBuckets ++ lists:reverse(Acc) ++ [NewBucket | T],
