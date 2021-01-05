@@ -1274,7 +1274,7 @@ update_session(Type, Charge, Reserve, Now, ServiceId, ChargingKey, SessionId,
 					SessionId, T, NewAcc, Charged + NewCharge, Reserved + NewReserved);
 		{value, {_, DebitedAmount, ReservedAmount,
 				ServiceId, ChargingKey, _}, NewReservations}
-				when NewCharge > ReservedAmount ->
+				when ReservedAmount > 0, NewCharge > ReservedAmount ->
 			NewReservation = {Now, DebitedAmount + ReservedAmount, 0,
 					ServiceId, ChargingKey, SessionId},
 			NewAcc = [B#bucket{last_modified = {Now, erlang:unique_integer([positive])},
