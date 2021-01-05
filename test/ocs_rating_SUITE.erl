@@ -1040,7 +1040,7 @@ remove_session_after_multiple_interims(_Config) ->
 	{ok, _, _} = ocs_rating:rate(diameter, ServiceType,
 			undefined, undefined, undefined, ServiceId, calendar:gregorian_seconds_to_datetime(TS1 + 240), undefined,
 			undefined, final, [{PackageUnits, PackageSize + rand:uniform(PackageSize div 2)}], [], SessionId),
-	{ok, [#bucket{units = cents, reservations = []}]} = ocs:get_buckets(ProdRef).
+	[#bucket{units = cents, reservations = []}] = ocs:get_buckets(ProdRef).
 
 final_refund_octets() ->
 	[{userdata, [{doc, "Refund unused amount of octets reservation"}]}].
