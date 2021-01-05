@@ -249,17 +249,18 @@ class subUpdate extends PolymerElement {
 					on-error="_deleteSubscriberError">
 			</iron-ajax>
 			<iron-ajax
-					id="updateSubscriberBalance"
-					content-type="application/json-patch+json"
-					method="PATCH"
-					on-response="_updateSubscriberBalanceResponse"
-					on-error="_updateSubscriberBalanceError">
-			</iron-ajax>
-			<iron-ajax
 					id="getServiceRespAjax"
 					method = "GET"
 					on-error="_getServiceError">
 			</iron-ajax>
+         <iron-ajax
+               id="addBucketAjax"
+               method = "post"
+               content-type="application/json"
+               on-loading-changed="_onLoadingChanged2"
+               on-response="_addBucketResponse"
+               on-error="_addBucketError">
+         </iron-ajax>
 			<iron-ajax
 					id="updateSubscriberProductsAjax"
 					url="/catalogManagement/v2/productOffering"
@@ -400,67 +401,62 @@ class subUpdate extends PolymerElement {
 	}
 
 	updateSubscriberBalance(event) {
-		var editAjax =  this.$.updateSubscriberBalance;
-		editAjax.url = "/ocs/v1/subscriber/" + this.updateSubId;
-		var sub = new Object();
-		sub.op = "add";
-		sub.path = "/buckets/remainedAmount";
-		var totalBal;
-		if(this.updateSubAmo && this.updateSubUni) {
-			var len = this.updateSubAmo.length;
-			var m = this.updateSubAmo.charAt(len - 1);
-			if(isNaN(parseInt(m))) {
-				var s = this.updateSubAmo.slice(0, (len - 1));
-			} else {
-				var s = this.updateSubAmo;
-			}
-			if(this.updateSubUni == "Bytes"){
-				if (m == "m") {
-					var subM = s + "000000b";
-					totalBal = {"amount":subM};;
-					totalBal.units = "octets";
-				} else if(m == "g") {
-					var subG = s + "000000000b";
-					totalBal = {"amount":subG};
-					totalBal.units = "octets";
-				} else if(m == "k") {
-					var subK = s + "000b";
-					totalBal = {"amount":subK};
-					totalBal.units = "octets";
-				} else {
-					var subB = s + "b";
-					totalBal = {"amount":subB};
-					totalBal.units = "octets";
-				}
-			}
-			if(this.updateSubUni == "Seconds"){
-				var n = Number(s);
-				if (m == "m") {
-					n = n * 60;
-					var subMM = n.toString() + "s";
-					totalBal = {"amount":subMM};
-					totalBal.units = "seconds";
-				} else if(m == "h") {
-					n = n * 3600;
-					var subMH = n.toString() + "s";
-					totalBal = {"amount":parseInt(subMH)};
-					totalBal.units = "seconds";
-				} else {
-					var subMS = n.toString() + "s";
-					totalBal = {"remainAmount":parseInt(subMS)};
-					totalBal.units = "seconds";
-				}
-			}
-			if(this.updateSubUni == "Cents"){
-				totalBal = {"remainAmount":parseInt(this.updateSubAmo)};
-				totalBal.units = "cents";
-			}
-		}
-console.log(totalBal);
-		//totalBal.product = document.getElementById("updatePro").value;
-		sub.value = totalBal;
-		editAjax.body = JSON.stringify([sub]);
-		editAjax.generateRequest();
+		var ajaxBucket = this.$.addBucketAjax;
+      var bucketTop = {type: "buckettype"};
+      var bunits;
+      var bamount;
+      if(this.updateSubAmo) {
+         if(this.$.updateUni1.selected == 0) {
+            bunits = "octets";
+         } else if (this.$.updateUni1.selected == 1) {
+            bunits = "cents";
+         } else if(this.$.updateUni1.selected == 2) {
+            bunits = "seconds";
+         } else {
+            bunits = "cents";
+         }
+         if(bunits && this.updateSubAmo) {
+            var size = this.updateSubAmo;
+            var len = size.length;
+            var m = size.charAt(len - 1);
+            if(isNaN(parseInt(m))) {
+               var s = size.slice(0, (len - 1));
+            } else {
+               var s = size;
+            }
+            if(bunits == "octets") {
+               if(m == "m") {
+                  bamount = s + "000000b";
+               } else if(m == "g") {
+                  bamount = s + "000000000b";
+               } else if(m == "k") {
+                  bamount = s + "000b";
+               } else {
+                  bamount = s + "b";
+               }
+            } else if(bunits == "cents") {
+               bamount = this.updateSubAmo;
+            } else if(bunits == "seconds") {
+               var n = Number(s);
+               if(m == "m") {
+                  n = n * 60;
+                  bamount = n.toString() + "s";
+               } else if(m == "h") {
+                  n = n * 3600;
+                  bamount = n.toString() + "s";
+               } else {
+                  bamount = n.toString() + "s";
+               }
+            }
+            bucketTop.amount = {units: bunits, amount: bamount};
+         }
+         bucketTop.product = {id: this.updateSubPro,
+            href: "/productInventoryManagement/v2/product/" + this.updateSubPro};
+         ajaxBucket.headers['Content-type'] = "application/json";
+         ajaxBucket.body = bucketTop;
+         ajaxBucket.url="/balanceManagement/v1/balanceAdjustment";
+         ajaxBucket.generateRequest();
+      }
 	}
 
 	_updateSubscriberBalanceResponse(event) {
