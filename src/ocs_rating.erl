@@ -1304,7 +1304,7 @@ update_session(Type, Charge, Reserve, Now, ServiceId, ChargingKey, SessionId,
 update_session1(Type, Charge, Reserve, Now, ServiceId, ChargingKey, SessionId,
 		[#bucket{units = Type, remain_amount = Remain,
 		reservations = Reservations} = B | T],
-		Acc, Charged, Reserved) when remain > 0 ->
+		Acc, Charged, Reserved) when Remain > 0 ->
 	NewReserve = Reserve - Reserved,
 	case lists:keytake(SessionId, 6, Reservations) of
 		{value, {_, DebitedAmount, ReservedAmount,
