@@ -1,7 +1,7 @@
-%%% ocs_diameter_3gpp_gx_application_cb.erl 
+%%% ocs_diameter_3gpp_s6b_application_cb.erl 
 %%% vim: ts=3
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-%%% @copyright 2016 - 2017 SigScale Global Inc.
+%%% @copyright 2016 - 2020 SigScale Global Inc.
 %%% @end
 %%% Licensed under the Apache License, Version 2.0 (the "License");
 %%% you may not use this file except in compliance with the License.
@@ -17,30 +17,26 @@
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%% @doc This {@link //stdlib/gen_server. gen_server} behaviour callback
 %%% 	module receives {@link //diameter. diameter} messages on a port assigned
-%%% 	for the 3GPP DIAMETER Gx in the {@link //ocs. ocs} application.
+%%% 	for 3GPP DIAMETER S6b in the {@link //ocs. ocs} application.
 %%%
-%%% @reference 3GPP TS 29.212 Policy and Charging Control (PCC)&#59; Reference points
+%%% @reference 3GPP TS TS 29.273 EPS AAA Interfaces
 %%%
--module(ocs_diameter_3gpp_gx_application_cb).
+-module(ocs_diameter_3gpp_s6b_application_cb).
 -copyright('Copyright (c) 2016 - 2020 SigScale Global Inc.').
 
 -export([peer_up/3, peer_down/3, pick_peer/4, prepare_request/3,
-			prepare_retransmit/3, handle_answer/4, handle_error/4,
-			handle_request/3]).
+		prepare_retransmit/3, handle_answer/4, handle_error/4,
+		handle_request/3]).
 
 -include_lib("diameter/include/diameter.hrl").
 -include_lib("diameter/include/diameter_gen_base_rfc6733.hrl").
--include("diameter_gen_ietf.hrl").
 -include("diameter_gen_3gpp.hrl").
--include("diameter_gen_3gpp_gx_application.hrl").
+-include("diameter_gen_3gpp_s6b_application.hrl").
 -include("ocs.hrl").
 
 -record(state, {}).
 
--define(EPOCH_OFFSET, 2208988800).
--define(IANA_PEN_3GPP, 10415).
--define(Gx_APPLICATION_ID, 16777238).
--define(DIAMETER_ERROR_INITIAL_PARAMETERS, 5140).
+-define(S6b_APPLICATION_ID, 16777272).
 
 -type state() :: #state{}.
 -type capabilities() :: #diameter_caps{}.
@@ -98,7 +94,7 @@ pick_peer([Peer | _] = _LocalCandidates, _RemoteCandidates, _ServiceName, _State
 		Reason :: term(),
 		PostF :: diameter:evaluable().
 %% @doc Invoked to return a request for encoding and transport 
-prepare_request(#diameter_packet{} = Packet, _ServiceName, _Peer) ->
+prepare_request(Packet, _ServiceName,  _Peer) ->
 	{send, Packet}.
 
 -spec prepare_retransmit(Packet, ServiceName, Peer) -> Action
@@ -163,9 +159,9 @@ handle_request(#diameter_packet{msg = Request, errors = Errors} = _Packet,
 %%  internal functions
 %%----------------------------------------------------------------------
 
--spec request(Svc, Capabilities, Request) -> Action
+-spec request(ServiceName, Capabilities, Request) -> Action
 	when
-		Svc :: atom(),
+		ServiceName :: term(),
 		Capabilities :: capabilities(),
 		Request :: message(),
 		Action :: Reply | {relay, [Opt]} | discard
@@ -177,26 +173,104 @@ handle_request(#diameter_packet{msg = Request, errors = Errors} = _Packet,
 		PostF :: diameter:evaluable().
 %% @doc Handle received request.
 %% 	Authorize client then forward capabilities and request
-%% 	to the accounting port server matching the service the
+%% 	to the authorization port server matching the service the
 %% 	request was received on.
 %% @private
-request(ServiceName, Capabilities, Request) ->
-	#diameter_caps{host_ip_address = {_, HostIpAddresses}} = Capabilities,
-	request(ServiceName, Capabilities, Request, HostIpAddresses).
+request(ServiceName, #diameter_caps{origin_host = {OHost, DHost},
+		origin_realm = {ORealm, DRealm},
+		host_ip_address = {_, ClientAddresses}} = Capabilities,
+		Request) ->
+	[Info] = diameter:service_info(ServiceName, transport),
+	{options, Options} = lists:keyfind(options, 1, Info),
+	{ServerAddress, ServerPort} = case lists:keyfind(transport_config,
+			1, Options) of
+		{transport_config, TcpOpts} ->
+			{ip, IP} = lists:keyfind(ip, 1, TcpOpts),
+			{port, Port} = lists:keyfind(port, 1, TcpOpts),
+			{IP, Port};
+		{transport_config, SctpOpts, _} ->
+			{ip, IP} = lists:keyfind(ip, 1, SctpOpts),
+			{port, Port} = lists:keyfind(port, 1, SctpOpts),
+			{IP, Port}
+	end,
+	request(ServiceName, Capabilities, ServerAddress, ServerPort,
+			OHost, ORealm, DHost, DRealm, Request, ClientAddresses).
 %% @hidden
-request({_, Address, Port} = ServiceName, Capabilities, Request, [H | T]) ->
+request(ServiceName, Capabilities, ServerAddress, ServerPort,
+		OHost, ORealm, DHost, DRealm, Request, [H | T]) ->
 	case ocs:find_client(H) of
 		{ok, #client{protocol = diameter}} ->
-			{reply, process_request(Address, Port, Capabilities, Request)};
+			process_request(ServiceName, ServerAddress, ServerPort,
+					H, OHost, ORealm, DHost, DRealm, Request);
 		{error, not_found} ->
-			request(ServiceName, Capabilities, Request, T)
+			request(ServiceName, Capabilities, ServerAddress, ServerPort,
+					OHost, ORealm, DHost, DRealm, Request, T)
 	end;
-request(_, _, _, []) ->
-	{answer_message, ?'DIAMETER_BASE_RESULT-CODE_UNKNOWN_PEER'}.
+request(ServiceName, Capabilities, _, _, _, _, _, _, Request, []) ->
+	errors(ServiceName, Capabilities, Request, [?'DIAMETER_BASE_RESULT-CODE_UNKNOWN_PEER']).
+
+-spec process_request(ServiceName, ServerAddress, ServerPort,
+		ClientAddress, OHost, ORealm, DHost, DRealm, Request) -> Result
+	when
+		ServiceName :: term(),
+		ServerAddress :: inet:ip_address(),
+		ServerPort :: inet:ip_port(),
+		ClientAddress :: inet:ip_address(),
+		OHost :: diameter:'DiameterIdentity'(),
+		ORealm :: diameter:'DiameterIdentity'(),
+		DHost :: diameter:'DiameterIdentity'(),
+		DRealm :: diameter:'DiameterIdentity'(),
+		Request :: #'3gpp_s6b_AAR'{} | #'3gpp_s6b_STR'{},
+		Result :: {reply, packet()} | discard.
+%% @doc Process a received DIAMETER Authorization packet.
+%% @private
+process_request(ServiceName, ServerAddress, ServerPort, ClientAddress,
+		OHost, ORealm, DHost, DRealm,
+		#'3gpp_s6b_AAR'{'Session-Id' = SessionId,
+				'Auth-Application-Id' = ?S6b_APPLICATION_ID} = Request) ->
+	try
+		process_request1(ServiceName,
+				ServerAddress, ServerPort, ClientAddress,
+				OHost, ORealm, DHost, DRealm, SessionId, Request)
+	catch
+		_:_Reason ->
+			{reply, #'3gpp_s6b_AAA'{'Session-Id' = SessionId,
+					'Result-Code' = ?'DIAMETER_BASE_RESULT-CODE_UNABLE_TO_COMPLY',
+					'Origin-Host' = OHost, 'Origin-Realm' = ORealm}}
+	end;
+process_request(ServiceName, ServerAddress, ServerPort, ClientAddress,
+		OHost, ORealm, DHost, DRealm,
+		#'3gpp_s6b_STR'{'Session-Id' = SessionId,
+				'Auth-Application-Id' = ?S6b_APPLICATION_ID} = Request) ->
+	try
+		process_request1(ServiceName,
+				ServerAddress, ServerPort, ClientAddress,
+				OHost, ORealm, DHost, DRealm, SessionId, Request)
+	catch
+		_:_Reason ->
+			{reply, #'3gpp_s6b_STA'{'Session-Id' = SessionId,
+					'Result-Code' = ?'DIAMETER_BASE_RESULT-CODE_UNABLE_TO_COMPLY',
+					'Origin-Host' = OHost, 'Origin-Realm' = ORealm}}
+	end.
+%% @hidden
+process_request1(ServiceName, ServerAddress, ServerPort, ClientAddress,
+		OHost, ORealm, DHost, DRealm, SessionId, Request) ->
+	Sup = global:whereis_name({ocs_pgw_fsm_sup,
+			ServerAddress, ServerPort}),
+	ChildSpec = [[ServiceName, ServerAddress, ServerPort, ClientAddress,
+			undefined, SessionId, OHost, ORealm, DHost, DRealm], []],
+	case supervisor:start_child(Sup, ChildSpec) of
+		{ok, Fsm} ->
+			{reply, gen_fsm:sync_send_event(Fsm, Request)};
+		{error, Reason} ->
+			error_logger:error_report(["Error starting PGW session handler",
+					{error, Reason}, {supervisor, Sup}, {session_id, SessionId}]),
+			throw(Reason)
+	end.
 
 -spec errors(ServiceName, Capabilities, Request, Errors) -> Action
 	when
-		ServiceName :: atom(),
+		ServiceName :: term(),
 		Capabilities :: capabilities(),
 		Request :: message(),
 		Errors :: [Error],
@@ -259,124 +333,4 @@ errors(_ServiceName, _Capabilities, _Request, [ResultCode | _]) ->
 	{answer_message, ResultCode};
 errors(ServiceName, Capabilities, Request, []) ->
 	request(ServiceName, Capabilities, Request).
-
--spec process_request(Address, Port, Caps, Request) -> Result
-	when
-		Address :: inet:ip_address(),
-		Port :: inet:port_number(),
-		Request :: #'3gpp_gx_CCR'{},
-		Caps :: capabilities(),
-		Result :: packet() | message().
-%% @doc Process a received DIAMETER Accounting packet.
-%% @private
-process_request(_Address, _Port,
-		#diameter_caps{origin_host = {OHost, _DHost}, origin_realm = {ORealm, _DRealm}},
-		#'3gpp_gx_CCR'{'Session-Id' = SId,
-				'Auth-Application-Id' = ?Gx_APPLICATION_ID,
-				'CC-Request-Type' = RequestType,
-				'CC-Request-Number' = RequestNum,
-				'Subscription-Id' = []} = Request) ->
-			error_logger:warning_report(["Unable to process DIAMETER request",
-					{origin_host, OHost}, {origin_realm, ORealm},
-					{session_id, SId}, {request, Request},
-					{error, missing_subscription_id}]),
-			diameter_error(SId, ?'DIAMETER_ERROR_INITIAL_PARAMETERS',
-					OHost, ORealm, RequestType, RequestNum);
-process_request(_Address, _Port,
-		#diameter_caps{origin_host = {OHost, _DHost}, origin_realm = {ORealm, _DRealm}},
-		#'3gpp_gx_CCR'{'Session-Id' = SId,
-				'Auth-Application-Id' = ?Gx_APPLICATION_ID,
-				'CC-Request-Type' = RequestType,
-				'CC-Request-Number' = RequestNum,
-				'Subscription-Id' = [#'3gpp_gx_Subscription-Id'{
-						'Subscription-Id-Data' = Subscriber} | _]} = Request) ->
-	try
-		QosInformation = #'3gpp_gx_QoS-Information'{
-				'QoS-Class-Identifier' = [?'3GPP_GX_QOS-CLASS-IDENTIFIER_QCI_9'],
-				'Max-Requested-Bandwidth-UL' = [1000000000],
-				'Max-Requested-Bandwidth-DL' = [1000000000]},
-		FlowInformationUp1 = #'3gpp_gx_Flow-Information'{
-				 'Flow-Description' = ["permit in ip from any to 10/8"],
-				 'Flow-Direction' = [?'3GPP_GX_FLOW-DIRECTION_UPLINK']},
-		FlowInformationDown1 = #'3gpp_gx_Flow-Information'{
-				 'Flow-Description' = ["permit out ip from 10/8 to any"],
-				 'Flow-Direction' = [?'3GPP_GX_FLOW-DIRECTION_DOWNLINK']},
-		FlowInformationUp2 = #'3gpp_gx_Flow-Information'{
-				 'Flow-Description' = ["permit in ip from any to 172.16/12"],
-				 'Flow-Direction' = [?'3GPP_GX_FLOW-DIRECTION_UPLINK']},
-		FlowInformationDown2 = #'3gpp_gx_Flow-Information'{
-				 'Flow-Description' = ["permit out ip from 172.16/12 to any"],
-				 'Flow-Direction' = [?'3GPP_GX_FLOW-DIRECTION_DOWNLINK']},
-		FlowInformationUp3 = #'3gpp_gx_Flow-Information'{
-				 'Flow-Description' = ["permit in ip from any to 192.168/16"],
-				 'Flow-Direction' = [?'3GPP_GX_FLOW-DIRECTION_UPLINK']},
-		FlowInformationDown3 = #'3gpp_gx_Flow-Information'{
-				 'Flow-Description' = ["permit out ip from 192.168/16 to any"],
-				 'Flow-Direction' = [?'3GPP_GX_FLOW-DIRECTION_DOWNLINK']},
-		FlowInformationUp4 = #'3gpp_gx_Flow-Information'{
-				 'Flow-Description' = ["permit in ip from any to any"],
-				 'Flow-Direction' = [?'3GPP_GX_FLOW-DIRECTION_UPLINK']},
-		FlowInformationDown4 = #'3gpp_gx_Flow-Information'{
-				 'Flow-Description' = ["permit out ip from any to any"],
-				 'Flow-Direction' = [?'3GPP_GX_FLOW-DIRECTION_DOWNLINK']},
-		ChargingRuleDefinition1 = #'3gpp_gx_Charging-Rule-Definition'{
-				'Charging-Rule-Name' = ["internal"],
-				'QoS-Information' = [QosInformation],
-				'Rating-Group' = [1],
-				'Flow-Information' = [FlowInformationUp1, FlowInformationDown1,
-						FlowInformationUp2, FlowInformationDown2,
-						FlowInformationUp3, FlowInformationDown3],
-				'Precedence' = [2]},
-		ChargingRuleDefinition2 = #'3gpp_gx_Charging-Rule-Definition'{
-				'Charging-Rule-Name' = ["external"],
-				'QoS-Information' = [QosInformation],
-				'Rating-Group' = [32],
-				'Flow-Information' = [FlowInformationUp4, FlowInformationDown4],
-				'Precedence' = [1]},
-		ChargingRuleInstall = #'3gpp_gx_Charging-Rule-Install'{
-				'Charging-Rule-Definition' = [ChargingRuleDefinition1,
-						ChargingRuleDefinition2]},
-		#'3gpp_gx_CCA'{'Session-Id' = SId,
-				'Result-Code' = [?'DIAMETER_BASE_RESULT-CODE_SUCCESS'],
-				'Origin-Host' = OHost, 'Origin-Realm' = ORealm,
-				'Auth-Application-Id' = ?Gx_APPLICATION_ID,
-				'CC-Request-Type' = RequestType,
-				'CC-Request-Number' = RequestNum,
-				'Online' = [?'3GPP_GX_ONLINE_ENABLE_ONLINE'],
-				'Charging-Rule-Install' = [ChargingRuleInstall]}
-	catch
-		_:Reason ->
-			error_logger:warning_report(["Unable to process DIAMETER request",
-					{origin_host, OHost}, {origin_realm, ORealm},
-					{session_id, SId}, {request, Request}, {error, Reason}]),
-			diameter_error(SId, ?'DIAMETER_BASE_RESULT-CODE_UNABLE_TO_COMPLY',
-					OHost, ORealm, RequestType, RequestNum)
-	end.
-
--spec diameter_error(SessionId, ResultCode, OriginHost,
-		OriginRealm, RequestType, RequestNum) -> Reply
-	when
-		SessionId :: string(),
-		ResultCode :: integer(),
-		OriginHost :: string(),
-		OriginRealm :: string(),
-		RequestType :: integer(),
-		RequestNum :: integer(),
-		Reply :: #'3gpp_gx_CCA'{}.
-%% @doc Send CCA to DIAMETER client indicating an operation failure.
-%% @hidden
-diameter_error(SId, ?'DIAMETER_ERROR_INITIAL_PARAMETERS' = ResultCode,
-		OHost, ORealm, RequestType, RequestNum) ->
-	#'3gpp_gx_CCA'{'Session-Id' = SId,
-			'Experimental-Result' = [#'3gpp_gx_Experimental-Result'{
-					'Vendor-Id' = ?IANA_PEN_3GPP,
-					'Experimental-Result-Code' = ResultCode}],
-			'Origin-Host' = OHost, 'Origin-Realm' = ORealm,
-			'Auth-Application-Id' = ?Gx_APPLICATION_ID,
-			'CC-Request-Type' = RequestType, 'CC-Request-Number' = RequestNum};
-diameter_error(SId, ResultCode, OHost, ORealm, RequestType, RequestNum) ->
-	#'3gpp_gx_CCA'{'Session-Id' = SId, 'Result-Code' = [ResultCode],
-			'Origin-Host' = OHost, 'Origin-Realm' = ORealm,
-			'Auth-Application-Id' = ?Gx_APPLICATION_ID,
-			'CC-Request-Type' = RequestType, 'CC-Request-Number' = RequestNum}.
 

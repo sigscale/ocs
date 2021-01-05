@@ -41,11 +41,12 @@
 		EventType :: create_bucket | delete_bucket | charge | depleted
 				| accumulated | create_product | delete_product
 				| create_service | delete_service | create_offer | delete_offer
-				| insert_gtt | delete_gtt | create_pla | delete_pla,
+				| insert_gtt | delete_gtt | create_pla | delete_pla | log_acct,
 		EventPayLoad :: #bucket{} | #product{} | #service{} | #offer{}
-				| {Table, #gtt{}} | #pla{} | [#adjustment{}] | [#acc_balance{}],
+				| {Table, #gtt{}} | #pla{} | [#adjustment{}] | [#acc_balance{}]
+				| ocs_log:acct_event(),
 		Table :: atom(),
-		Category :: balance | product | service | resource.
+		Category :: balance | product | service | resource | usage.
 %% @doc Send a notification event.
 %%
 %% The `EventPayload' should contain the entire new Alarm (create),

@@ -123,6 +123,10 @@ do_get(Resource, ModData,
 do_get(Resource, ModData,
 		["usageManagement", "v1", "usageSpecification", Id], Query) ->
 	do_response(ModData, Resource:get_usagespec(Id, Query));
+do_get(Resource, ModData, ["usageManagement", "v1", "hub"], []) ->
+	do_response(ModData, Resource:get_usage_hubs());
+do_get(Resource, ModData, ["usageManagement", "v1", "hub", Id], []) ->
+	do_response(ModData, Resource:get_usage_hub(Id));
 do_get(Resource, ModData, ["ocs", "v1", "log", "ipdr", Type], Query) ->
 	do_response(ModData, Resource:get_ipdr(Type, Query));
 do_get(Resource, ModData, ["ocs", "v1", "log", "http"], []) ->
@@ -135,6 +139,10 @@ do_get(Resource, #mod{parsed_header = Headers} = ModData,
 	do_response(ModData, Resource:get_users(Query, Headers));
 do_get(Resource, ModData, ["partyManagement", "v1", "individual", Id], Query) ->
 	do_response(ModData, Resource:get_user(Id, Query));
+do_get(Resource, ModData, ["partyManagement", "v1", "hub"], []) ->
+	do_response(ModData, Resource:get_hubs());
+do_get(Resource, ModData, ["partyManagement", "v1", "hub", Id], []) ->
+	do_response(ModData, Resource:get_hub(Id));
 do_get(Resource, ModData, ["balanceManagement", "v1", "product", Id, "accumulatedBalance"], []) ->
 	do_response(ModData, Resource:get_balance(Id));
 do_get(Resource, ModData, ["balanceManagement", "v1", "product", Id,
@@ -146,6 +154,10 @@ do_get(Resource, #mod{parsed_header = Headers} = ModData, ["balanceManagement", 
 	do_response(ModData, Resource:get_buckets(Query, Headers));
 do_get(Resource, ModData, ["balanceManagement", "v1", "bucket", Id], []) ->
 	do_response(ModData, Resource:get_bucket(Id));
+do_get(Resource, ModData, ["balanceManagement", "v1", "hub"], []) ->
+	do_response(ModData, Resource:get_hubs());
+do_get(Resource, ModData, ["balanceManagement", "v1", "hub", Id], []) ->
+	do_response(ModData, Resource:get_hub(Id));
 do_get(Resource, #mod{parsed_header = Headers} = ModData,
 		["catalogManagement", "v2", "productOffering"], Query) ->
 	do_response(ModData, Resource:get_offers(Query, Headers));
@@ -172,6 +184,10 @@ do_get(Resource, #mod{parsed_header = Headers} = ModData,
 	do_response(ModData, Resource:get_offers(Query, Headers));
 do_get(Resource, ModData, ["productCatalogManagement", "v2", "productOffering", Id], []) ->
 	do_response(ModData, Resource:get_offer(Id));
+do_get(Resource, ModData, ["productCatalog", "v2", "hub"], []) ->
+	do_response(ModData, Resource:get_catalog_hubs());
+do_get(Resource, ModData, ["productCatalog", "v2", "hub", Id], []) ->
+	do_response(ModData, Resource:get_catalog_hub(Id));
 do_get(Resource, ModData, ["catalogManagement", "v2", "category", Id], Query) ->
 	do_response(ModData, Resource:get_category(Id, Query));
 do_get(Resource, ModData, ["catalogManagement", "v2", "category"], Query) ->
@@ -226,6 +242,10 @@ do_get(Resource, ModData, ["resourceInventoryManagement", "v1", "logicalResource
 	do_response(ModData, Resource:get_resource_inventory(Id, Query));
 do_get(Resource, ModData, ["resourceInventoryManagement", "v1", "pla"], Query) ->
 	do_response(ModData, Resource:get_pla(Query));
+do_get(Resource, ModData, ["resourceInventory", "v1", "hub"], []) ->
+	do_response(ModData, Resource:get_hubs());
+do_get(Resource, ModData, ["resourceInventory", "v1", "hub", Id], []) ->
+	do_response(ModData, Resource:get_hub(Id));
 do_get(Resource, #mod{parsed_header = Headers} = ModData,
 		["catalogManagement", "v2", "pla"], Query) ->
 	do_response(ModData, Resource:get_plas(Query, Headers));
@@ -241,6 +261,10 @@ do_get(Resource, #mod{parsed_header = Headers} = ModData,
 	do_response(ModData, Resource:get_inventories(Query, Headers));
 do_get(Resource, ModData, ["productInventoryManagement", "schema", "OCS.yml"], []) ->
 	do_response(ModData, Resource:get_schema());
+do_get(Resource, ModData, ["productInventory", "v2", "hub"], []) ->
+	do_response(ModData, Resource:get_product_hubs());
+do_get(Resource, ModData, ["productInventory", "v2", "hub", Id], []) ->
+	do_response(ModData, Resource:get_product_hub(Id));
 do_get(Resource, #mod{parsed_header = Headers} = ModData,
 		["serviceInventoryManagement", "v2", "service"], Query) ->
 	do_response(ModData, Resource:get_inventories(Query, Headers));
@@ -251,6 +275,10 @@ do_get(Resource, ModData, ["serviceInventoryManagement", "v2", "service", Id], [
 	do_response(ModData, Resource:get_inventory(Id));
 do_get(Resource, ModData, ["serviceInventoryManagement", "schema", "OCS.yml"], []) ->
 	do_response(ModData, Resource:get_schema());
+do_get(Resource, ModData, ["serviceInventory", "v2", "hub"], []) ->
+	do_response(ModData, Resource:get_hubs());
+do_get(Resource, ModData, ["serviceInventory", "v2", "hub", Id], []) ->
+	do_response(ModData, Resource:get_hub(Id));
 do_get(_, #mod{data = Data} = _ModData, _, _) ->
 	Response = "<h2>HTTP Error 404 - Not Found</h2>",
 	{proceed, [{response, {404, Response}} | Data]}.

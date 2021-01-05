@@ -1,3 +1,172 @@
+2020-12-23  Refath Wadood <refath@sigscale.org>
+
+	* test: list all product inventory hub listeners
+	* test: get product inventory hub listeners by id
+	* test: get product catalog hub listener by id
+	* test: get all product catalog hub listeners
+	* test: get all product catalog hub listeners
+	* rest: list all product inventory hub listeners
+	* rest: get all product catalog hub listeners
+	* rest: get product inventory hub listener by id
+	* diameter: reservations unique to service-id, charging-key and session-id
+	* diameter: correct termination ccr failure due to bad si/rg type
+	* pass uri to create href for product catalog listeners
+
+2020-12-21  Refath Wadood <refath@sigscale.org>
+
+	* map s6b agent-info to swx agent-info
+	* error log pgw identity hostname
+	* include apn selection in pgw update
+	* typo in rfc1918 network number
+	* remove old swagger file left in error
+	* simply api titles in swagger files
+	* include resource specification in tariff codec
+	* validate rating openapi specification
+	* correct type for pgw id in state
+	* aaa: include user-name in s6b aaa
+	* aaa: include user-name in s6b aaa
+	* diameter: handle missing mscc
+	* diameter: remove session on deregister failure
+	* diameter: interim reservations replace existing, they are not cumulative
+	* rest: add notifications operations to usage api specification
+	* rest: correct type of body for get usage response
+	* rest: correct type of response body for get usage specification collection
+	* rest: operation ids, summaries and descriptions in usage api
+	* rest: usage specification reference, not value, in usage in swagger
+	* rest: add openapi specification for rating function interface (re)
+	* rest: restore files deleted by swaggerhub
+	* rest: remove unresolved references to two 5g charging  information types
+	* rest: missing service id value in scur response example
+	* rest: remove 'any of' in simple type definition of request data response
+	* rest: refactored pattern of describing references
+	* rest: service id in examples different for sms and ps
+	* rest: refactored pattern of describing references
+	* rest: api for getting all balance management hubs
+	* rest: api for getting a balance management hub by id
+	* gui: fix add service with product
+	* gui: add roaming table field
+	* test: import csv file correctly for roaming_table_data testcase
+	* test: get all balance management hubs
+	* test: get balance management hub by id
+
+2020-12-07  Vance Shipley <vances@sigscale.org>
+
+	* aaa: ue deregistration from hss of all sessions
+	* aaa: store identity in session table
+	* aaa: include nas/pgw in log report
+	* aaa: correct encoding of destination-host in sar
+	* aaa: correct matching apn selection
+	* ccr: test cases for immediate event charging
+
+2020-12-05  Vance Shipley <vances@sigscale.org>
+
+	* ccr: immediate event charging (iec) [OCS-331 #close]
+	* ccr: handle empty service information on initial
+	* aaa: expect multiple sessions for an imsi
+	* aaa: correct deregistration on swx
+	* aaa: missing mandatory avps
+
+2020-12-03  Vance Shipley <vances@sigscale.org>
+
+	* aaa: store serving hss in session table
+	* aaa: session table secondary index imsi should not be nai
+	* aaa: correct experimental result code
+	* aaa: start terminate handler fsm from diameter sta/swm callback
+	* aaa: start deregister handler fsm from diameter swx callback
+	* aaa: start pgw handler fsm from diameter s6b callback
+	* aaa: throw errors instead of silent discard
+	* aaa: register pgw, terminate and deregister supervisors
+	* gui: fix charging key label
+
+2020-12-02  Vance Shipley <vances@sigscale.org>
+
+	*  include optional origin-state-id in all diameter command/response
+
+2020-12-01  Vance Shipley <vances@sigscale.org>
+
+	* non-3gpp: correct dispatch of session/registration termination
+	* non-3gpp: add all (optional) avps in user profile to specialized decode
+	* reorder httpd aliases in sys.config for clarity
+
+2020-11-30  Vance Shipley <vances@sigscale.org>
+
+	* dispatch sta/swm session termination requests to dereg fsm
+	* dispatch swx ue registration termination requests to terminate fsm
+	* dispatch s6b requests to pwg fsm
+	* fsm module for handling pgw registrations
+	* rest handling of acct log notification
+	* send notification of acct logging
+	* export accounting usage codec
+	* test: receive notification of diameter acct log
+	* correct application in response
+	* no mscc in response if zero granted
+	* handle s6b in terminate fsm
+	* use representative auth-request-type in aaa
+	* store user profiles as swx, specialized codecs to encode user profile in sta, swm or s6b
+	* export legacy as well as current api fpr specialized decode
+	* sort 32.299 avps by code
+	* correct mandatory flags on some avps
+	* do nor send empty gsu
+	* include origination timestamp avp for gx
+	* add s6b diameter application to auth service
+	* s6b avps
+	* add rfc5777 avps
+	* correct type of session-id in bucket reservation
+	* guard against adding 'b' multiplier to other than octets in quantity
+	* implement update facility for chargingKey
+	* add chargingKey in add offer price
+	* filter prices by charging key (OCS-369 #done)
+	* product specification characteristic for charging key in price (OCS-201 #done)
+	* filter only usage management subscriptions
+	* return hub record with specific href
+	* recognize in session buckets
+	* test: validate href of the subscription
+	* look up values in tariff table using gtt
+	* test: validate all the hubs are usage type
+	* rest api of getting an usage subscription
+	* test: get a usage subscription
+	* list usage hub subscriptions
+	* test: list usage subscriptions
+	* guard against bad table result
+	* rest api for unregistering a usage listener
+
+2020-11-23  Refath Wadood <refath@sigscale.org>
+
+	* test: ignore reservations, verify balance deducted
+	* test: ignore sessions, verify balance deduction
+	* test: query support in service inventory subscriptions
+	* test: query support in product inventory subscriptions
+	* test: query support in product catalog subscriptions
+	* test: query gtt notification
+	* test: query pla notification
+	* test: group product subscription charge
+	* test: usage subscription
+	* test: diameter scur, rated in acct log
+	* test suite: remove cruft; correct unit sizes and types
+	* gui: error message when product delete failed
+	* gui: allow bytes for product offering price tariff type
+	* gui: make tarriff table active when prepaid data selected
+	* gui: fix update product offering price unit of measure
+	* rest: query support in service inventory subscriptions
+	* rest: query support in product inventory subscriptions
+	* rest: query support in product catalog subscriptions
+	* notificatons: accumulated balance is less than its threshold
+	* handle msisdn and imsi values in codec
+	* implement the handler for product catalog synchronization
+	* set authorization from subscription request 
+	* add user default module
+	* handle only resource id or eventype in the subscription query
+	* return error for unsupported subscription query
+	* handling bucket id for subscription query
+	* handling pla num for subscription query
+	* handle accumulated subscription balance query
+	* environment variables for threshold limits with default undefined
+	* set environment variable for threshold
+	* register ocs_rest_hub_usage module
+	* corrections for rated in acct log
+	* correct empty rsu vs missing rsu handling
+	* add service id when a abmf log entry is made
+
 2020-11-02  Vance Shipley <vances@sigscale.org>
 
 	* mnesia must be started before ocs

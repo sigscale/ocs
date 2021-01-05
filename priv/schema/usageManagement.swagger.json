@@ -1,378 +1,425 @@
 {
-  "swagger": "2.0",
-  "info": {
-    "description": "TMF635 Usage Management",
-    "version": "1.0.0",
-    "title": "API Party Management"
+  "swagger" : "2.0",
+  "info" : {
+    "description" : "### TMF635 Usage Management\nSigScale OCS uses the TM Forum 635 API for usage events. Usages of a specific types and/or usages associated with a particular Service identifier may be retrieved. A date/time range for should be provided in detail queries as events are stored in sequential disk logs. Usage event notifications may be subscribed to for realtime delivery.  \n",
+    "version" : "1.0.0",
+    "title" : "Usage Management"
   },
-  "basePath": "/usageManagement/v1/",
-  "schemes": [
-    "http",
-    "https"
-  ],
-  "consumes": [
-    "application/json"
-  ],
-  "produces": [
-    "application/json"
-  ],
-  "tags": [
-    {
-      "name": "usage",
-      "description": ""
-    },
-    {
-      "name": "usageSpecification",
-      "description": ""
-    }
-  ],
-  "paths": {
-    "/usage": {
-      "get": {
-        "tags": [
-          "usage"
-        ],
-        "operationId": "usageGet",
-        "summary": "usageGet",
-        "description": "This operation lists all usage entites",
-        "deprecated": false,
-        "parameters": [
-          {
-            "name": "type",
-            "in": "query",
-            "description": "Usage type to be looked up",
-            "required": true,
-            "type": "string"
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Usage",
-            "schema": {
-              "$ref": "#/definitions/Usage"
+  "basePath" : "/usageManagement/v1/",
+  "schemes" : [ "http", "https" ],
+  "consumes" : [ "application/json" ],
+  "produces" : [ "application/json" ],
+  "tags" : [ {
+    "name" : "usage",
+    "description" : "Operations on usage entities."
+  }, {
+    "name" : "usageSpecification",
+    "description" : "Operations on usage speciofications."
+  } ],
+  "paths" : {
+    "/usage" : {
+      "get" : {
+        "tags" : [ "usage" ],
+        "operationId" : "listUsage",
+        "summary" : "List usages",
+        "description" : "List usage entities in the collection.",
+        "deprecated" : false,
+        "parameters" : [ {
+          "name" : "type",
+          "in" : "query",
+          "description" : "Type of usages to list.",
+          "required" : true,
+          "type" : "string"
+        } ],
+        "responses" : {
+          "200" : {
+            "description" : "Usage",
+            "schema" : {
+              "type" : "array",
+              "items" : {
+                "$ref" : "#/definitions/Usage"
+              }
             }
           },
-          "404": {
-            "description": "Not Found\n\nList of supported error codes:\n- 60: Resource not found"
+          "404" : {
+            "description" : "Not Found"
           },
-          "500": {
-            "description": "Internal Server Error\n\nList of supported error codes:\n- 1: Internal error"
+          "500" : {
+            "description" : "Internal Server Error"
           }
         }
       }
     },
-    "/usage/{usageId}": {
-      "get": {
-        "tags": [
-          "usage"
-        ],
-        "operationId": "individualUsage",
-        "summary": "usageGet",
-        "description": "This operation finds a specific usage entity",
-        "deprecated": false,
-        "parameters": [
-          {
-            "name": "usageId",
-            "in": "path",
-            "required": true,
-            "type": "string"
-          },
-          {
-            "name": "fields",
-            "in": "query",
-            "required": false,
-            "description": "",
-            "type": "string"
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Usage",
-            "schema": {
-              "$ref": "#/definitions/Usage"
+    "/usage/{usageId}" : {
+      "get" : {
+        "tags" : [ "usage" ],
+        "operationId" : "getUsage",
+        "summary" : "Retrieve usage",
+        "description" : "Retrieve a usage entity by ID.",
+        "deprecated" : false,
+        "parameters" : [ {
+          "name" : "usageId",
+          "in" : "path",
+          "required" : true,
+          "type" : "string"
+        }, {
+          "name" : "fields",
+          "in" : "query",
+          "required" : false,
+          "description" : "Limit attributes in response.",
+          "type" : "string"
+        } ],
+        "responses" : {
+          "200" : {
+            "description" : "Usage",
+            "schema" : {
+              "$ref" : "#/definitions/Usage"
             }
           },
-          "400": {
-            "description": "Bad Request\n\nList of supported error codes:\n- 20: Invalid URL parameter value\n- 21: Missing body\n- 22: Invalid body\n- 23: Missing body field\n- 24: Invalid body field\n- 25: Missing header\n- 26: Invalid header value\n- 27: Missing query-string parameter\n- 28: Invalid query-string parameter value"
+          "400" : {
+            "description" : "Bad Request"
           },
-          "404": {
-            "description": "Not Found\n\nList of supported error codes:\n- 60: Resource not found"
+          "404" : {
+            "description" : "Not Found"
           },
-          "500": {
-            "description": "Internal Server Error\n\nList of supported error codes:\n- 1: Internal error"
+          "500" : {
+            "description" : "Internal Server Error"
           }
         }
       }
     },
-    "/usageSpecification": {
-      "get": {
-        "tags": [
-          "usageSpecification"
-        ],
-        "operationId": "getUsageSpecification",
-        "summary": "usageSpecificationGet",
-        "description": "This operation lists all UsageSpecification entities",
-        "deprecated": false,
-        "parameters": [],
-        "responses": {
-          "200": {
-            "description": "UsageSpecification",
-            "schema": {
-              "$ref": "#/definitions/UsageSpecification"
+    "/hub" : {
+      "get" : {
+        "operationId" : "listSubscriptions",
+        "summary" : "List subscriptions",
+        "description" : "Lists event notification subscriptions.",
+        "tags" : [ "notification" ],
+        "responses" : {
+          "200" : {
+            "description" : "Subscriptions",
+            "schema" : {
+              "type" : "array",
+              "items" : {
+                "$ref" : "#/definitions/EventSubscription"
+              }
             }
           },
-          "404": {
-            "description": "Not Found\n\nList of supported error codes:\n- 60: Resource not found"
+          "400" : {
+            "description" : "Bad Request"
           },
-          "500": {
-            "description": "Internal Server Error\n\nList of supported error codes:\n- 1: Internal error"
+          "401" : {
+            "description" : "Unauthorized"
+          }
+        }
+      },
+      "post" : {
+        "operationId" : "createSubscription",
+        "summary" : "Create subscription",
+        "description" : "Creates a subscription to event notifications.",
+        "tags" : [ "notification" ],
+        "parameters" : [ {
+          "name" : "data",
+          "schema" : {
+            "$ref" : "#/definitions/EventSubscription"
+          },
+          "required" : true,
+          "in" : "body",
+          "description" : "Data containing the callback endpoint to deliver the information."
+        } ],
+        "responses" : {
+          "201" : {
+            "description" : "Subscribed",
+            "schema" : {
+              "$ref" : "#/definitions/EventSubscription"
+            }
+          },
+          "400" : {
+            "description" : "Bad Request"
+          },
+          "401" : {
+            "description" : "Unauthorized"
           }
         }
       }
     },
-    "/usageSpecification/{Id}": {
-      "get": {
-        "tags": [
-          "usageSpecification"
-        ],
-        "operationId": "individualUsageSpecification",
-        "summary": "individualUsageSpecificationGet",
-        "description": "This operation finds a specific UsageSpecification entity",
-        "deprecated": false,
-        "parameters": [
-          {
-            "name": "Id",
-            "in": "path",
-            "required": true,
-            "type": "string"
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Success",
-            "schema": {
-              "$ref": "#/definitions/UsageSpecification"
+    "/usageSpecification" : {
+      "get" : {
+        "tags" : [ "usageSpecification" ],
+        "operationId" : "listUsageSpecifications",
+        "summary" : "List usage specifications",
+        "description" : "List usage specifications in the collection.",
+        "deprecated" : false,
+        "parameters" : [ ],
+        "responses" : {
+          "200" : {
+            "description" : "UsageSpecifications",
+            "schema" : {
+              "type" : "array",
+              "items" : {
+                "$ref" : "#/definitions/UsageSpecification"
+              }
             }
           },
-          "400": {
-            "description": "Bad Request\n\nList of supported error codes:\n- 20: Invalid URL parameter value\n- 21: Missing body\n- 22: Invalid body\n- 23: Missing body field\n- 24: Invalid body field\n- 25: Missing header\n- 26: Invalid header value\n- 27: Missing query-string parameter\n- 28: Invalid query-string parameter value"
+          "404" : {
+            "description" : "Not Found"
           },
-          "404": {
-            "description": "Not Found\n\nList of supported error codes:\n- 60: Resource not found"
+          "500" : {
+            "description" : "Internal Server Error"
+          }
+        }
+      }
+    },
+    "/usageSpecification/{Id}" : {
+      "get" : {
+        "tags" : [ "usageSpecification" ],
+        "operationId" : "getUsageSpecification",
+        "summary" : "Retrieve usage specification",
+        "description" : "Retrieve a usage specification by ID.",
+        "deprecated" : false,
+        "parameters" : [ {
+          "name" : "Id",
+          "in" : "path",
+          "required" : true,
+          "type" : "string"
+        } ],
+        "responses" : {
+          "200" : {
+            "description" : "Success",
+            "schema" : {
+              "$ref" : "#/definitions/UsageSpecification"
+            }
           },
-          "500": {
-            "description": "Internal Server Error\n\nList of supported error codes:\n- 1: Internal error"
+          "400" : {
+            "description" : "Bad Request"
+          },
+          "404" : {
+            "description" : "Not Found"
+          },
+          "500" : {
+            "description" : "Internal Server Error"
           }
         }
       }
     }
   },
-  "definitions": {
-    "Usage": {
-      "type": "object",
-      "properties": {
-        "id": {
-          "type": "integer",
-          "format": "int64"
+  "definitions" : {
+    "Usage" : {
+      "description" : "A usage is an occurrence of employing a Product, Service or Resource for its intended purpose which is of interest to the business and can have charges applied to it.",
+      "type" : "object",
+      "properties" : {
+        "id" : {
+          "type" : "integer",
+          "format" : "int64"
         },
-        "href": {
-          "type": "string"
+        "href" : {
+          "type" : "string"
         },
-        "date": {
-          "type": "string",
-          "format": "date-time"
+        "date" : {
+          "type" : "string",
+          "format" : "date-time"
         },
-        "type": {
-          "type": "string"
+        "type" : {
+          "type" : "string"
         },
-        "description": {
-          "type": "string"
+        "description" : {
+          "type" : "string"
         },
-        "status": {
-          "type": "string",
-          "enum": [
-            "Received",
-            "Rejected",
-            "Recycled",
-            "Guided",
-            "Rated",
-            "Rerate",
-            "Billed"
-          ]
+        "status" : {
+          "type" : "string",
+          "enum" : [ "Received", "Rejected", "Recycled", "Guided", "Rated", "Rerate", "Billed" ]
         },
-        "usageSpecification": {
-          "$ref": "#/definitions/UsageSpecification"
+        "usageSpecification" : {
+          "$ref" : "#/definitions/UsageSpecificationRef"
         },
-        "usageCharacteristic": {
-          "type": "array",
-          "items": {
-            "$ref": "#/definitions/UsageCharacteristic"
+        "usageCharacteristic" : {
+          "type" : "array",
+          "items" : {
+            "$ref" : "#/definitions/UsageCharacteristic"
           }
         },
-        "relatedParty": {
-          "type": "array",
-          "items": {
-            "$ref": "#/definitions/Reference"
+        "relatedParty" : {
+          "type" : "array",
+          "items" : {
+            "$ref" : "#/definitions/Reference"
           }
         },
-        "ratedProductUsage": {
-          "type": "array",
-          "items": {
-            "$ref": "#/definitions/RatedProductUsage"
+        "ratedProductUsage" : {
+          "type" : "array",
+          "items" : {
+            "$ref" : "#/definitions/RatedProductUsage"
           }
         }
       }
     },
-    "UsageSpecification": {
-      "type": "object",
-      "properties": {
-        "id": {
-          "type": "integer",
-          "format": "int64"
+    "UsageSpecificationRef" : {
+      "$ref" : "#/definitions/Reference"
+    },
+    "UsageSpecification" : {
+      "description" : "Description of the characteristics, attributes and relationships of a type of usage.",
+      "type" : "object",
+      "properties" : {
+        "id" : {
+          "type" : "integer",
+          "format" : "int64"
         },
-        "href": {
-          "type": "string"
+        "href" : {
+          "type" : "string"
         },
-        "name": {
-          "type": "string"
+        "name" : {
+          "type" : "string"
         },
-        "description": {
-          "type": "string"
+        "description" : {
+          "type" : "string"
         },
-        "validFor": {
-          "$ref": "#/definitions/ValidFor"
+        "validFor" : {
+          "$ref" : "#/definitions/ValidFor"
         },
-        "usageSpecCharacteristic": {
-          "type": "array",
-          "items": {
-            "$ref": "#/definitions/UsageSpecCharacteristic"
+        "usageSpecCharacteristic" : {
+          "type" : "array",
+          "items" : {
+            "$ref" : "#/definitions/UsageSpecCharacteristic"
           }
         }
       }
     },
-    "RatedProductUsage": {
-      "type": "object",
-      "properties": {
-        "ratingDate": {
-          "type": "string",
-          "format": "date-time"
+    "RatedProductUsage" : {
+      "description" : "An occurence of a product usage with details of applied rating.",
+      "type" : "object",
+      "properties" : {
+        "ratingDate" : {
+          "type" : "string",
+          "format" : "date-time"
         },
-        "usageRatingTag": {
-          "type": "string"
+        "usageRatingTag" : {
+          "type" : "string"
         },
-        "isBilled": {
-          "type": "boolean"
+        "isBilled" : {
+          "type" : "boolean"
         },
-        "ratingAmountType": {
-          "type": "string"
+        "ratingAmountType" : {
+          "type" : "string"
         },
-        "taxIncludedRatingAmount": {
-          "type": "number",
-          "format": "float"
+        "taxIncludedRatingAmount" : {
+          "type" : "number",
+          "format" : "float"
         },
-        "taxExcludedRatingAmount": {
-          "type": "number",
-          "format": "float"
+        "taxExcludedRatingAmount" : {
+          "type" : "number",
+          "format" : "float"
         },
-        "taxRate": {
-          "type": "number",
-          "format": "float"
+        "taxRate" : {
+          "type" : "number",
+          "format" : "float"
         },
-        "isTaxExempt": {
-          "type": "boolean"
+        "isTaxExempt" : {
+          "type" : "boolean"
         },
-        "offerTariffType": {
-          "type": "string"
+        "offerTariffType" : {
+          "type" : "string"
         },
-        "bucketValueConvertedInAmount": {
-          "type": "number",
-          "format": "float"
+        "bucketValueConvertedInAmount" : {
+          "type" : "number",
+          "format" : "float"
         },
-        "currencyCode": {
-          "type": "string"
+        "currencyCode" : {
+          "type" : "string"
         },
-        "productRef": {
-          "type": "string"
+        "productRef" : {
+          "type" : "string"
         }
       }
     },
-    "Reference": {
-      "type": "object",
-      "properties": {
-        "id": {
-          "type": "string"
+    "Reference" : {
+      "type" : "object",
+      "properties" : {
+        "id" : {
+          "type" : "string"
         },
-        "href": {
-          "type": "string"
+        "href" : {
+          "type" : "string"
         },
-        "role": {
-          "type": "string"
+        "role" : {
+          "type" : "string"
         }
       }
     },
-    "UsageCharacteristic": {
-      "type": "object",
-      "properties": {
-        "name": {
-          "type": "string"
+    "UsageCharacteristic" : {
+      "type" : "object",
+      "properties" : {
+        "name" : {
+          "type" : "string"
         },
-        "value": {
-          "type": "string"
+        "value" : {
+          "type" : "string"
         }
       }
     },
-    "UsageSpecCharacteristic": {
-      "type": "object",
-      "properties": {
-        "name": {
-          "type": "string"
+    "UsageSpecCharacteristic" : {
+      "type" : "object",
+      "properties" : {
+        "name" : {
+          "type" : "string"
         },
-        "description": {
-          "type": "string"
+        "description" : {
+          "type" : "string"
         },
-        "configurable": {
-          "type": "boolean"
+        "configurable" : {
+          "type" : "boolean"
         },
-        "usageSpecCharacteristicValue": {
-          "type": "array",
-          "items": {
-            "$ref": "#/definitions/UsageSpecCharacteristicValue"
+        "usageSpecCharacteristicValue" : {
+          "type" : "array",
+          "items" : {
+            "$ref" : "#/definitions/UsageSpecCharacteristicValue"
           }
         }
       }
     },
-    "UsageSpecCharacteristicValue": {
-      "type": "object",
-      "properties": {
-        "valueType": {
-          "type": "string"
+    "UsageSpecCharacteristicValue" : {
+      "type" : "object",
+      "properties" : {
+        "valueType" : {
+          "type" : "string"
         },
-        "default": {
-          "type": "boolean"
+        "default" : {
+          "type" : "boolean"
         },
-        "value": {
-          "type": "string"
+        "value" : {
+          "type" : "string"
         },
-        "valueFrom": {
-          "type": "string"
+        "valueFrom" : {
+          "type" : "string"
         },
-        "valueTo": {
-          "type": "string"
+        "valueTo" : {
+          "type" : "string"
         }
       }
     },
-    "ValidFor": {
-      "type": "object",
-      "properties": {
-        "startDateTime": {
-          "type": "string",
-          "format": "date-time"
+    "ValidFor" : {
+      "type" : "object",
+      "properties" : {
+        "startDateTime" : {
+          "type" : "string",
+          "format" : "date-time"
         },
-        "endDateTime": {
-          "type": "string",
-          "format": "date-time"
+        "endDateTime" : {
+          "type" : "string",
+          "format" : "date-time"
         }
       }
+    },
+    "EventSubscription" : {
+      "description" : "Describes an event subscription including the callback URI of a listener to receive event notifications.",
+      "type" : "object",
+      "properties" : {
+        "callback" : {
+          "description" : "The callback being registered.",
+          "type" : "string"
+        },
+        "query" : {
+          "description" : "Query string used to select events."
+        }
+      },
+      "required" : [ "callback" ]
     }
   }
 }

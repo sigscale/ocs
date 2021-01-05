@@ -21,8 +21,8 @@
 
 -include("ocs.hrl").
 
--export([content_types_accepted/0, content_types_provided/0, post_hub/1,
-		delete_hub/1]).
+-export([content_types_accepted/0, content_types_provided/0, post_hub/2,
+		delete_hub/1, get_hubs/0, get_hub/1]).
 -export([hub/1]).
 
 -define(PathResourceHub, "/resourceInventory/v1/hub/").
@@ -56,18 +56,20 @@ content_types_provided() ->
 delete_hub(Id) ->
 	{gen_fsm:send_all_state_event({global, Id}, shutdown), [], []}.
 
--spec post_hub(ReqBody) -> Result
+-spec post_hub(ReqBody, Authorization) -> Result
 	when
 		ReqBody :: list(),
+		Authorization :: string(),
 		Result :: {ok, Headers :: [tuple()], Body :: iolist()}
 			| {error, ErrorCode :: integer()}.
 %% Hub event to disk.
 %% @doc Respond to `POST /resourceInventory/v1/hub'
-post_hub(ReqBody) ->
+post_hub(ReqBody, Authorization) ->
 	try
 		case hub(mochijson:decode(ReqBody)) of
 			#hub{callback = Callback, query = undefined} = HubRecord ->
-				case supervisor:start_child(ocs_rest_hub_sup, [null, Callback]) of
+				case supervisor:start_child(ocs_rest_hub_sup,
+						[[], Callback, ?PathResourceHub, Authorization]) of
 					{ok, _PageServer, Id} ->
 						Body = mochijson:encode(hub(HubRecord#hub{id = Id})),
 						Headers = [{content_type, "application/json"},
@@ -77,7 +79,8 @@ post_hub(ReqBody) ->
 						{error, 500}
 				end;
 			#hub{callback = Callback, query = Query} = HubRecord ->
-				case supervisor:start_child(ocs_rest_hub_sup, [Query, Callback]) of
+				case supervisor:start_child(ocs_rest_hub_sup,
+						[Query, Callback, ?PathResourceHub, Authorization]) of
 					{ok, _PageServer, Id} ->
 						Body = mochijson:encode(hub(HubRecord#hub{id = Id})),
 						Headers = [{content_type, "application/json"},
@@ -90,6 +93,49 @@ post_hub(ReqBody) ->
 	catch
 		_:_ ->
 			{error, 400}
+	end.
+
+-spec get_hubs() -> Result
+	when
+		Result :: {ok, Headers :: [tuple()], Body :: iolist()}
+				| {error, ErrorCode :: integer()}.
+%% @doc Body producing function for
+%% 	`GET|HEAD /resourceInventory/v1/hub/'
+get_hubs() ->
+	get_hubs(supervisor:which_children(ocs_rest_hub_sup), []).
+%% @hidden
+get_hubs([{_, Pid, _, _} | T], Acc) ->
+	case gen_fsm:sync_send_all_state_event(Pid, get) of
+		#hub{href = ?PathResourceHub ++ _} = Hub ->
+			get_hubs(T, [Hub | Acc]);
+		_Hub ->
+			get_hubs(T, Acc)
+	end;
+get_hubs([], Acc) ->
+	Body = mochijson:encode({array, [hub(Hub) || Hub <- Acc]}),
+	Headers = [{content_type, "application/json"}],
+	{ok, Headers, Body}.
+
+-spec get_hub(Id) -> Result
+	when
+		Id :: string(),
+		Result :: {ok, Headers :: [tuple()], Body :: iolist()}
+				| {error, ErrorCode :: integer()}.
+%% @doc Body producing function for
+%% 	`GET|HEAD /resourceInventory/v1/hub/{id}'
+get_hub(Id) ->
+	case global:whereis_name(Id) of
+		Fsm when is_pid(Fsm) ->
+			case gen_fsm:sync_send_all_state_event(Fsm, get) of
+				#hub{id = Id} = Hub ->
+					Body = mochijson:encode(hub(Hub)),
+					Headers = [{content_type, "application/json"}],
+					{ok, Headers, Body};
+				_ ->
+					{error, 404}
+			end;
+		undefined ->
+			{error, 404}
 	end.
 
 %%----------------------------------------------------------------------
@@ -121,9 +167,7 @@ hub([id | T], #hub{id = Id} = H, Acc) when is_list(Id) ->
 	hub(T, H, [{"id", Id} | Acc]);
 hub([href | T], #hub{href = Href} = H, Acc) when is_list(Href) ->
 	hub(T, H, [{"href", Href} | Acc]);
-hub([query | T], #hub{query = undefined} = H, Acc) ->
-	hub(T, H, [{"query", null} | Acc]);
-hub([query | T], #hub{query = Query} = H, Acc) when is_list(Query) ->
+hub([query | T], #hub{query = Query} = H, Acc) when length(Query) > 0 ->
 	hub(T, H, [{"query", Query} | Acc]);
 hub([_ | T], H, Acc) ->
 	hub(T, H, Acc);

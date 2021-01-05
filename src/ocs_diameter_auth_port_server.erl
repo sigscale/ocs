@@ -173,8 +173,9 @@ handle_info(timeout, #state{auth_port_sup = AuthPortSup} = State) ->
 	{_, TtlsSup, _, _} = lists:keyfind(ocs_eap_ttls_fsm_sup_sup, 1, Children),
 	{_, AkaSup, _, _} = lists:keyfind(ocs_eap_aka_fsm_sup_sup, 1, Children),
 	{_, AkapSup, _, _} = lists:keyfind(ocs_eap_akap_fsm_sup_sup, 1, Children),
-	NewState = State#state{simple_auth_sup = SimpleAuthSup, pwd_sup = PwdSup,
-			ttls_sup = TtlsSup, aka_sup = AkaSup, akap_sup = AkapSup},
+	NewState = State#state{simple_auth_sup = SimpleAuthSup,
+			pwd_sup = PwdSup, ttls_sup = TtlsSup,
+			aka_sup = AkaSup, akap_sup = AkapSup},
 	{noreply, NewState};
 handle_info({'EXIT', Fsm, {shutdown, SessionId}},
 		#state{handlers = Handlers} = State) ->
@@ -247,12 +248,14 @@ code_change(_OldVsn, State, _Extra) ->
 		PasswordReq :: boolean(),
 		Trusted :: boolean(),
 		Request :: #diameter_nas_app_AAR{} | #diameter_nas_app_STR{}
-				| #diameter_eap_app_DER{} | #'3gpp_sta_DER'{} | #'3gpp_swm_DER'{},
+				| #diameter_eap_app_DER{} | #'3gpp_sta_DER'{}
+				| #'3gpp_swm_DER'{},
 		CbProc :: {pid(), term()},
 		State :: state(),
 		Reply :: {reply, Answer, State} | {noreply, State},
 		Answer ::#diameter_nas_app_AAA{} | #diameter_nas_app_STA{}
-				| #diameter_eap_app_DEA{} | #'3gpp_sta_DEA'{} | #'3gpp_swm_DEA'{}.
+				| #diameter_eap_app_DEA{} | #'3gpp_sta_DEA'{}
+				| #'3gpp_swm_DEA'{}.
 %% @doc Generate appropriate DIAMETER answer.
 %% @hidden
 request(Caps, Address, Port, none, PasswordReq, Trusted, Request, CbProc, State)
@@ -309,6 +312,7 @@ request(Caps, _Address, _Port, none, _PasswordReq, _Trusted, Request, _CbProc, S
 					'Origin-Host' = OHost, 'Origin-Realm' = ORealm},
 			{reply, Answer, State}
 	end.
+
 %% @hidden
 request1(EapType, Address, Port, PasswordReq, Trusted,
 		OHost, ORealm, DHost, DRealm, Request, CbProc,

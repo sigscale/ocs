@@ -28,11 +28,20 @@
 %% Note: This directive should only be used in test suites.
 -compile(export_all).
 
+-include("ocs.hrl").
+-include("ocs_log.hrl").
 -include_lib("radius/include/radius.hrl").
 -include_lib("common_test/include/ct.hrl").
+-include_lib("diameter/include/diameter.hrl").
 -include_lib("diameter/include/diameter_gen_base_rfc6733.hrl").
 -include_lib("../include/diameter_gen_nas_application_rfc7155.hrl").
 -include_lib("../include/diameter_gen_3gpp_ro_application.hrl").
+-include_lib("../include/diameter_gen_3gpp.hrl").
+
+-define(BASE_APPLICATION_ID, 0).
+-define(RO_APPLICATION_ID, 4).
+-define(IANA_PEN_3GPP, 10415).
+-define(IANA_PEN_SigScale, 50386).
 
 %% support deprecated_time_unit()
 -define(MILLISECOND, milli_seconds).
@@ -55,25 +64,64 @@ suite() ->
 init_per_suite(Config) ->
 	ok = ocs_test_lib:initialize_db(),
 	ok = ocs_test_lib:load(ocs),
+	Address = {127,0,0,1},
+	RadiusAuthPort = rand:uniform(64511) + 1024,
+	RadiusAcctPort = rand:uniform(64511) + 1024,
+	RadiusAppVar = [{auth, [{Address, RadiusAuthPort, []}]},
+			{acct, [{Address, RadiusAcctPort, []}]}],
+	ok = application:set_env(ocs, radius, RadiusAppVar),
+	DiameterAuthPort = rand:uniform(64511) + 1024,
+	DiameterAcctPort = rand:uniform(64511) + 1024,
+	DiameterAppVar = [{auth, [{Address, DiameterAuthPort, []}]},
+		{acct, [{Address, DiameterAcctPort, []}]}],
+	ok = application:set_env(ocs, diameter, DiameterAppVar),
 	ok = ocs_test_lib:start(),
-	Config.
+	Host = atom_to_list(?MODULE),
+	Realm = "ct.sigscale.org",
+	Config1 = [{host, Host}, {realm, Realm},
+			{radius_auth_address, Address},
+			{radius_auth_port, RadiusAuthPort},
+			{radius_acct_address, Address},
+			{radius_acct_port, RadiusAcctPort},
+			{diameter_acct_address, Address} | Config],
+	ok = diameter:start_service(?MODULE, client_acct_service_opts(Config1)),
+	true = diameter:subscribe(?MODULE),
+	{ok, _Ref} = connect(?MODULE, Address, DiameterAcctPort, diameter_tcp),
+	receive
+		#diameter_event{service = ?MODULE, info = Info}
+				when element(1, Info) == up ->
+			Config1;
+		_Other ->
+			{skip, diameter_client_not_started}
+	end.
 
 -spec end_per_suite(Config :: [tuple()]) -> any().
 %% Cleanup after the whole suite.
 %%
-end_per_suite(Config) ->
+end_per_suite(_Config) ->
+	ok = diameter:stop_service(?MODULE),
+	ok = diameter:remove_transport(?MODULE, true),
 	ok = ocs_test_lib:stop(),
-	Config.
+	ok.
 
 -spec init_per_testcase(TestCase :: atom(), Config :: [tuple()]) -> Config :: [tuple()].
 %% Initialization before each test case.
 %%
+init_per_testcase(TestCase, Config) when
+		TestCase == diameter_scur ->
+	Address = ?config(diameter_acct_address, Config),
+	{ok, _} = ocs:add_client(Address, undefined, diameter, undefined, true),
+	Config;
 init_per_testcase(_TestCase, Config) ->
 	Config.
 
 -spec end_per_testcase(TestCase :: atom(), Config :: [tuple()]) -> any().
 %% Cleanup after each test case.
 %%
+end_per_testcase(TestCase, Config) when
+		TestCase == diameter_scur ->
+	Address = ?config(diameter_acct_address, Config),
+	ok = ocs:delete_client(Address);
 end_per_testcase(_TestCase, _Config) ->
 	ok.
 
@@ -92,7 +140,8 @@ all() ->
 			ipdr_log, get_range, get_last, auth_query, acct_query_radius,
 			acct_query_diameter, abmf_log_event, abmf_query, binary_tree_before,
 			binary_tree_after, binary_tree_backward, binary_tree_forward,
-			binary_tree_last, binary_tree_first, binary_tree_half].
+			binary_tree_last, binary_tree_first, binary_tree_half,
+			diameter_scur].
 
 %%---------------------------------------------------------------------
 %%  Test cases
@@ -767,7 +816,50 @@ abmf_query(_Config) ->
 	Events = E1 ++ E2 ++ E3,
 	3 = length(Events).
 
+diameter_scur() ->
+	[{userdata, [{doc, "DIAMETER SCUR rated log event)"}]}].
+
+diameter_scur(_Config) ->
+	Start = erlang:system_time(?MILLISECOND),
+	P1 = price(usage, octets, rand:uniform(10000000), rand:uniform(1000000)),
+	OfferId = add_offer([P1], 4),
+	ProdRef = add_product(OfferId),
+	Username = list_to_binary(ocs:generate_identity()),
+	Password = ocs:generate_identity(),
+	{ok, #service{}} = ocs:add_service(Username, Password, ProdRef, []),
+	Balance = rand:uniform(1000000000),
+	B1 = bucket(octets, Balance),
+	_BId = add_bucket(ProdRef, B1),
+	Ref = erlang:ref_to_list(make_ref()),
+	SId = diameter:session_id(Ref),
+	RequestNum0 = 0,
+	Answer0 = diameter_scur_start(SId,
+			Username, RequestNum0, rand:uniform(Balance div 2)),
+	#'3gpp_ro_CCA'{'Result-Code' = ?'DIAMETER_BASE_RESULT-CODE_SUCCESS'} = Answer0,
+	RequestNum1 = RequestNum0 + 1,
+	Answer1 = diameter_scur_interim(SId,
+			Username, RequestNum1, rand:uniform(Balance div 2), 0),
+	#'3gpp_ro_CCA'{'Result-Code' = ?'DIAMETER_BASE_RESULT-CODE_SUCCESS'} = Answer1,
+	RequestNum2 = RequestNum1 + 1,
+	Answer2 = diameter_scur_stop(SId, Username, RequestNum2, rand:uniform(Balance div 2)),
+	#'3gpp_ro_CCA'{'Result-Code' = ?'DIAMETER_BASE_RESULT-CODE_SUCCESS',
+			'Session-Id' = SessionId} = Answer2,
+	End= erlang:system_time(?MILLISECOND),
+	MatchSpec = [{#'3gpp_ro_CCR'{'Session-Id' = SessionId, _ = '_'}, []}],
+	Fget = fun F({eof, Events}, Acc) ->
+				lists:flatten(lists:reverse([Events | Acc]));
+			F({Cont, Events}, Acc) ->
+				F(ocs_log:acct_query(Cont, Start, End, diameter, '_',
+						MatchSpec), [Events | Acc])
+	end,
+	[E1, E2, E3] = Fget(ocs_log:acct_query(start, Start, End, diameter, '_', MatchSpec), []),
+	{_, _, diameter, _, _, start, #'3gpp_ro_CCR'{}, #'3gpp_ro_CCA'{}, undefined} = E1,
+	{_, _, diameter, _, _, interim, #'3gpp_ro_CCR'{}, #'3gpp_ro_CCA'{}, undefined} = E2,
+	{_, _, diameter, _, _, stop, #'3gpp_ro_CCR'{}, #'3gpp_ro_CCA'{}, [#rated{}]} = E3.
+
+%%---------------------------------------------------------------------
 %% internal functions
+%%---------------------------------------------------------------------
 
 fill_auth(0) ->
 	ok;
@@ -917,4 +1009,167 @@ resp_attr(N) when N < 50 ->
 			{?VendorSpecific, {?Ascend, {?AscendDataRate, 10000000}}}]};
 resp_attr(_) ->
 	{accept, [{?SessionTimeout, 3600}]}.
+
+%% @hidden
+price(Type, Units, Size, Amount) ->
+	#price{name = ocs:generate_identity(),
+			type = Type, units = Units,
+			size = Size, amount = Amount}.
+
+%% @hidden
+bucket(Units, RA) ->
+	#bucket{units = Units, remain_amount = RA,
+		start_date = erlang:system_time(?MILLISECOND),
+		end_date = erlang:system_time(?MILLISECOND) + 2592000000}.
+
+%% @hidden
+add_offer(Prices, Spec) when is_integer(Spec) ->
+	add_offer(Prices, integer_to_list(Spec));
+add_offer(Prices, Spec) ->
+	Offer = #offer{name = ocs:generate_identity(),
+	price = Prices, specification = Spec},
+	{ok, #offer{name = OfferId}} = ocs:add_offer(Offer),
+	OfferId.
+
+%% @hidden
+add_product(OfferId) ->
+	add_product(OfferId, []).
+add_product(OfferId, Chars) ->
+	{ok, #product{id = ProdRef}} = ocs:add_product(OfferId, Chars),
+	ProdRef.
+
+%% @hidden
+add_bucket(ProdRef, Bucket) ->
+	{ok, _, #bucket{id = BId}} = ocs:add_bucket(ProdRef, Bucket),
+	BId.
+
+%% @hidden
+diameter_scur_start(SId, Username, RequestNum, Requested) ->
+	Subscription_Id = #'3gpp_ro_Subscription-Id'{
+			'Subscription-Id-Type' = ?'3GPP_SUBSCRIPTION-ID-TYPE_END_USER_E164',
+			'Subscription-Id-Data' = Username},
+	RequestedUnits = #'3gpp_ro_Requested-Service-Unit' {
+			'CC-Total-Octets' = [Requested]},
+	MultiServices_CC = #'3gpp_ro_Multiple-Services-Credit-Control'{
+			'Requested-Service-Unit' = [RequestedUnits]},
+	ServiceInformation = #'3gpp_ro_Service-Information'{'PS-Information' =
+			[#'3gpp_ro_PS-Information'{
+					'3GPP-PDP-Type' = [3],
+					'Serving-Node-Type' = [2],
+					'SGSN-Address' = [{10,1,2,3}],
+					'GGSN-Address' = [{10,4,5,6}],
+					'3GPP-IMSI-MCC-MNC' = [<<"001001">>],
+					'3GPP-GGSN-MCC-MNC' = [<<"001001">>],
+					'3GPP-SGSN-MCC-MNC' = [<<"001001">>]}]},
+	CC_CCR = #'3gpp_ro_CCR'{'Session-Id' = SId,
+			'Auth-Application-Id' = ?RO_APPLICATION_ID,
+			'Service-Context-Id' = "32251@3gpp.org",
+			'User-Name' = [Username],
+			'CC-Request-Type' = ?'3GPP_CC-REQUEST-TYPE_INITIAL_REQUEST',
+			'CC-Request-Number' = RequestNum,
+			'Event-Timestamp' = [calendar:universal_time()],
+			'Subscription-Id' = [Subscription_Id],
+			'Multiple-Services-Credit-Control' = [MultiServices_CC],
+			'Service-Information' = [ServiceInformation]},
+	{ok, Answer} = diameter:call(?MODULE, cc_app_test, CC_CCR, []),
+	Answer.
+	
+%% @hidden
+diameter_scur_interim(SId, Username, RequestNum, Used, Requested) ->
+	Subscription_Id = #'3gpp_ro_Subscription-Id'{
+			'Subscription-Id-Type' = ?'3GPP_SUBSCRIPTION-ID-TYPE_END_USER_E164',
+			'Subscription-Id-Data' = Username},
+	UsedUnits = #'3gpp_ro_Used-Service-Unit'{'CC-Total-Octets' = [Used]},
+	RequestedUnits = #'3gpp_ro_Requested-Service-Unit' {
+			'CC-Total-Octets' = [Requested]},
+	MultiServices_CC = #'3gpp_ro_Multiple-Services-Credit-Control'{
+			'Used-Service-Unit' = [UsedUnits],
+			'Requested-Service-Unit' = [RequestedUnits]},
+	ServiceInformation = #'3gpp_ro_Service-Information'{'PS-Information' =
+			[#'3gpp_ro_PS-Information'{
+					'3GPP-PDP-Type' = [3],
+					'Serving-Node-Type' = [2],
+					'SGSN-Address' = [{10,1,2,3}],
+					'GGSN-Address' = [{10,4,5,6}],
+					'3GPP-IMSI-MCC-MNC' = [<<"001001">>],
+					'3GPP-GGSN-MCC-MNC' = [<<"001001">>],
+					'3GPP-SGSN-MCC-MNC' = [<<"001001">>]}]},
+	CC_CCR = #'3gpp_ro_CCR'{'Session-Id' = SId,
+			'Auth-Application-Id' = ?RO_APPLICATION_ID,
+			'Service-Context-Id' = "32251@3gpp.org" ,
+			'User-Name' = [Username],
+			'CC-Request-Type' = ?'3GPP_CC-REQUEST-TYPE_UPDATE_REQUEST',
+			'CC-Request-Number' = RequestNum,
+			'Event-Timestamp' = [calendar:universal_time()],
+			'Multiple-Services-Credit-Control' = [MultiServices_CC],
+			'Subscription-Id' = [Subscription_Id],
+			'Service-Information' = [ServiceInformation]},
+	{ok, Answer} = diameter:call(?MODULE, cc_app_test, CC_CCR, []),
+	Answer.
+	
+%% @hidden
+diameter_scur_stop(SId, Username, RequestNum, Used) ->
+	Subscription_Id = #'3gpp_ro_Subscription-Id'{
+			'Subscription-Id-Type' = ?'3GPP_SUBSCRIPTION-ID-TYPE_END_USER_E164',
+			'Subscription-Id-Data' = Username},
+	UsedUnits = #'3gpp_ro_Used-Service-Unit'{'CC-Total-Octets' = [Used]},
+	MultiServices_CC = #'3gpp_ro_Multiple-Services-Credit-Control'{
+			'Used-Service-Unit' = [UsedUnits]},
+	ServiceInformation = #'3gpp_ro_Service-Information'{'PS-Information' =
+			[#'3gpp_ro_PS-Information'{
+					'3GPP-PDP-Type' = [3],
+					'Serving-Node-Type' = [2],
+					'SGSN-Address' = [{10,1,2,3}],
+					'GGSN-Address' = [{10,4,5,6}],
+					'3GPP-IMSI-MCC-MNC' = [<<"001001">>],
+					'3GPP-GGSN-MCC-MNC' = [<<"001001">>],
+					'3GPP-SGSN-MCC-MNC' = [<<"001001">>]}]},
+	CC_CCR = #'3gpp_ro_CCR'{'Session-Id' = SId,
+			'Auth-Application-Id' = ?RO_APPLICATION_ID,
+			'Service-Context-Id' = "32251@3gpp.org" ,
+			'User-Name' = [Username],
+			'CC-Request-Type' = ?'3GPP_CC-REQUEST-TYPE_TERMINATION_REQUEST',
+			'CC-Request-Number' = RequestNum,
+			'Event-Timestamp' = [calendar:universal_time()],
+			'Multiple-Services-Credit-Control' = [MultiServices_CC],
+			'Subscription-Id' = [Subscription_Id],
+			'Service-Information' = [ServiceInformation]},
+	{ok, Answer} = diameter:call(?MODULE, cc_app_test, CC_CCR, []),
+	Answer.
+
+%% @hidden
+client_acct_service_opts(Config) ->
+	[{'Origin-Host', ?config(host, Config)},
+			{'Origin-Realm', ?config(realm, Config)},
+			{'Vendor-Id', ?IANA_PEN_SigScale},
+			{'Supported-Vendor-Id', [?IANA_PEN_3GPP]},
+			{'Product-Name', "SigScale Test Client (Acct)"},
+			{'Auth-Application-Id', [?RO_APPLICATION_ID]},
+			{string_decode, false},
+			{restrict_connections, false},
+			{application, [{alias, base_app_test},
+					{dictionary, diameter_gen_base_rfc6733},
+					{module, diameter_test_client_cb}]},
+			{application, [{alias, cc_app_test},
+					{dictionary, diameter_gen_3gpp_ro_application},
+					{module, diameter_test_client_cb}]}].
+
+%% @doc Add a transport capability to diameter service.
+%% @hidden
+connect(SvcName, Address, Port, Transport) when is_atom(Transport) ->
+	connect(SvcName, [{connect_timer, 30000} | transport_opts(Address, Port, Transport)]).
+
+%% @hidden
+connect(SvcName, Opts)->
+	diameter:add_transport(SvcName, {connect, Opts}).
+
+%% @hidden
+transport_opts(Address, Port, Trans) when is_atom(Trans) ->
+	transport_opts1({Trans, Address, Address, Port}).
+
+%% @hidden
+transport_opts1({Trans, LocalAddr, RemAddr, RemPort}) ->
+	[{transport_module, Trans}, {transport_config,
+			[{raddr, RemAddr}, {rport, RemPort},
+			{reuseaddr, true}, {ip, LocalAddr}]}].
 

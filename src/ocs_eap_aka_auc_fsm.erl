@@ -94,7 +94,7 @@
 -define(SWx_APPLICATION_DICT, diameter_gen_3gpp_swx_application).
 -define(SWx_APPLICATION, ocs_diameter_3gpp_swx_application).
 
--define(TIMEOUT, 5000).
+-define(TIMEOUT, 10000).
 
 %% support deprecated_time_unit()
 -define(MILLISECOND, milli_seconds).
@@ -408,7 +408,7 @@ register({ok, #'3gpp_swx_SAA'{'Result-Code' = [?'DIAMETER_BASE_RESULT-CODE_SUCCE
 		'Non-3GPP-User-Data' = [#'3gpp_swx_Non-3GPP-User-Data'{} = UserProfile]}},
 		#statedata{aka_fsm = AkaFsm} = StateData) ->
 	NewStateData  = StateData#statedata{hss_realm = HssRealm, hss_host = HssHost},
-	gen_fsm:send_event(AkaFsm, {ok, UserProfile}),
+	gen_fsm:send_event(AkaFsm, {ok, UserProfile, HssRealm, HssHost}),
 	{next_state, idle, NewStateData};
 register({ok, #'3gpp_swx_SAA'{'Result-Code' = [ResultCode]}},
 		#statedata{aka_fsm = AkaFsm} = StateData) ->

@@ -96,6 +96,7 @@
         *[ Redirect-Host]
          [ Redirect-Host-Usage ]
          [ Redirect-Max-Cache-Time ]
+         [ Origin-State-Id ]
          [ Failed-AVP ]
          [ Service-Information ]
         *[ Proxy-Info ]

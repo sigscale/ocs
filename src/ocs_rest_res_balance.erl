@@ -519,17 +519,17 @@ bucket([reservations | T], #bucket{reservations = []} = B, Acc) ->
 	bucket(T, B, Acc);
 bucket([reservations | T], #bucket{units = undefined,
 		reservations = Reservations} = B, Acc) ->
-	Amount = lists:sum([A || {_, _, A, _} <- Reservations]),
+	Amount = lists:sum([A || {_, _, A, _, _, _} <- Reservations]),
 	Reserved = [{"amount", Amount}],
 	bucket(T, B, [{"reservedAmount", {struct, Reserved}}| Acc]);
 bucket([reservations | T], #bucket{reservations = Reservations,
 		units = cents} = B, Acc) ->
-	Amount = lists:sum([A || {_, _, A, _} <- Reservations]),
+	Amount = lists:sum([A || {_, _, A, _, _, _} <- Reservations]),
 	Reserved = [{"amount", ocs_rest:millionths_out(Amount)}, {"units", "cents"}],
 	bucket(T, B, [{"reservedAmount", {struct, Reserved}}| Acc]);
 bucket([reservations | T], #bucket{reservations = Reservations,
 		units = Units} = B, Acc) ->
-	Amount = lists:sum([A || {_, _, A, _} <- Reservations]),
+	Amount = lists:sum([A || {_, _, A, _, _, _} <- Reservations]),
 	Reserved = [{"amount", Amount}, {"units", units(Units)}],
 	bucket(T, B, [{"reservedAmount", {struct, Reserved}}| Acc]);
 bucket([start_date | T], #bucket{start_date = undefined,
@@ -813,8 +813,6 @@ quantity({struct, [{"amount", Amount}, {"units", "cents"}]}) ->
 	#quantity{units = cents, amount = ocs_rest:millionths_in(Amount)};
 quantity({struct, [{"units", "cents"}, {"amount", Amount}]}) ->
 	#quantity{units = cents, amount = ocs_rest:millionths_in(Amount)};
-quantity({struct, [{"amount", Amount}, {"units", Units}]}) when is_list(Amount) ->
-	quantity({struct, [{"units", Units}, {"amount", Amount}]});
 quantity({struct, [{"amount", Amount}, {"units", Units}]}) ->
 	quantity({struct, [{"units", Units}, {"amount", Amount}]});
 quantity({struct, [{"units", Units}, {"amount", Amount}]}) when is_list(Amount)->
@@ -846,7 +844,7 @@ quantity(#quantity{} = Quantity) ->
 %% @hidden
 quantity([amount | T], #quantity{units = cents, amount = Amount} = Q, Acc) ->
 	quantity(T, Q, [{"amount", ocs_rest:millionths_out(Amount)} | Acc]);
-quantity([amount | T], #quantity{amount = Amount} = Q, Acc) ->
+quantity([amount | T], #quantity{units = octets, amount = Amount} = Q, Acc) ->
 	quantity(T, Q, [{"amount", integer_to_list(Amount) ++ "b"} | Acc]);
 quantity([units | T], #quantity{units = undefined} = Q, Acc) ->
 	quantity(T, Q, Acc);

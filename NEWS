@@ -1,4 +1,48 @@
-Novenber 2, 2020
+December 23, 2020
+----------------
+	- Reservations unique to Service-Id, Charging-Key and Session-Id
+	- Correct termination CCR failure due to bad SI/RG type
+
+December 21, 2020
+----------------
+	- Remove session on deregister failure
+	- Interim reservations replace existing reservations
+	- REST : Notification Pattern
+		- Support GET calls on all hub ids
+		- Support GET calls on specific hub ids
+	- Correct Missing MSCC handling
+
+December 5, 2020
+----------------
+	- Expanded SMS support
+		- DIAMETER Immediate Event Charging (IEC)
+			- Centralized Unit Determination
+			- Decentralized Unit Determination
+
+December 3, 2020
+----------------
+	- 3GPP AAA improvements
+		- session table indexing and serving hss
+		- DIAMETER dispatcher
+		- session termination
+
+November 30, 2020
+----------------
+	- 3GPP S6b interface to PDN Gateway
+	- non-3GPP access network initiated session termination handling
+	- HSS initiated UE registration termination handling
+	- Balance theshold notifications
+	- Query support in notification subscription requests
+	- Correct missing tarif information in accounting log
+	- Correct handling of missing RSU
+
+November 22, 2020
+----------------
+	- REST: Notification Pattern
+		- Support Queries in Subscriptions
+	- Correct Empty RSU VS Missing RSU Handling
+
+November 2, 2020
 ----------------
 	- Open API Specification (OAS) ("swagger") reflecting this implemenation
 	- Event notifications for all APIs

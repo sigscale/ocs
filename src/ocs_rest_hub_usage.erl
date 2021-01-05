@@ -1,4 +1,4 @@
-%%% ocs_rest_hub_product.erl
+%%% ocs_rest_hub_usage.erl
 %%% vim: ts=3
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%% @copyright 2020 SigScale Global Inc.
@@ -16,18 +16,16 @@
 %%% limitations under the License.
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%%
--module(ocs_rest_hub_product).
+-module(ocs_rest_hub_usage).
 -copyright('Copyright (c) 2020 SigScale Global Inc.').
 
 -include("ocs.hrl").
 
 -export([content_types_accepted/0, content_types_provided/0, post_hub/2,
-		delete_hub/1, get_product_hubs/0, get_product_hub/1, post_hub_catalog/2,
-		delete_hub_catalog/1, get_catalog_hubs/0, get_catalog_hub/1]).
+		delete_hub/1, get_usage_hubs/0, get_usage_hub/1]).
 -export([hub/1]).
 
--define(PathProductHub, "/productInventory/v2/hub/").
--define(PathCatalogHub, "/productCatalog/v2/hub/").
+-define(PathUsageHub, "/usageManagement/v1/hub/").
 
 %%----------------------------------------------------------------------
 %%  The hub public API
@@ -54,7 +52,7 @@ content_types_provided() ->
 		Result :: {ok, Headers :: [tuple()], Body :: iolist()}
 			| {error, ErrorCode :: integer()}.
 %% Delete by id.
-%% @doc Respond to `POST /productInventory/v2/hub/{id}'
+%% @doc Respond to `POST /usageManagement/v1/hub/{id}'
 delete_hub(Id) ->
 	{gen_fsm:send_all_state_event({global, Id}, shutdown), [], []}.
 
@@ -65,28 +63,28 @@ delete_hub(Id) ->
 		Result :: {ok, Headers :: [tuple()], Body :: iolist()}
 			| {error, ErrorCode :: integer()}.
 %% Hub event to disk.
-%% @doc Respond to `POST /productInventory/v2/hub/'
+%% @doc Respond to `POST /usageManagement/v1/hub/'
 post_hub(ReqBody, Authorization) ->
 	try
 		case hub(mochijson:decode(ReqBody)) of
 			#hub{callback = Callback, query = undefined} = HubRecord ->
 				case supervisor:start_child(ocs_rest_hub_sup,
-						[[], Callback, ?PathProductHub, Authorization]) of
+						[[], Callback, ?PathUsageHub, Authorization]) of
 					{ok, _PageServer, Id} ->
 						Body = mochijson:encode(hub(HubRecord#hub{id = Id})),
 						Headers = [{content_type, "application/json"},
-								{location, ?PathProductHub ++ Id}],
+								{location, ?PathUsageHub ++ Id}],
 						{ok, Headers, Body};
 					{error, _Reason} ->
 						{error, 500}
 				end;
 			#hub{callback = Callback, query = Query} = HubRecord ->
 				case supervisor:start_child(ocs_rest_hub_sup,
-						[Query, Callback, ?PathProductHub, Authorization]) of
+						[Query, Callback, ?PathUsageHub, Authorization]) of
 					{ok, _PageServer, Id} ->
 						Body = mochijson:encode(hub(HubRecord#hub{id = Id})),
 						Headers = [{content_type, "application/json"},
-								{location, ?PathProductHub ++ Id}],
+								{location, ?PathUsageHub ++ Id}],
 						{ok, Headers, Body};
 					{error, _Reason} ->
 						{error, 500}
@@ -97,128 +95,37 @@ post_hub(ReqBody, Authorization) ->
 			{error, 400}
 	end.
 
--spec get_product_hubs() -> Result
+-spec get_usage_hubs() -> Result
 	when
 		Result :: {ok, Headers :: [tuple()], Body :: iolist()}
 				| {error, ErrorCode :: integer()}.
 %% @doc Body producing function for
-%% 	`GET|HEAD /productInventory/v2/hub/'
-get_product_hubs() ->
-	get_product_hubs(supervisor:which_children(ocs_rest_hub_sup), []).
-%% @hidden
-get_product_hubs([{_, Pid, _, _} | T], Acc) ->
-	case gen_fsm:sync_send_all_state_event(Pid, get) of
-		#hub{href = ?PathProductHub ++ _} = Hub ->
-			get_product_hubs(T, [Hub | Acc]);
-		_Hub ->
-			get_product_hubs(T, Acc)
-	end;
-get_product_hubs([], Acc) ->
-	Body = mochijson:encode({array, [hub(Hub) || Hub <- Acc]}),
-	Headers = [{content_type, "application/json"}],
-	{ok, Headers, Body}.
-
--spec get_product_hub(Id) -> Result
-	when
-		Id :: string(),
-		Result :: {ok, Headers :: [tuple()], Body :: iolist()}
-				| {error, ErrorCode :: integer()}.
-%% @doc Body producing function for
-%% 	`GET|HEAD /productInventory/v2/hub/{id}'
+%% 	`GET|HEAD /usageManagement/v1/hub/'
 %% 	requests.
-get_product_hub(Id) ->
-	case global:whereis_name(Id) of
-		Fsm when is_pid(Fsm) ->
-			case gen_fsm:sync_send_all_state_event(Fsm, get) of
-				#hub{id = Id} = Hub ->
-					Body = mochijson:encode(hub(Hub)),
-					Headers = [{content_type, "application/json"}],
-					{ok, Headers, Body};
-				_ ->
-					{error, 404}
-			end;
-		undefined ->
-			{error, 404}
-	end.
-
--spec delete_hub_catalog(Id) -> Result
-	when
-		Id :: string(),
-		Result :: {ok, Headers :: [tuple()], Body :: iolist()}
-			| {error, ErrorCode :: integer()}.
-%% Delete by id.
-%% @doc Respond to `POST /productCatalog/v2/hub/{id}'
-delete_hub_catalog(Id) ->
-	{gen_fsm:send_all_state_event({global, Id}, shutdown), [], []}.
-
--spec post_hub_catalog(ReqBody, Authorization) -> Result
-	when
-		ReqBody :: list(),
-		Authorization :: string(),
-		Result :: {ok, Headers :: [tuple()], Body :: iolist()}
-			| {error, ErrorCode :: integer()}.
-%% Hub event to disk.
-%% @doc Respond to `POST /productCatalog/v2/hub'
-post_hub_catalog(ReqBody, Authorization) ->
-	try
-		case hub(mochijson:decode(ReqBody)) of
-			#hub{callback = Callback, query = undefined} = HubRecord ->
-				case supervisor:start_child(ocs_rest_hub_sup,
-						[[], Callback, ?PathCatalogHub, Authorization]) of
-					{ok, _PageServer, Id} ->
-						Body = mochijson:encode(hub(HubRecord#hub{id = Id})),
-						Headers = [{content_type, "application/json"},
-								{location, ?PathCatalogHub ++ Id}],
-						{ok, Headers, Body};
-					{error, _Reason} ->
-						{error, 500}
-				end;
-			#hub{callback = Callback, query = Query} = HubRecord ->
-				case supervisor:start_child(ocs_rest_hub_sup,
-						[Query, Callback, ?PathCatalogHub, Authorization]) of
-					{ok, _PageServer, Id} ->
-						Body = mochijson:encode(hub(HubRecord#hub{id = Id})),
-						Headers = [{content_type, "application/json"},
-								{location, ?PathCatalogHub ++ Id}],
-						{ok, Headers, Body};
-					{error, _Reason} ->
-						{error, 500}
-				end
-		end
-	catch
-		_:_ ->
-			{error, 400}
-	end.
-
--spec get_catalog_hubs() -> Result
-	when
-		Result :: {ok, Headers :: [tuple()], Body :: iolist()}
-				| {error, ErrorCode :: integer()}.
-%% @doc Body producing function for
-%% 	`GET|HEAD /productCatalog/v2/hub/'
-get_catalog_hubs() ->
-	get_catalog_hubs(supervisor:which_children(ocs_rest_hub_sup), []).
+get_usage_hubs() ->
+	get_usage_hubs(supervisor:which_children(ocs_rest_hub_sup), []).
 %% @hidden
-get_catalog_hubs([{_, Pid, _, _} | T], Acc) ->
+get_usage_hubs([{_, Pid, _, _} | T], Acc) ->
 	case gen_fsm:sync_send_all_state_event(Pid, get) of
-		#hub{href = ?PathCatalogHub ++ _} = Hub ->
-			get_catalog_hubs(T, [Hub | Acc]);
+		#hub{href = "/usageManagement/v1/hub/" ++ _} = Hub ->
+			get_usage_hubs(T, [Hub | Acc]);
 		_Hub ->
-			get_catalog_hubs(T, Acc)
+			get_usage_hubs(T, Acc)
 	end;
-get_catalog_hubs([], Acc) ->
+get_usage_hubs([], Acc) ->
 	Body = mochijson:encode({array, [hub(Hub) || Hub <- Acc]}),
 	Headers = [{content_type, "application/json"}],
 	{ok, Headers, Body}.
 
--spec get_catalog_hub(Id) -> Result
+-spec get_usage_hub(Id) -> Result
 	when
 		Id :: string(),
 		Result :: {ok, Headers :: [tuple()], Body :: iolist()}
 				| {error, ErrorCode :: integer()}.
 %% @doc Body producing function for
-%% 	`GET|HEAD /productCatalog/v2/hub/{id}'
-get_catalog_hub(Id) ->
+%% 	`GET|HEAD /usageManagement/v1/hub/{id}'
+%% 	requests.
+get_usage_hub(Id) ->
 	case global:whereis_name(Id) of
 		Fsm when is_pid(Fsm) ->
 			case gen_fsm:sync_send_all_state_event(Fsm, get) of
@@ -232,7 +139,7 @@ get_catalog_hub(Id) ->
 		undefined ->
 			{error, 404}
 	end.
-	
+
 %%----------------------------------------------------------------------
 %%  The internal functions
 %%----------------------------------------------------------------------

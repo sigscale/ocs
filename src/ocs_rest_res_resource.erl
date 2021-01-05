@@ -596,7 +596,12 @@ tariff_table_catalog() ->
 %% @doc CODEC for gtt.
 %% @private
 gtt(Name, {Prefix, Description, Rate} = _Gtt) ->
-		{struct, [{"id", Prefix}, {"href", ?inventoryPath ++ Name ++ "/" ++ Prefix},
+	SpecId = {"id", "1"},
+   SpecHref = {"href", ?specPath "1"},
+   SpecName = {"name", "TariffTableSpec"},
+	{struct, [{"id", Prefix},
+			{"href", ?inventoryPath ++ Name ++ "/" ++ Prefix},
+			{"resourceSpecification", {struct, [SpecId, SpecHref, SpecName]}},
 			{"resourceCharacteristic", {array, [{struct, [{"name", "prefix"},
 			{"value", {struct, [{"seqNum", 1}, {"value", Prefix}]}}]},
 			{struct, [{"name", "description"},

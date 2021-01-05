@@ -47,14 +47,22 @@ init([Address, Port, Options]) ->
 		supervisor(ocs_eap_ttls_fsm_sup_sup, []),
 		supervisor(ocs_eap_aka_fsm_sup_sup, []),
 		supervisor(ocs_eap_akap_fsm_sup_sup, []),
-		supervisor(ocs_terminate_fsm_sup, []),
-		supervisor(ocs_deregister_fsm_sup, []),
+		supervisor(ocs_pgw_fsm_sup, Address, Port, []),
+		supervisor(ocs_terminate_fsm_sup, Address, Port, []),
+		supervisor(ocs_deregister_fsm_sup, Address, Port, []),
 		supervisor(ocs_diameter_auth_service_fsm_sup, [Address, Port, Options])],
 	{ok, {{one_for_one, 10, 3600}, ChildSpecs}}.
 
 %% @hidden
 supervisor(StartMod, StartArgs) ->
 	StartFunc = {supervisor, start_link, [StartMod, StartArgs]},
+	{StartMod, StartFunc, permanent, infinity, supervisor, [StartMod]}.
+
+%% @hidden
+supervisor(StartMod, Address, Port, StartArgs) ->
+	GlobalName = {StartMod, Address, Port},
+	Args = [{global, GlobalName}, StartMod, StartArgs],
+	StartFunc = {supervisor, start_link, Args},
 	{StartMod, StartFunc, permanent, infinity, supervisor, [StartMod]}.
 
 %% @hidden

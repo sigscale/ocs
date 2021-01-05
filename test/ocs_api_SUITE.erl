@@ -1025,8 +1025,8 @@ rating_deleted_bucket_event(_Config) ->
 	SessionId = [{'Session-Id', list_to_binary(ocs:generate_password())}],
 	ServiceType = 32251,
 	{out_of_credit, _} = ocs_rating:rate(diameter, ServiceType, undefined,
-			undefined, ServiceId, Timestamp, undefined, undefined, initial,
-			[], [{octets, PackageSize}], SessionId),
+			undefined, undefined, ServiceId, Timestamp, undefined, undefined,
+			initial, [], [{octets, PackageSize}], SessionId),
 	receive
 		{depleted, #bucket{units = Units, remain_amount = RA}, balance} ->
 			PackagePrice = RA
@@ -1076,20 +1076,17 @@ accumulated_balance_event(_Config) ->
 		{create_bucket, Bucket3, balance} ->
 			BId3 = Bucket3#bucket.id
 	end,
+	ok = application:set_env(ocs, threshold_bytes, 500000000),
 	Timestamp = calendar:local_time(),
 	SessionId = [{'Session-Id', list_to_binary(ocs:generate_password())}],
 	ServiceType = 32251,
 	{ok, #service{}, _} = ocs_rating:rate(diameter, ServiceType, undefined,
-			undefined, ServiceId, Timestamp, undefined, undefined, initial,
-			[], [{octets, PackageSize}], SessionId),
+			undefined, undefined, ServiceId, Timestamp, undefined, undefined,
+			initial, [], [{octets, PackageSize}], SessionId),
 	receive
-		{accumulated, AccBlance, balance} ->
-			CentsTotalAmount = RA1 + RA3,
-			#acc_balance{total_balance = CentsTotalAmount}
-					= lists:keyfind(cents, #acc_balance.units, AccBlance),
-			BytesTotalAmount = RA2 - PackageSize,
-			#acc_balance{total_balance = BytesTotalAmount}
-					= lists:keyfind(octets, #acc_balance.units, AccBlance)
+		{accumulated, [#acc_balance{total_balance = BytesTotalAmount,
+				units = octets}], balance} ->
+			BytesTotalAmount = RA2 - PackageSize
 	end.
 
 %%---------------------------------------------------------------------

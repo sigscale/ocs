@@ -1,0 +1,1422 @@
+{
+  "openapi" : "3.0.0",
+  "info" : {
+    "version" : "1.0.0",
+    "title" : "Nrf_Rating",
+    "description" : "## RF Rating Service\nThe RF performs both monetary and non-monetary unit determination (rating) for all charging levels (bearer, session and service) before and after service delivery (prepaid and postpaid) and based on dynamic credit limit update. Rating considers cross-product, cross-channel, counter-based, rental-based and recharge-based discounts, benefits and allowances. Rating may be perfomed based on dimensions of volume, time and events.\n\nRate requests include various rating parameters such as service identifier, subscriber reference, network identification, user location, service usage time, transferred data volume, etc. The rate request may contain multiple service identifiers that reflect the list of active services contained in the context handled by the rating service consumer (CHF/OCF).\n\nThe RF determines the applicable price or tariff model and returns it to the NF consumer (CHF/OCF), according to rate requests, subscriber contractual terms, the rating rules configured by operators and billing related information. Note that in case of multiple service requests received, the RF may apply a special price or tariff which can be different to the price or tariff applied to the related services handled separately. For example a VoLTE call may have the data volume associated with the bearer usage free of charge while rating the time associated with the voice session.\n\nTo support the online rating process, the RF needs counters. The counters may be maintained by the RF or by the ABMF. In the former case counters are optional in rating requests.       ",
+    "license" : {
+      "name" : "Apache 2.0"
+    },
+    "contact" : {
+      "name" : "SigScale",
+      "email" : "support@sigscale.com",
+      "url" : "http://www.sigscale.com"
+    }
+  },
+  "externalDocs" : {
+    "description" : "3GPP TS 32.296 Online Charging System (OCS) - Applications and Interfaces",
+    "url" : "https://www.3gpp.org/ftp/Specs/archive/32_series/32.296"
+  },
+  "servers" : [ {
+    "url" : "{apiRoot}/nrf-rating/v1",
+    "variables" : {
+      "apiRoot" : {
+        "default" : "https://example.com",
+        "description" : "apiRoot as defined in subclause 4.4 of 3GPP TS 29.501."
+      }
+    }
+  }, {
+    "description" : "SwaggerHub API Auto Mocking",
+    "url" : "https://virtserver.swaggerhub.com/SigScale/nrf-rating/1.0.0"
+  } ],
+  "security" : [ { }, {
+    "oAuth2ClientCredentials" : [ "nrf-rating" ]
+  } ],
+  "paths" : {
+    "/ratingdata" : {
+      "post" : {
+        "operationId" : "startRating",
+        "tags" : [ "Rating Data (Collection)" ],
+        "requestBody" : {
+          "required" : true,
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/RatingDataRequest"
+              },
+              "examples" : {
+                "IEC" : {
+                  "summary" : "Immediate Event Charging (IEC)",
+                  "value" : {
+                    "nfConsumerIdentification" : {
+                      "nodeFunctionality" : "OCF"
+                    },
+                    "invocationTimeStamp" : "2020-12-13T15:28:32.123Z",
+                    "invocationSequenceNumber" : 1,
+                    "actualTime" : "2020-12-13T15:28:32Z",
+                    "subscriptionId" : [ "msisdn-14165551234", "imsi-001001000000001" ],
+                    "oneTimeEvent" : true,
+                    "oneTimeEventType" : "IEC",
+                    "serviceRating" : [ {
+                      "serviceContextId" : "32274@3gpp.org",
+                      "serviceId" : 4,
+                      "destinationId" : {
+                        "destinationIdType" : "DN",
+                        "destinationIdData" : "14165556789"
+                      },
+                      "requestSubType" : "DEBIT"
+                    } ]
+                  }
+                },
+                "ECUR" : {
+                  "summary" : "Event Charging with Unit Reservation (ECUR)",
+                  "value" : {
+                    "nfConsumerIdentification" : {
+                      "nodeFunctionality" : "OCF"
+                    },
+                    "invocationTimeStamp" : "2020-12-13T15:28:32.123Z",
+                    "invocationSequenceNumber" : 1,
+                    "actualTime" : "2020-12-13T15:28:32Z",
+                    "subscriptionId" : [ "msisdn-14165551234", "imsi-001001000000001" ],
+                    "oneTimeEvent" : true,
+                    "oneTimeEventType" : "PEC",
+                    "serviceRating" : [ {
+                      "serviceContextId" : "32274@3gpp.org",
+                      "serviceId" : 4,
+                      "destinationId" : {
+                        "destinationIdType" : "DN",
+                        "destinationIdData" : "14165556789"
+                      },
+                      "requestSubType" : "RESERVE",
+                      "requestedUnit" : {
+                        "serviceSpecificUnit" : 1
+                      }
+                    } ]
+                  }
+                },
+                "SCUR" : {
+                  "summary" : "Session Charging with Unit Reservation (SCUR)",
+                  "value" : {
+                    "nfConsumerIdentification" : {
+                      "nodeFunctionality" : "OCF"
+                    },
+                    "invocationTimeStamp" : "2020-12-13T15:28:32.123Z",
+                    "invocationSequenceNumber" : 1,
+                    "actualTime" : "2020-12-13T15:28:32Z",
+                    "subscriptionId" : [ "msisdn-14165551234", "imsi-001001000000001" ],
+                    "serviceRating" : [ {
+                      "serviceContextId" : "32251@3gpp.org",
+                      "serviceId" : 1,
+                      "ratingGroup" : 2,
+                      "requestSubType" : "RESERVE"
+                    }, {
+                      "serviceContextId" : "32251@3gpp.org",
+                      "serviceId" : 1,
+                      "ratingGroup" : 32,
+                      "requestSubType" : "RESERVE"
+                    } ]
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses" : {
+          "201" : {
+            "description" : "Created",
+            "headers" : {
+              "Location" : {
+                "schema" : {
+                  "description" : "RatingDataRef",
+                  "type" : "string"
+                }
+              }
+            },
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/RatingDataResponse"
+                },
+                "examples" : {
+                  "IEC" : {
+                    "summary" : "Immediate Event Charging (IEC)",
+                    "value" : {
+                      "invocationTimeStamp" : "2020-12-13T15:28:32.186Z",
+                      "invocationSequenceNumber" : 1,
+                      "serviceRating" : {
+                        "serviceContextId" : "32274@3gpp.org",
+                        "serviceId" : 4,
+                        "price" : {
+                          "amount" : {
+                            "currencyCode" : "CAD",
+                            "valueDigits" : 5,
+                            "exponent" : -10
+                          }
+                        },
+                        "consumedUnit" : {
+                          "serviceSpecificUnit" : 1
+                        },
+                        "resultCode" : "SUCCESS"
+                      }
+                    }
+                  },
+                  "ECUR" : {
+                    "summary" : "Event Charging with Unit Reservation (ECUR)",
+                    "value" : {
+                      "invocationTimeStamp" : "2020-12-13T15:28:32.186Z",
+                      "invocationSequenceNumber" : 1,
+                      "serviceRating" : {
+                        "serviceContextId" : "32274@3gpp.org",
+                        "serviceId" : 4,
+                        "price" : {
+                          "amount" : {
+                            "currencyCode" : "CAD",
+                            "valueDigits" : 5,
+                            "exponent" : -10
+                          }
+                        },
+                        "grantedUnit" : {
+                          "serviceSpecificUnit" : 1
+                        },
+                        "resultCode" : "SUCCESS"
+                      }
+                    }
+                  },
+                  "SCUR" : {
+                    "summary" : "Session Charging with Unit Reservation (SCUR)",
+                    "value" : {
+                      "invocationTimeStamp" : "2020-12-13T15:28:32.123Z",
+                      "invocationSequenceNumber" : 1,
+                      "serviceRating" : [ {
+                        "serviceContextId" : "32251@3gpp.org",
+                        "serviceId" : 1,
+                        "ratingGroup" : 2,
+                        "grantedUnit" : {
+                          "totalVolume" : 100000000
+                        },
+                        "resultCode" : "SUCCESS"
+                      }, {
+                        "serviceContextId" : "32251@3gpp.org",
+                        "serviceId" : 1,
+                        "ratingGroup" : 32,
+                        "grantedUnit" : {
+                          "totalVolume" : 100000000
+                        },
+                        "resultCode" : "SUCCESS"
+                      } ]
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400" : {
+            "description" : "Bad request",
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "https://api.swaggerhub.com/domains/SigScale/TS29571_CommonData/1.2.1#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "403" : {
+            "description" : "Forbidden",
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "https://api.swaggerhub.com/domains/SigScale/TS29571_CommonData/1.2.1#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "404" : {
+            "description" : "Not Found",
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "https://api.swaggerhub.com/domains/SigScale/TS29571_CommonData/1.2.1#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "401" : {
+            "$ref" : "https://api.swaggerhub.com/domains/SigScale/TS29571_CommonData/1.2.1#/components/responses/401"
+          },
+          "410" : {
+            "$ref" : "https://api.swaggerhub.com/domains/SigScale/TS29571_CommonData/1.2.1#/components/responses/410"
+          },
+          "411" : {
+            "$ref" : "https://api.swaggerhub.com/domains/SigScale/TS29571_CommonData/1.2.1#/components/responses/411"
+          },
+          "413" : {
+            "$ref" : "https://api.swaggerhub.com/domains/SigScale/TS29571_CommonData/1.2.1#/components/responses/413"
+          },
+          "500" : {
+            "$ref" : "https://api.swaggerhub.com/domains/SigScale/TS29571_CommonData/1.2.1#/components/responses/500"
+          },
+          "503" : {
+            "$ref" : "https://api.swaggerhub.com/domains/SigScale/TS29571_CommonData/1.2.1#/components/responses/503"
+          },
+          "default" : {
+            "$ref" : "https://api.swaggerhub.com/domains/SigScale/TS29571_CommonData/1.2.1#/components/responses/default"
+          }
+        },
+        "summary" : "Create rating data for a new event or session",
+        "description" : "The rating data collection represents instances of rating requests."
+      }
+    },
+    "/ratingdata/{RatingDataRef}/update" : {
+      "post" : {
+        "operationId" : "updateRating",
+        "tags" : [ "Individual Rating Data (Document)" ],
+        "requestBody" : {
+          "required" : true,
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/RatingDataRequest"
+              },
+              "examples" : {
+                "SCUR" : {
+                  "summary" : "Session Charging with Unit Reservation (SCUR)",
+                  "value" : {
+                    "nfConsumerIdentification" : {
+                      "nodeFunctionality" : "OCF"
+                    },
+                    "invocationTimeStamp" : "2020-12-13T15:33:10.203Z",
+                    "invocationSequenceNumber" : 2,
+                    "actualTime" : "2020-12-13T15:33:10Z",
+                    "subscriptionId" : [ "msisdn-14165551234", "imsi-001001000000001" ],
+                    "serviceRating" : [ {
+                      "serviceContextId" : "32251@3gpp.org",
+                      "serviceId" : 1,
+                      "ratingGroup" : 32,
+                      "requestSubType" : "DEBIT",
+                      "usedUnits" : {
+                        "totalVolume" : 83256442
+                      }
+                    }, {
+                      "serviceContextId" : "32251@3gpp.org",
+                      "serviceId" : 1,
+                      "ratingGroup" : 32,
+                      "requestSubType" : "RESERVE"
+                    } ]
+                  }
+                }
+              }
+            }
+          }
+        },
+        "parameters" : [ {
+          "name" : "RatingDataRef",
+          "in" : "path",
+          "description" : "A unique identifier for a rating data resource.",
+          "required" : true,
+          "schema" : {
+            "type" : "string"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "description" : "Updated Rating Data resource is returned",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/RatingDataResponse"
+                },
+                "examples" : {
+                  "SCUR" : {
+                    "summary" : "Session Charging with Unit Reservation (SCUR)",
+                    "value" : {
+                      "invocationTimeStamp" : "2020-12-13T15:33:10.289Z",
+                      "invocationSequenceNumber" : 2,
+                      "serviceRating" : [ {
+                        "serviceContextId" : "32251@3gpp.org",
+                        "serviceId" : 1,
+                        "ratingGroup" : 32,
+                        "consumedUnit" : {
+                          "totalVolume" : 83256442
+                        },
+                        "resultCode" : "SUCCESS"
+                      }, {
+                        "serviceContextId" : "32251@3gpp.org",
+                        "serviceId" : 1,
+                        "ratingGroup" : 32,
+                        "grantedUnit" : {
+                          "totalVolume" : 100000000
+                        },
+                        "resultCode" : "SUCCESS"
+                      } ]
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400" : {
+            "description" : "Bad request",
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "https://api.swaggerhub.com/domains/SigScale/TS29571_CommonData/1.2.1#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "403" : {
+            "description" : "Forbidden",
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "https://api.swaggerhub.com/domains/SigScale/TS29571_CommonData/1.2.1#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "404" : {
+            "description" : "Not Found",
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "https://api.swaggerhub.com/domains/SigScale/TS29571_CommonData/1.2.1#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "401" : {
+            "$ref" : "https://api.swaggerhub.com/domains/SigScale/TS29571_CommonData/1.2.1#/components/responses/401"
+          },
+          "410" : {
+            "$ref" : "https://api.swaggerhub.com/domains/SigScale/TS29571_CommonData/1.2.1#/components/responses/410"
+          },
+          "411" : {
+            "$ref" : "https://api.swaggerhub.com/domains/SigScale/TS29571_CommonData/1.2.1#/components/responses/411"
+          },
+          "413" : {
+            "$ref" : "https://api.swaggerhub.com/domains/SigScale/TS29571_CommonData/1.2.1#/components/responses/413"
+          },
+          "500" : {
+            "$ref" : "https://api.swaggerhub.com/domains/SigScale/TS29571_CommonData/1.2.1#/components/responses/500"
+          },
+          "503" : {
+            "$ref" : "https://api.swaggerhub.com/domains/SigScale/TS29571_CommonData/1.2.1#/components/responses/503"
+          },
+          "default" : {
+            "$ref" : "https://api.swaggerhub.com/domains/SigScale/TS29571_CommonData/1.2.1#/components/responses/default"
+          }
+        },
+        "summary" : "In session interim rating data update.",
+        "description" : "Provides an interim update for on going session.  May contain reservation requests and/or reports of used units."
+      }
+    },
+    "/ratingdata/{RatingDataRef}/release" : {
+      "post" : {
+        "operationId" : "endRating",
+        "tags" : [ "Individual Rating Data (Document)" ],
+        "requestBody" : {
+          "required" : true,
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/RatingDataRequest"
+              },
+              "examples" : {
+                "ECUR" : {
+                  "summary" : "Event Charging with Unit Reservation (ECUR)",
+                  "value" : {
+                    "nfConsumerIdentification" : {
+                      "nodeFunctionality" : "OCF"
+                    },
+                    "invocationTimeStamp" : "2020-12-13T15:38:45.490Z",
+                    "invocationSequenceNumber" : 2,
+                    "actualTime" : "2020-12-13T15:38:45Z",
+                    "subscriptionId" : [ "msisdn-14165551234", "imsi-001001000000001" ],
+                    "oneTimeEvent" : true,
+                    "oneTimeEventType" : "PEC",
+                    "serviceRating" : [ {
+                      "serviceContextId" : "32274@3gpp.org",
+                      "serviceId" : 4,
+                      "destinationId" : {
+                        "destinationIdType" : "DN",
+                        "destinationIdData" : "14165556789"
+                      },
+                      "requestSubType" : "DEBIT",
+                      "consumedUnit" : {
+                        "serviceSpecificUnit" : 1
+                      }
+                    } ]
+                  }
+                },
+                "SCUR" : {
+                  "summary" : "Session Charging with Unit Reservation (SCUR)",
+                  "value" : {
+                    "nfConsumerIdentification" : {
+                      "nodeFunctionality" : "OCF"
+                    },
+                    "invocationTimeStamp" : "2020-12-13T15:38:45.490Z",
+                    "invocationSequenceNumber" : 3,
+                    "actualTime" : "2020-12-13T15:38:45Z",
+                    "serviceRating" : [ {
+                      "serviceContextId" : "32251@3gpp.org",
+                      "serviceId" : 1,
+                      "ratingGroup" : 32,
+                      "requestSubType" : "DEBIT",
+                      "consumedUnit" : {
+                        "totalVolume" : 723954330
+                      }
+                    } ]
+                  }
+                }
+              }
+            }
+          }
+        },
+        "parameters" : [ {
+          "name" : "RatingDataRef",
+          "in" : "path",
+          "description" : "A unique identifier for a rating data resource.",
+          "required" : true,
+          "schema" : {
+            "type" : "string"
+          }
+        } ],
+        "responses" : {
+          "204" : {
+            "description" : "Rating Data successfully released",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/RatingDataResponse"
+                },
+                "examples" : {
+                  "ECUR" : {
+                    "summary" : "Event Charging with Unit Reservation (ECUR)",
+                    "value" : {
+                      "invocationTimeStamp" : "2020-12-13T15:38:45.5340Z",
+                      "invocationSequenceNumber" : 2,
+                      "serviceRating" : [ {
+                        "serviceContextId" : "32274@3gpp.org",
+                        "serviceId" : 4,
+                        "price" : {
+                          "amount" : {
+                            "currencyCode" : "CAD",
+                            "valueDigits" : 5,
+                            "exponent" : -10
+                          }
+                        },
+                        "consumedUnit" : {
+                          "serviceSpecificUnit" : 1
+                        },
+                        "resultCode" : "SUCCESS"
+                      } ]
+                    }
+                  },
+                  "SCUR" : {
+                    "summary" : "Session Charging with Unit Reservation (SCUR)",
+                    "value" : {
+                      "invocationTimeStamp" : "2020-12-13T15:38:45.536Z",
+                      "invocationSequenceNumber" : 3,
+                      "serviceRating" : [ {
+                        "serviceContextId" : "32251@3gpp.org",
+                        "serviceId" : 1,
+                        "ratingGroup" : 2,
+                        "consumedUnit" : {
+                          "totalVolume" : 723954330
+                        },
+                        "price" : {
+                          "currencyCode" : "CAD",
+                          "amount" : {
+                            "valueDigits" : 20,
+                            "exponent" : -10
+                          }
+                        },
+                        "resultCode" : "SUCCESS"
+                      } ]
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400" : {
+            "description" : "Bad request",
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "https://api.swaggerhub.com/domains/SigScale/TS29571_CommonData/1.2.1#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "403" : {
+            "description" : "Forbidden",
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "https://api.swaggerhub.com/domains/SigScale/TS29571_CommonData/1.2.1#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "404" : {
+            "description" : "Not Found",
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "https://api.swaggerhub.com/domains/SigScale/TS29571_CommonData/1.2.1#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "401" : {
+            "$ref" : "https://api.swaggerhub.com/domains/SigScale/TS29571_CommonData/1.2.1#/components/responses/401"
+          },
+          "410" : {
+            "$ref" : "https://api.swaggerhub.com/domains/SigScale/TS29571_CommonData/1.2.1#/components/responses/410"
+          },
+          "411" : {
+            "$ref" : "https://api.swaggerhub.com/domains/SigScale/TS29571_CommonData/1.2.1#/components/responses/411"
+          },
+          "413" : {
+            "$ref" : "https://api.swaggerhub.com/domains/SigScale/TS29571_CommonData/1.2.1#/components/responses/413"
+          },
+          "500" : {
+            "$ref" : "https://api.swaggerhub.com/domains/SigScale/TS29571_CommonData/1.2.1#/components/responses/500"
+          },
+          "503" : {
+            "$ref" : "https://api.swaggerhub.com/domains/SigScale/TS29571_CommonData/1.2.1#/components/responses/503"
+          },
+          "default" : {
+            "$ref" : "https://api.swaggerhub.com/domains/SigScale/TS29571_CommonData/1.2.1#/components/responses/default"
+          }
+        },
+        "summary" : "End of session rating data update.",
+        "description" : "Indicates the end of an existing session.  May contain  reports of used units."
+      }
+    }
+  },
+  "components" : {
+    "securitySchemes" : {
+      "oAuth2ClientCredentials" : {
+        "type" : "oauth2",
+        "flows" : {
+          "clientCredentials" : {
+            "tokenUrl" : "{nrfApiRoot}/oauth2/token",
+            "scopes" : {
+              "nrf-rating" : "Access to the Nrf_Rating API"
+            }
+          }
+        }
+      }
+    },
+    "schemas" : {
+      "RatingDataRequest" : {
+        "type" : "object",
+        "properties" : {
+          "subscriberIdentifier" : {
+            "description" : "Identifies the charged party.",
+            "type" : "array",
+            "items" : {
+              "type" : "string",
+              "pattern" : "^(imsi-[0-9]{5,15}|msisdn-[0-9]{5,15}|nai-.+|gci-.+|gli-.+|.+)$"
+            }
+          },
+          "tenantIdentifier" : {
+            "description" : "Identifier of the tenant.",
+            "type" : "string"
+          },
+          "mnSConsumerIdentifier" : {
+            "description" : "Management service (MnS) consumer Identifier.",
+            "type" : "string"
+          },
+          "nfConsumerIdentification" : {
+            "description" : "Contains a set of information identifying the network function (NF) consumer of the rating service.",
+            "allOf" : [ {
+              "$ref" : "#/components/schemas/NFIdentification"
+            } ]
+          },
+          "invocationTimeStamp" : {
+            "description" : "The time at which the request is sent.",
+            "allOf" : [ {
+              "$ref" : "https://api.swaggerhub.com/domains/SigScale/TS29571_CommonData/1.2.1#/components/schemas/DateTime"
+            } ]
+          },
+          "beginTimeStamp" : {
+            "description" : "The time of the service activation request.",
+            "allOf" : [ {
+              "$ref" : "https://api.swaggerhub.com/domains/SigScale/TS29571_CommonData/1.2.1#/components/schemas/DateTime"
+            } ]
+          },
+          "invocationSequenceNumber" : {
+            "description" : "The sequence number of the rating service invocation by the network function (NF) consumer.",
+            "allOf" : [ {
+              "$ref" : "https://api.swaggerhub.com/domains/SigScale/TS29571_CommonData/1.2.1#/components/schemas/Uint32"
+            } ]
+          },
+          "oneTimeEvent" : {
+            "description" : "Indicates, if included, that this is event based rating and whether this is a one-time event. If true, this is a one-time event, that there will be no update or release.",
+            "type" : "boolean"
+          },
+          "oneTimeEventType" : {
+            "description" : "Indicates the type of the one time event, i.e. Immediate or post event rating.",
+            "anyOf" : [ {
+              "type" : "string",
+              "enum" : [ "IEC", "PEC" ]
+            }, {
+              "type" : "string"
+            } ]
+          },
+          "serviceRating" : {
+            "description" : "One or more service elements to be rated.",
+            "type" : "array",
+            "items" : {
+              "$ref" : "#/components/schemas/ServiceRatingRequest"
+            },
+            "minItems" : 1
+          }
+        },
+        "required" : [ "nfConsumerIdentification", "invocationTimeStamp", "invocationSequenceNumber", "serviceRating" ]
+      },
+      "RatingDataResponse" : {
+        "type" : "object",
+        "properties" : {
+          "invocationTimeStamp" : {
+            "description" : "The time at which the response is sent.",
+            "allOf" : [ {
+              "$ref" : "https://api.swaggerhub.com/domains/SigScale/TS29571_CommonData/1.2.1#/components/schemas/DateTime"
+            } ]
+          },
+          "invocationSequenceNumber" : {
+            "description" : "The sequence number of the rating service invocation by the network function (NF) consumer.",
+            "allOf" : [ {
+              "$ref" : "https://api.swaggerhub.com/domains/SigScale/TS29571_CommonData/1.2.1#/components/schemas/Uint32"
+            } ]
+          },
+          "invocationResult" : {
+            "description" : "Holds the result of rating service invocation by the network function (NF) consumer.",
+            "allOf" : [ {
+              "$ref" : "#/components/schemas/InvocationResult"
+            } ]
+          },
+          "serviceRating" : {
+            "description" : "One or more rated service elements.",
+            "type" : "array",
+            "items" : {
+              "$ref" : "#/components/schemas/ServiceRatingResult"
+            },
+            "minItems" : 1
+          }
+        },
+        "required" : [ "invocationTimeStamp", "invocationSequenceNumber" ]
+      },
+      "NFIdentification" : {
+        "type" : "object",
+        "properties" : {
+          "nFName" : {
+            "$ref" : "https://api.swaggerhub.com/domains/SigScale/TS29571_CommonData/1.2.1#/components/schemas/NfInstanceId"
+          },
+          "nFIPv4Address" : {
+            "$ref" : "https://api.swaggerhub.com/domains/SigScale/TS29571_CommonData/1.2.1#/components/schemas/Ipv4Addr"
+          },
+          "nFIPv6Address" : {
+            "$ref" : "https://api.swaggerhub.com/domains/SigScale/TS29571_CommonData/1.2.1#/components/schemas/Ipv6Addr"
+          },
+          "nFPLMNID" : {
+            "$ref" : "https://api.swaggerhub.com/domains/SigScale/TS29571_CommonData/1.2.1#/components/schemas/PlmnId"
+          },
+          "nodeFunctionality" : {
+            "$ref" : "#/components/schemas/NodeFunctionality"
+          },
+          "nFFqdn" : {
+            "type" : "string"
+          }
+        },
+        "required" : [ "nodeFunctionality" ]
+      },
+      "NodeFunctionality" : {
+        "description" : "The function of the node.",
+        "anyOf" : [ {
+          "type" : "string",
+          "enum" : [ "CHF", "OCF" ]
+        }, {
+          "type" : "string"
+        } ]
+      },
+      "ServiceRatingRequest" : {
+        "type" : "object",
+        "properties" : {
+          "serviceId" : {
+            "description" : "Identifies the service for which the rating request was sent. This ID with the serviceContextId together forms a unique identification of the service.",
+            "allOf" : [ {
+              "$ref" : "https://api.swaggerhub.com/domains/SigScale/TS29571_CommonData/1.2.1#/components/schemas/ServiceId"
+            } ]
+          },
+          "ratingGroup" : {
+            "description" : "Identifies the charging key for the service.",
+            "allOf" : [ {
+              "$ref" : "https://api.swaggerhub.com/domains/SigScale/TS29571_CommonData/1.2.1#/components/schemas/RatingGroup"
+            } ]
+          },
+          "destinationId" : {
+            "description" : "Identifies the destination(s), to which the requested service is directed.",
+            "type" : "array",
+            "items" : {
+              "$ref" : "#/components/schemas/DestinationId"
+            }
+          },
+          "serviceContextId" : {
+            "$ref" : "#/components/schemas/ServiceContextId"
+          },
+          "serviceInformation" : {
+            "description" : "The structure of serviceInformation is defined in the \"middle-tier\" documents and formally specified in TS 32.299. The content of this parameter corresponds to the service indicated by serviceContextId.",
+            "allOf" : [ {
+              "$ref" : "#/components/schemas/ServiceInformation"
+            } ]
+          },
+          "counter" : {
+            "description" : "One or multiple Counter elements.",
+            "type" : "array",
+            "items" : {
+              "$ref" : "#/components/schemas/Counter"
+            }
+          },
+          "basicPriceTimeStamp" : {
+            "description" : "The timestamp of the last rating of the Basic Price, if applicable for the service indicated by the serviceId.",
+            "allOf" : [ {
+              "$ref" : "https://api.swaggerhub.com/domains/SigScale/TS29571_CommonData/1.2.1#/components/schemas/DateTime"
+            } ]
+          },
+          "requestSubType" : {
+            "description" : "Service rating request sub-type.",
+            "anyOf" : [ {
+              "type" : "string",
+              "enum" : [ "AOC", "RESERVE", "DEBIT", "RELEASE" ]
+            }, {
+              "type" : "string"
+            } ]
+          },
+          "requestedUnit" : {
+            "description" : "The number of requested units from the service.",
+            "allOf" : [ {
+              "$ref" : "#/components/schemas/RequestedUnit"
+            } ]
+          },
+          "consumedUnit" : {
+            "description" : "The number of consumed units of the service.",
+            "allOf" : [ {
+              "$ref" : "#/components/schemas/ConsumedUnit"
+            } ]
+          },
+          "consumedUnitAfterTariffSwitch" : {
+            "description" : "The number of consumed units of the service since previous request after tariff switch occurred. This parameter is mandatory if the tariff switch occurred since the previous request.",
+            "allOf" : [ {
+              "$ref" : "#/components/schemas/ConsumedUnit"
+            } ]
+          }
+        }
+      },
+      "ServiceRatingResult" : {
+        "type" : "object",
+        "properties" : {
+          "serviceId" : {
+            "description" : "Identifies the service for which the rating request was sent. This ID with the serviceContextId together forms a unique identification of the service.",
+            "allOf" : [ {
+              "$ref" : "https://api.swaggerhub.com/domains/SigScale/TS29571_CommonData/1.2.1#/components/schemas/ServiceId"
+            } ]
+          },
+          "serviceContextId" : {
+            "$ref" : "#/components/schemas/ServiceContextId"
+          },
+          "price" : {
+            "$ref" : "#/components/schemas/Price"
+          },
+          "grantedUnit" : {
+            "description" : "The number of granted units for the service.",
+            "allOf" : [ {
+              "$ref" : "#/components/schemas/GrantedUnit"
+            } ]
+          },
+          "billingInfo" : {
+            "description" : "Textual description for bill presentation.",
+            "type" : "string"
+          },
+          "basicPrice" : {
+            "description" : "Contains a basic fee, that is applicable (e.g. only once per day). If the basicPrice is received by an NF consumer, the NF will deduct this price from the subscriber's account balance, and it will store the current system time internally as timestamp for the last charging of the basic price.",
+            "allOf" : [ {
+              "$ref" : "#/components/schemas/Price"
+            } ]
+          },
+          "counterPrice" : {
+            "description" : "Contains information on how the NF consumer shall modify a specified counter of the subscriber in the ABMF.",
+            "type" : "array",
+            "items" : {
+              "$ref" : "#/components/schemas/CounterPrice"
+            }
+          },
+          "impactOnCounter" : {
+            "description" : "Contains information on how the counter has been modified as a result of the current online session. It is used by the CDF for inclusion in the CDRs.",
+            "type" : "array",
+            "items" : {
+              "$ref" : "#/components/schemas/ImpactOnCounter"
+            }
+          },
+          "tariffSwitchTime" : {
+            "description" : "Time period in seconds from the time included in actualTime of the request until the next tariff switch occurs. A value \"0\" means, that the tariff switch occurs immediately, i.e. the tariff information contained in nextMonetaryTariff is valid immediately.",
+            "allOf" : [ {
+              "$ref" : "https://api.swaggerhub.com/domains/SigScale/TS29571_CommonData/1.2.1#/components/schemas/Uint32"
+            } ]
+          },
+          "currentTariff" : {
+            "description" : "Tariff that is currently valid.",
+            "allOf" : [ {
+              "$ref" : "#/components/schemas/Tariff"
+            } ]
+          },
+          "nextTariff" : {
+            "description" : "Tariff after the next tariff switch.",
+            "allOf" : [ {
+              "$ref" : "#/components/schemas/Tariff"
+            } ]
+          },
+          "expiryTime" : {
+            "description" : "Time period in seconds from the time in actualTime of the request until the expiration of all tariff information contained in this response message. This attribute may be used e.g. if multiple tariff switches are foreseen, or if interworking between limited valid units and tariff switches needs to be ensured.",
+            "allOf" : [ {
+              "$ref" : "https://api.swaggerhub.com/domains/SigScale/TS29571_CommonData/1.2.1#/components/schemas/Uint32"
+            } ]
+          },
+          "validUnits" : {
+            "description" : "Defines for how many units the tariff is valid.",
+            "allOf" : [ {
+              "$ref" : "https://api.swaggerhub.com/domains/SigScale/TS29571_CommonData/1.2.1#/components/schemas/Uint64"
+            } ]
+          },
+          "tariffAfterValidUnits" : {
+            "description" : "Tariff after all valid units have been used. This attribute may be used to optimize service availability in scenarios with limited valid units.",
+            "allOf" : [ {
+              "$ref" : "#/components/schemas/Tariff"
+            } ]
+          },
+          "counterTariff" : {
+            "description" : "One or multiple CounterTariff elements.",
+            "type" : "array",
+            "items" : {
+              "$ref" : "#/components/schemas/CounterTariff"
+            }
+          },
+          "requestedCounter" : {
+            "description" : "One or multiple CounterIDs. Only the counters identified in this list shall be included by the NF consumer in subsequent update requests within this session. The list is valid until a modified list is received by the NF or until the session ends.",
+            "type" : "array",
+            "items" : {
+              "$ref" : "https://api.swaggerhub.com/domains/SigScale/TS29571_CommonData/1.2.1#/components/schemas/Uint32"
+            }
+          },
+          "resultCode" : {
+            "anyOf" : [ {
+              "type" : "string",
+              "enum" : [ "SUCCESS", "END_USER_SERVICE_DENIED", "QUOTA_MANAGEMENT_NOT_APPLICABLE", "QUOTA_LIMIT_REACHED", "END_USER_SERVICE_REJECTED", "USER_UNKNOWN", "RATING_FAILED" ]
+            }, {
+              "type" : "string"
+            } ]
+          }
+        },
+        "required" : [ "serviceId", "resultCode" ]
+      },
+      "DestinationId" : {
+        "type" : "object",
+        "properties" : {
+          "destinationIdType" : {
+            "anyOf" : [ {
+              "type" : "string",
+              "enum" : [ "DN", "APN", "URL", "NAI" ]
+            }, {
+              "type" : "string"
+            } ]
+          },
+          "destinationIdData" : {
+            "type" : "string"
+          }
+        }
+      },
+      "ServiceContextId" : {
+        "description" : "A unique identifier of the service specific document that applies to the request. This is an identifier allocated by the service provider/operator, by the service element manufacturer or by a standardization body and MUST uniquely identify a given service specific document. For offline charging, this identifies the service specific document (\"middle tier\" TS) on which associated CDRs should based.\nThe format of the Service-Context-Id is':'\n[extensions.MNC.MCC.Release.]<service-context>@domain\nThe 3GPP specific values for <service-context@domain include':'\n  2251@3gpp.org for PS charging\n  32260@3gpp.org for IMS charging\n  32274@3gpp.org for SMS service charging\n  32275@3gpp.org for MMTel service charging\n  32276@3gpp.org for VCS charging\n"
+      },
+      "ServiceInformation" : {
+        "description" : "This parameter holds the individual service specific parameters as defined in the corresponding \"middle tier\" 3GPP TS.",
+        "oneOf" : [ {
+          "description" : "5G Data Connectivity Charging Information",
+          "allOf" : [ {
+            "$ref" : "https://www.3gpp.org/ftp/Specs/archive/OpenAPI/Rel-16/TS32291_Nchf_ConvergedCharging.yaml#/components/schemas/PDUSessionChargingInformation"
+          } ]
+        }, {
+          "description" : "5G SMS Charging Information",
+          "allOf" : [ {
+            "$ref" : "https://www.3gpp.org/ftp/Specs/archive/OpenAPI/Rel-16/TS32291_Nchf_ConvergedCharging.yaml#/components/schemas/SMSChargingInformation"
+          } ]
+        }, {
+          "description" : "5G Exposure Function Northbound API Charging Information",
+          "allOf" : [ {
+            "$ref" : "https://www.3gpp.org/ftp/Specs/archive/OpenAPI/Rel-16/TS32291_Nchf_ConvergedCharging.yaml#/components/schemas/NEFChargingInformation"
+          } ]
+        }, {
+          "description" : "5G Registration Charging Information",
+          "allOf" : [ {
+            "$ref" : "https://www.3gpp.org/ftp/Specs/archive/OpenAPI/Rel-16/TS32291_Nchf_ConvergedCharging.yaml#/components/schemas/RegistrationChargingInformation"
+          } ]
+        }, {
+          "description" : "5G N2 Connection Charging Information",
+          "allOf" : [ {
+            "$ref" : "https://www.3gpp.org/ftp/Specs/archive/OpenAPI/Rel-16/TS32291_Nchf_ConvergedCharging.yaml#/components/schemas/N2ConnectionChargingInformation"
+          } ]
+        }, {
+          "description" : "5G Location Reporting Charging Information",
+          "allOf" : [ {
+            "$ref" : "https://www.3gpp.org/ftp/Specs/archive/OpenAPI/Rel-16/TS32291_Nchf_ConvergedCharging.yaml#/components/schemas/LocationReportingChargingInformation"
+          } ]
+        }, {
+          "description" : "PS Domain Charging Information",
+          "allOf" : [ {
+            "$ref" : "#/components/schemas/PsInformation"
+          } ]
+        }, {
+          "description" : "SMS Charging Information",
+          "allOf" : [ {
+            "$ref" : "#/components/schemas/SmsInformation"
+          } ]
+        }, {
+          "description" : "IMS Charging Information",
+          "allOf" : [ {
+            "$ref" : "#/components/schemas/ImsInformation"
+          } ]
+        }, {
+          "description" : "Voice Call Charging Information",
+          "allOf" : [ {
+            "$ref" : "#/components/schemas/VcsInformation"
+          } ]
+        } ]
+      },
+      "PsInformation" : {
+        "description" : "Packet Switched (PS) domain charging (3GPP TS 32.251).",
+        "type" : "object",
+        "properties" : {
+          "sgsnMccMnc" : {
+            "description" : "The serving gateway MCC/MNC.",
+            "allOf" : [ {
+              "$ref" : "https://api.swaggerhub.com/domains/SigScale/TS29571_CommonData/1.2.1#/components/schemas/PlmnId"
+            } ]
+          }
+        },
+        "required" : [ "sgsnMccMnc" ]
+      },
+      "SmsInformation" : {
+        "description" : "Short Message Service (SMS) charging (3GPP TS 32.274).",
+        "type" : "object"
+      },
+      "ImsInformation" : {
+        "description" : "IP Multimedia Subsystem (IMS) charging (3GPP TS 32.260).",
+        "type" : "object",
+        "properties" : {
+          "nodeFunctionality" : {
+            "anyOf" : [ {
+              "type" : "string",
+              "enum" : [ "AS" ]
+            }, {
+              "type" : "string"
+            } ]
+          }
+        },
+        "required" : [ "nodeFunctionality" ]
+      },
+      "VcsInformation" : {
+        "description" : "Voice Call Service (VCS) charging (3GPP TS 32.276).",
+        "type" : "object"
+      },
+      "Counter" : {
+        "type" : "object",
+        "properties" : {
+          "counterId" : {
+            "$ref" : "https://api.swaggerhub.com/domains/SigScale/TS29571_CommonData/1.2.1#/components/schemas/Uint32"
+          },
+          "counterValue" : {
+            "$ref" : "https://api.swaggerhub.com/domains/SigScale/TS29571_CommonData/1.2.1#/components/schemas/Int32"
+          },
+          "counterExpiryDate" : {
+            "$ref" : "https://api.swaggerhub.com/domains/SigScale/TS29571_CommonData/1.2.1#/components/schemas/DateTime"
+          }
+        }
+      },
+      "CounterPrice" : {
+        "type" : "object",
+        "properties" : {
+          "counterId" : {
+            "$ref" : "https://api.swaggerhub.com/domains/SigScale/TS29571_CommonData/1.2.1#/components/schemas/Uint32"
+          },
+          "counterType" : {
+            "$ref" : "https://api.swaggerhub.com/domains/SigScale/TS29571_CommonData/1.2.1#/components/schemas/Uint32"
+          },
+          "counterChange" : {
+            "$ref" : "https://api.swaggerhub.com/domains/SigScale/TS29571_CommonData/1.2.1#/components/schemas/Int32"
+          },
+          "setCounterTo" : {
+            "$ref" : "https://api.swaggerhub.com/domains/SigScale/TS29571_CommonData/1.2.1#/components/schemas/Int32"
+          },
+          "counterExpiryDate" : {
+            "$ref" : "https://api.swaggerhub.com/domains/SigScale/TS29571_CommonData/1.2.1#/components/schemas/DateTime"
+          }
+        }
+      },
+      "CounterTariff" : {
+        "type" : "object",
+        "properties" : {
+          "counterId" : {
+            "description" : "Used to address a specific counter, i.e. it identifies the counter. Therefore, the counterID shall be unique for each subscriber.",
+            "allOf" : [ {
+              "$ref" : "https://api.swaggerhub.com/domains/SigScale/TS29571_CommonData/1.2.1#/components/schemas/Uint32"
+            } ]
+          },
+          "counterType" : {
+            "description" : "An operator specific value which characterizes the counter. Used only for descriptive purposes. In contrast to the counterID, the counterType may be not unique.",
+            "allOf" : [ {
+              "$ref" : "https://api.swaggerhub.com/domains/SigScale/TS29571_CommonData/1.2.1#/components/schemas/Uint32"
+            } ]
+          },
+          "counterChangePerSession" : {
+            "description" : "The value, with which the counter shall be incremented or decremented once for the whole online charging session.",
+            "allOf" : [ {
+              "$ref" : "https://api.swaggerhub.com/domains/SigScale/TS29571_CommonData/1.2.1#/components/schemas/Int32"
+            } ]
+          },
+          "counterChangePerConsumedServiceUnit" : {
+            "description" : "The value, with which the counter shall be incremented or decremented per consumed service unit.",
+            "allOf" : [ {
+              "$ref" : "https://api.swaggerhub.com/domains/SigScale/TS29571_CommonData/1.2.1#/components/schemas/Int32"
+            } ]
+          },
+          "counterChangeForFirstChargeableTimeUnit" : {
+            "description" : "The value, with which the counter shall be incremented or decremented for the first chargeable time unit. The first chargeable time unit is defined by unitType in rateElement of monetaryTariff.",
+            "allOf" : [ {
+              "$ref" : "https://api.swaggerhub.com/domains/SigScale/TS29571_CommonData/1.2.1#/components/schemas/Int32"
+            } ]
+          },
+          "counterChangePerSubsequentChargeableTimeUnit" : {
+            "description" : "The value, with which the counter shall be incremented or decremented per chargeable time unit, except for the first chargeable time unit. The subsequent chargeable time unit is defined by unitType in rateElement of currentTariff.",
+            "allOf" : [ {
+              "$ref" : "https://api.swaggerhub.com/domains/SigScale/TS29571_CommonData/1.2.1#/components/schemas/Int32"
+            } ]
+          },
+          "counterChangePerChargeableVolumeUnit" : {
+            "description" : "The value, with which the counter shall be incremented or decremented per chargeable volume unit.  The chargeable volume unit is defined by unitType in rateElement of currentTariff.",
+            "allOf" : [ {
+              "$ref" : "https://api.swaggerhub.com/domains/SigScale/TS29571_CommonData/1.2.1#/components/schemas/Int32"
+            } ]
+          },
+          "counterChangeForFirstChargeableTimeUnitAfterSwitch" : {
+            "description" : "The value, with which the counter shall be incremented or decremented for the first chargeable time unit, if a tariff switch has occurred immediately at the beginning of the online charging session. The first chargeable time unit is defined by unitType in rateElement of nextTariff.",
+            "allOf" : [ {
+              "$ref" : "https://api.swaggerhub.com/domains/SigScale/TS29571_CommonData/1.2.1#/components/schemas/Int32"
+            } ]
+          },
+          "counterChangePerSubsequentChargeableTimeUnitAfterSwitch" : {
+            "description" : "The value, with which the counter shall be incremented or decremented per chargeable time unit (except for the first chargeable time unit), after a tariff switch has occurred. The chargeable time unit is defined by unitType in rateElement of a nextTariff.",
+            "allOf" : [ {
+              "$ref" : "https://api.swaggerhub.com/domains/SigScale/TS29571_CommonData/1.2.1#/components/schemas/Int32"
+            } ]
+          },
+          "counterChangePerChargeableVolumeUnitAfterSwitch" : {
+            "description" : "The value, with which the counter shall be incremented or decremented per chargeable volume unit after a tariff switch has occurred.  The chargeable volume unit is defined by unitType in rateElement of a nextTariff.",
+            "allOf" : [ {
+              "$ref" : "https://api.swaggerhub.com/domains/SigScale/TS29571_CommonData/1.2.1#/components/schemas/Int32"
+            } ]
+          },
+          "counterThreshold" : {
+            "description" : "A threshold value for the counter. If the value of the specified counter reaches this threshold value, all tariff information contained in the request expires, and the NF consumer shall send a new request to the RF.",
+            "allOf" : [ {
+              "$ref" : "https://api.swaggerhub.com/domains/SigScale/TS29571_CommonData/1.2.1#/components/schemas/Int32"
+            } ]
+          },
+          "setCounterTo" : {
+            "description" : "The value, to which the counter shall be set (e.g. to reset counters).",
+            "allOf" : [ {
+              "$ref" : "https://api.swaggerhub.com/domains/SigScale/TS29571_CommonData/1.2.1#/components/schemas/Int32"
+            } ]
+          },
+          "counterExpiryDate" : {
+            "description" : "The timestamp, at which the current value of the counter expires.",
+            "allOf" : [ {
+              "$ref" : "https://api.swaggerhub.com/domains/SigScale/TS29571_CommonData/1.2.1#/components/schemas/DateTime"
+            } ]
+          }
+        }
+      },
+      "ImpactOnCounter" : {
+        "type" : "object",
+        "properties" : {
+          "counterId" : {
+            "description" : "Used to address a specific counter, i.e. it identifies the counter. Therefore, the counterID shall be unique for each subscriber.",
+            "allOf" : [ {
+              "$ref" : "https://api.swaggerhub.com/domains/SigScale/TS29571_CommonData/1.2.1#/components/schemas/Uint32"
+            } ]
+          },
+          "counterValueBegin" : {
+            "description" : "The value for the counter at the beginning of the current online changing session.",
+            "allOf" : [ {
+              "$ref" : "https://api.swaggerhub.com/domains/SigScale/TS29571_CommonData/1.2.1#/components/schemas/Int32"
+            } ]
+          },
+          "counterValueChange" : {
+            "description" : "Contains the change of the value for the counter as result of the current online charging session.",
+            "allOf" : [ {
+              "$ref" : "https://api.swaggerhub.com/domains/SigScale/TS29571_CommonData/1.2.1#/components/schemas/Int32"
+            } ]
+          },
+          "counterValueEnd" : {
+            "description" : "Contains the change of the value for the counter at the end of the current online charging session.",
+            "allOf" : [ {
+              "$ref" : "https://api.swaggerhub.com/domains/SigScale/TS29571_CommonData/1.2.1#/components/schemas/Int32"
+            } ]
+          }
+        },
+        "required" : [ "counterId", "counterValueChange" ]
+      },
+      "RequestedUnit" : {
+        "type" : "object",
+        "properties" : {
+          "time" : {
+            "description" : "This field holds the amount of requested time.",
+            "allOf" : [ {
+              "$ref" : "https://api.swaggerhub.com/domains/SigScale/TS29571_CommonData/1.2.1#/components/schemas/Uint32"
+            } ]
+          },
+          "totalVolume" : {
+            "description" : "This field holds the amount of requested volume in both uplink and downlink directions.",
+            "allOf" : [ {
+              "$ref" : "https://api.swaggerhub.com/domains/SigScale/TS29571_CommonData/1.2.1#/components/schemas/Uint64"
+            } ]
+          },
+          "uplinkVolume" : {
+            "description" : "This field holds the amount of requested volume in uplink direction.",
+            "allOf" : [ {
+              "$ref" : "https://api.swaggerhub.com/domains/SigScale/TS29571_CommonData/1.2.1#/components/schemas/Uint64"
+            } ]
+          },
+          "downlinkVolume" : {
+            "description" : "This field holds the amount of requested volume in downlink direction.",
+            "allOf" : [ {
+              "$ref" : "https://api.swaggerhub.com/domains/SigScale/TS29571_CommonData/1.2.1#/components/schemas/Uint64"
+            } ]
+          },
+          "serviceSpecificUnit" : {
+            "description" : "This field holds the amount of requested service specific units.",
+            "allOf" : [ {
+              "$ref" : "https://api.swaggerhub.com/domains/SigScale/TS29571_CommonData/1.2.1#/components/schemas/Uint64"
+            } ]
+          }
+        }
+      },
+      "GrantedUnit" : {
+        "type" : "object",
+        "properties" : {
+          "time" : {
+            "description" : "This field holds the amount of granted time.",
+            "allOf" : [ {
+              "$ref" : "https://api.swaggerhub.com/domains/SigScale/TS29571_CommonData/1.2.1#/components/schemas/Uint32"
+            } ]
+          },
+          "totalVolume" : {
+            "description" : "This field holds the amount of granted volume in both uplink and downlink directions.",
+            "allOf" : [ {
+              "$ref" : "https://api.swaggerhub.com/domains/SigScale/TS29571_CommonData/1.2.1#/components/schemas/Uint64"
+            } ]
+          },
+          "uplinkVolume" : {
+            "description" : "This field holds the amount of granted volume in uplink direction.",
+            "allOf" : [ {
+              "$ref" : "https://api.swaggerhub.com/domains/SigScale/TS29571_CommonData/1.2.1#/components/schemas/Uint64"
+            } ]
+          },
+          "downlinkVolume" : {
+            "description" : "This field holds the amount of granted volume in downlink direction.",
+            "allOf" : [ {
+              "$ref" : "https://api.swaggerhub.com/domains/SigScale/TS29571_CommonData/1.2.1#/components/schemas/Uint64"
+            } ]
+          },
+          "serviceSpecificUnit" : {
+            "description" : "This field holds the amount of granted service specific units.",
+            "allOf" : [ {
+              "$ref" : "https://api.swaggerhub.com/domains/SigScale/TS29571_CommonData/1.2.1#/components/schemas/Uint64"
+            } ]
+          }
+        }
+      },
+      "ConsumedUnit" : {
+        "type" : "object",
+        "properties" : {
+          "time" : {
+            "description" : "This field holds the amount of consumed time.",
+            "allOf" : [ {
+              "$ref" : "https://api.swaggerhub.com/domains/SigScale/TS29571_CommonData/1.2.1#/components/schemas/Uint32"
+            } ]
+          },
+          "totalVolume" : {
+            "description" : "This field holds the amount of consumed volume in both uplink and downlink directions.",
+            "allOf" : [ {
+              "$ref" : "https://api.swaggerhub.com/domains/SigScale/TS29571_CommonData/1.2.1#/components/schemas/Uint64"
+            } ]
+          },
+          "uplinkVolume" : {
+            "description" : "This field holds the amount of consumed volume in uplink direction.",
+            "allOf" : [ {
+              "$ref" : "https://api.swaggerhub.com/domains/SigScale/TS29571_CommonData/1.2.1#/components/schemas/Uint64"
+            } ]
+          },
+          "downlinkVolume" : {
+            "description" : "This field holds the amount of consumed volume in downlink direction.",
+            "allOf" : [ {
+              "$ref" : "https://api.swaggerhub.com/domains/SigScale/TS29571_CommonData/1.2.1#/components/schemas/Uint64"
+            } ]
+          },
+          "serviceSpecificUnit" : {
+            "description" : "This field holds the amount of consumed service specific units.",
+            "allOf" : [ {
+              "$ref" : "https://api.swaggerhub.com/domains/SigScale/TS29571_CommonData/1.2.1#/components/schemas/Uint64"
+            } ]
+          }
+        }
+      },
+      "Price" : {
+        "description" : "The price for a rated service.",
+        "type" : "object",
+        "properties" : {
+          "currencyCode" : {
+            "$ref" : "#/components/schemas/CurrencyCode"
+          },
+          "amount" : {
+            "description" : "The price amount for the rated service.",
+            "allOf" : [ {
+              "$ref" : "#/components/schemas/UnitValue"
+            } ]
+          }
+        },
+        "required" : [ "unitBalue" ]
+      },
+      "Tariff" : {
+        "description" : "Set of parameters defining the network utilization charges for the use of a particular bearer/session/service.",
+        "type" : "object",
+        "properties" : {
+          "currencyCode" : {
+            "$ref" : "#/components/schemas/CurrencyCode"
+          },
+          "scaleFactor" : {
+            "description" : "Holds a simple multiplication factor.",
+            "allOf" : [ {
+              "$ref" : "#/components/schemas/UnitValue"
+            } ]
+          },
+          "rateElement" : {
+            "type" : "array",
+            "items" : {
+              "$ref" : "#/components/schemas/RateElement"
+            }
+          }
+        },
+        "required" : [ "rateElement" ]
+      },
+      "CurrencyCode" : {
+        "description" : "A currency code that specifies in which currency the values of monetary units were given.  It is specified by using the values defined in the ISO [4217](https://www.iso.org/iso-4217-currency-codes.html) standard.",
+        "oneOf" : [ {
+          "description" : "Alphabetic Code",
+          "type" : "string",
+          "pattern" : "[A-Z]{3}",
+          "example" : "CAD"
+        }, {
+          "description" : "Numeric Code",
+          "type" : "integer",
+          "minimum" : 0,
+          "maximum" : 999,
+          "example" : 124
+        } ]
+      },
+      "UnitValue" : {
+        "description" : "Specifies a floating-point value. The UnitValue is a significand with an exponent; i.e., UnitValue = valueDigits * 10^exponent. This representation avoids unwanted rounding off. For example, the value of 2.3 is represented as ValueDigits = 23 and Exponent = -1. The absence of the exponent part MUST be interpreted as an exponent equal to zero.",
+        "type" : "object",
+        "properties" : {
+          "valueDigits" : {
+            "description" : "The significand of the floating point value.",
+            "allOf" : [ {
+              "$ref" : "https://api.swaggerhub.com/domains/SigScale/TS29571_CommonData/1.2.1#/components/schemas/Uint64"
+            } ]
+          },
+          "exponent" : {
+            "description" : "The exponent of the floating point value",
+            "allOf" : [ {
+              "$ref" : "https://api.swaggerhub.com/domains/SigScale/TS29571_CommonData/1.2.1#/components/schemas/Int32"
+            } ]
+          }
+        },
+        "required" : [ "valueDigits" ]
+      },
+      "RateElement" : {
+        "description" : "Holds a simple rate element of one dimension. In example when unitType=TIME, UnitValue.valueDigits=6, unitCost.valueDigits=10, unitCost.exponent=2 it may be read as \"10 cents per 6 seconds time\". The currency is context dependent.",
+        "type" : "object",
+        "properties" : {
+          "unitType" : {
+            "description" : "Possible dimensions of rate element.",
+            "anyOf" : [ {
+              "type" : "string",
+              "enum" : [ "MONEY", "TIME", "TOTAL_VOLUME", "UPLINK_VOLUME", "DOWNLINK_VOLUME", "SERVICE_SPECIFIC_UNITS" ]
+            }, {
+              "type" : "string"
+            } ]
+          },
+          "chargeReasonCode" : {
+            "description" : "Identifies if the rate element corresponds to a specific charge type.",
+            "anyOf" : [ {
+              "type" : "string",
+              "enum" : [ "UNKNOWN", "USAGE", "COMMUNICATION-ATTEMPT-CHARGE", "SETUP-CHARGE", "ADD-ON-CHARGE" ]
+            }, {
+              "type" : "string"
+            } ]
+          },
+          "unitValue" : {
+            "description" : "Holds rate element unit size.",
+            "allOf" : [ {
+              "$ref" : "#/components/schemas/UnitValue"
+            } ]
+          },
+          "unitCost" : {
+            "description" : "Holds rate element monetary value.",
+            "allOf" : [ {
+              "$ref" : "#/components/schemas/UnitValue"
+            } ]
+          },
+          "unitQuotaThreshold" : {
+            "description" : "Denotes the durability of a rating element within a Tariff. i.e. if the service consumed unitQuotaThreshold number of unitTypes, the next rating element becomes in effect.",
+            "allOf" : [ {
+              "$ref" : "https://api.swaggerhub.com/domains/SigScale/TS29571_CommonData/1.2.1#/components/schemas/Uint32"
+            } ]
+          }
+        },
+        "required" : [ "unitType", "unitCost" ]
+      },
+      "InvocationResult" : {
+        "type" : "object",
+        "properties" : {
+          "error" : {
+            "$ref" : "https://api.swaggerhub.com/domains/SigScale/TS29571_CommonData/1.2.1#/components/schemas/ProblemDetails"
+          },
+          "failureHandling" : {
+            "$ref" : "#/components/schemas/FailureHandling"
+          }
+        }
+      },
+      "FailureHandling" : {
+        "anyOf" : [ {
+          "type" : "string",
+          "enum" : [ "TERMINATE", "CONTINUE", "RETRY_AND_TERMINATE" ]
+        }, {
+          "type" : "string"
+        } ]
+      }
+    }
+  }
+}

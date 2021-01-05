@@ -26,6 +26,7 @@
 -export([get_offer/1, get_offers/2,
 		patch_offer/3, get_inventory/1,
 		get_inventories/2, patch_inventory/3]).
+-export([sync_offer/1]).
 -export([get_catalog/2, get_catalogs/1]).
 -export([get_category/2, get_categories/1]).
 -export([get_product_spec/2, get_product_specs/1, product_status/1]).
@@ -578,7 +579,7 @@ delete_offer(Id) ->
 		Id :: string(),
 		Result :: {ok, Headers :: [tuple()], Body :: iolist()}
 				| {error, ErrorCode :: integer()} .
-%% @doc Respond to `DELETE /productInventoryManagement/v1/product/{id}'
+%% @doc Respond to `DELETE /productInventoryManagement/v2/product/{id}'
 %% 	request to remove a `Product Invenotry'.
 delete_inventory(Id) ->
 	case catch ocs:delete_product(Id) of
@@ -589,6 +590,41 @@ delete_inventory(Id) ->
 		{'EXIT', _} ->
 			{error, 500}
 	end.
+
+-spec sync_offer(ReqData) -> Result when
+	ReqData	:: [tuple()],
+	Result	:: {ok, Headers, Body} | {error, Status},
+	Headers	:: [tuple()],
+	Body		:: iolist(),
+	Status	:: 400 | 500 .
+%% @doc Respond to `POST /productCatalogManagement/v2/syncOffer'.
+%% 	Sync a Product Offering.
+sync_offer(ReqData) ->
+	{struct, EventStructList} = mochijson:decode(ReqData),
+	{_, OfferEvent} = lists:keyfind("event", 1, EventStructList),
+	sync_offer(lists:keyfind("eventType", 1, EventStructList), offer(OfferEvent)).
+sync_offer({_, "ProductOfferingCreationNotification"}, #offer{} = Offer1) ->
+	case ocs:add_offer(Offer1) of
+		{ok, #offer{} = Offer2} ->
+			Body = mochijson:encode(offer(Offer2)),
+			Etag = ocs_rest:etag(Offer2#offer.last_modified),
+			Href = ?offeringPath ++ Offer2#offer.name,
+			Headers = [{location, Href}, {etag, Etag}],
+			{ok, Headers, Body};
+		{error, Reason} ->
+			{error, Reason}
+	end;
+sync_offer({_, "ProductOfferingRemoveNotification"}, #offer{name = Name}) ->
+	case catch ocs:delete_offer(Name) of
+		ok ->
+			{ok, [], []};
+		{'EXIT', unable_to_delete} ->
+			{error, 403};
+		{'EXIT', _} ->
+			{error, 500}
+	end;
+sync_offer(false, _) ->
+	{error, 400}.
 
 -spec product_status(Status) -> Status
 	when
@@ -888,9 +924,15 @@ characteristic_product_network() ->
 characteristic_product_rated_plan() ->
 	Name1 = {"name", "timeOfDayRange"},
 	Description1 = {"description", "Start and End of time of day range"},
+	Config1 = {"configurable", true},
 	ValueType1 = {"valueType", "Range"},
-	Char1 = {struct, [Name1, Description1, ValueType1]},
-	[Char1].
+	Char1 = {struct, [Name1, Description1, Config1, ValueType1]},
+	Name2 = {"name", "chargingKey"},
+	Description2 = {"description", "Charging Key"},
+	Config2 = {"configurable", true},
+	ValueType2 = {"valueType", "Number"},
+	Char2 = {struct, [Name2, Description2, Config2, ValueType2]},
+	[Char1, Char2].
 
 %% @hidden
 characteristic_product_prepaid() ->
@@ -918,7 +960,7 @@ characteristic_product_voice() ->
 	Description2 = {"description", "Constrain price to incoming or outgoing calls"},
 	ValueType2 = {"valueType", "String"},
 	Char2 = {struct, [Name2, Description2, ValueType2]},
-	Name3 = {"name", "romingTable"},
+	Name3 = {"name", "roamingTable"},
 	Description3 = {"description", "Roaming partners table name"},
 	ValueType3 = {"valueType", "String"},
 	Char3 = {struct, [Name3, Description3, ValueType3]},
@@ -926,7 +968,7 @@ characteristic_product_voice() ->
 
 %% @hidden
 characteristic_product_data() ->
-	Name1 = {"name", "romingTable"},
+	Name1 = {"name", "roamingTable"},
 	Description1 = {"description", "Roaming partners table name"},
 	ValueType1 = {"valueType", "String"},
 	Char1 = {struct, [Name1, Description1, ValueType1]},

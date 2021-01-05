@@ -50,6 +50,7 @@
 -include("diameter_gen_eap_application_rfc4072.hrl").
 -include("diameter_gen_3gpp_sta_application.hrl").
 -include("diameter_gen_3gpp_swm_application.hrl").
+-include("diameter_gen_3gpp_s6b_application.hrl").
 -include("diameter_gen_3gpp_swx_application.hrl").
 
 %% support deprecated_time_unit()
@@ -231,10 +232,14 @@ auth_log(Protocol, Server, Client, Type, RequestAttributes, ResponseAttributes) 
 		Port :: integer(),
 		Request :: #diameter_nas_app_AAR{} | #diameter_eap_app_DER{}
 				| #'3gpp_sta_DER'{} | #'3gpp_swm_DER'{}
-				| #'3gpp_sta_STR'{} | #'3gpp_swm_STR'{} | #'3gpp_swx_RTR'{},
+				| #'3gpp_sta_STR'{} | #'3gpp_swm_STR'{}
+				| #'3gpp_s6b_STR'{} | #'3gpp_swx_RTR'{}
+				| #'3gpp_s6b_AAR'{},
 		Response :: #diameter_nas_app_AAA{} | #diameter_eap_app_DEA{}
 				| #'3gpp_sta_DEA'{} | #'3gpp_swm_DEA'{}
-				| #'3gpp_sta_STA'{} | #'3gpp_swm_STA'{} | #'3gpp_swx_RTA'{},
+				| #'3gpp_sta_STA'{} | #'3gpp_swm_STA'{}
+				| #'3gpp_s6b_STA'{} | #'3gpp_swx_RTA'{}
+				| #'3gpp_s6b_AAA'{},
 		Result :: ok | {error, Reason},
 		Reason :: term().
 %% @doc Write a DIAMETER event to authorization log.
@@ -1036,11 +1041,17 @@ abmf_log(Type, ServiceId, Bucket, Units, Product, Amount,
 		Continuation :: start | disk_log:continuation(),
 		Start :: calendar:datetime() | pos_integer(),
 		End :: calendar:datetime() | pos_integer(),
-		Type :: deduct | reserve | unreserve | transfer | topup | adjustment | '_',
-		Subscriber :: binary() | '_',
-		Bucket :: string() | '_',
-		Units :: cents | seconds | octets | messages | '_',
-		Product :: string() | '_',
+		Type :: {type, {MatchType, TypeValue}} | '_',
+		TypeValue :: deduct | reserve | unreserve | transfer | topup | adjustment | '_',
+		Subscriber :: {subscriber, {MatchType, SubscriberValue}} | '_',
+		SubscriberValue :: binary() | '_',
+		Bucket :: {bucket, {MatchType, BucketValue}} | '_',
+		BucketValue :: string() | '_',
+		Units :: {units, {MatchType, UnitsValue}} | '_',
+		UnitsValue :: cents | seconds | octets | messages | '_',
+		Product :: {units, {MatchType, ProductValue}} | '_',
+		ProductValue :: string() | '_',
+		MatchType :: exact | like,
 		Result :: {Continuation2, Events} | {error, Reason},
 		Continuation2 :: eof | disk_log:continuation(),
 		Events :: [abmf_event()],
@@ -1267,6 +1278,17 @@ ipdr_codec(Event) when size(Event) > 6,
 	end,
 	ipdr_codec1(Protocol, TimeStamp, ReqType, Req, Res, Rated).
 %% @hidden
+ipdr_codec1(Protocol, TimeStamp, ReqType,
+		#'3gpp_ro_CCR'{'Service-Context-Id' = Id,
+		'Service-Information' = []} = Req, Res, Rated) ->
+	case binary:part(Id, size(Id), -8) of
+		<<"3gpp.org">> ->
+			ServiceType = binary:part(Id, byte_size(Id) - 14, 5),
+			ipdr_codec2([], ServiceType, Protocol,
+							TimeStamp, ReqType, Req, Res, Rated);
+		_ ->
+			exit(service_type_not_found)
+	end;
 ipdr_codec1(Protocol, TimeStamp, ReqType,
 		#'3gpp_ro_CCR'{'Service-Context-Id' = Id,
 		'Service-Information' = [ServiceInfo]} = Req, Res, Rated) ->
@@ -2081,7 +2103,14 @@ write_log(Log, Event) ->
 	TS = erlang:system_time(?MILLISECOND),
 	N = erlang:unique_integer([positive]),
 	LogEvent = list_to_tuple([TS, N | Event]),
-	disk_log:log(Log, LogEvent).
+	Result = disk_log:log(Log, LogEvent),
+	case Log of
+		ocs_acct ->
+			ok = ocs_event:notify(log_acct, LogEvent, usage),
+			Result;
+		_ ->
+			Result
+	end.
 
 -spec close_log(Log) -> Result
 	when
@@ -2488,11 +2517,17 @@ auth_query5(_Attributes, []) ->
 		Continuation :: {Continuation2, Events},
 		Continuation2 :: eof | disk_log:continuation(),
 		Events :: [abmf_event()],
-		Type :: transfer | topup | adjustment | '_',
-		Subscriber :: binary() | '_',
-		Bucket :: string() | '_',
-		Units :: cents | seconds | octets | messages | '_',
-		Product :: string() | '_',
+		Type :: {type, {MatchType, TypeValue}} | '_',
+		TypeValue :: deduct | reserve | unreserve | transfer | topup | adjustment | '_',
+		Subscriber :: {subscriber, {MatchType, SubscriberValue}} | '_',
+		SubscriberValue :: binary() | '_',
+		Bucket :: {bucket, {MatchType, BucketValue}} | '_',
+		BucketValue :: string() | '_',
+		Units :: {units, {MatchType, UnitsValue}} | '_',
+		UnitsValue :: cents | seconds | octets | messages | '_',
+		Product :: {units, {MatchType, ProductValue}} | '_',
+		ProductValue :: string() | '_',
+		MatchType :: exact | like,
 		Result :: {Continuation2, Events}.
 %% @private
 %% @doc Query balance activity log events with filters.
@@ -2562,23 +2597,23 @@ abmf_query5([], _Product, Acc) ->
 	lists:reverse(Acc).
 %% @hidden
 abmf_query6(Attributes, [{_Attribute, {exact, Match}} | _])
-		when Match == element(4, Attributes)->
+		when Match == element(4, Attributes) ->
 	true;
 abmf_query6(Attributes, [{_Attribute, {exact, Match}} | _])
-		when Match == element(5, Attributes)->
+		when Match == element(5, Attributes) ->
 	true;
 abmf_query6(Attributes, [{_Attribute, {exact, Match}} | _])
-		when Match == element(6, Attributes)->
+		when Match == element(6, Attributes) ->
 	true;
 abmf_query6(Attributes, [{_Attribute, {exact, Match}} | _])
-		when Match == element(7, Attributes)->
+		when Match == element(7, Attributes) ->
 	true;
 abmf_query6(Attributes, [{_Attribute, {exact, Match}} | _])
-		when Match == element(8, Attributes)->
+		when Match == element(8, Attributes) ->
 	true;
 
 abmf_query6(Attributes, [{type, {like, [H | _T1]}} | _])
-		when is_atom(element(4, Attributes))->
+		when is_atom(element(4, Attributes)) ->
 		case lists:prefix(H, atom_to_list(element(4, Attributes))) of
 			true ->
 				true;
