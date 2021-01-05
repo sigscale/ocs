@@ -180,7 +180,7 @@ initial_insufficient_multisession(_Config) ->
 	B1 = bucket(cents, RemAmount),
 	SessionId1 = [{'Session-Id', list_to_binary(ocs:generate_password())}],
 	R = [{erlang:system_time(?MILLISECOND), 100,
-			undefined, undefined, SessionId1}],
+			undefined, undefined, undefined, SessionId1}],
 	B2 = B1#bucket{reservations = R},
 	BId = add_bucket(ProdRef, B2),
 	Timestamp = calendar:local_time(),
