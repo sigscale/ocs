@@ -104,7 +104,7 @@ all() ->
 	interim_debit_and_reserve_insufficient3,
 	interim_debit_and_reserve_insufficient4,
 	interim_debit_and_reserve_charging_key,
-	interim_out_of_credit_voice, final_remove_session,
+	interim_out_of_credit_voice, final_remove_session, remove_session_after_multiple_interims,
 	final_refund_octets, final_refund_seconds,
 	final_voice, final_multiple_buckets,
 	reserve_data, reserve_voice, interim_voice, time_of_day,
@@ -1006,6 +1006,41 @@ final_remove_session(_Config) ->
 			undefined, undefined, undefined, ServiceId, Timestamp, undefined,
 			undefined, final, [{PackageUnits, Debit}], [], [SA2]),
 	{ok, #service{session_attributes = [SA1]}} = ocs:find_service(ServiceId).
+
+remove_session_after_multiple_interims() ->
+	[{userdata, [{doc, "Remove session after multiple interims that exceed the reserved amount"}]}].
+
+remove_session_after_multiple_interims(_Config) ->
+	PackagePrice = 10 + rand:uniform(90),
+	PackageSize = 5000000 + rand:uniform(9000000),
+	PackageUnits = octets,
+	P1 = price(usage, PackageUnits, PackageSize, PackagePrice),
+	OfferId = add_offer([P1], 4),
+	ProdRef = add_product(OfferId),
+	ServiceId = add_service(ProdRef),
+	RemAmount = 1000,
+	B1 = bucket(cents, RemAmount),
+	_BId = add_bucket(ProdRef, B1),
+	SessionId = [{'Session-Id', list_to_binary(ocs:generate_password())}],
+	ServiceType = 32251,
+	Timestamp = calendar:local_time(),
+	TS1 = calendar:datetime_to_gregorian_seconds(Timestamp),
+	{ok, _, _} = ocs_rating:rate(diameter, ServiceType, undefined,
+			undefined, undefined, ServiceId, Timestamp, undefined, undefined,
+			initial, [], [], SessionId),
+	{ok, _, _} = ocs_rating:rate(diameter, ServiceType,
+			undefined, undefined, undefined, ServiceId, calendar:gregorian_seconds_to_datetime(TS1 + 60), undefined,
+			undefined, interim, [{PackageUnits, PackageSize + rand:uniform(PackageSize div 2)}], [], SessionId),
+	{ok, _, _} = ocs_rating:rate(diameter, ServiceType,
+			undefined, undefined, undefined, ServiceId, calendar:gregorian_seconds_to_datetime(TS1 + 120), undefined,
+			undefined, interim, [{PackageUnits, PackageSize + rand:uniform(PackageSize div 3)}], [], SessionId),
+	{ok, _, _} = ocs_rating:rate(diameter, ServiceType,
+			undefined, undefined, undefined, ServiceId, calendar:gregorian_seconds_to_datetime(TS1 + 180), undefined,
+			undefined, interim, [{PackageUnits, PackageSize + rand:uniform(PackageSize div 3)}], [], SessionId),
+	{ok, _, _} = ocs_rating:rate(diameter, ServiceType,
+			undefined, undefined, undefined, ServiceId, calendar:gregorian_seconds_to_datetime(TS1 + 240), undefined,
+			undefined, final, [{PackageUnits, PackageSize + rand:uniform(PackageSize div 2)}], [], SessionId),
+	{ok, [#bucket{units = cents, reservations = []}]} = ocs:get_buckets(ProdRef).
 
 final_refund_octets() ->
 	[{userdata, [{doc, "Refund unused amount of octets reservation"}]}].
