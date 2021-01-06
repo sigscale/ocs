@@ -10,10 +10,11 @@ stages:
   stage: build
   image: erlang
   before_script:
+    - apt-get -y --no-install-recommends install apt-transport-https ca-certificates
     - curl -sS https://dl.yarnpkg.com/debian/pubkey.gpg | apt-key add -
     - echo "deb https://dl.yarnpkg.com/debian/ stable main" | tee /etc/apt/sources.list.d/yarn.list
-    - apt-get update
-    - apt-get install yarn
+    - apt-get -y update
+    - apt-get -y --no-install-recommends install yarn
     - export PATH="$PATH:`yarn global bin`"
   script:
     # Prepare environmental variables
