@@ -1,7 +1,7 @@
 %%% ocs_radius_acct_port_server.erl
 %%% vim: ts=3
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-%%% @copyright 2016 - 2017 SigScale Global Inc.
+%%% @copyright 2016 - 2021 SigScale Global Inc.
 %%% @end
 %%% Licensed under the Apache License, Version 2.0 (the "License");
 %%% you may not use this file except in compliance with the License.
@@ -23,7 +23,7 @@
 %%% 	RFC3579 - RADIUS Support For EAP</a>
 %%%
 -module(ocs_radius_acct_port_server).
--copyright('Copyright (c) 2016 - 2017 SigScale Global Inc.').
+-copyright('Copyright (c) 2016 - 2021 SigScale Global Inc.').
 
 -behaviour(gen_server).
 
