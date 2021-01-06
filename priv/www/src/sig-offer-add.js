@@ -548,7 +548,7 @@ class offerAdd extends PolymerElement {
 										id="chargingKey"
 										type="number"
 										value="{{chargingKey}}"
-										label="chargingKey">
+										label="Charging Key">
 								</paper-input>
 							</div>
 						</iron-collapse>
