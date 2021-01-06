@@ -49,6 +49,7 @@
 -define(SWx_APPLICATION_ID, 16777265).
 -define(SWx_APPLICATION, ocs_diameter_3gpp_swx_application).
 -define(TIMEOUT, 10000).
+-define(GTPv2_SUPPORTED, 16#0000400000000000).
 
 -record(statedata,
 		{identity :: binary() | undefined,
@@ -146,24 +147,11 @@ idle(#'3gpp_s6b_AAR'{'User-Name' = [Identity], 'Session-Id' = SessionId,
 		'Origin-Host' = PgwHost, 'Origin-Realm' = PgwRealm,
 		'Auth-Request-Type' = ?'3GPP_SWX_AUTH-REQUEST-TYPE_AUTHORIZE_ONLY',
 		'MIP6-Agent-Info' = AgentInfo, 'Visited-Network-Identifier' = VPLMN,
-		'Service-Selection' = [APN]} = Request, From, StateData) ->
+		'MIP6-Feature-Vector' = [MIP6FeatureVector],
+		'Service-Selection' = [APN]} = Request, From, StateData)
+		when (MIP6FeatureVector band ?GTPv2_SUPPORTED) =:= ?GTPv2_SUPPORTED ->
 	[IMSI | _] = binary:split(Identity, <<$@>>, []),
-	PGW = case AgentInfo of
-		[#'3gpp_s6b_MIP6-Agent-Info'{
-				'MIP-Home-Agent-Address' = HomeAgentAddress,
-				'MIP-Home-Agent-Host' = [#'3gpp_s6b_MIP-Home-Agent-Host'{
-						'Destination-Realm' = HomeAgentHostRealm,
-						'Destination-Host' = HomeAgentHostHost}],
-				'MIP6-Home-Link-Prefix' = HomeLinkPrefix}] ->
-			[#'3gpp_swx_MIP6-Agent-Info'{
-					'MIP-Home-Agent-Address' = HomeAgentAddress,
-					'MIP-Home-Agent-Host' = [#'3gpp_swx_MIP-Home-Agent-Host'{
-							'Destination-Realm' = HomeAgentHostRealm,
-							'Destination-Host' = HomeAgentHostHost}],
-					'MIP6-Home-Link-Prefix' = HomeLinkPrefix}];
-		[] ->
-			[]
-	end,
+	PGW = agent_info(AgentInfo),
 	NewStateData = StateData#statedata{from = From, request = Request,
 			identity = Identity, imsi = IMSI,
 			pgw_host = PgwHost, pgw_realm = PgwRealm,
@@ -199,7 +187,26 @@ idle(#'3gpp_s6b_AAR'{'User-Name' = [Identity], 'Session-Id' = SessionId,
 			ResultCode = ?'DIAMETER_BASE_RESULT-CODE_UNABLE_TO_COMPLY',
 			Reply = response(ResultCode, NewStateData),
 			{stop, Reason, Reply, NewStateData}
-	end.
+	end;
+idle(#'3gpp_s6b_AAR'{'User-Name' = [Identity], 'Session-Id' = SessionId,
+		'Origin-Host' = PgwHost, 'Origin-Realm' = PgwRealm,
+		'Auth-Request-Type' = ?'3GPP_SWX_AUTH-REQUEST-TYPE_AUTHORIZE_ONLY',
+		'MIP6-Agent-Info' = AgentInfo, 'Visited-Network-Identifier' = VPLMN,
+		'Service-Selection' = [APN]} = Request, From, StateData) ->
+	[IMSI | _] = binary:split(Identity, <<$@>>, []),
+	PGW = agent_info(AgentInfo),
+	NewStateData = StateData#statedata{from = From, request = Request,
+			identity = Identity, imsi = IMSI,
+			pgw_host = PgwHost, pgw_realm = PgwRealm,
+			pgw_id = PGW, pgw_plmn = VPLMN, apn_name = APN},
+	ResultCode = ?'DIAMETER_BASE_RESULT-CODE_UNABLE_TO_COMPLY',
+	error_logger:warning_report(["PGW doesn't support GTPv2",
+			{pgw_host, PgwHost}, {pgw_realm, PgwRealm},
+			{pgw_id, pgw_id(PGW)}, {pgw_plmn, VPLMN}, {apn, APN},
+			{imsi, IMSI}, {identity, Identity},
+			{session, SessionId}, {result, ResultCode}]),
+	gen_fsm:reply(From, response(ResultCode, NewStateData)),
+	{stop, shutdown, NewStateData}.
 
 -spec register(Event, StateData) -> Result
 	when
@@ -517,7 +524,8 @@ response(ResultCode = _Arg,
 			'Origin-Realm' = OriginRealm,
 			'User-Name' = UserName,
 			'Auth-Application-Id' = ?S6b_APPLICATION_ID,
-			'Auth-Request-Type' = AuthRequestType},
+			'Auth-Request-Type' = AuthRequestType,
+			'MIP6-Feature-Vector' = [?GTPv2_SUPPORTED]},
 	ok = ocs_log:auth_log(diameter, Server, Client, Request, Answer),
 	Answer;
 response(RedirectHost,
@@ -553,4 +561,22 @@ pgw_id([#'3gpp_swx_MIP6-Agent-Info'{'MIP-Home-Agent-Host'
 	HomeAgentHostHost;
 pgw_id(_) ->
 	undefined.
+
+-spec agent_info(AgentInfo) -> Result
+	when
+		AgentInfo :: [#'3gpp_s6b_MIP6-Agent-Info'{}],
+		Result :: [#'3gpp_swx_MIP6-Agent-Info'{}].
+agent_info([#'3gpp_s6b_MIP6-Agent-Info'{
+		'MIP-Home-Agent-Address' = HomeAgentAddress,
+		'MIP-Home-Agent-Host' = [#'3gpp_s6b_MIP-Home-Agent-Host'{
+				'Destination-Realm' = HomeAgentHostRealm,
+				'Destination-Host' = HomeAgentHostHost}],
+		'MIP6-Home-Link-Prefix' = HomeLinkPrefix}]) ->
+	[#'3gpp_swx_MIP6-Agent-Info'{'MIP-Home-Agent-Address' = HomeAgentAddress,
+			'MIP-Home-Agent-Host' = [#'3gpp_swx_MIP-Home-Agent-Host'{
+					'Destination-Realm' = HomeAgentHostRealm,
+					'Destination-Host' = HomeAgentHostHost}],
+			'MIP6-Home-Link-Prefix' = HomeLinkPrefix}];
+agent_info([]) ->
+	[].
 
