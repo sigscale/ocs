@@ -500,7 +500,7 @@ class ocsHelp extends PolymerElement {
 					<h2>About</h2>
 				</app-toolbar>
 				<p>Online Charging System (OCS)<br>
-				%PACKAGE%-%VERSION%<br>
+				ocs-3.1.40<br>
 				Copyright 2016 - 2021 SigScale Global Inc.<br>
 				Apache License Version 2.0<br>
 				<a target="_blank" href="http://www.sigscale.org">www.sigscale.org</a></p>
