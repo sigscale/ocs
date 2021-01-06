@@ -3,57 +3,85 @@
 ##
 ## Process this file with automake to produce Makefile.in
 
-www_DATA = favicon.ico \
-	toolbar.png \
-	progress.png \
-	filter.png \
-	index.html \
-	sig-ipdr-list-wlan.html \
-	sig-ipdr-list-voip.html\
-	sig-access-list.html \
-	sig-accounting-list.html \
-	sig-usage-list.html \
-	sig-http-list.html \
-	sig-ipdr-log-files-wlan.html \
-	sig-ipdr-log-files-voip.html \
-	sig-app.html \
-	sig-help.html \
-	sig-client-add.html \
-	sig-client-list.html \
-	sig-client-update.html \
-	sig-user-list.html \
-	sig-user-add.html \
-	sig-user-update.html \
-	sig-sub-add.html \
-	sig-sub-list.html \
-	sig-sub-update.html \
-	sig-prefix-list.html \
-	sig-prefix-update.html \
-	sig-prefix-table-add.html \
-	sig-prefix-add.html \
-	sig-offer-list.html \
-	sig-offer-update.html \
-	sig-offer-add.html \
-	sig-balance-list.html \
-	sig-product-list.html \
-	sig-product-add.html \
-	sig-bucket-list.html \
-	sig-bucket-add.html
+www_DATA = $(abs_builddir)/build/polymer.json
 
-install-data-local:	$(srcdir)/bower.json
-	@if [ ! -e $(builddir)/bower.json ]; then \
-		$(LN_S) $(srcdir)/bower.json; \
+LINKS = index.html manifest.json images src
+
+MODULES = sig-ipdr-list-wlan.js \
+		sig-ipdr-list-voip.js \
+		sig-access-list.js \
+		sig-accounting-list.js \
+		sig-http-list.js \
+		sig-ipdr-log-files-voip.js \
+		sig-app.js \
+		sig-help.js \
+		sig-client-add.js \
+		sig-client-list.js \
+		sig-client-update.js \
+		sig-user-list.js \
+		sig-user-add.js \
+		sig-user-update.js \
+		sig-sub-add.js \
+		sig-sub-list.js \
+		sig-sub-update.js \
+		sig-prefix-list.js \
+		sig-prefix-update.js \
+		sig-prefix-table-add.js \
+		sig-prefix-add.js \
+		sig-offer-list.js \
+		sig-offer-update.js \
+		sig-offer-add.js \
+		sig-balance-list.js \
+		sig-product-list.js \
+		sig-product-add.js \
+		sig-bucket-list.js \
+		sig-bucket-add.js \
+		style-element.js
+
+$(abs_builddir)/index.html:
+	for i in $(LINKS); do \
+		if [ ! -e $(abs_builddir)/$$i ]; then \
+			$(LN_S) $(srcdir)/$$i; \
+		fi; \
+	done
+
+$(abs_builddir)/sw-precache-config.js:
+	if [ ! -e $(abs_builddir)/sw-precache-config.js ]; then \
+		cp $(srcdir)/sw-precache-config.js $(abs_builddir); \
 	fi
-	bower --allow-root install
-	@touch $(builddir)/bower_components
+
+package.json: yarn.lock
+
+yarn.lock:
+	yarn add d3
+	yarn install
+
+$(abs_builddir)/build/polymer.json: package.json $(abs_builddir)/index.html $(abs_builddir)/sw-precache-config.js ${patsubst %,$(abs_builddir)/src/%,$(MODULES)}
+	if [ ! -e $(abs_builddir)/polymer.json ]; then \
+		cp $(srcdir)/polymer.json $(abs_builddir); \
+	fi
+	polymer build
+
+check_DATA = .polymer_lint_ok
+
+.polymer_lint_ok:
+	yarn run lint
+
+install-data-local:
 	$(MKDIR_P) $(DESTDIR)$(wwwdir)
-	cp -R $(abs_builddir)/bower_components/* $(DESTDIR)$(wwwdir)
+	cp -R $(abs_builddir)/build/esm-bundled/* $(DESTDIR)$(wwwdir)
 	$(MKDIR_P) $(DESTDIR)$(wwwdir)/locales
 	cp $(abs_srcdir)/locales/* $(DESTDIR)$(wwwdir)/locales
 
 clean-local:
-	-rm -rf bower_components
+	-rm -rf yarn.lock build
+	for i in $(LINKS); do \
+		if [ -L $$i ]; then \
+			rm $$i; \
+		fi; \
+	done
 
-sig-help.html: sig-help.html-in
-	sed -e 's!%VERSION%!$(VERSION)!' < $< > $@
+$(abs_builddir)/src/sig-help.js: $(srcdir)/src/sig-help.js-in
+	sed -e 's!%VERSION%!$(VERSION)!' \
+			-e 's!%PACKAGE%!$(PACKAGE)!' < $< > $@
 

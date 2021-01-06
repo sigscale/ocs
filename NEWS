@@ -1,3 +1,8 @@
+January 7, 2021
+---------------
+	- Upgrade web components for polymer-3.0
+	- Rating fixes for session reservations
+
 December 23, 2020
 ----------------
 	- Reservations unique to Service-Id, Charging-Key and Session-Id

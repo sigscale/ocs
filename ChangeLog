@@ -1,3 +1,18 @@
+2021-01-06  Vance Shipley <vances@sigscale.org>
+
+	* merge polymer-3.0 branch
+	* update copyrights for new year
+	* gui: fix product warning
+	* rating: refactor reservation handling for mscc
+	* remove undefined identfier clause
+	* remove incorrect match spec clutter
+	* test: add remove session after multiple interims test case
+	* gui: update credit through balanceadjustment
+	* rating: correct matching existing session bucket
+	* gui: add MSISDN, IMSI colouns in accounting view
+	* match more than one subscription-Id avp
+	* test case for mscc rating-groups
+
 2020-12-23  Refath Wadood <refath@sigscale.org>
 
 	* test: list all product inventory hub listeners

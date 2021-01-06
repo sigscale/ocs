@@ -1,7 +1,7 @@
 %% ocs_rest_res_resource.erl
 %%% vim: ts=3
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-%%% @copyright 2016 - 2018 SigScale Global Inc.
+%%% @copyright 2016 - 2021 SigScale Global Inc.
 %%% @end
 %%% Licensed under the Apache License, Version 2.0 (the "License");
 %%% you may not use this file except in compliance with the License.
@@ -19,7 +19,7 @@
 %%% 	for a REST server in the {@link //ocs. ocs} application.
 %%%
 -module(ocs_rest_res_resource).
--copyright('Copyright (c) 2016 - 2020 SigScale Global Inc.').
+-copyright('Copyright (c) 2016 - 2021 SigScale Global Inc.').
 
 -export([content_types_accepted/0, content_types_provided/0]).
 -export([get_resource_spec/1, get_resource_specs/1]).
@@ -286,7 +286,6 @@ add_pla(ReqData) ->
 			{error, 400}
 	end.
 
-
 -spec patch_pla(Id, Etag, ReqData) -> Result
 	when
 		Id	:: string(),
@@ -428,7 +427,6 @@ get_plas(_Query, _Headers) ->
 		_:_ ->
 			{error, 400}
 	end.
-
 
 -spec get_pla_specs(Query) -> Result when
 	Query :: [{Key :: string(), Value :: string()}],

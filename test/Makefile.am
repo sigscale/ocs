@@ -24,6 +24,7 @@ testmods = ocs_api_SUITE \
 			ocs_product_SUITE \
 			ocs_charging_SUITE \
 			ocs_snmp_SUITE \
+			ocs_re_interface_SUITE \
 			peer_tls_transport \
 			diameter_test_client_cb \
 			test_event \
