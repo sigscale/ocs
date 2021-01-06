@@ -10,8 +10,8 @@ stages:
   stage: build
   image: erlang
   before_script:
-    - apt-get remove -y cmdinstall
-    - apt-get update -y
+    - apt-get remove -y cmdtest
+    - apt-get update
     - apt-get install -y --no-install-recommends yarn
     - export PATH="$PATH:`yarn global bin`"
   script:
