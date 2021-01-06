@@ -11,8 +11,8 @@ stages:
   image: erlang
   before_script:
     - apt-get update
-    - apt-get install -y yarn
-    - export PATH="$HOME/.yarn/bin:$HOME/.config/yarn/global/node_modules/.bin:$PATH"
+    - apt-get install -y --no-install-recommends yarn
+    - export PATH="$PATH:`yarn global bin`"
   script:
     # Prepare environmental variables
     - export ERL_LIBS="${CI_PROJECT_DIR}/.build/otp-${OTP_VERSION}/lib"
