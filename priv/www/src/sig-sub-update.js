@@ -257,7 +257,6 @@ class subUpdate extends PolymerElement {
                id="addBucketAjax"
                method = "post"
                content-type="application/json"
-               on-loading-changed="_onLoadingChanged2"
                on-response="_addBucketResponse"
                on-error="_addBucketError">
          </iron-ajax>

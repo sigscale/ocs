@@ -115,7 +115,6 @@ class productAddClass extends PolymerElement {
 					url="/productInventoryManagement/v2/product"
 					method = "post"
 					content-type="application/json"
-					on-loading-changed="_onLoadingChanged"
 					on-response="_addProductResponse"
 					on-error="_addProductError">
 			</iron-ajax>
