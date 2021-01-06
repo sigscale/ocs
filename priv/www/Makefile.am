@@ -53,7 +53,6 @@ $(abs_builddir)/sw-precache-config.js:
 package.json: yarn.lock
 
 yarn.lock:
-	yarn add d3
 	yarn install
 
 $(abs_builddir)/build/polymer.json: package.json $(abs_builddir)/index.html $(abs_builddir)/sw-precache-config.js ${patsubst %,$(abs_builddir)/src/%,$(MODULES)}
