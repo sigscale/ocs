@@ -460,7 +460,7 @@ class offerUpdate extends PolymerElement {
 									id="chargingKey"
 									value="{{chargingKey}}"
 									type="number"
-									label="chargingKey">
+									label="Charging Key">
 							</paper-input>
 						</iron-collapse>
 						<div class="buttons">
