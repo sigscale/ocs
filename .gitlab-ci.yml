@@ -10,6 +10,9 @@ stages:
   stage: build
   image: erlang
   script:
+    # install yarn
+    - sudo apt update && sudo apt install yarn
+    - export PATH=$HOME/.yarn/bin:$PATH
     # Prepare environmental variables
     - export ERL_LIBS="${CI_PROJECT_DIR}/.build/otp-${OTP_VERSION}/lib"
     - export ERLANG_INSTALL_LIB_DIR=${ERL_LIBS}
