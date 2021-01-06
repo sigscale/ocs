@@ -468,9 +468,6 @@ class subAdd extends PolymerElement {
 
 	_productSelected(){
 		var product = this.offers[this.$.addproduct10.selected];
-		if(product) {
-			document.getElementById("subscriberAdd").product = product;
-		}
 	}
 
 	onEnter() {
