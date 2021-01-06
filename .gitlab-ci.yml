@@ -10,8 +10,7 @@ stages:
   stage: build
   image: erlang
   before_script:
-    - apt-get update
-    - apt-get install -y --no-install-recommends yarn
+    - curl -o- -L https://yarnpkg.com/install.sh | bash
     - export PATH="$PATH:`yarn global bin`"
   script:
     # Prepare environmental variables
