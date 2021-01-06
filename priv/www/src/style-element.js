@@ -149,15 +149,15 @@ styleElement.innerHTML = `<template>
 			font-size: inherit;
 		}
 		vaadin-grid input {
-			font-size: initial;
+			font-size: medium;
 			border-style: none;
 			background: #ffb04c;
 			max-width: 130px;
 		}
 		vaadin-grid input::placeholder {
 			color: black;
-			font-weight: bold;
-			font-size: inherit;
+			font-size: medium;
+    		font-weight: 600;
 		}
 		vaadin-grid .grouptitle {
 			text-align: center;
@@ -166,6 +166,9 @@ styleElement.innerHTML = `<template>
 		}
 		[part~="header-cell"] {
 			background-color: #ffb04c;
+			font-size: unset;
+    		font-weight: bolder;
+			color: black;
 		}
 		paper-fab {
 			background: var(--paper-lime-a700);
