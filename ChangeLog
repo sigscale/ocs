@@ -12,6 +12,7 @@
 	* gui: add MSISDN, IMSI colouns in accounting view
 	* match more than one subscription-Id avp
 	* test case for mscc rating-groups
+	* include mip6-feature-vector in pgw auth response
 
 2020-12-23  Refath Wadood <refath@sigscale.org>
 
