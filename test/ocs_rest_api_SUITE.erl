@@ -214,7 +214,7 @@ all() ->
 	notify_insert_gtt, notify_delete_gtt, query_gtt_notification,
 	notify_add_pla, notify_delete_pla, query_pla_notification,
 	post_hub_usage, get_usage_hubs, get_usage_hub, delete_hub_usage,
-	notify_diameter_acct_log,
+	notify_diameter_acct_log, get_resources,
 	oauth_authentication].
 
 %%---------------------------------------------------------------------
@@ -3974,6 +3974,24 @@ notify_diameter_acct_log(Config) ->
 					= lists:keyfind("type", 1, AcctUsageList)
 	end.
 
+get_resources() ->
+	[{userdata, [{doc, "GET Resource collection"}]}].
+
+get_resources(Config) ->
+	ok = add_resource("tariff resource", "tariff", "tariff spec"),
+	ok = add_resource("policy resource", "policy", "policy spec"),
+	HostUrl = ?config(host_url, Config),
+	CollectionUrl = HostUrl ++ "/resourceInventoryManagement/v1/resource/",
+	Accept = {"accept", "application/json"},
+	Request = {CollectionUrl, [Accept, auth_header()]},
+	{ok, Result} = httpc:request(get, Request, [], []),
+	{{"HTTP/1.1", 200, _OK}, Headers, ResponseBody} = Result,
+	{_, "application/json"} = lists:keyfind("content-type", 1, Headers),
+	ContentLength = integer_to_list(length(ResponseBody)),
+	{_, ContentLength} = lists:keyfind("content-length", 1, Headers),
+	{array, Objects} = mochijson:decode(ResponseBody),
+	true = length(Objects) >= 2.
+
 oauth_authenticaton()->
 	[{userdata, [{doc, "Authenticate a JWT using oauth"}]}].
 
@@ -4487,4 +4505,55 @@ add_bucket(ProdRef, Units, RA) ->
 			end_date = erlang:system_time(?MILLISECOND) + 2592000000},
 	{ok, _, #bucket{id = BId}} = ocs:add_bucket(ProdRef, Bucket),
 	BId.
+
+%% @hidden
+add_resource(Description, Category, SpecName) ->
+	Schema = "/resourceInventoryManagement/v1/schema/"
+			"resourceInventoryManagement#/definitions/resource",
+	Resource = #resource{class_type = "LogicalResource", base_type = "Resource",
+			schema = Schema, description = Description, category = Category,
+			start_date = erlang:system_time(?MILLISECOND),
+			end_date = erlang:system_time(?MILLISECOND) + 2678400000,
+			state = "Active", related = fill_related(2),
+			specification = #specification_ref{id = random_string(10),
+					href = random_string(25), name = SpecName},
+			characteristic  = fill_resource_char(3)},
+	{ok, _} = ocs:add_resource(Resource),
+	ok.
+
+%% @hidden
+fill_resource_char(N) ->
+	fill_resource_char(N, []).
+fill_resource_char(0, Acc) ->
+	Acc;
+fill_resource_char(N, Acc) ->
+	Characteristic = #resource_char{name = random_string(10),
+			class_type = random_string(5),
+			schema = random_string(25), value = random_string(15)},
+	fill_resource_char(N - 1, [Characteristic | Acc]).
+
+%% @hidden
+fill_related(N) ->
+	fill_related(N, []).
+fill_related(0, Acc) ->
+	Acc;
+fill_related(N, Acc) ->
+	Id = random_string(10),
+	Href = "/resourceInventoryManagement/v1/resourceRelationship/" ++ Id,
+	Related = #resource_rel{id = Id, href = Href,
+			referred_type = "contained", name = "example-" ++ Id},
+	fill_related(N - 1, [Related | Acc]).
+
+%% @hidden
+random_string(Length) ->
+	Charset = lists:seq($a, $z),
+	NumChars = length(Charset),
+	Random = crypto:strong_rand_bytes(Length),
+	random_string(Random, Charset, NumChars,[]).
+random_string(<<N, Rest/binary>>, Charset, NumChars, Acc) ->
+	CharNum = (N rem NumChars) + 1,
+	NewAcc = [lists:nth(CharNum, Charset) | Acc],
+	random_string(Rest, Charset, NumChars, NewAcc);
+random_string(<<>>, _Charset, _NumChars, Acc) ->
+	Acc.
 
