@@ -26,8 +26,9 @@
 -export([get_resource_category/1, get_resource_categories/1]).
 -export([get_resource_candidate/1, get_resource_candidates/1]).
 -export([get_resource_catalog/1, get_resource_catalogs/1]).
--export([get_resource_inventory/2, add_resource_inventory/2, patch_resource_inventory/4,
-			delete_resource_inventory/2]).
+-export([get_resource_inventory/2, get_resource_inventories/2,
+		add_resource_inventory/2, patch_resource_inventory/4,
+		delete_resource_inventory/2]).
 -export([get_pla_specs/1]).
 -export([gtt/2]).
 
@@ -209,6 +210,137 @@ get_resource_inventory(Id, [] = _Query) ->
 		error:badarg ->
 			{error, 404};
 		_:_Reason1 ->
+			{error, 500}
+	end.
+
+-spec get_resource_inventories(Query, Headers) -> Result
+	when
+		Query :: [{Key :: string(), Value :: string()}],
+		Headers :: [tuple()],
+		Result :: {ok, Headers :: [tuple()], Body :: iolist()}
+				| {error, ErrorCode :: integer()}.
+%% @doc Body producing function for
+%% 	`GET|HEAD /resourceCatalogManagement/v1/resource'
+%% 	requests.
+get_resource_inventories(Query, Headers) ->
+	try
+		case lists:keytake("filter", 1, Query) of
+			{value, {_, String}, Query1} ->
+				{ok, Tokens, _} = ocs_rest_query_scanner:string(String),
+				case ocs_rest_query_parser:parse(Tokens) of
+					{ok, [{array, [{complex, Complex}]}]} ->
+						MatchId = match("id", Complex, Query),
+						MatchCategory = match("category", Complex, Query),
+						{Query1, [MatchId, MatchCategory]}
+				end;
+			false ->
+					MatchId = match("id", [], Query),
+					MatchCategory = match("category", [], Query),
+					{Query, [MatchId, MatchCategory]}
+		end
+	of
+		{Query2, Args} ->
+			Codec = fun resource/1,
+			query_filter({ocs, query_resource, Args}, Codec, Query2, Headers)
+	catch
+		_ ->
+			{error, 400}
+	end.
+
+%% @hidden
+query_filter(MFA, Codec, Query, Headers) ->
+	case lists:keytake("fields", 1, Query) of
+		{value, {_, Filters}, NewQuery} ->
+			query_filter(MFA, Codec, NewQuery, Filters, Headers);
+		false ->
+			query_filter(MFA, Codec, Query, [], Headers)
+	end.
+%% @hidden
+query_filter(MFA, Codec, Query, Filters, Headers) ->
+	case {lists:keyfind("if-match", 1, Headers),
+			lists:keyfind("if-range", 1, Headers),
+			lists:keyfind("range", 1, Headers)} of
+		{{"if-match", Etag}, false, {"range", Range}} ->
+			case global:whereis_name(Etag) of
+				undefined ->
+					{error, 412};
+				PageServer ->
+					case ocs_rest:range(Range) of
+						{error, _} ->
+							{error, 400};
+						{ok, {Start, End}} ->
+							query_page(Codec, PageServer, Etag, Query, Filters, Start, End)
+					end
+			end;
+		{{"if-match", Etag}, false, false} ->
+			case global:whereis_name(Etag) of
+				undefined ->
+					{error, 412};
+				PageServer ->
+					query_page(Codec, PageServer, Etag, Query, Filters, undefined, undefined)
+			end;
+		{false, {"if-range", Etag}, {"range", Range}} ->
+			case global:whereis_name(Etag) of
+				undefined ->
+					case ocs_rest:range(Range) of
+						{error, _} ->
+							{error, 400};
+						{ok, {Start, End}} ->
+							query_start(MFA, Codec, Query, Filters, Start, End)
+					end;
+				PageServer ->
+					case ocs_rest:range(Range) of
+						{error, _} ->
+							{error, 400};
+						{ok, {Start, End}} ->
+							query_page(Codec, PageServer, Etag, Query, Filters, Start, End)
+					end
+			end;
+		{{"if-match", _}, {"if-range", _}, _} ->
+			{error, 400};
+		{_, {"if-range", _}, false} ->
+			{error, 400};
+		{false, false, {"range", "items=1-" ++ _ = Range}} ->
+			case ocs_rest:range(Range) of
+				{error, _} ->
+					{error, 400};
+				{ok, {Start, End}} ->
+					query_start(MFA, Codec, Query, Filters, Start, End)
+			end;
+		{false, false, {"range", _Range}} ->
+			{error, 416};
+		{false, false, false} ->
+			query_start(MFA, Codec, Query, Filters, undefined, undefined)
+	end.
+
+%% @hidden
+query_page(Codec, PageServer, Etag, _Query, Filters, Start, End) ->
+	case gen_server:call(PageServer, {Start, End}) of
+		{error, Status} ->
+			{error, Status};
+		{Result, ContentRange} ->
+			JsonObj = query_page1(lists:map(Codec, Result), Filters, []),
+			JsonArray = {array, JsonObj},
+			Body = mochijson:encode(JsonArray),
+			Headers = [{content_type, "application/json"},
+					{etag, Etag}, {accept_ranges, "items"},
+					{content_range, ContentRange}],
+			{ok, Headers, Body}
+	end.
+%% @hidden
+query_page1(Json, [], []) ->
+	Json;
+query_page1([H | T], Filters, Acc) ->
+	query_page1(T, Filters, [ocs_rest:fields(Filters, H) | Acc]);
+query_page1([], _, Acc) ->
+	lists:reverse(Acc).
+
+%% @hidden
+query_start({M, F, A}, Codec, Query, Filters, RangeStart, RangeEnd) ->
+	case supervisor:start_child(ocs_rest_pagination_sup, [[M, F, A]]) of
+		{ok, PageServer, Etag} ->
+			query_page(Codec, PageServer, Etag, Query, Filters, RangeStart, RangeEnd);
+		{error, _Reason} ->
 			{error, 500}
 	end.
 
@@ -827,4 +959,20 @@ specification_ref([_ | T], R, Acc) ->
 	specification_ref(T, R, Acc);
 specification_ref([], _, Acc) ->
 	{struct, lists:reverse(Acc)}.
+
+%% @hidden
+match(Key, Complex, Query) ->
+	case lists:keyfind(Key, 1, Complex) of
+		{_, like, [Value]} ->
+			{like, Value};
+		{_, exact, [Value]} ->
+			{exact, Value};
+		false ->
+			case lists:keyfind(Key, 1, Query) of
+				{_, Value} ->
+					{exact, Value};
+				false ->
+					'_'
+			end
+	end.
 
