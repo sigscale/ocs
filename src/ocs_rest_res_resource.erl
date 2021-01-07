@@ -194,12 +194,11 @@ get_resource_catalogs(_Query) ->
 %%    Retrieve all logical resource from inventory management.
 get_resource_inventory(Id, [] = _Query) ->
 	try
-		Name = list_to_existing_atom(Id),
-		case ocs:query_table(start, Name, undefined, undefined, undefined, undefined) of
-			{eof, Page} ->
-				L = get_resource_inventory1(Id, Page, []),
-				Body = mochijson:encode({array, L}),
-				Headers = [{content_type, "application/json"}],
+		case ocs:get_resource(Id) of
+			{ok, #resource{last_modified = LM} = Resource} ->
+				Headers = [{content_type, "application/json"},
+						{etag, ocs_rest:etag(LM)}],
+				Body = mochijson:encode(resource(Resource)),
 				{ok, Headers, Body};
 			{error, not_found} ->
 				{error, 404};
@@ -212,11 +211,6 @@ get_resource_inventory(Id, [] = _Query) ->
 		_:_Reason1 ->
 			{error, 500}
 	end.
-get_resource_inventory1(Id, [#gtt{num = Prefix, value = Value} | T], Acc) ->
-		Gtt = gtt(Id, {Prefix, element(1, Value), element(2, Value)}),
-		get_resource_inventory1(Id, T, [Gtt | Acc]);
-get_resource_inventory1(_, [], Acc) ->
-		lists:reverse(Acc).
 
 -spec add_resource_inventory(Table, ReqData) -> Result when
 	Table :: string(),
