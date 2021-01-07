@@ -1084,7 +1084,7 @@ adjustment(#adjustment{amount = Amount, product = ProductRef, units = Units,
 								start_date = StartDate, end_date = EndDate,
 								remain_amount = RemainAmount, units = Units,
 								product = [ProductRef],
-								last_modified = calendar:local_time()},
+								last_modified = make_lm()},
 						mnesia:write(B4),
 						lists:foreach(F2, DeleteRefs),
 						lists:foreach(F3, Buckets2),
@@ -1113,7 +1113,7 @@ adjustment(#adjustment{amount = Amount1, product = ProductRef, units = Units,
 				BId = generate_bucket_id(),
 				NewBucket = #bucket{id = BId, start_date = StartDate, end_date = EndDate,
 						remain_amount = Amount1, units = Units, product = [ProductRef],
-						last_modified = calendar:local_time()},
+						last_modified = make_lm()},
 				mnesia:write(bucket, NewBucket, write),
 				NewProduct = P#product{balance = [BId]},
 				ok = mnesia:write(product, NewProduct, write),
@@ -1139,7 +1139,7 @@ adjustment(#adjustment{amount = Amount1, product = ProductRef, units = Units,
 						BId = generate_bucket_id(),
 						NewBucket = #bucket{id = BId, start_date = StartDate, end_date = EndDate,
 								remain_amount = -Amount2, units = Units, product = [ProductRef],
-								last_modified = calendar:local_time()},
+								last_modified = make_lm()},
 						ok = mnesia:write(bucket, NewBucket, write),
 						{[BId |Acc], [BId | WrittenRefs], DeletedRefs}
 				end,
@@ -2758,4 +2758,8 @@ match_protocol3(Prefix) ->
 		false ->
 			throw(badmatch)
 	end.
+
+%% @private
+make_lm() ->
+	{erlang:system_time(?MILLISECOND), erlang:unique_integer([positive])}.
 
