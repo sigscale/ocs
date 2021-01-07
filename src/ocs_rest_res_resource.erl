@@ -556,6 +556,45 @@ spec_pla_tariff() ->
 	Chars = {"usageSpecCharacteristic", {array, []}},
 	{struct, [Id, Name, Href, Description, Version, LastUpdate, Status, Chars]}.
 
+-spec resource_char(ResourceCharacteristic) -> ResourceCharacteristic
+	when
+		ResourceCharacteristic :: [resource_char()] | {array, list()}.
+%% @doc CODEC for `ResourceCharacteristic'.
+resource_char({array, [{struct, _} | _] = StructList}) ->
+	[resource_char(Object, #resource_char{}) || {struct, Object} <- StructList];
+resource_char([#resource_char{} | _] = List) ->
+	Fields = record_info(fields, resource_char),
+	[resource_char(Fields, R, []) || R <- List].
+%% @hidden
+resource_char([{"name", Name} | T], Acc) when is_list(Name) ->
+	resource_char(T, Acc#resource_char{name = Name});
+resource_char([{"@type", Type} | T], Acc) when is_list(Type) ->
+	resource_char(T, Acc#resource_char{class_type = Type});
+resource_char([{"@schemaLocation", Schema} | T], Acc) when is_list(Schema) ->
+	resource_char(T, Acc#resource_char{schema = Schema});
+resource_char([{"value", Value} | T], Acc) ->
+	resource_char(T, Acc#resource_char{value = Value});
+resource_char([_ | T], Acc) ->
+	resource_char(T, Acc);
+resource_char([], Acc) ->
+	Acc.
+%% @hidden
+resource_char([name | T], #resource_char{name = Name} = R, Acc)
+		when is_list(Name) ->
+	resource_char(T, R, [{"name", Name} | Acc]);
+resource_char([class_type | T], #resource_char{class_type = Type} = R, Acc)
+		when is_list(Type) ->
+	resource_char(T, R, [{"@type", Type} | Acc]);
+resource_char([schema | T], #resource_char{schema = Schema} = R, Acc)
+		when is_list(Schema) ->
+	resource_char(T, R, [{"@schemaLocation", Schema} | Acc]);
+resource_char([value | T], #resource_char{value = Value} = R, Acc) ->
+	resource_char(T, R, [{"value", Value} | Acc]);
+resource_char([_ | T], R, Acc) ->
+	resource_char(T, R, Acc);
+resource_char([], _, Acc) ->
+	{struct, lists:reverse(Acc)}.
+
 -spec specification_ref(ResourceSpecificationRef) -> ResourceSpecificationRef
 	when
 		ResourceSpecificationRef :: specification_ref() | {struct, list()}.
