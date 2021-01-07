@@ -2843,7 +2843,6 @@ query_page(PageServer, Etag, Query, Filters, Start, End) ->
 	end.
 %% @hidden
 query_page1(PageServer, Etag, Decoder, Filters, Start, End) ->
-erlang:display({?MODULE, ?LINE, Filters}),
 	case gen_server:call(PageServer, {Start, End}, infinity) of
 		{error, Status} ->
 			{error, Status};
