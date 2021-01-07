@@ -36,7 +36,8 @@
 		query_users/3, update_user/3]).
 -export([add_offer/1, find_offer/1, get_offers/0, delete_offer/1,
 		query_offer/7]).
--export([add_resource/1, get_resources/0, get_resource/1, delete_resource/1]).
+-export([add_resource/1, get_resources/0, get_resource/1, delete_resource/1,
+		query_resource/3]).
 -export([add_policy_table/1, delete_policy_table/1]).
 -export([add_policy/2, get_policy/2, get_policies/1, delete_policy/2]).
 -export([generate_password/0, generate_identity/0]).
@@ -1734,6 +1735,58 @@ delete_resource(ResourceID) when is_list(ResourceID) ->
 		{atomic, ok} ->
 			ok
 	end.
+
+-spec query_resource(Cont, MatchId, MatchCategory) -> Result
+	when
+		Cont :: start | any(),
+		MatchId :: Match,
+		MatchCategory :: Match,
+		Match :: {exact, string()} | {like, string()} | '_',
+		Result :: {Cont1, [#resource{}]} | {error, Reason},
+		Cont1 :: eof | any(),
+		Reason :: term().
+%% @doc Query resources
+query_resource(Cont, '_', MatchCategory) ->
+	MatchHead = #resource{_ = '_'},
+	query_resource1(Cont, MatchHead, MatchCategory);
+query_resource(Cont, {Op, String}, MatchCategory)
+		when is_list(String), ((Op == exact) orelse (Op == like)) ->
+	MatchHead = case lists:last(String) of
+		$% when Op == like ->
+			#resource{id = lists:droplast(String) ++ '_', _ = '_'};
+		_ ->
+         #resource{id = String, _ = '_'}
+	end,
+   query_resource1(Cont, MatchHead, MatchCategory).
+%% @hidden
+query_resource1(Cont, MatchHead, '_') ->
+	MatchSpec = [{MatchHead, [], ['$_']}],
+	query_resource2(Cont, MatchSpec);
+query_resource1(Cont, MatchHead, {Op, String} = _MatchCategory)
+		when is_list(String), ((Op == exact) orelse (Op == like)) ->
+	MatchHead = case lists:last(String) of
+		$% when Op == like ->
+			MatchHead#resource{category = lists:droplast(String) ++ '_'};
+		_ ->
+         MatchHead#resource{category = String}
+	end,
+	MatchSpec = [{MatchHead, [], ['$_']}],
+   query_resource2(Cont, MatchSpec).
+query_resource2(start, MatchSpec) ->
+	F = fun() ->
+			mnesia:select(resource, MatchSpec, ?CHUNKSIZE, read)
+	end,
+	query_resource3(mnesia:ets(F));
+query_resource2(Cont, _MatchSpec) ->
+	F = fun() ->
+         mnesia:select(Cont)
+   end,
+	query_resource3(mnesia:ets(F)).
+%% @hidden
+query_resource3({Resources, Cont}) ->
+	{Cont, Resources};
+query_resource3('$end_of_table') ->
+		{eof, []}.
 
 -type password() :: [50..57 | 97..104 | 106..107 | 109..110 | 112..116 | 119..122].
 -spec generate_password() -> password().
