@@ -556,3 +556,43 @@ spec_pla_tariff() ->
 	Chars = {"usageSpecCharacteristic", {array, []}},
 	{struct, [Id, Name, Href, Description, Version, LastUpdate, Status, Chars]}.
 
+-spec specification_ref(ResourceSpecificationRef) -> ResourceSpecificationRef
+	when
+		ResourceSpecificationRef :: specification_ref() | {struct, list()}.
+%% @doc CODEC for `ResourceSpecificationRef'.
+specification_ref({struct, Object}) ->
+	specification_ref(Object, #specification_ref{});
+specification_ref(#specification_ref{} = ResourceSpecificationRef) ->
+	specification_ref(record_info(fields, specification_ref),
+			ResourceSpecificationRef, []).
+%% @hidden
+specification_ref([{"id", Id} | T], Acc) when is_list(Id) ->
+	specification_ref(T, Acc#specification_ref{id = Id});
+specification_ref([{"href", Href} | T], Acc) when is_list(Href) ->
+	specification_ref(T, Acc#specification_ref{href = Href});
+specification_ref([{"name", Name} | T], Acc) when is_list(Name) ->
+	specification_ref(T, Acc#specification_ref{name = Name});
+specification_ref([{"version", Version} | T], Acc) when is_list(Version) ->
+	specification_ref(T, Acc#specification_ref{version = Version});
+specification_ref([_ | T], Acc) ->
+	specification_ref(T, Acc);
+specification_ref([], Acc) ->
+	Acc.
+%% @hidden
+specification_ref([id | T], #specification_ref{id = Id} = R, Acc)
+		when is_list(Id) ->
+	specification_ref(T, R, [{"id", Id} | Acc]);
+specification_ref([href | T], #specification_ref{href = Href} = R, Acc)
+		when is_list(Href) ->
+	specification_ref(T, R, [{"href", Href} | Acc]);
+specification_ref([name | T], #specification_ref{name = Name} = R, Acc)
+		when is_list(Name) ->
+	specification_ref(T, R, [{"name", Name} | Acc]);
+specification_ref([version | T], #specification_ref{version = Version} = R, Acc)
+		when is_list(Version) ->
+	specification_ref(T, R, [{"version", Version} | Acc]);
+specification_ref([_ | T], R, Acc) ->
+	specification_ref(T, R, Acc);
+specification_ref([], _, Acc) ->
+	{struct, lists:reverse(Acc)}.
+
