@@ -556,6 +556,133 @@ spec_pla_tariff() ->
 	Chars = {"usageSpecCharacteristic", {array, []}},
 	{struct, [Id, Name, Href, Description, Version, LastUpdate, Status, Chars]}.
 
+-spec resource(Resource) -> Resource
+	when
+		Resource :: resource() | {struct, list()}.
+%% @doc CODEC for `Resource'.
+resource({struct, Object}) ->
+	resource(Object, #resource{});
+resource(#resource{} = Resource) ->
+	resource(record_info(fields, resource), Resource, []).
+%% @hidden
+resource([{"id", Id} | T], Acc) when is_list(Id) ->
+	resource(T, Acc#resource{id = Id});
+resource([{"href", Href} | T], Acc) when is_list(Href) ->
+	resource(T, Acc#resource{href = Href});
+resource([{"name", Name} | T], Acc) when is_list(Name) ->
+	resource(T, Acc#resource{name = Name});
+resource([{"description", Description} | T], Acc) when is_list(Description) ->
+	resource(T, Acc#resource{description = Description});
+resource([{"category", Category} | T], Acc) when is_list(Category) ->
+	resource(T, Acc#resource{category = Category});
+resource([{"@type", Type} | T], Acc) when is_list(Type) ->
+	resource(T, Acc#resource{class_type = Type});
+resource([{"@baseType", Type} | T], Acc) when is_list(Type) ->
+	resource(T, Acc#resource{base_type = Type});
+resource([{"@schemaLocation", Schema} | T], Acc) when is_list(Schema) ->
+	resource(T, Acc#resource{schema = Schema});
+resource([{"version", Version} | T], Acc) when is_list(Version) ->
+	resource(T, Acc#resource{version = Version});
+resource([{"validFor", {struct, L}} | T], Resource) ->
+	Resource1 = case lists:keyfind("startDateTime", 1, L) of
+		{_, Start} ->
+			Resource#resource{start_date = ocs_rest:iso8601(Start)};
+		false ->
+			Resource
+	end,
+	Resource2 = case lists:keyfind("endDateTime", 1, L) of
+		{_, End} ->
+			Resource1#resource{end_date = ocs_rest:iso8601(End)};
+		false ->
+			Resource1
+	end,
+	resource(T, Resource2);
+resource([{"lastUpdate", DateTime} | T], Acc) when is_list(DateTime) ->
+	LM = {ocs_rest:iso8601(DateTime), erlang:unique_integer([positive])},
+	resource(T, Acc#resource{last_modified = LM});
+resource([{"lifecycleState", State} | T], Acc) when is_list(State) ->
+	resource(T, Acc#resource{state = State});
+resource([{"lifecycleSubState", SubState} | T], Acc) when is_list(SubState) ->
+	resource(T, Acc#resource{substate = SubState});
+resource([{"resourceRelationship", {array, _} = ResRel} | T], Acc) ->
+	resource(T, Acc#resource{related = resource_rel(ResRel)});
+resource([{"resourceSpecification", SpecRef} | T], Acc) when is_tuple(SpecRef) ->
+	resource(T, Acc#resource{specification = specification_ref(SpecRef)});
+resource([{"resourceCharacteristic", ResChar} | T], Acc)
+		when is_tuple(ResChar) ->
+	resource(T, Acc#resource{characteristic = resource_char(ResChar)});
+resource([_ | T], Acc) ->
+	resource(T, Acc);
+resource([], Acc) ->
+	Acc.
+%% @hidden
+resource([id | T], #resource{id = Id} = R, Acc) when is_list(Id) ->
+	resource(T, R, [{"id", Id} | Acc]);
+resource([href | T], #resource{href = Href} = R, Acc)
+		when is_list(Href) ->
+	resource(T, R, [{"href", Href} | Acc]);
+resource([name | T], #resource{name = Name} = R, Acc)
+		when is_list(Name) ->
+	resource(T, R, [{"name", Name} | Acc]);
+resource([description | T],
+		#resource{description = Description} = R, Acc)
+		when is_list(Description) ->
+	resource(T, R, [{"description", Description} | Acc]);
+resource([category | T], #resource{category = Category} = R, Acc)
+		when is_list(Category) ->
+	resource(T, R, [{"category", Category} | Acc]);
+resource([class_type | T], #resource{class_type = Type} = R, Acc)
+		when is_list(Type) ->
+	resource(T, R, [{"@type", Type} | Acc]);
+resource([base_type | T], #resource{base_type = Type} = R, Acc)
+		when is_list(Type) ->
+	resource(T, R, [{"@baseType", Type} | Acc]);
+resource([schema | T], #resource{schema = Schema} = R, Acc)
+		when is_list(Schema) ->
+	resource(T, R, [{"@schemaLocation", Schema} | Acc]);
+resource([version | T], #resource{version = Version} = R, Acc)
+		when is_list(Version) ->
+	resource(T, R, [{"version", Version} | Acc]);
+resource([start_date | T], #resource{start_date = StartDate,
+		end_date = undefined} = R, Acc) when is_integer(StartDate) ->
+	ValidFor = {struct, [{"startDateTime", ocs_rest:iso8601(StartDate)}]},
+	resource(T, R, [{"validFor", ValidFor} | Acc]);
+resource([start_date | T], #resource{start_date = undefined,
+		end_date = EndDate} = R, Acc) when is_integer(EndDate) ->
+	ValidFor = {struct, [{"endDateTime", ocs_rest:iso8601(EndDate)}]},
+	resource(T, R, [{"validFor", ValidFor} | Acc]);
+resource([start_date | T], #resource{start_date = StartDate,
+		end_date = EndDate} = R, Acc) when is_integer(StartDate),
+		is_integer(EndDate) ->
+	ValidFor = {struct, [{"startDateTime", ocs_rest:iso8601(StartDate)},
+			{"endDateTime", ocs_rest:iso8601(EndDate)}]},
+	resource(T, R, [{"validFor", ValidFor} | Acc]);
+resource([last_modified | T], #resource{last_modified = {TS, _}} = R, Acc)
+		when is_integer(TS) ->
+	resource(T, R, [{"lastUpdate", ocs_rest:iso8601(TS)} | Acc]);
+resource([state | T], #resource{state = State} = R, Acc)
+		when State /= undefined ->
+	resource(T, R, [{"lifecycleState", State} | Acc]);
+resource([substate | T], #resource{substate = SubState} = R, Acc)
+		when SubState /= undefined ->
+	resource(T, R, [{"lifecycleSubState", SubState} | Acc]);
+resource([related | T], #resource{related = ResRel} = R, Acc)
+		when is_list(ResRel), length(ResRel) > 0 ->
+	resource(T, R, [{"resourceRelationship",
+			{array, resource_rel(ResRel)}} | Acc]);
+resource([specification | T], #resource{specification = SpecRef} = R, Acc)
+		when is_record(SpecRef, specification_ref) ->
+	resource(T, R, [{"resourceSpecification",
+			specification_ref(SpecRef)} | Acc]);
+resource([characteristic | T], #resource{characteristic = ResChar} = R, Acc)
+		when is_list(ResChar), length(ResChar) > 0 ->
+	resource(T, R, [{"resourceCharacteristic",
+			{array, resource_char(ResChar)}} | Acc]);
+resource([_ | T], R, Acc) ->
+	resource(T, R, Acc);
+resource([], _, Acc) ->
+	{struct, lists:reverse(Acc)}.
+
 -spec resource_rel(ResourceRelationship) -> ResourceRelationship
 	when
 		ResourceRelationship :: [resource_rel()] | {array, list()}.
