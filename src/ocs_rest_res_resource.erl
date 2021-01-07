@@ -556,6 +556,78 @@ spec_pla_tariff() ->
 	Chars = {"usageSpecCharacteristic", {array, []}},
 	{struct, [Id, Name, Href, Description, Version, LastUpdate, Status, Chars]}.
 
+-spec resource_rel(ResourceRelationship) -> ResourceRelationship
+	when
+		ResourceRelationship :: [resource_rel()] | {array, list()}.
+%% @doc CODEC for `ResourceRelationship'.
+resource_rel([#resource_rel{} | _] = List) ->
+	Fields = record_info(fields, resource_rel),
+	[resource_rel(Fields, R, []) || R <- List];
+resource_rel({array, [{struct, _} | _] = StructList}) ->
+	[resource_rel(Object, #resource_rel{}) || {struct, Object} <- StructList].
+%% @hidden
+resource_rel([{"id", Id} | T], Acc) when is_list(Id) ->
+	resource_rel(T, Acc#resource_rel{id = Id});
+resource_rel([{"href", Href} | T], Acc) when is_list(Href) ->
+	resource_rel(T, Acc#resource_rel{href = Href});
+resource_rel([{"name", Name} | T], Acc) when is_list(Name) ->
+	resource_rel(T, Acc#resource_rel{name = Name});
+resource_rel([{"type", Type} | T], Acc) when is_list(Type) ->
+	resource_rel(T, Acc#resource_rel{type = Type});
+resource_rel([{"@referredType", RefType} | T], Acc) when is_list(RefType) ->
+	resource_rel(T, Acc#resource_rel{referred_type = RefType});
+resource_rel([{"validFor", {struct, L}} | T], ResourceRel) ->
+	ResourceRel1 = case lists:keyfind("startDateTime", 1, L) of
+		{_, Start} ->
+			ResourceRel#resource_rel{start_date = ocs_rest:iso8601(Start)};
+		false ->
+			ResourceRel
+	end,
+	ResourceRel2 = case lists:keyfind("endDateTime", 1, L) of
+		{_, End} ->
+			ResourceRel1#resource_rel{end_date = ocs_rest:iso8601(End)};
+		false ->
+			ResourceRel1
+	end,
+	resource_rel(T, ResourceRel2);
+resource_rel([_ | T], Acc) ->
+	resource_rel(T, Acc);
+resource_rel([], ResourceRel) ->
+	ResourceRel.
+%% @hidden
+resource_rel([id | T], #resource_rel{id = Id} = R, Acc) when is_list(Id) ->
+	resource_rel(T, R, [{"id", Id} | Acc]);
+resource_rel([href | T], #resource_rel{href = Href} = R, Acc)
+		when is_list(Href) ->
+	resource_rel(T, R, [{"href", Href} | Acc]);
+resource_rel([name | T], #resource_rel{name = Name} = R, Acc)
+		when is_list(Name) ->
+	resource_rel(T, R, [{"name", Name} | Acc]);
+resource_rel([type | T], #resource_rel{type = Type} = R, Acc)
+		when is_list(Type) ->
+	resource_rel(T, R, [{"type", Type} | Acc]);
+resource_rel([referred_type | T],
+		#resource_rel{referred_type = RefType} = R, Acc) when is_list(RefType) ->
+	resource_rel(T, R, [{"@referredType", RefType} | Acc]);
+resource_rel([start_date | T], #resource_rel{start_date = StartDate,
+		end_date = undefined} = R, Acc) when is_integer(StartDate) ->
+	ValidFor = {struct, [{"startDateTime", ocs_rest:iso8601(StartDate)}]},
+	resource_rel(T, R, [{"validFor", ValidFor} | Acc]);
+resource_rel([start_date | T], #resource_rel{start_date = undefined,
+		end_date = EndDate} = R, Acc) when is_integer(EndDate) ->
+	ValidFor = {struct, [{"endDateTime", ocs_rest:iso8601(EndDate)}]},
+	resource_rel(T, R, [{"validFor", ValidFor} | Acc]);
+resource_rel([start_date | T], #resource_rel{start_date = StartDate,
+		end_date = EndDate} = R, Acc) when is_integer(StartDate),
+		is_integer(EndDate) ->
+	ValidFor = {struct, [{"startDateTime", ocs_rest:iso8601(StartDate)},
+			{"endDateTime", ocs_rest:iso8601(EndDate)}]},
+	resource_rel(T, R, [{"validFor", ValidFor} | Acc]);
+resource_rel([_ | T], R, Acc) ->
+	resource_rel(T, R, Acc);
+resource_rel([], _, Acc) ->
+	{struct, lists:reverse(Acc)}.
+
 -spec resource_char(ResourceCharacteristic) -> ResourceCharacteristic
 	when
 		ResourceCharacteristic :: [resource_char()] | {array, list()}.
