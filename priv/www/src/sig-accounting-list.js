@@ -173,6 +173,36 @@ class accountingList extends PolymerElement {
 					</template>
 					<template>[[item.type]]</template>
 				</vaadin-grid-column>
+				<vaadin-grid-column width="8ex" flex-grow="2">
+					<template class="header">
+						<vaadin-grid-filter
+								aria-label="msisdn"
+								path="msisdn"
+								value="{{filterMsisdn}}">
+							<input
+									slot="filter"
+									placeholder="MSISDN"
+									value="{{filterMsisdn::input}}"
+									focus-target>
+						</vaadin-grid-filter>
+					</template>
+					<template>[[item.msisdn]]</template>
+				</vaadin-grid-column>
+				<vaadin-grid-column width="8ex" flex-grow="2">
+					<template class="header">
+						<vaadin-grid-filter
+								aria-label="imsi"
+								path="imsi"
+								value="{{filterImsi}}">
+							<input
+									slot="filter"
+									placeholder="IMSI"
+									value="{{filterImsi::input}}"
+									focus-target>
+						</vaadin-grid-filter>
+					</template>
+					<template>[[item.imsi]]</template>
+				</vaadin-grid-column>
 			</vaadin-grid>
 			<iron-ajax id="getAccounting"
 					url="/usageManagement/v1/usage"
@@ -241,7 +271,9 @@ class accountingList extends PolymerElement {
 		this.filtertotal = null;
 		this.filterUserName = null;
 		this.filterPrices = null;
-		this.filterType = null
+		this.filterType = null;
+		this.filterMsisdn = null;
+		this.filterImsi = null
 	}
 
 	ready() {
@@ -354,6 +386,20 @@ class accountingList extends PolymerElement {
 				var index8 = request.response[index].usageCharacteristic.findIndex(checkChar8);
 				if (index8 != -1) {
 					newRecord.type = request.response[index].usageCharacteristic[index8].value;
+				}
+				function checkChar9(characteristic) {
+					return characteristic.name == "msisdn";
+				}
+				var index9 = request.response[index].usageCharacteristic.findIndex(checkChar9);
+				if (index9 != -1) {
+					newRecord.msisdn = request.response[index].usageCharacteristic[index9].value;
+				}
+				function checkChar10(characteristic) {
+					return characteristic.name == "imsi";
+				}
+				var index10 = request.response[index].usageCharacteristic.findIndex(checkChar10);
+				if (index10 != -1) {
+					newRecord.imsi = request.response[index].usageCharacteristic[index10].value;
 				}
 				for(var indexTax in request.response[index].ratedProductUsage) {
 					var taxObj = request.response[index].ratedProductUsage[indexTax].taxExcludedRatingAmount;
