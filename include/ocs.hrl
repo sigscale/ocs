@@ -210,24 +210,24 @@
 		last_modified :: tuple() | undefined}).
 
 -record(resource,
-		{id :: string() | undefined,
-		href :: string() | undefined,
-		name :: string() | undefined,
-		description :: string() | undefined,
-		category :: string() | undefined,
-		class_type :: string() | undefined,
-		base_type :: string() | undefined,
-		schema :: string() | undefined,
-		state :: string() | undefined,
-		substate :: string() | undefined,
-		version :: string() | undefined,
-		start_date :: pos_integer() | undefined,
-		end_date :: pos_integer() | undefined,
+		{id :: string() | undefined | '_',
+		href :: string() | undefined | '_',
+		name :: string() | undefined | '_',
+		description :: string() | undefined | '_',
+		category :: string() | undefined | '_',
+		class_type :: string() | undefined | '_',
+		base_type :: string() | undefined | '_',
+		schema :: string() | undefined | '_',
+		state :: string() | undefined | '_',
+		substate :: string() | undefined | '_',
+		version :: string() | undefined | '_',
+		start_date :: pos_integer() | undefined | '_',
+		end_date :: pos_integer() | undefined | '_',
 		last_modified :: {TS :: pos_integer(), N :: pos_integer()}
-				| undefined,
-		related = [] :: [resource_rel()],
-		specification :: specification_ref() | undefined,
-		characteristic = [] :: [resource_char()]}).
+				| undefined | '_',
+		related = [] :: [resource_rel()] | '_',
+		specification :: specification_ref() | undefined | '_',
+		characteristic = [] :: [resource_char()] | '_'}).
 -type resource() :: #resource{}.
 
 -record(resource_rel,
