@@ -12,12 +12,16 @@
  */
 
 import { PolymerElement, html } from '@polymer/polymer/polymer-element.js';
+import {} from '@polymer/polymer/lib/elements/dom-if.js';
+import {} from '@polymer/polymer/lib/elements/dom-repeat.js'
 import '@polymer/iron-ajax/iron-ajax.js';
 import '@polymer/paper-button/paper-button.js';
 import '@vaadin/vaadin-grid/theme/material/vaadin-grid.js';
 import '@vaadin/vaadin-grid/vaadin-grid.js';
 import '@vaadin/vaadin-grid/vaadin-grid-filter.js';
 import '@vaadin/vaadin-grid/vaadin-grid-column-group.js';
+import '@polymer/paper-tabs/paper-tabs.js';
+import '@polymer/iron-pages/iron-pages.js';
 import './style-element.js'
 
 class accountingList extends PolymerElement {
@@ -27,7 +31,79 @@ class accountingList extends PolymerElement {
 			<vaadin-grid
 					id="accountingGrid"
 					loading="{{loading}}"
-					theme="no-border">
+					active-item="{{activeItem}}">
+				<template class="row-details">
+					<paper-tabs
+							class="details"
+							selected="{{selectedTab}}">
+						<paper-tab>
+							General
+						</paper-tab>
+						<paper-tab>
+							Characteristics
+						</paper-tab>
+						<paper-tab>
+							Specification
+						</paper-tab>
+					</paper-tabs>
+					<iron-pages
+							selected="{{selectedTab}}">
+						<div>
+							<dl class="details">
+								<template is="dom-if" if="{{item.id}}">
+									<dt><b>Id</b></dt>
+									<dd>{{item.id}}</dd>
+								</template>
+								<template is="dom-if" if="{{item.date}}">
+									<dt><b>Date</b></dt>
+									<dd>{{item.date}}</dd>
+								</template>
+								<template is="dom-if" if="{{item.status}}">
+									<dt><b>Status</b></dt>
+									<dd>{{item.status}}</dd>
+								</template>
+								<template is="dom-if" if="{{item.type}}">
+									<dt><b>Type</b></dt>
+									<dd>{{item.type1}}</dd>
+								</template>
+								<template is="dom-if" if="{{item.href}}">
+									<dt><b>Href</b></dt>
+									<dd>{{item.href}}</dd>
+								</template>
+							</dl>
+						</div>
+						<div>
+							<template is="dom-if" if="{{item.usageCharacteristic}}">
+								<table class="details">
+									<tr>
+										<th>Name</th>
+										<th>Value</th>
+									</tr>
+									<template is="dom-repeat" items="{{item.usageCharacteristic}}" as="char">
+										<tr>
+											<td>{{char.name}}</td>
+											<td>{{char.value}}</td>
+										</tr>
+									</template>
+								</table>
+							</template>
+						</div>
+						<div>
+							<template is="dom-if" if="{{item.usageSpecificationId}}">
+								<dt><b>Id</b></dt>
+								<dd>{{item.usageSpecificationId}}</dd>
+							</template>
+							<template is="dom-if" if="{{item.usageSpecificationName}}">
+								<dt><b>Name</b></dt>
+								<dd>{{item.usageSpecificationName}}</dd>
+							</template>
+							<template is="dom-if" if="{{item.usageSpecificationHref}}">
+								<dt><b>Href</b></dt>
+								<dd>{{item.usageSpecificationHref}}</dd>
+							</template>
+						</div>
+					</iron-pages>
+				</template>
 				<vaadin-grid-column width="24ex" flex-grow="2">
 					<template class="header">
 						<vaadin-grid-filter
@@ -221,6 +297,11 @@ class accountingList extends PolymerElement {
 				type: String,
 				value: null
 			},
+			activeItem: {
+				type: Object,
+				notify: true,
+				observer: '_activeItemChanged'
+			},
 			filterTimeStamp: {
 				type: Boolean,
 				observer: '_filterChanged'
@@ -256,6 +337,28 @@ class accountingList extends PolymerElement {
 			filterType: {
 				type: Boolean,
 				observer: '_filterChanged'
+			}
+		}
+	}
+
+	_activeItemChanged(item, last) {
+		if(item || last) {
+			var grid = this.$.accountingGrid;
+			var current;
+			if(item == null) {
+				current = last;
+				this.$.accountingGrid.selectedItems = item ? [item] : [];
+			} else {
+				current = item;
+				this.$.accountingGrid.selectedItems = [];
+			}
+			function checkExist(specification) {
+				return specification.id == current.id;
+			}
+			if(grid.detailsOpenedItems && grid.detailsOpenedItems.some(checkExist)) {
+				grid.closeItemDetails(current);
+			} else {
+				grid.openItemDetails(current);
 			}
 		}
 	}
@@ -337,76 +440,15 @@ class accountingList extends PolymerElement {
 			var vaadinItems = new Array();
 			for (var index in request.response) {
 				var newRecord = new Object();
+				newRecord.id = request.response[index].id;
 				newRecord.date = request.response[index].date;
-				function checkChar2(characteristic) {
-					return characteristic.name == "nasIdentifier";
-				}
-				var index2 = request.response[index].usageCharacteristic.findIndex(checkChar2);
-				if(index2 != -1) {
-					newRecord.nasIdentifier = request.response[index].usageCharacteristic[index2].value;
-				}
-				function checkChar3(characteristic) {
-					return characteristic.name == "acctSessionTime";
-				}
-				var index3 = request.response[index].usageCharacteristic.findIndex(checkChar3);
-				if(index3 != -1) {
-					newRecord.acctSessiontime = request.response[index].usageCharacteristic[index3].value;
-				}
-				function checkChar4(characteristic) {
-					return characteristic.name == "outputOctets";
-				}
-				var index4 = request.response[index].usageCharacteristic.findIndex(checkChar4);
-				if(index4 != -1) {
-					newRecord.acctOutputoctets = request.response[index].usageCharacteristic[index4].value;
-				}
-				function checkChar5(characteristic) {
-					return characteristic.name == "inputOctets";
-				}
-				var index5 = request.response[index].usageCharacteristic.findIndex(checkChar5);
-				if(index5 != -1) {
-					newRecord.acctInputoctets = request.response[index].usageCharacteristic[index5].value;
-				}
-				function checkChar6(characteristic) {
-					return characteristic.name == "totalOctets";
-				}
-				var index6 = request.response[index].usageCharacteristic.findIndex(checkChar6);
-				if(index6 != -1) {
-					newRecord.acctTotaloctets = request.response[index].usageCharacteristic[index6].value;
-				}
-				function checkChar7(characteristic) {
-					return characteristic.name == "username";
-				}
-				var username1 = request.response[index].usageCharacteristic.find(checkChar7);
-				if (username1 != undefined) {
-					newRecord.username = username1.value;
-				}
-				function checkChar8(characteristic) {
-					return characteristic.name == "type";
-				}
-				var index8 = request.response[index].usageCharacteristic.findIndex(checkChar8);
-				if (index8 != -1) {
-					newRecord.type = request.response[index].usageCharacteristic[index8].value;
-				}
-				function checkChar9(characteristic) {
-					return characteristic.name == "msisdn";
-				}
-				var index9 = request.response[index].usageCharacteristic.findIndex(checkChar9);
-				if (index9 != -1) {
-					newRecord.msisdn = request.response[index].usageCharacteristic[index9].value;
-				}
-				function checkChar10(characteristic) {
-					return characteristic.name == "imsi";
-				}
-				var index10 = request.response[index].usageCharacteristic.findIndex(checkChar10);
-				if (index10 != -1) {
-					newRecord.imsi = request.response[index].usageCharacteristic[index10].value;
-				}
-				for(var indexTax in request.response[index].ratedProductUsage) {
-					var taxObj = request.response[index].ratedProductUsage[indexTax].taxExcludedRatingAmount;
-					if(taxObj) {
-						newRecord.prices = taxObj;
-					}
-				}
+				newRecord.status = request.response[index].status;
+				newRecord.type1 = request.response[index].type;
+				newRecord.href = request.response[index].href;
+				newRecord.usageCharacteristic = request.response[index].usageCharacteristic;
+				newRecord.usageSpecificationId = request.response[index].usageSpecification.id;
+				newRecord.usageSpecificationHref = request.response[index].usageSpecification.href;
+				newRecord.usageSpecificationName = request.response[index].usageSpecification.name;
 				vaadinItems[index] = newRecord;
 			}
 			callback(vaadinItems);

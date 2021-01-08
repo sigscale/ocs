@@ -109,6 +109,38 @@ styleElement.innerHTML = `<template>
 		.drawer-list iron-collapse#ipdr {
 			padding-left: 36px;
 		}
+		paper-tabs.details {
+			--paper-tabs-selection-bar-color: var(--app-primary-color);
+		}
+		dt {
+			float: left;
+			clear: left;
+			width: 20ch;
+			text-align: right;
+			font-weight: bold;
+		}
+		dt::after {
+			content: ":";
+		}
+		dd {
+			margin: 0 0 0 22ch;
+		}
+		table.details {
+			border: 1px solid lightgrey;
+			border-collapse: collapse;
+		}
+		table.details th {
+			border: 1px solid lightgrey;
+			border-collapse: collapse;
+			padding-left: 1em;
+			padding-right: 1em;
+		}
+		table.details td {
+			border: 1px solid lightgrey;
+			border-collapse: collapse;
+			padding-left: 1em;
+			padding-right: 1em;
+		}
 		.yellow-button {
 			text-transform: none;
 			color: #eeff41;
@@ -157,7 +189,7 @@ styleElement.innerHTML = `<template>
 		vaadin-grid input::placeholder {
 			color: black;
 			font-size: medium;
-    		font-weight: 600;
+			font-weight: 600;
 		}
 		vaadin-grid .grouptitle {
 			text-align: center;
@@ -167,7 +199,7 @@ styleElement.innerHTML = `<template>
 		[part~="header-cell"] {
 			background-color: #ffb04c;
 			font-size: unset;
-    		font-weight: bolder;
+			font-weight: bolder;
 			color: black;
 		}
 		paper-fab {
