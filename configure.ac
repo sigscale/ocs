@@ -5,8 +5,8 @@
 ##
 ## Boilerplate:  standard boilerplate code
 ##
-AC_INIT([ocs], [3.1.45], [issues@sigscale.org])
-AC_COPYRIGHT([Copyright (c) 2016 - 2020 SigScale Global Inc.])
+AC_INIT([ocs], [3.1.48.1], [issues@sigscale.org])
+AC_COPYRIGHT([Copyright (c) 2016 - 2021 SigScale Global Inc.])
 AC_PREREQ(2.63)
 AC_CONFIG_SRCDIR([src/ocs_app.erl])
 AC_CONFIG_HEADERS([config.h])
@@ -152,6 +152,7 @@ AC_CHECK_FUNC([BN_new], [], [AC_MSG_ERROR([BN_new function not found!])])
 AC_OUTPUT([Makefile include/Makefile src/Makefile ebin/Makefile doc/Makefile
 		c_src/Makefile priv/Makefile priv/lib/Makefile
 		priv/mibs/Makefile mibs/Makefile priv/www/Makefile priv/examples/Makefile
+		priv/www/package.json
 		priv/schema/Makefile
 		test/Makefile ocs.rel sys.config ebin/ocs.appup])
 

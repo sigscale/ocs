@@ -1,7 +1,7 @@
 %%% ocs_api_SUITE.erl
 %%% vim: ts=3
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-%%% @copyright 2016 - 2017 SigScale Global Inc.
+%%% @copyright 2016 - 2021 SigScale Global Inc.
 %%% @end
 %%% Licensed under the Apache License, Version 2.0 (the "License");
 %%% you may not use this file except in compliance with the License.
@@ -18,7 +18,7 @@
 %%%  @doc Test suite for public API of the {@link //ocs. ocs} application.
 %%%
 -module(ocs_api_SUITE).
--copyright('Copyright (c) 2016 - 2017 SigScale Global Inc.').
+-copyright('Copyright (c) 2016 - 2021 SigScale Global Inc.').
 
 %% common_test required callbacks
 -export([suite/0, sequences/0, all/0]).
@@ -1027,8 +1027,8 @@ rating_deleted_bucket_event(_Config) ->
 	SessionId = [{'Session-Id', list_to_binary(ocs:generate_password())}],
 	ServiceType = 32251,
 	{out_of_credit, _} = ocs_rating:rate(diameter, ServiceType, undefined,
-			undefined, ServiceId, Timestamp, undefined, undefined, initial,
-			[], [{octets, PackageSize}], SessionId),
+			undefined, undefined, ServiceId, Timestamp, undefined, undefined,
+			initial, [], [{octets, PackageSize}], SessionId),
 	receive
 		{depleted, #bucket{units = Units, remain_amount = RA}, balance} ->
 			PackagePrice = RA
@@ -1083,8 +1083,8 @@ accumulated_balance_event(_Config) ->
 	SessionId = [{'Session-Id', list_to_binary(ocs:generate_password())}],
 	ServiceType = 32251,
 	{ok, #service{}, _} = ocs_rating:rate(diameter, ServiceType, undefined,
-			undefined, ServiceId, Timestamp, undefined, undefined, initial,
-			[], [{octets, PackageSize}], SessionId),
+			undefined, undefined, ServiceId, Timestamp, undefined, undefined,
+			initial, [], [{octets, PackageSize}], SessionId),
 	receive
 		{accumulated, [#acc_balance{total_balance = BytesTotalAmount,
 				units = octets}], balance} ->

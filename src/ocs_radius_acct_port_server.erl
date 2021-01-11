@@ -1,7 +1,7 @@
 %%% ocs_radius_acct_port_server.erl
 %%% vim: ts=3
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-%%% @copyright 2016 - 2017 SigScale Global Inc.
+%%% @copyright 2016 - 2021 SigScale Global Inc.
 %%% @end
 %%% Licensed under the Apache License, Version 2.0 (the "License");
 %%% you may not use this file except in compliance with the License.
@@ -23,7 +23,7 @@
 %%% 	RFC3579 - RADIUS Support For EAP</a>
 %%%
 -module(ocs_radius_acct_port_server).
--copyright('Copyright (c) 2016 - 2017 SigScale Global Inc.').
+-copyright('Copyright (c) 2016 - 2021 SigScale Global Inc.').
 
 -behaviour(gen_server).
 
@@ -281,8 +281,8 @@ request1(?AccountingStart, AcctSessionId, Id,
 			calendar:universal_time()
 	end,
 	case ocs_rating:rate(radius, ServiceType, undefined, undefined,
-			Subscriber, Timestamp, CallAddress, Direction, initial,
-			[], [], SessionAttributes) of
+			undefined, Subscriber, Timestamp, CallAddress, Direction,
+			initial, [], [], SessionAttributes) of
 		{ok, #service{}, _} ->
 			ok = ocs_log:acct_log(radius,
 					{ServerAddress, ServerPort}, start, Attributes, undefined, undefined),
@@ -330,7 +330,7 @@ request1(?AccountingStop, AcctSessionId, Id,
 			calendar:universal_time()
 	end,
 	case ocs_rating:rate(radius, ServiceType, undefined, undefined,
-			Subscriber, Timestamp, CallAddress, Direction, final,
+			undefined, Subscriber, Timestamp, CallAddress, Direction, final,
 			DebitAmount, [], SessionAttributes) of
 		{ok, #service{}, Rated} when is_list(Rated) ->
 			ok = ocs_log:acct_log(radius,
@@ -387,8 +387,8 @@ request1(?AccountingInterimUpdate, AcctSessionId, Id,
 			calendar:universal_time()
 	end,
 	case ocs_rating:rate(radius, ServiceType, undefined, undefined,
-			Subscriber, Timestamp, CallAddress, Direction, interim,
-			[], ReserveAmount, SessionAttributes) of
+			undefined, Subscriber, Timestamp, CallAddress, Direction,
+			interim, [], ReserveAmount, SessionAttributes) of
 		{ok, #service{}, _} ->
 			{reply, {ok, response(Id, Authenticator, Secret)}, State};
 		{out_of_credit, SessionList} ->

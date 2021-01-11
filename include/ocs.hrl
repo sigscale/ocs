@@ -1,7 +1,7 @@
 %%% ocs.hrl
 %%% vim: ts=3
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-%%% @copyright 2016 - 2017 SigScale Global Inc.
+%%% @copyright 2016 - 2021 SigScale Global Inc.
 %%% @end
 %%% Licensed under the Apache License, Version 2.0 (the "License");
 %%% you may not use this file except in compliance with the License.
@@ -138,6 +138,8 @@
 		reservations = [] :: [{TS :: pos_integer(),
 				DebitAmount :: non_neg_integer(),
 				ReservedAmount :: non_neg_integer(),
+				ServiceId :: non_neg_integer() | undefined,
+				ChargingKey :: non_neg_integer() | undefined,
 				SessionId :: list()}] | '_',
 		units :: octets | cents | seconds | messages | undefined | '_',
 		prices = [] :: list() | '_',

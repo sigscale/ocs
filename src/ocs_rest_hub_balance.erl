@@ -1,7 +1,7 @@
 %%% ocs_rest_hub_balance.erl
 %%% vim: ts=3
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-%%% @copyright 2020 SigScale Global Inc.
+%%% @copyright 2020 - 2021 SigScale Global Inc.
 %%% @end
 %%% Licensed under the Apache License, Version 2.0 (the "License");
 %%% you may not use this file except in compliance with the License.
@@ -17,12 +17,12 @@
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%%
 -module(ocs_rest_hub_balance).
--copyright('Copyright (c) 2020 SigScale Global Inc.').
+-copyright('Copyright (c) 2020 - 2021 SigScale Global Inc.').
 
 -include("ocs.hrl").
 
 -export([content_types_accepted/0, content_types_provided/0, post_hub/2,
-		delete_hub/1]).
+		delete_hub/1, get_hubs/0, get_hub/1]).
 -export([hub/1]).
 
 -define(BalancehubPath, "/balanceManagement/v1/hub/").
@@ -94,6 +94,50 @@ post_hub(ReqBody, Authorization) ->
 	catch
 		_:_ ->
 			{error, 400}
+	end.
+
+-spec get_hubs() -> Result
+	when
+		Result :: {ok, Headers :: [tuple()], Body :: iolist()}
+				| {error, ErrorCode :: integer()}.
+%% @doc Body producing function for
+%% 	`GET|HEAD /balanceManagement/v1/hub'
+get_hubs() ->
+	get_hubs(supervisor:which_children(ocs_rest_hub_sup), []).
+%% @hidden
+get_hubs([{_, Pid, _, _} | T], Acc) ->
+	case gen_fsm:sync_send_all_state_event(Pid, get) of
+		#hub{href = ?BalancehubPath ++ _} = Hub ->
+			get_hubs(T, [Hub | Acc]);
+		_Hub ->
+			get_hubs(T, Acc)
+	end;
+get_hubs([], Acc) ->
+	Body = mochijson:encode({array, [hub(Hub) || Hub <- Acc]}),
+	Headers = [{content_type, "application/json"}],
+	{ok, Headers, Body}.
+
+-spec get_hub(Id) -> Result
+	when
+		Id :: string(),
+		Result :: {ok, Headers :: [tuple()], Body :: iolist()}
+				| {error, ErrorCode :: integer()}.
+%% @doc Body producing function for
+%% 	`GET|HEAD /balanceManagement/v1/hub/{id}'
+%% 	requests.
+get_hub(Id) ->
+	case global:whereis_name(Id) of
+		Fsm when is_pid(Fsm) ->
+			case gen_fsm:sync_send_all_state_event(Fsm, get) of
+				#hub{id = Id} = Hub ->
+					Body = mochijson:encode(hub(Hub)),
+					Headers = [{content_type, "application/json"}],
+					{ok, Headers, Body};
+				_ ->
+					{error, 404}
+			end;
+		undefined ->
+			{error, 404}
 	end.
 	
 %%----------------------------------------------------------------------

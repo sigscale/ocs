@@ -1,7 +1,7 @@
 %%% ocs_rest_res_usage.erl
 %%% vim: ts=3
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-%%% @copyright 2016 - 2017 SigScale Global Inc.
+%%% @copyright 2016 - 2021 SigScale Global Inc.
 %%% @end
 %%% Licensed under the Apache License, Version 2.0 (the "License");
 %%% you may not use this file except in compliance with the License.
@@ -19,7 +19,7 @@
 %%% 	for a REST server in the {@link //ocs. ocs} application.
 %%%
 -module(ocs_rest_res_usage).
--copyright('Copyright (c) 2016 - 2017 SigScale Global Inc.').
+-copyright('Copyright (c) 2016 - 2021 SigScale Global Inc.').
 
 -export([content_types_accepted/0, content_types_provided/0,
 		get_usages/2, get_usages/3, get_usages/4, get_usage/3, get_ipdr/2,
@@ -3181,26 +3181,6 @@ characteristic({"name", exact, "msisdn"}, {"value", Op, UserNameValue},
 	end,
 	characteristic(T, diameter, Types, ReqAttrs2, RespAttrs, N + 1);
 characteristic({"name", exact, "imsi"}, {"value", Op, UserNameValue},
-		T, diameter, Types, '_', RespAttrs, N) when is_list(UserNameValue) ->
-	VarMatch = build_var_match(N),
-	case lists:last(UserNameValue) of
-		$% when Op == gte ->
-			Pre = lists:droplast(UserNameValue),
-			Prefix = list_to_binary(Pre),
-			I = list_to_integer(Pre),
-			Prefix2 = integer_to_binary(I + 1),
-			ReqAttrs2 = [{#'3gpp_ro_CCR'{'Subscription-Id'
-					= [#'3gpp_ro_Subscription-Id'{'Subscription-Id-Data'
-					= VarMatch, _ = '_'}], _ = '_'},
-					[{'=<', Prefix, VarMatch}, {'>', Prefix2, VarMatch}]}];
-		_ when Op == exact ->
-			Prefix = list_to_binary(UserNameValue),
-			ReqAttrs2 = [{#'3gpp_ro_CCR'{'Subscription-Id'
-					= [#'3gpp_ro_Subscription-Id'{'Subscription-Id-Data'
-					= Prefix, _ = '_'}], _ = '_'}, []}]
-	end,
-	characteristic(T, diameter, Types, ReqAttrs2, RespAttrs, N + 1);
-characteristic({"name", exact, undefined}, {"value", Op, UserNameValue},
 		T, diameter, Types, '_', RespAttrs, N) when is_list(UserNameValue) ->
 	VarMatch = build_var_match(N),
 	case lists:last(UserNameValue) of

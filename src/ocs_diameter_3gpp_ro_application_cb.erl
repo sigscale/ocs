@@ -1,7 +1,7 @@
 %%% ocs_diameter_3gpp_ro_application_cb.erl 
 %%% vim: ts=3
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-%%% @copyright 2016 - 2017 SigScale Global Inc.
+%%% @copyright 2016 - 2021 SigScale Global Inc.
 %%% @end
 %%% Licensed under the Apache License, Version 2.0 (the "License");
 %%% you may not use this file except in compliance with the License.
@@ -24,7 +24,7 @@
 %%% 	RFC4006 - DIAMETER Credit-Control Application </a>
 %%%
 -module(ocs_diameter_3gpp_ro_application_cb).
--copyright('Copyright (c) 2016 - 2017 SigScale Global Inc.').
+-copyright('Copyright (c) 2016 - 2021 SigScale Global Inc.').
 
 -export([peer_up/3, peer_down/3, pick_peer/4, prepare_request/3,
 			prepare_retransmit/3, handle_answer/4, handle_error/4,
@@ -461,7 +461,7 @@ process_request1(?'3GPP_CC-REQUEST-TYPE_TERMINATION_REQUEST' = RequestType,
 		end,
 		Amounts = case get_mscc(MSCC1) of
 			[] ->
-				[{undefined, undefined, [], []}];
+				[{[], [], [], []}];
 			As ->
 				As
 		end,
@@ -501,16 +501,6 @@ process_request1(?'3GPP_CC-REQUEST-TYPE_TERMINATION_REQUEST' = RequestType,
 			diameter_error(SessionId, ?'DIAMETER_BASE_RESULT-CODE_UNABLE_TO_COMPLY',
 					OHost, ORealm, RequestType, RequestNum)
 	end;
-process_request1(?'3GPP_CC-REQUEST-TYPE_TERMINATION_REQUEST' = RequestType,
-		#'3gpp_ro_CCR'{'Multiple-Services-Credit-Control' = []} = Request,
-		SessionId, RequestNum, _Subscriber, OHost, _DHost,
-		ORealm, _DRealm, IpAddress, Port) ->
-	Reply = diameter_answer(SessionId, [],
-			?'DIAMETER_BASE_RESULT-CODE_SUCCESS',
-			OHost, ORealm, RequestType, RequestNum),
-	ok = ocs_log:acct_log(diameter, {IpAddress, Port},
-			accounting_event_type(RequestType), Request, Reply, undefined),
-	Reply;
 process_request1(?'3GPP_CC-REQUEST-TYPE_EVENT_REQUEST' = RequestType,
 		#'3gpp_ro_CCR'{'Multiple-Services-Credit-Control' = [],
 		'Requested-Action' = [?'3GPP_RO_REQUESTED-ACTION_DIRECT_DEBITING'],
@@ -530,9 +520,9 @@ process_request1(?'3GPP_CC-REQUEST-TYPE_EVENT_REQUEST' = RequestType,
 			_ ->
 				calendar:universal_time()
 		end,
-		case ocs_rating:rate(diameter, ServiceType, undefined, ServiceNetwork,
-				Subscriber, Timestamp, Address, Direction, event, [], [],
-				[{'Session-Id', SessionId}]) of
+		case ocs_rating:rate(diameter, ServiceType, undefined, undefined,
+				ServiceNetwork, Subscriber, Timestamp, Address, Direction,
+				event, [], [], [{'Session-Id', SessionId}]) of
 			{ok, _, {octets, Amount}, Rated} ->
 				ResultCode = ?'DIAMETER_BASE_RESULT-CODE_SUCCESS',
 				GSU = #'3gpp_ro_Granted-Service-Unit'{'CC-Total-Octets' = [Amount]},
@@ -881,15 +871,21 @@ rate(ServiceType, ServiceNetwork, Subscriber, Timestamp,
 rate(ServiceType, ServiceNetwork, Subscriber,
 		Timestamp, Address, Direction, Flag, SessionId,
 		[{SI, RG, Debits, Reserves} | T], Acc, ResultCode1, Rated1) ->
+	ServiceId = case SI of
+		[] ->
+			undefined;
+		[N1] ->
+			N1
+	end,
 	ChargingKey = case RG of
 		[] ->
 			undefined;
-		[N] ->
-			N
+		[N2] ->
+			N2
 	end,
-	case ocs_rating:rate(diameter, ServiceType, ChargingKey, ServiceNetwork,
-			Subscriber, Timestamp, Address, Direction, Flag, Debits,
-			Reserves, [{'Session-Id', SessionId}]) of
+	case ocs_rating:rate(diameter, ServiceType, ServiceId, ChargingKey,
+			ServiceNetwork, Subscriber, Timestamp, Address, Direction, Flag,
+			Debits, Reserves, [{'Session-Id', SessionId}]) of
 		{ok, _, {seconds, Amount} = _GrantedAmount} when Amount > 0 ->
 			ResultCode2 = ?'DIAMETER_BASE_RESULT-CODE_SUCCESS',
 			GSU = #'3gpp_ro_Granted-Service-Unit'{'CC-Time' = [Amount]},

@@ -1,7 +1,7 @@
 %%% ocs_terminate_fsm.erl
 %%% vim: ts=3
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-%%% @copyright 2016 - 2020 SigScale Global Inc.
+%%% @copyright 2016 - 2021 SigScale Global Inc.
 %%% @end
 %%% Licensed under the Apache License, Version 2.0 (the "License");
 %%% you may not use this file except in compliance with the License.
@@ -23,7 +23,7 @@
 %%% 	3GPP TS 29.273 - 3GPP EPS AAA interfaces</a>
 %%%
 -module(ocs_terminate_fsm).
--copyright('Copyright (c) 2016 - 2020 SigScale Global Inc.').
+-copyright('Copyright (c) 2016 - 2021 SigScale Global Inc.').
 
 -behaviour(gen_fsm).
 
@@ -168,6 +168,7 @@ idle(Request, From, #statedata{session_id = SessionId} = StateData)
 				[#session{imsi = IMSI, hss_realm = undefined}] ->
 					mnesia:delete(session, SessionId, write);
 				[#session{imsi = IMSI, hss_realm = HR, hss_host = HH}] ->
+					mnesia:delete(session, SessionId, write),
 					{HR, HH};
 				[] ->
 					not_found
@@ -246,7 +247,7 @@ deregister({ok, #'3gpp_swx_SAA'{'Result-Code' = [ResultCode]} = _Answer},
 			{session, SessionId}, {result, ResultCode}]),
 	ResultCode = ?'DIAMETER_BASE_RESULT-CODE_UNABLE_TO_COMPLY',
 	gen_fsm:reply(Caller, response(ResultCode, StateData)),
-	{stop, shutdown, StateData};
+	deregister1(StateData);
 deregister({ok, #'3gpp_swx_SAA'{'Experimental-Result'
 		= [#'3gpp_Experimental-Result'{'Experimental-Result-Code' = ResultCode1}]}},
 		#statedata{session_id = SessionId, imsi = IMSI, identity = Identity,
@@ -260,7 +261,7 @@ deregister({ok, #'3gpp_swx_SAA'{'Experimental-Result'
 			{session, SessionId}, {result, ResultCode1}]),
 	ResultCode2 = ?'DIAMETER_BASE_RESULT-CODE_UNABLE_TO_COMPLY',
 	gen_fsm:reply(Caller, response(ResultCode2, StateData)),
-	{stop, shutdown, StateData}.
+	deregister1(StateData).
 %% @hidden
 deregister1(#statedata{session_id = SessionId} = StateData) ->
 	F = fun() -> mnesia:delete(session, SessionId, write) end,

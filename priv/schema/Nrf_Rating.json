@@ -89,7 +89,7 @@
                       },
                       "requestSubType" : "RESERVE",
                       "requestedUnit" : {
-                        "serviceSpecificUnits" : 1
+                        "serviceSpecificUnit" : 1
                       }
                     } ]
                   }
@@ -154,8 +154,9 @@
                           }
                         },
                         "consumedUnit" : {
-                          "serviceSpecificUnits" : 1
-                        }
+                          "serviceSpecificUnit" : 1
+                        },
+                        "resultCode" : "SUCCESS"
                       }
                     }
                   },
@@ -175,8 +176,9 @@
                           }
                         },
                         "grantedUnit" : {
-                          "serviceSpecificUnits" : 1
-                        }
+                          "serviceSpecificUnit" : 1
+                        },
+                        "resultCode" : "SUCCESS"
                       }
                     }
                   },
@@ -191,14 +193,16 @@
                         "ratingGroup" : 2,
                         "grantedUnit" : {
                           "totalVolume" : 100000000
-                        }
+                        },
+                        "resultCode" : "SUCCESS"
                       }, {
                         "serviceContextId" : "32251@3gpp.org",
                         "serviceId" : 1,
                         "ratingGroup" : 32,
                         "grantedUnit" : {
                           "totalVolume" : 100000000
-                        }
+                        },
+                        "resultCode" : "SUCCESS"
                       } ]
                     }
                   }
@@ -257,7 +261,9 @@
           "default" : {
             "$ref" : "https://api.swaggerhub.com/domains/SigScale/TS29571_CommonData/1.2.1#/components/responses/default"
           }
-        }
+        },
+        "summary" : "Create rating data for a new event or session",
+        "description" : "The rating data collection represents instances of rating requests."
       }
     },
     "/ratingdata/{RatingDataRef}/update" : {
@@ -331,14 +337,16 @@
                         "ratingGroup" : 32,
                         "consumedUnit" : {
                           "totalVolume" : 83256442
-                        }
+                        },
+                        "resultCode" : "SUCCESS"
                       }, {
                         "serviceContextId" : "32251@3gpp.org",
                         "serviceId" : 1,
                         "ratingGroup" : 32,
                         "grantedUnit" : {
                           "totalVolume" : 100000000
-                        }
+                        },
+                        "resultCode" : "SUCCESS"
                       } ]
                     }
                   }
@@ -397,7 +405,9 @@
           "default" : {
             "$ref" : "https://api.swaggerhub.com/domains/SigScale/TS29571_CommonData/1.2.1#/components/responses/default"
           }
-        }
+        },
+        "summary" : "In session interim rating data update.",
+        "description" : "Provides an interim update for on going session.  May contain reservation requests and/or reports of used units."
       }
     },
     "/ratingdata/{RatingDataRef}/release" : {
@@ -433,7 +443,7 @@
                       },
                       "requestSubType" : "DEBIT",
                       "consumedUnit" : {
-                        "serviceSpecificUnits" : 1
+                        "serviceSpecificUnit" : 1
                       }
                     } ]
                   }
@@ -496,8 +506,9 @@
                           }
                         },
                         "consumedUnit" : {
-                          "serviceSpecificUnits" : 1
-                        }
+                          "serviceSpecificUnit" : 1
+                        },
+                        "resultCode" : "SUCCESS"
                       } ]
                     }
                   },
@@ -519,7 +530,8 @@
                             "valueDigits" : 20,
                             "exponent" : -10
                           }
-                        }
+                        },
+                        "resultCode" : "SUCCESS"
                       } ]
                     }
                   }
@@ -578,7 +590,9 @@
           "default" : {
             "$ref" : "https://api.swaggerhub.com/domains/SigScale/TS29571_CommonData/1.2.1#/components/responses/default"
           }
-        }
+        },
+        "summary" : "End of session rating data update.",
+        "description" : "Indicates the end of an existing session.  May contain  reports of used units."
       }
     }
   },
@@ -896,9 +910,17 @@
             "items" : {
               "$ref" : "https://api.swaggerhub.com/domains/SigScale/TS29571_CommonData/1.2.1#/components/schemas/Uint32"
             }
+          },
+          "resultCode" : {
+            "anyOf" : [ {
+              "type" : "string",
+              "enum" : [ "SUCCESS", "END_USER_SERVICE_DENIED", "QUOTA_MANAGEMENT_NOT_APPLICABLE", "QUOTA_LIMIT_REACHED", "END_USER_SERVICE_REJECTED", "USER_UNKNOWN", "RATING_FAILED" ]
+            }, {
+              "type" : "string"
+            } ]
           }
         },
-        "required" : [ "serviceId" ]
+        "required" : [ "serviceId", "resultCode" ]
       },
       "DestinationId" : {
         "type" : "object",
@@ -921,27 +943,56 @@
       },
       "ServiceInformation" : {
         "description" : "This parameter holds the individual service specific parameters as defined in the corresponding \"middle tier\" 3GPP TS.",
-        "type" : "object",
         "oneOf" : [ {
-          "$ref" : "https://www.3gpp.org/ftp/Specs/archive/OpenAPI/Rel-16/TS32291_Nchf_ConvergedCharging.yaml#/components/schemas/PDUSessionChargingInformation"
+          "description" : "5G Data Connectivity Charging Information",
+          "allOf" : [ {
+            "$ref" : "https://www.3gpp.org/ftp/Specs/archive/OpenAPI/Rel-16/TS32291_Nchf_ConvergedCharging.yaml#/components/schemas/PDUSessionChargingInformation"
+          } ]
         }, {
-          "$ref" : "https://www.3gpp.org/ftp/Specs/archive/OpenAPI/Rel-16/TS32291_Nchf_ConvergedCharging.yaml#/components/schemas/SMSChargingInformation"
+          "description" : "5G SMS Charging Information",
+          "allOf" : [ {
+            "$ref" : "https://www.3gpp.org/ftp/Specs/archive/OpenAPI/Rel-16/TS32291_Nchf_ConvergedCharging.yaml#/components/schemas/SMSChargingInformation"
+          } ]
         }, {
-          "$ref" : "https://www.3gpp.org/ftp/Specs/archive/OpenAPI/Rel-16/TS32291_Nchf_ConvergedCharging.yaml#/components/schemas/NEFChargingInformation"
+          "description" : "5G Exposure Function Northbound API Charging Information",
+          "allOf" : [ {
+            "$ref" : "https://www.3gpp.org/ftp/Specs/archive/OpenAPI/Rel-16/TS32291_Nchf_ConvergedCharging.yaml#/components/schemas/NEFChargingInformation"
+          } ]
         }, {
-          "$ref" : "https://www.3gpp.org/ftp/Specs/archive/OpenAPI/Rel-16/TS32291_Nchf_ConvergedCharging.yaml#/components/schemas/RegistrationChargingInformation"
+          "description" : "5G Registration Charging Information",
+          "allOf" : [ {
+            "$ref" : "https://www.3gpp.org/ftp/Specs/archive/OpenAPI/Rel-16/TS32291_Nchf_ConvergedCharging.yaml#/components/schemas/RegistrationChargingInformation"
+          } ]
         }, {
-          "$ref" : "https://www.3gpp.org/ftp/Specs/archive/OpenAPI/Rel-16/TS32291_Nchf_ConvergedCharging.yaml#/components/schemas/N2ConnectionChargingInformation"
+          "description" : "5G N2 Connection Charging Information",
+          "allOf" : [ {
+            "$ref" : "https://www.3gpp.org/ftp/Specs/archive/OpenAPI/Rel-16/TS32291_Nchf_ConvergedCharging.yaml#/components/schemas/N2ConnectionChargingInformation"
+          } ]
         }, {
-          "$ref" : "https://www.3gpp.org/ftp/Specs/archive/OpenAPI/Rel-16/TS32291_Nchf_ConvergedCharging.yaml#/components/schemas/LocationReportingChargingInformation"
+          "description" : "5G Location Reporting Charging Information",
+          "allOf" : [ {
+            "$ref" : "https://www.3gpp.org/ftp/Specs/archive/OpenAPI/Rel-16/TS32291_Nchf_ConvergedCharging.yaml#/components/schemas/LocationReportingChargingInformation"
+          } ]
         }, {
-          "$ref" : "#/components/schemas/PsInformation"
+          "description" : "PS Domain Charging Information",
+          "allOf" : [ {
+            "$ref" : "#/components/schemas/PsInformation"
+          } ]
         }, {
-          "$ref" : "#/components/schemas/SmsInformation"
+          "description" : "SMS Charging Information",
+          "allOf" : [ {
+            "$ref" : "#/components/schemas/SmsInformation"
+          } ]
         }, {
-          "$ref" : "#/components/schemas/ImsInformation"
+          "description" : "IMS Charging Information",
+          "allOf" : [ {
+            "$ref" : "#/components/schemas/ImsInformation"
+          } ]
         }, {
-          "$ref" : "#/components/schemas/VcsInformation"
+          "description" : "Voice Call Charging Information",
+          "allOf" : [ {
+            "$ref" : "#/components/schemas/VcsInformation"
+          } ]
         } ]
       },
       "PsInformation" : {
@@ -1154,7 +1205,7 @@
               "$ref" : "https://api.swaggerhub.com/domains/SigScale/TS29571_CommonData/1.2.1#/components/schemas/Uint64"
             } ]
           },
-          "serviceSpecificUnits" : {
+          "serviceSpecificUnit" : {
             "description" : "This field holds the amount of requested service specific units.",
             "allOf" : [ {
               "$ref" : "https://api.swaggerhub.com/domains/SigScale/TS29571_CommonData/1.2.1#/components/schemas/Uint64"
@@ -1189,7 +1240,7 @@
               "$ref" : "https://api.swaggerhub.com/domains/SigScale/TS29571_CommonData/1.2.1#/components/schemas/Uint64"
             } ]
           },
-          "serviceSpecificUnits" : {
+          "serviceSpecificUnit" : {
             "description" : "This field holds the amount of granted service specific units.",
             "allOf" : [ {
               "$ref" : "https://api.swaggerhub.com/domains/SigScale/TS29571_CommonData/1.2.1#/components/schemas/Uint64"
@@ -1224,7 +1275,7 @@
               "$ref" : "https://api.swaggerhub.com/domains/SigScale/TS29571_CommonData/1.2.1#/components/schemas/Uint64"
             } ]
           },
-          "serviceSpecificUnits" : {
+          "serviceSpecificUnit" : {
             "description" : "This field holds the amount of consumed service specific units.",
             "allOf" : [ {
               "$ref" : "https://api.swaggerhub.com/domains/SigScale/TS29571_CommonData/1.2.1#/components/schemas/Uint64"

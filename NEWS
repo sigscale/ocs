@@ -1,3 +1,22 @@
+January 7, 2021
+---------------
+	- Upgrade web components for polymer-3.0
+	- Rating fixes for session reservations
+
+December 23, 2020
+----------------
+	- Reservations unique to Service-Id, Charging-Key and Session-Id
+	- Correct termination CCR failure due to bad SI/RG type
+
+December 21, 2020
+----------------
+	- Remove session on deregister failure
+	- Interim reservations replace existing reservations
+	- REST : Notification Pattern
+		- Support GET calls on all hub ids
+		- Support GET calls on specific hub ids
+	- Correct Missing MSCC handling
+
 December 5, 2020
 ----------------
 	- Expanded SMS support

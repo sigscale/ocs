@@ -9,6 +9,13 @@ stages:
 .build:otp: &build_otp
   stage: build
   image: erlang
+  before_script:
+    - curl -sS http://dl.yarnpkg.com/debian/pubkey.gpg | apt-key add -
+    - echo "deb http://dl.yarnpkg.com/debian/ stable main" | tee /etc/apt/sources.list.d/yarn.list
+    - curl -sL http://deb.nodesource.com/setup_lts.x | bash -
+    - apt-get -y update
+    - apt-get -y install nodejs yarn
+    - export PATH="$PATH:`yarn global bin`"
   script:
     # Prepare environmental variables
     - export ERL_LIBS="${CI_PROJECT_DIR}/.build/otp-${OTP_VERSION}/lib"
