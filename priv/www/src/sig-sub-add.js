@@ -477,7 +477,6 @@ class subAdd extends PolymerElement {
 		var productId = this.proAddPro;
 		if(productId) {
 			document.getElementById("subscriberAdd").productId = productId;
-			this.proAddPro = null;
 		}
 	}
 
@@ -528,7 +527,9 @@ class subAdd extends PolymerElement {
 			serviceChar.push(multiSess);
 		}
 		subscriber.serviceCharacteristic = serviceChar;
-		subscriber.product = this.$.addProductId1.value;
+		if(this.proAddPro) {
+			subscriber.product = this.proAddPro;
+		}
 		subscriber.isServiceEnabled = this.enableAddAutho.checked;
 		subscriber.state = "active";
 		var specService = new Object();
@@ -547,7 +548,7 @@ class subAdd extends PolymerElement {
 			this.$.addSubscriberAkaOpc.disabled = false;
 			this.akaAddAuthe = null;
 			this.akaopcAddAuthe = null;
-			this.$.addProductId1.value = null;
+			this.proAddPro = null;
 		}
 	}
 
@@ -579,35 +580,7 @@ class subAdd extends PolymerElement {
 			this.$.idCheckPass.checked = false;
 			this.$.addSubscriberSecretModal.open();
 		}
-		if(!this.productId) {
-			var ajaxProduct = this.$.addProductAjax;
-			var productSer = new Object();
-			var productRef = new Object();
-			productRef.id = this.offAddPro;
-			productRef.name = this.offAddPro;
-			productRef.href = "/catalogManagement/v2/productOffering/" + this.product;
-			productSer.productOffering = productRef;
-			var productRealizingService = new Object();
-			productRealizingService.id = this.identity;
-			productRealizingService.href = "/serviceInventoryManagement/v2/service/" + this.identity;
-			productSer.realizingService = [productRealizingService];
-			ajaxProduct.headers['Content-type'] = "application/json";
-			ajaxProduct.body = productSer;
-			ajaxProduct.generateRequest();
-		}
-	}
-
-	_addServiceError(event) {
-		this.$.idCheck.checked = false;
-		this.$.idCheckPass.checked = false;
-		var toast = document.body.querySelector('sig-app').shadowRoot.getElementById('restError');
-		toast.text = "Error";
-		toast.open();
-	}
-
-	_addProductResponse(event) {
 		var ajaxServices1 = this.$.addServiceAjax;
-		var ajaxProduct1 = this.$.addProductAjax;
 		var result = event.detail.xhr.response;
 		var serviceId = ajaxServices1.lastResponse.id;
 		var ajaxBucket = this.$.addBucketAjax;
@@ -659,8 +632,8 @@ class subAdd extends PolymerElement {
 				}
 				bucketTop.amount = {units: bunits, amount: bamount};
 			}
-			bucketTop.product = {id: result.id,
-				href: "/productInventoryManagement/v2/product/" + result.id};
+			bucketTop.product = {id: result.product,
+				href: "/productInventoryManagement/v2/product/" + result.product};
 			ajaxBucket.headers['Content-type'] = "application/json";
 			ajaxBucket.body = bucketTop;
 			ajaxBucket.url="/balanceManagement/v1/balanceAdjustment";
@@ -668,6 +641,15 @@ class subAdd extends PolymerElement {
 		}
 		this.$.addServiceModal.close();
 		this.$.add8.value = null;
+		document.body.querySelector('sig-app').shadowRoot.getElementById('serviceList').shadowRoot.getElementById('subscriberGrid').clearCache();
+	}
+
+	_addServiceError(event) {
+		this.$.idCheck.checked = false;
+		this.$.idCheckPass.checked = false;
+		var toast = document.body.querySelector('sig-app').shadowRoot.getElementById('restError');
+		toast.text = "Error";
+		toast.open();
 	}
 
 	_addProductError(event) {
