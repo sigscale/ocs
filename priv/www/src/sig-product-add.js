@@ -126,10 +126,6 @@ class productAddClass extends PolymerElement {
 
 	static get properties() {
 		return {
-			selected: {
-				type: Number,
-				value: 0
-			},
 			activeItem: {
 				type: Object,
 				observer: '_activeItemChanged'
@@ -202,6 +198,7 @@ class productAddClass extends PolymerElement {
 		}
 		ajaxPro.body = productRes;
 		ajaxPro.generateRequest();
+		this.$.addProDropList.selected = null;
 		this.proAdd = null;
 		this.proService = null;
 		this.$.addProductInvenModal.close();
@@ -222,6 +219,7 @@ class productAddClass extends PolymerElement {
 
 	cancelPro() {
 		this.proAdd = null;
+		this.$.addProDropList.selected = null;
 		this.proService = null;
 	}
 }
