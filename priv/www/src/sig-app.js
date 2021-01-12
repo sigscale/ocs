@@ -176,6 +176,12 @@ class SigApp extends PolymerElement {
 								name="bucketView"
 								active-item="{{activeBucketItem}}">
 						</sig-bucket-list>
+						<sig-policy-list
+								id="policyList"
+								loading="{{policyLoading}}"
+								name="policyView"
+								active-item="{{activePolicyItem}}">
+						</sig-user-list>
 					</iron-pages>
 					<paper-toast
 							id="restError"
@@ -209,6 +215,12 @@ class SigApp extends PolymerElement {
 										icon="my-icons:table">
 								</paper-icon-button>
 								Tables
+							</a>
+							<a name="policyView" href="[[rootPath]]policyView">
+								<paper-icon-button
+										icon="my-icons:table">
+								</paper-icon-button>
+								Policy
 							</a>
 						</iron-collapse>
 							<a href="" on-click="_collapseSubscriber">
@@ -355,6 +367,9 @@ class SigApp extends PolymerElement {
 		if(this.$.load.selected == "prefixView") {
 			document.body.querySelector('sig-app').shadowRoot.getElementById('prefixList').shadowRoot.getElementById('prefixGrid').clearCache();
 		}
+		if(this.$.load.selected == "policyView") {
+			document.body.querySelector('sig-app').shadowRoot.getElementById('policyList').shadowRoot.getElementById('policyGrid').clearCache();
+		}
 		if(this.$.load.selected == "balanceView") {
 			document.body.querySelector('sig-app').shadowRoot.getElementById('balanceList').shadowRoot.getElementById('balanceGrid').clearCache();
 		}
@@ -477,7 +492,7 @@ class SigApp extends PolymerElement {
 //
 // If no page was found in the route data, page will be an empty string.
 // Show 'inventoryView' in that case. And if the page doesn't exist, show 'view404'.
-		if (['offerView', 'serviceView', 'clientView', 'userView', 'accessView', 'accountingView', 'ipdrWlanView', 'ipdrVoipView', 'httpView', 'prefixView', 'balanceView', 'productView', 'bucketView'].indexOf(page) !== -1) {
+		if (['offerView', 'serviceView', 'clientView', 'userView', 'accessView', 'accountingView', 'ipdrWlanView', 'ipdrVoipView', 'httpView', 'prefixView', 'policyView', 'balanceView', 'productView', 'bucketView'].indexOf(page) !== -1) {
 			this.page = page;
 		}
 		switch (this.page) {
@@ -577,6 +592,9 @@ class SigApp extends PolymerElement {
 				import('./sig-prefix-add.js');
 				import('./sig-prefix-table-add.js');
 				import('./sig-prefix-update.js');
+				break;
+			case 'policyView':
+				import('./sig-policy-list.js');
 				break;
 			case 'balanceView':
 				import('./sig-balance-list.js');
