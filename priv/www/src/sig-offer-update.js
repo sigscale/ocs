@@ -20,8 +20,8 @@ import '@polymer/paper-input/paper-input.js';
 import '@polymer/paper-button/paper-button.js';
 import '@polymer/paper-dropdown-menu/paper-dropdown-menu.js';
 import '@polymer/paper-listbox/paper-listbox.js';
-import '@polymer/paper-item/paper-item.js'
-import '@polymer/paper-checkbox/paper-checkbox.js'
+import '@polymer/paper-item/paper-item.js';
+import '@polymer/paper-checkbox/paper-checkbox.js';
 import '@polymer/iron-collapse/iron-collapse.js';
 import '@polymer/paper-tabs/paper-tabs.js';
 import '@polymer/iron-pages/iron-pages.js';
@@ -279,6 +279,7 @@ class offerUpdate extends PolymerElement {
 						</paper-tooltip>
 						<paper-input id="updatePriceAmount"
 								name="amount"
+								value="{{priceUpdateAmount}}"
 								type="text"
 								allowed-pattern="[0-9.]"
 								pattern="[0-9]+\.?[0-9]{0,6}$"
@@ -1096,58 +1097,54 @@ class offerUpdate extends PolymerElement {
 				}
 				switch(this.prices[indexUpdatePrice].priceType) {
 					case "recurring":
-						this.$.updatePriceType.selected = 0;
+						this.priceUpdateType = "Recurring";
 						break;
 					case "one_time":
-						this.$.updatePriceType.selected = 1;
+						this.priceUpdateType = "One Time";
 						break;
 					case "usage":
-						this.$.updatePriceType.selected = 2;
+						this.priceUpdateType = "Usage";
 						break;
 					case "tariff":
-						this.$.updatePriceType.selected = 3;
+						this.priceUpdateType = "Tariff";
 						break;
 				}
 				this.priceUpdateSize = this.prices[indexUpdatePrice].size;
 				switch(this.prices[indexUpdatePrice].unit) {
 					case "b":
-						this.$.updatePriceUnits.selected = 0;
+						this.priceUpdateUnits = "Bytes";
 						break;
 					case "c":
-						this.$.updatePriceUnits.selected = 1;
+						this.priceUpdateUnits = "Cents";
 						break;
 					case "s":
-						this.$.updatePriceUnits.selected = 2;
+						this.priceUpdateUnits = "Seconds";
 						break;
 				}
-				if(this.prices[indexUpdatePrice].currency || this.prices[indexUpdatePrice].amount) {
-					this.$.updatePriceCurrency.value = this.prices[indexUpdatePrice].currency;
-					this.$.updatePriceAmount.value = this.prices[indexUpdatePrice].amount;
+				if(this.prices[indexUpdatePrice].currency) {
+					this.priceUpdateCurrency = this.prices[indexUpdatePrice].currency;
+				}
+				if(this.prices[indexUpdatePrice].amount) {
+					this.priceUpdateAmount = this.prices[indexUpdatePrice].amount;
 				}
 				switch(this.prices[indexUpdatePrice].period) {
 					case "hourly":
-						this.$.updatePricePeriod.selected = 0;
+						this.priceUpdatePeriod = "Hourly";
 						break;
 					case "daily":
-						this.$.updatePricePeriod.selected = 1;
+						this.priceUpdatePeriod = "Daily";
 						break;
 					case "weekly":
-						this.$.updatePricePeriod.selected = 2;
+						this.priceUpdatePeriod = "Weekly";
 						break;
 					case "monthly":
-						this.$.updatePricePeriod.selected = 3;
+						this.priceUpdatePeriod = "Monthly";
 						break;
 					case "yearly":
-						this.$.updatePricePeriod.selected = 4;
+						this.priceUpdatePeriod = "Yearly";
 						break;
 				}
-				var Obj = this.prices[indexUpdatePrice].alteration;
-				if(this.prices[indexUpdatePrice].alteration) {
-					function checkAlt1(updatePriceNames) {
-						return updatePriceNames.name == Obj; 
-					}
-					this.priceUpdateAlt = this.alterations.findIndex(checkAlt1);
-				}
+				this.priceUpdateAlt = this.prices[indexUpdatePrice].alteration;
 				var prodPriceUpdate = this.prices[indexUpdatePrice];
 				if(prodPriceUpdate.prodSpecCharValueUse) {
 					for (var indexCharVal in prodPriceUpdate.prodSpecCharValueUse) {
@@ -1430,11 +1427,11 @@ class offerUpdate extends PolymerElement {
 				updatePriceNew.push(priceSize);
 			}
 		}
-		if(this.$.updatePriceAmount.value) {
+		if(this.priceUpdateAmount) {
 			var priceAmount = new Object();
 			priceAmount.op = "add";
 			priceAmount.path = "/productOfferingPrice/" + indexPrices + "/price/taxIncludedAmount";
-			priceAmount.value = this.$.updatePriceAmount.value;
+			priceAmount.value = this.priceUpdateAmount;
 			updatePriceNew.push(priceAmount);
 		}
 		if(this.priceUpdatePeriod && !this.$.updatePricePerioddrop.disabled) {
@@ -1743,7 +1740,7 @@ class offerUpdate extends PolymerElement {
 		this.$.updateCheckOut.checked = false;
 		this.startTimeUpdate = null;
 		this.endTimeUpdate = null;
-		this.$.updatePriceAmount.value = null;
+		this.priceUpdateAmount = null;
 		this.priceUpdateUnits = null;
 	} 
 
@@ -2027,7 +2024,7 @@ class offerUpdate extends PolymerElement {
 				updatePriceNew.unit = "s";
 				break;
 		}
-		updatePriceNew.amount = this.$.updatePriceAmount.value;
+		updatePriceNew.amount = this.priceUpdateAmount;
 		updatePriceNew.size = this.priceUpdateSize;
 		updatePriceNew.currency = this.priceUpdateCurrency;
 		switch(this.$.updatePricePeriod.selected) {
@@ -2338,7 +2335,7 @@ class offerUpdate extends PolymerElement {
 		this.updateProductEndDatePrice = null;
 		this.priceUpdateType = null;
 		this.priceUpdateUnits = null;
-		this.$.updatePriceAmount.value = null;
+		this.priceUpdateAmount = null;
 		this.priceUpdateSize = null;
 		this.priceUpdateCurrency = null;
 		this.priceUpdatePeriod = null;
