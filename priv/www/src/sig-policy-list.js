@@ -89,6 +89,10 @@ class policyList extends PolymerElement {
 		}
 	}
 
+	_activeItemChanged(item) {
+		//todo
+	}
+
 	ready() {
 		super.ready();
 		var grid = this.shadowRoot.getElementById('policyGrid');
