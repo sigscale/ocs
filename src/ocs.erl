@@ -2405,8 +2405,7 @@ subscription(#product{id = ProdRef, payment = Payments}
 			units = Units, remain_amount = Size, product = [ProdRef],
 			end_date = end_period(Now, Period), last_modified = {Now, N}}
 			| NewBuckets1]),
-	NewPayments1 = [{Name, end_period(Now, Period)} | Payments],
-	Product1 = Product#product{payment = NewPayments1},
+	Product1 = Product#product{payment = NewPayments},
 	subscription(Product1, Now, false, NewBuckets2, T);
 subscription(Product, Now, InitialFlag, Buckets, [_H | T]) ->
 	subscription(Product, Now, InitialFlag, Buckets, T);
