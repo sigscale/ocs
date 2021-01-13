@@ -486,13 +486,6 @@ class offerUpdate extends PolymerElement {
 									on-tap="cancelDialog">
 								Cancel
 							</paper-button>
-							<paper-button
-									toggles
-									raised
-									class="delete-button"
-									on-tap="deletePrice">
-								Delete
-							</paper-button>
 						</div>
 					</div>
 					<div id="add-Alt-tab">
@@ -681,12 +674,6 @@ class offerUpdate extends PolymerElement {
 									class="cancel-button"
 									on-tap="cancelDialog">
 								cancel
-							</paper-button>
-							<paper-button
-									toggles
-									raised
-									class="delete-button">
-								Delete
 							</paper-button>
 						</div>
 					</div>
@@ -2266,18 +2253,6 @@ class offerUpdate extends PolymerElement {
 		this.$.deleteProductAjax.url = "/catalogManagement/v2/productOffering/"
 					+ this.updateOfferName;
 		this.$.deleteProductAjax.generateRequest();
-	}
-
-	deletePrice(event) {
-		function checkDelPriceName(delPrice) {
-			return delPrice.name == document.body.querySelector('sig-app').shadowRoot.getElementById('updateProduct').shadowRoot.getElementById('updatePriceName').value;
-		}
-		var indexDelPrice = this.prices.findIndex(checkDelPriceName);
-		if (indexDelPrice != -1) {
-			this.$.deleteProductAjax.url = "/catalogManagement/v2/productOffering/"
-						+ this.$.updatePriceName.value;
-			this.$.deleteProductAjax.generateRequest();
-		}
 	}
 
 	_deleteProductResponse(event) {
