@@ -473,6 +473,19 @@ delete_resource_inventory(Table, Id) ->
 %%----------------------------------------------------------------------
 
 %% @hidden
+tariff_table_spec() ->
+	Id = {"id", "1"},
+	Href = {"href", ?specPath "1"},
+	Name = {"name", "TariffTable"},
+	Description = {"description", "Voice call rating tariff table"},
+	Status = {"lifecycleStatus", "Active"},
+	Version = {"version", "1.0"},
+	LastUpdate = {"lastUpdate", "2020-01-13"},
+	Category = {"category", "TariffTable"},
+	{struct, [Id, Href, Name, Description, Version, Status,
+			LastUpdate, Category]}.
+
+%% @hidden
 tariff_row_spec() ->
 	Id = {"id", "1"},
 	Href = {"href", ?specPath "1"},
