@@ -487,14 +487,14 @@ tariff_table_spec() ->
 
 %% @hidden
 tariff_row_spec() ->
-	Id = {"id", "1"},
-	Href = {"href", ?specPath "1"},
-	Name = {"name", "TariffTableSpec"},
-	Description = {"description", "Voice call rating tariff table"},
+	Id = {"id", "2"},
+	Href = {"href", ?specPath "2"},
+	Name = {"name", "TariffRow"},
+	Description = {"description", "Voice call rating tariff row"},
 	Status = {"lifecycleStatus", "Active"},
 	Version = {"version", "1.0"},
-	LastUpdate = {"lastUpdate", "2018-01-10"},
-	Category = {"category", "TariffTable"},
+	LastUpdate = {"lastUpdate", "2020-01-13"},
+	Category = {"category", "TariffRow"},
 	Chars = {array, [{struct, [{"name", "prefix"},
 			{"description", "Call address prefix"},
 			{"valueType", "MatrixCharacteristicSpec"},
@@ -511,7 +511,8 @@ tariff_row_spec() ->
 			{"resourceSpecCharacteristicValue", {array, [{struct,
 			[{"seqNum", 3}, {"valueType", "Number"}]}]}}]}]},
 	Characteristic = {"resourceSpecCharacteristic" , Chars},
-	{struct, [Id, Href, Name, Description, Version, Status, LastUpdate, Category, Characteristic]}.
+	{struct, [Id, Href, Name, Description, Version, Status, LastUpdate,
+			Category, Characteristic]}.
 
 %% @hidden
 policy_row_spec() ->
