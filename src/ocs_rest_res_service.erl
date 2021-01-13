@@ -35,7 +35,6 @@
 -define(MILLISECOND, milli_seconds).
 %-define(MILLISECOND, millisecond).
 
--define(servicePath, "/serviceInventoryManagement/v2/serivce/").
 -define(serviceSpecPath, "/serviceCatalogManagement/v2/serviceSpecification/").
 -define(serviceInventoryPath, "/serviceInventoryManagement/v2/service/").
 
@@ -236,7 +235,7 @@ patch_inventory(ServiceId, Etag, ReqData) ->
 			end,
 			case mnesia:transaction(F) of
 				{atomic, {Service, Etag3}} ->
-					Location = ?servicePath ++ ServiceId,
+					Location = ?serviceInventoryPath ++ ServiceId,
 					Headers = [{location, Location}, {etag, ocs_rest:etag(Etag3)}],
 					Body = mochijson:encode(Service),
 					{ok, Headers, Body};

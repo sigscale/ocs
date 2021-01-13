@@ -186,7 +186,7 @@ class subList extends PolymerElement {
 					if(request.response[index].product) {
 						newRecord.product = request.response[index].product;
 					} else {
-						newRecord.product = document.getElementById("subscriberAdd").productId;
+						newRecord.product = request.response[index].productId;
 					}
 					if(request.response[index].attributes) {
 						request.response[index].attributes.forEach(
