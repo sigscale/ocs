@@ -1,3 +1,16 @@
+2021-01-14  Refath Wadood <refath@sigscale.org>
+
+	* correct timestamp for bucket adjustments
+	* gui: add msisdn & imsi columns in accounting log	
+	* gui: implement rowdetails feature in accounting view
+	* gui: unselect product from product list
+	* gui: add service without product & avoid create new product
+	* gui: fix relaizing service length
+	* rest: support balance query using service identifier
+	* correct href product catlog managment 
+	* remove past due dates when product is charged
+	* remove multiple payments made by the scheduler
+
 2021-01-06  Vance Shipley <vances@sigscale.org>
 
 	* merge polymer-3.0 branch

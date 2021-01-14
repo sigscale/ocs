@@ -1,3 +1,7 @@
+January 14, 2021
+---------------
+	- Remove multiple payments being made by the scheduler
+
 January 7, 2021
 ---------------
 	- Upgrade web components for polymer-3.0
