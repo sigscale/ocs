@@ -1,6 +1,6 @@
 January 14, 2021
 ---------------
-	- Remove multiple payments being made by the scheduler
+	- Fix for multiple payments by scheduler in some cases
 
 January 7, 2021
 ---------------

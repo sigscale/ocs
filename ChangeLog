@@ -2,12 +2,12 @@
 
 	* correct timestamp for bucket adjustments
 	* gui: add msisdn & imsi columns in accounting log	
-	* gui: implement rowdetails feature in accounting view
+	* gui: implement row details feature in accounting view
 	* gui: unselect product from product list
-	* gui: add service without product & avoid create new product
-	* gui: fix relaizing service length
-	* rest: support balance query using service identifier
-	* correct href product catlog managment 
+	* gui: add service without product
+	* gui: fix realizing service length
+	* rest: support balance query by service identifier
+	* correct href product catalog managment 
 	* remove past due dates when product is charged
 	* remove multiple payments made by the scheduler
 
