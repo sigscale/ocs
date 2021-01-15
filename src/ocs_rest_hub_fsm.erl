@@ -170,6 +170,24 @@ register(timeout, State) ->
 %% @private
 registered({Type, Resource, Category}, #statedata{query = []} = StateData) ->
 	send_request({Type, Resource, Category}, StateData);
+registered({Type, [#acc_balance{} | _] = Resource, Category},
+		#statedata{query = Query} = StateData) when is_list(Query),
+		length(Query) > 0 ->
+	case string:tokens(Query, "&=") of
+		["totalBalance.units", Units, "totalBalance.amount.lt", Threshold] ->
+			case lists:keyfind(list_to_existing_atom(Units),
+					#acc_balance.units, Resource) of
+				false ->
+					{next_state, registered, StateData};
+				#acc_balance{total_balance = TotalBalance}
+						when TotalBalance < Threshold ->
+					send_request({Type, Resource, Category}, StateData);
+				_ ->
+					{next_state, registered, StateData}
+			end;
+		_ ->
+			{next_state, registered, StateData}
+	end;
 registered({Type, Resource, Category}, #statedata{query = Query} = StateData)
 		when is_list(Query), is_list(Resource) ->
 	send_request({Type, Resource, Category}, StateData);
