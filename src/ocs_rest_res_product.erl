@@ -818,7 +818,15 @@ spec_prod_prepaid_data() ->
 	DepHref2 = {"href", ?productSpecPath "6"},
 	Depend2 = {struct, [DepId2, DepHref2, DepType]},
 	Dependency = {"productSpecificationRelationship", {array, [Depend1, Depend2]}},
-	{struct, [Id, Name, Href, Description, Version, LastUpdate, Status, Dependency]}.
+	Name1 = {"name", "redirectServer"},
+   Description1 = {"description",
+         "Defines the address of the redirect server, should be an IPv4 or IPv6 address"},
+   Config1 = {"configurable", true},
+   Type1 = {"valueType", "String"},
+   Value1 = {"productSpecCharacteristicValue", {array, [{struct, [Type1]}]}},
+	Char1 = {struct, [Name1, Description1, Config1, Type1, Value1]},
+	Chars = {"productSpecCharacteristic", {array, [Char1]}},
+	{struct, [Id, Name, Href, Description, Version, LastUpdate, Status, Dependency, Chars]}.
 
 %% @hidden
 spec_prod_prepaid_voice() ->
