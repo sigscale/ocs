@@ -515,6 +515,19 @@ tariff_row_spec() ->
 			Category, Characteristic]}.
 
 %% @hidden
+policy_table_spec() ->
+	Id = {"id", "3"},
+	Href = {"href", ?specPath "3"},
+	Name = {"name", "PolicyTable"},
+	Description = {"description", "Rating policy table"},
+	Status = {"lifecycleStatus", "Active"},
+	Version = {"version", "1.0"},
+	LastUpdate = {"lastUpdate", "2020-12-16"},
+	Category = {"category", "PolicyTable"},
+	{struct, [Id, Href, Name, Description, Version, Status,
+			LastUpdate, Category]}.
+
+%% @hidden
 policy_row_spec() ->
 	Id = {"id", "2"},
 	Href = {"href", ?specPath "2"},
