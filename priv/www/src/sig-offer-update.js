@@ -2145,7 +2145,7 @@ class offerUpdate extends PolymerElement {
 			}
 			ajax.body = JSON.stringify(updatePriceNew1);
 			ajax.generateRequest();
-			this.$.updatePriceName.value = null;
+			this.priceUpdateName = null;
 			this.priceUpdateDesc = null;
 			this.updateProductStartDatePrice = null;
 			this.priceUpdateSize = null;
@@ -2234,7 +2234,7 @@ class offerUpdate extends PolymerElement {
 			if(updateIndexAlt == -1) {
 				this.push('alterations', updateAltNew);
 			}
-			this.$.updateAltName.value = null
+			this.AltUpdateName = null
 			this.AltUpdateDesc = null;
 			this.updateProductStartDateAlt = null;
 			this.updateProductEndDateAlt = null;
@@ -2304,7 +2304,7 @@ class offerUpdate extends PolymerElement {
 		this.updateProductEndDateOffer = null;
 		this.$.updateAddPriceChars.hide();
 		this.$.addBundleUpdate.hide();
-		this.$.updatePriceName.value = null;
+		this.priceUpdateName = null;
 		this.priceUpdateDesc = null;
 		this.updateProductStartDatePrice = null;
 		this.updateProductEndDatePrice = null;
@@ -2315,7 +2315,7 @@ class offerUpdate extends PolymerElement {
 		this.priceUpdateCurrency = null;
 		this.priceUpdatePeriod = null;
 		this.priceUpdateAlt = null;
-		this.$.updateAltName.value = null;
+		this.AltUpdateName = null;
 		this.AltUpdateDesc = null;
 		this.updateProductStartDateAlt = null;
 		this.updateProductEndDateAlt = null;
