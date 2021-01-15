@@ -174,6 +174,18 @@ class offerAdd extends PolymerElement {
 										offset="0">
 									Offer character reserving session
 								</paper-tooltip>
+								<paper-input
+									id="addRedirectAddress"
+									name="redirectionAddress"
+									label="Redirect Server"
+									allowed-pattern="[0-9\.]"
+									value="{{address}}">
+								</paper-input>
+								<paper-tooltip
+									for="addRedirectAddress"
+									offset="0">
+										Add Redirect Server IP Address (eg:xxx.xxx.xxx.xxx)
+								</paper-tooltip>
 							</div>
 						</iron-collapse>
 						<div class="buttons">
@@ -902,6 +914,9 @@ class offerAdd extends PolymerElement {
 			},
 			altAddCurrency: {
 				type: String
+			},
+			address: {
+				type: String
 			}
 		}
 	}
@@ -1231,6 +1246,22 @@ class offerAdd extends PolymerElement {
 			prodSpec.href = "/catalogManagement/v2/productSpecification/1";
 			charValueUse.productSpecification = prodSpec;
 			prodSpecCharValueUse.push(charValueUse);
+		}
+		if(this.address) {
+			var redirect = new Object();
+			redirect.name = "redirectServer"
+			redirect.minCardinality = 0;
+			redirect.maxCardinality = 1;
+			var redirectUse = new Object();
+			redirectUse.value = this.address;
+			var redirects = new Array();
+			redirects.push(redirectUse);
+			redirect.productSpecCharacteristicValue = redirects;
+			var prodSpec1 = new Object();
+			prodSpec1.id = "8";
+			prodSpec1.href = "/productCatalogManagement/v2/productSpecification/8",
+			redirect.productSpecification = prodSpec1;
+			prodSpecCharValueUse.push(redirect);
 		}
 		if (prodSpecCharValueUse.length > 0) {
 			offerNew.prodSpecCharValueUse = prodSpecCharValueUse;
