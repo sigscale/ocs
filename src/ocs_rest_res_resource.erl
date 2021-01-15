@@ -522,21 +522,21 @@ policy_table_spec() ->
 	Description = {"description", "Rating policy table"},
 	Status = {"lifecycleStatus", "Active"},
 	Version = {"version", "1.0"},
-	LastUpdate = {"lastUpdate", "2020-12-16"},
+	LastUpdate = {"lastUpdate", "2021-01-15"},
 	Category = {"category", "PolicyTable"},
 	{struct, [Id, Href, Name, Description, Version, Status,
 			LastUpdate, Category]}.
 
 %% @hidden
 policy_row_spec() ->
-	Id = {"id", "2"},
-	Href = {"href", ?specPath "2"},
-	Name = {"name", "PolicyTableSpec"},
-	Description = {"description", "Rating policy table"},
+	Id = {"id", "4"},
+	Href = {"href", ?specPath "4"},
+	Name = {"name", "PolicyTable"},
+	Description = {"description", "Rating policy row"},
 	Status = {"lifecycleStatus", "Active"},
 	Version = {"version", "1.0"},
-	LastUpdate = {"lastUpdate", "2020-12-16"},
-	Category = {"category", "PolicyTable"},
+	LastUpdate = {"lastUpdate", "2021-01-15"},
+	Category = {"category", "PolicyRow"},
 	Chars = {array, [{struct, [{"name", "name"},
 			{"description", "Name of the policy"},
 			{"valueType", "MatrixCharacteristicSpec"},
@@ -568,7 +568,8 @@ policy_row_spec() ->
 			{"resourceSpecCharacteristicValue", {array, [{struct,
 			[{"seqNum", 5}, {"valueType", "Number"}]}]}}]}]},
 	Characteristic = {"resourceSpecCharacteristic" , Chars},
-	{struct, [Id, Href, Name, Description, Version, Status, LastUpdate, Category, Characteristic]}.
+	{struct, [Id, Href, Name, Description, Version, Status, LastUpdate,
+			Category, Characteristic]}.
 
 %% @hidden
 tariff_table_category() ->
