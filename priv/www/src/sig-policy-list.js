@@ -69,7 +69,7 @@ class policyList extends PolymerElement {
 				id="PolicyToast">
 			</paper-toast>
 			<iron-ajax id="getPolicyAjax"
-				url="/catalogManagement/v2/policy"
+				url="/resourceInventoryManagement/v1/resource"
 				rejectWithRequest>
 			</iron-ajax>
 		`;

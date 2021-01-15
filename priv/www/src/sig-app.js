@@ -535,6 +535,9 @@ class SigApp extends PolymerElement {
 			case 'bucketView':
 				this.viewTitle = 'Balance Buckets';
 				break;
+			case 'policyView':
+				this.viewTitle = 'Policy';
+				break;
 			default:
 				this.viewTitle = 'Online Charging System';
 		}
