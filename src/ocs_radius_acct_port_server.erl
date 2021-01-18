@@ -287,7 +287,7 @@ request1(?AccountingStart, AcctSessionId, Id,
 			ok = ocs_log:acct_log(radius,
 					{ServerAddress, ServerPort}, start, Attributes, undefined, undefined),
 			{reply, {ok, response(Id, Authenticator, Secret)}, State};
-		{out_of_credit, SessionList}  ->
+		{out_of_credit, _RedirectServerAddress, SessionList}  ->
 			gen_server:reply(From, {ok, response(Id, Authenticator, Secret)}),
 			start_disconnect(State, Subscriber, SessionList),
 			{noreply, State};
@@ -336,7 +336,7 @@ request1(?AccountingStop, AcctSessionId, Id,
 			ok = ocs_log:acct_log(radius,
 					{ServerAddress, ServerPort}, stop, Attributes, undefined, Rated),
 			{reply, {ok, response(Id, Authenticator, Secret)}, State};
-		{out_of_credit, SessionList, Rated}  ->
+		{out_of_credit, _RedirectServerAddress, SessionList, Rated}  ->
 			gen_server:reply(From, {ok, response(Id, Authenticator, Secret)}),
 			ok = ocs_log:acct_log(radius,
 					{ServerAddress, ServerPort}, stop, Attributes, undefined, Rated),
@@ -391,7 +391,7 @@ request1(?AccountingInterimUpdate, AcctSessionId, Id,
 			interim, [], ReserveAmount, SessionAttributes) of
 		{ok, #service{}, _} ->
 			{reply, {ok, response(Id, Authenticator, Secret)}, State};
-		{out_of_credit, SessionList} ->
+		{out_of_credit, _RedirectServerAddress, SessionList} ->
 			gen_server:reply(From, {ok, response(Id, Authenticator, Secret)}),
 			start_disconnect(State, Subscriber, SessionList),
 			{noreply, State};
