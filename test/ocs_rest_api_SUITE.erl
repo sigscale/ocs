@@ -2902,13 +2902,14 @@ notify_accumulated_balance_threshold(Config) ->
 	RA = 500000000,
 	_BId2 = add_bucket(ProdRef, octets, RA),
 	_BId3 = add_bucket(ProdRef, cents, 100000000),
+	Threshold = 500000000,
+	ok = application:set_env(ocs, threshold_bytes, 500000000),
 	HostUrl = ?config(host_url, Config),
 	CollectionUrl = HostUrl ++ ?PathBalanceHub,
 	ListenerPort = ?config(listener_port, Config),
 	ListenerServer = "http://localhost:" ++ integer_to_list(ListenerPort),
 	Callback = ListenerServer ++ "/listener/"
 			++ atom_to_list(?MODULE) ++ "/notifyaccumulatedbalancethreshold",
-	Threshold = 500000000,
 	Query = "totalBalance.units=octets&totalBalance.amount.lt="
 			++ integer_to_list(Threshold),
 	RequestBody = "{\n"
