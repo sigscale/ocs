@@ -145,6 +145,17 @@ class offerUpdate extends PolymerElement {
 									offset="0">
 								Add a value to update the offer reserve session
 							</paper-tooltip>
+							<paper-input
+									id="updateRedirectServer"
+									allowed-pattern="[0-9\.]"
+									label="RADIUS Reserve Session"
+									value="{{updateRedirect}}">
+							</paper-input>
+							<paper-tooltip
+									for="updateRedirectServer"
+									offset="0">
+								Add a value to update the offer reserve session
+							</paper-tooltip>
 						</iron-collapse>
 						<div class="buttons">
 							<paper-button
@@ -772,6 +783,9 @@ class offerUpdate extends PolymerElement {
 			updateProductStartDateOffer: {
 				type: String
 			},
+			updateRedirect: {
+				type: String
+			},
 			updateProductEndDateOffer: {
 				type: String
 			},
@@ -835,6 +849,9 @@ class offerUpdate extends PolymerElement {
 		for (var indexCha in item.prodSpecCharValueUse) {
 			if(item.prodSpecCharValueUse[indexCha].name == "radiusReserveSessionTime") {
 				this.$.updateReserveSession.value = item.prodSpecCharValueUse[indexCha].productSpecCharacteristicValue[0].value;
+			}
+			if(item.prodSpecCharValueUse[indexCha].name == "redirectServer") {
+				this.updateRedirect = item.prodSpecCharValueUse[indexCha].productSpecCharacteristicValue[0].value;
 			}
 		}
 		for(var index in item.prices) {
@@ -1304,6 +1321,40 @@ class offerUpdate extends PolymerElement {
 				reserveSession.path = "/prodSpecCharValueUse/" + indexChar + "/productSpecCharacteristicValue/0/value";
 				reserveSession.value = parseInt(this.$.updateReserveSession.value);
 				offerNew.push(reserveSession);
+			}
+		}
+		if(this.updateRedirect) {
+			function checkNameRe(redir) {
+				return redir.name == "redirectServer";
+			}
+			var res = this.characteristics.findIndex(checkNameRe);
+			if(res == -1) {
+				var indexChar = "-";
+				var redirectSer = new Object();
+				redirectSer.op = "add";
+				redirectSer.path = "/prodSpecCharValueUse/" + indexChar; 
+				var redirectSerArr = new Array();
+				var redirectSer1 = new Object();
+				redirectSer1.value = this.updateRedirect;
+				redirectSerArr.push(redirectSer1);
+				var redirectSer2 = new Object();
+				redirectSer2.name = "updateRedirectServer";
+				redirectSer2.minCardinality = 0;
+				redirectSer2.maxCardinality = 1;
+				redirectSer2.productSpecCharacteristicValue = redirectSerArr;
+				var redirectSer1 = new Object();
+				redirectSer1.id = "8";
+				redirectSer1.href = "/catalogManagement/v2/productSpecification/8";
+				redirectSer2.productSpecification = redirectSer1;
+				redirectSer.value = redirectSer2;
+				offerNew.push(redirectSer);
+			} else {
+				var indexChar = res.toString();
+				var redirectSer = new Object();
+				redirectSer.op = "add";
+				redirectSer.path = "/prodSpecCharValueUse/" + indexChar + "/productSpecCharacteristicValue/0/value";
+				redirectSer.value = this.updateRedirect;
+				offerNew.push(redirectSer);
 			}
 		}
 		ajax.body = JSON.stringify(offerNew);
