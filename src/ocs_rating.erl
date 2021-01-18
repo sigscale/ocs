@@ -1341,6 +1341,15 @@ update_session1(Type, Charge, Reserve, Now, ServiceId, ChargingKey, SessionId,
 					reservations = [NewReservation | NewReservations]} | Acc],
 			update_session1(Type, Charge, Reserve, Now, ServiceId, ChargingKey,
 					SessionId, T, NewAcc, Charged + NewCharge, Reserved + NewReserved);
+		{[{_, DebitedAmount, 0, ServiceId, ChargingKey, _}], NewReservations}
+					when NewCharge > 0 ->
+			NewReservation = {Now, DebitedAmount + Remain, 0,
+					ServiceId, ChargingKey, SessionId},
+			NewAcc = [B#bucket{remain_amount = 0,
+					last_modified = {Now, erlang:unique_integer([positive])},
+					reservations = [NewReservation | NewReservations]} | Acc],
+			update_session1(Type, Charge, Reserve, Now, ServiceId, ChargingKey,
+					SessionId, T, NewAcc, Charged + Remain, Reserved);
 		{[{_, DebitedAmount, ReservedAmount, ServiceId, ChargingKey, _}], NewReservations}
 					when NewCharge =:= 0, Remain >= NewReserve ->
 			NewReservation = {Now, DebitedAmount, ReservedAmount + NewReserve,
