@@ -556,7 +556,7 @@ process_request1(?'3GPP_CC-REQUEST-TYPE_EVENT_REQUEST' = RequestType,
 				ok = ocs_log:acct_log(diameter, Server,
 						accounting_event_type(RequestType), Request, Reply, Rated),
 				Reply;
-			{out_of_credit, _SessionList, Rated} ->
+			{out_of_credit, _RedirectServerAddress, _SessionList, Rated} ->
 				ResultCode = ?'DIAMETER_CC_APP_RESULT-CODE_CREDIT_LIMIT_REACHED',
 				Reply = diameter_answer(SessionId, [],
 						ResultCode, OHost, ORealm, RequestType, RequestNum),
@@ -994,7 +994,7 @@ rate(ServiceType, ServiceNetwork, Subscriber,
 			rate(ServiceType, ServiceNetwork, Subscriber,
 					Timestamp, Address, Direction, Flag, SessionId,
 					T, Acc, ResultCode2, Rated1 ++ Rated2);
-		{out_of_credit, _SessionList} ->
+		{out_of_credit, RedirectServerAddress, _SessionList} ->
 			ResultCode2 = ?'DIAMETER_CC_APP_RESULT-CODE_CREDIT_LIMIT_REACHED',
 			ResultCode3 = case ResultCode1 of
 				undefined->
@@ -1002,14 +1002,23 @@ rate(ServiceType, ServiceNetwork, Subscriber,
 				ResultCode1 ->
 					ResultCode1
 			end,
-			MSCC = #'3gpp_ro_Multiple-Services-Credit-Control'{
-					'Service-Identifier' = SI,
-					'Rating-Group' = RG,
-					'Result-Code' = [ResultCode2]},
+			MSCC = case RedirectServerAddress of
+				undefined ->
+					#'3gpp_ro_Multiple-Services-Credit-Control'{
+							'Service-Identifier' = SI,
+							'Rating-Group' = RG,
+							'Result-Code' = [ResultCode2]};
+				RedirectServerAddress when is_list(RedirectServerAddress) ->
+					#'3gpp_ro_Multiple-Services-Credit-Control'{
+							'Service-Identifier' = SI,
+							'Rating-Group' = RG,
+							'Result-Code' = [ResultCode2],
+							'Final-Unit-Indication' = parse_redirect_address(RedirectServerAddress)}
+			end,
 			rate(ServiceType, ServiceNetwork, Subscriber,
 					Timestamp, Address, Direction, Flag, SessionId,
 					T, [MSCC | Acc], ResultCode3, Rated1);
-		{out_of_credit, _SessionList, Rated2}
+		{out_of_credit, RedirectServerAddress, _SessionList, Rated2}
 				when is_list(Rated2), Rated1 == undefined ->
 			ResultCode2 = ?'DIAMETER_CC_APP_RESULT-CODE_CREDIT_LIMIT_REACHED',
 			ResultCode3 = case ResultCode1 of
@@ -1018,14 +1027,23 @@ rate(ServiceType, ServiceNetwork, Subscriber,
 				ResultCode1 ->
 					ResultCode1
 			end,
-			MSCC = #'3gpp_ro_Multiple-Services-Credit-Control'{
-					'Service-Identifier' = SI,
-					'Rating-Group' = RG,
-					'Result-Code' = [ResultCode2]},
+			MSCC = case RedirectServerAddress of
+				undefined ->
+					#'3gpp_ro_Multiple-Services-Credit-Control'{
+							'Service-Identifier' = SI,
+							'Rating-Group' = RG,
+							'Result-Code' = [ResultCode2]};
+				RedirectServerAddress when is_list(RedirectServerAddress) ->
+					#'3gpp_ro_Multiple-Services-Credit-Control'{
+							'Service-Identifier' = SI,
+							'Rating-Group' = RG,
+							'Result-Code' = [ResultCode2],
+							'Final-Unit-Indication' = parse_redirect_address(RedirectServerAddress)}
+			end,
 			rate(ServiceType, ServiceNetwork, Subscriber,
 					Timestamp, Address, Direction, Flag, SessionId,
 					T, [MSCC | Acc], ResultCode3, Rated2);
-		{out_of_credit, _SessionList, Rated2}
+		{out_of_credit, RedirectServerAddress, _SessionList, Rated2}
 				when is_list(Rated2), is_list(Rated1) ->
 			ResultCode2 = ?'DIAMETER_CC_APP_RESULT-CODE_CREDIT_LIMIT_REACHED',
 			ResultCode3 = case ResultCode1 of
@@ -1034,10 +1052,19 @@ rate(ServiceType, ServiceNetwork, Subscriber,
 				ResultCode1 ->
 					ResultCode1
 			end,
-			MSCC = #'3gpp_ro_Multiple-Services-Credit-Control'{
-					'Service-Identifier' = SI,
-					'Rating-Group' = RG,
-					'Result-Code' = [ResultCode2]},
+			MSCC = case RedirectServerAddress of
+				undefined ->
+					#'3gpp_ro_Multiple-Services-Credit-Control'{
+							'Service-Identifier' = SI,
+							'Rating-Group' = RG,
+							'Result-Code' = [ResultCode2]};
+				RedirectServerAddress when is_list(RedirectServerAddress) ->
+					#'3gpp_ro_Multiple-Services-Credit-Control'{
+							'Service-Identifier' = SI,
+							'Rating-Group' = RG,
+							'Result-Code' = [ResultCode2],
+							'Final-Unit-Indication' = parse_redirect_address(RedirectServerAddress)}
+			end,
 			rate(ServiceType, ServiceNetwork, Subscriber,
 					Timestamp, Address, Direction, Flag, SessionId,
 					T, [MSCC | Acc], ResultCode3, Rated1 ++ Rated2);
@@ -1054,4 +1081,26 @@ rate(_, _, _, _, _, _, _, _, [], Acc, ResultCode, undefined) ->
 	{lists:reverse(Acc), ResultCode};
 rate(_, _, _, _, _, _, _, _, [], Acc, ResultCode, Rated) ->
 	{lists:reverse(Acc), ResultCode, Rated}.
+
+-spec parse_redirect_address(RedirectServerAddress) -> Result
+	when
+		RedirectServerAddress :: string(),
+		Result :: [#'3gpp_ro_Final-Unit-Indication'{}].
+%% @doc Parse redirect server address.
+%% @private
+parse_redirect_address(RedirectServerAddress)
+		when is_list(RedirectServerAddress) ->
+	AddressType = case inet:parse_address(RedirectServerAddress) of
+		{ok, Address} when size(Address) =:= 4 ->
+			?'3GPP_RO_REDIRECT-ADDRESS-TYPE_IPV4_ADDRESS';
+		{ok, Address} when size(Address) =:= 8 ->
+			?'3GPP_RO_REDIRECT-ADDRESS-TYPE_IPV6_ADDRESS';
+		{error, _} ->
+			[]
+	end,
+	RedirectServer = #'3gpp_ro_Redirect-Server'{'Redirect-Address-Type' = AddressType,
+			'Redirect-Server-Address' = RedirectServerAddress},
+	Action = ?'3GPP_RO_FINAL-UNIT-ACTION_REDIRECT',
+	[#'3gpp_ro_Final-Unit-Indication'{'Final-Unit-Action' = Action,
+			'Redirect-Server' = [RedirectServer]}].
 
