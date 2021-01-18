@@ -30,33 +30,33 @@ class policyList extends PolymerElement {
 					theme="no-border">
 				<vaadin-grid-column>
 					<template class="header">
+						Id
+					</template>
+					<template>[[item.id]]</template>
+				</vaadin-grid-column>
+				<vaadin-grid-column>
+					<template class="header">
 						Name
 					</template>
-					<template>[[item.name]]</template>
+					<template>[[item.resourceSpecification.name]]</template>
 				</vaadin-grid-column>
 				<vaadin-grid-column>
 					<template class="header">
-						Service Quality
+						Description
 					</template>
-					<template>[[item.qos]]</template>
+					<template>[[item.description]]</template>
 				</vaadin-grid-column>
 				<vaadin-grid-column>
 					<template class="header">
-						Charging Rule
+						Category
 					</template>
-					<template>[[item.chargingRule]]</template>
+					<template>[[item.category]]</template>
 				</vaadin-grid-column>
 				<vaadin-grid-column>
 					<template class="header">
-						flow
+						Type
 					</template>
-					<template>[[item.flow]]</template>
-				</vaadin-grid-column>
-				<vaadin-grid-column>
-					<template class="header">
-						Precedence
-					</template>
-					<template>[[item.Precedence]]</template>
+					<template>[[item.type]]</template>
 				</vaadin-grid-column>
 			</vaadin-grid>
 			<div class="add-button">
@@ -124,11 +124,61 @@ class policyList extends PolymerElement {
 				}
 				for (var index in request.response) {
 					var newRecord = new Object();
-					newRecord.name = request.response[index].name;
-					newRecord.service = request.response[index].service;
-					newRecord.chargingRule = request.response[index].chargingRule;
-					newRecord.flow = request.response[index].flow;
-					newRecord.precedence= request.response[index].precedence;
+					if(request.response[index].id) {
+						newRecord.id = request.response[index].id;
+					}
+					if(request.response[index].href) {
+						newRecord.href = request.response[index].href;
+					}
+					if(request.response[index].description) {
+						newRecord.description = request.response[index].description;
+					}
+					if(request.response[index].category) {
+						newRecord.category = request.response[index].category;
+					}
+					if(request.response[index]["@type"]) {
+						newRecord.type = request.response[index]["@type"];
+					}
+					if(request.response[index]["@baseType"]) {
+						newRecord.base = request.response[index]["@baseType"];
+					}
+					if(request.response[index]["@schemaLocation"]) {
+						newRecord.schema = request.response[index]["@schemaLocation"];
+					}
+					if(request.response[index].lifecycleState) {
+						newRecord.status = request.response[index].lifecycleState;
+					}
+					if(request.response[index].validFor.startDateTime) {
+						newRecord.start = request.response[index].validFor.startDateTime;
+					}
+					if(request.response[index].validFor.endDateTime) {
+						newRecord.end = request.response[index].validFor.endDateTime;
+					}
+					if(request.response[index].lastUpdate) {
+						newRecord.lastModified = request.response[index].lastUpdate;
+					}
+					var resChar = request.response[index].resourceCharacteristic;
+					for(var index1 in resChar) {
+						if(resChar[index1].value != []) {
+							var ValueArray = new Array();
+							ValueArray.push(resChar[index1].value);
+							for(var str in ValueArray) {
+								var str1 = JSON.stringify(ValueArray[str]);
+								var str2 = str1.trim();
+								var res = str2.replace(/"|{|[|[|}|]|]/g, " ");
+								resChar[index1].value = res;
+								newRecord.resourceChar = resChar;
+							}
+						} else {
+							newRecord.resourceChar = resChar;
+						}
+					}
+					if(request.response[index].resourceRelationship) {
+						newRecord.resourceRelationship = request.response[index].resourceRelationship;
+					}
+					if(request.response[index].resourceSpecification) {
+						newRecord.resourceSpecification = request.response[index].resourceSpecification;
+					}
 					vaadinItems[index] = newRecord;
 				}
 				callback(vaadinItems);
