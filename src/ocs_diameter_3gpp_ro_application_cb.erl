@@ -1002,19 +1002,11 @@ rate(ServiceType, ServiceNetwork, Subscriber,
 				ResultCode1 ->
 					ResultCode1
 			end,
-			MSCC = case RedirectServerAddress of
-				undefined ->
-					#'3gpp_ro_Multiple-Services-Credit-Control'{
-							'Service-Identifier' = SI,
-							'Rating-Group' = RG,
-							'Result-Code' = [ResultCode2]};
-				RedirectServerAddress when is_list(RedirectServerAddress) ->
-					#'3gpp_ro_Multiple-Services-Credit-Control'{
+			MSCC = #'3gpp_ro_Multiple-Services-Credit-Control'{
 							'Service-Identifier' = SI,
 							'Rating-Group' = RG,
 							'Result-Code' = [ResultCode2],
-							'Final-Unit-Indication' = parse_redirect_address(RedirectServerAddress)}
-			end,
+							'Final-Unit-Indication' = fui(RedirectServerAddress)},
 			rate(ServiceType, ServiceNetwork, Subscriber,
 					Timestamp, Address, Direction, Flag, SessionId,
 					T, [MSCC | Acc], ResultCode3, Rated1);
@@ -1027,19 +1019,11 @@ rate(ServiceType, ServiceNetwork, Subscriber,
 				ResultCode1 ->
 					ResultCode1
 			end,
-			MSCC = case RedirectServerAddress of
-				undefined ->
-					#'3gpp_ro_Multiple-Services-Credit-Control'{
-							'Service-Identifier' = SI,
-							'Rating-Group' = RG,
-							'Result-Code' = [ResultCode2]};
-				RedirectServerAddress when is_list(RedirectServerAddress) ->
-					#'3gpp_ro_Multiple-Services-Credit-Control'{
+			MSCC = #'3gpp_ro_Multiple-Services-Credit-Control'{
 							'Service-Identifier' = SI,
 							'Rating-Group' = RG,
 							'Result-Code' = [ResultCode2],
-							'Final-Unit-Indication' = parse_redirect_address(RedirectServerAddress)}
-			end,
+							'Final-Unit-Indication' = fui(RedirectServerAddress)},
 			rate(ServiceType, ServiceNetwork, Subscriber,
 					Timestamp, Address, Direction, Flag, SessionId,
 					T, [MSCC | Acc], ResultCode3, Rated2);
@@ -1052,19 +1036,11 @@ rate(ServiceType, ServiceNetwork, Subscriber,
 				ResultCode1 ->
 					ResultCode1
 			end,
-			MSCC = case RedirectServerAddress of
-				undefined ->
-					#'3gpp_ro_Multiple-Services-Credit-Control'{
-							'Service-Identifier' = SI,
-							'Rating-Group' = RG,
-							'Result-Code' = [ResultCode2]};
-				RedirectServerAddress when is_list(RedirectServerAddress) ->
-					#'3gpp_ro_Multiple-Services-Credit-Control'{
+			MSCC = #'3gpp_ro_Multiple-Services-Credit-Control'{
 							'Service-Identifier' = SI,
 							'Rating-Group' = RG,
 							'Result-Code' = [ResultCode2],
-							'Final-Unit-Indication' = parse_redirect_address(RedirectServerAddress)}
-			end,
+							'Final-Unit-Indication' = fui(RedirectServerAddress)},
 			rate(ServiceType, ServiceNetwork, Subscriber,
 					Timestamp, Address, Direction, Flag, SessionId,
 					T, [MSCC | Acc], ResultCode3, Rated1 ++ Rated2);
@@ -1082,13 +1058,13 @@ rate(_, _, _, _, _, _, _, _, [], Acc, ResultCode, undefined) ->
 rate(_, _, _, _, _, _, _, _, [], Acc, ResultCode, Rated) ->
 	{lists:reverse(Acc), ResultCode, Rated}.
 
--spec parse_redirect_address(RedirectServerAddress) -> Result
+-spec fui(RedirectServerAddress) -> Result
 	when
 		RedirectServerAddress :: string(),
 		Result :: [#'3gpp_ro_Final-Unit-Indication'{}].
 %% @doc Parse redirect server address.
 %% @private
-parse_redirect_address(RedirectServerAddress)
+fui(RedirectServerAddress)
 		when is_list(RedirectServerAddress) ->
 	AddressType = case inet:parse_address(RedirectServerAddress) of
 		{ok, Address} when size(Address) =:= 4 ->
