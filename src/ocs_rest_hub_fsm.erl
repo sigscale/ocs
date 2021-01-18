@@ -406,7 +406,9 @@ get_resource_id(Resource) ->
 		{_, #gtt{num = Num}} ->
 			Num;
 		#pla{name = Name} ->
-			Name
+			Name;
+		_ ->
+			[]
 	end.
 
 %% @hidden
