@@ -1,7 +1,3 @@
-January 19, 2021
----------------
-	- Support for redirect on out-of-credit
-
 January 14, 2021
 ---------------
 	- Fix for multiple payments by scheduler in some cases
