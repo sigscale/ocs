@@ -3161,7 +3161,7 @@ characteristic({"name", exact, "username"}, {"value", like, Like},
 	ReqAttrs2 = add_char(ReqAttrs1, {?UserName, {like, like(Like)}}),
 	characteristic(T, radius, Types, ReqAttrs2, RespAttrs, N);
 characteristic({"name", exact, "msisdn"}, {"value", Op, UserNameValue},
-		T, diameter, Types, '_', RespAttrs, N) when is_list(UserNameValue) ->
+		T, diameter, Types, '_' = MC, RespAttrs, N) when is_list(UserNameValue) ->
 	VarMatch = build_var_match(N),
 	case lists:last(UserNameValue) of
 		$% when Op == gte ->
@@ -3175,13 +3175,20 @@ characteristic({"name", exact, "msisdn"}, {"value", Op, UserNameValue},
 					[{'=<', Prefix, VarMatch}, {'>', Prefix2, VarMatch}]}];
 		_ when Op == exact ->
 			Prefix = list_to_binary(UserNameValue),
-			ReqAttrs2 = [{#'3gpp_ro_CCR'{'Subscription-Id'
-					= [#'3gpp_ro_Subscription-Id'{'Subscription-Id-Data'
-					= Prefix, _ = '_'}], _ = '_'}, []}]
+			SubscriptionMC = {'or', {'and', {'=:=', '$100',
+					?'3GPP_RO_SUBSCRIPTION-ID-TYPE_END_USER_E164'}, {'==', '$101', Prefix}},
+					{'and', {'=:=', '$102', ?'3GPP_RO_SUBSCRIPTION-ID-TYPE_END_USER_E164'},
+					{'==', '$103', Prefix}}},
+			NewMC = add_condition(MC, SubscriptionMC),
+         ReqAttrs2 = [{#'3gpp_ro_CCR'{'Subscription-Id'
+               = [#'3gpp_ro_Subscription-Id'{'Subscription-Id-Type'
+               = '$100', 'Subscription-Id-Data' = '$101', _ = '_'},
+               #'3gpp_ro_Subscription-Id'{'Subscription-Id-Type' = '$102',
+               'Subscription-Id-Data' = '$103', _ = '_'}], _ = '_'}, [NewMC]}]
 	end,
 	characteristic(T, diameter, Types, ReqAttrs2, RespAttrs, N + 1);
 characteristic({"name", exact, "imsi"}, {"value", Op, UserNameValue},
-		T, diameter, Types, '_', RespAttrs, N) when is_list(UserNameValue) ->
+		T, diameter, Types, '_' = MC, RespAttrs, N) when is_list(UserNameValue) ->
 	VarMatch = build_var_match(N),
 	case lists:last(UserNameValue) of
 		$% when Op == gte ->
@@ -3195,13 +3202,20 @@ characteristic({"name", exact, "imsi"}, {"value", Op, UserNameValue},
 					[{'=<', Prefix, VarMatch}, {'>', Prefix2, VarMatch}]}];
 		_ when Op == exact ->
 			Prefix = list_to_binary(UserNameValue),
-			ReqAttrs2 = [{#'3gpp_ro_CCR'{'Subscription-Id'
-					= [#'3gpp_ro_Subscription-Id'{'Subscription-Id-Data'
-					= Prefix, _ = '_'}], _ = '_'}, []}]
+			SubscriptionMC = {'or', {'and', {'=:=', '$100',
+					?'3GPP_RO_SUBSCRIPTION-ID-TYPE_END_USER_IMSI'}, {'==', '$101', Prefix}},
+					{'and', {'=:=', '$102', ?'3GPP_RO_SUBSCRIPTION-ID-TYPE_END_USER_IMSI'},
+					{'==', '$103', Prefix}}},
+			NewMC = add_condition(MC, SubscriptionMC),
+         ReqAttrs2 = [{#'3gpp_ro_CCR'{'Subscription-Id'
+               = [#'3gpp_ro_Subscription-Id'{'Subscription-Id-Type'
+               = '$100', 'Subscription-Id-Data' = '$101', _ = '_'},
+               #'3gpp_ro_Subscription-Id'{'Subscription-Id-Type' = '$102',
+               'Subscription-Id-Data' = '$103', _ = '_'}], _ = '_'}, [NewMC]}]
 	end,
 	characteristic(T, diameter, Types, ReqAttrs2, RespAttrs, N + 1);
 characteristic({"name", exact, "msisdn"}, {"value", Op, UserName},
-		T, diameter, Types, [{CCR, _MC}], RespAttrs, N) when is_list(UserName) ->
+		T, diameter, Types, [{CCR, MC}], RespAttrs, N) when is_list(UserName) ->
 	VarMatch = build_var_match(N),
 	case lists:last(UserName) of
 		$% when Op == gte ->
@@ -3215,17 +3229,24 @@ characteristic({"name", exact, "msisdn"}, {"value", Op, UserName},
 					[{'=<', Prefix, VarMatch}, {'>', Prefix2, VarMatch}]}];
 		_ when Op == exact ->
 			Prefix = list_to_binary(UserName),
+			SubscriptionMC = {'or', {'and', {'=:=', '$100',
+					?'3GPP_RO_SUBSCRIPTION-ID-TYPE_END_USER_E164'}, {'==', '$101', Prefix}},
+					{'and', {'=:=', '$102', ?'3GPP_RO_SUBSCRIPTION-ID-TYPE_END_USER_E164'},
+					{'==', '$103', Prefix}}},
+			NewMC = add_condition(MC, SubscriptionMC),
 			ReqAttrs2 = [{CCR#'3gpp_ro_CCR'{'Subscription-Id'
-					= [#'3gpp_ro_Subscription-Id'{'Subscription-Id-Data'
-					= Prefix, _ = '_'}]}, []}]
+					= [#'3gpp_ro_Subscription-Id'{'Subscription-Id-Type'
+					= '$100', 'Subscription-Id-Data' = '$101', _ = '_'},
+					#'3gpp_ro_Subscription-Id'{'Subscription-Id-Type' = '$102',
+					'Subscription-Id-Data' = '$103', _ = '_'}]}, [NewMC]}]
 	end,
 	characteristic(T, diameter, Types, ReqAttrs2, RespAttrs, N + 1);
-characteristic({"name", exact, "imsi"}, {"value", Op, UserName},
-		T, diameter, Types, [{CCR, _MC}], RespAttrs, N) when is_list(UserName) ->
+characteristic({"name", exact, "imsi"}, {"value", Op, UserNameValue},
+		T, diameter, Types, [{CCR, MC}], RespAttrs, N) when is_list(UserNameValue) ->
 	VarMatch = build_var_match(N),
-	case lists:last(UserName) of
+	case lists:last(UserNameValue) of
 		$% when Op == gte ->
-			Pre = lists:droplast(UserName),
+			Pre = lists:droplast(UserNameValue),
 			Prefix = list_to_binary(Pre),
 			I = list_to_integer(Pre),
 			Prefix2 = integer_to_binary(I + 1),
@@ -3234,10 +3255,17 @@ characteristic({"name", exact, "imsi"}, {"value", Op, UserName},
 					= VarMatch, _ = '_'}]},
 					[{'=<', Prefix, VarMatch}, {'>', Prefix2, VarMatch}]}];
 		_ when Op == exact ->
-			Prefix = list_to_binary(UserName),
-			ReqAttrs2 = [{CCR#'3gpp_ro_CCR'{'Subscription-Id'
-					= [#'3gpp_ro_Subscription-Id'{'Subscription-Id-Data'
-					= Prefix, _ = '_'}]}, []}]
+			Prefix = list_to_binary(UserNameValue),
+			SubscriptionMC = {'or', {'and', {'=:=', '$100',
+					?'3GPP_RO_SUBSCRIPTION-ID-TYPE_END_USER_IMSI'}, {'==', '$101', Prefix}},
+					{'and', {'=:=', '$102', ?'3GPP_RO_SUBSCRIPTION-ID-TYPE_END_USER_IMSI'},
+					{'==', '$103', Prefix}}},
+			NewMC = add_condition(MC, SubscriptionMC),
+         ReqAttrs2 = [{CCR#'3gpp_ro_CCR'{'Subscription-Id'
+               = [#'3gpp_ro_Subscription-Id'{'Subscription-Id-Type'
+               = '$100', 'Subscription-Id-Data' = '$101', _ = '_'},
+               #'3gpp_ro_Subscription-Id'{'Subscription-Id-Type' = '$102',
+               'Subscription-Id-Data' = '$103', _ = '_'}]}, [NewMC]}]
 	end,
 	characteristic(T, diameter, Types, ReqAttrs2, RespAttrs, N + 1);
 characteristic({"name", exact, "username"}, {"value", Op, UserName},
@@ -4742,6 +4770,14 @@ add_char('_', AttributeMatch) ->
 	[AttributeMatch];
 add_char(Attributes, AttributeMatch) when is_list(Attributes) ->
 	[AttributeMatch | Attributes].
+
+%% @hidden
+add_condition('_', MC2)
+		when is_tuple(MC2) ->
+	MC2;
+add_condition(MC1, MC2)
+		when is_tuple(MC1), is_tuple(MC2) ->
+	{'and', MC1, MC2}.
 
 %% @hidden
 rev('_') ->

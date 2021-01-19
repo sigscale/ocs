@@ -32,6 +32,11 @@
 -export([init/1, handle_call/2, handle_event/2, handle_info/2,
 			terminate/2, code_change/3]).
 
+-record(state,
+		{fsm :: pid(),
+		category :: atom()}).
+-type state() :: #state{}.
+
 %%----------------------------------------------------------------------
 %%  The ocs_event API
 %%----------------------------------------------------------------------
@@ -62,27 +67,26 @@ notify(EventType, EventPayLoad, Category) ->
 
 -spec init(Args) -> Result
 	when
-		Args :: [Fsm],
-		Fsm :: pid(),
-		Result :: {ok, Fsm}
-			| {ok, Fsm, hibernate}
-			| {error, Reason :: term()}.
+		Args :: list(),
+		Result :: {ok, State}
+			| {ok, State, hibernate}
+			| {error, State :: term()}.
 %% @doc Initialize the {@module} server.
 %% @see //stdlib/gen_event:init/1
 %% @private
 %%
-init([Fsm] = _Args) ->
-	{ok, Fsm}.
+init([Fsm, Category] = _Args) ->
+	{ok, #state{fsm = Fsm, category = Category}}.
 
--spec handle_event(Event, Fsm) -> Result
+-spec handle_event(Event, State) -> Result
 	when
 		Event :: term(),
-		Fsm :: pid(),
+		State :: state(),
 		Result :: {ok, NewState}
 				| {ok, NewState, hibernate}
 				| {swap_handler, Args1, NewState, Handler2, Args2}
 				| remove_handler,
-		NewState :: term(),
+		NewState :: state(),
 		Args1 :: term(),
 		Args2 :: term(),
 		Handler2 :: Module2 | {Module2, Id},
@@ -92,9 +96,12 @@ init([Fsm] = _Args) ->
 %% 	gen_event:notify/2, gen_event:sync_notify/2}.
 %% @private
 %%
-handle_event(Event, Fsm) ->
+handle_event({_Type, _Resource, Category} = Event,
+		#state{fsm = Fsm, category = Category} = State) ->
 	gen_fsm:send_event(Fsm, Event),
-	{ok, Fsm}.
+	{ok, State};
+handle_event(_Event, State) ->
+	{ok, State}.
 
 -spec handle_call(Request, Fsm) -> Result
 	when
