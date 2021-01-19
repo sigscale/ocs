@@ -125,9 +125,9 @@ init([Id, Query, Callback, Uri, Authorization] = _Args) ->
 			authorization = Authorization},
 	{ok, register, State, 0}.
 
--spec register(Event1, State) -> Result
+-spec register(Event, State) -> Result
 	when
-		Event1 :: timeout | pos_integer(),
+		Event :: timeout | pos_integer(),
 		State :: statedata(),
 		Result :: {next_state, NextStateName, NewStateData}
 			| {next_state, NextStateName, NewStateData, timeout}
@@ -138,8 +138,22 @@ init([Id, Query, Callback, Uri, Authorization] = _Args) ->
 		Reason :: normal | term().
 %% @doc Handle event received in `register' state.
 %% @private
-register(timeout, State) ->
-	case gen_event:add_sup_handler(ocs_event, ocs_event, [self()]) of
+register(timeout,
+		#statedata{href = "/balanceManagement/v1/hub/" ++ _Id} = State) ->
+	register1(balance, State);
+register(timeout,
+		#statedata{href = "/resourceInventory/v1/hub/" ++ _Id} = State) ->
+	register1(resource, State);
+register(timeout,
+		#statedata{href = "/usageManagement/v1/hub/" ++ _Id} = State) ->
+	register1(usage, State);
+register(timeout,
+		#statedata{href = "/serviceInventory/v2/hub/" ++ _Id} = State) ->
+	register1(service, State);
+register(timeout, #statedata{href = "/product" ++ _} = State) ->
+	register1(product, State).
+register1(Category, State) ->
+	case gen_event:add_sup_handler(ocs_event, ocs_event, [self(), Category]) of
 		ok ->
 			{next_state, registered, State};
 		{'EXIT', Reason} ->
