@@ -919,6 +919,8 @@ fill_acct(N, Protocal) ->
 	AcctInputOctets = rand:uniform(100000000),
 	AcctSessionTime = rand:uniform(3600) + 100,
 	UserName = ocs:generate_identity(),
+	MSISDN = io_lib:fwrite("1416555~4.10.0b", [rand:uniform(1000) - 1]).
+	IMSI = io_lib:fwrite("001001~9.10.0b", [rand:uniform(1000000000) - 1]).
 	Server = {{0, 0, 0, 0}, 1812},
 	I3 = rand:uniform(256) - 1,
 	I4 = rand:uniform(254),
@@ -942,10 +944,24 @@ fill_acct(N, Protocal) ->
 			ok = ocs_log:acct_log(radius, Server, Type, Attrs, undefined, undefined),
 			fill_acct(N - 1, radius);
 		diameter ->
-			Record = #'3gpp_ro_CCR'{'Origin-Host' = ClientAddress, 'Service-Context-Id' = <<"10.234567.3gpp.org">>, 'Subscription-Id' = [#'3gpp_ro_Subscription-Id'{'Subscription-Id-Data'
-						= list_to_binary(UserName)}], 'Multiple-Services-Credit-Control' = [#'3gpp_ro_Multiple-Services-Credit-Control'{'Requested-Service-Unit' = [#'3gpp_ro_Requested-Service-Unit'{'CC-Time'
-						= AcctSessionTime, 'CC-Input-Octets' = AcctInputOctets, 'CC-Output-Octets' = AcctOutputOctets}]}], 'Service-Information' = [{'3gpp_ro_Service-Information', [],
-							[#'3gpp_ro_IMS-Information'{'Calling-Party-Address' = ocs_test_lib:mac(), 'Called-Party-Address' = ocs_test_lib:mac()}]}]},
+			ServiceContextId = <<"10.32251.3gpp.org">>,
+			Sub1 = #'3gpp_ro_Subscription-Id'{'Subscription-Id-Type' = ?END_USER_E164,
+					'Subscription-Id-Data' = list_to_binary(MSISDN)},
+			Sub2 = #'3gpp_ro_Subscription-Id'{'Subscription-Id-Type' = ?END_USER_IMSI,
+					'Subscription-Id-Data' = list_to_binary(IMSI)},
+			MSCC = #'3gpp_ro_Multiple-Services-Credit-Control'{
+					'Requested-Service-Unit' = [#'3gpp_ro_Requested-Service-Unit'{
+					'CC-Time' = AcctSessionTime,
+					'CC-Input-Octets' = AcctInputOctets,
+					'CC-Output-Octets' = AcctOutputOctets}]},
+			IMSInfo = #'3gpp_ro_IMS-Information'{'Calling-Party-Address' = ocs_test_lib:mac(),
+					'Called-Party-Address' = ocs_test_lib:mac()},
+			ServiceInformation = #'3gpp_ro_Service-Information'{'IMS-Information' = [IMSInfo]},
+			Record = #'3gpp_ro_CCR'{'Origin-Host' = ClientAddress,
+					'Service-Context-Id' = ServiceContextId,
+					'Subscription-Id' = [Sub1, Sub2],
+					'Multiple-Services-Credit-Control' = [MSCC],
+					'Service-Information' = [ServiceInformation]},
 			ok = ocs_log:acct_log(diameter, Server, Type, Record, undefined, undefined),
 			fill_acct(N - 1, diameter)
 	end.
