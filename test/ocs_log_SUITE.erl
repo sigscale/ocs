@@ -947,7 +947,7 @@ fill_acct(N, Protocal) ->
 			ServiceContextId = <<"10.32251.3gpp.org">>,
 			Sub1 = #'3gpp_ro_Subscription-Id'{'Subscription-Id-Type' = ?'3GPP_RO_SUBSCRIPTION-ID-TYPE_END_USER_E164',
 					'Subscription-Id-Data' = list_to_binary(MSISDN)},
-			Sub2 = #'3gpp_ro_Subscription-Id'{'Subscription-Id-Type' = ?'3GPP_RO_SUBSCRIPTION-ID-TYPE_END_USER_E164',
+			Sub2 = #'3gpp_ro_Subscription-Id'{'Subscription-Id-Type' = ?'3GPP_RO_SUBSCRIPTION-ID-TYPE_END_USER_IMSI',
 					'Subscription-Id-Data' = list_to_binary(IMSI)},
 			MSCC = #'3gpp_ro_Multiple-Services-Credit-Control'{
 					'Requested-Service-Unit' = [#'3gpp_ro_Requested-Service-Unit'{
