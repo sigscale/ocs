@@ -86,7 +86,7 @@ init([Fsm, Category] = _Args) ->
 				| {ok, NewState, hibernate}
 				| {swap_handler, Args1, NewState, Handler2, Args2}
 				| remove_handler,
-		NewState :: pid(),
+		NewState :: state(),
 		Args1 :: term(),
 		Args2 :: term(),
 		Handler2 :: Module2 | {Module2, Id},
@@ -96,9 +96,12 @@ init([Fsm, Category] = _Args) ->
 %% 	gen_event:notify/2, gen_event:sync_notify/2}.
 %% @private
 %%
-handle_event(Event, #state{fsm = Fsm}) ->
+handle_event({_Type, _Resource, Category} = Event,
+		#state{fsm = Fsm, category = Category} = State) ->
 	gen_fsm:send_event(Fsm, Event),
-	{ok, Fsm}.
+	{ok, State};
+handle_event(_Event, State) ->
+	{ok, State}.
 
 -spec handle_call(Request, Fsm) -> Result
 	when
