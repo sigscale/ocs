@@ -148,6 +148,9 @@ register(timeout,
 		#statedata{href = "/usageManagement/v1/hub/" ++ _Id} = State) ->
 	register1(usage, State);
 register(timeout,
+		#statedata{href = "/partyManagement/v1/hub/" ++ _Id} = State) ->
+	register1(user, State);
+register(timeout,
 		#statedata{href = "/serviceInventory/v2/hub/" ++ _Id} = State) ->
 	register1(service, State);
 register(timeout, #statedata{href = "/product" ++ _} = State) ->
