@@ -919,8 +919,8 @@ fill_acct(N, Protocal) ->
 	AcctInputOctets = rand:uniform(100000000),
 	AcctSessionTime = rand:uniform(3600) + 100,
 	UserName = ocs:generate_identity(),
-	MSISDN = io_lib:fwrite("1416555~4.10.0b", [rand:uniform(1000) - 1]).
-	IMSI = io_lib:fwrite("001001~9.10.0b", [rand:uniform(1000000000) - 1]).
+	MSISDN = io_lib:fwrite("1416555~4.10.0b", [rand:uniform(1000) - 1]),
+	IMSI = io_lib:fwrite("001001~9.10.0b", [rand:uniform(1000000000) - 1]),
 	Server = {{0, 0, 0, 0}, 1812},
 	I3 = rand:uniform(256) - 1,
 	I4 = rand:uniform(254),
@@ -945,9 +945,9 @@ fill_acct(N, Protocal) ->
 			fill_acct(N - 1, radius);
 		diameter ->
 			ServiceContextId = <<"10.32251.3gpp.org">>,
-			Sub1 = #'3gpp_ro_Subscription-Id'{'Subscription-Id-Type' = ?END_USER_E164,
+			Sub1 = #'3gpp_ro_Subscription-Id'{'Subscription-Id-Type' = ?'3GPP_RO_SUBSCRIPTION-ID-TYPE_END_USER_E164',
 					'Subscription-Id-Data' = list_to_binary(MSISDN)},
-			Sub2 = #'3gpp_ro_Subscription-Id'{'Subscription-Id-Type' = ?END_USER_IMSI,
+			Sub2 = #'3gpp_ro_Subscription-Id'{'Subscription-Id-Type' = ?'3GPP_RO_SUBSCRIPTION-ID-TYPE_END_USER_E164',
 					'Subscription-Id-Data' = list_to_binary(IMSI)},
 			MSCC = #'3gpp_ro_Multiple-Services-Credit-Control'{
 					'Requested-Service-Unit' = [#'3gpp_ro_Requested-Service-Unit'{
