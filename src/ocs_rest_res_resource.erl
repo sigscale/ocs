@@ -236,7 +236,7 @@ get_resource_inventory(Id, [] = _Query) ->
 		Result :: {ok, Headers :: [tuple()], Body :: iolist()}
 				| {error, ErrorCode :: integer()}.
 %% @doc Body producing function for
-%% 	`GET|HEAD /resourceCatalogManagement/v1/resource'
+%% 	`GET|HEAD /resourceInventoryManagement/v1/resource'
 %% 	requests.
 get_resource_inventories(Query, Headers) ->
 	try
