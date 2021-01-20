@@ -134,7 +134,7 @@ get_resource_category(_) ->
 %% 	Retrieve all Resource categories.
 get_resource_categories([] = _Query) ->
 	Headers = [{content_type, "application/json"}],
-	Object = {array, [tariff_table_category()]},
+	Object = {array, [tariff_table_category(), policy_table_category()]},
 	Body = mochijson:encode(Object),
 	{ok, Headers, Body};
 get_resource_categories(_Query) ->
