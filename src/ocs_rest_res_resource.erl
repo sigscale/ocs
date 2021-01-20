@@ -116,6 +116,11 @@ get_resource_category("1") ->
 	Body = mochijson:encode(ResourceCatagory),
 	Headers = [{content_type, "application/json"}],
 	{ok, Headers, Body};
+get_resource_category("2") ->
+	ResourceCatagory = policy_table_category(),
+	Body = mochijson:encode(ResourceCatagory),
+	Headers = [{content_type, "application/json"}],
+	{ok, Headers, Body};
 get_resource_category(_) ->
 	{error, 404}.
 
