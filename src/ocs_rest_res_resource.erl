@@ -28,7 +28,7 @@
 -export([get_resource_catalog/1, get_resource_catalogs/1]).
 -export([get_resource_inventory/2, get_resource_inventories/2,
 		add_resource_inventory/1, patch_resource_inventory/4,
-		delete_resource_inventory/2]).
+		delete_resource_inventory/1]).
 -export([get_pla_specs/1]).
 -export([gtt/2]).
 
@@ -448,25 +448,18 @@ patch_resource_inventory(Table, Id, _Etag, ReqData) ->
 			{error, 500}
 	end.
 
--spec delete_resource_inventory(Table, Id) -> Result
+-spec delete_resource_inventory(Id) -> Result
    when
-		Table :: string(),
       Id :: string(),
       Result :: {ok, Headers :: [tuple()], Body :: iolist()}
             | {error, ErrorCode :: integer()} .
-%% @doc Respond to `DELETE /resourceInventoryManagement/v1/logicalResource/{table}/{id}''
+%% @doc Respond to `DELETE /resourceInventoryManagement/v1/resource/{id}''
 %%    request to remove a table row.
-delete_resource_inventory(Table, Id) ->
-	try
-		Name = list_to_existing_atom(Table),
-		ocs_gtt:delete(Name, Id)
-	of
+delete_resource_inventory(Id) ->
+	case ocs:delete_resource(Id) of
 		ok ->
-			{ok, [], []}
-	catch
-		error:badarg ->
-			{error, 404};
-		_:_ ->
+			{ok, [], []};
+		{error, _Reason} ->
 			{error, 400}
 	end.
 
