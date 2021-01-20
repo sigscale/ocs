@@ -27,7 +27,7 @@
 -export([get_resource_candidate/1, get_resource_candidates/1]).
 -export([get_resource_catalog/1, get_resource_catalogs/1]).
 -export([get_resource_inventory/2, get_resource_inventories/2,
-		add_resource_inventory/2, patch_resource_inventory/4,
+		add_resource_inventory/1, patch_resource_inventory/4,
 		delete_resource_inventory/2]).
 -export([get_pla_specs/1]).
 -export([gtt/2]).
@@ -360,43 +360,29 @@ query_start({M, F, A}, Codec, Query, Filters, RangeStart, RangeEnd) ->
 			{error, 500}
 	end.
 
--spec add_resource_inventory(Table, ReqData) -> Result when
-	Table :: string(),
-	ReqData :: [tuple()],
-	Result   :: {ok, Headers, Body} | {error, Status},
-	Headers  :: [tuple()],
-	Body     :: iolist(),
-	Status   :: 400 | 500 .
+-spec add_resource_inventory(RequestBody) -> Result
+	when
+		RequestBody :: [tuple()],
+		Result   :: {ok, Headers, Body} | {error, Status},
+		Headers  :: [tuple()],
+		Body     :: iolist(),
+		Status   :: 400 | 500 .
 %% @doc Respond to
-%% 	`POST /resourceInventoryManagement/v1/logicalResource/{table}'.
-%%    Add a new row in logical resource inventory management.
-add_resource_inventory(Table, ReqData) ->
+%% 	`POST /resourceInventoryManagement/v1/resource'.
+%%    Add a new row in resource inventory management.
+add_resource_inventory(RequestBody) ->
 	try
-		{P, D, R} = gtt(Table, mochijson:decode(ReqData)),
-		Name = list_to_existing_atom(Table),
-		case catch ocs_gtt:insert(Name, P, {D, R}) of
-			{ok, #gtt{num = Prefix1, value = Value}} ->
-				{Prefix1, element(1, Value),
-						element(2, Value), element(size(Value), Value)};
-			{'EXIT', {no_exists, _}} ->
-				throw(not_found);
-			{'EXIT', Reason} ->
-				throw(Reason)
+		Resource1 = resource(mochijson:decode(RequestBody)),
+		case ocs:add_resource(Resource1) of
+			{ok, #resource{href = Href, last_modified = LM} = Resource2} ->
+				Headers = [{location, Href}, {etag, ocs_rest:etag(LM)}],
+				Body = mochijson:encode(resource(Resource2)),
+				{ok, Headers, Body};
+			{error, _Reason} ->
+				{error, 400}
 		end
-	of
-		{Prefix2, Desc, Rate, LM} ->
-			Body = mochijson:encode(gtt(Table, {Prefix2, Desc, Rate})),
-			Etag = ocs_rest:etag(LM),
-			Headers = [{content_type, "application/json"}, {etag, Etag}],
-			{ok, Headers, Body}
 	catch
-		throw:not_found ->
-			{error, 404};
-		throw:_Reason1 ->
-			{error, 500};
-		error:badarg ->
-			{error, 400};
-		_:_ ->
+		_:_Reason1 ->
 			{error, 400}
 	end.
 
