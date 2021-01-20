@@ -597,6 +597,18 @@ tariff_table_category() ->
 	{struct, [Id, Href, Name, Description, Version, Status, LastUpdate, IsRoot, Candidate]}.
 
 %% @hidden
+policy_table_category() ->
+	Id = {"id", "2"},
+	Href = {"href", ?categoryPath "2"},
+	Name = {"name", "PolicyTableCategory"},
+	Description = {"description", "Voice call rating policy tables"},
+	Version = {"version", "1.0"},
+	LastUpdate = {"lastUpdate", "2021-01-20"},
+	Status = {"lifecycleStatus", "Active"},
+	IsRoot = {"isRoot", true},
+	{struct, [Id, Href, Name, Description, Version, Status, LastUpdate, IsRoot]}.
+
+%% @hidden
 tariff_table_candidate() ->
 	Id = {"id", "1"},
 	Href = {"href", ?candidatePath "1"},
