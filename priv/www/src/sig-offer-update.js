@@ -148,7 +148,7 @@ class offerUpdate extends PolymerElement {
 							<paper-input
 									id="updateRedirectServer"
 									allowed-pattern="[0-9\.]"
-									label="RADIUS Reserve Session"
+									label="Redirect Server"
 									value="{{updateRedirect}}">
 							</paper-input>
 							<paper-tooltip
@@ -1085,6 +1085,7 @@ class offerUpdate extends PolymerElement {
 				this.$.updateAddPriceCharReserveTime.value = null;
 				this.$.updateAddPriceCharReserveBytes.value = null;
 				this.$.updateReserveSession.value = null;
+				this.updateRedirect = null;
 				this.priceAddRoaming = null;
 				this.chargingKey = null;
 				this.priceUpdateTariff = null;
@@ -1338,7 +1339,7 @@ class offerUpdate extends PolymerElement {
 				redirectSer1.value = this.updateRedirect;
 				redirectSerArr.push(redirectSer1);
 				var redirectSer2 = new Object();
-				redirectSer2.name = "updateRedirectServer";
+				redirectSer2.name = "redirectServer";
 				redirectSer2.minCardinality = 0;
 				redirectSer2.maxCardinality = 1;
 				redirectSer2.productSpecCharacteristicValue = redirectSerArr;
@@ -2210,6 +2211,7 @@ class offerUpdate extends PolymerElement {
 			this.$.updateAddPriceCharReserveBytes.value = null;
 			this.priceUpdateTariff = null;
 			this.$.updateReserveSession.value = null;
+			this.updateRedirect = null;
 			this.startTimeUpdate = null;
 			this.endTimeUpdate = null;
 			this.$.updateCheckIn.checked = false;
@@ -2382,6 +2384,7 @@ class offerUpdate extends PolymerElement {
 		this.priceAddRoaming = null;
 		this.chargingKey = null;
 		this.$.updateReserveSession.value = null;
+		this.updateRedirect = null;
 		this.startTimeUpdate = null;
 		this.endTimeUpdate = null;
 		this.$.updateCheckIn.checked = null;
