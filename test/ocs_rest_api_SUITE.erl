@@ -217,7 +217,7 @@ all() ->
 	notify_insert_gtt, notify_delete_gtt, query_gtt_notification,
 	notify_add_pla, notify_delete_pla, query_pla_notification,
 	post_hub_usage, get_usage_hubs, get_usage_hub, delete_hub_usage,
-	notify_diameter_acct_log, get_resources, post_resource,
+	notify_diameter_acct_log, get_resources, post_resource, delete_resource,
 	oauth_authentication].
 
 %%---------------------------------------------------------------------
@@ -4458,6 +4458,29 @@ post_resource(Config) ->
 			referred_type = "contained", name = "example"} = R,
 	#resource_char{name = CharName, class_type = CharType,
 			schema = CharSchema, value = CharValue} = C.
+
+delete_resource() ->
+	[{userdata, [{doc,"Delete resource inventory"}]}].
+
+delete_resource(Config) ->
+	Schema = "/resourceInventoryManagement/v1/schema/"
+			"resourceInventoryManagement#/definitions/resource",
+	Resource = #resource{class_type = "LogicalResource", base_type = "Resource",
+			schema = Schema, description = "tariff resource", category = "tariff",
+			start_date = erlang:system_time(?MILLISECOND),
+			end_date = erlang:system_time(?MILLISECOND) + 2678400000,
+			state = "Active", related = fill_related(2),
+			specification = #specification_ref{id = random_string(10),
+					href = random_string(25), name = "tariff spec"},
+			characteristic  = fill_resource_char(3)},
+	{ok, #resource{id = Id}} = ocs:add_resource(Resource),
+	URI = "/resourceInventoryManagement/v1/resource/" ++ Id,
+	HostUrl = ?config(host_url, Config),
+	Request = {HostUrl ++ URI, [auth_header()]},
+	{ok, Result} = httpc:request(delete, Request, [], []),
+	{{"HTTP/1.1", 204, _NoContent}, Headers, []} = Result,
+	{_, "0"} = lists:keyfind("content-length", 1, Headers),
+	{error, not_found} = ocs:get_resource(Id).
 
 oauth_authenticaton()->
 	[{userdata, [{doc, "Authenticate a JWT using oauth"}]}].
