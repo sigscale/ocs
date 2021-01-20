@@ -1,4 +1,8 @@
 2021-01-19  Refath Wadood <refath@sigscale.org>
+	
+	* gui: fix label and clear values for redirect server
+	
+2021-01-19  Refath Wadood <refath@sigscale.org>
 
 	* gui: clear price array value once cancel is clicked
 	* gui: add redirect server with offer
