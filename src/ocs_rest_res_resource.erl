@@ -27,8 +27,8 @@
 -export([get_resource_candidate/1, get_resource_candidates/1]).
 -export([get_resource_catalog/1, get_resource_catalogs/1]).
 -export([get_resource_inventory/2, get_resource_inventories/2,
-		add_resource_inventory/2, patch_resource_inventory/4,
-		delete_resource_inventory/2]).
+		add_resource_inventory/1, patch_resource_inventory/4,
+		delete_resource_inventory/1]).
 -export([get_pla_specs/1]).
 -export([gtt/2]).
 
@@ -116,6 +116,11 @@ get_resource_category("1") ->
 	Body = mochijson:encode(ResourceCatagory),
 	Headers = [{content_type, "application/json"}],
 	{ok, Headers, Body};
+get_resource_category("2") ->
+	ResourceCatagory = policy_table_category(),
+	Body = mochijson:encode(ResourceCatagory),
+	Headers = [{content_type, "application/json"}],
+	{ok, Headers, Body};
 get_resource_category(_) ->
 	{error, 404}.
 
@@ -129,7 +134,7 @@ get_resource_category(_) ->
 %% 	Retrieve all Resource categories.
 get_resource_categories([] = _Query) ->
 	Headers = [{content_type, "application/json"}],
-	Object = {array, [tariff_table_category()]},
+	Object = {array, [tariff_table_category(), policy_table_category()]},
 	Body = mochijson:encode(Object),
 	{ok, Headers, Body};
 get_resource_categories(_Query) ->
@@ -231,7 +236,7 @@ get_resource_inventory(Id, [] = _Query) ->
 		Result :: {ok, Headers :: [tuple()], Body :: iolist()}
 				| {error, ErrorCode :: integer()}.
 %% @doc Body producing function for
-%% 	`GET|HEAD /resourceCatalogManagement/v1/resource'
+%% 	`GET|HEAD /resourceInventoryManagement/v1/resource'
 %% 	requests.
 get_resource_inventories(Query, Headers) ->
 	try
@@ -355,43 +360,29 @@ query_start({M, F, A}, Codec, Query, Filters, RangeStart, RangeEnd) ->
 			{error, 500}
 	end.
 
--spec add_resource_inventory(Table, ReqData) -> Result when
-	Table :: string(),
-	ReqData :: [tuple()],
-	Result   :: {ok, Headers, Body} | {error, Status},
-	Headers  :: [tuple()],
-	Body     :: iolist(),
-	Status   :: 400 | 500 .
+-spec add_resource_inventory(RequestBody) -> Result
+	when
+		RequestBody :: [tuple()],
+		Result   :: {ok, Headers, Body} | {error, Status},
+		Headers  :: [tuple()],
+		Body     :: iolist(),
+		Status   :: 400 | 500 .
 %% @doc Respond to
-%% 	`POST /resourceInventoryManagement/v1/logicalResource/{table}'.
-%%    Add a new row in logical resource inventory management.
-add_resource_inventory(Table, ReqData) ->
+%% 	`POST /resourceInventoryManagement/v1/resource'.
+%%    Add a new row in resource inventory management.
+add_resource_inventory(RequestBody) ->
 	try
-		{P, D, R} = gtt(Table, mochijson:decode(ReqData)),
-		Name = list_to_existing_atom(Table),
-		case catch ocs_gtt:insert(Name, P, {D, R}) of
-			{ok, #gtt{num = Prefix1, value = Value}} ->
-				{Prefix1, element(1, Value),
-						element(2, Value), element(size(Value), Value)};
-			{'EXIT', {no_exists, _}} ->
-				throw(not_found);
-			{'EXIT', Reason} ->
-				throw(Reason)
+		Resource1 = resource(mochijson:decode(RequestBody)),
+		case ocs:add_resource(Resource1) of
+			{ok, #resource{href = Href, last_modified = LM} = Resource2} ->
+				Headers = [{location, Href}, {etag, ocs_rest:etag(LM)}],
+				Body = mochijson:encode(resource(Resource2)),
+				{ok, Headers, Body};
+			{error, _Reason} ->
+				{error, 400}
 		end
-	of
-		{Prefix2, Desc, Rate, LM} ->
-			Body = mochijson:encode(gtt(Table, {Prefix2, Desc, Rate})),
-			Etag = ocs_rest:etag(LM),
-			Headers = [{content_type, "application/json"}, {etag, Etag}],
-			{ok, Headers, Body}
 	catch
-		throw:not_found ->
-			{error, 404};
-		throw:_Reason1 ->
-			{error, 500};
-		error:badarg ->
-			{error, 400};
-		_:_ ->
+		_:_Reason1 ->
 			{error, 400}
 	end.
 
@@ -457,25 +448,18 @@ patch_resource_inventory(Table, Id, _Etag, ReqData) ->
 			{error, 500}
 	end.
 
--spec delete_resource_inventory(Table, Id) -> Result
+-spec delete_resource_inventory(Id) -> Result
    when
-		Table :: string(),
       Id :: string(),
       Result :: {ok, Headers :: [tuple()], Body :: iolist()}
             | {error, ErrorCode :: integer()} .
-%% @doc Respond to `DELETE /resourceInventoryManagement/v1/logicalResource/{table}/{id}''
+%% @doc Respond to `DELETE /resourceInventoryManagement/v1/resource/{id}''
 %%    request to remove a table row.
-delete_resource_inventory(Table, Id) ->
-	try
-		Name = list_to_existing_atom(Table),
-		ocs_gtt:delete(Name, Id)
-	of
+delete_resource_inventory(Id) ->
+	case ocs:delete_resource(Id) of
 		ok ->
-			{ok, [], []}
-	catch
-		error:badarg ->
-			{error, 404};
-		_:_ ->
+			{ok, [], []};
+		{error, _Reason} ->
 			{error, 400}
 	end.
 
@@ -595,6 +579,18 @@ tariff_table_category() ->
 	Candidate = {"resourceCandidate", {array, [{struct, [{"id", "1"}, {"href", ?candidatePath "1"},
 			{"version", "1.0"}, {"name", "TariffTableCandidate"}]}]}},
 	{struct, [Id, Href, Name, Description, Version, Status, LastUpdate, IsRoot, Candidate]}.
+
+%% @hidden
+policy_table_category() ->
+	Id = {"id", "2"},
+	Href = {"href", ?categoryPath "2"},
+	Name = {"name", "PolicyTableCategory"},
+	Description = {"description", "Voice call rating policy tables"},
+	Version = {"version", "1.0"},
+	LastUpdate = {"lastUpdate", "2021-01-20"},
+	Status = {"lifecycleStatus", "Active"},
+	IsRoot = {"isRoot", true},
+	{struct, [Id, Href, Name, Description, Version, Status, LastUpdate, IsRoot]}.
 
 %% @hidden
 tariff_table_candidate() ->

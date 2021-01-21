@@ -217,7 +217,7 @@ all() ->
 	notify_insert_gtt, notify_delete_gtt, query_gtt_notification,
 	notify_add_pla, notify_delete_pla, query_pla_notification,
 	post_hub_usage, get_usage_hubs, get_usage_hub, delete_hub_usage,
-	notify_diameter_acct_log, get_resources,
+	notify_diameter_acct_log, get_resources, post_resource, delete_resource,
 	oauth_authentication].
 
 %%---------------------------------------------------------------------
@@ -4378,6 +4378,109 @@ get_resources(Config) ->
 	{_, ContentLength} = lists:keyfind("content-length", 1, Headers),
 	{array, Objects} = mochijson:decode(ResponseBody),
 	true = length(Objects) >= 2.
+
+post_resource(Config) ->
+	HostUrl = ?config(host_url, Config),
+	CollectionUrl = HostUrl ++ "/resourceInventoryManagement/v1/resource/",
+	Name = "Tariff",
+	Description = "tariff resource",
+	Version = random_string(3),
+	ClassType = "LogicalResource",
+	ClassSchema = "/resourceInventoryManagement/v3/"
+			"schema/resourceInventoryManagement",
+	BaseType = "Resource",
+	Category = "tariff",
+	ResourceId = random_string(10),
+	ResourceName = "policy spec",
+	ResouceHref = "/resourceInventoryManagement/v1/resource/" ++ ResourceId,
+	ResourceRelId = random_string(10),
+	ResourceRelHref = "/resourceInventoryManagement/v1/resourceRelationship/"
+			++ ResourceRelId,
+	CharName = random_string(15),
+	CharValue = random_string(10),
+	CharType = random_string(7),
+	CharSchema = random_string(20),
+	RequestBody = "{\n"
+			++ "\t\"name\": \"" ++ Name ++ "\",\n"
+			++ "\t\"description\": \"" ++ Description ++ "\",\n"
+			++ "\t\"category\": \"" ++ Category ++ "\",\n"
+			++ "\t\"@type\": \"" ++ ClassType ++ "\",\n"
+			++ "\t\"@schemaLocation\": \"" ++ ClassSchema ++ "\",\n"
+			++ "\t\"@baseType\": \"" ++ BaseType ++ "\",\n"
+			++ "\t\"version\": \"" ++ Version ++ "\",\n"
+			++ "\t\"validFor\": {\n"
+			++ "\t\t\"startDateTime\": \"2021-01-20T00:00\",\n"
+			++ "\t\t\"endDateTime\": \"2021-12-31T23:59\"\n"
+			++ "\t},\n"
+			++ "\t\"lifecycleState\": \"In Test\",\n"
+			++ "\t\"resourceSpecification\": {\n"
+			++ "\t\t\"id\": \"" ++ ResourceId ++ "\",\n"
+			++ "\t\t\"href\": \"" ++ ResouceHref ++ "\",\n"
+			++ "\t\t\"name\": \"" ++ ResourceName ++ "\",\n"
+			++ "\t\t\"@type\": \"" ++ ClassType ++ "\",\n"
+			++ "\t\t\"version\": \"" ++ Version ++ "\"\n"
+			++ "\t\t},\n"
+			++ "\t\"resourceRelationship\": [\n"
+			++ "\t\t{\n"
+			++ "\t\t\t\"id\": \"" ++ ResourceRelId ++ "\",\n"
+			++ "\t\t\t\"href\": \"" ++ ResourceRelHref ++ "\",\n"
+			++ "\t\t\t\"@referredType\": \"contained\",\n"
+			++ "\t\t\t\"name\": \"example\"\n"
+			++ "\t\t}\n"
+			++ "\t],\n"
+			++ "\t\"resourceCharacteristic\": [\n"
+			++ "\t\t{\n"
+			++ "\t\t\t\"name\": \"" ++ CharName ++ "\",\n"
+			++ "\t\t\t\"value\": \"" ++ CharValue ++ "\",\n"
+			++ "\t\t\t\"@type\": \"" ++ CharType ++ "\",\n"
+			++ "\t\t\t\"@schemaLocation\": \"" ++ CharSchema ++ "\"\n"
+			++ "\t\t}\n"
+			++ "\t]\n"
+			++ "}\n",
+	ContentType = "application/json",
+	Accept = {"accept", "application/json"},
+	Request = {CollectionUrl, [Accept, auth_header()], ContentType, RequestBody},
+	{ok, Result} = httpc:request(post, Request, [], []),
+	{{"HTTP/1.1", 201, _Created}, Headers, ResponseBody} = Result,
+	{_, "application/json"} = lists:keyfind("content-type", 1, Headers),
+	ContentLength = integer_to_list(length(ResponseBody)),
+	{_, ContentLength} = lists:keyfind("content-length", 1, Headers),
+	{_, URI} = lists:keyfind("location", 1, Headers),
+	{"/resourceInventoryManagement/v1/resource/" ++ ID, _}
+			= httpd_util:split_path(URI),
+	{ok, #resource{id = ID, name = Name, description = Description,
+			version = Version, category = Category, class_type = ClassType,
+			base_type = BaseType, schema = ClassSchema, specification = S,
+			related = [R], characteristic = [C]}} = ocs:get_resource(ID),
+	#specification_ref{id = ResourceId, href = ResouceHref, name = ResourceName,
+			version = Version} = S,
+	#resource_rel{id = ResourceRelId, href = ResourceRelHref,
+			referred_type = "contained", name = "example"} = R,
+	#resource_char{name = CharName, class_type = CharType,
+			schema = CharSchema, value = CharValue} = C.
+
+delete_resource() ->
+	[{userdata, [{doc,"Delete resource inventory"}]}].
+
+delete_resource(Config) ->
+	Schema = "/resourceInventoryManagement/v1/schema/"
+			"resourceInventoryManagement#/definitions/resource",
+	Resource = #resource{class_type = "LogicalResource", base_type = "Resource",
+			schema = Schema, description = "tariff resource", category = "tariff",
+			start_date = erlang:system_time(?MILLISECOND),
+			end_date = erlang:system_time(?MILLISECOND) + 2678400000,
+			state = "Active", related = fill_related(2),
+			specification = #specification_ref{id = random_string(10),
+					href = random_string(25), name = "tariff spec"},
+			characteristic  = fill_resource_char(3)},
+	{ok, #resource{id = Id}} = ocs:add_resource(Resource),
+	URI = "/resourceInventoryManagement/v1/resource/" ++ Id,
+	HostUrl = ?config(host_url, Config),
+	Request = {HostUrl ++ URI, [auth_header()]},
+	{ok, Result} = httpc:request(delete, Request, [], []),
+	{{"HTTP/1.1", 204, _NoContent}, Headers, []} = Result,
+	{_, "0"} = lists:keyfind("content-length", 1, Headers),
+	{error, not_found} = ocs:get_resource(Id).
 
 oauth_authenticaton()->
 	[{userdata, [{doc, "Authenticate a JWT using oauth"}]}].
