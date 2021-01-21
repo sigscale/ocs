@@ -223,7 +223,7 @@ class policyList extends PolymerElement {
 	}
 
 	showAddPolicyModal(event) {
-//Todo
+		document.body.querySelector('sig-app').shadowRoot.querySelector('sig-policy-add').shadowRoot.getElementById('policyAddModal').open();
 	}
 }
 

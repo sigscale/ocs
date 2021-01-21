@@ -181,7 +181,7 @@ class SigApp extends PolymerElement {
 								loading="{{policyLoading}}"
 								name="policyView"
 								active-item="{{activePolicyItem}}">
-						</sig-user-list>
+						</sig-policy-list>
 					</iron-pages>
 					<paper-toast
 							id="restError"
@@ -333,6 +333,7 @@ class SigApp extends PolymerElement {
 			<sig-prefix-update active-item="[[activePrefixItem]]"></sig-prefix-update>
 			<sig-bucket-add></sig-bucket-add>
 			<sig-product-add active-item="[[activeProductItem]]" offers="[[offers]]"></sig-product-add>
+			<sig-policy-add id="policyAdd"></sig-policy-add>
 		`;
 	}
 
@@ -598,6 +599,7 @@ class SigApp extends PolymerElement {
 				break;
 			case 'policyView':
 				import('./sig-policy-list.js');
+				import('./sig-policy-add.js');
 				break;
 			case 'balanceView':
 				import('./sig-balance-list.js');
