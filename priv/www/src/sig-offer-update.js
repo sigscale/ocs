@@ -1392,28 +1392,28 @@ class offerUpdate extends PolymerElement {
 			return price.name == document.body.querySelector('sig-app').shadowRoot.getElementById('updateProduct').shadowRoot.getElementById('updatePriceName').value;
 		}
 		var indexPrices = this.prices.findIndex(checkName);
-		if(this.priceUpdateDesc) {
+		if(this.priceUpdateDesc != this.prices[indexPrices].description) {
 			var priceDesc = new Object();
 			priceDesc.op = "add";
 			priceDesc.path = "/productOfferingPrice/" + indexPrices + "/description";
 			priceDesc.value = this.priceUpdateDesc;
 			updatePriceNew.push(priceDesc);
 		}
-		if(this.priceUpdateType) {
+		if(this.priceUpdateType != this.prices[indexPrices].priceType) {
 			var pricetype = new Object();
 			pricetype.op = "add";
 			pricetype.path = "/productOfferingPrice/" + indexPrices + "/priceType";
-			switch(this.$.updatePriceType.selected) {
-				case 0:
+			switch(this.priceUpdateType) {
+				case "Recurring":
 					pricetype.value = "recurring";
 					break;
-				case 1:
+				case "One Time":
 					pricetype.value = "one_time";
 					break;
-				case 2:
+				case "Usage":
 					pricetype.value = "usage";
 					break;
-				case 3:
+				case "Tariff":
 					pricetype.value = "tariff";
 					break;
 			}
