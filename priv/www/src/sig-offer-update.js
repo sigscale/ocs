@@ -1430,15 +1430,19 @@ class offerUpdate extends PolymerElement {
 				if(this.priceUpdateUnits == "Bytes") {
 					this.prices[indexUnit].unit = "b";
 				}
-				var unitDrop = this.prices[indexUnit].unit;
-				var sizeVal = this.priceUpdateSize + unitDrop;
+				if(this.prices[indexUnit].unit != undefined) {
+					var unitDrop = this.prices[indexUnit].unit;
+				}
+				if(this.priceUpdateSize != undefined) {
+					var sizeVal = this.priceUpdateSize;
+				}
 				if(unitDrop && sizeVal) {
 					var len = sizeVal.length;
 					var m = sizeVal.charAt(len - 1);
 					if(isNaN(parseInt(m))) {
 						var s = sizeVal.slice(0, (len - 1));
 					} else {
-						var s = sizeVal.size;
+						var s = sizeVal;
 					}
 					if(unitDrop == "b") {
 						if (m == "m") {
