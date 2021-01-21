@@ -26,7 +26,7 @@
 -export([get_resource_category/1, get_resource_categories/1]).
 -export([get_resource_candidate/1, get_resource_candidates/1]).
 -export([get_resource_catalog/1, get_resource_catalogs/1]).
--export([get_resource_inventory/2, get_resource_inventories/2,
+-export([get_resource_inventory/1, get_resource_inventories/2,
 		add_resource_inventory/1, patch_resource_inventory/4,
 		delete_resource_inventory/1]).
 -export([get_pla_specs/1]).
@@ -200,16 +200,16 @@ get_resource_catalogs([] = _Query) ->
 get_resource_catalogs(_Query) ->
 	{error, 400}.
 
--spec get_resource_inventory(Id, Query) -> Result when
-	Id :: string(),
-	Query :: [{Key :: string(), Value :: string()}],
-	Result   :: {ok, Headers, Body} | {error, Status},
-	Headers  :: [tuple()],
-	Body     :: iolist(),
-	Status   :: 400 | 404 | 500.
-%% @doc Respond to `GET /resourceInventoryManagement/v1/logicalResource/{id}'.
+-spec get_resource_inventory(Id) -> Result
+	when
+		Id :: string(),
+		Result   :: {ok, Headers, Body} | {error, Status},
+		Headers  :: [tuple()],
+		Body     :: iolist(),
+		Status   :: 400 | 404 | 500.
+%% @doc Respond to `GET /resourceInventoryManagement/v1/resource/{id}'.
 %%    Retrieve all logical resource from inventory management.
-get_resource_inventory(Id, [] = _Query) ->
+get_resource_inventory(Id) ->
 	try
 		case ocs:get_resource(Id) of
 			{ok, #resource{last_modified = LM} = Resource} ->
