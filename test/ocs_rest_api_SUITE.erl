@@ -217,8 +217,8 @@ all() ->
 	notify_insert_gtt, notify_delete_gtt, query_gtt_notification,
 	notify_add_pla, notify_delete_pla, query_pla_notification,
 	post_hub_usage, get_usage_hubs, get_usage_hub, delete_hub_usage,
-	notify_diameter_acct_log, get_resources, post_resource, delete_resource,
-	oauth_authentication].
+	notify_diameter_acct_log, get_resource, get_resources,
+	post_resource, delete_resource, oauth_authentication].
 
 %%---------------------------------------------------------------------
 %%  Test cases
@@ -4360,6 +4360,41 @@ notify_diameter_acct_log(Config) ->
 			{_, "AAAAccountingUsage"}
 					= lists:keyfind("type", 1, AcctUsageList)
 	end.
+
+get_resource() ->
+	[{userdata, [{doc,"Get resource inventory
+			with given resource inventory reference"}]}].
+
+get_resource(Config) ->
+	Schema = "/resourceInventoryManagement/v1/schema/"
+			"resourceInventoryManagement#/definitions/resource",
+	Resource = #resource{class_type = "LogicalResource", base_type = "Resource",
+			schema = Schema, description = "tariff resource", category = "tariff",
+			start_date = erlang:system_time(?MILLISECOND),
+			end_date = erlang:system_time(?MILLISECOND) + 2678400000,
+			state = "Active", related = fill_related(2),
+			specification = #specification_ref{id = random_string(10),
+					href = random_string(25), name = "tariff spec"},
+			characteristic  = fill_resource_char(3)},
+	{ok, #resource{id = Id}} = ocs:add_resource(Resource),
+	HostUrl = ?config(host_url, Config),
+	Accept = {"accept", "application/json"},
+	Request = {HostUrl ++ "/resourceInventoryManagement/v1/resource/" ++ Id,
+			[Accept, auth_header()]},
+	{ok, Result} = httpc:request(get, Request, [], []),
+	{{"HTTP/1.1", 200, _OK}, Headers, ResponseBody} = Result,
+	{_, "application/json"} = lists:keyfind("content-type", 1, Headers),
+	{struct, Object} = mochijson:decode(ResponseBody),
+	{_, Id} = lists:keyfind("id", 1, Object),
+	{_, "/resourceInventoryManagement/v1/resource/" ++ Id}
+			= lists:keyfind("href", 1, Object),
+	{_, "tariff"} = lists:keyfind("category", 1, Object),
+	{_, {struct, SpecList}} = lists:keyfind("resourceSpecification", 1, Object),
+	{_, "tariff spec"} = lists:keyfind("name", 1, SpecList),
+	{_, {array, RelList}} = lists:keyfind("resourceRelationship", 1, Object),
+	2 = length(RelList),
+	{_, {array, CharList}} = lists:keyfind("resourceCharacteristic", 1, Object),
+	3 = length(CharList).
 
 get_resources() ->
 	[{userdata, [{doc, "GET Resource collection"}]}].
