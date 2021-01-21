@@ -39,12 +39,24 @@ class policyAdd extends PolymerElement {
 					value="{{polDescription}}">
 				</paper-input>
 				<paper-input
-					label="Category"
-					value="{{polCategory}}">
+					label="Version"
+					value="{{polVersion}}">
 				</paper-input>
 				<paper-input
 					label="Type"
 					value="{{polType}}">
+				</paper-input>
+				<paper-input
+					label="Status"
+					value="{{polStatus}}">
+				</paper-input>
+				<paper-input
+					label="Category"
+					value="{{polCategory}}">
+				</paper-input>
+				<paper-input
+					label="Specification"
+					value="{{polSpec}}">
 				</paper-input>
 				<div class="buttons">
 					<paper-button
@@ -82,10 +94,19 @@ class policyAdd extends PolymerElement {
 			polDescription: {
 				type: String
 			},
+			polVersion: {
+				type: String
+			},
 			polCategory: {
 				type: String
 			},
 			polType: {
+				type: String
+			},
+			polStatus: {
+				type: String
+			},
+			polSpec: {
 				type: String
 			}
 		}
@@ -94,6 +115,60 @@ class policyAdd extends PolymerElement {
 	ready() {
 		super.ready()
 	}
+
+	_cancel() {
+		this.$.policyAddModal.close();
+		this.polName = null;
+		this.polDescription = null;
+		this.polVersion = null;
+		this.polCategory = null;
+		this.polType = null;
+		this.polStatus = null;
+		this.polSpec = null;
+	}
+
+	_add() {
+		var ajax = this.$.policyAddAjax;
+		ajax.method = "POST";
+		ajax.url = "/resourceInventoryManagement/v1/resource/";
+      var pol = new Object();
+      if(this.polName) {
+         pol.name = this.polName;
+      }
+      if(this.polDescription) {
+         pol.description = this.polDescription;
+      }
+      if(this.polVersion) {
+         pol.version = this.polVersion;
+      }
+      if(this.polType) {
+         pol['@type'] = this.polType;
+      }
+      if(this.polStatus) {
+         pol.lifecycleStatus = this.polStatus;
+      }
+      if(this.polCategory) {
+         pol.category = this.polCategory;
+      }
+      if(this.polSpecification) {
+         pol.category = this.polSpecification;
+      }
+      ajax.body = JSON.stringify(pol);
+      ajax.generateRequest();
+		this.$.policyAddModal.close();
+	}
+
+   _response() {
+		this.$.policyAddModal.close
+      this.polName = null;
+      this.polDescription = null;
+      this.polType = null;
+      this.polStatus = null;
+      this.polVersion = null;
+      this.polCategory = null;
+      this.polSpecification = null;
+      document.body.querySelector('sig-app').shadowRoot.getElementById('policyList').shadowRoot.getElementById('policyGrid').clearCache();
+   }
 }
 
 window.customElements.define('sig-policy-add', policyAdd);
