@@ -408,7 +408,7 @@ balance_adjustment(RequestBody) ->
 				{error, 400};
 			{error, _Reason} ->
 				{error, 500}
-		end;
+		end
 	catch
 		_:_ ->
 			{error, 400}
