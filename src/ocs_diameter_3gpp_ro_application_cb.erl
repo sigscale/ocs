@@ -273,7 +273,7 @@ errors(ServiceName, Capabilities, Request, []) ->
 %% @private
 process_request(IpAddress, Port,
 		#diameter_caps{origin_host = {OHost, DHost}, origin_realm = {ORealm, DRealm}},
-		#'3gpp_ro_CCR'{'Session-Id' = SessionId, 'User-Name' = NAISpecUName,
+		#'3gpp_ro_CCR'{'Session-Id' = SessionId, 'User-Name' = UserName,
 				'Auth-Application-Id' = ?RO_APPLICATION_ID,
 				'Service-Context-Id' = _SvcContextId,
 				'CC-Request-Type' = RequestType,
@@ -284,12 +284,20 @@ process_request(IpAddress, Port,
 			[#'3gpp_ro_Subscription-Id'{'Subscription-Id-Data' = Sub} | _] ->
 				Sub;
 			[] ->
-				case NAISpecUName of
+				case UserName of
 					[] ->
 						throw(no_subscriber_identification_information);
-					NAI ->
-						[_, Username | _] = string:tokens(NAI, ":@"),%% proto:username@realm
-						Username
+					[NAI] ->
+						case string:tokens(binary_to_list(NAI), ":@") of
+							[_Proto, User, _Domain] ->
+								User;
+							[User, _Domain] ->
+								User;
+							[User] ->
+								User;
+							_ ->
+								throw(no_subscriber_identification_information)
+						end
 				end
 		end,
 		process_request1(RequestType, Request, SessionId, RequestNum,
