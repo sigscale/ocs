@@ -848,6 +848,8 @@ quantity([amount | T], #quantity{units = cents, amount = Amount} = Q, Acc) ->
 	quantity(T, Q, [{"amount", ocs_rest:millionths_out(Amount)} | Acc]);
 quantity([amount | T], #quantity{units = octets, amount = Amount} = Q, Acc) ->
 	quantity(T, Q, [{"amount", integer_to_list(Amount) ++ "b"} | Acc]);
+quantity([amount | T], #quantity{units = seconds, amount = Amount} = Q, Acc) ->
+	quantity(T, Q, [{"amount", integer_to_list(Amount) ++ "s"} | Acc]);
 quantity([units | T], #quantity{units = undefined} = Q, Acc) ->
 	quantity(T, Q, Acc);
 quantity([units | T], #quantity{units = Units} = Q, Acc) ->
