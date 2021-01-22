@@ -190,7 +190,7 @@ class bucketList extends PolymerElement {
 						}
 						if(request.response[index].remainedAmount.units == "seconds") {
 							var Str = request.response[index].remainedAmount.amount;
-							if(Str.includes("b")){
+							if(Str.includes("s")){
 								var NewStrSec = Str.substring(0, Str.length - 1);
 								newRecord.seconds = NewStrSec;
 							}
