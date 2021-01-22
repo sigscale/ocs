@@ -400,13 +400,15 @@ top_up(Identity, RequestBody) ->
 %% @doc Respond to `POST /balanceManagement/v1/balanceAdjustment'
 balance_adjustment(RequestBody) ->
 	try
-		adjustment(mochijson:decode(RequestBody))
-	of
-		#adjustment{} = Adjustment ->
-			ok = ocs:adjustment(Adjustment),
-			{ok, [], []};
-		_ ->
-			{error, 400}
+		Adjustment = adjustment(mochijson:decode(RequestBody)),
+		case ocs:adjustment(Adjustment) of
+			ok ->
+				{ok, [], []};
+			{error, not_found} ->
+				{error, 400};
+			{error, _Reason} ->
+				{error, 500}
+		end;
 	catch
 		_:_ ->
 			{error, 400}
