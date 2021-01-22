@@ -1052,7 +1052,7 @@ delete_bucket(BucketId) ->
 	when
 		Adjustment :: #adjustment{},
 		Result :: ok | {error, Reason},
-		Reason :: term().
+		Reason :: not_found | term().
 %% @doc Applying balance adjustment.
 adjustment(#adjustment{amount = Amount, product = ProductRef, units = Units,
 		start_date = StartDate, end_date = EndDate})
