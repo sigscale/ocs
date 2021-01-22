@@ -218,7 +218,7 @@ all() ->
 	notify_add_pla, notify_delete_pla, query_pla_notification,
 	post_hub_usage, get_usage_hubs, get_usage_hub, delete_hub_usage,
 	notify_diameter_acct_log, get_resource, get_resources,
-	post_resource, delete_resource, oauth_authentication].
+	post_resource, delete_resource, update_resource, oauth_authentication].
 
 %%---------------------------------------------------------------------
 %%  Test cases
@@ -4517,6 +4517,45 @@ delete_resource(Config) ->
 	{_, "0"} = lists:keyfind("content-length", 1, Headers),
 	{error, not_found} = ocs:get_resource(Id).
 
+update_resource() ->
+	[{userdata, [{doc,"Use PATCH for update resource entity"}]}].
+
+update_resource(Config) ->
+	ResourceHref = "/resourceInventoryManagement/v1/resource/",
+	HostUrl = ?config(host_url, Config),
+	Accept = {"accept", "application/json"},
+	ContentType = "application/json",
+	ReqList = resource_inventory(),
+	ReqBody = lists:flatten(mochijson:encode({struct, ReqList})),
+	Request1 = {HostUrl ++ ResourceHref,
+			[Accept, auth_header()], ContentType, ReqBody},
+	{ok, Result1} = httpc:request(post, Request1, [], []),
+	{{"HTTP/1.1", 201, "Created"}, Headers1, _ResponseBody1} = Result1,
+	{_, Etag} = lists:keyfind("etag", 1, Headers1),
+	{_, URI} = lists:keyfind("location", 1, Headers1),
+	{"/resourceInventoryManagement/v1/resource/" ++ ResourceId, _}
+			= httpd_util:split_path(URI),
+	NameOp = {struct, [{op, "add"}, {"path", "/name"}, {value, "Policy"}]},
+	DescriptionOp = {struct, [{op, "add"}, {"path", "/description"},
+			{value, "policy resource"}]},
+	CategoryOp = {struct, [{op, "add"}, {"path", "/category"},
+			{value, "policy"}]},
+	NewResSpecObj = {struct, [{"id", "4"}, {"name", "policy row spec"},
+			{"href", "/resourceInventoryManagement/v1/productSpecification/4"}]},
+	ResSpecOp = {struct, [{op, "add"}, {path, "/resourceSpecification"},
+			{value, NewResSpecObj}]},
+	OpArray = {array, [NameOp, DescriptionOp, CategoryOp, ResSpecOp]},
+	PatchReqBody = lists:flatten(mochijson:encode(OpArray)),
+	PatchContentType = "application/json-patch+json",
+	Request2 = {HostUrl ++ ResourceHref ++ ResourceId, [Accept, auth_header(),
+			{"if-match", Etag}], PatchContentType, PatchReqBody},
+	{ok, Result2} = httpc:request(patch, Request2, [], []),
+	{{"HTTP/1.1", 200, "OK"}, _Headers2, _ResponseBody2} = Result2,
+	{ok, #resource{name = "Policy", description = "policy resource",
+			category = "policy", specification = #specification_ref{id = "4",
+			href = "/resourceInventoryManagement/v1/productSpecification/4"}}}
+			= ocs:get_resource(ResourceId).
+
 oauth_authenticaton()->
 	[{userdata, [{doc, "Authenticate a JWT using oauth"}]}].
 
@@ -5081,4 +5120,44 @@ random_string(<<N, Rest/binary>>, Charset, NumChars, Acc) ->
 	random_string(Rest, Charset, NumChars, NewAcc);
 random_string(<<>>, _Charset, _NumChars, Acc) ->
 	Acc.
+
+%% @hidden
+resource_inventory() ->
+	Name = {"name", "Tariff"},
+	Description = {"description", "tariff resource"},
+	Category = {"category", "tariff"},
+	ClassType = {"@type", "LogicalResource"},
+	Schema = {"@schemaLocation", "/resourceInventoryManagement/v1/schema/"
+			"resourceInventoryManagement#/definitions/resource"},
+	BaseType = {"@baseType", "Resource"},
+	Version = {"version", random_string(3)},
+	Status = {"lifecycleStatus", "Active"},
+	StartTime = {"startDateTime",
+			ocs_rest:iso8601(erlang:system_time(?MILLISECOND))},
+	EndTime = {"endDateTime",
+			ocs_rest:iso8601(erlang:system_time(?MILLISECOND) + 2678400000)},
+	ValidFor = {"validFor", {struct, [StartTime, EndTime]}},
+	ResSpecID = {"id", "2"},
+	ResSpecName = {"name", "tariff row spec"},
+	ResSpecHref = {"href",
+			"/resourceInventoryManagement/v1/productSpecification/2"},
+	ResSpec = {"resourceSpecification",
+			{struct, [ResSpecID, ResSpecName, ResSpecHref]}},
+	ResRelId = {"id", RelId = random_string(5)},
+	ResRelName = {"name", "example"},
+	ResRelDescription = {"@referredType", "contained"},
+	ResRelHref = {"name", "/resourceInventoryManagement/v1/resourceRelationship/"
+			++ RelId},
+	ResRel = {struct, [ResRelId, ResRelName, ResRelDescription, ResRelHref]},
+	ResourceRelationship = {"resourceRelationship", {array, [ResRel]}},
+	ResCharName1 = {"name", "prefix"},
+	ResCharRate1 = {"value", "125"},
+	ResCharName2 = {"name", "rate"},
+	ResCharRate2 = {"value", "250"},
+	ResChar1 = {struct, [ResCharName1, ResCharRate1]},
+	ResChar2 = {struct, [ResCharName2, ResCharRate2]},
+	ResourceCharacteristics = {"resourceCharacteristic",
+			{array, [ResChar1, ResChar2]}},
+	[Name, Description, Category, ClassType, Schema, BaseType, Version, Status,
+			ValidFor, ResSpec, ResourceRelationship, ResourceCharacteristics].
 
