@@ -27,7 +27,7 @@
 -export([get_resource_candidate/1, get_resource_candidates/1]).
 -export([get_resource_catalog/1, get_resource_catalogs/1]).
 -export([get_resource_inventory/1, get_resource_inventories/2,
-		add_resource_inventory/1, patch_resource_inventory/4,
+		add_resource_inventory/1, patch_resource_inventory/3,
 		delete_resource_inventory/1]).
 -export([get_pla_specs/1]).
 -export([gtt/2]).
@@ -403,51 +403,6 @@ get_pla_specs([] = _Query) ->
 get_pla_specs(_Query) ->
 	{error, 400}.
 
--spec patch_resource_inventory(Table, Id, Etag, ReqData) -> Result
-	when
-		Table :: string(),
-		Id	:: string(),
-		Etag	:: undefined | list(),
-		ReqData	:: [tuple()],
-		Result	:: {ok, Headers, Body} | {error, Status},
-		Headers	:: [tuple()],
-		Body		:: iolist(),
-		Status	:: 400 | 404 | 500 .
-%% @doc Respond to `PATCH /resourceInventoryManagement/v1/logicalResource/{table}/{id}'.
-%% 	Update a table row using JSON patch method.
-patch_resource_inventory(Table, Id, _Etag, ReqData) ->
-	try
-		Table1 = list_to_existing_atom(Table),
-		{Table1, mochijson:decode(ReqData)}
-	of
-		{Table2, Operations} ->
-			case catch ocs_gtt:lookup_last(Table2, Id) of
-				{'EXIT', _} ->
-					throw(not_found);
-				V1 ->
-					case catch ocs_rest:patch(Operations,
-							gtt(Table, {Id, element(1, V1), element(2, V1)})) of
-						{struct, _} = Res  ->
-							{Id, Description, Rate} = gtt(Id, Res),
-							{ok, #gtt{value = V}} = ocs_gtt:insert(Table2, Id, {Description, Rate}),
-							Location = ?inventoryPath ++ Table ++ Id,
-							Headers = [{location, Location},
-									{etag, ocs_rest:etag(element(size(V), V))}],
-							Body = mochijson:encode(Res),
-							{ok, Headers, Body};
-						_ ->
-							throw(bad_request)
-					end
-			end
-	catch
-		throw:not_found ->
-			{error, 404};
-		throw:bad_request ->
-			{error, 400};
-		_:_ ->
-			{error, 500}
-	end.
-
 -spec delete_resource_inventory(Id) -> Result
    when
       Id :: string(),
@@ -460,6 +415,72 @@ delete_resource_inventory(Id) ->
 		ok ->
 			{ok, [], []};
 		{error, _Reason} ->
+			{error, 400}
+	end.
+
+-spec patch_resource_inventory(Id, Etag, ReqData) -> Result
+	when
+		Id	:: string(),
+		Etag	:: undefined | list(),
+		ReqData	:: [tuple()],
+		Result	:: {ok, Headers, Body} | {error, Status},
+		Headers	:: [tuple()],
+		Body		:: iolist(),
+		Status	:: 400 | 404 | 500 .
+%% @doc Respond to `PATCH /resourceInventoryManagement/v1/resource/{id}'.
+%% 	Update a table row using JSON patch method.
+patch_resource_inventory(Id, Etag, ReqData) ->
+	try
+		Etag1 = case Etag of
+			undefined ->
+				undefined;
+			Etag ->
+				ocs_rest:etag(Etag)
+		end,
+		{Etag1, mochijson:decode(ReqData)}
+	of
+		{Etag2, {array, _} = Operations} ->
+			F = fun() ->
+					case mnesia:read(resource, Id, write) of
+						[Resource1] when
+								Resource1#resource.last_modified == Etag2;
+								Etag2 == undefined ->
+							case catch ocs_rest:patch(Operations,
+									resource(Resource1)) of
+								{struct, _} = Resource2 ->
+									Resource3 = resource(Resource2),
+									TS = erlang:system_time(?MILLISECOND),
+									N = erlang:unique_integer([positive]),
+									LM = {TS, N},
+									Resource4 = Resource3#resource{last_modified = LM},
+									ok = mnesia:write(Resource4),
+									{Resource2, LM};
+								_ ->
+									throw(bad_request)
+							end;
+						[#resource{}] ->
+							throw(precondition_failed);
+						[] ->
+							throw(not_found)
+					end
+			end,
+			case mnesia:transaction(F) of
+				{atomic, {Resource, Etag3}} ->
+					Location = "/resourceInventoryManagement/v1/resource/" ++ Id,
+					Headers = [{location, Location}, {etag, ocs_rest:etag(Etag3)}],
+					Body = mochijson:encode(Resource),
+					{ok, Headers, Body};
+				{aborted, {throw, bad_request}} ->
+					{error, 400};
+				{aborted, {throw, not_found}} ->
+					{error, 404};
+				{aborted, {throw, precondition_failed}} ->
+					{error, 412};
+				{aborted, _Reason} ->
+					{error, 500}
+			end
+	catch
+		_:_ ->
 			{error, 400}
 	end.
 
