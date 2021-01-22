@@ -148,11 +148,13 @@ class policyList extends PolymerElement {
 					if(request.response[index].lifecycleState) {
 						newRecord.status = request.response[index].lifecycleState;
 					}
-					if(request.response[index].validFor.startDateTime) {
-						newRecord.start = request.response[index].validFor.startDateTime;
-					}
-					if(request.response[index].validFor.endDateTime) {
-						newRecord.end = request.response[index].validFor.endDateTime;
+					if(request.response[index].validFor) {
+						if(request.response[index].validFor.startDateTime) {
+							newRecord.start = request.response[index].validFor.startDateTime;
+						}
+						if(request.response[index].validFor.endDateTime) {
+							newRecord.end = request.response[index].validFor.endDateTime;
+						}
 					}
 					if(request.response[index].lastUpdate) {
 						newRecord.lastModified = request.response[index].lastUpdate;
