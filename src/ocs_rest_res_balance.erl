@@ -62,7 +62,7 @@ content_types_provided() ->
 			Body :: iolist()} | {error, ErrorCode :: integer()}.
 %% @doc Body producing function for `GET /ocs/v1/log/balance'
 %% requests.
-get_balance_log(Query, _Headers) ->
+get_balance_log(Query, Headers) ->
 	try
 		{DateStart, DateEnd} = case lists:keyfind("date", 1, Query) of
 			{_, DateTime} when length(DateTime) > 3 ->
@@ -71,7 +71,7 @@ get_balance_log(Query, _Headers) ->
 				{1, erlang:system_time(?MILLISECOND)}
 		end,
 		case lists:keytake("filter", 1, Query) of
-			{value, {_, String}, _Query1} ->
+			{value, {_, String}, Query1} ->
 				{ok, Tokens, _} = ocs_rest_query_scanner:string(String),
 				case ocs_rest_query_parser:parse(Tokens) of
 					{ok, [{array, [{complex, Complex}]}]} ->
@@ -80,30 +80,20 @@ get_balance_log(Query, _Headers) ->
 						MatchBucket = match_abmf("bucket", Complex, Query),
 						MatchUnits = match_abmf("units", Complex, Query),
 						MatchProducts = match_abmf("product", Complex, Query),
-						case ocs_log:abmf_query(start, DateStart, DateEnd, MatchType,
-								MatchSubscriber, MatchBucket, MatchUnits, MatchProducts) of
-							{error, _} ->
-								{error, 500};
-							{_Cont, AbmfList} ->
-								Json = abmfs(AbmfList, []),
-								Body = mochijson:encode(Json),
-								HeadersAbmf = [{content_type, "application/json"}],
-								{ok, HeadersAbmf, Body}
-						end;
-					{error, _} ->
-						{error, 500}
+						{Query1, [start, DateStart, DateEnd, MatchType, MatchSubscriber, MatchBucket, MatchUnits, MatchProducts]}
 				end;
 			false ->
-				case ocs_log:abmf_query(start, DateStart, DateEnd, '_', '_', '_', '_', '_') of
-					{error, _} ->
-						{error, 500};
-					{_Cont1, AbmfList1}  ->
-						Json1 = abmfs(AbmfList1, []),
-						Body = mochijson:encode(Json1),
-						Headers1 = [{content_type, "application/json"}],
-						{ok, Headers1, Body}
-				end
+				MatchType = match_abmf("type", [], Query),
+				MatchSubscriber = match_abmf("subscriber", [], Query),
+				MatchBucket = match_abmf("bucket", [], Query),
+				MatchUnits = match_abmf("units", [], Query),
+				MatchProducts = match_abmf("product", [], Query),
+				{Query, [DateStart, DateEnd, MatchType, MatchSubscriber, MatchBucket, MatchUnits, MatchProducts]}
 		end
+   of
+      {Query2, Args} ->
+         Codec = fun abmf/1,
+         query_filter({ocs_log, abmf_query, Args}, Codec, Query2, Headers)
 	catch
 		_ ->
 			{error, 400}
