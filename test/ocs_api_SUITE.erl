@@ -744,11 +744,11 @@ add_pla_event(_Config) ->
 	ED = erlang:system_time(?MILLISECOND) + rand:uniform(10000000000),
 	Status = created,
 	Name = atom_to_list(Table),
-	Pla = #pla{name = Name, start_date = SD,
-			end_date = ED, status = Status},
-	{ok, #pla{}} = ocs:add_pla(Pla),
+	Pla = #resource{name = Name, start_date = SD,
+			end_date = ED, state = Status},
+	{ok, #resource{}} = ocs:add_resource(Pla),
 	receive
-		{create_pla, #pla{name = Name, status = Status}, resource} ->
+		{create_pla, #resource{name = Name, state = Status}, resource} ->
 			Table = list_to_existing_atom(Name)
 	end.
 
@@ -761,17 +761,17 @@ delete_pla_event(_Config) ->
 	ED = erlang:system_time(?MILLISECOND) + rand:uniform(10000000000),
 	Status = created,
 	Name = "test_notification1",
-	Pla = #pla{name = Name, start_date = SD,
-			end_date = ED, status = Status},
-	{ok, #pla{}} = ocs:add_pla(Pla),
+	Pla = #resource{name = Name, start_date = SD,
+			end_date = ED, state = Status},
+	{ok, #resource{}} = ocs:add_pla(Pla),
 	receive
-		{create_pla, #pla{name = Name, status = Status,
+		{create_pla, #resource{name = Name, state = Status,
 				last_modified = LM}, resource} ->
 			true = is_tuple(LM)
 	end,
 	ok = ocs:delete_pla(Name),
 	receive
-		{delete_pla, #pla{name = Name, status = Status}, resource} ->
+		{delete_pla, #resource{name = Name, state = Status}, resource} ->
 			true
 	end.
 

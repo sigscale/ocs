@@ -4127,9 +4127,9 @@ notify_add_pla(Config) ->
 	ED = erlang:system_time(?MILLISECOND) + rand:uniform(10000000000),
 	Status = created,
 	Name = atom_to_list(Table),
-	Pla = #pla{name = Name, start_date = SD,
-			end_date = ED, status = Status},
-	{ok, #pla{}} = ocs:add_pla(Pla),
+	Pla = #resource{name = Name, start_date = SD,
+			end_date = ED, state = Status},
+	{ok, #resource{}} = ocs:add_pla(Pla),
 	receive
 		Receive ->
 			{struct, PlaEvent} = mochijson:decode(Receive),
@@ -4160,9 +4160,9 @@ notify_delete_pla(Config) ->
 	ED = erlang:system_time(?MILLISECOND) + rand:uniform(10000000000),
 	Status = created,
 	Name = "test_notification2",
-	Pla = #pla{name = Name, start_date = SD,
-			end_date = ED, status = Status},
-	{ok, #pla{}} = ocs:add_pla(Pla),
+	Pla = #resource{name = Name, start_date = SD,
+			end_date = ED, state = Status},
+	{ok, #resource{}} = ocs:add_pla(Pla),
 	receive
 		Receive1 ->
 			{struct, PlaEvent1} = mochijson:decode(Receive1),
@@ -4202,9 +4202,9 @@ query_pla_notification(Config) ->
 	SD = erlang:system_time(?MILLISECOND),
 	ED = erlang:system_time(?MILLISECOND) + rand:uniform(10000000000),
 	Status = created,
-	Pla = #pla{name = Name, start_date = SD,
-			end_date = ED, status = Status},
-	{ok, #pla{}} = ocs:add_pla(Pla),
+	Pla = #resource{name = Name, start_date = SD,
+			end_date = ED, state = Status},
+	{ok, #resource{}} = ocs:add_pla(Pla),
 	ok = ocs:delete_pla(Name),
 	receive
 		Receive ->

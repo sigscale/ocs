@@ -43,7 +43,7 @@
 				| create_service | delete_service | create_offer | delete_offer
 				| insert_gtt | delete_gtt | create_pla | delete_pla | log_acct,
 		EventPayLoad :: #bucket{} | #product{} | #service{} | #offer{}
-				| {Table, #gtt{}} | #pla{} | [#adjustment{}] | [#acc_balance{}]
+				| {Table, #gtt{}} | #resource{} | [#adjustment{}] | [#acc_balance{}]
 				| ocs_log:acct_event(),
 		Table :: atom(),
 		Category :: balance | product | service | resource | usage.
