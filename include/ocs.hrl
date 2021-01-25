@@ -24,7 +24,6 @@
 		| cancelled | active | suspended | pending_terminate | terminated.
 -type service_status() :: feasibilityChecked | designed | reserved
 		| active | inactive | terminated.
--type pla_status() :: created | active | cancelled | terminated.
 -type product_price_type() :: recurring | one_time | usage | tariff.
 -type recur_period() :: hourly | daily | weekly | monthly | yearly.
 
@@ -200,16 +199,6 @@
 		characteristics = [] :: [{Name :: string(), Value :: term()}] | '_',
 		multisession = false :: boolean() | '_',
 		last_modified :: tuple() | undefined | '_'}).
-
--record(pla,
-		{name :: string() | undefined,
-		description :: string() | undefined,
-		start_date :: pos_integer() | undefined,
-		end_date :: pos_integer() | undefined,
-		status :: pla_status() | undefined,
-		specification :: '_' | string() | undefined,
-		characteristics = [] :: [{Name :: string(), Value :: term()}],
-		last_modified :: tuple() | undefined}).
 
 -record(resource,
 		{id :: string() | undefined | '_',
