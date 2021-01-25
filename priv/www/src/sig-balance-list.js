@@ -234,7 +234,15 @@ class balanceList extends PolymerElement {
 		}
 		var handleAjaxResponse = function(request) {
 			if (request) {
-				grid.size = 100;
+				balanceList.etag = request.xhr.getResponseHeader('ETag');
+				var range = request.xhr.getResponseHeader('Content-Range');
+				var range1 = range.split("/");
+				var range2 = range1[0].split("-");
+				if (range1[1] != "*") {
+					grid.size = Number(range1[1]);
+				} else {
+					grid.size = Number(range2[1]) + grid.pageSize * 2;
+				}
 				var vaadinItems = new Array();
 				var results = request.response;
 				for (var index in results) {
@@ -250,6 +258,7 @@ class balanceList extends PolymerElement {
 				}
 				callback(vaadinItems);
 			} else {
+				balanceList.etag = null;
 				grid.size = 0;
 				callback([]);
 			}
