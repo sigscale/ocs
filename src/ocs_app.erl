@@ -784,6 +784,11 @@ add_example_data_offer3(Alteration, PriceSubscription, PriceOverage) ->
 
 %% @hidden
 add_example_voice_offers() ->
+	TariffResource = #resource{name = "example", state = "created",
+			description = "Example voice tariff",
+			specification = #specification_ref{id = "2",
+			href = "/resourceCatalogManagement/v2/resourceSpecification/2",
+			name = "TariffRow"}},
 	PriceUsage = #price{name = "Usage", description = "Tariffed voice calling",
 			type = tariff, units = seconds, size = 60,
 			char_value_use = [#char_value_use{name = "destPrefixTariffTable",
@@ -791,22 +796,27 @@ add_example_voice_offers() ->
 	Offer = #offer{name = "Voice Calling", description = "Tariffed voice calling",
 			status = in_study, specification = "9",
 			price = [PriceUsage]},
-	case ocs:add_offer(Offer) of
-		{ok, #offer{}} ->
-			case code:priv_dir(ocs) of
-				PrivDir when is_list(PrivDir) ->
-					TariffPath = PrivDir ++ "/examples/example.csv",
-					try ocs_gtt:import(TariffPath) of
-						ok ->
-							error_logger:info_msg("Imported example tariff table: "
-									++ TariffPath ++ "~n"),
+	case ocs:add_resource(TariffResource) of
+		{ok, #resource{}} ->
+			case ocs:add_offer(Offer) of
+				{ok, #offer{}} ->
+					case code:priv_dir(ocs) of
+						PrivDir when is_list(PrivDir) ->
+							TariffPath = PrivDir ++ "/examples/example.csv",
+							try ocs_gtt:import(TariffPath) of
+								ok ->
+									error_logger:info_msg("Imported example tariff table: "
+											++ TariffPath ++ "~n"),
+									ok
+							catch
+								_:Reason ->
+									{error, Reason}
+							end;
+						{error, _Reason} ->
 							ok
-					catch
-						_:Reason ->
-							{error, Reason}
 					end;
-				{error, _Reason} ->
-					ok
+				{error, Reason} ->
+					{error, Reason}
 			end;
 		{error, Reason} ->
 			{error, Reason}
