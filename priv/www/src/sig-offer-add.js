@@ -1709,9 +1709,9 @@ class offerAdd extends PolymerElement {
 			this.$.addalt5drop.disabled = false;
 			this.$.altBytes.disabled = false;
 			this.$.altSeconds.disabled = false;
-			this.$.altCents.disabled = false;
+			this.$.altCents.disabled = true;
 			this.$.altMessages.disabled = false;
-			this.$.addAltUnitDrop.selected = 1;
+			this.$.addAltUnitDrop.selected = 0;
 		} else if(this.altAddType == "One Time") {
 			this.$.addalt5drop.disabled = true;
 			this.$.altBytes.disabled = false;
