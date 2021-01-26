@@ -151,8 +151,9 @@ register(timeout, State) ->
 		Event :: {Type, Resource, Category},
 		Type :: create_bucket | delete_bucket | charge | depleted | accumulated
 				| create_product | delete_product | create_service | delete_service
-				| create_offer | delete_offer | insert_gtt | delete_gtt | log_acct,
-		Resource :: #bucket{} | #product{} | #service{} | #offer{}
+				| create_offer | delete_offer | create_resource
+				| insert_gtt | delete_gtt | log_acct,
+		Resource :: #bucket{} | #product{} | #service{} | #offer{} | #resource{}
 				| {Table, #gtt{}} | [#adjustment{}] | [#acc_balance{}]
 				| ocs_log:acct_event(),
 		Table :: atom(),
@@ -363,6 +364,8 @@ event(Resource, Category) ->
 			ocs_rest_res_service:inventory(Resource);
 		resource ->
 			case Resource of
+				#resource{} ->
+					ocs_rest_res_resource:resource(Resource);
 				{Table, #gtt{num = Prefix, value = {Description, Rate, _}}} ->
 					ocs_rest_res_resource:gtt(atom_to_list(Table),
 							{Prefix, Description, Rate})
@@ -415,6 +418,8 @@ event_type(Type) ->
 			"LogicalResourceCreationNotification";
 		delete_gtt ->
 			"LogicalResourceRemoveNotification";
+		create_resource ->
+			"ResourceCreationNotification";
 		log_acct ->
 			"UsageCreationEvent"
 	end.
