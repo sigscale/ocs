@@ -95,7 +95,7 @@ all() ->
 	negative_adjustment_high, negative_adjustment_equal, negative_adjustment_low,
 	add_product, find_product, delete_product, query_product, add_offer_event,
 	delete_offer_event, gtt_insert_event, gtt_delete_event, add_resource_event,
-	delete_pla_event, add_service_event, delete_service_event,
+	delete_resource_event, add_service_event, delete_service_event,
 	add_product_event, delete_product_event, add_bucket_event,
 	delete_bucket_event, product_charge_event, rating_deleted_bucket_event,
 	accumulated_balance_event, add_policy_table, delete_policy_table,
@@ -754,26 +754,30 @@ add_resource_event(_Config) ->
 			true = is_list(Id)
 	end.
 
-delete_pla_event() ->
-	[{userdata, [{doc, "Event received on deleting pla"}]}].
+delete_resource_event() ->
+	[{userdata, [{doc, "Event received on deleting resource"}]}].
 
-delete_pla_event(_Config) ->
+delete_resource_event(_Config) ->
 	ok = gen_event:add_handler(ocs_event, test_event, [self()]),
-	SD = erlang:system_time(?MILLISECOND),
-	ED = erlang:system_time(?MILLISECOND) + rand:uniform(10000000000),
+	Name = "Example",
 	Status = created,
-	Name = "test_notification1",
-	Pla = #resource{name = Name, start_date = SD,
-			end_date = ED, state = Status},
-	{ok, #resource{}} = ocs:add_pla(Pla),
-	receive
-		{create_pla, #resource{name = Name, state = Status,
-				last_modified = LM}, resource} ->
-			true = is_tuple(LM)
+	TariffResource = #resource{name = Name,
+			start_date = erlang:system_time(?MILLISECOND),
+			end_date = erlang:system_time(?MILLISECOND) + rand:uniform(10000000000),
+			state = Status, specification = #specification_ref{id = "4",
+			href = "/resourceCatalogManagement/v3/resourceSpecification/4",
+			name = "Example spec", version = "1.0"}},
+	{ok, #resource{}} = ocs:add_resource(TariffResource),
+	ResId = receive
+		{create_resource, #resource{id = Id, name = Name, state = Status,
+				specification = #specification_ref{}}, resource} ->
+			true = is_list(Id),
+			Id
 	end,
-	ok = ocs:delete_pla(Name),
+	ok = ocs:delete_resource(ResId),
 	receive
-		{delete_pla, #resource{name = Name, state = Status}, resource} ->
+		{delete_resource, #resource{id = ResId, name = Name, state = Status,
+				specification = #specification_ref{}}, resource} ->
 			true
 	end.
 
