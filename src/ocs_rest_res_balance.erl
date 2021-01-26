@@ -703,18 +703,6 @@ acc_balance([_ | T], B, Acc) ->
 acc_balance([], _B, Acc) ->
 	{struct, lists:reverse(Acc)}.
 
--spec abmfs(Abmf, Acc) -> Result
-	when
-		Abmf :: list(),
-		Acc :: list(),
-		Result :: {array, list()}.
-%% @doc CODEC for list of abmf
-% @hidden
-abmfs([H | T], Acc) ->
-	abmfs(T, [abmf(H) | Acc]);
-abmfs([], Acc) ->
-	{array, lists:reverse(Acc)}.
-
 -spec abmf(Event) -> Json 
 	when
 		Event :: tuple(),
