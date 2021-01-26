@@ -740,7 +740,7 @@ add_resource_event() ->
 add_resource_event(_Config) ->
 	ok = gen_event:add_handler(ocs_event, test_event, [self()]),
 	Name = "Example",
-	Status = created,
+	Status = "created",
 	TariffResource = #resource{name = Name,
 			start_date = erlang:system_time(?MILLISECOND),
 			end_date = erlang:system_time(?MILLISECOND) + rand:uniform(10000000000),
@@ -760,7 +760,7 @@ delete_resource_event() ->
 delete_resource_event(_Config) ->
 	ok = gen_event:add_handler(ocs_event, test_event, [self()]),
 	Name = "Example",
-	Status = created,
+	Status = "created",
 	TariffResource = #resource{name = Name,
 			start_date = erlang:system_time(?MILLISECOND),
 			end_date = erlang:system_time(?MILLISECOND) + rand:uniform(10000000000),
