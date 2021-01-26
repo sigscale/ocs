@@ -1673,6 +1673,7 @@ add_resource(#resource{id = undefined,
 		{aborted, Reason} ->
 			{error, Reason};
 		{atomic, NewResource} ->
+			ok = ocs_event:notify(create_resource, NewResource, resource),
 			{ok, NewResource}
 	end.
 

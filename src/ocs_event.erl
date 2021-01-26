@@ -41,7 +41,7 @@
 		EventType :: create_bucket | delete_bucket | charge | depleted
 				| accumulated | create_product | delete_product
 				| create_service | delete_service | create_offer | delete_offer
-				| insert_gtt | delete_gtt | create_pla | delete_pla | log_acct,
+				| insert_gtt | delete_gtt | create_resource | delete_pla | log_acct,
 		EventPayLoad :: #bucket{} | #product{} | #service{} | #offer{}
 				| {Table, #gtt{}} | #resource{} | [#adjustment{}] | [#acc_balance{}]
 				| ocs_log:acct_event(),
