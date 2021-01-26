@@ -30,7 +30,7 @@
 		add_resource_inventory/1, patch_resource_inventory/3,
 		delete_resource_inventory/1]).
 -export([get_pla_specs/1]).
--export([gtt/2]).
+-export([resource/1, gtt/2]).
 
 -include("ocs.hrl").
 
