@@ -94,7 +94,7 @@ all() ->
 	find_bucket, delete_bucket, get_buckets, positive_adjustment,
 	negative_adjustment_high, negative_adjustment_equal, negative_adjustment_low,
 	add_product, find_product, delete_product, query_product, add_offer_event,
-	delete_offer_event, gtt_insert_event, gtt_delete_event, add_pla_event,
+	delete_offer_event, gtt_insert_event, gtt_delete_event, add_resource_event,
 	delete_pla_event, add_service_event, delete_service_event,
 	add_product_event, delete_product_event, add_bucket_event,
 	delete_bucket_event, product_charge_event, rating_deleted_bucket_event,
@@ -734,22 +734,24 @@ gtt_delete_event(_Config) ->
 			{Description, Amount, _} = Value2
 	end.
 
-add_pla_event() ->
-	[{userdata, [{doc, "Event received on adding pla"}]}].
+add_resource_event() ->
+	[{userdata, [{doc, "Event received on adding resource"}]}].
 
-add_pla_event(_Config) ->
+add_resource_event(_Config) ->
 	ok = gen_event:add_handler(ocs_event, test_event, [self()]),
-	[Table | _] = ocs_gtt:list(),
-	SD = erlang:system_time(?MILLISECOND),
-	ED = erlang:system_time(?MILLISECOND) + rand:uniform(10000000000),
+	Name = "Example",
 	Status = created,
-	Name = atom_to_list(Table),
-	Pla = #resource{name = Name, start_date = SD,
-			end_date = ED, state = Status},
-	{ok, #resource{}} = ocs:add_resource(Pla),
+	TariffResource = #resource{name = Name,
+			start_date = erlang:system_time(?MILLISECOND),
+			end_date = erlang:system_time(?MILLISECOND) + rand:uniform(10000000000),
+			state = Status, specification = #specification_ref{id = "4",
+			href = "/resourceCatalogManagement/v3/resourceSpecification/4",
+			name = "Example spec", version = "1.0"}},
+	{ok, #resource{}} = ocs:add_resource(TariffResource),
 	receive
-		{create_pla, #resource{name = Name, state = Status}, resource} ->
-			Table = list_to_existing_atom(Name)
+		{create_resource, #resource{id = Id, name = Name, state = Status,
+				specification = #specification_ref{}}, resource} ->
+			true = is_list(Id)
 	end.
 
 delete_pla_event() ->
