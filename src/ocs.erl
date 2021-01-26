@@ -1728,13 +1728,18 @@ get_resource(ResourceID) when is_list(ResourceID) ->
 %% @doc Delete a Resource.
 delete_resource(ResourceID) when is_list(ResourceID) ->
 	F = fun() ->
-			mnesia:delete(resource, ResourceID, write)
+			case mnesia:read(resource, ResourceID) of
+				[#resource{} = Resource] ->
+					{mnesia:delete(resource, ResourceID, write), Resource};
+				[] ->
+					mnesia:abort(not_found)
+			end
 	end,
 	case mnesia:transaction(F) of
 		{aborted, Reason} ->
 			{error, Reason};
-		{atomic, ok} ->
-			ok
+		{atomic, {ok, Resource}} ->
+			ocs_event:notify(delete_resource, Resource, resource)
 	end.
 
 -spec query_resource(Cont, MatchId, MatchCategory) -> Result
