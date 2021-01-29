@@ -151,7 +151,7 @@ register(timeout, State) ->
 		Event :: {Type, Resource, Category},
 		Type :: create_bucket | delete_bucket | charge | depleted | accumulated
 				| create_product | delete_product | create_service | delete_service
-				| create_offer | delete_offer | create_resource
+				| create_offer | delete_offer | create_resource | delete_resource
 				| insert_gtt | delete_gtt | log_acct,
 		Resource :: #bucket{} | #product{} | #service{} | #offer{} | #resource{}
 				| {Table, #gtt{}} | [#adjustment{}] | [#acc_balance{}]
@@ -420,6 +420,8 @@ event_type(Type) ->
 			"LogicalResourceRemoveNotification";
 		create_resource ->
 			"ResourceCreationNotification";
+		delete_resource ->
+			"ResourceRemoveNotification";
 		log_acct ->
 			"UsageCreationEvent"
 	end.
