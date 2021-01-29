@@ -385,6 +385,8 @@ get_resource_id(Resource) ->
 			Name;
 		#bucket{id = Id} ->
 			Id;
+		#resource{id = Id} ->
+			Id;
 		{_, #gtt{num = Num}} ->
 			Num
 	end.
