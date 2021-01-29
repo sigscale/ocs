@@ -446,6 +446,20 @@ class accountingList extends PolymerElement {
 				newRecord.type1 = request.response[index].type;
 				newRecord.href = request.response[index].href;
 				newRecord.usageCharacteristic = request.response[index].usageCharacteristic;
+				function checkChar(characteristic){
+					return characteristic.name == "msisdn";
+				}
+				var msi = request.response[index].usageCharacteristic.find(checkChar);
+				if(msi != undefined) {
+					newRecord.msisdn = msi.value;
+				}
+				function checkChar1(characteristic1){
+					return characteristic1.name == "imsi";
+				}
+				var imsi = request.response[index].usageCharacteristic.find(checkChar1);
+				if(imsi != undefined) {
+					newRecord.imsi = imsi.value;
+				}
 				newRecord.usageSpecificationId = request.response[index].usageSpecification.id;
 				newRecord.usageSpecificationHref = request.response[index].usageSpecification.href;
 				newRecord.usageSpecificationName = request.response[index].usageSpecification.name;

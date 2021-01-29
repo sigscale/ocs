@@ -29,6 +29,8 @@
 -export([peer_up/3, peer_down/3, pick_peer/4, prepare_request/3,
 			prepare_retransmit/3, handle_answer/4, handle_error/4,
 			handle_request/3]).
+%%Temp
+-export([process_request/4]).
 
 -include_lib("diameter/include/diameter.hrl").
 -include_lib("diameter/include/diameter_gen_base_rfc6733.hrl").
@@ -273,7 +275,7 @@ errors(ServiceName, Capabilities, Request, []) ->
 %% @private
 process_request(IpAddress, Port,
 		#diameter_caps{origin_host = {OHost, DHost}, origin_realm = {ORealm, DRealm}},
-		#'3gpp_ro_CCR'{'Session-Id' = SessionId, 'User-Name' = NAISpecUName,
+		#'3gpp_ro_CCR'{'Session-Id' = SessionId, 'User-Name' = UserName,
 				'Auth-Application-Id' = ?RO_APPLICATION_ID,
 				'Service-Context-Id' = _SvcContextId,
 				'CC-Request-Type' = RequestType,
@@ -284,12 +286,20 @@ process_request(IpAddress, Port,
 			[#'3gpp_ro_Subscription-Id'{'Subscription-Id-Data' = Sub} | _] ->
 				Sub;
 			[] ->
-				case NAISpecUName of
+				case UserName of
 					[] ->
 						throw(no_subscriber_identification_information);
-					NAI ->
-						[_, Username | _] = string:tokens(NAI, ":@"),%% proto:username@realm
-						Username
+					[NAI] ->
+						case string:tokens(binary_to_list(NAI), ":@") of
+							[_Proto, User, _Domain] ->
+								User;
+							[User, _Domain] ->
+								User;
+							[User] ->
+								User;
+							_ ->
+								throw(no_subscriber_identification_information)
+						end
 				end
 		end,
 		process_request1(RequestType, Request, SessionId, RequestNum,
@@ -298,7 +308,7 @@ process_request(IpAddress, Port,
 		_:Reason ->
 			error_logger:warning_report(["Unable to process DIAMETER request",
 					{origin_host, OHost}, {origin_realm, ORealm},
-					{request, Request}, {error, Reason}]),
+					{request, Request}, {error, Reason}, {stack, erlang:get_stacktrace()}]),
 			diameter_error(SessionId, ?'DIAMETER_BASE_RESULT-CODE_UNABLE_TO_COMPLY',
 					OHost, ORealm, RequestType, RequestNum)
 	end.
@@ -338,7 +348,7 @@ process_request1(?'3GPP_CC-REQUEST-TYPE_INITIAL_REQUEST' = RequestType,
 		_:Reason1 ->
 			error_logger:warning_report(["Unable to process DIAMETER request",
 					{origin_host, OHost}, {origin_realm, ORealm},
-					{request, Request}, {error, Reason1}]),
+					{request, Request}, {error, Reason1}, {stack, erlang:get_stacktrace()}]),
 			diameter_error(SessionId, ?'DIAMETER_BASE_RESULT-CODE_UNABLE_TO_COMPLY',
 					OHost, ORealm, RequestType, RequestNum)
 	end;
@@ -387,7 +397,7 @@ process_request1(?'3GPP_CC-REQUEST-TYPE_INITIAL_REQUEST' = RequestType,
 		_:Reason1 ->
 			error_logger:warning_report(["Unable to process DIAMETER request",
 					{origin_host, OHost}, {origin_realm, ORealm},
-					{request, Request}, {error, Reason1}]),
+					{request, Request}, {error, Reason1}, {stack, erlang:get_stacktrace()}]),
 			diameter_error(SessionId, ?'DIAMETER_BASE_RESULT-CODE_UNABLE_TO_COMPLY',
 					OHost, ORealm, RequestType, RequestNum)
 	end;
@@ -437,7 +447,7 @@ process_request1(?'3GPP_CC-REQUEST-TYPE_UPDATE_REQUEST' = RequestType,
 		_:Reason1 ->
 			error_logger:warning_report(["Unable to process DIAMETER request",
 					{origin_host, OHost}, {origin_realm, ORealm},
-					{request, Request}, {error, Reason1}]),
+					{request, Request}, {error, Reason1}], {stack, erlang:get_stacktrace()}),
 			diameter_error(SessionId, ?'DIAMETER_BASE_RESULT-CODE_UNABLE_TO_COMPLY',
 					OHost, ORealm, RequestType, RequestNum)
 	end;
@@ -497,7 +507,7 @@ process_request1(?'3GPP_CC-REQUEST-TYPE_TERMINATION_REQUEST' = RequestType,
 		_:Reason1 ->
 			error_logger:warning_report(["Unable to process DIAMETER request",
 					{origin_host, OHost}, {origin_realm, ORealm},
-					{request, Request}, {error, Reason1}]),
+					{request, Request}, {error, Reason1}, {stack, erlang:get_stacktrace()}]),
 			diameter_error(SessionId, ?'DIAMETER_BASE_RESULT-CODE_UNABLE_TO_COMPLY',
 					OHost, ORealm, RequestType, RequestNum)
 	end;
@@ -556,7 +566,7 @@ process_request1(?'3GPP_CC-REQUEST-TYPE_EVENT_REQUEST' = RequestType,
 				ok = ocs_log:acct_log(diameter, Server,
 						accounting_event_type(RequestType), Request, Reply, Rated),
 				Reply;
-			{out_of_credit, _SessionList, Rated} ->
+			{out_of_credit, _RedirectServerAddress, _SessionList, Rated} ->
 				ResultCode = ?'DIAMETER_CC_APP_RESULT-CODE_CREDIT_LIMIT_REACHED',
 				Reply = diameter_answer(SessionId, [],
 						ResultCode, OHost, ORealm, RequestType, RequestNum),
@@ -584,7 +594,7 @@ process_request1(?'3GPP_CC-REQUEST-TYPE_EVENT_REQUEST' = RequestType,
 		_:Reason1 ->
 			error_logger:warning_report(["Unable to process DIAMETER request",
 					{origin_host, OHost}, {origin_realm, ORealm},
-					{request, Request}, {error, Reason1}]),
+					{request, Request}, {error, Reason1}, {stack, erlang:get_stacktrace()}]),
 			diameter_error(SessionId, ?'DIAMETER_BASE_RESULT-CODE_UNABLE_TO_COMPLY',
 					OHost, ORealm, RequestType, RequestNum)
 	end;
@@ -640,7 +650,7 @@ process_request1(?'3GPP_CC-REQUEST-TYPE_EVENT_REQUEST' = RequestType,
 		_:Reason1 ->
 			error_logger:warning_report(["Unable to process DIAMETER request",
 					{origin_host, OHost}, {origin_realm, ORealm},
-					{request, Request}, {error, Reason1}]),
+					{request, Request}, {error, Reason1}, {stack, erlang:get_stacktrace()}]),
 			diameter_error(SessionId, ?'DIAMETER_BASE_RESULT-CODE_UNABLE_TO_COMPLY',
 					OHost, ORealm, RequestType, RequestNum)
 	end.
@@ -994,7 +1004,7 @@ rate(ServiceType, ServiceNetwork, Subscriber,
 			rate(ServiceType, ServiceNetwork, Subscriber,
 					Timestamp, Address, Direction, Flag, SessionId,
 					T, Acc, ResultCode2, Rated1 ++ Rated2);
-		{out_of_credit, _SessionList} ->
+		{out_of_credit, RedirectServerAddress, _SessionList} ->
 			ResultCode2 = ?'DIAMETER_CC_APP_RESULT-CODE_CREDIT_LIMIT_REACHED',
 			ResultCode3 = case ResultCode1 of
 				undefined->
@@ -1003,13 +1013,14 @@ rate(ServiceType, ServiceNetwork, Subscriber,
 					ResultCode1
 			end,
 			MSCC = #'3gpp_ro_Multiple-Services-Credit-Control'{
-					'Service-Identifier' = SI,
-					'Rating-Group' = RG,
-					'Result-Code' = [ResultCode2]},
+							'Service-Identifier' = SI,
+							'Rating-Group' = RG,
+							'Result-Code' = [ResultCode2],
+							'Final-Unit-Indication' = fui(RedirectServerAddress)},
 			rate(ServiceType, ServiceNetwork, Subscriber,
 					Timestamp, Address, Direction, Flag, SessionId,
 					T, [MSCC | Acc], ResultCode3, Rated1);
-		{out_of_credit, _SessionList, Rated2}
+		{out_of_credit, RedirectServerAddress, _SessionList, Rated2}
 				when is_list(Rated2), Rated1 == undefined ->
 			ResultCode2 = ?'DIAMETER_CC_APP_RESULT-CODE_CREDIT_LIMIT_REACHED',
 			ResultCode3 = case ResultCode1 of
@@ -1019,13 +1030,14 @@ rate(ServiceType, ServiceNetwork, Subscriber,
 					ResultCode1
 			end,
 			MSCC = #'3gpp_ro_Multiple-Services-Credit-Control'{
-					'Service-Identifier' = SI,
-					'Rating-Group' = RG,
-					'Result-Code' = [ResultCode2]},
+							'Service-Identifier' = SI,
+							'Rating-Group' = RG,
+							'Result-Code' = [ResultCode2],
+							'Final-Unit-Indication' = fui(RedirectServerAddress)},
 			rate(ServiceType, ServiceNetwork, Subscriber,
 					Timestamp, Address, Direction, Flag, SessionId,
 					T, [MSCC | Acc], ResultCode3, Rated2);
-		{out_of_credit, _SessionList, Rated2}
+		{out_of_credit, RedirectServerAddress, _SessionList, Rated2}
 				when is_list(Rated2), is_list(Rated1) ->
 			ResultCode2 = ?'DIAMETER_CC_APP_RESULT-CODE_CREDIT_LIMIT_REACHED',
 			ResultCode3 = case ResultCode1 of
@@ -1035,9 +1047,10 @@ rate(ServiceType, ServiceNetwork, Subscriber,
 					ResultCode1
 			end,
 			MSCC = #'3gpp_ro_Multiple-Services-Credit-Control'{
-					'Service-Identifier' = SI,
-					'Rating-Group' = RG,
-					'Result-Code' = [ResultCode2]},
+							'Service-Identifier' = SI,
+							'Rating-Group' = RG,
+							'Result-Code' = [ResultCode2],
+							'Final-Unit-Indication' = fui(RedirectServerAddress)},
 			rate(ServiceType, ServiceNetwork, Subscriber,
 					Timestamp, Address, Direction, Flag, SessionId,
 					T, [MSCC | Acc], ResultCode3, Rated1 ++ Rated2);
@@ -1054,4 +1067,26 @@ rate(_, _, _, _, _, _, _, _, [], Acc, ResultCode, undefined) ->
 	{lists:reverse(Acc), ResultCode};
 rate(_, _, _, _, _, _, _, _, [], Acc, ResultCode, Rated) ->
 	{lists:reverse(Acc), ResultCode, Rated}.
+
+-spec fui(RedirectServerAddress) -> Result
+	when
+		RedirectServerAddress :: string(),
+		Result :: [#'3gpp_ro_Final-Unit-Indication'{}].
+%% @doc Parse redirect server address.
+%% @private
+fui(RedirectServerAddress)
+		when is_list(RedirectServerAddress) ->
+	AddressType = case inet:parse_address(RedirectServerAddress) of
+		{ok, Address} when size(Address) =:= 4 ->
+			?'3GPP_RO_REDIRECT-ADDRESS-TYPE_IPV4_ADDRESS';
+		{ok, Address} when size(Address) =:= 8 ->
+			?'3GPP_RO_REDIRECT-ADDRESS-TYPE_IPV6_ADDRESS';
+		{error, _} ->
+			[]
+	end,
+	RedirectServer = #'3gpp_ro_Redirect-Server'{'Redirect-Address-Type' = AddressType,
+			'Redirect-Server-Address' = RedirectServerAddress},
+	Action = ?'3GPP_RO_FINAL-UNIT-ACTION_REDIRECT',
+	[#'3gpp_ro_Final-Unit-Indication'{'Final-Unit-Action' = Action,
+			'Redirect-Server' = [RedirectServer]}].
 

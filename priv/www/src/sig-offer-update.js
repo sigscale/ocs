@@ -20,8 +20,8 @@ import '@polymer/paper-input/paper-input.js';
 import '@polymer/paper-button/paper-button.js';
 import '@polymer/paper-dropdown-menu/paper-dropdown-menu.js';
 import '@polymer/paper-listbox/paper-listbox.js';
-import '@polymer/paper-item/paper-item.js'
-import '@polymer/paper-checkbox/paper-checkbox.js'
+import '@polymer/paper-item/paper-item.js';
+import '@polymer/paper-checkbox/paper-checkbox.js';
 import '@polymer/iron-collapse/iron-collapse.js';
 import '@polymer/paper-tabs/paper-tabs.js';
 import '@polymer/iron-pages/iron-pages.js';
@@ -142,6 +142,17 @@ class offerUpdate extends PolymerElement {
 							</paper-input>
 							<paper-tooltip
 									for="updateReserveSession"
+									offset="0">
+								Add a value to update the offer reserve session
+							</paper-tooltip>
+							<paper-input
+									id="updateRedirectServer"
+									allowed-pattern="[0-9\.]"
+									label="Redirect Server"
+									value="{{updateRedirect}}">
+							</paper-input>
+							<paper-tooltip
+									for="updateRedirectServer"
 									offset="0">
 								Add a value to update the offer reserve session
 							</paper-tooltip>
@@ -279,6 +290,7 @@ class offerUpdate extends PolymerElement {
 						</paper-tooltip>
 						<paper-input id="updatePriceAmount"
 								name="amount"
+								value="{{priceUpdateAmount}}"
 								type="text"
 								allowed-pattern="[0-9.]"
 								pattern="[0-9]+\.?[0-9]{0,6}$"
@@ -485,13 +497,6 @@ class offerUpdate extends PolymerElement {
 									on-tap="cancelDialog">
 								Cancel
 							</paper-button>
-							<paper-button
-									toggles
-									raised
-									class="delete-button"
-									on-tap="deletePrice">
-								Delete
-							</paper-button>
 						</div>
 					</div>
 					<div id="add-Alt-tab">
@@ -681,12 +686,6 @@ class offerUpdate extends PolymerElement {
 									on-tap="cancelDialog">
 								cancel
 							</paper-button>
-							<paper-button
-									toggles
-									raised
-									class="delete-button">
-								Delete
-							</paper-button>
 						</div>
 					</div>
 				</iron-pages>
@@ -784,6 +783,9 @@ class offerUpdate extends PolymerElement {
 			updateProductStartDateOffer: {
 				type: String
 			},
+			updateRedirect: {
+				type: String
+			},
 			updateProductEndDateOffer: {
 				type: String
 			},
@@ -847,6 +849,9 @@ class offerUpdate extends PolymerElement {
 		for (var indexCha in item.prodSpecCharValueUse) {
 			if(item.prodSpecCharValueUse[indexCha].name == "radiusReserveSessionTime") {
 				this.$.updateReserveSession.value = item.prodSpecCharValueUse[indexCha].productSpecCharacteristicValue[0].value;
+			}
+			if(item.prodSpecCharValueUse[indexCha].name == "redirectServer") {
+				this.updateRedirect = item.prodSpecCharValueUse[indexCha].productSpecCharacteristicValue[0].value;
 			}
 		}
 		for(var index in item.prices) {
@@ -1080,6 +1085,7 @@ class offerUpdate extends PolymerElement {
 				this.$.updateAddPriceCharReserveTime.value = null;
 				this.$.updateAddPriceCharReserveBytes.value = null;
 				this.$.updateReserveSession.value = null;
+				this.updateRedirect = null;
 				this.priceAddRoaming = null;
 				this.chargingKey = null;
 				this.priceUpdateTariff = null;
@@ -1096,58 +1102,54 @@ class offerUpdate extends PolymerElement {
 				}
 				switch(this.prices[indexUpdatePrice].priceType) {
 					case "recurring":
-						this.$.updatePriceType.selected = 0;
+						this.priceUpdateType = "Recurring";
 						break;
 					case "one_time":
-						this.$.updatePriceType.selected = 1;
+						this.priceUpdateType = "One Time";
 						break;
 					case "usage":
-						this.$.updatePriceType.selected = 2;
+						this.priceUpdateType = "Usage";
 						break;
 					case "tariff":
-						this.$.updatePriceType.selected = 3;
+						this.priceUpdateType = "Tariff";
 						break;
 				}
 				this.priceUpdateSize = this.prices[indexUpdatePrice].size;
 				switch(this.prices[indexUpdatePrice].unit) {
 					case "b":
-						this.$.updatePriceUnits.selected = 0;
+						this.priceUpdateUnits = "Bytes";
 						break;
 					case "c":
-						this.$.updatePriceUnits.selected = 1;
+						this.priceUpdateUnits = "Cents";
 						break;
 					case "s":
-						this.$.updatePriceUnits.selected = 2;
+						this.priceUpdateUnits = "Seconds";
 						break;
 				}
-				if(this.prices[indexUpdatePrice].currency || this.prices[indexUpdatePrice].amount) {
-					this.$.updatePriceCurrency.value = this.prices[indexUpdatePrice].currency;
-					this.$.updatePriceAmount.value = this.prices[indexUpdatePrice].amount;
+				if(this.prices[indexUpdatePrice].currency) {
+					this.priceUpdateCurrency = this.prices[indexUpdatePrice].currency;
+				}
+				if(this.prices[indexUpdatePrice].amount) {
+					this.priceUpdateAmount = this.prices[indexUpdatePrice].amount;
 				}
 				switch(this.prices[indexUpdatePrice].period) {
 					case "hourly":
-						this.$.updatePricePeriod.selected = 0;
+						this.priceUpdatePeriod = "Hourly";
 						break;
 					case "daily":
-						this.$.updatePricePeriod.selected = 1;
+						this.priceUpdatePeriod = "Daily";
 						break;
 					case "weekly":
-						this.$.updatePricePeriod.selected = 2;
+						this.priceUpdatePeriod = "Weekly";
 						break;
 					case "monthly":
-						this.$.updatePricePeriod.selected = 3;
+						this.priceUpdatePeriod = "Monthly";
 						break;
 					case "yearly":
-						this.$.updatePricePeriod.selected = 4;
+						this.priceUpdatePeriod = "Yearly";
 						break;
 				}
-				var Obj = this.prices[indexUpdatePrice].alteration;
-				if(this.prices[indexUpdatePrice].alteration) {
-					function checkAlt1(updatePriceNames) {
-						return updatePriceNames.name == Obj; 
-					}
-					this.priceUpdateAlt = this.alterations.findIndex(checkAlt1);
-				}
+				this.priceUpdateAlt = this.prices[indexUpdatePrice].alteration;
 				var prodPriceUpdate = this.prices[indexUpdatePrice];
 				if(prodPriceUpdate.prodSpecCharValueUse) {
 					for (var indexCharVal in prodPriceUpdate.prodSpecCharValueUse) {
@@ -1322,6 +1324,40 @@ class offerUpdate extends PolymerElement {
 				offerNew.push(reserveSession);
 			}
 		}
+		if(this.updateRedirect) {
+			function checkNameRe(redir) {
+				return redir.name == "redirectServer";
+			}
+			var res = this.characteristics.findIndex(checkNameRe);
+			if(res == -1) {
+				var indexChar = "-";
+				var redirectSer = new Object();
+				redirectSer.op = "add";
+				redirectSer.path = "/prodSpecCharValueUse/" + indexChar; 
+				var redirectSerArr = new Array();
+				var redirectSer1 = new Object();
+				redirectSer1.value = this.updateRedirect;
+				redirectSerArr.push(redirectSer1);
+				var redirectSer2 = new Object();
+				redirectSer2.name = "redirectServer";
+				redirectSer2.minCardinality = 0;
+				redirectSer2.maxCardinality = 1;
+				redirectSer2.productSpecCharacteristicValue = redirectSerArr;
+				var redirectSer1 = new Object();
+				redirectSer1.id = "8";
+				redirectSer1.href = "/catalogManagement/v2/productSpecification/8";
+				redirectSer2.productSpecification = redirectSer1;
+				redirectSer.value = redirectSer2;
+				offerNew.push(redirectSer);
+			} else {
+				var indexChar = res.toString();
+				var redirectSer = new Object();
+				redirectSer.op = "add";
+				redirectSer.path = "/prodSpecCharValueUse/" + indexChar + "/productSpecCharacteristicValue/0/value";
+				redirectSer.value = this.updateRedirect;
+				offerNew.push(redirectSer);
+			}
+		}
 		ajax.body = JSON.stringify(offerNew);
 		ajax.generateRequest();
 	}
@@ -1356,28 +1392,28 @@ class offerUpdate extends PolymerElement {
 			return price.name == document.body.querySelector('sig-app').shadowRoot.getElementById('updateProduct').shadowRoot.getElementById('updatePriceName').value;
 		}
 		var indexPrices = this.prices.findIndex(checkName);
-		if(this.priceUpdateDesc) {
+		if(this.priceUpdateDesc != this.prices[indexPrices].description) {
 			var priceDesc = new Object();
 			priceDesc.op = "add";
 			priceDesc.path = "/productOfferingPrice/" + indexPrices + "/description";
 			priceDesc.value = this.priceUpdateDesc;
 			updatePriceNew.push(priceDesc);
 		}
-		if(this.priceUpdateType) {
+		if(this.priceUpdateType != this.prices[indexPrices].priceType) {
 			var pricetype = new Object();
 			pricetype.op = "add";
 			pricetype.path = "/productOfferingPrice/" + indexPrices + "/priceType";
-			switch(this.$.updatePriceType.selected) {
-				case 0:
+			switch(this.priceUpdateType) {
+				case "Recurring":
 					pricetype.value = "recurring";
 					break;
-				case 1:
+				case "One Time":
 					pricetype.value = "one_time";
 					break;
-				case 2:
+				case "Usage":
 					pricetype.value = "usage";
 					break;
-				case 3:
+				case "Tariff":
 					pricetype.value = "tariff";
 					break;
 			}
@@ -1394,15 +1430,19 @@ class offerUpdate extends PolymerElement {
 				if(this.priceUpdateUnits == "Bytes") {
 					this.prices[indexUnit].unit = "b";
 				}
-				var unitDrop = this.prices[indexUnit].unit;
-				var sizeVal = this.priceUpdateSize + unitDrop;
+				if(this.prices[indexUnit].unit != undefined) {
+					var unitDrop = this.prices[indexUnit].unit;
+				}
+				if(this.priceUpdateSize != undefined) {
+					var sizeVal = this.priceUpdateSize;
+				}
 				if(unitDrop && sizeVal) {
 					var len = sizeVal.length;
 					var m = sizeVal.charAt(len - 1);
 					if(isNaN(parseInt(m))) {
 						var s = sizeVal.slice(0, (len - 1));
 					} else {
-						var s = sizeVal.size;
+						var s = sizeVal;
 					}
 					if(unitDrop == "b") {
 						if (m == "m") {
@@ -1430,11 +1470,11 @@ class offerUpdate extends PolymerElement {
 				updatePriceNew.push(priceSize);
 			}
 		}
-		if(this.$.updatePriceAmount.value) {
+		if(this.priceUpdateAmount) {
 			var priceAmount = new Object();
 			priceAmount.op = "add";
 			priceAmount.path = "/productOfferingPrice/" + indexPrices + "/price/taxIncludedAmount";
-			priceAmount.value = this.$.updatePriceAmount.value;
+			priceAmount.value = this.priceUpdateAmount;
 			updatePriceNew.push(priceAmount);
 		}
 		if(this.priceUpdatePeriod && !this.$.updatePricePerioddrop.disabled) {
@@ -1743,7 +1783,7 @@ class offerUpdate extends PolymerElement {
 		this.$.updateCheckOut.checked = false;
 		this.startTimeUpdate = null;
 		this.endTimeUpdate = null;
-		this.$.updatePriceAmount.value = null;
+		this.priceUpdateAmount = null;
 		this.priceUpdateUnits = null;
 	} 
 
@@ -2027,7 +2067,7 @@ class offerUpdate extends PolymerElement {
 				updatePriceNew.unit = "s";
 				break;
 		}
-		updatePriceNew.amount = this.$.updatePriceAmount.value;
+		updatePriceNew.amount = this.priceUpdateAmount;
 		updatePriceNew.size = this.priceUpdateSize;
 		updatePriceNew.currency = this.priceUpdateCurrency;
 		switch(this.$.updatePricePeriod.selected) {
@@ -2161,7 +2201,7 @@ class offerUpdate extends PolymerElement {
 			}
 			ajax.body = JSON.stringify(updatePriceNew1);
 			ajax.generateRequest();
-			this.$.updatePriceName.value = null;
+			this.priceUpdateName = null;
 			this.priceUpdateDesc = null;
 			this.updateProductStartDatePrice = null;
 			this.priceUpdateSize = null;
@@ -2175,6 +2215,7 @@ class offerUpdate extends PolymerElement {
 			this.$.updateAddPriceCharReserveBytes.value = null;
 			this.priceUpdateTariff = null;
 			this.$.updateReserveSession.value = null;
+			this.updateRedirect = null;
 			this.startTimeUpdate = null;
 			this.endTimeUpdate = null;
 			this.$.updateCheckIn.checked = false;
@@ -2250,7 +2291,7 @@ class offerUpdate extends PolymerElement {
 			if(updateIndexAlt == -1) {
 				this.push('alterations', updateAltNew);
 			}
-			this.$.updateAltName.value = null
+			this.AltUpdateName = null
 			this.AltUpdateDesc = null;
 			this.updateProductStartDateAlt = null;
 			this.updateProductEndDateAlt = null;
@@ -2269,18 +2310,6 @@ class offerUpdate extends PolymerElement {
 		this.$.deleteProductAjax.url = "/catalogManagement/v2/productOffering/"
 					+ this.updateOfferName;
 		this.$.deleteProductAjax.generateRequest();
-	}
-
-	deletePrice(event) {
-		function checkDelPriceName(delPrice) {
-			return delPrice.name == document.body.querySelector('sig-app').shadowRoot.getElementById('updateProduct').shadowRoot.getElementById('updatePriceName').value;
-		}
-		var indexDelPrice = this.prices.findIndex(checkDelPriceName);
-		if (indexDelPrice != -1) {
-			this.$.deleteProductAjax.url = "/catalogManagement/v2/productOffering/"
-						+ this.$.updatePriceName.value;
-			this.$.deleteProductAjax.generateRequest();
-		}
 	}
 
 	_deleteProductResponse(event) {
@@ -2332,18 +2361,18 @@ class offerUpdate extends PolymerElement {
 		this.updateProductEndDateOffer = null;
 		this.$.updateAddPriceChars.hide();
 		this.$.addBundleUpdate.hide();
-		this.$.updatePriceName.value = null;
+		this.priceUpdateName = null;
 		this.priceUpdateDesc = null;
 		this.updateProductStartDatePrice = null;
 		this.updateProductEndDatePrice = null;
 		this.priceUpdateType = null;
 		this.priceUpdateUnits = null;
-		this.$.updatePriceAmount.value = null;
+		this.priceUpdateAmount = null;
 		this.priceUpdateSize = null;
 		this.priceUpdateCurrency = null;
 		this.priceUpdatePeriod = null;
 		this.priceUpdateAlt = null;
-		this.$.updateAltName.value = null;
+		this.AltUpdateName = null;
 		this.AltUpdateDesc = null;
 		this.updateProductStartDateAlt = null;
 		this.updateProductEndDateAlt = null;
@@ -2359,6 +2388,7 @@ class offerUpdate extends PolymerElement {
 		this.priceAddRoaming = null;
 		this.chargingKey = null;
 		this.$.updateReserveSession.value = null;
+		this.updateRedirect = null;
 		this.startTimeUpdate = null;
 		this.endTimeUpdate = null;
 		this.$.updateCheckIn.checked = null;

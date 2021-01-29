@@ -79,7 +79,6 @@ post_hub(ReqBody, Authorization) ->
 						{error, 500}
 				end;
 			#hub{callback = Callback, query = Query} = HubRecord ->
-				ok = set_threshold(string:tokens(Query, "=&")),
 				case supervisor:start_child(ocs_rest_hub_sup,
 						[Query, Callback, ?BalancehubPath, Authorization]) of
 					{ok, _PageServer, Id} ->
@@ -143,22 +142,6 @@ get_hub(Id) ->
 %%----------------------------------------------------------------------
 %%  The internal functions
 %%----------------------------------------------------------------------
-
-%% @hidden
-set_threshold(["totalBalance.units", "cents",
-		"totalBalance.amount.lt", Threshold]) when is_list(Threshold) ->
-	application:set_env(ocs, threshold_cents, list_to_integer(Threshold));
-set_threshold(["totalBalance.units", "octets",
-		"totalBalance.amount.lt", Threshold]) when is_list(Threshold) ->
-	application:set_env(ocs, threshold_bytes, list_to_integer(Threshold));
-set_threshold(["totalBalance.units", "seconds",
-		"totalBalance.amount.lt", Threshold]) when is_list(Threshold) ->
-	application:set_env(ocs, threshold_seconds, list_to_integer(Threshold));
-set_threshold(["totalBalance.units", "messages",
-		"totalBalance.amount.lt", Threshold]) when is_list(Threshold) ->
-	application:set_env(ocs, threshold_messages, list_to_integer(Threshold));
-set_threshold(_) ->
-	ok.
 
 -spec hub(Hub) -> Hub
 	when

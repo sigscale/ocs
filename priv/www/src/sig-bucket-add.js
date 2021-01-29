@@ -235,7 +235,7 @@ class offerAdd extends PolymerElement {
 						bucketAmount = s + "b";
 					}
 				} else if(bucketUnits == "cents") {
-					bucketAmount = this.proUnit; 
+					bucketAmount = this.proAmount; 
 				} else if(bucketUnits == "seconds") {
 					var n = Number(s);
 					if(m == "m") {

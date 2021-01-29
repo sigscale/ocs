@@ -180,7 +180,7 @@ sequences() ->
 %% Returns a list of all test cases in this test suite.
 %%
 all() ->
-	[authenticate_user_request, unauthenticate_user_request,
+	[get_balance_range, authenticate_user_request, unauthenticate_user_request,
 	add_user, get_user, delete_user,
 	update_user_characteristics_json_patch,
 	add_client, add_client_without_password, get_client, get_client_id,
@@ -2154,6 +2154,91 @@ get_acct_usage_filter(Config) ->
 	{_, _, Usage4} = lists:keytake("status", 1, Usage3),
 	{_, {_, {array, _UsageCharacteristic}}, []} = lists:keytake("usageCharacteristic", 1, Usage4).
 
+get_balance_range() ->
+	[{userdata, [{doc,"Get range of items in the usage collection"}]}].
+
+get_balance_range(Config) ->
+	{ok, PageSize} = application:get_env(ocs, rest_page_size),
+	Flog = fun(_F, 0) ->
+				ok;
+			(F, N) ->
+				ok = ocs_log:abmf_open(),
+				Start = erlang:system_time(?MILLISECOND),
+				Subscriber = list_to_binary(ocs:generate_identity()),
+				Type = transfer,
+				BucketId = integer_to_list(Start) ++ "-"
+							++ integer_to_list(erlang:unique_integer([positive])),
+				Units = case rand:uniform(3) of
+					1 -> cents;
+					2 -> octets;
+					3 -> seconds
+				end,
+				CurrentAmount = rand:uniform(100000000),
+				Transfer = rand:uniform(50000),
+				BucketAmount = Transfer,
+				BeforeAmount = CurrentAmount,
+				AfterAmount = CurrentAmount - Transfer,
+				ProdId = ocs:generate_password(),
+				ok = ocs_log:abmf_log(Type, Subscriber, BucketId, Units,
+					ProdId, BucketAmount, BeforeAmount, AfterAmount,
+					undefined, undefined, undefined, undefined, undefined,
+         		undefined, undefined),
+				F(F, N - 1)
+	end,
+	NumLogged = (PageSize * 2) + (PageSize div 2) + 17,
+	ok = Flog(Flog, NumLogged),
+	RangeSize = case PageSize > 25 of
+		true ->
+			rand:uniform(PageSize - 10) + 10;
+		false ->
+			PageSize - 1
+	end,
+	HostUrl = ?config(host_url, Config),
+	Accept = {"accept", "application/json"},
+	RequestHeaders1 = [Accept, auth_header()],
+	Request1 = {HostUrl ++ "/ocs/v1/log/balance", RequestHeaders1},
+	{ok, Result1} = httpc:request(get, Request1, [], []),
+	{{"HTTP/1.1", 200, _OK}, ResponseHeaders1, Body1} = Result1,
+	{_, Etag} = lists:keyfind("etag", 1, ResponseHeaders1),
+	true = is_etag_valid(Etag),
+	{_, AcceptRanges1} = lists:keyfind("accept-ranges", 1, ResponseHeaders1),
+	true = lists:member("items", string:tokens(AcceptRanges1, ", ")),
+	{_, Range1} = lists:keyfind("content-range", 1, ResponseHeaders1),
+	["items", "1", RangeEndS1, "*"] = string:tokens(Range1, " -/"),
+	RequestHeaders2 = RequestHeaders1 ++ [{"if-match", Etag}],
+	PageSize = list_to_integer(RangeEndS1),
+	{array, Usages1} = mochijson:decode(Body1),
+	PageSize = length(Usages1),
+	Fget = fun(F, RangeStart2, RangeEnd2) ->
+				RangeHeader = [{"range",
+						"items " ++ integer_to_list(RangeStart2)
+						++ "-" ++ integer_to_list(RangeEnd2)}],
+				RequestHeaders3 = RequestHeaders2 ++ RangeHeader,
+				Request2 = {HostUrl ++ "/ocs/v1/log/balance", RequestHeaders3},
+				{ok, Result2} = httpc:request(get, Request2, [], []),
+				{{"HTTP/1.1", 200, _OK}, ResponseHeaders2, Body2} = Result2,
+				{_, Etag} = lists:keyfind("etag", 1, ResponseHeaders2),
+				{_, AcceptRanges2} = lists:keyfind("accept-ranges", 1, ResponseHeaders2),
+				true = lists:member("items", string:tokens(AcceptRanges2, ", ")),
+				{_, Range} = lists:keyfind("content-range", 1, ResponseHeaders2),
+				["items", RangeStartS, RangeEndS, EndS] = string:tokens(Range, " -/"),
+				RangeStart2 = list_to_integer(RangeStartS),
+				case EndS of
+					"*" ->
+						RangeEnd2 = list_to_integer(RangeEndS),
+						RangeSize = (RangeEnd2 - (RangeStart2 - 1)),
+						{array, Usages2} = mochijson:decode(Body2),
+						RangeSize = length(Usages2),
+						NewRangeStart = RangeEnd2 + 1,
+						NewRangeEnd = NewRangeStart + (RangeSize - 1),
+						F(F, NewRangeStart, NewRangeEnd);
+					EndS when RangeEndS == EndS ->
+						list_to_integer(EndS)
+				end
+	end,
+	End = Fget(Fget, PageSize + 1, PageSize + RangeSize),
+	End >= NumLogged.
+
 get_acct_usage_range() ->
 	[{userdata, [{doc,"Get range of items in the usage collection"}]}].
 
@@ -2730,28 +2815,14 @@ notify_create_bucket(Config) ->
 	Offer = #offer{name = ocs:generate_identity(),
 			price = [Price], specification = 4},
 	{ok, #offer{name = OfferId}} = ocs:add_offer(Offer),
-	receive
-		Input1 ->
-			{struct, OfferEvent} = mochijson:decode(Input1),
-			{_, "ProductOfferingCreationNotification"}
-					= lists:keyfind("eventType", 1, OfferEvent)
-	end,
 	{ok, #product{id = ProdRef}} = ocs:add_product(OfferId, [], []),
-	receive
-		Input2 ->
-			{struct, ProductEvent} = mochijson:decode(Input2),
-			{_, "ProductCreationNotification"}
-					= lists:keyfind("eventType", 1, ProductEvent),
-			{_, {struct, ProductList}} = lists:keyfind("event", 1, ProductEvent),
-			{_, ProdRef} = lists:keyfind("id", 1, ProductList)
-	end,
 	Bucket = #bucket{units = cents, remain_amount = 100,
 			start_date = erlang:system_time(?MILLISECOND),
 			end_date = erlang:system_time(?MILLISECOND) + 2592000000},
 	{ok, _, #bucket{}} = ocs:add_bucket(ProdRef, Bucket),
 	Balance = receive
-		Input3 ->
-			{struct, BalanceEvent} = mochijson:decode(Input3),
+		Receive ->
+			{struct, BalanceEvent} = mochijson:decode(Receive),
 			{_, "BucketBalanceCreationNotification"}
 					= lists:keyfind("eventType", 1, BalanceEvent),
 			{_, {struct, BalanceList}} = lists:keyfind("event", 1, BalanceEvent),
@@ -2784,30 +2855,18 @@ notify_delete_bucket(Config) ->
 	P1 = #price{name = ocs:generate_identity(), type = usage, units = octets,
 			size = PackageSize, amount = PackagePrice},
 	OfferId = add_offer([P1], 4),
-	receive
-		Input1 ->
-			{struct, OfferEvent} = mochijson:decode(Input1),
-			{_, "ProductOfferingCreationNotification"}
-					= lists:keyfind("eventType", 1, OfferEvent)
-	end,
 	{ok, #product{id = ProdRef}} = ocs:add_product(OfferId, [], []),
-	receive
-		Input2 ->
-			{struct, ProductEvent} = mochijson:decode(Input2),
-			{_, {struct, ProductList}} = lists:keyfind("event", 1, ProductEvent),
-			{_, ProdRef} = lists:keyfind("id", 1, ProductList)
-	end,
 	BId = add_bucket(ProdRef, cents, 100000000),
 	receive
-		Input3 ->
-			{struct, BalanceEvent} = mochijson:decode(Input3),
+		Receive1 ->
+			{struct, BalanceEvent} = mochijson:decode(Receive1),
 			{_, {struct, BalanceList}} = lists:keyfind("event", 1, BalanceEvent),
 			{_, BId} = lists:keyfind("id", 1, BalanceList)
 	end,
 	ok = ocs:delete_bucket(BId),
 	receive
-		Input4 ->
-			{struct, BalDelEvent} = mochijson:decode(Input4),
+		Receive2 ->
+			{struct, BalDelEvent} = mochijson:decode(Receive2),
 			{_, "BucketBalanceDeletionEvent"}
 					= lists:keyfind("eventType", 1, BalDelEvent)
 	end.
@@ -2834,35 +2893,16 @@ notify_rating_deleted_bucket(Config) ->
 	P1 = #price{name = ocs:generate_identity(), type = usage, units = octets,
 			size = PackageSize, amount = PackagePrice},
 	OfferId = add_offer([P1], 4),
-	receive
-		Input1 ->
-			{struct, OfferEvent} = mochijson:decode(Input1),
-			{_, "ProductOfferingCreationNotification"}
-					= lists:keyfind("eventType", 1, OfferEvent)
-	end,
 	{ok, #product{id = ProdRef}} = ocs:add_product(OfferId, [], []),
-	receive
-		Input2 ->
-			{struct, ProductEvent} = mochijson:decode(Input2),
-			{_, {struct, ProductList}} = lists:keyfind("event", 1, ProductEvent),
-			{_, ProdRef} = lists:keyfind("id", 1, ProductList)
-	end,
 	{ok, #service{name = ServiceId}} = ocs:add_service(ocs:generate_identity(),
 			ocs:generate_password(), ProdRef, []),
-	receive
-		Input3 ->
-			{struct, ServiceEvent} = mochijson:decode(Input3),
-			{_, {struct, ServiceList}} = lists:keyfind("event", 1, ServiceEvent),
-			ListServiceId = binary_to_list(ServiceId),
-			{_, ListServiceId} = lists:keyfind("id", 1, ServiceList)
-	end,
 	Bucket = #bucket{units = cents, remain_amount = 100,
 			start_date = erlang:system_time(?MILLISECOND) - (2 * 2592000000),
 			end_date = erlang:system_time(?MILLISECOND) - 2592000000},
 	{ok, _, #bucket{id = BId}} = ocs:add_bucket(ProdRef, Bucket),
 	receive
-		Input4 ->
-			{struct, BalanceEvent} = mochijson:decode(Input4),
+		Receive1 ->
+			{struct, BalanceEvent} = mochijson:decode(Receive1),
 			{_, {struct, BalanceList}} = lists:keyfind("event", 1, BalanceEvent),
 			{_, BId} = lists:keyfind("id", 1, BalanceList)
 	end,
@@ -2873,8 +2913,8 @@ notify_rating_deleted_bucket(Config) ->
 			undefined, undefined, ServiceId, Timestamp, undefined, undefined,
 			initial, [], [{octets, PackageSize}], SessionId),
 	DeletedBalance = receive
-		Input5 ->
-			{struct, BalDelEvent} = mochijson:decode(Input5),
+		Receive2 ->
+			{struct, BalDelEvent} = mochijson:decode(Receive2),
 			{_, "BucketBalanceDeletionEvent"}
 					= lists:keyfind("eventType", 1, BalDelEvent),
 			{_, {struct, DeletedBalList}} = lists:keyfind("event", 1, BalDelEvent),
@@ -2902,13 +2942,14 @@ notify_accumulated_balance_threshold(Config) ->
 	RA = 500000000,
 	_BId2 = add_bucket(ProdRef, octets, RA),
 	_BId3 = add_bucket(ProdRef, cents, 100000000),
+	Threshold = 500000000,
+	ok = application:set_env(ocs, threshold_bytes, 500000000),
 	HostUrl = ?config(host_url, Config),
 	CollectionUrl = HostUrl ++ ?PathBalanceHub,
 	ListenerPort = ?config(listener_port, Config),
 	ListenerServer = "http://localhost:" ++ integer_to_list(ListenerPort),
 	Callback = ListenerServer ++ "/listener/"
 			++ atom_to_list(?MODULE) ++ "/notifyaccumulatedbalancethreshold",
-	Threshold = 500000000,
 	Query = "totalBalance.units=octets&totalBalance.amount.lt="
 			++ integer_to_list(Threshold),
 	RequestBody = "{\n"
@@ -3278,27 +3319,11 @@ notify_product_charge(Config) ->
 	B1 = #bucket{units = cents, remain_amount = 1000000000,
 			start_date = erlang:system_time(?MILLISECOND),
 			end_date = erlang:system_time(?MILLISECOND) + 2592000000},
-	{ok, _, #bucket{id = BId1}} = ocs:add_bucket(ProdId, B1),
-	receive
-		Input3 ->
-			{struct, BalanceEvent1} = mochijson:decode(Input3),
-			{_, "BucketBalanceCreationNotification"}
-					= lists:keyfind("eventType", 1, BalanceEvent1),
-			{_, {struct, BalanceList1}} = lists:keyfind("event", 1, BalanceEvent1),
-			{_, BId1} = lists:keyfind("id", 1, BalanceList1)
-	end,
+	{ok, _, #bucket{id = _BId1}} = ocs:add_bucket(ProdId, B1),
 	B2 = #bucket{units = cents, remain_amount = 1000000000,
 			start_date = erlang:system_time(?MILLISECOND),
 			end_date = erlang:system_time(?MILLISECOND) + 2592000000},
-	{ok, _, #bucket{id = BId2}} = ocs:add_bucket(ProdId, B2),
-	receive
-		Input4 ->
-			{struct, BalanceEvent2} = mochijson:decode(Input4),
-			{_, "BucketBalanceCreationNotification"}
-					= lists:keyfind("eventType", 1, BalanceEvent2),
-			{_, {struct, BalanceList2}} = lists:keyfind("event", 1, BalanceEvent2),
-			{_, BId2} = lists:keyfind("id", 1, BalanceList2)
-	end,
+	{ok, _, #bucket{id = _BId2}} = ocs:add_bucket(ProdId, B2),
 	ok = ocs_scheduler:product_charge(),
 	AdjustmentStructs = receive
 		Input ->

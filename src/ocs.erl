@@ -866,28 +866,21 @@ add_service1(Identity, Password, State, ProductRef,
 add_bucket(ProductRef, #bucket{id = undefined} = Bucket) when is_list(ProductRef) ->
 	F = fun() ->
 		case mnesia:read(product, ProductRef, write) of
-			[#product{balance = B, service = [Service]} = P] ->
+			[#product{balance = B} = P] ->
 				BId = generate_bucket_id(),
 				Bucket1  = Bucket#bucket{id = BId, product = [ProductRef]},
 				ok = mnesia:write(bucket, Bucket1, write),
 				Product = P#product{balance = lists:reverse([BId | B])},
 				ok = mnesia:write(product, Product, write),
-				{ok, Bucket, Bucket1, Service};
-			[#product{balance = B, service = []} = P] ->
-				BId = generate_bucket_id(),
-				Bucket1  = Bucket#bucket{id = BId, product = [ProductRef]},
-				ok = mnesia:write(bucket, Bucket1, write),
-				Product = P#product{balance = lists:reverse([BId | B])},
-				ok = mnesia:write(product, Product, write),
-				{ok, Bucket, Bucket1, undefined};
+				{ok, undefined, Bucket1};
 			[] ->
 				throw(product_not_found)
 		end
 	end,
 	case mnesia:transaction(F) of
-		{atomic, {ok, OldBucket, NewBucket, Service}} ->
+		{atomic, {ok, OldBucket, NewBucket}} ->
 			[ProdRef | _] = NewBucket#bucket.product,
-			ocs_log:abmf_log(topup, Service, NewBucket#bucket.id, cents,
+			ocs_log:abmf_log(topup, undefined, NewBucket#bucket.id, cents,
 					ProdRef, 0, 0, NewBucket#bucket.remain_amount, undefined,
 					undefined, undefined, undefined, undefined, undefined,
 					NewBucket#bucket.status),
@@ -1064,7 +1057,7 @@ delete_bucket(BucketId) ->
 	when
 		Adjustment :: #adjustment{},
 		Result :: ok | {error, Reason},
-		Reason :: term().
+		Reason :: not_found | term().
 %% @doc Applying balance adjustment.
 adjustment(#adjustment{amount = Amount, product = ProductRef, units = Units,
 		start_date = StartDate, end_date = EndDate})
@@ -1179,91 +1172,46 @@ adjustment(#adjustment{amount = Amount1, product = ProductRef, units = Units,
 %% @doc Log an adjustment in the ABMF log.
 log_adjustment(AmountAfter, [], [H | T], Units,
 		ProductRef, Amount, AmountBefore) ->
-	F = fun() ->
-		case mnesia:read(product, ProductRef, read) of
-			[#product{service = [Service]} = _P] ->
-				{ok, Service};
-			[#product{service = []} = _P] ->
-				{ok, undefined};
-			[] ->
-				throw(product_not_found)
-		end
-	end,
-	case mnesia:transaction(F) of
-		{atomic, {ok, Service}} ->
-			case ocs_log:abmf_log(adjustment, Service, H, Units,
-					ProductRef, Amount, AmountBefore, AmountAfter,
-					undefined, undefined, undefined, undefined, undefined,
-					undefined, undefined) of
-				ok ->
-					log_adjustment(AmountAfter, [], T, Units, ProductRef,
-							Amount, AmountBefore);
-				{error, Reason} ->
-					{error, Reason}
-			end;
-		{aborted, Reason} ->
+	case ocs_log:abmf_log(adjustment, undefined, H, Units,
+			ProductRef, Amount, AmountBefore, AmountAfter,
+			undefined, undefined, undefined, undefined, undefined,
+			undefined, undefined) of
+		ok ->
+			log_adjustment(AmountAfter, [], T, Units, ProductRef,
+				Amount, AmountBefore);
+		{error, Reason} ->
 			{error, Reason}
 	end;
 log_adjustment(AmountAfter, [H | T], [], Units,
 		ProductRef, Amount, AmountBefore) ->
-	F = fun() ->
-		case mnesia:read(product, ProductRef, read) of
-			[#product{service = [Service]} = _P] ->
-				{ok, Service};
-			[#product{service = []} = _P] ->
-				{ok, undefined};
-			[] ->
-				throw(product_not_found)
-		end
-	end,
-	case mnesia:transaction(F) of
-		{atomic, {ok, Service}} ->
-			case ocs_log:abmf_log(adjustment, Service, H, Units,
-					ProductRef, Amount, AmountBefore, AmountAfter,
-					undefined, undefined, undefined, undefined, undefined,
-					undefined, undefined) of
-				ok ->
-					log_adjustment(AmountAfter, [], T, Units, ProductRef,
-							Amount, AmountBefore);
-				{error, Reason} ->
-					{error, Reason}
-			end;
-		{aborted, Reason} ->
+	case ocs_log:abmf_log(adjustment, undefined, H, Units,
+			ProductRef, Amount, AmountBefore, AmountAfter,
+			undefined, undefined, undefined, undefined, undefined,
+			undefined, undefined) of
+		ok ->
+			log_adjustment(AmountAfter, [], T, Units, ProductRef,
+					Amount, AmountBefore);
+		{error, Reason} ->
 			{error, Reason}
 	end;
 log_adjustment(AmountAfter, [H1 | T1], [H2 | T2], Units,
 		ProductRef, Amount, AmountBefore) ->
-	F = fun() ->
-		case mnesia:read(product, ProductRef, read) of
-			[#product{service = [Service]} = _P] ->
-				{ok, Service};
-			[#product{service = []} = _P] ->
-				{ok, undefined};
-			[] ->
-				throw(product_not_found)
-		end
-	end,
-	case mnesia:transaction(F) of
-		{atomic, {ok, Service}} ->
-			case ocs_log:abmf_log(adjustment, Service, H1, Units,
+	case ocs_log:abmf_log(adjustment, undefined, H1, Units,
+			ProductRef, Amount, AmountBefore, AmountAfter,
+			undefined, undefined, undefined, undefined, undefined,
+			undefined, undefined) of
+		ok ->
+			case ocs_log:abmf_log(adjustment, undefined, H2, Units,
 					ProductRef, Amount, AmountBefore, AmountAfter,
 					undefined, undefined, undefined, undefined, undefined,
 					undefined, undefined) of
 				ok ->
-					case ocs_log:abmf_log(adjustment, Service, H2, Units,
-							ProductRef, Amount, AmountBefore, AmountAfter,
-							undefined, undefined, undefined, undefined, undefined,
-							undefined, undefined) of
-						ok ->
-							log_adjustment(AmountAfter, T1, T2, Units, ProductRef,
-									Amount, AmountBefore);
-						{error, Reason} ->
-							{error, Reason}
-					end;
+					log_adjustment(AmountAfter, T1, T2, Units, ProductRef,
+							Amount, AmountBefore);
 				{error, Reason} ->
 					{error, Reason}
 			end;
-		{aborted, Reason} ->
+		{error, Reason} ->
 			{error, Reason}
 	end;
 log_adjustment(_AmountAfter, [], [], _Units,
@@ -2527,8 +2475,7 @@ subscription(#product{id = ProdRef, payment = Payments}
 			units = Units, remain_amount = Size, product = [ProdRef],
 			end_date = end_period(Now, Period), last_modified = {Now, N}}
 			| NewBuckets1]),
-	NewPayments1 = [{Name, end_period(Now, Period)} | Payments],
-	Product1 = Product#product{payment = NewPayments1},
+	Product1 = Product#product{payment = NewPayments},
 	subscription(Product1, Now, false, NewBuckets2, T);
 subscription(Product, Now, InitialFlag, Buckets, [_H | T]) ->
 	subscription(Product, Now, InitialFlag, Buckets, T);

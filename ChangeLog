@@ -1,3 +1,41 @@
+2021-01-19  Refath Wadood <refath@sigscale.org>
+	
+	* gui: fix label and clear values for redirect server
+	
+2021-01-19  Refath Wadood <refath@sigscale.org>
+
+	* gui: clear price array value once cancel is clicked
+	* gui: add redirect server with offer
+	* gui: update dialog for redirect server
+	* test: threshold for generating internal events
+	* test: receive only subscribed category notifications
+	* add redirect server as a product offer characteristic
+	* remove setting threshold environment variables while subscribing
+	* filters available accumulated balance internal events
+	* avoid getting id from acct events
+	* return redirect information on out-of-credit
+	* handle redirect information in rating result
+	* handle partial charge in update session
+	* remove redundent case; rename function according to output
+	* define category based on uri
+	* store fsm pid and category in state record
+	* send subscribed category notifications only
+	* add user category
+	* fix matchspec for msisdn and imis in log query
+
+2021-01-14  Refath Wadood <refath@sigscale.org>
+
+	* correct timestamp for bucket adjustments
+	* gui: add msisdn & imsi columns in accounting log	
+	* gui: implement row details feature in accounting view
+	* gui: unselect product from product list
+	* gui: add service without product
+	* gui: fix realizing service length
+	* rest: support balance query by service identifier
+	* correct href product catalog managment 
+	* remove past due dates when product is charged
+	* remove multiple payments made by the scheduler
+
 2021-01-06  Vance Shipley <vances@sigscale.org>
 
 	* merge polymer-3.0 branch

@@ -62,7 +62,7 @@ content_types_provided() ->
 			Body :: iolist()} | {error, ErrorCode :: integer()}.
 %% @doc Body producing function for `GET /ocs/v1/log/balance'
 %% requests.
-get_balance_log(Query, _Headers) ->
+get_balance_log(Query, Headers) ->
 	try
 		{DateStart, DateEnd} = case lists:keyfind("date", 1, Query) of
 			{_, DateTime} when length(DateTime) > 3 ->
@@ -71,7 +71,7 @@ get_balance_log(Query, _Headers) ->
 				{1, erlang:system_time(?MILLISECOND)}
 		end,
 		case lists:keytake("filter", 1, Query) of
-			{value, {_, String}, _Query1} ->
+			{value, {_, String}, Query1} ->
 				{ok, Tokens, _} = ocs_rest_query_scanner:string(String),
 				case ocs_rest_query_parser:parse(Tokens) of
 					{ok, [{array, [{complex, Complex}]}]} ->
@@ -80,30 +80,20 @@ get_balance_log(Query, _Headers) ->
 						MatchBucket = match_abmf("bucket", Complex, Query),
 						MatchUnits = match_abmf("units", Complex, Query),
 						MatchProducts = match_abmf("product", Complex, Query),
-						case ocs_log:abmf_query(start, DateStart, DateEnd, MatchType,
-								MatchSubscriber, MatchBucket, MatchUnits, MatchProducts) of
-							{error, _} ->
-								{error, 500};
-							{_Cont, AbmfList} ->
-								Json = abmfs(AbmfList, []),
-								Body = mochijson:encode(Json),
-								HeadersAbmf = [{content_type, "application/json"}],
-								{ok, HeadersAbmf, Body}
-						end;
-					{error, _} ->
-						{error, 500}
+						{Query1, [start, DateStart, DateEnd, MatchType, MatchSubscriber, MatchBucket, MatchUnits, MatchProducts]}
 				end;
 			false ->
-				case ocs_log:abmf_query(start, DateStart, DateEnd, '_', '_', '_', '_', '_') of
-					{error, _} ->
-						{error, 500};
-					{_Cont1, AbmfList1}  ->
-						Json1 = abmfs(AbmfList1, []),
-						Body = mochijson:encode(Json1),
-						Headers1 = [{content_type, "application/json"}],
-						{ok, Headers1, Body}
-				end
+				MatchType = match_abmf("type", [], Query),
+				MatchSubscriber = match_abmf("subscriber", [], Query),
+				MatchBucket = match_abmf("bucket", [], Query),
+				MatchUnits = match_abmf("units", [], Query),
+				MatchProducts = match_abmf("product", [], Query),
+				{Query, [DateStart, DateEnd, MatchType, MatchSubscriber, MatchBucket, MatchUnits, MatchProducts]}
 		end
+   of
+      {Query2, Args} ->
+         Codec = fun abmf/1,
+         query_filter({ocs_log, abmf_query, Args}, Codec, Query2, Headers)
 	catch
 		_ ->
 			{error, 400}
@@ -400,13 +390,15 @@ top_up(Identity, RequestBody) ->
 %% @doc Respond to `POST /balanceManagement/v1/balanceAdjustment'
 balance_adjustment(RequestBody) ->
 	try
-		adjustment(mochijson:decode(RequestBody))
-	of
-		#adjustment{} = Adjustment ->
-			ok = ocs:adjustment(Adjustment),
-			{ok, [], []};
-		_ ->
-			{error, 400}
+		Adjustment = adjustment(mochijson:decode(RequestBody)),
+		case ocs:adjustment(Adjustment) of
+			ok ->
+				{ok, [], []};
+			{error, not_found} ->
+				{error, 400};
+			{error, _Reason} ->
+				{error, 500}
+		end
 	catch
 		_:_ ->
 			{error, 400}
@@ -711,18 +703,6 @@ acc_balance([_ | T], B, Acc) ->
 acc_balance([], _B, Acc) ->
 	{struct, lists:reverse(Acc)}.
 
--spec abmfs(Abmf, Acc) -> Result
-	when
-		Abmf :: list(),
-		Acc :: list(),
-		Result :: {array, list()}.
-%% @doc CODEC for list of abmf
-% @hidden
-abmfs([H | T], Acc) ->
-	abmfs(T, [abmf(H) | Acc]);
-abmfs([], Acc) ->
-	{array, lists:reverse(Acc)}.
-
 -spec abmf(Event) -> Json 
 	when
 		Event :: tuple(),
@@ -846,6 +826,8 @@ quantity([amount | T], #quantity{units = cents, amount = Amount} = Q, Acc) ->
 	quantity(T, Q, [{"amount", ocs_rest:millionths_out(Amount)} | Acc]);
 quantity([amount | T], #quantity{units = octets, amount = Amount} = Q, Acc) ->
 	quantity(T, Q, [{"amount", integer_to_list(Amount) ++ "b"} | Acc]);
+quantity([amount | T], #quantity{units = seconds, amount = Amount} = Q, Acc) ->
+	quantity(T, Q, [{"amount", integer_to_list(Amount) ++ "s"} | Acc]);
 quantity([units | T], #quantity{units = undefined} = Q, Acc) ->
 	quantity(T, Q, Acc);
 quantity([units | T], #quantity{units = Units} = Q, Acc) ->

@@ -125,9 +125,9 @@ init([Id, Query, Callback, Uri, Authorization] = _Args) ->
 			authorization = Authorization},
 	{ok, register, State, 0}.
 
--spec register(Event1, State) -> Result
+-spec register(Event, State) -> Result
 	when
-		Event1 :: timeout | pos_integer(),
+		Event :: timeout | pos_integer(),
 		State :: statedata(),
 		Result :: {next_state, NextStateName, NewStateData}
 			| {next_state, NextStateName, NewStateData, timeout}
@@ -138,8 +138,25 @@ init([Id, Query, Callback, Uri, Authorization] = _Args) ->
 		Reason :: normal | term().
 %% @doc Handle event received in `register' state.
 %% @private
-register(timeout, State) ->
-	case gen_event:add_sup_handler(ocs_event, ocs_event, [self()]) of
+register(timeout,
+		#statedata{href = "/balanceManagement/v1/hub/" ++ _Id} = State) ->
+	register1(balance, State);
+register(timeout,
+		#statedata{href = "/resourceInventory/v1/hub/" ++ _Id} = State) ->
+	register1(resource, State);
+register(timeout,
+		#statedata{href = "/usageManagement/v1/hub/" ++ _Id} = State) ->
+	register1(usage, State);
+register(timeout,
+		#statedata{href = "/partyManagement/v1/hub/" ++ _Id} = State) ->
+	register1(user, State);
+register(timeout,
+		#statedata{href = "/serviceInventory/v2/hub/" ++ _Id} = State) ->
+	register1(service, State);
+register(timeout, #statedata{href = "/product" ++ _} = State) ->
+	register1(product, State).
+register1(Category, State) ->
+	case gen_event:add_sup_handler(ocs_event, ocs_event, [self(), Category]) of
 		ok ->
 			{next_state, registered, State};
 		{'EXIT', Reason} ->
@@ -170,6 +187,24 @@ register(timeout, State) ->
 %% @private
 registered({Type, Resource, Category}, #statedata{query = []} = StateData) ->
 	send_request({Type, Resource, Category}, StateData);
+registered({Type, [#acc_balance{} | _] = Resource, Category},
+		#statedata{query = Query} = StateData) when is_list(Query),
+		length(Query) > 0 ->
+	case string:tokens(Query, "&=") of
+		["totalBalance.units", Units, "totalBalance.amount.lt", Threshold] ->
+			case lists:keyfind(list_to_existing_atom(Units),
+					#acc_balance.units, Resource) of
+				false ->
+					{next_state, registered, StateData};
+				#acc_balance{total_balance = TotalBalance}
+						when TotalBalance < Threshold ->
+					send_request({Type, Resource, Category}, StateData);
+				_ ->
+					{next_state, registered, StateData}
+			end;
+		_ ->
+			{next_state, registered, StateData}
+	end;
 registered({Type, Resource, Category}, #statedata{query = Query} = StateData)
 		when is_list(Query), is_list(Resource) ->
 	send_request({Type, Resource, Category}, StateData);
@@ -388,7 +423,9 @@ get_resource_id(Resource) ->
 		#resource{id = Id} ->
 			Id;
 		{_, #gtt{num = Num}} ->
-			Num
+			Num;
+		_ ->
+			[]
 	end.
 
 %% @hidden

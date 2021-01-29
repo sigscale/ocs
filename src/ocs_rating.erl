@@ -54,7 +54,8 @@
 		service_network :: string() | undefined,
 		roaming_tb_prefix :: string() | undefined,
 		session_id :: [tuple()],
-		rated = #rated{} :: #rated{} | [#rated{}]}).
+		rated = #rated{} :: #rated{} | [#rated{}],
+		redirect_server :: string() | undefined}).
 
 -spec rate(Protocol, ServiceType, ServiceId, ChargingKey,
 		ServiceNetwork, SubscriberID, Timestamp, Address, Direction,
@@ -78,14 +79,15 @@
 		Result :: {ok, Service, GrantedAmount}
 				| {ok, Service, Rated}
 				| {ok, Service, GrantedAmount, Rated}
-				| {out_of_credit, SessionList}
-				| {out_of_credit, SessionList, Rated}
+				| {out_of_credit, RedirectServerAddress, SessionList}
+				| {out_of_credit, RedirectServerAddress, SessionList, Rated}
 				| {disabled, SessionList}
 				| {error, Reason},
 		Service :: #service{},
 		GrantedAmount :: {Type, Amount},
 		Rated :: [#rated{}],
 		SessionList :: [{pos_integer(), [tuple()]}],
+		RedirectServerAddress :: string() | undefined,
 		Reason :: term().
 %% @doc Handle rating and balance management for used and reserved unit amounts.
 %%
@@ -104,8 +106,8 @@
 %% 	`{ok, Service, GrantedAmount, Rated}' for `event'.
 %%
 %% 	If subscriber's balance is insufficient to cover the `DebitAmounts'
-%% 	and `ReserveAmounts' returns `{out_of_credit, SessionList}' for interim
-%% 	updates and `{out_of_credit, SessionList, Rated}' for final or
+%% 	and `ReserveAmounts' returns `{out_of_credit, RedirectServerAddressAddress, SessionList}' for interim
+%% 	updates and `{out_of_credit, RedirectServerAddressAddress, SessionList, Rated}' for final or
 %% 	`{disabled, SessionList}' if the subscriber is not enabled. In both
 %% 	cases subscriber's balance is debited.  `SessionList' describes the
 %% 	known active sessions which should be disconnected.
@@ -157,13 +159,21 @@ rate(Protocol, ServiceType, ServiceId, ChargingKey,
 						[#product{characteristics = Chars, product = OfferId,
 								balance = BucketRefs} = Product] ->
 							case mnesia:read(offer, OfferId, read) of
-								[#offer{} = Offer] ->
+								[#offer{char_value_use = CharValueUse} = Offer] ->
 									Buckets = lists:flatten([mnesia:read(bucket, Id, sticky_write)
 											|| Id <- BucketRefs]),
 									F2 = fun(#bucket{units = cents, remain_amount = RM}) when RM < 0 ->
 												false;
 											(_) ->
 												true
+									end,
+									RedirectServerAddress = case lists:keyfind("redirectServer",
+											#char_value_use.name, CharValueUse) of
+										#char_value_use{values = [#char_value{value = Value}]}
+												when is_list(Value) ->
+											Value;
+										_Other ->
+											undefined
 									end,
 									case lists:all(F2, Buckets) of
 										true ->
@@ -174,12 +184,13 @@ rate(Protocol, ServiceType, ServiceId, ChargingKey,
 													service_id = ServiceId,
 													charging_key = ChargingKey,
 													service_network = ServiceNetwork,
-													session_id = get_session_id(SessionAttributes)},
+													session_id = get_session_id(SessionAttributes),
+													redirect_server = RedirectServerAddress},
 											rate1(Protocol, Service, Buckets,
 													Timestamp, Address, Direction, Offer,
 													Flag, DebitAmounts, ReserveAmounts, State);
 										false ->
-											{out_of_credit, SessionList, [], []}
+											{out_of_credit, RedirectServerAddress, SessionList, [], []}
 									end;
 								[] ->
 									throw(offer_not_found)
@@ -202,19 +213,19 @@ rate(Protocol, ServiceType, ServiceId, ChargingKey,
 			ok = send_notifications(DeletedBuckets),
 			ok = notify_accumulated_balance(AccBalance),
 			{ok, Sub, Granted, Rated};
-		{atomic, {out_of_credit, SL, Rated, DeletedBuckets, AccBalance}} ->
+		{atomic, {out_of_credit, RedirectServerAddress, SL, Rated, DeletedBuckets, AccBalance}} ->
 			ok = send_notifications(DeletedBuckets),
 			ok = notify_accumulated_balance(AccBalance),
-			{out_of_credit, SL, Rated};
+			{out_of_credit, RedirectServerAddress, SL, Rated};
 		{atomic, {grant, Sub, {_Units, Amount} = Granted, DeletedBuckets,
 				AccBalance}} when is_integer(Amount) ->
 			ok = send_notifications(DeletedBuckets),
 			ok = notify_accumulated_balance(AccBalance),
 			{ok, Sub, Granted};
-		{atomic, {out_of_credit, SL, DeletedBuckets, AccBalance}} ->
+		{atomic, {out_of_credit, RedirectServerAddress, SL, DeletedBuckets, AccBalance}} ->
 			ok = send_notifications(DeletedBuckets),
 			ok = notify_accumulated_balance(AccBalance),
-			{out_of_credit, SL};
+			{out_of_credit, RedirectServerAddress, SL};
 		{atomic, {disabled, SL, DeletedBuckets, AccBalance}} ->
 			ok = send_notifications(DeletedBuckets),
 			ok = notify_accumulated_balance(AccBalance),
@@ -784,7 +795,7 @@ rate7(#service{session_attributes = SessionList} = Service1, Buckets, final,
 		{Units, _Charge}, {Units, _Charged}, {Units, 0}, {Units, 0},
 		#state{rated = Rated, product = P, session_id = SessionId,
 		service_id = ServiceId, charging_key = ChargingKey,
-		buckets = OldBuckets}) ->
+		buckets = OldBuckets, redirect_server = RedirectServerAddress}) ->
 	{Debits, NewBuckets} = get_final(ServiceId,
 			ChargingKey, SessionId, Buckets),
 	{NewBRefs, DeletedBuckets}
@@ -793,7 +804,7 @@ rate7(#service{session_attributes = SessionList} = Service1, Buckets, final,
 	Rated1 = rated(Debits, Rated),
 	Service2 = Service1#service{session_attributes = []},
 	ok = mnesia:write(Service2),
-	{out_of_credit, SessionList, Rated1, DeletedBuckets,
+	{out_of_credit, RedirectServerAddress, SessionList, Rated1, DeletedBuckets,
 			accumulated_balance(NewBuckets, P#product.id)};
 rate7(#service{enabled = false, session_attributes = SessionList} = Service1,
 		Buckets, _Flag, {Units, _Charge}, {Units, _Charged},
@@ -812,14 +823,15 @@ rate7(#service{session_attributes = SessionList} = Service1, Buckets, _Flag,
 		{Units, Charge}, {Units, Charged}, {Units, Reserve}, {Units, Reserved},
 		#state{session_id = SessionId, service_id = ServiceId,
 		charging_key = ChargingKey, buckets = OldBuckets,
-		product = P}) when Charged < Charge; Reserved <  Reserve ->
+		product = P, redirect_server = RedirectServerAddress})
+		when Charged < Charge; Reserved <  Reserve ->
 	NewBuckets = refund(ServiceId, ChargingKey, SessionId, Buckets),
 	{NewBRefs, DeletedBuckets}
 			= update_buckets(P#product.balance, OldBuckets, NewBuckets),
 	ok = mnesia:write(P#product{balance = NewBRefs}),
 	Service2 = Service1#service{session_attributes = []},
 	ok = mnesia:write(Service2),
-	{out_of_credit, SessionList, DeletedBuckets,
+	{out_of_credit, RedirectServerAddress, SessionList, DeletedBuckets,
 			accumulated_balance(NewBuckets, P#product.id)};
 rate7(#service{session_attributes = SessionList} = Service1, Buckets, initial,
 		{Units, 0}, {Units, 0}, {Units, _Reserve}, {Units, Reserved},
@@ -853,13 +865,14 @@ rate7(Service, Buckets, event,
 			accumulated_balance(Buckets, P#product.id)};
 rate7(#service{session_attributes = SessionList} = Service1, Buckets, event,
 		{Units, _Charge}, {Units, _Charged}, {Units, 0}, {Units, 0},
-		#state{rated = Rated, product = P, buckets = OldBuckets}) ->
+		#state{rated = Rated, product = P, buckets = OldBuckets,
+		redirect_server = RedirectServerAddress}) ->
 	{NewBRefs, DeletedBuckets}
 			= update_buckets(P#product.balance, OldBuckets, Buckets),
 	ok = mnesia:write(P#product{balance = NewBRefs}),
 	Service2 = Service1#service{session_attributes = []},
 	ok = mnesia:write(Service2),
-	{out_of_credit, SessionList, Rated, DeletedBuckets,
+	{out_of_credit, RedirectServerAddress, SessionList, Rated, DeletedBuckets,
 			accumulated_balance(Buckets, P#product.id)}.
 
 -spec authorize(Protocol, ServiceType, SubscriberId, Password,
@@ -1341,6 +1354,15 @@ update_session1(Type, Charge, Reserve, Now, ServiceId, ChargingKey, SessionId,
 					reservations = [NewReservation | NewReservations]} | Acc],
 			update_session1(Type, Charge, Reserve, Now, ServiceId, ChargingKey,
 					SessionId, T, NewAcc, Charged + NewCharge, Reserved + NewReserved);
+		{[{_, DebitedAmount, 0, ServiceId, ChargingKey, _}], NewReservations}
+					when NewCharge > 0 ->
+			NewReservation = {Now, DebitedAmount + Remain, 0,
+					ServiceId, ChargingKey, SessionId},
+			NewAcc = [B#bucket{remain_amount = 0,
+					last_modified = {Now, erlang:unique_integer([positive])},
+					reservations = [NewReservation | NewReservations]} | Acc],
+			update_session1(Type, Charge, Reserve, Now, ServiceId, ChargingKey,
+					SessionId, T, NewAcc, Charged + Remain, Reserved);
 		{[{_, DebitedAmount, ReservedAmount, ServiceId, ChargingKey, _}], NewReservations}
 					when NewCharge =:= 0, Remain >= NewReserve ->
 			NewReservation = {Now, DebitedAmount, ReservedAmount + NewReserve,

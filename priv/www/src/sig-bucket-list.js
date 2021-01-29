@@ -18,6 +18,9 @@ import '@vaadin/vaadin-grid/theme/material/vaadin-grid.js';
 import '@vaadin/vaadin-grid/vaadin-grid.js';
 import '@vaadin/vaadin-grid/vaadin-grid-filter.js';
 import '@vaadin/vaadin-grid/vaadin-grid-column-group.js';
+import '@polymer/paper-tabs/paper-tabs.js';
+import '@polymer/paper-button/paper-button.js';
+import '@polymer/iron-pages/iron-pages.js';
 import '@polymer/iron-icons/iron-icons.js';
 import './style-element.js'
 
@@ -30,6 +33,62 @@ class bucketList extends PolymerElement {
 					active-item="{{activeItem}}"
 					loading="{{loading}}"
 					theme="no-border">
+				<template class="row-details">
+					<paper-tabs
+							class="details"
+							selected="{{selectedTab}}">
+						<paper-tab>
+							General
+						</paper-tab>
+					</paper-tabs>
+					<iron-pages
+							selected="{{selectedTab}}">
+						<div>
+							<dl class="details">
+								<template is="dom-if" if="{{item.id}}">
+									<dt><b>Id</b></dt>
+									<dd>{{item.id}}</dd>
+								</template>
+								<template is="dom-if" if="{{item.href}}">
+									<dt><b>Href</b></dt>
+									<dd>{{item.href}}</dd>
+								</template>
+								<template is="dom-if" if="{{item.product}}">
+									<dt><b>Product Id</b></dt>
+									<dd>{{item.product}}</dd>
+								</template>
+								<template is="dom-if" if="{{item.productHref}}">
+									<dt><b>Product Href</b></dt>
+									<dd>{{item.productHref}}</dd>
+								</template>
+								<template is="dom-if" if="{{item.amount}}">
+									<dt><b>Remained Amount</b></dt>
+									<dd>{{item.amount}}</dd>
+								</template>
+								<template is="dom-if" if="{{item.units}}">
+									<dt><b>Units</b></dt>
+									<dd>{{item.units}}</dd>
+								</template>
+								<template is="dom-if" if="{{item.startDate}}">
+									<dt><b>Start Date</b></dt>
+									<dd>{{item.startDate}}</dd>
+								</template>
+								<template is="dom-if" if="{{item.endDate}}">
+									<dt><b>End Date</b></dt>
+									<dd>{{item.endDate}}</dd>
+								</template>
+							</dl>
+							<div class="buttons">
+								<paper-button
+									raised
+									on-tap="tableDelete"
+									class="delete-button">
+									Delete
+								</paper-button>
+							</div>
+						</div>
+					</iron-pages>
+				</template>
 				<vaadin-grid-column width="15ex" flex-grow="5">
 					<template class="header">
 						<vaadin-grid-filter
@@ -114,6 +173,11 @@ class bucketList extends PolymerElement {
 				type: String,
 				value: null
 			},
+			activeItem: {
+				type: Object,
+				notify: true,
+				observer: '_activeItemChanged'
+			},
 			_filterBucId: {
 				type: Boolean
 			},
@@ -126,19 +190,38 @@ class bucketList extends PolymerElement {
 		}
 	}
 
+	_activeItemChanged(item, last) {
+		if(item || last) {
+			var grid = this.$.balanceBucketGrid;
+			var current;
+			if(item == null) {
+				current = last;
+				this.$.balanceBucketGrid.selectedItems = item ? [item] : [];
+			} else {
+				current = item;
+				this.$.balanceBucketGrid.selectedItems = [];
+			}
+			function checkExist(buc) {
+				return buc.id == current.id;
+			}
+			if(grid.detailsOpenedItems && grid.detailsOpenedItems.some(checkExist)) {
+				grid.closeItemDetails(current);
+			} else {
+				grid.openItemDetails(current);
+			}
+		}
+	}
+
 	ready() {
 		super.ready();
 		var grid = this.shadowRoot.getElementById('balanceBucketGrid');
 		grid.dataProvider = this._getBuckets;
 	}
 
-	_activeItemChanged(item) {
-		if(item != null) {
-			var grid = this.shadowRoot.getElementById('balanceBucketGrid'); 
-			grid.selectedItems = item ? [item] : [];
-			document.body.querySelector('sig-app').shadowRoot.querySelector('sig-bucket-add').shadowRoot.getElementById('deleteBucketModal').open();
-			document.body.querySelector('sig-app').shadowRoot.querySelector('sig-bucket-add').shadowRoot.getElementById('deleteBucId').value = item.id;
-		}
+	tableDelete(item) {
+		var grid = this.shadowRoot.getElementById('balanceBucketGrid'); 
+		document.body.querySelector('sig-app').shadowRoot.querySelector('sig-bucket-add').shadowRoot.getElementById('deleteBucketModal').open();
+		document.body.querySelector('sig-app').shadowRoot.querySelector('sig-bucket-add').shadowRoot.getElementById('deleteBucId').value = item.model.item.id;
 	}
 
 	_getBuckets(params, callback) {
@@ -178,19 +261,29 @@ class bucketList extends PolymerElement {
 				}
 				for (var index in request.response) {
 					var newRecord = new Object();
+					newRecord.href = request.response[index].href;
 					newRecord.id = request.response[index].id;
 					if(request.response[index].product) {
 						if(request.response[index].product.id) {
 							newRecord.product = request.response[index].product.id;
 						}
+						if(request.response[index].product.href) {
+							newRecord.productHref = request.response[index].product.href;
+						}
 					}
 					if(request.response[index].remainedAmount) {
+						if(request.response[index].remainedAmount.units) {
+							newRecord.units = request.response[index].remainedAmount.units;
+						}
+						if(request.response[index].remainedAmount.amount) {
+							newRecord.amount = request.response[index].remainedAmount.amount;
+						}
 						if(request.response[index].remainedAmount.units == "cents") {
 							newRecord.cents = request.response[index].remainedAmount.amount;
 						}
 						if(request.response[index].remainedAmount.units == "seconds") {
 							var Str = request.response[index].remainedAmount.amount;
-							if(Str.includes("b")){
+							if(Str.includes("s")){
 								var NewStrSec = Str.substring(0, Str.length - 1);
 								newRecord.seconds = NewStrSec;
 							}
@@ -201,6 +294,14 @@ class bucketList extends PolymerElement {
 								var NewStr = Str.substring(0, Str.length - 1);
 								newRecord.remainedAmount = NewStr;
 							}
+						}
+					}
+					if(request.response[index].validFor) {
+						if(request.response[index].validFor.startDateTime) {
+							newRecord.startDate = request.response[index].validFor.startDateTime;
+						}
+						if(request.response[index].validFor.endDateTime) {
+							newRecord.endDate = request.response[index].validFor.endDateTime;
 						}
 					}
 					vaadinItems[index] = newRecord;
