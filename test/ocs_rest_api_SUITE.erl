@@ -141,7 +141,7 @@ init_per_testcase(TestCase, Config) when TestCase == notify_create_bucket;
 		TestCase == notify_insert_gtt; TestCase == notify_delete_gtt;
 		TestCase == query_gtt_notification;
 		TestCase == notify_add_resource; TestCase == notify_delete_resource;
-		TestCase == query_pla_notification;
+		TestCase == query_resource_notification;
 		TestCase == notify_diameter_acct_log ->
 	true = register(TestCase, self()),
 	case inets:start(httpd, [{port, 0},
@@ -215,7 +215,7 @@ all() ->
 	post_hub_inventory, delete_hub_inventory, get_inventory_hubs,
 	get_inventory_hub,
 	notify_insert_gtt, notify_delete_gtt, query_gtt_notification,
-	notify_add_resource, notify_delete_resource, query_pla_notification,
+	notify_add_resource, notify_delete_resource, query_resource_notification,
 	post_hub_usage, get_usage_hubs, get_usage_hub, delete_hub_usage,
 	notify_diameter_acct_log, get_resource, get_resources,
 	post_resource, delete_resource, update_resource, oauth_authentication].
@@ -4179,18 +4179,24 @@ notify_delete_resource(Config) ->
 			{_, Id} = lists:keyfind("id", 1, ResList)
 	end.
 
-query_pla_notification() ->
-	[{userdata, [{doc, "Query pla notifications"}]}].
+query_resource_notification() ->
+	[{userdata, [{doc, "Query resource notifications"}]}].
 
-query_pla_notification(Config) ->
+query_resource_notification(Config) ->
+	TariffResource = #resource{name = "Example",
+			start_date = erlang:system_time(?MILLISECOND),
+			end_date = erlang:system_time(?MILLISECOND) + rand:uniform(10000000000),
+			state = "created", specification = #specification_ref{id = "4",
+			href = "/resourceCatalogManagement/v3/resourceSpecification/4",
+			name = "Example spec", version = "1.0"}},
+	{ok, #resource{id = Id}} = ocs:add_resource(TariffResource),
 	HostUrl = ?config(host_url, Config),
 	CollectionUrl = HostUrl ++ ?PathResourceHub,
 	ListenerPort = ?config(listener_port, Config),
 	ListenerServer = "http://localhost:" ++ integer_to_list(ListenerPort),
 	Callback = ListenerServer ++ "/listener/"
-			++ atom_to_list(?MODULE) ++ "/queryplanotification",
-	Name = "test_notification3",
-	Query = "eventType=PlaRemoveNotification&id=" ++ Name,
+			++ atom_to_list(?MODULE) ++ "/queryresourcenotification",
+	Query = "eventType=ResourceRemoveNotification&id=" ++ Id,
 	RequestBody = "{\n"
 			++ "\t\"callback\": \"" ++ Callback ++ "\",\n"
 			++ "\t\"query\": \"" ++ Query ++ "\"\n"
@@ -4199,20 +4205,14 @@ query_pla_notification(Config) ->
 	Accept = {"accept", "application/json"},
 	Request = {CollectionUrl, [Accept, auth_header()], ContentType, RequestBody},
 	{ok, {{_, 201, _}, _, _}} = httpc:request(post, Request, [], []),
-	SD = erlang:system_time(?MILLISECOND),
-	ED = erlang:system_time(?MILLISECOND) + rand:uniform(10000000000),
-	Status = created,
-	Pla = #resource{name = Name, start_date = SD,
-			end_date = ED, state = Status},
-	{ok, #resource{}} = ocs:add_pla(Pla),
-	ok = ocs:delete_pla(Name),
+	ok = ocs:delete_resource(Id),
 	receive
 		Receive ->
-			{struct, PlaEvent} = mochijson:decode(Receive),
-			{_, "PlaRemoveNotification"}
-					= lists:keyfind("eventType", 1, PlaEvent),
-			{_, {struct, PlaList}} = lists:keyfind("event", 1, PlaEvent),
-			{_, Name} = lists:keyfind("id", 1, PlaList)
+			{struct, ResEvent} = mochijson:decode(Receive),
+			{_, "ResourceRemoveNotification"}
+					= lists:keyfind("eventType", 1, ResEvent),
+			{_, {struct, ResList}} = lists:keyfind("event", 1, ResEvent),
+			{_, Id} = lists:keyfind("id", 1, ResList)
 	end.
 
 post_hub_usage() ->
@@ -4746,12 +4746,12 @@ notifydeleteresource(SessionID, _Env, Input) ->
 	mod_esi:deliver(SessionID, "status: 201 Created\r\n\r\n"),
 	notify_delete_resource ! Input.
 
--spec queryplanotification(SessionID :: term(), Env :: list(),
+-spec queryresourcenotification(SessionID :: term(), Env :: list(),
 		Input :: string()) -> any().
-%% @doc Notification callback for query_pla_notification test case.
-queryplanotification(SessionID, _Env, Input) ->
+%% @doc Notification callback for query_resource_notification test case.
+queryresourcenotification(SessionID, _Env, Input) ->
 	mod_esi:deliver(SessionID, "status: 201 Created\r\n\r\n"),
-	query_pla_notification ! Input.
+	query_resource_notification ! Input.
 
 -spec notifydiameteracctlog(SessionID :: term(), Env :: list(),
 		Input :: string()) -> any().
