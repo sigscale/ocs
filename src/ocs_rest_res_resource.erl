@@ -530,6 +530,7 @@ tariff_row_spec() ->
 	{struct, [Id, Href, Name, Description, Version, Status, LastUpdate,
 			Category, Characteristic]}.
 
+%%@doc policy and charging control rules.
 %% @hidden
 policy_table_spec() ->
 	Id = {"id", "3"},
@@ -543,6 +544,7 @@ policy_table_spec() ->
 	{struct, [Id, Href, Name, Description, Version, Status,
 			LastUpdate, Category]}.
 
+%%@doc policy and charging control rule.
 %% @hidden
 policy_row_spec() ->
 	Id = {"id", "4"},
@@ -554,7 +556,7 @@ policy_row_spec() ->
 	LastUpdate = {"lastUpdate", "2021-01-15"},
 	Category = {"category", "PolicyRow"},
 	Chars = {array, [{struct, [{"name", "name"},
-			{"description", "Name of the policy"},
+			{"description", "Rule name"},
 			{"valueType", "MatrixCharacteristicSpec"},
 			{"resourceSpecCharacteristicValue", {array, [{struct,
 			[{"seqNum", 1}, {"valueType", "String"}]}]}}]},
@@ -577,7 +579,7 @@ policy_row_spec() ->
 			{"resourceSpecCharacteristicValue", {array, [{struct,
 			[{"seqNum", 4}, {"valueType", {array, [
 			{struct, [{"flowDescription", "String"},
-			{"flowDirection", "Number"}]}]}}]}]}}]},
+			{"flowDirection", "String"}]}]}}]}]}}]},
 			{struct, [{"name", "precedence"},
 			{"description", "Priority of the policy"},
 			{"valueType", "MatrixCharacteristicSpec"},
