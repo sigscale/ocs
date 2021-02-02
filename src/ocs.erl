@@ -1604,8 +1604,8 @@ query_offer2('$end_of_table', _Description, _Status, _STD, _EDT, _Price) ->
 		Result :: {ok, Resource} | {error, Reason},
 		Reason :: term().
 %% @doc Create a new Resource.
-add_resource(#resource{id = undefined,
-		last_modified = undefined} = Resource) ->
+add_resource(#resource{id = undefined, name = Name,
+		last_modified = undefined} = Resource) when is_list(Name) ->
 	F = fun() ->
 			TS = erlang:system_time(?MILLISECOND),
 			N = erlang:unique_integer([positive]),
@@ -1620,9 +1620,16 @@ add_resource(#resource{id = undefined,
 	case mnesia:transaction(F) of
 		{aborted, Reason} ->
 			{error, Reason};
-		{atomic, NewResource} ->
-			ok = ocs_event:notify(create_resource, NewResource, resource),
-			{ok, NewResource}
+		{atomic, #resource{} = NewResource} ->
+			case catch list_to_existing_atom(Name) of
+				{'EXIT', _Reason} ->
+					ok = ocs_gtt:new(list_to_atom(Name), []),
+					ok = ocs_event:notify(create_resource, NewResource, resource),
+					{ok, NewResource};
+				_ ->
+					ok = ocs_event:notify(create_resource, NewResource, resource),
+					{ok, NewResource}
+			end
 	end.
 
 -spec get_resources() -> Result
