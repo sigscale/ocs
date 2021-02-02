@@ -786,9 +786,9 @@ add_example_data_offer3(Alteration, PriceSubscription, PriceOverage) ->
 add_example_voice_offers() ->
 	TariffResource = #resource{name = "example", state = "created",
 			description = "Example voice tariff",
-			specification = #specification_ref{id = "2",
-			href = "/resourceCatalogManagement/v2/resourceSpecification/2",
-			name = "TariffRow"}},
+			specification = #specification_ref{id = "1",
+			href = "/resourceCatalogManagement/v2/resourceSpecification/1",
+			name = "TariffRowTable"}},
 	PriceUsage = #price{name = "Usage", description = "Tariffed voice calling",
 			type = tariff, units = seconds, size = 60,
 			char_value_use = [#char_value_use{name = "destPrefixTariffTable",
