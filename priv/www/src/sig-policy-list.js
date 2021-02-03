@@ -38,7 +38,7 @@ class policyList extends PolymerElement {
 					<template class="header">
 						Name
 					</template>
-					<template>[[item.resourceSpecification.name]]</template>
+					<template>[[item.name]]</template>
 				</vaadin-grid-column>
 				<vaadin-grid-column>
 					<template class="header">
@@ -57,6 +57,12 @@ class policyList extends PolymerElement {
 						Type
 					</template>
 					<template>[[item.type]]</template>
+				</vaadin-grid-column>
+				<vaadin-grid-column>
+					<template class="header">
+						Specification
+					</template>
+					<template>[[item.resourceSpecification.name]]</template>
 				</vaadin-grid-column>
 			</vaadin-grid>
 			<div class="add-button">
@@ -81,6 +87,10 @@ class policyList extends PolymerElement {
 				type: Boolean,
 				notify: true
 			},
+			etag: {
+				type: String,
+				value: null
+			},
 			activeItem: {
 				type: Object,
 				notify: true,
@@ -89,16 +99,20 @@ class policyList extends PolymerElement {
 		}
 	}
 
-	_activeItemChanged(item) {
-		//todo
-	}
-
 	ready() {
 		super.ready();
 		var grid = this.shadowRoot.getElementById('policyGrid');
 		grid.dataProvider = this._getPolicy;
 	}
 
+	_activeItemChanged(item) {
+      if(item) {
+         this.$.policyGrid.selectedItems = item ? [item] : [];
+			document.body.querySelector('sig-app').shadowRoot.querySelector('sig-policy-update').shadowRoot.getElementById('updatePolicyModal').open();
+      } else {
+         this.$.policyGrid.selectedItems = [];
+      }
+	}
 
 	_getPolicy(params, callback) {
 		var grid = this;
@@ -126,6 +140,9 @@ class policyList extends PolymerElement {
 					var newRecord = new Object();
 					if(request.response[index].id) {
 						newRecord.id = request.response[index].id;
+					}
+					if(request.response[index].name) {
+						newRecord.name = request.response[index].name;
 					}
 					if(request.response[index].href) {
 						newRecord.href = request.response[index].href;
