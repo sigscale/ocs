@@ -26,9 +26,8 @@
 -export([get_resource_category/1, get_resource_categories/1]).
 -export([get_resource_candidate/1, get_resource_candidates/1]).
 -export([get_resource_catalog/1, get_resource_catalogs/1]).
--export([get_resource_inventory/1, get_resource_inventories/2,
-		add_resource_inventory/1, patch_resource_inventory/3,
-		delete_resource_inventory/1]).
+-export([get_resource/1, get_resource/2, add_resource/1, patch_resource/3,
+		delete_resource/1]).
 -export([get_pla_specs/1]).
 -export([resource/1, gtt/2]).
 
@@ -200,7 +199,7 @@ get_resource_catalogs([] = _Query) ->
 get_resource_catalogs(_Query) ->
 	{error, 400}.
 
--spec get_resource_inventory(Id) -> Result
+-spec get_resource(Id) -> Result
 	when
 		Id :: string(),
 		Result   :: {ok, Headers, Body} | {error, Status},
@@ -209,7 +208,7 @@ get_resource_catalogs(_Query) ->
 		Status   :: 400 | 404 | 500.
 %% @doc Respond to `GET /resourceInventoryManagement/v1/resource/{id}'.
 %%    Retrieve all logical resource from inventory management.
-get_resource_inventory(Id) ->
+get_resource(Id) ->
 	try
 		case ocs:get_resource(Id) of
 			{ok, #resource{last_modified = LM} = Resource} ->
@@ -229,7 +228,7 @@ get_resource_inventory(Id) ->
 			{error, 500}
 	end.
 
--spec get_resource_inventories(Query, Headers) -> Result
+-spec get_resource(Query, Headers) -> Result
 	when
 		Query :: [{Key :: string(), Value :: string()}],
 		Headers :: [tuple()],
@@ -238,7 +237,7 @@ get_resource_inventory(Id) ->
 %% @doc Body producing function for
 %% 	`GET|HEAD /resourceInventoryManagement/v1/resource'
 %% 	requests.
-get_resource_inventories(Query, Headers) ->
+get_resource(Query, Headers) ->
 	try
 		case lists:keytake("filter", 1, Query) of
 			{value, {_, String}, Query1} ->
@@ -360,7 +359,7 @@ query_start({M, F, A}, Codec, Query, Filters, RangeStart, RangeEnd) ->
 			{error, 500}
 	end.
 
--spec add_resource_inventory(RequestBody) -> Result
+-spec add_resource(RequestBody) -> Result
 	when
 		RequestBody :: [tuple()],
 		Result   :: {ok, Headers, Body} | {error, Status},
@@ -370,7 +369,7 @@ query_start({M, F, A}, Codec, Query, Filters, RangeStart, RangeEnd) ->
 %% @doc Respond to
 %% 	`POST /resourceInventoryManagement/v1/resource'.
 %%    Add a new row in resource inventory management.
-add_resource_inventory(RequestBody) ->
+add_resource(RequestBody) ->
 	try
 		Resource1 = resource(mochijson:decode(RequestBody)),
 		case ocs:add_resource(Resource1) of
@@ -403,14 +402,14 @@ get_pla_specs([] = _Query) ->
 get_pla_specs(_Query) ->
 	{error, 400}.
 
--spec delete_resource_inventory(Id) -> Result
+-spec delete_resource(Id) -> Result
    when
       Id :: string(),
       Result :: {ok, Headers :: [tuple()], Body :: iolist()}
             | {error, ErrorCode :: integer()} .
 %% @doc Respond to `DELETE /resourceInventoryManagement/v1/resource/{id}''
 %%    request to remove a table row.
-delete_resource_inventory(Id) ->
+delete_resource(Id) ->
 	case ocs:delete_resource(Id) of
 		ok ->
 			{ok, [], []};
@@ -418,7 +417,7 @@ delete_resource_inventory(Id) ->
 			{error, 400}
 	end.
 
--spec patch_resource_inventory(Id, Etag, ReqData) -> Result
+-spec patch_resource(Id, Etag, ReqData) -> Result
 	when
 		Id	:: string(),
 		Etag	:: undefined | list(),
@@ -429,7 +428,7 @@ delete_resource_inventory(Id) ->
 		Status	:: 400 | 404 | 500 .
 %% @doc Respond to `PATCH /resourceInventoryManagement/v1/resource/{id}'.
 %% 	Update a table row using JSON patch method.
-patch_resource_inventory(Id, Etag, ReqData) ->
+patch_resource(Id, Etag, ReqData) ->
 	try
 		Etag1 = case Etag of
 			undefined ->

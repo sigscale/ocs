@@ -126,7 +126,7 @@ do_patch("application/json-patch+json", Body, Resource, ModData, Etag,
 	do_response(ModData, Resource:patch_pla(ProdId, Etag, Body));
 do_patch("application/json-patch+json", Body, Resource, ModData, Etag,
 		["resourceInventoryManagement", "v1", "resource", Id]) ->
-	do_response(ModData, Resource:patch_resource_inventory(Id, Etag, Body));
+	do_response(ModData, Resource:patch_resource(Id, Etag, Body));
 do_patch("application/json-patch+json", Body, Resource, ModData, Etag,
 		["serviceInventoryManagement", "v2", "service", ServiceId]) ->
 	do_response(ModData, Resource:patch_inventory(ServiceId, Etag, Body));
