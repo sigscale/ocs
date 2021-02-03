@@ -150,8 +150,12 @@ class policyAdd extends PolymerElement {
       if(this.polCategory) {
          pol.category = this.polCategory;
       }
-      if(this.polSpecification) {
-         pol.category = this.polSpecification;
+      if(this.polSpec) {
+			var spec = new Object();
+			spec.id = "4";
+			spec.href = "/resourceInventoryManagement/v1/resource/vwqmumpshq" + spec.id;
+			spec.name = this.polSpec;
+         pol.resourceSpecification = spec;
       }
       ajax.body = JSON.stringify(pol);
       ajax.generateRequest();
@@ -166,7 +170,7 @@ class policyAdd extends PolymerElement {
       this.polStatus = null;
       this.polVersion = null;
       this.polCategory = null;
-      this.polSpecification = null;
+      this.polSpec = null;
       document.body.querySelector('sig-app').shadowRoot.getElementById('policyList').shadowRoot.getElementById('policyGrid').clearCache();
    }
 }
