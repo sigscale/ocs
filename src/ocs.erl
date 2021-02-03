@@ -45,6 +45,7 @@
 %% export the ocs private API
 -export([normalize/1, subscription/4, end_period/2]).
 -export([import/2, find_sn_network/2]).
+-export([query_table/6]).
 
 -export_type([eap_method/0, match/0]).
 
@@ -1598,6 +1599,46 @@ query_offer2({Offers, Cont}, '_', '_', '_', '_', '_') ->
 	{Cont, Offers};
 query_offer2('$end_of_table', _Description, _Status, _STD, _EDT, _Price) ->
 	{eof, []}.
+
+-spec query_table(Cont, Name, Prefix, Description, Rate, LM) -> Result
+	when
+		Cont :: start | any(),
+		Name :: undefined | '_' | atom(),
+		Prefix :: undefined | '_' | string(),
+		Description :: undefined | '_' | string(),
+		Rate :: undefined | '_' | string(),
+		LM :: undefined | '_' | tuple(),
+		Result :: {Cont1, [#gtt{}]} | {error, Reason},
+		Cont1 :: eof | any(),
+		Reason :: term().
+%% @doc Query pricing logic algorithm entires
+query_table(Cont, Name, Prefix, Description, Rate, undefined) ->
+	query_table(Cont, Name, Prefix, Description, Rate, '_');
+query_table(Cont, Name, Prefix, Description, undefined, LM) ->
+	query_table(Cont, Name, Prefix, Description, '_', LM);
+query_table(Cont, Name, Prefix, undefined, Rate, LM) ->
+	query_table(Cont, Name, Prefix, '_', Rate, LM);
+query_table(Cont, Name, undefined, Description, Rate, LM) ->
+	query_table(Cont, Name, '_', Description, Rate, LM);
+query_table(start, Name, Prefix, Description, Rate, LM) ->
+	MatchHead = #gtt{num = Prefix, value = {Description, Rate, LM}},
+	MatchSpec = MatchSpec = [{MatchHead, [], ['$_']}],
+	F = fun() ->
+		mnesia:select(Name, MatchSpec, read)
+	end,
+	case mnesia:transaction(F) of
+		{atomic, Pla} ->
+			query_table1(Pla, []);
+		{aborted, Reason} ->
+			{error, Reason}
+	end;
+query_table(eof, _Name, _Prefix, _Description, _Rate, _LM) ->
+	{eof, []}.
+%% @hidden
+query_table1([], Acc) ->
+	{eof, lists:reverse(Acc)};
+query_table1(Pla, _Acc) ->
+	{eof, Pla}.
 
 -spec add_resource(Resource) -> Result
 	when
