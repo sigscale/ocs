@@ -218,6 +218,8 @@ do_get(Resource, ModData, ["catalogManagement", "v2", "resourceCandidate", Id], 
 	do_response(ModData, Resource:get_resource_candidate(Id));
 do_get(Resource, ModData, ["catalogManagement", "v2", "resourceCandidate"], Query) ->
 	do_response(ModData, Resource:get_resource_candidates(Query));
+do_get(Resource, ModData, ["resourceInventoryManagement", "v1", "logicalResource", Id], Query) ->
+	do_response(ModData, Resource:get_resource_inventory(Id, Query));
 do_get(Resource, ModData, ["catalogManagement", "v2", "resourceCatalog", Id], []) ->
 	do_response(ModData, Resource:get_resource_catalog(Id));
 do_get(Resource, ModData, ["catalogManagement", "v2", "resourceCatalog"], Query) ->
