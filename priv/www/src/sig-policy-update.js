@@ -58,6 +58,11 @@ class policyUpdate extends PolymerElement {
 						label="Category"
 						value="{{polCat}}">
 				</paper-input>
+				<paper-input
+						id = "policySpecification"
+						label="Specification"
+						value="{{polSpe}}">
+				</paper-input>
 				<div class="buttons">
 					<paper-button
 							raised
@@ -99,6 +104,9 @@ class policyUpdate extends PolymerElement {
 			},
 			polName: {
 				type: String
+			},
+			polSpe: {
+				type: String
 			}
 		}
 	}
@@ -113,11 +121,13 @@ class policyUpdate extends PolymerElement {
 			this.polName = item.name;
 			this.polDesc = item.description;
 			this.polCat = item.category;
+			this.polSpe = item.resourceSpecification.name;
 		} else {
 			this.polId = null;
 			this.polName = null;
 			this.polDesc = null;
 			this.polCat = null;
+			this.polSpe = null;
 		}
 	}
 
@@ -142,6 +152,11 @@ class policyUpdate extends PolymerElement {
 		Cat.path = "/category";
       Cat.value = this.polCat;
       PolArray.push(Cat);
+		var Spe = new Object();
+		Spe.op = "add";
+		Spe.path = "/resourceSpecification/name";
+      Spe.value = this.polSpe;
+      PolArray.push(Spe);
 		Ajax.body = JSON.stringify(PolArray);
 		Ajax.generateRequest();
 		this.polName = null;
