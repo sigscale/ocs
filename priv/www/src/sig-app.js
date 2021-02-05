@@ -218,7 +218,7 @@ class SigApp extends PolymerElement {
 							</a>
 							<a name="policyView" href="[[rootPath]]policyView">
 								<paper-icon-button
-										icon="my-icons:table">
+										icon="icons:verified-user">
 								</paper-icon-button>
 								Policy
 							</a>
