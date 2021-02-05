@@ -1,4 +1,22 @@
-2021-01-19  Refath Wadood <refath@sigscale.org>
+2021-02-05  Refath Wadood <refath@sigscale.org>
+	
+	* gui: fix update unit price in GUI
+	* gui: send correct value for unit Of measurement
+	* gui: fix length to add product without service
+	* gui: fix add product without service
+	* gui: fix add bucket with product
+	* gui: fix display seconds
+	* gui: display msisdn and imsi in acct log view
+	* gui: disable cents in recurring alteration
+	* gui: support pagination balance view in GUI
+	* gui: add expanding row in bucket view
+	* test: balance log view pagination
+	* implement pagination in REST for balance log
+	* correct parsing user-name avp
+	* add stack trace to error reports
+	* improve balance adjustment failure handling
+
+2021-01-19 Refath Wadood <refath@sigscale.org>
 	
 	* gui: fix label and clear values for redirect server
 	
@@ -32,7 +50,7 @@
 	* gui: add service without product
 	* gui: fix realizing service length
 	* rest: support balance query by service identifier
-	* correct href product catalog managment 
+	* correct href product catalog managment
 	* remove past due dates when product is charged
 	* remove multiple payments made by the scheduler
 
@@ -207,7 +225,7 @@
 	* notificatons: accumulated balance is less than its threshold
 	* handle msisdn and imsi values in codec
 	* implement the handler for product catalog synchronization
-	* set authorization from subscription request 
+	* set authorization from subscription request
 	* add user default module
 	* handle only resource id or eventype in the subscription query
 	* return error for unsupported subscription query
@@ -575,9 +593,9 @@
 	* test suite for diameter acct query
 	* query filter for diameter acct log
 	* handle old record version for nas_id
-	* correct logging of rated info 
-	* include usage amounts for diameter events in api 
-	* log bucket creation to abmf log 
+	* correct logging of rated info
+	* include usage amounts for diameter events in api
+	* log bucket creation to abmf log
 	* remove open an abmf log from get_balance_log function
 	* fix looping state in service
 	* handle ocs_acct, ocs_auth, ocs_abmf log names from environment variables
@@ -853,8 +871,8 @@
 
 2017-12-13  Kalpa Gunarathna <kalpa@sigscale.org>
 
-	* ocs_diameter_acct_port_server.erl : remove Final-Unit-Indication in final CCA 
-	* ocs_rating.erl : correct reservation refund 
+	* ocs_diameter_acct_port_server.erl : remove Final-Unit-Indication in final CCA
+	* ocs_rating.erl : correct reservation refund
 
 2017-12-11  Vance Shipley <vances@sigscale.org>
 
