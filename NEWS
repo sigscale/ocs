@@ -1,3 +1,7 @@
+February 08, 2021
+---------------
+	- Correct MSCC AVPs for redirect on out-of-credit
+
 February 05, 2021
 ---------------
 	- Support pagination in balance log view
