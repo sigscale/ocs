@@ -4439,6 +4439,9 @@ get_resources(Config) ->
 	{array, Objects} = mochijson:decode(ResponseBody),
 	true = length(Objects) >= 2.
 
+post_resource() ->
+	[{userdata, [{doc,"Add resource in rest interface"}]}].
+
 post_resource(Config) ->
 	HostUrl = ?config(host_url, Config),
 	CollectionUrl = HostUrl ++ "/resourceInventoryManagement/v1/resource/",
