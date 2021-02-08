@@ -29,8 +29,6 @@
 -export([peer_up/3, peer_down/3, pick_peer/4, prepare_request/3,
 			prepare_retransmit/3, handle_answer/4, handle_error/4,
 			handle_request/3]).
-%%Temp
--export([process_request/4]).
 
 -include_lib("diameter/include/diameter.hrl").
 -include_lib("diameter/include/diameter_gen_base_rfc6733.hrl").
@@ -1012,11 +1010,19 @@ rate(ServiceType, ServiceNetwork, Subscriber,
 				ResultCode1 ->
 					ResultCode1
 			end,
-			MSCC = #'3gpp_ro_Multiple-Services-Credit-Control'{
+			MSCC = case RedirectServerAddress of
+				undefined ->
+					#'3gpp_ro_Multiple-Services-Credit-Control'{
+							'Service-Identifier' = SI,
+							'Rating-Group' = RG,
+							'Result-Code' = [ResultCode2]};
+				RedirectServerAddress when is_list(RedirectServerAddress) ->
+					#'3gpp_ro_Multiple-Services-Credit-Control'{
 							'Service-Identifier' = SI,
 							'Rating-Group' = RG,
 							'Result-Code' = [ResultCode2],
-							'Final-Unit-Indication' = fui(RedirectServerAddress)},
+							'Final-Unit-Indication' = fui(RedirectServerAddress)}
+			end,
 			rate(ServiceType, ServiceNetwork, Subscriber,
 					Timestamp, Address, Direction, Flag, SessionId,
 					T, [MSCC | Acc], ResultCode3, Rated1);
@@ -1029,11 +1035,19 @@ rate(ServiceType, ServiceNetwork, Subscriber,
 				ResultCode1 ->
 					ResultCode1
 			end,
-			MSCC = #'3gpp_ro_Multiple-Services-Credit-Control'{
+			MSCC = case RedirectServerAddress of
+				undefined ->
+					#'3gpp_ro_Multiple-Services-Credit-Control'{
+							'Service-Identifier' = SI,
+							'Rating-Group' = RG,
+							'Result-Code' = [ResultCode2]};
+				RedirectServerAddress when is_list(RedirectServerAddress) ->
+					#'3gpp_ro_Multiple-Services-Credit-Control'{
 							'Service-Identifier' = SI,
 							'Rating-Group' = RG,
 							'Result-Code' = [ResultCode2],
-							'Final-Unit-Indication' = fui(RedirectServerAddress)},
+							'Final-Unit-Indication' = fui(RedirectServerAddress)}
+			end,
 			rate(ServiceType, ServiceNetwork, Subscriber,
 					Timestamp, Address, Direction, Flag, SessionId,
 					T, [MSCC | Acc], ResultCode3, Rated2);
@@ -1046,11 +1060,19 @@ rate(ServiceType, ServiceNetwork, Subscriber,
 				ResultCode1 ->
 					ResultCode1
 			end,
-			MSCC = #'3gpp_ro_Multiple-Services-Credit-Control'{
+			MSCC = case RedirectServerAddress of
+				undefined ->
+					#'3gpp_ro_Multiple-Services-Credit-Control'{
+							'Service-Identifier' = SI,
+							'Rating-Group' = RG,
+							'Result-Code' = [ResultCode2]};
+				RedirectServerAddress when is_list(RedirectServerAddress) ->
+					#'3gpp_ro_Multiple-Services-Credit-Control'{
 							'Service-Identifier' = SI,
 							'Rating-Group' = RG,
 							'Result-Code' = [ResultCode2],
-							'Final-Unit-Indication' = fui(RedirectServerAddress)},
+							'Final-Unit-Indication' = fui(RedirectServerAddress)}
+			end,
 			rate(ServiceType, ServiceNetwork, Subscriber,
 					Timestamp, Address, Direction, Flag, SessionId,
 					T, [MSCC | Acc], ResultCode3, Rated1 ++ Rated2);
