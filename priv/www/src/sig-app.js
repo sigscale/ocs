@@ -218,7 +218,7 @@ class SigApp extends PolymerElement {
 							</a>
 							<a name="policyView" href="[[rootPath]]policyView">
 								<paper-icon-button
-										icon="my-icons:table">
+										icon="icons:verified-user">
 								</paper-icon-button>
 								Policy
 							</a>
@@ -334,6 +334,7 @@ class SigApp extends PolymerElement {
 			<sig-bucket-add></sig-bucket-add>
 			<sig-product-add active-item="[[activeProductItem]]" offers="[[offers]]"></sig-product-add>
 			<sig-policy-add id="policyAdd"></sig-policy-add>
+			<sig-policy-update id="policyUpdate" active-item="[[activePolicyItem]]"></sig-policy-update>
 		`;
 	}
 
@@ -477,6 +478,9 @@ class SigApp extends PolymerElement {
 			},
 			bucketLoading: {
 				type: Boolean
+			},
+			activePolicyItem: {
+				type: Boolean
 			}
 		};
 	}
@@ -600,6 +604,7 @@ class SigApp extends PolymerElement {
 			case 'policyView':
 				import('./sig-policy-list.js');
 				import('./sig-policy-add.js');
+				import('./sig-policy-update.js');
 				break;
 			case 'balanceView':
 				import('./sig-balance-list.js');
