@@ -37,7 +37,7 @@
 -export([add_offer/1, find_offer/1, get_offers/0, delete_offer/1,
 		query_offer/7]).
 -export([add_resource/1, get_resources/0, get_resource/1, delete_resource/1,
-		query_resource/3]).
+		query_resource/4]).
 -export([add_policy_table/1, delete_policy_table/1]).
 -export([add_policy/2, get_policy/2, get_policies/1, delete_policy/2]).
 -export([generate_password/0, generate_identity/0]).
@@ -1753,20 +1753,21 @@ delete_resource(ResourceID) when is_list(ResourceID) ->
 			ocs_event:notify(delete_resource, Resource, resource)
 	end.
 
--spec query_resource(Cont, MatchId, MatchCategory) -> Result
+-spec query_resource(Cont, MatchId, MatchCategory, MatchResSpecId) -> Result
 	when
 		Cont :: start | any(),
 		MatchId :: Match,
 		MatchCategory :: Match,
+		MatchResSpecId :: Match,
 		Match :: {exact, string()} | {like, string()} | '_',
 		Result :: {Cont1, [#resource{}]} | {error, Reason},
 		Cont1 :: eof | any(),
 		Reason :: term().
 %% @doc Query resources
-query_resource(Cont, '_', MatchCategory) ->
+query_resource(Cont, '_', MatchCategory, MatchResSpecId) ->
 	MatchHead = #resource{_ = '_'},
-	query_resource1(Cont, MatchHead, MatchCategory);
-query_resource(Cont, {Op, String}, MatchCategory)
+	query_resource1(Cont, MatchHead, MatchCategory, MatchResSpecId);
+query_resource(Cont, {Op, String}, MatchCategory, MatchResSpecId)
 		when is_list(String), ((Op == exact) orelse (Op == like)) ->
 	MatchHead = case lists:last(String) of
 		$% when Op == like ->
@@ -1774,35 +1775,48 @@ query_resource(Cont, {Op, String}, MatchCategory)
 		_ ->
          #resource{id = String, _ = '_'}
 	end,
-   query_resource1(Cont, MatchHead, MatchCategory).
+   query_resource1(Cont, MatchHead, MatchCategory, MatchResSpecId).
 %% @hidden
-query_resource1(Cont, MatchHead, '_') ->
-	MatchSpec = [{MatchHead, [], ['$_']}],
-	query_resource2(Cont, MatchSpec);
-query_resource1(Cont, MatchHead, {Op, String} = _MatchCategory)
+query_resource1(Cont, MatchHead, '_', MatchResSpecId) ->
+	query_resource2(Cont, MatchHead, MatchResSpecId);
+query_resource1(Cont, MatchHead1, {Op, String}, MatchResSpecId)
 		when is_list(String), ((Op == exact) orelse (Op == like)) ->
-	MatchHead = case lists:last(String) of
+	MatchHead2 = case lists:last(String) of
 		$% when Op == like ->
-			MatchHead#resource{category = lists:droplast(String) ++ '_'};
+			MatchHead1#resource{category = lists:droplast(String) ++ '_'};
 		_ ->
-         MatchHead#resource{category = String}
+         MatchHead1#resource{category = String}
 	end,
+   query_resource2(Cont, MatchHead2, MatchResSpecId).
+query_resource2(Cont, MatchHead, '_') ->
 	MatchSpec = [{MatchHead, [], ['$_']}],
-   query_resource2(Cont, MatchSpec).
-query_resource2(start, MatchSpec) ->
+	query_resource3(Cont, MatchSpec);
+query_resource2(Cont, MatchHead1, {Op, String})
+		when is_list(String), ((Op == exact) orelse (Op == like)) ->
+	MatchHead2 = case lists:last(String) of
+		$% when Op == like ->
+			MatchHead1#resource{specification = #specification_ref{id
+					= lists:droplast(String) ++ '_', _ = '_'}};
+		_ ->
+         MatchHead1#resource{specification
+					= #specification_ref{id = String, _ = '_'}}
+	end,
+	MatchSpec = [{MatchHead2, [], ['$_']}],
+   query_resource3(Cont, MatchSpec).
+query_resource3(start, MatchSpec) ->
 	F = fun() ->
 			mnesia:select(resource, MatchSpec, ?CHUNKSIZE, read)
 	end,
-	query_resource3(mnesia:ets(F));
-query_resource2(Cont, _MatchSpec) ->
+	query_resource4(mnesia:ets(F));
+query_resource3(Cont, _MatchSpec) ->
 	F = fun() ->
          mnesia:select(Cont)
    end,
-	query_resource3(mnesia:ets(F)).
+	query_resource4(mnesia:ets(F)).
 %% @hidden
-query_resource3({Resources, Cont}) ->
+query_resource4({Resources, Cont}) ->
 	{Cont, Resources};
-query_resource3('$end_of_table') ->
+query_resource4('$end_of_table') ->
 		{eof, []}.
 
 -type password() :: [50..57 | 97..104 | 106..107 | 109..110 | 112..116 | 119..122].

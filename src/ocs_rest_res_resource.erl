@@ -395,7 +395,8 @@ get_resource(Query, Headers) ->
 			false ->
 					MatchId = match("id", [], Query),
 					MatchCategory = match("category", [], Query),
-					{Query, [MatchId, MatchCategory]}
+					MatchSpecId = match("resourceSpecification.id", [], Query),
+					{Query, [MatchId, MatchCategory, MatchSpecId]}
 		end
 	of
 		{Query2, Args} ->
