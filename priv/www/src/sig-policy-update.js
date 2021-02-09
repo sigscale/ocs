@@ -75,6 +75,13 @@ class policyUpdate extends PolymerElement {
 							on-tap="_cancel">
 						Cancel
 					</paper-button>
+					<paper-button
+							toggles
+							raised
+							class="delete-button"
+							on-tap="deletePolicy">
+						Delete
+					</paper-button>
 				</div>
 			</paper-dialog>
 			<iron-ajax
@@ -82,6 +89,11 @@ class policyUpdate extends PolymerElement {
 					loading="{{loading}}"
 					on-response="_response"
 					on-error="_error">
+			</iron-ajax>
+			<iron-ajax
+					id="deletePolicyAjax"
+					on-response="_deletePolicyResponse"
+					on-error="_deletePolicyError">
 			</iron-ajax>
 		`;
 	}
@@ -129,6 +141,17 @@ class policyUpdate extends PolymerElement {
 			this.polCat = null;
 			this.polSpe = null;
 		}
+	}
+
+   deletePolicy() {
+      this.$.deletePolicyAjax.method = "DELETE";
+      this.$.deletePolicyAjax.url = "/resourceInventoryManagement/v1/resource/" + document.body.querySelector('sig-app').shadowRoot.getElementById('policyList').shadowRoot.getElementById('policyGrid').selectedItems[0].id;
+      this.$.deletePolicyAjax.generateRequest();
+   }
+
+	_deletePolicyResponse() {
+      this.$.updatePolicyModal.close();
+      document.body.querySelector('sig-app').shadowRoot.getElementById('policyList').shadowRoot.getElementById('policyGrid').clearCache();
 	}
 
 	_add(event) {
