@@ -287,13 +287,12 @@
                     "invocationTimeStamp" : "2020-12-13T15:33:10.203Z",
                     "invocationSequenceNumber" : 2,
                     "actualTime" : "2020-12-13T15:33:10Z",
-                    "subscriptionId" : [ "msisdn-14165551234", "imsi-001001000000001" ],
                     "serviceRating" : [ {
                       "serviceContextId" : "32251@3gpp.org",
                       "serviceId" : 1,
                       "ratingGroup" : 32,
                       "requestSubType" : "DEBIT",
-                      "usedUnits" : {
+                      "consumedUnit" : {
                         "totalVolume" : 83256442
                       }
                     }, {
@@ -431,7 +430,6 @@
                     "invocationTimeStamp" : "2020-12-13T15:38:45.490Z",
                     "invocationSequenceNumber" : 2,
                     "actualTime" : "2020-12-13T15:38:45Z",
-                    "subscriptionId" : [ "msisdn-14165551234", "imsi-001001000000001" ],
                     "oneTimeEvent" : true,
                     "oneTimeEventType" : "PEC",
                     "serviceRating" : [ {
