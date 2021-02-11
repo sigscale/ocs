@@ -828,23 +828,28 @@ add_service1(Identity, Password, State, ProductRef,
 		Chars, Attributes, EnabledStatus, MultiSession) ->
 	case mnesia:read(product, ProductRef, read) of
 		[#product{service = ServiceRefs} = P1] ->
-			Now = erlang:system_time(?MILLISECOND),
-			N = erlang:unique_integer([positive]),
-			LM = {Now, N},
-			P2 = P1#product{service = [Identity | ServiceRefs],
-					last_modified = LM},
-			ok = mnesia:write(P2),
-			S1 = #service{name = Identity,
-							password = Password,
-							state = State,
-							product = ProductRef,
-							attributes = Attributes,
-							enabled = EnabledStatus,
-							multisession = MultiSession,
-							characteristics = Chars,
+			case lists:member(Identity, ServiceRefs) of
+				false ->
+					Now = erlang:system_time(?MILLISECOND),
+					N = erlang:unique_integer([positive]),
+					LM = {Now, N},
+					P2 = P1#product{service = [Identity | ServiceRefs],
 							last_modified = LM},
-			ok = mnesia:write(service, S1, write),
-			S1;
+					ok = mnesia:write(P2),
+					S1 = #service{name = Identity,
+									password = Password,
+									state = State,
+									product = ProductRef,
+									attributes = Attributes,
+									enabled = EnabledStatus,
+									multisession = MultiSession,
+									characteristics = Chars,
+									last_modified = LM},
+					ok = mnesia:write(service, S1, write),
+					S1;
+				true ->
+					throw(service_exists)
+			end;
 		[] ->
 			throw(product_not_found)
 	end.
