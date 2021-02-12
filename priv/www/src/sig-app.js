@@ -214,7 +214,7 @@ class SigApp extends PolymerElement {
 								<paper-icon-button
 										icon="my-icons:table">
 								</paper-icon-button>
-								Tables
+								Tariff
 							</a>
 							<a name="policyView" href="[[rootPath]]policyView">
 								<paper-icon-button
