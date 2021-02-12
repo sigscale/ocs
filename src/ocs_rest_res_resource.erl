@@ -1093,6 +1093,32 @@ resource_char([#resource_char{} | _] = List) ->
 	Fields = record_info(fields, resource_char),
 	[resource_char(Fields, R, []) || R <- List].
 %% @hidden
+resource_char([{"name", "name"}, {"value", {struct, NameList}} | T], Acc) ->
+	{_, Name} = lists:keyfind("value", 1, NameList),
+	resource_char(T, Acc#resource_char{name = "name", value = Name});
+resource_char([{"name", "chargingRule"},
+		{"value", {struct, CRList}} | T], Acc) ->
+	{_, ChargingRule} = lists:keyfind("value", 1, CRList),
+	resource_char(T, Acc#resource_char{name = "chargingRule",
+			value = ChargingRule});
+resource_char([{"name", "precedence"}, {"value",
+		{struct, PrecedenceList}} | T], Acc) ->
+	{_, Precedence} = lists:keyfind("value", 1, PrecedenceList),
+	resource_char(T, Acc#resource_char{name = "precedence",
+			value = Precedence});
+resource_char([{"name", "qosInformation"},
+		{"value", {struct, QosInfo}} | T], Acc) ->
+	{_, {struct, QosList}} = lists:keyfind("value", 1, QosInfo),
+	resource_char(T, Acc#resource_char{name = "qosInformation",
+			value = parse_char(QosList, #{})});
+resource_char([{"name", "flowInformation"},
+		{"value", {struct, FlowInfo}} | T], Acc) ->
+	{_, {array, FlowStructList}} = lists:keyfind("value", 1, FlowInfo),
+	F = fun({struct, FlowList}) ->
+			parse_char(FlowList, #{})
+	end,
+	resource_char(T, Acc#resource_char{name = "flowInformation",
+			value = lists:map(F, FlowStructList)});
 resource_char([{"name", Name} | T], Acc) when is_list(Name) ->
 	resource_char(T, Acc#resource_char{name = Name});
 resource_char([{"@type", Type} | T], Acc) when is_list(Type) ->
@@ -1106,21 +1132,45 @@ resource_char([_ | T], Acc) ->
 resource_char([], Acc) ->
 	Acc.
 %% @hidden
-resource_char([name | T], #resource_char{name = Name} = R, Acc)
-		when is_list(Name) ->
-	resource_char(T, R, [{"name", Name} | Acc]);
-resource_char([class_type | T], #resource_char{class_type = Type} = R, Acc)
-		when is_list(Type) ->
-	resource_char(T, R, [{"@type", Type} | Acc]);
-resource_char([schema | T], #resource_char{schema = Schema} = R, Acc)
-		when is_list(Schema) ->
-	resource_char(T, R, [{"@schemaLocation", Schema} | Acc]);
-resource_char([value | T], #resource_char{value = Value} = R, Acc) ->
-	resource_char(T, R, [{"value", Value} | Acc]);
+resource_char([value | T], #resource_char{name = "name",
+		value = Value} = R, Acc) ->
+	resource_char(T, R, [{"name", "name"}, {"value", {struct, [{"seqNum", 1},
+			{"value", Value}]}} | Acc]);
+resource_char([value | T], #resource_char{name = "chargingRule",
+		value = Value} = R, Acc) ->
+	resource_char(T, R, [{"name", "chargingRule"},
+			{"value", {struct, [{"seqNum", 3}, {"value", Value}]}} | Acc]);
+resource_char([value | T], #resource_char{name = "precedence",
+		value = Value} = R, Acc) ->
+	resource_char(T, R, [{"name", "precedence"},
+			{"value", {struct, [{"seqNum", 5}, {"value", Value}]}} | Acc]);
+resource_char([value | T], #resource_char{name = "qosInformation",
+		value = #{"maxRequestedBandwidthDL" := MaxDL,
+		"maxRequestedBandwidthUL" := MaxUL,
+		"qosClassIdentifier" := Class}} = R, Acc) ->
+	resource_char(T, R, [{"name", "qosInformation"},
+			{"value", {struct, [{"seqNum", 2}, {"value", {struct,
+			[{"maxRequestedBandwidthDL", MaxDL}, {"maxRequestedBandwidthUL",
+			MaxUL}, {"qosClassIdentifier", Class}]}}]}} | Acc]);
+resource_char([value | T], #resource_char{name = "flowInformation",
+		value = FlowList} = R, Acc) when is_list(FlowList) ->
+	F = fun(#{"name" := Name, "flowDescription" := FlowDes,
+			"flowDirection" := FlowDirection}) ->
+		{struct, [{"name", Name}, {"value", {struct,
+				[{"flowDescription", FlowDes}, {"flowDirection", FlowDirection}]}}]}
+	end,
+	resource_char(T, R, [{"name", "flowInformation"}, {"value", {struct,
+			[{"seqNum", 4}, {"value", {array, lists:map(F, FlowList)}}]}} | Acc]);
 resource_char([_ | T], R, Acc) ->
 	resource_char(T, R, Acc);
 resource_char([], _, Acc) ->
 	{struct, lists:reverse(Acc)}.
+
+%% @hidden
+parse_char([{Field, Value} | T], Acc) ->
+	parse_char(T, Acc#{Field => Value});
+parse_char([], Acc) ->
+	Acc.
 
 -spec specification_ref(ResourceSpecificationRef) -> ResourceSpecificationRef
 	when

@@ -218,7 +218,8 @@ all() ->
 	notify_add_resource, notify_delete_resource, query_resource_notification,
 	post_hub_usage, get_usage_hubs, get_usage_hub, delete_hub_usage,
 	notify_diameter_acct_log, get_resource, get_resources,
-	post_resource, delete_resource, update_resource, oauth_authentication].
+	post_resource, delete_resource, update_resource, post_policy,
+	oauth_authentication].
 
 %%---------------------------------------------------------------------
 %%  Test cases
@@ -4583,6 +4584,65 @@ update_resource(Config) ->
 			category = "policy", specification = #specification_ref{id = "4",
 			href = "/resourceInventoryManagement/v1/productSpecification/4"}}}
 			= ocs:get_resource(ResourceId).
+
+post_policy() ->
+	[{userdata, [{doc,"Add policy in rest interface"}]}].
+
+post_policy(Config) ->
+	ResName = ocs:generate_identity(),
+	Name = {"name", ResName},
+	ResourceSpec = {"resourceSpecification",
+			{struct, [{"id", "4"}, {"name", "PolicyTable"}]}},
+	Char1 = {struct, [{"name", "name"}, {"value",
+			{struct, [{"seqNum", 1}, {"value", ResName}]}}]},
+	Char2 = {struct, [{"name", "qosInformation"},
+			{"value", {struct, [{"seqNum", 2}, {"value", {struct, [
+			{"qosClassIdentifier", rand:uniform(10)},
+			{"maxRequestedBandwidthUL", 1000000000},
+			{"maxRequestedBandwidthDL", 1000000000}]}}]}}]},
+	Char3 = {struct, [{"name", "chargingRule"},
+			{"value", {struct, [{"seqNum", 3}, {"value", "1"}]}}]},
+	Char4 = {struct, [{"name", "flowInformation"},
+			{"value", {struct, [{"seqNum", 4}, {"value", {array,
+			[{struct, [{"name", "flowInformationUp1"},
+					{"flowDescription", "permit in ip from any to 10/8"},
+					{"flowDirection", "2"}]},
+			{struct, [{"name", "flowInformationDown1"},
+					{"flowDescription", "permit in ip from any to 10/8"},
+					{"flowDirection", "2"}]}]}}]}}]},
+	Char5 = {struct, [{"name", "precedence"},
+			{"value", {struct, [{"seqNum", 5}, {"value", 1}]}}]},
+	Characteristics = {"resourceCharacteristic",
+			{array, [Char1, Char2, Char3, Char4, Char5]}},
+	JSON = {struct, [Name, ResourceSpec, Characteristics]},
+	RequestBody = lists:flatten(mochijson:encode(JSON)),
+	HostUrl = ?config(host_url, Config),
+	Accept = {"accept", "application/json"},
+	ContentType = "application/json",
+	Request = {HostUrl ++ "/resourceInventoryManagement/v1/resource/",
+			[Accept, auth_header()], ContentType, RequestBody},
+	{ok, Result} = httpc:request(post, Request, [], []),
+	{{"HTTP/1.1", 201, _Created}, Headers, ResponseBody} = Result,
+	{_, "application/json"} = lists:keyfind("content-type", 1, Headers),
+	ContentLength = integer_to_list(length(ResponseBody)),
+	{_, ContentLength} = lists:keyfind("content-length", 1, Headers),
+	{_, URI} = lists:keyfind("location", 1, Headers),
+	{"/resourceInventoryManagement/v1/resource/" ++ ID, _}
+			= httpd_util:split_path(URI),
+	{ok, #resource{name = ResName, characteristic = ResChar}}
+			= ocs:get_resource(ID),
+	#resource_char{value = ResName}
+			= lists:keyfind("name", #resource_char.name, ResChar),
+	#resource_char{value = #{}}
+			= lists:keyfind("qosInformation", #resource_char.name, ResChar),
+	#resource_char{value = Rule}
+			= lists:keyfind("chargingRule", #resource_char.name, ResChar),
+	true = is_list(Rule),
+	#resource_char{value = [#{} | _]}
+			= lists:keyfind("flowInformation", #resource_char.name, ResChar),
+	#resource_char{value = Precedence}
+			= lists:keyfind("precedence", #resource_char.name, ResChar),
+	true = is_integer(Precedence).
 
 oauth_authenticaton()->
 	[{userdata, [{doc, "Authenticate a JWT using oauth"}]}].
