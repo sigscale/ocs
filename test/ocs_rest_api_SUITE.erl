@@ -218,7 +218,7 @@ all() ->
 	notify_add_resource, notify_delete_resource, query_resource_notification,
 	post_hub_usage, get_usage_hubs, get_usage_hub, delete_hub_usage,
 	notify_diameter_acct_log, get_resource, get_resources,
-	post_resource, delete_resource, update_resource, post_policy,
+	post_resource, delete_resource, update_resource, post_policy, query_policy,
 	oauth_authentication].
 
 %%---------------------------------------------------------------------
@@ -4643,6 +4643,62 @@ post_policy(Config) ->
 	#resource_char{value = Precedence}
 			= lists:keyfind("precedence", #resource_char.name, ResChar),
 	true = is_integer(Precedence).
+
+query_policy() ->
+	[{userdata, [{doc, "Query policy entry in resource table"}]}].
+
+query_policy(Config) ->
+	TariffTable = #resource{name = "TariffTable", description = "Tariff Table",
+			category = "Tariff", class_type = "LogicalResource",
+			base_type = "Resource", specification = #specification_ref{id = "1",
+					href = "/resourceCatalogManagement/v2/resourceSpecification/1",
+					name = "TariffTable"}},
+	{ok, #resource{}} = ocs:add_resource(TariffTable),
+	PolicyTable = #resource{name = "PolicyTable", description = "Policy Table",
+			category = "Policy", class_type = "LogicalResource",
+			base_type = "Resource", specification = #specification_ref{id = "3",
+					href = "/resourceCatalogManagement/v2/resourceSpecification/3",
+					name = "PolicyTable"}},
+	{ok, #resource{id = PolicyTableId}} = ocs:add_resource(PolicyTable),
+	PolicyRow = #resource{name = "PolicyRow", description = "Policy Row",
+			category = "Policy", class_type = "LogicalResource",
+			base_type = "Resource", related = [#resource_rel{id = PolicyTableId,
+					href = "/resourceInventoryManagement/v1/resourceRelationship/"
+					++ PolicyTableId, name = "PolicyTable", type = "contained"}],
+			specification = #specification_ref{id = "4",
+					href = "/resourceCatalogManagement/v2/resourceSpecification/4",
+					name = "PolicyRow"},
+			characteristic = [#resource_char{name = "name", value = "example"},
+					#resource_char{name = "qosInformation", value =
+							#{"maxRequestedBandwidthDL" => 1000000000,
+							"maxRequestedBandwidthUL" => 1000000000,
+							"qosClassIdentifier" => 4}},
+					#resource_char{name = "chargingRule", value = "1"},
+					#resource_char{name = "flowInformation", value =
+							[#{"name" => "flowInformationUp1", "flowDirection" => "2",
+									"flowDescription" => "permit in ip from any to 10/8"},
+							#{"name" => "flowInformationDown1", "flowDirection" => "2",
+									"flowDescription" => "permit in ip from any to 10/8"}]},
+					#resource_char{name = "precedence", value = 1}]},
+	{ok, #resource{id = Id}} = ocs:add_resource(PolicyRow),
+	HostUrl = ?config(host_url, Config),
+	Accept = {"accept", "application/json"},
+	Query = "resourceSpecification.id=4" ++
+		"&resourceRelationship.name=PolicyTable",
+	Request = {HostUrl ++ "/resourceInventoryManagement/v1/resource/?" ++ Query,
+			[Accept, auth_header()]},
+	{ok, Result} = httpc:request(get, Request, [], []),
+	{{"HTTP/1.1", 200, _OK}, Headers, ResponseBody} = Result,
+	{_, "application/json"} = lists:keyfind("content-type", 1, Headers),
+	{array, [{struct, Object}]} = mochijson:decode(ResponseBody),
+	{_, Id} = lists:keyfind("id", 1, Object),
+	{_, "/resourceInventoryManagement/v1/resource/" ++ Id}
+			= lists:keyfind("href", 1, Object),
+	{_, {struct, SpecList}} = lists:keyfind("resourceSpecification", 1, Object),
+	{_, "4"} = lists:keyfind("id", 1, SpecList),
+	{_, {array, [{struct, RelList}]}}
+			= lists:keyfind("resourceRelationship", 1, Object),
+	{_, "PolicyTable"} = lists:keyfind("name", 1, RelList).
 
 oauth_authenticaton()->
 	[{userdata, [{doc, "Authenticate a JWT using oauth"}]}].
