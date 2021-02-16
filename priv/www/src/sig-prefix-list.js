@@ -57,7 +57,7 @@ class prefixList extends PolymerElement {
 							class="menuitem"
 							on-focused-changed="tableSelection">
 						<iron-icon icon ="icons:view-list" item-icon></iron-icon>
-							{{item.id}}
+							{{item.name}}
 					</paper-item>
 				</template>
 				<div class="buttons">
@@ -142,7 +142,7 @@ class prefixList extends PolymerElement {
 		super.ready();
 		var grid = this.shadowRoot.getElementById('prefixGrid');
 		var ajax1 = document.body.querySelector('sig-app').shadowRoot.querySelector('sig-prefix-list').shadowRoot.getElementById('getTableAjax');
-		ajax1.url = "/catalogManagement/v2/pla";
+		ajax1.url = "/resourceInventoryManagement/v1/resource?resourceSpecification.id=1";
 		ajax1.generateRequest();
 		this.$.tableList.open();
 	}
@@ -160,6 +160,7 @@ class prefixList extends PolymerElement {
 		this.splice("tables", 0, this.tables.length)
 		for (var indexTable in results) {
 			var tableRecord = new Object();
+			tableRecord.name = results[indexTable].name;
 			tableRecord.id = results[indexTable].id;
 			tableRecord.href = results[indexTable].href;
 			tableRecord.description = results[indexTable].description;
@@ -203,7 +204,7 @@ class prefixList extends PolymerElement {
 
 	tableSelection(e) {
 		if(e.model.item && e.model.item.id) {
-			document.body.querySelector('sig-app').shadowRoot.getElementById('prefixList').table = e.model.item.id;
+			document.body.querySelector('sig-app').shadowRoot.getElementById('prefixList').table = e.model.item.name;
 			this.$.tabOkButton.disabled = false;
 		} else {
 			this.$.tabOkButton.disabled = true;
@@ -214,7 +215,7 @@ class prefixList extends PolymerElement {
 		var grid = this;
 		var prefixList = document.body.querySelector('sig-app').shadowRoot.querySelector('sig-prefix-list');
 		var ajax = prefixList.shadowRoot.getElementById('getTableContentAjax');
-		ajax.url = "/resourceInventoryManagement/v1/logicalResource/" + prefixList.table;
+		ajax.url = "/resourceInventoryManagement/v1/resource?resourceRelationship.name=" + prefixList.table;
 		var handleAjaxResponse = function(request) {
 			if(request) {
 				grid.size = 100;

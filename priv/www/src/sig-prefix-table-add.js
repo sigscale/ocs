@@ -78,6 +78,11 @@ class tablePreAdd extends PolymerElement {
 						offset="0">
 					Table end date time
 				</paper-tooltip>
+				<paper-tooltip
+						for="addTableSpec"
+						offset="0">
+					Add Specification
+				</paper-tooltip>
 				<div class="buttons">
 					<paper-button
 							dialog-confirm
@@ -96,7 +101,7 @@ class tablePreAdd extends PolymerElement {
 			</paper-dialog>
 			<iron-ajax
 					id="addTableAjax"
-					url="/catalogManagement/v2/pla"
+					url="/resourceInventoryManagement/v1/resource"
 					method = "POST"
 					content-type="application/json"
 					loading="{{loading}}"
@@ -141,6 +146,11 @@ class tablePreAdd extends PolymerElement {
 		if(this.endTableTimePick) {
 			var endDateTime = this.endTableTimePick;
 		}
+		var taSpec = new Object();
+		taSpec.id = "1";
+		taSpec.href = "/resourceCatalogManagement/v2/resourceSpecification/1";
+		taSpec.name = "tariff table spec";
+		tabName.resourceSpecification = taSpec;
 		if(endDateTime < startDateTime) {
 			var toast = document.body.querySelector('sig-app').shadowRoot.getElementById('restError');
 			toast.text = "Error";

@@ -144,7 +144,7 @@ class offerList extends PolymerElement {
 		super.ready();
 		var grid = this.shadowRoot.getElementById('offerGrid');
 		var ajax1 = document.body.querySelector('sig-app').shadowRoot.querySelector('sig-offer-list').shadowRoot.getElementById('getTableAjax');
-		ajax1.url = "/catalogManagement/v2/pla";
+		ajax1.url = "/resourceInventoryManagement/v1/resource?resourceSpecification.id=1";
 		ajax1.generateRequest();
 		grid.dataProvider = this._getOffers;
 	}
@@ -277,6 +277,7 @@ class offerList extends PolymerElement {
 		this.splice("tables", 0, this.tables.length)
 		for (var indexTable in results) {
 			var tableRecord = new Object();
+			tableRecord.name = results[indexTable].name;
 			tableRecord.id = results[indexTable].id;
 			tableRecord.href = results[indexTable].href;
 			tableRecord.description = results[indexTable].description;

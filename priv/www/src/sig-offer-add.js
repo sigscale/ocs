@@ -531,7 +531,7 @@ class offerAdd extends PolymerElement {
 											slot="dropdown-content">
 										<template is="dom-repeat" items="{{tables}}">
 											<paper-item>
-												{{item.id}}
+												{{item.name}}
 											</paper-item>
 										</template>
 									</paper-listbox>
@@ -928,7 +928,7 @@ class offerAdd extends PolymerElement {
 	_activePageChanged(active) {
 		var grid = this.$.offerGrid;
 		var ajax1 = this.$.getTableAjax;
-		ajax1.url = "/catalogManagement/v2/pla";
+		ajax1.url = "/resourceInventoryManagement/v1/resource?resourceSpecification.id=1";
 		ajax1.generateRequest();
 	}
 
@@ -938,6 +938,7 @@ class offerAdd extends PolymerElement {
 		this.splice("tables", 0, this.tables.length)
 		for (var indexTable in results) {
 			var tableRecord = new Object();
+			tableRecord.name = results[indexTable].name;
 			tableRecord.id = results[indexTable].id;
 			tableRecord.href = results[indexTable].href;
 			tableRecord.description = results[indexTable].description;
