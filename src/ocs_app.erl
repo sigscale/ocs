@@ -502,7 +502,7 @@ install11(Nodes, Acc) ->
 		undefined ->
 			error_logger:info_msg("Inets services not defined. "
 					"User table not created~n"),
-			install17(Nodes, Acc)
+			install16(Nodes, Acc)
 	end.
 %% @hidden
 install12(Nodes, Acc, InetsServices) ->
@@ -512,7 +512,7 @@ install12(Nodes, Acc, InetsServices) ->
 		false ->
 			error_logger:info_msg("Httpd service not defined. "
 					"User table not created~n"),
-			install17(Nodes, Acc)
+			install16(Nodes, Acc)
 	end.
 %% @hidden
 install13(Nodes, Acc, {directory, {_, DirectoryInfo}}) ->
@@ -522,12 +522,12 @@ install13(Nodes, Acc, {directory, {_, DirectoryInfo}}) ->
 		_ ->
 			error_logger:info_msg("Auth type not mnesia. "
 					"User table not created~n"),
-			install17(Nodes, Acc)
+			install16(Nodes, Acc)
 	end;
 install13(Nodes, Acc, false) ->
 	error_logger:info_msg("Auth directory not defined. "
 			"User table not created~n"),
-	install17(Nodes, Acc).
+	install16(Nodes, Acc).
 %% @hidden
 install14(Nodes, Acc) ->
 	case mnesia:create_table(httpd_user, [{type, bag},{disc_copies, Nodes},
@@ -567,29 +567,10 @@ install15(Nodes, Acc) ->
 			{error, Reason}
 	end.
 %% @hidden
-install16(Nodes, Acc) ->
-	case mnesia:create_table(policy, [{disc_copies, Nodes},
-			{attributes, record_info(fields, policy)}]) of
-		{atomic, ok} ->
-			error_logger:info_msg("Created new policy table.~n"),
-			install17(Nodes, [policy | Acc]);
-		{aborted, {not_active, _, Node} = Reason} ->
-			error_logger:error_report(["Mnesia not started on node",
-					{node, Node}]),
-			{error, Reason};
-		{aborted, {already_exists, policy}} ->
-			error_logger:info_msg("Found existing policy table.~n"),
-			install17(Nodes, [policy | Acc]);
-		{aborted, Reason} ->
-			error_logger:error_report([mnesia:error_description(Reason),
-				{error, Reason}]),
-			{error, Reason}
-	end.
-%% @hidden
-install17(_Nodes, Tables) ->
+install16(_Nodes, Tables) ->
 	case mnesia:wait_for_tables(Tables, ?WAITFORTABLES) of
 		ok ->
-			install18(Tables, lists:member(httpd_user, Tables));
+			install17(Tables, lists:member(httpd_user, Tables));
 		{timeout, Tables} ->
 			error_logger:error_report(["Timeout waiting for tables",
 					{tables, Tables}]),
@@ -600,21 +581,21 @@ install17(_Nodes, Tables) ->
 			{error, Reason}
 	end.
 %% @hidden
-install18(Tables, true) ->
+install17(Tables, true) ->
 	case inets:start() of
 		ok ->
 			error_logger:info_msg("Started inets.~n"),
-			install19(Tables);
+			install18(Tables);
 		{error, {already_started, inets}} ->
-			install19(Tables);
+			install18(Tables);
 		{error, Reason} ->
 			error_logger:error_msg("Failed to start inets~n"),
 			{error, Reason}
 	end;
-install18(Tables, false) ->
+install17(Tables, false) ->
 	{ok, Tables}.
 %% @hidden
-install19(Tables) ->
+install18(Tables) ->
 	case ocs:list_users() of
 		{ok, []} ->
 			case ocs:add_user("admin", "admin", "en") of

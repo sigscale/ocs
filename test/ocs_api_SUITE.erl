@@ -98,8 +98,7 @@ all() ->
 	delete_resource_event, add_service_event, delete_service_event,
 	add_product_event, delete_product_event, add_bucket_event,
 	delete_bucket_event, product_charge_event, rating_deleted_bucket_event,
-	accumulated_balance_event, add_policy_table, delete_policy_table,
-	add_policy, get_policy, get_policies, delete_policy,
+	accumulated_balance_event,
 	add_resource, get_resources, get_resource, delete_resource].
 
 %%---------------------------------------------------------------------
@@ -1096,126 +1095,6 @@ accumulated_balance_event(_Config) ->
 				units = octets}], balance} ->
 			BytesTotalAmount = RA2 - PackageSize
 	end.
-
-add_policy_table() ->
-	[{userdata, [{doc, "Add a new policy table"}]}].
-
-add_policy_table(_Config) ->
-	TableName = test_policy,
-	ok = ocs:add_policy_table(atom_to_list(TableName)),
-	{atomic, policy} = mnesia:transaction(
-			fun() -> mnesia:table_info(TableName, record_name) end).
-
-delete_policy_table() ->
-	[{userdata, [{doc, "Delete a policy table"}]}].
-
-delete_policy_table(_Config) ->
-	TableName = test_policy2,
-	ok = ocs:add_policy_table(atom_to_list(TableName)),
-	ok = ocs:delete_policy_table(TableName),
-	{aborted, {no_exists, TableName, _}} = mnesia:transaction(
-			fun() -> mnesia:table_info(TableName, all) end).
-
-add_policy() ->
-	[{userdata, [{doc, "Add a new policy in a specified table"}]}].
-
-add_policy(_Config) ->
-	TableName = test_policy3,
-	ok = ocs:add_policy_table(atom_to_list(TableName)),
-	PolicyName = "internal",
-	QosInformation = #{"QoS-Class-Identifier" => 9,
-			"Max-Requested-Bandwidth-UL" => 1000000000,
-			"Max-Requested-Bandwidth-DL" => 1000000000},
-	FlowInformationUp1 = #{"Flow-Description" =>
-			"permit in ip from any to 10/8", "Flow-Direction" => 2},
-	FlowInformationDown1 = #{"Flow-Description" =>
-			"permit out ip from 10/8 to any", 'Flow-Direction' => 1},
-	Policy = #policy{name = PolicyName,
-			qos = QosInformation, charging_rule = 1,
-			flow = [FlowInformationUp1, FlowInformationDown1], precedence = 2},
-	{ok, #policy{}} = ocs:add_policy(atom_to_list(TableName), Policy),
-	{atomic, [P]} = mnesia:transaction(
-			fun() -> mnesia:read(TableName, PolicyName, read) end),
-	PolicyName = P#policy.name,
-	true = is_map(P#policy.qos),
-	true = is_integer(P#policy.charging_rule),
-	true = is_list(P#policy.flow),
-	true = is_integer(P#policy.precedence).
-
-get_policy() ->
-	[{userdata, [{doc, "Lookup policy in a specified table with given policy"
-			"reference"}]}].
-
-get_policy(_Config) ->
-	TableName = "policy",
-	PolicyName = "external",
-	QosInformation = #{"QoS-Class-Identifier" => 9,
-			"Max-Requested-Bandwidth-UL" => 1000000000,
-			"Max-Requested-Bandwidth-DL" => 1000000000},
-	FlowInformationUp1 = #{"Flow-Description" =>
-			"permit in ip from any to 172.16/12", "Flow-Direction" => 2},
-	FlowInformationDown1 = #{"Flow-Description" =>
-			"permit out ip from 172.16/12 to any", 'Flow-Direction' => 1},
-	Policy = #policy{name = PolicyName,
-			qos = QosInformation, charging_rule = 32,
-			flow = [FlowInformationUp1, FlowInformationDown1], precedence = 1},
-	{ok, #policy{}} = ocs:add_policy(TableName, Policy),
-	{ok, #policy{}} = ocs:get_policy(TableName, PolicyName).
-
-get_policies() ->
-	[{userdata, [{doc, "List all the policies in a specified table"}]}].
-
-get_policies(_Config) ->
-	TableName = "policy",
-	QosInformation = #{"QoS-Class-Identifier" => 9,
-			"Max-Requested-Bandwidth-UL" => 1000000000,
-			"Max-Requested-Bandwidth-DL" => 1000000000},
-	PolicyName1 = "internal",
-	FlowInformationUp1 = #{"Flow-Description" => "permit in ip from any to 10/8",
-			"Flow-Direction" => 2},
-	FlowInformationDown1 = #{"Flow-Description" =>
-			"permit out ip from 10/8 to any", 'Flow-Direction' => 1},
-	Policy1 = #policy{name = PolicyName1,
-			qos = QosInformation, charging_rule = 1,
-			flow = [FlowInformationUp1, FlowInformationDown1], precedence = 2},
-	{ok, #policy{}} = ocs:add_policy(TableName, Policy1),
-	PolicyName2 = "external",
-	FlowInformationUp2 = #{"Flow-Description" =>
-			"permit in ip from any to 172.16/12", "Flow-Direction" => 2},
-	FlowInformationDown2 = #{"Flow-Description" =>
-			"permit out ip from 172.16/12 to any", 'Flow-Direction' => 1},
-	Policy2 = #policy{name = PolicyName2,
-			qos = QosInformation, charging_rule = 32,
-			flow = [FlowInformationUp2, FlowInformationDown2], precedence = 1},
-	{ok, #policy{}} = ocs:add_policy(TableName, Policy2),
-	Policies = ocs:get_policies(TableName),
-	true = length(Policies) >= 2,
-	F = fun(#policy{}) ->
-				true;
-			(_) ->
-				false
-	end,
-	true = lists:all(F, Policies).
-
-delete_policy() ->
-	[{userdata, [{doc, "Remove a policy from the table"}]}].
-
-delete_policy(_Config) ->
-	TableName = "policy",
-	PolicyName = "internal",
-	QosInformation = #{"QoS-Class-Identifier" => 9,
-			"Max-Requested-Bandwidth-UL" => 1000000000,
-			"Max-Requested-Bandwidth-DL" => 1000000000},
-	FlowInformationUp1 = #{"Flow-Description" => "permit in ip from any to 10/8",
-			"Flow-Direction" => 2},
-	FlowInformationDown1 = #{"Flow-Description" =>
-			"permit out ip from 10/8 to any", 'Flow-Direction' => 1},
-	Policy = #policy{name = PolicyName,
-			qos = QosInformation, charging_rule = 1,
-			flow = [FlowInformationUp1, FlowInformationDown1], precedence = 2},
-	{ok, #policy{}} = ocs:add_policy(TableName, Policy),
-	ok = ocs:delete_policy(TableName, PolicyName),
-	{error, not_found} = ocs:get_policy(TableName, PolicyName).
 
 add_resource() ->
 	[{userdata, [{doc, "Add new resource"}]}].

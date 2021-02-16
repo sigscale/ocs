@@ -38,8 +38,6 @@
 		query_offer/7]).
 -export([add_resource/1, get_resources/0, get_resource/1, delete_resource/1,
 		query_resource/5]).
--export([add_policy_table/1, delete_policy_table/1]).
--export([add_policy/2, get_policy/2, get_policies/1, delete_policy/2]).
 -export([generate_password/0, generate_identity/0]).
 -export([start/4, start/5]).
 %% export the ocs private API
@@ -1670,18 +1668,6 @@ add_resource1({atomic, #resource{name = Name,
 			ok = ocs_event:notify(create_resource, NewResource, resource),
 			{ok, NewResource}
 	end;
-add_resource1({atomic, #resource{name = Name,
-		specification = #specification_ref{id = "3"}} = NewResource})
-		when is_list(Name) ->
-	case catch list_to_existing_atom(Name) of
-		{'EXIT', _Reason} ->
-			ok = ocs:add_policy_table(list_to_atom(Name)),
-			ok = ocs_event:notify(create_resource, NewResource, resource),
-			{ok, NewResource};
-		_ ->
-			ok = ocs_event:notify(create_resource, NewResource, resource),
-			{ok, NewResource}
-	end;
 add_resource1({atomic, #resource{} = NewResource}) ->
 	ok = ocs_event:notify(create_resource, NewResource, resource),
 	{ok, NewResource};
@@ -2230,133 +2216,6 @@ find_sn_network(Table, Id) ->
 			R;
 		{atomic, []} ->
 			exit(not_found);
-		{aborted, Reason} ->
-			exit(Reason)
-	end.
-
--spec add_policy_table(Table) -> Result
-	when
-		Table :: atom() | string(),
-		Result :: ok | {error, Reason},
-		Reason :: term().
-%% @doc Create a new policy table.
-add_policy_table(Table) when is_list(Table) ->
-	add_policy_table(list_to_existing_atom(Table));
-add_policy_table(Table) ->
-	Nodes = [node() | nodes()],
-	case mnesia:create_table(Table, [{disc_copies, Nodes}, {attributes,
-			record_info(fields, policy)}, {record_name, policy}]) of
-		{atomic, ok} ->
-			ok;
-		{aborted, Reason} ->
-			exit(Reason)
-	end.
-
--spec delete_policy_table(PolicyTable) -> Result
-	when
-		PolicyTable :: atom() | string(),
-		Result :: ok | {error, Reason},
-		Reason :: term().
-%% @doc Delete a policy table
-delete_policy_table(PolicyTable) when is_list(PolicyTable) ->
-	delete_policy_table(list_to_existing_atom(PolicyTable));
-delete_policy_table(PolicyTable) when is_atom(PolicyTable) ->
-	case mnesia:delete_table(PolicyTable) of
-		{atomic, ok} ->
-			ok;
-		{aborted, Reason} ->
-			exit(Reason)
-	end.
-
--spec add_policy(TableName, Policy) -> Result
-	when
-		TableName :: string(),
-		Policy :: #policy{},
-		Result :: {ok, #policy{}} | {error, Reason},
-		Reason :: term().
-%% @doc Add a new entry in policy table.
-add_policy(TableName, #policy{name = Name, qos = QoS, charging_rule = Rule,
-		flow = Flow, precedence = Precedence} = Policy) when is_list(TableName),
-		is_list(Name), is_map(QoS), is_integer(Rule), Rule > 0, is_list(Flow),
-		is_integer(Precedence), Precedence > 0 ->
-	case catch list_to_existing_atom(TableName) of
-		{'EXIT', Reason} ->
-			{error, Reason};
-		Table ->
-			F = fun() ->
-					TS = erlang:system_time(?MILLISECOND),
-					N = erlang:unique_integer([positive]),
-					Policy1 = Policy#policy{last_modified = {TS, N}},
-					{mnesia:write(Table, Policy1, write), Policy1}
-			end,
-			case mnesia:transaction(F) of
-				{atomic, {ok, #policy{} = Policy1}} ->
-					{ok, Policy1};
-				{aborted, Reason} ->
-					{error, Reason}
-			end
-	end.
-
--spec get_policy(TableName, PolicyName) -> Result
-	when
-		TableName :: string(),
-		PolicyName :: string(),
-		Result :: {ok, Policy} | {error, Reason},
-		Policy :: #policy{},
-		Reason :: not_found | term().
-%% @doc Look up an entry in the policy table.
-get_policy(TableName, PolicyName) when is_list(TableName),
-		is_list(PolicyName) ->
-	F = fun() ->
-			mnesia:read(list_to_existing_atom(TableName), PolicyName, read)
-	end,
-	case mnesia:transaction(F) of
-		{atomic, [#policy{} = P]} ->
-			{ok, P};
-		{atomic, []} ->
-			{error, not_found};
-		{aborted, Reason} ->
-			{error, Reason}
-	end.
-
--spec get_policies(TableName) -> Result
-	when
-		TableName :: string(),
-		Result :: [#policy{}] | {error, Reason},
-		Reason :: term().
-%% @doc List all entries in the policy table.
-get_policies(TableName) when is_list(TableName) ->
-	MatchSpec = [{'_', [], ['$_']}],
-	F = fun(F, start, Acc) ->
-				F(F, mnesia:select(list_to_existing_atom(TableName), MatchSpec,
-						?CHUNKSIZE, read), Acc);
-			(_F, '$end_of_table', Acc) ->
-				lists:flatten(lists:reverse(Acc));
-			(_F, {error, Reason}, _Acc) ->
-				{error, Reason};
-			(F,{Offer, Cont}, Acc) ->
-				F(F, mnesia:select(Cont), [Offer | Acc])
-	end,
-	case mnesia:transaction(F, [F, start, []]) of
-		{aborted, Reason} ->
-			{error, Reason};
-		{atomic, Result} ->
-			Result
-	end.
-
--spec delete_policy(TableName, PolicyRef) -> Result
-	when
-		TableName :: string(),
-		PolicyRef :: string(),
-		Result :: ok.
-%% @doc Delete an entry from policy table
-delete_policy(TableName, PolicyRef) when is_list(TableName), is_list(PolicyRef) ->
-	F = fun() ->
-			mnesia:delete(list_to_existing_atom(TableName), PolicyRef, write)
-	end,
-	case mnesia:transaction(F) of
-		{atomic, ok} ->
-			ok;
 		{aborted, Reason} ->
 			exit(Reason)
 	end.

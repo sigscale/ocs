@@ -26,7 +26,7 @@ initialize_db() ->
 					initialize_db()
 			end;
 		yes ->
-			Tables = [policy, httpd_group, httpd_user, session, bucket, offer,
+			Tables = [httpd_group, httpd_user, session, bucket, offer,
 					resource, product, service, client],
 			case mnesia:wait_for_tables([client, service, offer], 1000) of
 				{timeout, _} ->
