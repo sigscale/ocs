@@ -1157,8 +1157,8 @@ resource_char([value | T], #resource_char{name = "flowInformation",
 		value = FlowList} = R, Acc) when is_list(FlowList) ->
 	F = fun(#{"name" := Name, "flowDescription" := FlowDes,
 			"flowDirection" := FlowDirection}) ->
-		{struct, [{"name", Name}, {"value", {struct,
-				[{"flowDescription", FlowDes}, {"flowDirection", FlowDirection}]}}]}
+		{struct, [{"name", Name}, {"flowDescription", FlowDes},
+				{"flowDirection", FlowDirection}]}
 	end,
 	resource_char(T, R, [{"name", "flowInformation"}, {"value", {struct,
 			[{"seqNum", 4}, {"value", {array, lists:map(F, FlowList)}}]}} | Acc]);
