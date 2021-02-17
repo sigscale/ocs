@@ -4454,16 +4454,15 @@ post_resource(Config) ->
 			"schema/resourceInventoryManagement",
 	BaseType = "Resource",
 	Category = "tariff",
-	ResourceId = random_string(10),
-	ResourceName = "policy spec",
-	ResouceHref = "/resourceInventoryManagement/v1/resource/" ++ ResourceId,
+	ResSpecId = ocs:generate_identity(),
+	ResSpecName = "TariffRow",
+	ResSpecHref = "/resourceInventoryManagement/v1/resource/" ++ ResSpecId,
 	ResourceRelId = random_string(10),
 	ResourceRelHref = "/resourceInventoryManagement/v1/resourceRelationship/"
 			++ ResourceRelId,
-	CharName = random_string(15),
-	CharValue = random_string(10),
-	CharType = random_string(7),
-	CharSchema = random_string(20),
+	CharPrefix = "125",
+	CharDes = "test",
+	CharRate = "250",
 	RequestBody = "{\n"
 			++ "\t\"name\": \"" ++ Name ++ "\",\n"
 			++ "\t\"description\": \"" ++ Description ++ "\",\n"
@@ -4478,11 +4477,9 @@ post_resource(Config) ->
 			++ "\t},\n"
 			++ "\t\"lifecycleState\": \"In Test\",\n"
 			++ "\t\"resourceSpecification\": {\n"
-			++ "\t\t\"id\": \"" ++ ResourceId ++ "\",\n"
-			++ "\t\t\"href\": \"" ++ ResouceHref ++ "\",\n"
-			++ "\t\t\"name\": \"" ++ ResourceName ++ "\",\n"
-			++ "\t\t\"@type\": \"" ++ ClassType ++ "\",\n"
-			++ "\t\t\"version\": \"" ++ Version ++ "\"\n"
+			++ "\t\t\"id\": \"" ++ ResSpecId ++ "\",\n"
+			++ "\t\t\"href\": \"" ++ ResSpecHref ++ "\",\n"
+			++ "\t\t\"name\": \"" ++ ResSpecName ++ "\"\n"
 			++ "\t\t},\n"
 			++ "\t\"resourceRelationship\": [\n"
 			++ "\t\t{\n"
@@ -4494,10 +4491,25 @@ post_resource(Config) ->
 			++ "\t],\n"
 			++ "\t\"resourceCharacteristic\": [\n"
 			++ "\t\t{\n"
-			++ "\t\t\t\"name\": \"" ++ CharName ++ "\",\n"
-			++ "\t\t\t\"value\": \"" ++ CharValue ++ "\",\n"
-			++ "\t\t\t\"@type\": \"" ++ CharType ++ "\",\n"
-			++ "\t\t\t\"@schemaLocation\": \"" ++ CharSchema ++ "\"\n"
+			++ "\t\t\t\"name\": \"prefix\",\n"
+			++ "\t\t\t\"value\": {\n"
+			++ "\t\t\t\t\"seqNum\": 1,\n"
+			++ "\t\t\t\t\"value\": \"" ++ CharPrefix ++ "\"\n"
+			++ "\t\t\t}\n"
+			++ "\t\t},\n"
+			++ "\t\t{\n"
+			++ "\t\t\t\"name\": \"description\",\n"
+			++ "\t\t\t\"value\": {\n"
+			++ "\t\t\t\t\"seqNum\": 2,\n"
+			++ "\t\t\t\t\"value\": \"" ++ CharDes ++ "\"\n"
+			++ "\t\t\t}\n"
+			++ "\t\t},\n"
+			++ "\t\t{\n"
+			++ "\t\t\t\"name\": \"rate\",\n"
+			++ "\t\t\t\"value\": {\n"
+			++ "\t\t\t\t\"seqNum\": 3,\n"
+			++ "\t\t\t\t\"value\": \"" ++ CharRate ++ "\"\n"
+			++ "\t\t\t}\n"
 			++ "\t\t}\n"
 			++ "\t]\n"
 			++ "}\n",
@@ -4515,13 +4527,17 @@ post_resource(Config) ->
 	{ok, #resource{id = ID, name = Name, description = Description,
 			version = Version, category = Category, class_type = ClassType,
 			base_type = BaseType, schema = ClassSchema, specification = S,
-			related = [R], characteristic = [C]}} = ocs:get_resource(ID),
-	#specification_ref{id = ResourceId, href = ResouceHref, name = ResourceName,
-			version = Version} = S,
+			related = [R], characteristic = CharList}} = ocs:get_resource(ID),
+	#specification_ref{id = ResSpecId, href = ResSpecHref,
+			name = ResSpecName} = S,
 	#resource_rel{id = ResourceRelId, href = ResourceRelHref,
 			referred_type = "contained", name = "example"} = R,
-	#resource_char{name = CharName, class_type = CharType,
-			schema = CharSchema, value = CharValue} = C.
+	#resource_char{name = "prefix", value = CharPrefix}
+			= lists:keyfind("prefix", #resource_char.name, CharList),
+	#resource_char{name = "description", value = CharDes}
+			= lists:keyfind("description", #resource_char.name, CharList),
+	#resource_char{name = "rate", value = CharRate}
+			= lists:keyfind("rate", #resource_char.name, CharList).
 
 delete_resource() ->
 	[{userdata, [{doc,"Delete resource inventory"}]}].
