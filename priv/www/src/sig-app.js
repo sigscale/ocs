@@ -336,6 +336,7 @@ class SigApp extends PolymerElement {
 			<sig-bucket-add></sig-bucket-add>
 			<sig-product-add active-item="[[activeProductItem]]" offers="[[offers]]"></sig-product-add>
 			<sig-policy-add id="policyAdd"></sig-policy-add>
+			<sig-policy-table-add></sig-policy-table-add>
 			<sig-policy-update id="policyUpdate" active-item="[[activePolicyItem]]"></sig-policy-update>
 		`;
 	}
@@ -605,6 +606,7 @@ class SigApp extends PolymerElement {
 				break;
 			case 'policyView':
 				import('./sig-policy-list.js');
+				import('./sig-policy-table-add.js');
 				import('./sig-policy-add.js');
 				import('./sig-policy-update.js');
 				break;
