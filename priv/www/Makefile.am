@@ -39,6 +39,7 @@ MODULES = sig-ipdr-list-wlan.js \
 		sig-policy-list.js \
 		sig-policy-add.js \
 		sig-policy-update.js \
+		sig-policy-table-add.js \
 		style-element.js
 
 $(abs_builddir)/index.html:

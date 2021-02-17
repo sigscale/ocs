@@ -301,8 +301,13 @@ console.log(policyList.table);
 		}
 	}
 
+   tableAdd() {
+      document.body.querySelector('sig-app').shadowRoot.querySelector('sig-policy-table-add').shadowRoot.getElementById('addPolicyTableModal').open();
+      this.$.tableList.close();
+   }
+
 	showAddPolicyModal(event) {
-		document.body.querySelector('sig-app').shadowRoot.querySelector('sig-policy-add').shadowRoot.getElementById('policyAddModal').open();
+//		document.body.querySelector('sig-app').shadowRoot.querySelector('sig-policy-add').shadowRoot.getElementById('addPolicyTableModal').open();
 	}
 }
 
