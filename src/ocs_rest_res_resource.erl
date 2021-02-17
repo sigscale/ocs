@@ -1152,10 +1152,22 @@ resource_char([value | T], #resource_char{name = "flowInformation",
 	end,
 	resource_char(T, R, [{"name", "flowInformation"}, {"value", {struct,
 			[{"seqNum", 4}, {"value", {array, lists:map(F, FlowList)}}]}} | Acc]);
+resource_char([value | T], #resource_char{name = "prefix",
+		value = Value} = R, Acc) ->
+	resource_char(T, R, [{"name", "prefix"}, {"value", {struct, [{"seqNum", 1},
+			{"value", Value}]}} | Acc]);
+resource_char([value | T], #resource_char{name = "description",
+		value = Value} = R, Acc) ->
+	resource_char(T, R, [{"name", "description"}, {"value", {struct, [{"seqNum", 2},
+			{"value", Value}]}} | Acc]);
+resource_char([value | T], #resource_char{name = "rate",
+		value = Value} = R, Acc) ->
+	resource_char(T, R, [{"name", "rate"}, {"value", {struct, [{"seqNum", 3},
+			{"value", Value}]}} | Acc]);
 resource_char([_ | T], R, Acc) ->
 	resource_char(T, R, Acc);
 resource_char([], _, Acc) ->
-	{struct, lists:reverse(Acc)}.
+	{struct, Acc}.
 
 %% @hidden
 parse_char([{Field, Value} | T], Acc) ->
