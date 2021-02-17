@@ -1094,19 +1094,6 @@ resource_char([#resource_char{} | _] = List) ->
 	Fields = record_info(fields, resource_char),
 	[resource_char(Fields, R, []) || R <- List].
 %% @hidden
-resource_char([{"name", "name"}, {"value", {struct, NameList}} | T], Acc) ->
-	{_, Name} = lists:keyfind("value", 1, NameList),
-	resource_char(T, Acc#resource_char{name = "name", value = Name});
-resource_char([{"name", "chargingRule"},
-		{"value", {struct, CRList}} | T], Acc) ->
-	{_, ChargingRule} = lists:keyfind("value", 1, CRList),
-	resource_char(T, Acc#resource_char{name = "chargingRule",
-			value = ChargingRule});
-resource_char([{"name", "precedence"}, {"value",
-		{struct, PrecedenceList}} | T], Acc) ->
-	{_, Precedence} = lists:keyfind("value", 1, PrecedenceList),
-	resource_char(T, Acc#resource_char{name = "precedence",
-			value = Precedence});
 resource_char([{"name", "qosInformation"},
 		{"value", {struct, QosInfo}} | T], Acc) ->
 	{_, {struct, QosList}} = lists:keyfind("value", 1, QosInfo),
@@ -1126,6 +1113,9 @@ resource_char([{"@type", Type} | T], Acc) when is_list(Type) ->
 	resource_char(T, Acc#resource_char{class_type = Type});
 resource_char([{"@schemaLocation", Schema} | T], Acc) when is_list(Schema) ->
 	resource_char(T, Acc#resource_char{schema = Schema});
+resource_char([{"value", {struct, ValList}} | T], Acc) ->
+	{"value", Value} = lists:keyfind("value", 1, ValList),
+	resource_char(T, Acc#resource_char{value = Value});
 resource_char([{"value", Value} | T], Acc) ->
 	resource_char(T, Acc#resource_char{value = Value});
 resource_char([_ | T], Acc) ->
