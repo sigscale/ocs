@@ -178,6 +178,8 @@ class SigApp extends PolymerElement {
 						</sig-bucket-list>
 						<sig-policy-list
 								id="policyList"
+								tables="{{tables}}"
+								table="{{table}}"
 								loading="{{policyLoading}}"
 								name="policyView"
 								active-item="{{activePolicyItem}}">
