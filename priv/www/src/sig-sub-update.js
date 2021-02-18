@@ -201,8 +201,7 @@ class subUpdate extends PolymerElement {
 									label="Units">
 								<paper-listbox
 										id="updateUni1"
-										slot="dropdown-content"
-										selected="0">
+										slot="dropdown-content">
 									<paper-item value="octets">
 											Bytes
 									</paper-item>
@@ -458,6 +457,8 @@ class subUpdate extends PolymerElement {
          ajaxBucket.body = bucketTop;
          ajaxBucket.url="/balanceManagement/v1/balanceAdjustment";
          ajaxBucket.generateRequest();
+			this.$.updateUni1.selected = null;
+			this.updateSubAmo = null;
       }
 	}
 
@@ -594,7 +595,8 @@ class subUpdate extends PolymerElement {
 		this.updateSubSessInt = null;
 		this.updateSubClass = null;
 		this.updateSubNPass = null;
-		this.updateSubUni = null;
+		this.updateSubAmo = null;
+		this.$.updateUni1.selected = null;
 		this.updateSubSes = null;
 		this.updateSubSessInt = null;
 		this.updateSubMul = null;
