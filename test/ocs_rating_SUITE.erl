@@ -113,7 +113,7 @@ all() ->
 	authorize_default_voice, authorize_data_1, authorize_data_2,
 	authorize_data_with_partial_reservation, authorize_negative_balance,
 	unauthorize_bad_password, unauthorize_bad_password, reserve_sms, debit_sms,
-	roaming_table_data, roaming_table_voice, roaming_table_sms].
+	roaming_table_data, roaming_table_voice, roaming_table_sms, final_empty_mscc].
 
 %%---------------------------------------------------------------------
 %%  Test cases
@@ -690,7 +690,7 @@ interim_debit_out_of_credit(_Config) ->
 			ServiceType, undefined, undefined, undefined, ServiceId, Timestamp,
 			undefined, undefined, initial, [], [{PackageUnits, PackageSize}],
 			SessionId),
-	{out_of_credit, _, _} = ocs_rating:rate(diameter, ServiceType, undefined, 
+	{out_of_credit, _, _} = ocs_rating:rate(diameter, ServiceType, undefined,
 			undefined, undefined, ServiceId, calendar:gregorian_seconds_to_datetime(TS + 60),
 			undefined, undefined, interim,
 			[{PackageUnits, PackageSize + 1}], [{PackageUnits, 0}], SessionId).
@@ -2011,6 +2011,35 @@ roaming_table_sms(Config) ->
 			SessionId),
 	ok = file:close(File1),
 	ok = file:close(File2).
+
+final_empty_mscc() ->
+	[{userdata, [{doc, "Remove session after multiple interims that exceed the reserved amount"}]}].
+
+final_empty_mscc(_Config) ->
+	PackagePrice = 10 + rand:uniform(90),
+	PackageSize = 5000000 + rand:uniform(9000000),
+	PackageUnits = octets,
+	P1 = price(usage, PackageUnits, PackageSize, PackagePrice),
+	OfferId = add_offer([P1], 4),
+	ProdRef = add_product(OfferId),
+	ServiceId = add_service(ProdRef),
+	RemAmount = 1000,
+	B1 = bucket(cents, RemAmount),
+	_BId = add_bucket(ProdRef, B1),
+	SessionId = [{'Session-Id', list_to_binary(ocs:generate_password())}],
+	ServiceType = 32251,
+	Timestamp = calendar:local_time(),
+	TS1 = calendar:datetime_to_gregorian_seconds(Timestamp),
+	{ok, _, _} = ocs_rating:rate(diameter, ServiceType, undefined,
+			undefined, undefined, ServiceId, Timestamp, undefined, undefined,
+			initial, [], [], SessionId),
+	{ok, _, _} = ocs_rating:rate(diameter, ServiceType,
+			undefined, undefined, undefined, ServiceId, calendar:gregorian_seconds_to_datetime(TS1 + 60), undefined,
+			undefined, final, [{PackageUnits, PackageSize * 3}], [], SessionId),
+	{ok, _, _} = ocs_rating:rate(diameter, ServiceType,
+			undefined, undefined, undefined, ServiceId, Timestamp, undefined,
+			undefined, final, [], [], SessionId),
+	[#bucket{units = cents, reservations = []}] = ocs:get_buckets(ProdRef).
 
 %%---------------------------------------------------------------------
 %%  Internal functions
