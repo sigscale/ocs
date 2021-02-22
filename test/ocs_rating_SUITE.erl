@@ -2013,7 +2013,7 @@ roaming_table_sms(Config) ->
 	ok = file:close(File2).
 
 final_empty_mscc() ->
-	[{userdata, [{doc, "Remove session after multiple interims that exceed the reserved amount"}]}].
+	[{userdata, [{doc, "Rate a final call with an empty MSCC and remove session"}]}].
 
 final_empty_mscc(_Config) ->
 	PackagePrice = 10 + rand:uniform(90),
