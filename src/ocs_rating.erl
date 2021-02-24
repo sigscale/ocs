@@ -1489,7 +1489,7 @@ charge_session(Type, Charge, Now, ServiceId, ChargingKey, SessionId,
 		[#bucket{units = Type, remain_amount = Remain,
 		reservations = Reservations} = B | T], Charged, Acc) when Charge > 0 ->
 	case lists:keytake(SessionId, 6, Reservations) of
-		{value, {_, DebitedAmount, ReservedAmount, 
+		{value, {_, DebitedAmount, ReservedAmount,
 				ServiceId, ChargingKey, _}, NewReservations}
 				when ReservedAmount >= Charge ->
 			NewDebitedAmount = DebitedAmount + Charge,
@@ -2050,6 +2050,22 @@ get_final([#bucket{units = Units, reservations = Reservations,
 get_final([], _, _, _, _, Debits, Acc) ->
 	{Debits, lists:reverse(Acc)}.
 %% @hidden
+
+get_debits(ServiceId, undefined, SessionId,
+		[{_, Debited, Reserved, ServiceId, ChargingKey, SessionId} | T],
+		Debit, Refund, Acc) ->
+	get_debits(ServiceId, ChargingKey, SessionId,
+			T, Debit + Debited, Refund + Reserved, Acc);
+get_debits(undefined, ChargingKey, SessionId,
+		[{_, Debited, Reserved, ServiceId, ChargingKey, SessionId} | T],
+		Debit, Refund, Acc) ->
+	get_debits(ServiceId, ChargingKey, SessionId,
+			T, Debit + Debited, Refund + Reserved, Acc);
+get_debits(undefined, undefined, SessionId,
+		[{_, Debited, Reserved, ServiceId, ChargingKey, SessionId} | T],
+		Debit, Refund, Acc) ->
+	get_debits(ServiceId, ChargingKey, SessionId,
+			T, Debit + Debited, Refund + Reserved, Acc);
 get_debits(ServiceId, ChargingKey, SessionId,
 		[{_, Debited, Reserved, ServiceId, ChargingKey, SessionId} | T],
 		Debit, Refund, Acc) ->
