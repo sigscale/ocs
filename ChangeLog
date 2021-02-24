@@ -1,3 +1,16 @@
+2021-02-24  Refath Wadood <refath@sigscale.org>
+
+	* test: final rating with empty mscc
+	* test: refactor final empty mscc
+	* test: rate final with empty mscc after interims with different services
+	* gui: fix units select issue on service update view
+	* guard against adding existing service to product
+	* client errors get 400 response for add service
+	* add 3gpp s6b application module to makefile
+	* relative httpd directories
+	* correct testcase description
+	* handle missing service id; handle missing charging key
+
 2021-02-08  Refath Wadood <refath@sigscale.org>
 
 	* do not include fui avp when redirect server address is undefined

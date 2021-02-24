@@ -1,3 +1,8 @@
+February 24, 2021
+---------------
+	- Correcting missing Service-Id And Charging-Key handling
+	- Correct client response For adding an existing subscriber
+
 February 08, 2021
 ---------------
 	- Correct MSCC AVPs for redirect on out-of-credit
