@@ -217,9 +217,9 @@ all() ->
 	notify_insert_gtt, notify_delete_gtt, query_gtt_notification,
 	notify_add_resource, notify_delete_resource, query_resource_notification,
 	post_hub_usage, get_usage_hubs, get_usage_hub, delete_hub_usage,
-	notify_diameter_acct_log, get_resource, get_resources,
-	post_resource, delete_resource, update_resource, post_policy, query_policy,
-	oauth_authentication].
+	notify_diameter_acct_log, get_tariff_resource, get_tariff_resources,
+	post_tariff_resource, delete_tariff_resource, update_tariff_resource,
+	post_policy, query_policy, oauth_authentication].
 
 %%---------------------------------------------------------------------
 %%  Test cases
@@ -4387,20 +4387,23 @@ notify_diameter_acct_log(Config) ->
 					= lists:keyfind("type", 1, AcctUsageList)
 	end.
 
-get_resource() ->
-	[{userdata, [{doc,"Get resource inventory
-			with given resource inventory reference"}]}].
+get_tariff_resource() ->
+	[{userdata, [{doc,"Get tariff resource with given resource
+			inventory reference"}]}].
 
-get_resource(Config) ->
+get_tariff_resource(Config) ->
 	Schema = "/resourceInventoryManagement/v1/schema/"
 			"resourceInventoryManagement#/definitions/resource",
+	ResourceRelID = ocs:generate_identity(),
 	Resource = #resource{class_type = "LogicalResource", base_type = "Resource",
-			schema = Schema, description = "tariff resource", category = "tariff",
-			start_date = erlang:system_time(?MILLISECOND),
+			schema = Schema, description = "tariff row resource", category = "tariff",
+			start_date = erlang:system_time(?MILLISECOND), state = "Active",
 			end_date = erlang:system_time(?MILLISECOND) + 2678400000,
-			state = "Active", related = fill_related(2),
-			specification = #specification_ref{id = random_string(10),
-					href = random_string(25), name = "tariff spec"},
+			related = [#resource_rel{id = ResourceRelID,
+					href = "/resourceInventoryManagement/v1/resource/"
+					++ ResourceRelID, type = "contained", name = "example"}],
+			specification = #specification_ref{id = "2", name = "tariff spec",
+					href = "/resourceCatalogManagement/v2/resourceSpecification/2"},
 			characteristic  = [#resource_char{name = "prefix", value = "125"},
 					#resource_char{name = "description", value = "test"},
 					#resource_char{name = "rate", value = 250}]},
@@ -4419,17 +4422,18 @@ get_resource(Config) ->
 	{_, "tariff"} = lists:keyfind("category", 1, Object),
 	{_, {struct, SpecList}} = lists:keyfind("resourceSpecification", 1, Object),
 	{_, "tariff spec"} = lists:keyfind("name", 1, SpecList),
-	{_, {array, RelList}} = lists:keyfind("resourceRelationship", 1, Object),
-	2 = length(RelList),
+	{_, {array, [{struct, RelList}]}}
+			= lists:keyfind("resourceRelationship", 1, Object),
+	{_, "example"} = lists:keyfind("name", 1, RelList),
 	{_, {array, CharList}} = lists:keyfind("resourceCharacteristic", 1, Object),
 	3 = length(CharList).
 
-get_resources() ->
+get_tariff_resources() ->
 	[{userdata, [{doc, "GET Resource collection"}]}].
 
-get_resources(Config) ->
-	ok = add_resource("tariff resource", "tariff", "tariff spec"),
-	ok = add_resource("policy resource", "policy", "policy spec"),
+get_tariff_resources(Config) ->
+	{ok, #resource{}} = add_resource("1", "tariff table", "tariff"),
+	{ok, #resource{}} = add_resource("2", "tariff row", "tariff"),
 	HostUrl = ?config(host_url, Config),
 	CollectionUrl = HostUrl ++ "/resourceInventoryManagement/v1/resource/",
 	Accept = {"accept", "application/json"},
@@ -4442,10 +4446,10 @@ get_resources(Config) ->
 	{array, Objects} = mochijson:decode(ResponseBody),
 	true = length(Objects) >= 2.
 
-post_resource() ->
-	[{userdata, [{doc,"Add resource in rest interface"}]}].
+post_tariff_resource() ->
+	[{userdata, [{doc,"Add tariff resource in rest interface"}]}].
 
-post_resource(Config) ->
+post_tariff_resource(Config) ->
 	HostUrl = ?config(host_url, Config),
 	CollectionUrl = HostUrl ++ "/resourceInventoryManagement/v1/resource/",
 	Name = "Tariff",
@@ -4456,11 +4460,12 @@ post_resource(Config) ->
 			"schema/resourceInventoryManagement",
 	BaseType = "Resource",
 	Category = "tariff",
-	ResSpecId = ocs:generate_identity(),
+	ResSpecId = "2",
 	ResSpecName = "TariffRow",
-	ResSpecHref = "/resourceInventoryManagement/v1/resource/" ++ ResSpecId,
-	ResourceRelId = random_string(10),
-	ResourceRelHref = "/resourceInventoryManagement/v1/resourceRelationship/"
+	ResSpecHref = "/resourceCatalogManagement/v2/resourceSpecification/"
+			++ ResSpecId,
+	ResourceRelId = ocs:generate_identity(),
+	ResourceRelHref = "/resourceInventoryManagement/v1/resource/"
 			++ ResourceRelId,
 	CharPrefix = "125",
 	CharDes = "test",
@@ -4541,21 +4546,11 @@ post_resource(Config) ->
 	#resource_char{name = "rate", value = CharRate}
 			= lists:keyfind("rate", #resource_char.name, CharList).
 
-delete_resource() ->
-	[{userdata, [{doc,"Delete resource inventory"}]}].
+delete_tariff_resource() ->
+	[{userdata, [{doc,"Delete tariff resource inventory"}]}].
 
-delete_resource(Config) ->
-	Schema = "/resourceInventoryManagement/v1/schema/"
-			"resourceInventoryManagement#/definitions/resource",
-	Resource = #resource{class_type = "LogicalResource", base_type = "Resource",
-			schema = Schema, description = "tariff resource", category = "tariff",
-			start_date = erlang:system_time(?MILLISECOND),
-			end_date = erlang:system_time(?MILLISECOND) + 2678400000,
-			state = "Active", related = fill_related(2),
-			specification = #specification_ref{id = random_string(10),
-					href = random_string(25), name = "tariff spec"},
-			characteristic  = fill_resource_char(3)},
-	{ok, #resource{id = Id}} = ocs:add_resource(Resource),
+delete_tariff_resource(Config) ->
+	{ok, #resource{id = Id}} = add_resource("1", "tariff table", "tariff"),
 	URI = "/resourceInventoryManagement/v1/resource/" ++ Id,
 	HostUrl = ?config(host_url, Config),
 	Request = {HostUrl ++ URI, [auth_header()]},
@@ -4564,10 +4559,10 @@ delete_resource(Config) ->
 	{_, "0"} = lists:keyfind("content-length", 1, Headers),
 	{error, not_found} = ocs:get_resource(Id).
 
-update_resource() ->
-	[{userdata, [{doc,"Use PATCH for update resource entity"}]}].
+update_tariff_resource() ->
+	[{userdata, [{doc,"Use PATCH for update tariff resource entity"}]}].
 
-update_resource(Config) ->
+update_tariff_resource(Config) ->
 	ResourceHref = "/resourceInventoryManagement/v1/resource/",
 	HostUrl = ?config(host_url, Config),
 	Accept = {"accept", "application/json"},
@@ -4582,25 +4577,22 @@ update_resource(Config) ->
 	{_, URI} = lists:keyfind("location", 1, Headers1),
 	{"/resourceInventoryManagement/v1/resource/" ++ ResourceId, _}
 			= httpd_util:split_path(URI),
-	NameOp = {struct, [{op, "add"}, {"path", "/name"}, {value, "Policy"}]},
+	NameOp = {struct, [{op, "add"}, {"path", "/name"}, {value, "TariffRow"}]},
 	DescriptionOp = {struct, [{op, "add"}, {"path", "/description"},
-			{value, "policy resource"}]},
-	CategoryOp = {struct, [{op, "add"}, {"path", "/category"},
-			{value, "policy"}]},
-	NewResSpecObj = {struct, [{"id", "4"}, {"name", "policy row spec"},
-			{"href", "/resourceInventoryManagement/v1/productSpecification/4"}]},
+			{value, "policy row resource"}]},
+	NewResSpecObj = {struct, [{"id", "2"}, {"name", "tariff row spec"},
+			{"href", "/resourceCatalogManagement/v2/resourceSpecification/2"}]},
 	ResSpecOp = {struct, [{op, "add"}, {path, "/resourceSpecification"},
 			{value, NewResSpecObj}]},
-	OpArray = {array, [NameOp, DescriptionOp, CategoryOp, ResSpecOp]},
+	OpArray = {array, [NameOp, DescriptionOp, ResSpecOp]},
 	PatchReqBody = lists:flatten(mochijson:encode(OpArray)),
 	PatchContentType = "application/json-patch+json",
 	Request2 = {HostUrl ++ ResourceHref ++ ResourceId, [Accept, auth_header(),
 			{"if-match", Etag}], PatchContentType, PatchReqBody},
 	{ok, Result2} = httpc:request(patch, Request2, [], []),
 	{{"HTTP/1.1", 200, "OK"}, _Headers2, _ResponseBody2} = Result2,
-	{ok, #resource{name = "Policy", description = "policy resource",
-			category = "policy", specification = #specification_ref{id = "4",
-			href = "/resourceInventoryManagement/v1/productSpecification/4"}}}
+	{ok, #resource{name = "TariffRow", description = "policy row resource",
+			specification = #specification_ref{name = "tariff row spec"}}}
 			= ocs:get_resource(ResourceId).
 
 post_policy() ->
@@ -4681,7 +4673,7 @@ query_policy(Config) ->
 	PolicyRow = #resource{name = "PolicyRow", description = "Policy Row",
 			category = "Policy", class_type = "LogicalResource",
 			base_type = "Resource", related = [#resource_rel{id = PolicyTableId,
-					href = "/resourceInventoryManagement/v1/resourceRelationship/"
+					href = "/resourceInventoryManagement/v1/resource/"
 					++ PolicyTableId, name = "PolicyTable", type = "contained"}],
 			specification = #specification_ref{id = "4",
 					href = "/resourceCatalogManagement/v2/resourceSpecification/4",
@@ -5233,19 +5225,33 @@ add_bucket(ProdRef, Units, RA) ->
 	BId.
 
 %% @hidden
-add_resource(Description, Category, SpecName) ->
+add_resource("1", Description, Category) ->
 	Schema = "/resourceInventoryManagement/v1/schema/"
 			"resourceInventoryManagement#/definitions/resource",
+	Resource = #resource{class_type = "LogicalResource", base_type = "Resource",
+			description = Description, category = Category, state = "Active",
+			schema = Schema, start_date = erlang:system_time(?MILLISECOND),
+			end_date = erlang:system_time(?MILLISECOND) + 2678400000,
+			specification = #specification_ref{id = "1", name = "tariffTable",
+					href = "/resourceCatalogManagement/v2/resourceSpecification/1"}},
+	ocs:add_resource(Resource);
+add_resource("2", Description, Category) ->
+	Schema = "/resourceInventoryManagement/v1/schema/"
+			"resourceInventoryManagement#/definitions/resource",
+	ResourceRelID = ocs:generate_identity(),
 	Resource = #resource{class_type = "LogicalResource", base_type = "Resource",
 			schema = Schema, description = Description, category = Category,
 			start_date = erlang:system_time(?MILLISECOND),
 			end_date = erlang:system_time(?MILLISECOND) + 2678400000,
-			state = "Active", related = fill_related(2),
-			specification = #specification_ref{id = random_string(10),
-					href = random_string(25), name = SpecName},
-			characteristic  = fill_resource_char(3)},
-	{ok, _} = ocs:add_resource(Resource),
-	ok.
+			related = [#resource_rel{id = ResourceRelID,
+					href = "/resourceInventoryManagement/v1/resource/"
+					++ ResourceRelID, referred_type = "contained", name = "example"}],
+			specification = #specification_ref{id = "2", name = "tariffRow",
+					href = "/resourceCatalogManagement/v2/resourceSpecification/2"},
+			characteristic  = [#resource_char{name = "prefix", value = "125"},
+					#resource_char{name = "description", value = "test"},
+					#resource_char{name = "rate", value = 250}]},
+	ocs:add_resource(Resource).
 
 %% @hidden
 fill_resource_char(N) ->
@@ -5302,15 +5308,15 @@ resource_inventory() ->
 	ResSpecID = {"id", "2"},
 	ResSpecName = {"name", "tariff row spec"},
 	ResSpecHref = {"href",
-			"/resourceInventoryManagement/v1/productSpecification/2"},
+			"/resourceCatalogManagement/v2/resourceSpecification/"},
 	ResSpec = {"resourceSpecification",
 			{struct, [ResSpecID, ResSpecName, ResSpecHref]}},
 	ResRelId = {"id", RelId = random_string(5)},
 	ResRelName = {"name", "example"},
-	ResRelDescription = {"@referredType", "contained"},
-	ResRelHref = {"name", "/resourceInventoryManagement/v1/resourceRelationship/"
+	ResRelType = {"type", "contained"},
+	ResRelHref = {"name", "/resourceInventoryManagement/v1/resource/"
 			++ RelId},
-	ResRel = {struct, [ResRelId, ResRelName, ResRelDescription, ResRelHref]},
+	ResRel = {struct, [ResRelId, ResRelName, ResRelType, ResRelHref]},
 	ResourceRelationship = {"resourceRelationship", {array, [ResRel]}},
 	ResCharName1 = {"name", "prefix"},
 	ResCharRate1 = {"value", "125"},
