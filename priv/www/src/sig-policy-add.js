@@ -34,41 +34,75 @@ class policyAdd extends PolymerElement {
 					label="Name"
 					value="{{polName}}">
 				</paper-input>
-				<paper-input
-					label="Description"
-					value="{{polDescription}}">
-				</paper-input>
-				<paper-input
-					label="Version"
-					value="{{polVersion}}">
-				</paper-input>
-				<paper-input
-					label="Type"
-					value="{{polType}}">
-				</paper-input>
-				<paper-input
-					label="Status"
-					value="{{polStatus}}">
-				</paper-input>
-				<paper-input
-					label="Category"
-					value="{{polCategory}}">
-				</paper-input>
-				<paper-input
-					label="Specification"
-					value="{{polSpec}}">
-				</paper-input>
+				<div>
+					<span>Characteristics</span>
+					<paper-icon-button
+						id="onClickPolicyChars"
+						suffix
+						icon="arrow-drop-down"
+						on-click="_onClickPolicyChars">
+					</paper-icon-button>
+				</div>
+				<iron-collapse id="addPolicyChars">
+					<div>
+						<paper-input
+							id="bandwidthDL"
+							label="maxRequestedBandwidthDL"
+							value="{{charDL}}">
+						</paper-input>
+						<paper-input
+							id="bandwidthUL"
+							label="maxRequestedBandwidthUL"
+							value="{{charUL}}">
+						</paper-input>
+						<paper-input
+							id="classId"
+							label="qosClassIdentifier"
+							value="{{charClassId}}">
+						</paper-input>
+						<paper-input
+							id="chargeRule"
+							label="chargingRule"
+							value="{{polCha}}">
+						</paper-input>
+						<paper-input
+							id="flowUp"
+							label="flowDirection"
+							value="{{flowUp}}">
+						</paper-input>
+						<paper-input
+							id="flowDescription"
+							label="flowDescription"
+							value="{{flowDiscUp}}">
+						</paper-input>
+						<paper-input
+							id="flowDown"
+							label="flowDirection"
+							value="{{flowDown}}">
+						</paper-input>
+						<paper-input
+							id="flowDescription"
+							label="flowDescription"
+							value="{{flowDiscDown}}">
+						</paper-input>
+						<paper-input
+							id="precedence"
+							label="precedence"
+							value="{{prece}}">
+						</paper-input>
+					</div>
+				</iron-collapse>
 				<div class="buttons">
 					<paper-button
 							raised
 							class="submit-button"
 							on-tap="_add">
 						Add
-           		</paper-button>
+					</paper-button>
 					<paper-button
 							class="cancel-button"
 							on-tap="_cancel">
-       				Cancel
+						Cancel
 					</paper-button>
 				</div>
 			</paper-dialog>
@@ -79,7 +113,7 @@ class policyAdd extends PolymerElement {
 				on-response="_response"
 				on-error="_error">
 			</iron-ajax>
-      `;
+		`;
 	}
 
 	static get properties() {
@@ -91,22 +125,37 @@ class policyAdd extends PolymerElement {
 			polName: {
 				type: String
 			},
-			polDescription: {
+			charDL: {
+				type: Number
+			},
+			charUL: {
+				type: Number
+			},
+			charClassId: {
+				type: Number
+			},
+			polCha: {
 				type: String
 			},
-			polVersion: {
+			flowUp: {
+				type: String 
+			},
+			flowDiscUp: {
 				type: String
 			},
-			polCategory: {
+			flowDown: {
 				type: String
 			},
-			polType: {
+			flowDiscDown: {
 				type: String
 			},
-			polStatus: {
+			prece: {
 				type: String
 			},
-			polSpec: {
+			table: {
+				type: String
+			},
+			tableId: {
 				type: String
 			}
 		}
@@ -119,60 +168,115 @@ class policyAdd extends PolymerElement {
 	_cancel() {
 		this.$.policyAddModal.close();
 		this.polName = null;
-		this.polDescription = null;
-		this.polVersion = null;
-		this.polCategory = null;
-		this.polType = null;
-		this.polStatus = null;
-		this.polSpec = null;
+		this.charDL = null;
+		this.charUL = null;
+		this.charClassId = null;
+		this.polCha = null;
+		this.flowUp = null;
+		this.flowDiscUp = null;
+		this.flowDown = null;
+		this.flowDiscDown = null;
+		this.prece = null;
+	}
+
+	_onClickPolicyChars() {
+		if(this.$.addPolicyChars.opened == false) {
+			this.$.addPolicyChars.show();
+			this.$.onClickPolicyChars.icon="arrow-drop-up"
+		} else {
+			this.$.addPolicyChars.hide();
+			this.$.onClickPolicyChars.icon="arrow-drop-down"
+		}
 	}
 
 	_add() {
 		var ajax = this.$.policyAddAjax;
 		ajax.method = "POST";
 		ajax.url = "/resourceInventoryManagement/v1/resource/";
-      var pol = new Object();
-      if(this.polName) {
-         pol.name = this.polName;
-      }
-      if(this.polDescription) {
-         pol.description = this.polDescription;
-      }
-      if(this.polVersion) {
-         pol.version = this.polVersion;
-      }
-      if(this.polType) {
-         pol['@type'] = this.polType;
-      }
-      if(this.polStatus) {
-         pol.lifecycleStatus = this.polStatus;
-      }
-      if(this.polCategory) {
-         pol.category = this.polCategory;
-      }
-      if(this.polSpec) {
-			var spec = new Object();
-			spec.id = "4";
-			spec.href = "/resourceInventoryManagement/v1/resource/vwqmumpshq" + spec.id;
-			spec.name = this.polSpec;
-         pol.resourceSpecification = spec;
-      }
-      ajax.body = JSON.stringify(pol);
-      ajax.generateRequest();
+		var pol = new Object();
+		if(this.polName) {
+			pol.name = this.polName;
+		}
+		var rel = new Array();
+		var relObj = new Object();
+		relObj.id = document.body.querySelector('sig-app').shadowRoot.querySelector('sig-policy-list').tableId;
+		relObj.href = "/resourceInventoryManagement/v1/resourceRelationship/" + relObj.id;
+		relObj.name = document.body.querySelector('sig-app').shadowRoot.querySelector('sig-policy-list').table;
+		relObj.type = "contained";
+		rel.push(relObj);
+		pol.resourceRelationship = rel;
+
+		var charaArr = new Array();
+		var nameObj = new Object();
+		nameObj.name = "name";
+		var nameObjValue = new Object();
+		nameObjValue.seqNum = 1;
+		nameObjValue.value = this.polName
+		nameObj.value = nameObjValue;
+		var nameQOS = new Object();
+		nameQOS.name = "qosInformation";
+		var nameQOSValue = new Object(); 
+		nameQOSValue.seqNum = 2;
+		var nameQOSValue1 = new Object();
+		nameQOSValue1.maxRequestedBandwidthDL = this.charDL;
+		nameQOSValue1.maxRequestedBandwidthUL = this.charUL;
+		nameQOSValue1.qosClassIdentifier = this.charClassId;
+		nameQOSValue.value = nameQOSValue1;
+		nameQOS.value = nameQOSValue;
+		var nameChRule = new Object();
+		nameChRule.name = "chargingRule";
+		var nameChRuleValue = new Object();
+		nameChRuleValue.seqNum = 3;
+		nameChRuleValue.value = this.polCha;
+		nameChRule.value = nameChRuleValue;
+		var nameFlow = new Object();
+		nameFlow.name = "flowInformation";
+		var nameFlowVal = new Object();
+		nameFlowVal.seqNum = 4;
+		var nameFloArr = new Array();
+		var nameFloObj = new Object();
+		nameFloObj.name = "flowInformationUp1";
+		nameFloObj.flowDirection = this.flowUp;
+		nameFloObj.flowDescription = this.flowDiscUp;
+		var nameFloObj1 = new Object();
+		nameFloObj1.name = "flowInformationDown1";
+		nameFloObj1.flowDirection = this.flowDown;
+		nameFloObj1.flowDescription = this.flowDiscDown;
+		nameFloArr.push(nameFloObj, nameFloObj1);
+		nameFlowVal.value = nameFloArr;
+		nameFlow.value = nameFlowVal;
+		var namePre = new Object();
+		namePre.name = "precedence";
+		var namePreValue = new Object();
+		namePreValue.seqNum = 5;
+		namePreValue.value = this.prece;
+		namePre.value = namePreValue;
+		charaArr.push(nameObj, nameQOS, nameChRule, nameFlow, namePre);
+		pol.resourceCharacteristic = charaArr;
+
+		var spec = new Object();
+		spec.id = "4";
+		spec.name = "PolicyTable";
+		pol.resourceSpecification = spec;
+		ajax.body = pol;
+		ajax.generateRequest();
 		this.$.policyAddModal.close();
 	}
 
-   _response() {
+	_response() {
 		this.$.policyAddModal.close
-      this.polName = null;
-      this.polDescription = null;
-      this.polType = null;
-      this.polStatus = null;
-      this.polVersion = null;
-      this.polCategory = null;
-      this.polSpec = null;
-      document.body.querySelector('sig-app').shadowRoot.getElementById('policyList').shadowRoot.getElementById('policyGrid').clearCache();
-   }
+		this.polName = null;
+		this.charDL = null;
+		this.charUL = null;
+		this.charClassId = null;
+		this.polCha = null;
+		this.flowUp = null;
+		this.flowDiscUp = null;
+		this.flowDown = null;
+		this.flowDiscDown = null;
+		this.prece = null;
+		document.body.querySelector('sig-app').shadowRoot.getElementById('policyList').shadowRoot.getElementById('policyGrid').clearCache();
+	}
 }
 
 window.customElements.define('sig-policy-add', policyAdd);

@@ -192,6 +192,7 @@ class policyList extends PolymerElement {
 	tableSelection(e) {
 		if(e.model.item && e.model.item.id) {
 			document.body.querySelector('sig-app').shadowRoot.getElementById('policyList').table = e.model.item.name;
+			document.body.querySelector('sig-app').shadowRoot.getElementById('policyList').tableId = e.model.item.id;
 			this.$.tabOkButton.disabled = false;
 		} else {
 			this.$.tabOkButton.disabled = true;
@@ -205,7 +206,6 @@ class policyList extends PolymerElement {
 		}
 		var policyList = document.body.querySelector('sig-app').shadowRoot.querySelector('sig-policy-list');
 		var ajax = policyList.shadowRoot.getElementById('getPolicyContentAjax');
-console.log(policyList.table);
 		ajax.url = "/resourceInventoryManagement/v1/resource?resourceSpecification.id=4&resourceRelationship.name=" + policyList.table;
 		var handleAjaxResponse = function(request) {
 			if(request) {
@@ -307,7 +307,7 @@ console.log(policyList.table);
    }
 
 	showAddPolicyModal(event) {
-//		document.body.querySelector('sig-app').shadowRoot.querySelector('sig-policy-add').shadowRoot.getElementById('addPolicyTableModal').open();
+		document.body.querySelector('sig-app').shadowRoot.querySelector('sig-policy-add').shadowRoot.getElementById('policyAddModal').open();
 	}
 }
 

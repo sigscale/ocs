@@ -180,6 +180,7 @@ class SigApp extends PolymerElement {
 								id="policyList"
 								tables="{{tables}}"
 								table="{{table}}"
+								tableId="{{tableId}}"
 								loading="{{policyLoading}}"
 								name="policyView"
 								active-item="{{activePolicyItem}}">
