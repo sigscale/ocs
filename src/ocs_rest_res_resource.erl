@@ -1032,20 +1032,6 @@ resource_rel([{"type", Type} | T], Acc) when is_list(Type) ->
 	resource_rel(T, Acc#resource_rel{type = Type});
 resource_rel([{"@referredType", RefType} | T], Acc) when is_list(RefType) ->
 	resource_rel(T, Acc#resource_rel{referred_type = RefType});
-resource_rel([{"validFor", {struct, L}} | T], ResourceRel) ->
-	ResourceRel1 = case lists:keyfind("startDateTime", 1, L) of
-		{_, Start} ->
-			ResourceRel#resource_rel{start_date = ocs_rest:iso8601(Start)};
-		false ->
-			ResourceRel
-	end,
-	ResourceRel2 = case lists:keyfind("endDateTime", 1, L) of
-		{_, End} ->
-			ResourceRel1#resource_rel{end_date = ocs_rest:iso8601(End)};
-		false ->
-			ResourceRel1
-	end,
-	resource_rel(T, ResourceRel2);
 resource_rel([_ | T], Acc) ->
 	resource_rel(T, Acc);
 resource_rel([], ResourceRel) ->
@@ -1065,20 +1051,6 @@ resource_rel([type | T], #resource_rel{type = Type} = R, Acc)
 resource_rel([referred_type | T],
 		#resource_rel{referred_type = RefType} = R, Acc) when is_list(RefType) ->
 	resource_rel(T, R, [{"@referredType", RefType} | Acc]);
-resource_rel([start_date | T], #resource_rel{start_date = StartDate,
-		end_date = undefined} = R, Acc) when is_integer(StartDate) ->
-	ValidFor = {struct, [{"startDateTime", ocs_rest:iso8601(StartDate)}]},
-	resource_rel(T, R, [{"validFor", ValidFor} | Acc]);
-resource_rel([start_date | T], #resource_rel{start_date = undefined,
-		end_date = EndDate} = R, Acc) when is_integer(EndDate) ->
-	ValidFor = {struct, [{"endDateTime", ocs_rest:iso8601(EndDate)}]},
-	resource_rel(T, R, [{"validFor", ValidFor} | Acc]);
-resource_rel([start_date | T], #resource_rel{start_date = StartDate,
-		end_date = EndDate} = R, Acc) when is_integer(StartDate),
-		is_integer(EndDate) ->
-	ValidFor = {struct, [{"startDateTime", ocs_rest:iso8601(StartDate)},
-			{"endDateTime", ocs_rest:iso8601(EndDate)}]},
-	resource_rel(T, R, [{"validFor", ValidFor} | Acc]);
 resource_rel([_ | T], R, Acc) ->
 	resource_rel(T, R, Acc);
 resource_rel([], _, Acc) ->
