@@ -219,7 +219,7 @@ all() ->
 	post_hub_usage, get_usage_hubs, get_usage_hub, delete_hub_usage,
 	notify_diameter_acct_log, get_tariff_resource, get_tariff_resources,
 	post_tariff_resource, delete_tariff_resource, update_tariff_resource,
-	post_policy, query_policy, oauth_authentication].
+	post_policy_resource, query_policy_resource, oauth_authentication].
 
 %%---------------------------------------------------------------------
 %%  Test cases
@@ -4595,10 +4595,10 @@ update_tariff_resource(Config) ->
 			specification = #specification_ref{name = "tariff row spec"}}}
 			= ocs:get_resource(ResourceId).
 
-post_policy() ->
+post_policy_resource() ->
 	[{userdata, [{doc,"Add policy in rest interface"}]}].
 
-post_policy(Config) ->
+post_policy_resource(Config) ->
 	ResName = ocs:generate_identity(),
 	Name = {"name", ResName},
 	ResourceSpec = {"resourceSpecification",
@@ -4654,10 +4654,10 @@ post_policy(Config) ->
 			= lists:keyfind("precedence", #resource_char.name, ResChar),
 	true = is_integer(Precedence).
 
-query_policy() ->
+query_policy_resource() ->
 	[{userdata, [{doc, "Query policy entry in resource table"}]}].
 
-query_policy(Config) ->
+query_policy_resource(Config) ->
 	TariffTable = #resource{name = "TariffTable", description = "Tariff Table",
 			category = "Tariff", class_type = "LogicalResource",
 			base_type = "Resource", specification = #specification_ref{id = "1",
