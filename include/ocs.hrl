@@ -226,9 +226,7 @@
 		href :: string() | undefined | '_',
 		name :: string() | undefined | '_',
 		type :: string() | undefined | '_',
-		referred_type :: string() | undefined | '_',
-		start_date :: pos_integer() | undefined | '_',
-		end_date :: pos_integer() | undefined | '_'}).
+		referred_type :: string() | undefined | '_'}).
 -type resource_rel() :: #resource_rel{}.
 
 -record(specification_ref,
