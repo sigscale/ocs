@@ -5228,9 +5228,10 @@ add_bucket(ProdRef, Units, RA) ->
 add_resource("1", Description, Category) ->
 	Schema = "/resourceInventoryManagement/v1/schema/"
 			"resourceInventoryManagement#/definitions/resource",
-	Resource = #resource{class_type = "LogicalResource", base_type = "Resource",
-			description = Description, category = Category, state = "Active",
-			schema = Schema, start_date = erlang:system_time(?MILLISECOND),
+	Resource = #resource{name = "tariffexample", class_type = "LogicalResource",
+			base_type = "Resource", description = Description, category = Category,
+			state = "Active", schema = Schema,
+			start_date = erlang:system_time(?MILLISECOND),
 			end_date = erlang:system_time(?MILLISECOND) + 2678400000,
 			specification = #specification_ref{id = "1", name = "tariffTable",
 					href = "/resourceCatalogManagement/v2/resourceSpecification/1"}},
