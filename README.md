@@ -83,7 +83,7 @@ using the Erlang public API, either manually on the command line
 module development.
 
 ### [DIAMETER](http://tools.ietf.org/html/rfc6733)
-SigScale OCS supports the DIAMETER applications for the 3GPP interafces
+SigScale OCS supports the DIAMETER applications for the 3GPP interfaces
 of an OCS (Ro/Gy/Wo) (3GPP 32.299), PCRF (Gx), HSS (S6a) and AAA Server
 (STa/SWm/SWx), The OCS function supports Session Charging with
 Unit Reservation (SCUR) and Event Charging with Unit Reservation (ECUR)
