@@ -12,10 +12,14 @@
  */
 
 import { PolymerElement, html } from '@polymer/polymer/polymer-element.js';
+import {} from '@polymer/polymer/lib/elements/dom-if.js';
+import {} from '@polymer/polymer/lib/elements/dom-repeat.js'
 import '@vaadin/vaadin-grid/vaadin-grid.js';
 import '@vaadin/vaadin-grid/vaadin-grid-filter.js'
 import '@polymer/iron-ajax/iron-ajax.js';
 import '@polymer/paper-fab/paper-fab.js';
+import '@polymer/paper-tabs/paper-tabs.js';
+import '@polymer/iron-pages/iron-pages.js';
 import './style-element.js'
 import '@polymer/iron-icons/iron-icons.js';
 
@@ -28,6 +32,131 @@ class policyList extends PolymerElement {
 					loading="{{loading}}"
 					active-item="{{activeItem}}"
 					theme="no-border">
+				<template class="row-details">
+					<paper-tabs
+							class="details"
+							selected="{{selectedTab}}">
+						<paper-tab>
+							General
+						</paper-tab>
+						<paper-tab>
+							Characteristics
+						</paper-tab>
+						<paper-tab>
+							Relationship
+						</paper-tab>
+						<paper-tab>
+							Specification
+						</paper-tab>
+					</paper-tabs>
+					<iron-pages
+							selected="{{selectedTab}}">
+						<div>
+							<dl class="details">
+								<template is="dom-if" if="{{item.id}}">
+									<dt><b>Id</b></dt>
+									<dd>{{item.id}}</dd>
+								</template>
+								<template is="dom-if" if="{{item.name}}">
+									<dt><b>Name</b></dt>
+									<dd>{{item.name}}</dd>
+								</template>
+								<template is="dom-if" if="{{item.href}}">
+									<dt><b>Href</b></dt>
+									<dd>{{item.href}}</dd>
+								</template>
+							</dl>
+						</div>
+						<div>
+							<template is="dom-if" if="{{item.resourceCharacteristic}}">
+								<table class="details">
+									<tr>
+										<th>Name</th>
+										<th>Value</th>
+									</tr>
+									<tr>
+										<td>Name</td>
+										<td>{{item.name}}</td>
+									</tr>
+									<tr>
+										<td>qosInformation</td>
+										<td>{{item.qos}}</td>
+									</tr>
+									<tr>
+										<td>chargingRule</td>
+										<td>{{item.chargingRule}}</td>
+									</tr>
+									<tr>
+										<td>flowInformationUp1</td>
+										<td>{{item.flowUp}}</td>
+									</tr>
+									<tr>
+										<td>flowInformationDown1</td>
+										<td>{{item.flowDown}}</td>
+									</tr>
+									<tr>
+										<td>precedence</td>
+										<td>{{item.precedence}}</td>
+									</tr>
+								</table>
+							</template>
+						</div>
+						<div>
+							<template is="dom-if" if="{{item.resourceRelationship}}">
+								<table class="details">
+									<tr>
+										<th>Id</th>
+										<th>Href</th>
+										<th>Name</th>
+										<th>Relationship Type</th>
+									</tr>
+									<template is="dom-repeat" items="{{item.resourceRelationship}}" as="rel">
+										<tr>
+											<td>{{rel.id}}</td>
+											<td>{{rel.href}}</td>
+											<td>{{rel.name}}</td>
+											<td>{{rel.type}}</td>
+										</tr>
+									</template>
+								</table>
+							</template>
+						</div>
+						<div>
+							<template is="dom-if" if="{{item.resourceSpecification}}">
+								<table class="details">
+									<tr>
+										<th>Id</th>
+										<th>Name</th>
+									</tr>
+									<tr>
+										<td>{{item.resourceSpecification.id}}</td>
+										<td>{{item.resourceSpecification.name}}</td>
+									</tr>
+								</table>
+							</template>
+						</div>
+					</iron-pages>
+						<div class="buttons">
+							<paper-button
+									raised
+									class="submit-button"
+									on-tap="_up">
+								Update
+							</paper-button>
+							<paper-button
+									raised
+									on-tap="tableDelete"
+									class="delete-button">
+								Delete
+							</paper-button>
+						</div>
+				</template>
+				<vaadin-grid-column>
+					<template class="header">
+						Id
+					</template>
+					<template>[[item.id]]</template>
+				</vaadin-grid-column>
 				<vaadin-grid-column>
 					<template class="header">
 						Name
@@ -166,13 +295,30 @@ class policyList extends PolymerElement {
 		this.$.tableList.close();
 	} 
 
-	_activeItemChanged(item) {
-		if(item) {
-			this.$.policyGrid.selectedItems = item ? [item] : [];
-			document.body.querySelector('sig-app').shadowRoot.querySelector('sig-policy-update').shadowRoot.getElementById('updatePolicyModal').open();
-		} else {
-			this.$.policyGrid.selectedItems = [];
+	_activeItemChanged(item, last) {
+		if(item || last) {
+			var grid = this.$.policyGrid;
+			var current;
+			if(item == null) {
+				current = last;
+				this.$.policyGrid.selectedItems = item ? [item] : [];
+			} else {
+				current = item;
+				this.$.policyGrid.selectedItems = [];
+			}
+			function checkExist(specification) {
+				return specification.id == current.id;
+			}
+			if(grid.detailsOpenedItems && grid.detailsOpenedItems.some(checkExist)) {
+				grid.closeItemDetails(current);
+			} else {
+				grid.openItemDetails(current);
+			}
 		}
+	}
+
+	_up() {
+		document.body.querySelector('sig-app').shadowRoot.querySelector('sig-policy-update').shadowRoot.getElementById('updatePolicyModal').open();
 	}
 
 	_getPolicyResponse(event) {
@@ -223,8 +369,10 @@ class policyList extends PolymerElement {
 					return characteristic.name == "name"
 				}
 				for (var index in request.response) {
-					var resChar = request.response[index].resourceCharacteristic;
 					var tabObj = new Object();
+					tabObj.id = request.response[index].id;
+					tabObj.resourceCharacteristic = request.response[index].resourceCharacteristic;
+					var resChar = request.response[index].resourceCharacteristic;
 					for (var indexRes in resChar) {
 						if(resChar[indexRes].name == "name") {
 							tabObj.name = resChar[indexRes].value.value;
@@ -301,10 +449,10 @@ class policyList extends PolymerElement {
 		}
 	}
 
-   tableAdd() {
-      document.body.querySelector('sig-app').shadowRoot.querySelector('sig-policy-table-add').shadowRoot.getElementById('addPolicyTableModal').open();
-      this.$.tableList.close();
-   }
+	tableAdd() {
+		document.body.querySelector('sig-app').shadowRoot.querySelector('sig-policy-table-add').shadowRoot.getElementById('addPolicyTableModal').open();
+		this.$.tableList.close();
+	}
 
 	showAddPolicyModal(event) {
 		document.body.querySelector('sig-app').shadowRoot.querySelector('sig-policy-add').shadowRoot.getElementById('policyAddModal').open();
