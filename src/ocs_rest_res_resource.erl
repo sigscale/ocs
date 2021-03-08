@@ -717,7 +717,7 @@ policy_row_spec() ->
 			{"description", "Charging rule"},
 			{"valueType", "MatrixCharacteristicSpec"},
 			{"resourceSpecCharacteristicValue", {array, [{struct,
-			[{"seqNum", 3}, {"valueType", "String"}]}]}}]},
+			[{"seqNum", 3}, {"valueType", "Number"}]}]}}]},
 			{struct, [{"name", "flowInformation"},
 			{"description", "Flow Information"},
 			{"valueType", "MatrixCharacteristicSpec"},
