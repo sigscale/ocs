@@ -4605,20 +4605,20 @@ post_policy_resource(Config) ->
 			{struct, [{"id", "4"}, {"name", "PolicyTable"}]}},
 	Char1 = {struct, [{"name", "name"}, {"value",
 			{struct, [{"seqNum", 1}, {"value", ResName}]}}]},
-	Char2 = {struct, [{"name", "qosInformation"},
-			{"value", {struct, [{"seqNum", 2}, {"value", {struct, [
-			{"qosClassIdentifier", rand:uniform(10)},
-			{"maxRequestedBandwidthUL", 1000000000},
-			{"maxRequestedBandwidthDL", 1000000000}]}}]}}]},
+	ClassId = rand:uniform(10),
+	MaxUL = 1000000000,
+	MaxDL = 1000000000,
+	Char2 = {struct, [{"name", "qosInformation"}, {"value",
+			{struct, [{"seqNum", 2}, {"value", {struct,
+			[{"qosClassIdentifier", ClassId}, {"maxRequestedBandwidthUL", MaxUL},
+			{"maxRequestedBandwidthDL", MaxDL}]}}]}}]},
 	Char3 = {struct, [{"name", "chargingRule"},
-			{"value", {struct, [{"seqNum", 3}, {"value", "1"}]}}]},
+			{"value", {struct, [{"seqNum", 3}, {"value", 1}]}}]},
 	Char4 = {struct, [{"name", "flowInformation"},
 			{"value", {struct, [{"seqNum", 4}, {"value", {array,
-			[{struct, [{"name", "flowInformationUp1"},
-					{"flowDescription", "permit in ip from any to 10/8"},
+			[{struct, [{"flowDescription", "permit in ip from any to 10/8"},
 					{"flowDirection", "2"}]},
-			{struct, [{"name", "flowInformationDown1"},
-					{"flowDescription", "permit in ip from any to 10/8"},
+			{struct, [{"flowDescription", "permit in ip from any to 10/8"},
 					{"flowDirection", "2"}]}]}}]}}]},
 	Char5 = {struct, [{"name", "precedence"},
 			{"value", {struct, [{"seqNum", 5}, {"value", 1}]}}]},
@@ -4643,13 +4643,17 @@ post_policy_resource(Config) ->
 			= ocs:get_resource(ID),
 	#resource_char{value = ResName}
 			= lists:keyfind("name", #resource_char.name, ResChar),
-	#resource_char{value = #{}}
+	#resource_char{value = #{"qosClassIdentifier" := ClassId,
+			"maxRequestedBandwidthUL" := MaxUL,
+			"maxRequestedBandwidthDL" := MaxDL}}
 			= lists:keyfind("qosInformation", #resource_char.name, ResChar),
-	#resource_char{value = Rule}
+	#resource_char{value = 1}
 			= lists:keyfind("chargingRule", #resource_char.name, ResChar),
-	true = is_list(Rule),
-	#resource_char{value = [#{} | _]}
+	#resource_char{value = [#{"flowDescription" := Description,
+			"flowDirection" := Direction} | _]}
 			= lists:keyfind("flowInformation", #resource_char.name, ResChar),
+	true = is_list(Description),
+	true = is_list(Direction),
 	#resource_char{value = Precedence}
 			= lists:keyfind("precedence", #resource_char.name, ResChar),
 	true = is_integer(Precedence).

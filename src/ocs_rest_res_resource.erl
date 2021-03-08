@@ -1066,6 +1066,29 @@ resource_char([#resource_char{} | _] = List) ->
 	Fields = record_info(fields, resource_char),
 	[resource_char(Fields, R, []) || R <- List].
 %% @hidden
+resource_char([{"name", "name"}, {"value", {struct, NameList}} | T], Acc) ->
+	case lists:keyfind("value", 1, NameList) of
+		{_, Value} when is_list(Value) ->
+			resource_char(T, Acc#resource_char{name = "name", value = Value});
+		false ->
+			throw(bad_request)
+	end;
+resource_char([{"name", "chargingRule"},
+		{"value", {struct, RuleList}} | T], Acc) ->
+	case lists:keyfind("value", 1, RuleList) of
+		{_, Value} when is_integer(Value) ->
+			resource_char(T, Acc#resource_char{name = "chargingRule", value = Value});
+		false ->
+			throw(bad_request)
+	end;
+resource_char([{"name", "precedence"}, {"value",
+		{struct, PrecedenceList}} | T], Acc) ->
+	case lists:keyfind("value", 1, PrecedenceList) of
+		{_, Value} when is_integer(Value) ->
+			resource_char(T, Acc#resource_char{name = "precedence", value = Value});
+		false ->
+			throw(bad_request)
+	end;
 resource_char([{"name", "qosInformation"},
 		{"value", {struct, QosInfo}} | T], Acc) ->
 	{_, {struct, QosList}} = lists:keyfind("value", 1, QosInfo),
@@ -1096,31 +1119,30 @@ resource_char([], Acc) ->
 	Acc.
 %% @hidden
 resource_char([value | T], #resource_char{name = "name",
-		value = Value} = R, Acc) ->
+		value = Value} = R, Acc) when is_list(Value) ->
 	resource_char(T, R, [{"name", "name"}, {"value", {struct, [{"seqNum", 1},
 			{"value", Value}]}} | Acc]);
 resource_char([value | T], #resource_char{name = "chargingRule",
-		value = Value} = R, Acc) ->
+		value = Value} = R, Acc) when is_integer(Value) ->
 	resource_char(T, R, [{"name", "chargingRule"},
 			{"value", {struct, [{"seqNum", 3}, {"value", Value}]}} | Acc]);
 resource_char([value | T], #resource_char{name = "precedence",
-		value = Value} = R, Acc) ->
+		value = Value} = R, Acc) when is_integer(Value) ->
 	resource_char(T, R, [{"name", "precedence"},
 			{"value", {struct, [{"seqNum", 5}, {"value", Value}]}} | Acc]);
 resource_char([value | T], #resource_char{name = "qosInformation",
 		value = #{"maxRequestedBandwidthDL" := MaxDL,
-		"maxRequestedBandwidthUL" := MaxUL,
-		"qosClassIdentifier" := Class}} = R, Acc) ->
+		"maxRequestedBandwidthUL" := MaxUL, "qosClassIdentifier" := Class}} = R,
+		Acc) when is_integer(MaxDL), is_integer(MaxUL), is_integer(Class) ->
 	resource_char(T, R, [{"name", "qosInformation"},
 			{"value", {struct, [{"seqNum", 2}, {"value", {struct,
 			[{"maxRequestedBandwidthDL", MaxDL}, {"maxRequestedBandwidthUL",
 			MaxUL}, {"qosClassIdentifier", Class}]}}]}} | Acc]);
 resource_char([value | T], #resource_char{name = "flowInformation",
 		value = FlowList} = R, Acc) when is_list(FlowList) ->
-	F = fun(#{"name" := Name, "flowDescription" := FlowDes,
-			"flowDirection" := FlowDirection}) ->
-		{struct, [{"name", Name}, {"flowDescription", FlowDes},
-				{"flowDirection", FlowDirection}]}
+	F = fun(#{"flowDescription" := FlowDes, "flowDirection" := FlowDirection})
+			when is_list(FlowDes), is_list(FlowDirection) ->
+		{struct, [{"flowDescription", FlowDes}, {"flowDirection", FlowDirection}]}
 	end,
 	resource_char(T, R, [{"name", "flowInformation"}, {"value", {struct,
 			[{"seqNum", 4}, {"value", {array, lists:map(F, FlowList)}}]}} | Acc]);
@@ -1130,8 +1152,8 @@ resource_char([value | T], #resource_char{name = "prefix",
 			{"value", Value}]}} | Acc]);
 resource_char([value | T], #resource_char{name = "description",
 		value = Value} = R, Acc) ->
-	resource_char(T, R, [{"name", "description"}, {"value", {struct, [{"seqNum", 2},
-			{"value", Value}]}} | Acc]);
+	resource_char(T, R, [{"name", "description"}, {"value",
+			{struct, [{"seqNum", 2}, {"value", Value}]}} | Acc]);
 resource_char([value | T], #resource_char{name = "rate",
 		value = Value} = R, Acc) ->
 	resource_char(T, R, [{"name", "rate"}, {"value", {struct, [{"seqNum", 3},
@@ -1142,7 +1164,12 @@ resource_char([], _, Acc) ->
 	{struct, Acc}.
 
 %% @hidden
-parse_char([{Field, Value} | T], Acc) ->
+parse_char([{Field, Value} | T], Acc) when is_integer(Value),
+		Field == "qosClassIdentifier"; Field == "maxRequestedBandwidthUL";
+		Field == "maxRequestedBandwidthDL" ->
+	parse_char(T, Acc#{Field => Value});
+parse_char([{Field, Value} | T], Acc) when Field == "flowDescription";
+		Field == "flowDirection", is_list(Value) ->
 	parse_char(T, Acc#{Field => Value});
 parse_char([], Acc) ->
 	Acc.
