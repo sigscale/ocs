@@ -566,6 +566,9 @@ class subAdd extends PolymerElement {
 		this.$.add8.value = null;
 		this.$.adduni9.selected = null;
 		this.$.addProductId1.value = null;
+		this.$.addproduct10.selected = null
+		this.$.proAddOff.disabled = false;
+		this.$.addProductId1.disabled = false
 	}
 
 	_addServiceResponse(event) {
@@ -600,6 +603,8 @@ class subAdd extends PolymerElement {
 			ajaxProduct.headers['Content-type'] = "application/json";
 			ajaxProduct.body = productSer;
 			ajaxProduct.generateRequest();
+			this.$.addproduct10.selected = null
+			this.$.addProductId1.disabled = false
 		} else {
 			var ajaxServices1 = this.$.addServiceAjax;
 			var ajaxProduct1 = this.$.addProductAjax;
@@ -664,6 +669,9 @@ class subAdd extends PolymerElement {
 			this.$.addServiceModal.close();
 			this.$.add8.value = null;
 			document.body.querySelector('sig-app').shadowRoot.getElementById('serviceList').shadowRoot.getElementById('subscriberGrid').clearCache();
+			this.$.addproduct10.selected = null;
+			this.$.proAddOff.disabled = false;
+			this.$.addProductId1.disabled = false;
 		}
 	}
 
@@ -739,6 +747,9 @@ class subAdd extends PolymerElement {
 		var toast = document.body.querySelector('sig-app').shadowRoot.getElementById('restError');
 		toast.text = "Error";
 		toast.open();
+		this.$.addproduct10.selected = null
+		this.$.proAddOff.disabled = false;
+		this.$.addProductId1.disabled = false
 	}
 
 	_addProductError(event) {
@@ -746,6 +757,9 @@ class subAdd extends PolymerElement {
 		toast.text = "Error";
 		toast.open();
 		var ajaxBucketRes = this.$.addBucketAjax;
+		this.$.addproduct10.selected = null
+		this.$.proAddOff.disabled = false;
+		this.$.addProductId1.disabled = false
 	}
 
 	_addBucketResponse(event) {
