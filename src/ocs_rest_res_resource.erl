@@ -724,7 +724,7 @@ policy_row_spec() ->
 			{"resourceSpecCharacteristicValue", {array, [{struct,
 			[{"seqNum", 4}, {"valueType", {array, [
 			{struct, [{"flowDescription", "String"},
-			{"flowDirection", "String"}]}]}}]}]}}]},
+			{"flowDirection", "Number"}]}]}}]}]}}]},
 			{struct, [{"name", "precedence"},
 			{"description", "Priority of the policy"},
 			{"valueType", "MatrixCharacteristicSpec"},
@@ -1141,7 +1141,7 @@ resource_char([value | T], #resource_char{name = "qosInformation",
 resource_char([value | T], #resource_char{name = "flowInformation",
 		value = FlowList} = R, Acc) when is_list(FlowList) ->
 	F = fun(#{"flowDescription" := FlowDes, "flowDirection" := FlowDirection})
-			when is_list(FlowDes), is_list(FlowDirection) ->
+			when is_list(FlowDes), is_integer(FlowDirection) ->
 		{struct, [{"flowDescription", FlowDes}, {"flowDirection", FlowDirection}]}
 	end,
 	resource_char(T, R, [{"name", "flowInformation"}, {"value", {struct,
@@ -1166,10 +1166,10 @@ resource_char([], _, Acc) ->
 %% @hidden
 parse_char([{Field, Value} | T], Acc) when is_integer(Value),
 		Field == "qosClassIdentifier"; Field == "maxRequestedBandwidthUL";
-		Field == "maxRequestedBandwidthDL" ->
+		Field == "maxRequestedBandwidthDL"; Field == "flowDirection" ->
 	parse_char(T, Acc#{Field => Value});
 parse_char([{Field, Value} | T], Acc) when Field == "flowDescription";
-		Field == "flowDirection", is_list(Value) ->
+		is_list(Value) ->
 	parse_char(T, Acc#{Field => Value});
 parse_char([], Acc) ->
 	Acc.

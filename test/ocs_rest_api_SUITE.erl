@@ -4617,9 +4617,9 @@ post_policy_resource(Config) ->
 	Char4 = {struct, [{"name", "flowInformation"},
 			{"value", {struct, [{"seqNum", 4}, {"value", {array,
 			[{struct, [{"flowDescription", "permit in ip from any to 10/8"},
-					{"flowDirection", "2"}]},
+					{"flowDirection", 1}]},
 			{struct, [{"flowDescription", "permit in ip from any to 10/8"},
-					{"flowDirection", "2"}]}]}}]}}]},
+					{"flowDirection", 2}]}]}}]}}]},
 	Char5 = {struct, [{"name", "precedence"},
 			{"value", {struct, [{"seqNum", 5}, {"value", 1}]}}]},
 	Characteristics = {"resourceCharacteristic",
@@ -4653,7 +4653,7 @@ post_policy_resource(Config) ->
 			"flowDirection" := Direction} | _]}
 			= lists:keyfind("flowInformation", #resource_char.name, ResChar),
 	true = is_list(Description),
-	true = is_list(Direction),
+	true = is_integer(Direction),
 	#resource_char{value = Precedence}
 			= lists:keyfind("precedence", #resource_char.name, ResChar),
 	true = is_integer(Precedence).
