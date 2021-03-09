@@ -89,7 +89,7 @@ of an OCS (Ro/Gy/Wo) (3GPP 32.299), PCRF (Gx), HSS (S6a) and AAA Server
 Unit Reservation (SCUR) and Event Charging with Unit Reservation (ECUR)
 in CS, PS and IMS domains with both centralized and distributed unit 
 determination. Non-3GPP access is supported with for ePDG with either
-internal HSS or proxy over SWm to external HSS.
+internal HSS or proxy over SWx to external HSS.
 
 ### [RADIUS](http://tools.ietf.org/html/rfc2865)
 The OCS acts as an authentication, authorization and accounting (AAA) server
