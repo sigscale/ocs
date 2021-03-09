@@ -282,60 +282,48 @@ process_request(_Address, _Port,
 					{error, missing_subscription_id}]),
 			diameter_error(SId, ?'DIAMETER_ERROR_INITIAL_PARAMETERS',
 					OHost, ORealm, RequestType, RequestNum);
-process_request(_Address, _Port,
-		#diameter_caps{origin_host = {OHost, _DHost}, origin_realm = {ORealm, _DRealm}},
+process_request(Address, Port, DiameterCaps, #'3gpp_gx_CCR'{
+		'Subscription-Id' = [#'3gpp_gx_Subscription-Id'{
+		'Subscription-Id-Data' = Subscriber} | _]} = Request) ->
+	process_request(Address, Port, DiameterCaps, Request,
+			ocs:find_service(Subscriber)).
+%% @hidden
+process_request(Address, Port, DiameterCaps, Request,
+		{ok, #service{product = ProductRef}}) ->
+	process_request(Address, Port, DiameterCaps, Request,
+			ocs:find_product(ProductRef));
+process_request(Address, Port, DiameterCaps, Request,
+		{ok, #product{product = OfferId}}) ->
+	process_request(Address, Port, DiameterCaps, Request,
+			ocs:find_offer(OfferId));
+process_request(Address, Port, DiameterCaps, Request,
+		{ok, #offer{char_value_use = CharValue}}) ->
+	process_request1(Address, Port, DiameterCaps, Request,
+			lists:keyfind("policyTable", #char_value_use.name, CharValue));
+process_request(_Address, _Port, _DiameterCaps, _Request, {error, Reason}) ->
+	{error, Reason}.
+%% @hidden
+process_request1(Address, Port, DiameterCaps, Request,
+		#char_value_use{name = "policyTable",
+		values = [#char_value{value = PolicyTable}]}) ->
+	process_request2(Address, Port, DiameterCaps, Request,
+			ocs:query_resource(start, '_', '_', '_', {exact, PolicyTable}));
+process_request1(_Address, _Port, _DiameterCaps, _Request, false) ->
+	throw(policy_not_found).
+%% @hidden
+process_request2(_Address, _Port, #diameter_caps{origin_host = {OHost, _DHost},
+		origin_realm = {ORealm, _DRealm}} = _DiameterCaps,
 		#'3gpp_gx_CCR'{'Session-Id' = SId,
 				'Auth-Application-Id' = ?Gx_APPLICATION_ID,
 				'CC-Request-Type' = RequestType,
-				'CC-Request-Number' = RequestNum,
-				'Subscription-Id' = [#'3gpp_gx_Subscription-Id'{
-						'Subscription-Id-Data' = Subscriber} | _]} = Request) ->
+				'CC-Request-Number' = RequestNum} = Request,
+		{_, [#resource{} | _] = PolicyResList}) ->
 	try
-		QosInformation = #'3gpp_gx_QoS-Information'{
-				'QoS-Class-Identifier' = [?'3GPP_GX_QOS-CLASS-IDENTIFIER_QCI_9'],
-				'Max-Requested-Bandwidth-UL' = [1000000000],
-				'Max-Requested-Bandwidth-DL' = [1000000000]},
-		FlowInformationUp1 = #'3gpp_gx_Flow-Information'{
-				 'Flow-Description' = ["permit in ip from any to 10/8"],
-				 'Flow-Direction' = [?'3GPP_GX_FLOW-DIRECTION_UPLINK']},
-		FlowInformationDown1 = #'3gpp_gx_Flow-Information'{
-				 'Flow-Description' = ["permit out ip from 10/8 to any"],
-				 'Flow-Direction' = [?'3GPP_GX_FLOW-DIRECTION_DOWNLINK']},
-		FlowInformationUp2 = #'3gpp_gx_Flow-Information'{
-				 'Flow-Description' = ["permit in ip from any to 172.16/12"],
-				 'Flow-Direction' = [?'3GPP_GX_FLOW-DIRECTION_UPLINK']},
-		FlowInformationDown2 = #'3gpp_gx_Flow-Information'{
-				 'Flow-Description' = ["permit out ip from 172.16/12 to any"],
-				 'Flow-Direction' = [?'3GPP_GX_FLOW-DIRECTION_DOWNLINK']},
-		FlowInformationUp3 = #'3gpp_gx_Flow-Information'{
-				 'Flow-Description' = ["permit in ip from any to 192.168/16"],
-				 'Flow-Direction' = [?'3GPP_GX_FLOW-DIRECTION_UPLINK']},
-		FlowInformationDown3 = #'3gpp_gx_Flow-Information'{
-				 'Flow-Description' = ["permit out ip from 192.168/16 to any"],
-				 'Flow-Direction' = [?'3GPP_GX_FLOW-DIRECTION_DOWNLINK']},
-		FlowInformationUp4 = #'3gpp_gx_Flow-Information'{
-				 'Flow-Description' = ["permit in ip from any to any"],
-				 'Flow-Direction' = [?'3GPP_GX_FLOW-DIRECTION_UPLINK']},
-		FlowInformationDown4 = #'3gpp_gx_Flow-Information'{
-				 'Flow-Description' = ["permit out ip from any to any"],
-				 'Flow-Direction' = [?'3GPP_GX_FLOW-DIRECTION_DOWNLINK']},
-		ChargingRuleDefinition1 = #'3gpp_gx_Charging-Rule-Definition'{
-				'Charging-Rule-Name' = ["internal"],
-				'QoS-Information' = [QosInformation],
-				'Rating-Group' = [1],
-				'Flow-Information' = [FlowInformationUp1, FlowInformationDown1,
-						FlowInformationUp2, FlowInformationDown2,
-						FlowInformationUp3, FlowInformationDown3],
-				'Precedence' = [2]},
-		ChargingRuleDefinition2 = #'3gpp_gx_Charging-Rule-Definition'{
-				'Charging-Rule-Name' = ["external"],
-				'QoS-Information' = [QosInformation],
-				'Rating-Group' = [32],
-				'Flow-Information' = [FlowInformationUp4, FlowInformationDown4],
-				'Precedence' = [1]},
+		ChargingRuleDefinitions = [parse_policy_char(Chars,
+				#'3gpp_gx_Charging-Rule-Definition'{}) ||
+				#resource{characteristic = Chars} <- PolicyResList],
 		ChargingRuleInstall = #'3gpp_gx_Charging-Rule-Install'{
-				'Charging-Rule-Definition' = [ChargingRuleDefinition1,
-						ChargingRuleDefinition2]},
+				'Charging-Rule-Definition' = ChargingRuleDefinitions},
 		#'3gpp_gx_CCA'{'Session-Id' = SId,
 				'Result-Code' = [?'DIAMETER_BASE_RESULT-CODE_SUCCESS'],
 				'Origin-Host' = OHost, 'Origin-Realm' = ORealm,
@@ -351,7 +339,45 @@ process_request(_Address, _Port,
 					{session_id, SId}, {request, Request}, {error, Reason}]),
 			diameter_error(SId, ?'DIAMETER_BASE_RESULT-CODE_UNABLE_TO_COMPLY',
 					OHost, ORealm, RequestType, RequestNum)
-	end.
+	end;
+process_request2(_Address, _Port, _DiameterCaps, _Request, {error, Reason}) ->
+	{error, Reason}.
+
+%% @hidden
+parse_policy_char([#resource_char{name = "name", value = Value} | T], Acc)
+		 when is_list(Value) ->
+	parse_policy_char(T, Acc#'3gpp_gx_Charging-Rule-Definition'{
+				'Charging-Rule-Name' = [Value]});
+parse_policy_char([#resource_char{name = "chargingRule", value = Value} | T],
+		Acc) when is_integer(Value) ->
+	parse_policy_char(T, Acc#'3gpp_gx_Charging-Rule-Definition'{
+				'Rating-Group' = [Value]});
+parse_policy_char([#resource_char{name = "precedence", value = Value} | T],
+		Acc) when is_integer(Value) ->
+	parse_policy_char(T, Acc#'3gpp_gx_Charging-Rule-Definition'{
+				'Precedence' = [Value]});
+parse_policy_char([#resource_char{name = "qosInformation", value =
+		#{"maxRequestedBandwidthDL" := MaxDL, "maxRequestedBandwidthUL" := MaxUL,
+		"qosClassIdentifier" := QosId}} | T], Acc) when is_integer(MaxDL),
+		is_integer(MaxUL), is_integer(QosId) ->
+	QosInformation = #'3gpp_gx_QoS-Information'{
+			'QoS-Class-Identifier' = [QosId],
+			'Max-Requested-Bandwidth-DL' = [MaxDL],
+			'Max-Requested-Bandwidth-UL' = [MaxUL]},
+	parse_policy_char(T, Acc#'3gpp_gx_Charging-Rule-Definition'{
+				'QoS-Information' = [QosInformation]});
+parse_policy_char([#resource_char{name = "flowInformation",
+		value = FlowInfo} | T], Acc) when is_list(FlowInfo) ->
+	F = fun(#{"flowDirection" := FlowDirection,
+			"flowDescription" := FlowDes}) when is_integer(FlowDirection),
+			is_list(FlowDes) ->
+		#'3gpp_gx_Flow-Information'{'Flow-Direction'
+				= [FlowDirection], 'Flow-Description' = [FlowDes]}
+	end,
+	parse_policy_char(T, Acc#'3gpp_gx_Charging-Rule-Definition'{
+				'Flow-Information' = lists:map(F, FlowInfo)});
+parse_policy_char([], Acc) ->
+	Acc.
 
 -spec diameter_error(SessionId, ResultCode, OriginHost,
 		OriginRealm, RequestType, RequestNum) -> Reply
