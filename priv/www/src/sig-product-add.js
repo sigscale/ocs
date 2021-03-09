@@ -164,6 +164,7 @@ class productAddClass extends PolymerElement {
 		var deleteAjax = this.$.deleteProductAjax;
 		deleteAjax.url = "/productInventoryManagement/v2/product/" + delProduct;
 		deleteAjax.generateRequest();
+		this.$.deleteProductModal.close();
 	}
 
 	_deleteProductResponse() {
