@@ -60,10 +60,10 @@
                     "serviceRating" : [ {
                       "serviceContextId" : "32274@3gpp.org",
                       "serviceId" : 4,
-                      "destinationId" : {
+                      "destinationId" : [ {
                         "destinationIdType" : "DN",
                         "destinationIdData" : "14165556789"
-                      },
+                      } ],
                       "requestSubType" : "DEBIT"
                     } ]
                   }
@@ -83,10 +83,10 @@
                     "serviceRating" : [ {
                       "serviceContextId" : "32274@3gpp.org",
                       "serviceId" : 4,
-                      "destinationId" : {
+                      "destinationId" : [ {
                         "destinationIdType" : "DN",
                         "destinationIdData" : "14165556789"
-                      },
+                      } ],
                       "requestSubType" : "RESERVE",
                       "requestedUnit" : {
                         "serviceSpecificUnit" : 1
@@ -435,10 +435,10 @@
                     "serviceRating" : [ {
                       "serviceContextId" : "32274@3gpp.org",
                       "serviceId" : 4,
-                      "destinationId" : {
+                      "destinationId" : [ {
                         "destinationIdType" : "DN",
                         "destinationIdData" : "14165556789"
-                      },
+                      } ],
                       "requestSubType" : "DEBIT",
                       "consumedUnit" : {
                         "serviceSpecificUnit" : 1
