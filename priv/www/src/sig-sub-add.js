@@ -91,7 +91,8 @@ class subAdd extends PolymerElement {
 									id="addProductId1"
 									name="product"
 									value="{{proAddPro}}"
-									label="ProductId">
+									label="ProductId"
+									on-focused-changed="proSelection">
 							</paper-input>
 							<paper-tooltip
 									for="addProductId1"
@@ -470,13 +471,16 @@ class subAdd extends PolymerElement {
 	}
 
 	_productSelected(){
-		var product = this.offers[this.$.addproduct10.selected];
+     if(this.offers[this.$.addproduct10.selected]) {
+			var product = this.offers[this.$.addproduct10.selected];
+			this.$.addProductId1.disabled = true
+      }
 	}
 
-	onEnter() {
-		var productId = this.proAddPro;
-		if(productId) {
-			document.getElementById("subscriberAdd").productId = productId;
+	proSelection() {
+		if(this.proAddPro) {
+			this.$.proAddOff.disabled = true
+			var productId = this.proAddPro;
 		}
 	}
 
@@ -580,7 +584,92 @@ class subAdd extends PolymerElement {
 			this.$.idCheckPass.checked = false;
 			this.$.addSubscriberSecretModal.open();
 		}
+
+		if(!event.detail.xhr.response.product) {
+			var ajaxProduct = this.$.addProductAjax;
+			var productSer = new Object();
+			var productRef = new Object();
+			productRef.id = this.offAddPro;
+			productRef.name = this.offAddPro;
+			productRef.href = "/catalogManagement/v2/productOffering/" + this.product;
+			productSer.productOffering = productRef;
+			var productRealizingService = new Object();
+			productRealizingService.id = this.identity;
+			productRealizingService.href = "/serviceInventoryManagement/v2/service/" + this.identity;
+			productSer.realizingService = [productRealizingService];
+			ajaxProduct.headers['Content-type'] = "application/json";
+			ajaxProduct.body = productSer;
+			ajaxProduct.generateRequest();
+		} else {
+			var ajaxServices1 = this.$.addServiceAjax;
+			var ajaxProduct1 = this.$.addProductAjax;
+			var result = event.detail.xhr.response;
+			var serviceId = ajaxServices1.lastResponse.id;
+			var ajaxBucket = this.$.addBucketAjax;
+			var bucketTop = {type: "buckettype"};
+			var bunits;
+			var bamount;
+			if(this.$.add8.value) {
+				if(this.$.adduni9.selected == 0) {
+					bunits = "octets";
+				} else if (this.$.adduni9.selected == 1) {
+					bunits = "cents";
+				} else if(this.$.adduni9.selected == 2) {
+					bunits = "seconds";
+				} else {
+					bunits = "cents";
+				}
+				if(bunits && this.$.add8.value) {
+					var size = this.$.add8.value;
+					var len = size.length;
+					var m = size.charAt(len - 1);
+					if(isNaN(parseInt(m))) {
+						var s = size.slice(0, (len - 1));
+					} else {
+						var s = size;
+					}
+					if(bunits == "octets") {
+						if(m == "m") {
+							bamount = s + "000000b";
+						} else if(m == "g") {
+							bamount = s + "000000000b";
+						} else if(m == "k") {
+							bamount = s + "000b";
+						} else {
+							bamount = s + "b";
+						}
+					} else if(bunits == "cents") {
+						bamount = this.$.add8.value;
+					} else if(bunits == "seconds") {
+						var n = Number(s);
+						if(m == "m") {
+							n = n * 60;
+							bamount = n.toString() + "s";
+						} else if(m == "h") {
+							n = n * 3600;
+							bamount = n.toString() + "s";
+						} else {
+							bamount = n.toString() + "s";
+						}
+					}
+					bucketTop.amount = {units: bunits, amount: bamount};
+				}
+				bucketTop.product = {id: result.product,
+						href: "/productInventoryManagement/v2/product/" + result.product};
+				ajaxBucket.headers['Content-type'] = "application/json";
+				ajaxBucket.body = bucketTop;
+				ajaxBucket.url="/balanceManagement/v1/balanceAdjustment";
+				ajaxBucket.generateRequest();
+			}
+			this.$.addServiceModal.close();
+			this.$.add8.value = null;
+			document.body.querySelector('sig-app').shadowRoot.getElementById('serviceList').shadowRoot.getElementById('subscriberGrid').clearCache();
+		}
+	}
+
+	_addProductResponse(event) {
 		var ajaxServices1 = this.$.addServiceAjax;
+		var ajaxProduct1 = this.$.addProductAjax;
 		var result = event.detail.xhr.response;
 		var serviceId = ajaxServices1.lastResponse.id;
 		var ajaxBucket = this.$.addBucketAjax;
@@ -632,8 +721,8 @@ class subAdd extends PolymerElement {
 				}
 				bucketTop.amount = {units: bunits, amount: bamount};
 			}
-			bucketTop.product = {id: result.product,
-				href: "/productInventoryManagement/v2/product/" + result.product};
+			bucketTop.product = {id: result.id,
+				href: "/productInventoryManagement/v2/product/" + result.id};
 			ajaxBucket.headers['Content-type'] = "application/json";
 			ajaxBucket.body = bucketTop;
 			ajaxBucket.url="/balanceManagement/v1/balanceAdjustment";
