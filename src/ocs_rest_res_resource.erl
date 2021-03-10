@@ -1102,15 +1102,38 @@ resource_char([{"name", "flowInformation"},
 	end,
 	resource_char(T, Acc#resource_char{name = "flowInformation",
 			value = lists:map(F, FlowStructList)});
+resource_char([{"name", "prefix"}, {"value", {struct, PrefixList}} | T], Acc) ->
+	case lists:keyfind("value", 1, PrefixList) of
+		{_, Value} when is_list(Value) ->
+			resource_char(T, Acc#resource_char{name = "prefix", value = Value});
+		false ->
+			throw(bad_request)
+	end;
+resource_char([{"name", "description"},
+		{"value", {struct, DesList}} | T], Acc) ->
+	case lists:keyfind("value", 1, DesList) of
+		{_, Value} when is_list(Value) ->
+			resource_char(T, Acc#resource_char{name = "description",
+					value = Value});
+		false ->
+			throw(bad_request)
+	end;
+resource_char([{"name", "rate"}, {"value", {struct, RateList}} | T], Acc) ->
+	case lists:keyfind("value", 1, RateList) of
+		{_, Value} when is_integer(Value) ->
+			resource_char(T, Acc#resource_char{name = "rate", value = Value});
+		false ->
+			throw(bad_request)
+	end;
 resource_char([{"name", Name} | T], Acc) when is_list(Name) ->
 	resource_char(T, Acc#resource_char{name = Name});
 resource_char([{"@type", Type} | T], Acc) when is_list(Type) ->
 	resource_char(T, Acc#resource_char{class_type = Type});
 resource_char([{"@schemaLocation", Schema} | T], Acc) when is_list(Schema) ->
 	resource_char(T, Acc#resource_char{schema = Schema});
-resource_char([{"value", {struct, ValList}} | T], Acc) ->
-	{"value", Value} = lists:keyfind("value", 1, ValList),
-	resource_char(T, Acc#resource_char{value = Value});
+%resource_char([{"value", {struct, ValList}} | T], Acc) ->
+%	{"value", Value} = lists:keyfind("value", 1, ValList),
+%	resource_char(T, Acc#resource_char{value = Value});
 resource_char([{"value", Value} | T], Acc) ->
 	resource_char(T, Acc#resource_char{value = Value});
 resource_char([_ | T], Acc) ->
@@ -1147,15 +1170,15 @@ resource_char([value | T], #resource_char{name = "flowInformation",
 	resource_char(T, R, [{"name", "flowInformation"}, {"value", {struct,
 			[{"seqNum", 4}, {"value", {array, lists:map(F, FlowList)}}]}} | Acc]);
 resource_char([value | T], #resource_char{name = "prefix",
-		value = Value} = R, Acc) ->
+		value = Value} = R, Acc) when is_list(Value) ->
 	resource_char(T, R, [{"name", "prefix"}, {"value", {struct, [{"seqNum", 1},
 			{"value", Value}]}} | Acc]);
 resource_char([value | T], #resource_char{name = "description",
-		value = Value} = R, Acc) ->
+		value = Value} = R, Acc) when is_list(Value) ->
 	resource_char(T, R, [{"name", "description"}, {"value",
 			{struct, [{"seqNum", 2}, {"value", Value}]}} | Acc]);
 resource_char([value | T], #resource_char{name = "rate",
-		value = Value} = R, Acc) ->
+		value = Value} = R, Acc) when is_integer(Value) ->
 	resource_char(T, R, [{"name", "rate"}, {"value", {struct, [{"seqNum", 3},
 			{"value", Value}]}} | Acc]);
 resource_char([_ | T], R, Acc) ->

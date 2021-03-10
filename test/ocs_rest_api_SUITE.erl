@@ -4469,7 +4469,6 @@ post_tariff_resource(Config) ->
 			++ ResourceRelId,
 	CharPrefix = "125",
 	CharDes = "test",
-	CharRate = "250",
 	RequestBody = "{\n"
 			++ "\t\"name\": \"" ++ Name ++ "\",\n"
 			++ "\t\"description\": \"" ++ Description ++ "\",\n"
@@ -4515,7 +4514,7 @@ post_tariff_resource(Config) ->
 			++ "\t\t\t\"name\": \"rate\",\n"
 			++ "\t\t\t\"value\": {\n"
 			++ "\t\t\t\t\"seqNum\": 3,\n"
-			++ "\t\t\t\t\"value\": \"" ++ CharRate ++ "\"\n"
+			++ "\t\t\t\t\"value\": 250\n"
 			++ "\t\t\t}\n"
 			++ "\t\t}\n"
 			++ "\t]\n"
@@ -4543,7 +4542,7 @@ post_tariff_resource(Config) ->
 			= lists:keyfind("prefix", #resource_char.name, CharList),
 	#resource_char{name = "description", value = CharDes}
 			= lists:keyfind("description", #resource_char.name, CharList),
-	#resource_char{name = "rate", value = CharRate}
+	#resource_char{name = "rate", value = 250}
 			= lists:keyfind("rate", #resource_char.name, CharList).
 
 delete_tariff_resource() ->
