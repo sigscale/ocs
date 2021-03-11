@@ -4688,9 +4688,9 @@ query_policy_resource(Config) ->
 							"qosClassIdentifier" => 4}},
 					#resource_char{name = "chargingRule", value = 1},
 					#resource_char{name = "flowInformation", value =
-							[#{"name" => "flowInformationUp1", "flowDirection" => 1,
+							[#{"flowDirection" => 1,
 									"flowDescription" => "permit in ip from any to 10/8"},
-							#{"name" => "flowInformationDown1", "flowDirection" => 2,
+							#{"flowDirection" => 2,
 									"flowDescription" => "permit in ip from any to 10/8"}]},
 					#resource_char{name = "precedence", value = 1}]},
 	{ok, #resource{id = Id}} = ocs:add_resource(PolicyRow),
