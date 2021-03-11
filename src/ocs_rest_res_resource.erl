@@ -713,7 +713,7 @@ policy_row_spec() ->
 			[{"qosClassIdentifier", "Number"},
 			{"maxRequestedBandwidthUL", "Number"},
 			{"maxRequestedBandwidthDL", "Number"}]}}]}]}}]},
-			{struct, [{"name", "chargingRule"},
+			{struct, [{"name", "chargingKey"},
 			{"description", "Charging rule"},
 			{"valueType", "MatrixCharacteristicSpec"},
 			{"resourceSpecCharacteristicValue", {array, [{struct,
@@ -1073,11 +1073,11 @@ resource_char([{"name", "name"}, {"value", {struct, NameList}} | T], Acc) ->
 		false ->
 			throw(bad_request)
 	end;
-resource_char([{"name", "chargingRule"},
+resource_char([{"name", "chargingKey"},
 		{"value", {struct, RuleList}} | T], Acc) ->
 	case lists:keyfind("value", 1, RuleList) of
 		{_, Value} when is_integer(Value) ->
-			resource_char(T, Acc#resource_char{name = "chargingRule", value = Value});
+			resource_char(T, Acc#resource_char{name = "chargingKey", value = Value});
 		false ->
 			throw(bad_request)
 	end;
@@ -1125,17 +1125,10 @@ resource_char([{"name", "rate"}, {"value", {struct, RateList}} | T], Acc) ->
 		false ->
 			throw(bad_request)
 	end;
-resource_char([{"name", Name} | T], Acc) when is_list(Name) ->
-	resource_char(T, Acc#resource_char{name = Name});
 resource_char([{"@type", Type} | T], Acc) when is_list(Type) ->
 	resource_char(T, Acc#resource_char{class_type = Type});
 resource_char([{"@schemaLocation", Schema} | T], Acc) when is_list(Schema) ->
 	resource_char(T, Acc#resource_char{schema = Schema});
-%resource_char([{"value", {struct, ValList}} | T], Acc) ->
-%	{"value", Value} = lists:keyfind("value", 1, ValList),
-%	resource_char(T, Acc#resource_char{value = Value});
-resource_char([{"value", Value} | T], Acc) ->
-	resource_char(T, Acc#resource_char{value = Value});
 resource_char([_ | T], Acc) ->
 	resource_char(T, Acc);
 resource_char([], Acc) ->
@@ -1145,9 +1138,9 @@ resource_char([value | T], #resource_char{name = "name",
 		value = Value} = R, Acc) when is_list(Value) ->
 	resource_char(T, R, [{"name", "name"}, {"value", {struct, [{"seqNum", 1},
 			{"value", Value}]}} | Acc]);
-resource_char([value | T], #resource_char{name = "chargingRule",
+resource_char([value | T], #resource_char{name = "chargingKey",
 		value = Value} = R, Acc) when is_integer(Value) ->
-	resource_char(T, R, [{"name", "chargingRule"},
+	resource_char(T, R, [{"name", "chargingKey"},
 			{"value", {struct, [{"seqNum", 3}, {"value", Value}]}} | Acc]);
 resource_char([value | T], #resource_char{name = "precedence",
 		value = Value} = R, Acc) when is_integer(Value) ->

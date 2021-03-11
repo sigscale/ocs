@@ -4611,7 +4611,7 @@ post_policy_resource(Config) ->
 			{struct, [{"seqNum", 2}, {"value", {struct,
 			[{"qosClassIdentifier", ClassId}, {"maxRequestedBandwidthUL", MaxUL},
 			{"maxRequestedBandwidthDL", MaxDL}]}}]}}]},
-	Char3 = {struct, [{"name", "chargingRule"},
+	Char3 = {struct, [{"name", "chargingKey"},
 			{"value", {struct, [{"seqNum", 3}, {"value", 1}]}}]},
 	Char4 = {struct, [{"name", "flowInformation"},
 			{"value", {struct, [{"seqNum", 4}, {"value", {array,
@@ -4647,7 +4647,7 @@ post_policy_resource(Config) ->
 			"maxRequestedBandwidthDL" := MaxDL}}
 			= lists:keyfind("qosInformation", #resource_char.name, ResChar),
 	#resource_char{value = 1}
-			= lists:keyfind("chargingRule", #resource_char.name, ResChar),
+			= lists:keyfind("chargingKey", #resource_char.name, ResChar),
 	#resource_char{value = [#{"flowDescription" := Description,
 			"flowDirection" := Direction} | _]}
 			= lists:keyfind("flowInformation", #resource_char.name, ResChar),
@@ -4686,7 +4686,7 @@ query_policy_resource(Config) ->
 							#{"maxRequestedBandwidthDL" => 1000000000,
 							"maxRequestedBandwidthUL" => 1000000000,
 							"qosClassIdentifier" => 4}},
-					#resource_char{name = "chargingRule", value = 1},
+					#resource_char{name = "chargingKey", value = 1},
 					#resource_char{name = "flowInformation", value =
 							[#{"flowDirection" => 1,
 									"flowDescription" => "permit in ip from any to 10/8"},
