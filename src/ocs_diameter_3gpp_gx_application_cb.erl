@@ -348,7 +348,7 @@ parse_policy_char([#resource_char{name = "name", value = Value} | T], Acc)
 		 when is_list(Value) ->
 	parse_policy_char(T, Acc#'3gpp_gx_Charging-Rule-Definition'{
 				'Charging-Rule-Name' = [Value]});
-parse_policy_char([#resource_char{name = "chargingRule", value = Value} | T],
+parse_policy_char([#resource_char{name = "chargingKey", value = Value} | T],
 		Acc) when is_integer(Value) ->
 	parse_policy_char(T, Acc#'3gpp_gx_Charging-Rule-Definition'{
 				'Rating-Group' = [Value]});
@@ -356,6 +356,10 @@ parse_policy_char([#resource_char{name = "precedence", value = Value} | T],
 		Acc) when is_integer(Value) ->
 	parse_policy_char(T, Acc#'3gpp_gx_Charging-Rule-Definition'{
 				'Precedence' = [Value]});
+parse_policy_char([#resource_char{name = "serviceId", value = Value} | T], Acc)
+		 when is_list(Value) ->
+	parse_policy_char(T, Acc#'3gpp_gx_Charging-Rule-Definition'{
+				'Service-Identifier' = [Value]});
 parse_policy_char([#resource_char{name = "qosInformation", value =
 		#{"maxRequestedBandwidthDL" := MaxDL, "maxRequestedBandwidthUL" := MaxUL,
 		"qosClassIdentifier" := QosId}} | T], Acc) when is_integer(MaxDL),
