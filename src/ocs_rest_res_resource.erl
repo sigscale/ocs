@@ -729,7 +729,12 @@ policy_row_spec() ->
 			{"description", "Priority of the policy"},
 			{"valueType", "MatrixCharacteristicSpec"},
 			{"resourceSpecCharacteristicValue", {array, [{struct,
-			[{"seqNum", 5}, {"valueType", "Number"}]}]}}]}]},
+			[{"seqNum", 5}, {"valueType", "Number"}]}]}}]},
+			{struct, [{"name", "serviceId"},
+			{"description", "An identifier for a service"},
+			{"valueType", "MatrixCharacteristicSpec"},
+			{"resourceSpecCharacteristicValue", {array, [{struct,
+			[{"seqNum", 6}, {"valueType", "String"}]}]}}]}]},
 	Characteristic = {"resourceSpecCharacteristic" , Chars},
 	{struct, [Id, Href, Name, Description, Version, Status, LastUpdate,
 			Category, Characteristic]}.
