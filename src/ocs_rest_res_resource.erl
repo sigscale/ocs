@@ -1094,6 +1094,14 @@ resource_char([{"name", "precedence"}, {"value",
 		false ->
 			throw(bad_request)
 	end;
+resource_char([{"name", "serviceId"}, {"value",
+		{struct, ServiceIdList}} | T], Acc) ->
+	case lists:keyfind("value", 1, ServiceIdList) of
+		{_, Value} when is_list(Value) ->
+			resource_char(T, Acc#resource_char{name = "serviceId", value = Value});
+		false ->
+			throw(bad_request)
+	end;
 resource_char([{"name", "qosInformation"},
 		{"value", {struct, QosInfo}} | T], Acc) ->
 	{_, {struct, QosList}} = lists:keyfind("value", 1, QosInfo),
@@ -1130,12 +1138,6 @@ resource_char([{"name", "rate"}, {"value", {struct, RateList}} | T], Acc) ->
 		false ->
 			throw(bad_request)
 	end;
-resource_char([{"@type", Type} | T], Acc) when is_list(Type) ->
-	resource_char(T, Acc#resource_char{class_type = Type});
-resource_char([{"@schemaLocation", Schema} | T], Acc) when is_list(Schema) ->
-	resource_char(T, Acc#resource_char{schema = Schema});
-resource_char([_ | T], Acc) ->
-	resource_char(T, Acc);
 resource_char([], Acc) ->
 	Acc.
 %% @hidden
@@ -1151,6 +1153,10 @@ resource_char([value | T], #resource_char{name = "precedence",
 		value = Value} = R, Acc) when is_integer(Value) ->
 	resource_char(T, R, [{"name", "precedence"},
 			{"value", {struct, [{"seqNum", 5}, {"value", Value}]}} | Acc]);
+resource_char([value | T], #resource_char{name = "serviceId",
+		value = Value} = R, Acc) when is_list(Value) ->
+	resource_char(T, R, [{"name", "serviceId"},
+			{"value", {struct, [{"seqNum", 6}, {"value", Value}]}} | Acc]);
 resource_char([value | T], #resource_char{name = "qosInformation",
 		value = #{"maxRequestedBandwidthDL" := MaxDL,
 		"maxRequestedBandwidthUL" := MaxUL, "qosClassIdentifier" := Class}} = R,

@@ -4599,6 +4599,7 @@ post_policy_resource() ->
 
 post_policy_resource(Config) ->
 	ResName = ocs:generate_identity(),
+	ServiceId = ocs:generate_identity(),
 	Name = {"name", ResName},
 	ResourceSpec = {"resourceSpecification",
 			{struct, [{"id", "4"}, {"name", "PolicyTable"}]}},
@@ -4621,8 +4622,10 @@ post_policy_resource(Config) ->
 					{"flowDirection", 2}]}]}}]}}]},
 	Char5 = {struct, [{"name", "precedence"},
 			{"value", {struct, [{"seqNum", 5}, {"value", 1}]}}]},
+	Char6 = {struct, [{"name", "serviceId"},
+			{"value", {struct, [{"seqNum", 6}, {"value", ServiceId}]}}]},
 	Characteristics = {"resourceCharacteristic",
-			{array, [Char1, Char2, Char3, Char4, Char5]}},
+			{array, [Char1, Char2, Char3, Char4, Char5, Char6]}},
 	JSON = {struct, [Name, ResourceSpec, Characteristics]},
 	RequestBody = lists:flatten(mochijson:encode(JSON)),
 	HostUrl = ?config(host_url, Config),
@@ -4655,7 +4658,9 @@ post_policy_resource(Config) ->
 	true = is_integer(Direction),
 	#resource_char{value = Precedence}
 			= lists:keyfind("precedence", #resource_char.name, ResChar),
-	true = is_integer(Precedence).
+	true = is_integer(Precedence),
+	#resource_char{value = ServiceId}
+			= lists:keyfind("serviceId", #resource_char.name, ResChar).
 
 query_policy_resource() ->
 	[{userdata, [{doc, "Query policy entry in resource table"}]}].
