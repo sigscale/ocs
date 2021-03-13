@@ -756,6 +756,13 @@
               "$ref" : "https://api.swaggerhub.com/domains/SigScale/TS29571_CommonData/1.2.1#/components/schemas/RatingGroup"
             } ]
           },
+          "originationId" : {
+            "description" : "Identifies the origination(s), from which the requested service is directed.",
+            "type" : "array",
+            "items" : {
+              "$ref" : "#/components/schemas/OriginationId"
+            }
+          },
           "destinationId" : {
             "description" : "Identifies the destination(s), to which the requested service is directed.",
             "type" : "array",
@@ -919,6 +926,22 @@
           }
         },
         "required" : [ "serviceId", "resultCode" ]
+      },
+      "OriginationId" : {
+        "type" : "object",
+        "properties" : {
+          "originationIdType" : {
+            "anyOf" : [ {
+              "type" : "string",
+              "enum" : [ "DN", "NAI" ]
+            }, {
+              "type" : "string"
+            } ]
+          },
+          "originationIdData" : {
+            "type" : "string"
+          }
+        }
       },
       "DestinationId" : {
         "type" : "object",
