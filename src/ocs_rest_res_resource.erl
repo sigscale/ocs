@@ -724,7 +724,7 @@ policy_row_spec() ->
 			{"resourceSpecCharacteristicValue", {array, [{struct,
 			[{"seqNum", 4}, {"valueType", {array, [
 			{struct, [{"flowDescription", "String"},
-			{"flowDirection", "Number"}]}]}}]}]}}]},
+			{"flowDirection", "String"}]}]}}]}]}}]},
 			{struct, [{"name", "precedence"},
 			{"description", "Priority of the policy"},
 			{"valueType", "MatrixCharacteristicSpec"},
@@ -1167,9 +1167,20 @@ resource_char([value | T], #resource_char{name = "qosInformation",
 			MaxUL}, {"qosClassIdentifier", Class}]}}]}} | Acc]);
 resource_char([value | T], #resource_char{name = "flowInformation",
 		value = FlowList} = R, Acc) when is_list(FlowList) ->
-	F = fun(#{"flowDescription" := FlowDes, "flowDirection" := FlowDirection})
-			when is_list(FlowDes), is_integer(FlowDirection) ->
-		{struct, [{"flowDescription", FlowDes}, {"flowDirection", FlowDirection}]}
+	F = fun(#{"flowDescription" := FlowDes, "flowDirection" := 0})
+			when is_list(FlowDes) ->
+				{struct, [{"flowDescription", FlowDes},
+						{"flowDirection", "unspecified"}]};
+			(#{"flowDescription" := FlowDes, "flowDirection" := 1})
+					when is_list(FlowDes) ->
+				{struct, [{"flowDescription", FlowDes}, {"flowDirection", "down"}]};
+			(#{"flowDescription" := FlowDes, "flowDirection" := 2})
+					when is_list(FlowDes) ->
+				{struct, [{"flowDescription", FlowDes}, {"flowDirection", "up"}]};
+			(#{"flowDescription" := FlowDes, "flowDirection" := 3})
+					when is_list(FlowDes) ->
+				{struct, [{"flowDescription", FlowDes},
+						{"flowDirection", "bidirectional"}]}
 	end,
 	resource_char(T, R, [{"name", "flowInformation"}, {"value", {struct,
 			[{"seqNum", 4}, {"value", {array, lists:map(F, FlowList)}}]}} | Acc]);
@@ -1193,11 +1204,18 @@ resource_char([], _, Acc) ->
 %% @hidden
 parse_char([{Field, Value} | T], Acc) when is_integer(Value),
 		Field == "qosClassIdentifier"; Field == "maxRequestedBandwidthUL";
-		Field == "maxRequestedBandwidthDL"; Field == "flowDirection" ->
+		Field == "maxRequestedBandwidthDL" ->
 	parse_char(T, Acc#{Field => Value});
-parse_char([{Field, Value} | T], Acc) when Field == "flowDescription";
-		is_list(Value) ->
-	parse_char(T, Acc#{Field => Value});
+parse_char([{"flowDirection", "unspecified"} | T], Acc) ->
+	parse_char(T, Acc#{"flowDirection" => 0});
+parse_char([{"flowDirection", "down"} | T], Acc) ->
+	parse_char(T, Acc#{"flowDirection" => 1});
+parse_char([{"flowDirection", "up"} | T], Acc) ->
+	parse_char(T, Acc#{"flowDirection" => 2});
+parse_char([{"flowDirection", "bidirectional"} | T], Acc) ->
+	parse_char(T, Acc#{"flowDirection" => 3});
+parse_char([{"flowDescription", Value} | T], Acc) when is_list(Value) ->
+	parse_char(T, Acc#{"flowDescription" => Value});
 parse_char([], Acc) ->
 	Acc.
 
