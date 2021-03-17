@@ -216,6 +216,19 @@
               "application/problem+json" : {
                 "schema" : {
                   "$ref" : "https://api.swaggerhub.com/domains/SigScale/TS29571_CommonData/1.2.1#/components/schemas/ProblemDetails"
+                },
+                "examples" : {
+                  "UNKNOWN_CONTEXT" : {
+                    "summary" : "Unknown Service Context",
+                    "value" : {
+                      "cause" : "CHARGING_FAILED",
+                      "title" : "Incomplete or erroneous session or subscriber information",
+                      "invalidParams" : [ {
+                        "param" : "/serviceRating/0/serviceContextId",
+                        "reason" : "unknown context"
+                      } ]
+                    }
+                  }
                 }
               }
             }
@@ -226,6 +239,20 @@
               "application/problem+json" : {
                 "schema" : {
                   "$ref" : "https://api.swaggerhub.com/domains/SigScale/TS29571_CommonData/1.2.1#/components/schemas/ProblemDetails"
+                },
+                "examples" : {
+                  "QUOTA_LIMIT_REACHED" : {
+                    "summary" : "Out of Credit",
+                    "value" : {
+                      "cause" : "QUOTA_LIMIT_REACHED",
+                      "title" : "Request denied due to insufficient credit (usage applied)",
+                      "invalidParams" : [ {
+                        "param" : "/serviceRating/0"
+                      }, {
+                        "param" : "/serviceRating/1"
+                      } ]
+                    }
+                  }
                 }
               }
             }
@@ -236,6 +263,19 @@
               "application/problem+json" : {
                 "schema" : {
                   "$ref" : "https://api.swaggerhub.com/domains/SigScale/TS29571_CommonData/1.2.1#/components/schemas/ProblemDetails"
+                },
+                "examples" : {
+                  "USER_UNKNOWN" : {
+                    "summary" : "Unknown Subscriber",
+                    "value" : {
+                      "cause" : "USER_UNKNOWN",
+                      "title" : "Request denied because the subscriber identity is unrecognized",
+                      "invalidParams" : [ {
+                        "param" : "/subscriberIdentifier/1",
+                        "reason" : "unknown imsi"
+                      } ]
+                    }
+                  }
                 }
               }
             }
