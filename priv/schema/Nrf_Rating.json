@@ -119,6 +119,26 @@
                       "requestSubType" : "RESERVE"
                     } ]
                   }
+                },
+                "Roaming" : {
+                  "summary" : "Roaming voice call service (VCS).",
+                  "description" : "Request a reservation for charging a roaming voice call session. The user location is provided to enable rating based on Visited Public Land Mobile Network (PLMN).",
+                  "value" : {
+                    "nfConsumerIdentification" : {
+                      "nodeFunctionality" : "OCF"
+                    },
+                    "invocationTimeStamp" : "2020-12-13T15:28:32.123Z",
+                    "invocationSequenceNumber" : 1,
+                    "actualTime" : "2020-12-13T15:28:32Z",
+                    "subscriptionId" : [ "msisdn-14165551234", "imsi-001001000000001" ],
+                    "serviceRating" : [ {
+                      "serviceContextId" : "32276@3gpp.org",
+                      "serviceInformation" : {
+                        "vlrNumber" : "12125550000"
+                      },
+                      "requestSubType" : "RESERVE"
+                    } ]
+                  }
                 }
               }
             }
@@ -1133,18 +1153,28 @@
         "description" : "Voice Call Service (VCS) charging (3GPP TS 32.276).",
         "type" : "object",
         "properties" : {
+          "callReferenceNumber" : {
+            "description" : "The network call reference number assigned to the call by the GMSC/MSC.",
+            "allOf" : [ {
+              "$ref" : "https://api.swaggerhub.com/domains/SigScale/TS29571_CommonData/1.2.1#/components/schemas/Binary"
+            } ]
+          },
           "mscAddress" : {
-            "description" : "The serving Mobile Switching Center (MSC).",
+            "description" : "The international E.164 number of the serving Mobile Switching Center (MSC).",
+            "type" : "string",
+            "pattern" : "^[0-9]{5,15}$"
+          },
+          "locationNumber" : {
+            "description" : "The E.164 location number for the served user transported in ISUP.",
             "type" : "string",
             "pattern" : "^[0-9]{5,15}$"
           },
           "vlrNumber" : {
-            "description" : "The serving Visitor Location Register (VLR).",
+            "description" : "The international E.164 number of the serving Visitor Location Register (VLR).",
             "type" : "string",
             "pattern" : "^[0-9]{5,15}$"
           }
-        },
-        "required" : [ "sgsnMccMnc" ]
+        }
       },
       "Counter" : {
         "type" : "object",
