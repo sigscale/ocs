@@ -19,6 +19,9 @@ import '@vaadin/vaadin-grid/vaadin-grid-filter.js'
 import '@polymer/iron-ajax/iron-ajax.js';
 import '@polymer/paper-fab/paper-fab.js';
 import '@polymer/paper-tabs/paper-tabs.js';
+import '@polymer/paper-input/paper-input.js';
+import '@polymer/paper-dropdown-menu/paper-dropdown-menu.js';
+import '@polymer/paper-listbox/paper-listbox.js';
 import '@polymer/iron-pages/iron-pages.js';
 import './style-element.js'
 import '@polymer/iron-icons/iron-icons.js';
@@ -40,13 +43,10 @@ class policyList extends PolymerElement {
 							General
 						</paper-tab>
 						<paper-tab>
-							Characteristics
+							QOS Information
 						</paper-tab>
 						<paper-tab>
-							Relationship
-						</paper-tab>
-						<paper-tab>
-							Specification
+							Flow Information
 						</paper-tab>
 					</paper-tabs>
 					<iron-pages
@@ -54,84 +54,91 @@ class policyList extends PolymerElement {
 						<div>
 							<dl class="details">
 								<template is="dom-if" if="{{item.id}}">
-									<dt><b>Id</b></dt>
-									<dd>{{item.id}}</dd>
+									<paper-input
+										id="addPolId"
+										name="id"
+										label="Id"
+										value={{item.id}}
+										disabled>
+									</paper-input>
 								</template>
 								<template is="dom-if" if="{{item.name}}">
-									<dt><b>Name</b></dt>
-									<dd>{{item.name}}</dd>
+									<paper-input
+										id="addPolName"
+										name="name"
+										label="Name"
+										value={{item.name}}>
+									</paper-input>
 								</template>
-								<template is="dom-if" if="{{item.href}}">
-									<dt><b>Href</b></dt>
-									<dd>{{item.href}}</dd>
+								<template is="dom-if" if="{{item.resourceCharacteristic}}">
+									<paper-input
+										id="addPolPre"
+										name="precedence"
+										label="Precedence"
+										value={{item.precedence}}>
+									</paper-input>
+								</template>
+								<template is="dom-if" if="{{item.resourceCharacteristic}}">
+									<paper-input
+										id="addPolCha"
+										name="chargingKey"
+										label="Charging Key"
+										value={{item.chargingKey}}>
+								</paper-input>
 								</template>
 							</dl>
 						</div>
 						<div>
 							<template is="dom-if" if="{{item.resourceCharacteristic}}">
-								<table class="details">
-									<tr>
-										<th>Name</th>
-										<th>Value</th>
-									</tr>
-									<tr>
-										<td>Name</td>
-										<td>{{item.name}}</td>
-									</tr>
-									<tr>
-										<td>qosInformation</td>
-										<td>{{item.qos}}</td>
-									</tr>
-									<tr>
-										<td>chargingRule</td>
-										<td>{{item.chargingRule}}</td>
-									</tr>
-									<tr>
-										<td>flowInformationUp1</td>
-										<td>{{item.flowUp}}</td>
-									</tr>
-									<tr>
-										<td>flowInformationDown1</td>
-										<td>{{item.flowDown}}</td>
-									</tr>
-									<tr>
-										<td>precedence</td>
-										<td>{{item.precedence}}</td>
-									</tr>
-								</table>
+										<paper-input
+											id="addPolDL"
+											name="maxRequestedBandwidthDL"
+											label="Max Requested Bandwidth DL"
+											value={{item.maxRequestedBandwidthDL}}>
+										</paper-input>
+										<paper-input
+											id="addPolUL"
+											name="maxRequestedBandwidthUL"
+											label="Max Requested Bandwidth UL"
+											value={{item.maxRequestedBandwidthUL}}>
+										</paper-input>
+										<paper-input
+											id="addPolClass"
+											name="qosClassIdentifier"
+											label="QOS Class Identifier"
+											value={{item.qosClassIdentifier}}>
+										</paper-input>
 							</template>
 						</div>
 						<div>
-							<template is="dom-if" if="{{item.resourceRelationship}}">
-								<table class="details">
-									<tr>
-										<th>Id</th>
-										<th>Href</th>
-										<th>Name</th>
-										<th>Relationship Type</th>
-									</tr>
-									<template is="dom-repeat" items="{{item.resourceRelationship}}" as="rel">
+							<template is="dom-if" if="{{item.resourceCharacteristic}}">
+								<table class="det">
+									<template is="dom-repeat" items="{{item.resourceCharacteristic}}" as="cha">
 										<tr>
-											<td>{{rel.id}}</td>
-											<td>{{rel.href}}</td>
-											<td>{{rel.name}}</td>
-											<td>{{rel.type}}</td>
+											<td><paper-dropdown-menu
+													id="addPolDirDrop"
+													value={{cha.flowDirection}}
+													no-animations="true"
+													label="Flow Direction">
+												<paper-listbox
+														id="addPolDirList"
+														slot="dropdown-content">
+													<paper-item>
+															Up
+													</paper-item>
+													<paper-item>
+															Down
+													</paper-item>
+												</paper-listbox>
+											</paper-dropdown-menu></td>
+											<td><paper-input
+													id="addPolDir"
+													name="flowDescription"
+													label="Flow Description"
+													value={{cha.flowDescription}}>
+											</paper-input></td>
 										</tr>
 									</template>
-								</table>
-							</template>
-						</div>
-						<div>
-							<template is="dom-if" if="{{item.resourceSpecification}}">
-								<table class="details">
-									<tr>
-										<th>Id</th>
-										<th>Name</th>
-									</tr>
-									<tr>
-										<td>{{item.resourceSpecification.id}}</td>
-										<td>{{item.resourceSpecification.name}}</td>
-									</tr>
 								</table>
 							</template>
 						</div>
@@ -142,12 +149,6 @@ class policyList extends PolymerElement {
 									class="submit-button"
 									on-tap="_up">
 								Update
-							</paper-button>
-							<paper-button
-									raised
-									on-tap="tableDelete"
-									class="delete-button">
-								Delete
 							</paper-button>
 						</div>
 				</template>
@@ -173,7 +174,13 @@ class policyList extends PolymerElement {
 					<template class="header">
 						Charging Rule
 					</template>
-					<template>[[item.chargingRule]]</template>
+					<template>[[item.chargingKey]]</template>
+				</vaadin-grid-column>
+				<vaadin-grid-column>
+					<template class="header">
+						Service Id
+					</template>
+					<template>[[item.serviceId]]</template>
 				</vaadin-grid-column>
 				<vaadin-grid-column>
 					<template class="header">
@@ -318,7 +325,6 @@ class policyList extends PolymerElement {
 	}
 
 	_up() {
-		document.body.querySelector('sig-app').shadowRoot.querySelector('sig-policy-update').shadowRoot.getElementById('updatePolicyModal').open();
 	}
 
 	_getPolicyResponse(event) {
@@ -381,18 +387,34 @@ class policyList extends PolymerElement {
 							var qos1 = resChar[indexRes].value.value.maxRequestedBandwidthDL;
 							var qos2 = resChar[indexRes].value.value.maxRequestedBandwidthUL;
 							var qos3 = resChar[indexRes].value.value.qosClassIdentifier;
+							tabObj.maxRequestedBandwidthDL = qos1;
+							tabObj.maxRequestedBandwidthUL = qos2;
+							tabObj.qosClassIdentifier = qos3;
 							tabObj.qos = "class:" + qos3 + ", UL:" + qos2 + ", DL:" + qos1;
 						}
-						if(resChar[indexRes].name == "chargingRule") {
-							tabObj.chargingRule = resChar[indexRes].value.value;
+						if(resChar[indexRes].name == "chargingKey") {
+							tabObj.chargingKey = resChar[indexRes].value.value;
 						}
+						var flowUpDir = new Array();
+						var flowUpDes = new Array();
+						var flowDownDir = new Array();
+						var flowDownDes = new Array();
+						if(resChar[indexRes].name == "flowInformation") {
+							if(resChar[indexRes].value.value) {
+								tabObj.resourceCharacteristic = resChar[indexRes].value.value;
+							}
+						}	
 						if(resChar[indexRes].name == "flowInformation") {
 							for(var indexFl in resChar[indexRes].value.value){
-								if(resChar[indexRes].value.value[indexFl].name == "flowInformationUp1") {
-									tabObj.flowUp = resChar[indexRes].value.value[indexFl].flowDirection;
+								if(resChar[indexRes].value.value[indexFl].flowDirection == "up") {
+									var flowUpDirObj = resChar[indexRes].value.value[indexFl].flowDirection;
+									var flowUpDesObj = resChar[indexRes].value.value[indexFl].flowDescription;
+									tabObj.flowUp = flowUpDirObj + "," + flowUpDesObj;
 								}
-								if(resChar[indexRes].value.value[indexFl].name == "flowInformationDown1"){
-									tabObj.flowDown = resChar[indexRes].value.value[indexFl].flowDirection;
+								if(resChar[indexRes].value.value[indexFl].flowDirection == "down"){
+									var flowDownDirObj = resChar[indexRes].value.value[indexFl].flowDirection;
+									var flowDownDesObj = resChar[indexRes].value.value[indexFl].flowDescription;
+									tabObj.flowDown = flowDownDirObj + "," + flowDownDesObj;
 								}
 							}
 						}
