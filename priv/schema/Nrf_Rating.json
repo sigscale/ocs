@@ -203,13 +203,45 @@
                         "resultCode" : "SUCCESS"
                       }, {
                         "serviceContextId" : "32251@3gpp.org",
-                        "serviceId" : 1,
+                        "serviceId" : 2,
                         "ratingGroup" : 32,
                         "grantedUnit" : {
                           "totalVolume" : 100000000
                         },
                         "resultCode" : "SUCCESS"
                       } ]
+                    }
+                  },
+                  "PARTIAL" : {
+                    "summary" : "Partial Success (SCUR)",
+                    "description" : "Reservation request succeeds for one service but is unsuccessful for another. The session may continue with the service which succeeded.",
+                    "value" : {
+                      "invocationTimeStamp" : "2020-12-13T15:28:32.123Z",
+                      "invocationSequenceNumber" : 1,
+                      "serviceRating" : [ {
+                        "serviceContextId" : "32251@3gpp.org",
+                        "serviceId" : 1,
+                        "ratingGroup" : 2,
+                        "grantedUnit" : {
+                          "totalVolume" : 100000000
+                        },
+                        "resultCode" : "SUCCESS"
+                      }, {
+                        "serviceContextId" : "32251@3gpp.org",
+                        "serviceId" : 2,
+                        "ratingGroup" : 32,
+                        "resultCode" : "QUOTA_LIMIT_REACHED"
+                      } ],
+                      "invocationResult" : {
+                        "error" : {
+                          "cause" : "QUOTA_LIMIT_REACHED",
+                          "title" : "Request denied due to insufficient credit",
+                          "invalidParam" : [ {
+                            "param" : "/serviceRating/1"
+                          } ]
+                        },
+                        "failureHandling" : "CONTINUE"
+                      }
                     }
                   }
                 }
