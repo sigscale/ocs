@@ -1131,7 +1131,20 @@
       },
       "VcsInformation" : {
         "description" : "Voice Call Service (VCS) charging (3GPP TS 32.276).",
-        "type" : "object"
+        "type" : "object",
+        "properties" : {
+          "mscAddress" : {
+            "description" : "The serving Mobile Switching Center (MSC).",
+            "type" : "string",
+            "pattern" : "^[0-9]{5,15}$"
+          },
+          "vlrNumber" : {
+            "description" : "The serving Visitor Location Register (VLR).",
+            "type" : "string",
+            "pattern" : "^[0-9]{5,15}$"
+          }
+        },
+        "required" : [ "sgsnMccMnc" ]
       },
       "Counter" : {
         "type" : "object",
