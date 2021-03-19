@@ -195,6 +195,17 @@ start8() ->
 	end.
 %% @hidden
 start9() ->
+	Options = [set, public, named_table, {write_concurrency, true}],
+	ets:new(nrf_session, Options),
+   ets:new(counters, Options),
+   case catch ets:insert(counters, {nrf_seq, 0}) of
+		true ->
+			start10();
+		{'EXIT', Reason} ->
+			{error, Reason}
+	end.
+%% @hidden
+start10() ->
 	{ok, RadiusConfig} = application:get_env(radius),
 	{ok, DiameterConfig} = application:get_env(diameter),
 	{ok, RotateInterval} = application:get_env(acct_log_rotate),
