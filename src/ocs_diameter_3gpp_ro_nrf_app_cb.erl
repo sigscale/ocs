@@ -1,4 +1,4 @@
-%%% ocs_diameter_3gpp_ro_nrf_app_cb.erl 
+%%% ocs_diameter_3gpp_ro_nrf_app_cb.erl
 %%% vim: ts=3
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%% @copyright 2016 - 2021 SigScale Global Inc.
@@ -107,7 +107,7 @@ peer_down(_ServiceName, _Peer, State) ->
 		Peer :: peer() | false,
 		Result :: Selection | false.
 %% @doc Invoked as a consequence of a call to diameter:call/4 to select
-%% a destination peer for an outgoing request. 
+%% a destination peer for an outgoing request.
 pick_peer([Peer | _] = _LocalCandidates, _RemoteCandidates, _ServiceName, _State) ->
 	{ok, Peer}.
 
@@ -121,7 +121,7 @@ pick_peer([Peer | _] = _LocalCandidates, _RemoteCandidates, _ServiceName, _State
 		Discard :: {discard, Reason} | discard,
 		Reason :: term(),
 		PostF :: diameter:evaluable().
-%% @doc Invoked to return a request for encoding and transport 
+%% @doc Invoked to return a request for encoding and transport
 prepare_request(#diameter_packet{} = Packet, _ServiceName, _Peer) ->
 	{send, Packet}.
 
@@ -341,7 +341,7 @@ process_request1(?'3GPP_CC-REQUEST-TYPE_INITIAL_REQUEST' = RequestType,
 		'Event-Timestamp' = EventTimestamp} = Request, SessionId, RequestNum,
 		SubscriberIds, OHost, _DHost, ORealm, _DRealm, _IpAddress, _Port) ->
 	try
-		Location = get_service_location(ServiceInformation), 
+		Location = get_service_location(ServiceInformation),
 		ServiceType = service_type(SvcContextId),
 		Timestamp = case EventTimestamp of
 			[{{_, _, _}, {_, _, _}} = TS] ->
@@ -380,7 +380,7 @@ process_request1(?'3GPP_CC-REQUEST-TYPE_UPDATE_REQUEST' = RequestType,
 		RequestNum, SubscriberIds, OHost, _DHost, ORealm, _DRealm,
 		IpAddress, Port) when length(MSCC1) > 0 ->
 	try
-		Location = get_service_location(ServiceInformation), 
+		Location = get_service_location(ServiceInformation),
 		ServiceType = service_type(SvcContextId),
 		Timestamp = case EventTimestamp of
 			[{{_, _, _}, {_, _, _}} = TS] ->
@@ -419,7 +419,7 @@ process_request1(?'3GPP_CC-REQUEST-TYPE_TERMINATION_REQUEST' = RequestType,
 		RequestNum, SubscriberIds, OHost, _DHost, ORealm, _DRealm,
 		IpAddress, Port) ->
 	try
-		Location = get_service_location(ServiceInformation), 
+		Location = get_service_location(ServiceInformation),
 		ServiceType = service_type(SvcContextId),
 		Timestamp = case EventTimestamp of
 			[{{_, _, _}, {_, _, _}} = TS] ->
@@ -501,9 +501,9 @@ post_request({MSISDN, IMSI}, SvcContextId, TimeStamp, ServiceType,
 		{_RequestId, {{_HttpVersion, 201, _ReasonPhrase}, Headers1, Body1}} ->
 			Location1 = get_location(Headers1),
 			insert_ref(Location1, SessionId),
-			{ok, Body1};	
+			{ok, Body1};
 		{_RequestId, {{_HttpVersion, 200, _ReasonPhrase}, _Headers, Body1}} ->
-			{ok, Body1};	
+			{ok, Body1};
 		{_RequestId, {{_HttpVersion, StatusCode, _ReasonPhrase}, _Headers, _Body1}} ->
 			{error, StatusCode};
 		{_RequestId, {error, Reason}} ->
@@ -532,7 +532,7 @@ get_service_location1(<<MCC1, MCC2, MCC3, MNC1, MNC2>>) ->
 	MNC = [MNC1, MNC2],
 	[{"serviceInformation", {struct, [{"sgsnMccMnc", {struct,
 			[{"mcc", MCC}, {"mnc", MNC}]}}]}}].
-	
+
 -spec insert_ref(Location, SessionId) -> Result
 	when
 		Location :: string(),
@@ -711,7 +711,7 @@ service_type(Id) ->
 			undefined
 	end.
 
--spec service_rating(MSCC, ServiceContextId, ServiceInformation) -> ServiceRating 
+-spec service_rating(MSCC, ServiceContextId, ServiceInformation) -> ServiceRating
 	when
 		MSCC :: [#'3gpp_ro_Multiple-Services-Credit-Control'{}],
 		ServiceContextId :: binary(),
