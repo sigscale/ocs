@@ -14,6 +14,8 @@
 	* examples of normal error conditions
 	* descriptions for nrf examples
 	* nrf example of partial success
+	* isup cause in vcs service information
+	* event times in vcs service information
 	* user location in vcs information
 	* add vcs parameters call reference and location number to nrf
 	* add nrf diameter call back
