@@ -1290,7 +1290,7 @@ Content-Length: 0
 <img src="schema.png" alt="Schema" height="501" width="619" />
 
 ==Configuration==
-The {@link //ocs. ocs} application may be configured using the following environment variables:
+The {@link //ocs. ocs} application may be configured using the following application environment variables:
 <dl>
 	<dt>min_reserve_octets</dt>
 		<dd>Centralized Unit Determination: minimum size of octets reserved</dd>

@@ -255,8 +255,10 @@ class productList extends PolymerElement {
 							}
 						}
 					}
+					var serArray = new Array();
 					for(var indexSer in request.response[index].realizingService) {
-						newRecord.service = request.response[index].realizingService[indexSer].id;
+						serArray.push(request.response[index].realizingService[indexSer].id);
+						newRecord.service = serArray;
 					}
 					vaadinItems[index] = newRecord;
 				}
