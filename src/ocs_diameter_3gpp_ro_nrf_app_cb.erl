@@ -435,11 +435,10 @@ process_request1(?'3GPP_CC-REQUEST-TYPE_TERMINATION_REQUEST' = RequestType,
 				{NewMSCC, ResultCode} = mscc(ServiceElements, SessionId),
 				diameter_answer(SessionId, NewMSCC, ResultCode,
 						OHost, ORealm, RequestType, RequestNum);
-			{error, Reason} ->
+			{error, ReasonCode} ->
 				error_logger:error_report(["Rating Error",
-						{module, ?MODULE}, {error, Reason}]),
-				diameter_error(SessionId,
-						?'DIAMETER_CC_APP_RESULT-CODE_RATING_FAILED',
+						{module, ?MODULE}, {error, ReasonCode}]),
+				diameter_error(SessionId, ReasonCode,
 						OHost, ORealm, RequestType, RequestNum)
 		end
 	catch
@@ -697,7 +696,20 @@ diameter_answer(SessionId, MSCC, ResultCode,
 		Reply :: #'3gpp_ro_CCA'{}.
 %% @doc Send CCA to DIAMETER client indicating an operation failure.
 %% @hidden
-diameter_error(SessionId, ResultCode, OHost, ORealm, RequestType, RequestNum) ->
+diameter_error(SessionId, 400, OHost, ORealm, RequestType, RequestNum) ->
+	ResultCode = ?'DIAMETER_CC_APP_RESULT-CODE_RATING_FAILED',
+	diameter_error1(SessionId, ResultCode, OHost, ORealm, RequestType, RequestNum);
+diameter_error(SessionId, 403, OHost, ORealm, RequestType, RequestNum) ->
+	ResultCode = ?'DIAMETER_CC_APP_RESULT-CODE_CREDIT_LIMIT_REACHED',
+	diameter_error1(SessionId, ResultCode, OHost, ORealm, RequestType, RequestNum);
+diameter_error(SessionId, 404, OHost, ORealm, RequestType, RequestNum) ->
+	ResultCode = 'DIAMETER_CC_APP_RESULT-CODE_USER_UNKNOWN',
+	diameter_error1(SessionId, ResultCode, OHost, ORealm, RequestType, RequestNum);
+diameter_error(SessionId, _ResultCode, OHost, ORealm, RequestType, RequestNum) ->
+	ResultCode = ?'DIAMETER_CC_APP_RESULT-CODE_RATING_FAILED',
+	diameter_error1(SessionId, ResultCode, OHost, ORealm, RequestType, RequestNum).
+%% @hidden
+diameter_error1(SessionId, ResultCode, OHost, ORealm, RequestType, RequestNum) ->
 	#'3gpp_ro_CCA'{'Session-Id' = SessionId, 'Result-Code' = ResultCode,
 			'Origin-Host' = OHost, 'Origin-Realm' = ORealm,
 			'Auth-Application-Id' = ?RO_APPLICATION_ID, 'CC-Request-Type' = RequestType,
