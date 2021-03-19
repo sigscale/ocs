@@ -27,6 +27,7 @@ modhtml = ocs.html \
 			diameter_gen_eap_application_rfc4072.html \
 			ocs_diameter_base_application_cb.html \
 			ocs_diameter_3gpp_ro_application_cb.html \
+			ocs_diameter_3gpp_ro_nrf_app_cb.html \
 			ocs_diameter_3gpp_sta_application_cb.html \
 			ocs_diameter_3gpp_swm_application_cb.html \
 			ocs_diameter_3gpp_swx_application_cb.html \
