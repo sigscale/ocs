@@ -468,7 +468,8 @@ process_request1(?'3GPP_CC-REQUEST-TYPE_TERMINATION_REQUEST' = RequestType,
 %% @doc POST rating data to a Nrf Rating Server.
 post_request({MSISDN, IMSI}, SvcContextId, TimeStamp, ServiceType,
 		SessionId, MSCC, Location, Flag) ->
-	{_, NrfUri} = application:get_env(ocs, nrf_uri),
+	{ok, NrfUri} = application:get_env(nrf_uri),
+	{ok, Profile} = application:get_env(nrf_profile),
 	Path = NrfUri ++ ?BASE_URI,
 	Path1 = case Flag of
 		intial ->
@@ -495,7 +496,7 @@ post_request({MSISDN, IMSI}, SvcContextId, TimeStamp, ServiceType,
 	Headers = [{"accept", "application/json"}, {"content_type", "application/json"}],
 	Request = {Path1, Headers, ContentType, lists:flatten(RequestBody)},
 	Options = [{relaxed, true}],
-   case httpc:request(post, Request, Options, []) of
+   case httpc:request(post, Request, Options, [], Profile) of
 		{_RequestId, {{_HttpVersion, 201, _ReasonPhrase}, Headers1, Body1}} ->
 			Location1 = get_location(Headers1),
 			insert_ref(Location1, SessionId),
