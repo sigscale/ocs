@@ -468,28 +468,26 @@ process_request1(?'3GPP_CC-REQUEST-TYPE_TERMINATION_REQUEST' = RequestType,
 %% @doc POST rating data to a Nrf Rating Server.
 post_request({MSISDN, IMSI}, SvcContextId, TimeStamp, ServiceType,
 		SessionId, MSCC, Location, intial) ->
-	{ok, NrfUri} = application:get_env(nrf_uri),
+	{ok, NrfUri} = application:get_env(ocs, nrf_uri),
 	Path = NrfUri ++ ?BASE_URI,
 	post_request1({MSISDN, IMSI}, SvcContextId, TimeStamp, ServiceType,
 			SessionId, MSCC, Location, Path);
 post_request({MSISDN, IMSI}, SvcContextId, TimeStamp, ServiceType,
 		SessionId, MSCC, Location, interim) ->
-	{ok, NrfUri} = application:get_env(nrf_uri),
-	Path = NrfUri ++ ?BASE_URI ++ "/" ++
-			get_ref(SessionId) ++ "/" ++ "update",
+	{ok, NrfUri} = application:get_env(ocs, nrf_uri),
+	Path = NrfUri ++ get_ref(SessionId) ++ "/" ++ "update",
 	post_request1({MSISDN, IMSI}, SvcContextId, TimeStamp, ServiceType,
 			SessionId, MSCC, Location, Path);
 post_request({MSISDN, IMSI}, SvcContextId, TimeStamp, ServiceType,
 		SessionId, MSCC, Location, final) ->
-	{_, NrfUri} = application:get_env(nrf_uri),
-	Path = NrfUri ++ ?BASE_URI ++ "/" ++
-			get_ref(SessionId) ++ "/" ++ "release",
+	{_, NrfUri} = application:get_env(ocs, nrf_uri),
+	Path = NrfUri ++ get_ref(SessionId) ++ "/" ++ "release",
 	post_request1({MSISDN, IMSI}, SvcContextId, TimeStamp, ServiceType,
 			SessionId, MSCC, Location, Path).
 %% @hidden
 post_request1({MSISDN, IMSI}, SvcContextId, TimeStamp, ServiceType,
 		SessionId, MSCC, Location, Path) ->
-	{ok, Profile} = application:get_env(nrf_profile),
+	{ok, Profile} = application:get_env(ocs, nrf_profile),
 	TS = erlang:system_time(?MILLISECOND),
 	InvocationTimeStamp = ocs_log:iso8601(TS),
 	Sequence = ets:update_counter(counters, nrf_seq, 1),
@@ -501,7 +499,8 @@ post_request1({MSISDN, IMSI}, SvcContextId, TimeStamp, ServiceType,
 					{"invocationSequenceNumber", Sequence},
 					{"subscriptionId", {array, [MSISDN1, IMSI1]}},
 					{"serviceRating",
-							{array, service_rating(MSCC, SvcContextId, Location)}}]},
+							{array, service_rating(MSCC, binary_to_list(SvcContextId),
+									Location)}}]},
 	ContentType = "application/json",
 	RequestBody = mochijson:encode(Body),
 	Headers = [{"accept", "application/json"}, {"content_type", "application/json"}],
