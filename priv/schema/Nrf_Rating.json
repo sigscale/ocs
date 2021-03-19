@@ -1153,10 +1153,28 @@
         "description" : "Voice Call Service (VCS) charging (3GPP TS 32.276).",
         "type" : "object",
         "properties" : {
+          "startTime" : {
+            "description" : "The start time at the MSC.",
+            "allOf" : [ {
+              "$ref" : "https://api.swaggerhub.com/domains/SigScale/TS29571_CommonData/1.2.1#/components/schemas/DateTime"
+            } ]
+          },
+          "startOfCharging" : {
+            "description" : "Contains the time origin for charging and may be equivalent to the time call setup is initiated or the time the call is answered depending on configuration. It is only sent if call setup was successful.",
+            "allOf" : [ {
+              "$ref" : "https://api.swaggerhub.com/domains/SigScale/TS29571_CommonData/1.2.1#/components/schemas/DateTime"
+            } ]
+          },
+          "stopTime" : {
+            "description" : "Contains the time when the call wass released.",
+            "allOf" : [ {
+              "$ref" : "https://api.swaggerhub.com/domains/SigScale/TS29571_CommonData/1.2.1#/components/schemas/DateTime"
+            } ]
+          },
           "callReferenceNumber" : {
             "description" : "The network call reference number assigned to the call by the GMSC/MSC.",
             "allOf" : [ {
-              "$ref" : "https://api.swaggerhub.com/domains/SigScale/TS29571_CommonData/1.2.1#/components/schemas/Binary"
+              "$ref" : "https://api.swaggerhub.com/domains/SigScale/TS29571_CommonData/1.2.1#/components/schemas/Bytes"
             } ]
           },
           "mscAddress" : {
