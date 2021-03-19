@@ -82,6 +82,7 @@ beam_DATA = ocs.beam \
 			diameter_gen_etsi.beam \
 			diameter_gen_3gpp.beam \
 			diameter_gen_3gpp_ro_application.beam \
+			ocs_diameter_3gpp_ro_nrf_app_cb.beam \
 			diameter_gen_3gpp_sta_application.beam \
 			diameter_gen_3gpp_swm_application.beam \
 			diameter_gen_3gpp_swx_application.beam \

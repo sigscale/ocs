@@ -55,6 +55,7 @@
 -define(RO_APPLICATION, ocs_diameter_3gpp_ro_application).
 -define(RO_APPLICATION_DICT, diameter_gen_3gpp_ro_application).
 -define(RO_APPLICATION_CALLBACK, ocs_diameter_3gpp_ro_application_cb).
+-define(NRF_RO_APPLICATION_CALLBACK, ocs_diameter_3gpp_ro_nrf_app_cb).
 -define(Gx_APPLICATION_ID, 16777238).
 -define(Gx_APPLICATION, ocs_diameter_3gpp_gx_application).
 -define(Gx_APPLICATION_DICT, diameter_gen_3gpp_gx_application).
@@ -317,6 +318,7 @@ code_change(_OldVsn, StateName, StateData, _Extra) ->
 %% @hidden
 service_options(Options) ->
 	{ok, Vsn} = application:get_key(vsn),
+	{ok, NrfUri} = application:get_env(ocs, nrf_uri),
 	Version = list_to_integer([C || C <- Vsn, C /= $.]),
 	{ok, Hostname} = inet:gethostname(),
 	Options1 = case lists:keymember('Origin-Host', 1, Options) of
@@ -339,6 +341,13 @@ service_options(Options) ->
 			end,
 			[{'Origin-Realm', OriginRealm} | Options1]
 	end,
+
+	Module = case NrfUri of
+		undefined ->
+			?RO_APPLICATION_CALLBACK;
+		NrfUri when is_list(NrfUri) ->
+			?NRF_RO_APPLICATION_CALLBACK
+	end,
 	Options2 ++ [{'Vendor-Id', ?IANA_PEN_SigScale},
 		{'Product-Name', "SigScale OCS"},
 		{'Firmware-Revision', Version},
@@ -356,7 +365,7 @@ service_options(Options) ->
 				{request_errors, callback}]},
 		{application, [{alias, ?RO_APPLICATION},
 				{dictionary, ?RO_APPLICATION_DICT},
-				{module, ?RO_APPLICATION_CALLBACK},
+				{module, Module},
 				{request_errors, callback}]},
 		{application, [{alias, ?Gx_APPLICATION},
 				{dictionary, ?Gx_APPLICATION_DICT},

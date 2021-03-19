@@ -40,19 +40,19 @@ protocols and procedures of the OCS, PCRF, HSS and 3GPP AAA Server
 functions in the reference architecture.
 
 ## Interfaces
-|Interface | Description                      |
-|----------|----------------------------------|
-|GUI       | Polymer Web Components           |
-|REST      | TM Forum Open APIs               |
-|CLI       | Erlang API                       |
-|RADIUS    | AAA NAS Clients                  |
-|DIAMETER  | 3GPP Ro/Gy/Wo,Gx,SWm/STa,SWx,S6a |
-|SNMP      | Performance Management           |
-|EAP-PWD   | Android, Linux                   |
-|EAP-TTLS  | Android, Linux, Apple, Windows   |
-|EAP-AKA   | Android, Linux, Apple            |
-|EAP-AKA'  | Android, Linux                   |
-|IPDR      | Billing Record Files             |
+|Interface | Description                          |
+|----------|--------------------------------------|
+|GUI       | Polymer Web Components               |
+|REST      | TM Forum Open APIs                   |
+|CLI       | Erlang API                           |
+|RADIUS    | AAA NAS Clients                      |
+|DIAMETER  | 3GPP Ro/Gy/Wo,Gx,SWm/STa,SWx,S6a,S6b |
+|SNMP      | Performance Management               |
+|EAP-PWD   | Android, Linux                       |
+|EAP-TTLS  | Android, Linux, Apple, Windows       |
+|EAP-AKA   | Android, Linux, Apple                |
+|EAP-AKA'  | Android, Linux                       |
+|IPDR      | Billing Record Files                 |
 
 ### Graphical User Interface (GUI)
 A web front end built with Google [Polymer](https://www.polymer-project.org)
@@ -83,13 +83,13 @@ using the Erlang public API, either manually on the command line
 module development.
 
 ### [DIAMETER](http://tools.ietf.org/html/rfc6733)
-SigScale OCS supports the DIAMETER applications for the 3GPP interafces
+SigScale OCS supports the DIAMETER applications for the 3GPP interfaces
 of an OCS (Ro/Gy/Wo) (3GPP 32.299), PCRF (Gx), HSS (S6a) and AAA Server
-(STa/SWm/SWx), The OCS function supports Session Charging with
+(STa/SWm/SWx/S6b), The OCS function supports Session Charging with
 Unit Reservation (SCUR) and Event Charging with Unit Reservation (ECUR)
 in CS, PS and IMS domains with both centralized and distributed unit 
 determination. Non-3GPP access is supported with for ePDG with either
-internal HSS or proxy over SWm to external HSS.
+internal HSS or proxy over SWx to external HSS.
 
 ### [RADIUS](http://tools.ietf.org/html/rfc2865)
 The OCS acts as an authentication, authorization and accounting (AAA) server
