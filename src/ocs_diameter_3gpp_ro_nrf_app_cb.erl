@@ -498,7 +498,7 @@ post_request({MSISDN, IMSI}, SvcContextId, TimeStamp, ServiceType,
 	Options = [{relaxed, true}],
    case httpc:request(post, Request, Options, [], Profile) of
 		{_RequestId, {{_HttpVersion, 201, _ReasonPhrase}, Headers1, Body1}} ->
-			Location1 = get_location(Headers1),
+			{_, Location1} = lists:keyfind("location", 1, Headers1),
 			insert_ref(Location1, SessionId),
 			{ok, Body1};
 		{_RequestId, {{_HttpVersion, 200, _ReasonPhrase}, _Headers, Body1}} ->
@@ -807,10 +807,4 @@ get_rg(#'3gpp_ro_Multiple-Services-Credit-Control'{'Rating-Group' = [RG]})
 	{"ratingGroup", RG};
 get_rg(_) ->
 	[].
-
-%% @hidden
-get_location([{"location", "/ratingdata/" ++ Location} | _]) ->
-	Location;
-get_location([_H | T]) ->
-	get_location(T).
 
