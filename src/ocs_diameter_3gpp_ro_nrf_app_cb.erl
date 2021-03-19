@@ -467,17 +467,27 @@ process_request1(?'3GPP_CC-REQUEST-TYPE_TERMINATION_REQUEST' = RequestType,
 		Reason :: term().
 %% @doc POST rating data to a Nrf Rating Server.
 post_request({MSISDN, IMSI}, SvcContextId, TimeStamp, ServiceType,
-		SessionId, MSCC, Location, Flag) ->
+		SessionId, MSCC, Location, intial) ->
 	{_, NrfUri} = application:get_env(ocs, nrf_uri),
 	Path = NrfUri ++ ?BASE_URI,
-	Path1 = case Flag of
-		intial ->
-			 Path;
-		interim ->
-			Path ++ "/" ++ get_ref(SessionId) ++ "/" ++ "update";
-		final ->
-			Path ++ "/" ++ get_ref(SessionId) ++ "/" ++ "release"
-	end,
+	post_request1({MSISDN, IMSI}, SvcContextId, TimeStamp, ServiceType,
+			SessionId, MSCC, Location, Path);
+post_request({MSISDN, IMSI}, SvcContextId, TimeStamp, ServiceType,
+		SessionId, MSCC, Location, interim) ->
+	{_, NrfUri} = application:get_env(ocs, nrf_uri),
+	Path = NrfUri ++ ?BASE_URI ++ "/" ++
+			get_ref(SessionId) ++ "/" ++ "update",
+	post_request1({MSISDN, IMSI}, SvcContextId, TimeStamp, ServiceType,
+			SessionId, MSCC, Location, Path);
+post_request({MSISDN, IMSI}, SvcContextId, TimeStamp, ServiceType,
+		SessionId, MSCC, Location, final) ->
+	{_, NrfUri} = application:get_env(ocs, nrf_uri),
+	Path = NrfUri ++ ?BASE_URI ++ "/" ++
+			get_ref(SessionId) ++ "/" ++ "release",
+	post_request1({MSISDN, IMSI}, SvcContextId, TimeStamp, ServiceType,
+			SessionId, MSCC, Location, Path).
+post_request1({MSISDN, IMSI}, SvcContextId, TimeStamp, ServiceType,
+		SessionId, MSCC, Location, Path) ->
 	TS = erlang:system_time(?MILLISECOND),
 	InvocationTimeStamp = ocs_log:iso8601(TS),
 	Sequence = ets:update_counter(counters, nrf_seq, 1),
@@ -494,7 +504,7 @@ post_request({MSISDN, IMSI}, SvcContextId, TimeStamp, ServiceType,
 	ContentType = "application/json",
 	RequestBody = mochijson:encode(Body),
 	Headers = [{"accept", "application/json"}, {"content_type", "application/json"}],
-	Request = {Path1, Headers, ContentType, lists:flatten(RequestBody)},
+	Request = {Path, Headers, ContentType, lists:flatten(RequestBody)},
 	Options = [{relaxed, true}],
    case httpc:request(post, Request, Options, []) of
 		{_RequestId, {{_HttpVersion, 201, _ReasonPhrase}, Headers1, Body1}} ->
