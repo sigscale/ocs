@@ -469,6 +469,7 @@ process_request1(?'3GPP_CC-REQUEST-TYPE_TERMINATION_REQUEST' = RequestType,
 post_request({MSISDN, IMSI}, SvcContextId, TimeStamp, ServiceType,
 		SessionId, MSCC, Location, intial) ->
 	{_, NrfUri} = application:get_env(ocs, nrf_uri),
+	{ok, NrfUri} = application:get_env(nrf_uri),
 	Path = NrfUri ++ ?BASE_URI,
 	post_request1({MSISDN, IMSI}, SvcContextId, TimeStamp, ServiceType,
 			SessionId, MSCC, Location, Path);
@@ -488,6 +489,7 @@ post_request({MSISDN, IMSI}, SvcContextId, TimeStamp, ServiceType,
 			SessionId, MSCC, Location, Path).
 post_request1({MSISDN, IMSI}, SvcContextId, TimeStamp, ServiceType,
 		SessionId, MSCC, Location, Path) ->
+	{ok, Profile} = application:get_env(nrf_profile),
 	TS = erlang:system_time(?MILLISECOND),
 	InvocationTimeStamp = ocs_log:iso8601(TS),
 	Sequence = ets:update_counter(counters, nrf_seq, 1),
@@ -506,7 +508,7 @@ post_request1({MSISDN, IMSI}, SvcContextId, TimeStamp, ServiceType,
 	Headers = [{"accept", "application/json"}, {"content_type", "application/json"}],
 	Request = {Path, Headers, ContentType, lists:flatten(RequestBody)},
 	Options = [{relaxed, true}],
-   case httpc:request(post, Request, Options, []) of
+   case httpc:request(post, Request, Options, [], Profile) of
 		{_RequestId, {{_HttpVersion, 201, _ReasonPhrase}, Headers1, Body1}} ->
 			Location1 = get_location(Headers1),
 			insert_ref(Location1, SessionId),

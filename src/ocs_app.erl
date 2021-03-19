@@ -107,12 +107,47 @@ start3(Profile) ->
 		{error, Reason} ->
 			{error, Reason}
 	end.
-%% @doc Migrate client table, if necessary, to add Trusted field.
 %% @hidden
 start4() ->
+	case inets:services_info() of
+		ServicesInfo when is_list(ServicesInfo) ->
+			{ok, Profile} = application:get_env(rf_profile),
+			start5(Profile, ServicesInfo);
+		{error, Reason} ->
+			{error, Reason}
+	end.
+%% @hidden
+start5(Profile, [{httpc, _Pid, Info} | T]) ->
+	case proplists:lookup(profile, Info) of
+		{profile, Profile} ->
+			start6(Profile);
+		_ ->
+			start5(Profile, T)
+	end;
+start5(Profile, [_ | T]) ->
+	start5(Profile, T);
+start5(Profile, []) ->
+	case inets:start(httpc, [{profile, Profile}]) of
+		{ok, _Pid} ->
+			start6(Profile);
+		{error, Reason} ->
+			{error, Reason}
+	end.
+%% @hidden
+start6(Profile) ->
+	{ok, Options} = application:get_env(hub_options),
+	case httpc:set_options(Options, Profile) of
+		ok ->
+			start7();
+		{error, Reason} ->
+			{error, Reason}
+	end.
+%% @doc Migrate client table, if necessary, to add Trusted field.
+%% @hidden
+start7() ->
 	case mnesia:table_info(client, arity) of
 		9 ->
-			start5();
+			start8();
 		8 ->
 			F = fun({client, Address, Identifier, Port, Protocol,
 						Secret, PasswordRequired, LastModified}) ->
@@ -125,7 +160,7 @@ start4() ->
 			case mnesia:transform_table(client, F, NewAttributes) of
 				{atomic, ok} ->
 					error_logger:info_report(["Migrated client table"]),
-					start5();
+					start8();
 				{aborted, Reason} ->
 					error_logger:error_report(["Failed to migrate client table",
 							mnesia:error_description(Reason), {error, Reason}]),
@@ -134,10 +169,10 @@ start4() ->
 	end.
 %% @doc Migrate session table, if necessary, to add Identity field.
 %% @hidden
-start5() ->
+start8() ->
 	case mnesia:table_info(session, arity) of
 		12 ->
-			start6();
+			start9();
 		11 ->
 			F = fun({session, Id, IMSI, App, NasHost, NasRealm, NasAddress,
 					HssHost, HssRealm, UserProfile, LM}) ->
@@ -151,7 +186,7 @@ start5() ->
 			case mnesia:transform_table(session, F, NewAttributes) of
 				{atomic, ok} ->
 					error_logger:info_report(["Migrated session table"]),
-					start6();
+					start9();
 				{aborted, Reason} ->
 					error_logger:error_report(["Failed to migrate session table",
 							mnesia:error_description(Reason), {error, Reason}]),
@@ -159,17 +194,18 @@ start5() ->
 			end
 	end.
 %% @hidden
-start6() ->
+start9() ->
 	Options = [set, public, named_table, {write_concurrency, true}],
 	ets:new(nrf_session, Options),
    ets:new(counters, Options),
    case catch ets:insert(counters, {nrf_seq, 0}) of
 		true ->
-			start7();
+			start10();
 		{'EXIT', Reason} ->
 			{error, Reason}
 	end.
-start7() ->
+%% @hidden
+start10() ->
 	{ok, RadiusConfig} = application:get_env(radius),
 	{ok, DiameterConfig} = application:get_env(diameter),
 	{ok, RotateInterval} = application:get_env(acct_log_rotate),
