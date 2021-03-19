@@ -1171,6 +1171,31 @@
               "$ref" : "https://api.swaggerhub.com/domains/SigScale/TS29571_CommonData/1.2.1#/components/schemas/DateTime"
             } ]
           },
+          "isupCause" : {
+            "description" : "Indicates the reason the call was released.",
+            "type" : "object",
+            "properties" : {
+              "causeValue" : {
+                "description" : "Identifies the reason a voice call service is released. See 3GPP TS 29.078 for supported values.",
+                "allOf" : [ {
+                  "$ref" : "https://api.swaggerhub.com/domains/SigScale/TS29571_CommonData/1.2.1#/components/schemas/Uint32"
+                } ]
+              },
+              "causeLocation" : {
+                "description" : "Identifies identifies the network in which the event caused the voice call service release. See 3GPP TS 29.078 for supported values.",
+                "allOf" : [ {
+                  "$ref" : "https://api.swaggerhub.com/domains/SigScale/TS29571_CommonData/1.2.1#/components/schemas/Uint32"
+                } ]
+              },
+              "causeDiagnostics" : {
+                "description" : "Holds the diagnostics field associated with the release of the voice call service, if available. See 3GPP TS 29.078 for supported values.",
+                "allOf" : [ {
+                  "$ref" : "https://api.swaggerhub.com/domains/SigScale/TS29571_CommonData/1.2.1#/components/schemas/Bytes"
+                } ]
+              }
+            },
+            "required" : [ "causeValue" ]
+          },
           "callReferenceNumber" : {
             "description" : "The network call reference number assigned to the call by the GMSC/MSC.",
             "allOf" : [ {
