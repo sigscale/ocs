@@ -341,7 +341,7 @@ service_options(Options) ->
 			end,
 			[{'Origin-Realm', OriginRealm} | Options1]
 	end,
-	
+
 	Module = case NrfUri of
 		undefined ->
 			?RO_APPLICATION_CALLBACK;
