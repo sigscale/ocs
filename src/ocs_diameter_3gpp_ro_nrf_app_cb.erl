@@ -468,25 +468,25 @@ process_request1(?'3GPP_CC-REQUEST-TYPE_TERMINATION_REQUEST' = RequestType,
 %% @doc POST rating data to a Nrf Rating Server.
 post_request({MSISDN, IMSI}, SvcContextId, TimeStamp, ServiceType,
 		SessionId, MSCC, Location, intial) ->
-	{_, NrfUri} = application:get_env(ocs, nrf_uri),
 	{ok, NrfUri} = application:get_env(nrf_uri),
 	Path = NrfUri ++ ?BASE_URI,
 	post_request1({MSISDN, IMSI}, SvcContextId, TimeStamp, ServiceType,
 			SessionId, MSCC, Location, Path);
 post_request({MSISDN, IMSI}, SvcContextId, TimeStamp, ServiceType,
 		SessionId, MSCC, Location, interim) ->
-	{_, NrfUri} = application:get_env(ocs, nrf_uri),
+	{ok, NrfUri} = application:get_env(nrf_uri),
 	Path = NrfUri ++ ?BASE_URI ++ "/" ++
 			get_ref(SessionId) ++ "/" ++ "update",
 	post_request1({MSISDN, IMSI}, SvcContextId, TimeStamp, ServiceType,
 			SessionId, MSCC, Location, Path);
 post_request({MSISDN, IMSI}, SvcContextId, TimeStamp, ServiceType,
 		SessionId, MSCC, Location, final) ->
-	{_, NrfUri} = application:get_env(ocs, nrf_uri),
+	{_, NrfUri} = application:get_env(nrf_uri),
 	Path = NrfUri ++ ?BASE_URI ++ "/" ++
 			get_ref(SessionId) ++ "/" ++ "release",
 	post_request1({MSISDN, IMSI}, SvcContextId, TimeStamp, ServiceType,
 			SessionId, MSCC, Location, Path).
+%% @hidden
 post_request1({MSISDN, IMSI}, SvcContextId, TimeStamp, ServiceType,
 		SessionId, MSCC, Location, Path) ->
 	{ok, Profile} = application:get_env(nrf_profile),
@@ -524,7 +524,6 @@ post_request1({MSISDN, IMSI}, SvcContextId, TimeStamp, ServiceType,
 	when
 		ServiceInformation :: [#'3gpp_ro_Service-Information'{}] |
 				[tuple()].
-%%				[{"serviceInformation", tuple()}].
 %% @doc Get MCC and MNC location information.
 get_service_location([#'3gpp_ro_Service-Information'{'PS-Information' =
 		 [#'3gpp_ro_PS-Information'{'3GPP-SGSN-MCC-MNC' = [MCCMNC]}]}]) ->
@@ -736,15 +735,17 @@ service_rating1([#'3gpp_ro_Multiple-Services-Credit-Control'{
 		'Requested-Service-Unit' = [#'3gpp_ro_Requested-Service-Unit'{
 		'CC-Time' = [CCTime]}]} = MSCC | T], SCID, SI, Acc)
 		when is_integer(CCTime), CCTime > 0 ->
+	RequestedUnits = {"requestedUnit", {struct, [{"time", CCTime}]}},
 	Parameters = lists:flatten([SCID, get_si(MSCC), get_rg(MSCC),
-			SI, {"time", CCTime}, {"requestSubType", "RESERVE"}]),
+			SI, RequestedUnits, {"requestSubType", "RESERVE"}]),
 	service_rating1(T, SCID, SI, [{struct, Parameters} | Acc]);
 service_rating1([#'3gpp_ro_Multiple-Services-Credit-Control'{
 		'Requested-Service-Unit' = [#'3gpp_ro_Requested-Service-Unit'{
 		'CC-Total-Octets' = [CCTotalOctets]}]} = MSCC | T], SCID, SI, Acc)
 		when is_integer(CCTotalOctets), CCTotalOctets > 0 ->
+	RequestedUnits = {"requestedUnit", {struct, [{"totalVolume", CCTotalOctets}]}},
 	Parameters = lists:flatten([SCID, get_si(MSCC), get_rg(MSCC), SI,
-			{"totalVolume", CCTotalOctets}, {"requestSubType", "RESERVE"}]),
+			RequestedUnits, {"requestSubType", "RESERVE"}]),
 	service_rating1(T, SCID, SI, [{struct, Parameters} | Acc]);
 service_rating1([#'3gpp_ro_Multiple-Services-Credit-Control'{
 		'Requested-Service-Unit' = [#'3gpp_ro_Requested-Service-Unit'{
@@ -752,17 +753,18 @@ service_rating1([#'3gpp_ro_Multiple-Services-Credit-Control'{
 		'CC-Input-Octets' = [CCInputOctets]}]} = MSCC| T], SCID, SI, Acc)
 		when is_integer(CCInputOctets), is_integer(CCOutputOctets),
 		CCInputOctets > 0, CCOutputOctets > 0 ->
+	RequestedUnits = {"requestedUnit", {struct, [{"uplinkVolume", CCInputOctets},
+			{"downlinkVolume", CCOutputOctets}]}},
 	Parameters = lists:flatten([SCID, get_si(MSCC), get_rg(MSCC), SI,
-			{"uplinkVolume", CCInputOctets}, {"downlinkVolume", CCOutputOctets},
-			{"requestSubType", "RESERVE"}]),
+			RequestedUnits, {"requestSubType", "RESERVE"}]),
 	service_rating1(T, SCID, SI, [{struct, Parameters} | Acc]);
 service_rating1([#'3gpp_ro_Multiple-Services-Credit-Control'{
 		'Requested-Service-Unit' = [#'3gpp_ro_Requested-Service-Unit'{
 		'CC-Service-Specific-Units' = [CCSpecUnits]}]} = MSCC | T],
 		SCID, SI, Acc) when is_integer(CCSpecUnits), CCSpecUnits > 0 ->
+	RequestedUnits = {"requestedUnit", {struct, [{"serviceSpecificUnit", CCSpecUnits}]}},
 	Parameters = lists:flatten([SCID, get_si(MSCC), get_rg(MSCC), SI,
-			{"serviceSpecificUnit", CCSpecUnits},
-			{"requestSubType", "RESERVE"}]),
+			RequestedUnits, {"requestSubType", "RESERVE"}]),
 	service_rating1(T, SCID, SI, [{struct, Parameters} | Acc]);
 service_rating1([#'3gpp_ro_Multiple-Services-Credit-Control'{
 		'Requested-Service-Unit' = [#'3gpp_ro_Requested-Service-Unit'{}]}
@@ -774,15 +776,17 @@ service_rating1([#'3gpp_ro_Multiple-Services-Credit-Control'{
 		'Used-Service-Unit' = [#'3gpp_ro_Used-Service-Unit'{
 		'CC-Time' = [CCTime]}]} = MSCC | T], SCID, SI, Acc)
 		when is_integer(CCTime), CCTime > 0 ->
+	ConsumedUnits = {"consumedUnit", {struct, [{"time", CCTime}]}},
 	Parameters = lists:flatten([SCID, get_si(MSCC), get_rg(MSCC),
-			SI, {"time", CCTime}, {"requestSubType", "DEBIT"}]),
+			SI, ConsumedUnits, {"requestSubType", "DEBIT"}]),
 	service_rating1(T, SCID, SI, [{struct, Parameters} | Acc]);
 service_rating1([#'3gpp_ro_Multiple-Services-Credit-Control'{
 		'Used-Service-Unit' = [#'3gpp_ro_Used-Service-Unit'{
 		'CC-Total-Octets' = [CCTotalOctets]}]} = MSCC | T], SCID, SI, Acc)
 		when is_integer(CCTotalOctets), CCTotalOctets > 0 ->
+	ConsumedUnits = {"consumedUnit", {struct, [{"totalVolume", CCTotalOctets}]}},
 	Parameters = lists:flatten([SCID, get_si(MSCC), get_rg(MSCC), SI,
-			{"totalVolume", CCTotalOctets}, {"requestSubType", "DEBIT"}]),
+			ConsumedUnits, {"requestSubType", "DEBIT"}]),
 	service_rating1(T, SCID, SI, [{struct, Parameters} | Acc]);
 service_rating1([#'3gpp_ro_Multiple-Services-Credit-Control'{
 		'Used-Service-Unit' = [#'3gpp_ro_Used-Service-Unit'{
@@ -790,16 +794,18 @@ service_rating1([#'3gpp_ro_Multiple-Services-Credit-Control'{
 		'CC-Input-Octets' = [UplinkVolume]}]} = MSCC | T], SCID, SI, Acc)
 		when is_integer(UplinkVolume), is_integer(DownlinkVolume),
 		UplinkVolume > 0, DownlinkVolume > 0 ->
+	ConsumedUnits = {"consumedUnit", {struct, [{"uplinkVolume", UplinkVolume},
+			{"downlinkVolume", DownlinkVolume}]}},
 	Parameters = lists:flatten([SCID, get_si(MSCC), get_rg(MSCC), SI,
-			{"uplinkVolume", UplinkVolume}, {"downlinkVolume", DownlinkVolume},
-			{"requestSubType", "DEBIT"}]),
+			ConsumedUnits, {"requestSubType", "DEBIT"}]),
 	service_rating1(T, SCID, SI, [{struct, Parameters} | Acc]);
 service_rating1([#'3gpp_ro_Multiple-Services-Credit-Control'{
 		'Used-Service-Unit' = [#'3gpp_ro_Used-Service-Unit'{
 		'CC-Service-Specific-Units' = [CCSpecUnits]}]} = MSCC | T], SCID, SI, Acc)
 		when is_integer(CCSpecUnits), CCSpecUnits > 0 ->
+	ConsumedUnits = {"consumedUnit", {struct, [{"serviceSpecificUnit", CCSpecUnits}]}},
 	Parameters = lists:flatten([SCID, get_si(MSCC), get_rg(MSCC), SI,
-			{"serviceSpecificUnit", CCSpecUnits}, {"requestSubType", "DEBIT"}]),
+			ConsumedUnits, {"requestSubType", "DEBIT"}]),
 	service_rating1(T, SCID, SI, [{struct, Parameters} | Acc]);
 service_rating1([#'3gpp_ro_Multiple-Services-Credit-Control'{}
 		= MSCC | T], SCID, SI, Acc) ->
