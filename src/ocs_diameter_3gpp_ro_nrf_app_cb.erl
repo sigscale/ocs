@@ -723,73 +723,77 @@ service_rating(MSCC, ServiceContextId, ServiceInformation) ->
 %% @hidden
 service_rating1([#'3gpp_ro_Multiple-Services-Credit-Control'{
 		'Requested-Service-Unit' = [#'3gpp_ro_Requested-Service-Unit'{
-		'CC-Time' = [CCTime]}]} = RSU | T], SCID, SI, Acc)
+		'CC-Time' = [CCTime]}]} = MSCC | T], SCID, SI, Acc)
 		when is_integer(CCTime), CCTime > 0 ->
-	Parameters = lists:flatten([SCID, get_si(RSU), get_rg(RSU),
-			{"requestSubType", "RESERVE"}, SI, {"time", CCTime}]),
+	Parameters = lists:flatten([SCID, get_si(MSCC), get_rg(MSCC),
+			SI, {"time", CCTime}, {"requestSubType", "RESERVE"}]),
 	service_rating1(T, SCID, SI, [{struct, Parameters} | Acc]);
 service_rating1([#'3gpp_ro_Multiple-Services-Credit-Control'{
 		'Requested-Service-Unit' = [#'3gpp_ro_Requested-Service-Unit'{
-		'CC-Total-Octets' = [CCTotalOctets]}]} = RSU | T], SCID, SI, Acc)
+		'CC-Total-Octets' = [CCTotalOctets]}]} = MSCC | T], SCID, SI, Acc)
 		when is_integer(CCTotalOctets), CCTotalOctets > 0 ->
-	Parameters = lists:flatten([SCID, get_si(RSU), get_rg(RSU), {"requestSubType", "RESERVE"},
-			SI, {"totalVolume", CCTotalOctets}]),
+	Parameters = lists:flatten([SCID, get_si(MSCC), get_rg(MSCC), SI,
+			{"totalVolume", CCTotalOctets}, {"requestSubType", "RESERVE"}]),
 	service_rating1(T, SCID, SI, [{struct, Parameters} | Acc]);
 service_rating1([#'3gpp_ro_Multiple-Services-Credit-Control'{
 		'Requested-Service-Unit' = [#'3gpp_ro_Requested-Service-Unit'{
 		'CC-Output-Octets' = [CCOutputOctets],
-		'CC-Input-Octets' = [CCInputOctets]}]} = RSU| T], SCID, SI, Acc)
+		'CC-Input-Octets' = [CCInputOctets]}]} = MSCC| T], SCID, SI, Acc)
 		when is_integer(CCInputOctets), is_integer(CCOutputOctets),
 		CCInputOctets > 0, CCOutputOctets > 0 ->
-	Parameters = lists:flatten([SCID, get_si(RSU), get_rg(RSU), SI,
-			{"requestSubType", "RESERVE"}, {"uplinkVolume", CCInputOctets},
-			{"downlinkVolume", CCOutputOctets}]),
+	Parameters = lists:flatten([SCID, get_si(MSCC), get_rg(MSCC), SI,
+			{"uplinkVolume", CCInputOctets}, {"downlinkVolume", CCOutputOctets},
+			{"requestSubType", "RESERVE"}]),
 	service_rating1(T, SCID, SI, [{struct, Parameters} | Acc]);
 service_rating1([#'3gpp_ro_Multiple-Services-Credit-Control'{
 		'Requested-Service-Unit' = [#'3gpp_ro_Requested-Service-Unit'{
-		'CC-Service-Specific-Units' = [CCSpecUnits]}]} = RSU | T], SCID, SI, Acc)
-		when is_integer(CCSpecUnits), CCSpecUnits > 0 ->
-	Parameters = lists:flatten([SCID, get_si(RSU), get_rg(RSU),
-			{"requestSubType", "RESERVE"}, SI, {"serviceSpecificUnit", CCSpecUnits}]),
+		'CC-Service-Specific-Units' = [CCSpecUnits]}]} = MSCC | T],
+		SCID, SI, Acc) when is_integer(CCSpecUnits), CCSpecUnits > 0 ->
+	Parameters = lists:flatten([SCID, get_si(MSCC), get_rg(MSCC), SI,
+			{"serviceSpecificUnit", CCSpecUnits},
+			{"requestSubType", "RESERVE"}]),
 	service_rating1(T, SCID, SI, [{struct, Parameters} | Acc]);
 service_rating1([#'3gpp_ro_Multiple-Services-Credit-Control'{
-		'Requested-Service-Unit' = [#'3gpp_ro_Requested-Service-Unit'{}]} = RSU | T], SCID, SI, Acc) ->
-	Parameters = lists:flatten([SCID, get_si(RSU), get_rg(RSU),
-			{"requestSubType", "RESERVE"}, SI]),
+		'Requested-Service-Unit' = [#'3gpp_ro_Requested-Service-Unit'{}]}
+		= MSCC | T], SCID, SI, Acc) ->
+	Parameters = lists:flatten([SCID, get_si(MSCC), get_rg(MSCC), SI,
+			{"requestSubType", "RESERVE"}]),
 	service_rating1(T, SCID, SI, [{struct, Parameters} | Acc]);
 service_rating1([#'3gpp_ro_Multiple-Services-Credit-Control'{
 		'Used-Service-Unit' = [#'3gpp_ro_Used-Service-Unit'{
-		'CC-Time' = [CCTime]}]} = USU | T], SCID, SI, Acc)
+		'CC-Time' = [CCTime]}]} = MSCC | T], SCID, SI, Acc)
 		when is_integer(CCTime), CCTime > 0 ->
-	Parameters = lists:flatten([SCID, get_si(USU), get_rg(USU),
-			{"requestSubType", "DEBIT"}, SI, [{"time", CCTime}]]),
+	Parameters = lists:flatten([SCID, get_si(MSCC), get_rg(MSCC),
+			SI, {"time", CCTime}, {"requestSubType", "DEBIT"}]),
 	service_rating1(T, SCID, SI, [{struct, Parameters} | Acc]);
 service_rating1([#'3gpp_ro_Multiple-Services-Credit-Control'{
 		'Used-Service-Unit' = [#'3gpp_ro_Used-Service-Unit'{
-		'CC-Total-Octets' = [CCTotalOctets]}]} = USU | T], SCID, SI, Acc)
+		'CC-Total-Octets' = [CCTotalOctets]}]} = MSCC | T], SCID, SI, Acc)
 		when is_integer(CCTotalOctets), CCTotalOctets > 0 ->
-	Parameters = lists:flatten([SCID, get_si(USU), get_rg(USU),
-			{"requestSubType", "DEBIT"}, SI, {"totalVolume", CCTotalOctets}]),
+	Parameters = lists:flatten([SCID, get_si(MSCC), get_rg(MSCC), SI,
+			{"totalVolume", CCTotalOctets}, {"requestSubType", "DEBIT"}]),
 	service_rating1(T, SCID, SI, [{struct, Parameters} | Acc]);
 service_rating1([#'3gpp_ro_Multiple-Services-Credit-Control'{
 		'Used-Service-Unit' = [#'3gpp_ro_Used-Service-Unit'{
 		'CC-Output-Octets' = [DownlinkVolume],
-		'CC-Input-Octets' = [UplinkVolume]}]} = USU | T], SCID, SI, Acc)
+		'CC-Input-Octets' = [UplinkVolume]}]} = MSCC | T], SCID, SI, Acc)
 		when is_integer(UplinkVolume), is_integer(DownlinkVolume),
 		UplinkVolume > 0, DownlinkVolume > 0 ->
-	Parameters = lists:flatten([SCID, get_si(USU), get_rg(USU),
-			{"requestSubType", "DEBIT"}, SI,
-			{"uplinkVolume", UplinkVolume}, {"downlinkVolume", DownlinkVolume}]),
+	Parameters = lists:flatten([SCID, get_si(MSCC), get_rg(MSCC), SI,
+			{"uplinkVolume", UplinkVolume}, {"downlinkVolume", DownlinkVolume},
+			{"requestSubType", "DEBIT"}])
 	service_rating1(T, SCID, SI, [{struct, Parameters} | Acc]);
 service_rating1([#'3gpp_ro_Multiple-Services-Credit-Control'{
 		'Used-Service-Unit' = [#'3gpp_ro_Used-Service-Unit'{
-		'CC-Service-Specific-Units' = [CCSpecUnits]}]} = USU | T], SCID, SI, Acc)
+		'CC-Service-Specific-Units' = [CCSpecUnits]}]} = MSCC | T], SCID, SI, Acc)
 		when is_integer(CCSpecUnits), CCSpecUnits > 0 ->
-	Parameters = lists:flatten([SCID, get_si(USU), get_rg(USU),
-			{"requestSubType", "DEBIT"}, SI, {"serviceSpecificUnit", CCSpecUnits}]),
+	Parameters = lists:flatten([SCID, get_si(MSCC), get_rg(MSCC), SI,
+			{"serviceSpecificUnit", CCSpecUnits}, {"requestSubType", "DEBIT"}]),
 	service_rating1(T, SCID, SI, [{struct, Parameters} | Acc]);
-service_rating1([#'3gpp_ro_Multiple-Services-Credit-Control'{} = MSCC | T], SCID, SI, Acc) ->
-	Parameters = lists:flatten([SCID, get_si(MSCC), get_rg(MSCC), {"requestSubType", "RESERVE"}, SI]),
+service_rating1([#'3gpp_ro_Multiple-Services-Credit-Control'{}
+		= MSCC | T], SCID, SI, Acc) ->
+	Parameters = lists:flatten([SCID, get_si(MSCC), get_rg(MSCC), SI,
+			{"requestSubType", "RESERVE"}]),
 	service_rating1(T, SCID, SI, [{struct, Parameters} | Acc]);
 service_rating1([], _SCID, _SI, Acc) ->
 	Acc.
