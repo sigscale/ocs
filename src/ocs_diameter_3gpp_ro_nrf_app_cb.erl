@@ -70,8 +70,8 @@ content_types_accepted() ->
 			"application/json-patch+json"].
 
 -spec content_types_provided() -> ContentTypes
-   when
-      ContentTypes :: list().
+	when
+		ContentTypes :: list().
 %% @doc Provides list of resource representations available.
 content_types_provided() ->
 	["application/json"].
@@ -84,7 +84,7 @@ content_types_provided() ->
 		NewState :: state().
 %% @doc Invoked when the peer connection is available
 peer_up(_ServiceName, _Peer, State) ->
-    State.
+	State.
 
 -spec peer_down(ServiceName, Peer, State) -> NewState
 	when
@@ -94,7 +94,7 @@ peer_up(_ServiceName, _Peer, State) ->
 		NewState :: state().
 %% @doc Invoked when the peer connection is not available
 peer_down(_ServiceName, _Peer, State) ->
-    State.
+	State.
 
 -spec pick_peer(LocalCandidates, RemoteCandidates, ServiceName, State) -> Result
 	when
@@ -359,10 +359,10 @@ process_request1(?'3GPP_CC-REQUEST-TYPE_INITIAL_REQUEST' = RequestType,
 						OHost, ORealm, RequestType, RequestNum);
 			{error, Reason} ->
 				error_logger:error_report(["Rating Error",
-                  {module, ?MODULE}, {error, Reason}]),
-            diameter_error(SessionId,
-                  ?'DIAMETER_CC_APP_RESULT-CODE_RATING_FAILED',
-                  OHost, ORealm, RequestType, RequestNum)
+						{module, ?MODULE}, {error, Reason}]),
+				diameter_error(SessionId,
+						?'DIAMETER_CC_APP_RESULT-CODE_RATING_FAILED',
+						OHost, ORealm, RequestType, RequestNum)
 		end
 	catch
 		_:Reason1 ->
@@ -398,10 +398,10 @@ process_request1(?'3GPP_CC-REQUEST-TYPE_UPDATE_REQUEST' = RequestType,
 						OHost, ORealm, RequestType, RequestNum);
 			{error, Reason} ->
 				error_logger:error_report(["Rating Error",
-                  {module, ?MODULE}, {error, Reason}]),
-            diameter_error(SessionId,
-                  ?'DIAMETER_CC_APP_RESULT-CODE_RATING_FAILED',
-                  OHost, ORealm, RequestType, RequestNum)
+						{module, ?MODULE}, {error, Reason}]),
+				diameter_error(SessionId,
+						?'DIAMETER_CC_APP_RESULT-CODE_RATING_FAILED',
+						OHost, ORealm, RequestType, RequestNum)
 		end
 	catch
 		_:Reason1 ->
@@ -427,7 +427,7 @@ process_request1(?'3GPP_CC-REQUEST-TYPE_TERMINATION_REQUEST' = RequestType,
 			_ ->
 				calendar:universal_time()
 		end,
-		case post_request(SubscriberIds,	SvcContextId,
+		case post_request(SubscriberIds, SvcContextId,
 				Timestamp, ServiceType, SessionId, MSCC1, Location, final) of
 			{ok, JSON} ->
 				{struct, RatedStruct} = mochijson:decode(JSON),
@@ -437,10 +437,10 @@ process_request1(?'3GPP_CC-REQUEST-TYPE_TERMINATION_REQUEST' = RequestType,
 						OHost, ORealm, RequestType, RequestNum);
 			{error, Reason} ->
 				error_logger:error_report(["Rating Error",
-                  {module, ?MODULE}, {error, Reason}]),
-            diameter_error(SessionId,
-                  ?'DIAMETER_CC_APP_RESULT-CODE_RATING_FAILED',
-                  OHost, ORealm, RequestType, RequestNum)
+						{module, ?MODULE}, {error, Reason}]),
+				diameter_error(SessionId,
+						?'DIAMETER_CC_APP_RESULT-CODE_RATING_FAILED',
+						OHost, ORealm, RequestType, RequestNum)
 		end
 	catch
 		_:Reason1 ->
@@ -467,18 +467,29 @@ process_request1(?'3GPP_CC-REQUEST-TYPE_TERMINATION_REQUEST' = RequestType,
 		Reason :: term().
 %% @doc POST rating data to a Nrf Rating Server.
 post_request({MSISDN, IMSI}, SvcContextId, TimeStamp, ServiceType,
-		SessionId, MSCC, Location, Flag) ->
+		SessionId, MSCC, Location, intial) ->
+	{_, NrfUri} = application:get_env(ocs, nrf_uri),
 	{ok, NrfUri} = application:get_env(nrf_uri),
-	{ok, Profile} = application:get_env(nrf_profile),
 	Path = NrfUri ++ ?BASE_URI,
-	Path1 = case Flag of
-		intial ->
-			 Path;
-		interim ->
-			Path ++ "/" ++ get_ref(SessionId) ++ "/" ++ "update";
-		final ->
-			Path ++ "/" ++ get_ref(SessionId) ++ "/" ++ "release"
-	end,
+	post_request1({MSISDN, IMSI}, SvcContextId, TimeStamp, ServiceType,
+			SessionId, MSCC, Location, Path);
+post_request({MSISDN, IMSI}, SvcContextId, TimeStamp, ServiceType,
+		SessionId, MSCC, Location, interim) ->
+	{_, NrfUri} = application:get_env(ocs, nrf_uri),
+	Path = NrfUri ++ ?BASE_URI ++ "/" ++
+			get_ref(SessionId) ++ "/" ++ "update",
+	post_request1({MSISDN, IMSI}, SvcContextId, TimeStamp, ServiceType,
+			SessionId, MSCC, Location, Path);
+post_request({MSISDN, IMSI}, SvcContextId, TimeStamp, ServiceType,
+		SessionId, MSCC, Location, final) ->
+	{_, NrfUri} = application:get_env(ocs, nrf_uri),
+	Path = NrfUri ++ ?BASE_URI ++ "/" ++
+			get_ref(SessionId) ++ "/" ++ "release",
+	post_request1({MSISDN, IMSI}, SvcContextId, TimeStamp, ServiceType,
+			SessionId, MSCC, Location, Path).
+post_request1({MSISDN, IMSI}, SvcContextId, TimeStamp, ServiceType,
+		SessionId, MSCC, Location, Path) ->
+	{ok, Profile} = application:get_env(nrf_profile),
 	TS = erlang:system_time(?MILLISECOND),
 	InvocationTimeStamp = ocs_log:iso8601(TS),
 	Sequence = ets:update_counter(counters, nrf_seq, 1),
@@ -494,7 +505,7 @@ post_request({MSISDN, IMSI}, SvcContextId, TimeStamp, ServiceType,
 	ContentType = "application/json",
 	RequestBody = mochijson:encode(Body),
 	Headers = [{"accept", "application/json"}, {"content_type", "application/json"}],
-	Request = {Path1, Headers, ContentType, lists:flatten(RequestBody)},
+	Request = {Path, Headers, ContentType, lists:flatten(RequestBody)},
 	Options = [{relaxed, true}],
    case httpc:request(post, Request, Options, [], Profile) of
 		{_RequestId, {{_HttpVersion, 201, _ReasonPhrase}, Headers1, Body1}} ->

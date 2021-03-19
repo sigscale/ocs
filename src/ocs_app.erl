@@ -111,7 +111,7 @@ start3(Profile) ->
 start4() ->
 	case inets:services_info() of
 		ServicesInfo when is_list(ServicesInfo) ->
-			{ok, Profile} = application:get_env(rf_profile),
+			{ok, Profile} = application:get_env(nrf_profile),
 			start5(Profile, ServicesInfo);
 		{error, Reason} ->
 			{error, Reason}
