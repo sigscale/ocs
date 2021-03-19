@@ -1182,10 +1182,9 @@
                 } ]
               },
               "causeLocation" : {
-                "description" : "Identifies identifies the network in which the event caused the voice call service release. See 3GPP TS 29.078 for supported values.",
-                "allOf" : [ {
-                  "$ref" : "https://api.swaggerhub.com/domains/SigScale/TS29571_CommonData/1.2.1#/components/schemas/Uint32"
-                } ]
+                "description" : "Identifies identifies the network in which the event caused the voice call service release.",
+                "type" : "string",
+                "enum" : [ "user", "local_private", "local_public", "transit", "remote_public", "remote_private", "international", "beyond", "undefined" ]
               },
               "causeDiagnostics" : {
                 "description" : "Holds the diagnostics field associated with the release of the voice call service, if available. See 3GPP TS 29.078 for supported values.",
