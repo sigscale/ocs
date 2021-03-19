@@ -1,3 +1,8 @@
+March 19, 2021
+---------------
+	- Support URIs for redirect on out-of-credit
+	- Support a stateless Rating Function through a Re interface
+
 February 24, 2021
 ---------------
 	- Correcting missing Service-Id And Charging-Key handling
