@@ -340,6 +340,7 @@ process_request1(?'3GPP_CC-REQUEST-TYPE_INITIAL_REQUEST' = RequestType,
 		'Service-Context-Id' = SvcContextId,
 		'Event-Timestamp' = EventTimestamp} = Request, SessionId, RequestNum,
 		SubscriberIds, OHost, _DHost, ORealm, _DRealm, _IpAddress, _Port) ->
+erlang:display({?MODULE, ?LINE, intial, MSCC1}),
 	try
 		Location = get_service_location(ServiceInformation),
 		ServiceType = service_type(SvcContextId),
@@ -379,6 +380,7 @@ process_request1(?'3GPP_CC-REQUEST-TYPE_UPDATE_REQUEST' = RequestType,
 		'Event-Timestamp' = EventTimestamp} = Request, SessionId,
 		RequestNum, SubscriberIds, OHost, _DHost, ORealm, _DRealm,
 		IpAddress, Port) when length(MSCC1) > 0 ->
+erlang:display({?MODULE, ?LINE, update, MSCC1}),
 	try
 		Location = get_service_location(ServiceInformation),
 		ServiceType = service_type(SvcContextId),
@@ -418,6 +420,7 @@ process_request1(?'3GPP_CC-REQUEST-TYPE_TERMINATION_REQUEST' = RequestType,
 		'Event-Timestamp' = EventTimestamp} = Request, SessionId,
 		RequestNum, SubscriberIds, OHost, _DHost, ORealm, _DRealm,
 		IpAddress, Port) ->
+erlang:display({?MODULE, ?LINE, final, MSCC1}),
 	try
 		Location = get_service_location(ServiceInformation),
 		ServiceType = service_type(SvcContextId),
@@ -468,28 +471,26 @@ process_request1(?'3GPP_CC-REQUEST-TYPE_TERMINATION_REQUEST' = RequestType,
 %% @doc POST rating data to a Nrf Rating Server.
 post_request({MSISDN, IMSI}, SvcContextId, TimeStamp, ServiceType,
 		SessionId, MSCC, Location, intial) ->
-	{ok, NrfUri} = application:get_env(nrf_uri),
+	{ok, NrfUri} = application:get_env(ocs, nrf_uri),
 	Path = NrfUri ++ ?BASE_URI,
 	post_request1({MSISDN, IMSI}, SvcContextId, TimeStamp, ServiceType,
 			SessionId, MSCC, Location, Path);
 post_request({MSISDN, IMSI}, SvcContextId, TimeStamp, ServiceType,
 		SessionId, MSCC, Location, interim) ->
-	{ok, NrfUri} = application:get_env(nrf_uri),
-	Path = NrfUri ++ ?BASE_URI ++ "/" ++
-			get_ref(SessionId) ++ "/" ++ "update",
+	{ok, NrfUri} = application:get_env(ocs, nrf_uri),
+	Path = NrfUri ++ get_ref(SessionId) ++ "/" ++ "update",
 	post_request1({MSISDN, IMSI}, SvcContextId, TimeStamp, ServiceType,
 			SessionId, MSCC, Location, Path);
 post_request({MSISDN, IMSI}, SvcContextId, TimeStamp, ServiceType,
 		SessionId, MSCC, Location, final) ->
-	{_, NrfUri} = application:get_env(nrf_uri),
-	Path = NrfUri ++ ?BASE_URI ++ "/" ++
-			get_ref(SessionId) ++ "/" ++ "release",
+	{_, NrfUri} = application:get_env(ocs, nrf_uri),
+	Path = NrfUri ++ get_ref(SessionId) ++ "/" ++ "release",
 	post_request1({MSISDN, IMSI}, SvcContextId, TimeStamp, ServiceType,
 			SessionId, MSCC, Location, Path).
 %% @hidden
 post_request1({MSISDN, IMSI}, SvcContextId, TimeStamp, ServiceType,
 		SessionId, MSCC, Location, Path) ->
-	{ok, Profile} = application:get_env(nrf_profile),
+	{ok, Profile} = application:get_env(ocs, nrf_profile),
 	TS = erlang:system_time(?MILLISECOND),
 	InvocationTimeStamp = ocs_log:iso8601(TS),
 	Sequence = ets:update_counter(counters, nrf_seq, 1),
@@ -503,6 +504,7 @@ post_request1({MSISDN, IMSI}, SvcContextId, TimeStamp, ServiceType,
 					{"serviceRating",
 							{array, service_rating(MSCC, SvcContextId, Location)}}]},
 	ContentType = "application/json",
+erlang:display({?MODULE, ?LINE, Body}),
 	RequestBody = mochijson:encode(Body),
 	Headers = [{"accept", "application/json"}, {"content_type", "application/json"}],
 	Request = {Path, Headers, ContentType, lists:flatten(RequestBody)},
@@ -769,9 +771,7 @@ service_rating1([#'3gpp_ro_Multiple-Services-Credit-Control'{
 service_rating1([#'3gpp_ro_Multiple-Services-Credit-Control'{
 		'Requested-Service-Unit' = [#'3gpp_ro_Requested-Service-Unit'{}]}
 		= MSCC | T], SCID, SI, Acc) ->
-	Parameters = lists:flatten([SCID, get_si(MSCC), get_rg(MSCC), SI,
-			{"requestSubType", "RESERVE"}]),
-	service_rating1(T, SCID, SI, [{struct, Parameters} | Acc]);
+	service_rating1(T, SCID, SI, Acc);
 service_rating1([#'3gpp_ro_Multiple-Services-Credit-Control'{
 		'Used-Service-Unit' = [#'3gpp_ro_Used-Service-Unit'{
 		'CC-Time' = [CCTime]}]} = MSCC | T], SCID, SI, Acc)
