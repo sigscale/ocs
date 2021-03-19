@@ -792,7 +792,7 @@ service_rating1([#'3gpp_ro_Multiple-Services-Credit-Control'{
 		UplinkVolume > 0, DownlinkVolume > 0 ->
 	Parameters = lists:flatten([SCID, get_si(MSCC), get_rg(MSCC), SI,
 			{"uplinkVolume", UplinkVolume}, {"downlinkVolume", DownlinkVolume},
-			{"requestSubType", "DEBIT"}])
+			{"requestSubType", "DEBIT"}]),
 	service_rating1(T, SCID, SI, [{struct, Parameters} | Acc]);
 service_rating1([#'3gpp_ro_Multiple-Services-Credit-Control'{
 		'Used-Service-Unit' = [#'3gpp_ro_Used-Service-Unit'{
