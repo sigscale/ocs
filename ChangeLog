@@ -1,3 +1,8 @@
+2021-03-21  Refath Wadood <refath@sigscale.org>
+	
+	* get correct app env; correct type
+	* return correct diameter error codes in CCA for nrf rating
+
 2021-03-19  Refath Wadood <refath@sigscale.org>
 
 	* gui: redirect server supports URIs

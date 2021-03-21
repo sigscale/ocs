@@ -1,3 +1,7 @@
+March 21, 2021
+---------------
+	- Return correct Diameter error codes in CCA for Nrf rating
+
 March 19, 2021
 ---------------
 	- Support URIs for redirect on out-of-credit
