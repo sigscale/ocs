@@ -4550,7 +4550,7 @@ delete_tariff_resource(Config) ->
 	{error, not_found} = ocs:get_resource(Id).
 
 update_tariff_resource() ->
-	[{userdata, [{doc,"Use PATCH for update tariff resource entity"}]}].
+	[{userdata, [{doc, "Use PATCH for update tariff resource entity"}]}].
 
 update_tariff_resource(Config) ->
 	ResourceHref = "/resourceInventoryManagement/v1/resource/",
@@ -4570,11 +4570,13 @@ update_tariff_resource(Config) ->
 	NameOp = {struct, [{op, "add"}, {"path", "/name"}, {value, "TariffRow"}]},
 	DescriptionOp = {struct, [{op, "add"}, {"path", "/description"},
 			{value, "policy row resource"}]},
-	NewResSpecObj = {struct, [{"id", "2"}, {"name", "tariff row spec"},
-			{"href", "/resourceCatalogManagement/v2/resourceSpecification/2"}]},
-	ResSpecOp = {struct, [{op, "add"}, {path, "/resourceSpecification"},
-			{value, NewResSpecObj}]},
-	OpArray = {array, [NameOp, DescriptionOp, ResSpecOp]},
+	NewPrefix = "136",
+	NewRate = 456,
+	ResCharOp1 = {struct, [{op, "add"}, {path, "/resourceCharacteristic/0/value"},
+			{value, NewPrefix}]},
+	ResCharOp2 = {struct, [{op, "add"}, {path, "/resourceCharacteristic/2/value"},
+			{value, NewRate}]},
+	OpArray = {array, [NameOp, DescriptionOp, ResCharOp1, ResCharOp2]},
 	PatchReqBody = lists:flatten(mochijson:encode(OpArray)),
 	PatchContentType = "application/json-patch+json",
 	Request2 = {HostUrl ++ ResourceHref ++ ResourceId, [Accept, auth_header(),
@@ -4582,8 +4584,12 @@ update_tariff_resource(Config) ->
 	{ok, Result2} = httpc:request(patch, Request2, [], []),
 	{{"HTTP/1.1", 200, "OK"}, _Headers2, _ResponseBody2} = Result2,
 	{ok, #resource{name = "TariffRow", description = "policy row resource",
-			specification = #specification_ref{name = "tariff row spec"}}}
-			= ocs:get_resource(ResourceId).
+			specification = #specification_ref{name = "tariff row spec"},
+			characteristic = CharList}} = ocs:get_resource(ResourceId),
+	#resource_char{name = "prefix", value = NewPrefix}
+			= lists:keyfind("prefix", #resource_char.name, CharList),
+	#resource_char{name = "rate", value = NewRate}
+			= lists:keyfind("rate", #resource_char.name, CharList).
 
 post_policy_resource() ->
 	[{userdata, [{doc,"Add policy in rest interface"}]}].
@@ -5318,15 +5324,9 @@ resource_inventory() ->
 			++ RelId},
 	ResRel = {struct, [ResRelId, ResRelName, ResRelType, ResRelHref]},
 	ResourceRelationship = {"resourceRelationship", {array, [ResRel]}},
-	ResCharName1 = {"name", "prefix"},
-	ResCharValue1 = {"value", {struct, [{"seqNum", 1}, {"value", "125"}]}},
-	ResCharName2 = {"name", "description"},
-	ResCharValue2 = {"value", {struct, [{"seqNum", 2}, {"value", "testing"}]}},
-	ResCharName3 = {"name", "rate"},
-	ResCharValue3 = {"value", {struct, [{"seqNum", 3}, {"value", 250}]}},
-	ResChar1 = {struct, [ResCharName1, ResCharValue1]},
-	ResChar2 = {struct, [ResCharName2, ResCharValue2]},
-	ResChar3 = {struct, [ResCharName3, ResCharValue3]},
+	ResChar1 = {struct, [{"name", "prefix"}, {"value", "125"}]},
+	ResChar2 = {struct, [{"name", "description"}, {"value", "testing"}]},
+	ResChar3 = {struct, [{"name", "rate"}, {"value", 250}]},
 	ResourceCharacteristics = {"resourceCharacteristic",
 			{array, [ResChar1, ResChar2, ResChar3]}},
 	[Name, Description, Category, ClassType, Schema, BaseType, Version, Status,
