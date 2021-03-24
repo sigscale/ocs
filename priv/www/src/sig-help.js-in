@@ -481,17 +481,17 @@ class ocsHelp extends PolymerElement {
 					<h3>Validations</h3>
 					<p><dl>
 						<dt><b>Bytes</b></dt>
-							<dd>When selected <b>Units</b> is bytes the <b>Unit Size</b> field user
-							should be the number of bytes for the price <b>Amount</b>. Multipliers
+							<dd>When the selected <b>Units</b> are bytes the <b>Unit Size</b> should
+							be the number of bytes for the price <b>Amount</b>. Multipliers
 							may be used: <b>m</b> for <b>Megabytes</b>, <b>g</b> for <b>Gigabytes</b>,
 							<b>k</b> for <b>Kilobytes</b></dd>
 						<dt><b>Seconds</b></dt>
-							<dd>When selected <b>Units</b> is seconds the <b>Unit Size</b> field
-							user should be the number of seconds for the price <b>Amount</b>. Multipliers
+							<dd>When the selected <b>Units</b> are seconds the <b>Unit Size</b> field
+							be the number of bytes for the price <b>Amount</b>. Multipliers
 							may be used: <b>m</b> for <b>minutes</b>, <b>h</b> for <b>hours</b></dd>
 						<dt><b>Cents</b></dt>
-							<dd>When selected <b>Units</b> is cents the <b>Unit Size</b> field
-							user should be the number of cents for the price <b>Amount</b>.</dd>
+							<dd>When the selected <b>Units</b> are cents the <b>Unit Size</b> should
+							be the number of cents for the price <b>Amount</b>.</dd>
 					</dl></p>
 				</paper-dialog-scrollable>
 			</paper-dialog>
