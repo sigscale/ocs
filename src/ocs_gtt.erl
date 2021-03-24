@@ -315,7 +315,7 @@ restore(Tables, File) when is_list(Tables), is_list(File) ->
 %%
 %% 	Example:
 %% 	```
-%% 	1416,"Toronto, Ontaria, Canada",0.0123
+%% 	1416,"Toronto, Ontario, Canada",0.0123
 %% 	1212,"New York, New York, United States",0.011
 %% 	1800,Toll Free,0
 %% 	94,Sri Lanka,1.15
