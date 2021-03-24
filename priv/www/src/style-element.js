@@ -141,6 +141,18 @@ styleElement.innerHTML = `<template>
 			padding-left: 1em;
 			padding-right: 1em;
 		}
+		table.det {
+			margin-left: auto;
+			margin-right: auto;
+		}
+		table.det tr td {
+			width: 400px;
+			word-wrap: break-word;
+		}
+		table.det tr td {
+			display: inline-block;
+			margin-top: 2px;
+		}
 		.yellow-button {
 			text-transform: none;
 			color: #eeff41;
