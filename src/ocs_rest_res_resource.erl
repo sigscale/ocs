@@ -1047,8 +1047,7 @@ resource_rel([], _, Acc) ->
 resource_char({array, [{struct, _} | _] = StructList}) ->
 	[resource_char(Object, #resource_char{}) || {struct, Object} <- StructList];
 resource_char([#resource_char{} | _] = List) ->
-	Fields = record_info(fields, resource_char),
-	[resource_char(Fields, R, []) || R <- List].
+	[resource_char1(R) || R <- List].
 %% @hidden
 resource_char([{"name", "name"}, {"value", {struct, NameList}} | T], Acc) ->
 	case lists:keyfind("value", 1, NameList) of
@@ -1094,58 +1093,31 @@ resource_char([{"name", "flowInformation"},
 	end,
 	resource_char(T, Acc#resource_char{name = "flowInformation",
 			value = lists:map(F, FlowStructList)});
-resource_char([{"name", "prefix"}, {"value", {struct, PrefixList}} | T], Acc) ->
-	case lists:keyfind("value", 1, PrefixList) of
-		{_, Value} when is_list(Value) ->
-			resource_char(T, Acc#resource_char{name = "prefix", value = Value});
-		false ->
-			throw(bad_request)
-	end;
-resource_char([{"name", "description"},
-		{"value", {struct, DesList}} | T], Acc) ->
-	case lists:keyfind("value", 1, DesList) of
-		{_, Value} when is_list(Value) ->
-			resource_char(T, Acc#resource_char{name = "description",
-					value = Value});
-		false ->
-			throw(bad_request)
-	end;
-resource_char([{"name", "rate"}, {"value", {struct, RateList}} | T], Acc) ->
-	case lists:keyfind("value", 1, RateList) of
-		{_, Value} when is_integer(Value) ->
-			resource_char(T, Acc#resource_char{name = "rate", value = Value});
-		false ->
-			throw(bad_request)
-	end;
+resource_char([{"name", "rate"}, {"value", Value} | _], _Acc)
+		when is_integer(Value) ->
+	#resource_char{name = "rate", value = Value};
+resource_char([{"name", Name} | T], Acc) when is_list(Name) ->
+	resource_char(T, Acc#resource_char{name = Name});
+resource_char([{"value", Value} | T], Acc) when is_list(Value) ->
+	resource_char(T, Acc#resource_char{value = Value});
 resource_char([], Acc) ->
 	Acc.
 %% @hidden
-resource_char([value | T], #resource_char{name = "name",
-		value = Value} = R, Acc) when is_list(Value) ->
-	resource_char(T, R, [{"name", "name"}, {"value", {struct, [{"seqNum", 1},
-			{"value", Value}]}} | Acc]);
-resource_char([value | T], #resource_char{name = "chargingKey",
-		value = Value} = R, Acc) when is_integer(Value) ->
-	resource_char(T, R, [{"name", "chargingKey"},
-			{"value", {struct, [{"seqNum", 3}, {"value", Value}]}} | Acc]);
-resource_char([value | T], #resource_char{name = "precedence",
-		value = Value} = R, Acc) when is_integer(Value) ->
-	resource_char(T, R, [{"name", "precedence"},
-			{"value", {struct, [{"seqNum", 5}, {"value", Value}]}} | Acc]);
-resource_char([value | T], #resource_char{name = "serviceId",
-		value = Value} = R, Acc) when is_list(Value) ->
-	resource_char(T, R, [{"name", "serviceId"},
-			{"value", {struct, [{"seqNum", 6}, {"value", Value}]}} | Acc]);
-resource_char([value | T], #resource_char{name = "qosInformation",
+resource_char1(#resource_char{name = "chargingKey", value = Value})
+		when is_integer(Value) ->
+	{struct, [{"name", "chargingKey"}, {"value", Value}]};
+resource_char1(#resource_char{name = "precedence", value = Value})
+		when is_integer(Value) ->
+	{struct, [{"name", "precedence"}, {"value", Value}]};
+resource_char1(#resource_char{name = "qosInformation",
 		value = #{"maxRequestedBandwidthDL" := MaxDL,
-		"maxRequestedBandwidthUL" := MaxUL, "qosClassIdentifier" := Class}} = R,
-		Acc) when is_integer(MaxDL), is_integer(MaxUL), is_integer(Class) ->
-	resource_char(T, R, [{"name", "qosInformation"},
-			{"value", {struct, [{"seqNum", 2}, {"value", {struct,
+		"maxRequestedBandwidthUL" := MaxUL, "qosClassIdentifier" := Class}})
+		when is_integer(MaxDL), is_integer(MaxUL), is_integer(Class) ->
+	{struct, [{"name", "qosInformation"}, {"value", {struct,
 			[{"maxRequestedBandwidthDL", MaxDL}, {"maxRequestedBandwidthUL",
-			MaxUL}, {"qosClassIdentifier", Class}]}}]}} | Acc]);
-resource_char([value | T], #resource_char{name = "flowInformation",
-		value = FlowList} = R, Acc) when is_list(FlowList) ->
+			MaxUL}, {"qosClassIdentifier", Class}]}}]};
+resource_char1(#resource_char{name = "flowInformation", value = FlowList})
+		when is_list(FlowList) ->
 	F = fun(#{"flowDescription" := FlowDes, "flowDirection" := 0})
 			when is_list(FlowDes) ->
 				{struct, [{"flowDescription", FlowDes},
@@ -1161,24 +1133,14 @@ resource_char([value | T], #resource_char{name = "flowInformation",
 				{struct, [{"flowDescription", FlowDes},
 						{"flowDirection", "bidirectional"}]}
 	end,
-	resource_char(T, R, [{"name", "flowInformation"}, {"value", {struct,
-			[{"seqNum", 4}, {"value", {array, lists:map(F, FlowList)}}]}} | Acc]);
-resource_char([value | T], #resource_char{name = "prefix",
-		value = Value} = R, Acc) when is_list(Value) ->
-	resource_char(T, R, [{"name", "prefix"}, {"value", {struct, [{"seqNum", 1},
-			{"value", Value}]}} | Acc]);
-resource_char([value | T], #resource_char{name = "description",
-		value = Value} = R, Acc) when is_list(Value) ->
-	resource_char(T, R, [{"name", "description"}, {"value",
-			{struct, [{"seqNum", 2}, {"value", Value}]}} | Acc]);
-resource_char([value | T], #resource_char{name = "rate",
-		value = Value} = R, Acc) when is_integer(Value) ->
-	resource_char(T, R, [{"name", "rate"}, {"value", {struct, [{"seqNum", 3},
-			{"value", Value}]}} | Acc]);
-resource_char([_ | T], R, Acc) ->
-	resource_char(T, R, Acc);
-resource_char([], _, Acc) ->
-	{struct, Acc}.
+	{struct, [{"name", "flowInformation"},
+			{"value", {array, lists:map(F, FlowList)}}]};
+resource_char1(#resource_char{name = "rate", value = Value})
+		when is_integer(Value) ->
+	{struct, [{"name", "rate"}, {"value", Value}]};
+resource_char1(#resource_char{name = Name, value = Value})
+		when is_list(Name), is_list(Value) ->
+	{struct, [{"name", Name}, {"value", Value}]}.
 
 %% @hidden
 parse_char([{Field, Value} | T], Acc) when is_integer(Value),
