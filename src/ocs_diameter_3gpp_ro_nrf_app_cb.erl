@@ -705,8 +705,7 @@ diameter_error(SessionId, 403, OHost, ORealm, RequestType, RequestNum) ->
 diameter_error(SessionId, 404, OHost, ORealm, RequestType, RequestNum) ->
 	ResultCode = 'DIAMETER_CC_APP_RESULT-CODE_USER_UNKNOWN',
 	diameter_error1(SessionId, ResultCode, OHost, ORealm, RequestType, RequestNum);
-diameter_error(SessionId, _ResultCode, OHost, ORealm, RequestType, RequestNum) ->
-	ResultCode = ?'DIAMETER_CC_APP_RESULT-CODE_RATING_FAILED',
+diameter_error(SessionId, ResultCode, OHost, ORealm, RequestType, RequestNum) ->
 	diameter_error1(SessionId, ResultCode, OHost, ORealm, RequestType, RequestNum).
 %% @hidden
 diameter_error1(SessionId, ResultCode, OHost, ORealm, RequestType, RequestNum) ->
@@ -734,7 +733,7 @@ service_type(Id) ->
 -spec service_rating(MSCC, ServiceContextId, ServiceInformation) -> ServiceRating
 	when
 		MSCC :: [#'3gpp_ro_Multiple-Services-Credit-Control'{}],
-		ServiceContextId :: binary(),
+		ServiceContextId :: string(),
 		ServiceInformation :: [tuple()],
 		ServiceRating :: [{struct, [tuple()]}].
 %% Create list of service elements to be rated.
