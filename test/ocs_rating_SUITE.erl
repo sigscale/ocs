@@ -113,7 +113,8 @@ all() ->
 	authorize_default_voice, authorize_data_1, authorize_data_2,
 	authorize_data_with_partial_reservation, authorize_negative_balance,
 	unauthorize_bad_password, unauthorize_bad_password, reserve_sms, debit_sms,
-	roaming_table_data, roaming_table_voice, roaming_table_sms, final_empty_mscc].
+	roaming_table_data, roaming_table_voice, roaming_table_sms, final_empty_mscc,
+	final_empty_mscc_multiple_services].
 
 %%---------------------------------------------------------------------
 %%  Test cases
@@ -587,7 +588,6 @@ interim_reserve_multiple_buckets_available(_Config) ->
 			calendar:gregorian_seconds_to_datetime(TS + 60), undefined,
 			undefined, interim, [], [{PackageUnits, Reservation2}],
 			SessionId).
-
 
 interim_reserve_multiple_buckets_out_of_credit() ->
 	[{userdata, [{doc, "Out of credit with multiple cents buckets"}]}].
@@ -2013,37 +2013,87 @@ roaming_table_sms(Config) ->
 	ok = file:close(File2).
 
 final_empty_mscc() ->
-	[{userdata, [{doc, "Remove session after multiple interims that exceed the reserved amount"}]}].
+	[{userdata, [{doc, "Rate a final call with an empty MSCC and remove session"}]}].
 
 final_empty_mscc(_Config) ->
-	PackagePrice = 10 + rand:uniform(90),
-	PackageSize = 5000000 + rand:uniform(9000000),
-	PackageUnits = octets,
-	P1 = price(usage, PackageUnits, PackageSize, PackagePrice),
-	OfferId = add_offer([P1], 4),
+	Alteration = #alteration{name = "Allowance", units = octets,
+			size = 150000000, amount = 0, type = recurring, period = monthly},
+	P1 = #price{name = "Subscription", type = recurring, amount = 19900000000,
+			period = monthly},
+	P2 = #price{name = "Overage", type = usage, units = octets,
+			size = 100000000, amount = 990000000, alteration = Alteration},
+	OfferId = add_offer([P1, P2], 8),
 	ProdRef = add_product(OfferId),
 	ServiceId = add_service(ProdRef),
-	RemAmount = 1000,
-	B1 = bucket(cents, RemAmount),
+	Adjustment = #adjustment{amount = 19900000000, product = ProdRef, units = cents},
+	ok = ocs:adjustment(Adjustment),
+	RemAmount = 20000000000,
+	B1 = #bucket{units = cents, remain_amount = RemAmount,
+			start_date = erlang:system_time(?MILLISECOND)},
 	_BId = add_bucket(ProdRef, B1),
 	SessionId = [{'Session-Id', list_to_binary(ocs:generate_password())}],
 	ServiceType = 32251,
 	Timestamp = calendar:local_time(),
 	TS1 = calendar:datetime_to_gregorian_seconds(Timestamp),
 	{ok, _, _} = ocs_rating:rate(diameter, ServiceType, undefined,
-			undefined, undefined, ServiceId, Timestamp, undefined, undefined,
+			6400, undefined, ServiceId, Timestamp, undefined, undefined,
 			initial, [], [], SessionId),
 	{ok, _, _} = ocs_rating:rate(diameter, ServiceType,
 			undefined, undefined, undefined, ServiceId, calendar:gregorian_seconds_to_datetime(TS1 + 60), undefined,
-			undefined, final, [{PackageUnits, PackageSize * 3}], [], SessionId),
+			undefined, interim, [{octets, 300000000}], [], SessionId),
+	{ok, _, _} = ocs_rating:rate(diameter, ServiceType,
+			undefined, undefined, undefined, ServiceId, calendar:gregorian_seconds_to_datetime(TS1 + 120), undefined,
+			undefined, interim, [{octets, 15000000}], [], SessionId),
 	{ok, _, _} = ocs_rating:rate(diameter, ServiceType,
 			undefined, undefined, undefined, ServiceId, Timestamp, undefined,
 			undefined, final, [], [], SessionId),
-	[#bucket{units = cents, reservations = []}] = ocs:get_buckets(ProdRef).
+	BucketList = ocs:get_buckets(ProdRef),
+	#bucket{units = cents, reservations = []} =  lists:keyfind(cents, #bucket.units, BucketList),
+	#bucket{units = octets, reservations = []} =  lists:keyfind(octets, #bucket.units, BucketList).
+
+final_empty_mscc_multiple_services() ->
+	[{userdata, [{doc, "Rate final with an empty MSCC after rating interims with different services"}]}].
+
+final_empty_mscc_multiple_services(_Config) ->
+	Alteration = #alteration{name = "Allowance", units = octets,
+			size = 150000000, amount = 0, type = recurring, period = monthly},
+	P1 = #price{name = "Subscription", type = recurring, amount = 19900000000,
+			period = monthly},
+	P2 = #price{name = "Overage", type = usage, units = octets,
+			size = 100000000, amount = 990000000, alteration = Alteration},
+	OfferId = add_offer([P1, P2], 8),
+	ProdRef = add_product(OfferId),
+	ServiceId1 = add_service(ProdRef),
+	Adjustment = #adjustment{amount = 19900000000, product = ProdRef, units = cents},
+	ok = ocs:adjustment(Adjustment),
+	RemAmount = 20000000000,
+	B1 = #bucket{units = cents, remain_amount = RemAmount,
+			start_date = erlang:system_time(?MILLISECOND)},
+	_BId = add_bucket(ProdRef, B1),
+	SessionId1 = [{'Session-Id', list_to_binary(ocs:generate_password())}],
+	ServiceType = 32251,
+	Timestamp1 = calendar:local_time(),
+	TS1 = calendar:datetime_to_gregorian_seconds(Timestamp1),
+	{ok, _, _} = ocs_rating:rate(diameter, ServiceType, undefined,
+			undefined, undefined, ServiceId1, Timestamp1, undefined, undefined,
+			initial, [], [], SessionId1),
+	{ok, _, _} = ocs_rating:rate(diameter, ServiceType,
+			32, undefined, undefined, ServiceId1, calendar:gregorian_seconds_to_datetime(TS1 + 60), undefined,
+			undefined, interim, [{octets, 300000000}], [], SessionId1),
+	{ok, _, _} = ocs_rating:rate(diameter, ServiceType,
+			65, undefined, undefined, ServiceId1, calendar:gregorian_seconds_to_datetime(TS1 + 120), undefined,
+			undefined, interim, [{octets, 15000000}], [], SessionId1),
+	{ok, _, _} = ocs_rating:rate(diameter, ServiceType,
+			undefined, undefined, undefined, ServiceId1, Timestamp1, undefined,
+			undefined, final, [], [], SessionId1),
+	BucketList = ocs:get_buckets(ProdRef),
+	#bucket{units = cents, reservations = []} =  lists:keyfind(cents, #bucket.units, BucketList),
+	#bucket{units = octets, reservations = []} =  lists:keyfind(octets, #bucket.units, BucketList).
 
 %%---------------------------------------------------------------------
 %%  Internal functions
 %%---------------------------------------------------------------------
+
 %% @hidden
 price(Type, Units, Size, Amount) ->
 	#price{name = ocs:generate_identity(),

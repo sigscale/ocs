@@ -178,7 +178,6 @@ class offerAdd extends PolymerElement {
 									id="addRedirectAddress"
 									name="redirectionAddress"
 									label="Redirect Server"
-									allowed-pattern="[0-9\.]"
 									value="{{address}}">
 								</paper-input>
 								<paper-tooltip

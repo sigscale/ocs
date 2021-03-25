@@ -47,6 +47,7 @@
               "examples" : {
                 "IEC" : {
                   "summary" : "Immediate Event Charging (IEC)",
+                  "description" : "Request an atomic charging operation which succeeds or fails.",
                   "value" : {
                     "nfConsumerIdentification" : {
                       "nodeFunctionality" : "OCF"
@@ -60,16 +61,17 @@
                     "serviceRating" : [ {
                       "serviceContextId" : "32274@3gpp.org",
                       "serviceId" : 4,
-                      "destinationId" : {
+                      "destinationId" : [ {
                         "destinationIdType" : "DN",
                         "destinationIdData" : "14165556789"
-                      },
+                      } ],
                       "requestSubType" : "DEBIT"
                     } ]
                   }
                 },
                 "ECUR" : {
                   "summary" : "Event Charging with Unit Reservation (ECUR)",
+                  "description" : "Request a reservation for a one time charge.",
                   "value" : {
                     "nfConsumerIdentification" : {
                       "nodeFunctionality" : "OCF"
@@ -83,10 +85,10 @@
                     "serviceRating" : [ {
                       "serviceContextId" : "32274@3gpp.org",
                       "serviceId" : 4,
-                      "destinationId" : {
+                      "destinationId" : [ {
                         "destinationIdType" : "DN",
                         "destinationIdData" : "14165556789"
-                      },
+                      } ],
                       "requestSubType" : "RESERVE",
                       "requestedUnit" : {
                         "serviceSpecificUnit" : 1
@@ -96,6 +98,7 @@
                 },
                 "SCUR" : {
                   "summary" : "Session Charging with Unit Reservation (SCUR)",
+                  "description" : "Request a reservation for charging a session. Two services are requested (i.e. data and VoLTE).",
                   "value" : {
                     "nfConsumerIdentification" : {
                       "nodeFunctionality" : "OCF"
@@ -111,8 +114,28 @@
                       "requestSubType" : "RESERVE"
                     }, {
                       "serviceContextId" : "32251@3gpp.org",
-                      "serviceId" : 1,
+                      "serviceId" : 2,
                       "ratingGroup" : 32,
+                      "requestSubType" : "RESERVE"
+                    } ]
+                  }
+                },
+                "Roaming" : {
+                  "summary" : "Roaming voice call service (VCS).",
+                  "description" : "Request a reservation for charging a roaming voice call session. The user location is provided to enable rating based on Visited Public Land Mobile Network (PLMN).",
+                  "value" : {
+                    "nfConsumerIdentification" : {
+                      "nodeFunctionality" : "OCF"
+                    },
+                    "invocationTimeStamp" : "2020-12-13T15:28:32.123Z",
+                    "invocationSequenceNumber" : 1,
+                    "actualTime" : "2020-12-13T15:28:32Z",
+                    "subscriptionId" : [ "msisdn-14165551234", "imsi-001001000000001" ],
+                    "serviceRating" : [ {
+                      "serviceContextId" : "32276@3gpp.org",
+                      "serviceInformation" : {
+                        "vlrNumber" : "12125550000"
+                      },
                       "requestSubType" : "RESERVE"
                     } ]
                   }
@@ -140,6 +163,7 @@
                 "examples" : {
                   "IEC" : {
                     "summary" : "Immediate Event Charging (IEC)",
+                    "description" : "Successful charging of an SMS.",
                     "value" : {
                       "invocationTimeStamp" : "2020-12-13T15:28:32.186Z",
                       "invocationSequenceNumber" : 1,
@@ -162,6 +186,7 @@
                   },
                   "ECUR" : {
                     "summary" : "Event Charging with Unit Reservation (ECUR)",
+                    "description" : "Successful reservation for an SMS.",
                     "value" : {
                       "invocationTimeStamp" : "2020-12-13T15:28:32.186Z",
                       "invocationSequenceNumber" : 1,
@@ -184,6 +209,7 @@
                   },
                   "SCUR" : {
                     "summary" : "Session Charging with Unit Reservation (SCUR)",
+                    "description" : "Successful reservation for a data session. Two services were requested and both were granted.",
                     "value" : {
                       "invocationTimeStamp" : "2020-12-13T15:28:32.123Z",
                       "invocationSequenceNumber" : 1,
@@ -197,13 +223,45 @@
                         "resultCode" : "SUCCESS"
                       }, {
                         "serviceContextId" : "32251@3gpp.org",
-                        "serviceId" : 1,
+                        "serviceId" : 2,
                         "ratingGroup" : 32,
                         "grantedUnit" : {
                           "totalVolume" : 100000000
                         },
                         "resultCode" : "SUCCESS"
                       } ]
+                    }
+                  },
+                  "PARTIAL" : {
+                    "summary" : "Partial Success (SCUR)",
+                    "description" : "Reservation request succeeds for one service but is unsuccessful for another. The session may continue with the service which succeeded.",
+                    "value" : {
+                      "invocationTimeStamp" : "2020-12-13T15:28:32.123Z",
+                      "invocationSequenceNumber" : 1,
+                      "serviceRating" : [ {
+                        "serviceContextId" : "32251@3gpp.org",
+                        "serviceId" : 1,
+                        "ratingGroup" : 2,
+                        "grantedUnit" : {
+                          "totalVolume" : 100000000
+                        },
+                        "resultCode" : "SUCCESS"
+                      }, {
+                        "serviceContextId" : "32251@3gpp.org",
+                        "serviceId" : 2,
+                        "ratingGroup" : 32,
+                        "resultCode" : "QUOTA_LIMIT_REACHED"
+                      } ],
+                      "invocationResult" : {
+                        "error" : {
+                          "cause" : "QUOTA_LIMIT_REACHED",
+                          "title" : "Request denied due to insufficient credit",
+                          "invalidParam" : [ {
+                            "param" : "/serviceRating/1"
+                          } ]
+                        },
+                        "failureHandling" : "CONTINUE"
+                      }
                     }
                   }
                 }
@@ -216,6 +274,20 @@
               "application/problem+json" : {
                 "schema" : {
                   "$ref" : "https://api.swaggerhub.com/domains/SigScale/TS29571_CommonData/1.2.1#/components/schemas/ProblemDetails"
+                },
+                "examples" : {
+                  "UNKNOWN_CONTEXT" : {
+                    "summary" : "Unknown Service Context",
+                    "description" : "The request failed completely due to an unknown service context value.",
+                    "value" : {
+                      "cause" : "CHARGING_FAILED",
+                      "title" : "Incomplete or erroneous session or subscriber information",
+                      "invalidParams" : [ {
+                        "param" : "/serviceRating/0/serviceContextId",
+                        "reason" : "unknown context"
+                      } ]
+                    }
+                  }
                 }
               }
             }
@@ -226,6 +298,21 @@
               "application/problem+json" : {
                 "schema" : {
                   "$ref" : "https://api.swaggerhub.com/domains/SigScale/TS29571_CommonData/1.2.1#/components/schemas/ProblemDetails"
+                },
+                "examples" : {
+                  "QUOTA_LIMIT_REACHED" : {
+                    "summary" : "Out of Credit",
+                    "description" : "The request failed completely due to insuffcient credit to fulfill the reservation request.",
+                    "value" : {
+                      "cause" : "QUOTA_LIMIT_REACHED",
+                      "title" : "Request denied due to insufficient credit (usage applied)",
+                      "invalidParams" : [ {
+                        "param" : "/serviceRating/0"
+                      }, {
+                        "param" : "/serviceRating/1"
+                      } ]
+                    }
+                  }
                 }
               }
             }
@@ -236,6 +323,20 @@
               "application/problem+json" : {
                 "schema" : {
                   "$ref" : "https://api.swaggerhub.com/domains/SigScale/TS29571_CommonData/1.2.1#/components/schemas/ProblemDetails"
+                },
+                "examples" : {
+                  "USER_UNKNOWN" : {
+                    "summary" : "Unknown Subscriber",
+                    "description" : "The request failed completely because the subscriber identity could not be matched with a known subscriber.",
+                    "value" : {
+                      "cause" : "USER_UNKNOWN",
+                      "title" : "Request denied because the subscriber identity is unrecognized",
+                      "invalidParams" : [ {
+                        "param" : "/subscriberIdentifier/1",
+                        "reason" : "unknown imsi"
+                      } ]
+                    }
+                  }
                 }
               }
             }
@@ -435,10 +536,10 @@
                     "serviceRating" : [ {
                       "serviceContextId" : "32274@3gpp.org",
                       "serviceId" : 4,
-                      "destinationId" : {
+                      "destinationId" : [ {
                         "destinationIdType" : "DN",
                         "destinationIdData" : "14165556789"
-                      },
+                      } ],
                       "requestSubType" : "DEBIT",
                       "consumedUnit" : {
                         "serviceSpecificUnit" : 1
@@ -756,6 +857,13 @@
               "$ref" : "https://api.swaggerhub.com/domains/SigScale/TS29571_CommonData/1.2.1#/components/schemas/RatingGroup"
             } ]
           },
+          "originationId" : {
+            "description" : "Identifies the origination(s), from which the requested service is directed.",
+            "type" : "array",
+            "items" : {
+              "$ref" : "#/components/schemas/OriginationId"
+            }
+          },
           "destinationId" : {
             "description" : "Identifies the destination(s), to which the requested service is directed.",
             "type" : "array",
@@ -920,6 +1028,22 @@
         },
         "required" : [ "serviceId", "resultCode" ]
       },
+      "OriginationId" : {
+        "type" : "object",
+        "properties" : {
+          "originationIdType" : {
+            "anyOf" : [ {
+              "type" : "string",
+              "enum" : [ "DN", "NAI" ]
+            }, {
+              "type" : "string"
+            } ]
+          },
+          "originationIdData" : {
+            "type" : "string"
+          }
+        }
+      },
       "DestinationId" : {
         "type" : "object",
         "properties" : {
@@ -1027,7 +1151,72 @@
       },
       "VcsInformation" : {
         "description" : "Voice Call Service (VCS) charging (3GPP TS 32.276).",
-        "type" : "object"
+        "type" : "object",
+        "properties" : {
+          "startTime" : {
+            "description" : "The start time at the MSC.",
+            "allOf" : [ {
+              "$ref" : "https://api.swaggerhub.com/domains/SigScale/TS29571_CommonData/1.2.1#/components/schemas/DateTime"
+            } ]
+          },
+          "startOfCharging" : {
+            "description" : "Contains the time origin for charging and may be equivalent to the time call setup is initiated or the time the call is answered depending on configuration. It is only sent if call setup was successful.",
+            "allOf" : [ {
+              "$ref" : "https://api.swaggerhub.com/domains/SigScale/TS29571_CommonData/1.2.1#/components/schemas/DateTime"
+            } ]
+          },
+          "stopTime" : {
+            "description" : "Contains the time when the call wass released.",
+            "allOf" : [ {
+              "$ref" : "https://api.swaggerhub.com/domains/SigScale/TS29571_CommonData/1.2.1#/components/schemas/DateTime"
+            } ]
+          },
+          "isupCause" : {
+            "description" : "Indicates the reason the call was released.",
+            "type" : "object",
+            "properties" : {
+              "causeValue" : {
+                "description" : "Identifies the reason a voice call service is released. See 3GPP TS 29.078 for supported values.",
+                "allOf" : [ {
+                  "$ref" : "https://api.swaggerhub.com/domains/SigScale/TS29571_CommonData/1.2.1#/components/schemas/Uint32"
+                } ]
+              },
+              "causeLocation" : {
+                "description" : "Identifies identifies the network in which the event caused the voice call service release.",
+                "type" : "string",
+                "enum" : [ "user", "local_private", "local_public", "transit", "remote_public", "remote_private", "international", "beyond", "undefined" ]
+              },
+              "causeDiagnostics" : {
+                "description" : "Holds the diagnostics field associated with the release of the voice call service, if available. See 3GPP TS 29.078 for supported values.",
+                "allOf" : [ {
+                  "$ref" : "https://api.swaggerhub.com/domains/SigScale/TS29571_CommonData/1.2.1#/components/schemas/Bytes"
+                } ]
+              }
+            },
+            "required" : [ "causeValue" ]
+          },
+          "callReferenceNumber" : {
+            "description" : "The network call reference number assigned to the call by the GMSC/MSC.",
+            "allOf" : [ {
+              "$ref" : "https://api.swaggerhub.com/domains/SigScale/TS29571_CommonData/1.2.1#/components/schemas/Bytes"
+            } ]
+          },
+          "mscAddress" : {
+            "description" : "The international E.164 number of the serving Mobile Switching Center (MSC).",
+            "type" : "string",
+            "pattern" : "^[0-9]{5,15}$"
+          },
+          "locationNumber" : {
+            "description" : "The E.164 location number for the served user transported in ISUP.",
+            "type" : "string",
+            "pattern" : "^[0-9]{5,15}$"
+          },
+          "vlrNumber" : {
+            "description" : "The international E.164 number of the serving Visitor Location Register (VLR).",
+            "type" : "string",
+            "pattern" : "^[0-9]{5,15}$"
+          }
+        }
       },
       "Counter" : {
         "type" : "object",

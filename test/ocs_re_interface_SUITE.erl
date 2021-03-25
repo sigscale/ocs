@@ -15,8 +15,7 @@
 %%% See the License for the specific language governing permissions and
 %%% limitations under the License.
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-%%%  @doc Test suite for the Re interface (OCF - RF)
-%%% 	of the {@link //ocs. ocs} application.
+%%%  @doc Test suite for public API of the {@link //ocs. ocs} application.
 %%%
 -module(ocs_re_interface_SUITE).
 -copyright('Copyright (c) 2016 - 2021 SigScale Global Inc.').
@@ -25,13 +24,30 @@
 -export([suite/0, sequences/0, all/0]).
 -export([init_per_suite/1, end_per_suite/1]).
 -export([init_per_testcase/2, end_per_testcase/2]).
+-export([send_initial_scur/3, receive_initial_scur/3,
+		send_interim_scur/3, receive_interim_scur/3,
+		send_final_scur/3, receive_final_scur/3]).
 
 %% Note: This directive should only be used in test suites.
 -compile(export_all).
 
+-include_lib("radius/include/radius.hrl").
+-include("ocs_eap_codec.hrl").
+-include("ocs.hrl").
 -include_lib("common_test/include/ct.hrl").
+-include_lib("inets/include/mod_auth.hrl").
+-include_lib("diameter/include/diameter.hrl").
+-include_lib("diameter/include/diameter_gen_base_rfc6733.hrl").
+-include_lib("../include/diameter_gen_nas_application_rfc7155.hrl").
+-include_lib("../include/diameter_gen_cc_application_rfc4006.hrl").
+-include_lib("../include/diameter_gen_3gpp_ro_application.hrl").
+-include_lib("../include/diameter_gen_3gpp.hrl").
+-include_lib("../include/diameter_gen_ietf.hrl").
 
--define(PathNrfRating, "/nrf-rating/v1/").
+-define(RO_APPLICATION_ID, 4).
+-define(IANA_PEN_3GPP, 10415).
+-define(IANA_PEN_SigScale, 50386).
+-define(NRF_RO_APPLICATION_CALLBACK, ocs_diameter_3gpp_ro_nrf_app_cb).
 
 %% support deprecated_time_unit()
 -define(MILLISECOND, milli_seconds).
@@ -45,52 +61,41 @@
 %% Require variables and set default values for the suite.
 %%
 suite() ->
-	[{userdata, [{doc, "Test suite for Re interface in OCS"}]},
-	{timetrap, {minutes, 1}},
-	{require, rest_user}, {default_config, rest_user, "bss"},
-	{require, rest_pass}, {default_config, rest_pass, "nfc9xgp32xha"},
-	{require, rest_group}, {default_config, rest_group, "all"}].
+   [{userdata, [{doc, "Test suite for REST API in OCS"}]},
+   {timetrap, {minutes, 10}}].
 
 -spec init_per_suite(Config :: [tuple()]) -> Config :: [tuple()].
 %% Initialization before the whole suite.
 %%
 init_per_suite(Config) ->
 	ok = ocs_test_lib:initialize_db(),
-	ok = ocs_test_lib:start(),
-	{ok, Services} = application:get_env(inets, services),
-	Fport = fun FPort([{httpd, L} | T]) ->
-				case lists:keyfind(server_name, 1, L) of
-					{_, "rest"} ->
-						H1 = lists:keyfind(bind_address, 1, L),
-						P1 = lists:keyfind(port, 1, L),
-						{H1, P1};
-					_ ->
-						FPort(T)
-				end;
-			FPort([_ | T]) ->
-				FPort(T)
-	end,
-	RestUser = ct:get_config(rest_user),
-	RestPass = ct:get_config(rest_pass),
-	_RestGroup = ct:get_config(rest_group),
-	{Host, Port} = case Fport(Services) of
-		{{_, H2}, {_, P2}} when H2 == "localhost"; H2 == {127,0,0,1} ->
-			{ok, _} = ocs:add_user(RestUser, RestPass, "en"),
-			{"localhost", P2};
-		{{_, H2}, {_, P2}} ->
-			{ok, _} = ocs:add_user(RestUser, RestPass, "en"),
-			case H2 of
-				H2 when is_tuple(H2) ->
-					{inet:ntoa(H2), P2};
-				H2 when is_list(H2) ->
-					{H2, P2}
-			end;
-		{false, {_, P2}} ->
-			{ok, _} = ocs:add_user(RestUser, RestPass, "en"),
-			{"localhost", P2}
-	end,
-	HostUrl = "https://" ++ Host ++ ":" ++ integer_to_list(Port),
-	Config1 = [{port, Port}, {host_url, HostUrl} | Config].
+   ok = ocs_test_lib:load(ocs),
+	Address = {127,0,0,1},
+	TempNrfPath = "http://127.0.0.1",
+	ok = application:set_env(ocs, nrf_uri, TempNrfPath),
+   Realm = "acct.sigscale.org",
+	Host = atom_to_list(?MODULE),
+	DiameterAuthPort = rand:uniform(64511) + 1024,
+   DiameterAcctPort = rand:uniform(64511) + 1024,
+   DiameterAppVar = [{auth, [{Address, DiameterAuthPort, []}]},
+      {acct, [{Address, DiameterAcctPort, []}]}],
+   ok = application:set_env(ocs, diameter, DiameterAppVar),
+   ok = application:set_env(ocs, min_reserve_octets, 1000000),
+   ok = application:set_env(ocs, min_reserve_seconds, 60),
+   ok = application:set_env(ocs, min_reserve_messages, 1),
+   ok = ocs_test_lib:start(),
+   Config1 = [{diameter_host, Host}, {realm, Realm},
+         {diameter_acct_address, Address} | Config],
+   ok = diameter:start_service(?MODULE, client_acct_service_opts(Config1)),
+   true = diameter:subscribe(?MODULE),
+   {ok, _Ref2} = connect(?MODULE, Address, DiameterAcctPort, diameter_tcp),
+   receive
+      #diameter_event{service = ?MODULE, info = Info}
+            when element(1, Info) == up ->
+         Config1;
+      _Other ->
+         {skip, diameter_client_acct_service_not_started}
+   end.
 
 -spec end_per_suite(Config :: [tuple()]) -> any().
 %% Cleanup after the whole suite.
@@ -102,6 +107,32 @@ end_per_suite(Config) ->
 -spec init_per_testcase(TestCase :: atom(), Config :: [tuple()]) -> Config :: [tuple()].
 %% Initialization before each test case.
 %%
+init_per_testcase(TestCase, Config)
+		when TestCase == send_initial_scur; TestCase == receive_initial_scur;
+		TestCase == send_interim_scur; TestCase == receive_interim_scur;
+		TestCase == send_final_scur; TestCase == receive_final_scur ->
+	true = register(TestCase, self()),
+	Address = ?config(diameter_acct_address, Config),
+	{ok, _} = ocs:add_client(Address, undefined, diameter, undefined, true),
+	case inets:start(httpd, [{port, 0},
+			{server_name, atom_to_list(?MODULE)},
+			{server_root, "./"},
+			{document_root,  ?config(data_dir, Config)},
+			{modules, [mod_alias, mod_esi]},
+			{erl_script_alias, {"/nrf-rating", [?MODULE]}},
+			{script_alias, {"/ratingdata/", "/nrf-rating/ocs_re_interface_SUITE:start"}},
+			{script_alias, {"/ratingdata/42/update", "/nrf-rating/ocs_re_interface_SUITE:update"}},
+			{script_alias, {"/ratingdata/42/release", "/nrf-rating/ocs_re_interface_SUITE:release"}}]) of
+		{ok, Pid} ->
+			[{port, Port}] = httpd:info(Pid, [port]),
+			NrfUri = "http://localhost:" ++ integer_to_list(Port) ++
+					"/nrf-rating/ocs_re_interface_SUITE:" ++ atom_to_list(TestCase),
+			ok = application:set_env(ocs, nrf_uri, NrfUri),
+			[{server_port, Port},
+					{server_pid, Pid} | Config];
+		{error, Reason} ->
+			{error, Reason}
+	end;
 init_per_testcase(_TestCase, Config) ->
 	Config.
 
@@ -114,401 +145,570 @@ end_per_testcase(_TestCase, _Config) ->
 -spec sequences() -> Sequences :: [{SeqName :: atom(), Testcases :: [atom()]}].
 %% Group test cases into a test sequence.
 %%
-sequences() ->
+sequences() -> 
 	[].
 
 -spec all() -> TestCases :: [Case :: atom()].
 %% Returns a list of all test cases in this test suite.
 %%
-all() ->
-	[].
+all() -> 
+	[send_initial_scur, receive_initial_scur, send_interim_scur,
+		receive_interim_scur, send_final_scur, receive_final_scur].
 
 %%---------------------------------------------------------------------
 %%  Test cases
 %%---------------------------------------------------------------------
 
-send_iec() ->
-	[{userdata, [{doc, "Send Immediate Event Charging (IEC) from OCF"}]}].
+send_initial_scur() ->
+	[{userdata, [{doc, "On received SCUR CCR-I sendstartRating"}]}].
 
-send_iec(Config) ->
-	MSISDN = msisdn(),
-	IMSI = imsi(),
-	NodeFunctionality = [{"nodeFunctionality", "OCF"}],
-	NfConsumerIdentification = {struct, NodeFunctionality},
-	InvocationTimeStamp1 = {"invocationTimeStamp", timestamp()},
-	InvocationSequenceNumber = {"invocationSequenceNumber", 1},
-	ActualTime = {"actualTime",
-			timestamp(erlang:system_time(?MILLISECOND) - rand:uniform(100))},
-	SubscriptionId = {"subscriptionId",
-			["msisdn-" ++ MSISDN, "imsi-" ++ IMSI]},
-	OneTimeEvent = {"oneTimeEvent", true},
-	OneTimeEventType = {"oneTimeEventType", "IEC"},
-	ServiceContextId = {"serviceContextId", "mnc001.mcc001.15.32274@3gpp.org"},
-	ServiceId = {"serviceId", rand:uniform(64)},
-	DestinationType = {"destinationIdType", "DN"},
-	DestinationData = {"destinationIdData", msisdn()},
-	DestinationId = {"destinationId",
-			{struct, [DestinationType, DestinationData]}},
-	RequestSubType = {"requestSubType", "DEBIT"}, 
-	Service1 = [ServiceContextId, ServiceId, DestinationId, RequestSubType],
-	ServiceRating1 = {"serviceRating", [{struct, Service1}]},
-	JSON = {struct, [NfConsumerIdentification, InvocationTimeStamp1,
-			InvocationSequenceNumber, ActualTime, SubscriptionId,
-			OneTimeEvent, OneTimeEventType, ServiceRating1]},
-	RequestBody = lists:flatten(mochijson:encode(JSON)),
-	HostUrl = ?config(host_url, Config),
-	Accept = {"accept", "application/json"},
-	ContentType = "application/json",
-	Request1 = {HostUrl ++ ?PathNrfRating, [Accept], ContentType, RequestBody},
-	{ok, Result} = httpc:request(post, Request1, [], []),
-	{{"HTTP/1.1", 201, _Created}, Headers, ResponseBody} = Result,
-	{_, ContentType} = lists:keyfind("content-type", 1, Headers),
-	{_, _URI} = lists:keyfind("location", 1, Headers),
-	{struct, Object} = mochijson:decode(ResponseBody),
-	{_, TS} = lists:keyfind("invocationTimeStamp", 1, Object),
-	true = is_integer(ocs_log:iso8601(TS)),
-	InvocationSequenceNumber = lists:keyfind("invocationSequenceNumber", 1, Object),
-	{_, [{struct, ServiceRating2}]} = lists:keyfind("serviceRating", 1, Object),
-	ServiceContextId = lists:keyfind("serviceContextId", 1, ServiceRating2),
-	ServiceId = lists:keyfind("serviceId", 1, ServiceRating2),
-	{_, {struct, ConsumedUnit}} = lists:keyfind("consumedUnit", 1, ServiceRating2),
-	{_, 1} = lists:keyfind("serviceSpecificUnit", 1, ConsumedUnit),
-	{_, "SUCCESS"} = lists:keyfind("resultCode", 1, ServiceRating2).
-
-send_ecur() ->
-	[{userdata, [{doc, "Send Event Charging with Unit Reservation (ECUR) from OCF"}]}].
-
-send_ecur(Config) ->
-	MSISDN = msisdn(),
-	IMSI = imsi(),
-	NodeFunctionality = [{"nodeFunctionality", "OCF"}],
-	NfConsumerIdentification = {struct, NodeFunctionality},
-	InvocationTimeStamp1 = {"invocationTimeStamp", timestamp()},
-	InvocationSequenceNumber1 = {"invocationSequenceNumber", 1},
-	ActualTime = {"actualTime",
-			timestamp(erlang:system_time(?MILLISECOND) - rand:uniform(100))},
-	SubscriptionId = {"subscriptionId",
-			["msisdn-" ++ MSISDN, "imsi-" ++ IMSI]},
-	OneTimeEvent = {"oneTimeEvent", true},
-	OneTimeEventType = {"oneTimeEventType", "PEC"},
-	ServiceContextId = {"serviceContextId", "mnc001.mcc001.15.32274@3gpp.org"},
-	ServiceId = {"serviceId", rand:uniform(64)},
-	DestinationType = {"destinationIdType", "DN"},
-	DestinationData = {"destinationIdData", msisdn()},
-	DestinationId = {"destinationId",
-			{struct, [DestinationType, DestinationData]}},
-	RequestSubType = {"requestSubType", "RESERVE"}, 
-	ServiceSpecificUnit = {"serviceSpecificUnit", 1},
-	RequestedUnit = {"requestedUnit", {struct, [ServiceSpecificUnit]}},
-	Service1 = [ServiceContextId, ServiceId,
-			DestinationId, RequestSubType, RequestedUnit],
-	ServiceRating1 = {"serviceRating", [{struct, Service1}]},
-	JSON = {struct, [NfConsumerIdentification, InvocationTimeStamp1,
-			InvocationSequenceNumber1, ActualTime, SubscriptionId,
-			OneTimeEvent, OneTimeEventType, ServiceRating1]},
-	RequestBody = lists:flatten(mochijson:encode(JSON)),
-	HostUrl = ?config(host_url, Config),
-	Accept = {"accept", "application/json"},
-	ContentType = "application/json",
-	Request1 = {HostUrl ++ ?PathNrfRating, [Accept], ContentType, RequestBody},
-	{ok, Result} = httpc:request(post, Request1, [], []),
-	{{"HTTP/1.1", 201, _Created}, Headers, ResponseBody} = Result,
-	{_, ContentType} = lists:keyfind("content-type", 1, Headers),
-	{_, URI} = lists:keyfind("location", 1, Headers),
-	{struct, Object} = mochijson:decode(ResponseBody),
-	{_, TS} = lists:keyfind("invocationTimeStamp", 1, Object),
-	true = is_integer(ocs_log:iso8601(TS)),
-	InvocationSequenceNumber = lists:keyfind("invocationSequenceNumber", 1, Object),
-	{_, [{struct, ServiceRating2}]} = lists:keyfind("serviceRating", 1, Object),
-	ServiceContextId = lists:keyfind("serviceContextId", 1, ServiceRating2),
-	ServiceId = lists:keyfind("serviceId", 1, ServiceRating2),
-	{_, {struct, ConsumedUnit}} = lists:keyfind("grantedUnit", 1, ServiceRating2),
-	ServiceSpecificUnit = lists:keyfind("serviceSpecificUnit", 1, ConsumedUnit),
-	{_, "SUCCESS"} = lists:keyfind("resultCode", 1, ServiceRating2).
-
-send_ecur_final() ->
-	[{userdata, [{doc, "Send final ECUR from OCF"}]}].
-
-send_ecur_final(Config) ->
-	MSISDN = msisdn(),
-	IMSI = imsi(),
-	NodeFunctionality = [{"nodeFunctionality", "OCF"}],
-	NfConsumerIdentification = {struct, NodeFunctionality},
-	InvocationTimeStamp1 = {"invocationTimeStamp", timestamp()},
-	InvocationSequenceNumber1 = {"invocationSequenceNumber", 1},
-	ActualTime1 = {"actualTime",
-			timestamp(erlang:system_time(?MILLISECOND) - rand:uniform(100))},
-	SubscriptionId = {"subscriptionId",
-			["msisdn-" ++ MSISDN, "imsi-" ++ IMSI]},
-	OneTimeEvent = {"oneTimeEvent", true},
-	OneTimeEventType = {"oneTimeEventType", "PEC"},
-	ServiceContextId = {"serviceContextId", "mnc001.mcc001.15.32274@3gpp.org"},
-	ServiceId = {"serviceId", rand:uniform(64)},
-	DestinationType = {"destinationIdType", "DN"},
-	DestinationData = {"destinationIdData", msisdn()},
-	DestinationId = {"destinationId",
-			{struct, [DestinationType, DestinationData]}},
-	RequestSubType1 = {"requestSubType", "RESERVE"}, 
-	ServiceSpecificUnit = {"serviceSpecificUnit", 1},
-	RequestedUnit = {"requestedUnit", {struct, [ServiceSpecificUnit]}},
-	Service1 = [ServiceContextId, ServiceId,
-			DestinationId, RequestSubType1, RequestedUnit],
-	ServiceRating1 = {"serviceRating", [{struct, Service1}]},
-	JSON1 = {struct, [NfConsumerIdentification, InvocationTimeStamp1,
-			InvocationSequenceNumber1, ActualTime1, SubscriptionId,
-			OneTimeEvent, OneTimeEventType, ServiceRating1]},
-	RequestBody1 = lists:flatten(mochijson:encode(JSON1)),
-	HostUrl = ?config(host_url, Config),
-	Accept = {"accept", "application/json"},
-	ContentType = "application/json",
-	Request1 = {HostUrl ++ ?PathNrfRating, [Accept], ContentType, RequestBody1},
-	{ok, Result1} = httpc:request(post, Request1, [], []),
-	{{"HTTP/1.1", 201, _Created}, Headers1, ResponseBody1} = Result1,
-	{_, URI} = lists:keyfind("location", 1, Headers1),
-	{struct, Object1} = mochijson:decode(ResponseBody1),
-	{_, TS1} = lists:keyfind("invocationTimeStamp", 1, Object1),
-	true = is_integer(ocs_log:iso8601(TS1)),
-	InvocationSequenceNumber1 = lists:keyfind("invocationSequenceNumber", 1, Object1),
-	{_, [{struct, ServiceRating2}]} = lists:keyfind("serviceRating", 1, Object1),
-	ServiceContextId = lists:keyfind("serviceContextId", 1, ServiceRating2),
-	ServiceId = lists:keyfind("serviceId", 1, ServiceRating2),
-	{_, {struct, GrantedUnit}} = lists:keyfind("grantedUnit", 1, ServiceRating2),
-	{_, SSU} = lists:keyfind("serviceSpecificUnit", 1, GrantedUnit),
-	true = is_integer(SSU),
-	{_, "SUCCESS"} = lists:keyfind("resultCode", 1, ServiceRating2),
-	ActualTime2 = {"actualTime", timestamp()},
-	InvocationTimeStamp2 = {"invocationTimeStamp", timestamp()},
-	InvocationSequenceNumber2 = {"invocationSequenceNumber", 2},
-	ConsumedUnit1 = {"consumedUnit", {struct, [ServiceSpecificUnit]}},
-	RequestSubType2 = {"requestSubType", "Debit"}, 
-	Service3 = [ServiceContextId, ServiceId,
-			DestinationId, RequestSubType2, ConsumedUnit1],
-	ServiceRating3 = {"serviceRating", [{struct, Service3}]},
-	JSON2 = {struct, [NfConsumerIdentification, InvocationTimeStamp2,
-			InvocationSequenceNumber2, ActualTime2, SubscriptionId,
-			OneTimeEvent, OneTimeEventType, ServiceRating3]},
-	RequestBody2 = lists:flatten(mochijson:encode(JSON2)),
-	Request2 = {HostUrl ++ URI ++ "/release",
-			[Accept], ContentType, RequestBody2},
-	{ok, Result2} = httpc:request(post, Request2, [], []),
-	{{"HTTP/1.1", 200, _OK}, Headers2, ResponseBody2} = Result2,
-	{_, ContentType} = lists:keyfind("content-type", 1, Headers2),
-	{struct, Object2} = mochijson:decode(ResponseBody2),
-	{_, TS2} = lists:keyfind("invocationTimeStamp", 1, Object2),
-	true = is_integer(ocs_log:iso8601(TS2)),
-	InvocationSequenceNumber2 = lists:keyfind("invocationSequenceNumber", 1, Object2),
-	{_, [{struct, ServiceRating4}]} = lists:keyfind("serviceRating", 1, Object2),
-	ServiceContextId = lists:keyfind("serviceContextId", 1, ServiceRating4),
-	ServiceId = lists:keyfind("serviceId", 1, ServiceRating4),
-	{_, {struct, ConsumedUnit2}} = lists:keyfind("consumedUnit", 1, ServiceRating4),
-	ServiceSpecificUnit = lists:keyfind("serviceSpecificUnit", 1, ConsumedUnit2),
-	{_, "SUCCESS"} = lists:keyfind("resultCode", 1, ServiceRating4).
-
-send_scur() ->
-	[{userdata, [{doc, "Send Session Charging with Unit Reservation (SCUR) from OCF"}]}].
-
-send_scur(Config) ->
-	MSISDN = msisdn(),
-	IMSI = imsi(),
-	NodeFunctionality = [{"nodeFunctionality", "OCF"}],
-	NfConsumerIdentification = {struct, NodeFunctionality},
-	InvocationTimeStamp = {"invocationTimeStamp", timestamp()},
-	InvocationSequenceNumber = {"invocationSequenceNumber", 1},
-	ActualTime = {"actualTime",
-			timestamp(erlang:system_time(?MILLISECOND) - rand:uniform(100))},
-	SubscriptionId = {"subscriptionId",
-			["msisdn-" ++ MSISDN, "imsi-" ++ IMSI]},
-	ServiceContextId = {"serviceContextId", "mnc001.mcc001.15.32251@3gpp.org"},
-	ServiceId = {"serviceId", rand:uniform(64)},
-	RatingGroup1 = {"ratingGroup", rand:uniform(64)},
-	RatingGroup2 = {"ratingGroup", rand:uniform(64)},
-	RequestSubType = {"requestSubType", "RESERVE"}, 
-	RequestedUnit = {"requestedUnit", {struct, []}},
-	Service1 = [ServiceContextId, ServiceId,
-			RatingGroup1, RequestSubType, RequestedUnit],
-	Service2 = [ServiceContextId, ServiceId,
-			RatingGroup2, RequestSubType, RequestedUnit],
-	ServiceRating1 = {"serviceRating",
-			[{struct, Service1}, {struct, Service2}]},
-	JSON = {struct, [NfConsumerIdentification, InvocationTimeStamp,
-			InvocationSequenceNumber, ActualTime, SubscriptionId,
-			ServiceRating1]},
-	RequestBody = lists:flatten(mochijson:encode(JSON)),
-	HostUrl = ?config(host_url, Config),
-	Accept = {"accept", "application/json"},
-	ContentType = "application/json",
-	Request1 = {HostUrl ++ ?PathNrfRating, [Accept], ContentType, RequestBody},
-	{ok, Result} = httpc:request(post, Request1, [], []),
-	{{"HTTP/1.1", 201, _Created}, Headers, ResponseBody} = Result,
-	{_, ContentType} = lists:keyfind("content-type", 1, Headers),
-	{_, _URI} = lists:keyfind("location", 1, Headers),
-	{struct, Object} = mochijson:decode(ResponseBody),
-	{_, TS} = lists:keyfind("invocationTimeStamp", 1, Object),
-	true = is_integer(ocs_log:iso8601(TS)),
-	InvocationSequenceNumber = lists:keyfind("invocationSequenceNumber", 1, Object),
-	{_, ServiceRating2} = lists:keyfind("serviceRating", 1, Object),
-	[{struct, Service3}, {struct, Service4}] = ServiceRating2,
-	ServiceContextId = lists:keyfind("serviceContextId", 1, Service3),
-	ServiceContextId = lists:keyfind("serviceContextId", 1, Service4),
-	ServiceId = lists:keyfind("serviceId", 1, Service3),
-	ServiceId = lists:keyfind("serviceId", 1, Service4),
-	RatingGroup1 = lists:keyfind("ratingGroup", 1, Service3),
-	RatingGroup2 = lists:keyfind("ratingGroup", 1, Service4),
-	{_, {struct, GrantedUnit1}} = lists:keyfind("grantedUnit", 1, Service3),
-	{_, {struct, GrantedUnit2}} = lists:keyfind("grantedUnit", 1, Service4),
-	F = fun({"time", N}) when is_integer(N), N > 0 ->
-				true;
-			({"totalVolume", N}) when is_integer(N), N > 0 ->
-				true;
-			({"uplinkVolume", N}) when is_integer(N), N > 0 ->
-				true;
-			({"downlinkVolume", N}) when is_integer(N), N > 0 ->
-				true;
-			(_)  ->
-				false
+send_initial_scur(_Config) ->
+	P1 = price(usage, octets, rand:uniform(10000000), rand:uniform(1000000)),
+	OfferId = add_offer([P1], 4),
+	ProdRef = add_product(OfferId),
+	MSISDN = list_to_binary(ocs:generate_identity()),
+	IMSI = list_to_binary(ocs:generate_identity()),
+	Subscriber = {MSISDN, IMSI},
+	Password = ocs:generate_identity(),
+	{ok, #service{}} = ocs:add_service(MSISDN, Password, ProdRef, []),
+	Balance = rand:uniform(1000000000),
+	B1 = bucket(octets, Balance),
+	_BId = add_bucket(ProdRef, B1),
+	Ref = erlang:ref_to_list(make_ref()),
+   SId = diameter:session_id(Ref),
+   RequestNum = 0,
+	RequestedServiceUnits = rand:uniform(Balance),
+   _NewRequestNum = RequestNum + 1,
+   _Answer0 = diameter_scur_start(SId, Subscriber, RequestNum, RequestedServiceUnits),
+	{struct, DiameterEvent} = receive
+		JSON ->
+			mochijson:decode(JSON)
 	end,
-	true = lists:all(F, GrantedUnit1),
-	true = lists:all(F, GrantedUnit2),
-	{_, "SUCCESS"} = lists:keyfind("resultCode", 1, Service3),
-	{_, "SUCCESS"} = lists:keyfind("resultCode", 1, Service4).
+	MSISDN1 = binary_to_list(MSISDN), 
+	{_, {_, [{"nodeFunctionality","OCF"}]}} = lists:keyfind("nfConsumerIdentification", 1, DiameterEvent),
+	{_, {array,["msisdn-" ++ MSISDN1, _IMSI]}} 
+			= lists:keyfind("subscriptionId", 1, DiameterEvent),
+	{_, {_, [{_, Attributes}]}} = lists:keyfind("serviceRating", 1, DiameterEvent),
+	{_, "32251@3gpp.org"} = lists:keyfind("serviceContextId", 1, Attributes),
+	{_, 1} = lists:keyfind("serviceId", 1, Attributes),
+	{_, 2} = lists:keyfind("ratingGroup", 1, Attributes),
+	{_,{_,[{"totalVolume", RequestedServiceUnits}]}} = lists:keyfind("requestedUnit", 1, Attributes),
+	{_, "RESERVE"} = lists:keyfind("requestSubType", 1, Attributes).
 
-send_scur_update() ->
-	[{userdata, [{doc, "Send SCUR update from OCF"}]}].
+receive_initial_scur() ->
+	[{userdata, [{doc, "On SCUR startRating response send CCA-I"}]}].
 
-send_scur_update(Config) ->
-	MSISDN = msisdn(),
-	IMSI = imsi(),
-	NodeFunctionality = [{"nodeFunctionality", "OCF"}],
-	NfConsumerIdentification = {struct, NodeFunctionality},
-	InvocationTimeStamp1 = {"invocationTimeStamp", timestamp()},
-	InvocationSequenceNumber1 = {"invocationSequenceNumber", 1},
-	ActualTime1 = {"actualTime",
-			timestamp(erlang:system_time(?MILLISECOND) - rand:uniform(100))},
-	SubscriptionId = {"subscriptionId",
-			["msisdn-" ++ MSISDN, "imsi-" ++ IMSI]},
-	ServiceContextId = {"serviceContextId", "mnc001.mcc001.15.32251@3gpp.org"},
-	ServiceId = {"serviceId", rand:uniform(64)},
-	RatingGroup1 = {"ratingGroup", rand:uniform(64)},
-	RatingGroup2 = {"ratingGroup", rand:uniform(64)},
-	RequestSubType = {"requestSubType", "RESERVE"}, 
-	RequestedUnit = {"requestedUnit", {struct, []}},
-	Service1 = [ServiceContextId, ServiceId,
-			RatingGroup1, RequestSubType, RequestedUnit],
-	Service2 = [ServiceContextId, ServiceId,
-			RatingGroup2, RequestSubType, RequestedUnit],
-	ServiceRating1 = {"serviceRating",
-			[{struct, Service1}, {struct, Service2}]},
-	JSON1 = {struct, [NfConsumerIdentification, InvocationTimeStamp1,
-			InvocationSequenceNumber1, ActualTime1, SubscriptionId,
-			ServiceRating1]},
-	RequestBody1 = lists:flatten(mochijson:encode(JSON1)),
-	HostUrl = ?config(host_url, Config),
-	Accept = {"accept", "application/json"},
-	ContentType = "application/json",
-	Request1 = {HostUrl ++ ?PathNrfRating, [Accept], ContentType, RequestBody1},
-	{ok, Result1} = httpc:request(post, Request1, [], []),
-	{{"HTTP/1.1", 201, _Created}, Headers1, ResponseBody1} = Result1,
-	{_, ContentType} = lists:keyfind("content-type", 1, Headers1),
-	{_, URI} = lists:keyfind("location", 1, Headers1),
-	{struct, Object1} = mochijson:decode(ResponseBody1),
-	{_, TS1} = lists:keyfind("invocationTimeStamp", 1, Object1),
-	true = is_integer(ocs_log:iso8601(TS1)),
-	InvocationSequenceNumber1 = lists:keyfind("invocationSequenceNumber", 1, Object1),
-	{_, ServiceRatings1} = lists:keyfind("serviceRating", 1, Object1),
-	[{struct, Service3}, {struct, Service4}] = ServiceRatings1,
-	ServiceContextId = lists:keyfind("serviceContextId", 1, Service3),
-	ServiceContextId = lists:keyfind("serviceContextId", 1, Service4),
-	ServiceId = lists:keyfind("serviceId", 1, Service3),
-	ServiceId = lists:keyfind("serviceId", 1, Service4),
-	RatingGroup1 = lists:keyfind("ratingGroup", 1, Service3),
-	RatingGroup2 = lists:keyfind("ratingGroup", 1, Service4),
-	{_, {struct, GrantedUnit1}} = lists:keyfind("grantedUnit", 1, Service3),
-	{_, {struct, GrantedUnit2}} = lists:keyfind("grantedUnit", 1, Service4),
-	F = fun({"time", N}) when is_integer(N), N > 0 ->
-				true;
-			({"totalVolume", N}) when is_integer(N), N > 0 ->
-				true;
-			({"uplinkVolume", N}) when is_integer(N), N > 0 ->
-				true;
-			({"downlinkVolume", N}) when is_integer(N), N > 0 ->
-				true;
-			(_)  ->
-				false
+receive_initial_scur(_Config) ->
+	P1 = price(usage, octets, rand:uniform(10000000), rand:uniform(1000000)),
+	OfferId = add_offer([P1], 4),
+	ProdRef = add_product(OfferId),
+	MSISDN = list_to_binary(ocs:generate_identity()),
+	IMSI = list_to_binary(ocs:generate_identity()),
+	Subscriber = {MSISDN, IMSI},
+	Password = ocs:generate_identity(),
+	{ok, #service{}} = ocs:add_service(MSISDN, Password, ProdRef, []),
+	Balance = rand:uniform(1000000000),
+	B1 = bucket(octets, Balance),
+	_BId = add_bucket(ProdRef, B1),
+	Ref = erlang:ref_to_list(make_ref()),
+   SId = diameter:session_id(Ref),
+   RequestNum = 0,
+	RequestedServiceUnits = rand:uniform(Balance),
+   _NewRequestNum = RequestNum + 1,
+   Answer0 = diameter_scur_start(SId, Subscriber, RequestNum, RequestedServiceUnits),
+	{struct, DiameterEvent} = receive
+		JSON ->
+			mochijson:decode(JSON)
 	end,
-	true = lists:all(F, GrantedUnit1),
-	true = lists:all(F, GrantedUnit2),
-	{_, "SUCCESS"} = lists:keyfind("resultCode", 1, Service3),
-	{_, "SUCCESS"} = lists:keyfind("resultCode", 1, Service4),
-	TotalVolume1 = {"totalVolume", rand:uniform(100000000)},
-	TotalVolume2 = {"totalVolume", rand:uniform(100000000)},
-	UsedUnit1 = {"usedUnits", {struct, [TotalVolume1]}},
-	UsedUnit2 = {"usedUnits", {struct, [TotalVolume2]}},
-	InvocationTimeStamp2 = {"invocationTimeStamp", timestamp()},
-	InvocationSequenceNumber2 = {"invocationSequenceNumber", 2},
-	ActualTime2 = {"actualTime",
-			timestamp(erlang:system_time(?MILLISECOND) - rand:uniform(100))},
-	Service3 = [ServiceContextId, ServiceId,
-			RatingGroup1, RequestSubType, RequestedUnit, UsedUnit1],
-	Service4 = [ServiceContextId, ServiceId,
-			RatingGroup2, RequestSubType, RequestedUnit, UsedUnit2],
-	ServiceRating3 = {"serviceRating",
-			[{struct, Service3}, {struct, Service4}]},
-	JSON2 = {struct, [NfConsumerIdentification, InvocationTimeStamp2,
-			InvocationSequenceNumber2, ActualTime2, SubscriptionId,
-			ServiceRating3]},
-	RequestBody2 = lists:flatten(mochijson:encode(JSON2)),
-	Request2 = {HostUrl ++ URI, [Accept], ContentType, RequestBody2},
-	{ok, Result2} = httpc:request(post, Request2, [], []),
-	{{"HTTP/1.1", 200, _OK}, Headers2, ResponseBody2} = Result2,
-	{struct, Object2} = mochijson:decode(ResponseBody2),
-	{_, TS2} = lists:keyfind("invocationTimeStamp", 1, Object2),
-	true = is_integer(ocs_log:iso8601(TS2)),
-	InvocationSequenceNumber2 = lists:keyfind("invocationSequenceNumber", 1, Object2),
-	{_, ServiceRatings2} = lists:keyfind("serviceRating", 1, Object2),
-	[{struct, Service5}, {struct, Service6}] = ServiceRatings2,
-	ServiceContextId = lists:keyfind("serviceContextId", 1, Service5),
-	ServiceContextId = lists:keyfind("serviceContextId", 1, Service6),
-	ServiceId = lists:keyfind("serviceId", 1, Service5),
-	ServiceId = lists:keyfind("serviceId", 1, Service6),
-	RatingGroup1 = lists:keyfind("ratingGroup", 1, Service5),
-	RatingGroup2 = lists:keyfind("ratingGroup", 1, Service6),
-	{_, {struct, GrantedUnit1}} = lists:keyfind("grantedUnit", 1, Service5),
-	{_, {struct, GrantedUnit2}} = lists:keyfind("grantedUnit", 1, Service6),
-	F = fun({"time", N}) when is_integer(N), N > 0 ->
-				true;
-			({"totalVolume", N}) when is_integer(N), N > 0 ->
-				true;
-			({"uplinkVolume", N}) when is_integer(N), N > 0 ->
-				true;
-			({"downlinkVolume", N}) when is_integer(N), N > 0 ->
-				true;
-			(_)  ->
-				false
+	MSISDN1 = binary_to_list(MSISDN), 
+	IMSI1 = binary_to_list(IMSI), 
+	{_, {_, [{"nodeFunctionality","OCF"}]}} = lists:keyfind("nfConsumerIdentification", 1, DiameterEvent),
+	{_, {array,["msisdn-" ++ MSISDN1, "imsi-" ++ IMSI1]}} 
+			= lists:keyfind("subscriptionId", 1, DiameterEvent),
+	{_, {_, [{_, Attributes}]}} = lists:keyfind("serviceRating", 1, DiameterEvent),
+	{"serviceContextId", "32251@3gpp.org"} = lists:keyfind("serviceContextId", 1, Attributes),
+	{"serviceId", 1} = lists:keyfind("serviceId", 1, Attributes),
+	{"ratingGroup", 2} = lists:keyfind("ratingGroup", 1, Attributes),
+	{_,{_,[{"totalVolume", RequestedServiceUnits}]}} = lists:keyfind("requestedUnit", 1, Attributes),
+	{"requestSubType", "RESERVE"} = lists:keyfind("requestSubType", 1, Attributes),
+	#'3gpp_ro_CCA'{'Result-Code' = ?'DIAMETER_BASE_RESULT-CODE_SUCCESS',
+			'Auth-Application-Id' = ?RO_APPLICATION_ID,
+			'CC-Request-Type' = ?'3GPP_CC-REQUEST-TYPE_INITIAL_REQUEST',
+			'CC-Request-Number' = RequestNum,
+			'Multiple-Services-Credit-Control' = [MultiServices_CC]} = Answer0,
+	#'3gpp_ro_Multiple-Services-Credit-Control'{
+			'Granted-Service-Unit' = [GrantedUnits]} = MultiServices_CC,
+	#'3gpp_ro_Granted-Service-Unit'{'CC-Total-Octets' = [_TotalOctets]} = GrantedUnits.
+
+send_interim_scur() ->
+	[{userdata, [{doc, "On received SCUR CCR-U send updateRating"}]}].
+
+send_interim_scur(_Config) ->
+	P1 = price(usage, octets, rand:uniform(10000000), rand:uniform(1000000)),
+	OfferId = add_offer([P1], 4),
+	ProdRef = add_product(OfferId),
+	MSISDN = list_to_binary(ocs:generate_identity()),
+	IMSI = list_to_binary(ocs:generate_identity()),
+	Subscriber = {MSISDN, IMSI},
+	Password = ocs:generate_identity(),
+	{ok, #service{}} = ocs:add_service(MSISDN, Password, ProdRef, []),
+	Balance = rand:uniform(1000000000),
+	B1 = bucket(octets, Balance),
+	_BId = add_bucket(ProdRef, B1),
+	Ref = erlang:ref_to_list(make_ref()),
+   SId = diameter:session_id(Ref),
+   RequestNum0 = 0,
+	RequestedServiceUnits = rand:uniform(Balance),
+   _Answer0 = diameter_scur_start(SId, Subscriber, RequestNum0, RequestedServiceUnits),
+	{struct, _Inital} = receive
+		JSON ->
+			mochijson:decode(JSON)
 	end,
-	true = lists:all(F, GrantedUnit1),
-	true = lists:all(F, GrantedUnit2),
-	{_, "SUCCESS"} = lists:keyfind("resultCode", 1, Service3),
-	{_, "SUCCESS"} = lists:keyfind("resultCode", 1, Service4).
+	RequestNum1 = RequestNum0 + 1,
+	Grant =  rand:uniform(Balance div 2),
+	_Answer1 = diameter_scur_interim(SId, Subscriber, RequestNum1, Grant, 0),
+	{struct, Interim} = receive
+		JSON1 ->
+			mochijson:decode(JSON1)
+	end,
+erlang:display({?MODULE, ?LINE, Interim}),
+	MSISDN1 = binary_to_list(MSISDN), 
+	IMSI1 = binary_to_list(IMSI), 
+	{_, {_, [{"nodeFunctionality","OCF"}]}} = lists:keyfind("nfConsumerIdentification", 1, Interim),
+	{_, {array,["msisdn-" ++ MSISDN1, "imsi-" ++ IMSI1]}} 
+			= lists:keyfind("subscriptionId", 1, Interim),
+	{_, {_, [{_, Attributes}]}} = lists:keyfind("serviceRating", 1, Interim),
+	{"serviceContextId", "32251@3gpp.org"} = lists:keyfind("serviceContextId", 1, Attributes),
+	{"serviceId", 1} = lists:keyfind("serviceId", 1, Attributes),
+	{"ratingGroup", 2} = lists:keyfind("ratingGroup", 1, Attributes),
+	{_,{_,[{"totalVolume", Grant}]}} = lists:keyfind("consumedUnit", 1, Attributes),
+	{"requestSubType", "DEBIT"} = lists:keyfind("requestSubType", 1, Attributes).
+
+receive_interim_scur() ->
+	[{userdata, [{doc, "On IEC updateRating response send CCA-U"}]}].
+
+receive_interim_scur(_Config) ->
+	P1 = price(usage, octets, rand:uniform(10000000), rand:uniform(1000000)),
+	OfferId = add_offer([P1], 4),
+	ProdRef = add_product(OfferId),
+	MSISDN = list_to_binary(ocs:generate_identity()),
+	IMSI = list_to_binary(ocs:generate_identity()),
+	Subscriber = {MSISDN, IMSI},
+	Password = ocs:generate_identity(),
+	{ok, #service{}} = ocs:add_service(MSISDN, Password, ProdRef, []),
+	Balance = rand:uniform(1000000000),
+	B1 = bucket(octets, Balance),
+	_BId = add_bucket(ProdRef, B1),
+	Ref = erlang:ref_to_list(make_ref()),
+   SId = diameter:session_id(Ref),
+   RequestNum0 = 0,
+	RequestedServiceUnits = rand:uniform(Balance),
+   _Answer0 = diameter_scur_start(SId, Subscriber, RequestNum0, RequestedServiceUnits),
+	{struct, _Inital} = receive
+		JSON ->
+			mochijson:decode(JSON)
+	end,
+	RequestNum1 = RequestNum0 + 1,
+	Grant =  rand:uniform(Balance div 2),
+	Answer1 = diameter_scur_interim(SId, Subscriber, RequestNum1, Grant, 0),
+	{struct, Interim} = receive
+		JSON1 ->
+			mochijson:decode(JSON1)
+	end,
+	MSISDN1 = binary_to_list(MSISDN), 
+	IMSI1 = binary_to_list(IMSI), 
+	{_, {_, [{"nodeFunctionality","OCF"}]}} = lists:keyfind("nfConsumerIdentification", 1, Interim),
+	{_, {array,["msisdn-" ++ MSISDN1, "imsi-" ++ IMSI1]}} 
+			= lists:keyfind("subscriptionId", 1, Interim),
+	{_, {_, [{_, Attributes}]}} = lists:keyfind("serviceRating", 1, Interim),
+	{"serviceContextId", "32251@3gpp.org"} = lists:keyfind("serviceContextId", 1, Attributes),
+	{"serviceId", 1} = lists:keyfind("serviceId", 1, Attributes),
+	{"ratingGroup", 2} = lists:keyfind("ratingGroup", 1, Attributes),
+	{_,{_,[{"totalVolume", Grant}]}} = lists:keyfind("consumedUnit", 1, Attributes),
+	{"requestSubType", "DEBIT"} = lists:keyfind("requestSubType", 1, Attributes),
+	#'3gpp_ro_CCA'{'Result-Code' = ?'DIAMETER_BASE_RESULT-CODE_SUCCESS',
+			'Auth-Application-Id' = ?RO_APPLICATION_ID,
+			'CC-Request-Type' = ?'3GPP_CC-REQUEST-TYPE_UPDATE_REQUEST',
+			'CC-Request-Number' = RequestNum1,
+			'Multiple-Services-Credit-Control' = [MultiServices_CC]} = Answer1,
+	#'3gpp_ro_Multiple-Services-Credit-Control'{
+			'Granted-Service-Unit' = [GrantedUnits],
+			'Used-Service-Unit' = [UsedUnits]} = MultiServices_CC,
+	#'3gpp_ro_Granted-Service-Unit'{'CC-Total-Octets' = [_TotalOctets]} = GrantedUnits,
+	#'3gpp_ro_Used-Service-Unit'{'CC-Total-Octets' = [_TotalOctets1]} = UsedUnits.
+
+send_final_scur() ->
+	[{userdata, [{doc, "On received SCUR CCR-U send endRating"}]}].
+
+send_final_scur(_Config) ->
+	P1 = price(usage, octets, rand:uniform(10000000), rand:uniform(1000000)),
+	OfferId = add_offer([P1], 4),
+	ProdRef = add_product(OfferId),
+	MSISDN = list_to_binary(ocs:generate_identity()),
+	IMSI = list_to_binary(ocs:generate_identity()),
+	Subscriber = {MSISDN, IMSI},
+	Password = ocs:generate_identity(),
+	{ok, #service{}} = ocs:add_service(MSISDN, Password, ProdRef, []),
+	Balance = rand:uniform(1000000000),
+	B1 = bucket(octets, Balance),
+	_BId = add_bucket(ProdRef, B1),
+	Ref = erlang:ref_to_list(make_ref()),
+	SId = diameter:session_id(Ref),
+	RequestNum0 = 0,
+	RequestedServiceUnits = rand:uniform(Balance),
+	_Answer0 = diameter_scur_start(SId, Subscriber, RequestNum0, RequestedServiceUnits),
+	{struct, _Inital} = receive
+		JSON ->
+			mochijson:decode(JSON)
+	end,
+	RequestNum1 = RequestNum0 + 1,
+	Grant =  rand:uniform(Balance div 2),
+	_Answer1 = diameter_scur_interim(SId, Subscriber, RequestNum1, Grant, 0),
+	{struct, _Interim} = receive
+		JSON1 ->
+			mochijson:decode(JSON1)
+	end,
+	RequestNum2 = RequestNum1 + 1,
+	Grant2 = rand:uniform(Balance div 2),
+	_Answer2 = diameter_scur_stop(SId, Subscriber, RequestNum2, Grant2),
+	{struct, Final} = receive
+		JSON2 ->
+			mochijson:decode(JSON2)
+	end,
+	MSISDN1 = binary_to_list(MSISDN), 
+	IMSI1 = binary_to_list(IMSI), 
+	{_, {_, [{"nodeFunctionality","OCF"}]}} = lists:keyfind("nfConsumerIdentification", 1, Final),
+	{_, {array,["msisdn-" ++ MSISDN1, "imsi-" ++ IMSI1]}} 
+			= lists:keyfind("subscriptionId", 1, Final),
+	{_, {_, [{_, Attributes}]}} = lists:keyfind("serviceRating", 1, Final),
+	{"serviceContextId", "32251@3gpp.org"} = lists:keyfind("serviceContextId", 1, Attributes),
+	{"serviceId", 1} = lists:keyfind("serviceId", 1, Attributes),
+	{"ratingGroup", 2} = lists:keyfind("ratingGroup", 1, Attributes),
+	{_,{_,[{"totalVolume", Grant2}]}} = lists:keyfind("consumedUnit", 1, Attributes),
+	{"requestSubType", "DEBIT"} = lists:keyfind("requestSubType", 1, Attributes).
+
+receive_final_scur() ->
+	[{userdata, [{doc, "On IECendRatingresponse send CCA-U"}]}].
+
+receive_final_scur(_Config) ->
+	P1 = price(usage, octets, rand:uniform(10000000), rand:uniform(1000000)),
+	OfferId = add_offer([P1], 4),
+	ProdRef = add_product(OfferId),
+	MSISDN = list_to_binary(ocs:generate_identity()),
+	IMSI = list_to_binary(ocs:generate_identity()),
+	Subscriber = {MSISDN, IMSI},
+	Password = ocs:generate_identity(),
+	{ok, #service{}} = ocs:add_service(MSISDN, Password, ProdRef, []),
+	Balance = rand:uniform(1000000000),
+	B1 = bucket(octets, Balance),
+	_BId = add_bucket(ProdRef, B1),
+	Ref = erlang:ref_to_list(make_ref()),
+	SId = diameter:session_id(Ref),
+	RequestNum0 = 0,
+	RequestedServiceUnits = rand:uniform(Balance),
+	_Answer0 = diameter_scur_start(SId, Subscriber, RequestNum0, RequestedServiceUnits),
+	{struct, _Inital} = receive
+		JSON ->
+			mochijson:decode(JSON)
+	end,
+	RequestNum1 = RequestNum0 + 1,
+	Grant =  rand:uniform(Balance div 2),
+	_Answer1 = diameter_scur_interim(SId, Subscriber, RequestNum1, Grant, 0),
+	{struct, _Interim} = receive
+		JSON1 ->
+			mochijson:decode(JSON1)
+	end,
+	RequestNum2 = RequestNum1 + 1,
+	Grant2 = rand:uniform(Balance div 2),
+	Answer2 = diameter_scur_stop(SId, Subscriber, RequestNum2, Grant2),
+	{struct, Final} = receive
+		JSON2 ->
+			mochijson:decode(JSON2)
+	end,
+	MSISDN1 = binary_to_list(MSISDN), 
+	IMSI1 = binary_to_list(IMSI), 
+	{_, {_, [{"nodeFunctionality","OCF"}]}} = lists:keyfind("nfConsumerIdentification", 1, Final),
+	{_, {array,["msisdn-" ++ MSISDN1, "imsi-" ++ IMSI1]}} 
+			= lists:keyfind("subscriptionId", 1, Final),
+	{_, {_, [{_, Attributes}]}} = lists:keyfind("serviceRating", 1, Final),
+	{"serviceContextId", "32251@3gpp.org"} = lists:keyfind("serviceContextId", 1, Attributes),
+	{"serviceId", 1} = lists:keyfind("serviceId", 1, Attributes),
+	{"ratingGroup", 2} = lists:keyfind("ratingGroup", 1, Attributes),
+	{_,{_,[{"totalVolume", Grant2}]}} = lists:keyfind("consumedUnit", 1, Attributes),
+	{"requestSubType", "DEBIT"} = lists:keyfind("requestSubType", 1, Attributes),
+	#'3gpp_ro_CCA'{'Result-Code' = ?'DIAMETER_BASE_RESULT-CODE_SUCCESS',
+			'Auth-Application-Id' = ?RO_APPLICATION_ID,
+			'CC-Request-Type' = ?'3GPP_CC-REQUEST-TYPE_TERMINATION_REQUEST',
+			'CC-Request-Number' = RequestNum2,
+			'Multiple-Services-Credit-Control' = [MultiServices_CC]} = Answer2,
+	#'3gpp_ro_Multiple-Services-Credit-Control'{
+			'Used-Service-Unit' = [UsedUnits]} = MultiServices_CC,
+	#'3gpp_ro_Used-Service-Unit'{'CC-Total-Octets' = [_TotalOctets]} = UsedUnits.
 
 %%---------------------------------------------------------------------
 %%  Internal functions
 %%---------------------------------------------------------------------
 
-timestamp() ->
-	timestamp(erlang:system_time(?MILLISECOND)).
+%% @hidden
+diameter_scur_start(SId, {MSISDN, IMSI}, RequestNum, Requested) ->
+	MSISDN1 = #'3gpp_ro_Subscription-Id'{
+			'Subscription-Id-Type' = ?'3GPP_SUBSCRIPTION-ID-TYPE_END_USER_E164',
+			'Subscription-Id-Data' = MSISDN},
+	IMSI1 = #'3gpp_ro_Subscription-Id'{
+			'Subscription-Id-Type' = ?'3GPP_SUBSCRIPTION-ID-TYPE_END_USER_IMSI',
+			'Subscription-Id-Data' = IMSI},
+	RequestedUnits = #'3gpp_ro_Requested-Service-Unit' {
+			'CC-Total-Octets' = [Requested]},
+	MultiServices_CC = #'3gpp_ro_Multiple-Services-Credit-Control'{
+			'Requested-Service-Unit' = [RequestedUnits], 'Service-Identifier' = [1],
+			'Rating-Group' = [2]},
+	ServiceInformation = #'3gpp_ro_Service-Information'{'PS-Information' =
+			[#'3gpp_ro_PS-Information'{
+					'3GPP-PDP-Type' = [3],
+					'Serving-Node-Type' = [2],
+					'SGSN-Address' = [{10,1,2,3}],
+					'GGSN-Address' = [{10,4,5,6}],
+					'3GPP-IMSI-MCC-MNC' = [<<"001001">>],
+					'3GPP-GGSN-MCC-MNC' = [<<"001001">>],
+					'3GPP-SGSN-MCC-MNC' = [<<"001001">>]}]},
+	CC_CCR = #'3gpp_ro_CCR'{'Session-Id' = SId,
+			'Auth-Application-Id' = ?RO_APPLICATION_ID,
+			'Service-Context-Id' = "32251@3gpp.org",
+			'User-Name' = [MSISDN],
+			'CC-Request-Type' = ?'3GPP_CC-REQUEST-TYPE_INITIAL_REQUEST',
+			'CC-Request-Number' = RequestNum,
+			'Event-Timestamp' = [calendar:universal_time()],
+			'Subscription-Id' = [MSISDN1, IMSI1],
+			'Multiple-Services-Credit-Control' = [MultiServices_CC],
+			'Service-Information' = [ServiceInformation]},
+	{ok, Answer} = diameter:call(?MODULE, cc_app_test, CC_CCR, []),
+	Answer.
 
-timestamp(TS) ->
-	ocs_rest:iso8601(TS).
+%% @hidden
+diameter_scur_interim(SId, {MSISDN, IMSI}, RequestNum, Used, Requested) ->
+	MSISDN1 = #'3gpp_ro_Subscription-Id'{
+			'Subscription-Id-Type' = ?'3GPP_SUBSCRIPTION-ID-TYPE_END_USER_E164',
+			'Subscription-Id-Data' = MSISDN},
+	IMSI1 = #'3gpp_ro_Subscription-Id'{
+			'Subscription-Id-Type' = ?'3GPP_SUBSCRIPTION-ID-TYPE_END_USER_IMSI',
+			'Subscription-Id-Data' = IMSI},
+	UsedUnits = #'3gpp_ro_Used-Service-Unit'{'CC-Total-Octets' = [Used]},
+	RequestedUnits = #'3gpp_ro_Requested-Service-Unit' {
+			'CC-Total-Octets' = [Requested]},
+	MultiServices_CC = #'3gpp_ro_Multiple-Services-Credit-Control'{
+			'Used-Service-Unit' = [UsedUnits],
+			'Requested-Service-Unit' = [RequestedUnits], 'Service-Identifier' = [1],
+			'Rating-Group' = [2]},
+	ServiceInformation = #'3gpp_ro_Service-Information'{'PS-Information' =
+			[#'3gpp_ro_PS-Information'{
+					'3GPP-PDP-Type' = [3],
+					'Serving-Node-Type' = [2],
+					'SGSN-Address' = [{10,1,2,3}],
+					'GGSN-Address' = [{10,4,5,6}],
+					'3GPP-IMSI-MCC-MNC' = [<<"001001">>],
+					'3GPP-GGSN-MCC-MNC' = [<<"001001">>],
+					'3GPP-SGSN-MCC-MNC' = [<<"001001">>]}]},
+	CC_CCR = #'3gpp_ro_CCR'{'Session-Id' = SId,
+		'Auth-Application-Id' = ?RO_APPLICATION_ID,
+		'Service-Context-Id' = "32251@3gpp.org" ,
+		'User-Name' = [MSISDN],
+		'CC-Request-Type' = ?'3GPP_CC-REQUEST-TYPE_UPDATE_REQUEST',
+		'CC-Request-Number' = RequestNum,
+		'Event-Timestamp' = [calendar:universal_time()],
+		'Multiple-Services-Credit-Control' = [MultiServices_CC],
+		'Subscription-Id' = [MSISDN1, IMSI1],
+		'Service-Information' = [ServiceInformation]},
+	{ok, Answer} = diameter:call(?MODULE, cc_app_test, CC_CCR, []),
+	Answer.
 
-msisdn() ->
-	digits(rand:uniform(9) + 6, []).
+%% @hidden
+diameter_scur_stop(SId, {MSISDN, IMSI}, RequestNum, Used) ->
+	MSISDN1 = #'3gpp_ro_Subscription-Id'{
+			'Subscription-Id-Type' = ?'3GPP_SUBSCRIPTION-ID-TYPE_END_USER_E164',
+			'Subscription-Id-Data' = MSISDN},
+	IMSI1 = #'3gpp_ro_Subscription-Id'{
+			'Subscription-Id-Type' = ?'3GPP_SUBSCRIPTION-ID-TYPE_END_USER_IMSI',
+			'Subscription-Id-Data' = IMSI},
+	UsedUnits = #'3gpp_ro_Used-Service-Unit'{'CC-Total-Octets' = [Used]},
+	MultiServices_CC = #'3gpp_ro_Multiple-Services-Credit-Control'{
+			'Used-Service-Unit' = [UsedUnits], 'Service-Identifier' = [1],
+			'Rating-Group' = [2]},
+	ServiceInformation = #'3gpp_ro_Service-Information'{'PS-Information' =
+			[#'3gpp_ro_PS-Information'{
+					'3GPP-PDP-Type' = [3],
+					'Serving-Node-Type' = [2],
+					'SGSN-Address' = [{10,1,2,3}],
+					'GGSN-Address' = [{10,4,5,6}],
+					'3GPP-IMSI-MCC-MNC' = [<<"001001">>],
+					'3GPP-GGSN-MCC-MNC' = [<<"001001">>],
+					'3GPP-SGSN-MCC-MNC' = [<<"001001">>]}]},
+	CC_CCR = #'3gpp_ro_CCR'{'Session-Id' = SId,
+			'Auth-Application-Id' = ?RO_APPLICATION_ID,
+			'Service-Context-Id' = "32251@3gpp.org" ,
+			'User-Name' = [MSISDN],
+			'CC-Request-Type' = ?'3GPP_CC-REQUEST-TYPE_TERMINATION_REQUEST',
+			'CC-Request-Number' = RequestNum,
+			'Event-Timestamp' = [calendar:universal_time()],
+			'Multiple-Services-Credit-Control' = [MultiServices_CC],
+			'Subscription-Id' = [MSISDN1, IMSI1],
+			'Service-Information' = [ServiceInformation]},
+	{ok, Answer} = diameter:call(?MODULE, cc_app_test, CC_CCR, []),
+	Answer.
 
-imsi() ->
-	digits(15, []).
+-spec send_initial_scur(SessionID :: term(), Env :: list(),
+	Input :: string()) -> any().
+%% @doc Notification callback for notify_diameter_acct_log test case.
+send_initial_scur(_SessionID, _Env, Input) ->
+	Input = send_initial_scur ! Input.
 
-digits(0, Acc) ->
-	Acc;
-digits(N, Acc) ->
-	Digit = rand:uniform(10) + $0 - 1,
-	digits(N - 1, [Digit | Acc]).
+-spec send_interim_scur(SessionID :: term(), Env :: list(),
+	Input :: string()) -> any().
+%% @doc Notification callback for notify_diameter_acct_log test case.
+send_interim_scur(_SessionID, _Env, Input) ->
+	Input = send_interim_scur ! Input.
+
+-spec send_final_scur(SessionID :: term(), Env :: list(),
+      Input :: string()) -> any().
+%% @doc Notification callback for notify_diameter_acct_log test case.
+send_final_scur(_SessionID, _Env, Input) ->
+	Input = send_final_scur ! Input.
+
+-spec receive_initial_scur(SessionID :: term(), Env :: list(),
+      Input :: string()) -> any().
+%% @doc Notification callback for notify_diameter_acct_log test case.
+receive_initial_scur(SessionID, _Env, Input) ->
+	TS =  erlang:system_time(?MILLISECOND),
+   InvocationTimeStamp = ocs_log:iso8601(TS),
+	Input = receive_initial_scur ! Input,
+	Body = {struct,[{"invocationTimeStamp", InvocationTimeStamp},
+			{"invocationSequenceNumber", 1},
+			{"serviceRating",
+			{array,[{struct,[{"serviceContextId","32251@3gpp.org"},
+					{"serviceId", 1},
+					{"ratingGroup", 2},
+					{"grantedUnit", {struct, [{"totalVolume", 100000000}]}},
+					{"resultCode", "SUCCESS"}]}]}}]},
+	ResponseBody = mochijson:encode(Body),
+%	mod_esi:deliver(SessionID, ["status: 201 Created\r\n\r\n", ResponseBody]).
+mod_esi:deliver(SessionID, "content-type: application/json\r\nlocation: /ratingdata/deadbeefcafe\r\nstatus: 201 Created\r\n\r\n").
+
+-spec receive_interim_scur(SessionID :: term(), Env :: list(),
+      Input :: string()) -> any().
+%% @doc Notification callback for notify_diameter_acct_log test case.
+receive_interim_scur(SessionID, _Env, Input) ->
+	TS =  erlang:system_time(?MILLISECOND),
+   InvocationTimeStamp = ocs_log:iso8601(TS),
+	Input = receive_interim_scur ! Input,
+	Body = {struct,[{"invocationTimeStamp", InvocationTimeStamp},
+			{"invocationSequenceNumber", 1},
+			{"serviceRating",
+			{array,[{struct,[{"serviceContextId","32251@3gpp.org"},
+					{"serviceId", 1},
+					{"ratingGroup", 2},
+					{"consumedUnit", {struct, [{"totalVolume", 100000000}]}},
+					{"grantedUnit", {struct, [{"totalVolume", 83256442}]}},
+					{"resultCode", "SUCCESS"}]}]}}]},
+	ResponseBody = mochijson:encode(Body),
+	mod_esi:deliver(SessionID, ["status: 200 Ok\r\n\r\n", ResponseBody]).
+
+-spec receive_final_scur(SessionID :: term(), Env :: list(),
+      Input :: string()) -> any().
+%% @doc Notification callback for notify_diameter_acct_log test case.
+receive_final_scur(SessionID, _Env, Input) ->
+	TS =  erlang:system_time(?MILLISECOND),
+   InvocationTimeStamp = ocs_log:iso8601(TS),
+	Input = receive_final_scur ! Input,
+	Body = {struct, [{"invocationTimeStamp", InvocationTimeStamp},
+			{"invocationSequenceNumber", 3},
+			{"serviceRating",
+			{array, [{struct, [{"serviceContextId", "32251@3gpp.org"},
+					{"serviceId", 1},
+					{"ratingGroup", 2},
+					{"consumedUnit", {struct, [{"totalVolume", 723954330}]}},
+					{"price",
+							{struct, [{"currencyCode", "CAD"},
+					{"amount", {struct, [{"valueDigits", 20}, {"exponent", -10}]}}]}},
+					{"resultCode", "SUCCESS"}]}]}}]},
+	ResponseBody = mochijson:encode(Body),
+	mod_esi:deliver(SessionID, ["status: 204 \r\n\r\n", ResponseBody]).
+
+%% @hidden
+price(Type, Units, Size, Amount) ->
+	#price{name = ocs:generate_identity(),
+			type = Type, units = Units,
+			size = Size, amount = Amount}.
+
+%% @hidden
+add_offer(Prices, Spec) when is_integer(Spec) ->
+	add_offer(Prices, integer_to_list(Spec));
+add_offer(Prices, Spec) ->
+	Offer = #offer{name = ocs:generate_identity(),
+			price = Prices, specification = Spec},
+	{ok, #offer{name = OfferId}} = ocs:add_offer(Offer),
+	OfferId.
+
+%% @hidden
+add_product(OfferId) ->
+	add_product(OfferId, []).
+add_product(OfferId, Chars) ->
+	{ok, #product{id = ProdRef}} = ocs:add_product(OfferId, Chars),
+	ProdRef.
+
+%% @hidden
+bucket(Units, RA) ->
+	#bucket{units = Units, remain_amount = RA,
+			start_date = erlang:system_time(?MILLISECOND),
+			end_date = erlang:system_time(?MILLISECOND) + 2592000000}.
+
+%% @hidden
+add_bucket(ProdRef, Bucket) ->
+	{ok, _, #bucket{id = BId}} = ocs:add_bucket(ProdRef, Bucket),
+	BId.
+
+%% @hidden
+auth_header() ->
+	{"authorization", basic_auth()}.
+
+%% @hidden
+basic_auth() ->
+	RestUser = ct:get_config(rest_user),
+	RestPass = ct:get_config(rest_pass),
+	EncodeKey = base64:encode_to_string(string:concat(RestUser ++ ":", RestPass)),
+	"Basic " ++ EncodeKey.
+
+%% @doc Add a transport capability to diameter service.
+%% @hidden
+connect(SvcName, Address, Port, Transport) when is_atom(Transport) ->
+	connect(SvcName, [{connect_timer, 30000} | transport_opts(Address, Port, Transport)]).
+
+%% @hidden
+connect(SvcName, Opts)->
+	diameter:add_transport(SvcName, {connect, Opts}).
+
+%% @hidden
+client_acct_service_opts(Config) ->
+	[{'Origin-Host', ?config(diameter_host, Config)},
+			{'Origin-Realm', ?config(realm, Config)},
+			{'Vendor-Id', ?IANA_PEN_SigScale},
+			{'Supported-Vendor-Id', [?IANA_PEN_3GPP]},
+			{'Product-Name', "SigScale Test Client (Nrf)"},
+			{'Auth-Application-Id', [?RO_APPLICATION_ID]},
+			{string_decode, false},
+			{restrict_connections, false},
+			{application, [{alias, base_app_test},
+					{dictionary, diameter_gen_base_rfc6733},
+					{module, diameter_test_client_cb}]},
+        {application, [{alias, cc_app_test},
+               {dictionary, diameter_gen_3gpp_ro_application},
+               {module, diameter_test_client_cb}]}].
+
+%% @hidden
+transport_opts(Address, Port, Trans) when is_atom(Trans) ->
+   transport_opts1({Trans, Address, Address, Port}).
+
+%% @hidden
+transport_opts1({Trans, LocalAddr, RemAddr, RemPort}) ->
+	[{transport_module, Trans}, {transport_config,
+		[{raddr, RemAddr}, {rport, RemPort},
+		{reuseaddr, true}, {ip, LocalAddr}]}].
 

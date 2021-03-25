@@ -1,9 +1,58 @@
+2021-03-21  Refath Wadood <refath@sigscale.org>
+
+	* get correct app env; correct type
+	* return correct diameter error codes in CCA for nrf rating
+
+2021-03-19  Refath Wadood <refath@sigscale.org>
+
+	* gui: redirect server supports URIs
+	* gui: create product when product undefined; refactor balance adjustment
+	* gui: close delete dialog
+	* gui: clear offer list once its submit or cancel
+	* gui: display multiple service ids
+	* test: add re interface test suite
+	* clarify app env var use
+	* correct default diameter config to match sys.config in release
+	* add s6b interface to readme
+	* correct destination id as array in nrf rating examples
+	* add origination id for calling party number
+	* examples of normal error conditions
+	* descriptions for nrf examples
+	* nrf example of partial success
+	* isup cause in vcs service information
+	* event times in vcs service information
+	* user location in vcs information
+	* add vcs parameters call reference and location number to nrf
+	* add nrf diameter call back
+	* add nrf callback module in edoc
+	* start nrf session table; start counters table
+	* use nrf callback when nrf uri is specifed
+	* update invocation sequence number on post
+	* seperate httpc profile for nrf
+	* refactor path handling in post
+	* remove bogus nrf actual time
+	* simpler more efficient get header
+	* consistent rational order of service rating attributes
+
+2021-02-24  Refath Wadood <refath@sigscale.org>
+
+	* test: final rating with empty mscc
+	* test: refactor final empty mscc
+	* test: rate final with empty mscc after interims with different services
+	* gui: fix units select issue on service update view
+	* guard against adding existing service to product
+	* client errors get 400 response for add service
+	* add 3gpp s6b application module to makefile
+	* relative httpd directories
+	* correct testcase description
+	* handle missing service id; handle missing charging key
+
 2021-02-08  Refath Wadood <refath@sigscale.org>
 
 	* do not include fui avp when redirect server address is undefined
 
 2021-02-05  Refath Wadood <refath@sigscale.org>
-	
+
 	* gui: fix update unit price in GUI
 	* gui: send correct value for unit Of measurement
 	* gui: fix length to add product without service
@@ -21,9 +70,9 @@
 	* improve balance adjustment failure handling
 
 2021-01-19 Refath Wadood <refath@sigscale.org>
-	
+
 	* gui: fix label and clear values for redirect server
-	
+
 2021-01-19  Refath Wadood <refath@sigscale.org>
 
 	* gui: clear price array value once cancel is clicked
@@ -48,7 +97,7 @@
 2021-01-14  Refath Wadood <refath@sigscale.org>
 
 	* correct timestamp for bucket adjustments
-	* gui: add msisdn & imsi columns in accounting log	
+	* gui: add msisdn & imsi columns in accounting log
 	* gui: implement row details feature in accounting view
 	* gui: unselect product from product list
 	* gui: add service without product
