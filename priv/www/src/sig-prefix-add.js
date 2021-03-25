@@ -36,40 +36,55 @@ class prefixAdd extends PolymerElement {
 						disabled="{{!loading}}">
 				</paper-progress>
 				<paper-input
-						id="addPrefix"
-						name="Prefix"
-						allowed-pattern="[0-9]"
-						label="Prefix"
-						value="{{addPre}}">
+					label="Name"
+					value="{{tarName}}">
 				</paper-input>
-				<paper-tooltip
-						for="addPrefix"
-						offset="0">
-					Prefix number
-				</paper-tooltip>
-				<paper-input
-						id="addDesc"
-						name="Description"
-						label="Description"
-						value="{{addPreDesc}}">
-				</paper-input>
-				<paper-tooltip
-						for="addDesc"
-						offset="0">
-					Prefix description
-				</paper-tooltip>
-				<paper-input
-						id="addRateRow"
-						type="number"
-						name="PriceName"
-						label="Rate"
-						value="{{addPreRate}}">
-				</paper-input>
-				<paper-tooltip
-						for="addRateRow"
-						offset="0">
-					Prefix rate
-				</paper-tooltip>
+				<div>
+				<span>Characteristics</span>
+					<paper-icon-button
+						id="onClickTariffChars"
+						suffix
+						icon="arrow-drop-down"
+						on-click="_onClickTariffChars">
+					</paper-icon-button>
+				</div>
+				<iron-collapse id="addTariffChars">
+					<paper-input
+							id="addPrefix"
+							name="Prefix"
+							allowed-pattern="[0-9]"
+							label="Prefix"
+							value="{{addPre}}">
+					</paper-input>
+					<paper-tooltip
+							for="addPrefix"
+							offset="0">
+						Prefix number
+					</paper-tooltip>
+					<paper-input
+							id="addDesc"
+							name="Description"
+							label="Description"
+							value="{{addPreDesc}}">
+					</paper-input>
+					<paper-tooltip
+							for="addDesc"
+							offset="0">
+						Prefix description
+					</paper-tooltip>
+					<paper-input
+							id="addRateRow"
+							type="number"
+							name="PriceName"
+							label="Rate"
+							value="{{addPreRate}}">
+					</paper-input>
+					<paper-tooltip
+							for="addRateRow"
+							offset="0">
+						Prefix rate
+					</paper-tooltip>
+				</iron-collapse>
 				<div class="buttons">
 					<paper-button dialog-confirm
 							raised
@@ -87,8 +102,6 @@ class prefixAdd extends PolymerElement {
 			</paper-dialog>
 			<iron-ajax
 					id="addTableRowAjax"
-					url="/catalogManagement/v2/pla"
-					method = "POST"
 					content-type="application/json"
 					on-loading-changed="_onLoadingChanged"
 					on-response="_addTableResponse"
@@ -102,6 +115,15 @@ class prefixAdd extends PolymerElement {
 				type: Boolean,
 				value: false
 			},
+			table: {
+				type: String
+			},
+			tableId: {
+				type: String
+			}, 
+			tarName: {
+				type: String,
+			},
 			addPre: {
 				type: String,
 			},
@@ -114,39 +136,59 @@ class prefixAdd extends PolymerElement {
 		}
 	}
 
+	ready() {
+		super.ready()
+	}
+
+	_onClickTariffChars() {
+		if(this.$.addTariffChars.opened == false) {
+			this.$.addTariffChars.show();
+			this.$.onClickTariffChars.icon="arrow-drop-up"
+		} else {
+			this.$.addTariffChars.hide();
+			this.$.onClickTariffChars.icon="arrow-drop-down"
+		}
+	}
+
 	_tableRow(event) {
-//		var table = document.getElementById('prefixList').table;
-		var table = document.body.querySelector('sig-app').shadowRoot.getElementById('prefixList').table;
-		var rowName = new Object();
-		rowName.id = this.addPre;
-		rowName.href = "/resourceInventoryManagement/v1/logicalResource/" + table + "/" + rowName.id;
+		var ajax = this.$.addTableRowAjax;
+		ajax.method = "POST";
+		ajax.url = "/resourceInventoryManagement/v1/resource/";
+		var tar = new Object();
+		if(this.tarName) {
+			tar.name = this.tarName;
+		}
+		var rel = new Array();
+		var relObj = new Object();
+		relObj.id = document.body.querySelector('sig-app').shadowRoot.querySelector('sig-prefix-list').tableId;
+		relObj.href = "/resourceInventoryManagement/v1/resourceRelationship/" + relObj.id;
+		relObj.name = document.body.querySelector('sig-app').shadowRoot.querySelector('sig-prefix-list').table;
+		relObj.type = "contained";
+		rel.push(relObj);
+		tar.resourceRelationship = rel
+
 		var resource = new Array();
 		var resPre = new Object();
 		resPre.name = "prefix";
-		var seqNum = 1;
-		var value = this.addPre;
-		resPre.value = {seqNum, value};
+		resPre.value = this.addPre;
 		resource.push(resPre);
 		var resDes = new Object();
 		resDes.name = "description";
-		var seqNum = 2;
-		var value = this.addPreDesc;
-		resDes.value = {seqNum, value};
+		resDes.value = this.addPreDesc;
 		resource.push(resDes);
 		var resRate = new Object();
 		resRate.name = "rate";
-		var seqNum = 3;
-		var value = this.addPreRate;
-		resRate.value = {seqNum, value};
+		resRate.value = parseInt(this.addPreRate);
 		resource.push(resRate);
-		rowName.resourceCharacteristic = resource;
-		var ajax = this.$.addTableRowAjax;
-		ajax.url = "/resourceInventoryManagement/v1/logicalResource/" + table
-		ajax.body = rowName;
+		tar.resourceCharacteristic = resource;
+
+		var spec = new Object();
+		spec.id = "2";
+		spec.name = "TariffTable";
+		tar.resourceSpecification = spec;
+		ajax.body = tar;
 		ajax.generateRequest();
-		this.addPre = null;
-		this.addPreDesc = null;
-		this.$.addRateRow.value = null;
+		this.$.addPrefixModal.close();
 	}
 
 	_addTableResponse(event) {
