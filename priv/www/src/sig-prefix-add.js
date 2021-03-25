@@ -39,52 +39,41 @@ class prefixAdd extends PolymerElement {
 					label="Name"
 					value="{{tarName}}">
 				</paper-input>
-				<div>
-				<span>Characteristics</span>
-					<paper-icon-button
-						id="onClickTariffChars"
-						suffix
-						icon="arrow-drop-down"
-						on-click="_onClickTariffChars">
-					</paper-icon-button>
-				</div>
-				<iron-collapse id="addTariffChars">
-					<paper-input
-							id="addPrefix"
-							name="Prefix"
-							allowed-pattern="[0-9]"
-							label="Prefix"
-							value="{{addPre}}">
-					</paper-input>
-					<paper-tooltip
-							for="addPrefix"
-							offset="0">
-						Prefix number
-					</paper-tooltip>
-					<paper-input
-							id="addDesc"
-							name="Description"
-							label="Description"
-							value="{{addPreDesc}}">
-					</paper-input>
-					<paper-tooltip
-							for="addDesc"
-							offset="0">
-						Prefix description
-					</paper-tooltip>
-					<paper-input
-							id="addRateRow"
-							type="number"
-							name="PriceName"
-							label="Rate"
-							value="{{addPreRate}}">
-					</paper-input>
-					<paper-tooltip
-							for="addRateRow"
-							offset="0">
-						Prefix rate
-					</paper-tooltip>
-				</iron-collapse>
+				<paper-input
+						id="addPrefix"
+						name="Prefix"
+						allowed-pattern="[0-9]"
+						label="Prefix"
+						value="{{addPre}}">
+				</paper-input>
+				<paper-tooltip
+						for="addPrefix"
+						offset="0">
+					Prefix number
+				</paper-tooltip>
+				<paper-input
+						id="addDesc"
+						name="Description"
+						label="Description"
+						value="{{addPreDesc}}">
+				</paper-input>
+				<paper-tooltip
+						for="addDesc"
+						offset="0">
+					Prefix description
+				</paper-tooltip>
+				<paper-input
+						id="addRateRow"
+						type="number"
+						name="PriceName"
+						label="Rate"
+						value="{{addPreRate}}">
+				</paper-input>
+				<paper-tooltip
+						for="addRateRow"
+						offset="0">
+					Prefix rate
+				</paper-tooltip>
 				<div class="buttons">
 					<paper-button dialog-confirm
 							raised
@@ -138,16 +127,6 @@ class prefixAdd extends PolymerElement {
 
 	ready() {
 		super.ready()
-	}
-
-	_onClickTariffChars() {
-		if(this.$.addTariffChars.opened == false) {
-			this.$.addTariffChars.show();
-			this.$.onClickTariffChars.icon="arrow-drop-up"
-		} else {
-			this.$.addTariffChars.hide();
-			this.$.onClickTariffChars.icon="arrow-drop-down"
-		}
 	}
 
 	_tableRow(event) {
