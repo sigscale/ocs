@@ -1,5 +1,5 @@
 2021-03-21  Refath Wadood <refath@sigscale.org>
-	
+
 	* get correct app env; correct type
 	* return correct diameter error codes in CCA for nrf rating
 
@@ -52,7 +52,7 @@
 	* do not include fui avp when redirect server address is undefined
 
 2021-02-05  Refath Wadood <refath@sigscale.org>
-	
+
 	* gui: fix update unit price in GUI
 	* gui: send correct value for unit Of measurement
 	* gui: fix length to add product without service
@@ -70,9 +70,9 @@
 	* improve balance adjustment failure handling
 
 2021-01-19 Refath Wadood <refath@sigscale.org>
-	
+
 	* gui: fix label and clear values for redirect server
-	
+
 2021-01-19  Refath Wadood <refath@sigscale.org>
 
 	* gui: clear price array value once cancel is clicked
@@ -97,7 +97,7 @@
 2021-01-14  Refath Wadood <refath@sigscale.org>
 
 	* correct timestamp for bucket adjustments
-	* gui: add msisdn & imsi columns in accounting log	
+	* gui: add msisdn & imsi columns in accounting log
 	* gui: implement row details feature in accounting view
 	* gui: unselect product from product list
 	* gui: add service without product
