@@ -154,6 +154,7 @@ class SigApp extends PolymerElement {
 								id="prefixList"
 								tables="{{tables}}"
 								table="{{table}}"
+								tableId="{{tableId}}"
 								loading="{{prefixLoading}}"
 								name="prefixView"
 								active-item="{{activePrefixItem}}">
