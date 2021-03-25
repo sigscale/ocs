@@ -733,7 +733,7 @@ service_type(Id) ->
 -spec service_rating(MSCC, ServiceContextId, ServiceInformation) -> ServiceRating
 	when
 		MSCC :: [#'3gpp_ro_Multiple-Services-Credit-Control'{}],
-		ServiceContextId :: binary(),
+		ServiceContextId :: string(),
 		ServiceInformation :: [tuple()],
 		ServiceRating :: [{struct, [tuple()]}].
 %% Create list of service elements to be rated.
