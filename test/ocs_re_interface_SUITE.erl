@@ -208,7 +208,8 @@ receive_initial_scur(_Config) ->
 			'Multiple-Services-Credit-Control' = [MultiServices_CC]} = Answer0,
 	#'3gpp_ro_Multiple-Services-Credit-Control'{
 			'Granted-Service-Unit' = [GrantedUnits]} = MultiServices_CC,
-	#'3gpp_ro_Granted-Service-Unit'{'CC-Total-Octets' = [_TotalOctets]} = GrantedUnits.
+	TotalOctets = InputOctets + OutputOctets,
+	#'3gpp_ro_Granted-Service-Unit'{'CC-Total-Octets' = [TotalOctets]} = GrantedUnits.
 
 send_interim_scur() ->
 	[{userdata, [{doc, "On received SCUR CCR-U send updateRating"}]}].
@@ -275,7 +276,8 @@ receive_interim_scur(_Config) ->
 			'Multiple-Services-Credit-Control' = [MultiServices_CC]} = Answer1,
 	#'3gpp_ro_Multiple-Services-Credit-Control'{
 			'Used-Service-Unit' = [UsedUnits]} = MultiServices_CC,
-	#'3gpp_ro_Used-Service-Unit'{'CC-Total-Octets' = [_TotalOctets]} = UsedUnits.
+	TotalOctets = InputOctets2 + OutputOctets2,
+	#'3gpp_ro_Used-Service-Unit'{'CC-Total-Octets' = [TotalOctets]} = UsedUnits.
 
 send_final_scur() ->
 	[{userdata, [{doc, "On received SCUR CCR-U send endRating"}]}].
@@ -341,8 +343,8 @@ receive_final_scur(_Config) ->
 	Answer1 = diameter_scur_interim(SId, Subscriber, RequestNum1, UsedServiceUnits, 0),
 	#'3gpp_ro_CCA'{'Result-Code' = ?'DIAMETER_BASE_RESULT-CODE_SUCCESS'} = Answer1,
 	RequestNum2 = RequestNum1 + 1,
-	Grant2 = rand:uniform(Balance div 2),
-	Answer2 = diameter_scur_stop(SId, Subscriber, RequestNum2, Grant2),
+	UsedServiceUnits1 = rand:uniform(Balance div 2),
+	Answer2 = diameter_scur_stop(SId, Subscriber, RequestNum2, UsedServiceUnits1),
 	#'3gpp_ro_CCA'{'Result-Code' = ?'DIAMETER_BASE_RESULT-CODE_SUCCESS',
 			'Auth-Application-Id' = ?RO_APPLICATION_ID,
 			'CC-Request-Type' = ?'3GPP_CC-REQUEST-TYPE_TERMINATION_REQUEST',
@@ -350,7 +352,7 @@ receive_final_scur(_Config) ->
 			'Multiple-Services-Credit-Control' = [MultiServices_CC]} = Answer2,
 	#'3gpp_ro_Multiple-Services-Credit-Control'{
 			'Used-Service-Unit' = [UsedUnits]} = MultiServices_CC,
-	#'3gpp_ro_Used-Service-Unit'{'CC-Total-Octets' = [_TotalOctets]} = UsedUnits.
+	#'3gpp_ro_Used-Service-Unit'{'CC-Total-Octets' = [UsedServiceUnits1]} = UsedUnits.
 
 receive_interim_no_usu_scur() ->
 	[{userdata, [{doc, "On IEC updateRating response with no USU send CCA-U"}]}].
