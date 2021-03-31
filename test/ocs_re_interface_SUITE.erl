@@ -140,13 +140,13 @@ end_per_testcase(_TestCase, _Config) ->
 -spec sequences() -> Sequences :: [{SeqName :: atom(), Testcases :: [atom()]}].
 %% Group test cases into a test sequence.
 %%
-sequences() -> 
+sequences() ->
 	[].
 
 -spec all() -> TestCases :: [Case :: atom()].
 %% Returns a list of all test cases in this test suite.
 %%
-all() -> 
+all() ->
 	[send_initial_scur, receive_initial_scur, send_interim_scur,
 		receive_interim_scur, send_final_scur, receive_final_scur,
 		receive_interim_no_usu_scur].
@@ -171,12 +171,12 @@ send_initial_scur(_Config) ->
 	B1 = bucket(octets, Balance),
 	_BId = add_bucket(ProdRef, B1),
 	Ref = erlang:ref_to_list(make_ref()),
-   SId = diameter:session_id(Ref),
-   RequestNum = 0,
+	SId = diameter:session_id(Ref),
+	RequestNum = 0,
 	InputOctets = rand:uniform(Balance),
 	OutputOctets = rand:uniform(Balance),
 	RequestedServiceUnits = {InputOctets, OutputOctets},
-   Answer0 = diameter_scur_start(SId, Subscriber, RequestNum, RequestedServiceUnits),
+	Answer0 = diameter_scur_start(SId, Subscriber, RequestNum, RequestedServiceUnits),
 	#'3gpp_ro_CCA'{'Result-Code' = ?'DIAMETER_BASE_RESULT-CODE_SUCCESS'} = Answer0.
 
 receive_initial_scur() ->
@@ -195,12 +195,12 @@ receive_initial_scur(_Config) ->
 	B1 = bucket(octets, Balance),
 	_BId = add_bucket(ProdRef, B1),
 	Ref = erlang:ref_to_list(make_ref()),
-   SId = diameter:session_id(Ref),
-   RequestNum = 0,
+	SId = diameter:session_id(Ref),
+	RequestNum = 0,
 	InputOctets = rand:uniform(Balance),
 	OutputOctets = rand:uniform(Balance),
 	RequestedServiceUnits = {InputOctets, OutputOctets},
-   Answer0 = diameter_scur_start(SId, Subscriber, RequestNum, RequestedServiceUnits),
+	Answer0 = diameter_scur_start(SId, Subscriber, RequestNum, RequestedServiceUnits),
 	#'3gpp_ro_CCA'{'Result-Code' = ?'DIAMETER_BASE_RESULT-CODE_SUCCESS',
 			'Auth-Application-Id' = ?RO_APPLICATION_ID,
 			'CC-Request-Type' = ?'3GPP_CC-REQUEST-TYPE_INITIAL_REQUEST',
@@ -226,12 +226,12 @@ send_interim_scur(_Config) ->
 	B1 = bucket(octets, Balance),
 	_BId = add_bucket(ProdRef, B1),
 	Ref = erlang:ref_to_list(make_ref()),
-   SId = diameter:session_id(Ref),
-   RequestNum0 = 0,
+	SId = diameter:session_id(Ref),
+	RequestNum0 = 0,
 	InputOctets1 = rand:uniform(Balance),
 	OutputOctets1 = rand:uniform(Balance),
 	RequestedServiceUnits = {InputOctets1, OutputOctets1},
-   Answer0 = diameter_scur_start(SId, Subscriber, RequestNum0, RequestedServiceUnits),
+	Answer0 = diameter_scur_start(SId, Subscriber, RequestNum0, RequestedServiceUnits),
 	#'3gpp_ro_CCA'{'Result-Code' = ?'DIAMETER_BASE_RESULT-CODE_SUCCESS'} = Answer0,
 	RequestNum1 = RequestNum0 + 1,
 	InputOctets2 = rand:uniform(Balance div 2),
@@ -256,14 +256,14 @@ receive_interim_scur(_Config) ->
 	B1 = bucket(octets, Balance),
 	_BId = add_bucket(ProdRef, B1),
 	Ref = erlang:ref_to_list(make_ref()),
-   SId = diameter:session_id(Ref),
-   RequestNum0 = 0,
+	SId = diameter:session_id(Ref),
+	RequestNum0 = 0,
 	InputOctets1 = rand:uniform(Balance),
 	OutputOctets1 = rand:uniform(Balance),
 	RequestedServiceUnits = {InputOctets1, OutputOctets1},
-   Answer0 = diameter_scur_start(SId, Subscriber, RequestNum0, RequestedServiceUnits),
+	Answer0 = diameter_scur_start(SId, Subscriber, RequestNum0, RequestedServiceUnits),
 	#'3gpp_ro_CCA'{'Result-Code' = ?'DIAMETER_BASE_RESULT-CODE_SUCCESS'} = Answer0,
-   RequestNum1 = RequestNum0 + 1,
+	RequestNum1 = RequestNum0 + 1,
 	InputOctets2 = rand:uniform(Balance div 2),
 	OutputOctets2 = rand:uniform(Balance),
 	UsedServiceUnits = {InputOctets2, OutputOctets2},
@@ -298,7 +298,7 @@ send_final_scur(_Config) ->
 	InputOctets1 = rand:uniform(Balance),
 	OutputOctets1 = rand:uniform(Balance),
 	RequestedServiceUnits = {InputOctets1, OutputOctets1},
-   Answer0 = diameter_scur_start(SId, Subscriber, RequestNum0, RequestedServiceUnits),
+	Answer0 = diameter_scur_start(SId, Subscriber, RequestNum0, RequestedServiceUnits),
 	#'3gpp_ro_CCA'{'Result-Code' = ?'DIAMETER_BASE_RESULT-CODE_SUCCESS'} = Answer0,
 	RequestNum1 = RequestNum0 + 1,
 	InputOctets2 =  rand:uniform(Balance div 2),
@@ -368,14 +368,14 @@ receive_interim_no_usu_scur(_Config) ->
 	B1 = bucket(octets, Balance),
 	_BId = add_bucket(ProdRef, B1),
 	Ref = erlang:ref_to_list(make_ref()),
-   SId = diameter:session_id(Ref),
-   RequestNum0 = 0,
+	SId = diameter:session_id(Ref),
+	RequestNum0 = 0,
 	InputOctets1 = rand:uniform(Balance),
 	OutputOctets1 = rand:uniform(Balance),
 	RequestedServiceUnits1 = {InputOctets1, OutputOctets1},
-   Answer0 = diameter_scur_start(SId, Subscriber, RequestNum0, RequestedServiceUnits1),
+	Answer0 = diameter_scur_start(SId, Subscriber, RequestNum0, RequestedServiceUnits1),
 	#'3gpp_ro_CCA'{'Result-Code' = ?'DIAMETER_BASE_RESULT-CODE_SUCCESS'} = Answer0,
-   RequestNum1 = RequestNum0 + 1,
+	RequestNum1 = RequestNum0 + 1,
 	InputOctets2 = rand:uniform(Balance),
 	OutputOctets2 = rand:uniform(Balance),
 	RequestedServiceUnits2 = {InputOctets2, OutputOctets2},
@@ -605,13 +605,13 @@ client_acct_service_opts(Config) ->
 			{application, [{alias, base_app_test},
 					{dictionary, diameter_gen_base_rfc6733},
 					{module, diameter_test_client_cb}]},
-        {application, [{alias, cc_app_test},
-               {dictionary, diameter_gen_3gpp_ro_application},
-               {module, diameter_test_client_cb}]}].
+			{application, [{alias, cc_app_test},
+					{dictionary, diameter_gen_3gpp_ro_application},
+					{module, diameter_test_client_cb}]}].
 
 %% @hidden
 transport_opts(Address, Port, Trans) when is_atom(Trans) ->
-   transport_opts1({Trans, Address, Address, Port}).
+	transport_opts1({Trans, Address, Address, Port}).
 
 %% @hidden
 transport_opts1({Trans, LocalAddr, RemAddr, RemPort}) ->

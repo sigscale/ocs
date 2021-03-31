@@ -505,7 +505,7 @@ post_request1({MSISDN, IMSI}, SvcContextId, TimeStamp, ServiceType,
 	Headers = [{"accept", "application/json"}, {"content_type", "application/json"}],
 	Request = {Path, Headers, ContentType, lists:flatten(RequestBody)},
 	Options = [{relaxed, true}],
-   case httpc:request(post, Request, Options, [], Profile) of
+	case httpc:request(post, Request, Options, [], Profile) of
 		{_RequestId, {{_HttpVersion, 201, _ReasonPhrase}, Headers1, Body1}} ->
 			{_, Location1} = lists:keyfind("location", 1, Headers1),
 			insert_ref(Location1, SessionId),
@@ -758,7 +758,7 @@ service_rating(MSCC, ServiceContextId, ServiceInformation) ->
 service_rating1([#'3gpp_ro_Multiple-Services-Credit-Control'{
 		'Requested-Service-Unit' = RSU, 'Used-Service-Unit' = USU,
 		'Service-Identifier' = SI, 'Rating-Group' = RG} = _MSCC | T], SCID, SInfo, Acc) ->
-	SI1 = case SI of 
+	SI1 = case SI of
 		[] ->
 			[];
 		[N1] ->
@@ -770,35 +770,35 @@ service_rating1([#'3gpp_ro_Multiple-Services-Credit-Control'{
 		[N2] ->
 			{"ratingGroup", N2}
 	end,
-	ReservedUnit1 = case RSU of 
+	ReservedUnit1 = case RSU of
 		[#'3gpp_ro_Requested-Service-Unit'{'CC-Time' = [CCTime1]}]
 				when CCTime1 > 0->
 			[{"time", CCTime1}];
 		_ ->
 			[]
 	end,
-	ReservedUnit2 = case RSU of 
+	ReservedUnit2 = case RSU of
 		[#'3gpp_ro_Requested-Service-Unit'{'CC-Output-Octets' = [CCOutputOctets1]}]
 				when CCOutputOctets1 > 0 ->
 			[{"downlinkVolume", CCOutputOctets1} | ReservedUnit1];
 		_ ->
 			ReservedUnit1
 	end,
-	ReservedUnit3 = case RSU of 
+	ReservedUnit3 = case RSU of
 		[#'3gpp_ro_Requested-Service-Unit'{'CC-Input-Octets' = [CCInputOctets1]}]
 				when CCInputOctets1 > 0 ->
 			[{"uplinkVolume", CCInputOctets1} | ReservedUnit2];
 		_ ->
 			ReservedUnit2
 	end,
-	ReservedUnit4 = case RSU of 
+	ReservedUnit4 = case RSU of
 		[#'3gpp_ro_Requested-Service-Unit'{'CC-Total-Octets' = [CCTotalOctets1]}]
 				when CCTotalOctets1 > 0 ->
 			[{"totalVolume", CCTotalOctets1} | ReservedUnit3];
 		_ ->
 			ReservedUnit3
 	end,
-	ReservedUnit5 = case RSU of 
+	ReservedUnit5 = case RSU of
 		[#'3gpp_ro_Requested-Service-Unit'{'CC-Service-Specific-Units' = [CCSpecUnits1]}]
 				when CCSpecUnits1 > 0 ->
 			[{"serviceSpecificUnit", CCSpecUnits1} | ReservedUnit4];
@@ -812,35 +812,35 @@ service_rating1([#'3gpp_ro_Multiple-Services-Credit-Control'{
 			Units1 = {"requestedUnit", {struct, ReservedUnit4}},
 			{struct, [SCID, SInfo, SI1, RG1, Units1, {"requestSubType", "RESERVE"}]}
 	end,
-	ConsumedUnit1 = case USU of 
+	ConsumedUnit1 = case USU of
 		[#'3gpp_ro_Used-Service-Unit'{'CC-Time' = [CCTime2]}]
 				when CCTime2 > 0->
 			[{"time", CCTime2}];
 		_ ->
 			[]
 	end,
-	ConsumedUnit2 = case USU of 
+	ConsumedUnit2 = case USU of
 		[#'3gpp_ro_Used-Service-Unit'{'CC-Output-Octets' = [CCOutputOctets2]}]
 				when CCOutputOctets2 > 0 ->
 			[{"downlinkVolume", CCOutputOctets2} | ConsumedUnit1];
 		_ ->
 			ConsumedUnit1
 	end,
-	ConsumedUnit3 = case USU of 
+	ConsumedUnit3 = case USU of
 		[#'3gpp_ro_Used-Service-Unit'{'CC-Input-Octets' = [CCInputOctets2]}]
 				when CCInputOctets2 > 0 ->
 			[{"uplinkVolume", CCInputOctets2} | ConsumedUnit2];
 		_ ->
 			ConsumedUnit2
 	end,
-	ConsumedUnit4 = case USU of 
+	ConsumedUnit4 = case USU of
 		[#'3gpp_ro_Used-Service-Unit'{'CC-Total-Octets' = [CCTotalOctets2]}]
 				when CCTotalOctets2 > 0 ->
 			[{"totalVolume", CCTotalOctets2} | ConsumedUnit3];
 		_ ->
 			ConsumedUnit3
 	end,
-	ConsumedUnit5 = case USU of 
+	ConsumedUnit5 = case USU of
 		[#'3gpp_ro_Used-Service-Unit'{'CC-Service-Specific-Units' = [CCSpecUnits2]}]
 				when CCSpecUnits2 > 0 ->
 			[{"serviceSpecificUnit", CCSpecUnits2} | ConsumedUnit4];

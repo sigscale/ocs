@@ -84,7 +84,7 @@ content_type_available(Headers, Uri, Body, #mod{data = Data} = ModData) ->
 
 %% @hidden
 do_post(ModData, Body, ["ratingdata"]) ->
-	try 
+	try
 		{struct, NrfRequest} = mochijson:decode(Body),
 		{_, InvocationSequenceNumber} = lists:keyfind("invocationSequenceNumber", 1, NrfRequest),
 		{_, {_, ServiceRatingRequests}} = lists:keyfind("serviceRating", 1, NrfRequest),
@@ -93,7 +93,7 @@ do_post(ModData, Body, ["ratingdata"]) ->
 		ServiceRatingResults = service_rating(ServiceRatingRequests, []),
 		SubscriptionId = lists:keyfind("subscriptionId", 1, NrfRequest),
 		Response = {struct,[{"invocationTimeStamp", InvocationTimeStamp},
- 				{"invocationSequenceNumber", InvocationSequenceNumber},
+				{"invocationSequenceNumber", InvocationSequenceNumber},
 				SubscriptionId,
 				{"serviceRating",
 				{array, ServiceRatingResults}}]},
@@ -102,11 +102,11 @@ do_post(ModData, Body, ["ratingdata"]) ->
 		do_response(ModData, {201, Headers, mochijson:encode(Response)})
 	catch
 		_:_Reason ->
-         do_response(ModData, {error, 400})
+			do_response(ModData, {error, 400})
 	end;
 do_post(ModData, Body, ["ratingdata", _RatingDataRef, Op])
 		when Op == "update"; Op == "release" ->
-	try 
+	try
 		{struct, NrfRequest} = mochijson:decode(Body),
 		{_, InvocationSequenceNumber} = lists:keyfind("invocationSequenceNumber", 1, NrfRequest),
 		{_, {_, ServiceRatingRequests}} = lists:keyfind("serviceRating", 1, NrfRequest),
@@ -115,14 +115,14 @@ do_post(ModData, Body, ["ratingdata", _RatingDataRef, Op])
 		ServiceRatingResults = service_rating(ServiceRatingRequests, []),
 		SubscriptionId = lists:keyfind("subscriptionId", 1, NrfRequest),
 		Response = {struct,[{"invocationTimeStamp", InvocationTimeStamp},
- 				{"invocationSequenceNumber", InvocationSequenceNumber},
+				{"invocationSequenceNumber", InvocationSequenceNumber},
 				SubscriptionId,
 				{"serviceRating",
 				{array, ServiceRatingResults}}]},
 		do_response(ModData, {200, [], mochijson:encode(Response)})
 	catch
 		_:_Reason ->
-         do_response(ModData, {error, 400})
+			do_response(ModData, {error, 400})
 	end.
 
 service_rating([{_, Attributes} | T], Acc) ->
