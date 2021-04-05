@@ -1,3 +1,17 @@
+2021-04-06  Refath Wadood <refath@sigscale.org>
+
+	* Fix grammer
+	* match correct error code in function head
+	* correct spec
+	* handle zero value rsus
+	* refactor nrf request handling
+	* test: add mod ct nrf
+	* test: refactor re interface test suite
+	* test: validate returned units
+	* test: refactor test suite configuration data
+	* test: recieve scur ccas with no usu; recieve scur cca with empty rsu
+	* test: check for empty service rating object
+
 2021-03-21  Refath Wadood <refath@sigscale.org>
 
 	* get correct app env; correct type
