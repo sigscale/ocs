@@ -56,6 +56,10 @@
 %%
 suite() ->
 	[{userdata, [{doc, "Test suite for logging in OCS"}]},
+	{require, radius},
+	{default_config, radius, [{address, {127,0,0,1}}]},
+	{require, diameter},
+	{default_config, diameter, [{address, {127,0,0,1}}]},
 	{timetrap, {seconds, 120}}].
 
 -spec init_per_suite(Config :: [tuple()]) -> Config :: [tuple()].
@@ -64,29 +68,30 @@ suite() ->
 init_per_suite(Config) ->
 	ok = ocs_test_lib:initialize_db(),
 	ok = ocs_test_lib:load(ocs),
-	Address = {127,0,0,1},
-	RadiusAuthPort = rand:uniform(64511) + 1024,
-	RadiusAcctPort = rand:uniform(64511) + 1024,
-	RadiusAppVar = [{auth, [{Address, RadiusAuthPort, []}]},
-			{acct, [{Address, RadiusAcctPort, []}]}],
+	RadiusAddress = ct:get_config({radius, address}, {127,0,0,1}),
+	RadiusAuthPort = ct:get_config({radius, auth_port}, rand:uniform(64511) + 1024),
+	RadiusAcctPort = ct:get_config({radius, acct_port}, rand:uniform(64511) + 1024),
+	RadiusAppVar = [{auth, [{RadiusAddress, RadiusAuthPort, []}]},
+			{acct, [{RadiusAddress, RadiusAcctPort, []}]}],
 	ok = application:set_env(ocs, radius, RadiusAppVar),
-	DiameterAuthPort = rand:uniform(64511) + 1024,
-	DiameterAcctPort = rand:uniform(64511) + 1024,
-	DiameterAppVar = [{auth, [{Address, DiameterAuthPort, []}]},
-		{acct, [{Address, DiameterAcctPort, []}]}],
+	DiameterAddress = ct:get_config({diameter, address}, {127,0,0,1}),
+	DiameterAuthPort = ct:get_config({diameter, auth_port}, rand:uniform(64511) + 1024),
+	DiameterAcctPort = ct:get_config({diameter, acct_port}, rand:uniform(64511) + 1024),
+	DiameterAppVar = [{auth, [{DiameterAddress, DiameterAuthPort, []}]},
+		{acct, [{DiameterAddress, DiameterAcctPort, []}]}],
 	ok = application:set_env(ocs, diameter, DiameterAppVar),
 	ok = ocs_test_lib:start(),
-	Host = atom_to_list(?MODULE),
-	Realm = "ct.sigscale.org",
+	Realm = ct:get_config({diameter, realm}, "mnc001.mcc001.3gppnetwork.org"),
+	Host = ct:get_config({diameter, host}, atom_to_list(?MODULE) ++ "." ++ Realm),
 	Config1 = [{host, Host}, {realm, Realm},
-			{radius_auth_address, Address},
+			{radius_auth_address, RadiusAddress},
 			{radius_auth_port, RadiusAuthPort},
-			{radius_acct_address, Address},
+			{radius_acct_address, RadiusAddress},
 			{radius_acct_port, RadiusAcctPort},
-			{diameter_acct_address, Address} | Config],
+			{diameter_acct_address, DiameterAddress} | Config],
 	ok = diameter:start_service(?MODULE, client_acct_service_opts(Config1)),
 	true = diameter:subscribe(?MODULE),
-	{ok, _Ref} = connect(?MODULE, Address, DiameterAcctPort, diameter_tcp),
+	{ok, _Ref} = connect(?MODULE, DiameterAddress, DiameterAcctPort, diameter_tcp),
 	receive
 		#diameter_event{service = ?MODULE, info = Info}
 				when element(1, Info) == up ->
@@ -935,7 +940,7 @@ fill_acct(N, Protocal) ->
 	case Protocal of
 		radius ->
 			Attrs = [{?ServiceType, 2}, {?NasPortId, "wlan1"}, {?NasPortType, 19},
-					{?UserName, ocs:generate_identity()}, {?CallingStationId, ocs_test_lib:mac()},
+					{?UserName, UserName}, {?CallingStationId, ocs_test_lib:mac()},
 					{?CalledStationId, ocs_test_lib:mac() ++ ":AP1"}, {?NasIdentifier, NasIdentifier},
 					{?NasIpAddress, ClientAddress}, {?AcctStatusType, rand:uniform(3)},
 					{?AcctSessionTime, AcctSessionTime},

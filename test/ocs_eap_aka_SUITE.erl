@@ -63,7 +63,11 @@ suite() ->
 	{timetrap, {seconds, 8}},
 	{require, mcc}, {default_config, mcc, "001"},
 	{require, mnc}, {default_config, mnc, "001"},
-	{require, radius_shared_secret},{default_config, radius_shared_secret, "xyzzy5461"}].
+	{require, radius},
+	{default_config, radius, [{username, "ocs"},
+			{password, "ocs123"}, {secret, "xyzzy5461"}]},
+	{require, diameter},
+	{default_config, diameter, [{address, {127,0,0,1}}]}].
 
 -spec init_per_suite(Config :: [tuple()]) -> Config :: [tuple()].
 %% Initialization before the whole suite.
@@ -71,24 +75,23 @@ suite() ->
 init_per_suite(Config) ->
 	ok = ocs_test_lib:initialize_db(),
 	ok = ocs_test_lib:load(ocs),
-	Address = {127,0,0,1},
-	RadiusPort = rand:uniform(64511) + 1024,
+	RadiusAddress = ct:get_config({radius, address}, {127,0,0,1}),
+	RadiusAuthPort = ct:get_config({radius, auth_port}, rand:uniform(64511) + 1024),
 	Options = [{eap_method_prefer, aka}, {eap_method_order, [aka]}],
-	RadiusAppVar = [{auth, [{Address, RadiusPort, Options}]}],
+	RadiusAppVar = [{auth, [{RadiusAddress, RadiusAuthPort, Options}]}],
 	ok = application:set_env(ocs, radius, RadiusAppVar),
-	DiameterPort = rand:uniform(64511) + 1024,
-	DiameterAppVar = [{auth, [{Address, DiameterPort, Options}]}],
+	DiameterAddress = ct:get_config({diameter, address}, {127,0,0,1}),
+	DiameterAuthPort = ct:get_config({diameter, auth_port}, rand:uniform(64511) + 1024),
+	DiameterAppVar = [{auth, [{DiameterAddress, DiameterAuthPort, Options}]}],
 	ok = application:set_env(ocs, diameter, DiameterAppVar),
 	ok = ocs_test_lib:start(),
-	{ok, ProdID} = ocs_test_lib:add_offer(),
-	Host = atom_to_list(?MODULE),
-	Realm = "mnc" ++ ct:get_config(mnc) ++ ".mcc"
-			++ ct:get_config(mcc) ++ ".3gppnetwork.org",
-	Config1 = [{host, Host}, {realm, Realm}, {product_id, ProdID},
-		{diameter_client, Address} | Config],
+	Realm = ct:get_config({diameter, realm}, "mnc001.mcc001.3gppnetwork.org"),
+	Host = ct:get_config({diameter, host}, atom_to_list(?MODULE) ++ "." ++ Realm),
+	Config1 = [{host, Host}, {realm, Realm},
+		{diameter_client, DiameterAddress} | Config],
 	ok = diameter:start_service(?MODULE, client_service_opts(Config1)),
 	true = diameter:subscribe(?MODULE),
-	{ok, _Ref} = connect(?MODULE, Address, DiameterPort, diameter_tcp),
+	{ok, _Ref} = connect(?MODULE, DiameterAddress, DiameterAuthPort, diameter_tcp),
 	receive
 		#diameter_event{service = ?MODULE, info = Info}
 				when element(1, Info) == up ->
@@ -115,7 +118,7 @@ init_per_testcase(identity_radius, Config) ->
 	{ok, RadiusConfig} = application:get_env(ocs, radius),
 	{auth, [{RadIP, _, _} | _]} = lists:keyfind(auth, 1, RadiusConfig),
 	{ok, Socket} = gen_udp:open(0, [{active, false}, inet, {ip, RadIP}, binary]),
-	SharedSecret = ct:get_config(radius_shared_secret),
+	SharedSecret = ct:get_config({radius, secret}),
 	Protocol = radius,
 	{ok, _} = ocs:add_client(RadIP, undefined, Protocol, SharedSecret, true, false),
 	NasId = atom_to_list(node()),
@@ -178,7 +181,7 @@ identity_radius(Config) ->
 	NasId = ?config(nas_id, Config),
 	ReqAuth = radius:authenticator(),
 	RadId = 1, EapId = 1,
-	Secret = ct:get_config(radius_shared_secret),
+	Secret = ct:get_config({radius, secret}),
 	Realm = ?config(realm, Config),
 	MSIN = msin(),
 	PeerId = "0" ++ ct:get_config(mcc) ++ ct:get_config(mcc)

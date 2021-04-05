@@ -59,6 +59,9 @@
 %%
 suite() ->
    [{userdata, [{doc, "Test suite for REST API in OCS"}]},
+	{require, {rest, [user, password]}},
+	{require, diameter},
+	{default_config, diameter, [{address, {127,0,0,1}}]},
    {timetrap, {minutes, 10}}].
 
 -spec init_per_suite(Config :: [tuple()]) -> Config :: [tuple()].
@@ -67,25 +70,25 @@ suite() ->
 init_per_suite(Config) ->
 	ok = ocs_test_lib:initialize_db(),
    ok = ocs_test_lib:load(ocs),
-	Address = {127,0,0,1},
+	DiameterAddress = ct:get_config({diameter, address}, {127,0,0,1}),
+	DiameterAuthPort = ct:get_config({diameter, auth_port}, rand:uniform(64511) + 1024),
+	DiameterAcctPort = ct:get_config({diameter, acct_port}, rand:uniform(64511) + 1024),
+	DiameterAppVar = [{auth, [{DiameterAddress, DiameterAuthPort, []}]},
+		{acct, [{DiameterAddress, DiameterAcctPort, []}]}],
+	ok = application:set_env(ocs, diameter, DiameterAppVar),
+	ok = application:set_env(ocs, min_reserve_octets, 1000000),
+	ok = application:set_env(ocs, min_reserve_seconds, 60),
+	ok = application:set_env(ocs, min_reserve_messages, 1),
+	ok = ocs_test_lib:start(),
+	Realm = ct:get_config({diameter, realm}, "mnc001.mcc001.3gppnetwork.org"),
+	Host = ct:get_config({diameter, host}, atom_to_list(?MODULE) ++ "." ++ Realm),
 	TempNrfPath = "http://127.0.0.1",
 	ok = application:set_env(ocs, nrf_uri, TempNrfPath),
-   Realm = "acct.sigscale.org",
-	Host = atom_to_list(?MODULE),
-	DiameterAuthPort = rand:uniform(64511) + 1024,
-   DiameterAcctPort = rand:uniform(64511) + 1024,
-   DiameterAppVar = [{auth, [{Address, DiameterAuthPort, []}]},
-      {acct, [{Address, DiameterAcctPort, []}]}],
-   ok = application:set_env(ocs, diameter, DiameterAppVar),
-   ok = application:set_env(ocs, min_reserve_octets, 1000000),
-   ok = application:set_env(ocs, min_reserve_seconds, 60),
-   ok = application:set_env(ocs, min_reserve_messages, 1),
-   ok = ocs_test_lib:start(),
    Config1 = [{diameter_host, Host}, {realm, Realm},
-         {diameter_acct_address, Address} | Config],
+         {diameter_acct_address, DiameterAddress} | Config],
    ok = diameter:start_service(?MODULE, client_acct_service_opts(Config1)),
    true = diameter:subscribe(?MODULE),
-   {ok, _Ref2} = connect(?MODULE, Address, DiameterAcctPort, diameter_tcp),
+   {ok, _Ref2} = connect(?MODULE, DiameterAddress, DiameterAcctPort, diameter_tcp),
    receive
       #diameter_event{service = ?MODULE, info = Info}
             when element(1, Info) == up ->
@@ -643,8 +646,8 @@ auth_header() ->
 
 %% @hidden
 basic_auth() ->
-	RestUser = ct:get_config(rest_user),
-	RestPass = ct:get_config(rest_pass),
+	RestUser = ct:get_config({rest, user}),
+	RestPass = ct:get_config({rest, password}),
 	EncodeKey = base64:encode_to_string(string:concat(RestUser ++ ":", RestPass)),
 	"Basic " ++ EncodeKey.
 
