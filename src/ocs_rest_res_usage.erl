@@ -734,11 +734,16 @@ usage_aaa_acct(Event, Filters) when is_tuple(Event), size(Event) > 6 ->
 			"DIAMETER"
 	end,
 	ServerAddress = inet:ntoa(ServerIP),
+	CCR = element(7, Event),
+	#'3gpp_ro_CCR'{'Service-Information' =  [#'3gpp_ro_Service-Information'
+			{'PS-Information' =  [#'3gpp_ro_PS-Information'{'3GPP-User-Location-Info'
+			= [Loca]}]}]} = CCR,
 	EventChars = [{struct, [{"name", "protocol"}, {"value", Protocol}]},
 			{struct, [{"name", "node"},
 					{"value", atom_to_list(element(4, Event))}]},
 			{struct, [{"name", "serverAddress"}, {"value", ServerAddress}]},
 			{struct, [{"name", "serverPort"}, {"value", ServerPort}]},
+			{struct, [{"name", "userLocationInfo"}, {"value", base64:encode_to_string(Loca)}]},
 			{struct, [{"name", "type"},
 					{"value", atom_to_list(element(6, Event))}]}],
 	AttributeChars = usage_characteristics(element(7, Event)),
@@ -857,7 +862,7 @@ spec_aaa_acct() ->
 			spec_attr_nas_port_id(), spec_attr_delay(),
 			spec_attr_input_octets(), spec_attr_output_octets(),
 			spec_attr_input_giga_words(),spec_attr_output_giga_words(),
-			spec_attr_total_octets(),
+			spec_attr_total_octets(), spec_attr_user_location(),
 			spec_attr_event_timestamp(), spec_attr_session_id(),
 			spec_attr_authentic(), spec_attr_session_time(),
 			spec_attr_input_packets(), spec_attr_output_packets(),
@@ -1962,6 +1967,16 @@ spec_attr_total_octets() ->
 	Desc = {"description", "CC-Total-Octets attribute"},
 	Conf = {"configurable", true},
 	Typ = {"valueType", "Number"},
+	Value1 = {struct, [Typ]},
+	Value = {"usageSpecCharacteristicValue", {array, [Value1]}},
+	{struct, [Name, Desc, Conf, Value]}.
+
+%% @hidden
+spec_attr_user_location() ->
+	Name = {"name", "userLocationInfo"},
+	Desc = {"description", "3GPP-User-Location-Info"},
+	Conf = {"configurable", true},
+	Typ = {"valueType", "String"},
 	Value1 = {struct, [Typ]},
 	Value = {"usageSpecCharacteristicValue", {array, [Value1]}},
 	{struct, [Name, Desc, Conf, Value]}.
