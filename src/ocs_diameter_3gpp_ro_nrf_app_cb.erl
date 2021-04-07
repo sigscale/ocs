@@ -341,8 +341,7 @@ process_request1(?'3GPP_CC-REQUEST-TYPE_INITIAL_REQUEST' = RequestType,
 		SubscriberIds, OHost, _DHost, ORealm, _DRealm, _IpAddress, _Port) ->
 	try
 		Location = get_service_location(ServiceInformation),
-		ServiceType = service_type(SvcContextId),
-		case post_request(SubscriberIds, ServiceType,
+		case post_request(SubscriberIds, SvcContextId,
 				SessionId, MSCC1, Location, initial) of
 			{ok, JSON} ->
 				{struct, RatedStruct} = mochijson:decode(JSON),
@@ -375,8 +374,7 @@ process_request1(?'3GPP_CC-REQUEST-TYPE_UPDATE_REQUEST' = RequestType,
 		_IpAddress, _Port) when length(MSCC1) > 0 ->
 	try
 		Location = get_service_location(ServiceInformation),
-		ServiceType = service_type(SvcContextId),
-		case post_request(SubscriberIds, ServiceType,
+		case post_request(SubscriberIds, SvcContextId,
 				SessionId, MSCC1, Location, interim) of
 			{ok, JSON} ->
 				{struct, RatedStruct} = mochijson:decode(JSON),
@@ -409,8 +407,7 @@ process_request1(?'3GPP_CC-REQUEST-TYPE_TERMINATION_REQUEST' = RequestType,
 		_IpAddress, _Port) ->
 	try
 		Location = get_service_location(ServiceInformation),
-		ServiceType = service_type(SvcContextId),
-		case post_request(SubscriberIds, ServiceType,
+		case post_request(SubscriberIds, SvcContextId,
 				SessionId, MSCC1, Location, final) of
 			{ok, JSON} ->
 				{struct, RatedStruct} = mochijson:decode(JSON),
@@ -439,7 +436,7 @@ process_request1(?'3GPP_CC-REQUEST-TYPE_TERMINATION_REQUEST' = RequestType,
 		SessionId, MSCC, Location, Flag) -> Result
 	when
 		SubscriberIds :: tuple(),
-		ServiceContextId :: string(),
+		ServiceContextId :: binary(),
 		SessionId :: binary(),
 		MSCC :: [#'3gpp_ro_Multiple-Services-Credit-Control'{}],
 		Location :: [tuple()],
@@ -452,21 +449,21 @@ post_request({MSISDN, IMSI}, SvcContextId,
 		SessionId, MSCC, Location, initial) ->
 	{ok, NrfUri} = application:get_env(ocs, nrf_uri),
 	Path = NrfUri ++ ?BASE_URI,
-	ServiceRating = initial_service_rating(MSCC, SvcContextId, Location),
+	ServiceRating = initial_service_rating(MSCC, binary_to_list(SvcContextId), Location),
 	post_request1({MSISDN, IMSI},
 			SessionId, ServiceRating, Path);
 post_request({MSISDN, IMSI}, SvcContextId,
 		SessionId, MSCC, Location, interim) ->
 	{ok, NrfUri} = application:get_env(ocs, nrf_uri),
 	Path = NrfUri ++ get_ref(SessionId) ++ "/" ++ "update",
-	ServiceRating = update_service_rating(MSCC, SvcContextId, Location),
+	ServiceRating = update_service_rating(MSCC, binary_to_list(SvcContextId), Location),
 	post_request1({MSISDN, IMSI},
 			SessionId, ServiceRating, Path);
 post_request({MSISDN, IMSI}, SvcContextId,
 		SessionId, MSCC, Location, final) ->
 	{_, NrfUri} = application:get_env(ocs, nrf_uri),
 	Path = NrfUri ++ get_ref(SessionId) ++ "/" ++ "release",
-	ServiceRating = final_service_rating(MSCC, SvcContextId, Location),
+	ServiceRating = final_service_rating(MSCC, binary_to_list(SvcContextId), Location),
 	post_request1({MSISDN, IMSI},
 			SessionId, ServiceRating, Path).
 %% @hidden
