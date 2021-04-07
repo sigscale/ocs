@@ -857,7 +857,7 @@ spec_aaa_acct() ->
 			spec_attr_nas_port_id(), spec_attr_delay(),
 			spec_attr_input_octets(), spec_attr_output_octets(),
 			spec_attr_input_giga_words(),spec_attr_output_giga_words(),
-			spec_attr_total_octets(),
+			spec_attr_total_octets(), spec_attr_user_location(),
 			spec_attr_event_timestamp(), spec_attr_session_id(),
 			spec_attr_authentic(), spec_attr_session_time(),
 			spec_attr_input_packets(), spec_attr_output_packets(),
@@ -1967,6 +1967,16 @@ spec_attr_total_octets() ->
 	{struct, [Name, Desc, Conf, Value]}.
 
 %% @hidden
+spec_attr_user_location() ->
+	Name = {"name", "userLocationInfo"},
+	Desc = {"description", "3GPP-User-Location-Info attribute"},
+	Conf = {"configurable", true},
+	Type = {"valueType", "String"},
+	Value1 = {struct, [Type]},
+	Value = {"usageSpecCharacteristicValue", {array, [Value1]}},
+	{struct, [Name, Desc, Conf, Value]}.
+
+%% @hidden
 spec_attr_input_packets() ->
 	Name = {"name", "acctInputPackets"},
 	Desc = {"description", "Acct-Input-Packets attribute"},
@@ -2633,8 +2643,8 @@ char_attr_cause(#'3gpp_ro_CCR'{'Service-Information'
 		= [Cause]}]}]}, Acc) ->
 	[{struct, [{"name", "acctTerminateCause"},
 			{"value", integer_to_list(Cause)}]} | Acc];
-char_attr_cause(#'3gpp_ro_CCR'{}, Acc) ->
-	Acc;
+char_attr_cause(#'3gpp_ro_CCR'{} = CCR, Acc) ->
+	char_attr_user_location(CCR, Acc);
 char_attr_cause(Attributes, Acc) ->
 	case radius_attributes:find(?AcctTerminateCause, Attributes) of
 		{ok, Value} ->
@@ -2678,10 +2688,21 @@ char_attr_cause(Attributes, Acc) ->
 				N ->
 					N
 			end,
-			[{struct, [{"name", "acctTerminateCause"}, {"value", Cause}]} | Acc];
+			NewAcc = [{struct, [{"name", "acctTerminateCause"}, {"value", Cause}]} | Acc],
+			char_attr_user_location(Attributes, NewAcc);
 		{error, not_found} ->
-			Acc
+			char_attr_user_location(Attributes, Acc)
 	end.
+
+%% @hidden
+char_attr_user_location(#'3gpp_ro_CCR'{'Service-Information'
+		= [#'3gpp_ro_Service-Information'{'PS-Information'
+		= [#'3gpp_ro_PS-Information'{'3GPP-User-Location-Info'
+		= [Info]}]}]} = CCR, Acc) when is_binary(Info) ->
+	[{struct, [{"name", "userLocationInfo"},
+			{"value", base64:encode_to_string(Info)}]} | Acc];
+char_attr_user_location(_, Acc) ->
+	Acc.
 
 %% @hidden
 query_start(Type, Id, Query, Filters, RangeStart, RangeEnd) ->
