@@ -1,5 +1,11 @@
 2021-04-06  Refath Wadood <refath@sigscale.org>
 
+	* add more specification for accounting log
+	* correct user location info charateristic codec
+	* refactor cca mscc building
+
+2021-04-06  Refath Wadood <refath@sigscale.org>
+
 	* Fix grammer
 	* match correct error code in function head
 	* correct spec
