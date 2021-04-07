@@ -734,16 +734,11 @@ usage_aaa_acct(Event, Filters) when is_tuple(Event), size(Event) > 6 ->
 			"DIAMETER"
 	end,
 	ServerAddress = inet:ntoa(ServerIP),
-	CCR = element(7, Event),
-	#'3gpp_ro_CCR'{'Service-Information' =  [#'3gpp_ro_Service-Information'
-			{'PS-Information' =  [#'3gpp_ro_PS-Information'{'3GPP-User-Location-Info'
-			= [Loca]}]}]} = CCR,
 	EventChars = [{struct, [{"name", "protocol"}, {"value", Protocol}]},
 			{struct, [{"name", "node"},
 					{"value", atom_to_list(element(4, Event))}]},
 			{struct, [{"name", "serverAddress"}, {"value", ServerAddress}]},
 			{struct, [{"name", "serverPort"}, {"value", ServerPort}]},
-			{struct, [{"name", "userLocationInfo"}, {"value", base64:encode_to_string(Loca)}]},
 			{struct, [{"name", "type"},
 					{"value", atom_to_list(element(6, Event))}]}],
 	AttributeChars = usage_characteristics(element(7, Event)),
@@ -1974,10 +1969,10 @@ spec_attr_total_octets() ->
 %% @hidden
 spec_attr_user_location() ->
 	Name = {"name", "userLocationInfo"},
-	Desc = {"description", "3GPP-User-Location-Info"},
+	Desc = {"description", "3GPP-User-Location-Info attribute"},
 	Conf = {"configurable", true},
-	Typ = {"valueType", "String"},
-	Value1 = {struct, [Typ]},
+	Type = {"valueType", "String"},
+	Value1 = {struct, [Type]},
 	Value = {"usageSpecCharacteristicValue", {array, [Value1]}},
 	{struct, [Name, Desc, Conf, Value]}.
 
@@ -2648,8 +2643,8 @@ char_attr_cause(#'3gpp_ro_CCR'{'Service-Information'
 		= [Cause]}]}]}, Acc) ->
 	[{struct, [{"name", "acctTerminateCause"},
 			{"value", integer_to_list(Cause)}]} | Acc];
-char_attr_cause(#'3gpp_ro_CCR'{}, Acc) ->
-	Acc;
+char_attr_cause(#'3gpp_ro_CCR'{} = CCR, Acc) ->
+	char_attr_user_location(CCR, Acc);
 char_attr_cause(Attributes, Acc) ->
 	case radius_attributes:find(?AcctTerminateCause, Attributes) of
 		{ok, Value} ->
@@ -2693,10 +2688,21 @@ char_attr_cause(Attributes, Acc) ->
 				N ->
 					N
 			end,
-			[{struct, [{"name", "acctTerminateCause"}, {"value", Cause}]} | Acc];
+			NewAcc = [{struct, [{"name", "acctTerminateCause"}, {"value", Cause}]} | Acc],
+			char_attr_user_location(Attributes, NewAcc);
 		{error, not_found} ->
-			Acc
+			char_attr_user_location(Attributes, Acc)
 	end.
+
+%% @hidden
+char_attr_user_location(#'3gpp_ro_CCR'{'Service-Information'
+		= [#'3gpp_ro_Service-Information'{'PS-Information'
+		= [#'3gpp_ro_PS-Information'{'3GPP-User-Location-Info'
+		= [Info]}]}]} = CCR, Acc) when is_binary(Info) ->
+	[{struct, [{"name", "userLocationInfo"},
+			{"value", base64:encode_to_string(Info)}]} | Acc];
+char_attr_user_location(_, Acc) ->
+	Acc.
 
 %% @hidden
 query_start(Type, Id, Query, Filters, RangeStart, RangeEnd) ->
