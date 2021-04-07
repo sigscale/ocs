@@ -1,4 +1,9 @@
-2021-04-06  Refath Wadood <refath@sigscale.org>
+2021-04-07  Refath Wadood <refath@sigscale.org>
+
+	* use incremental match variable in imsi/msisdn filters
+	* use correct service context id
+
+2021-04-07  Refath Wadood <refath@sigscale.org>
 
 	* add more specification for accounting log
 	* correct user location info charateristic codec
