@@ -1,3 +1,9 @@
+2021-04-12  Refath Wadood <refath@sigscale.org>
+
+	* correct accumulator handling; remove unnecessary code
+	* set nrf path correctly; use smaller values
+	* include ocs_re_interface_SUITE in test spec
+
 2021-04-07  Refath Wadood <refath@sigscale.org>
 
 	* use incremental match variable in imsi/msisdn filters
