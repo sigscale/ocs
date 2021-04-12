@@ -47,7 +47,8 @@
 %%
 suite() ->
 	[{userdata, [{doc, "Test suite for public API in OCS"}]},
-	{require, radius_shared_secret}, {default_config, radius_shared_secret, "abc345"},
+	{require, radius},
+	{default_config, radius, [{secret, "abc345"}]},
 	{timetrap, {minutes, 1}}].
 
 -spec init_per_suite(Config :: [tuple()]) -> Config :: [tuple()].
@@ -108,7 +109,7 @@ all() ->
 client() ->
 	[{userdata, [{doc, "Add client to database"}]}].
 
-client(Config) ->
+client(_Config) ->
 	{ok, [{auth, AuthInstance}, {acct, _AcctInstance}]} = application:get_env(ocs, radius),
 	Address = case AuthInstance of
 		[{{0, 0, 0, 0}, _, _}] ->
@@ -116,7 +117,7 @@ client(Config) ->
 		[{Addr, _, _}] ->
 			Addr
 	end,
-	SharedSecret = ct:get_config(radius_shared_secret, Config),
+	SharedSecret = ct:get_config({radius, secret}),
 	Protocol = ct:get_config(protocol),
 	{ok, _} = ocs:add_client(Address, 3799, Protocol, SharedSecret, true),
 	{ok, #client{port = 3799, protocol = Protocol,
@@ -164,7 +165,7 @@ update_client_password(_Config) ->
 delete_client() ->
 	[{userdata, [{doc, "Delete  a client from database"}]}].
 
-delete_client(Config) ->
+delete_client(_Config) ->
 	{ok, [{auth, AuthInstance}, {acct, _AcctInstance}]} = application:get_env(ocs, radius),
 	Address = case AuthInstance of
 		[{{0, 0, 0, 0}, _, _}] ->
@@ -172,7 +173,7 @@ delete_client(Config) ->
 		[{Addr, _, _}] ->
 			Addr
 	end,
-	SharedSecret = ct:get_config(radius_shared_secret, Config),
+	SharedSecret = ct:get_config({radius, secret}),
 	Protocol = ct:get_config(protocol),
 	{ok, _} = ocs:add_client(Address, 3799, Protocol, SharedSecret, true),
 	ok = ocs:delete_client(Address),

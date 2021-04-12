@@ -80,7 +80,9 @@
 suite() ->
 	[{userdata, [{doc, "Test suite for authentication with EAP-TTLS in OCS."}]},
 	{timetrap, {seconds, 8}},
-	{require, radius_shared_secret},{default_config, radius_shared_secret, "xyzzy5461"}].
+	{require, radius},
+	{default_config, radius, [{username, "ocs"},
+			{password, "ocs123"}, {secret, "xyzzy5461"}]}].
 
 -spec init_per_suite(Config :: [tuple()]) -> Config :: [tuple()].
 %% Initialization before the whole suite.
@@ -88,27 +90,26 @@ suite() ->
 init_per_suite(Config) ->
 	ok = ocs_test_lib:initialize_db(),
 	ok = ocs_test_lib:load(ocs),
-	Address = {127,0,0,1},
-	RadiusPort = rand:uniform(64511) + 1024,
+	RadiusAddress = ct:get_config({radius, address}, {127,0,0,1}),
+	RadiusAuthPort = ct:get_config({radius, auth_port}, rand:uniform(64511) + 1024),
 	Options = [{eap_method_prefer, ttls}, {eap_method_order, [ttls]}],
-	RadiusAppVar = [{auth, [{Address, RadiusPort, Options}]}],
+	RadiusAppVar = [{auth, [{RadiusAddress, RadiusAuthPort, Options}]}],
 	ok = application:set_env(ocs, radius, RadiusAppVar),
-	DiameterPort = rand:uniform(64511) + 1024,
-	DiameterAppVar = [{auth, [{Address, DiameterPort, Options}]}],
+	DiameterAddress = ct:get_config({diameter, address}, {127,0,0,1}),
+	DiameterAuthPort = ct:get_config({diameter, auth_port}, rand:uniform(64511) + 1024),
+	DiameterAppVar = [{auth, [{DiameterAddress, DiameterAuthPort, Options}]}],
 	ok = application:set_env(ocs, diameter, DiameterAppVar),
 	ok = ocs_test_lib:start(),
-	{ok, ProdID} = ocs_test_lib:add_offer(),
 	Protocol = ct:get_config(protocol),
-	SharedSecret = ct:get_config(radius_shared_secret),
-	{ok, _} = ocs:add_client(Address, 3799, Protocol, SharedSecret, true),
-	Host = atom_to_list(?MODULE),
-	Realm = "ttls.sigscale.org",
+	SharedSecret = ct:get_config({radius, secret}),
+	{ok, _} = ocs:add_client(RadiusAddress, 3799, Protocol, SharedSecret, true),
 	NasId = atom_to_list(node()),
-	Config1 = [{host, Host}, {realm, Realm}, {nas_id, NasId},
-			{product_id, ProdID} | Config],
+	Realm = ct:get_config({diameter, realm}, "mnc001.mcc001.3gppnetwork.org"),
+	Host = ct:get_config({diameter, host}, atom_to_list(?MODULE) ++ "." ++ Realm),
+	Config1 = [{host, Host}, {realm, Realm}, {nas_id, NasId} | Config],
 	ok = diameter:start_service(?MODULE, client_service_opts(Config1)),
 	true = diameter:subscribe(?MODULE),
-	{ok, _Ref} = connect(?MODULE, Address, DiameterPort, diameter_tcp),
+	{ok, _Ref} = connect(?MODULE, DiameterAddress, DiameterAuthPort, diameter_tcp),
 	receive
 		#diameter_event{service = ?MODULE, info = Info}
 				when element(1, Info) == up ->
@@ -182,8 +183,8 @@ eap_ttls_authentication_radius(Config) ->
 	{ok, RadiusConfig} = application:get_env(ocs, radius),
 	{auth, [{Address, Port, _} | _]} = lists:keyfind(auth, 1, RadiusConfig),
 	NasId = ?config(nas_id, Config),
-	UserName = ct:get_config(radius_username),
-	Secret = ct:get_config(radius_shared_secret),
+	UserName = ct:get_config({radius, username}),
+	Secret = ct:get_config({radius, secret}),
 	ReqAuth1 = radius:authenticator(),
 	RadId1 = 8, EapId1 = 1,
 	ok = send_identity_radius(Socket, Address, Port, NasId, AnonymousName,
