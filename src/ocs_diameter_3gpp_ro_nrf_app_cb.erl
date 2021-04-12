@@ -30,6 +30,7 @@
 			prepare_retransmit/3, handle_answer/4, handle_error/4,
 			handle_request/3]).
 -export([content_types_accepted/0, content_types_provided/0]).
+-export([build_container/1]).
 
 -include_lib("diameter/include/diameter.hrl").
 -include_lib("diameter/include/diameter_gen_base_rfc6733.hrl").
@@ -559,10 +560,13 @@ get_ref(SessionId) ->
 		Container :: [#'3gpp_ro_Multiple-Services-Credit-Control'{}],
 		Result :: [#'3gpp_ro_Multiple-Services-Credit-Control'{}].
 %% @doc Build a list of CCA MSCCs
-build_mscc([H | T], Container) ->
+build_mscc(ServiceRating, Container) ->
+	build_mscc(ServiceRating, [], Container).
+%% @hidden
+build_mscc([H | T], Acc, Container) ->
 	F = fun F(#{"serviceId" := SI, "ratingGroup" := RG, "resultCode" := RC} = ServiceRating,
 			[#'3gpp_ro_Multiple-Services-Credit-Control'
-					{'Service-Identifier' = [SI], 'Rating-Group' = [RG]} = MSCC1 | _] = Container1) ->
+					{'Service-Identifier' = [SI], 'Rating-Group' = [RG]} = MSCC1 | _]) ->
 		MSCC2 = case catch maps:get("grantedUnit", ServiceRating) of
 			#'3gpp_ro_Granted-Service-Unit'{} = GrantedUnits ->
 				MSCC1#'3gpp_ro_Multiple-Services-Credit-Control'{'Granted-Service-Unit' = [GrantedUnits]};
@@ -579,7 +583,7 @@ build_mscc([H | T], Container) ->
 		[MSCC4];
 	F(#{"serviceId" := SI, "resultCode" := RC } = ServiceRating,
 			[#'3gpp_ro_Multiple-Services-Credit-Control'
-					{'Service-Identifier' = [SI], 'Rating-Group' = []} = MSCC1 | _] = Container1) ->
+					{'Service-Identifier' = [SI], 'Rating-Group' = []} = MSCC1 | _]) ->
 		MSCC2 = case catch maps:get("grantedUnit", ServiceRating) of
 			#'3gpp_ro_Granted-Service-Unit'{} = GrantedUnits ->
 				MSCC1#'3gpp_ro_Multiple-Services-Credit-Control'{'Granted-Service-Unit' = [GrantedUnits]};
@@ -596,7 +600,7 @@ build_mscc([H | T], Container) ->
 		[MSCC4];
 	F(#{"ratingGroup" := RG, "resultCode" := RC} = ServiceRating,
 			[#'3gpp_ro_Multiple-Services-Credit-Control'
-					{'Service-Identifier' = [], 'Rating-Group' = [RG]} = MSCC1 | _] = Container1) ->
+					{'Service-Identifier' = [], 'Rating-Group' = [RG]} = MSCC1 | _]) ->
 		MSCC2 = case catch maps:get("grantedUnit", ServiceRating) of
 			#'3gpp_ro_Granted-Service-Unit'{} = GrantedUnits ->
 				MSCC1#'3gpp_ro_Multiple-Services-Credit-Control'{'Granted-Service-Unit' = [GrantedUnits]};
@@ -614,10 +618,10 @@ build_mscc([H | T], Container) ->
 	F(ServiceRating, [_H | T1]) ->
 		F(ServiceRating, T1)
 	end,
-	NewContainer = F(H, Container),
-	build_mscc(T, NewContainer);
-build_mscc([], Container) ->
-	Container.
+	NewMSCC = F(H, Container),
+	build_mscc(T, [NewMSCC | Acc], Container);
+build_mscc([], Acc, _Container) ->
+	lists:reverse(Acc).
 
 -spec map_service_rating(ServiceRating, SessionId) -> Result
 	when
@@ -788,22 +792,6 @@ diameter_error1(SessionId, ResultCode, OHost, ORealm, RequestType, RequestNum) -
 			'Origin-Host' = OHost, 'Origin-Realm' = ORealm,
 			'Auth-Application-Id' = ?RO_APPLICATION_ID, 'CC-Request-Type' = RequestType,
 			'CC-Request-Number' = RequestNum}.
-
-%% @hidden
-service_type(Id) ->
-	% allow ".3gpp.org" or the proper "@3gpp.org"
-	case binary:part(Id, size(Id), -8) of
-		<<"3gpp.org">> ->
-			ServiceContext = binary:part(Id, byte_size(Id) - 14, 5),
-			case catch binary_to_integer(ServiceContext) of
-				{'EXIT', _} ->
-					undefined;
-				SeviceType ->
-					SeviceType
-			end;
-		_ ->
-			undefined
-	end.
 
 -spec initial_service_rating(MSCC, ServiceContextId, ServiceInformation) -> ServiceRating
 	when
