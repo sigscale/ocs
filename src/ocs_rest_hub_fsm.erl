@@ -454,9 +454,9 @@ event_type(Type) ->
 		delete_offer ->
 			"ProductOfferingRemoveNotification";
 		insert_gtt ->
-			"LogicalResourceCreationNotification";
+			"ResourceCreationNotification";
 		delete_gtt ->
-			"LogicalResourceRemoveNotification";
+			"ResourceRemoveNotification";
 		create_resource ->
 			"ResourceCreationNotification";
 		delete_resource ->

@@ -4027,7 +4027,7 @@ get_inventory_hub(Config) ->
 	{_, Href} = lists:keyfind("href", 1, HubList).
 
 notify_insert_gtt() ->
-	[{userdata, [{doc, "Receive logical resource creation notification."}]}].
+	[{userdata, [{doc, "Receive resource creation notification."}]}].
 
 notify_insert_gtt(Config) ->
 	HostUrl = ?config(host_url, Config),
@@ -4051,14 +4051,14 @@ notify_insert_gtt(Config) ->
 	receive
 		Input ->
 			{struct, GttEvent} = mochijson:decode(Input),
-			{_, "LogicalResourceCreationNotification"}
+			{_, "ResourceCreationNotification"}
 					= lists:keyfind("eventType", 1, GttEvent),
 			{_, {struct, GttList}} = lists:keyfind("event", 1, GttEvent),
 			{_, Prefix} = lists:keyfind("id", 1, GttList)
 	end.
 
 notify_delete_gtt() ->
-	[{userdata, [{doc, "Receive logical resource deletion notification."}]}].
+	[{userdata, [{doc, "Receive resource deletion notification."}]}].
 
 notify_delete_gtt(Config) ->
 	HostUrl = ?config(host_url, Config),
@@ -4082,7 +4082,7 @@ notify_delete_gtt(Config) ->
 	receive
 		Receive1 ->
 			{struct, GttEvent1} = mochijson:decode(Receive1),
-			{_, "LogicalResourceCreationNotification"}
+			{_, "ResourceCreationNotification"}
 					= lists:keyfind("eventType", 1, GttEvent1),
 			{_, {struct, GttList1}} = lists:keyfind("event", 1, GttEvent1),
 			{_, Prefix} = lists:keyfind("id", 1, GttList1)
@@ -4091,7 +4091,7 @@ notify_delete_gtt(Config) ->
 	receive
 		Receive2 ->
 			{struct, GttEvent2} = mochijson:decode(Receive2),
-			{_, "LogicalResourceRemoveNotification"}
+			{_, "ResourceRemoveNotification"}
 					= lists:keyfind("eventType", 1, GttEvent2),
 			{_, {struct, GttList2}} = lists:keyfind("event", 1, GttEvent2),
 			{_, Prefix} = lists:keyfind("id", 1, GttList2)
@@ -4108,7 +4108,7 @@ query_gtt_notification(Config) ->
 	Callback = ListenerServer ++ "/listener/"
 			++ atom_to_list(?MODULE) ++ "/querygttnotification",
 	Prefix = "1519240",
-	Query = "eventType=LogicalResourceRemoveNotification&id=" ++ Prefix,
+	Query = "eventType=ResourceRemoveNotification&id=" ++ Prefix,
 	RequestBody = "{\n"
 			++ "\t\"callback\": \"" ++ Callback ++ "\",\n"
 			++ "\t\"query\": \"" ++ Query ++ "\"\n"
@@ -4125,7 +4125,7 @@ query_gtt_notification(Config) ->
 	receive
 		Receive ->
 			{struct, GttEvent} = mochijson:decode(Receive),
-			{_, "LogicalResourceRemoveNotification"}
+			{_, "ResourceRemoveNotification"}
 					= lists:keyfind("eventType", 1, GttEvent),
 			{_, {struct, GttList}} = lists:keyfind("event", 1, GttEvent),
 			{_, Prefix} = lists:keyfind("id", 1, GttList)

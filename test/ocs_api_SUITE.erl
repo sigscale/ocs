@@ -700,7 +700,7 @@ delete_offer_event(_Config) ->
 	end.
 
 gtt_insert_event() ->
-	[{userdata, [{doc, "Event received on inserting logical resource"}]}].
+	[{userdata, [{doc, "Event received on inserting resource"}]}].
 
 gtt_insert_event(_Config) ->
 	ok = gen_event:add_handler(ocs_event, test_event, [self()]),
@@ -715,7 +715,7 @@ gtt_insert_event(_Config) ->
 	end.
 
 gtt_delete_event() ->
-	[{userdata, [{doc, "Event received on deleting logical resource"}]}].
+	[{userdata, [{doc, "Event received on deleting resource"}]}].
 
 gtt_delete_event(_Config) ->
 	ok = gen_event:add_handler(ocs_event, test_event, [self()]),

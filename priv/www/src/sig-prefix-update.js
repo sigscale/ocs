@@ -145,7 +145,7 @@ class tableUpdate extends PolymerElement {
 		Ajax.contentType = "application/json-patch+json";
 		var Table = document.body.querySelector('sig-app').shadowRoot.getElementById('prefixList').table;
 		var Id = this.upPrefix;
-		Ajax.url = "/resourceInventoryManagement/v1/logicalResource/" + Table + "/" + Id;
+		Ajax.url = "/resourceInventoryManagement/v1/resource/" + Table + "/" + Id;
 		var ResArray = new Array();
 		var Desc = new Object(); 
 		Desc.op = "add";
@@ -179,7 +179,7 @@ class tableUpdate extends PolymerElement {
 		var Table = document.body.querySelector('sig-app').shadowRoot.getElementById('prefixList').table;
 		var Id = this.upPrefix;
 		this.$.deleteTableRowAjax.method = "DELETE";
-		this.$.deleteTableRowAjax.url = "/resourceInventoryManagement/v1/logicalResource/"
+		this.$.deleteTableRowAjax.url = "/resourceInventoryManagement/v1/resource/"
 				+ Table + "/" + Id;
 		this.$.deleteTableRowAjax.generateRequest();
 	}
