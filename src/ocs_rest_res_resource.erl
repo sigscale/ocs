@@ -43,7 +43,7 @@
 -define(candidatePath, "/resourceCatalogManagement/v2/resourceCandidate/").
 -define(catalogPath, "/resourceCatalogManagement/v2/resourceCatalog/").
 -define(categoryPath, "/resourceCatalogManagement/v2/resourceCategory/").
--define(inventoryPath, "/resourceInventoryManagement/v1/logicalResource/").
+-define(inventoryPath, "/resourceInventoryManagement/v1/resource/").
 -define(plaPath, "/resourceInventoryManagement/v2/pla/").
 -define(plaSpecPath, "/resourceCatalogManagement/v2/plaSpecification/").
 
@@ -208,8 +208,8 @@ get_resource_catalogs(_Query) ->
 	Headers  :: [tuple()],
 	Body     :: iolist(),
 	Status   :: 400 | 404 | 500.
-%% @doc Respond to `GET /resourceInventoryManagement/v1/logicalResource/{id}'.
-%%    Retrieve all logical resource from inventory management.
+%% @doc Respond to `GET /resourceInventoryManagement/v1/resource/{id}'.
+%%    Retrieve resource from inventory.
 get_resource_inventory(Id, [] = _Query) ->
 	try
 		Name = list_to_existing_atom(Id),
@@ -244,8 +244,8 @@ get_resource_inventory1(_, [], Acc) ->
 	Body     :: iolist(),
 	Status   :: 400 | 500 .
 %% @doc Respond to
-%% 	`POST /resourceInventoryManagement/v1/logicalResource/{table}'.
-%%    Add a new row in logical resource inventory management.
+%% 	`POST /resourceInventoryManagement/v1/resource/{table}'.
+%%    Add a new row in resource inventory.
 add_resource_inventory(Table, ReqData) ->
 	try
 		{P, D, R} = gtt(Table, mochijson:decode(ReqData)),
@@ -286,7 +286,7 @@ add_resource_inventory(Table, ReqData) ->
 		Headers	:: [tuple()],
 		Body		:: iolist(),
 		Status	:: 400 | 404 | 500 .
-%% @doc Respond to `PATCH /resourceInventoryManagement/v1/logicalResource/{table}/{id}'.
+%% @doc Respond to `PATCH /resourceInventoryManagement/v1/resource/{table}/{id}'.
 %% 	Update a table row using JSON patch method.
 patch_resource_inventory(Table, Id, _Etag, ReqData) ->
 	try
@@ -327,7 +327,7 @@ patch_resource_inventory(Table, Id, _Etag, ReqData) ->
       Id :: string(),
       Result :: {ok, Headers :: [tuple()], Body :: iolist()}
             | {error, ErrorCode :: integer()} .
-%% @doc Respond to `DELETE /resourceInventoryManagement/v1/logicalResource/{table}/{id}''
+%% @doc Respond to `DELETE /resourceInventoryManagement/v1/resource/{table}/{id}''
 %%    request to remove a table row.
 delete_resource_inventory(Table, Id) ->
 	try
@@ -351,7 +351,7 @@ delete_resource_inventory(Table, Id) ->
 		Body     :: iolist(),
 		Status   :: 400 | 404 | 500.
 %% @doc Respond to `GET /resourceInventoryManagement/v1/resource/{id}'.
-%%    Retrieve all logical resource from inventory management.
+%%    Retrieve resource from inventory management.
 get_resource(Id) ->
 	try
 		case ocs:get_resource(Id) of
@@ -514,7 +514,7 @@ query_start({M, F, A}, Codec, Query, Filters, RangeStart, RangeEnd) ->
 		Status   :: 400 | 500 .
 %% @doc Respond to
 %% 	`POST /resourceInventoryManagement/v1/resource'.
-%%    Add a new row in resource inventory management.
+%%    Add a new resource in inventory.
 add_resource(RequestBody) ->
 	try
 		Resource1 = resource(mochijson:decode(RequestBody)),
@@ -673,10 +673,10 @@ policy_table_spec() ->
 	Id = {"id", "3"},
 	Href = {"href", ?specPath "3"},
 	Name = {"name", "PolicyTable"},
-	Description = {"description", "Rating policy table"},
+	Description = {"description", "Policy table"},
 	Status = {"lifecycleStatus", "Active"},
 	Version = {"version", "1.0"},
-	LastUpdate = {"lastUpdate", "2021-01-15"},
+	LastUpdate = {"lastUpdate", "2021-04-13"},
 	Category = {"category", "PolicyTable"},
 	{struct, [Id, Href, Name, Description, Version, Status,
 			LastUpdate, Category]}.
