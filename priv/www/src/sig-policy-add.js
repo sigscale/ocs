@@ -62,7 +62,7 @@ class policyAdd extends PolymerElement {
 						</paper-input>
 						<paper-input
 							id="chargeRule"
-							label="chargingRule"
+							label="chargingKey"
 							value="{{polCha}}">
 						</paper-input>
 						<paper-input
@@ -74,16 +74,6 @@ class policyAdd extends PolymerElement {
 							id="flowDescription"
 							label="flowDescription"
 							value="{{flowDiscUp}}">
-						</paper-input>
-						<paper-input
-							id="flowDown"
-							label="flowDirection"
-							value="{{flowDown}}">
-						</paper-input>
-						<paper-input
-							id="flowDescription"
-							label="flowDescription"
-							value="{{flowDiscDown}}">
 						</paper-input>
 						<paper-input
 							id="precedence"
@@ -209,48 +199,33 @@ class policyAdd extends PolymerElement {
 		var charaArr = new Array();
 		var nameObj = new Object();
 		nameObj.name = "name";
-		var nameObjValue = new Object();
-		nameObjValue.seqNum = 1;
-		nameObjValue.value = this.polName
-		nameObj.value = nameObjValue;
+		nameObj.minCardinality = 1;
+		nameObj.value = this.polName;
 		var nameQOS = new Object();
 		nameQOS.name = "qosInformation";
+		nameQOS.minCardinality = 0;
 		var nameQOSValue = new Object(); 
-		nameQOSValue.seqNum = 2;
-		var nameQOSValue1 = new Object();
-		nameQOSValue1.maxRequestedBandwidthDL = this.charDL;
-		nameQOSValue1.maxRequestedBandwidthUL = this.charUL;
-		nameQOSValue1.qosClassIdentifier = this.charClassId;
-		nameQOSValue.value = nameQOSValue1;
+		nameQOSValue.maxRequestedBandwidthDL = parseInt(this.charDL);
+		nameQOSValue.maxRequestedBandwidthUL = parseInt(this.charUL);
+		nameQOSValue.qosClassIdentifier = parseInt(this.charClassId);
 		nameQOS.value = nameQOSValue;
 		var nameChRule = new Object();
-		nameChRule.name = "chargingRule";
-		var nameChRuleValue = new Object();
-		nameChRuleValue.seqNum = 3;
-		nameChRuleValue.value = this.polCha;
-		nameChRule.value = nameChRuleValue;
+		nameChRule.name = "chargingKey";
+		nameChRule.minCardinality = 1;
+		nameChRule.value = parseInt(this.polCha);
 		var nameFlow = new Object();
 		nameFlow.name = "flowInformation";
-		var nameFlowVal = new Object();
-		nameFlowVal.seqNum = 4;
+		nameFlow.minCardinality = 1;
 		var nameFloArr = new Array();
 		var nameFloObj = new Object();
-		nameFloObj.name = "flowInformationUp1";
 		nameFloObj.flowDirection = this.flowUp;
 		nameFloObj.flowDescription = this.flowDiscUp;
-		var nameFloObj1 = new Object();
-		nameFloObj1.name = "flowInformationDown1";
-		nameFloObj1.flowDirection = this.flowDown;
-		nameFloObj1.flowDescription = this.flowDiscDown;
-		nameFloArr.push(nameFloObj, nameFloObj1);
-		nameFlowVal.value = nameFloArr;
-		nameFlow.value = nameFlowVal;
+		nameFloArr.push(nameFloObj);
+		nameFlow.value = nameFloArr;
 		var namePre = new Object();
 		namePre.name = "precedence";
-		var namePreValue = new Object();
-		namePreValue.seqNum = 5;
-		namePreValue.value = this.prece;
-		namePre.value = namePreValue;
+		namePre.minCardinality = 1;
+		namePre.value = parseInt(this.prece);
 		charaArr.push(nameObj, nameQOS, nameChRule, nameFlow, namePre);
 		pol.resourceCharacteristic = charaArr;
 
