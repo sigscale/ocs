@@ -240,7 +240,6 @@
 		{name :: string() | undefined | '_',
 		class_type :: string() | undefined | '_',
 		schema :: string() | undefined | '_',
-		min :: integer() | undefined | '_',
 		value :: term() | undefined | '_'}).
 -type resource_char() :: #resource_char{}.
 
