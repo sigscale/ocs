@@ -1078,8 +1078,6 @@ resource_char([{"value", Value} | T], #resource_char{name = "serviceId"} = Acc)
 	resource_char(T, Acc#resource_char{value = Value});
 resource_char([{"value", Value} | T], Acc) when is_list(Value) ->
 	resource_char(T, Acc#resource_char{value = Value});
-resource_char([{"minCardinality", Value} | T], Acc) when is_integer(Value) ->
-	resource_char(T, Acc#resource_char{min = Value});
 resource_char([], Acc) ->
 	Acc.
 %% @hidden
