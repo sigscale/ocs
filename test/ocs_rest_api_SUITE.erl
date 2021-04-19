@@ -4424,7 +4424,8 @@ get_tariff_resource(Config) ->
 	{_, "tariff spec"} = lists:keyfind("name", 1, SpecList),
 	{_, {array, [{struct, RelList}]}}
 			= lists:keyfind("resourceRelationship", 1, Object),
-	{_, "example"} = lists:keyfind("name", 1, RelList),
+	{_, {struct, ObjList}} = lists:keyfind("resource", 1, RelList),
+	{_, "example"} = lists:keyfind("name", 1, ObjList),
 	{_, {array, CharList}} = lists:keyfind("resourceCharacteristic", 1, Object),
 	3 = length(CharList).
 
@@ -4489,10 +4490,12 @@ post_tariff_resource(Config) ->
 			++ "\t\t},\n"
 			++ "\t\"resourceRelationship\": [\n"
 			++ "\t\t{\n"
-			++ "\t\t\t\"id\": \"" ++ ResourceRelId ++ "\",\n"
-			++ "\t\t\t\"href\": \"" ++ ResourceRelHref ++ "\",\n"
-			++ "\t\t\t\"@referredType\": \"contained\",\n"
-			++ "\t\t\t\"name\": \"example\"\n"
+			++ "\t\t\t\"resource\": {\n"
+			++ "\t\t\t\t\"id\": \"" ++ ResourceRelId ++ "\",\n"
+			++ "\t\t\t\t\"href\": \"" ++ ResourceRelHref ++ "\",\n"
+			++ "\t\t\t\t\"name\": \"example\"\n"
+			++ "\t\t\t\t},\n"
+			++ "\t\t\t\"relationshipType\": \"contained\"\n"
 			++ "\t\t}\n"
 			++ "\t],\n"
 			++ "\t\"resourceCharacteristic\": [\n"
@@ -4528,7 +4531,7 @@ post_tariff_resource(Config) ->
 	#specification_ref{id = ResSpecId, href = ResSpecHref,
 			name = ResSpecName} = S,
 	#resource_rel{id = ResourceRelId, href = ResourceRelHref,
-			referred_type = "contained", name = "example"} = R,
+			type = "contained", name = "example"} = R,
 	#resource_char{name = "prefix", value = CharPrefix}
 			= lists:keyfind("prefix", #resource_char.name, CharList),
 	#resource_char{name = "description", value = CharDes}
@@ -4710,7 +4713,8 @@ query_policy_resource(Config) ->
 	{_, "4"} = lists:keyfind("id", 1, SpecList),
 	{_, {array, [{struct, RelList}]}}
 			= lists:keyfind("resourceRelationship", 1, Object),
-	{_, "PolicyTable"} = lists:keyfind("name", 1, RelList).
+	{_, {struct, ObjList}} = lists:keyfind("resource", 1, RelList),
+	{_, "PolicyTable"} = lists:keyfind("name", 1, ObjList).
 
 oauth_authenticaton()->
 	[{userdata, [{doc, "Authenticate a JWT using oauth"}]}].
@@ -5276,7 +5280,7 @@ fill_related(N, Acc) ->
 	Id = random_string(10),
 	Href = "/resourceInventoryManagement/v1/resourceRelationship/" ++ Id,
 	Related = #resource_rel{id = Id, href = Href,
-			referred_type = "contained", name = "example-" ++ Id},
+			type = "contained", name = "example-" ++ Id},
 	fill_related(N - 1, [Related | Acc]).
 
 %% @hidden
@@ -5316,10 +5320,10 @@ resource_inventory() ->
 			{struct, [ResSpecID, ResSpecName, ResSpecHref]}},
 	ResRelId = {"id", RelId = random_string(5)},
 	ResRelName = {"name", "example"},
-	ResRelType = {"type", "contained"},
-	ResRelHref = {"name", "/resourceInventoryManagement/v1/resource/"
-			++ RelId},
-	ResRel = {struct, [ResRelId, ResRelName, ResRelType, ResRelHref]},
+	ResRelType = {"relationshipType", "contained"},
+	ResRelHref = {"name", "/resourceInventoryManagement/v1/resource/" ++ RelId},
+	ResRel = {struct, [{resource, {struct, [ResRelId, ResRelName, ResRelHref]}},
+			ResRelType]},
 	ResourceRelationship = {"resourceRelationship", {array, [ResRel]}},
 	ResChar1 = {struct, [{"name", "prefix"}, {"value", "125"}]},
 	ResChar2 = {struct, [{"name", "description"}, {"value", "testing"}]},
