@@ -470,6 +470,22 @@
         },
         "resourceRelationship": {
           "$ref": "#/definitions/ResourceRelationship"
+        },
+        "resourceSpecification": {
+          "$ref": "#/definitions/ResourceSpecification"
+        }
+      }
+    },
+    "ResourceSpecification": {
+      "type": "object",
+      "properties": {
+        "name": {
+          "type": "string",
+          "description": "Name of the resource specification."
+        },
+        "id": {
+          "type": "string",
+          "description": "Id of the resource specification."
         }
       }
     },
@@ -483,22 +499,12 @@
       "type": "object",
       "properties": {
         "name": {
-          "type": "string",
+          "type": "object",
           "description": "Name of the characteristic."
         },
-        "description": {
+        "value": {
           "type": "string",
-          "description": "description of the characteristic."
-        },
-        "valueType": {
-          "type": "string",
-          "description": "value type of the characteristic."
-        },
-        "resourceSpecCharacteristicValue": {
-          "type": "array",
-          "items": {
-            "$ref": "#/definitions/ResourceSpecCharacteristicValue"
-          }
+          "description": "Value of the characteristic."
         }
       }
     },
