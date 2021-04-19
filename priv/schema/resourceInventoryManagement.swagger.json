@@ -474,6 +474,13 @@
       }
     },
     "ResourceCharacteristic": {
+      "type": "array",
+      "items": {
+        "$ref": "#/definitions/ResourceCharacteristicValue"
+      }
+    },
+    "ResourceCharacteristicValue": {
+      "type": "object",
       "properties": {
         "name": {
           "type": "string",
@@ -488,11 +495,20 @@
           "description": "value type of the characteristic."
         },
         "resourceSpecCharacteristicValue": {
-          "$ref": "#/definitions/ResourceSpecCharacteristicValue"
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/ResourceSpecCharacteristicValue"
+          }
         }
       }
     },
     "ResourceRelationship": {
+      "type": "array",
+      "items": {
+        "$ref": "#/definitions/ResourceRelationshipValue"
+      }
+    },
+    "ResourceRelationshipValue": {
       "type": "object",
       "properties": {
         "resource": {
