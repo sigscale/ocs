@@ -580,7 +580,7 @@ build_mscc([H | T], Acc, Container) ->
 				MSCC2
 		end,
 		MSCC4 = MSCC3#'3gpp_ro_Multiple-Services-Credit-Control'{'Result-Code' = [RC]},
-		[MSCC4];
+		MSCC4;
 	F(#{"serviceId" := SI, "resultCode" := RC } = ServiceRating,
 			[#'3gpp_ro_Multiple-Services-Credit-Control'
 					{'Service-Identifier' = [SI], 'Rating-Group' = []} = MSCC1 | _]) ->
@@ -597,7 +597,7 @@ build_mscc([H | T], Acc, Container) ->
 				MSCC2
 		end,
 		MSCC4 = MSCC3#'3gpp_ro_Multiple-Services-Credit-Control'{'Result-Code' = [RC]},
-		[MSCC4];
+		MSCC4;
 	F(#{"ratingGroup" := RG, "resultCode" := RC} = ServiceRating,
 			[#'3gpp_ro_Multiple-Services-Credit-Control'
 					{'Service-Identifier' = [], 'Rating-Group' = [RG]} = MSCC1 | _]) ->
@@ -614,7 +614,7 @@ build_mscc([H | T], Acc, Container) ->
 				MSCC2
 		end,
 		MSCC4 = MSCC3#'3gpp_ro_Multiple-Services-Credit-Control'{'Result-Code' = [RC]},
-		[MSCC4];
+		MSCC4;
 	F(ServiceRating, [_H | T1]) ->
 		F(ServiceRating, T1)
 	end,
