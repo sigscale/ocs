@@ -58,7 +58,7 @@ class policyList extends PolymerElement {
 										id="addPolId"
 										name="id"
 										label="Id"
-										value={{item.id}}
+										value="{{polId}}"
 										disabled>
 									</paper-input>
 								</template>
@@ -67,67 +67,75 @@ class policyList extends PolymerElement {
 										id="addPolName"
 										name="name"
 										label="Name"
-										value={{item.name}}>
+										value="{{polName}}">
 									</paper-input>
 								</template>
-								<template is="dom-if" if="{{item.resourceCharacteristic}}">
+								<template is="dom-if" if="{{item.precedence}}">
 									<paper-input
 										id="addPolPre"
 										name="precedence"
 										label="Precedence"
-										value={{item.precedence}}>
+										value="{{item.precedence}}">
 									</paper-input>
 								</template>
-								<template is="dom-if" if="{{item.resourceCharacteristic}}">
+								<template is="dom-if" if="{{item.chargingKey}}">
 									<paper-input
 										id="addPolCha"
 										name="chargingKey"
 										label="Charging Key"
-										value={{item.chargingKey}}>
-								</paper-input>
+										value="{{item.chargingKey}}">
+									</paper-input>
+								</template>
+								<template is="dom-if" if="{{item.serviceId}}">
+									<paper-input
+										id="addPolSer"
+										name="serviceId"
+										label="Service Id"
+										value="{{item.serviceId}}">
+									</paper-input>
 								</template>
 							</dl>
 						</div>
 						<div>
-							<template is="dom-if" if="{{item.resourceCharacteristic}}">
+							<template is="dom-if" if="{{item.maxRequestedBandwidthDL}}">
 										<paper-input
 											id="addPolDL"
 											name="maxRequestedBandwidthDL"
 											label="Max Requested Bandwidth DL"
-											value={{item.maxRequestedBandwidthDL}}>
+											value="{{item.maxRequestedBandwidthDL}}">
 										</paper-input>
 										<paper-input
 											id="addPolUL"
 											name="maxRequestedBandwidthUL"
 											label="Max Requested Bandwidth UL"
-											value={{item.maxRequestedBandwidthUL}}>
+											value="{{item.maxRequestedBandwidthUL}}">
 										</paper-input>
 										<paper-input
 											id="addPolClass"
 											name="qosClassIdentifier"
 											label="QOS Class Identifier"
-											value={{item.qosClassIdentifier}}>
+											value="{{item.qosClassIdentifier}}">
 										</paper-input>
 							</template>
 						</div>
 						<div>
-							<template is="dom-if" if="{{item.resourceCharacteristic}}">
+							<template is="dom-if" if="{{item.flow}}">
 								<table class="det">
-									<template is="dom-repeat" items="{{item.resourceCharacteristic}}" as="cha">
+									<template id="testMe" is="dom-repeat" items="{{item.flow}}" as="flowitem">
 										<tr>
 											<td><paper-dropdown-menu
 													id="addPolDirDrop"
-													value={{cha.flowDirection}}
+													value="{{flowitem.direction}}"
 													no-animations="true"
 													label="Flow Direction">
 												<paper-listbox
 														id="addPolDirList"
 														slot="dropdown-content">
 													<paper-item>
-															Up
+															up
 													</paper-item>
 													<paper-item>
-															Down
+															down
 													</paper-item>
 												</paper-listbox>
 											</paper-dropdown-menu></td>
@@ -135,7 +143,7 @@ class policyList extends PolymerElement {
 													id="addPolDir"
 													name="flowDescription"
 													label="Flow Description"
-													value={{cha.flowDescription}}>
+													value="{{flowitem.description}}">
 											</paper-input></td>
 										</tr>
 									</template>
@@ -149,6 +157,12 @@ class policyList extends PolymerElement {
 									class="submit-button"
 									on-tap="_up">
 								Update
+							</paper-button>
+							<paper-button
+									raised
+									class="delete-button"
+									on-tap="_delete">
+								Delete
 							</paper-button>
 						</div>
 				</template>
@@ -260,6 +274,12 @@ class policyList extends PolymerElement {
 				on-response="_getPolicyResponse"
 				rejectWithRequest>
 			</iron-ajax>
+			<iron-ajax
+					id="policyUpdateAjax"
+					loading="{{loading}}"
+					on-response="_response"
+					on-error="_error">
+			</iron-ajax>
 		`;
 	}
 
@@ -312,6 +332,14 @@ class policyList extends PolymerElement {
 			} else {
 				current = item;
 				this.$.policyGrid.selectedItems = [];
+				this.polId = item.id;
+				this.polName = item.name;
+				this.polPrec = item.precedence;
+				this.polCharKey = item.chargingKey;
+				this.polcharSer = item.serviceId;
+				this.widthDL = item.maxRequestedBandwidthDL;
+				this.widthUL = item.maxRequestedBandwidthUL;
+				this.classId = item.qosClassIdentifier;
 			}
 			function checkExist(specification) {
 				return specification.id == current.id;
@@ -322,9 +350,6 @@ class policyList extends PolymerElement {
 				grid.openItemDetails(current);
 			}
 		}
-	}
-
-	_up() {
 	}
 
 	_getPolicyResponse(event) {
@@ -377,54 +402,53 @@ class policyList extends PolymerElement {
 				for (var index in request.response) {
 					var tabObj = new Object();
 					tabObj.id = request.response[index].id;
-					tabObj.resourceCharacteristic = request.response[index].resourceCharacteristic;
+//					tabObj.resourceCharacteristic = request.response[index].resourceCharacteristic;
 					var resChar = request.response[index].resourceCharacteristic;
 					for (var indexRes in resChar) {
 						if(resChar[indexRes].name == "name") {
-							tabObj.name = resChar[indexRes].value.value;
-						}
-						if(resChar[indexRes].name == "qosInformation") {
-							var qos1 = resChar[indexRes].value.value.maxRequestedBandwidthDL;
-							var qos2 = resChar[indexRes].value.value.maxRequestedBandwidthUL;
-							var qos3 = resChar[indexRes].value.value.qosClassIdentifier;
+							tabObj.name = resChar[indexRes].value;
+						} else if(resChar[indexRes].name == "qosInformation") {
+							var qos1 = resChar[indexRes].value.maxRequestedBandwidthDL;
+							var qos2 = resChar[indexRes].value.maxRequestedBandwidthUL;
+							var qos3 = resChar[indexRes].value.qosClassIdentifier;
 							tabObj.maxRequestedBandwidthDL = qos1;
 							tabObj.maxRequestedBandwidthUL = qos2;
 							tabObj.qosClassIdentifier = qos3;
 							tabObj.qos = "class:" + qos3 + ", UL:" + qos2 + ", DL:" + qos1;
-						}
-						if(resChar[indexRes].name == "chargingKey") {
-							tabObj.chargingKey = resChar[indexRes].value.value;
-						}
-						var flowUpDir = new Array();
-						var flowUpDes = new Array();
-						var flowDownDir = new Array();
-						var flowDownDes = new Array();
-						if(resChar[indexRes].name == "flowInformation") {
-							if(resChar[indexRes].value.value) {
-								tabObj.resourceCharacteristic = resChar[indexRes].value.value;
-							}
-						}	
-						if(resChar[indexRes].name == "flowInformation") {
-							for(var indexFl in resChar[indexRes].value.value){
-								if(resChar[indexRes].value.value[indexFl].flowDirection == "up") {
-									var flowUpDirObj = resChar[indexRes].value.value[indexFl].flowDirection;
-									var flowUpDesObj = resChar[indexRes].value.value[indexFl].flowDescription;
+						} else if(resChar[indexRes].name == "chargingKey") {
+							tabObj.chargingKey = resChar[indexRes].value;
+						} else if(resChar[indexRes].name == "flowInformation") {
+							var flowUpDir = new Array();
+							var flowUpDes = new Array();
+							var flowDownDir = new Array();
+							var flowDownDes = new Array();
+							tabObj.flow = new Array();
+							for(var indexFl in resChar[indexRes].value){
+								if(resChar[indexRes].value[indexFl].flowDirection == "up") {
+									var flowDirObj = new Object();
+									flowDirObj.direction = resChar[indexRes].value[indexFl].flowDirection;
+									flowDirObj.description = resChar[indexRes].value[indexFl].flowDescription;
+									tabObj.flow[indexFl] = flowDirObj;
+									var flowUpDirObj = resChar[indexRes].value[indexFl].flowDirection;
+									var flowUpDesObj = resChar[indexRes].value[indexFl].flowDescription;
 									tabObj.flowUp = flowUpDirObj + "," + flowUpDesObj;
-								}
-								if(resChar[indexRes].value.value[indexFl].flowDirection == "down"){
-									var flowDownDirObj = resChar[indexRes].value.value[indexFl].flowDirection;
-									var flowDownDesObj = resChar[indexRes].value.value[indexFl].flowDescription;
+								} else if(resChar[indexRes].value[indexFl].flowDirection == "down"){
+									var flowDirObj1 = new Object();
+									flowDirObj1.direction = resChar[indexRes].value[indexFl].flowDirection;
+									flowDirObj1.description = resChar[indexRes].value[indexFl].flowDescription;
+									tabObj.flow[indexFl] = flowDirObj1;
+									var flowDownDirObj = resChar[indexRes].value[indexFl].flowDirection;
+									var flowDownDesObj = resChar[indexRes].value[indexFl].flowDescription;
 									tabObj.flowDown = flowDownDirObj + "," + flowDownDesObj;
 								}
 							}
-						}
-						if(resChar[indexRes].name == "precedence") {
-							tabObj.precedence = resChar[indexRes].value.value;
-						}
-						if(request.response[index].resourceRelationship) {
+						} else if(resChar[indexRes].name == "precedence") {
+							tabObj.precedence = resChar[indexRes].value;
+						} else if(resChar[indexRes].name == "serviceId") {
+							tabObj.serviceId = resChar[indexRes].value;
+						} else if(request.response[index].resourceRelationship) {
 							tabObj.resourceRelationship = request.response[index].resourceRelationship;
-						}
-						if(request.response[index].resourceSpecification) {
+						} else if(request.response[index].resourceSpecification) {
 							tabObj.resourceSpecification = request.response[index].resourceSpecification;
 						}
 					vaadinItems[index] = tabObj;
@@ -478,6 +502,151 @@ class policyList extends PolymerElement {
 
 	showAddPolicyModal(event) {
 		document.body.querySelector('sig-app').shadowRoot.querySelector('sig-policy-add').shadowRoot.getElementById('policyAddModal').open();
+	}
+
+////////////////////////////////////////////////////////////////////////////
+//Update Section
+///////////////////////////////////////////////////////////////////////////
+
+	_up(event) {
+		var getAjax = this.$.getPolicyContentAjax;
+		var etag = getAjax.lastRequest.xhr.getResponseHeader('ETag');
+		var Mitem = event.model.item
+		var results = getAjax.lastResponse;
+		function checkId(charPolId) {
+			return charPolId.id = Mitem.id; 
+		}
+		var index1 = results.findIndex(checkId);
+
+		var Ajax = this.$.policyUpdateAjax;
+		Ajax.method = "PATCH"
+		Ajax.contentType = "application/json-patch+json";
+		Ajax.url = "/resourceInventoryManagement/v1/resource/" + Mitem.id;
+		var PolArray = new Array();
+		var indexChar = "-";
+		if(Mitem.name) {
+			var Name = new Object();
+			Name.op = "add";
+			Name.path = "/name";
+			Name.value = Mitem.name;
+			PolArray.push(Name);
+
+			function checkName(charPol) {
+				return charPol.name == "name";
+			}
+			var index2 = results[index1].resourceCharacteristic.findIndex(checkName);
+			var Na = new Object();
+			Na.op = "add";
+			Na.path = "/resourceCharacteristic/" + index2 + "/value";
+			Na.name = "name";
+			Na.minCardinality = 1;
+			Na.value = Mitem.name; 
+			PolArray.push(Na);
+		}
+		if(Mitem.precedence) {
+			function checkPrec(charPolPre) {
+				return charPolPre.name == "precedence";
+			}
+			var index3 = results[index1].resourceCharacteristic.findIndex(checkPrec);
+			var Pre = new Object();
+			Pre.op = "add";
+			Pre.path = "/resourceCharacteristic/" + index3 + "/value";
+			Pre.name = "precedence";
+			Pre.minCardinality = 1;
+			Pre.value = parseInt(Mitem.precedence);
+			PolArray.push(Pre);
+		}
+		if(Mitem.chargingKey) {
+			function checkChar(charPolCha) {
+				return charPolCha.name == "chargingKey";
+			}
+			var index4 = results[index1].resourceCharacteristic.findIndex(checkChar);
+			var Cha = new Object();
+			Cha.op = "add";
+			Cha.path = "/resourceCharacteristic/" + index4 + "/value";
+			Cha.name = "chargingKey";
+			Cha.minCardinality = 0;
+			Cha.value = parseInt(Mitem.chargingKey); 
+			PolArray.push(Cha);
+		}
+		if(Mitem.maxRequestedBandwidthDL) {
+			function checkQos(charPolQ) {
+				return charPolQ.name == "qosInformation";
+			}
+			var index5 = results[index1].resourceCharacteristic.findIndex(checkQos);
+			var Dl = new Object();
+			Dl.op = "add";
+			Dl.path = "/resourceCharacteristic/" + index5 + "/value/maxRequestedBandwidthDL";
+			Dl.name = "qosInformation";
+			Dl.minCardinality = 0;
+			Dl.value = parseInt(Mitem.maxRequestedBandwidthDL); 
+			PolArray.push(Dl);
+		}
+		if(Mitem.maxRequestedBandwidthUL){
+			function checkQos1(charPolQ1) {
+				return charPolQ1.name == "qosInformation";
+			}
+			var index6 = results[index1].resourceCharacteristic.findIndex(checkQos1);
+			var Ul = new Object();
+			Ul.op = "add";
+			Ul.path = "/resourceCharacteristic/" + index6 + "/value/maxRequestedBandwidthUL";
+			Ul.name = "qosInformation";
+			Ul.minCardinality = 0;
+			Ul.value = parseInt(Mitem.maxRequestedBandwidthUL); 
+			PolArray.push(Ul);
+		}
+		if(Mitem.qosClassIdentifier) {
+			function checkQos2(charPolQ2) {
+				return charPolQ2.name == "qosInformation";
+			}
+			var index7 = results[index1].resourceCharacteristic.findIndex(checkQos2);
+			var Cid = new Object();
+			Cid.op = "add";
+			Cid.path = "/resourceCharacteristic/" + index7 + "/value/qosClassIdentifier";
+			Cid.name = "qosInformation";
+			Cid.minCardinality = 0;
+			Cid.value = parseInt(Mitem.qosClassIdentifier); 
+			PolArray.push(Cid);
+		}
+/*		if(Mitem.flow) {
+			for (var indexFlow in Mitem.flow) {
+				function checkFlow(charPolFl) {
+					return charPolFl.name == "flowInformation";
+				}
+				var index8 = results[index1].resourceCharacteristic.findIndex(checkFlow);
+				function checkFlow2(charPolFl2) {
+					return charPolFl2.flowDirection == Mitem.flow[indexFlow].direction;
+				}
+				var index8i = results[index1].resourceCharacteristic[index8].value.findIndex(checkFlow2);
+				var Fdir = new Object();
+				Fdir.op = "add";
+				Fdir.path = "/resourceCharacteristic/" + index8 + "/value/" + index8i + "/flowDirection";
+				Fdir.name = "flowInformation";
+				Fdir.minCardinality = 1;
+				Fdir.value = Mitem.flow[indexFlow].direction;
+				PolArray.push(Fdir);
+			}
+		}
+		if(this.flowDescriptionV) {
+			function checkFlow1(charPolFl1) {
+				return charPolFl1.name == "flowInformation";
+			}
+			var index9 = results[index1].resourceCharacteristic.findIndex(checkFlow1);
+			var floDes1 = this.flowDescriptionV1;
+			function checkFlow2(charPolFl2) {
+				return charPolFl2.flowDescription == floDes1;
+			}
+			var index10 = results[index1].resourceCharacteristic[index9].value.findIndex(checkFlow2);
+			var Fdes = new Object();
+			Fdes.op = "add";
+			Fdes.path = "/resourceCharacteristic/" + index9 + "/value/" + index10 + "/flowDescription";
+			Fdes.name = "flowInformation";
+			Fdes.minCardinality = 1;
+			Fdes.value = this.flowDescriptionV;
+			PolArray.push(Fdes);
+		}*/
+		Ajax.body = JSON.stringify(PolArray);
+		Ajax.generateRequest();
 	}
 }
 

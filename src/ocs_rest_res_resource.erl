@@ -1006,39 +1006,44 @@ resource_rel([#resource_rel{} | _] = List) ->
 resource_rel({array, [{struct, _} | _] = StructList}) ->
 	[resource_rel(Object, #resource_rel{}) || {struct, Object} <- StructList].
 %% @hidden
-resource_rel([{"id", Id} | T], Acc) when is_list(Id) ->
-	resource_rel(T, Acc#resource_rel{id = Id});
-resource_rel([{"href", Href} | T], Acc) when is_list(Href) ->
-	resource_rel(T, Acc#resource_rel{href = Href});
-resource_rel([{"name", Name} | T], Acc) when is_list(Name) ->
-	resource_rel(T, Acc#resource_rel{name = Name});
-resource_rel([{"type", Type} | T], Acc) when is_list(Type) ->
-	resource_rel(T, Acc#resource_rel{type = Type});
-resource_rel([{"@referredType", RefType} | T], Acc) when is_list(RefType) ->
-	resource_rel(T, Acc#resource_rel{referred_type = RefType});
+resource_rel([{"resource", {struct, AttrList}} | T], Acc) ->
+	resource_rel(T, resource_rel1(AttrList, Acc));
+resource_rel([{"relationshipType", RelType} | T], Acc) when is_list(RelType) ->
+	resource_rel(T, Acc#resource_rel{type = RelType});
 resource_rel([_ | T], Acc) ->
 	resource_rel(T, Acc);
 resource_rel([], ResourceRel) ->
 	ResourceRel.
 %% @hidden
-resource_rel([id | T], #resource_rel{id = Id} = R, Acc) when is_list(Id) ->
-	resource_rel(T, R, [{"id", Id} | Acc]);
-resource_rel([href | T], #resource_rel{href = Href} = R, Acc)
-		when is_list(Href) ->
-	resource_rel(T, R, [{"href", Href} | Acc]);
-resource_rel([name | T], #resource_rel{name = Name} = R, Acc)
-		when is_list(Name) ->
-	resource_rel(T, R, [{"name", Name} | Acc]);
+resource_rel([id | T], #resource_rel{id = Id, href = Href, name = Name,
+		referred_type = RefType} = R, Acc) when is_list(Id), is_list(Href),
+		is_list(Name), is_list(RefType) ->
+	resource_rel(T, R, [{"resource", {struct, [{"id", Id}, {"href", Href},
+			{"name", Name}, {"@referredType", RefType}]}} | Acc]);
+resource_rel([id | T], #resource_rel{id = Id, href = Href, name = Name} = R,
+		Acc) when is_list(Id), is_list(Href), is_list(Name) ->
+	resource_rel(T, R, [{"resource", {struct, [{"id", Id}, {"href", Href},
+			{"name", Name}]}} | Acc]);
 resource_rel([type | T], #resource_rel{type = Type} = R, Acc)
 		when is_list(Type) ->
-	resource_rel(T, R, [{"type", Type} | Acc]);
-resource_rel([referred_type | T],
-		#resource_rel{referred_type = RefType} = R, Acc) when is_list(RefType) ->
-	resource_rel(T, R, [{"@referredType", RefType} | Acc]);
+	resource_rel(T, R, [{"relationshipType", Type} | Acc]);
 resource_rel([_ | T], R, Acc) ->
 	resource_rel(T, R, Acc);
 resource_rel([], _, Acc) ->
 	{struct, lists:reverse(Acc)}.
+%% @hidden
+resource_rel1([{"id", Id} | T], Acc) when is_list(Id) ->
+	resource_rel1(T, Acc#resource_rel{id = Id});
+resource_rel1([{"href", Href} | T], Acc) when is_list(Href) ->
+	resource_rel1(T, Acc#resource_rel{href = Href});
+resource_rel1([{"name", Name} | T], Acc) when is_list(Name) ->
+	resource_rel1(T, Acc#resource_rel{name = Name});
+resource_rel1([{"@referredType", RefType} | T], Acc) when is_list(RefType) ->
+	resource_rel1(T, Acc#resource_rel{referred_type = RefType});
+resource_rel1([_ | T], Acc) ->
+	resource_rel1(T, Acc);
+resource_rel1([], ResourceRel) ->
+	ResourceRel.
 
 -spec resource_char(ResourceCharacteristic) -> ResourceCharacteristic
 	when
@@ -1078,8 +1083,6 @@ resource_char([{"value", Value} | T], #resource_char{name = "serviceId"} = Acc)
 	resource_char(T, Acc#resource_char{value = Value});
 resource_char([{"value", Value} | T], Acc) when is_list(Value) ->
 	resource_char(T, Acc#resource_char{value = Value});
-resource_char([{"minCardinality", Value} | T], Acc) when is_integer(Value) ->
-	resource_char(T, Acc#resource_char{min = Value});
 resource_char([], Acc) ->
 	Acc.
 %% @hidden

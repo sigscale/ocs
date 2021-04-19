@@ -4424,7 +4424,8 @@ get_tariff_resource(Config) ->
 	{_, "tariff spec"} = lists:keyfind("name", 1, SpecList),
 	{_, {array, [{struct, RelList}]}}
 			= lists:keyfind("resourceRelationship", 1, Object),
-	{_, "example"} = lists:keyfind("name", 1, RelList),
+	{_, {struct, ObjList}} = lists:keyfind("resource", 1, RelList),
+	{_, "example"} = lists:keyfind("name", 1, ObjList),
 	{_, {array, CharList}} = lists:keyfind("resourceCharacteristic", 1, Object),
 	3 = length(CharList).
 
@@ -4489,10 +4490,12 @@ post_tariff_resource(Config) ->
 			++ "\t\t},\n"
 			++ "\t\"resourceRelationship\": [\n"
 			++ "\t\t{\n"
-			++ "\t\t\t\"id\": \"" ++ ResourceRelId ++ "\",\n"
-			++ "\t\t\t\"href\": \"" ++ ResourceRelHref ++ "\",\n"
-			++ "\t\t\t\"@referredType\": \"contained\",\n"
-			++ "\t\t\t\"name\": \"example\"\n"
+			++ "\t\t\t\"resource\": {\n"
+			++ "\t\t\t\t\"id\": \"" ++ ResourceRelId ++ "\",\n"
+			++ "\t\t\t\t\"href\": \"" ++ ResourceRelHref ++ "\",\n"
+			++ "\t\t\t\t\"name\": \"example\"\n"
+			++ "\t\t\t\t},\n"
+			++ "\t\t\t\"relationshipType\": \"contained\"\n"
 			++ "\t\t}\n"
 			++ "\t],\n"
 			++ "\t\"resourceCharacteristic\": [\n"
@@ -4528,7 +4531,7 @@ post_tariff_resource(Config) ->
 	#specification_ref{id = ResSpecId, href = ResSpecHref,
 			name = ResSpecName} = S,
 	#resource_rel{id = ResourceRelId, href = ResourceRelHref,
-			referred_type = "contained", name = "example"} = R,
+			type = "contained", name = "example"} = R,
 	#resource_char{name = "prefix", value = CharPrefix}
 			= lists:keyfind("prefix", #resource_char.name, CharList),
 	#resource_char{name = "description", value = CharDes}
@@ -4600,29 +4603,31 @@ post_policy_resource(Config) ->
 	Name = {"name", ResName},
 	ResourceSpec = {"resourceSpecification",
 			{struct, [{"id", "4"}, {"name", "PolicyTable"}]}},
-	Char1 = {struct, [{"name", "name"}, {"minCardinality", 1},
-			{"value", ResName}]},
+	RelId = ocs:generate_identity(),
+	RelHref = "/resourceInventoryManagement/v1/resource/" ++ RelId,
+	Relationship = {"resourceRelationship",
+			{array, [{struct, [{"resource", {struct, [{"id", RelId},
+			{"href", RelHref}, {"name", "example"}]}},
+			{"relationshipType", "contained"}]}]}},
+	Char1 = {struct, [{"name", "name"}, {"value", ResName}]},
 	ClassId = rand:uniform(10),
 	MaxUL = 1000000000,
 	MaxDL = 1000000000,
-	Char2 = {struct, [{"name", "qosInformation"}, {"minCardinality", 0},
-			{"value", {struct, [{"qosClassIdentifier", ClassId},
+	Char2 = {struct, [{"name", "qosInformation"}, {"value",
+			{struct, [{"qosClassIdentifier", ClassId},
 			{"maxRequestedBandwidthUL", MaxUL},
 			{"maxRequestedBandwidthDL", MaxDL}]}}]},
-	Char3 = {struct, [{"name", "chargingKey"}, {"minCardinality", 0},
-			{"value", 1}]},
-	Char4 = {struct, [{"name", "flowInformation"}, {"minCardinality", 1},
-			{"value", {array, [{struct, [{"flowDescription",
-			"permit in ip from any to 10/8"}, {"flowDirection", "down"}]},
+	Char3 = {struct, [{"name", "chargingKey"}, {"value", 1}]},
+	Char4 = {struct, [{"name", "flowInformation"}, {"value",{array,
+			[{struct, [{"flowDescription", "permit in ip from any to 10/8"},
+					{"flowDirection", "down"}]},
 			{struct, [{"flowDescription", "permit in ip from any to 10/8"},
 					{"flowDirection", "up"}]}]}}]},
-	Char5 = {struct, [{"name", "precedence"}, {"minCardinality", 1},
-			{"value", 1}]},
-	Char6 = {struct, [{"name", "serviceId"}, {"minCardinality", 0},
-			{"value", ServiceId}]},
+	Char5 = {struct, [{"name", "precedence"}, {"value", 1}]},
+	Char6 = {struct, [{"name", "serviceId"}, {"value", ServiceId}]},
 	Characteristics = {"resourceCharacteristic",
 			{array, [Char1, Char2, Char3, Char4, Char5, Char6]}},
-	JSON = {struct, [Name, ResourceSpec, Characteristics]},
+	JSON = {struct, [Name, ResourceSpec, Relationship, Characteristics]},
 	RequestBody = lists:flatten(mochijson:encode(JSON)),
 	HostUrl = ?config(host_url, Config),
 	Accept = {"accept", "application/json"},
@@ -4637,8 +4642,11 @@ post_policy_resource(Config) ->
 	{_, URI} = lists:keyfind("location", 1, Headers),
 	{"/resourceInventoryManagement/v1/resource/" ++ ID, _}
 			= httpd_util:split_path(URI),
-	{ok, #resource{name = ResName, characteristic = ResChar}}
-			= ocs:get_resource(ID),
+	{ok, #resource{name = ResName, specification = S, related = [R],
+			characteristic = ResChar}} = ocs:get_resource(ID),
+	#specification_ref{id = "4", name = "PolicyTable"} = S,
+	#resource_rel{id = RelId, href = RelHref,
+			type = "contained", name = "example"} = R,
 	#resource_char{value = ResName}
 			= lists:keyfind("name", #resource_char.name, ResChar),
 	#resource_char{value = #{"qosClassIdentifier" := ClassId,
@@ -4682,20 +4690,19 @@ query_policy_resource(Config) ->
 			specification = #specification_ref{id = "4",
 					href = "/resourceCatalogManagement/v2/resourceSpecification/4",
 					name = "PolicyRow"},
-			characteristic = [#resource_char{name = "name", min = 1,
-							value = "example"},
-					#resource_char{name = "qosInformation", min = 0,
-							value = #{"maxRequestedBandwidthDL" => 1000000000,
+			characteristic = [#resource_char{name = "name", value = "example"},
+					#resource_char{name = "qosInformation", value =
+							#{"maxRequestedBandwidthDL" => 1000000000,
 							"maxRequestedBandwidthUL" => 1000000000,
 							"qosClassIdentifier" => 4}},
-					#resource_char{name = "chargingKey", min = 0, value = 1},
-					#resource_char{name = "flowInformation", min = 1,
-							value = [#{"flowDirection" => 1,
-									"flowDescription" => "permit in ip from any to 10/8"},
-							#{"flowDirection" => 2,
-									"flowDescription" => "permit in ip from any to 10/8"}]},
-					#resource_char{name = "precedence", min = 1, value = 1},
-					#resource_char{name = "serviceId", min = 0,
+					#resource_char{name = "chargingKey", value = 1},
+					#resource_char{name = "flowInformation", value =
+							[#{"flowDirection" => 1, "flowDescription" =>
+									"permit in ip from any to 10/8"},
+							#{"flowDirection" => 2, "flowDescription" =>
+									"permit in ip from any to 10/8"}]},
+					#resource_char{name = "precedence", value = 1},
+					#resource_char{name = "serviceId",
 							value = ocs:generate_identity()}]},
 	{ok, #resource{id = Id}} = ocs:add_resource(PolicyRow),
 	HostUrl = ?config(host_url, Config),
@@ -4715,7 +4722,8 @@ query_policy_resource(Config) ->
 	{_, "4"} = lists:keyfind("id", 1, SpecList),
 	{_, {array, [{struct, RelList}]}}
 			= lists:keyfind("resourceRelationship", 1, Object),
-	{_, "PolicyTable"} = lists:keyfind("name", 1, RelList).
+	{_, {struct, ObjList}} = lists:keyfind("resource", 1, RelList),
+	{_, "PolicyTable"} = lists:keyfind("name", 1, ObjList).
 
 oauth_authenticaton()->
 	[{userdata, [{doc, "Authenticate a JWT using oauth"}]}].
@@ -5281,7 +5289,7 @@ fill_related(N, Acc) ->
 	Id = random_string(10),
 	Href = "/resourceInventoryManagement/v1/resourceRelationship/" ++ Id,
 	Related = #resource_rel{id = Id, href = Href,
-			referred_type = "contained", name = "example-" ++ Id},
+			type = "contained", name = "example-" ++ Id},
 	fill_related(N - 1, [Related | Acc]).
 
 %% @hidden
@@ -5321,10 +5329,10 @@ resource_inventory() ->
 			{struct, [ResSpecID, ResSpecName, ResSpecHref]}},
 	ResRelId = {"id", RelId = random_string(5)},
 	ResRelName = {"name", "example"},
-	ResRelType = {"type", "contained"},
-	ResRelHref = {"name", "/resourceInventoryManagement/v1/resource/"
-			++ RelId},
-	ResRel = {struct, [ResRelId, ResRelName, ResRelType, ResRelHref]},
+	ResRelType = {"relationshipType", "contained"},
+	ResRelHref = {"name", "/resourceInventoryManagement/v1/resource/" ++ RelId},
+	ResRel = {struct, [{resource, {struct, [ResRelId, ResRelName, ResRelHref]}},
+			ResRelType]},
 	ResourceRelationship = {"resourceRelationship", {array, [ResRel]}},
 	ResChar1 = {struct, [{"name", "prefix"}, {"value", "125"}]},
 	ResChar2 = {struct, [{"name", "description"}, {"value", "testing"}]},
