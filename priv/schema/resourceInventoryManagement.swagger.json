@@ -18,7 +18,7 @@
   ],
   "tags": [
     {
-      "name": "logicalResource",
+      "name": "resource",
       "description": ""
     },
     {
@@ -31,35 +31,49 @@
     }
   ],
   "paths": {
-    "/logicalResource/": {
+    "/resource/": {
       "get": {
         "tags": [
-          "logicalResource"
+          "resource"
         ],
         "parameters": [
           {
-            "name": "table",
+            "name": "id",
             "required": false,
             "in": "query",
-            "description": "Name of resource table",
+            "description": "Id of the resource",
             "type": "string"
           },
           {
-            "name": "id",
+            "name": "category",
             "required": true,
             "in": "query",
-            "description": "Id of the logical resource",
+            "description": "Category of the resource",
+            "type": "string"
+          },
+          {
+            "name": "resourceSpecification.id",
+            "required": true,
+            "in": "query",
+            "description": "Id of the resource specification",
+            "type": "string"
+          },
+          {
+            "name": "resourceRelationship.name",
+            "required": true,
+            "in": "query",
+            "description": "Name of the resource relationship",
             "type": "string"
           }
         ],
-        "operationId": "listLogicalResources",
-        "summary": "This operation lists a individual loglcalResource entity",
+        "operationId": "listresources",
+        "summary": "This operation lists all resources available",
         "deprecated": false,
         "responses": {
           "200": {
             "description": "Success",
             "schema": {
-              "$ref": "#/definitions/LogicalResource"
+              "$ref": "#/definitions/Resource"
             }
           },
           "400": {
@@ -75,34 +89,27 @@
       },
       "post": {
         "tags": [
-          "logicalResource"
+          "resource"
         ],
         "parameters": [
           {
-            "name": "table",
-            "required": true,
-            "in": "query",
-            "description": "Name of resource table",
-            "type": "string"
-          },
-          {
             "schema": {
-              "$ref": "#/definitions/LogicalResource_Create"
+              "$ref": "#/definitions/Resource"
             },
             "required": true,
             "in": "body",
-            "name": "logicalResource",
-            "description": "The Logical Resource to be created"
+            "name": "resource",
+            "description": "The Resource to be created"
           }
         ],
-        "operationId": "createLogicalResourceEntry",
-        "summary": "Add a new row in logical resource inventory management",
+        "operationId": "createResourceEntry",
+        "summary": "This operation creates a Resource entity",
         "deprecated": false,
         "responses": {
           "201": {
             "description": "Success",
             "schema": {
-              "$ref": "#/definitions/LogicalResource"
+              "$ref": "#/definitions/Resource"
             }
           },
           "400": {
@@ -117,29 +124,29 @@
         }
       }
     },
-    "/logicalResource/{Id}": {
+    "/resource/{Id}": {
       "get": {
         "tags": [
-          "logicalResource"
+          "resource"
         ],
         "parameters": [
           {
             "name": "Id",
             "required": true,
             "in": "path",
-            "description": "Id of the logical resource",
+            "description": "Id of the resource",
             "type": "string"
           }
         ],
-        "operationId": "listLogicalResource",
-        "summary": "This operation lists a individual loglcalResource entity",
+        "operationId": "listResource",
+        "summary": "This operation lists a individual Resource entity",
         "deprecated": false,
         "responses": {
           "200": {
-            "description": "Usage",
+            "description": "Sucess",
             "schema": {
               "items": {
-                "$ref": "#/definitions/LogicalResource"
+                "$ref": "#/definitions/Resource"
               },
               "type": "array"
             }
@@ -157,34 +164,34 @@
       },
       "patch": {
         "tags": [
-          "logicalResource"
+          "resource"
         ],
         "parameters": [
           {
             "name": "Id",
             "required": true,
             "in": "path",
-            "description": "Id of the logical resource",
+            "description": "Id of the resource",
             "type": "string"
           },
           {
             "schema": {
-              "$ref": "#/definitions/LogicalResource_Update"
+              "$ref": "#/definitions/Resource"
             },
             "required": true,
             "in": "body",
-            "name": "logicalResource",
-            "description": "The Logical Resource to be updated"
+            "name": "Resource",
+            "description": "The Resource to be updated"
           }
         ],
-        "operationId": "updateLogicalResource",
-        "summary": "Patches a 'LogicalResource' by Id",
+        "operationId": "updateResource",
+        "summary": "Patches a 'Resource' by Id",
         "deprecated": false,
         "responses": {
           "201": {
             "description": "Updated",
             "schema": {
-              "$ref": "#/definitions/LogicalResource"
+              "$ref": "#/definitions/Resource"
             }
           },
           "400": {
@@ -200,25 +207,25 @@
       },
       "delete": {
         "tags": [
-          "logicalResource"
+          "Resource"
         ],
         "parameters": [
           {
             "name": "Id",
             "required": true,
             "in": "path",
-            "description": "Id of the logical resource",
+            "description": "Id of the resource",
             "type": "string"
           }
         ],
-        "operationId": "deleteLogicalResource",
-        "summary": "Deletes a 'LogicalResource' by Id",
+        "operationId": "deleteResource",
+        "summary": "Deletes a 'Resource' by Id",
         "deprecated": false,
         "responses": {
           "204": {
             "description": "Deleted",
             "schema": {
-              "$ref": "#/definitions/LogicalResource"
+              "$ref": "#/definitions/Resource"
             }
           },
           "400": {
@@ -257,7 +264,7 @@
           }
         ],
         "operationId": "createPlaResourceEntry",
-        "summary": "Add a new row in logical resource inventory management",
+        "summary": "Add a new row in resource inventory management",
         "deprecated": false,
         "responses": {
           "201": {
@@ -360,7 +367,7 @@
             },
             "required": true,
             "in": "body",
-            "name": "logicalResource",
+            "name": "PlaResource",
             "description": "The Pla Resource to be updated"
           }
         ],
@@ -422,155 +429,134 @@
     }
   },
   "definitions": {
-    "LogicalResource": {
+    "Resource": {
       "type": "object",
-      "description": "Logic resource is a type of resource that describes the commonset of attributes shared by all concrete logical resources (e.g. TPE, MSISDN, IP Addresses) in the inventory.",
+      "description": "Resource is an abstract entity that describes the common set of attributes shared by all concrete resources",
       "properties": {
-        "category": {
+        "id": {
           "type": "string",
-          "description": "Category of the concrete resource. e.g Gold, Silver for MSISDN concrete resource"
-        },
-        "description": {
-          "type": "string",
-          "description": "free-text description of the resource"
-        },
-        "endDate": {
-          "type": "string",
-          "format": "date-time",
-          "description": "A date time( DateTime). The date till the resource is effective"
+          "description": "Identifier of an instance of the resource."
         },
         "href": {
           "type": "string",
           "description": "The URI for the object itself."
         },
+        "name": {
+          "type": "string",
+          "description": "A string used to give a name to the resource."
+        },
+        "description": {
+          "type": "string",
+          "description": "free-text description of the resource."
+        },
+        "version": {
+          "type": "string",
+          "description": "identifies the specific version of an instance of a resource."
+        },
+        "lifecycleState": {
+          "type": "string",
+          "description": "The life cycle state of the resource."
+        },
+        "lastUpdate": {
+          "type": "string",
+          "description": "The last date the resource was update on."
+        },
+        "category": {
+          "type": "string",
+          "description": "Category of the resource."
+        },
+        "resourceSpecCharacteristic": {
+          "$ref": "#/definitions/ResourceCharacteristic"
+        },
+        "resourceRelationship": {
+          "$ref": "#/definitions/ResourceRelationship"
+        }
+      }
+    },
+    "ResourceCharacteristic": {
+      "type": "array",
+      "items": {
+        "$ref": "#/definitions/ResourceCharacteristicValue"
+      }
+    },
+    "ResourceCharacteristicValue": {
+      "type": "object",
+      "properties": {
+        "name": {
+          "type": "string",
+          "description": "Name of the characteristic."
+        },
+        "description": {
+          "type": "string",
+          "description": "description of the characteristic."
+        },
+        "valueType": {
+          "type": "string",
+          "description": "value type of the characteristic."
+        },
+        "resourceSpecCharacteristicValue": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/ResourceSpecCharacteristicValue"
+          }
+        }
+      }
+    },
+    "ResourceRelationship": {
+      "type": "array",
+      "items": {
+        "$ref": "#/definitions/ResourceRelationshipValue"
+      }
+    },
+    "ResourceRelationshipValue": {
+      "type": "object",
+      "properties": {
+        "resource": {
+          "$ref": "#/definitions/RefResource"
+        },
+        "relationshipType": {
+          "type": "string",
+          "description": "The type of resource relationship."
+        }
+      }
+    },
+    "RefResource": {
+      "type": "object",
+      "properties": {
         "id": {
           "type": "string",
-          "description": "Identifier of an instance of the resource. Required to be unique within the resource type.  Used in URIs as the identifier for specific instances of a type."
+          "description": "Unique identifier of the parent resource"
         },
-        "lifecycleState": {
+        "href": {
           "type": "string",
-          "description": "The life cycle state of the resource."
+          "description": "Reference of the parent resource"
         },
         "name": {
           "type": "string",
-          "description": "A string used to give a name to the resource"
+          "description": "Name of the parent resource"
         },
-        "startDate": {
+        "@referredType": {
           "type": "string",
-          "format": "date-time",
-          "description": "A date time( DateTime). The date from which the resource is effective"
-        },
-        "version": {
-          "type": "string",
-          "description": "A field that identifies the specific version of an instance of a resource."
-        },
-        "value": {
-          "type": "string",
-          "description": "the value of the logical resource. E.g '0746712345' for  MSISDN's"
-        },
-        "characteristic": {
-          "type": "array",
-          "items": {
-            "$ref": "#/definitions/ResourceCharacteristic"
-          }
+          "description": "The actual type of the target instance"
         }
       }
     },
-    "LogicalResource_Create": {
+    "ResourceSpecCharacteristicValue": {
       "type": "object",
-      "description": "Logic resource is a type of resource that describes the common set of attributes shared by all concrete logical resources (e.g. TPE, MSISDN, IP Addresses) in the inventory.\nSkipped properties: id,href",
       "properties": {
-        "category": {
-          "type": "string",
-          "description": "Category of the concrete resource. e.g Gold, Silver for MSISDN concrete resource"
+        "seqNum": {
+          "type": "integer",
+          "description": "Sequence number of the characteristic value"
         },
-        "description": {
+        "valueType": {
           "type": "string",
-          "description": "free-text description of the resource"
-        },
-        "endDate": {
-          "type": "string",
-          "format": "date-time",
-          "description": "A date time( DateTime). The date till the resource is effective"
-        },
-        "lifecycleState": {
-          "type": "string",
-          "description": "The life cycle state of the resource."
-        },
-        "name": {
-          "type": "string",
-          "description": "A string used to give a name to the resource"
-        },
-        "startDate": {
-          "type": "string",
-          "format": "date-time",
-          "description": "A date time( DateTime). The date from which the resource is effective"
-        },
-        "version": {
-          "type": "string",
-          "description": "A field that identifies the specific version of an instance of a resource."
-        },
-        "value": {
-          "type": "string",
-          "description": "the value of the logical resource. E.g '0746712345' for  MSISDN's"
-        },
-        "characteristic": {
-          "type": "array",
-          "items": {
-            "$ref": "#/definitions/ResourceCharacteristic"
-          }
-        }
-      }
-    },
-    "LogicalResource_Update": {
-      "type": "object",
-      "description": "Logic resource is a type of resource that describes the common set of attributes shared by all concrete logical resources (e.g. TPE, MSISDN, IP Addresses) in the inventory.\nSkipped properties: id,href",
-      "properties": {
-        "category": {
-          "type": "string",
-          "description": "Category of the concrete resource. e.g Gold, Silver for MSISDN concrete resource"
-        },
-        "description": {
-          "type": "string",
-          "description": "free-text description of the resource"
-        },
-        "endDate": {
-          "type": "string",
-          "format": "date-time",
-          "description": "A date time( DateTime). The date till the resource is effective"
-        },
-        "lifecycleState": {
-          "type": "string",
-          "description": "The life cycle state of the resource."
-        },
-        "name": {
-          "type": "string",
-          "description": "A string used to give a name to the resource"
-        },
-        "startDate": {
-          "type": "string",
-          "format": "date-time",
-          "description": "A date time( DateTime). The date from which the resource is effective"
-        },
-        "version": {
-          "type": "string",
-          "description": "A field that identifies the specific version of an instance of a resource."
-        },
-        "value": {
-          "type": "string",
-          "description": "the value of the logical resource. E.g '0746712345' for  MSISDN's"
-        },
-        "characteristic": {
-          "type": "array",
-          "items": {
-            "$ref": "#/definitions/ResourceCharacteristic"
-          }
+          "description": "Type of characteristic value"
         }
       }
     },
     "PlaResource": {
       "type": "object",
-      "description": "Logic resource is a type of resource that describes the common set of attributes shared by all concrete logical resources (e.g. TPE, MSISDN, IP Addresses) in the inventory.",
+      "description": "Pla resource is a type of resource that describes the common set of attributes shared by all plaresources",
       "properties": {
         "category": {
           "type": "string",
@@ -608,42 +594,13 @@
         },
         "value": {
           "type": "string",
-          "description": "the value of the logical resource. E.g '0746712345' for  MSISDN's"
+          "description": "the value of the Pla resource. E.g '0746712345' for  MSISDN's"
         },
         "characteristic": {
           "type": "array",
           "items": {
             "$ref": "#/definitions/ResourceCharacteristic"
           }
-        }
-      }
-    },
-    "ResourceCharacteristic": {
-      "type": "object",
-      "properties": {
-        "name": {
-          "type": "string",
-          "description": "Name of the characteristic"
-        },
-        "value": {
-          "type": "string",
-          "description": "Value of the characteristic"
-        }
-      }
-    },
-    "TimePeriod": {
-      "type": "object",
-      "description": "A base / value business entity used to represent a period of time between two timepoints.",
-      "properties": {
-        "endDateTime": {
-          "type": "string",
-          "format": "date-time",
-          "description": "An instant of time, ending at the TimePeriod."
-        },
-        "startDateTime": {
-          "type": "string",
-          "format": "date-time",
-          "description": "An instant of time, starting at the TimePeriod"
         }
       }
     }
