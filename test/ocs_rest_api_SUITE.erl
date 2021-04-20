@@ -4681,12 +4681,12 @@ query_policy_resource(Config) ->
 			base_type = "Resource", specification = #specification_ref{id = "3",
 					href = "/resourceCatalogManagement/v2/resourceSpecification/3",
 					name = "PolicyTable"}},
-	{ok, #resource{id = PolicyTableId}} = ocs:add_resource(PolicyTable),
-	PolicyRow = #resource{name = "PolicyRow", description = "Policy Row",
+	{ok, #resource{id = PolicyTableId1}} = ocs:add_resource(PolicyTable),
+	PolicyRow1 = #resource{name = "PolicyRow1", description = "Policy Row",
 			category = "Policy", class_type = "LogicalResource",
-			base_type = "Resource", related = [#resource_rel{id = PolicyTableId,
+			base_type = "Resource", related = [#resource_rel{id = PolicyTableId1,
 					href = "/resourceInventoryManagement/v1/resource/"
-					++ PolicyTableId, name = "PolicyTable", type = "contained"}],
+					++ PolicyTableId1, name = "PolicyTable1", type = "contained"}],
 			specification = #specification_ref{id = "4",
 					href = "/resourceCatalogManagement/v2/resourceSpecification/4",
 					name = "PolicyRow"},
@@ -4704,26 +4704,44 @@ query_policy_resource(Config) ->
 					#resource_char{name = "precedence", value = 1},
 					#resource_char{name = "serviceId",
 							value = ocs:generate_identity()}]},
-	{ok, #resource{id = Id}} = ocs:add_resource(PolicyRow),
+	{ok, #resource{id = RowId1}} = ocs:add_resource(PolicyRow1),
+	PolicyTableId2 = ocs:generate_identity(),
+	PolicyRow2 = #resource{name = "PolicyRow2", description = "Policy Row",
+			category = "Policy", class_type = "LogicalResource",
+			base_type = "Resource", related = [#resource_rel{id = PolicyTableId2,
+					href = "/resourceInventoryManagement/v1/resource/"
+					++ PolicyTableId2, name = "PolicyTable2", type = "contained"}],
+			specification = #specification_ref{id = "4",
+					href = "/resourceCatalogManagement/v2/resourceSpecification/4",
+					name = "PolicyRow"},
+			characteristic = [#resource_char{name = "name", value = "example"},
+					#resource_char{name = "chargingKey", value = 1},
+					#resource_char{name = "flowInformation", value =
+							[#{"flowDirection" => 1, "flowDescription" =>
+									"permit in ip from any to 172.16/12"},
+							#{"flowDirection" => 2, "flowDescription" =>
+									"permit in ip from any to 172.16/12"}]},
+					#resource_char{name = "precedence", value = 2}]},
+	{ok, #resource{id = _RowId2}} = ocs:add_resource(PolicyRow2),
 	HostUrl = ?config(host_url, Config),
 	Accept = {"accept", "application/json"},
 	Query = "resourceSpecification.id=4" ++
-		"&resourceRelationship.name=PolicyTable",
+		"&resourceRelationship.resource.name=PolicyTable1",
 	Request = {HostUrl ++ "/resourceInventoryManagement/v1/resource/?" ++ Query,
 			[Accept, auth_header()]},
 	{ok, Result} = httpc:request(get, Request, [], []),
 	{{"HTTP/1.1", 200, _OK}, Headers, ResponseBody} = Result,
 	{_, "application/json"} = lists:keyfind("content-type", 1, Headers),
 	{array, [{struct, Object}]} = mochijson:decode(ResponseBody),
-	{_, Id} = lists:keyfind("id", 1, Object),
-	{_, "/resourceInventoryManagement/v1/resource/" ++ Id}
+	{_, RowId1} = lists:keyfind("id", 1, Object),
+	{_, "/resourceInventoryManagement/v1/resource/" ++ RowId1}
 			= lists:keyfind("href", 1, Object),
 	{_, {struct, SpecList}} = lists:keyfind("resourceSpecification", 1, Object),
 	{_, "4"} = lists:keyfind("id", 1, SpecList),
 	{_, {array, [{struct, RelList}]}}
 			= lists:keyfind("resourceRelationship", 1, Object),
 	{_, {struct, ObjList}} = lists:keyfind("resource", 1, RelList),
-	{_, "PolicyTable"} = lists:keyfind("name", 1, ObjList).
+	{_, "PolicyTable1"} = lists:keyfind("name", 1, ObjList).
 
 oauth_authenticaton()->
 	[{userdata, [{doc, "Authenticate a JWT using oauth"}]}].
