@@ -35,53 +35,42 @@ class policyAdd extends PolymerElement {
 					value="{{polName}}">
 				</paper-input>
 				<div>
-					<span>Characteristics</span>
-					<paper-icon-button
-						id="onClickPolicyChars"
-						suffix
-						icon="arrow-drop-down"
-						on-click="_onClickPolicyChars">
-					</paper-icon-button>
+					<paper-input
+						id="bandwidthDL"
+						label="maxRequestedBandwidthDL"
+						value="{{charDL}}">
+					</paper-input>
+					<paper-input
+						id="bandwidthUL"
+						label="maxRequestedBandwidthUL"
+						value="{{charUL}}">
+					</paper-input>
+					<paper-input
+						id="classId"
+						label="qosClassIdentifier"
+						value="{{charClassId}}">
+					</paper-input>
+					<paper-input
+						id="chargeRule"
+						label="chargingKey"
+						value="{{polCha}}">
+					</paper-input>
+					<paper-input
+						id="flowUp"
+						label="flowDirection"
+						value="{{flowUp}}">
+					</paper-input>
+					<paper-input
+						id="flowDescription"
+						label="flowDescription"
+						value="{{flowDiscUp}}">
+					</paper-input>
+					<paper-input
+						id="precedence"
+						label="precedence"
+						value="{{prece}}">
+					</paper-input>
 				</div>
-				<iron-collapse id="addPolicyChars">
-					<div>
-						<paper-input
-							id="bandwidthDL"
-							label="maxRequestedBandwidthDL"
-							value="{{charDL}}">
-						</paper-input>
-						<paper-input
-							id="bandwidthUL"
-							label="maxRequestedBandwidthUL"
-							value="{{charUL}}">
-						</paper-input>
-						<paper-input
-							id="classId"
-							label="qosClassIdentifier"
-							value="{{charClassId}}">
-						</paper-input>
-						<paper-input
-							id="chargeRule"
-							label="chargingKey"
-							value="{{polCha}}">
-						</paper-input>
-						<paper-input
-							id="flowUp"
-							label="flowDirection"
-							value="{{flowUp}}">
-						</paper-input>
-						<paper-input
-							id="flowDescription"
-							label="flowDescription"
-							value="{{flowDiscUp}}">
-						</paper-input>
-						<paper-input
-							id="precedence"
-							label="precedence"
-							value="{{prece}}">
-						</paper-input>
-					</div>
-				</iron-collapse>
 				<div class="buttons">
 					<paper-button
 							raised
@@ -167,16 +156,6 @@ class policyAdd extends PolymerElement {
 		this.flowDown = null;
 		this.flowDiscDown = null;
 		this.prece = null;
-	}
-
-	_onClickPolicyChars() {
-		if(this.$.addPolicyChars.opened == false) {
-			this.$.addPolicyChars.show();
-			this.$.onClickPolicyChars.icon="arrow-drop-up"
-		} else {
-			this.$.addPolicyChars.hide();
-			this.$.onClickPolicyChars.icon="arrow-drop-down"
-		}
 	}
 
 	_add() {
