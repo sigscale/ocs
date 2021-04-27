@@ -23,6 +23,7 @@ import '@polymer/paper-input/paper-input.js';
 import '@polymer/paper-dropdown-menu/paper-dropdown-menu.js';
 import '@polymer/paper-listbox/paper-listbox.js';
 import '@polymer/iron-pages/iron-pages.js';
+import '@polymer/iron-collapse/iron-collapse.js';
 import './style-element.js'
 import '@polymer/iron-icons/iron-icons.js';
 
@@ -147,24 +148,58 @@ class policyList extends PolymerElement {
 											</paper-input></td>
 										</tr>
 									</template>
+									<tr>
+										<td><paper-dropdown-menu
+													id="addPolDirDrop1"
+													value="{{direction1}}"
+													no-animations="true"
+													label="Flow Direction">
+												<paper-listbox
+														id="addPolDirList1"
+														slot="dropdown-content">
+													<paper-item>
+														up
+													</paper-item>
+													<paper-item>
+														down
+													</paper-item>
+												</paper-listbox>
+										</paper-dropdown-menu></td>
+										<td><paper-input
+													id="addPolDir1"
+													name="flowDescription"
+													pattern="^permit out proto "
+													label="Flow Description"
+													placeholder="permit out proto ip from all to all"
+													value="{{description1}}"
+													auto-validate>
+										</paper-input></td>
+									</tr>
 								</table>
+								<div>
+									<paper-icon-button
+										class="submit-icon-button"
+										icon="icons:add-circle-outline"
+										on-tap = "_flowPlus">
+										</paper-icon-button>
+								</div>
 							</template>
 						</div>
 					</iron-pages>
-						<div class="buttons">
-							<paper-button
-									raised
-									class="submit-button"
-									on-tap="_up">
-								Update
-							</paper-button>
-							<paper-button
-									raised
-									class="delete-button"
-									on-tap="_delete">
-								Delete
-							</paper-button>
-						</div>
+					<div class="buttons">
+						<paper-button
+								raised
+								class="submit-button"
+								on-tap="_up">
+							Update
+						</paper-button>
+						<paper-button
+								raised
+								class="delete-button"
+								on-tap="_delete">
+							Delete
+						</paper-button>
+					</div>
 				</template>
 				<vaadin-grid-column>
 					<template class="header">
@@ -526,6 +561,15 @@ class policyList extends PolymerElement {
 		document.body.querySelector('sig-app').shadowRoot.querySelector('sig-policy-add').shadowRoot.getElementById('policyAddModal').open();
 	}
 
+	_flowPlus(event) {
+console.log(event.model.item.flow);
+		var flArr = event.model.item.flow;
+		var flJson = {"flowDirection": this.direction1, "flowDescription": this.description1};
+		flArr.push(flJson);
+		this.notifyPath(flArr);
+	}
+
+
 ////////////////////////////////////////////////////////////////////////////
 //Update Section
 ///////////////////////////////////////////////////////////////////////////
@@ -624,6 +668,32 @@ class policyList extends PolymerElement {
 			Cid.value = parseInt(Mitem.qosClassIdentifier); 
 			PolArray.push(Cid);
 		}
+
+		if(!this.description1) {
+			this.description1 = "permit out proto ip from all to all";
+			function checkFlow1(charPolFl1) {
+				return charPolFl1.name == "flowInformation";
+			}
+			var indexFl = results[index1].resourceCharacteristic.findIndex(checkFlow1);
+			var PolArray1 = new Array();
+			var Flo1 = new Object();
+			Flo1.op = "add";
+			Flo1.path = "/resourceCharacteristic/" + indexFl + "/value/" + "-";
+			Flo1.value = {"flowDirection": this.direction1, "flowDescription": this.description1};
+			PolArray.push(Flo1);
+		} else {
+			function checkFlow1(charPolFl1) {
+				return charPolFl1.name == "flowInformation";
+			}
+			var indexFl = results[index1].resourceCharacteristic.findIndex(checkFlow1);
+			var PolArray1 = new Array();
+			var Flo1 = new Object();
+			Flo1.op = "add";
+			Flo1.path = "/resourceCharacteristic/" + indexFl + "/value/" + "-";
+			Flo1.value = {"flowDirection": this.direction1, "flowDescription": this.description1};
+			PolArray.push(Flo1);
+		}
+
 /*		if(Mitem.flow) {
 			for (var indexFlow in Mitem.flow) {
 				function checkFlow(charPolFl) {
@@ -661,6 +731,10 @@ class policyList extends PolymerElement {
 		}*/
 		Ajax.body = JSON.stringify(PolArray);
 		Ajax.generateRequest();
+		var policyList = document.body.querySelector('sig-app').shadowRoot.querySelector('sig-policy-list');
+		var ajax = policyList.shadowRoot.getElementById('getPolicyContentAjax');
+		ajax.url = "/resourceInventoryManagement/v1/resource?resourceSpecification.id=4&resourceRelationship.resource.name=" + policyList.table;
+		ajax.generateRequest();
 	}
 }
 
