@@ -70,6 +70,8 @@ do(#mod{method = Method, parsed_header = Headers, request_uri = Uri,
 							check_content_type_header(Headers, Method, ocs_rest_res_balance, Data);
 						["ocs", "v1", "log", "balance" | _] ->
 							check_content_type_header(Headers, Method, ocs_rest_res_balance, Data);
+						["metrics"] ->
+							check_content_type_header(Headers, Method, ocs_rest_res_prometheus, Data);
 						["usageManagement", "v1", "usage"] ->
 							check_content_type_header(Headers, Method, ocs_rest_res_usage, Data);
 						["usageManagement", "v1", "usage" | _] ->

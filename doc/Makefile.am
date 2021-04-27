@@ -95,6 +95,7 @@ modhtml = ocs.html \
 			ocs_rest_res_service.html \
 			ocs_rest_res_resource.html \
 			ocs_rest_res_http.html \
+			ocs_rest_res_prometheus.html \
 			ocs_rest_pagination_sup.html \
 			ocs_rest_pagination_server.html \
 			ocs_scheduler.html \

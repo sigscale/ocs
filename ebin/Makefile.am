@@ -107,6 +107,7 @@ beam_DATA = ocs.beam \
 			ocs_diameter_codec_sta.beam \
 			ocs_diameter_codec_s6b.beam \
 			ocs_rest_res_http.beam \
+			ocs_rest_res_prometheus.beam \
 			ocs_rest_res_resource.beam \
 			ocs_rest_pagination_sup.beam \
 			ocs_rest_pagination_server.beam \
