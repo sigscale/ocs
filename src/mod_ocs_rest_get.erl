@@ -61,7 +61,7 @@ do(#mod{method = Method, parsed_header = Headers, request_uri = Uri,
 									{proceed, Data};
 								{_, Resource} ->
 									Path = http_uri:decode(Uri),
-									content_type_available(Headers, Path, Resource, ModData)
+									parse_query(Resource, ModData, httpd_util:split_path(Path))
 							end;
 						_Response ->
 							{proceed,  Data}
@@ -69,22 +69,6 @@ do(#mod{method = Method, parsed_header = Headers, request_uri = Uri,
 			end;
 		_ ->
 			{proceed, Data}
-	end.
-
-%% @hidden
-content_type_available(Headers, Uri, Resource, #mod{data = Data} = ModData) ->
-	case lists:keyfind("accept", 1, Headers) of
-		{_, RequestingType} ->
-			AvailableTypes = Resource:content_types_provided(),
-			case lists:member(RequestingType, AvailableTypes) of
-				true ->
-					parse_query(Resource, ModData, httpd_util:split_path(Uri));
-				false ->
-					Response = "<h2>HTTP Error 415 - Unsupported Media Type</h2>",
-					{proceed, [{response, {415, Response}} | Data]}
-			end;
-		_ ->
-			parse_query(Resource, ModData, httpd_util:split_path(Uri))
 	end.
 
 %% @hidden
