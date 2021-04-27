@@ -64,13 +64,19 @@ diameter() ->
 
 %% @hidden
 diameter_services([H | T], In, Out) ->
-	diameter_transport(T, diameter:service_info(H, [applications, transport]), In, Out);
+	ServiceInfo = diameter:service_info(H, [applications, transport]),
+	{_, Applications} = lists:keyfind(applications, 1, ServiceInfo),
+	{_, Transports} = lists:keyfind(transport, 1, ServiceInfo),
+	Dictionaries = application_dicts(Applications),
+	diameter_transport(T, Transports, Dictionaries, In, Out);
 diameter_services([], In, Out) ->
+erlang:display({?MODULE, ?LINE, In}),
 	In1 = case In of
 		In when length(In) > 0 ->
 			["# HELP diameter_message_in_total A counter of DIAMETER"
 					" messages received on a transport.\n"
-					"# TYPE diameter_message_in_total counter\n" | In];
+					"# TYPE diameter_message_in_total counter\n"
+					| lists:reverse(In)];
 		[] ->
 			[]
 	end,
@@ -78,17 +84,16 @@ diameter_services([], In, Out) ->
 		Out when length(Out) > 0 ->
 			["# HELP diameter_message_out_total A counter of DIAMETER"
 					" messages sent on a transport.\n"
-					"# TYPE diameter_message_out_total counter\n" | Out];
+					"# TYPE diameter_message_out_total counter\n"
+					| lists:reverse(Out)];
 		[] ->
 			[]
 	end,
 	[In1, Out1].
 
 %% @hidden
-diameter_transport(Services, [H | T], In, Out) ->
-	{_, Applications} = lists:keyfind(applications, 1, H),
-	{_, Transport} = lists:keyfind(transport, 1, H),
-	{_, Options} = lists:keyfind(options, 1, Transport),
+diameter_transport(Services, [H | T], Dictionaries, In, Out) ->
+	{_, Options} = lists:keyfind(options, 1, H),
 	{_, Config} = lists:keyfind(transport_config, 1, Options),
 	{_, IP} = lists:keyfind(ip, 1, Config),
 	{_, Port} = lists:keyfind(port, 1, Config),
@@ -98,7 +103,7 @@ diameter_transport(Services, [H | T], In, Out) ->
 		{_, diameter_sctp} ->
 			"{transport=\"sctp\""
 	end,
-	Acc = case lists:keyfind(type, 1, Transport) of
+	Acc = case lists:keyfind(type, 1, H) of
 		{_, listen} ->
 			["\",role=\"server\"", integer_to_list(Port), "\",port=\"",
 					address(IP), ",address=\"", S];
@@ -110,11 +115,10 @@ diameter_transport(Services, [H | T], In, Out) ->
 					integer_to_list(Port), "\",port=\"", address(IP),
 					",address=\"", S]
 	end,
-	Dictionaries = application_dicts(Applications),
-	{_, Statistics} = lists:keyfind(statistics, 1, Transport),
+	{_, Statistics} = lists:keyfind(statistics, 1, H),
 	diameter_transport(Services, T, Dictionaries, Statistics, In, Out, Acc);
-diameter_transport(Services, [], In, Out) ->
-	diameter_services(Services, lists:reverse(In), lists:reverse(Out)).
+diameter_transport(Services, [], _Dictionaries, In, Out) ->
+	diameter_services(Services, In, Out).
 %% @hidden
 diameter_transport(Services, Transports, Dictionaries,
 		[{{{AppId, Code, Rbit}, Direction}, Count} | T],
@@ -128,27 +132,30 @@ diameter_transport(Services, Transports, Dictionaries,
 	end,
 	case Direction of
 		recv ->
-			Acc1 = ["\n", integer_to_list(Count), "\"} ",
+			L1 = ["\n", integer_to_list(Count), "\"} ",
 					Message, ",message=\"" | Acc],
-			Acc2 = [Acc1 | "diameter_message_in_total"],
+			L2 = lists:reverse(L1),
+			L3 =  lists:flatten(["diameter_message_in_total" | L2]),
 			diameter_transport(Services, Transports, Dictionaries,
-					T, [Acc2 | In], Out, Acc);
+					T, [L3 | In], Out, Acc);
 		send ->
-			Acc1 = ["\n", integer_to_list(Count), "\"} ",
+			L1 = ["\n", integer_to_list(Count), "\"} ",
 					Message, ",message=\"" | Acc],
-			Acc2 = [Acc1 | "diameter_message_in_total"],
+			L2 = lists:reverse(L1),
+			L3 =  lists:flatten(["diameter_message_out_total" | L2]),
 			diameter_transport(Services, Transports, Dictionaries,
-					T, In, [Acc2 | Out], Acc)
+					T, In, [L3 | Out], Acc)
 	end;
 diameter_transport(Services, Transports, Dictionaries,
 		[{{{_AppId, _Code, _Rbit}, _Direction,
-		'Result-Code', _}, _Count} | T], In, Out, Acc) ->
+		{'Result-Code', _}}, _Count} | T], In, Out, Acc) ->
 	% @todo result code metrics.
 	diameter_transport(Services, Transports, Dictionaries,
 			T, In, Out, Acc);
 diameter_transport(Services, Transports,
-		_Dictionaries, [], In, Out, _Acc) ->
-	diameter_transport(Services, Transports, In, Out).
+		Dictionaries, [], In, Out, _Acc) ->
+erlang:display({?MODULE, ?LINE, In}),
+	diameter_transport(Services, Transports, Dictionaries, In, Out).
 
 %% @hidden
 application_dicts(Applications) ->
