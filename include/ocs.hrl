@@ -160,11 +160,11 @@
 
 -record(acc_balance,
 		{id :: string() | undefined,
-		name :: string(),
-		total_balance :: integer(),
-		units :: octets | cents | seconds | messages,
-		bucket :: [string()],
-		product :: [string()]}).
+		name :: string() | undefined,
+		total_balance :: integer() | undefined,
+		units :: octets | cents | seconds | messages | undefined,
+		bucket = [] :: [string()],
+		product = [] :: [string()]}).
 -type acc_balance() :: #acc_balance{}.
 
 -record(product,

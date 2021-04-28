@@ -70,8 +70,8 @@
 		pgw_plmn = [] :: [diameter:'OctetString'()],
 		request :: #'3gpp_s6b_AAR'{} | undefined,
 		session_id :: string(),
-		apn_context :: pos_integer(),
-		apn_name :: string(),
+		apn_context :: pos_integer() | undefined,
+		apn_name :: string() | undefined,
 		from :: {pid(), reference()} | undefined}).
 -type statedata() :: #statedata{}.
 

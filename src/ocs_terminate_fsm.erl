@@ -70,7 +70,7 @@
 		nas_host :: string() | undefined,
 		nas_realm :: string() | undefined,
 		nas_address :: inet:ip_address() | undefined,
-		request :: #'3gpp_sta_STR'{} | #'3gpp_swm_STR'{},
+		request :: #'3gpp_sta_STR'{} | #'3gpp_swm_STR'{} | undefined,
 		session_id :: string(),
 		from :: {pid(), reference()} | undefined}).
 -type statedata() :: #statedata{}.

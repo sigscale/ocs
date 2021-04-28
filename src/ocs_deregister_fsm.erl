@@ -59,7 +59,7 @@
 		service :: tuple() | undefined,
 		hss_realm :: string() | undefined,
 		hss_host :: string() | undefined,
-		request :: #'3gpp_swx_RTR'{},
+		request :: #'3gpp_swx_RTR'{} | undefined,
 		session_id :: string(),
 		sessions = [] :: [#session{}] | undefined,
 		from :: {pid(), reference()} | undefined}).
