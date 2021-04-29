@@ -340,6 +340,27 @@ process_request2(_Address, _Port, #diameter_caps{origin_host = {OHost, _DHost},
 			diameter_error(SId, ?'DIAMETER_BASE_RESULT-CODE_UNABLE_TO_COMPLY',
 					OHost, ORealm, RequestType, RequestNum)
 	end;
+process_request2(_Address, _Port, #diameter_caps{origin_host = {OHost, _DHost},
+		origin_realm = {ORealm, _DRealm}} = _DiameterCaps,
+		#'3gpp_gx_CCR'{'Session-Id' = SId,
+				'Auth-Application-Id' = ?Gx_APPLICATION_ID,
+				'CC-Request-Type' = RequestType,
+				'CC-Request-Number' = RequestNum} = Request, {eof, []}) ->
+	try
+		#'3gpp_gx_CCA'{'Session-Id' = SId,
+				'Result-Code' = [?'DIAMETER_BASE_RESULT-CODE_SUCCESS'],
+				'Origin-Host' = OHost, 'Origin-Realm' = ORealm,
+				'Auth-Application-Id' = ?Gx_APPLICATION_ID,
+				'CC-Request-Type' = RequestType,
+				'CC-Request-Number' = RequestNum,
+	catch
+		_:Reason ->
+			error_logger:warning_report(["Unable to process DIAMETER request",
+					{origin_host, OHost}, {origin_realm, ORealm},
+					{session_id, SId}, {request, Request}, {error, Reason}]),
+			diameter_error(SId, ?'DIAMETER_BASE_RESULT-CODE_UNABLE_TO_COMPLY',
+					OHost, ORealm, RequestType, RequestNum)
+	end;
 process_request2(_Address, _Port, _DiameterCaps, _Request, {error, Reason}) ->
 	{error, Reason}.
 
