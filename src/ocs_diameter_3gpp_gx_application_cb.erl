@@ -352,7 +352,7 @@ process_request2(_Address, _Port, #diameter_caps{origin_host = {OHost, _DHost},
 				'Origin-Host' = OHost, 'Origin-Realm' = ORealm,
 				'Auth-Application-Id' = ?Gx_APPLICATION_ID,
 				'CC-Request-Type' = RequestType,
-				'CC-Request-Number' = RequestNum,
+				'CC-Request-Number' = RequestNum}
 	catch
 		_:Reason ->
 			error_logger:warning_report(["Unable to process DIAMETER request",
