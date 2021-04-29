@@ -79,6 +79,7 @@
 				ocs_rest_res_product,
 				ocs_rest_res_service,
 				ocs_rest_res_resource,
+				ocs_rest_res_nrf,
 				ocs_rest_res_http,
 				ocs_rest_pagination_sup,
 				ocs_rest_pagination_server,
