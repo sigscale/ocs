@@ -396,7 +396,7 @@ get_resource(Query, Headers) ->
 					MatchId = match("id", [], Query),
 					MatchCategory = match("category", [], Query),
 					MatchSpecId = match("resourceSpecification.id", [], Query),
-					MatchRelName = match("resourceRelationship.name", [], Query),
+					MatchRelName = match("resourceRelationship.resource.name", [], Query),
 					{Query, [MatchId, MatchCategory, MatchSpecId, MatchRelName]}
 		end
 	of

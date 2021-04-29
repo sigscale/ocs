@@ -23,6 +23,7 @@ import '@polymer/paper-input/paper-input.js';
 import '@polymer/paper-dropdown-menu/paper-dropdown-menu.js';
 import '@polymer/paper-listbox/paper-listbox.js';
 import '@polymer/iron-pages/iron-pages.js';
+import '@polymer/iron-collapse/iron-collapse.js';
 import './style-element.js'
 import '@polymer/iron-icons/iron-icons.js';
 
@@ -147,24 +148,58 @@ class policyList extends PolymerElement {
 											</paper-input></td>
 										</tr>
 									</template>
+									<tr>
+										<td><paper-dropdown-menu
+													id="addPolDirDrop1"
+													value="{{direction1}}"
+													no-animations="true"
+													label="Flow Direction">
+												<paper-listbox
+														id="addPolDirList1"
+														slot="dropdown-content">
+													<paper-item>
+														up
+													</paper-item>
+													<paper-item>
+														down
+													</paper-item>
+												</paper-listbox>
+										</paper-dropdown-menu></td>
+										<td><paper-input
+													id="addPolDir1"
+													name="flowDescription"
+													pattern="^permit out proto "
+													label="Flow Description"
+													placeholder="permit out proto ip from all to all"
+													value="{{description1}}"
+													auto-validate>
+										</paper-input></td>
+									</tr>
 								</table>
+								<div>
+									<paper-icon-button
+										class="submit-icon-button"
+										icon="icons:add-circle-outline"
+										on-tap = "_flowPlus">
+										</paper-icon-button>
+								</div>
 							</template>
 						</div>
 					</iron-pages>
-						<div class="buttons">
-							<paper-button
-									raised
-									class="submit-button"
-									on-tap="_up">
-								Update
-							</paper-button>
-							<paper-button
-									raised
-									class="delete-button"
-									on-tap="_delete">
-								Delete
-							</paper-button>
-						</div>
+					<div class="buttons">
+						<paper-button
+								raised
+								class="submit-button"
+								on-tap="_up">
+							Update
+						</paper-button>
+						<paper-button
+								raised
+								class="delete-button"
+								on-tap="_delete">
+							Delete
+						</paper-button>
+					</div>
 				</template>
 				<vaadin-grid-column>
 					<template class="header">
@@ -274,6 +309,14 @@ class policyList extends PolymerElement {
 				on-response="_getPolicyResponse"
 				rejectWithRequest>
 			</iron-ajax>
+			<iron-ajax id="deleteTableAjax"
+				on-response="_deleteTableResponse"
+				on-error="_deleteTableError">
+			</iron-ajax>
+			<iron-ajax id="deleteTableContentAjax"
+				on-response="_deleteTableContentResponse"
+				on-error="_deleteTableContentError">
+			</iron-ajax>
 			<iron-ajax
 					id="policyUpdateAjax"
 					loading="{{loading}}"
@@ -376,6 +419,21 @@ class policyList extends PolymerElement {
 		}
 	}
 
+	tableDelete() {
+		var policyList1 = document.body.querySelector('sig-app').shadowRoot.querySelector('sig-policy-list');
+		this.$.deleteTableAjax.method = "DELETE";
+		this.$.deleteTableAjax.url = "/resourceInventoryManagement/v1/resource/" + policyList1.tableId
+		this.$.deleteTableAjax.generateRequest();
+		document.body.querySelector('sig-app').shadowRoot.getElementById('policyList').shadowRoot.getElementById('tableList').close();;
+	}
+
+	_delete(event) {
+		this.$.deleteTableContentAjax.method = "DELETE";
+		this.$.deleteTableContentAjax.url = "/resourceInventoryManagement/v1/resource/" + event.model.item.id;
+		this.$.deleteTableContentAjax.generateRequest();
+		document.body.querySelector('sig-app').shadowRoot.getElementById('policyList').shadowRoot.getElementById('policyGrid').clearCache();
+	}
+
 	_getPolicy(params, callback) {
 		var grid = this;
 		if(!grid.size) {
@@ -383,7 +441,7 @@ class policyList extends PolymerElement {
 		}
 		var policyList = document.body.querySelector('sig-app').shadowRoot.querySelector('sig-policy-list');
 		var ajax = policyList.shadowRoot.getElementById('getPolicyContentAjax');
-		ajax.url = "/resourceInventoryManagement/v1/resource?resourceSpecification.id=4&resourceRelationship.name=" + policyList.table;
+		ajax.url = "/resourceInventoryManagement/v1/resource?resourceSpecification.id=4&resourceRelationship.resource.name=" + policyList.table;
 		var handleAjaxResponse = function(request) {
 			if(request) {
 				policyList.etag = request.xhr.getResponseHeader('ETag');
@@ -402,7 +460,6 @@ class policyList extends PolymerElement {
 				for (var index in request.response) {
 					var tabObj = new Object();
 					tabObj.id = request.response[index].id;
-//					tabObj.resourceCharacteristic = request.response[index].resourceCharacteristic;
 					var resChar = request.response[index].resourceCharacteristic;
 					for (var indexRes in resChar) {
 						if(resChar[indexRes].name == "name") {
@@ -504,6 +561,15 @@ class policyList extends PolymerElement {
 		document.body.querySelector('sig-app').shadowRoot.querySelector('sig-policy-add').shadowRoot.getElementById('policyAddModal').open();
 	}
 
+	_flowPlus(event) {
+console.log(event.model.item.flow);
+		var flArr = event.model.item.flow;
+		var flJson = {"flowDirection": this.direction1, "flowDescription": this.description1};
+		flArr.push(flJson);
+		this.notifyPath(flArr);
+	}
+
+
 ////////////////////////////////////////////////////////////////////////////
 //Update Section
 ///////////////////////////////////////////////////////////////////////////
@@ -539,7 +605,6 @@ class policyList extends PolymerElement {
 			Na.op = "add";
 			Na.path = "/resourceCharacteristic/" + index2 + "/value";
 			Na.name = "name";
-			Na.minCardinality = 1;
 			Na.value = Mitem.name; 
 			PolArray.push(Na);
 		}
@@ -552,7 +617,6 @@ class policyList extends PolymerElement {
 			Pre.op = "add";
 			Pre.path = "/resourceCharacteristic/" + index3 + "/value";
 			Pre.name = "precedence";
-			Pre.minCardinality = 1;
 			Pre.value = parseInt(Mitem.precedence);
 			PolArray.push(Pre);
 		}
@@ -565,7 +629,6 @@ class policyList extends PolymerElement {
 			Cha.op = "add";
 			Cha.path = "/resourceCharacteristic/" + index4 + "/value";
 			Cha.name = "chargingKey";
-			Cha.minCardinality = 0;
 			Cha.value = parseInt(Mitem.chargingKey); 
 			PolArray.push(Cha);
 		}
@@ -578,7 +641,6 @@ class policyList extends PolymerElement {
 			Dl.op = "add";
 			Dl.path = "/resourceCharacteristic/" + index5 + "/value/maxRequestedBandwidthDL";
 			Dl.name = "qosInformation";
-			Dl.minCardinality = 0;
 			Dl.value = parseInt(Mitem.maxRequestedBandwidthDL); 
 			PolArray.push(Dl);
 		}
@@ -591,7 +653,6 @@ class policyList extends PolymerElement {
 			Ul.op = "add";
 			Ul.path = "/resourceCharacteristic/" + index6 + "/value/maxRequestedBandwidthUL";
 			Ul.name = "qosInformation";
-			Ul.minCardinality = 0;
 			Ul.value = parseInt(Mitem.maxRequestedBandwidthUL); 
 			PolArray.push(Ul);
 		}
@@ -604,10 +665,35 @@ class policyList extends PolymerElement {
 			Cid.op = "add";
 			Cid.path = "/resourceCharacteristic/" + index7 + "/value/qosClassIdentifier";
 			Cid.name = "qosInformation";
-			Cid.minCardinality = 0;
 			Cid.value = parseInt(Mitem.qosClassIdentifier); 
 			PolArray.push(Cid);
 		}
+
+		if(!this.description1) {
+			this.description1 = "permit out proto ip from all to all";
+			function checkFlow1(charPolFl1) {
+				return charPolFl1.name == "flowInformation";
+			}
+			var indexFl = results[index1].resourceCharacteristic.findIndex(checkFlow1);
+			var PolArray1 = new Array();
+			var Flo1 = new Object();
+			Flo1.op = "add";
+			Flo1.path = "/resourceCharacteristic/" + indexFl + "/value/" + "-";
+			Flo1.value = {"flowDirection": this.direction1, "flowDescription": this.description1};
+			PolArray.push(Flo1);
+		} else {
+			function checkFlow1(charPolFl1) {
+				return charPolFl1.name == "flowInformation";
+			}
+			var indexFl = results[index1].resourceCharacteristic.findIndex(checkFlow1);
+			var PolArray1 = new Array();
+			var Flo1 = new Object();
+			Flo1.op = "add";
+			Flo1.path = "/resourceCharacteristic/" + indexFl + "/value/" + "-";
+			Flo1.value = {"flowDirection": this.direction1, "flowDescription": this.description1};
+			PolArray.push(Flo1);
+		}
+
 /*		if(Mitem.flow) {
 			for (var indexFlow in Mitem.flow) {
 				function checkFlow(charPolFl) {
@@ -622,7 +708,6 @@ class policyList extends PolymerElement {
 				Fdir.op = "add";
 				Fdir.path = "/resourceCharacteristic/" + index8 + "/value/" + index8i + "/flowDirection";
 				Fdir.name = "flowInformation";
-				Fdir.minCardinality = 1;
 				Fdir.value = Mitem.flow[indexFlow].direction;
 				PolArray.push(Fdir);
 			}
@@ -641,12 +726,15 @@ class policyList extends PolymerElement {
 			Fdes.op = "add";
 			Fdes.path = "/resourceCharacteristic/" + index9 + "/value/" + index10 + "/flowDescription";
 			Fdes.name = "flowInformation";
-			Fdes.minCardinality = 1;
 			Fdes.value = this.flowDescriptionV;
 			PolArray.push(Fdes);
 		}*/
 		Ajax.body = JSON.stringify(PolArray);
 		Ajax.generateRequest();
+		var policyList = document.body.querySelector('sig-app').shadowRoot.querySelector('sig-policy-list');
+		var ajax = policyList.shadowRoot.getElementById('getPolicyContentAjax');
+		ajax.url = "/resourceInventoryManagement/v1/resource?resourceSpecification.id=4&resourceRelationship.resource.name=" + policyList.table;
+		ajax.generateRequest();
 	}
 }
 
