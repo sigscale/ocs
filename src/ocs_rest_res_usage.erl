@@ -857,7 +857,7 @@ spec_aaa_acct() ->
 			spec_attr_nas_port_id(), spec_attr_delay(),
 			spec_attr_input_octets(), spec_attr_output_octets(),
 			spec_attr_input_giga_words(),spec_attr_output_giga_words(),
-			spec_attr_total_octets(),
+			spec_attr_total_octets(), spec_attr_user_location(),
 			spec_attr_event_timestamp(), spec_attr_session_id(),
 			spec_attr_authentic(), spec_attr_session_time(),
 			spec_attr_input_packets(), spec_attr_output_packets(),
@@ -1967,6 +1967,16 @@ spec_attr_total_octets() ->
 	{struct, [Name, Desc, Conf, Value]}.
 
 %% @hidden
+spec_attr_user_location() ->
+	Name = {"name", "userLocationInfo"},
+	Desc = {"description", "3GPP-User-Location-Info attribute"},
+	Conf = {"configurable", true},
+	Type = {"valueType", "String"},
+	Value1 = {struct, [Type]},
+	Value = {"usageSpecCharacteristicValue", {array, [Value1]}},
+	{struct, [Name, Desc, Conf, Value]}.
+
+%% @hidden
 spec_attr_input_packets() ->
 	Name = {"name", "acctInputPackets"},
 	Desc = {"description", "Acct-Input-Packets attribute"},
@@ -2633,8 +2643,8 @@ char_attr_cause(#'3gpp_ro_CCR'{'Service-Information'
 		= [Cause]}]}]}, Acc) ->
 	[{struct, [{"name", "acctTerminateCause"},
 			{"value", integer_to_list(Cause)}]} | Acc];
-char_attr_cause(#'3gpp_ro_CCR'{}, Acc) ->
-	Acc;
+char_attr_cause(#'3gpp_ro_CCR'{} = CCR, Acc) ->
+	char_attr_user_location(CCR, Acc);
 char_attr_cause(Attributes, Acc) ->
 	case radius_attributes:find(?AcctTerminateCause, Attributes) of
 		{ok, Value} ->
@@ -2678,10 +2688,21 @@ char_attr_cause(Attributes, Acc) ->
 				N ->
 					N
 			end,
-			[{struct, [{"name", "acctTerminateCause"}, {"value", Cause}]} | Acc];
+			NewAcc = [{struct, [{"name", "acctTerminateCause"}, {"value", Cause}]} | Acc],
+			char_attr_user_location(Attributes, NewAcc);
 		{error, not_found} ->
-			Acc
+			char_attr_user_location(Attributes, Acc)
 	end.
+
+%% @hidden
+char_attr_user_location(#'3gpp_ro_CCR'{'Service-Information'
+		= [#'3gpp_ro_Service-Information'{'PS-Information'
+		= [#'3gpp_ro_PS-Information'{'3GPP-User-Location-Info'
+		= [Info]}]}]} = CCR, Acc) when is_binary(Info) ->
+	[{struct, [{"name", "userLocationInfo"},
+			{"value", base64:encode_to_string(Info)}]} | Acc];
+char_attr_user_location(_, Acc) ->
+	Acc.
 
 %% @hidden
 query_start(Type, Id, Query, Filters, RangeStart, RangeEnd) ->
@@ -3162,9 +3183,9 @@ characteristic({"name", exact, "username"}, {"value", like, Like},
 	characteristic(T, radius, Types, ReqAttrs2, RespAttrs, N);
 characteristic({"name", exact, "msisdn"}, {"value", Op, UserNameValue},
 		T, diameter, Types, '_' = MC, RespAttrs, N) when is_list(UserNameValue) ->
-	VarMatch = build_var_match(N),
 	case lists:last(UserNameValue) of
 		$% when Op == gte ->
+			VarMatch = build_var_match(N),
 			Pre = lists:droplast(UserNameValue),
 			Prefix = list_to_binary(Pre),
 			I = list_to_integer(Pre),
@@ -3172,26 +3193,31 @@ characteristic({"name", exact, "msisdn"}, {"value", Op, UserNameValue},
 			ReqAttrs2 = [{#'3gpp_ro_CCR'{'Subscription-Id'
 					= [#'3gpp_ro_Subscription-Id'{'Subscription-Id-Data'
 					= VarMatch, _ = '_'}], _ = '_'},
-					[{'=<', Prefix, VarMatch}, {'>', Prefix2, VarMatch}]}];
+					[{'=<', Prefix, VarMatch}, {'>', Prefix2, VarMatch}]}],
+			characteristic(T, diameter, Types, ReqAttrs2, RespAttrs, N + 1);
 		_ when Op == exact ->
+			VarMatch1 = build_var_match(N),
+			VarMatch2 = build_var_match(N + 1),
+			VarMatch3 = build_var_match(N + 2),
+			VarMatch4 = build_var_match(N + 3),
 			Prefix = list_to_binary(UserNameValue),
-			SubscriptionMC = {'or', {'and', {'=:=', '$100',
-					?'3GPP_RO_SUBSCRIPTION-ID-TYPE_END_USER_E164'}, {'==', '$101', Prefix}},
-					{'and', {'=:=', '$102', ?'3GPP_RO_SUBSCRIPTION-ID-TYPE_END_USER_E164'},
-					{'==', '$103', Prefix}}},
+			SubscriptionMC = {'or', {'and', {'=:=', VarMatch1,
+					?'3GPP_RO_SUBSCRIPTION-ID-TYPE_END_USER_E164'}, {'==', VarMatch2, Prefix}},
+					{'and', {'=:=', VarMatch3, ?'3GPP_RO_SUBSCRIPTION-ID-TYPE_END_USER_E164'},
+					{'==', VarMatch4, Prefix}}},
 			NewMC = add_condition(MC, SubscriptionMC),
          ReqAttrs2 = [{#'3gpp_ro_CCR'{'Subscription-Id'
                = [#'3gpp_ro_Subscription-Id'{'Subscription-Id-Type'
-               = '$100', 'Subscription-Id-Data' = '$101', _ = '_'},
-               #'3gpp_ro_Subscription-Id'{'Subscription-Id-Type' = '$102',
-               'Subscription-Id-Data' = '$103', _ = '_'}], _ = '_'}, [NewMC]}]
-	end,
-	characteristic(T, diameter, Types, ReqAttrs2, RespAttrs, N + 1);
+               = VarMatch1, 'Subscription-Id-Data' = VarMatch2, _ = '_'},
+               #'3gpp_ro_Subscription-Id'{'Subscription-Id-Type' = VarMatch3,
+               'Subscription-Id-Data' = VarMatch4, _ = '_'}], _ = '_'}, [NewMC]}],
+			characteristic(T, diameter, Types, ReqAttrs2, RespAttrs, N + 4)
+	end;
 characteristic({"name", exact, "imsi"}, {"value", Op, UserNameValue},
 		T, diameter, Types, '_' = MC, RespAttrs, N) when is_list(UserNameValue) ->
-	VarMatch = build_var_match(N),
 	case lists:last(UserNameValue) of
 		$% when Op == gte ->
+			VarMatch = build_var_match(N),
 			Pre = lists:droplast(UserNameValue),
 			Prefix = list_to_binary(Pre),
 			I = list_to_integer(Pre),
@@ -3199,26 +3225,31 @@ characteristic({"name", exact, "imsi"}, {"value", Op, UserNameValue},
 			ReqAttrs2 = [{#'3gpp_ro_CCR'{'Subscription-Id'
 					= [#'3gpp_ro_Subscription-Id'{'Subscription-Id-Data'
 					= VarMatch, _ = '_'}], _ = '_'},
-					[{'=<', Prefix, VarMatch}, {'>', Prefix2, VarMatch}]}];
+					[{'=<', Prefix, VarMatch}, {'>', Prefix2, VarMatch}]}],
+			characteristic(T, diameter, Types, ReqAttrs2, RespAttrs, N + 1);
 		_ when Op == exact ->
+			VarMatch1 = build_var_match(N),
+			VarMatch2 = build_var_match(N + 1),
+			VarMatch3 = build_var_match(N + 2),
+			VarMatch4 = build_var_match(N + 3),
 			Prefix = list_to_binary(UserNameValue),
-			SubscriptionMC = {'or', {'and', {'=:=', '$100',
-					?'3GPP_RO_SUBSCRIPTION-ID-TYPE_END_USER_IMSI'}, {'==', '$101', Prefix}},
-					{'and', {'=:=', '$102', ?'3GPP_RO_SUBSCRIPTION-ID-TYPE_END_USER_IMSI'},
-					{'==', '$103', Prefix}}},
+			SubscriptionMC = {'or', {'and', {'=:=', VarMatch1,
+					?'3GPP_RO_SUBSCRIPTION-ID-TYPE_END_USER_IMSI'}, {'==', VarMatch2, Prefix}},
+					{'and', {'=:=', VarMatch3, ?'3GPP_RO_SUBSCRIPTION-ID-TYPE_END_USER_IMSI'},
+					{'==', VarMatch4, Prefix}}},
 			NewMC = add_condition(MC, SubscriptionMC),
          ReqAttrs2 = [{#'3gpp_ro_CCR'{'Subscription-Id'
                = [#'3gpp_ro_Subscription-Id'{'Subscription-Id-Type'
-               = '$100', 'Subscription-Id-Data' = '$101', _ = '_'},
-               #'3gpp_ro_Subscription-Id'{'Subscription-Id-Type' = '$102',
-               'Subscription-Id-Data' = '$103', _ = '_'}], _ = '_'}, [NewMC]}]
-	end,
-	characteristic(T, diameter, Types, ReqAttrs2, RespAttrs, N + 1);
+               = VarMatch1, 'Subscription-Id-Data' = VarMatch2, _ = '_'},
+               #'3gpp_ro_Subscription-Id'{'Subscription-Id-Type' = VarMatch3,
+               'Subscription-Id-Data' = VarMatch4, _ = '_'}], _ = '_'}, [NewMC]}],
+			characteristic(T, diameter, Types, ReqAttrs2, RespAttrs, N + 4)
+	end;
 characteristic({"name", exact, "msisdn"}, {"value", Op, UserName},
 		T, diameter, Types, [{CCR, MC}], RespAttrs, N) when is_list(UserName) ->
-	VarMatch = build_var_match(N),
 	case lists:last(UserName) of
 		$% when Op == gte ->
+			VarMatch = build_var_match(N),
 			Pre = lists:droplast(UserName),
 			Prefix = list_to_binary(Pre),
 			I = list_to_integer(Pre),
@@ -3226,26 +3257,31 @@ characteristic({"name", exact, "msisdn"}, {"value", Op, UserName},
 			ReqAttrs2 = [{CCR#'3gpp_ro_CCR'{'Subscription-Id'
 					= [#'3gpp_ro_Subscription-Id'{'Subscription-Id-Data'
 					= VarMatch, _ = '_'}]},
-					[{'=<', Prefix, VarMatch}, {'>', Prefix2, VarMatch}]}];
+					[{'=<', Prefix, VarMatch}, {'>', Prefix2, VarMatch}]}],
+			characteristic(T, diameter, Types, ReqAttrs2, RespAttrs, N + 1);
 		_ when Op == exact ->
+			VarMatch1 = build_var_match(N),
+			VarMatch2 = build_var_match(N + 1),
+			VarMatch3 = build_var_match(N + 2),
+			VarMatch4 = build_var_match(N + 3),
 			Prefix = list_to_binary(UserName),
-			SubscriptionMC = {'or', {'and', {'=:=', '$100',
-					?'3GPP_RO_SUBSCRIPTION-ID-TYPE_END_USER_E164'}, {'==', '$101', Prefix}},
-					{'and', {'=:=', '$102', ?'3GPP_RO_SUBSCRIPTION-ID-TYPE_END_USER_E164'},
-					{'==', '$103', Prefix}}},
+			SubscriptionMC = {'or', {'and', {'=:=', VarMatch1,
+					?'3GPP_RO_SUBSCRIPTION-ID-TYPE_END_USER_E164'}, {'==', VarMatch2, Prefix}},
+					{'and', {'=:=', VarMatch3, ?'3GPP_RO_SUBSCRIPTION-ID-TYPE_END_USER_E164'},
+					{'==', VarMatch4, Prefix}}},
 			NewMC = add_condition(MC, SubscriptionMC),
 			ReqAttrs2 = [{CCR#'3gpp_ro_CCR'{'Subscription-Id'
 					= [#'3gpp_ro_Subscription-Id'{'Subscription-Id-Type'
-					= '$100', 'Subscription-Id-Data' = '$101', _ = '_'},
-					#'3gpp_ro_Subscription-Id'{'Subscription-Id-Type' = '$102',
-					'Subscription-Id-Data' = '$103', _ = '_'}]}, [NewMC]}]
-	end,
-	characteristic(T, diameter, Types, ReqAttrs2, RespAttrs, N + 1);
+					= VarMatch1, 'Subscription-Id-Data' = VarMatch2, _ = '_'},
+					#'3gpp_ro_Subscription-Id'{'Subscription-Id-Type' = VarMatch3,
+					'Subscription-Id-Data' = VarMatch4, _ = '_'}]}, [NewMC]}],
+			characteristic(T, diameter, Types, ReqAttrs2, RespAttrs, N + 4)
+	end;
 characteristic({"name", exact, "imsi"}, {"value", Op, UserNameValue},
 		T, diameter, Types, [{CCR, MC}], RespAttrs, N) when is_list(UserNameValue) ->
-	VarMatch = build_var_match(N),
 	case lists:last(UserNameValue) of
 		$% when Op == gte ->
+			VarMatch = build_var_match(N),
 			Pre = lists:droplast(UserNameValue),
 			Prefix = list_to_binary(Pre),
 			I = list_to_integer(Pre),
@@ -3255,19 +3291,23 @@ characteristic({"name", exact, "imsi"}, {"value", Op, UserNameValue},
 					= VarMatch, _ = '_'}]},
 					[{'=<', Prefix, VarMatch}, {'>', Prefix2, VarMatch}]}];
 		_ when Op == exact ->
+			VarMatch1 = build_var_match(N),
+			VarMatch2 = build_var_match(N + 1),
+			VarMatch3 = build_var_match(N + 2),
+			VarMatch4 = build_var_match(N + 3),
 			Prefix = list_to_binary(UserNameValue),
-			SubscriptionMC = {'or', {'and', {'=:=', '$100',
-					?'3GPP_RO_SUBSCRIPTION-ID-TYPE_END_USER_IMSI'}, {'==', '$101', Prefix}},
-					{'and', {'=:=', '$102', ?'3GPP_RO_SUBSCRIPTION-ID-TYPE_END_USER_IMSI'},
-					{'==', '$103', Prefix}}},
+			SubscriptionMC = {'or', {'and', {'=:=', VarMatch1,
+					?'3GPP_RO_SUBSCRIPTION-ID-TYPE_END_USER_IMSI'}, {'==', VarMatch2, Prefix}},
+					{'and', {'=:=', VarMatch3, ?'3GPP_RO_SUBSCRIPTION-ID-TYPE_END_USER_IMSI'},
+					{'==', VarMatch4, Prefix}}},
 			NewMC = add_condition(MC, SubscriptionMC),
          ReqAttrs2 = [{CCR#'3gpp_ro_CCR'{'Subscription-Id'
                = [#'3gpp_ro_Subscription-Id'{'Subscription-Id-Type'
-               = '$100', 'Subscription-Id-Data' = '$101', _ = '_'},
-               #'3gpp_ro_Subscription-Id'{'Subscription-Id-Type' = '$102',
-               'Subscription-Id-Data' = '$103', _ = '_'}]}, [NewMC]}]
-	end,
-	characteristic(T, diameter, Types, ReqAttrs2, RespAttrs, N + 1);
+               = VarMatch1, 'Subscription-Id-Data' = VarMatch2, _ = '_'},
+               #'3gpp_ro_Subscription-Id'{'Subscription-Id-Type' = VarMatch3,
+               'Subscription-Id-Data' = VarMatch4, _ = '_'}]}, [NewMC]}],
+			characteristic(T, diameter, Types, ReqAttrs2, RespAttrs, N + 4)
+	end;
 characteristic({"name", exact, "username"}, {"value", Op, UserName},
 		T, diameter, Types, [{CCR, _MC}], RespAttrs, N) when is_list(UserName) ->
 	VarMatch = build_var_match(N),

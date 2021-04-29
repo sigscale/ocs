@@ -63,9 +63,9 @@
 suite() ->
 	[{userdata, [{doc, "Test suite for REST API in OCS"}]},
 	{timetrap, {minutes, 1}},
-	{require, rest_user}, {default_config, rest_user, "bss"},
-	{require, rest_pass}, {default_config, rest_pass, "nfc9xgp32xha"},
-	{require, rest_group}, {default_config, rest_group, "all"}].
+	{require, rest},
+	{default_config, rest, [{user, "bss"},
+			{password, "nfc9xgp32xha"}, {group, "all"}]}].
 
 -spec init_per_suite(Config :: [tuple()]) -> Config :: [tuple()].
 %% Initialization before the whole suite.
@@ -86,9 +86,9 @@ init_per_suite(Config) ->
 			FPort([_ | T]) ->
 				FPort(T)
 	end,
-	RestUser = ct:get_config(rest_user),
-	RestPass = ct:get_config(rest_pass),
-	_RestGroup = ct:get_config(rest_group),
+	RestUser = ct:get_config({rest, user}),
+	RestPass = ct:get_config({rest, password}),
+	_RestGroup = ct:get_config({rest, group}),
 	{Host, Port} = case Fport(Services) of
 		{{_, H2}, {_, P2}} when H2 == "localhost"; H2 == {127,0,0,1} ->
 			{ok, _} = ocs:add_user(RestUser, RestPass, "en"),
@@ -5108,8 +5108,8 @@ is_etag_valid(Etag) ->
 
 %% @hidden
 basic_auth() ->
-	RestUser = ct:get_config(rest_user),
-	RestPass = ct:get_config(rest_pass),
+	RestUser = ct:get_config({rest, user}),
+	RestPass = ct:get_config({rest, password}),
 	EncodeKey = base64:encode_to_string(string:concat(RestUser ++ ":", RestPass)),
 	"Basic " ++ EncodeKey.
 

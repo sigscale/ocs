@@ -28,7 +28,8 @@ testmods = ocs_api_SUITE \
 			peer_tls_transport \
 			diameter_test_client_cb \
 			test_event \
-			ocs_test_lib
+			ocs_test_lib \
+			mod_ct_nrf
 
 check_DATA = .dialyzer_ok .common_test_ok
 

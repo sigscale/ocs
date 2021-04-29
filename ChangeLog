@@ -1,3 +1,34 @@
+2021-04-12  Refath Wadood <refath@sigscale.org>
+
+	* correct accumulator handling; remove unnecessary code
+	* set nrf path correctly; use smaller values
+	* include ocs_re_interface_SUITE in test spec
+
+2021-04-07  Refath Wadood <refath@sigscale.org>
+
+	* use incremental match variable in imsi/msisdn filters
+	* use correct service context id
+
+2021-04-07  Refath Wadood <refath@sigscale.org>
+
+	* add more specification for accounting log
+	* correct user location info charateristic codec
+	* refactor cca mscc building
+
+2021-04-06  Refath Wadood <refath@sigscale.org>
+
+	* Fix grammer
+	* match correct error code in function head
+	* correct spec
+	* handle zero value rsus
+	* refactor nrf request handling
+	* test: add mod ct nrf
+	* test: refactor re interface test suite
+	* test: validate returned units
+	* test: refactor test suite configuration data
+	* test: recieve scur ccas with no usu; recieve scur cca with empty rsu
+	* test: check for empty service rating object
+
 2021-03-21  Refath Wadood <refath@sigscale.org>
 
 	* get correct app env; correct type

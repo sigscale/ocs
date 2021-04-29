@@ -166,6 +166,12 @@ do(#mod{method = Method, parsed_header = Headers, request_uri = Uri,
 							check_content_type_header(Headers, Method, ocs_rest_res_resource, Data);
 						["serviceCatalogManagement", "v2", "serviceSpecification" | _] ->
 							check_content_type_header(Headers, Method, ocs_rest_res_service, Data);
+						["nrf-rating", "v1", "ratingdata"] ->
+							check_content_type_header(Headers, Method, ocs_rest_res_nrf, Data);
+						["nrf-rating", "v1", "ratingdata", _Id, "update"] ->
+							check_content_type_header(Headers, Method, ocs_rest_res_nrf, Data);
+						["nrf-rating", "v1", "ratingdata", _Id, "release"] ->
+							check_content_type_header(Headers, Method, ocs_rest_res_nrf, Data);
 						_ ->
 							{proceed, Data}
 					end;
