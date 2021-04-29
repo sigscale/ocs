@@ -35,53 +35,42 @@ class policyAdd extends PolymerElement {
 					value="{{polName}}">
 				</paper-input>
 				<div>
-					<span>Characteristics</span>
-					<paper-icon-button
-						id="onClickPolicyChars"
-						suffix
-						icon="arrow-drop-down"
-						on-click="_onClickPolicyChars">
-					</paper-icon-button>
+					<paper-input
+						id="bandwidthDL"
+						label="maxRequestedBandwidthDL"
+						value="{{charDL}}">
+					</paper-input>
+					<paper-input
+						id="bandwidthUL"
+						label="maxRequestedBandwidthUL"
+						value="{{charUL}}">
+					</paper-input>
+					<paper-input
+						id="classId"
+						label="qosClassIdentifier"
+						value="{{charClassId}}">
+					</paper-input>
+					<paper-input
+						id="chargeRule"
+						label="chargingKey"
+						value="{{polCha}}">
+					</paper-input>
+					<paper-input
+						id="flowUp"
+						label="flowDirection"
+						value="{{flowUp}}">
+					</paper-input>
+					<paper-input
+						id="flowDescription"
+						label="flowDescription"
+						value="{{flowDiscUp}}">
+					</paper-input>
+					<paper-input
+						id="precedence"
+						label="precedence"
+						value="{{prece}}">
+					</paper-input>
 				</div>
-				<iron-collapse id="addPolicyChars">
-					<div>
-						<paper-input
-							id="bandwidthDL"
-							label="maxRequestedBandwidthDL"
-							value="{{charDL}}">
-						</paper-input>
-						<paper-input
-							id="bandwidthUL"
-							label="maxRequestedBandwidthUL"
-							value="{{charUL}}">
-						</paper-input>
-						<paper-input
-							id="classId"
-							label="qosClassIdentifier"
-							value="{{charClassId}}">
-						</paper-input>
-						<paper-input
-							id="chargeRule"
-							label="chargingKey"
-							value="{{polCha}}">
-						</paper-input>
-						<paper-input
-							id="flowUp"
-							label="flowDirection"
-							value="{{flowUp}}">
-						</paper-input>
-						<paper-input
-							id="flowDescription"
-							label="flowDescription"
-							value="{{flowDiscUp}}">
-						</paper-input>
-						<paper-input
-							id="precedence"
-							label="precedence"
-							value="{{prece}}">
-						</paper-input>
-					</div>
-				</iron-collapse>
 				<div class="buttons">
 					<paper-button
 							raised
@@ -169,16 +158,6 @@ class policyAdd extends PolymerElement {
 		this.prece = null;
 	}
 
-	_onClickPolicyChars() {
-		if(this.$.addPolicyChars.opened == false) {
-			this.$.addPolicyChars.show();
-			this.$.onClickPolicyChars.icon="arrow-drop-up"
-		} else {
-			this.$.addPolicyChars.hide();
-			this.$.onClickPolicyChars.icon="arrow-drop-down"
-		}
-	}
-
 	_add() {
 		var ajax = this.$.policyAddAjax;
 		ajax.method = "POST";
@@ -192,18 +171,18 @@ class policyAdd extends PolymerElement {
 		relObj.id = document.body.querySelector('sig-app').shadowRoot.querySelector('sig-policy-list').tableId;
 		relObj.href = "/resourceInventoryManagement/v1/resourceRelationship/" + relObj.id;
 		relObj.name = document.body.querySelector('sig-app').shadowRoot.querySelector('sig-policy-list').table;
-		relObj.type = "contained";
-		rel.push(relObj);
+		var relObj1 = new Object();
+		relObj1.relationshipType = "contained";
+		relObj1.resource = relObj
+		rel.push(relObj1);
 		pol.resourceRelationship = rel;
 
 		var charaArr = new Array();
 		var nameObj = new Object();
 		nameObj.name = "name";
-		nameObj.minCardinality = 1;
 		nameObj.value = this.polName;
 		var nameQOS = new Object();
 		nameQOS.name = "qosInformation";
-		nameQOS.minCardinality = 0;
 		var nameQOSValue = new Object(); 
 		nameQOSValue.maxRequestedBandwidthDL = parseInt(this.charDL);
 		nameQOSValue.maxRequestedBandwidthUL = parseInt(this.charUL);
@@ -211,11 +190,9 @@ class policyAdd extends PolymerElement {
 		nameQOS.value = nameQOSValue;
 		var nameChRule = new Object();
 		nameChRule.name = "chargingKey";
-		nameChRule.minCardinality = 1;
 		nameChRule.value = parseInt(this.polCha);
 		var nameFlow = new Object();
 		nameFlow.name = "flowInformation";
-		nameFlow.minCardinality = 1;
 		var nameFloArr = new Array();
 		var nameFloObj = new Object();
 		nameFloObj.flowDirection = this.flowUp;
@@ -224,7 +201,6 @@ class policyAdd extends PolymerElement {
 		nameFlow.value = nameFloArr;
 		var namePre = new Object();
 		namePre.name = "precedence";
-		namePre.minCardinality = 1;
 		namePre.value = parseInt(this.prece);
 		charaArr.push(nameObj, nameQOS, nameChRule, nameFlow, namePre);
 		pol.resourceCharacteristic = charaArr;
@@ -232,10 +208,12 @@ class policyAdd extends PolymerElement {
 		var spec = new Object();
 		spec.id = "4";
 		spec.name = "PolicyTable";
+		spec.href = "resourceCatalogManagement/v2/resourceSpecification/" + "4";
 		pol.resourceSpecification = spec;
 		ajax.body = pol;
 		ajax.generateRequest();
 		this.$.policyAddModal.close();
+		document.body.querySelector('sig-app').shadowRoot.getElementById('policyList').shadowRoot.getElementById('policyGrid').clearCache();
 	}
 
 	_response() {

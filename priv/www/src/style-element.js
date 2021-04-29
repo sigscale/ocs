@@ -168,6 +168,10 @@ styleElement.innerHTML = `<template>
 			background-color: var(--paper-lime-a700);
 			color: black;
 		}
+		.submit-icon-button {
+			color: black;
+			left: 22%;
+		}
 		.update-button {
 			right: 2%;
 			background-color: var(--paper-lime-a700);

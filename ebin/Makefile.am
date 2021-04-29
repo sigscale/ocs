@@ -78,6 +78,7 @@ beam_DATA = ocs.beam \
 			ocs_rest_res_balance.beam \
 			ocs_rest_res_product.beam \
 			ocs_rest_res_service.beam \
+			ocs_rest_res_nrf.beam \
 			diameter_gen_ietf.beam \
 			diameter_gen_etsi.beam \
 			diameter_gen_3gpp.beam \
