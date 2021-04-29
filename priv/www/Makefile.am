@@ -75,6 +75,7 @@ install-data-local:
 
 clean-local:
 	-rm -rf yarn.lock build
+	-rm $(abs_builddir)/src/inventory-help.js
 	for i in $(LINKS); do \
 		if [ -L $$i ]; then \
 			rm $$i; \
