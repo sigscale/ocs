@@ -562,7 +562,6 @@ class policyList extends PolymerElement {
 	}
 
 	_flowPlus(event) {
-console.log(event.model.item.flow);
 		var flArr = event.model.item.flow;
 		var flJson = {"flowDirection": this.direction1, "flowDescription": this.description1};
 		flArr.push(flJson);
@@ -669,8 +668,7 @@ console.log(event.model.item.flow);
 			PolArray.push(Cid);
 		}
 
-		if(!this.description1) {
-			this.description1 = "permit out proto ip from all to all";
+		if(this.description1 || this.direction1) {
 			function checkFlow1(charPolFl1) {
 				return charPolFl1.name == "flowInformation";
 			}
@@ -681,7 +679,7 @@ console.log(event.model.item.flow);
 			Flo1.path = "/resourceCharacteristic/" + indexFl + "/value/" + "-";
 			Flo1.value = {"flowDirection": this.direction1, "flowDescription": this.description1};
 			PolArray.push(Flo1);
-		} else {
+		} else if(this.description1 & this.direction1) {
 			function checkFlow1(charPolFl1) {
 				return charPolFl1.name == "flowInformation";
 			}
@@ -694,41 +692,21 @@ console.log(event.model.item.flow);
 			PolArray.push(Flo1);
 		}
 
-/*		if(Mitem.flow) {
-			for (var indexFlow in Mitem.flow) {
-				function checkFlow(charPolFl) {
-					return charPolFl.name == "flowInformation";
-				}
-				var index8 = results[index1].resourceCharacteristic.findIndex(checkFlow);
-				function checkFlow2(charPolFl2) {
-					return charPolFl2.flowDirection == Mitem.flow[indexFlow].direction;
-				}
-				var index8i = results[index1].resourceCharacteristic[index8].value.findIndex(checkFlow2);
+		if(Mitem.flow) {
+			function checkFlow(charPolFl) {
+				return charPolFl.name == "flowInformation";
+			}
+			var index8 = results[index1].resourceCharacteristic.findIndex(checkFlow);
+			var arrayLength = Mitem.flow.length;
+			for(var index8i = 0; index8i < arrayLength; index8i++) {
 				var Fdir = new Object();
-				Fdir.op = "add";
-				Fdir.path = "/resourceCharacteristic/" + index8 + "/value/" + index8i + "/flowDirection";
-				Fdir.name = "flowInformation";
-				Fdir.value = Mitem.flow[indexFlow].direction;
+				Fdir.op = "replace";
+				Fdir.path = "/resourceCharacteristic/" + index8 + "/value/" + index8i;
+				Fdir.value = {"flowDirection": Mitem.flow[index8i].direction, "flowDescription": Mitem.flow[index8i].description};
 				PolArray.push(Fdir);
 			}
 		}
-		if(this.flowDescriptionV) {
-			function checkFlow1(charPolFl1) {
-				return charPolFl1.name == "flowInformation";
-			}
-			var index9 = results[index1].resourceCharacteristic.findIndex(checkFlow1);
-			var floDes1 = this.flowDescriptionV1;
-			function checkFlow2(charPolFl2) {
-				return charPolFl2.flowDescription == floDes1;
-			}
-			var index10 = results[index1].resourceCharacteristic[index9].value.findIndex(checkFlow2);
-			var Fdes = new Object();
-			Fdes.op = "add";
-			Fdes.path = "/resourceCharacteristic/" + index9 + "/value/" + index10 + "/flowDescription";
-			Fdes.name = "flowInformation";
-			Fdes.value = this.flowDescriptionV;
-			PolArray.push(Fdes);
-		}*/
+
 		Ajax.body = JSON.stringify(PolArray);
 		Ajax.generateRequest();
 		var policyList = document.body.querySelector('sig-app').shadowRoot.querySelector('sig-policy-list');
