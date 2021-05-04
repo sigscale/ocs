@@ -179,8 +179,7 @@ class policyList extends PolymerElement {
 								<div>
 									<paper-icon-button
 										class="submit-icon-button"
-										icon="icons:add-circle-outline"
-										on-tap = "_flowPlus">
+										icon="icons:add-circle-outline">
 										</paper-icon-button>
 								</div>
 							</template>
@@ -560,14 +559,6 @@ class policyList extends PolymerElement {
 	showAddPolicyModal(event) {
 		document.body.querySelector('sig-app').shadowRoot.querySelector('sig-policy-add').shadowRoot.getElementById('policyAddModal').open();
 	}
-
-	_flowPlus(event) {
-		var flArr = event.model.item.flow;
-		var flJson = {"flowDirection": this.direction1, "flowDescription": this.description1};
-		flArr.push(flJson);
-		this.notifyPath(flArr);
-	}
-
 
 ////////////////////////////////////////////////////////////////////////////
 //Update Section
