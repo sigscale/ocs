@@ -211,7 +211,7 @@ class prefixList extends PolymerElement {
 		}
 		var prefixList = document.body.querySelector('sig-app').shadowRoot.querySelector('sig-prefix-list');
 		var ajax = prefixList.shadowRoot.getElementById('getTableContentAjax');
-		ajax.url = "/resourceInventoryManagement/v1/resource?resourceSpecification.id=2&resourceRelationship.name=" + prefixList.table;
+		ajax.url = "/resourceInventoryManagement/v1/resource?resourceSpecification.id=2&resourceRelationship.resource.name=" + prefixList.table;
 		var handleAjaxResponse = function(request) {
 			if(request) {
 				prefixList.etag = request.xhr.getResponseHeader('ETag');
