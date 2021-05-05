@@ -142,8 +142,10 @@ class prefixAdd extends PolymerElement {
 		relObj.id = document.body.querySelector('sig-app').shadowRoot.querySelector('sig-prefix-list').tableId;
 		relObj.href = "/resourceInventoryManagement/v1/resourceRelationship/" + relObj.id;
 		relObj.name = document.body.querySelector('sig-app').shadowRoot.querySelector('sig-prefix-list').table;
-		relObj.type = "contained";
-		rel.push(relObj);
+      var relObj1 = new Object();
+      relObj1.relationshipType = "contained";
+      relObj1.resource = relObj
+		rel.push(relObj1);
 		tar.resourceRelationship = rel
 
 		var resource = new Array();
@@ -164,10 +166,12 @@ class prefixAdd extends PolymerElement {
 		var spec = new Object();
 		spec.id = "2";
 		spec.name = "TariffTable";
+		spec.href = "resourceCatalogManagement/v2/resourceSpecification/" + "2";
 		tar.resourceSpecification = spec;
 		ajax.body = tar;
 		ajax.generateRequest();
 		this.$.addPrefixModal.close();
+		document.body.querySelector('sig-app').shadowRoot.getElementById('prefixList').shadowRoot.getElementById('prefixGrid').clearCache();
 	}
 
 	_addTableResponse(event) {
