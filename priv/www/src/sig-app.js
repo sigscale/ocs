@@ -372,6 +372,7 @@ class SigApp extends PolymerElement {
 			document.body.querySelector('sig-app').shadowRoot.getElementById('httpList').shadowRoot.getElementById('getHttp').generateRequest();
 		}
 		if(this.$.load.selected == "prefixView") {
+			document.body.querySelector('sig-app').shadowRoot.querySelector('sig-prefix-list').shadowRoot.getElementById('tableList').open();
 			document.body.querySelector('sig-app').shadowRoot.getElementById('prefixList').shadowRoot.getElementById('prefixGrid').clearCache();
 		}
 		if(this.$.load.selected == "policyView") {

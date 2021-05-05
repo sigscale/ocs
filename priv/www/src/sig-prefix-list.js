@@ -168,9 +168,9 @@ class prefixList extends PolymerElement {
 
 	tableOk() {
 		var grid = this.shadowRoot.getElementById('prefixGrid');
-		document.body.querySelector('sig-app').shadowRoot.getElementById('prefixList').shadowRoot.getElementById('prefixGrid');
 		grid.dataProvider = this._getPreTable;
 		this.$.tableList.close();
+		document.body.querySelector('sig-app').shadowRoot.getElementById('prefixList').shadowRoot.getElementById('prefixGrid').clearCache();
 	}
 
 	tableDelete(event) {
