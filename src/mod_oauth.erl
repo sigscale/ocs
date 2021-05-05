@@ -448,8 +448,9 @@ sub_chars1([], Acc) ->
 	when
 		Path :: string(),
 		ConfigDb :: term(),
-		Result :: {yes, Directory} | no,
-		Directory :: list().
+		Result :: {yes, {Directory, DirectoryData}} | no,
+		Directory :: list(),
+		DirectoryData :: list().
 %% @doc Look up the configuration directory.
 directory_path(Path, ConfigDB)
 		when is_list(Path) ->

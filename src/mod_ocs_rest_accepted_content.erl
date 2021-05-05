@@ -70,6 +70,8 @@ do(#mod{method = Method, parsed_header = Headers, request_uri = Uri,
 							check_content_type_header(Headers, Method, ocs_rest_res_balance, Data);
 						["ocs", "v1", "log", "balance" | _] ->
 							check_content_type_header(Headers, Method, ocs_rest_res_balance, Data);
+						["metrics"] ->
+							check_content_type_header(Headers, Method, ocs_rest_res_prometheus, Data);
 						["usageManagement", "v1", "usage"] ->
 							check_content_type_header(Headers, Method, ocs_rest_res_usage, Data);
 						["usageManagement", "v1", "usage" | _] ->
@@ -187,12 +189,14 @@ check_content_type_header(Headers, Method, Module, Data) ->
 			check_accept_header(Headers, Module, [{resource, Module} | Data]);
 		{_, []} when Method == "DELETE"; Method == "GET" ->
 			check_accept_header(Headers, Module, [{resource, Module} | Data]);
-		{_, ProvidedType} ->
-			AcceptedTypes = Module:content_types_accepted(),
-			case lists:member(ProvidedType, AcceptedTypes) of
+		{_, ContentType} ->
+			F = fun(AcceptedType) ->
+					lists:prefix(AcceptedType, ContentType)
+			end,
+			case lists:any(F, Module:content_types_accepted()) of
 				true ->
 					check_accept_header(Headers, Module, [{resource, Module},
-							{content_type,  ProvidedType} | Data]);
+							{content_type,  ContentType} | Data]);
 				false ->
 					Response = "<h2>HTTP Error 415 - Unsupported Media Type</h2>",
 					{proceed, [{response, {415, Response}} | Data]}
@@ -205,11 +209,17 @@ check_content_type_header(Headers, Method, Module, Data) ->
 %% @hidden
 check_accept_header(Headers, Module, Data) ->
 	case lists:keyfind("accept", 1, Headers) of
-		{_, AcceptType} ->
-			Representations = Module:content_types_provided(),
-			case lists:member(AcceptType, Representations) of
+		{_, Accept} ->
+			AcceptTypes = string:tokens(Accept, [$,]),
+			F1 = fun(Representation) ->
+					F2 = fun(AcceptType) ->
+							lists:prefix(Representation, AcceptType)
+					end,
+					lists:any(F2, AcceptTypes)
+			end,
+			case lists:any(F1, Module:content_types_provided()) of
 				true ->
-					{proceed, [{accept, AcceptType} | Data]};
+					{proceed, [{accept, AcceptTypes} | Data]};
 				false ->
 					Response = "<h2>HTTP Error 415 - Unsupported Media Type</h2>",
 					{proceed, [{response, {415, Response}} | Data]}
