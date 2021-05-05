@@ -362,6 +362,7 @@ class policyList extends PolymerElement {
 		var grid = this.shadowRoot.getElementById('policyGrid');
 		grid.dataProvider = this._getPolicy;
 		this.$.tableList.close();
+		document.body.querySelector('sig-app').shadowRoot.getElementById('policyList').shadowRoot.getElementById('policyGrid').clearCache();
 	} 
 
 	_activeItemChanged(item, last) {
