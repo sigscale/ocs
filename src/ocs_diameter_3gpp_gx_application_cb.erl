@@ -33,6 +33,7 @@
 -include("diameter_gen_ietf.hrl").
 -include("diameter_gen_3gpp.hrl").
 -include("diameter_gen_3gpp_gx_application.hrl").
+-include("diameter_gen_cc_application_rfc4006.hrl").
 -include("ocs.hrl").
 
 -record(state, {}).
@@ -83,7 +84,7 @@ peer_down(_ServiceName, _Peer, State) ->
 		Peer :: peer() | false,
 		Result :: Selection | false.
 %% @doc Invoked as a consequence of a call to diameter:call/4 to select
-%% a destination peer for an outgoing request. 
+%% a destination peer for an outgoing request.
 pick_peer([Peer | _] = _LocalCandidates, _RemoteCandidates, _ServiceName, _State) ->
 	{ok, Peer}.
 
@@ -97,7 +98,7 @@ pick_peer([Peer | _] = _LocalCandidates, _RemoteCandidates, _ServiceName, _State
 		Discard :: {discard, Reason} | discard,
 		Reason :: term(),
 		PostF :: diameter:evaluable().
-%% @doc Invoked to return a request for encoding and transport 
+%% @doc Invoked to return a request for encoding and transport
 prepare_request(#diameter_packet{} = Packet, _ServiceName, _Peer) ->
 	{send, Packet}.
 
@@ -282,16 +283,29 @@ process_request(_Address, _Port,
 					{error, missing_subscription_id}]),
 			diameter_error(SId, ?'DIAMETER_ERROR_INITIAL_PARAMETERS',
 					OHost, ORealm, RequestType, RequestNum);
-process_request(Address, Port, DiameterCaps, #'3gpp_gx_CCR'{
-		'Subscription-Id' = [#'3gpp_gx_Subscription-Id'{
-		'Subscription-Id-Data' = Subscriber} | _]} = Request) ->
-	process_request(Address, Port, DiameterCaps, Request,
-			ocs:find_service(Subscriber)).
+process_request(Address, Port,
+		#diameter_caps{origin_host = {OHost, _DHost},
+		origin_realm = {ORealm, _DRealm}} = DiameterCaps,
+		#'3gpp_gx_CCR'{'Session-Id' = SId,
+				'Auth-Application-Id' = ?Gx_APPLICATION_ID,
+				'CC-Request-Type' = RequestType,
+				'CC-Request-Number' = RequestNum,
+				'Subscription-Id' = [#'3gpp_gx_Subscription-Id'{
+				'Subscription-Id-Data' = Subscriber} | _]} = Request) ->
+	case ocs:find_service(Subscriber) of
+		{ok, #service{product = ProductRef}} ->
+			process_request(Address, Port, DiameterCaps, Request,
+					ocs:find_product(ProductRef));
+		{error, Reason} ->
+			error_logger:warning_report(["Unable to process DIAMETER request",
+					{origin_host, OHost}, {origin_realm, ORealm},
+					{session_id, SId}, {request, Request},
+					{error, Reason}]),
+			diameter_error(SId,
+					?'DIAMETER_CC_APP_RESULT-CODE_USER_UNKNOWN',
+					OHost, ORealm, RequestType, RequestNum)
+	end.
 %% @hidden
-process_request(Address, Port, DiameterCaps, Request,
-		{ok, #service{product = ProductRef}}) ->
-	process_request(Address, Port, DiameterCaps, Request,
-			ocs:find_product(ProductRef));
 process_request(Address, Port, DiameterCaps, Request,
 		{ok, #product{product = OfferId}}) ->
 	process_request(Address, Port, DiameterCaps, Request,
@@ -300,16 +314,34 @@ process_request(Address, Port, DiameterCaps, Request,
 		{ok, #offer{char_value_use = CharValue}}) ->
 	process_request1(Address, Port, DiameterCaps, Request,
 			lists:keyfind("policyTable", #char_value_use.name, CharValue));
-process_request(_Address, _Port, _DiameterCaps, _Request, {error, Reason}) ->
-	{error, Reason}.
+process_request(_Address, _Port, #diameter_caps{origin_host = {OHost, _DHost},
+		origin_realm = {ORealm, _DRealm}},
+		#'3gpp_gx_CCR'{'Session-Id' = SId,
+            'CC-Request-Type' = RequestType,
+            'CC-Request-Number' = RequestNum} = Request, {error, Reason}) ->
+	error_logger:warning_report(["Unable to process DIAMETER request",
+			{origin_host, OHost}, {origin_realm, ORealm},
+			{request, Request}, {error, Reason}, {stack, erlang:get_stacktrace()}]),
+	diameter_error(SId, ?'DIAMETER_BASE_RESULT-CODE_UNABLE_TO_COMPLY',
+			OHost, ORealm, RequestType, RequestNum).
 %% @hidden
 process_request1(Address, Port, DiameterCaps, Request,
 		#char_value_use{name = "policyTable",
 		values = [#char_value{value = PolicyTable}]}) ->
 	process_request2(Address, Port, DiameterCaps, Request,
 			ocs:query_resource(start, '_', '_', '_', {exact, PolicyTable}));
-process_request1(_Address, _Port, _DiameterCaps, _Request, false) ->
-	throw(policy_not_found).
+process_request1(_Address, _Port, #diameter_caps{origin_host = {OHost, _DHost},
+		origin_realm = {ORealm, _DRealm}} = _DiameterCaps,
+		#'3gpp_gx_CCR'{'Session-Id' = SId,
+				'Auth-Application-Id' = ?Gx_APPLICATION_ID,
+				'CC-Request-Type' = RequestType,
+				'CC-Request-Number' = RequestNum} = Request, false) ->
+	error_logger:warning_report(["Unable to process DIAMETER request",
+			{origin_host, OHost}, {origin_realm, ORealm},
+			{session_id, SId}, {request, Request}, {error, policy_not_found}]),
+	diameter_error(SId, ?'DIAMETER_BASE_RESULT-CODE_UNABLE_TO_COMPLY',
+			OHost, ORealm, RequestType, RequestNum).
+
 %% @hidden
 process_request2(_Address, _Port, #diameter_caps{origin_host = {OHost, _DHost},
 		origin_realm = {ORealm, _DRealm}} = _DiameterCaps,
@@ -319,11 +351,6 @@ process_request2(_Address, _Port, #diameter_caps{origin_host = {OHost, _DHost},
 				'CC-Request-Number' = RequestNum} = Request,
 		{_, [#resource{} | _] = PolicyResList}) ->
 	try
-		ChargingRuleDefinitions = [parse_policy_char(Chars,
-				#'3gpp_gx_Charging-Rule-Definition'{}) ||
-				#resource{characteristic = Chars} <- PolicyResList],
-		ChargingRuleInstall = #'3gpp_gx_Charging-Rule-Install'{
-				'Charging-Rule-Definition' = ChargingRuleDefinitions},
 		#'3gpp_gx_CCA'{'Session-Id' = SId,
 				'Result-Code' = [?'DIAMETER_BASE_RESULT-CODE_SUCCESS'],
 				'Origin-Host' = OHost, 'Origin-Realm' = ORealm,
@@ -331,7 +358,7 @@ process_request2(_Address, _Port, #diameter_caps{origin_host = {OHost, _DHost},
 				'CC-Request-Type' = RequestType,
 				'CC-Request-Number' = RequestNum,
 				'Online' = [?'3GPP_GX_ONLINE_ENABLE_ONLINE'],
-				'Charging-Rule-Install' = [ChargingRuleInstall]}
+				'Charging-Rule-Install' = [charging_rule(PolicyResList)]}
 	catch
 		_:Reason ->
 			error_logger:warning_report(["Unable to process DIAMETER request",
@@ -345,30 +372,51 @@ process_request2(_Address, _Port, #diameter_caps{origin_host = {OHost, _DHost},
 		#'3gpp_gx_CCR'{'Session-Id' = SId,
 				'Auth-Application-Id' = ?Gx_APPLICATION_ID,
 				'CC-Request-Type' = RequestType,
-				'CC-Request-Number' = RequestNum} = Request, {eof, []}) ->
-	try
-		#'3gpp_gx_CCA'{'Session-Id' = SId,
-				'Result-Code' = [?'DIAMETER_BASE_RESULT-CODE_SUCCESS'],
-				'Origin-Host' = OHost, 'Origin-Realm' = ORealm,
+				'CC-Request-Number' = RequestNum} = _Request, {eof, []}) ->
+	#'3gpp_gx_CCA'{'Session-Id' = SId,
+			'Result-Code' = [?'DIAMETER_BASE_RESULT-CODE_SUCCESS'],
+			'Origin-Host' = OHost, 'Origin-Realm' = ORealm,
+			'Auth-Application-Id' = ?Gx_APPLICATION_ID,
+			'CC-Request-Type' = RequestType,
+			'CC-Request-Number' = RequestNum};
+process_request2(_Address, _Port, #diameter_caps{origin_host = {OHost, _DHost},
+		origin_realm = {ORealm, _DRealm}} = _DiameterCaps,
+		#'3gpp_gx_CCR'{'Session-Id' = SId,
 				'Auth-Application-Id' = ?Gx_APPLICATION_ID,
 				'CC-Request-Type' = RequestType,
-				'CC-Request-Number' = RequestNum}
-	catch
-		_:Reason ->
-			error_logger:warning_report(["Unable to process DIAMETER request",
-					{origin_host, OHost}, {origin_realm, ORealm},
-					{session_id, SId}, {request, Request}, {error, Reason}]),
-			diameter_error(SId, ?'DIAMETER_BASE_RESULT-CODE_UNABLE_TO_COMPLY',
-					OHost, ORealm, RequestType, RequestNum)
-	end;
-process_request2(_Address, _Port, _DiameterCaps, _Request, {error, Reason}) ->
-	{error, Reason}.
+				'CC-Request-Number' = RequestNum} = Request, {error, Reason}) ->
+	error_logger:warning_report(["Unable to process DIAMETER request",
+			{origin_host, OHost}, {origin_realm, ORealm},
+			{session_id, SId}, {request, Request}, {error, Reason}]),
+	diameter_error(SId, ?'DIAMETER_BASE_RESULT-CODE_UNABLE_TO_COMPLY',
+			OHost, ORealm, RequestType, RequestNum).
+
+-spec charging_rule(PolicyResList) -> Result
+	when
+		PolicyResList :: [#resource{}],
+		Result :: [#'3gpp_gx_Charging-Rule-Install'{}].
+%% @doc Pharse a list of PCRF polcies
+charging_rule(PolicyResList) ->
+	charging_rule(PolicyResList, []).
+%% @hidden
+charging_rule([#resource{name = Name} | T] = PolicyResList, Acc) ->
+	[Chars] = [Chars || #resource{characteristic = Chars} <- PolicyResList],
+	ChargingRuleInstall = case lists:keyfind("predefined",
+			#resource_char.value, Chars) of
+		false ->
+			ChargingRuleDefinitions = parse_policy_char(Chars,
+					#'3gpp_gx_Charging-Rule-Definition'{'Charging-Rule-Name' = Name}),
+			#'3gpp_gx_Charging-Rule-Install'{
+					'Charging-Rule-Definition' = ChargingRuleDefinitions};
+		_ ->
+			#'3gpp_gx_Charging-Rule-Install'{
+					'Charging-Rule-Name' = [Name]}
+	end,
+	charging_rule(T, [ChargingRuleInstall | Acc]);
+charging_rule([], Acc) ->
+	Acc.
 
 %% @hidden
-parse_policy_char([#resource_char{name = "name", value = Value} | T], Acc)
-		 when is_list(Value) ->
-	parse_policy_char(T, Acc#'3gpp_gx_Charging-Rule-Definition'{
-				'Charging-Rule-Name' = [Value]});
 parse_policy_char([#resource_char{name = "chargingKey", value = Value} | T],
 		Acc) when is_integer(Value) ->
 	parse_policy_char(T, Acc#'3gpp_gx_Charging-Rule-Definition'{
@@ -401,6 +449,8 @@ parse_policy_char([#resource_char{name = "flowInformation",
 	end,
 	parse_policy_char(T, Acc#'3gpp_gx_Charging-Rule-Definition'{
 				'Flow-Information' = lists:map(F, FlowInfo)});
+parse_policy_char([_H | T], Acc) ->
+	parse_policy_char(T, Acc);
 parse_policy_char([], Acc) ->
 	Acc.
 

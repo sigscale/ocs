@@ -713,7 +713,10 @@ policy_row_spec() ->
 			{"minCardinality", 1}, {"valueType", "Number"}]},
 			{struct, [{"name", "serviceId"},
 			{"description", "An identifier for a service"},
-			{"minCardinality", 0}, {"valueType", "String"}]}]},
+			{"minCardinality", 0}, {"valueType", "String"}]},
+			{struct, [{"name", "predefined"},
+			{"description", "Indicate PCEF predefined rules"},
+			{"minCardinality", 0}, {"valueType", "Boolean"}]}]},
 	Characteristic = {"resourceSpecCharacteristic", Chars},
 	{struct, [Id, Href, Name, Description, Version, Status, LastUpdate,
 			Category, Characteristic]}.
