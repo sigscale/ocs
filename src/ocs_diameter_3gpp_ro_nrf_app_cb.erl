@@ -30,7 +30,6 @@
 			prepare_retransmit/3, handle_answer/4, handle_error/4,
 			handle_request/3]).
 -export([content_types_accepted/0, content_types_provided/0]).
--export([build_container/1]).
 
 -include_lib("diameter/include/diameter.hrl").
 -include_lib("diameter/include/diameter_gen_base_rfc6733.hrl").
