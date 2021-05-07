@@ -127,7 +127,9 @@ class tableUpdate extends PolymerElement {
 	}
 
 	_activeItemChanged(item) {
+console.log(item);
 		if(item) {
+			document.body.querySelector('sig-app').shadowRoot.getElementById('prefixList').rowId = item.id;
 			this.upPrefix = item.prefix;
 			this.upDesc = item.description;
 			this.upRate = item.rate;
@@ -176,12 +178,12 @@ class tableUpdate extends PolymerElement {
 	}
 
 	deleteUpdate(event) {
-		var Table = document.body.querySelector('sig-app').shadowRoot.getElementById('prefixList').table;
+		var Table = document.body.querySelector('sig-app').shadowRoot.getElementById('prefixList');
 		var Id = this.upPrefix;
 		this.$.deleteTableRowAjax.method = "DELETE";
-		this.$.deleteTableRowAjax.url = "/resourceInventoryManagement/v1/resource/"
-				+ Table + "/" + Id;
+		this.$.deleteTableRowAjax.url = "/resourceInventoryManagement/v1/resource/" + Table.rowId;;
 		this.$.deleteTableRowAjax.generateRequest();
+		document.body.querySelector('sig-app').shadowRoot.getElementById('prefixList').shadowRoot.getElementById('prefixGrid').clearCache();
 	}
 
 	_deleteTableRowResponse(event) {

@@ -176,8 +176,9 @@ class prefixList extends PolymerElement {
 	tableDelete(event) {
 		this.$.deleteTableAjax.method = "DELETE";
 		var prefixListDel = document.body.querySelector('sig-app').shadowRoot.querySelector('sig-prefix-list');
-		this.$.deleteTableAjax.url = "/catalogManagement/v2/pla/" + prefixListDel.table;
+		this.$.deleteTableAjax.url = "/resourceInventoryManagement/v1/resource/" + prefixListDel.tableId;
 		this.$.deleteTableAjax.generateRequest();
+		document.body.querySelector('sig-app').shadowRoot.getElementById('prefixList').shadowRoot.getElementById('prefixGrid').clearCache();
 	}
 
 	_deleteTableResponse(event) {
