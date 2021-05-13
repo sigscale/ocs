@@ -191,7 +191,8 @@ sequences() ->
 all() ->
 	[send_initial_scur, receive_initial_scur, send_interim_scur,
 		receive_interim_scur, send_final_scur, receive_final_scur,
-		receive_interim_no_usu_scur, receive_initial_empty_rsu_scur].
+		receive_interim_no_usu_scur, receive_initial_empty_rsu_scur,
+		post_initial].
 
 %%---------------------------------------------------------------------
 %%  Test cases
@@ -460,6 +461,57 @@ receive_initial_empty_rsu_scur(_Config) ->
 			'Multiple-Services-Credit-Control' = [MultiServices_CC]} = Answer0,
 	#'3gpp_ro_Multiple-Services-Credit-Control'{
 			'Granted-Service-Unit' = []} = MultiServices_CC.
+
+post_initial() ->
+	[{userdata, [{doc, "Post Inital Nrf Request to be rated"}]}].
+
+post_initial(Config) ->
+	P1 = price(usage, octets, rand:uniform(10000000), rand:uniform(1000000)),
+	OfferId = add_offer([P1], 4),
+	ProdRef = add_product(OfferId),
+	Password = ocs:generate_identity(),
+	MSISDN = ocs:generate_identity(),
+	IMSI = ocs:generate_identity(),
+	{ok, #service{}} = ocs:add_service(list_to_binary(MSISDN),
+			Password, ProdRef, []),
+	Balance = rand:uniform(100000000000),
+	B1 = bucket(octets, Balance),
+	_BId = add_bucket(ProdRef, B1),
+	InputOctets = rand:uniform(10000),
+	OutputOctets = rand:uniform(20000),
+	TotalOctets = InputOctets + OutputOctets,
+	ContentType = "application/json",
+	Accept = {"accept", "application/json"},
+	HostUrl = ?config(host_url, Config),
+	TS = erlang:system_time(?MILLISECOND),
+	InvocationTimeStamp = ocs_log:iso8601(TS),
+	Body = {struct, [{"nfConsumerIdentification",
+			{struct, [{"nodeFunctionality", "OCF"}]}},
+			{"invocationTimeStamp", InvocationTimeStamp},
+			{"invocationSequenceNumber", 1},
+			{"subscriptionId", {array, ["msisdn-" ++ MSISDN, "imsi-" ++ IMSI]}},
+			{"serviceRating",
+					{array, [{struct, [{"serviceContextId", "32251@3gpp.org"},
+			{"serviceInformation",
+					{struct, [{"sgsnMccMnc",
+					{struct, [{"mcc", "001"}, {"mnc", "001"}]}}]}},
+			{"serviceId", 1},
+			{"ratingGroup", 2},
+			{"requestedUnit",
+			{struct,[{"totalVolume", TotalOctets},
+					{"uplinkVolume", InputOctets},
+					{"downlinkVolume", OutputOctets}]}},
+			{"requestSubType", "RESERVE"}]}]}}]},
+	RequestBody = lists:flatten(mochijson:encode(Body)),
+	Request1 = {HostUrl ++ "/nrf-rating/v1/ratingdata", [Accept, auth_header()], ContentType, RequestBody},
+	{ok, Result} = httpc:request(post, Request1, [], []),
+	{{"HTTP/1.1", 201, _Created}, _Headers, ResponseBody} = Result,
+	{struct, AttributeList} = mochijson:decode(ResponseBody),
+	{_, {_, ["msisdn-" ++ MSISDN, "imsi-" ++ IMSI]}} = lists:keyfind("subscriptionId", 1, AttributeList),
+	{_, {_ ,[{_, [{"resultCode","SUCCESS"},
+	{"ratingGroup", 2}, {"serviceId", 1},
+	{"serviceContextId","32251@3gpp.org"},
+	{"grantedUnit", {_, [{"totalVolume", TotalOctets}]}}]}]}} = lists:keyfind("serviceRating", 1, AttributeList).
 
 %%---------------------------------------------------------------------
 %%  Internal functions
