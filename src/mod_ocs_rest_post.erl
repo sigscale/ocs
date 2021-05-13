@@ -140,7 +140,7 @@ do_post(Resource, #mod{parsed_header = Headers} = ModData, Body,
 	{_, Authorization} = lists:keyfind("authorization", 1, Headers),
 	do_response(ModData, Resource:post_hub(Body, Authorization));
 do_post(Resource, ModData, Body, ["nrf-rating", "v1", "ratingdata"]) ->
-	do_response(ModData, Resource:nrf_initial(Body)).
+	do_response(ModData, Resource:post_initial(Body)).
 
 %% @hidden
 do_response(#mod{data = Data} = ModData, {ok, [] = Headers,
