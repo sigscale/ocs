@@ -501,7 +501,7 @@ post_initial(Config) ->
 %%  Internal functions
 %%---------------------------------------------------------------------
 
-nrf_post_inital(MSISDN, IMSI, InputOctets, OutputOctets) ->
+nrf_post_initial(MSISDN, IMSI, InputOctets, OutputOctets) ->
 	{struct, [{"nfConsumerIdentification",
 	{struct, [{"nodeFunctionality", "OCF"}]}},
 			{"invocationTimeStamp", InvocationTimeStamp},
