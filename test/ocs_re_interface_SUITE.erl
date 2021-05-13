@@ -192,7 +192,7 @@ all() ->
 	[send_initial_scur, receive_initial_scur, send_interim_scur,
 		receive_interim_scur, send_final_scur, receive_final_scur,
 		receive_interim_no_usu_scur, receive_initial_empty_rsu_scur,
-		post_initial].
+		post_initial, update_nrf].
 
 %%---------------------------------------------------------------------
 %%  Test cases
@@ -479,29 +479,12 @@ post_initial(Config) ->
 	_BId = add_bucket(ProdRef, B1),
 	InputOctets = rand:uniform(10000),
 	OutputOctets = rand:uniform(20000),
-	TotalOctets = InputOctets + OutputOctets,
 	ContentType = "application/json",
 	Accept = {"accept", "application/json"},
 	HostUrl = ?config(host_url, Config),
 	TS = erlang:system_time(?MILLISECOND),
 	InvocationTimeStamp = ocs_log:iso8601(TS),
-	Body = {struct, [{"nfConsumerIdentification",
-			{struct, [{"nodeFunctionality", "OCF"}]}},
-			{"invocationTimeStamp", InvocationTimeStamp},
-			{"invocationSequenceNumber", 1},
-			{"subscriptionId", {array, ["msisdn-" ++ MSISDN, "imsi-" ++ IMSI]}},
-			{"serviceRating",
-					{array, [{struct, [{"serviceContextId", "32251@3gpp.org"},
-			{"serviceInformation",
-					{struct, [{"sgsnMccMnc",
-					{struct, [{"mcc", "001"}, {"mnc", "001"}]}}]}},
-			{"serviceId", 1},
-			{"ratingGroup", 2},
-			{"requestedUnit",
-			{struct,[{"totalVolume", TotalOctets},
-					{"uplinkVolume", InputOctets},
-					{"downlinkVolume", OutputOctets}]}},
-			{"requestSubType", "RESERVE"}]}]}}]},
+	Body = nrf_post_inital(MSISDN, IMSI, InputOctets, OutputOctets),
 	RequestBody = lists:flatten(mochijson:encode(Body)),
 	Request1 = {HostUrl ++ "/nrf-rating/v1/ratingdata", [Accept, auth_header()], ContentType, RequestBody},
 	{ok, Result} = httpc:request(post, Request1, [], []),
@@ -511,11 +494,31 @@ post_initial(Config) ->
 	{_, {_ ,[{_, [{"resultCode","SUCCESS"},
 	{"ratingGroup", 2}, {"serviceId", 1},
 	{"serviceContextId","32251@3gpp.org"},
-	{"grantedUnit", {_, [{"totalVolume", TotalOctets}]}}]}]}} = lists:keyfind("serviceRating", 1, AttributeList).
+	{"grantedUnit", {_, [{"totalVolume", InputOctets + OutputOctets}]}}]}]}}
+			= lists:keyfind("serviceRating", 1, AttributeList).
 
 %%---------------------------------------------------------------------
 %%  Internal functions
 %%---------------------------------------------------------------------
+
+nrf_post_inital(MSISDN, IMSI, InputOctets, OutputOctets) ->
+	{struct, [{"nfConsumerIdentification",
+	{struct, [{"nodeFunctionality", "OCF"}]}},
+			{"invocationTimeStamp", InvocationTimeStamp},
+			{"invocationSequenceNumber", 1},
+			{"subscriptionId", {array, ["msisdn-" ++ MSISDN, "imsi-" ++ IMSI]}},
+			{"serviceRating",
+					{array, [{struct, [{"serviceContextId", "32251@3gpp.org"},
+							{"serviceInformation",
+							{struct, [{"sgsnMccMnc",
+							{struct, [{"mcc", "001"}, {"mnc", "001"}]}}]}},
+							{"serviceId", 1},
+							{"ratingGroup", 2},
+							{"requestedUnit",
+									{struct,[{"totalVolume", InputOctets + OutputOctets},
+											{"uplinkVolume", InputOctets},
+											{"downlinkVolume", OutputOctets}]}},
+							{"requestSubType", "RESERVE"}]}]}}]}.
 
 diameter_scur_start(SId, {MSISDN, IMSI}, RequestNum, {InputOctets, OutputOctets}) ->
 	MSISDN1 = #'3gpp_ro_Subscription-Id'{
