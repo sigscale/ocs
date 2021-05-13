@@ -192,7 +192,7 @@ all() ->
 	[send_initial_scur, receive_initial_scur, send_interim_scur,
 		receive_interim_scur, send_final_scur, receive_final_scur,
 		receive_interim_no_usu_scur, receive_initial_empty_rsu_scur,
-		post_initial, update_nrf].
+		post_initial].
 
 %%---------------------------------------------------------------------
 %%  Test cases
@@ -482,8 +482,6 @@ post_initial(Config) ->
 	ContentType = "application/json",
 	Accept = {"accept", "application/json"},
 	HostUrl = ?config(host_url, Config),
-	TS = erlang:system_time(?MILLISECOND),
-	InvocationTimeStamp = ocs_log:iso8601(TS),
 	Body = nrf_post_inital(MSISDN, IMSI, InputOctets, OutputOctets),
 	RequestBody = lists:flatten(mochijson:encode(Body)),
 	Request1 = {HostUrl ++ "/nrf-rating/v1/ratingdata", [Accept, auth_header()], ContentType, RequestBody},
@@ -502,6 +500,8 @@ post_initial(Config) ->
 %%---------------------------------------------------------------------
 
 nrf_post_initial(MSISDN, IMSI, InputOctets, OutputOctets) ->
+	TS = erlang:system_time(?MILLISECOND),
+	InvocationTimeStamp = ocs_log:iso8601(TS),
 	{struct, [{"nfConsumerIdentification",
 	{struct, [{"nodeFunctionality", "OCF"}]}},
 			{"invocationTimeStamp", InvocationTimeStamp},
