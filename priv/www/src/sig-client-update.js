@@ -128,6 +128,7 @@ class clientUpdate extends PolymerElement {
 								name="Port"
 								label="Port"
 								type="number"
+								on-value-changed="valChange"
 								value="{{clientUpDisPort}}">
 						</paper-input>
 						<paper-tooltip
@@ -183,6 +184,22 @@ class clientUpdate extends PolymerElement {
 				type: Object,
 				observer: '_activeItemChanged'
 			},
+			valCha: {
+				type: Array,
+				readOnly: true,
+				notify: true,
+				value: function() {
+					return []
+				}
+			},
+			valChaOne: {
+				type: Array,
+				readOnly: true,
+				notify: true,
+				value: function() {
+					return []
+				}
+			},
 			selected: {
 				type: Number,
 				value: 0
@@ -208,7 +225,16 @@ class clientUpdate extends PolymerElement {
 			this.clientUpAddress = item.id;
 			this.clientUpPass = item.secret;
 			this.clientUpNewPass = item.newSecret;
+			this.clientUpProto = item.protocol;
 			this.clientUpDisPort = item.port;
+			this.updatePasswordless = item.passwordRequired;
+			var arrObj = new Object();
+			arrObj.port = this.clientUpDisPort;
+			arrObj.protocol = this.clientUpProto;
+			arrObj.address = this.clientUpAddress;
+			arrObj.pass = this.clientUpNewPass;
+			arrObj.passwordless = this.updatePasswordless;
+			this.valCha.push(arrObj);
 			this.$.updateClientModal.open();
 		} else {
 			this.clientUpAddress = null;
@@ -231,23 +257,42 @@ class clientUpdate extends PolymerElement {
 		ajax.method = "PATCH";
 		ajax.contentType = "application/json-patch+json";
 		ajax.url = "/ocs/v1/client/" + this.clientUpAddress;
-		var clientPass = new Array();
-		var clientSec = new Object();
-		clientSec.op = "replace";
-		clientSec.path = "/secret";
-		clientSec.value = this.clientUpNewPass;
-		var passwordReq = new Object();
-		passwordReq.op = "add";
-		passwordReq.path = "/passwordRequired";
-		if (this.$.updatePass.checked == true) {
-			passwordReq.value = false;
-		} else {
-			passwordReq.value = true;
+		for(var indexx in this.valCha) {
+			var penAuth = new Set();
+			var penAuthObj = new Object();
+			var penAuthObj1 = new Object(); 
+			if(this.clientUpNewPass != this.valCha[indexx].pass){
+				penAuthObj.pass = this.clientUpNewPass;
+				penAuth.add(this.clientUpNewPass);
+			}
+			if(this.updatePasswordless != this.valCha[indexx].passwordless){
+				penAuthObj.passwordless = this.updatePasswordless;
+				penAuth.add(this.updatePasswordless);
+			}
+			if (penAuth.has(this.clientUpNewPass)) {
+				penAuthObj1.pass = this.clientUpNewPass;
+			}
+			if (penAuth.has(this.updatePasswordless)) {
+				penAuthObj1.passwordless = this.updatePasswordless;
+			}
+			this.valChaOne.push(penAuthObj1);
 		}
-		if (this.clientUpNewPass == "") {
-			clientPass.push(passwordReq);
-		} else {
-			clientPass.push(clientSec, passwordReq);
+		for(var indexx1 in this.valChaOne) {
+			var clientPass = new Array();
+			if(this.valChaOne[indexx1].pass) {
+				var clientSec = new Object();
+				clientSec.op = "replace";
+				clientSec.path = "/secret";
+				clientSec.value = this.valChaOne[indexx1].pass;
+				clientPass.push(clientSec);
+			}
+			if(this.valChaOne[indexx1].passwordless) {
+				var passwordReq = new Object();
+				passwordReq.op = "add";
+				passwordReq.path = "/passwordRequired";
+				passwordReq.value = this.valChaOne[indexx1].passwordless;
+				clientPass.push(passwordReq);
+			}
 		}
 		ajax.body = JSON.stringify(clientPass);
 		ajax.generateRequest();
@@ -268,22 +313,48 @@ class clientUpdate extends PolymerElement {
 		toast.open();
 	}
 
-	updateClientProp() {
+	updateClientProp(event) {
 		var editAjax =  this.$.updateClientPropertiesAjax;
 		editAjax.method = "PATCH";
 		editAjax.contentType = "application/json-patch+json";
 		editAjax.url = "/ocs/v1/client/" + this.$.updateClientId.value;
-		var clientArray = new Array();
-		var clientPro = new Object();
-		clientPro.op = "replace";
-		clientPro.path = "/protocol";
-		clientPro.value = this.clientUpProto;
-		clientArray.push(clientPro);
-		var clientPort = new Object();
-		clientPort.op = "replace";
-		clientPort.path = "/port"
-		clientPort.value = parseInt(this.clientUpDisPort);
-		clientArray.push(clientPort);
+		for(var indexx in this.valCha) {
+			var pen = new Set();
+			var penObj = new Object();
+			var penObj1 = new Object(); 
+			if(this.clientUpDisPort != this.valCha[indexx].port){
+				penObj.port = this.clientUpDisPort;
+				pen.add(this.clientUpDisPort);
+			}
+			if(this.clientUpProto != this.valCha[indexx].protocol){
+				penObj.protocol = this.clientUpProto;
+				pen.add(this.clientUpProto);
+			}
+			if (pen.has(this.clientUpDisPort)) {
+				penObj1.port = this.clientUpDisPort;
+			}
+			if (pen.has(this.clientUpProto)) {
+				penObj1.protocol = this.clientUpProto;
+			}
+			this.valChaOne.push(penObj1);
+		}
+		for(var indexx1 in this.valChaOne) {
+			var clientArray = new Array();
+			if(this.valChaOne[indexx1].protocol) {
+				var clientPro = new Object();
+				clientPro.op = "replace";
+				clientPro.path = "/protocol";
+				clientPro.value = this.valChaOne[indexx1].protocol;
+				clientArray.push(clientPro);
+			}
+			if(this.valChaOne[indexx1].port) {
+				var clientPort = new Object();
+				clientPort.op = "replace";
+				clientPort.path = "/port"
+				clientPort.value = parseInt(this.valChaOne[indexx1].port);
+				clientArray.push(clientPort);
+			}
+		}
 		editAjax.body = JSON.stringify(clientArray);
 		editAjax.generateRequest();
 	}
@@ -328,7 +399,6 @@ class clientUpdate extends PolymerElement {
 		getUpdateClientToast.text = "Error";
 		getUpdateClientToast.open();
 	}
-
 }
 
 window.customElements.define('sig-client-update', clientUpdate);
