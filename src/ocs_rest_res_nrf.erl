@@ -22,7 +22,7 @@
 -copyright('Copyright (c) 2016 - 2021 SigScale Global Inc.').
 
 -export([content_types_accepted/0, content_types_provided/0]).
--export([post_initial/1]).
+-export([initial_nrf/1]).
 
 -include("ocs.hrl").
 
@@ -44,7 +44,7 @@ content_types_accepted() ->
 content_types_provided() ->
 	["application/json"].
 
--spec post_initial(NrfRequest) -> NrfResponse
+-spec initial_nrf(NrfRequest) -> NrfResponse
 	when
 		NrfRequest :: iolist(),
 		NrfResponse :: {ok, Headers, Body} | {error, Status},
@@ -53,34 +53,34 @@ content_types_provided() ->
 		Status :: 201 | 400 | 500.
 %% @doc Respond to `POST /nrf-rating/v1/ratingdata'.
 %%		Rate an intial Nrf Request.
-post_initial(NrfRequest) ->
+initial_nrf(NrfRequest) ->
 	try
-		Request = mochijson:decode(NrfRequest),
-		nrf_request_to_map(Request)
-	of
-		NrfMap when is_map(NrfMap) ->
-			case rate(NrfMap, initial) of
-				ServiceRating when is_list(ServiceRating) ->
-				case catch maps:update("serviceRating", ServiceRating, NrfMap) of
-					UpdatedMap when is_map(UpdatedMap) ->
-						NrfResponse = nrf_response_to_struct(UpdatedMap),
-						Body = mochijson:encode(NrfResponse),
-						{ok, [], Body};
-					{badmap, _Map} ->
-						{error, 500};
-					{badkey, _Key} ->
-						{error, 500}
+		case mochijson:decode(NrfRequest) of
+			{struct, _Attributes} = NrfStruct ->
+				NrfMap = nrf_request_to_map(NrfStruct),
+				case rate(NrfMap, initial) of
+					ServiceRating when is_list(ServiceRating) ->
+						UpdatedMap = maps:update("serviceRating", ServiceRating, NrfMap),
+						nrf_response_to_struct(UpdatedMap);
+					{error, Reason1} ->
+						{error, Reason1}
 				end;
-				{error, _Reason}->
-					{error, 500}
-			end
+			_ ->
+				{error, 400}
+		end
+	of
+		{struct, _Attributes1} = NrfResponse ->
+			RatingDataRef = ocs:generate_identity(),
+			Location = "/ratingdata/" ++ RatingDataRef,
+			Body = mochijson:encode(NrfResponse),
+			{ok, [{location, Location}], Body};
+		{error, Reason2} ->
+			{error, Reason2}
 	catch
-		error:_Reason ->
-			{error, 500};
-		throw:_Reason1 ->
+		_:_ ->
 			{error, 400}
 	end.
-
+	
 %%----------------------------------------------------------------------
 %%  internal functions
 %%----------------------------------------------------------------------
