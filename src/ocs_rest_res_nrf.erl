@@ -22,7 +22,7 @@
 -copyright('Copyright (c) 2016 - 2021 SigScale Global Inc.').
 
 -export([content_types_accepted/0, content_types_provided/0]).
--export([post_initial/1, update/1]).
+-export([post_initial/1]).
 
 -include("ocs.hrl").
 
