@@ -192,7 +192,7 @@ all() ->
 	[send_initial_scur, receive_initial_scur, send_interim_scur,
 		receive_interim_scur, send_final_scur, receive_final_scur,
 		receive_interim_no_usu_scur, receive_initial_empty_rsu_scur,
-		post_initial].
+		post_initial, post_update].
 
 %%---------------------------------------------------------------------
 %%  Test cases
@@ -482,17 +482,18 @@ post_initial(Config) ->
 	ContentType = "application/json",
 	Accept = {"accept", "application/json"},
 	HostUrl = ?config(host_url, Config),
-	Body = nrf_post_inital(MSISDN, IMSI, InputOctets, OutputOctets),
+	Body = nrf_post_initial(MSISDN, IMSI, InputOctets, OutputOctets),
 	RequestBody = lists:flatten(mochijson:encode(Body)),
 	Request1 = {HostUrl ++ "/nrf-rating/v1/ratingdata", [Accept, auth_header()], ContentType, RequestBody},
 	{ok, Result} = httpc:request(post, Request1, [], []),
 	{{"HTTP/1.1", 201, _Created}, _Headers, ResponseBody} = Result,
 	{struct, AttributeList} = mochijson:decode(ResponseBody),
 	{_, {_, ["msisdn-" ++ MSISDN, "imsi-" ++ IMSI]}} = lists:keyfind("subscriptionId", 1, AttributeList),
+	TotalOctets = InputOctets + OutputOctets,
 	{_, {_ ,[{_, [{"resultCode","SUCCESS"},
 	{"ratingGroup", 2}, {"serviceId", 1},
 	{"serviceContextId","32251@3gpp.org"},
-	{"grantedUnit", {_, [{"totalVolume", InputOctets + OutputOctets}]}}]}]}}
+	{"grantedUnit", {_, [{"totalVolume", TotalOctets}]}}]}]}}
 			= lists:keyfind("serviceRating", 1, AttributeList).
 
 %%---------------------------------------------------------------------
@@ -514,8 +515,7 @@ nrf_post_initial(MSISDN, IMSI, InputOctets, OutputOctets) ->
 							{struct, [{"mcc", "001"}, {"mnc", "001"}]}}]}},
 							{"serviceId", 1},
 							{"ratingGroup", 2},
-							{"requestedUnit",
-									{struct,[{"totalVolume", InputOctets + OutputOctets},
+							{"requestedUnit", {struct,[{"totalVolume", InputOctets + OutputOctets},
 											{"uplinkVolume", InputOctets},
 											{"downlinkVolume", OutputOctets}]}},
 							{"requestSubType", "RESERVE"}]}]}}]}.
