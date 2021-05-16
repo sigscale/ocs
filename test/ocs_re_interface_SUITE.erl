@@ -192,7 +192,7 @@ all() ->
 	[send_initial_scur, receive_initial_scur, send_interim_scur,
 		receive_interim_scur, send_final_scur, receive_final_scur,
 		receive_interim_no_usu_scur, receive_initial_empty_rsu_scur,
-		post_initial].
+		post_initial_scur].
 
 %%---------------------------------------------------------------------
 %%  Test cases
@@ -462,10 +462,10 @@ receive_initial_empty_rsu_scur(_Config) ->
 	#'3gpp_ro_Multiple-Services-Credit-Control'{
 			'Granted-Service-Unit' = []} = MultiServices_CC.
 
-post_initial() ->
+post_initial_scur() ->
 	[{userdata, [{doc, "Post Inital Nrf Request to be rated"}]}].
 
-post_initial(Config) ->
+post_initial_scur(Config) ->
 	P1 = price(usage, octets, rand:uniform(10000000), rand:uniform(1000000)),
 	OfferId = add_offer([P1], 4),
 	ProdRef = add_product(OfferId),
@@ -482,7 +482,7 @@ post_initial(Config) ->
 	ContentType = "application/json",
 	Accept = {"accept", "application/json"},
 	HostUrl = ?config(host_url, Config),
-	Body = nrf_post_initial(MSISDN, IMSI, InputOctets, OutputOctets),
+	Body = nrf_post_initial_scur(MSISDN, IMSI, InputOctets, OutputOctets),
 	RequestBody = lists:flatten(mochijson:encode(Body)),
 	Request1 = {HostUrl ++ "/nrf-rating/v1/ratingdata", [Accept, auth_header()], ContentType, RequestBody},
 	{ok, Result} = httpc:request(post, Request1, [], []),
@@ -500,7 +500,7 @@ post_initial(Config) ->
 %%  Internal functions
 %%---------------------------------------------------------------------
 
-nrf_post_initial(MSISDN, IMSI, InputOctets, OutputOctets) ->
+nrf_post_initial_scur(MSISDN, IMSI, InputOctets, OutputOctets) ->
 	TS = erlang:system_time(?MILLISECOND),
 	InvocationTimeStamp = ocs_log:iso8601(TS),
 	{struct, [{"nfConsumerIdentification",
