@@ -192,7 +192,7 @@ all() ->
 	[send_initial_scur, receive_initial_scur, send_interim_scur,
 		receive_interim_scur, send_final_scur, receive_final_scur,
 		receive_interim_no_usu_scur, receive_initial_empty_rsu_scur,
-		post_initial, post_update].
+		post_initial].
 
 %%---------------------------------------------------------------------
 %%  Test cases
