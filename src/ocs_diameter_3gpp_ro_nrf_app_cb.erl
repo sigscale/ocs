@@ -415,11 +415,13 @@ process_request1(?'3GPP_CC-REQUEST-TYPE_TERMINATION_REQUEST' = RequestType,
 				{ServiceRating, ResultCode} = map_service_rating(ServiceElements, SessionId),
 				Container = build_container(MSCC1),
 				NewMSCC = build_mscc(ServiceRating, Container),
+				ok = remove_ref(SessionId),
 				diameter_answer(SessionId, NewMSCC, ResultCode,
 						OHost, ORealm, RequestType, RequestNum);
 			{error, ReasonCode} ->
 				error_logger:error_report(["Rating Error",
 						{module, ?MODULE}, {error, ReasonCode}]),
+				ok = remove_ref(SessionId),
 				diameter_error(SessionId, ReasonCode,
 						OHost, ORealm, RequestType, RequestNum)
 		end
@@ -493,6 +495,8 @@ post_request1({MSISDN, IMSI}, SessionId, ServiceRating, Path) ->
 			{ok, Body1};
 		{_RequestId, {{_HttpVersion, 200, _ReasonPhrase}, _Headers, Body1}} ->
 			{ok, Body1};
+		{_RequestId, {{_HttpVersion, 204, _ReasonPhrase}, _Headers, Body1}} ->
+			{ok, Body1};
 		{_RequestId, {{_HttpVersion, StatusCode, _ReasonPhrase}, _Headers, _Body1}} ->
 			{error, StatusCode};
 		{_RequestId, {error, Reason}} ->
@@ -551,6 +555,23 @@ get_ref(SessionId) ->
 			RatingDataRef;
 		_ ->
 			[]
+	end.
+
+-spec remove_ref(SessionId) -> Result
+	when
+		SessionId :: binary(),
+		Result :: ok | {error, Reason},
+		Reason :: term().
+%% @doc Remove a rating data ref
+%% @hidden
+remove_ref(SessionId)
+		when is_list(SessionId) ->
+	Pattern = {SessionId, '$1'},
+	case catch ets:delete_object(?NRF_TABLE, Pattern) of
+		true ->	
+			ok;
+		{'EXIT', Reason} ->
+			{error, Reason}
 	end.
 
 -spec build_mscc(ServiceRating, Container) -> Result
