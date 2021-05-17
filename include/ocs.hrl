@@ -228,3 +228,7 @@
 		user_profile :: tuple() | undefined,
 		last_modified :: tuple() | undefined}).
 
+-record(nrf_session,
+		{rating_ref :: string() | undefined,
+		nfConsumerIdentification :: string() | undefined,
+		subscriptionId = [] :: [{MSISDN :: string(), IMSI :: string()}]}).
