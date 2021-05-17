@@ -340,7 +340,6 @@ class SigApp extends PolymerElement {
 			<sig-product-add active-item="[[activeProductItem]]" offers="[[offers]]"></sig-product-add>
 			<sig-policy-add id="policyAdd"></sig-policy-add>
 			<sig-policy-table-add></sig-policy-table-add>
-			<sig-policy-update id="policyUpdate" active-item="[[activePolicyItem]]"></sig-policy-update>
 		`;
 	}
 
@@ -613,7 +612,6 @@ class SigApp extends PolymerElement {
 				import('./sig-policy-list.js');
 				import('./sig-policy-table-add.js');
 				import('./sig-policy-add.js');
-				import('./sig-policy-update.js');
 				break;
 			case 'balanceView':
 				import('./sig-balance-list.js');
