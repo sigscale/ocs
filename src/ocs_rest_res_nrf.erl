@@ -142,11 +142,11 @@ rate([#{"serviceContextId" := SCI} = H | T],
 			MCCMNC, Subscriber, TS, undefined, undefined, Flag,
 			Debits, Reserves, [{"invocationSequenceNumber", ISN}]) of
 		{ok, _, {Type, Amount} = _GrantedAmount} when Amount > 0 ->
-			RatedMap = Map3#{"resultCode" => "SUCCESS", "grantedUnit" => #{type(Type)=> Amount},
+			RatedMap = Map3#{"resultCode" => "SUCCESS", "grantedUnit" => #{type(Type) => Amount},
 					"serviceContextId"=> SCI},
 			rate(T, ISN, Subscriber, Flag, [RatedMap | Acc]);
 		{ok, _, {_, 0} = _GrantedAmount} ->
-			RatedMap = Map3#{"resultCode" => "SUCCESS", "serviceContextId"=> SCI},
+			RatedMap = Map3#{"resultCode" => "SUCCESS", "serviceContextId" => SCI},
 			rate(T, ISN, Subscriber, Flag, [RatedMap | Acc]);
 		{out_of_credit, _, _} ->
 			{error, out_of_credit};
