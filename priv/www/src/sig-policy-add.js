@@ -228,6 +228,9 @@ class policyAdd extends PolymerElement {
 		this.flowDown = null;
 		this.flowDiscDown = null;
 		this.prece = null;
+		var toast = document.body.querySelector('sig-app').shadowRoot.getElementById('restError');
+		toast.text = "Success";
+		toast.open();
 		document.body.querySelector('sig-app').shadowRoot.getElementById('policyList').shadowRoot.getElementById('policyGrid').clearCache();
 	}
 }
