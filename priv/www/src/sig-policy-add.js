@@ -15,6 +15,7 @@ import '@polymer/app-layout/app-toolbar/app-toolbar.js';
 import '@polymer/paper-progress/paper-progress.js';
 import '@polymer/paper-input/paper-input.js';
 import '@polymer/paper-button/paper-button.js';
+import '@polymer/paper-tooltip/paper-tooltip.js';
 import './style-element.js';
 
 class policyAdd extends PolymerElement {
@@ -30,46 +31,101 @@ class policyAdd extends PolymerElement {
 					class="slow red"
 					disabled="{{!loading}}">
 				</paper-progress>
-				<paper-input
-					label="Name"
-					value="{{polName}}">
-				</paper-input>
+				<div>
+					<paper-input
+						id="polNameAdd"
+						label="Name"
+						value="{{polName}}">
+					</paper-input>
+					<paper-tooltip
+							for="polNameAdd"
+							offset="0">
+						Policy row name
+					</paper-tooltip>
+				</div>
 				<div>
 					<paper-input
 						id="bandwidthDL"
 						label="MaxRequestedBandwidthDL"
 						value="{{charDL}}">
 					</paper-input>
+					<paper-tooltip
+							for="bandwidthDL"
+							offset="0">
+						BandwidthDL value
+					</paper-tooltip>
+				</div>
+				<div>
 					<paper-input
 						id="bandwidthUL"
 						label="MaxRequestedBandwidthUL"
 						value="{{charUL}}">
 					</paper-input>
+					<paper-tooltip
+							for="bandwidthUL"
+							offset="0">
+						BandwidthUL value
+					</paper-tooltip>
+				</div>
+				<div>
 					<paper-input
 						id="classId"
 						label="QosClassIdentifier"
 						value="{{charClassId}}">
 					</paper-input>
+					<paper-tooltip
+							for="classId"
+							offset="0">
+						Class Name
+					</paper-tooltip>
+				</div>
+				<div>
 					<paper-input
 						id="chargeRule"
 						label="ChargingKey"
 						value="{{polCha}}">
 					</paper-input>
+					<paper-tooltip
+							for="chargeRule"
+							offset="0">
+						Charging key
+					</paper-tooltip>
+				</div>
+				<div>
 					<paper-input
 						id="flowUp"
 						label="FlowDirection"
 						value="{{flowUp}}">
 					</paper-input>
+					<paper-tooltip
+							for="flowUp"
+							offset="0">
+						Flow direction detail for flow Information
+					</paper-tooltip>
+				</div>
+				<div>
 					<paper-input
 						id="flowDescription"
 						label="FlowDescription"
 						value="{{flowDiscUp}}">
 					</paper-input>
+					<paper-tooltip
+							for="flowDescription"
+							offset="0">
+						Flow description detail for flow Information
+					</paper-tooltip>
+				</div>
+				<div>
 					<paper-input
 						id="precedence"
 						label="Precedence"
 						value="{{prece}}">
 					</paper-input>
+					<paper-tooltip
+							for="precedence"
+							offset="0">
+						Precedence value
+					</paper-tooltip>
 				</div>
 				<div class="buttons">
 					<paper-button
