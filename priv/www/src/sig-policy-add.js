@@ -37,37 +37,37 @@ class policyAdd extends PolymerElement {
 				<div>
 					<paper-input
 						id="bandwidthDL"
-						label="maxRequestedBandwidthDL"
+						label="MaxRequestedBandwidthDL"
 						value="{{charDL}}">
 					</paper-input>
 					<paper-input
 						id="bandwidthUL"
-						label="maxRequestedBandwidthUL"
+						label="MaxRequestedBandwidthUL"
 						value="{{charUL}}">
 					</paper-input>
 					<paper-input
 						id="classId"
-						label="qosClassIdentifier"
+						label="QosClassIdentifier"
 						value="{{charClassId}}">
 					</paper-input>
 					<paper-input
 						id="chargeRule"
-						label="chargingKey"
+						label="ChargingKey"
 						value="{{polCha}}">
 					</paper-input>
 					<paper-input
 						id="flowUp"
-						label="flowDirection"
+						label="FlowDirection"
 						value="{{flowUp}}">
 					</paper-input>
 					<paper-input
 						id="flowDescription"
-						label="flowDescription"
+						label="FlowDescription"
 						value="{{flowDiscUp}}">
 					</paper-input>
 					<paper-input
 						id="precedence"
-						label="precedence"
+						label="Precedence"
 						value="{{prece}}">
 					</paper-input>
 				</div>
