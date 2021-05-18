@@ -92,11 +92,22 @@ class policyAdd extends PolymerElement {
 					</paper-tooltip>
 				</div>
 				<div>
-					<paper-input
-						id="flowUp"
-						label="FlowDirection"
-						value="{{flowUp}}">
-					</paper-input>
+					<paper-dropdown-menu
+							id="flowUp"
+							value="{{flowUp}}"
+							no-animations="true"
+							label="Flow Direction">
+						<paper-listbox
+								id="addPolDirList1"
+								slot="dropdown-content">
+							<paper-item>
+								up
+							</paper-item>
+							<paper-item>
+								down
+							</paper-item>
+						</paper-listbox>
+					</paper-dropdown-menu>
 					<paper-tooltip
 							for="flowUp"
 							offset="0">
@@ -107,7 +118,10 @@ class policyAdd extends PolymerElement {
 					<paper-input
 						id="flowDescription"
 						label="FlowDescription"
-						value="{{flowDiscUp}}">
+						pattern="^permit out proto "
+						placeholder="permit out proto ip from all to all"
+						value="{{flowDiscUp}}"
+						auto-validate>
 					</paper-input>
 					<paper-tooltip
 							for="flowDescription"
