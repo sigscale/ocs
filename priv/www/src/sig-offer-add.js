@@ -542,6 +542,28 @@ class offerAdd extends PolymerElement {
 								</paper-tooltip>
 							</div>
 							<div>
+								<paper-dropdown-menu
+										id="destPrefixPolicy"
+										value="{{priceAddPolicy}}"
+										no-animations="true"
+										label="Prefix Policy Table">
+									<paper-listbox
+											id="addPricPolicy"
+											slot="dropdown-content">
+										<template is="dom-repeat" items="{{polTable}}">
+											<paper-item>
+												{{item.name}}
+											</paper-item>
+										</template>
+									</paper-listbox>
+								</paper-dropdown-menu>
+								<paper-tooltip
+										for="destPrefixPolicy"
+										offset="0">
+									Destination prefix policy table
+								</paper-tooltip>
+							</div>
+							<div>
 								<paper-input
 										id="roamingTable"
 										type="string"
@@ -805,6 +827,10 @@ class offerAdd extends PolymerElement {
 					on-response="_getTableResponse"
 					on-error="_getTableError">
 			</iron-ajax>
+			<iron-ajax id="getTableAjaxPolicy"
+					on-response="_getTableResponsePol"
+					on-error="_getTableErrorPol">
+			</iron-ajax>
 		`;
 	}
 
@@ -834,6 +860,14 @@ class offerAdd extends PolymerElement {
 				}
 			},
 			tables: {
+				type: Array,
+				readOnly: true,
+				notify: true,
+				value: function() {
+				return []
+				}
+			},
+			polTable: {
 				type: Array,
 				readOnly: true,
 				notify: true,
@@ -929,6 +963,24 @@ class offerAdd extends PolymerElement {
 		var ajax1 = this.$.getTableAjax;
 		ajax1.url = "/resourceInventoryManagement/v1/resource?resourceSpecification.id=1";
 		ajax1.generateRequest();
+		var ajax1 = this.$.getTableAjaxPolicy;
+		ajax1.url = "/resourceInventoryManagement/v1/resource?resourceSpecification.id=3";
+		ajax1.generateRequest();
+	}
+
+	_getTableResponsePol(event) {
+		var grid = this.$.offerGrid;
+		var results = event.detail.xhr.response;
+		this.splice("polTable", 0, this.polTable.length)
+		for (var indexTable1 in results) {
+			var tableRecord1 = new Object();
+			tableRecord1.name = results[indexTable1].name;
+			tableRecord1.id = results[indexTable1].id;
+			tableRecord1.href = results[indexTable1].href;
+			tableRecord1.description = results[indexTable1].description;
+			tableRecord1.plaSpecId = results[indexTable1].plaSpecId;
+			this.push('polTable', tableRecord1);
+		}
 	}
 
 	_getTableResponse(event) {
@@ -1062,6 +1114,7 @@ class offerAdd extends PolymerElement {
 				this.priceCheckIn = this.prices[indexPrice].callDirection;
 				this.priceCheckIn = this.prices[indexPrice].callDirection;
 				this.priceAddTariff = this.prices[indexPrice].prefixTariff;
+				this.priceAddPolicy = this.prices[indexPrice].prefixPolicy;
 				this.priceAddRoaming = this.prices[indexPrice].roamingTable;
 				this.chargingKey = this.prices[indexPrice].chargingKey;
 			}
@@ -1437,6 +1490,23 @@ class offerAdd extends PolymerElement {
 				charValueUse.productSpecification = prodSpec;
 				prodSpecCharValueUse.push(charValueUse);
 			}
+			if (item.prefixPolicy) {
+				var charValue = new Object();
+				var charValueUse = new Object();
+				charValueUse.name = "destPrefixPolicyTable";
+				charValueUse.minCardinality = 0;
+				charValueUse.maxCardinality = 1;
+				charValue.default = true;
+				charValue.value = item.prefixPolicy;
+				var charValues = new Array();
+				charValues.push(charValue);
+				charValueUse.productSpecCharacteristicValue = charValues;
+				var prodSpec = new Object();
+				prodSpec.id = "3";
+				prodSpec.href = "/catalogManagement/v2/productSpecification/4";
+				charValueUse.productSpecification = prodSpec;
+				prodSpecCharValueUse.push(charValueUse);
+			}
 			if (item.roamingTable) {
 				var charValue = new Object();
 				var charValueUse = new Object();
@@ -1809,6 +1879,7 @@ class offerAdd extends PolymerElement {
 			priceNew.callDirection = "originate";
 		}
 		priceNew.prefixTariff = this.priceAddTariff;
+		priceNew.prefixPolicy = this.priceAddPolicy;
 		priceNew.roamingTable = this.priceAddRoaming;
 		priceNew.chargingKey = parseInt(this.chargingKey);
 		if(priceNew.name
