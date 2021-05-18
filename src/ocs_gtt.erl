@@ -262,10 +262,12 @@ lookup_all(Table, [Digit | Rest]) when is_atom(Table) ->
 		File :: string().
 %% @doc Create a backup of the named table(s) in `File.BUPTMP'.
 %% 
-backup(Table, File) when is_list(Table) ->
-	backup(list_to_existing_atom(Table), File);
-backup(Table, File) when is_atom(Table) ->
-	backup([Table], File);
+backup([H | _ ] = Tables, File) when is_list(H) ->
+	backup([list_to_existing_atom(T) || T <- Tables], File);
+backup(Tables, File) when is_list(Tables), is_integer(hd(Tables)) ->
+	backup(list_to_existing_atom(Tables), File);
+backup(Tables, File) when is_atom(Tables) ->
+	backup([Tables], File);
 backup(Tables, File) when is_list(Tables), is_list(File) ->
 	case mnesia:activate_checkpoint([{max, Tables}]) of
 		{ok, Name, _Nodes} ->
@@ -288,10 +290,12 @@ backup(Tables, File) when is_list(Tables), is_list(File) ->
 		RestoredTabs :: [atom()].
 %% @doc Restore the named table(s) from the backup in `File.BUPTMP'.
 %% 
-restore(Table, File) when is_list(Table) ->
-	restore(list_to_existing_atom(Table), File);
-restore(Table, File) when is_atom(Table) ->
-	restore([Table], File);
+restore([H | _ ] = Tables, File) when is_list(H) ->
+	restore([list_to_existing_atom(T) || T <- Tables], File);
+restore(Tables, File) when is_list(Tables), is_integer(hd(Tables)) ->
+	restore(list_to_existing_atom(Tables), File);
+restore(Tables, File) when is_atom(Tables) ->
+	restore([Tables], File);
 restore(Tables, File) when is_list(Tables), is_list(File) ->
 	case mnesia:restore(File, [{clear_tables, Tables}]) of
 		{atomic, RestoredTabs} ->

@@ -30,7 +30,6 @@
 			prepare_retransmit/3, handle_answer/4, handle_error/4,
 			handle_request/3]).
 -export([content_types_accepted/0, content_types_provided/0]).
--export([build_container/1]).
 
 -include_lib("diameter/include/diameter.hrl").
 -include_lib("diameter/include/diameter_gen_base_rfc6733.hrl").
@@ -928,15 +927,6 @@ update_service_rating1([#'3gpp_ro_Multiple-Services-Credit-Control'{
 		_ ->
 			ReservedUnit4
 	end,
-	Reserved = case ReservedUnit5 of
-		[] ->
-			Attributes1 = lists:flatten([SCID, SInfo, SI1, RG1, {"requestSubType", "RESERVE"}]),
-			{struct, Attributes1};
-		_ ->
-			Units1 = {"requestedUnit", {struct, ReservedUnit5}},
-			Attributes1 = lists:flatten([SCID, SInfo, SI1, RG1, Units1, {"requestSubType", "RESERVE"}]),
-			{struct, Attributes1}
-	end,
 	ConsumedUnit1 = case USU of
 		[#'3gpp_ro_Used-Service-Unit'{'CC-Time' = [CCTime2]}]
 				when CCTime2 > 0->
@@ -972,15 +962,19 @@ update_service_rating1([#'3gpp_ro_Multiple-Services-Credit-Control'{
 		_ ->
 			ConsumedUnit4
 	end,
-	Consumed = case ConsumedUnit5 of
-		[] ->
-			[];
-		_ ->
+	case {ConsumedUnit5 , ReservedUnit5} of
+		{[], []} ->
+			Attributes1 = lists:flatten([SCID, SInfo, SI1, RG1, {"requestSubType", "RESERVE"}]),
+			update_service_rating1(T, SCID, SInfo, [{struct, Attributes1} | Acc]);
+		{ConsumedUnit5, []} when length(ConsumedUnit5) > 0 ->
 			Units2 = {"consumedUnit", {struct, ConsumedUnit5}},
 			Attributes2 = lists:flatten([SCID, SInfo, SI1, RG1, Units2, {"requestSubType", "DEBIT"}]),
-			{struct, Attributes2}
-	end,
-	update_service_rating1(T, SCID, SInfo, [Reserved, Consumed | Acc]);
+			update_service_rating1(T, SCID, SInfo, [{struct, Attributes2} | Acc]);
+		{[], ReservedUnit5} when length(ReservedUnit5) > 0 ->
+			Units1 = {"requestedUnit", {struct, ReservedUnit5}},
+			Attributes1 = lists:flatten([SCID, SInfo, SI1, RG1, Units1, {"requestSubType", "RESERVE"}]),
+			update_service_rating1(T, SCID, SInfo, [{struct, Attributes1} | Acc])
+	end;
 update_service_rating1([], _SCID, _SI, Acc) ->
 	Acc.
 

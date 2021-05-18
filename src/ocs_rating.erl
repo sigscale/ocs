@@ -2080,15 +2080,15 @@ get_debits(_, _, _, [], Debit, Refund, Acc) ->
 
 -spec rated(Debits, Rated) -> Result
 	when
-		Debits :: #{},
+		Debits :: map(),
 		Rated :: #rated{} | [#rated{}],
 		Result :: [Rated].
 %% @doc Construct rated product usage.
 %% @hidden
+rated(Debits, Rated) when map_size(Debits) =:= 0 ->
+	Rated;
 rated(Debits, #rated{} = Rated) ->
 	rated(Debits, [Rated]);
-rated(#{}, Rated) ->
-	Rated;
 rated(Debits, [#rated{} = Rated | T]) ->
 	F = fun(cents, Amount, Acc) ->
 				[Rated#rated{bucket_type = cents, bucket_value = Amount,

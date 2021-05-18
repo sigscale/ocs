@@ -61,7 +61,10 @@ suite() ->
    [{userdata, [{doc, "Test suite for Re Interface in OCS"}]},
 	{require, diameter},
 	{default_config, diameter, [{address, {127,0,0,1}}]},
-   {timetrap, {minutes, 10}}].
+   {timetrap, {minutes, 10}},
+	{require, rest},
+	{default_config, rest, [{user, "bss"},
+			{password, "nfc9xgp32xha"}]}].
 
 -spec init_per_suite(Config :: [tuple()]) -> Config :: [tuple()].
 %% Initialization before the whole suite.
@@ -69,6 +72,44 @@ suite() ->
 init_per_suite(Config) ->
 	ok = ocs_test_lib:initialize_db(),
    ok = ocs_test_lib:load(ocs),
+	TempNrfPath = "http://127.0.0.1",
+	ok = application:set_env(ocs, nrf_uri, TempNrfPath),
+	{ok, Services} = application:get_env(inets, services),
+	Fport = fun FPort([{httpd, L} | T]) ->
+				case lists:keyfind(server_name, 1, L) of
+					{_, "rest"} ->
+						H1 = lists:keyfind(bind_address, 1, L),
+						P1 = lists:keyfind(port, 1, L),
+						{H1, P1};
+					_ ->
+						FPort(T)
+				end;
+			FPort([_ | T]) ->
+				FPort(T)
+	end,
+	RestUser = ct:get_config({rest, user}),
+	RestPass = ct:get_config({rest, password}),
+	{Host, Port} = case Fport(Services) of
+		{{_, H2}, {_, P2}} when H2 == "localhost"; H2 == {127,0,0,1} ->
+			{ok, _} = ocs:add_user(RestUser, RestPass, "en"),
+			{"localhost", P2};
+		{{_, H2}, {_, P2}} ->
+			{ok, _} = ocs:add_user(RestUser, RestPass, "en"),
+			case H2 of
+				H2 when is_tuple(H2) ->
+					{inet:ntoa(H2), P2};
+				H2 when is_list(H2) ->
+					{H2, P2}
+			end;
+		{false, {_, P2}} ->
+			{ok, _} = ocs:add_user(RestUser, RestPass, "en"),
+			{"localhost", P2}
+	end,
+	Config1 = [{port, Port} | Config],
+	HostUrl = "https://" ++ Host ++ ":" ++ integer_to_list(Port),
+	init_per_suite1([{host_url, HostUrl} | Config1]).
+%% @hidden
+init_per_suite1(Config) ->
 	DiameterAddress = ct:get_config({diameter, address}, {127,0,0,1}),
 	DiameterAuthPort = ct:get_config({diameter, auth_port}, rand:uniform(64511) + 1024),
 	DiameterAcctPort = ct:get_config({diameter, acct_port}, rand:uniform(64511) + 1024),
@@ -78,24 +119,22 @@ init_per_suite(Config) ->
 	ok = application:set_env(ocs, min_reserve_octets, 1000000),
 	ok = application:set_env(ocs, min_reserve_seconds, 60),
 	ok = application:set_env(ocs, min_reserve_messages, 1),
-	TempNrfPath = "http://127.0.0.1",
-	ok = application:set_env(ocs, nrf_uri, TempNrfPath),
-	ok = ocs_test_lib:start(),
 	Realm = ct:get_config({diameter, realm}, "mnc001.mcc001.3gppnetwork.org"),
 	Host = ct:get_config({diameter, host}, atom_to_list(?MODULE) ++ "." ++ Realm),
    Config1 = [{diameter_host, Host}, {realm, Realm},
          {diameter_acct_address, DiameterAddress} | Config],
+	ok = ocs_test_lib:start(),
    ok = diameter:start_service(?MODULE, client_acct_service_opts(Config1)),
    true = diameter:subscribe(?MODULE),
    {ok, _Ref2} = connect(?MODULE, DiameterAddress, DiameterAcctPort, diameter_tcp),
    receive
       #diameter_event{service = ?MODULE, info = Info}
             when element(1, Info) == up ->
-			start1(Config1);
+			init_per_suite2(Config1);
       _Other ->
          {skip, diameter_client_acct_service_not_started}
    end.
-start1(Config) ->
+init_per_suite2(Config) ->
 	case inets:start(httpd,
 			[{port, 0},
 			{server_name, atom_to_list(?MODULE)},
@@ -152,7 +191,8 @@ sequences() ->
 all() ->
 	[send_initial_scur, receive_initial_scur, send_interim_scur,
 		receive_interim_scur, send_final_scur, receive_final_scur,
-		receive_interim_no_usu_scur, receive_initial_empty_rsu_scur].
+		receive_interim_no_usu_scur, receive_initial_empty_rsu_scur,
+		post_initial_scur].
 
 %%---------------------------------------------------------------------
 %%  Test cases
@@ -272,7 +312,6 @@ receive_interim_scur(_Config) ->
 	OutputOctets2 = rand:uniform(Balance div 3),
 	UsedServiceUnits = {InputOctets2, OutputOctets2},
 	Answer1 = diameter_scur_interim(SId, Subscriber, RequestNum1, UsedServiceUnits, 0),
-erlang:display({?MODULE, ?LINE, Answer1}),
 	#'3gpp_ro_CCA'{'Result-Code' = ?'DIAMETER_BASE_RESULT-CODE_SUCCESS',
 			'Auth-Application-Id' = ?RO_APPLICATION_ID,
 			'CC-Request-Type' = ?'3GPP_CC-REQUEST-TYPE_UPDATE_REQUEST',
@@ -423,9 +462,63 @@ receive_initial_empty_rsu_scur(_Config) ->
 	#'3gpp_ro_Multiple-Services-Credit-Control'{
 			'Granted-Service-Unit' = []} = MultiServices_CC.
 
+post_initial_scur() ->
+	[{userdata, [{doc, "Post Inital Nrf Request to be rated"}]}].
+
+post_initial_scur(Config) ->
+	P1 = price(usage, octets, rand:uniform(10000000), rand:uniform(1000000)),
+	OfferId = add_offer([P1], 4),
+	ProdRef = add_product(OfferId),
+	Password = ocs:generate_identity(),
+	MSISDN = ocs:generate_identity(),
+	IMSI = ocs:generate_identity(),
+	{ok, #service{}} = ocs:add_service(list_to_binary(MSISDN),
+			Password, ProdRef, []),
+	Balance = rand:uniform(100000000000),
+	B1 = bucket(octets, Balance),
+	_BId = add_bucket(ProdRef, B1),
+	InputOctets = rand:uniform(10000),
+	OutputOctets = rand:uniform(20000),
+	ContentType = "application/json",
+	Accept = {"accept", "application/json"},
+	HostUrl = ?config(host_url, Config),
+	Body = nrf_post_initial_scur(MSISDN, IMSI, InputOctets, OutputOctets),
+	RequestBody = lists:flatten(mochijson:encode(Body)),
+	Request1 = {HostUrl ++ "/nrf-rating/v1/ratingdata", [Accept, auth_header()], ContentType, RequestBody},
+	{ok, Result} = httpc:request(post, Request1, [], []),
+	{{"HTTP/1.1", 201, _Created}, _Headers, ResponseBody} = Result,
+	{struct, AttributeList} = mochijson:decode(ResponseBody),
+	{_, {_, ["msisdn-" ++ MSISDN, "imsi-" ++ IMSI]}} = lists:keyfind("subscriptionId", 1, AttributeList),
+	TotalOctets = InputOctets + OutputOctets,
+	{_, {_ ,[{_, [{"resultCode","SUCCESS"},
+	{"ratingGroup", 2}, {"serviceId", 1},
+	{"serviceContextId","32251@3gpp.org"},
+	{"grantedUnit", {_, [{"totalVolume", TotalOctets}]}}]}]}}
+			= lists:keyfind("serviceRating", 1, AttributeList).
+
 %%---------------------------------------------------------------------
 %%  Internal functions
 %%---------------------------------------------------------------------
+
+nrf_post_initial_scur(MSISDN, IMSI, InputOctets, OutputOctets) ->
+	TS = erlang:system_time(?MILLISECOND),
+	InvocationTimeStamp = ocs_log:iso8601(TS),
+	{struct, [{"nfConsumerIdentification",
+	{struct, [{"nodeFunctionality", "OCF"}]}},
+			{"invocationTimeStamp", InvocationTimeStamp},
+			{"invocationSequenceNumber", 1},
+			{"subscriptionId", {array, ["msisdn-" ++ MSISDN, "imsi-" ++ IMSI]}},
+			{"serviceRating",
+					{array, [{struct, [{"serviceContextId", "32251@3gpp.org"},
+							{"serviceInformation",
+							{struct, [{"sgsnMccMnc",
+							{struct, [{"mcc", "001"}, {"mnc", "001"}]}}]}},
+							{"serviceId", 1},
+							{"ratingGroup", 2},
+							{"requestedUnit", {struct,[{"totalVolume", InputOctets + OutputOctets},
+											{"uplinkVolume", InputOctets},
+											{"downlinkVolume", OutputOctets}]}},
+							{"requestSubType", "RESERVE"}]}]}}]}.
 
 diameter_scur_start(SId, {MSISDN, IMSI}, RequestNum, {InputOctets, OutputOctets}) ->
 	MSISDN1 = #'3gpp_ro_Subscription-Id'{
@@ -525,7 +618,7 @@ diameter_scur_interim(SId, {MSISDN, IMSI}, RequestNum,
 					'3GPP-SGSN-MCC-MNC' = [<<"001001">>]}]},
 	CC_CCR = #'3gpp_ro_CCR'{'Session-Id' = SId,
 		'Auth-Application-Id' = ?RO_APPLICATION_ID,
-		'Service-Context-Id' = "32251@3gpp.org" ,
+		'Service-Context-Id' = "32251@3gpp.org",
 		'User-Name' = [MSISDN],
 		'CC-Request-Type' = ?'3GPP_CC-REQUEST-TYPE_UPDATE_REQUEST',
 		'CC-Request-Number' = RequestNum,

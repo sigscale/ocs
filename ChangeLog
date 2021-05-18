@@ -1,3 +1,18 @@
+2021-05-16  Vance Shipley <vances@sigscale.org>
+
+	* correct systemd configuration
+	* add nrf rating update patch
+	* rate inital nrf rating requests
+	* remove extra mscc
+	* disable polymer app-layout scrollbar
+	* add nrf server resource module
+	* add nrf server paths
+	* remove generated javascript help module on clean
+	* handle table names as strings in gtt backup/restore
+	* improved media type handling
+	* remove redundant content type check
+	* export prometheus metrics
+
 2021-04-12  Refath Wadood <refath@sigscale.org>
 
 	* correct accumulator handling; remove unnecessary code
