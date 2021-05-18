@@ -266,7 +266,11 @@ class policyAdd extends PolymerElement {
 		var nameFloArr = new Array();
 		var nameFloObj = new Object();
 		nameFloObj.flowDirection = this.flowUp;
-		nameFloObj.flowDescription = this.flowDiscUp;
+		if(this.flowDiscUp) {
+			nameFloObj.flowDescription = this.flowDiscUp;
+		} else {
+			nameFloObj.flowDescription = "permit out proto ip from all to all"
+		}
 		nameFloArr.push(nameFloObj);
 		nameFlow.value = nameFloArr;
 		var namePre = new Object();
