@@ -264,3 +264,4 @@
 		{rating_ref :: string() | undefined,
 		nfConsumerIdentification :: string() | undefined,
 		subscriptionId = [] :: [{MSISDN :: string(), IMSI :: string()}]}).
+
