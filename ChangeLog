@@ -1,5 +1,7 @@
 2021-05-16  Vance Shipley <vances@sigscale.org>
 
+	* add toast and remove unwanted tag
+	* add error toast
 	* tooltips in policy dialog
 	* label names in policy dialog
 	* default flow description in policy dialog
