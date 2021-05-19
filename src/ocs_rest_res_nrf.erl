@@ -1,4 +1,4 @@
-%%% ocs_rest_res_nrf.erl
+%% ocs_rest_res_nrf.erl
 %%% vim: ts=3
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%% @copyright 2016 - 2021 SigScale Global Inc.
@@ -47,7 +47,8 @@ content_types_provided() ->
 -spec initial_nrf(NrfRequest) -> NrfResponse
 	when
 		NrfRequest :: iolist(),
-		NrfResponse :: {ok, Headers, Body} | {error, Status},
+		NrfResponse :: {ok, Headers, Body} | {error, Status} |
+				{error, Status, Body},
 		Headers :: [tuple()],
 		Body :: iolist(),
 		Status :: 201 | 400 | 500.
@@ -62,28 +63,59 @@ initial_nrf(NrfRequest) ->
 					ServiceRating when is_list(ServiceRating) ->
 						UpdatedMap = maps:update("serviceRating", ServiceRating, NrfMap),
 						nrf_response_to_struct(UpdatedMap);
-					{error, Reason1} ->
-						{error, Reason1}
+					{error, out_of_credit} ->
+						Body = error_response(out_of_credit, NrfMap),
+						{error, 403, Body};
+					{error, service_not_found} ->
+						Body = error_response(service_not_found, NrfMap),
+						{error, 404, Body};
+					{error, Reason} ->
+						{error, Reason}
 				end;
 			_ ->
-				{error, 400}
+				Body = error_response(charging_failed, undefined),
+				{error, 400, Body}
 		end
 	of
 		{struct, _Attributes1} = NrfResponse ->
 			RatingDataRef = ocs:generate_identity(),
 			Location = "/ratingdata/" ++ RatingDataRef,
-			Body = mochijson:encode(NrfResponse),
-			{ok, [{location, Location}], Body};
-		{error, Reason2} ->
-			{error, Reason2}
+			ReponseBody = mochijson:encode(NrfResponse),
+			Headers = [{location, Location}],
+			{ok, Headers, ReponseBody };
+		{error, StatusCode, Body1} ->
+			ReponseBody = mochijson:encode(Body1),
+			{error, StatusCode, ReponseBody};
+		{error, _Reason} ->
+			{error, 500}
 	catch
 		_:_ ->
-			{error, 400}
+			{error, 500}
 	end.
 	
 %%----------------------------------------------------------------------
 %%  internal functions
 %%----------------------------------------------------------------------
+
+-spec error_response(Error, NrfMap) -> Result
+	when
+		Error :: term(),
+		NrfMap :: map() | undefined,
+		Result :: {struct, list()}.
+%% @doc Get a error response body.
+error_response(out_of_credit, #{"serviceRating" := SR}) ->
+	{struct, [{"cause", "QUOTA_LIMIT_REACHED"},
+			{"title", "Request denied due to insufficient credit (usage applied)"},
+			{"invalidParams", {array, struct_service_rating(SR)}}]};
+error_response(service_not_found, #{"msisdn" := MSISDN}) ->
+	{struct,[{"cause","USER_UNKNOWN"},
+			{"title", "Request denied because the subscriber identity is unrecognized"},
+         {"invalidParams",
+          {array,[{struct,[{"param", MSISDN},
+                           {"reason","unknown msisdn"}]}]}}]};
+error_response(charging_failed, _) ->
+	{struct,[{"cause","CHARGING_FAILED"},
+			{"title", "Incomplete or erroneous session or subscriber information"}]}.
 
 -spec rate(NrfRequest, Flag) -> Result
 	when
@@ -149,14 +181,21 @@ rate([#{"serviceContextId" := SCI} = H | T],
 			RatedMap = Map3#{"resultCode" => "SUCCESS", "serviceContextId" => SCI},
 			rate(T, ISN, Subscriber, Flag, [RatedMap | Acc]);
 		{out_of_credit, _, _} ->
-			{error, out_of_credit};
-		{disabled, _} ->
-			{error, disabled};
+			RatedMap = Map3#{"resultCode" => "QUOTA_LIMIT_REACHED",
+					"serviceContextId" => SCI},
+			rate(T, ISN, Subscriber, Flag, [RatedMap | Acc]);
 		{error, Reason} ->
 			{error, Reason}
 	end;
 rate([], _ISN, _Subscriber, _Flag, Acc) ->
-	lists:reverse(Acc).
+	F = fun F([#{"resultCode" := "SUCCESS"} | _T]) ->
+			Acc;
+		F([_H | T]) ->
+			F(T);
+		F([]) ->
+			{error, out_of_credit}
+	end,
+	F(Acc).
 
 -spec nrf_response_to_struct(NrfReponse) -> Result
 	when
