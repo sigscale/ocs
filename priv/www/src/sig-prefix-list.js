@@ -189,6 +189,12 @@ class prefixList extends PolymerElement {
 		toast.open();
 	}
 
+   _getTableContentError(event) {
+      var toast = document.body.querySelector('sig-app').shadowRoot.getElementById('restError');
+      toast.text = "Error";
+      toast.open();
+   }
+
 	_deleteTableError(event) {
 		var toast = document.body.querySelector('sig-app').shadowRoot.getElementById('restError');
 		toast.text = "Error";
