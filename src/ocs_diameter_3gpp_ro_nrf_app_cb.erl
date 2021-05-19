@@ -565,7 +565,7 @@ get_ref(SessionId) ->
 %% @doc Remove a rating data ref
 %% @hidden
 remove_ref(SessionId)
-		when is_list(SessionId) ->
+		when is_binary(SessionId) ->
 	Pattern = {SessionId, '$1'},
 	case catch ets:delete_object(?NRF_TABLE, Pattern) of
 		true ->	
