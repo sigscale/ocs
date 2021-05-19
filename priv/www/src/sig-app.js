@@ -149,6 +149,8 @@ class SigApp extends PolymerElement {
 								id="prefixList"
 								tables="{{tables}}"
 								table="{{table}}"
+								tableId="{{tableId}}"
+								rowId="{{rowId}}"
 								loading="{{prefixLoading}}"
 								name="prefixView"
 								active-item="{{activePrefixItem}}">
@@ -171,6 +173,15 @@ class SigApp extends PolymerElement {
 								name="bucketView"
 								active-item="{{activeBucketItem}}">
 						</sig-bucket-list>
+						<sig-policy-list
+								id="policyList"
+								tables="{{tables}}"
+								table="{{table}}"
+								tableId="{{tableId}}"
+								loading="{{policyLoading}}"
+								name="policyView"
+								active-item="{{activePolicyItem}}">
+						</sig-policy-list>
 					</iron-pages>
 					<paper-toast
 							id="restError"
@@ -203,7 +214,13 @@ class SigApp extends PolymerElement {
 								<paper-icon-button
 										icon="my-icons:table">
 								</paper-icon-button>
-								Tables
+								Tariff
+							</a>
+							<a name="policyView" href="[[rootPath]]policyView">
+								<paper-icon-button
+										icon="icons:verified-user">
+								</paper-icon-button>
+								Policy
 							</a>
 						</iron-collapse>
 							<a href="" on-click="_collapseSubscriber">
@@ -316,6 +333,8 @@ class SigApp extends PolymerElement {
 			<sig-prefix-update active-item="[[activePrefixItem]]"></sig-prefix-update>
 			<sig-bucket-add></sig-bucket-add>
 			<sig-product-add active-item="[[activeProductItem]]" offers="[[offers]]"></sig-product-add>
+			<sig-policy-add id="policyAdd"></sig-policy-add>
+			<sig-policy-table-add></sig-policy-table-add>
 		`;
 	}
 
@@ -348,7 +367,12 @@ class SigApp extends PolymerElement {
 			document.body.querySelector('sig-app').shadowRoot.getElementById('httpList').shadowRoot.getElementById('getHttp').generateRequest();
 		}
 		if(this.$.load.selected == "prefixView") {
+			document.body.querySelector('sig-app').shadowRoot.querySelector('sig-prefix-list').shadowRoot.getElementById('tableList').open();
 			document.body.querySelector('sig-app').shadowRoot.getElementById('prefixList').shadowRoot.getElementById('prefixGrid').clearCache();
+		}
+		if(this.$.load.selected == "policyView") {
+			document.body.querySelector('sig-app').shadowRoot.querySelector('sig-policy-list').shadowRoot.getElementById('tableList').open();
+			document.body.querySelector('sig-app').shadowRoot.getElementById('policyList').shadowRoot.getElementById('policyGrid').clearCache();
 		}
 		if(this.$.load.selected == "balanceView") {
 			document.body.querySelector('sig-app').shadowRoot.getElementById('balanceList').shadowRoot.getElementById('balanceGrid').clearCache();
@@ -456,6 +480,9 @@ class SigApp extends PolymerElement {
 			},
 			bucketLoading: {
 				type: Boolean
+			},
+			activePolicyItem: {
+				type: Boolean
 			}
 		};
 	}
@@ -472,7 +499,7 @@ class SigApp extends PolymerElement {
 //
 // If no page was found in the route data, page will be an empty string.
 // Show 'inventoryView' in that case. And if the page doesn't exist, show 'view404'.
-		if (['offerView', 'serviceView', 'clientView', 'userView', 'accessView', 'accountingView', 'ipdrWlanView', 'ipdrVoipView', 'httpView', 'prefixView', 'balanceView', 'productView', 'bucketView'].indexOf(page) !== -1) {
+		if (['offerView', 'serviceView', 'clientView', 'userView', 'accessView', 'accountingView', 'ipdrWlanView', 'ipdrVoipView', 'httpView', 'prefixView', 'policyView', 'balanceView', 'productView', 'bucketView'].indexOf(page) !== -1) {
 			this.page = page;
 		}
 		switch (this.page) {
@@ -514,6 +541,9 @@ class SigApp extends PolymerElement {
 				break;
 			case 'bucketView':
 				this.viewTitle = 'Balance Buckets';
+				break;
+			case 'policyView':
+				this.viewTitle = 'Policy';
 				break;
 			default:
 				this.viewTitle = 'Online Charging System';
@@ -572,6 +602,11 @@ class SigApp extends PolymerElement {
 				import('./sig-prefix-add.js');
 				import('./sig-prefix-table-add.js');
 				import('./sig-prefix-update.js');
+				break;
+			case 'policyView':
+				import('./sig-policy-list.js');
+				import('./sig-policy-table-add.js');
+				import('./sig-policy-add.js');
 				break;
 			case 'balanceView':
 				import('./sig-balance-list.js');

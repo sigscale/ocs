@@ -21,11 +21,11 @@ import '@polymer/paper-button/paper-button.js';
 import '@polymer/paper-tooltip/paper-tooltip.js';
 import './style-element.js';
 
-class tablePreAdd extends PolymerElement {
+class tablePolAdd extends PolymerElement {
 	static get template() {
 		return html`
 			<style include="style-element"></style>
-			<paper-dialog id="addPrefixTableModal" modal>
+			<paper-dialog id="addPolicyTableModal" modal>
 				<app-toolbar>
 					<h2>Add Table</h2>
 				</app-toolbar>
@@ -101,7 +101,7 @@ class tablePreAdd extends PolymerElement {
 			</paper-dialog>
 			<iron-ajax
 					id="addTableAjax"
-					url="/resourceInventoryManagement/v1/resource"
+					url="resourceInventoryManagement/v1/resource"
 					method = "POST"
 					content-type="application/json"
 					loading="{{loading}}"
@@ -147,9 +147,9 @@ class tablePreAdd extends PolymerElement {
 			var endDateTime = this.endTableTimePick;
 		}
 		var taSpec = new Object();
-		taSpec.id = "1";
-		taSpec.href = "/resourceCatalogManagement/v2/resourceSpecification/1";
-		taSpec.name = "tariff table spec";
+		taSpec.id = "3";
+		taSpec.href = "/resourceCatalogManagement/v2/resourceSpecification/3";
+		taSpec.name = "policy table spec";
 		tabName.resourceSpecification = taSpec;
 		if(endDateTime < startDateTime) {
 			var toast = document.body.querySelector('sig-app').shadowRoot.getElementById('restError');
@@ -171,16 +171,13 @@ class tablePreAdd extends PolymerElement {
 		this.addDesc = null;
 		this.startTableTimePick = null;
 		this.endTableTimePick = null;
+		document.body.querySelector('sig-app').shadowRoot.getElementById('policyList').shadowRoot.getElementById('policyGrid').clearCache();
+		var tempAjax = document.body.querySelector('sig-app').shadowRoot.getElementById('policyList').shadowRoot.getElementById('getPolicyAjax');
+		tempAjax.generateRequest();
 	}
 
 	_addTableResponse(event) {
-		var results = event.detail.response;
-		var tableRecord = new Object();
-		tableRecord.id = results.id;
-		tableRecord.href = results.href;
-		tableRecord.plaSpecId = results.plaSpecId;
-		document.body.querySelector('sig-app').shadowRoot.getElementById('offerList').push('tables', tableRecord);
-		this.$.addPrefixTableModal.close();
+		this.$.addPolicyTableModal.close();
 	}
 
 	_addTableError(event) {
@@ -197,4 +194,4 @@ class tablePreAdd extends PolymerElement {
 	}
 }
 
-window.customElements.define('sig-prefix-table-add', tablePreAdd);
+window.customElements.define('sig-policy-table-add', tablePolAdd);

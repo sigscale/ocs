@@ -451,18 +451,18 @@ install5(Nodes, Acc) ->
 	end.
 %% @hidden
 install6(Nodes, Acc) ->
-	case mnesia:create_table(pla, [{disc_copies, Nodes},
-			{attributes, record_info(fields, pla)}]) of
+	case mnesia:create_table(resource, [{disc_copies, Nodes},
+			{attributes, record_info(fields, resource)}]) of
 		{atomic, ok} ->
-			error_logger:info_msg("Created new pricing logic algorithm table.~n"),
-			install7(Nodes, [pla | Acc]);
+			error_logger:info_msg("Created new resource table.~n"),
+			install7(Nodes, [resource | Acc]);
 		{aborted, {not_active, _, Node} = Reason} ->
 			error_logger:error_report(["Mnesia not started on node",
 					{node, Node}]),
 			{error, Reason};
-		{aborted, {already_exists, pla}} ->
-			error_logger:info_msg("Found existing pricing logic algorithm table.~n"),
-			install7(Nodes, [pla | Acc]);
+		{aborted, {already_exists, resource}} ->
+			error_logger:info_msg("Found existing resource table.~n"),
+			install7(Nodes, [resource | Acc]);
 		{aborted, Reason} ->
 			error_logger:error_report([mnesia:error_description(Reason),
 				{error, Reason}]),
@@ -831,8 +831,11 @@ add_example_data_offer3(Alteration, PriceSubscription, PriceOverage) ->
 
 %% @hidden
 add_example_voice_offers() ->
-	PLA = #pla{name = "example", description = "Example voice tariff",
-			specification = "4", status = created},
+	TariffResource = #resource{name = "example", state = "created",
+			description = "Example voice tariff",
+			specification = #specification_ref{id = "1",
+			href = "/resourceCatalogManagement/v2/resourceSpecification/1",
+			name = "TariffRowTable"}},
 	PriceUsage = #price{name = "Usage", description = "Tariffed voice calling",
 			type = tariff, units = seconds, size = 60,
 			char_value_use = [#char_value_use{name = "destPrefixTariffTable",
@@ -840,8 +843,8 @@ add_example_voice_offers() ->
 	Offer = #offer{name = "Voice Calling", description = "Tariffed voice calling",
 			status = in_study, specification = "9",
 			price = [PriceUsage]},
-	case ocs:add_pla(PLA) of
-		{ok, #pla{}} ->
+	case ocs:add_resource(TariffResource) of
+		{ok, #resource{}} ->
 			case ocs:add_offer(Offer) of
 				{ok, #offer{}} ->
 					case code:priv_dir(ocs) of

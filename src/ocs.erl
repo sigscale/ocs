@@ -36,12 +36,14 @@
 		query_users/3, update_user/3]).
 -export([add_offer/1, find_offer/1, get_offers/0, delete_offer/1,
 		query_offer/7]).
--export([add_pla/1, add_pla/2, find_pla/1, get_plas/0, delete_pla/1, query_table/6]).
+-export([add_resource/1, get_resources/0, get_resource/1, delete_resource/1,
+		query_resource/5]).
 -export([generate_password/0, generate_identity/0]).
 -export([start/4, start/5]).
 %% export the ocs private API
 -export([normalize/1, subscription/4, end_period/2]).
 -export([import/2, find_sn_network/2]).
+-export([query_table/6]).
 
 -export_type([eap_method/0, match/0]).
 
@@ -57,6 +59,8 @@
 
 % calendar:datetime_to_gregorian_seconds({{1970,1,1},{0,0,0}})
 -define(EPOCH, 62167219200).
+
+-define(PathInventory, "/resourceInventoryManagement/v1/").
 
 %%----------------------------------------------------------------------
 %%  The ocs public API
@@ -1480,53 +1484,6 @@ add_offer1(Offer) ->
 			{error, Reason}
 	end.
 
--spec add_pla(Pla) -> Result
-	when
-		Pla :: #pla{},
-		Result :: {ok, #pla{}} | {error, Reason},
-		Reason :: validation_failed | term().
-%% @doc Add a new entry in pricing logic algorithm table.
-add_pla(#pla{} = Pla) ->
-	F = fun() ->
-		TS = erlang:system_time(?MILLISECOND),
-		N = erlang:unique_integer([positive]),
-		R = Pla#pla{last_modified = {TS, N}},
-		ok = mnesia:write(pla, R, write),
-		R
-	end,
-	case mnesia:transaction(F) of
-		{atomic, #pla{name = Name} = Pla1} ->
-			case catch list_to_existing_atom(Name) of
-				{'EXIT', _Reason} ->
-					ok = ocs_gtt:new(list_to_atom(Name), []),
-					ok = ocs_event:notify(create_pla, Pla1, resource),
-					{ok, Pla1};
-				_ ->
-					ok = ocs_event:notify(create_pla, Pla1, resource),
-					{ok, Pla1}
-			end;
-		{aborted, Reason} ->
-			{error, Reason}
-	end.
-
--spec add_pla(Pla, File) -> Result
-	when
-		Pla :: #pla{},
-		File :: file:filename(),
-		Result :: {ok, #pla{}} | {error, Reason},
-		Reason :: validation_failed | term().
-%% @doc Add a new entry in pricing logic algorithm table.
-%% 	Import table rows from CSV file.
-add_pla(#pla{} = Pla, File) when is_list(File) ->
-	case catch ocs_gtt:import(File) of
-		ok ->
-			Basename = filename:basename(File),
-			Name = string:sub_string(Basename, 1, string:rchr(Basename, $.) - 1),
-			add_pla(Pla#pla{name = Name});
-		{'EXIT', Reason} ->
-			{error, Reason}
-	end.
-
 -spec find_offer(OfferID) -> Result
 	when
 		OfferID :: string(),
@@ -1686,22 +1643,57 @@ query_table1([], Acc) ->
 query_table1(Pla, _Acc) ->
 	{eof, Pla}.
 
--spec get_plas() -> Result
+-spec add_resource(Resource) -> Result
 	when
-		Result :: [#pla{}] | {error, Reason},
+		Result :: {ok, Resource} | {error, Reason},
 		Reason :: term().
-%% @doc Get all entries in the pla table.
-get_plas() ->
+%% @doc Create a new Resource.
+add_resource(#resource{id = undefined, last_modified = undefined} = Resource) ->
+	F = fun() ->
+			TS = erlang:system_time(?MILLISECOND),
+			N = erlang:unique_integer([positive]),
+			Id = integer_to_list(TS) ++ integer_to_list(N),
+			LM = {TS, N},
+			Href = ?PathInventory ++ "resource/" ++ Id,
+			NewResource = Resource#resource{id = Id,
+					href = Href, last_modified = LM},
+			ok = mnesia:write(NewResource),
+			NewResource
+	end,
+	add_resource1(mnesia:transaction(F)).
+add_resource1({atomic, #resource{name = Name,
+		specification = #specification_ref{id = "1"}} = NewResource})
+		when is_list(Name) ->
+	case catch list_to_existing_atom(Name) of
+		{'EXIT', _Reason} ->
+			ok = ocs_gtt:new(list_to_atom(Name), []),
+			ok = ocs_event:notify(create_resource, NewResource, resource),
+			{ok, NewResource};
+		_ ->
+			ok = ocs_event:notify(create_resource, NewResource, resource),
+			{ok, NewResource}
+	end;
+add_resource1({atomic, #resource{} = NewResource}) ->
+	ok = ocs_event:notify(create_resource, NewResource, resource),
+	{ok, NewResource};
+add_resource1({aborted, Reason}) ->
+	{error, Reason}.
+
+-spec get_resources() -> Result
+	when
+		Result :: [#resource{}] | {error, Reason},
+		Reason :: term().
+%% @doc List all entries in the resource table.
+get_resources() ->
 	MatchSpec = [{'_', [], ['$_']}],
 	F = fun(F, start, Acc) ->
-				F(F, mnesia:select(pla, MatchSpec,
-						?CHUNKSIZE, read), Acc);
+				F(F, mnesia:select(resource, MatchSpec, ?CHUNKSIZE, read), Acc);
 			(_F, '$end_of_table', Acc) ->
 				lists:flatten(lists:reverse(Acc));
 			(_F, {error, Reason}, _Acc) ->
 				{error, Reason};
-			(F,{Pla, Cont}, Acc) ->
-				F(F, mnesia:select(Cont), [Pla | Acc])
+			(F,{Offer, Cont}, Acc) ->
+				F(F, mnesia:select(Cont), [Offer | Acc])
 	end,
 	case mnesia:transaction(F, [F, start, []]) of
 		{aborted, Reason} ->
@@ -1710,46 +1702,134 @@ get_plas() ->
 			Result
 	end.
 
--spec find_pla(ID) -> Result
+-spec get_resource(ResourceID) -> Result
 	when
-		ID :: string(),
-		Result :: {ok, Pla} | {error, Reason},
-		Pla :: #pla{},
-		Reason :: term().
-%% @doc Find pricing logic algorithm by id.
-find_pla(ID) ->
-	F = fun() -> mnesia:read(pla, ID) end,
+		ResourceID :: string(),
+		Result :: {ok, Resource} | {error, Reason},
+		Resource :: resource(),
+		Reason :: not_found | term().
+%% @doc Get a Resource by identifier.
+get_resource(ResourceID) when is_list(ResourceID) ->
+	F = fun() ->
+			mnesia:read(resource, ResourceID, read)
+	end,
 	case mnesia:transaction(F) of
-		{atomic, [#pla{} = Pla]} ->
-			{ok, Pla};
-		{atomic, []} ->
-			{error, not_found};
 		{aborted, Reason} ->
-			{error, Reason}
+			{error, Reason};
+		{atomic, [Resource]} ->
+			{ok, Resource};
+		{atomic, []} ->
+			{error, not_found}
 	end.
 
--spec delete_pla(ID) -> Result
+-spec delete_resource(ResourceID) -> Result
 	when
-		ID :: string(),
-		Result :: ok.
-%% @doc Delete an entry from the pla table.
-delete_pla(ID) ->
+		ResourceID :: string(),
+		Result :: ok | {error, Reason},
+		Reason :: term().
+%% @doc Delete a Resource.
+delete_resource(ResourceID) when is_list(ResourceID) ->
 	F = fun() ->
-			case mnesia:read(pla, ID) of
-				[#pla{} = Pla] ->
-					{mnesia:delete(pla, ID, write), Pla};
+			case mnesia:read(resource, ResourceID) of
+				[#resource{} = Resource] ->
+					{mnesia:delete(resource, ResourceID, write), Resource};
 				[] ->
 					mnesia:abort(not_found)
 			end
 	end,
 	case mnesia:transaction(F) of
-		{atomic, {ok, Pla}} ->
-			{atomic, ok} = mnesia:delete_table(list_to_existing_atom(ID)),
-			ok = ocs_event:notify(delete_pla, Pla, resource),
-			ok;
 		{aborted, Reason} ->
-			exit(Reason)
+			{error, Reason};
+		{atomic, {ok, #resource{name = Name,
+				specification = #specification_ref{id = "1"}} = Resource}} ->
+			{atomic, ok} = mnesia:delete_table(list_to_existing_atom(Name)),
+			ocs_event:notify(delete_resource, Resource, resource);
+		{atomic, {ok, #resource{} = Resource}} ->
+			ocs_event:notify(delete_resource, Resource, resource)
 	end.
+
+-spec query_resource(Cont, MatchId, MatchCategory,
+		MatchResSpecId, MatchRelName) -> Result
+	when
+		Cont :: start | any(),
+		MatchId :: Match,
+		MatchCategory :: Match,
+		MatchResSpecId :: Match,
+		MatchRelName :: Match,
+		Match :: {exact, string()} | {like, string()} | '_',
+		Result :: {Cont1, [#resource{}]} | {error, Reason},
+		Cont1 :: eof | any(),
+		Reason :: term().
+%% @doc Query resources
+query_resource(Cont, '_', MatchCategory, MatchResSpecId, MatchRelName) ->
+	MatchHead = #resource{_ = '_'},
+	query_resource1(Cont, MatchHead, MatchCategory,
+			MatchResSpecId, MatchRelName);
+query_resource(Cont, {Op, String}, MatchCategory, MatchResSpecId, MatchRelName)
+		when is_list(String), ((Op == exact) orelse (Op == like)) ->
+	MatchHead = case lists:last(String) of
+		$% when Op == like ->
+			#resource{id = lists:droplast(String) ++ '_', _ = '_'};
+		_ ->
+         #resource{id = String, _ = '_'}
+	end,
+   query_resource1(Cont, MatchHead, MatchCategory,
+			MatchResSpecId, MatchRelName).
+%% @hidden
+query_resource1(Cont, MatchHead, '_', MatchResSpecId, MatchRelName) ->
+	query_resource2(Cont, MatchHead, MatchResSpecId, MatchRelName);
+query_resource1(Cont, MatchHead1, {Op, String}, MatchResSpecId, MatchRelName)
+		when is_list(String), ((Op == exact) orelse (Op == like)) ->
+	MatchHead2 = case lists:last(String) of
+		$% when Op == like ->
+			MatchHead1#resource{category = lists:droplast(String) ++ '_'};
+		_ ->
+         MatchHead1#resource{category = String}
+	end,
+   query_resource2(Cont, MatchHead2, MatchResSpecId, MatchRelName).
+query_resource2(Cont, MatchHead, '_', MatchRelName) ->
+	query_resource3(Cont, MatchHead, MatchRelName);
+query_resource2(Cont, MatchHead1, {Op, String}, MatchRelName)
+		when is_list(String), ((Op == exact) orelse (Op == like)) ->
+	MatchHead2 = case lists:last(String) of
+		$% when Op == like ->
+			MatchHead1#resource{specification = #specification_ref{id
+					= lists:droplast(String) ++ '_', _ = '_'}};
+		_ ->
+         MatchHead1#resource{specification
+					= #specification_ref{id = String, _ = '_'}}
+	end,
+   query_resource3(Cont, MatchHead2, MatchRelName).
+query_resource3(Cont, MatchHead, '_') ->
+	MatchSpec = [{MatchHead, [], ['$_']}],
+	query_resource4(Cont, MatchSpec);
+query_resource3(Cont, MatchHead1, {Op, String})
+		when is_list(String), ((Op == exact) orelse (Op == like)) ->
+	MatchHead2 = case lists:last(String) of
+		$% when Op == like ->
+			MatchHead1#resource{related = [#resource_rel{name
+					= lists:droplast(String) ++ '_', _ = '_'}]};
+		_ ->
+         MatchHead1#resource{related
+					= [#resource_rel{name = String, _ = '_'}]}
+	end,
+	MatchSpec = [{MatchHead2, [], ['$_']}],
+   query_resource4(Cont, MatchSpec).
+query_resource4(start, MatchSpec) ->
+	F = fun() ->
+			mnesia:select(resource, MatchSpec, ?CHUNKSIZE, read)
+	end,
+	query_resource5(mnesia:ets(F));
+query_resource4(Cont, _MatchSpec) ->
+	F = fun() ->
+         mnesia:select(Cont)
+   end,
+	query_resource5(mnesia:ets(F)).
+%% @hidden
+query_resource5({Resources, Cont}) ->
+	{Cont, Resources};
+query_resource5('$end_of_table') ->
+		{eof, []}.
 
 -type password() :: [50..57 | 97..104 | 106..107 | 109..110 | 112..116 | 119..122].
 -spec generate_password() -> password().
@@ -2149,7 +2229,6 @@ find_sn_network(Table, Id) ->
 			exit(Reason)
 	end.
 
-%
 %%----------------------------------------------------------------------
 %%  internal functions
 %%----------------------------------------------------------------------

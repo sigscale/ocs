@@ -129,6 +129,22 @@ class userUpdate extends PolymerElement {
 				type: Object,
 				observer: '_activeItemChanged'
 			},
+			valChaUser: {
+				type: Array,
+				readOnly: true,
+				notify: true,
+				value: function() {
+					return []
+				}
+			},
+			valChaOneUser: {
+				type: Array,
+				readOnly: true,
+				notify: true,
+				value: function() {
+					return []
+				}
+			},
 			userUpdateUsername: {
 				type: String
 			},
@@ -150,6 +166,11 @@ class userUpdate extends PolymerElement {
 			this.userUpdateUsername = item.id;
 			this.userUpdatePassword = item.password;
 			this.userUpLang = item.language;
+			var arrObjUser = new Object();
+			arrObjUser.username = this.userUpdateUsername;
+			arrObjUser.password = this.userUpdatePassword;
+			arrObjUser.lang = this.userUpLang;
+			this.valChaUser.push(arrObjUser);
 			this.$.updateUserModal.open();
 		} else {
 			this.userUpdateUsername = null;
@@ -169,38 +190,62 @@ class userUpdate extends PolymerElement {
 		var results = getAjax.lastResponse;
 		var ajax = this.$.updateUserAjax;
 		ajax.url = "/partyManagement/v1/individual/" + this.userUpdateUsername;
-		function checkLoc(chara) {
-			return chara.name == "locale";
+		for(var indUser in this.valChaUser) {
+			var penUser = new Set();
+			var penObjUser = new Object();
+			var penObj1User = new Object();
+			if(this.userUpdatePassword != this.valChaUser[indUser].password){
+				penObjUser.password = this.userUpdatePassword;
+				penUser.add(this.userUpdatePassword);
+			}
+			if(this.userUpLang != this.valChaUser[indUser].lang){
+				penObjUser.lang = this.userUpLang;
+				penUser.add(this.userUpLang);
+			}
+			if (penUser.has(this.userUpdatePassword)) {
+				penObj1User.password = this.userUpdatePassword;
+			}
+			if (penUser.has(this.userUpLang)) {
+				penObj1User.lang = this.userUpLang;
+			}
+			this.valChaOneUser.push(penObj1User);
 		}
-		var index = results.characteristic.findIndex(checkLoc);
-		var patch = new Array();
-		var language;
-		if (this.userUpLang == "English") {
-			language = "en";
-		} else {
-			language = "es";
+		for(var indUserOne in this.valChaOneUser) {
+			var userArray = new Array();
+			function checkLoc(chara) {
+				return chara.name == "locale";
+			}
+			var index = results.characteristic.findIndex(checkLoc);
+			var language;
+			if(this.valChaOneUser[indUserOne].lang) {
+				if (this.valChaOneUser[indUserOne].lang == "English") {
+					language = "en";
+				} else {
+					language = "es";
+				}
+			}
+			if(this.valChaOneUser[indUserOne].lang) {
+				var op0 = new Object();
+				op0.op = "replace";
+				op0.path = "/characteristic/" + index;
+				var charlocal = new Object();
+				charlocal.name = "locale";
+				charlocal.value = language;
+				op0.value = charlocal;
+				userArray.push(op0);
+			}
+			if(this.valChaOneUser[indUserOne].password) {
+				var op1 = new Object();
+				op1.op = "add";
+				op1.path = "/characteristic/-";
+				var charPass = new Object();
+				charPass.name = "password";
+				charPass.value = this.valChaOneUser[indUserOne].password;
+				op1.value = charPass;
+				userArray.push(op1);
+			}
 		}
-		if (this.userUpLang) {
-			var op0 = new Object();
-			op0.op = "replace";
-			op0.path = "/characteristic/" + index;
-			var charlocal = new Object();
-			charlocal.name = "locale";
-			charlocal.value = language;
-			op0.value = charlocal;
-			patch.push(op0);
-		}
-		if (this.userUpdatePassword) {
-			var op1 = new Object();
-			op1.op = "add";
-			op1.path = "/characteristic/-";
-			var charPass = new Object();
-			charPass.name = "password";
-			charPass.value = this.userUpdatePassword;
-			op1.value = charPass;
-			patch.push(op1);
-		}
-		ajax.body = JSON.stringify(patch);
+		ajax.body = JSON.stringify(userArray);
 		ajax.generateRequest();
 	}
 

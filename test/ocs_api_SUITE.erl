@@ -95,11 +95,12 @@ all() ->
 	find_bucket, delete_bucket, get_buckets, positive_adjustment,
 	negative_adjustment_high, negative_adjustment_equal, negative_adjustment_low,
 	add_product, find_product, delete_product, query_product, add_offer_event,
-	delete_offer_event, gtt_insert_event, gtt_delete_event, add_pla_event,
-	delete_pla_event, add_service_event, delete_service_event,
+	delete_offer_event, gtt_insert_event, gtt_delete_event, add_resource_event,
+	delete_resource_event, add_service_event, delete_service_event,
 	add_product_event, delete_product_event, add_bucket_event,
 	delete_bucket_event, product_charge_event, rating_deleted_bucket_event,
-	accumulated_balance_event].
+	accumulated_balance_event,
+	add_resource, get_resources, get_resource, delete_resource].
 
 %%---------------------------------------------------------------------
 %%  Test cases
@@ -699,7 +700,7 @@ delete_offer_event(_Config) ->
 	end.
 
 gtt_insert_event() ->
-	[{userdata, [{doc, "Event received on inserting logical resource"}]}].
+	[{userdata, [{doc, "Event received on inserting resource"}]}].
 
 gtt_insert_event(_Config) ->
 	ok = gen_event:add_handler(ocs_event, test_event, [self()]),
@@ -714,7 +715,7 @@ gtt_insert_event(_Config) ->
 	end.
 
 gtt_delete_event() ->
-	[{userdata, [{doc, "Event received on deleting logical resource"}]}].
+	[{userdata, [{doc, "Event received on deleting resource"}]}].
 
 gtt_delete_event(_Config) ->
 	ok = gen_event:add_handler(ocs_event, test_event, [self()]),
@@ -733,44 +734,50 @@ gtt_delete_event(_Config) ->
 			{Description, Amount, _} = Value2
 	end.
 
-add_pla_event() ->
-	[{userdata, [{doc, "Event received on adding pla"}]}].
+add_resource_event() ->
+	[{userdata, [{doc, "Event received on adding resource"}]}].
 
-add_pla_event(_Config) ->
+add_resource_event(_Config) ->
 	ok = gen_event:add_handler(ocs_event, test_event, [self()]),
-	[Table | _] = ocs_gtt:list(),
-	SD = erlang:system_time(?MILLISECOND),
-	ED = erlang:system_time(?MILLISECOND) + rand:uniform(10000000000),
-	Status = created,
-	Name = atom_to_list(Table),
-	Pla = #pla{name = Name, start_date = SD,
-			end_date = ED, status = Status},
-	{ok, #pla{}} = ocs:add_pla(Pla),
+	Name = "Example",
+	Status = "created",
+	TariffResource = #resource{name = Name,
+			start_date = erlang:system_time(?MILLISECOND),
+			end_date = erlang:system_time(?MILLISECOND) + rand:uniform(10000000000),
+			state = Status, specification = #specification_ref{id = "4",
+			href = "/resourceCatalogManagement/v3/resourceSpecification/4",
+			name = "Example spec", version = "1.0"}},
+	{ok, #resource{}} = ocs:add_resource(TariffResource),
 	receive
-		{create_pla, #pla{name = Name, status = Status}, resource} ->
-			Table = list_to_existing_atom(Name)
+		{create_resource, #resource{id = Id, name = Name, state = Status,
+				specification = #specification_ref{}}, resource} ->
+			true = is_list(Id)
 	end.
 
-delete_pla_event() ->
-	[{userdata, [{doc, "Event received on deleting pla"}]}].
+delete_resource_event() ->
+	[{userdata, [{doc, "Event received on deleting resource"}]}].
 
-delete_pla_event(_Config) ->
+delete_resource_event(_Config) ->
 	ok = gen_event:add_handler(ocs_event, test_event, [self()]),
-	SD = erlang:system_time(?MILLISECOND),
-	ED = erlang:system_time(?MILLISECOND) + rand:uniform(10000000000),
-	Status = created,
-	Name = "test_notification1",
-	Pla = #pla{name = Name, start_date = SD,
-			end_date = ED, status = Status},
-	{ok, #pla{}} = ocs:add_pla(Pla),
-	receive
-		{create_pla, #pla{name = Name, status = Status,
-				last_modified = LM}, resource} ->
-			true = is_tuple(LM)
+	Name = "Example",
+	Status = "created",
+	TariffResource = #resource{name = Name,
+			start_date = erlang:system_time(?MILLISECOND),
+			end_date = erlang:system_time(?MILLISECOND) + rand:uniform(10000000000),
+			state = Status, specification = #specification_ref{id = "4",
+			href = "/resourceCatalogManagement/v3/resourceSpecification/4",
+			name = "Example spec", version = "1.0"}},
+	{ok, #resource{}} = ocs:add_resource(TariffResource),
+	ResId = receive
+		{create_resource, #resource{id = Id, name = Name, state = Status,
+				specification = #specification_ref{}}, resource} ->
+			true = is_list(Id),
+			Id
 	end,
-	ok = ocs:delete_pla(Name),
+	ok = ocs:delete_resource(ResId),
 	receive
-		{delete_pla, #pla{name = Name, status = Status}, resource} ->
+		{delete_resource, #resource{id = ResId, name = Name, state = Status,
+				specification = #specification_ref{}}, resource} ->
 			true
 	end.
 
@@ -1089,6 +1096,74 @@ accumulated_balance_event(_Config) ->
 				units = octets}], balance} ->
 			BytesTotalAmount = RA2 - PackageSize
 	end.
+
+add_resource() ->
+	[{userdata, [{doc, "Add new resource"}]}].
+
+add_resource(_Config) ->
+	Resource = #resource{
+			name = "Example",
+			description = "Example voice tariff",
+			category = "tariff",
+			state = "created", start_date = erlang:system_time(?MILLISECOND),
+			specification = #specification_ref{id = "1",
+					href = "/resourceCatalogManagement/v3/resourceSpecification/1",
+					name = "Example spec", version = "1.0"}},
+	{ok, #resource{id = ResouceId}} = ocs:add_resource(Resource),
+	{atomic, [Resource1]} = mnesia:transaction(fun() ->
+			mnesia:read(resource, ResouceId, read)
+	end),
+	true = is_list(Resource1#resource.id),
+	true = is_tuple(Resource1#resource.last_modified).
+
+get_resources() ->
+	[{userdata, [{doc, "List all the resources in the table"}]}].
+
+get_resources(_Config) ->
+	Resource = #resource{name = "Example",
+			description = "Example voice tariff", category = "tariff",
+			state = "created", start_date = erlang:system_time(?MILLISECOND),
+			specification = #specification_ref{id = "1",
+					href = "/resourceCatalogManagement/v3/resourceSpecification/1",
+					name = "Example spec", version = "1.0"}},
+	{ok, #resource{}} = ocs:add_resource(Resource),
+	Resources = ocs:get_resources(),
+	true = length(Resources) >= 1,
+	F = fun(#resource{}) ->
+				true;
+			(_) ->
+				false
+	end,
+	true = lists:all(F, Resources).
+
+get_resource() ->
+	[{userdata, [{doc, "Get resource by identifier"}]}].
+
+get_resource(_Config) ->
+	Resource = #resource{name = "Example",
+			description = "Example voice tariff", category = "tariff",
+			state = "created", start_date = erlang:system_time(?MILLISECOND),
+			specification = #specification_ref{id = "1",
+					href = "/resourceCatalogManagement/v3/resourceSpecification/1",
+					name = "Example spec", version = "1.0"}},
+	{ok, #resource{id = ResouceId}} = ocs:add_resource(Resource),
+	{ok, #resource{id = ResouceId} = Resource1} = ocs:get_resource(ResouceId),
+	true = is_list(Resource1#resource.id),
+	true = is_tuple(Resource1#resource.last_modified).
+
+delete_resource() ->
+	[{userdata, [{doc, "Remove a resource from the table"}]}].
+
+delete_resource(_Config) ->
+	Resource = #resource{name = "Example",
+			description = "Example voice tariff", category = "tariff",
+			state = "created", start_date = erlang:system_time(?MILLISECOND),
+			specification = #specification_ref{id = "1",
+					href = "/resourceCatalogManagement/v3/resourceSpecification/1",
+					name = "Example spec", version = "1.0"}},
+	{ok, #resource{id = ResouceId}} = ocs:add_resource(Resource),
+	ok = ocs:delete_resource(ResouceId),
+	{error, not_found} = ocs:get_resource(ResouceId).
 
 %%---------------------------------------------------------------------
 %%  Internal functions

@@ -24,7 +24,6 @@
 		| cancelled | active | suspended | pending_terminate | terminated.
 -type service_status() :: feasibilityChecked | designed | reserved
 		| active | inactive | terminated.
--type pla_status() :: created | active | cancelled | terminated.
 -type product_price_type() :: recurring | one_time | usage | tariff.
 -type recur_period() :: hourly | daily | weekly | monthly | yearly.
 
@@ -201,15 +200,48 @@
 		multisession = false :: boolean() | '_',
 		last_modified :: tuple() | undefined | '_'}).
 
--record(pla,
-		{name :: string() | undefined,
-		description :: string() | undefined,
-		start_date :: pos_integer() | undefined,
-		end_date :: pos_integer() | undefined,
-		status :: pla_status() | undefined,
-		specification :: '_' | string() | undefined,
-		characteristics = [] :: [{Name :: string(), Value :: term()}],
-		last_modified :: tuple() | undefined}).
+-record(resource,
+		{id :: string() | undefined | '_',
+		href :: string() | undefined | '_',
+		name :: string() | undefined | '_',
+		description :: string() | undefined | '_',
+		category :: string() | undefined | '_',
+		class_type :: string() | undefined | '_',
+		base_type :: string() | undefined | '_',
+		schema :: string() | undefined | '_',
+		state :: string() | undefined | '_',
+		substate :: string() | undefined | '_',
+		version :: string() | undefined | '_',
+		start_date :: pos_integer() | undefined | '_',
+		end_date :: pos_integer() | undefined | '_',
+		last_modified :: {TS :: pos_integer(), N :: pos_integer()}
+				| undefined | '_',
+		related = [] :: [resource_rel()] | '_',
+		specification :: specification_ref() | undefined | '_',
+		characteristic = [] :: [resource_char()] | '_'}).
+-type resource() :: #resource{}.
+
+-record(resource_rel,
+		{id :: string() | undefined | '_',
+		href :: string() | undefined | '_',
+		name :: string() | undefined | '_',
+		type :: string() | undefined | '_',
+		referred_type :: string() | undefined | '_'}).
+-type resource_rel() :: #resource_rel{}.
+
+-record(specification_ref,
+		{id :: string() | undefined | '_',
+		href :: string() | undefined | '_',
+		name :: string() | undefined | '_',
+		version :: string() | undefined | '_'}).
+-type specification_ref() :: #specification_ref{}.
+
+-record(resource_char,
+		{name :: string() | undefined | '_',
+		class_type :: string() | undefined | '_',
+		schema :: string() | undefined | '_',
+		value :: term() | undefined | '_'}).
+-type resource_char() :: #resource_char{}.
 
 -record(gtt,
 		{num :: string(),

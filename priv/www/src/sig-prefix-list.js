@@ -57,7 +57,7 @@ class prefixList extends PolymerElement {
 							class="menuitem"
 							on-focused-changed="tableSelection">
 						<iron-icon icon ="icons:view-list" item-icon></iron-icon>
-							{{item.id}}
+							{{item.name}}
 					</paper-item>
 				</template>
 				<div class="buttons">
@@ -103,6 +103,7 @@ class prefixList extends PolymerElement {
 				on-error="_deleteTableError">
 			</iron-ajax>
 			<iron-ajax id="getTableAjax"
+				url="/resourceInventoryManagement/v1/resource?resourceSpecification.id=1"
 				on-response="_getTableResponse"
 				on-error="_getTableError">
 			</iron-ajax>
@@ -127,9 +128,6 @@ class prefixList extends PolymerElement {
 					return []
 				}
 			},
-			table: {
-				type: String
-			},
 			activeItem: {
 				type: Object,
 				notify: true,
@@ -142,7 +140,6 @@ class prefixList extends PolymerElement {
 		super.ready();
 		var grid = this.shadowRoot.getElementById('prefixGrid');
 		var ajax1 = document.body.querySelector('sig-app').shadowRoot.querySelector('sig-prefix-list').shadowRoot.getElementById('getTableAjax');
-		ajax1.url = "/catalogManagement/v2/pla";
 		ajax1.generateRequest();
 		this.$.tableList.open();
 	}
@@ -160,6 +157,7 @@ class prefixList extends PolymerElement {
 		this.splice("tables", 0, this.tables.length)
 		for (var indexTable in results) {
 			var tableRecord = new Object();
+			tableRecord.name = results[indexTable].name;
 			tableRecord.id = results[indexTable].id;
 			tableRecord.href = results[indexTable].href;
 			tableRecord.description = results[indexTable].description;
@@ -170,21 +168,17 @@ class prefixList extends PolymerElement {
 
 	tableOk() {
 		var grid = this.shadowRoot.getElementById('prefixGrid');
-		document.body.querySelector('sig-app').shadowRoot.getElementById('prefixList').shadowRoot.getElementById('prefixGrid');
 		grid.dataProvider = this._getPreTable;
 		this.$.tableList.close();
-	}
-
-	tableAdd() {
-		document.body.querySelector('sig-app').shadowRoot.querySelector('sig-prefix-table-add').shadowRoot.getElementById('addPrefixTableModal').open();
-		this.$.tableList.close();
+		document.body.querySelector('sig-app').shadowRoot.getElementById('prefixList').shadowRoot.getElementById('prefixGrid').clearCache();
 	}
 
 	tableDelete(event) {
 		this.$.deleteTableAjax.method = "DELETE";
 		var prefixListDel = document.body.querySelector('sig-app').shadowRoot.querySelector('sig-prefix-list');
-		this.$.deleteTableAjax.url = "/catalogManagement/v2/pla/" + prefixListDel.table;
+		this.$.deleteTableAjax.url = "/resourceInventoryManagement/v1/resource/" + prefixListDel.tableId;
 		this.$.deleteTableAjax.generateRequest();
+		document.body.querySelector('sig-app').shadowRoot.getElementById('prefixList').shadowRoot.getElementById('prefixGrid').clearCache();
 	}
 
 	_deleteTableResponse(event) {
@@ -195,6 +189,12 @@ class prefixList extends PolymerElement {
 		toast.open();
 	}
 
+   _getTableContentError(event) {
+      var toast = document.body.querySelector('sig-app').shadowRoot.getElementById('restError');
+      toast.text = "Error";
+      toast.open();
+   }
+
 	_deleteTableError(event) {
 		var toast = document.body.querySelector('sig-app').shadowRoot.getElementById('restError');
 		toast.text = "Error";
@@ -203,7 +203,8 @@ class prefixList extends PolymerElement {
 
 	tableSelection(e) {
 		if(e.model.item && e.model.item.id) {
-			document.body.querySelector('sig-app').shadowRoot.getElementById('prefixList').table = e.model.item.id;
+			document.body.querySelector('sig-app').shadowRoot.getElementById('prefixList').table = e.model.item.name;
+			document.body.querySelector('sig-app').shadowRoot.getElementById('prefixList').tableId = e.model.item.id;
 			this.$.tabOkButton.disabled = false;
 		} else {
 			this.$.tabOkButton.disabled = true;
@@ -212,31 +213,48 @@ class prefixList extends PolymerElement {
 
 	_getPreTable(params, callback) {
 		var grid = this;
+		if(!grid.size) {
+			grid.size = 0;
+		}
 		var prefixList = document.body.querySelector('sig-app').shadowRoot.querySelector('sig-prefix-list');
 		var ajax = prefixList.shadowRoot.getElementById('getTableContentAjax');
-		ajax.url = "/resourceInventoryManagement/v1/logicalResource/" + prefixList.table;
+		ajax.url = "/resourceInventoryManagement/v1/resource?resourceSpecification.id=2&resourceRelationship.resource.name=" + prefixList.table;
 		var handleAjaxResponse = function(request) {
 			if(request) {
-				grid.size = 100;
+				prefixList.etag = request.xhr.getResponseHeader('ETag');
+				var range = request.xhr.getResponseHeader('Content-Range');
+				var range1 = range.split("/");
+				var range2 = range1[0].split("-");
+				if (range1[1] != "*") {
+					grid.size = Number(range1[1]);
+				} else {
+					grid.size = Number(range2[1]) + grid.pageSize * 2;
+				}
 				var vaadinItems = new Array();
+				function checkChar(characteristic) {
+					return characteristic.name == "name"
+				}
 				for (var index in request.response) {
-					var resChar = request.response[index].resourceCharacteristic;
 					var tabObj = new Object();
+					tabObj.id = request.response[index].id;
+					tabObj.resourceCharacteristic = request.response[index].resourceCharacteristic;
+					var resChar = request.response[index].resourceCharacteristic;
 					for (var indexRes in resChar) {
 						if(resChar[indexRes].name == "prefix") {
-							tabObj.prefix = resChar[indexRes].value.value;
+							tabObj.prefix = resChar[indexRes].value;
 						}
 						if(resChar[indexRes].name == "description") {
-							tabObj.description = resChar[indexRes].value.value;
+							tabObj.description = resChar[indexRes].value;
 						}
 						if(resChar[indexRes].name == "rate") {
-							tabObj.rate = resChar[indexRes].value.value;
+							tabObj.rate = resChar[indexRes].value;
 						}
 						vaadinItems[index] = tabObj;
 					}
 				}
 				callback(vaadinItems);
 			} else {
+				grid.size = 0;
 				callback([]);
 			}
 		};
@@ -273,6 +291,11 @@ class prefixList extends PolymerElement {
 			}
 			ajax.generateRequest().completes.then(handleAjaxResponse, handleAjaxError);
 		}
+	}
+
+	tableAdd() {
+		document.body.querySelector('sig-app').shadowRoot.querySelector('sig-prefix-table-add').shadowRoot.getElementById('addPrefixTableModal').open();
+		this.$.tableList.close();
 	}
 
 	showAddPrefixModal() {

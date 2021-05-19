@@ -960,27 +960,31 @@ characteristic_product_prepaid() ->
 
 %% @hidden
 characteristic_product_voice() ->
+	StringValueType = {"valueType", "String"},
 	Name1 = {"name", "destPrefixTariffTable"},
 	Description1 = {"description", "Table of Prefix, Description, Tariff rate"},
-	ValueType1 = {"valueType", "String"},
-	Char1 = {struct, [Name1, Description1, ValueType1]},
+	Char1 = {struct, [Name1, Description1, StringValueType]},
 	Name2 = {"name", "callDirection"},
 	Description2 = {"description", "Constrain price to incoming or outgoing calls"},
-	ValueType2 = {"valueType", "String"},
-	Char2 = {struct, [Name2, Description2, ValueType2]},
+	Char2 = {struct, [Name2, Description2, StringValueType]},
 	Name3 = {"name", "roamingTable"},
 	Description3 = {"description", "Roaming partners table name"},
-	ValueType3 = {"valueType", "String"},
-	Char3 = {struct, [Name3, Description3, ValueType3]},
-	[Char1, Char2, Char3].
+	Char3 = {struct, [Name3, Description3, StringValueType]},
+	Name4 = {"name", "policyTable"},
+	Description4 = {"description", "Policy table name"},
+	Char4 = {struct, [Name4, Description4, StringValueType]},
+	[Char1, Char2, Char3, Char4].
 
 %% @hidden
 characteristic_product_data() ->
 	Name1 = {"name", "roamingTable"},
 	Description1 = {"description", "Roaming partners table name"},
-	ValueType1 = {"valueType", "String"},
-	Char1 = {struct, [Name1, Description1, ValueType1]},
-	[Char1].
+	StringValueType = {"valueType", "String"},
+	Char1 = {struct, [Name1, Description1, StringValueType]},
+	Name2 = {"name", "policyTable"},
+	Description2 = {"description", "Policy table name"},
+	Char2 = {struct, [Name2, Description2, StringValueType]},
+	[Char1, Char2].
 
 -spec pla_spec(ID) -> Result
 	when

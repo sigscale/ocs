@@ -255,13 +255,13 @@ class subUpdate extends PolymerElement {
 					method = "GET"
 					on-error="_getServiceError">
 			</iron-ajax>
-         <iron-ajax
-               id="addBucketAjax"
-               method = "post"
-               content-type="application/json"
-               on-response="_addBucketResponse"
-               on-error="_addBucketError">
-         </iron-ajax>
+			<iron-ajax
+					id="addBucketAjax"
+					method = "post"
+					content-type="application/json"
+					on-response="_addBucketResponse"
+					on-error="_addBucketError">
+			</iron-ajax>
 			<iron-ajax
 					id="updateSubscriberProductsAjax"
 					url="/catalogManagement/v2/productOffering"
@@ -295,6 +295,22 @@ class subUpdate extends PolymerElement {
 			loading: {
 				type: Boolean,
 				value: false
+			},
+			valCha: {
+				type: Array,
+				readOnly: true,
+				notify: true,
+				value: function() {
+					return []
+				}
+			},
+			valChaOne: {
+				type: Array,
+				readOnly: true,
+				notify: true,
+				value: function() {
+					return []
+				}
 			},
 			updateSubPass: {
 				type: String
@@ -335,6 +351,16 @@ class subUpdate extends PolymerElement {
 			this.updateSubClass =  item.class;
 			this.$.updateSubscriberEnabled.checked =  item.enabled;
 			this.$.updateSubscriberMulti.checked =  item.multisession;
+			var arrObj = new Object();
+			arrObj.id = this.updateSubId;
+			arrObj.password = this.updateSubPass;
+			arrObj.product = this.updateSubPro;
+			arrObj.sessionTimeout = this.updateSubSes;
+			arrObj.acctInterimInterval = this.updateSubSessInt;
+			arrObj.class = this.updateSubClass;
+			arrObj.enabled = this.$.updateSubscriberEnabled.checked
+			arrObj.multisession = this.$.updateSubscriberMulti.checked;
+			this.valCha.push(arrObj)
 			this.$.updateSubscriberModal.open();
 		} else {
 			this.updateSubId = null;
@@ -375,18 +401,37 @@ class subUpdate extends PolymerElement {
 		editAjax.contentType = "application/json-patch+json";
 		var id = this.updateSubId; 
 		editAjax.url = "/serviceInventoryManagement/v2/service/" + id;
-		function checkPass(pass) {
-			return pass.name == "servicePassword";
+		for(var indexx in this.valCha) {
+			var penAuthSub = new Set();
+			var penAuthSubObj = new Object();
+			var penAuthSubObj1 = new Object(); 
+			if(this.updateSubNPass != this.valCha[indexx].password) {
+				penAuthSubObj.password = this.updateSubNPass;
+				penAuthSub.add(this.updateSubNPass);
+			}
+			if (penAuthSub.has(this.updateSubNPass)) {
+				penAuthSubObj1.password = this.updateSubNPass;
+			}
+			this.valChaOne.push(penAuthSubObj1);
 		}
-		var index = results.serviceCharacteristic.findIndex(checkPass);
-		var sub = new Object();
-		sub.op = "replace";
-		sub.path = "/serviceCharacteristic/" + index;
-		var servicePass = new Object();
-		servicePass.name = "servicePassword";
-		servicePass.value = this.updateSubNPass; 
-		sub.value = servicePass;
-		editAjax.body = JSON.stringify([sub]);
+		for(var indexx1 in this.valChaOne) {
+			var servicePassArr = new Array();
+			if(this.valChaOne[indexx1].password) {
+				function checkPass(pass) {
+					return pass.name == "servicePassword";
+				}
+				var index = results.serviceCharacteristic.findIndex(checkPass);
+				var sub = new Object();
+				sub.op = "replace";
+				sub.path = "/serviceCharacteristic/" + index;
+				var servicePass = new Object();
+				servicePass.name = "servicePassword";
+				servicePass.value = this.valChaOne[indexx1].password; 
+				sub.value = servicePass;
+				servicePassArr.push(sub);
+			}
+		}
+		editAjax.body = JSON.stringify(servicePassArr);
 		editAjax.generateRequest();
 	}
 
@@ -403,63 +448,63 @@ class subUpdate extends PolymerElement {
 
 	updateSubscriberBalance(event) {
 		var ajaxBucket = this.$.addBucketAjax;
-      var bucketTop = {type: "buckettype"};
-      var bunits;
-      var bamount;
-      if(this.updateSubAmo) {
-         if(this.$.updateUni1.selected == 0) {
-            bunits = "octets";
-         } else if (this.$.updateUni1.selected == 1) {
-            bunits = "cents";
-         } else if(this.$.updateUni1.selected == 2) {
-            bunits = "seconds";
-         } else {
-            bunits = "cents";
-         }
-         if(bunits && this.updateSubAmo) {
-            var size = this.updateSubAmo;
-            var len = size.length;
-            var m = size.charAt(len - 1);
-            if(isNaN(parseInt(m))) {
-               var s = size.slice(0, (len - 1));
-            } else {
-               var s = size;
-            }
-            if(bunits == "octets") {
-               if(m == "m") {
-                  bamount = s + "000000b";
-               } else if(m == "g") {
-                  bamount = s + "000000000b";
-               } else if(m == "k") {
-                  bamount = s + "000b";
-               } else {
-                  bamount = s + "b";
-               }
-            } else if(bunits == "cents") {
-               bamount = this.updateSubAmo;
-            } else if(bunits == "seconds") {
-               var n = Number(s);
-               if(m == "m") {
-                  n = n * 60;
-                  bamount = n.toString() + "s";
-               } else if(m == "h") {
-                  n = n * 3600;
-                  bamount = n.toString() + "s";
-               } else {
-                  bamount = n.toString() + "s";
-               }
-            }
-            bucketTop.amount = {units: bunits, amount: bamount};
-         }
-         bucketTop.product = {id: this.updateSubPro,
-            href: "/productInventoryManagement/v2/product/" + this.updateSubPro};
-         ajaxBucket.headers['Content-type'] = "application/json";
-         ajaxBucket.body = bucketTop;
-         ajaxBucket.url="/balanceManagement/v1/balanceAdjustment";
-         ajaxBucket.generateRequest();
+		var bucketTop = {type: "buckettype"};
+		var bunits;
+		var bamount;
+		if(this.updateSubAmo) {
+			if(this.$.updateUni1.selected == 0) {
+				bunits = "octets";
+			} else if (this.$.updateUni1.selected == 1) {
+				bunits = "cents";
+			} else if(this.$.updateUni1.selected == 2) {
+				bunits = "seconds";
+			} else {
+				bunits = "cents";
+			}
+			if(bunits && this.updateSubAmo) {
+				var size = this.updateSubAmo;
+				var len = size.length;
+				var m = size.charAt(len - 1);
+				if(isNaN(parseInt(m))) {
+					var s = size.slice(0, (len - 1));
+				} else {
+					var s = size;
+				}
+				if(bunits == "octets") {
+					if(m == "m") {
+						bamount = s + "000000b";
+					} else if(m == "g") {
+						bamount = s + "000000000b";
+					} else if(m == "k") {
+						bamount = s + "000b";
+					} else {
+						bamount = s + "b";
+					}
+				} else if(bunits == "cents") {
+					bamount = this.updateSubAmo;
+				} else if(bunits == "seconds") {
+					var n = Number(s);
+					if(m == "m") {
+						n = n * 60;
+						bamount = n.toString() + "s";
+					} else if(m == "h") {
+						n = n * 3600;
+						bamount = n.toString() + "s";
+					} else {
+						bamount = n.toString() + "s";
+					}
+				}
+				bucketTop.amount = {units: bunits, amount: bamount};
+			}
+			bucketTop.product = {id: this.updateSubPro,
+					href: "/productInventoryManagement/v2/product/" + this.updateSubPro};
+			ajaxBucket.headers['Content-type'] = "application/json";
+			ajaxBucket.body = bucketTop;
+			ajaxBucket.url="/balanceManagement/v1/balanceAdjustment";
+			ajaxBucket.generateRequest();
 			this.$.updateUni1.selected = null;
 			this.updateSubAmo = null;
-      }
+		}
 	}
 
 	_updateSubscriberBalanceResponse(event) {
@@ -479,83 +524,115 @@ class subUpdate extends PolymerElement {
 		editAjax.method = "PATCH";
 		editAjax.contentType = "application/json-patch+json";
 		editAjax.url = "/serviceInventoryManagement/v2/service/" + this.updateSubId;
-		var patch = new Array();
-		var ena = new Object();
-		ena.op = "replace";
-		ena.path = "/isServiceEnabled";
-		ena.value = this.$.updateSubscriberEnabled.checked;
-		patch.push(ena);
-		if(this.updateSubSes) {
-			function checkTimeout(sessionTime) {
-				return sessionTime.name == "sessionTimeout";
+		for(var indexx in this.valCha) {
+			var penAuthoSub = new Set();
+			var penAuthoSubObj = new Object();
+			var penAuthoSubObj1 = new Object(); 
+			if(this.$.updateSubscriberEnabled.checked != this.valCha[indexx].enabled) {
+				penAuthoSubObj.enabled = this.$.updateSubscriberEnabled.checked;
+				penAuthoSub.add(this.$.updateSubscriberEnabled.checked);
 			}
-			var indexSession = results.serviceCharacteristic.findIndex(checkTimeout);
-			var sub = new Object();
-			sub.op = "replace";
-			sub.path = "/serviceCharacteristic/" + indexSession;
-			var sessionTimeout = new Object();
-			sessionTimeout.name = "sessionTimeout";
-			sessionTimeout.value = parseInt(this.updateSubSes);
-			sub.value = sessionTimeout;
-			patch.push(sub);
-		} else {
-			function checkTimeout(sessionTime) {
-				return sessionTime.name == "sessionTimeout";
+			if(this.updateSubSes != this.valCha[indexx].sessionTimeout) {
+				penAuthoSubObj.sessionTimeout = this.updateSubSes;
+				penAuthoSub.add(this.updateSubSes);
 			}
-			var indexSession = results.serviceCharacteristic.findIndex(checkTimeout);
-			if(indexSession != -1) {
-				var sub = new Object();
-				sub.op = "replace";
-				sub.path = "/serviceCharacteristic/" + indexSession;
-				var sessionTimeout = new Object();
-				sessionTimeout.name = "sessionTimeout";
-				sessionTimeout.value = results.serviceCharacteristic[indexSession].value;
-				sub.value = sessionTimeout;
-				patch.push(sub);
+			if(this.updateSubSessInt != this.valCha[indexx].acctInterimInterval) {
+				penAuthoSubObj.acctInterimInterval = this.updateSubSessInt;
+				penAuthoSub.add(this.updateSubSessInt);
+			}
+			if(this.$.updateSubscriberMulti.checked != this.valCha[indexx].multisession) {
+				penAuthoSubObj.multisession = this.$.updateSubscriberMulti.checked;
+				penAuthoSub.add(this.$.updateSubscriberMulti.checked);
+			}
+			if (penAuthoSub.has(this.$.updateSubscriberEnabled.checked)) {
+				penAuthoSubObj1.enabled = this.$.updateSubscriberEnabled.checked;
+			}
+			if (penAuthoSub.has(this.updateSubSes)) {
+				penAuthoSubObj1.sessionTimeout = this.updateSubSes; 
+			}
+			if (penAuthoSub.has(this.updateSubSessInt)) {
+				penAuthoSubObj1.acctInterimInterval = this.updateSubSessInt; 
+			}
+			if (penAuthoSub.has(this.$.updateSubscriberMulti.checked)) {
+				penAuthoSubObj1.multisession = this.$.updateSubscriberMulti.checked; 
+			}
+			this.valChaOne.push(penAuthoSubObj1);
+		}
+		for(var indexx1 in this.valChaOne) {
+			var serviceAuthoSubArr = new Array();
+			if(this.valChaOne[indexx1].enabled != null) {
+				var ena = new Object();
+				ena.op = "replace";
+				ena.path = "/isServiceEnabled";
+				ena.value = this.valChaOne[indexx1].enabled;
+				serviceAuthoSubArr.push(ena);
+			}
+			if(this.valChaOne[indexx1].sessionTimeout) {
+				function checkTimeout(sessionTime) {
+					return sessionTime.name == "sessionTimeout";
+				}
+				var indexSession = results.serviceCharacteristic.findIndex(checkTimeout);
+				if(indexSession == -1) {
+					var sub1 = new Object();
+					sub1.op = "add";
+					sub1.path = "/serviceCharacteristic/-";
+					var sessionTimeout = new Object();
+					sessionTimeout.name = "sessionTimeout";
+					sessionTimeout.value = parseInt(this.valChaOne[indexx1].sessionTimeout);
+					sub1.value = sessionTimeout;
+					serviceAuthoSubArr.push(sub1);
+				} else {
+					var sub11 = new Object();
+					sub11.op = "replace";
+					sub11.path = "/serviceCharacteristic/" + indexSession;
+					var sessionTimeout = new Object();
+					sessionTimeout.name = "sessionTimeout";
+					sessionTimeout.value = parseInt(this.valChaOne[indexx1].sessionTimeout);
+					sub11.value = sessionTimeout;
+					serviceAuthoSubArr.push(sub11);
+				}
+			}
+			if(this.valChaOne[indexx1].acctInterimInterval) {
+				function checkSessionInt(sessionInterval) {
+					return sessionInterval.name == "acctSessionInterval";
+				}
+				var indexSessionInt = results.serviceCharacteristic.findIndex(checkSessionInt);
+				if(indexSessionInt == -1) {
+					var sub2 = new Object();
+					sub2.op = "add";
+					sub2.path = "/serviceCharacteristic/-";
+					var acctSessionInterval = new Object();
+					acctSessionInterval.name = "acctSessionInterval";
+					acctSessionInterval.value = parseInt(this.valChaOne[indexx1].acctInterimInterval);
+					sub2.value = acctSessionInterval;
+					serviceAuthoSubArr.push(sub2);
+				} else {
+					var sub22 = new Object();
+					sub22.op = "replace";
+					sub22.path = "/serviceCharacteristic/" + indexSessionInt;
+					var acctSessionInterval = new Object();
+					acctSessionInterval.name = "acctSessionInterval";
+					acctSessionInterval.value = parseInt(this.valChaOne[indexx1].acctInterimInterval);
+					sub22.value = acctSessionInterval;
+					serviceAuthoSubArr.push(sub22);
+				}
+			}
+			if(this.valChaOne[indexx1].multisession != null) {
+				function checkMulti(multiSess) {
+					return multiSess.name == "multiSession";
+				}
+				var indexMulti = results.serviceCharacteristic.findIndex(checkMulti);
+				var sub3 = new Object();
+				sub3.op = "replace";
+				sub3.path = "/serviceCharacteristic/" + indexMulti;
+				var multi = new Object();
+				multi.name = "multiSession";
+				multi.value = this.valChaOne[indexx1].multisession;
+				sub3.value = multi;
+				serviceAuthoSubArr.push(sub3);
 			}
 		}
-		if(this.updateSubSessInt) {
-			function checkSessionInt(sessionInterval) {
-				return sessionInterval.name == "acctSessionInterval";
-			}
-			var indexSessionInt = results.serviceCharacteristic.findIndex(checkSessionInt);
-			var sub1 = new Object();
-			sub1.op = "replace";
-			sub1.path = "/serviceCharacteristic/" + indexSessionInt;
-			var acctSessionInterval = new Object();
-			acctSessionInterval.name = "acctSessionInterval";
-			acctSessionInterval.value = parseInt(this.updateSubSessInt);
-			sub1.value = acctSessionInterval;
-			patch.push(sub1);
-		} else{
-			function checkSessionInt(sessionInterval) {
-				return sessionInterval.name == "acctSessionInterval";
-			}
-			var indexSessionInt = results.serviceCharacteristic.findIndex(checkSessionInt);
-			if(indexSessionInt != -1) {
-				var sub1 = new Object();
-				sub1.op = "replace";
-				sub1.path = "/serviceCharacteristic/" + indexSessionInt;
-				var acctSessionInterval = new Object();
-				acctSessionInterval.name = "acctSessionInterval";
-				acctSessionInterval.value = results.serviceCharacteristic[indexSessionInt].value;
-				sub1.value = acctSessionInterval;
-				patch.push(sub1);
-			}
-		}
-		function checkMulti(multiSess) {
-			return multiSess.name == "multiSession";
-		}
-		var indexMulti = results.serviceCharacteristic.findIndex(checkMulti);
-		var sub2 = new Object();
-		sub2.op = "replace";
-		sub2.path = "/serviceCharacteristic/" + indexMulti;
-		var multi = new Object();
-		multi.name = "multiSession";
-		multi.value = this.updateSubMul;
-		sub2.value = multi;
-		patch.push(sub2);
-		editAjax.body = JSON.stringify(patch);
+		editAjax.body = JSON.stringify(serviceAuthoSubArr);
 		editAjax.generateRequest();
 	}
 

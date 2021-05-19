@@ -168,10 +168,10 @@ register1(Category, State) ->
 		Event :: {Type, Resource, Category},
 		Type :: create_bucket | delete_bucket | charge | depleted | accumulated
 				| create_product | delete_product | create_service | delete_service
-				| create_offer | delete_offer | insert_gtt | delete_gtt
-				| create_pla | delete_pla | log_acct,
-		Resource :: #bucket{} | #product{} | #service{} | #offer{}
-				| {Table, #gtt{}} | #pla{} | [#adjustment{}] | [#acc_balance{}]
+				| create_offer | delete_offer | create_resource | delete_resource
+				| insert_gtt | delete_gtt | log_acct,
+		Resource :: #bucket{} | #product{} | #service{} | #offer{} | #resource{}
+				| {Table, #gtt{}} | [#adjustment{}] | [#acc_balance{}]
 				| ocs_log:acct_event(),
 		Table :: atom(),
 		Category :: balance | product | service | resource | usage,
@@ -399,8 +399,8 @@ event(Resource, Category) ->
 			ocs_rest_res_service:inventory(Resource);
 		resource ->
 			case Resource of
-				#pla{} ->
-					ocs_rest_res_resource:pla(Resource);
+				#resource{} ->
+					ocs_rest_res_resource:resource(Resource);
 				{Table, #gtt{num = Prefix, value = {Description, Rate, _}}} ->
 					ocs_rest_res_resource:gtt(atom_to_list(Table),
 							{Prefix, Description, Rate})
@@ -420,10 +420,10 @@ get_resource_id(Resource) ->
 			Name;
 		#bucket{id = Id} ->
 			Id;
+		#resource{id = Id} ->
+			Id;
 		{_, #gtt{num = Num}} ->
 			Num;
-		#pla{name = Name} ->
-			Name;
 		_ ->
 			[]
 	end.
@@ -454,13 +454,13 @@ event_type(Type) ->
 		delete_offer ->
 			"ProductOfferingRemoveNotification";
 		insert_gtt ->
-			"LogicalResourceCreationNotification";
+			"ResourceCreationNotification";
 		delete_gtt ->
-			"LogicalResourceRemoveNotification";
-		create_pla ->
-			"PlaCreationNotification";
-		delete_pla ->
-			"PlaRemoveNotification";
+			"ResourceRemoveNotification";
+		create_resource ->
+			"ResourceCreationNotification";
+		delete_resource ->
+			"ResourceRemoveNotification";
 		log_acct ->
 			"UsageCreationEvent"
 	end.

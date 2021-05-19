@@ -140,8 +140,8 @@ init_per_testcase(TestCase, Config) when TestCase == notify_create_bucket;
 		TestCase == query_offer_notification;
 		TestCase == notify_insert_gtt; TestCase == notify_delete_gtt;
 		TestCase == query_gtt_notification;
-		TestCase == notify_add_pla; TestCase == notify_delete_pla;
-		TestCase == query_pla_notification;
+		TestCase == notify_add_resource; TestCase == notify_delete_resource;
+		TestCase == query_resource_notification;
 		TestCase == notify_diameter_acct_log ->
 	true = register(TestCase, self()),
 	case inets:start(httpd, [{port, 0},
@@ -215,10 +215,11 @@ all() ->
 	post_hub_inventory, delete_hub_inventory, get_inventory_hubs,
 	get_inventory_hub,
 	notify_insert_gtt, notify_delete_gtt, query_gtt_notification,
-	notify_add_pla, notify_delete_pla, query_pla_notification,
+	notify_add_resource, notify_delete_resource, query_resource_notification,
 	post_hub_usage, get_usage_hubs, get_usage_hub, delete_hub_usage,
-	notify_diameter_acct_log,
-	oauth_authentication].
+	notify_diameter_acct_log, get_tariff_resource, get_tariff_resources,
+	post_tariff_resource, delete_tariff_resource, update_tariff_resource,
+	post_policy_resource, query_policy_resource, oauth_authentication].
 
 %%---------------------------------------------------------------------
 %%  Test cases
@@ -4026,7 +4027,7 @@ get_inventory_hub(Config) ->
 	{_, Href} = lists:keyfind("href", 1, HubList).
 
 notify_insert_gtt() ->
-	[{userdata, [{doc, "Receive logical resource creation notification."}]}].
+	[{userdata, [{doc, "Receive resource creation notification."}]}].
 
 notify_insert_gtt(Config) ->
 	HostUrl = ?config(host_url, Config),
@@ -4050,14 +4051,14 @@ notify_insert_gtt(Config) ->
 	receive
 		Input ->
 			{struct, GttEvent} = mochijson:decode(Input),
-			{_, "LogicalResourceCreationNotification"}
+			{_, "ResourceCreationNotification"}
 					= lists:keyfind("eventType", 1, GttEvent),
 			{_, {struct, GttList}} = lists:keyfind("event", 1, GttEvent),
 			{_, Prefix} = lists:keyfind("id", 1, GttList)
 	end.
 
 notify_delete_gtt() ->
-	[{userdata, [{doc, "Receive logical resource deletion notification."}]}].
+	[{userdata, [{doc, "Receive resource deletion notification."}]}].
 
 notify_delete_gtt(Config) ->
 	HostUrl = ?config(host_url, Config),
@@ -4081,7 +4082,7 @@ notify_delete_gtt(Config) ->
 	receive
 		Receive1 ->
 			{struct, GttEvent1} = mochijson:decode(Receive1),
-			{_, "LogicalResourceCreationNotification"}
+			{_, "ResourceCreationNotification"}
 					= lists:keyfind("eventType", 1, GttEvent1),
 			{_, {struct, GttList1}} = lists:keyfind("event", 1, GttEvent1),
 			{_, Prefix} = lists:keyfind("id", 1, GttList1)
@@ -4090,7 +4091,7 @@ notify_delete_gtt(Config) ->
 	receive
 		Receive2 ->
 			{struct, GttEvent2} = mochijson:decode(Receive2),
-			{_, "LogicalResourceRemoveNotification"}
+			{_, "ResourceRemoveNotification"}
 					= lists:keyfind("eventType", 1, GttEvent2),
 			{_, {struct, GttList2}} = lists:keyfind("event", 1, GttEvent2),
 			{_, Prefix} = lists:keyfind("id", 1, GttList2)
@@ -4107,7 +4108,7 @@ query_gtt_notification(Config) ->
 	Callback = ListenerServer ++ "/listener/"
 			++ atom_to_list(?MODULE) ++ "/querygttnotification",
 	Prefix = "1519240",
-	Query = "eventType=LogicalResourceRemoveNotification&id=" ++ Prefix,
+	Query = "eventType=ResourceRemoveNotification&id=" ++ Prefix,
 	RequestBody = "{\n"
 			++ "\t\"callback\": \"" ++ Callback ++ "\",\n"
 			++ "\t\"query\": \"" ++ Query ++ "\"\n"
@@ -4124,22 +4125,22 @@ query_gtt_notification(Config) ->
 	receive
 		Receive ->
 			{struct, GttEvent} = mochijson:decode(Receive),
-			{_, "LogicalResourceRemoveNotification"}
+			{_, "ResourceRemoveNotification"}
 					= lists:keyfind("eventType", 1, GttEvent),
 			{_, {struct, GttList}} = lists:keyfind("event", 1, GttEvent),
 			{_, Prefix} = lists:keyfind("id", 1, GttList)
 	end.
 
-notify_add_pla() ->
-	[{userdata, [{doc, "Receive pla creation notification."}]}].
+notify_add_resource() ->
+	[{userdata, [{doc, "Receive resource creation notification."}]}].
 
-notify_add_pla(Config) ->
+notify_add_resource(Config) ->
 	HostUrl = ?config(host_url, Config),
 	CollectionUrl = HostUrl ++ ?PathResourceHub,
 	ListenerPort = ?config(listener_port, Config),
 	ListenerServer = "http://localhost:" ++ integer_to_list(ListenerPort),
 	Callback = ListenerServer ++ "/listener/"
-			++ atom_to_list(?MODULE) ++ "/notifyaddpla",
+			++ atom_to_list(?MODULE) ++ "/notifyaddresource",
 	RequestBody = "{\n"
 			++ "\t\"callback\": \"" ++ Callback ++ "\",\n"
 			++ "}\n",
@@ -4147,33 +4148,33 @@ notify_add_pla(Config) ->
 	Accept = {"accept", "application/json"},
 	Request = {CollectionUrl, [Accept, auth_header()], ContentType, RequestBody},
 	{ok, {{_, 201, _}, _, _}} = httpc:request(post, Request, [], []),
-	[Table | _] = ocs_gtt:list(),
-	SD = erlang:system_time(?MILLISECOND),
-	ED = erlang:system_time(?MILLISECOND) + rand:uniform(10000000000),
-	Status = created,
-	Name = atom_to_list(Table),
-	Pla = #pla{name = Name, start_date = SD,
-			end_date = ED, status = Status},
-	{ok, #pla{}} = ocs:add_pla(Pla),
+	TariffResource = #resource{name = "Example",
+			start_date = erlang:system_time(?MILLISECOND),
+			end_date = erlang:system_time(?MILLISECOND) + rand:uniform(10000000000),
+			state = "created", specification = #specification_ref{id = "4",
+			href = "/resourceCatalogManagement/v3/resourceSpecification/4",
+			name = "Example spec", version = "1.0"}},
+	{ok, #resource{}} = ocs:add_resource(TariffResource),
 	receive
 		Receive ->
-			{struct, PlaEvent} = mochijson:decode(Receive),
-			{_, "PlaCreationNotification"}
-					= lists:keyfind("eventType", 1, PlaEvent),
-			{_, {struct, PlaList}} = lists:keyfind("event", 1, PlaEvent),
-			{_, Name} = lists:keyfind("id", 1, PlaList)
+			{struct, ResEvent} = mochijson:decode(Receive),
+			{_, "ResourceCreationNotification"}
+					= lists:keyfind("eventType", 1, ResEvent),
+			{_, {struct, ResList}} = lists:keyfind("event", 1, ResEvent),
+			{_, Id} = lists:keyfind("id", 1, ResList),
+			true = is_list(Id)
 	end.
 
-notify_delete_pla() ->
-	[{userdata, [{doc, "Receive pla deletion notification"}]}].
+notify_delete_resource() ->
+	[{userdata, [{doc, "Receive resource deletion notification"}]}].
 
-notify_delete_pla(Config) ->
+notify_delete_resource(Config) ->
 	HostUrl = ?config(host_url, Config),
 	CollectionUrl = HostUrl ++ ?PathResourceHub,
 	ListenerPort = ?config(listener_port, Config),
 	ListenerServer = "http://localhost:" ++ integer_to_list(ListenerPort),
 	Callback = ListenerServer ++ "/listener/"
-			++ atom_to_list(?MODULE) ++ "/notifydeletepla",
+			++ atom_to_list(?MODULE) ++ "/notifydeleteresource",
 	RequestBody = "{\n"
 			++ "\t\"callback\": \"" ++ Callback ++ "\",\n"
 			++ "}\n",
@@ -4181,41 +4182,47 @@ notify_delete_pla(Config) ->
 	Accept = {"accept", "application/json"},
 	Request = {CollectionUrl, [Accept, auth_header()], ContentType, RequestBody},
 	{ok, {{_, 201, _}, _, _}} = httpc:request(post, Request, [], []),
-	SD = erlang:system_time(?MILLISECOND),
-	ED = erlang:system_time(?MILLISECOND) + rand:uniform(10000000000),
-	Status = created,
-	Name = "test_notification2",
-	Pla = #pla{name = Name, start_date = SD,
-			end_date = ED, status = Status},
-	{ok, #pla{}} = ocs:add_pla(Pla),
+	TariffResource = #resource{name = "Example",
+			start_date = erlang:system_time(?MILLISECOND),
+			end_date = erlang:system_time(?MILLISECOND) + rand:uniform(10000000000),
+			state = "created", specification = #specification_ref{id = "4",
+			href = "/resourceCatalogManagement/v3/resourceSpecification/4",
+			name = "Example spec", version = "1.0"}},
+	{ok, #resource{id = Id}} = ocs:add_resource(TariffResource),
 	receive
 		Receive1 ->
-			{struct, PlaEvent1} = mochijson:decode(Receive1),
-			{_, "PlaCreationNotification"}
-					= lists:keyfind("eventType", 1, PlaEvent1)
+			{struct, ResEvent1} = mochijson:decode(Receive1),
+			{_, "ResourceCreationNotification"}
+					= lists:keyfind("eventType", 1, ResEvent1)
 	end,
-	ok = ocs:delete_pla(Name),
+	ok = ocs:delete_resource(Id),
 	receive
 		Receive2 ->
-			{struct, PlaEvent2} = mochijson:decode(Receive2),
-			{_, "PlaRemoveNotification"}
-					= lists:keyfind("eventType", 1, PlaEvent2),
-			{_, {struct, PlaList}} = lists:keyfind("event", 1, PlaEvent2),
-			{_, Name} = lists:keyfind("id", 1, PlaList)
+			{struct, ResEvent2} = mochijson:decode(Receive2),
+			{_, "ResourceRemoveNotification"}
+					= lists:keyfind("eventType", 1, ResEvent2),
+			{_, {struct, ResList}} = lists:keyfind("event", 1, ResEvent2),
+			{_, Id} = lists:keyfind("id", 1, ResList)
 	end.
 
-query_pla_notification() ->
-	[{userdata, [{doc, "Query pla notifications"}]}].
+query_resource_notification() ->
+	[{userdata, [{doc, "Query resource notifications"}]}].
 
-query_pla_notification(Config) ->
+query_resource_notification(Config) ->
+	TariffResource = #resource{name = "Example",
+			start_date = erlang:system_time(?MILLISECOND),
+			end_date = erlang:system_time(?MILLISECOND) + rand:uniform(10000000000),
+			state = "created", specification = #specification_ref{id = "4",
+			href = "/resourceCatalogManagement/v3/resourceSpecification/4",
+			name = "Example spec", version = "1.0"}},
+	{ok, #resource{id = Id}} = ocs:add_resource(TariffResource),
 	HostUrl = ?config(host_url, Config),
 	CollectionUrl = HostUrl ++ ?PathResourceHub,
 	ListenerPort = ?config(listener_port, Config),
 	ListenerServer = "http://localhost:" ++ integer_to_list(ListenerPort),
 	Callback = ListenerServer ++ "/listener/"
-			++ atom_to_list(?MODULE) ++ "/queryplanotification",
-	Name = "test_notification3",
-	Query = "eventType=PlaRemoveNotification&id=" ++ Name,
+			++ atom_to_list(?MODULE) ++ "/queryresourcenotification",
+	Query = "eventType=ResourceRemoveNotification&id=" ++ Id,
 	RequestBody = "{\n"
 			++ "\t\"callback\": \"" ++ Callback ++ "\",\n"
 			++ "\t\"query\": \"" ++ Query ++ "\"\n"
@@ -4224,20 +4231,14 @@ query_pla_notification(Config) ->
 	Accept = {"accept", "application/json"},
 	Request = {CollectionUrl, [Accept, auth_header()], ContentType, RequestBody},
 	{ok, {{_, 201, _}, _, _}} = httpc:request(post, Request, [], []),
-	SD = erlang:system_time(?MILLISECOND),
-	ED = erlang:system_time(?MILLISECOND) + rand:uniform(10000000000),
-	Status = created,
-	Pla = #pla{name = Name, start_date = SD,
-			end_date = ED, status = Status},
-	{ok, #pla{}} = ocs:add_pla(Pla),
-	ok = ocs:delete_pla(Name),
+	ok = ocs:delete_resource(Id),
 	receive
 		Receive ->
-			{struct, PlaEvent} = mochijson:decode(Receive),
-			{_, "PlaRemoveNotification"}
-					= lists:keyfind("eventType", 1, PlaEvent),
-			{_, {struct, PlaList}} = lists:keyfind("event", 1, PlaEvent),
-			{_, Name} = lists:keyfind("id", 1, PlaList)
+			{struct, ResEvent} = mochijson:decode(Receive),
+			{_, "ResourceRemoveNotification"}
+					= lists:keyfind("eventType", 1, ResEvent),
+			{_, {struct, ResList}} = lists:keyfind("event", 1, ResEvent),
+			{_, Id} = lists:keyfind("id", 1, ResList)
 	end.
 
 post_hub_usage() ->
@@ -4385,6 +4386,362 @@ notify_diameter_acct_log(Config) ->
 			{_, "AAAAccountingUsage"}
 					= lists:keyfind("type", 1, AcctUsageList)
 	end.
+
+get_tariff_resource() ->
+	[{userdata, [{doc,"Get tariff resource with given resource
+			inventory reference"}]}].
+
+get_tariff_resource(Config) ->
+	Schema = "/resourceInventoryManagement/v1/schema/"
+			"resourceInventoryManagement#/definitions/resource",
+	ResourceRelID = ocs:generate_identity(),
+	Resource = #resource{class_type = "LogicalResource", base_type = "Resource",
+			schema = Schema, description = "tariff row resource", category = "tariff",
+			start_date = erlang:system_time(?MILLISECOND), state = "Active",
+			end_date = erlang:system_time(?MILLISECOND) + 2678400000,
+			related = [#resource_rel{id = ResourceRelID,
+					href = "/resourceInventoryManagement/v1/resource/"
+					++ ResourceRelID, type = "contained", name = "example"}],
+			specification = #specification_ref{id = "2", name = "tariff spec",
+					href = "/resourceCatalogManagement/v2/resourceSpecification/2"},
+			characteristic  = [#resource_char{name = "prefix", value = "125"},
+					#resource_char{name = "description", value = "test"},
+					#resource_char{name = "rate", value = 250}]},
+	{ok, #resource{id = Id}} = ocs:add_resource(Resource),
+	HostUrl = ?config(host_url, Config),
+	Accept = {"accept", "application/json"},
+	Request = {HostUrl ++ "/resourceInventoryManagement/v1/resource/" ++ Id,
+			[Accept, auth_header()]},
+	{ok, Result} = httpc:request(get, Request, [], []),
+	{{"HTTP/1.1", 200, _OK}, Headers, ResponseBody} = Result,
+	{_, "application/json"} = lists:keyfind("content-type", 1, Headers),
+	{struct, Object} = mochijson:decode(ResponseBody),
+	{_, Id} = lists:keyfind("id", 1, Object),
+	{_, "/resourceInventoryManagement/v1/resource/" ++ Id}
+			= lists:keyfind("href", 1, Object),
+	{_, "tariff"} = lists:keyfind("category", 1, Object),
+	{_, {struct, SpecList}} = lists:keyfind("resourceSpecification", 1, Object),
+	{_, "tariff spec"} = lists:keyfind("name", 1, SpecList),
+	{_, {array, [{struct, RelList}]}}
+			= lists:keyfind("resourceRelationship", 1, Object),
+	{_, {struct, ObjList}} = lists:keyfind("resource", 1, RelList),
+	{_, "example"} = lists:keyfind("name", 1, ObjList),
+	{_, {array, CharList}} = lists:keyfind("resourceCharacteristic", 1, Object),
+	3 = length(CharList).
+
+get_tariff_resources() ->
+	[{userdata, [{doc, "GET Resource collection"}]}].
+
+get_tariff_resources(Config) ->
+	{ok, #resource{}} = add_resource("1", "tariff table", "tariff"),
+	{ok, #resource{}} = add_resource("2", "tariff row", "tariff"),
+	HostUrl = ?config(host_url, Config),
+	CollectionUrl = HostUrl ++ "/resourceInventoryManagement/v1/resource/",
+	Accept = {"accept", "application/json"},
+	Request = {CollectionUrl, [Accept, auth_header()]},
+	{ok, Result} = httpc:request(get, Request, [], []),
+	{{"HTTP/1.1", 200, _OK}, Headers, ResponseBody} = Result,
+	{_, "application/json"} = lists:keyfind("content-type", 1, Headers),
+	ContentLength = integer_to_list(length(ResponseBody)),
+	{_, ContentLength} = lists:keyfind("content-length", 1, Headers),
+	{array, Objects} = mochijson:decode(ResponseBody),
+	true = length(Objects) >= 2.
+
+post_tariff_resource() ->
+	[{userdata, [{doc,"Add tariff resource in rest interface"}]}].
+
+post_tariff_resource(Config) ->
+	HostUrl = ?config(host_url, Config),
+	CollectionUrl = HostUrl ++ "/resourceInventoryManagement/v1/resource/",
+	Name = "Tariff",
+	Description = "tariff resource",
+	Version = random_string(3),
+	ClassType = "LogicalResource",
+	ClassSchema = "/resourceInventoryManagement/v3/"
+			"schema/resourceInventoryManagement",
+	BaseType = "Resource",
+	Category = "tariff",
+	ResSpecId = "2",
+	ResSpecName = "TariffRow",
+	ResSpecHref = "/resourceCatalogManagement/v2/resourceSpecification/"
+			++ ResSpecId,
+	ResourceRelId = ocs:generate_identity(),
+	ResourceRelHref = "/resourceInventoryManagement/v1/resource/"
+			++ ResourceRelId,
+	CharPrefix = "125",
+	CharDes = "test",
+	RequestBody = "{\n"
+			++ "\t\"name\": \"" ++ Name ++ "\",\n"
+			++ "\t\"description\": \"" ++ Description ++ "\",\n"
+			++ "\t\"category\": \"" ++ Category ++ "\",\n"
+			++ "\t\"@type\": \"" ++ ClassType ++ "\",\n"
+			++ "\t\"@schemaLocation\": \"" ++ ClassSchema ++ "\",\n"
+			++ "\t\"@baseType\": \"" ++ BaseType ++ "\",\n"
+			++ "\t\"version\": \"" ++ Version ++ "\",\n"
+			++ "\t\"validFor\": {\n"
+			++ "\t\t\"startDateTime\": \"2021-01-20T00:00\",\n"
+			++ "\t\t\"endDateTime\": \"2021-12-31T23:59\"\n"
+			++ "\t},\n"
+			++ "\t\"lifecycleState\": \"In Test\",\n"
+			++ "\t\"resourceSpecification\": {\n"
+			++ "\t\t\"id\": \"" ++ ResSpecId ++ "\",\n"
+			++ "\t\t\"href\": \"" ++ ResSpecHref ++ "\",\n"
+			++ "\t\t\"name\": \"" ++ ResSpecName ++ "\"\n"
+			++ "\t\t},\n"
+			++ "\t\"resourceRelationship\": [\n"
+			++ "\t\t{\n"
+			++ "\t\t\t\"resource\": {\n"
+			++ "\t\t\t\t\"id\": \"" ++ ResourceRelId ++ "\",\n"
+			++ "\t\t\t\t\"href\": \"" ++ ResourceRelHref ++ "\",\n"
+			++ "\t\t\t\t\"name\": \"example\"\n"
+			++ "\t\t\t\t},\n"
+			++ "\t\t\t\"relationshipType\": \"contained\"\n"
+			++ "\t\t}\n"
+			++ "\t],\n"
+			++ "\t\"resourceCharacteristic\": [\n"
+			++ "\t\t{\n"
+			++ "\t\t\t\"name\": \"prefix\",\n"
+			++ "\t\t\t\"value\": \"" ++ CharPrefix ++ "\"\n"
+			++ "\t\t},\n"
+			++ "\t\t{\n"
+			++ "\t\t\t\"name\": \"description\",\n"
+			++ "\t\t\t\"value\": \"" ++ CharDes ++ "\"\n"
+			++ "\t\t},\n"
+			++ "\t\t{\n"
+			++ "\t\t\t\"name\": \"rate\",\n"
+			++ "\t\t\t\"value\": 250\n"
+			++ "\t\t}\n"
+			++ "\t]\n"
+			++ "}\n",
+	ContentType = "application/json",
+	Accept = {"accept", "application/json"},
+	Request = {CollectionUrl, [Accept, auth_header()], ContentType, RequestBody},
+	{ok, Result} = httpc:request(post, Request, [], []),
+	{{"HTTP/1.1", 201, _Created}, Headers, ResponseBody} = Result,
+	{_, "application/json"} = lists:keyfind("content-type", 1, Headers),
+	ContentLength = integer_to_list(length(ResponseBody)),
+	{_, ContentLength} = lists:keyfind("content-length", 1, Headers),
+	{_, URI} = lists:keyfind("location", 1, Headers),
+	{"/resourceInventoryManagement/v1/resource/" ++ ID, _}
+			= httpd_util:split_path(URI),
+	{ok, #resource{id = ID, name = Name, description = Description,
+			version = Version, category = Category, class_type = ClassType,
+			base_type = BaseType, schema = ClassSchema, specification = S,
+			related = [R], characteristic = CharList}} = ocs:get_resource(ID),
+	#specification_ref{id = ResSpecId, href = ResSpecHref,
+			name = ResSpecName} = S,
+	#resource_rel{id = ResourceRelId, href = ResourceRelHref,
+			type = "contained", name = "example"} = R,
+	#resource_char{name = "prefix", value = CharPrefix}
+			= lists:keyfind("prefix", #resource_char.name, CharList),
+	#resource_char{name = "description", value = CharDes}
+			= lists:keyfind("description", #resource_char.name, CharList),
+	#resource_char{name = "rate", value = 250}
+			= lists:keyfind("rate", #resource_char.name, CharList).
+
+delete_tariff_resource() ->
+	[{userdata, [{doc,"Delete tariff resource inventory"}]}].
+
+delete_tariff_resource(Config) ->
+	{ok, #resource{id = Id}} = add_resource("1", "tariff table", "tariff"),
+	URI = "/resourceInventoryManagement/v1/resource/" ++ Id,
+	HostUrl = ?config(host_url, Config),
+	Request = {HostUrl ++ URI, [auth_header()]},
+	{ok, Result} = httpc:request(delete, Request, [], []),
+	{{"HTTP/1.1", 204, _NoContent}, Headers, []} = Result,
+	{_, "0"} = lists:keyfind("content-length", 1, Headers),
+	{error, not_found} = ocs:get_resource(Id).
+
+update_tariff_resource() ->
+	[{userdata, [{doc, "Use PATCH for update tariff resource entity"}]}].
+
+update_tariff_resource(Config) ->
+	ResourceHref = "/resourceInventoryManagement/v1/resource/",
+	HostUrl = ?config(host_url, Config),
+	Accept = {"accept", "application/json"},
+	ContentType = "application/json",
+	ReqList = resource_inventory(),
+	ReqBody = lists:flatten(mochijson:encode({struct, ReqList})),
+	Request1 = {HostUrl ++ ResourceHref,
+			[Accept, auth_header()], ContentType, ReqBody},
+	{ok, Result1} = httpc:request(post, Request1, [], []),
+	{{"HTTP/1.1", 201, "Created"}, Headers1, _ResponseBody1} = Result1,
+	{_, Etag} = lists:keyfind("etag", 1, Headers1),
+	{_, URI} = lists:keyfind("location", 1, Headers1),
+	{"/resourceInventoryManagement/v1/resource/" ++ ResourceId, _}
+			= httpd_util:split_path(URI),
+	NameOp = {struct, [{op, "add"}, {"path", "/name"}, {value, "TariffRow"}]},
+	DescriptionOp = {struct, [{op, "add"}, {"path", "/description"},
+			{value, "policy row resource"}]},
+	NewPrefix = "136",
+	NewRate = 456,
+	ResCharOp1 = {struct, [{op, "add"}, {path, "/resourceCharacteristic/0/value"},
+			{value, NewPrefix}]},
+	ResCharOp2 = {struct, [{op, "add"}, {path, "/resourceCharacteristic/2/value"},
+			{value, NewRate}]},
+	OpArray = {array, [NameOp, DescriptionOp, ResCharOp1, ResCharOp2]},
+	PatchReqBody = lists:flatten(mochijson:encode(OpArray)),
+	PatchContentType = "application/json-patch+json",
+	Request2 = {HostUrl ++ ResourceHref ++ ResourceId, [Accept, auth_header(),
+			{"if-match", Etag}], PatchContentType, PatchReqBody},
+	{ok, Result2} = httpc:request(patch, Request2, [], []),
+	{{"HTTP/1.1", 200, "OK"}, _Headers2, _ResponseBody2} = Result2,
+	{ok, #resource{name = "TariffRow", description = "policy row resource",
+			specification = #specification_ref{name = "tariff row spec"},
+			characteristic = CharList}} = ocs:get_resource(ResourceId),
+	#resource_char{name = "prefix", value = NewPrefix}
+			= lists:keyfind("prefix", #resource_char.name, CharList),
+	#resource_char{name = "rate", value = NewRate}
+			= lists:keyfind("rate", #resource_char.name, CharList).
+
+post_policy_resource() ->
+	[{userdata, [{doc,"Add policy in rest interface"}]}].
+
+post_policy_resource(Config) ->
+	ResName = ocs:generate_identity(),
+	ServiceId = ocs:generate_identity(),
+	Name = {"name", ResName},
+	ResourceSpec = {"resourceSpecification",
+			{struct, [{"id", "4"}, {"name", "PolicyTable"}]}},
+	RelId = ocs:generate_identity(),
+	RelHref = "/resourceInventoryManagement/v1/resource/" ++ RelId,
+	Relationship = {"resourceRelationship",
+			{array, [{struct, [{"resource", {struct, [{"id", RelId},
+			{"href", RelHref}, {"name", "example"}]}},
+			{"relationshipType", "contained"}]}]}},
+	Char1 = {struct, [{"name", "name"}, {"value", ResName}]},
+	ClassId = rand:uniform(10),
+	MaxUL = 1000000000,
+	MaxDL = 1000000000,
+	Char2 = {struct, [{"name", "qosInformation"}, {"value",
+			{struct, [{"qosClassIdentifier", ClassId},
+			{"maxRequestedBandwidthUL", MaxUL},
+			{"maxRequestedBandwidthDL", MaxDL}]}}]},
+	Char3 = {struct, [{"name", "chargingKey"}, {"value", 1}]},
+	Char4 = {struct, [{"name", "flowInformation"}, {"value",{array,
+			[{struct, [{"flowDescription", "permit in ip from any to 10/8"},
+					{"flowDirection", "down"}]},
+			{struct, [{"flowDescription", "permit in ip from any to 10/8"},
+					{"flowDirection", "up"}]}]}}]},
+	Char5 = {struct, [{"name", "precedence"}, {"value", 1}]},
+	Char6 = {struct, [{"name", "serviceId"}, {"value", ServiceId}]},
+	Characteristics = {"resourceCharacteristic",
+			{array, [Char1, Char2, Char3, Char4, Char5, Char6]}},
+	JSON = {struct, [Name, ResourceSpec, Relationship, Characteristics]},
+	RequestBody = lists:flatten(mochijson:encode(JSON)),
+	HostUrl = ?config(host_url, Config),
+	Accept = {"accept", "application/json"},
+	ContentType = "application/json",
+	Request = {HostUrl ++ "/resourceInventoryManagement/v1/resource/",
+			[Accept, auth_header()], ContentType, RequestBody},
+	{ok, Result} = httpc:request(post, Request, [], []),
+	{{"HTTP/1.1", 201, _Created}, Headers, ResponseBody} = Result,
+	{_, "application/json"} = lists:keyfind("content-type", 1, Headers),
+	ContentLength = integer_to_list(length(ResponseBody)),
+	{_, ContentLength} = lists:keyfind("content-length", 1, Headers),
+	{_, URI} = lists:keyfind("location", 1, Headers),
+	{"/resourceInventoryManagement/v1/resource/" ++ ID, _}
+			= httpd_util:split_path(URI),
+	{ok, #resource{name = ResName, specification = S, related = [R],
+			characteristic = ResChar}} = ocs:get_resource(ID),
+	#specification_ref{id = "4", name = "PolicyTable"} = S,
+	#resource_rel{id = RelId, href = RelHref,
+			type = "contained", name = "example"} = R,
+	#resource_char{value = ResName}
+			= lists:keyfind("name", #resource_char.name, ResChar),
+	#resource_char{value = #{"qosClassIdentifier" := ClassId,
+			"maxRequestedBandwidthUL" := MaxUL,
+			"maxRequestedBandwidthDL" := MaxDL}}
+			= lists:keyfind("qosInformation", #resource_char.name, ResChar),
+	#resource_char{value = 1}
+			= lists:keyfind("chargingKey", #resource_char.name, ResChar),
+	#resource_char{value = [#{"flowDescription" := Description,
+			"flowDirection" := Direction} | _]}
+			= lists:keyfind("flowInformation", #resource_char.name, ResChar),
+	true = is_list(Description),
+	true = is_integer(Direction),
+	#resource_char{value = Precedence}
+			= lists:keyfind("precedence", #resource_char.name, ResChar),
+	true = is_integer(Precedence),
+	#resource_char{value = ServiceId}
+			= lists:keyfind("serviceId", #resource_char.name, ResChar).
+
+query_policy_resource() ->
+	[{userdata, [{doc, "Query policy entry in resource table"}]}].
+
+query_policy_resource(Config) ->
+	TariffTable = #resource{name = "TariffTable", description = "Tariff Table",
+			category = "Tariff", class_type = "LogicalResource",
+			base_type = "Resource", specification = #specification_ref{id = "1",
+					href = "/resourceCatalogManagement/v2/resourceSpecification/1",
+					name = "TariffTable"}},
+	{ok, #resource{}} = ocs:add_resource(TariffTable),
+	PolicyTable = #resource{name = "PolicyTable", description = "Policy Table",
+			category = "Policy", class_type = "LogicalResource",
+			base_type = "Resource", specification = #specification_ref{id = "3",
+					href = "/resourceCatalogManagement/v2/resourceSpecification/3",
+					name = "PolicyTable"}},
+	{ok, #resource{id = PolicyTableId1}} = ocs:add_resource(PolicyTable),
+	PolicyRow1 = #resource{name = "PolicyRow1", description = "Policy Row",
+			category = "Policy", class_type = "LogicalResource",
+			base_type = "Resource", related = [#resource_rel{id = PolicyTableId1,
+					href = "/resourceInventoryManagement/v1/resource/"
+					++ PolicyTableId1, name = "PolicyTable1", type = "contained"}],
+			specification = #specification_ref{id = "4",
+					href = "/resourceCatalogManagement/v2/resourceSpecification/4",
+					name = "PolicyRow"},
+			characteristic = [#resource_char{name = "name", value = "example"},
+					#resource_char{name = "qosInformation", value =
+							#{"maxRequestedBandwidthDL" => 1000000000,
+							"maxRequestedBandwidthUL" => 1000000000,
+							"qosClassIdentifier" => 4}},
+					#resource_char{name = "chargingKey", value = 1},
+					#resource_char{name = "flowInformation", value =
+							[#{"flowDirection" => 1, "flowDescription" =>
+									"permit in ip from any to 10/8"},
+							#{"flowDirection" => 2, "flowDescription" =>
+									"permit in ip from any to 10/8"}]},
+					#resource_char{name = "precedence", value = 1},
+					#resource_char{name = "serviceId",
+							value = ocs:generate_identity()}]},
+	{ok, #resource{id = RowId1}} = ocs:add_resource(PolicyRow1),
+	PolicyTableId2 = ocs:generate_identity(),
+	PolicyRow2 = #resource{name = "PolicyRow2", description = "Policy Row",
+			category = "Policy", class_type = "LogicalResource",
+			base_type = "Resource", related = [#resource_rel{id = PolicyTableId2,
+					href = "/resourceInventoryManagement/v1/resource/"
+					++ PolicyTableId2, name = "PolicyTable2", type = "contained"}],
+			specification = #specification_ref{id = "4",
+					href = "/resourceCatalogManagement/v2/resourceSpecification/4",
+					name = "PolicyRow"},
+			characteristic = [#resource_char{name = "name", value = "example"},
+					#resource_char{name = "chargingKey", value = 1},
+					#resource_char{name = "flowInformation", value =
+							[#{"flowDirection" => 1, "flowDescription" =>
+									"permit in ip from any to 172.16/12"},
+							#{"flowDirection" => 2, "flowDescription" =>
+									"permit in ip from any to 172.16/12"}]},
+					#resource_char{name = "precedence", value = 2}]},
+	{ok, #resource{id = _RowId2}} = ocs:add_resource(PolicyRow2),
+	HostUrl = ?config(host_url, Config),
+	Accept = {"accept", "application/json"},
+	Query = "resourceSpecification.id=4" ++
+		"&resourceRelationship.resource.name=PolicyTable1",
+	Request = {HostUrl ++ "/resourceInventoryManagement/v1/resource/?" ++ Query,
+			[Accept, auth_header()]},
+	{ok, Result} = httpc:request(get, Request, [], []),
+	{{"HTTP/1.1", 200, _OK}, Headers, ResponseBody} = Result,
+	{_, "application/json"} = lists:keyfind("content-type", 1, Headers),
+	{array, [{struct, Object}]} = mochijson:decode(ResponseBody),
+	{_, RowId1} = lists:keyfind("id", 1, Object),
+	{_, "/resourceInventoryManagement/v1/resource/" ++ RowId1}
+			= lists:keyfind("href", 1, Object),
+	{_, {struct, SpecList}} = lists:keyfind("resourceSpecification", 1, Object),
+	{_, "4"} = lists:keyfind("id", 1, SpecList),
+	{_, {array, [{struct, RelList}]}}
+			= lists:keyfind("resourceRelationship", 1, Object),
+	{_, {struct, ObjList}} = lists:keyfind("resource", 1, RelList),
+	{_, "PolicyTable1"} = lists:keyfind("name", 1, ObjList).
 
 oauth_authenticaton()->
 	[{userdata, [{doc, "Authenticate a JWT using oauth"}]}].
@@ -4562,26 +4919,26 @@ querygttnotification(SessionID, _Env, Input) ->
 	mod_esi:deliver(SessionID, "status: 201 Created\r\n\r\n"),
 	query_gtt_notification ! Input.
 
--spec notifyaddpla(SessionID :: term(), Env :: list(),
+-spec notifyaddresource(SessionID :: term(), Env :: list(),
 		Input :: string()) -> any().
-%% @doc Notification callback for notify_add_pla test case.
-notifyaddpla(SessionID, _Env, Input) ->
+%% @doc Notification callback for notify_add_resource test case.
+notifyaddresource(SessionID, _Env, Input) ->
 	mod_esi:deliver(SessionID, "status: 201 Created\r\n\r\n"),
-	notify_add_pla ! Input.
+	notify_add_resource ! Input.
 
--spec notifydeletepla(SessionID :: term(), Env :: list(),
+-spec notifydeleteresource(SessionID :: term(), Env :: list(),
 		Input :: string()) -> any().
-%% @doc Notification callback for notify_delete_pla test case.
-notifydeletepla(SessionID, _Env, Input) ->
+%% @doc Notification callback for notify_delete_resource test case.
+notifydeleteresource(SessionID, _Env, Input) ->
 	mod_esi:deliver(SessionID, "status: 201 Created\r\n\r\n"),
-	notify_delete_pla ! Input.
+	notify_delete_resource ! Input.
 
--spec queryplanotification(SessionID :: term(), Env :: list(),
+-spec queryresourcenotification(SessionID :: term(), Env :: list(),
 		Input :: string()) -> any().
-%% @doc Notification callback for query_pla_notification test case.
-queryplanotification(SessionID, _Env, Input) ->
+%% @doc Notification callback for query_resource_notification test case.
+queryresourcenotification(SessionID, _Env, Input) ->
 	mod_esi:deliver(SessionID, "status: 201 Created\r\n\r\n"),
-	query_pla_notification ! Input.
+	query_resource_notification ! Input.
 
 -spec notifydiameteracctlog(SessionID :: term(), Env :: list(),
 		Input :: string()) -> any().
@@ -4899,4 +5256,107 @@ add_bucket(ProdRef, Units, RA) ->
 			end_date = erlang:system_time(?MILLISECOND) + 2592000000},
 	{ok, _, #bucket{id = BId}} = ocs:add_bucket(ProdRef, Bucket),
 	BId.
+
+%% @hidden
+add_resource("1", Description, Category) ->
+	Schema = "/resourceInventoryManagement/v1/schema/"
+			"resourceInventoryManagement#/definitions/resource",
+	Resource = #resource{name = "tariffexample", class_type = "LogicalResource",
+			base_type = "Resource", description = Description, category = Category,
+			state = "Active", schema = Schema,
+			start_date = erlang:system_time(?MILLISECOND),
+			end_date = erlang:system_time(?MILLISECOND) + 2678400000,
+			specification = #specification_ref{id = "1", name = "tariffTable",
+					href = "/resourceCatalogManagement/v2/resourceSpecification/1"}},
+	ocs:add_resource(Resource);
+add_resource("2", Description, Category) ->
+	Schema = "/resourceInventoryManagement/v1/schema/"
+			"resourceInventoryManagement#/definitions/resource",
+	ResourceRelID = ocs:generate_identity(),
+	Resource = #resource{class_type = "LogicalResource", base_type = "Resource",
+			schema = Schema, description = Description, category = Category,
+			start_date = erlang:system_time(?MILLISECOND),
+			end_date = erlang:system_time(?MILLISECOND) + 2678400000,
+			related = [#resource_rel{id = ResourceRelID,
+					href = "/resourceInventoryManagement/v1/resource/"
+					++ ResourceRelID, referred_type = "contained", name = "example"}],
+			specification = #specification_ref{id = "2", name = "tariffRow",
+					href = "/resourceCatalogManagement/v2/resourceSpecification/2"},
+			characteristic  = [#resource_char{name = "prefix", value = "125"},
+					#resource_char{name = "description", value = "test"},
+					#resource_char{name = "rate", value = 250}]},
+	ocs:add_resource(Resource).
+
+%% @hidden
+fill_resource_char(N) ->
+	fill_resource_char(N, []).
+fill_resource_char(0, Acc) ->
+	Acc;
+fill_resource_char(N, Acc) ->
+	Characteristic = #resource_char{name = random_string(10),
+			class_type = random_string(5),
+			schema = random_string(25), value = random_string(15)},
+	fill_resource_char(N - 1, [Characteristic | Acc]).
+
+%% @hidden
+fill_related(N) ->
+	fill_related(N, []).
+fill_related(0, Acc) ->
+	Acc;
+fill_related(N, Acc) ->
+	Id = random_string(10),
+	Href = "/resourceInventoryManagement/v1/resourceRelationship/" ++ Id,
+	Related = #resource_rel{id = Id, href = Href,
+			type = "contained", name = "example-" ++ Id},
+	fill_related(N - 1, [Related | Acc]).
+
+%% @hidden
+random_string(Length) ->
+	Charset = lists:seq($a, $z),
+	NumChars = length(Charset),
+	Random = crypto:strong_rand_bytes(Length),
+	random_string(Random, Charset, NumChars,[]).
+random_string(<<N, Rest/binary>>, Charset, NumChars, Acc) ->
+	CharNum = (N rem NumChars) + 1,
+	NewAcc = [lists:nth(CharNum, Charset) | Acc],
+	random_string(Rest, Charset, NumChars, NewAcc);
+random_string(<<>>, _Charset, _NumChars, Acc) ->
+	Acc.
+
+%% @hidden
+resource_inventory() ->
+	Name = {"name", "Tariff"},
+	Description = {"description", "tariff resource"},
+	Category = {"category", "tariff"},
+	ClassType = {"@type", "LogicalResource"},
+	Schema = {"@schemaLocation", "/resourceInventoryManagement/v1/schema/"
+			"resourceInventoryManagement#/definitions/resource"},
+	BaseType = {"@baseType", "Resource"},
+	Version = {"version", random_string(3)},
+	Status = {"lifecycleStatus", "Active"},
+	StartTime = {"startDateTime",
+			ocs_rest:iso8601(erlang:system_time(?MILLISECOND))},
+	EndTime = {"endDateTime",
+			ocs_rest:iso8601(erlang:system_time(?MILLISECOND) + 2678400000)},
+	ValidFor = {"validFor", {struct, [StartTime, EndTime]}},
+	ResSpecID = {"id", "2"},
+	ResSpecName = {"name", "tariff row spec"},
+	ResSpecHref = {"href",
+			"/resourceCatalogManagement/v2/resourceSpecification/"},
+	ResSpec = {"resourceSpecification",
+			{struct, [ResSpecID, ResSpecName, ResSpecHref]}},
+	ResRelId = {"id", RelId = random_string(5)},
+	ResRelName = {"name", "example"},
+	ResRelType = {"relationshipType", "contained"},
+	ResRelHref = {"name", "/resourceInventoryManagement/v1/resource/" ++ RelId},
+	ResRel = {struct, [{resource, {struct, [ResRelId, ResRelName, ResRelHref]}},
+			ResRelType]},
+	ResourceRelationship = {"resourceRelationship", {array, [ResRel]}},
+	ResChar1 = {struct, [{"name", "prefix"}, {"value", "125"}]},
+	ResChar2 = {struct, [{"name", "description"}, {"value", "testing"}]},
+	ResChar3 = {struct, [{"name", "rate"}, {"value", 250}]},
+	ResourceCharacteristics = {"resourceCharacteristic",
+			{array, [ResChar1, ResChar2, ResChar3]}},
+	[Name, Description, Category, ClassType, Schema, BaseType, Version, Status,
+			ValidFor, ResSpec, ResourceRelationship, ResourceCharacteristics].
 

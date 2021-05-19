@@ -1,5 +1,170 @@
 2021-05-16  Vance Shipley <vances@sigscale.org>
 
+	* fix push problem in table add
+	* fix create table reload issue
+	* add toast and remove unwanted tag
+	* add error toast
+	* tooltips in policy dialog
+	* label names in policy dialog
+	* default flow description in policy dialog
+	* policy in price of offer dialog
+	* validation for add policy dialog
+	* success toast for add policy dialog
+	* remove sig-policy-update module
+	* refactor service patch request
+	* switch to other tariff tables
+	* switch back with policy tables
+	* add characteristic predefined to policy rule spec
+	* add more flowInformation row
+	* refactor policy gui with new changes
+	* add resourceRelationship in post policy test case
+	* minCardinality is informative
+	* implement policy gui get, add, update
+	* correct misuse of logical resource
+	* refactor query_policy_resource test case
+	* remove MatrixCharacteristic from policy characteristics; introduce minCardinality
+	* add record field for minCardinality
+	* refactor tariff add and list
+	* refactor update_tariff_resource test case
+	* remove MatrixCharacteristic from tariff characteristics
+	* add minCardinality for policy chars
+	* remove MatrixCharacteristicSpec from tariff and policy
+	* tariff resource rate char should be an integer
+	* flow direction is a string
+	* map service id in diameter gx interface
+	* handle service id characteristic inside the policy resource
+	* add service id characteristic into the spec
+	* rename chargingRule char as chargingKey
+	* flow information has flowDirection and flowDescription only
+	* validate tariff resource characteristics
+	* return pcc rules on gx interface base on subscriber id
+	* test: correct characteristics in policy resource
+	* flow direction is an integer
+	* charging rule is a number
+	* validate policy resource characteristics
+	* implement row details for policy table
+	* update policy table characteristic in product specifications
+	* delete created mnesia table when tariff table resource table is deleted
+	* test: rename policy test cases
+	* implement add policy
+	* test: correct specification and relationship in tariff
+	* remove start date and end date from resource relationship
+	* handle tariff resource specific characteristics
+	* add new policy table in gui
+	* test: add tariff char in the resource
+	* handle value structs commonly
+	* test: add tariff resource char
+	* create list of policy tables and view and policy row view
+	* test: tariff table resource cannot include relationship
+	* refactor flow information
+	* policy rules and tables should be implemented as resource inventory, so no special mnesia tables are required
+	* erlang api of query resource by relationship name
+	* handle resource relationship name in get resources
+	* fix tariff array
+	* test: query resource based on resource relationship
+	* refactor list of tariff tables and add tariff
+	* refactor name
+	* handle resource char of policy row resource
+	* test: add policy rest api
+	* support query resource by specification id
+	* implement delete policy
+	* test: add doc line for post resource
+	* correct icon for policy
+	* gtt query erlang api
+	* gtt rest handling functions
+	* add policy specification update
+	* rename resource rest api functions
+	* add specification in policy
+	* remove old policy html modules
+	* implement patch policy
+	* handle add resource based on specification
+	* correct the resource specification
+	* add doc line; correct the description
+	* correct the resource specification
+	* add gtt table for tariff resource
+	* getting resource id
+	* test: change rest test case of notify query pla to notify query resource
+	* rest handling of delete resource notificaition
+	* test: change rest test case of delete pla to delete resource
+	* rest handling of add resource notificaition
+	* export the resource codec
+	* test: change rest test case of add pla to add resource
+	* send notification in delete resource
+	* test: change delete pla event to delete resource event
+	* send notification in add resource
+	* test: change add pla event to add resource event
+	* replace pla record with resource
+	* remove pla record definition
+	* replace add pla with add resource
+	* rest api of update resource
+	* test: rest api of update resource
+	* implement add policy
+	* test: get resource by id
+	* add module
+	* add policy add module
+	* rest api of deleting a resource
+	* test: rest api of delete resource
+	* post resource rest api
+	* test: rest api of add resource
+	* include policy in listing categories
+	* get policy category by id
+	* add category for policy
+	* implement policy list module
+	* include new specs in get_resource_specs
+	* add policy name and created active_item
+	* get tariff row and policy table specs by id
+	* refactor policy row spec
+	* created policy table spec
+	* refactor tariff row spec
+	* created tariff table spec
+	* Add policy list module
+	* rest api of get all resource with pagination and filtering
+	* support resource record for match spec
+	* uri of get all resources
+	* erlang api to filter resource by id or category
+	* test: get all resources in the table
+	* refactor get resource inventory by id
+	* resource codec
+	* resource relationship codec
+	* resource characteristic codec
+	* resource specification codec
+	* remove query_table/6 from ocs.erl
+	* add javascript for policy get module
+	* rename tariff spec function
+	* add update policy module
+	* erlang api of deleting resource by id
+	* test: delete resource by id
+	* erlang api of getting a resource by id
+	* test: get resource by id
+	* erlang api of getting all the resources
+	* test: get all the resources
+	* policy add module
+	* add resource erlang api
+	* test: add resource
+	* install resource table
+	* introduce resource record
+	* Add policy view
+	* remove pla erlang and rest apis
+	* resource specification for policy table
+	* erlang api of deleting a policy table
+	* test: delete policy table
+	* erlang api of creating new policy table
+	* test: create new policy table
+	* erlang api of deleting a policy by reference
+	* test: delete policy by reference
+	* erlang api of list all policies in the table
+	* test: list all policies in the table
+	* validate policy record
+	* erlang api to get policy by reference
+	* test: get policy by reference
+	* add policy erlang api
+	* test: add new policy into the table
+	* add policy table in the list
+	* introduce policy record
+	* install new policy table
+
+2021-05-16  Vance Shipley <vances@sigscale.org>
+
 	* correct systemd configuration
 	* add nrf rating update patch
 	* rate inital nrf rating requests
