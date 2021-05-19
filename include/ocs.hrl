@@ -263,5 +263,6 @@
 -record(nrf_session,
 		{rating_ref :: string(),
 		nfConsumerIdentification :: string() | undefined,
-		subscriptionId = [] :: [{MSISDN :: string(), IMSI :: string()}]}).
+		imsi :: string() | undefined,
+		msisdn :: string(), undefined}).
 
