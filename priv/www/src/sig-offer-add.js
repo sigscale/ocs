@@ -546,7 +546,7 @@ class offerAdd extends PolymerElement {
 										id="destPrefixPolicy"
 										value="{{priceAddPolicy}}"
 										no-animations="true"
-										label="Prefix Policy Table">
+										label="Policy Table">
 									<paper-listbox
 											id="addPricPolicy"
 											slot="dropdown-content">
