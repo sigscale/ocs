@@ -300,7 +300,6 @@ class policyList extends PolymerElement {
 				id="PolicyToast">
 			</paper-toast>
 			<iron-ajax id="getPolicyContentAjax"
-					on-response="_getPolicyContentResponse"
 					on-error="_getPolicyContentError">
 			</iron-ajax>
 			<iron-ajax id="getPolicyAjax"

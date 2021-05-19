@@ -171,6 +171,9 @@ class tablePolAdd extends PolymerElement {
 		this.addDesc = null;
 		this.startTableTimePick = null;
 		this.endTableTimePick = null;
+		document.body.querySelector('sig-app').shadowRoot.getElementById('policyList').shadowRoot.getElementById('policyGrid').clearCache();
+		var tempAjax = document.body.querySelector('sig-app').shadowRoot.getElementById('policyList').shadowRoot.getElementById('getPolicyAjax');
+		tempAjax.generateRequest();
 	}
 
 	_addTableResponse(event) {
