@@ -52,7 +52,7 @@ class policyAdd extends PolymerElement {
 					<paper-tooltip
 							for="bandwidthDL"
 							offset="0">
-						BandwidthDL value
+						Max Download Bandwidth
 					</paper-tooltip>
 				</div>
 				<div>
@@ -64,7 +64,7 @@ class policyAdd extends PolymerElement {
 					<paper-tooltip
 							for="bandwidthUL"
 							offset="0">
-						BandwidthUL value
+						Max Upload Bandwidth
 					</paper-tooltip>
 				</div>
 				<div>
@@ -76,7 +76,7 @@ class policyAdd extends PolymerElement {
 					<paper-tooltip
 							for="classId"
 							offset="0">
-						Class Name
+						QoS Class
 					</paper-tooltip>
 				</div>
 				<div>
@@ -88,7 +88,7 @@ class policyAdd extends PolymerElement {
 					<paper-tooltip
 							for="chargeRule"
 							offset="0">
-						Charging key
+						Charging Key
 					</paper-tooltip>
 				</div>
 				<div>
@@ -111,7 +111,7 @@ class policyAdd extends PolymerElement {
 					<paper-tooltip
 							for="flowUp"
 							offset="0">
-						Flow direction detail for flow Information
+						Flow Direction
 					</paper-tooltip>
 				</div>
 				<div>
@@ -126,7 +126,7 @@ class policyAdd extends PolymerElement {
 					<paper-tooltip
 							for="flowDescription"
 							offset="0">
-						Flow description detail for flow Information
+						Flow Key
 					</paper-tooltip>
 				</div>
 				<div>
