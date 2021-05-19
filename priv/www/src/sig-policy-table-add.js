@@ -177,12 +177,6 @@ class tablePolAdd extends PolymerElement {
 	}
 
 	_addTableResponse(event) {
-		var results = event.detail.response;
-		var tableRecord = new Object();
-		tableRecord.id = results.id;
-		tableRecord.href = results.href;
-		tableRecord.plaSpecId = results.plaSpecId;
-		document.body.querySelector('sig-app').shadowRoot.getElementById('offerList').push('tables', tableRecord);
 		this.$.addPolicyTableModal.close();
 	}
 

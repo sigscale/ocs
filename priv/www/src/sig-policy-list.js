@@ -299,27 +299,20 @@ class policyList extends PolymerElement {
 			<paper-toast
 				id="PolicyToast">
 			</paper-toast>
-			<iron-ajax id="getPolicyContentAjax"
-					on-error="_getPolicyContentError">
+			<iron-ajax id="getPolicyContentAjax">
 			</iron-ajax>
 			<iron-ajax id="getPolicyAjax"
 				url="/resourceInventoryManagement/v1/resource?resourceSpecification.id=3"
 				on-response="_getPolicyResponse"
 				rejectWithRequest>
 			</iron-ajax>
-			<iron-ajax id="deleteTableAjax"
-				on-response="_deleteTableResponse"
-				on-error="_deleteTableError">
+			<iron-ajax id="deleteTableAjax">
 			</iron-ajax>
-			<iron-ajax id="deleteTableContentAjax"
-				on-response="_deleteTableContentResponse"
-				on-error="_deleteTableContentError">
+			<iron-ajax id="deleteTableContentAjax">
 			</iron-ajax>
 			<iron-ajax
 					id="policyUpdateAjax"
-					loading="{{loading}}"
-					on-response="_response"
-					on-error="_error">
+					loading="{{loading}}">
 			</iron-ajax>
 		`;
 	}
