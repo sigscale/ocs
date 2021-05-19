@@ -55,7 +55,7 @@
 %% @see //kernel/application:start/2
 %%
 start(normal = _StartType, _Args) ->
-	Tables = [client, service, offer, product, pla,
+	Tables = [client, service, offer, product, resource,
 			bucket, httpd_user, httpd_group, nrf_ref],
 	case mnesia:wait_for_tables(Tables, ?WAITFORTABLES) of
 		ok ->
@@ -534,8 +534,7 @@ install9(Nodes, Acc) ->
 %% @hidden
 install10(Nodes, Acc) ->
 	case mnesia:create_table(nrf_ref, [{ram_copies, Nodes},
-			{attributes, record_info(fields, nrf_session)},
-			{index, [#nrf_session.rating_ref]}]) of
+			{attributes, record_info(fields, nrf_session)}]) of
 		{atomic, ok} ->
 			error_logger:info_msg("Created new nrf ref table.~n"),
 			install11(Nodes, [nrf_ref | Acc]);
