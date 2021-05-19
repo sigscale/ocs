@@ -15,6 +15,7 @@ import '@polymer/app-layout/app-toolbar/app-toolbar.js';
 import '@polymer/paper-progress/paper-progress.js';
 import '@polymer/paper-input/paper-input.js';
 import '@polymer/paper-button/paper-button.js';
+import '@polymer/paper-tooltip/paper-tooltip.js';
 import './style-element.js';
 
 class policyAdd extends PolymerElement {
@@ -30,46 +31,115 @@ class policyAdd extends PolymerElement {
 					class="slow red"
 					disabled="{{!loading}}">
 				</paper-progress>
-				<paper-input
-					label="Name"
-					value="{{polName}}">
-				</paper-input>
+				<div>
+					<paper-input
+						id="polNameAdd"
+						label="Name"
+						value="{{polName}}">
+					</paper-input>
+					<paper-tooltip
+							for="polNameAdd"
+							offset="0">
+						Policy row name
+					</paper-tooltip>
+				</div>
 				<div>
 					<paper-input
 						id="bandwidthDL"
-						label="maxRequestedBandwidthDL"
+						label="MaxRequestedBandwidthDL"
 						value="{{charDL}}">
 					</paper-input>
+					<paper-tooltip
+							for="bandwidthDL"
+							offset="0">
+						Max Download Bandwidth
+					</paper-tooltip>
+				</div>
+				<div>
 					<paper-input
 						id="bandwidthUL"
-						label="maxRequestedBandwidthUL"
+						label="MaxRequestedBandwidthUL"
 						value="{{charUL}}">
 					</paper-input>
+					<paper-tooltip
+							for="bandwidthUL"
+							offset="0">
+						Max Upload Bandwidth
+					</paper-tooltip>
+				</div>
+				<div>
 					<paper-input
 						id="classId"
-						label="qosClassIdentifier"
+						label="QosClassIdentifier"
 						value="{{charClassId}}">
 					</paper-input>
+					<paper-tooltip
+							for="classId"
+							offset="0">
+						QoS Class
+					</paper-tooltip>
+				</div>
+				<div>
 					<paper-input
 						id="chargeRule"
-						label="chargingKey"
+						label="ChargingKey"
 						value="{{polCha}}">
 					</paper-input>
-					<paper-input
-						id="flowUp"
-						label="flowDirection"
-						value="{{flowUp}}">
-					</paper-input>
+					<paper-tooltip
+							for="chargeRule"
+							offset="0">
+						Charging Key
+					</paper-tooltip>
+				</div>
+				<div>
+					<paper-dropdown-menu
+							id="flowUp"
+							value="{{flowUp}}"
+							no-animations="true"
+							label="Flow Direction">
+						<paper-listbox
+								id="addPolDirList1"
+								slot="dropdown-content">
+							<paper-item>
+								up
+							</paper-item>
+							<paper-item>
+								down
+							</paper-item>
+						</paper-listbox>
+					</paper-dropdown-menu>
+					<paper-tooltip
+							for="flowUp"
+							offset="0">
+						Flow Direction
+					</paper-tooltip>
+				</div>
+				<div>
 					<paper-input
 						id="flowDescription"
-						label="flowDescription"
-						value="{{flowDiscUp}}">
+						label="FlowDescription"
+						pattern="^permit out proto "
+						placeholder="permit out proto ip from all to all"
+						value="{{flowDiscUp}}"
+						auto-validate>
 					</paper-input>
+					<paper-tooltip
+							for="flowDescription"
+							offset="0">
+						Flow Key
+					</paper-tooltip>
+				</div>
+				<div>
 					<paper-input
 						id="precedence"
-						label="precedence"
+						label="Precedence"
 						value="{{prece}}">
 					</paper-input>
+					<paper-tooltip
+							for="precedence"
+							offset="0">
+						Precedence value
+					</paper-tooltip>
 				</div>
 				<div class="buttons">
 					<paper-button
@@ -196,7 +266,11 @@ class policyAdd extends PolymerElement {
 		var nameFloArr = new Array();
 		var nameFloObj = new Object();
 		nameFloObj.flowDirection = this.flowUp;
-		nameFloObj.flowDescription = this.flowDiscUp;
+		if(this.flowDiscUp) {
+			nameFloObj.flowDescription = this.flowDiscUp;
+		} else {
+			nameFloObj.flowDescription = "permit out proto ip from all to all"
+		}
 		nameFloArr.push(nameFloObj);
 		nameFlow.value = nameFloArr;
 		var namePre = new Object();
@@ -228,6 +302,9 @@ class policyAdd extends PolymerElement {
 		this.flowDown = null;
 		this.flowDiscDown = null;
 		this.prece = null;
+		var toast = document.body.querySelector('sig-app').shadowRoot.getElementById('restError');
+		toast.text = "Success";
+		toast.open();
 		document.body.querySelector('sig-app').shadowRoot.getElementById('policyList').shadowRoot.getElementById('policyGrid').clearCache();
 	}
 }
