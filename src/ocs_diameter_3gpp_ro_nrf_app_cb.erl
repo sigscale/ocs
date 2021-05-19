@@ -587,56 +587,56 @@ build_mscc([H | T], Acc, Container) ->
 	F = fun F(#{"serviceId" := SI, "ratingGroup" := RG, "resultCode" := RC} = ServiceRating,
 			[#'3gpp_ro_Multiple-Services-Credit-Control'
 					{'Service-Identifier' = [SI], 'Rating-Group' = [RG]} = MSCC1 | _]) ->
-		MSCC2 = case catch maps:get("grantedUnit", ServiceRating) of
-			#'3gpp_ro_Granted-Service-Unit'{} = GrantedUnits ->
-				MSCC1#'3gpp_ro_Multiple-Services-Credit-Control'{'Granted-Service-Unit' = [GrantedUnits]};
-			_ ->
-				MSCC1
-		end,
-		MSCC3 = case catch maps:get("consumedUnit", ServiceRating) of
-			#'3gpp_ro_Used-Service-Unit'{} = UsedUnits ->
-				MSCC2#'3gpp_ro_Multiple-Services-Credit-Control'{'Used-Service-Unit' = [UsedUnits]};
-			_ ->
-				MSCC2
-		end,
-		MSCC4 = MSCC3#'3gpp_ro_Multiple-Services-Credit-Control'{'Result-Code' = [RC]},
-		MSCC4;
-	F(#{"serviceId" := SI, "resultCode" := RC } = ServiceRating,
+				MSCC2 = case catch maps:get("grantedUnit", ServiceRating) of
+					#'3gpp_ro_Granted-Service-Unit'{} = GrantedUnits ->
+						MSCC1#'3gpp_ro_Multiple-Services-Credit-Control'{'Granted-Service-Unit' = [GrantedUnits]};
+					_ ->
+						MSCC1
+				end,
+				MSCC3 = case catch maps:get("consumedUnit", ServiceRating) of
+					#'3gpp_ro_Used-Service-Unit'{} = UsedUnits ->
+						MSCC2#'3gpp_ro_Multiple-Services-Credit-Control'{'Used-Service-Unit' = [UsedUnits]};
+					_ ->
+						MSCC2
+				end,
+				MSCC4 = MSCC3#'3gpp_ro_Multiple-Services-Credit-Control'{'Result-Code' = [RC]},
+				MSCC4;
+		F(#{"serviceId" := SI, "resultCode" := RC } = ServiceRating,
 			[#'3gpp_ro_Multiple-Services-Credit-Control'
 					{'Service-Identifier' = [SI], 'Rating-Group' = []} = MSCC1 | _]) ->
-		MSCC2 = case catch maps:get("grantedUnit", ServiceRating) of
-			#'3gpp_ro_Granted-Service-Unit'{} = GrantedUnits ->
-				MSCC1#'3gpp_ro_Multiple-Services-Credit-Control'{'Granted-Service-Unit' = [GrantedUnits]};
-			_ ->
-				MSCC1
-		end,
-		MSCC3 = case catch maps:get("consumedUnit", ServiceRating) of
-			#'3gpp_ro_Used-Service-Unit'{} = UsedUnits ->
-				MSCC2#'3gpp_ro_Multiple-Services-Credit-Control'{'Used-Service-Unit' = [UsedUnits]};
-			_ ->
-				MSCC2
-		end,
-		MSCC4 = MSCC3#'3gpp_ro_Multiple-Services-Credit-Control'{'Result-Code' = [RC]},
-		MSCC4;
-	F(#{"ratingGroup" := RG, "resultCode" := RC} = ServiceRating,
-			[#'3gpp_ro_Multiple-Services-Credit-Control'
-					{'Service-Identifier' = [], 'Rating-Group' = [RG]} = MSCC1 | _]) ->
-		MSCC2 = case catch maps:get("grantedUnit", ServiceRating) of
-			#'3gpp_ro_Granted-Service-Unit'{} = GrantedUnits ->
-				MSCC1#'3gpp_ro_Multiple-Services-Credit-Control'{'Granted-Service-Unit' = [GrantedUnits]};
-			_ ->
-				MSCC1
-		end,
-		MSCC3 = case catch maps:get("consumedUnit", ServiceRating) of
-			#'3gpp_ro_Used-Service-Unit'{} = UsedUnits ->
-				MSCC2#'3gpp_ro_Multiple-Services-Credit-Control'{'Used-Service-Unit' = [UsedUnits]};
-			_ ->
-				MSCC2
-		end,
-		MSCC4 = MSCC3#'3gpp_ro_Multiple-Services-Credit-Control'{'Result-Code' = [RC]},
-		MSCC4;
-	F(ServiceRating, [_H | T1]) ->
-		F(ServiceRating, T1)
+			MSCC2 = case catch maps:get("grantedUnit", ServiceRating) of
+				#'3gpp_ro_Granted-Service-Unit'{} = GrantedUnits ->
+					MSCC1#'3gpp_ro_Multiple-Services-Credit-Control'{'Granted-Service-Unit' = [GrantedUnits]};
+				_ ->
+					MSCC1
+			end,
+			MSCC3 = case catch maps:get("consumedUnit", ServiceRating) of
+				#'3gpp_ro_Used-Service-Unit'{} = UsedUnits ->
+					MSCC2#'3gpp_ro_Multiple-Services-Credit-Control'{'Used-Service-Unit' = [UsedUnits]};
+				_ ->
+					MSCC2
+			end,
+			MSCC4 = MSCC3#'3gpp_ro_Multiple-Services-Credit-Control'{'Result-Code' = [RC]},
+			MSCC4;
+		F(#{"ratingGroup" := RG, "resultCode" := RC} = ServiceRating,
+				[#'3gpp_ro_Multiple-Services-Credit-Control'
+						{'Service-Identifier' = [], 'Rating-Group' = [RG]} = MSCC1 | _]) ->
+			MSCC2 = case catch maps:get("grantedUnit", ServiceRating) of
+				#'3gpp_ro_Granted-Service-Unit'{} = GrantedUnits ->
+					MSCC1#'3gpp_ro_Multiple-Services-Credit-Control'{'Granted-Service-Unit' = [GrantedUnits]};
+				_ ->
+					MSCC1
+			end,
+			MSCC3 = case catch maps:get("consumedUnit", ServiceRating) of
+				#'3gpp_ro_Used-Service-Unit'{} = UsedUnits ->
+					MSCC2#'3gpp_ro_Multiple-Services-Credit-Control'{'Used-Service-Unit' = [UsedUnits]};
+				_ ->
+					MSCC2
+			end,
+			MSCC4 = MSCC3#'3gpp_ro_Multiple-Services-Credit-Control'{'Result-Code' = [RC]},
+			MSCC4;
+		F(ServiceRating, [_H | T1]) ->
+			F(ServiceRating, T1)
 	end,
 	NewMSCC = F(H, Container),
 	build_mscc(T, [NewMSCC | Acc], Container);
