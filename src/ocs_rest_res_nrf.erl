@@ -55,6 +55,7 @@ content_types_provided() ->
 %% @doc Respond to `POST /nrf-rating/v1/ratingdata'.
 %%		Rate an intial Nrf Request.
 initial_nrf(NrfRequest) ->
+	RatingDataRef = unique(),
 	try
 		case mochijson:decode(NrfRequest) of
 			{struct, _Attributes} = NrfStruct ->
@@ -62,6 +63,7 @@ initial_nrf(NrfRequest) ->
 				case rate(NrfMap, initial) of
 					ServiceRating when is_list(ServiceRating) ->
 						UpdatedMap = maps:update("serviceRating", ServiceRating, NrfMap),
+						ok = add_rating_ref(RatingDataRef, UpdatedMap),
 						nrf_response_to_struct(UpdatedMap);
 					{error, out_of_credit} ->
 						Body = error_response(out_of_credit, NrfMap),
@@ -78,7 +80,6 @@ initial_nrf(NrfRequest) ->
 		end
 	of
 		{struct, _Attributes1} = NrfResponse ->
-			RatingDataRef = ocs:generate_identity(),
 			Location = "/ratingdata/" ++ RatingDataRef,
 			ReponseBody = mochijson:encode(NrfResponse),
 			Headers = [{location, Location}],
@@ -96,6 +97,27 @@ initial_nrf(NrfRequest) ->
 %%----------------------------------------------------------------------
 %%  internal functions
 %%----------------------------------------------------------------------
+
+-spec add_rating_ref(RatingDataRef, NrfMap) -> Result
+	when
+		RatingDataRef :: string(),
+		NrfMap :: map(),
+		Result :: ok | {error, Reason},
+		Reason :: term().
+%% @doc Add a rating data ref to the rating ref table.
+add_rating_ref(RatingDataRef, #{"nfConsumerIdentification" := NFCI,
+		"imsi" := IMSI, "msisdn" := MSISDN} = _NrfMap) ->
+	F = fun() ->
+			NewRef = #nrf_session{rating_ref = RatingDataRef,
+					 nfConsumerIdentification = NFCI, imsi = IMSI, msisdn = MSISDN},
+			mnesia:write(nrf_session, NewRef, write)
+	end,
+	case mnesia:transaction(F) of
+		{aborted, Reason} ->
+			{error, Reason};
+		{atomic, ok} ->
+			ok
+	end.
 
 -spec error_response(Error, NrfMap) -> Result
 	when
@@ -364,4 +386,14 @@ type(seconds) ->
 	"time";
 type(messages) ->
 	"serviceSpecificUnit".
+
+-spec unique() -> Result
+	when
+		Result :: ID,
+		ID :: string().
+%% @doc Generate a unique identifier
+unique() ->
+	TS = erlang:system_time(?MILLISECOND),
+	N = erlang:unique_integer([positive]),
+	integer_to_list(TS) ++ integer_to_list(N).
 
