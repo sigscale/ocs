@@ -1,5 +1,7 @@
 2021-05-16  Vance Shipley <vances@sigscale.org>
 
+	* fix push problem in table add
+	* fix create table reload issue
 	* add toast and remove unwanted tag
 	* add error toast
 	* tooltips in policy dialog
