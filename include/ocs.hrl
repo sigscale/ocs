@@ -261,7 +261,7 @@
 		last_modified :: tuple() | undefined}).
 
 -record(nrf_session,
-		{rating_ref :: string() | undefined,
+		{rating_ref :: string(),
 		nfConsumerIdentification :: string() | undefined,
 		subscriptionId = [] :: [{MSISDN :: string(), IMSI :: string()}]}).
 
