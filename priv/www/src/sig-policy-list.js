@@ -53,76 +53,74 @@ class policyList extends PolymerElement {
 					<iron-pages
 							selected="{{selectedTab}}">
 						<div>
-							<dl class="details">
-								<template is="dom-if" if="{{item.id}}">
-									<paper-input
-										id="addPolId"
-										name="id"
-										label="Id"
-										value="{{polId}}"
-										disabled>
-									</paper-input>
-								</template>
-								<template is="dom-if" if="{{item.name}}">
-									<paper-input
-										id="addPolName"
-										name="name"
-										label="Name"
-										value="{{polName}}">
-									</paper-input>
-								</template>
-								<template is="dom-if" if="{{item.precedence}}">
-									<paper-input
-										id="addPolPre"
-										name="precedence"
-										label="Precedence"
-										value="{{item.precedence}}">
-									</paper-input>
-								</template>
-								<template is="dom-if" if="{{item.chargingKey}}">
-									<paper-input
-										id="addPolCha"
-										name="chargingKey"
-										label="Charging Key"
-										value="{{item.chargingKey}}">
-									</paper-input>
-								</template>
-								<template is="dom-if" if="{{item.serviceId}}">
-									<paper-input
-										id="addPolSer"
-										name="serviceId"
-										label="Service Id"
-										value="{{item.serviceId}}">
-									</paper-input>
-								</template>
-							</dl>
+							<template is="dom-if" if="{{item.id}}">
+								<paper-input
+									id="addPolId"
+									name="id"
+									label="Id"
+									value="{{polId}}"
+									disabled>
+								</paper-input>
+							</template>
+							<template is="dom-if" if="{{item.name}}">
+								<paper-input
+									id="addPolName"
+									name="name"
+									label="Name"
+									value="{{polName}}">
+								</paper-input>
+							</template>
+							<template is="dom-if" if="{{item.precedence}}">
+								<paper-input
+									id="addPolPre"
+									name="precedence"
+									label="Precedence"
+									value="{{item.precedence}}">
+								</paper-input>
+							</template>
+							<template is="dom-if" if="{{item.chargingKey}}">
+								<paper-input
+									id="addPolCha"
+									name="chargingKey"
+									label="Charging Key"
+									value="{{item.chargingKey}}">
+								</paper-input>
+							</template>
+							<template is="dom-if" if="{{item.serviceId}}">
+								<paper-input
+									id="addPolSer"
+									name="serviceId"
+									label="Service Id"
+									value="{{item.serviceId}}">
+								</paper-input>
+							</template>
 						</div>
 						<div>
 							<template is="dom-if" if="{{item.maxRequestedBandwidthDL}}">
-										<paper-input
-											id="addPolDL"
-											name="maxRequestedBandwidthDL"
-											label="Max Requested Bandwidth DL"
-											value="{{item.maxRequestedBandwidthDL}}">
-										</paper-input>
-										<paper-input
-											id="addPolUL"
-											name="maxRequestedBandwidthUL"
-											label="Max Requested Bandwidth UL"
-											value="{{item.maxRequestedBandwidthUL}}">
-										</paper-input>
-										<paper-input
-											id="addPolClass"
-											name="qosClassIdentifier"
-											label="QOS Class Identifier"
-											value="{{item.qosClassIdentifier}}">
-										</paper-input>
+								<paper-input
+									id="addPolDL"
+									name="maxRequestedBandwidthDL"
+									label="Max Requested Bandwidth DL"
+									value="{{item.maxRequestedBandwidthDL}}">
+								</paper-input>
+								<paper-input
+									id="addPolUL"
+									name="maxRequestedBandwidthUL"
+									label="Max Requested Bandwidth UL"
+									value="{{item.maxRequestedBandwidthUL}}">
+								</paper-input>
+								<paper-input
+									id="addPolClass"
+									name="qosClassIdentifier"
+									label="QOS Class Identifier"
+									value="{{item.qosClassIdentifier}}">
+								</paper-input>
 							</template>
 						</div>
 						<div>
 							<template is="dom-if" if="{{item.flow}}">
 								<table class="det">
-									<template id="testMe" is="dom-repeat" items="{{item.flow}}" as="flowitem">
+									<template id="flowChaArrObj" is="dom-repeat" items="{{item.flow}}" as="flowitem" mutable-data="true">
 										<tr>
 											<td><paper-dropdown-menu
 													id="addPolDirDrop"
@@ -148,37 +146,10 @@ class policyList extends PolymerElement {
 											</paper-input></td>
 										</tr>
 									</template>
-									<tr>
-										<td><paper-dropdown-menu
-													id="addPolDirDrop1"
-													value="{{direction1}}"
-													no-animations="true"
-													label="Flow Direction">
-												<paper-listbox
-														id="addPolDirList1"
-														slot="dropdown-content">
-													<paper-item>
-														up
-													</paper-item>
-													<paper-item>
-														down
-													</paper-item>
-												</paper-listbox>
-										</paper-dropdown-menu></td>
-										<td><paper-input
-													id="addPolDir1"
-													name="flowDescription"
-													pattern="^permit out proto "
-													label="Flow Description"
-													placeholder="permit out proto ip from all to all"
-													value="{{description1}}"
-													auto-validate>
-										</paper-input></td>
-									</tr>
 								</table>
 								<div>
 									<paper-icon-button
-										class="submit-icon-button"
+										class="add-icon-button"
 										icon="icons:add-circle-outline"
 										on-tap = "_flowPlus">
 									</paper-icon-button>
@@ -359,6 +330,7 @@ class policyList extends PolymerElement {
 	} 
 
 	_activeItemChanged(item, last) {
+console.log(item);
 		if(item || last) {
 			var grid = this.$.policyGrid;
 			var current;
@@ -403,10 +375,11 @@ class policyList extends PolymerElement {
 	}
 
 	_flowPlus(event) {
+		var domVar = document.body.querySelector('sig-app').shadowRoot.querySelector('sig-policy-list').shadowRoot.getElementById('flowChaArrObj')
 		var flArr = event.model.item.flow;
-		var flJson = {"direction": this.direction1, "description": this.description1};
-		flArr.push(flJson);
-		this.notifyPath(flArr);
+		var flJson = {"direction": flArr[0].direction, "description": flArr[0].description};
+		this.push('activeItem.flow', flJson);
+		domVar.notifyPath('items');
 	}
 
 	tableSelection(e) {
@@ -475,10 +448,6 @@ class policyList extends PolymerElement {
 						} else if(resChar[indexRes].name == "chargingKey") {
 							tabObj.chargingKey = resChar[indexRes].value;
 						} else if(resChar[indexRes].name == "flowInformation") {
-							var flowUpDir = new Array();
-							var flowUpDes = new Array();
-							var flowDownDir = new Array();
-							var flowDownDes = new Array();
 							tabObj.flow = new Array();
 							for(var indexFl in resChar[indexRes].value){
 								if(resChar[indexRes].value[indexFl].flowDirection == "up") {
@@ -660,7 +629,7 @@ class policyList extends PolymerElement {
 			PolArray.push(Cid);
 		}
 
-		if(this.description1 || this.direction1) {
+		if(Mitem.flow) {
 			function checkFlow1(charPolFl1) {
 				return charPolFl1.name == "flowInformation";
 			}
@@ -669,23 +638,7 @@ class policyList extends PolymerElement {
 			var Flo1 = new Object();
 			Flo1.op = "add";
 			Flo1.path = "/resourceCharacteristic/" + indexFl + "/value/" + "-";
-			if(this.description1 == "") {
-				this.description1 = "permit out proto ip from all to all";
-				Flo1.value = {"flowDirection": this.direction1, "flowDescription": this.description1};
-			} else {
-				Flo1.value = {"flowDirection": this.direction1, "flowDescription": this.description1};
-			}
-			PolArray.push(Flo1);
-		} else if(this.description1 & this.direction1) {
-			function checkFlow1(charPolFl1) {
-				return charPolFl1.name == "flowInformation";
-			}
-			var indexFl = results[index1].resourceCharacteristic.findIndex(checkFlow1);
-			var PolArray1 = new Array();
-			var Flo1 = new Object();
-			Flo1.op = "add";
-			Flo1.path = "/resourceCharacteristic/" + indexFl + "/value/" + "-";
-			Flo1.value = {"flowDirection": this.direction1, "flowDescription": this.description1};
+			Flo1.value = Mitem.flow;
 			PolArray.push(Flo1);
 		}
 
