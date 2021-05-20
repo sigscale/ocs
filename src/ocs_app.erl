@@ -534,7 +534,7 @@ install9(Nodes, Acc) ->
 %% @hidden
 install10(Nodes, Acc) ->
 	case mnesia:create_table(nrf_ref, [{ram_copies, Nodes},
-			{attributes, record_info(fields, nrf_session)}]) of
+			{attributes, record_info(fields, nrf_ref)}]) of
 		{atomic, ok} ->
 			error_logger:info_msg("Created new nrf ref table.~n"),
 			install11(Nodes, [nrf_ref | Acc]);
