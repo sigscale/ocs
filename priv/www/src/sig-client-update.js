@@ -128,7 +128,6 @@ class clientUpdate extends PolymerElement {
 								name="Port"
 								label="Port"
 								type="number"
-								on-value-changed="valChange"
 								value="{{clientUpDisPort}}">
 						</paper-input>
 						<paper-tooltip

@@ -171,15 +171,12 @@ class tablePolAdd extends PolymerElement {
 		this.addDesc = null;
 		this.startTableTimePick = null;
 		this.endTableTimePick = null;
+		document.body.querySelector('sig-app').shadowRoot.getElementById('policyList').shadowRoot.getElementById('policyGrid').clearCache();
+		var tempAjax = document.body.querySelector('sig-app').shadowRoot.getElementById('policyList').shadowRoot.getElementById('getPolicyAjax');
+		tempAjax.generateRequest();
 	}
 
 	_addTableResponse(event) {
-		var results = event.detail.response;
-		var tableRecord = new Object();
-		tableRecord.id = results.id;
-		tableRecord.href = results.href;
-		tableRecord.plaSpecId = results.plaSpecId;
-		document.body.querySelector('sig-app').shadowRoot.getElementById('offerList').push('tables', tableRecord);
 		this.$.addPolicyTableModal.close();
 	}
 

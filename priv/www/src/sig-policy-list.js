@@ -179,8 +179,9 @@ class policyList extends PolymerElement {
 								<div>
 									<paper-icon-button
 										class="submit-icon-button"
-										icon="icons:add-circle-outline">
-										</paper-icon-button>
+										icon="icons:add-circle-outline"
+										on-tap = "_flowPlus">
+									</paper-icon-button>
 								</div>
 							</template>
 						</div>
@@ -299,28 +300,20 @@ class policyList extends PolymerElement {
 			<paper-toast
 				id="PolicyToast">
 			</paper-toast>
-			<iron-ajax id="getPolicyContentAjax"
-					on-response="_getPolicyContentResponse"
-					on-error="_getPolicyContentError">
+			<iron-ajax id="getPolicyContentAjax">
 			</iron-ajax>
 			<iron-ajax id="getPolicyAjax"
 				url="/resourceInventoryManagement/v1/resource?resourceSpecification.id=3"
 				on-response="_getPolicyResponse"
 				rejectWithRequest>
 			</iron-ajax>
-			<iron-ajax id="deleteTableAjax"
-				on-response="_deleteTableResponse"
-				on-error="_deleteTableError">
+			<iron-ajax id="deleteTableAjax">
 			</iron-ajax>
-			<iron-ajax id="deleteTableContentAjax"
-				on-response="_deleteTableContentResponse"
-				on-error="_deleteTableContentError">
+			<iron-ajax id="deleteTableContentAjax">
 			</iron-ajax>
 			<iron-ajax
 					id="policyUpdateAjax"
-					loading="{{loading}}"
-					on-response="_response"
-					on-error="_error">
+					loading="{{loading}}">
 			</iron-ajax>
 		`;
 	}
@@ -407,6 +400,13 @@ class policyList extends PolymerElement {
 			tableRecord.plaSpecId = results[indexTable].plaSpecId;
 			this.push('tables', tableRecord);
 		}
+	}
+
+	_flowPlus(event) {
+		var flArr = event.model.item.flow;
+		var flJson = {"direction": this.direction1, "description": this.description1};
+		flArr.push(flJson);
+		this.notifyPath(flArr);
 	}
 
 	tableSelection(e) {
@@ -669,7 +669,12 @@ class policyList extends PolymerElement {
 			var Flo1 = new Object();
 			Flo1.op = "add";
 			Flo1.path = "/resourceCharacteristic/" + indexFl + "/value/" + "-";
-			Flo1.value = {"flowDirection": this.direction1, "flowDescription": this.description1};
+			if(this.description1 == "") {
+				this.description1 = "permit out proto ip from all to all";
+				Flo1.value = {"flowDirection": this.direction1, "flowDescription": this.description1};
+			} else {
+				Flo1.value = {"flowDirection": this.direction1, "flowDescription": this.description1};
+			}
 			PolArray.push(Flo1);
 		} else if(this.description1 & this.direction1) {
 			function checkFlow1(charPolFl1) {

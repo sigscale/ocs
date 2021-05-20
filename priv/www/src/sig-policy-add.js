@@ -307,6 +307,13 @@ class policyAdd extends PolymerElement {
 		toast.open();
 		document.body.querySelector('sig-app').shadowRoot.getElementById('policyList').shadowRoot.getElementById('policyGrid').clearCache();
 	}
+
+	_error(){
+      var toast = document.body.querySelector('sig-app').shadowRoot.getElementById('restError');
+      toast.text = "Error";
+      toast.open();
+		document.body.querySelector('sig-app').shadowRoot.getElementById('policyList').shadowRoot.getElementById('policyGrid').clearCache();
+	}
 }
 
 window.customElements.define('sig-policy-add', policyAdd);
