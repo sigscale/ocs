@@ -260,9 +260,9 @@
 		user_profile :: tuple() | undefined,
 		last_modified :: tuple() | undefined}).
 
--record(nrf_session,
+-record(nrf_ref,
 		{rating_ref :: string(),
 		nodeFunctionality :: string() | undefined,
 		imsi :: string() | undefined,
-		msisdn :: string(), undefined}).
+		msisdn :: string() | undefined}).
 

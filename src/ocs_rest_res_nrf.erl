@@ -108,7 +108,7 @@ initial_nrf(NrfRequest) ->
 add_rating_ref(RatingDataRef, #{"nodeFunctionality" := NF,
 		"imsi" := IMSI, "msisdn" := MSISDN} = _NrfMap) ->
 	F = fun() ->
-			NewRef = #nrf_session{rating_ref = RatingDataRef,
+			NewRef = #nrf_ref{rating_ref = RatingDataRef,
 					 nodeFunctionality = NF, imsi = IMSI, msisdn = MSISDN},
 			mnesia:write(nrf_ref, NewRef, write)
 	end,
