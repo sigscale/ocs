@@ -262,7 +262,7 @@
 
 -record(nrf_session,
 		{rating_ref :: string(),
-		nfConsumerIdentification :: string() | undefined,
+		nodeFunctionality :: string() | undefined,
 		imsi :: string() | undefined,
 		msisdn :: string(), undefined}).
 

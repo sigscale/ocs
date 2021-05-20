@@ -105,11 +105,11 @@ initial_nrf(NrfRequest) ->
 		Result :: ok | {error, Reason},
 		Reason :: term().
 %% @doc Add a rating data ref to the rating ref table.
-add_rating_ref(RatingDataRef, #{"nfConsumerIdentification" := NFCI,
+add_rating_ref(RatingDataRef, #{"nodeFunctionality" := NF,
 		"imsi" := IMSI, "msisdn" := MSISDN} = _NrfMap) ->
 	F = fun() ->
 			NewRef = #nrf_session{rating_ref = RatingDataRef,
-					 nfConsumerIdentification = NFCI, imsi = IMSI, msisdn = MSISDN},
+					 nodeFunctionality = NF, imsi = IMSI, msisdn = MSISDN},
 			mnesia:write(nrf_session, NewRef, write)
 	end,
 	case mnesia:transaction(F) of
@@ -234,9 +234,11 @@ nrf_response_to_struct2(#{"invocationSequenceNumber" := SeqNum} = M, Acc) ->
 nrf_response_to_struct3(#{"msisdn" := MSISDN, "imsi" := IMSI} = M, Acc) ->
 	nrf_response_to_struct4(M, [{"subscriptionId", {array, ["msisdn-" ++ MSISDN,
 			"imsi-" ++ IMSI]}} | Acc]).
-nrf_response_to_struct4(#{"serviceRating" := ServiceRating}, Acc) ->
-	Acc1 = [{"nfConsumerIdentification", {struct,[{"nodeFunctionality","OCF"}]}},
-			{"serviceRating", {array, struct_service_rating(ServiceRating)}} | Acc],
+nrf_response_to_struct4(#{"nodeFunctionality" := NF} = M, Acc) ->
+	nrf_response_to_struct5(M, [{"nfConsumerIdentification",
+			{struct, [{"nodeFunctionality", NF}]}} | Acc]).
+nrf_response_to_struct5(#{"serviceRating" := ServiceRating}, Acc) ->
+	Acc1 = [{"serviceRating", {array, struct_service_rating(ServiceRating)}} | Acc],
 	{struct, Acc1}.
 
 -spec nrf_request_to_map(NrfRequest) -> Result
@@ -253,6 +255,8 @@ nrf_request_to_map([{"invocationSequenceNumber", SeqNum} | T], Acc) ->
 	nrf_request_to_map(T, Acc#{"invocationSequenceNumber" => SeqNum});
 nrf_request_to_map([{"subscriptionId", {array, ["msisdn-" ++ MSISDN, "imsi-" ++ IMSI]}} | T], Acc) ->
 	nrf_request_to_map(T, Acc#{"msisdn" => MSISDN, "imsi" => IMSI});
+nrf_request_to_map([{"nfConsumerIdentification", {struct, [{"nodeFunctionality", NF}]}} | T], Acc) ->
+	nrf_request_to_map(T, Acc#{"nodeFunctionality" => NF});
 nrf_request_to_map([{"serviceRating", {array, ServiceRating}} | T], Acc) ->
 	nrf_request_to_map(T, Acc#{"serviceRating" => map_service_rating(ServiceRating)});
 nrf_request_to_map([_H | T], Acc) ->
