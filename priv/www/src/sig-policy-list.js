@@ -99,24 +99,24 @@ class policyList extends PolymerElement {
 						</div>
 						<div>
 							<template is="dom-if" if="{{item.maxRequestedBandwidthDL}}">
-										<paper-input
-											id="addPolDL"
-											name="maxRequestedBandwidthDL"
-											label="Max Requested Bandwidth DL"
-											value="{{item.maxRequestedBandwidthDL}}">
-										</paper-input>
-										<paper-input
-											id="addPolUL"
-											name="maxRequestedBandwidthUL"
-											label="Max Requested Bandwidth UL"
-											value="{{item.maxRequestedBandwidthUL}}">
-										</paper-input>
-										<paper-input
-											id="addPolClass"
-											name="qosClassIdentifier"
-											label="QOS Class Identifier"
-											value="{{item.qosClassIdentifier}}">
-										</paper-input>
+								<paper-input
+									id="addPolDL"
+									name="maxRequestedBandwidthDL"
+									label="Max Requested Bandwidth DL"
+									value="{{item.maxRequestedBandwidthDL}}">
+								</paper-input>
+								<paper-input
+									id="addPolUL"
+									name="maxRequestedBandwidthUL"
+									label="Max Requested Bandwidth UL"
+									value="{{item.maxRequestedBandwidthUL}}">
+								</paper-input>
+								<paper-input
+									id="addPolClass"
+									name="qosClassIdentifier"
+									label="QOS Class Identifier"
+									value="{{item.qosClassIdentifier}}">
+								</paper-input>
 							</template>
 						</div>
 						<div>
