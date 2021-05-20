@@ -51,7 +51,7 @@ content_types_provided() ->
 				{error, Status, Body},
 		Headers :: [tuple()],
 		Body :: iolist(),
-		Status :: 201 | 400 | 500.
+		Status :: 201 | 400 | 404 | 500.
 %% @doc Respond to `POST /nrf-rating/v1/ratingdata'.
 %%		Rate an intial Nrf Request.
 initial_nrf(NrfRequest) ->
@@ -102,7 +102,7 @@ initial_nrf(NrfRequest) ->
 				{error, Status, Body},
 		Headers :: [tuple()],
 		Body :: iolist(),
-		Status :: 200 | 400 | 500.
+		Status :: 200 | 400 | 404 | 500.
 %% @doc Respond to `POST /nrf-rating/v1/ratingdata/{ratingRef}/update'.
 %%		Rate an interim Nrf Request.
 update_nrf(RatingDataRef, NrfRequest) ->
@@ -165,7 +165,7 @@ update_nrf(NrfRequest) ->
 		Result :: boolean() | {error, Reason},
 		Reason :: term().
 %% @doc Look up a rating data ref.
-lookup_ref(RatingDataRef) 
+lookup_ref(RatingDataRef)
 		when is_list(RatingDataRef) ->
 	F = fun() ->
 			Spec = #nrf_ref{rating_ref = RatingDataRef, _ = '_'},
@@ -267,7 +267,7 @@ rate([#{"serviceContextId" := SCI} = H | T],
 		{ok, #{"time" := CTime}} ->
 			{[{seconds, CTime}], Map3#{"consumedUnit" => #{"time" => CTime}}};
 		{ok, #{"serviceSpecificUnit" := CSSU}} ->
-			{[{messages, CSSU}], Map3#{"consumedUnit" => #{"serviceSpecificUnit" => CSSU}}}; 
+			{[{messages, CSSU}], Map3#{"consumedUnit" => #{"serviceSpecificUnit" => CSSU}}};
 		error ->
 			{[], Map3}
 	end,
