@@ -361,11 +361,9 @@ import2(Table, Records) ->
 	end.
 %% @hidden
 import3(Table, Records) ->
-	TS = erlang:system_time(?MILLISECOND),
-	N = erlang:unique_integer([positive]),
 	Split = binary:split(Records, [<<"\n">>, <<"\r">>, <<"\r\n">>], [global]),
 	F = fun() ->
-				import4(Table, Split, {TS, N}, [])
+				import4(Table, Split, [])
 	end,
 	case mnesia:transaction(F) of
 		{atomic, ok} ->
@@ -374,18 +372,19 @@ import3(Table, Records) ->
 			exit(Reason)
 	end.
 %% @hidden
-import4(Table, [], _LM, Acc) ->
-	F = fun(#gtt{} = G) ->
-				mnesia:write(Table, G, write)
+import4(Table, [], Acc) ->
+	F = fun({Key, Value}) ->
+				{_NumWrites, #gtt{}} = insert(Table, Key, Value, []),
+				ok
 	end,
 	lists:foreach(F, lists:flatten(Acc));
-import4(Table, [<<>> | T], LM, Acc) ->
-	import4(Table, T, LM, Acc);
-import4(Table, [Chunk | Rest], LM, Acc) ->
+import4(Table, [<<>> | T], Acc) ->
+	import4(Table, T, Acc);
+import4(Table, [Chunk | Rest], Acc) ->
 	case binary:split(Chunk, [<<"\"">>], [global]) of
 		[Chunk] ->
-			NewAcc = [import5(binary:split(Chunk, [<<",">>], [global]), LM, []) | Acc],
-			import4(Table, Rest, LM, NewAcc);
+			NewAcc = [import5(binary:split(Chunk, [<<",">>], [global]), []) | Acc],
+			import4(Table, Rest, NewAcc);
 		SplitChunks ->
 			F = fun(<<$, , T/binary>>, AccIn) ->
 						[T | AccIn];
@@ -400,24 +399,24 @@ import4(Table, [Chunk | Rest], LM, Acc) ->
 						end
 			end,
 			AccOut = lists:foldl(F, [], SplitChunks),
-			NewAcc = [import5(lists:reverse(AccOut), LM, []) | Acc],
-			import4(Table, Rest, LM, NewAcc)
+			NewAcc = [import5(lists:reverse(AccOut), []) | Acc],
+			import4(Table, Rest, NewAcc)
 	end.
 %% @hidden
-import5([<<>> | T], LM, Acc) ->
-	import5(T, LM, [undefined | Acc]);
-import5([H | T], LM, Acc) ->
-	import5(T, LM, [binary_to_list(H) | Acc]);
-import5([], LM, Acc) when length(Acc) == 3 ->
-	import6(lists:reverse(Acc), LM);
-import5([], _LM, _Acc) ->
+import5([<<>> | T], Acc) ->
+	import5(T, [undefined | Acc]);
+import5([H | T], Acc) ->
+	import5(T, [binary_to_list(H) | Acc]);
+import5([], Acc) when length(Acc) == 3 ->
+	import6(lists:reverse(Acc));
+import5([], _Acc) ->
 	[].
 %% @hidden
-import6([Key, Desc, Rate], LM) ->
-	Tuple  = {Desc, ocs_rest:millionths_in(Rate), LM},
+import6([Key, Desc, Rate]) ->
+	Tuple  = {Desc, ocs_rest:millionths_in(Rate)},
 	case is_key_number(Key) of
 		true->
-			#gtt{num = Key, value = Tuple};
+			{Key, Tuple};
 		false ->
 			exit(invalid_key)
 	end.
