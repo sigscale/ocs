@@ -262,7 +262,7 @@
 
 -record(nrf_ref,
 		{rating_ref :: string(),
-		nodeFunctionality :: string() | undefined,
-		imsi :: string() | undefined,
-		msisdn :: string() | undefined}).
+		nodeFunctionality :: string() | undefined | '_',
+		imsi :: string() | undefined | '_',
+		msisdn :: string() | undefined | '_'}).
 
