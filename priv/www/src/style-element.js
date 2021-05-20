@@ -168,7 +168,7 @@ styleElement.innerHTML = `<template>
 			background-color: var(--paper-lime-a700);
 			color: black;
 		}
-		.submit-icon-button {
+		.add-icon-button {
 			color: black;
 			left: 22%;
 		}
