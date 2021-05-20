@@ -22,7 +22,7 @@
 -copyright('Copyright (c) 2016 - 2021 SigScale Global Inc.').
 
 -export([content_types_accepted/0, content_types_provided/0]).
--export([initial_nrf/1]).
+-export([initial_nrf/1, update_nrf/2]).
 
 -include("ocs.hrl").
 
@@ -94,6 +94,52 @@ initial_nrf(NrfRequest) ->
 			{error, 500}
 	end.
 	
+-spec update_nrf(RatingDataRef, NrfRequest) -> NrfResponse
+	when
+		NrfRequest :: iolist(),
+		RatingDataRef :: string(),
+		NrfResponse :: {ok, Headers, Body} | {error, Status} |
+				{error, Status, Body},
+		Headers :: [tuple()],
+		Body :: iolist(),
+		Status :: 201 | 400 | 500.
+%% @doc Respond to `POST /nrf-rating/v1/ratingdata/{ratingRef}/update'.
+%%		Rate an interim Nrf Request.
+update_nrf(RatingDataRef, NrfRequest) ->
+	try
+		case mochijson:decode(NrfRequest) of
+			{struct, _Attributes} = NrfStruct ->
+				NrfMap = nrf_request_to_map(NrfStruct),
+				case rate(NrfMap, interim) of
+					ServiceRating when is_list(ServiceRating) ->
+						UpdatedMap = maps:update("serviceRating", ServiceRating, NrfMap),
+						nrf_response_to_struct(UpdatedMap);
+					{error, out_of_credit} ->
+						Body = error_response(out_of_credit, NrfMap),
+						{error, 403, Body};
+					{error, service_not_found} ->
+						Body = error_response(service_not_found, NrfMap),
+						{error, 404, Body};
+					{error, Reason} ->
+						{error, Reason}
+				end;
+			_ ->
+				Body = error_response(charging_failed, undefined),
+				{error, 400, Body}
+		end
+	of
+		{struct, _Attributes1} = NrfResponse ->
+			ReponseBody = mochijson:encode(NrfResponse),
+			{ok, [], ReponseBody };
+		{error, StatusCode, Body1} ->
+			ReponseBody = mochijson:encode(Body1),
+			{error, StatusCode, ReponseBody};
+		{error, _Reason} ->
+			{error, 500}
+	catch
+		_:_ ->
+			{error, 500}
+	end.
 %%----------------------------------------------------------------------
 %%  internal functions
 %%----------------------------------------------------------------------
@@ -132,9 +178,8 @@ error_response(out_of_credit, #{"serviceRating" := SR}) ->
 error_response(service_not_found, #{"msisdn" := MSISDN}) ->
 	{struct,[{"cause","USER_UNKNOWN"},
 			{"title", "Request denied because the subscriber identity is unrecognized"},
-         {"invalidParams",
-          {array,[{struct,[{"param", MSISDN},
-                           {"reason","unknown msisdn"}]}]}}]};
+			{"invalidParams",
+					{array,[{struct,[{"param", MSISDN}, {"reason","unknown msisdn"}]}]}}]};
 error_response(charging_failed, _) ->
 	{struct,[{"cause","CHARGING_FAILED"},
 			{"title", "Incomplete or erroneous session or subscriber information"}]}.
@@ -180,15 +225,15 @@ rate([#{"serviceContextId" := SCI} = H | T],
 		error ->
 			undefined
 	end,
-	Debits = case maps:find("consumedUnit", H) of
+	{Debits, Map4} = case maps:find("consumedUnit", H) of
 		{ok, #{"totalVolume" := CTV}} ->
-			[{octets, CTV}];
+			{[{octets, CTV}], Map3#{"consumedUnit" => #{"totalVolume" => CTV}}};
 		{ok, #{"time" := CTime}} ->
-			[{seconds, CTime}];
+			{[{seconds, CTime}], Map3#{"consumedUnit" => #{"time" => CTime}}};
 		{ok, #{"serviceSpecificUnit" := CSSU}} ->
-			[{messages, CSSU}];
+			{[{messages, CSSU}], Map3#{"consumedUnit" => #{"serviceSpecificUnit" => CSSU}}}; 
 		error ->
-			[]
+			{[], Map3}
 	end,
 	ServiceType = service_type(list_to_binary(SCI)),
 	TS = calendar:universal_time(),
@@ -196,14 +241,14 @@ rate([#{"serviceContextId" := SCI} = H | T],
 			MCCMNC, Subscriber, TS, undefined, undefined, Flag,
 			Debits, Reserves, [{"invocationSequenceNumber", ISN}]) of
 		{ok, _, {Type, Amount} = _GrantedAmount} when Amount > 0 ->
-			RatedMap = Map3#{"resultCode" => "SUCCESS", "grantedUnit" => #{type(Type) => Amount},
+			RatedMap = Map4#{"resultCode" => "SUCCESS", "grantedUnit" => #{type(Type) => Amount},
 					"serviceContextId"=> SCI},
 			rate(T, ISN, Subscriber, Flag, [RatedMap | Acc]);
 		{ok, _, {_, 0} = _GrantedAmount} ->
-			RatedMap = Map3#{"resultCode" => "SUCCESS", "serviceContextId" => SCI},
+			RatedMap = Map4#{"resultCode" => "SUCCESS", "serviceContextId" => SCI},
 			rate(T, ISN, Subscriber, Flag, [RatedMap | Acc]);
 		{out_of_credit, _, _} ->
-			RatedMap = Map3#{"resultCode" => "QUOTA_LIMIT_REACHED",
+			RatedMap = Map4#{"resultCode" => "QUOTA_LIMIT_REACHED",
 					"serviceContextId" => SCI},
 			rate(T, ISN, Subscriber, Flag, [RatedMap | Acc]);
 		{error, Reason} ->
