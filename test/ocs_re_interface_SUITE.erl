@@ -487,15 +487,16 @@ post_initial_scur(Config) ->
 	Request1 = {HostUrl ++ "/nrf-rating/v1/ratingdata", [Accept, auth_header()], ContentType, RequestBody},
 	{ok, Result} = httpc:request(post, Request1, [], []),
 	{{"HTTP/1.1", 201, _Created}, Headers, ResponseBody} = Result,
-	{_, Location1} = lists:keyfind("location", 1, Headers),
+	{_, _Location1} = lists:keyfind("location", 1, Headers),
 	{struct, AttributeList} = mochijson:decode(ResponseBody),
 	{_, {_, ["msisdn-" ++ MSISDN, "imsi-" ++ IMSI]}} = lists:keyfind("subscriptionId", 1, AttributeList),
 	TotalOctets = InputOctets + OutputOctets,
-	{_, {_ ,[{_, [{"resultCode", "SUCCESS"},
-	{"ratingGroup", 2}, {"serviceId", 1},
-	{"serviceContextId","32251@3gpp.org"},
-	{"grantedUnit", {_, [{"totalVolume", TotalOctets}]}}]}]}}
-			= lists:keyfind("serviceRating", 1, AttributeList).
+	{"serviceRating", {_, [{_,ServiceRating1}]}} = lists:keyfind("serviceRating", 1, AttributeList),
+	{_, "SUCCESS"} = lists:keyfind("resultCode", 1, ServiceRating1),
+	{_, 32} = lists:keyfind("ratingGroup", 1, ServiceRating1),
+	{_, 1} = lists:keyfind("serviceId", 1, ServiceRating1),
+	{_, "32251@3gpp.org"} = lists:keyfind("serviceContextId", 1, ServiceRating1),
+	{_, {_, [{_, TotalOctets}]}} = lists:keyfind("grantedUnit", 1, ServiceRating1).
 
 post_update_scur() ->
 	[{userdata, [{doc, "Post Interim Nrf Request to be rated"}]}].
@@ -544,8 +545,7 @@ post_update_scur(Config) ->
 	{_, 32} = lists:keyfind("ratingGroup", 1, ServiceRating2),
 	{_, 1} = lists:keyfind("serviceId", 1, ServiceRating2),
 	{_, "32251@3gpp.org"} = lists:keyfind("serviceContextId", 1, ServiceRating2),
-	{"consumedUnit", {struct, [{"totalVolume", TotalOctets1}]}}
-			= lists:keyfind("consumedUnit", 1, ServiceRating2).
+	{_, {_, [{_, TotalOctets1}]}} = lists:keyfind("consumedUnit", 1, ServiceRating2).
 
 %%---------------------------------------------------------------------
 %%  Internal functions
