@@ -581,7 +581,7 @@
           }
         } ],
         "responses" : {
-          "204" : {
+          "200" : {
             "description" : "Rating Data successfully released",
             "content" : {
               "application/json" : {
