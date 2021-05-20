@@ -103,8 +103,6 @@ do_delete(Resource, ModData, ["productCatalogManagement", "v2", "productOffering
 	do_response(ModData, Resource:delete_offer(Identity));
 do_delete(Resource, ModData, ["usageManagement", "v1", "hub", Identity]) ->
 	do_response(ModData, Resource:delete_hub(Identity));
-do_delete(Resource, ModData, ["nrf-rating", "v1", "ratingdata", RefId, "release"]) ->
-	do_response(ModData, Resource:delete_nrf(RefId));
 do_delete(_Resource, #mod{data = Data} = _ModData, _) ->
 	Response = "<h2>HTTP Error 404 - Not Found</h2>",
 	{proceed, [{response, {404, Response}} | Data]}.
