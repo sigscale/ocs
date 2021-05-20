@@ -53,49 +53,47 @@ class policyList extends PolymerElement {
 					<iron-pages
 							selected="{{selectedTab}}">
 						<div>
-							<dl class="details">
-								<template is="dom-if" if="{{item.id}}">
-									<paper-input
-										id="addPolId"
-										name="id"
-										label="Id"
-										value="{{polId}}"
-										disabled>
-									</paper-input>
-								</template>
-								<template is="dom-if" if="{{item.name}}">
-									<paper-input
-										id="addPolName"
-										name="name"
-										label="Name"
-										value="{{polName}}">
-									</paper-input>
-								</template>
-								<template is="dom-if" if="{{item.precedence}}">
-									<paper-input
-										id="addPolPre"
-										name="precedence"
-										label="Precedence"
-										value="{{item.precedence}}">
-									</paper-input>
-								</template>
-								<template is="dom-if" if="{{item.chargingKey}}">
-									<paper-input
-										id="addPolCha"
-										name="chargingKey"
-										label="Charging Key"
-										value="{{item.chargingKey}}">
-									</paper-input>
-								</template>
-								<template is="dom-if" if="{{item.serviceId}}">
-									<paper-input
-										id="addPolSer"
-										name="serviceId"
-										label="Service Id"
-										value="{{item.serviceId}}">
-									</paper-input>
-								</template>
-							</dl>
+							<template is="dom-if" if="{{item.id}}">
+								<paper-input
+									id="addPolId"
+									name="id"
+									label="Id"
+									value="{{polId}}"
+									disabled>
+								</paper-input>
+							</template>
+							<template is="dom-if" if="{{item.name}}">
+								<paper-input
+									id="addPolName"
+									name="name"
+									label="Name"
+									value="{{polName}}">
+								</paper-input>
+							</template>
+							<template is="dom-if" if="{{item.precedence}}">
+								<paper-input
+									id="addPolPre"
+									name="precedence"
+									label="Precedence"
+									value="{{item.precedence}}">
+								</paper-input>
+							</template>
+							<template is="dom-if" if="{{item.chargingKey}}">
+								<paper-input
+									id="addPolCha"
+									name="chargingKey"
+									label="Charging Key"
+									value="{{item.chargingKey}}">
+								</paper-input>
+							</template>
+							<template is="dom-if" if="{{item.serviceId}}">
+								<paper-input
+									id="addPolSer"
+									name="serviceId"
+									label="Service Id"
+									value="{{item.serviceId}}">
+								</paper-input>
+							</template>
 						</div>
 						<div>
 							<template is="dom-if" if="{{item.maxRequestedBandwidthDL}}">
