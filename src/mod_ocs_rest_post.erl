@@ -170,22 +170,22 @@ do_response(#mod{data = Data} = _ModData, {error, 400}) ->
 do_response(#mod{data = Data} = ModData, {error, 400, ResponseBody}) ->
 	Response = "<h2>HTTP Error 400 - Bad Request</h2>",
 	Size = integer_to_list(iolist_size(ResponseBody)),
-	Accept = proplists:get_value(accept, Data),
-	Headers = [{content_length, Size}, {content_type, Accept}],
+	Headers = [{content_length, Size},
+			{content_type, "application/problem+json"}],
 	send(ModData, 400, Headers, ResponseBody),
 	{proceed, [{response, {400, Response}} | Data]};
 do_response(#mod{data = Data} = ModData, {error, 403, ResponseBody}) ->
 	Response = "<h2>HTTP Error 403 - Forbidden</h2>",
 	Size = integer_to_list(iolist_size(ResponseBody)),
-	Accept = proplists:get_value(accept, Data),
-	Headers = [{content_length, Size}, {content_type, Accept}],
+	Headers = [{content_length, Size},
+			{content_type, "application/problem+json"}],
 	send(ModData, 403, Headers, ResponseBody),
 	{proceed, [{response, {403, Response}} | Data]};
 do_response(#mod{data = Data} = ModData, {error, 404, ResponseBody}) ->
 	Response = "<h2>HTTP Error 404 - Not Found</h2>",
 	Size = integer_to_list(iolist_size(ResponseBody)),
-	Accept = proplists:get_value(accept, Data),
-	Headers = [{content_length, Size}, {content_type, Accept}],
+	Headers = [{content_length, Size},
+			{content_type, "application/problem+json"}],
 	send(ModData, 404, Headers, ResponseBody),
 	{proceed, [{response, {404, Response}} | Data]};
 do_response(#mod{data = Data} = _ModData, {error, 404}) ->
