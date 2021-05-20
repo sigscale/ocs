@@ -41,11 +41,13 @@
 %% export API
 -export([new/2, new/3, insert/2, insert/3, delete/2,
 		lookup_first/2, lookup_last/2, lookup_all/2,
-		list/0, backup/2, restore/2, import/1]).
+		list/0, list/2, backup/2, restore/2, import/1]).
 
 %% support deprecated_time_unit()
 -define(MILLISECOND, milli_seconds).
 %-define(MILLISECOND, millisecond).
+
+-define(CHUNKSIZE, 100).
 
 -include("ocs.hrl").
 
@@ -427,17 +429,43 @@ import6([Key, Desc, Rate]) ->
 		Table :: atom().
 %% @doc List all tables.
 list() ->
-	list(mnesia:system_info(tables), []).
+	list_tables(mnesia:system_info(tables), []).
 %% @hidden
-list([H | T], Acc) ->
+list_tables([H | T], Acc) ->
 	case mnesia:table_info(H, record_name) of
 		gtt ->
-			list(T, [H | Acc]);
+			list_tables(T, [H | Acc]);
 		_ ->
-			list(T, Acc)
+			list_tables(T, Acc)
 	end;
-list([], Acc) ->
+list_tables([], Acc) ->
 	lists:reverse(Acc).
+
+-spec list(Cont, Table) -> Result
+	when
+		Cont :: start,
+		Table :: atom(),
+		Result :: {Cont1, [#gtt{}]} | {error, Reason},
+		Cont1 :: eof | any(),
+		Reason :: term().
+%% @doc List all gtt entries.
+list(start, Table) when is_atom(Table) ->
+	MatchSpec = [{#gtt{value = '$2', _ = '_'},
+			[{'/=', '$2', undefined}], ['$_']}],
+	F = fun() ->
+		mnesia:select(Table, MatchSpec, ?CHUNKSIZE, read)
+	end,
+	list(mnesia:ets(F));
+list(Cont, _Table) ->
+	F = fun() ->
+		mnesia:select(Cont)
+	end,
+	list(mnesia:ets(F)).
+%% @hidden
+list({[#gtt{} | _] = Gtts, Cont}) ->
+	{Cont, Gtts};
+list('$end_of_table') ->
+	{eof, []}.
 
 %%----------------------------------------------------------------------
 %%  internal functions
