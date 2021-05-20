@@ -1664,14 +1664,12 @@ add_resource(#resource{id = undefined, last_modified = undefined} = Resource) ->
 add_resource1({atomic, #resource{name = Name,
 		specification = #specification_ref{id = "1"}} = NewResource})
 		when is_list(Name) ->
-	case catch list_to_existing_atom(Name) of
-		{'EXIT', _Reason} ->
-			ok = ocs_gtt:new(list_to_atom(Name), []),
+	case mnesia:table_info(list_to_atom(Name), attributes) of
+		[num,value] ->
 			ok = ocs_event:notify(create_resource, NewResource, resource),
 			{ok, NewResource};
 		_ ->
-			ok = ocs_event:notify(create_resource, NewResource, resource),
-			{ok, NewResource}
+			exit(table_not_found)
 	end;
 add_resource1({atomic, #resource{} = NewResource}) ->
 	ok = ocs_event:notify(create_resource, NewResource, resource),
