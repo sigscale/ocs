@@ -110,7 +110,7 @@ add_rating_ref(RatingDataRef, #{"nodeFunctionality" := NF,
 	F = fun() ->
 			NewRef = #nrf_session{rating_ref = RatingDataRef,
 					 nodeFunctionality = NF, imsi = IMSI, msisdn = MSISDN},
-			mnesia:write(nrf_session, NewRef, write)
+			mnesia:write(nrf_ref, NewRef, write)
 	end,
 	case mnesia:transaction(F) of
 		{aborted, Reason} ->
