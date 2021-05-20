@@ -158,6 +158,12 @@ do_response(#mod{data = Data} = ModData, {ok, Headers, ResponseBody}) ->
 	NewHeaders = Headers ++ [{content_length, Size}, {content_type, Accept}],
 	send(ModData, 201, NewHeaders, ResponseBody),
 	{proceed,[{response,{already_sent, 201, Size}} | Data]};
+do_response(#mod{data = Data} = ModData, {200, Headers, ResponseBody}) ->
+	Size = integer_to_list(iolist_size(ResponseBody)),
+	Accept = proplists:get_value(accept, Data),
+	NewHeaders = Headers ++ [{content_length, Size}, {content_type, Accept}],
+	send(ModData, 200, NewHeaders, ResponseBody),
+	{proceed,[{response,{already_sent, 201, Size}} | Data]};
 do_response(#mod{data = Data} = _ModData, {error, 400}) ->
 	Response = "<h2>HTTP Error 400 - Bad Request</h2>",
 	{proceed, [{response, {400, Response}} | Data]};

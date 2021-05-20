@@ -98,14 +98,29 @@ initial_nrf(NrfRequest) ->
 	when
 		NrfRequest :: iolist(),
 		RatingDataRef :: string(),
-		NrfResponse :: {ok, Headers, Body} | {error, Status} |
+		NrfResponse :: {Status, Headers, Body} | {error, Status} |
 				{error, Status, Body},
 		Headers :: [tuple()],
 		Body :: iolist(),
-		Status :: 201 | 400 | 500.
+		Status :: 200 | 400 | 500.
 %% @doc Respond to `POST /nrf-rating/v1/ratingdata/{ratingRef}/update'.
 %%		Rate an interim Nrf Request.
 update_nrf(RatingDataRef, NrfRequest) ->
+	case lookup_ref(RatingDataRef) of
+		true ->
+			update_nrf(NrfRequest);
+		false ->
+			Body = {struct,[{"cause", "RATING_DATA_REF_UNKNOWN"},
+					{"title", "Request denied because the rating data ref is not unrecognized"},
+					{"invalidParams",
+							{array,[{struct,[{"param", RatingDataRef},
+									{"reason","unknown rating data ref"}]}]}}]},
+			ResponseBody = mochijson:encode(Body),
+			{error, 404, ResponseBody};
+		{error, _Reason} ->
+			{error, 500}
+	end.
+update_nrf(NrfRequest) ->
 	try
 		case mochijson:decode(NrfRequest) of
 			{struct, _Attributes} = NrfStruct ->
@@ -130,7 +145,7 @@ update_nrf(RatingDataRef, NrfRequest) ->
 	of
 		{struct, _Attributes1} = NrfResponse ->
 			ReponseBody = mochijson:encode(NrfResponse),
-			{ok, [], ReponseBody };
+			{200, [], ReponseBody };
 		{error, StatusCode, Body1} ->
 			ReponseBody = mochijson:encode(Body1),
 			{error, StatusCode, ReponseBody};
@@ -143,6 +158,27 @@ update_nrf(RatingDataRef, NrfRequest) ->
 %%----------------------------------------------------------------------
 %%  internal functions
 %%----------------------------------------------------------------------
+
+-spec lookup_ref(RatingDataRef) -> Result
+	when
+		RatingDataRef :: string(),
+		Result :: boolean() | {error, Reason},
+		Reason :: term().
+%% @doc Look up a rating data ref.
+lookup_ref(RatingDataRef) 
+		when is_list(RatingDataRef) ->
+	F = fun() ->
+			Spec = #nrf_ref{rating_ref = RatingDataRef, _ = '_'},
+			mnesia:write(nrf_ref, [{Spec, [], ['_']}], read)
+	end,
+	case mnesia:transaction(F) of
+		{aborted, Reason} ->
+			{error, Reason};
+		{atomic, []} ->
+			false;
+		{atomic, [#nrf_ref{rating_ref = RatingDataRef}]} ->
+			true
+	end.
 
 -spec add_rating_ref(RatingDataRef, NrfMap) -> Result
 	when
@@ -320,9 +356,9 @@ struct_service_rating(ServiceRating) ->
 struct_service_rating([H | T], Acc) ->
 	Acc1 = case maps:find("grantedUnit", H) of
 		{ok, Units1} ->
-			[{"grantedUnit", {struct, maps:to_list(Units1)}} | Acc];
+			[{"grantedUnit", {struct, maps:to_list(Units1)}}];
 		_ ->
-			Acc
+			[]
 	end,
 	Acc2 = case maps:find("consumedUnit", H) of
 		{ok, Units2} ->
