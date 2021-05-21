@@ -396,10 +396,15 @@ get_resource(Query, Headers) ->
 					MatchId = match("id", [], Query),
 					MatchCategory = match("category", [], Query),
 					MatchSpecId = match("resourceSpecification.id", [], Query),
-					MatchRelName = match("resourceRelationship.resource.name", [], Query),
+					MatchRelName
+							= match("resourceRelationship.resource.name", [], Query),
 					{Query, [MatchId, MatchCategory, MatchSpecId, MatchRelName]}
 		end
 	of
+		{Query2, [_, _, {exact, "2"}, {exact, Table}]} ->
+			Codec = fun gtt/2,
+			query_filter({ocs_gtt, list, [list_to_existing_atom(Table)]},
+					Codec, Query2, Headers);
 		{Query2, Args} ->
 			Codec = fun resource/1,
 			query_filter({ocs, query_resource, Args}, Codec, Query2, Headers)
@@ -475,10 +480,27 @@ query_filter(MFA, Codec, Query, Filters, Headers) ->
 	end.
 
 %% @hidden
-query_page(Codec, PageServer, Etag, _Query, Filters, Start, End) ->
+query_page(Codec, PageServer, Etag, Query, Filters, Start, End) ->
 	case gen_server:call(PageServer, {Start, End}) of
 		{error, Status} ->
 			{error, Status};
+		{[#gtt{} | _] = Result, ContentRange} ->
+			case lists:keyfind("resourceRelationship.resource.name", 1,
+					Query) of
+				{_, Table} ->
+					Objects = [gtt(Table, {Prefix, Description, Rate})
+							|| #gtt{num = Prefix, value = {Description, Rate, _}}
+							<- Result],
+					JsonObj = query_page1(Objects, Filters, []),
+					JsonArray = {array, JsonObj},
+					Body = mochijson:encode(JsonArray),
+					Headers = [{content_type, "application/json"},
+							{etag, Etag}, {accept_ranges, "items"},
+							{content_range, ContentRange}],
+					{ok, Headers, Body};
+				false ->
+					{error, 400}
+			end;
 		{Result, ContentRange} ->
 			JsonObj = query_page1(lists:map(Codec, Result), Filters, []),
 			JsonArray = {array, JsonObj},
@@ -791,12 +813,10 @@ gtt(Name, {Prefix, Description, Rate} = _Gtt) ->
 	{struct, [{"id", Prefix},
 			{"href", ?inventoryPath ++ Name ++ "/" ++ Prefix},
 			{"resourceSpecification", {struct, [SpecId, SpecHref, SpecName]}},
-			{"resourceCharacteristic", {array, [{struct, [{"name", "prefix"},
-			{"value", {struct, [{"seqNum", 1}, {"value", Prefix}]}}]},
-			{struct, [{"name", "description"},
-			{"value", {struct, [{"seqNum", 2}, {"value", Description}]}}]},
-			{struct, [{"name", "rate"},
-			{"value", {struct, [{"seqNum", 3}, {"value", ocs_rest:millionths_out(Rate)}]}}]}]}}]};
+			{"resourceCharacteristic", {array,
+			[{struct, [{"name", "prefix"}, {"value", Prefix}]},
+			{struct, [{"name", "description"}, {"value", Description}]},
+			{struct, [{"name", "rate"}, {"value", ocs_rest:millionths_out(Rate)}]}]}}]};
 gtt(_, {struct, ObjectMembers}) when is_list(ObjectMembers) ->
 	gtt1(ObjectMembers, {undefined, [], undefined}).
 %% @hidden
