@@ -4392,16 +4392,18 @@ get_tariff_resource() ->
 			inventory reference"}]}].
 
 get_tariff_resource(Config) ->
+	ok = ocs_gtt:new(tariff_table1, []),
 	Schema = "/resourceInventoryManagement/v1/schema/"
 			"resourceInventoryManagement#/definitions/resource",
 	ResourceRelID = ocs:generate_identity(),
 	Resource = #resource{class_type = "LogicalResource", base_type = "Resource",
-			schema = Schema, description = "tariff row resource", category = "tariff",
-			start_date = erlang:system_time(?MILLISECOND), state = "Active",
+			schema = Schema, description = "tariff row resource",
+			category = "tariff", state = "Active",
+			start_date = erlang:system_time(?MILLISECOND),
 			end_date = erlang:system_time(?MILLISECOND) + 2678400000,
 			related = [#resource_rel{id = ResourceRelID,
 					href = "/resourceInventoryManagement/v1/resource/"
-					++ ResourceRelID, type = "contained", name = "example"}],
+					++ ResourceRelID, type = "contained", name = "tariff_table1"}],
 			specification = #specification_ref{id = "2", name = "tariff spec",
 					href = "/resourceCatalogManagement/v2/resourceSpecification/2"},
 			characteristic  = [#resource_char{name = "prefix", value = "125"},
@@ -4425,7 +4427,7 @@ get_tariff_resource(Config) ->
 	{_, {array, [{struct, RelList}]}}
 			= lists:keyfind("resourceRelationship", 1, Object),
 	{_, {struct, ObjList}} = lists:keyfind("resource", 1, RelList),
-	{_, "example"} = lists:keyfind("name", 1, ObjList),
+	{_, "tariff_table1"} = lists:keyfind("name", 1, ObjList),
 	{_, {array, CharList}} = lists:keyfind("resourceCharacteristic", 1, Object),
 	3 = length(CharList).
 
@@ -4433,8 +4435,11 @@ get_tariff_resources() ->
 	[{userdata, [{doc, "GET Resource collection"}]}].
 
 get_tariff_resources(Config) ->
-	{ok, #resource{}} = add_resource("1", "tariff table", "tariff"),
-	{ok, #resource{}} = add_resource("2", "tariff row", "tariff"),
+	ok = ocs_gtt:new(tariff_table2, []),
+	{ok, #resource{}}
+			= add_resource("1", "tariff table", "tariff", "tariff_table2"),
+	{ok, #resource{}}
+			= add_resource("2", "tariff row", "tariff", "tariff_table2"),
 	HostUrl = ?config(host_url, Config),
 	CollectionUrl = HostUrl ++ "/resourceInventoryManagement/v1/resource/",
 	Accept = {"accept", "application/json"},
@@ -4451,6 +4456,7 @@ post_tariff_resource() ->
 	[{userdata, [{doc,"Add tariff resource in rest interface"}]}].
 
 post_tariff_resource(Config) ->
+	ok = ocs_gtt:new(tariff_table4, []),
 	HostUrl = ?config(host_url, Config),
 	CollectionUrl = HostUrl ++ "/resourceInventoryManagement/v1/resource/",
 	Name = "Tariff",
@@ -4493,7 +4499,7 @@ post_tariff_resource(Config) ->
 			++ "\t\t\t\"resource\": {\n"
 			++ "\t\t\t\t\"id\": \"" ++ ResourceRelId ++ "\",\n"
 			++ "\t\t\t\t\"href\": \"" ++ ResourceRelHref ++ "\",\n"
-			++ "\t\t\t\t\"name\": \"example\"\n"
+			++ "\t\t\t\t\"name\": \"tariff_table4\"\n"
 			++ "\t\t\t\t},\n"
 			++ "\t\t\t\"relationshipType\": \"contained\"\n"
 			++ "\t\t}\n"
@@ -4531,7 +4537,7 @@ post_tariff_resource(Config) ->
 	#specification_ref{id = ResSpecId, href = ResSpecHref,
 			name = ResSpecName} = S,
 	#resource_rel{id = ResourceRelId, href = ResourceRelHref,
-			type = "contained", name = "example"} = R,
+			type = "contained", name = "tariff_table4"} = R,
 	#resource_char{name = "prefix", value = CharPrefix}
 			= lists:keyfind("prefix", #resource_char.name, CharList),
 	#resource_char{name = "description", value = CharDes}
@@ -4543,7 +4549,9 @@ delete_tariff_resource() ->
 	[{userdata, [{doc,"Delete tariff resource inventory"}]}].
 
 delete_tariff_resource(Config) ->
-	{ok, #resource{id = Id}} = add_resource("1", "tariff table", "tariff"),
+	ok = ocs_gtt:new(tariff_table3, []),
+	{ok, #resource{id = Id}}
+			= add_resource("1", "tariff table", "tariff", "tariff_table3"),
 	URI = "/resourceInventoryManagement/v1/resource/" ++ Id,
 	HostUrl = ?config(host_url, Config),
 	Request = {HostUrl ++ URI, [auth_header()]},
@@ -5258,10 +5266,10 @@ add_bucket(ProdRef, Units, RA) ->
 	BId.
 
 %% @hidden
-add_resource("1", Description, Category) ->
+add_resource("1", Description, Category, TableName) ->
 	Schema = "/resourceInventoryManagement/v1/schema/"
 			"resourceInventoryManagement#/definitions/resource",
-	Resource = #resource{name = "tariffexample", class_type = "LogicalResource",
+	Resource = #resource{name = TableName, class_type = "LogicalResource",
 			base_type = "Resource", description = Description, category = Category,
 			state = "Active", schema = Schema,
 			start_date = erlang:system_time(?MILLISECOND),
@@ -5269,7 +5277,7 @@ add_resource("1", Description, Category) ->
 			specification = #specification_ref{id = "1", name = "tariffTable",
 					href = "/resourceCatalogManagement/v2/resourceSpecification/1"}},
 	ocs:add_resource(Resource);
-add_resource("2", Description, Category) ->
+add_resource("2", Description, Category, TableName) ->
 	Schema = "/resourceInventoryManagement/v1/schema/"
 			"resourceInventoryManagement#/definitions/resource",
 	ResourceRelID = ocs:generate_identity(),
@@ -5279,7 +5287,7 @@ add_resource("2", Description, Category) ->
 			end_date = erlang:system_time(?MILLISECOND) + 2678400000,
 			related = [#resource_rel{id = ResourceRelID,
 					href = "/resourceInventoryManagement/v1/resource/"
-					++ ResourceRelID, referred_type = "contained", name = "example"}],
+					++ ResourceRelID, referred_type = "contained", name = TableName}],
 			specification = #specification_ref{id = "2", name = "tariffRow",
 					href = "/resourceCatalogManagement/v2/resourceSpecification/2"},
 			characteristic  = [#resource_char{name = "prefix", value = "125"},
@@ -5325,6 +5333,7 @@ random_string(<<>>, _Charset, _NumChars, Acc) ->
 
 %% @hidden
 resource_inventory() ->
+	ok = ocs_gtt:new(tariff_table5, []),
 	Name = {"name", "Tariff"},
 	Description = {"description", "tariff resource"},
 	Category = {"category", "tariff"},
@@ -5346,9 +5355,9 @@ resource_inventory() ->
 	ResSpec = {"resourceSpecification",
 			{struct, [ResSpecID, ResSpecName, ResSpecHref]}},
 	ResRelId = {"id", RelId = random_string(5)},
-	ResRelName = {"name", "example"},
+	ResRelName = {"name", "tariff_table5"},
 	ResRelType = {"relationshipType", "contained"},
-	ResRelHref = {"name", "/resourceInventoryManagement/v1/resource/" ++ RelId},
+	ResRelHref = {"href", "/resourceInventoryManagement/v1/resource/" ++ RelId},
 	ResRel = {struct, [{resource, {struct, [ResRelId, ResRelName, ResRelHref]}},
 			ResRelType]},
 	ResourceRelationship = {"resourceRelationship", {array, [ResRel]}},
