@@ -22,7 +22,7 @@
 -copyright('Copyright (c) 2016 - 2021 SigScale Global Inc.').
 
 -export([content_types_accepted/0, content_types_provided/0]).
--export([initial_nrf/1, update_nrf/2]).
+-export([initial_nrf/1, update_nrf/2, release_nrf/2]).
 
 -include("ocs.hrl").
 
@@ -51,7 +51,7 @@ content_types_provided() ->
 				{error, Status, Body},
 		Headers :: [tuple()],
 		Body :: iolist(),
-		Status :: 201 | 400 | 500.
+		Status :: 201 | 400 | 404 | 500.
 %% @doc Respond to `POST /nrf-rating/v1/ratingdata'.
 %%		Rate an intial Nrf Request.
 initial_nrf(NrfRequest) ->
@@ -102,7 +102,7 @@ initial_nrf(NrfRequest) ->
 				{error, Status, Body},
 		Headers :: [tuple()],
 		Body :: iolist(),
-		Status :: 200 | 400 | 500.
+		Status :: 200 | 400 | 404 | 500.
 %% @doc Respond to `POST /nrf-rating/v1/ratingdata/{ratingRef}/update'.
 %%		Rate an interim Nrf Request.
 update_nrf(RatingDataRef, NrfRequest) ->
@@ -155,17 +155,99 @@ update_nrf(NrfRequest) ->
 		_:_ ->
 			{error, 500}
 	end.
+
+-spec release_nrf(RatingDataRef, NrfRequest) -> NrfResponse
+	when
+		NrfRequest :: iolist(),
+		RatingDataRef :: string(),
+		NrfResponse :: {Status, Headers, Body} | {error, Status} |
+				{error, Status, Body},
+		Headers :: [tuple()],
+		Body :: iolist(),
+		Status :: 200 | 400 | 404 | 500.
+%% @doc Respond to `POST /nrf-rating/v1/ratingdata/{ratingRef}/final'.
+%%		Rate an final Nrf Request.
+release_nrf(RatingDataRef, NrfRequest) ->
+	case lookup_ref(RatingDataRef) of
+		true ->
+			release_nrf1(RatingDataRef, NrfRequest);
+		false ->
+			Body = {struct,[{"cause", "RATING_DATA_REF_UNKNOWN"},
+					{"title", "Request denied because the rating data ref is not unrecognized"},
+					{"invalidParams",
+							{array,[{struct,[{"param", RatingDataRef},
+									{"reason","unknown rating data ref"}]}]}}]},
+			ResponseBody = mochijson:encode(Body),
+			{error, 404, ResponseBody};
+		{error, _Reason} ->
+			{error, 500}
+	end.
+release_nrf1(RatingDataRef, NrfRequest) ->
+	try
+		case mochijson:decode(NrfRequest) of
+			{struct, _Attributes} = NrfStruct ->
+				NrfMap = nrf_request_to_map(NrfStruct),
+				case rate(NrfMap, final) of
+					ServiceRating when is_list(ServiceRating) ->
+						UpdatedMap = maps:update("serviceRating", ServiceRating, NrfMap),
+						ok = remove_ref(RatingDataRef),
+						nrf_response_to_struct(UpdatedMap);
+					{error, out_of_credit} ->
+						Body = error_response(out_of_credit, NrfMap),
+						{error, 403, Body};
+					{error, service_not_found} ->
+						Body = error_response(service_not_found, NrfMap),
+						{error, 404, Body};
+					{error, Reason} ->
+						{error, Reason}
+				end;
+			_ ->
+				Body = error_response(charging_failed, undefined),
+				{error, 400, Body}
+		end
+	of
+		{struct, _Attributes1} = NrfResponse ->
+			ReponseBody = mochijson:encode(NrfResponse),
+			{200, [], ReponseBody };
+		{error, StatusCode, Body1} ->
+			ReponseBody = mochijson:encode(Body1),
+			{error, StatusCode, ReponseBody};
+		{error, _Reason} ->
+			{error, 500}
+	catch
+		_:_ ->
+			{error, 500}
+	end.
+
 %%----------------------------------------------------------------------
 %%  internal functions
 %%----------------------------------------------------------------------
 
+-spec remove_ref(RatingDataRef) -> Result
+	when
+		RatingDataRef :: string(),
+		Result :: ok | {error, Reason},
+		Reason :: term().
+%% @doc Look up a rating data ref.
+remove_ref(RatingDataRef)
+		when is_list(RatingDataRef) ->
+	F = fun() ->
+			mnesia:delete(nrf_ref, RatingDataRef, write)
+	end,
+	case mnesia:transaction(F) of
+		{aborted, Reason} ->
+			{error, Reason};
+		{atomic, ok} ->
+			ok
+	end.
+	
 -spec lookup_ref(RatingDataRef) -> Result
 	when
 		RatingDataRef :: string(),
 		Result :: boolean() | {error, Reason},
 		Reason :: term().
 %% @doc Look up a rating data ref.
-lookup_ref(RatingDataRef) 
+lookup_ref(RatingDataRef)
 		when is_list(RatingDataRef) ->
 	F = fun() ->
 			Spec = #nrf_ref{rating_ref = RatingDataRef, _ = '_'},
@@ -267,7 +349,7 @@ rate([#{"serviceContextId" := SCI} = H | T],
 		{ok, #{"time" := CTime}} ->
 			{[{seconds, CTime}], Map3#{"consumedUnit" => #{"time" => CTime}}};
 		{ok, #{"serviceSpecificUnit" := CSSU}} ->
-			{[{messages, CSSU}], Map3#{"consumedUnit" => #{"serviceSpecificUnit" => CSSU}}}; 
+			{[{messages, CSSU}], Map3#{"consumedUnit" => #{"serviceSpecificUnit" => CSSU}}};
 		error ->
 			{[], Map3}
 	end,
@@ -283,6 +365,13 @@ rate([#{"serviceContextId" := SCI} = H | T],
 		{ok, _, {_, 0} = _GrantedAmount} ->
 			RatedMap = Map4#{"resultCode" => "SUCCESS", "serviceContextId" => SCI},
 			rate(T, ISN, Subscriber, Flag, [RatedMap | Acc]);
+		{ok, _, {Type, Amount}, _} ->
+			RatedMap = Map4#{"resultCode" => "SUCCESS", "grantedUnit" => #{type(Type) => Amount},
+					"serviceContextId"=> SCI},
+			rate(T, ISN, Subscriber, Flag, [RatedMap | Acc]);
+		{ok, _, _} ->
+			RatedMap = Map4#{"resultCode" => "SUCCESS", "serviceContextId" => SCI},
+			rate(T, ISN, Subscriber, Flag, [RatedMap | Acc]);
 		{out_of_credit, _, _} ->
 			RatedMap = Map4#{"resultCode" => "QUOTA_LIMIT_REACHED",
 					"serviceContextId" => SCI},
@@ -290,6 +379,8 @@ rate([#{"serviceContextId" := SCI} = H | T],
 		{error, Reason} ->
 			{error, Reason}
 	end;
+rate([], _ISN, _Subscriber, _Flag, []) ->
+	[];
 rate([], _ISN, _Subscriber, _Flag, Acc) ->
 	F = fun F([#{"resultCode" := "SUCCESS"} | _T]) ->
 			Acc;
