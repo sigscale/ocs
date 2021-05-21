@@ -46,7 +46,7 @@
 	Fun :: fun((Arg) -> sent| close | Body),
 	Arg :: [term()].
 %% @doc Erlang web server API callback function.
-do(#mod{method = Method, parsed_header = Headers, request_uri = Uri,
+do(#mod{method = Method, parsed_header = _Headers, request_uri = Uri,
 		data = Data} = ModData) ->
 	case Method of
 		"GET" ->
@@ -220,6 +220,8 @@ do_get(Resource, ModData, ["resourceCatalogManagement", "v2", "resourceCatalog",
 	do_response(ModData, Resource:get_resource_catalog(Id));
 do_get(Resource, ModData, ["resourceCatalogManagement", "v2", "resourceCatalog"], Query) ->
 	do_response(ModData, Resource:get_resource_catalogs(Query));
+do_get(Resource, ModData, ["resourceCatalogManagement", "v2", "resourceSpecification", Id], []) ->
+	do_response(ModData, Resource:get_resource_spec(Id));
 do_get(Resource, ModData, ["resourceCatalogManagement", "v2", "resourceSpecification"], Query) ->
 	do_response(ModData, Resource:get_resource_specs(Query));
 do_get(Resource, ModData, ["resourceCatalogManagement", "v2", "plaSpecification"], Query) ->
