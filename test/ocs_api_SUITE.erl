@@ -704,7 +704,8 @@ gtt_insert_event() ->
 
 gtt_insert_event(_Config) ->
 	ok = gen_event:add_handler(ocs_event, test_event, [self()]),
-	[Table | _] = ocs_gtt:list(),
+	Table = notification,
+	ok = ocs_gtt:new(Table, []),
 	Prefix = "1519240",
 	Description = "Bell Mobility",
 	Amount = 10000,
@@ -719,7 +720,7 @@ gtt_delete_event() ->
 
 gtt_delete_event(_Config) ->
 	ok = gen_event:add_handler(ocs_event, test_event, [self()]),
-	[Table | _] = ocs_gtt:list(),
+	Table = notification,
 	Prefix = "1519241",
 	Description = "Bell Mobility",
 	Amount = 10000,
@@ -1101,8 +1102,9 @@ add_resource() ->
 	[{userdata, [{doc, "Add new resource"}]}].
 
 add_resource(_Config) ->
+	ok = ocs_gtt:new(example_tariff1, []),
 	Resource = #resource{
-			name = "Example",
+			name = "example_tariff1",
 			description = "Example voice tariff",
 			category = "tariff",
 			state = "created", start_date = erlang:system_time(?MILLISECOND),
@@ -1120,7 +1122,8 @@ get_resources() ->
 	[{userdata, [{doc, "List all the resources in the table"}]}].
 
 get_resources(_Config) ->
-	Resource = #resource{name = "Example",
+	ok = ocs_gtt:new(example_tariff2, []),
+	Resource = #resource{name = "example_tariff2",
 			description = "Example voice tariff", category = "tariff",
 			state = "created", start_date = erlang:system_time(?MILLISECOND),
 			specification = #specification_ref{id = "1",
@@ -1140,7 +1143,8 @@ get_resource() ->
 	[{userdata, [{doc, "Get resource by identifier"}]}].
 
 get_resource(_Config) ->
-	Resource = #resource{name = "Example",
+	ok = ocs_gtt:new(example_tariff3, []),
+	Resource = #resource{name = "example_tariff3",
 			description = "Example voice tariff", category = "tariff",
 			state = "created", start_date = erlang:system_time(?MILLISECOND),
 			specification = #specification_ref{id = "1",
@@ -1155,7 +1159,8 @@ delete_resource() ->
 	[{userdata, [{doc, "Remove a resource from the table"}]}].
 
 delete_resource(_Config) ->
-	Resource = #resource{name = "Example",
+	ok = ocs_gtt:new(example_tariff4, []),
+	Resource = #resource{name = "example_tariff4",
 			description = "Example voice tariff", category = "tariff",
 			state = "created", start_date = erlang:system_time(?MILLISECOND),
 			specification = #specification_ref{id = "1",
