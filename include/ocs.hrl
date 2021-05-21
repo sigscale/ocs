@@ -244,8 +244,8 @@
 -type resource_char() :: #resource_char{}.
 
 -record(gtt,
-		{num :: string(),
-		value :: {Description :: string(), Rate :: non_neg_integer(), LastModified :: tuple()} | undefined}).
+		{num :: string() | '_' | '$1',
+		value :: {Description :: string(), Rate :: non_neg_integer(), LastModified :: tuple()} | undefined | '_' | '$2'}).
 
 -record(session,
 		{id :: diameter:'OctetString'() | radius_attributes:attributes(),
