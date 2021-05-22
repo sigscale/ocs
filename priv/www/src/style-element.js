@@ -218,6 +218,10 @@ styleElement.innerHTML = `<template>
 			font-weight: bolder;
 			color: black;
 		}
+		vaadin-grid-cell-content > div.buttons > paper-button {
+			font-size: 0.7rem;
+			padding: unset;
+		}
 		paper-fab {
 			background: var(--paper-lime-a700);
 			color: black;
