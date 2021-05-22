@@ -33,12 +33,12 @@ class policyAdd extends PolymerElement {
 				</paper-progress>
 				<div>
 					<paper-input
-						id="polNameAdd"
+						id="policyNameAdd"
 						label="Name"
-						value="{{polName}}">
+						value="{{policyName}}">
 					</paper-input>
 					<paper-tooltip
-							for="polNameAdd"
+							for="policyNameAdd"
 							offset="0">
 						Policy row name
 					</paper-tooltip>
@@ -47,7 +47,7 @@ class policyAdd extends PolymerElement {
 					<paper-input
 						id="bandwidthDL"
 						label="MaxRequestedBandwidthDL"
-						value="{{charDL}}">
+						value="{{bandwidthDL}}">
 					</paper-input>
 					<paper-tooltip
 							for="bandwidthDL"
@@ -59,7 +59,7 @@ class policyAdd extends PolymerElement {
 					<paper-input
 						id="bandwidthUL"
 						label="MaxRequestedBandwidthUL"
-						value="{{charUL}}">
+						value="{{bandwidthUL}}">
 					</paper-input>
 					<paper-tooltip
 							for="bandwidthUL"
@@ -71,7 +71,7 @@ class policyAdd extends PolymerElement {
 					<paper-input
 						id="classId"
 						label="QosClassIdentifier"
-						value="{{charClassId}}">
+						value="{{classID}}">
 					</paper-input>
 					<paper-tooltip
 							for="classId"
@@ -81,20 +81,20 @@ class policyAdd extends PolymerElement {
 				</div>
 				<div>
 					<paper-input
-						id="chargeRule"
+						id="chargingKey"
 						label="ChargingKey"
-						value="{{polCha}}">
+						value="{{chargingKey}}">
 					</paper-input>
 					<paper-tooltip
-							for="chargeRule"
+							for="chargingKey"
 							offset="0">
 						Charging Key
 					</paper-tooltip>
 				</div>
 				<div>
 					<paper-dropdown-menu
-							id="flowUp"
-							value="{{flowUp}}"
+							id="flowDirection"
+							value="{{flowDirection}}"
 							no-animations="true"
 							label="Flow Direction">
 						<paper-listbox
@@ -109,7 +109,7 @@ class policyAdd extends PolymerElement {
 						</paper-listbox>
 					</paper-dropdown-menu>
 					<paper-tooltip
-							for="flowUp"
+							for="flowDirection"
 							offset="0">
 						Flow Direction
 					</paper-tooltip>
@@ -120,7 +120,7 @@ class policyAdd extends PolymerElement {
 						label="FlowDescription"
 						pattern="^permit out proto "
 						placeholder="permit out proto ip from all to all"
-						value="{{flowDiscUp}}"
+						value="{{flowDescription}}"
 						auto-validate>
 					</paper-input>
 					<paper-tooltip
@@ -133,7 +133,7 @@ class policyAdd extends PolymerElement {
 					<paper-input
 						id="precedence"
 						label="Precedence"
-						value="{{prece}}">
+						value="{{precedence}}">
 					</paper-input>
 					<paper-tooltip
 							for="precedence"
@@ -171,28 +171,28 @@ class policyAdd extends PolymerElement {
 				type: Boolean,
 				value: false
 			},
-			polName: {
+			policyName: {
 				type: String
 			},
-			charDL: {
+			bandwidthDL: {
 				type: Number
 			},
-			charUL: {
+			bandwidthUL: {
 				type: Number
 			},
-			charClassId: {
+			classID: {
 				type: Number
 			},
-			polCha: {
+			chargingKey: {
 				type: String
 			},
-			flowUp: {
-				type: String 
-			},
-			flowDiscUp: {
+			flowDirection: {
 				type: String
 			},
-			prece: {
+			flowDescription: {
+				type: String
+			},
+			precedence: {
 				type: String
 			},
 			table: {
@@ -210,73 +210,71 @@ class policyAdd extends PolymerElement {
 
 	_cancel() {
 		this.$.policyAddModal.close();
-		this.polName = null;
-		this.charDL = null;
-		this.charUL = null;
-		this.charClassId = null;
-		this.polCha = null;
-		this.flowUp = null;
-		this.flowDiscUp = null;
-		this.prece = null;
+		this.policyName = null;
+		this.bandwidthDL = null;
+		this.bandwidthUL = null;
+		this.classID = null;
+		this.chargingKey = null;
+		this.flowDirection = null;
+		this.flowDescription = null;
+		this.precedence = null;
 	}
 
 	_add() {
 		var ajax = this.$.policyAddAjax;
 		ajax.method = "POST";
 		ajax.url = "/resourceInventoryManagement/v1/resource/";
-		var pol = new Object();
-		if(this.polName) {
-			pol.name = this.polName;
+		var policy = new Object();
+		if(this.policyName) {
+			policy.name = this.policyName;
 		}
-		var rel = new Array();
-		var relObj = new Object();
-		relObj.id = document.body.querySelector('sig-app').shadowRoot.querySelector('sig-policy-list').tableId;
-		relObj.href = "/resourceInventoryManagement/v1/resourceRelationship/" + relObj.id;
-		relObj.name = document.body.querySelector('sig-app').shadowRoot.querySelector('sig-policy-list').table;
-		var relObj1 = new Object();
-		relObj1.relationshipType = "contained";
-		relObj1.resource = relObj
-		rel.push(relObj1);
-		pol.resourceRelationship = rel;
-
-		var charaArr = new Array();
-		var nameObj = new Object();
-		nameObj.name = "name";
-		nameObj.value = this.polName;
-		var nameQOS = new Object();
-		nameQOS.name = "qosInformation";
-		var nameQOSValue = new Object(); 
-		nameQOSValue.maxRequestedBandwidthDL = parseInt(this.charDL);
-		nameQOSValue.maxRequestedBandwidthUL = parseInt(this.charUL);
-		nameQOSValue.qosClassIdentifier = parseInt(this.charClassId);
-		nameQOS.value = nameQOSValue;
-		var nameChRule = new Object();
-		nameChRule.name = "chargingKey";
-		nameChRule.value = parseInt(this.polCha);
-		var nameFlow = new Object();
-		nameFlow.name = "flowInformation";
-		var nameFloArr = new Array();
-		var nameFloObj = new Object();
-		nameFloObj.flowDirection = this.flowUp;
-		if(this.flowDiscUp) {
-			nameFloObj.flowDescription = this.flowDiscUp;
+		var relationships = new Array();
+		var related = new Object();
+		related.id = document.body.querySelector('sig-app').shadowRoot.querySelector('sig-policy-list').tableId;
+		related.href = "/resourceInventoryManagement/v1/resourceRelationship/" + related.id;
+		related.name = document.body.querySelector('sig-app').shadowRoot.querySelector('sig-policy-list').table;
+		var relationship = new Object();
+		relationship.relationshipType = "contained";
+		relationship.resource = related;
+		relationships.push(relationship);
+		policy.resourceRelationship = relationships;
+		var characteristics = new Array();
+		var char1 = new Object();
+		char1.name = "name";
+		char1.value = this.policyName;
+		var char2 = new Object();
+		char2.name = "qosInformation";
+		var qos = new Object();
+		qos.maxRequestedBandwidthDL = parseInt(this.bandwidthDL);
+		qos.maxRequestedBandwidthUL = parseInt(this.bandwidthUL);
+		qos.qosClassIdentifier = parseInt(this.classID);
+		char2.value = qos;
+		var char3 = new Object();
+		char3.name = "chargingKey";
+		char3.value = parseInt(this.chargingKey);
+		var char4 = new Object();
+		char4.name = "flowInformation";
+		var flows = new Array();
+		var flow = new Object();
+		flow.flowDirection = this.flowDirection;
+		if(this.flowDescription) {
+			flow.flowDescription = this.flowDescription;
 		} else {
-			nameFloObj.flowDescription = "permit out proto ip from all to all"
+			flow.flowDescription = "permit out proto ip from all to all"
 		}
-		nameFloArr.push(nameFloObj);
-		nameFlow.value = nameFloArr;
-		var namePre = new Object();
-		namePre.name = "precedence";
-		namePre.value = parseInt(this.prece);
-		charaArr.push(nameObj, nameQOS, nameChRule, nameFlow, namePre);
-		pol.resourceCharacteristic = charaArr;
-
-		var spec = new Object();
-		spec.id = "4";
-		spec.name = "PolicyTable";
-		spec.href = "resourceCatalogManagement/v2/resourceSpecification/" + "4";
-		pol.resourceSpecification = spec;
-		ajax.body = pol;
+		flows.push(flow);
+		char4.value = flows;
+		var char5 = new Object();
+		char5.name = "precedence";
+		char5.value = parseInt(this.precedence);
+		characteristics.push(char1, char2, char3, char4, char5);
+		policy.resourceCharacteristic = characteristics;
+		var specification = new Object();
+		specification.id = "4";
+		specification.name = "PolicyTable";
+		specification.href = "resourceCatalogManagement/v2/resourceSpecification/" + "4";
+		policy.resourceSpecification = specification;
+		ajax.body = policy;
 		ajax.generateRequest();
 		this.$.policyAddModal.close();
 		document.body.querySelector('sig-app').shadowRoot.getElementById('policyList').shadowRoot.getElementById('policyGrid').clearCache();
@@ -284,14 +282,14 @@ class policyAdd extends PolymerElement {
 
 	_response() {
 		this.$.policyAddModal.close
-		this.polName = null;
-		this.charDL = null;
-		this.charUL = null;
-		this.charClassId = null;
-		this.polCha = null;
-		this.flowUp = null;
-		this.flowDiscUp = null;
-		this.prece = null;
+		this.policyName = null;
+		this.bandwidthDL = null;
+		this.bandwidthUL = null;
+		this.classID = null;
+		this.chargingKey = null;
+		this.flowDirection = null;
+		this.flowDescription = null;
+		this.precedence = null;
 		var toast = document.body.querySelector('sig-app').shadowRoot.getElementById('restError');
 		toast.text = "Success";
 		toast.open();
