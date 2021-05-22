@@ -170,7 +170,6 @@ styleElement.innerHTML = `<template>
 		}
 		.add-icon-button {
 			color: black;
-			left: 22%;
 		}
 		.update-button {
 			right: 2%;
@@ -217,6 +216,12 @@ styleElement.innerHTML = `<template>
 			font-size: unset;
 			font-weight: bolder;
 			color: black;
+		}
+		div.flowRow {
+			display: flex;
+		}
+		div.flowRow > paper-input {
+			flex-grow: 1;
 		}
 		vaadin-grid-cell-content > div.buttons > paper-button {
 			font-size: 0.7rem;

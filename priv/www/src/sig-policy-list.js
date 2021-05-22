@@ -24,8 +24,8 @@ import '@polymer/paper-dropdown-menu/paper-dropdown-menu.js';
 import '@polymer/paper-listbox/paper-listbox.js';
 import '@polymer/iron-pages/iron-pages.js';
 import '@polymer/iron-collapse/iron-collapse.js';
-import './style-element.js'
 import '@polymer/iron-icons/iron-icons.js';
+import './style-element.js'
 
 class policyList extends PolymerElement {
 	static get template() {
@@ -119,41 +119,39 @@ class policyList extends PolymerElement {
 						</div>
 						<div>
 							<template is="dom-if" if="{{item.flow}}">
-								<table class="det">
-									<template id="flowChaArrObj" is="dom-repeat" items="{{item.flow}}" as="flowitem" mutable-data="true">
-										<tr>
-											<td><paper-dropdown-menu
-													id="addPolDirDrop"
-													value="{{flowitem.direction}}"
-													no-animations="true"
-													label="Flow Direction">
-												<paper-listbox
-														id="addPolDirList"
-														slot="dropdown-content">
-													<paper-item>
-															up
-													</paper-item>
-													<paper-item>
-															down
-													</paper-item>
-												</paper-listbox>
-											</paper-dropdown-menu></td>
-											<td><paper-input
-													id="addPolDir"
-													name="flowDescription"
-													label="Flow Description"
-													value="{{flowitem.description}}">
-											</paper-input></td>
-										</tr>
-									</template>
-								</table>
-								<div>
-									<paper-icon-button
+								<template id="flowChaArrObj" is="dom-repeat" items="{{item.flow}}" as="flowitem" mutable-data="true">
+									<div class="flowRow">
+										<paper-icon-button
+												class="minus-icon-button"
+												icon="icons:remove-circle-outline"
+												on-tap = "_flowMinus">
+										</paper-icon-button>
+										<paper-dropdown-menu
+												value="{{flowitem.direction}}"
+												no-animations="true"
+												label="Flow Direction">
+											<paper-listbox
+													slot="dropdown-content">
+												<paper-item>
+													up
+												</paper-item>
+												<paper-item>
+													down
+												</paper-item>
+											</paper-listbox>
+										</paper-dropdown-menu>
+										<paper-input
+												name="flowDescription"
+												label="Flow Description"
+												value="{{flowitem.description}}">
+										</paper-input>
+									<div>
+								</template>
+								<paper-icon-button
 										class="add-icon-button"
 										icon="icons:add-circle-outline"
 										on-tap = "_flowPlus">
-									</paper-icon-button>
-								</div>
+								</paper-icon-button>
 							</template>
 						</div>
 					</iron-pages>
@@ -346,16 +344,15 @@ class policyList extends PolymerElement {
 	} 
 
 	_activeItemChanged(item, last) {
-console.log(item);
 		if(item || last) {
 			var grid = this.$.policyGrid;
 			var current;
 			if(item == null) {
 				current = last;
-				this.$.policyGrid.selectedItems = item ? [item] : [];
+				grid.selectedItems = item ? [item] : [];
 			} else {
 				current = item;
-				this.$.policyGrid.selectedItems = [];
+				grid.selectedItems = [];
 				this.polId = item.id;
 				this.polName = item.name;
 				this.polPrec = item.precedence;
@@ -365,8 +362,8 @@ console.log(item);
 				this.widthUL = item.maxRequestedBandwidthUL;
 				this.classId = item.qosClassIdentifier;
 			}
-			function checkExist(specification) {
-				return specification.id == current.id;
+			function checkExist(policy) {
+				return policy.id == current.id;
 			}
 			if(grid.detailsOpenedItems && grid.detailsOpenedItems.some(checkExist)) {
 				grid.closeItemDetails(current);
