@@ -322,6 +322,22 @@ class policyList extends PolymerElement {
 		this.$.tableList.open();
 	}
 
+	connectedCallback() {
+		super.connectedCallback();
+		this.addEventListener('iron-resize', this.onIronResize);
+	}
+
+	disconnectedCallback() {
+		super.disconnectedCallback();
+		this.removeEventListener('iron-resize', this.onIronResize);
+	}
+
+	onIronResize(event) {
+		if (event.path[0].localName == 'iron-pages') {
+			this.shadowRoot.getElementById('policyGrid').notifyResize();
+		}
+	}
+
 	tableOk() {
 		var grid = this.shadowRoot.getElementById('policyGrid');
 		grid.dataProvider = this._getPolicy;
