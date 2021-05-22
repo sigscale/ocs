@@ -192,12 +192,6 @@ class policyAdd extends PolymerElement {
 			flowDiscUp: {
 				type: String
 			},
-			flowDown: {
-				type: String
-			},
-			flowDiscDown: {
-				type: String
-			},
 			prece: {
 				type: String
 			},
@@ -223,8 +217,6 @@ class policyAdd extends PolymerElement {
 		this.polCha = null;
 		this.flowUp = null;
 		this.flowDiscUp = null;
-		this.flowDown = null;
-		this.flowDiscDown = null;
 		this.prece = null;
 	}
 
@@ -299,8 +291,6 @@ class policyAdd extends PolymerElement {
 		this.polCha = null;
 		this.flowUp = null;
 		this.flowDiscUp = null;
-		this.flowDown = null;
-		this.flowDiscDown = null;
 		this.prece = null;
 		var toast = document.body.querySelector('sig-app').shadowRoot.getElementById('restError');
 		toast.text = "Success";
