@@ -98,7 +98,6 @@ class policyAdd extends PolymerElement {
 							no-animations="true"
 							label="Flow Direction">
 						<paper-listbox
-								id="addPolDirList1"
 								slot="dropdown-content">
 							<paper-item>
 								up
