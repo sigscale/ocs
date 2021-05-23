@@ -68,6 +68,13 @@ class policyList extends PolymerElement {
 									value="{{polName}}">
 								</paper-input>
 							</template>
+							<template is="dom-if" if="{{item.predefined}}">
+								<paper-input
+									name="predefined"
+									label="Predefined"
+									value="{{predefined}}">
+								</paper-input>
+							</template>
 							<template is="dom-if" if="{{item.precedence}}">
 								<paper-input
 									name="precedence"
@@ -210,6 +217,12 @@ class policyList extends PolymerElement {
 					</template>
 					<template>[[item.precedence]]</template>
 				</vaadin-grid-column>
+				<vaadin-grid-column>
+					<template class="header">
+						Predefined
+					</template>
+					<template>[[item.predefined]]</template>
+				</vaadin-grid-column>
 			</vaadin-grid>
 			<paper-dialog class="dialog" id="tableList">
 				<app-toolbar>
@@ -346,6 +359,11 @@ class policyList extends PolymerElement {
 				grid.selectedItems = [];
 				this.polId = item.id;
 				this.polName = item.name;
+				if(item.predefined) {
+					this.predefined = true;
+				} else {
+					this.predefined = false;
+				}
 				this.polPrec = item.precedence;
 				this.polCharKey = item.chargingKey;
 				this.polcharSer = item.serviceId;
@@ -440,6 +458,8 @@ class policyList extends PolymerElement {
 					for (var indexRes in resChar) {
 						if(resChar[indexRes].name == "name") {
 							tabObj.name = resChar[indexRes].value;
+						} else if(resChar[indexRes].name == "predefined") {
+							tabObj.predefined = resChar[indexRes].value;
 						} else if(resChar[indexRes].name == "qosInformation") {
 							var qos1 = resChar[indexRes].value.maxRequestedBandwidthDL;
 							var qos2 = resChar[indexRes].value.maxRequestedBandwidthUL;

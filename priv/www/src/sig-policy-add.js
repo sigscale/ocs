@@ -14,6 +14,7 @@ import '@polymer/paper-dialog/paper-dialog.js';
 import '@polymer/app-layout/app-toolbar/app-toolbar.js';
 import '@polymer/paper-progress/paper-progress.js';
 import '@polymer/paper-input/paper-input.js';
+import '@polymer/paper-toggle-button/paper-toggle-button';
 import '@polymer/paper-button/paper-button.js';
 import '@polymer/paper-tooltip/paper-tooltip.js';
 import './style-element.js';
@@ -41,6 +42,18 @@ class policyAdd extends PolymerElement {
 							for="policyNameAdd"
 							offset="0">
 						Policy row name
+					</paper-tooltip>
+				</div>
+				<div>
+					<paper-toggle-button
+							id="predefined"
+							checked="{{predefined}}">
+						Predefined
+					</paper-toggle-button>
+					<paper-tooltip
+							for="predefined"
+							offset="0">
+						Indicates if the rule is predefined at the PCEF
 					</paper-tooltip>
 				</div>
 				<div>
@@ -173,6 +186,9 @@ class policyAdd extends PolymerElement {
 			policyName: {
 				type: String
 			},
+			predefined: {
+				type: Boolean
+			},
 			bandwidthDL: {
 				type: Number
 			},
@@ -210,6 +226,7 @@ class policyAdd extends PolymerElement {
 	_cancel() {
 		this.$.policyAddModal.close();
 		this.policyName = null;
+		this.predefined = null;
 		this.bandwidthDL = null;
 		this.bandwidthUL = null;
 		this.classID = null;
@@ -266,7 +283,11 @@ class policyAdd extends PolymerElement {
 		var char5 = new Object();
 		char5.name = "precedence";
 		char5.value = parseInt(this.precedence);
-		characteristics.push(char1, char2, char3, char4, char5);
+		policy.resourceCharacteristic = characteristics;
+		var char6 = new Object();
+		char6.name = "predefined";
+		char6.value = this.predefined;
+		characteristics.push(char1, char2, char3, char4, char5, char6);
 		policy.resourceCharacteristic = characteristics;
 		var specification = new Object();
 		specification.id = "4";
@@ -282,6 +303,7 @@ class policyAdd extends PolymerElement {
 	_response() {
 		this.$.policyAddModal.close
 		this.policyName = null;
+		this.predefined = null;
 		this.bandwidthDL = null;
 		this.bandwidthUL = null;
 		this.classID = null;
