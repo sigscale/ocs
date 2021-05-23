@@ -149,7 +149,7 @@ class tablePolAdd extends PolymerElement {
 		var taSpec = new Object();
 		taSpec.id = "3";
 		taSpec.href = "/resourceCatalogManagement/v2/resourceSpecification/3";
-		taSpec.name = "policy table spec";
+		taSpec.name = "PolicyTable";
 		tabName.resourceSpecification = taSpec;
 		if(endDateTime < startDateTime) {
 			var toast = document.body.querySelector('sig-app').shadowRoot.getElementById('restError');

@@ -149,7 +149,7 @@ class tablePreAdd extends PolymerElement {
 		var taSpec = new Object();
 		taSpec.id = "1";
 		taSpec.href = "/resourceCatalogManagement/v2/resourceSpecification/1";
-		taSpec.name = "tariff table spec";
+		taSpec.name = "TariffTable";
 		tabName.resourceSpecification = taSpec;
 		if(endDateTime < startDateTime) {
 			var toast = document.body.querySelector('sig-app').shadowRoot.getElementById('restError');
