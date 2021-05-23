@@ -55,7 +55,6 @@ class policyList extends PolymerElement {
 						<div>
 							<template is="dom-if" if="{{item.id}}">
 								<paper-input
-									id="addPolId"
 									name="id"
 									label="Id"
 									value="{{polId}}"
@@ -64,7 +63,6 @@ class policyList extends PolymerElement {
 							</template>
 							<template is="dom-if" if="{{item.name}}">
 								<paper-input
-									id="addPolName"
 									name="name"
 									label="Name"
 									value="{{polName}}">
@@ -72,7 +70,6 @@ class policyList extends PolymerElement {
 							</template>
 							<template is="dom-if" if="{{item.precedence}}">
 								<paper-input
-									id="addPolPre"
 									name="precedence"
 									label="Precedence"
 									value="{{item.precedence}}">
@@ -80,7 +77,6 @@ class policyList extends PolymerElement {
 							</template>
 							<template is="dom-if" if="{{item.chargingKey}}">
 								<paper-input
-									id="addPolCha"
 									name="chargingKey"
 									label="Charging Key"
 									value="{{item.chargingKey}}">
@@ -88,7 +84,6 @@ class policyList extends PolymerElement {
 							</template>
 							<template is="dom-if" if="{{item.serviceId}}">
 								<paper-input
-									id="addPolSer"
 									name="serviceId"
 									label="Service Id"
 									value="{{item.serviceId}}">
@@ -98,19 +93,16 @@ class policyList extends PolymerElement {
 						<div>
 							<template is="dom-if" if="{{item.maxRequestedBandwidthDL}}">
 								<paper-input
-									id="addPolDL"
 									name="maxRequestedBandwidthDL"
 									label="Max Requested Bandwidth DL"
 									value="{{item.maxRequestedBandwidthDL}}">
 								</paper-input>
 								<paper-input
-									id="addPolUL"
 									name="maxRequestedBandwidthUL"
 									label="Max Requested Bandwidth UL"
 									value="{{item.maxRequestedBandwidthUL}}">
 								</paper-input>
 								<paper-input
-									id="addPolClass"
 									name="qosClassIdentifier"
 									label="QOS Class Identifier"
 									value="{{item.qosClassIdentifier}}">
@@ -225,7 +217,6 @@ class policyList extends PolymerElement {
 				</app-toolbar>
 				<template is="dom-repeat" items="[[tables]]">
 					<paper-item
-							id="pagePolicy"
 							class="menuitem"
 							on-focused-changed="tableSelection">
 						<iron-icon icon ="icons:view-list" item-icon></iron-icon>
