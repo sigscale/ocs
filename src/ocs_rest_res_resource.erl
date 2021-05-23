@@ -1077,20 +1077,19 @@ resource_char({array, [{struct, _} | _] = StructList}) ->
 resource_char([#resource_char{} | _] = List) ->
 	[resource_char1(R) || R <- List].
 %% @hidden
-resource_char([{"name", "rate"}, {"value", Value} | _], _Acc)
-		when is_integer(Value) ->
-	#resource_char{name = "rate", value = Value};
 resource_char([{"name", Name} | T], Acc) when is_list(Name) ->
 	resource_char(T, Acc#resource_char{name = Name});
-resource_char([{"value", Value} | T], #resource_char{name = "name"} = Acc)
-		when is_list(Value) ->
+resource_char([{"value", Value} | T], Acc) when is_list(Value) ->
+	resource_char(T, Acc#resource_char{value = Value});
+resource_char([{"value", Value} | T], Acc) when is_integer(Value) ->
+	resource_char(T, Acc#resource_char{value = Value});
+resource_char([{"value", Value} | T], Acc) when is_float(Value) ->
+	resource_char(T, Acc#resource_char{value = Value});
+resource_char([{"value", Value} | T], Acc) when is_boolean(Value) ->
 	resource_char(T, Acc#resource_char{value = Value});
 resource_char([{"value", {struct, QosList}} | T],
 		#resource_char{name = "qosInformation"} = Acc) when is_list(QosList) ->
 	resource_char(T, Acc#resource_char{value = parse_char(QosList, #{})});
-resource_char([{"value", Value} | T], #resource_char{name = "chargingKey"} = Acc)
-		when is_integer(Value) ->
-	resource_char(T, Acc#resource_char{value = Value});
 resource_char([{"value", {array, FlowStructs}} | T],
 		#resource_char{name = "flowInformation"} = Acc)
 		when is_list(FlowStructs) ->
@@ -1098,23 +1097,18 @@ resource_char([{"value", {array, FlowStructs}} | T],
 			parse_char(FlowList, #{})
 	end,
 	resource_char(T, Acc#resource_char{value = lists:map(F, FlowStructs)});
-resource_char([{"value", Value} | T], #resource_char{name = "precedence"} = Acc)
-		when is_integer(Value) ->
-	resource_char(T, Acc#resource_char{value = Value});
-resource_char([{"value", Value} | T], #resource_char{name = "serviceId"} = Acc)
-		when is_list(Value) ->
-	resource_char(T, Acc#resource_char{value = Value});
-resource_char([{"value", Value} | T], Acc) when is_list(Value) ->
-	resource_char(T, Acc#resource_char{value = Value});
 resource_char([], Acc) ->
 	Acc.
 %% @hidden
-resource_char1(#resource_char{name = "chargingKey", value = Value})
+resource_char1(#resource_char{name = Name, value = Value})
 		when is_integer(Value) ->
-	{struct, [{"name", "chargingKey"}, {"value", Value}]};
-resource_char1(#resource_char{name = "precedence", value = Value})
-		when is_integer(Value) ->
-	{struct, [{"name", "precedence"}, {"value", Value}]};
+	{struct, [{"name", Name}, {"value", Value}]};
+resource_char1(#resource_char{name = Name, value = Value})
+		when is_float(Value) ->
+	{struct, [{"name", Name}, {"value", Value}]};
+resource_char1(#resource_char{name = Name, value = Value})
+		when is_boolean(Value) ->
+	{struct, [{"name", Name}, {"value", Value}]};
 resource_char1(#resource_char{name = "qosInformation",
 		value = #{"maxRequestedBandwidthDL" := MaxDL,
 		"maxRequestedBandwidthUL" := MaxUL, "qosClassIdentifier" := Class}})
@@ -1141,11 +1135,8 @@ resource_char1(#resource_char{name = "flowInformation", value = FlowList})
 	end,
 	{struct, [{"name", "flowInformation"},
 			{"value", {array, lists:map(F, FlowList)}}]};
-resource_char1(#resource_char{name = "rate", value = Value})
-		when is_integer(Value) ->
-	{struct, [{"name", "rate"}, {"value", Value}]};
 resource_char1(#resource_char{name = Name, value = Value})
-		when is_list(Name), is_list(Value) ->
+		when is_list(Value) ->
 	{struct, [{"name", Name}, {"value", Value}]}.
 
 %% @hidden
