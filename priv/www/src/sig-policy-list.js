@@ -53,105 +53,89 @@ class policyList extends PolymerElement {
 					<iron-pages
 							selected="{{selectedTab}}">
 						<div>
-							<template is="dom-if" if="{{item.id}}">
-								<paper-input
+							<paper-input
 									name="id"
 									label="Id"
 									value="{{polId}}"
 									disabled>
-								</paper-input>
-							</template>
-							<template is="dom-if" if="{{item.name}}">
-								<paper-input
+							</paper-input>
+							<paper-input
 									name="name"
 									label="Name"
 									value="{{polName}}">
-								</paper-input>
-							</template>
-							<template is="dom-if" if="{{item.predefined}}">
-								<paper-input
+							</paper-input>
+							<paper-input
 									name="predefined"
 									label="Predefined"
 									value="{{predefined}}">
-								</paper-input>
-							</template>
-							<template is="dom-if" if="{{item.precedence}}">
-								<paper-input
+							</paper-input>
+							<paper-input
 									name="precedence"
 									label="Precedence"
 									value="{{item.precedence}}">
-								</paper-input>
-							</template>
-							<template is="dom-if" if="{{item.chargingKey}}">
-								<paper-input
+							</paper-input>
+							<paper-input
 									name="chargingKey"
 									label="Charging Key"
 									value="{{item.chargingKey}}">
-								</paper-input>
-							</template>
-							<template is="dom-if" if="{{item.serviceId}}">
-								<paper-input
+							</paper-input>
+							<paper-input
 									name="serviceId"
 									label="Service Id"
 									value="{{item.serviceId}}">
-								</paper-input>
-							</template>
+							</paper-input>
 						</div>
 						<div>
-							<template is="dom-if" if="{{item.maxRequestedBandwidthDL}}">
-								<paper-input
+							<paper-input
 									name="maxRequestedBandwidthDL"
 									label="Max Requested Bandwidth DL"
 									value="{{item.maxRequestedBandwidthDL}}">
-								</paper-input>
-								<paper-input
+							</paper-input>
+							<paper-input
 									name="maxRequestedBandwidthUL"
 									label="Max Requested Bandwidth UL"
 									value="{{item.maxRequestedBandwidthUL}}">
-								</paper-input>
-								<paper-input
+							</paper-input>
+							<paper-input
 									name="qosClassIdentifier"
 									label="QOS Class Identifier"
 									value="{{item.qosClassIdentifier}}">
-								</paper-input>
-							</template>
+							</paper-input>
 						</div>
 						<div>
-							<template is="dom-if" if="{{item.flow}}">
-								<template id="flowChaArrObj" is="dom-repeat" items="{{item.flow}}" as="flowitem" mutable-data="true">
-									<div class="flowRow">
-										<paper-icon-button
-												class="minus-icon-button"
-												icon="icons:remove-circle-outline"
-												on-tap = "_flowMinus">
-										</paper-icon-button>
-										<paper-dropdown-menu
-												value="{{flowitem.direction}}"
-												no-animations="true"
-												label="Flow Direction">
-											<paper-listbox
-													slot="dropdown-content">
-												<paper-item>
-													up
-												</paper-item>
-												<paper-item>
-													down
-												</paper-item>
-											</paper-listbox>
-										</paper-dropdown-menu>
-										<paper-input
-												name="flowDescription"
-												label="Flow Description"
-												value="{{flowitem.description}}">
-										</paper-input>
-									<div>
-								</template>
-								<paper-icon-button
-										class="add-icon-button"
-										icon="icons:add-circle-outline"
-										on-tap = "_flowPlus">
-								</paper-icon-button>
+							<template id="flowChaArrObj" is="dom-repeat" items="{{item.flow}}" as="flowitem" mutable-data="true">
+								<div class="flowRow">
+									<paper-icon-button
+											class="minus-icon-button"
+											icon="icons:remove-circle-outline"
+											on-tap = "_flowMinus">
+									</paper-icon-button>
+									<paper-dropdown-menu
+											value="{{flowitem.direction}}"
+											no-animations="true"
+											label="Flow Direction">
+										<paper-listbox
+												slot="dropdown-content">
+											<paper-item>
+												up
+											</paper-item>
+											<paper-item>
+												down
+											</paper-item>
+										</paper-listbox>
+									</paper-dropdown-menu>
+									<paper-input
+											name="flowDescription"
+											label="Flow Description"
+											value="{{flowitem.description}}">
+									</paper-input>
+								<div>
 							</template>
+							<paper-icon-button
+									class="add-icon-button"
+									icon="icons:add-circle-outline"
+									on-tap = "_flowPlus">
+							</paper-icon-button>
 						</div>
 					</iron-pages>
 					<div class="buttons">
