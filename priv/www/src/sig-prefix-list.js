@@ -160,8 +160,6 @@ class prefixList extends PolymerElement {
 			tableRecord.name = results[indexTable].name;
 			tableRecord.id = results[indexTable].id;
 			tableRecord.href = results[indexTable].href;
-			tableRecord.description = results[indexTable].description;
-			tableRecord.plaSpecId = results[indexTable].plaSpecId;
 			this.push('tables', tableRecord);
 		}
 	}

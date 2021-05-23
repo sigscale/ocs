@@ -963,9 +963,9 @@ class offerAdd extends PolymerElement {
 		var ajax1 = this.$.getTableAjax;
 		ajax1.url = "/resourceInventoryManagement/v1/resource?resourceSpecification.id=1";
 		ajax1.generateRequest();
-		var ajax1 = this.$.getTableAjaxPolicy;
-		ajax1.url = "/resourceInventoryManagement/v1/resource?resourceSpecification.id=3";
-		ajax1.generateRequest();
+		var ajax2 = this.$.getTableAjaxPolicy;
+		ajax2.url = "/resourceInventoryManagement/v1/resource?resourceSpecification.id=3";
+		ajax2.generateRequest();
 	}
 
 	_getTableResponsePol(event) {
@@ -974,11 +974,8 @@ class offerAdd extends PolymerElement {
 		this.splice("polTable", 0, this.polTable.length)
 		for (var indexTable1 in results) {
 			var tableRecord1 = new Object();
-			tableRecord1.name = results[indexTable1].name;
 			tableRecord1.id = results[indexTable1].id;
 			tableRecord1.href = results[indexTable1].href;
-			tableRecord1.description = results[indexTable1].description;
-			tableRecord1.plaSpecId = results[indexTable1].plaSpecId;
 			this.push('polTable', tableRecord1);
 		}
 	}
@@ -989,11 +986,8 @@ class offerAdd extends PolymerElement {
 		this.splice("tables", 0, this.tables.length)
 		for (var indexTable in results) {
 			var tableRecord = new Object();
-			tableRecord.name = results[indexTable].name;
 			tableRecord.id = results[indexTable].id;
 			tableRecord.href = results[indexTable].href;
-			tableRecord.description = results[indexTable].description;
-			tableRecord.plaSpecId = results[indexTable].plaSpecId;
 			this.push('tables', tableRecord);
 		}
 	}
