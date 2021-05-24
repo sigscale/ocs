@@ -167,6 +167,35 @@ end_per_testcase(oauth_authentication, _Config) ->
 	ok = set_inet_mod(),
 	application:stop(inets),
 	application:start(inets);
+end_per_testcase(TestCase, Config) when TestCase == notify_create_bucket;
+		TestCase == notify_delete_bucket;
+		TestCase == notify_rating_deleted_bucket;
+		TestCase == notify_accumulated_balance_threshold;
+		TestCase == query_accumulated_balance_notification;
+		TestCase == query_bucket_notification;
+		TestCase == notify_create_product; TestCase == notify_delete_product;
+		TestCase == notify_product_charge;
+		TestCase == query_product_notification;
+		TestCase == notify_create_service; TestCase == notify_delete_service;
+		TestCase == query_service_notification;
+		TestCase == notify_create_offer; TestCase == notify_delete_offer;
+		TestCase == query_offer_notification;
+		TestCase == notify_insert_gtt; TestCase == notify_delete_gtt;
+		TestCase == query_gtt_notification;
+		TestCase == notify_add_resource; TestCase == notify_delete_resource;
+		TestCase == query_resource_notification;
+		TestCase == notify_diameter_acct_log ->
+	case lists:keyfind(listener_pid, 1, Config) of
+		{listener_pid, Pid} ->
+			case inets:stop(httpd, Pid) of
+				ok ->
+					ok;
+				{error, Reason} ->
+					{error, Reason}
+			end;
+		false ->
+			{error, pid_not_found}
+	end;
 end_per_testcase(_TestCase, _Config) ->
 	ok.
 
@@ -3465,7 +3494,6 @@ notify_delete_service(Config) ->
 	Accept = {"accept", "application/json"},
 	Request = {CollectionUrl, [Accept, auth_header()], ContentType, RequestBody},
 	{ok, {{_, 201, _}, _, _}} = httpc:request(post, Request, [], []),
-
 	Identity = ocs:generate_identity(),
 	Password = ocs:generate_password(),
 	{ok, #service{}} = ocs:add_service(Identity, Password),
