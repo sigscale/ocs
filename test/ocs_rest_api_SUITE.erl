@@ -4074,7 +4074,8 @@ notify_delete_gtt(Config) ->
 	Accept = {"accept", "application/json"},
 	Request = {CollectionUrl, [Accept, auth_header()], ContentType, RequestBody},
 	{ok, {{_, 201, _}, _, _}} = httpc:request(post, Request, [], []),
-	[Table | _] = ocs_gtt:list(),
+	Table = tariff_table7,
+	ok = ocs_gtt:new(Table, []),
 	Prefix = "1519240",
 	Description = "Bell Mobility",
 	Amount = 10000,
@@ -4117,7 +4118,8 @@ query_gtt_notification(Config) ->
 	Accept = {"accept", "application/json"},
 	Request = {CollectionUrl, [Accept, auth_header()], ContentType, RequestBody},
 	{ok, {{_, 201, _}, _, _}} = httpc:request(post, Request, [], []),
-	[Table | _] = ocs_gtt:list(),
+	Table = tariff_table8,
+	ok = ocs_gtt:new(Table, []),
 	Description = "Bell Mobility",
 	Amount = 10000,
 	{ok, #gtt{}} = ocs_gtt:insert(Table, Prefix, {Description, Amount}),
@@ -4678,7 +4680,8 @@ query_policy_resource() ->
 	[{userdata, [{doc, "Query policy entry in resource table"}]}].
 
 query_policy_resource(Config) ->
-	TariffTable = #resource{name = "TariffTable", description = "Tariff Table",
+	ok = ocs_gtt:new(tariff_table6, []),
+	TariffTable = #resource{name = "tariff_table6", description = "Tariff Table",
 			category = "Tariff", class_type = "LogicalResource",
 			base_type = "Resource", specification = #specification_ref{id = "1",
 					href = "/resourceCatalogManagement/v2/resourceSpecification/1",
