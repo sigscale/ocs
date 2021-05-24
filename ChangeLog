@@ -1,3 +1,67 @@
+2021-05-20  Vance Shipley <vances@sigscale.org>
+
+	* stop started httpd service at end_per_testcase
+	* create gtt table when adding tariff resource
+	* encure legal atoms in table names:
+	* allow new atoms in gtt public api for new tables
+	* included negotiable methods in eap test suites
+	* update test case with redirect server result
+	* ignore delete test cases should expect 403 forbidden
+	* handle not found in delete offer
+	* refactor delete offer for lazy failure
+	* handle 403 (forbidden) response to delete
+	* correct event payload description
+	* update test case with redirect server result
+	* include all policy attributes in row details for update
+	* add predefined policy rule flag in web components
+	* generalize simple characteristics in resource_char codec
+	* remove id attributes which must be unique in templates
+	* remove non-existent attribute in policy list module
+	* remove unused attributes in web components
+	* correct table specification names in web components
+	* remove unused legacy import
+	* policy flow rows inline
+	* resize grid when selected tab changes
+	* small thin buttons in row details
+	* remove unused id in policy add dialog
+	* policy add module refractored for literacy
+	* remove unused properties
+	* create gtt table for tariff resource in rest test cases
+	* create gtt table for tariff resource
+	* update tariff table when a tariff row is added
+	* add resourceCatalogManagement/v2/resourceSpecification by id
+	* read gtt table for tariff row resources
+	* accept matchspec variable assinging
+	* test: post release scur
+	* add nrf release function
+	* add nrf rating release path
+	* remove unused definition list tag around general
+	* refator add new flow information row
+	* remove incorrect path
+	* correct status code of successful release
+	* update doc
+	* correct content type for error response
+	* interface function to list table entries
+	* test: correct result matching
+	* test: post update scur
+	* write prefixes into the gtt table instead of only terminal rows
+	* correct function name
+	* update field types
+	* add nrf update
+	* correct field name
+	* allow importing to create gtt table and validate it
+	* include consumed unit in response
+	* change record name to match mnesia table name
+	* correct table name
+	* include node functionality in map; change field name
+	* add rating session record with rating data ref to rating ref table
+	* correct rating ref fields
+	* add nrf ref to table list
+	* index cannot be undefined
+	* send error response
+	* handle error response body
+	* correct guard
+
 2021-05-16  Vance Shipley <vances@sigscale.org>
 
 	* fix push problem in table add
