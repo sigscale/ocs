@@ -1033,7 +1033,7 @@ rating_deleted_bucket_event(_Config) ->
 	Timestamp = calendar:local_time(),
 	SessionId = [{'Session-Id', list_to_binary(ocs:generate_password())}],
 	ServiceType = 32251,
-	{out_of_credit, _} = ocs_rating:rate(diameter, ServiceType, undefined,
+	{out_of_credit, _, _} = ocs_rating:rate(diameter, ServiceType, undefined,
 			undefined, undefined, ServiceId, Timestamp, undefined, undefined,
 			initial, [], [{octets, PackageSize}], SessionId),
 	receive
