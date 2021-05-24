@@ -570,7 +570,9 @@ delete_offer(Id) ->
 			{ok, [], []};
 		{'EXIT', unable_to_delete} ->
 			{error, 403};
-		{'EXIT', _} ->
+		{'EXIT', not_found} ->
+			{error, 404};
+		{'EXIT', _Other} ->
 			{error, 500}
 	end.
 
