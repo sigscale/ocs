@@ -74,7 +74,7 @@ init_per_suite(Config) ->
 	ok = ocs_test_lib:load(ocs),
 	RadiusAddress = ct:get_config({radius, address}, {127,0,0,1}),
 	RadiusAuthPort = ct:get_config({radius, auth_port}, rand:uniform(64511) + 1024),
-	Options = [{eap_method_prefer, akap}, {eap_method_order, [akap]}],
+	Options = [{eap_method_prefer, akap}, {eap_method_order, [akap, pwd, ttls]}],
 	RadiusAppVar = [{auth, [{RadiusAddress, RadiusAuthPort, Options}]}],
 	ok = application:set_env(ocs, radius, RadiusAppVar),
 	DiameterAddress = ct:get_config({diameter, address}, {127,0,0,1}),
