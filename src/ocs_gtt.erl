@@ -69,7 +69,7 @@ new(Table, []) ->
 	Nodes = [node() | nodes()],
 	new(Table, [{disc_copies, Nodes}]);
 new(Table, Options) when is_list(Table) ->
-	new(list_to_existing_atom(Table), Options);
+	new(list_to_atom(Table), Options);
 new(Table, Options) when is_list(Options) ->
 	case mnesia:create_table(Table, Options ++
 			[{attributes, record_info(fields, gtt)},
@@ -100,7 +100,7 @@ new(Table, [], Items) ->
 	Nodes = [node() | nodes()],
 	new(Table, [{disc_copies, Nodes}], Items);
 new(Table, Options, Items) when is_list(Table) ->
-	new(list_to_existing_atom(Table), Options, Items);
+	new(list_to_atom(Table), Options, Items);
 new(Table, Options, Items) when is_list(Options), is_list(Items) ->
 	mnesia:create_table(Table, Options ++
 			[{attributes, record_info(fields, gtt)},
