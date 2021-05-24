@@ -55,7 +55,7 @@
 		Category :: balance | product | service | resource | usage.
 %% @doc Send a notification event.
 %%
-%% The `EventPayload' should contain the entire new Alarm (create),
+%% The `EventPayload' should contain the entire new resource (create),
 %% the updated attributes only (attributeValueChange) or only
 %% `id' and `href' (remove).
 notify(EventType, EventPayLoad, Category) ->
