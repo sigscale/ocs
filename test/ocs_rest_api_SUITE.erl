@@ -871,7 +871,7 @@ ignore_delete_offer(Config) ->
 	URI = "/productCatalogManagement/v2/productOffering/" ++ OfferId,
 	Request = {HostUrl ++ URI, [auth_header()]},
 	{ok, Result} = httpc:request(delete, Request, [], []),
-	{{"HTTP/1.1", 202, _Accepted}, _Headers, _} = Result,
+	{{"HTTP/1.1", 403, _Forbidden}, _Headers, _} = Result,
 	{ok, #offer{}} = ocs:find_offer(OfferId).
 
 add_product() ->
@@ -1042,7 +1042,7 @@ ignore_delete_product(Config) ->
 	HostUrl = ?config(host_url, Config),
 	Request = {HostUrl ++ URI, [auth_header()]},
 	{ok, Result} = httpc:request(delete, Request, [], []),
-	{{"HTTP/1.1", 202, _Accepted}, _Headers, _} = Result,
+	{{"HTTP/1.1", 403, _Forbidden}, _Headers, _} = Result,
 	{ok, #product{}} = ocs:find_product(ProdRef).
 
 query_product() ->
