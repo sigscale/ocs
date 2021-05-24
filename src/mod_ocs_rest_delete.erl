@@ -117,8 +117,11 @@ do_response(#mod{data = Data} = _ModData, {error, 202}) ->
 	Response = "<h2>HTTP Error 202 - Accepted</h2>",
 	{proceed, [{response, {202, Response}} | Data]};
 do_response(#mod{data = Data} = _ModData, {error, 400}) ->
-	Response = "<h2>HTTP Error 400 - Bad Reques</h2>",
+	Response = "<h2>HTTP Error 400 - Bad Request</h2>",
 	{proceed, [{response, {400, Response}} | Data]};
+do_response(#mod{data = Data} = _ModData, {error, 403}) ->
+	Response = "<h2>HTTP Error 403 - Forbidden</h2>",
+	{proceed, [{response, {403, Response}} | Data]};
 do_response(#mod{data = Data} = _ModData, {error, 500}) ->
 	Response = "<h2>HTTP Error 500 - Server Error</h2>",
 	{proceed, [{response, {500, Response}} | Data]}.
