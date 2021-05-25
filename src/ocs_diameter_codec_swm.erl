@@ -71,7 +71,7 @@
 'APN-Configuration'(encode = Operation, 'Grouped' = _Type,
 		#'3gpp_swx_APN-Configuration'{} = Data, Opts) ->
 	Mod = diameter_gen_3gpp_swx_application,
-	Mod:grouped_avp(Operation, 'APN-Configuration', Data, Opts);
+	Mod:grouped_avp(Operation, 'APN-Configuration', Data, Opts#{module := Mod});
 'APN-Configuration'(encode = Operation, 'Grouped' = _Type,
 		#'3gpp_swm_APN-Configuration'{} = Data, Opts) ->
 	Mod = diameter_gen_3gpp_swm_application,
@@ -112,7 +112,7 @@
 'EPS-Subscribed-QoS-Profile'(encode = Operation, 'Grouped' = _Type,
 		#'3gpp_swx_EPS-Subscribed-QoS-Profile'{} = Data, Opts) ->
 	Mod = diameter_gen_3gpp_swx_application,
-	Mod:grouped_avp(Operation, 'EPS-Subscribed-QoS-Profile', Data, Opts);
+	Mod:grouped_avp(Operation, 'EPS-Subscribed-QoS-Profile', Data, Opts#{module := Mod});
 'EPS-Subscribed-QoS-Profile'(encode = Operation, 'Grouped' = _Type,
 		#'3gpp_swm_EPS-Subscribed-QoS-Profile'{} = Data, Opts) ->
 	Mod = diameter_gen_3gpp_swm_application,
@@ -151,7 +151,7 @@
 'AMBR'(encode = Operation, 'Grouped' = _Type,
 		#'3gpp_swx_AMBR'{} = Data, Opts) ->
 	Mod = diameter_gen_3gpp_swx_application,
-	Mod:grouped_avp(Operation, 'AMBR', Data, Opts);
+	Mod:grouped_avp(Operation, 'AMBR', Data, Opts#{module := Mod});
 'AMBR'(encode = Operation, 'Grouped' = _Type,
 		#'3gpp_swm_AMBR'{} = Data, Opts) ->
 	Mod = diameter_gen_3gpp_swm_application,
@@ -192,7 +192,7 @@
 'Specific-APN-Info'(encode = Operation, 'Grouped' = _Type,
 		#'3gpp_swx_Specific-APN-Info'{} = Data, Opts) ->
 	Mod = diameter_gen_3gpp_swx_application,
-	Mod:grouped_avp(Operation, 'Specific-APN-Info', Data, Opts);
+	Mod:grouped_avp(Operation, 'Specific-APN-Info', Data, Opts#{module := Mod});
 'Specific-APN-Info'(encode = Operation, 'Grouped' = _Type,
 		#'3gpp_swm_Specific-APN-Info'{} = Data, Opts) ->
 	Mod = diameter_gen_3gpp_swm_application,
@@ -233,7 +233,7 @@
 'WLAN-offloadability'(encode = Operation, 'Grouped' = _Type,
 		#'3gpp_swx_WLAN-offloadability'{} = Data, Opts) ->
 	Mod = diameter_gen_3gpp_swx_application,
-	Mod:grouped_avp(Operation, 'WLAN-offloadability', Data, Opts);
+	Mod:grouped_avp(Operation, 'WLAN-offloadability', Data, Opts#{module := Mod});
 'WLAN-offloadability'(encode = Operation, 'Grouped' = _Type,
 		#'3gpp_swm_WLAN-offloadability'{} = Data, Opts) ->
 	Mod = diameter_gen_3gpp_swm_application,
@@ -272,7 +272,7 @@
 'Trace-Info'(encode = Operation, 'Grouped' = _Type,
 		#'3gpp_swx_Trace-Info'{} = Data, Opts) ->
 	Mod = diameter_gen_3gpp_swx_application,
-	Mod:grouped_avp(Operation, 'Trace-Info', Data, Opts);
+	Mod:grouped_avp(Operation, 'Trace-Info', Data, Opts#{module := Mod});
 'Trace-Info'(encode = Operation, 'Grouped' = _Type,
 		#'3gpp_swm_Trace-Info'{} = Data, Opts) ->
 	Mod = diameter_gen_3gpp_swm_application,
@@ -311,7 +311,7 @@
 'Emergency-Info'(encode = Operation, 'Grouped' = _Type,
 		#'3gpp_swx_Emergency-Info'{} = Data, Opts) ->
 	Mod = diameter_gen_3gpp_swx_application,
-	Mod:grouped_avp(Operation, 'Emergency-Info', Data, Opts);
+	Mod:grouped_avp(Operation, 'Emergency-Info', Data, Opts#{module := Mod});
 'Emergency-Info'(encode = Operation, 'Grouped' = _Type,
 		#'3gpp_swm_Emergency-Info'{} = Data, Opts) ->
 	Mod = diameter_gen_3gpp_swm_application,
@@ -350,7 +350,7 @@
 'Subscription-Id'(encode = Operation, 'Grouped' = _Type,
 		#'3gpp_swx_Subscription-Id'{} = Data, Opts) ->
 	Mod = diameter_gen_3gpp_swx_application,
-	Mod:grouped_avp(Operation, 'Subscription-Id', Data, Opts);
+	Mod:grouped_avp(Operation, 'Subscription-Id', Data, Opts#{module := Mod});
 'Subscription-Id'(encode = Operation, 'Grouped' = _Type,
 		#'3gpp_swm_Subscription-Id'{} = Data, Opts) ->
 	Mod = diameter_gen_3gpp_swm_application,
