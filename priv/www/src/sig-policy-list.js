@@ -103,14 +103,16 @@ class policyList extends PolymerElement {
 							</paper-input>
 						</div>
 						<div>
-							<template id="flowChaArrObj" is="dom-repeat" items="{{item.flow}}" as="flowitem" mutable-data="true">
+							<template id="flowDomRepeat" is="dom-repeat" items="{{item.flow}}" as="flowitem" mutable-data="true">
 								<div class="flowRow">
 									<paper-icon-button
+											id$="min-[[item.id]]"
 											class="minus-icon-button"
 											icon="icons:remove-circle-outline"
 											on-tap = "_flowMinus">
 									</paper-icon-button>
 									<paper-dropdown-menu
+											id$="dir-[[item.id]]"
 											value="{{flowitem.direction}}"
 											no-animations="true"
 											label="Flow Direction">
@@ -125,6 +127,7 @@ class policyList extends PolymerElement {
 										</paper-listbox>
 									</paper-dropdown-menu>
 									<paper-input
+											id$="desc-[[item.id]]"
 											name="flowDescription"
 											label="Flow Description"
 											value="{{flowitem.description}}">
@@ -380,7 +383,7 @@ class policyList extends PolymerElement {
 	}
 
 	_flowPlus(event) {
-		var domVar = document.body.querySelector('sig-app').shadowRoot.querySelector('sig-policy-list').shadowRoot.getElementById('flowChaArrObj')
+		var domVar = document.body.querySelector('sig-app').shadowRoot.querySelector('sig-policy-list').shadowRoot.getElementById('flowDomRepeat')
 		var flArr = event.model.item.flow;
 		var flJson = {"direction": flArr[0].direction, "description": flArr[0].description};
 		this.push('activeItem.flow', flJson);
