@@ -152,8 +152,8 @@ init_per_testcase(TestCase, Config) when TestCase == notify_create_bucket;
 			{erl_script_alias, {"/listener", [?MODULE]}}]) of
 		{ok, Pid} ->
 			[{port, Port}] = httpd:info(Pid, [port]),
-			[{listener_port, Port},
-					{listener_pid, Pid} | Config];
+			Config1 = lists:keystore(listener_port, 1, Config, {listener_port, Port}),
+			lists:keystore(listener_pid, 1, Config1, {listener_pid, Pid});
 		{error, Reason} ->
 			{error, Reason}
 	end;
