@@ -33,7 +33,7 @@
 %%% 	send a registration request event:<br  />
 %%% 	`{register, {AkaFsm, Identity}'<br />
 %%% 	and one of these replies is expected:<br />
-%%% 	`{ok, UserProfile}'<br />
+%%% 	`{ok, UserProfile, HssRealm, HssHost}'<br />
 %%% 	`{error, Reason}'
 %%%
 %%% @reference <a href="http://tools.ietf.org/html/rfc4187">
@@ -193,9 +193,11 @@ idle({vector, {AkaFsm, Identity, AUTS, RAT}}, StateData)
 			identity = Identity, auts = AUTS, rat_type = RAT},
 	idle1(ocs:find_service(Identity), NewStateData);
 idle({register, {AkaFsm, Identity}},
-		#statedata{hss_realm = undefined, aka_fsm = AkaFsm,
-		identity = Identity, attributes = Attributes} = StateData)
-		when is_pid(AkaFsm), is_binary(Identity) ->
+		#statedata{hss_realm = HssRealm, hss_host = HssHost,
+		aka_fsm = AkaFsm, identity = Identity,
+		attributes = Attributes} = StateData)
+		when is_pid(AkaFsm), is_binary(Identity),
+		HssRealm == undefined ->
 	SessionTimeout = case radius_attributes:find(?SessionTimeout,
 			Attributes) of
 		{ok, V1} ->
@@ -205,7 +207,7 @@ idle({register, {AkaFsm, Identity}},
 	end,
 	UserProfile = #'3gpp_swx_Non-3GPP-User-Data'{
 			'Session-Timeout' = SessionTimeout},
-	gen_fsm:send_event(AkaFsm, {ok, UserProfile}),
+	gen_fsm:send_event(AkaFsm, {ok, UserProfile, HssRealm, HssHost}),
 	{next_state, idle, StateData};
 idle({register, {AkaFsm, Identity}},
 		#statedata{aka_fsm = AkaFsm, identity = Identity} = StateData)
