@@ -414,7 +414,7 @@ send_diameter_identity(?SWm_APPLICATION_ID, SId, EapId, PeerId) ->
 	DER = #'3gpp_swm_DER'{'Session-Id' = SId,
 			'Auth-Application-Id' = ?SWm_APPLICATION_ID,
 			'Auth-Request-Type' = ?'DIAMETER_BASE_AUTH-REQUEST-TYPE_AUTHORIZE_AUTHENTICATE',
-			'EAP-Payload' = EapMsg},
+			'EAP-Payload' = EapMsg, 'RAT-Type' = [0]},
 	{ok, Answer} = diameter:call(?MODULE, swm_app_test, DER, []),
 	Answer.
 

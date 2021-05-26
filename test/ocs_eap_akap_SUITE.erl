@@ -544,7 +544,7 @@ send_diameter_identity(?STa_APPLICATION_ID, SId, EapId, PeerId) ->
 	DER = #'3gpp_sta_DER'{'Session-Id' = SId,
 			'Auth-Application-Id' = ?STa_APPLICATION_ID,
 			'Auth-Request-Type' = ?'DIAMETER_BASE_AUTH-REQUEST-TYPE_AUTHORIZE_AUTHENTICATE',
-			'EAP-Payload' = EapMsg},
+			'EAP-Payload' = EapMsg, 'RAT-Type' = [0]},
 	{ok, Answer} = diameter:call(?MODULE, sta_app_test, DER, []),
 	Answer.
 
