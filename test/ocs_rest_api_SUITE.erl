@@ -2838,8 +2838,9 @@ notify_create_bucket(Config) ->
 			++ "}\n",
 	ContentType = "application/json",
 	Accept = {"accept", "application/json"},
-	Request = {CollectionUrl, [Accept, auth_header()], ContentType, RequestBody},
-	{ok, {{_, 201, _}, _, _}} = httpc:request(post, Request, [], []),
+	Request1 = {CollectionUrl, [Accept, auth_header()], ContentType, RequestBody},
+	{ok, {{_, 201, _}, Headers, _}} = httpc:request(post, Request1, [], []),
+	{_, ?PathBalanceHub ++ SubId} = lists:keyfind("location", 1, Headers),
 	Price = #price{name = ocs:generate_identity(),
 			type = usage, units = octets, size = 1000, amount = 100},
 	Offer = #offer{name = ocs:generate_identity(),
@@ -2861,7 +2862,9 @@ notify_create_bucket(Config) ->
 	{_, {struct, RemainAmount}} = lists:keyfind("remainedAmount", 1, Balance),
 	{_, "cents"} = lists:keyfind("units", 1, RemainAmount),
 	{_, MillionthsOut} = lists:keyfind("amount", 1, RemainAmount),
-	100 = ocs_rest:millionths_in(MillionthsOut).
+	100 = ocs_rest:millionths_in(MillionthsOut),
+	Request2 = {CollectionUrl ++ SubId, [Accept, auth_header()]},
+	{ok, {{_, 204, _}, _, []}} = httpc:request(delete, Request2, [], []).
 
 notify_delete_bucket() ->
 	[{userdata, [{doc, "Notify deletion of bucket"}]}].
@@ -2878,8 +2881,9 @@ notify_delete_bucket(Config) ->
 			++ "}\n",
 	ContentType = "application/json",
 	Accept = {"accept", "application/json"},
-	Request = {CollectionUrl, [Accept, auth_header()], ContentType, RequestBody},
-	{ok, {{_, 201, _}, _, _}} = httpc:request(post, Request, [], []),
+	Request1 = {CollectionUrl, [Accept, auth_header()], ContentType, RequestBody},
+	{ok, {{_, 201, _}, Headers, _}} = httpc:request(post, Request1, [], []),
+	{_, ?PathBalanceHub ++ SubId} = lists:keyfind("location", 1, Headers),
 	PackagePrice = 100,
 	PackageSize = 1000,
 	P1 = #price{name = ocs:generate_identity(), type = usage, units = octets,
@@ -2899,7 +2903,9 @@ notify_delete_bucket(Config) ->
 			{struct, BalDelEvent} = mochijson:decode(Receive2),
 			{_, "BucketBalanceDeletionEvent"}
 					= lists:keyfind("eventType", 1, BalDelEvent)
-	end.
+	end,
+	Request2 = {CollectionUrl ++ SubId, [Accept, auth_header()]},
+	{ok, {{_, 204, _}, _, []}} = httpc:request(delete, Request2, [], []).
 
 notify_rating_deleted_bucket() ->
 	[{userdata, [{doc, "Notify deletion of bucket during rating"}]}].
@@ -2917,7 +2923,8 @@ notify_rating_deleted_bucket(Config) ->
 	ContentType = "application/json",
 	Accept = {"accept", "application/json"},
 	Request = {CollectionUrl, [Accept, auth_header()], ContentType, RequestBody},
-	{ok, {{_, 201, _}, _, _}} = httpc:request(post, Request, [], []),
+	{ok, {{_, 201, _}, Headers, _}} = httpc:request(post, Request, [], []),
+	{_, ?PathBalanceHub ++ SubId} = lists:keyfind("location", 1, Headers),
 	PackagePrice = 100,
 	PackageSize = 1000,
 	P1 = #price{name = ocs:generate_identity(), type = usage, units = octets,
@@ -2953,7 +2960,9 @@ notify_rating_deleted_bucket(Config) ->
 	{_, {struct, RemainAmount}}
 			= lists:keyfind("remainedAmount", 1, DeletedBalance),
 	{_, MillionthsOut} = lists:keyfind("amount", 1, RemainAmount),
-	PackagePrice = ocs_rest:millionths_in(MillionthsOut).
+	PackagePrice = ocs_rest:millionths_in(MillionthsOut),
+	Request2 = {CollectionUrl ++ SubId, [Accept, auth_header()]},
+	{ok, {{_, 204, _}, _, []}} = httpc:request(delete, Request2, [], []).
 
 notify_accumulated_balance_threshold() ->
 	[{userdata, [{doc, "Notify accumulated balance while rating if total balance"
@@ -2988,8 +2997,9 @@ notify_accumulated_balance_threshold(Config) ->
 			++ "}\n",
 	ContentType = "application/json",
 	Accept = {"accept", "application/json"},
-	Request = {CollectionUrl, [Accept, auth_header()], ContentType, RequestBody},
-	{ok, {{_, 201, _}, _, _}} = httpc:request(post, Request, [], []),
+	Request1 = {CollectionUrl, [Accept, auth_header()], ContentType, RequestBody},
+	{ok, {{_, 201, _}, Headers, _}} = httpc:request(post, Request1, [], []),
+	{_, ?PathBalanceHub ++ SubId} = lists:keyfind("location", 1, Headers),
 	Timestamp = calendar:local_time(),
 	SessionId = [{'Session-Id', list_to_binary(ocs:generate_password())}],
 	ServiceType = 32251,
@@ -3011,7 +3021,9 @@ notify_accumulated_balance_threshold(Config) ->
 					OctetsAmount = list_to_integer(lists:droplast(Amount)),
 					OctetsAmount = RA - PackageSize
 			end
-	end.
+	end,
+	Request2 = {CollectionUrl ++ SubId, [Accept, auth_header()]},
+	{ok, {{_, 204, _}, _, []}} = httpc:request(delete, Request2, [], []).
 
 query_accumulated_balance_notification() ->
 	[{userdata, [{doc, "Query accumulated balance notification"}]}].
@@ -3039,7 +3051,8 @@ query_accumulated_balance_notification(Config) ->
 	ContentType = "application/json",
 	Accept = {"accept", "application/json"},
 	Request1 = {CollectionUrl, [Accept, auth_header()], ContentType, RequestBody},
-	{ok, {{_, 201, _}, _, _}} = httpc:request(post, Request1, [], []),
+	{ok, {{_, 201, _}, Headers, _}} = httpc:request(post, Request1, [], []),
+	{_, ?PathBalanceHub ++ SubId} = lists:keyfind("location", 1, Headers),
 	Threshold = 100,
 	Query = "?totalBalance.units=cents&totalBalance.amount.lt="
 			++ integer_to_list(Threshold),
@@ -3064,6 +3077,8 @@ query_accumulated_balance_notification(Config) ->
 					= lists:keyfind("event", 1, AccBalanceEvent),
 			AccStructList
 	end,
+	Request3 = {CollectionUrl ++ SubId, [Accept, auth_header()]},
+	{ok, {{_, 204, _}, _, []}} = httpc:request(delete, Request3, [], []),
 	AccBalanceRecords = [ocs_rest_res_balance:acc_balance(AccBalanceStruct)
 			|| AccBalanceStruct <- AccBalanceStructs],
 	#acc_balance{total_balance = RA1}
@@ -3094,8 +3109,9 @@ query_bucket_notification(Config) ->
 			++ "}\n",
 	ContentType = "application/json",
 	Accept = {"accept", "application/json"},
-	Request = {CollectionUrl, [Accept, auth_header()], ContentType, RequestBody},
-	{ok, {{_, 201, _}, _, _}} = httpc:request(post, Request, [], []),
+	Request1 = {CollectionUrl, [Accept, auth_header()], ContentType, RequestBody},
+	{ok, {{_, 201, _}, Headers, _}} = httpc:request(post, Request1, [], []),
+	{_, ?PathBalanceHub ++ SubId} = lists:keyfind("location", 1, Headers),
 	_BId2 = add_bucket(ProdRef, octets, 100000000),
 	ok = ocs:delete_bucket(BId1),
 	receive
@@ -3106,7 +3122,9 @@ query_bucket_notification(Config) ->
 			{_, {struct, StructList}}
 					= lists:keyfind("event", 1, BalDelEvent),
 			{_, BId1} = lists:keyfind("id", 1, StructList)
-	end.
+	end,
+	Request2 = {CollectionUrl ++ SubId, [Accept, auth_header()]},
+	{ok, {{_, 204, _}, _, []}} = httpc:request(delete, Request2, [], []).
 
 post_hub_product() ->
 	[{userdata, [{doc, "Register hub listener for product"}]}].
@@ -3230,8 +3248,9 @@ notify_create_product(Config) ->
 			++ "}\n",
 	ContentType = "application/json",
 	Accept = {"accept", "application/json"},
-	Request = {CollectionUrl, [Accept, auth_header()], ContentType, RequestBody},
-	{ok, {{_, 201, _}, _, _}} = httpc:request(post, Request, [], []),
+	Request1 = {CollectionUrl, [Accept, auth_header()], ContentType, RequestBody},
+	{ok, {{_, 201, _}, Headers, _}} = httpc:request(post, Request1, [], []),
+	{_, ?PathProductHub ++ SubId} = lists:keyfind("location", 1, Headers),
 	Price = #price{name = ocs:generate_identity(),
 			type = usage, units = octets, size = 1000, amount = 100},
 	Offer = #offer{name = ocs:generate_identity(),
@@ -3254,7 +3273,9 @@ notify_create_product(Config) ->
 	end,
 	{_, ProductId} = lists:keyfind("id", 1, Product),
 	{_, {struct, OfferStruct}} = lists:keyfind("productOffering", 1, Product),
-	{_, OfferId} = lists:keyfind("id", 1, OfferStruct).
+	{_, OfferId} = lists:keyfind("id", 1, OfferStruct),
+	Request2 = {CollectionUrl ++ SubId, [Accept, auth_header()]},
+	{ok, {{_, 204, _}, _, []}} = httpc:request(delete, Request2, [], []).
 
 notify_delete_product() ->
 	[{userdata, [{doc, "Notify deletion of product"}]}].
@@ -3271,8 +3292,9 @@ notify_delete_product(Config) ->
 			++ "}\n",
 	ContentType = "application/json",
 	Accept = {"accept", "application/json"},
-	Request = {CollectionUrl, [Accept, auth_header()], ContentType, RequestBody},
-	{ok, {{_, 201, _}, _, _}} = httpc:request(post, Request, [], []),
+	Request1 = {CollectionUrl, [Accept, auth_header()], ContentType, RequestBody},
+	{ok, {{_, 201, _}, Headers, _}} = httpc:request(post, Request1, [], []),
+	{_, ?PathProductHub ++ SubId} = lists:keyfind("location", 1, Headers),
 	PackagePrice = 100,
 	PackageSize = 1000,
 	P1 = #price{name = ocs:generate_identity(), type = usage, units = octets,
@@ -3301,7 +3323,9 @@ notify_delete_product(Config) ->
 					= lists:keyfind("event", 1, ProductDelEvent),
 			ProductStuct1
 	end,
-	#product{} = ocs_rest_res_product:inventory(ProductStuct2).
+	#product{} = ocs_rest_res_product:inventory(ProductStuct2),
+	Request2 = {CollectionUrl ++ SubId, [Accept, auth_header()]},
+	{ok, {{_, 204, _}, _, []}} = httpc:request(delete, Request2, [], []).
 
 notify_product_charge() ->
 	[{userdata, [{doc, "Receive product charged notification"}]}].
@@ -3318,8 +3342,9 @@ notify_product_charge(Config) ->
 			++ "}\n",
 	ContentType = "application/json",
 	Accept = {"accept", "application/json"},
-	Request = {CollectionUrl, [Accept, auth_header()], ContentType, RequestBody},
-	{ok, {{_, 201, _}, _, _}} = httpc:request(post, Request, [], []),
+	Request1 = {CollectionUrl, [Accept, auth_header()], ContentType, RequestBody},
+	{ok, {{_, 201, _}, Headers, _}} = httpc:request(post, Request1, [], []),
+	{_, ?PathProductHub ++ SubId} = lists:keyfind("location", 1, Headers),
 	SD = erlang:system_time(?MILLISECOND),
 	Alteration = #alteration{name = ocs:generate_identity(), start_date = SD,
 			type = usage, period = undefined,
@@ -3374,7 +3399,9 @@ notify_product_charge(Config) ->
 						false
 				end
 	end,
-	-1250 = lists:sum(lists:filtermap(Fcents, AdjustmentStructs)).
+	-1250 = lists:sum(lists:filtermap(Fcents, AdjustmentStructs)),
+	Request2 = {CollectionUrl ++ SubId, [Accept, auth_header()]},
+	{ok, {{_, 204, _}, _, []}} = httpc:request(delete, Request2, [], []).
 
 query_product_notification() ->
 	[{userdata, [{doc, "Query product notification"}]}].
@@ -3399,8 +3426,9 @@ query_product_notification(Config) ->
 			++ "}\n",
 	ContentType = "application/json",
 	Accept = {"accept", "application/json"},
-	Request = {CollectionUrl, [Accept, auth_header()], ContentType, RequestBody},
-	{ok, {{_, 201, _}, _, _}} = httpc:request(post, Request, [], []),
+	Request1 = {CollectionUrl, [Accept, auth_header()], ContentType, RequestBody},
+	{ok, {{_, 201, _}, Headers, _}} = httpc:request(post, Request1, [], []),
+	{_, ?PathProductHub ++ SubId} = lists:keyfind("location", 1, Headers),
 	{ok, #product{id = _ProdRef2}} = ocs:add_product(OfferId, [], []),
 	ok = ocs:delete_product(ProdRef1),
 	receive
@@ -3411,7 +3439,9 @@ query_product_notification(Config) ->
 			{_, {struct, StructList}}
 					= lists:keyfind("event", 1, ProductDelEvent),
 			{_, ProdRef1} = lists:keyfind("id", 1, StructList)
-	end.
+	end,
+	Request2 = {CollectionUrl ++ SubId, [Accept, auth_header()]},
+	{ok, {{_, 204, _}, _, []}} = httpc:request(delete, Request2, [], []).
 
 post_hub_service() ->
 	[{userdata, [{doc, "Register hub listener for service"}]}].
@@ -3453,8 +3483,9 @@ notify_create_service(Config) ->
 			++ "}\n",
 	ContentType = "application/json",
 	Accept = {"accept", "application/json"},
-	Request = {CollectionUrl, [Accept, auth_header()], ContentType, RequestBody},
-	{ok, {{_, 201, _}, _, _}} = httpc:request(post, Request, [], []),
+	Request1 = {CollectionUrl, [Accept, auth_header()], ContentType, RequestBody},
+	{ok, {{_, 201, _}, Headers, _}} = httpc:request(post, Request1, [], []),
+	{_, ?PathServiceHub ++ SubId} = lists:keyfind("location", 1, Headers),
 	Identity = ocs:generate_identity(),
 	Password = ocs:generate_password(),
 	{ok, #service{}} = ocs:add_service(Identity, Password),
@@ -3475,7 +3506,9 @@ notify_create_service(Config) ->
 			(_) ->
 				false
 	end,
-	[Password] = lists:filtermap(F, Chars).
+	[Password] = lists:filtermap(F, Chars),
+	Request2 = {CollectionUrl ++ SubId, [Accept, auth_header()]},
+	{ok, {{_, 204, _}, _, []}} = httpc:request(delete, Request2, [], []).
 
 notify_delete_service() ->
 	[{userdata, [{doc, "Notify deletion of service"}]}].
@@ -3492,8 +3525,9 @@ notify_delete_service(Config) ->
 			++ "}\n",
 	ContentType = "application/json",
 	Accept = {"accept", "application/json"},
-	Request = {CollectionUrl, [Accept, auth_header()], ContentType, RequestBody},
-	{ok, {{_, 201, _}, _, _}} = httpc:request(post, Request, [], []),
+	Request1 = {CollectionUrl, [Accept, auth_header()], ContentType, RequestBody},
+	{ok, {{_, 201, _}, Headers, _}} = httpc:request(post, Request1, [], []),
+	{_, ?PathServiceHub ++ SubId} = lists:keyfind("location", 1, Headers),
 	Identity = ocs:generate_identity(),
 	Password = ocs:generate_password(),
 	{ok, #service{}} = ocs:add_service(Identity, Password),
@@ -3509,7 +3543,9 @@ notify_delete_service(Config) ->
 			{struct, ServiceDelEvent} = mochijson:decode(Input2),
 			{_, "ServiceDeleteNotification"}
 					= lists:keyfind("eventType", 1, ServiceDelEvent)
-	end.
+	end,
+	Request2 = {CollectionUrl ++ SubId, [Accept, auth_header()]},
+	{ok, {{_, 204, _}, _, []}} = httpc:request(delete, Request2, [], []).
 
 delete_hub_service() ->
 	[{userdata, [{doc, "Unregister hub listener for service"}]}].
@@ -3611,8 +3647,9 @@ query_service_notification(Config) ->
 			++ "}\n",
 	ContentType = "application/json",
 	Accept = {"accept", "application/json"},
-	Request = {CollectionUrl, [Accept, auth_header()], ContentType, RequestBody},
-	{ok, {{_, 201, _}, _, _}} = httpc:request(post, Request, [], []),
+	Request1 = {CollectionUrl, [Accept, auth_header()], ContentType, RequestBody},
+	{ok, {{_, 201, _}, Headers, _}} = httpc:request(post, Request1, [], []),
+	{_, ?PathServiceHub ++ SubId} = lists:keyfind("location", 1, Headers),
 	Password = ocs:generate_password(),
 	{ok, #service{}} = ocs:add_service(Identity, Password),
 	ok = ocs:delete_service(Identity),
@@ -3634,7 +3671,9 @@ query_service_notification(Config) ->
 			(_) ->
 				false
 	end,
-	[Password] = lists:filtermap(F, Chars).
+	[Password] = lists:filtermap(F, Chars),
+	Request2 = {CollectionUrl ++ SubId, [Accept, auth_header()]},
+	{ok, {{_, 204, _}, _, []}} = httpc:request(delete, Request2, [], []).
 
 post_hub_user() ->
 	[{userdata, [{doc, "Register hub listener for service"}]}].
@@ -3865,8 +3904,9 @@ notify_create_offer(Config) ->
 			++ "}\n",
 	ContentType = "application/json",
 	Accept = {"accept", "application/json"},
-	Request = {CollectionUrl, [Accept, auth_header()], ContentType, RequestBody},
-	{ok, {{_, 201, _}, _, _}} = httpc:request(post, Request, [], []),
+	Request1 = {CollectionUrl, [Accept, auth_header()], ContentType, RequestBody},
+	{ok, {{_, 201, _}, Headers, _}} = httpc:request(post, Request1, [], []),
+	{_, ?PathCatalogHub ++ SubId} = lists:keyfind("location", 1, Headers),
 	Price1 = price(one_time, undefined, undefined, 1000),
 	Price2 = price(usage, octets, 1000000000, 100),
 	OfferId = add_offer([Price1, Price2], 4),
@@ -3877,7 +3917,9 @@ notify_create_offer(Config) ->
 					= lists:keyfind("eventType", 1, OfferEvent),
 			{_, {struct, OfferList}} = lists:keyfind("event", 1, OfferEvent),
 			{_, OfferId} = lists:keyfind("id", 1, OfferList)
-	end.
+	end,
+	Request2 = {CollectionUrl ++ SubId, [Accept, auth_header()]},
+	{ok, {{_, 204, _}, _, []}} = httpc:request(delete, Request2, [], []).
 
 notify_delete_offer() ->
 	[{userdata, [{doc, "Notify deletion of offer"}]}].
@@ -3894,8 +3936,9 @@ notify_delete_offer(Config) ->
 			++ "}\n",
 	ContentType = "application/json",
 	Accept = {"accept", "application/json"},
-	Request = {CollectionUrl, [Accept, auth_header()], ContentType, RequestBody},
-	{ok, {{_, 201, _}, _, _}} = httpc:request(post, Request, [], []),
+	Request1 = {CollectionUrl, [Accept, auth_header()], ContentType, RequestBody},
+	{ok, {{_, 201, _}, Headers, _}} = httpc:request(post, Request1, [], []),
+	{_, ?PathCatalogHub ++ SubId} = lists:keyfind("location", 1, Headers),
 	P1 = #price{name = ocs:generate_identity(), type = usage, units = octets,
 			size = 1000, amount = 100},
 	OfferId = add_offer([P1], 4),
@@ -3911,7 +3954,9 @@ notify_delete_offer(Config) ->
 			{struct, OfferDelEvent} = mochijson:decode(Input2),
 			{_, "ProductOfferingRemoveNotification"}
 					= lists:keyfind("eventType", 1, OfferDelEvent)
-	end.
+	end,
+	Request2 = {CollectionUrl ++ SubId, [Accept, auth_header()]},
+	{ok, {{_, 204, _}, _, []}} = httpc:request(delete, Request2, [], []).
 
 query_offer_notification() ->
 	[{userdata, [{doc, "Query offer notification"}]}].
@@ -3933,8 +3978,9 @@ query_offer_notification(Config) ->
 			++ "}\n",
 	ContentType = "application/json",
 	Accept = {"accept", "application/json"},
-	Request = {CollectionUrl, [Accept, auth_header()], ContentType, RequestBody},
-	{ok, {{_, 201, _}, _, _}} = httpc:request(post, Request, [], []),
+	Request1 = {CollectionUrl, [Accept, auth_header()], ContentType, RequestBody},
+	{ok, {{_, 201, _}, Headers, _}} = httpc:request(post, Request1, [], []),
+	{_, ?PathCatalogHub ++ SubId} = lists:keyfind("location", 1, Headers),
 	_OfferId2 = add_offer([P1], 4),
 	ok = ocs:delete_offer(OfferId1),
 	receive
@@ -3945,7 +3991,9 @@ query_offer_notification(Config) ->
 			{_, {struct, StructList}}
 					= lists:keyfind("event", 1, OfferDelEvent),
 			{_, OfferId1} = lists:keyfind("id", 1, StructList)
-	end.
+	end,
+	Request2 = {CollectionUrl ++ SubId, [Accept, auth_header()]},
+	{ok, {{_, 204, _}, _, []}} = httpc:request(delete, Request2, [], []).
 
 post_hub_inventory() ->
 	[{userdata, [{doc, "Register hub listener for inventory"}]}].
@@ -4069,8 +4117,9 @@ notify_insert_gtt(Config) ->
 			++ "}\n",
 	ContentType = "application/json",
 	Accept = {"accept", "application/json"},
-	Request = {CollectionUrl, [Accept, auth_header()], ContentType, RequestBody},
-	{ok, {{_, 201, _}, _, _}} = httpc:request(post, Request, [], []),
+	Request1 = {CollectionUrl, [Accept, auth_header()], ContentType, RequestBody},
+	{ok, {{_, 201, _}, Headers, _}} = httpc:request(post, Request1, [], []),
+	{_, ?PathResourceHub ++ SubId} = lists:keyfind("location", 1, Headers),
 	[Table | _] = ocs_gtt:list(),
 	Prefix = "1519240",
 	Description = "Bell Mobility",
@@ -4083,7 +4132,9 @@ notify_insert_gtt(Config) ->
 					= lists:keyfind("eventType", 1, GttEvent),
 			{_, {struct, GttList}} = lists:keyfind("event", 1, GttEvent),
 			{_, Prefix} = lists:keyfind("id", 1, GttList)
-	end.
+	end,
+	Request2 = {CollectionUrl ++ SubId, [Accept, auth_header()]},
+	{ok, {{_, 204, _}, _, []}} = httpc:request(delete, Request2, [], []).
 
 notify_delete_gtt() ->
 	[{userdata, [{doc, "Receive resource deletion notification."}]}].
@@ -4100,8 +4151,9 @@ notify_delete_gtt(Config) ->
 			++ "}\n",
 	ContentType = "application/json",
 	Accept = {"accept", "application/json"},
-	Request = {CollectionUrl, [Accept, auth_header()], ContentType, RequestBody},
-	{ok, {{_, 201, _}, _, _}} = httpc:request(post, Request, [], []),
+	Request1 = {CollectionUrl, [Accept, auth_header()], ContentType, RequestBody},
+	{ok, {{_, 201, _}, Headers, _}} = httpc:request(post, Request1, [], []),
+	{_, ?PathResourceHub ++ SubId} = lists:keyfind("location", 1, Headers),
 	Table = tariff_table7,
 	ok = ocs_gtt:new(Table, []),
 	Prefix = "1519240",
@@ -4124,7 +4176,9 @@ notify_delete_gtt(Config) ->
 					= lists:keyfind("eventType", 1, GttEvent2),
 			{_, {struct, GttList2}} = lists:keyfind("event", 1, GttEvent2),
 			{_, Prefix} = lists:keyfind("id", 1, GttList2)
-	end.
+	end,
+	Request2 = {CollectionUrl ++ SubId, [Accept, auth_header()]},
+	{ok, {{_, 204, _}, _, []}} = httpc:request(delete, Request2, [], []).
 
 query_gtt_notification() ->
 	[{userdata, [{doc, "Query gtt notifications"}]}].
@@ -4144,8 +4198,9 @@ query_gtt_notification(Config) ->
 			++ "}\n",
 	ContentType = "application/json",
 	Accept = {"accept", "application/json"},
-	Request = {CollectionUrl, [Accept, auth_header()], ContentType, RequestBody},
-	{ok, {{_, 201, _}, _, _}} = httpc:request(post, Request, [], []),
+	Request1 = {CollectionUrl, [Accept, auth_header()], ContentType, RequestBody},
+	{ok, {{_, 201, _}, Headers, _}} = httpc:request(post, Request1, [], []),
+	{_, ?PathResourceHub ++ SubId} = lists:keyfind("location", 1, Headers),
 	Table = tariff_table8,
 	ok = ocs_gtt:new(Table, []),
 	Description = "Bell Mobility",
@@ -4159,7 +4214,9 @@ query_gtt_notification(Config) ->
 					= lists:keyfind("eventType", 1, GttEvent),
 			{_, {struct, GttList}} = lists:keyfind("event", 1, GttEvent),
 			{_, Prefix} = lists:keyfind("id", 1, GttList)
-	end.
+	end,
+	Request2 = {CollectionUrl ++ SubId, [Accept, auth_header()]},
+	{ok, {{_, 204, _}, _, []}} = httpc:request(delete, Request2, [], []).
 
 notify_add_resource() ->
 	[{userdata, [{doc, "Receive resource creation notification."}]}].
@@ -4176,8 +4233,9 @@ notify_add_resource(Config) ->
 			++ "}\n",
 	ContentType = "application/json",
 	Accept = {"accept", "application/json"},
-	Request = {CollectionUrl, [Accept, auth_header()], ContentType, RequestBody},
-	{ok, {{_, 201, _}, _, _}} = httpc:request(post, Request, [], []),
+	Request1 = {CollectionUrl, [Accept, auth_header()], ContentType, RequestBody},
+	{ok, {{_, 201, _}, Headers, _}} = httpc:request(post, Request1, [], []),
+	{_, ?PathResourceHub ++ SubId} = lists:keyfind("location", 1, Headers),
 	TariffResource = #resource{name = "Example",
 			start_date = erlang:system_time(?MILLISECOND),
 			end_date = erlang:system_time(?MILLISECOND) + rand:uniform(10000000000),
@@ -4193,7 +4251,9 @@ notify_add_resource(Config) ->
 			{_, {struct, ResList}} = lists:keyfind("event", 1, ResEvent),
 			{_, Id} = lists:keyfind("id", 1, ResList),
 			true = is_list(Id)
-	end.
+	end,
+	Request2 = {CollectionUrl ++ SubId, [Accept, auth_header()]},
+	{ok, {{_, 204, _}, _, []}} = httpc:request(delete, Request2, [], []).
 
 notify_delete_resource() ->
 	[{userdata, [{doc, "Receive resource deletion notification"}]}].
@@ -4210,8 +4270,9 @@ notify_delete_resource(Config) ->
 			++ "}\n",
 	ContentType = "application/json",
 	Accept = {"accept", "application/json"},
-	Request = {CollectionUrl, [Accept, auth_header()], ContentType, RequestBody},
-	{ok, {{_, 201, _}, _, _}} = httpc:request(post, Request, [], []),
+	Request1 = {CollectionUrl, [Accept, auth_header()], ContentType, RequestBody},
+	{ok, {{_, 201, _}, Headers, _}} = httpc:request(post, Request1, [], []),
+	{_, ?PathResourceHub ++ SubId} = lists:keyfind("location", 1, Headers),
 	TariffResource = #resource{name = "Example",
 			start_date = erlang:system_time(?MILLISECOND),
 			end_date = erlang:system_time(?MILLISECOND) + rand:uniform(10000000000),
@@ -4233,7 +4294,9 @@ notify_delete_resource(Config) ->
 					= lists:keyfind("eventType", 1, ResEvent2),
 			{_, {struct, ResList}} = lists:keyfind("event", 1, ResEvent2),
 			{_, Id} = lists:keyfind("id", 1, ResList)
-	end.
+	end,
+	Request2 = {CollectionUrl ++ SubId, [Accept, auth_header()]},
+	{ok, {{_, 204, _}, _, []}} = httpc:request(delete, Request2, [], []).
 
 query_resource_notification() ->
 	[{userdata, [{doc, "Query resource notifications"}]}].
@@ -4259,8 +4322,9 @@ query_resource_notification(Config) ->
 			++ "}\n",
 	ContentType = "application/json",
 	Accept = {"accept", "application/json"},
-	Request = {CollectionUrl, [Accept, auth_header()], ContentType, RequestBody},
-	{ok, {{_, 201, _}, _, _}} = httpc:request(post, Request, [], []),
+	Request1 = {CollectionUrl, [Accept, auth_header()], ContentType, RequestBody},
+	{ok, {{_, 201, _}, Headers, _}} = httpc:request(post, Request1, [], []),
+	{_, ?PathResourceHub ++ SubId} = lists:keyfind("location", 1, Headers),
 	ok = ocs:delete_resource(Id),
 	receive
 		Receive ->
@@ -4269,7 +4333,9 @@ query_resource_notification(Config) ->
 					= lists:keyfind("eventType", 1, ResEvent),
 			{_, {struct, ResList}} = lists:keyfind("event", 1, ResEvent),
 			{_, Id} = lists:keyfind("id", 1, ResList)
-	end.
+	end,
+	Request2 = {CollectionUrl ++ SubId, [Accept, auth_header()]},
+	{ok, {{_, 204, _}, _, []}} = httpc:request(delete, Request2, [], []).
 
 post_hub_usage() ->
 	[{userdata, [{doc, "Register hub listener for usage"}]}].
@@ -4393,8 +4459,9 @@ notify_diameter_acct_log(Config) ->
 			++ "}\n",
 	ContentType = "application/json",
 	Accept = {"accept", "application/json"},
-	Request = {CollectionUrl, [Accept, auth_header()], ContentType, RequestBody},
-	{ok, {{_, 201, _}, _, _}} = httpc:request(post, Request, [], []),
+	Request1 = {CollectionUrl, [Accept, auth_header()], ContentType, RequestBody},
+	{ok, {{_, 201, _}, Headers, _}} = httpc:request(post, Request1, [], []),
+	{_, ?PathUsageHub ++ SubId} = lists:keyfind("location", 1, Headers),
 	Protocol = diameter,
 	ServerAddress = {0, 0, 0, 0},
 	ServerPort = 1813,
@@ -4415,7 +4482,9 @@ notify_diameter_acct_log(Config) ->
 					= lists:keyfind("href", 1, AcctUsageList),
 			{_, "AAAAccountingUsage"}
 					= lists:keyfind("type", 1, AcctUsageList)
-	end.
+	end,
+	Request2 = {CollectionUrl ++ SubId, [Accept, auth_header()]},
+	{ok, {{_, 204, _}, _, []}} = httpc:request(delete, Request2, [], []).
 
 get_tariff_resource() ->
 	[{userdata, [{doc,"Get tariff resource with given resource
