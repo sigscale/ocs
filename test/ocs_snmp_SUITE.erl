@@ -153,7 +153,7 @@ all() ->
 			get_diameter_host, get_diameter_realm, get_diameter_product,
 			get_diameter_packets_in, get_diameter_packets_out,
 			get_diameter_uptime,get_diameter_peer_id,
-			get_diameter_firmware_rev, get_diameter_asa_dropped,
+			get_diameter_asa_dropped,
 			get_diameter_ccr_in, get_diameter_ccr_out,
 			get_diameter_ccr_dropped, get_diameter_cca_in,
 			get_diameter_cca_out, get_diameter_cca_dropped,
@@ -276,16 +276,6 @@ get_diameter_peer_id(_Config) ->
 	{noError, _, Varbinds} = ct_snmp:get_values(ocs_mibs_test,
 			[OID1], snmp_mgr_agent),
 	[{varbind, OID1, 'OCTET STRING', _, _}] = Varbinds.
-
-get_diameter_firmware_rev() ->
-	[{userdata, [{doc, "Get diameter Firmware Revison"}]}].
-
-get_diameter_firmware_rev(_Config) ->
-	{value, OID} = snmpa:name_to_oid(dccaPeerFirmwareRevision),
-	OID1 = OID ++ [1],
-	{noError, _, Varbinds} = ct_snmp:get_values(ocs_mibs_test,
-			[OID1], snmp_mgr_agent),
-	[{varbind, OID1, 'Unsigned32', _, _}] = Varbinds.
 
 get_diameter_ccr_in() ->
 	[{userdata, [{doc, "Get diameter CCRIn"}]}].
