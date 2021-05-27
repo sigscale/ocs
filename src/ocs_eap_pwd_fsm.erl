@@ -865,27 +865,28 @@ confirm6(Request, #statedata{eap_id = EapID, ks = Ks, confirm_p = ConfirmP,
 	Timestamp = calendar:local_time(),
 	SessionAttributes = [{'Origin-Host', OH}, {'Origin-Realm', OR},
 			{'Session-Id', SessionID}],
+	NewStateData = StateData#statedata{mk = MK, msk = MSK},
 	case ocs_rating:authorize(diameter, ServiceType, PeerID, Password,
 			Timestamp, undefined, undefined, SessionAttributes) of
 		{authorized, _Subscriber, _Attributes, _ExistingSessionAttributes} ->
 			EapPacket = #eap_packet{code = success, identifier = EapID},
 			send_diameter_response(SessionID, AuthType,
 					 ?'DIAMETER_BASE_RESULT-CODE_SUCCESS', OH, OR, EapPacket,
-					 PortServer, Request, StateData),
-			{stop, {shutdown, SessionID}, StateData#statedata{mk = MK, msk = MSK}};
+					 PortServer, Request, NewStateData),
+			{stop, {shutdown, SessionID}, NewStateData};
 		{unauthorized, disabled, ExistingSessionAttributes} ->
-			start_disconnect(diameter, ExistingSessionAttributes, StateData),
+			start_disconnect(diameter, ExistingSessionAttributes, NewStateData),
 			EapPacket = #eap_packet{code = failure, identifier = EapID},
 			send_diameter_response(SessionID, AuthType,
 					 ?'DIAMETER_BASE_RESULT-CODE_UNABLE_TO_COMPLY', OH, OR,
-					 EapPacket, PortServer, Request, StateData),
-			{stop, {shutdown, SessionID}, StateData};
+					 EapPacket, PortServer, Request, NewStateData),
+			{stop, {shutdown, SessionID}, NewStateData};
 		{unauthorized, _Reason, _ExistingSessionAttributes} ->
 			EapPacket1 = #eap_packet{code = failure, identifier = EapID},
 			send_diameter_response(SessionID, AuthType,
 					 ?'DIAMETER_BASE_RESULT-CODE_UNABLE_TO_COMPLY', OH, OR,
-					 EapPacket1, PortServer, Request, StateData),
-			{stop, {shutdown, SessionID}, StateData}
+					 EapPacket1, PortServer, Request, NewStateData),
+			{stop, {shutdown, SessionID}, NewStateData}
 	end.			
 
 -spec handle_event(Event, StateName, StateData) -> Result
