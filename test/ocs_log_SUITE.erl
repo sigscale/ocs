@@ -628,13 +628,13 @@ acct_query_diameter(_Config) ->
 	ok = fill_acct(rand:uniform(2000), diameter),
 	End = erlang:system_time(?MILLISECOND),
 	MatchSpec = [{#'3gpp_ro_CCR'{'Session-Id' = Sid, _ = '_'}, []}],
-	Fget = fun(_F, {eof, Events}, Acc) ->
+	Fget = fun F({eof, Events}, Acc) ->
 				lists:flatten(lists:reverse([Events | Acc]));
-			(F, {Cont, Events}, Acc) ->
-				F(F, ocs_log:acct_query(Cont, Start, End, diameter, '_',
-						MatchSpec), [Events | Acc])
+			F({Cont, Events}, Acc) ->
+				F(ocs_log:acct_query(Cont, Start, End,
+						diameter, '_', MatchSpec), [Events | Acc])
 	end,
-	Events = Fget(Fget, ocs_log:acct_query(start, Start, End, diameter, '_', MatchSpec), []),
+	Events = Fget(ocs_log:acct_query(start, Start, End, diameter, '_', MatchSpec), []),
 	3 = length(Events).
 
 binary_tree_half() ->
@@ -775,7 +775,7 @@ abmf_log_event(_Config) ->
 	true = Find(Find, disk_log:chunk(ocs_abmf, start)).
 
 abmf_query() ->
-   [{userdata, [{doc, "Get matching accounting log events"}]}].
+   [{userdata, [{doc, "Get matching ABMF log events"}]}].
 
 abmf_query(_Config) ->
 	ok = ocs_log:abmf_open(),
@@ -811,19 +811,14 @@ abmf_query(_Config) ->
 			undefined, undefined, undefined, undefined, undefined),
 	ok = fill_abmf(rand:uniform(2000)),
 	End = erlang:system_time(?MILLISECOND),
-	F1 = fun(St, En, Ty, Sub, BI, Un, PI) ->
-		F2 = fun(_F2, {eof, Event}, Acc) ->
-					lists:flatten(lists:reverse([Event | Acc]));
-				(F2, {Cont, Events}, Acc) ->
-					F2(F2, ocs_log:abmf_query(Cont, St, En, Ty, Sub,
-							BI, Un, PI), [Events | Acc])
-		end,
-		F2(F2, ocs_log:abmf_query(start, St, En, Ty, Sub, BI, Un, PI), [])
+	Fget = fun F({eof, Chunk}, Acc) ->
+				lists:flatten(lists:reverse([Chunk | Acc]));
+			F({Cont, Chunk}, Acc) ->
+				F(ocs_log:abmf_query(Cont, Start, End,
+						'_', '_', '_', '_', ProdId), [Chunk | Acc])
 	end,
-	E1 =  F1(Start, End, topup, Subscriber, BucketId, cents, ProdId),
-	E2 =  F1(Start, End, transfer, Subscriber, BucketId, cents, ProdId),
-	E3 =  F1(Start, End, adjustment, Subscriber, BucketId, cents, ProdId),
-	Events = E1 ++ E2 ++ E3,
+	Events = Fget(ocs_log:abmf_query(start, Start, End,
+			'_', '_', '_', '_', ProdId), []),
 	3 = length(Events).
 
 diameter_scur() ->
