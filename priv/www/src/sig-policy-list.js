@@ -477,6 +477,7 @@ class policyList extends PolymerElement {
 									var flowDownDesObj = resChar[indexRes].value[indexFl].flowDescription;
 									tabObj.flowDown = flowDownDirObj + "," + flowDownDesObj;
 								}
+                        tabObj.flowValueLength = tabObj.flow.length;
 							}
 						} else if(resChar[indexRes].name == "precedence") {
 							tabObj.precedence = resChar[indexRes].value;
@@ -639,7 +640,7 @@ class policyList extends PolymerElement {
 			PolArray.push(Cid);
 		}
 
-		if(Mitem.flow) {
+      if(Mitem.flow.length != Mitem.flowValueLength) {
 			function checkFlow1(charPolFl1) {
 				return charPolFl1.name == "flowInformation";
 			}
