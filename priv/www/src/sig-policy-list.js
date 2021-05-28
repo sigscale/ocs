@@ -113,7 +113,7 @@ class policyList extends PolymerElement {
 									</paper-icon-button>
 									<paper-dropdown-menu
 											id$="dir-[[item.id]]"
-											value="{{flowitem.direction}}"
+											value="{{flowitem.flowDirection}}"
 											no-animations="true"
 											label="Flow Direction">
 										<paper-listbox
@@ -130,7 +130,7 @@ class policyList extends PolymerElement {
 											id$="desc-[[item.id]]"
 											name="flowDescription"
 											label="Flow Description"
-											value="{{flowitem.description}}">
+											value="{{flowitem.flowDescription}}">
 									</paper-input>
 								<div>
 							</template>
@@ -377,7 +377,7 @@ class policyList extends PolymerElement {
 			tableRecord.name = results[indexTable].name;
 			tableRecord.id = results[indexTable].id;
 			tableRecord.href = results[indexTable].href;
-			tableRecord.description = results[indexTable].description;
+			tableRecord.flowDescription = results[indexTable].flowDescription;
 			this.push('tables', tableRecord);
 		}
 	}
@@ -385,7 +385,7 @@ class policyList extends PolymerElement {
 	_flowPlus(event) {
 		var domVar = document.body.querySelector('sig-app').shadowRoot.querySelector('sig-policy-list').shadowRoot.getElementById('flowDomRepeat')
 		var flArr = event.model.item.flow;
-		var flJson = {"direction": flArr[0].direction, "description": flArr[0].description};
+		var flJson = {"flowDirection": flArr[0].flowDirection, "flowDescription": flArr[0].flowDescription};
 		this.push('activeItem.flow', flJson);
 		domVar.notifyPath('items');
 	}
@@ -462,16 +462,16 @@ class policyList extends PolymerElement {
 							for(var indexFl in resChar[indexRes].value){
 								if(resChar[indexRes].value[indexFl].flowDirection == "up") {
 									var flowDirObj = new Object();
-									flowDirObj.direction = resChar[indexRes].value[indexFl].flowDirection;
-									flowDirObj.description = resChar[indexRes].value[indexFl].flowDescription;
+									flowDirObj.flowDirection = resChar[indexRes].value[indexFl].flowDirection;
+									flowDirObj.flowDescription = resChar[indexRes].value[indexFl].flowDescription;
 									tabObj.flow[indexFl] = flowDirObj;
 									var flowUpDirObj = resChar[indexRes].value[indexFl].flowDirection;
 									var flowUpDesObj = resChar[indexRes].value[indexFl].flowDescription;
 									tabObj.flowUp = flowUpDirObj + "," + flowUpDesObj;
 								} else if(resChar[indexRes].value[indexFl].flowDirection == "down"){
 									var flowDirObj1 = new Object();
-									flowDirObj1.direction = resChar[indexRes].value[indexFl].flowDirection;
-									flowDirObj1.description = resChar[indexRes].value[indexFl].flowDescription;
+									flowDirObj1.flowDirection = resChar[indexRes].value[indexFl].flowDirection;
+									flowDirObj1.flowDescription = resChar[indexRes].value[indexFl].flowDescription;
 									tabObj.flow[indexFl] = flowDirObj1;
 									var flowDownDirObj = resChar[indexRes].value[indexFl].flowDirection;
 									var flowDownDesObj = resChar[indexRes].value[indexFl].flowDescription;
@@ -662,7 +662,7 @@ class policyList extends PolymerElement {
 				var Fdir = new Object();
 				Fdir.op = "replace";
 				Fdir.path = "/resourceCharacteristic/" + index8 + "/value/" + index8i;
-				Fdir.value = {"flowDirection": Mitem.flow[index8i].direction, "flowDescription": Mitem.flow[index8i].description};
+				Fdir.value = {"flowDirection": Mitem.flow[index8i].flowDirection, "flowDescription": Mitem.flow[index8i].flowDescription};
 				PolArray.push(Fdir);
 			}
 		}
