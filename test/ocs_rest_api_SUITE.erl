@@ -130,9 +130,8 @@ init_per_testcase(TestCase, Config) when TestCase == notify_create_bucket;
 		TestCase == notify_rating_deleted_bucket;
 		TestCase == notify_accumulated_balance_threshold;
 		TestCase == query_accumulated_balance_notification;
-		TestCase == query_bucket_notification;
+		TestCase == query_bucket_notification; TestCase == notify_product_charge;
 		TestCase == notify_create_product; TestCase == notify_delete_product;
-		TestCase == notify_product_charge;
 		TestCase == query_product_notification;
 		TestCase == notify_create_service; TestCase == notify_delete_service;
 		TestCase == query_service_notification;
@@ -172,9 +171,8 @@ end_per_testcase(TestCase, Config) when TestCase == notify_create_bucket;
 		TestCase == notify_rating_deleted_bucket;
 		TestCase == notify_accumulated_balance_threshold;
 		TestCase == query_accumulated_balance_notification;
-		TestCase == query_bucket_notification;
+		TestCase == query_bucket_notification; TestCase == notify_product_charge;
 		TestCase == notify_create_product; TestCase == notify_delete_product;
-		TestCase == notify_product_charge;
 		TestCase == query_product_notification;
 		TestCase == notify_create_service; TestCase == notify_delete_service;
 		TestCase == query_service_notification;
@@ -232,9 +230,9 @@ all() ->
 	post_hub_balance, delete_hub_balance, get_balance_hubs, get_balance_hub,
 	notify_create_bucket, notify_delete_bucket, notify_rating_deleted_bucket,
 	notify_accumulated_balance_threshold, query_accumulated_balance_notification,
-	query_bucket_notification,
+	query_bucket_notification, notify_product_charge,
 	post_hub_product, delete_hub_product, get_product_hubs, get_product_hub,
-	notify_create_product, notify_delete_product, notify_product_charge,
+	notify_create_product, notify_delete_product,
 	query_product_notification, post_hub_service, delete_hub_service,
 	get_service_hubs, get_service_hub,
 	notify_create_service, notify_delete_service, query_service_notification,
@@ -3126,6 +3124,84 @@ query_bucket_notification(Config) ->
 	Request2 = {CollectionUrl ++ SubId, [Accept, auth_header()]},
 	{ok, {{_, 204, _}, _, []}} = httpc:request(delete, Request2, [], []).
 
+notify_product_charge() ->
+	[{userdata, [{doc, "Receive product charged notification"}]}].
+
+notify_product_charge(Config) ->
+	HostUrl = ?config(host_url, Config),
+	CollectionUrl = HostUrl ++ ?PathBalanceHub,
+	ListenerPort = ?config(listener_port, Config),
+	ListenerServer = "http://localhost:" ++ integer_to_list(ListenerPort),
+	Callback = ListenerServer ++ "/listener/"
+			++ atom_to_list(?MODULE) ++ "/notifyproductcharge",
+	RequestBody = "{\n"
+			++ "\t\"callback\": \"" ++ Callback ++ "\",\n"
+			++ "}\n",
+	ContentType = "application/json",
+	Accept = {"accept", "application/json"},
+	Request1 = {CollectionUrl, [Accept, auth_header()], ContentType, RequestBody},
+	{ok, {{_, 201, _}, Headers, _}} = httpc:request(post, Request1, [], []),
+	{_, ?PathBalanceHub ++ SubId} = lists:keyfind("location", 1, Headers),
+	SD = erlang:system_time(?MILLISECOND),
+	Alteration = #alteration{name = ocs:generate_identity(), start_date = SD,
+			type = usage, period = undefined,
+			units = octets, size = 100000000000, amount = 0},
+	Price = #price{name = ocs:generate_identity(), start_date = SD,
+			type = recurring, period = monthly,
+			amount = 1250000000, alteration = Alteration},
+	OfferId = add_offer([Price], 4),
+	{ok, #product{id = ProdId} = P} = ocs:add_product(OfferId, []),
+	Expired = erlang:system_time(?MILLISECOND) - 3599000,
+	ok = mnesia:dirty_write(product, P#product{payment =
+			[{Price#price.name, Expired}]}),
+	B1 = #bucket{units = cents, remain_amount = 1000000000,
+			start_date = erlang:system_time(?MILLISECOND),
+			end_date = erlang:system_time(?MILLISECOND) + 2592000000},
+	{ok, _, #bucket{id = BId1}} = ocs:add_bucket(ProdId, B1),
+	receive
+		Input1 ->
+			{struct, BucketEvent1} = mochijson:decode(Input1),
+			{_, "BucketBalanceCreationNotification"}
+					= lists:keyfind("eventType", 1, BucketEvent1),
+			{_, {struct, BucketList1}} = lists:keyfind("event", 1, BucketEvent1),
+			{_, BId1} = lists:keyfind("id", 1, BucketList1)
+	end,
+	B2 = #bucket{units = cents, remain_amount = 1000000000,
+			start_date = erlang:system_time(?MILLISECOND),
+			end_date = erlang:system_time(?MILLISECOND) + 2592000000},
+	{ok, _, #bucket{id = BId2}} = ocs:add_bucket(ProdId, B2),
+	receive
+		Input2 ->
+			{struct, BucketEvent2} = mochijson:decode(Input2),
+			{_, "BucketBalanceCreationNotification"}
+					= lists:keyfind("eventType", 1, BucketEvent2),
+			{_, {struct, BucketList2}} = lists:keyfind("event", 1, BucketEvent2),
+			{_, BId2} = lists:keyfind("id", 1, BucketList2)
+	end,
+	ok = ocs_scheduler:product_charge(),
+	AdjustmentStructs = receive
+		Input ->
+			{struct, AdjustmentEvent} = mochijson:decode(Input),
+			{_, "BalanceAdjustmentCreationNotification"}
+					= lists:keyfind("eventType", 1, AdjustmentEvent),
+			{_, {array, AdjStructList}}
+					= lists:keyfind("event", 1, AdjustmentEvent),
+			AdjStructList
+	end,
+	Fcents = fun({struct, AdjustmentList}) ->
+				case lists:keyfind("amount", 1, AdjustmentList) of
+					{_, {struct, [{"amount", Amount}, {"units","cents"}]}} ->
+						{true, list_to_integer(Amount)};
+					{_, {struct, [{"units","cents"}, {"amount", Amount}]}} ->
+						{true, list_to_integer(Amount)};
+					_ ->
+						false
+				end
+	end,
+	-1250 = lists:sum(lists:filtermap(Fcents, AdjustmentStructs)),
+	Request2 = {CollectionUrl ++ SubId, [Accept, auth_header()]},
+	{ok, {{_, 204, _}, _, []}} = httpc:request(delete, Request2, [], []).
+
 post_hub_product() ->
 	[{userdata, [{doc, "Register hub listener for product"}]}].
 
@@ -3324,82 +3400,6 @@ notify_delete_product(Config) ->
 			ProductStuct1
 	end,
 	#product{} = ocs_rest_res_product:inventory(ProductStuct2),
-	Request2 = {CollectionUrl ++ SubId, [Accept, auth_header()]},
-	{ok, {{_, 204, _}, _, []}} = httpc:request(delete, Request2, [], []).
-
-notify_product_charge() ->
-	[{userdata, [{doc, "Receive product charged notification"}]}].
-
-notify_product_charge(Config) ->
-	HostUrl = ?config(host_url, Config),
-	CollectionUrl = HostUrl ++ ?PathProductHub,
-	ListenerPort = ?config(listener_port, Config),
-	ListenerServer = "http://localhost:" ++ integer_to_list(ListenerPort),
-	Callback = ListenerServer ++ "/listener/"
-			++ atom_to_list(?MODULE) ++ "/notifyproductcharge",
-	RequestBody = "{\n"
-			++ "\t\"callback\": \"" ++ Callback ++ "\",\n"
-			++ "}\n",
-	ContentType = "application/json",
-	Accept = {"accept", "application/json"},
-	Request1 = {CollectionUrl, [Accept, auth_header()], ContentType, RequestBody},
-	{ok, {{_, 201, _}, Headers, _}} = httpc:request(post, Request1, [], []),
-	{_, ?PathProductHub ++ SubId} = lists:keyfind("location", 1, Headers),
-	SD = erlang:system_time(?MILLISECOND),
-	Alteration = #alteration{name = ocs:generate_identity(), start_date = SD,
-			type = usage, period = undefined,
-			units = octets, size = 100000000000, amount = 0},
-	Price = #price{name = ocs:generate_identity(), start_date = SD,
-			type = recurring, period = monthly,
-			amount = 1250000000, alteration = Alteration},
-	OfferId = add_offer([Price], 4),
-	receive
-		Input1 ->
-			{struct, OfferEvent} = mochijson:decode(Input1),
-			{_, "ProductOfferingCreationNotification"}
-					= lists:keyfind("eventType", 1, OfferEvent)
-	end,
-	{ok, #product{id = ProdId} = P} = ocs:add_product(OfferId, []),
-	receive
-		Input2 ->
-			{struct, ProductEvent} = mochijson:decode(Input2),
-			{_, "ProductCreationNotification"}
-					= lists:keyfind("eventType", 1, ProductEvent),
-			{_, {struct, ProductList}} = lists:keyfind("event", 1, ProductEvent),
-			{_, ProdId} = lists:keyfind("id", 1, ProductList)
-	end,
-	Expired = erlang:system_time(?MILLISECOND) - 3599000,
-	ok = mnesia:dirty_write(product, P#product{payment =
-			[{Price#price.name, Expired}]}),
-	B1 = #bucket{units = cents, remain_amount = 1000000000,
-			start_date = erlang:system_time(?MILLISECOND),
-			end_date = erlang:system_time(?MILLISECOND) + 2592000000},
-	{ok, _, #bucket{id = _BId1}} = ocs:add_bucket(ProdId, B1),
-	B2 = #bucket{units = cents, remain_amount = 1000000000,
-			start_date = erlang:system_time(?MILLISECOND),
-			end_date = erlang:system_time(?MILLISECOND) + 2592000000},
-	{ok, _, #bucket{id = _BId2}} = ocs:add_bucket(ProdId, B2),
-	ok = ocs_scheduler:product_charge(),
-	AdjustmentStructs = receive
-		Input ->
-			{struct, AdjustmentEvent} = mochijson:decode(Input),
-			{_, "BalanceAdjustmentCreationNotification"}
-					= lists:keyfind("eventType", 1, AdjustmentEvent),
-			{_, {array, AdjStructList}}
-					= lists:keyfind("event", 1, AdjustmentEvent),
-			AdjStructList
-	end,
-	Fcents = fun({struct, AdjustmentList}) ->
-				case lists:keyfind("amount", 1, AdjustmentList) of
-					{_, {struct, [{"amount", Amount}, {"units","cents"}]}} ->
-						{true, list_to_integer(Amount)};
-					{_, {struct, [{"units","cents"}, {"amount", Amount}]}} ->
-						{true, list_to_integer(Amount)};
-					_ ->
-						false
-				end
-	end,
-	-1250 = lists:sum(lists:filtermap(Fcents, AdjustmentStructs)),
 	Request2 = {CollectionUrl ++ SubId, [Accept, auth_header()]},
 	{ok, {{_, 204, _}, _, []}} = httpc:request(delete, Request2, [], []).
 
@@ -4936,6 +4936,13 @@ querybucketnotification(SessionID, _Env, Input) ->
 	mod_esi:deliver(SessionID, "status: 201 Created\r\n\r\n"),
 	query_bucket_notification ! Input.
 
+-spec notifyproductcharge(SessionID :: term(), Env :: list(),
+		Input :: string()) -> any().
+%% @doc Notification callback for notify_product_charge test case.
+notifyproductcharge(SessionID, _Env, Input) ->
+	mod_esi:deliver(SessionID, "status: 201 Created\r\n\r\n"),
+	notify_product_charge ! Input.
+
 -spec notifycreateproduct(SessionID :: term(), Env :: list(),
 		Input :: string()) -> any().
 %% @doc Notification callback for notify_create_product test case.
@@ -4949,13 +4956,6 @@ notifycreateproduct(SessionID, _Env, Input) ->
 notifydeleteproduct(SessionID, _Env, Input) ->
 	mod_esi:deliver(SessionID, "status: 201 Created\r\n\r\n"),
 	notify_delete_product ! Input.
-
--spec notifyproductcharge(SessionID :: term(), Env :: list(),
-		Input :: string()) -> any().
-%% @doc Notification callback for notify_product_charge test case.
-notifyproductcharge(SessionID, _Env, Input) ->
-	mod_esi:deliver(SessionID, "status: 201 Created\r\n\r\n"),
-	notify_product_charge ! Input.
 
 -spec queryproductnotification(SessionID :: term(), Env :: list(),
 		Input :: string()) -> any().
