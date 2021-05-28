@@ -144,7 +144,7 @@ init_per_testcase(TestCase, Config) when TestCase == notify_create_bucket;
 		TestCase == notify_diameter_acct_log ->
 	true = register(TestCase, self()),
 	case inets:start(httpd, [{port, 0},
-			{server_name, atom_to_list(?MODULE)},
+			{server_name, ocs:generate_identity()},
 			{server_root, "./"},
 			{document_root, ?config(data_dir, Config)},
 			{modules, [mod_esi]},
