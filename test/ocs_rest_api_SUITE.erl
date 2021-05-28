@@ -143,6 +143,7 @@ init_per_testcase(TestCase, Config) when TestCase == notify_create_bucket;
 		TestCase == notify_add_resource; TestCase == notify_delete_resource;
 		TestCase == query_resource_notification;
 		TestCase == notify_diameter_acct_log ->
+	gen_event:delete_handler(ocs_event, ocs_event, []),
 	true = register(TestCase, self()),
 	case inets:start(httpd, [{port, 0},
 			{server_name, atom_to_list(?MODULE)},
