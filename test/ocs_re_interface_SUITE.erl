@@ -63,8 +63,8 @@ suite() ->
 	{default_config, diameter, [{address, {127,0,0,1}}]},
    {timetrap, {minutes, 10}},
 	{require, rest},
-	{default_config, rest, [{user, "bss"},
-			{password, "nfc9xgp32xha"}]}].
+	{default_config, rest, [{user, "nrf"},
+			{password, "4yjhe6ydsrh4"}]}].
 
 -spec init_per_suite(Config :: [tuple()]) -> Config :: [tuple()].
 %% Initialization before the whole suite.
@@ -617,7 +617,7 @@ nrf_post_initial_scur(MSISDN, IMSI, InputOctets, OutputOctets) ->
 							{struct, [{"sgsnMccMnc",
 							{struct, [{"mcc", "001"}, {"mnc", "001"}]}}]}},
 							{"serviceId", 1},
-							{"ratingGroup", 2},
+							{"ratingGroup", 32},
 							{"requestedUnit", {struct,[{"totalVolume", InputOctets + OutputOctets},
 										{"uplinkVolume", InputOctets},
 										{"downlinkVolume", OutputOctets}]}},
