@@ -672,7 +672,7 @@ tariff_table_spec() ->
 tariff_row_spec() ->
 	Id = {"id", "2"},
 	Href = {"href", ?specPath "2"},
-	Name = {"name", "TariffRow"},
+	Name = {"name", "TariffTableRow"},
 	Description = {"description", "Voice call rating tariff row"},
 	Status = {"lifecycleStatus", "Active"},
 	Version = {"version", "1.0"},
@@ -708,7 +708,7 @@ policy_table_spec() ->
 policy_row_spec() ->
 	Id = {"id", "4"},
 	Href = {"href", ?specPath "4"},
-	Name = {"name", "PolicyTable"},
+	Name = {"name", "PolicyTableRow"},
 	Description = {"description", "Rating policy row"},
 	Status = {"lifecycleStatus", "Active"},
 	Version = {"version", "1.0"},

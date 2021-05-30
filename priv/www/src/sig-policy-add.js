@@ -291,8 +291,8 @@ class policyAdd extends PolymerElement {
 		policy.resourceCharacteristic = characteristics;
 		var specification = new Object();
 		specification.id = "4";
-		specification.name = "PolicyTable";
-		specification.href = "resourceCatalogManagement/v2/resourceSpecification/" + "4";
+		specification.name = "PolicyTableRow";
+		specification.href = "resourceCatalogManagement/v2/resourceSpecification/4";
 		policy.resourceSpecification = specification;
 		ajax.body = policy;
 		ajax.generateRequest();

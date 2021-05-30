@@ -833,7 +833,7 @@ add_example_voice_offers() ->
 			description = "Example voice tariff",
 			specification = #specification_ref{id = "1",
 			href = "/resourceCatalogManagement/v2/resourceSpecification/1",
-			name = "TariffRowTable"}},
+			name = "TariffTable"}},
 	PriceUsage = #price{name = "Usage", description = "Tariffed voice calling",
 			type = tariff, units = seconds, size = 60,
 			char_value_use = [#char_value_use{name = "destPrefixTariffTable",
