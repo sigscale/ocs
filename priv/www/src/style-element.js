@@ -164,7 +164,6 @@ styleElement.innerHTML = `<template>
 			z-index: 100;
 		}
 		.submit-button {
-			right: 2%;
 			background-color: var(--paper-lime-a700);
 			color: black;
 		}
@@ -172,7 +171,6 @@ styleElement.innerHTML = `<template>
 			color: black;
 		}
 		.update-button {
-			right: 2%;
 			background-color: var(--paper-lime-a700);
 			color: black;
 		}
