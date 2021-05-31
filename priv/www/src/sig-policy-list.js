@@ -394,7 +394,7 @@ class policyList extends PolymerElement {
 	_flowPlus(event) {
 		var domVar = document.body.querySelector('sig-app').shadowRoot.querySelector('sig-policy-list').shadowRoot.getElementById('flowDomRepeat')
 		var flArr = event.model.item.flow;
-		var flJson = {"flowDirection": flArr[0].flowDirection, "flowDescription": flArr[0].flowDescription};
+		var flJson = {"flowDirection": "", "flowDescription": ""};
 		this.push('activeItem.flow', flJson);
 		domVar.notifyPath('items');
 	}
@@ -458,6 +458,7 @@ class policyList extends PolymerElement {
 				for (var index in request.response) {
 					var tabObj = new Object();
 					tabObj.id = request.response[index].id;
+					tabObj.flow = new Array();
 					var resChar = request.response[index].resourceCharacteristic;
 					for (var indexRes in resChar) {
 						if(resChar[indexRes].name == "name") {
@@ -475,7 +476,6 @@ class policyList extends PolymerElement {
 						} else if(resChar[indexRes].name == "chargingKey") {
 							tabObj.chargingKey = resChar[indexRes].value;
 						} else if(resChar[indexRes].name == "flowInformation") {
-							tabObj.flow = new Array();
 							for(var indexFl in resChar[indexRes].value){
 								if(resChar[indexRes].value[indexFl].flowDirection == "up") {
 									var flowDirObj = new Object();
