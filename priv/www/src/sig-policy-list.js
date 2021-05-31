@@ -296,6 +296,14 @@ class policyList extends PolymerElement {
 					return []
 				}
 			},
+			storeItem: {
+				type: Array,
+				readOnly: true,
+				notify: true,
+				value: function() {
+					return []
+				}
+			},
 			activeItem: {
 				type: Object,
 				notify: true,
@@ -357,6 +365,7 @@ class policyList extends PolymerElement {
 				this.widthDL = item.maxRequestedBandwidthDL;
 				this.widthUL = item.maxRequestedBandwidthUL;
 				this.classId = item.qosClassIdentifier;
+				this.storeItem.push(item);
 			}
 			function checkExist(policy) {
 				return policy.id == current.id;
@@ -388,6 +397,14 @@ class policyList extends PolymerElement {
 		var flJson = {"flowDirection": flArr[0].flowDirection, "flowDescription": flArr[0].flowDescription};
 		this.push('activeItem.flow', flJson);
 		domVar.notifyPath('items');
+	}
+
+	_flowMinus(event) {
+		var policyDom = document.body.querySelector('sig-app').shadowRoot.querySelector('sig-policy-list').shadowRoot.getElementById('flowDomRepeat')
+		var itemIndex = event.model.index;
+		var itemArray = this.storeItem[0].flow;
+		itemArray.splice(itemIndex, 1);
+		policyDom.notifyPath('items');
 	}
 
 	tableSelection(e) {
@@ -477,7 +494,7 @@ class policyList extends PolymerElement {
 									var flowDownDesObj = resChar[indexRes].value[indexFl].flowDescription;
 									tabObj.flowDown = flowDownDirObj + "," + flowDownDesObj;
 								}
-                        tabObj.flowValueLength = tabObj.flow.length;
+								tabObj.flowValueLength = tabObj.flow.length;
 							}
 						} else if(resChar[indexRes].name == "precedence") {
 							tabObj.precedence = resChar[indexRes].value;
@@ -640,7 +657,20 @@ class policyList extends PolymerElement {
 			PolArray.push(Cid);
 		}
 
-      if(Mitem.flow.length != Mitem.flowValueLength) {
+		if(Mitem.flow.length < Mitem.flowValueLength) {
+			function checkFlow1(charPolFl1) {
+				return charPolFl1.name == "flowInformation";
+			}
+			var indexFl = results[index1].resourceCharacteristic.findIndex(checkFlow1);
+			var PolArray1 = new Array();
+			var Flo1 = new Object();
+			Flo1.op = "replace";
+			Flo1.path = "/resourceCharacteristic/" + indexFl + "/value";
+			Flo1.value = Mitem.flow;
+			PolArray.push(Flo1);
+		}
+
+		if(Mitem.flow.length > Mitem.flowValueLength) {
 			function checkFlow1(charPolFl1) {
 				return charPolFl1.name == "flowInformation";
 			}
