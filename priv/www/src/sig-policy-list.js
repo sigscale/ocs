@@ -482,7 +482,7 @@ class policyList extends PolymerElement {
 									flowDirObj.flowDirection = resChar[indexRes].value[indexFl].flowDirection;
 									flowDirObj.flowDescription = resChar[indexRes].value[indexFl].flowDescription;
 									tabObj.flow[indexFl] = flowDirObj;
-									if(indexFl) {
+									if(tabObj.flowUp) {
 										tabObj.flowUp.concat("," + resChar[indexRes].value[indexFl].flowDescription);
 									} else {
 										tabObj.flowUp = resChar[indexRes].value[indexFl].flowDescription;
@@ -491,7 +491,7 @@ class policyList extends PolymerElement {
 									var flowDirObj1 = new Object();
 									flowDirObj1.flowDirection = resChar[indexRes].value[indexFl].flowDirection;
 									flowDirObj1.flowDescription = resChar[indexRes].value[indexFl].flowDescription;
-									if(indexFl) {
+									if(tabObj.flowDown) {
 										tabObj.flowDown.concat("," + resChar[indexRes].value[indexFl].flowDescription);
 									} else {
 										tabObj.flowDown = resChar[indexRes].value[indexFl].flowDescription;
