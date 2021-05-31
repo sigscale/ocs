@@ -187,16 +187,17 @@ class policyAdd extends PolymerElement {
 				type: String
 			},
 			predefined: {
-				type: Boolean
+				type: Boolean,
+				value: false
 			},
 			bandwidthDL: {
-				type: Number
+				type: String 
 			},
 			bandwidthUL: {
-				type: Number
+				type: String 
 			},
 			classID: {
-				type: Number
+				type: String
 			},
 			chargingKey: {
 				type: String
@@ -226,7 +227,7 @@ class policyAdd extends PolymerElement {
 	_cancel() {
 		this.$.policyAddModal.close();
 		this.policyName = null;
-		this.predefined = null;
+		this.predefined = false;
 		this.bandwidthDL = null;
 		this.bandwidthUL = null;
 		this.classID = null;
@@ -237,6 +238,7 @@ class policyAdd extends PolymerElement {
 	}
 
 	_add() {
+		var policyList = document.body.querySelector('sig-app').shadowRoot.querySelector('sig-policy-list');
 		var ajax = this.$.policyAddAjax;
 		ajax.method = "POST";
 		ajax.url = "/resourceInventoryManagement/v1/resource/";
@@ -246,9 +248,9 @@ class policyAdd extends PolymerElement {
 		}
 		var relationships = new Array();
 		var related = new Object();
-		related.id = document.body.querySelector('sig-app').shadowRoot.querySelector('sig-policy-list').tableId;
+		related.id = policyList.tableId;
 		related.href = "/resourceInventoryManagement/v1/resourceRelationship/" + related.id;
-		related.name = document.body.querySelector('sig-app').shadowRoot.querySelector('sig-policy-list').table;
+		related.name = policyList.table;
 		var relationship = new Object();
 		relationship.relationshipType = "contained";
 		relationship.resource = related;
@@ -258,52 +260,72 @@ class policyAdd extends PolymerElement {
 		var char1 = new Object();
 		char1.name = "name";
 		char1.value = this.policyName;
-		var char2 = new Object();
-		char2.name = "qosInformation";
-		var qos = new Object();
-		qos.maxRequestedBandwidthDL = parseInt(this.bandwidthDL);
-		qos.maxRequestedBandwidthUL = parseInt(this.bandwidthUL);
-		qos.qosClassIdentifier = parseInt(this.classID);
-		char2.value = qos;
-		var char3 = new Object();
-		char3.name = "chargingKey";
-		char3.value = parseInt(this.chargingKey);
-		var char4 = new Object();
-		char4.name = "flowInformation";
-		var flows = new Array();
-		var flow = new Object();
-		flow.flowDirection = this.flowDirection;
-		if(this.flowDescription) {
-			flow.flowDescription = this.flowDescription;
-		} else {
-			flow.flowDescription = "permit out proto ip from all to all"
+		characteristics.push(char1);
+		if(this.bandwidthDL || this.bandwidthUL) {
+			var char2 = new Object();
+			char2.name = "qosInformation";
+			var qos = new Object();
+				if(this.bandwidthDL) {
+					qos.maxRequestedBandwidthDL = parseInt(this.bandwidthDL);
+				}
+				if(this.bandwidthUL) {
+					qos.maxRequestedBandwidthUL = parseInt(this.bandwidthUL);
+				}
+				if(this.classID) {
+					qos.qosClassIdentifier = parseInt(this.classID);
+				}
+			char2.value = qos;
+			characteristics.push(char2);
 		}
-		flows.push(flow);
-		char4.value = flows;
-		var char5 = new Object();
-		char5.name = "precedence";
-		char5.value = parseInt(this.precedence);
-		policy.resourceCharacteristic = characteristics;
-		var char6 = new Object();
-		char6.name = "predefined";
-		char6.value = this.predefined;
-		characteristics.push(char1, char2, char3, char4, char5, char6);
+		if(this.chargingKey) {
+			var char3 = new Object();
+			char3.name = "chargingKey";
+			char3.value = parseInt(this.chargingKey);
+			characteristics.push(char3);
+		}
+		if(this.flowDirection || this.flowDescription) {
+			var char4 = new Object();
+			char4.name = "flowInformation";
+			var flows = new Array();
+			var flow = new Object();
+			if(this.flowDirection) {
+				flow.flowDirection = this.flowDirection;
+			}
+			if(this.flowDescription) {
+				flow.flowDescription = this.flowDescription;
+			}
+			flows.push(flow);
+			char4.value = flows;
+			characteristics.push(char4);
+		}
+		if(this.precedence) {
+			var char5 = new Object();
+			char5.name = "precedence";
+			char5.value = parseInt(this.precedence);
+			characteristics.push(char5);
+		}
+		if(this.predefined) {
+			var char6 = new Object();
+			char6.name = "predefined";
+			char6.value = this.predefined;
+			characteristics.push(char6);
+		}
 		policy.resourceCharacteristic = characteristics;
 		var specification = new Object();
 		specification.id = "4";
+		specification.href = "/resourceCatalogManagement/v2/resourceSpecification/4";
 		specification.name = "PolicyTableRow";
-		specification.href = "resourceCatalogManagement/v2/resourceSpecification/4";
 		policy.resourceSpecification = specification;
 		ajax.body = policy;
 		ajax.generateRequest();
 		this.$.policyAddModal.close();
-		document.body.querySelector('sig-app').shadowRoot.getElementById('policyList').shadowRoot.getElementById('policyGrid').clearCache();
+		policyList.shadowRoot.getElementById('policyGrid').clearCache();
 	}
 
 	_response() {
 		this.$.policyAddModal.close
 		this.policyName = null;
-		this.predefined = null;
+		this.predefined = false;
 		this.bandwidthDL = null;
 		this.bandwidthUL = null;
 		this.classID = null;
