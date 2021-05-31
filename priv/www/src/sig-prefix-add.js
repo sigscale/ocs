@@ -165,7 +165,7 @@ class prefixAdd extends PolymerElement {
 
 		var spec = new Object();
 		spec.id = "2";
-		spec.name = "TariffTable";
+		spec.name = "TariffTableRow";
 		spec.href = "resourceCatalogManagement/v2/resourceSpecification/" + "2";
 		tar.resourceSpecification = spec;
 		ajax.body = tar;
