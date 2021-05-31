@@ -22,3 +22,6 @@ config.sub
 depcomp
 ltmain.sh
 
+# web component generated with version number
+priv/www/src/sig-help.js
+
