@@ -16,6 +16,7 @@ import {} from '@polymer/polymer/lib/elements/dom-if.js';
 import {} from '@polymer/polymer/lib/elements/dom-repeat.js'
 import '@vaadin/vaadin-grid/vaadin-grid.js';
 import '@vaadin/vaadin-grid/vaadin-grid-filter.js'
+import '@vaadin/vaadin-grid/vaadin-grid-column-group.js';
 import '@polymer/iron-ajax/iron-ajax.js';
 import '@polymer/paper-fab/paper-fab.js';
 import '@polymer/paper-tabs/paper-tabs.js';
@@ -44,7 +45,7 @@ class policyList extends PolymerElement {
 							General
 						</paper-tab>
 						<paper-tab>
-							QOS Information
+							QoS Information
 						</paper-tab>
 						<paper-tab>
 							Flow Information
@@ -98,7 +99,7 @@ class policyList extends PolymerElement {
 							</paper-input>
 							<paper-input
 									name="qosClassIdentifier"
-									label="QOS Class Identifier"
+									label="QoS Class Identifier"
 									value="{{item.qosClassIdentifier}}">
 							</paper-input>
 						</div>
@@ -156,55 +157,54 @@ class policyList extends PolymerElement {
 						</paper-button>
 					</div>
 				</template>
-				<vaadin-grid-column>
-					<template class="header">
-						Id
-					</template>
-					<template>[[item.id]]</template>
-				</vaadin-grid-column>
-				<vaadin-grid-column>
+				<vaadin-grid-column width="12ex" flex-grow="2">
 					<template class="header">
 						Name
 					</template>
 					<template>[[item.name]]</template>
 				</vaadin-grid-column>
-				<vaadin-grid-column>
+				<vaadin-grid-column width="20ex" flex-grow="2">
 					<template class="header">
-						QOS
+						QoS
 					</template>
 					<template>[[item.qos]]</template>
 				</vaadin-grid-column>
-				<vaadin-grid-column>
+				<vaadin-grid-column width="14ex" flex-grow="1">
 					<template class="header">
-						Charging Rule
+						Charging Key
 					</template>
 					<template>[[item.chargingKey]]</template>
 				</vaadin-grid-column>
-				<vaadin-grid-column>
+				<vaadin-grid-column width="12ex" flex-grow="1">
 					<template class="header">
 						Service Id
 					</template>
 					<template>[[item.serviceId]]</template>
 				</vaadin-grid-column>
-				<vaadin-grid-column>
+				<vaadin-grid-column-group>
 					<template class="header">
-						Flow Up
+						<div class="grouptitle">Flow</div>
 					</template>
-					<template>[[item.flowUp]]</template>
-				</vaadin-grid-column>
-				<vaadin-grid-column>
-					<template class="header">
-						Flow Down
-					</template>
-					<template>[[item.flowDown]]</template>
-				</vaadin-grid-column>
-				<vaadin-grid-column>
+					<vaadin-grid-column width="25ex" flex-grow="3">
+						<template class="header">
+							Flow Up
+						</template>
+						<template>[[item.flowUp]]</template>
+					</vaadin-grid-column>
+					<vaadin-grid-column width="25ex" flex-grow="3">
+						<template class="header">
+							Flow Down
+						</template>
+						<template>[[item.flowDown]]</template>
+					</vaadin-grid-column>
+				</vaadin-grid-column-group>
+				<vaadin-grid-column width="12ex" flex-grow="1">
 					<template class="header">
 						Precedence
 					</template>
 					<template>[[item.precedence]]</template>
 				</vaadin-grid-column>
-				<vaadin-grid-column>
+				<vaadin-grid-column width="12ex" flex-grow="1">
 					<template class="header">
 						Predefined
 					</template>
@@ -482,17 +482,20 @@ class policyList extends PolymerElement {
 									flowDirObj.flowDirection = resChar[indexRes].value[indexFl].flowDirection;
 									flowDirObj.flowDescription = resChar[indexRes].value[indexFl].flowDescription;
 									tabObj.flow[indexFl] = flowDirObj;
-									var flowUpDirObj = resChar[indexRes].value[indexFl].flowDirection;
-									var flowUpDesObj = resChar[indexRes].value[indexFl].flowDescription;
-									tabObj.flowUp = flowUpDirObj + "," + flowUpDesObj;
+									if(indexFl) {
+										tabObj.flowUp.concat("," + resChar[indexRes].value[indexFl].flowDescription);
+									} else {
+										tabObj.flowUp = resChar[indexRes].value[indexFl].flowDescription;
+									}
 								} else if(resChar[indexRes].value[indexFl].flowDirection == "down"){
 									var flowDirObj1 = new Object();
 									flowDirObj1.flowDirection = resChar[indexRes].value[indexFl].flowDirection;
 									flowDirObj1.flowDescription = resChar[indexRes].value[indexFl].flowDescription;
-									tabObj.flow[indexFl] = flowDirObj1;
-									var flowDownDirObj = resChar[indexRes].value[indexFl].flowDirection;
-									var flowDownDesObj = resChar[indexRes].value[indexFl].flowDescription;
-									tabObj.flowDown = flowDownDirObj + "," + flowDownDesObj;
+									if(indexFl) {
+										tabObj.flowDown.concat("," + resChar[indexRes].value[indexFl].flowDescription);
+									} else {
+										tabObj.flowDown = resChar[indexRes].value[indexFl].flowDescription;
+									}
 								}
 								tabObj.flowValueLength = tabObj.flow.length;
 							}
