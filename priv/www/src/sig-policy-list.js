@@ -215,10 +215,13 @@ class policyList extends PolymerElement {
 				<app-toolbar>
 					List of Tables
 				</app-toolbar>
-				<template is="dom-repeat" items="[[tables]]">
+				<template
+						id="tableItems"
+						is="dom-repeat"
+						items="[[tables]]">
 					<paper-item
 							class="menuitem"
-							on-focused-changed="tableSelection">
+							on-focused-changed="_tableSelection">
 						<iron-icon icon ="icons:view-list" item-icon></iron-icon>
 							{{item.name}}
 					</paper-item>
@@ -228,7 +231,7 @@ class policyList extends PolymerElement {
 							raised
 							id="tabOkButton"
 							disabled
-							on-tap="tableOk"
+							on-tap="_tableOk"
 							class="submit-button">
 						Ok
 					</paper-button>
@@ -239,13 +242,13 @@ class policyList extends PolymerElement {
 					</paper-button>
 					<paper-button
 							raised
-							on-tap="tableAdd"
+							on-tap="_tableAdd"
 							class="submit-button">
 						Add
 					</paper-button>
 					<paper-button
 							raised
-							on-tap="tableDelete"
+							on-tap="_tableDelete"
 							class="delete-button">
 						Delete
 					</paper-button>
@@ -260,19 +263,25 @@ class policyList extends PolymerElement {
 			<paper-toast
 				id="PolicyToast">
 			</paper-toast>
-			<iron-ajax id="getPolicyContentAjax">
+			<iron-ajax id="getPolicyRowsAjax">
 			</iron-ajax>
-			<iron-ajax id="getPolicyAjax"
-				url="/resourceInventoryManagement/v1/resource?resourceSpecification.id=3"
-				on-response="_getPolicyResponse"
-				rejectWithRequest>
+			<iron-ajax id="getPolicyTablesAjax"
+					url="/resourceInventoryManagement/v1/resource?resourceSpecification.id=3"
+					on-response="_getPolicyTablesResponse"
+					rejectWithRequest>
 			</iron-ajax>
-			<iron-ajax id="deleteTableAjax">
+			<iron-ajax
+					id="deleteTableAjax"
+					on-response="_deleteTableResponse"
+					method="DELETE">
 			</iron-ajax>
-			<iron-ajax id="deleteTableContentAjax">
+			<iron-ajax
+					id="deleteTableRowAjax"
+					method="DELETE">
 			</iron-ajax>
 			<iron-ajax
 					id="policyUpdateAjax"
+					method="PATCH"
 					loading="{{loading}}">
 			</iron-ajax>
 		`;
@@ -296,6 +305,12 @@ class policyList extends PolymerElement {
 					return []
 				}
 			},
+			activeTableName: {
+				type: String
+			},
+			activeTableId: {
+				type: String
+			},
 			storeItem: {
 				type: Array,
 				readOnly: true,
@@ -314,8 +329,8 @@ class policyList extends PolymerElement {
 
 	ready() {
 		super.ready();
-		var ajax1 = document.body.querySelector('sig-app').shadowRoot.querySelector('sig-policy-list').shadowRoot.getElementById('getPolicyAjax');
-		ajax1.generateRequest();
+		var ajax = this.shadowRoot.getElementById('getPolicyTablesAjax');
+		ajax.generateRequest();
 		this.$.tableList.open();
 	}
 
@@ -335,11 +350,11 @@ class policyList extends PolymerElement {
 		}
 	}
 
-	tableOk() {
+	_tableOk() {
 		var grid = this.shadowRoot.getElementById('policyGrid');
 		grid.dataProvider = this._getPolicy;
+		grid.clearCache();
 		this.$.tableList.close();
-		document.body.querySelector('sig-app').shadowRoot.getElementById('policyList').shadowRoot.getElementById('policyGrid').clearCache();
 	} 
 
 	_activeItemChanged(item, last) {
@@ -378,7 +393,7 @@ class policyList extends PolymerElement {
 		}
 	}
 
-	_getPolicyResponse(event) {
+	_getPolicyTablesResponse(event) {
 		var results = event.detail.xhr.response;
 		this.splice("tables", 0, this.tables.length)
 		for (var indexTable in results) {
@@ -389,10 +404,11 @@ class policyList extends PolymerElement {
 			tableRecord.flowDescription = results[indexTable].flowDescription;
 			this.push('tables', tableRecord);
 		}
+		this.shadowRoot.getElementById('tableItems').notifyPath('items');
 	}
 
 	_flowPlus(event) {
-		var domVar = document.body.querySelector('sig-app').shadowRoot.querySelector('sig-policy-list').shadowRoot.getElementById('flowDomRepeat')
+		var domVar = this.shadowRoot.getElementById('flowDomRepeat');
 		var flArr = event.model.item.flow;
 		var flJson = {"flowDirection": "", "flowDescription": ""};
 		this.push('activeItem.flow', flJson);
@@ -400,36 +416,40 @@ class policyList extends PolymerElement {
 	}
 
 	_flowMinus(event) {
-		var policyDom = document.body.querySelector('sig-app').shadowRoot.querySelector('sig-policy-list').shadowRoot.getElementById('flowDomRepeat')
+		var policyDom = this.shadowRoot.getElementById('flowDomRepeat');
 		var itemIndex = event.model.index;
 		var itemArray = this.storeItem[0].flow;
 		itemArray.splice(itemIndex, 1);
 		policyDom.notifyPath('items');
 	}
 
-	tableSelection(e) {
+	_tableSelection(e) {
 		if(e.model.item && e.model.item.id) {
-			document.body.querySelector('sig-app').shadowRoot.getElementById('policyList').table = e.model.item.name;
-			document.body.querySelector('sig-app').shadowRoot.getElementById('policyList').tableId = e.model.item.id;
+			this.activeTableName = e.model.item.name;
+			this.activeTableId = e.model.item.id;
 			this.$.tabOkButton.disabled = false;
 		} else {
+			this.activeTableName = null;
+			this.activeTableId = null;
 			this.$.tabOkButton.disabled = true;
 		}
 	}
 
-	tableDelete() {
-		var policyList1 = document.body.querySelector('sig-app').shadowRoot.querySelector('sig-policy-list');
-		this.$.deleteTableAjax.method = "DELETE";
-		this.$.deleteTableAjax.url = "/resourceInventoryManagement/v1/resource/" + policyList1.tableId
+	_tableDelete() {
+		this.$.deleteTableAjax.url = "/resourceInventoryManagement/v1/resource/" + this.activeTableId;
 		this.$.deleteTableAjax.generateRequest();
-		document.body.querySelector('sig-app').shadowRoot.getElementById('policyList').shadowRoot.getElementById('tableList').close();;
+		this.activeTableName = null;
+		this.activeTableId = null;
+	}
+
+	_deleteTableResponse(event) {
+		this.shadowRoot.getElementById('getPolicyTablesAjax').generateRequest();
 	}
 
 	_delete(event) {
-		this.$.deleteTableContentAjax.method = "DELETE";
-		this.$.deleteTableContentAjax.url = "/resourceInventoryManagement/v1/resource/" + event.model.item.id;
-		this.$.deleteTableContentAjax.generateRequest();
-		document.body.querySelector('sig-app').shadowRoot.getElementById('policyList').shadowRoot.getElementById('policyGrid').clearCache();
+		this.$.deleteTableRowAjax.url = "/resourceInventoryManagement/v1/resource/" + event.model.item.id;
+		this.$.deleteTableRowAjax.generateRequest();
+		this.shadowRoot.getElementById('policyGrid').clearCache();
 	}
 
 	_getPolicy(params, callback) {
@@ -437,9 +457,9 @@ class policyList extends PolymerElement {
 		if(!grid.size) {
 			grid.size = 0;
 		}
-		var policyList = document.body.querySelector('sig-app').shadowRoot.querySelector('sig-policy-list');
-		var ajax = policyList.shadowRoot.getElementById('getPolicyContentAjax');
-		ajax.url = "/resourceInventoryManagement/v1/resource?resourceSpecification.id=4&resourceRelationship.resource.name=" + policyList.table;
+		var policyList = document.body.querySelector('sig-app').shadowRoot.getElementById('policyList');
+		var ajax = policyList.shadowRoot.getElementById('getPolicyRowsAjax');
+		ajax.url = "/resourceInventoryManagement/v1/resource?resourceSpecification.id=4&resourceRelationship.resource.name=" + policyList.activeTableName;
 		var handleAjaxResponse = function(request) {
 			if(request) {
 				policyList.etag = request.xhr.getResponseHeader('ETag');
@@ -519,7 +539,7 @@ class policyList extends PolymerElement {
 		};
 		var handleAjaxError = function(error) {
 			policyList.etag = null;
-			var toast = document.body.querySelector('sig-app').shadowRoot.querySelector('sig-policy-list').shadowRoot.getElementById('PolicyToast');
+			var toast = policyList.shadowRoot.getElementById('PolicyToast');
 			toast.text = error;
 			toast.open();
 			if(!grid.size) {
@@ -552,9 +572,8 @@ class policyList extends PolymerElement {
 		}
 	}
 
-	tableAdd() {
+	_tableAdd() {
 		document.body.querySelector('sig-app').shadowRoot.querySelector('sig-policy-table-add').shadowRoot.getElementById('addPolicyTableModal').open();
-		this.$.tableList.close();
 	}
 
 	showAddPolicyModal(event) {
@@ -566,7 +585,7 @@ class policyList extends PolymerElement {
 ///////////////////////////////////////////////////////////////////////////
 
 	_up(event) {
-		var getAjax = this.$.getPolicyContentAjax;
+		var getAjax = this.$.getPolicyRowsAjax;
 		var etag = getAjax.lastRequest.xhr.getResponseHeader('ETag');
 		var Mitem = event.model.item
 		var results = getAjax.lastResponse;
@@ -575,10 +594,9 @@ class policyList extends PolymerElement {
 		}
 		var index1 = results.findIndex(checkId);
 
-		var Ajax = this.$.policyUpdateAjax;
-		Ajax.method = "PATCH"
-		Ajax.contentType = "application/json-patch+json";
-		Ajax.url = "/resourceInventoryManagement/v1/resource/" + Mitem.id;
+		var updateAjax = this.$.policyUpdateAjax;
+		updateAjax.contentType = "application/json-patch+json";
+		updateAjax.url = "/resourceInventoryManagement/v1/resource/" + Mitem.id;
 		var PolArray = new Array();
 		var indexChar = "-";
 		if(Mitem.name) {
@@ -701,10 +719,10 @@ class policyList extends PolymerElement {
 			}
 		}
 
-		Ajax.body = JSON.stringify(PolArray);
-		Ajax.generateRequest();
-		var policyList = document.body.querySelector('sig-app').shadowRoot.querySelector('sig-policy-list');
-		var ajax = policyList.shadowRoot.getElementById('getPolicyContentAjax');
+		updateAjax.body = JSON.stringify(PolArray);
+		updateAjax.generateRequest();
+		var policyList = document.body.querySelector('sig-app').shadowRoot.getElementById('policyList');
+		var ajax = policyList.shadowRoot.getElementById('getPolicyRowsAjax');
 		ajax.url = "/resourceInventoryManagement/v1/resource?resourceSpecification.id=4&resourceRelationship.resource.name=" + policyList.table;
 		ajax.generateRequest();
 	}

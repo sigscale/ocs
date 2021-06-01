@@ -238,7 +238,7 @@ class policyAdd extends PolymerElement {
 	}
 
 	_add() {
-		var policyList = document.body.querySelector('sig-app').shadowRoot.querySelector('sig-policy-list');
+		var policyList = document.body.querySelector('sig-app').shadowRoot.getElementById('policyList');
 		var ajax = this.$.policyAddAjax;
 		ajax.method = "POST";
 		ajax.url = "/resourceInventoryManagement/v1/resource/";
@@ -248,9 +248,9 @@ class policyAdd extends PolymerElement {
 		}
 		var relationships = new Array();
 		var related = new Object();
-		related.id = policyList.tableId;
+		related.id = policyList.activeTableId;
 		related.href = "/resourceInventoryManagement/v1/resourceRelationship/" + related.id;
-		related.name = policyList.table;
+		related.name = policyList.activeTableName;
 		var relationship = new Object();
 		relationship.relationshipType = "contained";
 		relationship.resource = related;

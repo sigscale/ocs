@@ -176,7 +176,7 @@ class tablePolAdd extends PolymerElement {
 
 	_addTableResponse(event) {
 		this.$.addPolicyTableModal.close();
-		var ajax = document.body.querySelector('sig-app').shadowRoot.getElementById('policyList').shadowRoot.getElementById('getPolicyAjax');
+		var ajax = document.body.querySelector('sig-app').shadowRoot.getElementById('policyList').shadowRoot.getElementById('getPolicyTablesAjax');
 		ajax.generateRequest();
 	}
 
