@@ -166,7 +166,8 @@ init_per_testcase(TestCase, Config)
 		TestCase == send_interim_scur; TestCase == receive_interim_scur;
 		TestCase == send_final_scur; TestCase == receive_final_scur;
 		TestCase == receive_interim_no_usu_scur;
-		TestCase == receive_initial_empty_rsu_scur ->
+		TestCase == receive_initial_empty_rsu_scur;
+		TestCase == send_iec ->
 	Address = ?config(diameter_acct_address, Config),
 	{ok, _} = ocs:add_client(Address, undefined, diameter, undefined, true),
 	Config;
@@ -192,14 +193,14 @@ all() ->
 	[send_initial_scur, receive_initial_scur, send_interim_scur,
 		receive_interim_scur, send_final_scur, receive_final_scur,
 		receive_interim_no_usu_scur, receive_initial_empty_rsu_scur,
-		post_initial_scur, post_update_scur, post_final_scur].
+		post_initial_scur, post_update_scur, post_final_scur, send_iec].
 
 %%---------------------------------------------------------------------
 %%  Test cases
 %%---------------------------------------------------------------------
 
 send_initial_scur() ->
-	[{userdata, [{doc, "On received SCUR CCR-I sendstartRating"}]}].
+	[{userdata, [{doc, "On received SCUR CCR-I send startRating"}]}].
 
 send_initial_scur(_Config) ->
 	P1 = price(usage, octets, rand:uniform(10000000), rand:uniform(1000000)),
@@ -599,9 +600,60 @@ post_final_scur(Config) ->
 	TotalOctets2 = InputOctets2 + OutputOctets2,
 	{_, {_, [{_, TotalOctets2}]}} = lists:keyfind("consumedUnit", 1, ServiceRating1).
 
+send_iec() ->
+	[{userdata, [{doc, "On received IEC CCR-I send startRating"}]}].
+
+send_iec(_Config) ->
+	P1 = price(usage, messages, 1, rand:uniform(1000000)),
+	OfferId = add_offer([P1], 11),
+	ProdRef = add_product(OfferId),
+   B1 = bucket(messages, 5),
+   _BId = add_bucket(ProdRef, B1),
+   Ref = erlang:ref_to_list(make_ref()),
+   SId = diameter:session_id(Ref),
+	MSISDN = list_to_binary(ocs:generate_identity()),
+	IMSI = list_to_binary(ocs:generate_identity()),
+	Subscriber = {MSISDN, IMSI},
+	Password = ocs:generate_identity(),
+	{ok, #service{}} = ocs:add_service(MSISDN, Password, ProdRef, []),
+	RequestNum = 0,
+	Answer0 = diameter_iec(Subscriber, SId, RequestNum),
+	#'3gpp_ro_CCA'{'Result-Code' = ?'DIAMETER_BASE_RESULT-CODE_SUCCESS'} = Answer0.
+
 %%---------------------------------------------------------------------
 %%  Internal functions
 %%---------------------------------------------------------------------
+
+diameter_iec({MSISDN, IMSI}, SId, RequestNum) ->
+	MSISDN1 = #'3gpp_ro_Subscription-Id'{
+			'Subscription-Id-Type' = ?'3GPP_SUBSCRIPTION-ID-TYPE_END_USER_E164',
+			'Subscription-Id-Data' = MSISDN},
+	IMSI1 = #'3gpp_ro_Subscription-Id'{
+			'Subscription-Id-Type' = ?'3GPP_SUBSCRIPTION-ID-TYPE_END_USER_IMSI',
+			'Subscription-Id-Data' = IMSI},
+	RequestedUnits = #'3gpp_ro_Requested-Service-Unit'
+			{'CC-Service-Specific-Units' = [1]},
+	MultiServices_CC = #'3gpp_ro_Multiple-Services-Credit-Control'{
+			'Requested-Service-Unit' = [RequestedUnits], 'Service-Identifier' = [1],
+			'Rating-Group' = [2]},
+	ServiceInformation = #'3gpp_ro_Service-Information'{
+			'SMS-Information' = [#'3gpp_ro_SMS-Information'{
+			'Recipient-Info' = [#'3gpp_ro_Recipient-Info'{
+			'Recipient-Address' = [#'3gpp_ro_Recipient-Address'{
+			'Address-Data' = [ocs:generate_identity()]}]}]}]},
+	CC_CCR = #'3gpp_ro_CCR'{'Session-Id' = SId,
+			'Auth-Application-Id' = ?RO_APPLICATION_ID,
+			'Service-Context-Id' = "32274@3gpp.org",
+			'User-Name' = [MSISDN],
+			'CC-Request-Type' = ?'3GPP_CC-REQUEST-TYPE_EVENT_REQUEST',
+			'CC-Request-Number' = RequestNum,
+			'Requested-Action' = [?'3GPP_RO_REQUESTED-ACTION_DIRECT_DEBITING'],
+			'Event-Timestamp' = [calendar:universal_time()],
+			'Subscription-Id' = [MSISDN1, IMSI1],
+			'Multiple-Services-Credit-Control' = [MultiServices_CC],
+			'Service-Information' = [ServiceInformation]},
+	{ok, Answer} = diameter:call(?MODULE, cc_app_test, CC_CCR, []),
+	Answer.
 
 nrf_post_initial_scur(MSISDN, IMSI, InputOctets, OutputOctets) ->
 	TS = erlang:system_time(?MILLISECOND),
