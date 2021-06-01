@@ -1015,7 +1015,7 @@ iec_service_rating(MSCC, ServiceContextId, ServiceInformation, Destination) ->
 	iec_service_rating1(MSCC, SCID, ServiceInformation, Des, []).
 %% @hidden
 iec_service_rating1([#'3gpp_ro_Multiple-Services-Credit-Control'{
-		'Used-Service-Unit' = RSU, 'Service-Identifier' = SI,
+		'Requested-Service-Unit' = RSU, 'Service-Identifier' = SI,
 		'Rating-Group' = RG} = _MSCC | T], SCID, SInfo, Des, Acc) ->
 	Debited = case SI of
 		[] ->
