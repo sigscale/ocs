@@ -815,10 +815,10 @@ abmf_query(_Config) ->
 				lists:flatten(lists:reverse([Chunk | Acc]));
 			F({Cont, Chunk}, Acc) ->
 				F(ocs_log:abmf_query(Cont, Start, End,
-						'_', '_', '_', '_', ProdId), [Chunk | Acc])
+						'_', '_', '_', '_', [{product, {exact, ProdId}}]), [Chunk | Acc])
 	end,
 	Events = Fget(ocs_log:abmf_query(start, Start, End,
-			'_', '_', '_', '_', ProdId), []),
+			'_', '_', '_', '_', [{product, {exact, ProdId}}]), []),
 	3 = length(Events).
 
 diameter_scur() ->
