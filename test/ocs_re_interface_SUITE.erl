@@ -167,7 +167,8 @@ init_per_testcase(TestCase, Config)
 		TestCase == send_final_scur; TestCase == receive_final_scur;
 		TestCase == receive_interim_no_usu_scur;
 		TestCase == receive_initial_empty_rsu_scur;
-		TestCase == send_iec ->
+		TestCase == send_iec;
+		TestCase == receive_iec ->
 	Address = ?config(diameter_acct_address, Config),
 	{ok, _} = ocs:add_client(Address, undefined, diameter, undefined, true),
 	Config;
@@ -193,7 +194,8 @@ all() ->
 	[send_initial_scur, receive_initial_scur, send_interim_scur,
 		receive_interim_scur, send_final_scur, receive_final_scur,
 		receive_interim_no_usu_scur, receive_initial_empty_rsu_scur,
-		post_initial_scur, post_update_scur, post_final_scur, send_iec].
+		post_initial_scur, post_update_scur, post_final_scur, send_iec,
+		receive_iec].
 
 %%---------------------------------------------------------------------
 %%  Test cases
@@ -619,6 +621,34 @@ send_iec(_Config) ->
 	RequestNum = 0,
 	Answer0 = diameter_iec(Subscriber, SId, RequestNum),
 	#'3gpp_ro_CCA'{'Result-Code' = ?'DIAMETER_BASE_RESULT-CODE_SUCCESS'} = Answer0.
+
+receive_iec() ->
+	[{userdata, [{doc, "On IEC startRating response send CCA-I"}]}].
+
+receive_iec(_Config) ->
+	P1 = price(usage, messages, 1, rand:uniform(1000000)),
+	OfferId = add_offer([P1], 11),
+	ProdRef = add_product(OfferId),
+   B1 = bucket(messages, 5),
+   _BId = add_bucket(ProdRef, B1),
+   Ref = erlang:ref_to_list(make_ref()),
+   SId = diameter:session_id(Ref),
+	MSISDN = list_to_binary(ocs:generate_identity()),
+	IMSI = list_to_binary(ocs:generate_identity()),
+	Subscriber = {MSISDN, IMSI},
+	Password = ocs:generate_identity(),
+	{ok, #service{}} = ocs:add_service(MSISDN, Password, ProdRef, []),
+	RequestNum = 0,
+	Answer0 = diameter_iec(Subscriber, SId, RequestNum),
+	#'3gpp_ro_CCA'{'Result-Code' = ?'DIAMETER_BASE_RESULT-CODE_SUCCESS'} = Answer0,
+	#'3gpp_ro_CCA'{'Result-Code' = ?'DIAMETER_BASE_RESULT-CODE_SUCCESS',
+			'Auth-Application-Id' = ?RO_APPLICATION_ID,
+			'CC-Request-Type' = ?'3GPP_CC-REQUEST-TYPE_EVENT_REQUEST',
+			'CC-Request-Number' = RequestNum,
+			'Multiple-Services-Credit-Control' = [MultiServices_CC]} = Answer0,
+	#'3gpp_ro_Multiple-Services-Credit-Control'{
+			'Used-Service-Unit' = [UsedUnits]} = MultiServices_CC,
+	#'3gpp_ro_Used-Service-Unit'{'CC-Service-Specific-Units' = [1]} = UsedUnits.
 
 %%---------------------------------------------------------------------
 %%  Internal functions
