@@ -303,9 +303,22 @@ process_request(IpAddress, Port,
 				'Subscription-Id' = SubscriptionId} = Request) ->
 	try
 		SubscriberIds = case SubscriptionId of
-			[#'3gpp_ro_Subscription-Id'{'Subscription-Id-Data' = Sub1},
-					#'3gpp_ro_Subscription-Id'{'Subscription-Id-Data' = Sub2} | _] ->
+			[#'3gpp_ro_Subscription-Id'{'Subscription-Id-Data' = Sub1,
+					'Subscription-Id-Type' = ?'3GPP_SUBSCRIPTION-ID-TYPE_END_USER_E164'},
+					#'3gpp_ro_Subscription-Id'{'Subscription-Id-Data' = Sub2,
+					'Subscription-Id-Type' = ?'3GPP_SUBSCRIPTION-ID-TYPE_END_USER_IMSI'} | _] ->
 				{Sub1, Sub2};
+			[#'3gpp_ro_Subscription-Id'{'Subscription-Id-Data' = Sub1,
+					'Subscription-Id-Type' = ?'3GPP_SUBSCRIPTION-ID-TYPE_END_USER_IMSI'},
+					#'3gpp_ro_Subscription-Id'{'Subscription-Id-Data' = Sub2,
+					'Subscription-Id-Type' = ?'3GPP_SUBSCRIPTION-ID-TYPE_END_USER_E164'} | _] ->
+				{Sub2, Sub1};
+			[#'3gpp_ro_Subscription-Id'{'Subscription-Id-Data' = Sub1,
+					'Subscription-Id-Type' = ?'3GPP_SUBSCRIPTION-ID-TYPE_END_USER_E164'} | _] ->
+				{Sub1, undefined};
+			[#'3gpp_ro_Subscription-Id'{'Subscription-Id-Data' = Sub2,
+					'Subscription-Id-Type' = ?'3GPP_SUBSCRIPTION-ID-TYPE_END_USER_IMSI'} | _] ->
+				{undefined, Sub2};
 			[] ->
 				case UserName of
 					[] ->
@@ -504,7 +517,9 @@ process_request1(?'3GPP_CC-REQUEST-TYPE_EVENT_REQUEST' = RequestType,
 -spec post_request_iec(SubscriberIds, ServiceContextId,
 		SessionId, MSCC, Location, Destination) -> Result
 	when
-		SubscriberIds :: tuple(),
+		SubscriberIds :: {MSISDN, IMSI},
+		MSISDN :: binary(),
+		IMSI :: binary(),
 		ServiceContextId :: binary(),
 		SessionId :: binary(),
 		MSCC :: [#'3gpp_ro_Multiple-Services-Credit-Control'{}] | [],
@@ -514,32 +529,47 @@ process_request1(?'3GPP_CC-REQUEST-TYPE_EVENT_REQUEST' = RequestType,
 		Body :: string(),
 		Reason :: term().
 %% @doc POST IEC rating data to a Nrf Rating Server.
-post_request_iec(Subscriber, ServiceContextId, SessionId,
+post_request_iec(SubscriberIds, ServiceContextId, SessionId,
+		MSCC, Location, Destination) ->
+	SubscriberIds1 = case SubscriberIds of
+		{MSISDN, undefined} ->
+			MSISDN1 = "msisdn-" ++ binary_to_list(MSISDN),
+			{array, [MSISDN1]};
+		{undefined, IMSI} ->
+			IMSI1 = "imsi-" ++ binary_to_list(IMSI),
+			{array, [IMSI1]};
+		{MSISDN, IMSI} ->
+			MSISDN1 = "msisdn-" ++ binary_to_list(MSISDN),
+			IMSI1 = "imsi-" ++ binary_to_list(IMSI),
+			{array, [MSISDN1, IMSI1]}
+	end,
+	post_request_iec1(SubscriberIds1, ServiceContextId,
+			SessionId, MSCC, Location, Destination).
+%% @hidden
+post_request_iec1(SubscriberIds, ServiceContextId, SessionId,
 		[], _Location, Destination) ->
 	SCID = {"serviceContextId", binary_to_list(ServiceContextId)},
 	Des = {"destinationId", {array, [{struct, [{"destinationIdType", "DN"},
 			{"destinationIdData", Destination}]}]}},
 	ServiceRating = [{struct, [SCID, Des, {"requestSubType", "DEBIT"}]}],
-	post_request_iec1(Subscriber, SessionId, ServiceRating);
-post_request_iec(Subscriber, ServiceContextId, SessionId, MSCC, Location, Destination) ->
+	post_request_iec2(SubscriberIds, SessionId, ServiceRating);
+post_request_iec1(SubscriberIds, ServiceContextId, SessionId, MSCC, Location, Destination) ->
 	ServiceRating = iec_service_rating(MSCC, binary_to_list(ServiceContextId), Location, Destination),
-	post_request_iec1(Subscriber, SessionId, ServiceRating).
+	post_request_iec2(SubscriberIds, SessionId, ServiceRating).
 %% @hidden
-post_request_iec1({MSISDN, IMSI}, SessionId, ServiceRating) ->
+post_request_iec2(SubscriberIds, SessionId, ServiceRating) ->
 	{ok, NrfUri} = application:get_env(ocs, nrf_uri),
 	{ok, Profile} = application:get_env(ocs, nrf_profile),
 	TS = erlang:system_time(?MILLISECOND),
 	InvocationTimeStamp = ocs_log:iso8601(TS),
 	Sequence = ets:update_counter(counters, nrf_seq, 1),
-	MSISDN1 = "msisdn-" ++ binary_to_list(MSISDN),
-	IMSI1 = "imsi-" ++ binary_to_list(IMSI),
 	Body = {struct, [{"nfConsumerIdentification",
 							{struct, [{"nodeFunctionality", "OCF"}]}},
 					{"oneTimeEvent", true},
 					{"oneTimeEventType", "IEC"},
 					{"invocationTimeStamp", InvocationTimeStamp},
 					{"invocationSequenceNumber", Sequence},
-					{"subscriptionId", {array, [MSISDN1, IMSI1]}},
+					{"subscriptionId", SubscriberIds},
 					{"serviceRating",
 							{array, lists:flatten(ServiceRating)}}]},
 	Path = NrfUri ++ ?BASE_URI,
@@ -562,7 +592,9 @@ post_request_iec1({MSISDN, IMSI}, SessionId, ServiceRating) ->
 -spec post_request_scur(SubscriberIds, ServiceContextId,
 		SessionId, MSCC, Location, Flag) -> Result
 	when
-		SubscriberIds :: tuple(),
+		SubscriberIds :: {MSISDN, IMSI},
+		MSISDN :: binary(),
+		IMSI :: binary(),
 		ServiceContextId :: binary(),
 		SessionId :: binary(),
 		MSCC :: [#'3gpp_ro_Multiple-Services-Credit-Control'{}],
@@ -572,40 +604,50 @@ post_request_iec1({MSISDN, IMSI}, SessionId, ServiceRating) ->
 		Body :: string(),
 		Reason :: term().
 %% @doc POST SCUR rating data to a Nrf Rating Server.
-post_request_scur({MSISDN, IMSI}, SvcContextId,
+post_request_scur(SubscriberIds, SvcContextId,
 		SessionId, MSCC, Location, initial) ->
 	{ok, NrfUri} = application:get_env(ocs, nrf_uri),
 	Path = NrfUri ++ ?BASE_URI,
 	ServiceRating = initial_service_rating(MSCC, binary_to_list(SvcContextId), Location),
-	post_request_scur1({MSISDN, IMSI},
-			SessionId, ServiceRating, Path);
-post_request_scur({MSISDN, IMSI}, SvcContextId,
+	post_request_scur1(SubscriberIds, SessionId, ServiceRating, Path);
+post_request_scur(SubscriberIds, SvcContextId,
 		SessionId, MSCC, Location, interim) ->
 	{ok, NrfUri} = application:get_env(ocs, nrf_uri),
 	Path = NrfUri ++ get_ref(SessionId) ++ "/" ++ "update",
 	ServiceRating = update_service_rating(MSCC, binary_to_list(SvcContextId), Location),
-	post_request_scur1({MSISDN, IMSI},
-			SessionId, ServiceRating, Path);
-post_request_scur({MSISDN, IMSI}, SvcContextId,
+	post_request_scur1(SubscriberIds, SessionId, ServiceRating, Path);
+post_request_scur(SubscriberIds, SvcContextId,
 		SessionId, MSCC, Location, final) ->
 	{_, NrfUri} = application:get_env(ocs, nrf_uri),
 	Path = NrfUri ++ get_ref(SessionId) ++ "/" ++ "release",
 	ServiceRating = final_service_rating(MSCC, binary_to_list(SvcContextId), Location),
-	post_request_scur1({MSISDN, IMSI},
-			SessionId, ServiceRating, Path).
+	post_request_scur1(SubscriberIds, SessionId, ServiceRating, Path).
 %% @hidden
-post_request_scur1({MSISDN, IMSI}, SessionId, ServiceRating, Path) ->
+post_request_scur1(SubscriberIds, SessionId, ServiceRating, Path) ->
+	SubscriberIds1 = case SubscriberIds of
+		{MSISDN, undefined} ->
+			MSISDN1 = "msisdn-" ++ binary_to_list(MSISDN),
+			{array, [MSISDN1]};
+		{undefined, IMSI} ->
+			IMSI1 = "imsi-" ++ binary_to_list(IMSI),
+			{array, [IMSI1]};
+		{MSISDN, IMSI} ->
+			MSISDN1 = "msisdn-" ++ binary_to_list(MSISDN),
+			IMSI1 = "imsi-" ++ binary_to_list(IMSI),
+			{array, [MSISDN1, IMSI1]}
+	end,
+	post_request_scur2(SubscriberIds1, SessionId, ServiceRating, Path).
+%% @hidden
+post_request_scur2(SubscriberIds, SessionId, ServiceRating, Path) ->
 	{ok, Profile} = application:get_env(ocs, nrf_profile),
 	TS = erlang:system_time(?MILLISECOND),
 	InvocationTimeStamp = ocs_log:iso8601(TS),
 	Sequence = ets:update_counter(counters, nrf_seq, 1),
-	MSISDN1 = "msisdn-" ++ binary_to_list(MSISDN),
-	IMSI1 = "imsi-" ++ binary_to_list(IMSI),
 	Body = {struct, [{"nfConsumerIdentification",
 							{struct, [{"nodeFunctionality", "OCF"}]}},
 					{"invocationTimeStamp", InvocationTimeStamp},
 					{"invocationSequenceNumber", Sequence},
-					{"subscriptionId", {array, [MSISDN1, IMSI1]}},
+					{"subscriptionId", SubscriberIds},
 					{"serviceRating",
 							{array, lists:flatten(ServiceRating)}}]},
 	ContentType = "application/json",
@@ -635,14 +677,14 @@ post_request_scur1({MSISDN, IMSI}, SessionId, ServiceRating, Path) ->
 %% @doc Get Requested Party Address.
 get_destination([#'3gpp_ro_Service-Information'{'IMS-Information'=
 		[#'3gpp_ro_IMS-Information'{'Requested-Party-Address' = [RequestedPartyAddress]}]}])
-		when is_list(RequestedPartyAddress)->
+		when is_list(RequestedPartyAddress) ->
 	RequestedPartyAddress;
 get_destination([#'3gpp_ro_Service-Information'{
 		'SMS-Information' = [#'3gpp_ro_SMS-Information'{
 		'Recipient-Info' = [#'3gpp_ro_Recipient-Info'{
 		'Recipient-Address' = [#'3gpp_ro_Recipient-Address'{
-		'Address-Data' = [RequestedPartyAddress]}]}]}]}]
-		when is_list(RequestedPartyAddress)->
+		'Address-Data' = [RequestedPartyAddress]}]}]}]}])
+		when is_list(RequestedPartyAddress) ->
 	RequestedPartyAddress;
 get_destination(_) ->
 	[].
