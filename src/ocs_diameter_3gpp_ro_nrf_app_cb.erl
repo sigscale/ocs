@@ -684,8 +684,8 @@ get_destination([#'3gpp_ro_Service-Information'{
 		'Recipient-Info' = [#'3gpp_ro_Recipient-Info'{
 		'Recipient-Address' = [#'3gpp_ro_Recipient-Address'{
 		'Address-Data' = [RequestedPartyAddress]}]}]}]}])
-		when is_list(RequestedPartyAddress) ->
-	RequestedPartyAddress;
+		when is_binary(RequestedPartyAddress) ->
+	binary_to_list(RequestedPartyAddress);
 get_destination(_) ->
 	[].
 
@@ -1029,36 +1029,42 @@ iec_service_rating1([#'3gpp_ro_Multiple-Services-Credit-Control'{
 		[N2] ->
 			[{"ratingGroup", N2} | Debited]
 	end,
+	Debited2 = case SInfo of
+		[] ->
+			Debited1;
+		_ ->
+			[SInfo | Debited1]
+	end,
 	DebitedUnit1 = case RSU of
-		[#'3gpp_ro_Used-Service-Unit'{'CC-Time' = [CCTime1]}]
+		[#'3gpp_ro_Requested-Service-Unit'{'CC-Time' = [CCTime1]}]
 				when CCTime1 > 0->
 			[{"time", CCTime1}];
 		_ ->
 			[]
 	end,
 	DebitedUnit2 = case RSU of
-		[#'3gpp_ro_Used-Service-Unit'{'CC-Output-Octets' = [CCOutputOctets1]}]
+		[#'3gpp_ro_Requested-Service-Unit'{'CC-Output-Octets' = [CCOutputOctets1]}]
 				when CCOutputOctets1 > 0 ->
 			[{"downlinkVolume", CCOutputOctets1} | DebitedUnit1];
 		_ ->
 			DebitedUnit1
 	end,
 	DebitedUnit3 = case RSU of
-		[#'3gpp_ro_Used-Service-Unit'{'CC-Input-Octets' = [CCInputOctets1]}]
+		[#'3gpp_ro_Requested-Service-Unit'{'CC-Input-Octets' = [CCInputOctets1]}]
 				when CCInputOctets1 > 0 ->
 			[{"uplinkVolume", CCInputOctets1} | DebitedUnit2];
 		_ ->
 			DebitedUnit2
 	end,
 	DebitedUnit4 = case RSU of
-		[#'3gpp_ro_Used-Service-Unit'{'CC-Total-Octets' = [CCTotalOctets1]}]
+		[#'3gpp_ro_Requested-Service-Unit'{'CC-Total-Octets' = [CCTotalOctets1]}]
 				when CCTotalOctets1 > 0 ->
 			[{"totalVolume", CCTotalOctets1} | DebitedUnit3];
 		_ ->
 			DebitedUnit3
 	end,
 	DebitedUnit5 = case RSU of
-		[#'3gpp_ro_Used-Service-Unit'{'CC-Service-Specific-Units' = [CCSpecUnits1]}]
+		[#'3gpp_ro_Requested-Service-Unit'{'CC-Service-Specific-Units' = [CCSpecUnits1]}]
 				when CCSpecUnits1 > 0 ->
 			[{"serviceSpecificUnit", CCSpecUnits1} | DebitedUnit4];
 		_ ->
@@ -1066,10 +1072,10 @@ iec_service_rating1([#'3gpp_ro_Multiple-Services-Credit-Control'{
 	end,
 	NewDebited = case DebitedUnit5 of
 		[] ->
-			{struct, [SCID, SInfo, Des, {"requestSubType", "DEBIT"} | Debited1]};
+			{struct, [SCID, Des, {"requestSubType", "DEBIT"} | Debited2]};
 		_ ->
-			{struct, [SCID, SInfo, Des, {"consumedUnit", {struct, DebitedUnit4}},
-					{"requestSubType", "DEBIT"} | Debited1]}
+			{struct, [SCID, Des, {"consumedUnit", {struct, DebitedUnit5}},
+					{"requestSubType", "DEBIT"} | Debited2]}
 	end,
 	iec_service_rating1(T, SCID, SInfo, Des, [NewDebited | Acc]);
 iec_service_rating1([], _SCID, _SI, _Dec, Acc) ->
