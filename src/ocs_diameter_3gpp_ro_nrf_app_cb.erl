@@ -546,13 +546,13 @@ post_request_ecur(SubscriberIds, SvcContextId,
 		SessionId, MSCC, Location, initial) ->
 	{ok, NrfUri} = application:get_env(ocs, nrf_uri),
 	Path = NrfUri ++ ?BASE_URI,
-	ServiceRating = scur_initial_service_rating(MSCC, binary_to_list(SvcContextId), Location),
+	ServiceRating = ecur_initial_service_rating(MSCC, binary_to_list(SvcContextId), Location),
 	post_request_ecur1(SubscriberIds, SessionId, ServiceRating, Path);
 post_request_ecur(SubscriberIds, SvcContextId,
 		SessionId, MSCC, Location, final) ->
 	{_, NrfUri} = application:get_env(ocs, nrf_uri),
 	Path = NrfUri ++ get_ref(SessionId) ++ "/" ++ "release",
-	ServiceRating = scur_final_service_rating(MSCC, binary_to_list(SvcContextId), Location),
+	ServiceRating = ecur_final_service_rating(MSCC, binary_to_list(SvcContextId), Location),
 	post_request_ecur1(SubscriberIds, SessionId, ServiceRating, Path).
 %% @hidden
 post_request_ecur1(SubscriberIds, SessionId, ServiceRating, Path) ->
