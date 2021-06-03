@@ -149,7 +149,7 @@ prepare_retransmit(Packet, ServiceName, Peer) ->
 		Result :: term().
 %% @doc Invoked when an answer message is received from a peer.
 handle_answer(_Packet, _Request, _ServiceName, _Peer) ->
-    not_implemented.
+	not_implemented.
 
 -spec handle_error(Reason, Request, ServiceName, Peer) -> Result
 	when
@@ -353,31 +353,31 @@ process_request1(?'3GPP_CC-REQUEST-TYPE_INITIAL_REQUEST' = RequestType,
 		'Service-Context-Id' = SvcContextId} = Request, SessionId, RequestNum,
 		SubscriberIds, OHost, _DHost, ORealm, _DRealm, _IpAddress, _Port) ->
 	try
-
 		Location = get_service_location(ServiceInformation),
-		PostType = case service_type(SvcContextId) of
+		Destination = get_destination(ServiceInformation),
+		case service_type(SvcContextId) of
 			32251 ->
-				fun post_request_scur/6;
+				post_request_scur(SubscriberIds, SvcContextId,
+						SessionId, MSCC1, Location, initial);
 			32260 ->
-				fun post_request_ecur/6
-		end,
-		case PostType(SubscriberIds, SvcContextId,
-				SessionId, MSCC1, Location, initial) of
-			{ok, JSON} ->
-				{struct, RatedStruct} = mochijson:decode(JSON),
-				{_, {_, ServiceElements}} = lists:keyfind("serviceRating", 1, RatedStruct),
-				{ServiceRating, ResultCode} = map_service_rating(ServiceElements, SessionId),
-				Container = build_container(MSCC1),
-				NewMSCC = build_mscc(ServiceRating, Container),
-				diameter_answer(SessionId, NewMSCC, ResultCode,
-						OHost, ORealm, RequestType, RequestNum);
-			{error, Reason} ->
-				error_logger:error_report(["Rating Error",
-						{module, ?MODULE}, {error, Reason}]),
-				diameter_error(SessionId,
-						?'DIAMETER_CC_APP_RESULT-CODE_RATING_FAILED',
-						OHost, ORealm, RequestType, RequestNum)
+				post_request_ecur(SubscriberIds, SvcContextId,
+						SessionId, MSCC1, Location, Destination, initial)
 		end
+	of
+		{ok, JSON} ->
+			{struct, RatedStruct} = mochijson:decode(JSON),
+			{_, {_, ServiceElements}} = lists:keyfind("serviceRating", 1, RatedStruct),
+			{ServiceRating, ResultCode} = map_service_rating(ServiceElements, SessionId),
+			Container = build_container(MSCC1),
+			NewMSCC = build_mscc(ServiceRating, Container),
+			diameter_answer(SessionId, NewMSCC, ResultCode,
+					OHost, ORealm, RequestType, RequestNum);
+		{error, Reason} ->
+			error_logger:error_report(["Rating Error",
+					{module, ?MODULE}, {error, Reason}]),
+			diameter_error(SessionId,
+					?'DIAMETER_CC_APP_RESULT-CODE_RATING_FAILED',
+					OHost, ORealm, RequestType, RequestNum)
 	catch
 		_:Reason1 ->
 			error_logger:warning_report(["Unable to process DIAMETER request",
@@ -427,30 +427,31 @@ process_request1(?'3GPP_CC-REQUEST-TYPE_TERMINATION_REQUEST' = RequestType,
 		_IpAddress, _Port) ->
 	try
 		Location = get_service_location(ServiceInformation),
-		PostType = case service_type(SvcContextId) of
+		Destination = get_destination(ServiceInformation),
+		case service_type(SvcContextId) of
 			32251 ->
-				fun post_request_scur/6;
+				post_request_scur(SubscriberIds, SvcContextId,
+						SessionId, MSCC1, Location, final);
 			32260 ->
-				fun post_request_ecur/6
-		end,
-		case PostType(SubscriberIds, SvcContextId,
-				SessionId, MSCC1, Location, final) of
-			{ok, JSON} ->
-				{struct, RatedStruct} = mochijson:decode(JSON),
-				{_, {_, ServiceElements}} = lists:keyfind("serviceRating", 1, RatedStruct),
-				{ServiceRating, ResultCode} = map_service_rating(ServiceElements, SessionId),
-				Container = build_container(MSCC1),
-				NewMSCC = build_mscc(ServiceRating, Container),
-				ok = remove_ref(SessionId),
-				diameter_answer(SessionId, NewMSCC, ResultCode,
-						OHost, ORealm, RequestType, RequestNum);
-			{error, ReasonCode} ->
-				error_logger:error_report(["Rating Error",
-						{module, ?MODULE}, {error, ReasonCode}]),
-				ok = remove_ref(SessionId),
-				diameter_error(SessionId, ReasonCode,
-						OHost, ORealm, RequestType, RequestNum)
+				post_request_ecur(SubscriberIds, SvcContextId,
+						SessionId, MSCC1, Location, Destination, final)
 		end
+	of
+		{ok, JSON} ->
+			{struct, RatedStruct} = mochijson:decode(JSON),
+			{_, {_, ServiceElements}} = lists:keyfind("serviceRating", 1, RatedStruct),
+			{ServiceRating, ResultCode} = map_service_rating(ServiceElements, SessionId),
+			Container = build_container(MSCC1),
+			NewMSCC = build_mscc(ServiceRating, Container),
+			ok = remove_ref(SessionId),
+			diameter_answer(SessionId, NewMSCC, ResultCode,
+					OHost, ORealm, RequestType, RequestNum);
+		{error, ReasonCode} ->
+			error_logger:error_report(["Rating Error",
+					{module, ?MODULE}, {error, ReasonCode}]),
+			ok = remove_ref(SessionId),
+			diameter_error(SessionId, ReasonCode,
+					OHost, ORealm, RequestType, RequestNum)
 	catch
 		_:Reason1 ->
 			error_logger:warning_report(["Unable to process DIAMETER request",
@@ -528,7 +529,7 @@ process_request1(?'3GPP_CC-REQUEST-TYPE_EVENT_REQUEST' = RequestType,
 	end.
 
 -spec post_request_ecur(SubscriberIds, ServiceContextId,
-		SessionId, MSCC, Location, Flag) -> Result
+		SessionId, MSCC, Location, Destination, Flag) -> Result
 	when
 		SubscriberIds :: {MSISDN, IMSI},
 		MSISDN :: binary(),
@@ -538,39 +539,27 @@ process_request1(?'3GPP_CC-REQUEST-TYPE_EVENT_REQUEST' = RequestType,
 		MSCC :: [#'3gpp_ro_Multiple-Services-Credit-Control'{}],
 		Location :: [tuple()],
 		Flag :: initial | interim | final,
+		Destination :: string(),
 		Result :: {ok, Body} | {error, Reason},
 		Body :: string(),
 		Reason :: term().
 %% @doc POST ECUR rating data to a Nrf Rating Server.
 post_request_ecur(SubscriberIds, SvcContextId,
-		SessionId, MSCC, Location, initial) ->
+		SessionId, MSCC, Location, Destination, initial) ->
 	{ok, NrfUri} = application:get_env(ocs, nrf_uri),
 	Path = NrfUri ++ ?BASE_URI,
-	ServiceRating = ecur_initial_service_rating(MSCC, binary_to_list(SvcContextId), Location),
+	ServiceRating = initial_service_rating(MSCC, binary_to_list(SvcContextId),
+			Location, Destination),
 	post_request_ecur1(SubscriberIds, SessionId, ServiceRating, Path);
 post_request_ecur(SubscriberIds, SvcContextId,
-		SessionId, MSCC, Location, final) ->
+		SessionId, MSCC, Location, Destination, final) ->
 	{_, NrfUri} = application:get_env(ocs, nrf_uri),
 	Path = NrfUri ++ get_ref(SessionId) ++ "/" ++ "release",
-	ServiceRating = ecur_final_service_rating(MSCC, binary_to_list(SvcContextId), Location),
+	ServiceRating = final_service_rating(MSCC, binary_to_list(SvcContextId),
+			Location, Destination),
 	post_request_ecur1(SubscriberIds, SessionId, ServiceRating, Path).
 %% @hidden
 post_request_ecur1(SubscriberIds, SessionId, ServiceRating, Path) ->
-	SubscriberIds1 = case SubscriberIds of
-		{MSISDN, undefined} ->
-			MSISDN1 = "msisdn-" ++ binary_to_list(MSISDN),
-			{array, [MSISDN1]};
-		{undefined, IMSI} ->
-			IMSI1 = "imsi-" ++ binary_to_list(IMSI),
-			{array, [IMSI1]};
-		{MSISDN, IMSI} ->
-			MSISDN1 = "msisdn-" ++ binary_to_list(MSISDN),
-			IMSI1 = "imsi-" ++ binary_to_list(IMSI),
-			{array, [MSISDN1, IMSI1]}
-	end,
-	post_request_ecur2(SubscriberIds1, SessionId, ServiceRating, Path).
-%% @hidden
-post_request_ecur2(SubscriberIds, SessionId, ServiceRating, Path) ->
 	{ok, Profile} = application:get_env(ocs, nrf_profile),
 	TS = erlang:system_time(?MILLISECOND),
 	InvocationTimeStamp = ocs_log:iso8601(TS),
@@ -581,7 +570,7 @@ post_request_ecur2(SubscriberIds, SessionId, ServiceRating, Path) ->
 					{"oneTimeEventType", "PEC"},
 					{"invocationTimeStamp", InvocationTimeStamp},
 					{"invocationSequenceNumber", Sequence},
-					{"subscriptionId", SubscriberIds},
+					{"subscriptionId", {array, format_subs_ids(SubscriberIds)}},
 					{"serviceRating",
 							{array, lists:flatten(ServiceRating)}}]},
 	ContentType = "application/json",
@@ -594,7 +583,7 @@ post_request_ecur2(SubscriberIds, SessionId, ServiceRating, Path) ->
 			{_, Location1} = lists:keyfind("location", 1, Headers1),
 			insert_ref(Location1, SessionId),
 			{ok, Body1};
-		{_RequestId, {{_HttpVersion, 200, _ReasonPhrase}, _Headers, Body1}} ->
+		{_RequestId, {{_HttpVersion, 204, _ReasonPhrase}, _Headers, Body1}} ->
 			{ok, Body1};
 		{_RequestId, {{_HttpVersion, StatusCode, _ReasonPhrase}, _Headers, _Body1}} ->
 			{error, StatusCode};
@@ -618,34 +607,17 @@ post_request_ecur2(SubscriberIds, SessionId, ServiceRating, Path) ->
 		Reason :: term().
 %% @doc POST IEC rating data to a Nrf Rating Server.
 post_request_iec(SubscriberIds, ServiceContextId, SessionId,
-		MSCC, Location, Destination) ->
-	SubscriberIds1 = case SubscriberIds of
-		{MSISDN, undefined} ->
-			MSISDN1 = "msisdn-" ++ binary_to_list(MSISDN),
-			{array, [MSISDN1]};
-		{undefined, IMSI} ->
-			IMSI1 = "imsi-" ++ binary_to_list(IMSI),
-			{array, [IMSI1]};
-		{MSISDN, IMSI} ->
-			MSISDN1 = "msisdn-" ++ binary_to_list(MSISDN),
-			IMSI1 = "imsi-" ++ binary_to_list(IMSI),
-			{array, [MSISDN1, IMSI1]}
-	end,
-	post_request_iec1(SubscriberIds1, ServiceContextId,
-			SessionId, MSCC, Location, Destination).
-%% @hidden
-post_request_iec1(SubscriberIds, ServiceContextId, SessionId,
 		[], _Location, Destination) ->
 	SCID = {"serviceContextId", binary_to_list(ServiceContextId)},
 	Des = {"destinationId", {array, [{struct, [{"destinationIdType", "DN"},
 			{"destinationIdData", Destination}]}]}},
 	ServiceRating = [{struct, [SCID, Des, {"requestSubType", "DEBIT"}]}],
-	post_request_iec2(SubscriberIds, SessionId, ServiceRating);
-post_request_iec1(SubscriberIds, ServiceContextId, SessionId, MSCC, Location, Destination) ->
+	post_request_iec1(SubscriberIds, SessionId, ServiceRating);
+post_request_iec(SubscriberIds, ServiceContextId, SessionId, MSCC, Location, Destination) ->
 	ServiceRating = iec_service_rating(MSCC, binary_to_list(ServiceContextId), Location, Destination),
-	post_request_iec2(SubscriberIds, SessionId, ServiceRating).
+	post_request_iec1(SubscriberIds, SessionId, ServiceRating).
 %% @hidden
-post_request_iec2(SubscriberIds, SessionId, ServiceRating) ->
+post_request_iec1(SubscriberIds, SessionId, ServiceRating) ->
 	{ok, NrfUri} = application:get_env(ocs, nrf_uri),
 	{ok, Profile} = application:get_env(ocs, nrf_profile),
 	TS = erlang:system_time(?MILLISECOND),
@@ -657,7 +629,7 @@ post_request_iec2(SubscriberIds, SessionId, ServiceRating) ->
 					{"oneTimeEventType", "IEC"},
 					{"invocationTimeStamp", InvocationTimeStamp},
 					{"invocationSequenceNumber", Sequence},
-					{"subscriptionId", SubscriberIds},
+					{"subscriptionId", {array, format_subs_ids(SubscriberIds)}},
 					{"serviceRating",
 							{array, lists:flatten(ServiceRating)}}]},
 	Path = NrfUri ++ ?BASE_URI,
@@ -696,37 +668,25 @@ post_request_scur(SubscriberIds, SvcContextId,
 		SessionId, MSCC, Location, initial) ->
 	{ok, NrfUri} = application:get_env(ocs, nrf_uri),
 	Path = NrfUri ++ ?BASE_URI,
-	ServiceRating = scur_initial_service_rating(MSCC, binary_to_list(SvcContextId), Location),
+	ServiceRating = initial_service_rating(MSCC, binary_to_list(SvcContextId),
+			Location, undefined),
 	post_request_scur1(SubscriberIds, SessionId, ServiceRating, Path);
 post_request_scur(SubscriberIds, SvcContextId,
 		SessionId, MSCC, Location, interim) ->
 	{ok, NrfUri} = application:get_env(ocs, nrf_uri),
 	Path = NrfUri ++ get_ref(SessionId) ++ "/" ++ "update",
-	ServiceRating = update_service_rating(MSCC, binary_to_list(SvcContextId), Location),
+	ServiceRating = update_service_rating(MSCC, binary_to_list(SvcContextId),
+			Location),
 	post_request_scur1(SubscriberIds, SessionId, ServiceRating, Path);
 post_request_scur(SubscriberIds, SvcContextId,
 		SessionId, MSCC, Location, final) ->
 	{_, NrfUri} = application:get_env(ocs, nrf_uri),
 	Path = NrfUri ++ get_ref(SessionId) ++ "/" ++ "release",
-	ServiceRating = scur_final_service_rating(MSCC, binary_to_list(SvcContextId), Location),
+	ServiceRating = final_service_rating(MSCC, binary_to_list(SvcContextId),
+			undefined, Location),
 	post_request_scur1(SubscriberIds, SessionId, ServiceRating, Path).
 %% @hidden
 post_request_scur1(SubscriberIds, SessionId, ServiceRating, Path) ->
-	SubscriberIds1 = case SubscriberIds of
-		{MSISDN, undefined} ->
-			MSISDN1 = "msisdn-" ++ binary_to_list(MSISDN),
-			{array, [MSISDN1]};
-		{undefined, IMSI} ->
-			IMSI1 = "imsi-" ++ binary_to_list(IMSI),
-			{array, [IMSI1]};
-		{MSISDN, IMSI} ->
-			MSISDN1 = "msisdn-" ++ binary_to_list(MSISDN),
-			IMSI1 = "imsi-" ++ binary_to_list(IMSI),
-			{array, [MSISDN1, IMSI1]}
-	end,
-	post_request_scur2(SubscriberIds1, SessionId, ServiceRating, Path).
-%% @hidden
-post_request_scur2(SubscriberIds, SessionId, ServiceRating, Path) ->
 	{ok, Profile} = application:get_env(ocs, nrf_profile),
 	TS = erlang:system_time(?MILLISECOND),
 	InvocationTimeStamp = ocs_log:iso8601(TS),
@@ -735,7 +695,7 @@ post_request_scur2(SubscriberIds, SessionId, ServiceRating, Path) ->
 							{struct, [{"nodeFunctionality", "OCF"}]}},
 					{"invocationTimeStamp", InvocationTimeStamp},
 					{"invocationSequenceNumber", Sequence},
-					{"subscriptionId", SubscriberIds},
+					{"subscriptionId", {array, format_subs_ids(SubscriberIds)}},
 					{"serviceRating",
 							{array, lists:flatten(ServiceRating)}}]},
 	ContentType = "application/json",
@@ -757,6 +717,24 @@ post_request_scur2(SubscriberIds, SessionId, ServiceRating, Path) ->
 		{_RequestId, {error, Reason}} ->
 			{error, Reason}
 	end.
+
+-spec format_subs_ids(SubscriberIds) -> Result
+	when
+		SubscriberIds :: {MSISDN, IMSI},
+		MSISDN :: binary() | string() | undefined,
+		IMSI :: binary() | string() | undefined,
+		Result :: [MSISDN | IMSI].
+%% @doc Format subsriber ids for nrf request.
+format_subs_ids({MSISDN, undefined})
+		when is_binary(MSISDN) ->
+	["msisdn-" ++ binary_to_list(MSISDN)];
+format_subs_ids({undefined, IMSI})
+		when is_binary(IMSI) ->
+	["imsi-" ++ binary_to_list(IMSI)];
+format_subs_ids({MSISDN, IMSI})
+		when is_binary(MSISDN), is_binary(IMSI) ->
+	["msisdn-" ++ binary_to_list(MSISDN),
+			"imsi-" ++ binary_to_list(IMSI)].
 
 -spec get_destination(ServiceInformation) -> RequestedPartyAddress
 	when
@@ -1105,217 +1083,179 @@ iec_service_rating(MSCC, ServiceContextId, ServiceInformation, Destination) ->
 iec_service_rating1([#'3gpp_ro_Multiple-Services-Credit-Control'{
 		'Requested-Service-Unit' = RSU, 'Service-Identifier' = SI,
 		'Rating-Group' = RG} = _MSCC | T], SCID, SInfo, Des, Acc) ->
-	Debited = case SI of
+	Acc1 = case SI of
 		[] ->
 			[];
 		[N1] ->
 			[{"serviceId", N1}]
 		end,
-	Debited1 = case RG of
+	Acc2 = case RG of
 		[] ->
-			Debited;
+			Acc1;
 		[N2] ->
-			[{"ratingGroup", N2} | Debited]
+			[{"ratingGroup", N2} | Acc1]
 	end,
-	Debited2 = case SInfo of
+	Acc3 = case SInfo of
 		[] ->
-			Debited1;
+			Acc2;
 		_ ->
-			[SInfo | Debited1]
+			[SInfo | Acc2]
 	end,
-	DebitedUnit1 = case RSU of
-		[#'3gpp_ro_Requested-Service-Unit'{'CC-Time' = [CCTime1]}]
-				when CCTime1 > 0->
-			[{"time", CCTime1}];
-		_ ->
-			[]
-	end,
-	DebitedUnit2 = case RSU of
-		[#'3gpp_ro_Requested-Service-Unit'{'CC-Output-Octets' = [CCOutputOctets1]}]
-				when CCOutputOctets1 > 0 ->
-			[{"downlinkVolume", CCOutputOctets1} | DebitedUnit1];
-		_ ->
-			DebitedUnit1
-	end,
-	DebitedUnit3 = case RSU of
-		[#'3gpp_ro_Requested-Service-Unit'{'CC-Input-Octets' = [CCInputOctets1]}]
-				when CCInputOctets1 > 0 ->
-			[{"uplinkVolume", CCInputOctets1} | DebitedUnit2];
-		_ ->
-			DebitedUnit2
-	end,
-	DebitedUnit4 = case RSU of
-		[#'3gpp_ro_Requested-Service-Unit'{'CC-Total-Octets' = [CCTotalOctets1]}]
-				when CCTotalOctets1 > 0 ->
-			[{"totalVolume", CCTotalOctets1} | DebitedUnit3];
-		_ ->
-			DebitedUnit3
-	end,
-	DebitedUnit5 = case RSU of
-		[#'3gpp_ro_Requested-Service-Unit'{'CC-Service-Specific-Units' = [CCSpecUnits1]}]
-				when CCSpecUnits1 > 0 ->
-			[{"serviceSpecificUnit", CCSpecUnits1} | DebitedUnit4];
-		_ ->
-			DebitedUnit4
-	end,
-	NewDebited = case DebitedUnit5 of
+	ServiceRating = case reserved_unit(RSU) of
 		[] ->
-			{struct, [SCID, Des, {"requestSubType", "DEBIT"} | Debited2]};
-		_ ->
-			{struct, [SCID, Des, {"consumedUnit", {struct, DebitedUnit5}},
-					{"requestSubType", "DEBIT"} | Debited2]}
+			{struct, [SCID, Des, {"requestSubType", "DEBIT"} | Acc3]};
+		ReservedUnits ->
+			{struct, [SCID, Des, {"consumedUnit", {struct, ReservedUnits}},
+					{"requestSubType", "DEBIT"} | Acc3]}
 	end,
-	iec_service_rating1(T, SCID, SInfo, Des, [NewDebited | Acc]);
+	iec_service_rating1(T, SCID, SInfo, Des, [ServiceRating | Acc]);
 iec_service_rating1([], _SCID, _SI, _Dec, Acc) ->
 	Acc.
 
--spec scur_initial_service_rating(MSCC, ServiceContextId,
-		ServiceInformation, ) -> ServiceRating
+-spec used_unit(UsedServiceUnits) -> Result
 	when
-		MSCC :: [#'3gpp_ro_Multiple-Services-Credit-Control'{}],
-		ServiceContextId :: string(),
-		ServiceInformation :: [tuple()],
-		ServiceRating :: [{struct, [tuple()]}].
-%% Create list of service elements to be rated.
-scur_initial_service_rating(MSCC, ServiceContextId, ServiceInformation) ->
-	SCID = {"serviceContextId", ServiceContextId},
-	scur_initial_service_rating1(MSCC, SCID, ServiceInformation, []).
+		UsedServiceUnits :: [#'3gpp_ro_Used-Service-Unit'{}] |
+				[],
+		Result :: [{Units, Value}] | [],
+		Units :: [Unit],
+		Unit :: time | downlinkVolume | uplinkVolume
+				| totalVolume | serviceSpecificUnit,
+		Value :: pos_integer().
+used_unit([]) ->
+	[];
+used_unit(UsedServiceUnits) ->
+	used_unit(UsedServiceUnits, []).
 %% @hidden
-scur_initial_service_rating1([#'3gpp_ro_Multiple-Services-Credit-Control'{
-		'Requested-Service-Unit' = RSU, 'Service-Identifier' = SI,
-		'Rating-Group' = RG} = _MSCC | T], SCID, SInfo, Acc) ->
-	SI1 = case SI of
-		[] ->
-			[];
-		[N1] ->
-			{"serviceId", N1}
-		end,
-	RG1 = case RG of
-		[] ->
-			[];
-		[N2] ->
-			{"ratingGroup", N2}
-	end,
-	ReservedUnit1 = case RSU of
-		[#'3gpp_ro_Requested-Service-Unit'{'CC-Time' = [CCTime1]}]
-				when CCTime1 > 0->
-			[{"time", CCTime1}];
-		_ ->
-			[]
-	end,
-	ReservedUnit2 = case RSU of
-		[#'3gpp_ro_Requested-Service-Unit'{'CC-Output-Octets' = [CCOutputOctets1]}]
-				when CCOutputOctets1 > 0 ->
-			[{"downlinkVolume", CCOutputOctets1} | ReservedUnit1];
-		_ ->
-			ReservedUnit1
-	end,
-	ReservedUnit3 = case RSU of
-		[#'3gpp_ro_Requested-Service-Unit'{'CC-Input-Octets' = [CCInputOctets1]}]
-				when CCInputOctets1 > 0 ->
-			[{"uplinkVolume", CCInputOctets1} | ReservedUnit2];
-		_ ->
-			ReservedUnit2
-	end,
-	ReservedUnit4 = case RSU of
-		[#'3gpp_ro_Requested-Service-Unit'{'CC-Total-Octets' = [CCTotalOctets1]}]
-				when CCTotalOctets1 > 0 ->
-			[{"totalVolume", CCTotalOctets1} | ReservedUnit3];
-		_ ->
-			ReservedUnit3
-	end,
-	ReservedUnit5 = case RSU of
-		[#'3gpp_ro_Requested-Service-Unit'{'CC-Service-Specific-Units' = [CCSpecUnits1]}]
-				when CCSpecUnits1 > 0 ->
-			[{"serviceSpecificUnit", CCSpecUnits1} | ReservedUnit4];
-		_ ->
-			ReservedUnit4
-	end,
-	Reserved = case ReservedUnit5 of
-		[] ->
-			Attributes = lists:flatten([SCID, SInfo, SI1, RG1, {"requestSubType", "RESERVE"}]),
-			{struct, Attributes};
-		_ ->
-			Units1 = {"requestedUnit", {struct, ReservedUnit4}},
-			Attributes = lists:flatten([SCID, SInfo, SI1, RG1, Units1, {"requestSubType", "RESERVE"}]),
-			{struct, Attributes}
-	end,
-	scur_initial_service_rating1(T, SCID, SInfo, [Reserved | Acc]);
-scur_initial_service_rating1([], _SCID, _SI, Acc) ->
+used_unit([#'3gpp_ro_Used-Service-Unit'
+		{'CC-Time' = [CCTime]}] = RSU, Acc)
+		when CCTime > 0 ->
+	used_unit1(RSU, [{"time", CCTime} | Acc]);
+used_unit(RSU, Acc) ->
+	used_unit1(RSU, Acc).
+used_unit1([#'3gpp_ro_Used-Service-Unit'
+		{'CC-Output-Octets' = [CCOutputOctets]}] = RSU, Acc)
+				when CCOutputOctets > 0 ->
+	used_unit2(RSU, [{"downlinkVolume", CCOutputOctets} | Acc]);
+used_unit1(RSU, Acc) ->
+	used_unit2(RSU, Acc).
+used_unit2([#'3gpp_ro_Used-Service-Unit'
+		{'CC-Input-Octets' = [CCInputOctets]}] = RSU, Acc)
+				when CCInputOctets > 0 ->
+	used_unit3(RSU, [{"uplinkVolume", CCInputOctets} | Acc]);
+used_unit2(RSU, Acc) ->
+	used_unit3(RSU, Acc).
+used_unit3([#'3gpp_ro_Used-Service-Unit'
+		{'CC-Total-Octets' = [CCTotalOctets]}] = RSU, Acc)
+				when CCTotalOctets > 0 ->
+	used_unit4(RSU, [{"totalVolume", CCTotalOctets} | Acc]);
+used_unit3(RSU, Acc) ->
+	used_unit4(RSU, Acc).
+used_unit4([#'3gpp_ro_Used-Service-Unit'
+		{'CC-Service-Specific-Units' = [CCSpecUnits]}], Acc)
+				when CCSpecUnits > 0 ->
+	[{"serviceSpecificUnit", CCSpecUnits} | Acc];
+used_unit4(_RSU, Acc) ->
 	Acc.
 
--spec scur_initial_service_rating(MSCC, ServiceContextId, ServiceInformation) -> ServiceRating
+-spec reserved_unit(RequestedServiceUnits) -> Result
+	when
+		RequestedServiceUnits :: [#'3gpp_ro_Requested-Service-Unit'{}] |
+				[],
+		Result :: [{Units, Value}] | [],
+		Units :: [Unit],
+		Unit :: time | downlinkVolume | uplinkVolume
+				| totalVolume | serviceSpecificUnit,
+		Value :: pos_integer().
+reserved_unit([]) ->
+	[];
+reserved_unit(RequestedServiceUnits) ->
+	reserved_unit(RequestedServiceUnits, []).
+%% @hidden
+reserved_unit([#'3gpp_ro_Requested-Service-Unit'
+		{'CC-Time' = [CCTime]}] = RSU, Acc)
+		when CCTime > 0 ->
+	reserved_unit1(RSU, [{"time", CCTime} | Acc]);
+reserved_unit(RSU, Acc) ->
+	reserved_unit1(RSU, Acc).
+reserved_unit1([#'3gpp_ro_Requested-Service-Unit'
+		{'CC-Output-Octets' = [CCOutputOctets]}] = RSU, Acc)
+				when CCOutputOctets > 0 ->
+	reserved_unit2(RSU, [{"downlinkVolume", CCOutputOctets} | Acc]);
+reserved_unit1(RSU, Acc) ->
+	reserved_unit2(RSU, Acc).
+reserved_unit2([#'3gpp_ro_Requested-Service-Unit'
+		{'CC-Input-Octets' = [CCInputOctets]}] = RSU, Acc)
+				when CCInputOctets > 0 ->
+	reserved_unit3(RSU, [{"uplinkVolume", CCInputOctets} | Acc]);
+reserved_unit2(RSU, Acc) ->
+	reserved_unit3(RSU, Acc).
+reserved_unit3([#'3gpp_ro_Requested-Service-Unit'
+		{'CC-Total-Octets' = [CCTotalOctets]}] = RSU, Acc)
+				when CCTotalOctets > 0 ->
+	reserved_unit4(RSU, [{"totalVolume", CCTotalOctets} | Acc]);
+reserved_unit3(RSU, Acc) ->
+	reserved_unit4(RSU, Acc).
+reserved_unit4([#'3gpp_ro_Requested-Service-Unit'
+		{'CC-Service-Specific-Units' = [CCSpecUnits]}], Acc)
+				when CCSpecUnits > 0 ->
+	[{"serviceSpecificUnit", CCSpecUnits} | Acc];
+reserved_unit4(_RSU, Acc) ->
+	Acc.
+
+-spec initial_service_rating(MSCC, ServiceContextId, ServiceInformation,
+		Destination) -> ServiceRating
 	when
 		MSCC :: [#'3gpp_ro_Multiple-Services-Credit-Control'{}],
 		ServiceContextId :: string(),
 		ServiceInformation :: [tuple()],
+		Destination :: string() | undefined,
 		ServiceRating :: [{struct, [tuple()]}].
 %% Create list of service elements to be rated.
-scur_initial_service_rating(MSCC, ServiceContextId, ServiceInformation) ->
+initial_service_rating(MSCC, ServiceContextId, ServiceInformation, undefined) ->
 	SCID = {"serviceContextId", ServiceContextId},
-	scur_initial_service_rating1(MSCC, SCID, ServiceInformation, []).
+	initial_service_rating1(MSCC, SCID, ServiceInformation, undefined, []);
+initial_service_rating(MSCC, ServiceContextId, ServiceInformation, Destination) ->
+	SCID = {"serviceContextId", ServiceContextId},
+	Des = {"destinationId", {array, [{struct, [{"destinationIdType", "DN"},
+			{"destinationIdData", Destination}]}]}},
+	initial_service_rating1(MSCC, SCID, ServiceInformation, Des, []).
 %% @hidden
-scur_initial_service_rating1([#'3gpp_ro_Multiple-Services-Credit-Control'{
+initial_service_rating1([#'3gpp_ro_Multiple-Services-Credit-Control'{
 		'Requested-Service-Unit' = RSU, 'Service-Identifier' = SI,
-		'Rating-Group' = RG} = _MSCC | T], SCID, SInfo, Acc) ->
-	SI1 = case SI of
+		'Rating-Group' = RG} = _MSCC | T], SCID, SInfo, Des, Acc) ->
+	Acc1 = case SI of
 		[] ->
 			[];
 		[N1] ->
-			{"serviceId", N1}
+			[{"serviceId", N1}]
 		end,
-	RG1 = case RG of
+	Acc2 = case RG of
 		[] ->
 			[];
 		[N2] ->
-			{"ratingGroup", N2}
+			[{"ratingGroup", N2} | Acc1]
 	end,
-	ReservedUnit1 = case RSU of
-		[#'3gpp_ro_Requested-Service-Unit'{'CC-Time' = [CCTime1]}]
-				when CCTime1 > 0->
-			[{"time", CCTime1}];
-		_ ->
-			[]
-	end,
-	ReservedUnit2 = case RSU of
-		[#'3gpp_ro_Requested-Service-Unit'{'CC-Output-Octets' = [CCOutputOctets1]}]
-				when CCOutputOctets1 > 0 ->
-			[{"downlinkVolume", CCOutputOctets1} | ReservedUnit1];
-		_ ->
-			ReservedUnit1
-	end,
-	ReservedUnit3 = case RSU of
-		[#'3gpp_ro_Requested-Service-Unit'{'CC-Input-Octets' = [CCInputOctets1]}]
-				when CCInputOctets1 > 0 ->
-			[{"uplinkVolume", CCInputOctets1} | ReservedUnit2];
-		_ ->
-			ReservedUnit2
-	end,
-	ReservedUnit4 = case RSU of
-		[#'3gpp_ro_Requested-Service-Unit'{'CC-Total-Octets' = [CCTotalOctets1]}]
-				when CCTotalOctets1 > 0 ->
-			[{"totalVolume", CCTotalOctets1} | ReservedUnit3];
-		_ ->
-			ReservedUnit3
-	end,
-	ReservedUnit5 = case RSU of
-		[#'3gpp_ro_Requested-Service-Unit'{'CC-Service-Specific-Units' = [CCSpecUnits1]}]
-				when CCSpecUnits1 > 0 ->
-			[{"serviceSpecificUnit", CCSpecUnits1} | ReservedUnit4];
-		_ ->
-			ReservedUnit4
-	end,
-	Reserved = case ReservedUnit5 of
+	Acc3 = case SInfo of
 		[] ->
-			Attributes = lists:flatten([SCID, SInfo, SI1, RG1, {"requestSubType", "RESERVE"}]),
-			{struct, Attributes};
+			Acc2;
 		_ ->
-			Units1 = {"requestedUnit", {struct, ReservedUnit4}},
-			Attributes = lists:flatten([SCID, SInfo, SI1, RG1, Units1, {"requestSubType", "RESERVE"}]),
-			{struct, Attributes}
+			[SInfo | Acc2]
 	end,
-	scur_initial_service_rating1(T, SCID, SInfo, [Reserved | Acc]);
-scur_initial_service_rating1([], _SCID, _SI, Acc) ->
+	Acc4 = case Des of
+	 undefined ->
+			Acc3;
+		_ ->
+			[Des | Acc3]
+	end,
+	ServiceRating = case reserved_unit(RSU) of
+		[] ->
+			{struct, [SCID, {"requestSubType", "RESERVE"} | Acc4]};
+		ReservedUnits ->
+			{struct, [SCID, {"requestedUnit", {struct, ReservedUnits}},
+					{"requestSubType", "RESERVE"} | Acc4]}
+	end,
+	initial_service_rating1(T, SCID, SInfo, Des, [ServiceRating | Acc]);
+initial_service_rating1([], _SCID, _SI, _Des, Acc) ->
 	Acc.
 
 -spec update_service_rating(MSCC, ServiceContextId, ServiceInformation) -> ServiceRating
@@ -1332,176 +1272,92 @@ update_service_rating(MSCC, ServiceContextId, ServiceInformation) ->
 update_service_rating1([#'3gpp_ro_Multiple-Services-Credit-Control'{
 		'Requested-Service-Unit' = RSU, 'Used-Service-Unit' = USU,
 		'Service-Identifier' = SI, 'Rating-Group' = RG} = _MSCC | T], SCID, SInfo, Acc) ->
-	SI1 = case SI of
+	Acc1 = case SI of
 		[] ->
 			[];
 		[N1] ->
-			{"serviceId", N1}
+			[{"serviceId", N1}]
 		end,
-	RG1 = case RG of
+	Acc2 = case RG of
 		[] ->
 			[];
 		[N2] ->
-			{"ratingGroup", N2}
+			[{"ratingGroup", N2} | Acc1]
 	end,
-	ReservedUnit1 = case RSU of
-		[#'3gpp_ro_Requested-Service-Unit'{'CC-Time' = [CCTime1]}]
-				when CCTime1 > 0->
-			[{"time", CCTime1}];
+	Acc3 = case SInfo of
+		[] ->
+			Acc2;
 		_ ->
-			[]
+			[SInfo | Acc2]
 	end,
-	ReservedUnit2 = case RSU of
-		[#'3gpp_ro_Requested-Service-Unit'{'CC-Output-Octets' = [CCOutputOctets1]}]
-				when CCOutputOctets1 > 0 ->
-			[{"downlinkVolume", CCOutputOctets1} | ReservedUnit1];
-		_ ->
-			ReservedUnit1
-	end,
-	ReservedUnit3 = case RSU of
-		[#'3gpp_ro_Requested-Service-Unit'{'CC-Input-Octets' = [CCInputOctets1]}]
-				when CCInputOctets1 > 0 ->
-			[{"uplinkVolume", CCInputOctets1} | ReservedUnit2];
-		_ ->
-			ReservedUnit2
-	end,
-	ReservedUnit4 = case RSU of
-		[#'3gpp_ro_Requested-Service-Unit'{'CC-Total-Octets' = [CCTotalOctets1]}]
-				when CCTotalOctets1 > 0 ->
-			[{"totalVolume", CCTotalOctets1} | ReservedUnit3];
-		_ ->
-			ReservedUnit3
-	end,
-	ReservedUnit5 = case RSU of
-		[#'3gpp_ro_Requested-Service-Unit'{'CC-Service-Specific-Units' = [CCSpecUnits1]}]
-				when CCSpecUnits1 > 0 ->
-			[{"serviceSpecificUnit", CCSpecUnits1} | ReservedUnit4];
-		_ ->
-			ReservedUnit4
-	end,
-	ConsumedUnit1 = case USU of
-		[#'3gpp_ro_Used-Service-Unit'{'CC-Time' = [CCTime2]}]
-				when CCTime2 > 0->
-			[{"time", CCTime2}];
-		_ ->
-			[]
-	end,
-	ConsumedUnit2 = case USU of
-		[#'3gpp_ro_Used-Service-Unit'{'CC-Output-Octets' = [CCOutputOctets2]}]
-				when CCOutputOctets2 > 0 ->
-			[{"downlinkVolume", CCOutputOctets2} | ConsumedUnit1];
-		_ ->
-			ConsumedUnit1
-	end,
-	ConsumedUnit3 = case USU of
-		[#'3gpp_ro_Used-Service-Unit'{'CC-Input-Octets' = [CCInputOctets2]}]
-				when CCInputOctets2 > 0 ->
-			[{"uplinkVolume", CCInputOctets2} | ConsumedUnit2];
-		_ ->
-			ConsumedUnit2
-	end,
-	ConsumedUnit4 = case USU of
-		[#'3gpp_ro_Used-Service-Unit'{'CC-Total-Octets' = [CCTotalOctets2]}]
-				when CCTotalOctets2 > 0 ->
-			[{"totalVolume", CCTotalOctets2} | ConsumedUnit3];
-		_ ->
-			ConsumedUnit3
-	end,
-	ConsumedUnit5 = case USU of
-		[#'3gpp_ro_Used-Service-Unit'{'CC-Service-Specific-Units' = [CCSpecUnits2]}]
-				when CCSpecUnits2 > 0 ->
-			[{"serviceSpecificUnit", CCSpecUnits2} | ConsumedUnit4];
-		_ ->
-			ConsumedUnit4
-	end,
-	case {ConsumedUnit5 , ReservedUnit5} of
+	ServiceRating = case {used_unit(USU), reserved_unit(RSU)} of
 		{[], []} ->
-			Attributes1 = lists:flatten([SCID, SInfo, SI1, RG1, {"requestSubType", "RESERVE"}]),
-			update_service_rating1(T, SCID, SInfo, [{struct, Attributes1} | Acc]);
-		{ConsumedUnit5, []} when length(ConsumedUnit5) > 0 ->
-			Units2 = {"consumedUnit", {struct, ConsumedUnit5}},
-			Attributes2 = lists:flatten([SCID, SInfo, SI1, RG1, Units2, {"requestSubType", "DEBIT"}]),
-			update_service_rating1(T, SCID, SInfo, [{struct, Attributes2} | Acc]);
-		{[], ReservedUnit5} when length(ReservedUnit5) > 0 ->
-			Units1 = {"requestedUnit", {struct, ReservedUnit5}},
-			Attributes1 = lists:flatten([SCID, SInfo, SI1, RG1, Units1, {"requestSubType", "RESERVE"}]),
-			update_service_rating1(T, SCID, SInfo, [{struct, Attributes1} | Acc])
-	end;
+			{struct, [SCID, {"requestSubType", "RESERVE"} | Acc3]};
+		{ConsumedUnits, []} ->
+			{struct, [SCID, {"consumedUnit", {struct, ConsumedUnits}},
+					{"requestSubType", "DEBIT"} | Acc3]};
+		{[], ReservedUnits} ->
+			{struct, [SCID, {"requestedUnit", {struct, ReservedUnits}},
+					{"requestSubType", "RESERVE"} | Acc3]}
+	end,
+	update_service_rating1(T, SCID, SInfo, [ServiceRating | Acc]);
 update_service_rating1([], _SCID, _SI, Acc) ->
 	Acc.
 
--spec scur_final_service_rating(MSCC, ServiceContextId, ServiceInformation) -> ServiceRating
+-spec final_service_rating(MSCC, ServiceContextId,
+		Destination, ServiceInformation) -> ServiceRating
 	when
 		MSCC :: [#'3gpp_ro_Multiple-Services-Credit-Control'{}],
 		ServiceContextId :: string(),
 		ServiceInformation :: [tuple()],
+		Destination :: string() | undefined,
 		ServiceRating :: [{struct, [tuple()]}].
 %% Create list of service elements to be rated.
-scur_final_service_rating(MSCC, ServiceContextId, ServiceInformation) ->
+final_service_rating(MSCC, ServiceContextId, undefined, ServiceInformation) ->
 	SCID = {"serviceContextId", ServiceContextId},
-	scur_final_service_rating1(MSCC, SCID, ServiceInformation, []).
+	final_service_rating1(MSCC, SCID, ServiceInformation, undefined, []);
+final_service_rating(MSCC, ServiceContextId, ServiceInformation, Destination) ->
+	SCID = {"serviceContextId", ServiceContextId},
+	Des = {"destinationId", {array, [{struct, [{"destinationIdType", "DN"},
+			{"destinationIdData", Destination}]}]}},
+	final_service_rating1(MSCC, SCID, ServiceInformation, Des, []).
 %% @hidden
-scur_final_service_rating1([#'3gpp_ro_Multiple-Services-Credit-Control'{
+final_service_rating1([#'3gpp_ro_Multiple-Services-Credit-Control'{
 		'Used-Service-Unit' = USU, 'Service-Identifier' = SI,
-		'Rating-Group' = RG} = _MSCC | T], SCID, SInfo, Acc) ->
-	SI1 = case SI of
+		'Rating-Group' = RG} = _MSCC | T], SCID, SInfo, Des, Acc) ->
+	Acc1 = case SI of
 		[] ->
 			[];
 		[N1] ->
-			{"serviceId", N1}
+			[{"serviceId", N1}]
 		end,
-	RG1 = case RG of
+	Acc2 = case RG of
 		[] ->
-			[];
+			Acc1;
 		[N2] ->
-			{"ratingGroup", N2}
+			[{"ratingGroup", N2} | Acc1]
 	end,
-	ConsumedUnit1 = case USU of
-		[#'3gpp_ro_Used-Service-Unit'{'CC-Time' = [CCTime2]}]
-				when CCTime2 > 0->
-			[{"time", CCTime2}];
-		_ ->
-			[]
-	end,
-	ConsumedUnit2 = case USU of
-		[#'3gpp_ro_Used-Service-Unit'{'CC-Output-Octets' = [CCOutputOctets2]}]
-				when CCOutputOctets2 > 0 ->
-			[{"downlinkVolume", CCOutputOctets2} | ConsumedUnit1];
-		_ ->
-			ConsumedUnit1
-	end,
-	ConsumedUnit3 = case USU of
-		[#'3gpp_ro_Used-Service-Unit'{'CC-Input-Octets' = [CCInputOctets2]}]
-				when CCInputOctets2 > 0 ->
-			[{"uplinkVolume", CCInputOctets2} | ConsumedUnit2];
-		_ ->
-			ConsumedUnit2
-	end,
-	ConsumedUnit4 = case USU of
-		[#'3gpp_ro_Used-Service-Unit'{'CC-Total-Octets' = [CCTotalOctets2]}]
-				when CCTotalOctets2 > 0 ->
-			[{"totalVolume", CCTotalOctets2} | ConsumedUnit3];
-		_ ->
-			ConsumedUnit3
-	end,
-	ConsumedUnit5 = case USU of
-		[#'3gpp_ro_Used-Service-Unit'{'CC-Service-Specific-Units' = [CCSpecUnits2]}]
-				when CCSpecUnits2 > 0 ->
-			[{"serviceSpecificUnit", CCSpecUnits2} | ConsumedUnit4];
-		_ ->
-			ConsumedUnit4
-	end,
-	Consumed = case ConsumedUnit5 of
+	Acc3 = case SInfo of
 		[] ->
-			Attributes = lists:flatten([SCID, SInfo, SI1, RG1, {"requestSubType", "DEBIT"}]),
-			{struct, Attributes};
+			Acc2;
 		_ ->
-			Units2 = {"consumedUnit", {struct, ConsumedUnit5}},
-			Attributes = lists:flatten([SCID, SInfo, SI1, RG1, Units2, {"requestSubType", "DEBIT"}]),
-			{struct, Attributes}
+			[SInfo | Acc2]
 	end,
-	scur_final_service_rating1(T, SCID, SInfo, [Consumed | Acc]);
-scur_final_service_rating1([], _SCID, _SI, Acc) ->
+	Acc4 = case Des of
+		undefined ->
+			Acc3;
+		_ ->
+			[Des | Acc3]
+	end,
+	ServiceRating = case used_unit(USU) of
+		[] ->
+			{struct, [SCID, {"requestSubType", "DEBIT"} | Acc4]};
+		ConsumedUnits ->
+			{struct, [SCID, {"consumedUnit", {struct, ConsumedUnits}},
+					{"requestSubType", "DEBIT"} | Acc4]}
+	end,
+	final_service_rating1(T, SCID, SInfo, Des, [ServiceRating | Acc]);
+final_service_rating1([], _SCID, _SI, _Des, Acc) ->
 	Acc.
 
 %% @hidden
@@ -1519,4 +1375,4 @@ service_type(Id) ->
 		_ ->
 			undefined
 	end.
-         
+
