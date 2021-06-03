@@ -528,7 +528,7 @@ class policyList extends PolymerElement {
 						} else if(request.response[index].resourceSpecification) {
 							tabObj.resourceSpecification = request.response[index].resourceSpecification;
 						}
-					vaadinItems[index] = tabObj;
+						vaadinItems[index] = tabObj;
 					}
 				}
 				callback(vaadinItems);
@@ -536,7 +536,7 @@ class policyList extends PolymerElement {
 				grid.size = 0;
 				callback([]);
 			}
-		};
+		}
 		var handleAjaxError = function(error) {
 			policyList.etag = null;
 			var toast = policyList.shadowRoot.getElementById('PolicyToast');
@@ -549,16 +549,16 @@ class policyList extends PolymerElement {
 		}
 		if (ajax.loading) {
 			ajax.lastRequest.completes.then(function(request) {
-			var startRange = params.page * params.pageSize + 1;
-			var endRange = startRange + params.pageSize - 1;
-			ajax.headers['Range'] = "items=" + startRange + "-" + endRange;
-			if (policyList.etag && params.page > 0) {
-				ajax.headers['If-Range'] = clientList.etag;
-			} else {
-				delete ajax.headers['If-Range'];
-			}
+				var startRange = params.page * params.pageSize + 1;
+				var endRange = startRange + params.pageSize - 1;
+				ajax.headers['Range'] = "items=" + startRange + "-" + endRange;
+				if (policyList.etag && params.page > 0) {
+					ajax.headers['If-Range'] = clientList.etag;
+				} else {
+					delete ajax.headers['If-Range'];
+				}
 				return ajax.generateRequest().completes;
-					}, handleAjaxError).then(handleAjaxResponse, handleAjaxError);
+			}, handleAjaxError).then(handleAjaxResponse, handleAjaxError);
 		} else {
 			var startRange = params.page * params.pageSize + 1;
 			var endRange = startRange + params.pageSize - 1;
