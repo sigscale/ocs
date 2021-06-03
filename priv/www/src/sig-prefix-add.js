@@ -90,7 +90,7 @@ class prefixAdd extends PolymerElement {
 				</div>
 			</paper-dialog>
 			<iron-ajax
-					id="addTableRowAjax"
+					id="addTableRow"
 					content-type="application/json"
 					on-loading-changed="_onLoadingChanged"
 					on-response="_addTableResponse"
@@ -100,16 +100,10 @@ class prefixAdd extends PolymerElement {
 	}
 	static get properties() {
 		return {
-				loading: {
+			loading: {
 				type: Boolean,
 				value: false
 			},
-			table: {
-				type: String
-			},
-			tableId: {
-				type: String
-			}, 
 			tarName: {
 				type: String,
 			},
@@ -130,7 +124,8 @@ class prefixAdd extends PolymerElement {
 	}
 
 	_tableRow(event) {
-		var ajax = this.$.addTableRowAjax;
+		var prefixList = document.body.querySelector('sig-app').shadowRoot.getElementById('prefixList');
+		var ajax = this.$.addTableRow;
 		ajax.method = "POST";
 		ajax.url = "/resourceInventoryManagement/v1/resource/";
 		var tar = new Object();
@@ -139,9 +134,9 @@ class prefixAdd extends PolymerElement {
 		}
 		var rel = new Array();
 		var relObj = new Object();
-		relObj.id = document.body.querySelector('sig-app').shadowRoot.querySelector('sig-prefix-list').tableId;
+		relObj.id = prefixList.activeTableId;
 		relObj.href = "/resourceInventoryManagement/v1/resourceRelationship/" + relObj.id;
-		relObj.name = document.body.querySelector('sig-app').shadowRoot.querySelector('sig-prefix-list').table;
+		relObj.name = prefixList.activeTableName;
       var relObj1 = new Object();
       relObj1.relationshipType = "contained";
       relObj1.resource = relObj
@@ -195,7 +190,7 @@ class prefixAdd extends PolymerElement {
 	}
 
 	_onLoadingChanged(event) {
-		if (this.$.addTableRowAjax.loading) {
+		if (this.$.addTableRow.loading) {
 			this.$.progressId.disabled = false;
 		} else {
 			this.$.progressId.disabled = true;

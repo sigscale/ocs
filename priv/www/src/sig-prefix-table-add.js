@@ -100,7 +100,7 @@ class tablePreAdd extends PolymerElement {
 				</div>
 			</paper-dialog>
 			<iron-ajax
-					id="addTableAjax"
+					id="addTable"
 					url="/resourceInventoryManagement/v1/resource"
 					method = "POST"
 					content-type="application/json"
@@ -163,7 +163,7 @@ class tablePreAdd extends PolymerElement {
 			tabName.validFor = {endDateTime};
 		}
 		if(tabName.name) {
-			var ajax = this.$.addTableAjax;
+			var ajax = this.$.addTable;
 			ajax.body = tabName;
 			ajax.generateRequest();
 		}
@@ -171,18 +171,14 @@ class tablePreAdd extends PolymerElement {
 		this.addDesc = null;
 		this.startTableTimePick = null;
 		this.endTableTimePick = null;
+		document.body.querySelector('sig-app').shadowRoot.getElementById('prefixList').shadowRoot.getElementById('prefixGrid').clearCache();
 	}
 
 	_addTableResponse(event) {
-		var results = event.detail.response;
-		var tableRecord = new Object();
-		tableRecord.id = results.id;
-		tableRecord.href = results.href;
-		tableRecord.plaSpecId = results.plaSpecId;
-		document.body.querySelector('sig-app').shadowRoot.getElementById('offerList').push('tables', tableRecord);
 		this.$.addPrefixTableModal.close();
+		var ajax = document.body.querySelector('sig-app').shadowRoot.getElementById('prefixList').shadowRoot.getElementById('getPrefixTables');
+		ajax.generateRequest();
 	}
-
 	_addTableError(event) {
 		var toast = document.body.querySelector('sig-app').shadowRoot.getElementById('restError');
 		toast.text = "Error";

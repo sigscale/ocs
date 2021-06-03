@@ -100,7 +100,7 @@ class tablePolAdd extends PolymerElement {
 				</div>
 			</paper-dialog>
 			<iron-ajax
-					id="addTableAjax"
+					id="addTable"
 					url="resourceInventoryManagement/v1/resource"
 					method = "POST"
 					content-type="application/json"
@@ -163,7 +163,7 @@ class tablePolAdd extends PolymerElement {
 			tabName.validFor = {endDateTime};
 		}
 		if(tabName.name) {
-			var ajax = this.$.addTableAjax;
+			var ajax = this.$.addTable;
 			ajax.body = tabName;
 			ajax.generateRequest();
 		}
@@ -176,7 +176,7 @@ class tablePolAdd extends PolymerElement {
 
 	_addTableResponse(event) {
 		this.$.addPolicyTableModal.close();
-		var ajax = document.body.querySelector('sig-app').shadowRoot.getElementById('policyList').shadowRoot.getElementById('getPolicyTablesAjax');
+		var ajax = document.body.querySelector('sig-app').shadowRoot.getElementById('policyList').shadowRoot.getElementById('getPolicyTables');
 		ajax.generateRequest();
 	}
 

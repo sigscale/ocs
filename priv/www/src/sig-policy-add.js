@@ -168,11 +168,11 @@ class policyAdd extends PolymerElement {
 				</div>
 			</paper-dialog>
 			<iron-ajax
-				id="policyAddAjax"
-				content-type="application/json"
-				loading="{{loading}}"
-				on-response="_response"
-				on-error="_error">
+					id="policyAdd"
+					content-type="application/json"
+					loading="{{loading}}"
+					on-response="_response"
+					on-error="_error">
 			</iron-ajax>
 		`;
 	}
@@ -210,12 +210,6 @@ class policyAdd extends PolymerElement {
 			},
 			precedence: {
 				type: String
-			},
-			table: {
-				type: String
-			},
-			tableId: {
-				type: String
 			}
 		}
 	}
@@ -239,7 +233,7 @@ class policyAdd extends PolymerElement {
 
 	_add() {
 		var policyList = document.body.querySelector('sig-app').shadowRoot.getElementById('policyList');
-		var ajax = this.$.policyAddAjax;
+		var ajax = this.$.policyAdd;
 		ajax.method = "POST";
 		ajax.url = "/resourceInventoryManagement/v1/resource/";
 		var policy = new Object();

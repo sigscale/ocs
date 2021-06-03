@@ -263,24 +263,26 @@ class policyList extends PolymerElement {
 			<paper-toast
 				id="PolicyToast">
 			</paper-toast>
-			<iron-ajax id="getPolicyRowsAjax">
+			<iron-ajax
+					id="getPolicyRows">
 			</iron-ajax>
-			<iron-ajax id="getPolicyTablesAjax"
+			<iron-ajax
+					id="getPolicyTables"
 					url="/resourceInventoryManagement/v1/resource?resourceSpecification.id=3"
 					on-response="_getPolicyTablesResponse"
 					rejectWithRequest>
 			</iron-ajax>
 			<iron-ajax
-					id="deleteTableAjax"
+					id="deletePolicyTable"
 					on-response="_deleteTableResponse"
 					method="DELETE">
 			</iron-ajax>
 			<iron-ajax
-					id="deleteTableRowAjax"
+					id="deletePolicyRow"
 					method="DELETE">
 			</iron-ajax>
 			<iron-ajax
-					id="policyUpdateAjax"
+					id="policyUpdate"
 					method="PATCH"
 					loading="{{loading}}">
 			</iron-ajax>
@@ -306,7 +308,8 @@ class policyList extends PolymerElement {
 				}
 			},
 			activeTableName: {
-				type: String
+				type: String,
+				notify: true
 			},
 			activeTableId: {
 				type: String
@@ -329,7 +332,7 @@ class policyList extends PolymerElement {
 
 	ready() {
 		super.ready();
-		var ajax = this.shadowRoot.getElementById('getPolicyTablesAjax');
+		var ajax = this.shadowRoot.getElementById('getPolicyTables');
 		ajax.generateRequest();
 		this.$.tableList.open();
 	}
@@ -351,6 +354,7 @@ class policyList extends PolymerElement {
 	}
 
 	_tableOk() {
+		document.body.querySelector('sig-app').viewTitle = 'Policy: ' + this.activeTableName;
 		var grid = this.shadowRoot.getElementById('policyGrid');
 		grid.dataProvider = this._getPolicy;
 		grid.clearCache();
@@ -436,19 +440,19 @@ class policyList extends PolymerElement {
 	}
 
 	_tableDelete() {
-		this.$.deleteTableAjax.url = "/resourceInventoryManagement/v1/resource/" + this.activeTableId;
-		this.$.deleteTableAjax.generateRequest();
+		this.$.deletePolicyTable.url = "/resourceInventoryManagement/v1/resource/" + this.activeTableId;
+		this.$.deletePolicyTable.generateRequest();
 		this.activeTableName = null;
 		this.activeTableId = null;
 	}
 
 	_deleteTableResponse(event) {
-		this.shadowRoot.getElementById('getPolicyTablesAjax').generateRequest();
+		this.shadowRoot.getElementById('getPolicyTables').generateRequest();
 	}
 
 	_delete(event) {
-		this.$.deleteTableRowAjax.url = "/resourceInventoryManagement/v1/resource/" + event.model.item.id;
-		this.$.deleteTableRowAjax.generateRequest();
+		this.$.deletePolicyRow.url = "/resourceInventoryManagement/v1/resource/" + event.model.item.id;
+		this.$.deletePolicyRow.generateRequest();
 		this.shadowRoot.getElementById('policyGrid').clearCache();
 	}
 
@@ -458,7 +462,7 @@ class policyList extends PolymerElement {
 			grid.size = 0;
 		}
 		var policyList = document.body.querySelector('sig-app').shadowRoot.getElementById('policyList');
-		var ajax = policyList.shadowRoot.getElementById('getPolicyRowsAjax');
+		var ajax = policyList.shadowRoot.getElementById('getPolicyRows');
 		ajax.url = "/resourceInventoryManagement/v1/resource?resourceSpecification.id=4&resourceRelationship.resource.name=" + policyList.activeTableName;
 		var handleAjaxResponse = function(request) {
 			if(request) {
@@ -585,7 +589,7 @@ class policyList extends PolymerElement {
 ///////////////////////////////////////////////////////////////////////////
 
 	_up(event) {
-		var getAjax = this.$.getPolicyRowsAjax;
+		var getAjax = this.$.getPolicyRows;
 		var etag = getAjax.lastRequest.xhr.getResponseHeader('ETag');
 		var Mitem = event.model.item
 		var results = getAjax.lastResponse;
@@ -594,7 +598,7 @@ class policyList extends PolymerElement {
 		}
 		var index1 = results.findIndex(checkId);
 
-		var updateAjax = this.$.policyUpdateAjax;
+		var updateAjax = this.$.policyUpdate;
 		updateAjax.contentType = "application/json-patch+json";
 		updateAjax.url = "/resourceInventoryManagement/v1/resource/" + Mitem.id;
 		var PolArray = new Array();
@@ -722,7 +726,7 @@ class policyList extends PolymerElement {
 		updateAjax.body = JSON.stringify(PolArray);
 		updateAjax.generateRequest();
 		var policyList = document.body.querySelector('sig-app').shadowRoot.getElementById('policyList');
-		var ajax = policyList.shadowRoot.getElementById('getPolicyRowsAjax');
+		var ajax = policyList.shadowRoot.getElementById('getPolicyRows');
 		ajax.url = "/resourceInventoryManagement/v1/resource?resourceSpecification.id=4&resourceRelationship.resource.name=" + policyList.table;
 		ajax.generateRequest();
 	}
