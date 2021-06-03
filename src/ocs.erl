@@ -1756,7 +1756,18 @@ get_resource(ResourceID) when is_list(ResourceID) ->
 delete_resource(ResourceID) when is_list(ResourceID) ->
 	F = fun() ->
 			case mnesia:read(resource, ResourceID) of
-				[#resource{} = Resource] ->
+				[#resource{specification = #specification_ref{id = "2"},
+						related = [#resource_rel{name = Table}],
+						characteristic = Chars} = Resource] when is_list(Table) ->
+					case lists:keyfind("prefix", #resource_char.name, Chars) of
+						#resource_char{value = Prefix} ->
+							{mnesia:delete(resource, ResourceID, write),
+									Resource, Table, Prefix};
+						false ->
+							throw(prefix_not_found)
+					end;
+				[#resource{specification = #specification_ref{id = SpecId}}
+						= Resource] when SpecId /= "2" ->
 					{mnesia:delete(resource, ResourceID, write), Resource};
 				[] ->
 					mnesia:abort(not_found)
@@ -1768,6 +1779,9 @@ delete_resource(ResourceID) when is_list(ResourceID) ->
 		{atomic, {ok, #resource{name = Name,
 				specification = #specification_ref{id = "1"}} = Resource}} ->
 			{atomic, ok} = mnesia:delete_table(list_to_existing_atom(Name)),
+			ocs_event:notify(delete_resource, Resource, resource);
+		{atomic, {ok, Resource, Table, Prefix}} ->
+			ok = ocs_gtt:delete(Table, Prefix),
 			ocs_event:notify(delete_resource, Resource, resource);
 		{atomic, {ok, #resource{} = Resource}} ->
 			ocs_event:notify(delete_resource, Resource, resource)
