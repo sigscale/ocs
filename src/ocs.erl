@@ -1650,7 +1650,29 @@ query_table1(Pla, _Acc) ->
 		Result :: {ok, Resource} | {error, Reason},
 		Reason :: term().
 %% @doc Create a new Resource.
+add_resource(#resource{id = undefined, last_modified = undefined, name = Name,
+		specification = #specification_ref{id = "1"}} = Resource)
+		when is_list(Name) ->
+	case mnesia:table_info(list_to_existing_atom(Name), attributes) of
+		[num, value] ->
+			add_resource1(Resource);
+		_ ->
+			exit(table_not_found)
+	end;
+add_resource(#resource{id = undefined, last_modified = undefined,
+		specification = #specification_ref{id = "2"},
+		related = [#resource_rel{name = Table}], characteristic = Chars}
+		= Resource) when length(Chars) == 3 ->
+	case mnesia:table_info(list_to_existing_atom(Table), attributes) of
+		[num, value] ->
+			add_resource1(Resource);
+		_ ->
+			exit(table_not_found)
+	end;
 add_resource(#resource{id = undefined, last_modified = undefined} = Resource) ->
+	add_resource1(Resource).
+%% @hidden
+add_resource1(#resource{} = Resource) ->
 	F = fun() ->
 			TS = erlang:system_time(?MILLISECOND),
 			N = erlang:unique_integer([positive]),
@@ -1662,38 +1684,24 @@ add_resource(#resource{id = undefined, last_modified = undefined} = Resource) ->
 			ok = mnesia:write(NewResource),
 			NewResource
 	end,
-	add_resource1(mnesia:transaction(F)).
-add_resource1({atomic, #resource{name = Name,
-		specification = #specification_ref{id = "1"}} = NewResource})
-		when is_list(Name) ->
-	case mnesia:table_info(list_to_existing_atom(Name), attributes) of
-		[num, value] ->
-			ok = ocs_event:notify(create_resource, NewResource, resource),
-			{ok, NewResource};
-		_ ->
-			exit(table_not_found)
-	end;
-add_resource1({atomic, #resource{specification = #specification_ref{id = "2"},
+	add_resource2(mnesia:transaction(F)).
+%% @hidden
+add_resource2({atomic, #resource{specification = #specification_ref{id = "2"},
 		related = [#resource_rel{name = Table}], characteristic = Chars}
 		= NewResource}) ->
-	case mnesia:table_info(list_to_existing_atom(Table), attributes) of
-		[num, value] ->
-			#resource_char{value = Prefix}
-					= lists:keyfind("prefix", #resource_char.name, Chars),
-			#resource_char{value = Description}
-					= lists:keyfind("description", #resource_char.name, Chars),
-			#resource_char{value = Rate}
-					= lists:keyfind("rate", #resource_char.name, Chars),
-			{ok, #gtt{}} = ocs_gtt:insert(Table, Prefix, {Description, Rate}),
-			ok = ocs_event:notify(create_resource, NewResource, resource),
-			{ok, NewResource};
-		_ ->
-			exit(table_not_found)
-	end;
-add_resource1({atomic, #resource{} = NewResource}) ->
+	#resource_char{value = Prefix}
+			= lists:keyfind("prefix", #resource_char.name, Chars),
+	#resource_char{value = Description}
+			= lists:keyfind("description", #resource_char.name, Chars),
+	#resource_char{value = Rate}
+			= lists:keyfind("rate", #resource_char.name, Chars),
+	{ok, #gtt{}} = ocs_gtt:insert(Table, Prefix, {Description, Rate}),
 	ok = ocs_event:notify(create_resource, NewResource, resource),
 	{ok, NewResource};
-add_resource1({aborted, Reason}) ->
+add_resource2({atomic, #resource{} = NewResource}) ->
+	ok = ocs_event:notify(create_resource, NewResource, resource),
+	{ok, NewResource};
+add_resource2({aborted, Reason}) ->
 	{error, Reason}.
 
 -spec get_resources() -> Result
