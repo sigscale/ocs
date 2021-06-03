@@ -1,6 +1,7 @@
 # [SigScale](http://www.sigscale.org) Online Charging System (OCS)
 
-Prebuilt packages available for [Ubuntu](https://raw.githubusercontent.com/sigscale/ocs/master/README.ubuntu)
+Prebuilt packages available for [Ubuntu](https://raw.githubusercontent.com/sigscale/ocs/master/README.ubuntu),
+[Debian](https://raw.githubusercontent.com/sigscale/ocs/master/README.debian)
 and [Docker](https://raw.githubusercontent.com/sigscale/ocs/master/README.docker).
 
 [Open Issues](https://sigscale.atlassian.net/projects/OCS/issues/?filter=allopenissues "Open Issues")  
