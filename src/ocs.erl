@@ -1778,7 +1778,7 @@ delete_resource(ResourceID) when is_list(ResourceID) ->
 			{error, Reason};
 		{atomic, {ok, #resource{name = Name,
 				specification = #specification_ref{id = "1"}} = Resource}} ->
-			{atomic, ok} = mnesia:delete_table(list_to_existing_atom(Name)),
+			ok = ocs_gtt:clear_table(Name),
 			ocs_event:notify(delete_resource, Resource, resource);
 		{atomic, {ok, Resource, Table, Prefix}} ->
 			ok = ocs_gtt:delete(Table, Prefix),
