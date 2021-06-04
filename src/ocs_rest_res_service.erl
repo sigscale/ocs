@@ -392,71 +392,57 @@ inventory([{"isServiceEnabled", Enabled}| T], Acc) ->
 inventory([{"product", ProductRef}| T], Acc) ->
 	inventory(T, Acc#service{product = ProductRef});
 inventory([{"serviceCharacteristic", Characteristics}| T], Acc) ->
-	Chars = service_chars(Characteristics),
-	F1 = fun(Key, Chars1) ->
-			case lists:keyfind(Key, 1, Chars1) of
-				{_, Value} ->
-					Value;
-				false ->
-					undefined
-			end
-	end,
-	Identity = case lists:keyfind("serviceIdentity", 1, Chars) of
-		{_, V1} ->
-			list_to_binary(V1);
+	Chars1 = service_chars(Characteristics),
+	{Identity, Chars2} = case lists:keytake("serviceIdentity", 1, Chars1) of
+		{value, {_, V1}, InterChars1} ->
+			{list_to_binary(V1), InterChars1};
 		false ->
-			undefined
+			{undefined, Chars1}
 	end,
-	Password = case lists:keyfind("servicePassword", 1, Chars) of
-		{_, V2} ->
-			list_to_binary(V2);
+	{Password, Chars3} = case lists:keytake("servicePassword", 1, Chars2) of
+		{value, {_, V2}, InterChars2} ->
+			{list_to_binary(V2), InterChars2};
 		false ->
-			case lists:keyfind("serviceAkaK", 1, Chars) of
-				{_, V3} when length(V3) =:= 32 ->
+			case lists:keytake("serviceAkaK", 1, Chars2) of
+				{value, {_, V3}, InterChars3} when length(V3) =:= 32 ->
 					K = << <<N:4>> || N <- [list_to_integer([C], 16) || C <- V3] >>,
-					case lists:keyfind("serviceAkaOPc", 1, Chars) of
-						{_, V4} when length(V4) =:= 32 ->
+					case lists:keytake("serviceAkaOPc", 1, InterChars3) of
+						{value, {_, V4}, InterChars4} when length(V4) =:= 32 ->
 							OPc = << <<N:4>> || N <- [list_to_integer([C], 16) || C <- V4] >>,
-							#aka_cred{k = K, opc = OPc};
+							{#aka_cred{k = K, opc = OPc}, InterChars4};
 						false ->
-							undefined
+							{undefined, InterChars3}
 					end;
 				false ->
-					undefined
+					{undefined, Chars2}
 			end
 	end,
-	MultiSession = F1("multiSession", Chars),
-	A1 = case F1("sessionTimeout", Chars) of
-		undefined ->
-			[];
-		SessionTimeout ->
-			[{?SessionTimeout, SessionTimeout}]
+	{MultiSession, Chars4} = case lists:keytake("multiSession", 1, Chars3) of
+		{value, {_, Session}, InterChars5} ->
+			{Session, InterChars5};
+		false ->
+			{undefined, Chars3}
 	end,
-	A2  = case F1("acctSessionInterval", Chars) of
-		undefined ->
-			A1;
-		SessionInterval ->
-			[{?AcctInterimInterval, SessionInterval} | A1]
+	{A1, Chars5} = case lists:keytake("sessionTimeout", 1, Chars4) of
+		{value, {_, SessionTimeout}, InterChars6} ->
+			{[{?SessionTimeout, SessionTimeout}], InterChars6};
+		false ->
+			{[], Chars4}
 	end,
-	A3  = case F1("class", Chars) of
-		undefined ->
-			A2;
-		Class ->
-			[{?Class, Class} | A2]
+	{A2, Chars6} = case lists:keytake("acctSessionInterval", 1, Chars5) of
+		{value, {_, SessionInterval}, InterChars7} ->
+			{[{?AcctInterimInterval, SessionInterval} | A1], InterChars7};
+		false ->
+			{A1, Chars5}
 	end,
-	F2 = fun(Key1, Chars1, AccIn) ->
-			case lists:keyfind(Key1, 1, Chars1) of
-				false ->
-					AccIn;
-				Result ->
-					[Result | AccIn]
-			end
+	{A3, Chars7} = case lists:keytake("class", 1, Chars6) of
+		{value, {_, Class}, InterChars8} ->
+			{[{?Class, Class} | A2], InterChars8};
+		false ->
+			{A2, Chars6}
 	end,
-	C0 = F2("radiusReserveTime", Chars, []),
-	C1 = F2("radiusReserveOctets", Chars, C0),
-	C2 = F2("ReserveSessionTime", Chars, C1),
 	NewAcc = Acc#service{name = Identity, password = Password,
-			multisession = MultiSession, attributes = A3, characteristics = C2},
+			multisession = MultiSession, attributes = A3, characteristics = Chars7},
 	inventory(T, NewAcc);
 inventory([{"category", _}| T], Acc) ->
 	inventory(T, Acc);
@@ -647,6 +633,17 @@ service_chars([{struct, [{"name", Name}, {"value", Value}]} | T], Acc) ->
 	service_chars(T, [{Name, Value} | Acc]);
 service_chars([{struct, [{"value", Value}, {"name", Name}]} | T], Acc) ->
 	service_chars(T, [{Name, Value} | Acc]);
+service_chars([{struct, ObjList} | T], Acc) when length(ObjList) == 3 ->
+	case lists:keyfind("valueType", 1, ObjList) of
+		{_, ValType} when ValType == "number"; ValType == "Number";
+				ValType == "string"; ValType == "String";
+				ValType == "boolean"; ValType == "Boolean" ->
+			{_, Name} = lists:keyfind("name", 1, ObjList),
+			{_, Value} = lists:keyfind("value", 1, ObjList),
+			service_chars(T, [{Name, Value} | Acc]);
+		false ->
+			service_chars(T, Acc)
+	end;
 service_chars([{"radiusReserveTime", Value} | T], Acc) ->
 	Char = {struct, [{"name", "radiusReserveTime"},
 			{"value", radius_reserve(Value)}]},
