@@ -247,7 +247,8 @@ all() ->
 	post_hub_usage, get_usage_hubs, get_usage_hub, delete_hub_usage,
 	notify_diameter_acct_log, get_tariff_resource, get_tariff_resources,
 	post_tariff_resource, delete_tariff_resource, update_tariff_resource,
-	post_policy_resource, query_policy_resource, oauth_authentication].
+	post_policy_resource, query_policy_resource, arbitrary_char_service,
+	oauth_authentication].
 
 %%---------------------------------------------------------------------
 %%  Test cases
@@ -4888,6 +4889,53 @@ oauth_authentication(Config)->
 	Request = {HostUrl, [Accept, Authentication]},
 	{ok, Result} = httpc:request(get, Request, [], []),
 	{{"HTTP/1.1", 200, _}, _, _} = Result.
+
+arbitrary_char_service() ->
+	[{userdata, [{doc,"Add service with arbitrary characteristics"}]}].
+
+arbitrary_char_service(Config) ->
+	OfferId = ?config(product_id, Config),
+	{ok, #product{}} = ocs:add_product(OfferId, []),
+	ID = ocs:generate_identity(),
+	Password = ocs:generate_password(),
+	State = {"state", active},
+	IsServiceEnabled = {"isServiceEnabled", true},
+	Char1= {struct, [{"name", "acctSessionInterval"}, {"value", rand:uniform(500)}]},
+	Char2 = {struct, [{"name", "sessionTimeout"}, {"value", rand:uniform(2500)}]},
+	Char3 = {struct, [{"name", "serviceIdentity"}, {"value", ID}]},
+	Char4 = {struct, [{"name", "servicePassword"}, {"value", Password}]},
+	Char5 = {struct, [{"name", "multiSession"}, {"value", true}]},
+	Char6 = {struct, [{"name", "foo"}, {"valueType", "number"}, {"value", 42}]},
+	Char7 = {struct, [{"name", "radiusReserveOctets"},
+			{"value", {struct, [{"unitOfMeasure", "bytes"},
+			{"value", rand:uniform(100000)}]}}]},
+	SortedChars = lists:sort([Char1, Char2, Char3, Char4, Char5, Char6, Char7]),
+	Characteristics = {"serviceCharacteristic", {array, SortedChars}},
+	JSON = {struct, [State, IsServiceEnabled, Characteristics]},
+	RequestBody = lists:flatten(mochijson:encode(JSON)),
+	HostUrl = ?config(host_url, Config),
+	Accept = {"accept", "application/json"},
+	ContentType = "application/json",
+	Request = {HostUrl ++ "/serviceInventoryManagement/v2/service",
+			[Accept, auth_header()], ContentType, RequestBody},
+	{ok, Result} = httpc:request(post, Request, [], []),
+	{{"HTTP/1.1", 201, _Created}, Headers, ResponseBody} = Result,
+	{_, "application/json"} = lists:keyfind("content-type", 1, Headers),
+	{_, _} = lists:keyfind("etag", 1, Headers),
+	{_, URI} = lists:keyfind("location", 1, Headers),
+	{"/serviceInventoryManagement/v2/service/" ++ ID, _} = httpd_util:split_path(URI),
+	ContentLength = integer_to_list(length(ResponseBody)),
+	{_, ContentLength} = lists:keyfind("content-length", 1, Headers),
+	{struct, Object} = mochijson:decode(ResponseBody),
+	{_, {array, Chars}} = lists:keyfind("serviceCharacteristic", 1, Object),
+	F = fun({struct, [{"name", "foo"}, {"value", 42}]}) ->
+				true;
+			({struct, [{"value", 42}, {"name", "foo"}]}) ->
+				true;
+			(_) ->
+				false
+	end,
+	lists:any(F, Chars).
 
 %%---------------------------------------------------------------------
 %%  Internal functions
