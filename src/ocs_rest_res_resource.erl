@@ -65,7 +65,8 @@ content_types_provided() ->
 	when
 		ID :: string(),
 		Result :: {struct, [tuple()]} | {error, 404}.
-%% @doc Get Resource Specification by ID.
+%% @doc Respond to `GET /resourceCatalogManagement/v2/resourceSpecification/{id}'.
+%%		Retrieve a resource specification.
 get_resource_spec("1") ->
 	ResourceSpec = tariff_table_spec(),
 	Body = mochijson:encode(ResourceSpec),
@@ -96,7 +97,7 @@ get_resource_spec(_) ->
 	Body		:: iolist(),
 	Status	:: 400 | 404 | 500.
 %% @doc Respond to `GET /resourceCatalogManagement/v2/resourceSpecification'.
-%% 	Retrieve all Resource specifications.
+%% 	Retrieve all resource specifications.
 get_resource_specs([] = _Query) ->
 	Headers = [{content_type, "application/json"}],
 	Object = {array, [tariff_table_spec(), tariff_row_spec(),
