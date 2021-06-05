@@ -1087,14 +1087,10 @@ resource_char([{"value", Value} | T], Acc) when is_boolean(Value) ->
 	resource_char(T, Acc#resource_char{value = Value});
 resource_char([{"value", {struct, QosList}} | T],
 		#resource_char{name = "qosInformation"} = Acc) when is_list(QosList) ->
-	resource_char(T, Acc#resource_char{value = parse_char(QosList, #{})});
-resource_char([{"value", {array, FlowStructs}} | T],
-		#resource_char{name = "flowInformation"} = Acc)
-		when is_list(FlowStructs) ->
-	F = fun({struct, FlowList}) ->
-			parse_char(FlowList, #{})
-	end,
-	resource_char(T, Acc#resource_char{value = lists:map(F, FlowStructs)});
+	resource_char(T, Acc#resource_char{value = qos(QosList, #{})});
+resource_char([{"value", {array, Flows}} | T],
+		#resource_char{name = "flowInformation"} = Acc) when is_list(Flows) ->
+	resource_char(T, Acc#resource_char{value = flow(Flows, [])});
 resource_char([], Acc) ->
 	Acc.
 %% @hidden
@@ -1114,46 +1110,65 @@ resource_char1(#resource_char{name = "qosInformation",
 	{struct, [{"name", "qosInformation"}, {"value", {struct,
 			[{"maxRequestedBandwidthDL", MaxDL}, {"maxRequestedBandwidthUL",
 			MaxUL}, {"qosClassIdentifier", Class}]}}]};
-resource_char1(#resource_char{name = "flowInformation", value = FlowList})
-		when is_list(FlowList) ->
-	F = fun(#{"flowDescription" := FlowDes, "flowDirection" := 0})
-			when is_list(FlowDes) ->
-				{struct, [{"flowDescription", FlowDes},
-						{"flowDirection", "unspecified"}]};
-			(#{"flowDescription" := FlowDes, "flowDirection" := 1})
-					when is_list(FlowDes) ->
-				{struct, [{"flowDescription", FlowDes}, {"flowDirection", "down"}]};
-			(#{"flowDescription" := FlowDes, "flowDirection" := 2})
-					when is_list(FlowDes) ->
-				{struct, [{"flowDescription", FlowDes}, {"flowDirection", "up"}]};
-			(#{"flowDescription" := FlowDes, "flowDirection" := 3})
-					when is_list(FlowDes) ->
-				{struct, [{"flowDescription", FlowDes},
-						{"flowDirection", "bidirectional"}]}
-	end,
+resource_char1(#resource_char{name = "flowInformation", value = Flows})
+		when is_list(Flows) ->
 	{struct, [{"name", "flowInformation"},
-			{"value", {array, lists:map(F, FlowList)}}]};
+			{"value", {array, flow(Flows, [])}}]};
 resource_char1(#resource_char{name = Name, value = Value})
 		when is_list(Value) ->
 	{struct, [{"name", Name}, {"value", Value}]}.
 
 %% @hidden
-parse_char([{Field, Value} | T], Acc) when is_integer(Value),
+qos([{Field, Value} | T], Acc) when is_integer(Value),
 		Field == "qosClassIdentifier"; Field == "maxRequestedBandwidthUL";
 		Field == "maxRequestedBandwidthDL" ->
-	parse_char(T, Acc#{Field => Value});
-parse_char([{"flowDirection", "unspecified"} | T], Acc) ->
-	parse_char(T, Acc#{"flowDirection" => 0});
-parse_char([{"flowDirection", "down"} | T], Acc) ->
-	parse_char(T, Acc#{"flowDirection" => 1});
-parse_char([{"flowDirection", "up"} | T], Acc) ->
-	parse_char(T, Acc#{"flowDirection" => 2});
-parse_char([{"flowDirection", "bidirectional"} | T], Acc) ->
-	parse_char(T, Acc#{"flowDirection" => 3});
-parse_char([{"flowDescription", Value} | T], Acc) when is_list(Value) ->
-	parse_char(T, Acc#{"flowDescription" => Value});
-parse_char([], Acc) ->
+	qos(T, Acc#{Field => Value});
+qos([], Acc) ->
 	Acc.
+
+-spec flow(Flows, Acc) -> Flows
+	when
+		Flows :: [Flow],
+		Flow :: {struct, [{Name :: string(), Value :: string()}]} | map(),
+		Acc :: [Flow].
+%% @hidden
+flow([#{"flowDescription" := Description, "flowDirection" := Direction} | T], Acc)
+		when is_list(Description), is_integer(Direction) ->
+	flow(T, [{struct, [{"flowDescription", Description},
+			{"flowDirection", flow_dir(Direction)}]} | Acc]);
+flow([{struct, [{"flowDescription", Description}]},
+		{"flowDirection", Direction} | T], Acc)
+		when is_list(Description), is_list(Direction) ->
+	flow(T, [#{"flowDescription" => Description,
+			"flowDirection" => flow_dir(Direction)} | Acc]);
+flow([{struct, [{"flowDirection", Direction},
+		{"flowDescription", Description}]} | T], Acc)
+		when is_list(Description), is_list(Direction) ->
+	flow(T, [#{"flowDescription" => Description,
+			"flowDirection" => flow_dir(Direction)} | Acc]);
+flow([], Acc) ->
+	lists:reverse(Acc).
+
+-spec flow_dir(Direction) -> Direction
+	when
+		Direction :: 0..3 | string().
+%% @hidden
+flow_dir(0) ->
+	"unspecified";
+flow_dir(1) ->
+	"down";
+flow_dir(2) ->
+	"up";
+flow_dir(3) ->
+	"both";
+flow_dir("unspecified") ->
+	0;
+flow_dir("down") ->
+	1;
+flow_dir("up") ->
+	2;
+flow_dir("both") ->
+	3.
 
 -spec specification_ref(ResourceSpecificationRef) -> ResourceSpecificationRef
 	when
