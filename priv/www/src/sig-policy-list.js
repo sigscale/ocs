@@ -48,92 +48,137 @@ class policyList extends PolymerElement {
 							QoS Information
 						</paper-tab>
 						<paper-tab>
-							Flow Information
+							Service Flow
 						</paper-tab>
 					</paper-tabs>
 					<iron-pages
 							selected="{{selectedTab}}">
 						<div>
-							<paper-input
-									name="id"
-									label="Id"
-									value="{{polId}}"
-									disabled>
-							</paper-input>
-							<paper-input
-									name="name"
-									label="Name"
-									value="{{polName}}">
-							</paper-input>
-							<paper-input
-									name="predefined"
-									label="Predefined"
-									value="{{predefined}}">
-							</paper-input>
-							<paper-input
-									name="precedence"
-									label="Precedence"
-									value="{{item.precedence}}">
-							</paper-input>
-							<paper-input
-									name="chargingKey"
-									label="Charging Key"
-									value="{{item.chargingKey}}">
-							</paper-input>
-							<paper-input
-									name="serviceId"
-									label="Service Id"
-									value="{{item.serviceId}}">
-							</paper-input>
+							<div>
+								<paper-input
+										label="ID"
+										value="{{polId}}"
+										disabled>
+								</paper-input>
+								<paper-tooltip>
+									Internal policy rule identifier.
+								</paper-tooltip>
+							</div>
+							<div>
+								<paper-input
+										label="Name"
+										value="{{polName}}">
+								</paper-input>
+								<paper-tooltip>
+									Uniquely identifies a PCRF provided rule within a session, or references a rule predefined at PCEF.
+								</paper-tooltip>
+							</div>
+							<div>
+								<paper-toggle-button
+										checked="{{predefined}}">
+									Predefined
+								</paper-toggle-button>
+								<paper-tooltip>
+									Indicates if the rule is predefined at PCEF.
+								</paper-tooltip>
+							</div>
+							<div>
+								<paper-input
+										label="Precedence"
+										value="{{item.precedence}}">
+								</paper-input>
+								<paper-tooltip>
+									Determines the order in which service data flow templates are applied for detection at the PCEF. A rule with a lower value shall be applied before a rule with a higher value.
+								</paper-tooltip>
+							</div>
+							<div>
+								<paper-input
+										label="Charging Key"
+										value="{{item.chargingKey}}">
+								</paper-input>
+								<paper-tooltip>
+									Charging Key (Rating Group) used for rating the service associated with the service flow of this rule.
+								</paper-tooltip>
+							</div>
+							<div>
+								<paper-input
+										label="Service Identifier"
+										value="{{item.serviceId}}">
+								</paper-input>
+								<paper-tooltip>
+									Identify the service or the service component the service data flow relates to.
+								</paper-tooltip>
+							</div>
 						</div>
 						<div>
-							<paper-input
-									name="maxRequestedBandwidthDL"
-									label="Max Requested Bandwidth DL"
-									value="{{item.maxRequestedBandwidthDL}}">
-							</paper-input>
-							<paper-input
-									name="maxRequestedBandwidthUL"
-									label="Max Requested Bandwidth UL"
-									value="{{item.maxRequestedBandwidthUL}}">
-							</paper-input>
-							<paper-input
-									name="qosClassIdentifier"
-									label="QoS Class Identifier"
-									value="{{item.qosClassIdentifier}}">
-							</paper-input>
+							<div>
+								<paper-input
+										label="Max Requested Bandwidth DL"
+										value="{{item.maxRequestedBandwidthDL}}">
+								</paper-input>
+								<paper-tooltip>
+									Maximum allowed bit rate for downlink.
+								</paper-tooltip>
+							</div>
+							<div>
+								<paper-input
+										label="Max Requested Bandwidth UL"
+										value="{{item.maxRequestedBandwidthUL}}">
+								</paper-input>
+								<paper-tooltip>
+									Maximum allowed bit rate for uplink.
+								</paper-tooltip>
+							</div>
+							<div>
+								<paper-input
+										label="QoS Class Identifier (QCI)"
+										value="{{item.qosClassIdentifier}}">
+								</paper-input>
+								<paper-tooltip>
+									The authorized QoS for the default EPS bearer.
+								</paper-tooltip>
+							</div>
 						</div>
 						<div>
 							<template id="flowDomRepeat" is="dom-repeat" items="{{item.flow}}" as="flowitem" mutable-data="true">
 								<div class="flowRow">
 									<paper-icon-button
-											id$="min-[[item.id]]"
 											class="minus-icon-button"
 											icon="icons:remove-circle-outline"
 											on-tap = "_flowMinus">
 									</paper-icon-button>
-									<paper-dropdown-menu
-											id$="dir-[[item.id]]"
-											value="{{flowitem.flowDirection}}"
-											no-animations="true"
-											label="Flow Direction">
-										<paper-listbox
-												slot="dropdown-content">
-											<paper-item>
-												up
-											</paper-item>
-											<paper-item>
-												down
-											</paper-item>
-										</paper-listbox>
-									</paper-dropdown-menu>
-									<paper-input
-											id$="desc-[[item.id]]"
-											name="flowDescription"
-											label="Flow Description"
-											value="{{flowitem.flowDescription}}">
-									</paper-input>
-								<div>
+									<div>
+										<paper-dropdown-menu
+												value="{{flowitem.flowDirection}}"
+												no-animations="true"
+												label="Flow Direction">
+											<paper-listbox
+													slot="dropdown-content">
+												<paper-item>
+													up
+												</paper-item>
+												<paper-item>
+													down
+												</paper-item>
+												<paper-item>
+													both
+												</paper-item>
+											</paper-listbox>
+										</paper-dropdown-menu>
+										<paper-tooltip>
+											Indicates the direction that a filter is applicable: downlink only, uplink only or both (bidirectional).
+										</paper-tooltip>
+									</div>
+									<div>
+										<paper-input
+												label="Flow Filter"
+												value="{{flowitem.flowDescription}}">
+										</paper-input>
+										<paper-tooltip>
+											Defines a packet filter for an IP flow (e.g. permit out proto ip from all to all).
+										</paper-tooltip>
+									</div>
+								</div>
 							</template>
 							<paper-icon-button
 									class="add-icon-button"
@@ -183,7 +228,7 @@ class policyList extends PolymerElement {
 				</vaadin-grid-column>
 				<vaadin-grid-column-group>
 					<template class="header">
-						<div class="grouptitle">Flow</div>
+						<div class="grouptitle">Service Flow</div>
 					</template>
 					<vaadin-grid-column width="25ex" flex-grow="3">
 						<template class="header">
@@ -515,6 +560,20 @@ class policyList extends PolymerElement {
 									var flowDirObj1 = new Object();
 									flowDirObj1.flowDirection = resChar[indexRes].value[indexFl].flowDirection;
 									flowDirObj1.flowDescription = resChar[indexRes].value[indexFl].flowDescription;
+									if(tabObj.flowDown) {
+										tabObj.flowDown.concat("," + resChar[indexRes].value[indexFl].flowDescription);
+									} else {
+										tabObj.flowDown = resChar[indexRes].value[indexFl].flowDescription;
+									}
+								} else if(resChar[indexRes].value[indexFl].flowDirection == "both"){
+									var flowDirObj1 = new Object();
+									flowDirObj1.flowDirection = resChar[indexRes].value[indexFl].flowDirection;
+									flowDirObj1.flowDescription = resChar[indexRes].value[indexFl].flowDescription;
+									if(tabObj.flowUp) {
+										tabObj.flowUp.concat("," + resChar[indexRes].value[indexFl].flowDescription);
+									} else {
+										tabObj.flowUp = resChar[indexRes].value[indexFl].flowDescription;
+									}
 									if(tabObj.flowDown) {
 										tabObj.flowDown.concat("," + resChar[indexRes].value[indexFl].flowDescription);
 									} else {
