@@ -21,7 +21,7 @@ import '@polymer/paper-button/paper-button.js';
 import '@polymer/paper-tooltip/paper-tooltip.js';
 import './style-element.js';
 
-class tablePolAdd extends PolymerElement {
+class tablePolicyAdd extends PolymerElement {
 	static get template() {
 		return html`
 			<style include="style-element"></style>
@@ -34,55 +34,42 @@ class tablePolAdd extends PolymerElement {
 						class="slow red"
 						disabled="{{!loading}}">
 				</paper-progress>
-				<paper-input
-						id="addTableName"
-						name="name"
-						label="Name"
-						value="{{addName}}">
-				</paper-input>
-				<paper-tooltip
-						for="addTableName"
-						offset="0">
-					Table name
-				</paper-tooltip>
-				<paper-input
-						id="addTableDesc"
-						name="description"
-						label="Description"
-						value="{{addDesc}}">
-				</paper-input>
-				<paper-tooltip
-						for="addTableDesc"
-						offset="0">
-					Table description
-				</paper-tooltip>
-				<paper-input
-						id="addTableStart"
-						value="{{startTableTimePick}}"
-						name="startDate"
-						label="Start Date">
-				</paper-input>
-				<paper-tooltip
-						for="addTableStart"
-						offset="0">
-					Table start date time
-				</paper-tooltip>
-				<paper-input
-						id="addTableEnd"
-						value="{{endTableTimePick}}"
-						name="endDate"
-						label="End Date">
-				</paper-input>
-				<paper-tooltip
-						for="addTableEnd"
-						offset="0">
-					Table end date time
-				</paper-tooltip>
-				<paper-tooltip
-						for="addTableSpec"
-						offset="0">
-					Add Specification
-				</paper-tooltip>
+				<div>
+					<paper-input
+							label="Name"
+							value="{{tableName}}">
+					</paper-input>
+					<paper-tooltip>
+						Policy table name.
+					</paper-tooltip>
+				</div>
+				<div>
+					<paper-input
+							label="Description"
+							value="{{description}}">
+					</paper-input>
+					<paper-tooltip>
+						Policy table description.
+					</paper-tooltip>
+				</div>
+				<div>
+					<paper-input
+							value="{{startDateTime}}"
+							label="Start Date">
+					</paper-input>
+					<paper-tooltip>
+						Start of policy table validity period.
+					</paper-tooltip>
+				</div>
+				<div>
+					<paper-input
+							value="{{endDateTime}}"
+							label="End Date">
+					</paper-input>
+					<paper-tooltip>
+						End of policy table validity period.
+					</paper-tooltip>
+				</div>
 				<div class="buttons">
 					<paper-button
 							dialog-confirm
@@ -117,16 +104,16 @@ class tablePolAdd extends PolymerElement {
 				type: Boolean,
 				value: false
 			},
-			addName: {
+			tableName: {
 				type: String
 			},
-			addDesc: {
+			description: {
 				type: String
 			},
-			startTableTimePick: {
+			startDateTime: {
 				type: String
 			},
-			endTableTimePick: {
+			endDateTime: {
 				type: String
 			}
 		}
@@ -134,17 +121,17 @@ class tablePolAdd extends PolymerElement {
 
 	_tableAdd(event) {
 		var tabName = new Object();
-		if(this.addName) {
-			tabName.name = this.addName;
+		if(this.tableName) {
+			tabName.name = this.tableName;
 		}
-		if(this.addDesc) {
-			tabName.description = this.addDesc;
+		if(this.description) {
+			tabName.description = this.description;
 		}
-		if(this.startTableTimePick) {
-			var startDateTime = this.startTableTimePick;
+		if(this.startDateTime) {
+			var startDateTime = this.startDateTime;
 		}
-		if(this.endTableTimePick) {
-			var endDateTime = this.endTableTimePick;
+		if(this.endDateTime) {
+			var endDateTime = this.endDateTime;
 		}
 		var taSpec = new Object();
 		taSpec.id = "3";
@@ -167,10 +154,10 @@ class tablePolAdd extends PolymerElement {
 			ajax.body = tabName;
 			ajax.generateRequest();
 		}
-		this.addName = null;
-		this.addDesc = null;
-		this.startTableTimePick = null;
-		this.endTableTimePick = null;
+		this.tableName = null;
+		this.description = null;
+		this.startDateTime = null;
+		this.endDateTime = null;
 		document.body.querySelector('sig-app').shadowRoot.getElementById('policyList').shadowRoot.getElementById('policyGrid').clearCache();
 	}
 
@@ -187,11 +174,11 @@ class tablePolAdd extends PolymerElement {
 	}
 
 	_cancel() {
-		this.addName = null;
-		this.addDesc = null;
-		this.startTableTimePick = null;
-		this.endTableTimePick = null;
+		this.tableName = null;
+		this.description = null;
+		this.startDateTime = null;
+		this.endDateTime = null;
 	}
 }
 
-window.customElements.define('sig-policy-table-add', tablePolAdd);
+window.customElements.define('sig-policy-table-add', tablePolicyAdd);
