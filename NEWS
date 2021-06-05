@@ -1,3 +1,8 @@
+May 16, 20211
+-------------
+	- Add Policy and Charging Control (PCC)
+	- OCS decomposition: OCF - RF interface (Re) with Nrf SBI
+
 March 21, 2021
 ---------------
 	- Return correct Diameter error codes in CCA for Nrf rating
