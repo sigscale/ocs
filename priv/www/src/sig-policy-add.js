@@ -23,90 +23,74 @@ class policyAdd extends PolymerElement {
 	static get template() {
 		return html`
 			<style include="style-element"></style>
-			<paper-dialog class="dialog" id="policyAddModal" modal>
+			<paper-dialog
+					class="dialog"
+					id="policyAddModal"
+					modal>
 				<app-toolbar>
 					<div main-title>Add Policy</div>
 				</app-toolbar>
 				<paper-progress
-					indeterminate
-					class="slow red"
-					disabled="{{!loading}}">
+						indeterminate
+						class="slow red"
+						disabled="{{!loading}}">
 				</paper-progress>
 				<div>
 					<paper-input
-						id="policyNameAdd"
-						label="Name"
-						value="{{policyName}}">
+							label="Policy Rule Name"
+							value="{{policyName}}">
 					</paper-input>
-					<paper-tooltip
-							for="policyNameAdd"
-							offset="0">
-						Policy row name
+					<paper-tooltip>
+						Uniquely identifies a PCRF provided rule within a session, or references a rule predefined at PCEF.
 					</paper-tooltip>
 				</div>
 				<div>
 					<paper-toggle-button
-							id="predefined"
 							checked="{{predefined}}">
 						Predefined
 					</paper-toggle-button>
-					<paper-tooltip
-							for="predefined"
-							offset="0">
-						Indicates if the rule is predefined at the PCEF
+					<paper-tooltip>
+						Indicates if the rule is predefined at the PCEF.
 					</paper-tooltip>
 				</div>
 				<div>
 					<paper-input
-						id="bandwidthDL"
-						label="MaxRequestedBandwidthDL"
-						value="{{bandwidthDL}}">
+							label="Max Bandwidth DL"
+							value="{{bandwidthDL}}">
 					</paper-input>
-					<paper-tooltip
-							for="bandwidthDL"
-							offset="0">
-						Max Download Bandwidth
+					<paper-tooltip>
+						Maximum allowed bit rate for downlink.
 					</paper-tooltip>
 				</div>
 				<div>
 					<paper-input
-						id="bandwidthUL"
-						label="MaxRequestedBandwidthUL"
-						value="{{bandwidthUL}}">
+							label="Max Bandwidth UL"
+							value="{{bandwidthUL}}">
 					</paper-input>
-					<paper-tooltip
-							for="bandwidthUL"
-							offset="0">
-						Max Upload Bandwidth
+					<paper-tooltip>
+						Maximum allowed bit rate for uplink.
 					</paper-tooltip>
 				</div>
 				<div>
 					<paper-input
-						id="classId"
-						label="QosClassIdentifier"
-						value="{{classID}}">
+							label="Qos Class Identifier (QCI)"
+							value="{{classID}}">
 					</paper-input>
-					<paper-tooltip
-							for="classId"
-							offset="0">
-						QoS Class
+					<paper-tooltip>
+						Identifies the authorized QoS for the default EPS bearer.
 					</paper-tooltip>
 				</div>
 				<div>
 					<paper-input
-						id="chargingKey"
-						label="ChargingKey"
-						value="{{chargingKey}}">
+							label="Charging Key"
+							value="{{chargingKey}}">
 					</paper-input>
-					<paper-tooltip
-							for="chargingKey"
-							offset="0">
-						Charging Key
+					<paper-tooltip>
+						Charging Key (Rating Group) used for rating the service associated with the service flow of this rule.
 					</paper-tooltip>
 				</div>
 				<div>
 					<paper-dropdown-menu
-							id="flowDirection"
 							value="{{flowDirection}}"
 							no-animations="true"
 							label="Flow Direction">
@@ -118,39 +102,34 @@ class policyAdd extends PolymerElement {
 							<paper-item>
 								down
 							</paper-item>
+							<paper-item>
+								both
+							</paper-item>
 						</paper-listbox>
 					</paper-dropdown-menu>
-					<paper-tooltip
-							for="flowDirection"
-							offset="0">
-						Flow Direction
+					<paper-tooltip>
+						Indicates the direction that a filter is applicable: downlink only, uplink only or both (bidirectional).
 					</paper-tooltip>
 				</div>
 				<div>
 					<paper-input
-						id="flowDescription"
-						label="FlowDescription"
-						pattern="^permit out proto "
-						placeholder="permit out proto ip from all to all"
-						value="{{flowDescription}}"
-						auto-validate>
+							label="Flow Filter"
+							pattern="^permit out proto .+"
+							placeholder="permit out proto ip from all to all"
+							value="{{flowDescription}}"
+							auto-validate>
 					</paper-input>
-					<paper-tooltip
-							for="flowDescription"
-							offset="0">
-						Flow Key
+					<paper-tooltip>
+						Defines a packet filter for an IP flow (e.g. permit out proto ip from all to all).
 					</paper-tooltip>
 				</div>
 				<div>
 					<paper-input
-						id="precedence"
-						label="Precedence"
-						value="{{precedence}}">
+							label="Precedence"
+							value="{{precedence}}">
 					</paper-input>
-					<paper-tooltip
-							for="precedence"
-							offset="0">
-						Precedence value
+					<paper-tooltip>
+						Determines the order in which service data flow templates are applied for detection at the PCEF. A rule with a lower value shall be applied before a rule with a higher value.
 					</paper-tooltip>
 				</div>
 				<div class="buttons">

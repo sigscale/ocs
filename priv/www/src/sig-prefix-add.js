@@ -35,45 +35,35 @@ class prefixAdd extends PolymerElement {
 						class="slow red"
 						disabled="{{!loading}}">
 				</paper-progress>
-				<paper-input
-					label="Name"
-					value="{{tarName}}">
-				</paper-input>
-				<paper-input
-						id="addPrefix"
-						name="Prefix"
-						allowed-pattern="[0-9]"
-						label="Prefix"
-						value="{{addPre}}">
-				</paper-input>
-				<paper-tooltip
-						for="addPrefix"
-						offset="0">
-					Prefix number
-				</paper-tooltip>
-				<paper-input
-						id="addDesc"
-						name="Description"
-						label="Description"
-						value="{{addPreDesc}}">
-				</paper-input>
-				<paper-tooltip
-						for="addDesc"
-						offset="0">
-					Prefix description
-				</paper-tooltip>
-				<paper-input
-						id="addRateRow"
-						type="number"
-						name="PriceName"
-						label="Rate"
-						value="{{addPreRate}}">
-				</paper-input>
-				<paper-tooltip
-						for="addRateRow"
-						offset="0">
-					Prefix rate
-				</paper-tooltip>
+					<div>
+						<paper-input
+								allowed-pattern="[0-9]"
+								label="Prefix"
+								value="{{addPre}}">
+						</paper-input>
+						<paper-tooltip>
+							Leading digits to match against an origination, destination or VPLMN address.
+						</paper-tooltip>
+					</div>
+					<div>
+						<paper-input
+								label="Description"
+								value="{{addPreDesc}}">
+						</paper-input>
+						<paper-tooltip>
+							Description of addresses matching this prefix.
+						</paper-tooltip>
+					</div>
+					<div>
+						<paper-input
+								type="number"
+								label="Rate"
+								value="{{addPreRate}}">
+						</paper-input>
+						<paper-tooltip>
+							Price per unit to apply when this prefix matches an address.
+						</paper-tooltip>
+					</div>
 				<div class="buttons">
 					<paper-button dialog-confirm
 							raised
@@ -104,9 +94,6 @@ class prefixAdd extends PolymerElement {
 				type: Boolean,
 				value: false
 			},
-			tarName: {
-				type: String,
-			},
 			addPre: {
 				type: String,
 			},
@@ -129,9 +116,6 @@ class prefixAdd extends PolymerElement {
 		ajax.method = "POST";
 		ajax.url = "/resourceInventoryManagement/v1/resource/";
 		var tar = new Object();
-		if(this.tarName) {
-			tar.name = this.tarName;
-		}
 		var rel = new Array();
 		var relObj = new Object();
 		relObj.id = prefixList.activeTableId;
