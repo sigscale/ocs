@@ -7,6 +7,7 @@ styleElement.innerHTML = `<template>
 			@apply(--paper-font-common-base);
 			--app-primary-color: #f57f17;
 			--app-secondary-color: #aeea00;
+			--app-drawer-width: 300px;
 			display: block;
 		}
 		app-header {
