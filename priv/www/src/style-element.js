@@ -17,7 +17,6 @@ styleElement.innerHTML = `<template>
 			width: 100%;
 			text-align: center;
 			background-color: var(--app-primary-color);
-			border-bottom: 1px solid #eee;
 			color: #fff;
 		}
 		paper-toolbar {
