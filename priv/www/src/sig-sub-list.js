@@ -109,8 +109,7 @@ class subList extends PolymerElement {
 			},
 			activeItem: {
 				type: Object,
-				notify: true,
-				observer: '_activeItemChanged'
+				notify: true
 			},
 			_filterIdentity: {
 				type: Boolean,
@@ -135,14 +134,6 @@ class subList extends PolymerElement {
 		super.ready();
 		var grid = this.shadowRoot.getElementById('subscriberGrid');
 		grid.dataProvider = this._getSub;
-	}
-
-	_activeItemChanged(item) {
-		if(item) {
-			this.$.subscriberGrid.selectedItems = item ? [item] : [];
-		} else {
-			this.$.subscriberGrid.selectedItems = [];
-		}
 	}
 
 	_getSub(params, callback) {

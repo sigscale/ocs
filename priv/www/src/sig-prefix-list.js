@@ -146,8 +146,7 @@ class prefixList extends PolymerElement {
 			},
 			activeItem: {
 				type: Object,
-				notify: true,
-				observer: '_activeItemChanged'
+				notify: true
 			}
 		}
 	}
@@ -157,14 +156,6 @@ class prefixList extends PolymerElement {
 		var ajax = this.shadowRoot.getElementById('getPrefixTables');
 		ajax.generateRequest();
 		this.$.tableList.open();
-	}
-
-	_activeItemChanged(item) {
-		if(item) {
-			this.$.prefixGrid.selectedItems = item ? [item] : [];
-		} else {
-			this.$.prefixGrid.selectedItems = [];
-		}
 	}
 
 	_getTablesResponse(event) {

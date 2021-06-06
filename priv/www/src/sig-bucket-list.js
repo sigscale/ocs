@@ -173,10 +173,8 @@ class bucketList extends PolymerElement {
 			var current;
 			if(item == null) {
 				current = last;
-				grid.selectedItems = item ? [item] : [];
 			} else {
 				current = item;
-				grid.selectedItems = [];
 			}
 			function checkExist(bucket) {
 				return bucket.id == current.id;

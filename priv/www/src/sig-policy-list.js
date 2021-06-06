@@ -56,7 +56,7 @@ class policyList extends PolymerElement {
 						<div>
 							<div>
 								<paper-input
-										label="ID"
+										label="Id"
 										value="{{polId}}"
 										disabled>
 								</paper-input>
@@ -191,7 +191,7 @@ class policyList extends PolymerElement {
 						<paper-button
 								raised
 								class="submit-button"
-								on-tap="_up">
+								on-tap="_update">
 							Update
 						</paper-button>
 						<paper-button
@@ -256,7 +256,9 @@ class policyList extends PolymerElement {
 					<template>[[item.predefined]]</template>
 				</vaadin-grid-column>
 			</vaadin-grid>
-			<paper-dialog class="dialog" id="tableList">
+			<paper-dialog
+					class="dialog"
+					id="tableList">
 				<app-toolbar>
 					List of Tables
 				</app-toolbar>
@@ -412,25 +414,23 @@ class policyList extends PolymerElement {
 			var current;
 			if(item == null) {
 				current = last;
-				grid.selectedItems = item ? [item] : [];
 			} else {
 				current = item;
-				grid.selectedItems = [];
-				this.polId = item.id;
-				this.polName = item.name;
-				if(item.predefined) {
-					this.predefined = true;
-				} else {
-					this.predefined = false;
-				}
-				this.polPrec = item.precedence;
-				this.polCharKey = item.chargingKey;
-				this.polcharSer = item.serviceId;
-				this.widthDL = item.maxRequestedBandwidthDL;
-				this.widthUL = item.maxRequestedBandwidthUL;
-				this.classId = item.qosClassIdentifier;
-				this.storeItem.push(item);
 			}
+			this.polId = current.id;
+			this.polName = current.name;
+			if(current.predefined) {
+				this.predefined = true;
+			} else {
+				this.predefined = false;
+			}
+			this.polPrec = current.precedence;
+			this.polCharKey = current.chargingKey;
+			this.polcharSer = current.serviceId;
+			this.widthDL = current.maxRequestedBandwidthDL;
+			this.widthUL = current.maxRequestedBandwidthUL;
+			this.classId = current.qosClassIdentifier;
+			this.storeItem.push(current);
 			function checkExist(policy) {
 				return policy.id == current.id;
 			}
@@ -643,11 +643,7 @@ class policyList extends PolymerElement {
 		document.body.querySelector('sig-app').shadowRoot.querySelector('sig-policy-add').shadowRoot.getElementById('policyAddModal').open();
 	}
 
-////////////////////////////////////////////////////////////////////////////
-//Update Section
-///////////////////////////////////////////////////////////////////////////
-
-	_up(event) {
+	_update(event) {
 		var getAjax = this.$.getPolicyRows;
 		var etag = getAjax.lastRequest.xhr.getResponseHeader('ETag');
 		var Mitem = event.model.item

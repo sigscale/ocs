@@ -139,8 +139,7 @@ class productList extends PolymerElement {
 			},
 			activeItem: {
 				type: Object,
-				notify: true,
-				observer: '_activeItemChanged',
+				notify: true
 			},
 			_filterProId: {
 				type: Boolean,
@@ -170,14 +169,6 @@ class productList extends PolymerElement {
 		super.ready();
 		var grid = this.shadowRoot.getElementById('productInventoryGrid');
 		grid.dataProvider = this._getProduct;
-	}
-
-	_activeItemChanged(item) {
-		if(item) {
-			this.$.productInventoryGrid.selectedItems = item ? [item] : [];
-		} else {
-			this.$.productInventoryGrid.selectedItems = [];
-		}
 	}
 
 	_getProduct(params, callback) {

@@ -130,12 +130,11 @@ class offerList extends PolymerElement {
 		}
 	}
 
-	_activeItemChanged(item) {
+	_activeItemChanged(item, last) {
 		if(item) {
-			this.$.offerGrid.selectedItems = item ? [item] : [];
 			document.body.querySelector('sig-app').shadowRoot.querySelector('sig-offer-update').initialize(item);
-		} else {
-			this.$.offerGrid.selectedItems = [];
+		} else if(last) {
+			document.body.querySelector('sig-app').shadowRoot.querySelector('sig-offer-update').initialize(last);
 		}
 	}
 
