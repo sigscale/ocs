@@ -36,7 +36,7 @@ class bucketList extends PolymerElement {
 				<template class="row-details">
 					<dl class="details">
 						<template is="dom-if" if="{{item.id}}">
-							<dt><b>Id</b></dt>
+							<dt><b>Bucket Id</b></dt>
 							<dd>{{item.id}}</dd>
 						</template>
 						<template is="dom-if" if="{{item.product}}">
@@ -63,7 +63,7 @@ class bucketList extends PolymerElement {
 					<div class="buttons">
 						<paper-button
 							raised
-							on-tap="tableDelete"
+							on-tap="_tableDelete"
 							class="delete-button">
 							Delete
 						</paper-button>
@@ -74,11 +74,11 @@ class bucketList extends PolymerElement {
 						<vaadin-grid-filter
 								aria-label="Bucket Id"
 								path="id"
-								value="[[_filterBucId]]">
+								value="[[_filterBucketId]]">
 							<input
 									slot="filter"
 									placeholder="Bucket Id"
-									value="{{_filterBucId::input}}"
+									value="{{_filterBucketId::input}}"
 									focus-target>
 						</vaadin-grid-filter>
 					</template>
@@ -89,11 +89,11 @@ class bucketList extends PolymerElement {
 						<vaadin-grid-filter
 								aria-label="Product Id"
 								path="product"
-								value="[[_filterProdId]]">
+								value="[[_filterProductId]]">
 							<input
 									slot="filter"
 									placeholder="Product Id"
-									value="{{_filterProdId::input}}"
+									value="{{_filterProductId::input}}"
 									focus-target>
 						</vaadin-grid-filter>
 					</template>
@@ -158,10 +158,10 @@ class bucketList extends PolymerElement {
 				notify: true,
 				observer: '_activeItemChanged'
 			},
-			_filterBucId: {
+			_filterBucketId: {
 				type: Boolean
 			},
-			_filterProdId: {
+			_filterProductId: {
 				type: Boolean
 			}
 		}
@@ -195,10 +195,10 @@ class bucketList extends PolymerElement {
 		grid.dataProvider = this._getBuckets;
 	}
 
-	tableDelete(item) {
-		var grid = this.shadowRoot.getElementById('balanceBucketGrid'); 
-		document.body.querySelector('sig-app').shadowRoot.querySelector('sig-bucket-add').shadowRoot.getElementById('deleteBucketModal').open();
-		document.body.querySelector('sig-app').shadowRoot.querySelector('sig-bucket-add').shadowRoot.getElementById('deleteBucId').value = item.model.item.id;
+	_tableDelete(item) {
+		var bucketAdd = document.body.querySelector('sig-app').shadowRoot.querySelector('sig-bucket-add');
+		bucketAdd.shadowRoot.getElementById('deleteBucketModal').open();
+		bucketAdd.deleteBucketId = item.model.item.id;
 	}
 
 	_getBuckets(params, callback) {
