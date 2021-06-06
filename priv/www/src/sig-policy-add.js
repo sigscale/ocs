@@ -212,87 +212,89 @@ class policyAdd extends PolymerElement {
 
 	_add() {
 		var policyList = document.body.querySelector('sig-app').shadowRoot.getElementById('policyList');
-		var ajax = this.$.policyAdd;
-		ajax.method = "POST";
-		ajax.url = "/resourceInventoryManagement/v1/resource/";
-		var policy = new Object();
-		if(this.policyName) {
-			policy.name = this.policyName;
-		}
-		var relationships = new Array();
-		var related = new Object();
-		related.id = policyList.activeTableId;
-		related.href = "/resourceInventoryManagement/v1/resourceRelationship/" + related.id;
-		related.name = policyList.activeTableName;
-		var relationship = new Object();
-		relationship.relationshipType = "contained";
-		relationship.resource = related;
-		relationships.push(relationship);
-		policy.resourceRelationship = relationships;
-		var characteristics = new Array();
-		var char1 = new Object();
-		char1.name = "name";
-		char1.value = this.policyName;
-		characteristics.push(char1);
-		if(this.bandwidthDL || this.bandwidthUL) {
-			var char2 = new Object();
-			char2.name = "qosInformation";
-			var qos = new Object();
-				if(this.bandwidthDL) {
-					qos.maxRequestedBandwidthDL = parseInt(this.bandwidthDL);
-				}
-				if(this.bandwidthUL) {
-					qos.maxRequestedBandwidthUL = parseInt(this.bandwidthUL);
-				}
-				if(this.classID) {
-					qos.qosClassIdentifier = parseInt(this.classID);
-				}
-			char2.value = qos;
-			characteristics.push(char2);
-		}
-		if(this.chargingKey) {
-			var char3 = new Object();
-			char3.name = "chargingKey";
-			char3.value = parseInt(this.chargingKey);
-			characteristics.push(char3);
-		}
-		if(this.flowDirection || this.flowDescription) {
-			var char4 = new Object();
-			char4.name = "flowInformation";
-			var flows = new Array();
-			var flow = new Object();
-			if(this.flowDirection) {
-				flow.flowDirection = this.flowDirection;
+		if(policyList.activeTableId) {
+			var ajax = this.$.policyAdd;
+			ajax.method = "POST";
+			ajax.url = "/resourceInventoryManagement/v1/resource/";
+			var policy = new Object();
+			if(this.policyName) {
+				policy.name = this.policyName;
 			}
-			if(this.flowDescription) {
-				flow.flowDescription = this.flowDescription;
+			var relationships = new Array();
+			var related = new Object();
+			related.id = policyList.activeTableId;
+			related.href = "/resourceInventoryManagement/v1/resourceRelationship/" + related.id;
+			related.name = policyList.activeTableName;
+			var relationship = new Object();
+			relationship.relationshipType = "contained";
+			relationship.resource = related;
+			relationships.push(relationship);
+			policy.resourceRelationship = relationships;
+			var characteristics = new Array();
+			var char1 = new Object();
+			char1.name = "name";
+			char1.value = this.policyName;
+			characteristics.push(char1);
+			if(this.bandwidthDL || this.bandwidthUL) {
+				var char2 = new Object();
+				char2.name = "qosInformation";
+				var qos = new Object();
+					if(this.bandwidthDL) {
+						qos.maxRequestedBandwidthDL = parseInt(this.bandwidthDL);
+					}
+					if(this.bandwidthUL) {
+						qos.maxRequestedBandwidthUL = parseInt(this.bandwidthUL);
+					}
+					if(this.classID) {
+						qos.qosClassIdentifier = parseInt(this.classID);
+					}
+				char2.value = qos;
+				characteristics.push(char2);
 			}
-			flows.push(flow);
-			char4.value = flows;
-			characteristics.push(char4);
+			if(this.chargingKey) {
+				var char3 = new Object();
+				char3.name = "chargingKey";
+				char3.value = parseInt(this.chargingKey);
+				characteristics.push(char3);
+			}
+			if(this.flowDirection || this.flowDescription) {
+				var char4 = new Object();
+				char4.name = "flowInformation";
+				var flows = new Array();
+				var flow = new Object();
+				if(this.flowDirection) {
+					flow.flowDirection = this.flowDirection;
+				}
+				if(this.flowDescription) {
+					flow.flowDescription = this.flowDescription;
+				}
+				flows.push(flow);
+				char4.value = flows;
+				characteristics.push(char4);
+			}
+			if(this.precedence) {
+				var char5 = new Object();
+				char5.name = "precedence";
+				char5.value = parseInt(this.precedence);
+				characteristics.push(char5);
+			}
+			if(this.predefined) {
+				var char6 = new Object();
+				char6.name = "predefined";
+				char6.value = this.predefined;
+				characteristics.push(char6);
+			}
+			policy.resourceCharacteristic = characteristics;
+			var specification = new Object();
+			specification.id = "4";
+			specification.href = "/resourceCatalogManagement/v2/resourceSpecification/4";
+			specification.name = "PolicyTableRow";
+			policy.resourceSpecification = specification;
+			ajax.body = policy;
+			ajax.generateRequest();
+			this.$.policyAddModal.close();
+			policyList.shadowRoot.getElementById('policyGrid').clearCache();
 		}
-		if(this.precedence) {
-			var char5 = new Object();
-			char5.name = "precedence";
-			char5.value = parseInt(this.precedence);
-			characteristics.push(char5);
-		}
-		if(this.predefined) {
-			var char6 = new Object();
-			char6.name = "predefined";
-			char6.value = this.predefined;
-			characteristics.push(char6);
-		}
-		policy.resourceCharacteristic = characteristics;
-		var specification = new Object();
-		specification.id = "4";
-		specification.href = "/resourceCatalogManagement/v2/resourceSpecification/4";
-		specification.name = "PolicyTableRow";
-		policy.resourceSpecification = specification;
-		ajax.body = policy;
-		ajax.generateRequest();
-		this.$.policyAddModal.close();
-		policyList.shadowRoot.getElementById('policyGrid').clearCache();
 	}
 
 	_response() {

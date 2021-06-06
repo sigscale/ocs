@@ -126,18 +126,19 @@ class tableUpdate extends PolymerElement {
 		super.ready()
 	}
 
-	_activeItemChanged(item) {
-console.log(item);
-		if(item) {
-			document.body.querySelector('sig-app').shadowRoot.getElementById('prefixList').rowId = item.id;
-			this.upPrefix = item.prefix;
-			this.upDesc = item.description;
-			this.upRate = item.rate;
+	_activeItemChanged(item, last) {
+		if(item || last) {
+			var current;
+			if(item) {
+				current = item;
+			} else if(last) {
+				current = last;
+			}
+			document.body.querySelector('sig-app').shadowRoot.getElementById('prefixList').rowId = current.id;
+			this.upPrefix = current.prefix;
+			this.upDesc = current.description;
+			this.upRate = current.rate;
 			this.$.updatePrefixModal.open();
-		} else {
-			this.upPrefix = null;
-			this.upDesc = null;
-			this.upRate = null;
 		}
 	}
 

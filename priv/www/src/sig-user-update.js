@@ -158,24 +158,26 @@ class userUpdate extends PolymerElement {
 		super.ready()
 	}
 
-	_activeItemChanged(item) {
-		if(item) {
+	_activeItemChanged(item, last) {
+		if(item || last) {
+			var current;
+			if(item) {
+				current = item;
+			} else if(last) {
+				current = last;
+			}
 			var ajaxCh = this.$.getUserAjaxUp;
-			ajaxCh.url = "/partyManagement/v1/individual/" + item.id;
+			ajaxCh.url = "/partyManagement/v1/individual/" + current.id;
 			ajaxCh.generateRequest();
-			this.userUpdateUsername = item.id;
-			this.userUpdatePassword = item.password;
-			this.userUpLang = item.language;
+			this.userUpdateUsername = current.id;
+			this.userUpdatePassword = current.password;
+			this.userUpLang = current.language;
 			var arrObjUser = new Object();
 			arrObjUser.username = this.userUpdateUsername;
 			arrObjUser.password = this.userUpdatePassword;
 			arrObjUser.lang = this.userUpLang;
 			this.valChaUser.push(arrObjUser);
 			this.$.updateUserModal.open();
-		} else {
-			this.userUpdateUsername = null;
-			this.userUpdatePassword = null;
-			this.userUpLang = null;
 		}
 	}
 

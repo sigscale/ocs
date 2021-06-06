@@ -232,8 +232,8 @@ class clientAdd extends PolymerElement {
 					&& this.$.addClientAjax.lastResponse.secret) {
 			this.secret = this.$.addClientAjax.lastResponse.secret;
 			this.$.addClientSecretModal.open();
-			this.$.clientAddModal.close();
 		}
+		this.$.clientAddModal.close();
 		document.body.querySelector('sig-app').shadowRoot.getElementById('clientList').shadowRoot.getElementById('clientGrid').clearCache();
 	}
 
@@ -241,7 +241,6 @@ class clientAdd extends PolymerElement {
 		this.address = null;
 		this.clientProto = null;
 		this.clientSecret = null;
-		this.$.addClientModal.close();
 	}
 
 	_addClientError(event) {
