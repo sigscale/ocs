@@ -34,60 +34,40 @@ class bucketList extends PolymerElement {
 					loading="{{loading}}"
 					theme="no-border">
 				<template class="row-details">
-					<paper-tabs
-							class="details"
-							selected="{{selectedTab}}">
-						<paper-tab>
-							General
-						</paper-tab>
-					</paper-tabs>
-					<iron-pages
-							selected="{{selectedTab}}">
-						<div>
-							<dl class="details">
-								<template is="dom-if" if="{{item.id}}">
-									<dt><b>Id</b></dt>
-									<dd>{{item.id}}</dd>
-								</template>
-								<template is="dom-if" if="{{item.href}}">
-									<dt><b>Href</b></dt>
-									<dd>{{item.href}}</dd>
-								</template>
-								<template is="dom-if" if="{{item.product}}">
-									<dt><b>Product Id</b></dt>
-									<dd>{{item.product}}</dd>
-								</template>
-								<template is="dom-if" if="{{item.productHref}}">
-									<dt><b>Product Href</b></dt>
-									<dd>{{item.productHref}}</dd>
-								</template>
-								<template is="dom-if" if="{{item.amount}}">
-									<dt><b>Remained Amount</b></dt>
-									<dd>{{item.amount}}</dd>
-								</template>
-								<template is="dom-if" if="{{item.units}}">
-									<dt><b>Units</b></dt>
-									<dd>{{item.units}}</dd>
-								</template>
-								<template is="dom-if" if="{{item.startDate}}">
-									<dt><b>Start Date</b></dt>
-									<dd>{{item.startDate}}</dd>
-								</template>
-								<template is="dom-if" if="{{item.endDate}}">
-									<dt><b>End Date</b></dt>
-									<dd>{{item.endDate}}</dd>
-								</template>
-							</dl>
-							<div class="buttons">
-								<paper-button
-									raised
-									on-tap="tableDelete"
-									class="delete-button">
-									Delete
-								</paper-button>
-							</div>
-						</div>
-					</iron-pages>
+					<dl class="details">
+						<template is="dom-if" if="{{item.id}}">
+							<dt><b>Id</b></dt>
+							<dd>{{item.id}}</dd>
+						</template>
+						<template is="dom-if" if="{{item.product}}">
+							<dt><b>Product Id</b></dt>
+							<dd>{{item.product}}</dd>
+						</template>
+						<template is="dom-if" if="{{item.startDate}}">
+							<dt><b>Start Date</b></dt>
+							<dd>{{item.startDate}}</dd>
+						</template>
+						<template is="dom-if" if="{{item.endDate}}">
+							<dt><b>End Date</b></dt>
+							<dd>{{item.endDate}}</dd>
+						</template>
+						<template is="dom-if" if="{{item.amount}}">
+							<dt><b>Remained Amount</b></dt>
+							<dd>{{item.amount}}</dd>
+						</template>
+						<template is="dom-if" if="{{item.units}}">
+							<dt><b>Units</b></dt>
+							<dd>{{item.units}}</dd>
+						</template>
+					</dl>
+					<div class="buttons">
+						<paper-button
+							raised
+							on-tap="tableDelete"
+							class="delete-button">
+							Delete
+						</paper-button>
+					</div>
 				</template>
 				<vaadin-grid-column width="15ex" flex-grow="5">
 					<template class="header">
@@ -183,9 +163,6 @@ class bucketList extends PolymerElement {
 			},
 			_filterProdId: {
 				type: Boolean
-			},
-			activeItem: {
-				observer: '_activeItemChanged',
 			}
 		}
 	}
@@ -196,13 +173,13 @@ class bucketList extends PolymerElement {
 			var current;
 			if(item == null) {
 				current = last;
-				this.$.balanceBucketGrid.selectedItems = item ? [item] : [];
+				grid.selectedItems = item ? [item] : [];
 			} else {
 				current = item;
-				this.$.balanceBucketGrid.selectedItems = [];
+				grid.selectedItems = [];
 			}
-			function checkExist(buc) {
-				return buc.id == current.id;
+			function checkExist(bucket) {
+				return bucket.id == current.id;
 			}
 			if(grid.detailsOpenedItems && grid.detailsOpenedItems.some(checkExist)) {
 				grid.closeItemDetails(current);
