@@ -583,7 +583,7 @@ post_request_ecur1(SubscriberIds, SessionId, ServiceRating, Path) ->
 			{_, Location1} = lists:keyfind("location", 1, Headers1),
 			insert_ref(Location1, SessionId),
 			{ok, Body1};
-		{_RequestId, {{_HttpVersion, 204, _ReasonPhrase}, _Headers, Body1}} ->
+		{_RequestId, {{_HttpVersion, 200, _ReasonPhrase}, _Headers, Body1}} ->
 			{ok, Body1};
 		{_RequestId, {{_HttpVersion, StatusCode, _ReasonPhrase}, _Headers, _Body1}} ->
 			{error, StatusCode};
@@ -709,8 +709,6 @@ post_request_scur1(SubscriberIds, SessionId, ServiceRating, Path) ->
 			insert_ref(Location1, SessionId),
 			{ok, Body1};
 		{_RequestId, {{_HttpVersion, 200, _ReasonPhrase}, _Headers, Body1}} ->
-			{ok, Body1};
-		{_RequestId, {{_HttpVersion, 204, _ReasonPhrase}, _Headers, Body1}} ->
 			{ok, Body1};
 		{_RequestId, {{_HttpVersion, StatusCode, _ReasonPhrase}, _Headers, _Body1}} ->
 			{error, StatusCode};
