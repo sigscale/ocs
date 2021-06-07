@@ -736,6 +736,10 @@ class offerUpdate extends PolymerElement {
 				'updateCheckIn.checked-changed': 'updateCheckInChanged',
 				'updateCheckOut.checked-changed': 'updateCheckOutChanged',
 			},
+			activeItem: {
+				type: Object,
+				observer: '_activeItemChanged'
+			},
 			priceUpdateName: {
 				observer: 'updatePriceDialog'
 			},
@@ -835,130 +839,138 @@ class offerUpdate extends PolymerElement {
 		super.ready()
 	}
 
-	initialize(item) {
-		this.$.getProductUpdateAjax.generateRequest();
-		this.$.updateProductModal.open();
-		this.updateOfferName = item.id;
-		this.updateOfferDesc = item.description;
-		if(item.productSpecification && item.productSpecification.name) {
-			this.updateOfferSpec = item.productSpecification.name.replace("ProductSpec", "");
-		}
-		this.updateProductStartDateOffer = item.startDate;
-		this.updateProductEndDateOffer = item.endDate;
-		this.characteristics = item.prodSpecCharValueUse;
-		for (var indexCha in item.prodSpecCharValueUse) {
-			if(item.prodSpecCharValueUse[indexCha].name == "radiusReserveSessionTime") {
-				this.$.updateReserveSession.value = item.prodSpecCharValueUse[indexCha].productSpecCharacteristicValue[0].value;
+	_activeItemChanged(item, last) {
+		if(item || last) {
+			var current;
+			if(item) {
+				current = item;
+			} else if(last) {
+				current = last;
 			}
-			if(item.prodSpecCharValueUse[indexCha].name == "redirectServer") {
-				this.updateRedirect = item.prodSpecCharValueUse[indexCha].productSpecCharacteristicValue[0].value;
+			this.$.getProductUpdateAjax.generateRequest();
+			this.$.updateProductModal.open();
+			this.updateOfferName = current.id;
+			this.updateOfferDesc = current.description;
+			if(current.productSpecification && current.productSpecification.name) {
+				this.updateOfferSpec = current.productSpecification.name.replace("ProductSpec", "");
 			}
-		}
-		for(var index in item.prices) {
-			var newPrice = new Object();
-			newPrice.name = item.prices[index].name;
-			newPrice.description = item.prices[index].description;
-			if(item.prices[index].validFor) {
-				newPrice.start = item.prices[index].validFor.startDateTime;
-				newPrice.end = item.prices[index].validFor.endDateTime;
-			}
-			newPrice.priceType = item.prices[index].priceType;
-			if (item.prices[index].unitOfMeasure) {
-				var unitOfMeasure = item.prices[index].unitOfMeasure;
-				switch(unitOfMeasure.charAt(unitOfMeasure.length - 1)) {
-					case "b":
-						var conv;
-						conv = unitOfMeasure = parseInt(unitOfMeasure.slice(0, -1));
-						newPrice.size = conv.toString();
-						newPrice.unit = "b";
-						break;
-					case "s":
-						var conv1;
-						conv1 = parseInt(unitOfMeasure.slice(0, -1));
-						newPrice.size = conv1.toString();
-						newPrice.unit = "s";
-						break;
+			this.updateProductStartDateOffer = current.startDate;
+			this.updateProductEndDateOffer = current.endDate;
+			this.characteristics = current.prodSpecCharValueUse;
+			for (var indexCha in current.prodSpecCharValueUse) {
+				if(current.prodSpecCharValueUse[indexCha].name == "radiusReserveSessionTime") {
+					this.$.updateReserveSession.value = current.prodSpecCharValueUse[indexCha].productSpecCharacteristicValue[0].value;
+				}
+				if(current.prodSpecCharValueUse[indexCha].name == "redirectServer") {
+					this.updateRedirect = current.prodSpecCharValueUse[indexCha].productSpecCharacteristicValue[0].value;
 				}
 			}
-			if(item.prices[index].price) {
-				newPrice.currency = item.prices[index].price.currencyCode;
-				newPrice.amount = item.prices[index].price.taxIncludedAmount;
-			}
-			var prodPrice = item.prices[index];
-			if(prodPrice.prodSpecCharValueUse) {
-				var specChar = new Array();
-				for (var indexChar in prodPrice.prodSpecCharValueUse) {
-					if(prodPrice.prodSpecCharValueUse[indexChar].name == "radiusReserveTime") {
-						specChar[indexChar] = {name: "radiusReserveTime", value: prodPrice.prodSpecCharValueUse[indexChar].productSpecCharacteristicValue[0].value};
-					}
-					if(prodPrice.prodSpecCharValueUse[indexChar].name == "radiusReserveOctets") {
-						specChar[indexChar] = {name: "radiusReserveOctets", value: prodPrice.prodSpecCharValueUse[indexChar].productSpecCharacteristicValue[0].value};
-					}
-					if(prodPrice.prodSpecCharValueUse[indexChar].name == "timeOfDayRange") {
-						specChar[indexChar] = {name: "timeOfDayRange", value: prodPrice.prodSpecCharValueUse[indexChar].productSpecCharacteristicValue[0].value};
-					}
-					if(prodPrice.prodSpecCharValueUse[indexChar].name == "callDirection") {
-						specChar[indexChar] = {name: "callDirection", value: prodPrice.prodSpecCharValueUse[indexChar].productSpecCharacteristicValue[0].value};
-					}
-					if(prodPrice.prodSpecCharValueUse[indexChar].name == "destPrefixTariffTable") {
-						specChar[indexChar] = {name: "destPrefixTariffTable", value: prodPrice.prodSpecCharValueUse[indexChar].productSpecCharacteristicValue[0].value};
-					}
-					if(prodPrice.prodSpecCharValueUse[indexChar].name == "roamingTable") {
-						specChar[indexChar] = {name: "roamingTable", value: prodPrice.prodSpecCharValueUse[indexChar].productSpecCharacteristicValue[0].value};
-					}
-					if(prodPrice.prodSpecCharValueUse[indexChar].name == "chargingKey") {
-						specChar[indexChar] = {name: "chargingKey", value: prodPrice.prodSpecCharValueUse[indexChar].productSpecCharacteristicValue[0].value};
+			for(var index in current.prices) {
+				var newPrice = new Object();
+				newPrice.name = current.prices[index].name;
+				newPrice.description = current.prices[index].description;
+				if(current.prices[index].validFor) {
+					newPrice.start = current.prices[index].validFor.startDateTime;
+					newPrice.end = current.prices[index].validFor.endDateTime;
+				}
+				newPrice.priceType = current.prices[index].priceType;
+				if (current.prices[index].unitOfMeasure) {
+					var unitOfMeasure = current.prices[index].unitOfMeasure;
+					switch(unitOfMeasure.charAt(unitOfMeasure.length - 1)) {
+						case "b":
+							var conv;
+							conv = unitOfMeasure = parseInt(unitOfMeasure.slice(0, -1));
+							newPrice.size = conv.toString();
+							newPrice.unit = "b";
+							break;
+						case "s":
+							var conv1;
+							conv1 = parseInt(unitOfMeasure.slice(0, -1));
+							newPrice.size = conv1.toString();
+							newPrice.unit = "s";
+							break;
 					}
 				}
-			}
-			newPrice.prodSpecCharValueUse = specChar;
-			newPrice.period = item.prices[index].recurringChargePeriod;
-			if(item.prices[index].productOfferPriceAlteration) {
-				var altName = item.prices[index].productOfferPriceAlteration.name;
-				function checkAlt1(alt) {
-					return alt.name == altName;
+				if(current.prices[index].price) {
+					newPrice.currency = current.prices[index].price.currencyCode;
+					newPrice.amount = current.prices[index].price.taxIncludedAmount;
 				}
-				var altIndex = this.alterations.findIndex(checkAlt1);
-				if(altIndex == -1) {
-					var newAlt = new Object();
-					newAlt.name = item.prices[index].productOfferPriceAlteration.name;
-					newAlt.description = item.prices[index].productOfferPriceAlteration.description;
-					if(item.prices[index].validFor) {
-						newAlt.start = item.prices[index].productOfferPriceAlteration.validFor.startDateTime;
-						newAlt.end = item.prices[index].productOfferPriceAlteration.validFor.endDateTime;
-					}
-					newAlt.priceType = item.prices[index].productOfferPriceAlteration.priceType;
-					if (item.prices[index].productOfferPriceAlteration.unitOfMeasure) {
-						var unitOfMeasure = item.prices[index].productOfferPriceAlteration.unitOfMeasure;
-						switch(unitOfMeasure.charAt(unitOfMeasure.length - 1)) {
-							case "b":
-								newAlt.size = parseInt(unitOfMeasure.slice(0, -1));
-								newAlt.unit = "b";
-								break;
-							case "s":
-								newAlt.size = parseInt(unitOfMeasure.slice(0, -1));
-								newAlt.unit = "s";
-								break;
-							default:
-								newAlt.unit = "c";
+				var prodPrice = current.prices[index];
+				if(prodPrice.prodSpecCharValueUse) {
+					var specChar = new Array();
+					for (var indexChar in prodPrice.prodSpecCharValueUse) {
+						if(prodPrice.prodSpecCharValueUse[indexChar].name == "radiusReserveTime") {
+							specChar[indexChar] = {name: "radiusReserveTime", value: prodPrice.prodSpecCharValueUse[indexChar].productSpecCharacteristicValue[0].value};
+						}
+						if(prodPrice.prodSpecCharValueUse[indexChar].name == "radiusReserveOctets") {
+							specChar[indexChar] = {name: "radiusReserveOctets", value: prodPrice.prodSpecCharValueUse[indexChar].productSpecCharacteristicValue[0].value};
+						}
+						if(prodPrice.prodSpecCharValueUse[indexChar].name == "timeOfDayRange") {
+							specChar[indexChar] = {name: "timeOfDayRange", value: prodPrice.prodSpecCharValueUse[indexChar].productSpecCharacteristicValue[0].value};
+						}
+						if(prodPrice.prodSpecCharValueUse[indexChar].name == "callDirection") {
+							specChar[indexChar] = {name: "callDirection", value: prodPrice.prodSpecCharValueUse[indexChar].productSpecCharacteristicValue[0].value};
+						}
+						if(prodPrice.prodSpecCharValueUse[indexChar].name == "destPrefixTariffTable") {
+							specChar[indexChar] = {name: "destPrefixTariffTable", value: prodPrice.prodSpecCharValueUse[indexChar].productSpecCharacteristicValue[0].value};
+						}
+						if(prodPrice.prodSpecCharValueUse[indexChar].name == "roamingTable") {
+							specChar[indexChar] = {name: "roamingTable", value: prodPrice.prodSpecCharValueUse[indexChar].productSpecCharacteristicValue[0].value};
+						}
+						if(prodPrice.prodSpecCharValueUse[indexChar].name == "chargingKey") {
+							specChar[indexChar] = {name: "chargingKey", value: prodPrice.prodSpecCharValueUse[indexChar].productSpecCharacteristicValue[0].value};
 						}
 					}
-					if(item.prices[index].productOfferPriceAlteration.price) {
-						newAlt.currency = item.prices[index].productOfferPriceAlteration.price.currencyCode;
-						newAlt.amount = item.prices[index].productOfferPriceAlteration.price.taxIncludedAmount;
+				}
+				newPrice.prodSpecCharValueUse = specChar;
+				newPrice.period = current.prices[index].recurringChargePeriod;
+				if(current.prices[index].productOfferPriceAlteration) {
+					var altName = current.prices[index].productOfferPriceAlteration.name;
+					function checkAlt1(alt) {
+						return alt.name == altName;
 					}
-					newAlt.period = item.prices[index].productOfferPriceAlteration.recurringChargePeriod;
-					this.push('alterations', newAlt);
-					newPrice.alteration = newAlt.name;
+					var altIndex = this.alterations.findIndex(checkAlt1);
+					if(altIndex == -1) {
+						var newAlt = new Object();
+						newAlt.name = current.prices[index].productOfferPriceAlteration.name;
+						newAlt.description = current.prices[index].productOfferPriceAlteration.description;
+						if(current.prices[index].validFor) {
+							newAlt.start = current.prices[index].productOfferPriceAlteration.validFor.startDateTime;
+							newAlt.end = current.prices[index].productOfferPriceAlteration.validFor.endDateTime;
+						}
+						newAlt.priceType = current.prices[index].productOfferPriceAlteration.priceType;
+						if (current.prices[index].productOfferPriceAlteration.unitOfMeasure) {
+							var unitOfMeasure = current.prices[index].productOfferPriceAlteration.unitOfMeasure;
+							switch(unitOfMeasure.charAt(unitOfMeasure.length - 1)) {
+								case "b":
+									newAlt.size = parseInt(unitOfMeasure.slice(0, -1));
+									newAlt.unit = "b";
+									break;
+								case "s":
+									newAlt.size = parseInt(unitOfMeasure.slice(0, -1));
+									newAlt.unit = "s";
+									break;
+								default:
+									newAlt.unit = "c";
+							}
+						}
+						if(current.prices[index].productOfferPriceAlteration.price) {
+							newAlt.currency = current.prices[index].productOfferPriceAlteration.price.currencyCode;
+							newAlt.amount = current.prices[index].productOfferPriceAlteration.price.taxIncludedAmount;
+						}
+						newAlt.period = current.prices[index].productOfferPriceAlteration.recurringChargePeriod;
+						this.push('alterations', newAlt);
+						newPrice.alteration = newAlt.name;
+					}
+				}
+				function checkExist(price) {
+					return price.name == current.prices[index].name;
+				}
+				if(!this.prices.some(checkExist)) {
+					this.push('prices', newPrice);
 				}
 			}
-			function checkExist(price) {
-				return price.name == item.prices[index].name;
-			}
-			if(!this.prices.some(checkExist)) {
-				this.push('prices', newPrice);
-			}
-		} 
+		}
 	}
 
 	_getProductUpdateResponse(event) {

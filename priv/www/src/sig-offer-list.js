@@ -120,8 +120,7 @@ class offerList extends PolymerElement {
 			},
 			activeItem: {
 				type: Object,
-				notify: true,
-				observer: '_activeItemChanged'
+				notify: true
 			},
 			_filterName: {
 				type: Boolean,
@@ -129,15 +128,6 @@ class offerList extends PolymerElement {
 			}
 		}
 	}
-
-	_activeItemChanged(item, last) {
-		if(item) {
-			document.body.querySelector('sig-app').shadowRoot.querySelector('sig-offer-update').initialize(item);
-		} else if(last) {
-			document.body.querySelector('sig-app').shadowRoot.querySelector('sig-offer-update').initialize(last);
-		}
-	}
-
 
 	ready() {
 		super.ready();
