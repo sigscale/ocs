@@ -1787,12 +1787,12 @@ delete_resource(ResourceID) when is_list(ResourceID) ->
 			ocs_event:notify(delete_resource, Resource, resource)
 	end.
 
--spec query_resource(Cont, MatchId, MatchCategory,
+-spec query_resource(Cont, MatchId, MatchName,
 		MatchResSpecId, MatchRelName) -> Result
 	when
 		Cont :: start | any(),
 		MatchId :: Match,
-		MatchCategory :: Match,
+		MatchName :: Match,
 		MatchResSpecId :: Match,
 		MatchRelName :: Match,
 		Match :: {exact, string()} | {like, string()} | '_',
@@ -1800,11 +1800,11 @@ delete_resource(ResourceID) when is_list(ResourceID) ->
 		Cont1 :: eof | any(),
 		Reason :: term().
 %% @doc Query resources
-query_resource(Cont, '_', MatchCategory, MatchResSpecId, MatchRelName) ->
+query_resource(Cont, '_', MatchName, MatchResSpecId, MatchRelName) ->
 	MatchHead = #resource{_ = '_'},
-	query_resource1(Cont, MatchHead, MatchCategory,
+	query_resource1(Cont, MatchHead, MatchName,
 			MatchResSpecId, MatchRelName);
-query_resource(Cont, {Op, String}, MatchCategory, MatchResSpecId, MatchRelName)
+query_resource(Cont, {Op, String}, MatchName, MatchResSpecId, MatchRelName)
 		when is_list(String), ((Op == exact) orelse (Op == like)) ->
 	MatchHead = case lists:last(String) of
 		$% when Op == like ->
@@ -1812,7 +1812,7 @@ query_resource(Cont, {Op, String}, MatchCategory, MatchResSpecId, MatchRelName)
 		_ ->
          #resource{id = String, _ = '_'}
 	end,
-   query_resource1(Cont, MatchHead, MatchCategory,
+   query_resource1(Cont, MatchHead, MatchName,
 			MatchResSpecId, MatchRelName).
 %% @hidden
 query_resource1(Cont, MatchHead, '_', MatchResSpecId, MatchRelName) ->
@@ -1821,9 +1821,9 @@ query_resource1(Cont, MatchHead1, {Op, String}, MatchResSpecId, MatchRelName)
 		when is_list(String), ((Op == exact) orelse (Op == like)) ->
 	MatchHead2 = case lists:last(String) of
 		$% when Op == like ->
-			MatchHead1#resource{category = lists:droplast(String) ++ '_'};
+			MatchHead1#resource{name = lists:droplast(String) ++ '_'};
 		_ ->
-         MatchHead1#resource{category = String}
+         MatchHead1#resource{name = String}
 	end,
    query_resource2(Cont, MatchHead2, MatchResSpecId, MatchRelName).
 query_resource2(Cont, MatchHead, '_', MatchRelName) ->
