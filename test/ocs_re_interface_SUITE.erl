@@ -155,20 +155,14 @@ init_per_suite2(Config) ->
 %% Cleanup after the whole suite.
 %%
 end_per_suite(Config) ->
-	ok = ocs_test_lib:stop(),
-	Config.
-
--spec init_per_testcase(TestCase :: atom(), Config :: [tuple()]) -> Config :: [tuple()].
-%% Initialization before each test case.
-%%
-init_per_testcase(TestCase, Config)
 		when TestCase == send_initial_scur; TestCase == receive_initial_scur;
 		TestCase == send_interim_scur; TestCase == receive_interim_scur;
 		TestCase == send_final_scur; TestCase == receive_final_scur;
 		TestCase == receive_interim_no_usu_scur;
 		TestCase == receive_initial_empty_rsu_scur;
 		TestCase == send_iec;
-		TestCase == receive_iec ->
+		TestCase == receive_iec;
+		TestCase == send_initial_ecur ->
 	Address = ?config(diameter_acct_address, Config),
 	{ok, _} = ocs:add_client(Address, undefined, diameter, undefined, true),
 	Config;
@@ -195,7 +189,7 @@ all() ->
 		receive_interim_scur, send_final_scur, receive_final_scur,
 		receive_interim_no_usu_scur, receive_initial_empty_rsu_scur,
 		post_initial_scur, post_update_scur, post_final_scur, send_iec,
-		receive_iec].
+		receive_iec, send_initial_ecur].
 
 %%---------------------------------------------------------------------
 %%  Test cases
@@ -640,7 +634,6 @@ receive_iec(_Config) ->
 	{ok, #service{}} = ocs:add_service(MSISDN, Password, ProdRef, []),
 	RequestNum = 0,
 	Answer0 = diameter_iec(Subscriber, SId, RequestNum),
-	#'3gpp_ro_CCA'{'Result-Code' = ?'DIAMETER_BASE_RESULT-CODE_SUCCESS'} = Answer0,
 	#'3gpp_ro_CCA'{'Result-Code' = ?'DIAMETER_BASE_RESULT-CODE_SUCCESS',
 			'Auth-Application-Id' = ?RO_APPLICATION_ID,
 			'CC-Request-Type' = ?'3GPP_CC-REQUEST-TYPE_EVENT_REQUEST',
@@ -650,9 +643,60 @@ receive_iec(_Config) ->
 			'Used-Service-Unit' = [UsedUnits]} = MultiServices_CC,
 	#'3gpp_ro_Used-Service-Unit'{'CC-Service-Specific-Units' = [1]} = UsedUnits.
 
+send_initial_ecur() ->
+	[{userdata, [{doc, "On received ECUR CCR-I send startRating"}]}].
+
+send_initial_ecur(_Config) ->
+	P1 = price(usage, messages, 1, rand:uniform(1000000)),
+	OfferId = add_offer([P1], 11),
+	ProdRef = add_product(OfferId),
+	MSISDN = list_to_binary(ocs:generate_identity()),
+	IMSI = list_to_binary(ocs:generate_identity()),
+	Subscriber = {MSISDN, IMSI},
+	Password = ocs:generate_identity(),
+	{ok, #service{}} = ocs:add_service(MSISDN, Password, ProdRef, []),
+	B1 = bucket(messages, 5),
+	_BId = add_bucket(ProdRef, B1),
+	Ref = erlang:ref_to_list(make_ref()),
+	SId = diameter:session_id(Ref),
+	RequestNum = 0,
+	Answer0 = diameter_ecur(Subscriber, SId, RequestNum),
+	#'3gpp_ro_CCA'{'Result-Code' = ?'DIAMETER_BASE_RESULT-CODE_SUCCESS'} = Answer0.
+
 %%---------------------------------------------------------------------
 %%  Internal functions
 %%---------------------------------------------------------------------
+
+diameter_ecur({MSISDN, IMSI}, SId, RequestNum) ->
+	MSISDN1 = #'3gpp_ro_Subscription-Id'{
+			'Subscription-Id-Type' = ?'3GPP_SUBSCRIPTION-ID-TYPE_END_USER_E164',
+			'Subscription-Id-Data' = MSISDN},
+	IMSI1 = #'3gpp_ro_Subscription-Id'{
+			'Subscription-Id-Type' = ?'3GPP_SUBSCRIPTION-ID-TYPE_END_USER_IMSI',
+			'Subscription-Id-Data' = IMSI},
+	RequestedUnits = #'3gpp_ro_Requested-Service-Unit'
+			{'CC-Service-Specific-Units' = [1]},
+	MultiServices_CC = #'3gpp_ro_Multiple-Services-Credit-Control'{
+			'Requested-Service-Unit' = [RequestedUnits], 'Service-Identifier' = [1],
+			'Rating-Group' = [2]},
+	ServiceInformation = #'3gpp_ro_Service-Information'{
+			'SMS-Information' = [#'3gpp_ro_SMS-Information'{
+			'Recipient-Info' = [#'3gpp_ro_Recipient-Info'{
+			'Recipient-Address' = [#'3gpp_ro_Recipient-Address'{
+			'Address-Data' = [ocs:generate_identity()]}]}]}]},
+	CC_CCR = #'3gpp_ro_CCR'{'Session-Id' = SId,
+			'Auth-Application-Id' = ?RO_APPLICATION_ID,
+			'Service-Context-Id' = "32260@3gpp.org",
+			'User-Name' = [MSISDN],
+			'CC-Request-Type' = ?'3GPP_CC-REQUEST-TYPE_EVENT_REQUEST',
+			'CC-Request-Number' = RequestNum,
+			'Requested-Action' = [?'3GPP_RO_REQUESTED-ACTION_DIRECT_DEBITING'],
+			'Event-Timestamp' = [calendar:universal_time()],
+			'Subscription-Id' = [MSISDN1, IMSI1],
+			'Multiple-Services-Credit-Control' = [MultiServices_CC],
+			'Service-Information' = [ServiceInformation]},
+	{ok, Answer} = diameter:call(?MODULE, cc_app_test, CC_CCR, []),
+	Answer.
 
 diameter_iec({MSISDN, IMSI}, SId, RequestNum) ->
 	MSISDN1 = #'3gpp_ro_Subscription-Id'{
@@ -675,7 +719,7 @@ diameter_iec({MSISDN, IMSI}, SId, RequestNum) ->
 			'Auth-Application-Id' = ?RO_APPLICATION_ID,
 			'Service-Context-Id' = "32274@3gpp.org",
 			'User-Name' = [MSISDN],
-			'CC-Request-Type' = ?'3GPP_CC-REQUEST-TYPE_EVENT_REQUEST',
+			'CC-Request-Type' = ?'3GPP_CC-REQUEST-TYPE_INITIAL_REQUEST'
 			'CC-Request-Number' = RequestNum,
 			'Requested-Action' = [?'3GPP_RO_REQUESTED-ACTION_DIRECT_DEBITING'],
 			'Event-Timestamp' = [calendar:universal_time()],
