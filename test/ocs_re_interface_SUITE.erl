@@ -170,7 +170,9 @@ init_per_testcase(TestCase, Config)
 		TestCase == send_iec;
 		TestCase == receive_iec;
 		TestCase == send_initial_ecur;
-		TestCase == receive_initial_ecur ->
+		TestCase == receive_initial_ecur;
+		TestCase == send_final_ecur;
+		TestCase == receive_final_ecur ->
 	Address = ?config(diameter_acct_address, Config),
 	{ok, _} = ocs:add_client(Address, undefined, diameter, undefined, true),
 	Config;
@@ -197,7 +199,8 @@ all() ->
 		receive_interim_scur, send_final_scur, receive_final_scur,
 		receive_interim_no_usu_scur, receive_initial_empty_rsu_scur,
 		post_initial_scur, post_update_scur, post_final_scur, send_iec,
-		receive_iec, send_initial_ecur, receive_initial_ecur].
+		receive_iec, send_initial_ecur, receive_initial_ecur,
+		send_final_ecur, receive_final_ecur].
 
 %%---------------------------------------------------------------------
 %%  Test cases
@@ -688,16 +691,68 @@ receive_initial_ecur(_Config) ->
 	Ref = erlang:ref_to_list(make_ref()),
 	SId = diameter:session_id(Ref),
 	RequestNum = 0,
-	RequestType = ?'3GPP_CC-REQUEST-TYPE_INITIAL_REQUEST',
 	Answer0 = diameter_ecur_start(Subscriber, SId, RequestNum),
 	#'3gpp_ro_CCA'{'Result-Code' = ?'DIAMETER_BASE_RESULT-CODE_SUCCESS',
 			'Auth-Application-Id' = ?RO_APPLICATION_ID,
-			'CC-Request-Type' = RequestType,
+			'CC-Request-Type' = ?'3GPP_CC-REQUEST-TYPE_INITIAL_REQUEST',
 			'CC-Request-Number' = RequestNum,
 			'Multiple-Services-Credit-Control' = [MultiServices_CC]} = Answer0,
 	#'3gpp_ro_Multiple-Services-Credit-Control'{
 			'Granted-Service-Unit' = [UsedUnits]} = MultiServices_CC,
 	#'3gpp_ro_Granted-Service-Unit'{'CC-Service-Specific-Units' = [1]} = UsedUnits.
+
+send_final_ecur() ->
+	[{userdata, [{doc, "On received ECUR CCR-U send endRating"}]}].
+
+send_final_ecur(_Config) ->
+	P1 = price(usage, messages, 1, rand:uniform(1000000)),
+	OfferId = add_offer([P1], 11),
+	ProdRef = add_product(OfferId),
+	MSISDN = list_to_binary(ocs:generate_identity()),
+	IMSI = list_to_binary(ocs:generate_identity()),
+	Subscriber = {MSISDN, IMSI},
+	Password = ocs:generate_identity(),
+	{ok, #service{}} = ocs:add_service(MSISDN, Password, ProdRef, []),
+	B1 = bucket(messages, 5),
+	_BId = add_bucket(ProdRef, B1),
+	Ref = erlang:ref_to_list(make_ref()),
+	SId = diameter:session_id(Ref),
+	RequestNum0 = 0,
+	Answer0 = diameter_ecur_start(Subscriber, SId, RequestNum0),
+	#'3gpp_ro_CCA'{'Result-Code' = ?'DIAMETER_BASE_RESULT-CODE_SUCCESS'} = Answer0,
+	RequestNum1 = RequestNum0 + 1,
+	Answer1 = diameter_ecur_final(Subscriber, SId, RequestNum1),
+	#'3gpp_ro_CCA'{'Result-Code' = ?'DIAMETER_BASE_RESULT-CODE_SUCCESS'} = Answer1.
+
+receive_final_ecur() ->
+	[{userdata, [{doc, "On ECUR endRating response send CCA-U"}]}].
+
+receive_final_ecur(_Config) ->
+	P1 = price(usage, messages, 1, rand:uniform(1000000)),
+	OfferId = add_offer([P1], 11),
+	ProdRef = add_product(OfferId),
+	MSISDN = list_to_binary(ocs:generate_identity()),
+	IMSI = list_to_binary(ocs:generate_identity()),
+	Subscriber = {MSISDN, IMSI},
+	Password = ocs:generate_identity(),
+	{ok, #service{}} = ocs:add_service(MSISDN, Password, ProdRef, []),
+	B1 = bucket(messages, 5),
+	_BId = add_bucket(ProdRef, B1),
+	Ref = erlang:ref_to_list(make_ref()),
+	SId = diameter:session_id(Ref),
+	RequestNum0 = 0,
+	Answer0 = diameter_ecur_start(Subscriber, SId, RequestNum0),
+	#'3gpp_ro_CCA'{'Result-Code' = ?'DIAMETER_BASE_RESULT-CODE_SUCCESS'} = Answer0,
+	RequestNum1 = RequestNum0 + 1,
+	Answer1 = diameter_ecur_final(Subscriber, SId, RequestNum1),
+	#'3gpp_ro_CCA'{'Result-Code' = ?'DIAMETER_BASE_RESULT-CODE_SUCCESS',
+			'Auth-Application-Id' = ?RO_APPLICATION_ID,
+			'CC-Request-Type' = ?'3GPP_CC-REQUEST-TYPE_TERMINATION_REQUEST',
+			'CC-Request-Number' = RequestNum1,
+			'Multiple-Services-Credit-Control' = [MultiServices_CC]} = Answer1,
+	#'3gpp_ro_Multiple-Services-Credit-Control'{
+			'Used-Service-Unit' = [UsedUnits]} = MultiServices_CC,
+	#'3gpp_ro_Used-Service-Unit'{'CC-Service-Specific-Units' = [2]} = UsedUnits.
 
 %%---------------------------------------------------------------------
 %%  Internal functions
@@ -740,10 +795,10 @@ diameter_ecur_final({MSISDN, IMSI}, SId, RequestNum) ->
 	IMSI1 = #'3gpp_ro_Subscription-Id'{
 			'Subscription-Id-Type' = ?'3GPP_SUBSCRIPTION-ID-TYPE_END_USER_IMSI',
 			'Subscription-Id-Data' = IMSI},
-	RequestedUnits = #'3gpp_ro_Requested-Service-Unit'
-			{'CC-Service-Specific-Units' = [1]},
+	UsedUnits = #'3gpp_ro_Used-Service-Unit'
+			{'CC-Service-Specific-Units' = [2]},
 	MultiServices_CC = #'3gpp_ro_Multiple-Services-Credit-Control'{
-			'Used-Service-Unit' = [RequestedUnits], 'Service-Identifier' = [1],
+			'Used-Service-Unit' = [UsedUnits], 'Service-Identifier' = [1],
 			'Rating-Group' = [2]},
 	ServiceInformation = #'3gpp_ro_Service-Information'{
 			'SMS-Information' = [#'3gpp_ro_SMS-Information'{
