@@ -105,27 +105,8 @@ do_post(ModData, Body, ["ratingdata"]) ->
 		_:_Reason ->
 			do_response(ModData, {error, 400})
 	end;
-do_post(ModData, Body, ["ratingdata", _RatingDataRef, "update"]) ->
-	try
-		{struct, NrfRequest} = mochijson:decode(Body),
-		{_, InvocationSequenceNumber} = lists:keyfind("invocationSequenceNumber", 1, NrfRequest),
-		{_, {_, ServiceRatingRequests}} = lists:keyfind("serviceRating", 1, NrfRequest),
-		true = length(ServiceRatingRequests) > 0,
-		TS = erlang:system_time(?MILLISECOND),
-		InvocationTimeStamp = ocs_log:iso8601(TS),
-		ServiceRatingResults = service_rating(ServiceRatingRequests, []),
-		SubscriptionId = lists:keyfind("subscriptionId", 1, NrfRequest),
-		Response = {struct,[{"invocationTimeStamp", InvocationTimeStamp},
-				{"invocationSequenceNumber", InvocationSequenceNumber},
-				SubscriptionId,
-				{"serviceRating",
-				{array, ServiceRatingResults}}]},
-		do_response(ModData, {200, [], mochijson:encode(Response)})
-	catch
-		_:_Reason ->
-			do_response(ModData, {error, 400})
-	end;
-do_post(ModData, Body, ["ratingdata", _RatingDataRef, "release"]) ->
+do_post(ModData, Body, ["ratingdata", _RatingDataRef, Op])
+		when Op == "update"; Op == "release" ->
 	try
 		{struct, NrfRequest} = mochijson:decode(Body),
 		{_, InvocationSequenceNumber} = lists:keyfind("invocationSequenceNumber", 1, NrfRequest),
