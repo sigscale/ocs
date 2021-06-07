@@ -1466,20 +1466,20 @@ class offerUpdate extends PolymerElement {
 			var priceCharge = new Object();
 			priceCharge.op = "add";
 			priceCharge.path = "/productOfferingPrice/" + indexPrices + "/recurringChargePeriod";
-			switch(this.$.updatePricePeriod.selected) {
-				case 0:
+			switch(this.priceUpdatePeriod) {
+				case "Hourly":
 					priceCharge.value = "hourly";
 					break;
-				case 1:
+				case "Daily":
 					priceCharge.value = "daily";
 					break;
-				case 2:
+				case "Weekly":
 					priceCharge.value = "weekly";
 					break;
-				case 3:
+				case "Monthly":
 					priceCharge.value = "monthly";
 					break;
-				case 4:
+				case "Yearly":
 					priceCharge.value = "yearly";
 					break;
 			}
