@@ -32,7 +32,7 @@ class offerAdd extends PolymerElement {
 	static get template() {
 		return html`
 			<style include="style-element"></style>
-			<paper-dialog class="dialog" id="addProductModal" modal>
+			<paper-dialog class="dialog" id="addOfferModal" modal>
 				<app-toolbar>
 					<paper-tabs selected="{{selected}}">
 						<paper-tab id="offer-add">
@@ -58,7 +58,6 @@ class offerAdd extends PolymerElement {
 						<div>
 							<paper-input
 									id="addOffName"
-									name="name"
 									label="Name"
 									value="{{offerAddAddress}}">
 							</paper-input>
@@ -70,7 +69,6 @@ class offerAdd extends PolymerElement {
 						</div>
 						<div>
 							<paper-input id="addOffDesc"
-									name="description"
 									label="Description"
 									value="{{offerAddDes}}">
 							</paper-input>
@@ -100,13 +98,13 @@ class offerAdd extends PolymerElement {
 						</iron-collapse>
 						<div>
 							<paper-dropdown-menu
-									id="addOffProductSpecificationDrop"
+									id="addOfferProductSpecDrop"
 									on-selected-item-changed="checkProductSpec"
 									value="{{offerAddSpec}}"
 									no-animations="true"
 									label="Product Specification">
 								<paper-listbox
-										id="addOffProductSpecification"
+										id="addOfferProductSpec"
 										slot="dropdown-content">
 									<paper-item>
 										Prepaid Data
@@ -120,7 +118,7 @@ class offerAdd extends PolymerElement {
 								</paper-listbox>
 							</paper-dropdown-menu>
 							<paper-tooltip
-									for="addOffProductSpecificationDrop"
+									for="addOfferProductSpecDrop"
 									offset="0">
 								Offer product specification
 							</paper-tooltip>
@@ -128,8 +126,7 @@ class offerAdd extends PolymerElement {
 						<div>
 							<paper-input
 									id="addOffStart"
-									value="{{addProductStartDateOffer}}"
-									name="addProductStartDateOffer"
+									value="{{addOfferStartDate}}"
 									label="Start Date"
 							</paper-input>
 							<paper-tooltip
@@ -140,8 +137,7 @@ class offerAdd extends PolymerElement {
 						</div>
 						<div>
 							<paper-input id="addOffEnd"
-									value="{{addProductEndDateOffer}}"
-									name="addProductEndDateOffer"
+									value="{{addOfferEndDate}}"
 									label="End Date">
 							</paper-input>
 							<paper-tooltip
@@ -176,7 +172,6 @@ class offerAdd extends PolymerElement {
 								</paper-tooltip>
 								<paper-input
 									id="addRedirectAddress"
-									name="redirectionAddress"
 									label="Redirect Server"
 									value="{{address}}">
 								</paper-input>
@@ -224,7 +219,6 @@ class offerAdd extends PolymerElement {
 						<div>
 							<paper-input
 									id="addPriceDesc"
-									name="description"
 									value="{{priceAddDes}}"
 									label="Description">
 							</paper-input>
@@ -237,8 +231,7 @@ class offerAdd extends PolymerElement {
 						<div>
 							<paper-input
 								id="addPriceStartDate"
-								value="{{addProductStartDatePrice}}"
-								name="addProductStartDatePrice"
+								value="{{addOfferStartDatePrice}}"
 								label="Start Date">
 							</paper-input>
 							<paper-tooltip
@@ -249,8 +242,7 @@ class offerAdd extends PolymerElement {
 						</div>
 						<div>
 							<paper-input id="addPriceEndDate"
-									value="{{addProductEndDatePrice}}"
-									name="addProductEndDatePrice"
+									value="{{addOfferEndDatePrice}}"
 									label="End Date">
 							</paper-input>
 							<paper-tooltip
@@ -292,7 +284,6 @@ class offerAdd extends PolymerElement {
 						<div>
 							<paper-input
 									id="addPriceSize"
-									name="size"
 									value="{{priceAddSize}}"
 									type="text"
 									allowed-pattern="[0-9kmg]"
@@ -339,7 +330,6 @@ class offerAdd extends PolymerElement {
 						<div>
 							<paper-input
 									id="addPriceAmount"
-									name="amount"
 									type="text"
 									allowed-pattern="[0-9.]"
 									pattern="[0-9]+\.?[0-9]{0,6}$"
@@ -356,7 +346,6 @@ class offerAdd extends PolymerElement {
 						<div>
 							<paper-input
 									id="addPriceCurrency"
-									name="currency"
 									value="{{priceAddCurrency}}"
 									label="Currency">
 							</paper-input>
@@ -444,7 +433,6 @@ class offerAdd extends PolymerElement {
 								<paper-input
 										id="timeOfDayStart"
 										value="{{startTime}}"
-										name="addProductTimePriceStart"
 										label="Start Time">
 								</paper-input>
 								<paper-tooltip
@@ -455,7 +443,6 @@ class offerAdd extends PolymerElement {
 								<paper-input
 										id="timeOfDayEnd"
 										value="{{endTime}}"
-										name="addProductTimePriceEnd"
 										label="End Time">
 								</paper-input>
 								<paper-tooltip
@@ -550,7 +537,7 @@ class offerAdd extends PolymerElement {
 									<paper-listbox
 											id="addPricPolicy"
 											slot="dropdown-content">
-										<template is="dom-repeat" items="{{polTable}}">
+										<template is="dom-repeat" items="{{policyTables}}">
 											<paper-item>
 												{{item.name}}
 											</paper-item>
@@ -621,7 +608,6 @@ class offerAdd extends PolymerElement {
 						</div>
 						<div>
 							<paper-input id="addAltDesc"
-									name="description"
 									value="{{altAddDesc}}"
 									label="Description">
 							</paper-input>
@@ -633,8 +619,7 @@ class offerAdd extends PolymerElement {
 						</div>
 						<div>
 							<paper-input id="addAltStartDate"
-									value="{{addProductStartDateAlt}}"
-									name="addProductStartDateAlt"
+									value="{{addOfferStartDateAlt}}"
 									label="Start Date"
 							</paper-input>
 							<paper-tooltip
@@ -645,8 +630,7 @@ class offerAdd extends PolymerElement {
 						</div>
 						<div>
 							<paper-input id="addAltEndDate"
-									value="{{addProductEndDateAlt}}"
-									name="addProductEndDateAlt"
+									value="{{addOfferEndDateAlt}}"
 									label="End Date"
 							</paper-input>
 							<paper-tooltip
@@ -686,7 +670,6 @@ class offerAdd extends PolymerElement {
 							<paper-input
 									id="addAltSize"
 									value="{{altAddSize}}"
-									name="size"
 									label="Unit Size"
 									type="text"
 									allowed-pattern="[0-9kmg]"
@@ -731,7 +714,6 @@ class offerAdd extends PolymerElement {
 						</div>
 						<div>
 							<paper-input id="addAltAmount"
-									name="amount"
 									label="Amount"
 									type="text"
 									allowed-pattern="[0-9.]"
@@ -748,7 +730,6 @@ class offerAdd extends PolymerElement {
 						<div>
 							<paper-input
 									id="addAltCurrency"
-									name="currency"
 									value="{{altAddCurrency}}"
 									label="Currency">
 							</paper-input>
@@ -808,28 +789,28 @@ class offerAdd extends PolymerElement {
 				</iron-pages>
 			</paper-dialog>
 			<iron-ajax
-					id="addProductAjax"
+					id="addOfferAjax"
 					url="/catalogManagement/v2/productOffering"
 					method = "POST"
 					content-type="application/json"
 					on-loading-changed="_onLoadingChanged"
-					on-response="_addProductResponse"
-					on-error="_addProductError">
+					on-response="_addOfferResponse"
+					on-error="_addOfferError">
 			</iron-ajax>
 			<iron-ajax
-					id="getProductsAjax"
+					id="getOffersAjax"
 					url="/catalogManagement/v2/productOffering"
 					method="GET"
-					on-response="_getProductsResponse"
-					on-error="_getProductsError">
+					on-response="_getOffersResponse"
+					on-error="_getOffersError">
 			</iron-ajax>
-			<iron-ajax id="getTableAjax"
-					on-response="_getTableResponse"
-					on-error="_getTableError">
+			<iron-ajax id="getPrefixTablesAjax"
+					on-response="_getTariffTablesResponse"
+					on-error="_getTariffTablesError">
 			</iron-ajax>
-			<iron-ajax id="getTableAjaxPolicy"
-					on-response="_getTableResponsePol"
-					on-error="_getTableErrorPol">
+			<iron-ajax id="getPolicyTablesAjax"
+					on-response="_getPolicyTablesResponse"
+					on-error="_getPolicyTablesError">
 			</iron-ajax>
 		`;
 	}
@@ -867,7 +848,7 @@ class offerAdd extends PolymerElement {
 				return []
 				}
 			},
-			polTable: {
+			policyTables: {
 				type: Array,
 				readOnly: true,
 				notify: true,
@@ -894,22 +875,22 @@ class offerAdd extends PolymerElement {
 				type: String,
 				value: "add"
 			},
-			addProductStartDateOffer: {
+			addOfferStartDate: {
 				type: String
 			},
-			addProductEndDateOffer: {
+			addOfferEndDate: {
 				type: String
 			},
-			addProductStartDatePrice: {
+			addOfferStartDatePrice: {
 				type: String
 			},
-			addProductEndDatePrice: {
+			addOfferEndDatePrice: {
 				type: String
 			},
-			addProductStartDateAlt: {
+			addOfferStartDateAlt: {
 				type: String
 			},
-			addProductEndDateAlt: {
+			addOfferEndDateAlt: {
 				type: String
 			},
 			offerAddAddress: {
@@ -960,27 +941,27 @@ class offerAdd extends PolymerElement {
 
 	_activePageChanged(active) {
 		var grid = this.$.offerGrid;
-		var ajax1 = this.$.getTableAjax;
+		var ajax1 = this.$.getPrefixTablesAjax;
 		ajax1.url = "/resourceInventoryManagement/v1/resource?resourceSpecification.id=1";
 		ajax1.generateRequest();
-		var ajax2 = this.$.getTableAjaxPolicy;
+		var ajax2 = this.$.getPolicyTablesAjax;
 		ajax2.url = "/resourceInventoryManagement/v1/resource?resourceSpecification.id=3";
 		ajax2.generateRequest();
 	}
 
-	_getTableResponsePol(event) {
+	_getPolicyTablesResponse(event) {
 		var grid = this.$.offerGrid;
 		var results = event.detail.xhr.response;
-		this.splice("polTable", 0, this.polTable.length)
+		this.splice("policyTables", 0, this.policyTables.length)
 		for (var indexTable1 in results) {
 			var tableRecord1 = new Object();
 			tableRecord1.id = results[indexTable1].id;
 			tableRecord1.href = results[indexTable1].href;
-			this.push('polTable', tableRecord1);
+			this.push('policyTables', tableRecord1);
 		}
 	}
 
-	_getTableResponse(event) {
+	_getTariffTablesResponse(event) {
 		var grid = this.$.offerGrid;
 		var results = event.detail.xhr.response;
 		this.splice("tables", 0, this.tables.length)
@@ -992,7 +973,7 @@ class offerAdd extends PolymerElement {
 		}
 	}
 
-	_getProductsResponse(event) {
+	_getOffersResponse(event) {
 		var results = event.detail.xhr.response;
 		for (var index in results) {
 			function checkExist(spec) {
@@ -1012,7 +993,7 @@ class offerAdd extends PolymerElement {
 		toast.open();
 	}
 
-	_getProductsError(event) {
+	_getOffersError(event) {
 		var toast = document.body.querySelector('sig-app').shadowRoot.getElementById('restError');
 		toast.text = "Error";
 		toast.open();
@@ -1191,10 +1172,10 @@ class offerAdd extends PolymerElement {
 			return item.checked;
 		}
 		if(this.offers.some(check)) {
-			this.$.addOffProductSpecificationDrop.disabled = true;
+			this.$.addOfferProductSpecDrop.disabled = true;
 			this.$.addOfferCharReserveSession.disabled = true;
 		} else {
-			this.$.addOffProductSpecificationDrop.disabled = false;
+			this.$.addOfferProductSpecDrop.disabled = false;
 			this.$.addOfferCharReserveSession.disabled = false;
 		}
 	}
@@ -1263,11 +1244,11 @@ class offerAdd extends PolymerElement {
 		}
 		var startDateTime;
 		var endDateTime;
-		if(this.addProductStartDateOffer) {
-			startDateTime = this.addProductStartDateOffer;
+		if(this.addOfferStartDate) {
+			startDateTime = this.addOfferStartDate;
 		}
-		if(this.addProductEndDateOffer) {
-			endDateTime = this.addProductEndDateOffer;
+		if(this.addOfferEndDate) {
+			endDateTime = this.addOfferEndDate;
 		}
 		if(startDateTime && endDateTime) {
 			offerNew.validFor = {startDateTime, endDateTime};
@@ -1655,7 +1636,7 @@ class offerAdd extends PolymerElement {
 		}
 		offerNew.productOfferingPrice = this.prices.map(mapPrice);
 		if(offerNew.name) {
-			var ajax = this.$.addProductAjax;
+			var ajax = this.$.addOfferAjax;
 			ajax.body = offerNew;
 			ajax.generateRequest();
 			this.$.addBundle.hide();
@@ -1803,8 +1784,8 @@ class offerAdd extends PolymerElement {
 		}
 		priceNew.name = this.priceAddName;
 		priceNew.description = this.priceAddDes;
-		priceNew.start = this.addProductStartDatePrice;
-		priceNew.end = this.addProductEndDatePrice;
+		priceNew.start = this.addOfferStartDatePrice;
+		priceNew.end = this.addOfferEndDatePrice;
 		switch(this.$.addPriceType.selected) {
 			case 0:
 				priceNew.type = "recurring";
@@ -1969,8 +1950,8 @@ class offerAdd extends PolymerElement {
 		var altNew = new Object();
 		altNew.name = this.altAddName;
 		altNew.description = this.altAddDesc;
-		altNew.startdate = this.addProductStartDateAlt;
-		altNew.terminationDate = this.addProductEndDateAlt;
+		altNew.startdate = this.addOfferStartDateAlt;
+		altNew.terminationDate = this.addOfferEndDateAlt;
 		switch(this.$.addAltType.selected) {
 			case 0:
 				altNew.type = "recurring";
@@ -2049,8 +2030,8 @@ class offerAdd extends PolymerElement {
 		}
 	}
 
-	_addProductResponse(event) {
-		this.$.addProductModal.close();
+	_addOfferResponse(event) {
+		this.$.addOfferModal.close();
 		this.offerAddAddress = null;
 		this.offerAddDes = null;
 		this.set('prices', []);
@@ -2062,7 +2043,7 @@ class offerAdd extends PolymerElement {
 		this.cancelDialog();
 	}
 
-	_addProductError(event) {
+	_addOfferError(event) {
 		var toast = document.body.querySelector('sig-app').shadowRoot.getElementById('restError');
 		toast.text = "Error";
 		toast.open();
@@ -2075,7 +2056,7 @@ class offerAdd extends PolymerElement {
 		this.addOrUpdateButton = "add";
 		this.offerAddAddress = null;
 		this.offerAddDes = null;
-		this.$.addOffProductSpecification.selected = null;
+		this.$.addOfferProductSpec.selected = null;
 		this.$.addOffStart.value = null;
 		this.$.addOffEnd.value = null;
 		this.$.addOfferChars.hide();
@@ -2084,8 +2065,8 @@ class offerAdd extends PolymerElement {
 		this.$.roamingTable.value = null;
 		this.$.chargingKey.value = null;
 		this.$.addOfferCharReserveSession.value = null;
-		this.addProductStartDateOffer = null;
-		this.addProductEndDateOffer = null;
+		this.addOfferStartDate = null;
+		this.addOfferEndDate = null;
 		this.$.addPriceName.value = null;
 		this.$.addPriceDesc.value = null;
 		this.$.addPriceStartDate.value = null;
@@ -2110,11 +2091,11 @@ class offerAdd extends PolymerElement {
 		this.$.addAltPeriod.selected = null;
 		this.$.timeOfDayStart.value = null;
 		this.$.timeOfDayEnd.value = null;
-		this.$.addProductModal.close();
+		this.$.addOfferModal.close();
 	}
 
 	_onLoadingChanged(event) {
-		if (this.$.addProductAjax.loading) {
+		if (this.$.addOfferAjax.loading) {
 			this.$.progressId.disabled = false;
 		} else {
 			this.$.progressId.disabled = true;
