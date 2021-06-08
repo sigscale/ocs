@@ -146,6 +146,7 @@ class SigApp extends PolymerElement {
 						</sig-http-list>
 						<sig-prefix-list
 								id="prefixList"
+								active-item="{{activePrefixItem}}"
 								active-table-name="{{prefixTable}}"
 								loading="{{prefixLoading}}"
 								name="prefixView">
@@ -317,7 +318,7 @@ class SigApp extends PolymerElement {
 			<sig-client-update id="clientUpdate" active-item="[[activeClientItem]]"></sig-client-update>
 			<sig-user-add></sig-user-add>
 			<sig-user-update id="userUpdate" active-item="[[activeUserItem]]"></sig-user-update>
-			<sig-offer-update id="updateProduct" active-item="[[activeOfferItem]]"></sig-offer-update>
+			<sig-offer-update id="updateOffer" active-item="[[activeOfferItem]]"></sig-offer-update>
 			<sig-ipdr-log-files-wlan></sig-ipdr-log-files-wlan>
 			<sig-ipdr-log-files-voip id="ipdrLogs"></sig-ipdr-log-files-voip>
 			<sig-prefix-table-add></sig-prefix-table-add>
