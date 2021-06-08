@@ -32,16 +32,20 @@ class offerAdd extends PolymerElement {
 	static get template() {
 		return html`
 			<style include="style-element"></style>
-			<paper-dialog class="dialog" id="addOfferModal" modal>
+			<paper-dialog
+					class="dialog"
+					id="addOfferModal"
+					modal>
 				<app-toolbar>
-					<paper-tabs selected="{{selected}}">
-						<paper-tab id="offer-add">
+					<paper-tabs
+							selected="{{selected}}">
+						<paper-tab>
 							<h2>Offering</h2>
 						</paper-tab>
-						<paper-tab id="price-add">
+						<paper-tab>
 							<h2>Prices</h2>
 						</paper-tab>
-						<paper-tab id="alt-add">
+						<paper-tab>
 							<h2>Alterations</h2>
 						</paper-tab>
 					</paper-tabs>
@@ -54,28 +58,23 @@ class offerAdd extends PolymerElement {
 				</paper-progress>
 				<iron-pages
 						selected="{{selected}}">
-					<div id="addOff-tab">
+					<div>
 						<div>
 							<paper-input
-									id="addOffName"
 									label="Name"
-									value="{{offerAddAddress}}">
+									value="{{offerName}}">
 							</paper-input>
-							<paper-tooltip
-									for="addOffName"
-									offset="0">
-								Offer Name
+							<paper-tooltip>
+								Name of the Product Offering.
 							</paper-tooltip>
 						</div>
 						<div>
-							<paper-input id="addOffDesc"
+							<paper-input
 									label="Description"
-									value="{{offerAddDes}}">
+									value="{{offerDescription}}">
 							</paper-input>
-							<paper-tooltip
-									for="addOffDesc"
-									offset="0">
-								Offer Description
+							<paper-tooltip>
+								Description of the Product Offering.
 							</paper-tooltip>
 						</div>
 						<div>
@@ -84,14 +83,21 @@ class offerAdd extends PolymerElement {
 									id="onClickBundle"
 									suffix
 									icon="arrow-drop-down"
-									on-click="_onClickBundle">
+									on-tap="_onClickBundle">
 							</paper-icon-button>
+							<paper-tooltip>
+								A compound Product Offering bundles other Product Offerings together.
+							</paper-tooltip>
 						</div>
-						<iron-collapse id="addBundle">
-							<template is=dom-repeat items="{{offers}}">
+						<iron-collapse
+								id="addBundle">
+							<template
+									is=dom-repeat
+									items="{{offers}}">
 								<div>
-									<paper-checkbox checked="{{item.checked}}"> 
-											{{item.name}}
+									<paper-checkbox
+											checked="{{item.checked}}"> 
+										{{item.name}}
 									</paper-checkbox>
 								</div>
 							</template>
@@ -99,12 +105,11 @@ class offerAdd extends PolymerElement {
 						<div>
 							<paper-dropdown-menu
 									id="addOfferProductSpecDrop"
-									on-selected-item-changed="checkProductSpec"
+									on-selected-item-changed="_checkProductSpec"
 									value="{{offerAddSpec}}"
 									no-animations="true"
 									label="Product Specification">
 								<paper-listbox
-										id="addOfferProductSpec"
 										slot="dropdown-content">
 									<paper-item>
 										Prepaid Data
@@ -117,33 +122,28 @@ class offerAdd extends PolymerElement {
 									</paper-item>
 								</paper-listbox>
 							</paper-dropdown-menu>
-							<paper-tooltip
-									for="addOfferProductSpecDrop"
-									offset="0">
-								Offer product specification
+							<paper-tooltip>
+								Product Specification provides characteristics and values to charge service types.
 							</paper-tooltip>
 						</div>
 						<div>
 							<paper-input
-									id="addOffStart"
-									value="{{addOfferStartDate}}"
+									type="datetime-local"
 									label="Start Date"
+									value="{{offerStartDate}}">
 							</paper-input>
-							<paper-tooltip
-									for="addOffStart"
-									offset="0">
-								start date for product
+							<paper-tooltip>
+								Start of Product Offering validity period.
 							</paper-tooltip>
 						</div>
 						<div>
-							<paper-input id="addOffEnd"
-									value="{{addOfferEndDate}}"
-									label="End Date">
+							<paper-input
+									type="datetime-local"
+									label="End Date"
+									value="{{offerEndDate}}">
 							</paper-input>
-							<paper-tooltip
-									for="addOffEnd"
-									offset="0">
-								end date for product
+							<paper-tooltip>
+								End of Product Offering validity period.
 							</paper-tooltip>
 						</div>
 						<div>
@@ -152,33 +152,59 @@ class offerAdd extends PolymerElement {
 									id="onClickOfferChars"
 									suffix
 									icon="arrow-drop-down"
-									on-click="_onClickOfferChars">
+									on-tap="_onClickOfferChars">
 							</paper-icon-button>
+							<paper-tooltip>
+								Collapse or expand the list of available Product Offering characteristics.
+							</paper-tooltip>
 						</div>
-						<iron-collapse id="addOfferChars">
+						<iron-collapse
+								id="addOfferChars">
 							<div>
-								<paper-input
-										id="addOfferCharReserveSession"
-										allowed-pattern="[0-9mh]"
-										pattern="^[0-9]+[mh]?$"
+								<div>
+									<paper-input
+											id="addOfferCharReserveSession"
+											allowed-pattern="[0-9mh]"
+											pattern="^[0-9]+[mh]?$"
+											auto-validate
+											label="RADIUS Reserve Session Time"
+											value=0>
+									</paper-input>
+									<paper-tooltip>
+										Amount of time to reserve on RADIUS session authorization and session timeout for reauthorization.
+									</paper-tooltip>
+								</div>
+								<div>
+									<paper-input
+										label="Redirect Server"
+										pattern="(^[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3})|(^http://.+)|(sip:.+)"
 										auto-validate
-										label="RADIUS Reserve Session Time"
-										value=0>
-								</paper-input>
-								<paper-tooltip
-										for="addOfferCharReserveSession"
-										offset="0">
-									Offer character reserving session
-								</paper-tooltip>
-								<paper-input
-									id="addRedirectAddress"
-									label="Redirect Server"
-									value="{{address}}">
-								</paper-input>
-								<paper-tooltip
-									for="addRedirectAddress"
-									offset="0">
-										Add Redirect Server IP Address (eg:xxx.xxx.xxx.xxx)
+										value="{{redirectAddress}}">
+									</paper-input>
+									<paper-tooltip>
+										An IPv4/IPv6 address, HTTP URL or SIP URI to which traffic will be redirected when out of credit.
+									</paper-tooltip>
+								</div>
+							</div>
+							<div>
+								<paper-dropdown-menu
+										id="policyName"
+										value="{{offerPolicy}}"
+										no-animations="true"
+										label="Policy Table">
+									<paper-listbox
+											slot="dropdown-content">
+										<template
+												is="dom-repeat"
+												items="{{policyTables}}">
+											<paper-item>
+												{{item.name}}
+											</paper-item>
+										</template>
+									</paper-listbox>
+								</paper-dropdown-menu>
+								<paper-tooltip>
+									Name of a Policy table of rules to install/activate on PCEF.
 								</paper-tooltip>
 							</div>
 						</iron-collapse>
@@ -186,7 +212,7 @@ class offerAdd extends PolymerElement {
 							<paper-button
 									raised
 									class="submit-button"
-									on-tap="addOffer">
+									on-tap="_addOffer">
 								Submit
 							</paper-button>
 							<paper-button
@@ -197,67 +223,62 @@ class offerAdd extends PolymerElement {
 							</paper-button>
 						</div>
 					</div>
-					<div id="addPrice-tab">
+					<div>
 						<div>
-							<datalist id="price">
-								<template is="dom-repeat" items="{{prices}}">
+							<datalist
+									id="priceNames">
+								<template
+										is="dom-repeat"
+										items="{{prices}}">
 									<option value="{{item.name}}" />
 								</template>
 							</datalist>
-							<input
-									id="addPriceName"
-									list="price"
+							<paper-input
+									list="priceNames"
+									autocomplete="on"
 									placeholder="Name"
-									value="{{priceAddName::input}}"
-									on-value-changed="addUpdatePriceDialog"/>
-							<paper-tooltip
-									for="addPriceName"
-									offset="0">
-								Name for add a price
+									value="{{priceName}}"
+									on-value-changed="_addUpdatePriceDialog">
+							</paper-input>
+							<paper-tooltip>
+								Name of the Product Offering Price.
 							</paper-tooltip>
 						</div>
 						<div>
 							<paper-input
-									id="addPriceDesc"
-									value="{{priceAddDes}}"
+									value="{{priceDescription}}"
 									label="Description">
 							</paper-input>
-							<paper-tooltip
-									for="addPriceDesc"
-									offset="0">
-								Description for add a price
+							<paper-tooltip>
+								Description of the Product Offering Price.
 							</paper-tooltip>
 						</div>
 						<div>
 							<paper-input
-								id="addPriceStartDate"
-								value="{{addOfferStartDatePrice}}"
-								label="Start Date">
+								type="datetime-local"
+								label="Start Date"
+								value="{{offerStartDatePrice}}">
 							</paper-input>
-							<paper-tooltip
-									for="addPriceStartDate"
-									offset="0">
-								Starting date for add a price
+							<paper-tooltip>
+								Start of Product Offering Price validity period.
 							</paper-tooltip>
 						</div>
 						<div>
-							<paper-input id="addPriceEndDate"
-									value="{{addOfferEndDatePrice}}"
-									label="End Date">
+							<paper-input
+									type="datetime-local"
+									label="End Date"
+									value="{{offerEndDatePrice}}">
 							</paper-input>
-							<paper-tooltip
-									for="addPriceEndDate"
-									offset="0">
-								End date for add a price
+							<paper-tooltip>
+								End of Product Offering Price validity period.
 							</paper-tooltip>
 						</div>
 						<div>
 							<paper-dropdown-menu
-									id="addPriceTypedrop"
 									label="Price Type"
-									value="{{priceAddType}}"
+									value="{{priceType}}"
 									no-animations="true"
-									on-selected-item-changed="checkRecure">
+									on-selected-item-changed="_checkRecurring">
 								<paper-listbox
 										id="addPriceType"
 										slot="dropdown-content">
@@ -275,35 +296,29 @@ class offerAdd extends PolymerElement {
 									</paper-item>
 								</paper-listbox>
 							</paper-dropdown-menu>
-							<paper-tooltip
-									for="addPriceTypedrop"
-									offset="0">
-								Choose type of add a price (Recurring | Onetime | Usage | Tariff)
+							<paper-tooltip>
+								Type of Product Offering Price.
 							</paper-tooltip>
 						</div>
 						<div>
 							<paper-input
 									id="addPriceSize"
-									value="{{priceAddSize}}"
-									type="text"
+									label="Unit Size"
+									value="{{priceSize}}"
 									allowed-pattern="[0-9kmg]"
 									pattern="^[0-9]+[kmg]?$"
-									label="Unit Size"
 									auto-validate>
 							</paper-input>
-							<paper-tooltip
-									for="addPriceSize"
-									offset="0">
-								Unit of measure (Bytes=(MB="m", GB="g", KB="k"), Seconds=(Minutes="m",Hour="h"), Messages=(Messages="msg"))
+							<paper-tooltip>
+								Size of unit determines the granularity of rating.
 							</paper-tooltip>
 						</div>
 						<div>
 							<paper-dropdown-menu
-									id="addPriceUnitsdrop"
-									value="{{priceAddUnits}}"
 									label="Units"
 									no-animations="true"
-									on-selected-item-changed="checkPattern">
+									value="{{priceUnits}}"
+									on-selected-item-changed="_checkPattern">
 								<paper-listbox
 										id="addPriceUnits"
 										slot="dropdown-content">
@@ -321,46 +336,38 @@ class offerAdd extends PolymerElement {
 									</paper-item>
 								</paper-listbox>
 							</paper-dropdown-menu>
-							<paper-tooltip
-									for="addPriceUnitsdrop"
-									offset="0">
-								Select price units (Bytes | Cents | Seconds | Messages)
+							<paper-tooltip>
+								Type of units to be rated.
 							</paper-tooltip>
 						</div>
 						<div>
 							<paper-input
 									id="addPriceAmount"
-									type="text"
 									allowed-pattern="[0-9.]"
 									pattern="[0-9]+\.?[0-9]{0,6}$"
 									auto-validate
 									label="Amount"
-									value=0>
+									value={{priceAmount}}>
 							</paper-input>
-							<paper-tooltip
-									for="addPriceAmount"
-									offset="0">
-								Amount of price
+							<paper-tooltip>
+								Amount to charge for each unit.
 							</paper-tooltip>
 						</div>
 						<div>
 							<paper-input
-									id="addPriceCurrency"
-									value="{{priceAddCurrency}}"
+									value="{{priceCurrency}}"
 									label="Currency">
 							</paper-input>
-							<paper-tooltip
-									for="addPriceCurrency"
-									offset="0">
-								Currency of price
+							<paper-tooltip>
+								Currency used in Product Offering Price.
 							</paper-tooltip>
 						</div>
 						<div>
 							<paper-dropdown-menu
 									id="addPricePerioddrop"
-									value="{{priceAddPeriod}}"
-									no-animations="true"
-									label="Period">
+									label="Period"
+									value="{{pricePeriod}}"
+									no-animations="true">
 								<paper-listbox
 										id="addPricePeriod"
 										slot="dropdown-content"
@@ -382,96 +389,90 @@ class offerAdd extends PolymerElement {
 									</paper-item>
 								</paper-listbox>
 							</paper-dropdown-menu>
-							<paper-tooltip
-									for="addPricePerioddrop"
-									offset="0">
-								Select period for price (Hourly | Daily | Weekly | Monthly | Yearly)
+							<paper-tooltip>
+								Period of recurring Product Offering Price.
 							</paper-tooltip>
 						</div>
 						<div>
 							<paper-dropdown-menu
-									id="addPriceDrop"
-									value="{{priceAddAlter}}"
+									value="{{priceAlteration}}"
 									no-animations="true"
 									label="Alteration">
 								<paper-listbox
 										id="addPriceAlteration"
 										slot="dropdown-content">
-									<template is="dom-repeat" items="[[alterations]]">
+									<template
+											is="dom-repeat"
+											items="[[alterations]]">
 										<paper-item>
 											{{item.name}}
 										</paper-item>
 									</template>
 								</paper-listbox>
 							</paper-dropdown-menu>
-							<paper-tooltip
-									for="addPriceDrop"
-									offset="0">
-								Bind price alteration
+							<paper-tooltip>
+								Bind an alteration to this Product Offering Price.
 							</paper-tooltip>
 						</div>
 						<div>
 							<span>Characteristics</span>
 							<paper-icon-button
-									id="onClickPriceChars"
+									id="priceCharsSection"
 									suffix
 									icon="arrow-drop-down"
-									on-click="_onClickPriceChars">
+									on-tap="_collapsePriceChars">
 							</paper-icon-button>
 						</div>
-						<iron-collapse id="addPriceChars">
+						<iron-collapse
+								id="addPriceChars">
 							<div>
-								<span>Time of day range</span>
+								<span>Time of Day Range</span>
 								<paper-icon-button
-										id="onClickPriceCharsTime"
+										id="priceCharsTimeSection"
 										suffix
 										icon="arrow-drop-down"
-										on-click="_onClickPriceCharsTime">
+										on-tap="_collapsePriceCharsTime">
 								</paper-icon-button>
 							</div>
-							<iron-collapse id="addPriceCharsTime">
+							<iron-collapse
+									id="addPriceCharsTime">
 								<paper-input
-										id="timeOfDayStart"
-										value="{{startTime}}"
+										type="time"
+										value="{{priceTodStart}}"
 										label="Start Time">
 								</paper-input>
-								<paper-tooltip
-										for="timeOfDayStart"
-										offset="0">
-									Start time of day
+								<paper-tooltip>
+									Time of day when this Product Offering Price starts to apply.
 								</paper-tooltip>
 								<paper-input
-										id="timeOfDayEnd"
-										value="{{endTime}}"
+										type="time"
+										value="{{priceTodEnd}}"
 										label="End Time">
 								</paper-input>
-								<paper-tooltip
-										for="timeOfDayEnd"
-										offset="0">
-									End time of day
+								<paper-tooltip>
+									Time of day when this Product Offering Price ends applying.
 								</paper-tooltip>
 							</iron-collapse>
 							<div>
 								<span>Call Direction</span>
 								<paper-icon-button
-										id="onClickCall"
+										id="callDirSection"
 										suffix
 										icon="arrow-drop-down"
-										on-click="_onClickCall">
+										on-tap="_collapseCallDirection">
 								</paper-icon-button>
 							</div>
-							<iron-collapse id="addCall">
+							<iron-collapse
+									id="callDirection">
 								<div>
 									<paper-checkbox
-											id="checkIn"
-											value="{{priceCheckIn}}"> 
+											value="{{priceIncoming}}"> 
 										Incoming
 									</paper-checkbox>
 								</div>
 								<div>
 									<paper-checkbox
-											id="checkOut"
-											value="{{priceCheckIn}}"> 
+											value="{{priceOutgoing}}"> 
 										Outgoing
 									</paper-checkbox>
 								</div>
@@ -483,11 +484,10 @@ class offerAdd extends PolymerElement {
 										pattern="^[0-9]+[mh]?$"
 										auto-validate
 										label="RADIUS Reserve Time"
-										value=0>
+										value="{{priceReserveTime}}">
 								</paper-input>
-								<paper-tooltip
-										for="addPriceCharReserveTime"
-										offset="0">
+								<paper-tooltip>
+									Amount of time to reserve on RADIUS Accounting-Start and add to reported duration on Accounting-Interim.
 									Character reserve time of price
 								</paper-tooltip>
 							</div>
@@ -498,85 +498,59 @@ class offerAdd extends PolymerElement {
 										pattern="^[0-9]+[kmg]?$"
 										auto-validate
 										label="RADIUS Reserve Data"
-										value=0>
+										value="{{priceReserveBytes}}">
 								</paper-input>
-								<paper-tooltip
-										for="addPriceCharReserveBytes"
-										offset="0">
-									Character reserve bytes of price
+								<paper-tooltip>
+									Amount of bytes to reserve on RADIUS Accounting-Start and add to reported bytes on Accounting-Interim.
 								</paper-tooltip>
 							</div>
 							<div>
 								<paper-dropdown-menu
 										id="destPrefixTariff"
-										value="{{priceAddTariff}}"
+										value="{{priceTariff}}"
 										no-animations="true"
 										label="Prefix Tariff Table">
 									<paper-listbox
-											id="addPricTariff"
 											slot="dropdown-content">
-										<template is="dom-repeat" items="{{tables}}">
+										<template
+												is="dom-repeat"
+												items="{{prefixTables}}">
 											<paper-item>
 												{{item.name}}
 											</paper-item>
 										</template>
 									</paper-listbox>
 								</paper-dropdown-menu>
-								<paper-tooltip
-										for="destPrefixTariff"
-										offset="0">
-									Destination prefix tariff table
-								</paper-tooltip>
-							</div>
-							<div>
-								<paper-dropdown-menu
-										id="destPrefixPolicy"
-										value="{{priceAddPolicy}}"
-										no-animations="true"
-										label="Policy Table">
-									<paper-listbox
-											id="addPricPolicy"
-											slot="dropdown-content">
-										<template is="dom-repeat" items="{{policyTables}}">
-											<paper-item>
-												{{item.name}}
-											</paper-item>
-										</template>
-									</paper-listbox>
-								</paper-dropdown-menu>
-								<paper-tooltip
-										for="destPrefixPolicy"
-										offset="0">
-									Destination prefix policy table
+								<paper-tooltip>
+									Name of table for Tariff type Product Offering Price.
 								</paper-tooltip>
 							</div>
 							<div>
 								<paper-input
-										id="roamingTable"
-										type="string"
-										value="{{priceAddRoaming}}"
+										value="{{priceRoaming}}"
 										label="Roaming Table">
 								</paper-input>
-								<paper-tooltip
-										for="roamingTable"
-										offset="0">
-									Roaming table
+								<paper-tooltip>
+									Name of table for matching VPLMN.
 								</paper-tooltip>
 							</div>
 							<div>
 								<paper-input
-										id="chargingKey"
 										type="number"
-										value="{{chargingKey}}"
+										value="{{priceKey}}"
 										label="Charging Key">
 								</paper-input>
+								<paper-tooltip>
+									Charging Key (Rating Group) specific to this Product Offering Price.
+								</paper-tooltip>
 							</div>
 						</iron-collapse>
-						<div class="buttons">
+						<div
+								class="buttons">
 							<paper-button
 									raised
 									class="submit-button"
-									on-tap="addPrice">
+									on-tap="_addPrice">
 								[[addOrUpdateButton]]
 							</paper-button>
 							<paper-button
@@ -587,65 +561,62 @@ class offerAdd extends PolymerElement {
 							</paper-button>
 						</div>
 					</div>
-					<div id="add-Alt-tab">
+					<div>
 						<div>
-							<datalist id="alts">
-								<template is="dom-repeat" items="[[alterations]]">
+							<datalist
+									id="alterations">
+								<template
+										is="dom-repeat"
+										items="[[alterations]]">
 									<option value="{{item.name}}" />
 								</template>
 							</datalist>
-							<paper-input id="addAltName"
-									list="alts"
-									value="{{altAddName}}"
+							<paper-input
 									label="Name"
+									list="alterations"
+									value="{{alterationName}}"
+									autocomplete="on"
 									on-value-changed="updateAltsDialog">
 							</paper-input>
-							<paper-tooltip
-									for="addAltName"
-									offset="0">
-								Price alteration name
+							<paper-tooltip>
+								Name of the Product Offering Price Alteration.
 							</paper-tooltip>
 						</div>
 						<div>
-							<paper-input id="addAltDesc"
-									value="{{altAddDesc}}"
+							<paper-input
+									value="{{alterationDescription}}"
 									label="Description">
 							</paper-input>
-							<paper-tooltip
-									for="addAltDesc"
-									offset="0">
-								Price alteration description
+							<paper-tooltip>
+								Descriptionof the Product Offering Price Alteration.
 							</paper-tooltip>
 						</div>
 						<div>
-							<paper-input id="addAltStartDate"
-									value="{{addOfferStartDateAlt}}"
-									label="Start Date"
+							<paper-input
+								type="datetime-local"
+								label="Start Date"
+								value="{{alterationStartDate}}">
 							</paper-input>
-							<paper-tooltip
-									for="addAltStartDate"
-									offset="0">
-								Price alteration startDate
+							<paper-tooltip>
+								Start of Product Offering Price Alteration validity period.
 							</paper-tooltip>
 						</div>
 						<div>
-							<paper-input id="addAltEndDate"
-									value="{{addOfferEndDateAlt}}"
+							<paper-input
+									type="datetime-local"
 									label="End Date"
+									value="{{alterationEndDate}}">
 							</paper-input>
-							<paper-tooltip
-									for="addAltEndDate"
-									offset="0">
-								Price alteration endDate
+							<paper-tooltip>
+								End of Product Offering Price Alteration validity period.
 							</paper-tooltip>
 						</div>
 						<div>
 							<paper-dropdown-menu
-									id="altPriType"
 									label="Price Type"
-									value="{{altAddType}}"
+									value="{{alterationType}}"
 									no-animations="true"
-									on-selected-item-changed="checkRecureAlt">
+									on-selected-item-changed="_checkRecurringAlt">
 								<paper-listbox
 										id="addAltType"
 										slot="dropdown-content">
@@ -660,91 +631,82 @@ class offerAdd extends PolymerElement {
 									</paper-item>
 								</paper-listbox>
 							</paper-dropdown-menu>
-							<paper-tooltip
-									for="altPriType"
-									offset="0">
-								Select price alteration type (Recurring | Onetime | Usage)
+							<paper-tooltip>
+								Type of Product Offering Price Alteration.
 							</paper-tooltip>
 						</div>
 						<div>
 							<paper-input
 									id="addAltSize"
-									value="{{altAddSize}}"
 									label="Unit Size"
-									type="text"
+									value="{{alterationSize}}"
 									allowed-pattern="[0-9kmg]"
 									pattern="^[0-9]+[kmg]?$"
 									auto-validate>
 							</paper-input>
-							<paper-tooltip
-									for="addAltSize"
-									offset="0">
-								Unit of measure (Bytes=(MB="m", GB="g", KB="k"), Seconds=(Minutes="m",Hour="h"), Messages=(Messages="msg"))
+							<paper-tooltip>
+								Size of unit determines the granularity of rating.
 							</paper-tooltip>
 						</div>
 						<div>
 							<paper-dropdown-menu
-									id="addAltUnitsdrop"
-									value="{{altAddUnit}}"
-									on-selected-item-changed="checkPatternAlt"
-									no-animations="true"
-									label="Units">
+									label="Units"
+									value="{{alterationUnit}}"
+									on-selected-item-changed="_checkPatternAlt"
+									no-animations="true">
 								<paper-listbox
 										id="addAltUnitDrop"
 										slot="dropdown-content">
-									<paper-item id="altBytes">
-											Bytes
+									<paper-item
+											id="altBytes">
+										Bytes
 									</paper-item>
-									<paper-item id="altCents">
-											Cents
+									<paper-item
+											id="altCents">
+										Cents
 									</paper-item>
-									<paper-item id="altSeconds">
-											Seconds
+									<paper-item
+											id="altSeconds">
+										Seconds
 									</paper-item>
-									<paper-item id="altMessages">
-											Messages
+									<paper-item
+											id="altMessages">
+										Messages
 									</paper-item>
 								</paper-listbox>
 							</paper-dropdown-menu>
-							<paper-tooltip
-									for="addAltUnitsdrop"
-									offset="0">
-								Select price units (Bytes | Cents | Seconds | Messages)
+							<paper-tooltip>
+								Type of units to be rated.
 							</paper-tooltip>
 						</div>
 						<div>
-							<paper-input id="addAltAmount"
+							<paper-input
 									label="Amount"
 									type="text"
 									allowed-pattern="[0-9.]"
 									pattern="[0-9]+\.?[0-9]{0,6}$"
 									auto-validate
-									value=0>
+									value="{{alterationAmount}}">
 							</paper-input>
-							<paper-tooltip
-									for="addAltAmount"
-									offset="0">
-								Price alteration tax included amount
+							<paper-tooltip>
+								Amount to charge for each unit.
 							</paper-tooltip>
 						</div>
 						<div>
 							<paper-input
-									id="addAltCurrency"
-									value="{{altAddCurrency}}"
+									value="{{alterationCurrency}}"
 									label="Currency">
 							</paper-input>
-							<paper-tooltip
-									for="addAltCurrency"
-									offset="0">
-								Price alteration currency
+							<paper-tooltip>
+								Currency used in Product Offering Price Alteration.
 							</paper-tooltip>
 						</div>
 						<div>
 							<paper-dropdown-menu
-									id="addalt5drop"
+									id="altPeriodDrop"
 									label="Period"
 									no-animations="true"
-									value="{{altAddPeriod}}">
+									value="{{alterationPeriod}}">
 								<paper-listbox
 										id="addAltPeriod"
 										slot="dropdown-content">
@@ -765,17 +727,16 @@ class offerAdd extends PolymerElement {
 									</paper-item>
 								</paper-listbox>
 							</paper-dropdown-menu>
-							<paper-tooltip
-									for="addalt5drop"
-									offset="0">
-								Select period for price (Hourly | Daily | Weekly | Monthly | Yearly)
+							<paper-tooltip>
+								Period of recurring Product Offering Price Alteration.
 							</paper-tooltip>
 						</div>
-						<div class="buttons">
+						<div
+								class="buttons">
 							<paper-button
 									raised
 									class="submit-button"
-									on-tap="addAlteration">
+									on-tap="_addAlteration">
 								[[addOrUpdateButton]]
 							</paper-button>
 							<paper-button
@@ -817,10 +778,6 @@ class offerAdd extends PolymerElement {
 
 	static get properties() {
 		return {
-			listeners: {
-				'checkIn.checked-changed': 'checkInChanged',
-				'checkOut.checked-changed': 'checkOutChanged'
-			}, 
 			observers: [
 				'_bundleCheckboxChanged(offers.*)'
 			],
@@ -840,12 +797,12 @@ class offerAdd extends PolymerElement {
 					return [];
 				}
 			},
-			tables: {
+			prefixTables: {
 				type: Array,
 				readOnly: true,
 				notify: true,
 				value: function() {
-				return []
+					return []
 				}
 			},
 			policyTables: {
@@ -853,7 +810,7 @@ class offerAdd extends PolymerElement {
 				readOnly: true,
 				notify: true,
 				value: function() {
-				return []
+					return []
 				}
 			},
 			activePage: {
@@ -875,61 +832,102 @@ class offerAdd extends PolymerElement {
 				type: String,
 				value: "add"
 			},
-			addOfferStartDate: {
+			offerName: {
 				type: String
 			},
-			addOfferEndDate: {
+			offerDescription: {
 				type: String
 			},
-			addOfferStartDatePrice: {
+			offerStartDate: {
 				type: String
 			},
-			addOfferEndDatePrice: {
+			offerEndDate: {
 				type: String
 			},
-			addOfferStartDateAlt: {
+			offerStartDatePrice: {
 				type: String
 			},
-			addOfferEndDateAlt: {
+			offerEndDatePrice: {
 				type: String
 			},
-			offerAddAddress: {
+			offerPolicy: {
 				type: String
 			},
-			offerAddDes: {
+			priceName: {
 				type: String
 			},
-			priceAddName: {
+			priceDescription: {
 				type: String
 			},
-			priceAddDes: {
+			priceSize: {
 				type: String
 			},
-			priceAddSize: {
+			priceCurrency: {
 				type: String
 			},
-			priceAddCurrency: {
+			priceType: {
 				type: String
 			},
-			priceAddRoaming: {
+			priceUnits: {
 				type: String
 			},
-			chargingKey: {
+			priceAmount: {
+				type: String
+			},
+			priceAlteration: {
+				type: String
+			},
+			priceTodStart: {
+				type: String
+			},
+			priceIncoming: {
+				type: Boolean
+			},
+			priceOutgoing: {
+				type: Boolean
+			},
+			priceReserveTime: {
+				type: Number,
+				value: 0
+			},
+			priceReserveBytes: {
+				type: Number,
+				value: 0
+			},
+			priceTariff: {
+				type: String
+			},
+			priceRoaming: {
+				type: String
+			},
+			priceKey: {
 				type: Number
 			},
-			altAddName: {
+			alterationName: {
 				type: String
 			},
-			altAddDesc: {
+			alterationDescription: {
 				type: String
 			},
-			altAddSize: {
+			alterationStartDate: {
 				type: String
 			},
-			altAddCurrency: {
+			alterationEndDate: {
 				type: String
 			},
-			address: {
+			alterationType: {
+				type: String
+			},
+			alterationSize: {
+				type: String
+			},
+			alterationAmount: {
+				type: String
+			},
+			alterationCurrency: {
+				type: String
+			},
+			redirectAddress: {
 				type: String
 			}
 		}
@@ -964,12 +962,12 @@ class offerAdd extends PolymerElement {
 	_getTariffTablesResponse(event) {
 		var grid = this.$.offerGrid;
 		var results = event.detail.xhr.response;
-		this.splice("tables", 0, this.tables.length)
+		this.splice("prefixTables", 0, this.prefixTables.length)
 		for (var indexTable in results) {
 			var tableRecord = new Object();
 			tableRecord.id = results[indexTable].id;
 			tableRecord.href = results[indexTable].href;
-			this.push('tables', tableRecord);
+			this.push('prefixTables', tableRecord);
 		}
 	}
 
@@ -999,7 +997,7 @@ class offerAdd extends PolymerElement {
 		toast.open();
 	}
 
-	addUpdatePriceDialog() {
+	_addUpdatePriceDialog() {
 		function checkPriceUpdateName(price) {
 			return price.name == null;
 		}
@@ -1007,72 +1005,72 @@ class offerAdd extends PolymerElement {
 			var indexPrice = this.prices.findIndex(checkPriceUpdateName);
 			if (indexPrice == -1) {
 				this.addOrUpdateButton = "add";
-				this.priceAddDes = null;
-				this.$.addPriceStartDate.value = null;
-				this.$.addPriceEndDate.value = null;
-				this.priceAddType = null;
-				this.priceAddSize = null;
-				this.priceAddUnits = null;
-				this.$.addPriceAmount.value = null;
-				this.priceAddCurrency = null;
-				this.priceAddPeriod = null;
-				this.priceAddAlter = null;
-				this.$.addPriceCharReserveTime.value = null;
-				this.$.addPriceCharReserveBytes.value = null;
-				this.$.timeOfDayStart.value = null;
-				this.$.timeOfDayEnd.value = null;
+				this.priceDescription = null;
+				this.offerStartDatePrice = null;
+				this.offerEndDatePrice = null;
+				this.priceType = null;
+				this.priceSize = null;
+				this.priceUnits = null;
+				this.priceAmount = null;
+				this.priceCurrency = null;
+				this.pricePeriod = null;
+				this.priceAlteration = null;
+				this.priceReserveTime = null;
+				this.priceReserveBytes = null;
+				this.priceTodStart = null;
+				this.priceTodEnd = null;
 			} else {
 				this.addOrUpdateButton = "update";
-				this.priceAddDes = this.prices[indexPrice].description;
-				this.$.addPriceStartDate.value = this.prices[indexPrice].start;
-				this.$.addPriceEndDate.value = this.prices[indexPrice].end;
+				this.priceDescription = this.prices[indexPrice].description;
+				this.offerStartDatePrice = this.prices[indexPrice].start;
+				this.offerEndDatePrice = this.prices[indexPrice].end;
 				switch(this.prices[indexPrice].type) {
 					case "recurring":
 						this.$.addPriceType.selected = 0;
-					break;
+						break;
 					case "one_time":
 						this.$.addPriceType.selected = 1;
-					break;
+						break;
 					case "usage":
 						this.$.addPriceType.selected = 2;
-					break;
+						break;
 					case "tariff":
 						this.$.addPriceType.selected = 3;
-					break;
+						break;
 				}
-				this.priceAddSize = this.prices[indexPrice].size;
+				this.priceSize = this.prices[indexPrice].size;
 				switch(this.prices[indexPrice].unit) {
 					case "b":
 						this.$.addPriceUnits.selected = 0;
-					break;
+						break;
 					case "c":
 						this.$.addPriceUnits.selected = 1;
-					break;
+						break;
 					case "s":
 						this.$.addPriceUnits.selected = 2;
-					break;
+						break;
 					case "msg":
 						this.$.addPriceUnits.selected = 3;
-					break;
+						break;
 				}
-				this.priceAddCurrency = this.prices[indexPrice].currency;
-				this.$.addPriceAmount.value = this.prices[indexPrice].amount;
+				this.priceCurrency = this.prices[indexPrice].currency;
+				this.priceAmount = this.prices[indexPrice].amount;
 				switch(this.prices[indexPrice].period) {
 					case "hourly":
 						this.$.addPricePeriod.selected = 0;
-					break;
+						break;
 					case "daily":
 						this.$.addPricePeriod.selected = 1;
-					break;
+						break;
 					case "weekly":
 						this.$.addPricePeriod.selected = 2;
-					break;
+						break;
 					case "monthly":
 						this.$.addPricePeriod.selected = 3;
-					break;
+						break;
 					case "yearly":
 						this.$.addPricePeriod.selected = 4;
-					break;
+						break;
 				}
 				if(this.prices[indexPrice].alterations &&
 							this.prices[indexPrice].alterations.name) {
@@ -1082,86 +1080,89 @@ class offerAdd extends PolymerElement {
 					}
 					this.$.addPriceAlteration.selected = this.alterations.findIndex(checkAltName);
 				}
-				this.$.addPriceCharReserveTime.value = this.prices[indexPrice].reserveTime;
-				this.$.addPriceCharReserveBytes.value = this.prices[indexPrice].reserveBytes;
-				this.$.timeOfDayStart.value = this.prices[indexPrice].timeOfDayRange;
-				this.$.timeOfDayEnd.value = this.prices[indexPrice].timeOfDayRange;
-				this.priceCheckIn = this.prices[indexPrice].callDirection;
-				this.priceCheckIn = this.prices[indexPrice].callDirection;
-				this.priceAddTariff = this.prices[indexPrice].prefixTariff;
-				this.priceAddPolicy = this.prices[indexPrice].prefixPolicy;
-				this.priceAddRoaming = this.prices[indexPrice].roamingTable;
-				this.chargingKey = this.prices[indexPrice].chargingKey;
+				this.priceReserveTime = this.prices[indexPrice].reserveTime;
+				this.priceReserveBytes = this.prices[indexPrice].reserveBytes;
+				this.priceTodStart = this.prices[indexPrice].timeOfDayRange;
+				this.priceTodEnd = this.prices[indexPrice].timeOfDayRange;
+				if(this.prices[indexPrice].callDirection == "answer") {
+					this.priceIncoming = true;
+				}
+				if(this.prices[indexPrice].callDirection == "originate") {
+					this.priceOutgoing = true;
+				}
+				this.priceTariff = this.prices[indexPrice].prefixTariff;
+				this.priceRoaming = this.prices[indexPrice].roamingTable;
+				this.priceKey = this.prices[indexPrice].priceKey;
 			}
 		}
 	}
 
 	updateAltsDialog() {
-		function checkName(alts) {
-			return alts.name == this.altAddName;
+		function checkName(alt) {
+			return alt.name == this.alterationName;
 		}
 		if(this.alterations != undefined) {
 			var index = this.alterations.findIndex(checkName);
 			if (index == -1) {
 				this.addOrUpdateButton = "add";
-				this.altAddDesc = null;
-				this.$.addAltStartDate.value = null;
-				this.$.addAltEndDate.value = null;
-				this.altAddType = null;
-				this.altAddSize = null;
-				this.altAddUnit = null;
-				this.$.addAltAmount.value = null;
-				this.altAddCurrency = null;
+				this.alterationDescription = null;
+				this.alterationStartDate = null;
+				this.alterationEndDate = null;
+				this.alterationType = null;
+				this.alterationSize = null;
+				this.alterationUnit = null;
+				this.alterationAmount = null;
+				this.alterationCurrency = null;
 				this.altAddPeriod = null;
 			} else {
 				this.addOrUpdateButton = "update";
-				this.altAddDesc = this.alterations[index].description;
-				this.$.addAltStartDate.value = this.alterations[index].startdate;
-				this.$.addAltEndDate.value = this.alterations[index].terminationDate;
+				this.alterationDescription = this.alterations[index].description;
+				this.alterationStartDate = this.alterations[index].startdate;
+				this.alterationEndDate = this.alterations[index].terminationDate;
 				switch(this.alterations[index].type) {
 					case "recurring":
 						this.$.addAltType.selected = 0;
-					break;
+						break;
 					case "one_time":
 						this.$.addAltType.selected = 1;
-					break;
+						break;
 					case "usage":
 						this.$.addAltType.selected = 2;
-					break;
+						break;
 				}
-				this.altAddSize = this.alterations[index].size;
+				this.alterationSize = this.alterations[index].size;
 				switch(this.alterations[index].unit) {
 					case "b":
 						this.$.addAltUnitDrop.selected = 0;
-					break;
+						break;
 					case "c":
 						this.$.addAltUnitDrop.selected = 1;
-					break;
+						break;
 					case "s":
 						this.$.addAltUnitDrop.selected = 2;
-					break;
+						break;
 					case "msg":
 						this.$.addAltUnitDrop.selected = 3;
-					break;
+						break;
 				}
-				this.altAddCurrency = this.alterations[index].currency;
-				this.$.addAltAmount.value = this.alterations[index].amount;
+				this.alterationCurrency = this.alterations[index].currency;
+				this.alterationAmount = this.alterations[index].amount;
 				switch(this.alterations[index].period) {
 					case "hourly":
 						this.$.addAltPeriod.selected = 0;
-					break;
+						break;
 					case "daily":
 						this.$.addAltPeriod.selected = 1;
-					break;
+						break;
 					case "weekly":
 						this.$.addAltPeriod.selected = 2;
-					break;
+						break;
 					case "monthly":
 						this.$.addAltPeriod.selected = 3;
-					break;
+						break;
 					case "yearly":
 						this.$.addAltPeriod.selected = 4;
-					break;
+						break;
 				}
 			}
 		}
@@ -1173,40 +1174,38 @@ class offerAdd extends PolymerElement {
 		}
 		if(this.offers.some(check)) {
 			this.$.addOfferProductSpecDrop.disabled = true;
-			this.$.addOfferCharReserveSession.disabled = true;
 		} else {
 			this.$.addOfferProductSpecDrop.disabled = false;
-			this.$.addOfferCharReserveSession.disabled = false;
 		}
 	}
 
 	_onClickBundle() {
 		if(this.$.addBundle.opened == false) {
 			this.$.addBundle.show();
-			this.$.onClickBundle.icon="arrow-drop-up";
+			this.$.onClickBundle.icon = "arrow-drop-up";
 		} else {
 			this.$.addBundle.hide();
-			this.$.onClickBundle.icon="arrow-drop-down"
+			this.$.onClickBundle.icon = "arrow-drop-down";
 		}
 	}
 
 	_onClickOfferChars() {
 		if(this.$.addOfferChars.opened == false) {
 			this.$.addOfferChars.show();
-			this.$.onClickOfferChars.icon="arrow-drop-up"
+			this.$.onClickOfferChars.icon = "arrow-drop-up";
 		} else {
 			this.$.addOfferChars.hide();
-			this.$.onClickOfferChars.icon="arrow-drop-down"
+			this.$.onClickOfferChars.icon = "arrow-drop-down";
 		}
 	}
 
-	addOffer(event) {
+	_addOffer(event) {
 		var offerNew = new Object();
-		if(this.offerAddAddress) {
-			offerNew.name = this.offerAddAddress;
+		if(this.offerName) {
+			offerNew.name = this.offerName;
 		}
-		if(this.offerAddDes) {
-			offerNew.description = this.offerAddDes;
+		if(this.offerDescription) {
+			offerNew.description = this.offerDescription;
 		}
 		if(this.$.addBundle) {
 			var bundled = new Array();
@@ -1244,11 +1243,11 @@ class offerAdd extends PolymerElement {
 		}
 		var startDateTime;
 		var endDateTime;
-		if(this.addOfferStartDate) {
-			startDateTime = this.addOfferStartDate;
+		if(this.offerStartDate) {
+			startDateTime = this.offerStartDate;
 		}
-		if(this.addOfferEndDate) {
-			endDateTime = this.addOfferEndDate;
+		if(this.offerEndDate) {
+			endDateTime = this.offerEndDate;
 		}
 		if(startDateTime && endDateTime) {
 			offerNew.validFor = {startDateTime, endDateTime};
@@ -1275,13 +1274,13 @@ class offerAdd extends PolymerElement {
 			charValueUse.productSpecification = prodSpec;
 			prodSpecCharValueUse.push(charValueUse);
 		}
-		if(this.address) {
+		if(this.redirectAddress) {
 			var redirect = new Object();
 			redirect.name = "redirectServer"
 			redirect.minCardinality = 0;
 			redirect.maxCardinality = 1;
 			var redirectUse = new Object();
-			redirectUse.value = this.address;
+			redirectUse.value = this.redirectAddress;
 			var redirects = new Array();
 			redirects.push(redirectUse);
 			redirect.productSpecCharacteristicValue = redirects;
@@ -1429,7 +1428,7 @@ class offerAdd extends PolymerElement {
 					}
 				}
 				var taxIncludedAmount;
-				var currencyCode
+				var currencyCode;
 				if (item.alterations.amount || item.alterations.amount == 0) {
 					taxIncludedAmount = item.alterations.amount;
 				}
@@ -1462,23 +1461,6 @@ class offerAdd extends PolymerElement {
 				var prodSpec = new Object();
 				prodSpec.id = "3";
 				prodSpec.href = "/catalogManagement/v2/productSpecification/3";
-				charValueUse.productSpecification = prodSpec;
-				prodSpecCharValueUse.push(charValueUse);
-			}
-			if (item.prefixPolicy) {
-				var charValue = new Object();
-				var charValueUse = new Object();
-				charValueUse.name = "destPrefixPolicyTable";
-				charValueUse.minCardinality = 0;
-				charValueUse.maxCardinality = 1;
-				charValue.default = true;
-				charValue.value = item.prefixPolicy;
-				var charValues = new Array();
-				charValues.push(charValue);
-				charValueUse.productSpecCharacteristicValue = charValues;
-				var prodSpec = new Object();
-				prodSpec.id = "3";
-				prodSpec.href = "/catalogManagement/v2/productSpecification/4";
 				charValueUse.productSpecification = prodSpec;
 				prodSpecCharValueUse.push(charValueUse);
 			}
@@ -1517,7 +1499,7 @@ class offerAdd extends PolymerElement {
 				var charValue = new Object();
 				charValue.unitOfMeasure = "seconds";
 				var charLength = item.reserveTime.length;
-				var lastChar = item.reserveTime.charAt(charLength - 1); //gets last character
+				var lastChar = item.reserveTime.charAt(charLength - 1);
 				if(isNaN(parseInt(lastChar))) {
 					var s = item.reserveTime.slice(0, (charLength -1));
 				} else {
@@ -1553,7 +1535,7 @@ class offerAdd extends PolymerElement {
 				var charValue = new Object();
 				charValue.unitOfMeasure = "octets";
 				var charLength = item.reserveBytes.length;
-				var lastChar = item.reserveBytes.charAt(charLength - 1); //gets last character
+				var lastChar = item.reserveBytes.charAt(charLength - 1);
 				if(isNaN(parseInt(lastChar))) {
 					var s = item.reserveBytes.slice(0, (charLength -1));
 				} else {
@@ -1647,7 +1629,7 @@ class offerAdd extends PolymerElement {
 		}
 	}
 
-	checkProductSpec() {
+	_checkProductSpec() {
 		if(this.offerAddSpec == "Prepaid Data") {
 			this.$.destPrefixTariff.disabled = true;
 		} else if(this.offerAddSpec == "Prepaid Voice") {
@@ -1657,8 +1639,8 @@ class offerAdd extends PolymerElement {
 		}
 	}
 
-	checkPattern() {
-		if(this.priceAddUnits == "Bytes") {
+	_checkPattern() {
+		if(this.priceUnits == "Bytes") {
 			this.$.addPriceSize.allowedPattern = "[0-9kmg]";
 			this.$.addPriceSize.pattern = "^[0-9]+[kmg]?$";
 			this.$.addPriceSize.disabled = false;
@@ -1666,11 +1648,11 @@ class offerAdd extends PolymerElement {
 			this.$.addPriceCharReserveBytes.pattern = "^[0-9]+[kmg]?$";
 			this.$.addPriceCharReserveBytes.disabled = false;
 			this.$.addPriceCharReserveTime.disabled = true;
-		} else if(this.priceAddUnits == "Cents") {
+		} else if(this.priceUnits == "Cents") {
 			this.$.addPriceSize.allowedPattern = "[0-9]";
 			this.$.addPriceSize.pattern = "^[0-9]+$";
 			this.$.addPriceSize.disabled = true;
-		} else if(this.priceAddUnits == "Seconds") {
+		} else if(this.priceUnits == "Seconds") {
 			this.$.addPriceSize.allowedPattern = "[0-9mh]";
 			this.$.addPriceSize.pattern = "^[0-9]+[mh]?$";
 			this.$.addPriceSize.disabled = false;
@@ -1678,38 +1660,38 @@ class offerAdd extends PolymerElement {
 			this.$.addPriceCharReserveTime.pattern = "^[0-9]+[mh]?$";
 			this.$.addPriceCharReserveTime.disabled = false;
 			this.$.addPriceCharReserveBytes.disabled = true;
-		} else if(this.priceAddUnits == "Messages") {
+		} else if(this.priceUnits == "Messages") {
 			this.$.addPriceSize.allowedPattern = "[0-9]";
 			this.$.addPriceSize.pattern = "^[0-9]+$";
 			this.$.addPriceSize.disabled = false;
 		}
 	}
 
-	checkPatternAlt() {
-		if(this.altAddUnit == "Bytes") {
+	_checkPatternAlt() {
+		if(this.alterationUnit == "Bytes") {
 			this.$.addAltSize.allowedPattern = "[0-9kmg]";
 			this.$.addAltSize.pattern = "^[0-9]+[kmg]?$";
 			this.$.addAltSize.disabled = false;
 		} 
-		if(this.altAddUnit == "Cents") {
+		if(this.alterationUnit == "Cents") {
 			this.$.addAltSize.allowedPattern = "[0-9]";
 			this.$.addAltSize.pattern = "^[0-9]+$";
 			this.$.addAltSize.disabled = true;
 		}
-		if(this.altAddUnit == "Seconds") {
+		if(this.alterationUnit == "Seconds") {
 			this.$.addAltSize.allowedPattern = "[0-9mh]";
 			this.$.addAltSize.pattern = "^[0-9]+[mh]?$";
 			this.$.addAltSize.disabled = false;
 		}
-		if(this.altAddUnit == "Messages") {
+		if(this.alterationUnit == "Messages") {
 			this.$.addAltSize.allowedPattern = "[0-9]";
 			this.$.addAltSize.pattern = "^[0-9]+$";
 			this.$.addAltSize.disabled = false;
 		}
 	}
 
-	checkRecure() {
-		if(this.priceAddType == "Recurring") {
+	_checkRecurring() {
+		if(this.priceType == "Recurring") {
 			this.$.addPricePerioddrop.disabled = false;
 			this.$.priceBytes.disabled = true;
 			this.$.priceSeconds.disabled = true;
@@ -1719,7 +1701,7 @@ class offerAdd extends PolymerElement {
 			this.$.addPriceCharReserveBytes.disabled = true;
 			this.$.addPriceUnits.selected = 1;
 			this.$.addPriceAmount.disabled = false;
-		} else if(this.priceAddType == "One Time") {
+		} else if(this.priceType == "One Time") {
 			this.$.addPricePerioddrop.disabled = true;
 			this.$.priceBytes.disabled = true;
 			this.$.priceSeconds.disabled = true;
@@ -1729,7 +1711,7 @@ class offerAdd extends PolymerElement {
 			this.$.addPriceCharReserveBytes.disabled = true;
 			this.$.addPriceUnits.selected = 1;
 			this.$.addPriceAmount.disabled = false;
-		} else if(this.priceAddType == "Usage") {
+		} else if(this.priceType == "Usage") {
 			this.$.addPricePerioddrop.disabled = true;
 			this.$.priceCents.disabled = true;
 			this.$.priceMessages.disabled = false;
@@ -1737,7 +1719,7 @@ class offerAdd extends PolymerElement {
 			this.$.priceSeconds.disabled = false;
 			this.$.addPriceUnits.selected = 0;
 			this.$.addPriceAmount.disabled = false;
-		} else if(this.priceAddType == "Tariff") {
+		} else if(this.priceType == "Tariff") {
 			this.$.addPricePerioddrop.disabled = true;
 			this.$.priceCents.disabled = true;
 			this.$.priceBytes.disabled = true;
@@ -1745,34 +1727,34 @@ class offerAdd extends PolymerElement {
 			this.$.priceSeconds.disabled = false;
 			this.$.addPriceUnits.selected = 2;
 			this.$.addPriceAmount.disabled = true;
-			this.$.addPriceAmount.value = null;
+			this.priceAmount = null;
 		}
 	}
 
-	checkRecureAlt() {
-		if(this.altAddType == "Recurring") {
-			this.$.addalt5drop.disabled = false;
+	_checkRecurringAlt() {
+		if(this.alterationType == "Recurring") {
+			this.$.altPeriodDrop.disabled = false;
 			this.$.altBytes.disabled = false;
 			this.$.altSeconds.disabled = false;
 			this.$.altCents.disabled = true;
 			this.$.altMessages.disabled = false;
 			this.$.addAltUnitDrop.selected = 0;
-		} else if(this.altAddType == "One Time") {
-			this.$.addalt5drop.disabled = true;
+		} else if(this.alterationType == "One Time") {
+			this.$.altPeriodDrop.disabled = true;
 			this.$.altBytes.disabled = false;
 			this.$.altSeconds.disabled = false;
 			this.$.altCents.disabled = false;
 			this.$.altMessages.disabled = false;
 			this.$.addAltUnitDrop.selected = 1;
-		} else if(this.altAddType == "Usage") {
-			this.$.addalt5drop.disabled = true;
+		} else if(this.alterationType == "Usage") {
+			this.$.altPeriodDrop.disabled = true;
 			this.$.altBytes.disabled = false;
 			this.$.altSeconds.disabled = false;
 			this.$.altCents.disabled = true;
 			this.$.altMessages.disabled = false;
 		}
 	}
-	addPrice(event) {
+	_addPrice(event) {
 		function checkPriceName(price) {
 			return price.name == null;
 		}
@@ -1782,81 +1764,81 @@ class offerAdd extends PolymerElement {
 		} else {
 			var priceNew = this.prices[indexPrice];
 		}
-		priceNew.name = this.priceAddName;
-		priceNew.description = this.priceAddDes;
-		priceNew.start = this.addOfferStartDatePrice;
-		priceNew.end = this.addOfferEndDatePrice;
+		priceNew.name = this.priceName;
+		priceNew.description = this.priceDescription;
+		priceNew.start = this.offerStartDatePrice;
+		priceNew.end = this.offerEndDatePrice;
 		switch(this.$.addPriceType.selected) {
 			case 0:
 				priceNew.type = "recurring";
-			break;
+				break;
 			case 1:
 				priceNew.type = "one_time";
-			break;
+				break;
 			case 2:
 				priceNew.type = "usage";
-			break;
+				break;
 			case 3:
 				priceNew.type = "tariff";
-			break;
+				break;
 		}
 		switch(this.$.addPriceUnits.selected) {
 			case 0:
 				priceNew.unit = "b";
-			break;
+				break;
 			case 1:
 				priceNew.unit = "c";
-			break;
+				break;
 			case 2:
 				priceNew.unit = "s";
-			break;
+				break;
 			case 3:
 				priceNew.unit = "msg";
-			break;
+				break;
 		}
-		if (this.$.addPriceAmount.value) {
-			priceNew.amount = this.$.addPriceAmount.value;
+		if (this.priceAmount) {
+			priceNew.amount = this.priceAmount;
 		}
-		priceNew.size = this.priceAddSize;
-		priceNew.currency = this.priceAddCurrency;
+		priceNew.size = this.priceSize;
+		priceNew.currency = this.priceCurrency;
 		switch(this.$.addPricePeriod.selected) {
 			case 0:
 				priceNew.period = "hourly";
-			break
+				break;
 			case 1:
 				priceNew.period = "daily";
-			break;
+				break;
 			case 2:
 				priceNew.period = "weekly";
-			break;
+				break;
 			case 3:
 				priceNew.period = "monthly";
-			break
+				break;
 			case 4:
 				priceNew.period = "yearly";
-			break;
+				break;
 		}
-		var priAltObj = this.priceAddAlter
-		if(this.$.addPriceDrop.value) {
+		var priAltObj = this.priceAlteration;
+		if(this.priceAlteration) {
 			function checkAlt(alts) {
 				return alts.name == priAltObj;
 			}
 			var altIndex = this.alterations.findIndex(checkAlt);
 			priceNew.alterations = this.alterations[altIndex];
 		}
-		priceNew.reserveTime = this.$.addPriceCharReserveTime.value;
-		priceNew.reserveBytes = this.$.addPriceCharReserveBytes.value;
-		priceNew.timeOfDayRange = this.$.timeOfDayStart.value;
-		priceNew.timeOfDayRange = this.$.timeOfDayEnd.value;
-		if(this.$.checkIn.checked == true) {
+		priceNew.reserveTime = this.priceReserveTime;
+		priceNew.reserveBytes = this.priceReserveBytes;
+		priceNew.timeOfDayRange = this.priceTodStart;
+		priceNew.timeOfDayRange = this.priceTodEnd;
+		if(this.priceIncoming == true) {
 			priceNew.callDirection = "answer";
-		} else if(this.$.checkOut.checked == true) {
+		}
+		if(this.priceOutgoing == true) {
 			priceNew.callDirection = "originate";
 		}
-		priceNew.prefixTariff = this.priceAddTariff;
-		priceNew.prefixPolicy = this.priceAddPolicy;
-		priceNew.roamingTable = this.priceAddRoaming;
-		priceNew.chargingKey = parseInt(this.chargingKey);
+		priceNew.prefixTariff = this.priceTariff;
+		priceNew.roamingTable = this.priceRoaming;
+		priceNew.chargingKey = parseInt(this.priceKey);
 		if(priceNew.name
 					&& priceNew.type
 					&& priceNew.unit
@@ -1868,23 +1850,23 @@ class offerAdd extends PolymerElement {
 				this.splice('prices', indexPrice, 1, priceNew);
 				this.addOrUpdateButton = "add";
 			}
-			this.priceAddName = null;
-			this.priceAddDes = null;
-			this.$.addPriceStartDate.value = null;
-			this.$.addPriceEndDate.value = null;
-			this.priceAddType = null;
-			this.priceAddSize = null;
+			this.priceName = null;
+			this.priceDescription = null;
+			this.offerStartDatePrice = null;
+			this.offerEndDatePrice = null;
+			this.priceType = null;
+			this.priceSize = null;
 			this.$.addPriceUnits.selected = null;
-			this.$.addPriceAmount.value = null;
-			this.$.addPriceCurrency.value = null;
+			this.priceAmount = null;
+			this.priceCurrency = null;
 			this.$.addPricePeriod.selected = null;
 			this.$.addPriceAlteration.selected = null;
-			this.$.addPriceCharReserveTime.value = null;
-			this.$.addPriceCharReserveBytes.value = null;
-			this.$.destPrefixTariff.value = null;
-			this.$.roamingTable.value = null;
-			this.$.timeOfDayStart.value = null;
-			this.$.timeOfDayEnd.value = null;
+			this.priceReserveTime = null;
+			this.priceReserveBytes = null;
+			this.priceTariff = null;
+			this.priceRoaming = null;
+			this.priceTodStart = null;
+			this.priceTodEnd = null;
 			var toast = document.body.querySelector('sig-app').shadowRoot.getElementById('restError');
 			toast.text = "Success";
 			toast.open();
@@ -1895,51 +1877,39 @@ class offerAdd extends PolymerElement {
 		}
 	}
 
-	_onClickPriceChars() {
+	_collapsePriceChars() {
 		if(this.$.addPriceChars.opened == false) {
 			this.$.addPriceChars.show();
-			this.$.onClickPriceChars.icon="arrow-drop-up"
+			this.$.priceCharsSection.icon = "arrow-drop-up";
 		} else {
 			this.$.addPriceChars.hide();
-			this.$.onClickPriceChars.icon="arrow-drop-down"
+			this.$.priceCharsSection.icon = "arrow-drop-down";
 		}
 	}
 
-	_onClickPriceCharsTime() {
+	_collapsePriceCharsTime() {
 		if(this.$.addPriceCharsTime.opened == false) {
 			this.$.addPriceCharsTime.show();
-			this.$.onClickPriceCharsTime.icon="arrow-drop-up"
+			this.$.priceCharsTimeSection.icon = "arrow-drop-up";
 		} else {
 			this.$.addPriceCharsTime.hide();
-			this.$.onClickPriceChars.icon="arrow-drop-down"
+			this.$.priceCharsSection.icon = "arrow-drop-down";
 		}
 	}
 
-	_onClickCall() {
-		if(this.$.addCall.opened == false) {
-			this.$.addCall.show();
-			this.$.onClickCall.icon="arrow-drop-up";
+	_collapseCallDirection() {
+		if(this.$.callDirection.opened == false) {
+			this.$.callDirection.show();
+			this.$.callDirSection.icon = "arrow-drop-up";
 		} else {
-			this.$.addCall.hide();
-			this.$.onClickCall.icon="arrow-drop-down"
+			this.$.callDirection.hide();
+			this.$.callDirSection.icon = "arrow-drop-down";
 		}
 	}
 
-	checkInChanged(event) {
-		if(event.detail.value) {
-			this.$.checkOut.checked = false;
-		}
-	}
-
-	checkOutChanged(event) {
-		if(event.detail.value) {
-			this.$.checkIn.checked = false;
-		}
-	}
-
-	addAlteration(event) {
+	_addAlteration(event) {
 		function checkAltName(alt) {
-			return alt.name == this.altAddName;
+			return alt.name == this.alterationName;
 		}
 		var indexAlt = this.alterations.findIndex(checkAltName);
 		if (indexAlt == -1) {
@@ -1948,56 +1918,56 @@ class offerAdd extends PolymerElement {
 			var altNew = this.prices[indexAlt];
 		}
 		var altNew = new Object();
-		altNew.name = this.altAddName;
-		altNew.description = this.altAddDesc;
-		altNew.startdate = this.addOfferStartDateAlt;
-		altNew.terminationDate = this.addOfferEndDateAlt;
+		altNew.name = this.alterationName;
+		altNew.description = this.alterationDescription;
+		altNew.startdate = this.alterationStartDate;
+		altNew.terminationDate = this.alterationEndDate;
 		switch(this.$.addAltType.selected) {
 			case 0:
 				altNew.type = "recurring";
-			break;
+				break;
 			case 1:
 				altNew.type = "one_time";
-			break;
+				break;
 			case 2:
 				altNew.type = "usage";
-			break;
+				break;
 		}
-		altNew.size = this.altAddSize;
-		if(this.$.addAltAmount.value) {
-			altNew.amount= this.$.addAltAmount.value;
+		altNew.size = this.alterationSize;
+		if(this.alterationAmount) {
+			altNew.amount= this.alterationAmount;
 		}
-		altNew.currency = this.$.addAltCurrency.value;
+		altNew.currency = this.alterationCurrency;
 		switch(this.$.addAltPeriod.selected) {
 			case 0:
 				altNew.period = "hourly";
-			break
+				break;
 			case 1:
 				altNew.period = "daily";
-			break;
+				break;
 			case 2:
 				altNew.period = "weekly";
-			break;
+				break;
 			case 3:
 				altNew.period = "monthly";
-			break
+				break;
 			case 4:
 				altNew.period = "yearly";
-			break;
+				break;
 		}
 		switch(this.$.addAltUnitDrop.selected) {
 			case 0:
 				altNew.unit = "b";
-			break;
+				break;
 			case 1:
 				altNew.unit = "c";
-			break
+				break;
 			case 2:
 				altNew.unit = "s";
-			break
+				break;
 			case 3:
 				altNew.unit = "msg";
-			break
+				break;
 		}
 		if(altNew.name
 					&& altNew.type
@@ -2010,15 +1980,15 @@ class offerAdd extends PolymerElement {
 				this.splice('alterations', indexAlt, 1, altNew);
 				this.addOrUpdateButton = "add";
 			}
-			this.altAddName = null
-			this.altAddDesc = null;
-			this.$.addAltStartDate.value = null;
-			this.$.addAltEndDate.value = null;
+			this.alterationName = null;
+			this.alterationDescription = null;
+			this.alterationStartDate = null;
+			this.alterationEndDate = null;
 			this.$.addAltType.selected = null;
-			this.altAddSize = null;
+			this.alterationSize = null;
 			this.$.addAltUnitDrop.selected = null;
-			this.$.addAltAmount.value = null;
-			this.$.addAltCurrency.value = null;
+			this.alterationAmount = null;
+			this.alterationCurrency = null;
 			this.$.addAltPeriod.selected = null;
 			var toast = document.body.querySelector('sig-app').shadowRoot.getElementById('restError');
 			toast.text = "Success";
@@ -2032,8 +2002,8 @@ class offerAdd extends PolymerElement {
 
 	_addOfferResponse(event) {
 		this.$.addOfferModal.close();
-		this.offerAddAddress = null;
-		this.offerAddDes = null;
+		this.offerName = null;
+		this.offerDescription = null;
 		this.set('prices', []);
 		this.set('alterations', []);
 		document.body.querySelector('sig-app').shadowRoot.getElementById('offerList').shadowRoot.getElementById('offerGrid').clearCache();
@@ -2054,43 +2024,41 @@ class offerAdd extends PolymerElement {
 		this.set('alterations', []);
 		this.set('offers', []);
 		this.addOrUpdateButton = "add";
-		this.offerAddAddress = null;
-		this.offerAddDes = null;
+		this.offerName = null;
+		this.offerDescription = null;
 		this.$.addOfferProductSpec.selected = null;
-		this.$.addOffStart.value = null;
-		this.$.addOffEnd.value = null;
 		this.$.addOfferChars.hide();
 		this.$.addBundle.hide();
-		this.$.destPrefixTariff.value = null;
-		this.$.roamingTable.value = null;
-		this.$.chargingKey.value = null;
+		this.priceTariff = null;
+		this.priceRoaming = null;
+		this.priceKey = null;
 		this.$.addOfferCharReserveSession.value = null;
-		this.addOfferStartDate = null;
-		this.addOfferEndDate = null;
-		this.$.addPriceName.value = null;
-		this.$.addPriceDesc.value = null;
-		this.$.addPriceStartDate.value = null;
-		this.$.addPriceEndDate.value = null;
+		this.offerStartDate = null;
+		this.offerEndDate = null;
+		this.offerStartDatePrice = null;
+		this.offerEndDatePrice = null;
+		this.priceName = null;
+		this.priceDescription = null;
 		this.$.addPriceType.selected = null;
-		this.$.addPriceSize.value = null;
+		this.priceSize = null;
 		this.$.addPriceUnits.selected = null;
-		this.$.addPriceAmount.value = null;
-		this.$.addPriceCurrency.value = null;
+		this.priceAmount = null;
+		this.priceCurrency = null;
 		this.$.addPricePeriod.selected = null;
-		this.$.addPriceCharReserveTime.value = null;
-		this.$.addPriceCharReserveBytes.value = null;
-		this.altAddName = null
-		this.altAddDesc = null;
-		this.$.addAltStartDate.value = null;
-		this.$.addAltEndDate.value = null;
+		this.priceReserveTime = null;
+		this.priceReserveBytes = null;
+		this.alterationName = null;
+		this.alterationDescription = null;
+		this.alterationStartDate = null;
+		this.alterationEndDate = null;
 		this.$.addAltType.selected = null;
-		this.altAddSize = null;
+		this.alterationSize = null;
 		this.$.addAltUnitDrop.selected = null;
-		this.$.addAltAmount.value = null;
-		this.$.addAltCurrency.value = null;
+		this.alterationAmount = null;
+		this.alterationCurrency = null;
 		this.$.addAltPeriod.selected = null;
-		this.$.timeOfDayStart.value = null;
-		this.$.timeOfDayEnd.value = null;
+		this.priceTodStart = null;
+		this.priceTodEnd = null;
 		this.$.addOfferModal.close();
 	}
 
