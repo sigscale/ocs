@@ -1154,8 +1154,8 @@ flow([#{"flowDescription" := Description, "flowDirection" := Direction} | T], Ac
 		when is_list(Description), is_integer(Direction) ->
 	flow(T, [{struct, [{"flowDescription", Description},
 			{"flowDirection", flow_dir(Direction)}]} | Acc]);
-flow([{struct, [{"flowDescription", Description}]},
-		{"flowDirection", Direction} | T], Acc)
+flow([{struct, [{"flowDescription", Description},
+		{"flowDirection", Direction}]} | T], Acc)
 		when is_list(Description), is_list(Direction) ->
 	flow(T, [#{"flowDescription" => Description,
 			"flowDirection" => flow_dir(Direction)} | Acc]);
