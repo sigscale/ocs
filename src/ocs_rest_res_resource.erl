@@ -355,17 +355,26 @@ delete_resource_inventory(Table, Id) ->
 %%    Retrieve resource from inventory management.
 get_resource(Id) ->
 	try
-		case ocs:get_resource(Id) of
-			{ok, #resource{last_modified = LM} = Resource} ->
-				Headers = [{content_type, "application/json"},
-						{etag, ocs_rest:etag(LM)}],
-				Body = mochijson:encode(resource(Resource)),
-				{ok, Headers, Body};
-			{error, not_found} ->
-				{error, 404};
-			{error, _Reason} ->
-				{error, 500}
-		end
+		string:tokens(Id, "-")
+	of
+		[Table, Prefix] ->
+			{Description, Rate, LM} = ocs_gtt:lookup_first(Table, Prefix),
+			Headers = [{content_type, "application/json"},
+					{etag, ocs_rest:etag(LM)}],
+			Body = mochijson:encode(gtt(Table, {Prefix, Description, Rate})),
+			{ok, Headers, Body};
+		_ ->
+			case ocs:get_resource(Id) of
+				{ok, #resource{last_modified = LM} = Resource} ->
+					Headers = [{content_type, "application/json"},
+							{etag, ocs_rest:etag(LM)}],
+					Body = mochijson:encode(resource(Resource)),
+					{ok, Headers, Body};
+				{error, not_found} ->
+					{error, 404};
+				{error, _Reason} ->
+					{error, 500}
+			end
 	catch
 		error:badarg ->
 			{error, 404};
