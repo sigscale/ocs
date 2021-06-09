@@ -1293,6 +1293,23 @@ class offerAdd extends PolymerElement {
 			redirect.productSpecification = prodSpec1;
 			prodSpecCharValueUse.push(redirect);
 		}
+		if (this.offerPolicy) {
+			var charValue = new Object();
+			var charValueUse = new Object();
+			charValueUse.name = "destPrefixPolicyTable";
+			charValueUse.minCardinality = 0;
+			charValueUse.maxCardinality = 1;
+			charValue.default = true;
+			charValue.value = this.offerPolicy;
+			var charValues = new Array();
+			charValues.push(charValue);
+			charValueUse.productSpecCharacteristicValue = charValues;
+			var prodSpec = new Object();
+			prodSpec.id = "3";
+			prodSpec.href = "/catalogManagement/v2/productSpecification/4";
+			charValueUse.productSpecification = prodSpec;
+			prodSpecCharValueUse.push(charValueUse);
+		}
 		if (prodSpecCharValueUse.length > 0) {
 			offerNew.prodSpecCharValueUse = prodSpecCharValueUse;
 		}
