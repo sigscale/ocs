@@ -1660,16 +1660,8 @@ add_resource(#resource{id = undefined, last_modified = undefined, name = Name,
 			exit(table_not_found)
 	end;
 add_resource(#resource{id = undefined, last_modified = undefined,
-		specification = #specification_ref{id = "2"},
-		related = [#resource_rel{name = Table}], characteristic = Chars}
-		= Resource) when length(Chars) == 3 ->
-	case mnesia:table_info(list_to_existing_atom(Table), attributes) of
-		[num, value] ->
-			add_resource1(Resource);
-		_ ->
-			exit(table_not_found)
-	end;
-add_resource(#resource{id = undefined, last_modified = undefined} = Resource) ->
+		specification = #specification_ref{id = SpecId}} = Resource)
+		when SpecId /= "1" ->
 	add_resource1(Resource).
 %% @hidden
 add_resource1(#resource{} = Resource) ->
@@ -1686,18 +1678,6 @@ add_resource1(#resource{} = Resource) ->
 	end,
 	add_resource2(mnesia:transaction(F)).
 %% @hidden
-add_resource2({atomic, #resource{specification = #specification_ref{id = "2"},
-		related = [#resource_rel{name = Table}], characteristic = Chars}
-		= NewResource}) ->
-	#resource_char{value = Prefix}
-			= lists:keyfind("prefix", #resource_char.name, Chars),
-	#resource_char{value = Description}
-			= lists:keyfind("description", #resource_char.name, Chars),
-	#resource_char{value = Rate}
-			= lists:keyfind("rate", #resource_char.name, Chars),
-	{ok, #gtt{}} = ocs_gtt:insert(Table, Prefix, {Description, Rate}),
-	ok = ocs_event:notify(create_resource, NewResource, resource),
-	{ok, NewResource};
 add_resource2({atomic, #resource{} = NewResource}) ->
 	ok = ocs_event:notify(create_resource, NewResource, resource),
 	{ok, NewResource};
