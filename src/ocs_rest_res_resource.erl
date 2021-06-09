@@ -626,12 +626,40 @@ get_pla_specs(_Query) ->
 %% @doc Respond to `DELETE /resourceInventoryManagement/v1/resource/{id}''
 %%    request to remove a table row.
 delete_resource(Id) ->
+	delete_resource1(ocs:get_resource(Id)).
+delete_resource1({ok, #resource{id = Id, name = Name,
+		specification = #specification_ref{id = "3"}}}) ->
+	F = fun F(eof, Acc) ->
+				lists:flatten(Acc);
+			F(Cont1, Acc) ->
+				case ocs:query_resource(Cont1, '_', '_',
+						{exact, "3"}, {exact, Name}) of
+					{error, _Reason} ->
+						{error, 400};
+					{Cont2, L} ->
+						Fid = fun(#resource{id = RId}) ->
+									RId
+						end,
+						F(Cont2, [lists:map(Fid, L) | Acc])
+				end
+	end,
+	case F(start, []) of
+		[] ->
+			delete_resource2([Id]);
+		[ResId | _] = ResIdList when is_list(ResId) ->
+			delete_resource2(ResIdList ++ [Id])
+	end;
+delete_resource1({error, _Reason}) ->
+	{error, 400}.
+delete_resource2([Id | T]) ->
 	case ocs:delete_resource(Id) of
 		ok ->
-			{ok, [], []};
+			delete_resource2(T);
 		{error, _Reason} ->
 			{error, 400}
-	end.
+	end;
+delete_resource2([]) ->
+	{ok, [], []}.
 
 -spec patch_resource(Id, Etag, ReqData) -> Result
 	when
