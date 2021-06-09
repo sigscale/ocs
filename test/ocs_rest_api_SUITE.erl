@@ -4122,7 +4122,8 @@ notify_insert_gtt(Config) ->
 	Request1 = {CollectionUrl, [Accept, auth_header()], ContentType, RequestBody},
 	{ok, {{_, 201, _}, Headers, _}} = httpc:request(post, Request1, [], []),
 	{_, ?PathResourceHub ++ SubId} = lists:keyfind("location", 1, Headers),
-	[Table | _] = ocs_gtt:list(),
+	Table = "tariff_table9",
+	ok = ocs_gtt:new(Table, []),
 	Prefix = "1519240",
 	Description = "Bell Mobility",
 	Amount = 10000,
@@ -4133,7 +4134,8 @@ notify_insert_gtt(Config) ->
 			{_, "ResourceCreationNotification"}
 					= lists:keyfind("eventType", 1, GttEvent),
 			{_, {struct, GttList}} = lists:keyfind("event", 1, GttEvent),
-			{_, Prefix} = lists:keyfind("id", 1, GttList)
+			ResId = Table ++ "-" ++ Prefix,
+			{_, ResId} = lists:keyfind("id", 1, GttList)
 	end,
 	Request2 = {CollectionUrl ++ SubId, [Accept, auth_header()]},
 	{ok, {{_, 204, _}, _, []}} = httpc:request(delete, Request2, [], []).
@@ -4156,19 +4158,20 @@ notify_delete_gtt(Config) ->
 	Request1 = {CollectionUrl, [Accept, auth_header()], ContentType, RequestBody},
 	{ok, {{_, 201, _}, Headers, _}} = httpc:request(post, Request1, [], []),
 	{_, ?PathResourceHub ++ SubId} = lists:keyfind("location", 1, Headers),
-	Table = tariff_table7,
+	Table = "tariff_table7",
 	ok = ocs_gtt:new(Table, []),
 	Prefix = "1519240",
 	Description = "Bell Mobility",
 	Amount = 10000,
 	{ok, #gtt{}} = ocs_gtt:insert(Table, Prefix, {Description, Amount}),
+	ResId = Table ++ "-" ++ Prefix,
 	receive
 		Receive1 ->
 			{struct, GttEvent1} = mochijson:decode(Receive1),
 			{_, "ResourceCreationNotification"}
 					= lists:keyfind("eventType", 1, GttEvent1),
 			{_, {struct, GttList1}} = lists:keyfind("event", 1, GttEvent1),
-			{_, Prefix} = lists:keyfind("id", 1, GttList1)
+			{_, ResId} = lists:keyfind("id", 1, GttList1)
 	end,
 	ok = ocs_gtt:delete(Table, Prefix),
 	receive
@@ -4177,7 +4180,7 @@ notify_delete_gtt(Config) ->
 			{_, "ResourceRemoveNotification"}
 					= lists:keyfind("eventType", 1, GttEvent2),
 			{_, {struct, GttList2}} = lists:keyfind("event", 1, GttEvent2),
-			{_, Prefix} = lists:keyfind("id", 1, GttList2)
+			{_, ResId} = lists:keyfind("id", 1, GttList2)
 	end,
 	Request2 = {CollectionUrl ++ SubId, [Accept, auth_header()]},
 	{ok, {{_, 204, _}, _, []}} = httpc:request(delete, Request2, [], []).
@@ -4203,7 +4206,7 @@ query_gtt_notification(Config) ->
 	Request1 = {CollectionUrl, [Accept, auth_header()], ContentType, RequestBody},
 	{ok, {{_, 201, _}, Headers, _}} = httpc:request(post, Request1, [], []),
 	{_, ?PathResourceHub ++ SubId} = lists:keyfind("location", 1, Headers),
-	Table = tariff_table8,
+	Table = "tariff_table8",
 	ok = ocs_gtt:new(Table, []),
 	Description = "Bell Mobility",
 	Amount = 10000,
@@ -4215,7 +4218,8 @@ query_gtt_notification(Config) ->
 			{_, "ResourceRemoveNotification"}
 					= lists:keyfind("eventType", 1, GttEvent),
 			{_, {struct, GttList}} = lists:keyfind("event", 1, GttEvent),
-			{_, Prefix} = lists:keyfind("id", 1, GttList)
+			ResId = Table ++ "-" ++ Prefix,
+			{_, ResId} = lists:keyfind("id", 1, GttList)
 	end,
 	Request2 = {CollectionUrl ++ SubId, [Accept, auth_header()]},
 	{ok, {{_, 204, _}, _, []}} = httpc:request(delete, Request2, [], []).
