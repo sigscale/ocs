@@ -842,21 +842,22 @@ tariff_table_catalog() ->
 		{"version", "1.0"}, {"name", "TariffTableCategory"}]}]}},
 	{struct, [Id, Href, Name, Description, Version, Status, LastUpdate, Category]}.
 
--spec gtt(Name, Gtt) -> Gtt
+-spec gtt(Table, Gtt) -> Gtt
 	when
-		Name :: string(),
+		Table :: string(),
 		Gtt :: {Prefix, Description, Rate} | {struct, [tuple()]},
 		Prefix :: string(),
 		Description :: string(),
 		Rate :: non_neg_integer().
 %% @doc CODEC for gtt.
 %% @private
-gtt(Name, {Prefix, Description, Rate} = _Gtt) ->
-	SpecId = {"id", "1"},
-   SpecHref = {"href", ?specPath "1"},
-   SpecName = {"name", "TariffTableSpec"},
-	{struct, [{"id", Prefix},
-			{"href", ?inventoryPath ++ Name ++ "/" ++ Prefix},
+gtt(Table, {Prefix, Description, Rate} = _Gtt) ->
+	Id = Table ++ "-" ++ Prefix,
+	SpecId = {"id", "2"},
+   SpecHref = {"href", ?specPath "2"},
+   SpecName = {"name", "TariffTableRow"},
+	{struct, [{"id", Id},
+			{"href", ?inventoryPath ++ Id},
 			{"resourceSpecification", {struct, [SpecId, SpecHref, SpecName]}},
 			{"resourceCharacteristic", {array,
 			[{struct, [{"name", "prefix"}, {"value", Prefix}]},
