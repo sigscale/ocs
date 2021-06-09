@@ -557,8 +557,28 @@ add_resource(RequestBody) ->
 				[#resource{} | _] ->
 					{error, 400}
 			end;
-		#resource{specification = #specification_ref{id = SpecId}} = Resource
-				when SpecId == "2"; SpecId == "4" ->
+		#resource{specification = #specification_ref{id = "2"},
+				related = [#resource_rel{name = Table}],
+				characteristic = Chars} = Resource1 ->
+			F = fun(CharName) ->
+						case lists:keyfind(CharName, #resource_char.name, Chars) of
+							#resource_char{value = Value} ->
+								Value;
+							false ->
+								{error, 400}
+						end
+			end,
+			Prefix = F("prefix"),
+			{ok, #gtt{value = {_, _, LM}}} = ocs_gtt:insert(Table, Prefix,
+					{F("description"), F("rate")}),
+			Id = Table ++ "-" ++ Prefix,
+			Href = "/resourceInventoryManagement/v1/resource/" ++ Id,
+			Resource2 = Resource1#resource{id = Id, href = F("prefix"),
+					last_modified = LM},
+			Headers = [{location, Href}, {etag, ocs_rest:etag(LM)}],
+			Body = mochijson:encode(resource(Resource2)),
+			{ok, Headers, Body};
+		#resource{specification = #specification_ref{id = "4"}} = Resource ->
 			add_resource1(ocs:add_resource(Resource))
 	catch
 		_:_Reason ->

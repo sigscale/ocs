@@ -4557,7 +4557,8 @@ post_tariff_resource() ->
 	[{userdata, [{doc,"Add tariff resource in rest interface"}]}].
 
 post_tariff_resource(Config) ->
-	ok = ocs_gtt:new(tariff_table4, []),
+	Table = "tariff_table4",
+	ok = ocs_gtt:new(Table, []),
 	HostUrl = ?config(host_url, Config),
 	CollectionUrl = HostUrl ++ "/resourceInventoryManagement/v1/resource/",
 	Name = "Tariff",
@@ -4600,7 +4601,7 @@ post_tariff_resource(Config) ->
 			++ "\t\t\t\"resource\": {\n"
 			++ "\t\t\t\t\"id\": \"" ++ ResourceRelId ++ "\",\n"
 			++ "\t\t\t\t\"href\": \"" ++ ResourceRelHref ++ "\",\n"
-			++ "\t\t\t\t\"name\": \"tariff_table4\"\n"
+			++ "\t\t\t\t\"name\": \"" ++ Table ++ "\"\n"
 			++ "\t\t\t\t},\n"
 			++ "\t\t\t\"relationshipType\": \"contained\"\n"
 			++ "\t\t}\n"
@@ -4616,7 +4617,7 @@ post_tariff_resource(Config) ->
 			++ "\t\t},\n"
 			++ "\t\t{\n"
 			++ "\t\t\t\"name\": \"rate\",\n"
-			++ "\t\t\t\"value\": 250\n"
+			++ "\t\t\t\"value\": \"250\"\n"
 			++ "\t\t}\n"
 			++ "\t]\n"
 			++ "}\n",
@@ -4629,22 +4630,10 @@ post_tariff_resource(Config) ->
 	ContentLength = integer_to_list(length(ResponseBody)),
 	{_, ContentLength} = lists:keyfind("content-length", 1, Headers),
 	{_, URI} = lists:keyfind("location", 1, Headers),
-	{"/resourceInventoryManagement/v1/resource/" ++ ID, _}
+	{"/resourceInventoryManagement/v1/resource/" ++ Id, _}
 			= httpd_util:split_path(URI),
-	{ok, #resource{id = ID, name = Name, description = Description,
-			version = Version, category = Category, class_type = ClassType,
-			base_type = BaseType, schema = ClassSchema, specification = S,
-			related = [R], characteristic = CharList}} = ocs:get_resource(ID),
-	#specification_ref{id = ResSpecId, href = ResSpecHref,
-			name = ResSpecName} = S,
-	#resource_rel{id = ResourceRelId, href = ResourceRelHref,
-			type = "contained", name = "tariff_table4"} = R,
-	#resource_char{name = "prefix", value = CharPrefix}
-			= lists:keyfind("prefix", #resource_char.name, CharList),
-	#resource_char{name = "description", value = CharDes}
-			= lists:keyfind("description", #resource_char.name, CharList),
-	#resource_char{name = "rate", value = 250}
-			= lists:keyfind("rate", #resource_char.name, CharList).
+	[Table, CharPrefix] = string:tokens(Id, "-"),
+	{CharDes, "250", _} = ocs_gtt:lookup_first(Table, CharPrefix).
 
 delete_tariff_resource() ->
 	[{userdata, [{doc,"Delete tariff resource inventory"}]}].
