@@ -664,8 +664,11 @@ delete_resource1({ok, #resource{id = Id, name = Name,
 		[ResId | _] = ResIdList when is_list(ResId) ->
 			delete_resource2(ResIdList ++ [Id])
 	end;
+delete_resource1({ok, #resource{id = Id}}) ->
+	delete_resource2([Id]);
 delete_resource1({error, _Reason}) ->
 	{error, 400}.
+%% @hidden
 delete_resource2([Id | T]) ->
 	case ocs:delete_resource(Id) of
 		ok ->
