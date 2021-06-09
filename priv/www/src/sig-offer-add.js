@@ -955,6 +955,7 @@ class offerAdd extends PolymerElement {
 			var tableRecord1 = new Object();
 			tableRecord1.id = results[indexTable1].id;
 			tableRecord1.href = results[indexTable1].href;
+			tableRecord1.name = results[indexTable1].name;
 			this.push('policyTables', tableRecord1);
 		}
 	}
@@ -967,6 +968,7 @@ class offerAdd extends PolymerElement {
 			var tableRecord = new Object();
 			tableRecord.id = results[indexTable].id;
 			tableRecord.href = results[indexTable].href;
+			tableRecord.name = results[indexTable].name;
 			this.push('prefixTables', tableRecord);
 		}
 	}
