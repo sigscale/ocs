@@ -626,7 +626,22 @@ get_pla_specs(_Query) ->
 %% @doc Respond to `DELETE /resourceInventoryManagement/v1/resource/{id}''
 %%    request to remove a table row.
 delete_resource(Id) ->
-	delete_resource1(ocs:get_resource(Id)).
+	try
+		case string:tokens(Id, "-") of
+			[Table, Prefix] ->
+				Name = list_to_existing_atom(Table),
+				ok = ocs_gtt:delete(Name, Prefix),
+				{ok, [], []};
+			[Id] ->
+				delete_resource1(ocs:get_resource(Id))
+		end
+	catch
+		error:badarg ->
+			{error, 404};
+		_:_ ->
+			{error, 400}
+	end.
+%% @hidden
 delete_resource1({ok, #resource{id = Id, name = Name,
 		specification = #specification_ref{id = "3"}}}) ->
 	F = fun F(eof, Acc) ->
