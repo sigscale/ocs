@@ -110,6 +110,7 @@ class offerAdd extends PolymerElement {
 									no-animations="true"
 									label="Product Specification">
 								<paper-listbox
+										id="addOfferProductSpecList"
 										slot="dropdown-content">
 									<paper-item>
 										Prepaid Data
@@ -1856,7 +1857,7 @@ class offerAdd extends PolymerElement {
 			this.priceDescription = null;
 			this.offerStartDatePrice = null;
 			this.offerEndDatePrice = null;
-			this.priceType = null;
+			this.$.addPriceType.selected = null;
 			this.priceSize = null;
 			this.$.addPriceUnits.selected = null;
 			this.priceAmount = null;
@@ -1867,6 +1868,7 @@ class offerAdd extends PolymerElement {
 			this.priceReserveBytes = null;
 			this.priceTariff = null;
 			this.priceRoaming = null;
+			this.priceKey = null;
 			this.priceTodStart = null;
 			this.priceTodEnd = null;
 			var toast = document.body.querySelector('sig-app').shadowRoot.getElementById('restError');
@@ -2028,7 +2030,7 @@ class offerAdd extends PolymerElement {
 		this.addOrUpdateButton = "add";
 		this.offerName = null;
 		this.offerDescription = null;
-		this.$.addOfferProductSpec.selected = null;
+		this.$.addOfferProductSpecList.selected = null;
 		this.$.addOfferChars.hide();
 		this.$.addBundle.hide();
 		this.priceTariff = null;
