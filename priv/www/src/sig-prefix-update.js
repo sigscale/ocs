@@ -146,9 +146,9 @@ class tableUpdate extends PolymerElement {
 		var Ajax = this.$.updateTableRowAjax;
 		Ajax.method = "PATCH";
 		Ajax.contentType = "application/json-patch+json";
-		var Table = document.body.querySelector('sig-app').shadowRoot.getElementById('prefixList').table;
+		var Table = document.body.querySelector('sig-app').shadowRoot.getElementById('prefixList').activeTableName;
 		var Id = this.upPrefix;
-		Ajax.url = "/resourceInventoryManagement/v1/resource/" + Table + "/" + Id;
+		Ajax.url = "/resourceInventoryManagement/v1/resource/" + Table + "-" + Id;
 		var ResArray = new Array();
 		var Desc = new Object(); 
 		Desc.op = "add";
