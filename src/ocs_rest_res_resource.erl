@@ -698,9 +698,15 @@ patch_resource(Id, Etag, ReqData) ->
 			Etag ->
 				ocs_rest:etag(Etag)
 		end,
-		{Etag1, mochijson:decode(ReqData)}
+		case string:tokens(Id, "-") of
+			[Id] ->
+				{Id, Etag1, mochijson:decode(ReqData)};
+			[Table, Prefix] ->
+				Table1 = list_to_existing_atom(Table),
+				{Table1, Prefix, Etag1, mochijson:decode(ReqData)}
+		end
 	of
-		{Etag2, {array, _} = Operations} ->
+		{Id, Etag2, {array, _} = Operations} ->
 			F = fun() ->
 					case mnesia:read(resource, Id, write) of
 						[Resource1] when
@@ -739,8 +745,33 @@ patch_resource(Id, Etag, ReqData) ->
 					{error, 412};
 				{aborted, _Reason} ->
 					{error, 500}
+			end;
+		{Table2, Prefix1, Etag2, {array, _} = Operations} ->
+			case catch ocs_gtt:lookup_last(Table2, Prefix1) of
+				{'EXIT', _} ->
+					throw(not_found);
+				{Description, Rate, LastModified1} when LastModified1 == Etag2;
+						Etag2 == undefined ->
+					case catch ocs_rest:patch(Operations,
+							gtt(atom_to_list(Table2), {Prefix1, Description, Rate})) of
+						{struct, _} = Res ->
+							{Prefix1, Description1, Rate1} = gtt(Prefix1, Res),
+							{ok, #gtt{value = {_, _, LastModified2}}}
+									= ocs_gtt:insert(Table2, Prefix1,
+											{Description1, Rate1}),
+							Location = ?inventoryPath ++ atom_to_list(Table2)
+									++ "-" ++ Prefix1,
+							Headers = [{location, Location},
+									{etag, ocs_rest:etag(LastModified2)}],
+							Body = mochijson:encode(Res),
+							{ok, Headers, Body};
+						_ ->
+							throw(bad_request)
+					end
 			end
 	catch
+		throw:not_found ->
+			{error, 404};
 		_:_ ->
 			{error, 400}
 	end.
@@ -922,17 +953,11 @@ gtt1([], {Prefix, Desc, Rate} = _Acc)
 %% @hidden
 gtt2([{struct, L} | T], {Prefix, Desc, Rate} = _Acc) ->
 	case lists:keytake("name", 1, L) of
-		{value, {"name", "prefix"}, L1} ->
-			{_, {struct, L2}} = lists:keyfind("value", 1, L1),
-			{_, Prefix1} = lists:keyfind("value", 1, L2),
+		{value, {"name", "prefix"}, [{"value", Prefix1}]} ->
 			gtt2(T, {Prefix1, Desc, Rate});
-		{value, {"name", "description"}, L1} ->
-			{_, {struct, L2}} = lists:keyfind("value", 1, L1),
-			{_, Desc1} = lists:keyfind("value", 1, L2),
+		{value, {"name", "description"}, [{"value", Desc1}]} ->
 			gtt2(T, {Prefix, Desc1, Rate});
-		{value, {"name", "rate"}, L1} ->
-			{_, {struct, L2}} = lists:keyfind("value", 1, L1),
-			{_, Rate1} = lists:keyfind("value", 1, L2),
+		{value, {"name", "rate"}, [{"value", Rate1}]} ->
 			gtt2(T, {Prefix, Desc, Rate1})
 	end;
 gtt2([], Acc) ->
