@@ -4122,7 +4122,8 @@ notify_insert_gtt(Config) ->
 	Request1 = {CollectionUrl, [Accept, auth_header()], ContentType, RequestBody},
 	{ok, {{_, 201, _}, Headers, _}} = httpc:request(post, Request1, [], []),
 	{_, ?PathResourceHub ++ SubId} = lists:keyfind("location", 1, Headers),
-	[Table | _] = ocs_gtt:list(),
+	Table = "tariff_table9",
+	ok = ocs_gtt:new(Table, []),
 	Prefix = "1519240",
 	Description = "Bell Mobility",
 	Amount = 10000,
@@ -4133,7 +4134,8 @@ notify_insert_gtt(Config) ->
 			{_, "ResourceCreationNotification"}
 					= lists:keyfind("eventType", 1, GttEvent),
 			{_, {struct, GttList}} = lists:keyfind("event", 1, GttEvent),
-			{_, Prefix} = lists:keyfind("id", 1, GttList)
+			ResId = Table ++ "-" ++ Prefix,
+			{_, ResId} = lists:keyfind("id", 1, GttList)
 	end,
 	Request2 = {CollectionUrl ++ SubId, [Accept, auth_header()]},
 	{ok, {{_, 204, _}, _, []}} = httpc:request(delete, Request2, [], []).
@@ -4156,19 +4158,20 @@ notify_delete_gtt(Config) ->
 	Request1 = {CollectionUrl, [Accept, auth_header()], ContentType, RequestBody},
 	{ok, {{_, 201, _}, Headers, _}} = httpc:request(post, Request1, [], []),
 	{_, ?PathResourceHub ++ SubId} = lists:keyfind("location", 1, Headers),
-	Table = tariff_table7,
+	Table = "tariff_table7",
 	ok = ocs_gtt:new(Table, []),
 	Prefix = "1519240",
 	Description = "Bell Mobility",
 	Amount = 10000,
 	{ok, #gtt{}} = ocs_gtt:insert(Table, Prefix, {Description, Amount}),
+	ResId = Table ++ "-" ++ Prefix,
 	receive
 		Receive1 ->
 			{struct, GttEvent1} = mochijson:decode(Receive1),
 			{_, "ResourceCreationNotification"}
 					= lists:keyfind("eventType", 1, GttEvent1),
 			{_, {struct, GttList1}} = lists:keyfind("event", 1, GttEvent1),
-			{_, Prefix} = lists:keyfind("id", 1, GttList1)
+			{_, ResId} = lists:keyfind("id", 1, GttList1)
 	end,
 	ok = ocs_gtt:delete(Table, Prefix),
 	receive
@@ -4177,7 +4180,7 @@ notify_delete_gtt(Config) ->
 			{_, "ResourceRemoveNotification"}
 					= lists:keyfind("eventType", 1, GttEvent2),
 			{_, {struct, GttList2}} = lists:keyfind("event", 1, GttEvent2),
-			{_, Prefix} = lists:keyfind("id", 1, GttList2)
+			{_, ResId} = lists:keyfind("id", 1, GttList2)
 	end,
 	Request2 = {CollectionUrl ++ SubId, [Accept, auth_header()]},
 	{ok, {{_, 204, _}, _, []}} = httpc:request(delete, Request2, [], []).
@@ -4203,7 +4206,7 @@ query_gtt_notification(Config) ->
 	Request1 = {CollectionUrl, [Accept, auth_header()], ContentType, RequestBody},
 	{ok, {{_, 201, _}, Headers, _}} = httpc:request(post, Request1, [], []),
 	{_, ?PathResourceHub ++ SubId} = lists:keyfind("location", 1, Headers),
-	Table = tariff_table8,
+	Table = "tariff_table8",
 	ok = ocs_gtt:new(Table, []),
 	Description = "Bell Mobility",
 	Amount = 10000,
@@ -4215,7 +4218,8 @@ query_gtt_notification(Config) ->
 			{_, "ResourceRemoveNotification"}
 					= lists:keyfind("eventType", 1, GttEvent),
 			{_, {struct, GttList}} = lists:keyfind("event", 1, GttEvent),
-			{_, Prefix} = lists:keyfind("id", 1, GttList)
+			ResId = Table ++ "-" ++ Prefix,
+			{_, ResId} = lists:keyfind("id", 1, GttList)
 	end,
 	Request2 = {CollectionUrl ++ SubId, [Accept, auth_header()]},
 	{ok, {{_, 204, _}, _, []}} = httpc:request(delete, Request2, [], []).
@@ -4633,7 +4637,7 @@ post_tariff_resource(Config) ->
 	{"/resourceInventoryManagement/v1/resource/" ++ Id, _}
 			= httpd_util:split_path(URI),
 	[Table, CharPrefix] = string:tokens(Id, "-"),
-	{CharDes, "250", _} = ocs_gtt:lookup_first(Table, CharPrefix).
+	{CharDes, 250000000, _} = ocs_gtt:lookup_first(Table, CharPrefix).
 
 delete_tariff_resource() ->
 	[{userdata, [{doc,"Delete tariff resource inventory"}]}].
@@ -4668,29 +4672,22 @@ update_tariff_resource(Config) ->
 	{_, URI} = lists:keyfind("location", 1, Headers1),
 	{"/resourceInventoryManagement/v1/resource/" ++ ResourceId, _}
 			= httpd_util:split_path(URI),
-	NameOp = {struct, [{op, "add"}, {"path", "/name"}, {value, "TariffRow"}]},
-	DescriptionOp = {struct, [{op, "add"}, {"path", "/description"},
-			{value, "tariff row resource"}]},
-	NewPrefix = "136",
-	NewRate = 456,
-	ResCharOp1 = {struct, [{op, "add"}, {path, "/resourceCharacteristic/0/value"},
-			{value, NewPrefix}]},
-	ResCharOp2 = {struct, [{op, "add"}, {path, "/resourceCharacteristic/2/value"},
-			{value, NewRate}]},
-	OpArray = {array, [NameOp, DescriptionOp, ResCharOp1, ResCharOp2]},
+	NewDescription = "testing update",
+	NewRate1 = 456,
+	ResCharOp1 = {struct, [{op, "replace"}, {path, "/resourceCharacteristic/1/value"},
+			{value, NewDescription}]},
+	ResCharOp2 = {struct, [{op, "replace"}, {path, "/resourceCharacteristic/2/value"},
+			{value, NewRate1}]},
+	OpArray = {array, [ResCharOp1, ResCharOp2]},
 	PatchReqBody = lists:flatten(mochijson:encode(OpArray)),
 	PatchContentType = "application/json-patch+json",
 	Request2 = {HostUrl ++ ResourceHref ++ ResourceId, [Accept, auth_header(),
 			{"if-match", Etag}], PatchContentType, PatchReqBody},
 	{ok, Result2} = httpc:request(patch, Request2, [], []),
 	{{"HTTP/1.1", 200, "OK"}, _Headers2, _ResponseBody2} = Result2,
-	{ok, #resource{name = "TariffRow", description = "tariff row resource",
-			specification = #specification_ref{name = "TariffTableRow"},
-			characteristic = CharList}} = ocs:get_resource(ResourceId),
-	#resource_char{name = "prefix", value = NewPrefix}
-			= lists:keyfind("prefix", #resource_char.name, CharList),
-	#resource_char{name = "rate", value = NewRate}
-			= lists:keyfind("rate", #resource_char.name, CharList).
+	[Table, Prefix] = string:tokens(ResourceId, "-"),
+	NewRate2 = ocs_rest:millionths_in(NewRate1),
+	{NewDescription, NewRate2, _} = ocs_gtt:lookup_first(Table, Prefix).
 
 post_policy_resource() ->
 	[{userdata, [{doc,"Add policy in rest interface"}]}].
