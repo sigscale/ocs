@@ -152,12 +152,12 @@ class tableUpdate extends PolymerElement {
 		var ResArray = new Array();
 		var Desc = new Object(); 
 		Desc.op = "add";
-		Desc.path = "/resourceCharacteristic/1/value/value";
+		Desc.path = "/resourceCharacteristic/1/value";
 		Desc.value = this.upDesc;
 		ResArray.push(Desc);
 		var Rate = new Object();
 		Rate.op = "add";
-		Rate.path = "/resourceCharacteristic/2/value/value";
+		Rate.path = "/resourceCharacteristic/2/value";
 		Rate.value = this.upRate;
 		ResArray.push(Rate);
 		Ajax.body = JSON.stringify(ResArray);
