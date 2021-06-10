@@ -271,16 +271,16 @@ class productList extends PolymerElement {
 		}
 		if (ajax.loading) {
 			ajax.lastRequest.completes.then(function(request) {
-			var startRange = params.page * params.pageSize + 1;
-			var endRange = startRange + params.pageSize - 1;
-			ajax.headers['Range'] = "items=" + startRange + "-" + endRange;
-			if (productList.etag && params.page > 0) {
-				ajax.headers['If-Range'] = productList.etag;
-			} else {
-				delete ajax.headers['If-Range'];
-			}
-			return ajax.generateRequest().completes;
-				}, handleAjaxError).then(handleAjaxResponse, handleAjaxError);
+				var startRange = params.page * params.pageSize + 1;
+				var endRange = startRange + params.pageSize - 1;
+				ajax.headers['Range'] = "items=" + startRange + "-" + endRange;
+				if (productList.etag && params.page > 0) {
+					ajax.headers['If-Range'] = productList.etag;
+				} else {
+					delete ajax.headers['If-Range'];
+				}
+				return ajax.generateRequest().completes;
+			}, handleAjaxError).then(handleAjaxResponse, handleAjaxError);
 		} else {
 			var startRange = params.page * params.pageSize + 1;
 			var endRange = startRange + params.pageSize - 1;

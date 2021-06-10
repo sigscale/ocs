@@ -425,72 +425,72 @@ class accountingList extends PolymerElement {
 			ajax.params['filter'] += "]}]\"";
 		}
 		var handleAjaxResponse = function(request) {
-		if (request) {
-			accountingList.etag = request.xhr.getResponseHeader('ETag');
-			var range = request.xhr.getResponseHeader('Content-Range');
-			var range1 = range.split("/");
-			var range2 = range1[0].split("-");
-			if (range1[1] != "*") {
-				grid.size = Number(range1[1]);
+			if (request) {
+				accountingList.etag = request.xhr.getResponseHeader('ETag');
+				var range = request.xhr.getResponseHeader('Content-Range');
+				var range1 = range.split("/");
+				var range2 = range1[0].split("-");
+				if (range1[1] != "*") {
+					grid.size = Number(range1[1]);
+				} else {
+					grid.size = Number(range2[1]) + grid.pageSize * 2;
+				}
+				var vaadinItems = new Array();
+				for (var index in request.response) {
+					var newRecord = new Object();
+					newRecord.id = request.response[index].id;
+					newRecord.date = request.response[index].date;
+					newRecord.status = request.response[index].status;
+					newRecord.type1 = request.response[index].type;
+					newRecord.href = request.response[index].href;
+					newRecord.usageCharacteristic = request.response[index].usageCharacteristic;
+					function checkChar(characteristic){
+						return characteristic.name == "msisdn";
+					}
+					var msi = request.response[index].usageCharacteristic.find(checkChar);
+					if(msi != undefined) {
+						newRecord.msisdn = msi.value;
+					}
+					function checkChar1(characteristic1){
+						return characteristic1.name == "imsi";
+					}
+					var imsi = request.response[index].usageCharacteristic.find(checkChar1);
+					if(imsi != undefined) {
+						newRecord.imsi = imsi.value;
+					}
+					newRecord.usageSpecificationId = request.response[index].usageSpecification.id;
+					newRecord.usageSpecificationHref = request.response[index].usageSpecification.href;
+					newRecord.usageSpecificationName = request.response[index].usageSpecification.name;
+					vaadinItems[index] = newRecord;
+				}
+				callback(vaadinItems);
 			} else {
-				grid.size = Number(range2[1]) + grid.pageSize * 2;
+				grid.size = 0;
+				callback([]);
 			}
-			var vaadinItems = new Array();
-			for (var index in request.response) {
-				var newRecord = new Object();
-				newRecord.id = request.response[index].id;
-				newRecord.date = request.response[index].date;
-				newRecord.status = request.response[index].status;
-				newRecord.type1 = request.response[index].type;
-				newRecord.href = request.response[index].href;
-				newRecord.usageCharacteristic = request.response[index].usageCharacteristic;
-				function checkChar(characteristic){
-					return characteristic.name == "msisdn";
-				}
-				var msi = request.response[index].usageCharacteristic.find(checkChar);
-				if(msi != undefined) {
-					newRecord.msisdn = msi.value;
-				}
-				function checkChar1(characteristic1){
-					return characteristic1.name == "imsi";
-				}
-				var imsi = request.response[index].usageCharacteristic.find(checkChar1);
-				if(imsi != undefined) {
-					newRecord.imsi = imsi.value;
-				}
-				newRecord.usageSpecificationId = request.response[index].usageSpecification.id;
-				newRecord.usageSpecificationHref = request.response[index].usageSpecification.href;
-				newRecord.usageSpecificationName = request.response[index].usageSpecification.name;
-				vaadinItems[index] = newRecord;
+		}
+		var handleAjaxError = function(error) {
+			accountingList.etag = null;
+			var toast = document.body.querySelector('sig-app').shadowRoot.getElementById('restError');
+			toast.text = "Error";
+			toast.open();
+			if(!grid.size) {
+				grid.size = 0;
 			}
-			callback(vaadinItems);
-		} else {
-			grid.size = 0;
 			callback([]);
 		}
-	}
-	var handleAjaxError = function(error) {
-		accountingList.etag = null;
-		var toast = document.body.querySelector('sig-app').shadowRoot.getElementById('restError');
-		toast.text = "Error";
-		toast.open();
-		if(!grid.size) {
-			grid.size = 0;
-		}
-		callback([]);
-	}
-	if (ajax.loading) {
-		ajax.lastRequest.completes.then(function(request) {
-			var startRange = params.page * params.pageSize + 1;
-			var endRange = startRange + params.pageSize - 1;
-			ajax.headers['Range'] = "items=" + startRange + "-" + endRange;
-			if (accountingList.etag && params.page > 0) {
-				ajax.headers['If-Range'] = accountingList.etag;
-			} else {
-				delete ajax.headers['If-Range'];
-			}
-			return ajax.generateRequest().completes;
-				}, handleAjaxError).then(handleAjaxResponse, handleAjaxError);
+		if (ajax.loading) {
+			ajax.lastRequest.completes.then(function(request) {
+				var startRange = params.page * params.pageSize + 1;
+				var endRange = startRange + params.pageSize - 1;
+				ajax.headers['Range'] = "items=" + startRange + "-" + endRange;
+				if (accountingList.etag && params.page > 0) {
+					ajax.headers['If-Range'] = accountingList.etag;
+				} else {
+					delete ajax.headers['If-Range'];
+				}
+				return ajax.generateRequest().completes;
+			}, handleAjaxError).then(handleAjaxResponse, handleAjaxError);
 		} else {
 			var startRange = params.page * params.pageSize + 1;
 			var endRange = startRange + params.pageSize - 1;

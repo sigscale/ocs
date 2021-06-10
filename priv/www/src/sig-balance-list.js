@@ -275,15 +275,15 @@ class balanceList extends PolymerElement {
 		}
 		if (ajax.loading) {
 			ajax.lastRequest.completes.then(function(request) {
-			var startRange = params.page * params.pageSize + 1;
-			var endRange = startRange + params.pageSize - 1;
-			ajax.headers['Range'] = "items=" + startRange + "-" + endRange;
-			if (balanceList.etag && params.page > 0) {
-				ajax.headers['If-Range'] = balanceList.etag;
-			} else {
-				delete ajax.headers['If-Range'];
-			}
-			return ajax.generateRequest().completes;
+				var startRange = params.page * params.pageSize + 1;
+				var endRange = startRange + params.pageSize - 1;
+				ajax.headers['Range'] = "items=" + startRange + "-" + endRange;
+				if (balanceList.etag && params.page > 0) {
+					ajax.headers['If-Range'] = balanceList.etag;
+				} else {
+					delete ajax.headers['If-Range'];
+				}
+				return ajax.generateRequest().completes;
 			}, handleAjaxError).then(handleAjaxResponse, handleAjaxError);
 		} else {
 			var startRange = params.page * params.pageSize + 1;
