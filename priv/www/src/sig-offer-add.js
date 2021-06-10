@@ -1296,7 +1296,7 @@ class offerAdd extends PolymerElement {
 		if (this.offerPolicy) {
 			var charValue = new Object();
 			var charValueUse = new Object();
-			charValueUse.name = "destPrefixPolicyTable";
+			charValueUse.name = "policyTable";
 			charValueUse.minCardinality = 0;
 			charValueUse.maxCardinality = 1;
 			charValue.default = true;
