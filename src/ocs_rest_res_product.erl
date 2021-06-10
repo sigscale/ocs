@@ -533,10 +533,11 @@ patch_inventory(ProdId, Etag, ReqData) ->
 											ok = mnesia:write(Product4),
 											{Product2, LM};
 										#product{service = NewServices} = Product3 ->
-											ServiceId = OldServices -- NewServices,
-											{ok, Service} = ocs:find_service(ServiceId),
+											ServiceIds = OldServices -- NewServices,
+											OldRecords = [ocs:find_service(Id) || Id <- ServiceIds],
+											[mnesia:write(service, ServiceRecord#service{product
+													= undefined}, write) || {_, ServiceRecord} <- OldRecords],
 											Product4 = Product3#product{last_modified = LM},
-											ok = mnesia:write(service, Service#service{product = undefined}, write),
 											ok = mnesia:write(Product4),
 											{Product2, LM}
 									end;
