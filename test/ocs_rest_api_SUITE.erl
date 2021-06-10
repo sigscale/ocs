@@ -4672,29 +4672,22 @@ update_tariff_resource(Config) ->
 	{_, URI} = lists:keyfind("location", 1, Headers1),
 	{"/resourceInventoryManagement/v1/resource/" ++ ResourceId, _}
 			= httpd_util:split_path(URI),
-	NameOp = {struct, [{op, "add"}, {"path", "/name"}, {value, "TariffRow"}]},
-	DescriptionOp = {struct, [{op, "add"}, {"path", "/description"},
-			{value, "tariff row resource"}]},
-	NewPrefix = "136",
-	NewRate = 456,
-	ResCharOp1 = {struct, [{op, "add"}, {path, "/resourceCharacteristic/0/value"},
-			{value, NewPrefix}]},
-	ResCharOp2 = {struct, [{op, "add"}, {path, "/resourceCharacteristic/2/value"},
-			{value, NewRate}]},
-	OpArray = {array, [NameOp, DescriptionOp, ResCharOp1, ResCharOp2]},
+	NewDescription = "testing update",
+	NewRate1 = 456,
+	ResCharOp1 = {struct, [{op, "replace"}, {path, "/resourceCharacteristic/1/value"},
+			{value, NewDescription}]},
+	ResCharOp2 = {struct, [{op, "replace"}, {path, "/resourceCharacteristic/2/value"},
+			{value, NewRate1}]},
+	OpArray = {array, [ResCharOp1, ResCharOp2]},
 	PatchReqBody = lists:flatten(mochijson:encode(OpArray)),
 	PatchContentType = "application/json-patch+json",
 	Request2 = {HostUrl ++ ResourceHref ++ ResourceId, [Accept, auth_header(),
 			{"if-match", Etag}], PatchContentType, PatchReqBody},
 	{ok, Result2} = httpc:request(patch, Request2, [], []),
 	{{"HTTP/1.1", 200, "OK"}, _Headers2, _ResponseBody2} = Result2,
-	{ok, #resource{name = "TariffRow", description = "tariff row resource",
-			specification = #specification_ref{name = "TariffTableRow"},
-			characteristic = CharList}} = ocs:get_resource(ResourceId),
-	#resource_char{name = "prefix", value = NewPrefix}
-			= lists:keyfind("prefix", #resource_char.name, CharList),
-	#resource_char{name = "rate", value = NewRate}
-			= lists:keyfind("rate", #resource_char.name, CharList).
+	[Table, Prefix] = string:tokens(ResourceId, "-"),
+	NewRate2 = ocs_rest:millionths_in(NewRate1),
+	{NewDescription, NewRate2, _} = ocs_gtt:lookup_first(Table, Prefix).
 
 post_policy_resource() ->
 	[{userdata, [{doc,"Add policy in rest interface"}]}].
