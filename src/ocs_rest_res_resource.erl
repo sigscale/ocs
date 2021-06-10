@@ -579,7 +579,7 @@ add_resource(RequestBody) ->
 			end,
 			Prefix = F("prefix"),
 			{ok, #gtt{value = {_, _, LM}}} = ocs_gtt:insert(Table, Prefix,
-					{F("description"), F("rate")}),
+					{F("description"), ocs_rest:millionths_in(F("rate"))}),
 			Id = Table ++ "-" ++ Prefix,
 			Href = "/resourceInventoryManagement/v1/resource/" ++ Id,
 			Resource2 = Resource1#resource{id = Id, href = F("prefix"),

@@ -4637,7 +4637,7 @@ post_tariff_resource(Config) ->
 	{"/resourceInventoryManagement/v1/resource/" ++ Id, _}
 			= httpd_util:split_path(URI),
 	[Table, CharPrefix] = string:tokens(Id, "-"),
-	{CharDes, "250", _} = ocs_gtt:lookup_first(Table, CharPrefix).
+	{CharDes, 250000000, _} = ocs_gtt:lookup_first(Table, CharPrefix).
 
 delete_tariff_resource() ->
 	[{userdata, [{doc,"Delete tariff resource inventory"}]}].
