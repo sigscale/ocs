@@ -110,6 +110,7 @@ class offerAdd extends PolymerElement {
 									no-animations="true"
 									label="Product Specification">
 								<paper-listbox
+										id="addOfferProductSpecList"
 										slot="dropdown-content">
 									<paper-item>
 										Prepaid Data
@@ -1292,6 +1293,23 @@ class offerAdd extends PolymerElement {
 			redirect.productSpecification = prodSpec1;
 			prodSpecCharValueUse.push(redirect);
 		}
+		if (this.offerPolicy) {
+			var charValue = new Object();
+			var charValueUse = new Object();
+			charValueUse.name = "policyTable";
+			charValueUse.minCardinality = 0;
+			charValueUse.maxCardinality = 1;
+			charValue.default = true;
+			charValue.value = this.offerPolicy;
+			var charValues = new Array();
+			charValues.push(charValue);
+			charValueUse.productSpecCharacteristicValue = charValues;
+			var prodSpec = new Object();
+			prodSpec.id = "3";
+			prodSpec.href = "/catalogManagement/v2/productSpecification/4";
+			charValueUse.productSpecification = prodSpec;
+			prodSpecCharValueUse.push(charValueUse);
+		}
 		if (prodSpecCharValueUse.length > 0) {
 			offerNew.prodSpecCharValueUse = prodSpecCharValueUse;
 		}
@@ -1856,7 +1874,7 @@ class offerAdd extends PolymerElement {
 			this.priceDescription = null;
 			this.offerStartDatePrice = null;
 			this.offerEndDatePrice = null;
-			this.priceType = null;
+			this.$.addPriceType.selected = null;
 			this.priceSize = null;
 			this.$.addPriceUnits.selected = null;
 			this.priceAmount = null;
@@ -1867,6 +1885,7 @@ class offerAdd extends PolymerElement {
 			this.priceReserveBytes = null;
 			this.priceTariff = null;
 			this.priceRoaming = null;
+			this.priceKey = null;
 			this.priceTodStart = null;
 			this.priceTodEnd = null;
 			var toast = document.body.querySelector('sig-app').shadowRoot.getElementById('restError');
@@ -2028,7 +2047,7 @@ class offerAdd extends PolymerElement {
 		this.addOrUpdateButton = "add";
 		this.offerName = null;
 		this.offerDescription = null;
-		this.$.addOfferProductSpec.selected = null;
+		this.$.addOfferProductSpecList.selected = null;
 		this.$.addOfferChars.hide();
 		this.$.addBundle.hide();
 		this.priceTariff = null;
