@@ -248,7 +248,7 @@ all() ->
 	notify_diameter_acct_log, get_tariff_resource, get_tariff_resources,
 	post_tariff_resource, delete_tariff_resource, update_tariff_resource,
 	post_policy_resource, query_policy_resource, arbitrary_char_service,
-	oauth_authentication].
+	delete_policy_table, oauth_authentication].
 
 %%---------------------------------------------------------------------
 %%  Test cases
@@ -4839,6 +4839,23 @@ query_policy_resource(Config) ->
 	{_, {struct, ObjList}} = lists:keyfind("resource", 1, RelList),
 	{_, "PolicyTable1"} = lists:keyfind("name", 1, ObjList).
 
+delete_policy_table() ->
+	[{userdata, [{doc,"Delete policy table resource"}]}].
+
+delete_policy_table(Config) ->
+	{TableId, TableName} = add_policy_table(),
+	PolicyRowId1 = add_policy_row(TableId, TableName, 0),
+	PolicyRowId2 = add_policy_row(TableId, TableName, 1),
+	URI = "/resourceInventoryManagement/v1/resource/" ++ TableId,
+	HostUrl = ?config(host_url, Config),
+	Request = {HostUrl ++ URI, [auth_header()]},
+	{ok, Result} = httpc:request(delete, Request, [], []),
+	{{"HTTP/1.1", 204, _NoContent}, Headers, []} = Result,
+	{_, "0"} = lists:keyfind("content-length", 1, Headers),
+	{error, not_found} = ocs:get_resource(PolicyRowId1),
+	{error, not_found} = ocs:get_resource(PolicyRowId2),
+	{error, not_found} = ocs:get_resource(TableId).
+
 oauth_authenticaton()->
 	[{userdata, [{doc, "Authenticate a JWT using oauth"}]}].
 
@@ -5504,3 +5521,68 @@ resource_inventory() ->
 	[Name, Description, Category, ClassType, Schema, BaseType, Version, Status,
 			ValidFor, ResSpec, ResourceRelationship, ResourceCharacteristics].
 
+-spec add_policy_table() -> {ResourceId, ResourceName}
+	when
+		ResourceId :: string(),
+		ResourceName :: string().
+add_policy_table() ->
+	Name = "examplePolicyTable",
+	PolicyTable = #resource{name = Name, description = "Policy Table",
+			category = "Policy", class_type = "LogicalResource",
+			base_type = "Resource", specification = #specification_ref{id = "3",
+					href = "/resourceCatalogManagement/v2/resourceSpecification/3",
+					name = "PolicyTable"}},
+	{ok, #resource{id = PolicyTableId}} = ocs:add_resource(PolicyTable),
+	{PolicyTableId, Name}.
+
+-spec add_policy_row(TableId, TableName, Cardinality) -> ResourceId
+	when
+		TableId :: string(),
+		TableName :: string(),
+		Cardinality :: string(),
+		ResourceId :: string().
+%% @doc Encode a value using base64url encoding.
+add_policy_row(TableId, TableName, 0) ->
+	PolicyRow = #resource{name = "PolicyRow1", description = "Policy Row",
+			category = "Policy", class_type = "LogicalResource",
+			base_type = "Resource", related = [#resource_rel{id = TableId,
+					href = "/resourceInventoryManagement/v1/resource/"
+					++ TableId, name = TableName, type = "contained"}],
+			specification = #specification_ref{id = "4",
+					href = "/resourceCatalogManagement/v2/resourceSpecification/4",
+					name = "PolicyTableRow"},
+			characteristic = [#resource_char{name = "name", value = "example"},
+					#resource_char{name = "qosInformation", value =
+							#{"maxRequestedBandwidthDL" => 1000000000,
+							"maxRequestedBandwidthUL" => 1000000000,
+							"qosClassIdentifier" => 4}},
+					#resource_char{name = "chargingKey", value = 1},
+					#resource_char{name = "flowInformation", value =
+							[#{"flowDirection" => 1, "flowDescription" =>
+									"permit in ip from any to 10/8"},
+							#{"flowDirection" => 2, "flowDescription" =>
+									"permit in ip from any to 10/8"}]},
+					#resource_char{name = "precedence", value = 1},
+					#resource_char{name = "serviceId",
+							value = ocs:generate_identity()}]},
+	{ok, #resource{id = RowId}} = ocs:add_resource(PolicyRow),
+	RowId;
+add_policy_row(TableId, TableName, 1) ->
+	PolicyRow = #resource{name = "PolicyRow2", description = "Policy Row",
+			category = "Policy", class_type = "LogicalResource",
+			base_type = "Resource", related = [#resource_rel{id = TableId,
+					href = "/resourceInventoryManagement/v1/resource/" ++ TableId,
+					name = TableName, type = "contained"}],
+			specification = #specification_ref{id = "4",
+					href = "/resourceCatalogManagement/v2/resourceSpecification/4",
+					name = "PolicyTableRow"},
+			characteristic = [#resource_char{name = "name", value = "example"},
+					#resource_char{name = "chargingKey", value = 1},
+					#resource_char{name = "flowInformation", value =
+							[#{"flowDirection" => 1, "flowDescription" =>
+									"permit in ip from any to 172.16/12"},
+							#{"flowDirection" => 2, "flowDescription" =>
+									"permit in ip from any to 172.16/12"}]},
+					#resource_char{name = "precedence", value = 2}]},
+	{ok, #resource{id = RowId}} = ocs:add_resource(PolicyRow),
+	RowId.
