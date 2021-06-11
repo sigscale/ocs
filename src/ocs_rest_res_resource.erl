@@ -645,17 +645,17 @@ delete_resource(Id) ->
 delete_resource1({ok, #resource{id = Id, name = Name,
 		specification = #specification_ref{id = "3"}}}) ->
 	F = fun F(eof, Acc) ->
-				lists:flatten(Acc);
+				Acc;
 			F(Cont1, Acc) ->
 				case ocs:query_resource(Cont1, '_', '_',
-						{exact, "3"}, {exact, Name}) of
+						{exact, "4"}, {exact, Name}) of
 					{error, _Reason} ->
 						{error, 400};
 					{Cont2, L} ->
 						Fid = fun(#resource{id = RId}) ->
 									RId
 						end,
-						F(Cont2, [lists:map(Fid, L) | Acc])
+						F(Cont2, lists:map(Fid, L) ++ Acc)
 				end
 	end,
 	case F(start, []) of
