@@ -234,11 +234,11 @@ class offerAdd extends PolymerElement {
 									<option value="{{item.name}}" />
 								</template>
 							</datalist>
-							<paper-input
+							<input
 									list="priceNames"
 									autocomplete="on"
 									placeholder="Name"
-									value="{{priceName}}"
+									value="{{priceName::input}}"
 									on-value-changed="_addUpdatePriceDialog">
 							</paper-input>
 							<paper-tooltip>
