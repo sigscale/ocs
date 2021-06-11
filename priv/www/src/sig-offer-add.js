@@ -238,8 +238,7 @@ class offerAdd extends PolymerElement {
 									list="priceNames"
 									autocomplete="on"
 									placeholder="Name"
-									value="{{priceName::input}}"
-									on-value-changed="_addUpdatePriceDialog">
+									value="{{priceName::input}}">
 							</paper-input>
 							<paper-tooltip>
 								Name of the Product Offering Price.
@@ -855,7 +854,8 @@ class offerAdd extends PolymerElement {
 				type: String
 			},
 			priceName: {
-				type: String
+				type: String,
+				observer: '_addUpdatePriceDialog'
 			},
 			priceDescription: {
 				type: String
@@ -1000,9 +1000,9 @@ class offerAdd extends PolymerElement {
 		toast.open();
 	}
 
-	_addUpdatePriceDialog() {
+	_addUpdatePriceDialog(event) {
 		function checkPriceUpdateName(price) {
-			return price.name == null;
+			return price.name == document.body.querySelector('sig-app').shadowRoot.getElementById('addOffer').priceName;
 		}
 		if(this.prices != undefined) {
 			var indexPrice = this.prices.findIndex(checkPriceUpdateName);
