@@ -311,7 +311,7 @@ class SigApp extends PolymerElement {
 			</app-drawer-layout>
 			<!--Modal Definitions-->
 			<sig-help id="ocsGetHelp" active="[[overFlowActive]]"></sig-help>
-			<sig-offer-add></sig-offer-add>
+			<sig-offer-add id="addOffer"></sig-offer-add>
 			<sig-sub-add id="subscriberAdd" offers="[[offers]]"></sig-sub-add>
 			<sig-sub-update active-item="[[activeServiceItem]]"></sig-sub-update>
 			<sig-client-add></sig-client-add>
