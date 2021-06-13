@@ -1206,7 +1206,7 @@ offer([{"validFor", {struct, L}} | T], Acc) ->
 		{_, End} ->
 			Acc1#offer{end_date = ocs_rest:iso8601(End)};
 		false ->
-			Acc
+			Acc1
 	end,
 	offer(T, Acc2);
 offer([{"lifecycleStatus", Status} | T], Acc) when is_list(Status) ->
@@ -1386,7 +1386,7 @@ price([{"validFor", {struct, L}} | T], Acc) when is_list(L) ->
 		{_, End} ->
 			Acc1#price{end_date = ocs_rest:iso8601(End)};
 		false ->
-			Acc
+			Acc1
 	end,
 	price(T, Acc2);
 price([{"priceType", Type} | T], Acc) when is_list(Type) ->
