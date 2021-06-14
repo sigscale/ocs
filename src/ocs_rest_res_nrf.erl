@@ -60,7 +60,8 @@ initial_nrf(NrfRequest) ->
 		case mochijson:decode(NrfRequest) of
 			{struct, _Attributes} = NrfStruct ->
 				NrfMap = nrf_request_to_map(NrfStruct),
-				case rate(NrfMap, initial) of
+				Flag = event_type(NrfMap),
+				case rate(NrfMap, Flag) of
 					ServiceRating when is_list(ServiceRating) ->
 						UpdatedMap = maps:update("serviceRating", ServiceRating, NrfMap),
 						ok = add_rating_ref(RatingDataRef, UpdatedMap),
@@ -423,6 +424,8 @@ nrf_request_to_map({struct, StructList}) ->
 %% @hidden
 nrf_request_to_map([{"invocationTimeStamp", TS} | T], Acc) ->
 	nrf_request_to_map(T, Acc#{"invocationTimeStamp" => TS});
+nrf_request_to_map([{"oneTimeEventType", EventType} | T], Acc) ->
+	nrf_request_to_map(T, Acc#{"oneTimeEventType" => EventType});
 nrf_request_to_map([{"invocationSequenceNumber", SeqNum} | T], Acc) ->
 	nrf_request_to_map(T, Acc#{"invocationSequenceNumber" => SeqNum});
 nrf_request_to_map([{"subscriptionId", {array, ["msisdn-" ++ MSISDN, "imsi-" ++ IMSI]}} | T], Acc) ->
@@ -436,6 +439,12 @@ nrf_request_to_map([_H | T], Acc) ->
 nrf_request_to_map([], Acc) ->
 	Acc.
 
+%% @hidden
+event_type(#{"oneTimeEventType" := "IEC"}) ->
+	event;
+event_type(_) ->
+	initial.
+	
 -spec struct_service_rating(ServiceRating) -> Result
 	when
 		ServiceRating :: [map()],
