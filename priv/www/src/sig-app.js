@@ -94,7 +94,6 @@ class SigApp extends PolymerElement {
 								id="offerList"
 								loading="{{offerLoading}}"
 								offers="{{offers}}"
-								tables="{{tables}}"
 								name="offerView"
 								active-item="{{activeOfferItem}}">
 						</sig-offer-list>
@@ -147,13 +146,10 @@ class SigApp extends PolymerElement {
 						</sig-http-list>
 						<sig-prefix-list
 								id="prefixList"
-								tables="{{tables}}"
-								table="{{table}}"
-								tableId="{{tableId}}"
-								rowId="{{rowId}}"
+								active-item="{{activePrefixItem}}"
+								active-table-name="{{prefixTable}}"
 								loading="{{prefixLoading}}"
-								name="prefixView"
-								active-item="{{activePrefixItem}}">
+								name="prefixView">
 						</sig-prefix-list>
 						<sig-balance-list
 								id="balanceList"
@@ -175,12 +171,9 @@ class SigApp extends PolymerElement {
 						</sig-bucket-list>
 						<sig-policy-list
 								id="policyList"
-								tables="{{tables}}"
-								table="{{table}}"
-								tableId="{{tableId}}"
+								active-table-name="{{policyTable}}"
 								loading="{{policyLoading}}"
-								name="policyView"
-								active-item="{{activePolicyItem}}">
+								name="policyView">
 						</sig-policy-list>
 					</iron-pages>
 					<paper-toast
@@ -325,7 +318,7 @@ class SigApp extends PolymerElement {
 			<sig-client-update id="clientUpdate" active-item="[[activeClientItem]]"></sig-client-update>
 			<sig-user-add></sig-user-add>
 			<sig-user-update id="userUpdate" active-item="[[activeUserItem]]"></sig-user-update>
-			<sig-offer-update id="updateProduct" active-item="[[activeOfferItem]]"></sig-offer-update>
+			<sig-offer-update id="updateOffer" active-item="[[activeOfferItem]]"></sig-offer-update>
 			<sig-ipdr-log-files-wlan></sig-ipdr-log-files-wlan>
 			<sig-ipdr-log-files-voip id="ipdrLogs"></sig-ipdr-log-files-voip>
 			<sig-prefix-table-add></sig-prefix-table-add>
@@ -481,8 +474,11 @@ class SigApp extends PolymerElement {
 			bucketLoading: {
 				type: Boolean
 			},
-			activePolicyItem: {
-				type: Boolean
+			prefixTable: {
+				type: String
+			},
+			policyTable: {
+				type: String
 			}
 		};
 	}
@@ -531,7 +527,11 @@ class SigApp extends PolymerElement {
 				this.viewTitle = 'HTTP Log';
 				break;
 			case 'prefixView':
-				this.viewTitle = 'Tariff Table';
+				if(this.prefixTable) {
+					this.viewTitle = 'Tariff: ' + this.prefixTable;
+				} else {
+					this.viewTitle = 'Tariff Table';
+				}
 				break;
 			case 'balanceView':
 				this.viewTitle = 'Accumulated Balance';
@@ -543,7 +543,11 @@ class SigApp extends PolymerElement {
 				this.viewTitle = 'Balance Buckets';
 				break;
 			case 'policyView':
-				this.viewTitle = 'Policy';
+				if(this.policyTable) {
+					this.viewTitle = 'Policy: ' + this.policyTable;
+				} else {
+					this.viewTitle = 'Policy Table';
+				}
 				break;
 			default:
 				this.viewTitle = 'Online Charging System';

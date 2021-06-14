@@ -347,10 +347,8 @@ class accountingList extends PolymerElement {
 			var current;
 			if(item == null) {
 				current = last;
-				this.$.accountingGrid.selectedItems = item ? [item] : [];
 			} else {
 				current = item;
-				this.$.accountingGrid.selectedItems = [];
 			}
 			function checkExist(specification) {
 				return specification.id == current.id;

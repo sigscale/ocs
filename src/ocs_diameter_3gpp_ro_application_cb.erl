@@ -1104,7 +1104,14 @@ fui(RedirectServerAddress)
 		{ok, Address} when size(Address) =:= 8 ->
 			?'3GPP_RO_REDIRECT-ADDRESS-TYPE_IPV6_ADDRESS';
 		{error, _} ->
-			[]
+			case RedirectServerAddress of
+				"sip:" ++ _Address ->
+					?'3GPP_RO_REDIRECT-ADDRESS-TYPE_SIP_URI';
+				"http:" ++ _Address ->
+					?'3GPP_RO_REDIRECT-ADDRESS-TYPE_URL';
+				_ ->
+					[]
+			end
 	end,
 	RedirectServer = #'3gpp_ro_Redirect-Server'{'Redirect-Address-Type' = AddressType,
 			'Redirect-Server-Address' = RedirectServerAddress},

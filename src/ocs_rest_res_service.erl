@@ -216,6 +216,34 @@ patch_inventory(ServiceId, Etag, ReqData) ->
 		{Etag2, {array, _} = Operations} ->
 			F = fun() ->
 					case mnesia:read(service, list_to_binary(ServiceId), write) of
+						[#service{product = ProductRef} = Service1] when
+								Service1#service.last_modified == Etag2;
+								Etag2 == undefined,
+								ProductRef =/= undefined ->
+							case catch ocs_rest:patch(Operations, inventory(Service1)) of
+								{struct, _} = Service2 ->
+									TS = erlang:system_time(?MILLISECOND),
+									N = erlang:unique_integer([positive]),
+									LM = {TS, N},
+									case inventory(Service2) of
+									#service{product = []} = Service3 ->
+										Service4 = Service3#service{last_modified = LM,
+												product = undefined},
+										{ok, #product{service = Services} = Product}
+												= ocs:find_product(ProductRef),
+										Product1 = Product#product{service = Services
+												-- [list_to_binary(ServiceId)]},
+										ok = mnesia:write(product, Product1, write),
+										ok = mnesia:write(Service4),
+										{Service2, LM};
+									Service3 ->
+										Service4 = Service3#service{last_modified = LM},
+										ok = mnesia:write(Service4),
+										{Service2, LM}
+									end;
+								_ ->
+									throw(bad_request)
+							end;
 						[Service1] when
 								Service1#service.last_modified == Etag2;
 								Etag2 == undefined ->
@@ -227,9 +255,7 @@ patch_inventory(ServiceId, Etag, ReqData) ->
 									LM = {TS, N},
 									Service4 = Service3#service{last_modified = LM},
 									ok = mnesia:write(Service4),
-									{Service2, LM};
-								_ ->
-									throw(bad_request)
+									{Service2, LM}
 							end;
 						[#service{}] ->
 							throw(precondition_failed);

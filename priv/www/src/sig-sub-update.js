@@ -337,20 +337,26 @@ class subUpdate extends PolymerElement {
 		super.ready()
 	}
 
-	_activeItemChanged(item) {
-		if (item != null){
+	_activeItemChanged(item, last) {
+		if(item || last) {
+			var current;
+			if(item) {
+				current = item;
+			} else if(last) {
+				current = last;
+			}
 			var ajaxCh = this.$.getServiceRespAjax;
-			ajaxCh.url = "/serviceInventoryManagement/v2/service/" + item.id;
+			ajaxCh.url = "/serviceInventoryManagement/v2/service/" + current.id;
 			ajaxCh.generateRequest();
 			this.$.updateSubscriberProductsAjax.generateRequest();
-			this.updateSubId = item.id;
-			this.updateSubPass = item.password;
-			this.updateSubPro = item.product;
-			this.updateSubSes = item.sessionTimeout;
-			this.updateSubSessInt = item.acctInterimInterval;
-			this.updateSubClass =  item.class;
-			this.$.updateSubscriberEnabled.checked =  item.enabled;
-			this.$.updateSubscriberMulti.checked =  item.multisession;
+			this.updateSubId = current.id;
+			this.updateSubPass = current.password;
+			this.updateSubPro = current.product;
+			this.updateSubSes = current.sessionTimeout;
+			this.updateSubSessInt = current.acctInterimInterval;
+			this.updateSubClass =  current.class;
+			this.$.updateSubscriberEnabled.checked =  current.enabled;
+			this.$.updateSubscriberMulti.checked =  current.multisession;
 			var arrObj = new Object();
 			arrObj.id = this.updateSubId;
 			arrObj.password = this.updateSubPass;
@@ -362,13 +368,6 @@ class subUpdate extends PolymerElement {
 			arrObj.multisession = this.$.updateSubscriberMulti.checked;
 			this.valCha.push(arrObj)
 			this.$.updateSubscriberModal.open();
-		} else {
-			this.updateSubId = null;
-			this.updateSubPass = null;
-			this.updateSubPro = null;
-			this.updateSubSes = null;
-			this.updateSubSessInt = null;
-			this.updateSubClass = null;
 		}
 	}
 

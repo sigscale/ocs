@@ -219,14 +219,20 @@ class clientUpdate extends PolymerElement {
 		super.ready()
 	}
 
-	_activeItemChanged(item) {
-		if(item) {
-			this.clientUpAddress = item.id;
-			this.clientUpPass = item.secret;
-			this.clientUpNewPass = item.newSecret;
-			this.clientUpProto = item.protocol;
-			this.clientUpDisPort = item.port;
-			this.updatePasswordless = item.passwordRequired;
+	_activeItemChanged(item, last) {
+		if(item || last) {
+			var current;
+			if(item) {
+				current = item;
+			} else if(last) {
+				current = last;
+			}
+			this.clientUpAddress = current.id;
+			this.clientUpPass = current.secret;
+			this.clientUpNewPass = current.newSecret;
+			this.clientUpProto = current.protocol;
+			this.clientUpDisPort = current.port;
+			this.updatePasswordless = current.passwordRequired;
 			var arrObj = new Object();
 			arrObj.port = this.clientUpDisPort;
 			arrObj.protocol = this.clientUpProto;
@@ -235,11 +241,6 @@ class clientUpdate extends PolymerElement {
 			arrObj.passwordless = this.updatePasswordless;
 			this.valCha.push(arrObj);
 			this.$.updateClientModal.open();
-		} else {
-			this.clientUpAddress = null;
-			this.clientUpPass = null;
-			this.clientUpNewPass = null;
-			this.clientUpDisPort = null;
 		}
 	}
 

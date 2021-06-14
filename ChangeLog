@@ -1,3 +1,39 @@
+2021-06-03  Vance Shipley <vances@sigscale.org>
+
+	* mutliple operations in table dialogs; table name in view title
+	* clear gtt table when tariff table resource is deleted
+	* delete gtt entry when a tariff row is deleted
+	* create function to clear specific gtt table
+	* tariff table resource should not be added when gtt table is unavailable
+	* refactor policy table add/delete/select handling
+	* fix abmf_query
+	* refactor flow exists test
+	* align buttons in policy row details
+	* initialize empty flow; add empty flow
+	* hide generated web component module
+	* reformat policy grid columns
+	* remove flow row from policy
+	* conditionally include characteristic values in policy add web component
+	* wait for completion of table add before get tables
+	* correct specification name in prefix add web component
+	* correct policy/tariff table/row specification references
+	* fix update policy row
+	* clear all event handlers before notification test cases
+	* make unique httpd server name
+	* category of product charge notifications is balance
+	* unique rest authenication; typo
+	* change correct name and send correct json
+	* refactor abmf query test case for product id match
+	* correct matchspec in query acct log test case
+	* remove test case for non-existent object in diameter mib
+	* include master session key in dea
+	* include hss realm,host in auc register response with radius
+	* include rat-type in der of aka(p) test cases
+	* delete subscrition at the end of test case
+	* add unique ids
+	* remove duplicating listener pid and port
+	* change module in state map of specialized diameter codec
+
 2021-05-20  Vance Shipley <vances@sigscale.org>
 
 	* stop started httpd service at end_per_testcase

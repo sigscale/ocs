@@ -41,58 +41,68 @@ class offerAdd extends PolymerElement {
 						class="slow red"
 						disabled="{{!loading}}">
 				</paper-progress>
-				<paper-input
-						id="addProduct"
-						name="product"
-						value="{{proProduct}}"
-						label="Product">
-				</paper-input>
-				<paper-tooltip
-						for="addProduct"
-						offset="0">
-					Product Name
-				</paper-tooltip>
+				<div>
+					<paper-input
+							value="{{productId}}"
+							label="Product">
+					</paper-input>
+					<paper-tooltip>
+						Identifier of the Product associated with this bucket.
+					</paper-tooltip>
+				</div>
+				<div>
+					<paper-input
+							value="{{bucketStart}}"
+							label="Start Date">
+					</paper-input>
+					<paper-tooltip>
+						Start of balance bucket validity period.
+					</paper-tooltip>
+				</div>
+				<div>
+					<paper-input
+							value="{{bucketEnd}}"
+							label="End Date">
+					</paper-input>
+					<paper-tooltip>
+						End of balance bucket validity period.
+					</paper-tooltip>
+				</div>
 				<div>
 					<paper-dropdown-menu
-							id="proBucUnit"
-							value="{{proUnit}}"
+							value="{{bucketUnit}}"
 							no-animations="true"
 							label="Units">
 						<paper-listbox
-								id="addUnitsBucket"
 								slot="dropdown-content">
 							<paper-item>
-									Bytes
+								Bytes
 							</paper-item>
 							<paper-item>
-									Cents
+								Cents
 							</paper-item>
 							<paper-item>
-									Seconds
+								Seconds
 							</paper-item>
 						</paper-listbox>
 					</paper-dropdown-menu>
-					<paper-tooltip
-							for="proBucUnit"
-							offset="0">
-						Select units from dropdown list ("Bytes | Cents | Seconds")
+					<paper-tooltip>
+						Type of units contained in this bucket.
 					</paper-tooltip>
 				</div>
-				<paper-input
-						id="amount"
-						name="amount"
-						type="text"
-						allowed-pattern="[0-9kmg]"
-						pattern="^[0-9]+[kmg]?$"
-						label="Amount"
-						value="{{proAmount}}"
-						auto-validate>
-				</paper-input>
-				<paper-tooltip
-						for="amount"
-						offset="0">
-					Add bucket amount value
-				</paper-tooltip>
+				<div>
+					<paper-input
+							type="text"
+							allowed-pattern="[0-9kmg]"
+							pattern="^[0-9]+[kmg]?$"
+							label="Amount"
+							value="{{bucketAmount}}"
+							auto-validate>
+					</paper-input>
+					<paper-tooltip>
+						Total amount of units contained in this bucket.
+					</paper-tooltip>
+				</div>
 				<div class="buttons">
 					<paper-button
 							raised
@@ -102,34 +112,32 @@ class offerAdd extends PolymerElement {
 					</paper-button>
 					<paper-button dialog-dismiss
 							class="cancel-button"
-							on-tap="canBucket">
+							on-tap="_cancel">
 						Cancel
 					</paper-button>
 				</div>
 			</paper-dialog>
 			<paper-dialog
 					class="dialog"
-					id="deleteBucketModal" modal>
+					id="deleteBucketModal"
+					modal>
 				<app-toolbar>
-					<h2>Delete Bucket</h2>
+					<h3>Delete Bucket</h3>
 				</app-toolbar>
-				<paper-input
-						id="deleteBucId"
-						value="{{delBuc}}"
-						name="BucketId"
-						label="Bucket Id"
-						required
-						disabled>
-				</paper-input>
-				<paper-tooltip
-						for="deleteBucId"
-						offset="0">
-					Bucket id
-				</paper-tooltip>
+				<div>
+					<paper-input
+							value="{{deleteBucketId}}"
+							label="Bucket Id"
+							required
+							disabled>
+					</paper-input>
+					<paper-tooltip>
+						Identifier of bucket to be deleted.
+					</paper-tooltip>
+				</div>
 				<div class="buttons">
 					<paper-button raised
-							id="bucDelButton"
-							on-tap="bucketDelete"
+							on-tap="_deleteBucket"
 							class="delete-button">
 						Delete
 					</paper-button>
@@ -164,13 +172,22 @@ class offerAdd extends PolymerElement {
 				type: Boolean,
 				value: false
 			},
-			proProduct: {
+			productId: {
 				type: String
 			},
-			proAmount: {
+			bucketStart: {
 				type: String
 			},
-			delBuc: {
+			bucketEnd: {
+				type: String
+			},
+			bucketAmount: {
+				type: String
+			},
+			bucketUnit: {
+				type: String
+			},
+			deleteBucketId: {
 				type: String
 			}
 		}
@@ -180,14 +197,13 @@ class offerAdd extends PolymerElement {
 		super.ready()
 	}
 
-	bucketDelete(event) {
-		var delBucket = this.delBuc;
-		var deleteAjax = this.$.deleteBucketAjax;
-		deleteAjax.url = "/balanceManagement/v1/bucket/" + delBucket;
-		deleteAjax.generateRequest();
+	_deleteBucket(event) {
+		this.$.deleteBucketAjax.url = "/balanceManagement/v1/bucket/" + this.deleteBucketId;
+		this.$.deleteBucketAjax.generateRequest();
 	}
 
 	_deleteBucketError(event) {
+		this.$.deleteBucketModal.close();
 		var toast = document.body.querySelector('sig-app').shadowRoot.getElementById('restError');
 		toast.text = "Error";
 		toast.open();
@@ -195,83 +211,55 @@ class offerAdd extends PolymerElement {
 
 	_deleteBucketResponse(event) {
 		this.$.deleteBucketModal.close();
+		this.deleteBucketId = null;
 		document.body.querySelector('sig-app').shadowRoot.querySelector('sig-bucket-list').shadowRoot.getElementById('balanceBucketGrid').clearCache();
 	}
 
 	_bucketAddSubmit(event) {
-		var ajaxBucket = this.$.addBucketAjax;
-		var bucketTop = {name: "channel"};
-		var bucketUnits;
-		var bucketAmount;
-		if(this.proAmount) {
-			if(this.proUnit == "Bytes") {
-				bucketUnits = "octets";
-			}
-			else if(this.proUnit == "Cents") {
-				bucketUnits = "cents";
-			}
-			else if(this.proUnit == "Seconds") {
-				bucketUnits = "seconds";
-			} else {
-				bucketUnits = "cents";
-			}
-			if(bucketUnits && this.proAmount) {
-				var size = this.proAmount;
-				var len = size.length;
-				var m = size.charAt(len - 1);
-				if(isNaN(parseInt(m))) {
-					var s = size.slice(0, (len - 1));
-				} else {
-						var s = size;
+		if(this.productId && this.bucketUnit && this.bucketAmount) {
+			var bucket = {name: "channel"};
+			bucket.product = {id: this.productId,
+					href: "/productInventoryManagement/v2/product/" + this.productId};
+			if(this.bucketStart || this.bucketEnd) {
+				bucket.validFor = new Object;
+				if(this.bucketStart) {
+					bucket.validFor.startDateTime = this.bucketStart;
 				}
-				if(bucketUnits == "octets") {
-					if (m == "m") {
-						bucketAmount = s + "000000b";
-					} else if(m == "g") {
-						bucketAmount = s + "000000000b";
-					} else if(m == "k") {
-						bucketAmount = s + "000b";
-					} else {
-						bucketAmount = s + "b";
-					}
-				} else if(bucketUnits == "cents") {
-					bucketAmount = this.proAmount; 
-				} else if(bucketUnits == "seconds") {
-					var n = Number(s);
-					if(m == "m") {
-						n = n * 60;
-						bucketAmount = n.toString() + "s";
-					} else if(m == "h") {
-						n = n * 3600;
-						bucketAmount = n.toString() + "s";
-					} else {
-						bucketAmount = n.toString() + "s";
-					}
+				if(this.bucketEnd) {
+					bucket.validFor.endDateTime = this.bucketEnd;
 				}
-			bucketTop.amount = {units: bucketUnits, amount: bucketAmount};
 			}
+			if(this.bucketUnit == "Bytes") {
+				bucket.amount = {units: "octets", amount: this.bucketAmount};
+			}
+			else if(this.bucketUnit == "Cents") {
+				bucket.amount = {units: "cents", amount: this.bucketAmount};
+			}
+			else if(this.bucketUnit == "Seconds") {
+				bucket.amount = {units: "seconds", amount: this.bucketAmount};
+			}
+			var ajax = this.$.addBucketAjax;
+			ajax.body = bucket;
+			ajax.url="/balanceManagement/v1/product/" + this.productId + "/balanceTopup";
+			ajax.generateRequest();
 		}
-		var proId = this.proProduct;
-		bucketTop.product = {id: proId,
-					href: "/productInventoryManagement/v2/product/" + proId};
-		ajaxBucket.headers['Content-type'] = "application/json";
-		ajaxBucket.body = bucketTop;
-		ajaxBucket.url="/balanceManagement/v1/product/" + proId + "/balanceTopup";
-		ajaxBucket.generateRequest();
-		this.$.addBucketModal.close();
-		this.proAmount = null;
-		this.$.addProduct.value = null;
-		this.$.addUnitsBucket.value = null;
 	}
 
-	canBucket() {
-		this.proAmount = null;
-		this.$.addProduct.value = null;
-		this.$.addUnitsBucket.value = null;
+	_cancel() {
+		this.productId = null;
+		this.bucketStart = null;
+		this.bucketEnd = null;
+		this.bucketUnit = null;
+		this.bucketAmount = null;
 	}
 
 	_addBucketResponse(event) {
 		this.$.addBucketModal.close();
+		this.productId = null;
+		this.bucketStart = null;
+		this.bucketEnd = null;
+		this.bucketUnit = null;
+		this.bucketAmount = null;
 		document.body.querySelector('sig-app').shadowRoot.getElementById('bucketList').shadowRoot.getElementById('balanceBucketGrid').clearCache();
 	}
 

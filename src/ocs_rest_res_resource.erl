@@ -65,7 +65,8 @@ content_types_provided() ->
 	when
 		ID :: string(),
 		Result :: {struct, [tuple()]} | {error, 404}.
-%% @doc Get Resource Specification by ID.
+%% @doc Respond to `GET /resourceCatalogManagement/v2/resourceSpecification/{id}'.
+%%		Retrieve a resource specification.
 get_resource_spec("1") ->
 	ResourceSpec = tariff_table_spec(),
 	Body = mochijson:encode(ResourceSpec),
@@ -96,7 +97,7 @@ get_resource_spec(_) ->
 	Body		:: iolist(),
 	Status	:: 400 | 404 | 500.
 %% @doc Respond to `GET /resourceCatalogManagement/v2/resourceSpecification'.
-%% 	Retrieve all Resource specifications.
+%% 	Retrieve all resource specifications.
 get_resource_specs([] = _Query) ->
 	Headers = [{content_type, "application/json"}],
 	Object = {array, [tariff_table_spec(), tariff_row_spec(),
@@ -539,19 +540,57 @@ query_start({M, F, A}, Codec, Query, Filters, RangeStart, RangeEnd) ->
 %%    Add a new resource in inventory.
 add_resource(RequestBody) ->
 	try
-		Resource1 = resource(mochijson:decode(RequestBody)),
-		case ocs:add_resource(Resource1) of
-			{ok, #resource{href = Href, last_modified = LM} = Resource2} ->
-				Headers = [{location, Href}, {etag, ocs_rest:etag(LM)}],
-				Body = mochijson:encode(resource(Resource2)),
-				{ok, Headers, Body};
-			{error, _Reason} ->
-				{error, 400}
-		end
+		resource(mochijson:decode(RequestBody))
+	of
+		#resource{name = Name, specification = #specification_ref{id = SpecId}}
+				= Resource when SpecId == "1"; SpecId == "3" ->
+			F = fun F(eof, Acc) ->
+						lists:flatten(Acc);
+					F(Cont1, Acc) ->
+						{Cont2, L} = ocs:query_resource(Cont1, '_', {exact, Name},
+								{exact, SpecId}, '_'),
+						F(Cont2, [L | Acc])
+			end,
+			case F(start, []) of
+				[] ->
+					add_resource1(ocs:add_resource(Resource));
+				[#resource{} | _] ->
+					{error, 400}
+			end;
+		#resource{specification = #specification_ref{id = "2"},
+				related = [#resource_rel{name = Table}],
+				characteristic = Chars} = Resource1 ->
+			F = fun(CharName) ->
+						case lists:keyfind(CharName, #resource_char.name, Chars) of
+							#resource_char{value = Value} ->
+								Value;
+							false ->
+								{error, 400}
+						end
+			end,
+			Prefix = F("prefix"),
+			{ok, #gtt{value = {_, _, LM}}} = ocs_gtt:insert(Table, Prefix,
+					{F("description"), F("rate")}),
+			Id = Table ++ "-" ++ Prefix,
+			Href = "/resourceInventoryManagement/v1/resource/" ++ Id,
+			Resource2 = Resource1#resource{id = Id, href = F("prefix"),
+					last_modified = LM},
+			Headers = [{location, Href}, {etag, ocs_rest:etag(LM)}],
+			Body = mochijson:encode(resource(Resource2)),
+			{ok, Headers, Body};
+		#resource{specification = #specification_ref{id = "4"}} = Resource ->
+			add_resource1(ocs:add_resource(Resource))
 	catch
-		_:_Reason1 ->
+		_:_Reason ->
 			{error, 400}
 	end.
+%% @hidden
+add_resource1({ok, #resource{href = Href, last_modified = LM} = Resource}) ->
+	Headers = [{location, Href}, {etag, ocs_rest:etag(LM)}],
+	Body = mochijson:encode(resource(Resource)),
+	{ok, Headers, Body};
+add_resource1({error, _Reason}) ->
+	{error, 400}.
 
 -spec get_pla_specs(Query) -> Result when
 	Query :: [{Key :: string(), Value :: string()}],
@@ -672,7 +711,7 @@ tariff_table_spec() ->
 tariff_row_spec() ->
 	Id = {"id", "2"},
 	Href = {"href", ?specPath "2"},
-	Name = {"name", "TariffRow"},
+	Name = {"name", "TariffTableRow"},
 	Description = {"description", "Voice call rating tariff row"},
 	Status = {"lifecycleStatus", "Active"},
 	Version = {"version", "1.0"},
@@ -708,36 +747,33 @@ policy_table_spec() ->
 policy_row_spec() ->
 	Id = {"id", "4"},
 	Href = {"href", ?specPath "4"},
-	Name = {"name", "PolicyTable"},
-	Description = {"description", "Rating policy row"},
+	Name = {"name", "PolicyTableRow"},
+	Description = {"description", "Policy table row"},
 	Status = {"lifecycleStatus", "Active"},
 	Version = {"version", "1.0"},
 	LastUpdate = {"lastUpdate", "2021-01-15"},
 	Category = {"category", "PolicyRow"},
 	Chars = {array, [{struct, [{"name", "name"},
-			{"description", "Rule name"},
+			{"description", "Policy rule name"},
 			{"minCardinality", 1}, {"valueType", "String"}]},
 			{struct, [{"name", "qosInformation"},
 			{"description", "Quality of Service Information"},
 			{"minCardinality", 0},
-			{"valueType", {struct, [{"qosClassIdentifier", "Number"},
-			{"maxRequestedBandwidthUL", "Number"},
-			{"maxRequestedBandwidthDL", "Number"}]}}]},
+			{"valueType", "Object"}]},
 			{struct, [{"name", "chargingKey"},
 			{"description", "Charging rule"},
 			{"minCardinality", 0}, {"valueType", "Number"}]},
 			{struct, [{"name", "flowInformation"},
-			{"description", "Flow Information"}, {"minCardinality", 1},
-			{"valueType", {array, [{struct, [{"flowDescription", "String"},
-			{"flowDirection", "String"}]}]}}]},
+			{"description", "Service flow template"}, {"minCardinality", 1},
+			{"valueType", "Array"}]},
 			{struct, [{"name", "precedence"},
-			{"description", "Priority of the policy"},
+			{"description", "Priority order rules are applied in"},
 			{"minCardinality", 1}, {"valueType", "Number"}]},
 			{struct, [{"name", "serviceId"},
-			{"description", "An identifier for a service"},
+			{"description", "Service flow identifier"},
 			{"minCardinality", 0}, {"valueType", "String"}]},
 			{struct, [{"name", "predefined"},
-			{"description", "Indicate PCEF predefined rules"},
+			{"description", "Indicate PCEF predefined rule"},
 			{"minCardinality", 0}, {"valueType", "Boolean"}]}]},
 	Characteristic = {"resourceSpecCharacteristic", Chars},
 	{struct, [Id, Href, Name, Description, Version, Status, LastUpdate,
@@ -1089,14 +1125,10 @@ resource_char([{"value", Value} | T], Acc) when is_boolean(Value) ->
 	resource_char(T, Acc#resource_char{value = Value});
 resource_char([{"value", {struct, QosList}} | T],
 		#resource_char{name = "qosInformation"} = Acc) when is_list(QosList) ->
-	resource_char(T, Acc#resource_char{value = parse_char(QosList, #{})});
-resource_char([{"value", {array, FlowStructs}} | T],
-		#resource_char{name = "flowInformation"} = Acc)
-		when is_list(FlowStructs) ->
-	F = fun({struct, FlowList}) ->
-			parse_char(FlowList, #{})
-	end,
-	resource_char(T, Acc#resource_char{value = lists:map(F, FlowStructs)});
+	resource_char(T, Acc#resource_char{value = qos(QosList, #{})});
+resource_char([{"value", {array, Flows}} | T],
+		#resource_char{name = "flowInformation"} = Acc) when is_list(Flows) ->
+	resource_char(T, Acc#resource_char{value = flow(Flows, [])});
 resource_char([], Acc) ->
 	Acc.
 %% @hidden
@@ -1116,46 +1148,65 @@ resource_char1(#resource_char{name = "qosInformation",
 	{struct, [{"name", "qosInformation"}, {"value", {struct,
 			[{"maxRequestedBandwidthDL", MaxDL}, {"maxRequestedBandwidthUL",
 			MaxUL}, {"qosClassIdentifier", Class}]}}]};
-resource_char1(#resource_char{name = "flowInformation", value = FlowList})
-		when is_list(FlowList) ->
-	F = fun(#{"flowDescription" := FlowDes, "flowDirection" := 0})
-			when is_list(FlowDes) ->
-				{struct, [{"flowDescription", FlowDes},
-						{"flowDirection", "unspecified"}]};
-			(#{"flowDescription" := FlowDes, "flowDirection" := 1})
-					when is_list(FlowDes) ->
-				{struct, [{"flowDescription", FlowDes}, {"flowDirection", "down"}]};
-			(#{"flowDescription" := FlowDes, "flowDirection" := 2})
-					when is_list(FlowDes) ->
-				{struct, [{"flowDescription", FlowDes}, {"flowDirection", "up"}]};
-			(#{"flowDescription" := FlowDes, "flowDirection" := 3})
-					when is_list(FlowDes) ->
-				{struct, [{"flowDescription", FlowDes},
-						{"flowDirection", "bidirectional"}]}
-	end,
+resource_char1(#resource_char{name = "flowInformation", value = Flows})
+		when is_list(Flows) ->
 	{struct, [{"name", "flowInformation"},
-			{"value", {array, lists:map(F, FlowList)}}]};
+			{"value", {array, flow(Flows, [])}}]};
 resource_char1(#resource_char{name = Name, value = Value})
 		when is_list(Value) ->
 	{struct, [{"name", Name}, {"value", Value}]}.
 
 %% @hidden
-parse_char([{Field, Value} | T], Acc) when is_integer(Value),
+qos([{Field, Value} | T], Acc) when is_integer(Value),
 		Field == "qosClassIdentifier"; Field == "maxRequestedBandwidthUL";
 		Field == "maxRequestedBandwidthDL" ->
-	parse_char(T, Acc#{Field => Value});
-parse_char([{"flowDirection", "unspecified"} | T], Acc) ->
-	parse_char(T, Acc#{"flowDirection" => 0});
-parse_char([{"flowDirection", "down"} | T], Acc) ->
-	parse_char(T, Acc#{"flowDirection" => 1});
-parse_char([{"flowDirection", "up"} | T], Acc) ->
-	parse_char(T, Acc#{"flowDirection" => 2});
-parse_char([{"flowDirection", "bidirectional"} | T], Acc) ->
-	parse_char(T, Acc#{"flowDirection" => 3});
-parse_char([{"flowDescription", Value} | T], Acc) when is_list(Value) ->
-	parse_char(T, Acc#{"flowDescription" => Value});
-parse_char([], Acc) ->
+	qos(T, Acc#{Field => Value});
+qos([], Acc) ->
 	Acc.
+
+-spec flow(Flows, Acc) -> Flows
+	when
+		Flows :: [Flow],
+		Flow :: {struct, [{Name :: string(), Value :: string()}]} | map(),
+		Acc :: [Flow].
+%% @hidden
+flow([#{"flowDescription" := Description, "flowDirection" := Direction} | T], Acc)
+		when is_list(Description), is_integer(Direction) ->
+	flow(T, [{struct, [{"flowDescription", Description},
+			{"flowDirection", flow_dir(Direction)}]} | Acc]);
+flow([{struct, [{"flowDescription", Description},
+		{"flowDirection", Direction}]} | T], Acc)
+		when is_list(Description), is_list(Direction) ->
+	flow(T, [#{"flowDescription" => Description,
+			"flowDirection" => flow_dir(Direction)} | Acc]);
+flow([{struct, [{"flowDirection", Direction},
+		{"flowDescription", Description}]} | T], Acc)
+		when is_list(Description), is_list(Direction) ->
+	flow(T, [#{"flowDescription" => Description,
+			"flowDirection" => flow_dir(Direction)} | Acc]);
+flow([], Acc) ->
+	lists:reverse(Acc).
+
+-spec flow_dir(Direction) -> Direction
+	when
+		Direction :: 0..3 | string().
+%% @hidden
+flow_dir(0) ->
+	"unspecified";
+flow_dir(1) ->
+	"down";
+flow_dir(2) ->
+	"up";
+flow_dir(3) ->
+	"both";
+flow_dir("unspecified") ->
+	0;
+flow_dir("down") ->
+	1;
+flow_dir("up") ->
+	2;
+flow_dir("both") ->
+	3.
 
 -spec specification_ref(ResourceSpecificationRef) -> ResourceSpecificationRef
 	when

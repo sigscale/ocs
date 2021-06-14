@@ -16,6 +16,7 @@ import {} from '@polymer/polymer/lib/elements/dom-if.js';
 import {} from '@polymer/polymer/lib/elements/dom-repeat.js'
 import '@vaadin/vaadin-grid/vaadin-grid.js';
 import '@vaadin/vaadin-grid/vaadin-grid-filter.js'
+import '@vaadin/vaadin-grid/vaadin-grid-column-group.js';
 import '@polymer/iron-ajax/iron-ajax.js';
 import '@polymer/paper-fab/paper-fab.js';
 import '@polymer/paper-tabs/paper-tabs.js';
@@ -44,95 +45,140 @@ class policyList extends PolymerElement {
 							General
 						</paper-tab>
 						<paper-tab>
-							QOS Information
+							QoS Information
 						</paper-tab>
 						<paper-tab>
-							Flow Information
+							Service Flow
 						</paper-tab>
 					</paper-tabs>
 					<iron-pages
 							selected="{{selectedTab}}">
 						<div>
-							<paper-input
-									name="id"
-									label="Id"
-									value="{{polId}}"
-									disabled>
-							</paper-input>
-							<paper-input
-									name="name"
-									label="Name"
-									value="{{polName}}">
-							</paper-input>
-							<paper-input
-									name="predefined"
-									label="Predefined"
-									value="{{predefined}}">
-							</paper-input>
-							<paper-input
-									name="precedence"
-									label="Precedence"
-									value="{{item.precedence}}">
-							</paper-input>
-							<paper-input
-									name="chargingKey"
-									label="Charging Key"
-									value="{{item.chargingKey}}">
-							</paper-input>
-							<paper-input
-									name="serviceId"
-									label="Service Id"
-									value="{{item.serviceId}}">
-							</paper-input>
+							<div>
+								<paper-input
+										label="Id"
+										value="{{polId}}"
+										disabled>
+								</paper-input>
+								<paper-tooltip>
+									Internal policy rule identifier.
+								</paper-tooltip>
+							</div>
+							<div>
+								<paper-input
+										label="Name"
+										value="{{polName}}">
+								</paper-input>
+								<paper-tooltip>
+									Uniquely identifies a PCRF provided rule within a session, or references a rule predefined at PCEF.
+								</paper-tooltip>
+							</div>
+							<div>
+								<paper-toggle-button
+										checked="{{predefined}}">
+									Predefined
+								</paper-toggle-button>
+								<paper-tooltip>
+									Indicates if the rule is predefined at PCEF.
+								</paper-tooltip>
+							</div>
+							<div>
+								<paper-input
+										label="Precedence"
+										value="{{item.precedence}}">
+								</paper-input>
+								<paper-tooltip>
+									Determines the order in which service data flow templates are applied for detection at the PCEF. A rule with a lower value shall be applied before a rule with a higher value.
+								</paper-tooltip>
+							</div>
+							<div>
+								<paper-input
+										label="Charging Key"
+										value="{{item.chargingKey}}">
+								</paper-input>
+								<paper-tooltip>
+									Charging Key (Rating Group) used for rating the service associated with the service flow of this rule.
+								</paper-tooltip>
+							</div>
+							<div>
+								<paper-input
+										label="Service Identifier"
+										value="{{item.serviceId}}">
+								</paper-input>
+								<paper-tooltip>
+									Identify the service or the service component the service data flow relates to.
+								</paper-tooltip>
+							</div>
 						</div>
 						<div>
-							<paper-input
-									name="maxRequestedBandwidthDL"
-									label="Max Requested Bandwidth DL"
-									value="{{item.maxRequestedBandwidthDL}}">
-							</paper-input>
-							<paper-input
-									name="maxRequestedBandwidthUL"
-									label="Max Requested Bandwidth UL"
-									value="{{item.maxRequestedBandwidthUL}}">
-							</paper-input>
-							<paper-input
-									name="qosClassIdentifier"
-									label="QOS Class Identifier"
-									value="{{item.qosClassIdentifier}}">
-							</paper-input>
+							<div>
+								<paper-input
+										label="Max Requested Bandwidth DL"
+										value="{{item.maxRequestedBandwidthDL}}">
+								</paper-input>
+								<paper-tooltip>
+									Maximum allowed bit rate for downlink.
+								</paper-tooltip>
+							</div>
+							<div>
+								<paper-input
+										label="Max Requested Bandwidth UL"
+										value="{{item.maxRequestedBandwidthUL}}">
+								</paper-input>
+								<paper-tooltip>
+									Maximum allowed bit rate for uplink.
+								</paper-tooltip>
+							</div>
+							<div>
+								<paper-input
+										label="QoS Class Identifier (QCI)"
+										value="{{item.qosClassIdentifier}}">
+								</paper-input>
+								<paper-tooltip>
+									The authorized QoS for the default EPS bearer.
+								</paper-tooltip>
+							</div>
 						</div>
 						<div>
 							<template id="flowDomRepeat" is="dom-repeat" items="{{item.flow}}" as="flowitem" mutable-data="true">
 								<div class="flowRow">
 									<paper-icon-button
-											id$="min-[[item.id]]"
 											class="minus-icon-button"
 											icon="icons:remove-circle-outline"
 											on-tap = "_flowMinus">
 									</paper-icon-button>
-									<paper-dropdown-menu
-											id$="dir-[[item.id]]"
-											value="{{flowitem.flowDirection}}"
-											no-animations="true"
-											label="Flow Direction">
-										<paper-listbox
-												slot="dropdown-content">
-											<paper-item>
-												up
-											</paper-item>
-											<paper-item>
-												down
-											</paper-item>
-										</paper-listbox>
-									</paper-dropdown-menu>
-									<paper-input
-											id$="desc-[[item.id]]"
-											name="flowDescription"
-											label="Flow Description"
-											value="{{flowitem.flowDescription}}">
-									</paper-input>
-								<div>
+									<div>
+										<paper-dropdown-menu
+												value="{{flowitem.flowDirection}}"
+												no-animations="true"
+												label="Flow Direction">
+											<paper-listbox
+													slot="dropdown-content">
+												<paper-item>
+													up
+												</paper-item>
+												<paper-item>
+													down
+												</paper-item>
+												<paper-item>
+													both
+												</paper-item>
+											</paper-listbox>
+										</paper-dropdown-menu>
+										<paper-tooltip>
+											Indicates the direction that a filter is applicable: downlink only, uplink only or both (bidirectional).
+										</paper-tooltip>
+									</div>
+									<div>
+										<paper-input
+												label="Flow Filter"
+												value="{{flowitem.flowDescription}}">
+										</paper-input>
+										<paper-tooltip>
+											Defines a packet filter for an IP flow (e.g. permit out proto ip from all to all).
+										</paper-tooltip>
+									</div>
+								</div>
 							</template>
 							<paper-icon-button
 									class="add-icon-button"
@@ -145,7 +191,7 @@ class policyList extends PolymerElement {
 						<paper-button
 								raised
 								class="submit-button"
-								on-tap="_up">
+								on-tap="_update">
 							Update
 						</paper-button>
 						<paper-button
@@ -156,69 +202,73 @@ class policyList extends PolymerElement {
 						</paper-button>
 					</div>
 				</template>
-				<vaadin-grid-column>
-					<template class="header">
-						Id
-					</template>
-					<template>[[item.id]]</template>
-				</vaadin-grid-column>
-				<vaadin-grid-column>
+				<vaadin-grid-column width="12ex" flex-grow="2">
 					<template class="header">
 						Name
 					</template>
 					<template>[[item.name]]</template>
 				</vaadin-grid-column>
-				<vaadin-grid-column>
+				<vaadin-grid-column width="20ex" flex-grow="2">
 					<template class="header">
-						QOS
+						QoS
 					</template>
 					<template>[[item.qos]]</template>
 				</vaadin-grid-column>
-				<vaadin-grid-column>
+				<vaadin-grid-column width="14ex" flex-grow="1">
 					<template class="header">
-						Charging Rule
+						Charging Key
 					</template>
 					<template>[[item.chargingKey]]</template>
 				</vaadin-grid-column>
-				<vaadin-grid-column>
+				<vaadin-grid-column width="12ex" flex-grow="1">
 					<template class="header">
 						Service Id
 					</template>
 					<template>[[item.serviceId]]</template>
 				</vaadin-grid-column>
-				<vaadin-grid-column>
+				<vaadin-grid-column-group>
 					<template class="header">
-						Flow Up
+						<div class="grouptitle">Service Flow</div>
 					</template>
-					<template>[[item.flowUp]]</template>
-				</vaadin-grid-column>
-				<vaadin-grid-column>
-					<template class="header">
-						Flow Down
-					</template>
-					<template>[[item.flowDown]]</template>
-				</vaadin-grid-column>
-				<vaadin-grid-column>
+					<vaadin-grid-column width="25ex" flex-grow="3">
+						<template class="header">
+							Flow Up
+						</template>
+						<template>[[item.flowUp]]</template>
+					</vaadin-grid-column>
+					<vaadin-grid-column width="25ex" flex-grow="3">
+						<template class="header">
+							Flow Down
+						</template>
+						<template>[[item.flowDown]]</template>
+					</vaadin-grid-column>
+				</vaadin-grid-column-group>
+				<vaadin-grid-column width="12ex" flex-grow="1">
 					<template class="header">
 						Precedence
 					</template>
 					<template>[[item.precedence]]</template>
 				</vaadin-grid-column>
-				<vaadin-grid-column>
+				<vaadin-grid-column width="12ex" flex-grow="1">
 					<template class="header">
 						Predefined
 					</template>
 					<template>[[item.predefined]]</template>
 				</vaadin-grid-column>
 			</vaadin-grid>
-			<paper-dialog class="dialog" id="tableList">
+			<paper-dialog
+					class="dialog"
+					id="tableList">
 				<app-toolbar>
 					List of Tables
 				</app-toolbar>
-				<template is="dom-repeat" items="[[tables]]">
+				<template
+						id="tableItems"
+						is="dom-repeat"
+						items="[[tables]]">
 					<paper-item
 							class="menuitem"
-							on-focused-changed="tableSelection">
+							on-focused-changed="_tableSelection">
 						<iron-icon icon ="icons:view-list" item-icon></iron-icon>
 							{{item.name}}
 					</paper-item>
@@ -228,7 +278,7 @@ class policyList extends PolymerElement {
 							raised
 							id="tabOkButton"
 							disabled
-							on-tap="tableOk"
+							on-tap="_tableOk"
 							class="submit-button">
 						Ok
 					</paper-button>
@@ -239,13 +289,13 @@ class policyList extends PolymerElement {
 					</paper-button>
 					<paper-button
 							raised
-							on-tap="tableAdd"
+							on-tap="_tableAdd"
 							class="submit-button">
 						Add
 					</paper-button>
 					<paper-button
 							raised
-							on-tap="tableDelete"
+							on-tap="_tableDelete"
 							class="delete-button">
 						Delete
 					</paper-button>
@@ -260,19 +310,27 @@ class policyList extends PolymerElement {
 			<paper-toast
 				id="PolicyToast">
 			</paper-toast>
-			<iron-ajax id="getPolicyContentAjax">
-			</iron-ajax>
-			<iron-ajax id="getPolicyAjax"
-				url="/resourceInventoryManagement/v1/resource?resourceSpecification.id=3"
-				on-response="_getPolicyResponse"
-				rejectWithRequest>
-			</iron-ajax>
-			<iron-ajax id="deleteTableAjax">
-			</iron-ajax>
-			<iron-ajax id="deleteTableContentAjax">
+			<iron-ajax
+					id="getPolicyRows">
 			</iron-ajax>
 			<iron-ajax
-					id="policyUpdateAjax"
+					id="getPolicyTables"
+					url="/resourceInventoryManagement/v1/resource?resourceSpecification.id=3"
+					on-response="_getPolicyTablesResponse"
+					rejectWithRequest>
+			</iron-ajax>
+			<iron-ajax
+					id="deletePolicyTable"
+					on-response="_deleteTableResponse"
+					method="DELETE">
+			</iron-ajax>
+			<iron-ajax
+					id="deletePolicyRow"
+					method="DELETE">
+			</iron-ajax>
+			<iron-ajax
+					id="policyUpdate"
+					method="PATCH"
 					loading="{{loading}}">
 			</iron-ajax>
 		`;
@@ -296,6 +354,21 @@ class policyList extends PolymerElement {
 					return []
 				}
 			},
+			activeTableName: {
+				type: String,
+				notify: true
+			},
+			activeTableId: {
+				type: String
+			},
+			storeItem: {
+				type: Array,
+				readOnly: true,
+				notify: true,
+				value: function() {
+					return []
+				}
+			},
 			activeItem: {
 				type: Object,
 				notify: true,
@@ -306,8 +379,8 @@ class policyList extends PolymerElement {
 
 	ready() {
 		super.ready();
-		var ajax1 = document.body.querySelector('sig-app').shadowRoot.querySelector('sig-policy-list').shadowRoot.getElementById('getPolicyAjax');
-		ajax1.generateRequest();
+		var ajax = this.shadowRoot.getElementById('getPolicyTables');
+		ajax.generateRequest();
 		this.$.tableList.open();
 	}
 
@@ -327,11 +400,12 @@ class policyList extends PolymerElement {
 		}
 	}
 
-	tableOk() {
+	_tableOk() {
+		document.body.querySelector('sig-app').viewTitle = 'Policy: ' + this.activeTableName;
 		var grid = this.shadowRoot.getElementById('policyGrid');
 		grid.dataProvider = this._getPolicy;
+		grid.clearCache();
 		this.$.tableList.close();
-		document.body.querySelector('sig-app').shadowRoot.getElementById('policyList').shadowRoot.getElementById('policyGrid').clearCache();
 	} 
 
 	_activeItemChanged(item, last) {
@@ -340,24 +414,23 @@ class policyList extends PolymerElement {
 			var current;
 			if(item == null) {
 				current = last;
-				grid.selectedItems = item ? [item] : [];
 			} else {
 				current = item;
-				grid.selectedItems = [];
-				this.polId = item.id;
-				this.polName = item.name;
-				if(item.predefined) {
-					this.predefined = true;
-				} else {
-					this.predefined = false;
-				}
-				this.polPrec = item.precedence;
-				this.polCharKey = item.chargingKey;
-				this.polcharSer = item.serviceId;
-				this.widthDL = item.maxRequestedBandwidthDL;
-				this.widthUL = item.maxRequestedBandwidthUL;
-				this.classId = item.qosClassIdentifier;
 			}
+			this.polId = current.id;
+			this.polName = current.name;
+			if(current.predefined) {
+				this.predefined = true;
+			} else {
+				this.predefined = false;
+			}
+			this.polPrec = current.precedence;
+			this.polCharKey = current.chargingKey;
+			this.polcharSer = current.serviceId;
+			this.widthDL = current.maxRequestedBandwidthDL;
+			this.widthUL = current.maxRequestedBandwidthUL;
+			this.classId = current.qosClassIdentifier;
+			this.storeItem.push(current);
 			function checkExist(policy) {
 				return policy.id == current.id;
 			}
@@ -369,7 +442,7 @@ class policyList extends PolymerElement {
 		}
 	}
 
-	_getPolicyResponse(event) {
+	_getPolicyTablesResponse(event) {
 		var results = event.detail.xhr.response;
 		this.splice("tables", 0, this.tables.length)
 		for (var indexTable in results) {
@@ -380,39 +453,52 @@ class policyList extends PolymerElement {
 			tableRecord.flowDescription = results[indexTable].flowDescription;
 			this.push('tables', tableRecord);
 		}
+		this.shadowRoot.getElementById('tableItems').notifyPath('items');
 	}
 
 	_flowPlus(event) {
-		var domVar = document.body.querySelector('sig-app').shadowRoot.querySelector('sig-policy-list').shadowRoot.getElementById('flowDomRepeat')
+		var domVar = this.shadowRoot.getElementById('flowDomRepeat');
 		var flArr = event.model.item.flow;
-		var flJson = {"flowDirection": flArr[0].flowDirection, "flowDescription": flArr[0].flowDescription};
+		var flJson = {"flowDirection": "", "flowDescription": ""};
 		this.push('activeItem.flow', flJson);
 		domVar.notifyPath('items');
 	}
 
-	tableSelection(e) {
+	_flowMinus(event) {
+		var policyDom = this.shadowRoot.getElementById('flowDomRepeat');
+		var itemIndex = event.model.index;
+		var itemArray = this.storeItem[0].flow;
+		itemArray.splice(itemIndex, 1);
+		policyDom.notifyPath('items');
+	}
+
+	_tableSelection(e) {
 		if(e.model.item && e.model.item.id) {
-			document.body.querySelector('sig-app').shadowRoot.getElementById('policyList').table = e.model.item.name;
-			document.body.querySelector('sig-app').shadowRoot.getElementById('policyList').tableId = e.model.item.id;
+			this.activeTableName = e.model.item.name;
+			this.activeTableId = e.model.item.id;
 			this.$.tabOkButton.disabled = false;
 		} else {
+			this.activeTableName = null;
+			this.activeTableId = null;
 			this.$.tabOkButton.disabled = true;
 		}
 	}
 
-	tableDelete() {
-		var policyList1 = document.body.querySelector('sig-app').shadowRoot.querySelector('sig-policy-list');
-		this.$.deleteTableAjax.method = "DELETE";
-		this.$.deleteTableAjax.url = "/resourceInventoryManagement/v1/resource/" + policyList1.tableId
-		this.$.deleteTableAjax.generateRequest();
-		document.body.querySelector('sig-app').shadowRoot.getElementById('policyList').shadowRoot.getElementById('tableList').close();;
+	_tableDelete() {
+		this.$.deletePolicyTable.url = "/resourceInventoryManagement/v1/resource/" + this.activeTableId;
+		this.$.deletePolicyTable.generateRequest();
+		this.activeTableName = null;
+		this.activeTableId = null;
+	}
+
+	_deleteTableResponse(event) {
+		this.shadowRoot.getElementById('getPolicyTables').generateRequest();
 	}
 
 	_delete(event) {
-		this.$.deleteTableContentAjax.method = "DELETE";
-		this.$.deleteTableContentAjax.url = "/resourceInventoryManagement/v1/resource/" + event.model.item.id;
-		this.$.deleteTableContentAjax.generateRequest();
-		document.body.querySelector('sig-app').shadowRoot.getElementById('policyList').shadowRoot.getElementById('policyGrid').clearCache();
+		this.$.deletePolicyRow.url = "/resourceInventoryManagement/v1/resource/" + event.model.item.id;
+		this.$.deletePolicyRow.generateRequest();
+		this.shadowRoot.getElementById('policyGrid').clearCache();
 	}
 
 	_getPolicy(params, callback) {
@@ -420,9 +506,9 @@ class policyList extends PolymerElement {
 		if(!grid.size) {
 			grid.size = 0;
 		}
-		var policyList = document.body.querySelector('sig-app').shadowRoot.querySelector('sig-policy-list');
-		var ajax = policyList.shadowRoot.getElementById('getPolicyContentAjax');
-		ajax.url = "/resourceInventoryManagement/v1/resource?resourceSpecification.id=4&resourceRelationship.resource.name=" + policyList.table;
+		var policyList = document.body.querySelector('sig-app').shadowRoot.getElementById('policyList');
+		var ajax = policyList.shadowRoot.getElementById('getPolicyRows');
+		ajax.url = "/resourceInventoryManagement/v1/resource?resourceSpecification.id=4&resourceRelationship.resource.name=" + policyList.activeTableName;
 		var handleAjaxResponse = function(request) {
 			if(request) {
 				policyList.etag = request.xhr.getResponseHeader('ETag');
@@ -441,6 +527,7 @@ class policyList extends PolymerElement {
 				for (var index in request.response) {
 					var tabObj = new Object();
 					tabObj.id = request.response[index].id;
+					tabObj.flow = new Array();
 					var resChar = request.response[index].resourceCharacteristic;
 					for (var indexRes in resChar) {
 						if(resChar[indexRes].name == "name") {
@@ -458,25 +545,42 @@ class policyList extends PolymerElement {
 						} else if(resChar[indexRes].name == "chargingKey") {
 							tabObj.chargingKey = resChar[indexRes].value;
 						} else if(resChar[indexRes].name == "flowInformation") {
-							tabObj.flow = new Array();
 							for(var indexFl in resChar[indexRes].value){
 								if(resChar[indexRes].value[indexFl].flowDirection == "up") {
 									var flowDirObj = new Object();
 									flowDirObj.flowDirection = resChar[indexRes].value[indexFl].flowDirection;
 									flowDirObj.flowDescription = resChar[indexRes].value[indexFl].flowDescription;
 									tabObj.flow[indexFl] = flowDirObj;
-									var flowUpDirObj = resChar[indexRes].value[indexFl].flowDirection;
-									var flowUpDesObj = resChar[indexRes].value[indexFl].flowDescription;
-									tabObj.flowUp = flowUpDirObj + "," + flowUpDesObj;
+									if(tabObj.flowUp) {
+										tabObj.flowUp.concat("," + resChar[indexRes].value[indexFl].flowDescription);
+									} else {
+										tabObj.flowUp = resChar[indexRes].value[indexFl].flowDescription;
+									}
 								} else if(resChar[indexRes].value[indexFl].flowDirection == "down"){
 									var flowDirObj1 = new Object();
 									flowDirObj1.flowDirection = resChar[indexRes].value[indexFl].flowDirection;
 									flowDirObj1.flowDescription = resChar[indexRes].value[indexFl].flowDescription;
-									tabObj.flow[indexFl] = flowDirObj1;
-									var flowDownDirObj = resChar[indexRes].value[indexFl].flowDirection;
-									var flowDownDesObj = resChar[indexRes].value[indexFl].flowDescription;
-									tabObj.flowDown = flowDownDirObj + "," + flowDownDesObj;
+									if(tabObj.flowDown) {
+										tabObj.flowDown.concat("," + resChar[indexRes].value[indexFl].flowDescription);
+									} else {
+										tabObj.flowDown = resChar[indexRes].value[indexFl].flowDescription;
+									}
+								} else if(resChar[indexRes].value[indexFl].flowDirection == "both"){
+									var flowDirObj1 = new Object();
+									flowDirObj1.flowDirection = resChar[indexRes].value[indexFl].flowDirection;
+									flowDirObj1.flowDescription = resChar[indexRes].value[indexFl].flowDescription;
+									if(tabObj.flowUp) {
+										tabObj.flowUp.concat("," + resChar[indexRes].value[indexFl].flowDescription);
+									} else {
+										tabObj.flowUp = resChar[indexRes].value[indexFl].flowDescription;
+									}
+									if(tabObj.flowDown) {
+										tabObj.flowDown.concat("," + resChar[indexRes].value[indexFl].flowDescription);
+									} else {
+										tabObj.flowDown = resChar[indexRes].value[indexFl].flowDescription;
+									}
 								}
+								tabObj.flowValueLength = tabObj.flow.length;
 							}
 						} else if(resChar[indexRes].name == "precedence") {
 							tabObj.precedence = resChar[indexRes].value;
@@ -487,7 +591,7 @@ class policyList extends PolymerElement {
 						} else if(request.response[index].resourceSpecification) {
 							tabObj.resourceSpecification = request.response[index].resourceSpecification;
 						}
-					vaadinItems[index] = tabObj;
+						vaadinItems[index] = tabObj;
 					}
 				}
 				callback(vaadinItems);
@@ -495,10 +599,10 @@ class policyList extends PolymerElement {
 				grid.size = 0;
 				callback([]);
 			}
-		};
+		}
 		var handleAjaxError = function(error) {
 			policyList.etag = null;
-			var toast = document.body.querySelector('sig-app').shadowRoot.querySelector('sig-policy-list').shadowRoot.getElementById('PolicyToast');
+			var toast = policyList.shadowRoot.getElementById('PolicyToast');
 			toast.text = error;
 			toast.open();
 			if(!grid.size) {
@@ -508,16 +612,16 @@ class policyList extends PolymerElement {
 		}
 		if (ajax.loading) {
 			ajax.lastRequest.completes.then(function(request) {
-			var startRange = params.page * params.pageSize + 1;
-			var endRange = startRange + params.pageSize - 1;
-			ajax.headers['Range'] = "items=" + startRange + "-" + endRange;
-			if (policyList.etag && params.page > 0) {
-				ajax.headers['If-Range'] = clientList.etag;
-			} else {
-				delete ajax.headers['If-Range'];
-			}
+				var startRange = params.page * params.pageSize + 1;
+				var endRange = startRange + params.pageSize - 1;
+				ajax.headers['Range'] = "items=" + startRange + "-" + endRange;
+				if (policyList.etag && params.page > 0) {
+					ajax.headers['If-Range'] = clientList.etag;
+				} else {
+					delete ajax.headers['If-Range'];
+				}
 				return ajax.generateRequest().completes;
-					}, handleAjaxError).then(handleAjaxResponse, handleAjaxError);
+			}, handleAjaxError).then(handleAjaxResponse, handleAjaxError);
 		} else {
 			var startRange = params.page * params.pageSize + 1;
 			var endRange = startRange + params.pageSize - 1;
@@ -531,21 +635,16 @@ class policyList extends PolymerElement {
 		}
 	}
 
-	tableAdd() {
+	_tableAdd() {
 		document.body.querySelector('sig-app').shadowRoot.querySelector('sig-policy-table-add').shadowRoot.getElementById('addPolicyTableModal').open();
-		this.$.tableList.close();
 	}
 
 	showAddPolicyModal(event) {
 		document.body.querySelector('sig-app').shadowRoot.querySelector('sig-policy-add').shadowRoot.getElementById('policyAddModal').open();
 	}
 
-////////////////////////////////////////////////////////////////////////////
-//Update Section
-///////////////////////////////////////////////////////////////////////////
-
-	_up(event) {
-		var getAjax = this.$.getPolicyContentAjax;
+	_update(event) {
+		var getAjax = this.$.getPolicyRows;
 		var etag = getAjax.lastRequest.xhr.getResponseHeader('ETag');
 		var Mitem = event.model.item
 		var results = getAjax.lastResponse;
@@ -554,10 +653,9 @@ class policyList extends PolymerElement {
 		}
 		var index1 = results.findIndex(checkId);
 
-		var Ajax = this.$.policyUpdateAjax;
-		Ajax.method = "PATCH"
-		Ajax.contentType = "application/json-patch+json";
-		Ajax.url = "/resourceInventoryManagement/v1/resource/" + Mitem.id;
+		var updateAjax = this.$.policyUpdate;
+		updateAjax.contentType = "application/json-patch+json";
+		updateAjax.url = "/resourceInventoryManagement/v1/resource/" + Mitem.id;
 		var PolArray = new Array();
 		var indexChar = "-";
 		if(Mitem.name) {
@@ -639,7 +737,20 @@ class policyList extends PolymerElement {
 			PolArray.push(Cid);
 		}
 
-		if(Mitem.flow) {
+		if(Mitem.flow.length < Mitem.flowValueLength) {
+			function checkFlow1(charPolFl1) {
+				return charPolFl1.name == "flowInformation";
+			}
+			var indexFl = results[index1].resourceCharacteristic.findIndex(checkFlow1);
+			var PolArray1 = new Array();
+			var Flo1 = new Object();
+			Flo1.op = "replace";
+			Flo1.path = "/resourceCharacteristic/" + indexFl + "/value";
+			Flo1.value = Mitem.flow;
+			PolArray.push(Flo1);
+		}
+
+		if(Mitem.flow.length > Mitem.flowValueLength) {
 			function checkFlow1(charPolFl1) {
 				return charPolFl1.name == "flowInformation";
 			}
@@ -667,10 +778,10 @@ class policyList extends PolymerElement {
 			}
 		}
 
-		Ajax.body = JSON.stringify(PolArray);
-		Ajax.generateRequest();
-		var policyList = document.body.querySelector('sig-app').shadowRoot.querySelector('sig-policy-list');
-		var ajax = policyList.shadowRoot.getElementById('getPolicyContentAjax');
+		updateAjax.body = JSON.stringify(PolArray);
+		updateAjax.generateRequest();
+		var policyList = document.body.querySelector('sig-app').shadowRoot.getElementById('policyList');
+		var ajax = policyList.shadowRoot.getElementById('getPolicyRows');
 		ajax.url = "/resourceInventoryManagement/v1/resource?resourceSpecification.id=4&resourceRelationship.resource.name=" + policyList.table;
 		ajax.generateRequest();
 	}

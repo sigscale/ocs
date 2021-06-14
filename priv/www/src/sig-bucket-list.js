@@ -34,71 +34,51 @@ class bucketList extends PolymerElement {
 					loading="{{loading}}"
 					theme="no-border">
 				<template class="row-details">
-					<paper-tabs
-							class="details"
-							selected="{{selectedTab}}">
-						<paper-tab>
-							General
-						</paper-tab>
-					</paper-tabs>
-					<iron-pages
-							selected="{{selectedTab}}">
-						<div>
-							<dl class="details">
-								<template is="dom-if" if="{{item.id}}">
-									<dt><b>Id</b></dt>
-									<dd>{{item.id}}</dd>
-								</template>
-								<template is="dom-if" if="{{item.href}}">
-									<dt><b>Href</b></dt>
-									<dd>{{item.href}}</dd>
-								</template>
-								<template is="dom-if" if="{{item.product}}">
-									<dt><b>Product Id</b></dt>
-									<dd>{{item.product}}</dd>
-								</template>
-								<template is="dom-if" if="{{item.productHref}}">
-									<dt><b>Product Href</b></dt>
-									<dd>{{item.productHref}}</dd>
-								</template>
-								<template is="dom-if" if="{{item.amount}}">
-									<dt><b>Remained Amount</b></dt>
-									<dd>{{item.amount}}</dd>
-								</template>
-								<template is="dom-if" if="{{item.units}}">
-									<dt><b>Units</b></dt>
-									<dd>{{item.units}}</dd>
-								</template>
-								<template is="dom-if" if="{{item.startDate}}">
-									<dt><b>Start Date</b></dt>
-									<dd>{{item.startDate}}</dd>
-								</template>
-								<template is="dom-if" if="{{item.endDate}}">
-									<dt><b>End Date</b></dt>
-									<dd>{{item.endDate}}</dd>
-								</template>
-							</dl>
-							<div class="buttons">
-								<paper-button
-									raised
-									on-tap="tableDelete"
-									class="delete-button">
-									Delete
-								</paper-button>
-							</div>
-						</div>
-					</iron-pages>
+					<dl class="details">
+						<template is="dom-if" if="{{item.id}}">
+							<dt><b>Bucket Id</b></dt>
+							<dd>{{item.id}}</dd>
+						</template>
+						<template is="dom-if" if="{{item.product}}">
+							<dt><b>Product Id</b></dt>
+							<dd>{{item.product}}</dd>
+						</template>
+						<template is="dom-if" if="{{item.startDate}}">
+							<dt><b>Start Date</b></dt>
+							<dd>{{item.startDate}}</dd>
+						</template>
+						<template is="dom-if" if="{{item.endDate}}">
+							<dt><b>End Date</b></dt>
+							<dd>{{item.endDate}}</dd>
+						</template>
+						<template is="dom-if" if="{{item.amount}}">
+							<dt><b>Remained Amount</b></dt>
+							<dd>{{item.amount}}</dd>
+						</template>
+						<template is="dom-if" if="{{item.units}}">
+							<dt><b>Units</b></dt>
+							<dd>{{item.units}}</dd>
+						</template>
+					</dl>
+					<div class="buttons">
+						<paper-button
+							raised
+							on-tap="_tableDelete"
+							class="delete-button">
+							Delete
+						</paper-button>
+					</div>
 				</template>
 				<vaadin-grid-column width="15ex" flex-grow="5">
 					<template class="header">
 						<vaadin-grid-filter
 								aria-label="Bucket Id"
 								path="id"
-								value="[[_filterBucId]]">
+								value="[[_filterBucketId]]">
 							<input
 									slot="filter"
 									placeholder="Bucket Id"
-									value="{{_filterBucId::input}}"
+									value="{{_filterBucketId::input}}"
 									focus-target>
 						</vaadin-grid-filter>
 					</template>
@@ -109,11 +89,11 @@ class bucketList extends PolymerElement {
 						<vaadin-grid-filter
 								aria-label="Product Id"
 								path="product"
-								value="[[_filterProdId]]">
+								value="[[_filterProductId]]">
 							<input
 									slot="filter"
 									placeholder="Product Id"
-									value="{{_filterProdId::input}}"
+									value="{{_filterProductId::input}}"
 									focus-target>
 						</vaadin-grid-filter>
 					</template>
@@ -178,14 +158,11 @@ class bucketList extends PolymerElement {
 				notify: true,
 				observer: '_activeItemChanged'
 			},
-			_filterBucId: {
+			_filterBucketId: {
 				type: Boolean
 			},
-			_filterProdId: {
+			_filterProductId: {
 				type: Boolean
-			},
-			activeItem: {
-				observer: '_activeItemChanged',
 			}
 		}
 	}
@@ -196,13 +173,11 @@ class bucketList extends PolymerElement {
 			var current;
 			if(item == null) {
 				current = last;
-				this.$.balanceBucketGrid.selectedItems = item ? [item] : [];
 			} else {
 				current = item;
-				this.$.balanceBucketGrid.selectedItems = [];
 			}
-			function checkExist(buc) {
-				return buc.id == current.id;
+			function checkExist(bucket) {
+				return bucket.id == current.id;
 			}
 			if(grid.detailsOpenedItems && grid.detailsOpenedItems.some(checkExist)) {
 				grid.closeItemDetails(current);
@@ -218,10 +193,10 @@ class bucketList extends PolymerElement {
 		grid.dataProvider = this._getBuckets;
 	}
 
-	tableDelete(item) {
-		var grid = this.shadowRoot.getElementById('balanceBucketGrid'); 
-		document.body.querySelector('sig-app').shadowRoot.querySelector('sig-bucket-add').shadowRoot.getElementById('deleteBucketModal').open();
-		document.body.querySelector('sig-app').shadowRoot.querySelector('sig-bucket-add').shadowRoot.getElementById('deleteBucId').value = item.model.item.id;
+	_tableDelete(item) {
+		var bucketAdd = document.body.querySelector('sig-app').shadowRoot.querySelector('sig-bucket-add');
+		bucketAdd.shadowRoot.getElementById('deleteBucketModal').open();
+		bucketAdd.deleteBucketId = item.model.item.id;
 	}
 
 	_getBuckets(params, callback) {

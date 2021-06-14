@@ -5,8 +5,9 @@ styleElement.innerHTML = `<template>
 	<style>
 		:host {
 			@apply(--paper-font-common-base);
-			--app-primary-color: #f57f17;
-			--app-secondary-color: #aeea00;
+			--app-primary-color: var(--paper-yellow-900);
+			--app-secondary-color: var(--paper-lime-a700);
+			--app-drawer-width: 300px;
 			display: block;
 		}
 		app-header {
@@ -16,10 +17,9 @@ styleElement.innerHTML = `<template>
 			width: 100%;
 			text-align: center;
 			background-color: var(--app-primary-color);
-			border-bottom: 1px solid #eee;
 			color: #fff;
 		}
-		 paper-toolbar {
+		paper-toolbar {
 			color: white;
 			background-color: #bc5100;
 		}
@@ -164,7 +164,6 @@ styleElement.innerHTML = `<template>
 			z-index: 100;
 		}
 		.submit-button {
-			right: 2%;
 			background-color: var(--paper-lime-a700);
 			color: black;
 		}
@@ -172,7 +171,6 @@ styleElement.innerHTML = `<template>
 			color: black;
 		}
 		.update-button {
-			right: 2%;
 			background-color: var(--paper-lime-a700);
 			color: black;
 		}

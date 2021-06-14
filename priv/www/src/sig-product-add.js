@@ -152,9 +152,12 @@ class productAddClass extends PolymerElement {
 		super.ready()
 	}
 
-	_activeItemChanged(item) {
-		if(item != null) {
+	_activeItemChanged(item, last) {
+		if(item) {
 			this.delProId = item.id;
+			this.$.deleteProductModal.open();
+		} else if(last) {
+			this.delProId = last.id;
 			this.$.deleteProductModal.open();
 		}
 	}

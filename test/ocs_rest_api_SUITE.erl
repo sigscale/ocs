@@ -130,9 +130,8 @@ init_per_testcase(TestCase, Config) when TestCase == notify_create_bucket;
 		TestCase == notify_rating_deleted_bucket;
 		TestCase == notify_accumulated_balance_threshold;
 		TestCase == query_accumulated_balance_notification;
-		TestCase == query_bucket_notification;
+		TestCase == query_bucket_notification; TestCase == notify_product_charge;
 		TestCase == notify_create_product; TestCase == notify_delete_product;
-		TestCase == notify_product_charge;
 		TestCase == query_product_notification;
 		TestCase == notify_create_service; TestCase == notify_delete_service;
 		TestCase == query_service_notification;
@@ -143,9 +142,10 @@ init_per_testcase(TestCase, Config) when TestCase == notify_create_bucket;
 		TestCase == notify_add_resource; TestCase == notify_delete_resource;
 		TestCase == query_resource_notification;
 		TestCase == notify_diameter_acct_log ->
+	gen_event:delete_handler(ocs_event, ocs_event, []),
 	true = register(TestCase, self()),
 	case inets:start(httpd, [{port, 0},
-			{server_name, atom_to_list(?MODULE)},
+			{server_name, ocs:generate_identity()},
 			{server_root, "./"},
 			{document_root, ?config(data_dir, Config)},
 			{modules, [mod_esi]},
@@ -172,9 +172,8 @@ end_per_testcase(TestCase, Config) when TestCase == notify_create_bucket;
 		TestCase == notify_rating_deleted_bucket;
 		TestCase == notify_accumulated_balance_threshold;
 		TestCase == query_accumulated_balance_notification;
-		TestCase == query_bucket_notification;
+		TestCase == query_bucket_notification; TestCase == notify_product_charge;
 		TestCase == notify_create_product; TestCase == notify_delete_product;
-		TestCase == notify_product_charge;
 		TestCase == query_product_notification;
 		TestCase == notify_create_service; TestCase == notify_delete_service;
 		TestCase == query_service_notification;
@@ -232,9 +231,9 @@ all() ->
 	post_hub_balance, delete_hub_balance, get_balance_hubs, get_balance_hub,
 	notify_create_bucket, notify_delete_bucket, notify_rating_deleted_bucket,
 	notify_accumulated_balance_threshold, query_accumulated_balance_notification,
-	query_bucket_notification,
+	query_bucket_notification, notify_product_charge,
 	post_hub_product, delete_hub_product, get_product_hubs, get_product_hub,
-	notify_create_product, notify_delete_product, notify_product_charge,
+	notify_create_product, notify_delete_product,
 	query_product_notification, post_hub_service, delete_hub_service,
 	get_service_hubs, get_service_hub,
 	notify_create_service, notify_delete_service, query_service_notification,
@@ -248,7 +247,8 @@ all() ->
 	post_hub_usage, get_usage_hubs, get_usage_hub, delete_hub_usage,
 	notify_diameter_acct_log, get_tariff_resource, get_tariff_resources,
 	post_tariff_resource, delete_tariff_resource, update_tariff_resource,
-	post_policy_resource, query_policy_resource, oauth_authentication].
+	post_policy_resource, query_policy_resource, arbitrary_char_service,
+	oauth_authentication].
 
 %%---------------------------------------------------------------------
 %%  Test cases
@@ -3126,6 +3126,84 @@ query_bucket_notification(Config) ->
 	Request2 = {CollectionUrl ++ SubId, [Accept, auth_header()]},
 	{ok, {{_, 204, _}, _, []}} = httpc:request(delete, Request2, [], []).
 
+notify_product_charge() ->
+	[{userdata, [{doc, "Receive product charged notification"}]}].
+
+notify_product_charge(Config) ->
+	HostUrl = ?config(host_url, Config),
+	CollectionUrl = HostUrl ++ ?PathBalanceHub,
+	ListenerPort = ?config(listener_port, Config),
+	ListenerServer = "http://localhost:" ++ integer_to_list(ListenerPort),
+	Callback = ListenerServer ++ "/listener/"
+			++ atom_to_list(?MODULE) ++ "/notifyproductcharge",
+	RequestBody = "{\n"
+			++ "\t\"callback\": \"" ++ Callback ++ "\",\n"
+			++ "}\n",
+	ContentType = "application/json",
+	Accept = {"accept", "application/json"},
+	Request1 = {CollectionUrl, [Accept, auth_header()], ContentType, RequestBody},
+	{ok, {{_, 201, _}, Headers, _}} = httpc:request(post, Request1, [], []),
+	{_, ?PathBalanceHub ++ SubId} = lists:keyfind("location", 1, Headers),
+	SD = erlang:system_time(?MILLISECOND),
+	Alteration = #alteration{name = ocs:generate_identity(), start_date = SD,
+			type = usage, period = undefined,
+			units = octets, size = 100000000000, amount = 0},
+	Price = #price{name = ocs:generate_identity(), start_date = SD,
+			type = recurring, period = monthly,
+			amount = 1250000000, alteration = Alteration},
+	OfferId = add_offer([Price], 4),
+	{ok, #product{id = ProdId} = P} = ocs:add_product(OfferId, []),
+	Expired = erlang:system_time(?MILLISECOND) - 3599000,
+	ok = mnesia:dirty_write(product, P#product{payment =
+			[{Price#price.name, Expired}]}),
+	B1 = #bucket{units = cents, remain_amount = 1000000000,
+			start_date = erlang:system_time(?MILLISECOND),
+			end_date = erlang:system_time(?MILLISECOND) + 2592000000},
+	{ok, _, #bucket{id = BId1}} = ocs:add_bucket(ProdId, B1),
+	receive
+		Input1 ->
+			{struct, BucketEvent1} = mochijson:decode(Input1),
+			{_, "BucketBalanceCreationNotification"}
+					= lists:keyfind("eventType", 1, BucketEvent1),
+			{_, {struct, BucketList1}} = lists:keyfind("event", 1, BucketEvent1),
+			{_, BId1} = lists:keyfind("id", 1, BucketList1)
+	end,
+	B2 = #bucket{units = cents, remain_amount = 1000000000,
+			start_date = erlang:system_time(?MILLISECOND),
+			end_date = erlang:system_time(?MILLISECOND) + 2592000000},
+	{ok, _, #bucket{id = BId2}} = ocs:add_bucket(ProdId, B2),
+	receive
+		Input2 ->
+			{struct, BucketEvent2} = mochijson:decode(Input2),
+			{_, "BucketBalanceCreationNotification"}
+					= lists:keyfind("eventType", 1, BucketEvent2),
+			{_, {struct, BucketList2}} = lists:keyfind("event", 1, BucketEvent2),
+			{_, BId2} = lists:keyfind("id", 1, BucketList2)
+	end,
+	ok = ocs_scheduler:product_charge(),
+	AdjustmentStructs = receive
+		Input ->
+			{struct, AdjustmentEvent} = mochijson:decode(Input),
+			{_, "BalanceAdjustmentCreationNotification"}
+					= lists:keyfind("eventType", 1, AdjustmentEvent),
+			{_, {array, AdjStructList}}
+					= lists:keyfind("event", 1, AdjustmentEvent),
+			AdjStructList
+	end,
+	Fcents = fun({struct, AdjustmentList}) ->
+				case lists:keyfind("amount", 1, AdjustmentList) of
+					{_, {struct, [{"amount", Amount}, {"units","cents"}]}} ->
+						{true, list_to_integer(Amount)};
+					{_, {struct, [{"units","cents"}, {"amount", Amount}]}} ->
+						{true, list_to_integer(Amount)};
+					_ ->
+						false
+				end
+	end,
+	-1250 = lists:sum(lists:filtermap(Fcents, AdjustmentStructs)),
+	Request2 = {CollectionUrl ++ SubId, [Accept, auth_header()]},
+	{ok, {{_, 204, _}, _, []}} = httpc:request(delete, Request2, [], []).
+
 post_hub_product() ->
 	[{userdata, [{doc, "Register hub listener for product"}]}].
 
@@ -3324,82 +3402,6 @@ notify_delete_product(Config) ->
 			ProductStuct1
 	end,
 	#product{} = ocs_rest_res_product:inventory(ProductStuct2),
-	Request2 = {CollectionUrl ++ SubId, [Accept, auth_header()]},
-	{ok, {{_, 204, _}, _, []}} = httpc:request(delete, Request2, [], []).
-
-notify_product_charge() ->
-	[{userdata, [{doc, "Receive product charged notification"}]}].
-
-notify_product_charge(Config) ->
-	HostUrl = ?config(host_url, Config),
-	CollectionUrl = HostUrl ++ ?PathProductHub,
-	ListenerPort = ?config(listener_port, Config),
-	ListenerServer = "http://localhost:" ++ integer_to_list(ListenerPort),
-	Callback = ListenerServer ++ "/listener/"
-			++ atom_to_list(?MODULE) ++ "/notifyproductcharge",
-	RequestBody = "{\n"
-			++ "\t\"callback\": \"" ++ Callback ++ "\",\n"
-			++ "}\n",
-	ContentType = "application/json",
-	Accept = {"accept", "application/json"},
-	Request1 = {CollectionUrl, [Accept, auth_header()], ContentType, RequestBody},
-	{ok, {{_, 201, _}, Headers, _}} = httpc:request(post, Request1, [], []),
-	{_, ?PathProductHub ++ SubId} = lists:keyfind("location", 1, Headers),
-	SD = erlang:system_time(?MILLISECOND),
-	Alteration = #alteration{name = ocs:generate_identity(), start_date = SD,
-			type = usage, period = undefined,
-			units = octets, size = 100000000000, amount = 0},
-	Price = #price{name = ocs:generate_identity(), start_date = SD,
-			type = recurring, period = monthly,
-			amount = 1250000000, alteration = Alteration},
-	OfferId = add_offer([Price], 4),
-	receive
-		Input1 ->
-			{struct, OfferEvent} = mochijson:decode(Input1),
-			{_, "ProductOfferingCreationNotification"}
-					= lists:keyfind("eventType", 1, OfferEvent)
-	end,
-	{ok, #product{id = ProdId} = P} = ocs:add_product(OfferId, []),
-	receive
-		Input2 ->
-			{struct, ProductEvent} = mochijson:decode(Input2),
-			{_, "ProductCreationNotification"}
-					= lists:keyfind("eventType", 1, ProductEvent),
-			{_, {struct, ProductList}} = lists:keyfind("event", 1, ProductEvent),
-			{_, ProdId} = lists:keyfind("id", 1, ProductList)
-	end,
-	Expired = erlang:system_time(?MILLISECOND) - 3599000,
-	ok = mnesia:dirty_write(product, P#product{payment =
-			[{Price#price.name, Expired}]}),
-	B1 = #bucket{units = cents, remain_amount = 1000000000,
-			start_date = erlang:system_time(?MILLISECOND),
-			end_date = erlang:system_time(?MILLISECOND) + 2592000000},
-	{ok, _, #bucket{id = _BId1}} = ocs:add_bucket(ProdId, B1),
-	B2 = #bucket{units = cents, remain_amount = 1000000000,
-			start_date = erlang:system_time(?MILLISECOND),
-			end_date = erlang:system_time(?MILLISECOND) + 2592000000},
-	{ok, _, #bucket{id = _BId2}} = ocs:add_bucket(ProdId, B2),
-	ok = ocs_scheduler:product_charge(),
-	AdjustmentStructs = receive
-		Input ->
-			{struct, AdjustmentEvent} = mochijson:decode(Input),
-			{_, "BalanceAdjustmentCreationNotification"}
-					= lists:keyfind("eventType", 1, AdjustmentEvent),
-			{_, {array, AdjStructList}}
-					= lists:keyfind("event", 1, AdjustmentEvent),
-			AdjStructList
-	end,
-	Fcents = fun({struct, AdjustmentList}) ->
-				case lists:keyfind("amount", 1, AdjustmentList) of
-					{_, {struct, [{"amount", Amount}, {"units","cents"}]}} ->
-						{true, list_to_integer(Amount)};
-					{_, {struct, [{"units","cents"}, {"amount", Amount}]}} ->
-						{true, list_to_integer(Amount)};
-					_ ->
-						false
-				end
-	end,
-	-1250 = lists:sum(lists:filtermap(Fcents, AdjustmentStructs)),
 	Request2 = {CollectionUrl ++ SubId, [Accept, auth_header()]},
 	{ok, {{_, 204, _}, _, []}} = httpc:request(delete, Request2, [], []).
 
@@ -4236,13 +4238,13 @@ notify_add_resource(Config) ->
 	Request1 = {CollectionUrl, [Accept, auth_header()], ContentType, RequestBody},
 	{ok, {{_, 201, _}, Headers, _}} = httpc:request(post, Request1, [], []),
 	{_, ?PathResourceHub ++ SubId} = lists:keyfind("location", 1, Headers),
-	TariffResource = #resource{name = "Example",
+	PolicyResource = #resource{name = "ct-example-1",
 			start_date = erlang:system_time(?MILLISECOND),
 			end_date = erlang:system_time(?MILLISECOND) + rand:uniform(10000000000),
-			state = "created", specification = #specification_ref{id = "4",
-			href = "/resourceCatalogManagement/v3/resourceSpecification/4",
-			name = "Example spec", version = "1.0"}},
-	{ok, #resource{}} = ocs:add_resource(TariffResource),
+			state = "created", specification = #specification_ref{id = "3",
+			href = "/resourceCatalogManagement/v3/resourceSpecification/3",
+			name = "PolicyTable", version = "1.0"}},
+	{ok, #resource{}} = ocs:add_resource(PolicyResource),
 	receive
 		Receive ->
 			{struct, ResEvent} = mochijson:decode(Receive),
@@ -4273,13 +4275,13 @@ notify_delete_resource(Config) ->
 	Request1 = {CollectionUrl, [Accept, auth_header()], ContentType, RequestBody},
 	{ok, {{_, 201, _}, Headers, _}} = httpc:request(post, Request1, [], []),
 	{_, ?PathResourceHub ++ SubId} = lists:keyfind("location", 1, Headers),
-	TariffResource = #resource{name = "Example",
+	PolicyResource = #resource{name = "ct-example-2",
 			start_date = erlang:system_time(?MILLISECOND),
 			end_date = erlang:system_time(?MILLISECOND) + rand:uniform(10000000000),
-			state = "created", specification = #specification_ref{id = "4",
-			href = "/resourceCatalogManagement/v3/resourceSpecification/4",
-			name = "Example spec", version = "1.0"}},
-	{ok, #resource{id = Id}} = ocs:add_resource(TariffResource),
+			state = "created", specification = #specification_ref{id = "3",
+			href = "/resourceCatalogManagement/v3/resourceSpecification/3",
+			name = "PolicyTable", version = "1.0"}},
+	{ok, #resource{id = Id}} = ocs:add_resource(PolicyResource),
 	receive
 		Receive1 ->
 			{struct, ResEvent1} = mochijson:decode(Receive1),
@@ -4302,13 +4304,13 @@ query_resource_notification() ->
 	[{userdata, [{doc, "Query resource notifications"}]}].
 
 query_resource_notification(Config) ->
-	TariffResource = #resource{name = "Example",
+	PolicyResource = #resource{name = "Example",
 			start_date = erlang:system_time(?MILLISECOND),
 			end_date = erlang:system_time(?MILLISECOND) + rand:uniform(10000000000),
-			state = "created", specification = #specification_ref{id = "4",
-			href = "/resourceCatalogManagement/v3/resourceSpecification/4",
-			name = "Example spec", version = "1.0"}},
-	{ok, #resource{id = Id}} = ocs:add_resource(TariffResource),
+			state = "created", specification = #specification_ref{id = "3",
+			href = "/resourceCatalogManagement/v3/resourceSpecification/3",
+			name = "PolicyTable", version = "1.0"}},
+	{ok, #resource{id = Id}} = ocs:add_resource(PolicyResource),
 	HostUrl = ?config(host_url, Config),
 	CollectionUrl = HostUrl ++ ?PathResourceHub,
 	ListenerPort = ?config(listener_port, Config),
@@ -4555,7 +4557,8 @@ post_tariff_resource() ->
 	[{userdata, [{doc,"Add tariff resource in rest interface"}]}].
 
 post_tariff_resource(Config) ->
-	ok = ocs_gtt:new(tariff_table4, []),
+	Table = "tariff_table4",
+	ok = ocs_gtt:new(Table, []),
 	HostUrl = ?config(host_url, Config),
 	CollectionUrl = HostUrl ++ "/resourceInventoryManagement/v1/resource/",
 	Name = "Tariff",
@@ -4567,7 +4570,7 @@ post_tariff_resource(Config) ->
 	BaseType = "Resource",
 	Category = "tariff",
 	ResSpecId = "2",
-	ResSpecName = "TariffRow",
+	ResSpecName = "TariffTableRow",
 	ResSpecHref = "/resourceCatalogManagement/v2/resourceSpecification/"
 			++ ResSpecId,
 	ResourceRelId = ocs:generate_identity(),
@@ -4598,7 +4601,7 @@ post_tariff_resource(Config) ->
 			++ "\t\t\t\"resource\": {\n"
 			++ "\t\t\t\t\"id\": \"" ++ ResourceRelId ++ "\",\n"
 			++ "\t\t\t\t\"href\": \"" ++ ResourceRelHref ++ "\",\n"
-			++ "\t\t\t\t\"name\": \"tariff_table4\"\n"
+			++ "\t\t\t\t\"name\": \"" ++ Table ++ "\"\n"
 			++ "\t\t\t\t},\n"
 			++ "\t\t\t\"relationshipType\": \"contained\"\n"
 			++ "\t\t}\n"
@@ -4614,7 +4617,7 @@ post_tariff_resource(Config) ->
 			++ "\t\t},\n"
 			++ "\t\t{\n"
 			++ "\t\t\t\"name\": \"rate\",\n"
-			++ "\t\t\t\"value\": 250\n"
+			++ "\t\t\t\"value\": \"250\"\n"
 			++ "\t\t}\n"
 			++ "\t]\n"
 			++ "}\n",
@@ -4627,22 +4630,10 @@ post_tariff_resource(Config) ->
 	ContentLength = integer_to_list(length(ResponseBody)),
 	{_, ContentLength} = lists:keyfind("content-length", 1, Headers),
 	{_, URI} = lists:keyfind("location", 1, Headers),
-	{"/resourceInventoryManagement/v1/resource/" ++ ID, _}
+	{"/resourceInventoryManagement/v1/resource/" ++ Id, _}
 			= httpd_util:split_path(URI),
-	{ok, #resource{id = ID, name = Name, description = Description,
-			version = Version, category = Category, class_type = ClassType,
-			base_type = BaseType, schema = ClassSchema, specification = S,
-			related = [R], characteristic = CharList}} = ocs:get_resource(ID),
-	#specification_ref{id = ResSpecId, href = ResSpecHref,
-			name = ResSpecName} = S,
-	#resource_rel{id = ResourceRelId, href = ResourceRelHref,
-			type = "contained", name = "tariff_table4"} = R,
-	#resource_char{name = "prefix", value = CharPrefix}
-			= lists:keyfind("prefix", #resource_char.name, CharList),
-	#resource_char{name = "description", value = CharDes}
-			= lists:keyfind("description", #resource_char.name, CharList),
-	#resource_char{name = "rate", value = 250}
-			= lists:keyfind("rate", #resource_char.name, CharList).
+	[Table, CharPrefix] = string:tokens(Id, "-"),
+	{CharDes, "250", _} = ocs_gtt:lookup_first(Table, CharPrefix).
 
 delete_tariff_resource() ->
 	[{userdata, [{doc,"Delete tariff resource inventory"}]}].
@@ -4679,7 +4670,7 @@ update_tariff_resource(Config) ->
 			= httpd_util:split_path(URI),
 	NameOp = {struct, [{op, "add"}, {"path", "/name"}, {value, "TariffRow"}]},
 	DescriptionOp = {struct, [{op, "add"}, {"path", "/description"},
-			{value, "policy row resource"}]},
+			{value, "tariff row resource"}]},
 	NewPrefix = "136",
 	NewRate = 456,
 	ResCharOp1 = {struct, [{op, "add"}, {path, "/resourceCharacteristic/0/value"},
@@ -4693,8 +4684,8 @@ update_tariff_resource(Config) ->
 			{"if-match", Etag}], PatchContentType, PatchReqBody},
 	{ok, Result2} = httpc:request(patch, Request2, [], []),
 	{{"HTTP/1.1", 200, "OK"}, _Headers2, _ResponseBody2} = Result2,
-	{ok, #resource{name = "TariffRow", description = "policy row resource",
-			specification = #specification_ref{name = "tariff row spec"},
+	{ok, #resource{name = "TariffRow", description = "tariff row resource",
+			specification = #specification_ref{name = "TariffTableRow"},
 			characteristic = CharList}} = ocs:get_resource(ResourceId),
 	#resource_char{name = "prefix", value = NewPrefix}
 			= lists:keyfind("prefix", #resource_char.name, CharList),
@@ -4709,7 +4700,7 @@ post_policy_resource(Config) ->
 	ServiceId = ocs:generate_identity(),
 	Name = {"name", ResName},
 	ResourceSpec = {"resourceSpecification",
-			{struct, [{"id", "4"}, {"name", "PolicyTable"}]}},
+			{struct, [{"id", "4"}, {"name", "PolicyTableRow"}]}},
 	RelId = ocs:generate_identity(),
 	RelHref = "/resourceInventoryManagement/v1/resource/" ++ RelId,
 	Relationship = {"resourceRelationship",
@@ -4751,7 +4742,7 @@ post_policy_resource(Config) ->
 			= httpd_util:split_path(URI),
 	{ok, #resource{name = ResName, specification = S, related = [R],
 			characteristic = ResChar}} = ocs:get_resource(ID),
-	#specification_ref{id = "4", name = "PolicyTable"} = S,
+	#specification_ref{id = "4", name = "PolicyTableRow"} = S,
 	#resource_rel{id = RelId, href = RelHref,
 			type = "contained", name = "example"} = R,
 	#resource_char{value = ResName}
@@ -4797,7 +4788,7 @@ query_policy_resource(Config) ->
 					++ PolicyTableId1, name = "PolicyTable1", type = "contained"}],
 			specification = #specification_ref{id = "4",
 					href = "/resourceCatalogManagement/v2/resourceSpecification/4",
-					name = "PolicyRow"},
+					name = "PolicyTableRow"},
 			characteristic = [#resource_char{name = "name", value = "example"},
 					#resource_char{name = "qosInformation", value =
 							#{"maxRequestedBandwidthDL" => 1000000000,
@@ -4821,7 +4812,7 @@ query_policy_resource(Config) ->
 					++ PolicyTableId2, name = "PolicyTable2", type = "contained"}],
 			specification = #specification_ref{id = "4",
 					href = "/resourceCatalogManagement/v2/resourceSpecification/4",
-					name = "PolicyRow"},
+					name = "PolicyTableRow"},
 			characteristic = [#resource_char{name = "name", value = "example"},
 					#resource_char{name = "chargingKey", value = 1},
 					#resource_char{name = "flowInformation", value =
@@ -4888,6 +4879,53 @@ oauth_authentication(Config)->
 	{ok, Result} = httpc:request(get, Request, [], []),
 	{{"HTTP/1.1", 200, _}, _, _} = Result.
 
+arbitrary_char_service() ->
+	[{userdata, [{doc,"Add service with arbitrary characteristics"}]}].
+
+arbitrary_char_service(Config) ->
+	OfferId = ?config(product_id, Config),
+	{ok, #product{}} = ocs:add_product(OfferId, []),
+	ID = ocs:generate_identity(),
+	Password = ocs:generate_password(),
+	State = {"state", active},
+	IsServiceEnabled = {"isServiceEnabled", true},
+	Char1= {struct, [{"name", "acctSessionInterval"}, {"value", rand:uniform(500)}]},
+	Char2 = {struct, [{"name", "sessionTimeout"}, {"value", rand:uniform(2500)}]},
+	Char3 = {struct, [{"name", "serviceIdentity"}, {"value", ID}]},
+	Char4 = {struct, [{"name", "servicePassword"}, {"value", Password}]},
+	Char5 = {struct, [{"name", "multiSession"}, {"value", true}]},
+	Char6 = {struct, [{"name", "foo"}, {"valueType", "number"}, {"value", 42}]},
+	Char7 = {struct, [{"name", "radiusReserveOctets"},
+			{"value", {struct, [{"unitOfMeasure", "bytes"},
+			{"value", rand:uniform(100000)}]}}]},
+	SortedChars = lists:sort([Char1, Char2, Char3, Char4, Char5, Char6, Char7]),
+	Characteristics = {"serviceCharacteristic", {array, SortedChars}},
+	JSON = {struct, [State, IsServiceEnabled, Characteristics]},
+	RequestBody = lists:flatten(mochijson:encode(JSON)),
+	HostUrl = ?config(host_url, Config),
+	Accept = {"accept", "application/json"},
+	ContentType = "application/json",
+	Request = {HostUrl ++ "/serviceInventoryManagement/v2/service",
+			[Accept, auth_header()], ContentType, RequestBody},
+	{ok, Result} = httpc:request(post, Request, [], []),
+	{{"HTTP/1.1", 201, _Created}, Headers, ResponseBody} = Result,
+	{_, "application/json"} = lists:keyfind("content-type", 1, Headers),
+	{_, _} = lists:keyfind("etag", 1, Headers),
+	{_, URI} = lists:keyfind("location", 1, Headers),
+	{"/serviceInventoryManagement/v2/service/" ++ ID, _} = httpd_util:split_path(URI),
+	ContentLength = integer_to_list(length(ResponseBody)),
+	{_, ContentLength} = lists:keyfind("content-length", 1, Headers),
+	{struct, Object} = mochijson:decode(ResponseBody),
+	{_, {array, Chars}} = lists:keyfind("serviceCharacteristic", 1, Object),
+	F = fun({struct, [{"name", "foo"}, {"value", 42}]}) ->
+				true;
+			({struct, [{"value", 42}, {"name", "foo"}]}) ->
+				true;
+			(_) ->
+				false
+	end,
+	lists:any(F, Chars).
+
 %%---------------------------------------------------------------------
 %%  Internal functions
 %%---------------------------------------------------------------------
@@ -4936,6 +4974,13 @@ querybucketnotification(SessionID, _Env, Input) ->
 	mod_esi:deliver(SessionID, "status: 201 Created\r\n\r\n"),
 	query_bucket_notification ! Input.
 
+-spec notifyproductcharge(SessionID :: term(), Env :: list(),
+		Input :: string()) -> any().
+%% @doc Notification callback for notify_product_charge test case.
+notifyproductcharge(SessionID, _Env, Input) ->
+	mod_esi:deliver(SessionID, "status: 201 Created\r\n\r\n"),
+	notify_product_charge ! Input.
+
 -spec notifycreateproduct(SessionID :: term(), Env :: list(),
 		Input :: string()) -> any().
 %% @doc Notification callback for notify_create_product test case.
@@ -4949,13 +4994,6 @@ notifycreateproduct(SessionID, _Env, Input) ->
 notifydeleteproduct(SessionID, _Env, Input) ->
 	mod_esi:deliver(SessionID, "status: 201 Created\r\n\r\n"),
 	notify_delete_product ! Input.
-
--spec notifyproductcharge(SessionID :: term(), Env :: list(),
-		Input :: string()) -> any().
-%% @doc Notification callback for notify_product_charge test case.
-notifyproductcharge(SessionID, _Env, Input) ->
-	mod_esi:deliver(SessionID, "status: 201 Created\r\n\r\n"),
-	notify_product_charge ! Input.
 
 -spec queryproductnotification(SessionID :: term(), Env :: list(),
 		Input :: string()) -> any().
@@ -5374,7 +5412,7 @@ add_resource("1", Description, Category, TableName) ->
 			state = "Active", schema = Schema,
 			start_date = erlang:system_time(?MILLISECOND),
 			end_date = erlang:system_time(?MILLISECOND) + 2678400000,
-			specification = #specification_ref{id = "1", name = "tariffTable",
+			specification = #specification_ref{id = "1", name = "TariffTable",
 					href = "/resourceCatalogManagement/v2/resourceSpecification/1"}},
 	ocs:add_resource(Resource);
 add_resource("2", Description, Category, TableName) ->
@@ -5388,7 +5426,7 @@ add_resource("2", Description, Category, TableName) ->
 			related = [#resource_rel{id = ResourceRelID,
 					href = "/resourceInventoryManagement/v1/resource/"
 					++ ResourceRelID, referred_type = "contained", name = TableName}],
-			specification = #specification_ref{id = "2", name = "tariffRow",
+			specification = #specification_ref{id = "2", name = "TariffTableRow",
 					href = "/resourceCatalogManagement/v2/resourceSpecification/2"},
 			characteristic  = [#resource_char{name = "prefix", value = "125"},
 					#resource_char{name = "description", value = "test"},
@@ -5449,9 +5487,9 @@ resource_inventory() ->
 			ocs_rest:iso8601(erlang:system_time(?MILLISECOND) + 2678400000)},
 	ValidFor = {"validFor", {struct, [StartTime, EndTime]}},
 	ResSpecID = {"id", "2"},
-	ResSpecName = {"name", "tariff row spec"},
+	ResSpecName = {"name", "TariffTableRow"},
 	ResSpecHref = {"href",
-			"/resourceCatalogManagement/v2/resourceSpecification/"},
+			"/resourceCatalogManagement/v2/resourceSpecification/2"},
 	ResSpec = {"resourceSpecification",
 			{struct, [ResSpecID, ResSpecName, ResSpecHref]}},
 	ResRelId = {"id", RelId = random_string(5)},

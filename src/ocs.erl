@@ -1650,7 +1650,21 @@ query_table1(Pla, _Acc) ->
 		Result :: {ok, Resource} | {error, Reason},
 		Reason :: term().
 %% @doc Create a new Resource.
-add_resource(#resource{id = undefined, last_modified = undefined} = Resource) ->
+add_resource(#resource{id = undefined, last_modified = undefined, name = Name,
+		specification = #specification_ref{id = "1"}} = Resource)
+		when is_list(Name) ->
+	case mnesia:table_info(list_to_existing_atom(Name), attributes) of
+		[num, value] ->
+			add_resource1(Resource);
+		_ ->
+			exit(table_not_found)
+	end;
+add_resource(#resource{id = undefined, last_modified = undefined,
+		specification = #specification_ref{id = SpecId}} = Resource)
+		when SpecId /= "1" ->
+	add_resource1(Resource).
+%% @hidden
+add_resource1(#resource{} = Resource) ->
 	F = fun() ->
 			TS = erlang:system_time(?MILLISECOND),
 			N = erlang:unique_integer([positive]),
@@ -1662,38 +1676,12 @@ add_resource(#resource{id = undefined, last_modified = undefined} = Resource) ->
 			ok = mnesia:write(NewResource),
 			NewResource
 	end,
-	add_resource1(mnesia:transaction(F)).
-add_resource1({atomic, #resource{name = Name,
-		specification = #specification_ref{id = "1"}} = NewResource})
-		when is_list(Name) ->
-	case mnesia:table_info(list_to_existing_atom(Name), attributes) of
-		[num, value] ->
-			ok = ocs_event:notify(create_resource, NewResource, resource),
-			{ok, NewResource};
-		_ ->
-			exit(table_not_found)
-	end;
-add_resource1({atomic, #resource{specification = #specification_ref{id = "2"},
-		related = [#resource_rel{name = Table}], characteristic = Chars}
-		= NewResource}) ->
-	case mnesia:table_info(list_to_existing_atom(Table), attributes) of
-		[num, value] ->
-			#resource_char{value = Prefix}
-					= lists:keyfind("prefix", #resource_char.name, Chars),
-			#resource_char{value = Description}
-					= lists:keyfind("description", #resource_char.name, Chars),
-			#resource_char{value = Rate}
-					= lists:keyfind("rate", #resource_char.name, Chars),
-			{ok, #gtt{}} = ocs_gtt:insert(Table, Prefix, {Description, Rate}),
-			ok = ocs_event:notify(create_resource, NewResource, resource),
-			{ok, NewResource};
-		_ ->
-			exit(table_not_found)
-	end;
-add_resource1({atomic, #resource{} = NewResource}) ->
+	add_resource2(mnesia:transaction(F)).
+%% @hidden
+add_resource2({atomic, #resource{} = NewResource}) ->
 	ok = ocs_event:notify(create_resource, NewResource, resource),
 	{ok, NewResource};
-add_resource1({aborted, Reason}) ->
+add_resource2({aborted, Reason}) ->
 	{error, Reason}.
 
 -spec get_resources() -> Result
@@ -1748,7 +1736,18 @@ get_resource(ResourceID) when is_list(ResourceID) ->
 delete_resource(ResourceID) when is_list(ResourceID) ->
 	F = fun() ->
 			case mnesia:read(resource, ResourceID) of
-				[#resource{} = Resource] ->
+				[#resource{specification = #specification_ref{id = "2"},
+						related = [#resource_rel{name = Table}],
+						characteristic = Chars} = Resource] when is_list(Table) ->
+					case lists:keyfind("prefix", #resource_char.name, Chars) of
+						#resource_char{value = Prefix} ->
+							{mnesia:delete(resource, ResourceID, write),
+									Resource, Table, Prefix};
+						false ->
+							throw(prefix_not_found)
+					end;
+				[#resource{specification = #specification_ref{id = SpecId}}
+						= Resource] when SpecId /= "2" ->
 					{mnesia:delete(resource, ResourceID, write), Resource};
 				[] ->
 					mnesia:abort(not_found)
@@ -1759,18 +1758,21 @@ delete_resource(ResourceID) when is_list(ResourceID) ->
 			{error, Reason};
 		{atomic, {ok, #resource{name = Name,
 				specification = #specification_ref{id = "1"}} = Resource}} ->
-			{atomic, ok} = mnesia:delete_table(list_to_existing_atom(Name)),
+			ok = ocs_gtt:clear_table(Name),
+			ocs_event:notify(delete_resource, Resource, resource);
+		{atomic, {ok, Resource, Table, Prefix}} ->
+			ok = ocs_gtt:delete(Table, Prefix),
 			ocs_event:notify(delete_resource, Resource, resource);
 		{atomic, {ok, #resource{} = Resource}} ->
 			ocs_event:notify(delete_resource, Resource, resource)
 	end.
 
--spec query_resource(Cont, MatchId, MatchCategory,
+-spec query_resource(Cont, MatchId, MatchName,
 		MatchResSpecId, MatchRelName) -> Result
 	when
 		Cont :: start | any(),
 		MatchId :: Match,
-		MatchCategory :: Match,
+		MatchName :: Match,
 		MatchResSpecId :: Match,
 		MatchRelName :: Match,
 		Match :: {exact, string()} | {like, string()} | '_',
@@ -1778,11 +1780,11 @@ delete_resource(ResourceID) when is_list(ResourceID) ->
 		Cont1 :: eof | any(),
 		Reason :: term().
 %% @doc Query resources
-query_resource(Cont, '_', MatchCategory, MatchResSpecId, MatchRelName) ->
+query_resource(Cont, '_', MatchName, MatchResSpecId, MatchRelName) ->
 	MatchHead = #resource{_ = '_'},
-	query_resource1(Cont, MatchHead, MatchCategory,
+	query_resource1(Cont, MatchHead, MatchName,
 			MatchResSpecId, MatchRelName);
-query_resource(Cont, {Op, String}, MatchCategory, MatchResSpecId, MatchRelName)
+query_resource(Cont, {Op, String}, MatchName, MatchResSpecId, MatchRelName)
 		when is_list(String), ((Op == exact) orelse (Op == like)) ->
 	MatchHead = case lists:last(String) of
 		$% when Op == like ->
@@ -1790,7 +1792,7 @@ query_resource(Cont, {Op, String}, MatchCategory, MatchResSpecId, MatchRelName)
 		_ ->
          #resource{id = String, _ = '_'}
 	end,
-   query_resource1(Cont, MatchHead, MatchCategory,
+   query_resource1(Cont, MatchHead, MatchName,
 			MatchResSpecId, MatchRelName).
 %% @hidden
 query_resource1(Cont, MatchHead, '_', MatchResSpecId, MatchRelName) ->
@@ -1799,9 +1801,9 @@ query_resource1(Cont, MatchHead1, {Op, String}, MatchResSpecId, MatchRelName)
 		when is_list(String), ((Op == exact) orelse (Op == like)) ->
 	MatchHead2 = case lists:last(String) of
 		$% when Op == like ->
-			MatchHead1#resource{category = lists:droplast(String) ++ '_'};
+			MatchHead1#resource{name = lists:droplast(String) ++ '_'};
 		_ ->
-         MatchHead1#resource{category = String}
+         MatchHead1#resource{name = String}
 	end,
    query_resource2(Cont, MatchHead2, MatchResSpecId, MatchRelName).
 query_resource2(Cont, MatchHead, '_', MatchRelName) ->

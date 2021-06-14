@@ -139,8 +139,7 @@ class clientList extends PolymerElement {
 			},
 			activeItem: {
 				type: Object,
-				notify: true,
-				observer: '_activeItemChanged'
+				notify: true
 			},
 			_filterAddress: {
 				type: Boolean,
@@ -177,14 +176,6 @@ class clientList extends PolymerElement {
 		super.ready();
 		var grid = this.shadowRoot.getElementById('clientGrid');
 		grid.dataProvider = this._getClient;
-	}
-
-	_activeItemChanged(item) {
-		if(item) {
-			this.$.clientGrid.selectedItems = item ? [item] : [];
-		} else {
-			this.$.clientGrid.selectedItems = [];
-		}
 	}
 
 	_getClient(params, callback) {

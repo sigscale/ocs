@@ -47,16 +47,21 @@ class prefixList extends PolymerElement {
 					<template>[[item.rate]]</template>
 				</vaadin-grid-column>
 			</vaadin-grid>
-			<paper-dialog class="dialog" id="tableList">
+			<paper-dialog
+					class="dialog"
+					id="tableList">
 				<app-toolbar>
 					List of Tables
 				</app-toolbar>
-				<template is="dom-repeat" items="[[tables]]">
+				<template
+						id="tableItems"
+						is="dom-repeat"
+						items="[[tables]]">
 					<paper-item
 							id="pagePrefix"
 							class="menuitem"
-							on-focused-changed="tableSelection">
-						<iron-icon icon ="icons:view-list" item-icon></iron-icon>
+							on-focused-changed="_tableSelection">
+						<iron-icon icon="icons:view-list" item-icon></iron-icon>
 							{{item.name}}
 					</paper-item>
 				</template>
@@ -65,7 +70,7 @@ class prefixList extends PolymerElement {
 							raised
 							id="tabOkButton"
 							disabled
-							on-tap="tableOk"
+							on-tap="_tableOk"
 							class="submit-button">
 						Ok
 					</paper-button>
@@ -76,13 +81,13 @@ class prefixList extends PolymerElement {
 					</paper-button>
 					<paper-button
 							raised
-							on-tap="tableAdd"
+							on-tap="_tableAdd"
 							class="submit-button">
 						Add
 					</paper-button>
 					<paper-button
 							raised
-							on-tap="tableDelete"
+							on-tap="_tableDelete"
 							class="delete-button">
 						Delete
 					</paper-button>
@@ -94,18 +99,22 @@ class prefixList extends PolymerElement {
 						on-tap="showAddPrefixModal">
 				</paper-fab>
 			</div>
-			<iron-ajax id="getTableContentAjax"
-					on-response="_getTableContentResponse"
-					on-error="_getTableContentError">
+			<iron-ajax
+					id="getPrefixRows"
+					on-response="_getTableRowsResponse"
+					on-error="_getTableRowsError">
 			</iron-ajax>
-			<iron-ajax id="deleteTableAjax"
-				on-response="_deleteTableResponse"
-				on-error="_deleteTableError">
+			<iron-ajax
+					id="deletePrefixTable"
+					method="DELETE"
+					on-response="_deleteTableResponse"
+					on-error="_deleteTableError">
 			</iron-ajax>
-			<iron-ajax id="getTableAjax"
-				url="/resourceInventoryManagement/v1/resource?resourceSpecification.id=1"
-				on-response="_getTableResponse"
-				on-error="_getTableError">
+			<iron-ajax
+					id="getPrefixTables"
+					url="/resourceInventoryManagement/v1/resource?resourceSpecification.id=1"
+					on-response="_getTablesResponse"
+					on-error="_getTablesError">
 			</iron-ajax>
 		`;
 	}
@@ -128,31 +137,28 @@ class prefixList extends PolymerElement {
 					return []
 				}
 			},
+			activeTableName: {
+				type: String,
+				notify: true
+			},
+			activeTableId: {
+				type: String
+			},
 			activeItem: {
 				type: Object,
-				notify: true,
-				observer: '_activeItemChanged'
+				notify: true
 			}
 		}
 	}
 
 	ready() {
 		super.ready();
-		var grid = this.shadowRoot.getElementById('prefixGrid');
-		var ajax1 = document.body.querySelector('sig-app').shadowRoot.querySelector('sig-prefix-list').shadowRoot.getElementById('getTableAjax');
-		ajax1.generateRequest();
+		var ajax = this.shadowRoot.getElementById('getPrefixTables');
+		ajax.generateRequest();
 		this.$.tableList.open();
 	}
 
-	_activeItemChanged(item) {
-		if(item) {
-			this.$.prefixGrid.selectedItems = item ? [item] : [];
-		} else {
-			this.$.prefixGrid.selectedItems = [];
-		}
-	}
-
-	_getTableResponse(event) {
+	_getTablesResponse(event) {
 		var results = event.detail.xhr.response;
 		this.splice("tables", 0, this.tables.length)
 		for (var indexTable in results) {
@@ -162,32 +168,29 @@ class prefixList extends PolymerElement {
 			tableRecord.href = results[indexTable].href;
 			this.push('tables', tableRecord);
 		}
+		this.shadowRoot.getElementById('tableItems').notifyPath('items');
 	}
 
-	tableOk() {
+	_tableOk() {
+		document.body.querySelector('sig-app').viewTitle = 'Tariff: ' + this.activeTableName;
 		var grid = this.shadowRoot.getElementById('prefixGrid');
-		grid.dataProvider = this._getPreTable;
+		grid.dataProvider = this._getPrefixTable;
+		grid.clearCache();
 		this.$.tableList.close();
-		document.body.querySelector('sig-app').shadowRoot.getElementById('prefixList').shadowRoot.getElementById('prefixGrid').clearCache();
-	}
+	} 
 
-	tableDelete(event) {
-		this.$.deleteTableAjax.method = "DELETE";
-		var prefixListDel = document.body.querySelector('sig-app').shadowRoot.querySelector('sig-prefix-list');
-		this.$.deleteTableAjax.url = "/resourceInventoryManagement/v1/resource/" + prefixListDel.tableId;
-		this.$.deleteTableAjax.generateRequest();
-		document.body.querySelector('sig-app').shadowRoot.getElementById('prefixList').shadowRoot.getElementById('prefixGrid').clearCache();
+	_tableDelete() {
+		this.$.deletePrefixTable.url = "/resourceInventoryManagement/v1/resource/" + this.activeTableId;
+		this.$.deletePrefixTable.generateRequest();
+		this.activeTableName = null;
+		this.activeTableId = null;
 	}
 
 	_deleteTableResponse(event) {
-		this.$.tableList.close();
-		document.body.querySelector('sig-app').shadowRoot.getElementById('offerList').shadowRoot.getElementById('getTableAjax').generateRequest();
-		var toast = document.body.querySelector('sig-app').shadowRoot.getElementById('restError');
-		toast.text = "Success";
-		toast.open();
+		this.shadowRoot.getElementById('getPrefixTables').generateRequest();
 	}
 
-   _getTableContentError(event) {
+   _getTablesError(event) {
       var toast = document.body.querySelector('sig-app').shadowRoot.getElementById('restError');
       toast.text = "Error";
       toast.open();
@@ -199,24 +202,26 @@ class prefixList extends PolymerElement {
 		toast.open();
 	}
 
-	tableSelection(e) {
+	_tableSelection(e) {
 		if(e.model.item && e.model.item.id) {
-			document.body.querySelector('sig-app').shadowRoot.getElementById('prefixList').table = e.model.item.name;
-			document.body.querySelector('sig-app').shadowRoot.getElementById('prefixList').tableId = e.model.item.id;
+			this.activeTableName = e.model.item.name;
+			this.activeTableId = e.model.item.id;
 			this.$.tabOkButton.disabled = false;
 		} else {
+			this.activeTableName = null;
+			this.activeTableId = null;
 			this.$.tabOkButton.disabled = true;
 		}
 	}
 
-	_getPreTable(params, callback) {
+	_getPrefixTable(params, callback) {
 		var grid = this;
 		if(!grid.size) {
 			grid.size = 0;
 		}
-		var prefixList = document.body.querySelector('sig-app').shadowRoot.querySelector('sig-prefix-list');
-		var ajax = prefixList.shadowRoot.getElementById('getTableContentAjax');
-		ajax.url = "/resourceInventoryManagement/v1/resource?resourceSpecification.id=2&resourceRelationship.resource.name=" + prefixList.table;
+		var prefixList = document.body.querySelector('sig-app').shadowRoot.getElementById('prefixList');
+		var ajax = prefixList.shadowRoot.getElementById('getPrefixRows');
+		ajax.url = "/resourceInventoryManagement/v1/resource?resourceSpecification.id=2&resourceRelationship.resource.name=" + prefixList.activeTableName;
 		var handleAjaxResponse = function(request) {
 			if(request) {
 				prefixList.etag = request.xhr.getResponseHeader('ETag');
@@ -291,9 +296,8 @@ class prefixList extends PolymerElement {
 		}
 	}
 
-	tableAdd() {
+	_tableAdd() {
 		document.body.querySelector('sig-app').shadowRoot.querySelector('sig-prefix-table-add').shadowRoot.getElementById('addPrefixTableModal').open();
-		this.$.tableList.close();
 	}
 
 	showAddPrefixModal() {

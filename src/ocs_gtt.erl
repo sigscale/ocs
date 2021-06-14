@@ -39,9 +39,9 @@
 -author('vances@sigscale.com').
 
 %% export API
--export([new/2, new/3, insert/2, insert/3, delete/2,
-		lookup_first/2, lookup_last/2, lookup_all/2,
-		list/0, list/2, backup/2, restore/2, import/1]).
+-export([new/2, new/3, insert/2, insert/3, delete/2, lookup_first/2,
+		lookup_last/2, lookup_all/2, list/0, list/2, backup/2, restore/2,
+		import/1, clear_table/1]).
 
 %% support deprecated_time_unit()
 -define(MILLISECOND, milli_seconds).
@@ -466,6 +466,21 @@ list({[#gtt{} | _] = Gtts, Cont}) ->
 	{Cont, Gtts};
 list('$end_of_table') ->
 	{eof, []}.
+
+-spec clear_table(Table) -> ok
+	when
+		Table :: atom() | string().
+%% @doc Clear a table.
+%%
+clear_table(Table) when is_list(Table) ->
+	clear_table(list_to_existing_atom(Table));
+clear_table(Table) when is_atom(Table) ->
+	case mnesia:clear_table(Table) of
+		{atomic, ok} ->
+			ok;
+		{aborted, Reason} ->
+			exit(Reason)
+	end.
 
 %%----------------------------------------------------------------------
 %%  internal functions

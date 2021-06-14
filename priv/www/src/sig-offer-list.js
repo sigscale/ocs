@@ -78,16 +78,19 @@ class offerList extends PolymerElement {
 			<div class="add-button">
 				<paper-fab
 						icon="add"
-						on-tap = "showAddOfferModal">
+						on-tap="showAddOfferModal">
 				</paper-fab>
 			</div>
-			<iron-ajax id="getProductAjax"
+			<iron-ajax
+					id="getProductOffersAjax"
 					url="/catalogManagement/v2/productOffering"
 					rejectWithRequest>
 			</iron-ajax>
-			<iron-ajax id="getTableAjax"
-					on-response="_getTableResponse"
-					on-error="_getTableError">
+			<iron-ajax
+					id="getPrefixTableAjax"
+					url="/resourceInventoryManagement/v1/resource"
+					on-response="_getPrefixTableResponse"
+					on-error="_getPrefixTableError">
 			</iron-ajax>
 		`;
 	}
@@ -120,8 +123,7 @@ class offerList extends PolymerElement {
 			},
 			activeItem: {
 				type: Object,
-				notify: true,
-				observer: '_activeItemChanged'
+				notify: true
 			},
 			_filterName: {
 				type: Boolean,
@@ -130,32 +132,22 @@ class offerList extends PolymerElement {
 		}
 	}
 
-	_activeItemChanged(item) {
-		if(item) {
-			this.$.offerGrid.selectedItems = item ? [item] : [];
-			document.body.querySelector('sig-app').shadowRoot.querySelector('sig-offer-update').initialize(item);
-		} else {
-			this.$.offerGrid.selectedItems = [];
-		}
-	}
-
-
 	ready() {
 		super.ready();
 		var grid = this.shadowRoot.getElementById('offerGrid');
-		var ajax1 = document.body.querySelector('sig-app').shadowRoot.querySelector('sig-offer-list').shadowRoot.getElementById('getTableAjax');
-		ajax1.url = "/resourceInventoryManagement/v1/resource?resourceSpecification.id=1";
+		var ajax1 = document.body.querySelector('sig-app').shadowRoot.querySelector('sig-offer-list').shadowRoot.getElementById('getPrefixTableAjax');
+		ajax1.params['resourceSpecification.id'] = '1';
 		ajax1.generateRequest();
-		grid.dataProvider = this._getOffers;
+		grid.dataProvider = this.getOffers;
 	}
 
-	_getOffers(params, callback) {
+	getOffers(params, callback) {
 		var grid = this;
 		if(!grid.size) {
 			grid.size = 0;
 		}
 		var offerList = document.body.querySelector('sig-app').shadowRoot.querySelector('sig-offer-list');
-		var ajax = offerList.shadowRoot.getElementById("getProductAjax");
+		var ajax = offerList.shadowRoot.getElementById("getProductOffersAjax");
 		delete ajax.params['filter'];
 		function checkHead(param) {
 			return param.path == "id";
@@ -271,7 +263,7 @@ class offerList extends PolymerElement {
 		}
 	}
 
-	_getTableResponse(event) {
+	_getPrefixTableResponse(event) {
 		var grid = this.shadowRoot.getElementById('offerGrid');
 		var results = event.detail.xhr.response;
 		this.splice("tables", 0, this.tables.length)
@@ -283,7 +275,7 @@ class offerList extends PolymerElement {
 		}
 	}
 
-	_getTableError(event) {
+	_getPrefixTableError(event) {
 		this.shadowRoot.getElementById('offerGrid').size = 0;
 		cbProduct([]);
 		if (!lastItem && event.detail.request.xhr.status != 416) {
@@ -301,8 +293,8 @@ class offerList extends PolymerElement {
 
 	showAddOfferModal() {
 		var offerList = document.body.querySelector('sig-app').shadowRoot.querySelector('sig-offer-list');
-		offerList.shadowRoot.getElementById("getProductAjax").generateRequest();
-		document.body.querySelector('sig-app').shadowRoot.querySelector('sig-offer-add').shadowRoot.getElementById('addProductModal').open();
+		offerList.shadowRoot.getElementById("getProductOffersAjax").generateRequest();
+		document.body.querySelector('sig-app').shadowRoot.querySelector('sig-offer-add').shadowRoot.getElementById('addOfferModal').open();
 	}
 }
 

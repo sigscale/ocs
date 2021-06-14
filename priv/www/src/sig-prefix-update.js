@@ -126,18 +126,19 @@ class tableUpdate extends PolymerElement {
 		super.ready()
 	}
 
-	_activeItemChanged(item) {
-console.log(item);
-		if(item) {
-			document.body.querySelector('sig-app').shadowRoot.getElementById('prefixList').rowId = item.id;
-			this.upPrefix = item.prefix;
-			this.upDesc = item.description;
-			this.upRate = item.rate;
+	_activeItemChanged(item, last) {
+		if(item || last) {
+			var current;
+			if(item) {
+				current = item;
+			} else if(last) {
+				current = last;
+			}
+			document.body.querySelector('sig-app').shadowRoot.getElementById('prefixList').rowId = current.id;
+			this.upPrefix = current.prefix;
+			this.upDesc = current.description;
+			this.upRate = current.rate;
 			this.$.updatePrefixModal.open();
-		} else {
-			this.upPrefix = null;
-			this.upDesc = null;
-			this.upRate = null;
 		}
 	}
 
@@ -145,18 +146,18 @@ console.log(item);
 		var Ajax = this.$.updateTableRowAjax;
 		Ajax.method = "PATCH";
 		Ajax.contentType = "application/json-patch+json";
-		var Table = document.body.querySelector('sig-app').shadowRoot.getElementById('prefixList').table;
+		var Table = document.body.querySelector('sig-app').shadowRoot.getElementById('prefixList').activeTableName;
 		var Id = this.upPrefix;
-		Ajax.url = "/resourceInventoryManagement/v1/resource/" + Table + "/" + Id;
+		Ajax.url = "/resourceInventoryManagement/v1/resource/" + Table + "-" + Id;
 		var ResArray = new Array();
 		var Desc = new Object(); 
 		Desc.op = "add";
-		Desc.path = "/resourceCharacteristic/1/value/value";
+		Desc.path = "/resourceCharacteristic/1/value";
 		Desc.value = this.upDesc;
 		ResArray.push(Desc);
 		var Rate = new Object();
 		Rate.op = "add";
-		Rate.path = "/resourceCharacteristic/2/value/value";
+		Rate.path = "/resourceCharacteristic/2/value";
 		Rate.value = this.upRate;
 		ResArray.push(Rate);
 		Ajax.body = JSON.stringify(ResArray);

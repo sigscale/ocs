@@ -516,18 +516,31 @@ patch_inventory(ProdId, Etag, ReqData) ->
 		{Etag2, {array, _} = Operations} ->
 			F = fun() ->
 					case mnesia:read(product, ProdId, write) of
-						[Product1] when
+						[#product{service = OldServices} = Product1] when
 								Product1#product.last_modified == Etag2;
 								Etag2 == undefined ->
 							case catch ocs_rest:patch(Operations, inventory(Product1)) of
 								{struct, _} = Product2 ->
-									Product3 = inventory(Product2),
 									TS = erlang:system_time(?MILLISECOND),
 									N = erlang:unique_integer([positive]),
 									LM = {TS, N},
-									Product4 = Product3#product{last_modified = LM},
-									ok = mnesia:write(Product4),
-									{Product2, LM};
+									case inventory(Product2) of
+										#product{service = []} = Product3 ->
+											OldRecords = [ocs:find_service(Id) || Id <- OldServices],
+											[mnesia:write(service, ServiceRecord#service{product
+													= undefined}, write) || {_, ServiceRecord} <- OldRecords],
+											Product4 = Product3#product{last_modified = LM},
+											ok = mnesia:write(Product4),
+											{Product2, LM};
+										#product{service = NewServices} = Product3 ->
+											ServiceIds = OldServices -- NewServices,
+											OldRecords = [ocs:find_service(Id) || Id <- ServiceIds],
+											[mnesia:write(service, ServiceRecord#service{product
+													= undefined}, write) || {_, ServiceRecord} <- OldRecords],
+											Product4 = Product3#product{last_modified = LM},
+											ok = mnesia:write(Product4),
+											{Product2, LM}
+									end;
 								_ ->
 									throw(bad_request)
 							end;

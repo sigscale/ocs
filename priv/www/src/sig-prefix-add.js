@@ -35,45 +35,35 @@ class prefixAdd extends PolymerElement {
 						class="slow red"
 						disabled="{{!loading}}">
 				</paper-progress>
-				<paper-input
-					label="Name"
-					value="{{tarName}}">
-				</paper-input>
-				<paper-input
-						id="addPrefix"
-						name="Prefix"
-						allowed-pattern="[0-9]"
-						label="Prefix"
-						value="{{addPre}}">
-				</paper-input>
-				<paper-tooltip
-						for="addPrefix"
-						offset="0">
-					Prefix number
-				</paper-tooltip>
-				<paper-input
-						id="addDesc"
-						name="Description"
-						label="Description"
-						value="{{addPreDesc}}">
-				</paper-input>
-				<paper-tooltip
-						for="addDesc"
-						offset="0">
-					Prefix description
-				</paper-tooltip>
-				<paper-input
-						id="addRateRow"
-						type="number"
-						name="PriceName"
-						label="Rate"
-						value="{{addPreRate}}">
-				</paper-input>
-				<paper-tooltip
-						for="addRateRow"
-						offset="0">
-					Prefix rate
-				</paper-tooltip>
+					<div>
+						<paper-input
+								allowed-pattern="[0-9]"
+								label="Prefix"
+								value="{{addPre}}">
+						</paper-input>
+						<paper-tooltip>
+							Leading digits to match against an origination, destination or VPLMN address.
+						</paper-tooltip>
+					</div>
+					<div>
+						<paper-input
+								label="Description"
+								value="{{addPreDesc}}">
+						</paper-input>
+						<paper-tooltip>
+							Description of addresses matching this prefix.
+						</paper-tooltip>
+					</div>
+					<div>
+						<paper-input
+								type="number"
+								label="Rate"
+								value="{{addPreRate}}">
+						</paper-input>
+						<paper-tooltip>
+							Price per unit to apply when this prefix matches an address.
+						</paper-tooltip>
+					</div>
 				<div class="buttons">
 					<paper-button dialog-confirm
 							raised
@@ -90,7 +80,7 @@ class prefixAdd extends PolymerElement {
 				</div>
 			</paper-dialog>
 			<iron-ajax
-					id="addTableRowAjax"
+					id="addTableRow"
 					content-type="application/json"
 					on-loading-changed="_onLoadingChanged"
 					on-response="_addTableResponse"
@@ -100,18 +90,9 @@ class prefixAdd extends PolymerElement {
 	}
 	static get properties() {
 		return {
-				loading: {
+			loading: {
 				type: Boolean,
 				value: false
-			},
-			table: {
-				type: String
-			},
-			tableId: {
-				type: String
-			}, 
-			tarName: {
-				type: String,
 			},
 			addPre: {
 				type: String,
@@ -130,18 +111,16 @@ class prefixAdd extends PolymerElement {
 	}
 
 	_tableRow(event) {
-		var ajax = this.$.addTableRowAjax;
+		var prefixList = document.body.querySelector('sig-app').shadowRoot.getElementById('prefixList');
+		var ajax = this.$.addTableRow;
 		ajax.method = "POST";
 		ajax.url = "/resourceInventoryManagement/v1/resource/";
 		var tar = new Object();
-		if(this.tarName) {
-			tar.name = this.tarName;
-		}
 		var rel = new Array();
 		var relObj = new Object();
-		relObj.id = document.body.querySelector('sig-app').shadowRoot.querySelector('sig-prefix-list').tableId;
+		relObj.id = prefixList.activeTableId;
 		relObj.href = "/resourceInventoryManagement/v1/resourceRelationship/" + relObj.id;
-		relObj.name = document.body.querySelector('sig-app').shadowRoot.querySelector('sig-prefix-list').table;
+		relObj.name = prefixList.activeTableName;
       var relObj1 = new Object();
       relObj1.relationshipType = "contained";
       relObj1.resource = relObj
@@ -165,7 +144,7 @@ class prefixAdd extends PolymerElement {
 
 		var spec = new Object();
 		spec.id = "2";
-		spec.name = "TariffTable";
+		spec.name = "TariffTableRow";
 		spec.href = "resourceCatalogManagement/v2/resourceSpecification/" + "2";
 		tar.resourceSpecification = spec;
 		ajax.body = tar;
@@ -195,7 +174,7 @@ class prefixAdd extends PolymerElement {
 	}
 
 	_onLoadingChanged(event) {
-		if (this.$.addTableRowAjax.loading) {
+		if (this.$.addTableRow.loading) {
 			this.$.progressId.disabled = false;
 		} else {
 			this.$.progressId.disabled = true;

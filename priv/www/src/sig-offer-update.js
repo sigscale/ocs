@@ -33,7 +33,7 @@ class offerUpdate extends PolymerElement {
 	static get template() {
 		return html`
 			<style include="style-element"></style>
-			<paper-dialog class="dialog" id="updateProductModal" modal>
+			<paper-dialog class="dialog" id="updateOfferModal" modal>
 				<app-toolbar>
 					<paper-tabs selected="{{selected}}">
 						<paper-tab id="offer-add">
@@ -59,14 +59,12 @@ class offerUpdate extends PolymerElement {
 						<paper-input
 								id="updateOffName"
 								value="{{updateOfferName}}"
-								name="name"
 								label="Name"
 								disabled>
 						</paper-input>
 						<paper-input
 								id="updateOffDesc"
 								value="{{updateOfferDesc}}"
-								name="description"
 								label="Description">
 						</paper-input>
 						<paper-tooltip
@@ -103,8 +101,7 @@ class offerUpdate extends PolymerElement {
 							Add a value to update the offer specification
 						</paper-tooltip>
 						<paper-input id="updateOffStart"
-								value="{{updateProductStartDateOffer}}"
-								name="updateProductStartDateOffer"
+								value="{{updateOfferStartDate}}"
 								label="Start Date">
 						</paper-input>
 						<paper-tooltip
@@ -113,8 +110,7 @@ class offerUpdate extends PolymerElement {
 							Add a value to update the offer start date
 						</paper-tooltip>
 						<paper-input id="updateOffEnd"
-								value="{{updateProductEndDateOffer}}"
-								name="updateProductEndDateOffer"
+								value="{{updateOfferEndDate}}"
 								label="End Date">
 						</paper-input>
 						<paper-tooltip
@@ -160,7 +156,7 @@ class offerUpdate extends PolymerElement {
 						<div class="buttons">
 							<paper-button
 									autofocus
-									on-tap="updateProductOffer"
+									on-tap="_updateProductOffer"
 									class="update-button">
 								Update
 							</paper-button>
@@ -173,7 +169,7 @@ class offerUpdate extends PolymerElement {
 							<paper-button
 									toggles
 									raised
-									on-tap="deleteProduct"
+									on-tap="_deleteOffer"
 									class="delete-button">
 								Delete
 							</paper-button>
@@ -195,7 +191,6 @@ class offerUpdate extends PolymerElement {
 							Add a value to update the offer price name
 						</paper-tooltip>
 						<paper-input id="updatePriceDesc"
-								name="description"
 								value="{{priceUpdateDesc}}"
 								label="Description">
 						</paper-input>
@@ -205,8 +200,7 @@ class offerUpdate extends PolymerElement {
 							Add a value to update the offer price description
 						</paper-tooltip>
 						<paper-input id="updatePriceStartDate"
-								value="{{updateProductStartDatePrice}}"
-								name="updateProductStartDatePrice"
+								value="{{updateOfferStartDatePrice}}"
 								label="Start Date">
 						</paper-input>
 						<paper-tooltip
@@ -215,8 +209,7 @@ class offerUpdate extends PolymerElement {
 							Add a value to update the offer price start date
 						</paper-tooltip>
 						<paper-input id="updatePriceEndDate"
-								value="{{updateProductEndDatePrice}}"
-								name="updateProductEndDatePrice"
+								value="{{updateOfferEndDatePrice}}"
 								label="End Date">
 						</paper-input>
 						<paper-tooltip
@@ -252,7 +245,6 @@ class offerUpdate extends PolymerElement {
 							Select a value to update the offer price type (Recurring | Onetime | Usage | Tariff)
 						</paper-tooltip>
 						<paper-input id="updatePriceSize"
-								name="size"
 								value="{{priceUpdateSize}}"
 								allowed-pattern="[0-9kmg]"
 								pattern="^[0-9]+[kmg]?$"
@@ -289,7 +281,6 @@ class offerUpdate extends PolymerElement {
 							Select a value to update the offer price unit (Bytes | Cents | Seconds)
 						</paper-tooltip>
 						<paper-input id="updatePriceAmount"
-								name="amount"
 								value="{{priceUpdateAmount}}"
 								type="text"
 								allowed-pattern="[0-9.]"
@@ -304,7 +295,6 @@ class offerUpdate extends PolymerElement {
 							Add a value to update the offer price tax included amount
 						</paper-tooltip>
 						<paper-input id="updatePriceCurrency"
-								name="currency"
 								value="{{priceUpdateCurrency}}"
 								label="Currency">
 						</paper-input>
@@ -388,7 +378,6 @@ class offerUpdate extends PolymerElement {
 								<paper-input
 										id="updateTimeOfDayStart"
 										value="{{startTimeUpdate}}"
-										name="updateProductTimePriceStart"
 										label="Start Time">
 								</paper-input>
 								<paper-tooltip
@@ -399,7 +388,6 @@ class offerUpdate extends PolymerElement {
 								<paper-input
 										id="updateTimeOfDayEnd"
 										value="{{endTimeUpdate}}"
-										name="updateProductTimePriceEnd"
 										label="End Time">
 								</paper-input>
 								<paper-tooltip
@@ -478,15 +466,15 @@ class offerUpdate extends PolymerElement {
 						<div class="buttons">
 							<paper-button
 									autofocus
-									id="updateProductPriceButton"
-									on-tap="updateProductPrice"
+									id="updateOfferPriceButton"
+									on-tap="_updateOfferPrice"
 									class="update-button"
 									hidden>
 								Update
 							</paper-button>
 							<paper-button
 									raised
-									id="updateProductAddButton"
+									id="updateOfferAddButton"
 									class="submit-button"
 									on-tap="updateAddPrice">
 								Add
@@ -517,7 +505,6 @@ class offerUpdate extends PolymerElement {
 							</paper-tooltip>
 						</div>
 						<paper-input id="updateAltDesc"
-								name="description"
 								value="{{AltUpdateDesc}}"
 								label="Description">
 						</paper-input>
@@ -527,8 +514,7 @@ class offerUpdate extends PolymerElement {
 							Add a value to update the offer price alteration description
 						</paper-tooltip>
 						<paper-input id="updateAltStartDate"
-								value="{{updateProductStartDateAlt}}"
-								name="updateProductStartDateAlt"
+								value="{{updateOfferStartDateAlt}}"
 								label="Start Date">
 						</paper-input>
 						<paper-tooltip
@@ -537,8 +523,7 @@ class offerUpdate extends PolymerElement {
 							Add a value to update the offer price alteration start date
 						</paper-tooltip>
 						<paper-input id="updateAltEndDate"
-								value="{{updateProductEndDateAlt}}"
-								name="updateProductEndDateAlt"
+								value="{{updateOfferEndDateAlt}}"
 								label="End Date">
 						</paper-input>
 						<paper-tooltip
@@ -572,7 +557,6 @@ class offerUpdate extends PolymerElement {
 							Add a value to update the offer price alteration type (Recurring | Onetime | Usage)
 						</paper-tooltip>
 						<paper-input id="updateAltSize"
-								name="size"
 								label="Unit Size"
 								type="text"
 								allowed-pattern="[0-9kmg]"
@@ -611,7 +595,6 @@ class offerUpdate extends PolymerElement {
 							Select a value to update the offer price alteration unit (Bytes | Cents | Seconds)
 						</paper-tooltip>
 						<paper-input id="updateAltAmount"
-								name="amount"
 								label="Amount"
 								type="text"
 								allowed-pattern="[0-9.]"
@@ -626,7 +609,6 @@ class offerUpdate extends PolymerElement {
 						</paper-tooltip>
 						<paper-input id="updateAltCurr"
 								value="{{altUpdateCurr}}"
-								name="currency"
 								label="Currency">
 						</paper-input>
 						<paper-tooltip
@@ -666,9 +648,9 @@ class offerUpdate extends PolymerElement {
 						</paper-tooltip>
 						<div class="buttons">
 							<paper-button
-									id="updateProductAlterationButton"
+									id="updateOfferAlterationButton"
 									autofocus
-									on-tap="updateProductAlteration"
+									on-tap="_updateOfferAlteration"
 									class="update-button"
 									hidden>
 								Update
@@ -691,39 +673,32 @@ class offerUpdate extends PolymerElement {
 				</iron-pages>
 			</paper-dialog>
 			<iron-ajax
-					id="updateAddProductAjax"
-					url="/catalogManagement/v2/productOffering"
-					method="POST"
-					content-type="application/json"
-					on-loading-changed="_onLoadingChanged"
-					on-response="_addProductResponse"
-					on-error="_addProductError">
-			</iron-ajax>
-			<iron-ajax
 					id="updateProductOfferAjax"
+					method="PATCH"
+					content-type="application/json-patch+json"
+					on-loading-changed="_onLoadingChanged"
 					on-response="_updateProductOfferResponse"
 					on-error="_updateProductOfferError">
 			</iron-ajax>
 			<iron-ajax
-					id="updateProductPriceAjax"
-					on-response="_updateProductPriceResponse"
-					on-error="_updateProductPriceError">
+					id="updateOfferPriceAjax"
+					on-response="_updateOfferPriceResponse"
+					on-error="_updateOfferPriceError">
 			</iron-ajax>
 			<iron-ajax
-					id="deleteProductAjax"
+					id="deleteOfferAjax"
 					method="DELETE"
-					on-response="_deleteProductResponse"
-					on-error="_deleteProductError">
+					on-response="_deleteOfferResponse"
+					on-error="_deleteOfferError">
 			</iron-ajax>
 			<iron-ajax
-					id="updateProductAlterationAjax"
-					on-response="_updateProductAlterationResponse"
-					on-error="_updateProductAlterationError">
+					id="updateOfferAlterationAjax"
+					on-response="_updateOfferAlterationResponse"
+					on-error="_updateOfferAlterationError">
 			</iron-ajax>
 			<iron-ajax
-					id="getProductUpdateAjax"
+					id="getOffersAjax"
 					url="/catalogManagement/v2/productOffering"
-					method="GET"
 					on-response="_getProductUpdateResponse"
 					on-error="_getProductsError">
 			</iron-ajax>
@@ -735,6 +710,10 @@ class offerUpdate extends PolymerElement {
 			listeners: {
 				'updateCheckIn.checked-changed': 'updateCheckInChanged',
 				'updateCheckOut.checked-changed': 'updateCheckOutChanged',
+			},
+			activeItem: {
+				type: Object,
+				observer: '_activeItemChanged'
 			},
 			priceUpdateName: {
 				observer: 'updatePriceDialog'
@@ -780,13 +759,13 @@ class offerUpdate extends PolymerElement {
 			updateOfferSpec: {
 				type: String
 			},
-			updateProductStartDateOffer: {
+			updateOfferStartDate: {
 				type: String
 			},
 			updateRedirect: {
 				type: String
 			},
-			updateProductEndDateOffer: {
+			updateOfferEndDate: {
 				type: String
 			},
 			priceUpdateDesc: {
@@ -795,10 +774,10 @@ class offerUpdate extends PolymerElement {
 			chargingKey: {
 				type: Number
 			},
-			updateProductStartDatePrice: {
+			updateOfferStartDatePrice: {
 				type: String
 			},
-			updateProductEndDatePrice: {
+			updateOfferEndDatePrice: {
 				type: String
 			},
 			priceUpdateSize: {
@@ -819,10 +798,10 @@ class offerUpdate extends PolymerElement {
 			AltUpdateDesc: {
 				type: String
 			},
-			updateProductStartDateAlt: {
+			updateOfferStartDateAlt: {
 				type: String
 			},
-			updateProductEndDateAlt: {
+			updateOfferEndDateAlt: {
 				type: String
 			},
 			altUpdateCurr: {
@@ -835,130 +814,138 @@ class offerUpdate extends PolymerElement {
 		super.ready()
 	}
 
-	initialize(item) {
-		this.$.getProductUpdateAjax.generateRequest();
-		this.$.updateProductModal.open();
-		this.updateOfferName = item.id;
-		this.updateOfferDesc = item.description;
-		if(item.productSpecification && item.productSpecification.name) {
-			this.updateOfferSpec = item.productSpecification.name.replace("ProductSpec", "");
-		}
-		this.updateProductStartDateOffer = item.startDate;
-		this.updateProductEndDateOffer = item.endDate;
-		this.characteristics = item.prodSpecCharValueUse;
-		for (var indexCha in item.prodSpecCharValueUse) {
-			if(item.prodSpecCharValueUse[indexCha].name == "radiusReserveSessionTime") {
-				this.$.updateReserveSession.value = item.prodSpecCharValueUse[indexCha].productSpecCharacteristicValue[0].value;
+	_activeItemChanged(item, last) {
+		if(item || last) {
+			var current;
+			if(item) {
+				current = item;
+			} else if(last) {
+				current = last;
 			}
-			if(item.prodSpecCharValueUse[indexCha].name == "redirectServer") {
-				this.updateRedirect = item.prodSpecCharValueUse[indexCha].productSpecCharacteristicValue[0].value;
+			this.$.getOffersAjax.generateRequest();
+			this.$.updateOfferModal.open();
+			this.updateOfferName = current.id;
+			this.updateOfferDesc = current.description;
+			if(current.productSpecification && current.productSpecification.name) {
+				this.updateOfferSpec = current.productSpecification.name.replace("ProductSpec", "");
 			}
-		}
-		for(var index in item.prices) {
-			var newPrice = new Object();
-			newPrice.name = item.prices[index].name;
-			newPrice.description = item.prices[index].description;
-			if(item.prices[index].validFor) {
-				newPrice.start = item.prices[index].validFor.startDateTime;
-				newPrice.end = item.prices[index].validFor.endDateTime;
-			}
-			newPrice.priceType = item.prices[index].priceType;
-			if (item.prices[index].unitOfMeasure) {
-				var unitOfMeasure = item.prices[index].unitOfMeasure;
-				switch(unitOfMeasure.charAt(unitOfMeasure.length - 1)) {
-					case "b":
-						var conv;
-						conv = unitOfMeasure = parseInt(unitOfMeasure.slice(0, -1));
-						newPrice.size = conv.toString();
-						newPrice.unit = "b";
-						break;
-					case "s":
-						var conv1;
-						conv1 = parseInt(unitOfMeasure.slice(0, -1));
-						newPrice.size = conv1.toString();
-						newPrice.unit = "s";
-						break;
+			this.updateOfferStartDate = current.startDate;
+			this.updateOfferEndDate = current.endDate;
+			this.characteristics = current.prodSpecCharValueUse;
+			for (var indexCha in current.prodSpecCharValueUse) {
+				if(current.prodSpecCharValueUse[indexCha].name == "radiusReserveSessionTime") {
+					this.$.updateReserveSession.value = current.prodSpecCharValueUse[indexCha].productSpecCharacteristicValue[0].value;
+				}
+				if(current.prodSpecCharValueUse[indexCha].name == "redirectServer") {
+					this.updateRedirect = current.prodSpecCharValueUse[indexCha].productSpecCharacteristicValue[0].value;
 				}
 			}
-			if(item.prices[index].price) {
-				newPrice.currency = item.prices[index].price.currencyCode;
-				newPrice.amount = item.prices[index].price.taxIncludedAmount;
-			}
-			var prodPrice = item.prices[index];
-			if(prodPrice.prodSpecCharValueUse) {
-				var specChar = new Array();
-				for (var indexChar in prodPrice.prodSpecCharValueUse) {
-					if(prodPrice.prodSpecCharValueUse[indexChar].name == "radiusReserveTime") {
-						specChar[indexChar] = {name: "radiusReserveTime", value: prodPrice.prodSpecCharValueUse[indexChar].productSpecCharacteristicValue[0].value};
-					}
-					if(prodPrice.prodSpecCharValueUse[indexChar].name == "radiusReserveOctets") {
-						specChar[indexChar] = {name: "radiusReserveOctets", value: prodPrice.prodSpecCharValueUse[indexChar].productSpecCharacteristicValue[0].value};
-					}
-					if(prodPrice.prodSpecCharValueUse[indexChar].name == "timeOfDayRange") {
-						specChar[indexChar] = {name: "timeOfDayRange", value: prodPrice.prodSpecCharValueUse[indexChar].productSpecCharacteristicValue[0].value};
-					}
-					if(prodPrice.prodSpecCharValueUse[indexChar].name == "callDirection") {
-						specChar[indexChar] = {name: "callDirection", value: prodPrice.prodSpecCharValueUse[indexChar].productSpecCharacteristicValue[0].value};
-					}
-					if(prodPrice.prodSpecCharValueUse[indexChar].name == "destPrefixTariffTable") {
-						specChar[indexChar] = {name: "destPrefixTariffTable", value: prodPrice.prodSpecCharValueUse[indexChar].productSpecCharacteristicValue[0].value};
-					}
-					if(prodPrice.prodSpecCharValueUse[indexChar].name == "roamingTable") {
-						specChar[indexChar] = {name: "roamingTable", value: prodPrice.prodSpecCharValueUse[indexChar].productSpecCharacteristicValue[0].value};
-					}
-					if(prodPrice.prodSpecCharValueUse[indexChar].name == "chargingKey") {
-						specChar[indexChar] = {name: "chargingKey", value: prodPrice.prodSpecCharValueUse[indexChar].productSpecCharacteristicValue[0].value};
+			for(var index in current.prices) {
+				var newPrice = new Object();
+				newPrice.name = current.prices[index].name;
+				newPrice.description = current.prices[index].description;
+				if(current.prices[index].validFor) {
+					newPrice.start = current.prices[index].validFor.startDateTime;
+					newPrice.end = current.prices[index].validFor.endDateTime;
+				}
+				newPrice.priceType = current.prices[index].priceType;
+				if (current.prices[index].unitOfMeasure) {
+					var unitOfMeasure = current.prices[index].unitOfMeasure;
+					switch(unitOfMeasure.charAt(unitOfMeasure.length - 1)) {
+						case "b":
+							var conv;
+							conv = unitOfMeasure = parseInt(unitOfMeasure.slice(0, -1));
+							newPrice.size = conv.toString();
+							newPrice.unit = "b";
+							break;
+						case "s":
+							var conv1;
+							conv1 = parseInt(unitOfMeasure.slice(0, -1));
+							newPrice.size = conv1.toString();
+							newPrice.unit = "s";
+							break;
 					}
 				}
-			}
-			newPrice.prodSpecCharValueUse = specChar;
-			newPrice.period = item.prices[index].recurringChargePeriod;
-			if(item.prices[index].productOfferPriceAlteration) {
-				var altName = item.prices[index].productOfferPriceAlteration.name;
-				function checkAlt1(alt) {
-					return alt.name == altName;
+				if(current.prices[index].price) {
+					newPrice.currency = current.prices[index].price.currencyCode;
+					newPrice.amount = current.prices[index].price.taxIncludedAmount;
 				}
-				var altIndex = this.alterations.findIndex(checkAlt1);
-				if(altIndex == -1) {
-					var newAlt = new Object();
-					newAlt.name = item.prices[index].productOfferPriceAlteration.name;
-					newAlt.description = item.prices[index].productOfferPriceAlteration.description;
-					if(item.prices[index].validFor) {
-						newAlt.start = item.prices[index].productOfferPriceAlteration.validFor.startDateTime;
-						newAlt.end = item.prices[index].productOfferPriceAlteration.validFor.endDateTime;
-					}
-					newAlt.priceType = item.prices[index].productOfferPriceAlteration.priceType;
-					if (item.prices[index].productOfferPriceAlteration.unitOfMeasure) {
-						var unitOfMeasure = item.prices[index].productOfferPriceAlteration.unitOfMeasure;
-						switch(unitOfMeasure.charAt(unitOfMeasure.length - 1)) {
-							case "b":
-								newAlt.size = parseInt(unitOfMeasure.slice(0, -1));
-								newAlt.unit = "b";
-								break;
-							case "s":
-								newAlt.size = parseInt(unitOfMeasure.slice(0, -1));
-								newAlt.unit = "s";
-								break;
-							default:
-								newAlt.unit = "c";
+				var prodPrice = current.prices[index];
+				if(prodPrice.prodSpecCharValueUse) {
+					var specChar = new Array();
+					for (var indexChar in prodPrice.prodSpecCharValueUse) {
+						if(prodPrice.prodSpecCharValueUse[indexChar].name == "radiusReserveTime") {
+							specChar[indexChar] = {name: "radiusReserveTime", value: prodPrice.prodSpecCharValueUse[indexChar].productSpecCharacteristicValue[0].value};
+						}
+						if(prodPrice.prodSpecCharValueUse[indexChar].name == "radiusReserveOctets") {
+							specChar[indexChar] = {name: "radiusReserveOctets", value: prodPrice.prodSpecCharValueUse[indexChar].productSpecCharacteristicValue[0].value};
+						}
+						if(prodPrice.prodSpecCharValueUse[indexChar].name == "timeOfDayRange") {
+							specChar[indexChar] = {name: "timeOfDayRange", value: prodPrice.prodSpecCharValueUse[indexChar].productSpecCharacteristicValue[0].value};
+						}
+						if(prodPrice.prodSpecCharValueUse[indexChar].name == "callDirection") {
+							specChar[indexChar] = {name: "callDirection", value: prodPrice.prodSpecCharValueUse[indexChar].productSpecCharacteristicValue[0].value};
+						}
+						if(prodPrice.prodSpecCharValueUse[indexChar].name == "destPrefixTariffTable") {
+							specChar[indexChar] = {name: "destPrefixTariffTable", value: prodPrice.prodSpecCharValueUse[indexChar].productSpecCharacteristicValue[0].value};
+						}
+						if(prodPrice.prodSpecCharValueUse[indexChar].name == "roamingTable") {
+							specChar[indexChar] = {name: "roamingTable", value: prodPrice.prodSpecCharValueUse[indexChar].productSpecCharacteristicValue[0].value};
+						}
+						if(prodPrice.prodSpecCharValueUse[indexChar].name == "chargingKey") {
+							specChar[indexChar] = {name: "chargingKey", value: prodPrice.prodSpecCharValueUse[indexChar].productSpecCharacteristicValue[0].value};
 						}
 					}
-					if(item.prices[index].productOfferPriceAlteration.price) {
-						newAlt.currency = item.prices[index].productOfferPriceAlteration.price.currencyCode;
-						newAlt.amount = item.prices[index].productOfferPriceAlteration.price.taxIncludedAmount;
+				}
+				newPrice.prodSpecCharValueUse = specChar;
+				newPrice.period = current.prices[index].recurringChargePeriod;
+				if(current.prices[index].productOfferPriceAlteration) {
+					var altName = current.prices[index].productOfferPriceAlteration.name;
+					function checkAlt1(alt) {
+						return alt.name == altName;
 					}
-					newAlt.period = item.prices[index].productOfferPriceAlteration.recurringChargePeriod;
-					this.push('alterations', newAlt);
-					newPrice.alteration = newAlt.name;
+					var altIndex = this.alterations.findIndex(checkAlt1);
+					if(altIndex == -1) {
+						var newAlt = new Object();
+						newAlt.name = current.prices[index].productOfferPriceAlteration.name;
+						newAlt.description = current.prices[index].productOfferPriceAlteration.description;
+						if(current.prices[index].validFor) {
+							newAlt.start = current.prices[index].productOfferPriceAlteration.validFor.startDateTime;
+							newAlt.end = current.prices[index].productOfferPriceAlteration.validFor.endDateTime;
+						}
+						newAlt.priceType = current.prices[index].productOfferPriceAlteration.priceType;
+						if (current.prices[index].productOfferPriceAlteration.unitOfMeasure) {
+							var unitOfMeasure = current.prices[index].productOfferPriceAlteration.unitOfMeasure;
+							switch(unitOfMeasure.charAt(unitOfMeasure.length - 1)) {
+								case "b":
+									newAlt.size = parseInt(unitOfMeasure.slice(0, -1));
+									newAlt.unit = "b";
+									break;
+								case "s":
+									newAlt.size = parseInt(unitOfMeasure.slice(0, -1));
+									newAlt.unit = "s";
+									break;
+								default:
+									newAlt.unit = "c";
+							}
+						}
+						if(current.prices[index].productOfferPriceAlteration.price) {
+							newAlt.currency = current.prices[index].productOfferPriceAlteration.price.currencyCode;
+							newAlt.amount = current.prices[index].productOfferPriceAlteration.price.taxIncludedAmount;
+						}
+						newAlt.period = current.prices[index].productOfferPriceAlteration.recurringChargePeriod;
+						this.push('alterations', newAlt);
+						newPrice.alteration = newAlt.name;
+					}
+				}
+				function checkExist(price) {
+					return price.name == current.prices[index].name;
+				}
+				if(!this.prices.some(checkExist)) {
+					this.push('prices', newPrice);
 				}
 			}
-			function checkExist(price) {
-				return price.name == item.prices[index].name;
-			}
-			if(!this.prices.some(checkExist)) {
-				this.push('prices', newPrice);
-			}
-		} 
+		}
 	}
 
 	_getProductUpdateResponse(event) {
@@ -968,12 +955,12 @@ class offerUpdate extends PolymerElement {
 		}
 		for (var index in results) {
 			if(!this.offers.some(checkExist)) {
-				var product = new Object();
-				product.id = results[index].id;
-				product.href = results[index].href;
-				product.name = results[index].name;
-				product.checked = false;
-				this.push('offers', product);
+				var offer = new Object();
+				offer.id = results[index].id;
+				offer.href = results[index].href;
+				offer.name = results[index].name;
+				offer.checked = false;
+				this.push('offers', offer);
 			}
 		}
 		var bundle = document.body.querySelector('sig-app').shadowRoot.getElementById('offerList').shadowRoot.getElementById('offerGrid').activeItem.bundledProductOffering;
@@ -1061,21 +1048,21 @@ class offerUpdate extends PolymerElement {
 
 	updatePriceDialog() {
 		function checkUpdatePriceName(updatePrice) {
-			return updatePrice.name == document.body.querySelector('sig-app').shadowRoot.getElementById('updateProduct').shadowRoot.getElementById('updatePriceName').value;
+			return updatePrice.name == document.body.querySelector('sig-app').shadowRoot.getElementById('updateOffer').shadowRoot.getElementById('updatePriceName').value;
 		}
 		if(this.prices != undefined) {
 			var indexUpdatePrice = this.prices.findIndex(checkUpdatePriceName);
 			if(indexUpdatePrice != -1) {
-				this.$.updateProductAddButton.hidden = true;
-				this.$.updateProductPriceButton.hidden = false;
+				this.$.updateOfferAddButton.hidden = true;
+				this.$.updateOfferPriceButton.hidden = false;
 			} else {
-				this.$.updateProductAddButton.hidden = false;
-				this.$.updateProductPriceButton.hidden = true;
+				this.$.updateOfferAddButton.hidden = false;
+				this.$.updateOfferPriceButton.hidden = true;
 			}
 			if (indexUpdatePrice == -1) {
 				this.priceUpdateDesc = null;
-				this.updateProductStartDatePrice = null;
-				this.updateProductEndDatePrice = null;
+				this.updateOfferStartDatePrice = null;
+				this.updateOfferEndDatePrice = null;
 				this.priceUpdateType = null;
 				this.priceUpdateSize = null;
 				this.priceUpdateUnits = null;
@@ -1097,8 +1084,8 @@ class offerUpdate extends PolymerElement {
 			} else {
 				this.priceUpdateDesc = this.prices[indexUpdatePrice].description;
 				if(this.prices[indexUpdatePrice].start || this.prices[indexUpdatePrice].end) {
-					this.updateProductStartDatePrice = this.prices[indexUpdatePrice].start;
-					this.updateProductEndDatePrice = this.prices[indexUpdatePrice].end;
+					this.updateOfferStartDatePrice = this.prices[indexUpdatePrice].start;
+					this.updateOfferEndDatePrice = this.prices[indexUpdatePrice].end;
 				}
 				switch(this.prices[indexUpdatePrice].priceType) {
 					case "recurring":
@@ -1188,20 +1175,20 @@ class offerUpdate extends PolymerElement {
 	updateAddAltsDialog() {
 		if(this.alterations != undefined) {
 			function checkUpdateAltName(updateAlts) {
-				return updateAlts.name == document.body.querySelector('sig-app').shadowRoot.getElementById('updateProduct').shadowRoot.getElementById('updateAltName').value;
+				return updateAlts.name == document.body.querySelector('sig-app').shadowRoot.getElementById('updateOffer').shadowRoot.getElementById('updateAltName').value;
 			}
 			var indexAlt = this.alterations.findIndex(checkUpdateAltName);
 			if(indexAlt != -1) {
 				this.$.updateAddAlterationButton.hidden = true;
-				this.$.updateProductAlterationButton.hidden = false;
+				this.$.updateOfferAlterationButton.hidden = false;
 			} else {
 				this.$.updateAddAlterationButton.hidden = false;
-				this.$.updateProductAlterationButton.hidden = true;
+				this.$.updateOfferAlterationButton.hidden = true;
 			}
 			if (indexAlt == -1) {
 				this.AltUpdateDesc = null;
-				this.updateProductStartDateAlt = null;
-				this.updateProductEndDateAlt = null;
+				this.updateOfferStartDateAlt = null;
+				this.updateOfferEndDateAlt = null;
 				this.altUpdateType = null;
 				this.$.updateAltSize.value = null;
 				this.altUpdateUnits = null;
@@ -1211,8 +1198,8 @@ class offerUpdate extends PolymerElement {
 			} else {
 				this.AltUpdateDesc = this.alterations[indexAlt].description;
 				if(this.alterations[indexAlt].start || this.alterations[indexAlt].end) {
-					this.updateProductStartDateAlt = this.alterations[indexAlt].start;
-					this.updateProductEndDateAlt = this.alterations[indexAlt].end;
+					this.updateOfferStartDateAlt = this.alterations[indexAlt].start;
+					this.updateOfferEndDateAlt = this.alterations[indexAlt].end;
 				}
 				switch(this.alterations[indexAlt].priceType) {
 					case "recurring":
@@ -1262,10 +1249,8 @@ class offerUpdate extends PolymerElement {
 		}
 	}
 
-	updateProductOffer(event) {
+	_updateProductOffer(event) {
 		var ajax =  this.$.updateProductOfferAjax;
-		ajax.method = "PATCH";
-		ajax.contentType = "application/json-patch+json";
 		ajax.url = "/catalogManagement/v2/productOffering/" + this.updateOfferName; 
 		var offerNew = new Array();
 		if(this.updateOfferDesc) {
@@ -1275,18 +1260,18 @@ class offerUpdate extends PolymerElement {
 			offerDesc.value = this.updateOfferDesc;
 			offerNew.push(offerDesc);
 		}
-		if(this.updateProductStartDateOffer) {
+		if(this.updateOfferStartDate) {
 			var startDateTimeObject = new Object();
 			startDateTimeObject.op = "add";
 			startDateTimeObject.path = "/validFor/startDateTime";
-			startDateTimeObject.value = this.updateProductStartDateOffer;
+			startDateTimeObject.value = this.updateOfferStartDate;
 			offerNew.push(startDateTimeObject);
 		}
-		if(this.updateProductEndDateOffer) {
+		if(this.updateOfferEndDate) {
 			var endDateTimeObject = new Object();
 			endDateTimeObject.op = "add";
 			endDateTimeObject.path = "/validFor/endDateTime";
-			endDateTimeObject.value = this.updateProductEndDateOffer;
+			endDateTimeObject.value = this.updateOfferEndDate;
 			offerNew.push(endDateTimeObject);
 		}
 		if(this.$.updateReserveSession.value) {
@@ -1363,7 +1348,7 @@ class offerUpdate extends PolymerElement {
 	}
 
 	_updateProductOfferResponse(event) {
-		this.$.updateProductModal.close();
+		this.$.updateOfferModal.close();
 		document.body.querySelector('sig-app').shadowRoot.getElementById('offerList').shadowRoot.getElementById('offerGrid').clearCache();
 		var listOffer = document.getElementsByClassName("bundleCheck");
 		Array.prototype.forEach.call(listOffer, function(ell) {
@@ -1382,14 +1367,14 @@ class offerUpdate extends PolymerElement {
 		toast.open();
 	}
 
-	updateProductPrice(event) {
-		var ajax =  this.$.updateProductPriceAjax;
+	_updateOfferPrice(event) {
+		var ajax =  this.$.updateOfferPriceAjax;
 		ajax.method = "PATCH";
 		ajax.contentType = "application/json-patch+json";
 		ajax.url = "/catalogManagement/v2/productOffering/" + this.updateOfferName; 
 		var updatePriceNew = new Array();
 		function checkName(price) {
-			return price.name == document.body.querySelector('sig-app').shadowRoot.getElementById('updateProduct').shadowRoot.getElementById('updatePriceName').value;
+			return price.name == document.body.querySelector('sig-app').shadowRoot.getElementById('updateOffer').shadowRoot.getElementById('updatePriceName').value;
 		}
 		var indexPrices = this.prices.findIndex(checkName);
 		if(this.priceUpdateDesc != this.prices[indexPrices].description) {
@@ -1481,20 +1466,20 @@ class offerUpdate extends PolymerElement {
 			var priceCharge = new Object();
 			priceCharge.op = "add";
 			priceCharge.path = "/productOfferingPrice/" + indexPrices + "/recurringChargePeriod";
-			switch(this.$.updatePricePeriod.selected) {
-				case 0:
+			switch(this.priceUpdatePeriod) {
+				case "Hourly":
 					priceCharge.value = "hourly";
 					break;
-				case 1:
+				case "Daily":
 					priceCharge.value = "daily";
 					break;
-				case 2:
+				case "Weekly":
 					priceCharge.value = "weekly";
 					break;
-				case 3:
+				case "Monthly":
 					priceCharge.value = "monthly";
 					break;
-				case 4:
+				case "Yearly":
 					priceCharge.value = "yearly";
 					break;
 			}
@@ -1787,28 +1772,28 @@ class offerUpdate extends PolymerElement {
 		this.priceUpdateUnits = null;
 	} 
 
-	_updateProductPriceResponse(event) {
-		this.$.updateProductModal.close();
+	_updateOfferPriceResponse(event) {
+		this.$.updateOfferModal.close();
 		document.body.querySelector('sig-app').shadowRoot.getElementById('offerList').shadowRoot.getElementById('offerGrid').clearCache();
 		var toast = document.body.querySelector('sig-app').shadowRoot.getElementById('restError');
 		toast.text = "Success";
 		toast.open();
 	}
 
-	_updateProductPriceError(event) {
+	_updateOfferPriceError(event) {
 		var toast = document.body.querySelector('sig-app').shadowRoot.getElementById('restError');
 		toast.text = "Error";
 		toast.open();
 	}
 
-	updateProductAlteration(event) {
-		var ajax =  this.$.updateProductAlterationAjax;
+	_updateOfferAlteration(event) {
+		var ajax =  this.$.updateOfferAlterationAjax;
 		ajax.method = "PATCH";
 		ajax.contentType = "application/json-patch+json";
 		ajax.url = "/catalogManagement/v2/productOffering/" + this.updateOfferName; 
 		var updateAlterationNew = new Array();
 		function checkAlterationName(alts) {
-			return alts.name == document.body.querySelector('sig-app').shadowRoot.getElementById('updateProduct').shadowRoot.getElementById('updateAltName').value;;
+			return alts.name == document.body.querySelector('sig-app').shadowRoot.getElementById('updateOffer').shadowRoot.getElementById('updateAltName').value;;
 		}
 		var indexAlt = this.alterations.findIndex(checkAlterationName);
 		if(this.$.updateAltName.value != this.alterations[indexAlt].name) {
@@ -1922,15 +1907,15 @@ class offerUpdate extends PolymerElement {
 		ajax.generateRequest();
 	}
 
-	_updateProductAlterationResponse(event) {
-		this.$.updateProductModal.close();
+	_updateOfferAlterationResponse(event) {
+		this.$.updateOfferModal.close();
 		document.body.querySelector('sig-app').shadowRoot.getElementById('offerList').shadowRoot.getElementById('offerGrid').clearCache();
 		var toast = document.body.querySelector('sig-app').shadowRoot.getElementById('restError');
 		toast.text = "Success";
 		toast.open();
 	}
 
-	_updateProductAlterationError(event) {
+	_updateOfferAlterationError(event) {
 		var toast = document.body.querySelector('sig-app').shadowRoot.getElementById('restError');
 		toast.text = "Error";
 		toast.open();
@@ -2030,7 +2015,7 @@ class offerUpdate extends PolymerElement {
 
 	updateAddPrice(event) {
 		function updateCheckPriceName(updatePrice) {
-			return updatePrice.name == document.body.querySelector('sig-app').shadowRoot.getElementById('updateProduct').shadowRoot.getElementById('updatePriceName').value;
+			return updatePrice.name == document.body.querySelector('sig-app').shadowRoot.getElementById('updateOffer').shadowRoot.getElementById('updatePriceName').value;
 		}
 		var updateIndexPrice = this.prices.findIndex(updateCheckPriceName);
 		if(updateIndexPrice == -1) {
@@ -2040,8 +2025,8 @@ class offerUpdate extends PolymerElement {
 		}
 		updatePriceNew.name = this.$.updatePriceName.value;
 		updatePriceNew.description = this.priceUpdateDesc;
-		updatePriceNew.start = this.updateProductStartDatePrice;
-		updatePriceNew.end = this.updateProductEndDatePrice;
+		updatePriceNew.start = this.updateOfferStartDatePrice;
+		updatePriceNew.end = this.updateOfferEndDatePrice;
 		switch(this.$.updatePriceType.selected) {
 			case 0:
 				updatePriceNew.priceType = "recurring";
@@ -2106,13 +2091,13 @@ class offerUpdate extends PolymerElement {
 			if(updateIndexPrice == -1) {
 				this.push('prices', updatePriceNew);
 			}
-			var ajax =  this.$.updateProductPriceAjax;
+			var ajax =  this.$.updateOfferPriceAjax;
 			ajax.method = "PATCH";
 			ajax.contentType = "application/json-patch+json";
 			ajax.url = "/catalogManagement/v2/productOffering/" + this.updateOfferName; 
 			var updatePriceNew1 = new Array();
 			function checkName(price) {
-				return price.name == document.body.querySelector('sig-app').shadowRoot.getElementById('updateProduct').shadowRoot.getElementById('updatePriceName').value;
+				return price.name == document.body.querySelector('sig-app').shadowRoot.getElementById('updateOffer').shadowRoot.getElementById('updatePriceName').value;
 			}
 			var indexPrices = this.prices.findIndex(checkName);
 			if(this.$.updatePriceName.value) {
@@ -2203,11 +2188,11 @@ class offerUpdate extends PolymerElement {
 			ajax.generateRequest();
 			this.priceUpdateName = null;
 			this.priceUpdateDesc = null;
-			this.updateProductStartDatePrice = null;
+			this.updateOfferStartDatePrice = null;
 			this.priceUpdateSize = null;
 			this.$.updatePriceAmount.value = null;
 			this.priceUpdateUnits = null;
-			this.updateProductEndDatePrice = null;
+			this.updateOfferEndDatePrice = null;
 			this.priceUpdateType = null;
 			this.priceUpdateCurrency = null;
 			this.priceUpdatePeriod = null;
@@ -2230,7 +2215,7 @@ class offerUpdate extends PolymerElement {
 
 	updateAddAlteration() {
 		function updateCheckAltName(updateAlts) {
-			return updateAlts.name == document.body.querySelector('sig-app').shadowRoot.getElementById('updateProduct').shadowRoot.getElementById('updateAltName').value;
+			return updateAlts.name == document.body.querySelector('sig-app').shadowRoot.getElementById('updateOffer').shadowRoot.getElementById('updateAltName').value;
 		}
 		var updateIndexAlt = this.alterations.findIndex(updateCheckAltName);
 		if(updateIndexAlt == -1) {
@@ -2240,8 +2225,8 @@ class offerUpdate extends PolymerElement {
 		}
 		updateAltNew.name = this.$.updateAltName.value;
 		updateAltNew.description = this.AltUpdateDesc;
-		updateAltNew.start = this.updateProductStartDateAlt;
-		updateAltNew.end = this.updateProductEndDateAlt;
+		updateAltNew.start = this.updateOfferStartDateAlt;
+		updateAltNew.end = this.updateOfferEndDateAlt;
 		switch(this.$.updateAltType.selected) {
 			case 0:
 				updateAltNew.priceType = "recurring";
@@ -2293,8 +2278,8 @@ class offerUpdate extends PolymerElement {
 			}
 			this.AltUpdateName = null
 			this.AltUpdateDesc = null;
-			this.updateProductStartDateAlt = null;
-			this.updateProductEndDateAlt = null;
+			this.updateOfferStartDateAlt = null;
+			this.updateOfferEndDateAlt = null;
 			this.altUpdateType = null;
 			this.$.updateAltSize.value = null;
 			this.altUpdateCurr = null;
@@ -2306,43 +2291,32 @@ class offerUpdate extends PolymerElement {
 		}
 	}
 
-	deleteProduct(event) {
-		this.$.deleteProductAjax.url = "/catalogManagement/v2/productOffering/"
+	_deleteOffer(event) {
+		this.$.deleteOfferAjax.url = "/catalogManagement/v2/productOffering/"
 					+ this.updateOfferName;
-		this.$.deleteProductAjax.generateRequest();
+		this.$.deleteOfferAjax.generateRequest();
 	}
 
-	_deleteProductResponse(event) {
-		this.$.updateProductModal.close();
+	_deleteOfferResponse(event) {
+		this.$.updateOfferModal.close();
 		document.body.querySelector('sig-app').shadowRoot.getElementById('offerList').shadowRoot.getElementById('offerGrid').clearCache();
 		var toast = document.body.querySelector('sig-app').shadowRoot.getElementById('restError');
 		toast.text = "Success";
 		toast.open();
 	}
 
-	_deleteProductError(event) {
+	_deleteOfferError(event) {
 		var toast = document.body.querySelector('sig-app').shadowRoot.getElementById('restError');
 		toast.text = "Error";
 		toast.open();
 	}
 
 	_onLoadingChanged(event) {
-		if (this.$.updateAddProductAjax.loading) {
+		if (this.$.updateProductOfferAjax.loading) {
 			this.$.progressId.disabled = false;
 		} else {
 			this.$.progressId.disabled = true;
 		}
-	}
-
-	_addProductResponse(event) {
-		this.$.updateProductModal.close();
-		var toast = document.body.querySelector('sig-app').shadowRoot.getElementById('restError');
-		toast.text = "Success";
-		toast.open();
-		this.set('prices', []);
-		this.set('alterations', []);
-		document.body.querySelector('sig-app').shadowRoot.getElementById('offerList').shadowRoot.getElementById('offerGrid').clearCache();
-		this.cancelDialog();
 	}
 
 	cancelDialog() {
@@ -2357,14 +2331,14 @@ class offerUpdate extends PolymerElement {
 		this.updateOfferName = null;
 		this.updateOfferDesc = null;
 		this.updateOfferSpec = null;
-		this.updateProductStartDateOffer = null;
-		this.updateProductEndDateOffer = null;
+		this.updateOfferStartDate = null;
+		this.updateOfferEndDate = null;
 		this.$.updateAddPriceChars.hide();
 		this.$.addBundleUpdate.hide();
 		this.priceUpdateName = null;
 		this.priceUpdateDesc = null;
-		this.updateProductStartDatePrice = null;
-		this.updateProductEndDatePrice = null;
+		this.updateOfferStartDatePrice = null;
+		this.updateOfferEndDatePrice = null;
 		this.priceUpdateType = null;
 		this.priceUpdateUnits = null;
 		this.priceUpdateAmount = null;
@@ -2374,8 +2348,8 @@ class offerUpdate extends PolymerElement {
 		this.priceUpdateAlt = null;
 		this.AltUpdateName = null;
 		this.AltUpdateDesc = null;
-		this.updateProductStartDateAlt = null;
-		this.updateProductEndDateAlt = null;
+		this.updateOfferStartDateAlt = null;
+		this.updateOfferEndDateAlt = null;
 		this.altUpdateType = null;
 		this.$.updateAltSize.value = null;
 		this.altUpdateCurr = null;
@@ -2393,7 +2367,7 @@ class offerUpdate extends PolymerElement {
 		this.endTimeUpdate = null;
 		this.$.updateCheckIn.checked = null;
 		this.$.updateCheckOut.checked = null;
-		this.$.updateProductModal.close();
+		this.$.updateOfferModal.close();
 	}
 }
 
