@@ -200,7 +200,8 @@ all() ->
 		receive_interim_no_usu_scur, receive_initial_empty_rsu_scur,
 		post_initial_scur, post_update_scur, post_final_scur, send_iec,
 		receive_iec, send_initial_ecur, receive_initial_ecur,
-		send_final_ecur, receive_final_ecur, post_iec, post_initial_ecur].
+		send_final_ecur, receive_final_ecur, post_iec, post_initial_ecur,
+		post_final_ecur].
 
 %%---------------------------------------------------------------------
 %%  Test cases
@@ -817,9 +818,69 @@ post_initial_ecur(Config) ->
 	{_, "32274@3gpp.org"} = lists:keyfind("serviceContextId", 1, ServiceRating),
 	{_, {_, [{_, Messages}]}} = lists:keyfind("grantedUnit", 1, ServiceRating).
 
+post_final_ecur() ->
+	[{userdata, [{doc, "Post ECUR Final Nrf Request to be rated"}]}].
+
+post_final_ecur(Config) ->
+	P1 = price(usage, messages, 1, rand:uniform(1000000)),
+	OfferId = add_offer([P1], 11),
+	ProdRef = add_product(OfferId),
+	MSISDN = ocs:generate_identity(),
+	IMSI = ocs:generate_identity(),
+	Password = ocs:generate_identity(),
+	{ok, #service{}} = ocs:add_service(list_to_binary(MSISDN), Password, ProdRef, []),
+	B1 = bucket(messages, 5),
+	_BId = add_bucket(ProdRef, B1),
+	Accept = {"accept", "application/json"},
+	ContentType = "application/json",
+	HostUrl = ?config(host_url, Config),
+	Messages = 1,
+	Body = nrf_post_initial_ecur(MSISDN, IMSI, Messages),
+	RequestBody = lists:flatten(mochijson:encode(Body)),
+	Request = {HostUrl ++ "/nrf-rating/v1/ratingdata", [Accept, auth_header()], ContentType, RequestBody},
+	{ok, Result} = httpc:request(post, Request, [], []),
+	{{"HTTP/1.1", 201, _Created}, Headers, _ResponseBody} = Result,
+	{_, Location} = lists:keyfind("location", 1, Headers),
+	Messages1 = 2,
+	Body1 = nrf_post_final_ecur(MSISDN, IMSI, Messages1),
+	RequestBody1 = lists:flatten(mochijson:encode(Body1)),
+	Request1 = {HostUrl ++ "/nrf-rating/v1" ++ Location ++ "/release",
+			[Accept, auth_header()], ContentType, RequestBody1},
+	{ok, Result1} = httpc:request(post, Request1, [], []),
+	{{"HTTP/1.1", 200, _Ok}, _Headers1, ResponseBody1} = Result1,
+	{struct, AttributeList} = mochijson:decode(ResponseBody1),
+	{"serviceRating", {_, [{_, ServiceRating}]}}
+			= lists:keyfind("serviceRating", 1, AttributeList),
+	{_, "SUCCESS"} = lists:keyfind("resultCode", 1, ServiceRating),
+	{_, 32} = lists:keyfind("ratingGroup", 1, ServiceRating),
+	{_, 4} = lists:keyfind("serviceId", 1, ServiceRating),
+	{_, "32274@3gpp.org"} = lists:keyfind("serviceContextId", 1, ServiceRating),
+	{_, {_, [{_, Messages1}]}} = lists:keyfind("consumedUnit", 1, ServiceRating).
+
 %%---------------------------------------------------------------------
 %%  Internal functions
 %%---------------------------------------------------------------------
+
+nrf_post_final_ecur(MSISDN, IMSI, Messages) ->
+	TS = erlang:system_time(?MILLISECOND),
+	InvocationTimeStamp = ocs_log:iso8601(TS),
+	{struct, [{"nfConsumerIdentification",
+			{struct, [{"nodeFunctionality", "OCF"}]}},
+			{"invocationTimeStamp", InvocationTimeStamp },
+			{"invocationSequenceNumber", 2},
+			{"subscriptionId",
+					{array, ["msisdn-" ++ MSISDN, "imsi-" ++ IMSI]}},
+			{"oneTimeEvent", true},
+			{"oneTimeEventType", "PEC"},
+			{"serviceRating",
+					{array, [{struct, [{"serviceContextId", "32274@3gpp.org"},
+							{"serviceId", 4},
+							{"ratingGroup", 32},
+							{"consumedUnit", {struct, [{"serviceSpecificUnit", Messages}]}},
+							{"destinationId",
+									{array, [{struct, [{"destinationIdType", "DN"},
+									{"destinationIdData", "14165556789"}]}]}},
+							{"requestSubType", "DEBIT"}]}]}}]}.
 
 nrf_post_initial_ecur(MSISDN, IMSI, Messages) ->
 	TS = erlang:system_time(?MILLISECOND),
