@@ -145,48 +145,11 @@ init_per_suite2(Config) ->
 			[{port, Port}] = httpd:info(HttpdPid, [port]),
 			NrfUri = "http://localhost:" ++ integer_to_list(Port),
 			ok = application:set_env(ocs, nrf_uri, NrfUri),
-			Config1 = [{server_port, Port},
-					{server_pid, HttpdPid} | Config],
-			start2(Config1);
+			[{server_port, Port},
+					{server_pid, HttpdPid} | Config];
 		{error, InetsReason} ->
 			ct:fail(InetsReason)
 	end.
-start2(Config) ->
-	{ok, Services} = application:get_env(inets, services),
-	Fport = fun FPort([{httpd, L} | T]) ->
-				case lists:keyfind(server_name, 1, L) of
-					{_, "rest"} ->
-						H1 = lists:keyfind(bind_address, 1, L),
-						P1 = lists:keyfind(port, 1, L),
-						{H1, P1};
-					_ ->
-						FPort(T)
-				end;
-			FPort([_ | T]) ->
-				FPort(T)
-	end,
-	RestUser = ct:get_config({rest, user}),
-	RestPass = ct:get_config({rest, password}),
-	_RestGroup = ct:get_config({rest, group}),
-	{Host, Port} = case Fport(Services) of
-		{{_, H2}, {_, P2}} when H2 == "localhost"; H2 == {127,0,0,1} ->
-			{ok, _} = ocs:add_user(RestUser, RestPass, "en"),
-			{"localhost", P2};
-		{{_, H2}, {_, P2}} ->
-			{ok, _} = ocs:add_user(RestUser, RestPass, "en"),
-			case H2 of
-				H2 when is_tuple(H2) ->
-					{inet:ntoa(H2), P2};
-				H2 when is_list(H2) ->
-					{H2, P2}
-			end;
-		{false, {_, P2}} ->
-			{ok, _} = ocs:add_user(RestUser, RestPass, "en"),
-			{"localhost", P2}
-	end,
-	Config1 = [{port, Port}, {product_id, ProductID} | Config],
-	HostUrl = "https://" ++ Host ++ ":" ++ integer_to_list(Port),
-	[{host_url, HostUrl} | Config1].
 
 -spec end_per_suite(Config :: [tuple()]) -> any().
 %% Cleanup after the whole suite.
@@ -237,7 +200,7 @@ all() ->
 		receive_interim_no_usu_scur, receive_initial_empty_rsu_scur,
 		post_initial_scur, post_update_scur, post_final_scur, send_iec,
 		receive_iec, send_initial_ecur, receive_initial_ecur,
-		send_final_ecur, receive_final_ecur, post_iec].
+		send_final_ecur, receive_final_ecur, post_iec, post_initial_ecur].
 
 %%---------------------------------------------------------------------
 %%  Test cases
@@ -792,7 +755,7 @@ receive_final_ecur(_Config) ->
 	#'3gpp_ro_Used-Service-Unit'{'CC-Service-Specific-Units' = [2]} = UsedUnits.
 
 post_iec() ->
-	[{userdata, [{doc, "Post Event Nrf Request to be rated"}]}].
+	[{userdata, [{doc, "Post IEC Event Nrf Request to be rated"}]}].
 
 post_iec(Config) ->
 	P1 = price(usage, messages, 1, rand:uniform(1000000)),
@@ -812,7 +775,39 @@ post_iec(Config) ->
 	RequestBody = lists:flatten(mochijson:encode(Body)),
 	Request1 = {HostUrl ++ "/nrf-rating/v1/ratingdata", [Accept, auth_header()], ContentType, RequestBody},
 	{ok, Result} = httpc:request(post, Request1, [], []),
+	{{"HTTP/1.1", 201, _Created}, _Headers, ResponseBody} = Result,
+	{struct, AttributeList} = mochijson:decode(ResponseBody),
+	{"serviceRating", {_, [{_,ServiceRating}]}}
+			= lists:keyfind("serviceRating", 1, AttributeList),
+	{_, "SUCCESS"} = lists:keyfind("resultCode", 1, ServiceRating),
+	{_, 32} = lists:keyfind("ratingGroup", 1, ServiceRating),
+	{_, 4} = lists:keyfind("serviceId", 1, ServiceRating),
+	{_, "32274@3gpp.org"} = lists:keyfind("serviceContextId", 1, ServiceRating),
+	{_, {_, [{_, Messages}]}} = lists:keyfind("grantedUnit", 1, ServiceRating).
+
+post_initial_ecur() ->
+	[{userdata, [{doc, "Post ECUR Inital Nrf Request to be rated"}]}].
+
+post_initial_ecur(Config) ->
+	P1 = price(usage, messages, 1, rand:uniform(1000000)),
+	OfferId = add_offer([P1], 11),
+	ProdRef = add_product(OfferId),
+	MSISDN = ocs:generate_identity(),
+	IMSI = ocs:generate_identity(),
+	Password = ocs:generate_identity(),
+	{ok, #service{}} = ocs:add_service(list_to_binary(MSISDN), Password, ProdRef, []),
+	B1 = bucket(messages, 5),
+	_BId = add_bucket(ProdRef, B1),
+	Accept = {"accept", "application/json"},
+	ContentType = "application/json",
+	HostUrl = ?config(host_url, Config),
+	Messages = 1,
+	Body = nrf_post_initial_ecur(MSISDN, IMSI, Messages),
+	RequestBody = lists:flatten(mochijson:encode(Body)),
+	Request1 = {HostUrl ++ "/nrf-rating/v1/ratingdata", [Accept, auth_header()], ContentType, RequestBody},
+	{ok, Result} = httpc:request(post, Request1, [], []),
 	{{"HTTP/1.1", 201, _Created}, Headers, ResponseBody} = Result,
+	{_, _Location} = lists:keyfind("location", 1, Headers),
 	{struct, AttributeList} = mochijson:decode(ResponseBody),
 	{"serviceRating", {_, [{_,ServiceRating}]}}
 			= lists:keyfind("serviceRating", 1, AttributeList),
@@ -825,6 +820,27 @@ post_iec(Config) ->
 %%---------------------------------------------------------------------
 %%  Internal functions
 %%---------------------------------------------------------------------
+
+nrf_post_initial_ecur(MSISDN, IMSI, Messages) ->
+	TS = erlang:system_time(?MILLISECOND),
+	InvocationTimeStamp = ocs_log:iso8601(TS),
+	{struct, [{"nfConsumerIdentification",
+			{struct, [{"nodeFunctionality", "OCF"}]}},
+			{"invocationTimeStamp", InvocationTimeStamp },
+			{"invocationSequenceNumber", 1},
+			{"subscriptionId",
+					{array, ["msisdn-" ++ MSISDN, "imsi-" ++ IMSI]}},
+			{"oneTimeEvent", true},
+			{"oneTimeEventType", "PEC"},
+			{"serviceRating",
+					{array, [{struct, [{"serviceContextId", "32274@3gpp.org"},
+							{"serviceId", 4},
+							{"ratingGroup", 32},
+							{"requestedUnit", {struct, [{"serviceSpecificUnit", Messages}]}},
+							{"destinationId",
+									{array, [{struct, [{"destinationIdType", "DN"},
+									{"destinationIdData", "14165556789"}]}]}},
+							{"requestSubType", "RESERVE"}]}]}}]}.
 
 nrf_post_iec(MSISDN, IMSI, Messages) ->
 	TS = erlang:system_time(?MILLISECOND),
