@@ -176,8 +176,8 @@ release_nrf(RatingDataRef, NrfRequest) ->
 			Body = {struct,[{"cause", "RATING_DATA_REF_UNKNOWN"},
 					{"title", "Request denied because the rating data ref is not unrecognized"},
 					{"invalidParams",
-							{array,[{struct,[{"param", RatingDataRef},
-									{"reason","unknown rating data ref"}]}]}}]},
+							{array, [{struct, [{"param", RatingDataRef},
+									{"reason", "unknown rating data ref"}]}]}}]},
 			ResponseBody = mochijson:encode(Body),
 			{error, 404, ResponseBody};
 		{error, _Reason} ->
