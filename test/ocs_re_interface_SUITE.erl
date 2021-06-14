@@ -145,11 +145,48 @@ init_per_suite2(Config) ->
 			[{port, Port}] = httpd:info(HttpdPid, [port]),
 			NrfUri = "http://localhost:" ++ integer_to_list(Port),
 			ok = application:set_env(ocs, nrf_uri, NrfUri),
-			[{server_port, Port},
-					{server_pid, HttpdPid} | Config];
+			Config1 = [{server_port, Port},
+					{server_pid, HttpdPid} | Config],
+			start2(Config1);
 		{error, InetsReason} ->
 			ct:fail(InetsReason)
 	end.
+start2(Config) ->
+	{ok, Services} = application:get_env(inets, services),
+	Fport = fun FPort([{httpd, L} | T]) ->
+				case lists:keyfind(server_name, 1, L) of
+					{_, "rest"} ->
+						H1 = lists:keyfind(bind_address, 1, L),
+						P1 = lists:keyfind(port, 1, L),
+						{H1, P1};
+					_ ->
+						FPort(T)
+				end;
+			FPort([_ | T]) ->
+				FPort(T)
+	end,
+	RestUser = ct:get_config({rest, user}),
+	RestPass = ct:get_config({rest, password}),
+	_RestGroup = ct:get_config({rest, group}),
+	{Host, Port} = case Fport(Services) of
+		{{_, H2}, {_, P2}} when H2 == "localhost"; H2 == {127,0,0,1} ->
+			{ok, _} = ocs:add_user(RestUser, RestPass, "en"),
+			{"localhost", P2};
+		{{_, H2}, {_, P2}} ->
+			{ok, _} = ocs:add_user(RestUser, RestPass, "en"),
+			case H2 of
+				H2 when is_tuple(H2) ->
+					{inet:ntoa(H2), P2};
+				H2 when is_list(H2) ->
+					{H2, P2}
+			end;
+		{false, {_, P2}} ->
+			{ok, _} = ocs:add_user(RestUser, RestPass, "en"),
+			{"localhost", P2}
+	end,
+	Config1 = [{port, Port}, {product_id, ProductID} | Config],
+	HostUrl = "https://" ++ Host ++ ":" ++ integer_to_list(Port),
+	[{host_url, HostUrl} | Config1].
 
 -spec end_per_suite(Config :: [tuple()]) -> any().
 %% Cleanup after the whole suite.
