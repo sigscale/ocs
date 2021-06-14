@@ -941,7 +941,13 @@ characteristic_product_network() ->
 	Type5 = {"valueType", "Number"},
 	Value5 = {"productSpecCharacteristicValue", {array, [{struct, [Type5]}]}},
 	Char5 = {struct, [Name5, Description5, Config5, Type5, Value5]},
-	[Char1, Char2, Char3, Char4, Char5].
+	Name6 = {"name", "serviceIdentifier"},
+	Description6 = {"description", "Identifiers of services."},
+	Config6 = {"configurable", true},
+	Type6 = {"valueType", "Array"},
+	Value6 = {"productSpecCharacteristicValue", {array, [{struct, [Type6]}]}},
+	Char6 = {struct, [Name6, Description6, Config6, Type6, Value6]},
+	[Char1, Char2, Char3, Char4, Char5, Char6].
 
 %% @hidden
 characteristic_product_rated_plan() ->
@@ -1200,7 +1206,7 @@ offer([{"validFor", {struct, L}} | T], Acc) ->
 		{_, End} ->
 			Acc1#offer{end_date = ocs_rest:iso8601(End)};
 		false ->
-			Acc
+			Acc1
 	end,
 	offer(T, Acc2);
 offer([{"lifecycleStatus", Status} | T], Acc) when is_list(Status) ->
@@ -1380,7 +1386,7 @@ price([{"validFor", {struct, L}} | T], Acc) when is_list(L) ->
 		{_, End} ->
 			Acc1#price{end_date = ocs_rest:iso8601(End)};
 		false ->
-			Acc
+			Acc1
 	end,
 	price(T, Acc2);
 price([{"priceType", Type} | T], Acc) when is_list(Type) ->

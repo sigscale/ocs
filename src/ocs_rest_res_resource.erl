@@ -26,8 +26,6 @@
 -export([get_resource_category/1, get_resource_categories/1]).
 -export([get_resource_candidate/1, get_resource_candidates/1]).
 -export([get_resource_catalog/1, get_resource_catalogs/1]).
--export([get_resource_inventory/2, add_resource_inventory/2, patch_resource_inventory/4,
-			delete_resource_inventory/2]).
 -export([get_resource/1, get_resource/2, add_resource/1, patch_resource/3,
 		delete_resource/1]).
 -export([get_pla_specs/1]).
@@ -202,148 +200,6 @@ get_resource_catalogs([] = _Query) ->
 get_resource_catalogs(_Query) ->
 	{error, 400}.
 
--spec get_resource_inventory(Id, Query) -> Result when
-	Id :: string(),
-	Query :: [{Key :: string(), Value :: string()}],
-	Result   :: {ok, Headers, Body} | {error, Status},
-	Headers  :: [tuple()],
-	Body     :: iolist(),
-	Status   :: 400 | 404 | 500.
-%% @doc Respond to `GET /resourceInventoryManagement/v1/resource/{id}'.
-%%    Retrieve resource from inventory.
-get_resource_inventory(Id, [] = _Query) ->
-	try
-		Name = list_to_existing_atom(Id),
-		case ocs:query_table(start, Name, undefined, undefined, undefined, undefined) of
-			{eof, Page} ->
-				L = get_resource_inventory1(Id, Page, []),
-				Body = mochijson:encode({array, L}),
-				Headers = [{content_type, "application/json"}],
-				{ok, Headers, Body};
-			{error, not_found} ->
-				{error, 404};
-			{error, _Reason} ->
-				{error, 500}
-		end
-	catch
-		error:badarg ->
-			{error, 404};
-		_:_Reason1 ->
-			{error, 500}
-	end.
-get_resource_inventory1(Id, [#gtt{num = Prefix, value = Value} | T], Acc) ->
-		Gtt = gtt(Id, {Prefix, element(1, Value), element(2, Value)}),
-		get_resource_inventory1(Id, T, [Gtt | Acc]);
-get_resource_inventory1(_, [], Acc) ->
-		lists:reverse(Acc).
-
--spec add_resource_inventory(Table, ReqData) -> Result when
-	Table :: string(),
-	ReqData :: [tuple()],
-	Result   :: {ok, Headers, Body} | {error, Status},
-	Headers  :: [tuple()],
-	Body     :: iolist(),
-	Status   :: 400 | 500 .
-%% @doc Respond to
-%% 	`POST /resourceInventoryManagement/v1/resource/{table}'.
-%%    Add a new row in resource inventory.
-add_resource_inventory(Table, ReqData) ->
-	try
-		{P, D, R} = gtt(Table, mochijson:decode(ReqData)),
-		Name = list_to_existing_atom(Table),
-		case catch ocs_gtt:insert(Name, P, {D, R}) of
-			{ok, #gtt{num = Prefix1, value = Value}} ->
-				{Prefix1, element(1, Value),
-						element(2, Value), element(size(Value), Value)};
-			{'EXIT', {no_exists, _}} ->
-				throw(not_found);
-			{'EXIT', Reason} ->
-				throw(Reason)
-		end
-	of
-		{Prefix2, Desc, Rate, LM} ->
-			Body = mochijson:encode(gtt(Table, {Prefix2, Desc, Rate})),
-			Etag = ocs_rest:etag(LM),
-			Headers = [{content_type, "application/json"}, {etag, Etag}],
-			{ok, Headers, Body}
-	catch
-		throw:not_found ->
-			{error, 404};
-		throw:_Reason1 ->
-			{error, 500};
-		error:badarg ->
-			{error, 400};
-		_:_ ->
-			{error, 400}
-	end.
-
--spec patch_resource_inventory(Table, Id, Etag, ReqData) -> Result
-	when
-		Table :: string(),
-		Id	:: string(),
-		Etag	:: undefined | list(),
-		ReqData	:: [tuple()],
-		Result	:: {ok, Headers, Body} | {error, Status},
-		Headers	:: [tuple()],
-		Body		:: iolist(),
-		Status	:: 400 | 404 | 500 .
-%% @doc Respond to `PATCH /resourceInventoryManagement/v1/resource/{table}/{id}'.
-%% 	Update a table row using JSON patch method.
-patch_resource_inventory(Table, Id, _Etag, ReqData) ->
-	try
-		Table1 = list_to_existing_atom(Table),
-		{Table1, mochijson:decode(ReqData)}
-	of
-		{Table2, Operations} ->
-			case catch ocs_gtt:lookup_last(Table2, Id) of
-				{'EXIT', _} ->
-					throw(not_found);
-				V1 ->
-					case catch ocs_rest:patch(Operations,
-							gtt(Table, {Id, element(1, V1), element(2, V1)})) of
-						{struct, _} = Res  ->
-							{Id, Description, Rate} = gtt(Id, Res),
-							{ok, #gtt{value = V}} = ocs_gtt:insert(Table2, Id, {Description, Rate}),
-							Location = ?inventoryPath ++ Table ++ Id,
-							Headers = [{location, Location},
-									{etag, ocs_rest:etag(element(size(V), V))}],
-							Body = mochijson:encode(Res),
-							{ok, Headers, Body};
-						_ ->
-							throw(bad_request)
-					end
-			end
-	catch
-		throw:not_found ->
-			{error, 404};
-		throw:bad_request ->
-			{error, 400};
-		_:_ ->
-			{error, 500}
-	end.
-
--spec delete_resource_inventory(Table, Id) -> Result
-   when
-		Table :: string(),
-      Id :: string(),
-      Result :: {ok, Headers :: [tuple()], Body :: iolist()}
-            | {error, ErrorCode :: integer()} .
-%% @doc Respond to `DELETE /resourceInventoryManagement/v1/resource/{table}/{id}''
-%%    request to remove a table row.
-delete_resource_inventory(Table, Id) ->
-	try
-		Name = list_to_existing_atom(Table),
-		ocs_gtt:delete(Name, Id)
-	of
-		ok ->
-			{ok, [], []}
-	catch
-		error:badarg ->
-			{error, 404};
-		_:_ ->
-			{error, 400}
-	end.
-
 -spec get_resource(Id) -> Result
 	when
 		Id :: string(),
@@ -355,17 +211,26 @@ delete_resource_inventory(Table, Id) ->
 %%    Retrieve resource from inventory management.
 get_resource(Id) ->
 	try
-		case ocs:get_resource(Id) of
-			{ok, #resource{last_modified = LM} = Resource} ->
-				Headers = [{content_type, "application/json"},
-						{etag, ocs_rest:etag(LM)}],
-				Body = mochijson:encode(resource(Resource)),
-				{ok, Headers, Body};
-			{error, not_found} ->
-				{error, 404};
-			{error, _Reason} ->
-				{error, 500}
-		end
+		string:tokens(Id, "-")
+	of
+		[Table, Prefix] ->
+			{Description, Rate, LM} = ocs_gtt:lookup_first(Table, Prefix),
+			Headers = [{content_type, "application/json"},
+					{etag, ocs_rest:etag(LM)}],
+			Body = mochijson:encode(gtt(Table, {Prefix, Description, Rate})),
+			{ok, Headers, Body};
+		_ ->
+			case ocs:get_resource(Id) of
+				{ok, #resource{last_modified = LM} = Resource} ->
+					Headers = [{content_type, "application/json"},
+							{etag, ocs_rest:etag(LM)}],
+					Body = mochijson:encode(resource(Resource)),
+					{ok, Headers, Body};
+				{error, not_found} ->
+					{error, 404};
+				{error, _Reason} ->
+					{error, 500}
+			end
 	catch
 		error:badarg ->
 			{error, 404};
@@ -570,7 +435,7 @@ add_resource(RequestBody) ->
 			end,
 			Prefix = F("prefix"),
 			{ok, #gtt{value = {_, _, LM}}} = ocs_gtt:insert(Table, Prefix,
-					{F("description"), F("rate")}),
+					{F("description"), ocs_rest:millionths_in(F("rate"))}),
 			Id = Table ++ "-" ++ Prefix,
 			Href = "/resourceInventoryManagement/v1/resource/" ++ Id,
 			Resource2 = Resource1#resource{id = Id, href = F("prefix"),
@@ -617,12 +482,58 @@ get_pla_specs(_Query) ->
 %% @doc Respond to `DELETE /resourceInventoryManagement/v1/resource/{id}''
 %%    request to remove a table row.
 delete_resource(Id) ->
-	case ocs:delete_resource(Id) of
-		ok ->
-			{ok, [], []};
-		{error, _Reason} ->
+	try
+		case string:tokens(Id, "-") of
+			[Table, Prefix] ->
+				Name = list_to_existing_atom(Table),
+				ok = ocs_gtt:delete(Name, Prefix),
+				{ok, [], []};
+			[Id] ->
+				delete_resource1(ocs:get_resource(Id))
+		end
+	catch
+		error:badarg ->
+			{error, 404};
+		_:_ ->
 			{error, 400}
 	end.
+%% @hidden
+delete_resource1({ok, #resource{id = Id, name = Name,
+		specification = #specification_ref{id = "3"}}}) ->
+	F = fun F(eof, Acc) ->
+				Acc;
+			F(Cont1, Acc) ->
+				case ocs:query_resource(Cont1, '_', '_',
+						{exact, "4"}, {exact, Name}) of
+					{error, _Reason} ->
+						{error, 400};
+					{Cont2, L} ->
+						Fid = fun(#resource{id = RId}) ->
+									RId
+						end,
+						F(Cont2, lists:map(Fid, L) ++ Acc)
+				end
+	end,
+	case F(start, []) of
+		[] ->
+			delete_resource2([Id]);
+		[ResId | _] = ResIdList when is_list(ResId) ->
+			delete_resource2(ResIdList ++ [Id])
+	end;
+delete_resource1({ok, #resource{id = Id}}) ->
+	delete_resource2([Id]);
+delete_resource1({error, _Reason}) ->
+	{error, 400}.
+%% @hidden
+delete_resource2([Id | T]) ->
+	case ocs:delete_resource(Id) of
+		ok ->
+			delete_resource2(T);
+		{error, _Reason} ->
+			{error, 400}
+	end;
+delete_resource2([]) ->
+	{ok, [], []}.
 
 -spec patch_resource(Id, Etag, ReqData) -> Result
 	when
@@ -643,9 +554,15 @@ patch_resource(Id, Etag, ReqData) ->
 			Etag ->
 				ocs_rest:etag(Etag)
 		end,
-		{Etag1, mochijson:decode(ReqData)}
+		case string:tokens(Id, "-") of
+			[Id] ->
+				{Id, Etag1, mochijson:decode(ReqData)};
+			[Table, Prefix] ->
+				Table1 = list_to_existing_atom(Table),
+				{Table1, Prefix, Etag1, mochijson:decode(ReqData)}
+		end
 	of
-		{Etag2, {array, _} = Operations} ->
+		{Id, Etag2, {array, _} = Operations} ->
 			F = fun() ->
 					case mnesia:read(resource, Id, write) of
 						[Resource1] when
@@ -684,8 +601,33 @@ patch_resource(Id, Etag, ReqData) ->
 					{error, 412};
 				{aborted, _Reason} ->
 					{error, 500}
+			end;
+		{Table2, Prefix1, Etag2, {array, _} = Operations} ->
+			case catch ocs_gtt:lookup_last(Table2, Prefix1) of
+				{'EXIT', _} ->
+					throw(not_found);
+				{Description, Rate, LastModified1} when LastModified1 == Etag2;
+						Etag2 == undefined ->
+					case catch ocs_rest:patch(Operations,
+							gtt(atom_to_list(Table2), {Prefix1, Description, Rate})) of
+						{struct, _} = Res ->
+							{Prefix1, Description1, Rate1} = gtt(Prefix1, Res),
+							{ok, #gtt{value = {_, _, LastModified2}}}
+									= ocs_gtt:insert(Table2, Prefix1,
+											{Description1, Rate1}),
+							Location = ?inventoryPath ++ atom_to_list(Table2)
+									++ "-" ++ Prefix1,
+							Headers = [{location, Location},
+									{etag, ocs_rest:etag(LastModified2)}],
+							Body = mochijson:encode(Res),
+							{ok, Headers, Body};
+						_ ->
+							throw(bad_request)
+					end
 			end
 	catch
+		throw:not_found ->
+			{error, 404};
 		_:_ ->
 			{error, 400}
 	end.
@@ -833,21 +775,22 @@ tariff_table_catalog() ->
 		{"version", "1.0"}, {"name", "TariffTableCategory"}]}]}},
 	{struct, [Id, Href, Name, Description, Version, Status, LastUpdate, Category]}.
 
--spec gtt(Name, Gtt) -> Gtt
+-spec gtt(Table, Gtt) -> Gtt
 	when
-		Name :: string(),
+		Table :: string(),
 		Gtt :: {Prefix, Description, Rate} | {struct, [tuple()]},
 		Prefix :: string(),
 		Description :: string(),
 		Rate :: non_neg_integer().
 %% @doc CODEC for gtt.
 %% @private
-gtt(Name, {Prefix, Description, Rate} = _Gtt) ->
-	SpecId = {"id", "1"},
-   SpecHref = {"href", ?specPath "1"},
-   SpecName = {"name", "TariffTableSpec"},
-	{struct, [{"id", Prefix},
-			{"href", ?inventoryPath ++ Name ++ "/" ++ Prefix},
+gtt(Table, {Prefix, Description, Rate} = _Gtt) ->
+	Id = Table ++ "-" ++ Prefix,
+	SpecId = {"id", "2"},
+   SpecHref = {"href", ?specPath "2"},
+   SpecName = {"name", "TariffTableRow"},
+	{struct, [{"id", Id},
+			{"href", ?inventoryPath ++ Id},
 			{"resourceSpecification", {struct, [SpecId, SpecHref, SpecName]}},
 			{"resourceCharacteristic", {array,
 			[{struct, [{"name", "prefix"}, {"value", Prefix}]},
@@ -866,17 +809,11 @@ gtt1([], {Prefix, Desc, Rate} = _Acc)
 %% @hidden
 gtt2([{struct, L} | T], {Prefix, Desc, Rate} = _Acc) ->
 	case lists:keytake("name", 1, L) of
-		{value, {"name", "prefix"}, L1} ->
-			{_, {struct, L2}} = lists:keyfind("value", 1, L1),
-			{_, Prefix1} = lists:keyfind("value", 1, L2),
+		{value, {"name", "prefix"}, [{"value", Prefix1}]} ->
 			gtt2(T, {Prefix1, Desc, Rate});
-		{value, {"name", "description"}, L1} ->
-			{_, {struct, L2}} = lists:keyfind("value", 1, L1),
-			{_, Desc1} = lists:keyfind("value", 1, L2),
+		{value, {"name", "description"}, [{"value", Desc1}]} ->
 			gtt2(T, {Prefix, Desc1, Rate});
-		{value, {"name", "rate"}, L1} ->
-			{_, {struct, L2}} = lists:keyfind("value", 1, L1),
-			{_, Rate1} = lists:keyfind("value", 1, L2),
+		{value, {"name", "rate"}, [{"value", Rate1}]} ->
 			gtt2(T, {Prefix, Desc, Rate1})
 	end;
 gtt2([], Acc) ->

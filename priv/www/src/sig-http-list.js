@@ -207,7 +207,7 @@ class httpList extends PolymerElement {
 				} else {
 					delete httpList.headers['If-Range'];
 				}
-			return httpList.generateRequest().completes;
+				return httpList.generateRequest().completes;
 			}, handleAjaxError).then(handleAjaxResponse, handleAjaxError);
 		} else {
 			var startRange = params.page * params.pageSize + 1;
