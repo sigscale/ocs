@@ -87,8 +87,6 @@ do_delete(Resource, ModData, ["serviceInventoryManagement", "v2", "service", Ide
 	do_response(ModData, Resource:delete_inventory(Identity));
 do_delete(Resource, ModData, ["serviceInventory", "v2", "hub", Identity]) ->
 	do_response(ModData, Resource:delete_hub(Identity));
-do_delete(Resource, ModData, ["resourceInventoryManagement", "v1", "resource", Table, Identity]) ->
-	do_response(ModData, Resource:delete_resource_inventory(Table, Identity));
 do_delete(Resource, ModData, ["resourceInventoryManagement", "v1", "resource", Identity]) ->
 	do_response(ModData, Resource:delete_resource(Identity));
 do_delete(Resource, ModData, ["resourceInventory", "v1", "hub", Identity]) ->
