@@ -113,6 +113,14 @@ class tableUpdate extends PolymerElement {
 				type: Object,
 				observer: '_activeItemChanged'
 			},
+			storeTariff: {
+				type: Array,
+				readOnly: true,
+				notify: true,
+				value: function() {
+					return []
+				}
+			},
 			upPrefix: {
 				type: String
 			},
@@ -138,6 +146,11 @@ class tableUpdate extends PolymerElement {
 			this.upPrefix = current.prefix;
 			this.upDesc = current.description;
 			this.upRate = current.rate;
+			var arrObj = new Object();
+			arrObj.prefix = this.upPrefix;
+			arrObj.description = this.upDesc;
+			arrObj.rate = this.upRate;
+			this.storeTariff.push(arrObj);
 			this.$.updatePrefixModal.open();
 		}
 	}
@@ -150,16 +163,22 @@ class tableUpdate extends PolymerElement {
 		var Id = this.upPrefix;
 		Ajax.url = "/resourceInventoryManagement/v1/resource/" + Table + "-" + Id;
 		var ResArray = new Array();
-		var Desc = new Object(); 
-		Desc.op = "replace";
-		Desc.path = "/resourceCharacteristic/1/value";
-		Desc.value = this.upDesc;
-		ResArray.push(Desc);
-		var Rate = new Object();
-		Rate.op = "replace";
-		Rate.path = "/resourceCharacteristic/2/value";
-		Rate.value = parseInt(this.upRate);
-		ResArray.push(Rate);
+		for(var indexx in this.storeTariff) {
+			if(this.upDesc != this.storeTariff[indexx].description) {
+				var Desc = new Object(); 
+				Desc.op = "replace";
+				Desc.path = "/resourceCharacteristic/1/value";
+				Desc.value = this.upDesc;
+				ResArray.push(Desc);
+			}
+			if(this.upRate != this.storeTariff[indexx].rate) {
+				var Rate = new Object();
+				Rate.op = "replace";
+				Rate.path = "/resourceCharacteristic/2/value";
+				Rate.value = parseInt(this.upRate);
+				ResArray.push(Rate);
+			}
+		}
 		Ajax.body = JSON.stringify(ResArray);
 		Ajax.generateRequest();
 		this.$.upPrefix = null;
