@@ -311,7 +311,7 @@ class SigApp extends PolymerElement {
 			</app-drawer-layout>
 			<!--Modal Definitions-->
 			<sig-help id="ocsGetHelp" active="[[overFlowActive]]"></sig-help>
-			<sig-offer-add id="addOffer"></sig-offer-add>
+			<sig-offer-add id="addOffer" offers="[[offers]]"></sig-offer-add>
 			<sig-sub-add id="subscriberAdd" offers="[[offers]]"></sig-sub-add>
 			<sig-sub-update active-item="[[activeServiceItem]]"></sig-sub-update>
 			<sig-client-add></sig-client-add>
@@ -333,7 +333,9 @@ class SigApp extends PolymerElement {
 
 	refresh() {
 		if(this.$.load.selected == "offerView") {
-			document.body.querySelector('sig-app').shadowRoot.getElementById('offerList').shadowRoot.getElementById('offerGrid').clearCache();
+			var offerList = document.body.querySelector('sig-app').shadowRoot.getElementById('offerList');
+			offerList.splice('offers', 0, offerList.offers.length);
+			offerList.shadowRoot.getElementById('offerGrid').clearCache();
 		}
 		if(this.$.load.selected == "serviceView") {
 			document.body.querySelector('sig-app').shadowRoot.getElementById('serviceList').shadowRoot.getElementById('subscriberGrid').clearCache();
