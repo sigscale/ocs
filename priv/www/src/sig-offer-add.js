@@ -92,14 +92,12 @@ class offerAdd extends PolymerElement {
 						<iron-collapse
 								id="addBundle">
 							<template
-									is=dom-repeat
-									items="{{offers}}">
-								<div>
-									<paper-checkbox
-											checked="{{item.checked}}"> 
-										{{item.name}}
-									</paper-checkbox>
-								</div>
+									is="dom-repeat"
+									items="{{bundleOffers}}">
+								<paper-checkbox
+										checked="{{item.checked}}"> 
+									{{item.name}}
+								</paper-checkbox>
 							</template>
 						</iron-collapse>
 						<div>
@@ -169,7 +167,7 @@ class offerAdd extends PolymerElement {
 											pattern="^[0-9]+[mh]?$"
 											auto-validate
 											label="RADIUS Reserve Session Time"
-											value=0>
+											value="0">
 									</paper-input>
 									<paper-tooltip>
 										Amount of time to reserve on RADIUS session authorization and session timeout for reauthorization.
@@ -752,18 +750,11 @@ class offerAdd extends PolymerElement {
 			<iron-ajax
 					id="addOfferAjax"
 					url="/catalogManagement/v2/productOffering"
-					method = "POST"
+					method="POST"
 					content-type="application/json"
 					on-loading-changed="_onLoadingChanged"
 					on-response="_addOfferResponse"
 					on-error="_addOfferError">
-			</iron-ajax>
-			<iron-ajax
-					id="getOffersAjax"
-					url="/catalogManagement/v2/productOffering"
-					method="GET"
-					on-response="_getOffersResponse"
-					on-error="_getOffersError">
 			</iron-ajax>
 			<iron-ajax id="getPrefixTablesAjax"
 					on-response="_getTariffTablesResponse"
@@ -778,9 +769,6 @@ class offerAdd extends PolymerElement {
 
 	static get properties() {
 		return {
-			observers: [
-				'_bundleCheckboxChanged(offers.*)'
-			],
 			loading: {
 				type: Boolean,
 				value: false
@@ -802,7 +790,7 @@ class offerAdd extends PolymerElement {
 				readOnly: true,
 				notify: true,
 				value: function() {
-					return []
+					return [];
 				}
 			},
 			policyTables: {
@@ -810,15 +798,16 @@ class offerAdd extends PolymerElement {
 				readOnly: true,
 				notify: true,
 				value: function() {
-					return []
+					return [];
 				}
 			},
 			activePage: {
 				type: Boolean,
 				value: false,
+				readOnly: true,
 				observer: '_activePageChanged'
 			},
-			offers: {
+			bundleOffers: {
 				type: Array,
 				value: function() {
 					return [];
@@ -934,11 +923,18 @@ class offerAdd extends PolymerElement {
 		}
 	}
 
+	static get observers() {
+		return [
+			'_bundleCheckboxChanged(bundleOffers.*)',
+			'_offersChanged(offers.splices)'
+		]
+	}
+
 	ready() {
 		super.ready();
 	}
 
-	_activePageChanged(active) {
+	_activePageChanged() {
 		var grid = this.$.offerGrid;
 		var ajax1 = this.$.getPrefixTablesAjax;
 		ajax1.url = "/resourceInventoryManagement/v1/resource?resourceSpecification.id=1";
@@ -946,6 +942,30 @@ class offerAdd extends PolymerElement {
 		var ajax2 = this.$.getPolicyTablesAjax;
 		ajax2.url = "/resourceInventoryManagement/v1/resource?resourceSpecification.id=3";
 		ajax2.generateRequest();
+	}
+
+	_offersChanged(change) {
+console.log('_offersChanged', change);
+		if(change) {
+			function doChange(splice) {
+				function removeOffer(offerName) {
+console.log('removeOffer', offerName);
+					function checkName(bundleOffer) {
+						return bundleOffer.name == offerName;
+					}
+					var index = this.bundleOffers.findIndex(checkName);
+					this.splice('bundleOffers', index, 1);
+				}
+				splice.removed.forEach(removeOffer, this);
+				for (var i = 0; i < splice.addedCount; i++) {
+console.log('added', splice.object[splice.index + i]);
+					var checkOffer = {checked: false,
+							name: splice.object[splice.index + i]};
+					this.push('bundleOffers', checkOffer);
+				}
+			}
+			change.indexSplices.forEach(doChange, this);
+		}
 	}
 
 	_getPolicyTablesResponse(event) {
@@ -972,32 +992,6 @@ class offerAdd extends PolymerElement {
 			tableRecord.name = results[indexTable].name;
 			this.push('prefixTables', tableRecord);
 		}
-	}
-
-	_getOffersResponse(event) {
-		var results = event.detail.xhr.response;
-		for (var index in results) {
-			function checkExist(spec) {
-				return spec.name == results[index].name;
-			}
-			if(!this.offers.some(checkExist)) {
-				var product = new Object();
-				product.id = results[index].id;
-				product.href = results[index].href;
-				product.name = results[index].name;
-				product.checked = false;
-				this.push('offers', product);
-			}
-		}
-		var toast = document.body.querySelector('sig-app').shadowRoot.getElementById('restError');
-		toast.text = "Success";
-		toast.open();
-	}
-
-	_getOffersError(event) {
-		var toast = document.body.querySelector('sig-app').shadowRoot.getElementById('restError');
-		toast.text = "Error";
-		toast.open();
 	}
 
 	_addUpdatePriceDialog(event) {
@@ -1175,7 +1169,7 @@ class offerAdd extends PolymerElement {
 		function check(item) {
 			return item.checked;
 		}
-		if(this.offers.some(check)) {
+		if(this.bundleOffers.some(check)) {
 			this.$.addOfferProductSpecDrop.disabled = true;
 		} else {
 			this.$.addOfferProductSpecDrop.disabled = false;
@@ -1212,16 +1206,16 @@ class offerAdd extends PolymerElement {
 		}
 		if(this.$.addBundle) {
 			var bundled = new Array();
-			for(var index in this.offers) {
-				if(this.offers[index].checked == true) {
+			for(var index in this.bundleOffers) {
+				if(this.bundleOffers[index].checked == true) {
 					var bundleOffer = new Object();
 					bundleOffer.numberRelOfferLowerLimit = 0;
 					bundleOffer.numberRelOfferUpperLimit = 1;
 					bundleOffer.numberRelOfferDefault = 1;
 					var bundleObj = new Object();
-					bundleObj.id = this.offers[index].id;
-					bundleObj.href = this.offers[index].href;
-					bundleObj.name = this.offers[index].name;
+					bundleObj.id = this.bundleOffers[index].id;
+					bundleObj.href = this.bundleOffers[index].href;
+					bundleObj.name = this.bundleOffers[index].name;
 					bundleObj.bundledProductOfferingOption = bundleOffer;
 					bundled.push(bundleObj);
 				}
@@ -2043,7 +2037,6 @@ class offerAdd extends PolymerElement {
 	cancelDialog() {
 		this.set('prices', []);
 		this.set('alterations', []);
-		this.set('offers', []);
 		this.addOrUpdateButton = "add";
 		this.offerName = null;
 		this.offerDescription = null;
