@@ -834,7 +834,7 @@ diameter_scur(_Config) ->
 	{ok, #service{}} = ocs:add_service(Username, Password, ProdRef, []),
 	Balance = rand:uniform(1000000000),
 	B1 = bucket(octets, Balance),
-	_BId = add_bucket(ProdRef, B1),
+	BId = add_bucket(ProdRef, B1),
 	Ref = erlang:ref_to_list(make_ref()),
 	SId = diameter:session_id(Ref),
 	RequestNum0 = 0,
@@ -849,7 +849,7 @@ diameter_scur(_Config) ->
 	Answer2 = diameter_scur_stop(SId, Username, RequestNum2, rand:uniform(Balance div 2)),
 	#'3gpp_ro_CCA'{'Result-Code' = ?'DIAMETER_BASE_RESULT-CODE_SUCCESS',
 			'Session-Id' = SessionId} = Answer2,
-	End= erlang:system_time(?MILLISECOND),
+	End = erlang:system_time(?MILLISECOND),
 	MatchSpec = [{#'3gpp_ro_CCR'{'Session-Id' = SessionId, _ = '_'}, []}],
 	Fget = fun F({eof, Events}, Acc) ->
 				lists:flatten(lists:reverse([Events | Acc]));
@@ -860,7 +860,11 @@ diameter_scur(_Config) ->
 	[E1, E2, E3] = Fget(ocs_log:acct_query(start, Start, End, diameter, '_', MatchSpec), []),
 	{_, _, diameter, _, _, start, #'3gpp_ro_CCR'{}, #'3gpp_ro_CCA'{}, undefined} = E1,
 	{_, _, diameter, _, _, interim, #'3gpp_ro_CCR'{}, #'3gpp_ro_CCA'{}, undefined} = E2,
-	{_, _, diameter, _, _, stop, #'3gpp_ro_CCR'{}, #'3gpp_ro_CCA'{}, [#rated{}]} = E3.
+	{_, _, diameter, _, _, stop, #'3gpp_ro_CCR'{}, #'3gpp_ro_CCA'{}, [#rated{} = Rated]} = E3,
+	{ok, #bucket{remain_amount = RemainAmount,
+			units = Units}} = ocs:find_bucket(BId),
+	#rated{bucket_value = R,bucket_type = Units, is_billed = true,
+			product = OfferId, price_type = usage} = Rated,
 
 %%---------------------------------------------------------------------
 %% internal functions
