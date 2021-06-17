@@ -848,7 +848,20 @@ class offerUpdate extends PolymerElement {
 					newPrice.start = current.prices[index].validFor.startDateTime;
 					newPrice.end = current.prices[index].validFor.endDateTime;
 				}
-				newPrice.priceType = current.prices[index].priceType;
+				switch(current.prices[index].priceType) {
+					case "recurring":
+						newPrice.priceType = "Recurring";
+						break;
+					case "one_time":
+						newPrice.priceType = "One Time";
+						break;
+					case "usage":
+						newPrice.priceType = "Usage";
+						break;
+					case "tariff":
+						newPrice.priceType = "Tariff";
+						break;
+				}
 				if (current.prices[index].unitOfMeasure) {
 					var unitOfMeasure = current.prices[index].unitOfMeasure;
 					switch(unitOfMeasure.charAt(unitOfMeasure.length - 1)) {
@@ -898,7 +911,24 @@ class offerUpdate extends PolymerElement {
 					}
 				}
 				newPrice.prodSpecCharValueUse = specChar;
-				newPrice.period = current.prices[index].recurringChargePeriod;
+				switch(current.prices[index].recurringChargePeriod) {
+					case "hourly":
+						newPrice.period = "Hourly";
+						break;
+					case "daily":
+						newPrice.period = "Daily";
+						break;
+					case "weekly":
+						newPrice.period = "Weekly";
+						break;
+					case "monthly":
+						newPrice.period = "Monthly";
+						break;
+					case "yearly":
+						newPrice.period = "Yearly";
+						break;
+				}
+
 				if(current.prices[index].productOfferPriceAlteration) {
 					var altName = current.prices[index].productOfferPriceAlteration.name;
 					function checkAlt1(alt) {
@@ -1087,20 +1117,7 @@ class offerUpdate extends PolymerElement {
 					this.updateOfferStartDatePrice = this.prices[indexUpdatePrice].start;
 					this.updateOfferEndDatePrice = this.prices[indexUpdatePrice].end;
 				}
-				switch(this.prices[indexUpdatePrice].priceType) {
-					case "recurring":
-						this.priceUpdateType = "Recurring";
-						break;
-					case "one_time":
-						this.priceUpdateType = "One Time";
-						break;
-					case "usage":
-						this.priceUpdateType = "Usage";
-						break;
-					case "tariff":
-						this.priceUpdateType = "Tariff";
-						break;
-				}
+				this.priceUpdateType = this.prices[indexUpdatePrice].priceType;
 				this.priceUpdateSize = this.prices[indexUpdatePrice].size;
 				switch(this.prices[indexUpdatePrice].unit) {
 					case "b":
@@ -1119,23 +1136,7 @@ class offerUpdate extends PolymerElement {
 				if(this.prices[indexUpdatePrice].amount) {
 					this.priceUpdateAmount = this.prices[indexUpdatePrice].amount;
 				}
-				switch(this.prices[indexUpdatePrice].period) {
-					case "hourly":
-						this.priceUpdatePeriod = "Hourly";
-						break;
-					case "daily":
-						this.priceUpdatePeriod = "Daily";
-						break;
-					case "weekly":
-						this.priceUpdatePeriod = "Weekly";
-						break;
-					case "monthly":
-						this.priceUpdatePeriod = "Monthly";
-						break;
-					case "yearly":
-						this.priceUpdatePeriod = "Yearly";
-						break;
-				}
+				this.priceUpdatePeriod = this.prices[indexUpdatePrice].period;
 				this.priceUpdateAlt = this.prices[indexUpdatePrice].alteration;
 				var prodPriceUpdate = this.prices[indexUpdatePrice];
 				if(prodPriceUpdate.prodSpecCharValueUse) {
@@ -1404,7 +1405,7 @@ class offerUpdate extends PolymerElement {
 			}
 			updatePriceNew.push(pricetype);
 		} 
-		if(this.priceUpdateSize) {
+		if(this.priceUpdateSize != this.prices[indexPrices].size) {
 			var priceSize = new Object();
 			priceSize.op = "add";
 			priceSize.path = "/productOfferingPrice/" + indexPrices + "/unitOfMeasure";
@@ -1455,302 +1456,318 @@ class offerUpdate extends PolymerElement {
 				updatePriceNew.push(priceSize);
 			}
 		}
-		if(this.priceUpdateAmount) {
+		if(this.priceUpdateAmount != this.prices[indexPrices].amount) {
 			var priceAmount = new Object();
 			priceAmount.op = "add";
 			priceAmount.path = "/productOfferingPrice/" + indexPrices + "/price/taxIncludedAmount";
 			priceAmount.value = this.priceUpdateAmount;
 			updatePriceNew.push(priceAmount);
 		}
-		if(this.priceUpdatePeriod && !this.$.updatePricePerioddrop.disabled) {
-			var priceCharge = new Object();
-			priceCharge.op = "add";
-			priceCharge.path = "/productOfferingPrice/" + indexPrices + "/recurringChargePeriod";
-			switch(this.priceUpdatePeriod) {
-				case "Hourly":
-					priceCharge.value = "hourly";
-					break;
-				case "Daily":
-					priceCharge.value = "daily";
-					break;
-				case "Weekly":
-					priceCharge.value = "weekly";
-					break;
-				case "Monthly":
-					priceCharge.value = "monthly";
-					break;
-				case "Yearly":
-					priceCharge.value = "yearly";
-					break;
+		if(this.priceUpdatePeriod != this.prices[indexPrices].period) {
+			if(!this.$.updatePricePerioddrop.disabled) {
+				var priceCharge = new Object();
+				priceCharge.op = "add";
+				priceCharge.path = "/productOfferingPrice/" + indexPrices + "/recurringChargePeriod";
+				switch(this.priceUpdatePeriod) {
+					case "Hourly":
+						priceCharge.value = "hourly";
+						break;
+					case "Daily":
+						priceCharge.value = "daily";
+						break;
+					case "Weekly":
+						priceCharge.value = "weekly";
+						break;
+					case "Monthly":
+						priceCharge.value = "monthly";
+						break;
+					case "Yearly":
+						priceCharge.value = "yearly";
+						break;
+				}
+				updatePriceNew.push(priceCharge);
 			}
-			updatePriceNew.push(priceCharge);
 		} 
-		if(this.$.updateAddPriceCharReserveTime.value) {
-			function checkChar1(charVal) {
-				return charVal.name == "radiusReserveTime";
-			}
-			var res = this.prices[indexPrices].prodSpecCharValueUse.findIndex(checkChar1);
-			if(res == -1) {
-				var indexChar = "-";
-				var charReserve = new Object();
-				charReserve.op = "add";
-				charReserve.path = "/productOfferingPrice/" + indexPrices + "/prodSpecCharValueUse/" + indexChar;
-				var resTime1 = new Object();
-				resTime1.name = "radiusReserveTime";
-				resTime1.valueType = "Number";
-				resTime1.minCardinality = 1;
-				resTime1.maxCardinality = 1;
-				var resTime2Arr = new Array();
-				var resTime2 = new Object();
-				resTime2.unitOfMeasure = "seconds";
-				resTime2.default = true;
-				resTime2.value = this.$.updateAddPriceCharReserveTime.value;
-				resTime2Arr.push(resTime2);
-				resTime1.productSpecCharacteristicValue = resTime2Arr;
-				var resTime3 = new Object();
-				resTime3.id = "4";
-				resTime3.href = "/catalogManagement/v2/productSpecification/4";
-				resTime1.productSpecification = resTime3;
-				charReserve.value = resTime1;
-				updatePriceNew.push(charReserve);
-			} else {
-				var indexChar = res.toString();
-				var charReserve = new Object();
-				charReserve.op = "add";
-				charReserve.path = "/productOfferingPrice/" + indexPrices + "/prodSpecCharValueUse/" + indexChar + "/productSpecCharacteristicValue/0/value";
-				charReserve.value = this.$.updateAddPriceCharReserveTime.value;
-				updatePriceNew.push(charReserve);
-			}
-		}
-		if(this.priceUpdateTariff) {
-			function checkName(char) {
-				return char.name == "destPrefixTariffTable";
-			}
-			var res = this.prices[indexPrices].prodSpecCharValueUse.findIndex(checkName);
-			if(res == -1) {
-				var indexCharPrices = "-";
-				var destTariff = new Object();
-				destTariff.op = "add";
-				destTariff.path = "/productOfferingPrice/" + indexPrices + "/prodSpecCharValueUse/" + indexCharPrices;
-				var tariff1 = new Object();
-				tariff1.name = "destPrefixTariffTable";
-				tariff1.minCardinality = 0;
-				tariff1.maxCardinality = 1;
-				var tariff2Arr = new Array();
-				var tariff2 = new Object();
-				tariff2.default = true;
-				tariff2.value = this.priceUpdateTariff;
-				tariff2Arr.push(tariff2);
-				tariff1.productSpecCharacteristicValue = tariff2Arr;
-				var tariff3 = new Object();
-				tariff3.id = "3";
-				tariff3.href = "/catalogManagement/v2/productSpecification/3";
-				tariff1.productSpecification = tariff3;
-				destTariff.value = tariff1;
-				updatePriceNew.push(destTariff);
-			} else {
-				indexCharPrices = res.toString();
-				var destTariff = new Object();
-				destTariff.op = "add";
-				destTariff.path = "/productOfferingPrice/" + indexPrices + "/prodSpecCharValueUse/" + indexCharPrices + "/productSpecCharacteristicValue/0/value";
-				destTariff.value = this.priceUpdateTariff;
-				updatePriceNew.push(destTariff);
-			}
-		}
-		if(this.chargingKey) {
-			function checkCharge(charge) {
-				return charge.name == "chargingKey";
-			}
-			var resCharge = this.prices[indexPrices].prodSpecCharValueUse.findIndex(checkCharge);
-			if(resCharge == -1) {
-				indexCharPrices = "-";
-				var key = new Object();
-				key.op = "add";
-				key.path = "/productOfferingPrice/" + indexPrices + "/prodSpecCharValueUse/" + indexCharPrices;
-				var key1 = new Object();
-				key1.name = "chargingKey";
-				var key2Arr = new Array();
-				var key2 = new Object();
-				key2.value = this.chargingKey;
-				key2Arr.push(key2);
-				key1.productSpecCharacteristicValue = key2Arr;
-				var key3 = new Object();
-				key3.id = "3";
-				key3.href = "/catalogManagement/v2/productSpecification/3";
-				key1.productSpecification = key3;
-				key.value = key1;
-				updatePriceNew.push(key);
-			} else {
-				indexCharPrices = resCharge;
-				var keyE = new Object();
-				keyE.op = "add";
-				keyE.path = "/productOfferingPrice/" + indexPrices + "/prodSpecCharValueUse/" + indexCharPrices + "/productSpecCharacteristicValue/0/value";
-				keyE.value = this.chargingKey;
-				updatePriceNew.push(keyE);
-			}
-		}
-
-		if(this.priceAddRoaming) {
-			function checkName(char) {
-				return char.name == "roamingTable";
-			}
-			var res = this.prices[indexPrices].prodSpecCharValueUse.findIndex(checkName);
-			if(res == -1) {
-				indexCharPrices = "-";
-				var roam = new Object();
-				roam.op = "add";
-				roam.path = "/productOfferingPrice/" + indexPrices + "/prodSpecCharValueUse/" + indexCharPrices;
-				var roam1 = new Object();
-				roam1.name = "roamingTable";
-				roam1.maxCardinality = 1;
-				var roam2Arr = new Array();
-				var roam2 = new Object();
-				roam2.default = true;
-				roam2.value = this.priceAddRoaming;
-				roam2Arr.push(roam2);
-				roam1.productSpecCharacteristicValue = roam2Arr;
-				var roam3 = new Object();
-				roam3.id = "3";
-				roam3.href = "/catalogManagement/v2/productSpecification/3";
-				roam1.productSpecification = roam3;
-				roam.value = roam1;
-				updatePriceNew.push(roam);
-			} else {
-				indexCharPrices = res.toString();
-				var roam = new Object();
-				roam.op = "add";
-				roam.path = "/productOfferingPrice/" + indexPrices + "/prodSpecCharValueUse/" + indexCharPrices + "/productSpecCharacteristicValue/0/value";
-				roam.value = this.$.roamingTable.value;
-				updatePriceNew.push(roam);
-			}
-		}
-
-		if(this.$.updateAddPriceCharReserveBytes.value) {
-			function checkChar1(charVal) {
-				return charVal.name == "radiusReserveOctets";
-			}
-			var res = this.prices[indexPrices].prodSpecCharValueUse.findIndex(checkChar1);
-			if(res == -1) {
-				var indexChar1 = "-";
-				var charResBytes = new Object();
-				charResBytes.op = "add";
-				charResBytes.path = "/productOfferingPrice/" + indexPrices + "/prodSpecCharValueUse/" + indexChar1;
-				var resByte1 = new Object();
-				resByte1.name = "radiusReserveOctets";
-				resByte1.valueType = "Number";
-				resByte1.minCardinality = 1;
-				resByte1.maxCardinality = 1;
-				var resByte2Arr = new Array();
-				var resByte2 = new Object();
-				resByte2.unitOfMeasure = "octets";
-				resByte2.default = true;
-				resByte2.value = this.$.updateAddPriceCharReserveBytes.value;
-				resByte1.productSpecCharacteristicValue = resByte2Arr;
-				var resByte3 = new Object();
-				resByte3.id = "4";
-				resByte3.href = "/catalogManagement/v2/productSpecification/4";
-				resByte1.productSpecification = resByte3;
-				resByte2Arr.push(resByte2);
-				charResBytes.value = resByte1; 
-				updatePriceNew.push(charResBytes);
-			} else {
-				var indexChar1 = res.toString();
-				var charResBytes = new Object();
-				charResBytes.op = "add";
-				charResBytes.path = "/productOfferingPrice/" + indexPrices + "/prodSpecCharValueUse/" + indexChar1 + "/productSpecCharacteristicValue/0/value";
-				charResBytes.value = this.$.updateAddPriceCharReserveBytes.value;
-				updatePriceNew.push(charResBytes);
-			}
-		}
-		if(this.$.updateCheckIn.checked || this.$.updateCheckOut.checked) {
-			function checkCall1(callVal) {
-				return callVal.name == "callDirection";
-			}
-			var res = this.prices[indexPrices].prodSpecCharValueUse.findIndex(checkCall1);
-			if(res == -1) {
-				var indexCall1 = "-";
-				var call = new Object();
-				call.op = "add";
-				call.path = "/productOfferingPrice/" + indexPrices + "/prodSpecCharValueUse/" + indexCall1;
-				var callDir1 = new Object();
-				callDir1.name = "callDirection";
-				callDir1.minCardinality = 1;
-				callDir1.maxCardinality = 1;
-				var callDir2Arr = new Array();
-				var callDir2 = new Object();
-				callDir2.default = true;
-				if(this.$.updateCheckIn.checked) {
-					callDir2.value = "answer";
-				} else if(this.$.updateCheckOut.checked) {
-					callDir2.value = "originate";
+		if(this.prices[indexPrices].prodSpecCharValueUse) {
+			if(this.$.updateAddPriceCharReserveTime.value) {
+				function checkChar1(charVal) {
+					return charVal.name == "radiusReserveTime";
 				}
-				callDir2Arr.push(callDir2);
-				callDir1.productSpecCharacteristicValue = callDir2Arr;
-				var callDir3 = new Object();
-				callDir3.id = "5";
-				callDir3.href = "/catalogManagement/v2/productSpecification/5";
-				callDir1.productSpecification = callDir3;
-				call.value = callDir1;
-				updatePriceNew.push(call);
-			} else {
-				var indexCall1 = res.toString();
-				var call = new Object();
-				call.op = "add";
-				call.path = "/productOfferingPrice/" + indexPrices + "/prodSpecCharValueUse/" + indexCall1 + "/productSpecCharacteristicValue/0/value";
-				if(this.$.updateCheckIn.checked) {
-					call.value = "answer";
-				} else if(this.$.updateCheckOut.checked) {
-					call.value = "originate";
+				var res = this.prices[indexPrices].prodSpecCharValueUse.findIndex(checkChar1);
+				if(this.$.updateAddPriceCharReserveTime.value != this.prices[indexPrices].prodSpecCharValueUse[res].value) {
+					if(res == -1) {
+						var indexChar = "-";
+						var charReserve = new Object();
+						charReserve.op = "add";
+						charReserve.path = "/productOfferingPrice/" + indexPrices + "/prodSpecCharValueUse/" + indexChar;
+						var resTime1 = new Object();
+						resTime1.name = "radiusReserveTime";
+						resTime1.valueType = "Number";
+						resTime1.minCardinality = 1;
+						resTime1.maxCardinality = 1;
+						var resTime2Arr = new Array();
+						var resTime2 = new Object();
+						resTime2.unitOfMeasure = "seconds";
+						resTime2.default = true;
+						resTime2.value = this.$.updateAddPriceCharReserveTime.value;
+						resTime2Arr.push(resTime2);
+						resTime1.productSpecCharacteristicValue = resTime2Arr;
+						var resTime3 = new Object();
+						resTime3.id = "4";
+						resTime3.href = "/catalogManagement/v2/productSpecification/4";
+						resTime1.productSpecification = resTime3;
+						charReserve.value = resTime1;
+						updatePriceNew.push(charReserve);
+					} else {
+						var indexChar = res.toString();
+						var charReserve = new Object();
+						charReserve.op = "add";
+						charReserve.path = "/productOfferingPrice/" + indexPrices + "/prodSpecCharValueUse/" + indexChar + "/productSpecCharacteristicValue/0/value";
+						charReserve.value = this.$.updateAddPriceCharReserveTime.value;
+						updatePriceNew.push(charReserve);
+					}
 				}
-				updatePriceNew.push(call);
 			}
-		}
-		if(this.startTimeUpdate ||
+			if(this.priceUpdateTariff) {
+				function checkName(char) {
+					return char.name == "destPrefixTariffTable";
+				}
+				var resTarriff = this.prices[indexPrices].prodSpecCharValueUse.findIndex(checkName);
+				if(this.priceUpdateTariff != this.prices[indexPrices].prodSpecCharValueUse[resTarriff].value) {
+					if(resTarriff == -1) {
+						var indexCharTariff  = "-";
+						var destTariff = new Object();
+						destTariff.op = "add";
+						destTariff.path = "/productOfferingPrice/" + indexPrices + "/prodSpecCharValueUse/" + indexCharTariff;
+						var tariff1 = new Object();
+						tariff1.name = "destPrefixTariffTable";
+						tariff1.minCardinality = 0;
+						tariff1.maxCardinality = 1;
+						var tariff2Arr = new Array();
+						var tariff2 = new Object();
+						tariff2.default = true;
+						tariff2.value = this.priceUpdateTariff;
+						tariff2Arr.push(tariff2);
+						tariff1.productSpecCharacteristicValue = tariff2Arr;
+						var tariff3 = new Object();
+						tariff3.id = "3";
+						tariff3.href = "/catalogManagement/v2/productSpecification/3";
+						tariff1.productSpecification = tariff3;
+						destTariff.value = tariff1;
+						updatePriceNew.push(destTariff);
+					} else {
+						var indexCharTariff = res.toString();
+						var destTariff = new Object();
+						destTariff.op = "add";
+						destTariff.path = "/productOfferingPrice/" + indexPrices + "/prodSpecCharValueUse/" + indexCharTariff  + "/productSpecCharacteristicValue/0/value";
+						destTariff.value = this.priceUpdateTariff;
+						updatePriceNew.push(destTariff);
+					}
+				}
+			}
+			if(this.chargingKey) {
+				function checkCharge(charge) {
+					return charge.name == "chargingKey";
+				}
+				var resCharge = this.prices[indexPrices].prodSpecCharValueUse.findIndex(checkCharge);
+				if(this.chargingKey != this.prices[indexPrices].prodSpecCharValueUse[resCharge].value) {
+					if(resCharge == -1) {
+						var indexCharCharging  = "-";
+						var key = new Object();
+						key.op = "add";
+						key.path = "/productOfferingPrice/" + indexPrices + "/prodSpecCharValueUse/" + indexCharCharging;
+						var key1 = new Object();
+						key1.name = "chargingKey";
+						var key2Arr = new Array();
+						var key2 = new Object();
+						key2.value = this.chargingKey;
+						key2Arr.push(key2);
+						key1.productSpecCharacteristicValue = key2Arr;
+						var key3 = new Object();
+						key3.id = "3";
+						key3.href = "/catalogManagement/v2/productSpecification/3";
+						key1.productSpecification = key3;
+						key.value = key1;
+						updatePriceNew.push(key);
+					} else {
+						var indexCharCharging = resCharge;
+						var keyE = new Object();
+						keyE.op = "add";
+						keyE.path = "/productOfferingPrice/" + indexPrices + "/prodSpecCharValueUse/" + indexCharCharging  + "/productSpecCharacteristicValue/0/value";
+						keyE.value = this.chargingKey;
+						updatePriceNew.push(keyE);
+					}
+				}
+			}
+			if(this.priceAddRoaming) {
+				function checkName(char) {
+					return char.name == "roamingTable";
+				}
+				var resRoaming = this.prices[indexPrices].prodSpecCharValueUse.findIndex(checkName);
+				if(this.priceAddRoaming != this.prices[indexPrices].prodSpecCharValueUse[resRoaming].value) {
+					if(resRoaming == -1) {
+						var indexCharRoaming = "-";
+						var roam = new Object();
+						roam.op = "add";
+						roam.path = "/productOfferingPrice/" + indexPrices + "/prodSpecCharValueUse/" + indexCharRoaming;
+						var roam1 = new Object();
+						roam1.name = "roamingTable";
+						roam1.maxCardinality = 1;
+						var roam2Arr = new Array();
+						var roam2 = new Object();
+						roam2.default = true;
+						roam2.value = this.priceAddRoaming;
+						roam2Arr.push(roam2);
+						roam1.productSpecCharacteristicValue = roam2Arr;
+						var roam3 = new Object();
+						roam3.id = "3";
+						roam3.href = "/catalogManagement/v2/productSpecification/3";
+						roam1.productSpecification = roam3;
+						roam.value = roam1;
+						updatePriceNew.push(roam);
+					} else {
+						var indexCharRoaming = res.toString();
+						var roam = new Object();
+						roam.op = "add";
+						roam.path = "/productOfferingPrice/" + indexPrices + "/prodSpecCharValueUse/" + indexCharRoaming  + "/productSpecCharacteristicValue/0/value";
+						roam.value = this.$.roamingTable.value;
+						updatePriceNew.push(roam);
+					}
+				}
+			}
+			if(this.$.updateAddPriceCharReserveBytes.value) {
+				function checkChar1(charVal) {
+					return charVal.name == "radiusReserveOctets";
+				}
+				var resReserveOctets = this.prices[indexPrices].prodSpecCharValueUse.findIndex(checkChar1);
+				if(this.$.updateAddPriceCharReserveBytes.value != this.prices[indexPrices].prodSpecCharValueUse[resReserveOctets].value) {
+					if(resReserveOctets == -1) {
+						var indexChar1 = "-";
+						var charResBytes = new Object();
+						charResBytes.op = "add";
+						charResBytes.path = "/productOfferingPrice/" + indexPrices + "/prodSpecCharValueUse/" + indexChar1;
+						var resByte1 = new Object();
+						resByte1.name = "radiusReserveOctets";
+						resByte1.valueType = "Number";
+						resByte1.minCardinality = 1;
+						resByte1.maxCardinality = 1;
+						var resByte2Arr = new Array();
+						var resByte2 = new Object();
+						resByte2.unitOfMeasure = "octets";
+						resByte2.default = true;
+						resByte2.value = this.$.updateAddPriceCharReserveBytes.value;
+						resByte1.productSpecCharacteristicValue = resByte2Arr;
+						var resByte3 = new Object();
+						resByte3.id = "4";
+						resByte3.href = "/catalogManagement/v2/productSpecification/4";
+						resByte1.productSpecification = resByte3;
+						resByte2Arr.push(resByte2);
+						charResBytes.value = resByte1; 
+						updatePriceNew.push(charResBytes);
+					} else {
+						var indexChar1 = res.toString();
+						var charResBytes = new Object();
+						charResBytes.op = "add";
+						charResBytes.path = "/productOfferingPrice/" + indexPrices + "/prodSpecCharValueUse/" + indexChar1 + "/productSpecCharacteristicValue/0/value";
+						charResBytes.value = this.$.updateAddPriceCharReserveBytes.value;
+						updatePriceNew.push(charResBytes);
+					}
+				}
+			}
+			if(this.$.updateCheckIn.checked || this.$.updateCheckOut.checked) {
+				function checkCall1(callVal) {
+					return callVal.name == "callDirection";
+				}
+				var resCall = this.prices[indexPrices].prodSpecCharValueUse.findIndex(checkCall1);
+				if(this.$.updateCheckIn.checked != this.prices[indexPrices].prodSpecCharValueUse[resCall].value || this.$.updateCheckOut.checked != this.prices[indexPrices].prodSpecCharValueUse[resCall].value) {
+					if(resCall == -1) {
+						var indexCall1 = "-";
+						var call = new Object();
+						call.op = "add";
+						call.path = "/productOfferingPrice/" + indexPrices + "/prodSpecCharValueUse/" + indexCall1;
+						var callDir1 = new Object();
+						callDir1.name = "callDirection";
+						callDir1.minCardinality = 1;
+						callDir1.maxCardinality = 1;
+						var callDir2Arr = new Array();
+						var callDir2 = new Object();
+						callDir2.default = true;
+						if(this.$.updateCheckIn.checked) {
+							callDir2.value = "answer";
+						} else if(this.$.updateCheckOut.checked) {
+							callDir2.value = "originate";
+						}
+						callDir2Arr.push(callDir2);
+						callDir1.productSpecCharacteristicValue = callDir2Arr;
+						var callDir3 = new Object();
+						callDir3.id = "5";
+						callDir3.href = "/catalogManagement/v2/productSpecification/5";
+						callDir1.productSpecification = callDir3;
+						call.value = callDir1;
+						updatePriceNew.push(call);
+					} else {
+						var indexCall1 = res.toString();
+						var call = new Object();
+						call.op = "add";
+						call.path = "/productOfferingPrice/" + indexPrices + "/prodSpecCharValueUse/" + indexCall1 + "/productSpecCharacteristicValue/0/value";
+						if(this.$.updateCheckIn.checked) {
+							call.value = "answer";
+						} else if(this.$.updateCheckOut.checked) {
+							call.value = "originate";
+						}
+						updatePriceNew.push(call);
+					}
+				}
+			}
+			if(this.startTimeUpdate ||
 					this.endTimeUpdate ||
 					(this.startTimeUpdate &&
 					this.endTimeUpdate)) {
-			function checkChar1(charVal) {
-				return charVal.name == "timeOfDayRange";
-			}
-			var res = this.prices[indexPrices].prodSpecCharValueUse.findIndex(checkChar1);
-			if(res == -1) {
-				var indexChar2 = "-";
-				var timeDay = new Object();
-				timeDay.op = "add";
-				timeDay.path = "/productOfferingPrice/" + indexPrices + "/prodSpecCharValueUse/" + indexChar2;
-				var timeRange1 = new Object();
-				timeRange1.name = "timeOfDayRange";
-				timeRange1.valueType = "Range";
-				timeRange1.minCardinality = 0;
-				timeRange1.maxCardinality = 1;
-				var timeRangeArr = new Array();
-				var timeRange2 = new Object();
-				var timeRange3 = new Object();
-				var timeRangeLower = new Object();
-				timeRangeLower.amount = this.startTimeUpdate;
-				timeRangeLower.units = "minutes";
-				timeRange3.lowerValue = timeRangeLower;
-				var timeRangeUpper = new Object();
-				timeRangeUpper.amount = this.endTimeUpdate;
-				timeRangeUpper.units = "minutes";
-				timeRange3.upperValue = timeRangeUpper;
-				timeRange2.value = timeRange3;
-				timeRange1.productSpecCharacteristicValue = timeRangeArr;
-				timeRangeArr.push(timeRange2);
-				timeDay.value = timeRange1;
-				updatePriceNew.push(timeDay);
-			} else {
-				var indexChar2 = res.toString();
-				var timeDay1 = new Object();
-				timeDay1.op = "add";
-				timeDay1.path = "/productOfferingPrice/" + indexPrices + "/prodSpecCharValueUse/" + indexChar2 + "/productSpecCharacteristicValue/0/value/lowerValue/amount";
-				timeDay1.value = this.startTimeUpdate;
-				updatePriceNew.push(timeDay1);
-				var timeDayEnd = new Object();
-				timeDayEnd.op = "add";
-				timeDayEnd.path = "/productOfferingPrice/" + indexPrices + "/prodSpecCharValueUse/" + indexChar2 + "/productSpecCharacteristicValue/0/value/upperValue/amount";
-				timeDayEnd.value = this.endTimeUpdate;
-				updatePriceNew.push(timeDayEnd);
+				function checkChar1(charVal) {
+					return charVal.name == "timeOfDayRange";
+				}
+				var resTime = this.prices[indexPrices].prodSpecCharValueUse.findIndex(checkChar1);
+				if(this.startTimeUpdate != this.prices[indexPrices].prodSpecCharValueUse[resTime].value || this.endTimeUpdate != this.prices[indexPrices].prodSpecCharValueUse[resTime].value) {
+					if(resTime == -1) {
+						var indexChar2 = "-";
+						var timeDay = new Object();
+						timeDay.op = "add";
+						timeDay.path = "/productOfferingPrice/" + indexPrices + "/prodSpecCharValueUse/" + indexChar2;
+						var timeRange1 = new Object();
+						timeRange1.name = "timeOfDayRange";
+						timeRange1.valueType = "Range";
+						timeRange1.minCardinality = 0;
+						timeRange1.maxCardinality = 1;
+						var timeRangeArr = new Array();
+						var timeRange2 = new Object();
+						var timeRange3 = new Object();
+						var timeRangeLower = new Object();
+						timeRangeLower.amount = this.startTimeUpdate;
+						timeRangeLower.units = "minutes";
+						timeRange3.lowerValue = timeRangeLower;
+						var timeRangeUpper = new Object();
+						timeRangeUpper.amount = this.endTimeUpdate;
+						timeRangeUpper.units = "minutes";
+						timeRange3.upperValue = timeRangeUpper;
+						timeRange2.value = timeRange3;
+						timeRange1.productSpecCharacteristicValue = timeRangeArr;
+						timeRangeArr.push(timeRange2);
+						timeDay.value = timeRange1;
+						updatePriceNew.push(timeDay);
+					} else {
+						var indexChar2 = res.toString();
+						var timeDay1 = new Object();
+						timeDay1.op = "add";
+						timeDay1.path = "/productOfferingPrice/" + indexPrices + "/prodSpecCharValueUse/" + indexChar2 + "/productSpecCharacteristicValue/0/value/lowerValue/amount";
+						timeDay1.value = this.startTimeUpdate;
+						updatePriceNew.push(timeDay1);
+						var timeDayEnd = new Object();
+						timeDayEnd.op = "add";
+						timeDayEnd.path = "/productOfferingPrice/" + indexPrices + "/prodSpecCharValueUse/" + indexChar2 + "/productSpecCharacteristicValue/0/value/upperValue/amount";
+						timeDayEnd.value = this.endTimeUpdate;
+						updatePriceNew.push(timeDayEnd);
+					}
+				}
 			}
 		}
 		ajax.body = JSON.stringify(updatePriceNew);
