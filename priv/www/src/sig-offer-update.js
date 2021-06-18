@@ -1350,14 +1350,17 @@ class offerUpdate extends PolymerElement {
 
 	_updateProductOfferResponse(event) {
 		this.$.updateOfferModal.close();
-		document.body.querySelector('sig-app').shadowRoot.getElementById('offerList').shadowRoot.getElementById('offerGrid').clearCache();
+		var sigApp = document.body.querySelector('sig-app');
+		var offerList = sigApp.shadowRoot.getElementById('offerList');
+		offerList.splice('offers', 0, offerList.offers.length);
+		offerList.shadowRoot.getElementById('offerGrid').clearCache();
 		var listOffer = document.getElementsByClassName("bundleCheck");
 		Array.prototype.forEach.call(listOffer, function(ell) {
 			if(ell.checked == true) {
 				ell.checked = false;
 			}
 		});
-		var toast = document.body.querySelector('sig-app').shadowRoot.getElementById('restError');
+		var toast = sigApp.shadowRoot.getElementById('restError');
 		toast.text = "Success";
 		toast.open();
 	}
@@ -1791,8 +1794,11 @@ class offerUpdate extends PolymerElement {
 
 	_updateOfferPriceResponse(event) {
 		this.$.updateOfferModal.close();
-		document.body.querySelector('sig-app').shadowRoot.getElementById('offerList').shadowRoot.getElementById('offerGrid').clearCache();
-		var toast = document.body.querySelector('sig-app').shadowRoot.getElementById('restError');
+		var sigApp = document.body.querySelector('sig-app');
+		var offerList = sigApp.shadowRoot.getElementById('offerList');
+		offerList.splice('offers', 0, offerList.offers.length);
+		offerList.shadowRoot.getElementById('offerGrid').clearCache();
+		var toast = sigApp.shadowRoot.getElementById('restError');
 		toast.text = "Success";
 		toast.open();
 	}
@@ -1926,8 +1932,11 @@ class offerUpdate extends PolymerElement {
 
 	_updateOfferAlterationResponse(event) {
 		this.$.updateOfferModal.close();
-		document.body.querySelector('sig-app').shadowRoot.getElementById('offerList').shadowRoot.getElementById('offerGrid').clearCache();
-		var toast = document.body.querySelector('sig-app').shadowRoot.getElementById('restError');
+		var sigApp = document.body.querySelector('sig-app');
+		var offerList = sigApp.shadowRoot.getElementById('offerList');
+		offerList.splice('offers', 0, offerList.offers.length);
+		offerList.shadowRoot.getElementById('offerGrid').clearCache();
+		var toast = sigApp.shadowRoot.getElementById('restError');
 		toast.text = "Success";
 		toast.open();
 	}
@@ -2316,8 +2325,11 @@ class offerUpdate extends PolymerElement {
 
 	_deleteOfferResponse(event) {
 		this.$.updateOfferModal.close();
-		document.body.querySelector('sig-app').shadowRoot.getElementById('offerList').shadowRoot.getElementById('offerGrid').clearCache();
-		var toast = document.body.querySelector('sig-app').shadowRoot.getElementById('restError');
+		var sigApp = document.body.querySelector('sig-app');
+		var offerList = sigApp.shadowRoot.getElementById('offerList');
+		offerList.splice('offers', 0, offerList.offers.length);
+		offerList.shadowRoot.getElementById('offerGrid').clearCache();
+		var toast = sigApp.shadowRoot.getElementById('restError');
 		toast.text = "Success";
 		toast.open();
 	}

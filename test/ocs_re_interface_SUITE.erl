@@ -158,15 +158,21 @@ end_per_suite(Config) ->
 	ok = ocs_test_lib:stop(),
 	Config.
 
--spec init_per_testcase(TestCase :: atom(), Config :: [tuple()]) -> Config :: [tuple()].
-%% Initialization before each test case.
+-spec init_per_testcase(TestCase :: atom(), Config :: [tuple()]) -> any().
+%% Cleanup after the whole suite.
 %%
 init_per_testcase(TestCase, Config)
 		when TestCase == send_initial_scur; TestCase == receive_initial_scur;
 		TestCase == send_interim_scur; TestCase == receive_interim_scur;
 		TestCase == send_final_scur; TestCase == receive_final_scur;
 		TestCase == receive_interim_no_usu_scur;
-		TestCase == receive_initial_empty_rsu_scur ->
+		TestCase == receive_initial_empty_rsu_scur;
+		TestCase == send_iec;
+		TestCase == receive_iec;
+		TestCase == send_initial_ecur;
+		TestCase == receive_initial_ecur;
+		TestCase == send_final_ecur;
+		TestCase == receive_final_ecur ->
 	Address = ?config(diameter_acct_address, Config),
 	{ok, _} = ocs:add_client(Address, undefined, diameter, undefined, true),
 	Config;
@@ -192,14 +198,17 @@ all() ->
 	[send_initial_scur, receive_initial_scur, send_interim_scur,
 		receive_interim_scur, send_final_scur, receive_final_scur,
 		receive_interim_no_usu_scur, receive_initial_empty_rsu_scur,
-		post_initial_scur, post_update_scur, post_final_scur].
+		post_initial_scur, post_update_scur, post_final_scur, send_iec,
+		receive_iec, send_initial_ecur, receive_initial_ecur,
+		send_final_ecur, receive_final_ecur, post_iec, post_initial_ecur,
+		post_final_ecur].
 
 %%---------------------------------------------------------------------
 %%  Test cases
 %%---------------------------------------------------------------------
 
 send_initial_scur() ->
-	[{userdata, [{doc, "On received SCUR CCR-I sendstartRating"}]}].
+	[{userdata, [{doc, "On received SCUR CCR-I send startRating"}]}].
 
 send_initial_scur(_Config) ->
 	P1 = price(usage, octets, rand:uniform(10000000), rand:uniform(1000000)),
@@ -599,9 +608,412 @@ post_final_scur(Config) ->
 	TotalOctets2 = InputOctets2 + OutputOctets2,
 	{_, {_, [{_, TotalOctets2}]}} = lists:keyfind("consumedUnit", 1, ServiceRating1).
 
+send_iec() ->
+	[{userdata, [{doc, "On received IEC CCR-I send startRating"}]}].
+
+send_iec(_Config) ->
+	P1 = price(usage, messages, 1, rand:uniform(1000000)),
+	OfferId = add_offer([P1], 11),
+	ProdRef = add_product(OfferId),
+   B1 = bucket(messages, 5),
+   _BId = add_bucket(ProdRef, B1),
+   Ref = erlang:ref_to_list(make_ref()),
+   SId = diameter:session_id(Ref),
+	MSISDN = list_to_binary(ocs:generate_identity()),
+	IMSI = list_to_binary(ocs:generate_identity()),
+	Subscriber = {MSISDN, IMSI},
+	Password = ocs:generate_identity(),
+	{ok, #service{}} = ocs:add_service(MSISDN, Password, ProdRef, []),
+	RequestNum = 0,
+	Answer0 = diameter_iec(Subscriber, SId, RequestNum),
+	#'3gpp_ro_CCA'{'Result-Code' = ?'DIAMETER_BASE_RESULT-CODE_SUCCESS'} = Answer0.
+
+receive_iec() ->
+	[{userdata, [{doc, "On IEC startRating response send CCA-I"}]}].
+
+receive_iec(_Config) ->
+	P1 = price(usage, messages, 1, rand:uniform(1000000)),
+	OfferId = add_offer([P1], 11),
+	ProdRef = add_product(OfferId),
+   B1 = bucket(messages, 5),
+   _BId = add_bucket(ProdRef, B1),
+   Ref = erlang:ref_to_list(make_ref()),
+   SId = diameter:session_id(Ref),
+	MSISDN = list_to_binary(ocs:generate_identity()),
+	IMSI = list_to_binary(ocs:generate_identity()),
+	Subscriber = {MSISDN, IMSI},
+	Password = ocs:generate_identity(),
+	{ok, #service{}} = ocs:add_service(MSISDN, Password, ProdRef, []),
+	RequestNum = 0,
+	Answer0 = diameter_iec(Subscriber, SId, RequestNum),
+	#'3gpp_ro_CCA'{'Result-Code' = ?'DIAMETER_BASE_RESULT-CODE_SUCCESS',
+			'Auth-Application-Id' = ?RO_APPLICATION_ID,
+			'CC-Request-Type' = ?'3GPP_CC-REQUEST-TYPE_EVENT_REQUEST',
+			'CC-Request-Number' = RequestNum,
+			'Multiple-Services-Credit-Control' = [MultiServices_CC]} = Answer0,
+	#'3gpp_ro_Multiple-Services-Credit-Control'{
+			'Used-Service-Unit' = [UsedUnits]} = MultiServices_CC,
+	#'3gpp_ro_Used-Service-Unit'{'CC-Service-Specific-Units' = [1]} = UsedUnits.
+
+send_initial_ecur() ->
+	[{userdata, [{doc, "On received ECUR CCR-I send startRating"}]}].
+
+send_initial_ecur(_Config) ->
+	P1 = price(usage, messages, 1, rand:uniform(1000000)),
+	OfferId = add_offer([P1], 11),
+	ProdRef = add_product(OfferId),
+	MSISDN = list_to_binary(ocs:generate_identity()),
+	IMSI = list_to_binary(ocs:generate_identity()),
+	Subscriber = {MSISDN, IMSI},
+	Password = ocs:generate_identity(),
+	{ok, #service{}} = ocs:add_service(MSISDN, Password, ProdRef, []),
+	B1 = bucket(messages, 5),
+	_BId = add_bucket(ProdRef, B1),
+	Ref = erlang:ref_to_list(make_ref()),
+	SId = diameter:session_id(Ref),
+	RequestNum = 0,
+	Answer0 = diameter_ecur_start(Subscriber, SId, RequestNum),
+	#'3gpp_ro_CCA'{'Result-Code' = ?'DIAMETER_BASE_RESULT-CODE_SUCCESS'} = Answer0.
+
+receive_initial_ecur() ->
+	[{userdata, [{doc, "On ECUR startRating response send CCA-I"}]}].
+
+receive_initial_ecur(_Config) ->
+	P1 = price(usage, messages, 1, rand:uniform(1000000)),
+	OfferId = add_offer([P1], 11),
+	ProdRef = add_product(OfferId),
+	MSISDN = list_to_binary(ocs:generate_identity()),
+	IMSI = list_to_binary(ocs:generate_identity()),
+	Subscriber = {MSISDN, IMSI},
+	Password = ocs:generate_identity(),
+	{ok, #service{}} = ocs:add_service(MSISDN, Password, ProdRef, []),
+	B1 = bucket(messages, 5),
+	_BId = add_bucket(ProdRef, B1),
+	Ref = erlang:ref_to_list(make_ref()),
+	SId = diameter:session_id(Ref),
+	RequestNum = 0,
+	Answer0 = diameter_ecur_start(Subscriber, SId, RequestNum),
+	#'3gpp_ro_CCA'{'Result-Code' = ?'DIAMETER_BASE_RESULT-CODE_SUCCESS',
+			'Auth-Application-Id' = ?RO_APPLICATION_ID,
+			'CC-Request-Type' = ?'3GPP_CC-REQUEST-TYPE_INITIAL_REQUEST',
+			'CC-Request-Number' = RequestNum,
+			'Multiple-Services-Credit-Control' = [MultiServices_CC]} = Answer0,
+	#'3gpp_ro_Multiple-Services-Credit-Control'{
+			'Granted-Service-Unit' = [UsedUnits]} = MultiServices_CC,
+	#'3gpp_ro_Granted-Service-Unit'{'CC-Service-Specific-Units' = [1]} = UsedUnits.
+
+send_final_ecur() ->
+	[{userdata, [{doc, "On received ECUR CCR-U send endRating"}]}].
+
+send_final_ecur(_Config) ->
+	P1 = price(usage, messages, 1, rand:uniform(1000000)),
+	OfferId = add_offer([P1], 11),
+	ProdRef = add_product(OfferId),
+	MSISDN = list_to_binary(ocs:generate_identity()),
+	IMSI = list_to_binary(ocs:generate_identity()),
+	Subscriber = {MSISDN, IMSI},
+	Password = ocs:generate_identity(),
+	{ok, #service{}} = ocs:add_service(MSISDN, Password, ProdRef, []),
+	B1 = bucket(messages, 5),
+	_BId = add_bucket(ProdRef, B1),
+	Ref = erlang:ref_to_list(make_ref()),
+	SId = diameter:session_id(Ref),
+	RequestNum0 = 0,
+	Answer0 = diameter_ecur_start(Subscriber, SId, RequestNum0),
+	#'3gpp_ro_CCA'{'Result-Code' = ?'DIAMETER_BASE_RESULT-CODE_SUCCESS'} = Answer0,
+	RequestNum1 = RequestNum0 + 1,
+	Answer1 = diameter_ecur_final(Subscriber, SId, RequestNum1),
+	#'3gpp_ro_CCA'{'Result-Code' = ?'DIAMETER_BASE_RESULT-CODE_SUCCESS'} = Answer1.
+
+receive_final_ecur() ->
+	[{userdata, [{doc, "On ECUR endRating response send CCA-U"}]}].
+
+receive_final_ecur(_Config) ->
+	P1 = price(usage, messages, 1, rand:uniform(1000000)),
+	OfferId = add_offer([P1], 11),
+	ProdRef = add_product(OfferId),
+	MSISDN = list_to_binary(ocs:generate_identity()),
+	IMSI = list_to_binary(ocs:generate_identity()),
+	Subscriber = {MSISDN, IMSI},
+	Password = ocs:generate_identity(),
+	{ok, #service{}} = ocs:add_service(MSISDN, Password, ProdRef, []),
+	B1 = bucket(messages, 5),
+	_BId = add_bucket(ProdRef, B1),
+	Ref = erlang:ref_to_list(make_ref()),
+	SId = diameter:session_id(Ref),
+	RequestNum0 = 0,
+	Answer0 = diameter_ecur_start(Subscriber, SId, RequestNum0),
+	#'3gpp_ro_CCA'{'Result-Code' = ?'DIAMETER_BASE_RESULT-CODE_SUCCESS'} = Answer0,
+	RequestNum1 = RequestNum0 + 1,
+	Answer1 = diameter_ecur_final(Subscriber, SId, RequestNum1),
+	#'3gpp_ro_CCA'{'Result-Code' = ?'DIAMETER_BASE_RESULT-CODE_SUCCESS',
+			'Auth-Application-Id' = ?RO_APPLICATION_ID,
+			'CC-Request-Type' = ?'3GPP_CC-REQUEST-TYPE_TERMINATION_REQUEST',
+			'CC-Request-Number' = RequestNum1,
+			'Multiple-Services-Credit-Control' = [MultiServices_CC]} = Answer1,
+	#'3gpp_ro_Multiple-Services-Credit-Control'{
+			'Used-Service-Unit' = [UsedUnits]} = MultiServices_CC,
+	#'3gpp_ro_Used-Service-Unit'{'CC-Service-Specific-Units' = [2]} = UsedUnits.
+
+post_iec() ->
+	[{userdata, [{doc, "Post IEC Event Nrf Request to be rated"}]}].
+
+post_iec(Config) ->
+	P1 = price(usage, messages, 1, rand:uniform(1000000)),
+	OfferId = add_offer([P1], 11),
+	ProdRef = add_product(OfferId),
+	MSISDN = ocs:generate_identity(),
+	IMSI = ocs:generate_identity(),
+	Password = ocs:generate_identity(),
+	{ok, #service{}} = ocs:add_service(list_to_binary(MSISDN), Password, ProdRef, []),
+	B1 = bucket(messages, 5),
+	_BId = add_bucket(ProdRef, B1),
+	Accept = {"accept", "application/json"},
+	ContentType = "application/json",
+	HostUrl = ?config(host_url, Config),
+	Messages = 1,
+	Body = nrf_post_iec(MSISDN, IMSI, Messages),
+	RequestBody = lists:flatten(mochijson:encode(Body)),
+	Request1 = {HostUrl ++ "/nrf-rating/v1/ratingdata", [Accept, auth_header()], ContentType, RequestBody},
+	{ok, Result} = httpc:request(post, Request1, [], []),
+	{{"HTTP/1.1", 201, _Created}, _Headers, ResponseBody} = Result,
+	{struct, AttributeList} = mochijson:decode(ResponseBody),
+	{"serviceRating", {_, [{_,ServiceRating}]}}
+			= lists:keyfind("serviceRating", 1, AttributeList),
+	{_, "SUCCESS"} = lists:keyfind("resultCode", 1, ServiceRating),
+	{_, 32} = lists:keyfind("ratingGroup", 1, ServiceRating),
+	{_, 4} = lists:keyfind("serviceId", 1, ServiceRating),
+	{_, "32274@3gpp.org"} = lists:keyfind("serviceContextId", 1, ServiceRating),
+	{_, {_, [{_, Messages}]}} = lists:keyfind("grantedUnit", 1, ServiceRating).
+
+post_initial_ecur() ->
+	[{userdata, [{doc, "Post ECUR Inital Nrf Request to be rated"}]}].
+
+post_initial_ecur(Config) ->
+	P1 = price(usage, messages, 1, rand:uniform(1000000)),
+	OfferId = add_offer([P1], 11),
+	ProdRef = add_product(OfferId),
+	MSISDN = ocs:generate_identity(),
+	IMSI = ocs:generate_identity(),
+	Password = ocs:generate_identity(),
+	{ok, #service{}} = ocs:add_service(list_to_binary(MSISDN), Password, ProdRef, []),
+	B1 = bucket(messages, 5),
+	_BId = add_bucket(ProdRef, B1),
+	Accept = {"accept", "application/json"},
+	ContentType = "application/json",
+	HostUrl = ?config(host_url, Config),
+	Messages = 1,
+	Body = nrf_post_initial_ecur(MSISDN, IMSI, Messages),
+	RequestBody = lists:flatten(mochijson:encode(Body)),
+	Request1 = {HostUrl ++ "/nrf-rating/v1/ratingdata", [Accept, auth_header()], ContentType, RequestBody},
+	{ok, Result} = httpc:request(post, Request1, [], []),
+	{{"HTTP/1.1", 201, _Created}, Headers, ResponseBody} = Result,
+	{_, _Location} = lists:keyfind("location", 1, Headers),
+	{struct, AttributeList} = mochijson:decode(ResponseBody),
+	{"serviceRating", {_, [{_,ServiceRating}]}}
+			= lists:keyfind("serviceRating", 1, AttributeList),
+	{_, "SUCCESS"} = lists:keyfind("resultCode", 1, ServiceRating),
+	{_, 32} = lists:keyfind("ratingGroup", 1, ServiceRating),
+	{_, 4} = lists:keyfind("serviceId", 1, ServiceRating),
+	{_, "32274@3gpp.org"} = lists:keyfind("serviceContextId", 1, ServiceRating),
+	{_, {_, [{_, Messages}]}} = lists:keyfind("grantedUnit", 1, ServiceRating).
+
+post_final_ecur() ->
+	[{userdata, [{doc, "Post ECUR Final Nrf Request to be rated"}]}].
+
+post_final_ecur(Config) ->
+	P1 = price(usage, messages, 1, rand:uniform(1000000)),
+	OfferId = add_offer([P1], 11),
+	ProdRef = add_product(OfferId),
+	MSISDN = ocs:generate_identity(),
+	IMSI = ocs:generate_identity(),
+	Password = ocs:generate_identity(),
+	{ok, #service{}} = ocs:add_service(list_to_binary(MSISDN), Password, ProdRef, []),
+	B1 = bucket(messages, 5),
+	_BId = add_bucket(ProdRef, B1),
+	Accept = {"accept", "application/json"},
+	ContentType = "application/json",
+	HostUrl = ?config(host_url, Config),
+	Messages = 1,
+	Body = nrf_post_initial_ecur(MSISDN, IMSI, Messages),
+	RequestBody = lists:flatten(mochijson:encode(Body)),
+	Request = {HostUrl ++ "/nrf-rating/v1/ratingdata", [Accept, auth_header()], ContentType, RequestBody},
+	{ok, Result} = httpc:request(post, Request, [], []),
+	{{"HTTP/1.1", 201, _Created}, Headers, _ResponseBody} = Result,
+	{_, Location} = lists:keyfind("location", 1, Headers),
+	Messages1 = 2,
+	Body1 = nrf_post_final_ecur(MSISDN, IMSI, Messages1),
+	RequestBody1 = lists:flatten(mochijson:encode(Body1)),
+	Request1 = {HostUrl ++ "/nrf-rating/v1" ++ Location ++ "/release",
+			[Accept, auth_header()], ContentType, RequestBody1},
+	{ok, Result1} = httpc:request(post, Request1, [], []),
+	{{"HTTP/1.1", 200, _Ok}, _Headers1, ResponseBody1} = Result1,
+	{struct, AttributeList} = mochijson:decode(ResponseBody1),
+	{"serviceRating", {_, [{_, ServiceRating}]}}
+			= lists:keyfind("serviceRating", 1, AttributeList),
+	{_, "SUCCESS"} = lists:keyfind("resultCode", 1, ServiceRating),
+	{_, 32} = lists:keyfind("ratingGroup", 1, ServiceRating),
+	{_, 4} = lists:keyfind("serviceId", 1, ServiceRating),
+	{_, "32274@3gpp.org"} = lists:keyfind("serviceContextId", 1, ServiceRating),
+	{_, {_, [{_, Messages1}]}} = lists:keyfind("consumedUnit", 1, ServiceRating).
+
 %%---------------------------------------------------------------------
 %%  Internal functions
 %%---------------------------------------------------------------------
+
+nrf_post_final_ecur(MSISDN, IMSI, Messages) ->
+	TS = erlang:system_time(?MILLISECOND),
+	InvocationTimeStamp = ocs_log:iso8601(TS),
+	{struct, [{"nfConsumerIdentification",
+			{struct, [{"nodeFunctionality", "OCF"}]}},
+			{"invocationTimeStamp", InvocationTimeStamp },
+			{"invocationSequenceNumber", 2},
+			{"subscriptionId",
+					{array, ["msisdn-" ++ MSISDN, "imsi-" ++ IMSI]}},
+			{"oneTimeEvent", true},
+			{"oneTimeEventType", "PEC"},
+			{"serviceRating",
+					{array, [{struct, [{"serviceContextId", "32274@3gpp.org"},
+							{"serviceId", 4},
+							{"ratingGroup", 32},
+							{"consumedUnit", {struct, [{"serviceSpecificUnit", Messages}]}},
+							{"destinationId",
+									{array, [{struct, [{"destinationIdType", "DN"},
+									{"destinationIdData", "14165556789"}]}]}},
+							{"requestSubType", "DEBIT"}]}]}}]}.
+
+nrf_post_initial_ecur(MSISDN, IMSI, Messages) ->
+	TS = erlang:system_time(?MILLISECOND),
+	InvocationTimeStamp = ocs_log:iso8601(TS),
+	{struct, [{"nfConsumerIdentification",
+			{struct, [{"nodeFunctionality", "OCF"}]}},
+			{"invocationTimeStamp", InvocationTimeStamp },
+			{"invocationSequenceNumber", 1},
+			{"subscriptionId",
+					{array, ["msisdn-" ++ MSISDN, "imsi-" ++ IMSI]}},
+			{"oneTimeEvent", true},
+			{"oneTimeEventType", "PEC"},
+			{"serviceRating",
+					{array, [{struct, [{"serviceContextId", "32274@3gpp.org"},
+							{"serviceId", 4},
+							{"ratingGroup", 32},
+							{"requestedUnit", {struct, [{"serviceSpecificUnit", Messages}]}},
+							{"destinationId",
+									{array, [{struct, [{"destinationIdType", "DN"},
+									{"destinationIdData", "14165556789"}]}]}},
+							{"requestSubType", "RESERVE"}]}]}}]}.
+
+nrf_post_iec(MSISDN, IMSI, Messages) ->
+	TS = erlang:system_time(?MILLISECOND),
+	InvocationTimeStamp = ocs_log:iso8601(TS),
+	{struct, [{"nfConsumerIdentification",
+			{struct, [{"nodeFunctionality", "OCF"}]}},
+			{"invocationTimeStamp", InvocationTimeStamp },
+			{"invocationSequenceNumber", 1},
+			{"subscriptionId",
+					{array, ["msisdn-" ++ MSISDN, "imsi-" ++ IMSI]}},
+			{"oneTimeEvent", true},
+			{"oneTimeEventType", "IEC"},
+			{"serviceRating",
+					{array, [{struct, [{"serviceContextId", "32274@3gpp.org"},
+							{"serviceId", 4},
+							{"ratingGroup", 32},
+							{"requestedUnit", {struct, [{"serviceSpecificUnit", Messages}]}},
+							{"destinationId",
+									{array, [{struct, [{"destinationIdType", "DN"},
+									{"destinationIdData", "14165556789"}]}]}},
+							{"requestSubType", "DEBIT"}]}]}}]}.
+
+diameter_ecur_start({MSISDN, IMSI}, SId, RequestNum) ->
+	MSISDN1 = #'3gpp_ro_Subscription-Id'{
+			'Subscription-Id-Type' = ?'3GPP_SUBSCRIPTION-ID-TYPE_END_USER_E164',
+			'Subscription-Id-Data' = MSISDN},
+	IMSI1 = #'3gpp_ro_Subscription-Id'{
+			'Subscription-Id-Type' = ?'3GPP_SUBSCRIPTION-ID-TYPE_END_USER_IMSI',
+			'Subscription-Id-Data' = IMSI},
+	RequestedUnits = #'3gpp_ro_Requested-Service-Unit'
+			{'CC-Service-Specific-Units' = [1]},
+	MultiServices_CC = #'3gpp_ro_Multiple-Services-Credit-Control'{
+			'Requested-Service-Unit' = [RequestedUnits], 'Service-Identifier' = [1],
+			'Rating-Group' = [2]},
+	ServiceInformation = #'3gpp_ro_Service-Information'{
+			'SMS-Information' = [#'3gpp_ro_SMS-Information'{
+			'Recipient-Info' = [#'3gpp_ro_Recipient-Info'{
+			'Recipient-Address' = [#'3gpp_ro_Recipient-Address'{
+			'Address-Data' = [ocs:generate_identity()]}]}]}]},
+	CC_CCR = #'3gpp_ro_CCR'{'Session-Id' = SId,
+			'Auth-Application-Id' = ?RO_APPLICATION_ID,
+			'Service-Context-Id' = "32260@3gpp.org",
+			'User-Name' = [MSISDN],
+			'CC-Request-Type' = ?'3GPP_CC-REQUEST-TYPE_INITIAL_REQUEST',
+			'CC-Request-Number' = RequestNum,
+			'Event-Timestamp' = [calendar:universal_time()],
+			'Subscription-Id' = [MSISDN1, IMSI1],
+			'Multiple-Services-Credit-Control' = [MultiServices_CC],
+			'Service-Information' = [ServiceInformation]},
+	{ok, Answer} = diameter:call(?MODULE, cc_app_test, CC_CCR, []),
+	Answer.
+
+diameter_ecur_final({MSISDN, IMSI}, SId, RequestNum) ->
+	MSISDN1 = #'3gpp_ro_Subscription-Id'{
+			'Subscription-Id-Type' = ?'3GPP_SUBSCRIPTION-ID-TYPE_END_USER_E164',
+			'Subscription-Id-Data' = MSISDN},
+	IMSI1 = #'3gpp_ro_Subscription-Id'{
+			'Subscription-Id-Type' = ?'3GPP_SUBSCRIPTION-ID-TYPE_END_USER_IMSI',
+			'Subscription-Id-Data' = IMSI},
+	UsedUnits = #'3gpp_ro_Used-Service-Unit'
+			{'CC-Service-Specific-Units' = [2]},
+	MultiServices_CC = #'3gpp_ro_Multiple-Services-Credit-Control'{
+			'Used-Service-Unit' = [UsedUnits], 'Service-Identifier' = [1],
+			'Rating-Group' = [2]},
+	ServiceInformation = #'3gpp_ro_Service-Information'{
+			'SMS-Information' = [#'3gpp_ro_SMS-Information'{
+			'Recipient-Info' = [#'3gpp_ro_Recipient-Info'{
+			'Recipient-Address' = [#'3gpp_ro_Recipient-Address'{
+			'Address-Data' = [ocs:generate_identity()]}]}]}]},
+	CC_CCR = #'3gpp_ro_CCR'{'Session-Id' = SId,
+			'Auth-Application-Id' = ?RO_APPLICATION_ID,
+			'Service-Context-Id' = "32260@3gpp.org",
+			'User-Name' = [MSISDN],
+			'CC-Request-Type' = ?'3GPP_CC-REQUEST-TYPE_TERMINATION_REQUEST',
+			'CC-Request-Number' = RequestNum,
+			'Event-Timestamp' = [calendar:universal_time()],
+			'Subscription-Id' = [MSISDN1, IMSI1],
+			'Multiple-Services-Credit-Control' = [MultiServices_CC],
+			'Service-Information' = [ServiceInformation]},
+	{ok, Answer} = diameter:call(?MODULE, cc_app_test, CC_CCR, []),
+	Answer.
+
+diameter_iec({MSISDN, IMSI}, SId, RequestNum) ->
+	MSISDN1 = #'3gpp_ro_Subscription-Id'{
+			'Subscription-Id-Type' = ?'3GPP_SUBSCRIPTION-ID-TYPE_END_USER_E164',
+			'Subscription-Id-Data' = MSISDN},
+	IMSI1 = #'3gpp_ro_Subscription-Id'{
+			'Subscription-Id-Type' = ?'3GPP_SUBSCRIPTION-ID-TYPE_END_USER_IMSI',
+			'Subscription-Id-Data' = IMSI},
+	RequestedUnits = #'3gpp_ro_Requested-Service-Unit'
+			{'CC-Service-Specific-Units' = [1]},
+	MultiServices_CC = #'3gpp_ro_Multiple-Services-Credit-Control'{
+			'Requested-Service-Unit' = [RequestedUnits], 'Service-Identifier' = [1],
+			'Rating-Group' = [2]},
+	ServiceInformation = #'3gpp_ro_Service-Information'{
+			'SMS-Information' = [#'3gpp_ro_SMS-Information'{
+			'Recipient-Info' = [#'3gpp_ro_Recipient-Info'{
+			'Recipient-Address' = [#'3gpp_ro_Recipient-Address'{
+			'Address-Data' = [ocs:generate_identity()]}]}]}]},
+	CC_CCR = #'3gpp_ro_CCR'{'Session-Id' = SId,
+			'Auth-Application-Id' = ?RO_APPLICATION_ID,
+			'Service-Context-Id' = "32274@3gpp.org",
+			'User-Name' = [MSISDN],
+			'CC-Request-Type' = ?'3GPP_CC-REQUEST-TYPE_EVENT_REQUEST',
+			'CC-Request-Number' = RequestNum,
+			'Requested-Action' = [?'3GPP_RO_REQUESTED-ACTION_DIRECT_DEBITING'],
+			'Event-Timestamp' = [calendar:universal_time()],
+			'Subscription-Id' = [MSISDN1, IMSI1],
+			'Multiple-Services-Credit-Control' = [MultiServices_CC],
+			'Service-Information' = [ServiceInformation]},
+	{ok, Answer} = diameter:call(?MODULE, cc_app_test, CC_CCR, []),
+	Answer.
 
 nrf_post_initial_scur(MSISDN, IMSI, InputOctets, OutputOctets) ->
 	TS = erlang:system_time(?MILLISECOND),
@@ -618,7 +1030,7 @@ nrf_post_initial_scur(MSISDN, IMSI, InputOctets, OutputOctets) ->
 							{struct, [{"mcc", "001"}, {"mnc", "001"}]}}]}},
 							{"serviceId", 1},
 							{"ratingGroup", 32},
-							{"requestedUnit", {struct,[{"totalVolume", InputOctets + OutputOctets},
+							{"requestedUnit", {struct, [{"totalVolume", InputOctets + OutputOctets},
 										{"uplinkVolume", InputOctets},
 										{"downlinkVolume", OutputOctets}]}},
 							{"requestSubType", "RESERVE"}]}]}}]}.

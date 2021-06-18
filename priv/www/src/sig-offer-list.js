@@ -190,12 +190,7 @@ class offerList extends PolymerElement {
 				}
 				for (var index in request.response) {
 					var newRecord = new Object();
-					function checkExist(name) {
-						return name == request.response[index].name;
-					}
-					if(!offerList.offers.some(checkExist)) {
-						offerList.push('offers', request.response[index].name);
-					}
+					offerList.push('offers', request.response[index].name);
 					newRecord.id = request.response[index].name;
 					newRecord.description = request.response[index].description;
 					newRecord.productSpecification = request.response[index].productSpecification;

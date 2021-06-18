@@ -232,6 +232,7 @@ styleElement.innerHTML = `<template>
 		paper-checkbox {
 			--paper-checkbox-checked-color: #ffb04c;
 			--paper-checkbox-checkmark-color: var(--paper-yellow-900);
+			padding-right: 1em;
 		}
 		.generate {
 			display: inline-block;
