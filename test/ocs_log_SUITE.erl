@@ -864,7 +864,7 @@ diameter_scur(_Config) ->
 	{ok, #bucket{remain_amount = RemainAmount,
 			units = Units}} = ocs:find_bucket(BId),
 	#rated{bucket_value = R,bucket_type = Units, is_billed = true,
-			product = OfferId, price_type = usage} = Rated,
+			product = OfferId, price_type = usage} = Rated.
 
 %%---------------------------------------------------------------------
 %% internal functions
