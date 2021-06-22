@@ -943,7 +943,17 @@ class offerUpdate extends PolymerElement {
 							newAlt.start = current.prices[index].productOfferPriceAlteration.validFor.startDateTime;
 							newAlt.end = current.prices[index].productOfferPriceAlteration.validFor.endDateTime;
 						}
-						newAlt.priceType = current.prices[index].productOfferPriceAlteration.priceType;
+						switch(current.prices[index].productOfferPriceAlteration.priceType) {
+							case "recurring":
+								newAlt.priceType = "Recurring";
+								break;
+							case "one_time":
+								newAlt.priceType = "One Time";
+								break;
+							case "usage":
+								newAlt.priceType = "Usage";
+								break;
+						}
 						if (current.prices[index].productOfferPriceAlteration.unitOfMeasure) {
 							var unitOfMeasure = current.prices[index].productOfferPriceAlteration.unitOfMeasure;
 							switch(unitOfMeasure.charAt(unitOfMeasure.length - 1)) {
@@ -963,7 +973,23 @@ class offerUpdate extends PolymerElement {
 							newAlt.currency = current.prices[index].productOfferPriceAlteration.price.currencyCode;
 							newAlt.amount = current.prices[index].productOfferPriceAlteration.price.taxIncludedAmount;
 						}
-						newAlt.period = current.prices[index].productOfferPriceAlteration.recurringChargePeriod;
+						switch(current.prices[index].productOfferPriceAlteration.recurringChargePeriod) {
+							case "hourly":
+								newAlt.period = "Hourly";
+								break;
+							case "daily":
+								newAlt.period = "Daily";
+								break;
+							case "weekly":
+								newAlt.period = "Weekly";
+								break;
+							case "monthly":
+								newAlt.period = "Monthly";
+								break;
+							case "yearly":
+								newAlt.period = "Yearly";
+								break;
+						}
 						this.push('alterations', newAlt);
 						newPrice.alteration = newAlt.name;
 					}
@@ -1202,17 +1228,7 @@ class offerUpdate extends PolymerElement {
 					this.updateOfferStartDateAlt = this.alterations[indexAlt].start;
 					this.updateOfferEndDateAlt = this.alterations[indexAlt].end;
 				}
-				switch(this.alterations[indexAlt].priceType) {
-					case "recurring":
-						this.$.updateAltType.selected = 0;
-						break;
-					case "one_time":
-						this.$.updateAltType.selected = 1;
-						break;
-					case "usage":
-						this.$.updateAltType.selected = 2;
-						break;
-				}
+				this.altUpdateType = this.alterations[indexAlt].priceType;
 				this.$.updateAltSize.value = this.alterations[indexAlt].size;
 				switch(this.alterations[indexAlt].unit) {
 					case "b":
@@ -1229,23 +1245,7 @@ class offerUpdate extends PolymerElement {
 					this.altUpdateCurr = this.alterations[indexAlt].currency;
 					this.$.updateAltAmount.value = this.alterations[indexAlt].amount;
 				}
-				switch(this.alterations[indexAlt].period) {
-					case "hourly":
-						this.$.updateAltPeriod.selected = 0;
-						break;
-					case "daily":
-						this.$.updateAltPeriod.selected = 1;
-						break;
-					case "weekly":
-						this.$.updateAltPeriod.selected = 2;
-						break;
-					case "monthly":
-						this.$.updateAltPeriod.selected = 3;
-						break;
-					case "yearly":
-						this.$.updateAltPeriod.selected = 4;
-						break;
-				}
+				this.AltUpdatePer = this.alterations[indexAlt].period;
 			}
 		}
 	}
@@ -1837,20 +1837,21 @@ class offerUpdate extends PolymerElement {
 			var alterationType = new Object();
 			alterationType.op = "add";
 			alterationType.path = "/productOfferingPrice/" + indexAlt + "/productOfferPriceAlteration/priceType";
-			switch(this.$.updateAltType.selected) {
-				case 0:
+			switch(this.altUpdateType) {
+				case "Recurring":
 					alterationType.value = "recurring";
 					break;
-				case 1:
+				case "One Time":
 					alterationType.value = "one_time";
 					break;
-				case 2:
+				case "Usage":
 					alterationType.value = "usage";
 					break;
 			}
 			updateAlterationNew.push(alterationType);
 		}
-		if(this.$.updateAltSize.value) {
+console.log(this.alterations[indexAlt]);
+		if(this.$.updateAltSize.value != this.alterations[indexAlt].size) {
 			var alterationSize = new Object();
 			alterationSize.op = "add";
 			alterationSize.path = "/productOfferingPrice/" + indexAlt + "/productOfferPriceAlteration/unitOfMeasure";
@@ -1897,14 +1898,14 @@ class offerUpdate extends PolymerElement {
 				updateAlterationNew.push(alterationSize);
 			}
 		}
-		if(this.$.updateAltAmount.value) {
+		if(this.$.updateAltAmount.value != this.alterations[indexAlt].amount) {
 			var altAmount = new Object();
 			altAmount.op = "add";
 			altAmount.path = "/productOfferingPrice/" + indexAlt + "/price/taxIncludedAmount";
 			altAmount.value = this.$.updateAltAmount.value;
 			updateAlterationNew.push(altAmount);
 		}
-		if(this.$.addalt5drop.value && !this.$.addalt5drop.disabled) {
+		if(this.$.addalt5drop.value != this.alterations[indexAlt].period && !this.$.addalt5drop.disabled) {
 			var altCharge = new Object();
 			altCharge.op = "add";
 			altCharge.path = "/productOfferingPrice/" + indexAlt + "/recurringChargePeriod";
