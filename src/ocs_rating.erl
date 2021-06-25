@@ -279,7 +279,7 @@ rate1(Protocol, Service, Buckets, Timestamp, Address,
 		State#state{rated = #rated{product = OfferName}}).
 %% @hidden
 rate2(Protocol, Service, Buckets, Timestamp, Address, Direction,
-		#offer{specification = ProdSpec, price = Prices} = Offer,
+		#offer{specification = ProdSpec, price = Prices} = _Offer,
 		Flag, DebitAmounts, ReserveAmounts,
 		#state{charging_key = ChargingKey} = State)
 		when ProdSpec == "10"; ProdSpec == "11" ->
@@ -305,7 +305,7 @@ rate2(Protocol, Service, Buckets, Timestamp, Address, Direction,
 			throw(price_not_found)
 	end;
 rate2(Protocol, Service, Buckets, Timestamp, Address, Direction,
-		#offer{specification = ProdSpec, price = Prices} = Offer,
+		#offer{specification = ProdSpec, price = Prices} = _Offer,
 		Flag, DebitAmounts, ReserveAmounts,
 		#state{charging_key = ChargingKey} = State)
 		when ProdSpec == "5"; ProdSpec == "9" ->
@@ -329,7 +329,7 @@ rate2(Protocol, Service, Buckets, Timestamp, Address, Direction,
 			throw(price_not_found)
 	end;
 rate2(Protocol, Service, Buckets, Timestamp, _Address, _Direction,
-		#offer{price = Prices} = Offer, Flag, DebitAmounts, ReserveAmounts,
+		#offer{price = Prices} = _Offer, Flag, DebitAmounts, ReserveAmounts,
 		#state{charging_key = ChargingKey} = State) ->
 	F = fun(#price{type = tariff, units = octets}) ->
 				true;
@@ -358,7 +358,13 @@ rate3(Protocol, Service, Buckets, Address,
 		#char_value_use{values = [#char_value{value = TariffTable}]}
 				when RoamingTable == undefined ->
 			Table = list_to_existing_atom(TariffTable),
-			case catch ocs_gtt:lookup_last(Table, Address) of
+			Prefix = case Address of
+				Address when is_binary(Address) ->
+					binary_to_list(Address);
+				Address when is_list(Address) ->
+					Address
+			end,
+			case catch ocs_gtt:lookup_last(Table, Prefix) of
 				{Description, Amount, _} when is_integer(Amount) ->
 					case Amount of
 						N when N >= 0 ->
@@ -381,7 +387,13 @@ rate3(Protocol, Service, Buckets, Address,
 			case catch ocs:find_sn_network(Table1, ServiceNetwork) of
 				{_, _, _Description, TabPrefix} ->
 						Table2 = list_to_existing_atom(TabPrefix ++ "-" ++ TariffTable),
-						case catch ocs_gtt:lookup_last(Table2, Address) of
+						Prefix = case Address of
+							Address when is_binary(Address) ->
+								binary_to_list(Address);
+							Address when is_list(Address) ->
+							Address
+						end,
+						case catch ocs_gtt:lookup_last(Table2, Prefix) of
 							{Description1, Amount, _} when is_integer(Amount) ->
 								case Amount of
 									N when N >= 0 ->
@@ -1068,7 +1080,13 @@ authorize3(Protocol, ServiceType, Service, Buckets, Address,
 	case lists:keyfind("destPrefixTariffTable", #char_value_use.name, CharValueUse) of
 		#char_value_use{values = [#char_value{value = TariffTable}]} ->
 			Table = list_to_existing_atom(TariffTable),
-			case catch ocs_gtt:lookup_last(Table, Address) of
+			Prefix = case Address of
+				Address when is_binary(Address) ->
+					binary_to_list(Address);
+				Address when is_list(Address) ->
+					Address
+			end,
+			case catch ocs_gtt:lookup_last(Table, Prefix) of
 				{_Description, Amount, _} when is_integer(Amount) ->
 					case Amount of
 						N when N >= 0 ->
@@ -2085,8 +2103,12 @@ get_debits(_, _, _, [], Debit, Refund, Acc) ->
 		Result :: [Rated].
 %% @doc Construct rated product usage.
 %% @hidden
-rated(Debits, Rated) when map_size(Debits) =:= 0 ->
+rated(Debits, Rated)
+		when map_size(Debits) =:= 0, is_list(Rated) ->
 	Rated;
+rated(Debits, Rated)
+		when map_size(Debits) =:= 0 ->
+	[Rated];
 rated(Debits, #rated{} = Rated) ->
 	rated(Debits, [Rated]);
 rated(Debits, [#rated{} = Rated | T]) ->
