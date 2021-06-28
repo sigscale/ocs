@@ -279,7 +279,7 @@ rate1(Protocol, Service, Buckets, Timestamp, Address,
 		State#state{rated = #rated{product = OfferName}}).
 %% @hidden
 rate2(Protocol, Service, Buckets, Timestamp, Address, Direction,
-		#offer{specification = ProdSpec, price = Prices} = Offer,
+		#offer{specification = ProdSpec, price = Prices} = _Offer,
 		Flag, DebitAmounts, ReserveAmounts,
 		#state{charging_key = ChargingKey} = State)
 		when ProdSpec == "10"; ProdSpec == "11" ->
@@ -305,7 +305,7 @@ rate2(Protocol, Service, Buckets, Timestamp, Address, Direction,
 			throw(price_not_found)
 	end;
 rate2(Protocol, Service, Buckets, Timestamp, Address, Direction,
-		#offer{specification = ProdSpec, price = Prices} = Offer,
+		#offer{specification = ProdSpec, price = Prices} = _Offer,
 		Flag, DebitAmounts, ReserveAmounts,
 		#state{charging_key = ChargingKey} = State)
 		when ProdSpec == "5"; ProdSpec == "9" ->
@@ -329,7 +329,7 @@ rate2(Protocol, Service, Buckets, Timestamp, Address, Direction,
 			throw(price_not_found)
 	end;
 rate2(Protocol, Service, Buckets, Timestamp, _Address, _Direction,
-		#offer{price = Prices} = Offer, Flag, DebitAmounts, ReserveAmounts,
+		#offer{price = Prices} = _Offer, Flag, DebitAmounts, ReserveAmounts,
 		#state{charging_key = ChargingKey} = State) ->
 	F = fun(#price{type = tariff, units = octets}) ->
 				true;
@@ -2085,8 +2085,12 @@ get_debits(_, _, _, [], Debit, Refund, Acc) ->
 		Result :: [Rated].
 %% @doc Construct rated product usage.
 %% @hidden
-rated(Debits, Rated) when map_size(Debits) =:= 0 ->
+rated(Debits, Rated)
+		when map_size(Debits) =:= 0, is_list(Rated) ->
 	Rated;
+rated(Debits, Rated)
+		when map_size(Debits) =:= 0 ->
+	[Rated];
 rated(Debits, #rated{} = Rated) ->
 	rated(Debits, [Rated]);
 rated(Debits, [#rated{} = Rated | T]) ->

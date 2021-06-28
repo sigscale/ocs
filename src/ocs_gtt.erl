@@ -6,13 +6,13 @@
 %%%---------------------------------------------------------------------
 %%% @doc Global Title Table.
 %%% 	This module implements generic prefix matching tables for digit
-%%% 	strings using an {@link //mnesia} backing store.  Prefix matching 
+%%% 	strings using an {@link //mnesia} backing store.  Prefix matching
 %%% 	may be done effeciently because each unique prefix is stored
 %%% 	in the table.  A lookup for `"1519"' may be done in up to four
 %%%	steps.  First find `"1"' as a key, if the key is not found the
-%%% 	prefix does not exist in the table.  If the value for the key 
+%%% 	prefix does not exist in the table.  If the value for the key
 %%% 	is undefined lookup `"15"' and if that key's value is undefined
-%%% 	lookup `"151"' This continues until either the key is not found 
+%%% 	lookup `"151"' This continues until either the key is not found
 %%% 	or the value is not undefined.
 %%%
 %%% 	The example below shows the table contents after an initial entry
@@ -75,6 +75,7 @@ new(Table, Options) when is_list(Options) ->
 			[{attributes, record_info(fields, gtt)},
 			{record_name, gtt}]) of
 		{atomic, ok} ->
+			add_resource(Table),
 			ok;
 		{aborted, Reason} ->
 			exit(Reason)
@@ -105,12 +106,13 @@ new(Table, Options, Items) when is_list(Options), is_list(Items) ->
 	mnesia:create_table(Table, Options ++
 			[{attributes, record_info(fields, gtt)},
 			{record_name, gtt}]),
+	add_resource(Table),
 	Threshold = mnesia:system_info(dump_log_write_threshold) - 1,
 	Ftran = fun(F, [{Number, Value} | T], N) when is_integer(Number) ->
 				F(F, [{integer_to_list(Number), Value} | T], N);
 			(F, [{Number, _Value} | _T] = L, N) when length(Number) > N ->
 				mnesia:dump_log(),
-				F(F, L, Threshold); 
+				F(F, L, Threshold);
 			(F, [{Number, Value} | T], N) ->
 				{Writes, _} = insert(Table, Number, Value, []),
 				F(F, T, N - Writes);
@@ -136,7 +138,7 @@ new(Table, Options, Items) when is_list(Options), is_list(Items) ->
 		Value :: term(),
 		Result :: {ok, #gtt{}}.
 %% @doc Insert a table entry.
-%% 
+%%
 insert(Table, Number, Value) when is_list(Table) ->
 	insert(list_to_existing_atom(Table), Number, Value);
 insert(Table, Number, Value) when is_atom(Table), is_list(Number) ->
@@ -159,7 +161,7 @@ insert(Table, Number, Value) when is_atom(Table), is_list(Number) ->
 %% 	The entries are inserted as a transaction, either all entries
 %% 	are added to the table or, if an entry insertion fails, none at
 %% 	all.
-%% 
+%%
 insert(Table, Items) when is_list(Table) ->
 	insert(list_to_existing_atom(Table), Items);
 insert(Table, Items) when is_atom(Table), is_list(Items)  ->
@@ -173,7 +175,7 @@ insert(Table, Items) when is_atom(Table), is_list(Items)  ->
 		Table :: atom() | string(),
 		Number :: string().
 %% @doc Delete a table entry.
-%% 
+%%
 delete(Table, Number) when is_list(Table) ->
 	delete(list_to_existing_atom(Table), Number);
 delete(Table, Number) when is_atom(Table), is_list(Number) ->
@@ -199,7 +201,7 @@ delete(Table, Number) when is_atom(Table), is_list(Number) ->
 		Number :: string(),
 		Value :: term().
 %% @doc Lookup the value of the first matching table entry.
-%% 
+%%
 lookup_first(Table, Number) when is_list(Table) ->
 	lookup_first(list_to_existing_atom(Table), Number);
 lookup_first(Table, [Digit | Rest]) when is_atom(Table) ->
@@ -219,7 +221,7 @@ lookup_first(Table, [Digit | Rest]) when is_atom(Table) ->
 		Number :: string(),
 		Value :: term().
 %% @doc Lookup the value of the longest matching table entry.
-%% 
+%%
 lookup_last(Table, Number) when is_list(Table) ->
 	lookup_last(list_to_existing_atom(Table), Number);
 lookup_last(Table, Number) when is_atom(Table) ->
@@ -243,7 +245,7 @@ lookup_last(Table, Number) when is_atom(Table) ->
 		Number :: string(),
 		Value :: term().
 %% @doc Lookup the values of matching table entries.
-%% 
+%%
 lookup_all(Table, Number) when is_list(Table) ->
 	lookup_all(list_to_existing_atom(Table), Number);
 lookup_all(Table, [Digit | Rest]) when is_atom(Table) ->
@@ -263,7 +265,7 @@ lookup_all(Table, [Digit | Rest]) when is_atom(Table) ->
 		Table :: atom() | string(),
 		File :: string().
 %% @doc Create a backup of the named table(s) in `File.BUPTMP'.
-%% 
+%%
 backup([H | _ ] = Tables, File) when is_list(H) ->
 	backup([list_to_existing_atom(T) || T <- Tables], File);
 backup(Tables, File) when is_list(Tables), is_integer(hd(Tables)) ->
@@ -291,7 +293,7 @@ backup(Tables, File) when is_list(Tables), is_list(File) ->
 		File :: string(),
 		RestoredTabs :: [atom()].
 %% @doc Restore the named table(s) from the backup in `File.BUPTMP'.
-%% 
+%%
 restore([H | _ ] = Tables, File) when is_list(H) ->
 	restore([list_to_existing_atom(T) || T <- Tables], File);
 restore(Tables, File) when is_list(Tables), is_integer(hd(Tables)) ->
@@ -301,6 +303,7 @@ restore(Tables, File) when is_atom(Tables) ->
 restore(Tables, File) when is_list(Tables), is_list(File) ->
 	case mnesia:restore(File, [{clear_tables, Tables}]) of
 		{atomic, RestoredTabs} ->
+			add_resources(RestoredTabs),
 			{ok,  RestoredTabs};
 		{aborted, Reason} ->
 			exit(Reason)
@@ -369,6 +372,7 @@ import3(Table, Records) ->
 	end,
 	case mnesia:transaction(F) of
 		{atomic, ok} ->
+			add_resource(Table),
 			ok;
 		{aborted, Reason} ->
 			exit(Reason)
@@ -485,6 +489,53 @@ clear_table(Table) when is_atom(Table) ->
 %%----------------------------------------------------------------------
 %%  internal functions
 %%----------------------------------------------------------------------
+
+-spec add_resource(Table) -> Result
+	when
+		Table :: atom() | string(),
+		Result :: ok.
+%% @doc Add a REST resource.
+add_resource(Table) when is_atom(Table) ->
+	add_resource(atom_to_list(Table));
+add_resource(Table) when is_list(Table) ->
+	TariffResource = #resource{name = Table, state = "created",
+			description = Table ++ "tariff",
+			specification = #specification_ref{id = "1",
+			href = "/resourceCatalogManagement/v2/resourceSpecification/1",
+			name = "TariffTable"}},
+	case ocs:add_resource(TariffResource) of
+		{ok, #resource{}} ->
+			ok;
+		{error, Reason} ->
+			exit(Reason)
+	end.
+
+-spec add_resources(Tables) -> Result
+	when
+		Tables :: [atom() | string()],
+		Result :: ok.
+%% @doc Add a REST resource.
+add_resources([H | T]) ->
+	ok = add_resources1(H),
+	add_resources(T);
+add_resources([]) ->
+	ok.
+%% @hidden
+add_resources1(Table) when is_atom(Table) ->
+	add_resources1(atom_to_list(Table));
+add_resources1(Table) when is_list(Table) ->
+	TariffResource = #resource{name = Table, state = "created",
+			description = Table ++ "tariff",
+			specification = #specification_ref{id = "1",
+			href = "/resourceCatalogManagement/v2/resourceSpecification/1",
+			name = "TariffTable"}},
+	case ocs:add_resource(TariffResource) of
+		{ok, #resource{}} ->
+			ok;
+		{error, Reason} ->
+			exit(Reason)
+
+	end.
 
 -spec insert(Table, Number, Value, []) -> {NumWrites, #gtt{}}
 	when

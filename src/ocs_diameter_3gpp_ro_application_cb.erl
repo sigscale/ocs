@@ -1105,9 +1105,9 @@ fui(RedirectServerAddress)
 			?'3GPP_RO_REDIRECT-ADDRESS-TYPE_IPV6_ADDRESS';
 		{error, _} ->
 			case RedirectServerAddress of
-				"sip:" ++ _Address ->
+				[$s, $i, $p, $: | _]  ->
 					?'3GPP_RO_REDIRECT-ADDRESS-TYPE_SIP_URI';
-				"http:" ++ _Address ->
+				[$h, $t, $t, $p, $: | _]  ->
 					?'3GPP_RO_REDIRECT-ADDRESS-TYPE_URL';
 				_ ->
 					[]
