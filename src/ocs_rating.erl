@@ -358,13 +358,7 @@ rate3(Protocol, Service, Buckets, Address,
 		#char_value_use{values = [#char_value{value = TariffTable}]}
 				when RoamingTable == undefined ->
 			Table = list_to_existing_atom(TariffTable),
-			Prefix = case Address of
-				Address when is_binary(Address) ->
-					binary_to_list(Address);
-				Address when is_list(Address) ->
-					Address
-			end,
-			case catch ocs_gtt:lookup_last(Table, Prefix) of
+			case catch ocs_gtt:lookup_last(Table, Address) of
 				{Description, Amount, _} when is_integer(Amount) ->
 					case Amount of
 						N when N >= 0 ->
@@ -387,13 +381,7 @@ rate3(Protocol, Service, Buckets, Address,
 			case catch ocs:find_sn_network(Table1, ServiceNetwork) of
 				{_, _, _Description, TabPrefix} ->
 						Table2 = list_to_existing_atom(TabPrefix ++ "-" ++ TariffTable),
-						Prefix = case Address of
-							Address when is_binary(Address) ->
-								binary_to_list(Address);
-							Address when is_list(Address) ->
-							Address
-						end,
-						case catch ocs_gtt:lookup_last(Table2, Prefix) of
+						case catch ocs_gtt:lookup_last(Table2, Address) of
 							{Description1, Amount, _} when is_integer(Amount) ->
 								case Amount of
 									N when N >= 0 ->
@@ -1080,13 +1068,7 @@ authorize3(Protocol, ServiceType, Service, Buckets, Address,
 	case lists:keyfind("destPrefixTariffTable", #char_value_use.name, CharValueUse) of
 		#char_value_use{values = [#char_value{value = TariffTable}]} ->
 			Table = list_to_existing_atom(TariffTable),
-			Prefix = case Address of
-				Address when is_binary(Address) ->
-					binary_to_list(Address);
-				Address when is_list(Address) ->
-					Address
-			end,
-			case catch ocs_gtt:lookup_last(Table, Prefix) of
+			case catch ocs_gtt:lookup_last(Table, Address) of
 				{_Description, Amount, _} when is_integer(Amount) ->
 					case Amount of
 						N when N >= 0 ->
