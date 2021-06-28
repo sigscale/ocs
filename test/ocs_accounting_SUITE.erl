@@ -154,7 +154,8 @@ init_per_testcase1(TestCase, Config) when
 		TestCase == diameter_voice_out;
 		TestCase == diameter_voice_in;
 		TestCase == diameter_voice_out_tariff;
-		TestCase == diameter_voice_in_tariff ->
+		TestCase == diameter_voice_in_tariff;
+		TestCase == scur_out_of_credit_uri_redirect_server ->
 	Address = ?config(diameter_acct_address, Config),
 	{ok, _} = ocs:add_client(Address, undefined, diameter, undefined, true),
 	Config.
@@ -186,7 +187,8 @@ end_per_testcase(TestCase, Config) when
 		TestCase == diameter_voice_out;
 		TestCase == diameter_voice_in;
 		TestCase == diameter_voice_out_tariff;
-		TestCase == diameter_voice_in_tariff ->
+		TestCase == diameter_voice_in_tariff;
+		TestCase == scur_out_of_credit_uri_redirect_server ->
 	Address = ?config(diameter_acct_address, Config),
 	ok = ocs:delete_client(Address).
 
@@ -207,7 +209,8 @@ all() ->
 	diameter_ecur, diameter_ecur_no_credit,
 	diameter_iec_cud, diameter_iec_dud,
 	diameter_voice_out, diameter_voice_in,
-	diameter_voice_out_tariff, diameter_voice_in_tariff].
+	diameter_voice_out_tariff, diameter_voice_in_tariff,
+	diameter_scur_no_credit, scur_out_of_credit_uri_redirect_server].
 
 %%---------------------------------------------------------------------
 %%  Test cases
@@ -1134,6 +1137,40 @@ diameter_voice_in_tariff(_Config) ->
 	end,
 	Balance2 = Balance1 - Charge,
 	{ok, #bucket{remain_amount = Balance2}} = ocs:find_bucket(B1ref).
+
+scur_out_of_credit_uri_redirect_server() ->
+	[{userdata, [{doc, "DIAMETER SCUR with insufficient credit and 'Final-Unit-Indication' AVP"}]}].
+
+scur_out_of_credit_uri_redirect_server(_Config) ->
+	UnitSize = 1000000 + rand:uniform(10000),
+	Amount = rand:uniform(100),
+	RedirectServer = "http://redirectserver.com",
+	P1 = price(usage, octets, UnitSize, Amount),
+	Offer =  #offer{name = "Redirect Server", specification = "8",
+			price = [P1],
+			char_value_use = [#char_value_use{name = "redirectServer",
+			min = 0, max = 1, specification = "8",
+			values = [#char_value{value = RedirectServer}]}]},
+	{ok, #offer{name = OfferId}} = ocs:add_offer(Offer),
+	ProdRef = add_product(OfferId),
+	ServiceID = list_to_binary(ocs:generate_identity()),
+	{ok, #service{}} = ocs:add_service(ServiceID, undefined, ProdRef, []),
+	Balance = rand:uniform(100000),
+	B1 = bucket(octets, Balance),
+	_BId = add_bucket(ProdRef, B1),
+	Ref = erlang:ref_to_list(make_ref()),
+	SId = diameter:session_id(Ref),
+	Answer = diameter_scur_start(SId, ServiceID, 0, Balance + rand:uniform(Balance)),
+	#'3gpp_ro_CCA'{'Result-Code' = ?'DIAMETER_CC_APP_RESULT-CODE_CREDIT_LIMIT_REACHED',
+			'Auth-Application-Id' = ?RO_APPLICATION_ID,
+			'CC-Request-Type' = ?'3GPP_CC-REQUEST-TYPE_INITIAL_REQUEST',
+			'CC-Request-Number' = 0, 'Multiple-Services-Credit-Control' = 
+			[#'3gpp_ro_Multiple-Services-Credit-Control'{'Final-Unit-Indication' = Fui}]} = Answer,
+	CCARedirectServer = list_to_binary(RedirectServer),
+	[#'3gpp_ro_Final-Unit-Indication'{'Final-Unit-Action' = 1,
+			'Redirect-Server' = [#'3gpp_ro_Redirect-Server'
+			{'Redirect-Address-Type' = ?'3GPP_RO_REDIRECT-ADDRESS-TYPE_URL',
+			'Redirect-Server-Address' = CCARedirectServer}]}] = Fui.
 
 %%---------------------------------------------------------------------
 %%  Internal functions
