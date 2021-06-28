@@ -849,13 +849,7 @@ add_example_voice_offers() ->
 					try ocs_gtt:import(TariffPath) of
 						ok ->
 							error_logger:info_msg("Imported example tariff table: "
-									++ TariffPath ++ "~n"),
-							case ocs:add_resource(TariffResource) of
-								{ok, #resource{}} ->
-									ok;
-								{error, Reason} ->
-									{error, Reason}
-							end
+									++ TariffPath ++ "~n")
 					catch
 						_:Reason ->
 							{error, Reason}
