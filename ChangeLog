@@ -1,3 +1,80 @@
+2021-06-28  Refath Wadood  <refath@sigscale.org>
+
+	* test: handle arbitrary characteristics in service
+	* test: add receive iec; test: add send initial ecur
+	* test: add receive initial ecur
+	* test: add receive final ecur
+	* test: add post iec
+	* test: tariff table row id is {table_name}-{prefix}
+	* test: deleting policy table removes all the rows
+	* test: add post initial ecur; remove clutter from merge
+	* test: add post final ecur
+	* test: validate rated record for diameter scur
+	* test: validate redirect server in scur out of credit cca
+	* valueTypes of qos and flow info are object and array; update descriptions
+	* update doc lines
+	* handle arbitrary characteristics in service codec
+	* refactor flow and qos in codec; direction and description mandatory
+	* refactor add table modules for commonality; improve tooltips and names
+	* refactor add policy/prefix modules for commonality; improve tooltips and names
+	* rename some flow group, filter; improve tooltips and names
+	* widen app-drawer to prevent wrapping
+	* remove paper-tabs from bucket view
+	* use paper-styles for primary/secondary colours
+	* refactor add/delete bucket; include validity period
+	* grid.selecteditems is read only
+	* handle active item select/deselect to open add/update dialogs
+	* remove one pixel border beneath app-header
+	* refactor offer update open
+	* fix update dialog pop up issue
+	* expect correct status code for httpc post
+	* refactor product offer modules for literate names
+	* fix offer price update
+	* query resource by name
+	* cannot add a table with the same name under the same spec id
+	* support sip uri type; support http uri
+	* fix closing bracket pairs
+	* refactor add offer web component module for code literacy and modernization
+	* add name to table dropdown list
+	* correct case matching
+	* remove adding tariff row into inventory
+	* add tariff row resource into gtt table
+	* clear labels
+	* getting tariff row from gtt table
+	* tariff table row id is {table_name}-{prefix}
+	* add policy in offer
+	* remove all the rows before the policy table is deleted
+	* delete tariff row from gtt table
+	* delete resource except policy table
+	* change policy characteristic name
+	* remove service refference from product when product is removed from service
+	* disassociate products from service
+	* change tariff row update URI
+	* correct tariff patch path
+	* handle multiple service ids in patch
+	* tariff row is written into gtt table
+	* fix updating tariff rows, written into gtt table
+	* tariff rate is multiplied by millions
+	* patch tariff row operation is replace; rate is an integer
+	* remove unused id attribute
+	* <paper-input> not compatible with <datalist>
+	* update values for selected price in add offer dialog
+	* deleting policy table removes all the rows
+	* add serviceIdentifier characteristic in NetworkProductSpec
+	* correction handling validity start without end
+	* differentiate between iec events and scur
+	* remove legacy tariff REST API handling
+	* send patch request only for the required fields in tariff
+	* space between checkbox items
+	* patch the required felds only in offer price
+	* complex observer for offer array
+	* clear offers array on offer grid reload
+	* fix validations and patch request for offer price characteristics
+	* send patch reuest only for the required fields in offer alteration
+	* correct case clauses
+	* add rest resource when tariff table is added 
+	* remove duplicate resource addition
+
 2021-06-03  Vance Shipley <vances@sigscale.org>
 
 	* mutliple operations in table dialogs; table name in view title
