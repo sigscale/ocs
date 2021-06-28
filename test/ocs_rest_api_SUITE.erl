@@ -4124,13 +4124,21 @@ notify_insert_gtt(Config) ->
 	{_, ?PathResourceHub ++ SubId} = lists:keyfind("location", 1, Headers),
 	Table = "tariff_table9",
 	ok = ocs_gtt:new(Table, []),
+	receive
+		Input ->
+		{struct, GttTableEvent} = mochijson:decode(Input),
+		{_, "ResourceCreationNotification"}
+				= lists:keyfind("eventType", 1, GttTableEvent),
+		{_, {struct, GttTableList}} = lists:keyfind("event", 1, GttTableEvent),
+		{_, Table} = lists:keyfind("name", 1, GttTableList)
+	end,		
 	Prefix = "1519240",
 	Description = "Bell Mobility",
 	Amount = 10000,
 	{ok, #gtt{}} = ocs_gtt:insert(Table, Prefix, {Description, Amount}),
 	receive
-		Input ->
-			{struct, GttEvent} = mochijson:decode(Input),
+		Input1 ->
+			{struct, GttEvent} = mochijson:decode(Input1),
 			{_, "ResourceCreationNotification"}
 					= lists:keyfind("eventType", 1, GttEvent),
 			{_, {struct, GttList}} = lists:keyfind("event", 1, GttEvent),
@@ -4160,6 +4168,14 @@ notify_delete_gtt(Config) ->
 	{_, ?PathResourceHub ++ SubId} = lists:keyfind("location", 1, Headers),
 	Table = "tariff_table7",
 	ok = ocs_gtt:new(Table, []),
+	receive
+		Input ->
+		{struct, GttTableEvent} = mochijson:decode(Input),
+		{_, "ResourceCreationNotification"}
+				= lists:keyfind("eventType", 1, GttTableEvent),
+		{_, {struct, GttTableList}} = lists:keyfind("event", 1, GttTableEvent),
+		{_, Table} = lists:keyfind("name", 1, GttTableList)
+	end,		
 	Prefix = "1519240",
 	Description = "Bell Mobility",
 	Amount = 10000,
