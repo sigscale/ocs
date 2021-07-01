@@ -959,11 +959,9 @@ class offerAdd extends PolymerElement {
 	}
 
 	_offersChanged(change) {
-console.log('_offersChanged', change);
 		if(change) {
 			function doChange(splice) {
 				function removeOffer(offerName) {
-console.log('removeOffer', offerName);
 					function checkName(bundleOffer) {
 						return bundleOffer.name == offerName;
 					}
@@ -972,7 +970,6 @@ console.log('removeOffer', offerName);
 				}
 				splice.removed.forEach(removeOffer, this);
 				for (var i = 0; i < splice.addedCount; i++) {
-console.log('added', splice.object[splice.index + i]);
 					var checkOffer = {checked: false,
 							name: splice.object[splice.index + i]};
 					this.push('bundleOffers', checkOffer);
