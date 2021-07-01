@@ -1,0 +1,812 @@
+{
+  "swagger" : "2.0",
+  "info" : {
+    "description" : "TMF620 Product Catalog Management",
+    "version" : "2.0.0",
+    "title" : "Product Catalog Management"
+  },
+  "basePath" : "/productCatalogManagement/v2/",
+  "tags" : [ {
+    "name" : "catalog"
+  }, {
+    "name" : "category"
+  }, {
+    "name" : "productOffering"
+  }, {
+    "name" : "productSpecification"
+  }, {
+    "name" : "eventsSubscription"
+  } ],
+  "schemes" : [ "http", "https" ],
+  "consumes" : [ "application/json" ],
+  "produces" : [ "application/json" ],
+  "paths" : {
+    "/catalog" : {
+      "get" : {
+        "tags" : [ "catalog" ],
+        "summary" : "This operation lists all 'Catalog' entites",
+        "operationId" : "listCatalog",
+        "parameters" : [ ],
+        "responses" : {
+          "200" : {
+            "description" : "Success",
+            "schema" : {
+              "type" : "array",
+              "items" : {
+                "$ref" : "#/definitions/Catalog"
+              }
+            }
+          },
+          "400" : {
+            "description" : "Bad Request"
+          },
+          "404" : {
+            "description" : "Not Found"
+          },
+          "500" : {
+            "description" : "Internal Server Error"
+          }
+        },
+        "deprecated" : false
+      }
+    },
+    "/catalog/{id}" : {
+      "get" : {
+        "tags" : [ "catalog" ],
+        "summary" : "This operation retrives a 'Catalog' entity",
+        "operationId" : "retrieveCatalog",
+        "parameters" : [ {
+          "name" : "id",
+          "in" : "path",
+          "description" : "Identifier of the Catalog",
+          "required" : true,
+          "type" : "string"
+        } ],
+        "responses" : {
+          "200" : {
+            "description" : "Success",
+            "schema" : {
+              "type" : "array",
+              "items" : {
+                "$ref" : "#/definitions/Catalog"
+              }
+            }
+          },
+          "400" : {
+            "description" : "Bad Request"
+          },
+          "404" : {
+            "description" : "Not Found"
+          },
+          "500" : {
+            "description" : "Internal Server Error"
+          }
+        },
+        "deprecated" : false
+      }
+    },
+    "/category" : {
+      "get" : {
+        "tags" : [ "category" ],
+        "summary" : "This operation lists all 'Category' entites",
+        "operationId" : "listCategory",
+        "parameters" : [ ],
+        "responses" : {
+          "200" : {
+            "description" : "Success",
+            "schema" : {
+              "type" : "array",
+              "items" : {
+                "$ref" : "#/definitions/Category"
+              }
+            }
+          },
+          "400" : {
+            "description" : "Bad Request"
+          },
+          "404" : {
+            "description" : "Not Found"
+          },
+          "500" : {
+            "description" : "Internal Server Error"
+          }
+        },
+        "deprecated" : false
+      }
+    },
+    "/category/{id}" : {
+      "get" : {
+        "tags" : [ "category" ],
+        "summary" : "This operation retrives a 'Category' entity",
+        "operationId" : "retrieveCategory",
+        "parameters" : [ {
+          "name" : "id",
+          "in" : "path",
+          "description" : "Identifier of the Category",
+          "required" : true,
+          "type" : "string"
+        } ],
+        "responses" : {
+          "200" : {
+            "description" : "Success",
+            "schema" : {
+              "type" : "array",
+              "items" : {
+                "$ref" : "#/definitions/Category"
+              }
+            }
+          },
+          "400" : {
+            "description" : "Bad Request"
+          },
+          "404" : {
+            "description" : "Not Found"
+          },
+          "500" : {
+            "description" : "Internal Server Error"
+          }
+        },
+        "deprecated" : false
+      }
+    },
+    "/productOffering" : {
+      "get" : {
+        "tags" : [ "productOffering" ],
+        "summary" : "This operation lists all 'ProductOffering' entites",
+        "operationId" : "productGet",
+        "parameters" : [ {
+          "name" : "fields",
+          "in" : "query",
+          "description" : "Attributes selection",
+          "required" : false,
+          "type" : "string"
+        }, {
+          "name" : "id",
+          "in" : "query",
+          "description" : "Identity of the productOffering",
+          "required" : false,
+          "type" : "string"
+        }, {
+          "name" : "description",
+          "in" : "query",
+          "description" : "description of the productOffering",
+          "required" : false,
+          "type" : "string"
+        }, {
+          "name" : "lifecycleStatus",
+          "in" : "query",
+          "description" : "Used to indicate the current lifecycle status",
+          "required" : false,
+          "type" : "string"
+        }, {
+          "name" : "startDate",
+          "in" : "query",
+          "description" : "An instant of time, starting at the TimePeriod",
+          "required" : false,
+          "type" : "string",
+          "format" : "date-time"
+        }, {
+          "name" : "endDate",
+          "in" : "query",
+          "description" : "An instant of time, ending at the TimePeriod.",
+          "required" : false,
+          "type" : "string",
+          "format" : "date-time"
+        }, {
+          "name" : "price",
+          "in" : "query",
+          "description" : "For filtering: Could be minutes, GB...",
+          "required" : false,
+          "type" : "string"
+        } ],
+        "responses" : {
+          "200" : {
+            "description" : "Success",
+            "schema" : {
+              "type" : "array",
+              "items" : {
+                "$ref" : "#/definitions/ProductOffering"
+              }
+            }
+          },
+          "400" : {
+            "description" : "Bad Request"
+          },
+          "404" : {
+            "description" : "Not Found"
+          },
+          "500" : {
+            "description" : "Internal Server Error"
+          }
+        },
+        "deprecated" : false
+      },
+      "post" : {
+        "tags" : [ "productOffering" ],
+        "summary" : "Create a 'ProductOffering' entity",
+        "operationId" : "createProductOffering",
+        "parameters" : [ {
+          "in" : "body",
+          "name" : "productOffering",
+          "description" : "The ProductOffering to be created",
+          "required" : true,
+          "schema" : {
+            "$ref" : "#/definitions/ProductOffering_Create"
+          }
+        } ],
+        "responses" : {
+          "201" : {
+            "description" : "Created",
+            "schema" : {
+              "$ref" : "#/definitions/ProductOffering"
+            }
+          },
+          "400" : {
+            "description" : "Bad Request"
+          },
+          "404" : {
+            "description" : "Not Found"
+          },
+          "500" : {
+            "description" : "Internal Server Error"
+          }
+        },
+        "deprecated" : false
+      }
+    },
+    "/productOffering/{id}" : {
+      "get" : {
+        "tags" : [ "productOffering" ],
+        "summary" : "retrieveproductOffering",
+        "description" : "This operation lists a 'ProductOffering' by Id",
+        "operationId" : "retrieveproductOffering",
+        "parameters" : [ {
+          "name" : "id",
+          "in" : "path",
+          "description" : "Identifier of the Product Offering",
+          "required" : true,
+          "type" : "string"
+        } ],
+        "responses" : {
+          "200" : {
+            "description" : "Success",
+            "schema" : {
+              "type" : "array",
+              "items" : {
+                "$ref" : "#/definitions/ProductOffering"
+              }
+            }
+          },
+          "400" : {
+            "description" : "Bad Request"
+          },
+          "404" : {
+            "description" : "Not Found"
+          },
+          "500" : {
+            "description" : "Internal Server Error"
+          }
+        },
+        "deprecated" : false
+      },
+      "delete" : {
+        "tags" : [ "productOffering" ],
+        "summary" : "This operation deletes a 'ProductOffering' by Id",
+        "operationId" : "productOfferingDelete",
+        "parameters" : [ {
+          "name" : "id",
+          "in" : "path",
+          "description" : "identity of the ProductOffering",
+          "required" : true,
+          "type" : "string"
+        } ],
+        "responses" : {
+          "204" : {
+            "description" : "Success"
+          },
+          "400" : {
+            "description" : "Bad Request"
+          },
+          "404" : {
+            "description" : "Not Found"
+          },
+          "500" : {
+            "description" : "Internal Server Error"
+          }
+        },
+        "deprecated" : false
+      },
+      "patch" : {
+        "tags" : [ "productOffering" ],
+        "summary" : "productOfferingPatch",
+        "description" : "This operation patches a 'ProductOffering' by Id",
+        "operationId" : "productOfferingPatch",
+        "parameters" : [ {
+          "name" : "id",
+          "in" : "path",
+          "description" : "identity of the ProductSpecification",
+          "required" : true,
+          "type" : "string"
+        }, {
+          "in" : "body",
+          "name" : "product",
+          "description" : "",
+          "required" : true,
+          "schema" : {
+            "$ref" : "#/definitions/ProductSpecification"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "description" : "Success",
+            "schema" : {
+              "$ref" : "#/definitions/ProductOffering"
+            }
+          },
+          "400" : {
+            "description" : "Bad Request"
+          },
+          "404" : {
+            "description" : "Not Found"
+          },
+          "500" : {
+            "description" : "Internal Server Error"
+          }
+        },
+        "deprecated" : false
+      }
+    },
+    "/productSpecification" : {
+      "get" : {
+        "tags" : [ "productSpecification" ],
+        "summary" : "This operation lists all 'ProductSpecification' entities",
+        "operationId" : "getProductSpecifications",
+        "parameters" : [ ],
+        "responses" : {
+          "200" : {
+            "description" : "Success",
+            "schema" : {
+              "type" : "array",
+              "items" : {
+                "$ref" : "#/definitions/ProductSpecification"
+              }
+            }
+          },
+          "400" : {
+            "description" : "Bad Request"
+          },
+          "404" : {
+            "description" : "Not Found"
+          },
+          "500" : {
+            "description" : "Internal Server Error "
+          }
+        },
+        "deprecated" : false
+      }
+    },
+    "/productSpecification/{id}" : {
+      "get" : {
+        "tags" : [ "productSpecification" ],
+        "summary" : "This operation retrieves a 'ProductSpecification' entity",
+        "operationId" : "retrieveProductSpecification",
+        "parameters" : [ {
+          "name" : "id",
+          "in" : "path",
+          "description" : "Identifier of the ProductSpecification",
+          "required" : true,
+          "type" : "string"
+        } ],
+        "responses" : {
+          "200" : {
+            "description" : "Success",
+            "schema" : {
+              "type" : "array",
+              "items" : {
+                "$ref" : "#/definitions/ProductSpecification"
+              }
+            }
+          },
+          "400" : {
+            "description" : "Bad Request"
+          },
+          "404" : {
+            "description" : "Not Found"
+          },
+          "500" : {
+            "description" : "Internal Server Error "
+          }
+        },
+        "deprecated" : false
+      }
+    },
+    "/hub" : {
+      "post" : {
+        "tags" : [ "eventsSubscription" ],
+        "summary" : "Register a subscriber",
+        "operationId" : "registerSubscriber",
+        "parameters" : [ {
+          "in" : "body",
+          "name" : "data",
+          "description" : "Data containing the callback endpoint to deliver the information",
+          "required" : true,
+          "schema" : {
+            "$ref" : "#/definitions/EventSubscriptionInput"
+          }
+        } ],
+        "responses" : {
+          "201" : {
+            "description" : "Created"
+          },
+          "400" : {
+            "description" : "Bad Request"
+          },
+          "404" : {
+            "description" : "Not Found"
+          },
+          "500" : {
+            "description" : "Internal Server Error"
+          }
+        },
+        "deprecated" : false
+      }
+    },
+    "/hub/{id}" : {
+      "delete" : {
+        "tags" : [ "eventsSubscription" ],
+        "summary" : "This operation deletes a 'subscriber' by Id",
+        "operationId" : "deleteSubscriber",
+        "parameters" : [ {
+          "name" : "id",
+          "in" : "path",
+          "description" : "identity of the subscriber",
+          "required" : true,
+          "type" : "string"
+        } ],
+        "responses" : {
+          "204" : {
+            "description" : "Success"
+          },
+          "400" : {
+            "description" : "Bad Request"
+          },
+          "404" : {
+            "description" : "Not Found"
+          },
+          "500" : {
+            "description" : "Internal Server Error"
+          }
+        },
+        "deprecated" : false
+      }
+    }
+  },
+  "definitions" : {
+    "ProductOffering" : {
+      "type" : "object",
+      "properties" : {
+        "id" : {
+          "type" : "string",
+          "description" : "Unique identifier of the productOffering"
+        },
+        "href" : {
+          "type" : "string",
+          "description" : "Reference of the ProductOffering"
+        },
+        "name" : {
+          "type" : "string",
+          "description" : "Name of the productOffering"
+        },
+        "description" : {
+          "type" : "string",
+          "description" : "Description of the productOffering"
+        },
+        "isBundle" : {
+          "type" : "boolean",
+          "description" : "isBundle determines whether a productOffering represents a single productOffering (false), or a bundle of productOfferings (true)."
+        },
+        "lastUpdate" : {
+          "type" : "string",
+          "format" : "date-time",
+          "description" : "Date and time of the last update"
+        },
+        "productOfferingPrice" : {
+          "type" : "array",
+          "items" : {
+            "$ref" : "#/definitions/ProductOfferingPriceRef"
+          }
+        },
+        "bundledProductOffering" : {
+          "type" : "array",
+          "items" : {
+            "$ref" : "#/definitions/BundledProductOffering"
+          }
+        }
+      },
+      "description" : "Represents entities that are orderable from the provider of the catalog, this resource includes pricing information."
+    },
+    "Catalog" : {
+      "type" : "object",
+      "properties" : {
+        "id" : {
+          "type" : "string",
+          "description" : "Unique identifier of the Catalog"
+        },
+        "href" : {
+          "type" : "string",
+          "description" : "Unique reference of the catalog"
+        },
+        "name" : {
+          "type" : "string",
+          "description" : "Name of the catalog"
+        },
+        "type" : {
+          "type" : "string",
+          "description" : "Indicates the (class) type of catalog. For entity catalogs, this will be 'EntityCatalog'."
+        },
+        "version" : {
+          "type" : "string",
+          "description" : "Catalog version"
+        },
+        "lastUpdate" : {
+          "type" : "string",
+          "format" : "date-time",
+          "description" : "Date and time of the last update"
+        },
+        "category" : {
+          "description" : "Product category",
+          "$ref" : "#/definitions/Category"
+        }
+      },
+      "description" : "A collection of entity catalog items"
+    },
+    "Category" : {
+      "type" : "object",
+      "properties" : {
+        "id" : {
+          "type" : "string",
+          "description" : "Unique identifier of the category"
+        },
+        "href" : {
+          "type" : "string",
+          "description" : "Unique reference of the category"
+        },
+        "name" : {
+          "type" : "string",
+          "description" : "Name of the category"
+        },
+        "description" : {
+          "type" : "string",
+          "description" : "Description of this category"
+        },
+        "version" : {
+          "type" : "string",
+          "description" : "category version"
+        },
+        "lifecycleStatus" : {
+          "type" : "string",
+          "description" : "Used to indicate the current lifecycle status"
+        },
+        "lastUpdate" : {
+          "type" : "string",
+          "format" : "date-time",
+          "description" : "Date and time of the last update"
+        },
+        "isRoot" : {
+          "type" : "boolean",
+          "description" : "If true, this Boolean indicates that the category is a root of categories"
+        }
+      },
+      "description" : "A collection categroy items"
+    },
+    "ProductOffering_Create" : {
+      "type" : "object",
+      "required" : [ "name" ],
+      "properties" : {
+        "id" : {
+          "type" : "string",
+          "description" : "Unique identifier of the productOffering"
+        },
+        "description" : {
+          "type" : "string",
+          "description" : "Description of the productOffering"
+        },
+        "isBundle" : {
+          "type" : "boolean",
+          "description" : "isBundle determines whether a productOffering represents a single productOffering (false), or a bundle of productOfferings (true)."
+        },
+        "lastUpdate" : {
+          "type" : "string",
+          "format" : "date-time",
+          "description" : "Date and time of the last update"
+        },
+        "name" : {
+          "type" : "string",
+          "description" : "Name of the productOffering"
+        },
+        "bundledProductOffering" : {
+          "type" : "array",
+          "items" : {
+            "$ref" : "#/definitions/BundledProductOffering"
+          }
+        },
+        "productOfferingPrice" : {
+          "type" : "array",
+          "items" : {
+            "$ref" : "#/definitions/ProductOfferingPriceRef"
+          }
+        }
+      },
+      "description" : "Represents entities that are orderable from the provider of the catalog, this resource includes pricing information.\nSkipped properties: id,href"
+    },
+    "BundledProductOffering" : {
+      "type" : "object",
+      "properties" : {
+        "id" : {
+          "type" : "string",
+          "description" : "Unique identifier of the BundledProductOffering"
+        },
+        "href" : {
+          "type" : "string",
+          "description" : "Unique reference of the BundledProductOffering"
+        },
+        "name" : {
+          "type" : "string",
+          "description" : "Name of the BundledProductOffering"
+        }
+      },
+      "description" : "A type of ProductOffering that belongs to a grouping of ProductOfferings made available to the market. It inherits of all attributes of ProductOffering."
+    },
+    "ProductOfferingPriceRef" : {
+      "type" : "object",
+      "required" : [ "id" ],
+      "properties" : {
+        "id" : {
+          "type" : "string",
+          "description" : "Unique identifier of the ProductOfferingPriceRef"
+        },
+        "name" : {
+          "type" : "string",
+          "description" : "Name of the related entity."
+        },
+        "description" : {
+          "type" : "string",
+          "description" : "Description of the ProductOfferingPriceRef"
+        },
+        "price" : {
+          "description" : "The amount of money that characterizes the price.",
+          "$ref" : "#/definitions/Price"
+        },
+        "prodSpecCharValueUse" : {
+          "type" : "array",
+          "items" : {
+            "$ref" : "#/definitions/ProdSpecCharValueUse"
+          }
+        }
+      },
+      "description" : "ProductPriceOffering reference. An amount, usually of money, that is asked for or allowed when a ProductOffering is bought, rented, or leased"
+    },
+    "ProdSpecCharValueUse" : {
+      "type" : "object",
+      "properties" : {
+        "name" : {
+          "type" : "string",
+          "description" : "Name of the associated productSpecCharacteristic"
+        },
+        "description" : {
+          "type" : "string",
+          "description" : "A narrative that explains in detail what the productSpecCharacteristic is"
+        }
+      },
+      "description" : "A ProductOffering to which additional properties (attributes) apply or override the properties of similar properties contained in ProdSpecCharacteristicValue."
+    },
+    "Price" : {
+      "type" : "object",
+      "properties" : {
+        "unit" : {
+          "type" : "string",
+          "description" : "Currency (ISO4217 norm uses 3 letters to define the currency)"
+        },
+        "value" : {
+          "type" : "number",
+          "format" : "float",
+          "description" : "A positive floating point number"
+        }
+      },
+      "description" : "A base / value business entity used to represent money"
+    },
+    "ProductSpecification" : {
+      "type" : "object",
+      "properties" : {
+        "id" : {
+          "type" : "string",
+          "description" : "Unique identifier of the product specification"
+        },
+        "href" : {
+          "type" : "string",
+          "description" : "Reference of the product specification"
+        },
+        "name" : {
+          "type" : "string",
+          "description" : "Name of the product specification"
+        },
+        "description" : {
+          "type" : "string",
+          "description" : "A narrative that explains in detail what the product specification is"
+        },
+        "lifecycleStatus" : {
+          "type" : "string",
+          "description" : "Used to indicate the current lifecycle status"
+        },
+        "version" : {
+          "type" : "string",
+          "description" : "Product specification version"
+        },
+        "productSpecCharacteristic" : {
+          "type" : "array",
+          "items" : {
+            "$ref" : "#/definitions/ProductSpecCharacteristic"
+          }
+        }
+      },
+      "description" : "Is a detailed description of a tangible or intangible object made available externally in the form of a ProductOffering to customers or other parties playing a party role."
+    },
+    "ProductSpecCharacteristic" : {
+      "type" : "object",
+      "properties" : {
+        "name" : {
+          "type" : "string",
+          "description" : "Name of the productSpecCharacteristic"
+        },
+        "description" : {
+          "type" : "string",
+          "description" : "A narrative that explains in detail what the productSpecCharacteristic is"
+        },
+        "valueType" : {
+          "type" : "string",
+          "description" : "A kind of value that the characteristic can take on, such as numeric, text and so forth"
+        },
+        "configurable" : {
+          "type" : "boolean",
+          "description" : "If true, the Boolean indicates that the productSpecCharacteristic is configurable"
+        },
+        "productSpecCharacteristicValue" : {
+          "type" : "array",
+          "items" : {
+            "$ref" : "#/definitions/ProductSpecCharacteristicValue"
+          }
+        }
+      },
+      "description" : "A characteristic quality or distinctive feature of a ProductSpecification."
+    },
+    "ProductSpecCharacteristicValue" : {
+      "type" : "object",
+      "properties" : {
+        "unitOfMeasure" : {
+          "type" : "string",
+          "description" : "Could be minutes, GB..."
+        },
+        "valueType" : {
+          "type" : "string",
+          "description" : "A kind of value that the characteristic can take on, such as numeric, text, and so forth"
+        }
+      },
+      "description" : "A number or text that can be assigned to a ProductSpecCharacteristic."
+    },
+    "EventSubscriptionInput" : {
+      "type" : "object",
+      "required" : [ "callback" ],
+      "properties" : {
+        "callback" : {
+          "type" : "string",
+          "description" : "The callback being registered."
+        },
+        "query" : {
+          "type" : "string",
+          "description" : "additional data to be passed"
+        }
+      },
+      "description" : "Sets the communication endpoint address the service instance must use to deliver notification information"
+    }
+  }
+}
