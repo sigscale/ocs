@@ -115,7 +115,8 @@ end_per_suite(_Config) ->
 init_per_testcase(TestCase, Config) when
 		TestCase == diameter_scur;
 		TestCase == diameter_scur_voice;
-		TestCase == diameter_ecur ->
+		TestCase == diameter_ecur;
+		TestCase == diameter_iec ->
 	Address = ?config(diameter_acct_address, Config),
 	{ok, _} = ocs:add_client(Address, undefined, diameter, undefined, true),
 	Config;
@@ -128,7 +129,8 @@ init_per_testcase(_TestCase, Config) ->
 end_per_testcase(TestCase, Config) when
 		TestCase == diameter_scur;
 		TestCase == diameter_scur_voice;
-		TestCase == diameter_ecur ->
+		TestCase == diameter_ecur;
+		TestCase == diameter_iec ->
 	Address = ?config(diameter_acct_address, Config),
 	ok = ocs:delete_client(Address);
 end_per_testcase(_TestCase, _Config) ->
@@ -150,7 +152,8 @@ all() ->
 			acct_query_diameter, abmf_log_event, abmf_query, binary_tree_before,
 			binary_tree_after, binary_tree_backward, binary_tree_forward,
 			binary_tree_last, binary_tree_first, binary_tree_half,
-			diameter_scur, diameter_scur_voice, diameter_ecur].
+			diameter_scur, diameter_scur_voice, diameter_ecur,
+			diameter_iec].
 
 %%---------------------------------------------------------------------
 %%  Test cases
@@ -996,6 +999,60 @@ diameter_ecur(_Config) ->
 	[E1, E2] = Fget(ocs_log:acct_query(start, Start, End, diameter, '_', MatchSpec), []),
 	{_, _, diameter, _, _, start, #'3gpp_ro_CCR'{}, #'3gpp_ro_CCA'{}, undefined} = E1,
 	{_, _, diameter, _, _, stop, #'3gpp_ro_CCR'{}, #'3gpp_ro_CCA'{}, [#rated{} = Rated]} = E2,
+	#rated{bucket_value = _RatedValue, bucket_type = messages, is_billed = true,
+			product = OfferId, price_type = usage} = Rated.
+
+diameter_iec() ->
+	[{userdata, [{doc, "DIAMETER IEC rated log event)"}]}].
+
+diameter_iec(_Config) ->
+	Start = erlang:system_time(?MILLISECOND),
+	P1 = price(usage, messages, 1, rand:uniform(1000000)),
+	OfferId = add_offer([P1], 11),
+	ProdRef = add_product(OfferId),
+	CalledParty = ocs:generate_identity(),
+	CallingParty = ocs:generate_identity(),
+	{ok, #service{}} = ocs:add_service(CallingParty, undefined, ProdRef, []),
+	B1 = bucket(messages, 5),
+	_BId = add_bucket(ProdRef, B1),
+	Ref = erlang:ref_to_list(make_ref()),
+	SId = diameter:session_id(Ref),
+	SubscriptionId = #'3gpp_ro_Subscription-Id'{
+			'Subscription-Id-Type' = ?'3GPP_SUBSCRIPTION-ID-TYPE_END_USER_E164',
+			'Subscription-Id-Data' = CallingParty},
+	RSU = #'3gpp_ro_Requested-Service-Unit' {
+			'CC-Service-Specific-Units' = [1]},
+	ServiceInformation = #'3gpp_ro_Service-Information'{
+			'SMS-Information' = [#'3gpp_ro_SMS-Information'{
+			'Recipient-Info' = [#'3gpp_ro_Recipient-Info'{
+			'Recipient-Address' = [#'3gpp_ro_Recipient-Address'{
+			'Address-Data' = [CalledParty]}]}]}]},
+	MSCC = #'3gpp_ro_Multiple-Services-Credit-Control'{
+			'Requested-Service-Unit' = [RSU]},
+	CCR = #'3gpp_ro_CCR'{'Session-Id' = SId,
+			'Auth-Application-Id' = ?RO_APPLICATION_ID,
+			'Service-Context-Id' = "32274@3gpp.org",
+			'User-Name' = [CallingParty],
+			'CC-Request-Type' = ?'3GPP_CC-REQUEST-TYPE_EVENT_REQUEST',
+			'CC-Request-Number' = 0,
+			'Requested-Action' = [?'3GPP_RO_REQUESTED-ACTION_DIRECT_DEBITING'],
+			'Event-Timestamp' = [calendar:universal_time()],
+			'Subscription-Id' = [SubscriptionId],
+			'Multiple-Services-Credit-Control' = [MSCC],
+			'Service-Information' = [ServiceInformation]},
+	{ok, Answer} = diameter:call(?MODULE, cc_app_test, CCR, []),
+	#'3gpp_ro_CCA'{'Result-Code' = ?'DIAMETER_BASE_RESULT-CODE_SUCCESS',
+			'Session-Id' = SessionId} = Answer,
+	End = erlang:system_time(?MILLISECOND),
+	MatchSpec = [{#'3gpp_ro_CCR'{'Session-Id' = SessionId, _ = '_'}, []}],
+	Fget = fun F({eof, Events}, Acc) ->
+				lists:flatten(lists:reverse([Events | Acc]));
+			F({Cont, Events}, Acc) ->
+				F(ocs_log:acct_query(Cont, Start, End, diameter, '_',
+						MatchSpec), [Events | Acc])
+	end,
+	[E1] = Fget(ocs_log:acct_query(start, Start, End, diameter, '_', MatchSpec), []),
+	{_, _, diameter, _, _, event, #'3gpp_ro_CCR'{}, #'3gpp_ro_CCA'{}, [#rated{} = Rated]} = E1,
 	#rated{bucket_value = _RatedValue, bucket_type = messages, is_billed = true,
 			product = OfferId, price_type = usage} = Rated.
 
