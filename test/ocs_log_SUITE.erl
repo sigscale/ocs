@@ -863,7 +863,7 @@ diameter_scur(_Config) ->
 	{_, _, diameter, _, _, start, #'3gpp_ro_CCR'{}, #'3gpp_ro_CCA'{}, undefined} = E1,
 	{_, _, diameter, _, _, interim, #'3gpp_ro_CCR'{}, #'3gpp_ro_CCA'{}, undefined} = E2,
 	{_, _, diameter, _, _, stop, #'3gpp_ro_CCR'{}, #'3gpp_ro_CCA'{}, [#rated{} = Rated]} = E3,
-	#rated{bucket_value = _RatedValue, bucket_type = cents, is_billed = true,
+	#rated{bucket_value = _RatedValue, bucket_type = octets, is_billed = true,
 			product = OfferId, price_type = usage} = Rated.
 
 diameter_scur_voice() ->
