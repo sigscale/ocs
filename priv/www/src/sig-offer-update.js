@@ -142,6 +142,18 @@ class offerUpdate extends PolymerElement {
 								Add a value to update the offer reserve session
 							</paper-tooltip>
 							<paper-input
+									id="serviceId"
+									label="Service Identifier"
+									type="number"
+									auto-validate
+									value="{{serviceIdentifier}}">
+							</paper-input>
+							<paper-tooltip
+									for="serviceId"
+									offset="0">
+									characteristic serviceIdentifiers
+							</paper-tooltip>
+							<paper-input
 									id="updateRedirectServer"
 									allowed-pattern="[0-9\.]"
 									label="Redirect Server"
@@ -765,6 +777,9 @@ class offerUpdate extends PolymerElement {
 			updateRedirect: {
 				type: String
 			},
+			serviceIdentifier: {
+				type: Number
+			},
 			updateOfferEndDate: {
 				type: String
 			},
@@ -838,6 +853,9 @@ class offerUpdate extends PolymerElement {
 				}
 				if(current.prodSpecCharValueUse[indexCha].name == "redirectServer") {
 					this.updateRedirect = current.prodSpecCharValueUse[indexCha].productSpecCharacteristicValue[0].value;
+				}
+				if(current.prodSpecCharValueUse[indexCha].name == "serviceIdentifier") {
+					this.serviceIdentifier = current.prodSpecCharValueUse[indexCha].productSpecCharacteristicValue[0].value;
 				}
 			}
 			for(var index in current.prices) {
@@ -1129,6 +1147,7 @@ class offerUpdate extends PolymerElement {
 				this.$.updateAddPriceCharReserveBytes.value = null;
 				this.$.updateReserveSession.value = null;
 				this.updateRedirect = null;
+				this.serviceIdentifier = null;
 				this.priceAddRoaming = null;
 				this.chargingKey = null;
 				this.priceUpdateTariff = null;
@@ -1342,6 +1361,40 @@ class offerUpdate extends PolymerElement {
 				redirectSer.path = "/prodSpecCharValueUse/" + indexChar + "/productSpecCharacteristicValue/0/value";
 				redirectSer.value = this.updateRedirect;
 				offerNew.push(redirectSer);
+			}
+		}
+		if(this.serviceIdentifier) {
+			function checkNameService(serviceId) {
+				return serviceId.name == "serviceIdentifier";
+			}
+			var resService = this.characteristics.findIndex(checkNameService);
+			if(resService == -1) {
+				var indexChar = "-";
+				var Service = new Object();
+				Service.op = "add";
+				Service.path = "/prodSpecCharValueUse/" + indexChar; 
+				var ServiceArr = new Array();
+				var ServiceObj1 = new Object();
+				ServiceObj1.value = this.serviceIdentifier;
+				ServiceArr.push(ServiceObj1);
+				var ServiceObj2 = new Object();
+				ServiceObj2.name = "serviceIdentifier";
+				ServiceObj2.minCardinality = 0;
+				ServiceObj2.maxCardinality = 1;
+				ServiceObj2.productSpecCharacteristicValue = ServiceArr;
+				var ServiceObj1 = new Object();
+				ServiceObj1.id = "8";
+				ServiceObj1.href = "/catalogManagement/v2/productSpecification/8";
+				ServiceObj2.productSpecification = ServiceObj1;
+				Service.value = ServiceObj2;
+				offerNew.push(Service);
+			} else {
+				var indexChar = resService.toString();
+				var Service = new Object();
+				Service.op = "add";
+				Service.path = "/prodSpecCharValueUse/" + indexChar + "/productSpecCharacteristicValue/0/value";
+				Service.value = this.serviceIdentifier;
+				offerNew.push(Service);
 			}
 		}
 		ajax.body = JSON.stringify(offerNew);
