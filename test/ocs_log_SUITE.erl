@@ -836,7 +836,7 @@ diameter_scur(_Config) ->
 	{ok, #service{}} = ocs:add_service(Username, Password, ProdRef, []),
 	Balance = rand:uniform(1000000000),
 	B1 = bucket(octets, Balance),
-	BId = add_bucket(ProdRef, B1),
+	_BId = add_bucket(ProdRef, B1),
 	Ref = erlang:ref_to_list(make_ref()),
 	SId = diameter:session_id(Ref),
 	RequestNum0 = 0,
@@ -863,9 +863,7 @@ diameter_scur(_Config) ->
 	{_, _, diameter, _, _, start, #'3gpp_ro_CCR'{}, #'3gpp_ro_CCA'{}, undefined} = E1,
 	{_, _, diameter, _, _, interim, #'3gpp_ro_CCR'{}, #'3gpp_ro_CCA'{}, undefined} = E2,
 	{_, _, diameter, _, _, stop, #'3gpp_ro_CCR'{}, #'3gpp_ro_CCA'{}, [#rated{} = Rated]} = E3,
-	{ok, #bucket{remain_amount = RemainAmount,
-			units = Units}} = ocs:find_bucket(BId),
-	#rated{bucket_value = RatedValue, bucket_type = Units, is_billed = true,
+	#rated{bucket_value = _RatedValue, bucket_type = cents, is_billed = true,
 			product = OfferId, price_type = usage} = Rated.
 
 diameter_scur_voice() ->
@@ -882,7 +880,7 @@ diameter_scur_voice(_Config) ->
 	{ok, #service{}} = ocs:add_service(MSISDN, Password, ProdRef, []),
 	Balance = UnitSize * rand:uniform(100),
 	B1 = bucket(seconds, Balance),
-	BId = add_bucket(ProdRef, B1),
+	_BId = add_bucket(ProdRef, B1),
 	Ref = erlang:ref_to_list(make_ref()),
 	SId = diameter:session_id(Ref),
 	RequestNum0 = 0,
@@ -927,9 +925,7 @@ diameter_scur_voice(_Config) ->
 	[E1, E2] = Fget(ocs_log:acct_query(start, Start, End, diameter, '_', MatchSpec), []),
 	{_, _, diameter, _, _, start, #'3gpp_ro_CCR'{}, #'3gpp_ro_CCA'{}, undefined} = E1,
 	{_, _, diameter, _, _, stop, #'3gpp_ro_CCR'{}, #'3gpp_ro_CCA'{}, [#rated{} = Rated]} = E2,
-	{ok, #bucket{remain_amount = RemainAmount,
-			units = Units}} = ocs:find_bucket(BId),
-	#rated{bucket_value = RatedValue, bucket_type = Units, is_billed = true,
+	#rated{bucket_value = _RatedValue, bucket_type = seconds, is_billed = true,
 			product = OfferId, price_type = usage} = Rated.
 
 %%---------------------------------------------------------------------
