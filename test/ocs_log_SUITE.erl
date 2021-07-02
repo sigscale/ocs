@@ -113,7 +113,8 @@ end_per_suite(_Config) ->
 %% Initialization before each test case.
 %%
 init_per_testcase(TestCase, Config) when
-		TestCase == diameter_scur ->
+		TestCase == diameter_scur;
+		TestCase == diameter_scur_voice ->
 	Address = ?config(diameter_acct_address, Config),
 	{ok, _} = ocs:add_client(Address, undefined, diameter, undefined, true),
 	Config;
@@ -124,7 +125,8 @@ init_per_testcase(_TestCase, Config) ->
 %% Cleanup after each test case.
 %%
 end_per_testcase(TestCase, Config) when
-		TestCase == diameter_scur ->
+		TestCase == diameter_scur;
+		TestCase == diameter_scur_voice ->
 	Address = ?config(diameter_acct_address, Config),
 	ok = ocs:delete_client(Address);
 end_per_testcase(_TestCase, _Config) ->
@@ -146,7 +148,7 @@ all() ->
 			acct_query_diameter, abmf_log_event, abmf_query, binary_tree_before,
 			binary_tree_after, binary_tree_backward, binary_tree_forward,
 			binary_tree_last, binary_tree_first, binary_tree_half,
-			diameter_scur].
+			diameter_scur, diameter_scur_voice].
 
 %%---------------------------------------------------------------------
 %%  Test cases
@@ -863,7 +865,71 @@ diameter_scur(_Config) ->
 	{_, _, diameter, _, _, stop, #'3gpp_ro_CCR'{}, #'3gpp_ro_CCA'{}, [#rated{} = Rated]} = E3,
 	{ok, #bucket{remain_amount = RemainAmount,
 			units = Units}} = ocs:find_bucket(BId),
-	#rated{bucket_value = R,bucket_type = Units, is_billed = true,
+	#rated{bucket_value = RatedValue, bucket_type = Units, is_billed = true,
+			product = OfferId, price_type = usage} = Rated.
+
+diameter_scur_voice() ->
+	[{userdata, [{doc, "DIAMETER SCUR rated log event)"}]}].
+
+diameter_scur_voice(_Config) ->
+	Start = erlang:system_time(?MILLISECOND),
+	UnitSize  = 60,
+	P1 = price(usage, seconds, UnitSize , rand:uniform(10000000)),
+	OfferId = add_offer([P1], 5),
+	ProdRef = add_product(OfferId),
+	MSISDN = list_to_binary(ocs:generate_identity()),
+	Password = ocs:generate_identity(),
+	{ok, #service{}} = ocs:add_service(MSISDN, Password, ProdRef, []),
+	Balance = UnitSize * rand:uniform(100),
+	B1 = bucket(seconds, Balance),
+	BId = add_bucket(ProdRef, B1),
+	Ref = erlang:ref_to_list(make_ref()),
+	SId = diameter:session_id(Ref),
+	RequestNum0 = 0,
+	SubscriptionId = #'3gpp_ro_Subscription-Id'{
+			'Subscription-Id-Type' = ?'3GPP_RO_SUBSCRIPTION-ID-TYPE_END_USER_E164',
+			'Subscription-Id-Data' = MSISDN},
+	RSU = #'3gpp_ro_Requested-Service-Unit' {},
+	MSCC1 = #'3gpp_ro_Multiple-Services-Credit-Control'{
+			'Requested-Service-Unit' = [RSU]},
+	CallingPartyAddress = "tel:+" ++ ocs:generate_identity(),
+	CalledPartyAddress = "tel:+" ++ ocs:generate_identity(),
+	ServiceInformation = #'3gpp_ro_Service-Information'{'IMS-Information' =
+			[#'3gpp_ro_IMS-Information'{
+					'Node-Functionality' = ?'3GPP_RO_NODE-FUNCTIONALITY_AS',
+					'Role-Of-Node' = [?'3GPP_RO_ROLE-OF-NODE_ORIGINATING_ROLE'],
+					'Calling-Party-Address' = [CallingPartyAddress],
+					'Called-Party-Address' = [CalledPartyAddress]}]},
+	CCR = #'3gpp_ro_CCR'{'Session-Id' = SId,
+		'Auth-Application-Id' = ?RO_APPLICATION_ID,
+		'Service-Context-Id' = "32260@3gpp.org",
+		'User-Name' = [MSISDN],
+		'CC-Request-Type' = ?'3GPP_RO_CC-REQUEST-TYPE_INITIAL_REQUEST',
+		'CC-Request-Number' = 0,
+		'Event-Timestamp' = [calendar:universal_time()],
+		'Subscription-Id' = [SubscriptionId],
+		'Multiple-Services-Credit-Control' = [MSCC1],
+		'Service-Information' = [ServiceInformation]},
+	{ok, Answer0} = diameter:call(?MODULE, cc_app_test, CCR, []),
+	#'3gpp_ro_CCA'{'Result-Code' = ?'DIAMETER_BASE_RESULT-CODE_SUCCESS'} = Answer0,
+	NewRequestNum = RequestNum0 + 1,
+	Answer1 = diameter_scur_stop(SId, MSISDN, NewRequestNum, UnitSize),
+	#'3gpp_ro_CCA'{'Result-Code' = ?'DIAMETER_BASE_RESULT-CODE_SUCCESS',
+			'Session-Id' = SessionId} = Answer1,
+	End = erlang:system_time(?MILLISECOND),
+	MatchSpec = [{#'3gpp_ro_CCR'{'Session-Id' = SessionId, _ = '_'}, []}],
+	Fget = fun F({eof, Events}, Acc) ->
+				lists:flatten(lists:reverse([Events | Acc]));
+			F({Cont, Events}, Acc) ->
+				F(ocs_log:acct_query(Cont, Start, End, diameter, '_',
+						MatchSpec), [Events | Acc])
+	end,
+	[E1, E2] = Fget(ocs_log:acct_query(start, Start, End, diameter, '_', MatchSpec), []),
+	{_, _, diameter, _, _, start, #'3gpp_ro_CCR'{}, #'3gpp_ro_CCA'{}, undefined} = E1,
+	{_, _, diameter, _, _, stop, #'3gpp_ro_CCR'{}, #'3gpp_ro_CCA'{}, [#rated{} = Rated]} = E2,
+	{ok, #bucket{remain_amount = RemainAmount,
+			units = Units}} = ocs:find_bucket(BId),
+	#rated{bucket_value = RatedValue, bucket_type = Units, is_billed = true,
 			product = OfferId, price_type = usage} = Rated.
 
 %%---------------------------------------------------------------------
