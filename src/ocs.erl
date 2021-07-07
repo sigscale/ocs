@@ -1158,6 +1158,115 @@ adjustment(#adjustment{amount = Amount1, product = ProductRef, units = Units,
 					Units, ProductRef, Amount1, undefined);
 		{aborted, Reason} ->
 			{error, Reason}
+	end;
+adjustment(#adjustment{amount = Amount, service = ServiceRef, product = undefined,
+		units = Units, start_date = StartDate, end_date = EndDate})
+		when is_list(ServiceRef), is_integer(Amount), Amount >= 0 ->
+	F1 = fun() ->
+		case mnesia:read(service, list_to_binary(ServiceRef), read) of
+			[#service{product = ProductRef}] ->
+				case mnesia:read(product, ProductRef, write) of
+					[#product{balance = BucketRefs1} = P1] ->
+						Buckets1 = lists:flatten([mnesia:read(bucket, B1, write)
+								|| B1 <- BucketRefs1]),
+						F2 = fun(B2) -> mnesia:delete(bucket, B2, write) end,
+						F3 = fun(B3) -> mnesia:write(bucket, B3, write) end,
+						case credit(Units, Amount, Buckets1) of
+							{0, DeleteRefs, Buckets2} ->
+								lists:foreach(F2, DeleteRefs),
+								lists:foreach(F3, Buckets2),
+								BucketRefs2 = [B5 || #bucket{id = B5} <- Buckets2],
+								P2 = P1#product{balance = BucketRefs2},
+								mnesia:write(product, P2, write),
+								{0, BucketRefs2, DeleteRefs, ProductRef};
+							{RemainAmount, DeleteRefs, Buckets2} ->
+								B4 = #bucket{id = generate_bucket_id(),
+										start_date = StartDate, end_date = EndDate,
+										remain_amount = RemainAmount, units = Units,
+										product = [ProductRef],
+										last_modified = make_lm()},
+								mnesia:write(B4),
+								lists:foreach(F2, DeleteRefs),
+								lists:foreach(F3, Buckets2),
+								BucketRefs2 = [B5 || #bucket{id = B5} <- Buckets2],
+								P2 = P1#product{balance = [B4#bucket.id | BucketRefs2]},
+								mnesia:write(product, P2, write),
+								{RemainAmount, DeleteRefs, [B4#bucket.id | BucketRefs2],
+		ProductRef}
+						end;
+					[] ->
+						mnesia:abort(not_found)
+				end;
+			[] ->
+				mnesia:abort(not_found)
+		end
+	end,
+	case mnesia:transaction(F1) of
+		{atomic, {AmountAfter, DeleteBucketRefs2, BucketRefs, ProductRef}} ->
+			log_adjustment(AmountAfter, DeleteBucketRefs2, BucketRefs,
+					Units, ProductRef, Amount, AmountAfter - Amount);
+		{aborted, Reason} ->
+			{error, Reason}
+	end;
+adjustment(#adjustment{amount = Amount1, service = ServiceRef, product = undefined,
+		units = Units, start_date = StartDate, end_date = EndDate})
+		when is_list(ServiceRef), is_integer(Amount1), Amount1 < 0 ->
+	F1 = fun() ->
+		case mnesia:read(service, ServiceRef, read) of
+			[#service{product = ProductRef}] ->
+				case mnesia:read(product, ProductRef, write) of
+					[#product{balance = []} = P] ->
+						BId = generate_bucket_id(),
+						NewBucket = #bucket{id = BId, start_date = StartDate,
+								end_date = EndDate, remain_amount = Amount1,
+								units = Units, product = [ProductRef],
+								last_modified = make_lm()},
+						mnesia:write(bucket, NewBucket, write),
+						NewProduct = P#product{balance = [BId]},
+						ok = mnesia:write(product, NewProduct, write),
+						{[BId], [BId], [], ProductRef};
+					[#product{balance = BucketRefs} = P] ->
+						F2 = fun F([H | T], Amount2, Acc, WrittenRefs, DeletedRefs) ->
+							case mnesia:read(bucket, H, write) of
+								[#bucket{id = Id, remain_amount = Remain, units = Units} = B]
+										when Remain > Amount2 ->
+									NewBucket = B#bucket{remain_amount = Remain - Amount2},
+									ok = mnesia:write(bucket, NewBucket, write),
+									{[Id | Acc] ++ T, [NewBucket#bucket.id | WrittenRefs], DeletedRefs};
+								[#bucket{id = Id, remain_amount = Amount2, units = Units}] ->
+									ok = mnesia:delete(bucket, Id, write),
+									{Acc ++ T, WrittenRefs, [Id | DeletedRefs]};
+								[#bucket{id = Id, remain_amount = Remain, units = Units}] ->
+									ok = mnesia:delete(bucket, Id, write),
+									F(T, Amount2 - Remain, Acc, WrittenRefs, [Id | DeletedRefs]);
+								[#bucket{}] ->
+									F(T, Amount2, [H | Acc], WrittenRefs, DeletedRefs)
+							end;
+						F([], Amount2, Acc, WrittenRefs, DeletedRefs) ->
+							BId = generate_bucket_id(),
+							NewBucket = #bucket{id = BId, start_date = StartDate, end_date = EndDate,
+									remain_amount = -Amount2, units = Units, product = [ProductRef],
+									last_modified = make_lm()},
+							ok = mnesia:write(bucket, NewBucket, write),
+							{[BId |Acc], [BId | WrittenRefs], DeletedRefs}
+						end,
+						{NewBucketRefs, WrittenRefs, DeletedRefs} = F2(BucketRefs, abs(Amount1), [], [], []),
+						NewProduct = P#product{balance = NewBucketRefs},
+						ok = mnesia:write(product, NewProduct, write),
+						{NewBucketRefs, WrittenRefs, DeletedRefs, ProductRef};
+					[] ->
+						mnesia:abort(badarg)
+				end;
+			[] ->
+				mnesia:abort(not_found)
+		end
+	end,
+	case mnesia:transaction(F1) of
+		{atomic, {_BucketRefs, WrittenRefs, DeletedRefs, ProductRef}} ->
+			log_adjustment(undefined, DeletedRefs ,WrittenRefs,
+					Units, ProductRef, Amount1, undefined);
+		{aborted, Reason} ->
+			{error, Reason}
 	end.
 
 -spec log_adjustment(AmountAfter, DeleteRefs, BucketRefs, Units,

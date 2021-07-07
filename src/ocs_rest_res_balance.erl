@@ -151,7 +151,7 @@ get_bucket(BucketId) ->
 		Result :: {ok, Headers :: [tuple()], Body :: iolist()}
 				| {error, ErrorCode :: integer()}.
 %% @doc Body producing function for `GET /balanceManagement/v1/bucket/',
-get_buckets(Query, Headers) -> 
+get_buckets(Query, Headers) ->
 	try
 		case lists:keytake("filter", 1, Query) of
 			{value, {_, String}, Query1} ->
@@ -566,6 +566,9 @@ adjustment([{"amount", {struct, _} = Q} | T], Adjustment) ->
 adjustment([{"product", {struct, P}} | T], Adjustment) ->
 	{_, ProdRef} = lists:keyfind("id", 1, P),
 	adjustment(T, Adjustment#adjustment{product = ProdRef});
+adjustment([{"service", {struct, S}} | T], Adjustment) ->
+	{_, ServiceRef} = lists:keyfind("id", 1, S),
+	adjustment(T, Adjustment#adjustment{service = ServiceRef});
 adjustment([{"bucket", {struct, B}} | T], Adjustment) ->
 	{_, BucketRef} = lists:keyfind("id", 1, B),
 	adjustment(T, Adjustment#adjustment{bucket = BucketRef});
@@ -605,6 +608,10 @@ adjustment([product | T], #adjustment{product = [ProdRef]} = A, Acc) ->
 	Id = {"id", ProdRef},
 	Href = {"href", ?productInventoryPath ++ ProdRef},
 	adjustment(T, A, [{"product", {struct, [Id, Href]}} | Acc]);
+adjustment([service | T], #adjustment{service = [ServiceRef]} = A, Acc) ->
+	Id = {"id", ServiceRef},
+	Href = {"href", ?productInventoryPath ++ ServiceRef},
+	adjustment(T, A, [{"service", {struct, [Id, Href]}} | Acc]);
 adjustment([bucket | T], #adjustment{bucket = [BucketRef]} = A, Acc) ->
 	Id = {"id", BucketRef},
 	Href = {"href", ?productInventoryPath ++ BucketRef},
@@ -703,7 +710,7 @@ acc_balance([_ | T], B, Acc) ->
 acc_balance([], _B, Acc) ->
 	{struct, lists:reverse(Acc)}.
 
--spec abmf(Event) -> Json 
+-spec abmf(Event) -> Json
 	when
 		Event :: tuple(),
 		Json :: {struct, list()}.
