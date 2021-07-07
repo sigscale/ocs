@@ -793,8 +793,11 @@ challenge(#diameter_eap_app_DER{'EAP-Payload' = EapMessage,
 		'NAS-Port-Type' = NasPortType} = Request, StateData) ->
 	challenge1(EapMessage, Request, nas_port_type(NasPortType), StateData);
 challenge(#'3gpp_swm_DER'{'EAP-Payload' = EapMessage,
-		'NAS-Port-Type' = NasPortType} = Request, StateData) ->
-	challenge1(EapMessage, Request, nas_port_type(NasPortType),StateData).
+		'RAT-Type' = [RATType]} = Request, StateData) ->
+	challenge1(EapMessage, Request, RATType,StateData);
+challenge(#'3gpp_swm_DER'{'EAP-Payload' = EapMessage,
+		'RAT-Type' = []} = Request, StateData) ->
+	challenge1(EapMessage, Request, 1, StateData).
 %% @hidden
 challenge1(EapMessage1, Request, RAT,
 		#statedata{eap_id = EapID, session_id = SessionId,
