@@ -155,6 +155,7 @@
 		start_date :: pos_integer() | undefined | '_',
 		end_date :: pos_integer() | undefined | '_',
 		product :: ProdRef :: term() | '_',
+		service :: ServiceRef :: term() | '_',
 		bucket :: BucketRef :: term() | '_'}).
 
 -record(acc_balance,
