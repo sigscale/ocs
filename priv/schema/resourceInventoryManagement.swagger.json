@@ -1,614 +1,402 @@
 {
-  "swagger": "2.0",
-  "info": {
-    "description": "TMF639 Resource Inventory Management",
-    "version": "1.0.0",
-    "title": "Resource Inventory Management"
+  "swagger" : "2.0",
+  "info" : {
+    "description" : "TMF639 Resource Inventory Management",
+    "version" : "1.0.0",
+    "title" : "Resource Inventory Management"
   },
-  "basePath": "/resourceInventoryManagement/v1/",
-  "schemes": [
-    "http",
-    "https"
-  ],
-  "consumes": [
-    "application/json"
-  ],
-  "produces": [
-    "application/json"
-  ],
-  "tags": [
-    {
-      "name": "resource",
-      "description": ""
-    },
-    {
-      "name": "pla",
-      "description": ""
-    },
-    {
-      "name": "notificaions",
-      "description": ""
-    }
-  ],
-  "paths": {
-    "/resource/": {
-      "get": {
-        "tags": [
-          "resource"
-        ],
-        "parameters": [
-          {
-            "name": "id",
-            "required": false,
-            "in": "query",
-            "description": "Id of the resource",
-            "type": "string"
-          },
-          {
-            "name": "category",
-            "required": true,
-            "in": "query",
-            "description": "Category of the resource",
-            "type": "string"
-          },
-          {
-            "name": "resourceSpecification.id",
-            "required": true,
-            "in": "query",
-            "description": "Id of the resource specification",
-            "type": "string"
-          },
-          {
-            "name": "resourceRelationship.name",
-            "required": true,
-            "in": "query",
-            "description": "Name of the resource relationship",
-            "type": "string"
-          }
-        ],
-        "operationId": "listresources",
-        "summary": "This operation lists all resources available",
-        "deprecated": false,
-        "responses": {
-          "200": {
-            "description": "Success",
-            "schema": {
-              "$ref": "#/definitions/Resource"
+  "basePath" : "/resourceInventoryManagement/v1/",
+  "tags" : [ {
+    "name" : "resource",
+    "description" : ""
+  }, {
+    "name" : "eventsSubscription",
+    "description" : ""
+  } ],
+  "schemes" : [ "http", "https" ],
+  "consumes" : [ "application/json" ],
+  "produces" : [ "application/json" ],
+  "paths" : {
+    "/resource/" : {
+      "get" : {
+        "tags" : [ "resource" ],
+        "summary" : "This operation lists all resources available",
+        "operationId" : "listresources",
+        "parameters" : [ {
+          "name" : "id",
+          "in" : "query",
+          "description" : "Id of the resource",
+          "required" : false,
+          "type" : "string"
+        }, {
+          "name" : "category",
+          "in" : "query",
+          "description" : "Category of the resource",
+          "required" : true,
+          "type" : "string"
+        }, {
+          "name" : "resourceSpecification.id",
+          "in" : "query",
+          "description" : "Id of the resource specification",
+          "required" : true,
+          "type" : "string"
+        }, {
+          "name" : "resourceRelationship.name",
+          "in" : "query",
+          "description" : "Name of the resource relationship",
+          "required" : true,
+          "type" : "string"
+        } ],
+        "responses" : {
+          "200" : {
+            "description" : "Success",
+            "schema" : {
+              "$ref" : "#/definitions/Resource"
             }
           },
-          "400": {
-            "description": "Bad Request"
+          "400" : {
+            "description" : "Bad Request"
           },
-          "404": {
-            "description": "Not Found"
+          "404" : {
+            "description" : "Not Found"
           },
-          "500": {
-            "description": "Internal Server Error"
+          "500" : {
+            "description" : "Internal Server Error"
           }
-        }
+        },
+        "deprecated" : false
       },
-      "post": {
-        "tags": [
-          "resource"
-        ],
-        "parameters": [
-          {
-            "schema": {
-              "$ref": "#/definitions/Resource"
-            },
-            "required": true,
-            "in": "body",
-            "name": "resource",
-            "description": "The Resource to be created"
+      "post" : {
+        "tags" : [ "resource" ],
+        "summary" : "This operation creates a Resource entity",
+        "operationId" : "createResourceEntry",
+        "parameters" : [ {
+          "in" : "body",
+          "name" : "resource",
+          "description" : "The Resource to be created",
+          "required" : true,
+          "schema" : {
+            "$ref" : "#/definitions/Resource"
           }
-        ],
-        "operationId": "createResourceEntry",
-        "summary": "This operation creates a Resource entity",
-        "deprecated": false,
-        "responses": {
-          "201": {
-            "description": "Success",
-            "schema": {
-              "$ref": "#/definitions/Resource"
+        } ],
+        "responses" : {
+          "201" : {
+            "description" : "Success",
+            "schema" : {
+              "$ref" : "#/definitions/Resource"
             }
           },
-          "400": {
-            "description": "Bad Request"
+          "400" : {
+            "description" : "Bad Request"
           },
-          "404": {
-            "description": "Not Found"
+          "404" : {
+            "description" : "Not Found"
           },
-          "500": {
-            "description": "Internal Server Error"
+          "500" : {
+            "description" : "Internal Server Error"
           }
-        }
+        },
+        "deprecated" : false
       }
     },
-    "/resource/{Id}": {
-      "get": {
-        "tags": [
-          "resource"
-        ],
-        "parameters": [
-          {
-            "name": "Id",
-            "required": true,
-            "in": "path",
-            "description": "Id of the resource",
-            "type": "string"
-          }
-        ],
-        "operationId": "listResource",
-        "summary": "This operation lists a individual Resource entity",
-        "deprecated": false,
-        "responses": {
-          "200": {
-            "description": "Sucess",
-            "schema": {
-              "items": {
-                "$ref": "#/definitions/Resource"
-              },
-              "type": "array"
+    "/resource/{Id}" : {
+      "get" : {
+        "tags" : [ "resource" ],
+        "summary" : "This operation lists a individual Resource entity",
+        "operationId" : "listResource",
+        "parameters" : [ {
+          "name" : "Id",
+          "in" : "path",
+          "description" : "Id of the resource",
+          "required" : true,
+          "type" : "string"
+        } ],
+        "responses" : {
+          "200" : {
+            "description" : "Sucess",
+            "schema" : {
+              "type" : "array",
+              "items" : {
+                "$ref" : "#/definitions/Resource"
+              }
             }
           },
-          "400": {
-            "description": "Bad Request"
+          "400" : {
+            "description" : "Bad Request"
           },
-          "404": {
-            "description": "Not Found"
+          "404" : {
+            "description" : "Not Found"
           },
-          "500": {
-            "description": "Internal Server Error"
+          "500" : {
+            "description" : "Internal Server Error"
           }
-        }
+        },
+        "deprecated" : false
       },
-      "patch": {
-        "tags": [
-          "resource"
-        ],
-        "parameters": [
-          {
-            "name": "Id",
-            "required": true,
-            "in": "path",
-            "description": "Id of the resource",
-            "type": "string"
-          },
-          {
-            "schema": {
-              "$ref": "#/definitions/Resource"
-            },
-            "required": true,
-            "in": "body",
-            "name": "Resource",
-            "description": "The Resource to be updated"
-          }
-        ],
-        "operationId": "updateResource",
-        "summary": "Patches a 'Resource' by Id",
-        "deprecated": false,
-        "responses": {
-          "201": {
-            "description": "Updated",
-            "schema": {
-              "$ref": "#/definitions/Resource"
+      "delete" : {
+        "tags" : [ "resource" ],
+        "summary" : "Deletes a 'Resource' by Id",
+        "operationId" : "deleteResource",
+        "parameters" : [ {
+          "name" : "Id",
+          "in" : "path",
+          "description" : "Id of the resource",
+          "required" : true,
+          "type" : "string"
+        } ],
+        "responses" : {
+          "204" : {
+            "description" : "Deleted",
+            "schema" : {
+              "$ref" : "#/definitions/Resource"
             }
           },
-          "400": {
-            "description": "Bad Request"
+          "400" : {
+            "description" : "Bad Request"
           },
-          "404": {
-            "description": "Not Found"
+          "404" : {
+            "description" : "Not Found"
           },
-          "500": {
-            "description": "Internal Server Error"
+          "500" : {
+            "description" : "Internal Server Error"
           }
-        }
+        },
+        "deprecated" : false
       },
-      "delete": {
-        "tags": [
-          "Resource"
-        ],
-        "parameters": [
-          {
-            "name": "Id",
-            "required": true,
-            "in": "path",
-            "description": "Id of the resource",
-            "type": "string"
+      "patch" : {
+        "tags" : [ "resource" ],
+        "summary" : "Patches a 'Resource' by Id",
+        "operationId" : "updateResource",
+        "parameters" : [ {
+          "name" : "Id",
+          "in" : "path",
+          "description" : "Id of the resource",
+          "required" : true,
+          "type" : "string"
+        }, {
+          "in" : "body",
+          "name" : "Resource",
+          "description" : "The Resource to be updated",
+          "required" : true,
+          "schema" : {
+            "$ref" : "#/definitions/Resource"
           }
-        ],
-        "operationId": "deleteResource",
-        "summary": "Deletes a 'Resource' by Id",
-        "deprecated": false,
-        "responses": {
-          "204": {
-            "description": "Deleted",
-            "schema": {
-              "$ref": "#/definitions/Resource"
+        } ],
+        "responses" : {
+          "201" : {
+            "description" : "Updated",
+            "schema" : {
+              "$ref" : "#/definitions/Resource"
             }
           },
-          "400": {
-            "description": "Bad Request"
+          "400" : {
+            "description" : "Bad Request"
           },
-          "404": {
-            "description": "Not Found"
+          "404" : {
+            "description" : "Not Found"
           },
-          "500": {
-            "description": "Internal Server Error"
+          "500" : {
+            "description" : "Internal Server Error"
           }
-        }
+        },
+        "deprecated" : false
       }
     },
-    "/pla": {
-      "post": {
-        "tags": [
-          "pla"
-        ],
-        "parameters": [
-          {
-            "name": "table",
-            "required": true,
-            "in": "query",
-            "description": "Name of resource table",
-            "type": "string"
-          },
-          {
-            "schema": {
-              "$ref": "#/definitions/PlaResource"
-            },
-            "required": true,
-            "in": "body",
-            "name": "plaResource",
-            "description": "The Pla Resource to be created"
+    "/hub" : {
+      "post" : {
+        "tags" : [ "eventsSubscription" ],
+        "summary" : "Register a subscriber",
+        "operationId" : "registerSubscriber",
+        "parameters" : [ {
+          "in" : "body",
+          "name" : "data",
+          "description" : "Data containing the callback endpoint to deliver the information",
+          "required" : true,
+          "schema" : {
+            "$ref" : "#/definitions/EventSubscriptionInput"
           }
-        ],
-        "operationId": "createPlaResourceEntry",
-        "summary": "Add a new row in resource inventory management",
-        "deprecated": false,
-        "responses": {
-          "201": {
-            "description": "Created",
-            "schema": {
-              "$ref": "#/definitions/PlaResource"
-            }
+        } ],
+        "responses" : {
+          "201" : {
+            "description" : "Created"
           },
-          "400": {
-            "description": "Bad Request"
+          "400" : {
+            "description" : "Bad Request"
           },
-          "404": {
-            "description": "Not Found"
+          "404" : {
+            "description" : "Not Found"
           },
-          "500": {
-            "description": "Internal Server Error"
+          "500" : {
+            "description" : "Internal Server Error"
           }
-        }
-      },
-      "get": {
-        "tags": [
-          "pla"
-        ],
-        "parameters": [],
-        "operationId": "getPlasResources",
-        "summary": "This operation lists a individual pla entity",
-        "deprecated": false,
-        "responses": {
-          "200": {
-            "description": "Pla",
-            "schema": {
-              "items": {
-                "$ref": "#/definitions/PlaResource"
-              },
-              "type": "array"
-            }
-          },
-          "400": {
-            "description": "Bad Request"
-          },
-          "404": {
-            "description": "Not Found"
-          },
-          "500": {
-            "description": "Internal Server Error"
-          }
-        }
+        },
+        "deprecated" : false
       }
     },
-    "/pla/{id}/": {
-      "get": {
-        "tags": [
-          "pla"
-        ],
-        "parameters": [
-          {
-            "name": "id",
-            "required": true,
-            "in": "path",
-            "description": "Id of the pla resource",
-            "type": "string"
+    "/hub/{id}" : {
+      "delete" : {
+        "tags" : [ "eventsSubscription" ],
+        "summary" : "This operation deletes a 'subscriber' by Id",
+        "operationId" : "deleteSubscriber",
+        "parameters" : [ {
+          "name" : "id",
+          "in" : "path",
+          "description" : "identity of the subscriber",
+          "required" : true,
+          "type" : "string"
+        } ],
+        "responses" : {
+          "204" : {
+            "description" : "Success"
+          },
+          "400" : {
+            "description" : "Bad Request"
+          },
+          "404" : {
+            "description" : "Not Found"
+          },
+          "500" : {
+            "description" : "Internal Server Error"
           }
-        ],
-        "operationId": "listPlaResource",
-        "summary": "This operation lists a individual  pla entity",
-        "deprecated": false,
-        "responses": {
-          "200": {
-            "description": "Usage",
-            "schema": {
-              "$ref": "#/definitions/PlaResource"
-            }
-          },
-          "400": {
-            "description": "Bad Request"
-          },
-          "404": {
-            "description": "Not Found"
-          },
-          "500": {
-            "description": "Internal Server Error"
-          }
-        }
-      },
-      "patch": {
-        "tags": [
-          "pla"
-        ],
-        "parameters": [
-          {
-            "name": "id",
-            "required": true,
-            "in": "path",
-            "description": "Id of the pla resource",
-            "type": "string"
-          },
-          {
-            "schema": {
-              "$ref": "#/definitions/PlaResource"
-            },
-            "required": true,
-            "in": "body",
-            "name": "PlaResource",
-            "description": "The Pla Resource to be updated"
-          }
-        ],
-        "operationId": "updatePlaResource",
-        "summary": "Updates a 'PlaResource' by Id",
-        "deprecated": false,
-        "responses": {
-          "201": {
-            "description": "Updated",
-            "schema": {
-              "$ref": "#/definitions/PlaResource"
-            }
-          },
-          "400": {
-            "description": "Bad Request"
-          },
-          "404": {
-            "description": "Not Found"
-          },
-          "500": {
-            "description": "Internal Server Error"
-          }
-        }
-      },
-      "delete": {
-        "tags": [
-          "pla"
-        ],
-        "parameters": [
-          {
-            "name": "id",
-            "required": true,
-            "in": "path",
-            "description": "Id of the pla resource",
-            "type": "string"
-          }
-        ],
-        "operationId": "deletePlaResource",
-        "summary": "Deletes a 'PlaResource' by Id",
-        "deprecated": false,
-        "responses": {
-          "204": {
-            "description": "Deleted",
-            "schema": {
-              "$ref": "#/definitions/PlaResource"
-            }
-          },
-          "400": {
-            "description": "Bad Request"
-          },
-          "404": {
-            "description": "Not Found"
-          },
-          "500": {
-            "description": "Internal Server Error"
-          }
-        }
+        },
+        "deprecated" : false
       }
     }
   },
-  "definitions": {
-    "Resource": {
-      "type": "object",
-      "description": "Resource is an abstract entity that describes the common set of attributes shared by all concrete resources",
-      "properties": {
-        "id": {
-          "type": "string",
-          "description": "Identifier of an instance of the resource."
+  "definitions" : {
+    "Resource" : {
+      "type" : "object",
+      "properties" : {
+        "id" : {
+          "type" : "string",
+          "description" : "Identifier of an instance of the resource."
         },
-        "href": {
-          "type": "string",
-          "description": "The URI for the object itself."
+        "href" : {
+          "type" : "string",
+          "description" : "The URI for the object itself."
         },
-        "name": {
-          "type": "string",
-          "description": "A string used to give a name to the resource."
+        "name" : {
+          "type" : "string",
+          "description" : "A string used to give a name to the resource."
         },
-        "description": {
-          "type": "string",
-          "description": "free-text description of the resource."
+        "description" : {
+          "type" : "string",
+          "description" : "free-text description of the resource."
         },
-        "version": {
-          "type": "string",
-          "description": "identifies the specific version of an instance of a resource."
+        "version" : {
+          "type" : "string",
+          "description" : "identifies the specific version of an instance of a resource."
         },
-        "lifecycleState": {
-          "type": "string",
-          "description": "The life cycle state of the resource."
+        "lifecycleState" : {
+          "type" : "string",
+          "description" : "The life cycle state of the resource."
         },
-        "lastUpdate": {
-          "type": "string",
-          "description": "The last date the resource was update on."
+        "lastUpdate" : {
+          "type" : "string",
+          "description" : "The last date the resource was update on."
         },
-        "category": {
-          "type": "string",
-          "description": "Category of the resource."
+        "category" : {
+          "type" : "string",
+          "description" : "Category of the resource."
         },
-        "resourceSpecCharacteristic": {
-          "$ref": "#/definitions/ResourceCharacteristic"
+        "resourceSpecCharacteristic" : {
+          "$ref" : "#/definitions/ResourceCharacteristic"
         },
-        "resourceRelationship": {
-          "$ref": "#/definitions/ResourceRelationship"
+        "resourceRelationship" : {
+          "$ref" : "#/definitions/ResourceRelationship"
         },
-        "resourceSpecification": {
-          "$ref": "#/definitions/ResourceSpecification"
+        "resourceSpecification" : {
+          "$ref" : "#/definitions/ResourceSpecification"
+        }
+      },
+      "description" : "Resource is an abstract entity that describes the common set of attributes shared by all concrete resources"
+    },
+    "ResourceSpecification" : {
+      "type" : "object",
+      "properties" : {
+        "name" : {
+          "type" : "string",
+          "description" : "Name of the resource specification."
+        },
+        "id" : {
+          "type" : "string",
+          "description" : "Id of the resource specification."
         }
       }
     },
-    "ResourceSpecification": {
-      "type": "object",
-      "properties": {
-        "name": {
-          "type": "string",
-          "description": "Name of the resource specification."
+    "ResourceCharacteristic" : {
+      "type" : "array",
+      "items" : {
+        "$ref" : "#/definitions/ResourceCharacteristicValue"
+      }
+    },
+    "ResourceCharacteristicValue" : {
+      "type" : "object",
+      "properties" : {
+        "name" : {
+          "type" : "object",
+          "description" : "Name of the characteristic.",
+          "properties" : { }
         },
-        "id": {
-          "type": "string",
-          "description": "Id of the resource specification."
+        "value" : {
+          "type" : "string",
+          "description" : "Value of the characteristic."
         }
       }
     },
-    "ResourceCharacteristic": {
-      "type": "array",
-      "items": {
-        "$ref": "#/definitions/ResourceCharacteristicValue"
+    "ResourceRelationship" : {
+      "type" : "array",
+      "items" : {
+        "$ref" : "#/definitions/ResourceRelationshipValue"
       }
     },
-    "ResourceCharacteristicValue": {
-      "type": "object",
-      "properties": {
-        "name": {
-          "type": "object",
-          "description": "Name of the characteristic."
+    "ResourceRelationshipValue" : {
+      "type" : "object",
+      "properties" : {
+        "resource" : {
+          "$ref" : "#/definitions/RefResource"
         },
-        "value": {
-          "type": "string",
-          "description": "Value of the characteristic."
+        "relationshipType" : {
+          "type" : "string",
+          "description" : "The type of resource relationship."
         }
       }
     },
-    "ResourceRelationship": {
-      "type": "array",
-      "items": {
-        "$ref": "#/definitions/ResourceRelationshipValue"
-      }
-    },
-    "ResourceRelationshipValue": {
-      "type": "object",
-      "properties": {
-        "resource": {
-          "$ref": "#/definitions/RefResource"
+    "RefResource" : {
+      "type" : "object",
+      "properties" : {
+        "id" : {
+          "type" : "string",
+          "description" : "Unique identifier of the parent resource"
         },
-        "relationshipType": {
-          "type": "string",
-          "description": "The type of resource relationship."
+        "href" : {
+          "type" : "string",
+          "description" : "Reference of the parent resource"
+        },
+        "name" : {
+          "type" : "string",
+          "description" : "Name of the parent resource"
+        },
+        "@referredType" : {
+          "type" : "string",
+          "description" : "The actual type of the target instance"
         }
       }
     },
-    "RefResource": {
-      "type": "object",
-      "properties": {
-        "id": {
-          "type": "string",
-          "description": "Unique identifier of the parent resource"
+    "EventSubscriptionInput" : {
+      "type" : "object",
+      "required" : [ "callback" ],
+      "properties" : {
+        "callback" : {
+          "type" : "string",
+          "description" : "The callback being registered."
         },
-        "href": {
-          "type": "string",
-          "description": "Reference of the parent resource"
-        },
-        "name": {
-          "type": "string",
-          "description": "Name of the parent resource"
-        },
-        "@referredType": {
-          "type": "string",
-          "description": "The actual type of the target instance"
+        "query" : {
+          "type" : "string",
+          "description" : "additional data to be passed"
         }
-      }
-    },
-    "ResourceSpecCharacteristicValue": {
-      "type": "object",
-      "properties": {
-        "seqNum": {
-          "type": "integer",
-          "description": "Sequence number of the characteristic value"
-        },
-        "valueType": {
-          "type": "string",
-          "description": "Type of characteristic value"
-        }
-      }
-    },
-    "PlaResource": {
-      "type": "object",
-      "description": "Pla resource is a type of resource that describes the common set of attributes shared by all plaresources",
-      "properties": {
-        "category": {
-          "type": "string",
-          "description": "Category of the concrete resource. e.g Gold, Silver for MSISDN concrete resource"
-        },
-        "description": {
-          "type": "string",
-          "description": "free-text description of the resource"
-        },
-        "endDate": {
-          "type": "string",
-          "format": "date-time",
-          "description": "A date time( DateTime). The date till the resource is effective"
-        },
-        "href": {
-          "type": "string",
-          "description": "The URI for the object itself."
-        },
-        "id": {
-          "type": "string",
-          "description": "Identifier of an instance of the resource. Required to be unique within the resource type.  Used in URIs as the identifier for specific instances of a type."
-        },
-        "name": {
-          "type": "string",
-          "description": "A string used to give a name to the resource"
-        },
-        "startDate": {
-          "type": "string",
-          "format": "date-time",
-          "description": "A date time( DateTime). The date from which the resource is effective"
-        },
-        "version": {
-          "type": "string",
-          "description": "A field that identifies the specific version of an instance of a resource."
-        },
-        "value": {
-          "type": "string",
-          "description": "the value of the Pla resource. E.g '0746712345' for  MSISDN's"
-        },
-        "characteristic": {
-          "type": "array",
-          "items": {
-            "$ref": "#/definitions/ResourceCharacteristic"
-          }
-        }
-      }
+      },
+      "description" : "Sets the communication endpoint address the service instance must use to deliver notification information"
     }
   }
 }

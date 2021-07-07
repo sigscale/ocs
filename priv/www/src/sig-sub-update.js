@@ -44,6 +44,9 @@ class subUpdate extends PolymerElement {
 						<paper-tab id="credit-up">
 							<h2>Credit</h2>
 						</paper-tab>
+						<paper-tab id="product-up">
+							<h2>Product</h2>
+						</paper-tab>
 					</paper-tabs>
 				</app-toolbar>
 				<paper-progress
@@ -233,6 +236,32 @@ class subUpdate extends PolymerElement {
 							</paper-button>
 						</div>
 					</div>
+					<div id="edit-product">
+						<paper-input
+								id="updateProduct"
+								name="product"
+								value="{{updateSubProduct}}"
+								label="Product">
+						</paper-input>
+						<paper-tooltip
+								for="updateProduct"
+								offset="0">
+							Product Id
+						</paper-tooltip>
+						<div class="buttons">
+							<paper-button dialog-dismiss
+									on-tap="cancelDialog"
+									class="cancel-button">
+								Cancel
+							</paper-button>
+							<paper-button dialog-confirm
+									autofocus
+									on-tap="updateSubscriberProduct"
+									class="update-button">
+								Update
+							</paper-button>
+						</div>
+					</div>
 				</iron-pages>
 			</paper-dialog>
 			<iron-ajax
@@ -244,6 +273,11 @@ class subUpdate extends PolymerElement {
 					id="updateSubscriberAuthorizationAjax"
 					on-response="_updateSubscriberAuthorizationResponse"
 					on-error="_updateSubscriberAuthorizationError">
+			</iron-ajax>
+			<iron-ajax
+					id="updateSubscriberProductAjax"
+					on-response="_updateSubscriberProductResponse"
+					on-error="_updateSubscriberProductError">
 			</iron-ajax>
 			<iron-ajax
 					id="deleteSubscriberAjax"
@@ -357,6 +391,7 @@ class subUpdate extends PolymerElement {
 			this.updateSubClass =  current.class;
 			this.$.updateSubscriberEnabled.checked =  current.enabled;
 			this.$.updateSubscriberMulti.checked =  current.multisession;
+			this.updateSubProduct = current.product;
 			var arrObj = new Object();
 			arrObj.id = this.updateSubId;
 			arrObj.password = this.updateSubPass;
@@ -366,7 +401,8 @@ class subUpdate extends PolymerElement {
 			arrObj.class = this.updateSubClass;
 			arrObj.enabled = this.$.updateSubscriberEnabled.checked
 			arrObj.multisession = this.$.updateSubscriberMulti.checked;
-			this.valCha.push(arrObj)
+			arrObj.product = this.updateSubProduct;
+			this.valCha.push(arrObj);
 			this.$.updateSubscriberModal.open();
 		}
 	}
@@ -643,6 +679,40 @@ class subUpdate extends PolymerElement {
 		var toast = document.body.querySelector('sig-app').shadowRoot.getElementById('restError');
 		toast.text = "Error";
 		toast.open();
+	}
+
+	updateSubscriberProduct(event) {
+		var getAjax = this.$.getServiceRespAjax;
+		var results = getAjax.lastResponse;
+		var editAjax =  this.$.updateSubscriberProductAjax;
+		editAjax.method = "PATCH";
+		editAjax.contentType = "application/json-patch+json";
+		editAjax.url = "/serviceInventoryManagement/v2/service/" + this.updateSubId;
+		for(var indexx in this.valCha) {
+			var penProductSub = new Set();
+			var penProductSubObj = new Object();
+			var penProductSubObj1 = new Object(); 
+			if(this.updateSubProduct != this.valCha[indexx].product) {
+				penProductSubObj.product = this.updateSubProduct;
+				penProductSub.add(this.updateSubProduct);
+			}
+			if (penProductSub.has(this.updateSubProduct)) {
+				penProductSubObj1.product = this.updateSubProduct;
+			}
+			this.valChaOne.push(penProductSubObj1);
+		}
+		for(var indexx1 in this.valChaOne) {
+			var serviceProductSubArr = new Array();
+			if(this.valChaOne[indexx1].product != null) {
+				var pro = new Object();
+				pro.op = "add";
+				pro.path = "/product";
+				pro.value = this.valChaOne[indexx1].product;
+				serviceProductSubArr.push(pro);
+			}
+		}
+		editAjax.body = JSON.stringify(serviceProductSubArr);
+		editAjax.generateRequest();
 	}
 
 	deleteSubscriber(event) {
