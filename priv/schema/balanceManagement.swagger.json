@@ -1,564 +1,521 @@
 {
-  "swagger": "2.0",
-  "info": {
-    "description": "TMF654 Prepay Balance Management",
-    "version": "1.0.0",
-    "title": "Balance Management"
+  "swagger" : "2.0",
+  "info" : {
+    "description" : "TMF654 Prepay Balance Management",
+    "version" : "1.0.0",
+    "title" : "Balance Management"
   },
-  "basePath": "/balanceManagement/v1/",
-  "schemes": [
-    "http",
-    "https"
-  ],
-  "consumes": [
-    "application/json"
-  ],
-  "produces": [
-    "application/json"
-  ],
-  "tags": [
-    {
-      "name": "bucket"
-    },
-    {
-      "name": "accumulatedBalance"
-    },
-    {
-      "name": "topupBalance"
-    },
-    {
-      "name": "adjustBalance"
-    },
-    {
-      "name": "transferBalance"
-    },
-    {
-      "name": "eventsSubscription"
-    }
-  ],
-  "paths": {
-    "/bucket": {
-      "get": {
-        "tags": [
-          "bucket"
-        ],
-        "operationId": "retrieveBuckets",
-        "summary": "List or find 'bucket' objects",
-        "deprecated": false,
-        "responses": {
-          "200": {
-            "description": "Successful",
-            "schema": {
-              "$ref": "#/definitions/BucketBalance"
+  "basePath" : "/balanceManagement/v1/",
+  "tags" : [ {
+    "name" : "bucket"
+  }, {
+    "name" : "accumulatedBalance"
+  }, {
+    "name" : "topupBalance"
+  }, {
+    "name" : "adjustBalance"
+  }, {
+    "name" : "transferBalance"
+  }, {
+    "name" : "eventsSubscription"
+  } ],
+  "schemes" : [ "http", "https" ],
+  "consumes" : [ "application/json" ],
+  "produces" : [ "application/json" ],
+  "paths" : {
+    "/bucket" : {
+      "get" : {
+        "tags" : [ "bucket" ],
+        "summary" : "List or find 'bucket' objects",
+        "operationId" : "retrieveBuckets",
+        "parameters" : [ ],
+        "responses" : {
+          "200" : {
+            "description" : "Successful",
+            "schema" : {
+              "$ref" : "#/definitions/BucketBalance"
             }
           },
-          "400": {
-            "description": "Bad Request"
+          "400" : {
+            "description" : "Bad Request"
           },
-          "404": {
-            "description": "Not found"
+          "404" : {
+            "description" : "Not found"
           },
-          "500": {
-            "description": "Internal Server Error"
+          "500" : {
+            "description" : "Internal Server Error"
           }
-        }
+        },
+        "deprecated" : false
       }
     },
-    "/bucket/{bucketId}": {
-      "get": {
-        "tags": [
-          "bucket"
-        ],
-        "operationId": "retrieveBucket",
-        "summary": "This operation lists a individual bucket entites",
-        "deprecated": false,
-        "parameters": [
-          {
-            "name": "bucketId",
-            "required": true,
-            "in": "path",
-            "description": "Id of the bucket to fetch",
-            "type": "string"
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Successful",
-            "schema": {
-              "$ref": "#/definitions/BucketBalance"
+    "/bucket/{bucketId}" : {
+      "get" : {
+        "tags" : [ "bucket" ],
+        "summary" : "This operation lists a individual bucket entites",
+        "operationId" : "retrieveBucket",
+        "parameters" : [ {
+          "name" : "bucketId",
+          "in" : "path",
+          "description" : "Id of the bucket to fetch",
+          "required" : true,
+          "type" : "string"
+        } ],
+        "responses" : {
+          "200" : {
+            "description" : "Successful",
+            "schema" : {
+              "$ref" : "#/definitions/BucketBalance"
             }
           },
-          "400": {
-            "description": "Bad Request"
+          "400" : {
+            "description" : "Bad Request"
           },
-          "404": {
-            "description": "Not Found"
+          "404" : {
+            "description" : "Not Found"
           },
-          "500": {
-            "description": "Internal Server Error"
+          "500" : {
+            "description" : "Internal Server Error"
           }
-        }
+        },
+        "deprecated" : false
       },
-      "delete": {
-        "tags": [
-          "bucket"
-        ],
-        "parameters": [
-          {
-            "name": "bucketId",
-            "in": "path",
-            "required": true,
-            "type": "string",
-            "description": "identity of the bucket"
+      "delete" : {
+        "tags" : [ "bucket" ],
+        "summary" : "This operation deletes a 'bucket' by Id",
+        "operationId" : "bucketDelete",
+        "parameters" : [ {
+          "name" : "bucketId",
+          "in" : "path",
+          "description" : "identity of the bucket",
+          "required" : true,
+          "type" : "string"
+        } ],
+        "responses" : {
+          "204" : {
+            "description" : "Success"
+          },
+          "400" : {
+            "description" : "Bad Request"
+          },
+          "404" : {
+            "description" : "Not Found"
+          },
+          "500" : {
+            "description" : "Internal Server Error"
           }
-        ],
-        "operationId": "bucketDelete",
-        "summary": "This operation deletes a 'bucket' by Id",
-        "deprecated": false,
-        "responses": {
-          "204": {
-            "description": "Success"
-          },
-          "400": {
-            "description": "Bad Request"
-          },
-          "404": {
-            "description": "Not Found"
-          },
-          "500": {
-            "description": "Internal Server Error"
-          }
-        }
+        },
+        "deprecated" : false
       }
     },
-    "/product/{id}/accumulatedBalance": {
-      "get": {
-        "tags": [
-          "accumulatedBalance"
-        ],
-        "operationId": "retrieveAccumulatedBalanceOfProduct",
-        "summary": "This operation lists total balance or an aggregation of a set of buckets",
-        "deprecated": false,
-        "parameters": [
-          {
-            "name": "id",
-            "required": true,
-            "in": "path",
-            "description": "Id of the product",
-            "type": "string"
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Balance information was returned successfully",
-            "schema": {
-              "$ref": "#/definitions/AccumulatedBalance"
+    "/product/{id}/accumulatedBalance" : {
+      "get" : {
+        "tags" : [ "accumulatedBalance" ],
+        "summary" : "This operation lists total balance or an aggregation of a set of buckets",
+        "operationId" : "retrieveAccumulatedBalanceOfProduct",
+        "parameters" : [ {
+          "name" : "id",
+          "in" : "path",
+          "description" : "Id of the product",
+          "required" : true,
+          "type" : "string"
+        } ],
+        "responses" : {
+          "200" : {
+            "description" : "Balance information was returned successfully",
+            "schema" : {
+              "$ref" : "#/definitions/AccumulatedBalance"
             }
           },
-          "400": {
-            "description": "Bad Request"
+          "400" : {
+            "description" : "Bad Request"
           },
-          "404": {
-            "description": "Not Found"
+          "404" : {
+            "description" : "Not Found"
           },
-          "500": {
-            "description": "Internal Server Error"
+          "500" : {
+            "description" : "Internal Server Error"
           }
-        }
+        },
+        "deprecated" : false
       }
     },
-    "/service/{id}/accumulatedBalance": {
-      "get": {
-        "tags": [
-          "accumulatedBalance"
-        ],
-        "operationId": "retrieveAccumulatedBalanceOfService",
-        "summary": "This operation lists total balance or an aggregation of a set of buckets",
-        "deprecated": false,
-        "parameters": [
-          {
-            "name": "id",
-            "required": true,
-            "in": "path",
-            "description": "Id of the product",
-            "type": "string"
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Balance information was returned successfully",
-            "schema": {
-              "$ref": "#/definitions/AccumulatedBalance"
+    "/service/{id}/accumulatedBalance" : {
+      "get" : {
+        "tags" : [ "accumulatedBalance" ],
+        "summary" : "This operation lists total balance or an aggregation of a set of buckets",
+        "operationId" : "retrieveAccumulatedBalanceOfService",
+        "parameters" : [ {
+          "name" : "id",
+          "in" : "path",
+          "description" : "Id of the product",
+          "required" : true,
+          "type" : "string"
+        } ],
+        "responses" : {
+          "200" : {
+            "description" : "Balance information was returned successfully",
+            "schema" : {
+              "$ref" : "#/definitions/AccumulatedBalance"
             }
           },
-          "400": {
-            "description": "Bad Request"
+          "400" : {
+            "description" : "Bad Request"
           },
-          "404": {
-            "description": "Not Found"
+          "404" : {
+            "description" : "Not Found"
           },
-          "500": {
-            "description": "Internal Server Error"
+          "500" : {
+            "description" : "Internal Server Error"
           }
-        }
+        },
+        "deprecated" : false
       }
     },
-    "/product/{id}/balanceTopup": {
-      "post": {
-        "tags": [
-          "topupBalance"
-        ],
-        "operationId": "createNewTopupProduct",
-        "summary": "Create a new top-up operation for a given prodcut",
-        "deprecated": false,
-        "parameters": [
-          {
-            "name": "id",
-            "required": true,
-            "in": "path",
-            "description": "Id of the product",
-            "type": "string"
-          },
-          {
-            "name": "TopUp Body",
-            "in": "body",
-            "description": "The request body.",
-            "required": true,
-            "schema": {
-              "$ref": "#/definitions/BalanceTopupBody"
-            }
+    "/product/{id}/balanceTopup" : {
+      "post" : {
+        "tags" : [ "topupBalance" ],
+        "summary" : "Create a new top-up operation for a given prodcut",
+        "operationId" : "createNewTopupProduct",
+        "parameters" : [ {
+          "name" : "id",
+          "in" : "path",
+          "description" : "Id of the product",
+          "required" : true,
+          "type" : "string"
+        }, {
+          "in" : "body",
+          "name" : "TopUp Body",
+          "description" : "The request body.",
+          "required" : true,
+          "schema" : {
+            "$ref" : "#/definitions/BalanceTopupBody"
           }
-        ],
-        "responses": {
-          "201": {
-            "description": "Successful",
-            "schema": {
-              "$ref": "#/definitions/BalanceTopupBody"
+        } ],
+        "responses" : {
+          "201" : {
+            "description" : "Successful",
+            "schema" : {
+              "$ref" : "#/definitions/BalanceTopupBody"
             }
           },
-          "400": {
-            "description": "Bad Request"
+          "400" : {
+            "description" : "Bad Request"
           },
-          "404": {
-            "description": "Not Found"
+          "404" : {
+            "description" : "Not Found"
           },
-          "500": {
-            "description": "Internal Server Error"
+          "500" : {
+            "description" : "Internal Server Error"
           }
-        }
+        },
+        "deprecated" : false
       }
     },
-    "/service/{id}/balanceTopup": {
-      "post": {
-        "tags": [
-          "topupBalance"
-        ],
-        "operationId": "createNewTopupService",
-        "summary": "Create a new top-up operation for a given service",
-        "deprecated": false,
-        "parameters": [
-          {
-            "name": "id",
-            "required": true,
-            "in": "path",
-            "description": "Id of the service",
-            "type": "string"
-          },
-          {
-            "name": "TopUp Body",
-            "in": "body",
-            "description": "The request body.",
-            "required": true,
-            "schema": {
-              "$ref": "#/definitions/BalanceTopupBody"
-            }
+    "/service/{id}/balanceTopup" : {
+      "post" : {
+        "tags" : [ "topupBalance" ],
+        "summary" : "Create a new top-up operation for a given service",
+        "operationId" : "createNewTopupService",
+        "parameters" : [ {
+          "name" : "id",
+          "in" : "path",
+          "description" : "Id of the service",
+          "required" : true,
+          "type" : "string"
+        }, {
+          "in" : "body",
+          "name" : "TopUp Body",
+          "description" : "The request body.",
+          "required" : true,
+          "schema" : {
+            "$ref" : "#/definitions/BalanceTopupBody"
           }
-        ],
-        "responses": {
-          "201": {
-            "description": "Successful",
-            "schema": {
-              "$ref": "#/definitions/BalanceTopupBody"
+        } ],
+        "responses" : {
+          "201" : {
+            "description" : "Successful",
+            "schema" : {
+              "$ref" : "#/definitions/BalanceTopupBody"
             }
           },
-          "400": {
-            "description": "Bad Request"
+          "400" : {
+            "description" : "Bad Request"
           },
-          "404": {
-            "description": "Not Found"
+          "404" : {
+            "description" : "Not Found"
           },
-          "500": {
-            "description": "Internal Server Error"
+          "500" : {
+            "description" : "Internal Server Error"
           }
-        }
+        },
+        "deprecated" : false
       }
     },
-    "/balanceAdjustment": {
-      "post": {
-        "tags": [
-          "adjustBalance"
-        ],
-        "operationId": "CreateAdjustment",
-        "summary": "Perform a balance adjustment",
-        "deprecated": false,
-        "parameters": [
-          {
-            "name": "AdjustmentBody",
-            "in": "body",
-            "description": "The Adjustment to be created.",
-            "required": true,
-            "schema": {
-              "$ref": "#/definitions/BalanceAdjustmentBody"
-            }
+    "/balanceAdjustment" : {
+      "post" : {
+        "tags" : [ "adjustBalance" ],
+        "summary" : "Perform a balance adjustment",
+        "operationId" : "CreateAdjustment",
+        "parameters" : [ {
+          "in" : "body",
+          "name" : "AdjustmentBody",
+          "description" : "The Adjustment to be created.",
+          "required" : true,
+          "schema" : {
+            "$ref" : "#/definitions/BalanceAdjustmentBody"
           }
-        ],
-        "responses": {
-          "204": {
-            "description": "Adjusted"
+        } ],
+        "responses" : {
+          "204" : {
+            "description" : "Adjusted"
           },
-          "400": {
-            "description": "Bad Request"
+          "400" : {
+            "description" : "Bad Request"
           },
-          "404": {
-            "description": "Not Found"
+          "404" : {
+            "description" : "Not Found"
           },
-          "500": {
-            "description": "Internal Server Error"
+          "500" : {
+            "description" : "Internal Server Error"
           }
-        }
+        },
+        "deprecated" : false
       }
     },
-    "/hub": {
-      "post": {
-        "tags": [
-          "eventsSubscription"
-        ],
-        "operationId": "registerSubscriber",
-        "summary": "Register a subscriber",
-        "deprecated": false,
-        "parameters": [
-             {
-            "name": "data",
-            "schema": {
-              "$ref": "#/definitions/EventSubscriptionInput"
-            },
-            "required": true,
-            "in": "body",
-            "description": "Data containing the callback endpoint to deliver the information"
+    "/hub" : {
+      "post" : {
+        "tags" : [ "eventsSubscription" ],
+        "summary" : "Register a subscriber",
+        "operationId" : "registerSubscriber",
+        "parameters" : [ {
+          "in" : "body",
+          "name" : "data",
+          "description" : "Data containing the callback endpoint to deliver the information",
+          "required" : true,
+          "schema" : {
+            "$ref" : "#/definitions/EventSubscriptionInput"
           }
-        ],
-        "responses": {
-          "201": {
-            "description": "Created"
+        } ],
+        "responses" : {
+          "201" : {
+            "description" : "Created"
           },
-          "400": {
-            "description": "Bad Request"
+          "400" : {
+            "description" : "Bad Request"
           },
-          "404": {
-            "description": "Not Found"
+          "404" : {
+            "description" : "Not Found"
           },
-          "500": {
-            "description": "Internal Server Error"
+          "500" : {
+            "description" : "Internal Server Error"
           }
-        }
+        },
+        "deprecated" : false
       }
     },
-    "/hub/{id}": {
-    "delete": {
-        "tags": [
-          "eventsSubscription"
-        ],
-        "parameters": [
-          {
-            "name": "id",
-            "in": "path",
-            "required": true,
-            "type": "string",
-            "description": "identity of the subscriber"
+    "/hub/{id}" : {
+      "delete" : {
+        "tags" : [ "eventsSubscription" ],
+        "summary" : "This operation deletes a 'subscriber' by Id",
+        "operationId" : "deleteSubscriber",
+        "parameters" : [ {
+          "name" : "id",
+          "in" : "path",
+          "description" : "identity of the subscriber",
+          "required" : true,
+          "type" : "string"
+        } ],
+        "responses" : {
+          "204" : {
+            "description" : "Success"
+          },
+          "400" : {
+            "description" : "Bad Request"
+          },
+          "404" : {
+            "description" : "Not Found"
+          },
+          "500" : {
+            "description" : "Internal Server Error"
           }
-        ],
-        "operationId": "deleteSubscriber",
-        "summary": "This operation deletes a 'subscriber' by Id",
-        "deprecated": false,
-        "responses": {
-          "204": {
-            "description": "Success"
-          },
-          "400": {
-            "description": "Bad Request"
-          },
-          "404": {
-            "description": "Not Found"
-          },
-          "500": {
-            "description": "Internal Server Error"
-          }
-        }
+        },
+        "deprecated" : false
       }
     }
   },
-  "definitions": {
-    "BucketBalance": {
-      "description": "Represents and tracks the amount remained or owed for a certain type of service by certain customer",
-      "properties": {
-        "id": {
-          "type": "string",
-          "description": "Unique Identifier within the server for the bucket"
+  "definitions" : {
+    "BucketBalance" : {
+      "properties" : {
+        "id" : {
+          "type" : "string",
+          "description" : "Unique Identifier within the server for the bucket"
         },
-        "href": {
-          "type": "string",
-          "description": "A resource URI pointing to the resource in the OB that stores the detailed information for the bucket"
+        "href" : {
+          "type" : "string",
+          "description" : "A resource URI pointing to the resource in the OB that stores the detailed information for the bucket"
         },
-        "remainedAmount": {
-          "$ref": "#/definitions/QuantityType",
-          "description": "Amount remained in the bucket"
+        "remainedAmount" : {
+          "description" : "Amount remained in the bucket",
+          "$ref" : "#/definitions/QuantityType"
         },
-        "validFor": {
-          "$ref": "#/definitions/TimePeriodType",
-          "description": "The period for which the balance in the bucket is valid"
+        "validFor" : {
+          "description" : "The period for which the balance in the bucket is valid",
+          "$ref" : "#/definitions/TimePeriodType"
         },
-        "product": {
-          "type": "array",
-          "items": {
-            "$ref": "#/definitions/ProductRefType"
-          },
-          "description": "A reference to the product whose consumption is managed by the bucket."
-        }
-      }
-    },
-    "AccumulatedBalance": {
-      "description": "Represents and tracks the aggregated amount remained or owed in certain account which is owned by certain customer for a set of buckets.",
-      "properties": {
-        "id": {
-          "type": "string",
-          "description": "Unique Identifier within the server for the product"
-        },
-        "totalBalance": {
-          "$ref": "#/definitions/QuantityType",
-          "description": "Aggregated for a set of prepay balance buckets associated to the product"
-        },
-        "bucket": {
-          "type": "array",
-          "items": {
-            "$ref": "#/definitions/BucketBalanceRefType"
-          },
-          "description": "A reference to the buckets involved in the aggregation"
-        },
-        "product": {
-          "type": "array",
-          "items": {
-            "$ref": "#/definitions/ProductRefType"
-          },
-          "description": "A reference to the product whose consumption is managed by the bucket . This is an array to allow scenarios where a buckets are shared between different products"
-        }
-      }
-    },
-    "BalanceTopupBody": {
-      "properties": {
-        "remainedAmount": {
-          "$ref": "#/definitions/QuantityType",
-          "description": "Amount (can be monetary or non-monetary) to be recharged in the bucket"
-        }
-      }
-    },
-    "BalanceAdjustmentBody": {
-      "properties": {
-        "type": {
-          "type": "string",
-          "description": "A preconfigured value that describes a TopUp type which determines the prepay balance bucket in which the top-up is done (national-voice, roaming-voice, promotional-voice, data, ....)"
-        },
-        "amount": {
-          "$ref": "#/definitions/QuantityType",
-          "description": "Amount (can be monetary or non-monetary) to be recharged in the bucket. It could refer to positive (increment) or negative (decrement) values"
-        },
-        "product": {
-          "$ref": "#/definitions/ProductRefType",
-          "description": "A reference to the product related to the bucket that is impacted by the balance related operation"
-        }
-      }
-    },
-    "BucketBalanceRefType": {
-      "description": "link to the resource that holds bucket balance information",
-      "properties": {
-        "id": {
-          "type": "string",
-          "description": "Unique identifier for the bucket entity"
-        },
-        "href": {
-          "type": "string",
-          "description": "A resource URI pointing to the resource in the OB that stores the balance information for a bucket"
+        "product" : {
+          "type" : "array",
+          "description" : "A reference to the product whose consumption is managed by the bucket.",
+          "items" : {
+            "$ref" : "#/definitions/ProductRefType"
+          }
         }
       },
-      "required": [
-        "id",
-        "href"
-      ]
+      "description" : "Represents and tracks the amount remained or owed for a certain type of service by certain customer"
     },
-    "ProductRefType": {
-      "description": "Representation of a resource that holds information about the product that is linked to the bucket balance.",
-      "properties": {
-        "id": {
-          "type": "string",
-          "description": "Unique identifier for the product entity"
+    "AccumulatedBalance" : {
+      "properties" : {
+        "id" : {
+          "type" : "string",
+          "description" : "Unique Identifier within the server for the product"
         },
-        "href": {
-          "type": "string",
-          "description": "A resource URI pointing to the resource in the OB that stores the product information"
+        "totalBalance" : {
+          "description" : "Aggregated for a set of prepay balance buckets associated to the product",
+          "$ref" : "#/definitions/QuantityType"
         },
-        "name": {
-          "type": "string",
-          "description": "Name of the product"
+        "bucket" : {
+          "type" : "array",
+          "description" : "A reference to the buckets involved in the aggregation",
+          "items" : {
+            "$ref" : "#/definitions/BucketBalanceRefType"
+          }
+        },
+        "product" : {
+          "type" : "array",
+          "description" : "A reference to the product whose consumption is managed by the bucket . This is an array to allow scenarios where a buckets are shared between different products",
+          "items" : {
+            "$ref" : "#/definitions/ProductRefType"
+          }
         }
       },
-      "required": [
-        "id",
-        "href"
-      ]
+      "description" : "Represents and tracks the aggregated amount remained or owed in certain account which is owned by certain customer for a set of buckets."
     },
-    "QuantityType": {
-      "description": "Representation of a quantity of something",
-      "properties": {
-        "amount": {
-          "type": "string",
-          "description": "Measured amount"
-        },
-        "units": {
-          "type": "string",
-          "description": "Units the quantity is measured in"
+    "BalanceTopupBody" : {
+      "properties" : {
+        "remainedAmount" : {
+          "description" : "Amount (can be monetary or non-monetary) to be recharged in the bucket",
+          "$ref" : "#/definitions/QuantityType"
         }
       }
     },
-    "TimePeriodType": {
-      "description": "Representation of a time period",
-      "properties": {
-        "startDateTime": {
-          "format": "date-time",
-          "type": "string",
-          "description": "Start date of the period"
+    "BalanceAdjustmentBody" : {
+      "properties" : {
+        "type" : {
+          "type" : "string",
+          "description" : "A preconfigured value that describes a TopUp type which determines the prepay balance bucket in which the top-up is done (national-voice, roaming-voice, promotional-voice, data, ....)"
         },
-        "endDateTime": {
-          "format": "date-time",
-          "type": "string",
-          "description": "End date of the period"
+        "amount" : {
+          "description" : "Amount (can be monetary or non-monetary) to be recharged in the bucket. It could refer to positive (increment) or negative (decrement) values",
+          "$ref" : "#/definitions/QuantityType"
+        },
+        "product" : {
+          "description" : "A reference to the product related to the bucket that is impacted by the balance related operation",
+          "$ref" : "#/definitions/ProductRefType"
+        },
+        "service" : {
+          "description" : "A reference to the service related to the bucket that is impacted by the balance related operation",
+          "$ref" : "#/definitions/ServiceRefType"
         }
       }
     },
-     "EventSubscriptionInput": {
-      "type": "object",
-      "description": "Sets the communication endpoint address the service instance must use to deliver notification information",
-      "required": [
-        "callback"
-      ],
-      "properties": {
-        "callback": {
-          "type": "string",
-          "description": "The callback being registered."
+    "BucketBalanceRefType" : {
+      "required" : [ "href", "id" ],
+      "properties" : {
+        "id" : {
+          "type" : "string",
+          "description" : "Unique identifier for the bucket entity"
         },
-        "query": {
-          "type": "string",
-          "description": "additional data to be passed"
+        "href" : {
+          "type" : "string",
+          "description" : "A resource URI pointing to the resource in the OB that stores the balance information for a bucket"
         }
-      }
+      },
+      "description" : "link to the resource that holds bucket balance information"
+    },
+    "ProductRefType" : {
+      "required" : [ "href", "id" ],
+      "properties" : {
+        "id" : {
+          "type" : "string",
+          "description" : "Unique identifier for the product entity"
+        },
+        "href" : {
+          "type" : "string",
+          "description" : "A resource URI pointing to the resource in the OB that stores the product information"
+        },
+        "name" : {
+          "type" : "string",
+          "description" : "Name of the product"
+        }
+      },
+      "description" : "Representation of a resource that holds information about the product that is linked to the bucket balance."
+    },
+    "ServiceRefType" : {
+      "required" : [ "href", "id" ],
+      "properties" : {
+        "id" : {
+          "type" : "string",
+          "description" : "Unique identifier for the service entity"
+        },
+        "href" : {
+          "type" : "string",
+          "description" : "A resource URI pointing to the resource in the OB that stores the service information"
+        }
+      },
+      "description" : "Representation of a resource that holds information about the service that is linked to the bucket balance."
+    },
+    "QuantityType" : {
+      "properties" : {
+        "amount" : {
+          "type" : "string",
+          "description" : "Measured amount"
+        },
+        "units" : {
+          "type" : "string",
+          "description" : "Units the quantity is measured in"
+        }
+      },
+      "description" : "Representation of a quantity of something"
+    },
+    "TimePeriodType" : {
+      "properties" : {
+        "startDateTime" : {
+          "type" : "string",
+          "format" : "date-time",
+          "description" : "Start date of the period"
+        },
+        "endDateTime" : {
+          "type" : "string",
+          "format" : "date-time",
+          "description" : "End date of the period"
+        }
+      },
+      "description" : "Representation of a time period"
+    },
+    "EventSubscriptionInput" : {
+      "type" : "object",
+      "required" : [ "callback" ],
+      "properties" : {
+        "callback" : {
+          "type" : "string",
+          "description" : "The callback being registered."
+        },
+        "query" : {
+          "type" : "string",
+          "description" : "additional data to be passed"
+        }
+      },
+      "description" : "Sets the communication endpoint address the service instance must use to deliver notification information"
     }
   }
 }

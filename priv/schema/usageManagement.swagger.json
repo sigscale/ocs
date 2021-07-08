@@ -89,38 +89,15 @@
       }
     },
     "/hub" : {
-      "get" : {
-        "operationId" : "listSubscriptions",
-        "summary" : "List subscriptions",
-        "description" : "Lists event notification subscriptions.",
-        "tags" : [ "notification" ],
-        "responses" : {
-          "200" : {
-            "description" : "Subscriptions",
-            "schema" : {
-              "type" : "array",
-              "items" : {
-                "$ref" : "#/definitions/EventSubscription"
-              }
-            }
-          },
-          "400" : {
-            "description" : "Bad Request"
-          },
-          "401" : {
-            "description" : "Unauthorized"
-          }
-        }
-      },
       "post" : {
         "operationId" : "createSubscription",
         "summary" : "Create subscription",
         "description" : "Creates a subscription to event notifications.",
-        "tags" : [ "notification" ],
+        "tags" : [ "eventsSubscription" ],
         "parameters" : [ {
           "name" : "data",
           "schema" : {
-            "$ref" : "#/definitions/EventSubscription"
+            "$ref" : "#/definitions/EventSubscriptionInput"
           },
           "required" : true,
           "in" : "body",
@@ -130,7 +107,7 @@
           "201" : {
             "description" : "Subscribed",
             "schema" : {
-              "$ref" : "#/definitions/EventSubscription"
+              "$ref" : "#/definitions/EventSubscriptionInput"
             }
           },
           "400" : {
@@ -138,6 +115,35 @@
           },
           "401" : {
             "description" : "Unauthorized"
+          }
+        }
+      }
+    },
+    "/hub/{id}" : {
+      "delete" : {
+        "tags" : [ "eventsSubscription" ],
+        "parameters" : [ {
+          "name" : "id",
+          "in" : "path",
+          "required" : true,
+          "type" : "string",
+          "description" : "identity of the subscriber"
+        } ],
+        "operationId" : "deleteSubscriber",
+        "summary" : "This operation deletes a 'subscriber' by Id",
+        "deprecated" : false,
+        "responses" : {
+          "204" : {
+            "description" : "Success"
+          },
+          "400" : {
+            "description" : "Bad Request"
+          },
+          "404" : {
+            "description" : "Not Found"
+          },
+          "500" : {
+            "description" : "Internal Server Error"
           }
         }
       }
@@ -407,7 +413,7 @@
         }
       }
     },
-    "EventSubscription" : {
+    "EventSubscriptionInput" : {
       "description" : "Describes an event subscription including the callback URI of a listener to receive event notifications.",
       "type" : "object",
       "properties" : {
