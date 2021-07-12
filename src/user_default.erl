@@ -21,31 +21,53 @@
 -copyright('Copyright (c) 2016 - 2021 SigScale Global Inc.').
 
 %% export the user_default public API
--export([get_diamater_status/0]).
+-export([get_diamater_info/0, get_diamater_info/1]).
 
 %%----------------------------------------------------------------------
 %%  The user_default public API
 %%----------------------------------------------------------------------
 
--spec get_diamater_status() -> Result
+-spec get_diamater_info() -> Result
 	when
-		Result :: [] | [tuple()].
+		Result :: term().
 %% @doc Get the status of running diameter services
-get_diamater_status() ->
+get_diamater_info() ->
 	case diameter:services() of
 		Services when length(Services) > 0 ->
-			get_diamater_status(Services, []);
+			get_diamater_info(Services, []);
 		[] ->
 			[]
 	end.
 %% @hidden
-get_diamater_status([H | T], Acc) ->
+get_diamater_info([H | T], Acc) ->
 	Info = [peer, applications, capabilities,
 			transport, connections, statistics],
-	get_diamater_status(T, [diameter:service_info(H, Info) | Acc]);
-get_diamater_status([], Acc) ->
+	get_diamater_info(T, [diameter:service_info(H, Info) | Acc]);
+get_diamater_info([], Acc) ->
+	lists:reverse(Acc).
+
+-spec get_diamater_info(Info) -> Result
+	when
+		Info :: [Values],
+		Values :: peer | applications | capabilities |
+				transport | connections | statistics,
+		Result :: term().
+%% @doc Get the status of a selected diameter configuration.
+get_diamater_info(Info)
+		when is_list(Info) ->
+	case diameter:services() of
+		Services when length(Services) > 0 ->
+			get_diamater_info(Info, Services, []);
+		[] ->
+			[]
+	end.
+%% @hidden
+get_diamater_info(Info, [H | T], Acc) ->
+	get_diamater_info(T, [diameter:service_info(H, Info) | Acc]);
+get_diamater_info(_, [], Acc) ->
 	lists:reverse(Acc).
 
 %%----------------------------------------------------------------------
 %%  The user_default private API
 %%----------------------------------------------------------------------
+
