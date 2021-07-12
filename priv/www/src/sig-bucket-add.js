@@ -52,6 +52,7 @@ class offerAdd extends PolymerElement {
 				</div>
 				<div>
 					<paper-input
+							type="datetime-local"
 							value="{{bucketStart}}"
 							label="Start Date">
 					</paper-input>
