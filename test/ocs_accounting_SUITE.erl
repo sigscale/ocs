@@ -155,7 +155,7 @@ init_per_testcase1(TestCase, Config) when
 		TestCase == diameter_voice_in;
 		TestCase == diameter_voice_out_tariff;
 		TestCase == diameter_voice_in_tariff;
-		TestCase == scur_out_of_credit_uri_redirect_server ->
+		TestCase == scur_start_redirect_server ->
 	Address = ?config(diameter_acct_address, Config),
 	{ok, _} = ocs:add_client(Address, undefined, diameter, undefined, true),
 	Config.
@@ -188,7 +188,7 @@ end_per_testcase(TestCase, Config) when
 		TestCase == diameter_voice_in;
 		TestCase == diameter_voice_out_tariff;
 		TestCase == diameter_voice_in_tariff;
-		TestCase == scur_out_of_credit_uri_redirect_server ->
+		TestCase == scur_start_redirect_server ->
 	Address = ?config(diameter_acct_address, Config),
 	ok = ocs:delete_client(Address).
 
@@ -210,7 +210,7 @@ all() ->
 	diameter_iec_cud, diameter_iec_dud,
 	diameter_voice_out, diameter_voice_in,
 	diameter_voice_out_tariff, diameter_voice_in_tariff,
-	diameter_scur_no_credit, scur_out_of_credit_uri_redirect_server].
+	diameter_scur_no_credit, scur_start_redirect_server].
 
 %%---------------------------------------------------------------------
 %%  Test cases
@@ -1138,10 +1138,10 @@ diameter_voice_in_tariff(_Config) ->
 	Balance2 = Balance1 - Charge,
 	{ok, #bucket{remain_amount = Balance2}} = ocs:find_bucket(B1ref).
 
-scur_out_of_credit_uri_redirect_server() ->
+scur_start_redirect_server() ->
 	[{userdata, [{doc, "DIAMETER SCUR with insufficient credit and 'Final-Unit-Indication' AVP"}]}].
 
-scur_out_of_credit_uri_redirect_server(_Config) ->
+scur_start_redirect_server(_Config) ->
 	UnitSize = 1000000 + rand:uniform(10000),
 	Amount = rand:uniform(100),
 	RedirectServer = "http://redirectserver.com",
