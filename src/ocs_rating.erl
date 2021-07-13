@@ -573,7 +573,7 @@ rate6(#service{enabled = false} = Service, Buckets,
 		#price{units = Units, size = UnitSize, amount = UnitPrice},
 		interim, {Units, Amount} = DebitAmount, _ReserveAmount,
 		#state{session_id = SessionId, service_id = ServiceId,
-		charging_key = ChargingKey} = State) ->
+		charging_key = ChargingKey, product = #product{id = ProductId}} = State) ->
 	case update_session(Units, Amount, 0,
 			ServiceId, ChargingKey, SessionId, Buckets) of
 		{Amount, 0, Buckets2} ->
@@ -601,7 +601,7 @@ rate6(#service{enabled = false} = Service, Buckets,
 							Buckets5 = [#bucket{id = make_id(LM), last_modified = LM,
 									start_date = Now, end_date = Now,
 									remain_amount = 0, reservations = [NewReservation],
-									units = Units} | Buckets4],
+									units = Units, product = [ProductId]} | Buckets4],
 							rate7(Service, Buckets5, interim,
 									DebitAmount, {Units, UnitsCharged + NewUnitsCharged},
 									{Units, 0}, {Units, 0}, State)
@@ -614,7 +614,7 @@ rate6(#service{enabled = false} = Service, Buckets,
 					Buckets4 = [#bucket{id = make_id(LM), last_modified = LM,
 							start_date = Now, end_date = Now,
 							remain_amount = 0, reservations = [NewReservation],
-							units = Units} | Buckets2],
+							units = Units, product = [ProductId]} | Buckets2],
 					rate7(Service, Buckets4, interim,
 							DebitAmount, {Units, UnitsCharged},
 							{Units, 0}, {Units, 0}, State)
@@ -624,7 +624,7 @@ rate6(Service, Buckets,
 		#price{units = Units, size = UnitSize, amount = UnitPrice},
 		interim, {Units, Damount} = DebitAmount, {Units, Ramount} = ReserveAmount,
 		#state{session_id = SessionId, service_id = ServiceId,
-		charging_key = ChargingKey} = State) ->
+		charging_key = ChargingKey, product = #product{id = ProductId}} = State) ->
 	case update_session(Units, Damount, Ramount,
 			ServiceId, ChargingKey, SessionId, Buckets) of
 		{Damount, UnitsReserved, Buckets2} when UnitsReserved >= Ramount ->
@@ -672,7 +672,7 @@ rate6(Service, Buckets,
 									start_date = Now, end_date = Now,
 									remain_amount = NewUnitsCharged - NewChargeUnits,
 									reservations = [NewReservation],
-									units = Units} | Buckets4],
+									units = Units, product = [ProductId]} | Buckets4],
 							rate7(Service, Buckets5, interim, DebitAmount,
 									{Units, UnitsCharged + NewUnitsCharged},
 									ReserveAmount, {Units, 0}, State)
@@ -686,7 +686,7 @@ rate6(Service, Buckets,
 							start_date = Now, end_date = Now,
 							remain_amount = UnitsCharged - Damount,
 							reservations = [NewReservation],
-							units = Units} | Buckets2],
+							units = Units, product = [ProductId]} | Buckets2],
 					rate7(Service, Buckets4, interim,
 							DebitAmount, {Units, Damount - UnitsCharged},
 							ReserveAmount, {Units, 0}, State)
@@ -697,7 +697,8 @@ rate6(Service, Buckets1,
 		type = PriceType, currency = Currency}, final,
 		{Units, Amount} = DebitAmount, {Units, 0} = ReserveAmount,
 		#state{rated = Rated1, session_id = SessionId,
-		service_id = ServiceId, charging_key = ChargingKey} = State) ->
+		service_id = ServiceId, charging_key = ChargingKey,
+		product = #product{id = ProductId}} = State) ->
 	Rated2 = Rated1#rated{price_type = PriceType, currency = Currency},
 	case charge_session(Units, Amount,
 			ServiceId, ChargingKey, SessionId, Buckets1) of
@@ -732,7 +733,7 @@ rate6(Service, Buckets1,
 							start_date = Now,
 							remain_amount = PriceCharged - PriceCharge,
 							reservations = [NewReservation],
-							units = cents} | Buckets4],
+							units = cents, product = [ProductId]} | Buckets4],
 					rate7(Service, Buckets5, final, DebitAmount, {Units, TotalUnits},
 							ReserveAmount, ReserveAmount, State#state{rated = Rated3})
 			end
@@ -742,7 +743,8 @@ rate6(Service, Buckets1,
 		type = PriceType, currency = Currency}, event,
 		{Units, Amount} = DebitAmount, {Units, 0} = ReserveAmount,
 		#state{rated = Rated1, session_id = SessionId,
-		service_id = ServiceId, charging_key = ChargingKey} = State) ->
+		service_id = ServiceId, charging_key = ChargingKey,
+		product = #product{id = ProductId}} = State) ->
 	Rated2 = Rated1#rated{price_type = PriceType, currency = Currency},
 	case charge_event(Units, Amount, Buckets1) of
 		{Amount, Buckets2} ->
@@ -769,7 +771,7 @@ rate6(Service, Buckets1,
 							start_date = Now,
 							remain_amount = PriceCharged - PriceCharge,
 							reservations = [NewReservation],
-							units = cents} | Buckets3],
+							units = cents, product = [ProductId]} | Buckets3],
 					rate7(Service, Buckets4, event, DebitAmount, {Units, TotalUnits},
 							ReserveAmount, ReserveAmount, State#state{rated = Rated3})
 			end
