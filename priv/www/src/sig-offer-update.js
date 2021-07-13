@@ -101,6 +101,7 @@ class offerUpdate extends PolymerElement {
 							Add a value to update the offer specification
 						</paper-tooltip>
 						<paper-input id="updateOffStart"
+								type="datetime-local"		
 								value="{{updateOfferStartDate}}"
 								label="Start Date">
 						</paper-input>
@@ -110,6 +111,7 @@ class offerUpdate extends PolymerElement {
 							Add a value to update the offer start date
 						</paper-tooltip>
 						<paper-input id="updateOffEnd"
+								type="datetime-local"
 								value="{{updateOfferEndDate}}"
 								label="End Date">
 						</paper-input>
@@ -212,6 +214,7 @@ class offerUpdate extends PolymerElement {
 							Add a value to update the offer price description
 						</paper-tooltip>
 						<paper-input id="updatePriceStartDate"
+								type="datetime-local"
 								value="{{updateOfferStartDatePrice}}"
 								label="Start Date">
 						</paper-input>
@@ -221,6 +224,7 @@ class offerUpdate extends PolymerElement {
 							Add a value to update the offer price start date
 						</paper-tooltip>
 						<paper-input id="updatePriceEndDate"
+								type="datetime-local"
 								value="{{updateOfferEndDatePrice}}"
 								label="End Date">
 						</paper-input>
@@ -388,6 +392,7 @@ class offerUpdate extends PolymerElement {
 							</div>
 							<iron-collapse id="updatePriceCharsTime">
 								<paper-input
+										type="datetime-local"
 										id="updateTimeOfDayStart"
 										value="{{startTimeUpdate}}"
 										label="Start Time">
@@ -398,6 +403,7 @@ class offerUpdate extends PolymerElement {
 									Add a value to update the offer price start time of day
 								</paper-tooltip>
 								<paper-input
+										type="datetime-local"
 										id="updateTimeOfDayEnd"
 										value="{{endTimeUpdate}}"
 										label="End Time">
@@ -526,6 +532,7 @@ class offerUpdate extends PolymerElement {
 							Add a value to update the offer price alteration description
 						</paper-tooltip>
 						<paper-input id="updateAltStartDate"
+								type="datetime-local"
 								value="{{updateOfferStartDateAlt}}"
 								label="Start Date">
 						</paper-input>
@@ -535,6 +542,7 @@ class offerUpdate extends PolymerElement {
 							Add a value to update the offer price alteration start date
 						</paper-tooltip>
 						<paper-input id="updateAltEndDate"
+								type="datetime-local"
 								value="{{updateOfferEndDateAlt}}"
 								label="End Date">
 						</paper-input>
