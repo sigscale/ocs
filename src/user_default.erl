@@ -21,53 +21,134 @@
 -copyright('Copyright (c) 2016 - 2021 SigScale Global Inc.').
 
 %% export the user_default public API
--export([get_diamater_info/0, get_diamater_info/1]).
+-export([get_diameter_info/0, get_diameter_info/2, get_avp_info/1]).
 
 %%----------------------------------------------------------------------
 %%  The user_default public API
 %%----------------------------------------------------------------------
 
--spec get_diamater_info() -> Result
+-spec get_diameter_info() -> Result
 	when
 		Result :: term().
 %% @doc Get the status of running diameter services
-get_diamater_info() ->
-	case diameter:services() of
-		Services when length(Services) > 0 ->
-			get_diamater_info(Services, []);
-		[] ->
-			[]
-	end.
-%% @hidden
-get_diamater_info([H | T], Acc) ->
+get_diameter_info() ->
 	Info = [peer, applications, capabilities,
 			transport, connections, statistics],
-	get_diamater_info(T, [diameter:service_info(H, Info) | Acc]);
-get_diamater_info([], Acc) ->
-	lists:reverse(Acc).
-
--spec get_diamater_info(Info) -> Result
-	when
-		Info :: [Values],
-		Values :: peer | applications | capabilities |
-				transport | connections | statistics,
-		Result :: term().
-%% @doc Get the status of a selected diameter configuration.
-get_diamater_info(Info)
-		when is_list(Info) ->
+	F = fun F([H | T], Acc) ->
+			F(T, [diameter:service_info(H, Info) | Acc]);
+		F([], Acc) ->
+			lists:reverse(Acc)
+	end,
 	case diameter:services() of
 		Services when length(Services) > 0 ->
-			get_diamater_info(Info, Services, []);
+			F(Services, []);
+		[] ->
+			[]
+	end.
+
+-spec get_diameter_info(ServiceType, Info) -> Result
+	when
+		ServiceType :: auth | acct,
+		Info :: [Values],
+		Values :: [] | peer | applications | capabilities |
+				transport | connections | statistics,
+		Result :: term() | {error, Reason},
+		Reason :: unknown_service.
+%% @doc Get the status of running diameter services
+get_diameter_info(auth, Info) ->
+	case diameter:services() of
+		[{ocs_diameter_auth_service, _, _} = Service, _] ->
+			diameter:service_info(Service, get_params(Info));
+		[_, {ocs_diameter_auth_service, _, _} = Service] ->
+			diameter:service_info(Service, get_params(Info));
+		[{ocs_diameter_auth_service, _, _} = Service] ->
+			diameter:service_info(Service, get_params(Info));
+		undefined ->
+			{error, unknown_service}
+	end;
+get_diameter_info(acct, Info) ->
+	case diameter:services() of
+		[{ocs_diameter_acct_service, _, _} = Service, _] ->
+			diameter:service_info(Service, get_params(Info));
+		[_, {ocs_diameter_acct_service, _, _} = Service] ->
+			diameter:service_info(Service, get_params(Info));
+		[{ocs_diameter_acct_service, _, _} = Service] ->
+			diameter:service_info(Service, get_params(Info));
+		undefined ->
+			{error, unknown_service}
+	end.
+
+-spec get_avp_info(AVP) -> Result
+	when
+		AVP :: AVPS :: atom() | origin_host | origin_realm |
+				vendor_id | product_name |
+				origin_state_id | host_ip_address |
+				supported_vendor | auth_application_id |
+				inband_security_id | 'acct_application_id' |
+				vendor_specific_application_id | firmware_revision,
+		Result :: term().
+%% @doc Get the status of a selected diameter avp.
+get_avp_info(AVP) ->
+	case diameter:services() of
+		Services when length(Services) > 0 ->
+			get_avp_info(avp(AVP), Services, []);
 		[] ->
 			[]
 	end.
 %% @hidden
-get_diamater_info(Info, [H | T], Acc) ->
-	get_diamater_info(T, [diameter:service_info(H, Info) | Acc]);
-get_diamater_info(_, [], Acc) ->
+get_avp_info(AVP, [H | T], Acc) ->
+	get_avp_info(AVP, T, [diameter:service_info(H, AVP) | Acc]);
+get_avp_info(_, [], Acc) ->
 	lists:reverse(Acc).
 
 %%----------------------------------------------------------------------
 %%  The user_default private API
 %%----------------------------------------------------------------------
 
+-spec avp(Value) -> AVP
+	when
+		Value :: origin_host | origin_realm |
+				vendor_id | product_name |
+				origin_state_id | host_ip_address |
+				supported_vendor | auth_application_id |
+				inband_security_id | acct_application_id |
+				vendor_specific_application_id | firmware_revision,
+		AVP :: 'Origin-Host' | 'Origin-Realm' |
+				'Vendor-Id' | 'Product-Name' |
+				'Origin-State-Id'| 'Host-IP-Address' |
+				'Supported-Vendor' | 'Auth-Application-Id' |
+				'Inband-Security-Id' | 'Acct-Application-Id' |
+				'Vendor-Specific-Application-Id' | 'Firmware-Revision'.
+%% @doc Get correct Diameter AVP format
+avp(origin_host) ->
+	'Origin-Host';
+avp(origin_realm) ->
+	'Origin-Realm';
+avp(vendor_id) ->
+	'Vendor-Id';
+avp(product_name) ->
+	'Product-Name';
+avp(origin_state_id) ->
+	'Origin-State-Id';
+avp(host_ip_address) ->
+	'Host-IP-Address';
+avp(supported_vendor) ->
+	'Supported-Vendor';
+avp(auth_application_id) ->
+	'Auth-Application-Id';
+avp(inband_security_id) ->
+	'Inband-Security-Id';
+avp(acc_application_id) ->
+	'Acct-Application-Id';
+avp(vendor_specific_application_id) ->
+	'Vendor-Specific-Application-Id';
+avp(firmware_revision) ->
+	'Firmware-Revision'.
+
+%% @hidden
+get_params([]) ->
+	[peer, applications, capabilities, transport,
+			connections, statistics];
+get_params(Info)
+		when Info /= undefined ->
+	Info.
