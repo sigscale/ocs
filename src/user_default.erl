@@ -21,7 +21,7 @@
 -copyright('Copyright (c) 2016 - 2021 SigScale Global Inc.').
 
 %% export the user_default public API
--export([get_diameter_info/0, get_diameter_info/2, get_avp_info/2]).
+-export([get_diameter_info/0, get_diameter_info/2, get_avp_info/1]).
 
 %%----------------------------------------------------------------------
 %%  The user_default public API
@@ -78,9 +78,8 @@ get_diameter_info(acct, Info) ->
 			{error, unknown_service}
 	end.
 
--spec get_avp_info(ServiceType, AVP) -> Result
+-spec get_avp_info(AVP) -> Result
 	when
-		ServiceType :: auth | acct,
 		AVP :: AVPS :: atom() | origin_host | origin_realm |
 				vendor_id | product_name |
 				origin_state_id | host_ip_address |
