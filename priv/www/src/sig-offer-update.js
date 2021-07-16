@@ -36,13 +36,13 @@ class offerUpdate extends PolymerElement {
 			<paper-dialog class="dialog" id="updateOfferModal" modal>
 				<app-toolbar>
 					<paper-tabs selected="{{selected}}">
-						<paper-tab id="offer-add">
+						<paper-tab>
 							<h2>Offering</h2>
 						</paper-tab>
-						<paper-tab id="price-add">
+						<paper-tab>
 							<h2>Prices</h2>
 						</paper-tab>
-						<paper-tab id="alt-add">
+						<paper-tab>
 							<h2>Alterations</h2>
 						</paper-tab>
 					</paper-tabs>
@@ -55,23 +55,23 @@ class offerUpdate extends PolymerElement {
 				</paper-progress>
 				<iron-pages
 						selected="{{selected}}">
-					<div id="addOff-tab">
-						<paper-input
-								id="updateOffName"
-								value="{{updateOfferName}}"
-								label="Name"
-								disabled>
-						</paper-input>
-						<paper-input
-								id="updateOffDesc"
-								value="{{updateOfferDesc}}"
-								label="Description">
-						</paper-input>
-						<paper-tooltip
-								for="updateOffDesc"
-								offset="0">
-							Add a value to update the offer description
-						</paper-tooltip>
+					<div id="addOffer-tab">
+						<div>
+							<paper-input
+									value="{{updateOfferName}}"
+									label="Name"
+									disabled>
+							</paper-input>
+						</div>
+						<div>
+							<paper-input
+									value="{{updateOfferDescription}}"
+									label="Description">
+							</paper-input>
+							<paper-tooltip>
+									Add a value to update the offer description
+							</paper-tooltip>
+						</div>
 						<div>
 							<span>Bundled Products</span>
 							<paper-icon-button
@@ -90,36 +90,36 @@ class offerUpdate extends PolymerElement {
 								</div>
 							</template>
 						</iron-collapse>
-						<paper-input id="updateOffSpec"
-								value="{{updateOfferSpec}}"
-								label="Product Specification"
-								disabled>
-						</paper-input>
-						<paper-tooltip
-								for="updateOffSpec"
-								offset="0">
-							Add a value to update the offer specification
-						</paper-tooltip>
-						<paper-input id="updateOffStart"
-								type="datetime-local"		
-								value="{{updateOfferStartDate}}"
-								label="Start Date">
-						</paper-input>
-						<paper-tooltip
-								for="updateOffStart"
-								offset="0">
-							Add a value to update the offer start date
-						</paper-tooltip>
-						<paper-input id="updateOffEnd"
-								type="datetime-local"
-								value="{{updateOfferEndDate}}"
-								label="End Date">
-						</paper-input>
-						<paper-tooltip
-								for="updateOffEnd"
-								offset="0">
-							Add a value to update the offer end date
-						</paper-tooltip>
+						<div>
+							<paper-input
+									value="{{updateOfferSpecification}}"
+									label="Product Specification"
+									disabled>
+							</paper-input>
+							<paper-tooltip>
+									Add a value to update the offer specification
+							</paper-tooltip>
+						</div>
+						<div>
+							<paper-input
+									type="datetime-local"		
+									value="{{updateOfferStartDate}}"
+									label="Start Date">
+							</paper-input>
+							<paper-tooltip>
+									Add a value to update the offer start date
+							</paper-tooltip>
+						</div>
+						<div>
+							<paper-input
+									type="datetime-local"
+									value="{{updateOfferEndDate}}"
+									label="End Date">
+							</paper-input>
+							<paper-tooltip>
+									Add a value to update the offer end date
+							</paper-tooltip>
+						</div>
 						<div>
 							<span>Characteristics</span>
 							<paper-icon-button
@@ -130,42 +130,40 @@ class offerUpdate extends PolymerElement {
 							</paper-icon-button>
 						</div>
 						<iron-collapse id="updateAddPriceOfferChars">
-							<paper-input
-									id="updateReserveSession"
-									allowed-pattern="[0-9mh]"
-									pattern="^[0-9]+[mh]?$"
-									auto-validate
-									label="RADIUS Reserve Session"
-									value=0>
-							</paper-input>
-							<paper-tooltip
-									for="updateReserveSession"
-									offset="0">
-								Add a value to update the offer reserve session
-							</paper-tooltip>
-							<paper-input
-									id="serviceId"
-									label="Service Identifier"
-									type="number"
-									auto-validate
-									value="{{serviceIdentifier}}">
-							</paper-input>
-							<paper-tooltip
-									for="serviceId"
-									offset="0">
-									characteristic serviceIdentifiers
-							</paper-tooltip>
-							<paper-input
-									id="updateRedirectServer"
-									allowed-pattern="[0-9\.]"
-									label="Redirect Server"
-									value="{{updateRedirect}}">
-							</paper-input>
-							<paper-tooltip
-									for="updateRedirectServer"
-									offset="0">
-								Add a value to update the offer reserve session
-							</paper-tooltip>
+							<div>
+								<paper-input
+										id="updateReserveSession"
+										allowed-pattern="[0-9mh]"
+										pattern="^[0-9]+[mh]?$"
+										auto-validate
+										label="RADIUS Reserve Session"
+										value=0>
+								</paper-input>
+								<paper-tooltip>
+										Add a value to update the offer reserve session
+								</paper-tooltip>
+							</div>
+							<div>
+								<paper-input
+										label="Service Identifier"
+										type="number"
+										auto-validate
+										value="{{serviceIdentifier}}">
+								</paper-input>
+								<paper-tooltip>
+										characteristic serviceIdentifiers
+								</paper-tooltip>
+							</div>
+							<div>
+								<paper-input
+										allowed-pattern="[0-9\.]"
+										label="Redirect Server"
+										value="{{updateRedirect}}">
+								</paper-input>
+								<paper-tooltip>
+										Add a value to update the offer reserve session
+								</paper-tooltip>
+							</div>
 						</iron-collapse>
 						<div class="buttons">
 							<paper-button
@@ -190,169 +188,169 @@ class offerUpdate extends PolymerElement {
 						</div>
 					</div>
 					<div id=updatePrice-tab>
-						<datalist id="updatePriceNames">
-							<template is="dom-repeat" items="{{prices}}">
-								<option value="{{item.name}}" />
-							</template>
-						</datalist>
-						<input id="updatePriceName" 
-								list="updatePriceNames"
-								value="{{priceUpdateName::input}}"
-								placeholder="Name"/>
-						<paper-tooltip
-								for="updatePriceName"
-								offset="0">
-							Add a value to update the offer price name
-						</paper-tooltip>
-						<paper-input id="updatePriceDesc"
-								value="{{priceUpdateDesc}}"
-								label="Description">
-						</paper-input>
-						<paper-tooltip
-								for="updatePriceDesc"
-								offset="0">
-							Add a value to update the offer price description
-						</paper-tooltip>
-						<paper-input id="updatePriceStartDate"
-								type="datetime-local"
-								value="{{updateOfferStartDatePrice}}"
-								label="Start Date">
-						</paper-input>
-						<paper-tooltip
-								for="updatePriceStartDate"
-								offset="0">
-							Add a value to update the offer price start date
-						</paper-tooltip>
-						<paper-input id="updatePriceEndDate"
-								type="datetime-local"
-								value="{{updateOfferEndDatePrice}}"
-								label="End Date">
-						</paper-input>
-						<paper-tooltip
-								for="updatePriceEndDate"
-								offset="0">
-							Add a value to update the offer price end date
-						</paper-tooltip>
-						<paper-dropdown-menu id="updatePriceTypedrop"
-								label="Price Type"
-								value="{{priceUpdateType}}"
-								no-animations="true"
-								on-selected-item-changed="checkRecure">
-							<paper-listbox
-									id="updatePriceType"
-									slot="dropdown-content">
-								<paper-item>
-									Recurring
-								</paper-item>
-								<paper-item>
-									One Time
-								</paper-item>
-								<paper-item>
-									Usage
-								</paper-item>
-								<paper-item>
-									Tariff
-								</paper-item>
-							</paper-listbox>
-						</paper-dropdown-menu>
-						<paper-tooltip
-								for="updatePriceTypedrop"
-								offset="0">
-							Select a value to update the offer price type (Recurring | Onetime | Usage | Tariff)
-						</paper-tooltip>
-						<paper-input id="updatePriceSize"
-								value="{{priceUpdateSize}}"
-								allowed-pattern="[0-9kmg]"
-								pattern="^[0-9]+[kmg]?$"
-								label="Unit Size"
-								auto-validate>
-						</paper-input>
-						<paper-tooltip
-								for="updatePriceSize"
-								offset="0">
-							Unit of measure (Bytes=(MB="m", GB="g", KB="k"), Seconds=(Minutes="m",Hour="h"), Messages=(Messages="msg"))
-						</paper-tooltip>
-						<paper-dropdown-menu id="updatePriceUnitsdrop"
-								label="Units"
-								value="{{priceUpdateUnits}}"
-								no-animations="true"
-								on-selected-item-changed="checkPattern">
-							<paper-listbox
-									id="updatePriceUnits"
-									slot="dropdown-content">
-								<paper-item id="priceBytes">
-										Bytes
-								</paper-item>
-								<paper-item id="priceCents">
-										Cents
-								</paper-item>
-								<paper-item id="priceSeconds">
-										Seconds
-								</paper-item>
-							</paper-listbox>
-						</paper-dropdown-menu>
-						<paper-tooltip
-								for="updatePriceUnitsdrop"
-								offset="0">
-							Select a value to update the offer price unit (Bytes | Cents | Seconds)
-						</paper-tooltip>
-						<paper-input id="updatePriceAmount"
-								value="{{priceUpdateAmount}}"
-								type="text"
-								allowed-pattern="[0-9.]"
-								pattern="[0-9]+\.?[0-9]{0,6}$"
-								auto-validate
-								label="Amount"
-								value=0>
-						</paper-input>
-						<paper-tooltip
-								for="updatePriceAmount"
-								offset="0">
-							Add a value to update the offer price tax included amount
-						</paper-tooltip>
-						<paper-input id="updatePriceCurrency"
-								value="{{priceUpdateCurrency}}"
-								label="Currency">
-						</paper-input>
-						<paper-tooltip
-								for="updatePriceCurrency"
-								offset="0">
-							Add a value to update the offer price tax currency
-						</paper-tooltip>
-						<paper-dropdown-menu id="updatePricePerioddrop"
-								value="{{priceUpdatePeriod}}"
-								no-animations="true"
-								label="Period">
-							<paper-listbox
-									id="updatePricePeriod"
-									slot="dropdown-content"
-									selected="2">
-								<paper-item>
-									Hourly
-								</paper-item>
-								<paper-item>
-									Daily
-								</paper-item>
-								<paper-item>
-									Weekly
-								</paper-item>
-								<paper-item>
-									Monthly
-								</paper-item>
-								<paper-item>
-									Yearly
-								</paper-item>
-							</paper-listbox>
-						</paper-dropdown-menu>
-						<paper-tooltip
-								for="updatePricePeriod"
-								offset="0">
-							Add a value to update the offer price period (Hour | Daily | Weekly | Monthly | Yearly)
-						</paper-tooltip>
+						<div>
+							<datalist id="updatePriceNames">
+								<template is="dom-repeat" items="{{prices}}">
+									<option value="{{item.name}}" />
+								</template>
+							</datalist>
+							<input id="updatePriceName" 
+									list="updatePriceNames"
+									value="{{priceUpdateName::input}}"
+									placeholder="Name"/>
+							<paper-tooltip>
+									Add a value to update the offer price name
+							</paper-tooltip>
+						</div>
+						<div>
+							<paper-input
+									value="{{priceUpdateDescription}}"
+									label="Description">
+							</paper-input>
+							<paper-tooltip>
+									Add a value to update the offer price description
+							</paper-tooltip>
+						</div>
+						<div>
+							<paper-input
+									type="datetime-local"
+									value="{{updateOfferStartDatePrice}}"
+									label="Start Date">
+							</paper-input>
+							<paper-tooltip>
+									Add a value to update the offer price start date
+							</paper-tooltip>
+						</div>
+						<div>
+							<paper-input
+									type="datetime-local"
+									value="{{updateOfferEndDatePrice}}"
+									label="End Date">
+							</paper-input>
+							<paper-tooltip
+									Add a value to update the offer price end date
+							</paper-tooltip>
+						</div>
 						<div>
 							<paper-dropdown-menu
-									id="addUpdatePriceDrop"
-									value="{{priceUpdateAlt}}"
+									label="Price Type"
+									value="{{priceUpdateType}}"
+									no-animations="true"
+									on-selected-item-changed="checkRecure">
+								<paper-listbox
+										id="updatePriceType"
+										slot="dropdown-content">
+									<paper-item>
+										Recurring
+									</paper-item>
+									<paper-item>
+										One Time
+									</paper-item>
+									<paper-item>
+										Usage
+									</paper-item>
+									<paper-item>
+										Tariff
+									</paper-item>
+								</paper-listbox>
+							</paper-dropdown-menu>
+							<paper-tooltip>
+									Select a value to update the offer price type (Recurring | Onetime | Usage | Tariff)
+							</paper-tooltip>
+						</div>
+						<div>
+							<paper-input
+									id="updatePriceSize"
+									value="{{priceUpdateSize}}"
+									allowed-pattern="[0-9kmg]"
+									pattern="^[0-9]+[kmg]?$"
+									label="Unit Size"
+									auto-validate>
+							</paper-input>
+							<paper-tooltip>
+									Unit of measure (Bytes=(MB="m", GB="g", KB="k"), Seconds=(Minutes="m",Hour="h"), Messages=(Messages="msg"))
+							</paper-tooltip>
+						</div>
+						<div>
+							<paper-dropdown-menu
+									label="Units"
+									value="{{priceUpdateUnits}}"
+									no-animations="true"
+									on-selected-item-changed="checkPattern">
+								<paper-listbox
+										id="updatePriceUnits"
+										slot="dropdown-content">
+									<paper-item id="priceBytes">
+											Bytes
+									</paper-item>
+									<paper-item id="priceCents">
+											Cents
+									</paper-item>
+									<paper-item id="priceSeconds">
+											Seconds
+									</paper-item>
+								</paper-listbox>
+							</paper-dropdown-menu>
+							<paper-tooltip
+									Select a value to update the offer price unit (Bytes | Cents | Seconds)
+							</paper-tooltip>
+						</div>
+						<div>
+							<paper-input id="updatePriceAmount"
+									value="{{priceUpdateAmount}}"
+									type="text"
+									allowed-pattern="[0-9.]"
+									pattern="[0-9]+\.?[0-9]{0,6}$"
+									auto-validate
+									label="Amount"
+									value=0>
+							</paper-input>
+							<paper-tooltip
+									Add a value to update the offer price tax included amount
+							</paper-tooltip>
+						</div>
+						<div>
+							<paper-input
+									value="{{priceUpdateCurrency}}"
+									label="Currency">
+							</paper-input>
+							<paper-tooltip
+									Add a value to update the offer price tax currency
+							</paper-tooltip>
+						</div>
+						<div>
+							<paper-dropdown-menu id="updatePricePerioddrop"
+									value="{{priceUpdatePeriod}}"
+									no-animations="true"
+									label="Period">
+								<paper-listbox
+										id="updatePricePeriod"
+										slot="dropdown-content"
+										selected="2">
+									<paper-item>
+										Hourly
+									</paper-item>
+									<paper-item>
+										Daily
+									</paper-item>
+									<paper-item>
+										Weekly
+									</paper-item>
+									<paper-item>
+										Monthly
+									</paper-item>
+									<paper-item>
+										Yearly
+									</paper-item>
+								</paper-listbox>
+							</paper-dropdown-menu>
+							<paper-tooltip>
+									Add a value to update the offer price period (Hour | Daily | Weekly | Monthly | Yearly)
+							</paper-tooltip>
+						</div>
+						<div>
+							<paper-dropdown-menu
+									value="{{priceUpdateAlteration}}"
 									no-animations="true"
 									label="Alterations">
 								<paper-listbox
@@ -365,10 +363,8 @@ class offerUpdate extends PolymerElement {
 									</template>
 								</paper-listbox>
 							</paper-dropdown-menu>
-							<paper-tooltip
-									for="addUpdatePriceDrop"
-									offset="0">
-								Add a value to update the offer price alteration
+							<paper-tooltip>
+									Add a value to update the offer price alteration
 							</paper-tooltip>
 						</div>
 						<div>
@@ -391,28 +387,28 @@ class offerUpdate extends PolymerElement {
 								</paper-icon-button>
 							</div>
 							<iron-collapse id="updatePriceCharsTime">
-								<paper-input
-										type="datetime-local"
-										id="updateTimeOfDayStart"
-										value="{{startTimeUpdate}}"
-										label="Start Time">
-								</paper-input>
-								<paper-tooltip
-										for="updateTimeOfDayStart"
-										offset="0">
-									Add a value to update the offer price start time of day
-								</paper-tooltip>
-								<paper-input
-										type="datetime-local"
-										id="updateTimeOfDayEnd"
-										value="{{endTimeUpdate}}"
-										label="End Time">
-								</paper-input>
-								<paper-tooltip
-										for="updateTimeOfDayEnd"
-										offset="0">
-									Add a value to update the offer price end time of day
-								</paper-tooltip>
+								<div>
+									<paper-input
+											type="datetime-local"
+											id="updateTimeOfDayStart"
+											value="{{startTimeUpdate}}"
+											label="Start Time">
+									</paper-input>
+									<paper-tooltip>
+											Add a value to update the offer price start time of day
+									</paper-tooltip>
+								</div>
+								<div>
+									<paper-input
+											type="datetime-local"
+											id="updateTimeOfDayEnd"
+											value="{{endTimeUpdate}}"
+											label="End Time">
+									</paper-input>
+									<paper-tooltip>
+											Add a value to update the offer price end time of day
+									</paper-tooltip>
+								</div>
 							</iron-collapse>
 							<div>
 								<span>Call Direction</span>
@@ -435,51 +431,58 @@ class offerUpdate extends PolymerElement {
 									Outgoing
 								</paper-checkbox>
 							</iron-collapse>
-							<paper-input
-									id="updateAddPriceCharReserveTime"
-									type="number"
-									label="RADIUS Reserve Time"
-									value=0>
-							</paper-input>
-							<paper-tooltip
-									for="updateAddPriceCharReserveTime"
-									offset="0">
-								Add a value to update the offer price characteristic reserve time
-							</paper-tooltip>
-							<paper-input
-									id="updateAddPriceCharReserveBytes"
-									type="number"
-									label="RADIUS Reserve Data"
-									value=0>
-							</paper-input>
-							<paper-tooltip
-									for="updateAddPriceCharReserveBytes"
-									offset="0">
-								Add a value to update the offer price characteristic reserve bytes
-							</paper-tooltip>
-							<paper-input
-									id="updateDestPrefixTariff"
-									value="{{priceUpdateTariff}}"
-									type="string"
-									label="Prefix Tariff Table">
-							</paper-input>
-							<paper-tooltip
-									for="updateDestPrefixTariff"
-									offset="0">
-								Add a value to update the offer price destination prefix tariff
-							</paper-tooltip>
-							<paper-input
-									id="roamingTable"
-									type="string"
-									value="{{priceAddRoaming}}"
-									label="Roaming Table">
-							</paper-input>
-							<paper-input
-									id="chargingKey"
-									value="{{chargingKey}}"
-									type="number"
-									label="Charging Key">
-							</paper-input>
+							<div>
+								<paper-input
+										id="updateAddPriceCharReserveTime"
+										type="number"
+										label="RADIUS Reserve Time"
+										value=0>
+								</paper-input>
+								<paper-tooltip>
+										Add a value to update the offer price characteristic reserve time
+								</paper-tooltip>
+							</div>
+							<div>
+								<paper-input
+										id="updateAddPriceCharReserveBytes"
+										type="number"
+										label="RADIUS Reserve Data"
+										value=0>
+								</paper-input>
+								<paper-tooltip
+										Add a value to update the offer price characteristic reserve bytes
+								</paper-tooltip>
+							</div>
+							<div>
+								<paper-input
+										value="{{priceUpdateTariff}}"
+										type="string"
+										label="Prefix Tariff Table">
+								</paper-input>
+								<paper-tooltip>
+										Add a value to update the offer price destination prefix tariff
+								</paper-tooltip>
+							</div>
+							<div>
+								<paper-input
+										type="string"
+										value="{{priceAddRoaming}}"
+										label="Roaming Table">
+								</paper-input>
+								<paper-tooltip>
+										Add a value to update the offer price roaming table
+								</paper-tooltip>
+							</div>
+							<div>
+								<paper-input
+										value="{{chargingKey}}"
+										type="number"
+										label="Charging Key">
+								</paper-input>
+								<paper-tooltip>
+										Add a value to update the offer price charging key
+								</paper-tooltip>
+							</div>
 						</iron-collapse>
 						<div class="buttons">
 							<paper-button
@@ -522,82 +525,82 @@ class offerUpdate extends PolymerElement {
 								Add a value to update the offer price alteration name
 							</paper-tooltip>
 						</div>
-						<paper-input id="updateAltDesc"
-								value="{{AltUpdateDesc}}"
-								label="Description">
-						</paper-input>
-						<paper-tooltip
-								for="updateAltDesc"
-								offset="0">
-							Add a value to update the offer price alteration description
-						</paper-tooltip>
-						<paper-input id="updateAltStartDate"
-								type="datetime-local"
-								value="{{updateOfferStartDateAlt}}"
-								label="Start Date">
-						</paper-input>
-						<paper-tooltip
-								for="updateAltStartDate"
-								offset="0">
-							Add a value to update the offer price alteration start date
-						</paper-tooltip>
-						<paper-input id="updateAltEndDate"
-								type="datetime-local"
-								value="{{updateOfferEndDateAlt}}"
-								label="End Date">
-						</paper-input>
-						<paper-tooltip
-								for="updateAltEndDate"
-								offset="0">
-							Add a value to update the offer price alteration end date
-						</paper-tooltip>
-						<paper-dropdown-menu
-								id="updateAltTypedrop"
-								label="Price Type"
-								value="{{altUpdateType}}"
-								no-animations="true"
-								on-selected-item-changed="checkRecureAlt">
-							<paper-listbox
-									id="updateAltType"
-									slot="dropdown-content">
-								<paper-item>
-									Recurring
-								</paper-item>
-								<paper-item>
-									One Time
-								</paper-item>
-								<paper-item>
-									Usage
-								</paper-item>
-							</paper-listbox>
-						</paper-dropdown-menu>
-						<paper-tooltip
-								for="updateAltTypedrop"
-								offset="0">
-							Add a value to update the offer price alteration type (Recurring | Onetime | Usage)
-						</paper-tooltip>
-						<paper-input id="updateAltSize"
-								label="Unit Size"
-								type="text"
-								allowed-pattern="[0-9kmg]"
-								pattern="^[0-9]+[kmg]?$"
-								auto-validate
-								value=1>
-						</paper-input>
-						<paper-tooltip
-								for="updateAltSize"
-								offset="0">
-							Unit of measure (Bytes=(MB="m", GB="g", KB="k"), Seconds=(Minutes="m",Hour="h"), Messages=(Messages="msg"))
-						</paper-tooltip>
-						<paper-dropdown-menu
-								id="updateAltsUnitsdrop"
-								value= "{{altUpdateUnits}}"
-								no-animations="true"
-								label="Units">
-							<paper-listbox
-									id="updateUnitDrop"
-									on-selected-item-changed="checkPatternAlt"
-									slot="dropdown-content">
+						<div>
+							<paper-input
+									value="{{AltUpdateDescription}}"
+									label="Description">
+							</paper-input>
+							<paper-tooltip>
+									Add a value to update the offer price alteration description
+							</paper-tooltip>
+						</div>
+						<div>
+							<paper-input
+									type="datetime-local"
+									value="{{updateOfferStartDateAlt}}"
+									label="Start Date">
+							</paper-input>
+							<paper-tooltip>
+									Add a value to update the offer price alteration start date
+							</paper-tooltip>
+						</div>
+						<div>
+							<paper-input
+									type="datetime-local"
+									value="{{updateOfferEndDateAlt}}"
+									label="End Date">
+							</paper-input>
+							<paper-tooltip>
+									Add a value to update the offer price alteration end date
+							</paper-tooltip>
+						</div>
+						<div>
+							<paper-dropdown-menu
+									label="Price Type"
+									value="{{altUpdateType}}"
+									no-animations="true"
+									on-selected-item-changed="checkRecureAlt">
+								<paper-listbox
+										id="updateAltType"
+										slot="dropdown-content">
+									<paper-item>
+										Recurring
+									</paper-item>
+									<paper-item>
+										One Time
+									</paper-item>
+									<paper-item>
+										Usage
+									</paper-item>
+								</paper-listbox>
+							</paper-dropdown-menu>
+							<paper-tooltip
+									Add a value to update the offer price alteration type (Recurring | Onetime | Usage)
+							</paper-tooltip>
+						</div>
+						<div>
+							<paper-input id="updateAltSize"
+									label="Unit Size"
+									type="text"
+									allowed-pattern="[0-9kmg]"
+									pattern="^[0-9]+[kmg]?$"
+									auto-validate
+									value=1>
+							</paper-input>
+							<paper-tooltip
+									Unit of measure (Bytes=(MB="m", GB="g", KB="k"), Seconds=(Minutes="m",Hour="h"), Messages=(Messages="msg"))
+							</paper-tooltip>
+						</div>
+						<div>
+							<paper-dropdown-menu
+									id="updateAltsUnitsdrop"
+									value= "{{altUpdateUnits}}"
+									no-animations="true"
+									label="Units">
+								<paper-listbox
+										id="updateUnitDrop"
+										on-selected-item-changed="checkPatternAlt"
+										slot="dropdown-content">
 									<paper-item id="altBytes">
 											Bytes
 									</paper-item>
@@ -607,65 +610,64 @@ class offerUpdate extends PolymerElement {
 									<paper-item id="altSeconds">
 											Seconds
 									</paper-item>
-							</paper-listbox>
-						</paper-dropdown-menu>
-						<paper-tooltip
-								for="updateAltsUnitsdrop"
-								offset="0">
-							Select a value to update the offer price alteration unit (Bytes | Cents | Seconds)
-						</paper-tooltip>
-						<paper-input id="updateAltAmount"
-								label="Amount"
-								type="text"
-								allowed-pattern="[0-9.]"
-								pattern="[0-9]+\.?[0-9]{0,6}$"
-								auto-validate
-								value=0>
-						</paper-input>
-						<paper-tooltip
-								for="updateAltAmount"
-								offset="0">
-							Add a value to update the offer price alteration tax included amount
-						</paper-tooltip>
-						<paper-input id="updateAltCurr"
-								value="{{altUpdateCurr}}"
-								label="Currency">
-						</paper-input>
-						<paper-tooltip
-								for="updateAltCurr"
-								offset="0">
-							Add a value to update the offer price alteration currency
-						</paper-tooltip>
-						<paper-dropdown-menu id="addalt5drop"
-								label="Period"
-								no-animations="true"
-								value="{{AltUpdatePer}}">
-							<paper-listbox
-									id="updateAltPeriod"
-									slot="dropdown-content"
-									selected="2">
-								<paper-item>
-									Hourly
-								</paper-item>
-								<paper-item>
-									Daily
-								</paper-item>
-								<paper-item>
-									Weekly
-								</paper-item>
-								<paper-item>
-									Monthly
-								</paper-item>
-								<paper-item>
-									Yearly
-								</paper-item>
-							</paper-listbox>
-						</paper-dropdown-menu>
-						<paper-tooltip
-								for="addalt5drop"
-								offset="0">
-							Add a value to update the offer price alteration period (Hour | Daily | Weekly | Monthly | Yearly)
-						</paper-tooltip>
+								</paper-listbox>
+							</paper-dropdown-menu>
+							<paper-tooltip>
+									Select a value to update the offer price alteration unit (Bytes | Cents | Seconds)
+							</paper-tooltip>
+						</div>
+						<div>
+							<paper-input id="updateAltAmount"
+									label="Amount"
+									type="text"
+									allowed-pattern="[0-9.]"
+									pattern="[0-9]+\.?[0-9]{0,6}$"
+									auto-validate
+									value=0>
+							</paper-input>
+							<paper-tooltip>
+									Add a value to update the offer price alteration tax included amount
+							</paper-tooltip>
+						</div>
+						<div>
+							<paper-input
+									value="{{altUpdateCurrency}}"
+									label="Currency">
+							</paper-input>
+							<paper-tooltip>
+									Add a value to update the offer price alteration currency
+							</paper-tooltip>
+						</div>
+						<div>
+							<paper-dropdown-menu id="addAltPeriodDrop"
+									label="Period"
+									no-animations="true"
+									value="{{AltUpdatePeriod}}">
+								<paper-listbox
+										id="updateAltPeriod"
+										slot="dropdown-content"
+										selected="2">
+									<paper-item>
+										Hourly
+									</paper-item>
+									<paper-item>
+										Daily
+									</paper-item>
+									<paper-item>
+										Weekly
+									</paper-item>
+									<paper-item>
+										Monthly
+									</paper-item>
+									<paper-item>
+										Yearly
+									</paper-item>
+								</paper-listbox>
+							</paper-dropdown-menu>
+							<paper-tooltip>
+									Add a value to update the offer price alteration period (Hour | Daily | Weekly | Monthly | Yearly)
+							</paper-tooltip>
+						</div>
 						<div class="buttons">
 							<paper-button
 									id="updateOfferAlterationButton"
@@ -773,10 +775,10 @@ class offerUpdate extends PolymerElement {
 			updateOfferName: {
 				type: String
 			},
-			updateOfferDesc: {
+			updateOfferDescription: {
 				type: String
 			},
-			updateOfferSpec: {
+			updateOfferSpecification: {
 				type: String
 			},
 			updateOfferStartDate: {
@@ -791,7 +793,7 @@ class offerUpdate extends PolymerElement {
 			updateOfferEndDate: {
 				type: String
 			},
-			priceUpdateDesc: {
+			priceUpdateDescription: {
 				type: String
 			},
 			chargingKey: {
@@ -818,7 +820,7 @@ class offerUpdate extends PolymerElement {
 			priceUpdateTariff: {
 				type: String
 			},
-			AltUpdateDesc: {
+			AltUpdateDescription: {
 				type: String
 			},
 			updateOfferStartDateAlt: {
@@ -827,7 +829,7 @@ class offerUpdate extends PolymerElement {
 			updateOfferEndDateAlt: {
 				type: String
 			},
-			altUpdateCurr: {
+			altUpdateCurrency: {
 				type: String
 			}
 		}
@@ -848,9 +850,9 @@ class offerUpdate extends PolymerElement {
 			this.$.getOffersAjax.generateRequest();
 			this.$.updateOfferModal.open();
 			this.updateOfferName = current.id;
-			this.updateOfferDesc = current.description;
+			this.updateOfferDescription = current.description;
 			if(current.productSpecification && current.productSpecification.name) {
-				this.updateOfferSpec = current.productSpecification.name.replace("ProductSpec", "");
+				this.updateOfferSpecification = current.productSpecification.name.replace("ProductSpec", "");
 			}
 			this.updateOfferStartDate = current.startDate;
 			this.updateOfferEndDate = current.endDate;
@@ -1046,13 +1048,13 @@ class offerUpdate extends PolymerElement {
 			}
 		}
 		var bundle = document.body.querySelector('sig-app').shadowRoot.getElementById('offerList').shadowRoot.getElementById('offerGrid').activeItem.bundledProductOffering;
-		for(var indexBun in bundle) {
-			function checkExist1(prod) {
-				return prod.name == bundle[indexBun].name;
+		for(var indexBundle in bundle) {
+			function checkExistProduct(prod) {
+				return prod.name == bundle[indexBundle].name;
 			}
-			var ind = this.offers.findIndex(checkExist1);
-			if (ind != -1) {
-				this.offers[ind].checked = true;
+			var indexProduct = this.offers.findIndex(checkExistProduct);
+			if (indexProduct != -1) {
+				this.offers[indexProduct].checked = true;
 			}
 		}
 		var toast = document.body.querySelector('sig-app').shadowRoot.getElementById('restError');
@@ -1142,13 +1144,13 @@ class offerUpdate extends PolymerElement {
 				this.$.updateOfferPriceButton.hidden = true;
 			}
 			if (indexUpdatePrice == -1) {
-				this.priceUpdateDesc = null;
+				this.priceUpdateDescription = null;
 				this.updateOfferStartDatePrice = null;
 				this.updateOfferEndDatePrice = null;
 				this.priceUpdateType = null;
 				this.priceUpdateSize = null;
 				this.priceUpdateUnits = null;
-				this.$.updatePriceAmount.value = null;
+				this.priceUpdateAmount = null;
 				this.priceUpdateCurrency = null;
 				this.priceUpdatePeriod = null;
 				this.$.updateAddPriceCharReserveTime.value = null;
@@ -1163,9 +1165,9 @@ class offerUpdate extends PolymerElement {
 				this.endTimeUpdate = null;
 				this.$.updateCheckIn.checked = false;
 				this.$.updateCheckOut.checked = false;
-				this.priceUpdateAlt = null;
+				this.priceUpdateAlteration = null;
 			} else {
-				this.priceUpdateDesc = this.prices[indexUpdatePrice].description;
+				this.priceUpdateDescription = this.prices[indexUpdatePrice].description;
 				if(this.prices[indexUpdatePrice].start || this.prices[indexUpdatePrice].end) {
 					this.updateOfferStartDatePrice = this.prices[indexUpdatePrice].start;
 					this.updateOfferEndDatePrice = this.prices[indexUpdatePrice].end;
@@ -1190,7 +1192,7 @@ class offerUpdate extends PolymerElement {
 					this.priceUpdateAmount = this.prices[indexUpdatePrice].amount;
 				}
 				this.priceUpdatePeriod = this.prices[indexUpdatePrice].period;
-				this.priceUpdateAlt = this.prices[indexUpdatePrice].alteration;
+				this.priceUpdateAlteration = this.prices[indexUpdatePrice].alteration;
 				var prodPriceUpdate = this.prices[indexUpdatePrice];
 				if(prodPriceUpdate.prodSpecCharValueUse) {
 					for (var indexCharVal in prodPriceUpdate.prodSpecCharValueUse) {
@@ -1240,17 +1242,17 @@ class offerUpdate extends PolymerElement {
 				this.$.updateOfferAlterationButton.hidden = true;
 			}
 			if (indexAlt == -1) {
-				this.AltUpdateDesc = null;
+				this.AltUpdateDescription = null;
 				this.updateOfferStartDateAlt = null;
 				this.updateOfferEndDateAlt = null;
 				this.altUpdateType = null;
 				this.$.updateAltSize.value = null;
 				this.altUpdateUnits = null;
 				this.$.updateAltAmount.value = null;
-				this.altUpdateCurr = null;
-				this.AltUpdatePer = null;
+				this.altUpdateCurrency = null;
+				this.AltUpdatePeriod = null;
 			} else {
-				this.AltUpdateDesc = this.alterations[indexAlt].description;
+				this.AltUpdateDescription = this.alterations[indexAlt].description;
 				if(this.alterations[indexAlt].start || this.alterations[indexAlt].end) {
 					this.updateOfferStartDateAlt = this.alterations[indexAlt].start;
 					this.updateOfferEndDateAlt = this.alterations[indexAlt].end;
@@ -1269,10 +1271,10 @@ class offerUpdate extends PolymerElement {
 						break;
 				}
 				if(this.alterations[indexAlt].currency || this.alterations[indexAlt].amount) {
-					this.altUpdateCurr = this.alterations[indexAlt].currency;
+					this.altUpdateCurrency = this.alterations[indexAlt].currency;
 					this.$.updateAltAmount.value = this.alterations[indexAlt].amount;
 				}
-				this.AltUpdatePer = this.alterations[indexAlt].period;
+				this.AltUpdatePeriod = this.alterations[indexAlt].period;
 			}
 		}
 	}
@@ -1281,11 +1283,11 @@ class offerUpdate extends PolymerElement {
 		var ajax =  this.$.updateProductOfferAjax;
 		ajax.url = "/catalogManagement/v2/productOffering/" + this.updateOfferName; 
 		var offerNew = new Array();
-		if(this.updateOfferDesc) {
+		if(this.updateOfferDescription) {
 			var offerDesc = new Object();
 			offerDesc.op = "add";
 			offerDesc.path = "/description";
-			offerDesc.value = this.updateOfferDesc;
+			offerDesc.value = this.updateOfferDescription;
 			offerNew.push(offerDesc);
 		}
 		if(this.updateOfferStartDate) {
@@ -1338,8 +1340,8 @@ class offerUpdate extends PolymerElement {
 			}
 		}
 		if(this.updateRedirect) {
-			function checkNameRe(redir) {
-				return redir.name == "redirectServer";
+			function checkNameRe(redirect) {
+				return redirect.name == "redirectServer";
 			}
 			var res = this.characteristics.findIndex(checkNameRe);
 			if(res == -1) {
@@ -1364,11 +1366,11 @@ class offerUpdate extends PolymerElement {
 				offerNew.push(redirectSer);
 			} else {
 				var indexChar = res.toString();
-				var redirectSer = new Object();
-				redirectSer.op = "add";
-				redirectSer.path = "/prodSpecCharValueUse/" + indexChar + "/productSpecCharacteristicValue/0/value";
-				redirectSer.value = this.updateRedirect;
-				offerNew.push(redirectSer);
+				var redirectServer = new Object();
+				redirectServer.op = "add";
+				redirectServer.path = "/prodSpecCharValueUse/" + indexChar + "/productSpecCharacteristicValue/0/value";
+				redirectServer.value = this.updateRedirect;
+				offerNew.push(redirectServer);
 			}
 		}
 		if(this.serviceIdentifier) {
@@ -1442,11 +1444,11 @@ class offerUpdate extends PolymerElement {
 			return price.name == document.body.querySelector('sig-app').shadowRoot.getElementById('updateOffer').shadowRoot.getElementById('updatePriceName').value;
 		}
 		var indexPrices = this.prices.findIndex(checkName);
-		if(this.priceUpdateDesc != this.prices[indexPrices].description) {
+		if(this.priceUpdateDescription != this.prices[indexPrices].description) {
 			var priceDesc = new Object();
 			priceDesc.op = "add";
 			priceDesc.path = "/productOfferingPrice/" + indexPrices + "/description";
-			priceDesc.value = this.priceUpdateDesc;
+			priceDesc.value = this.priceUpdateDescription;
 			updatePriceNew.push(priceDesc);
 		}
 		if(this.priceUpdateType != this.prices[indexPrices].priceType) {
@@ -1694,7 +1696,7 @@ class offerUpdate extends PolymerElement {
 						var roam = new Object();
 						roam.op = "add";
 						roam.path = "/productOfferingPrice/" + indexPrices + "/prodSpecCharValueUse/" + indexCharRoaming  + "/productSpecCharacteristicValue/0/value";
-						roam.value = this.$.roamingTable.value;
+						roam.value = this.priceAddRoaming;
 						updatePriceNew.push(roam);
 					}
 				}
@@ -1836,12 +1838,12 @@ class offerUpdate extends PolymerElement {
 		}
 		ajax.body = JSON.stringify(updatePriceNew);
 		ajax.generateRequest();
-		this.priceUpdateDesc = null;
+		this.priceUpdateDescription = null;
 		this.priceUpdateSize = null;
 		this.priceUpdateType = null;
 		this.priceUpdatePeriod = null;
 		this.$.updateAddPriceCharReserveTime.value = null;
-		this.$.updateDestPrefixTariff.value = null;
+		this.priceUpdateTariff = null;
 		this.priceAddRoaming = null;
 		this.chargingKey = null;
 		this.$.updateAddPriceCharReserveBytes.value = null;
@@ -1887,11 +1889,11 @@ class offerUpdate extends PolymerElement {
 			alterationName.value = this.$.updateAltName.value;
 			updateAlterationNew.push(alterationName);
 		}
-		if(this.AltUpdateDesc != this.alterations[indexAlt].description) {
+		if(this.AltUpdateDescription != this.alterations[indexAlt].description) {
 			var alterationDesc = new Object();
 			alterationDesc.op = "add";
 			alterationDesc.path = "/productOfferingPrice/" + indexAlt + "/productOfferPriceAlteration/description";
-			alterationDesc.value = this.AltUpdateDesc;
+			alterationDesc.value = this.AltUpdateDescription;
 			updateAlterationNew.push(alterationDesc);
 		}
 		if(this.altUpdateType != this.alterations[indexAlt].priceType) {
@@ -1911,7 +1913,6 @@ class offerUpdate extends PolymerElement {
 			}
 			updateAlterationNew.push(alterationType);
 		}
-console.log(this.alterations[indexAlt]);
 		if(this.$.updateAltSize.value != this.alterations[indexAlt].size) {
 			var alterationSize = new Object();
 			alterationSize.op = "add";
@@ -1966,7 +1967,7 @@ console.log(this.alterations[indexAlt]);
 			altAmount.value = this.$.updateAltAmount.value;
 			updateAlterationNew.push(altAmount);
 		}
-		if(this.$.addalt5drop.value != this.alterations[indexAlt].period && !this.$.addalt5drop.disabled) {
+		if(this.$.addAltPeriodDrop.value != this.alterations[indexAlt].period && !this.$.addAltPeriodDrop.disabled) {
 			var altCharge = new Object();
 			altCharge.op = "add";
 			altCharge.path = "/productOfferingPrice/" + indexAlt + "/recurringChargePeriod";
@@ -2081,19 +2082,19 @@ console.log(this.alterations[indexAlt]);
 
 	checkRecureAlt() {
 		if(this.$.updateAltType.selected == 0) {
-			this.$.addalt5drop.disabled = false;
+			this.$.addAltPeriodDrop.disabled = false;
 			this.$.altBytes.disabled = false;
 			this.$.altSeconds.disabled = false;
 			this.$.altCents.disabled = false;
 			this.$.updateUnitDrop.selected = 1;
 		} else if(this.$.updateAltType.selected == 1) {
-			this.$.addalt5drop.disabled = true;
+			this.$.addAltPeriodDrop.disabled = true;
 			this.$.altBytes.disabled = false;
 			this.$.altSeconds.disabled = false;
 			this.$.altCents.disabled = false;
 			this.$.updateUnitDrop.selected = 1;
 		} else if(this.$.updateAltType.selected == 2) {
-			this.$.addalt5drop.disabled = true;
+			this.$.addAltPeriodDrop.disabled = true;
 			this.$.altBytes.disabled = false;
 			this.$.altSeconds.disabled = false;
 			this.$.altCents.disabled = true;
@@ -2112,7 +2113,7 @@ console.log(this.alterations[indexAlt]);
 			var updatePriceNew = this.prices[updateIndexPrice];
 		}
 		updatePriceNew.name = this.$.updatePriceName.value;
-		updatePriceNew.description = this.priceUpdateDesc;
+		updatePriceNew.description = this.priceUpdateDescription;
 		updatePriceNew.start = this.updateOfferStartDatePrice;
 		updatePriceNew.end = this.updateOfferEndDatePrice;
 		switch(this.$.updatePriceType.selected) {
@@ -2166,9 +2167,9 @@ console.log(this.alterations[indexAlt]);
 		charAddObj.timeOfDayStart = this.startTimeUpdate;
 		charAddObj.timeOfDayEnd = this.endTimeUpdate;
 		updatePriceNew.prodSpecCharValueUse = charAddObj;
-		if(this.priceUpdateAlt) {
+		if(this.priceUpdateAlteration) {
 			function checkAlt(alts) {
-				return alts.name == this.priceUpdateAlt;
+				return alts.name == this.priceUpdateAlteration;
 			}
 			updatePriceNew.alteration = this.alterations.findIndex(checkAlt);
 		}
@@ -2195,11 +2196,11 @@ console.log(this.alterations[indexAlt]);
 				priceNameUp.value = this.$.updatePriceName.value;
 				updatePriceNew1.push(priceNameUp);
 			}
-			if(this.priceUpdateDesc) {
+			if(this.priceUpdateDescription) {
 				var priceDesc = new Object();
 				priceDesc.op = "add";
 				priceDesc.path = "/productOfferingPrice/" + "-" + "/description";
-				priceDesc.value = this.priceUpdateDesc;
+				priceDesc.value = this.priceUpdateDescription;
 				updatePriceNew1.push(priceDesc);
 			} 
 			if(this.priceUpdateType) {
@@ -2275,7 +2276,7 @@ console.log(this.alterations[indexAlt]);
 			ajax.body = JSON.stringify(updatePriceNew1);
 			ajax.generateRequest();
 			this.priceUpdateName = null;
-			this.priceUpdateDesc = null;
+			this.priceUpdateDescription = null;
 			this.updateOfferStartDatePrice = null;
 			this.priceUpdateSize = null;
 			this.$.updatePriceAmount.value = null;
@@ -2293,7 +2294,7 @@ console.log(this.alterations[indexAlt]);
 			this.endTimeUpdate = null;
 			this.$.updateCheckIn.checked = false;
 			this.$.updateCheckOut.checked = false;
-			this.priceUpdateAlt = null;
+			this.priceUpdateAlteration = null;
 		} else {
 			var toast = document.body.querySelector('sig-app').shadowRoot.getElementById('restError');
 			toast.text = "Error";
@@ -2312,7 +2313,7 @@ console.log(this.alterations[indexAlt]);
 			var updateAltNew = this.alterations[updateIndexAlt];
 		}
 		updateAltNew.name = this.$.updateAltName.value;
-		updateAltNew.description = this.AltUpdateDesc;
+		updateAltNew.description = this.AltUpdateDescription;
 		updateAltNew.start = this.updateOfferStartDateAlt;
 		updateAltNew.end = this.updateOfferEndDateAlt;
 		switch(this.$.updateAltType.selected) {
@@ -2355,7 +2356,7 @@ console.log(this.alterations[indexAlt]);
 				updateAltNew.period = "yearly";
 				break;
 		}
-		updateAltNew.currency = this.altUpdateCurr;
+		updateAltNew.currency = this.altUpdateCurrency;
 		updateAltNew.amount= this.$.updateAltAmount.value;
 		if(updateAltNew.name
 					&& updateAltNew.priceType
@@ -2365,12 +2366,12 @@ console.log(this.alterations[indexAlt]);
 				this.push('alterations', updateAltNew);
 			}
 			this.AltUpdateName = null
-			this.AltUpdateDesc = null;
+			this.AltUpdateDescription = null;
 			this.updateOfferStartDateAlt = null;
 			this.updateOfferEndDateAlt = null;
 			this.altUpdateType = null;
 			this.$.updateAltSize.value = null;
-			this.altUpdateCurr = null;
+			this.altUpdateCurrency = null;
 			this.$.updateAltAmount.value = null;
 		} else {
 			var toast = document.body.querySelector('sig-app').shadowRoot.getElementById('restError');
@@ -2420,14 +2421,14 @@ console.log(this.alterations[indexAlt]);
 			}
 		});
 		this.updateOfferName = null;
-		this.updateOfferDesc = null;
-		this.updateOfferSpec = null;
+		this.updateOfferDescription = null;
+		this.updateOfferSpecification = null;
 		this.updateOfferStartDate = null;
 		this.updateOfferEndDate = null;
 		this.$.updateAddPriceChars.hide();
 		this.$.addBundleUpdate.hide();
 		this.priceUpdateName = null;
-		this.priceUpdateDesc = null;
+		this.priceUpdateDescription = null;
 		this.updateOfferStartDatePrice = null;
 		this.updateOfferEndDatePrice = null;
 		this.priceUpdateType = null;
@@ -2436,16 +2437,16 @@ console.log(this.alterations[indexAlt]);
 		this.priceUpdateSize = null;
 		this.priceUpdateCurrency = null;
 		this.priceUpdatePeriod = null;
-		this.priceUpdateAlt = null;
+		this.priceUpdateAlteration = null;
 		this.AltUpdateName = null;
-		this.AltUpdateDesc = null;
+		this.AltUpdateDescription = null;
 		this.updateOfferStartDateAlt = null;
 		this.updateOfferEndDateAlt = null;
 		this.altUpdateType = null;
 		this.$.updateAltSize.value = null;
-		this.altUpdateCurr = null;
+		this.altUpdateCurrency = null;
 		this.$.updateAltAmount.value = null;
-		this.AltUpdatePer = null;
+		this.AltUpdatePeriod = null;
 		this.altUpdateUnits = null;
 		this.$.updateAddPriceCharReserveTime.value = null;
 		this.$.updateAddPriceCharReserveBytes.value = null;
