@@ -405,7 +405,7 @@ nrf_response_to_struct1(#{"invocationTimeStamp" := TS} = M, Acc) ->
 nrf_response_to_struct2(#{"invocationSequenceNumber" := SeqNum} = M, Acc) ->
 	nrf_response_to_struct3(M, [{"invocationSequenceNumber", SeqNum} | Acc]).
 nrf_response_to_struct3(#{"msisdn" := MSISDN, "imsi" := IMSI} = M, Acc) ->
-	nrf_response_to_struct4(M, [{"subscriptionId", {array, ["msisdn-" ++ MSISDN,
+	nrf_response_to_struct4(M, [{"subsriberIdentifier", {array, ["msisdn-" ++ MSISDN,
 			"imsi-" ++ IMSI]}} | Acc]).
 nrf_response_to_struct4(#{"nodeFunctionality" := NF} = M, Acc) ->
 	nrf_response_to_struct5(M, [{"nfConsumerIdentification",
@@ -428,7 +428,7 @@ nrf_request_to_map([{"oneTimeEventType", EventType} | T], Acc) ->
 	nrf_request_to_map(T, Acc#{"oneTimeEventType" => EventType});
 nrf_request_to_map([{"invocationSequenceNumber", SeqNum} | T], Acc) ->
 	nrf_request_to_map(T, Acc#{"invocationSequenceNumber" => SeqNum});
-nrf_request_to_map([{"subscriptionId", {array, ["msisdn-" ++ MSISDN, "imsi-" ++ IMSI]}} | T], Acc) ->
+nrf_request_to_map([{"subsriberIdentifier", {array, ["msisdn-" ++ MSISDN, "imsi-" ++ IMSI]}} | T], Acc) ->
 	nrf_request_to_map(T, Acc#{"msisdn" => MSISDN, "imsi" => IMSI});
 nrf_request_to_map([{"nfConsumerIdentification", {struct, [{"nodeFunctionality", NF}]}} | T], Acc) ->
 	nrf_request_to_map(T, Acc#{"nodeFunctionality" => NF});
