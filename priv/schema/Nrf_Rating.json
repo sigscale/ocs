@@ -332,7 +332,7 @@
                       "cause" : "USER_UNKNOWN",
                       "title" : "Request denied because the subscriber identity is unrecognized",
                       "invalidParams" : [ {
-                        "param" : "/subscriberIdentifier/1",
+                        "param" : "/subscriptionId/1",
                         "reason" : "unknown imsi"
                       } ]
                     }
@@ -713,7 +713,7 @@
       "RatingDataRequest" : {
         "type" : "object",
         "properties" : {
-          "subscriberIdentifier" : {
+          "subscriptionId" : {
             "description" : "Identifies the charged party.",
             "type" : "array",
             "items" : {
