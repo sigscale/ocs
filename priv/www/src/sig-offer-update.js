@@ -1645,7 +1645,7 @@ class offerUpdate extends PolymerElement {
 					key1.name = "chargingKey";
 					var key2Arr = new Array();
 					var key2 = new Object();
-					key2.value = this.chargingKey;
+					key2.value = parseInt(this.chargingKey);
 					key2Arr.push(key2);
 					key1.productSpecCharacteristicValue = key2Arr;
 					var key3 = new Object();
@@ -1660,7 +1660,7 @@ class offerUpdate extends PolymerElement {
 						var keyE = new Object();
 						keyE.op = "add";
 						keyE.path = "/productOfferingPrice/" + indexPrices + "/prodSpecCharValueUse/" + indexCharCharging  + "/productSpecCharacteristicValue/0/value";
-						keyE.value = this.chargingKey;
+						keyE.value = parseInt(this.chargingKey);
 						updatePriceNew.push(keyE);
 					}
 				}

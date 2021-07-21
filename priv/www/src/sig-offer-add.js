@@ -1526,7 +1526,7 @@ class offerAdd extends PolymerElement {
 				var charValue = new Object();
 				var charValueUse = new Object();
 				charValueUse.name = "chargingKey";
-				charValue.value = item.chargingKey;
+				charValue.value = parseInt(item.chargingKey);
 				var charValues = new Array();
 				charValues.push(charValue);
 				charValueUse.productSpecCharacteristicValue = charValues;
