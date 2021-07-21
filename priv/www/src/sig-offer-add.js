@@ -1621,11 +1621,11 @@ class offerAdd extends PolymerElement {
 					var charValue1 = new Object();
 					var charValue = new Object();
 					var charValueLower = new Object();
-					charValueLower.amount = this.addTimePickerStart.rawValue;
+					charValueLower.amount = this.priceTodStart.rawValue;
 					charValueLower.units = "minutes";
 					charValue.lowerValue = charValueLower;
 					var charValueUpper = new Object();
-					charValueUpper.amount = this.addTimePickerEnd.rawValue;
+					charValueUpper.amount = this.priceTodEnd.rawValue;
 					charValueUpper.units = "minutes";
 					charValue.upperValue = charValueUpper;
 					charValue1.value = charValue;
