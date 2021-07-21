@@ -1884,7 +1884,11 @@ class offerAdd extends PolymerElement {
 					&& priceNew.type
 					&& priceNew.unit
 					&& (priceNew.size || priceNew.unit == "c")
-					&& (priceNew.amount || priceNew.type == "tariff")) {
+					&& (priceNew.amount || priceNew.type == "tariff")
+					&& (priceNew.type == "recurring" && priceNew.period)
+					|| (priceNew.type == "one_time" || priceNew.period)
+					|| (priceNew.type == "usage" || priceNew.period)
+					|| (priceNew.type == "tariff" || priceNew.period)) {
 			if (indexPrice == -1) {
 				this.push('prices', priceNew);
 			} else {
@@ -2015,7 +2019,10 @@ class offerAdd extends PolymerElement {
 					&& altNew.type
 					&& altNew.unit
 					&& (altNew.size || altNew.unit == "c")
-					&& (altNew.amount || altNew.amount == 0)) {
+					&& (altNew.amount || altNew.amount == 0)
+					&& (altNew.type == "recurring" && altNew.period)
+               || (altNew.type == "one_time" || altNew.period)
+               || (altNew.type == "usage" || altNew.period)) {
 			if (indexAlt == -1) {
 				this.push('alterations', altNew);
 			} else {
