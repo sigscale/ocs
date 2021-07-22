@@ -399,8 +399,7 @@ process_request2(_Address, _Port, #diameter_caps{origin_host = {OHost, _DHost},
 charging_rule(PolicyResList) ->
 	charging_rule(PolicyResList, []).
 %% @hidden
-charging_rule([#resource{name = Name} | T] = PolicyResList, Acc) ->
-	[Chars] = [Chars || #resource{characteristic = Chars} <- PolicyResList],
+charging_rule([#resource{name = Name, characteristic = Chars} | T] = PolicyResList, Acc) ->
 	ChargingRuleInstall = case lists:keyfind("predefined",
 			#resource_char.value, Chars) of
 		false ->
