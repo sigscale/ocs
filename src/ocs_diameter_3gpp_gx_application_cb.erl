@@ -335,12 +335,13 @@ process_request1(_Address, _Port, #diameter_caps{origin_host = {OHost, _DHost},
 		#'3gpp_gx_CCR'{'Session-Id' = SId,
 				'Auth-Application-Id' = ?Gx_APPLICATION_ID,
 				'CC-Request-Type' = RequestType,
-				'CC-Request-Number' = RequestNum} = Request, false) ->
-	error_logger:warning_report(["Unable to process DIAMETER request",
-			{origin_host, OHost}, {origin_realm, ORealm},
-			{session_id, SId}, {request, Request}, {error, policy_not_found}]),
-	diameter_error(SId, ?'DIAMETER_BASE_RESULT-CODE_UNABLE_TO_COMPLY',
-			OHost, ORealm, RequestType, RequestNum).
+				'CC-Request-Number' = RequestNum}, false) ->
+	#'3gpp_gx_CCA'{'Session-Id' = SId,
+			'Result-Code' = [?'DIAMETER_BASE_RESULT-CODE_SUCCESS'],
+			'Origin-Host' = OHost, 'Origin-Realm' = ORealm,
+			'Auth-Application-Id' = ?Gx_APPLICATION_ID,
+			'CC-Request-Type' = RequestType,
+			'CC-Request-Number' = RequestNum}.
 
 %% @hidden
 process_request2(_Address, _Port, #diameter_caps{origin_host = {OHost, _DHost},
@@ -399,7 +400,7 @@ process_request2(_Address, _Port, #diameter_caps{origin_host = {OHost, _DHost},
 charging_rule(PolicyResList) ->
 	charging_rule(PolicyResList, []).
 %% @hidden
-charging_rule([#resource{name = Name, characteristic = Chars} | T] = PolicyResList, Acc) ->
+charging_rule([#resource{name = Name, characteristic = Chars} | T], Acc) ->
 	ChargingRuleInstall = case lists:keyfind("predefined",
 			#resource_char.value, Chars) of
 		false ->
