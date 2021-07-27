@@ -1335,14 +1335,7 @@ class offerUpdate extends PolymerElement {
 			reserveSession.op = "replace";
 			reserveSession.path = "/prodSpecCharValueUse/" + indexChar + "/productSpecCharacteristicValue/0/value";
 			reserveSession.value = parseInt(this.$.updateReserveSession.value);
-			if(reserveSession.value == "") {
-				var redirectSessionDel = new Object();
-				redirectSessionDel.op = "remove";
-				redirectSessionDel.path = "/prodSpecCharValueUse/" + indexChar;
-				offerNew.push(redirectSessionDel);
-			} else {
-				offerNew.push(reserveSession);
-			}
+			offerNew.push(reserveSession);
 		}
 		function checkNameRe(redirect) {
 			return redirect.name == "redirectServer";
@@ -1459,6 +1452,7 @@ class offerUpdate extends PolymerElement {
 			return price.name == document.body.querySelector('sig-app').shadowRoot.getElementById('updateOffer').shadowRoot.getElementById('updatePriceName').value;
 		}
 		var indexPrices = this.prices.findIndex(checkName);
+
 		if(this.priceUpdateDescription != this.prices[indexPrices].description) {
 			var priceDesc = new Object();
 			priceDesc.op = "add";
