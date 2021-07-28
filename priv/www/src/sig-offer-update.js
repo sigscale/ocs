@@ -1452,7 +1452,6 @@ class offerUpdate extends PolymerElement {
 			return price.name == document.body.querySelector('sig-app').shadowRoot.getElementById('updateOffer').shadowRoot.getElementById('updatePriceName').value;
 		}
 		var indexPrices = this.prices.findIndex(checkName);
-
 		if(this.priceUpdateDescription != this.prices[indexPrices].description) {
 			var priceDesc = new Object();
 			priceDesc.op = "add";
@@ -2198,90 +2197,268 @@ class offerUpdate extends PolymerElement {
 				return price.name == document.body.querySelector('sig-app').shadowRoot.getElementById('updateOffer').shadowRoot.getElementById('updatePriceName').value;
 			}
 			var indexPrices = this.prices.findIndex(checkName);
+			var createPrice = new Object();
+			createPrice.op = "add";
+			createPrice.path = "/productOfferingPrice/-";
+			var addValue = new Object();
 			if(this.$.updatePriceName.value) {
-				var priceNameUp = new Object();
-				priceNameUp.op = "add";
-				priceNameUp.path =  "/productOfferingPrice/" + "-" + "/name";
-				priceNameUp.value = this.$.updatePriceName.value;
-				updatePriceNew1.push(priceNameUp);
+				addValue.name = this.$.updatePriceName.value;
 			}
 			if(this.priceUpdateDescription) {
-				var priceDesc = new Object();
-				priceDesc.op = "add";
-				priceDesc.path = "/productOfferingPrice/" + "-" + "/description";
-				priceDesc.value = this.priceUpdateDescription;
-				updatePriceNew1.push(priceDesc);
+				addValue.description = this.priceUpdateDescription;
 			} 
+			if(this.updateOfferStartDatePrice) {
+				var startTimeObj = new Object();
+				startTimeObj.startDateTime = this.updateOfferStartDatePrice; 
+				addValue.validFor = startTimeObj;
+			}
+			if(this.updateOfferEndDatePrice) {
+				var endTimeObj = new Object();
+				endTimeObj.endDateTime = this.updateOfferEndDatePrice;
+				addValue.validFor = endTimeObj;
+			}
 			if(this.priceUpdateType) {
-				var pricetype = new Object();
-				pricetype.op = "add";
-				pricetype.path = "/productOfferingPrice/" + "-" + "/priceType";
 				switch(this.$.updatePriceType.selected) {
 					case 0:
-						pricetype.value = "recurring";
+						addValue.priceType = "recurring";
 						break;
 					case 1:
-						pricetype.value = "one_time";
+						addValue.priceType = "one_time";
 						break;
 					case 2:
-						pricetype.value = "usage";
+						addValue.priceType = "usage";
 						break;
 					case 3:
-						pricetype.value = "tariff";
+						addValue.priceType = "tariff";
 						break;
 				}
-				updatePriceNew1.push(pricetype);
 			} 
-			if(this.priceUpdateSize) {
-				var priceSize = new Object();
-				priceSize.op = "add";
-				priceSize.path = "/productOfferingPrice/" + "-" + "/unitOfMeasure";
-				priceSize.value = this.priceUpdateSize;
-				updatePriceNew1.push(priceSize);
+			if(this.priceUpdateUnits == "Seconds") {
+				this.priceUpdateUnits = "s";
 			}
-			if(this.$.updatePriceAmount.value) {
+			if(this.priceUpdateUnits == "Bytes") {
+				this.priceUpdateUnits = "b";
+			}
+			if(this.priceUpdateUnits && this.priceUpdateSize) {
+				var len = this.priceUpdateSize.length;
+ 				var m = this.priceUpdateSize.charAt(len - 1);
+ 				if(isNaN(parseInt(m))) {
+ 					var s = this.priceUpdateSize.slice(0, (len - 1));
+ 				} else {
+ 					var s = this.priceUpdateSize;
+ 				}
+ 				if(this.priceUpdateUnits == "b") {
+ 					if (m == "m") {
+ 						addValue.unitOfMeasure = s + "000000b";
+					} else if(m == "g") {
+						addValue.unitOfMeasure = s + "000000000b";
+					} else if(m == "k") {
+						addValue.unitOfMeasure = s + "000b";
+					} else {
+						addValue.unitOfMeasure = s + "b";
+					}
+				} else if(this.priceUpdateUnits == "s") {
+					var n = Number(s);
+					if(m == "m") {
+						n = n * 60;
+						addValue.unitOfMeasure = n.toString() + "s";
+					} else if(m == "h") {
+						n = n * 3600;
+						addValue.unitOfMeasure = n.toString() + "s";
+					} else {
+						addValue.unitOfMeasure = n.toString() + "s";
+					}
+				}
+			}
+			if(this.priceUpdateAmount) {
 				var priceAmount = new Object();
-				priceAmount.op = "add";
-				priceAmount.path = "/productOfferingPrice/" + "-" + "/taxIncludedAmount";
-				priceAmount.value = this.$.updatePriceAmount.value;
-				updatePriceNew1.push(priceAmount);
+				priceAmount.taxIncludedAmount = this.priceUpdateAmount;
+				addValue.price = priceAmount;
+			}
+			if(this.priceUpdatePeriod) {
+				switch(this.$.updatePricePeriod.selected) {
+					case 0:
+						addValue.recurringChargePeriod = "hourly";
+						break;
+					case 1:
+						addValue.recurringChargePeriod = "daily";
+						break;
+					case 2:
+						addValue.recurringChargePeriod = "weekly";
+						break;
+					case 3:
+						addValue.recurringChargePeriod = "monthly";
+						break
+					case 4:
+						addValue.recurringChargePeriod = "yearly";
+						break;
+				}
+			}
+			if(this.priceUpdateCurrency) {
+				addValue.currency = this.priceUpdateCurrency;
 			}
 			if(this.$.updateAddPriceCharReserveTime.value) {
-				var charReserve = new Object();
-				charReserve.op = "add";
-				charReserve.path = "/productOfferingPrice/" + indexPrices + "/radiusReserveTime";
-				charReserve.value = this.$.updateAddPriceCharReserveTime.value;
-				updatePriceNew.push(charReserve);
+				addValue.radiusReserveTime = this.$.updateAddPriceCharReserveTime.value;
 			}
 			if(this.$.updateAddPriceCharReserveBytes.value) {
-				var charResBytes = new Object();
-				charResBytes.op = "add";
-				charResBytes.path = "/productOfferingPrice/" + indexPrices + "/radiusReserveOctets";
-				charResBytes.value = this.$.updateAddPriceCharReserveBytes.value;
-				updatePriceNew.push(charResBytes);
+				addValue.radiusReserveOctets = this.$.updateAddPriceCharReserveBytes.value;
 			}
-			if(this.startTimeUpdate) {
-				function checkChar1(charVal) {
-					return charVal.name == "timeOfDayRange";
+			var prodSpecCharValueUse = new Array();
+			if (this.priceUpdateTariff) {
+				var charValue = new Object();
+				var charValueUse = new Object();
+				charValueUse.name = "destPrefixTariffTable";
+				charValueUse.minCardinality = 0;
+				charValueUse.maxCardinality = 1;
+				charValue.default = true;
+				charValue.value = this.priceUpdateTariff;
+				var charValues = new Array();
+				charValues.push(charValue);
+				charValueUse.productSpecCharacteristicValue = charValues;
+				var prodSpec = new Object();
+				prodSpec.id = "3";
+				prodSpec.href = "/catalogManagement/v2/productSpecification/3";
+				charValueUse.productSpecification = prodSpec;
+				prodSpecCharValueUse.push(charValueUse);
+				addValue.prodSpecCharValueUse = prodSpecCharValueUse;
+			}
+			if (this.priceAddRoaming) {
+				var charValue = new Object();
+				var charValueUse = new Object();
+				charValueUse.name = "roamingTable";
+				charValueUse.minCardinality = 0;
+				charValueUse.maxCardinality = 1;
+				charValue.default = true;
+				charValue.value = this.priceAddRoaming;
+				var charValues = new Array();
+				charValues.push(charValue);
+				charValueUse.productSpecCharacteristicValue = charValues;
+				var prodSpec = new Object();
+				prodSpec.id = "3";
+				prodSpec.href = "/catalogManagement/v2/productSpecification/3";
+				charValueUse.productSpecification = prodSpec;
+				prodSpecCharValueUse.push(charValueUse);
+				addValue.prodSpecCharValueUse = prodSpecCharValueUse;
+			}
+			if (this.chargingKey) {
+				var charValue = new Object();
+				var charValueUse = new Object();
+				charValueUse.name = "chargingKey";
+				charValue.value = parseInt(this.chargingKey);
+				var charValues = new Array();
+				charValues.push(charValue);
+				charValueUse.productSpecCharacteristicValue = charValues;
+				var prodSpec = new Object();
+				prodSpec.id = "3";
+				prodSpec.href = "/catalogManagement/v2/productSpecification/3";
+				charValueUse.productSpecification = prodSpec;
+				prodSpecCharValueUse.push(charValueUse);
+				addValue.prodSpecCharValueUse = prodSpecCharValueUse;
+			}
+			if (this.$.updateAddPriceCharReserveTime.value) {
+				var charValue = new Object();
+				charValue.unitOfMeasure = "seconds";
+				var charLength = this.$.updateAddPriceCharReserveTime.value.length;
+				var lastChar = this.$.updateAddPriceCharReserveTime.value.charAt(charLength - 1);
+				if(isNaN(parseInt(lastChar))) {
+					var s = this.$.updateAddPriceCharReserveTime.value.slice(0, (charLength -1));
+				} else {
+					var s = this.$.updateAddPriceCharReserveTime.value;
 				}
-				var indexChar2 = this.prices[indexPrices].prodSpecCharValueUse.findIndex(checkChar1);
-				var timeDay = new Object();
-				timeDay.op = "add";
-				timeDay.path = "/productOfferingPrice/" + indexPrices + "/prodSpecCharValueUse/" + indexChar2 + "/productSpecCharacteristicValue/0/value";
-				timeDay.value = this.startTimeUpdate;
-				updatePriceNew.push(timeDay);
-			}
-			if(this.endTimeUpdate) {
-				function checkChar1(charVal) {
-					return charVal.name == "timeOfDayRange";
+				if(charValue.unitOfMeasure == "seconds") {
+					var n = Number(s);
+					if(lastChar == "m") {
+						charValue.value = n * 60;
+					}
+					else if(lastChar == "h") {
+						charValue.value = n * 3600;
+					} else {
+						charValue.value = n;
+					}
 				}
-				var indexChar2 = this.prices[indexPrices].prodSpecCharValueUse.findIndex(checkChar1);
-				var timeDayEnd = new Object();
-				timeDayEnd.op = "add";
-				timeDayEnd.path = "/productOfferingPrice/" + indexPrices + "/prodSpecCharValueUse/" + indexChar2 + "/productSpecCharacteristicValue/0/value";
-				timeDayEnd.value = this.endTimeUpdate;
-				updatePriceNew.push(timeDayEnd);
+				var charValueUse = new Object();
+				charValueUse.name = "radiusReserveTime";
+				charValueUse.valueType = "Number";
+				charValueUse.minCardinality = 1;
+				charValueUse.maxCardinality = 1;
+				charValue.default = true;
+				var charValues = new Array();
+				charValues.push(charValue);
+				charValueUse.productSpecCharacteristicValue = charValues;
+				var prodSpec = new Object();
+				prodSpec.id = "4";
+				prodSpec.href = "/catalogManagement/v2/productSpecification/4";
+				charValueUse.productSpecification = prodSpec;
+				prodSpecCharValueUse.push(charValueUse);
+				addValue.prodSpecCharValueUse = prodSpecCharValueUse;
 			}
+			if (this.$.updateAddPriceCharReserveBytes.value) {
+				var charValue = new Object();
+				charValue.unitOfMeasure = "octets";
+				var charLength = this.$.updateAddPriceCharReserveBytes.value.length;
+				var lastChar = this.$.updateAddPriceCharReserveBytes.value.charAt(charLength - 1);
+				if(isNaN(parseInt(lastChar))) {
+					var s = this.$.updateAddPriceCharReserveBytes.value.slice(0, (charLength -1));
+				} else {
+					var s = item.reserveBytes;
+				}
+				if(charValue.unitOfMeasure == "octets") {
+					var n = Number(s);
+					if(lastChar == "g") {
+						charValue.value = n * 1000000000;
+					}
+					else if(lastChar == "m") {
+						charValue.value = n * 1000000;
+					}
+					else if(lastChar == "k") {
+						charValue.value = n * 1000;
+					} else {
+						charValue.value = n;
+					}
+				}
+				var charValueUse = new Object();
+				charValueUse.name = "radiusReserveOctets";
+				charValueUse.valueType = "Number";
+				charValueUse.minCardinality = 1;
+				charValueUse.maxCardinality = 1;
+				charValue.default = true;
+				var charValuesByte = new Array();
+				charValuesByte.push(charValue);
+				charValueUse.productSpecCharacteristicValue = charValuesByte;
+				var prodSpec = new Object();
+				prodSpec.id = "4";
+				prodSpec.href = "/catalogManagement/v2/productSpecification/4";
+				charValueUse.productSpecification = prodSpec;
+				prodSpecCharValueUse.push(charValueUse);
+				addValue.prodSpecCharValueUse = prodSpecCharValueUse;
+			}
+			if (this.startTimeUpdate || this.endTimeUpdate) {
+				if (this.startTimeUpdate.length > 0 || this.endTimeUpdate.length > 0) {
+					var charValueUse = new Object();
+					charValueUse.name = "timeOfDayRange";
+					charValueUse.valueType = "Range";
+					charValueUse.minCardinality = 0;
+					charValueUse.maxCardinality = 1;
+					var charValue1 = new Object();
+					var charValue = new Object();
+					var charValueLower = new Object();
+					charValueLower.amount = this.startTimeUpdate;
+					charValueLower.units = "minutes";
+					charValue.lowerValue = charValueLower;
+					var charValueUpper = new Object();
+					charValueUpper.amount = this.endTimeUpdate;
+					charValueUpper.units = "minutes";
+					charValue.upperValue = charValueUpper;
+					charValue1.value = charValue;
+					var charValues = new Array();
+					charValues.push(charValue1);
+					charValueUse.productSpecCharacteristicValue = charValues;
+					prodSpecCharValueUse.push(charValueUse);
+					addValue.prodSpecCharValueUse = prodSpecCharValueUse;
+				}
+			}
+			createPrice.value = addValue;
+			updatePriceNew1.push(createPrice);
 			ajax.body = JSON.stringify(updatePriceNew1);
 			ajax.generateRequest();
 			this.priceUpdateName = null;
