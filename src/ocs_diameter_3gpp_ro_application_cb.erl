@@ -1084,7 +1084,7 @@ rate(ServiceType, ServiceNetwork, Subscriber,
 			{error, Reason}
 	end;
 rate(_, _, _, _, _, _, _, _, [], [], undefined, undefined) ->
-	{[], ?'DIAMETER_BASE_RESULT-CODE_SUCCESS'};
+	{[], ?'DIAMETER_CC_APP_RESULT-CODE_RATING_FAILED'};
 rate(_, _, _, _, _, _, _, _, [], Acc, ResultCode, undefined) ->
 	{lists:reverse(Acc), ResultCode};
 rate(_, _, _, _, _, _, _, _, [], Acc, ResultCode, Rated) ->

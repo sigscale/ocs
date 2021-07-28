@@ -23,6 +23,7 @@
 -export([rate/13]).
 -export([authorize/8]).
 -export([session_attributes/1]).
+-export([filter_prices_tod/2, filter_prices_key/2]).
 
 -include("ocs.hrl").
 -include("ocs_log.hrl").
@@ -204,15 +205,27 @@ rate(Protocol, ServiceType, ServiceId, ChargingKey,
 	end,
 	case mnesia:transaction(F) of
 		{atomic, {ok, Sub, Rated, DeletedBuckets, AccBalance}}
-				when is_list(Rated) ->
+				when is_list(Rated); Rated == #rated{} ->
+			Rated1 = case Rated of
+				Rated when is_list(Rated) ->
+					Rated;
+				#rated{} = Rated ->
+					[Rated]
+			end, 
 			ok = send_notifications(DeletedBuckets),
 			ok = notify_accumulated_balance(AccBalance),
-			{ok, Sub, Rated};
+			{ok, Sub, Rated1};
 		{atomic, {ok, Sub, Granted, Rated, DeletedBuckets, AccBalance}}
-				when is_list(Rated) ->
+				when is_list(Rated); Rated == #rated{} ->
+			Rated1 = case Rated of
+				Rated when is_list(Rated) ->
+					Rated;
+				#rated{} = Rated ->
+					[Rated]
+			end, 
 			ok = send_notifications(DeletedBuckets),
 			ok = notify_accumulated_balance(AccBalance),
-			{ok, Sub, Granted, Rated};
+			{ok, Sub, Granted, Rated1};
 		{atomic, {out_of_credit, RedirectServerAddress, SL, Rated, DeletedBuckets, AccBalance}} ->
 			ok = send_notifications(DeletedBuckets),
 			ok = notify_accumulated_balance(AccBalance),
