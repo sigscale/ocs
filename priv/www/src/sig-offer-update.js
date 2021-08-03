@@ -1283,26 +1283,45 @@ class offerUpdate extends PolymerElement {
 		var ajax =  this.$.updateProductOfferAjax;
 		ajax.url = "/catalogManagement/v2/productOffering/" + this.updateOfferName; 
 		var offerNew = new Array();
-		if(this.updateOfferDescription) {
 			var offerDesc = new Object();
 			offerDesc.op = "add";
 			offerDesc.path = "/description";
 			offerDesc.value = this.updateOfferDescription;
-			offerNew.push(offerDesc);
-		}
+			if(offerDesc.value == "") {
+				var offerDescDel = new Object();
+				offerDescDel.op = "remove";
+				offerDescDel.path = "/description";
+				offerNew.push(offerDescDel);
+			} else {
+				offerNew.push(offerDesc);
+			}
 		if(this.updateOfferStartDate) {
 			var startDateTimeObject = new Object();
 			startDateTimeObject.op = "add";
 			startDateTimeObject.path = "/validFor/startDateTime";
 			startDateTimeObject.value = this.updateOfferStartDate;
-			offerNew.push(startDateTimeObject);
+			if(startDateTimeObject.value == "") {
+				var startDateTimeDel = new Object();
+				startDateTimeDel.op = "remove";
+				startDateTimeDel.path = "/description";
+				offerNew.push(startDateTimeDel);
+			} else {
+				offerNew.push(startDateTimeObject);
+			}
 		}
 		if(this.updateOfferEndDate) {
 			var endDateTimeObject = new Object();
 			endDateTimeObject.op = "add";
 			endDateTimeObject.path = "/validFor/endDateTime";
 			endDateTimeObject.value = this.updateOfferEndDate;
-			offerNew.push(endDateTimeObject);
+			if(endDateTimeObject.value == "") {
+				var endDateTimeDel = new Object();
+				endDateTimeDel.op = "remove";
+				endDateTimeDel.path = "/description";
+				offerNew.push(endDateTimeDel);
+			} else {
+				offerNew.push(endDateTimeObject);
+			}
 		}
 		function checkName(char) {
 			return char.name == "radiusReserveSessionTime";
