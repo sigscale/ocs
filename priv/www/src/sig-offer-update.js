@@ -102,7 +102,7 @@ class offerUpdate extends PolymerElement {
 						</div>
 						<div>
 							<paper-input
-									type="datetime-local"		
+									type="datetime-local"
 									value="{{updateOfferStartDate}}"
 									label="Start Date">
 							</paper-input>
@@ -1967,7 +1967,14 @@ class offerUpdate extends PolymerElement {
 			alterationDesc.op = "add";
 			alterationDesc.path = "/productOfferingPrice/" + indexAlt + "/productOfferPriceAlteration/description";
 			alterationDesc.value = this.AltUpdateDescription;
-			updateAlterationNew.push(alterationDesc);
+			if(alterationDesc.value == "") {
+				var alterationDescDel = new Object();
+				alterationDescDel.op = "remove";
+				alterationDescDel.path = "/productOfferingPrice/" + indexAlt + "/productOfferPriceAlteration/description";
+				updateAlterationNew.push(alterationDescDel);
+			} else {
+				updateAlterationNew.push(alterationDesc);
+			}
 		}
 		if(this.altUpdateType != this.alterations[indexAlt].priceType) {
 			var alterationType = new Object();
@@ -1984,7 +1991,14 @@ class offerUpdate extends PolymerElement {
 					alterationType.value = "usage";
 					break;
 			}
-			updateAlterationNew.push(alterationType);
+			if(alterationType.value == "") {
+				var alterationTypeDel = new Object();
+				alterationTypeDel.op = "remove";
+				alterationTypeDel.path = "/productOfferingPrice/" + indexAlt + "/productOfferPriceAlteration/priceType";
+				updateAlterationNew.push(alterationTypeDel);
+			} else {
+				updateAlterationNew.push(alterationType);
+			}
 		}
 		if(this.$.updateAltSize.value != this.alterations[indexAlt].size) {
 			var alterationSize = new Object();
@@ -2030,7 +2044,14 @@ class offerUpdate extends PolymerElement {
 						}
 					}
 				}
-				updateAlterationNew.push(alterationSize);
+				if(alterationSize.value == "") {
+					var alterationSizeDel = new Object();
+					alterationSizeDel.op = "remove";
+					alterationSizeDel.path = "/productOfferingPrice/" + indexAlt + "/productOfferPriceAlteration/unitOfMeasure";
+					updateAlterationNew.push(alterationSizeDel);
+				} else {
+					updateAlterationNew.push(alterationSize);
+				}
 			}
 		}
 		if(this.$.updateAltAmount.value != this.alterations[indexAlt].amount) {
@@ -2038,7 +2059,14 @@ class offerUpdate extends PolymerElement {
 			altAmount.op = "add";
 			altAmount.path = "/productOfferingPrice/" + indexAlt + "/price/taxIncludedAmount";
 			altAmount.value = this.$.updateAltAmount.value;
-			updateAlterationNew.push(altAmount);
+			if(altAmount.value == "") {
+				var altAmountDel = new Object();
+				altAmountDel.op = "remove";
+				altAmountDel.path = "/productOfferingPrice/" + indexAlt + "/price/taxIncludedAmount";
+				updateAlterationNew.push(altAmountDel);
+			} else {
+				updateAlterationNew.push(altAmount);
+			}
 		}
 		if(this.$.addAltPeriodDrop.value != this.alterations[indexAlt].period && !this.$.addAltPeriodDrop.disabled) {
 			var altCharge = new Object();
@@ -2060,7 +2088,14 @@ class offerUpdate extends PolymerElement {
 				case 4:
 					altCharge.value = "yearly";
 			}
-			updateAlterationNew.push(altCharge);
+			if(altCharge.value == "") {
+				var altChargeDel = new Object();
+				altChargeDel.op = "remove";
+				altChargeDel.path = "/productOfferingPrice/" + indexAlt + "/recurringChargePeriod";
+				updateAlterationNew.push(altChargeDel);
+			} else {
+				updateAlterationNew.push(altCharge);
+			}
 		} 
 		ajax.body = JSON.stringify(updateAlterationNew);
 		ajax.generateRequest();
