@@ -199,6 +199,9 @@ release_nrf1(RatingDataRef, NrfRequest) ->
 					{error, service_not_found} ->
 						Body = error_response(service_not_found, NrfMap),
 						{error, 404, Body};
+					{error, invalid_service_type} ->
+						Body = error_response(charging_failed, undefined),
+						{error, 400, Body};
 					{error, Reason} ->
 						{error, Reason}
 				end;
