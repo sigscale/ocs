@@ -708,7 +708,14 @@ class subUpdate extends PolymerElement {
 				pro.op = "add";
 				pro.path = "/product";
 				pro.value = this.valChaOne[indexx1].product;
-				serviceProductSubArr.push(pro);
+				if(pro.value == "") {
+					var proDel = new Object();
+					proDel.op = "remove";
+					proDel.path = "/product";
+					serviceProductSubArr.push(proDel);
+				} else {
+					serviceProductSubArr.push(pro);
+				}
 			}
 		}
 		editAjax.body = JSON.stringify(serviceProductSubArr);
