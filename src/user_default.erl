@@ -63,7 +63,7 @@ get_diameter_info(auth, Info) ->
 			diameter:service_info(Service, get_params(Info));
 		[{ocs_diameter_auth_service, _, _} = Service] ->
 			diameter:service_info(Service, get_params(Info));
-		undefined ->
+		_ ->
 			{error, unknown_service}
 	end;
 get_diameter_info(acct, Info) ->
@@ -74,7 +74,7 @@ get_diameter_info(acct, Info) ->
 			diameter:service_info(Service, get_params(Info));
 		[{ocs_diameter_acct_service, _, _} = Service] ->
 			diameter:service_info(Service, get_params(Info));
-		undefined ->
+		_ ->
 			{error, unknown_service}
 	end.
 
