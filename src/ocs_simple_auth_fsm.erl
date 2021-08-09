@@ -84,6 +84,27 @@
 
 -define(TIMEOUT, 30000).
 
+-ifdef(OTP_RELEASE).
+	-if(?OTP_RELEASE >= 23).
+		-define(PG_CLOSEST(Name),
+				case pg:get_local_members([Name]) of
+					[] ->
+						case pg:get_members([Name]) of
+							[] ->
+								{error, {no_such_group, Name}};
+							[PID | _] ->
+								PID
+						end;
+					[PID | _] ->
+						PID
+				end).
+	-else(?OTP_RELEASE < 23).
+		-define(PG_CLOSEST(Name), pg2:get_closest_pid(Name)).
+	-endif.
+-else.
+	-define(PG_CLOSEST(Name), pg2:get_closest_pid(Name)).
+-endif.
+
 %%----------------------------------------------------------------------
 %%  The ocs_simple_auth_fsm API
 %%----------------------------------------------------------------------
@@ -473,7 +494,7 @@ response(RadiusCode, ResponseAttributes,
 start_disconnect(SessionList, #statedata{protocol = radius,
 		client_address = Address, subscriber = SubscriberId, session_id = SessionID}
 		= State) ->
-	case pg2:get_closest_pid(ocs_radius_acct_port_sup) of
+	case ?PG_CLOSEST(ocs_radius_acct_port_sup) of
 		{error, Reason} ->
 			error_logger:error_report(["Failed to initiate session disconnect function",
 					{module, ?MODULE}, {subscriber, SubscriberId}, {address, Address},
@@ -483,7 +504,7 @@ start_disconnect(SessionList, #statedata{protocol = radius,
 	end;
 start_disconnect(SessionList, #statedata{protocol = diameter, session_id = SessionID,
 		origin_host = OHost, origin_realm = ORealm, subscriber = SubscriberId} = State) ->
-	case pg2:get_closest_pid(ocs_diameter_acct_port_sup) of
+	case ?PG_CLOSEST(ocs_diameter_acct_port_sup) of
 		{error, Reason} ->
 			error_logger:error_report(["Failed to initiate session disconnect function",
 					{module, ?MODULE}, {subscriber, SubscriberId}, {origin_host, OHost},

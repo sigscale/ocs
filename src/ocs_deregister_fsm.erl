@@ -75,6 +75,27 @@
 
 -define(TIMEOUT, 10000).
 
+-ifdef(OTP_RELEASE).
+	-if(?OTP_RELEASE >= 23).
+		-define(PG_CLOSEST(Name),
+				case pg:get_local_members([Name]) of
+					[] ->
+						case pg:get_members([Name]) of
+							[] ->
+								{error, {no_such_group, Name}};
+							[PID | _] ->
+								PID
+						end;
+					[PID | _] ->
+						PID
+				end).
+	-else(?OTP_RELEASE < 23).
+		-define(PG_CLOSEST(Name), pg2:get_closest_pid(Name)).
+	-endif.
+-else.
+	-define(PG_CLOSEST(Name), pg2:get_closest_pid(Name)).
+-endif.
+
 %% support deprecated_time_unit()
 -define(MILLISECOND, milli_seconds).
 %-define(MILLISECOND, millisecond).
@@ -433,7 +454,7 @@ send_abort([#session{id = AccessSessionId, application = ?SWm_APPLICATION_ID,
 send_abort([#session{id = AccessSessionId,
 		application = undefined, nas_address = NasAddress,
 		imsi = IMSI, identity = Identity} | T], StateData) ->
-	case pg2:get_closest_pid(ocs_radius_acct_port_sup) of
+	case ?PG_CLOSEST(ocs_radius_acct_port_sup) of
 		{error, Reason} ->
 			error_logger:error_report(["Failed to initiate session disconnect",
 					{module, ?MODULE}, {address, NasAddress},
