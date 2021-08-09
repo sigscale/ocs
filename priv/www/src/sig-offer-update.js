@@ -389,7 +389,7 @@ class offerUpdate extends PolymerElement {
 							<iron-collapse id="updatePriceCharsTime">
 								<div>
 									<paper-input
-											type="datetime-local"
+											type="time"
 											id="updateTimeOfDayStart"
 											value="{{startTimeUpdate}}"
 											label="Start Time">
@@ -400,7 +400,7 @@ class offerUpdate extends PolymerElement {
 								</div>
 								<div>
 									<paper-input
-											type="datetime-local"
+											type="time"
 											id="updateTimeOfDayEnd"
 											value="{{endTimeUpdate}}"
 											label="End Time">
