@@ -58,6 +58,8 @@ class productAddClass extends PolymerElement {
 						value="{{proService}}"
 						label="Service Id">
 				</paper-input>
+				<h3>Warning</h3>
+				<p>A Service may be associated with at most <b>one</b> Product instance.</P>
 				<paper-tooltip
 						for="servId"
 						offset="0">
