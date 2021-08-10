@@ -107,7 +107,8 @@ class userUpdate extends PolymerElement {
 					on-response="_updateUserResponse"
 					on-error="_updateUserError">
 			</iron-ajax>
-			<iron-ajax id="deleteUserAjax"
+			<iron-ajax
+					id="deleteUserAjax"
 					loading="{{loading}}"
 					on-response="_deleteUserResponse"
 					on-error="_updateUserError">
@@ -262,7 +263,7 @@ class userUpdate extends PolymerElement {
 	_delete() {
 		var ajax = this.$.deleteUserAjax;
 		ajax.method = "DELETE";
-		ajax.url = "/partyManagement/v1/individual/" + document.body.querySelector('sig-app').shadowRoot.getElementById('userList').shadowRoot.getElementById('userGrid').selectedItems[0].id;
+		ajax.url = "/partyManagement/v1/individual/" + this.userUpdateUsername;
 		ajax.generateRequest();
 	}
 
