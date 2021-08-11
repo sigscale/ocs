@@ -26,10 +26,13 @@
 -export([init/1]).
 
 -ifdef(OTP_RELEASE).
-	-if(?OTP_RELEASE >= 23).
-	-else(?OTP_RELEASE < 23).
-		-define(PG_CREATE(Name), pg2:create(Name)).
-	-endif.
+	-define(PG_CREATE(Name),
+		case ?OTP_RELEASE of
+			OtpRelease when OtpRelease >= 23 ->
+				ok;
+			OtpRelease when OtpRelease < 23 ->
+				pg2:create(Name)
+		end).
 -else.
 	-define(PG_CREATE(Name), pg2:create(Name)).
 -endif.

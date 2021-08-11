@@ -88,8 +88,9 @@
 -define(TIMEOUT, 30000).
 
 -ifdef(OTP_RELEASE).
-	-if(?OTP_RELEASE >= 23).
-		-define(PG_CLOSEST(Name),
+	-define(PG_CLOSEST(Name),
+		case ?OTP_RELEASE of
+			OtpRelease when OtpRelease >= 23 ->
 				case pg:get_local_members([Name]) of
 					[] ->
 						case pg:get_members([Name]) of
@@ -100,10 +101,10 @@
 						end;
 					[PID | _] ->
 						PID
-				end).
-	-else(?OTP_RELEASE < 23).
-		-define(PG_CLOSEST(Name), pg2:get_closest_pid(Name)).
-	-endif.
+				end;
+			OtpRelease when OtpRelease < 23 ->
+				pg2:get_closest_pid(Name)
+		end).
 -else.
 	-define(PG_CLOSEST(Name), pg2:get_closest_pid(Name)).
 -endif.
