@@ -164,6 +164,16 @@ class offerUpdate extends PolymerElement {
 										Add a value to update the offer reserve session
 								</paper-tooltip>
 							</div>
+							<div>
+								<paper-input
+										value="{{priceUpdatePolicy}}"
+										type="string"
+										label="Policy Table">
+								</paper-input>
+								<paper-tooltip>
+										Add a value to update the offer policy
+								</paper-tooltip>
+							</div>
 						</iron-collapse>
 						<div class="buttons">
 							<paper-button
@@ -772,6 +782,9 @@ class offerUpdate extends PolymerElement {
 				type: Number,
 				value: 0
 			},
+			priceUpdatePolicy: {
+				type: String
+			},
 			updateOfferName: {
 				type: String
 			},
@@ -1161,6 +1174,7 @@ class offerUpdate extends PolymerElement {
 				this.priceAddRoaming = null;
 				this.chargingKey = null;
 				this.priceUpdateTariff = null;
+				this.priceUpdatePolicy = null;
 				this.startTimeUpdate = null;
 				this.endTimeUpdate = null;
 				this.$.updateCheckIn.checked = false;
@@ -1283,155 +1297,198 @@ class offerUpdate extends PolymerElement {
 		var ajax =  this.$.updateProductOfferAjax;
 		ajax.url = "/catalogManagement/v2/productOffering/" + this.updateOfferName; 
 		var offerNew = new Array();
-			var offerDesc = new Object();
-			offerDesc.op = "add";
-			offerDesc.path = "/description";
-			offerDesc.value = this.updateOfferDescription;
-			if(offerDesc.value == "") {
+			if(this.updateOfferDescription == "") {
 				var offerDescDel = new Object();
 				offerDescDel.op = "remove";
 				offerDescDel.path = "/description";
 				offerNew.push(offerDescDel);
-			} else {
+			} else if(this.updateOfferDescription) {
+				var offerDesc = new Object();
+				offerDesc.op = "add";
+				offerDesc.path = "/description";
+				offerDesc.value = this.updateOfferDescription;
 				offerNew.push(offerDesc);
 			}
-		if(this.updateOfferStartDate) {
-			var startDateTimeObject = new Object();
-			startDateTimeObject.op = "add";
-			startDateTimeObject.path = "/validFor/startDateTime";
-			startDateTimeObject.value = this.updateOfferStartDate;
-			if(startDateTimeObject.value == "") {
+			if(this.updateOfferStartDate == "") {
 				var startDateTimeDel = new Object();
 				startDateTimeDel.op = "remove";
 				startDateTimeDel.path = "/description";
 				offerNew.push(startDateTimeDel);
-			} else {
+			} else if(this.updateOfferStartDate) {
+				var startDateTimeObject = new Object();
+				startDateTimeObject.op = "add";
+				startDateTimeObject.path = "/validFor/startDateTime";
+				startDateTimeObject.value = this.updateOfferStartDate;
 				offerNew.push(startDateTimeObject);
 			}
-		}
-		if(this.updateOfferEndDate) {
-			var endDateTimeObject = new Object();
-			endDateTimeObject.op = "add";
-			endDateTimeObject.path = "/validFor/endDateTime";
-			endDateTimeObject.value = this.updateOfferEndDate;
-			if(endDateTimeObject.value == "") {
+			if(this.updateOfferEndDate == "") {
 				var endDateTimeDel = new Object();
 				endDateTimeDel.op = "remove";
 				endDateTimeDel.path = "/description";
 				offerNew.push(endDateTimeDel);
-			} else {
+			} else if(this.updateOfferEndDate){
+				var endDateTimeObject = new Object();
+				endDateTimeObject.op = "add";
+				endDateTimeObject.path = "/validFor/endDateTime";
+				endDateTimeObject.value = this.updateOfferEndDate;
 				offerNew.push(endDateTimeObject);
 			}
-		}
-		function checkName(char) {
-			return char.name == "radiusReserveSessionTime";
-		}
-		var res = this.characteristics.findIndex(checkName);
-		if(res == -1) {
-			var indexChar = "-";
-			var reserveSession = new Object();
-			reserveSession.op = "add";
-			reserveSession.path = "/prodSpecCharValueUse/" + indexChar; 
-			var session2Arr = new Array();
-			var session2 = new Object();
-			session2.default = true;
-			session2.value = parseInt(this.$.updateReserveSession.value);
-			session2Arr.push(session2);
-			var session1 = new Object();
-			session1.name = "radiusReserveSessionTime";
-			session1.minCardinality = 0;
-			session1.maxCardinality = 1;
-			session1.productSpecCharacteristicValue = session2Arr;
-			var session2 = new Object();
-			session2.id = "1";
-			session2.href = "/catalogManagement/v2/productSpecification/1";
-			session1.productSpecification = session2;
-			reserveSession.value = session1;
-			offerNew.push(reserveSession);
-		} else {
-			var indexChar = res.toString();
-			var reserveSession = new Object();
-			reserveSession.op = "replace";
-			reserveSession.path = "/prodSpecCharValueUse/" + indexChar + "/productSpecCharacteristicValue/0/value";
-			reserveSession.value = parseInt(this.$.updateReserveSession.value);
-			offerNew.push(reserveSession);
-		}
-		function checkNameRe(redirect) {
-			return redirect.name == "redirectServer";
-		}
-		var res = this.characteristics.findIndex(checkNameRe);
-		if(res == -1) {
-			var indexChar = "-";
-			var redirectSer = new Object();
-			redirectSer.op = "add";
-			redirectSer.path = "/prodSpecCharValueUse/" + indexChar; 
-			var redirectSerArr = new Array();
-			var redirectSer1 = new Object();
-			redirectSer1.value = this.updateRedirect;
-			redirectSerArr.push(redirectSer1);
-			var redirectSer2 = new Object();
-			redirectSer2.name = "redirectServer";
-			redirectSer2.minCardinality = 0;
-			redirectSer2.maxCardinality = 1;
-			redirectSer2.productSpecCharacteristicValue = redirectSerArr;
-			var redirectSer1 = new Object();
-			redirectSer1.id = "8";
-			redirectSer1.href = "/catalogManagement/v2/productSpecification/8";
-			redirectSer2.productSpecification = redirectSer1;
-			redirectSer.value = redirectSer2;
-			offerNew.push(redirectSer);
-		} else {
-			var indexChar = res.toString();
-			var redirectServer = new Object();
-			redirectServer.op = "replace";
-			redirectServer.path = "/prodSpecCharValueUse/" + indexChar + "/productSpecCharacteristicValue/0/value";
-			redirectServer.value = this.updateRedirect;
-			if(redirectServer.value == "") {
-				var redirectServerDel = new Object();
-				redirectServerDel.op = "remove";
-				redirectServerDel.path = "/prodSpecCharValueUse/" + indexChar;
-				offerNew.push(redirectServerDel);
+		if(this.$.updateReserveSession.value) {
+			function checkName(char) {
+				return char.name == "radiusReserveSessionTime";
+			}
+			var res = this.characteristics.findIndex(checkName);
+			if(res == -1) {
+				var indexChar = "-";
+				var reserveSession = new Object();
+				reserveSession.op = "add";
+				reserveSession.path = "/prodSpecCharValueUse/" + indexChar; 
+				var session2Arr = new Array();
+				var session2 = new Object();
+				session2.default = true;
+				session2.value = parseInt(this.$.updateReserveSession.value);
+				session2Arr.push(session2);
+				var session1 = new Object();
+				session1.name = "radiusReserveSessionTime";
+				session1.minCardinality = 0;
+				session1.maxCardinality = 1;
+				session1.productSpecCharacteristicValue = session2Arr;
+				var session2 = new Object();
+				session2.id = "1";
+				session2.href = "/catalogManagement/v2/productSpecification/1";
+				session1.productSpecification = session2;
+				reserveSession.value = session1;
+				offerNew.push(reserveSession);
 			} else {
-				offerNew.push(redirectServer);
+				var indexChar = res.toString();
+				var reserveSession = new Object();
+				reserveSession.op = "replace";
+				reserveSession.path = "/prodSpecCharValueUse/" + indexChar + "/productSpecCharacteristicValue/0/value";
+				reserveSession.value = parseInt(this.$.updateReserveSession.value);
+				offerNew.push(reserveSession);
 			}
 		}
-		function checkNameService(serviceId) {
-			return serviceId.name == "serviceIdentifier";
-		}
-		var resService = this.characteristics.findIndex(checkNameService);
-		if(resService == -1) {
-			var indexChar = "-";
-			var Service = new Object();
-			Service.op = "add";
-			Service.path = "/prodSpecCharValueUse/" + indexChar; 
-			var ServiceArr = new Array();
-			var ServiceObj1 = new Object();
-			ServiceObj1.value = this.serviceIdentifier;
-			ServiceArr.push(ServiceObj1);
-			var ServiceObj2 = new Object();
-			ServiceObj2.name = "serviceIdentifier";
-			ServiceObj2.minCardinality = 0;
-			ServiceObj2.maxCardinality = 1;
-			ServiceObj2.productSpecCharacteristicValue = ServiceArr;
-			var ServiceObj1 = new Object();
-			ServiceObj1.id = "8";
-			ServiceObj1.href = "/catalogManagement/v2/productSpecification/8";
-			ServiceObj2.productSpecification = ServiceObj1;
-			Service.value = ServiceObj2;
-			offerNew.push(Service);
-		} else {
-			var indexChar = resService.toString();
-			var Service = new Object();
-			Service.op = "replace";
-			Service.path = "/prodSpecCharValueUse/" + indexChar + "/productSpecCharacteristicValue/0/value";
-			Service.value = this.serviceIdentifier;
-			if(Service.value == "") {
-				var serviceDel = new Object();
-				serviceDel.op = "remove";
-				serviceDel.path = "/prodSpecCharValueUse/" + indexChar;
-				offerNew.push(serviceDel);
+		if(this.updateRedirect) {
+			function checkNameRe(redirect) {
+				return redirect.name == "redirectServer";
+			}
+			var res = this.characteristics.findIndex(checkNameRe);
+			if(res == -1) {
+				var indexChar = "-";
+				var redirectSer = new Object();
+				redirectSer.op = "add";
+				redirectSer.path = "/prodSpecCharValueUse/" + indexChar; 
+				var redirectSerArr = new Array();
+				var redirectSer1 = new Object();
+				redirectSer1.value = this.updateRedirect;
+				redirectSerArr.push(redirectSer1);
+				var redirectSer2 = new Object();
+				redirectSer2.name = "redirectServer";
+				redirectSer2.minCardinality = 0;
+				redirectSer2.maxCardinality = 1;
+				redirectSer2.productSpecCharacteristicValue = redirectSerArr;
+				var redirectSer1 = new Object();
+				redirectSer1.id = "8";
+				redirectSer1.href = "/catalogManagement/v2/productSpecification/8";
+				redirectSer2.productSpecification = redirectSer1;
+				redirectSer.value = redirectSer2;
+				offerNew.push(redirectSer);
 			} else {
+				var indexChar = res.toString();
+				var redirectServer = new Object();
+				redirectServer.op = "replace";
+				redirectServer.path = "/prodSpecCharValueUse/" + indexChar + "/productSpecCharacteristicValue/0/value";
+				redirectServer.value = this.updateRedirect;
+				if(redirectServer.value == "") {
+					var redirectServerDel = new Object();
+					redirectServerDel.op = "remove";
+					redirectServerDel.path = "/prodSpecCharValueUse/" + indexChar;
+					offerNew.push(redirectServerDel);
+				} else {
+					offerNew.push(redirectServer);
+				}
+			}
+		}
+		if(this.serviceIdentifier) {
+			function checkNameService(serviceId) {
+				return serviceId.name == "serviceIdentifier";
+			}
+			var resService = this.characteristics.findIndex(checkNameService);
+			if(resService == -1) {
+				var indexChar = "-";
+				var Service = new Object();
+				Service.op = "add";
+				Service.path = "/prodSpecCharValueUse/" + indexChar; 
+				var ServiceArr = new Array();
+				var ServiceObj1 = new Object();
+				ServiceObj1.value = this.serviceIdentifier;
+				ServiceArr.push(ServiceObj1);
+				var ServiceObj2 = new Object();
+				ServiceObj2.name = "serviceIdentifier";
+				ServiceObj2.minCardinality = 0;
+				ServiceObj2.maxCardinality = 1;
+				ServiceObj2.productSpecCharacteristicValue = ServiceArr;
+				var ServiceObj1 = new Object();
+				ServiceObj1.id = "8";
+				ServiceObj1.href = "/catalogManagement/v2/productSpecification/8";
+				ServiceObj2.productSpecification = ServiceObj1;
+				Service.value = ServiceObj2;
 				offerNew.push(Service);
+			} else {
+				var indexChar = resService.toString();
+				var Service = new Object();
+				Service.op = "replace";
+				Service.path = "/prodSpecCharValueUse/" + indexChar + "/productSpecCharacteristicValue/0/value";
+				Service.value = this.serviceIdentifier;
+				if(Service.value == "") {
+					var serviceDel = new Object();
+					serviceDel.op = "remove";
+					serviceDel.path = "/prodSpecCharValueUse/" + indexChar;
+					offerNew.push(serviceDel);
+				} else {
+					offerNew.push(Service);
+				}
+			}
+		}
+		if(this.priceUpdatePolicy) {
+			function checkNameSPolicy(policyId) {
+				return policyId.name == "policyTable";
+			}
+			var resPolicy = this.characteristics.findIndex(checkNameSPolicy);
+			if(resPolicy == -1) {
+				var indexChar = "-";
+				var policy = new Object();
+				policy.op = "add";
+				policy.path = "/prodSpecCharValueUse/" + indexChar; 
+				var policyArr = new Array();
+				var policyObj1 = new Object();
+				policyObj1.value = this.priceUpdatePolicy;
+				policyArr.push(policyObj1);
+				var policyObj2 = new Object();
+				policyObj2.name = "policyTable";
+				policyObj2.minCardinality = 0;
+				policyObj2.maxCardinality = 1;
+				policyObj2.productSpecCharacteristicValue = policyArr;
+				var policyObj1 = new Object();
+				policyObj1.id = "3";
+				policyObj1.href = "/catalogManagement/v2/productSpecification/3";
+				policyObj2.productSpecification = policyObj1;
+				policy.value = policyObj2;
+				offerNew.push(policy);
+			} else {
+				var indexChar = resPolicy.toString();
+				var policy = new Object();
+				policy.op = "replace";
+				policy.path = "/prodSpecCharValueUse/" + indexChar + "/productSpecCharacteristicValue/0/value";
+				policy.value = this.priceUpdatePolicy;
+				if(policy.value == "") {
+					var policyDel = new Object();
+					policyDel.op = "remove";
+					policyDel.path = "/prodSpecCharValueUse/" + indexChar;
+					offerNew.push(policyDel);
+				} else {
+					offerNew.push(policy);
+				}
 			}
 		}
 		ajax.body = JSON.stringify(offerNew);
