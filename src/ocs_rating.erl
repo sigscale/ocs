@@ -211,7 +211,7 @@ rate(Protocol, ServiceType, ServiceId, ChargingKey,
 					Rated;
 				#rated{} = Rated ->
 					[Rated]
-			end, 
+			end,
 			ok = send_notifications(DeletedBuckets),
 			ok = notify_accumulated_balance(AccBalance),
 			{ok, Sub, Rated1};
@@ -222,7 +222,7 @@ rate(Protocol, ServiceType, ServiceId, ChargingKey,
 					Rated;
 				#rated{} = Rated ->
 					[Rated]
-			end, 
+			end,
 			ok = send_notifications(DeletedBuckets),
 			ok = notify_accumulated_balance(AccBalance),
 			{ok, Sub, Granted, Rated1};
@@ -286,11 +286,30 @@ rate1(Protocol, Service, Buckets, Timestamp, Address, Direction,
 	end;
 rate1(Protocol, Service, Buckets, Timestamp, Address,
 		Direction, #offer{name = OfferName} = Offer,
-		Flag, DebitAmounts, ReserveAmounts, State) ->
-	rate2(Protocol, Service, Buckets, Timestamp, Address,
-		Direction, Offer, Flag, DebitAmounts, ReserveAmounts,
-		State#state{rated = #rated{product = OfferName}}).
-%% @hidden
+		Flag, DebitAmounts, ReserveAmounts, #state{service_type = ServiceType} = State) ->
+	case mnesia:read(offer, OfferName, read) of
+		[#offer{specification = Spec, status = Status} = P] when
+				((Status == active) orelse (Status == undefined))
+				and
+				(((Protocol == radius)
+					and
+					(((ServiceType == ?RADIUSFRAMED) orelse (ServiceType == ?RADIUSLOGIN))
+					and ((Spec == "4") orelse (Spec == "8"))) orelse
+					((ServiceType == ?RADIUSVOICE) and ((Spec == "5") orelse (Spec == "9"))))
+				orelse
+				((Protocol == diameter)
+					and
+					((ServiceType == ?DIAMETERDATA) and ((Spec == "4") orelse (Spec == "8")))
+					orelse
+					((ServiceType == ?DIAMETERVOICE) and ((Spec == "5") orelse (Spec == "9")))
+					orelse
+					((ServiceType == ?DIAMETERSMS) and ((Spec == "10") orelse (Spec == "11"))))) ->
+			rate2(Protocol, Service, Buckets, Timestamp, Address,
+					Direction, Offer, Flag, DebitAmounts, ReserveAmounts,
+					State#state{rated = #rated{product = OfferName}});
+		_ ->
+			throw(invalid_service_type)
+	end.
 rate2(Protocol, Service, Buckets, Timestamp, Address, Direction,
 		#offer{specification = ProdSpec, price = Prices} = _Offer,
 		Flag, DebitAmounts, ReserveAmounts,

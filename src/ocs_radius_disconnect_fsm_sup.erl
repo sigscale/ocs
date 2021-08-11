@@ -25,6 +25,18 @@
 %% export the call back needed for supervisor behaviour
 -export([init/1]).
 
+-ifdef(OTP_RELEASE).
+	-define(PG_JOIN(Group, Pid),
+		case ?OTP_RELEASE of
+			OtpRelease when OtpRelease >= 23 ->
+				pg:join(Group, Pid);
+			OtpRelease when OtpRelease < 23 ->
+				pg2:join(Group, Pid)
+		end).
+-else.
+	-define(PG_JOIN(Group, Pid), pg2:join(Group, Pid)).
+-endif.
+
 %%----------------------------------------------------------------------
 %%  The supervisor call back
 %%----------------------------------------------------------------------
@@ -41,7 +53,7 @@
 %% @private
 %%
 init([ProcGroupName] = _Args) ->
-	ok = pg2:join(ProcGroupName, self()),
+	ok = ?PG_JOIN(ProcGroupName, self()),
 	StartMod = ocs_radius_disconnect_fsm,
 	StartFunc = {gen_fsm, start_link, [StartMod]},
 	ChildSpec = {StartMod, StartFunc, transient, 4000, worker, [StartMod]},

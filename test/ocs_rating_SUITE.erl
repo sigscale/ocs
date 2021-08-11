@@ -114,7 +114,7 @@ all() ->
 	authorize_data_with_partial_reservation, authorize_negative_balance,
 	unauthorize_bad_password, unauthorize_bad_password, reserve_sms, debit_sms,
 	roaming_table_data, roaming_table_voice, roaming_table_sms, final_empty_mscc,
-	final_empty_mscc_multiple_services].
+	final_empty_mscc_multiple_services, initial_invalid_service_type].
 
 %%---------------------------------------------------------------------
 %%  Test cases
@@ -537,7 +537,7 @@ interim_reserve_remove_session(_Config) ->
 	Timestamp = calendar:local_time(),
 	TS = calendar:datetime_to_gregorian_seconds(Timestamp),
 	Reservation1 = rand:uniform(UnitSize),
-	ServiceType = 32251,
+	ServiceType = 2,
 	SessionId = {'Session-Id', list_to_binary(ocs:generate_password())},
 	NasIp = {?NasIpAddress, "10.0.0.1"},
 	NasId = {?NasIdentifier, "rate@sigscale"},
@@ -2089,6 +2089,28 @@ final_empty_mscc_multiple_services(_Config) ->
 	BucketList = ocs:get_buckets(ProdRef),
 	#bucket{units = cents, reservations = []} =  lists:keyfind(cents, #bucket.units, BucketList),
 	#bucket{units = octets, reservations = []} =  lists:keyfind(octets, #bucket.units, BucketList).
+
+initial_invalid_service_type() ->
+	[{userdata, [{doc, "Check the validity of a service type during rating"}]}].
+
+initial_invalid_service_type(_Config) ->
+	ServiceId = ocs:generate_identity(),
+	UnitSize = 1000000 + rand:uniform(10000),
+	Amount = rand:uniform(100),
+	P1 = price(usage, octets, UnitSize, Amount),
+	OfferId = add_offer([P1], 8),
+	ProdRef = add_product(OfferId),
+	{ok, #service{}} = ocs:add_service(ServiceId, undefined, ProdRef, []),
+	Balance = 1000000 + rand:uniform(1000000000),
+	B1 = bucket(octets, Balance),
+	_BId = add_bucket(ProdRef, B1),
+	Ref = erlang:ref_to_list(make_ref()),
+	SId = diameter:session_id(Ref),
+	Timestamp = calendar:local_time(),
+	ServiceType = undefined,
+	{error, invalid_service_type} = ocs_rating:rate(diameter, ServiceType, undefined,
+			undefined, undefined, ServiceId, Timestamp, undefined, undefined,
+			initial, [], [], SId).
 
 %%---------------------------------------------------------------------
 %%  Internal functions

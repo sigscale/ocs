@@ -808,27 +808,27 @@ get_rsu(#'3gpp_ro_Multiple-Services-Credit-Control'{}) ->
 %% @hidden
 get_usu(#'3gpp_ro_Multiple-Services-Credit-Control'{
 		'Used-Service-Unit' = [#'3gpp_ro_Used-Service-Unit'{
-		'CC-Time' = [CCTime]}]})
+		'CC-Time' = [CCTime]} | _]})
 		when is_integer(CCTime), CCTime > 0 ->
 	[{seconds, CCTime}];
 get_usu(#'3gpp_ro_Multiple-Services-Credit-Control'{
 		'Used-Service-Unit' = [#'3gpp_ro_Used-Service-Unit'{
-		'CC-Total-Octets' = [CCTotalOctets]}]})
+		'CC-Total-Octets' = [CCTotalOctets]} | _]})
 		when is_integer(CCTotalOctets), CCTotalOctets > 0 ->
 	[{octets, CCTotalOctets}];
 get_usu(#'3gpp_ro_Multiple-Services-Credit-Control'{
 		'Used-Service-Unit' = [#'3gpp_ro_Used-Service-Unit'{
 		'CC-Output-Octets' = [CCOutputOctets],
-		'CC-Input-Octets' = [CCInputOctets]}]})
+		'CC-Input-Octets' = [CCInputOctets]} | _]})
 		when is_integer(CCInputOctets), is_integer(CCOutputOctets),
 		CCInputOctets > 0, CCOutputOctets > 0 ->
 	[{octets, CCInputOctets + CCOutputOctets}];
 get_usu(#'3gpp_ro_Multiple-Services-Credit-Control'{
 		'Used-Service-Unit' = [#'3gpp_ro_Used-Service-Unit'{
-		'CC-Service-Specific-Units' = [CCSpecUnits]}]})
+		'CC-Service-Specific-Units' = [CCSpecUnits]} | _]})
 		when is_integer(CCSpecUnits), CCSpecUnits > 0 ->
 	[{messages, CCSpecUnits}];
-get_usu(#'3gpp_ro_Multiple-Services-Credit-Control'{}) ->
+get_usu(#'3gpp_ro_Multiple-Services-Credit-Control'{'Used-Service-Unit' = []}) ->
 	[].
 
 %% @hidden
