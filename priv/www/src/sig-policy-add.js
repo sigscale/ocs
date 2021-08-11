@@ -267,6 +267,8 @@ class policyAdd extends PolymerElement {
 				}
 				if(this.flowDescription) {
 					flow.flowDescription = this.flowDescription;
+				} else {
+					flow.flowDescription = "permit out proto ip from all to all" ;
 				}
 				flows.push(flow);
 				char4.value = flows;
