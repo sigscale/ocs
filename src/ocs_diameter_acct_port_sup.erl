@@ -25,6 +25,18 @@
 %% export the callback needed for supervisor behaviour
 -export([init/1]).
 
+-ifdef(OTP_RELEASE).
+	-define(PG_CREATE(Name),
+		case ?OTP_RELEASE of
+			OtpRelease when OtpRelease >= 23 ->
+				ok;
+			OtpRelease when OtpRelease < 23 ->
+				pg2:create(Name)
+		end).
+-else.
+	-define(PG_CREATE(Name), pg2:create(Name)).
+-endif.
+
 %%----------------------------------------------------------------------
 %%  The supervisor callback
 %%----------------------------------------------------------------------
@@ -39,7 +51,7 @@
 %% @private
 %%
 init([Address, Port, Options]) ->
-	pg2:create(?MODULE),
+	?PG_CREATE(?MODULE),
 	ChildSpecs = [supervisor(ocs_diameter_disconnect_fsm_sup, []),
 		supervisor(ocs_diameter_acct_service_fsm_sup, [Address, Port, Options])],
 	{ok, {{one_for_one, 10, 60}, ChildSpecs}}.

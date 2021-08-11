@@ -26,13 +26,15 @@
 -export([init/1]).
 
 -ifdef(OTP_RELEASE).
-	-if(?OTP_RELEASE >= 23).
-		-define(PG_JOIN(Group, PidOrPids), pg:join(Group, PidOrPids)).
-	-else(?OTP_RELEASE < 23).
-     -define(PG_JOIN(Group, PidOrPids), pg2:join(Group, PidOrPids)).
-	-endif.
+	-define(PG_JOIN(Group, Pid),
+		case ?OTP_RELEASE of
+			OtpRelease when OtpRelease >= 23 ->
+				pg:join(Group, Pid);
+			OtpRelease when OtpRelease < 23 ->
+				pg2:join(Group, Pid)
+		end).
 -else.
-	-define(PG_JOIN(Group, PidOrPids), pg2:join(Group, PidOrPids)).
+	-define(PG_JOIN(Group, Pid), pg2:join(Group, Pid)).
 -endif.
 
 %%----------------------------------------------------------------------
