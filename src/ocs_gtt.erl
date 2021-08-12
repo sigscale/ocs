@@ -499,7 +499,7 @@ add_resource(Table) when is_atom(Table) ->
 	add_resource(atom_to_list(Table));
 add_resource(Table) when is_list(Table) ->
 	TariffResource = #resource{name = Table, state = "created",
-			description = Table ++ "tariff",
+			description = Table ++ " tariff",
 			specification = #specification_ref{id = "1",
 			href = "/resourceCatalogManagement/v2/resourceSpecification/1",
 			name = "TariffTable"}},
@@ -516,26 +516,10 @@ add_resource(Table) when is_list(Table) ->
 		Result :: ok.
 %% @doc Add a REST resource.
 add_resources([H | T]) ->
-	ok = add_resources1(H),
+	ok = add_resource(H),
 	add_resources(T);
 add_resources([]) ->
 	ok.
-%% @hidden
-add_resources1(Table) when is_atom(Table) ->
-	add_resources1(atom_to_list(Table));
-add_resources1(Table) when is_list(Table) ->
-	TariffResource = #resource{name = Table, state = "created",
-			description = Table ++ "tariff",
-			specification = #specification_ref{id = "1",
-			href = "/resourceCatalogManagement/v2/resourceSpecification/1",
-			name = "TariffTable"}},
-	case ocs:add_resource(TariffResource) of
-		{ok, #resource{}} ->
-			ok;
-		{error, Reason} ->
-			exit(Reason)
-
-	end.
 
 -spec insert(Table, Number, Value, []) -> {NumWrites, #gtt{}}
 	when

@@ -77,6 +77,9 @@ parse_query(Resource, ModData, {Path, []}) ->
 parse_query(Resource, ModData, {Path, "?" ++ Query}) ->
 	do_get(Resource, ModData, string:tokens(Path, "/"),
 		ocs_rest:parse_query(Query));
+parse_query(Resource, ModData, {Path, Query}) ->
+	do_get(Resource, ModData, string:tokens(Path, "/"),
+		ocs_rest:parse_query(Query));
 parse_query(_, #mod{data = Data} = _ModData, _) ->
 	Response = "<h2>HTTP Error 404 - Not Found</h2>",
 	{proceed, [{response, {404, Response}} | Data]}.

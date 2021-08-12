@@ -87,6 +87,28 @@
 
 -define(TIMEOUT, 30000).
 
+-ifdef(OTP_RELEASE).
+	-define(PG_CLOSEST(Name),
+		case ?OTP_RELEASE of
+			OtpRelease when OtpRelease >= 23 ->
+				case pg:get_local_members([Name]) of
+					[] ->
+						case pg:get_members([Name]) of
+							[] ->
+								{error, {no_such_group, Name}};
+							[PID | _] ->
+								PID
+						end;
+					[PID | _] ->
+						PID
+				end;
+			OtpRelease when OtpRelease < 23 ->
+				pg2:get_closest_pid(Name)
+		end).
+-else.
+	-define(PG_CLOSEST(Name), pg2:get_closest_pid(Name)).
+-endif.
+
 %%----------------------------------------------------------------------
 %%  The ocs_eap_pwd_fsm API
 %%----------------------------------------------------------------------
@@ -1153,7 +1175,7 @@ send_diameter_response(SId, AuthType, ResultCode, OH, OR, EapPacket,
 %% @hidden
 start_disconnect(radius, SessionList, #statedata{peer_id = SubscriberId,
 		session_id = SessionID, server_address = Address} = StateData) ->
-	case pg2:get_closest_pid(ocs_radius_acct_port_sup) of
+	case ?PG_CLOSEST(ocs_radius_acct_port_sup) of
 		{error, Reason} ->
 			error_logger:error_report(["Failed to initiate session disconnect function",
 					{module, ?MODULE}, {subscriber, SubscriberId}, {address, Address},
@@ -1163,7 +1185,7 @@ start_disconnect(radius, SessionList, #statedata{peer_id = SubscriberId,
 	end;
 start_disconnect(diameter, SessionList, #statedata{peer_id = SubscriberId,
 		session_id = SessionID, origin_host = OHost, origin_realm = ORealm} = State) ->
-	case pg2:get_closest_pid(ocs_diameter_acct_port_sup) of
+	case ?PG_CLOSEST(ocs_diameter_acct_port_sup) of
 		{error, Reason} ->
 			error_logger:error_report(["Failed to initiate session disconnect function",
 					{module, ?MODULE}, {subscriber, SubscriberId}, {origin_host, OHost},

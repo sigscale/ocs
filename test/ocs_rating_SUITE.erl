@@ -537,7 +537,7 @@ interim_reserve_remove_session(_Config) ->
 	Timestamp = calendar:local_time(),
 	TS = calendar:datetime_to_gregorian_seconds(Timestamp),
 	Reservation1 = rand:uniform(UnitSize),
-	ServiceType = 32251,
+	ServiceType = 2,
 	SessionId = {'Session-Id', list_to_binary(ocs:generate_password())},
 	NasIp = {?NasIpAddress, "10.0.0.1"},
 	NasId = {?NasIdentifier, "rate@sigscale"},
