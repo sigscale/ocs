@@ -72,12 +72,15 @@ do(#mod{method = Method, parsed_header = _Headers, request_uri = Uri,
 	end.
 
 %% @hidden
-parse_query(Resource, ModData, {Path, []}) ->
+parse_query(Resource, ModData, {Path, []})
+		when is_list(Path) ->
 	do_get(Resource, ModData, string:tokens(Path, "/"), []);
-parse_query(Resource, ModData, {Path, "?" ++ Query}) ->
+parse_query(Resource, ModData, {Path, "?" ++ Query})
+		when is_list(Path), is_list(Query) ->
 	do_get(Resource, ModData, string:tokens(Path, "/"),
 		ocs_rest:parse_query(Query));
-parse_query(Resource, ModData, {Path, Query}) ->
+parse_query(Resource, ModData, {Path, Query})
+		when is_list(Path), is_list(Query) ->
 	do_get(Resource, ModData, string:tokens(Path, "/"),
 		ocs_rest:parse_query(Query));
 parse_query(_, #mod{data = Data} = _ModData, _) ->
