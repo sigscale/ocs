@@ -4872,7 +4872,7 @@ delete_policy_table(Config) ->
 	{error, not_found} = ocs:get_resource(PolicyRowId2),
 	{error, not_found} = ocs:get_resource(TableId).
 
-oauth_authenticaton()->
+oauth_authentication()->
 	[{userdata, [{doc, "Authenticate a JWT using oauth"}]}].
 
 oauth_authentication(Config)->
