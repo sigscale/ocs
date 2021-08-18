@@ -318,7 +318,6 @@ code_change(_OldVsn, StateName, StateData, _Extra) ->
 %% @hidden
 service_options(Options) ->
 	{ok, Vsn} = application:get_key(vsn),
-	{ok, NrfUri} = application:get_env(ocs, nrf_uri),
 	Version = list_to_integer([C || C <- Vsn, C /= $.]),
 	{ok, Hostname} = inet:gethostname(),
 	Options1 = case lists:keymember('Origin-Host', 1, Options) of
@@ -341,13 +340,19 @@ service_options(Options) ->
 			end,
 			[{'Origin-Realm', OriginRealm} | Options1]
 	end,
-	Module = case NrfUri of
-		undefined ->
-			?RO_APPLICATION_CALLBACK;
-		NrfUri when is_list(NrfUri) ->
-			?NRF_RO_APPLICATION_CALLBACK
+	Options3 = case lists:keyfind(callback, 1, Options2) of
+		{callback, CallBack} ->
+			[{application, [{alias, ?RO_APPLICATION},
+					{dictionary, ?RO_APPLICATION_DICT},
+					{module, CallBack},
+					{request_errors, callback}]} | Options2];
+		false ->
+			[{application, [{alias, ?RO_APPLICATION},
+					{dictionary, ?RO_APPLICATION_DICT},
+					{module, ?RO_APPLICATION_CALLBACK},
+					{request_errors, callback}]} | Options2]
 	end,
-	Options2 ++ [{'Vendor-Id', ?IANA_PEN_SigScale},
+	Options3 ++ [{'Vendor-Id', ?IANA_PEN_SigScale},
 		{'Product-Name', "SigScale OCS"},
 		{'Firmware-Revision', Version},
 		{'Supported-Vendor-Id', [?IANA_PEN_3GPP]},
@@ -361,10 +366,6 @@ service_options(Options) ->
 		{application, [{alias, ?BASE_APPLICATION},
 				{dictionary, ?BASE_APPLICATION_DICT},
 				{module, ?BASE_APPLICATION_CALLBACK},
-				{request_errors, callback}]},
-		{application, [{alias, ?RO_APPLICATION},
-				{dictionary, ?RO_APPLICATION_DICT},
-				{module, Module},
 				{request_errors, callback}]},
 		{application, [{alias, ?Gx_APPLICATION},
 				{dictionary, ?Gx_APPLICATION_DICT},
