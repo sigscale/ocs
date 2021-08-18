@@ -454,6 +454,8 @@ split_options([{transport_module, diameter_sctp} = H | T], Acc1, Acc2) ->
 	split_options(T, [H | Acc1], Acc2);
 split_options([{transport_config, _} = H | T], Acc1, Acc2) ->
 	split_options(T, [H | Acc1], Acc2);
+split_options([{callback, _} = H | T], Acc1, Acc2) ->
+	split_options(T, [H | Acc1], Acc2);
 split_options([_H | T], Acc1, Acc2) ->
 	split_options(T, Acc1, Acc2);
 split_options([], Acc1, Acc2) ->
