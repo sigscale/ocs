@@ -546,15 +546,13 @@ process_request1(?'3GPP_CC-REQUEST-TYPE_EVENT_REQUEST' = RequestType,
 %% @doc POST ECUR rating data to a Nrf Rating Server.
 post_request_ecur(SubscriberIds, SvcContextId,
 		SessionId, MSCC, Location, Destination, initial) ->
-	{ok, NrfUri} = application:get_env(ocs, nrf_uri),
-	Path = NrfUri ++ ?BASE_URI,
+	Path = get_option(nrf_uri) ++ ?BASE_URI,
 	ServiceRating = initial_service_rating(MSCC, binary_to_list(SvcContextId),
 			Location, Destination),
 	post_request_ecur1(SubscriberIds, SessionId, ServiceRating, Path);
 post_request_ecur(SubscriberIds, SvcContextId,
 		SessionId, MSCC, Location, Destination, final) ->
-	{_, NrfUri} = application:get_env(ocs, nrf_uri),
-	Path = NrfUri ++ get_ref(SessionId) ++ "/" ++ "release",
+	Path = get_option(nrf_uri) ++ get_ref(SessionId) ++ "/" ++ "release",
 	ServiceRating = final_service_rating(MSCC, binary_to_list(SvcContextId),
 			Location, Destination),
 	post_request_ecur1(SubscriberIds, SessionId, ServiceRating, Path).
@@ -618,7 +616,7 @@ post_request_iec(SubscriberIds, ServiceContextId, SessionId, MSCC, Location, Des
 	post_request_iec1(SubscriberIds, SessionId, ServiceRating).
 %% @hidden
 post_request_iec1(SubscriberIds, SessionId, ServiceRating) ->
-	{ok, NrfUri} = application:get_env(ocs, nrf_uri),
+	{ok, NrfUri} = application:get_env(ocs, get_option()),
 	{ok, Profile} = application:get_env(ocs, nrf_profile),
 	TS = erlang:system_time(?MILLISECOND),
 	InvocationTimeStamp = ocs_log:iso8601(TS),
@@ -632,7 +630,7 @@ post_request_iec1(SubscriberIds, SessionId, ServiceRating) ->
 					{"subscriptionId", {array, format_subs_ids(SubscriberIds)}},
 					{"serviceRating",
 							{array, lists:flatten(ServiceRating)}}]},
-	Path = NrfUri ++ ?BASE_URI,
+	Path = get_option(nrf_uri) ++ ?BASE_URI,
 	ContentType = "application/json",
 	RequestBody = mochijson:encode(Body),
 	Headers = [{"accept", "application/json"}, {"content_type", "application/json"}],
@@ -666,22 +664,19 @@ post_request_iec1(SubscriberIds, SessionId, ServiceRating) ->
 %% @doc POST SCUR rating data to a Nrf Rating Server.
 post_request_scur(SubscriberIds, SvcContextId,
 		SessionId, MSCC, Location, initial) ->
-	{ok, NrfUri} = application:get_env(ocs, nrf_uri),
-	Path = NrfUri ++ ?BASE_URI,
+	Path = get_option(nrf_uri) ++ ?BASE_URI,
 	ServiceRating = initial_service_rating(MSCC, binary_to_list(SvcContextId),
 			Location, undefined),
 	post_request_scur1(SubscriberIds, SessionId, ServiceRating, Path);
 post_request_scur(SubscriberIds, SvcContextId,
 		SessionId, MSCC, Location, interim) ->
-	{ok, NrfUri} = application:get_env(ocs, nrf_uri),
-	Path = NrfUri ++ get_ref(SessionId) ++ "/" ++ "update",
+	Path = get_option(nrf_uri) ++ get_ref(SessionId) ++ "/" ++ "update",
 	ServiceRating = update_service_rating(MSCC, binary_to_list(SvcContextId),
 			Location),
 	post_request_scur1(SubscriberIds, SessionId, ServiceRating, Path);
 post_request_scur(SubscriberIds, SvcContextId,
 		SessionId, MSCC, Location, final) ->
-	{_, NrfUri} = application:get_env(ocs, nrf_uri),
-	Path = NrfUri ++ get_ref(SessionId) ++ "/" ++ "release",
+	Path = get_option(nrf_uri) ++ get_ref(SessionId) ++ "/" ++ "release",
 	ServiceRating = final_service_rating(MSCC, binary_to_list(SvcContextId),
 			undefined, Location),
 	post_request_scur1(SubscriberIds, SessionId, ServiceRating, Path).
@@ -1373,4 +1368,26 @@ service_type(Id) ->
 		_ ->
 			undefined
 	end.
+
+-spec get_option(Option) -> Result 
+	when
+		Option :: atom(),
+		NrfUri :: term().
+%% @doc Get the Nrf endpoint uri.
+get_option(Option) -> 
+	Options = case application:get_env(ocs, diameter) of
+		{ok, [{acct,[{_, _, Oplist}]}]} ->
+			Oplist;
+		{ok, [{auth,[{_, _, Oplist}]}]} ->
+			Oplist;
+		{ok, [{acct,[{_, _, Oplist}]}, {auth,[{_, _, []}]}]} ->
+			Oplist;
+		{ok, [{auth,[{_, _, []}]}, {acct,[{_, _, Oplist}]}]} ->
+			Oplist;
+	end,
+	case lists:keyfind(Option, 1, Options) of
+		{Option, Uri} ->
+		false ->
+			undefined
+	end. 
 
