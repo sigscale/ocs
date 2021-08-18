@@ -1359,6 +1359,12 @@ DIAMETER services may be configured with the following (optional) configuration 
 		<dd>The EAP method which will be offered first. (default: akap)</dd>
 	<dt>eap_method_order</dt>
 		<dd>The list of EAP methods supported in order of preference. (default: [akap, aka, pwd, ttls])</dd>
+	<dt>nrf_uri</dt>
+		<dd>.The Nrf endpoint(default: "http://host")</dd>
+	<dt>rf_class</dt>
+		<dd>.The class of rating function to be used</dd>
+	<dt>callback</dt>
+		<dd>.The callback module to be used diameter events (default: ocs_diameter_3gpp_ro_application_cb)</dd>
 </dl>
 
 === RADIUS Configuration ===
