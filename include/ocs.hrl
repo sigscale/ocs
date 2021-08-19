@@ -24,7 +24,7 @@
 		| cancelled | active | suspended | pending_terminate | terminated.
 -type service_status() :: feasibilityChecked | designed | reserved
 		| active | inactive | terminated.
--type product_price_type() :: recurring | one_time | usage | tariff.
+-type product_price_type() :: recurring | one_time | usage | tariff | pla_ref().
 -type recur_period() :: hourly | daily | weekly | monthly | yearly.
 
 -record(quantity,
@@ -106,7 +106,18 @@
 		amount :: integer() | undefined,
 		currency :: string() | undefined,
 		char_value_use = [] :: [#char_value_use{}],
-		alteration :: #alteration{} | undefined}).
+		alteration :: #alteration{} | undefined,
+		pla :: pla_ref() | undefined}).
+
+-record(pla_ref,
+		{id :: string() | undefined | '_',
+		href :: string() | undefined | '_',
+		name :: string() | undefined | '_',
+		class_type :: string() | undefined | '_',
+		base_type :: string() | undefined | '_',
+		schema :: string() | undefined | '_',
+		ref_type :: string() | undefined | '_'}).
+-type pla_ref() :: #pla_ref{}.
 
 -record(bundled_po,
 		{name :: string() | undefined,
