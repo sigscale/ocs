@@ -180,7 +180,6 @@
 				{threshold_seconds, undefined},
 				{threshold_messages, undefined},
 				{hub_options, [{keep_alive_timeout, 4000}]},
-				{nrf_uri, undefined},
 				{nrf_profile, nrf},
 				{nrf_options, [{keep_alive_timeout, 4000}]}]},
 		{mod, {ocs_app, []}}]}.
