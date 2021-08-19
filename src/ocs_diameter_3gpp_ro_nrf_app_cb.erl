@@ -616,7 +616,6 @@ post_request_iec(SubscriberIds, ServiceContextId, SessionId, MSCC, Location, Des
 	post_request_iec1(SubscriberIds, SessionId, ServiceRating).
 %% @hidden
 post_request_iec1(SubscriberIds, SessionId, ServiceRating) ->
-	{ok, NrfUri} = application:get_env(ocs, get_option()),
 	{ok, Profile} = application:get_env(ocs, nrf_profile),
 	TS = erlang:system_time(?MILLISECOND),
 	InvocationTimeStamp = ocs_log:iso8601(TS),
@@ -1371,8 +1370,8 @@ service_type(Id) ->
 
 -spec get_option(Option) -> Result 
 	when
-		Option :: atom(),
-		NrfUri :: term().
+		Option :: nrf_uri | atom(),
+		Result :: term().
 %% @doc Get the Nrf endpoint uri.
 get_option(Option) -> 
 	Options = case application:get_env(ocs, diameter) of
@@ -1383,10 +1382,11 @@ get_option(Option) ->
 		{ok, [{acct,[{_, _, Oplist}]}, {auth,[{_, _, []}]}]} ->
 			Oplist;
 		{ok, [{auth,[{_, _, []}]}, {acct,[{_, _, Oplist}]}]} ->
-			Oplist;
+			Oplist
 	end,
 	case lists:keyfind(Option, 1, Options) of
 		{Option, Uri} ->
+			Uri;
 		false ->
 			undefined
 	end. 
