@@ -200,21 +200,21 @@ require1(Info, Directory, DirectoryData, ValidUsers, ValidGroups,
 		EncodedHeader, EncodedPayload, EncodedSignature)
 		when is_list(EncodedHeader), is_list(EncodedPayload), is_list(EncodedSignature) ->
 	case validate_header(EncodedHeader) of
-	{valid, _DecodedHeader} ->
-		case validate_payload(EncodedPayload) of
-			{valid, DecodedPayload} ->
-			case validate_cert(EncodedHeader, EncodedPayload, EncodedSignature) of
-					authenticated ->
-						validate_user(Info, Directory, DirectoryData,
-								ValidUsers, ValidGroups, DecodedPayload);
-					{error, _Reason} ->
-						authorization_required(DirectoryData)
+		{valid, _DecodedHeader} ->
+			case validate_payload(EncodedPayload) of
+				{valid, DecodedPayload} ->
+					case validate_cert(EncodedHeader, EncodedPayload, EncodedSignature) of
+						authenticated ->
+							validate_user(Info, Directory, DirectoryData,
+									ValidUsers, ValidGroups, DecodedPayload);
+						{error, _Reason} ->
+							authorization_required(DirectoryData)
+					end;
+				{error, _Reason} ->
+					authorization_required(DirectoryData)
 			end;
 		{error, _Reason} ->
 			authorization_required(DirectoryData)
-		end;
-	{error, _Reason} ->
-		authorization_required(DirectoryData)
 	end.
 
 %% @hidden
