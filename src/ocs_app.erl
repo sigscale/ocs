@@ -386,9 +386,9 @@ install2(Nodes) ->
 			error_logger:error_report([mnesia:error_description(Reason),
 				{error, Reason}]),
 			{error, Reason};
-		{timeout, Tables} ->
+		{timeout, BadTables} ->
 			error_logger:error_report(["Timeout waiting for tables",
-					{tables, Tables}]),
+					{tables, BadTables}]),
 			{error, timeout}
 	end.
 %% @hidden
