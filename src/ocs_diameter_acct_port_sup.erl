@@ -25,6 +25,7 @@
 %% export the callback needed for supervisor behaviour
 -export([init/1]).
 
+-dialyzer({no_match, init/1}).
 -ifdef(OTP_RELEASE).
 	-define(PG_CREATE(Name),
 		case ?OTP_RELEASE of

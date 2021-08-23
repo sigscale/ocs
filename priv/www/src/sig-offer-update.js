@@ -1368,45 +1368,43 @@ class offerUpdate extends PolymerElement {
 				offerNew.push(reserveSession);
 			}
 		}
-		if(this.updateRedirect) {
-			function checkNameRe(redirect) {
-				return redirect.name == "redirectServer";
-			}
-			var res = this.characteristics.findIndex(checkNameRe);
-			if(res == -1) {
-				var indexChar = "-";
-				var redirectSer = new Object();
-				redirectSer.op = "add";
-				redirectSer.path = "/prodSpecCharValueUse/" + indexChar; 
-				var redirectSerArr = new Array();
-				var redirectSer1 = new Object();
-				redirectSer1.value = this.updateRedirect;
-				redirectSerArr.push(redirectSer1);
-				var redirectSer2 = new Object();
-				redirectSer2.name = "redirectServer";
-				redirectSer2.minCardinality = 0;
-				redirectSer2.maxCardinality = 1;
-				redirectSer2.productSpecCharacteristicValue = redirectSerArr;
-				var redirectSer1 = new Object();
-				redirectSer1.id = "8";
-				redirectSer1.href = "/catalogManagement/v2/productSpecification/8";
-				redirectSer2.productSpecification = redirectSer1;
-				redirectSer.value = redirectSer2;
-				offerNew.push(redirectSer);
+		function checkNameRe(redirect) {
+			return redirect.name == "redirectServer";
+		}
+		var res = this.characteristics.findIndex(checkNameRe);
+		if(res == -1) {
+			var indexChar = "-";
+			var redirectSer = new Object();
+			redirectSer.op = "add";
+			redirectSer.path = "/prodSpecCharValueUse/" + indexChar; 
+			var redirectSerArr = new Array();
+			var redirectSer1 = new Object();
+			redirectSer1.value = this.updateRedirect;
+			redirectSerArr.push(redirectSer1);
+			var redirectSer2 = new Object();
+			redirectSer2.name = "redirectServer";
+			redirectSer2.minCardinality = 0;
+			redirectSer2.maxCardinality = 1;
+			redirectSer2.productSpecCharacteristicValue = redirectSerArr;
+			var redirectSer1 = new Object();
+			redirectSer1.id = "8";
+			redirectSer1.href = "/catalogManagement/v2/productSpecification/8";
+			redirectSer2.productSpecification = redirectSer1;
+			redirectSer.value = redirectSer2;
+			offerNew.push(redirectSer);
+		} else {
+			var indexChar = res.toString();
+			var redirectServer = new Object();
+			redirectServer.op = "replace";
+			redirectServer.path = "/prodSpecCharValueUse/" + indexChar + "/productSpecCharacteristicValue/0/value";
+			redirectServer.value = this.updateRedirect;
+			if(redirectServer.value == "") {
+				var redirectServerDel = new Object();
+				redirectServerDel.op = "remove";
+				redirectServerDel.path = "/prodSpecCharValueUse/" + indexChar;
+				offerNew.push(redirectServerDel);
 			} else {
-				var indexChar = res.toString();
-				var redirectServer = new Object();
-				redirectServer.op = "replace";
-				redirectServer.path = "/prodSpecCharValueUse/" + indexChar + "/productSpecCharacteristicValue/0/value";
-				redirectServer.value = this.updateRedirect;
-				if(redirectServer.value == "") {
-					var redirectServerDel = new Object();
-					redirectServerDel.op = "remove";
-					redirectServerDel.path = "/prodSpecCharValueUse/" + indexChar;
-					offerNew.push(redirectServerDel);
-				} else {
-					offerNew.push(redirectServer);
-				}
+				offerNew.push(redirectServer);
 			}
 		}
 		if(this.serviceIdentifier) {
