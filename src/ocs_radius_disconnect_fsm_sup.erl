@@ -25,6 +25,7 @@
 %% export the call back needed for supervisor behaviour
 -export([init/1]).
 
+-dialyzer({no_match, init/1}).
 -ifdef(OTP_RELEASE).
 	-define(PG_JOIN(Group, Pid),
 		case ?OTP_RELEASE of
