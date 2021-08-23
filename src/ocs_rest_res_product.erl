@@ -144,7 +144,11 @@ add_inventory(ReqData) ->
 			Headers = [{location, Href}, {etag, Etag}],
 			{ok, Headers, Body}
 	catch
-		throw:validation_failed ->
+		throw:service_not_found ->
+			{error, 400};
+		throw:service_has_product ->
+			{error, 400};
+		throw:offer_not_found ->
 			{error, 400};
 		throw:_Reason1 ->
 			{error, 500};

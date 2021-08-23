@@ -28,7 +28,7 @@
 %% optional callbacks for application behaviour
 -export([prep_stop/1, start_phase/3]).
 %% export the ocs private API for installation
--export([install/0, install/1]).
+-export([install/0, install/1, join/1]).
 
 -include_lib("inets/include/mod_auth.hrl").
 -include("ocs.hrl").
@@ -56,7 +56,7 @@
 %%
 start(normal = _StartType, _Args) ->
 	Tables = [client, service, offer, product, resource,
-			bucket, httpd_user, httpd_group, nrf_ref],
+			bucket, httpd_user, httpd_group, session, nrf_ref],
 	case mnesia:wait_for_tables(Tables, ?WAITFORTABLES) of
 		ok ->
 			start1();
@@ -386,9 +386,9 @@ install2(Nodes) ->
 			error_logger:error_report([mnesia:error_description(Reason),
 				{error, Reason}]),
 			{error, Reason};
-		{timeout, Tables} ->
+		{timeout, BadTables} ->
 			error_logger:error_report(["Timeout waiting for tables",
-					{tables, Tables}]),
+					{tables, BadTables}]),
 			{error, timeout}
 	end.
 %% @hidden
@@ -903,6 +903,184 @@ add_example_bundles3(PriceInstall) ->
 		{ok, #offer{}} ->
 			ok;
 		{error, Reason} ->
+			{error, Reason}
+	end.
+
+-spec join(Node) -> Result
+	when
+		Node :: atom(),
+		Result :: {ok, Tables} | {error, Reason},
+		Tables :: [atom()],
+		Reason :: term().
+%% @doc Join an existing cluster.
+%%
+%% 	Tables will be copied from `Node'.
+join(Node) when is_atom(Node) ->
+	case mnesia:system_info(is_running) of
+		no ->
+			join1(Node);
+		_ ->
+			{error, mnesia_running}
+	end.
+%% @hidden
+join1(Node) ->
+	case rpc:call(Node, mnesia, add_table_copy, [schema, node(), ram_copies]) of
+		{atomic, ok} ->
+			join2(Node);
+		{aborted, Reason} ->
+			error_logger:error_report([mnesia:error_description(Reason),
+				{error, Reason}]),
+			{error, Reason}
+	end.
+%% @hidden
+join2(Node) ->
+	case application:start(mnesia) of
+		ok ->
+			join3(Node);
+		{error, Reason} ->
+			{error, Reason}
+	end.
+%% @hidden
+join3(Node) ->
+	case mnesia:change_config(extra_db_nodes, [Node]) of
+		{ok, _Nodes} ->
+			join4(Node);
+		{error, Reason} ->
+			{error, Reason}
+	end.
+%% @hidden
+join4(Node) ->
+	case mnesia:change_table_copy_type(schema, node(), disc_copies) of
+		{atomic, ok} ->
+			error_logger:info_msg("Copied schema table from ~s.~n", [Node]),
+			join5(Node, []);
+		{aborted, Reason} ->
+			error_logger:error_report([mnesia:error_description(Reason),
+				{error, Reason}]),
+			{error, Reason}
+	end.
+%% @hidden
+join5(Node, Acc) ->
+	case rpc:call(Node, mnesia, add_table_copy, [client, node(), disc_copies]) of
+		{atomic, ok} ->
+			error_logger:info_msg("Copied client table from ~s.~n", [Node]),
+			join6(Node, [client | Acc]);
+		{aborted, Reason} ->
+			error_logger:error_report([mnesia:error_description(Reason),
+				{error, Reason}]),
+			{error, Reason}
+	end.
+%% @hidden
+join6(Node, Acc) ->
+	case rpc:call(Node, mnesia, add_table_copy, [service, node(), disc_copies]) of
+		{atomic, ok} ->
+			error_logger:info_msg("Copied service table from ~s.~n", [Node]),
+			join7(Node, [service | Acc]);
+		{aborted, Reason} ->
+			error_logger:error_report([mnesia:error_description(Reason),
+				{error, Reason}]),
+			{error, Reason}
+	end.
+%% @hidden
+join7(Node, Acc) ->
+	case rpc:call(Node, mnesia, add_table_copy, [offer, node(), disc_copies]) of
+		{atomic, ok} ->
+			error_logger:info_msg("Copied offer table from ~s.~n", [Node]),
+			join8(Node, [offer, Acc]);
+		{aborted, Reason} ->
+			error_logger:error_report([mnesia:error_description(Reason),
+				{error, Reason}]),
+			{error, Reason}
+	end.
+%% @hidden
+join8(Node, Acc) ->
+	case rpc:call(Node, mnesia, add_table_copy, [product, node(), disc_copies]) of
+		{atomic, ok} ->
+			error_logger:info_msg("Copied product table from ~s.~n", [Node]),
+			join9(Node, [product | Acc]);
+		{aborted, Reason} ->
+			error_logger:error_report([mnesia:error_description(Reason),
+				{error, Reason}]),
+			{error, Reason}
+	end.
+%% @hidden
+join9(Node, Acc) ->
+	case rpc:call(Node, mnesia, add_table_copy, [resource, node(), disc_copies]) of
+		{atomic, ok} ->
+			error_logger:info_msg("Copied resource table from ~s.~n", [Node]),
+			join10(Node, [resource | Acc]);
+		{aborted, Reason} ->
+			error_logger:error_report([mnesia:error_description(Reason),
+				{error, Reason}]),
+			{error, Reason}
+	end.
+%% @hidden
+join10(Node, Acc) ->
+	case rpc:call(Node, mnesia, add_table_copy, [bucket, node(), disc_copies]) of
+		{atomic, ok} ->
+			error_logger:info_msg("Copied bucket table from ~s.~n", [Node]),
+			join11(Node, [bucket | Acc]);
+		{aborted, Reason} ->
+			error_logger:error_report([mnesia:error_description(Reason),
+				{error, Reason}]),
+			{error, Reason}
+	end.
+%% @hidden
+join11(Node, Acc) ->
+	case rpc:call(Node, mnesia, add_table_copy, [httpd_user, node(), disc_copies]) of
+		{atomic, ok} ->
+			error_logger:info_msg("Copied httpd_user table from ~s.~n", [Node]),
+			join12(Node, [httpd_user | Acc]);
+		{aborted, Reason} ->
+			error_logger:error_report([mnesia:error_description(Reason),
+				{error, Reason}]),
+			{error, Reason}
+	end.
+%% @hidden
+join12(Node, Acc) ->
+	case rpc:call(Node, mnesia, add_table_copy, [httpd_group, node(), disc_copies]) of
+		{atomic, ok} ->
+			error_logger:info_msg("Copied httpd_group table from ~s.~n", [Node]),
+			join13(Node, [httpd_group | Acc]);
+		{aborted, Reason} ->
+			error_logger:error_report([mnesia:error_description(Reason),
+				{error, Reason}]),
+			{error, Reason}
+	end.
+%% @hidden
+join13(Node, Acc) ->
+	case rpc:call(Node, mnesia, add_table_copy, [session, node(), ram_copies]) of
+		{atomic, ok} ->
+			error_logger:info_msg("Copied session table from ~s.~n", [Node]),
+			join14(Node, [session | Acc]);
+		{aborted, Reason} ->
+			error_logger:error_report([mnesia:error_description(Reason),
+				{error, Reason}]),
+			{error, Reason}
+	end.
+%% @hidden
+join14(Node, Acc) ->
+	case rpc:call(Node, mnesia, add_table_copy, [nrf_ref, node(), ram_copies]) of
+		{atomic, ok} ->
+			error_logger:info_msg("Copied nrf_ref table from ~s.~n", [Node]),
+			join15(Node, [nrf_ref | Acc]);
+		{aborted, Reason} ->
+			error_logger:error_report([mnesia:error_description(Reason),
+				{error, Reason}]),
+			{error, Reason}
+	end.
+%% @hidden
+join15(Node, Tables) ->
+	case mnesia:wait_for_tables(Tables, ?WAITFORTABLES) of
+		ok ->
+			{ok, Tables};
+		{timeout, BadTables} ->
+			error_logger:error_report(["Timeout waiting for tables",
+					{tables, BadTables}]),
+			{error, timeout};
+		{error, Reason} ->
+			error_logger:error_report([mnesia:error_description(Reason),
+					{error, Reason}]),
 			{error, Reason}
 	end.
 

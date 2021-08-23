@@ -73,27 +73,69 @@ class ocsHelp extends PolymerElement {
 				</app-toolbar>
 				<paper-icon-item
 						class="icon-style"
-						on-click="product">
-					<iron-icon icon="my-icons:assignment" item-icon></iron-icon>
-					Product
+						on-click="catalog">
+					<iron-icon icon="my-icons:store" item-icon></iron-icon>
+					Catalog
+				</paper-icon-item>
+				<paper-icon-item
+						class="icon-style"
+						on-click="offering">
+					<iron-icon icon="my-icons:offer" item-icon></iron-icon>
+					Offering
+				</paper-icon-item>
+				<paper-icon-item
+						class="icon-style"
+						on-click="tariff">
+					<iron-icon icon="my-icons:table" item-icon></iron-icon>
+					Tariff
+				</paper-icon-item>
+				<paper-icon-item
+						class="icon-style"
+						on-click="policy">
+					<iron-icon icon="icons:verified-user" item-icon></iron-icon>
+					Policy
 				</paper-icon-item>
 				<paper-icon-item
 						class="icon-style"
 						on-click="addSubQue">
-					<iron-icon icon="my-icons:assignment" item-icon></iron-icon>
+					<iron-icon icon="my-icons:card-membership" item-icon></iron-icon>
 					Subscribers
 				</paper-icon-item>
 				<paper-icon-item
 						class="icon-style"
+						on-click="service">
+					<iron-icon icon="my-icons:devices" item-icon></iron-icon>
+					Services
+				</paper-icon-item>
+				<paper-icon-item
+						class="icon-style"
+						on-click="product">
+					<iron-icon icon="my-icons:offer" item-icon></iron-icon>
+					Product
+				</paper-icon-item>
+				<paper-icon-item
+						class="icon-style"
+						on-click="bucket">
+					<iron-icon icon="my-icons:icons:account-balance" item-icon></iron-icon>
+					Balance Bucket
+				</paper-icon-item>
+				<paper-icon-item
+						class="icon-style"
 						on-click="addClientQue">
-					<iron-icon icon="my-icons:assignment" item-icon></iron-icon>
+					<iron-icon icon="my-icons:router" item-icon></iron-icon>
 					Clients
 				</paper-icon-item>
 				<paper-icon-item
 						class="icon-style"
 						on-click="addUserQue">
-					<iron-icon icon="my-icons:assignment" item-icon></iron-icon>
+					<iron-icon icon="my-icons:perm-identity" item-icon></iron-icon>
 					Users
+				</paper-icon-item>
+				<paper-icon-item
+						class="icon-style"
+						on-click="addLogQue">
+					<iron-icon icon="my-icons:history" item-icon></iron-icon>
+					Logs
 				</paper-icon-item>
 				<paper-icon-item
 						class="icon-style"
@@ -108,39 +150,172 @@ class ocsHelp extends PolymerElement {
 					Filtering
 				</paper-icon-item>
 			</paper-dialog>
-			<paper-dialog class="helpdialog" id="helpToolbar">
+			<paper-dialog class="helpdialog" id="helpCatalog">
+				<app-toolbar>
+					<paper-icon-button
+							icon="my-icons:arrow-back"
+							on-click="helpBack">
+					</paper-icon-button>
+					<h2>Catalog</h2>
+				</app-toolbar>
+				<paper-icon-item>
+					<iron-icon icon="my-icons:store" slot="item-icon"></iron-icon>
+					<h2>Catalog</h2>
+				</paper-icon-item>
 				<paper-dialog-scrollable>
-					<app-toolbar>
-						<paper-icon-button
-								icon="my-icons:arrow-back"
-								on-click="helpBack">
-						</paper-icon-button>
-						<h2>Toolbar</h2>
-					</app-toolbar>
-					<paper-icon-item>
-						<iron-icon icon="icons:assignment" slot="item-icon"></iron-icon>
-						<h2>Toolbar</h2>
-					</paper-icon-item>
-					<p>The <b>Toolbar</b> appears across the top of the screen in
-					all views. In the center of the toolbar is the title of the
-					application:</p>
-					<img alt="screenshot" src="../images/toolbar.png" height="36" width="320">
-					<p>To the left of the title is the <b>Navigation Menu</b> icon:
-					<iron-icon class="iconHelp" icon="menu"></iron-icon>. Selecting
-					this opens the <b>Navigation Drawer</b> which contains the main
-					menu for navigating between views within the application.</p>
-					<p>To the right of the title is the <b>Refresh</b> icon:
-					<iron-icon class="iconHelp" icon="refresh"></iron-icon>. Selecting
-					this will get new data from OCS for the current view.</p>
-					<p>On the far right of the toolbar is the <b>Overflow Menu</b> icon:
-					<iron-icon class="iconHelp" icon="icons:more-vert"></iron-icon>.
-					Selecting this will open a menu providing access to <b>Help</b>
-					and <b>Support</b></p>.
-					<h3>Progress Bar</h3>
-					<p>When loading data from OCS takes a few seconds a progress
-					bar appears underneath the toolbar to indicate that it is
-					working on loading the page requested:</p>
-					<img alt="screenshot" src="../images/progress.png" height="96" width="298">
+					<p>To access the <b>Catalog</b> view first open the navigation
+					drawer by selecting it's icon <iron-icon class="iconHelp" icon="menu">
+					</iron-icon></p>
+					<p>Press <b>Catalog</b> view then three more sub views will appear which
+					are: </p>
+					<dl>
+						<iron-icon icon="my-icons:offer" slot="item-icon"></iron-icon>
+						<b>Offerings view</b>
+					</dl>
+					<dl>
+						<iron-icon icon="my-icons:table" slot="item-icon"></iron-icon>
+						<b>Tariff view</b>
+					</dl>
+					<dl>
+						<iron-icon icon="icons:verified-user" slot="item-icon"></iron-icon>
+						<b>Policy view</b>
+					</dl>
+				</paper-dialog-scrollable>
+			</paper-dialog>
+			<paper-dialog class="helpdialog" id="helpOffering">
+				<app-toolbar>
+					<paper-icon-button
+							icon="my-icons:arrow-back"
+							on-click="helpBack">
+					</paper-icon-button>
+					<h2>Offering</h2>
+				</app-toolbar>
+				<paper-icon-item>
+					<iron-icon icon="my-icons:offer" slot="item-icon"></iron-icon>
+					<h2>Offering</h2>
+				</paper-icon-item>
+				<paper-dialog-scrollable>
+					<p>To access the <b>Offering</b> view first open the navigation
+					drawer by selecting it's icon
+					<iron-icon class="iconHelp" icon="menu"></iron-icon>
+					on the left of the toolbar at top. Select the
+					<iron-icon class="iconHelp" icon="my-icons:offer"></iron-icon>
+					<b>Offerings</b> view from the navigation menu.</p>
+					<h3>Add Offering</h3>
+					<p>Select the floating action button <iron-icon class="iconHelp" icon="add">
+					</iron-icon> at the bottom right of the view. An <b>Add Offering</b> dialog will
+					appear.<b>Offering, Prices, Alterations</b> tabs are available in the
+					<b>Add Offering</b> dialog.Fill all details in <b>Alterations</b>, if required,
+					first and press <b>Add</b> to add the list of available alterations. Fill all
+					details in <b>Prices</b> tab and press <b>Add</b> to add the list of available
+					prices. Finally fill all details in <b>Offering</b> tab and press <b>Submit</b>.
+					</p>
+					<h3>Update Offering</h3>
+					<p>Select an existing offer row then update offer dialog will appear. Fill the
+					required details and press <b>Update</b> button </p> 
+					<h3>Delete Offering</h3>   
+					<p>Select an existing offer row then update offer dialog will appear.
+					Switch to <b>offer</p> tab and press <b>Delete</b> button. </p>
+					<h3>Validations</h3>
+					<p><dl>
+						<dt><b>Bytes</b></dt>
+							<dd>When the selected <b>Units</b> are bytes the <b>Unit Size</b> should
+							be the number of bytes for the price <b>Amount</b>. Multipliers
+							may be used: <b>m</b> for <b>Megabytes</b>, <b>g</b> for <b>Gigabytes</b>,
+							<b>k</b> for <b>Kilobytes</b></dd>
+						<dt><b>Seconds</b></dt>
+							<dd>When the selected <b>Units</b> are seconds the <b>Unit Size</b> field
+							be the number of bytes for the price <b>Amount</b>. Multipliers
+							may be used: <b>m</b> for <b>minutes</b>, <b>h</b> for <b>hours</b></dd>
+						<dt><b>Cents</b></dt>
+							<dd>When the selected <b>Units</b> are cents the <b>Unit Size</b> should
+							be the number of cents for the price <b>Amount</b>.</dd>
+					</dl></p>
+				</paper-dialog-scrollable>
+			</paper-dialog>
+			<paper-dialog class="helpdialog" id="helpTariff">
+				<app-toolbar>
+					<paper-icon-button
+							icon="my-icons:arrow-back"
+							on-click="helpBack">
+					</paper-icon-button>
+					<h2>Tariff</h2>
+				</app-toolbar>
+				<paper-icon-item>
+					<iron-icon icon="my-icons:table" slot="item-icon"></iron-icon>
+					<h2>Tariff</h2>
+				</paper-icon-item>
+				<paper-dialog-scrollable>
+					<p>To access the <b>Tariff</b> view first open the navigation
+					drawer by selecting it's icon
+					<iron-icon class="iconHelp" icon="menu"></iron-icon>
+					on the left of the toolbar at top. Select the
+					<iron-icon class="iconHelp" icon="my-icons:table"></iron-icon>
+					<b>tariff</b> view from the navigation menu. It appears list of
+					<b>tariff</b> table dialog. Select the table name and click
+					<b>Ok</b> button then get into selected table rows will appear</p>
+					<h3>Add Tariff Table</h3>
+					<p>From the list of <b>tariff</b> table dialog. Click <b>Add</b> button then
+					add table dialog will appear. Fill the details and press <b>Submit</b>
+					button</p>
+					<h3>Delete Tariff Table</h3>   
+					<p>From the list of <b>tariff</b> table dialog. Click <b>Delete</b> button then
+					add table dialog will appear.</p>
+					<h3>Add Tariff Row</h3>
+					<p>Select the floating action button <iron-icon class="iconHelp" icon="add">
+					</iron-icon> at the bottom right of the view. An <b>Add Prefix</b> dialog will
+					appear. Finally fill all details and press <b>Submit</b>.
+					</p>
+					<h3>Update Tariff Row</h3>
+					<p>Select an existing tariff row then update offer dialog will appear. Fill the
+					required details and press <b>Update</b> button</p> 
+					<h3>Delete Tariff Row</h3>   
+					<p>Select an existing tariff row then update offer dialog will appear.
+					In the dialog press <b>Delete</b> button</p> 
+					</p>
+				</paper-dialog-scrollable>
+			</paper-dialog>
+			<paper-dialog class="helpdialog" id="helpPolicy">
+				<app-toolbar>
+					<paper-icon-button
+							icon="my-icons:arrow-back"
+							on-click="helpBack">
+					</paper-icon-button>
+					<h2>Policy</h2>
+				</app-toolbar>
+				<paper-icon-item>
+					<iron-icon icon="icons:verified-user" slot="item-icon"></iron-icon>
+					<h2>Policy</h2>
+				</paper-icon-item>
+				<paper-dialog-scrollable>
+					<p>To access the <b>Policy</b> view first open the navigation
+					drawer by selecting it's icon
+					<iron-icon class="iconHelp" icon="menu"></iron-icon>
+					on the left of the toolbar at top. Select the
+					<iron-icon class="iconHelp" icon="icons:verified-user"></iron-icon>
+					<b>policy</b> view from the navigation menu. It appears list of
+					<b>policy</b> table dialog. Select the table name and click
+					<b>Ok</b> button then get into selected table rows will appear</p>
+					<h3>Add Policy Table</h3>
+					<p>From the list of <b>policy</b> table dialog. Click <b>Add</b> button then
+					add policy table dialog will appear. Fill the details and press <b>Submit</b>
+					button</p>
+					<h3>Delete Policy Table</h3>   
+					<p>From the list of <b>policy</b> table dialog. Click <b>Delete</b> button then
+					add table dialog will appear.</p>
+					<h3>Add Policy Row</h3>
+					<p>Select the floating action button <iron-icon class="iconHelp" icon="add">
+					</iron-icon> at the bottom right of the view. An <b>Add Policy</b> dialog will
+					appear. Finally fill all details and press <b>Submit</b>.
+					</p>
+					<h3>Update Policy Row</h3>
+					<p>Select an existing policy row then the selected row will be expanding.
+					In the expanded view there are three tabs which are <b>General,
+					QoS Information, Service Flow</b> Fill the required details and press
+					<b>Update</b> button</p> 
+					<h3>Delete Tariff Row</h3>   
+					<p>Select an existing policy row then the selected row will be expanding.
+					and press <b>Delete</b> button</p> 
 				</paper-dialog-scrollable>
 			</paper-dialog>
 			<paper-dialog class="helpdialog" id="helpSubscribers">
@@ -152,16 +327,13 @@ class ocsHelp extends PolymerElement {
 					<h2>Subscribers</h2>
 				</app-toolbar>
 				<paper-icon-item>
-					<iron-icon icon="icons:assignment" slot="item-icon"></iron-icon>
-		 			<h2>Subscribers</h2>
+					<iron-icon icon="my-icons:card-membership" slot="item-icon"></iron-icon>
+					<h2>Subscribers</h2>
 				</paper-icon-item>
 				<paper-dialog-scrollable>
 					<p>To access the <b>Subscribers</b> view first open the navigation
-					drawer by selecting it's icon
-					<iron-icon class="iconHelp" icon="menu"></iron-icon>
-					on the left of the toolbar at top. Select the
-					<iron-icon class="iconHelp" icon="device:devices"></iron-icon>
-					<b>Subscribers</b> view from the navigation menu.</p>
+					drawer by selecting it's icon <iron-icon class="iconHelp" icon="menu">
+					</iron-icon></p>
 					<p><b>Subscribers</b> are the entities which subscribe to
 					communications services. A subscriber is commonly a person using a
 					smartphone, tablet or laptop to access a Wi-Fi network.</p>
@@ -194,23 +366,115 @@ class ocsHelp extends PolymerElement {
 					authorization where more frequent updates result in lower negative
 					balances at the cost of increased processing and request
 					transmissions.</p>
-					<h3>Add a Subscriber</h3>
+					<p>Press <b>Subscribers</b> view then three more sub views will appear which
+					are: </p>
+					<dl>
+						<iron-icon icon="my-icons:devices" slot="item-icon"></iron-icon>
+						<b>Service view</b>
+					</dl>
+					<dl>
+						<iron-icon icon="my-icons:offer" slot="item-icon"></iron-icon>
+						<b>Product view</b>
+					</dl>
+					<dl>
+						<iron-icon icon="my-icons:icons:account-balance" slot="item-icon">
+						</iron-icon>
+						<b>Bucket view</b>
+					</dl>
+				</paper-dialog-scrollable>
+			</paper-dialog>
+			<paper-dialog class="helpdialog" id="helpService">
+				<app-toolbar>
+					<paper-icon-button
+							icon="my-icons:arrow-back"
+							on-click="helpBack">
+					</paper-icon-button>
+					<h2>Services</h2>
+				</app-toolbar>
+				<paper-icon-item>
+					<iron-icon icon="my-icons:devices" slot="item-icon"></iron-icon>
+					<h2>Services</h2>
+				</paper-icon-item>
+				<paper-dialog-scrollable>
+					<p>To access the <b>Services</b> view first open the navigation
+					drawer by selecting it's icon
+					<iron-icon class="iconHelp" icon="menu"></iron-icon>
+					on the left of the toolbar at top. Select the
+					<iron-icon class="iconHelp" icon="my-icons:devices"></iron-icon>
+					<b>Services</b> view from the navigation menu.</p>
+					<h3>Add a Service</h3>
 					<p>Select the floating action button
 					<iron-icon class="iconHelp" icon="add"></iron-icon> at the bottom right
-					of the view. A <b>Product List</b> dropdown menu will appear. When selects
-					the product from the list it will redirect you to <b>Add Subscriber</b> dialog.
-					Enter the details for a new subscriber and select the <b>SUBMIT</b>
-					button. If the <b>Generate</b> check-box is selected for <b>Identity</b>
-					or <b>Password</b> OCS will create unique values which will be provided
-					in a dialog after the request is successful.</p> <h3>Update a Subscriber</h3>
-					<p>Selecting a row in the Subscriber view will open a dialog allowing
-					updating any fields. There are two tabs in the dialog toolbar used to
-					select <b>Authentication</b> or <b>Authorization</b> fields. After
-					providing new values in either or both tabs select the <b>UPDATE</b>
-					button.</p>
-					<h3>Delete a Subscriber</h3>
-					<p>Selecting a row in the Subscriber view will open a dialog which
+					of the view. <b>Add Service</b> dialog will appear. The <b>Add Service</b>
+					dialog has four tabs which are <b>Product</b> or <b>Authentication</b>
+					or <b>Authorization</b> or <b>Credit</b>. Fill all the details and press
+					<b>Submit</b> button. If the Service added successfully
+					<b>Server Generated</b> dialog will apear. That dialog provides Identity
+					and Password information of created service</p>
+					<h3>Update Service</h3>
+					<p>Selecting a row in the Service view will open a dialog allowing
+					updating any fields. There are four tabs in the dialog toolbar used to
+					select <b>Product</b> or <b>Authentication</b> or <b>Authorization</b>
+					or <b>Credit.</b> After providing new values in either or both tabs
+					select the <b>UPDATE</b> button.</p> 
+					<h3>Delete Service</h3>
+					<p>Selecting a row in the Service view will open a dialog which
 					includes a <b>DELETE</b> button.</p>
+				</paper-dialog-scrollable>
+			</paper-dialog>
+			<paper-dialog class="helpdialog" id="helpProduct">
+				<app-toolbar>
+					<paper-icon-button
+						icon="my-icons:arrow-back"
+						on-click="helpBack">
+					</paper-icon-button>
+					<h2>Product</h2>
+				</app-toolbar>
+				<paper-icon-item>
+					<iron-icon icon="my-icons:offer" slot="item-icon"></iron-icon>
+					<h2>Product</h2>
+				</paper-icon-item>
+				<paper-dialog-scrollable>
+					<p>To add <b>Product</b> first open the navigation drawer by selecting its icon
+					<iron-icon class="iconHelp" icon="menu"></iron-icon> on the left of the toolbar
+					at top. Select the <iron-icon class="iconHelp" icon="my-icons:offer">
+					</iron-icon>
+					<b>Product</b> view from the navigation menu.</p>
+					<h3>Add Product</h3>
+					<p>Select the floating action button <iron-icon class="iconHelp" icon="add">
+					</iron-icon> at the bottom right of the view. An <b>Add Product</b> dialog will
+					appear.<b>Offering, Prices, Alterations</b> tabs are available in the
+					<b>Add Product</b> dialog.Fill all details and press <b>Submit.</b></p>
+					<h3>Delete Product</h3>
+					<p>Selecting a row in the Product view will open a <b>Delete Product</b>
+					dialog includes a <b>DELETE</b> button.</p>
+				</paper-dialog-scrollable>
+			</paper-dialog>
+			<paper-dialog class="helpdialog" id="helpBucket">
+				<app-toolbar>
+					<paper-icon-button
+						icon="my-icons:arrow-back"
+						on-click="helpBack">
+					</paper-icon-button>
+					<h2>Balance Bucket</h2>
+				</app-toolbar>
+				<paper-icon-item>
+					<iron-icon icon="my-icons:icons:account-balance" slot="item-icon"></iron-icon>
+					<h2>Balance Bucket</h2>
+				</paper-icon-item>
+				<paper-dialog-scrollable>
+					<p>To add <b>Balance Bucket</b> first open the navigation drawer by
+					selecting its icon <iron-icon class="iconHelp" icon="menu"></iron-icon>
+					on the left of the toolbar at top. Select the <iron-icon class="iconHelp"
+					icon="my-icons:icons:account-balance"></iron-icon><b>Balance Bucket</b>
+					view from the navigation menu.</p>
+					<h3>Add Bucket</h3>
+					<p>Select the floating action button <iron-icon class="iconHelp" icon="add">
+					</iron-icon> at the bottom right of the view. An <b>Add Bucket</b> dialog will
+					appear. Fill all details and press <b>Submit.</b></p>
+					<h3>Delete Bucket</h3>
+					<p>Selecting a row in the balance bucket view then the row will expand.
+					It includes <b>DELETE</b> button.</p>
 				</paper-dialog-scrollable>
 			</paper-dialog>
 			<paper-dialog class="helpdialog" id="helpClients">
@@ -222,14 +486,14 @@ class ocsHelp extends PolymerElement {
 					<h2>Clients</h2> 
 				</app-toolbar>
 				<paper-icon-item>
-					<iron-icon icon="icons:assignment" slot="item-icon"></iron-icon>
+					<iron-icon icon="my-icons:router" slot="item-icon"></iron-icon>
 					<h2>Clients</h2> 
 				</paper-icon-item>
 				<paper-dialog-scrollable>
 					<p>To access the <b>Clients</b> view first open the navigation drawer
 					by selecting it's icon <iron-icon class="iconHelp" icon="menu"></iron-icon>
 					on the left of the toolbar at top. Select the
-					<iron-icon class="iconHelp" icon="hardware:router"></iron-icon>
+					<iron-icon class="iconHelp" icon="my-icons:router"></iron-icon>
 					<b>Clients</b> view from the navigation menu.</p>
 					<p><b>Clients</b> are Network Access Servers (<b>NAS</b>) which
 					delegate Authentication, Authorization and Accounting (<b>AAA</b>)
@@ -270,6 +534,43 @@ class ocsHelp extends PolymerElement {
 					includes a <b>DELETE</b> button.</p>
 				</paper-dialog-scrollable>
 			</paper-dialog>
+			<paper-dialog class="helpdialog" id="helpUsers">
+				<app-toolbar>
+					<paper-icon-button
+							icon="my-icons:arrow-back"
+							on-click="helpBack">
+					</paper-icon-button>
+					<h2>Users</h2>
+				</app-toolbar>
+				<paper-icon-item>
+						<iron-icon icon="my-icons:perm-identity" slot="item-icon"></iron-icon>
+					<h2>Users</h2>
+				</paper-icon-item>
+				<paper-dialog-scrollable>
+					<p>To access the <b>Users</b> view first open the navigation drawer
+					by selecting it's icon <iron-icon class="iconHelp" icon="menu"></iron-icon>
+					on the left of the toolbar at top. Select the
+					<iron-icon class="iconHelp" icon="icons:perm-identity"></iron-icon>
+					<b>Users</b> view from the navigation menu.</p>
+					<p><b>Users</b> are entities which may authenticate with an HTTP
+					server within OCS for REST API or web user interface access. Each user
+					requires a unique <b>Username</b> and <b>Password</b>. A language may
+					also be chosen which will internationalize the web user interface.</p>
+					<h3>Add a User</h3>
+					<p>Select the floating action button
+					<iron-icon class="iconHelp" icon="add"></iron-icon> at the bottom right
+					of the view. An input dialog will appear. Enter the details for a new
+					user then press the <b>SUBMIT</b> button. A dropdown selection provides
+					a choice of available languages.</p>
+					<h3>Update a User</h3>
+					<p>Selecting a row in the Users view will open a dialog allowing
+					updating of the <b>Password</b> or <b>Language</b>. Select the
+					<b>UPDATE</b> button to submit.</p>
+					<h3>Delete a User</h3>
+					<p>Selecting a row in the Users view will open a dialog which
+					includes a <b>DELETE</b> button.</p>
+				</paper-dialog-scrollable>
+			</paper-dialog>
 			<paper-dialog class="helpdialog" id="helpLogs">
 				<app-toolbar>
 					<paper-icon-button
@@ -279,14 +580,14 @@ class ocsHelp extends PolymerElement {
 					<h2>Logs</h2>
 				</app-toolbar>
 				<paper-icon-item>
-					<iron-icon icon="icons:assignment" slot="item-icon"></iron-icon>
+					<iron-icon icon="my-icons:history" slot="item-icon"></iron-icon>
 					<h2>Logs</h2>
 				</paper-icon-item>
 				<paper-dialog-scrollable>
 					<p>To access log views first open the navigation drawer
 					by selecting it's icon <iron-icon class="iconHelp" icon="menu"></iron-icon>
 					on the left of the toolbar at top. Select the
-					<iron-icon class="iconHelp" icon="icons:history"></iron-icon>
+					<iron-icon class="iconHelp" icon="my-icons:history"></iron-icon>
 					<b>Logs</b> submenu from the navigation menu.</p>
 					<p>Activity logs provide persistent storage of chronologically
 					ordered event details. For AAA requests all attributes of RADIUS
@@ -298,13 +599,14 @@ class ocsHelp extends PolymerElement {
 					for inter-operator exchange of billing records used with roaming
 					agreements.</p>
 					<h3>Access</h3>
-					<p>Select the <iron-icon class="iconHelp" icon="device:data-usage"></iron-icon>
+					<p>Select the <iron-icon class="iconHelp" icon="my-icons:data-usage">
+					</iron-icon>
 					<b>Access</b> view from the submenu in the navigation drawer.</p>
 					<dl>
 						<dt><b>Timestamp</b></dt>
 							<dd>The time and date the event was recorded by OCS in ISO8601
 							format universal coordinated time (UTC).</dd>
-						<dt><b>Client</b></dt>
+						<dt><b>Client Address</b></dt>
 							<dd>IP address of the NAS which sent the Access-Request.</dd>
 						<dt><b>Client Identity</b></dt>
 							<dd>Identify of the NAS which sent the Access-Request.</dd>
@@ -316,27 +618,57 @@ class ocsHelp extends PolymerElement {
 							<dd>Indicates the response (accept/reject).</dd>
 					</dl>
 					<h3>Accounting</h3>
-					<p>Select the <iron-icon class="iconHelp" icon="device:data-usage"></iron-icon>
+					<p>Select the <iron-icon class="iconHelp" icon="my-icons:data-usage">
+					</iron-icon>
 					<b>Accounting</b> view from the submenu in the navigation drawer.</p>
 					<dl>
 						<dt><b>Timestamp</b></dt>
 							<dd>The time and date the event was recorded by OCS in ISO8601
 							format universal coordinated time (UTC).</dd>
-						<dt><b>Client</b></dt>
-							<dd>Identifies the NAS which sent the Accounting-Request.</dd>
+						<dt><b>Client Identity</b></dt>
+							<dd>Identify of the NAS which sent the Access-Request.</dd>
 						<dt><b>Duration</b></dt>
 							<dd>The session duration (secs).</dd>
 						<dt><b>In</b></dt>
 							<dd>The incoming data traffic (bytes).</dd>
 						<dt><b>Out</b></dt>
 							<dd>The outgoing data traffic (bytes).</dd>
+						<dt><b>Total</b></dt>
+							<dd>The total data traffic (bytes).</dd>
+						<dt><b>Price</b></dt>
+							<dd>The amount of the call.</dd>
 						<dt><b>Username</b></dt>
 							<dd>Identifies the subscriber.</dd>
 						<dt><b>Type</b></dt>
 							<dd>Indicates the request type (start/stop/interim/on/off).</dd>
+						<dt><b>MSISDN</b></dt>
+							<dd>Unique identifier of the subscriber.</dd>
+						<dt><b>IMSI</b></dt>
+							<dd>Unique identifier of the subscriber.</dd>
+					</dl>
+					<h3>Balance</h3>
+					<p>Select the <iron-icon class="iconHelp" icon="my-icons:data-usage">
+					</iron-icon>
+					<b>Balance</b> view from the submenu in the navigation drawer.</p>
+					<dl>
+						<dt><b>Timestamp</b></dt>
+							<dd>The time and date the event was recorded by OCS in ISO8601
+							format universal coordinated time (UTC).</dd>
+						<dt><b>Type</b></dt>
+							<dd>Indicates the request type (start/stop/interim/on/off).</dd>
+						<dt><b>Product</b></dt>
+							<dd>subscription of a ProductOffering.</dd>
+						<dt><b>Bucket</b></dt>
+							<dd> bucket will measure balance in different units.</dd>
+						<dt><b>Amount</b></dt>
+							<dd>Amount of the bucket.</dd>
+						<dt><b>After</b></dt>
+							<dd>Amount after balance bucket.</dd>
+						<dt><b>Before</b></dt>
+							<dd>Amount before balance bucket.</dd>
 					</dl>
 					<h3>IPDR</h3>
-					<p>Select <iron-icon class="iconHelp" icon="device:data-usage"></iron-icon>
+					<p>Select <iron-icon class="iconHelp" icon="my-icons:data-usage"></iron-icon>
 					<b>IPDR</b> from the submenu in the navigation drawer.</p>
 					<p>A file selction dialog will appear with a list of available
 					IPDR logs.  Filenames are ISO8601 timestamps (UTC) indicating
@@ -375,7 +707,8 @@ class ocsHelp extends PolymerElement {
 							<dd>Indicates the reason the session ended.</dd>
 					</dl>
 					<h3>HTTP</h3>
-					<p>Select the <iron-icon class="iconHelp" icon="device:data-usage"></iron-icon>
+					<p>Select the <iron-icon class="iconHelp" icon="my-icons:data-usage">
+					</iron-icon>
 					<b>HTTP</b> view from the submenu in the navigation drawer.</p>
 					<dl>
 						<dt><b>DateTime</b></dt>
@@ -393,41 +726,39 @@ class ocsHelp extends PolymerElement {
 					</dl>
 				</paper-dialog-scrollable>
 			</paper-dialog>
-			<paper-dialog class="helpdialog" id="helpUsers">
-				<app-toolbar>
-					<paper-icon-button
-							icon="my-icons:arrow-back"
-							on-click="helpBack">
-					</paper-icon-button>
-					<h2>Users</h2>
-				</app-toolbar>
-				<paper-icon-item>
-						<iron-icon icon="icons:assignment" slot="item-icon"></iron-icon>
-					<h2>Users</h2>
-				</paper-icon-item>
+			<paper-dialog class="helpdialog" id="helpToolbar">
 				<paper-dialog-scrollable>
-					<p>To access the <b>Users</b> view first open the navigation drawer
-					by selecting it's icon <iron-icon class="iconHelp" icon="menu"></iron-icon>
-					on the left of the toolbar at top. Select the
-					<iron-icon class="iconHelp" icon="icons:perm-identity"></iron-icon>
-					<b>Users</b> view from the navigation menu.</p>
-					<p><b>Users</b> are entities which may authenticate with an HTTP
-					server within OCS for REST API or web user interface access. Each user
-					requires a unique <b>Username</b> and <b>Password</b>. A language may
-					also be chosen which will internationalize the web user interface.</p>
-					<h3>Add a User</h3>
-					<p>Select the floating action button
-					<iron-icon class="iconHelp" icon="add"></iron-icon> at the bottom right
-					of the view. An input dialog will appear. Enter the details for a new
-					user then press the <b>SUBMIT</b> button. A dropdown selection provides
-					a choice of available languages.</p>
-					<h3>Update a User</h3>
-					<p>Selecting a row in the Users view will open a dialog allowing
-					updating of the <b>Password</b> or <b>Language</b>. Select the
-					<b>UPDATE</b> button to submit.</p>
-					<h3>Delete a User</h3>
-					<p>Selecting a row in the Users view will open a dialog which
-					includes a <b>DELETE</b> button.</p>
+					<app-toolbar>
+						<paper-icon-button
+								icon="my-icons:arrow-back"
+								on-click="helpBack">
+						</paper-icon-button>
+						<h2>Toolbar</h2>
+					</app-toolbar>
+					<paper-icon-item>
+						<iron-icon icon="icons:assignment" slot="item-icon"></iron-icon>
+						<h2>Toolbar</h2>
+					</paper-icon-item>
+					<p>The <b>Toolbar</b> appears across the top of the screen in
+					all views. In the center of the toolbar is the title of the
+					application:</p>
+					<img alt="screenshot" src="../images/toolbar.png" height="36" width="320">
+					<p>To the left of the title is the <b>Navigation Menu</b> icon:
+					<iron-icon class="iconHelp" icon="menu"></iron-icon>. Selecting
+					this opens the <b>Navigation Drawer</b> which contains the main
+					menu for navigating between views within the application.</p>
+					<p>To the right of the title is the <b>Refresh</b> icon:
+					<iron-icon class="iconHelp" icon="refresh"></iron-icon>. Selecting
+					this will get new data from OCS for the current view.</p>
+					<p>On the far right of the toolbar is the <b>Overflow Menu</b> icon:
+					<iron-icon class="iconHelp" icon="icons:more-vert"></iron-icon>.
+					Selecting this will open a menu providing access to <b>Help</b>
+					and <b>Support</b></p>.
+					<h3>Progress Bar</h3>
+					<p>When loading data from OCS takes a few seconds a progress
+					bar appears underneath the toolbar to indicate that it is
+					working on loading the page requested:</p>
+					<img alt="screenshot" src="../images/progress.png" height="96" width="298">
 				</paper-dialog-scrollable>
 			</paper-dialog>
 			<paper-dialog class="helpdialog" id="helpFiltering">
@@ -451,48 +782,6 @@ class ocsHelp extends PolymerElement {
 					<b>NAS Identifier</b> column header of the <b>Clients</b> view
 					resulting in only rows with a matching prefix appearing:</p>
 					<img alt="screenshot" src="../images/filter.png" height="118" width="320">
-				</paper-dialog-scrollable>
-			</paper-dialog>
-			<paper-dialog class="helpdialog" id="helpProduct">
-				<app-toolbar>
-					<paper-icon-button
-						icon="my-icons:arrow-back"
-						on-click="helpBack">
-					</paper-icon-button>
-					<h2>Product</h2>
-				</app-toolbar>
-				<paper-icon-item>
-					<iron-icon icon="icons:assignment" slot="item-icon"></iron-icon>
-					<h2>Product</h2>
-				</paper-icon-item>
-				<paper-dialog-scrollable>
-					<p>To add <b>Product</b> first open the navigation drawer by selecting its icon
-					<iron-icon class="iconHelp" icon="menu"></iron-icon> on the left of the toolbar
-					at top. Select the <iron-icon class="iconHelp" icon="icons:store"></iron-icon>
-					<b>Product</b> view from the navigation menu.</p><p>
-					<h3>Add Product</h3>
-					<p>Select the floating action button <iron-icon class="iconHelp" icon="add">
-					</iron-icon> at the bottom right of the view. An <b>Add Product</b> dialog will
-					appear.<b>Offering, Prices, Alterations</b> tabs are available in the
-					<b>Add Product</b> dialog.Fill all details in <b>Alterations</b>, if required,
-					first and press <b>Add</b> to add the list of available alterations. Fill all
-					details in <b>Prices</b> tab and press <b>Add</b> to add the list of available
-					prices. Finally fill all details in <b>Offering</b> tab and press <b>Submit</b>.</p>
-					<h3>Validations</h3>
-					<p><dl>
-						<dt><b>Bytes</b></dt>
-							<dd>When the selected <b>Units</b> are bytes the <b>Unit Size</b> should
-							be the number of bytes for the price <b>Amount</b>. Multipliers
-							may be used: <b>m</b> for <b>Megabytes</b>, <b>g</b> for <b>Gigabytes</b>,
-							<b>k</b> for <b>Kilobytes</b></dd>
-						<dt><b>Seconds</b></dt>
-							<dd>When the selected <b>Units</b> are seconds the <b>Unit Size</b> field
-							be the number of bytes for the price <b>Amount</b>. Multipliers
-							may be used: <b>m</b> for <b>minutes</b>, <b>h</b> for <b>hours</b></dd>
-						<dt><b>Cents</b></dt>
-							<dd>When the selected <b>Units</b> are cents the <b>Unit Size</b> should
-							be the number of cents for the price <b>Amount</b>.</dd>
-					</dl></p>
 				</paper-dialog-scrollable>
 			</paper-dialog>
 			<paper-dialog class="helpdialog" id="aboutHelp">
@@ -535,10 +824,38 @@ class ocsHelp extends PolymerElement {
 		helpObj.open();
 	}
 
-	addClientQue(event) {
-		var clientOcs = document.querySelector('sig-app').shadowRoot.getElementById('ocsGetHelp');
-		var clientOcs1 = clientOcs.shadowRoot.getElementById("helpMenu").close();
-		var queObj = clientOcs.shadowRoot.getElementById("helpClients");
+	product(event) {
+		var proOcs = document.querySelector('sig-app').shadowRoot.getElementById('ocsGetHelp');
+		var proOcs1 = proOcs.shadowRoot.getElementById("helpMenu").close();
+		var queObj = proOcs.shadowRoot.getElementById("helpProduct");
+		queObj.open();
+	}
+
+	catalog(event) {
+		var catOcs = document.querySelector('sig-app').shadowRoot.getElementById('ocsGetHelp');
+		var catOcs1 = catOcs.shadowRoot.getElementById("helpMenu").close();
+		var queObj = catOcs.shadowRoot.getElementById("helpCatalog");
+		queObj.open();
+	}
+
+	offering(event) {
+		var offerOcs = document.querySelector('sig-app').shadowRoot.getElementById('ocsGetHelp');
+		var offerOcs1 = offerOcs.shadowRoot.getElementById("helpMenu").close();
+		var queObj = offerOcs.shadowRoot.getElementById("helpOffering");
+		queObj.open();
+	}
+
+	tariff(event) {
+		var tarOcs = document.querySelector('sig-app').shadowRoot.getElementById('ocsGetHelp');
+		var tarOcs1 = tarOcs.shadowRoot.getElementById("helpMenu").close();
+		var queObj = tarOcs.shadowRoot.getElementById("helpTariff");
+		queObj.open();
+	}
+
+	policy(event) {
+		var polOcs = document.querySelector('sig-app').shadowRoot.getElementById('ocsGetHelp');
+		var polOcs1 = polOcs.shadowRoot.getElementById("helpMenu").close();
+		var queObj = polOcs.shadowRoot.getElementById("helpPolicy");
 		queObj.open();
 	}
 
@@ -549,6 +866,27 @@ class ocsHelp extends PolymerElement {
 		queObj.open();
 	}
 
+	service(event) {
+		var serOcs = document.querySelector('sig-app').shadowRoot.getElementById('ocsGetHelp');
+		var servOcs1 = serOcs.shadowRoot.getElementById("helpMenu").close();
+		var queObj = serOcs.shadowRoot.getElementById("helpService");
+		queObj.open();
+	}
+
+	bucket(event) {
+		var bucOcs = document.querySelector('sig-app').shadowRoot.getElementById('ocsGetHelp');
+		var bucvOcs1 = bucOcs.shadowRoot.getElementById("helpMenu").close();
+		var queObj = bucOcs.shadowRoot.getElementById("helpBucket");
+		queObj.open();
+	}
+
+	addClientQue(event) {
+		var clientOcs = document.querySelector('sig-app').shadowRoot.getElementById('ocsGetHelp');
+		var clientOcs1 = clientOcs.shadowRoot.getElementById("helpMenu").close();
+		var queObj = clientOcs.shadowRoot.getElementById("helpClients");
+		queObj.open();
+	}
+
 	addUserQue(event) {
 		var userOcs = document.querySelector('sig-app').shadowRoot.getElementById('ocsGetHelp');
 		var userOcs1 = userOcs.shadowRoot.getElementById("helpMenu").close();
@@ -556,7 +894,7 @@ class ocsHelp extends PolymerElement {
 		queObj.open();
 	}
 
-	viewLogQue(event) {
+	addLogQue(event) {
 		var logOcs = document.querySelector('sig-app').shadowRoot.getElementById('ocsGetHelp');
 		var logOcs1 = logOcs.shadowRoot.getElementById("helpMenu").close();
 		var queObj = logOcs.shadowRoot.getElementById("helpLogs");
@@ -577,22 +915,21 @@ class ocsHelp extends PolymerElement {
 		queObj.open();
 	}
 
-	product(event) {
-		var proOcs = document.querySelector('sig-app').shadowRoot.getElementById('ocsGetHelp');
-		var proOcs1 = proOcs.shadowRoot.getElementById("helpMenu").close();
-		var queObj = proOcs.shadowRoot.getElementById("helpProduct");
-		queObj.open();
-	}
-
 	helpBack(event) {
 		var helpBackOcs = document.querySelector('sig-app').shadowRoot.getElementById('ocsGetHelp');
-		var helpToolDiag= helpBackOcs.shadowRoot.getElementById("helpToolbar").close();
+		var helpCatDiag= helpBackOcs.shadowRoot.getElementById("helpCatalog").close();
+		var helpOfferDiag= helpBackOcs.shadowRoot.getElementById("helpOffering").close();
+		var helpTariffDiag= helpBackOcs.shadowRoot.getElementById("helpTariff").close();
+		var helpPolicyDiag= helpBackOcs.shadowRoot.getElementById("helpPolicy").close();
 		var helpSubDiag= helpBackOcs.shadowRoot.getElementById("helpSubscribers").close();
+		var helpServiceDiag= helpBackOcs.shadowRoot.getElementById("helpService").close();
+		var helpProductDiag= helpBackOcs.shadowRoot.getElementById("helpProduct").close();
+		var helpBucketDiag= helpBackOcs.shadowRoot.getElementById("helpBucket").close();
 		var helpClientDiag= helpBackOcs.shadowRoot.getElementById("helpClients").close();
 		var helpUsersDiag= helpBackOcs.shadowRoot.getElementById("helpUsers").close();
 		var helpLogsDiag= helpBackOcs.shadowRoot.getElementById("helpLogs").close();
+		var helpToolDiag= helpBackOcs.shadowRoot.getElementById("helpToolbar").close();
 		var helpFilterDiag= helpBackOcs.shadowRoot.getElementById("helpFiltering").close();
-		var helpProductDiag= helpBackOcs.shadowRoot.getElementById("helpProduct").close();
 		var helpMenuDiag= helpBackOcs.shadowRoot.getElementById("helpMenu").open();
 	}
 
