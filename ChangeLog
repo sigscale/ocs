@@ -1,3 +1,67 @@
+l
+2021-08-23  Vance Shipley <vances@sigscale.org>
+
+	* ignore dialyzer warning on version checking
+	* fail to add product if service has product
+	* correct table timeout result
+	* wait for session table
+	* help topics in help
+	* add guards in rest get
+	* implement delete for redirect server
+	* add support for class a operations
+	* add default flowdescription
+	* support pathing in newer otp version
+	* correct imported table description; remove redundant clause
+	* update policy in offer
+	* do not use -if/1 macro conditional
+	* skip pg create in otp 24
+	* fixed delete user
+	* ignore extra USU value
+	* support latest pg module
+	* correct service types
+	* fix time of day format in GUI
+	* display warning message in product display
+	* match only valid usu values
+	* match all unexpected returns
+	* test: initial invalid service type
+	* remove extra clause
+	* add error handling for invalid service type
+	* implement PATCH delete method se service product
+	* implement PATCH request delete method in offer alteration
+	* delete method in offer other fields
+	* implement delete method on patch for offer prices
+	* fix json for add price on existing offers
+	* return correct result code when rating fails
+	* handle rated as a record and as a list
+	* fix a bug in delete patch
+	* implement PATCH remove method in offers
+	* test: refactor diameter scur price descrimination by rg test case
+	* test: diameter_scur_price_descrimination_by_rg
+	* return diameter success with zero pcc rules when no policy table exists
+	* remove redundant list encapsulation
+	* correct attribute name for subscriber identification
+	* fix charging key type
+	* validate recuring and period
+	* fix time of day in offer add dialog
+	* refactor offer update
+	* refactor and remove redundent code in user_default
+	* include product in bucket creation
+	* change start date styles
+	* more accurate naming
+	* add user default devops shell module
+	* correct record type for sta in akap
+	* add service field to adjustment record
+	* include 'RAT-Type' in mar
+	* add service ref for balance adjustment
+	* support balance adjustment by service id
+	* update product in service
+	* validate rated record in diameter iec event
+	* validate rated record in diameter ecur final
+	* correct bucket type in test case
+	* validated rated record in diameter voice final cca
+	* update service identifier in offer
+	* add service identifier in offer add
+
 2021-06-28  Refath Wadood  <refath@sigscale.org>
 
 	* test: handle arbitrary characteristics in service
