@@ -56,7 +56,7 @@
 %%
 start(normal = _StartType, _Args) ->
 	Tables = [client, service, offer, product, resource,
-			bucket, httpd_user, httpd_group, nrf_ref],
+			bucket, httpd_user, httpd_group, session, nrf_ref],
 	case mnesia:wait_for_tables(Tables, ?WAITFORTABLES) of
 		ok ->
 			start1();
