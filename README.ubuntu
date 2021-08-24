@@ -4,8 +4,8 @@
 ## <https://youtu.be/oL6zyGoxV70>
 
 ### Install SigScale package repository configuration:
-	curl -sLO http://repo.sigscale.org/pool/main/s/sigscale-release/sigscale-release_1.2-2+ubuntu20.04_all.deb
-	sudo dpkg -i sigscale-release_1.2-2+ubuntu20.04_all.deb
+	curl -sLO http://repo.sigscale.org/pool/main/s/sigscale-release/sigscale-release_1.3-1+ubuntu20.04_all.deb
+	sudo dpkg -i sigscale-release_1.3-1+ubuntu20.04_all.deb
 	sudo apt update
 
 ### Install SigScale OCS:
@@ -18,8 +18,8 @@
 ## <https://youtu.be/EC7HdIgXIPE>
 
 ### Install SigScale package repository configuration:
-	curl -sLO http://repo.sigscale.org/pool/main/s/sigscale-release/sigscale-release_1.2-2+ubuntu18.04_all.deb
-	sudo dpkg -i sigscale-release_1.2-2+ubuntu18.04_all.deb
+	curl -sLO http://repo.sigscale.org/pool/main/s/sigscale-release/sigscale-release_1.3-1+ubuntu18.04_all.deb
+	sudo dpkg -i sigscale-release_1.3-1+ubuntu18.04_all.deb
 	sudo apt update
 
 ### Install SigScale OCS:
