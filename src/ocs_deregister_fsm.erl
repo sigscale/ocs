@@ -75,7 +75,7 @@
 
 -define(TIMEOUT, 10000).
 
--dialyzer({no_match, send_abort/2}).
+-dialyzer({[nowarn_function, no_match], send_abort/2}).
 -ifdef(OTP_RELEASE).
 	-define(PG_CLOSEST(Name),
 		case ?OTP_RELEASE of
