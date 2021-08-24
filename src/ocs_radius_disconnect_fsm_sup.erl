@@ -30,7 +30,7 @@
 	-define(PG_JOIN(Group, Pid),
 		case ?OTP_RELEASE of
 			OtpRelease when OtpRelease >= 23 ->
-				pg:join(Group, Pid);
+				pg:join(pg_scope_ocs, Group, Pid);
 			OtpRelease when OtpRelease < 23 ->
 				pg2:join(Group, Pid)
 		end).

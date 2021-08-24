@@ -25,6 +25,21 @@
 %% export the callback needed for supervisor behaviour
 -export([init/1]).
 
+-dialyzer({no_match, init/1}).
+-ifdef(OTP_RELEASE).
+	-define(PG,
+		case ?OTP_RELEASE of
+			OtpRelease when OtpRelease >= 23 ->
+				StartMod = pg,
+				StartFunc = {StartMod, start_link, [pg_scope_ocs]},
+				[{StartMod, StartFunc, permanent, 4000, worker, [StartMod]}];
+			OtpRelease when OtpRelease < 23 ->
+				[]
+		end).
+-else.
+	-define(PG, []).
+-endif.
+
 %%----------------------------------------------------------------------
 %%  The supervisor callback
 %%----------------------------------------------------------------------
@@ -39,7 +54,8 @@
 %% @private
 %%
 init([LogRotateTime, LogRotateInterval] = _Args) ->
-	ChildSpecs = [supervisor(ocs_radius_acct_top_sup, []),
+erlang:display({?MODULE, ?LINE, self()}),
+	ChildSpecs = ?PG ++ [supervisor(ocs_radius_acct_top_sup, []),
 			supervisor(ocs_radius_auth_sup, []),
 			supervisor(ocs_diameter_auth_sup, []),
 			supervisor(ocs_diameter_acct_top_sup, []),

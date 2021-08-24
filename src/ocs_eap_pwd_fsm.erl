@@ -92,16 +92,16 @@
 	-define(PG_CLOSEST(Name),
 		case ?OTP_RELEASE of
 			OtpRelease when OtpRelease >= 23 ->
-				case pg:get_local_members([Name]) of
+				case pg:get_local_members(pg_scope_ocs, Name) of
 					[] ->
-						case pg:get_members([Name]) of
+						case pg:get_members(pg_scope_ocs, Name) of
 							[] ->
 								{error, {no_such_group, Name}};
-							[PID | _] ->
-								PID
+							[Pid | _] ->
+								Pid
 						end;
-					[PID | _] ->
-						PID
+					[Pid | _] ->
+						Pid
 				end;
 			OtpRelease when OtpRelease < 23 ->
 				pg2:get_closest_pid(Name)
