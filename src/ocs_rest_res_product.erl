@@ -1362,6 +1362,8 @@ price([char_value_use | T], #price{char_value_use = CharValueUses} = P, Acc) ->
 price([alteration | T], #price{alteration = Alteration} = P, Acc)
 		when is_record(Alteration, alteration) ->
 	price(T, P, [{"productOfferPriceAlteration", alteration(Alteration)} | Acc]);
+price([pla | T], #price{pla = PlaRef} = P, Acc) ->
+	price(T, P, [{"plaRef", pla_ref(PlaRef)} | Acc]);
 price([_ | T], P, Acc) ->
 	price(T, P, Acc);
 price([], _P, Acc) ->
@@ -1444,6 +1446,9 @@ price([{"prodSpecCharValueUse", {array, _} = CharValueUses} | T], Acc) ->
 price([{"productOfferPriceAlteration", {struct, L} = Alteration} | T], Acc)
 		when is_list(L) ->
 	price(T, Acc#price{alteration = alteration(Alteration)});
+price([{"plaRef", {struct, L} = PlaRef} | T], Acc)
+		when is_list(L) ->
+	price(T, Acc#price{pla = pla_ref(PlaRef)});
 price([], Acc) ->
 	Acc.
 
@@ -2148,9 +2153,63 @@ match(Key, Complex, Query) ->
 		false ->
 			case lists:keyfind(Key, 1, Query) of
 				{_, Value} ->
-					{exact, Value};	
+					{exact, Value};
 				false ->
-					'_' 
+					'_'
 			end
 	end.
+
+-spec pla_ref(Pla) -> Pla
+	when
+		Pla :: #pla_ref{} | {struct, [tuple()]}.
+%% @doc CODEC for Product Offering Pricing Logic Algorithm.
+%% @private
+pla_ref(#pla_ref{} = Pla) ->
+	pla_ref(record_info(fields, pla_ref), Pla, []);
+pla_ref({struct, ObjectMembers}) when is_list(ObjectMembers) ->
+	pla_ref(ObjectMembers, #pla_ref{}).
+%% @hidden
+pla_ref([id | T], #pla_ref{id = Id} = P, Acc)
+		when is_list(Id) ->
+	pla_ref(T, P, [{"id", Id} | Acc]);
+pla_ref([href | T], #pla_ref{href = Href} = P, Acc)
+		when is_list(Href) ->
+	pla_ref(T, P, [{"href", Href} | Acc]);
+pla_ref([name | T], #pla_ref{name = Name} = P, Acc)
+		when is_list(Name) ->
+	pla_ref(T, P, [{"name", Name} | Acc]);
+pla_ref([class_type | T], #pla_ref{class_type = Type} = P, Acc)
+		when is_list(Type) ->
+	pla_ref(T, P, [{"class_type", Type} | Acc]);
+pla_ref([base_type | T], #pla_ref{base_type = Type} = P, Acc)
+		when is_list(Type) ->
+	pla_ref(T, P, [{"base_type", Type} | Acc]);
+pla_ref([schema | T], #pla_ref{schema = Schema} = P, Acc)
+		when is_list(Schema) ->
+	pla_ref(T, P, [{"schema", Schema} | Acc]);
+pla_ref([ref_type | T], #pla_ref{ref_type = RefType} = P, Acc)
+		when is_list(RefType) ->
+	pla_ref(T, P, [{"ref_type", RefType} | Acc]);
+pla_ref([_ | T], P, Acc) ->
+	pla_ref(T, P, Acc);
+pla_ref([], _P, Acc) ->
+	{struct, lists:reverse(Acc)}.
+%% @hidden
+pla_ref([{"id", Id} | T], Acc) ->
+	pla_ref(T, Acc#pla_ref{id = Id});
+pla_ref([{"href", Href} | T], Acc) ->
+	pla_ref(T, Acc#pla_ref{href = Href});
+pla_ref([{"name", Name} | T], Acc)
+		when is_list(Name) ->
+	pla_ref(T, Acc#pla_ref{name = Name});
+pla_ref([{"classType", Type} | T], Acc) ->
+	pla_ref(T, Acc#pla_ref{class_type = Type});
+pla_ref([{"baseType", Type} | T], Acc) ->
+	pla_ref(T, Acc#pla_ref{base_type = Type});
+pla_ref([{"schema", Schema} | T], Acc) ->
+	pla_ref(T, Acc#pla_ref{schema = Schema});
+pla_ref([{"refType", Type} | T], Acc) ->
+	pla_ref(T, Acc#pla_ref{ref_type = Type});
+pla_ref([], Acc) ->
+	Acc.
 
