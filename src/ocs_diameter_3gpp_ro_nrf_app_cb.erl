@@ -57,6 +57,14 @@
 -type message() ::  tuple() | list().
 -type peer() :: {Peer_Ref :: term(), Capabilities :: capabilities()}.
 
+-ifdef(OTP_RELEASE). % >= 21
+	-define(CATCH_STACK, _:Reason1:ST).
+	-define(SET_STACK, StackTrace = ST).
+-else.
+	-define(CATCH_STACK, _:Reason1).
+	-define(SET_STACK, StackTrace = erlang:get_stacktrace()).
+-endif.
+
 %%----------------------------------------------------------------------
 %%  The DIAMETER application callbacks
 %%----------------------------------------------------------------------
@@ -339,10 +347,11 @@ process_request(IpAddress, Port,
 		process_request1(RequestType, Request, SessionId, RequestNum,
 				SubscriberIds, OHost, DHost, ORealm, DRealm, IpAddress, Port)
 	catch
-		_:Reason ->
+		?CATCH_STACK ->
+			?SET_STACK,
 			error_logger:warning_report(["Unable to process DIAMETER request",
 					{origin_host, OHost}, {origin_realm, ORealm},
-					{request, Request}, {error, Reason}, {stack, erlang:get_stacktrace()}]),
+					{request, Request}, {error, Reason1}, {stack, StackTrace}]),
 			diameter_error(SessionId, ?'DIAMETER_BASE_RESULT-CODE_UNABLE_TO_COMPLY',
 					OHost, ORealm, RequestType, RequestNum)
 	end.
@@ -379,10 +388,11 @@ process_request1(?'3GPP_CC-REQUEST-TYPE_INITIAL_REQUEST' = RequestType,
 					?'DIAMETER_CC_APP_RESULT-CODE_RATING_FAILED',
 					OHost, ORealm, RequestType, RequestNum)
 	catch
-		_:Reason1 ->
+		?CATCH_STACK ->
+			?SET_STACK,
 			error_logger:warning_report(["Unable to process DIAMETER request",
 					{origin_host, OHost}, {origin_realm, ORealm},
-					{request, Request}, {error, Reason1}, {stack, erlang:get_stacktrace()}]),
+					{request, Request}, {error, Reason1}, {stack, StackTrace}]),
 			diameter_error(SessionId, ?'DIAMETER_BASE_RESULT-CODE_UNABLE_TO_COMPLY',
 					OHost, ORealm, RequestType, RequestNum)
 	end;
@@ -412,10 +422,11 @@ process_request1(?'3GPP_CC-REQUEST-TYPE_UPDATE_REQUEST' = RequestType,
 						OHost, ORealm, RequestType, RequestNum)
 		end
 	catch
-		_:Reason1 ->
+		?CATCH_STACK ->
+			?SET_STACK,
 			error_logger:warning_report(["Unable to process DIAMETER request",
 					{origin_host, OHost}, {origin_realm, ORealm},
-					{request, Request}, {error, Reason1}, {stack, erlang:get_stacktrace()}]),
+					{request, Request}, {error, Reason1}, {stack, StackTrace}]),
 			diameter_error(SessionId, ?'DIAMETER_BASE_RESULT-CODE_UNABLE_TO_COMPLY',
 					OHost, ORealm, RequestType, RequestNum)
 	end;
@@ -453,10 +464,11 @@ process_request1(?'3GPP_CC-REQUEST-TYPE_TERMINATION_REQUEST' = RequestType,
 			diameter_error(SessionId, ReasonCode,
 					OHost, ORealm, RequestType, RequestNum)
 	catch
-		_:Reason1 ->
+		?CATCH_STACK ->
+			?SET_STACK,
 			error_logger:warning_report(["Unable to process DIAMETER request",
 					{origin_host, OHost}, {origin_realm, ORealm},
-					{request, Request}, {error, Reason1}, {stack, erlang:get_stacktrace()}]),
+					{request, Request}, {error, Reason1}, {stack, StackTrace}]),
 			diameter_error(SessionId, ?'DIAMETER_BASE_RESULT-CODE_UNABLE_TO_COMPLY',
 					OHost, ORealm, RequestType, RequestNum)
 	end;
@@ -484,10 +496,11 @@ process_request1(?'3GPP_CC-REQUEST-TYPE_EVENT_REQUEST' = RequestType,
 						OHost, ORealm, RequestType, RequestNum)
 		end
 	catch
-		_:Reason1 ->
+		?CATCH_STACK ->
+			?SET_STACK,
 			error_logger:warning_report(["Unable to process DIAMETER request",
 					{origin_host, OHost}, {origin_realm, ORealm},
-					{request, Request}, {error, Reason1}, {stack, erlang:get_stacktrace()}]),
+					{request, Request}, {error, Reason1}, {stack, StackTrace}]),
 			diameter_error(SessionId, ?'DIAMETER_BASE_RESULT-CODE_UNABLE_TO_COMPLY',
 					OHost, ORealm, RequestType, RequestNum)
 	end;
@@ -520,10 +533,11 @@ process_request1(?'3GPP_CC-REQUEST-TYPE_EVENT_REQUEST' = RequestType,
 						OHost, ORealm, RequestType, RequestNum)
 		end
 	catch
-		_:Reason1 ->
+		?CATCH_STACK ->
+			?SET_STACK,
 			error_logger:warning_report(["Unable to process DIAMETER request",
 					{origin_host, OHost}, {origin_realm, ORealm},
-					{request, Request}, {error, Reason1}, {stack, erlang:get_stacktrace()}]),
+					{request, Request}, {error, Reason1}, {stack, StackTrace}]),
 			diameter_error(SessionId, ?'DIAMETER_BASE_RESULT-CODE_UNABLE_TO_COMPLY',
 					OHost, ORealm, RequestType, RequestNum)
 	end.
