@@ -387,7 +387,7 @@ update_location(ServiceName,
 					'Auth-Session-State' =  ?'3GPP_S6A_AUTH-SESSION-STATE_NO_STATE_MAINTAINED',
 					'Origin-Host' = OHost, 'Origin-Realm' = ORealm}};
 		{ok, #service{}} ->
-			ApnConfig1 = #'3gpp_s6a_APN-Configuration'{'Service-Selection' = "oai.ipv4",
+			ApnConfig1 = #'3gpp_s6a_APN-Configuration'{'Service-Selection' = "cmnet",
 					'Context-Identifier' = 1,
 					'PDN-Type' =  ?'3GPP_S6A_3GPP-PDP-TYPE_IPV4',
 					'EPS-Subscribed-QoS-Profile' = [#'3gpp_s6a_EPS-Subscribed-QoS-Profile'{
