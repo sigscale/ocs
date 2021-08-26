@@ -82,8 +82,7 @@ acct_open() ->
 	{ok, Directory} = application:get_env(ocs, acct_log_dir),
 	{ok, LogSize} = application:get_env(ocs, acct_log_size),
 	{ok, LogFiles} = application:get_env(ocs, acct_log_files),
-	{ok, LogNodes} = application:get_env(ocs, acct_log_nodes),
-	open_log(Directory, log_name(acct_log_name), LogSize, LogFiles, LogNodes).
+	open_log(Directory, log_name(acct_log_name), LogSize, LogFiles).
 
 -spec acct_log(Protocol, Server, Type, Request, Response, Rated) -> Result
 	when
@@ -201,8 +200,7 @@ auth_open() ->
 	{ok, Directory} = application:get_env(ocs, auth_log_dir),
 	{ok, LogSize} = application:get_env(ocs, auth_log_size),
 	{ok, LogFiles} = application:get_env(ocs, auth_log_files),
-	{ok, LogNodes} = application:get_env(ocs, auth_log_nodes),
-	open_log(Directory, log_name(auth_log_name), LogSize, LogFiles, LogNodes).
+	open_log(Directory, log_name(auth_log_name), LogSize, LogFiles).
 
 -spec auth_log(Protocol, Server, Client, Type, RequestAttributes,
 		ResponseAttributes) -> Result
@@ -993,8 +991,7 @@ abmf_open() ->
 	{ok, Directory} = application:get_env(ocs, abmf_log_dir),
 	{ok, LogSize} = application:get_env(ocs, abmf_log_size),
 	{ok, LogFiles} = application:get_env(ocs, abmf_log_files),
-	{ok, LogNodes} = application:get_env(ocs, abmf_log_nodes),
-	open_log(Directory, log_name(abmf_log_name), LogSize, LogFiles, LogNodes).
+	open_log(Directory, log_name(abmf_log_name), LogSize, LogFiles).
 
 -spec abmf_log(Type, ServiceId, Bucket, Units, Product, Amount,
 		AmountBefore, AmountAfter, Validity, Channel, Requestor,
@@ -2020,77 +2017,60 @@ http_parse6(Event, Acc) ->
 	<<Status:Offset/binary, 32, _Rest/binary>> = Event,
 	Acc#event{httpStatus = binary_to_integer(Status)}.
 
--spec open_log(Directory, Log, LogSize, LogFiles, LogNodes) -> Result
+-spec open_log(Directory, Log, LogSize, LogFiles) -> Result
 	when
 		Directory  :: string(),
 		Log :: term(),
 		LogSize :: integer(),
 		LogFiles :: integer(),
-		LogNodes :: [Node],
-		Node :: atom(),
 		Result :: ok | {error, Reason},
 		Reason :: term().
 %% @doc open disk log file
-open_log(Directory, Log, LogSize, LogFiles, LogNodes) ->
+open_log(Directory, Log, LogSize, LogFiles) ->
 	case file:make_dir(Directory) of
 		ok ->
-			open_log1(Directory, Log, LogSize, LogFiles, LogNodes);
+			open_log1(Directory, Log, LogSize, LogFiles);
 		{error, eexist} ->
-			open_log1(Directory, Log, LogSize, LogFiles, LogNodes);
+			open_log1(Directory, Log, LogSize, LogFiles);
 		{error, Reason} ->
 			{error, Reason}
 	end.
 %% @hidden
-open_log1(Directory, Log, LogSize, LogFiles, LogNodes) ->
+open_log1(Directory, Log, LogSize, LogFiles) ->
 	FileName = Directory ++ "/" ++ atom_to_list(Log),
 	case disk_log:open([{name, Log}, {file, FileName},
-					{type, wrap}, {size, {LogSize, LogFiles}},
-					{distributed, [node() | LogNodes]}]) of
-		{ok, _} = Result ->
-			open_log3(Log, [{node(), Result}], [], undefined);
+					{type, wrap}, {size, {LogSize, LogFiles}}]) of
+		{ok, _} ->
+			ok;
+		{error, {name_already_open, Log}} ->
+			ok;
 		{error, {size_mismatch, _CurrentSize, {LogSize, LogFiles}}} ->
-			open_log2(Log, FileName, LogSize, LogFiles, LogNodes);
-		{repaired, _, _, _} = Result ->
-			open_log3(Log, [{node(), Result}], [], undefined);
-		{error, _} = Result ->
-			open_log3(Log, [], [{node(), Result}], undefined);
-		{OkNodes, ErrNodes} ->
-			open_log3(Log, OkNodes, ErrNodes, undefined)
+			open_log2(Log, FileName, LogSize, LogFiles);
+		{repaired, _, _, _} ->
+			ok;
+		{error, Reason} ->
+			open_log3(Log, Reason)
 	end.
 %% @hidden
-open_log2(Log, FileName, LogSize, LogFiles, LogNodes) ->
-	case disk_log:open([{name, Log}, {file, FileName}, {type, wrap},
-			{distributed, [node() | LogNodes]}]) of
-		{error, _} = Result ->
-			open_log3(Log, [], [{node(), Result}], undefined);
-		{OkNodes, ErrNodes} ->
+open_log2(Log, FileName, LogSize, LogFiles) ->
+	case disk_log:open([{name, Log}, {file, FileName}, {type, wrap}]) of
+		{ok, _} ->
 			case disk_log:change_size(Log, {LogSize, LogFiles}) of
 				ok ->
-					open_log3(Log, OkNodes, ErrNodes, undefined);
+					ok;
 				{error, Reason} ->
-					{error, Reason}
-			end
+					open_log3(Log, Reason)
+			end;
+		{error, Reason} ->
+			open_log3(Log, Reason)
 	end.
 %% @hidden
-open_log3(Log, OkNodes,
-		[{Node, {error, {node_already_open, _}}} | T], Reason)
-		when Node == node() ->
-	open_log3(Log, [{Node, {ok, Log}} | OkNodes], T, Reason);
-open_log3(Log, OkNodes, [{_, {error, {node_already_open, _}}} | T], Reason) ->
-	open_log3(Log, OkNodes, T, Reason);
-open_log3(Log, OkNodes, [{Node, Reason1} | T], Reason2) ->
-	Descr = lists:flatten(disk_log:format_error(Reason1)),
+open_log3(Log, Reason) ->
+	Descr = lists:flatten(disk_log:format_error(Reason)),
 	Trunc = lists:sublist(Descr, length(Descr) - 1),
-	error_logger:error_report([Trunc, {module, ?MODULE},
-		{log, Log}, {node, Node}, {error, Reason1}]),
-	open_log3(Log, OkNodes, T, Reason2);
-open_log3(_Log, OkNodes, [], Reason) ->
-	case lists:keymember(node(), 1, OkNodes) of
-		true ->
-			ok;
-		false ->
-			{error, Reason}
-	end.
+	error_logger:error_report([Trunc,
+			{module, ?MODULE}, {log, Log}, {error, Reason}]),
+	{error, Reason}.
 
 -spec write_log(Log, Event) -> Result
 	when
