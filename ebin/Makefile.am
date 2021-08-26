@@ -158,6 +158,11 @@ ocs_simple_auth_fsm.beam:$(top_srcdir)/src/ocs_simple_auth_fsm.erl \
 	$(ERLC) $(ERLCFLAGS) +"{nowarn_removed, [{crypto,hmac,3}]}" \
 			-I $(top_srcdir)/include -I $(top_builddir)/include $<
 
+ocs_eap_ttls_aaah_fsm.beam:$(top_srcdir)/src/ocs_eap_ttls_aaah_fsm.erl \
+		$(top_srcdir)/include/ocs.hrl
+	$(ERLC) $(ERLCFLAGS) +"{nowarn_removed, [{ssl,ssl_accept,2}]}" \
+			-I $(top_srcdir)/include -I $(top_builddir)/include $<
+
 ocs_eap_ttls_fsm.beam:$(top_srcdir)/src/ocs_eap_ttls_fsm.erl \
 		$(top_srcdir)/include/ocs.hrl \
 		$(top_srcdir)/include/ocs_eap_codec.hrl \
