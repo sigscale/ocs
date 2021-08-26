@@ -472,6 +472,41 @@ class accountingList extends PolymerElement {
 					if(imsi != undefined) {
 						newRecord.imsi = imsi.value;
 					}
+               function checkCharIn(characteristicIn){
+                  return characteristicIn.name == "inputOctets";
+               }
+               var input = request.response[index].usageCharacteristic.find(checkCharIn);
+               if(input != undefined) {
+                  newRecord.acctInputoctets = input.value;
+               }
+               function checkCharOut(characteristicOut){
+                  return characteristicOut.name == "outputOctets";
+               }
+               var output = request.response[index].usageCharacteristic.find(checkCharOut);
+               if(output != undefined) {
+                  newRecord.acctOutputoctets = output.value;
+               }
+               function checkCharTotal(characteristicTotal){
+                  return characteristicTotal.name == "totalOctets";
+               }
+               var total = request.response[index].usageCharacteristic.find(checkCharTotal);
+               if(total != undefined) {
+                  newRecord.acctTotaloctets = total.value;
+               }
+               function checkCharDuration(characteristicDuration){
+                  return characteristicDuration.name == "acctSessionTime";
+               }
+               var duration = request.response[index].usageCharacteristic.find(checkCharDuration);
+               if(duration != undefined) {
+                  newRecord.acctSessiontime = duration.value;
+               }
+               function checkCharUser(characteristicUser){
+                  return characteristicUser.name == "username";
+               }
+               var username = request.response[index].usageCharacteristic.find(checkCharUser);
+               if(username != undefined) {
+                  newRecord.username = username.value;
+               }
 					newRecord.usageSpecificationId = request.response[index].usageSpecification.id;
 					newRecord.usageSpecificationHref = request.response[index].usageSpecification.href;
 					newRecord.usageSpecificationName = request.response[index].usageSpecification.name;
