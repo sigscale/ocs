@@ -50,6 +50,20 @@
 -define(MILLISECOND, milli_seconds).
 %-define(MILLISECOND, millisecond).
 
+-dialyzer({[nowarn_function, no_match],
+		[access_request/10]}).
+-ifdef(OTP_RELEASE).
+	-define(HMAC(Key, Data),
+		case ?OTP_RELEASE of
+			OtpRelease when OtpRelease >= 23 ->
+				crypto:mac(hmac, md5, Key, Data);
+			OtpRelease when OtpRelease < 23 ->
+				crypto:hmac(md5, Key, Data)
+		end).
+-else.
+	-define(HMAC(Key, Data), crypto:hmac(md5, Key, Data)).
+-endif.
+
 %%---------------------------------------------------------------------
 %%  Test server callback functions
 %%---------------------------------------------------------------------
@@ -1352,7 +1366,7 @@ access_request(Socket, Address, Port, UserName, Secret,
 	Request1 = #radius{code = ?AccessRequest, id = RadID,
 		authenticator = Auth, attributes = A2},
 	ReqPacket1 = radius:codec(Request1),
-	MsgAuth1 = crypto:hmac(md5, Secret, ReqPacket1),
+	MsgAuth1 = ?HMAC(Secret, ReqPacket1),
 	A3 = radius_attributes:store(?MessageAuthenticator, MsgAuth1, A2),
 	Request2 = Request1#radius{attributes = A3},
 	ReqPacket2 = radius:codec(Request2),

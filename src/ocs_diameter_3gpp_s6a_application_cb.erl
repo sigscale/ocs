@@ -57,6 +57,19 @@
 -type message() ::  tuple() | list().
 -type peer() :: {Peer_Ref :: term(), Capabilities :: capabilities()}.
 
+-dialyzer({[nowarn_function, no_match], kdf/5}).
+-ifdef(OTP_RELEASE).
+	-define(HMAC(Key, Data),
+		case ?OTP_RELEASE of
+			OtpRelease when OtpRelease >= 23 ->
+				crypto:mac(hmac, sha256, Key, Data);
+			OtpRelease when OtpRelease < 23 ->
+				crypto:hmac(sha256, Key, Data)
+		end).
+-else.
+	-define(HMAC(Key, Data), crypto:hmac(sha256, Key, Data)).
+-endif.
+
 %%----------------------------------------------------------------------
 %%  The DIAMETER application callbacks
 %%----------------------------------------------------------------------
@@ -600,8 +613,7 @@ kdf(CK, IK, SN, SQN, AK)
 	L0 = byte_size(SN),
 	P1 = SQN bxor AK,
 	L1 = 6,
-	crypto:hmac(sha256, <<CK/binary, IK/binary>>,
-			<<FC, P0/bytes, L0:16, P1:48, L1:16>>).
+	?HMAC(<<CK/binary, IK/binary>>, <<FC, P0/bytes, L0:16, P1:48, L1:16>>).
 
 -spec save_dif(IMSI, DIF) -> ok
 	when

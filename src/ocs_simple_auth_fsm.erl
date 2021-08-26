@@ -107,6 +107,19 @@
 	-define(PG_CLOSEST(Name), pg2:get_closest_pid(Name)).
 -endif.
 
+-dialyzer({[nowarn_function, no_match], response/3}).
+-ifdef(OTP_RELEASE).
+	-define(HMAC(Key, Data),
+		case ?OTP_RELEASE of
+			OtpRelease when OtpRelease >= 23 ->
+				crypto:mac(hmac, md5, Key, Data);
+			OtpRelease when OtpRelease < 23 ->
+				crypto:hmac(md5, Key, Data)
+		end).
+-else.
+	-define(HMAC(Key, Data), crypto:hmac(md5, Key, Data)).
+-endif.
+
 %%----------------------------------------------------------------------
 %%  The ocs_simple_auth_fsm API
 %%----------------------------------------------------------------------
@@ -472,7 +485,7 @@ response(RadiusCode, ResponseAttributes,
 			<<0:128>>, ResponseAttributes),
 	Attributes1 = radius_attributes:codec(AttributeList1),
 	Length = size(Attributes1) + 20,
-	MessageAuthenticator = crypto:hmac(md5, Secret, [<<RadiusCode, RadiusID,
+	MessageAuthenticator = ?HMAC(Secret, [<<RadiusCode, RadiusID,
 			Length:16>>, RequestAuthenticator, Attributes1]),
 	AttributeList2 = radius_attributes:store(?MessageAuthenticator,
 			MessageAuthenticator, AttributeList1),

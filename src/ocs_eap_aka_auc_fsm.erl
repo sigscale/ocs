@@ -100,6 +100,19 @@
 -define(MILLISECOND, milli_seconds).
 %-define(MILLISECOND, millisecond).
 
+-dialyzer({[nowarn_function, no_match], kdf/5}).
+-ifdef(OTP_RELEASE).
+	-define(HMAC(Key, Data),
+		case ?OTP_RELEASE of
+			OtpRelease when OtpRelease >= 23 ->
+				crypto:mac(hmac, sha256, Key, Data);
+			OtpRelease when OtpRelease < 23 ->
+				crypto:hmac(sha256, Key, Data)
+		end).
+-else.
+	-define(HMAC(Key, Data), crypto:hmac(sha256, Key, Data)).
+-endif.
+
 %%----------------------------------------------------------------------
 %%  The ocs_eap_aka_auc_fsm API
 %%----------------------------------------------------------------------
@@ -619,8 +632,7 @@ kdf(CK, IK, "WLAN", SQN, AK)
 		byte_size(IK) =:= 16,
 		is_integer(SQN), is_integer(AK) ->
 	SQNi = SQN bxor AK,
-	crypto:hmac(sha256, <<CK/binary, IK/binary>>,
-			<<16#20, "WLAN", 4:16, SQNi:48, 6:16>>).
+	?HMAC(<<CK/binary, IK/binary>>, <<16#20, "WLAN", 4:16, SQNi:48, 6:16>>).
 
 -spec save_dif(Identity, DIF) -> ok
 	when

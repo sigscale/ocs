@@ -113,6 +113,33 @@
 -define(MILLISECOND, milli_seconds).
 %-define(MILLISECOND, millisecond).
 
+-dialyzer({[nowarn_function, no_match],
+		[vector/2, challenge/2, challenge1/4]}).
+-ifdef(OTP_RELEASE).
+	-define(HMAC_SHA(Key, Data),
+		case ?OTP_RELEASE of
+			OtpRelease when OtpRelease >= 23 ->
+				crypto:macN(hmac, sha, Key, Data, 16);
+			OtpRelease when OtpRelease < 23 ->
+				crypto:hmac(sha, Key, Data, 16)
+		end).
+-else.
+	-define(HMAC_SHA(Key, Data), crypto:hmac(sha, Key, Data, 16)).
+-endif.
+
+-dialyzer({[nowarn_function, no_match], send_radius_response/8}).
+-ifdef(OTP_RELEASE).
+	-define(HMAC_MD5(Key, Data),
+		case ?OTP_RELEASE of
+			OtpRelease when OtpRelease >= 23 ->
+				crypto:mac(hmac, md5, Key, Data);
+			OtpRelease when OtpRelease < 23 ->
+				crypto:hmac(md5, Key, Data)
+		end).
+-else.
+	-define(HMAC_MD5(Key, Data), crypto:hmac(md5, Key, Data)).
+-endif.
+
 %%----------------------------------------------------------------------
 %%  The ocs_eap_aka_fsm API
 %%----------------------------------------------------------------------
@@ -591,7 +618,7 @@ vector({ok, {RAND, AUTN, CK, IK, XRES}}, #statedata{eap_id = EapID,
 	EapPacket = #eap_packet{code = request, type = ?AKA,
 			identifier = NextEapID, data = EapData},
 	EapMessage1 = ocs_eap_codec:eap_packet(EapPacket),
-	Mac = crypto:hmac(sha, Kaut, EapMessage1, 16),
+	Mac = ?HMAC_SHA(Kaut, EapMessage1),
 	EapMessage2 = ocs_eap_codec:aka_set_mac(Mac, EapMessage1),
 	NewStateData = StateData#statedata{request = undefined,
 			eap_id = NextEapID, res = XRES, ck = CK, ik = IK,
@@ -613,7 +640,7 @@ vector({ok, {RAND, AUTN, CK, IK, XRES}}, #statedata{eap_id = EapID,
 	EapPacket = #eap_packet{code = request, type = ?AKA,
 			identifier = NextEapID, data = EapData},
 	EapMessage1 = ocs_eap_codec:eap_packet(EapPacket),
-	Mac = crypto:hmac(sha, Kaut, EapMessage1, 16),
+	Mac = ?HMAC_SHA(Kaut, EapMessage1),
 	EapMessage2 = ocs_eap_codec:aka_set_mac(Mac, EapMessage1),
 	NewStateData = StateData#statedata{request = undefined,
 			eap_id = NextEapID, res = XRES, ck = CK, ik = IK,
@@ -699,7 +726,7 @@ challenge({#radius{id = RadiusID, authenticator = RequestAuthenticator,
 			#eap_aka_challenge{res = RES, checkcode = CheckCode, mac = MAC}
 					when ((CheckCode == undefined) or (CheckCode == <<>>)) ->
 				EapMessage2 = ocs_eap_codec:aka_clear_mac(EapMessage1),
-				case crypto:hmac(sha, Kaut, EapMessage2, 16) of
+				case ?HMAC_SHA(Kaut, EapMessage2) of
 					MAC ->
 						Salt = crypto:rand_uniform(16#8000, 16#ffff),
 						<<MSK1:32/binary, MSK2:32/binary>> = MSK,
@@ -813,7 +840,7 @@ challenge1(EapMessage1, Request, RAT,
 			#eap_aka_challenge{res = RES, checkcode = CheckCode, mac = MAC}
 					when ((CheckCode == undefined) or (CheckCode == <<>>)) ->
 				EapMessage2 = ocs_eap_codec:aka_clear_mac(EapMessage1),
-				case crypto:hmac(sha, Kaut, EapMessage2, 16) of
+				case ?HMAC_SHA(Kaut, EapMessage2) of
 					MAC ->
 						EapPacket1 = #eap_packet{code = success, identifier = EapID},
 						EapMessage3 = ocs_eap_codec:eap_packet(EapPacket1),
@@ -1202,7 +1229,7 @@ send_radius_response(EapMessage, ?AccessChallenge = RadiusCode,
 			<<0:128>>, AttrList1),
 	Attributes1 = radius_attributes:codec(AttrList2),
 	Length = size(Attributes1) + 20,
-	MessageAuthenticator = crypto:hmac(md5, Secret,
+	MessageAuthenticator = ?HMAC_MD5(Secret,
 			[<<RadiusCode, RadiusID, Length:16>>,
 			RequestAuthenticator, Attributes1]),
 	AttrList3 = radius_attributes:store(?MessageAuthenticator,
@@ -1234,7 +1261,7 @@ send_radius_response(EapMessage, ?AccessAccept = RadiusCode,
 			<<0:128>>, AttrList2),
 	Attributes1 = radius_attributes:codec(AttrList3),
 	Length = size(Attributes1) + 20,
-	MessageAuthenticator = crypto:hmac(md5, Secret,
+	MessageAuthenticator = ?HMAC_MD5(Secret,
 			[<<RadiusCode, RadiusID, Length:16>>,
 			RequestAuthenticator, Attributes1]),
 	AttrList4 = radius_attributes:store(?MessageAuthenticator,
@@ -1261,7 +1288,7 @@ send_radius_response(EapMessage, ?AccessReject = RadiusCode,
 			<<0:128>>, AttrList1),
 	Attributes1 = radius_attributes:codec(AttrList2),
 	Length = size(Attributes1) + 20,
-	MessageAuthenticator = crypto:hmac(md5, Secret,
+	MessageAuthenticator = ?HMAC_MD5(Secret,
 			[<<RadiusCode, RadiusID, Length:16>>,
 			RequestAuthenticator, Attributes1]),
 	AttrList3 = radius_attributes:store(?MessageAuthenticator,

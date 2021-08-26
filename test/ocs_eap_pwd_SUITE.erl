@@ -48,6 +48,20 @@
 -define(MILLISECOND, milli_seconds).
 %-define(MILLISECOND, millisecond).
 
+-dialyzer({[nowarn_function, no_match],
+		[radius_access_request/10, receive_radius/7]}).
+-ifdef(OTP_RELEASE).
+	-define(HMAC(Key, Data),
+		case ?OTP_RELEASE of
+			OtpRelease when OtpRelease >= 23 ->
+				crypto:mac(hmac, md5, Key, Data);
+			OtpRelease when OtpRelease < 23 ->
+				crypto:hmac(md5, Key, Data)
+		end).
+-else.
+	-define(HMAC(Key, Data), crypto:hmac(md5, Key, Data)).
+-endif.
+
 %%---------------------------------------------------------------------
 %%  Test server callback functions
 %%---------------------------------------------------------------------
@@ -687,7 +701,7 @@ radius_access_request(Socket, Address, Port, NasId,
 	Request1 = #radius{code = ?AccessRequest, id = RadId,
 		authenticator = Auth, attributes = A7},
 	ReqPacket1 = radius:codec(Request1),
-	MsgAuth1 = crypto:hmac(md5, Secret, ReqPacket1),
+	MsgAuth1 = ?HMAC(Secret, ReqPacket1),
 	A8 = radius_attributes:store(?MessageAuthenticator, MsgAuth1, A7),
 	Request2 = Request1#radius{attributes = A8},
 	ReqPacket2 = radius:codec(Request2),
@@ -715,7 +729,7 @@ receive_radius(Code, Socket, Address, Port, Secret, RadId, ReqAuth) ->
 	RespAttr2 = radius_attributes:store(?MessageAuthenticator, <<0:128>>, RespAttr1),
 	Resp3 = Resp2#radius{attributes = RespAttr2},
 	RespPacket3 = radius:codec(Resp3),
-	MsgAuth = crypto:hmac(md5, Secret, RespPacket3),
+	MsgAuth = ?HMAC(Secret, RespPacket3),
 	{ok, EapMsg} = radius_attributes:find(?EAPMessage, RespAttr1),
 	EapMsg.
 
