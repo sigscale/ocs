@@ -110,8 +110,8 @@ ecc_computations() ->
 
 ecc_computations(_Config) ->
 	Password = <<"Secret">>,
-	S_rand = rand:uniform(1, ?R),
-	P_rand = rand:uniform(1, ?R),
+	S_rand = rand:uniform(?R),
+	P_rand = rand:uniform(?R),
 	P_rand_bin = <<P_rand:256>>,
 	S_rand_bin = <<S_rand:256>>,
 	Token = crypto:strong_rand_bytes(4),
@@ -135,8 +135,8 @@ ecc_computations_diff_shared_key() ->
 ecc_computations_diff_shared_key(_Config) ->
 	S_Password = <<"Secret S">>,
 	P_Password = <<"Secret P">>,
-	S_rand = rand:uniform(1, ?R),
-	P_rand = rand:uniform(1, ?R),
+	S_rand = rand:uniform(?R),
+	P_rand = rand:uniform(?R),
 	P_rand_bin = <<P_rand:256>>,
 	S_rand_bin = <<S_rand:256>>,
 	Token = crypto:strong_rand_bytes(4),
@@ -153,8 +153,8 @@ ecc_computations_invalid_curve_point() ->
 
 ecc_computations_invalid_curve_point(_Config) ->
 	Password = <<"Secret S">>,
-	S_rand = rand:uniform(1, ?R),
-	P_rand = rand:uniform(?R+1, ?R + 769),
+	S_rand = rand:uniform(?R),
+	P_rand = rand:uniform(769) + ?R,
 	P_rand_bin = <<P_rand:256>>,
 	S_rand_bin = <<S_rand:256>>,
 	Token = crypto:strong_rand_bytes(4),
