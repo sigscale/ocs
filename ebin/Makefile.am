@@ -144,11 +144,13 @@ beam_DATA = ocs.beam \
 
 ocs_milenage.beam:$(top_srcdir)/src/ocs_milenage.erl
 	$(ERLC) $(ERLCFLAGS) +"{nowarn_removed, [{crypto,block_encrypt,4}]}" \
+			+"{nowarn_deprecated_function, [{crypto,block_encrypt,4}]}" \
 			-I $(top_srcdir)/include -I $(top_builddir)/include $<
 
 ocs_radius_authentication.beam:$(top_srcdir)/src/ocs_radius_authentication.erl \
 		$(top_srcdir)/include/ocs.hrl
 	$(ERLC) $(ERLCFLAGS) +"{nowarn_removed, [{crypto,hmac,3}]}" \
+			+"{nowarn_deprecated_function, [{crypto,hmac,3}]}" \
 			-I $(top_srcdir)/include -I $(top_builddir)/include $<
 
 ocs_simple_auth_fsm.beam:$(top_srcdir)/src/ocs_simple_auth_fsm.erl \
@@ -156,11 +158,13 @@ ocs_simple_auth_fsm.beam:$(top_srcdir)/src/ocs_simple_auth_fsm.erl \
 		$(top_srcdir)/include/ocs_eap_codec.hrl \
 		$(top_builddir)/include/diameter_gen_nas_application_rfc7155.hrl
 	$(ERLC) $(ERLCFLAGS) +"{nowarn_removed, [{crypto,hmac,3}]}" \
+			+"{nowarn_deprecated_function, [{crypto,hmac,3}]}" \
 			-I $(top_srcdir)/include -I $(top_builddir)/include $<
 
 ocs_eap_ttls_aaah_fsm.beam:$(top_srcdir)/src/ocs_eap_ttls_aaah_fsm.erl \
 		$(top_srcdir)/include/ocs.hrl
 	$(ERLC) $(ERLCFLAGS) +"{nowarn_removed, [{ssl,ssl_accept,2}]}" \
+			+"{nowarn_deprecated_function, [{ssl,ssl_accept,2}]}" \
 			-I $(top_srcdir)/include -I $(top_builddir)/include $<
 
 ocs_eap_ttls_fsm.beam:$(top_srcdir)/src/ocs_eap_ttls_fsm.erl \
@@ -169,11 +173,13 @@ ocs_eap_ttls_fsm.beam:$(top_srcdir)/src/ocs_eap_ttls_fsm.erl \
 		$(top_builddir)/include/diameter_gen_eap_application_rfc4072.hrl \
 		$(top_builddir)/include/diameter_gen_nas_application_rfc7155.hrl
 	$(ERLC) $(ERLCFLAGS) +"{nowarn_removed, [{crypto,hmac,3}]}" \
+			+"{nowarn_deprecated_function, [{crypto,hmac,3}]}" \
 			-I $(top_srcdir)/include -I $(top_builddir)/include $<
 
 ocs_eap_pwd.beam:$(top_srcdir)/src/ocs_eap_pwd.erl \
 		$(top_srcdir)/include/ocs_eap_codec.hrl
 	$(ERLC) $(ERLCFLAGS) +"{nowarn_removed, [{crypto,hmac_init,2},{crypto,hmac_update,2},{crypto,hmac_final,1}]}" \
+			+"{nowarn_deprecated_function, [{crypto,hmac_init,2},{crypto,hmac_update,2},{crypto,hmac_final,1}]}" \
 			-I $(top_srcdir)/include -I $(top_builddir)/include $<
 
 ocs_eap_pwd_fsm.beam:$(top_srcdir)/src/ocs_eap_pwd_fsm.erl \
@@ -182,6 +188,7 @@ ocs_eap_pwd_fsm.beam:$(top_srcdir)/src/ocs_eap_pwd_fsm.erl \
 		$(top_builddir)/include/diameter_gen_eap_application_rfc4072.hrl \
 		$(top_builddir)/include/diameter_gen_nas_application_rfc7155.hrl
 	$(ERLC) $(ERLCFLAGS) +"{nowarn_removed, [{crypto,hmac,3}]}" \
+			+"{nowarn_deprecated_function, [{crypto,hmac,3}]}" \
 			-I $(top_srcdir)/include -I $(top_builddir)/include $<
 
 ocs_eap_aka_fsm.beam:$(top_srcdir)/src/ocs_eap_aka_fsm.erl \
@@ -194,6 +201,7 @@ ocs_eap_aka_fsm.beam:$(top_srcdir)/src/ocs_eap_aka_fsm.erl \
 		$(top_builddir)/include/diameter_gen_3gpp_swx_application.hrl \
 		$(top_srcdir)/include/ocs_eap_codec.hrl
 	$(ERLC) $(ERLCFLAGS) +"{nowarn_removed, [{crypto,hmac,3},{crypto,hmac,4}]}" \
+			+"{nowarn_deprecated_function, [{crypto,hmac,3},{crypto,hmac,4}]}" \
 			-I $(top_srcdir)/include -I $(top_builddir)/include $<
 
 ocs_eap_akap_fsm.beam:$(top_srcdir)/src/ocs_eap_akap_fsm.erl \
@@ -206,6 +214,7 @@ ocs_eap_akap_fsm.beam:$(top_srcdir)/src/ocs_eap_akap_fsm.erl \
 		$(top_builddir)/include/diameter_gen_3gpp_swx_application.hrl \
 		$(top_srcdir)/include/ocs_eap_codec.hrl
 	$(ERLC) $(ERLCFLAGS) +"{nowarn_removed, [{crypto,hmac,3},{crypto,hmac,4}]}" \
+			+"{nowarn_deprecated_function, [{crypto,hmac,3},{crypto,hmac,4}]}" \
 			-I $(top_srcdir)/include -I $(top_builddir)/include $<
 
 ocs_eap_aka_auc_fsm.beam:$(top_srcdir)/src/ocs_eap_aka_auc_fsm.erl \
@@ -216,6 +225,7 @@ ocs_eap_aka_auc_fsm.beam:$(top_srcdir)/src/ocs_eap_aka_auc_fsm.erl \
 		$(top_builddir)/include/diameter_gen_3gpp_swx_application.hrl \
 		$(top_srcdir)/include/ocs_eap_codec.hrl
 	$(ERLC) $(ERLCFLAGS) +"{nowarn_removed, [{crypto,hmac,3}]}" \
+			+"{nowarn_deprecated_function, [{crypto,hmac,3}]}" \
 			-I $(top_srcdir)/include -I $(top_builddir)/include $<
 
 ocs_diameter_3gpp_s6a_application_cb.beam:$(top_srcdir)/src/ocs_diameter_3gpp_s6a_application_cb.erl \
@@ -223,6 +233,7 @@ ocs_diameter_3gpp_s6a_application_cb.beam:$(top_srcdir)/src/ocs_diameter_3gpp_s6
 		$(top_builddir)/include/diameter_gen_ietf.hrl \
 		$(top_builddir)/include/diameter_gen_3gpp_s6a_application.hrl
 	$(ERLC) $(ERLCFLAGS) +"{nowarn_removed, [{crypto,hmac,3}]}" \
+			+"{nowarn_deprecated_function, [{crypto,hmac,3}]}" \
 			-I $(top_srcdir)/include -I $(top_builddir)/include $<
 
 diameter_gen_ietf.beam:$(top_builddir)/src/diameter_gen_ietf.erl \
