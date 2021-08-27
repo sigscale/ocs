@@ -43,7 +43,7 @@
 				crypto:hmac(md5, Key, Data)
 		end).
 -else.
-	-define(HMAC_MD5(Key, Data), crypto:hmac(md5, Key, Data)).
+	-define(HMAC(Key, Data), crypto:hmac(md5, Key, Data)).
 -endif.
 
 %%----------------------------------------------------------------------
