@@ -1,4 +1,24 @@
-l
+2021-08-27  Vance Shipley <vances@sigscale.org>
+
+	* update apn selection on gx
+	* portable ssl
+	* portable crypto (ocs-461)
+	* port retired cipher names
+	* portable get stack trace
+	* use rand, not crypto, for random integers
+	* remove deprecated time units
+	* no warn on deprecated/removed pg2 functions retained for portability
+	* no warn on deprecated functions retained for portability
+	* suppress dialyzer warnings for deprecated functions
+	* suppress dialyzer warning on missing mod_auth:load/2
+	* map accounting logs fields into correct value
+	* correct accounting log credit control info
+	* make client and type values show properly in accounting log
+	* update sigscale_release package version in readme
+	* start scoped process group
+	* distributed disk logs no longer supported
+	* container no longer daemon, attaches to tty
+
 2021-08-23  Vance Shipley <vances@sigscale.org>
 
 	* ignore dialyzer warning on version checking

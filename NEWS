@@ -1,3 +1,9 @@
+August 27, 2021
+---------------
+	- OTP 24 support
+	- Improved accounting log view
+	- Deprecated distributed disk logs
+
 May 16, 20211
 -------------
 	- Add Policy and Charging Control (PCC)
