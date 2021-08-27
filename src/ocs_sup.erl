@@ -54,7 +54,6 @@
 %% @private
 %%
 init([LogRotateTime, LogRotateInterval] = _Args) ->
-erlang:display({?MODULE, ?LINE, self()}),
 	ChildSpecs = ?PG ++ [supervisor(ocs_radius_acct_top_sup, []),
 			supervisor(ocs_radius_auth_sup, []),
 			supervisor(ocs_diameter_auth_sup, []),
