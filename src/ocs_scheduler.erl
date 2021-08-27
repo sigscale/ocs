@@ -28,9 +28,6 @@
 -include("ocs.hrl").
 
 -define(CHUNKSIZE, 100).
-%% support deprecated_time_unit()
--define(MILLISECOND, milli_seconds).
-%-define(MILLISECOND, millisecond).
 
 -spec start() -> Result
 	when
@@ -67,7 +64,7 @@ start(ScheduledTime, Interval) ->
 		Reason :: term().
 %% @doc Apply recurring charges to all subscriptions.
 product_charge() ->
-	Now = erlang:system_time(?MILLISECOND),
+	Now = erlang:system_time(millisecond),
 	product_charge1(get_product(start), Now).
 %% @hidden
 product_charge1('$end_of_table', _Now) ->
@@ -125,7 +122,7 @@ product_charge1(ProdRef, Now) ->
 		{aborted, Reason} ->
 			error_logger:error_report("Scheduler Update Failed",
 					[{module, ?MODULE}, {product_id, ProdRef},
-					{time, erlang:system_time(?MILLISECOND)},
+					{time, erlang:system_time(millisecond)},
 					{reason, Reason}]),
 			product_charge1(get_product(ProdRef), Now)
 	end.

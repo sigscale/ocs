@@ -26,10 +26,6 @@
 
 -include("ocs.hrl").
 
-%% support deprecated_time_unit()
--define(MILLISECOND, milli_seconds).
-%-define(MILLISECOND, millisecond).
-
 -spec content_types_accepted() -> ContentTypes
 	when
 		ContentTypes :: list().
@@ -581,7 +577,7 @@ type(messages) ->
 		ID :: string().
 %% @doc Generate a unique identifier
 unique() ->
-	TS = erlang:system_time(?MILLISECOND),
+	TS = erlang:system_time(millisecond),
 	N = erlang:unique_integer([positive]),
 	integer_to_list(TS) ++ integer_to_list(N).
 

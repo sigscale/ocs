@@ -47,10 +47,6 @@
 -define(DIAMETER_ERROR_EQUIPMENT_UNKNOWN,          5422).
 -define(DIAMETER_ERROR_UNKOWN_SERVING_NODE,        5423).
 
-%% support deprecated_time_unit()
--define(MILLISECOND, milli_seconds).
-%-define(MILLISECOND, millisecond).
-
 -type state() :: #state{}.
 -type capabilities() :: #diameter_caps{}.
 -type packet() ::  #diameter_packet{}.
@@ -623,7 +619,7 @@ kdf(CK, IK, SN, SQN, AK)
 %% @hidden
 save_dif(IMSI, DIF)
 		when is_binary(IMSI), is_integer(DIF)->
-	Now = erlang:system_time(?MILLISECOND),
+	Now = erlang:system_time(millisecond),
 	N = erlang:unique_integer([positive]),
 	LM = {Now, N},
 	F = fun() ->

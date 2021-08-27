@@ -109,10 +109,6 @@
 %% 3GPP TS 23.003 19.3.5 Pseudonym
 -define(TEMP_AKA,  $2).
 
-%% support deprecated_time_unit()
--define(MILLISECOND, milli_seconds).
-%-define(MILLISECOND, millisecond).
-
 -dialyzer({[nowarn_function, no_match],
 		[vector/2, challenge/2, challenge1/4]}).
 -ifdef(OTP_RELEASE).
@@ -940,7 +936,7 @@ register({ok, #'3gpp_swx_Non-3GPP-User-Data'{} = UserProfile,
 		authenticator = RequestAuthenticator, attributes = RequestAttributes},
 		client_address = ClientAddress, imsi = IMSI, identity = Identity,
 		response = {EapMessage, Attributes}} = StateData) ->
-	LM = {erlang:system_time(?MILLISECOND), erlang:unique_integer([positive])},
+	LM = {erlang:system_time(millisecond), erlang:unique_integer([positive])},
 	Session = #session{id = SessionId, imsi = IMSI, identity = Identity,
 		hss_realm = HssRealm, hss_host = HssHost,
 		nas_address = ClientAddress, user_profile = UserProfile,
@@ -967,7 +963,7 @@ register({ok, #'3gpp_swx_Non-3GPP-User-Data'{} = UserProfile,
 		#'3gpp_swm_DER'{} ->
 			?SWm_APPLICATION_ID
 	end,
-	LM = {erlang:system_time(?MILLISECOND), erlang:unique_integer([positive])},
+	LM = {erlang:system_time(millisecond), erlang:unique_integer([positive])},
 	Session = #session{id = SessionId, imsi = IMSI, identity = Identity,
 		hss_realm = HssRealm, hss_host = HssHost, application = Application,
 		nas_host = NasHost, nas_realm = NasRealm,

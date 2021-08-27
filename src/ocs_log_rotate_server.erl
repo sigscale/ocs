@@ -35,10 +35,6 @@
 			type :: voip | wlan}).
 -type state() :: #state{}.
 
-%% support deprecated_time_unit()
--define(MILLISECOND, milli_seconds).
-%-define(MILLISECOND, millisecond).
-
 %%----------------------------------------------------------------------
 %%  The ocs_log_rotate_server API
 %%----------------------------------------------------------------------
@@ -153,7 +149,7 @@ handle_cast(stop, State) ->
 %%
 handle_info(timeout, #state{interval = Interval,
 		schedule = ScheduledTime, type = Type} = State) ->
-	Time = erlang:system_time(?MILLISECOND),
+	Time = erlang:system_time(millisecond),
 	FileName = ocs_log:iso8601(Time),
 	{Start, End} = previous(Interval),
 	case ocs_log:ipdr_log(Type, FileName, Start, End) of

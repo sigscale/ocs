@@ -27,10 +27,6 @@
 
 -include("ocs.hrl").
 
-%% support deprecated_time_unit()
--define(MILLISECOND, milli_seconds).
-%-define(MILLISECOND, millisecond).
-
 -spec content_types_accepted() -> ContentTypes
 	when
 		ContentTypes :: list().
@@ -221,7 +217,7 @@ patch_client2(Address, _Etag, "application/json-patch+json", Client, Operations)
 		F = fun() ->
 			case mnesia:read(client, Address, write) of
 				[_] ->
-					TS = erlang:system_time(?MILLISECOND),
+					TS = erlang:system_time(millisecond),
 					N = erlang:unique_integer([positive]),
 					LM = {TS, N},
 					ok = mnesia:write(Client1#client{last_modified = LM}),

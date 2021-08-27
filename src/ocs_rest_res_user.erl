@@ -29,10 +29,6 @@
 -include_lib("inets/include/mod_auth.hrl").
 -include("ocs.hrl").
 
-%% support deprecated_time_unit()
--define(MILLISECOND, milli_seconds).
-%-define(MILLISECOND, millisecond).
-
 -spec content_types_accepted() -> ContentTypes
 	when
 		ContentTypes :: list().

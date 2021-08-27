@@ -75,10 +75,6 @@
 		from :: {pid(), reference()} | undefined}).
 -type statedata() :: #statedata{}.
 
-%% support deprecated_time_unit()
--define(MILLISECOND, milli_seconds).
-%-define(MILLISECOND, millisecond).
-
 %%----------------------------------------------------------------------
 %%  The ocs_pgw_fsm API
 %%----------------------------------------------------------------------

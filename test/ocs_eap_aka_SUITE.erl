@@ -47,10 +47,6 @@
 -define(IANA_PEN_3GPP, 10415).
 -define(IANA_PEN_SigScale, 50386).
 
-%% support deprecated_time_unit()
--define(MILLISECOND, milli_seconds).
-%-define(MILLISECOND, millisecond).
-
 -dialyzer({[nowarn_function, no_match], [kdf/5]}).
 -ifdef(OTP_RELEASE).
 	-define(HMAC_SHA(Key, Data),

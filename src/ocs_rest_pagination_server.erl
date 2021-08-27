@@ -43,10 +43,6 @@
 		offset = 0 :: integer()}).
 -type state() :: #state{}.
 
-%% support deprecated_time_unit()
--define(MILLISECOND, milli_seconds).
-%-define(MILLISECOND, millisecond).
-
 %%----------------------------------------------------------------------
 %%  The ocs_rest_pagination_server API
 %%----------------------------------------------------------------------
@@ -66,7 +62,7 @@
 %% 	`eof' or an opaque continuation value which will be used in
 %% 	the next call to the callback.
 start_link(Args) ->
-	Etag = integer_to_list(erlang:system_time(?MILLISECOND)) ++ "-"
+	Etag = integer_to_list(erlang:system_time(millisecond)) ++ "-"
 			++ integer_to_list(erlang:unique_integer([positive])),
 	case gen_server:start_link({global, Etag}, ?MODULE, [Etag | Args], []) of
 		{ok, Child} ->

@@ -98,10 +98,6 @@
 	-define(PG_CLOSEST(Name), pg2:get_closest_pid(Name)).
 -endif.
 
-%% support deprecated_time_unit()
--define(MILLISECOND, milli_seconds).
-%-define(MILLISECOND, millisecond).
-
 %%----------------------------------------------------------------------
 %%  The ocs_deregister_fsm API
 %%----------------------------------------------------------------------

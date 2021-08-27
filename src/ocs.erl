@@ -52,10 +52,6 @@
 -define(LOGNAME, radius_acct).
 -define(CHUNKSIZE, 100).
 
-%% support deprecated_time_unit()
--define(MILLISECOND, milli_seconds).
-%-define(MILLISECOND, millisecond).
-
 % calendar:datetime_to_gregorian_seconds({{1970,1,1},{0,0,0}})
 -define(EPOCH, 62167219200).
 
@@ -119,7 +115,7 @@ add_client({A, B, C, D} = Address,
 		when A >= 1, A =< 255, B >= 0, C =< 255, C >= 0, D =< 255, D >= 1, A < 255,
 		is_boolean(PasswordRequired), is_boolean(Trusted) ->
 	F = fun() ->
-				TS = erlang:system_time(?MILLISECOND),
+				TS = erlang:system_time(millisecond),
 				N = erlang:unique_integer([positive]),
 				R = #client{address = Address, protocol = diameter,
 						last_modified = {TS, N},
@@ -150,7 +146,7 @@ add_client({A, B, C, D} = Address,
 		C >= 0, D =< 255, D >= 1, A < 255,
 		is_binary(Secret), is_boolean(PasswordRequired) ->
 	F = fun() ->
-				TS = erlang:system_time(?MILLISECOND),
+				TS = erlang:system_time(millisecond),
 				N = erlang:unique_integer([positive]),
 				LM = {TS, N},
 				R = #client{address = Address, port = Port, protocol = radius,
@@ -205,7 +201,7 @@ update_client(Address, Password) ->
 	F = fun() ->
 				case mnesia:read(client, Address, write) of
 					[Entry] ->
-						TS = erlang:system_time(?MILLISECOND),
+						TS = erlang:system_time(millisecond),
 						N = erlang:unique_integer([positive]),
 						NewEntry = Entry#client{secret = Password, last_modified = {TS,N}},
 						mnesia:write(client, NewEntry, write);
@@ -239,7 +235,7 @@ update_client(Address, Port, Protocol) when is_tuple(Address),
 	F = fun() ->
 				case mnesia:read(client, Address, write) of
 					[Entry] ->
-						TS = erlang:system_time(?MILLISECOND),
+						TS = erlang:system_time(millisecond),
 						N = erlang:unique_integer([positive]),
 						NewEntry = Entry#client{port = Port, protocol = Protocol,
 								last_modified = {TS, N}},
@@ -582,7 +578,7 @@ add_product(OfferId, ServiceRefs, StartDate, EndDate, Characteristics)
 	F = fun() ->
 			case mnesia:read(offer, OfferId, read) of
 				[#offer{char_value_use = CharValueUse} = Offer] ->
-					TS = erlang:system_time(?MILLISECOND),
+					TS = erlang:system_time(millisecond),
 					N1 = erlang:unique_integer([positive]),
 					N2 = erlang:unique_integer([positive]),
 					LM = {TS, N2},
@@ -814,7 +810,7 @@ add_service(Identity, Password, State, ProductRef, Chars, Attributes,
 %% @hidden
 add_service1(Identity, Password, State, undefined,
 		Chars, Attributes, EnabledStatus, MultiSession) ->
-	Now = erlang:system_time(?MILLISECOND),
+	Now = erlang:system_time(millisecond),
 	N = erlang:unique_integer([positive]),
 	LM = {Now, N},
 	S1 = #service{name = Identity,
@@ -833,7 +829,7 @@ add_service1(Identity, Password, State, ProductRef,
 		[#product{service = ServiceRefs} = P1] ->
 			case lists:member(Identity, ServiceRefs) of
 				false ->
-					Now = erlang:system_time(?MILLISECOND),
+					Now = erlang:system_time(millisecond),
 					N = erlang:unique_integer([positive]),
 					LM = {Now, N},
 					P2 = P1#product{service = [Identity | ServiceRefs],
@@ -1579,7 +1575,7 @@ add_offer(#offer{specification = L, bundle = []} = Offer)
 %% @hidden
 add_offer1(Offer) ->
 	Fadd = fun() ->
-		TS = erlang:system_time(?MILLISECOND),
+		TS = erlang:system_time(millisecond),
 		N = erlang:unique_integer([positive]),
 		Offer1 = Offer#offer{last_modified = {TS, N}},
 		{mnesia:write(offer, Offer1, write), Offer1}
@@ -1734,7 +1730,7 @@ add_resource(#resource{id = undefined, last_modified = undefined,
 %% @hidden
 add_resource1(#resource{} = Resource) ->
 	F = fun() ->
-			TS = erlang:system_time(?MILLISECOND),
+			TS = erlang:system_time(millisecond),
 			N = erlang:unique_integer([positive]),
 			Id = integer_to_list(TS) ++ integer_to_list(N),
 			LM = {TS, N},
@@ -1988,7 +1984,7 @@ add_user1(_, _, _, {error, Reason}) ->
 %% @hidden
 add_user2(Username, Password, Locale,
 		Address, Port, Dir, Group, {error, no_such_user}) ->
-	LM = {erlang:system_time(?MILLISECOND), erlang:unique_integer([positive])},
+	LM = {erlang:system_time(millisecond), erlang:unique_integer([positive])},
 	NewUserData = [{last_modified, LM}, {locale, Locale}],
 	add_user3(Username, Address, Port, Dir, Group, LM,
 			mod_auth:add_user(Username, Password, NewUserData, Address, Port, Dir));
@@ -2245,7 +2241,7 @@ import2(Table, Type, Records) ->
 	end.
 %% @hidden
 import3(Table, Type, Records) ->
-	TS = erlang:system_time(?MILLISECOND),
+	TS = erlang:system_time(millisecond),
 	N = erlang:unique_integer([positive]),
 	Split = binary:split(Records, [<<"\n">>, <<"\r">>, <<"\r\n">>], [global]),
 	case mnesia:transaction(fun import4/5, [Table, Type, Split, {TS, N}, []]) of
@@ -2409,12 +2405,12 @@ normalize([], Acc) ->
 %% @private
 subscription(Product, #offer{bundle = [], price = Prices} =
 		_Offer, Buckets, InitialFlag) ->
-	Now = erlang:system_time(?MILLISECOND),
+	Now = erlang:system_time(millisecond),
 	subscription(Product, Now, InitialFlag, Buckets, Prices);
 subscription(#product{product = OfferId} = Product,
 		#offer{name = OfferId, bundle = Bundled, price = Prices} = _Offer,
 		Buckets, InitialFlag) when length(Bundled) > 0 ->
-	Now = erlang:system_time(?MILLISECOND),
+	Now = erlang:system_time(millisecond),
 	F = fun(#bundled_po{name = P}, {Prod, B}) ->
 				case mnesia:read(offer, P, read) of
 					[Offer] ->
@@ -2668,7 +2664,7 @@ sort(Buckets) ->
 
 %% @private
 generate_bucket_id() ->
-	TS = erlang:system_time(?MILLISECOND),
+	TS = erlang:system_time(millisecond),
 	N = erlang:unique_integer([positive]),
 	integer_to_list(TS) ++ "-" ++ integer_to_list(N).
 
@@ -2879,5 +2875,5 @@ match_protocol3(Prefix) ->
 
 %% @private
 make_lm() ->
-	{erlang:system_time(?MILLISECOND), erlang:unique_integer([positive])}.
+	{erlang:system_time(millisecond), erlang:unique_integer([positive])}.
 

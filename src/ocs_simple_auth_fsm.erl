@@ -47,9 +47,6 @@
 -define(DATA, 2).
 -define(VOICE, 12).
 -define(CC_APPLICATION_ID, 4).
-%% support deprecated_time_unit()
--define(MILLISECOND, milli_seconds).
-%-define(MILLISECOND, millisecond).
 
 -record(statedata,
 		{protocol :: radius | diameter,

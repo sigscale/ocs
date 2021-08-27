@@ -33,10 +33,6 @@
 -define(usageSpecPath, "/usageManagement/v1/usageSpecification/").
 -define(usagePath, "/usageManagement/v1/usage/").
 
-%% support deprecated_time_unit()
--define(MILLISECOND, milli_seconds).
-%-define(MILLISECOND, millisecond).
-
 % calendar:datetime_to_gregorian_seconds({{1970,1,1},{0,0,0}})
 -define(EPOCH, 62167219200).
 
@@ -2710,7 +2706,7 @@ query_start(Type, Id, Query, Filters, RangeStart, RangeEnd) ->
 		{_, DateTime} when length(DateTime) > 3 ->
 			range(DateTime);
 		false ->
-			{1, erlang:system_time(?MILLISECOND)}
+			{1, erlang:system_time(millisecond)}
 	end,
 	query_start1(Type, lists:keyfind("type", 1, Query), Id, Query,
 			Filters, RangeStart, RangeEnd, DateStart, DateEnd).

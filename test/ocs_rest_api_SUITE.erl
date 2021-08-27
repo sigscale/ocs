@@ -37,14 +37,6 @@
 -include("ocs_eap_codec.hrl").
 -include_lib("common_test/include/ct.hrl").
 
-%% support deprecated_time_unit()
--define(SECOND, seconds).
-%-define(SECOND, second).
-
-%% support deprecated_time_unit()
--define(MILLISECOND, milli_seconds).
-%-define(MILLISECOND, millisecond).
-
 -define(PathBalanceHub, "/balanceManagement/v1/hub/").
 -define(PathProductHub, "/productInventory/v2/hub/").
 -define(PathServiceHub, "/serviceInventory/v2/hub/").
@@ -916,8 +908,8 @@ add_product(Config) ->
 	InventoryHref = "/productInventoryManagement/v2",
 	ProdOffer = {"productOffering", {struct,[{"id", OfferId}, {"name", OfferId},
 			{"href","/productCatalogManagement/v2/productOffering/" ++ OfferId}]}},
-	StartDate = {"startDate", ocs_rest:iso8601(erlang:system_time(?MILLISECOND))},
-	EndDate = {"terminationDate", ocs_rest:iso8601(erlang:system_time(?MILLISECOND) + 10000000)},
+	StartDate = {"startDate", ocs_rest:iso8601(erlang:system_time(millisecond))},
+	EndDate = {"terminationDate", ocs_rest:iso8601(erlang:system_time(millisecond) + 10000000)},
 	Inventory = {struct, [ProdOffer, StartDate, EndDate]},
 	ReqBody = lists:flatten(mochijson:encode(Inventory)),
 	Request1 = {HostUrl ++ InventoryHref ++ "/product",
@@ -941,8 +933,8 @@ get_product(Config) ->
 	Amount2 = 1000,
 	B1 = b(cents, Amount2),
 	B2 = #bucket{units = cents, remain_amount = 5000,
-			start_date = erlang:system_time(?MILLISECOND) - (2 * 2592000000),
-			end_date = erlang:system_time(?MILLISECOND) - 2592000000},
+			start_date = erlang:system_time(millisecond) - (2 * 2592000000),
+			end_date = erlang:system_time(millisecond) - 2592000000},
 	{_, _, #bucket{}} = ocs:add_bucket(ProdRef, B1),
 	{_, _, #bucket{}} = ocs:add_bucket(ProdRef, B2),
 	ServiceId = service_add(ProdRef),
@@ -1149,16 +1141,16 @@ add_product_sms(Config) ->
 	IsBundle = {"isBundle", false},
 	IsCustomerVisible = {"isCustomerVisible", true},
 	Status = {"lifecycleStatus", "Active"},
-	StartTime = {"startDateTime", ocs_rest:iso8601(erlang:system_time(?MILLISECOND))},
-	EndTime = {"endDateTime", ocs_rest:iso8601(erlang:system_time(?MILLISECOND)  + 2678400000)},
+	StartTime = {"startDateTime", ocs_rest:iso8601(erlang:system_time(millisecond))},
+	EndTime = {"endDateTime", ocs_rest:iso8601(erlang:system_time(millisecond)  + 2678400000)},
 	ValidFor = {"validFor", {struct, [StartTime, EndTime]}},
 	ProdSpecID = {"id", "11"},
 	ProdSpecHref = {"href", CatalogHref ++ "/productSpecification/11"},
 	ProdSpec = {"productSpecification", {struct, [ProdSpecID, ProdSpecHref]}},
 	POPName = {"name", "usage"},
 	POPDescription = {"description", ocs:generate_password()},
-	POPStratDateTime = {"startDateTime", ocs_rest:iso8601(erlang:system_time(?MILLISECOND))},
-	POPEndDateTime = {"endDateTime", ocs_rest:iso8601(erlang:system_time(?MILLISECOND)  + 2678400000)},
+	POPStratDateTime = {"startDateTime", ocs_rest:iso8601(erlang:system_time(millisecond))},
+	POPEndDateTime = {"endDateTime", ocs_rest:iso8601(erlang:system_time(millisecond)  + 2678400000)},
 	POPValidFor = {"validFor", {struct, [POPStratDateTime, POPEndDateTime]}},
 	POPPriceType = {"priceType", "usage"},
 	POPUOMeasure = {"unitOfMeasure", "10msg"},
@@ -2010,7 +2002,7 @@ get_acct_usage(Config) ->
 			{?FramedRouting, 2}, {?FilterId, "firewall-1"},
 			{?FramedMtu, 1492}, {?FramedRoute, "192.168.100.0/24 10.2.1.1 1"},
 			{?Class, "silver"}, {?PortLimit, 1},
-			{?AcctDelayTime, 5}, {?EventTimestamp, erlang:system_time(?SECOND)},
+			{?AcctDelayTime, 5}, {?EventTimestamp, erlang:system_time(second)},
 			{?AcctMultiSessionId, "8250731f"}, {?AcctLinkCount, 2},
 			{?AcctAuthentic, 1}, {?AcctSessionTime, 3021},
 			{?AcctInputOctets, 1702487}, {?AcctOutputOctets, 301629083},
@@ -2193,7 +2185,7 @@ get_balance_range(Config) ->
 				ok;
 			(F, N) ->
 				ok = ocs_log:abmf_open(),
-				Start = erlang:system_time(?MILLISECOND),
+				Start = erlang:system_time(millisecond),
 				Subscriber = list_to_binary(ocs:generate_identity()),
 				Type = transfer,
 				BucketId = integer_to_list(Start) ++ "-"
@@ -2414,8 +2406,8 @@ top_up(Config) ->
 	RechargeAmount = rand:uniform(10000000),
 	Amount = {"amount", {struct, [{"units", octets}, {"amount", RechargeAmount}]}},
 	Product = {"product", {struct, [{"id", ProdRef}]}},
-	SDT = erlang:system_time(?MILLISECOND),
-	EDT = erlang:system_time(?MILLISECOND) + rand:uniform(10000000000),
+	SDT = erlang:system_time(millisecond),
+	EDT = erlang:system_time(millisecond) + rand:uniform(10000000000),
 	ValidFor = {"validFor",
 			{struct, [{"startDateTime", ocs_rest:iso8601(SDT)},
 			{"endDateTime", ocs_rest:iso8601(EDT)}]}},
@@ -2442,8 +2434,8 @@ get_balance(Config) ->
 	B1 = b(cents, 10000),
 	B2 = b(cents, 5),
 	B3 = #bucket{units = cents, remain_amount = 500,
-			start_date = erlang:system_time(?MILLISECOND) - (2 * 2592000000),
-			end_date = erlang:system_time(?MILLISECOND) - 2592000000},
+			start_date = erlang:system_time(millisecond) - (2 * 2592000000),
+			end_date = erlang:system_time(millisecond) - 2592000000},
 	{_, _, #bucket{id = BId1}} = ocs:add_bucket(ProdRef, B1),
 	{_, _, #bucket{id = BId2}} = ocs:add_bucket(ProdRef, B2),
 	{_, _, #bucket{}} = ocs:add_bucket(ProdRef, B3),
@@ -2489,8 +2481,8 @@ get_balance_service(Config) ->
 	B1 = b(cents, 10000),
 	B2 = b(cents, 5),
 	B3 = #bucket{units = cents, remain_amount = 500,
-			start_date = erlang:system_time(?MILLISECOND) - (2 * 2592000000),
-			end_date = erlang:system_time(?MILLISECOND) - 2592000000},
+			start_date = erlang:system_time(millisecond) - (2 * 2592000000),
+			end_date = erlang:system_time(millisecond) - 2592000000},
 	{_, _, #bucket{id = BId1}} = ocs:add_bucket(ProdRef, B1),
 	{_, _, #bucket{id = BId2}} = ocs:add_bucket(ProdRef, B2),
 	{_, _, #bucket{}} = ocs:add_bucket(ProdRef, B3),
@@ -2848,8 +2840,8 @@ notify_create_bucket(Config) ->
 	{ok, #offer{name = OfferId}} = ocs:add_offer(Offer),
 	{ok, #product{id = ProdRef}} = ocs:add_product(OfferId, [], []),
 	Bucket = #bucket{units = cents, remain_amount = 100,
-			start_date = erlang:system_time(?MILLISECOND),
-			end_date = erlang:system_time(?MILLISECOND) + 2592000000},
+			start_date = erlang:system_time(millisecond),
+			end_date = erlang:system_time(millisecond) + 2592000000},
 	{ok, _, #bucket{}} = ocs:add_bucket(ProdRef, Bucket),
 	Balance = receive
 		Receive ->
@@ -2934,8 +2926,8 @@ notify_rating_deleted_bucket(Config) ->
 	{ok, #service{name = ServiceId}} = ocs:add_service(ocs:generate_identity(),
 			ocs:generate_password(), ProdRef, []),
 	Bucket = #bucket{units = cents, remain_amount = 100,
-			start_date = erlang:system_time(?MILLISECOND) - (2 * 2592000000),
-			end_date = erlang:system_time(?MILLISECOND) - 2592000000},
+			start_date = erlang:system_time(millisecond) - (2 * 2592000000),
+			end_date = erlang:system_time(millisecond) - 2592000000},
 	{ok, _, #bucket{id = BId}} = ocs:add_bucket(ProdRef, Bucket),
 	receive
 		Receive1 ->
@@ -3144,7 +3136,7 @@ notify_product_charge(Config) ->
 	Request1 = {CollectionUrl, [Accept, auth_header()], ContentType, RequestBody},
 	{ok, {{_, 201, _}, Headers, _}} = httpc:request(post, Request1, [], []),
 	{_, ?PathBalanceHub ++ SubId} = lists:keyfind("location", 1, Headers),
-	SD = erlang:system_time(?MILLISECOND),
+	SD = erlang:system_time(millisecond),
 	Alteration = #alteration{name = ocs:generate_identity(), start_date = SD,
 			type = usage, period = undefined,
 			units = octets, size = 100000000000, amount = 0},
@@ -3153,12 +3145,12 @@ notify_product_charge(Config) ->
 			amount = 1250000000, alteration = Alteration},
 	OfferId = add_offer([Price], 4),
 	{ok, #product{id = ProdId} = P} = ocs:add_product(OfferId, []),
-	Expired = erlang:system_time(?MILLISECOND) - 3599000,
+	Expired = erlang:system_time(millisecond) - 3599000,
 	ok = mnesia:dirty_write(product, P#product{payment =
 			[{Price#price.name, Expired}]}),
 	B1 = #bucket{units = cents, remain_amount = 1000000000,
-			start_date = erlang:system_time(?MILLISECOND),
-			end_date = erlang:system_time(?MILLISECOND) + 2592000000},
+			start_date = erlang:system_time(millisecond),
+			end_date = erlang:system_time(millisecond) + 2592000000},
 	{ok, _, #bucket{id = BId1}} = ocs:add_bucket(ProdId, B1),
 	receive
 		Input1 ->
@@ -3169,8 +3161,8 @@ notify_product_charge(Config) ->
 			{_, BId1} = lists:keyfind("id", 1, BucketList1)
 	end,
 	B2 = #bucket{units = cents, remain_amount = 1000000000,
-			start_date = erlang:system_time(?MILLISECOND),
-			end_date = erlang:system_time(?MILLISECOND) + 2592000000},
+			start_date = erlang:system_time(millisecond),
+			end_date = erlang:system_time(millisecond) + 2592000000},
 	{ok, _, #bucket{id = BId2}} = ocs:add_bucket(ProdId, B2),
 	receive
 		Input2 ->
@@ -4259,8 +4251,8 @@ notify_add_resource(Config) ->
 	{ok, {{_, 201, _}, Headers, _}} = httpc:request(post, Request1, [], []),
 	{_, ?PathResourceHub ++ SubId} = lists:keyfind("location", 1, Headers),
 	PolicyResource = #resource{name = "ct-example-1",
-			start_date = erlang:system_time(?MILLISECOND),
-			end_date = erlang:system_time(?MILLISECOND) + rand:uniform(10000000000),
+			start_date = erlang:system_time(millisecond),
+			end_date = erlang:system_time(millisecond) + rand:uniform(10000000000),
 			state = "created", specification = #specification_ref{id = "3",
 			href = "/resourceCatalogManagement/v3/resourceSpecification/3",
 			name = "PolicyTable", version = "1.0"}},
@@ -4296,8 +4288,8 @@ notify_delete_resource(Config) ->
 	{ok, {{_, 201, _}, Headers, _}} = httpc:request(post, Request1, [], []),
 	{_, ?PathResourceHub ++ SubId} = lists:keyfind("location", 1, Headers),
 	PolicyResource = #resource{name = "ct-example-2",
-			start_date = erlang:system_time(?MILLISECOND),
-			end_date = erlang:system_time(?MILLISECOND) + rand:uniform(10000000000),
+			start_date = erlang:system_time(millisecond),
+			end_date = erlang:system_time(millisecond) + rand:uniform(10000000000),
 			state = "created", specification = #specification_ref{id = "3",
 			href = "/resourceCatalogManagement/v3/resourceSpecification/3",
 			name = "PolicyTable", version = "1.0"}},
@@ -4325,8 +4317,8 @@ query_resource_notification() ->
 
 query_resource_notification(Config) ->
 	PolicyResource = #resource{name = "Example",
-			start_date = erlang:system_time(?MILLISECOND),
-			end_date = erlang:system_time(?MILLISECOND) + rand:uniform(10000000000),
+			start_date = erlang:system_time(millisecond),
+			end_date = erlang:system_time(millisecond) + rand:uniform(10000000000),
 			state = "created", specification = #specification_ref{id = "3",
 			href = "/resourceCatalogManagement/v3/resourceSpecification/3",
 			name = "PolicyTable", version = "1.0"}},
@@ -4520,8 +4512,8 @@ get_tariff_resource(Config) ->
 	Resource = #resource{class_type = "LogicalResource", base_type = "Resource",
 			schema = Schema, description = "tariff row resource",
 			category = "tariff", state = "Active",
-			start_date = erlang:system_time(?MILLISECOND),
-			end_date = erlang:system_time(?MILLISECOND) + 2678400000,
+			start_date = erlang:system_time(millisecond),
+			end_date = erlang:system_time(millisecond) + 2678400000,
 			related = [#resource_rel{id = ResourceRelID,
 					href = "/resourceInventoryManagement/v1/resource/"
 					++ ResourceRelID, type = "contained", name = "tariff_table1"}],
@@ -5130,16 +5122,16 @@ product_offer() ->
 	IsBundle = {"isBundle", false},
 	IsCustomerVisible = {"isCustomerVisible", true},
 	Status = {"lifecycleStatus", "Active"},
-	StartTime = {"startDateTime", ocs_rest:iso8601(erlang:system_time(?MILLISECOND))},
-	EndTime = {"endDateTime", ocs_rest:iso8601(erlang:system_time(?MILLISECOND)  + 2678400000)},
+	StartTime = {"startDateTime", ocs_rest:iso8601(erlang:system_time(millisecond))},
+	EndTime = {"endDateTime", ocs_rest:iso8601(erlang:system_time(millisecond)  + 2678400000)},
 	ValidFor = {"validFor", {struct, [StartTime, EndTime]}},
 	ProdSpecID = {"id", "1"},
 	ProdSpecHref = {"href", CatalogHref ++ "/productSpecification/1"},
 	ProdSpec = {"productSpecification", {struct, [ProdSpecID, ProdSpecHref]}},
 	POPName1 = {"name", ocs:generate_password()},
 	POPDescription1 = {"description", ocs:generate_password()},
-	POPStartDateTime1 = {"startDateTime", ocs_rest:iso8601(erlang:system_time(?MILLISECOND))},
-	POPEndDateTime1 = {"endDateTime", ocs_rest:iso8601(erlang:system_time(?MILLISECOND)  + 2678400000)},
+	POPStartDateTime1 = {"startDateTime", ocs_rest:iso8601(erlang:system_time(millisecond))},
+	POPEndDateTime1 = {"endDateTime", ocs_rest:iso8601(erlang:system_time(millisecond)  + 2678400000)},
 	POPValidFor1 = {"validFor", {struct, [POPStartDateTime1, POPEndDateTime1]}},
 	POPPriceType1 = {"priceType", "recurring"},
 	POPPriceTaxInclude1 = {"taxIncludedAmount", integer_to_list(rand:uniform(10000))},
@@ -5160,8 +5152,8 @@ product_offer() ->
 			POPPriceType1, POPPrice1, POPRecChargPeriod1, POPAlteration]},
 	POPName2 = {"name", "usage"},
 	POPDescription2 = {"description", ocs:generate_password()},
-	POPStratDateTime2 = {"startDateTime", ocs_rest:iso8601(erlang:system_time(?MILLISECOND))},
-	POPEndDateTime2 = {"endDateTime", ocs_rest:iso8601(erlang:system_time(?MILLISECOND)  + 2678400000)},
+	POPStratDateTime2 = {"startDateTime", ocs_rest:iso8601(erlang:system_time(millisecond))},
+	POPEndDateTime2 = {"endDateTime", ocs_rest:iso8601(erlang:system_time(millisecond)  + 2678400000)},
 	POPValidFor2 = {"validFor", {struct, [POPStratDateTime2, POPEndDateTime2]}},
 	POPPriceType2 = {"priceType", "usage"},
 	POPUOMeasure2 = {"unitOfMeasure", "1g"},
@@ -5332,8 +5324,8 @@ price(tariff, Units, Size, undefined)
 %% @hidden
 b(Units, RA) ->
 	#bucket{units = Units, remain_amount = RA,
-		start_date = erlang:system_time(?MILLISECOND),
-		end_date = erlang:system_time(?MILLISECOND) + 2592000000}.
+		start_date = erlang:system_time(millisecond),
+		end_date = erlang:system_time(millisecond) + 2592000000}.
 
 %% @hidden
 offer_add(Prices, Spec) when is_integer(Spec) ->
@@ -5428,8 +5420,8 @@ add_offer(Prices, Spec) ->
 %% @hidden
 add_bucket(ProdRef, Units, RA) ->
 	Bucket = #bucket{units = Units, remain_amount = RA,
-			start_date = erlang:system_time(?MILLISECOND),
-			end_date = erlang:system_time(?MILLISECOND) + 2592000000},
+			start_date = erlang:system_time(millisecond),
+			end_date = erlang:system_time(millisecond) + 2592000000},
 	{ok, _, #bucket{id = BId}} = ocs:add_bucket(ProdRef, Bucket),
 	BId.
 
@@ -5440,8 +5432,8 @@ add_resource("1", Description, Category, TableName) ->
 	Resource = #resource{name = TableName, class_type = "LogicalResource",
 			base_type = "Resource", description = Description, category = Category,
 			state = "Active", schema = Schema,
-			start_date = erlang:system_time(?MILLISECOND),
-			end_date = erlang:system_time(?MILLISECOND) + 2678400000,
+			start_date = erlang:system_time(millisecond),
+			end_date = erlang:system_time(millisecond) + 2678400000,
 			specification = #specification_ref{id = "1", name = "TariffTable",
 					href = "/resourceCatalogManagement/v2/resourceSpecification/1"}},
 	ocs:add_resource(Resource);
@@ -5451,8 +5443,8 @@ add_resource("2", Description, Category, TableName) ->
 	ResourceRelID = ocs:generate_identity(),
 	Resource = #resource{class_type = "LogicalResource", base_type = "Resource",
 			schema = Schema, description = Description, category = Category,
-			start_date = erlang:system_time(?MILLISECOND),
-			end_date = erlang:system_time(?MILLISECOND) + 2678400000,
+			start_date = erlang:system_time(millisecond),
+			end_date = erlang:system_time(millisecond) + 2678400000,
 			related = [#resource_rel{id = ResourceRelID,
 					href = "/resourceInventoryManagement/v1/resource/"
 					++ ResourceRelID, referred_type = "contained", name = TableName}],
@@ -5512,9 +5504,9 @@ resource_inventory() ->
 	Version = {"version", random_string(3)},
 	Status = {"lifecycleStatus", "Active"},
 	StartTime = {"startDateTime",
-			ocs_rest:iso8601(erlang:system_time(?MILLISECOND))},
+			ocs_rest:iso8601(erlang:system_time(millisecond))},
 	EndTime = {"endDateTime",
-			ocs_rest:iso8601(erlang:system_time(?MILLISECOND) + 2678400000)},
+			ocs_rest:iso8601(erlang:system_time(millisecond) + 2678400000)},
 	ValidFor = {"validFor", {struct, [StartTime, EndTime]}},
 	ResSpecID = {"id", "2"},
 	ResSpecName = {"name", "TariffTableRow"},

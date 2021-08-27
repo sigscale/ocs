@@ -46,10 +46,6 @@
 -define(IANA_PEN_SigScale, 50386).
 -define(NRF_RO_APPLICATION_CALLBACK, ocs_diameter_3gpp_ro_nrf_app_cb).
 
-%% support deprecated_time_unit()
--define(MILLISECOND, milli_seconds).
-%-define(MILLISECOND, millisecond).
-
 %%---------------------------------------------------------------------
 %%  Test server callback functions
 %%---------------------------------------------------------------------
@@ -862,7 +858,7 @@ post_final_ecur(Config) ->
 %%---------------------------------------------------------------------
 
 nrf_post_final_ecur(MSISDN, IMSI, Messages) ->
-	TS = erlang:system_time(?MILLISECOND),
+	TS = erlang:system_time(millisecond),
 	InvocationTimeStamp = ocs_log:iso8601(TS),
 	{struct, [{"nfConsumerIdentification",
 			{struct, [{"nodeFunctionality", "OCF"}]}},
@@ -883,7 +879,7 @@ nrf_post_final_ecur(MSISDN, IMSI, Messages) ->
 							{"requestSubType", "DEBIT"}]}]}}]}.
 
 nrf_post_initial_ecur(MSISDN, IMSI, Messages) ->
-	TS = erlang:system_time(?MILLISECOND),
+	TS = erlang:system_time(millisecond),
 	InvocationTimeStamp = ocs_log:iso8601(TS),
 	{struct, [{"nfConsumerIdentification",
 			{struct, [{"nodeFunctionality", "OCF"}]}},
@@ -904,7 +900,7 @@ nrf_post_initial_ecur(MSISDN, IMSI, Messages) ->
 							{"requestSubType", "RESERVE"}]}]}}]}.
 
 nrf_post_iec(MSISDN, IMSI, Messages) ->
-	TS = erlang:system_time(?MILLISECOND),
+	TS = erlang:system_time(millisecond),
 	InvocationTimeStamp = ocs_log:iso8601(TS),
 	{struct, [{"nfConsumerIdentification",
 			{struct, [{"nodeFunctionality", "OCF"}]}},
@@ -1016,7 +1012,7 @@ diameter_iec({MSISDN, IMSI}, SId, RequestNum) ->
 	Answer.
 
 nrf_post_initial_scur(MSISDN, IMSI, InputOctets, OutputOctets) ->
-	TS = erlang:system_time(?MILLISECOND),
+	TS = erlang:system_time(millisecond),
 	InvocationTimeStamp = ocs_log:iso8601(TS),
 	{struct, [{"nfConsumerIdentification",
 			{struct, [{"nodeFunctionality", "OCF"}]}},
@@ -1036,7 +1032,7 @@ nrf_post_initial_scur(MSISDN, IMSI, InputOctets, OutputOctets) ->
 							{"requestSubType", "RESERVE"}]}]}}]}.
 
 nrf_post_update_scur(MSISDN, IMSI, InputOctets, OutputOctets) ->
-	TS = erlang:system_time(?MILLISECOND),
+	TS = erlang:system_time(millisecond),
 	InvocationTimeStamp = ocs_log:iso8601(TS),
 	{struct, [{"nfConsumerIdentification",
 			{struct, [{"nodeFunctionality", "OCF"}]}},
@@ -1057,7 +1053,7 @@ nrf_post_update_scur(MSISDN, IMSI, InputOctets, OutputOctets) ->
 							{"requestSubType", "RESERVE"}]}]}}]}.
 
 nrf_post_final_scur(MSISDN, IMSI, InputOctets, OutputOctets) ->
-	TS = erlang:system_time(?MILLISECOND),
+	TS = erlang:system_time(millisecond),
 	InvocationTimeStamp = ocs_log:iso8601(TS),
 	{struct, [{"nfConsumerIdentification",
 			{struct, [{"nodeFunctionality", "OCF"}]}},
@@ -1278,8 +1274,8 @@ add_product(OfferId, Chars) ->
 %% @hidden
 bucket(Units, RA) ->
 	#bucket{units = Units, remain_amount = RA,
-			start_date = erlang:system_time(?MILLISECOND),
-			end_date = erlang:system_time(?MILLISECOND) + 2592000000}.
+			start_date = erlang:system_time(millisecond),
+			end_date = erlang:system_time(millisecond) + 2592000000}.
 
 %% @hidden
 add_bucket(ProdRef, Bucket) ->

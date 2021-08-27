@@ -31,10 +31,6 @@
 -include_lib("inets/include/mod_auth.hrl").
 -include_lib("radius/include/radius.hrl").
 
-%% support deprecated_time_unit()
--define(MILLISECOND, milli_seconds).
-%-define(MILLISECOND, millisecond).
-
 -define(serviceSpecPath, "/serviceCatalogManagement/v2/serviceSpecification/").
 -define(serviceInventoryPath, "/serviceInventoryManagement/v2/service/").
 
@@ -222,7 +218,7 @@ patch_inventory(ServiceId, Etag, ReqData) ->
 								ProductRef =/= undefined ->
 							case catch ocs_rest:patch(Operations, inventory(Service1)) of
 								{struct, _} = Service2 ->
-									TS = erlang:system_time(?MILLISECOND),
+									TS = erlang:system_time(millisecond),
 									N = erlang:unique_integer([positive]),
 									LM = {TS, N},
 									case inventory(Service2) of
@@ -250,7 +246,7 @@ patch_inventory(ServiceId, Etag, ReqData) ->
 							case catch ocs_rest:patch(Operations, inventory(Service1)) of
 								{struct, _} = Service2 ->
 									Service3 = inventory(Service2),
-									TS = erlang:system_time(?MILLISECOND),
+									TS = erlang:system_time(millisecond),
 									N = erlang:unique_integer([positive]),
 									LM = {TS, N},
 									Service4 = Service3#service{last_modified = LM},

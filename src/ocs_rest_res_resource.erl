@@ -33,10 +33,6 @@
 
 -include("ocs.hrl").
 
-%% support deprecated_time_unit()
--define(MILLISECOND, milli_seconds).
-%-define(MILLISECOND, millisecond).
-
 -define(specPath, "/resourceCatalogManagement/v2/resourceSpecification/").
 -define(candidatePath, "/resourceCatalogManagement/v2/resourceCandidate/").
 -define(catalogPath, "/resourceCatalogManagement/v2/resourceCatalog/").
@@ -572,7 +568,7 @@ patch_resource(Id, Etag, ReqData) ->
 									resource(Resource1)) of
 								{struct, _} = Resource2 ->
 									Resource3 = resource(Resource2),
-									TS = erlang:system_time(?MILLISECOND),
+									TS = erlang:system_time(millisecond),
 									N = erlang:unique_integer([positive]),
 									LM = {TS, N},
 									Resource4 = Resource3#resource{last_modified = LM},

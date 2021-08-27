@@ -43,10 +43,6 @@
 		lookup_last/2, lookup_all/2, list/0, list/2, backup/2, restore/2,
 		import/1, clear_table/1]).
 
-%% support deprecated_time_unit()
--define(MILLISECOND, milli_seconds).
-%-define(MILLISECOND, millisecond).
-
 -define(CHUNKSIZE, 100).
 
 -include("ocs.hrl").
@@ -536,7 +532,7 @@ insert(Table, Number, Value, []) ->
 %% @hidden
 insert(Table, [H | []], Value, NumWrites, Acc) ->
 	Number =  Acc ++ [H],
-	LM = {erlang:system_time(?MILLISECOND),
+	LM = {erlang:system_time(millisecond),
 			erlang:unique_integer([positive])},
 	Value1 = erlang:insert_element(tuple_size(Value) + 1, Value, LM),
 	Gtt = #gtt{num = Number, value = Value1},

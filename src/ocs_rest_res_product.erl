@@ -37,10 +37,6 @@
 
 -include("ocs.hrl").
 
-%% support deprecated_time_unit()
--define(MILLISECOND, milli_seconds).
-%-define(MILLISECOND, millisecond).
-
 -define(catalogPath, "/productCatalogManagement/v2/catalog/").
 -define(categoryPath, "/productCatalogManagement/v2/category/").
 -define(productSpecPath, "/productCatalogManagement/v2/productSpecification/").
@@ -439,7 +435,7 @@ patch_offer(ProdId, Etag, ReqData) ->
 							case catch ocs_rest:patch(Operations, offer(Product1)) of
 								{struct, _} = Product2  ->
 									Product3 = offer(Product2),
-									TS = erlang:system_time(?MILLISECOND),
+									TS = erlang:system_time(millisecond),
 									N = erlang:unique_integer([positive]),
 									LM = {TS, N},
 									Product4 = Product3#offer{last_modified = LM},
@@ -525,7 +521,7 @@ patch_inventory(ProdId, Etag, ReqData) ->
 								Etag2 == undefined ->
 							case catch ocs_rest:patch(Operations, inventory(Product1)) of
 								{struct, _} = Product2 ->
-									TS = erlang:system_time(?MILLISECOND),
+									TS = erlang:system_time(millisecond),
 									N = erlang:unique_integer([positive]),
 									LM = {TS, N},
 									case inventory(Product2) of
@@ -1955,7 +1951,7 @@ inventory([balance | T], #product{balance = BucketRefs} = Product, Acc) ->
 	case catch mnesia:transaction(F1) of
 		{atomic, Buckets1} ->
 			Buckets2 = lists:flatten(Buckets1),
-			Now = erlang:system_time(?MILLISECOND),
+			Now = erlang:system_time(millisecond),
 			F2 = fun(#bucket{units = cents, remain_amount = N, end_date = EndDate},
 							{undefined, B, S}) when EndDate == undefined;
 							EndDate > Now ->

@@ -47,10 +47,6 @@
 -define(BASE_URI, "/ratingdata").
 -define(NRF_TABLE, nrf_session).
 
-%% support deprecated_time_unit()
--define(MILLISECOND, milli_seconds).
-%-define(MILLISECOND, millisecond).
-
 -type state() :: #state{}.
 -type capabilities() :: #diameter_caps{}.
 -type packet() ::  #diameter_packet{}.
@@ -575,7 +571,7 @@ post_request_ecur(SubscriberIds, SvcContextId,
 %% @hidden
 post_request_ecur1(SubscriberIds, SessionId, ServiceRating, Path) ->
 	{ok, Profile} = application:get_env(ocs, nrf_profile),
-	TS = erlang:system_time(?MILLISECOND),
+	TS = erlang:system_time(millisecond),
 	InvocationTimeStamp = ocs_log:iso8601(TS),
 	Sequence = ets:update_counter(counters, nrf_seq, 1),
 	Body = {struct, [{"nfConsumerIdentification",
@@ -634,7 +630,7 @@ post_request_iec(SubscriberIds, ServiceContextId, SessionId, MSCC, Location, Des
 post_request_iec1(SubscriberIds, SessionId, ServiceRating) ->
 	{ok, NrfUri} = application:get_env(ocs, nrf_uri),
 	{ok, Profile} = application:get_env(ocs, nrf_profile),
-	TS = erlang:system_time(?MILLISECOND),
+	TS = erlang:system_time(millisecond),
 	InvocationTimeStamp = ocs_log:iso8601(TS),
 	Sequence = ets:update_counter(counters, nrf_seq, 1),
 	Body = {struct, [{"nfConsumerIdentification",
@@ -702,7 +698,7 @@ post_request_scur(SubscriberIds, SvcContextId,
 %% @hidden
 post_request_scur1(SubscriberIds, SessionId, ServiceRating, Path) ->
 	{ok, Profile} = application:get_env(ocs, nrf_profile),
-	TS = erlang:system_time(?MILLISECOND),
+	TS = erlang:system_time(millisecond),
 	InvocationTimeStamp = ocs_log:iso8601(TS),
 	Sequence = ets:update_counter(counters, nrf_seq, 1),
 	Body = {struct, [{"nfConsumerIdentification",

@@ -53,10 +53,6 @@
 -include("diameter_gen_3gpp_s6b_application.hrl").
 -include("diameter_gen_3gpp_swx_application.hrl").
 
-%% support deprecated_time_unit()
--define(MILLISECOND, milli_seconds).
-%-define(MILLISECOND, millisecond).
-
 % calendar:datetime_to_gregorian_seconds({{1970,1,1},{0,0,0}})
 -define(EPOCH, 62167219200).
 
@@ -474,11 +470,11 @@ ipdr_log(Type, File, Start, End) when is_list(File),
 			IpdrDoc = case Type of
 				wlan ->
 					#ipdrDocWLAN{docId = uuid(), version = "3.1",
-							creationTime = iso8601(erlang:system_time(?MILLISECOND)),
+							creationTime = iso8601(erlang:system_time(millisecond)),
 							ipdrRecorderInfo = atom_to_list(node())};
 				voip ->
 					#ipdrDocVoIP{docId = uuid(), version = "3.1",
-							creationTime = iso8601(erlang:system_time(?MILLISECOND)),
+							creationTime = iso8601(erlang:system_time(millisecond)),
 							ipdrRecorderInfo = atom_to_list(node())}
 			end,
 			case disk_log:log(IpdrLog, IpdrDoc) of
@@ -586,7 +582,7 @@ ipdr_log3(IpdrLog, Start, End, SeqNum, {Cont, [_ | T]}) ->
 	ipdr_log3(IpdrLog, Start, End, SeqNum, {Cont, T}).
 %% @hidden
 ipdr_log4(IpdrLog, SeqNum) ->
-	EndTime = iso8601(erlang:system_time(?MILLISECOND)),
+	EndTime = iso8601(erlang:system_time(millisecond)),
 	IpdrDocEnd = #ipdrDocEnd{count = SeqNum, endTime = EndTime},
 	case disk_log:log(IpdrLog, IpdrDocEnd) of
 		ok ->
@@ -2080,7 +2076,7 @@ open_log3(Log, Reason) ->
 		Reason :: term().
 %% @doc write event into given log file
 write_log(Log, Event) ->
-	TS = erlang:system_time(?MILLISECOND),
+	TS = erlang:system_time(millisecond),
 	N = erlang:unique_integer([positive]),
 	LogEvent = list_to_tuple([TS, N | Event]),
 	Result = disk_log:log(Log, LogEvent),

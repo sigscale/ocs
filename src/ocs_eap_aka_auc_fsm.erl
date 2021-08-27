@@ -96,10 +96,6 @@
 
 -define(TIMEOUT, 10000).
 
-%% support deprecated_time_unit()
--define(MILLISECOND, milli_seconds).
-%-define(MILLISECOND, millisecond).
-
 -dialyzer({[nowarn_function, no_match], kdf/5}).
 -ifdef(OTP_RELEASE).
 	-define(HMAC(Key, Data),
@@ -642,7 +638,7 @@ kdf(CK, IK, "WLAN", SQN, AK)
 %% @hidden
 save_dif(Identity, DIF)
 		when is_binary(Identity), is_integer(DIF)->
-	Now = erlang:system_time(?MILLISECOND),
+	Now = erlang:system_time(millisecond),
 	N = erlang:unique_integer([positive]),
 	LM = {Now, N},
 	F = fun() ->

@@ -29,10 +29,6 @@
 -include("ocs_log.hrl").
 -include_lib("radius/include/radius.hrl").
 
-%% support deprecated_time_unit()
--define(MILLISECOND, milli_seconds).
-%-define(MILLISECOND, millisecond).
-
 % calendar:datetime_to_gregorian_seconds({{1970,1,1},{0,0,0}})
 -define(EPOCH, 62167219200).
 
@@ -626,7 +622,7 @@ rate6(#service{enabled = false} = Service, Buckets,
 									{Units, 0}, {Units, 0}, State);
 						{NewUnitsCharged, 0, Buckets4}
 								when NewUnitsCharged < NewChargeUnits->
-							Now = erlang:system_time(?MILLISECOND),
+							Now = erlang:system_time(millisecond),
 							NewReservation = {Now, 0, NewUnitsCharged - NewChargeUnits,
 									ServiceId, ChargingKey, SessionId},
 							LM = make_lm(),
@@ -639,7 +635,7 @@ rate6(#service{enabled = false} = Service, Buckets,
 									{Units, 0}, {Units, 0}, State)
 					end;
 				false ->
-					Now = erlang:system_time(?MILLISECOND),
+					Now = erlang:system_time(millisecond),
 					NewReservation = {Now, 0, NewChargeUnits - Amount,
 							ServiceId, ChargingKey, SessionId},
 					LM = make_lm(),
@@ -696,7 +692,7 @@ rate6(Service, Buckets,
 									ReserveAmount, {Units, UnitsReserved}, State);
 						{NewUnitsCharged, 0, Buckets4}
 								when NewUnitsCharged < NewChargeUnits ->
-							Now = erlang:system_time(?MILLISECOND),
+							Now = erlang:system_time(millisecond),
 							NewReservation = {Now, NewUnitsCharged, 0,
 									ServiceId, ChargingKey, SessionId},
 							LM = make_lm(),
@@ -710,7 +706,7 @@ rate6(Service, Buckets,
 									ReserveAmount, {Units, 0}, State)
 					end;
 				false ->
-					Now = erlang:system_time(?MILLISECOND),
+					Now = erlang:system_time(millisecond),
 					NewReservation = {Now, UnitsCharged, 0,
 							ServiceId, ChargingKey, SessionId},
 					LM = make_lm(),
@@ -757,7 +753,7 @@ rate6(Service, Buckets1,
 					{Debits, Buckets4} = get_final(ServiceId,
 							ChargingKey, SessionId, Buckets3),
 					Rated3 = rated(Debits, Rated2),
-					Now = erlang:system_time(?MILLISECOND),
+					Now = erlang:system_time(millisecond),
 					NewReservation = {Now, UnitsCharged, 0,
 							ServiceId, ChargingKey, SessionId},
 					LM = make_lm(),
@@ -795,7 +791,7 @@ rate6(Service, Buckets1,
 				{PriceCharged, Buckets3}  when PriceCharged < PriceCharge ->
 					TotalUnits = UnitsCharged + (PriceCharged div UnitPrice),
 					Rated3 = rated(#{Units => Amount, cents => PriceCharged}, Rated2),
-					Now = erlang:system_time(?MILLISECOND),
+					Now = erlang:system_time(millisecond),
 					NewReservation = {Now, UnitsCharged, 0,
 							ServiceId, ChargingKey, SessionId},
 					LM = make_lm(),
@@ -1177,7 +1173,7 @@ authorize5(#service{session_attributes = ExistingAttr} = Service,
 %% @hidden
 authorize6(#service{multisession = false, session_attributes = []}
 		= Service, SessionAttributes, Attributes) ->
-	NewSessionAttributes = {erlang:system_time(?MILLISECOND),
+	NewSessionAttributes = {erlang:system_time(millisecond),
 			get_session_id(SessionAttributes)},
 	Service1 = Service#service{session_attributes =
 		[NewSessionAttributes], disconnect = false},
@@ -1185,7 +1181,7 @@ authorize6(#service{multisession = false, session_attributes = []}
 	{authorized, Service1, Attributes, []};
 authorize6(#service{multisession = false, session_attributes
 		= ExistingAttr} = Service, SessionAttributes, Attributes) ->
-	NewSessionAttributes = {erlang:system_time(?MILLISECOND),
+	NewSessionAttributes = {erlang:system_time(millisecond),
 			get_session_id(SessionAttributes)},
 	Service1 = Service#service{session_attributes =
 		[NewSessionAttributes], disconnect = false},
@@ -1193,7 +1189,7 @@ authorize6(#service{multisession = false, session_attributes
 	{authorized, Service1, Attributes, ExistingAttr};
 authorize6(#service{multisession = true, session_attributes
 		= ExistingAttr} = Service, SessionAttributes, Attributes) ->
-	NewSessionAttributes = {erlang:system_time(?MILLISECOND),
+	NewSessionAttributes = {erlang:system_time(millisecond),
 			get_session_id(SessionAttributes)},
 	Service1 = Service#service{session_attributes =
 		[NewSessionAttributes | ExistingAttr], disconnect = false},
@@ -1279,7 +1275,7 @@ session_attributes(Attributes) ->
 %% @private
 update_session(Type, Charge, Reserve,
 		ServiceId, ChargingKey, SessionId, Buckets) ->
-	Now = erlang:system_time(?MILLISECOND),
+	Now = erlang:system_time(millisecond),
 	update_session(Type, Charge, Reserve, Now,
 			ServiceId, ChargingKey, SessionId, sort(Buckets), [], 0, 0).
 %% @hidden
@@ -1508,7 +1504,7 @@ update(_, _, _,  _, _, _, _, [], Acc, Charged, Reserved) ->
 %% @private
 charge_session(Type, Charge,
 		ServiceId, ChargingKey, SessionId, Buckets) ->
-	Now = erlang:system_time(?MILLISECOND),
+	Now = erlang:system_time(millisecond),
 	charge_session(Type, Charge, Now,
 			ServiceId, ChargingKey, SessionId, sort(Buckets), 0, []).
 %% @hidden
@@ -1626,7 +1622,7 @@ charge(_, _, _, _, _, _, [], Acc, Charged) ->
 %%
 %% @private
 charge_event(Type, Charge, Buckets) ->
-	Now = erlang:system_time(?MILLISECOND),
+	Now = erlang:system_time(millisecond),
 	charge_event(Type, Charge, Now, sort(Buckets), 0, []).
 %% @hidden
 charge_event(Type, Charge, Now,
@@ -1679,7 +1675,7 @@ convert(Price, Type, Size, ServiceId, ChargingKey, SessionId, Buckets) ->
 				false
 	end,
 	{CentsBuckets, UnitsBuckets} = lists:partition(Fcents, Buckets1),
-	Now = erlang:system_time(?MILLISECOND),
+	Now = erlang:system_time(millisecond),
 	convert(Price, Type, Size, ServiceId, ChargingKey, SessionId,
 			Now, CentsBuckets, UnitsBuckets, []).
 %% @hidden
@@ -1797,7 +1793,7 @@ add_session(SessionId, SessionList) ->
 		true ->
 			SessionList;
 		false ->
-			[{erlang:system_time(?MILLISECOND), SessionId} | SessionList]
+			[{erlang:system_time(millisecond), SessionId} | SessionList]
 	end.
 
 -spec get_session_id(SessionAttributes) -> SessionId
@@ -2048,7 +2044,7 @@ filter_prices_key(_, [], Acc) ->
 %% @private
 %%
 get_final(ServiceId, ChargingKey, SessionId, Buckets) ->
-	Now = erlang:system_time(?MILLISECOND),
+	Now = erlang:system_time(millisecond),
 	get_final(Buckets, ServiceId, ChargingKey, SessionId, Now, #{}, []).
 %% @hidden
 get_final([#bucket{remain_amount = 0, reservations = []} | T],
@@ -2182,7 +2178,7 @@ roaming_table_prefix(_) ->
 
 %% @private
 make_lm() ->
-	{erlang:system_time(?MILLISECOND), erlang:unique_integer([positive])}.
+	{erlang:system_time(millisecond), erlang:unique_integer([positive])}.
 
 %% @private
 make_id({TS, N}) ->

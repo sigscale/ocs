@@ -47,10 +47,6 @@
 		sync = true :: boolean()}).
 -type statedata() :: #statedata{}.
 
-%% support deprecated_time_unit()
--define(MILLISECOND, milli_seconds).
-%-define(MILLISECOND, millisecond).
-
 %%----------------------------------------------------------------------
 %%  The ocs_rest_hub_fsm API
 %%----------------------------------------------------------------------
@@ -366,7 +362,7 @@ handle_async({RequestId, {error, Reason}}, Fsm) ->
 		ID :: string().
 %% @doc Generate a unique identifier.
 unique() ->
-	TS = erlang:system_time(?MILLISECOND),
+	TS = erlang:system_time(millisecond),
 	N = erlang:unique_integer([positive]),
 	ID = integer_to_list(TS) ++ integer_to_list(N),
 	{ID, TS}.

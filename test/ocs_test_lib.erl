@@ -9,10 +9,6 @@
 -export([add_offer/0]).
 -export([write_csv/2]).
 
-%% support deprecated_time_unit()
--define(MILLISECOND, milli_seconds).
-%-define(MILLISECOND, millisecond).
-
 -include("ocs.hrl").
 
 initialize_db() ->
