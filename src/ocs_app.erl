@@ -906,16 +906,21 @@ add_example_bundles3(PriceInstall) ->
 			{error, Reason}
 	end.
 
--spec join(Node) -> Result
+-spec join(Nodes) -> Result
 	when
+		Nodes :: [Node],
 		Node :: atom(),
 		Result :: {ok, Tables} | {error, Reason},
 		Tables :: [atom()],
 		Reason :: term().
 %% @doc Join an existing cluster.
 %%
-%% 	Tables will be copied from `Node'.
-join(Node) when is_atom(Node) ->
+%% 	Tables will be copied from a randomly
+%% 	selected `Node' in the `Nodes' list.
+%%
+join(Nodes) when is_list(Nodes), is_atom(hd(Nodes))  ->
+	N = rand:uniform(length(Nodes)),
+	Node = lists:nth(N, Nodes),
 	case mnesia:system_info(is_running) of
 		no ->
 			join1(Node);
