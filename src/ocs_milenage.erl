@@ -54,16 +54,31 @@
 -dialyzer({[nowarn_function, no_match],
 		[temp/3, opc/2, out1/4, out2/3, out3/3, out4/3, out5/3]}).
 -ifdef(OTP_RELEASE).
-	-define(BLOCK_ENCRYPT(Cipher, Key, Ivec, Data),
+	-define(BLOCK_ENCRYPT_CFB(Key, Ivec, Data),
 		case ?OTP_RELEASE of
 			OtpRelease when OtpRelease >= 23 ->
-				crypto:crypto_one_time(Cipher, Key, Ivec, Data, []);
+				crypto:crypto_one_time(aes_128_cfb128, Key, Ivec, Data, []);
 			OtpRelease when OtpRelease < 23 ->
-				crypto:block_encrypt(Cipher, Key, Ivec, Data)
+				crypto:block_encrypt(aes_cfb128, Key, Ivec, Data)
 		end).
 -else.
-	-define(BLOCK_ENCRYPT(Cipher, Key, Ivec, Data),
-			crypto:block_encrypt(Cipher, Key, Ivec, Data)).
+	-define(BLOCK_ENCRYPT_CFB(Key, Ivec, Data),
+			crypto:block_encrypt(aes_cfb128, Key, Ivec, Data)).
+-endif.
+
+-dialyzer({[nowarn_function, no_match],
+		[temp/3, opc/2, out1/4, out2/3, out3/3, out4/3, out5/3]}).
+-ifdef(OTP_RELEASE).
+	-define(BLOCK_ENCRYPT_CBC(Key, Ivec, Data),
+		case ?OTP_RELEASE of
+			OtpRelease when OtpRelease >= 23 ->
+				crypto:crypto_one_time(aes_128_cbc, Key, Ivec, Data, []);
+			OtpRelease when OtpRelease < 23 ->
+				crypto:block_encrypt(aes_cbc128, Key, Ivec, Data)
+		end).
+-else.
+	-define(BLOCK_ENCRYPT_CBC(Key, Ivec, Data),
+			crypto:block_encrypt(aes_cbc128, Key, Ivec, Data)).
 -endif.
 
 %%----------------------------------------------------------------------
@@ -258,7 +273,7 @@ f2345(OPc, K, RAND) ->
 %% 	functions and is derived from OP and the subscriber key (K).
 %% 	
 opc(OP, K) ->
-	?BLOCK_ENCRYPT(aes_cfb128, K, OP, OP).
+	?BLOCK_ENCRYPT_CFB(K, OP, OP).
 
 %%----------------------------------------------------------------------
 %% The milenage internal functions
@@ -277,7 +292,7 @@ opc(OP, K) ->
 %% 	the output functions.
 %% @hidden
 temp(OPc, K, RAND) ->
-	?BLOCK_ENCRYPT(aes_cbc128, K, OPc, RAND).
+	?BLOCK_ENCRYPT_CBC(K, OPc, RAND).
 	
 -spec in1(SQN, AMF) -> IN1
 	when
@@ -311,7 +326,7 @@ out1(OPc, K, TEMP, IN1) ->
 	B = rot(A, ?r1),
 	C = crypto:exor(TEMP, B),
 	D = crypto:exor(C, ?c1),
-	?BLOCK_ENCRYPT(aes_cfb128, K, D, OPc).
+	?BLOCK_ENCRYPT_CFB(K, D, OPc).
 
 -spec out2(OPc, K, TEMP) -> OUT2
 	when
@@ -329,7 +344,7 @@ out2(OPc, K, TEMP) ->
 	A = crypto:exor(TEMP, OPc),
 	B = rot(A, ?r2),
 	C = crypto:exor(B, ?c2),
-	?BLOCK_ENCRYPT(aes_cfb128, K, C, OPc).
+	?BLOCK_ENCRYPT_CFB(K, C, OPc).
 
 -spec out3(OPc, K, TEMP) -> OUT3
 	when
@@ -347,7 +362,7 @@ out3(OPc, K, TEMP) ->
 	A = crypto:exor(TEMP, OPc),
 	B = rot(A, ?r3),
 	C = crypto:exor(B, ?c3),
-	?BLOCK_ENCRYPT(aes_cfb128, K, C, OPc).
+	?BLOCK_ENCRYPT_CFB(K, C, OPc).
 
 -spec out4(OPc, K, TEMP) -> OUT4
 	when
@@ -365,7 +380,7 @@ out4(OPc, K, TEMP) ->
 	A = crypto:exor(TEMP, OPc),
 	B = rot(A, ?r4),
 	C = crypto:exor(B, ?c4),
-	?BLOCK_ENCRYPT(aes_cfb128, K, C, OPc).
+	?BLOCK_ENCRYPT_CFB(K, C, OPc).
 
 -spec out5(OPc, K, TEMP) -> OUT5
 	when
@@ -383,7 +398,7 @@ out5(OPc, K, TEMP) ->
 	A = crypto:exor(TEMP, OPc),
 	B = rot(A, ?r5),
 	C = crypto:exor(B, ?c5),
-	?BLOCK_ENCRYPT(aes_cfb128, K, C, OPc).
+	?BLOCK_ENCRYPT_CFB(K, C, OPc).
 
 -spec rot(X, R) -> binary()
 	when
