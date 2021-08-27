@@ -407,7 +407,7 @@ id1(#radius{id = RadiusID, authenticator = RequestAuthenticator,
 		#statedata{eap_id = EapID, server_id = ServerID,
 		session_id = SessionID, password_required = PwdReq} = StateData) ->
 	try
-		S_rand = crypto:rand_uniform(1, ?R),
+		S_rand = rand:uniform(1, ?R),
 		NewEapID = (EapID rem 255) + 1,
 		case catch ocs:find_service(PeerID) of
 			{ok, #service{password = Pwd}} ->
@@ -452,7 +452,7 @@ id2(#diameter_eap_app_DER{} = Request, PeerID, Token,
 		auth_req_type = AuthType, origin_host = OH, origin_realm = OR,
 		diameter_port_server = PortServer, password_required = PwdReq} = StateData) ->
 	try
-		S_rand = crypto:rand_uniform(1, ?R),
+		S_rand = rand:uniform(1, ?R),
 		NewEapID = (EapID rem 255) + 1,
 		case catch ocs:find_service(PeerID) of
 			{ok, #service{password = Pwd}} ->
@@ -819,7 +819,7 @@ confirm3(#radius{id = RadiusID, authenticator = RequestAuthenticator,
 	MethodID = ocs_eap_pwd:h([Ciphersuite, ScalarP, ScalarS]),
 	<<MSK:64/binary, _EMSK:64/binary>> = ocs_eap_pwd:kdf(MK,
 			<<?PWD, MethodID/binary>>, 128),
-	Salt = crypto:rand_uniform(16#8000, 16#ffff),
+	Salt = rand:uniform(16#8000, 16#ffff),
 	<<MSK1:32/binary, MSK2:32/binary>> = MSK,
 	MsMppeRecvKey = encrypt_key(Secret, RequestAuthenticator, Salt, MSK1),
 	MsMppeSendKey = encrypt_key(Secret, RequestAuthenticator, Salt, MSK2),

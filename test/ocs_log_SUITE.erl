@@ -168,7 +168,7 @@ radius_log_auth_event(_Config) ->
 	ClientPort = 49651,
 	Client = {ClientAddress, ClientPort},
 	Type = accept,
-	RandomList = [crypto:rand_uniform(N, 256) || N <- lists:seq(1, 16)],
+	RandomList = [rand:uniform(N, 256) || N <- lists:seq(1, 16)],
 	RandomBin = list_to_binary(RandomList),
 	ReqAttrs = [{?ServiceType, 2}, {?NasPortId, "wlan1"}, {?NasPortType, 19},
 			{?UserName, "DE:AD:BE:EF:CA:FE"}, {?AcctSessionId, "8240019b"},
@@ -358,7 +358,7 @@ ipdr_log(_Config) ->
 	Fill = fun(_F, 0) ->
 				ok;
 			(F, N) ->
-				Random = crypto:rand_uniform(1, 100),
+				Random = rand:uniform(1, 100),
 				{Type, AcctType} = case lists:nth(Random, Weight) of
 					1 -> {start, 1};
 					2 -> {stop, 2};
