@@ -153,12 +153,40 @@ ocs_radius_authentication.beam:$(top_srcdir)/src/ocs_radius_authentication.erl \
 			+"{nowarn_deprecated_function, [{crypto,hmac,3}]}" \
 			-I $(top_srcdir)/include -I $(top_builddir)/include $<
 
+ocs_radius_disconnect_fsm_sup.beam:$(top_srcdir)/src/ocs_radius_disconnect_fsm_sup.erl
+	$(ERLC) $(ERLCFLAGS) +"{nowarn_removed, [{pg2,join,2}]}" \
+			+"{nowarn_deprecated_function, [{pg2,join,2}]}" \
+			-I $(top_srcdir)/include -I $(top_builddir)/include $<
+
+ocs_deregister_fsm.beam:$(top_srcdir)/src/ocs_deregister_fsm.erl \
+		$(top_srcdir)/include/ocs.hrl \
+		$(top_srcdir)/include/diameter_3gpp.hrl \
+		$(top_builddir)/include/diameter_gen_3gpp.hrl \
+		$(top_builddir)/include/diameter_gen_3gpp_sta_application.hrl \
+		$(top_builddir)/include/diameter_gen_3gpp_swm_application.hrl \
+		$(top_builddir)/include/diameter_gen_3gpp_swx_application.hrl
+	$(ERLC) $(ERLCFLAGS) +"{nowarn_removed, [{pg2,get_closest_pid,1}]}" \
+			+"{nowarn_deprecated_function, [{pg2,get_closest_pid,1}]}" \
+			-I $(top_srcdir)/include -I $(top_builddir)/include $<
+
+ocs_radius_acct_port_sup.beam:$(top_srcdir)/src/ocs_radius_acct_port_sup.erl
+	$(ERLC) $(ERLCFLAGS) +"{nowarn_removed, [{pg2,create,1}]}" \
+			+"{nowarn_deprecated_function, [{pg2,create,1}]}" \
+			-I $(top_srcdir)/include -I $(top_builddir)/include $<
+
+ocs_diameter_acct_port_sup.beam:$(top_srcdir)/src/ocs_diameter_acct_port_sup.erl
+	$(ERLC) $(ERLCFLAGS) +"{nowarn_removed, [{pg2,create,1}]}" \
+			+"{nowarn_deprecated_function, [{pg2,create,1}]}" \
+			-I $(top_srcdir)/include -I $(top_builddir)/include $<
+
 ocs_simple_auth_fsm.beam:$(top_srcdir)/src/ocs_simple_auth_fsm.erl \
 		$(top_srcdir)/include/ocs.hrl \
 		$(top_srcdir)/include/ocs_eap_codec.hrl \
 		$(top_builddir)/include/diameter_gen_nas_application_rfc7155.hrl
 	$(ERLC) $(ERLCFLAGS) +"{nowarn_removed, [{crypto,hmac,3}]}" \
 			+"{nowarn_deprecated_function, [{crypto,hmac,3}]}" \
+			+"{nowarn_removed, [{pg2,get_closest_pid,1}]}" \
+			+"{nowarn_deprecated_function, [{pg2,get_closest_pid,1}]}" \
 			-I $(top_srcdir)/include -I $(top_builddir)/include $<
 
 ocs_eap_ttls_aaah_fsm.beam:$(top_srcdir)/src/ocs_eap_ttls_aaah_fsm.erl \
@@ -189,6 +217,8 @@ ocs_eap_pwd_fsm.beam:$(top_srcdir)/src/ocs_eap_pwd_fsm.erl \
 		$(top_builddir)/include/diameter_gen_nas_application_rfc7155.hrl
 	$(ERLC) $(ERLCFLAGS) +"{nowarn_removed, [{crypto,hmac,3}]}" \
 			+"{nowarn_deprecated_function, [{crypto,hmac,3}]}" \
+			+"{nowarn_removed, [{pg2,get_closest_pid,1}]}" \
+			+"{nowarn_deprecated_function, [{pg2,get_closest_pid,1}]}" \
 			-I $(top_srcdir)/include -I $(top_builddir)/include $<
 
 ocs_eap_aka_fsm.beam:$(top_srcdir)/src/ocs_eap_aka_fsm.erl \
