@@ -249,7 +249,8 @@ send_to_port_server(Svc, Caps, CAddress, CPort, PasswordReq, Trusted, Request) -
 		{options, Options} ->
 			case lists:keyfind(transport_config, 1, Options) of
 				{transport_config, [_, {ip, IP}, {port, Port}]} ->
-					case global:whereis_name({ocs_diameter_auth, IP, Port}) of
+					case global:whereis_name({ocs_diameter_auth,
+							node(), IP, Port}) of
 						undefined ->
 							discard;
 						PortServer ->
