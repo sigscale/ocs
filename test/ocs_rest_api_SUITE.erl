@@ -241,7 +241,7 @@ all() ->
 	notify_diameter_acct_log, get_tariff_resource, get_tariff_resources,
 	post_tariff_resource, delete_tariff_resource, update_tariff_resource,
 	post_policy_resource, query_policy_resource, arbitrary_char_service,
-	delete_policy_table, oauth_authentication, post_hub_role].
+	delete_policy_table, oauth_authentication, post_hub_role, delete_hub_role].
 
 %%---------------------------------------------------------------------
 %%  Test cases
@@ -4974,6 +4974,24 @@ post_hub_role(Config) ->
 	{_, Callback} = lists:keyfind("callback", 1, HubList),
 	{_, null} = lists:keyfind("query", 1, HubList),
 	{_, Id} = lists:keyfind("id", 1, HubList).
+
+delete_hub_role() ->
+	[{userdata, [{doc, "Unregister hub listener for usage"}]}].
+
+delete_hub_role(Config) ->
+	HostUrl = ?config(host_url, Config),
+	PathHub = ?PathRole ++ "hub/",
+	CollectionUrl = HostUrl ++ PathHub,
+	Callback = "http://in.listener.com",
+	RequestBody = "{\"callback\":\"" ++ Callback ++ "\"}",
+	ContentType = "application/json",
+	Accept = {"accept", "application/json"},
+	Request = {CollectionUrl, [Accept, auth_header()], ContentType, RequestBody},
+	{ok, {{_, 201, _}, _, ResponseBody}} = httpc:request(post, Request, [], []),
+	{struct, HubList} = mochijson:decode(ResponseBody),
+	{_, Id} = lists:keyfind("id", 1, HubList),
+	Request1 = {HostUrl ++ PathHub ++ Id, [Accept, auth_header()]},
+	{ok, {{_, 204, _}, _, []}} = httpc:request(delete, Request1, [], []).
 
 %%---------------------------------------------------------------------
 %%  Internal functions
