@@ -118,6 +118,7 @@ modhtml = ocs.html \
 			ocs_rest_hub_user.html \
 			ocs_rest_hub_resource.html \
 			ocs_rest_hub_usage.html \
+			ocs_rest_hub_role.html \
 			ocs_event.html \
 			user_default.html
 
