@@ -44,6 +44,7 @@
 -define(PathCatalogHub, "/productCatalog/v2/hub/").
 -define(PathResourceHub, "/resourceInventory/v1/hub/").
 -define(PathUsageHub, "/usageManagement/v1/hub/").
+-define(PathRole, "/partyRoleManagement/v4/").
 
 %%---------------------------------------------------------------------
 %%  Test server callback functions
@@ -240,7 +241,7 @@ all() ->
 	notify_diameter_acct_log, get_tariff_resource, get_tariff_resources,
 	post_tariff_resource, delete_tariff_resource, update_tariff_resource,
 	post_policy_resource, query_policy_resource, arbitrary_char_service,
-	delete_policy_table, oauth_authentication].
+	delete_policy_table, oauth_authentication, post_hub_role].
 
 %%---------------------------------------------------------------------
 %%  Test cases
@@ -4947,6 +4948,32 @@ arbitrary_char_service(Config) ->
 				false
 	end,
 	lists:any(F, Chars).
+
+post_hub_role() ->
+	[{userdata, [{doc, "Register hub listener for role"}]}].
+
+post_hub_role(Config) ->
+	HostUrl = ?config(host_url, Config),
+	PathHub = ?PathRole ++ "hub/",
+	CollectionUrl = HostUrl ++ PathHub,
+	Callback = "http://in.listener.com",
+	RequestBody = "{\n"
+			++ "\t\"callback\": \"" ++ Callback ++ "\",\n"
+			++ "}\n",
+	ContentType = "application/json",
+	Accept = {"accept", "application/json"},
+	Request = {CollectionUrl, [Accept, auth_header()], ContentType, RequestBody},
+	{ok, Result} = httpc:request(post, Request, [], []),
+	{{"HTTP/1.1", 201, _Created}, Headers, ResponseBody} = Result,
+	{_, "application/json"} = lists:keyfind("content-type", 1, Headers),
+	ContentLength = integer_to_list(length(ResponseBody)),
+	{_, ContentLength} = lists:keyfind("content-length", 1, Headers),
+	{_, Location} = lists:keyfind("location", 1, Headers),
+	Id = string:substr(Location, string:rstr(Location, PathHub) + length(PathHub)),
+	{struct, HubList} = mochijson:decode(ResponseBody),
+	{_, Callback} = lists:keyfind("callback", 1, HubList),
+	{_, null} = lists:keyfind("query", 1, HubList),
+	{_, Id} = lists:keyfind("id", 1, HubList).
 
 %%---------------------------------------------------------------------
 %%  Internal functions
