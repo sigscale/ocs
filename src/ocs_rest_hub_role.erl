@@ -21,7 +21,8 @@
 
 -include("ocs.hrl").
 
--export([content_types_accepted/0, content_types_provided/0, post_hub/2]).
+-export([content_types_accepted/0, content_types_provided/0, post_hub/2,
+		delete_hub/1]).
 -export([hub/1]).
 
 -define(PathRoleHub, "/partyRoleManagement/v4/hub/").
@@ -77,6 +78,16 @@ post_hub1({ok, _PageServer, Id}, HubRecord) ->
 	{ok, Headers, Body};
 post_hub1({error, _Reason}, _HubRecord) ->
 	{error, 500}.
+
+-spec delete_hub(Id) -> Result
+	when
+		Id :: string(),
+		Result :: {ok, Headers :: [tuple()], Body :: iolist()}
+			| {error, ErrorCode :: integer()}.
+%% Delete by id.
+%% @doc Respond to `POST /partyRoleManagement/v4/hub/{id}'
+delete_hub(Id) ->
+	{gen_fsm:send_all_state_event({global, Id}, shutdown), [], []}.
 
 %%----------------------------------------------------------------------
 %%  The internal functions
