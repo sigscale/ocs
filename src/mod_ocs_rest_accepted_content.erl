@@ -86,6 +86,8 @@ do(#mod{method = Method, parsed_header = Headers, request_uri = Uri,
 							check_content_type_header(Headers, Method, ocs_rest_res_user, Data);
 						["partyManagement", "v1", "hub" | _] ->
 							check_content_type_header(Headers, Method, ocs_rest_hub_user, Data);
+						["partyRoleManagement", "v4", "hub" | _] ->
+							check_content_type_header(Headers, Method, ocs_rest_hub_role, Data);
 						["balanceManagement", "v1", "product",_Id, "balanceTopup"] ->
 							check_content_type_header(Headers, Method, ocs_rest_res_balance, Data);
 						["balanceManagement", "v1", "service",_Id, "balanceTopup"] ->
