@@ -61,7 +61,7 @@
 %% 	{@link //radius/radius_server. radius_server} behaviour process
 %% 	initializes.
 init(Address, Port) when is_tuple(Address), is_integer(Port) ->
-	case global:whereis_name({ocs_radius_auth, Address, Port}) of
+	case global:whereis_name({ocs_radius_auth, node(), Address, Port}) of
 		PortServer when is_pid(PortServer) ->
 			{ok, #state{port_server = PortServer}};
 		undefined ->
