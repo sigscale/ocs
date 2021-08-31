@@ -22,7 +22,7 @@
 -include("ocs.hrl").
 
 -export([content_types_accepted/0, content_types_provided/0, post_hub/2,
-		delete_hub/1]).
+		delete_hub/1, get_hubs/0]).
 -export([hub/1]).
 
 -define(PathRoleHub, "/partyRoleManagement/v4/hub/").
@@ -89,6 +89,27 @@ post_hub1({error, _Reason}, _HubRecord) ->
 delete_hub(Id) ->
 	{gen_fsm:send_all_state_event({global, Id}, shutdown), [], []}.
 
+-spec get_hubs() -> Result
+	when
+		Result :: {ok, Headers :: [tuple()], Body :: iolist()}
+				| {error, ErrorCode :: integer()}.
+%% @doc Body producing function for
+%% 	`GET|HEAD /partyRoleManagement/v4/hub/'
+get_hubs() ->
+	get_hubs(supervisor:which_children(ocs_rest_hub_sup), []).
+%% @hidden
+get_hubs([{_, Pid, _, _} | T], Acc) ->
+	case gen_fsm:sync_send_all_state_event(Pid, get) of
+		#hub{href = ?PathRoleHub ++ _} = Hub ->
+			get_hubs(T, [Hub | Acc]);
+		_Hub ->
+			get_hubs(T, Acc)
+	end;
+get_hubs([], Acc) ->
+	Body = mochijson:encode({array, [hub(Hub) || Hub <- Acc]}),
+	Headers = [{content_type, "application/json"}],
+	{ok, Headers, Body}.
+
 %%----------------------------------------------------------------------
 %%  The internal functions
 %%----------------------------------------------------------------------
@@ -120,7 +141,9 @@ hub([href | T], #hub{href = Href} = H, Acc) when is_list(Href) ->
 	hub(T, H, [{"href", Href} | Acc]);
 hub([query | T], #hub{query = undefined} = H, Acc) ->
 	hub(T, H, [{"query", null} | Acc]);
-hub([query | T], #hub{query = Query} = H, Acc) when length(Query) > 0 ->
+hub([query | T], #hub{query = []} = H, Acc) ->
+	hub(T, H, [{"query", null} | Acc]);
+hub([query | T], #hub{query = Query} = H, Acc) when is_list(Query) ->
 	hub(T, H, [{"query", Query} | Acc]);
 hub([_ | T], H, Acc) ->
 	hub(T, H, Acc);
