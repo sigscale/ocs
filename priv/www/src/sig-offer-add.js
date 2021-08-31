@@ -447,16 +447,16 @@ class offerAdd extends PolymerElement {
 									id="addPriceCharsTime">
 								<paper-input
 										type="time"
-										value="{{priceTodStart}}"
-										label="Start Time">
+										label="Start Time"
+										value="{{priceTodStart}}">
 								</paper-input>
 								<paper-tooltip>
 									Time of day when this Product Offering Price starts to apply.
 								</paper-tooltip>
 								<paper-input
 										type="time"
-										value="{{priceTodEnd}}"
-										label="End Time">
+										label="End Time"
+										value="{{priceTodEnd}}">
 								</paper-input>
 								<paper-tooltip>
 									Time of day when this Product Offering Price ends applying.
@@ -1090,8 +1090,8 @@ class offerAdd extends PolymerElement {
 				}
 				this.priceReserveTime = this.prices[indexPrice].reserveTime;
 				this.priceReserveBytes = this.prices[indexPrice].reserveBytes;
-				this.priceTodStart = this.prices[indexPrice].timeOfDayRange;
-				this.priceTodEnd = this.prices[indexPrice].timeOfDayRange;
+				this.priceTodStart = this.prices[indexPrice].timeOfDayRange.low.amount;
+				this.priceTodEnd = this.prices[indexPrice].timeOfDayRange.up.amount;
 				if(this.prices[indexPrice].callDirection == "answer") {
 					this.priceIncoming = true;
 				}
@@ -1612,28 +1612,30 @@ class offerAdd extends PolymerElement {
 				prodSpecCharValueUse.push(charValueUse);
 			}
 			if (item.timeOfDayRange) {
-				if (item.timeOfDayRange.length > 0) {
-					var charValueUse = new Object();
-					charValueUse.name = "timeOfDayRange";
-					charValueUse.valueType = "Range";
-					charValueUse.minCardinality = 0;
-					charValueUse.maxCardinality = 1;
-					var charValue1 = new Object();
-					var charValue = new Object();
-					var charValueLower = new Object();
-					charValueLower.amount = this.priceTodStart.rawValue;
-					charValueLower.units = "minutes";
-					charValue.lowerValue = charValueLower;
-					var charValueUpper = new Object();
-					charValueUpper.amount = this.priceTodEnd.rawValue;
-					charValueUpper.units = "minutes";
-					charValue.upperValue = charValueUpper;
-					charValue1.value = charValue;
-					var charValues = new Array();
-					charValues.push(charValue1);
-					charValueUse.productSpecCharacteristicValue = charValues;
-					prodSpecCharValueUse.push(charValueUse);
-				}
+				var charValueUse = new Object();
+				charValueUse.name = "timeOfDayRange";
+				charValueUse.valueType = "Range";
+				charValueUse.minCardinality = 0;
+				charValueUse.maxCardinality = 1;
+				var charLowUpObj = new Object();
+				var charValueFinal = new Object();
+				var charValueLower = new Object();
+				charValueLower.amount = item.timeOfDayRange.low.amount;
+				charValueLower.units = "hours";
+				charLowUpObj.lowerValue = charValueLower;
+				var charValueUpper = new Object();
+				charValueUpper.amount = item.timeOfDayRange.up.amount;
+				charValueUpper.units = "hours";
+				charLowUpObj.upperValue = charValueUpper;
+				charValueFinal.value = charLowUpObj;
+				var charValues = new Array();
+				charValues.push(charValueFinal);
+				charValueUse.productSpecCharacteristicValue = charValues;
+				var prodSpec = new Object();
+				prodSpec.id = "4";
+				prodSpec.href = "/catalogManagement/v2/productSpecification/4";
+				charValueUse.productSpecification = prodSpec;
+				prodSpecCharValueUse.push(charValueUse);
 			}
 			if (item.callDirection) {
 				var charValue = new Object();
@@ -1869,8 +1871,17 @@ class offerAdd extends PolymerElement {
 		}
 		priceNew.reserveTime = this.priceReserveTime;
 		priceNew.reserveBytes = this.priceReserveBytes;
-		priceNew.timeOfDayRange = this.priceTodStart;
-		priceNew.timeOfDayRange = this.priceTodEnd;
+		var dayStartTime = this.priceTodStart;
+		var dayEndTime = this.priceTodEnd;
+		if(dayStartTime && dayEndTime ) {
+			var low = new Object();
+			low.amount = dayStartTime;
+			low.units = "hours";
+			var up = new Object();
+			up.amount = dayEndTime;
+			up.units = "hours";
+			priceNew.timeOfDayRange = {low, up};
+		}
 		if(this.priceIncoming == true) {
 			priceNew.callDirection = "answer";
 		}
