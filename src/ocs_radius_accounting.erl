@@ -49,7 +49,7 @@
 %% 	initializes.
 %%
 init(Address, Port) ->
-	case global:whereis_name({ocs_radius_acct, Address, Port}) of
+	case global:whereis_name({ocs_radius_acct, node(), Address, Port}) of
 		AcctServer when is_pid(AcctServer) ->
 			{ok, #state{acct_server = AcctServer}};
 		undefined ->

@@ -272,7 +272,7 @@ process_request(ServiceName,
 process_request1(_ServiceName, Capabilities,
 		ServerAddress, ServerPort, _ClientAddress, Trusted, EAP, Request) ->
 	PortServer = global:whereis_name({ocs_diameter_auth,
-			ServerAddress, ServerPort}),
+			node(), ServerAddress, ServerPort}),
 	Answer = gen_server:call(PortServer,
 			{diameter_request, Capabilities, ServerAddress, ServerPort,
 			true, Trusted, Request, EAP}),
@@ -283,7 +283,7 @@ process_request2(ServiceName,
 		origin_realm = {ORealm, DRealm}},
 		ServerAddress, ServerPort, ClientAddress, SessionId, Request) ->
 	Sup = global:whereis_name({ocs_terminate_fsm_sup,
-			ServerAddress, ServerPort}),
+			node(), ServerAddress, ServerPort}),
 	ChildSpec = [[ServiceName, ServerAddress, ServerPort, ClientAddress,
 			undefined, SessionId, OHost, ORealm, DHost, DRealm], []],
 	case supervisor:start_child(Sup, ChildSpec) of

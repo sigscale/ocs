@@ -1,3 +1,9 @@
+2021-08-30  Vance Shipley <vances@sigscale.org>
+
+	* prevent registered name clash in diameter on clusters
+	* prevent registered name clash in radius on clusters
+	* refactor ocs_app:join/1 to work with erl -s
+
 2021-08-27  Vance Shipley <vances@sigscale.org>
 
 	* update apn selection on gx

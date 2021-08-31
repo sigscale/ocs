@@ -84,7 +84,7 @@ supervisor_bridge(StartMod, Args) ->
 
 %% @hidden
 server(StartMod, Address, Port, Options) ->
-	GlobalName = {ocs_radius_acct, Address, Port},
+	GlobalName = {ocs_radius_acct, node(), Address, Port},
 	Args = [self(), Address, Port, Options],
 	StartArgs = [{global, GlobalName}, StartMod, Args, []],
 	StartFunc = {gen_server, start_link, StartArgs},

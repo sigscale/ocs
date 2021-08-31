@@ -175,7 +175,8 @@ init([Sup, diameter, ServerAddress, ServerPort, ClientAddress, ClientPort,
 	{ok, TLSkey} = application:get_env(ocs, tls_key),
 	{ok, TLScert} = application:get_env(ocs, tls_cert),
 	{ok, TLScacert} = application:get_env(ocs, tls_cacert),
-	case global:whereis_name({ocs_diameter_auth, ServerAddress, ServerPort}) of
+	case global:whereis_name({ocs_diameter_auth,
+			node(), ServerAddress, ServerPort}) of
 		undefined ->
 			{stop, ocs_diameter_auth_port_server_not_found};
 		PortServer ->
