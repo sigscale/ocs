@@ -124,6 +124,7 @@ beam_DATA = ocs.beam \
 			ocs_rest_hub_user.beam \
 			ocs_rest_hub_resource.beam \
 			ocs_rest_hub_usage.beam \
+			ocs_rest_res_role.beam \
 			ocs_rest_hub_role.beam \
 			ocs_event.beam \
 			user_default.beam

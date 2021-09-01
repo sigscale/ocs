@@ -118,6 +118,7 @@
 				ocs_rest_hub_user,
 				ocs_rest_hub_resource,
 				ocs_rest_hub_usage,
+				ocs_rest_res_role,
 				ocs_rest_hub_role,
 				ocs_event,
 				user_default]},
