@@ -547,7 +547,7 @@ query_product3('$end_of_table', _MatchService) ->
 		ServiceRefs :: [ServiceRef],
 		Result :: {ok, #product{}} | {error, Reason},
 		ServiceRef :: binary(),
-		Reason :: term().
+		Reason :: service_not_found | service_has_product | offer_not_found | term().
 %% @equiv add_product(Offer, undefined, undefined, Characteristics)
 add_product(Offer, ServiceRefs) ->
 	add_product(Offer, ServiceRefs, undefined, undefined, []).
@@ -559,7 +559,7 @@ add_product(Offer, ServiceRefs) ->
 		Characteristics :: [tuple()],
 		ServiceRef :: binary(),
 		Result :: {ok, #product{}} | {error, Reason},
-		Reason :: term().
+		Reason :: service_not_found | service_has_product | offer_not_found | term().
 %% @equiv add_product(Offer, undefined, undefined, Characteristics)
 add_product(Offer, ServiceRefs, Characteristics) ->
 	add_product(Offer, ServiceRefs, undefined, undefined, Characteristics).
@@ -573,7 +573,7 @@ add_product(Offer, ServiceRefs, Characteristics) ->
 		Characteristics :: [tuple()],
 		ServiceRef :: binary(),
 		Result :: {ok, #product{}} | {error, Reason},
-		Reason :: term().
+		Reason :: service_not_found | service_has_product | offer_not_found | term().
 %% @doc Add a product inventory subscription instance.
 add_product(OfferId, ServiceRefs, StartDate, EndDate, Characteristics)
 		when (is_integer(StartDate) orelse (StartDate == undefined)),
@@ -589,11 +589,13 @@ add_product(OfferId, ServiceRefs, StartDate, EndDate, Characteristics)
 					Id = ocs_rest:etag({TS, N1}),
 					F2 = fun(ServiceRef) ->
 								case mnesia:read(service, ServiceRef, write) of
-									[Service] ->
+									[#service{product = undefined} = Service] ->
 										ok = mnesia:write(Service#service{product = Id,
 												last_modified = LM});
+									[_Service] ->
+										mnesia:abort(service_has_product);
 									_ ->
-										exit(service_not_found)
+										mnesia:abort(service_not_found)
 								end
 					end,
 					ok = lists:foreach(F2, ServiceRefs),
@@ -607,15 +609,13 @@ add_product(OfferId, ServiceRefs, StartDate, EndDate, Characteristics)
 					ok = mnesia:write(Product2),
 					Product2;
 				[] ->
-					throw(offer_not_found)
+					mnesia:abort(offer_not_found)
 			end
 	end,
 	case mnesia:transaction(F) of
 		{atomic, Product} ->
 			ok = ocs_event:notify(create_product, Product, product),
 			{ok, Product};
-		{aborted, {throw, Reason}} ->
-			{error, Reason};
 		{aborted, Reason} ->
 			{error, Reason}
 	end.
