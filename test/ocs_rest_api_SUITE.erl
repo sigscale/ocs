@@ -46,6 +46,9 @@
 -define(PathUsageHub, "/usageManagement/v1/hub/").
 -define(PathRole, "/partyRoleManagement/v4/").
 
+%% support deprecated_time_unit()
+-define(MILLISECOND, milli_seconds).
+
 %%---------------------------------------------------------------------
 %%  Test server callback functions
 %%---------------------------------------------------------------------
@@ -242,7 +245,8 @@ all() ->
 	post_tariff_resource, delete_tariff_resource, update_tariff_resource,
 	post_policy_resource, query_policy_resource, arbitrary_char_service,
 	delete_policy_table, oauth_authentication,
-	post_hub_role, delete_hub_role, get_role_hubs, get_role_hub].
+	post_hub_role, delete_hub_role, get_role_hubs, get_role_hub,
+	post_role].
 
 %%---------------------------------------------------------------------
 %%  Test cases
@@ -4950,6 +4954,24 @@ arbitrary_char_service(Config) ->
 	end,
 	lists:any(F, Chars).
 
+post_role() ->
+	[{userdata, [{doc, "POST to Role collection"}]}].
+
+post_role(Config) ->
+	HostUrl = ?config(host_url, Config),
+	CollectionUrl = HostUrl ++ ?PathRole ++ "partyRole",
+	RequestBody = lists:flatten(mochijson:encode(party_role("Global_Pirates"))),
+	ContentType = "application/json",
+	Accept = {"accept", "application/json"},
+	Request = {CollectionUrl, [Accept, auth_header()], ContentType, RequestBody},
+	{ok, Result} = httpc:request(post, Request, [], []),
+	{{"HTTP/1.1", 201, _Created}, Headers, ResponseBody} = Result,
+	{_, "application/json"} = lists:keyfind("content-type", 1, Headers),
+	ContentLength = integer_to_list(length(ResponseBody)),
+	{_, ContentLength} = lists:keyfind("content-length", 1, Headers),
+	PartyRole = mochijson:decode(ResponseBody),
+	true = lists:all(fun is_role/1, [PartyRole]).
+
 post_hub_role() ->
 	[{userdata, [{doc, "Register hub listener for role"}]}].
 
@@ -5707,3 +5729,36 @@ add_policy_row(TableId, TableName, 1) ->
 					#resource_char{name = "precedence", value = 2}]},
 	{ok, #resource{id = RowId}} = ocs:add_resource(PolicyRow),
 	RowId.
+
+%% @hidden
+party_role(RoleName) ->
+	RoleType = "PartyRole",
+	StartDate = ocs_rest:iso8601(erlang:system_time(?MILLISECOND)),
+	EndDate = ocs_rest:iso8601(erlang:system_time(?MILLISECOND) + 31536000000),
+	{struct, [{"@type", RoleType},
+		{"name", RoleName},
+		{"validFor", {struct, [{"startDateTime", StartDate},
+				{"endDateTime", EndDate}]}}]}.
+
+%% @hidden
+is_role({struct, RoleObj}) when length(RoleObj) == 5 ->
+	F = fun F({"id", Name}) when is_list(Name) ->
+				true;
+			F({"href", Href}) when is_list(Href) ->
+				true;
+			F({"name", Name}) when is_list(Name) ->
+				true;
+			F({"@type", RoleType}) when is_list(RoleType) ->
+				true;
+			F({"startDateTime", SD}) when is_list(SD) ->
+				true;
+			F({"endDateTime", ED}) when is_list(ED) ->
+				true;
+			F({"validFor", {struct, ValidFor}}) when length(ValidFor) == 2 ->
+				lists:all(F, ValidFor);
+			F(_) ->
+				false
+	end,
+	lists:all(F, RoleObj);
+is_role(_) ->
+	false.
