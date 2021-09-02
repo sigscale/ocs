@@ -320,17 +320,23 @@ service_options(Options) ->
 	{ok, Vsn} = application:get_key(vsn),
 	Version = list_to_integer([C || C <- Vsn, C /= $.]),
 	{ok, Hostname} = inet:gethostname(),
-	Options1 = case lists:keymember('Origin-Host', 1, Options) of
-		true ->
-			Options;
-		false when length(Hostname) > 0 ->
-			[{'Origin-Host', Hostname} | Options];
+	{CBModule, Options1} = case lists:keytake(callback, 1, Options) of
+		{_, {_, Callback}, Ops} ->
+			{Callback, Ops};
 		false ->
-			[{'Origin-Host', "ocs"} | Options]
+			ocs_diameter_3gpp_ro_application_cb
 	end,
-	Options2 = case lists:keymember('Origin-Realm', 1, Options1) of
+	Options2 = case lists:keymember('Origin-Host', 1, Options1) of
 		true ->
 			Options1;
+		false when length(Hostname) > 0 ->
+			[{'Origin-Host', Hostname} | Options1];
+		false ->
+			[{'Origin-Host', "ocs"} | Options1]
+	end,
+	Options3 = case lists:keymember('Origin-Realm', 1, Options2) of
+		true ->
+			Options2;
 		false ->
 			OriginRealm = case inet_db:res_option(domain) of
 				S when length(S) > 0 ->
@@ -338,19 +344,7 @@ service_options(Options) ->
 				_ ->
 					"example.net"
 			end,
-			[{'Origin-Realm', OriginRealm} | Options1]
-	end,
-	Options3 = case lists:keyfind(callback, 1, Options2) of
-		{callback, CallBack} ->
-			[{application, [{alias, ?RO_APPLICATION},
-					{dictionary, ?RO_APPLICATION_DICT},
-					{module, CallBack},
-					{request_errors, callback}]} | Options2];
-		false ->
-			[{application, [{alias, ?RO_APPLICATION},
-					{dictionary, ?RO_APPLICATION_DICT},
-					{module, ?RO_APPLICATION_CALLBACK},
-					{request_errors, callback}]} | Options2]
+			[{'Origin-Realm', OriginRealm} | Options2]
 	end,
 	Options3 ++ [{'Vendor-Id', ?IANA_PEN_SigScale},
 		{'Product-Name', "SigScale OCS"},
@@ -366,6 +360,10 @@ service_options(Options) ->
 		{application, [{alias, ?BASE_APPLICATION},
 				{dictionary, ?BASE_APPLICATION_DICT},
 				{module, ?BASE_APPLICATION_CALLBACK},
+				{request_errors, callback}]},
+		{application, [{alias, ?RO_APPLICATION},
+				{dictionary, ?RO_APPLICATION_DICT},
+				{module, CBModule},
 				{request_errors, callback}]},
 		{application, [{alias, ?Gx_APPLICATION},
 				{dictionary, ?Gx_APPLICATION_DICT},
@@ -418,6 +416,8 @@ split_options([{'Origin-Realm', DiameterIdentity} = H | T], Acc1, Acc2)
 split_options([{'Host-IP-Address', Addresses} = H | T], Acc1, Acc2)
 		when is_list(Addresses), is_tuple(hd(Addresses)) ->
 	split_options(T, Acc1, [H | Acc2]);
+split_options([{callback, _} = H | T], Acc1, Acc2) ->
+	split_options(T, Acc1, [H | Acc2]);
 split_options([{'Vendor-Id', _} | T], Acc1, Acc2) ->
 	split_options(T, Acc1, Acc2);
 split_options([{'Product-Name', _} | T], Acc1, Acc2) ->
@@ -453,8 +453,6 @@ split_options([{transport_module, diameter_tcp} = H | T], Acc1, Acc2) ->
 split_options([{transport_module, diameter_sctp} = H | T], Acc1, Acc2) ->
 	split_options(T, [H | Acc1], Acc2);
 split_options([{transport_config, _} = H | T], Acc1, Acc2) ->
-	split_options(T, [H | Acc1], Acc2);
-split_options([{callback, _} = H | T], Acc1, Acc2) ->
 	split_options(T, [H | Acc1], Acc2);
 split_options([_H | T], Acc1, Acc2) ->
 	split_options(T, Acc1, Acc2);
