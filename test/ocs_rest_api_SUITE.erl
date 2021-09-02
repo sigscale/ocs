@@ -246,7 +246,7 @@ all() ->
 	post_policy_resource, query_policy_resource, arbitrary_char_service,
 	delete_policy_table, oauth_authentication,
 	post_hub_role, delete_hub_role, get_role_hubs, get_role_hub,
-	post_role, delete_role].
+	post_role, delete_role, get_roles].
 
 %%---------------------------------------------------------------------
 %%  Test cases
@@ -4992,6 +4992,34 @@ delete_role(Config) ->
 	{ok, {{"HTTP/1.1", 404, "Object Not Found"}, _Headers3, _ResponseBody3}}
 			= httpc:request(get, Request2, [], []).
 
+get_roles() ->
+	[{userdata, [{doc, "Get the role collection."}]}].
+
+get_roles(Config) ->
+	RequestBody1 = lists:flatten(mochijson:encode(party_role("USA_Pirates"))),
+	RequestBody2 = lists:flatten(mochijson:encode(party_role("CA_Pirates"))),
+	HostUrl = ?config(host_url, Config),
+	CollectionUrl = HostUrl ++ ?PathRole ++ "partyRole",
+	ContentType = "application/json",
+	Accept = {"accept", "application/json"},
+	Request1 = {CollectionUrl, [Accept, auth_header()],
+			ContentType, RequestBody1},
+	{ok, Result1} = httpc:request(post, Request1, [], []),
+	{{"HTTP/1.1", 201, Created}, _Headers1, _ResponseBody1} = Result1,
+	Request2 = {CollectionUrl, [Accept, auth_header()],
+			ContentType, RequestBody2},
+	{ok, Result2} = httpc:request(post, Request2, [], []),
+	{{"HTTP/1.1", 201, Created}, _Headers2, _ResponseBody2} = Result2,
+	Request3 = {CollectionUrl, [Accept, auth_header()]},
+	{ok, Result3} = httpc:request(get, Request3, [], []),
+	{{"HTTP/1.1", 200, _OK}, Headers3, ResponseBody3} = Result3,
+	{_, "application/json"} = lists:keyfind("content-type", 1, Headers3),
+	ContentLength = integer_to_list(length(ResponseBody3)),
+	{_, ContentLength} = lists:keyfind("content-length", 1, Headers3),
+	{array, PartyRoles} = mochijson:decode(ResponseBody3),
+	false = is_empty(PartyRoles),
+	true = lists:all(fun is_role/1, PartyRoles).
+
 post_hub_role() ->
 	[{userdata, [{doc, "Register hub listener for role"}]}].
 
@@ -5781,4 +5809,10 @@ is_role({struct, RoleObj}) when length(RoleObj) == 5 ->
 	end,
 	lists:all(F, RoleObj);
 is_role(_) ->
+	false.
+
+%% @hidden
+is_empty([]) ->
+	true;
+is_empty(_) ->
 	false.
