@@ -1366,7 +1366,8 @@ price([char_value_use | T], #price{char_value_use = CharValueUses} = P, Acc) ->
 price([alteration | T], #price{alteration = Alteration} = P, Acc)
 		when is_record(Alteration, alteration) ->
 	price(T, P, [{"productOfferPriceAlteration", alteration(Alteration)} | Acc]);
-price([pla | T], #price{pla = PlaRef} = P, Acc) ->
+price([pla | T], #price{pla = PlaRef} = P, Acc)
+	when PlaRef =/= undefined ->
 	price(T, P, [{"plaRef", pla_ref(PlaRef)} | Acc]);
 price([_ | T], P, Acc) ->
 	price(T, P, Acc);
