@@ -79,6 +79,8 @@ do_delete(Resource, ModData, ["partyManagement", "v1", "individual", Identity]) 
 	do_response(ModData, Resource:delete_user(Identity));
 do_delete(Resource, ModData, ["partyManagement", "v1", "hub", Identity]) ->
 	do_response(ModData, Resource:delete_hub(Identity));
+do_delete(Resource, ModData, ["partyRoleManagement", "v4", "partyRole", Identity]) ->
+	do_response(ModData, Resource:delete_role(Identity));
 do_delete(Resource, ModData, ["partyRoleManagement", "v4", "hub", Identity]) ->
 	do_response(ModData, Resource:delete_hub(Identity));
 do_delete(Resource, ModData, ["productInventoryManagement", "v2", "product", Identity]) ->
