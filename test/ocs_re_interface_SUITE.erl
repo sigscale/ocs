@@ -72,8 +72,10 @@ suite() ->
 init_per_suite(Config) ->
 	ok = ocs_test_lib:initialize_db(),
    ok = ocs_test_lib:load(ocs),
-	TempNrfPath = "http://127.0.0.1",
-	ok = application:set_env(ocs, nrf_uri, TempNrfPath),
+	{ok, [Auth, {acct, [{DAddress, DPort, DOptions}]}]} = application:get_env(ocs, diameter),
+	NewOptions = DOptions ++ [{callback, ocs_diameter_3gpp_ro_nrf_application_cb}],
+	NewEnvVar = [Auth, {acct, [{DAddress, DPort, NewOptions}]}],
+	ok = application:set_env(ocs, diameter, NewEnvVar),
 	{ok, Services} = application:get_env(inets, services),
 	Fport = fun FPort([{httpd, L} | T]) ->
 				case lists:keyfind(server_name, 1, L) of
@@ -114,7 +116,7 @@ init_per_suite1(Config) ->
 	DiameterAuthPort = ct:get_config({diameter, auth_port}, rand:uniform(64511) + 1024),
 	DiameterAcctPort = ct:get_config({diameter, acct_port}, rand:uniform(64511) + 1024),
 	DiameterAppVar = [{auth, [{DiameterAddress, DiameterAuthPort, []}]},
-		{acct, [{DiameterAddress, DiameterAcctPort, []}]}],
+		{acct, [{DiameterAddress, DiameterAcctPort, [{callback, ocs_diameter_3gpp_ro_nrf_app_cb}]}]}],
 	ok = application:set_env(ocs, diameter, DiameterAppVar),
 	ok = application:set_env(ocs, min_reserve_octets, 1000000),
 	ok = application:set_env(ocs, min_reserve_seconds, 60),
@@ -144,7 +146,10 @@ init_per_suite2(Config) ->
 		{ok, HttpdPid} ->
 			[{port, Port}] = httpd:info(HttpdPid, [port]),
 			NrfUri = "http://localhost:" ++ integer_to_list(Port),
-			ok = application:set_env(ocs, nrf_uri, NrfUri),
+			{ok, [Auth, {acct, [{Address, DPort, Options}]}]} = application:get_env(ocs, diameter),
+			NewOptions = Options ++ [{nrf_uri, NrfUri}],
+			NewEnvVar = [Auth, {acct, [{Address, DPort, NewOptions}]}],
+			ok = application:set_env(ocs, diameter, NewEnvVar),
 			[{server_port, Port},
 					{server_pid, HttpdPid} | Config];
 		{error, InetsReason} ->
@@ -162,19 +167,23 @@ end_per_suite(Config) ->
 %% Cleanup after the whole suite.
 %%
 init_per_testcase(TestCase, Config)
-		when TestCase == send_initial_scur; TestCase == receive_initial_scur;
-		TestCase == send_interim_scur; TestCase == receive_interim_scur;
-		TestCase == send_final_scur; TestCase == receive_final_scur;
-		TestCase == receive_interim_no_usu_scur;
-		TestCase == receive_initial_empty_rsu_scur;
-		TestCase == send_iec;
-		TestCase == receive_iec;
-		TestCase == send_initial_ecur;
-		TestCase == receive_initial_ecur;
-		TestCase == send_final_ecur;
-		TestCase == receive_final_ecur ->
+		when TestCase == send_initial_scur_class_b; TestCase == receive_initial_scur_class_b;
+		TestCase == send_interim_scur_class_b; TestCase == receive_interim_scur_class_b;
+		TestCase == send_final_scur_class_b; TestCase == receive_final_scur_class_b;
+		TestCase == receive_interim_no_usu_scur_class_b;
+		TestCase == receive_initial_empty_rsu_scur_class_b;
+		TestCase == send_iec_class_b;
+		TestCase == receive_iec_class_b;
+		TestCase == send_initial_ecur_class_b;
+		TestCase == receive_initial_ecur_class_b;
+		TestCase == send_final_ecur_class_b;
+		TestCase == receive_final_ecur_class_b ->
 	Address = ?config(diameter_acct_address, Config),
 	{ok, _} = ocs:add_client(Address, undefined, diameter, undefined, true),
+	{ok, [Auth, {acct, [{DAddress, Port, Options}]}]} = application:get_env(ocs, diameter),
+	NewOptions = Options ++ [{class, b}],
+	NewEnvVar = [Auth, {acct, [{DAddress, Port, NewOptions}]}],
+	ok = application:set_env(ocs, diameter, NewEnvVar),
 	Config;
 init_per_testcase(_TestCase, Config) ->
 	Config.
@@ -195,22 +204,22 @@ sequences() ->
 %% Returns a list of all test cases in this test suite.
 %%
 all() ->
-	[send_initial_scur, receive_initial_scur, send_interim_scur,
-		receive_interim_scur, send_final_scur, receive_final_scur,
-		receive_interim_no_usu_scur, receive_initial_empty_rsu_scur,
-		post_initial_scur, post_update_scur, post_final_scur, send_iec,
-		receive_iec, send_initial_ecur, receive_initial_ecur,
-		send_final_ecur, receive_final_ecur, post_iec, post_initial_ecur,
-		post_final_ecur].
+	[send_initial_scur_class_b, receive_initial_scur_class_b, send_interim_scur_class_b,
+		receive_interim_scur_class_b, send_final_scur_class_b, receive_final_scur_class_b,
+		receive_interim_no_usu_scur_class_b, receive_initial_empty_rsu_scur_class_b,
+		post_initial_scur_class_b, post_update_scur_class_b, post_final_scur_class_b, send_iec_class_b,
+		receive_iec_class_b, send_initial_ecur_class_b, receive_initial_ecur_class_b,
+		send_final_ecur_class_b, receive_final_ecur_class_b, post_iec_class_b, post_initial_ecur_class_b,
+		post_final_ecur_class_b].
 
 %%---------------------------------------------------------------------
 %%  Test cases
 %%---------------------------------------------------------------------
 
-send_initial_scur() ->
+send_initial_scur_class_b() ->
 	[{userdata, [{doc, "On received SCUR CCR-I send startRating"}]}].
 
-send_initial_scur(_Config) ->
+send_initial_scur_class_b(_Config) ->
 	P1 = price(usage, octets, rand:uniform(10000000), rand:uniform(1000000)),
 	OfferId = add_offer([P1], 4),
 	ProdRef = add_product(OfferId),
@@ -231,10 +240,10 @@ send_initial_scur(_Config) ->
 	Answer0 = diameter_scur_start(SId, Subscriber, RequestNum, RequestedServiceUnits),
 	#'3gpp_ro_CCA'{'Result-Code' = ?'DIAMETER_BASE_RESULT-CODE_SUCCESS'} = Answer0.
 
-receive_initial_scur() ->
+receive_initial_scur_class_b() ->
 	[{userdata, [{doc, "On SCUR startRating response send CCA-I"}]}].
 
-receive_initial_scur(_Config) ->
+receive_initial_scur_class_b(_Config) ->
 	P1 = price(usage, octets, rand:uniform(10000000), rand:uniform(1000000)),
 	OfferId = add_offer([P1], 4),
 	ProdRef = add_product(OfferId),
@@ -263,10 +272,10 @@ receive_initial_scur(_Config) ->
 	TotalOctets = InputOctets + OutputOctets,
 	#'3gpp_ro_Granted-Service-Unit'{'CC-Total-Octets' = [TotalOctets]} = GrantedUnits.
 
-send_interim_scur() ->
+send_interim_scur_class_b() ->
 	[{userdata, [{doc, "On received SCUR CCR-U send updateRating"}]}].
 
-send_interim_scur(_Config) ->
+send_interim_scur_class_b(_Config) ->
 	P1 = price(usage, octets, rand:uniform(10000000), rand:uniform(1000000)),
 	OfferId = add_offer([P1], 4),
 	ProdRef = add_product(OfferId),
@@ -293,10 +302,10 @@ send_interim_scur(_Config) ->
 	Answer1 = diameter_scur_interim(SId, Subscriber, RequestNum1, UsedServiceUnits, 0),
 	#'3gpp_ro_CCA'{'Result-Code' = ?'DIAMETER_BASE_RESULT-CODE_SUCCESS'} = Answer1.
 
-receive_interim_scur() ->
+receive_interim_scur_class_b() ->
 	[{userdata, [{doc, "On IEC updateRating response send CCA-U"}]}].
 
-receive_interim_scur(_Config) ->
+receive_interim_scur_class_b(_Config) ->
 	P1 = price(usage, octets, rand:uniform(10000000), rand:uniform(1000000)),
 	OfferId = add_offer([P1], 4),
 	ProdRef = add_product(OfferId),
@@ -331,10 +340,10 @@ receive_interim_scur(_Config) ->
 	TotalOctets = InputOctets2 + OutputOctets2,
 	#'3gpp_ro_Used-Service-Unit'{'CC-Total-Octets' = [TotalOctets]} = UsedUnits.
 
-send_final_scur() ->
+send_final_scur_class_b() ->
 	[{userdata, [{doc, "On received SCUR CCR-U send endRating"}]}].
 
-send_final_scur(_Config) ->
+send_final_scur_class_b(_Config) ->
 	P1 = price(usage, octets, rand:uniform(10000000), rand:uniform(1000000)),
 	OfferId = add_offer([P1], 4),
 	ProdRef = add_product(OfferId),
@@ -365,10 +374,10 @@ send_final_scur(_Config) ->
 	Answer2 = diameter_scur_stop(SId, Subscriber, RequestNum2, Grant2),
 	#'3gpp_ro_CCA'{'Result-Code' = ?'DIAMETER_BASE_RESULT-CODE_SUCCESS'} = Answer2.
 
-receive_final_scur() ->
+receive_final_scur_class_b() ->
 	[{userdata, [{doc, "On IECendRatingresponse send CCA-U"}]}].
 
-receive_final_scur(_Config) ->
+receive_final_scur_class_b(_Config) ->
 	P1 = price(usage, octets, rand:uniform(10000000), rand:uniform(1000000)),
 	OfferId = add_offer([P1], 4),
 	ProdRef = add_product(OfferId),
@@ -406,10 +415,10 @@ receive_final_scur(_Config) ->
 			'Used-Service-Unit' = [UsedUnits]} = MultiServices_CC,
 	#'3gpp_ro_Used-Service-Unit'{'CC-Total-Octets' = [UsedServiceUnits1]} = UsedUnits.
 
-receive_interim_no_usu_scur() ->
+receive_interim_no_usu_scur_class_b() ->
 	[{userdata, [{doc, "On IEC updateRating response with no USU send CCA-U"}]}].
 
-receive_interim_no_usu_scur(_Config) ->
+receive_interim_no_usu_scur_class_b(_Config) ->
 	P1 = price(usage, octets, rand:uniform(10000000), rand:uniform(1000000)),
 	OfferId = add_offer([P1], 4),
 	ProdRef = add_product(OfferId),
@@ -444,10 +453,10 @@ receive_interim_no_usu_scur(_Config) ->
 	TotalGranted = InputOctets2 + OutputOctets2,
 	#'3gpp_ro_Granted-Service-Unit'{'CC-Total-Octets' = [TotalGranted]} = GrantedUnits.
 
-receive_initial_empty_rsu_scur() ->
+receive_initial_empty_rsu_scur_class_b() ->
 	[{userdata, [{doc, "On SCUR startRating with empty RSU send CCA-I"}]}].
 
-receive_initial_empty_rsu_scur(_Config) ->
+receive_initial_empty_rsu_scur_class_b(_Config) ->
 	P1 = price(usage, octets, rand:uniform(10000000), rand:uniform(1000000)),
 	OfferId = add_offer([P1], 4),
 	ProdRef = add_product(OfferId),
@@ -471,10 +480,10 @@ receive_initial_empty_rsu_scur(_Config) ->
 	#'3gpp_ro_Multiple-Services-Credit-Control'{
 			'Granted-Service-Unit' = []} = MultiServices_CC.
 
-post_initial_scur() ->
+post_initial_scur_class_b() ->
 	[{userdata, [{doc, "Post Inital Nrf Request to be rated"}]}].
 
-post_initial_scur(Config) ->
+post_initial_scur_class_b(Config) ->
 	P1 = price(usage, octets, rand:uniform(10000000), rand:uniform(1000000)),
 	OfferId = add_offer([P1], 4),
 	ProdRef = add_product(OfferId),
@@ -491,7 +500,7 @@ post_initial_scur(Config) ->
 	ContentType = "application/json",
 	Accept = {"accept", "application/json"},
 	HostUrl = ?config(host_url, Config),
-	Body = nrf_post_initial_scur(MSISDN, IMSI, InputOctets, OutputOctets),
+	Body = nrf_post_initial_scur_class_b(MSISDN, IMSI, InputOctets, OutputOctets),
 	RequestBody = lists:flatten(mochijson:encode(Body)),
 	Request1 = {HostUrl ++ "/nrf-rating/v1/ratingdata", [Accept, auth_header()], ContentType, RequestBody},
 	{ok, Result} = httpc:request(post, Request1, [], []),
@@ -507,10 +516,10 @@ post_initial_scur(Config) ->
 	{_, "32251@3gpp.org"} = lists:keyfind("serviceContextId", 1, ServiceRating1),
 	{_, {_, [{_, TotalOctets}]}} = lists:keyfind("grantedUnit", 1, ServiceRating1).
 
-post_update_scur() ->
+post_update_scur_class_b() ->
 	[{userdata, [{doc, "Post Interim Nrf Request to be rated"}]}].
 
-post_update_scur(Config) ->
+post_update_scur_class_b(Config) ->
 	P1 = price(usage, octets, rand:uniform(10000000), rand:uniform(1000000)),
 	OfferId = add_offer([P1], 4),
 	ProdRef = add_product(OfferId),
@@ -527,7 +536,7 @@ post_update_scur(Config) ->
 	ContentType = "application/json",
 	Accept = {"accept", "application/json"},
 	HostUrl = ?config(host_url, Config),
-	Body = nrf_post_initial_scur(MSISDN, IMSI, InputOctets, OutputOctets),
+	Body = nrf_post_initial_scur_class_b(MSISDN, IMSI, InputOctets, OutputOctets),
 	RequestBody = lists:flatten(mochijson:encode(Body)),
 	Request = {HostUrl ++ "/nrf-rating/v1/ratingdata", [Accept, auth_header()], ContentType, RequestBody},
 	{ok, Result} = httpc:request(post, Request, [], []),
@@ -535,7 +544,7 @@ post_update_scur(Config) ->
 	{_, Location1} = lists:keyfind("location", 1, Headers1),
 	InputOctets1 = rand:uniform(30000),
 	OutputOctets1 = rand:uniform(40000),
-	Body1 = nrf_post_update_scur(MSISDN, IMSI, InputOctets1, OutputOctets1),
+	Body1 = nrf_post_update_scur_class_b(MSISDN, IMSI, InputOctets1, OutputOctets1),
 	RequestBody1 = lists:flatten(mochijson:encode(Body1)),
 	Request1 = {HostUrl ++ "/nrf-rating/v1" ++ Location1 ++ "/update",
 			[Accept, auth_header()], ContentType, RequestBody1},
@@ -556,10 +565,10 @@ post_update_scur(Config) ->
 	{_, "32251@3gpp.org"} = lists:keyfind("serviceContextId", 1, ServiceRating2),
 	{_, {_, [{_, TotalOctets1}]}} = lists:keyfind("consumedUnit", 1, ServiceRating2).
 
-post_final_scur() ->
+post_final_scur_class_b() ->
 	[{userdata, [{doc, "Post Final Nrf Request to be rated"}]}].
 
-post_final_scur(Config) ->
+post_final_scur_class_b(Config) ->
 	P1 = price(usage, octets, rand:uniform(10000000), rand:uniform(1000000)),
 	OfferId = add_offer([P1], 4),
 	ProdRef = add_product(OfferId),
@@ -576,7 +585,7 @@ post_final_scur(Config) ->
 	ContentType = "application/json",
 	Accept = {"accept", "application/json"},
 	HostUrl = ?config(host_url, Config),
-	Body = nrf_post_initial_scur(MSISDN, IMSI, InputOctets, OutputOctets),
+	Body = nrf_post_initial_scur_class_b(MSISDN, IMSI, InputOctets, OutputOctets),
 	RequestBody = lists:flatten(mochijson:encode(Body)),
 	Request = {HostUrl ++ "/nrf-rating/v1/ratingdata", [Accept, auth_header()], ContentType, RequestBody},
 	{ok, Result} = httpc:request(post, Request, [], []),
@@ -584,7 +593,7 @@ post_final_scur(Config) ->
 	{_, Location1} = lists:keyfind("location", 1, Headers1),
 	InputOctets1 = rand:uniform(30000),
 	OutputOctets1 = rand:uniform(40000),
-	Body1 = nrf_post_update_scur(MSISDN, IMSI, InputOctets1, OutputOctets1),
+	Body1 = nrf_post_update_scur_class_b(MSISDN, IMSI, InputOctets1, OutputOctets1),
 	RequestBody1 = lists:flatten(mochijson:encode(Body1)),
 	Request1 = {HostUrl ++ "/nrf-rating/v1" ++ Location1 ++ "/update",
 			[Accept, auth_header()], ContentType, RequestBody1},
@@ -592,7 +601,7 @@ post_final_scur(Config) ->
 	{{"HTTP/1.1", 200, _Ok}, _Headers1, _ResponseBody1} = Result1,
 	InputOctets2 = rand:uniform(50000),
 	OutputOctets2 = rand:uniform(60000),
-	Body2 = nrf_post_final_scur(MSISDN, IMSI, InputOctets2, OutputOctets2),
+	Body2 = nrf_post_final_scur_class_b(MSISDN, IMSI, InputOctets2, OutputOctets2),
 	RequestBody2 = lists:flatten(mochijson:encode(Body2)),
 	Request2 = {HostUrl ++ "/nrf-rating/v1" ++ Location1 ++ "/release",
 			[Accept, auth_header()], ContentType, RequestBody2},
@@ -608,10 +617,10 @@ post_final_scur(Config) ->
 	TotalOctets2 = InputOctets2 + OutputOctets2,
 	{_, {_, [{_, TotalOctets2}]}} = lists:keyfind("consumedUnit", 1, ServiceRating1).
 
-send_iec() ->
+send_iec_class_b() ->
 	[{userdata, [{doc, "On received IEC CCR-I send startRating"}]}].
 
-send_iec(_Config) ->
+send_iec_class_b(_Config) ->
 	P1 = price(usage, messages, 1, rand:uniform(1000000)),
 	OfferId = add_offer([P1], 11),
 	ProdRef = add_product(OfferId),
@@ -628,10 +637,10 @@ send_iec(_Config) ->
 	Answer0 = diameter_iec(Subscriber, SId, RequestNum),
 	#'3gpp_ro_CCA'{'Result-Code' = ?'DIAMETER_BASE_RESULT-CODE_SUCCESS'} = Answer0.
 
-receive_iec() ->
+receive_iec_class_b() ->
 	[{userdata, [{doc, "On IEC startRating response send CCA-I"}]}].
 
-receive_iec(_Config) ->
+receive_iec_class_b(_Config) ->
 	P1 = price(usage, messages, 1, rand:uniform(1000000)),
 	OfferId = add_offer([P1], 11),
 	ProdRef = add_product(OfferId),
@@ -655,10 +664,10 @@ receive_iec(_Config) ->
 			'Used-Service-Unit' = [UsedUnits]} = MultiServices_CC,
 	#'3gpp_ro_Used-Service-Unit'{'CC-Service-Specific-Units' = [1]} = UsedUnits.
 
-send_initial_ecur() ->
+send_initial_ecur_class_b() ->
 	[{userdata, [{doc, "On received ECUR CCR-I send startRating"}]}].
 
-send_initial_ecur(_Config) ->
+send_initial_ecur_class_b(_Config) ->
 	P1 = price(usage, messages, 1, rand:uniform(1000000)),
 	OfferId = add_offer([P1], 11),
 	ProdRef = add_product(OfferId),
@@ -675,10 +684,10 @@ send_initial_ecur(_Config) ->
 	Answer0 = diameter_ecur_start(Subscriber, SId, RequestNum),
 	#'3gpp_ro_CCA'{'Result-Code' = ?'DIAMETER_BASE_RESULT-CODE_SUCCESS'} = Answer0.
 
-receive_initial_ecur() ->
+receive_initial_ecur_class_b() ->
 	[{userdata, [{doc, "On ECUR startRating response send CCA-I"}]}].
 
-receive_initial_ecur(_Config) ->
+receive_initial_ecur_class_b(_Config) ->
 	P1 = price(usage, messages, 1, rand:uniform(1000000)),
 	OfferId = add_offer([P1], 11),
 	ProdRef = add_product(OfferId),
@@ -702,10 +711,10 @@ receive_initial_ecur(_Config) ->
 			'Granted-Service-Unit' = [UsedUnits]} = MultiServices_CC,
 	#'3gpp_ro_Granted-Service-Unit'{'CC-Service-Specific-Units' = [1]} = UsedUnits.
 
-send_final_ecur() ->
+send_final_ecur_class_b() ->
 	[{userdata, [{doc, "On received ECUR CCR-U send endRating"}]}].
 
-send_final_ecur(_Config) ->
+send_final_ecur_class_b(_Config) ->
 	P1 = price(usage, messages, 1, rand:uniform(1000000)),
 	OfferId = add_offer([P1], 11),
 	ProdRef = add_product(OfferId),
@@ -725,10 +734,10 @@ send_final_ecur(_Config) ->
 	Answer1 = diameter_ecur_final(Subscriber, SId, RequestNum1),
 	#'3gpp_ro_CCA'{'Result-Code' = ?'DIAMETER_BASE_RESULT-CODE_SUCCESS'} = Answer1.
 
-receive_final_ecur() ->
+receive_final_ecur_class_b() ->
 	[{userdata, [{doc, "On ECUR endRating response send CCA-U"}]}].
 
-receive_final_ecur(_Config) ->
+receive_final_ecur_class_b(_Config) ->
 	P1 = price(usage, messages, 1, rand:uniform(1000000)),
 	OfferId = add_offer([P1], 11),
 	ProdRef = add_product(OfferId),
@@ -755,10 +764,10 @@ receive_final_ecur(_Config) ->
 			'Used-Service-Unit' = [UsedUnits]} = MultiServices_CC,
 	#'3gpp_ro_Used-Service-Unit'{'CC-Service-Specific-Units' = [2]} = UsedUnits.
 
-post_iec() ->
+post_iec_class_b() ->
 	[{userdata, [{doc, "Post IEC Event Nrf Request to be rated"}]}].
 
-post_iec(Config) ->
+post_iec_class_b(Config) ->
 	P1 = price(usage, messages, 1, rand:uniform(1000000)),
 	OfferId = add_offer([P1], 11),
 	ProdRef = add_product(OfferId),
@@ -772,7 +781,7 @@ post_iec(Config) ->
 	ContentType = "application/json",
 	HostUrl = ?config(host_url, Config),
 	Messages = 1,
-	Body = nrf_post_iec(MSISDN, IMSI, Messages),
+	Body = nrf_post_iec_class_b(MSISDN, IMSI, Messages),
 	RequestBody = lists:flatten(mochijson:encode(Body)),
 	Request1 = {HostUrl ++ "/nrf-rating/v1/ratingdata", [Accept, auth_header()], ContentType, RequestBody},
 	{ok, Result} = httpc:request(post, Request1, [], []),
@@ -786,10 +795,10 @@ post_iec(Config) ->
 	{_, "32274@3gpp.org"} = lists:keyfind("serviceContextId", 1, ServiceRating),
 	{_, {_, [{_, Messages}]}} = lists:keyfind("grantedUnit", 1, ServiceRating).
 
-post_initial_ecur() ->
+post_initial_ecur_class_b() ->
 	[{userdata, [{doc, "Post ECUR Inital Nrf Request to be rated"}]}].
 
-post_initial_ecur(Config) ->
+post_initial_ecur_class_b(Config) ->
 	P1 = price(usage, messages, 1, rand:uniform(1000000)),
 	OfferId = add_offer([P1], 11),
 	ProdRef = add_product(OfferId),
@@ -803,7 +812,7 @@ post_initial_ecur(Config) ->
 	ContentType = "application/json",
 	HostUrl = ?config(host_url, Config),
 	Messages = 1,
-	Body = nrf_post_initial_ecur(MSISDN, IMSI, Messages),
+	Body = nrf_post_initial_ecur_class_b(MSISDN, IMSI, Messages),
 	RequestBody = lists:flatten(mochijson:encode(Body)),
 	Request1 = {HostUrl ++ "/nrf-rating/v1/ratingdata", [Accept, auth_header()], ContentType, RequestBody},
 	{ok, Result} = httpc:request(post, Request1, [], []),
@@ -818,10 +827,10 @@ post_initial_ecur(Config) ->
 	{_, "32274@3gpp.org"} = lists:keyfind("serviceContextId", 1, ServiceRating),
 	{_, {_, [{_, Messages}]}} = lists:keyfind("grantedUnit", 1, ServiceRating).
 
-post_final_ecur() ->
+post_final_ecur_class_b() ->
 	[{userdata, [{doc, "Post ECUR Final Nrf Request to be rated"}]}].
 
-post_final_ecur(Config) ->
+post_final_ecur_class_b(Config) ->
 	P1 = price(usage, messages, 1, rand:uniform(1000000)),
 	OfferId = add_offer([P1], 11),
 	ProdRef = add_product(OfferId),
@@ -835,14 +844,14 @@ post_final_ecur(Config) ->
 	ContentType = "application/json",
 	HostUrl = ?config(host_url, Config),
 	Messages = 1,
-	Body = nrf_post_initial_ecur(MSISDN, IMSI, Messages),
+	Body = nrf_post_initial_ecur_class_b(MSISDN, IMSI, Messages),
 	RequestBody = lists:flatten(mochijson:encode(Body)),
 	Request = {HostUrl ++ "/nrf-rating/v1/ratingdata", [Accept, auth_header()], ContentType, RequestBody},
 	{ok, Result} = httpc:request(post, Request, [], []),
 	{{"HTTP/1.1", 201, _Created}, Headers, _ResponseBody} = Result,
 	{_, Location} = lists:keyfind("location", 1, Headers),
 	Messages1 = 2,
-	Body1 = nrf_post_final_ecur(MSISDN, IMSI, Messages1),
+	Body1 = nrf_post_final_ecur_class_b(MSISDN, IMSI, Messages1),
 	RequestBody1 = lists:flatten(mochijson:encode(Body1)),
 	Request1 = {HostUrl ++ "/nrf-rating/v1" ++ Location ++ "/release",
 			[Accept, auth_header()], ContentType, RequestBody1},
@@ -861,7 +870,7 @@ post_final_ecur(Config) ->
 %%  Internal functions
 %%---------------------------------------------------------------------
 
-nrf_post_final_ecur(MSISDN, IMSI, Messages) ->
+nrf_post_final_ecur_class_b(MSISDN, IMSI, Messages) ->
 	TS = erlang:system_time(?MILLISECOND),
 	InvocationTimeStamp = ocs_log:iso8601(TS),
 	{struct, [{"nfConsumerIdentification",
@@ -882,7 +891,7 @@ nrf_post_final_ecur(MSISDN, IMSI, Messages) ->
 									{"destinationIdData", "14165556789"}]}]}},
 							{"requestSubType", "DEBIT"}]}]}}]}.
 
-nrf_post_initial_ecur(MSISDN, IMSI, Messages) ->
+nrf_post_initial_ecur_class_b(MSISDN, IMSI, Messages) ->
 	TS = erlang:system_time(?MILLISECOND),
 	InvocationTimeStamp = ocs_log:iso8601(TS),
 	{struct, [{"nfConsumerIdentification",
@@ -903,7 +912,7 @@ nrf_post_initial_ecur(MSISDN, IMSI, Messages) ->
 									{"destinationIdData", "14165556789"}]}]}},
 							{"requestSubType", "RESERVE"}]}]}}]}.
 
-nrf_post_iec(MSISDN, IMSI, Messages) ->
+nrf_post_iec_class_b(MSISDN, IMSI, Messages) ->
 	TS = erlang:system_time(?MILLISECOND),
 	InvocationTimeStamp = ocs_log:iso8601(TS),
 	{struct, [{"nfConsumerIdentification",
@@ -1015,7 +1024,7 @@ diameter_iec({MSISDN, IMSI}, SId, RequestNum) ->
 	{ok, Answer} = diameter:call(?MODULE, cc_app_test, CC_CCR, []),
 	Answer.
 
-nrf_post_initial_scur(MSISDN, IMSI, InputOctets, OutputOctets) ->
+nrf_post_initial_scur_class_b(MSISDN, IMSI, InputOctets, OutputOctets) ->
 	TS = erlang:system_time(?MILLISECOND),
 	InvocationTimeStamp = ocs_log:iso8601(TS),
 	{struct, [{"nfConsumerIdentification",
@@ -1035,7 +1044,7 @@ nrf_post_initial_scur(MSISDN, IMSI, InputOctets, OutputOctets) ->
 										{"downlinkVolume", OutputOctets}]}},
 							{"requestSubType", "RESERVE"}]}]}}]}.
 
-nrf_post_update_scur(MSISDN, IMSI, InputOctets, OutputOctets) ->
+nrf_post_update_scur_class_b(MSISDN, IMSI, InputOctets, OutputOctets) ->
 	TS = erlang:system_time(?MILLISECOND),
 	InvocationTimeStamp = ocs_log:iso8601(TS),
 	{struct, [{"nfConsumerIdentification",
@@ -1056,7 +1065,7 @@ nrf_post_update_scur(MSISDN, IMSI, InputOctets, OutputOctets) ->
 							{"ratingGroup", 32},
 							{"requestSubType", "RESERVE"}]}]}}]}.
 
-nrf_post_final_scur(MSISDN, IMSI, InputOctets, OutputOctets) ->
+nrf_post_final_scur_class_b(MSISDN, IMSI, InputOctets, OutputOctets) ->
 	TS = erlang:system_time(?MILLISECOND),
 	InvocationTimeStamp = ocs_log:iso8601(TS),
 	{struct, [{"nfConsumerIdentification",
