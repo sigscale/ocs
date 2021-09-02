@@ -246,7 +246,7 @@ all() ->
 	post_policy_resource, query_policy_resource, arbitrary_char_service,
 	delete_policy_table, oauth_authentication,
 	post_hub_role, delete_hub_role, get_role_hubs, get_role_hub,
-	post_role].
+	post_role, delete_role].
 
 %%---------------------------------------------------------------------
 %%  Test cases
@@ -4971,6 +4971,26 @@ post_role(Config) ->
 	{_, ContentLength} = lists:keyfind("content-length", 1, Headers),
 	PartyRole = mochijson:decode(ResponseBody),
 	true = lists:all(fun is_role/1, [PartyRole]).
+
+delete_role() ->
+	[{userdata, [{doc,"Delete a role by id"}]}].
+
+delete_role(Config) ->
+	RequestBody = lists:flatten(mochijson:encode(party_role("Queen"))),
+	HostUrl = ?config(host_url, Config),
+	CollectionUrl = HostUrl ++ ?PathRole ++ "partyRole",
+	ContentType = "application/json",
+	Accept = {"accept", "application/json"},
+	Request1 = {CollectionUrl, [Accept, auth_header()],
+			ContentType, RequestBody},
+	{ok, Result1} = httpc:request(post, Request1, [], []),
+	{{"HTTP/1.1", 201, _Created}, Headers1, _ResponseBody1} = Result1,
+	{_, Href} = lists:keyfind("location", 1, Headers1),
+	Request2 = {HostUrl ++ Href, [Accept, auth_header()]},
+	{ok, Result2} = httpc:request(delete, Request2, [], []),
+	{{"HTTP/1.1", 204, _NoContent}, _Headers2, []} = Result2,
+	{ok, {{"HTTP/1.1", 404, "Object Not Found"}, _Headers3, _ResponseBody3}}
+			= httpc:request(get, Request2, [], []).
 
 post_hub_role() ->
 	[{userdata, [{doc, "Register hub listener for role"}]}].
