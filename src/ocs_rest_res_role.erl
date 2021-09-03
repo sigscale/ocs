@@ -24,7 +24,7 @@
 -copyright('Copyright (c) 2021 SigScale Global Inc.').
 
 -export([content_types_accepted/0, content_types_provided/0, post_role/1,
-		delete_role/1]).
+		delete_role/1, get_roles/2]).
 
 -include_lib("inets/include/mod_auth.hrl").
 -include("ocs.hrl").
@@ -94,6 +94,77 @@ delete_role(Name, {Port, Address, Directory, _Group}) ->
 delete_role(_Name, {error, Reason}) ->
 	{error, Reason}.
 
+-spec get_roles(Query, Headers) -> Result
+	when
+		Query :: [{Key :: string(), Value :: string()}],
+		Headers :: [tuple()],
+		Result :: {ok, Headers :: [tuple()], Body :: iolist()}
+				| {error, ErrorCode :: integer()}.
+%% @doc Handle `GET' request on `Role' collection.
+%% 	Respond to `GET /partyRoleManagement/v4/partyRole/' request.
+get_roles(Query, Headers) ->
+	case lists:keytake("fields", 1, Query) of
+		{value, {_, Filters}, NewQuery} ->
+			get_roles1(NewQuery, Filters, Headers);
+		false ->
+			get_roles1(Query, [], Headers)
+	end.
+%% @hidden
+get_roles1(Query, Filters, Headers) ->
+	case {lists:keyfind("if-match", 1, Headers),
+			lists:keyfind("if-range", 1, Headers),
+			lists:keyfind("range", 1, Headers)} of
+		{{"if-match", Etag}, false, {"range", Range}} ->
+			case global:whereis_name(Etag) of
+				undefined ->
+					{error, 412};
+				PageServer ->
+					case ocs_rest:range(Range) of
+						{error, _} ->
+							{error, 400};
+						{ok, {Start, End}} ->
+							query_page(PageServer, Etag, Query, Filters, Start, End)
+					end
+			end;
+		{{"if-match", Etag}, false, false} ->
+			case global:whereis_name(Etag) of
+				undefined ->
+					{error, 412};
+				PageServer ->
+					query_page(PageServer, Etag, Query, Filters, undefined, undefined)
+			end;
+		{false, {"if-range", Etag}, {"range", Range}} ->
+			case global:whereis_name(Etag) of
+				undefined ->
+					case ocs_rest:range(Range) of
+						{error, _} ->
+							{error, 400};
+						{ok, {Start, End}} ->
+							query_start(Query, Filters, Start, End)
+					end;
+				PageServer ->
+					case ocs_rest:range(Range) of
+						{error, _} ->
+							{error, 400};
+						{ok, {Start, End}} ->
+							query_page(PageServer, Etag, Query, Filters, Start, End)
+					end
+			end;
+		{{"if-match", _}, {"if-range", _}, _} ->
+			{error, 400};
+		{_, {"if-range", _}, false} ->
+			{error, 400};
+		{false, false, {"range", Range}} ->
+			case ocs_rest:range(Range) of
+				{error, _} ->
+					{error, 400};
+				{ok, {Start, End}} ->
+					query_start(Query, Filters, Start, End)
+			end;
+		{false, false, false} ->
+			query_start(Query, Filters, undefined, undefined)
+	end.
+
 %%----------------------------------------------------------------------
 %%  internal functions
 %%----------------------------------------------------------------------
@@ -146,7 +217,10 @@ get_params5(_, _, _, false) ->
 	when
 		Role :: #httpd_user{} | {struct, [tuple()]}.
 %% @doc CODEC for HTTP server users.
-role(#httpd_user{username = Name, user_data = UserData}) ->
+role(#httpd_user{username = {Name, _, _, _}} = User) when is_list(Name) ->
+	role(User#httpd_user{username = Name});
+role(#httpd_user{username = Name, user_data = UserData})
+		when is_list(UserData) ->
 	F = fun(Key) ->
 			case lists:keyfind(Key, 1, UserData) of
 				{Key, Value} ->
@@ -182,4 +256,57 @@ valid_for([{"endDateTime", EndDate} | T],
 			ocs_rest:iso8601(EndDate)} | UserData]});
 valid_for([], Acc) ->
 	Acc.
+
+%% @hidden
+query_start(Query, Filters, RangeStart, RangeEnd) ->
+	try
+		{Port, Address, Directory, _Group} = get_params(),
+		case lists:keyfind("filter", 1, Query) of
+			{_, String} ->
+				{ok, Tokens, _} = ocs_rest_query_scanner:string(String),
+				case ocs_rest_query_parser:parse(Tokens) of
+					{ok, [{array, [{complex, [{"id", like, [Id]}]}]}]} ->
+						Username = {Id ++ '_', Address, Port, Directory},
+						{#httpd_user{username = Username, _ = '_'}, []};
+					{ok, [{array, [{complex, [{"id", exact, [Id]}]}]}]} ->
+						Username = {Id ++ '_', Address, Port, Directory},
+						{#httpd_user{username = Username, _ = '_'}, []}
+				end;
+			false ->
+				{'_', '_'}
+		end
+	of
+		{MatchHead, MatchConditions} ->
+			MFA = [ocs, query_users, [MatchHead, MatchConditions]],
+			case supervisor:start_child(ocs_rest_pagination_sup, [MFA]) of
+				{ok, PageServer, Etag} ->
+					query_page(PageServer, Etag, Query, Filters, RangeStart, RangeEnd);
+				{error, _Reason} ->
+					{error, 500}
+			end
+	catch
+		_:_ ->
+			{error, 400}
+	end.
+
+%% @hidden
+query_page(PageServer, Etag, _Query, _Filters, Start, End) ->
+	case gen_server:call(PageServer, {Start, End}, infinity) of
+		{error, Status} ->
+			{error, Status};
+		{Events, ContentRange} ->
+			F = fun(#httpd_user{user_data = UserData} = User) ->
+					case lists:keyfind(type, 1, UserData) of
+						{type, "PartyRole"} ->
+							{true, role(User)};
+						false ->
+							false
+					end
+			end,
+			Body = mochijson:encode({array, lists:filtermap(F, Events)}),
+			Headers = [{content_type, "application/json"},
+					{etag, Etag}, {accept_ranges, "items"},
+					{content_range, ContentRange}],
+			{ok, Headers, Body}
+	end.
 
