@@ -324,7 +324,7 @@ service_options(Options) ->
 		{_, {_, Callback}, Ops} ->
 			{Callback, Ops};
 		false ->
-			ocs_diameter_3gpp_ro_application_cb
+			{ocs_diameter_3gpp_ro_application_cb, Options}
 	end,
 	Options2 = case lists:keymember('Origin-Host', 1, Options1) of
 		true ->
