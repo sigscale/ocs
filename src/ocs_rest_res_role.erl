@@ -24,7 +24,7 @@
 -copyright('Copyright (c) 2021 SigScale Global Inc.').
 
 -export([content_types_accepted/0, content_types_provided/0, post_role/1,
-		delete_role/1, get_roles/2]).
+		delete_role/1, get_roles/2, get_role/2]).
 
 -include_lib("inets/include/mod_auth.hrl").
 -include("ocs.hrl").
@@ -164,6 +164,45 @@ get_roles1(Query, Filters, Headers) ->
 		{false, false, false} ->
 			query_start(Query, Filters, undefined, undefined)
 	end.
+
+-spec get_role(Name, Query) -> Result
+	when
+		Name :: string(),
+		Query :: [{Key :: string(), Value :: string()}],
+		Result :: {ok, Headers :: [tuple()], Body :: iolist()}
+				| {error, ErrorCode :: integer()}.
+%% @doc Handle `GET' request on a `Role' resource.
+%% 	Respond to `GET /partyRoleManagement/v4/partyRole/{Name}' request.
+get_role(Name, Query) ->
+	get_role(Name, Query, get_params()).
+%% @hidden
+get_role(Name, Query, {_, _, _, _} = Params) ->
+	case lists:keytake("fields", 1, Query) of
+		{value, {_, L}, NewQuery} ->
+			get_role(Name, NewQuery, Params, string:tokens(L, ","));
+		false ->
+			get_role(Name, Query, Params, [])
+	end;
+get_role(_Name, _Query, {error, Reason}) ->
+	{error, Reason}.
+%% @hidden
+get_role(Name, [] = _Query, {Port, Address, Dir, _Group}, _Filters) ->
+	case mod_auth:get_user(Name, Address, Port, Dir) of
+		{ok, #httpd_user{user_data = UserData} = RoleRec} ->
+			Headers1 = case lists:keyfind(last_modified, 1, UserData) of
+				{_, LastModified} ->
+					[{etag, im_rest:etag(LastModified)}];
+				false ->
+					[]
+			end,
+			Headers2 = [{content_type, "application/json"} | Headers1],
+			Body = mochijson:encode(role(RoleRec)),
+			{ok, Headers2, Body};
+		{error, _Reason} ->
+			{error, 404}
+	end;
+get_role(_, _, _, _) ->
+	{error, 400}.
 
 %%----------------------------------------------------------------------
 %%  internal functions
