@@ -62,6 +62,8 @@ init([LogRotateTime, LogRotateInterval] = _Args) ->
 					[voip, LogRotateTime, LogRotateInterval]),
 			log_server(ocs_log_rotate_server,
 					[wlan, LogRotateTime, LogRotateInterval]),
+			supervisor(ocs_statistics_sup,
+					ocs_statistics_sup, []),
 			supervisor(ocs_rest_pagination_sup,
 					ocs_rest_pagination_sup, []),
 			supervisor(ocs_rest_hub_sup,

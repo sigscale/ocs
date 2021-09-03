@@ -39,6 +39,7 @@
 -export([add_resource/1, get_resources/0, get_resource/1, delete_resource/1,
 		query_resource/5]).
 -export([generate_password/0, generate_identity/0]).
+-export([statistics/1]).
 -export([start/4, start/5]).
 %% export the ocs private API
 -export([normalize/1, subscription/4, end_period/2]).
@@ -2310,6 +2311,38 @@ find_sn_network(Table, Id) ->
 			exit(not_found);
 		{aborted, Reason} ->
 			exit(Reason)
+	end.
+
+	-spec statistics(Item) -> Result
+	when
+		Item :: scheduler_utilization,
+		Result :: {ok, {Etag, Interval, Report}} | {error, Reason},
+		Etag :: string(),
+		Interval :: pos_integer(),
+		Report :: [ItemResult],
+		ItemResult :: {SchedulerId, Utilization},
+		SchedulerId :: pos_integer(),
+		Utilization :: non_neg_integer(),
+		Reason :: term().
+%% @doc Get system statistics.
+statistics(Item) ->
+	case catch gen_server:call(ocs_statistics, Item) of
+		{Etag, Interval, Report} ->
+			{ok, {Etag, Interval, Report}};
+		{error, Reason} ->
+			{error, Reason};
+		{'EXIT', {noproc,_}} ->
+			case supervisor:start_child(ocs_statistics_sup, []) of
+				{ok, Child} ->
+					case catch gen_server:call(Child, Item) of
+						{Etag, Interval, Report} ->
+							{ok, {Etag, Interval, Report}};
+						{error, Reason} ->
+							{error, Reason}
+					end;
+				{error, Reason} ->
+					{error, Reason}
+			end
 	end.
 
 %%----------------------------------------------------------------------

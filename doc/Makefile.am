@@ -120,6 +120,8 @@ modhtml = ocs.html \
 			ocs_rest_hub_usage.html \
 			ocs_rest_res_role.html \
 			ocs_rest_hub_role.html \
+			ocs_statistics_sup.html \
+			ocs_statistics_server.html \
 			ocs_event.html \
 			user_default.html
 
