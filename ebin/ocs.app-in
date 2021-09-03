@@ -84,6 +84,7 @@
 				ocs_rest_res_prometheus,
 				ocs_rest_pagination_sup,
 				ocs_rest_pagination_server,
+				ocs_rest_res_health,
 				ocs_rating,
 				ocs_log_rotate_server,
 				ocs_scheduler,
