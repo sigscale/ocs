@@ -25,6 +25,7 @@
 -export([pointer/1, patch/2]).
 -export([parse_query/1, lhs/1, fields/2, range/1]).
 -export([millionths_in/1, millionths_out/1]).
+-export([format_problem/2]).
 
 -export_type([operator/0]).
 
@@ -455,6 +456,120 @@ millionths_out(In) when is_integer(In) ->
 			++ lists:duplicate(6 - length(SD), $0) ++ SD,
 	S2 = string:strip(S1, right, $0),
 	string:strip(S2, right, $.).
+
+-type uri() :: string().
+-type problem() :: #{type := uri(), title := string(),
+		code := string(), detail => string(), status => 200..599}.
+-spec format_problem(Problem, Headers) -> Result
+	when
+		Problem :: problem(),
+		Headers :: [tuple()],
+		Result :: {ContentType, Body},
+		ContentType :: string(),
+		Body :: string().
+%% @doc Format a problem report in an accepted content type.
+%%
+%% 	`Problem' MUST contain `type', `title', and `code'.
+%% 	RFC7807 specifies `type' as a URI reference to
+%% 	human-readable documentation for the problem type.
+%% 	Use `title' for a short summary of the problem type.
+%% 	TMF630 mandates `code' to provide an application
+%% 	related code which may be included in an API specification.
+%%
+%% 	The result shall be formatted in one the following
+%% 	media type, in priority order:
+%%
+%%		ContentType :: "application/problem+json"
+%%				| "application/json" | "text/html"
+%% @private
+format_problem(Problem, Headers) ->
+	case lists:keyfind("accept", 1, Headers) of
+		{_, Accept} ->
+			format_problem1(Problem, string:tokens(Accept, [$,]));
+		false ->
+			[]
+	end.
+%% @hidden
+format_problem1(Problem, Accepted) ->
+	case lists:member("application/problem+json", Accepted) of
+		true ->
+			Type = ["\t\"type\": \"", maps:get(type, Problem), "\",\n"],
+			Title = ["\t\"title\": \"", maps:get(title, Problem), "\",\n"],
+			Detail = case maps:find(detail, Problem) of
+				{ok, Value1} ->
+					["\t\"detail\": \"", Value1, "\",\n"];
+				error ->
+					[]
+			end,
+			Status = case maps:find(status, Problem) of
+				{ok, Value2} ->
+					["\t\"status\": ", integer_to_list(Value2), ",\n"];
+				error ->
+					[]
+			end,
+			Code = ["\t\"code\": \"", maps:get(code, Problem), "\",\n"],
+			{"application/problem+json",
+					[${, $\n, Type, Title, Detail, Status, Code, $}]};
+		false ->
+			format_problem2(Problem, Accepted)
+	end.
+%% @hidden
+format_problem2(Problem, Accepted) ->
+	case lists:member("application/json", Accepted) of
+		true ->
+			Class = "\t\"@type\": \"Error\"\n",
+			Type = ["\t\"referenceError\": \"", maps:get(type, Problem), "\",\n"],
+			Code = ["\t\"code\": \"", maps:get(code, Problem), "\",\n"],
+			Reason = ["\t\"reason\": \"", maps:get(title, Problem), "\",\n"],
+			Message = case maps:find(detail, Problem) of
+				{ok, Value1} ->
+					["\t\"message\": \"", Value1, "\",\n"];
+				error ->
+					[]
+			end,
+			Status = case maps:find(status, Problem) of
+				{ok, Value2} ->
+					["\t\"status\": \"", integer_to_list(Value2), "\",\n"];
+				error ->
+					[]
+			end,
+			Body = [${, $\n, Class, Type, Code, Reason, Message, Status, $}],
+			{"application/json", Body};
+		false ->
+			format_problem3(Problem)
+	end.
+%% @hidden
+format_problem3(Problem) ->
+	H1 = "\n\t\t<h1>SigScale OCS REST API</h1>\n",
+	P = "\t\t<p>Oops! Something went wrong.</p>\n",
+	Header = ["\t<header>\n", H1, P, "\t</header>\n"],
+	ProblemType = maps:get(type, Problem),
+	Link = ["<a href=\"", ProblemType, "\">", ProblemType, "</a>"],
+	Type = ["\t\t\t\<dt>Problem Type</dt>\n\t\t\t<dd>",
+			Link, "</dd>\n"],
+	Title = ["\t\\t<dt>Title</dt>\n\t\t\t<dd>",
+			maps:get(title, Problem), "</dd>\n"],
+	Detail = case maps:find(detail, Problem) of
+		{ok, Value1} ->
+			["\t\t\t<dt>Detail</dt>\n\t\t\t<dd>",
+					Value1, "</dd>\n"];
+		error ->
+			[]
+	end,
+	Status = case maps:find(status, Problem) of
+		{ok, Value2} ->
+			["\t\t\t<dt>Status</dt>\n\t\t\t<dd>",
+					integer_to_list(Value2), "</dd>\n"];
+		error ->
+			[]
+	end,
+	Code = ["\t\t\t<dt>Code<dt>\n\t\t\t<dd>",
+			maps:get(code, Problem), "</dd>\n"],
+	Definitions = ["\t\t<dl>\n", Type, Title, Detail, Status, Code, "\t\t</dl>\n"],
+	Body = ["\t<body>\n", Header, Definitions, "\t</body>\n"],
+	Head = "\t<head>\n\t\t<title>Error</title>\n\t</head>\n",
+	HTML = ["<!DOCTYPE html>\n<html lang=\"en\">\n", Head, Body, "</html>"],
+	{"text/html", HTML}.
 
 %%----------------------------------------------------------------------
 %%  internal functions

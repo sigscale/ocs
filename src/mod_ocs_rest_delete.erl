@@ -105,9 +105,18 @@ do_delete(Resource, ModData, ["productCatalogManagement", "v2", "productOffering
 	do_response(ModData, Resource:delete_offer(Identity));
 do_delete(Resource, ModData, ["usageManagement", "v1", "hub", Identity]) ->
 	do_response(ModData, Resource:delete_hub(Identity));
-do_delete(_Resource, #mod{data = Data} = _ModData, _) ->
-	Response = "<h2>HTTP Error 404 - Not Found</h2>",
-	{proceed, [{response, {404, Response}} | Data]}.
+do_delete(_, #mod{parsed_header = Headers, data = Data} = ModData, _) ->
+	Problem = #{type => "https://datatracker.ietf.org/doc/html/rfc7231#section-6.5.4",
+			title => "Not Found",
+			detail => "No resource exists at the path provided",
+			code => "", status => 404},
+	{ContentType, ResponseBody} = ocs_rest:format_problem(Problem, Headers),
+	Headers1 = lists:keystore(content_type, 1, Headers,
+			{content_type, ContentType}),
+	Size = integer_to_list(iolist_size(ResponseBody)),
+	Headers2 = [{content_length, Size} | Headers1],
+	send(ModData, 404, Headers2, ResponseBody),
+	{proceed, [{response,{already_sent, 404, Size}} | Data]}.
 
 %% @hidden
 do_response(#mod{data = Data} = ModData, {ok, Headers, ResponseBody}) ->
@@ -118,15 +127,47 @@ do_response(#mod{data = Data} = ModData, {ok, Headers, ResponseBody}) ->
 do_response(#mod{data = Data} = _ModData, {error, 202}) ->
 	Response = "<h2>HTTP Error 202 - Accepted</h2>",
 	{proceed, [{response, {202, Response}} | Data]};
-do_response(#mod{data = Data} = _ModData, {error, 400}) ->
-	Response = "<h2>HTTP Error 400 - Bad Request</h2>",
-	{proceed, [{response, {400, Response}} | Data]};
-do_response(#mod{data = Data} = _ModData, {error, 403}) ->
-	Response = "<h2>HTTP Error 403 - Forbidden</h2>",
-	{proceed, [{response, {403, Response}} | Data]};
-do_response(#mod{data = Data} = _ModData, {error, 500}) ->
-	Response = "<h2>HTTP Error 500 - Server Error</h2>",
-	{proceed, [{response, {500, Response}} | Data]}.
+do_response(#mod{parsed_header = Headers,
+			data = Data} = ModData, {error, 400}) ->
+	Problem = #{type => "https://datatracker.ietf.org/doc/html/rfc7231#section-6.5.1",
+			title => "Bad Request",
+			detail => "The server cannot or will not process the request"
+					" due to something that is perceived to be a client error.",
+			code => "", status => 400},
+	{ContentType, ResponseBody} = ocs_rest:format_problem(Problem, Headers),
+	Headers1 = lists:keystore(content_type, 1, Headers,
+			{content_type, ContentType}),
+	Size = integer_to_list(iolist_size(ResponseBody)),
+	Headers2 = [{content_length, Size} | Headers1],
+	send(ModData, 400, Headers2, ResponseBody),
+	{proceed, [{response, {already_sent, 400, Size}} | Data]};
+do_response(#mod{parsed_header = Headers,
+		data = Data} = ModData, {error, 403}) ->
+	Problem = #{type => "https://datatracker.ietf.org/doc/html/rfc7231#section-6.5.3",
+			title => "Forbidden",
+			detail => "the server understood the request but refuses to authorize it.",
+			code => "", status => 403},
+	{ContentType, ResponseBody} = ocs_rest:format_problem(Problem, Headers),
+	Headers1 = lists:keystore(content_type, 1, Headers,
+			{content_type, ContentType}),
+	Size = integer_to_list(iolist_size(ResponseBody)),
+	Headers2 = [{content_length, Size} | Headers1],
+	send(ModData, 403, Headers2, ResponseBody),
+	{proceed, [{response, {already_sent, 403, Size}} | Data]};
+do_response(#mod{parsed_header = Headers,
+		data = Data} = ModData, {error, 500}) ->
+	Problem = #{type => "https://datatracker.ietf.org/doc/html/rfc7231#section-6.6.1",
+			title => "Internal Server Error",
+			detail => "The server encountered an unexpected condition that"
+					" prevented it from fulfilling the request.",
+			code => "", status => 500},
+	{ContentType, ResponseBody} = ocs_rest:format_problem(Problem, Headers),
+	Headers1 = lists:keystore(content_type, 1, Headers,
+			{content_type, ContentType}),
+	Size = integer_to_list(iolist_size(ResponseBody)),
+	Headers2 = [{content_length, Size} | Headers1],
+	send(ModData, 500, Headers2, ResponseBody),
+	{proceed, [{response, {already_sent, 500, Size}} | Data]}.
 
 %% @hidden
 send(#mod{socket = Socket, socket_type = SocketType} = ModData,

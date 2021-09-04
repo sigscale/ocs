@@ -77,8 +77,18 @@ content_type_available(Headers, Uri, Body,
 				true ->
 					do_post(Resource, ModData, Body, string:tokens(Uri, "/"));
 				false ->
-					Response = "<h2>HTTP Error 415 - Unsupported Media Type</h2>",
-					{proceed, [{response, {415, Response}} | Data]}
+					Problem = #{type => "https://datatracker.ietf.org/doc/html/rfc7231#section-6.5.13",
+							title => "Unsupported Media Type",
+							detail => "The client provided Content-Type which the"
+									" the server does not support.",
+							code => "", status => 415},
+					{ContentType, ResponseBody} = ocs_rest:format_problem(Problem, Headers),
+					Headers1 = lists:keystore(content_type, 1, Headers,
+							{content_type, ContentType}),
+					Size = integer_to_list(iolist_size(ResponseBody)),
+					Headers2 = [{content_length, Size} | Headers1],
+					send(ModData, 415, Headers2, ResponseBody),
+					{proceed, [{response, {already_sent, 415, Size}} | Data]}
 			end;
 		_ ->
 			do_post(Resource, ModData, Body, string:tokens(Uri, "/"))
@@ -170,36 +180,88 @@ do_response(#mod{data = Data} = ModData, {200, Headers, ResponseBody}) ->
 	NewHeaders = Headers ++ [{content_length, Size}, {content_type, Accept}],
 	send(ModData, 200, NewHeaders, ResponseBody),
 	{proceed,[{response,{already_sent, 201, Size}} | Data]};
-do_response(#mod{data = Data} = _ModData, {error, 400}) ->
-	Response = "<h2>HTTP Error 400 - Bad Request</h2>",
-	{proceed, [{response, {400, Response}} | Data]};
-do_response(#mod{data = Data} = ModData, {error, 400, ResponseBody}) ->
-	Response = "<h2>HTTP Error 400 - Bad Request</h2>",
+do_response(#mod{parsed_header = Headers,
+			data = Data} = ModData, {error, 400}) ->
+	Problem = #{type => "https://datatracker.ietf.org/doc/html/rfc7231#section-6.5.1",
+			title => "Bad Request",
+			detail => "The server cannot or will not process the request"
+					" due to something that is perceived to be a client error.",
+			code => "", status => 400},
+	{ContentType, ResponseBody} = ocs_rest:format_problem(Problem, Headers),
+	Headers1 = lists:keystore(content_type, 1, Headers,
+			{content_type, ContentType}),
 	Size = integer_to_list(iolist_size(ResponseBody)),
-	Headers = [{content_length, Size},
-			{content_type, "application/problem+json"}],
-	send(ModData, 400, Headers, ResponseBody),
-	{proceed, [{response, {400, Response}} | Data]};
-do_response(#mod{data = Data} = ModData, {error, 403, ResponseBody}) ->
-	Response = "<h2>HTTP Error 403 - Forbidden</h2>",
+	Headers2 = [{content_length, Size} | Headers1],
+	send(ModData, 400, Headers2, ResponseBody),
+	{proceed, [{response, {already_sent, 400, Size}} | Data]};
+do_response(#mod{parsed_header = Headers,
+		data = Data} = ModData, {error, 403}) ->
+	Problem = #{type => "https://datatracker.ietf.org/doc/html/rfc7231#section-6.5.3",
+			title => "Forbidden",
+			detail => "the server understood the request but refuses to authorize it.",
+			code => "", status => 403},
+	{ContentType, ResponseBody} = ocs_rest:format_problem(Problem, Headers),
+	Headers1 = lists:keystore(content_type, 1, Headers,
+			{content_type, ContentType}),
 	Size = integer_to_list(iolist_size(ResponseBody)),
-	Headers = [{content_length, Size},
-			{content_type, "application/problem+json"}],
-	send(ModData, 403, Headers, ResponseBody),
-	{proceed, [{response, {403, Response}} | Data]};
-do_response(#mod{data = Data} = ModData, {error, 404, ResponseBody}) ->
-	Response = "<h2>HTTP Error 404 - Not Found</h2>",
+	Headers2 = [{content_length, Size} | Headers1],
+	send(ModData, 403, Headers2, ResponseBody),
+	{proceed, [{response, {already_sent, 403, Size}} | Data]};
+do_response(#mod{parsed_header = Headers,
+		data = Data} = ModData, {error, 404}) ->
+	Problem = #{type => "https://datatracker.ietf.org/doc/html/rfc7231#section-6.5.4",
+			title => "Not Found",
+			detail => "No resource exists at the path provided",
+			code => "", status => 404},
+	{ContentType, ResponseBody} = ocs_rest:format_problem(Problem, Headers),
+	Headers1 = lists:keystore(content_type, 1, Headers,
+			{content_type, ContentType}),
 	Size = integer_to_list(iolist_size(ResponseBody)),
-	Headers = [{content_length, Size},
-			{content_type, "application/problem+json"}],
-	send(ModData, 404, Headers, ResponseBody),
-	{proceed, [{response, {404, Response}} | Data]};
-do_response(#mod{data = Data} = _ModData, {error, 404}) ->
-	Response = "<h2>HTTP Error 404 - Not Found</h2>",
-	{proceed, [{response, {404, Response}} | Data]};
-do_response(#mod{data = Data} = _ModData, {error, 500}) ->
-	Response = "<h2>HTTP Error 500 - Server Error</h2>",
-	{proceed, [{response, {500, Response}} | Data]}.
+	Headers2 = [{content_length, Size} | Headers1],
+	send(ModData, 404, Headers2, ResponseBody),
+	{proceed, [{response, {already_sent, 404, Size}} | Data]};
+do_response(#mod{parsed_header = Headers,
+		data = Data} = ModData, {error, 412}) ->
+	Problem = #{type => "https://datatracker.ietf.org/doc/html/rfc7232#section-4.2",
+			title => "Precondition Failed",
+			detail => "One or more conditions given in the request header"
+					" fields evaluated to false",
+			code => "", status => 412},
+	{ContentType, ResponseBody} = ocs_rest:format_problem(Problem, Headers),
+	Headers1 = lists:keystore(content_type, 1, Headers,
+			{content_type, ContentType}),
+	Size = integer_to_list(iolist_size(ResponseBody)),
+	Headers2 = [{content_length, Size} | Headers1],
+	send(ModData, 412, Headers2, ResponseBody),
+	{proceed, [{response, {already_sent, 412, Size}} | Data]};
+do_response(#mod{parsed_header = Headers,
+		data = Data} = ModData, {error, 416}) ->
+	Problem = #{type => "https://datatracker.ietf.org/doc/html/rfc7233#section-4.4",
+			title => "Range Not Satisfiable",
+			detail => "None of the ranges in the request's Range header"
+					" field overlap the current extent of the selected resource",
+			code => "", status => 416},
+	{ContentType, ResponseBody} = ocs_rest:format_problem(Problem, Headers),
+	Headers1 = lists:keystore(content_type, 1, Headers,
+			{content_type, ContentType}),
+	Size = integer_to_list(iolist_size(ResponseBody)),
+	Headers2 = [{content_length, Size} | Headers1],
+	send(ModData, 416, Headers2, ResponseBody),
+	{proceed, [{response, {already_sent, 416, Size}} | Data]};
+do_response(#mod{parsed_header = Headers,
+		data = Data} = ModData, {error, 500}) ->
+	Problem = #{type => "https://datatracker.ietf.org/doc/html/rfc7231#section-6.6.1",
+			title => "Internal Server Error",
+			detail => "The server encountered an unexpected condition that"
+					" prevented it from fulfilling the request.",
+			code => "", status => 500},
+	{ContentType, ResponseBody} = ocs_rest:format_problem(Problem, Headers),
+	Headers1 = lists:keystore(content_type, 1, Headers,
+			{content_type, ContentType}),
+	Size = integer_to_list(iolist_size(ResponseBody)),
+	Headers2 = [{content_length, Size} | Headers1],
+	send(ModData, 500, Headers2, ResponseBody),
+	{proceed, [{response, {already_sent, 500, Size}} | Data]}.
 
 %% @hidden
 send(#mod{socket = Socket, socket_type = SocketType} = Info,
