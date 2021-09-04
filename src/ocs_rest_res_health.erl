@@ -68,7 +68,9 @@ get_health([] = _Query, _Headers) ->
 			{error, Reason} ->
 				exit(Reason)
 		end,
-		{"checks", {struct, [Check1]}}
+		Check2 = application([ocs, inets, diameter, radius, snmp]),
+		Check3 = table_size([offer, product, service, resource, bucket]),
+		{"checks", {struct, [Check1, Check2, Check3]}}
 	of
 		Checks ->
 			Status = {"status", "pass"},
@@ -87,4 +89,45 @@ get_health([] = _Query, _Headers) ->
 %%  internal functions
 %%----------------------------------------------------------------------
 
-	
+-spec application(Names) -> Check
+	when
+		Names :: [atom()],
+		Check :: tuple().
+%% @doc Check application component.
+%% @hidden
+application(Names) ->
+	application(Names, application:which_applications(), []).
+%% @hidden
+application([Name | T], Running, Acc) ->
+	Status = case lists:keymember(Name, 1, Running) of
+		true ->
+			"up";
+		false ->
+			"down"
+	end,
+	NewAcc = [{struct, [{"componentId", Name},
+			{"componentType", "component"},
+			{"status", Status}]} | Acc],
+	application(T, Running, NewAcc);
+application([], _Running, Acc) ->
+	{"application", {array, Acc}}.
+
+-spec table_size(Names) -> Check
+	when
+		Names :: [atom()],
+		Check :: tuple().
+%% @doc Check table component size.
+%% @hidden
+table_size(Names) ->
+	table_size(Names, []).
+%% @hidden
+table_size([Name | T], Acc) ->
+	Size = mnesia:table_info(Name, size),
+	NewAcc = [{struct, [{"componentId", Name},
+			{"componentType", "component"},
+			{"observedUnit", "rows"},
+			{"observeredValue", Size}]} | Acc],
+	table_size(T, NewAcc);
+table_size([], Acc) ->
+	{"table:size", {array, Acc}}.
+
