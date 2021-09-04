@@ -27,7 +27,7 @@
 -copyright('Copyright (c) 2021 SigScale Global Inc.').
 
 -export([content_types_accepted/0, content_types_provided/0,
-		get_health/2]).
+		get_health/2, get_applications/2]).
 
 -spec content_types_accepted() -> ContentTypes
 	when
@@ -64,6 +64,32 @@ get_health([] = _Query, _Headers) ->
 			Description = {"description", "Health of SigScale OCS"},
 			Health = {struct, [Status, ServiceId, Description, Checks]},
 			Body = mochijson:encode(Health),
+			Headers1 = [{content_type, "application/health+json"}],
+			{ok, Headers1, Body}
+	catch
+		_:_Reason ->
+			{error, 500}
+	end.
+
+-spec get_applications(Query, Headers) -> Result
+	when
+		Query :: [{Key :: string(), Value :: string()}],
+		Headers :: [tuple()],
+		Result :: {ok, Headers :: [tuple()], Body :: iolist()}
+				| {error, ErrorCode :: integer()}.
+%% @doc Body producing function for `GET /health/application'
+%% requests.
+get_applications([] = _Query, _Headers) ->
+	try
+		Check = application([ocs, inets, diameter, radius, snmp]),
+		{"checks", {struct, [Check]}}
+	of
+		Checks ->
+			Status = {"status", "pass"},
+			ServiceId = {"serviceId", atom_to_list(node())},
+			Description = {"description", "OTP applications"},
+			Application = {struct, [Status, ServiceId, Description, Checks]},
+			Body = mochijson:encode(Application),
 			Headers1 = [{content_type, "application/health+json"}],
 			{ok, Headers1, Body}
 	catch

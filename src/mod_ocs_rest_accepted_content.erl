@@ -58,6 +58,8 @@ do(#mod{method = Method, parsed_header = Headers, request_uri = Uri,
 					case string:tokens(Path, "/?") of
 						["health"] ->
 							check_content_type_header(Headers, Method, ocs_rest_res_health, Data);
+						["health", "application"] ->
+							check_content_type_header(Headers, Method, ocs_rest_res_health, Data);
 						["ocs", "v1", "client"] ->
 							check_content_type_header(Headers, Method, ocs_rest_res_client, Data);
 						["ocs", "v1", "client", _Id] ->
