@@ -53,21 +53,7 @@ content_types_provided() ->
 %% requests.
 get_health([] = _Query, _Headers) ->
 	try
-		Check1 = case  ocs:statistics(scheduler_utilization) of
-			{ok, {_Etag, _Interval, Report}} ->
-				F = fun({SchedulerId, Utilization}) ->
-							Component1 = {"componentId",
-									integer_to_list(SchedulerId)},
-        					Value1 = {"observeredValue", Utilization},
-        					Unit1 = {"observedUnit", "percent"},
-        					Type1 = {"componentType", "system"},
-							{struct, [Component1, Value1, Unit1, Type1]}
-				end,
-				{"scheduler:utilization",
-						{array, lists:map(F, Report)}};
-			{error, Reason} ->
-				exit(Reason)
-		end,
+		Check1 = scheduler(),
 		Check2 = application([ocs, inets, diameter, radius, snmp]),
 		Check3 = table_size([offer, product, service, resource, bucket]),
 		{"checks", {struct, [Check1, Check2, Check3]}}
@@ -88,6 +74,26 @@ get_health([] = _Query, _Headers) ->
 %%----------------------------------------------------------------------
 %%  internal functions
 %%----------------------------------------------------------------------
+
+-spec scheduler() -> Check
+	when
+		Check :: tuple().
+%% @doc Check scheduler component.
+%% @hidden
+scheduler() ->
+	scheduler(ocs:statistics(scheduler_utilization)).
+scheduler({ok, {_Etag, _Interval, Report}}) ->
+	F = fun({SchedulerId, Utilization}) ->
+				Component1 = {"componentId",
+						integer_to_list(SchedulerId)},
+				Value1 = {"observeredValue", Utilization},
+				Unit1 = {"observedUnit", "percent"},
+				Type1 = {"componentType", "system"},
+				{struct, [Component1, Value1, Unit1, Type1]}
+	end,
+	{"scheduler:utilization", {array, lists:map(F, Report)}};
+scheduler({error, Reason}) ->
+	exit(Reason).
 
 -spec application(Names) -> Check
 	when
