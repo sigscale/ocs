@@ -163,8 +163,8 @@ do_post(Resource, ModData, Body, ["nrf-rating", "v1", "ratingdata", RatingDataRe
 	do_response(ModData, Resource:release_nrf(RatingDataRef, Body)).
 
 %% @hidden
-do_response(#mod{data = Data} = ModData, {ok, [] = Headers,
-		[] = ResponseBody}) ->
+do_response(#mod{data = Data} = ModData,
+		{ok, [] = Headers, [] = ResponseBody}) ->
 	NewHeaders = Headers ++ [{content_length, "0"}],
 	send(ModData, 204, NewHeaders, ResponseBody),
 	{proceed,[{response,{already_sent, 204, "0"}} | Data]};
@@ -261,7 +261,23 @@ do_response(#mod{parsed_header = Headers,
 	Size = integer_to_list(iolist_size(ResponseBody)),
 	Headers2 = [{content_length, Size} | Headers1],
 	send(ModData, 500, Headers2, ResponseBody),
-	{proceed, [{response, {already_sent, 500, Size}} | Data]}.
+	{proceed, [{response, {already_sent, 500, Size}} | Data]};
+do_response(#mod{parsed_header = Headers, data = Data} = ModData,
+		{error, StatusCode, Problem}) when is_map(Problem),
+		StatusCode >= 400, StatusCode =< 599 ->
+	Problem1 = case maps:is_key(code, Problem) of
+		true ->
+			Problem#{status => StatusCode};
+		false ->
+			Problem#{code => "", status => StatusCode}
+	end,
+	{ContentType, ResponseBody} = ocs_rest:format_problem(Problem1, Headers),
+	Headers1 = lists:keystore(content_type, 1, Headers,
+			{content_type, ContentType}),
+	Size = integer_to_list(iolist_size(ResponseBody)),
+	Headers2 = [{content_length, Size} | Headers1],
+	send(ModData, StatusCode, Headers2, ResponseBody),
+	{proceed, [{response, {already_sent, StatusCode, Size}} | Data]}.
 
 %% @hidden
 send(#mod{socket = Socket, socket_type = SocketType} = Info,
