@@ -40,7 +40,7 @@ content_types_accepted() ->
 		ContentTypes :: [string()].
 %% @doc Provides list of resource representations available.
 content_types_provided() ->
-	["text/plain"].
+	["text/plain", "application/problem+json"].
 
 -spec get_metrics(Query, Headers) -> Result
 	when

@@ -46,7 +46,7 @@ content_types_accepted() ->
 		ContentTypes :: list().
 %% @doc Provides list of resource representations available.
 content_types_provided() ->
-	["application/json", "text/x-yaml"].
+	["application/json", "text/x-yaml", "application/problem+json"].
 
 -spec get_schema() -> Result when
 	Result :: {ok, Headers, Body},
@@ -95,7 +95,8 @@ add_inventory(ReqData) ->
 			Body = mochijson:encode(inventory(Service)),
 			Href = ?serviceInventoryPath ++ binary_to_list(Service#service.name),
 			Etag = ocs_rest:etag(Service#service.last_modified),
-			Headers = [{location, Href}, {etag, Etag}],
+			Headers = [{content_type, "application/json"},
+					{location, Href}, {etag, Etag}],
 			{ok, Headers, Body}
 	catch
 		throw:product_not_found ->
@@ -129,7 +130,8 @@ get_inventory(Id) ->
 			Body = mochijson:encode(inventory(Service)),
 			Etag = ocs_rest:etag(Service#service.last_modified),
 			Href = ?serviceInventoryPath ++ binary_to_list(Service#service.name),
-			Headers = [{location, Href}, {etag, Etag},
+			Headers = [{content_type, "application/json"},
+					{location, Href}, {etag, Etag},
 					{content_type, "application/json"}],
 			{ok, Headers, Body}
 	catch
@@ -222,20 +224,20 @@ patch_inventory(ServiceId, Etag, ReqData) ->
 									N = erlang:unique_integer([positive]),
 									LM = {TS, N},
 									case inventory(Service2) of
-									#service{product = []} = Service3 ->
-										Service4 = Service3#service{last_modified = LM,
-												product = undefined},
-										{ok, #product{service = Services} = Product}
-												= ocs:find_product(ProductRef),
-										Product1 = Product#product{service = Services
-												-- [list_to_binary(ServiceId)]},
-										ok = mnesia:write(product, Product1, write),
-										ok = mnesia:write(Service4),
-										{Service2, LM};
-									Service3 ->
-										Service4 = Service3#service{last_modified = LM},
-										ok = mnesia:write(Service4),
-										{Service2, LM}
+										#service{product = []} = Service3 ->
+											Service4 = Service3#service{last_modified = LM,
+													product = undefined},
+											{ok, #product{service = Services} = Product}
+													= ocs:find_product(ProductRef),
+											Product1 = Product#product{service = Services
+													-- [list_to_binary(ServiceId)]},
+											ok = mnesia:write(product, Product1, write),
+											ok = mnesia:write(Service4),
+											{Service2, LM};
+										Service3 ->
+											Service4 = Service3#service{last_modified = LM},
+											ok = mnesia:write(Service4),
+											{Service2, LM}
 									end;
 								_ ->
 									throw(bad_request)
@@ -262,7 +264,8 @@ patch_inventory(ServiceId, Etag, ReqData) ->
 			case mnesia:transaction(F) of
 				{atomic, {Service, Etag3}} ->
 					Location = ?serviceInventoryPath ++ ServiceId,
-					Headers = [{location, Location}, {etag, ocs_rest:etag(Etag3)}],
+					Headers = [{content_type, "application/json"},
+							{location, Location}, {etag, ocs_rest:etag(Etag3)}],
 					Body = mochijson:encode(Service),
 					{ok, Headers, Body};
 				{aborted, {throw, bad_request}} ->

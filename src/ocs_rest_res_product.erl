@@ -59,7 +59,7 @@ content_types_accepted() ->
 		ContentTypes :: list().
 %% @doc Provides list of resource representations available.
 content_types_provided() ->
-	["application/json", "text/x-yaml"].
+	["application/json", "text/x-yaml", "application/problem+json"].
 
 -spec get_schema() -> Result when
 	Result :: {ok, Headers, Body},
@@ -102,7 +102,8 @@ add_offer(ReqData) ->
 			Body = mochijson:encode(offer(Offer)),
 			Etag = ocs_rest:etag(Offer#offer.last_modified),
 			Href = ?offeringPath ++ Offer#offer.name,
-			Headers = [{location, Href}, {etag, Etag}],
+			Headers = [{content_type, "application/json"},
+					{location, Href}, {etag, Etag}],
 			{ok, Headers, Body}
 	catch
 		throw:validation_failed ->
@@ -137,7 +138,8 @@ add_inventory(ReqData) ->
 			Body = mochijson:encode(inventory(Subscription)),
 			Etag = ocs_rest:etag(Subscription#product.last_modified),
 			Href = ?inventoryPath ++ Subscription#product.id,
-			Headers = [{location, Href}, {etag, Etag}],
+			Headers = [{content_type, "application/json"},
+					{location, Href}, {etag, Etag}],
 			{ok, Headers, Body}
 	catch
 		throw:service_not_found ->
@@ -175,7 +177,8 @@ get_offer(ID) ->
 			Body = mochijson:encode(offer(Offer)),
 			Etag = ocs_rest:etag(Offer#offer.last_modified),
 			Href = ?offeringPath ++ Offer#offer.name,
-			Headers = [{location, Href}, {etag, Etag},
+			Headers = [{content_type, "application/json"},
+					{location, Href}, {etag, Etag},
 					{content_type, "application/json"}],
 			{ok, Headers, Body}
 	catch
@@ -208,7 +211,8 @@ get_inventory(ID) ->
 			Body = mochijson:encode(inventory(Product)),
 			Etag = ocs_rest:etag(Product#product.last_modified),
 			Href = ?inventoryPath ++ Product#product.id,
-			Headers = [{location, Href}, {etag, Etag},
+			Headers = [{content_type, "application/json"},
+					{location, Href}, {etag, Etag},
 					{content_type, "application/json"}],
 			{ok, Headers, Body}
 	catch
@@ -453,7 +457,8 @@ patch_offer(ProdId, Etag, ReqData) ->
 			case mnesia:transaction(F) of
 				{atomic, {Product, Etag3}} ->
 					Location = ?offeringPath ++ ProdId,
-					Headers = [{location, Location}, {etag, ocs_rest:etag(Etag3)}],
+					Headers = [{content_type, "application/json"},
+							{location, Location}, {etag, ocs_rest:etag(Etag3)}],
 					Body = mochijson:encode(Product),
 					{ok, Headers, Body};
 				{aborted, {throw, bad_request}} ->
@@ -553,7 +558,8 @@ patch_inventory(ProdId, Etag, ReqData) ->
 			case mnesia:transaction(F) of
 				{atomic, {Product, Etag3}} ->
 					Location = "/productInventoryManagement/v1/product/" ++ ProdId,
-					Headers = [{location, Location}, {etag, ocs_rest:etag(Etag3)}],
+					Headers = [{content_type, "application/json"},
+							{location, Location}, {etag, ocs_rest:etag(Etag3)}],
 					Body = mochijson:encode(Product),
 					{ok, Headers, Body};
 				{aborted, {throw, bad_request}} ->
@@ -624,7 +630,8 @@ sync_offer({_, "ProductOfferingCreationNotification"}, #offer{} = Offer1) ->
 			Body = mochijson:encode(offer(Offer2)),
 			Etag = ocs_rest:etag(Offer2#offer.last_modified),
 			Href = ?offeringPath ++ Offer2#offer.name,
-			Headers = [{location, Href}, {etag, Etag}],
+			Headers = [{content_type, "application/json"},
+					{location, Href}, {etag, Etag}],
 			{ok, Headers, Body};
 		{error, Reason} ->
 			{error, Reason}

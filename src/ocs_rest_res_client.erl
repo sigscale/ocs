@@ -39,7 +39,7 @@ content_types_accepted() ->
 		ContentTypes :: list().
 %% @doc Provides list of resource representations available.
 content_types_provided() ->
-	["application/json"].
+	["application/json", "application/problem+json"].
 
 -spec get_clients(Query, Headers) -> Result
 	when
@@ -142,7 +142,8 @@ post_client(RequestBody) ->
 		Location = "/ocs/v1/client/" ++ Id,
 		JsonObj  = client(Client1),
 		Body = mochijson:encode(JsonObj),
-		Headers = [{location, Location}, {etag, ocs_rest:etag(Etag)}],
+		Headers = [{content_type, "application/json"},
+				{location, Location}, {etag, ocs_rest:etag(Etag)}],
 		{ok, Headers, Body}
 	catch
 		_Error ->
@@ -230,8 +231,8 @@ patch_client2(Address, _Etag, "application/json-patch+json", Client, Operations)
 			{atomic, LastModified} ->
 				ID = inet:ntoa(Address),
 				Location = "/ocs/v1/client" ++ ID,
-				Headers = [{location, Location},
-					{etag, ocs_rest:etag(LastModified)}],
+				Headers = [{content_type, "application/json"},
+					{location, Location}, {etag, ocs_rest:etag(LastModified)}],
 				Body = mochijson:encode(Json),
 				{ok, Headers, Body};
 			{aborted, {throw, not_found}} ->
@@ -247,15 +248,15 @@ patch_client2(Address, _Etag, "application/json-patch+json", Client, Operations)
 patch_client3(Id, Port, Protocol, NewPassword, Etag) ->
 	IDstr = inet:ntoa(Id),
 	ok = ocs:update_client(Id, NewPassword),
-	RespObj =[{"id", IDstr}, {"href", "/ocs/v1/client/" ++ IDstr},
+	RespObj = [{"id", IDstr}, {"href", "/ocs/v1/client/" ++ IDstr},
 			{"port", Port}, {"protocol", Protocol}, {"secret", NewPassword}],
-	JsonObj  = {struct, RespObj},
+	JsonObj = {struct, RespObj},
 	RespBody = mochijson:encode(JsonObj),
 	Headers = case Etag of
 		undefined ->
-			[];
+			[{content_type, "application/json"}];
 		_ ->
-			[{etag, ocs_rest:etag(Etag)}]
+			[{content_type, "application/json"}, {etag, ocs_rest:etag(Etag)}]
 	end,
 	{ok, Headers, RespBody}.
 %% @hidden
@@ -263,15 +264,15 @@ patch_client4(Id, Port, Protocol, Secret, Etag) ->
 	IDstr = inet:ntoa(Id),
 	Protocolstr = string:to_upper(atom_to_list(Protocol)),
 	ok = ocs:update_client(Id, Port, Protocol),
-	RespObj =[{"id", IDstr}, {"href", "/ocs/v1/client/" ++ IDstr},
+	RespObj = [{"id", IDstr}, {"href", "/ocs/v1/client/" ++ IDstr},
 			{"port", Port}, {"protocol", Protocolstr}, {"secret", Secret}],
-	JsonObj  = {struct, RespObj},
+	JsonObj = {struct, RespObj},
 	RespBody = mochijson:encode(JsonObj),
 	Headers = case Etag of
 		undefined ->
-			[];
+			[{content_type, "application/json"}];
 		_ ->
-			[{etag, ocs_rest:etag(Etag)}]
+			[{content_type, "application/json"},{etag, ocs_rest:etag(Etag)}]
 	end,
 	{ok, Headers, RespBody}.
 

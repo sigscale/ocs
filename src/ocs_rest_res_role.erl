@@ -44,7 +44,7 @@ content_types_accepted() ->
 		ContentTypes :: list().
 %% @doc Returns list of resource representations available.
 content_types_provided() ->
-	["application/json"].
+	["application/json", "application/problem+json"].
 
 -spec post_role(RequestBody) -> Result
 	when
@@ -65,7 +65,8 @@ post_role(RequestBody) ->
 						Role#httpd_user.user_data, Address, Port, Directory),
 				Body = mochijson:encode(role(Role)),
 				Location = "/partyRoleManagement/v4/partyRole/" ++ Name,
-				Headers = [{location, Location}, {etag, ocs_rest:etag(LM)}],
+				Headers = [{content_type, "application/json"},
+						{location, Location}, {etag, ocs_rest:etag(LM)}],
 				{ok, Headers, Body}
 			catch
 				_:_Reason1 ->
@@ -189,15 +190,15 @@ get_role(_Name, _Query, {error, Reason}) ->
 get_role(Name, [] = _Query, {Port, Address, Dir, _Group}, _Filters) ->
 	case mod_auth:get_user(Name, Address, Port, Dir) of
 		{ok, #httpd_user{user_data = UserData} = RoleRec} ->
-			Headers1 = case lists:keyfind(last_modified, 1, UserData) of
+			Headers = case lists:keyfind(last_modified, 1, UserData) of
 				{_, LastModified} ->
-					[{etag, im_rest:etag(LastModified)}];
+					[{content_type, "application/json"},
+							{etag, im_rest:etag(LastModified)}];
 				false ->
-					[]
+					[{content_type, "application/json"}]
 			end,
-			Headers2 = [{content_type, "application/json"} | Headers1],
 			Body = mochijson:encode(role(RoleRec)),
-			{ok, Headers2, Body};
+			{ok, Headers, Body};
 		{error, _Reason} ->
 			{error, 404}
 	end;

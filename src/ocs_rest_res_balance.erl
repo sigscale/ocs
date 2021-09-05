@@ -48,7 +48,7 @@ content_types_accepted() ->
 		ContentTypes :: list().
 %% @doc Provides list of resource representations available.
 content_types_provided() ->
-	["application/json"].
+	["application/json", "application/problem+json"].
 
 -spec get_balance_log(Query, Headers) -> Result
 	when
@@ -323,7 +323,8 @@ top_up_service(Identity, RequestBody) ->
 						{ok, _, #bucket{id = Id} = B11} ->
 							Body = mochijson:encode(bucket(B11)),
 							Location = ?bucketPath ++ Id,
-							Headers = [{location, Location}],
+							Headers = [{content_type, "application/json"},
+									{location, Location}],
 							{ok, Headers, Body};
 						{error, _} ->
 							{error, 500}
@@ -355,7 +356,8 @@ top_up(Identity, RequestBody) ->
 				{ok, _, #bucket{id = Id} = B1} ->
 					Body = mochijson:encode(bucket(B1)),
 					Location = ?bucketPath ++ Id,
-					Headers = [{location, Location}],
+					Headers = [{content_type, "application/json"},
+							{location, Location}],
 					{ok, Headers, Body};
 				{error, _} ->
 					{error, 500}
@@ -366,7 +368,8 @@ top_up(Identity, RequestBody) ->
 				{ok, _, #bucket{id = Id} = B1} ->
 					Body = mochijson:encode(bucket(B1)),
 					Location = ?bucketPath ++ Id,
-					Headers = [{location, Location}],
+					Headers = [{content_type, "application/json"},
+							{location, Location}],
 					{ok, Headers, Body};
 				{error, _} ->
 					{error, 500}

@@ -53,7 +53,7 @@ content_types_accepted() ->
 		ContentTypes :: list().
 %% @doc Provides list of resource representations available.
 content_types_provided() ->
-	["application/json"].
+	["application/json", "application/problem+json"].
 
 -spec get_resource_spec(ID) -> Result
 	when
@@ -436,7 +436,8 @@ add_resource(RequestBody) ->
 			Href = "/resourceInventoryManagement/v1/resource/" ++ Id,
 			Resource2 = Resource1#resource{id = Id, href = F("prefix"),
 					last_modified = LM},
-			Headers = [{location, Href}, {etag, ocs_rest:etag(LM)}],
+			Headers = [{content_type, "application/json"},
+					{location, Href}, {etag, ocs_rest:etag(LM)}],
 			Body = mochijson:encode(resource(Resource2)),
 			{ok, Headers, Body};
 		#resource{specification = #specification_ref{id = "4"}} = Resource ->
@@ -447,7 +448,8 @@ add_resource(RequestBody) ->
 	end.
 %% @hidden
 add_resource1({ok, #resource{href = Href, last_modified = LM} = Resource}) ->
-	Headers = [{location, Href}, {etag, ocs_rest:etag(LM)}],
+	Headers = [{content_type, "application/json"},
+			{location, Href}, {etag, ocs_rest:etag(LM)}],
 	Body = mochijson:encode(resource(Resource)),
 	{ok, Headers, Body};
 add_resource1({error, _Reason}) ->
@@ -586,7 +588,8 @@ patch_resource(Id, Etag, ReqData) ->
 			case mnesia:transaction(F) of
 				{atomic, {Resource, Etag3}} ->
 					Location = "/resourceInventoryManagement/v1/resource/" ++ Id,
-					Headers = [{location, Location}, {etag, ocs_rest:etag(Etag3)}],
+					Headers = [{content_type, "application/json"},
+							{location, Location}, {etag, ocs_rest:etag(Etag3)}],
 					Body = mochijson:encode(Resource),
 					{ok, Headers, Body};
 				{aborted, {throw, bad_request}} ->
@@ -613,8 +616,8 @@ patch_resource(Id, Etag, ReqData) ->
 											{Description1, Rate1}),
 							Location = ?inventoryPath ++ atom_to_list(Table2)
 									++ "-" ++ Prefix1,
-							Headers = [{location, Location},
-									{etag, ocs_rest:etag(LastModified2)}],
+							Headers = [{content_type, "application/json"},
+									{location, Location}, {etag, ocs_rest:etag(LastModified2)}],
 							Body = mochijson:encode(Res),
 							{ok, Headers, Body};
 						_ ->

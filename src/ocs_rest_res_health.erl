@@ -41,7 +41,7 @@ content_types_accepted() ->
 		ContentTypes :: [string()].
 %% @doc Provides list of resource representations available.
 content_types_provided() ->
-	["application/health+json"].
+	["application/health+json", "application/problem+json"].
 
 -spec get_health(Query, Headers) -> Result
 	when
