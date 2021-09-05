@@ -476,8 +476,8 @@ millionths_out(In) when is_integer(In) ->
 %% 	TMF630 mandates `code' to provide an application
 %% 	related code which may be included in an API specification.
 %%
-%% 	The result shall be formatted in one the following
-%% 	media type, in priority order:
+%% 	The result shall be formatted in one of the following
+%% 	media types, in priority order:
 %%
 %%		ContentType :: "application/problem+json"
 %%				| "application/json" | "text/html"
