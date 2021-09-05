@@ -84,7 +84,7 @@ do(#mod{request_uri = Uri, data = Data} = ModData) ->
 	end.
 
 %% @hidden
-serve_index(User, #mod{parsed_header = Headers,
+serve_index(User, #mod{parsed_header = RequestHeaders,
 		data = Data, config_db = ConfigDb, request_uri = Uri} = ModData) ->
 	Path = mod_alias:path(Data, ConfigDb, Uri),
 	case filename:basename(Path) of
@@ -100,22 +100,20 @@ serve_index(User, #mod{parsed_header = Headers,
 									LangBin/binary, $>, $\n,
 									FileContent/binary, "</html>">>,
 							Size = integer_to_list(size(Body)),
-							Headers = [{content_type, "text/html"},
+							ResponseHeaders = [{content_type, "text/html"},
 									{etag, httpd_util:create_etag(FileInfo)},
 									{content_length, Size} | LastModified],
-							send(ModData, 200, Headers, Body),
+							send(ModData, 200, ResponseHeaders, Body),
 							{proceed, [{response, {already_sent, 200, Size}} | Data]};
 						{error, _Reason} ->
 							Problem = #{type => "https://datatracker.ietf.org/doc/html/rfc7231#section-6.5.4",
 									title => "Not Found",
 									detail => "No resource exists at the path provided",
 									code => "", status => 404},
-							{ContentType, ResponseBody} = ocs_rest:format_problem(Problem, Headers),
-							Headers1 = lists:keystore(content_type, 1, Headers,
-									{content_type, ContentType}),
+							{ContentType, ResponseBody} = ocs_rest:format_problem(Problem, RequestHeaders),
 							Size = integer_to_list(iolist_size(ResponseBody)),
-							Headers2 = [{content_length, Size} | Headers1],
-							send(ModData, 404, Headers2, ResponseBody),
+							ResponseHeaders = [{content_length, Size}, {content_type, ContentType}],
+							send(ModData, 404, ResponseHeaders, ResponseBody),
 							{proceed, [{response, {already_sent, 404, Size}} | Data]}
 					end;
 				{error, _Reason} ->
