@@ -191,8 +191,8 @@ do(#mod{request_uri = Uri, data = Data} = ModData) ->
 
 %% @hidden
 check_content_type_header(Module,
-		#mod{method = Method, parsed_header = Headers, data = Data} = ModData) ->
-	case lists:keyfind("content-type", 1, Headers) of
+		#mod{method = Method, parsed_header = RequestHeaders, data = Data} = ModData) ->
+	case lists:keyfind("content-type", 1, RequestHeaders) of
 		false when Method == "DELETE"; Method == "GET" ->
 			check_accept_header(Module, ModData#mod{data = [{resource, Module} | Data]});
 		{_, []} when Method == "DELETE"; Method == "GET" ->
@@ -211,12 +211,10 @@ check_content_type_header(Module,
 							detail => "The client provided Content-Type which the"
 									" the server does not support.",
 							code => "", status => 415},
-					{ContentType, ResponseBody} = ocs_rest:format_problem(Problem, Headers),
-					Headers1 = lists:keystore(content_type, 1, Headers,
-							{content_type, ContentType}),
+					{ContentType, ResponseBody} = ocs_rest:format_problem(Problem, RequestHeaders),
 					Size = integer_to_list(iolist_size(ResponseBody)),
-					Headers2 = [{content_length, Size} | Headers1],
-					send(ModData, 415, Headers2, ResponseBody),
+					ResponseHeaders = [{content_length, Size}, {content_type, ContentType}],
+					send(ModData, 415, ResponseHeaders, ResponseBody),
 					{proceed, [{response, {already_sent, 415, Size}} | Data]}
 			end;
 		false ->
@@ -224,43 +222,44 @@ check_content_type_header(Module,
 					title => "Bad Request",
 					detail => "The client failed to provide a Content-Type header",
 					code => "", status => 400},
-			{ContentType, ResponseBody} = ocs_rest:format_problem(Problem, Headers),
-			Headers1 = lists:keystore(content_type, 1, Headers,
-					{content_type, ContentType}),
+			{ContentType, ResponseBody} = ocs_rest:format_problem(Problem, RequestHeaders),
 			Size = integer_to_list(iolist_size(ResponseBody)),
-			Headers2 = [{content_length, Size} | Headers1],
-			send(ModData, 400, Headers2, ResponseBody),
+			ResponseHeaders = [{content_length, Size}, {content_type, ContentType}],
+			send(ModData, 415, ResponseHeaders, ResponseBody),
 			{proceed, [{response, {already_sent, 400, Size}} | Data]}
 	end.
 
 %% @hidden
 check_accept_header(Module,
-		#mod{parsed_header = Headers, data = Data} = ModData) ->
-	case lists:keyfind("accept", 1, Headers) of
+		#mod{parsed_header = RequestHeaders, data = Data} = ModData) ->
+	case lists:keyfind("accept", 1, RequestHeaders) of
 		{_, Accept} ->
-			AcceptTypes = string:tokens(Accept, [$,]),
-			F1 = fun(Representation) ->
-					F2 = fun(AcceptType) ->
-							lists:prefix(Representation, AcceptType)
-					end,
-					lists:any(F2, AcceptTypes)
-			end,
-			case lists:any(F1, Module:content_types_provided()) of
-				true ->
-					{proceed, [{accept, AcceptTypes} | Data]};
+			AcceptTypes = string:tokens(Accept, ", "),
+			case lists:member("*/*", AcceptTypes) of
 				false ->
-					Problem = #{type => "https://datatracker.ietf.org/doc/html/rfc7231#section-6.5.13",
-							title => "Unsupported Media Type",
-							detail => "The client provided an Accept header which is"
-									" missing the required content type.",
-							code => "", status => 415},
-					{ContentType, ResponseBody} = ocs_rest:format_problem(Problem, Headers),
-					Headers1 = lists:keystore(content_type, 1, Headers,
-							{content_type, ContentType}),
-					Size = integer_to_list(iolist_size(ResponseBody)),
-					Headers2 = [{content_length, Size} | Headers1],
-					send(ModData, 415, Headers2, ResponseBody),
-					{proceed, [{response, {already_sent, 415, Size}} | Data]}
+					F1 = fun(Representation) ->
+							F2 = fun(AcceptType) ->
+									lists:prefix(Representation, AcceptType)
+							end,
+							lists:any(F2, AcceptTypes)
+					end,
+					case lists:any(F1, Module:content_types_provided()) of
+						true ->
+							{proceed, [{accept, AcceptTypes} | Data]};
+						false ->
+							Problem = #{type => "https://datatracker.ietf.org/doc/html/rfc7231#section-6.5.13",
+									title => "Unsupported Media Type",
+									detail => "The client provided an Accept header which is"
+											" missing the required content type.",
+									code => "", status => 415},
+							{ContentType, ResponseBody} = ocs_rest:format_problem(Problem, RequestHeaders),
+							Size = integer_to_list(iolist_size(ResponseBody)),
+							ResponseHeaders = [{content_length, Size}, {content_type, ContentType}],
+							send(ModData, 415, ResponseHeaders, ResponseBody),
+							{proceed, [{response, {already_sent, 415, Size}} | Data]}
+					end;
+				true ->
+					{proceed, Data}
 			end;
 		false ->
 			{proceed, Data}
