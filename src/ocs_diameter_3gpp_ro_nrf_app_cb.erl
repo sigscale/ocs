@@ -728,9 +728,21 @@ process_request1(?'3GPP_CC-REQUEST-TYPE_EVENT_REQUEST' = RequestType,
 		Reason :: term().
 %% @doc POST ECUR rating data to a Nrf Rating Server.
 post_request_ecur(SubscriberIds, SvcContextId,
+		SessionId, MSCC, Location, Destination, initial, a) ->
+	Path = get_option(nrf_uri) ++ ?BASE_URI,
+	ServiceRating = initial_service_rating_b(MSCC, binary_to_list(SvcContextId),
+			Location, Destination),
+	post_request_ecur1(SubscriberIds, SessionId, ServiceRating, Path);
+post_request_ecur(SubscriberIds, SvcContextId,
 		SessionId, MSCC, Location, Destination, initial, b) ->
 	Path = get_option(nrf_uri) ++ ?BASE_URI,
 	ServiceRating = initial_service_rating_b(MSCC, binary_to_list(SvcContextId),
+			Location, Destination),
+	post_request_ecur1(SubscriberIds, SessionId, ServiceRating, Path);
+post_request_ecur(SubscriberIds, SvcContextId,
+		SessionId, MSCC, Location, Destination, final, a) ->
+	Path = get_option(nrf_uri) ++ get_ref(SessionId) ++ "/" ++ "release",
+	ServiceRating = final_service_rating_b(MSCC, binary_to_list(SvcContextId),
 			Location, Destination),
 	post_request_ecur1(SubscriberIds, SessionId, ServiceRating, Path);
 post_request_ecur(SubscriberIds, SvcContextId,
@@ -846,16 +858,34 @@ post_request_iec1(SubscriberIds, SessionId, ServiceRating) ->
 		Reason :: term().
 %% @doc POST SCUR rating data to a Nrf Rating Server.
 post_request_scur(SubscriberIds, SvcContextId,
+		SessionId, MSCC, Location, initial, a) ->
+	Path = get_option(nrf_uri) ++ ?BASE_URI,
+	ServiceRating = initial_service_rating_b(MSCC, binary_to_list(SvcContextId),
+			Location, undefined),
+	post_request_scur1(SubscriberIds, SessionId, ServiceRating, Path);
+post_request_scur(SubscriberIds, SvcContextId,
 		SessionId, MSCC, Location, initial, b) ->
 	Path = get_option(nrf_uri) ++ ?BASE_URI,
 	ServiceRating = initial_service_rating_b(MSCC, binary_to_list(SvcContextId),
 			Location, undefined),
 	post_request_scur1(SubscriberIds, SessionId, ServiceRating, Path);
 post_request_scur(SubscriberIds, SvcContextId,
+		SessionId, MSCC, Location, interim, a) ->
+	Path = get_option(nrf_uri) ++ get_ref(SessionId) ++ "/" ++ "update",
+	ServiceRating = update_service_rating_b(MSCC, binary_to_list(SvcContextId),
+			Location),
+	post_request_scur1(SubscriberIds, SessionId, ServiceRating, Path);
+post_request_scur(SubscriberIds, SvcContextId,
 		SessionId, MSCC, Location, interim, b) ->
 	Path = get_option(nrf_uri) ++ get_ref(SessionId) ++ "/" ++ "update",
 	ServiceRating = update_service_rating_b(MSCC, binary_to_list(SvcContextId),
 			Location),
+	post_request_scur1(SubscriberIds, SessionId, ServiceRating, Path);
+post_request_scur(SubscriberIds, SvcContextId,
+		SessionId, MSCC, Location, final, a) ->
+	Path = get_option(nrf_uri) ++ get_ref(SessionId) ++ "/" ++ "release",
+	ServiceRating = final_service_rating_b(MSCC, binary_to_list(SvcContextId),
+			undefined, Location),
 	post_request_scur1(SubscriberIds, SessionId, ServiceRating, Path);
 post_request_scur(SubscriberIds, SvcContextId,
 		SessionId, MSCC, Location, final, b) ->
