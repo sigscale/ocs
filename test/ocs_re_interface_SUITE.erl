@@ -185,6 +185,15 @@ init_per_testcase(TestCase, Config)
 	NewEnvVar = [Auth, {acct, [{DAddress, Port, NewOptions}]}],
 	ok = application:set_env(ocs, diameter, NewEnvVar),
 	Config;
+init_per_testcase(TestCase, Config)
+		when TestCase == send_initial_scur_class_a ->
+	Address = ?config(diameter_acct_address, Config),
+	{ok, _} = ocs:add_client(Address, undefined, diameter, undefined, true),
+	{ok, [Auth, {acct, [{DAddress, Port, Options}]}]} = application:get_env(ocs, diameter),
+	NewOptions = Options ++ [{class, undefined}],
+	NewEnvVar = [Auth, {acct, [{DAddress, Port, NewOptions}]}],
+	ok = application:set_env(ocs, diameter, NewEnvVar),
+	Config;
 init_per_testcase(_TestCase, Config) ->
 	Config.
 
@@ -210,7 +219,7 @@ all() ->
 		post_initial_scur_class_b, post_update_scur_class_b, post_final_scur_class_b, send_iec_class_b,
 		receive_iec_class_b, send_initial_ecur_class_b, receive_initial_ecur_class_b,
 		send_final_ecur_class_b, receive_final_ecur_class_b, post_iec_class_b, post_initial_ecur_class_b,
-		post_final_ecur_class_b].
+		post_final_ecur_class_b, send_initial_scur_class_a].
 
 %%---------------------------------------------------------------------
 %%  Test cases
@@ -866,9 +875,37 @@ post_final_ecur_class_b(Config) ->
 	{_, "32274@3gpp.org"} = lists:keyfind("serviceContextId", 1, ServiceRating),
 	{_, {_, [{_, Messages1}]}} = lists:keyfind("consumedUnit", 1, ServiceRating).
 
+send_initial_scur_class_a() ->
+	[{userdata, [{doc, "On received SCUR CCR-I send startRating"}]}].
+
+send_initial_scur_class_a(Config) ->
+	P1 = price(usage, octets, rand:uniform(10000000), rand:uniform(1000000)),
+	OfferId = add_offer([P1], 4),
+	HostUrl = ?config(host_url, Config),
+	PlaRef = #pla_ref{id = ocs:generate_password(), href = HostUrl ++ "/nrf-rating/v1/ratingdata",
+			name = tariff, class_type = a, schema = nrf_rating, ref_type = pla},
+	ProdRef = add_product(OfferId, [{pla, PlaRef}]),
+	MSISDN = list_to_binary(ocs:generate_identity()),
+	IMSI = list_to_binary(ocs:generate_identity()),
+	Subscriber = {MSISDN, IMSI},
+	Password = ocs:generate_identity(),
+	{ok, #service{}} = ocs:add_service(MSISDN, Password, ProdRef, []),
+	Balance = rand:uniform(1000000000),
+	B1 = bucket(octets, Balance),
+	_BId = add_bucket(ProdRef, B1),
+	Ref = erlang:ref_to_list(make_ref()),
+	SId = diameter:session_id(Ref),
+	RequestNum = 0,
+	InputOctets = rand:uniform(100),
+	OutputOctets = rand:uniform(200),
+	RequestedServiceUnits = {InputOctets, OutputOctets},
+	Answer0 = diameter_scur_start(SId, Subscriber, RequestNum, RequestedServiceUnits),
+	#'3gpp_ro_CCA'{'Result-Code' = ?'DIAMETER_BASE_RESULT-CODE_SUCCESS'} = Answer0.
+
 %%---------------------------------------------------------------------
 %%  Internal functions
 %%---------------------------------------------------------------------
+
 
 nrf_post_final_ecur_class_b(MSISDN, IMSI, Messages) ->
 	TS = erlang:system_time(?MILLISECOND),
@@ -1281,10 +1318,9 @@ add_offer(Prices, Spec) ->
 add_product(OfferId) ->
 	add_product(OfferId, []).
 add_product(OfferId, Chars) ->
-	{ok, #product{id = ProdRef}} = ocs:add_product(OfferId, Chars),
+	{ok, #product{id = ProdRef}} = ocs:add_product(OfferId, [], Chars),
 	ProdRef.
 
-%% @hidden
 bucket(Units, RA) ->
 	#bucket{units = Units, remain_amount = RA,
 			start_date = erlang:system_time(?MILLISECOND),
