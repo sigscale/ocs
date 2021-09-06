@@ -45,9 +45,12 @@
 %%% 					| transfer_encoding</tt></li>
 %%% 			<li><tt>Result = {ok, Headers, ResponseBody}
 %%% 					| {error, StatusCode}
-%%% 					| {error, StatusCode, Problem}</tt></li>
+%%% 					| {error, StatusCode, Problem}
+%%% 					| {error, StatusCode, ResponseHeaders, ResponseBody}}
+%%% 			</tt></li>
 %%% 			<li><tt>ResponseBody = io_list()</tt></li>
 %%% 			<li><tt>StatusCode = 200..599</tt></li>
+%%% 			<li><tt>ResponseHeaders = [{Option, Value}</tt></li>
 %%% 			<li><tt>Problem = #{type := uri(), title := string(),
 %%% 					code := string(), cause => string(), detail => string(),
 %%% 					invalidParams => [#{param := string(), reason => string()}],
@@ -83,9 +86,12 @@
 %%% 					| transfer_encoding</tt></li>
 %%% 			<li><tt>Result = {ok, Headers, ResponseBody}
 %%% 					| {error, StatusCode}
-%%% 					| {error, StatusCode, Problem}</tt></li>
+%%% 					| {error, StatusCode, Problem}
+%%% 					| {error, StatusCode, ResponseHeaders, ResponseBody}}
+%%% 			</tt></li>
 %%% 			<li><tt>ResponseBody = io_list()</tt></li>
 %%% 			<li><tt>StatusCode = 200..599</tt></li>
+%%% 			<li><tt>ResponseHeaders = [{Option, Value}</tt></li>
 %%% 			<li><tt>Problem = #{type := uri(), title := string(),
 %%% 					code := string(), cause => string(), detail => string(),
 %%% 					invalidParams => [#{param := string(), reason => string()}],
@@ -483,6 +489,13 @@ do_response(#mod{parsed_header = RequestHeaders, data = Data} = ModData,
 	{ContentType, ResponseBody} = ocs_rest:format_problem(Problem1, RequestHeaders),
 	Size = integer_to_list(iolist_size(ResponseBody)),
 	ResponseHeaders = [{content_length, Size}, {content_type, ContentType}],
+	send(ModData, StatusCode, ResponseHeaders, ResponseBody),
+	{proceed, [{response, {already_sent, StatusCode, Size}} | Data]};
+do_response(#mod{parsed_header = RequestHeaders, data = Data} = ModData,
+		{error, StatusCode, Headers, ResponseBody}) when is_list(ResponseBody),
+		StatusCode >= 400, StatusCode =< 599 ->
+	Size = integer_to_list(iolist_size(ResponseBody)),
+	ResponseHeaders = [{content_length, Size} | Headers],
 	send(ModData, StatusCode, ResponseHeaders, ResponseBody),
 	{proceed, [{response, {already_sent, StatusCode, Size}} | Data]}.
 
