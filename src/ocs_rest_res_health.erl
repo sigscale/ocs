@@ -27,7 +27,7 @@
 -copyright('Copyright (c) 2021 SigScale Global Inc.').
 
 -export([content_types_accepted/0, content_types_provided/0,
-		get_health/2, get_applications/2]).
+		get_health/2, get_applications/2, get_application/2]).
 
 -spec content_types_accepted() -> ContentTypes
 	when
@@ -43,12 +43,14 @@ content_types_accepted() ->
 content_types_provided() ->
 	["application/health+json", "application/problem+json"].
 
--spec get_health(Query, Headers) -> Result
+-spec get_health(Query, RequestHeaders) -> Result
 	when
 		Query :: [{Key :: string(), Value :: string()}],
-		Headers :: [tuple()],
-		Result :: {ok, Headers :: [tuple()], Body :: iolist()}
-				| {error, ErrorCode :: integer()}.
+		RequestHeaders :: [tuple()],
+		Result :: {ok, ResponseHeaders, ResponseBody}
+				| {error, 503, ResponseHeaders, ResponseBody},
+		ResponseHeaders :: [tuple()],
+		ResponseBody :: iolist().
 %% @doc Body producing function for `GET /health'
 %% requests.
 get_health([] = _Query, _RequestHeaders) ->
@@ -83,12 +85,14 @@ get_health([] = _Query, _RequestHeaders) ->
 			{error, 500}
 	end.
 
--spec get_applications(Query, Headers) -> Result
+-spec get_applications(Query, RequestHeaders) -> Result
 	when
 		Query :: [{Key :: string(), Value :: string()}],
-		Headers :: [tuple()],
-		Result :: {ok, Headers :: [tuple()], Body :: iolist()}
-				| {error, ErrorCode :: integer()}.
+		RequestHeaders :: [tuple()],
+		Result :: {ok, ResponseHeaders, ResponseBody}
+				| {error, 503, ResponseHeaders, ResponseBody},
+		ResponseHeaders :: [tuple()],
+		ResponseBody :: iolist().
 %% @doc Body producing function for `GET /health/application'
 %% requests.
 get_applications([] = _Query, _RequestHeaders) ->
@@ -121,6 +125,42 @@ get_applications([] = _Query, _RequestHeaders) ->
 					{error, 503, ResponseHeaders, ResponseBody}
 			end
 	catch
+		_:_Reason ->
+			{error, 500}
+	end.
+
+-spec get_application(Id, RequestHeaders) -> Result
+	when
+		Id :: string(),
+		RequestHeaders :: [tuple()],
+		Result :: {ok, ResponseHeaders, ResponseBody}
+				| {error, 503, ResponseHeaders, ResponseBody},
+		ResponseHeaders :: [tuple()],
+		ResponseBody :: iolist().
+%% @doc Body producing function for `GET /health/application/{Id}'
+%% requests.
+get_application(Id, _RequestHeaders) ->
+	try
+		Running = application:which_applications(),
+		case lists:keymember(list_to_existing_atom(Id), 1, Running) of
+			true ->
+				Status = {"status", "up"},
+				ServiceId = {"serviceId", Id},
+				Application = {struct, [Status, ServiceId]},
+				ResponseHeaders = [{content_type, "application/health+json"}],
+				ResponseBody = mochijson:encode(Application),
+				{ok, ResponseHeaders, ResponseBody};
+			false ->
+				Status = {"status", "down"},
+				ServiceId = {"serviceId", Id},
+				Application = {struct, [Status, ServiceId]},
+				ResponseHeaders = [{content_type, "application/health+json"}],
+				ResponseBody = mochijson:encode(Application),
+				{error, 503, ResponseHeaders, ResponseBody}
+		end
+	catch
+		_:badarg ->
+			{error, 404};
 		_:_Reason ->
 			{error, 500}
 	end.

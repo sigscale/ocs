@@ -100,6 +100,8 @@ do(#mod{request_uri = Uri, data = Data} = ModData) ->
 							check_content_type_header(ocs_rest_res_health, ModData);
 						["health", "application"] ->
 							check_content_type_header(ocs_rest_res_health, ModData);
+						["health", "application", _] ->
+							check_content_type_header(ocs_rest_res_health, ModData);
 						["ocs", "v1", "client"] ->
 							check_content_type_header(ocs_rest_res_client, ModData);
 						["ocs", "v1", "client", _Id] ->
