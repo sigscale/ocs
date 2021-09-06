@@ -26,10 +26,6 @@
 
 -include("ocs.hrl").
 
-%% support deprecated_time_unit()
--define(MILLISECOND, milli_seconds).
-%-define(MILLISECOND, millisecond).
-
 -spec content_types_accepted() -> ContentTypes
 	when
 		ContentTypes :: list().
@@ -42,18 +38,21 @@ content_types_accepted() ->
 		ContentTypes :: list().
 %% @doc Provides list of resource representations available.
 content_types_provided() ->
-	["application/json"].
+	["application/json", "application/problem+json"].
 
 -spec initial_nrf(NrfRequest) -> NrfResponse
 	when
 		NrfRequest :: iolist(),
 		NrfResponse :: {ok, Headers, Body} | {error, Status} |
-				{error, Status, Body},
+				{error, Status, Problem},
 		Headers :: [tuple()],
 		Body :: iolist(),
-		Status :: 201 | 400 | 404 | 500.
+		Status :: 201 | 400 | 404 | 500,
+		Problem :: map().
 %% @doc Respond to `POST /nrf-rating/v1/ratingdata'.
+%%
 %%		Rate an intial Nrf Request.
+%%
 initial_nrf(NrfRequest) ->
 	RatingDataRef = unique(),
 	try
@@ -67,27 +66,28 @@ initial_nrf(NrfRequest) ->
 						ok = add_rating_ref(RatingDataRef, UpdatedMap),
 						nrf_response_to_struct(UpdatedMap);
 					{error, out_of_credit} ->
-						Body = error_response(out_of_credit, NrfMap),
-						{error, 403, Body};
+						Problem = error_response(out_of_credit, undefined),
+						{error, 403, Problem};
 					{error, service_not_found} ->
-						Body = error_response(service_not_found, NrfMap),
-						{error, 404, Body};
+						InvalidParams = [#{param => "/subscriptionId",
+								reason => "Unknown subscriber identifier"}],
+						Problem = error_response(service_not_found, InvalidParams),
+						{error, 404, Problem};
 					{error, Reason} ->
 						{error, Reason}
 				end;
 			_ ->
-				Body = error_response(charging_failed, undefined),
-				{error, 400, Body}
+				Problem = error_response(charging_failed, undefined),
+				{error, 400, Problem}
 		end
 	of
 		{struct, _Attributes1} = NrfResponse ->
 			Location = "/ratingdata/" ++ RatingDataRef,
 			ReponseBody = mochijson:encode(NrfResponse),
-			Headers = [{location, Location}],
+			Headers = [{content_type, "application/json"}, {location, Location}],
 			{ok, Headers, ReponseBody };
-		{error, StatusCode, Body1} ->
-			ReponseBody = mochijson:encode(Body1),
-			{error, StatusCode, ReponseBody};
+		{error, StatusCode, Problem1} ->
+			{error, StatusCode, Problem1};
 		{error, _Reason} ->
 			{error, 500}
 	catch
@@ -100,10 +100,11 @@ initial_nrf(NrfRequest) ->
 		NrfRequest :: iolist(),
 		RatingDataRef :: string(),
 		NrfResponse :: {Status, Headers, Body} | {error, Status} |
-				{error, Status, Body},
+				{error, Status, Problem},
 		Headers :: [tuple()],
 		Body :: iolist(),
-		Status :: 200 | 400 | 404 | 500.
+		Status :: 200 | 400 | 404 | 500,
+		Problem :: map().
 %% @doc Respond to `POST /nrf-rating/v1/ratingdata/{ratingRef}/update'.
 %%		Rate an interim Nrf Request.
 update_nrf(RatingDataRef, NrfRequest) ->
@@ -111,13 +112,10 @@ update_nrf(RatingDataRef, NrfRequest) ->
 		true ->
 			update_nrf(NrfRequest);
 		false ->
-			Body = {struct,[{"cause", "RATING_DATA_REF_UNKNOWN"},
-					{"title", "Request denied because the rating data ref is not unrecognized"},
-					{"invalidParams",
-							{array,[{struct,[{"param", RatingDataRef},
-									{"reason","unknown rating data ref"}]}]}}]},
-			ResponseBody = mochijson:encode(Body),
-			{error, 404, ResponseBody};
+			InvalidParams = [#{param => "{" ++ RatingDataRef ++ "}",
+					reason => "Unknown rating data reference"}],
+			Problem = error_response(unknown_ref, InvalidParams),
+			{error, 404, Problem};
 		{error, _Reason} ->
 			{error, 500}
 	end.
@@ -131,25 +129,26 @@ update_nrf(NrfRequest) ->
 						UpdatedMap = maps:update("serviceRating", ServiceRating, NrfMap),
 						nrf_response_to_struct(UpdatedMap);
 					{error, out_of_credit} ->
-						Body = error_response(out_of_credit, NrfMap),
-						{error, 403, Body};
+						Problem = error_response(out_of_credit, undefined),
+						{error, 403, Problem};
 					{error, service_not_found} ->
-						Body = error_response(service_not_found, NrfMap),
-						{error, 404, Body};
+						InvalidParams = [#{param => "/subscriptionId",
+								reason => "Unknown subscriber identifier"}],
+						Problem = error_response(service_not_found, InvalidParams),
+						{error, 404, Problem};
 					{error, Reason} ->
 						{error, Reason}
 				end;
 			_ ->
-				Body = error_response(charging_failed, undefined),
-				{error, 400, Body}
+				Problem = error_response(charging_failed, undefined),
+				{error, 400, Problem}
 		end
 	of
 		{struct, _Attributes1} = NrfResponse ->
 			ReponseBody = mochijson:encode(NrfResponse),
 			{200, [], ReponseBody };
-		{error, StatusCode, Body1} ->
-			ReponseBody = mochijson:encode(Body1),
-			{error, StatusCode, ReponseBody};
+		{error, StatusCode, Problem1} ->
+			{error, StatusCode, Problem1};
 		{error, _Reason} ->
 			{error, 500}
 	catch
@@ -162,24 +161,24 @@ update_nrf(NrfRequest) ->
 		NrfRequest :: iolist(),
 		RatingDataRef :: string(),
 		NrfResponse :: {Status, Headers, Body} | {error, Status} |
-				{error, Status, Body},
+				{error, Status, Problem},
 		Headers :: [tuple()],
 		Body :: iolist(),
-		Status :: 200 | 400 | 404 | 500.
+		Status :: 200 | 400 | 404 | 500,
+		Problem :: map().
 %% @doc Respond to `POST /nrf-rating/v1/ratingdata/{ratingRef}/final'.
+%%
 %%		Rate an final Nrf Request.
+%%
 release_nrf(RatingDataRef, NrfRequest) ->
 	case lookup_ref(RatingDataRef) of
 		true ->
 			release_nrf1(RatingDataRef, NrfRequest);
 		false ->
-			Body = {struct,[{"cause", "RATING_DATA_REF_UNKNOWN"},
-					{"title", "Request denied because the rating data ref is not unrecognized"},
-					{"invalidParams",
-							{array, [{struct, [{"param", RatingDataRef},
-									{"reason", "unknown rating data ref"}]}]}}]},
-			ResponseBody = mochijson:encode(Body),
-			{error, 404, ResponseBody};
+			InvalidParams = [#{param => "{" ++ RatingDataRef ++ "}",
+					reason => "Unknown rating data reference"}],
+			Problem = error_response(unknown_ref, InvalidParams),
+			{error, 404, Problem};
 		{error, _Reason} ->
 			{error, 500}
 	end.
@@ -194,28 +193,29 @@ release_nrf1(RatingDataRef, NrfRequest) ->
 						ok = remove_ref(RatingDataRef),
 						nrf_response_to_struct(UpdatedMap);
 					{error, out_of_credit} ->
-						Body = error_response(out_of_credit, NrfMap),
-						{error, 403, Body};
+						Problem = error_response(out_of_credit, undefined),
+						{error, 403, Problem};
 					{error, service_not_found} ->
-						Body = error_response(service_not_found, NrfMap),
-						{error, 404, Body};
+						InvalidParams = [#{param => "/subscriptionId",
+								reason => "Unknown subscriber identifier"}],
+						Problem = error_response(service_not_found, InvalidParams),
+						{error, 404, Problem};
 					{error, invalid_service_type} ->
-						Body = error_response(charging_failed, undefined),
-						{error, 400, Body};
+						Problem = error_response(charging_failed, undefined),
+						{error, 400, Problem};
 					{error, Reason} ->
 						{error, Reason}
 				end;
 			_ ->
-				Body = error_response(charging_failed, undefined),
-				{error, 400, Body}
+				Problem = error_response(charging_failed, undefined),
+				{error, 400, Problem}
 		end
 	of
 		{struct, _Attributes1} = NrfResponse ->
 			ReponseBody = mochijson:encode(NrfResponse),
 			{200, [], ReponseBody };
-		{error, StatusCode, Body1} ->
-			ReponseBody = mochijson:encode(Body1),
-			{error, StatusCode, ReponseBody};
+		{error, StatusCode, Problem1} ->
+			{error, StatusCode, Problem1};
 		{error, _Reason} ->
 			{error, 500}
 	catch
@@ -286,24 +286,30 @@ add_rating_ref(RatingDataRef, #{"nodeFunctionality" := NF,
 			ok
 	end.
 
--spec error_response(Error, NrfMap) -> Result
+-spec error_response(Error, InvalidParams) -> Result
 	when
 		Error :: term(),
-		NrfMap :: map() | undefined,
-		Result :: {struct, list()}.
-%% @doc Get a error response body.
-error_response(out_of_credit, #{"serviceRating" := SR}) ->
-	{struct, [{"cause", "QUOTA_LIMIT_REACHED"},
-			{"title", "Request denied due to insufficient credit (usage applied)"},
-			{"invalidParams", {array, struct_service_rating(SR)}}]};
-error_response(service_not_found, #{"msisdn" := MSISDN}) ->
-	{struct,[{"cause","USER_UNKNOWN"},
-			{"title", "Request denied because the subscriber identity is unrecognized"},
-			{"invalidParams",
-					{array,[{struct,[{"param", MSISDN}, {"reason","unknown msisdn"}]}]}}]};
-error_response(charging_failed, _) ->
-	{struct,[{"cause","CHARGING_FAILED"},
-			{"title", "Incomplete or erroneous session or subscriber information"}]}.
+		InvalidParams :: [map()] | undefined,
+		Result :: map().
+%% @doc Construct a problem report for an error respponse.
+error_response(out_of_credit, undefined) ->
+	#{cause => "QUOTA_LIMIT_REACHED",
+			type => "https://app.swaggerhub.com/apis/SigScale/nrf-rating/1.0.0#/",
+			title => "Request denied due to insufficient credit (usage applied)"};
+error_response(service_not_found, InvalidParams) ->
+	#{cause => "USER_UNKNOWN",
+			type => "https://app.swaggerhub.com/apis/SigScale/nrf-rating/1.0.0#/",
+			title => "Request denied because the subscriber identity is unrecognized",
+			invalidParams => InvalidParams};
+error_response(charging_failed, undefined) ->
+	#{cause => "CHARGING_FAILED",
+			type => "https://app.swaggerhub.com/apis/SigScale/nrf-rating/1.0.0#/",
+			title => "Incomplete or erroneous session or subscriber information"};
+error_response(unknown_ref, InvalidParams) ->
+	#{cause => "RATING_DATA_REF_UNKNOWN",
+			type => "https://app.swaggerhub.com/apis/SigScale/nrf-rating/1.0.0#/",
+			title => "Request denied because the rating data ref is not recognized",
+			invalidParams => InvalidParams}.
 
 -spec rate(NrfRequest, Flag) -> Result
 	when
@@ -580,7 +586,7 @@ type(messages) ->
 		ID :: string().
 %% @doc Generate a unique identifier
 unique() ->
-	TS = erlang:system_time(?MILLISECOND),
+	TS = erlang:system_time(millisecond),
 	N = erlang:unique_integer([positive]),
 	integer_to_list(TS) ++ integer_to_list(N).
 

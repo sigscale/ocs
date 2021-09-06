@@ -113,9 +113,33 @@
 %% 3GPP TS 23.003 19.3.5 Pseudonym
 -define(TEMP_AKAp, $7).
 
-%% support deprecated_time_unit()
--define(MILLISECOND, milli_seconds).
-%-define(MILLISECOND, millisecond).
+-dialyzer({[nowarn_function, no_match],
+		[vector/2, challenge/2, challenge1/4]}).
+-ifdef(OTP_RELEASE).
+	-define(HMAC_SHA(Key, Data),
+		case ?OTP_RELEASE of
+			OtpRelease when OtpRelease >= 23 ->
+				crypto:macN(hmac, sha256, Key, Data, 16);
+			OtpRelease when OtpRelease < 23 ->
+				crypto:hmac(sha256, Key, Data, 16)
+		end).
+-else.
+	-define(HMAC_SHA(Key, Data), crypto:hmac(sha256, Key, Data, 16)).
+-endif.
+
+-dialyzer({[nowarn_function, no_match],
+		[send_radius_response/8, prf/6]}).
+-ifdef(OTP_RELEASE).
+	-define(HMAC_MD5(Key, Data),
+		case ?OTP_RELEASE of
+			OtpRelease when OtpRelease >= 23 ->
+				crypto:mac(hmac, md5, Key, Data);
+			OtpRelease when OtpRelease < 23 ->
+				crypto:hmac(md5, Key, Data)
+		end).
+-else.
+	-define(HMAC_MD5(Key, Data), crypto:hmac(md5, Key, Data)).
+-endif.
 
 %%----------------------------------------------------------------------
 %%  The ocs_eap_akap_fsm API
@@ -129,7 +153,8 @@ init([Sup, diameter, ServerAddress, ServerPort, ClientAddress, ClientPort,
 		PasswordReq, Trusted, SessionId, ApplicationId, AuthReqType, OHost, ORealm,
 		DHost, DRealm, Request, _Options] = _Args) ->
 	{ok, Keys} = application:get_env(aka_kpseu),
-	case global:whereis_name({ocs_diameter_auth, ServerAddress, ServerPort}) of
+	case global:whereis_name({ocs_diameter_auth,
+			node(), ServerAddress, ServerPort}) of
 		undefined ->
 			{stop, ocs_diameter_auth_port_server_not_found};
 		PortServer ->
@@ -608,7 +633,7 @@ vector({ok, {RAND, AUTN, CKprime, IKprime, XRES}}, #statedata{eap_id = EapID,
 	EapPacket = #eap_packet{code = request, type = ?AKAprime,
 			identifier = NextEapID, data = EapData},
 	EapMessage1 = ocs_eap_codec:eap_packet(EapPacket),
-	Mac = crypto:hmac(sha256, Kaut, EapMessage1, 16),
+	Mac = ?HMAC_SHA(Kaut, EapMessage1),
 	EapMessage2 = ocs_eap_codec:aka_set_mac(Mac, EapMessage1),
 	NewStateData = StateData#statedata{request = undefined,
 			eap_id = NextEapID, res = XRES, ck = CKprime, ik = IKprime,
@@ -631,7 +656,7 @@ vector({ok, {RAND, AUTN, CKprime, IKprime, XRES}}, #statedata{eap_id = EapID,
 	EapPacket = #eap_packet{code = request, type = ?AKAprime,
 			identifier = NextEapID, data = EapData},
 	EapMessage1 = ocs_eap_codec:eap_packet(EapPacket),
-	Mac = crypto:hmac(sha256, Kaut, EapMessage1, 16),
+	Mac = ?HMAC_SHA(Kaut, EapMessage1),
 	EapMessage2 = ocs_eap_codec:aka_set_mac(Mac, EapMessage1),
 	NewStateData = StateData#statedata{request = undefined,
 			eap_id = NextEapID, res = XRES, ck = CKprime, ik = IKprime,
@@ -717,9 +742,9 @@ challenge({#radius{id = RadiusID, authenticator = RequestAuthenticator,
 			#eap_aka_challenge{res = RES, checkcode = CheckCode, mac = MAC}
 					when ((CheckCode == undefined) or (CheckCode == <<>>)) ->
 				EapMessage2 = ocs_eap_codec:aka_clear_mac(EapMessage1),
-				case crypto:hmac(sha256, Kaut, EapMessage2, 16) of
+				case ?HMAC_SHA(Kaut, EapMessage2) of
 					MAC ->
-						Salt = crypto:rand_uniform(16#8000, 16#ffff),
+						Salt = rand:uniform(16#8000, 16#ffff),
 						<<MSK1:32/binary, MSK2:32/binary>> = MSK,
 						MsMppeRecvKey = ocs_eap_aka:encrypt_key(Secret,
 								RequestAuthenticator, Salt, MSK1),
@@ -831,7 +856,7 @@ challenge1(EapMessage1, Request, RAT,
 			#eap_aka_challenge{res = RES, checkcode = CheckCode, mac = MAC}
 					when ((CheckCode == undefined) or (CheckCode == <<>>)) ->
 				EapMessage2 = ocs_eap_codec:aka_clear_mac(EapMessage1),
-				case crypto:hmac(sha256, Kaut, EapMessage2, 16) of
+				case ?HMAC_SHA(Kaut, EapMessage2) of
 					MAC ->
 						EapPacket1 = #eap_packet{code = success, identifier = EapID},
 						EapMessage3 = ocs_eap_codec:eap_packet(EapPacket1),
@@ -930,7 +955,7 @@ register({ok, #'3gpp_swx_Non-3GPP-User-Data'{} = UserProfile,
 		authenticator = RequestAuthenticator, attributes = RequestAttributes},
 		client_address = ClientAddress, imsi = IMSI, identity = Identity,
 		response = {EapMessage, Attributes}} = StateData) ->
-	LM = {erlang:system_time(?MILLISECOND), erlang:unique_integer([positive])},
+	LM = {erlang:system_time(millisecond), erlang:unique_integer([positive])},
 	Session = #session{id = SessionId, imsi = IMSI, identity = Identity,
 		hss_realm = HssRealm, hss_host = HssHost,
 		nas_address = ClientAddress, user_profile = UserProfile,
@@ -957,7 +982,7 @@ register({ok, #'3gpp_swx_Non-3GPP-User-Data'{} = UserProfile,
 		#'3gpp_sta_DER'{} ->
 			?STa_APPLICATION_ID
 	end,
-	LM = {erlang:system_time(?MILLISECOND), erlang:unique_integer([positive])},
+	LM = {erlang:system_time(millisecond), erlang:unique_integer([positive])},
 	Session = #session{id = SessionId, imsi = IMSI, identity = Identity,
 		hss_realm = HssRealm, hss_host = HssHost, application = Application,
 		nas_host = NasHost, nas_realm = NasRealm,
@@ -1219,7 +1244,7 @@ send_radius_response(EapMessage, ?AccessChallenge = RadiusCode,
 			<<0:128>>, AttrList1),
 	Attributes1 = radius_attributes:codec(AttrList2),
 	Length = size(Attributes1) + 20,
-	MessageAuthenticator = crypto:hmac(md5, Secret,
+	MessageAuthenticator = ?HMAC_MD5(Secret,
 			[<<RadiusCode, RadiusID, Length:16>>,
 			RequestAuthenticator, Attributes1]),
 	AttrList3 = radius_attributes:store(?MessageAuthenticator,
@@ -1251,7 +1276,7 @@ send_radius_response(EapMessage, ?AccessAccept = RadiusCode,
 			<<0:128>>, AttrList2),
 	Attributes1 = radius_attributes:codec(AttrList3),
 	Length = size(Attributes1) + 20,
-	MessageAuthenticator = crypto:hmac(md5, Secret,
+	MessageAuthenticator = ?HMAC_MD5(Secret,
 			[<<RadiusCode, RadiusID, Length:16>>,
 			RequestAuthenticator, Attributes1]),
 	AttrList4 = radius_attributes:store(?MessageAuthenticator,
@@ -1278,7 +1303,7 @@ send_radius_response(EapMessage, ?AccessReject = RadiusCode,
 			<<0:128>>, AttrList1),
 	Attributes1 = radius_attributes:codec(AttrList2),
 	Length = size(Attributes1) + 20,
-	MessageAuthenticator = crypto:hmac(md5, Secret,
+	MessageAuthenticator = ?HMAC_MD5(Secret,
 			[<<RadiusCode, RadiusID, Length:16>>,
 			RequestAuthenticator, Attributes1]),
 	AttrList3 = radius_attributes:store(?MessageAuthenticator,
@@ -1484,7 +1509,7 @@ prf(K, S, N) when is_binary(K), is_binary(S), is_integer(N), N > 1 ->
 prf(_, _, N, P, _, Acc) when P > N ->
 	iolist_to_binary(lists:reverse(Acc));
 prf(K, S, N, P, T1, Acc) ->
-	T2 = crypto:hmac(sha256, K, <<T1/binary, S/binary, P>>),
+	T2 = ?HMAC_MD5(K, <<T1/binary, S/binary, P>>),
 	prf(K, S, N, P + 1, T2, [T2 | Acc]).
 
 %% @hidden

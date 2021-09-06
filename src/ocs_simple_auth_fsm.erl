@@ -47,9 +47,6 @@
 -define(DATA, 2).
 -define(VOICE, 12).
 -define(CC_APPLICATION_ID, 4).
-%% support deprecated_time_unit()
--define(MILLISECOND, milli_seconds).
-%-define(MILLISECOND, millisecond).
 
 -record(statedata,
 		{protocol :: radius | diameter,
@@ -84,27 +81,40 @@
 
 -define(TIMEOUT, 30000).
 
--dialyzer({no_match, start_disconnect/2}).
+-dialyzer({[nowarn_function, no_match], start_disconnect/2}).
 -ifdef(OTP_RELEASE).
 	-define(PG_CLOSEST(Name),
 		case ?OTP_RELEASE of
 			OtpRelease when OtpRelease >= 23 ->
-				case pg:get_local_members([Name]) of
+				case pg:get_local_members(pg_scope_ocs, Name) of
 					[] ->
-						case pg:get_members([Name]) of
+						case pg:get_members(pg_scope_ocs, Name) of
 							[] ->
 								{error, {no_such_group, Name}};
-							[PID | _] ->
-								PID
+							[Pid | _] ->
+								Pid
 						end;
-					[PID | _] ->
-						PID
+					[Pid | _] ->
+						Pid
 				end;
 			OtpRelease when OtpRelease < 23 ->
 				pg2:get_closest_pid(Name)
 		end).
 -else.
 	-define(PG_CLOSEST(Name), pg2:get_closest_pid(Name)).
+-endif.
+
+-dialyzer({[nowarn_function, no_match], response/3}).
+-ifdef(OTP_RELEASE).
+	-define(HMAC(Key, Data),
+		case ?OTP_RELEASE of
+			OtpRelease when OtpRelease >= 23 ->
+				crypto:mac(hmac, md5, Key, Data);
+			OtpRelease when OtpRelease < 23 ->
+				crypto:hmac(md5, Key, Data)
+		end).
+-else.
+	-define(HMAC(Key, Data), crypto:hmac(md5, Key, Data)).
 -endif.
 
 %%----------------------------------------------------------------------
@@ -131,7 +141,8 @@ init([diameter, ServerAddress, ServerPort, ClientAddress, ClientPort,
 		PasswordReq, Trusted, SessId, AppId, AuthType, OHost, ORealm,
 		DHost, DRealm, Request, Options] = _Args) ->
 	[Subscriber, Password] = Options,
-	case global:whereis_name({ocs_diameter_auth, ServerAddress, ServerPort}) of
+	case global:whereis_name({ocs_diameter_auth,
+			node(), ServerAddress, ServerPort}) of
 		undefined ->
 			{stop, ocs_diameter_auth_port_server_not_found};
 		PortServer ->
@@ -472,7 +483,7 @@ response(RadiusCode, ResponseAttributes,
 			<<0:128>>, ResponseAttributes),
 	Attributes1 = radius_attributes:codec(AttributeList1),
 	Length = size(Attributes1) + 20,
-	MessageAuthenticator = crypto:hmac(md5, Secret, [<<RadiusCode, RadiusID,
+	MessageAuthenticator = ?HMAC(Secret, [<<RadiusCode, RadiusID,
 			Length:16>>, RequestAuthenticator, Attributes1]),
 	AttributeList2 = radius_attributes:store(?MessageAuthenticator,
 			MessageAuthenticator, AttributeList1),

@@ -39,6 +39,45 @@ check_DATA = .dialyzer_ok .common_test_ok
 %.beam:$(top_srcdir)/test/%.erl $(top_srcdir)/include/ocs.hrl
 	$(ERLC) $(ERLCFLAGS) -I $(top_srcdir)/include -I $(top_builddir)/include $<
 
+ocs_accounting_SUITE.beam:$(top_srcdir)/test/ocs_accounting_SUITE.erl \
+		$(top_srcdir)/include/ocs.hrl \
+		$(top_srcdir)/include/ocs_eap_codec.hrl
+	$(ERLC) $(ERLCFLAGS) -I $(top_srcdir)/include -I $(top_builddir)/include \
+			+"{nowarn_removed, [{crypto,hmac,3}]}" \
+			+"{nowarn_deprecated_function, [{crypto,hmac,3}]}" $<
+
+ocs_eap_ttls_SUITE.beam:$(top_srcdir)/test/ocs_eap_ttls_SUITE.erl \
+		$(top_srcdir)/include/ocs.hrl \
+		$(top_srcdir)/include/ocs_eap_codec.hrl
+	$(ERLC) $(ERLCFLAGS) -I $(top_srcdir)/include -I $(top_builddir)/include \
+			+"{nowarn_removed, [{crypto,hmac,3}]}" \
+			+"{nowarn_deprecated_function, [{crypto,hmac,3}]}" $<
+
+ocs_eap_pwd_SUITE.beam:$(top_srcdir)/test/ocs_eap_pwd_SUITE.erl \
+		$(top_srcdir)/include/ocs.hrl \
+		$(top_srcdir)/include/ocs_eap_codec.hrl
+	$(ERLC) $(ERLCFLAGS) -I $(top_srcdir)/include -I $(top_builddir)/include \
+			+"{nowarn_removed, [{crypto,hmac,3}]}" \
+			+"{nowarn_deprecated_function, [{crypto,hmac,3}]}" $<
+
+ocs_eap_aka_SUITE.beam:$(top_srcdir)/test/ocs_eap_aka_SUITE.erl \
+		$(top_srcdir)/include/ocs.hrl \
+		$(top_srcdir)/include/ocs_eap_codec.hrl \
+		$(top_builddir)//include/diameter_gen_eap_application_rfc4072.hrl \
+		$(top_builddir)//include/diameter_gen_3gpp_swm_application.hrl
+	$(ERLC) $(ERLCFLAGS) -I $(top_srcdir)/include -I $(top_builddir)/include \
+			+"{nowarn_removed, [{crypto,hmac,3}]}" \
+			+"{nowarn_deprecated_function, [{crypto,hmac,3}]}" $<
+
+ocs_eap_akap_SUITE.beam:$(top_srcdir)/test/ocs_eap_akap_SUITE.erl \
+		$(top_srcdir)/include/ocs.hrl \
+		$(top_srcdir)/include/ocs_eap_codec.hrl \
+		$(top_builddir)//include/diameter_gen_eap_application_rfc4072.hrl \
+		$(top_builddir)//include/diameter_gen_3gpp_swm_application.hrl
+	$(ERLC) $(ERLCFLAGS) -I $(top_srcdir)/include -I $(top_builddir)/include \
+			+"{nowarn_removed, [{crypto,hmac,3}]}" \
+			+"{nowarn_deprecated_function, [{crypto,hmac,3}]}" $<
+
 .common_test_ok:	$(addsuffix .beam, $(testmods)) sys.config
 	@if [ ! -d $(CERT_DIR) ]; then mkdir $(CERT_DIR); fi
 	@if [ ! -d ocs_eap_ttls_SUITE_data ]; then mkdir ocs_eap_ttls_SUITE_data; fi

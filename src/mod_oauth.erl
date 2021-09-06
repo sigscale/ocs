@@ -89,6 +89,7 @@ do1(Data, #mod{config_db = ConfigDb,
 			{proceed, Data}
 	end.
 
+-dialyzer({no_missing_calls, load/2}).
 -spec load(Directory, DirectoryData) -> Result
 	when
 		Directory :: string(),

@@ -33,6 +33,19 @@
 -record(state,
 		{port_server :: atom() | pid()}).
 
+-dialyzer({[nowarn_function, no_match], request/4}).
+-ifdef(OTP_RELEASE).
+	-define(HMAC(Key, Data),
+		case ?OTP_RELEASE of
+			OtpRelease when OtpRelease >= 23 ->
+				crypto:mac(hmac, md5, Key, Data);
+			OtpRelease when OtpRelease < 23 ->
+				crypto:hmac(md5, Key, Data)
+		end).
+-else.
+	-define(HMAC(Key, Data), crypto:hmac(md5, Key, Data)).
+-endif.
+
 %%----------------------------------------------------------------------
 %%  The radius callbacks
 %%----------------------------------------------------------------------
@@ -48,7 +61,7 @@
 %% 	{@link //radius/radius_server. radius_server} behaviour process
 %% 	initializes.
 init(Address, Port) when is_tuple(Address), is_integer(Port) ->
-	case global:whereis_name({ocs_radius_auth, Address, Port}) of
+	case global:whereis_name({ocs_radius_auth, node(), Address, Port}) of
 		PortServer when is_pid(PortServer) ->
 			{ok, #state{port_server = PortServer}};
 		undefined ->
@@ -84,7 +97,7 @@ request(Address, Port, Packet, #state{port_server = Server} = _State)
 						<<0:128>>, Attributes),
 				AttrBin = radius_attributes:codec(Attr1),
 				Packet1 = radius:codec(Radius#radius{attributes = AttrBin}),
-				MsgAuth = crypto:hmac(md5, SharedSecret, Packet1),
+				MsgAuth = ?HMAC(SharedSecret, Packet1),
 				{eap, EapMessage};
 			{error, not_found} ->
 				none

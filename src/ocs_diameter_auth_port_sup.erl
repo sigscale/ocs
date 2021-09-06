@@ -60,14 +60,14 @@ supervisor(StartMod, StartArgs) ->
 
 %% @hidden
 supervisor(StartMod, Address, Port, StartArgs) ->
-	GlobalName = {StartMod, Address, Port},
+	GlobalName = {StartMod, node(), Address, Port},
 	Args = [{global, GlobalName}, StartMod, StartArgs],
 	StartFunc = {supervisor, start_link, Args},
 	{StartMod, StartFunc, permanent, infinity, supervisor, [StartMod]}.
 
 %% @hidden
 server(StartMod, Address, Port, Options) ->
-	GlobalName = {ocs_diameter_auth, Address, Port},
+	GlobalName = {ocs_diameter_auth, node(), Address, Port},
 	Args = [self(), Address, Port, Options],
 	StartArgs = [{global, GlobalName}, StartMod, Args, []],
 	StartFunc = {gen_server, start_link, StartArgs},

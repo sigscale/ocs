@@ -49,6 +49,19 @@
 
 -define(TIMEOUT, 30000).
 
+-dialyzer({[nowarn_function, no_match], idle/2}).
+-ifdef(OTP_RELEASE).
+	-define(SSL_ACCEPT(Socket, Timeout),
+		case ?OTP_RELEASE of
+			OtpRelease when OtpRelease >= 21 ->
+				ssl:handshake(Socket, Timeout);
+			OtpRelease when OtpRelease < 21 ->
+				ssl:ssl_accept(Socket, Timeout)
+		end).
+-else.
+	-define(SSL_ACCEPT(Socket, Timeout), ssl:ssl_accept(Socket, Timeout)).
+-endif.
+
 %%----------------------------------------------------------------------
 %%  The ocs_eap_ttls_aaah_fsm API
 %%----------------------------------------------------------------------
@@ -98,7 +111,7 @@ idle(timeout, #statedata{} = StateData) ->
 idle({ttls_socket, TtlsFsm, TlsRecordLayerSocket}, StateData) ->
 	case ssl:transport_accept(TlsRecordLayerSocket) of
 		{ok, SslSocket} ->
-			case ssl:ssl_accept(SslSocket, ?TIMEOUT) of
+			case ?SSL_ACCEPT(SslSocket, ?TIMEOUT) of
 				ok ->
 					NewStateData = StateData#statedata{ssl_socket = SslSocket,
 							ttls_fsm = TtlsFsm},

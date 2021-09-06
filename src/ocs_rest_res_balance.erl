@@ -31,10 +31,6 @@
 
 -include("ocs.hrl").
 
-%% support deprecated_time_unit()
--define(MILLISECOND, milli_seconds).
-%-define(MILLISECOND, millisecond).
-
 -define(bucketPath, "/balanceManagement/v1/bucket/").
 -define(actionPath, "/balanceManagement/v1/balanceTransfer/").
 -define(productInventoryPath, "/productInventoryManagement/v1/product/").
@@ -52,7 +48,7 @@ content_types_accepted() ->
 		ContentTypes :: list().
 %% @doc Provides list of resource representations available.
 content_types_provided() ->
-	["application/json"].
+	["application/json", "application/problem+json"].
 
 -spec get_balance_log(Query, Headers) -> Result
 	when
@@ -68,7 +64,7 @@ get_balance_log(Query, Headers) ->
 			{_, DateTime} when length(DateTime) > 3 ->
 				ocs_rest:range(DateTime);
 			false ->
-				{1, erlang:system_time(?MILLISECOND)}
+				{1, erlang:system_time(millisecond)}
 		end,
 		case lists:keytake("filter", 1, Query) of
 			{value, {_, String}, Query1} ->
@@ -198,7 +194,7 @@ get_balance_service(Identity) ->
 		end
 	of
 		{ProductRef1, Buckets2} ->
-			Now = erlang:system_time(?MILLISECOND),
+			Now = erlang:system_time(millisecond),
 			F1 = fun(#bucket{units = cents, end_date = EndDate})
 					when EndDate == undefined; EndDate > Now ->
 						true;
@@ -239,7 +235,7 @@ get_balance(ProdRef) ->
 		end
 	of
 		Buckets2 ->
-			Now = erlang:system_time(?MILLISECOND),
+			Now = erlang:system_time(millisecond),
 			F1 = fun(#bucket{units = cents, end_date = EndDate})
 					when EndDate == undefined; EndDate > Now ->
 						true;
@@ -283,7 +279,7 @@ get_balance(ProdRef, Query) ->
 	of
 		Buckets2 ->
 			{_, Value} = lists:keyfind("totalBalance.units", 1, Query),
-			Now = erlang:system_time(?MILLISECOND),
+			Now = erlang:system_time(millisecond),
 			Units = list_to_existing_atom(Value),
 			F = fun(#bucket{units = U, end_date = EndDate})
 							when EndDate == undefined; EndDate > Now, U == Units ->
@@ -327,7 +323,8 @@ top_up_service(Identity, RequestBody) ->
 						{ok, _, #bucket{id = Id} = B11} ->
 							Body = mochijson:encode(bucket(B11)),
 							Location = ?bucketPath ++ Id,
-							Headers = [{location, Location}],
+							Headers = [{content_type, "application/json"},
+									{location, Location}],
 							{ok, Headers, Body};
 						{error, _} ->
 							{error, 500}
@@ -359,7 +356,8 @@ top_up(Identity, RequestBody) ->
 				{ok, _, #bucket{id = Id} = B1} ->
 					Body = mochijson:encode(bucket(B1)),
 					Location = ?bucketPath ++ Id,
-					Headers = [{location, Location}],
+					Headers = [{content_type, "application/json"},
+							{location, Location}],
 					{ok, Headers, Body};
 				{error, _} ->
 					{error, 500}
@@ -370,7 +368,8 @@ top_up(Identity, RequestBody) ->
 				{ok, _, #bucket{id = Id} = B1} ->
 					Body = mochijson:encode(bucket(B1)),
 					Location = ?bucketPath ++ Id,
-					Headers = [{location, Location}],
+					Headers = [{content_type, "application/json"},
+							{location, Location}],
 					{ok, Headers, Body};
 				{error, _} ->
 					{error, 500}

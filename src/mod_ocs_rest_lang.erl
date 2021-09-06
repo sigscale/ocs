@@ -84,10 +84,10 @@ do(#mod{request_uri = Uri, data = Data} = ModData) ->
 	end.
 
 %% @hidden
-serve_index(User, #mod{data = Data, config_db = ConfigDb,
-		request_uri = Uri} = ModData) ->
+serve_index(User, #mod{parsed_header = RequestHeaders,
+		data = Data, config_db = ConfigDb, request_uri = Uri} = ModData) ->
 	Path = mod_alias:path(Data, ConfigDb, Uri),
-	case filename:basename(Path) of 
+	case filename:basename(Path) of
 		"index.html" ->
 			case ocs:get_user(User) of
 				{ok, #httpd_user{user_data = UserData}} ->
@@ -100,14 +100,21 @@ serve_index(User, #mod{data = Data, config_db = ConfigDb,
 									LangBin/binary, $>, $\n,
 									FileContent/binary, "</html>">>,
 							Size = integer_to_list(size(Body)),
-							Headers = [{content_type, "text/html"},
+							ResponseHeaders = [{content_type, "text/html"},
 									{etag, httpd_util:create_etag(FileInfo)},
 									{content_length, Size} | LastModified],
-							send(ModData, 200, Headers, Body),
+							send(ModData, 200, ResponseHeaders, Body),
 							{proceed, [{response, {already_sent, 200, Size}} | Data]};
 						{error, _Reason} ->
-							Response = "<h2>HTTP Error 404 - Not Found</h2>",
-							{proceed, [{response, {404, Response}} | Data]}
+							Problem = #{type => "https://datatracker.ietf.org/doc/html/rfc7231#section-6.5.4",
+									title => "Not Found",
+									detail => "No resource exists at the path provided",
+									code => "", status => 404},
+							{ContentType, ResponseBody} = ocs_rest:format_problem(Problem, RequestHeaders),
+							Size = integer_to_list(iolist_size(ResponseBody)),
+							ResponseHeaders = [{content_length, Size}, {content_type, ContentType}],
+							send(ModData, 404, ResponseHeaders, ResponseBody),
+							{proceed, [{response, {already_sent, 404, Size}} | Data]}
 					end;
 				{error, _Reason} ->
 					{proceed,  Data}

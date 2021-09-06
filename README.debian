@@ -4,8 +4,8 @@
 ## <https://youtu.be/CQg9-azYjeo>
 
 ### Install SigScale package repository configuration:
-	curl -sLO http://repo.sigscale.org/pool/main/s/sigscale-release/sigscale-release_1.2-2+debian10_all.deb
-	sudo dpkg -i sigscale-release_1.2-2+debian10_all.deb
+	curl -sLO http://repo.sigscale.org/pool/main/s/sigscale-release/sigscale-release_1.3-1+debian10_all.deb
+	sudo dpkg -i sigscale-release_1.3-1+debian10_all.deb
 	sudo apt update
 
 ### Install SigScale OCS:
@@ -18,8 +18,8 @@
 ## <https://youtu.be/GGQikWMEzFs>
 
 ### Install SigScale package repository configuration:
-	curl -sLO http://repo.sigscale.org/pool/main/s/sigscale-release/sigscale-release_1.2-2+debian9_all.deb
-	sudo dpkg -i sigscale-release_1.2-2+debian9_all.deb
+	curl -sLO http://repo.sigscale.org/pool/main/s/sigscale-release/sigscale-release_1.3-1+debian9_all.deb
+	sudo dpkg -i sigscale-release_1.3-1+debian9_all.deb
 	sudo apt update
 
 ### Install SigScale OCS:

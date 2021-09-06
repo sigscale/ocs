@@ -46,10 +46,6 @@
 		disc_id = 1 :: integer()}).
 -type state() :: #state{}.
 
-%% support deprecated_time_unit()
--define(MILLISECOND, milli_seconds).
-%-define(MILLISECOND, millisecond).
-
 %%----------------------------------------------------------------------
 %%  The ocs_radius_acct_port_server API
 %%----------------------------------------------------------------------

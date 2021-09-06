@@ -87,27 +87,40 @@
 
 -define(TIMEOUT, 30000).
 
--dialyzer({no_match, start_disconnect/3}).
+-dialyzer({[nowarn_function, no_match], start_disconnect/3}).
 -ifdef(OTP_RELEASE).
 	-define(PG_CLOSEST(Name),
 		case ?OTP_RELEASE of
 			OtpRelease when OtpRelease >= 23 ->
-				case pg:get_local_members([Name]) of
+				case pg:get_local_members(pg_scope_ocs, Name) of
 					[] ->
-						case pg:get_members([Name]) of
+						case pg:get_members(pg_scope_ocs, Name) of
 							[] ->
 								{error, {no_such_group, Name}};
-							[PID | _] ->
-								PID
+							[Pid | _] ->
+								Pid
 						end;
-					[PID | _] ->
-						PID
+					[Pid | _] ->
+						Pid
 				end;
 			OtpRelease when OtpRelease < 23 ->
 				pg2:get_closest_pid(Name)
 		end).
 -else.
 	-define(PG_CLOSEST(Name), pg2:get_closest_pid(Name)).
+-endif.
+
+-dialyzer({[nowarn_function, no_match], send_radius_response/7}).
+-ifdef(OTP_RELEASE).
+	-define(HMAC(Key, Data),
+		case ?OTP_RELEASE of
+			OtpRelease when OtpRelease >= 23 ->
+				crypto:mac(hmac, md5, Key, Data);
+			OtpRelease when OtpRelease < 23 ->
+				crypto:hmac(md5, Key, Data)
+		end).
+-else.
+	-define(HMAC(Key, Data), crypto:hmac(md5, Key, Data)).
 -endif.
 
 %%----------------------------------------------------------------------
@@ -146,7 +159,8 @@ init([diameter, ServerAddress, ServerPort, ClientAddress, ClientPort,
 		PasswordReq, Trusted, SessionId, ApplicationId, AuthType,
 		OHost, ORealm, _DHost, _DRealm, Request, _Options] = _Args) ->
 	{ok, Hostname} = inet:gethostname(),
-	case global:whereis_name({ocs_diameter_auth, ServerAddress, ServerPort}) of
+	case global:whereis_name({ocs_diameter_auth,
+			node(), ServerAddress, ServerPort}) of
 		undefined ->
 			{stop, ocs_diameter_auth_port_server_not_found};
 		PortServer ->
@@ -394,7 +408,7 @@ id1(#radius{id = RadiusID, authenticator = RequestAuthenticator,
 		#statedata{eap_id = EapID, server_id = ServerID,
 		session_id = SessionID, password_required = PwdReq} = StateData) ->
 	try
-		S_rand = crypto:rand_uniform(1, ?R),
+		S_rand = rand:uniform(?R),
 		NewEapID = (EapID rem 255) + 1,
 		case catch ocs:find_service(PeerID) of
 			{ok, #service{password = Pwd}} ->
@@ -439,7 +453,7 @@ id2(#diameter_eap_app_DER{} = Request, PeerID, Token,
 		auth_req_type = AuthType, origin_host = OH, origin_realm = OR,
 		diameter_port_server = PortServer, password_required = PwdReq} = StateData) ->
 	try
-		S_rand = crypto:rand_uniform(1, ?R),
+		S_rand = rand:uniform(?R),
 		NewEapID = (EapID rem 255) + 1,
 		case catch ocs:find_service(PeerID) of
 			{ok, #service{password = Pwd}} ->
@@ -806,7 +820,7 @@ confirm3(#radius{id = RadiusID, authenticator = RequestAuthenticator,
 	MethodID = ocs_eap_pwd:h([Ciphersuite, ScalarP, ScalarS]),
 	<<MSK:64/binary, _EMSK:64/binary>> = ocs_eap_pwd:kdf(MK,
 			<<?PWD, MethodID/binary>>, 128),
-	Salt = crypto:rand_uniform(16#8000, 16#ffff),
+	Salt = rand:uniform(16#7fff) + 16#7fff,
 	<<MSK1:32/binary, MSK2:32/binary>> = MSK,
 	MsMppeRecvKey = encrypt_key(Secret, RequestAuthenticator, Salt, MSK1),
 	MsMppeSendKey = encrypt_key(Secret, RequestAuthenticator, Salt, MSK2),
@@ -1039,7 +1053,7 @@ send_radius_response(EapPacket, RadiusCode, ResponseAttributes,
 			<<0:128>>, AttrList1),
 	Attributes1 = radius_attributes:codec(AttrList2),
 	Length = size(Attributes1) + 20,
-	MessageAuthenticator = crypto:hmac(md5, Secret, [<<RadiusCode, RadiusID,
+	MessageAuthenticator = ?HMAC(Secret, [<<RadiusCode, RadiusID,
 			Length:16>>, RequestAuthenticator, Attributes1]),
 	AttrList3 = radius_attributes:store(?MessageAuthenticator,
 			MessageAuthenticator, AttrList2),

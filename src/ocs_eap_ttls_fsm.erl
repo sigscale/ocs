@@ -112,6 +112,19 @@
 -define(TIMEOUT, 30000).
 -define(BufTIMEOUT, 100).
 
+-dialyzer({[nowarn_function, no_match], send_response2/8}).
+-ifdef(OTP_RELEASE).
+	-define(HMAC(Key, Data),
+		case ?OTP_RELEASE of
+			OtpRelease when OtpRelease >= 23 ->
+				crypto:mac(hmac, md5, Key, Data);
+			OtpRelease when OtpRelease < 23 ->
+				crypto:hmac(md5, Key, Data)
+		end).
+-else.
+	-define(HMAC(Key, Data), crypto:hmac(md5, Key, Data)).
+-endif.
+
 %%----------------------------------------------------------------------
 %%  The ocs_eap_ttls_fsm API
 %%----------------------------------------------------------------------
@@ -162,7 +175,8 @@ init([Sup, diameter, ServerAddress, ServerPort, ClientAddress, ClientPort,
 	{ok, TLSkey} = application:get_env(ocs, tls_key),
 	{ok, TLScert} = application:get_env(ocs, tls_cert),
 	{ok, TLScacert} = application:get_env(ocs, tls_cacert),
-	case global:whereis_name({ocs_diameter_auth, ServerAddress, ServerPort}) of
+	case global:whereis_name({ocs_diameter_auth,
+			node(), ServerAddress, ServerPort}) of
 		undefined ->
 			{stop, ocs_diameter_auth_port_server_not_found};
 		PortServer ->
@@ -1067,7 +1081,7 @@ server_passthrough({accept, #service{name = Identity,
 			{MSK, _} = prf(SslSocket, master_secret ,
 					<<"ttls keying material">>, Seed, 128),
 			UserName = binary_to_list(Identity),
-			Salt = crypto:rand_uniform(16#8000, 16#ffff),
+			Salt = rand:uniform(16#7fff) + 16#7fff,
 			<<MSK1:32/binary, MSK2:32/binary>> = MSK,
 			MsMppeRecvKey = encrypt_key(Secret, RequestAuthenticator, Salt, MSK1),
 			MsMppeSendKey = encrypt_key(Secret, RequestAuthenticator, Salt, MSK2),
@@ -1277,7 +1291,7 @@ send_response2(RadiusCode, RadiusID, ResponseAttributes,
 			<<0:128>>, ResponseAttributes),
 	Attributes1 = radius_attributes:codec(AttrList2),
 	Length = size(Attributes1) + 20,
-	MessageAuthenticator = crypto:hmac(md5, Secret, [<<RadiusCode, RadiusID,
+	MessageAuthenticator = ?HMAC(Secret, [<<RadiusCode, RadiusID,
 			Length:16>>, RequestAuthenticator, Attributes1]),
 	AttrList3 = radius_attributes:store(?MessageAuthenticator,
 			MessageAuthenticator, AttrList2),

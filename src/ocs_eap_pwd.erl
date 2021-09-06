@@ -33,6 +33,45 @@
 
 -include("ocs_eap_codec.hrl").
 
+-dialyzer({[nowarn_function, no_match], h/1}).
+-ifdef(OTP_RELEASE).
+	-define(HMAC_INIT(Key),
+		case ?OTP_RELEASE of
+			OtpRelease when OtpRelease >= 23 ->
+				crypto:mac_init(hmac, sha256, Key);
+			OtpRelease when OtpRelease < 23 ->
+				crypto:hmac_init(sha256, Key)
+		end).
+-else.
+	-define(HMAC_INIT(Key), crypto:hmac_init(sha256, Key)).
+-endif.
+
+-dialyzer({[nowarn_function, no_match], h/2}).
+-ifdef(OTP_RELEASE).
+	-define(HMAC_UPDATE(Context, Data),
+		case ?OTP_RELEASE of
+			OtpRelease when OtpRelease >= 23 ->
+				crypto:mac_update(Context, Data);
+			OtpRelease when OtpRelease < 23 ->
+				crypto:hmac_update(Context, Data)
+		end).
+-else.
+	-define(HMAC_UPDATE(Context, Data), crypto:hmac_final(Context, Data)).
+-endif.
+
+-dialyzer({[nowarn_function, no_match], h/2}).
+-ifdef(OTP_RELEASE).
+	-define(HMAC_FINAL(Context),
+		case ?OTP_RELEASE of
+			OtpRelease when OtpRelease >= 23 ->
+				crypto:mac_final(Context);
+			OtpRelease when OtpRelease < 23 ->
+				crypto:hmac_final(Context)
+		end).
+-else.
+	-define(HMAC_FINAL(Context), crypto:hmac_final(Context)).
+-endif.
+
 -spec h(Data) -> Result
 	when 
 		Data :: [Data :: binary()],
@@ -40,12 +79,12 @@
 %% @doc Random function (H).
 %% 	RFC5931 section 2.4
 h(Data) when is_list(Data) ->
-	h(crypto:hmac_init(sha256, <<0:256>>), Data).
+	h(?HMAC_INIT(<<0:256>>), Data).
 %% @hidden
 h(Context, [H | T]) ->
-	h(crypto:hmac_update(Context, H), T);
+	h(?HMAC_UPDATE(Context, H), T);
 h(Context, []) ->
-	crypto:hmac_final(Context).
+	?HMAC_FINAL(Context).
 	
 -spec kdf(Key, Label, Length) -> Result 
 	when

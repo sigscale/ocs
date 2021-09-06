@@ -31,10 +31,6 @@
 -include("ocs.hrl").
 -include_lib("common_test/include/ct.hrl").
 
-%% support deprecated_time_unit()
--define(MILLISECOND, milli_seconds).
-%-define(MILLISECOND, millisecond).
-
 %%---------------------------------------------------------------------
 %%  Test server callback functions
 %%---------------------------------------------------------------------
@@ -102,7 +98,7 @@ add_once() ->
 	[{userdata, [{doc, "One time charges at subscription instantiation"}]}].
 
 add_once(_Config) ->
-	SD = erlang:system_time(?MILLISECOND),
+	SD = erlang:system_time(millisecond),
 	OfferId = ocs:generate_password(),
 	Amount1 = 1900,
 	Price1 = one_time(SD, Amount1),
@@ -126,7 +122,7 @@ add_once_bundle() ->
 	[{userdata, [{doc, "One time charges instantiating product bundle"}]}].
 
 add_once_bundle(_Config) ->
-	SD = erlang:system_time(?MILLISECOND),
+	SD = erlang:system_time(millisecond),
 	OfferId1 = ocs:generate_password(),
 	Amount1 = 1900,
 	Price1 = one_time(SD, Amount1),
@@ -160,7 +156,7 @@ add_once_allowance() ->
 	[{userdata, [{doc, "One time allowances at subscription instantiation"}]}].
 
 add_once_allowance(_Config) ->
-	SD = erlang:system_time(?MILLISECOND),
+	SD = erlang:system_time(millisecond),
 	OfferId = ocs:generate_password(),
 	UnitSize = 100000000000,
 	Alteration = alteration(SD, one_time, undefined, octets, UnitSize, 0),
@@ -180,7 +176,7 @@ add_once_allowance_bundle() ->
 	[{userdata, [{doc, "One time allowances at instantiation of product bundle"}]}].
 
 add_once_allowance_bundle(_Config) ->
-	SD = erlang:system_time(?MILLISECOND),
+	SD = erlang:system_time(millisecond),
 	OfferId1 = ocs:generate_password(),
 	UnitSize1 = 100000000000,
 	Alteration1 = alteration(SD, one_time, undefined, octets, UnitSize1, 0),
@@ -233,7 +229,7 @@ add_recurring() ->
 	[{userdata, [{doc, "Recurring charges at subscription instantiation"}]}].
 
 add_recurring(_Config) ->
-	SD = erlang:system_time(?MILLISECOND),
+	SD = erlang:system_time(millisecond),
 	OfferId = ocs:generate_password(),
 	Amount1 = 2995,
 	Price1 = recurring(SD, monthly, Amount1, undefined),
@@ -254,7 +250,7 @@ add_recurring_bundle() ->
 	[{userdata, [{doc, "Recurring charges instantiating product bundle"}]}].
 
 add_recurring_bundle(_Config) ->
-	SD = erlang:system_time(?MILLISECOND),
+	SD = erlang:system_time(millisecond),
 	OfferId1 = ocs:generate_password(),
 	Amount1 = 2995,
 	Price1 = recurring(SD, monthly, Amount1, undefined),
@@ -288,7 +284,7 @@ add_recurring_allowance() ->
 	[{userdata, [{doc, "Recurring allowances at subscription instantiation"}]}].
 
 add_recurring_allowance(_Config) ->
-	SD = erlang:system_time(?MILLISECOND),
+	SD = erlang:system_time(millisecond),
 	OfferId = ocs:generate_password(),
 	UnitSize = 100000000000,
 	Alteration = alteration(SD, recurring, monthly, octets, UnitSize, 0),
@@ -310,7 +306,7 @@ add_recurring_usage_allowance() ->
 			at subscription instantiation"}]}].
 
 add_recurring_usage_allowance(_Config) ->
-	SD = erlang:system_time(?MILLISECOND),
+	SD = erlang:system_time(millisecond),
 	OfferId = ocs:generate_password(),
 	UnitSize = 100000000000,
 	Amount = 1000,
@@ -331,7 +327,7 @@ add_once_usage_allowance() ->
 			at subscription instantiation"}]}].
 
 add_once_usage_allowance(_Config) ->
-	SD = erlang:system_time(?MILLISECOND),
+	SD = erlang:system_time(millisecond),
 	OfferId = ocs:generate_password(),
 	UnitSize = 1000000000,
 	Alteration = alteration(SD, one_time, undefined, octets, UnitSize, 0),
@@ -349,7 +345,7 @@ add_once_tariff_allowance() ->
 			at subscription instantiation"}]}].
 
 add_once_tariff_allowance(_Config) ->
-	SD = erlang:system_time(?MILLISECOND),
+	SD = erlang:system_time(millisecond),
 	OfferId = ocs:generate_password(),
 	UnitSize = 100000000000,
 	Alteration = alteration(SD, one_time, undefined, octets, UnitSize, 0),
@@ -369,7 +365,7 @@ add_recurring_tariff_allowance() ->
 			at subscription instantiation"}]}].
 
 add_recurring_tariff_allowance(_Config) ->
-	SD = erlang:system_time(?MILLISECOND),
+	SD = erlang:system_time(millisecond),
 	OfferId = ocs:generate_password(),
 	UnitSize = 100000000000,
 	Amount = 1000,
@@ -392,7 +388,7 @@ add_usage_once_allowance() ->
 			at subscription instantiation"}]}].
 
 add_usage_once_allowance(_Config) ->
-	SD = erlang:system_time(?MILLISECOND),
+	SD = erlang:system_time(millisecond),
 	OfferId = ocs:generate_password(),
 	Amount = 1000,
 	UnitSize = 100000000000,
@@ -413,7 +409,7 @@ add_usage_recurring_allowance() ->
 			at subscription instantiation"}]}].
 
 add_usage_recurring_allowance(_Config) ->
-	SD = erlang:system_time(?MILLISECOND),
+	SD = erlang:system_time(millisecond),
 	OfferId = ocs:generate_password(),
 	Amount = 1000,
 	UnitSize = 100000000000,
@@ -434,7 +430,7 @@ add_once_recurring_allowance() ->
 			at subscription instantiation"}]}].
 
 add_once_recurring_allowance(_Config) ->
-	SD = erlang:system_time(?MILLISECOND),
+	SD = erlang:system_time(millisecond),
 	OfferId = ocs:generate_password(),
 	UnitSize = 100000000000,
 	Alteration = alteration(SD, usage, undefined, octets, UnitSize, 1000),
@@ -453,7 +449,7 @@ add_recurring_allowance_bundle() ->
 	[{userdata, [{doc, "Recurring allowances at instantiation of product bundle"}]}].
 
 add_recurring_allowance_bundle(_Config) ->
-	SD = erlang:system_time(?MILLISECOND),
+	SD = erlang:system_time(millisecond),
 	OfferId1 = ocs:generate_password(),
 	UnitSize1 = 100000000000,
 	Alteration1 = alteration(SD, recurring, monthly, octets, UnitSize1, 0),
@@ -505,7 +501,7 @@ recurring_charge_monthly() ->
 	[{userdata, [{doc, "Recurring charges for monthly subscription"}]}].
 
 recurring_charge_monthly(_Config) ->
-	SD = erlang:system_time(?MILLISECOND),
+	SD = erlang:system_time(millisecond),
 	Amount1 = 2995,
 	P1 = one_time(SD, Amount1),
 	Amount2 = 100000000000,
@@ -519,13 +515,13 @@ recurring_charge_monthly(_Config) ->
 			status = active, price = Prices},
 	{ok, _Offer1} = ocs:add_offer(Offer),
 	{ok, #product{id = ProdId} = P} = ocs:add_product(OfferId, []),
-	Expired = erlang:system_time(?MILLISECOND) - 3599000,
+	Expired = erlang:system_time(millisecond) - 3599000,
 	ok = mnesia:dirty_write(product, P#product{payment =
 			[{P2#price.name, Expired}]}),
 	B1 = #bucket{units = cents,
 			remain_amount = 10000000,
-			start_date = erlang:system_time(?MILLISECOND),
-			end_date = erlang:system_time(?MILLISECOND) + 2592000000},
+			start_date = erlang:system_time(millisecond),
+			end_date = erlang:system_time(millisecond) + 2592000000},
 	{ok, _, #bucket{id = BId1}} = ocs:add_bucket(ProdId, B1),
 	ok = ocs_scheduler:product_charge(),
 	F1 = fun(BId) ->
@@ -550,7 +546,7 @@ recurring_charge_hourly() ->
 	[{userdata, [{doc, "Recurring charges for hourly subscription"}]}].
 
 recurring_charge_hourly(_Config) ->
-	SD = erlang:system_time(?MILLISECOND),
+	SD = erlang:system_time(millisecond),
 	OfferId = ocs:generate_password(),
 	Amount1 = 2995,
 	P1 = recurring(SD, monthly, Amount1, undefined),
@@ -561,13 +557,13 @@ recurring_charge_hourly(_Config) ->
 			specification = 8, price = Prices},
 	{ok, _} = ocs:add_offer(Offer),
 	{ok, #product{id = ProdId} = P} = ocs:add_product(OfferId, []),
-	Expired = erlang:system_time(?MILLISECOND) - 3600000,
+	Expired = erlang:system_time(millisecond) - 3600000,
 	ok = mnesia:dirty_write(product, P#product{payment =
 			[{P2#price.name, Expired}]}),
 	B1 = #bucket{units = cents,
 			remain_amount = 10000000,
-			start_date = erlang:system_time(?MILLISECOND),
-			end_date = erlang:system_time(?MILLISECOND) + 2592000000},
+			start_date = erlang:system_time(millisecond),
+			end_date = erlang:system_time(millisecond) + 2592000000},
 	{ok, _, #bucket{id = BId1}} = ocs:add_bucket(ProdId, B1),
 	ok = ocs_scheduler:product_charge(),
 	F1 = fun(BId) ->
@@ -594,7 +590,7 @@ recurring_charge_yearly() ->
 	[{userdata, [{doc, "Recurring charges for yearly subscription"}]}].
 
 recurring_charge_yearly(_Config) ->
-	SD = erlang:system_time(?MILLISECOND),
+	SD = erlang:system_time(millisecond),
 	OfferId = ocs:generate_password(),
 	Amount1 = 5,
 	P1 = recurring(SD, monthly, Amount1, undefined),
@@ -605,13 +601,13 @@ recurring_charge_yearly(_Config) ->
 			specification = 8, price = Prices},
 	{ok, _} = ocs:add_offer(Offer),
 	{ok, #product{id = ProdId} = P} = ocs:add_product(OfferId, []),
-	Expired = erlang:system_time(?MILLISECOND) - 315360,
+	Expired = erlang:system_time(millisecond) - 315360,
 	ok = mnesia:dirty_write(product, P#product{payment =
 			[{P2#price.name, Expired}]}),
 	B1 = #bucket{units = cents,
 			remain_amount = 10000000,
-			start_date = erlang:system_time(?MILLISECOND),
-			end_date = erlang:system_time(?MILLISECOND) + 2592000000},
+			start_date = erlang:system_time(millisecond),
+			end_date = erlang:system_time(millisecond) + 2592000000},
 	{ok, _, #bucket{id = BId1}} = ocs:add_bucket(ProdId, B1),
 	ok = ocs_scheduler:product_charge(),
 	F1 = fun(BId) ->
@@ -634,7 +630,7 @@ recurring_charge_daily() ->
 	[{userdata, [{doc, "Recurring charges for daily subscription"}]}].
 
 recurring_charge_daily(_Config) ->
-	SD = erlang:system_time(?MILLISECOND),
+	SD = erlang:system_time(millisecond),
 	OfferId = ocs:generate_password(),
 	Amount1 = 5,
 	P1 = recurring(SD, monthly, Amount1, undefined),
@@ -645,11 +641,11 @@ recurring_charge_daily(_Config) ->
 			specification = 8, price = Prices},
 	{ok, _} = ocs:add_offer(Offer),
 	{ok, #product{id = ProdId} = P} = ocs:add_product(OfferId, []),
-	Expired = erlang:system_time(?MILLISECOND) - 86400,
+	Expired = erlang:system_time(millisecond) - 86400,
 	ok = mnesia:dirty_write(product, P#product{payment = [{P2#price.name, Expired}]}),
 	B1 = #bucket{units = cents, remain_amount = 10000000,
-			start_date = erlang:system_time(?MILLISECOND),
-			end_date = erlang:system_time(?MILLISECOND) + 2592000000},
+			start_date = erlang:system_time(millisecond),
+			end_date = erlang:system_time(millisecond) + 2592000000},
 	{ok, _, #bucket{id = BId1}} = ocs:add_bucket(ProdId, B1),
 	ok = ocs_scheduler:product_charge(),
 	F1 = fun(BId) ->

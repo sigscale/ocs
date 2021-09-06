@@ -34,10 +34,6 @@
 -include_lib("common_test/include/ct.hrl").
 -include_lib("inets/include/mod_auth.hrl").
 
-%% support deprecated_time_unit()
--define(MILLISECOND, milli_seconds).
-%-define(MILLISECOND, millisecond).
-
 %%---------------------------------------------------------------------
 %%  Test server callback functions
 %%---------------------------------------------------------------------
@@ -223,7 +219,7 @@ add_offer() ->
 	[{userdata, [{doc, "Add a product offering."}]}].
 
 add_offer(_Config) ->
-	SD = erlang:system_time(?MILLISECOND),
+	SD = erlang:system_time(millisecond),
 	Price1 = #price{name = "Installation",
 			description = "One time installation fee.",
 			start_date = SD, type = one_time, amount = 2995},
@@ -248,7 +244,7 @@ find_offer() ->
 	[{userdata, [{doc, "Find a product offering."}]}].
 
 find_offer(_Config) ->
-	SD = erlang:system_time(?MILLISECOND),
+	SD = erlang:system_time(millisecond),
 	ED = SD + 108000000,
 	Price1 = #price{name = "P1", description = "D1",
 			start_date = SD, end_date = ED,
@@ -476,8 +472,8 @@ add_bucket(_Config) ->
 	{ok, #product{id = ProdRef}} = ocs:add_product(OfferId, []),
 	Bucket1 = #bucket{units = octets,
 			remain_amount = rand:uniform(10000000),
-			start_date = erlang:system_time(?MILLISECOND),
-			end_date = erlang:system_time(?MILLISECOND) + 2592000000},
+			start_date = erlang:system_time(millisecond),
+			end_date = erlang:system_time(millisecond) + 2592000000},
 	{ok, _, #bucket{id = BId}} = ocs:add_bucket(ProdRef, Bucket1),
 	{atomic, [B1]} = mnesia:transaction(fun() -> mnesia:read(bucket, BId, read) end),
 	true = B1#bucket.remain_amount == Bucket1#bucket.remain_amount,
@@ -498,8 +494,8 @@ find_bucket(_Config) ->
 	{ok, #product{id = ProdRef}} = ocs:add_product(OfferId, []),
 	Bucket1 = #bucket{units = octets,
 			remain_amount = rand:uniform(10000000),
-			start_date = erlang:system_time(?MILLISECOND),
-			end_date = erlang:system_time(?MILLISECOND) + 2592000000},
+			start_date = erlang:system_time(millisecond),
+			end_date = erlang:system_time(millisecond) + 2592000000},
 	{ok, _, #bucket{id = BId}} = ocs:add_bucket(ProdRef, Bucket1),
 	{ok, #bucket{}} = ocs:find_bucket(BId).
 
@@ -519,8 +515,8 @@ get_buckets(_Config) ->
 	AddBuckets = fun() ->
 			B1 = #bucket{units = octets,
 			remain_amount = rand:uniform(10000000),
-			start_date = erlang:system_time(?MILLISECOND),
-			end_date = erlang:system_time(?MILLISECOND) + 2592000000},
+			start_date = erlang:system_time(millisecond),
+			end_date = erlang:system_time(millisecond) + 2592000000},
 			{ok, _, #bucket{id = BId}} = ocs:add_bucket(ProdRef, B1),
 			BId
 	end,
@@ -543,8 +539,8 @@ delete_bucket(_Config) ->
 	{ok, #product{id = ProdRef}} = ocs:add_product(OfferId, []),
 	Bucket1 = #bucket{units = octets,
 			remain_amount = rand:uniform(10000000),
-			start_date = erlang:system_time(?MILLISECOND),
-			end_date = erlang:system_time(?MILLISECOND) + 2592000000},
+			start_date = erlang:system_time(millisecond),
+			end_date = erlang:system_time(millisecond) + 2592000000},
 	{ok, _, #bucket{id = BId}} = ocs:add_bucket(ProdRef, Bucket1),
 	{ok, #bucket{}} = ocs:find_bucket(BId),
 	{ok, #product{balance = [BId]}} = ocs:find_product(ProdRef),
@@ -563,14 +559,14 @@ positive_adjustment(_Config) ->
 	{ok, #offer{}} = ocs:add_offer(Offer),
 	{ok, #product{id = ProdRef}} = ocs:add_product(OfferId, []),
 	Bucket1 = #bucket{units = octets, remain_amount = rand:uniform(10000000),
-			start_date = erlang:system_time(?MILLISECOND),
-			end_date = erlang:system_time(?MILLISECOND) + 2592000000},
+			start_date = erlang:system_time(millisecond),
+			end_date = erlang:system_time(millisecond) + 2592000000},
 	{ok, _, #bucket{id = BucketRef1}} = ocs:add_bucket(ProdRef, Bucket1),
 	Amount = rand:uniform(10000000),
 	Units = cents,
 	Adjustment = #adjustment{units = Units, amount = Amount,
-			start_date = erlang:system_time(?MILLISECOND), product = ProdRef,
-			end_date = erlang:system_time(?MILLISECOND) + 2592000000},
+			start_date = erlang:system_time(millisecond), product = ProdRef,
+			end_date = erlang:system_time(millisecond) + 2592000000},
 	ok = ocs:adjustment(Adjustment),
 	{atomic, [#product{balance = BucketRefs}]} = mnesia:transaction(fun() ->
 			mnesia:read(product, ProdRef, read) end),
@@ -590,16 +586,16 @@ negative_adjustment_high(_Config) ->
 	{ok, #offer{}} = ocs:add_offer(Offer),
 	{ok, #product{id = ProdRef}} = ocs:add_product(OfferId, []),
 	Bucket1 = #bucket{units = octets, remain_amount = 1000,
-			start_date = erlang:system_time(?MILLISECOND),
-			end_date = erlang:system_time(?MILLISECOND) + 2592000000},
+			start_date = erlang:system_time(millisecond),
+			end_date = erlang:system_time(millisecond) + 2592000000},
 	{ok, _, #bucket{}} = ocs:add_bucket(ProdRef, Bucket1),
 	Bucket2 = #bucket{units = octets, remain_amount = 3000,
-			start_date = erlang:system_time(?MILLISECOND),
-			end_date = erlang:system_time(?MILLISECOND) + 2592000000},
+			start_date = erlang:system_time(millisecond),
+			end_date = erlang:system_time(millisecond) + 2592000000},
 	{ok, _, #bucket{}} = ocs:add_bucket(ProdRef, Bucket2),
 	Adjustment = #adjustment{units = octets, amount = -5000,
-			start_date = erlang:system_time(?MILLISECOND), product = ProdRef,
-			end_date = erlang:system_time(?MILLISECOND) + 2592000000},
+			start_date = erlang:system_time(millisecond), product = ProdRef,
+			end_date = erlang:system_time(millisecond) + 2592000000},
 	ok = ocs:adjustment(Adjustment),
 	{atomic, [#product{balance = [BId]}]} = mnesia:transaction(fun() ->
 			mnesia:read(product, ProdRef, read) end),
@@ -619,21 +615,21 @@ negative_adjustment_equal(_Config) ->
 	{ok, #offer{}} = ocs:add_offer(Offer),
 	{ok, #product{id = ProdRef}} = ocs:add_product(OfferId, []),
 	Bucket1 = #bucket{units = octets, remain_amount = rand:uniform(10000000),
-			start_date = erlang:system_time(?MILLISECOND),
-			end_date = erlang:system_time(?MILLISECOND) + 2592000000},
+			start_date = erlang:system_time(millisecond),
+			end_date = erlang:system_time(millisecond) + 2592000000},
 	{ok, _, #bucket{}} = ocs:add_bucket(ProdRef, Bucket1),
 	Units = cents,
 	Bucket2 = #bucket{units = Units, remain_amount = 2000,
-			start_date = erlang:system_time(?MILLISECOND),
-			end_date = erlang:system_time(?MILLISECOND) + 2592000000},
+			start_date = erlang:system_time(millisecond),
+			end_date = erlang:system_time(millisecond) + 2592000000},
 	{ok, _, #bucket{}} = ocs:add_bucket(ProdRef, Bucket2),
 	Bucket3 = #bucket{units = octets, remain_amount = rand:uniform(10000000),
-			start_date = erlang:system_time(?MILLISECOND),
-			end_date = erlang:system_time(?MILLISECOND) + 2592000000},
+			start_date = erlang:system_time(millisecond),
+			end_date = erlang:system_time(millisecond) + 2592000000},
 	{ok, _, #bucket{}} = ocs:add_bucket(ProdRef, Bucket3),
 	Adjustment = #adjustment{units = Units, amount = -2000,
-			start_date = erlang:system_time(?MILLISECOND), product = ProdRef,
-			end_date = erlang:system_time(?MILLISECOND) + 2592000000},
+			start_date = erlang:system_time(millisecond), product = ProdRef,
+			end_date = erlang:system_time(millisecond) + 2592000000},
 	ok = ocs:adjustment(Adjustment),
 	{atomic, [#product{balance = BalanceRefs}]} = mnesia:transaction(fun() ->
 			mnesia:read(product, ProdRef, read) end),
@@ -651,21 +647,21 @@ negative_adjustment_low(_Config) ->
 	{ok, #offer{}} = ocs:add_offer(Offer),
 	{ok, #product{id = ProdRef}} = ocs:add_product(OfferId, []),
 	Bucket1 = #bucket{units = octets, remain_amount = rand:uniform(10000000),
-			start_date = erlang:system_time(?MILLISECOND),
-			end_date = erlang:system_time(?MILLISECOND) + 2592000000},
+			start_date = erlang:system_time(millisecond),
+			end_date = erlang:system_time(millisecond) + 2592000000},
 	{ok, _, #bucket{}} = ocs:add_bucket(ProdRef, Bucket1),
 	Units = cents,
 	Bucket2 = #bucket{units = Units, remain_amount = 3000,
-			start_date = erlang:system_time(?MILLISECOND),
-			end_date = erlang:system_time(?MILLISECOND) + 2592000000},
+			start_date = erlang:system_time(millisecond),
+			end_date = erlang:system_time(millisecond) + 2592000000},
 	{ok, _, #bucket{}} = ocs:add_bucket(ProdRef, Bucket2),
 	Bucket3 = #bucket{units = octets, remain_amount = rand:uniform(10000000),
-			start_date = erlang:system_time(?MILLISECOND),
-			end_date = erlang:system_time(?MILLISECOND) + 2592000000},
+			start_date = erlang:system_time(millisecond),
+			end_date = erlang:system_time(millisecond) + 2592000000},
 	{ok, _, #bucket{}} = ocs:add_bucket(ProdRef, Bucket3),
 	Adjustment = #adjustment{units = Units, amount = -1000,
-			start_date = erlang:system_time(?MILLISECOND), product = ProdRef,
-			end_date = erlang:system_time(?MILLISECOND) + 2592000000},
+			start_date = erlang:system_time(millisecond), product = ProdRef,
+			end_date = erlang:system_time(millisecond) + 2592000000},
 	ok = ocs:adjustment(Adjustment),
 	Buckets = ocs:get_buckets(ProdRef),
 	3 = length(Buckets),
@@ -743,8 +739,8 @@ add_resource_event(_Config) ->
 	Name = "Example",
 	Status = "created",
 	TariffResource = #resource{name = Name,
-			start_date = erlang:system_time(?MILLISECOND),
-			end_date = erlang:system_time(?MILLISECOND) + rand:uniform(10000000000),
+			start_date = erlang:system_time(millisecond),
+			end_date = erlang:system_time(millisecond) + rand:uniform(10000000000),
 			state = Status, specification = #specification_ref{id = "4",
 			href = "/resourceCatalogManagement/v3/resourceSpecification/4",
 			name = "Example spec", version = "1.0"}},
@@ -763,8 +759,8 @@ delete_resource_event(_Config) ->
 	Name = "Example",
 	Status = "created",
 	TariffResource = #resource{name = Name,
-			start_date = erlang:system_time(?MILLISECOND),
-			end_date = erlang:system_time(?MILLISECOND) + rand:uniform(10000000000),
+			start_date = erlang:system_time(millisecond),
+			end_date = erlang:system_time(millisecond) + rand:uniform(10000000000),
 			state = Status, specification = #specification_ref{id = "4",
 			href = "/resourceCatalogManagement/v3/resourceSpecification/4",
 			name = "Example spec", version = "1.0"}},
@@ -889,8 +885,8 @@ add_bucket_event(_Config) ->
 	Amount = 100,
 	Units = cents,
 	Bucket1 = #bucket{units = Units, remain_amount = Amount,
-			start_date = erlang:system_time(?MILLISECOND),
-			end_date = erlang:system_time(?MILLISECOND) + 2592000000},
+			start_date = erlang:system_time(millisecond),
+			end_date = erlang:system_time(millisecond) + 2592000000},
 	{ok, _, #bucket{id = BucketId}} = ocs:add_bucket(ProdRef, Bucket1),
 	receive
 		{create_bucket, Bucket2, balance} ->
@@ -922,8 +918,8 @@ delete_bucket_event(_Config) ->
 	Amount = 100,
 	Units = cents,
 	Bucket1 = #bucket{units = Units, remain_amount = Amount,
-			start_date = erlang:system_time(?MILLISECOND),
-			end_date = erlang:system_time(?MILLISECOND) + 2592000000},
+			start_date = erlang:system_time(millisecond),
+			end_date = erlang:system_time(millisecond) + 2592000000},
 	{ok, _, #bucket{id = BucketId}} = ocs:add_bucket(ProdRef, Bucket1),
 	receive
 		{create_bucket, Bucket2, balance} ->
@@ -942,7 +938,7 @@ product_charge_event() ->
 
 product_charge_event(_Config) ->
 	ok = gen_event:add_handler(ocs_event, test_event, [self()]),
-	SD = erlang:system_time(?MILLISECOND),
+	SD = erlang:system_time(millisecond),
 	UnitSize = 100000000000,
 	Alteration = #alteration{name = ocs:generate_identity(), start_date = SD,
 			type = usage, period = undefined,
@@ -962,20 +958,20 @@ product_charge_event(_Config) ->
 			ProdId = Product#product.id,
 			OfferId = Product#product.product
 	end,
-	Expired = erlang:system_time(?MILLISECOND) - 3599000,
+	Expired = erlang:system_time(millisecond) - 3599000,
 	ok = mnesia:dirty_write(product, P#product{payment =
 			[{Price#price.name, Expired}]}),
 	B1 = #bucket{units = cents, remain_amount = 1000,
-			start_date = erlang:system_time(?MILLISECOND),
-			end_date = erlang:system_time(?MILLISECOND) + 2592000000},
+			start_date = erlang:system_time(millisecond),
+			end_date = erlang:system_time(millisecond) + 2592000000},
 	{ok, _, #bucket{id = BId1}} = ocs:add_bucket(ProdId, B1),
 	receive
 		{create_bucket, Bucket1, balance} ->
 			BId1 = Bucket1#bucket.id
 	end,
 	B2 = #bucket{units = cents, remain_amount = 1000,
-			start_date = erlang:system_time(?MILLISECOND),
-			end_date = erlang:system_time(?MILLISECOND) + 2592000000},
+			start_date = erlang:system_time(millisecond),
+			end_date = erlang:system_time(millisecond) + 2592000000},
 	{ok, _, #bucket{id = BId2}} = ocs:add_bucket(ProdId, B2),
 	receive
 		{create_bucket, Bucket2, balance} ->
@@ -1023,8 +1019,8 @@ rating_deleted_bucket_event(_Config) ->
 	end,
 	Units = cents,
 	Bucket1 = #bucket{units = Units, remain_amount = PackagePrice,
-			start_date = erlang:system_time(?MILLISECOND) - (2 * 2592000000),
-			end_date = erlang:system_time(?MILLISECOND) - 2592000000},
+			start_date = erlang:system_time(millisecond) - (2 * 2592000000),
+			end_date = erlang:system_time(millisecond) - 2592000000},
 	{ok, _, #bucket{id = BId}} = ocs:add_bucket(ProdRef, Bucket1),
 	receive
 		{create_bucket, Bucket2, balance} ->
@@ -1107,7 +1103,7 @@ add_resource(_Config) ->
 			name = "example_tariff1",
 			description = "Example voice tariff",
 			category = "tariff",
-			state = "created", start_date = erlang:system_time(?MILLISECOND),
+			state = "created", start_date = erlang:system_time(millisecond),
 			specification = #specification_ref{id = "1",
 					href = "/resourceCatalogManagement/v3/resourceSpecification/1",
 					name = "Example spec", version = "1.0"}},
@@ -1125,7 +1121,7 @@ get_resources(_Config) ->
 	ok = ocs_gtt:new(example_tariff2, []),
 	Resource = #resource{name = "example_tariff2",
 			description = "Example voice tariff", category = "tariff",
-			state = "created", start_date = erlang:system_time(?MILLISECOND),
+			state = "created", start_date = erlang:system_time(millisecond),
 			specification = #specification_ref{id = "1",
 					href = "/resourceCatalogManagement/v3/resourceSpecification/1",
 					name = "Example spec", version = "1.0"}},
@@ -1146,7 +1142,7 @@ get_resource(_Config) ->
 	ok = ocs_gtt:new(example_tariff3, []),
 	Resource = #resource{name = "example_tariff3",
 			description = "Example voice tariff", category = "tariff",
-			state = "created", start_date = erlang:system_time(?MILLISECOND),
+			state = "created", start_date = erlang:system_time(millisecond),
 			specification = #specification_ref{id = "1",
 					href = "/resourceCatalogManagement/v3/resourceSpecification/1",
 					name = "Example spec", version = "1.0"}},
@@ -1162,7 +1158,7 @@ delete_resource(_Config) ->
 	ok = ocs_gtt:new(example_tariff4, []),
 	Resource = #resource{name = "example_tariff4",
 			description = "Example voice tariff", category = "tariff",
-			state = "created", start_date = erlang:system_time(?MILLISECOND),
+			state = "created", start_date = erlang:system_time(millisecond),
 			specification = #specification_ref{id = "1",
 					href = "/resourceCatalogManagement/v3/resourceSpecification/1",
 					name = "Example spec", version = "1.0"}},
@@ -1185,8 +1181,8 @@ add_offer(Prices, Spec) ->
 %% @hidden
 add_bucket(ProdRef, Units, RA) ->
 	Bucket = #bucket{units = Units, remain_amount = RA,
-			start_date = erlang:system_time(?MILLISECOND),
-			end_date = erlang:system_time(?MILLISECOND) + 2592000000},
+			start_date = erlang:system_time(millisecond),
+			end_date = erlang:system_time(millisecond) + 2592000000},
 	{ok, _, #bucket{id = BId}} = ocs:add_bucket(ProdRef, Bucket),
 	BId.
 

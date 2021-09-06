@@ -33,10 +33,6 @@
 -include_lib("radius/include/radius.hrl").
 -include_lib("common_test/include/ct.hrl").
 
-%% support deprecated_time_unit()
--define(MILLISECOND, milli_seconds).
-%-define(MILLISECOND, millisecond).
-
 %%---------------------------------------------------------------------
 %%  Test server callback functions
 %%---------------------------------------------------------------------
@@ -180,7 +176,7 @@ initial_insufficient_multisession(_Config) ->
 	RemAmount = 13,
 	B1 = bucket(cents, RemAmount),
 	SessionId1 = [{'Session-Id', list_to_binary(ocs:generate_password())}],
-	R = [{erlang:system_time(?MILLISECOND), 100,
+	R = [{erlang:system_time(millisecond), 100,
 			undefined, undefined, undefined, SessionId1}],
 	B2 = B1#bucket{reservations = R},
 	BId = add_bucket(ProdRef, B2),
@@ -310,8 +306,8 @@ initial_expire_buckets(_Config) ->
 	ServiceId = add_service(ProdRef),
 	RemAmount = 100,
 	B1 = bucket(cents, RemAmount),
-	B2= B1#bucket{start_date = erlang:system_time(?MILLISECOND) -  (2 * 2592000000),
-		end_date = erlang:system_time(?MILLISECOND) - 2592000000},
+	B2= B1#bucket{start_date = erlang:system_time(millisecond) -  (2 * 2592000000),
+		end_date = erlang:system_time(millisecond) - 2592000000},
 	BId = add_bucket(ProdRef, B2),
 	Timestamp = calendar:local_time(),
 	SessionId = [{'Session-Id', list_to_binary(ocs:generate_password())}],
@@ -334,7 +330,7 @@ initial_ignore_expired_buckets(_Config) ->
 	ProdRef = add_product(OfferId),
 	ServiceId = add_service(ProdRef),
 	SessionId1 = [{'Session-Id', list_to_binary(ocs:generate_password())}],
-	Now = erlang:system_time(?MILLISECOND),
+	Now = erlang:system_time(millisecond),
 	RemAmount1 = rand:uniform(PackagePrice * 10),
 	Reservations = [{Now - 3666000, rand:uniform(PackagePrice * 3),
 			0, undefined, undefined, SessionId1}],
@@ -708,7 +704,7 @@ interim_debit_remove_session(_Config) ->
 	ServiceId = add_service(ProdRef),
 	RemAmount = rand:uniform(PackagePrice - 1),
 	_BId = add_bucket(ProdRef, bucket(cents, RemAmount)),
-	SessionAttributes = [{erlang:system_time(?MILLISECOND), [{?AcctSessionId, "1020303"},
+	SessionAttributes = [{erlang:system_time(millisecond), [{?AcctSessionId, "1020303"},
 		{?NasIdentifier, "rate@sigscale"}, {?NasIpAddress, "10.0.0.1"}]}],
 	ServiceType = 2,
 	Timestamp = calendar:local_time(),
@@ -988,7 +984,7 @@ final_remove_session(_Config) ->
 	NasId1 = {?NasIdentifier, "rate1@sigscale"},
 	NasIp1 = {?NasIpAddress, "10.0.0.1"},
 	SessionId1 = lists:keysort(1, [AcctSessionId1, NasIp1, NasId1]),
-	SA1 = {erlang:system_time(?MILLISECOND), SessionId1},
+	SA1 = {erlang:system_time(millisecond), SessionId1},
 	SessionId2 = [{'Session-Id', list_to_binary(ocs:generate_password())}],
 	F = fun() ->
 		[Service] = mnesia:read(service, list_to_binary(ServiceId), read),
@@ -2029,7 +2025,7 @@ final_empty_mscc(_Config) ->
 	ok = ocs:adjustment(Adjustment),
 	RemAmount = 20000000000,
 	B1 = #bucket{units = cents, remain_amount = RemAmount,
-			start_date = erlang:system_time(?MILLISECOND)},
+			start_date = erlang:system_time(millisecond)},
 	_BId = add_bucket(ProdRef, B1),
 	SessionId = [{'Session-Id', list_to_binary(ocs:generate_password())}],
 	ServiceType = 32251,
@@ -2068,7 +2064,7 @@ final_empty_mscc_multiple_services(_Config) ->
 	ok = ocs:adjustment(Adjustment),
 	RemAmount = 20000000000,
 	B1 = #bucket{units = cents, remain_amount = RemAmount,
-			start_date = erlang:system_time(?MILLISECOND)},
+			start_date = erlang:system_time(millisecond)},
 	_BId = add_bucket(ProdRef, B1),
 	SessionId1 = [{'Session-Id', list_to_binary(ocs:generate_password())}],
 	ServiceType = 32251,
@@ -2125,8 +2121,8 @@ price(Type, Units, Size, Amount) ->
 %% @hidden
 bucket(Units, RA) ->
 	#bucket{units = Units, remain_amount = RA,
-		start_date = erlang:system_time(?MILLISECOND),
-		end_date = erlang:system_time(?MILLISECOND) + 2592000000}.
+		start_date = erlang:system_time(millisecond),
+		end_date = erlang:system_time(millisecond) + 2592000000}.
 
 %% @hidden
 add_offer(Prices, Spec) when is_integer(Spec) ->

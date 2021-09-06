@@ -45,7 +45,7 @@ content_types_accepted() ->
 		ContentTypes :: list().
 %% @doc Provides list of resource representations available.
 content_types_provided() ->
-	["application/json"].
+	["application/json", "application/problem+json"].
 
 -spec get_http() -> Result
 	when

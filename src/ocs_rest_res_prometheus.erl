@@ -40,7 +40,7 @@ content_types_accepted() ->
 		ContentTypes :: [string()].
 %% @doc Provides list of resource representations available.
 content_types_provided() ->
-	["text/plain"].
+	["text/plain", "application/problem+json"].
 
 -spec get_metrics(Query, Headers) -> Result
 	when
@@ -70,7 +70,6 @@ diameter_services([H | T], In, Out) ->
 	Dictionaries = application_dicts(Applications),
 	diameter_transport(T, Transports, Dictionaries, In, Out);
 diameter_services([], In, Out) ->
-erlang:display({?MODULE, ?LINE, In}),
 	In1 = case In of
 		In when length(In) > 0 ->
 			["# HELP diameter_message_in_total A counter of DIAMETER"
@@ -154,7 +153,6 @@ diameter_transport(Services, Transports, Dictionaries,
 			T, In, Out, Acc);
 diameter_transport(Services, Transports,
 		Dictionaries, [], In, Out, _Acc) ->
-erlang:display({?MODULE, ?LINE, In}),
 	diameter_transport(Services, Transports, Dictionaries, In, Out).
 
 %% @hidden

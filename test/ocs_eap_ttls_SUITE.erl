@@ -56,10 +56,6 @@
 -define(IANA_PEN_3GPP, 10415).
 -define(IANA_PEN_SigScale, 50386).
 
-%% support deprecated_time_unit()
--define(MILLISECOND, milli_seconds).
-%-define(MILLISECOND, millisecond).
-
 -include_lib("radius/include/radius.hrl").
 -include_lib("diameter/include/diameter.hrl").
 -include("ocs_eap_codec.hrl").
@@ -69,6 +65,20 @@
 -include_lib("diameter/include/diameter_gen_base_rfc6733.hrl").
 -include_lib("../include/diameter_gen_eap_application_rfc4072.hrl").
 -include_lib("kernel/include/inet.hrl").
+
+-dialyzer({[nowarn_function, no_match],
+		[receive_radius/7, access_request2/10]}).
+-ifdef(OTP_RELEASE).
+	-define(HMAC(Key, Data),
+		case ?OTP_RELEASE of
+			OtpRelease when OtpRelease >= 23 ->
+				crypto:mac(hmac, md5, Key, Data);
+			OtpRelease when OtpRelease < 23 ->
+				crypto:hmac(md5, Key, Data)
+		end).
+-else.
+	-define(HMAC(Key, Data), crypto:hmac(md5, Key, Data)).
+-endif.
 
 %%---------------------------------------------------------------------
 %%  Test server callback functions
@@ -537,7 +547,7 @@ access_request2(Socket, Address, Port, NasId, UserName, Secret, MAC,
 	Request1 = #radius{code = ?AccessRequest, id = RadId,
 		authenticator = Auth, attributes = A6},
 	ReqPacket1 = radius:codec(Request1),
-	MsgAuth1 = crypto:hmac(md5, Secret, ReqPacket1),
+	MsgAuth1 = ?HMAC(Secret, ReqPacket1),
 	A7 = radius_attributes:store(?MessageAuthenticator, MsgAuth1, A6),
 	Request2 = Request1#radius{attributes = A7},
 	ReqPacket2 = radius:codec(Request2),
@@ -563,7 +573,7 @@ receive_radius(Code, Socket, Address, Port, Secret, RadId, ReqAuth) ->
 			<<0:128>>, RespAttr1),
 	Resp3 = Resp2#radius{attributes = RespAttr2},
 	RespPacket3 = radius:codec(Resp3),
-	MsgAuth = crypto:hmac(md5, Secret, RespPacket3),
+	MsgAuth = ?HMAC(Secret, RespPacket3),
 	Resp1.
 
 get_eap(#radius{attributes = BinAttr}) ->
@@ -852,8 +862,8 @@ price(Type, Units, Size, Amount) ->
 %% @hidden
 bucket(Units, RA) ->
 	#bucket{units = Units, remain_amount = RA,
-		start_date = erlang:system_time(?MILLISECOND),
-		end_date = erlang:system_time(?MILLISECOND) + 2592000000}.
+		start_date = erlang:system_time(millisecond),
+		end_date = erlang:system_time(millisecond) + 2592000000}.
 
 %% @hidden
 add_offer(Prices, Spec) when is_integer(Spec) ->

@@ -44,9 +44,19 @@
 -define(IANA_PEN_3GPP, 10415).
 -define(IANA_PEN_SigScale, 50386).
 
-%% support deprecated_time_unit()
--define(MILLISECOND, milli_seconds).
-%-define(MILLISECOND, millisecond).
+-dialyzer({[nowarn_function, no_match],
+		[radius_access_request/10, receive_radius/7]}).
+-ifdef(OTP_RELEASE).
+	-define(HMAC(Key, Data),
+		case ?OTP_RELEASE of
+			OtpRelease when OtpRelease >= 23 ->
+				crypto:mac(hmac, md5, Key, Data);
+			OtpRelease when OtpRelease < 23 ->
+				crypto:hmac(md5, Key, Data)
+		end).
+-else.
+	-define(HMAC(Key, Data), crypto:hmac(md5, Key, Data)).
+-endif.
 
 %%---------------------------------------------------------------------
 %%  Test server callback functions
@@ -287,7 +297,7 @@ pwd_commit_radius(Config) ->
 	EapId3 = EapId2 + 1,
 	{EapId3, _ElementS, _ScalarS} = receive_radius_commit(Socket, Address,
 			Port, Secret, ReqAuth2, RadId2),
-	Prand = crypto:rand_uniform(1, ?R),
+	Prand = rand:uniform(?R),
 	PWE = ocs_eap_pwd:compute_pwe(Token, PeerId, ServerID, PeerAuth),
 	{ScalarP, ElementP} = ocs_eap_pwd:compute_scalar(<<Prand:256>>, PWE),
 	RadId3 = RadId2 + 1,
@@ -335,7 +345,7 @@ pwd_commit_diameter(_Config) ->
 	#eap_pwd_commit{element = ElementS, scalar = ScalarS} = ocs_eap_codec:eap_pwd_commit(EapPwdData1),
 	true = is_binary(ElementS),
 	true = is_binary(ScalarS),
-	Prand = crypto:rand_uniform(1, ?R),
+	Prand = rand:uniform(?R),
 	PWE = ocs_eap_pwd:compute_pwe(Token, PeerId, ServerId, PeerAuth),
 	{ScalarP, ElementP} = ocs_eap_pwd:compute_scalar(<<Prand:256>>, PWE),
 	DEA2 = send_diameter_commit(SId, ScalarP, ElementP, EapId1),
@@ -382,7 +392,7 @@ pwd_confirm_radius(Config) ->
 	{EapId3, ElementS, ScalarS} = receive_radius_commit(Socket, Address,
 			Port, Secret, ReqAuth2, RadId2),
 	PWE = ocs_eap_pwd:compute_pwe(Token, PeerId, ServerID, PeerAuth),
-	Prand = crypto:rand_uniform(1, ?R),
+	Prand = rand:uniform(?R),
 	{ScalarP, ElementP} = ocs_eap_pwd:compute_scalar(<<Prand:256>>, PWE),
 	RadId3 = RadId2 + 1,
 	ReqAuth3 = radius:authenticator(),
@@ -440,7 +450,7 @@ pwd_confirm_diameter(_Config) ->
 	#eap_pwd_commit{element = ElementS, scalar = ScalarS} = ocs_eap_codec:eap_pwd_commit(EapPwdData1),
 	true = is_binary(ElementS),
 	true = is_binary(ScalarS),
-	Prand = crypto:rand_uniform(1, ?R),
+	Prand = rand:uniform(?R),
 	PWE = ocs_eap_pwd:compute_pwe(Token, PeerId, ServerId, PeerAuth),
 	{ScalarP, ElementP} = ocs_eap_pwd:compute_scalar(<<Prand:256>>, PWE),
 	DEA2 = send_diameter_commit(SId, ScalarP, ElementP, EapId1),
@@ -687,7 +697,7 @@ radius_access_request(Socket, Address, Port, NasId,
 	Request1 = #radius{code = ?AccessRequest, id = RadId,
 		authenticator = Auth, attributes = A7},
 	ReqPacket1 = radius:codec(Request1),
-	MsgAuth1 = crypto:hmac(md5, Secret, ReqPacket1),
+	MsgAuth1 = ?HMAC(Secret, ReqPacket1),
 	A8 = radius_attributes:store(?MessageAuthenticator, MsgAuth1, A7),
 	Request2 = Request1#radius{attributes = A8},
 	ReqPacket2 = radius:codec(Request2),
@@ -715,7 +725,7 @@ receive_radius(Code, Socket, Address, Port, Secret, RadId, ReqAuth) ->
 	RespAttr2 = radius_attributes:store(?MessageAuthenticator, <<0:128>>, RespAttr1),
 	Resp3 = Resp2#radius{attributes = RespAttr2},
 	RespPacket3 = radius:codec(Resp3),
-	MsgAuth = crypto:hmac(md5, Secret, RespPacket3),
+	MsgAuth = ?HMAC(Secret, RespPacket3),
 	{ok, EapMsg} = radius_attributes:find(?EAPMessage, RespAttr1),
 	EapMsg.
 
@@ -902,8 +912,8 @@ price(Type, Units, Size, Amount) ->
 %% @hidden
 bucket(Units, RA) ->
 	#bucket{units = Units, remain_amount = RA,
-		start_date = erlang:system_time(?MILLISECOND),
-		end_date = erlang:system_time(?MILLISECOND) + 2592000000}.
+		start_date = erlang:system_time(millisecond),
+		end_date = erlang:system_time(millisecond) + 2592000000}.
 
 %% @hidden
 add_offer(Prices, Spec) when is_integer(Spec) ->

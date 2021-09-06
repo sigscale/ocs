@@ -29,10 +29,6 @@
 -include_lib("inets/include/mod_auth.hrl").
 -include("ocs.hrl").
 
-%% support deprecated_time_unit()
--define(MILLISECOND, milli_seconds).
-%-define(MILLISECOND, millisecond).
-
 -spec content_types_accepted() -> ContentTypes
 	when
 		ContentTypes :: list().
@@ -45,7 +41,7 @@ content_types_accepted() ->
 		ContentTypes :: list().
 %% @doc Provides list of resource representations available.
 content_types_provided() ->
-	["application/json"].
+	["application/json", "application/problem+json"].
 
 -spec get_users(Query, Headers) -> Result
 	when
@@ -150,15 +146,14 @@ get_user(Id, [] = _Query, _Filters) ->
 			CharObj = {"characteristic", {array, lists:filter(F, Chars)}},
 			NewChars = lists:keyreplace("characteristic", 1, UserObjectWithPwd, CharObj),
 			UserObject = {struct, NewChars},
-			Headers1 = case lists:keyfind(last_modified, 1, UserData) of
+			Headers = case lists:keyfind(last_modified, 1, UserData) of
 				{_, LastModified} ->
-					[{etag, ocs_rest:etag(LastModified)}];
+					[{content_type, "application/json"}, {etag, ocs_rest:etag(LastModified)}];
 				false ->
-					[]
+					[{content_type, "application/json"}]
 			end,
-			Headers2 = [{content_type, "application/json"} | Headers1],
 			Body = mochijson:encode(UserObject),
-			{ok, Headers2, Body};
+			{ok, Headers, Body};
 		{error, _Reason} ->
 			{error, 404}
 	end;
@@ -187,7 +182,8 @@ post_user(RequestBody) ->
 			{ok, LastModified} ->
 				Body = mochijson:encode(user(User)),
 				Location = "/partyManagement/v1/individual/" ++ Username,
-				Headers = [{location, Location}, {etag, ocs_rest:etag(LastModified)}],
+				Headers = [{content_type, "application/json"},
+						{location, Location}, {etag, ocs_rest:etag(LastModified)}],
 				{ok, Headers, Body};
 			{error, _Reason} ->
 				{error, 400}
@@ -230,7 +226,8 @@ patch_user(ID, Etag, "application/json-patch+json", ReqBody) ->
 									case catch ocs:update_user(ID, Password, Language) of
 										{ok, Etag4} ->
 											Location = "/partyManagement/v1/individual/" ++ ID,
-											Headers = [{location, Location}, {etag, ocs_rest:etag(Etag4)}],
+											Headers = [{content_type, "application/json"},
+													{location, Location}, {etag, ocs_rest:etag(Etag4)}],
 											{ok, Headers, []};
 										{error, _} ->
 											{error, 500}

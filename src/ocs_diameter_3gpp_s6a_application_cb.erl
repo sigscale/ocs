@@ -47,15 +47,24 @@
 -define(DIAMETER_ERROR_EQUIPMENT_UNKNOWN,          5422).
 -define(DIAMETER_ERROR_UNKOWN_SERVING_NODE,        5423).
 
-%% support deprecated_time_unit()
--define(MILLISECOND, milli_seconds).
-%-define(MILLISECOND, millisecond).
-
 -type state() :: #state{}.
 -type capabilities() :: #diameter_caps{}.
 -type packet() ::  #diameter_packet{}.
 -type message() ::  tuple() | list().
 -type peer() :: {Peer_Ref :: term(), Capabilities :: capabilities()}.
+
+-dialyzer({[nowarn_function, no_match], kdf/5}).
+-ifdef(OTP_RELEASE).
+	-define(HMAC(Key, Data),
+		case ?OTP_RELEASE of
+			OtpRelease when OtpRelease >= 23 ->
+				crypto:mac(hmac, sha256, Key, Data);
+			OtpRelease when OtpRelease < 23 ->
+				crypto:hmac(sha256, Key, Data)
+		end).
+-else.
+	-define(HMAC(Key, Data), crypto:hmac(sha256, Key, Data)).
+-endif.
 
 %%----------------------------------------------------------------------
 %%  The DIAMETER application callbacks
@@ -387,7 +396,7 @@ update_location(ServiceName,
 					'Auth-Session-State' =  ?'3GPP_S6A_AUTH-SESSION-STATE_NO_STATE_MAINTAINED',
 					'Origin-Host' = OHost, 'Origin-Realm' = ORealm}};
 		{ok, #service{}} ->
-			ApnConfig1 = #'3gpp_s6a_APN-Configuration'{'Service-Selection' = "oai.ipv4",
+			ApnConfig1 = #'3gpp_s6a_APN-Configuration'{'Service-Selection' = "cmnet",
 					'Context-Identifier' = 1,
 					'PDN-Type' =  ?'3GPP_S6A_3GPP-PDP-TYPE_IPV4',
 					'EPS-Subscribed-QoS-Profile' = [#'3gpp_s6a_EPS-Subscribed-QoS-Profile'{
@@ -600,8 +609,7 @@ kdf(CK, IK, SN, SQN, AK)
 	L0 = byte_size(SN),
 	P1 = SQN bxor AK,
 	L1 = 6,
-	crypto:hmac(sha256, <<CK/binary, IK/binary>>,
-			<<FC, P0/bytes, L0:16, P1:48, L1:16>>).
+	?HMAC(<<CK/binary, IK/binary>>, <<FC, P0/bytes, L0:16, P1:48, L1:16>>).
 
 -spec save_dif(IMSI, DIF) -> ok
 	when
@@ -611,7 +619,7 @@ kdf(CK, IK, SN, SQN, AK)
 %% @hidden
 save_dif(IMSI, DIF)
 		when is_binary(IMSI), is_integer(DIF)->
-	Now = erlang:system_time(?MILLISECOND),
+	Now = erlang:system_time(millisecond),
 	N = erlang:unique_integer([positive]),
 	LM = {Now, N},
 	F = fun() ->

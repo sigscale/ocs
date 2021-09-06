@@ -43,10 +43,6 @@
 -define(IANA_PEN_3GPP, 10415).
 -define(IANA_PEN_SigScale, 50386).
 
-%% support deprecated_time_unit()
--define(MILLISECOND, milli_seconds).
-%-define(MILLISECOND, millisecond).
-
 %%---------------------------------------------------------------------
 %%  Test server callback functions
 %%---------------------------------------------------------------------
@@ -163,7 +159,7 @@ radius_log_auth_event() ->
    [{userdata, [{doc, "Log a RADIUS access request event"}]}].
 
 radius_log_auth_event(_Config) ->
-	Start = erlang:system_time(?MILLISECOND),
+	Start = erlang:system_time(millisecond),
 	Node = node(),
 	ServerAddress = {0, 0, 0, 0},
 	ServerPort = 1812,
@@ -172,7 +168,7 @@ radius_log_auth_event(_Config) ->
 	ClientPort = 49651,
 	Client = {ClientAddress, ClientPort},
 	Type = accept,
-	RandomList = [crypto:rand_uniform(N, 256) || N <- lists:seq(1, 16)],
+	RandomList = [rand:uniform(255) || N <- lists:seq(1, 16)],
 	RandomBin = list_to_binary(RandomList),
 	ReqAttrs = [{?ServiceType, 2}, {?NasPortId, "wlan1"}, {?NasPortType, 19},
 			{?UserName, "DE:AD:BE:EF:CA:FE"}, {?AcctSessionId, "8240019b"},
@@ -183,7 +179,7 @@ radius_log_auth_event(_Config) ->
 			{?NasIpAddress, ClientAddress}],
 	ResAttrs = [{?SessionTimeout, 3600}, {?MessageAuthenticator, RandomBin}],
 	ok = ocs_log:auth_log(radius, Server, Client, Type, ReqAttrs, ResAttrs),
-	End = erlang:system_time(?MILLISECOND),
+	End = erlang:system_time(millisecond),
 	Fany = fun({TS, _, radius, N, S, C, T, A1, A2}) when TS >= Start, TS =< End,
 					N == Node, S == Server, C == Client, T == Type,
 					A1 == ReqAttrs, A2 == ResAttrs ->
@@ -209,7 +205,7 @@ diameter_log_auth_event() ->
    [{userdata, [{doc, "Log a DIAMETER AAR event"}]}].
 
 diameter_log_auth_event(_Config) ->
-	Start = erlang:system_time(?MILLISECOND),
+	Start = erlang:system_time(millisecond),
 	Protocol = diameter,
 	Node = node(),
 	ServerAddress = {0, 0, 0, 0},
@@ -232,7 +228,7 @@ diameter_log_auth_event(_Config) ->
 			'Auth-Application-Id' = 1, 'Auth-Request-Type' = AuthType,
 			'Result-Code' = ResultCode, 'Origin-Host' = OH,
 			'Origin-Realm' = OR},
-	End = erlang:system_time(?MILLISECOND),
+	End = erlang:system_time(millisecond),
 	ok = ocs_log:auth_log(diameter, Server, Client, DiameterRequest, DiameterAnswer),
 	Fany = fun({TS, _, P, N, S, C, R, A}) when P == Protocol,
 					TS >= Start, TS =< End, N == Node, S == Server, C == Client,
@@ -256,7 +252,7 @@ diameter_log_auth_event(_Config) ->
 	true = Find(Find, disk_log:chunk(ocs_auth, start)).
 
 radius_log_acct_event(_Config) ->
-	Start = erlang:system_time(?MILLISECOND),
+	Start = erlang:system_time(millisecond),
 	Node = node(),
 	ServerAddress = {0, 0, 0, 0},
 	ServerPort = 1813,
@@ -270,7 +266,7 @@ radius_log_acct_event(_Config) ->
 			{?AcctStatusType, 1}, {?NasIdentifier, "ap-1.sigscale.net"},
 			{?AcctDelayTime, 0}, {?NasIpAddress, ClientAddress}],
 	ok = ocs_log:acct_log(radius, Server, Type, ReqAttrs, undefined, undefined),
-	End = erlang:system_time(?MILLISECOND),
+	End = erlang:system_time(millisecond),
 	Fany = fun(E) when element(1, E) >= Start, element(1, E) =< End,
 					element(3, E) == radius, element(4, E) == Node,
 					element(5, E) == Server, element(6, E) == Type,
@@ -297,7 +293,7 @@ diameter_log_acct_event() ->
    [{userdata, [{doc, "Log a DIAMETER CCR/CCA event"}]}].
 
 diameter_log_acct_event(_Config) ->
-	Start = erlang:system_time(?MILLISECOND),
+	Start = erlang:system_time(millisecond),
 	Protocol = diameter,
 	Node = node(),
 	ServerAddress = {0, 0, 0, 0},
@@ -306,7 +302,7 @@ diameter_log_acct_event(_Config) ->
 	RequestType = start,
 	ok = ocs_log:acct_log(Protocol, Server, RequestType,
 			#'3gpp_ro_CCR'{}, #'3gpp_ro_CCA'{}, undefined),
-	End = erlang:system_time(?MILLISECOND),
+	End = erlang:system_time(millisecond),
 	Fany = fun(E) when element(1, E) >= Start, element(1, E) =< End,
 					element(3, E) == Protocol, element(4, E) == Node,
 					element(5, E) == Server, element(6, E) == RequestType,
@@ -341,7 +337,7 @@ ipdr_log(_Config) ->
 	ClientAddress = {192, 168, 151, 153},
 	ClientPort = 59132,
 	Client = {ClientAddress, ClientPort},
-	Start = erlang:system_time(?MILLISECOND),
+	Start = erlang:system_time(millisecond),
 	Attrs = [{?ServiceType, 2}, {?NasPortId, "wlan1"}, {?NasPortType, 19},
 			{?UserName, "BE:EF:CA:FE:FE:DE"},
 			{?CallingStationId, "FE-ED-BE-EF-F1-1D"},
@@ -362,7 +358,7 @@ ipdr_log(_Config) ->
 	Fill = fun(_F, 0) ->
 				ok;
 			(F, N) ->
-				Random = crypto:rand_uniform(1, 100),
+				Random = rand:uniform(99),
 				{Type, AcctType} = case lists:nth(Random, Weight) of
 					1 -> {start, 1};
 					2 -> {stop, 2};
@@ -377,12 +373,12 @@ ipdr_log(_Config) ->
 				F(F, N - 1)
 	end,
 	ok = Fill(Fill, NumItems),
-	End = erlang:system_time(?MILLISECOND),
+	End = erlang:system_time(millisecond),
 	ok = disk_log:sync(ocs_acct),
 	Range = (End - Start),
 	StartRange = Start + (Range div 3),
 	EndRange = End - (Range div 3),
-	Filename = "ipdr-" ++ ocs_log:iso8601(erlang:system_time(?MILLISECOND)),
+	Filename = "ipdr-" ++ ocs_log:iso8601(erlang:system_time(millisecond)),
 	ok = ocs_log:ipdr_log(wlan, Filename, StartRange, EndRange),
 	GetRangeResult = ocs_log:get_range(ocs_acct, StartRange, EndRange),
 	Fstop = fun(E, Acc) when element(6, E) == stop ->
@@ -414,7 +410,7 @@ get_range(_Config) ->
 	ClientPort = 59132,
 	Client = {ClientAddress, ClientPort},
 	Type = start,
-	Start = erlang:system_time(?MILLISECOND),
+	Start = erlang:system_time(millisecond),
 	Attrs = [{?ServiceType, 2}, {?NasPortId, "wlan1"}, {?NasPortType, 19},
 			{?UserName, "BE:EF:CA:FE:FE:DE"},
 			{?CallingStationId, "FE-ED-BE-EF-F1-1D"},
@@ -436,7 +432,7 @@ get_range(_Config) ->
 				F(F, N - 1)
 	end,
 	Fill(Fill, NumItems),
-	End = erlang:system_time(?MILLISECOND),
+	End = erlang:system_time(millisecond),
 	Range = (End - Start),
 	StartRange = Start + (Range div 3),
 	EndRange = End - (Range div 3),
@@ -533,7 +529,7 @@ auth_query(_Config) ->
 	{_, CurBytes} = lists:keyfind(no_current_bytes, 1, LogInfo),
 	EventSize = CurBytes div CurItems,
 	NumItems = (FileSize div EventSize) * 5,
-	Start = erlang:system_time(?MILLISECOND),
+	Start = erlang:system_time(millisecond),
 	ok = fill_auth(NumItems),
 	ok = ocs_log:auth_log(radius, Server, Client,
 			accept, ReqAttrs, RespAttrs),
@@ -544,7 +540,7 @@ auth_query(_Config) ->
 	ok = ocs_log:auth_log(radius, Server, Client,
 			accept, ReqAttrs, RespAttrs),
 	ok = fill_auth(rand:uniform(2000)),
-	End = erlang:system_time(?MILLISECOND),
+	End = erlang:system_time(millisecond),
 	MatchReq = [{?UserName, {exact, Username}},
 			{?NasIdentifier, {exact, NasIdentifier}}],
 	Fget = fun(_F, {eof, Events}, Acc) ->
@@ -581,7 +577,7 @@ acct_query_radius(_Config) ->
 	{_, CurBytes} = lists:keyfind(no_current_bytes, 1, LogInfo),
 	EventSize = CurBytes div CurItems,
 	NumItems = (FileSize div EventSize) * 5,
-	Start = erlang:system_time(?MILLISECOND),
+	Start = erlang:system_time(millisecond),
 	ok = fill_acct(NumItems, radius),
 	ok = ocs_log:acct_log(radius, Server, stop, Attrs, undefined, undefined),
 	ok = fill_acct(rand:uniform(2000), radius),
@@ -589,7 +585,7 @@ acct_query_radius(_Config) ->
 	ok = fill_acct(rand:uniform(2000), radius),
 	ok = ocs_log:acct_log(radius, Server, stop, Attrs, undefined, undefined),
 	ok = fill_acct(rand:uniform(2000), radius),
-	End = erlang:system_time(?MILLISECOND),
+	End = erlang:system_time(millisecond),
 	MatchReq = [{?UserName, {exact, Username}},
 			{?NasIdentifier, {exact, NasIdentifier}}],
 	Fget = fun(_F, {eof, Events}, Acc) ->
@@ -614,7 +610,7 @@ acct_query_diameter(_Config) ->
 	{_, CurBytes} = lists:keyfind(no_current_bytes, 1, LogInfo),
 	EventSize = CurBytes div CurItems,
 	NumItems = (FileSize div EventSize) * 5,
-	Start = erlang:system_time(?MILLISECOND),
+	Start = erlang:system_time(millisecond),
 	Sid = <<"10.170.6.80;1532594780;734917;4889089">>,
 	OriginHost = <<"10.0.0.1">>,
 	OriginRealm = <<"ap14.sigscale.net">>,
@@ -633,7 +629,7 @@ acct_query_diameter(_Config) ->
 	CCR3 = CCR#'3gpp_ro_CCR'{'Event-Timestamp' = TS3},
 	ok = ocs_log:acct_log(diameter, Server, stop, CCR3, undefined, undefined),
 	ok = fill_acct(rand:uniform(2000), diameter),
-	End = erlang:system_time(?MILLISECOND),
+	End = erlang:system_time(millisecond),
 	MatchSpec = [{#'3gpp_ro_CCR'{'Session-Id' = Sid, _ = '_'}, []}],
 	Fget = fun F({eof, Events}, Acc) ->
 				lists:flatten(lists:reverse([Events | Acc]));
@@ -743,7 +739,7 @@ binary_tree_first(_Config) ->
 
 abmf_log_event(_Config) ->
 	ok = ocs_log:abmf_open(),
-	Start = erlang:system_time(?MILLISECOND),
+	Start = erlang:system_time(millisecond),
 	Subscriber = list_to_binary(ocs:generate_identity()),
 	Type = transfer,
 	BucketId = integer_to_list(Start) ++ "-"
@@ -758,7 +754,7 @@ abmf_log_event(_Config) ->
 			ProdId, BucketAmount, BeforeAmount, AfterAmount,
 			undefined, undefined, undefined, undefined, undefined,
 			undefined, undefined),
-	End = erlang:system_time(?MILLISECOND),
+	End = erlang:system_time(millisecond),
 	Fany = fun({TS, _, _, T, Sub, BI, _Un, PI, BA, BeA, AA, _, _, _, _, _, _, _})
 					when TS >= Start, TS =< End, Sub == Subscriber,
 					T == Type, BI == BucketId, BA == BucketAmount,
@@ -787,7 +783,7 @@ abmf_query() ->
 abmf_query(_Config) ->
 	ok = ocs_log:abmf_open(),
 	Subscriber = list_to_binary(ocs:generate_identity()),
-	BucketId = integer_to_list(erlang:system_time(?MILLISECOND)) ++ "-"
+	BucketId = integer_to_list(erlang:system_time(millisecond)) ++ "-"
 				++ integer_to_list(erlang:unique_integer([positive])),
 	ProdId = ocs:generate_password(),
 	ok = fill_abmf(1000),
@@ -797,7 +793,7 @@ abmf_query(_Config) ->
 	{_, CurBytes} = lists:keyfind(no_current_bytes, 1, LogInfo),
 	EventSize = CurBytes div CurItems,
 	NumItems = (FileSize div EventSize) * 5,
-	Start = erlang:system_time(?MILLISECOND),
+	Start = erlang:system_time(millisecond),
 	ok = fill_abmf(NumItems),
 	C1= rand:uniform(100000000),
 	Topup = rand:uniform(50000),
@@ -817,7 +813,7 @@ abmf_query(_Config) ->
 			ProdId, Transfer, C3, C3 - Adjustment, undefined, undefined,
 			undefined, undefined, undefined, undefined, undefined),
 	ok = fill_abmf(rand:uniform(2000)),
-	End = erlang:system_time(?MILLISECOND),
+	End = erlang:system_time(millisecond),
 	Fget = fun F({eof, Chunk}, Acc) ->
 				lists:flatten(lists:reverse([Chunk | Acc]));
 			F({Cont, Chunk}, Acc) ->
@@ -832,7 +828,7 @@ diameter_scur() ->
 	[{userdata, [{doc, "DIAMETER SCUR rated log event)"}]}].
 
 diameter_scur(_Config) ->
-	Start = erlang:system_time(?MILLISECOND),
+	Start = erlang:system_time(millisecond),
 	P1 = price(usage, octets, rand:uniform(10000000), rand:uniform(1000000)),
 	OfferId = add_offer([P1], 4),
 	ProdRef = add_product(OfferId),
@@ -856,7 +852,7 @@ diameter_scur(_Config) ->
 	Answer2 = diameter_scur_stop(SId, Username, RequestNum2, rand:uniform(Balance div 2)),
 	#'3gpp_ro_CCA'{'Result-Code' = ?'DIAMETER_BASE_RESULT-CODE_SUCCESS',
 			'Session-Id' = SessionId} = Answer2,
-	End = erlang:system_time(?MILLISECOND),
+	End = erlang:system_time(millisecond),
 	MatchSpec = [{#'3gpp_ro_CCR'{'Session-Id' = SessionId, _ = '_'}, []}],
 	Fget = fun F({eof, Events}, Acc) ->
 				lists:flatten(lists:reverse([Events | Acc]));
@@ -875,7 +871,7 @@ diameter_scur_voice() ->
 	[{userdata, [{doc, "DIAMETER SCUR voice rated log event)"}]}].
 
 diameter_scur_voice(_Config) ->
-	Start = erlang:system_time(?MILLISECOND),
+	Start = erlang:system_time(millisecond),
 	UnitSize  = 60,
 	P1 = price(usage, seconds, UnitSize , rand:uniform(10000000)),
 	OfferId = add_offer([P1], 5),
@@ -932,7 +928,7 @@ diameter_scur_voice(_Config) ->
 	{ok, Answer1} = diameter:call(?MODULE, cc_app_test, CC_CCR1, []),
 	#'3gpp_ro_CCA'{'Result-Code' = ?'DIAMETER_BASE_RESULT-CODE_SUCCESS',
 			'Session-Id' = SessionId} = Answer1,
-	End = erlang:system_time(?MILLISECOND),
+	End = erlang:system_time(millisecond),
 	MatchSpec = [{#'3gpp_ro_CCR'{'Session-Id' = SessionId, _ = '_'}, []}],
 	Fget = fun F({eof, Events}, Acc) ->
 				lists:flatten(lists:reverse([Events | Acc]));
@@ -950,7 +946,7 @@ diameter_ecur() ->
 	[{userdata, [{doc, "DIAMETER ECUR rated log event)"}]}].
 
 diameter_ecur(_Config) ->
-	Start = erlang:system_time(?MILLISECOND),
+	Start = erlang:system_time(millisecond),
 	P1 = price(usage, messages, 1, rand:uniform(1000000)),
 	OfferId = add_offer([P1], 11),
 	ProdRef = add_product(OfferId),
@@ -1001,7 +997,7 @@ diameter_ecur(_Config) ->
 	{ok, Answer2} = diameter:call(?MODULE, cc_app_test, CCR2, []),
 	#'3gpp_ro_CCA'{'Result-Code' = ?'DIAMETER_BASE_RESULT-CODE_SUCCESS',
 			'Session-Id' = SessionId} = Answer2,
-	End = erlang:system_time(?MILLISECOND),
+	End = erlang:system_time(millisecond),
 	MatchSpec = [{#'3gpp_ro_CCR'{'Session-Id' = SessionId, _ = '_'}, []}],
 	Fget = fun F({eof, Events}, Acc) ->
 				lists:flatten(lists:reverse([Events | Acc]));
@@ -1019,7 +1015,7 @@ diameter_iec() ->
 	[{userdata, [{doc, "DIAMETER IEC rated log event)"}]}].
 
 diameter_iec(_Config) ->
-	Start = erlang:system_time(?MILLISECOND),
+	Start = erlang:system_time(millisecond),
 	P1 = price(usage, messages, 1, rand:uniform(1000000)),
 	OfferId = add_offer([P1], 11),
 	ProdRef = add_product(OfferId),
@@ -1056,7 +1052,7 @@ diameter_iec(_Config) ->
 	{ok, Answer} = diameter:call(?MODULE, cc_app_test, CCR, []),
 	#'3gpp_ro_CCA'{'Result-Code' = ?'DIAMETER_BASE_RESULT-CODE_SUCCESS',
 			'Session-Id' = SessionId} = Answer,
-	End = erlang:system_time(?MILLISECOND),
+	End = erlang:system_time(millisecond),
 	MatchSpec = [{#'3gpp_ro_CCR'{'Session-Id' = SessionId, _ = '_'}, []}],
 	Fget = fun F({eof, Events}, Acc) ->
 				lists:flatten(lists:reverse([Events | Acc]));
@@ -1182,7 +1178,7 @@ fill_abmf(0) ->
 	ok;
 fill_abmf(N) ->
 	Subscriber = list_to_binary(ocs:generate_identity()),
-	BucketId = integer_to_list(erlang:system_time(?MILLISECOND)) ++ "-"
+	BucketId = integer_to_list(erlang:system_time(millisecond)) ++ "-"
 				++ integer_to_list(erlang:unique_integer([positive])),
 	Type = case rand:uniform(3) of
 		1 -> topup;
@@ -1247,8 +1243,8 @@ price(Type, Units, Size, Amount) ->
 %% @hidden
 bucket(Units, RA) ->
 	#bucket{units = Units, remain_amount = RA,
-		start_date = erlang:system_time(?MILLISECOND),
-		end_date = erlang:system_time(?MILLISECOND) + 2592000000}.
+		start_date = erlang:system_time(millisecond),
+		end_date = erlang:system_time(millisecond) + 2592000000}.
 
 %% @hidden
 add_offer(Prices, Spec) when is_integer(Spec) ->

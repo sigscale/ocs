@@ -15,6 +15,47 @@
 %%% See the License for the specific language governing permissions and
 %%% limitations under the License.
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%% @doc Handle received HTTP PATCH requests.
+%%%
+%%% 	This is an {@link //inets/httpd. httpd} callback module handling
+%%% 	HTTP PATCH operations. The HTTP resources are managed in modules named
+%%% 	`ocs_rest_res_*'.
+%%%
+%%% 	<h2><a name="callbacks">Resource Handler Functions</a></h2>
+%%% 	The resource handler modules should implement callback functions
+%%% 	in the pattern described in the example below.
+%%%
+%%% 	<h3 class="function">
+%%% 		<a>patch_&lt;Resource&gt;/2</a>
+%%% 	</h3>
+%%% 	<div class="spec">
+%%% 		<p>
+%%% 			<tt>patch_&lt;Resource&gt;(Id, ContentType, RequestBody, [...]) -&gt; Result</tt>
+%%% 		</p>
+%%% 		<ul class="definitions">
+%%% 			<li><tt>Id = string()</tt></li>
+%%% 			<li><tt>ContentType = string()</tt></li>
+%%% 			<li><tt>RequestBody = string()</tt></li>
+%%% 			<li><tt>Result = {ok, Headers, ResponseBody}
+%%% 					| {error, StatusCode}
+%%% 					| {error, StatusCode, Problem}</tt></li>
+%%% 			<li><tt>ResponseBody = io_list()</tt></li>
+%%% 			<li><tt>StatusCode = 200..599</tt></li>
+%%% 			<li><tt>Problem = #{type := uri(), title := string(),
+%%% 					code := string(), cause => string(), detail => string(),
+%%% 					invalidParams => [#{param := string(), reason => string()}],
+%%% 					status => 200..599}</tt></li>
+%%% 		</ul>
+%%% 	</div>
+%%% 	Resource handlers for HTTP PATCH operations on REST Resources.
+%%%
+%%% 	Response `Headers' must include `content_type' if `ResponseBody' is
+%%% 	not en empty list. An optional `Problem' report may be provided in
+%%% 	error responses which shall be formatted by
+%%% 	{@link //ocs/ocs_rest:format_problem/2. format_problem/2} and included
+%%% 	in the response body.
+%%%
+%%% @end
 %%%
 -module(mod_ocs_rest_patch).
 -copyright('Copyright (c) 2016 - 2021 SigScale Global Inc.').
@@ -46,7 +87,7 @@
 	Fun :: fun((Arg) -> sent| close | Body),
 	Arg :: [term()].
 %% @doc Erlang web server API callback function.
-do(#mod{method = Method, parsed_header = Headers, request_uri = Uri,
+do(#mod{method = Method, parsed_header = RequestHeaders, request_uri = Uri,
 		entity_body = Body, data = Data} = ModData) ->
 	case Method of
 		"PATCH" ->
@@ -59,8 +100,9 @@ do(#mod{method = Method, parsed_header = Headers, request_uri = Uri,
 							Path = http_uri:decode(Uri),
 							{_, Resource} = lists:keyfind(resource, 1, Data),
 							{_, ContentType} = lists:keyfind(content_type, 1, Data),
-							content_type_available(Headers, ContentType, Body, Path,
-									Resource, ModData);
+							Etag = get_etag(RequestHeaders),
+							do_patch(ContentType, Body, Resource,
+									ModData, Etag, string:tokens(Path, "/"));
 						_Response ->
 							{proceed,  Data}
 					end
@@ -69,26 +111,6 @@ do(#mod{method = Method, parsed_header = Headers, request_uri = Uri,
 			{proceed, Data}
 	end.
 
-%% @hidden
-content_type_available(Headers, ContentType, Body,
-		Uri, Resource, #mod{data = Data} = ModData) ->
-	case lists:keyfind("accept", 1, Headers) of
-		{_, RequestingType} ->
-			AvailableTypes = Resource:content_types_provided(),
-			case lists:member(RequestingType, AvailableTypes) of
-				true ->
-					Etag = get_etag(Headers),
-					do_patch(ContentType, Body, Resource, ModData, Etag,
-							string:tokens(Uri, "/"));
-				false ->
-					Response = "<h2>HTTP Error 415 - Unsupported Media Type</h2>",
-					{proceed, [{response, {415, Response}} | Data]}
-			end;
-		_ ->
-			do_patch(ContentType, Uri, Body, Resource, undefined, ModData)
-	end.
-
-%% @hidden
 get_etag(Headers) ->
 	case lists:keyfind("if-match", 1, Headers) of
 		{_, Etag} ->
@@ -136,39 +158,123 @@ do_patch("application/json-patch+json", Body, Resource, ModData, Etag,
 do_patch("application/merge-patch+json", Body, Resource, ModData, Etag,
 		["productCatalogManagement", "v2", "productOffering", ProdId]) ->
 	do_response(ModData, Resource:merge_patch_offer(ProdId, Etag, Body));
-do_patch(#mod{data = Data} = _ModData, _, _, _, _, _) ->
-	Response = "<h2>HTTP Error 404 - Not Found</h2>",
-	{proceed, [{response, {404, Response}} | Data]}.
+do_patch(#mod{parsed_header = RequestHeaders,
+		data = Data} = ModData, _, _, _, _, _) ->
+	Problem = #{type => "https://datatracker.ietf.org/doc/html/rfc7231#section-6.5.4",
+			title => "Not Found",
+			detail => "No resource exists at the path provided",
+			code => "", status => 404},
+	{ContentType, ResponseBody} = ocs_rest:format_problem(Problem, RequestHeaders),
+	Size = integer_to_list(iolist_size(ResponseBody)),
+	ResponseHeaders = [{content_length, Size}, {content_type, ContentType}],
+	send(ModData, 404, ResponseHeaders, ResponseBody),
+	{proceed, [{response,{already_sent, 404, Size}} | Data]}.
 
 %% @hidden
 do_response(#mod{data = Data} = ModData, {ok, Headers, []}) ->
-	Size = integer_to_list(iolist_size([])),
-	NewHeaders = [{content_length, Size} | Headers],
-	send(ModData, 204, NewHeaders, []),
-	{proceed,[{response,{already_sent,200, Size}} | Data]};
+	ResponseHeaders = [{content_length, "0"} | Headers],
+	send(ModData, 204, ResponseHeaders, []),
+	{proceed, [{response, {already_sent, 204, "0"}} | Data]};
 do_response(#mod{data = Data} = ModData, {ok, Headers, ResponseBody}) ->
 	Size = integer_to_list(iolist_size(ResponseBody)),
-	NewHeaders = [{content_length, Size} | Headers],
-	send(ModData, 200, NewHeaders, ResponseBody),
-	{proceed,[{response,{already_sent,200, Size}} | Data]};
-do_response(#mod{data = Data} = _ModData, {error, 400}) ->
-	Response = "<h2>HTTP Error 400 - Bad Request</h2>",
-	{proceed, [{response, {400, Response}} | Data]};
-do_response(#mod{data = Data} = _ModData, {error, 404}) ->
-	Response = "<h2>HTTP Error 404 - Not Found</h2>",
-	{proceed, [{response, {404, Response}} | Data]};
-do_response(#mod{data = Data} = _ModData, {error, 409}) ->
-	Response = "<h2>HTTP Error 409 - Conflict</h2>",
-	{proceed, [{response, {409, Response}} | Data]};
-do_response(#mod{data = Data} = _ModData, {error, 412}) ->
-	Response = "<h2>HTTP Error 412 - Precondition Failed</h2>",
-	{proceed, [{response, {412, Response}} | Data]};
-do_response(#mod{data = Data} = _ModData, {error, 422}) ->
-	Response = "<h2>HTTP Error 422  - Unprocessable Entity</h2>",
-	{proceed, [{response, {422, Response}} | Data]};
-do_response(#mod{data = Data} = _ModData, {error, 500}) ->
-	Response = "<h2>HTTP Error 500 - Server Error</h2>",
-	{proceed, [{response, {500, Response}} | Data]}.
+	ResponseHeaders = [{content_length, Size} | Headers],
+	send(ModData, 200, ResponseHeaders, ResponseBody),
+	{proceed, [{response, {already_sent, 200, Size}} | Data]};
+do_response(#mod{parsed_header = RequestHeaders,
+			data = Data} = ModData, {error, 400}) ->
+	Problem = #{type => "https://datatracker.ietf.org/doc/html/rfc7231#section-6.5.1",
+			title => "Bad Request",
+			detail => "The server cannot or will not process the request"
+					" due to something that is perceived to be a client error.",
+			code => "", status => 400},
+	{ContentType, ResponseBody} = ocs_rest:format_problem(Problem, RequestHeaders),
+	Size = integer_to_list(iolist_size(ResponseBody)),
+	ResponseHeaders = [{content_length, Size}, {content_type, ContentType}],
+	send(ModData, 400, ResponseHeaders, ResponseBody),
+	{proceed, [{response, {already_sent, 400, Size}} | Data]};
+do_response(#mod{parsed_header = RequestHeaders,
+		data = Data} = ModData, {error, 403}) ->
+	Problem = #{type => "https://datatracker.ietf.org/doc/html/rfc7231#section-6.5.3",
+			title => "Forbidden",
+			detail => "the server understood the request but refuses to authorize it.",
+			code => "", status => 403},
+	{ContentType, ResponseBody} = ocs_rest:format_problem(Problem, RequestHeaders),
+	Size = integer_to_list(iolist_size(ResponseBody)),
+	ResponseHeaders = [{content_length, Size}, {content_type, ContentType}],
+	send(ModData, 403, ResponseHeaders, ResponseBody),
+	{proceed, [{response, {already_sent, 403, Size}} | Data]};
+do_response(#mod{parsed_header = RequestHeaders,
+		data = Data} = ModData, {error, 404}) ->
+	Problem = #{type => "https://datatracker.ietf.org/doc/html/rfc7231#section-6.5.4",
+			title => "Not Found",
+			detail => "No resource exists at the path provided",
+			code => "", status => 404},
+	{ContentType, ResponseBody} = ocs_rest:format_problem(Problem, RequestHeaders),
+	Size = integer_to_list(iolist_size(ResponseBody)),
+	ResponseHeaders = [{content_length, Size}, {content_type, ContentType}],
+	send(ModData, 404, ResponseHeaders, ResponseBody),
+	{proceed, [{response, {already_sent, 404, Size}} | Data]};
+do_response(#mod{parsed_header = RequestHeaders,
+		data = Data} = ModData, {error, 409}) ->
+	Problem = #{type => "https://datatracker.ietf.org/doc/html/rfc7231#section-6.5.8",
+			title => "Conflict",
+			detail => "The request could not be completed due to a conflict"
+					" with the current state of the target resource.",
+			code => "", status => 409},
+	{ContentType, ResponseBody} = ocs_rest:format_problem(Problem, RequestHeaders),
+	Size = integer_to_list(iolist_size(ResponseBody)),
+	ResponseHeaders = [{content_length, Size}, {content_type, ContentType}],
+	send(ModData, 409, ResponseHeaders, ResponseBody),
+	{proceed, [{response, {already_sent, 409, Size}} | Data]};
+do_response(#mod{parsed_header = RequestHeaders,
+		data = Data} = ModData, {error, 412}) ->
+	Problem = #{type => "https://datatracker.ietf.org/doc/html/rfc7232#section-4.2",
+			title => "Precondition Failed",
+			detail => "One or more conditions given in the request header"
+					" fields evaluated to false",
+			code => "", status => 412},
+	{ContentType, ResponseBody} = ocs_rest:format_problem(Problem, RequestHeaders),
+	Size = integer_to_list(iolist_size(ResponseBody)),
+	ResponseHeaders = [{content_length, Size}, {content_type, ContentType}],
+	send(ModData, 412, ResponseHeaders, ResponseBody),
+	{proceed, [{response, {already_sent, 412, Size}} | Data]};
+do_response(#mod{parsed_header = RequestHeaders,
+		data = Data} = ModData, {error, 422}) ->
+	Problem = #{type => "https://datatracker.ietf.org/doc/html/rfc4918#section-11.2",
+			title => "Unprocessable Entity",
+			detail => "Unable to process the contained instructions.",
+			code => "", status => 422},
+	{ContentType, ResponseBody} = ocs_rest:format_problem(Problem, RequestHeaders),
+	Size = integer_to_list(iolist_size(ResponseBody)),
+	ResponseHeaders = [{content_length, Size}, {content_type, ContentType}],
+	send(ModData, 422, ResponseHeaders, ResponseBody),
+	{proceed, [{response, {already_sent, 422, Size}} | Data]};
+do_response(#mod{parsed_header = RequestHeaders,
+		data = Data} = ModData, {error, 500}) ->
+	Problem = #{type => "https://datatracker.ietf.org/doc/html/rfc7231#section-6.6.1",
+			title => "Internal Server Error",
+			detail => "The server encountered an unexpected condition that"
+					" prevented it from fulfilling the request.",
+			code => "", status => 500},
+	{ContentType, ResponseBody} = ocs_rest:format_problem(Problem, RequestHeaders),
+	Size = integer_to_list(iolist_size(ResponseBody)),
+	ResponseHeaders = [{content_length, Size}, {content_type, ContentType}],
+	send(ModData, 500, ResponseHeaders, ResponseBody),
+	{proceed, [{response, {already_sent, 500, Size}} | Data]};
+do_response(#mod{parsed_header = RequestHeaders, data = Data} = ModData,
+		{error, StatusCode, Problem}) when is_map(Problem),
+		StatusCode >= 400, StatusCode =< 599 ->
+	Problem1 = case maps:is_key(code, Problem) of
+		true ->
+			Problem#{status => StatusCode};
+		false ->
+			Problem#{code => "", status => StatusCode}
+	end,
+	{ContentType, ResponseBody} = ocs_rest:format_problem(Problem1, RequestHeaders),
+	Size = integer_to_list(iolist_size(ResponseBody)),
+	ResponseHeaders = [{content_length, Size}, {content_type, ContentType}],
+	send(ModData, StatusCode, ResponseHeaders, ResponseBody),
+	{proceed, [{response, {already_sent, StatusCode, Size}} | Data]}.
 
 %% @hidden
 send(#mod{socket = Socket, socket_type = SocketType} = Info,

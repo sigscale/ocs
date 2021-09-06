@@ -23,10 +23,6 @@
 
 -include_lib("inets/include/httpd.hrl").
 
-%% support deprecated_time_unit()
--define(MILLISECOND, milli_seconds).
-%-define(MILLISECOND, millisecond).
-
 -spec do(ModData) -> Result when
 	ModData :: #mod{},
 	Result :: {proceed, OldData} | {proceed, NewData} | {break, NewData} | done,
@@ -89,7 +85,7 @@ do_post(ModData, Body, ["ratingdata"]) ->
 		{_, InvocationSequenceNumber} = lists:keyfind("invocationSequenceNumber", 1, NrfRequest),
 		{_, {_, ServiceRatingRequests}} = lists:keyfind("serviceRating", 1, NrfRequest),
 		true = length(ServiceRatingRequests) > 0,
-		TS = erlang:system_time(?MILLISECOND),
+		TS = erlang:system_time(millisecond),
 		InvocationTimeStamp = ocs_log:iso8601(TS),
 		ServiceRatingResults = service_rating(ServiceRatingRequests, []),
 		SubscriptionId = lists:keyfind("subscriptionId", 1, NrfRequest),
@@ -112,7 +108,7 @@ do_post(ModData, Body, ["ratingdata", _RatingDataRef, Op])
 		{_, InvocationSequenceNumber} = lists:keyfind("invocationSequenceNumber", 1, NrfRequest),
 		{_, {_, ServiceRatingRequests}} = lists:keyfind("serviceRating", 1, NrfRequest),
 		true = length(ServiceRatingRequests) > 0,
-		TS = erlang:system_time(?MILLISECOND),
+		TS = erlang:system_time(millisecond),
 		InvocationTimeStamp = ocs_log:iso8601(TS),
 		ServiceRatingResults = service_rating(ServiceRatingRequests, []),
 		SubscriptionId = lists:keyfind("subscriptionId", 1, NrfRequest),

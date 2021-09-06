@@ -41,14 +41,11 @@
 -include_lib("../include/diameter_gen_3gpp.hrl").
 -include_lib("../include/diameter_gen_ietf.hrl").
 
+-define(MILLISECOND, millisecond).
 -define(RO_APPLICATION_ID, 4).
 -define(IANA_PEN_3GPP, 10415).
 -define(IANA_PEN_SigScale, 50386).
 -define(NRF_RO_APPLICATION_CALLBACK, ocs_diameter_3gpp_ro_nrf_app_cb).
-
-%% support deprecated_time_unit()
--define(MILLISECOND, milli_seconds).
-%-define(MILLISECOND, millisecond).
 
 %%---------------------------------------------------------------------
 %%  Test server callback functions
@@ -906,7 +903,6 @@ send_initial_scur_class_a(Config) ->
 %%  Internal functions
 %%---------------------------------------------------------------------
 
-
 nrf_post_final_ecur_class_b(MSISDN, IMSI, Messages) ->
 	TS = erlang:system_time(?MILLISECOND),
 	InvocationTimeStamp = ocs_log:iso8601(TS),
@@ -1323,8 +1319,8 @@ add_product(OfferId, Chars) ->
 
 bucket(Units, RA) ->
 	#bucket{units = Units, remain_amount = RA,
-			start_date = erlang:system_time(?MILLISECOND),
-			end_date = erlang:system_time(?MILLISECOND) + 2592000000}.
+			start_date = erlang:system_time(millisecond),
+			end_date = erlang:system_time(millisecond) + 2592000000}.
 
 %% @hidden
 add_bucket(ProdRef, Bucket) ->

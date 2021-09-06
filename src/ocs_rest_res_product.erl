@@ -37,10 +37,6 @@
 
 -include("ocs.hrl").
 
-%% support deprecated_time_unit()
--define(MILLISECOND, milli_seconds).
-%-define(MILLISECOND, millisecond).
-
 -define(catalogPath, "/productCatalogManagement/v2/catalog/").
 -define(categoryPath, "/productCatalogManagement/v2/category/").
 -define(productSpecPath, "/productCatalogManagement/v2/productSpecification/").
@@ -63,7 +59,7 @@ content_types_accepted() ->
 		ContentTypes :: list().
 %% @doc Provides list of resource representations available.
 content_types_provided() ->
-	["application/json", "text/x-yaml"].
+	["application/json", "text/x-yaml", "application/problem+json"].
 
 -spec get_schema() -> Result when
 	Result :: {ok, Headers, Body},
@@ -106,7 +102,8 @@ add_offer(ReqData) ->
 			Body = mochijson:encode(offer(Offer)),
 			Etag = ocs_rest:etag(Offer#offer.last_modified),
 			Href = ?offeringPath ++ Offer#offer.name,
-			Headers = [{location, Href}, {etag, Etag}],
+			Headers = [{content_type, "application/json"},
+					{location, Href}, {etag, Etag}],
 			{ok, Headers, Body}
 	catch
 		throw:validation_failed ->
@@ -141,7 +138,8 @@ add_inventory(ReqData) ->
 			Body = mochijson:encode(inventory(Subscription)),
 			Etag = ocs_rest:etag(Subscription#product.last_modified),
 			Href = ?inventoryPath ++ Subscription#product.id,
-			Headers = [{location, Href}, {etag, Etag}],
+			Headers = [{content_type, "application/json"},
+					{location, Href}, {etag, Etag}],
 			{ok, Headers, Body}
 	catch
 		throw:service_not_found ->
@@ -179,7 +177,8 @@ get_offer(ID) ->
 			Body = mochijson:encode(offer(Offer)),
 			Etag = ocs_rest:etag(Offer#offer.last_modified),
 			Href = ?offeringPath ++ Offer#offer.name,
-			Headers = [{location, Href}, {etag, Etag},
+			Headers = [{content_type, "application/json"},
+					{location, Href}, {etag, Etag},
 					{content_type, "application/json"}],
 			{ok, Headers, Body}
 	catch
@@ -212,7 +211,8 @@ get_inventory(ID) ->
 			Body = mochijson:encode(inventory(Product)),
 			Etag = ocs_rest:etag(Product#product.last_modified),
 			Href = ?inventoryPath ++ Product#product.id,
-			Headers = [{location, Href}, {etag, Etag},
+			Headers = [{content_type, "application/json"},
+					{location, Href}, {etag, Etag},
 					{content_type, "application/json"}],
 			{ok, Headers, Body}
 	catch
@@ -439,7 +439,7 @@ patch_offer(ProdId, Etag, ReqData) ->
 							case catch ocs_rest:patch(Operations, offer(Product1)) of
 								{struct, _} = Product2  ->
 									Product3 = offer(Product2),
-									TS = erlang:system_time(?MILLISECOND),
+									TS = erlang:system_time(millisecond),
 									N = erlang:unique_integer([positive]),
 									LM = {TS, N},
 									Product4 = Product3#offer{last_modified = LM},
@@ -457,7 +457,8 @@ patch_offer(ProdId, Etag, ReqData) ->
 			case mnesia:transaction(F) of
 				{atomic, {Product, Etag3}} ->
 					Location = ?offeringPath ++ ProdId,
-					Headers = [{location, Location}, {etag, ocs_rest:etag(Etag3)}],
+					Headers = [{content_type, "application/json"},
+							{location, Location}, {etag, ocs_rest:etag(Etag3)}],
 					Body = mochijson:encode(Product),
 					{ok, Headers, Body};
 				{aborted, {throw, bad_request}} ->
@@ -525,7 +526,7 @@ patch_inventory(ProdId, Etag, ReqData) ->
 								Etag2 == undefined ->
 							case catch ocs_rest:patch(Operations, inventory(Product1)) of
 								{struct, _} = Product2 ->
-									TS = erlang:system_time(?MILLISECOND),
+									TS = erlang:system_time(millisecond),
 									N = erlang:unique_integer([positive]),
 									LM = {TS, N},
 									case inventory(Product2) of
@@ -557,7 +558,8 @@ patch_inventory(ProdId, Etag, ReqData) ->
 			case mnesia:transaction(F) of
 				{atomic, {Product, Etag3}} ->
 					Location = "/productInventoryManagement/v1/product/" ++ ProdId,
-					Headers = [{location, Location}, {etag, ocs_rest:etag(Etag3)}],
+					Headers = [{content_type, "application/json"},
+							{location, Location}, {etag, ocs_rest:etag(Etag3)}],
 					Body = mochijson:encode(Product),
 					{ok, Headers, Body};
 				{aborted, {throw, bad_request}} ->
@@ -628,7 +630,8 @@ sync_offer({_, "ProductOfferingCreationNotification"}, #offer{} = Offer1) ->
 			Body = mochijson:encode(offer(Offer2)),
 			Etag = ocs_rest:etag(Offer2#offer.last_modified),
 			Href = ?offeringPath ++ Offer2#offer.name,
-			Headers = [{location, Href}, {etag, Etag}],
+			Headers = [{content_type, "application/json"},
+					{location, Href}, {etag, Etag}],
 			{ok, Headers, Body};
 		{error, Reason} ->
 			{error, Reason}
@@ -1859,6 +1862,11 @@ char_value_type({struct, [{"lowerValue", {struct, _} = LV},
 char_value_type({struct, [{"upperValue", {struct, _} = UV},
 		{"lowerValue", {struct, _} = LV}]}) ->
 	#range{lower = char_value_type(LV), upper = char_value_type(UV)};
+char_value_type({struct, [{"amount", Hours}, {"units", "hours"}]})
+		when is_list(Hours) ->
+	[H, M] = string:tokens(Hours, ":"), 
+	Amount = list_to_integer(H) * 60 + list_to_integer(M),
+	#quantity{amount = Amount, units = "minutes"};
 char_value_type({struct, [{"amount", V1}, {"units", V2}]})
 		when is_integer(V1), is_list(V2) ->
 	#quantity{amount = V1, units = V2};
@@ -1961,7 +1969,7 @@ inventory([balance | T], #product{balance = BucketRefs} = Product, Acc) ->
 	case catch mnesia:transaction(F1) of
 		{atomic, Buckets1} ->
 			Buckets2 = lists:flatten(Buckets1),
-			Now = erlang:system_time(?MILLISECOND),
+			Now = erlang:system_time(millisecond),
 			F2 = fun(#bucket{units = cents, remain_amount = N, end_date = EndDate},
 							{undefined, B, S}) when EndDate == undefined;
 							EndDate > Now ->

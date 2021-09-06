@@ -95,6 +95,7 @@ modhtml = ocs.html \
 			ocs_rest_res_service.html \
 			ocs_rest_res_resource.html \
 			ocs_rest_res_nrf.html \
+			ocs_rest_res_health.html \
 			ocs_rest_res_http.html \
 			ocs_rest_res_prometheus.html \
 			ocs_rest_pagination_sup.html \
@@ -118,6 +119,10 @@ modhtml = ocs.html \
 			ocs_rest_hub_user.html \
 			ocs_rest_hub_resource.html \
 			ocs_rest_hub_usage.html \
+			ocs_rest_res_role.html \
+			ocs_rest_hub_role.html \
+			ocs_statistics_sup.html \
+			ocs_statistics_server.html \
 			ocs_event.html \
 			user_default.html
 

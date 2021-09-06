@@ -33,10 +33,6 @@
 -define(usageSpecPath, "/usageManagement/v1/usageSpecification/").
 -define(usagePath, "/usageManagement/v1/usage/").
 
-%% support deprecated_time_unit()
--define(MILLISECOND, milli_seconds).
-%-define(MILLISECOND, millisecond).
-
 % calendar:datetime_to_gregorian_seconds({{1970,1,1},{0,0,0}})
 -define(EPOCH, 62167219200).
 
@@ -56,7 +52,7 @@ content_types_accepted() ->
 		ContentTypes :: list().
 %% @doc Provides list of resource representations available.
 content_types_provided() ->
-	["application/json"].
+	["application/json", "application/problem+json"].
 
 -spec get_usages(Query, Headers) -> Result
 	when
@@ -2500,8 +2496,8 @@ char_attr_authentic(Attributes, Acc) ->
 
 %% @hidden
 char_attr_session_time(#'3gpp_ro_CCR'{'Multiple-Services-Credit-Control'
-		= [#'3gpp_ro_Multiple-Services-Credit-Control'{'Used-Service-Unit'
-		= [#'3gpp_ro_Used-Service-Unit'{'CC-Time' = [Duration]}]}]} = CCR, Acc)
+		= [#'3gpp_ro_Multiple-Services-Credit-Control'{'Requested-Service-Unit'
+		= [#'3gpp_ro_Requested-Service-Unit'{'CC-Time' = Duration}]}]} = CCR, Acc)
 		when is_integer(Duration) ->
 	NewAcc = [{struct, [{"name", "acctSessionTime"},
 			{"value", Duration}]} | Acc],
@@ -2519,8 +2515,8 @@ char_attr_session_time(Attributes, Acc) ->
 
 %% @hidden
 char_attr_input_octets(#'3gpp_ro_CCR'{'Multiple-Services-Credit-Control'
-		= [#'3gpp_ro_Multiple-Services-Credit-Control'{'Used-Service-Unit'
-		= [#'3gpp_ro_Used-Service-Unit'{'CC-Input-Octets' = [InputOctets]}]}]}
+		= [#'3gpp_ro_Multiple-Services-Credit-Control'{'Requested-Service-Unit'
+		= [#'3gpp_ro_Requested-Service-Unit'{'CC-Input-Octets' = InputOctets}]}]}
 		= CCR, Acc) when is_integer(InputOctets) ->
 	NewAcc = [{struct, [{"name", "inputOctets"},
 			{"value", InputOctets}]} | Acc],
@@ -2538,8 +2534,8 @@ char_attr_input_octets(Attributes, Acc) ->
 
 %% @hidden
 char_attr_output_octets(#'3gpp_ro_CCR'{'Multiple-Services-Credit-Control'
-		= [#'3gpp_ro_Multiple-Services-Credit-Control'{'Used-Service-Unit'
-		= [#'3gpp_ro_Used-Service-Unit'{'CC-Output-Octets' = [OutputOctets]}]}]}
+		= [#'3gpp_ro_Multiple-Services-Credit-Control'{'Requested-Service-Unit'
+		= [#'3gpp_ro_Requested-Service-Unit'{'CC-Output-Octets' = OutputOctets}]}]}
 		= CCR, Acc) when is_integer(OutputOctets) ->
 	NewAcc = [{struct, [{"name", "outputOctets"},
 			{"value", OutputOctets}]} | Acc],
@@ -2557,8 +2553,8 @@ char_attr_output_octets(Attributes, Acc) ->
 
 %% @hidden
 char_attr_total_octets(#'3gpp_ro_CCR'{'Multiple-Services-Credit-Control'
-		= [#'3gpp_ro_Multiple-Services-Credit-Control'{'Used-Service-Unit'
-		= [#'3gpp_ro_Used-Service-Unit'{'CC-Total-Octets' = [TotalOctets]}]}]}
+		= [#'3gpp_ro_Multiple-Services-Credit-Control'{'Requested-Service-Unit'
+		= [#'3gpp_ro_Requested-Service-Unit'{'CC-Total-Octets' = TotalOctets}]}]}
 		= CCR, Acc) when is_integer(TotalOctets) ->
 	NewAcc = [{struct, [{"name", "totalOctets"},
 			{"value", TotalOctets}]} | Acc],
@@ -2710,7 +2706,7 @@ query_start(Type, Id, Query, Filters, RangeStart, RangeEnd) ->
 		{_, DateTime} when length(DateTime) > 3 ->
 			range(DateTime);
 		false ->
-			{1, erlang:system_time(?MILLISECOND)}
+			{1, erlang:system_time(millisecond)}
 	end,
 	query_start1(Type, lists:keyfind("type", 1, Query), Id, Query,
 			Filters, RangeStart, RangeEnd, DateStart, DateEnd).

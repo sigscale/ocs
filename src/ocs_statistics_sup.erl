@@ -1,4 +1,4 @@
-%%% ocs_radius_disconnect_fsm_sup.erl
+%%% ocs_statistics_sup.erl
 %%% vim: ts=3
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%% @copyright 2016 - 2021 SigScale Global Inc.
@@ -17,46 +17,31 @@
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%% @docfile "{@docsrc supervision.edoc}"
 %%%
--module(ocs_radius_disconnect_fsm_sup).
+-module(ocs_statistics_sup).
 -copyright('Copyright (c) 2016 - 2021 SigScale Global Inc.').
 
 -behaviour(supervisor).
 
-%% export the call back needed for supervisor behaviour
+%% export the callback needed for supervisor behaviour
 -export([init/1]).
 
--dialyzer({[nowarn_function, no_match], init/1}).
--ifdef(OTP_RELEASE).
-	-define(PG_JOIN(Group, Pid),
-		case ?OTP_RELEASE of
-			OtpRelease when OtpRelease >= 23 ->
-				pg:join(pg_scope_ocs, Group, Pid);
-			OtpRelease when OtpRelease < 23 ->
-				pg2:join(Group, Pid)
-		end).
--else.
-	-define(PG_JOIN(Group, Pid), pg2:join(Group, Pid)).
--endif.
-
 %%----------------------------------------------------------------------
-%%  The supervisor call back
+%%  The supervisor callback
 %%----------------------------------------------------------------------
 
 -spec init(Args) -> Result
 	when
-		Args :: list(),
-		Result :: {ok,{{RestartStrategy :: one_for_all | one_for_one
-		| rest_for_one | simple_one_for_one,
-		MaxR :: non_neg_integer(), MaxT :: pos_integer()},
-		[ChildSpec :: supervisor:child_spec()]}} | ignore.
+		Args :: [term()],
+		Result :: {ok, {{supervisor:strategy(), non_neg_integer(), pos_integer()},
+			[supervisor:child_spec()]}} | ignore.
 %% @doc Initialize the {@module} supervisor.
 %% @see //stdlib/supervisor:init/1
 %% @private
 %%
-init([ProcGroupName] = _Args) ->
-	ok = ?PG_JOIN(ProcGroupName, self()),
-	StartMod = ocs_radius_disconnect_fsm,
-	StartFunc = {gen_fsm, start_link, [StartMod]},
-	ChildSpec = {StartMod, StartFunc, transient, 4000, worker, [StartMod]},
-	{ok, {{simple_one_for_one, 10, 60}, [ChildSpec]}}.
+init([] = _Args) ->
+	StartMod = ocs_statistics_server,
+	StartFunc = {StartMod, start_link, []},
+	ChildSpecs = [{StartMod, StartFunc,
+			transient, infinity, worker, [StartMod]}],
+	{ok, {{simple_one_for_one, 10, 60}, ChildSpecs}}.
 

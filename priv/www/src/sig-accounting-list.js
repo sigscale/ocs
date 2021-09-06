@@ -64,7 +64,7 @@ class accountingList extends PolymerElement {
 								</template>
 								<template is="dom-if" if="{{item.type}}">
 									<dt><b>Type</b></dt>
-									<dd>{{item.type1}}</dd>
+									<dd>{{item.typeLog}}</dd>
 								</template>
 								<template is="dom-if" if="{{item.href}}">
 									<dt><b>Href</b></dt>
@@ -123,7 +123,7 @@ class accountingList extends PolymerElement {
 					<template class="header">
 						<vaadin-grid-filter
 								aria-label="client identity"
-								path="nasIdentifier"
+								path="nasIpAddress"
 								value="{{filterclientIdentityAcc}}">
 							<input
 									slot="filter"
@@ -132,7 +132,7 @@ class accountingList extends PolymerElement {
 									focus-target>
 						</vaadin-grid-filter>
 					</template>
-					<template>[[item.nasIdentifier]]</template>
+					<template>[[item.nasIpAddress]]</template>
 				</vaadin-grid-column>
 				<vaadin-grid-column-group>
 					<template class="header">
@@ -441,9 +441,23 @@ class accountingList extends PolymerElement {
 					newRecord.id = request.response[index].id;
 					newRecord.date = request.response[index].date;
 					newRecord.status = request.response[index].status;
-					newRecord.type1 = request.response[index].type;
+					newRecord.typeLog = request.response[index].type;
 					newRecord.href = request.response[index].href;
 					newRecord.usageCharacteristic = request.response[index].usageCharacteristic;
+					function checkCharClient(characteristicClient){
+						return characteristicClient.name == "nasIpAddress";
+					}
+					var clientId = request.response[index].usageCharacteristic.find(checkCharClient);
+					if(clientId  != undefined) {
+						newRecord.nasIpAddress = clientId.value;
+					}
+					function checkCharType(characteristicType){
+						return characteristicType.name == "type";
+					}
+					var type = request.response[index].usageCharacteristic.find(checkCharType);
+					if(type  != undefined) {
+						newRecord.type = type.value;
+					}
 					function checkChar(characteristic){
 						return characteristic.name == "msisdn";
 					}
@@ -458,6 +472,41 @@ class accountingList extends PolymerElement {
 					if(imsi != undefined) {
 						newRecord.imsi = imsi.value;
 					}
+               function checkCharIn(characteristicIn){
+                  return characteristicIn.name == "inputOctets";
+               }
+               var input = request.response[index].usageCharacteristic.find(checkCharIn);
+               if(input != undefined) {
+                  newRecord.acctInputoctets = input.value;
+               }
+               function checkCharOut(characteristicOut){
+                  return characteristicOut.name == "outputOctets";
+               }
+               var output = request.response[index].usageCharacteristic.find(checkCharOut);
+               if(output != undefined) {
+                  newRecord.acctOutputoctets = output.value;
+               }
+               function checkCharTotal(characteristicTotal){
+                  return characteristicTotal.name == "totalOctets";
+               }
+               var total = request.response[index].usageCharacteristic.find(checkCharTotal);
+               if(total != undefined) {
+                  newRecord.acctTotaloctets = total.value;
+               }
+               function checkCharDuration(characteristicDuration){
+                  return characteristicDuration.name == "acctSessionTime";
+               }
+               var duration = request.response[index].usageCharacteristic.find(checkCharDuration);
+               if(duration != undefined) {
+                  newRecord.acctSessiontime = duration.value;
+               }
+               function checkCharUser(characteristicUser){
+                  return characteristicUser.name == "username";
+               }
+               var username = request.response[index].usageCharacteristic.find(checkCharUser);
+               if(username != undefined) {
+                  newRecord.username = username.value;
+               }
 					newRecord.usageSpecificationId = request.response[index].usageSpecification.id;
 					newRecord.usageSpecificationHref = request.response[index].usageSpecification.href;
 					newRecord.usageSpecificationName = request.response[index].usageSpecification.name;

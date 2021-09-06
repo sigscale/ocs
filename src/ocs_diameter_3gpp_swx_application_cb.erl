@@ -253,7 +253,7 @@ process_request(ServiceName, ServerAddress, ServerPort, ClientAddress,
 process_request1(ServiceName, ServerAddress, ServerPort, ClientAddress,
 		OHost, ORealm, DHost, DRealm, SessionId, Request) ->
 	Sup = global:whereis_name({ocs_deregister_fsm_sup,
-			ServerAddress, ServerPort}),
+			node(), ServerAddress, ServerPort}),
 	ChildSpec = [[ServiceName, ServerAddress, ServerPort, ClientAddress,
 			undefined, SessionId, OHost, ORealm, DHost, DRealm], []],
 	case supervisor:start_child(Sup, ChildSpec) of

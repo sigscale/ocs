@@ -321,7 +321,7 @@ process_request(_Address, _Port, #diameter_caps{origin_host = {OHost, _DHost},
             'CC-Request-Number' = RequestNum} = Request, {error, Reason}) ->
 	error_logger:warning_report(["Unable to process DIAMETER request",
 			{origin_host, OHost}, {origin_realm, ORealm},
-			{request, Request}, {error, Reason}, {stack, erlang:get_stacktrace()}]),
+			{request, Request}, {error, Reason}]),
 	diameter_error(SId, ?'DIAMETER_BASE_RESULT-CODE_UNABLE_TO_COMPLY',
 			OHost, ORealm, RequestType, RequestNum).
 %% @hidden

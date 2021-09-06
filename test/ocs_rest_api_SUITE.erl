@@ -37,14 +37,6 @@
 -include("ocs_eap_codec.hrl").
 -include_lib("common_test/include/ct.hrl").
 
-%% support deprecated_time_unit()
--define(SECOND, seconds).
-%-define(SECOND, second).
-
-%% support deprecated_time_unit()
--define(MILLISECOND, milli_seconds).
-%-define(MILLISECOND, millisecond).
-
 -define(PathBalanceHub, "/balanceManagement/v1/hub/").
 -define(PathProductHub, "/productInventory/v2/hub/").
 -define(PathServiceHub, "/serviceInventory/v2/hub/").
@@ -52,6 +44,10 @@
 -define(PathCatalogHub, "/productCatalog/v2/hub/").
 -define(PathResourceHub, "/resourceInventory/v1/hub/").
 -define(PathUsageHub, "/usageManagement/v1/hub/").
+-define(PathRole, "/partyRoleManagement/v4/").
+
+%% support deprecated_time_unit()
+-define(MILLISECOND, milli_seconds).
 
 %%---------------------------------------------------------------------
 %%  Test server callback functions
@@ -248,7 +244,9 @@ all() ->
 	notify_diameter_acct_log, get_tariff_resource, get_tariff_resources,
 	post_tariff_resource, delete_tariff_resource, update_tariff_resource,
 	post_policy_resource, query_policy_resource, arbitrary_char_service,
-	delete_policy_table, oauth_authentication].
+	delete_policy_table, oauth_authentication,
+	post_hub_role, delete_hub_role, get_role_hubs, get_role_hub,
+	post_role, delete_role, get_roles, get_role].
 
 %%---------------------------------------------------------------------
 %%  Test cases
@@ -916,8 +914,8 @@ add_product(Config) ->
 	InventoryHref = "/productInventoryManagement/v2",
 	ProdOffer = {"productOffering", {struct,[{"id", OfferId}, {"name", OfferId},
 			{"href","/productCatalogManagement/v2/productOffering/" ++ OfferId}]}},
-	StartDate = {"startDate", ocs_rest:iso8601(erlang:system_time(?MILLISECOND))},
-	EndDate = {"terminationDate", ocs_rest:iso8601(erlang:system_time(?MILLISECOND) + 10000000)},
+	StartDate = {"startDate", ocs_rest:iso8601(erlang:system_time(millisecond))},
+	EndDate = {"terminationDate", ocs_rest:iso8601(erlang:system_time(millisecond) + 10000000)},
 	Inventory = {struct, [ProdOffer, StartDate, EndDate]},
 	ReqBody = lists:flatten(mochijson:encode(Inventory)),
 	Request1 = {HostUrl ++ InventoryHref ++ "/product",
@@ -941,8 +939,8 @@ get_product(Config) ->
 	Amount2 = 1000,
 	B1 = b(cents, Amount2),
 	B2 = #bucket{units = cents, remain_amount = 5000,
-			start_date = erlang:system_time(?MILLISECOND) - (2 * 2592000000),
-			end_date = erlang:system_time(?MILLISECOND) - 2592000000},
+			start_date = erlang:system_time(millisecond) - (2 * 2592000000),
+			end_date = erlang:system_time(millisecond) - 2592000000},
 	{_, _, #bucket{}} = ocs:add_bucket(ProdRef, B1),
 	{_, _, #bucket{}} = ocs:add_bucket(ProdRef, B2),
 	ServiceId = service_add(ProdRef),
@@ -1149,16 +1147,16 @@ add_product_sms(Config) ->
 	IsBundle = {"isBundle", false},
 	IsCustomerVisible = {"isCustomerVisible", true},
 	Status = {"lifecycleStatus", "Active"},
-	StartTime = {"startDateTime", ocs_rest:iso8601(erlang:system_time(?MILLISECOND))},
-	EndTime = {"endDateTime", ocs_rest:iso8601(erlang:system_time(?MILLISECOND)  + 2678400000)},
+	StartTime = {"startDateTime", ocs_rest:iso8601(erlang:system_time(millisecond))},
+	EndTime = {"endDateTime", ocs_rest:iso8601(erlang:system_time(millisecond)  + 2678400000)},
 	ValidFor = {"validFor", {struct, [StartTime, EndTime]}},
 	ProdSpecID = {"id", "11"},
 	ProdSpecHref = {"href", CatalogHref ++ "/productSpecification/11"},
 	ProdSpec = {"productSpecification", {struct, [ProdSpecID, ProdSpecHref]}},
 	POPName = {"name", "usage"},
 	POPDescription = {"description", ocs:generate_password()},
-	POPStratDateTime = {"startDateTime", ocs_rest:iso8601(erlang:system_time(?MILLISECOND))},
-	POPEndDateTime = {"endDateTime", ocs_rest:iso8601(erlang:system_time(?MILLISECOND)  + 2678400000)},
+	POPStratDateTime = {"startDateTime", ocs_rest:iso8601(erlang:system_time(millisecond))},
+	POPEndDateTime = {"endDateTime", ocs_rest:iso8601(erlang:system_time(millisecond)  + 2678400000)},
 	POPValidFor = {"validFor", {struct, [POPStratDateTime, POPEndDateTime]}},
 	POPPriceType = {"priceType", "usage"},
 	POPUOMeasure = {"unitOfMeasure", "10msg"},
@@ -2010,7 +2008,7 @@ get_acct_usage(Config) ->
 			{?FramedRouting, 2}, {?FilterId, "firewall-1"},
 			{?FramedMtu, 1492}, {?FramedRoute, "192.168.100.0/24 10.2.1.1 1"},
 			{?Class, "silver"}, {?PortLimit, 1},
-			{?AcctDelayTime, 5}, {?EventTimestamp, erlang:system_time(?SECOND)},
+			{?AcctDelayTime, 5}, {?EventTimestamp, erlang:system_time(second)},
 			{?AcctMultiSessionId, "8250731f"}, {?AcctLinkCount, 2},
 			{?AcctAuthentic, 1}, {?AcctSessionTime, 3021},
 			{?AcctInputOctets, 1702487}, {?AcctOutputOctets, 301629083},
@@ -2193,7 +2191,7 @@ get_balance_range(Config) ->
 				ok;
 			(F, N) ->
 				ok = ocs_log:abmf_open(),
-				Start = erlang:system_time(?MILLISECOND),
+				Start = erlang:system_time(millisecond),
 				Subscriber = list_to_binary(ocs:generate_identity()),
 				Type = transfer,
 				BucketId = integer_to_list(Start) ++ "-"
@@ -2414,8 +2412,8 @@ top_up(Config) ->
 	RechargeAmount = rand:uniform(10000000),
 	Amount = {"amount", {struct, [{"units", octets}, {"amount", RechargeAmount}]}},
 	Product = {"product", {struct, [{"id", ProdRef}]}},
-	SDT = erlang:system_time(?MILLISECOND),
-	EDT = erlang:system_time(?MILLISECOND) + rand:uniform(10000000000),
+	SDT = erlang:system_time(millisecond),
+	EDT = erlang:system_time(millisecond) + rand:uniform(10000000000),
 	ValidFor = {"validFor",
 			{struct, [{"startDateTime", ocs_rest:iso8601(SDT)},
 			{"endDateTime", ocs_rest:iso8601(EDT)}]}},
@@ -2442,8 +2440,8 @@ get_balance(Config) ->
 	B1 = b(cents, 10000),
 	B2 = b(cents, 5),
 	B3 = #bucket{units = cents, remain_amount = 500,
-			start_date = erlang:system_time(?MILLISECOND) - (2 * 2592000000),
-			end_date = erlang:system_time(?MILLISECOND) - 2592000000},
+			start_date = erlang:system_time(millisecond) - (2 * 2592000000),
+			end_date = erlang:system_time(millisecond) - 2592000000},
 	{_, _, #bucket{id = BId1}} = ocs:add_bucket(ProdRef, B1),
 	{_, _, #bucket{id = BId2}} = ocs:add_bucket(ProdRef, B2),
 	{_, _, #bucket{}} = ocs:add_bucket(ProdRef, B3),
@@ -2489,8 +2487,8 @@ get_balance_service(Config) ->
 	B1 = b(cents, 10000),
 	B2 = b(cents, 5),
 	B3 = #bucket{units = cents, remain_amount = 500,
-			start_date = erlang:system_time(?MILLISECOND) - (2 * 2592000000),
-			end_date = erlang:system_time(?MILLISECOND) - 2592000000},
+			start_date = erlang:system_time(millisecond) - (2 * 2592000000),
+			end_date = erlang:system_time(millisecond) - 2592000000},
 	{_, _, #bucket{id = BId1}} = ocs:add_bucket(ProdRef, B1),
 	{_, _, #bucket{id = BId2}} = ocs:add_bucket(ProdRef, B2),
 	{_, _, #bucket{}} = ocs:add_bucket(ProdRef, B3),
@@ -2848,8 +2846,8 @@ notify_create_bucket(Config) ->
 	{ok, #offer{name = OfferId}} = ocs:add_offer(Offer),
 	{ok, #product{id = ProdRef}} = ocs:add_product(OfferId, [], []),
 	Bucket = #bucket{units = cents, remain_amount = 100,
-			start_date = erlang:system_time(?MILLISECOND),
-			end_date = erlang:system_time(?MILLISECOND) + 2592000000},
+			start_date = erlang:system_time(millisecond),
+			end_date = erlang:system_time(millisecond) + 2592000000},
 	{ok, _, #bucket{}} = ocs:add_bucket(ProdRef, Bucket),
 	Balance = receive
 		Receive ->
@@ -2934,8 +2932,8 @@ notify_rating_deleted_bucket(Config) ->
 	{ok, #service{name = ServiceId}} = ocs:add_service(ocs:generate_identity(),
 			ocs:generate_password(), ProdRef, []),
 	Bucket = #bucket{units = cents, remain_amount = 100,
-			start_date = erlang:system_time(?MILLISECOND) - (2 * 2592000000),
-			end_date = erlang:system_time(?MILLISECOND) - 2592000000},
+			start_date = erlang:system_time(millisecond) - (2 * 2592000000),
+			end_date = erlang:system_time(millisecond) - 2592000000},
 	{ok, _, #bucket{id = BId}} = ocs:add_bucket(ProdRef, Bucket),
 	receive
 		Receive1 ->
@@ -3144,7 +3142,7 @@ notify_product_charge(Config) ->
 	Request1 = {CollectionUrl, [Accept, auth_header()], ContentType, RequestBody},
 	{ok, {{_, 201, _}, Headers, _}} = httpc:request(post, Request1, [], []),
 	{_, ?PathBalanceHub ++ SubId} = lists:keyfind("location", 1, Headers),
-	SD = erlang:system_time(?MILLISECOND),
+	SD = erlang:system_time(millisecond),
 	Alteration = #alteration{name = ocs:generate_identity(), start_date = SD,
 			type = usage, period = undefined,
 			units = octets, size = 100000000000, amount = 0},
@@ -3153,12 +3151,12 @@ notify_product_charge(Config) ->
 			amount = 1250000000, alteration = Alteration},
 	OfferId = add_offer([Price], 4),
 	{ok, #product{id = ProdId} = P} = ocs:add_product(OfferId, []),
-	Expired = erlang:system_time(?MILLISECOND) - 3599000,
+	Expired = erlang:system_time(millisecond) - 3599000,
 	ok = mnesia:dirty_write(product, P#product{payment =
 			[{Price#price.name, Expired}]}),
 	B1 = #bucket{units = cents, remain_amount = 1000000000,
-			start_date = erlang:system_time(?MILLISECOND),
-			end_date = erlang:system_time(?MILLISECOND) + 2592000000},
+			start_date = erlang:system_time(millisecond),
+			end_date = erlang:system_time(millisecond) + 2592000000},
 	{ok, _, #bucket{id = BId1}} = ocs:add_bucket(ProdId, B1),
 	receive
 		Input1 ->
@@ -3169,8 +3167,8 @@ notify_product_charge(Config) ->
 			{_, BId1} = lists:keyfind("id", 1, BucketList1)
 	end,
 	B2 = #bucket{units = cents, remain_amount = 1000000000,
-			start_date = erlang:system_time(?MILLISECOND),
-			end_date = erlang:system_time(?MILLISECOND) + 2592000000},
+			start_date = erlang:system_time(millisecond),
+			end_date = erlang:system_time(millisecond) + 2592000000},
 	{ok, _, #bucket{id = BId2}} = ocs:add_bucket(ProdId, B2),
 	receive
 		Input2 ->
@@ -4259,8 +4257,8 @@ notify_add_resource(Config) ->
 	{ok, {{_, 201, _}, Headers, _}} = httpc:request(post, Request1, [], []),
 	{_, ?PathResourceHub ++ SubId} = lists:keyfind("location", 1, Headers),
 	PolicyResource = #resource{name = "ct-example-1",
-			start_date = erlang:system_time(?MILLISECOND),
-			end_date = erlang:system_time(?MILLISECOND) + rand:uniform(10000000000),
+			start_date = erlang:system_time(millisecond),
+			end_date = erlang:system_time(millisecond) + rand:uniform(10000000000),
 			state = "created", specification = #specification_ref{id = "3",
 			href = "/resourceCatalogManagement/v3/resourceSpecification/3",
 			name = "PolicyTable", version = "1.0"}},
@@ -4296,8 +4294,8 @@ notify_delete_resource(Config) ->
 	{ok, {{_, 201, _}, Headers, _}} = httpc:request(post, Request1, [], []),
 	{_, ?PathResourceHub ++ SubId} = lists:keyfind("location", 1, Headers),
 	PolicyResource = #resource{name = "ct-example-2",
-			start_date = erlang:system_time(?MILLISECOND),
-			end_date = erlang:system_time(?MILLISECOND) + rand:uniform(10000000000),
+			start_date = erlang:system_time(millisecond),
+			end_date = erlang:system_time(millisecond) + rand:uniform(10000000000),
 			state = "created", specification = #specification_ref{id = "3",
 			href = "/resourceCatalogManagement/v3/resourceSpecification/3",
 			name = "PolicyTable", version = "1.0"}},
@@ -4325,8 +4323,8 @@ query_resource_notification() ->
 
 query_resource_notification(Config) ->
 	PolicyResource = #resource{name = "Example",
-			start_date = erlang:system_time(?MILLISECOND),
-			end_date = erlang:system_time(?MILLISECOND) + rand:uniform(10000000000),
+			start_date = erlang:system_time(millisecond),
+			end_date = erlang:system_time(millisecond) + rand:uniform(10000000000),
 			state = "created", specification = #specification_ref{id = "3",
 			href = "/resourceCatalogManagement/v3/resourceSpecification/3",
 			name = "PolicyTable", version = "1.0"}},
@@ -4520,8 +4518,8 @@ get_tariff_resource(Config) ->
 	Resource = #resource{class_type = "LogicalResource", base_type = "Resource",
 			schema = Schema, description = "tariff row resource",
 			category = "tariff", state = "Active",
-			start_date = erlang:system_time(?MILLISECOND),
-			end_date = erlang:system_time(?MILLISECOND) + 2678400000,
+			start_date = erlang:system_time(millisecond),
+			end_date = erlang:system_time(millisecond) + 2678400000,
 			related = [#resource_rel{id = ResourceRelID,
 					href = "/resourceInventoryManagement/v1/resource/"
 					++ ResourceRelID, type = "contained", name = "tariff_table1"}],
@@ -4956,6 +4954,206 @@ arbitrary_char_service(Config) ->
 	end,
 	lists:any(F, Chars).
 
+post_role() ->
+	[{userdata, [{doc, "POST to Role collection"}]}].
+
+post_role(Config) ->
+	HostUrl = ?config(host_url, Config),
+	CollectionUrl = HostUrl ++ ?PathRole ++ "partyRole",
+	RequestBody = lists:flatten(mochijson:encode(party_role("Global_Pirates"))),
+	ContentType = "application/json",
+	Accept = {"accept", "application/json"},
+	Request = {CollectionUrl, [Accept, auth_header()], ContentType, RequestBody},
+	{ok, Result} = httpc:request(post, Request, [], []),
+	{{"HTTP/1.1", 201, _Created}, Headers, ResponseBody} = Result,
+	{_, "application/json"} = lists:keyfind("content-type", 1, Headers),
+	ContentLength = integer_to_list(length(ResponseBody)),
+	{_, ContentLength} = lists:keyfind("content-length", 1, Headers),
+	PartyRole = mochijson:decode(ResponseBody),
+	true = lists:all(fun is_role/1, [PartyRole]).
+
+delete_role() ->
+	[{userdata, [{doc,"Delete a role by id"}]}].
+
+delete_role(Config) ->
+	RequestBody = lists:flatten(mochijson:encode(party_role("Queen"))),
+	HostUrl = ?config(host_url, Config),
+	CollectionUrl = HostUrl ++ ?PathRole ++ "partyRole",
+	ContentType = "application/json",
+	Accept = {"accept", "application/json"},
+	Request1 = {CollectionUrl, [Accept, auth_header()],
+			ContentType, RequestBody},
+	{ok, Result1} = httpc:request(post, Request1, [], []),
+	{{"HTTP/1.1", 201, _Created}, Headers1, _ResponseBody1} = Result1,
+	{_, Href} = lists:keyfind("location", 1, Headers1),
+	Request2 = {HostUrl ++ Href, [Accept, auth_header()]},
+	{ok, Result2} = httpc:request(delete, Request2, [], []),
+	{{"HTTP/1.1", 204, _NoContent}, _Headers2, []} = Result2,
+	{ok, {{"HTTP/1.1", 404, "Object Not Found"}, _Headers3, _ResponseBody3}}
+			= httpc:request(get, Request2, [], []).
+
+get_roles() ->
+	[{userdata, [{doc, "Get the role collection."}]}].
+
+get_roles(Config) ->
+	RequestBody1 = lists:flatten(mochijson:encode(party_role("USA_Pirates"))),
+	RequestBody2 = lists:flatten(mochijson:encode(party_role("CA_Pirates"))),
+	HostUrl = ?config(host_url, Config),
+	CollectionUrl = HostUrl ++ ?PathRole ++ "partyRole",
+	ContentType = "application/json",
+	Accept = {"accept", "application/json"},
+	Request1 = {CollectionUrl, [Accept, auth_header()],
+			ContentType, RequestBody1},
+	{ok, Result1} = httpc:request(post, Request1, [], []),
+	{{"HTTP/1.1", 201, Created}, _Headers1, _ResponseBody1} = Result1,
+	Request2 = {CollectionUrl, [Accept, auth_header()],
+			ContentType, RequestBody2},
+	{ok, Result2} = httpc:request(post, Request2, [], []),
+	{{"HTTP/1.1", 201, Created}, _Headers2, _ResponseBody2} = Result2,
+	Request3 = {CollectionUrl, [Accept, auth_header()]},
+	{ok, Result3} = httpc:request(get, Request3, [], []),
+	{{"HTTP/1.1", 200, _OK}, Headers3, ResponseBody3} = Result3,
+	{_, "application/json"} = lists:keyfind("content-type", 1, Headers3),
+	ContentLength = integer_to_list(length(ResponseBody3)),
+	{_, ContentLength} = lists:keyfind("content-length", 1, Headers3),
+	{array, PartyRoles} = mochijson:decode(ResponseBody3),
+	false = is_empty(PartyRoles),
+	true = lists:all(fun is_role/1, PartyRoles).
+
+get_role() ->
+	[{userdata, [{doc, "Get a role."}]}].
+
+get_role(Config) ->
+	RequestBody = lists:flatten(mochijson:encode(party_role("SL_Pirates"))),
+	HostUrl = ?config(host_url, Config),
+	CollectionUrl = HostUrl ++ ?PathRole ++ "partyRole",
+	ContentType = "application/json",
+	Accept = {"accept", "application/json"},
+	Request1 = {CollectionUrl, [Accept, auth_header()],
+			ContentType, RequestBody},
+	{ok, Result1} = httpc:request(post, Request1, [], []),
+	{{"HTTP/1.1", 201, _Created}, Headers1, _ResponseBody1} = Result1,
+	{_, Href} = lists:keyfind("location", 1, Headers1),
+	Request2 = {HostUrl ++ Href, [Accept, auth_header()]},
+	{ok, Result2} = httpc:request(get, Request2, [], []),
+	{{"HTTP/1.1", 200, _OK}, Headers2, ResponseBody2} = Result2,
+	{_, "application/json"} = lists:keyfind("content-type", 1, Headers2),
+	ContentLength = integer_to_list(length(ResponseBody2)),
+	{_, ContentLength} = lists:keyfind("content-length", 1, Headers2),
+	PartyRole = mochijson:decode(ResponseBody2),
+	true = lists:all(fun is_role/1, [PartyRole]).
+
+post_hub_role() ->
+	[{userdata, [{doc, "Register hub listener for role"}]}].
+
+post_hub_role(Config) ->
+	HostUrl = ?config(host_url, Config),
+	PathHub = ?PathRole ++ "hub/",
+	CollectionUrl = HostUrl ++ PathHub,
+	Callback = "http://in.listener.com",
+	RequestBody = "{\n"
+			++ "\t\"callback\": \"" ++ Callback ++ "\",\n"
+			++ "}\n",
+	ContentType = "application/json",
+	Accept = {"accept", "application/json"},
+	Request = {CollectionUrl, [Accept, auth_header()], ContentType, RequestBody},
+	{ok, Result} = httpc:request(post, Request, [], []),
+	{{"HTTP/1.1", 201, _Created}, Headers, ResponseBody} = Result,
+	{_, "application/json"} = lists:keyfind("content-type", 1, Headers),
+	ContentLength = integer_to_list(length(ResponseBody)),
+	{_, ContentLength} = lists:keyfind("content-length", 1, Headers),
+	{_, Location} = lists:keyfind("location", 1, Headers),
+	Id = string:substr(Location, string:rstr(Location, PathHub) + length(PathHub)),
+	{struct, HubList} = mochijson:decode(ResponseBody),
+	{_, Callback} = lists:keyfind("callback", 1, HubList),
+	{_, null} = lists:keyfind("query", 1, HubList),
+	{_, Id} = lists:keyfind("id", 1, HubList).
+
+delete_hub_role() ->
+	[{userdata, [{doc, "Unregister hub listener for usage"}]}].
+
+delete_hub_role(Config) ->
+	HostUrl = ?config(host_url, Config),
+	PathHub = ?PathRole ++ "hub/",
+	CollectionUrl = HostUrl ++ PathHub,
+	Callback = "http://in.listener.com",
+	RequestBody = "{\"callback\":\"" ++ Callback ++ "\"}",
+	ContentType = "application/json",
+	Accept = {"accept", "application/json"},
+	Request = {CollectionUrl, [Accept, auth_header()], ContentType, RequestBody},
+	{ok, {{_, 201, _}, _, ResponseBody}} = httpc:request(post, Request, [], []),
+	{struct, HubList} = mochijson:decode(ResponseBody),
+	{_, Id} = lists:keyfind("id", 1, HubList),
+	Request1 = {HostUrl ++ PathHub ++ Id, [Accept, auth_header()]},
+	{ok, {{_, 204, _}, _, []}} = httpc:request(delete, Request1, [], []).
+
+get_role_hubs() ->
+	[{userdata, [{doc, "Get role hub listeners"}]}].
+
+get_role_hubs(Config) ->
+	HostUrl = ?config(host_url, Config),
+	CollectionUrl = HostUrl ++ ?PathRole ++ "hub/",
+	Callback1 = "http://in.listener1.com",
+	Callback2 = "http://in.listener2.com",
+	RequestBody1 = "{\"callback\":\"" ++ Callback1 ++ "\"}",
+	RequestBody2 = "{\"callback\":\"" ++ Callback2 ++ "\"}",
+	ContentType = "application/json",
+	Accept = {"accept", "application/json"},
+	Request1 = {CollectionUrl, [Accept,
+			auth_header()], ContentType, RequestBody1},
+	{ok, Result1} = httpc:request(post, Request1, [], []),
+	{{_, 201, _}, _, _} = Result1,
+	Request2 = {CollectionUrl, [Accept,
+			auth_header()], ContentType, RequestBody2},
+	{ok, Result2} = httpc:request(post, Request2, [], []),
+	{{_, 201, _}, _, _} = Result2,
+	Request3 = {CollectionUrl, [Accept, auth_header()]},
+	{ok, Result3} = httpc:request(get, Request3, [], []),
+	{{"HTTP/1.1", 200, _OK}, Headers, ResponseBody} = Result3,
+	{_, "application/json"} = lists:keyfind("content-type", 1, Headers),
+	ContentLength = integer_to_list(length(ResponseBody)),
+	{_, ContentLength} = lists:keyfind("content-length", 1, Headers),
+	{array, HubStructs} = mochijson:decode(ResponseBody),
+	true = length(HubStructs) >= 2,
+	F = fun({struct, HubList}) ->
+			case lists:keyfind("href", 1, HubList) of
+				{_, ?PathRole ++ "hub/" ++ _} ->
+					true;
+				_ ->
+					false
+			end
+	end,
+	true = lists:all(F, HubStructs).
+
+get_role_hub() ->
+	[{userdata, [{doc, "Get a role hub listener by id"}]}].
+
+get_role_hub(Config) ->
+	HostUrl = ?config(host_url, Config),
+	PathHub = ?PathRole ++ "hub/",
+	CollectionUrl = HostUrl ++ PathHub,
+	Callback = "http://in.listener.com",
+	RequestBody = "{\"callback\":\"" ++ Callback ++ "\"}",
+	ContentType = "application/json",
+	Accept = {"accept", "application/json"},
+	Request1 = {CollectionUrl, [Accept, auth_header()], ContentType, RequestBody},
+	{ok, Result1} = httpc:request(post, Request1, [], []),
+	{{_, 201, _}, Headers1, _} = Result1,
+	{_, Location} = lists:keyfind("location", 1, Headers1),
+	Id = string:substr(Location, string:rstr(Location, PathHub) + length(PathHub)),
+	Request2 = {CollectionUrl ++ Id, [Accept, auth_header()]},
+	{ok, Result2} = httpc:request(get, Request2, [], []),
+	{{"HTTP/1.1", 200, _OK}, Headers2, ResponseBody} = Result2,
+	{_, "application/json"} = lists:keyfind("content-type", 1, Headers2),
+	ContentLength = integer_to_list(length(ResponseBody)),
+	{_, ContentLength} = lists:keyfind("content-length", 1, Headers2),
+	{struct, HubList} = mochijson:decode(ResponseBody),
+	{_, Callback} = lists:keyfind("callback", 1, HubList),
+	{_, Id} = lists:keyfind("id", 1, HubList),
+	Href = PathHub ++ Id,
+	{_, null} = lists:keyfind("query", 1, HubList),
+	{_, Href} = lists:keyfind("href", 1, HubList).
+
 %%---------------------------------------------------------------------
 %%  Internal functions
 %%---------------------------------------------------------------------
@@ -5130,16 +5328,16 @@ product_offer() ->
 	IsBundle = {"isBundle", false},
 	IsCustomerVisible = {"isCustomerVisible", true},
 	Status = {"lifecycleStatus", "Active"},
-	StartTime = {"startDateTime", ocs_rest:iso8601(erlang:system_time(?MILLISECOND))},
-	EndTime = {"endDateTime", ocs_rest:iso8601(erlang:system_time(?MILLISECOND)  + 2678400000)},
+	StartTime = {"startDateTime", ocs_rest:iso8601(erlang:system_time(millisecond))},
+	EndTime = {"endDateTime", ocs_rest:iso8601(erlang:system_time(millisecond)  + 2678400000)},
 	ValidFor = {"validFor", {struct, [StartTime, EndTime]}},
 	ProdSpecID = {"id", "1"},
 	ProdSpecHref = {"href", CatalogHref ++ "/productSpecification/1"},
 	ProdSpec = {"productSpecification", {struct, [ProdSpecID, ProdSpecHref]}},
 	POPName1 = {"name", ocs:generate_password()},
 	POPDescription1 = {"description", ocs:generate_password()},
-	POPStartDateTime1 = {"startDateTime", ocs_rest:iso8601(erlang:system_time(?MILLISECOND))},
-	POPEndDateTime1 = {"endDateTime", ocs_rest:iso8601(erlang:system_time(?MILLISECOND)  + 2678400000)},
+	POPStartDateTime1 = {"startDateTime", ocs_rest:iso8601(erlang:system_time(millisecond))},
+	POPEndDateTime1 = {"endDateTime", ocs_rest:iso8601(erlang:system_time(millisecond)  + 2678400000)},
 	POPValidFor1 = {"validFor", {struct, [POPStartDateTime1, POPEndDateTime1]}},
 	POPPriceType1 = {"priceType", "recurring"},
 	POPPriceTaxInclude1 = {"taxIncludedAmount", integer_to_list(rand:uniform(10000))},
@@ -5160,8 +5358,8 @@ product_offer() ->
 			POPPriceType1, POPPrice1, POPRecChargPeriod1, POPAlteration]},
 	POPName2 = {"name", "usage"},
 	POPDescription2 = {"description", ocs:generate_password()},
-	POPStratDateTime2 = {"startDateTime", ocs_rest:iso8601(erlang:system_time(?MILLISECOND))},
-	POPEndDateTime2 = {"endDateTime", ocs_rest:iso8601(erlang:system_time(?MILLISECOND)  + 2678400000)},
+	POPStratDateTime2 = {"startDateTime", ocs_rest:iso8601(erlang:system_time(millisecond))},
+	POPEndDateTime2 = {"endDateTime", ocs_rest:iso8601(erlang:system_time(millisecond)  + 2678400000)},
 	POPValidFor2 = {"validFor", {struct, [POPStratDateTime2, POPEndDateTime2]}},
 	POPPriceType2 = {"priceType", "usage"},
 	POPUOMeasure2 = {"unitOfMeasure", "1g"},
@@ -5332,8 +5530,8 @@ price(tariff, Units, Size, undefined)
 %% @hidden
 b(Units, RA) ->
 	#bucket{units = Units, remain_amount = RA,
-		start_date = erlang:system_time(?MILLISECOND),
-		end_date = erlang:system_time(?MILLISECOND) + 2592000000}.
+		start_date = erlang:system_time(millisecond),
+		end_date = erlang:system_time(millisecond) + 2592000000}.
 
 %% @hidden
 offer_add(Prices, Spec) when is_integer(Spec) ->
@@ -5428,8 +5626,8 @@ add_offer(Prices, Spec) ->
 %% @hidden
 add_bucket(ProdRef, Units, RA) ->
 	Bucket = #bucket{units = Units, remain_amount = RA,
-			start_date = erlang:system_time(?MILLISECOND),
-			end_date = erlang:system_time(?MILLISECOND) + 2592000000},
+			start_date = erlang:system_time(millisecond),
+			end_date = erlang:system_time(millisecond) + 2592000000},
 	{ok, _, #bucket{id = BId}} = ocs:add_bucket(ProdRef, Bucket),
 	BId.
 
@@ -5440,8 +5638,8 @@ add_resource("1", Description, Category, TableName) ->
 	Resource = #resource{name = TableName, class_type = "LogicalResource",
 			base_type = "Resource", description = Description, category = Category,
 			state = "Active", schema = Schema,
-			start_date = erlang:system_time(?MILLISECOND),
-			end_date = erlang:system_time(?MILLISECOND) + 2678400000,
+			start_date = erlang:system_time(millisecond),
+			end_date = erlang:system_time(millisecond) + 2678400000,
 			specification = #specification_ref{id = "1", name = "TariffTable",
 					href = "/resourceCatalogManagement/v2/resourceSpecification/1"}},
 	ocs:add_resource(Resource);
@@ -5451,8 +5649,8 @@ add_resource("2", Description, Category, TableName) ->
 	ResourceRelID = ocs:generate_identity(),
 	Resource = #resource{class_type = "LogicalResource", base_type = "Resource",
 			schema = Schema, description = Description, category = Category,
-			start_date = erlang:system_time(?MILLISECOND),
-			end_date = erlang:system_time(?MILLISECOND) + 2678400000,
+			start_date = erlang:system_time(millisecond),
+			end_date = erlang:system_time(millisecond) + 2678400000,
 			related = [#resource_rel{id = ResourceRelID,
 					href = "/resourceInventoryManagement/v1/resource/"
 					++ ResourceRelID, referred_type = "contained", name = TableName}],
@@ -5512,9 +5710,9 @@ resource_inventory() ->
 	Version = {"version", random_string(3)},
 	Status = {"lifecycleStatus", "Active"},
 	StartTime = {"startDateTime",
-			ocs_rest:iso8601(erlang:system_time(?MILLISECOND))},
+			ocs_rest:iso8601(erlang:system_time(millisecond))},
 	EndTime = {"endDateTime",
-			ocs_rest:iso8601(erlang:system_time(?MILLISECOND) + 2678400000)},
+			ocs_rest:iso8601(erlang:system_time(millisecond) + 2678400000)},
 	ValidFor = {"validFor", {struct, [StartTime, EndTime]}},
 	ResSpecID = {"id", "2"},
 	ResSpecName = {"name", "TariffTableRow"},
@@ -5602,3 +5800,42 @@ add_policy_row(TableId, TableName, 1) ->
 					#resource_char{name = "precedence", value = 2}]},
 	{ok, #resource{id = RowId}} = ocs:add_resource(PolicyRow),
 	RowId.
+
+%% @hidden
+party_role(RoleName) ->
+	RoleType = "PartyRole",
+	StartDate = ocs_rest:iso8601(erlang:system_time(?MILLISECOND)),
+	EndDate = ocs_rest:iso8601(erlang:system_time(?MILLISECOND) + 31536000000),
+	{struct, [{"@type", RoleType},
+		{"name", RoleName},
+		{"validFor", {struct, [{"startDateTime", StartDate},
+				{"endDateTime", EndDate}]}}]}.
+
+%% @hidden
+is_role({struct, RoleObj}) when length(RoleObj) == 5 ->
+	F = fun F({"id", Name}) when is_list(Name) ->
+				true;
+			F({"href", Href}) when is_list(Href) ->
+				true;
+			F({"name", Name}) when is_list(Name) ->
+				true;
+			F({"@type", RoleType}) when is_list(RoleType) ->
+				true;
+			F({"startDateTime", SD}) when is_list(SD) ->
+				true;
+			F({"endDateTime", ED}) when is_list(ED) ->
+				true;
+			F({"validFor", {struct, ValidFor}}) when length(ValidFor) == 2 ->
+				lists:all(F, ValidFor);
+			F(_) ->
+				false
+	end,
+	lists:all(F, RoleObj);
+is_role(_) ->
+	false.
+
+%% @hidden
+is_empty([]) ->
+	true;
+is_empty(_) ->
+	false.

@@ -75,21 +75,21 @@
 
 -define(TIMEOUT, 10000).
 
--dialyzer({no_match, send_abort/2}).
+-dialyzer({[nowarn_function, no_match], send_abort/2}).
 -ifdef(OTP_RELEASE).
 	-define(PG_CLOSEST(Name),
 		case ?OTP_RELEASE of
 			OtpRelease when OtpRelease >= 23 ->
-				case pg:get_local_members([Name]) of
+				case pg:get_local_members(pg_scope_ocs, Name) of
 					[] ->
-						case pg:get_members([Name]) of
+						case pg:get_members(pg_scope_ocs, Name) of
 							[] ->
 								{error, {no_such_group, Name}};
-							[PID | _] ->
-								PID
+							[Pid | _] ->
+								Pid
 						end;
-					[PID | _] ->
-						PID
+					[Pid | _] ->
+						Pid
 				end;
 			OtpRelease when OtpRelease < 23 ->
 				pg2:get_closest_pid(Name)
@@ -97,10 +97,6 @@
 -else.
 	-define(PG_CLOSEST(Name), pg2:get_closest_pid(Name)).
 -endif.
-
-%% support deprecated_time_unit()
--define(MILLISECOND, milli_seconds).
-%-define(MILLISECOND, millisecond).
 
 %%----------------------------------------------------------------------
 %%  The ocs_deregister_fsm API

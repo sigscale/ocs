@@ -46,9 +46,46 @@
 -define(IANA_PEN_3GPP, 10415).
 -define(IANA_PEN_SigScale, 50386).
 
-%% support deprecated_time_unit()
--define(MILLISECOND, milli_seconds).
-%-define(MILLISECOND, millisecond).
+-dialyzer({[nowarn_function, no_match], [kdf/5, prf/6]}).
+-ifdef(OTP_RELEASE).
+	-define(HMAC_SHA(Key, Data),
+		case ?OTP_RELEASE of
+			OtpRelease when OtpRelease >= 23 ->
+				crypto:mac(hmac, sha256, Key, Data);
+			OtpRelease when OtpRelease < 23 ->
+				crypto:hmac(sha256, Key, Data)
+		end).
+-else.
+	-define(HMAC_SHA(Key, Data), crypto:hmac(sha256, Key, Data)).
+-endif.
+
+-dialyzer({[nowarn_function, no_match],
+		[challenge_radius_trusted/1]}).
+-ifdef(OTP_RELEASE).
+	-define(HMACN_SHA(Key, Data),
+		case ?OTP_RELEASE of
+			OtpRelease when OtpRelease >= 23 ->
+				crypto:macN(hmac, sha256, Key, Data, 16);
+			OtpRelease when OtpRelease < 23 ->
+				crypto:hmac(sha256, Key, Data, 16)
+		end).
+-else.
+	-define(HMACN_SHA(Key, Data), crypto:hmac(sha256, Key, Data, 16)).
+-endif.
+
+-dialyzer({[nowarn_function, no_match],
+		[radius_access_request/10]}).
+-ifdef(OTP_RELEASE).
+	-define(HMAC_MD5(Key, Data),
+		case ?OTP_RELEASE of
+			OtpRelease when OtpRelease >= 23 ->
+				crypto:mac(hmac, md5, Key, Data);
+			OtpRelease when OtpRelease < 23 ->
+				crypto:hmac(md5, Key, Data)
+		end).
+-else.
+	-define(HMAC_MD5(Key, Data), crypto:hmac(md5, Key, Data)).
+-endif.
 
 %%---------------------------------------------------------------------
 %%  Test server callback functions
@@ -406,13 +443,13 @@ challenge_radius_trusted(Config) ->
          _:64/binary, _/binary>> = prf(<<IKprime/binary, CKprime/binary>>,
 			<<"EAP-AKA'", PeerId1/binary>>, 7),
 	EapMessage2 = ocs_eap_codec:aka_clear_mac(EapMessage1),
-	MAC1 = crypto:hmac(sha256, Kaut, EapMessage2, 16),
+	MAC1 = ?HMACN_SHA(Kaut, EapMessage2),
 	AkaChallenge1 = #eap_aka_challenge{res = RES, mac = <<0:128>>},
 	EapData2 = ocs_eap_codec:eap_aka(AkaChallenge1),
 	EapPacket1 = #eap_packet{code = response, type = ?AKAprime,
 			identifier = NextEapId1, data = EapData2},
 	EapMessage3 = ocs_eap_codec:eap_packet(EapPacket1),
-	MAC2 = crypto:hmac(sha256, Kaut, EapMessage3, 16),
+	MAC2 = ?HMACN_SHA(Kaut, EapMessage3),
 	EapMessage4 = ocs_eap_codec:aka_set_mac(MAC2, EapMessage3),
 	NextRadiusId = RadiusId + 1,
 	radius_access_request(Socket, Address, Port, NasId,
@@ -485,7 +522,7 @@ radius_access_request(Socket, Address, Port, NasId,
 	Request1 = #radius{code = ?AccessRequest, id = RadId,
 		authenticator = Auth, attributes = A7},
 	ReqPacket1 = radius:codec(Request1),
-	MsgAuth1 = crypto:hmac(md5, Secret, ReqPacket1),
+	MsgAuth1 = ?HMAC_MD5(Secret, ReqPacket1),
 	A8 = radius_attributes:store(?MessageAuthenticator, MsgAuth1, A7),
 	Request2 = Request1#radius{attributes = A8},
 	ReqPacket2 = radius:codec(Request2),
@@ -513,7 +550,7 @@ receive_radius(Code, Socket, Address, Port, Secret, RadId, ReqAuth) ->
 	RespAttr2 = radius_attributes:store(?MessageAuthenticator, <<0:128>>, RespAttr1),
 	Resp3 = Resp2#radius{attributes = RespAttr2},
 	RespPacket3 = radius:codec(Resp3),
-	MsgAuth = crypto:hmac(md5, Secret, RespPacket3),
+	MsgAuth = ?HMAC_MD5(Secret, RespPacket3),
 	{ok, EapMsg} = radius_attributes:find(?EAPMessage, RespAttr1),
 	EapMsg.
 
@@ -640,7 +677,7 @@ kdf(CK, IK, "WLAN", SQN, AK)
 		when byte_size(CK) =:= 16, byte_size(IK) =:= 16,
 		is_integer(SQN), is_integer(AK) ->
 	SQNi = SQN bxor AK,
-	crypto:hmac(sha256, <<CK/binary, IK/binary>>,
+	?HMAC_SHA(<<CK/binary, IK/binary>>,
 			<<16#20, "WLAN", 4:16, SQNi:48, 6:16>>).
 
 -spec prf(K, S, N) -> MK
@@ -659,7 +696,7 @@ prf(K, S, N) when is_binary(K), is_binary(S), is_integer(N), N > 1 ->
 prf(_, _, N, P, _, Acc) when P > N ->
 	iolist_to_binary(lists:reverse(Acc));
 prf(K, S, N, P, T1, Acc) ->
-	T2 = crypto:hmac(sha256, K, <<T1/binary, S/binary, P>>),
+	T2 = ?HMAC_SHA(K, <<T1/binary, S/binary, P>>),
 	prf(K, S, N, P + 1, T2, [T2 | Acc]).
 
 -spec autn(SQN, AK, AMF, MAC) -> AUTN
