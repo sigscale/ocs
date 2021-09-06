@@ -740,14 +740,14 @@ process_request1(?'3GPP_CC-REQUEST-TYPE_EVENT_REQUEST' = RequestType,
 post_request_ecur(SubscriberIds, SvcContextId,
 		SessionId, MSCC, Location, Destination, initial, a) ->
 	Path = get_option(nrf_uri) ++ ?BASE_URI,
-	ServiceRating = initial_service_rating_b(MSCC, binary_to_list(SvcContextId),
-			Location, Destination),
+	ServiceRating = initial_service_rating(MSCC, binary_to_list(SvcContextId),
+			Location, Destination, a),
 	post_request_ecur1(SubscriberIds, SessionId, ServiceRating, Path);
 post_request_ecur(SubscriberIds, SvcContextId,
 		SessionId, MSCC, Location, Destination, initial, b) ->
 	Path = get_option(nrf_uri) ++ ?BASE_URI,
-	ServiceRating = initial_service_rating_b(MSCC, binary_to_list(SvcContextId),
-			Location, Destination),
+	ServiceRating = initial_service_rating(MSCC, binary_to_list(SvcContextId),
+			Location, Destination, b),
 	post_request_ecur1(SubscriberIds, SessionId, ServiceRating, Path);
 post_request_ecur(SubscriberIds, SvcContextId,
 		SessionId, MSCC, Location, Destination, final, a) ->
@@ -870,14 +870,14 @@ post_request_iec1(SubscriberIds, SessionId, ServiceRating) ->
 post_request_scur(SubscriberIds, SvcContextId,
 		SessionId, MSCC, Location, initial, a) ->
 	Path = get_option(nrf_uri) ++ ?BASE_URI,
-	ServiceRating = initial_service_rating_b(MSCC, binary_to_list(SvcContextId),
-			Location, undefined),
+	ServiceRating = initial_service_rating(MSCC, binary_to_list(SvcContextId),
+			Location, undefined, a),
 	post_request_scur1(SubscriberIds, SessionId, ServiceRating, Path);
 post_request_scur(SubscriberIds, SvcContextId,
 		SessionId, MSCC, Location, initial, b) ->
 	Path = get_option(nrf_uri) ++ ?BASE_URI,
-	ServiceRating = initial_service_rating_b(MSCC, binary_to_list(SvcContextId),
-			Location, undefined),
+	ServiceRating = initial_service_rating(MSCC, binary_to_list(SvcContextId),
+			Location, undefined, b),
 	post_request_scur1(SubscriberIds, SessionId, ServiceRating, Path);
 post_request_scur(SubscriberIds, SvcContextId,
 		SessionId, MSCC, Location, interim, a) ->
@@ -1418,27 +1418,28 @@ reserved_unit4([#'3gpp_ro_Requested-Service-Unit'
 reserved_unit4(_RSU, Acc) ->
 	Acc.
 
--spec initial_service_rating_b(MSCC, ServiceContextId, ServiceInformation,
-		Destination) -> ServiceRating
+-spec initial_service_rating(MSCC, ServiceContextId, ServiceInformation,
+		Destination, Class) -> ServiceRating
 	when
 		MSCC :: [#'3gpp_ro_Multiple-Services-Credit-Control'{}],
 		ServiceContextId :: string(),
 		ServiceInformation :: [tuple()],
 		Destination :: string() | undefined,
+		Class :: a | b,
 		ServiceRating :: [{struct, [tuple()]}].
 %% Create list of service elements to be rated.
-initial_service_rating_b(MSCC, ServiceContextId, ServiceInformation, undefined) ->
+initial_service_rating(MSCC, ServiceContextId, ServiceInformation, undefined, Class) ->
 	SCID = {"serviceContextId", ServiceContextId},
-	initial_service_rating_b1(MSCC, SCID, ServiceInformation, undefined, []);
-initial_service_rating_b(MSCC, ServiceContextId, ServiceInformation, Destination) ->
+	initial_service_rating(MSCC, SCID, ServiceInformation, undefined, Class, []);
+initial_service_rating(MSCC, ServiceContextId, ServiceInformation, Destination, Class) ->
 	SCID = {"serviceContextId", ServiceContextId},
 	Des = {"destinationId", {array, [{struct, [{"destinationIdType", "DN"},
 			{"destinationIdData", Destination}]}]}},
-	initial_service_rating_b1(MSCC, SCID, ServiceInformation, Des, []).
+	initial_service_rating(MSCC, SCID, ServiceInformation, Des, Class, []).
 %% @hidden
-initial_service_rating_b1([#'3gpp_ro_Multiple-Services-Credit-Control'{
+initial_service_rating([#'3gpp_ro_Multiple-Services-Credit-Control'{
 		'Requested-Service-Unit' = RSU, 'Service-Identifier' = SI,
-		'Rating-Group' = RG} = _MSCC | T], SCID, SInfo, Des, Acc) ->
+		'Rating-Group' = RG} = _MSCC | T], SCID, SInfo, Des, Class, Acc) ->
 	Acc1 = case SI of
 		[] ->
 			[];
@@ -1463,15 +1464,21 @@ initial_service_rating_b1([#'3gpp_ro_Multiple-Services-Credit-Control'{
 		_ ->
 			[Des | Acc3]
 	end,
-	ServiceRating = case reserved_unit(RSU) of
-		[] ->
-			{struct, [SCID, {"requestSubType", "RESERVE"} | Acc4]};
-		ReservedUnits ->
-			{struct, [SCID, {"requestedUnit", {struct, ReservedUnits}},
-					{"requestSubType", "RESERVE"} | Acc4]}
-	end,
-	initial_service_rating_b1(T, SCID, SInfo, Des, [ServiceRating | Acc]);
-initial_service_rating_b1([], _SCID, _SI, _Des, Acc) ->
+	case Class of
+	a ->
+		initial_service_rating(T, SCID, SInfo, Des, [{struct, [SCID | Acc4]}| Acc]);
+	b ->
+		case reserved_unit(RSU) of
+			[] ->
+				ServiceRating = {struct, [SCID, {"requestSubType", "RESERVE"} | Acc4]},
+				initial_service_rating(T, SCID, SInfo, Des, [ServiceRating | Acc]);
+			ReservedUnits ->
+				ServiceRating = {struct, [SCID, {"requestedUnit", {struct, ReservedUnits}},
+						{"requestSubType", "RESERVE"} | Acc4]},
+				initial_service_rating(T, SCID, SInfo, Des, [ServiceRating | Acc])
+		end
+	end;
+initial_service_rating([], _SCID, _SI, _Des, _Class, Acc) ->
 	Acc.
 
 -spec update_service_rating_b(MSCC, ServiceContextId, ServiceInformation) -> ServiceRating
