@@ -1466,7 +1466,7 @@ initial_service_rating([#'3gpp_ro_Multiple-Services-Credit-Control'{
 	end,
 	case Class of
 	a ->
-		initial_service_rating(T, SCID, SInfo, Des, [{struct, [SCID | Acc4]}| Acc]);
+		initial_service_rating(T, SCID, SInfo, Des, Class, [{struct, [SCID | Acc4]}| Acc]);
 	b ->
 		case reserved_unit(RSU) of
 			[] ->
