@@ -882,14 +882,14 @@ post_request_scur(SubscriberIds, SvcContextId,
 post_request_scur(SubscriberIds, SvcContextId,
 		SessionId, MSCC, Location, interim, a) ->
 	Path = get_option(nrf_uri) ++ get_ref(SessionId) ++ "/" ++ "update",
-	ServiceRating = update_service_rating_b(MSCC, binary_to_list(SvcContextId),
-			Location),
+	ServiceRating = update_service_rating(MSCC, binary_to_list(SvcContextId),
+			Location, a),
 	post_request_scur1(SubscriberIds, SessionId, ServiceRating, Path);
 post_request_scur(SubscriberIds, SvcContextId,
 		SessionId, MSCC, Location, interim, b) ->
 	Path = get_option(nrf_uri) ++ get_ref(SessionId) ++ "/" ++ "update",
-	ServiceRating = update_service_rating_b(MSCC, binary_to_list(SvcContextId),
-			Location),
+	ServiceRating = update_service_rating(MSCC, binary_to_list(SvcContextId),
+			Location, b),
 	post_request_scur1(SubscriberIds, SessionId, ServiceRating, Path);
 post_request_scur(SubscriberIds, SvcContextId,
 		SessionId, MSCC, Location, final, a) ->
@@ -1481,20 +1481,23 @@ initial_service_rating([#'3gpp_ro_Multiple-Services-Credit-Control'{
 initial_service_rating([], _SCID, _SI, _Des, _Class, Acc) ->
 	Acc.
 
--spec update_service_rating_b(MSCC, ServiceContextId, ServiceInformation) -> ServiceRating
+-spec update_service_rating(MSCC, ServiceContextId,
+		ServiceInformation, Class) -> ServiceRating
 	when
 		MSCC :: [#'3gpp_ro_Multiple-Services-Credit-Control'{}],
 		ServiceContextId :: string(),
 		ServiceInformation :: [tuple()],
+		Class :: a | b,
 		ServiceRating :: [{struct, [tuple()]}].
 %% Create list of service elements to be rated.
-update_service_rating_b(MSCC, ServiceContextId, ServiceInformation) ->
+update_service_rating(MSCC, ServiceContextId, ServiceInformation, Class) ->
 	SCID = {"serviceContextId", ServiceContextId},
-	update_service_rating_b1(MSCC, SCID, ServiceInformation, []).
+	update_service_rating1(MSCC, SCID, ServiceInformation, Class, []).
 %% @hidden
-update_service_rating_b1([#'3gpp_ro_Multiple-Services-Credit-Control'{
+update_service_rating1([#'3gpp_ro_Multiple-Services-Credit-Control'{
 		'Requested-Service-Unit' = RSU, 'Used-Service-Unit' = USU,
-		'Service-Identifier' = SI, 'Rating-Group' = RG} = _MSCC | T], SCID, SInfo, Acc) ->
+		'Service-Identifier' = SI, 'Rating-Group' = RG} = _MSCC | T], SCID,
+		SInfo, Class, Acc) ->
 	Acc1 = case SI of
 		[] ->
 			[];
@@ -1513,18 +1516,25 @@ update_service_rating_b1([#'3gpp_ro_Multiple-Services-Credit-Control'{
 		_ ->
 			[SInfo | Acc2]
 	end,
-	ServiceRating = case {used_unit(USU), reserved_unit(RSU)} of
-		{[], []} ->
-			{struct, [SCID, {"requestSubType", "RESERVE"} | Acc3]};
-		{ConsumedUnits, []} ->
-			{struct, [SCID, {"consumedUnit", {struct, ConsumedUnits}},
-					{"requestSubType", "DEBIT"} | Acc3]};
-		{[], ReservedUnits} ->
-			{struct, [SCID, {"requestedUnit", {struct, ReservedUnits}},
-					{"requestSubType", "RESERVE"} | Acc3]}
-	end,
-	update_service_rating_b1(T, SCID, SInfo, [ServiceRating | Acc]);
-update_service_rating_b1([], _SCID, _SI, Acc) ->
+	case Class of
+	a ->
+		update_service_rating1(T, SCID, SInfo, Class, [{struct, [SCID | Acc3]} | Acc]);
+	b ->
+		case {used_unit(USU), reserved_unit(RSU)} of
+			{[], []} ->
+				ServiceRating = {struct, [SCID, {"requestSubType", "RESERVE"} | Acc3]},
+				update_service_rating1(T, SCID, SInfo, Class, [ServiceRating | Acc]);
+			{ConsumedUnits, []} ->
+				ServiceRating = {struct, [SCID, {"consumedUnit", {struct, ConsumedUnits}},
+						{"requestSubType", "DEBIT"} | Acc3]},
+				update_service_rating1(T, SCID, SInfo, Class, [ServiceRating | Acc]);
+			{[], ReservedUnits} ->
+				ServiceRating = {struct, [SCID, {"requestedUnit", {struct, ReservedUnits}},
+						{"requestSubType", "RESERVE"} | Acc3]},
+				update_service_rating1(T, SCID, SInfo, Class, [ServiceRating | Acc])
+		end
+	end;
+update_service_rating1([], _SCID, _SI, _Class, Acc) ->
 	Acc.
 
 -spec final_service_rating(MSCC, ServiceContextId,
