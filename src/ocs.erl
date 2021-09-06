@@ -2332,7 +2332,7 @@ statistics(Item) ->
 		{error, Reason} ->
 			{error, Reason};
 		{'EXIT', {noproc,_}} ->
-			case supervisor:start_child(ocs_statistics_sup, []) of
+			case catch supervisor:start_child(ocs_statistics_sup, []) of
 				{ok, Child} ->
 					case catch gen_server:call(Child, Item) of
 						{Etag, Interval, Report} ->
@@ -2341,7 +2341,9 @@ statistics(Item) ->
 							{error, Reason}
 					end;
 				{error, Reason} ->
-					{error, Reason}
+					{error, Reason};
+				{'EXIT', {noproc,_}} ->
+					{error, ocs_down}
 			end
 	end.
 
