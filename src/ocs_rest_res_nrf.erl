@@ -254,8 +254,7 @@ remove_ref(RatingDataRef)
 lookup_ref(RatingDataRef)
 		when is_list(RatingDataRef) ->
 	F = fun() ->
-			Spec = #nrf_ref{rating_ref = RatingDataRef, _ = '_'},
-			mnesia:select(nrf_ref, [{Spec, [], ['$_']}], read)
+			mnesia:read(nrf_ref, RatingDataRef, read)
 	end,
 	case mnesia:transaction(F) of
 		{aborted, Reason} ->
