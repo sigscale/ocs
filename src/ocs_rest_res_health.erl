@@ -51,23 +51,35 @@ content_types_provided() ->
 				| {error, ErrorCode :: integer()}.
 %% @doc Body producing function for `GET /health'
 %% requests.
-get_health([] = _Query, _Headers) ->
+get_health([] = _Query, _RequestHeaders) ->
 	try
-		Check1 = scheduler(),
-		Check2 = application([ocs, inets, diameter, radius, snmp]),
-		Check3 = table_size([offer, product, service, resource, bucket]),
-		{"checks", {struct, [Check1, Check2, Check3]}}
+		Check1 = application([ocs, inets, diameter, radius, snmp]),
+		Check2 = table_size([offer, product, service, resource, bucket]),
+		case scheduler() of
+			{ok, Check3} ->
+				{"checks", {struct, [Check1, Check2, Check3]}};
+			{error, _Reason1} ->
+				{"checks", {struct, [Check1, Check2]}}
+		end
 	of
-		Checks ->
+		{_, {_, [{"application", {_, [{_, [{_, ocs}, _, {_, "up"}]} | _]}} | _]}} = Checks ->
 			Status = {"status", "pass"},
 			ServiceId = {"serviceId", atom_to_list(node())},
 			Description = {"description", "Health of SigScale OCS"},
 			Health = {struct, [Status, ServiceId, Description, Checks]},
-			Body = mochijson:encode(Health),
-			Headers1 = [{content_type, "application/health+json"}],
-			{ok, Headers1, Body}
+			ResponseBody = mochijson:encode(Health),
+			ResponseHeaders = [{content_type, "application/health+json"}],
+			{ok, ResponseHeaders, ResponseBody};
+		Checks ->
+			Status = {"status", "fail"},
+			ServiceId = {"serviceId", atom_to_list(node())},
+			Description = {"description", "Health of SigScale OCS"},
+			Health = {struct, [Status, ServiceId, Description, Checks]},
+			ResponseBody = mochijson:encode(Health),
+			ResponseHeaders = [{content_type, "application/health+json"}],
+			{error, 503, ResponseHeaders, ResponseBody}
 	catch
-		_:_Reason ->
+		_:_Reason2 ->
 			{error, 500}
 	end.
 
@@ -79,19 +91,35 @@ get_health([] = _Query, _Headers) ->
 				| {error, ErrorCode :: integer()}.
 %% @doc Body producing function for `GET /health/application'
 %% requests.
-get_applications([] = _Query, _Headers) ->
+get_applications([] = _Query, _RequestHeaders) ->
 	try
 		Check = application([ocs, inets, diameter, radius, snmp]),
 		{"checks", {struct, [Check]}}
 	of
-		Checks ->
-			Status = {"status", "pass"},
-			ServiceId = {"serviceId", atom_to_list(node())},
-			Description = {"description", "OTP applications"},
-			Application = {struct, [Status, ServiceId, Description, Checks]},
-			Body = mochijson:encode(Application),
-			Headers1 = [{content_type, "application/health+json"}],
-			{ok, Headers1, Body}
+		{_, {_, [{"application", {_, Applications}}]}} = Checks ->
+			F = fun({_, [_, _, {"status", "up"}]}) ->
+						false;
+					({_, [_, _, {"status", "down"}]}) ->
+						true
+			end,
+			case lists:any(F, Applications) of
+				false ->
+					Status = {"status", "pass"},
+					ServiceId = {"serviceId", atom_to_list(node())},
+					Description = {"description", "OTP applications"},
+					Application = {struct, [Status, ServiceId, Description, Checks]},
+					ResponseBody = mochijson:encode(Application),
+					ResponseHeaders = [{content_type, "application/health+json"}],
+					{ok, ResponseHeaders, ResponseBody};
+				true ->
+					Status = {"status", "fail"},
+					ServiceId = {"serviceId", atom_to_list(node())},
+					Description = {"description", "OTP applications"},
+					Application = {struct, [Status, ServiceId, Description, Checks]},
+					ResponseBody = mochijson:encode(Application),
+					ResponseHeaders = [{content_type, "application/health+json"}],
+					{error, 503, ResponseHeaders, ResponseBody}
+			end
 	catch
 		_:_Reason ->
 			{error, 500}
@@ -101,9 +129,11 @@ get_applications([] = _Query, _Headers) ->
 %%  internal functions
 %%----------------------------------------------------------------------
 
--spec scheduler() -> Check
+-spec scheduler() -> Result
 	when
-		Check :: tuple().
+		Result :: {ok, Check} | {error, Reason},
+		Check :: tuple(),
+		Reason :: term().
 %% @doc Check scheduler component.
 %% @hidden
 scheduler() ->
@@ -117,9 +147,9 @@ scheduler({ok, {_Etag, _Interval, Report}}) ->
 				Type1 = {"componentType", "system"},
 				{struct, [Component1, Value1, Unit1, Type1]}
 	end,
-	{"scheduler:utilization", {array, lists:map(F, Report)}};
+	{ok, {"scheduler:utilization", {array, lists:map(F, Report)}}};
 scheduler({error, Reason}) ->
-	exit(Reason).
+	{error, Reason}.
 
 -spec application(Names) -> Check
 	when
@@ -142,7 +172,7 @@ application([Name | T], Running, Acc) ->
 			{"status", Status}]} | Acc],
 	application(T, Running, NewAcc);
 application([], _Running, Acc) ->
-	{"application", {array, Acc}}.
+	{"application", {array, lists:reverse(Acc)}}.
 
 -spec table_size(Names) -> Check
 	when
