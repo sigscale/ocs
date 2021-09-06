@@ -1,3 +1,37 @@
+2021-09-06  Vance Shipley <vances@sigscale.org>
+
+	* health component resources for individual applications
+	* health api returns same body format for errors
+	* http get handler accepts headers and body in error
+	* do not crash ocs:statistics/1 when ocs not ruunning
+	* document apis of rest resource handlers
+	* correct and improve problem report handling
+	* content/type in rest resource handlers
+	* handle */* in accept header
+	* rest resource handlers may return problem report
+	* rest error response bodies for rfc7807, tmf630 and html
+	* rest resource for health application component
+	* refactor scheduler health component
+	* health components application and table:size
+	* rest resource for health check
+	* statistics server and api (ocs-470)
+	* get a party role by name in REST API
+	* test: REST API to get a role by name
+	* REST API to get all party roles
+	* test: get all party roles using REST API
+	* REST API to delete party role by name
+	* test: delete a party role by id
+	* add a party role using the REST API
+	* test: REST API to create a party role
+	* new REST API module for party role
+	* REST API to get a role hub listener by id
+	* test: REST API to get a role hub listener by id
+	* REST api to get all the role hub listeners
+	* test: REST api to get all the role hub listeners
+	* fix json and handle time day range in GUI
+	* handle time of day amount in REST
+	* connect node before rpc in join; correct table list
+
 2021-08-30  Vance Shipley <vances@sigscale.org>
 
 	* prevent registered name clash in diameter on clusters
