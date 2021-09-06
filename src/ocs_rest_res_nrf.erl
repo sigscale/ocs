@@ -58,13 +58,13 @@ initial_nrf(NrfRequest) ->
 	try
 		case mochijson:decode(NrfRequest) of
 			{struct, _Attributes} = NrfStruct ->
-				NrfMap = nrf_request_to_map(NrfStruct),
+				NrfMap = nrf(NrfStruct),
 				Flag = event_type(NrfMap),
 				case rate(NrfMap, Flag) of
 					ServiceRating when is_list(ServiceRating) ->
 						UpdatedMap = maps:update("serviceRating", ServiceRating, NrfMap),
 						ok = add_rating_ref(RatingDataRef, UpdatedMap),
-						nrf_response_to_struct(UpdatedMap);
+						nrf(UpdatedMap);
 					{error, out_of_credit} ->
 						Problem = error_response(out_of_credit, undefined),
 						{error, 403, Problem};
@@ -123,11 +123,11 @@ update_nrf(NrfRequest) ->
 	try
 		case mochijson:decode(NrfRequest) of
 			{struct, _Attributes} = NrfStruct ->
-				NrfMap = nrf_request_to_map(NrfStruct),
+				NrfMap = nrf(NrfStruct),
 				case rate(NrfMap, interim) of
 					ServiceRating when is_list(ServiceRating) ->
 						UpdatedMap = maps:update("serviceRating", ServiceRating, NrfMap),
-						nrf_response_to_struct(UpdatedMap);
+						nrf(UpdatedMap);
 					{error, out_of_credit} ->
 						Problem = error_response(out_of_credit, undefined),
 						{error, 403, Problem};
@@ -186,12 +186,12 @@ release_nrf1(RatingDataRef, NrfRequest) ->
 	try
 		case mochijson:decode(NrfRequest) of
 			{struct, _Attributes} = NrfStruct ->
-				NrfMap = nrf_request_to_map(NrfStruct),
+				NrfMap = nrf(NrfStruct),
 				case rate(NrfMap, final) of
 					ServiceRating when is_list(ServiceRating) ->
 						UpdatedMap = maps:update("serviceRating", ServiceRating, NrfMap),
 						ok = remove_ref(RatingDataRef),
-						nrf_response_to_struct(UpdatedMap);
+						nrf(UpdatedMap);
 					{error, out_of_credit} ->
 						Problem = error_response(out_of_credit, undefined),
 						{error, 403, Problem};
@@ -400,51 +400,44 @@ rate([], _ISN, _Subscriber, _Flag, Acc) ->
 	end,
 	F(Acc).
 
--spec nrf_response_to_struct(NrfReponse) -> Result
+-spec nrf(Nrf) -> Nrf
 	when
-		NrfReponse :: map(),
-		Result :: {struct, [tuple()]}.
+		Nrf :: map() | {struct, [tuple()]}.
 %% @doc CODEC for Nrf Reponse.
-nrf_response_to_struct(NrfRequest) ->
-	nrf_response_to_struct1(NrfRequest, []).
+nrf({struct, StructList}) ->
+	nrf(StructList, #{});
+nrf(NrfRequest) ->
+	nrf1(NrfRequest, []).
 %% @hidden
-nrf_response_to_struct1(#{"invocationTimeStamp" := TS} = M, Acc) ->
-	nrf_response_to_struct2(M, [{"invocationTimeStamp", TS} | Acc]).
-nrf_response_to_struct2(#{"invocationSequenceNumber" := SeqNum} = M, Acc) ->
-	nrf_response_to_struct3(M, [{"invocationSequenceNumber", SeqNum} | Acc]).
-nrf_response_to_struct3(#{"msisdn" := MSISDN, "imsi" := IMSI} = M, Acc) ->
-	nrf_response_to_struct4(M, [{"subscriptionId", {array, ["msisdn-" ++ MSISDN,
+nrf1(#{"invocationTimeStamp" := TS} = M, Acc) ->
+	nrf2(M, [{"invocationTimeStamp", TS} | Acc]).
+nrf2(#{"invocationSequenceNumber" := SeqNum} = M, Acc) ->
+	nrf3(M, [{"invocationSequenceNumber", SeqNum} | Acc]).
+nrf3(#{"msisdn" := MSISDN, "imsi" := IMSI} = M, Acc) ->
+	nrf4(M, [{"subscriptionId", {array, ["msisdn-" ++ MSISDN,
 			"imsi-" ++ IMSI]}} | Acc]).
-nrf_response_to_struct4(#{"nodeFunctionality" := NF} = M, Acc) ->
-	nrf_response_to_struct5(M, [{"nfConsumerIdentification",
+nrf4(#{"nodeFunctionality" := NF} = M, Acc) ->
+	nrf5(M, [{"nfConsumerIdentification",
 			{struct, [{"nodeFunctionality", NF}]}} | Acc]).
-nrf_response_to_struct5(#{"serviceRating" := ServiceRating}, Acc) ->
+nrf5(#{"serviceRating" := ServiceRating}, Acc) ->
 	Acc1 = [{"serviceRating", {array, struct_service_rating(ServiceRating)}} | Acc],
 	{struct, Acc1}.
-
--spec nrf_request_to_map(NrfRequest) -> Result
-	when
-		NrfRequest :: {struct, [tuple()]},
-		Result :: map().
-%% @doc CODEC for Nrf Request.
-nrf_request_to_map({struct, StructList}) ->
-	nrf_request_to_map(StructList, #{}).
 %% @hidden
-nrf_request_to_map([{"invocationTimeStamp", TS} | T], Acc) ->
-	nrf_request_to_map(T, Acc#{"invocationTimeStamp" => TS});
-nrf_request_to_map([{"oneTimeEventType", EventType} | T], Acc) ->
-	nrf_request_to_map(T, Acc#{"oneTimeEventType" => EventType});
-nrf_request_to_map([{"invocationSequenceNumber", SeqNum} | T], Acc) ->
-	nrf_request_to_map(T, Acc#{"invocationSequenceNumber" => SeqNum});
-nrf_request_to_map([{"subscriptionId", {array, ["msisdn-" ++ MSISDN, "imsi-" ++ IMSI]}} | T], Acc) ->
-	nrf_request_to_map(T, Acc#{"msisdn" => MSISDN, "imsi" => IMSI});
-nrf_request_to_map([{"nfConsumerIdentification", {struct, [{"nodeFunctionality", NF}]}} | T], Acc) ->
-	nrf_request_to_map(T, Acc#{"nodeFunctionality" => NF});
-nrf_request_to_map([{"serviceRating", {array, ServiceRating}} | T], Acc) ->
-	nrf_request_to_map(T, Acc#{"serviceRating" => map_service_rating(ServiceRating)});
-nrf_request_to_map([_H | T], Acc) ->
-	nrf_request_to_map(T, Acc);
-nrf_request_to_map([], Acc) ->
+nrf([{"invocationTimeStamp", TS} | T], Acc) ->
+	nrf(T, Acc#{"invocationTimeStamp" => TS});
+nrf([{"oneTimeEventType", EventType} | T], Acc) ->
+	nrf(T, Acc#{"oneTimeEventType" => EventType});
+nrf([{"invocationSequenceNumber", SeqNum} | T], Acc) ->
+	nrf(T, Acc#{"invocationSequenceNumber" => SeqNum});
+nrf([{"subscriptionId", {array, ["msisdn-" ++ MSISDN, "imsi-" ++ IMSI]}} | T], Acc) ->
+	nrf(T, Acc#{"msisdn" => MSISDN, "imsi" => IMSI});
+nrf([{"nfConsumerIdentification", {struct, [{"nodeFunctionality", NF}]}} | T], Acc) ->
+	nrf(T, Acc#{"nodeFunctionality" => NF});
+nrf([{"serviceRating", {array, ServiceRating}} | T], Acc) ->
+	nrf(T, Acc#{"serviceRating" => map_service_rating(ServiceRating)});
+nrf([_H | T], Acc) ->
+	nrf(T, Acc);
+nrf([], Acc) ->
 	Acc.
 
 %% @hidden
