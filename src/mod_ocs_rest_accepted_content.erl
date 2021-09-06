@@ -15,6 +15,47 @@
 %%% See the License for the specific language governing permissions and
 %%% limitations under the License.
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%% @doc Handle media type validation in HTTP requests.
+%%%
+%%% 	This is an {@link //inets/httpd. httpd} callback module handling
+%%% 	media type validation of HTTP operations. The HTTP resources are
+%%% 	managed in modules named `ocs_rest_res_*'.
+%%%
+%%% 	<h2><a name="callbacks">Resource Handler Functions</a></h2>
+%%% 	The resource handler modules should implement the following
+%%% 	callback functions.
+%%%
+%%% 	<h3 class="function">
+%%% 		<a>content_types_provided/0</a>
+%%% 	</h3>
+%%% 	<div class="spec">
+%%% 		<p>
+%%% 			<tt>content_types_provided() -&gt; ContentTypes</tt>
+%%% 		</p>
+%%% 		<ul class="definitions">
+%%% 			<li><tt>ContentTypes = [ContentType]</tt></li>
+%%% 			<li><tt>ContentType = string()</tt></li>
+%%% 		</ul>
+%%% 	</div>
+%%% 	Provides the list of possible media types in response bodies
+%%% 	provided by functions in the resource handler module.
+%%%
+%%% 	<h3 class="function">
+%%% 		<a>content_types_accepted/0</a>
+%%% 	</h3>
+%%% 	<div class="spec">
+%%% 		<p>
+%%% 			<tt>content_types_accepted() -&gt; ContentTypes</tt>
+%%% 		</p>
+%%% 		<ul class="definitions">
+%%% 			<li><tt>ContentTypes = [ContentType]</tt></li>
+%%% 			<li><tt>ContentType = string()</tt></li>
+%%% 		</ul>
+%%% 	</div>
+%%% 	Provides the list of possible media types accepted in bodies
+%%% 	provided to functions in the resource handler module.
+%%%
+%%% @end
 %%%
 -module(mod_ocs_rest_accepted_content).
 -copyright('Copyright (c) 2016 - 2021 SigScale Global Inc.').

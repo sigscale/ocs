@@ -15,6 +15,46 @@
 %%% See the License for the specific language governing permissions and
 %%% limitations under the License.
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%% @doc Handle received HTTP POST requests.
+%%%
+%%% 	This is an {@link //inets/httpd. httpd} callback module handling
+%%% 	HTTP POST operations. The HTTP resources are managed in modules named
+%%% 	`ocs_rest_res_*'.
+%%%
+%%% 	<h2><a name="callbacks">Resource Handler Functions</a></h2>
+%%% 	The resource handler modules should implement callback functions
+%%% 	in the pattern described in the example below.
+%%%
+%%% 	<h3 class="function">
+%%% 		<a>post_&lt;Collection&gt;/2</a>
+%%% 	</h3>
+%%% 	<div class="spec">
+%%% 		<p>
+%%% 			<tt>post_&lt;Collection&gt;([Id], RequestBody, [...]) -&gt; Result</tt>
+%%% 		</p>
+%%% 		<ul class="definitions">
+%%% 			<li><tt>Id = string()</tt></li>
+%%% 			<li><tt>RequestBody = string()</tt></li>
+%%% 			<li><tt>Result = {ok, Headers, ResponseBody}
+%%% 					| {error, StatusCode}
+%%% 					| {error, StatusCode, Problem}</tt></li>
+%%% 			<li><tt>ResponseBody = io_list()</tt></li>
+%%% 			<li><tt>StatusCode = 200..599</tt></li>
+%%% 			<li><tt>Problem = #{type := uri(), title := string(),
+%%% 					code := string(), cause => string(), detail => string(),
+%%% 					invalidParams => [#{param := string(), reason => string()}],
+%%% 					status => 200..599}</tt></li>
+%%% 		</ul>
+%%% 	</div>
+%%% 	Resource handlers for HTTP POST operations on REST Collections.
+%%%
+%%% 	Response `Headers' must include `content_type' if `ResponseBody' is
+%%% 	not en empty list. An optional `Problem' report may be provided in
+%%% 	error responses which shall be formatted by
+%%% 	{@link //ocs/ocs_rest:format_problem/2. format_problem/2} and included
+%%% 	in the response body.
+%%%
+%%% @end
 %%%
 -module(mod_ocs_rest_post).
 -copyright('Copyright (c) 2016 - 2021 SigScale Global Inc.').

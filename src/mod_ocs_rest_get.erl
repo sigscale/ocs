@@ -15,6 +15,92 @@
 %%% See the License for the specific language governing permissions and
 %%% limitations under the License.
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%% @doc Handle received HTTP GET requests.
+%%%
+%%% 	This is an {@link //inets/httpd. httpd} callback module handling
+%%% 	HTTP GET operations. The HTTP resources are managed in modules named
+%%% 	`ocs_rest_res_*'.
+%%%
+%%% 	<h2><a name="callbacks">Resource Handler Functions</a></h2>
+%%% 	The resource handler modules should implement callback functions
+%%% 	in the pattern described in the example below.
+%%%
+%%% 	<h3 class="function">
+%%% 		<a>get_&lt;Collection&gt;/2</a>
+%%% 	</h3>
+%%% 	<div class="spec">
+%%% 		<p>
+%%% 			<tt>get_&lt;Collection&gt;(Query, Headers) -&gt; Result</tt>
+%%% 		</p>
+%%% 		<ul class="definitions">
+%%% 			<li><tt>Query = [{Param, Value}]</tt></li>
+%%% 			<li><tt>Param = string()</tt></li>
+%%% 			<li><tt>Value = string()</tt></li>
+%%% 			<li><tt>Headers = [{Option, Value}</tt></li>
+%%% 			<li><tt>Option = accept_ranges | allow | cache_control
+%%% 					| content_MD5 | content_encoding | content_language
+%%% 					| content_length | content_location | content_range
+%%% 					| content_type | date | etag | expires | last_modified
+%%% 					| location | pragma | retry_after | server | trailer
+%%% 					| transfer_encoding</tt></li>
+%%% 			<li><tt>Result = {ok, Headers, ResponseBody}
+%%% 					| {error, StatusCode}
+%%% 					| {error, StatusCode, Problem}</tt></li>
+%%% 			<li><tt>ResponseBody = io_list()</tt></li>
+%%% 			<li><tt>StatusCode = 200..599</tt></li>
+%%% 			<li><tt>Problem = #{type := uri(), title := string(),
+%%% 					code := string(), cause => string(), detail => string(),
+%%% 					invalidParams => [#{param := string(), reason => string()}],
+%%% 					status => 200..599}</tt></li>
+%%% 		</ul>
+%%% 	</div>
+%%% 	Resource handlers for HTTP GET operations on REST Collections.
+%%%
+%%% 	Response `Headers' must include `content_type' if `ResponseBody' is
+%%% 	not en empty list. An optional `Problem' report may be provided in
+%%% 	error responses which shall be formatted by
+%%% 	{@link //ocs/ocs_rest:format_problem/2. format_problem/2} and included
+%%% 	in the response body.
+%%%
+%%% 	<h3 class="function">
+%%% 		<a>get_&lt;Resource&gt;/2</a>
+%%% 	</h3>
+%%% 	<div class="spec">
+%%% 		<p>
+%%% 			<tt>get_&lt;Resource&gt;(Id, Query, [Headers, ...]) -&gt; Result</tt>
+%%% 		</p>
+%%% 		<ul class="definitions">
+%%% 			<li><tt>Id = string()</tt></li>
+%%% 			<li><tt>Query = [{Param, Value}]</tt></li>
+%%% 			<li><tt>Param = string()</tt></li>
+%%% 			<li><tt>Value = string()</tt></li>
+%%% 			<li><tt>Headers = [{Option, Value}</tt></li>
+%%% 			<li><tt>Option = accept_ranges | allow | cache_control
+%%% 					| content_MD5 | content_encoding | content_language
+%%% 					| content_length | content_location | content_range
+%%% 					| content_type | date | etag | expires | last_modified
+%%% 					| location | pragma | retry_after | server | trailer
+%%% 					| transfer_encoding</tt></li>
+%%% 			<li><tt>Result = {ok, Headers, ResponseBody}
+%%% 					| {error, StatusCode}
+%%% 					| {error, StatusCode, Problem}</tt></li>
+%%% 			<li><tt>ResponseBody = io_list()</tt></li>
+%%% 			<li><tt>StatusCode = 200..599</tt></li>
+%%% 			<li><tt>Problem = #{type := uri(), title := string(),
+%%% 					code := string(), cause => string(), detail => string(),
+%%% 					invalidParams => [#{param := string(), reason => string()}],
+%%% 					status => 200..599}</tt></li>
+%%% 		</ul>
+%%% 	</div>
+%%% 	Resource handlers for HTTP GET operations on REST Resources.
+%%%
+%%% 	Response `Headers' must include `content_type' if `ResponseBody' is
+%%% 	not en empty list. An optional `Problem' report may be provided in
+%%% 	error responses which shall be formatted by
+%%% 	{@link //ocs/ocs_rest:format_problem/2. format_problem/2} and included
+%%% 	in the response body.
+%%%
+%%% @end
 %%%
 -module(mod_ocs_rest_get).
 -copyright('Copyright (c) 2016 - 2021 SigScale Global Inc.').
