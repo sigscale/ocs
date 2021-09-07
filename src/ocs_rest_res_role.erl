@@ -285,6 +285,7 @@ role([{"validFor", {struct, ValidFor}} | T], Acc) when is_list(ValidFor) ->
 	role(T, valid_for(ValidFor, Acc));
 role([], Acc) ->
 	Acc.
+
 %% @hidden
 valid_for([{"startDateTime", StartDate} | T],
 		#httpd_user{user_data = UserData} = Acc) when is_list(StartDate) ->
