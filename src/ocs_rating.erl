@@ -176,7 +176,6 @@ rate(Protocol, ServiceType, ServiceId, ChargingKey,
 										true ->
 											State = #state{buckets = Buckets,
 													product  = Product,
-													service_type = ServiceType,
 													service_id = ServiceId,
 													charging_key = ChargingKey,
 													service_network = ServiceNetwork,
@@ -184,7 +183,7 @@ rate(Protocol, ServiceType, ServiceId, ChargingKey,
 													redirect_server = RedirectServerAddress},
 											rate1(Protocol, Service, Product, Buckets,
 													Timestamp, Address, Direction, Offer,
-													Flag, DebitAmounts, ReserveAmounts, State);
+													Flag, DebitAmounts, ReserveAmounts, ServiceType, State);
 										false ->
 											{out_of_credit, RedirectServerAddress, SessionList, [], []}
 									end;
@@ -246,7 +245,7 @@ rate(Protocol, ServiceType, ServiceId, ChargingKey,
 %% @hidden
 rate1(Protocol, Service, Product, Buckets, Timestamp, Address, Direction,
 		#offer{specification = undefined, bundle = Bundle}, Flag,
-		DebitAmounts, ReserveAmounts, #state{service_type = ServiceType} = State) ->
+		DebitAmounts, ReserveAmounts, ServiceType, State) ->
 	try
 		F = fun(#bundled_po{name = OfferId}, Acc) ->
 				case mnesia:read(offer, OfferId, read) of
@@ -281,7 +280,7 @@ rate1(Protocol, Service, Product, Buckets, Timestamp, Address, Direction,
 	end;
 rate1(Protocol, Service, Product, Buckets, Timestamp, Address,
 		Direction, #offer{name = OfferName} = Offer,
-		Flag, DebitAmounts, ReserveAmounts, #state{service_type = ServiceType} = State) ->
+		Flag, DebitAmounts, ReserveAmounts, ServiceType, State) ->
 	case mnesia:read(offer, OfferName, read) of
 		[#offer{specification = Spec, status = Status} = _P] when
 				((Status == active) orelse (Status == undefined))
