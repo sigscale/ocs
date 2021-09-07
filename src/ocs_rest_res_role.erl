@@ -54,26 +54,24 @@ content_types_provided() ->
 %% @doc Handle `POST' request on `Role' collection.
 %% 	Respond to `POST /partyRoleManagement/v4/partyRole' request.
 post_role(RequestBody) ->
-	case get_params() of
-		{Port, Address, Directory, _Group} ->
-			try
-				Role = role(mochijson:decode(RequestBody)),
-				LM = {erlang:system_time(?MILLISECOND),
-						erlang:unique_integer([positive])},
-				Name = Role#httpd_user.username,
-				true = mod_auth:add_user(Name, [],
-						Role#httpd_user.user_data, Address, Port, Directory),
+	try
+		Role = role(mochijson:decode(RequestBody)),
+		{Name, _, _, _} = Role#httpd_user.username,
+		case ocs:add_user(Name, [], "en") of
+			{ok, LastModified} ->
 				Body = mochijson:encode(role(Role)),
 				Location = "/partyRoleManagement/v4/partyRole/" ++ Name,
 				Headers = [{content_type, "application/json"},
-						{location, Location}, {etag, ocs_rest:etag(LM)}],
-				{ok, Headers, Body}
-			catch
-				_:_Reason1 ->
-					{error, 400}
-			end;
-		{error, _Reason} ->
-			{error, 500}
+						{location, Location}, {etag, ocs_rest:etag(LastModified)}],
+				{ok, Headers, Body};
+			{error, _Reason} ->
+				{error, 400}
+		end
+	catch
+		_:500 ->
+			{error, 500};
+		_:_Reason1 ->
+			{error, 400}
 	end.
 
 -spec delete_role(Name) -> Result
@@ -269,15 +267,20 @@ role(#httpd_user{username = Name, user_data = UserData})
 					false
 			end
 	end,
-	{struct, [{"id", Name}, {"name", Name}, {"@type", F(type)}, {"validFor", {struct,
-					[{"startDateTime", ocs_rest:iso8601(F(start_date))},
+	{struct, [{"id", Name}, {"name", Name}, {"@type", F(type)}, {"validFor",
+					{struct, [{"startDateTime", ocs_rest:iso8601(F(start_date))},
 					{"endDateTime", ocs_rest:iso8601(F(end_date))}]}},
 			{"href", "/partyRoleManagement/v4/partyRole/" ++ Name}]};
 role({struct, L}) when is_list(L) ->
 	role(L, #httpd_user{user_data = []}).
 %% @hidden
 role([{"name", Name} | T], Acc) when is_list(Name) ->
-	role(T, Acc#httpd_user{username = Name});
+	case get_params() of
+		{Port, Address, Directory, _Group} ->
+			role(T, Acc#httpd_user{username = {Name, Address, Port, Directory}});
+		{error, _Reason} ->
+			{error, 500}
+	end;
 role([{"@type", Type} | T], #httpd_user{user_data = UserData} = Acc)
 		when is_list(Type) ->
 	role(T, Acc#httpd_user{user_data = [{type, Type} | UserData]});
