@@ -153,7 +153,7 @@ rate(Protocol, ServiceType, ServiceId, ChargingKey,
 			case mnesia:read(service, SubscriberID, sticky_write) of
 				[#service{product = ProdRef, session_attributes = SessionList} = Service] ->
 					case mnesia:read(product, ProdRef, read) of
-						[#product{characteristics = Chars, product = OfferId,
+						[#product{product = OfferId,
 								balance = BucketRefs} = Product] ->
 							case mnesia:read(offer, OfferId, read) of
 								[#offer{char_value_use = CharValueUse} = Offer] ->
@@ -176,7 +176,6 @@ rate(Protocol, ServiceType, ServiceId, ChargingKey,
 										true ->
 											State = #state{buckets = Buckets,
 													product  = Product,
-													chars = Chars,
 													service_type = ServiceType,
 													service_id = ServiceId,
 													charging_key = ChargingKey,
