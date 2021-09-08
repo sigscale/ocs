@@ -45,8 +45,8 @@
                 "$ref" : "#/components/schemas/RatingDataRequest"
               },
               "examples" : {
-                "IEC" : {
-                  "summary" : "Immediate Event Charging (IEC)",
+                "IEC (Class B)" : {
+                  "summary" : "Immediate Event Charging (IEC) (Class B)",
                   "description" : "Request an atomic charging operation which succeeds or fails.",
                   "value" : {
                     "nfConsumerIdentification" : {
@@ -166,7 +166,7 @@
                   }
                 },
                 "Roaming" : {
-                  "summary" : "Roaming voice call service (VCS).",
+                  "summary" : "Roaming voice call service (VCS) (Class B)",
                   "description" : "Request a reservation for charging a roaming voice call session. The user location is provided to enable rating based on Visited Public Land Mobile Network (PLMN).",
                   "value" : {
                     "nfConsumerIdentification" : {
@@ -207,7 +207,7 @@
                 },
                 "examples" : {
                   "IEC" : {
-                    "summary" : "Immediate Event Charging (IEC)",
+                    "summary" : "Immediate Event Charging (IEC) (Class B)",
                     "description" : "Successful charging of an SMS.",
                     "value" : {
                       "invocationTimeStamp" : "2020-12-13T15:28:32.186Z",
@@ -318,7 +318,7 @@
                     }
                   },
                   "PARTIAL" : {
-                    "summary" : "Partial Success (SCUR)",
+                    "summary" : "Partial Success (SCUR) (Class B)",
                     "description" : "Reservation request succeeds for one service but is unsuccessful for another. The session may continue with the service which succeeded.",
                     "value" : {
                       "invocationTimeStamp" : "2020-12-13T15:28:32.123Z",
