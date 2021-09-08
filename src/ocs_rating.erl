@@ -175,11 +175,10 @@ rate(Protocol, ServiceType, ServiceId, ChargingKey,
 									case lists:all(F2, Buckets) of
 										true ->
 											State = #state{buckets = Buckets,
-													service_id = ServiceId,
 													charging_key = ChargingKey,
 													service_network = ServiceNetwork,
 													session_id = get_session_id(SessionAttributes)},
-											{rate1(Protocol, Service, Product, Buckets,
+											{rate1(Protocol, #service{name = ServiceId} = Service, Product, Buckets,
 													Timestamp, Address, Direction, Offer,
 													Flag, DebitAmounts, ReserveAmounts, ServiceType, State), RedirectServerAddress};
 										false ->
@@ -568,10 +567,10 @@ charge(_Protocol, Service, Product, Buckets, #price{units = Units} = Price,
 	end,
 	charge2(Service, Product, Buckets, Price, Flag, DebitAmount, ReserveAmount, State).
 %% @hidden
-charge2(Service, Product, Buckets,
+charge2(#service{name = ServiceId} = Service, Product, Buckets,
 		#price{units = Units, size = UnitSize, amount = UnitPrice},
 		initial, {_, 0}, {Units, Amount} = ReserveAmount,
-		#state{session_id = SessionId, service_id = ServiceId,
+		#state{session_id = SessionId,
 		charging_key = ChargingKey} = State) ->
 	case update_session(Units, 0, Amount,
 			ServiceId, ChargingKey, SessionId, Buckets) of
@@ -597,10 +596,10 @@ charge2(Service, Product, Buckets,
 							{Units, UnitsReserved}, State)
 			end
 	end;
-charge2(#service{enabled = false} = Service, #product{id = ProductId} = Product, Buckets,
-		#price{units = Units, size = UnitSize, amount = UnitPrice},
+charge2(#service{enabled = false, name = ServiceId} = Service, #product{id = ProductId} = Product,
+		Buckets, #price{units = Units, size = UnitSize, amount = UnitPrice},
 		interim, {Units, Amount} = DebitAmount, _ReserveAmount,
-		#state{session_id = SessionId, service_id = ServiceId,
+		#state{session_id = SessionId,
 		charging_key = ChargingKey} = State) ->
 	case update_session(Units, Amount, 0,
 			ServiceId, ChargingKey, SessionId, Buckets) of
@@ -648,10 +647,10 @@ charge2(#service{enabled = false} = Service, #product{id = ProductId} = Product,
 							{Units, 0}, {Units, 0}, State)
 			end
 	end;
-charge2(Service, #product{id = ProductId} = Product, Buckets,
+charge2(#service{name = ServiceId} = Service, #product{id = ProductId} = Product, Buckets,
 		#price{units = Units, size = UnitSize, amount = UnitPrice},
 		interim, {Units, Damount} = DebitAmount, {Units, Ramount} = ReserveAmount,
-		#state{session_id = SessionId, service_id = ServiceId,
+		#state{session_id = SessionId,
 		charging_key = ChargingKey} = State) ->
 	case update_session(Units, Damount, Ramount,
 			ServiceId, ChargingKey, SessionId, Buckets) of
@@ -720,12 +719,12 @@ charge2(Service, #product{id = ProductId} = Product, Buckets,
 							ReserveAmount, {Units, 0}, State)
 			end
 	end;
-charge2(Service, #product{id = ProductId} = Product, Buckets1,
+charge2(#service{name = ServiceId} = Service, #product{id = ProductId} = Product, Buckets1,
 		#price{units = Units, size = UnitSize, amount = UnitPrice,
 		type = PriceType, currency = Currency}, final,
 		{Units, Amount} = DebitAmount, {Units, 0} = ReserveAmount,
 		#state{rated = Rated1, session_id = SessionId,
-		service_id = ServiceId, charging_key = ChargingKey} = State) ->
+		charging_key = ChargingKey} = State) ->
 	Rated2 = Rated1#rated{price_type = PriceType, currency = Currency},
 	case charge_session(Units, Amount,
 			ServiceId, ChargingKey, SessionId, Buckets1) of
@@ -765,12 +764,12 @@ charge2(Service, #product{id = ProductId} = Product, Buckets1,
 							ReserveAmount, ReserveAmount, State#state{rated = Rated3})
 			end
 	end;
-charge2(Service, #product{id = ProductId} = Product, Buckets1,
+charge2(#service{name = ServiceId} = Service, #product{id = ProductId} = Product, Buckets1,
 		#price{units = Units, size = UnitSize, amount = UnitPrice,
 		type = PriceType, currency = Currency}, event,
 		{Units, Amount} = DebitAmount, {Units, 0} = ReserveAmount,
 		#state{rated = Rated1, session_id = SessionId,
-		service_id = ServiceId, charging_key = ChargingKey} = State) ->
+		charging_key = ChargingKey} = State) ->
 	Rated2 = Rated1#rated{price_type = PriceType, currency = Currency},
 	case charge_event(Units, Amount, Buckets1) of
 		{Amount, Buckets2} ->
@@ -803,10 +802,10 @@ charge2(Service, #product{id = ProductId} = Product, Buckets1,
 			end
 	end.
 %% @hidden
-charge3(#service{session_attributes = SessionList} = Service1, Product, Buckets, final,
-		{Units, Charge}, {Units, Charged}, {Units, 0}, {Units, 0},
-		#state{rated = Rated, session_id = SessionId,
-		service_id = ServiceId, charging_key = ChargingKey,
+charge3(#service{session_attributes = SessionList, name = ServiceId} = Service1,
+		Product, Buckets, final, {Units, Charge}, {Units, Charged},
+		{Units, 0}, {Units, 0}, #state{rated = Rated, session_id = SessionId,
+		charging_key = ChargingKey,
 		buckets = OldBuckets}) when Charged >= Charge ->
 	{Debits, NewBuckets} = get_final(ServiceId,
 			ChargingKey, SessionId, Buckets),
