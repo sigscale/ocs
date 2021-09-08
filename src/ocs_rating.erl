@@ -325,7 +325,7 @@ rate2(Protocol, Service, Product, Buckets, Timestamp, Address, Direction,
 			RoamingTable = roaming_table_prefix(Price),
 			rate3(Protocol, Service, Product, Buckets, Address,
 					Price, Flag, DebitAmounts, ReserveAmounts,
-					State#state{roaming_tb_prefix = RoamingTable}, Rated,
+					State, RoamingTable, Rated,
 					ChargingKey, ServiceNetwork);
 		_ ->
 			throw(price_not_found)
@@ -350,7 +350,7 @@ rate2(Protocol, Service, Product, Buckets, Timestamp, Address, Direction,
 			RoamingTable = roaming_table_prefix(Price),
 			rate3(Protocol, Service, Product, Buckets, Address,
 					Price, Flag, DebitAmounts, ReserveAmounts,
-					State#state{roaming_tb_prefix = RoamingTable},
+					State, RoamingTable,
 					Rated, ChargingKey, ServiceNetwork);
 		_ ->
 			throw(price_not_found)
@@ -372,15 +372,15 @@ rate2(Protocol, Service, Product, Buckets, Timestamp, _Address, _Direction,
 			RoamingTable = roaming_table_prefix(Price),
 			rate4(Protocol, Service, Product, Buckets, Price,
 					Flag, DebitAmounts, ReserveAmounts,
-					State#state{roaming_tb_prefix = RoamingTable}, Rated, ChargingKey, ServiceNetwork);
+					State, RoamingTable, Rated, ChargingKey, ServiceNetwork);
 		_ ->
 			throw(price_not_found)
 	end.
 %% @hidden
 rate3(Protocol, Service, Product, Buckets, Address,
 		#price{type = tariff, char_value_use = CharValueUse} = Price,
-		Flag, DebitAmounts, ReserveAmounts, #state{roaming_tb_prefix = RoamingTable} = State,
-		Rated, ChargingKey, ServiceNetwork) ->
+		Flag, DebitAmounts, ReserveAmounts, State,
+		RoamingTable, Rated, ChargingKey, ServiceNetwork) ->
 	case lists:keyfind("destPrefixTariffTable", #char_value_use.name, CharValueUse) of
 		#char_value_use{values = [#char_value{value = TariffTable}]}
 				when RoamingTable == undefined ->
@@ -435,14 +435,15 @@ rate3(Protocol, Service, Product, Buckets, Address,
 			throw(undefined_tariff)
 	end;
 rate3(Protocol, Service, Product, Buckets, _Address,
-		Price, Flag, DebitAmounts, ReserveAmounts, State, Rated, ChargingKey, _ServiceNetwork) ->
+		Price, Flag, DebitAmounts, ReserveAmounts, State,
+		_RoamingTable, Rated, ChargingKey, _ServiceNetwork) ->
 	charge(Protocol, Product, Service, Buckets, Price,
 			Flag, DebitAmounts, ReserveAmounts, State, Rated, ChargingKey).
 %% @hidden
 rate4(Protocol, Service, Product, Buckets,
 		#price{type = tariff} = Price, Flag, DebitAmounts, ReserveAmounts,
-		#state{roaming_tb_prefix = RoamingTable} = State,
-		Rated, ChargingKey, ServiceNetwork)
+		State,
+		RoamingTable, Rated, ChargingKey, ServiceNetwork)
 		when is_list(RoamingTable), is_list(ServiceNetwork) ->
 	Table = list_to_existing_atom(RoamingTable),
 	case catch ocs_gtt:lookup_last(Table, ServiceNetwork) of
@@ -463,7 +464,8 @@ rate4(Protocol, Service, Product, Buckets,
 			throw(table_lookup_failed)
 	end;
 rate4(Protocol, Service, Product, Buckets, Price,
-		Flag, DebitAmounts, ReserveAmounts, State, Rated, ChargingKey, _ServiceNetwork) ->
+		Flag, DebitAmounts, ReserveAmounts, State,
+		_RoamingTable, Rated, ChargingKey, _ServiceNetwork) ->
 	charge(Protocol, Service, Product, Buckets, Price,
 			Flag, DebitAmounts, ReserveAmounts, State, Rated, ChargingKey).
 %% @hidden
