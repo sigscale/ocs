@@ -174,11 +174,10 @@ rate(Protocol, ServiceType, ServiceId, ChargingKey,
 									end,
 									case lists:all(F2, Buckets) of
 										true ->
-											State = #state{service_network = ServiceNetwork,
-													session_id = get_session_id(SessionAttributes)},
+											State = #state{session_id = get_session_id(SessionAttributes)},
 											{rate1(Protocol, #service{name = ServiceId} = Service, Product, Buckets,
 													Timestamp, Address, Direction, Offer,
-													Flag, DebitAmounts, ReserveAmounts, ServiceType, State, ChargingKey), RedirectServerAddress};
+													Flag, DebitAmounts, ReserveAmounts, ServiceType, State, ChargingKey, ServiceNetwork), RedirectServerAddress};
 										false ->
 											{out_of_credit, RedirectServerAddress, SessionList, [], []}
 									end;
@@ -242,7 +241,7 @@ rate(Protocol, ServiceType, ServiceId, ChargingKey,
 %% @hidden
 rate1(Protocol, Service, Product, Buckets, Timestamp, Address, Direction,
 		#offer{specification = undefined, bundle = Bundle}, Flag,
-		DebitAmounts, ReserveAmounts, ServiceType, State, ChargingKey) ->
+		DebitAmounts, ReserveAmounts, ServiceType, State, ChargingKey, ServiceNetwork) ->
 	try
 		F = fun(#bundled_po{name = OfferId}, Acc) ->
 				case mnesia:read(offer, OfferId, read) of
@@ -270,14 +269,16 @@ rate1(Protocol, Service, Product, Buckets, Timestamp, Address, Direction,
 		[#offer{name = OfferName} = Offer | _] = lists:foldl(F, [], Bundle),
 		rate2(Protocol, Product, Service, Buckets, Timestamp,
 				Address, Direction, Offer, Flag, DebitAmounts,
-				ReserveAmounts, State#state{rated = #rated{product = OfferName}}, ChargingKey)
+				ReserveAmounts, State#state{rated = #rated{product = OfferName}},
+				ChargingKey, ServiceNetwork)
 	catch
 		_:_ ->
 			throw(invalid_bundle_product)
 	end;
 rate1(Protocol, Service, Product, Buckets, Timestamp, Address,
 		Direction, #offer{name = OfferName} = Offer,
-		Flag, DebitAmounts, ReserveAmounts, ServiceType, State, ChargingKey) ->
+		Flag, DebitAmounts, ReserveAmounts, ServiceType, State,
+		ChargingKey, ServiceNetwork) ->
 	case mnesia:read(offer, OfferName, read) of
 		[#offer{specification = Spec, status = Status} = _P] when
 				((Status == active) orelse (Status == undefined))
@@ -297,13 +298,15 @@ rate1(Protocol, Service, Product, Buckets, Timestamp, Address,
 					((ServiceType == ?DIAMETERSMS) and ((Spec == "10") orelse (Spec == "11"))))) ->
 			rate2(Protocol, Service, Product, Buckets, Timestamp, Address,
 					Direction, Offer, Flag, DebitAmounts, ReserveAmounts,
-					State#state{rated = #rated{product = OfferName}}, ChargingKey);
+					State#state{rated = #rated{product = OfferName}},
+					ChargingKey, ServiceNetwork);
 		_ ->
 			throw(invalid_service_type)
 	end.
 rate2(Protocol, Service, Product, Buckets, Timestamp, Address, Direction,
 		#offer{specification = ProdSpec, price = Prices} = _Offer,
-		Flag, DebitAmounts, ReserveAmounts, State, ChargingKey)
+		Flag, DebitAmounts, ReserveAmounts, State,
+		ChargingKey, ServiceNetwork)
 		when ProdSpec == "10"; ProdSpec == "11" ->
 	F = fun(#price{type = usage, units = messages}) ->
 				true;
@@ -322,14 +325,15 @@ rate2(Protocol, Service, Product, Buckets, Timestamp, Address, Direction,
 			RoamingTable = roaming_table_prefix(Price),
 			rate3(Protocol, Service, Product, Buckets, Address,
 					Price, Flag, DebitAmounts, ReserveAmounts,
-					State#state{roaming_tb_prefix = RoamingTable}, ChargingKey);
+					State#state{roaming_tb_prefix = RoamingTable},
+					ChargingKey, ServiceNetwork);
 		_ ->
 			throw(price_not_found)
 	end;
 rate2(Protocol, Service, Product, Buckets, Timestamp, Address, Direction,
 		#offer{specification = ProdSpec, price = Prices} = _Offer,
 		Flag, DebitAmounts, ReserveAmounts,
-		State, ChargingKey)
+		State, ChargingKey, ServiceNetwork)
 		when ProdSpec == "5"; ProdSpec == "9" ->
 	F = fun(#price{type = tariff, units = seconds}) ->
 				true;
@@ -346,13 +350,14 @@ rate2(Protocol, Service, Product, Buckets, Timestamp, Address, Direction,
 			RoamingTable = roaming_table_prefix(Price),
 			rate3(Protocol, Service, Product, Buckets, Address,
 					Price, Flag, DebitAmounts, ReserveAmounts,
-					State#state{roaming_tb_prefix = RoamingTable}, ChargingKey);
+					State#state{roaming_tb_prefix = RoamingTable},
+					ChargingKey, ServiceNetwork);
 		_ ->
 			throw(price_not_found)
 	end;
 rate2(Protocol, Service, Product, Buckets, Timestamp, _Address, _Direction,
 		#offer{price = Prices} = _Offer, Flag, DebitAmounts, ReserveAmounts,
-		State, ChargingKey) ->
+		State, ChargingKey, ServiceNetwork) ->
 	F = fun(#price{type = tariff, units = octets}) ->
 				true;
 			(#price{type = usage}) ->
@@ -367,7 +372,7 @@ rate2(Protocol, Service, Product, Buckets, Timestamp, _Address, _Direction,
 			RoamingTable = roaming_table_prefix(Price),
 			rate4(Protocol, Service, Product, Buckets, Price,
 					Flag, DebitAmounts, ReserveAmounts,
-					State#state{roaming_tb_prefix = RoamingTable}, ChargingKey);
+					State#state{roaming_tb_prefix = RoamingTable}, ChargingKey, ServiceNetwork);
 		_ ->
 			throw(price_not_found)
 	end.
@@ -375,7 +380,7 @@ rate2(Protocol, Service, Product, Buckets, Timestamp, _Address, _Direction,
 rate3(Protocol, Service, Product, Buckets, Address,
 		#price{type = tariff, char_value_use = CharValueUse} = Price,
 		Flag, DebitAmounts, ReserveAmounts, #state{rated = Rated,
-		roaming_tb_prefix = RoamingTable, service_network = ServiceNetwork} = State, ChargingKey) ->
+		roaming_tb_prefix = RoamingTable} = State, ChargingKey, ServiceNetwork) ->
 	case lists:keyfind("destPrefixTariffTable", #char_value_use.name, CharValueUse) of
 		#char_value_use{values = [#char_value{value = TariffTable}]}
 				when RoamingTable == undefined ->
@@ -430,14 +435,14 @@ rate3(Protocol, Service, Product, Buckets, Address,
 			throw(undefined_tariff)
 	end;
 rate3(Protocol, Service, Product, Buckets, _Address,
-		Price, Flag, DebitAmounts, ReserveAmounts, State, ChargingKey) ->
+		Price, Flag, DebitAmounts, ReserveAmounts, State, ChargingKey, _ServiceNetwork) ->
 	charge(Protocol, Product, Service, Buckets, Price,
 			Flag, DebitAmounts, ReserveAmounts, State, ChargingKey).
 %% @hidden
 rate4(Protocol, Service, Product, Buckets,
 		#price{type = tariff} = Price, Flag, DebitAmounts, ReserveAmounts,
-		#state{roaming_tb_prefix = RoamingTable, service_network = ServiceNetwork,
-		rated = Rated} = State, ChargingKey)
+		#state{roaming_tb_prefix = RoamingTable, 
+		rated = Rated} = State, ChargingKey, ServiceNetwork)
 		when is_list(RoamingTable), is_list(ServiceNetwork) ->
 	Table = list_to_existing_atom(RoamingTable),
 	case catch ocs_gtt:lookup_last(Table, ServiceNetwork) of
@@ -458,7 +463,7 @@ rate4(Protocol, Service, Product, Buckets,
 			throw(table_lookup_failed)
 	end;
 rate4(Protocol, Service, Product, Buckets, Price,
-		Flag, DebitAmounts, ReserveAmounts, State, ChargingKey) ->
+		Flag, DebitAmounts, ReserveAmounts, State, ChargingKey, _ServiceNetwork) ->
 	charge(Protocol, Service, Product, Buckets, Price,
 			Flag, DebitAmounts, ReserveAmounts, State, ChargingKey).
 %% @hidden
