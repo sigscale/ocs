@@ -264,21 +264,7 @@ role([{"name", Name} | T], Acc) when is_list(Name) ->
 role([{"@type", Type} | T], #httpd_user{user_data = UserData} = Acc)
 		when is_list(Type) ->
 	role(T, Acc#httpd_user{user_data = [{type, Type} | UserData]});
-role([{"validFor", {struct, ValidFor}} | T], Acc) when is_list(ValidFor) ->
-	role(T, valid_for(ValidFor, Acc));
 role([], Acc) ->
-	Acc.
-
-%% @hidden
-valid_for([{"startDateTime", StartDate} | T],
-		#httpd_user{user_data = UserData} = Acc) when is_list(StartDate) ->
-	valid_for(T, Acc#httpd_user{user_data = [{start_date,
-			ocs_rest:iso8601(StartDate)} | UserData]});
-valid_for([{"endDateTime", EndDate} | T],
-		#httpd_user{user_data = UserData} = Acc) when is_list(EndDate) ->
-	valid_for(T, Acc#httpd_user{user_data = [{end_date,
-			ocs_rest:iso8601(EndDate)} | UserData]});
-valid_for([], Acc) ->
 	Acc.
 
 %% @hidden

@@ -5804,12 +5804,8 @@ add_policy_row(TableId, TableName, 1) ->
 %% @hidden
 party_role(RoleName) ->
 	RoleType = "PartyRole",
-	StartDate = ocs_rest:iso8601(erlang:system_time(?MILLISECOND)),
-	EndDate = ocs_rest:iso8601(erlang:system_time(?MILLISECOND) + 31536000000),
 	{struct, [{"@type", RoleType},
-		{"name", RoleName},
-		{"validFor", {struct, [{"startDateTime", StartDate},
-				{"endDateTime", EndDate}]}}]}.
+		{"name", RoleName}]}.
 
 %% @hidden
 is_role({struct, RoleObj}) when length(RoleObj) == 4 ->
