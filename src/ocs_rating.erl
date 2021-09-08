@@ -174,10 +174,10 @@ rate(Protocol, ServiceType, ServiceId, ChargingKey,
 									end,
 									case lists:all(F2, Buckets) of
 										true ->
-											State = #state{session_id = get_session_id(SessionAttributes)},
 											{rate1(Protocol, #service{name = ServiceId} = Service, Product, Buckets,
 													Timestamp, Address, Direction, Offer,
-													Flag, DebitAmounts, ReserveAmounts, ServiceType, State, ChargingKey, ServiceNetwork), RedirectServerAddress};
+													Flag, DebitAmounts, ReserveAmounts, ServiceType,
+													get_session_id(SessionAttributes), ChargingKey, ServiceNetwork), RedirectServerAddress};
 										false ->
 											{out_of_credit, RedirectServerAddress, SessionList, [], []}
 									end;
@@ -241,7 +241,7 @@ rate(Protocol, ServiceType, ServiceId, ChargingKey,
 %% @hidden
 rate1(Protocol, Service, Product, Buckets, Timestamp, Address, Direction,
 		#offer{specification = undefined, bundle = Bundle}, Flag,
-		DebitAmounts, ReserveAmounts, ServiceType, State, ChargingKey, ServiceNetwork) ->
+		DebitAmounts, ReserveAmounts, ServiceType, SessionId, ChargingKey, ServiceNetwork) ->
 	try
 		F = fun(#bundled_po{name = OfferId}, Acc) ->
 				case mnesia:read(offer, OfferId, read) of
@@ -269,7 +269,7 @@ rate1(Protocol, Service, Product, Buckets, Timestamp, Address, Direction,
 		[#offer{name = OfferName} = Offer | _] = lists:foldl(F, [], Bundle),
 		rate2(Protocol, Product, Service, Buckets, Timestamp,
 				Address, Direction, Offer, Flag, DebitAmounts,
-				ReserveAmounts, State, #rated{product = OfferName},
+				ReserveAmounts, SessionId, #rated{product = OfferName},
 				ChargingKey, ServiceNetwork)
 	catch
 		_:_ ->
@@ -277,7 +277,7 @@ rate1(Protocol, Service, Product, Buckets, Timestamp, Address, Direction,
 	end;
 rate1(Protocol, Service, Product, Buckets, Timestamp, Address,
 		Direction, #offer{name = OfferName} = Offer,
-		Flag, DebitAmounts, ReserveAmounts, ServiceType, State,
+		Flag, DebitAmounts, ReserveAmounts, ServiceType, SessionId,
 		ChargingKey, ServiceNetwork) ->
 	case mnesia:read(offer, OfferName, read) of
 		[#offer{specification = Spec, status = Status} = _P] when
@@ -298,14 +298,14 @@ rate1(Protocol, Service, Product, Buckets, Timestamp, Address,
 					((ServiceType == ?DIAMETERSMS) and ((Spec == "10") orelse (Spec == "11"))))) ->
 			rate2(Protocol, Service, Product, Buckets, Timestamp, Address,
 					Direction, Offer, Flag, DebitAmounts, ReserveAmounts,
-					State, #rated{product = OfferName},
+					SessionId, #rated{product = OfferName},
 					ChargingKey, ServiceNetwork);
 		_ ->
 			throw(invalid_service_type)
 	end.
 rate2(Protocol, Service, Product, Buckets, Timestamp, Address, Direction,
 		#offer{specification = ProdSpec, price = Prices} = _Offer,
-		Flag, DebitAmounts, ReserveAmounts, State, Rated,
+		Flag, DebitAmounts, ReserveAmounts, SessionId, Rated,
 		ChargingKey, ServiceNetwork)
 		when ProdSpec == "10"; ProdSpec == "11" ->
 	F = fun(#price{type = usage, units = messages}) ->
@@ -325,7 +325,7 @@ rate2(Protocol, Service, Product, Buckets, Timestamp, Address, Direction,
 			RoamingTable = roaming_table_prefix(Price),
 			rate3(Protocol, Service, Product, Buckets, Address,
 					Price, Flag, DebitAmounts, ReserveAmounts,
-					State, RoamingTable, Rated,
+					SessionId, RoamingTable, Rated,
 					ChargingKey, ServiceNetwork);
 		_ ->
 			throw(price_not_found)
@@ -333,7 +333,7 @@ rate2(Protocol, Service, Product, Buckets, Timestamp, Address, Direction,
 rate2(Protocol, Service, Product, Buckets, Timestamp, Address, Direction,
 		#offer{specification = ProdSpec, price = Prices} = _Offer,
 		Flag, DebitAmounts, ReserveAmounts,
-		State, Rated, ChargingKey, ServiceNetwork)
+		SessionId, Rated, ChargingKey, ServiceNetwork)
 		when ProdSpec == "5"; ProdSpec == "9" ->
 	F = fun(#price{type = tariff, units = seconds}) ->
 				true;
@@ -350,14 +350,14 @@ rate2(Protocol, Service, Product, Buckets, Timestamp, Address, Direction,
 			RoamingTable = roaming_table_prefix(Price),
 			rate3(Protocol, Service, Product, Buckets, Address,
 					Price, Flag, DebitAmounts, ReserveAmounts,
-					State, RoamingTable,
+					SessionId, RoamingTable,
 					Rated, ChargingKey, ServiceNetwork);
 		_ ->
 			throw(price_not_found)
 	end;
 rate2(Protocol, Service, Product, Buckets, Timestamp, _Address, _Direction,
 		#offer{price = Prices} = _Offer, Flag, DebitAmounts, ReserveAmounts,
-		State, Rated, ChargingKey, ServiceNetwork) ->
+		SessionId, Rated, ChargingKey, ServiceNetwork) ->
 	F = fun(#price{type = tariff, units = octets}) ->
 				true;
 			(#price{type = usage}) ->
@@ -372,14 +372,14 @@ rate2(Protocol, Service, Product, Buckets, Timestamp, _Address, _Direction,
 			RoamingTable = roaming_table_prefix(Price),
 			rate4(Protocol, Service, Product, Buckets, Price,
 					Flag, DebitAmounts, ReserveAmounts,
-					State, RoamingTable, Rated, ChargingKey, ServiceNetwork);
+					SessionId, RoamingTable, Rated, ChargingKey, ServiceNetwork);
 		_ ->
 			throw(price_not_found)
 	end.
 %% @hidden
 rate3(Protocol, Service, Product, Buckets, Address,
 		#price{type = tariff, char_value_use = CharValueUse} = Price,
-		Flag, DebitAmounts, ReserveAmounts, State,
+		Flag, DebitAmounts, ReserveAmounts, SessionId,
 		RoamingTable, Rated, ChargingKey, ServiceNetwork) ->
 	case lists:keyfind("destPrefixTariffTable", #char_value_use.name, CharValueUse) of
 		#char_value_use{values = [#char_value{value = TariffTable}]}
@@ -391,7 +391,7 @@ rate3(Protocol, Service, Product, Buckets, Address,
 						N when N >= 0 ->
 							charge(Protocol, Service, Product, Buckets,
 									Price#price{amount = N}, Flag, DebitAmounts, ReserveAmounts,
-									State, Rated#rated{price_type = tariff,
+									SessionId, Rated#rated{price_type = tariff,
 											description = Description}, ChargingKey);
 						_N ->
 							throw(negative_amount)
@@ -414,7 +414,7 @@ rate3(Protocol, Service, Product, Buckets, Address,
 									N when N >= 0 ->
 										charge(Protocol, Service, Product, Buckets,
 												Price#price{amount = N}, Flag, DebitAmounts, ReserveAmounts,
-												State, Rated#rated{price_type = tariff,
+												SessionId, Rated#rated{price_type = tariff,
 												description = Description1}, ChargingKey);
 									_N ->
 										throw(negative_amount)
@@ -435,15 +435,14 @@ rate3(Protocol, Service, Product, Buckets, Address,
 			throw(undefined_tariff)
 	end;
 rate3(Protocol, Service, Product, Buckets, _Address,
-		Price, Flag, DebitAmounts, ReserveAmounts, State,
+		Price, Flag, DebitAmounts, ReserveAmounts, SessionId,
 		_RoamingTable, Rated, ChargingKey, _ServiceNetwork) ->
 	charge(Protocol, Product, Service, Buckets, Price,
-			Flag, DebitAmounts, ReserveAmounts, State, Rated, ChargingKey).
+			Flag, DebitAmounts, ReserveAmounts, SessionId, Rated, ChargingKey).
 %% @hidden
 rate4(Protocol, Service, Product, Buckets,
 		#price{type = tariff} = Price, Flag, DebitAmounts, ReserveAmounts,
-		State,
-		RoamingTable, Rated, ChargingKey, ServiceNetwork)
+		SessionId, RoamingTable, Rated, ChargingKey, ServiceNetwork)
 		when is_list(RoamingTable), is_list(ServiceNetwork) ->
 	Table = list_to_existing_atom(RoamingTable),
 	case catch ocs_gtt:lookup_last(Table, ServiceNetwork) of
@@ -452,7 +451,7 @@ rate4(Protocol, Service, Product, Buckets,
 				N when N >= 0 ->
 					charge(Protocol, Service, Product, Buckets,
 							Price#price{amount = N}, Flag, DebitAmounts, ReserveAmounts,
-							State, Rated#rated{price_type = tariff,
+							SessionId, Rated#rated{price_type = tariff,
 							description = Description}, ChargingKey);
 				_N ->
 					throw(negative_amount)
@@ -464,24 +463,24 @@ rate4(Protocol, Service, Product, Buckets,
 			throw(table_lookup_failed)
 	end;
 rate4(Protocol, Service, Product, Buckets, Price,
-		Flag, DebitAmounts, ReserveAmounts, State,
+		Flag, DebitAmounts, ReserveAmounts, SessionId,
 		_RoamingTable, Rated, ChargingKey, _ServiceNetwork) ->
 	charge(Protocol, Service, Product, Buckets, Price,
-			Flag, DebitAmounts, ReserveAmounts, State, Rated, ChargingKey).
+			Flag, DebitAmounts, ReserveAmounts, SessionId, Rated, ChargingKey).
 %% @hidden
 
 
 charge(_Protocol, #service{enabled = false} = Service, Product,
 		Buckets, #price{units = Units} = _Price, initial,
-		_DebitAmounts, _ReserveAmounts, State, Rated, ChargingKey) ->
+		_DebitAmounts, _ReserveAmounts, SessionId, Rated, ChargingKey) ->
 	charge3(Service, Product, Buckets, initial,
-			{Units, 0}, {Units, 0}, {Units, 0}, {Units, 0}, State, Rated, ChargingKey, Buckets);
+			{Units, 0}, {Units, 0}, {Units, 0}, {Units, 0}, SessionId, Rated, ChargingKey, Buckets);
 charge(radius, Service, Product, Buckets, #price{units = Units} = Price,
-		initial, [], [], State, Rated, ChargingKey) ->
+		initial, [], [], SessionId, Rated, ChargingKey) ->
 	charge2(Service, Product, Buckets, Price, initial, {Units, 0},
-			get_reserve(Price), State, Rated, ChargingKey);
+			get_reserve(Price), SessionId, Rated, ChargingKey);
 charge(radius, Service, Product, Buckets, #price{units = Units} = Price,
-		interim, DebitAmounts, ReserveAmounts, State, Rated, ChargingKey) ->
+		interim, DebitAmounts, ReserveAmounts, SessionId, Rated, ChargingKey) ->
 	DebitAmount = case lists:keyfind(Units, 1, DebitAmounts) of
 		{Units, DebitUnits} ->
 			{Units, DebitUnits};
@@ -496,10 +495,10 @@ charge(radius, Service, Product, Buckets, #price{units = Units} = Price,
 			get_reserve(Price)
 	end,
 	charge2(Service, Product, Buckets, Price, interim, DebitAmount, ReserveAmount,
-			State, Rated, ChargingKey);
+			SessionId, Rated, ChargingKey);
 charge(_Protocol, Product, Service, Buckets,
 		#price{units = Units, size = Size} = Price,
-		Flag, DebitAmounts, [], State, Rated, ChargingKey)
+		Flag, DebitAmounts, [], SessionId, Rated, ChargingKey)
 		when ((Flag == initial) or (Flag == interim)) ->
 	DebitAmount = case lists:keyfind(Units, 1, DebitAmounts) of
 		{Units, DebitUnits} ->
@@ -530,16 +529,16 @@ charge(_Protocol, Product, Service, Buckets,
 					{Units, Value}
 			end
 	end,
-	charge2(Service, Product, Buckets, Price, Flag, DebitAmount, ReserveAmount, State,
+	charge2(Service, Product, Buckets, Price, Flag, DebitAmount, ReserveAmount, SessionId,
 			Rated, ChargingKey);
 charge(_Protocol, Service, Product, Buckets, #price{units = Units, size = Size} = Price,
-		event, _DebitAmounts, undefined, State, Rated, ChargingKey) ->
+		event, _DebitAmounts, undefined, SessionId, Rated, ChargingKey) ->
 	DebitAmount = {Units, Size},
 	ReserveAmount = {Units, 0},
 	charge2(Service, Product, Buckets, Price, event, DebitAmount, ReserveAmount,
-			State, Rated, ChargingKey);
+			SessionId, Rated, ChargingKey);
 charge(_Protocol, Service, Product, Buckets, #price{units = Units, size = Size} = Price,
-		event, _DebitAmounts, ReserveAmounts, State, Rated, ChargingKey) ->
+		event, _DebitAmounts, ReserveAmounts, SessionId, Rated, ChargingKey) ->
 	DebitAmount = case lists:keyfind(Units, 1, ReserveAmounts) of
 		{Units, DebitUnits} ->
 			{Units, DebitUnits};
@@ -548,9 +547,9 @@ charge(_Protocol, Service, Product, Buckets, #price{units = Units, size = Size} 
 	end,
 	ReserveAmount = {Units, 0},
 	charge2(Service, Product, Buckets, Price, event, DebitAmount, ReserveAmount,
-			State, Rated, ChargingKey);
+			SessionId, Rated, ChargingKey);
 charge(_Protocol, Service, Product, Buckets, #price{units = Units} = Price,
-		Flag, DebitAmounts, undefined, State, Rated, ChargingKey) ->
+		Flag, DebitAmounts, undefined, SessionId, Rated, ChargingKey) ->
 	DebitAmount = case lists:keyfind(Units, 1, DebitAmounts) of
 		{Units, DebitUnits} ->
 			{Units, DebitUnits};
@@ -559,9 +558,9 @@ charge(_Protocol, Service, Product, Buckets, #price{units = Units} = Price,
 	end,
 	ReserveAmount = {Units, 0},
 	charge2(Service, Product, Buckets, Price, Flag, DebitAmount, ReserveAmount,
-			State, Rated, ChargingKey);
+			SessionId, Rated, ChargingKey);
 charge(_Protocol, Service, Product, Buckets, #price{units = Units} = Price,
-		Flag, DebitAmounts, ReserveAmounts, State, Rated, ChargingKey)
+		Flag, DebitAmounts, ReserveAmounts, SessionId, Rated, ChargingKey)
 		when is_list(ReserveAmounts) ->
 	DebitAmount = case lists:keyfind(Units, 1, DebitAmounts) of
 		{Units, DebitUnits} ->
@@ -576,18 +575,18 @@ charge(_Protocol, Service, Product, Buckets, #price{units = Units} = Price,
 			{Units, 0}
 	end,
 	charge2(Service, Product, Buckets, Price, Flag, DebitAmount, ReserveAmount,
-			State, Rated, ChargingKey).
+			SessionId, Rated, ChargingKey).
 %% @hidden
 charge2(#service{name = ServiceId} = Service, Product, Buckets,
 		#price{units = Units, size = UnitSize, amount = UnitPrice},
 		initial, {_, 0}, {Units, Amount} = ReserveAmount,
-		#state{session_id = SessionId} = State, Rated, ChargingKey) ->
+		SessionId, Rated, ChargingKey) ->
 	case update_session(Units, 0, Amount,
 			ServiceId, ChargingKey, SessionId, Buckets) of
 		{0, UnitsReserved, Buckets2} when UnitsReserved >= Amount ->
 			charge3(Service, Product, Buckets2, initial,
 					{Units, 0}, {Units, 0}, ReserveAmount,
-					{Units, UnitsReserved}, State, Rated, ChargingKey, Buckets);
+					{Units, UnitsReserved}, SessionId, Rated, ChargingKey, Buckets);
 		{0, UnitsReserved, Buckets2} when UnitsReserved < Amount ->
 			PriceReserveUnits = (Amount - UnitsReserved),
 			{UnitReserve, PriceReserve} = price_units(PriceReserveUnits,
@@ -599,22 +598,22 @@ charge2(#service{name = ServiceId} = Service, Product, Buckets,
 							UnitReserve, ServiceId, ChargingKey, SessionId, Buckets3),
 					charge3(Service, Product, Buckets4, initial,
 							{Units, 0}, {Units, 0}, ReserveAmount,
-							{Units, UnitsReserved + UnitReserve}, State, Rated, ChargingKey, Buckets);
+							{Units, UnitsReserved + UnitReserve}, SessionId, Rated, ChargingKey, Buckets);
 				false ->
 					charge3(Service, Product, Buckets2, initial,
 							{Units, 0}, {Units, 0}, ReserveAmount,
-							{Units, UnitsReserved}, State, Rated, ChargingKey, Buckets)
+							{Units, UnitsReserved}, SessionId, Rated, ChargingKey, Buckets)
 			end
 	end;
 charge2(#service{enabled = false, name = ServiceId} = Service, #product{id = ProductId} = Product,
 		Buckets, #price{units = Units, size = UnitSize, amount = UnitPrice},
 		interim, {Units, Amount} = DebitAmount, _ReserveAmount,
-		#state{session_id = SessionId} = State, Rated, ChargingKey) ->
+		SessionId, Rated, ChargingKey) ->
 	case update_session(Units, Amount, 0,
 			ServiceId, ChargingKey, SessionId, Buckets) of
 		{Amount, 0, Buckets2} ->
 			charge3(Service, Product, Buckets2, interim,
-					DebitAmount, DebitAmount, {Units, 0}, {Units, 0}, State, Rated, ChargingKey, Buckets);
+					DebitAmount, DebitAmount, {Units, 0}, {Units, 0}, SessionId, Rated, ChargingKey, Buckets);
 		{UnitsCharged, 0, Buckets2} when UnitsCharged < Amount ->
 			NewChargeUnits = Amount - UnitsCharged,
 			{UnitCharge, PriceCharge} = price_units(NewChargeUnits,
@@ -627,7 +626,7 @@ charge2(#service{enabled = false, name = ServiceId} = Service, #product{id = Pro
 						{NewChargeUnits, 0, Buckets4} ->
 							charge3(Service, Product, Buckets4, interim,
 									DebitAmount, {Units, UnitsCharged},
-									{Units, 0}, {Units, 0}, State, Rated, ChargingKey, Buckets);
+									{Units, 0}, {Units, 0}, SessionId, Rated, ChargingKey, Buckets);
 						{NewUnitsCharged, 0, Buckets4}
 								when NewUnitsCharged < NewChargeUnits->
 							Now = erlang:system_time(millisecond),
@@ -640,7 +639,7 @@ charge2(#service{enabled = false, name = ServiceId} = Service, #product{id = Pro
 									units = Units, product = [ProductId]} | Buckets4],
 							charge3(Service, Product, Buckets5, interim,
 									DebitAmount, {Units, UnitsCharged + NewUnitsCharged},
-									{Units, 0}, {Units, 0}, State, Rated, ChargingKey, Buckets)
+									{Units, 0}, {Units, 0}, SessionId, Rated, ChargingKey, Buckets)
 					end;
 				false ->
 					Now = erlang:system_time(millisecond),
@@ -653,18 +652,18 @@ charge2(#service{enabled = false, name = ServiceId} = Service, #product{id = Pro
 							units = Units, product = [ProductId]} | Buckets2],
 					charge3(Service, Product, Buckets4, interim,
 							DebitAmount, {Units, UnitsCharged},
-							{Units, 0}, {Units, 0}, State, Rated, ChargingKey, Buckets)
+							{Units, 0}, {Units, 0}, SessionId, Rated, ChargingKey, Buckets)
 			end
 	end;
 charge2(#service{name = ServiceId} = Service, #product{id = ProductId} = Product, Buckets,
 		#price{units = Units, size = UnitSize, amount = UnitPrice},
 		interim, {Units, Damount} = DebitAmount, {Units, Ramount} = ReserveAmount,
-		#state{session_id = SessionId} = State, Rated, ChargingKey) ->
+		SessionId, Rated, ChargingKey) ->
 	case update_session(Units, Damount, Ramount,
 			ServiceId, ChargingKey, SessionId, Buckets) of
 		{Damount, UnitsReserved, Buckets2} when UnitsReserved >= Ramount ->
 			charge3(Service, Product, Buckets2, interim, DebitAmount, DebitAmount,
-					ReserveAmount, {Units, UnitsReserved}, State, Rated, ChargingKey, Buckets);
+					ReserveAmount, {Units, UnitsReserved}, SessionId, Rated, ChargingKey, Buckets);
 		{Damount, UnitsReserved, Buckets2} when UnitsReserved < Ramount ->
 			NewReserveUnits = Ramount - UnitsReserved,
 			{UnitReserve, PriceReserve} = price_units(NewReserveUnits,
@@ -677,10 +676,10 @@ charge2(#service{name = ServiceId} = Service, #product{id = ProductId} = Product
 							ChargingKey, SessionId, Buckets3),
 					charge3(Service, Product, Buckets4, interim,
 							DebitAmount, DebitAmount, ReserveAmount,
-							{Units, UnitsReserved + UnitReserve}, State, Rated, ChargingKey, Buckets);
+							{Units, UnitsReserved + UnitReserve}, SessionId, Rated, ChargingKey, Buckets);
 				false ->
 					charge3(Service, Product, Buckets2, interim, DebitAmount, DebitAmount,
-							ReserveAmount, {Units, UnitsReserved}, State, Rated, ChargingKey, Buckets)
+							ReserveAmount, {Units, UnitsReserved}, SessionId, Rated, ChargingKey, Buckets)
 			end;
 		{UnitsCharged, 0, Buckets2} when UnitsCharged < Damount ->
 			NewChargeUnits = Damount - UnitsCharged,
@@ -696,7 +695,7 @@ charge2(#service{name = ServiceId} = Service, #product{id = ProductId} = Product
 								when UnitsReserved >= UnitReserve ->
 							charge3(Service, Product, Buckets4, interim, DebitAmount,
 									{Units, UnitsCharged + NewChargeUnits},
-									ReserveAmount, {Units, UnitsReserved}, State, Rated, ChargingKey, Buckets);
+									ReserveAmount, {Units, UnitsReserved}, SessionId, Rated, ChargingKey, Buckets);
 						{NewUnitsCharged, 0, Buckets4}
 								when NewUnitsCharged < NewChargeUnits ->
 							Now = erlang:system_time(millisecond),
@@ -710,7 +709,7 @@ charge2(#service{name = ServiceId} = Service, #product{id = ProductId} = Product
 									units = Units, product = [ProductId]} | Buckets4],
 							charge3(Service, Product, Buckets5, interim, DebitAmount,
 									{Units, UnitsCharged + NewUnitsCharged},
-									ReserveAmount, {Units, 0}, State, Rated, ChargingKey, Buckets)
+									ReserveAmount, {Units, 0}, SessionId, Rated, ChargingKey, Buckets)
 					end;
 				false ->
 					Now = erlang:system_time(millisecond),
@@ -724,14 +723,14 @@ charge2(#service{name = ServiceId} = Service, #product{id = ProductId} = Product
 							units = Units, product = [ProductId]} | Buckets2],
 					charge3(Service, Product, Buckets4, interim,
 							DebitAmount, {Units, Damount - UnitsCharged},
-							ReserveAmount, {Units, 0}, State, Rated, ChargingKey, Buckets)
+							ReserveAmount, {Units, 0}, SessionId, Rated, ChargingKey, Buckets)
 			end
 	end;
 charge2(#service{name = ServiceId} = Service, #product{id = ProductId} = Product, Buckets,
 		#price{units = Units, size = UnitSize, amount = UnitPrice,
 		type = PriceType, currency = Currency}, final,
 		{Units, Amount} = DebitAmount, {Units, 0} = ReserveAmount,
-		#state{session_id = SessionId} = State, Rated, ChargingKey) ->
+		SessionId, Rated, ChargingKey) ->
 	Rated2 = Rated#rated{price_type = PriceType, currency = Currency},
 	case charge_session(Units, Amount,
 			ServiceId, ChargingKey, SessionId, Buckets) of
@@ -740,7 +739,7 @@ charge2(#service{name = ServiceId} = Service, #product{id = ProductId} = Product
 					ChargingKey, SessionId, Buckets2),
 			Rated3 = rated(Debits, Rated2),
 			charge3(Service, Product, Buckets3, final, DebitAmount, DebitAmount,
-					ReserveAmount, ReserveAmount, State, Rated3, ChargingKey, Buckets);
+					ReserveAmount, ReserveAmount, SessionId, Rated3, ChargingKey, Buckets);
 		{UnitsCharged, Buckets2} when UnitsCharged < Amount ->
 			{UnitCharge, PriceCharge} = price_units(Amount - UnitsCharged,
 					UnitSize, UnitPrice),
@@ -752,7 +751,7 @@ charge2(#service{name = ServiceId} = Service, #product{id = ProductId} = Product
 							ChargingKey, SessionId, Buckets3),
 					Rated3 = rated(Debits, Rated2),
 					charge3(Service, Product, Buckets4, final, DebitAmount, {Units, TotalUnits},
-							ReserveAmount, ReserveAmount, State, Rated3, ChargingKey, Buckets);
+							ReserveAmount, ReserveAmount, SessionId, Rated3, ChargingKey, Buckets);
 				{PriceCharged, Buckets3}  when PriceCharged < PriceCharge ->
 					TotalUnits = UnitsCharged + (PriceCharged div UnitPrice),
 					{Debits, Buckets4} = get_final(ServiceId,
@@ -768,20 +767,20 @@ charge2(#service{name = ServiceId} = Service, #product{id = ProductId} = Product
 							reservations = [NewReservation],
 							units = cents, product = [ProductId]} | Buckets4],
 					charge3(Service, Product, Buckets5, final, DebitAmount, {Units, TotalUnits},
-							ReserveAmount, ReserveAmount, State, Rated3, ChargingKey, Buckets)
+							ReserveAmount, ReserveAmount, SessionId, Rated3, ChargingKey, Buckets)
 			end
 	end;
 charge2(#service{name = ServiceId} = Service, #product{id = ProductId} = Product, Buckets,
 		#price{units = Units, size = UnitSize, amount = UnitPrice,
 		type = PriceType, currency = Currency}, event,
 		{Units, Amount} = DebitAmount, {Units, 0} = ReserveAmount,
-		#state{session_id = SessionId} = State, Rated, ChargingKey) ->
+		SessionId, Rated, ChargingKey) ->
 	Rated2 = Rated#rated{price_type = PriceType, currency = Currency},
 	case charge_event(Units, Amount, Buckets) of
 		{Amount, Buckets2} ->
 			Rated3 = rated(#{Units => Amount}, Rated2),
 			charge3(Service, Product, Buckets2, event, DebitAmount, DebitAmount,
-					ReserveAmount, ReserveAmount, State, Rated3, ChargingKey, Buckets);
+					ReserveAmount, ReserveAmount, SessionId, Rated3, ChargingKey, Buckets);
 		{UnitsCharged, Buckets2} when UnitsCharged < Amount ->
 			{UnitCharge, PriceCharge} = price_units(Amount - UnitsCharged,
 					UnitSize, UnitPrice),
@@ -790,7 +789,7 @@ charge2(#service{name = ServiceId} = Service, #product{id = ProductId} = Product
 					TotalUnits = UnitsCharged + UnitCharge,
 					Rated3 = rated(#{Units => Amount, cents => PriceCharge}, Rated2),
 					charge3(Service, Product, Buckets3, event, DebitAmount, {Units, TotalUnits},
-							ReserveAmount, ReserveAmount, State, Rated3, ChargingKey, Buckets);
+							ReserveAmount, ReserveAmount, SessionId, Rated3, ChargingKey, Buckets);
 				{PriceCharged, Buckets3}  when PriceCharged < PriceCharge ->
 					TotalUnits = UnitsCharged + (PriceCharged div UnitPrice),
 					Rated3 = rated(#{Units => Amount, cents => PriceCharged}, Rated2),
@@ -804,13 +803,13 @@ charge2(#service{name = ServiceId} = Service, #product{id = ProductId} = Product
 							reservations = [NewReservation],
 							units = cents, product = [ProductId]} | Buckets3],
 					charge3(Service, Product, Buckets4, event, DebitAmount, {Units, TotalUnits},
-							ReserveAmount, ReserveAmount, State, Rated3, ChargingKey, Buckets)
+							ReserveAmount, ReserveAmount, SessionId, Rated3, ChargingKey, Buckets)
 			end
 	end.
 %% @hidden
 charge3(#service{session_attributes = SessionList, name = ServiceId} = Service1,
 		Product, Buckets, final, {Units, Charge}, {Units, Charged},
-		{Units, 0}, {Units, 0}, #state{session_id = SessionId},
+		{Units, 0}, {Units, 0}, SessionId,
 		Rated, ChargingKey, OldBuckets) when Charged >= Charge ->
 	{Debits, NewBuckets} = get_final(ServiceId,
 			ChargingKey, SessionId, Buckets),
@@ -823,10 +822,9 @@ charge3(#service{session_attributes = SessionList, name = ServiceId} = Service1,
 	ok = mnesia:write(Service2),
 	{ok, Service2, Rated1, DeletedBuckets,
 			accumulated_balance(NewBuckets, Product#product.id)};
-charge3(#service{session_attributes = SessionList} = Service1, Product, Buckets, final,
+charge3(#service{session_attributes = SessionList, name = ServiceId} = Service1, Product, Buckets, final,
 		{Units, _Charge}, {Units, _Charged}, {Units, 0}, {Units, 0},
-		#state{session_id = SessionId,
-		service_id = ServiceId}, Rated, ChargingKey, OldBuckets) ->
+		SessionId, Rated, ChargingKey, OldBuckets) ->
 	{Debits, NewBuckets} = get_final(ServiceId,
 			ChargingKey, SessionId, Buckets),
 	{NewBRefs, DeletedBuckets}
@@ -837,11 +835,11 @@ charge3(#service{session_attributes = SessionList} = Service1, Product, Buckets,
 	ok = mnesia:write(Service2),
 	{out_of_credit, SessionList, Rated1, DeletedBuckets,
 			accumulated_balance(NewBuckets, Product#product.id)};
-charge3(#service{enabled = false, session_attributes = SessionList} = Service1, Product,
+charge3(#service{enabled = false, session_attributes = SessionList,
+		name = ServiceId} = Service1, Product,
 		Buckets, _Flag, {Units, _Charge}, {Units, _Charged},
 		{Units, _Reserve}, {Units, _Reserved},
-		#state{session_id = SessionId, service_id = ServiceId},
-		_Rated, ChargingKey, OldBuckets) ->
+		SessionId, _Rated, ChargingKey, OldBuckets) ->
 	NewBuckets = refund(ServiceId, ChargingKey, SessionId, Buckets),
 	{NewBRefs, DeletedBuckets}
 			= update_buckets(Product#product.balance, OldBuckets, NewBuckets),
@@ -850,10 +848,9 @@ charge3(#service{enabled = false, session_attributes = SessionList} = Service1, 
 	ok = mnesia:write(Service2),
 	{disabled, SessionList, DeletedBuckets,
 			accumulated_balance(NewBuckets, Product#product.id)};
-charge3(#service{session_attributes = SessionList} = Service1, Product, Buckets, _Flag,
+charge3(#service{session_attributes = SessionList, name = ServiceId} = Service1, Product, Buckets, _Flag,
 		{Units, Charge}, {Units, Charged}, {Units, Reserve}, {Units, Reserved},
-		#state{session_id = SessionId, service_id = ServiceId},
-		_Rated, ChargingKey, OldBuckets)
+		SessionId, _Rated, ChargingKey, OldBuckets)
 		when Charged < Charge; Reserved <  Reserve ->
 	NewBuckets = refund(ServiceId, ChargingKey, SessionId, Buckets),
 	{NewBRefs, DeletedBuckets}
@@ -865,7 +862,7 @@ charge3(#service{session_attributes = SessionList} = Service1, Product, Buckets,
 			accumulated_balance(NewBuckets, Product#product.id)};
 charge3(#service{session_attributes = SessionList} = Service1, Product, Buckets, initial,
 		{Units, 0}, {Units, 0}, {Units, _Reserve}, {Units, Reserved},
-		#state{session_id = SessionId}, _Rated,  _ChargingKey, OldBuckets) ->
+		SessionId, _Rated,  _ChargingKey, OldBuckets) ->
 	{NewBRefs, DeletedBuckets}
 			= update_buckets(Product#product.balance, OldBuckets, Buckets),
 	ok = mnesia:write(Product#product{balance = NewBRefs}),
@@ -876,7 +873,7 @@ charge3(#service{session_attributes = SessionList} = Service1, Product, Buckets,
 			accumulated_balance(Buckets, Product#product.id)};
 charge3(Service, Product, Buckets, interim, {Units, _Charge}, {Units, _Charged},
 		{Units, _Reserve}, {Units, Reserved},
-		_State, _Rated, _ChargingKey, OldBuckets) ->
+		_SessionId, _Rated, _ChargingKey, OldBuckets) ->
 	{NewBRefs, DeletedBuckets}
 			= update_buckets(Product#product.balance, OldBuckets, Buckets),
 	ok = mnesia:write(Product#product{balance = NewBRefs}),
@@ -885,7 +882,7 @@ charge3(Service, Product, Buckets, interim, {Units, _Charge}, {Units, _Charged},
 			accumulated_balance(Buckets, Product#product.id)};
 charge3(Service, Product, Buckets, event,
 		{Units, Charge}, {Units, Charged}, {Units, 0}, {Units, 0},
-		_State, Rated, _ChargingKey, OldBuckets)
+		_SessionId, Rated, _ChargingKey, OldBuckets)
 		when Charged >= Charge ->
 	{NewBRefs, DeletedBuckets}
 			= update_buckets(Product#product.balance, OldBuckets, Buckets),
@@ -895,7 +892,7 @@ charge3(Service, Product, Buckets, event,
 			accumulated_balance(Buckets, Product#product.id)};
 charge3(#service{session_attributes = SessionList} = Service1, Product, Buckets, event,
 		{Units, _Charge}, {Units, _Charged}, {Units, 0}, {Units, 0},
-		_State, Rated, _ChargingKey, OldBuckets) ->
+		_SessionId, Rated, _ChargingKey, OldBuckets) ->
 	{NewBRefs, DeletedBuckets}
 			= update_buckets(Product#product.balance, OldBuckets, Buckets),
 	ok = mnesia:write(Product#product{balance = NewBRefs}),
