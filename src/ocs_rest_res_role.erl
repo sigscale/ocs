@@ -54,26 +54,24 @@ content_types_provided() ->
 %% @doc Handle `POST' request on `Role' collection.
 %% 	Respond to `POST /partyRoleManagement/v4/partyRole' request.
 post_role(RequestBody) ->
-	case get_params() of
-		{Port, Address, Directory, _Group} ->
-			try
-				Role = role(mochijson:decode(RequestBody)),
-				LM = {erlang:system_time(?MILLISECOND),
-						erlang:unique_integer([positive])},
-				Name = Role#httpd_user.username,
-				true = mod_auth:add_user(Name, [],
-						Role#httpd_user.user_data, Address, Port, Directory),
+	try
+		Role = role(mochijson:decode(RequestBody)),
+		{Name, _, _, _} = Role#httpd_user.username,
+		case ocs:add_user(Name, [], "en") of
+			{ok, LastModified} ->
 				Body = mochijson:encode(role(Role)),
 				Location = "/partyRoleManagement/v4/partyRole/" ++ Name,
 				Headers = [{content_type, "application/json"},
-						{location, Location}, {etag, ocs_rest:etag(LM)}],
-				{ok, Headers, Body}
-			catch
-				_:_Reason1 ->
-					{error, 400}
-			end;
-		{error, _Reason} ->
-			{error, 500}
+						{location, Location}, {etag, ocs_rest:etag(LastModified)}],
+				{ok, Headers, Body};
+			{error, _Reason} ->
+				{error, 400}
+		end
+	catch
+		_:500 ->
+			{error, 500};
+		_:_Reason1 ->
+			{error, 400}
 	end.
 
 -spec delete_role(Name) -> Result
@@ -83,17 +81,13 @@ post_role(RequestBody) ->
 				| {error, ErrorCode :: integer()} .
 %% @doc Handle `DELETE' request on a `Role' resource.
 %% 	Respond to `DELETE /partyRoleManagement/v4/partyRole/{Name}' request.
-delete_role(Name) ->
-	delete_role(Name, get_params()).
-delete_role(Name, {Port, Address, Directory, _Group}) ->
-	case mod_auth:delete_user(Name, Address, Port, Directory) of
-		true ->
+delete_role(Name) when is_list(Name) ->
+	case ocs:delete_user(Name) of
+		ok ->
 			{ok, [], []};
 		{error, _Reason} ->
 			{error, 400}
-	end;
-delete_role(_Name, {error, Reason}) ->
-	{error, Reason}.
+	end.
 
 -spec get_roles(Query, Headers) -> Result
 	when
@@ -175,34 +169,28 @@ get_roles1(Query, Filters, Headers) ->
 %% @doc Handle `GET' request on a `Role' resource.
 %% 	Respond to `GET /partyRoleManagement/v4/partyRole/{Name}' request.
 get_role(Name, Query) ->
-	get_role(Name, Query, get_params()).
-%% @hidden
-get_role(Name, Query, {_, _, _, _} = Params) ->
 	case lists:keytake("fields", 1, Query) of
 		{value, {_, L}, NewQuery} ->
-			get_role(Name, NewQuery, Params, string:tokens(L, ","));
+			get_role(Name, NewQuery, string:tokens(L, ","));
 		false ->
-			get_role(Name, Query, Params, [])
-	end;
-get_role(_Name, _Query, {error, Reason}) ->
-	{error, Reason}.
+			get_role(Name, Query, [])
+	end.
 %% @hidden
-get_role(Name, [] = _Query, {Port, Address, Dir, _Group}, _Filters) ->
-	case mod_auth:get_user(Name, Address, Port, Dir) of
-		{ok, #httpd_user{user_data = UserData} = RoleRec} ->
+get_role(Name, [] = _Query, _Filters) ->
+	case ocs:get_user(Name) of
+		{ok, #httpd_user{user_data = UserData} = Role} ->
 			Headers = case lists:keyfind(last_modified, 1, UserData) of
 				{_, LastModified} ->
-					[{content_type, "application/json"},
-							{etag, im_rest:etag(LastModified)}];
+					[{content_type, "application/json"}, {etag, ocs_rest:etag(LastModified)}];
 				false ->
 					[{content_type, "application/json"}]
 			end,
-			Body = mochijson:encode(role(RoleRec)),
+			Body = mochijson:encode(role(Role)),
 			{ok, Headers, Body};
 		{error, _Reason} ->
 			{error, 404}
 	end;
-get_role(_, _, _, _) ->
+get_role(_, _, _) ->
 	{error, 400}.
 
 %%----------------------------------------------------------------------
@@ -259,42 +247,24 @@ get_params5(_, _, _, false) ->
 %% @doc CODEC for HTTP server users.
 role(#httpd_user{username = {Name, _, _, _}} = User) when is_list(Name) ->
 	role(User#httpd_user{username = Name});
-role(#httpd_user{username = Name, user_data = UserData})
-		when is_list(UserData) ->
-	F = fun(Key) ->
-			case lists:keyfind(Key, 1, UserData) of
-				{Key, Value} ->
-					Value;
-				false ->
-					false
-			end
-	end,
-	{struct, [{"id", Name}, {"name", Name}, {"@type", F(type)}, {"validFor", {struct,
-					[{"startDateTime", ocs_rest:iso8601(F(start_date))},
-					{"endDateTime", ocs_rest:iso8601(F(end_date))}]}},
-			{"href", "/partyRoleManagement/v4/partyRole/" ++ Name}]};
+role(#httpd_user{username = Name}) when is_list(Name) ->
+	{struct, [{"id", Name}, {"name", Name},
+			{"href", "/partyRoleManagement/v4/partyRole/" ++ Name},
+			{"@type", "PartyRole"}]};
 role({struct, L}) when is_list(L) ->
 	role(L, #httpd_user{user_data = []}).
 %% @hidden
 role([{"name", Name} | T], Acc) when is_list(Name) ->
-	role(T, Acc#httpd_user{username = Name});
+	case get_params() of
+		{Port, Address, Directory, _Group} ->
+			role(T, Acc#httpd_user{username = {Name, Address, Port, Directory}});
+		{error, _Reason} ->
+			{error, 500}
+	end;
 role([{"@type", Type} | T], #httpd_user{user_data = UserData} = Acc)
 		when is_list(Type) ->
 	role(T, Acc#httpd_user{user_data = [{type, Type} | UserData]});
-role([{"validFor", {struct, ValidFor}} | T], Acc) when is_list(ValidFor) ->
-	role(T, valid_for(ValidFor, Acc));
 role([], Acc) ->
-	Acc.
-%% @hidden
-valid_for([{"startDateTime", StartDate} | T],
-		#httpd_user{user_data = UserData} = Acc) when is_list(StartDate) ->
-	valid_for(T, Acc#httpd_user{user_data = [{start_date,
-			ocs_rest:iso8601(StartDate)} | UserData]});
-valid_for([{"endDateTime", EndDate} | T],
-		#httpd_user{user_data = UserData} = Acc) when is_list(EndDate) ->
-	valid_for(T, Acc#httpd_user{user_data = [{end_date,
-			ocs_rest:iso8601(EndDate)} | UserData]});
-valid_for([], Acc) ->
 	Acc.
 
 %% @hidden
@@ -330,23 +300,23 @@ query_start(Query, Filters, RangeStart, RangeEnd) ->
 	end.
 
 %% @hidden
-query_page(PageServer, Etag, _Query, _Filters, Start, End) ->
+query_page(PageServer, Etag, _Query, Filters, Start, End) ->
 	case gen_server:call(PageServer, {Start, End}, infinity) of
 		{error, Status} ->
 			{error, Status};
 		{Events, ContentRange} ->
-			F = fun(#httpd_user{user_data = UserData} = User) ->
-					case lists:keyfind(type, 1, UserData) of
-						{type, "PartyRole"} ->
-							{true, role(User)};
-						false ->
-							false
-					end
-			end,
-			Body = mochijson:encode({array, lists:filtermap(F, Events)}),
+			JsonObj = query_page1(lists:map(fun role/1, Events), Filters, []),
+			Body = mochijson:encode({array, JsonObj}),
 			Headers = [{content_type, "application/json"},
 					{etag, Etag}, {accept_ranges, "items"},
 					{content_range, ContentRange}],
 			{ok, Headers, Body}
 	end.
+%% @hidden
+query_page1([], _, Acc) ->
+	lists:reverse(Acc);
+query_page1(Json, [], Acc) ->
+	lists:reverse(Json ++ Acc);
+query_page1([H | T], Filters, Acc) ->
+	query_page1(T, Filters, [ocs_rest:fields(Filters, H) | Acc]).
 

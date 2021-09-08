@@ -5804,30 +5804,20 @@ add_policy_row(TableId, TableName, 1) ->
 %% @hidden
 party_role(RoleName) ->
 	RoleType = "PartyRole",
-	StartDate = ocs_rest:iso8601(erlang:system_time(?MILLISECOND)),
-	EndDate = ocs_rest:iso8601(erlang:system_time(?MILLISECOND) + 31536000000),
 	{struct, [{"@type", RoleType},
-		{"name", RoleName},
-		{"validFor", {struct, [{"startDateTime", StartDate},
-				{"endDateTime", EndDate}]}}]}.
+		{"name", RoleName}]}.
 
 %% @hidden
-is_role({struct, RoleObj}) when length(RoleObj) == 5 ->
-	F = fun F({"id", Name}) when is_list(Name) ->
+is_role({struct, RoleObj}) when length(RoleObj) == 4 ->
+	F = fun({"id", Name}) when is_list(Name) ->
 				true;
-			F({"href", Href}) when is_list(Href) ->
+			({"href", Href}) when is_list(Href) ->
 				true;
-			F({"name", Name}) when is_list(Name) ->
+			({"name", Name}) when is_list(Name) ->
 				true;
-			F({"@type", RoleType}) when is_list(RoleType) ->
+			({"@type", RoleType}) when is_list(RoleType) ->
 				true;
-			F({"startDateTime", SD}) when is_list(SD) ->
-				true;
-			F({"endDateTime", ED}) when is_list(ED) ->
-				true;
-			F({"validFor", {struct, ValidFor}}) when length(ValidFor) == 2 ->
-				lists:all(F, ValidFor);
-			F(_) ->
+			(_) ->
 				false
 	end,
 	lists:all(F, RoleObj);
