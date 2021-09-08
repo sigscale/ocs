@@ -60,8 +60,8 @@
 	when
 		Protocol :: radius | diameter,
 		ServiceType :: integer() | binary(),
-		ServiceId :: integer() | undefined,
-		ChargingKey :: integer() | undefined,
+		ServiceId :: non_neg_integer() | undefined,
+		ChargingKey :: non_neg_integer() | undefined,
 		ServiceNetwork :: string() | binary() | undefined,
 		SubscriberID :: string() | binary(),
 		Timestamp :: calendar:datetime(),
