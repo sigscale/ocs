@@ -175,15 +175,13 @@ rate(Protocol, ServiceType, ServiceId, ChargingKey,
 									case lists:all(F2, Buckets) of
 										true ->
 											State = #state{buckets = Buckets,
-													product  = Product,
 													service_id = ServiceId,
 													charging_key = ChargingKey,
 													service_network = ServiceNetwork,
-													session_id = get_session_id(SessionAttributes),
-													redirect_server = RedirectServerAddress},
-											rate1(Protocol, Service, Product, Buckets,
+													session_id = get_session_id(SessionAttributes)},
+											{rate1(Protocol, Service, Product, Buckets,
 													Timestamp, Address, Direction, Offer,
-													Flag, DebitAmounts, ReserveAmounts, ServiceType, State);
+													Flag, DebitAmounts, ReserveAmounts, ServiceType, State), RedirectServerAddress};
 										false ->
 											{out_of_credit, RedirectServerAddress, SessionList, [], []}
 									end;
@@ -198,7 +196,7 @@ rate(Protocol, ServiceType, ServiceId, ChargingKey,
 			end
 	end,
 	case mnesia:transaction(F) of
-		{atomic, {ok, Sub, Rated, DeletedBuckets, AccBalance}}
+		{atomic, {{ok, Sub, Rated, DeletedBuckets, AccBalance}, _}}
 				when is_list(Rated); Rated == #rated{} ->
 			Rated1 = case Rated of
 				Rated when is_list(Rated) ->
@@ -209,7 +207,7 @@ rate(Protocol, ServiceType, ServiceId, ChargingKey,
 			ok = send_notifications(DeletedBuckets),
 			ok = notify_accumulated_balance(AccBalance),
 			{ok, Sub, Rated1};
-		{atomic, {ok, Sub, Granted, Rated, DeletedBuckets, AccBalance}}
+		{atomic, {{ok, Sub, Granted, Rated, DeletedBuckets, AccBalance}, _}}
 				when is_list(Rated); Rated == #rated{} ->
 			Rated1 = case Rated of
 				Rated when is_list(Rated) ->
@@ -220,20 +218,22 @@ rate(Protocol, ServiceType, ServiceId, ChargingKey,
 			ok = send_notifications(DeletedBuckets),
 			ok = notify_accumulated_balance(AccBalance),
 			{ok, Sub, Granted, Rated1};
-		{atomic, {out_of_credit, RedirectServerAddress, SL, Rated, DeletedBuckets, AccBalance}} ->
+		{atomic, {{out_of_credit, SL, Rated,
+				DeletedBuckets, AccBalance}, RedirectServerAddress}} ->
 			ok = send_notifications(DeletedBuckets),
 			ok = notify_accumulated_balance(AccBalance),
 			{out_of_credit, RedirectServerAddress, SL, Rated};
-		{atomic, {grant, Sub, {_Units, Amount} = Granted, DeletedBuckets,
-				AccBalance}} when is_integer(Amount) ->
+		{atomic, {{grant, Sub, {_Units, Amount} = Granted, DeletedBuckets,
+				AccBalance}, _}} when is_integer(Amount) ->
 			ok = send_notifications(DeletedBuckets),
 			ok = notify_accumulated_balance(AccBalance),
 			{ok, Sub, Granted};
-		{atomic, {out_of_credit, RedirectServerAddress, SL, DeletedBuckets, AccBalance}} ->
+		{atomic, {{out_of_credit, SL,
+				DeletedBuckets, AccBalance}, RedirectServerAddress}} ->
 			ok = send_notifications(DeletedBuckets),
 			ok = notify_accumulated_balance(AccBalance),
 			{out_of_credit, RedirectServerAddress, SL};
-		{atomic, {disabled, SL, DeletedBuckets, AccBalance}} ->
+		{atomic, {{disabled, SL, DeletedBuckets, AccBalance}, _}} ->
 			ok = send_notifications(DeletedBuckets),
 			ok = notify_accumulated_balance(AccBalance),
 			{disabled, SL};
@@ -823,7 +823,7 @@ charge3(#service{session_attributes = SessionList} = Service1, Product, Buckets,
 		{Units, _Charge}, {Units, _Charged}, {Units, 0}, {Units, 0},
 		#state{rated = Rated, session_id = SessionId,
 		service_id = ServiceId, charging_key = ChargingKey,
-		buckets = OldBuckets, redirect_server = RedirectServerAddress}) ->
+		buckets = OldBuckets}) ->
 	{Debits, NewBuckets} = get_final(ServiceId,
 			ChargingKey, SessionId, Buckets),
 	{NewBRefs, DeletedBuckets}
@@ -832,7 +832,7 @@ charge3(#service{session_attributes = SessionList} = Service1, Product, Buckets,
 	Rated1 = rated(Debits, Rated),
 	Service2 = Service1#service{session_attributes = []},
 	ok = mnesia:write(Service2),
-	{out_of_credit, RedirectServerAddress, SessionList, Rated1, DeletedBuckets,
+	{out_of_credit, SessionList, Rated1, DeletedBuckets,
 			accumulated_balance(NewBuckets, Product#product.id)};
 charge3(#service{enabled = false, session_attributes = SessionList} = Service1, Product,
 		Buckets, _Flag, {Units, _Charge}, {Units, _Charged},
@@ -850,7 +850,7 @@ charge3(#service{enabled = false, session_attributes = SessionList} = Service1, 
 charge3(#service{session_attributes = SessionList} = Service1, Product, Buckets, _Flag,
 		{Units, Charge}, {Units, Charged}, {Units, Reserve}, {Units, Reserved},
 		#state{session_id = SessionId, service_id = ServiceId,
-		charging_key = ChargingKey, buckets = OldBuckets, redirect_server = RedirectServerAddress})
+		charging_key = ChargingKey, buckets = OldBuckets})
 		when Charged < Charge; Reserved <  Reserve ->
 	NewBuckets = refund(ServiceId, ChargingKey, SessionId, Buckets),
 	{NewBRefs, DeletedBuckets}
@@ -858,7 +858,7 @@ charge3(#service{session_attributes = SessionList} = Service1, Product, Buckets,
 	ok = mnesia:write(Product#product{balance = NewBRefs}),
 	Service2 = Service1#service{session_attributes = []},
 	ok = mnesia:write(Service2),
-	{out_of_credit, RedirectServerAddress, SessionList, DeletedBuckets,
+	{out_of_credit, SessionList, DeletedBuckets,
 			accumulated_balance(NewBuckets, Product#product.id)};
 charge3(#service{session_attributes = SessionList} = Service1, Product, Buckets, initial,
 		{Units, 0}, {Units, 0}, {Units, _Reserve}, {Units, Reserved},
@@ -892,14 +892,13 @@ charge3(Service, Product, Buckets, event,
 			accumulated_balance(Buckets, Product#product.id)};
 charge3(#service{session_attributes = SessionList} = Service1, Product, Buckets, event,
 		{Units, _Charge}, {Units, _Charged}, {Units, 0}, {Units, 0},
-		#state{rated = Rated, buckets = OldBuckets,
-		redirect_server = RedirectServerAddress}) ->
+		#state{rated = Rated, buckets = OldBuckets}) ->
 	{NewBRefs, DeletedBuckets}
 			= update_buckets(Product#product.balance, OldBuckets, Buckets),
 	ok = mnesia:write(Product#product{balance = NewBRefs}),
 	Service2 = Service1#service{session_attributes = []},
 	ok = mnesia:write(Service2),
-	{out_of_credit, RedirectServerAddress, SessionList, Rated, DeletedBuckets,
+	{out_of_credit, SessionList, Rated, DeletedBuckets,
 			accumulated_balance(Buckets, Product#product.id)}.
 
 -spec authorize(Protocol, ServiceType, SubscriberId, Password,
