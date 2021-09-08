@@ -1699,6 +1699,7 @@
             } ]
           },
           "rateElement" : {
+            "description" : "Rating dimensions.",
             "type" : "array",
             "items" : {
               "$ref" : "#/components/schemas/RateElement"
@@ -1763,7 +1764,7 @@
               "type" : "string"
             } ]
           },
-          "unitValue" : {
+          "unitSize" : {
             "description" : "Holds rate element unit size.",
             "allOf" : [ {
               "$ref" : "#/components/schemas/UnitValue"
