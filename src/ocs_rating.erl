@@ -59,7 +59,7 @@
 		Flag, DebitAmounts, ReserveAmounts, SessionAttributes) -> Result
 	when
 		Protocol :: radius | diameter,
-		ServiceType :: integer() | binary(),
+		ServiceType :: pos_integer(),
 		ServiceId :: non_neg_integer() | undefined,
 		ChargingKey :: non_neg_integer() | undefined,
 		ServiceNetwork :: string() | binary() | undefined,
@@ -2075,8 +2075,8 @@ get_final([#bucket{units = Units, reservations = Reservations,
 	end;
 get_final([], _, _, _, _, Debits, Acc) ->
 	{Debits, lists:reverse(Acc)}.
-%% @hidden
 
+%% @hidden
 get_debits(ServiceId, undefined, SessionId,
 		[{_, Debited, Reserved, ServiceId, ChargingKey, SessionId} | T],
 		Debit, Refund, Acc) ->
