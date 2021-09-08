@@ -253,20 +253,10 @@ get_params5(_, _, _, false) ->
 %% @doc CODEC for HTTP server users.
 role(#httpd_user{username = {Name, _, _, _}} = User) when is_list(Name) ->
 	role(User#httpd_user{username = Name});
-role(#httpd_user{username = Name, user_data = UserData})
-		when is_list(UserData) ->
-	F = fun(Key) ->
-			case lists:keyfind(Key, 1, UserData) of
-				{Key, Value} ->
-					Value;
-				false ->
-					false
-			end
-	end,
-	{struct, [{"id", Name}, {"name", Name}, {"@type", F(type)}, {"validFor",
-					{struct, [{"startDateTime", ocs_rest:iso8601(F(start_date))},
-					{"endDateTime", ocs_rest:iso8601(F(end_date))}]}},
-			{"href", "/partyRoleManagement/v4/partyRole/" ++ Name}]};
+role(#httpd_user{username = Name}) when is_list(Name) ->
+	{struct, [{"id", Name}, {"name", Name},
+			{"href", "/partyRoleManagement/v4/partyRole/" ++ Name},
+			{"@type", "PartyRole"}]};
 role({struct, L}) when is_list(L) ->
 	role(L, #httpd_user{user_data = []}).
 %% @hidden
@@ -330,23 +320,23 @@ query_start(Query, Filters, RangeStart, RangeEnd) ->
 	end.
 
 %% @hidden
-query_page(PageServer, Etag, _Query, _Filters, Start, End) ->
+query_page(PageServer, Etag, _Query, Filters, Start, End) ->
 	case gen_server:call(PageServer, {Start, End}, infinity) of
 		{error, Status} ->
 			{error, Status};
 		{Events, ContentRange} ->
-			F = fun(#httpd_user{user_data = UserData} = User) ->
-					case lists:keyfind(type, 1, UserData) of
-						{type, "PartyRole"} ->
-							{true, role(User)};
-						false ->
-							false
-					end
-			end,
-			Body = mochijson:encode({array, lists:filtermap(F, Events)}),
+			JsonObj = query_page1(lists:map(fun role/1, Events), Filters, []),
+			Body = mochijson:encode({array, JsonObj}),
 			Headers = [{content_type, "application/json"},
 					{etag, Etag}, {accept_ranges, "items"},
 					{content_range, ContentRange}],
 			{ok, Headers, Body}
 	end.
+%% @hidden
+query_page1([], _, Acc) ->
+	lists:reverse(Acc);
+query_page1(Json, [], Acc) ->
+	lists:reverse(Json ++ Acc);
+query_page1([H | T], Filters, Acc) ->
+	query_page1(T, Filters, [ocs_rest:fields(Filters, H) | Acc]).
 
