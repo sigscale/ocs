@@ -5812,22 +5812,16 @@ party_role(RoleName) ->
 				{"endDateTime", EndDate}]}}]}.
 
 %% @hidden
-is_role({struct, RoleObj}) when length(RoleObj) == 5 ->
-	F = fun F({"id", Name}) when is_list(Name) ->
+is_role({struct, RoleObj}) when length(RoleObj) == 4 ->
+	F = fun({"id", Name}) when is_list(Name) ->
 				true;
-			F({"href", Href}) when is_list(Href) ->
+			({"href", Href}) when is_list(Href) ->
 				true;
-			F({"name", Name}) when is_list(Name) ->
+			({"name", Name}) when is_list(Name) ->
 				true;
-			F({"@type", RoleType}) when is_list(RoleType) ->
+			({"@type", RoleType}) when is_list(RoleType) ->
 				true;
-			F({"startDateTime", SD}) when is_list(SD) ->
-				true;
-			F({"endDateTime", ED}) when is_list(ED) ->
-				true;
-			F({"validFor", {struct, ValidFor}}) when length(ValidFor) == 2 ->
-				lists:all(F, ValidFor);
-			F(_) ->
+			(_) ->
 				false
 	end,
 	lists:all(F, RoleObj);
