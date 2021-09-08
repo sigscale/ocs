@@ -169,34 +169,28 @@ get_roles1(Query, Filters, Headers) ->
 %% @doc Handle `GET' request on a `Role' resource.
 %% 	Respond to `GET /partyRoleManagement/v4/partyRole/{Name}' request.
 get_role(Name, Query) ->
-	get_role(Name, Query, get_params()).
-%% @hidden
-get_role(Name, Query, {_, _, _, _} = Params) ->
 	case lists:keytake("fields", 1, Query) of
 		{value, {_, L}, NewQuery} ->
-			get_role(Name, NewQuery, Params, string:tokens(L, ","));
+			get_role(Name, NewQuery, string:tokens(L, ","));
 		false ->
-			get_role(Name, Query, Params, [])
-	end;
-get_role(_Name, _Query, {error, Reason}) ->
-	{error, Reason}.
+			get_role(Name, Query, [])
+	end.
 %% @hidden
-get_role(Name, [] = _Query, {Port, Address, Dir, _Group}, _Filters) ->
-	case mod_auth:get_user(Name, Address, Port, Dir) of
-		{ok, #httpd_user{user_data = UserData} = RoleRec} ->
+get_role(Name, [] = _Query, _Filters) ->
+	case ocs:get_user(Name) of
+		{ok, #httpd_user{user_data = UserData} = Role} ->
 			Headers = case lists:keyfind(last_modified, 1, UserData) of
 				{_, LastModified} ->
-					[{content_type, "application/json"},
-							{etag, im_rest:etag(LastModified)}];
+					[{content_type, "application/json"}, {etag, ocs_rest:etag(LastModified)}];
 				false ->
 					[{content_type, "application/json"}]
 			end,
-			Body = mochijson:encode(role(RoleRec)),
+			Body = mochijson:encode(role(Role)),
 			{ok, Headers, Body};
 		{error, _Reason} ->
 			{error, 404}
 	end;
-get_role(_, _, _, _) ->
+get_role(_, _, _) ->
 	{error, 400}.
 
 %%----------------------------------------------------------------------
