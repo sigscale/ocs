@@ -220,6 +220,11 @@ rate(Protocol, ServiceType, ServiceId, ChargingKey,
 			ok = send_notifications(DeletedBuckets),
 			ok = notify_accumulated_balance(AccBalance),
 			{disabled, SL};
+		{atomic, {out_of_credit, RedirectServerAddress, SL,
+				DeletedBuckets, AccBalance}} ->
+			ok = send_notifications(DeletedBuckets),
+			ok = notify_accumulated_balance(AccBalance),
+		{out_of_credit, RedirectServerAddress, SL};
 		{aborted, {throw, Reason}} ->
 			{error, Reason};
 		{aborted, Reason} ->
