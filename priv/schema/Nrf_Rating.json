@@ -190,6 +190,80 @@
           }
         },
         "responses" : {
+          "200" : {
+            "description" : "Rating succeeded (Class A)",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/RatingDataResponse"
+                },
+                "examples" : {
+                  "ECUR (Class A)" : {
+                    "summary" : "Event Charging with Unit Reservation (ECUR) (Class A)",
+                    "description" : "Successful tariff rating of SMS.",
+                    "value" : {
+                      "invocationTimeStamp" : "2020-12-13T15:28:32.186Z",
+                      "invocationSequenceNumber" : 1,
+                      "serviceRating" : {
+                        "serviceContextId" : "32274@3gpp.org",
+                        "serviceIdentifier" : 1,
+                        "ratingGroup" : 100,
+                        "price" : {
+                          "amount" : {
+                            "currencyCode" : "CAD",
+                            "valueDigits" : 5,
+                            "exponent" : -10
+                          }
+                        }
+                      }
+                    }
+                  },
+                  "SCUR (Class A)" : {
+                    "summary" : "Session Charging with Unit Reservation (SCUR) (Class A)",
+                    "description" : "Successful tariff rating for a data session. Rate to apply is 0.75 PHP per megabyte.",
+                    "value" : {
+                      "invocationTimeStamp" : "2020-12-13T15:28:32.123Z",
+                      "invocationSequenceNumber" : 1,
+                      "serviceRating" : [ {
+                        "serviceContextId" : "32251@3gpp.org",
+                        "serviceId" : 1,
+                        "ratingGroup" : 2,
+                        "currentTariff" : {
+                          "currencyCode" : "PHP",
+                          "rateElement" : [ {
+                            "unitType" : "TOTAL_VOLUME",
+                            "unitSize" : {
+                              "valueDigits" : 1000000
+                            },
+                            "unitCost" : {
+                              "valueDigits" : 75,
+                              "exponent" : -3
+                            }
+                          } ]
+                        }
+                      }, {
+                        "serviceContextId" : "32251@3gpp.org",
+                        "serviceId" : 2,
+                        "ratingGroup" : 32,
+                        "currentTariff" : {
+                          "currencyCode" : "PHP",
+                          "rateElement" : [ {
+                            "unitType" : "TOTAL_VOLUME",
+                            "unitSize" : {
+                              "valueDigits" : 1000000
+                            },
+                            "unitCost" : {
+                              "valueDigits" : 0
+                            }
+                          } ]
+                        }
+                      } ]
+                    }
+                  }
+                }
+              }
+            }
+          },
           "201" : {
             "description" : "Created",
             "headers" : {
@@ -229,27 +303,6 @@
                       }
                     }
                   },
-                  "ECUR (Class A)" : {
-                    "summary" : "Event Charging with Unit Reservation (ECUR) (Class A)",
-                    "description" : "Successful traiff rate for an SMS.",
-                    "value" : {
-                      "invocationTimeStamp" : "2020-12-13T15:28:32.186Z",
-                      "invocationSequenceNumber" : 1,
-                      "serviceRating" : {
-                        "serviceContextId" : "32251@3gpp.org",
-                        "serviceIdentifier" : 1,
-                        "price" : {
-                          "amount" : {
-                            "currencyCode" : "CAD",
-                            "valueDigits" : 5,
-                            "exponent" : -10
-                          }
-                        },
-                        "ratingGroup" : 100,
-                        "resultCode" : "SUCCESS"
-                      }
-                    }
-                  },
                   "ECUR (Class B)" : {
                     "summary" : "Event Charging with Unit Reservation (ECUR) (Class B)",
                     "description" : "Successful reservation for an SMS.",
@@ -271,25 +324,6 @@
                         },
                         "resultCode" : "SUCCESS"
                       }
-                    }
-                  },
-                  "SCUR (Class A)" : {
-                    "summary" : "Session Charging with Unit Reservation (SCUR) (Class A)",
-                    "description" : "Successful tariff request for a data session. Two services were requested and both were granted.",
-                    "value" : {
-                      "invocationTimeStamp" : "2020-12-13T15:28:32.123Z",
-                      "invocationSequenceNumber" : 1,
-                      "serviceRating" : [ {
-                        "serviceContextId" : "32251@3gpp.org",
-                        "serviceId" : 1,
-                        "ratingGroup" : 2,
-                        "resultCode" : "SUCCESS"
-                      }, {
-                        "serviceContextId" : "32251@3gpp.org",
-                        "serviceId" : 2,
-                        "ratingGroup" : 32,
-                        "resultCode" : "SUCCESS"
-                      } ]
                     }
                   },
                   "SCUR (Class B)" : {
