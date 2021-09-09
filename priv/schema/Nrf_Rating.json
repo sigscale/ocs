@@ -166,7 +166,7 @@
                   }
                 },
                 "Roaming" : {
-                  "summary" : "Roaming voice call service (VCS) (Class B)",
+                  "summary" : "Roaming voice call service (VCS).",
                   "description" : "Request a reservation for charging a roaming voice call session. The user location is provided to enable rating based on Visited Public Land Mobile Network (PLMN).",
                   "value" : {
                     "nfConsumerIdentification" : {
@@ -190,6 +190,80 @@
           }
         },
         "responses" : {
+          "200" : {
+            "description" : "Rating succeeded (Class A)",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/RatingDataResponse"
+                },
+                "examples" : {
+                  "ECUR (Class A)" : {
+                    "summary" : "Event Charging with Unit Reservation (ECUR) (Class A)",
+                    "description" : "Successful tariff rating of SMS.",
+                    "value" : {
+                      "invocationTimeStamp" : "2020-12-13T15:28:32.186Z",
+                      "invocationSequenceNumber" : 1,
+                      "serviceRating" : {
+                        "serviceContextId" : "32274@3gpp.org",
+                        "serviceIdentifier" : 1,
+                        "ratingGroup" : 100,
+                        "price" : {
+                          "amount" : {
+                            "currencyCode" : "CAD",
+                            "valueDigits" : 5,
+                            "exponent" : -10
+                          }
+                        }
+                      }
+                    }
+                  },
+                  "SCUR (Class A)" : {
+                    "summary" : "Session Charging with Unit Reservation (SCUR) (Class A)",
+                    "description" : "Successful tariff rating for a data session. Rate to apply is 0.75 PHP per megabyte.",
+                    "value" : {
+                      "invocationTimeStamp" : "2020-12-13T15:28:32.123Z",
+                      "invocationSequenceNumber" : 1,
+                      "serviceRating" : [ {
+                        "serviceContextId" : "32251@3gpp.org",
+                        "serviceId" : 1,
+                        "ratingGroup" : 2,
+                        "currentTariff" : {
+                          "currencyCode" : "PHP",
+                          "rateElement" : [ {
+                            "unitType" : "TOTAL_VOLUME",
+                            "unitSize" : {
+                              "valueDigits" : 1000000
+                            },
+                            "unitCost" : {
+                              "valueDigits" : 75,
+                              "exponent" : -3
+                            }
+                          } ]
+                        }
+                      }, {
+                        "serviceContextId" : "32251@3gpp.org",
+                        "serviceId" : 2,
+                        "ratingGroup" : 32,
+                        "currentTariff" : {
+                          "currencyCode" : "PHP",
+                          "rateElement" : [ {
+                            "unitType" : "TOTAL_VOLUME",
+                            "unitSize" : {
+                              "valueDigits" : 1000000
+                            },
+                            "unitCost" : {
+                              "valueDigits" : 0
+                            }
+                          } ]
+                        }
+                      } ]
+                    }
+                  }
+                }
+              }
+            }
+          },
           "201" : {
             "description" : "Created",
             "headers" : {
@@ -206,7 +280,7 @@
                   "$ref" : "#/components/schemas/RatingDataResponse"
                 },
                 "examples" : {
-                  "IEC" : {
+                  "IEC (Class B)" : {
                     "summary" : "Immediate Event Charging (IEC) (Class B)",
                     "description" : "Successful charging of an SMS.",
                     "value" : {
@@ -225,27 +299,6 @@
                         "consumedUnit" : {
                           "serviceSpecificUnit" : 1
                         },
-                        "resultCode" : "SUCCESS"
-                      }
-                    }
-                  },
-                  "ECUR (Class A)" : {
-                    "summary" : "Event Charging with Unit Reservation (ECUR) (Class A)",
-                    "description" : "Successful traiff rate for an SMS.",
-                    "value" : {
-                      "invocationTimeStamp" : "2020-12-13T15:28:32.186Z",
-                      "invocationSequenceNumber" : 1,
-                      "serviceRating" : {
-                        "serviceContextId" : "32251@3gpp.org",
-                        "serviceIdentifier" : 1,
-                        "price" : {
-                          "amount" : {
-                            "currencyCode" : "CAD",
-                            "valueDigits" : 5,
-                            "exponent" : -10
-                          }
-                        },
-                        "ratingGroup" : 100,
                         "resultCode" : "SUCCESS"
                       }
                     }
@@ -271,25 +324,6 @@
                         },
                         "resultCode" : "SUCCESS"
                       }
-                    }
-                  },
-                  "SCUR (Class A)" : {
-                    "summary" : "Session Charging with Unit Reservation (SCUR) (Class A)",
-                    "description" : "Successful tariff request for a data session. Two services were requested and both were granted.",
-                    "value" : {
-                      "invocationTimeStamp" : "2020-12-13T15:28:32.123Z",
-                      "invocationSequenceNumber" : 1,
-                      "serviceRating" : [ {
-                        "serviceContextId" : "32251@3gpp.org",
-                        "serviceId" : 1,
-                        "ratingGroup" : 2,
-                        "resultCode" : "SUCCESS"
-                      }, {
-                        "serviceContextId" : "32251@3gpp.org",
-                        "serviceId" : 2,
-                        "ratingGroup" : 32,
-                        "resultCode" : "SUCCESS"
-                      } ]
                     }
                   },
                   "SCUR (Class B)" : {
@@ -318,7 +352,7 @@
                     }
                   },
                   "PARTIAL" : {
-                    "summary" : "Partial Success (SCUR) (Class B)",
+                    "summary" : "Partial Success (SCUR)",
                     "description" : "Reservation request succeeds for one service but is unsuccessful for another. The session may continue with the service which succeeded.",
                     "value" : {
                       "invocationTimeStamp" : "2020-12-13T15:28:32.123Z",
@@ -464,26 +498,6 @@
                 "$ref" : "#/components/schemas/RatingDataRequest"
               },
               "examples" : {
-                "SCUR (Class A)" : {
-                  "summary" : "Session Charging with Unit Reservation (SCUR) (Class A)",
-                  "value" : {
-                    "nfConsumerIdentification" : {
-                      "nodeFunctionality" : "OCF"
-                    },
-                    "invocationTimeStamp" : "2020-12-13T15:33:10.203Z",
-                    "invocationSequenceNumber" : 2,
-                    "actualTime" : "2020-12-13T15:33:10Z",
-                    "serviceRating" : [ {
-                      "serviceContextId" : "32251@3gpp.org",
-                      "serviceId" : 1,
-                      "ratingGroup" : 32
-                    }, {
-                      "serviceContextId" : "32251@3gpp.org",
-                      "serviceId" : 1,
-                      "ratingGroup" : 32
-                    } ]
-                  }
-                },
                 "SCUR (Class B)" : {
                   "summary" : "Session Charging with Unit Reservation (SCUR) (Class B)",
                   "value" : {
@@ -531,24 +545,6 @@
                   "$ref" : "#/components/schemas/RatingDataResponse"
                 },
                 "examples" : {
-                  "SCUR (Class A)" : {
-                    "summary" : "Session Charging with Unit Reservation (SCUR) (Class A)",
-                    "value" : {
-                      "invocationTimeStamp" : "2020-12-13T15:33:10.289Z",
-                      "invocationSequenceNumber" : 2,
-                      "serviceRating" : [ {
-                        "serviceContextId" : "32251@3gpp.org",
-                        "serviceId" : 1,
-                        "ratingGroup" : 32,
-                        "resultCode" : "SUCCESS"
-                      }, {
-                        "serviceContextId" : "32251@3gpp.org",
-                        "serviceId" : 1,
-                        "ratingGroup" : 32,
-                        "resultCode" : "SUCCESS"
-                      } ]
-                    }
-                  },
                   "SCUR (Class B)" : {
                     "summary" : "Session Charging with Unit Reservation (SCUR) (Class B)",
                     "value" : {
@@ -645,27 +641,6 @@
                 "$ref" : "#/components/schemas/RatingDataRequest"
               },
               "examples" : {
-                "ECUR (Class A)" : {
-                  "summary" : "Event Charging with Unit Reservation (ECUR) (Class A)",
-                  "value" : {
-                    "nfConsumerIdentification" : {
-                      "nodeFunctionality" : "OCF"
-                    },
-                    "invocationTimeStamp" : "2020-12-13T15:38:45.490Z",
-                    "invocationSequenceNumber" : 2,
-                    "actualTime" : "2020-12-13T15:38:45Z",
-                    "oneTimeEvent" : true,
-                    "oneTimeEventType" : "PEC",
-                    "serviceRating" : [ {
-                      "serviceContextId" : "32274@3gpp.org",
-                      "serviceId" : 4,
-                      "destinationId" : [ {
-                        "destinationIdType" : "DN",
-                        "destinationIdData" : "14165556789"
-                      } ]
-                    } ]
-                  }
-                },
                 "ECUR (Class B)" : {
                   "summary" : "Event Charging with Unit Reservation (ECUR) (Class B)",
                   "value" : {
@@ -688,22 +663,6 @@
                       "consumedUnit" : {
                         "serviceSpecificUnit" : 1
                       }
-                    } ]
-                  }
-                },
-                "SCUR (Class A)" : {
-                  "summary" : "Session Charging with Unit Reservation (SCUR) (Class A)",
-                  "value" : {
-                    "nfConsumerIdentification" : {
-                      "nodeFunctionality" : "OCF"
-                    },
-                    "invocationTimeStamp" : "2020-12-13T15:38:45.490Z",
-                    "invocationSequenceNumber" : 3,
-                    "actualTime" : "2020-12-13T15:38:45Z",
-                    "serviceRating" : [ {
-                      "serviceContextId" : "32251@3gpp.org",
-                      "serviceId" : 1,
-                      "ratingGroup" : 32
                     } ]
                   }
                 },
@@ -746,28 +705,6 @@
             "content" : {
               "application/json" : {
                 "schema" : {
-                  "$ref" : "#/components/schemas/RatingDataResponse"
-                },
-                "examples" : {
-                  "ECUR (Class A)" : {
-                    "summary" : "Event Charging with Unit Reservation (ECUR)",
-                    "value" : {
-                      "invocationTimeStamp" : "2020-12-13T15:38:45.5340Z",
-                      "invocationSequenceNumber" : 2,
-                      "serviceRating" : [ {
-                        "serviceContextId" : "32274@3gpp.org",
-                        "serviceId" : 4,
-                        "price" : {
-                          "amount" : {
-                            "currencyCode" : "CAD",
-                            "valueDigits" : 5,
-                            "exponent" : -10
-                          }
-                        },
-                        "resultCode" : "SUCCESS"
-                      } ]
-                    }
-                  },
                   "ECUR (Class B)" : {
                     "summary" : "Event Charging with Unit Reservation (ECUR)",
                     "value" : {
@@ -785,26 +722,6 @@
                         },
                         "consumedUnit" : {
                           "serviceSpecificUnit" : 1
-                        },
-                        "resultCode" : "SUCCESS"
-                      } ]
-                    }
-                  },
-                  "SCUR (Class A)" : {
-                    "summary" : "Session Charging with Unit Reservation (SCUR) (Class A)",
-                    "value" : {
-                      "invocationTimeStamp" : "2020-12-13T15:38:45.536Z",
-                      "invocationSequenceNumber" : 3,
-                      "serviceRating" : [ {
-                        "serviceContextId" : "32251@3gpp.org",
-                        "serviceId" : 1,
-                        "ratingGroup" : 2,
-                        "price" : {
-                          "currencyCode" : "CAD",
-                          "amount" : {
-                            "valueDigits" : 20,
-                            "exponent" : -10
-                          }
                         },
                         "resultCode" : "SUCCESS"
                       } ]
@@ -1699,7 +1616,6 @@
             } ]
           },
           "rateElement" : {
-            "description" : "Rating dimensions.",
             "type" : "array",
             "items" : {
               "$ref" : "#/components/schemas/RateElement"
@@ -1764,7 +1680,7 @@
               "type" : "string"
             } ]
           },
-          "unitSize" : {
+          "unitValue" : {
             "description" : "Holds rate element unit size.",
             "allOf" : [ {
               "$ref" : "#/components/schemas/UnitValue"

@@ -490,7 +490,7 @@ format_problem(Problem, Headers) ->
 		{_, Accept} ->
 			format_problem1(Problem, string:tokens(Accept, ", "));
 		false ->
-			[]
+			format_problem1(Problem, [])
 	end.
 %% @hidden
 format_problem1(Problem, Accepted) ->
