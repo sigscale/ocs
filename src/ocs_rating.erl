@@ -424,7 +424,7 @@ rate3(Protocol, Service, ServiceId, Product, Buckets, Address,
 rate3(Protocol, Service, ServiceId, Product, Buckets, _Address,
 		Price, Flag, DebitAmounts, ReserveAmounts, SessionId,
 		_RoamingTable, Rated, ChargingKey, _ServiceNetwork) ->
-	charge(Protocol, Product, Service, ServiceId, Buckets, Price,
+	charge(Protocol, Service, ServiceId, Product, Buckets, Price,
 			Flag, DebitAmounts, ReserveAmounts, SessionId, Rated, ChargingKey).
 %% @hidden
 rate4(Protocol, Service, ServiceId, Product, Buckets,
@@ -481,9 +481,9 @@ charge(radius, Service, ServiceId, Product, Buckets, #price{units = Units} = Pri
 		false ->
 			get_reserve(Price)
 	end,
-	charge2(Service, Product, ServiceId, Buckets, Price, interim, DebitAmount, ReserveAmount,
+	charge2(Service, ServiceId, Product, Buckets, Price, interim, DebitAmount, ReserveAmount,
 			SessionId, Rated, ChargingKey);
-charge(_Protocol, Product, Service, ServiceId, Buckets,
+charge(_Protocol, Service, ServiceId, Product, Buckets,
 		#price{units = Units, size = Size} = Price,
 		Flag, DebitAmounts, [], SessionId, Rated, ChargingKey)
 		when ((Flag == initial) or (Flag == interim)) ->
@@ -516,7 +516,7 @@ charge(_Protocol, Product, Service, ServiceId, Buckets,
 					{Units, Value}
 			end
 	end,
-	charge2(Service, Product, ServiceId, Buckets, Price, Flag, DebitAmount, ReserveAmount, SessionId,
+	charge2(Service, ServiceId, Product, Buckets, Price, Flag, DebitAmount, ReserveAmount, SessionId,
 			Rated, ChargingKey);
 charge(_Protocol, Service, ServiceId, Product, Buckets, #price{units = Units, size = Size} = Price,
 		event, _DebitAmounts, undefined, SessionId, Rated, ChargingKey) ->
