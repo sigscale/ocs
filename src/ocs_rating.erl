@@ -169,13 +169,13 @@ rate(Protocol, ServiceType, ServiceId, ChargingKey,
 											{out_of_credit, RedirectServerAddress, SessionList, [], []}
 									end;
 								[] ->
-									throw(offer_not_found)
+									mnesia:abort(offer_not_found)
 							end;
 						[] ->
-							throw(product_not_found)
+							mnesia:abort(product_not_found)
 					end;
 				[] ->
-					throw(service_not_found)
+					mnesia:abort(service_not_found)
 			end
 	end,
 	case mnesia:transaction(F) of
@@ -225,8 +225,6 @@ rate(Protocol, ServiceType, ServiceId, ChargingKey,
 			ok = send_notifications(DeletedBuckets),
 			ok = notify_accumulated_balance(AccBalance),
 		{out_of_credit, RedirectServerAddress, SL};
-		{aborted, {throw, Reason}} ->
-			{error, Reason};
 		{aborted, Reason} ->
 			{error, Reason}
 	end.
@@ -265,7 +263,7 @@ rate1(Protocol, Service, ServiceId, Product, Buckets, Timestamp, Address, Direct
 				ChargingKey, ServiceNetwork)
 	catch
 		_:_ ->
-			throw(invalid_bundle_product)
+			mnesia:abort(invalid_bundle_product)
 	end;
 rate1(Protocol, Service, ServiceId, Product, Buckets, Timestamp, Address,
 		Direction, #offer{name = OfferName} = Offer,
@@ -293,7 +291,7 @@ rate1(Protocol, Service, ServiceId, Product, Buckets, Timestamp, Address,
 					SessionId, #rated{product = OfferName},
 					ChargingKey, ServiceNetwork);
 		_ ->
-			throw(invalid_service_type)
+			mnesia:abort(invalid_service_type)
 	end.
 rate2(Protocol, Service, ServiceId, Product, Buckets, Timestamp, Address, Direction,
 		#offer{specification = ProdSpec, price = Prices} = _Offer,
@@ -320,7 +318,7 @@ rate2(Protocol, Service, ServiceId, Product, Buckets, Timestamp, Address, Direct
 					SessionId, RoamingTable, Rated,
 					ChargingKey, ServiceNetwork);
 		_ ->
-			throw(price_not_found)
+			mnesia:abort(price_not_found)
 	end;
 rate2(Protocol, Service, ServiceId, Product, Buckets, Timestamp, Address, Direction,
 		#offer{specification = ProdSpec, price = Prices} = _Offer,
@@ -345,7 +343,7 @@ rate2(Protocol, Service, ServiceId, Product, Buckets, Timestamp, Address, Direct
 					SessionId, RoamingTable,
 					Rated, ChargingKey, ServiceNetwork);
 		_ ->
-			throw(price_not_found)
+			mnesia:abort(price_not_found)
 	end;
 rate2(Protocol, Service, ServiceId, Product, Buckets, Timestamp, _Address, _Direction,
 		#offer{price = Prices} = _Offer, Flag, DebitAmounts, ReserveAmounts,
@@ -366,7 +364,7 @@ rate2(Protocol, Service, ServiceId, Product, Buckets, Timestamp, _Address, _Dire
 					Flag, DebitAmounts, ReserveAmounts,
 					SessionId, RoamingTable, Rated, ChargingKey, ServiceNetwork);
 		_ ->
-			throw(price_not_found)
+			mnesia:abort(price_not_found)
 	end.
 %% @hidden
 rate3(Protocol, Service, ServiceId, Product, Buckets, Address,
@@ -381,18 +379,18 @@ rate3(Protocol, Service, ServiceId, Product, Buckets, Address,
 				{Description, Amount, _} when is_integer(Amount) ->
 					case Amount of
 						N when N >= 0 ->
-							charge(Protocol, Service, ServiceId, Product, Buckets,
+							charge1(Protocol, Service, ServiceId, Product, Buckets,
 									Price#price{amount = N}, Flag, DebitAmounts, ReserveAmounts,
 									SessionId, Rated#rated{price_type = tariff,
 											description = Description}, ChargingKey);
 						_N ->
-							throw(negative_amount)
+							mnesia:abort(negative_amount)
 					end;
 				Other ->
 					error_logger:error_report(["Prefix table tariff lookup failed",
 							{module, ?MODULE}, {table, Table},
 							{address, Address}, {result, Other}]),
-					throw(table_lookup_failed)
+					mnesia:abort(table_lookup_failed)
 			end;
 		#char_value_use{values = [#char_value{value = TariffTable}]}
 				when ServiceNetwork /= undefined ->
@@ -404,32 +402,32 @@ rate3(Protocol, Service, ServiceId, Product, Buckets, Address,
 							{Description1, Amount, _} when is_integer(Amount) ->
 								case Amount of
 									N when N >= 0 ->
-										charge(Protocol, Service, ServiceId, Product, Buckets,
+										charge1(Protocol, Service, ServiceId, Product, Buckets,
 												Price#price{amount = N}, Flag, DebitAmounts, ReserveAmounts,
 												SessionId, Rated#rated{price_type = tariff,
 												description = Description1}, ChargingKey);
 									_N ->
-										throw(negative_amount)
+										mnesia:abort(negative_amount)
 								end;
 							Other ->
 								error_logger:error_report(["Prefix table tariff lookup failed",
 										{module, ?MODULE}, {table, Table2},
 										{address, Address}, {result, Other}]),
-								throw(table_lookup_failed)
+								mnesia:abort(table_lookup_failed)
 						end;
 				Other ->
 					error_logger:error_report(["Service Network table lookup failed",
 							{module, ?MODULE}, {table, Table1},
 							{address, Address}, {result, Other}]),
-					throw(table_lookup_failed)
+					mnesia:abort(table_lookup_failed)
 			end;
 		false ->
-			throw(undefined_tariff)
+			mnesia:abort(undefined_tariff)
 	end;
 rate3(Protocol, Service, ServiceId, Product, Buckets, _Address,
 		Price, Flag, DebitAmounts, ReserveAmounts, SessionId,
 		_RoamingTable, Rated, ChargingKey, _ServiceNetwork) ->
-	charge(Protocol, Service, ServiceId, Product, Buckets, Price,
+	charge1(Protocol, Service, ServiceId, Product, Buckets, Price,
 			Flag, DebitAmounts, ReserveAmounts, SessionId, Rated, ChargingKey).
 %% @hidden
 rate4(Protocol, Service, ServiceId, Product, Buckets,
@@ -441,23 +439,23 @@ rate4(Protocol, Service, ServiceId, Product, Buckets,
 		{Description, Amount, _} when is_integer(Amount) ->
 			case Amount of
 				N when N >= 0 ->
-					charge(Protocol, Service, ServiceId, Product, Buckets,
+					charge1(Protocol, Service, ServiceId, Product, Buckets,
 							Price#price{amount = N}, Flag, DebitAmounts, ReserveAmounts,
 							SessionId, Rated#rated{price_type = tariff,
 							description = Description}, ChargingKey);
 				_N ->
-					throw(negative_amount)
+					mnesia:abort(negative_amount)
 			end;
 		Other ->
 			error_logger:error_report(["Prefix table tariff lookup failed",
 					{module, ?MODULE}, {table, Table},
 					{service_network, ServiceNetwork}, {result, Other}]),
-			throw(table_lookup_failed)
+			mnesia:abort(table_lookup_failed)
 	end;
 rate4(Protocol, Service, ServiceId, Product, Buckets, Price,
 		Flag, DebitAmounts, ReserveAmounts, SessionId,
 		_RoamingTable, Rated, ChargingKey, _ServiceNetwork) ->
-	charge(Protocol, Service, ServiceId, Product, Buckets, Price,
+	charge1(Protocol, Service, ServiceId, Product, Buckets, Price,
 			Flag, DebitAmounts, ReserveAmounts, SessionId, Rated, ChargingKey).
 
 -spec charge(Protocol, SubscriberID, ServiceId, Price, ChargingKey, Flag, DebitAmounts,
@@ -505,7 +503,7 @@ charge(Protocol, SubscriberID, ServiceId, Price, ChargingKey, Flag, DebitAmounts
 						case mnesia:read(offer, OfferId, read) of
 							[#offer{char_value_use = CharValueUse, name = OfferName} = _Offer] ->
 								Buckets = lists:flatten([mnesia:read(bucket, Id, sticky_write)
-									|| Id <- BucketRefs]),
+										|| Id <- BucketRefs]),
 								F1 = fun(#bucket{units = cents, remain_amount = RM}) when RM < 0 ->
 										false;
 									(_) ->
@@ -522,20 +520,20 @@ charge(Protocol, SubscriberID, ServiceId, Price, ChargingKey, Flag, DebitAmounts
 								case lists:all(F1, Buckets) of
 									true ->
 										Rated = #rated{product = OfferName, price_type = tariff},
-										{charge(Protocol, Service, ServiceId, Product, Buckets, Price,
+										{charge1(Protocol, Service, ServiceId, Product, Buckets, Price,
 											Flag, DebitAmounts, ReserveAmounts,
 											get_session_id(SessionAttributes), Rated, ChargingKey), RedirectServerAddress};
 									false ->
 										{out_of_credit, RedirectServerAddress, SessionList, [], []}
 								end;
 							[] ->
-								throw(offer_not_found)
+								mnesia:abort(offer_not_found)
 						end;
 					[] ->
-						throw(product_not_found)
+						mnesia:abort(product_not_found)
 				end;
 			[] ->
-				throw(service_not_found)
+				mnesia:abort(service_not_found)
 		end
 	end,
 	case mnesia:transaction(F) of
@@ -585,24 +583,22 @@ charge(Protocol, SubscriberID, ServiceId, Price, ChargingKey, Flag, DebitAmounts
 			ok = send_notifications(DeletedBuckets),
 			ok = notify_accumulated_balance(AccBalance),
 			{out_of_credit, RedirectServerAddress, SL};
-		{aborted, {throw, Reason}} ->
-			{error, Reason};
 		{aborted, Reason} ->
 			{error, Reason}
 	end.
 
 %% @hidden
 %% @private
-charge(_Protocol, #service{enabled = false} = Service, ServiceId, Product,
+charge1(_Protocol, #service{enabled = false} = Service, ServiceId, Product,
 		Buckets, #price{units = Units} = _Price, initial,
 		_DebitAmounts, _ReserveAmounts, SessionId, Rated, ChargingKey) ->
 	charge3(Service, ServiceId, Product, Buckets, initial,
 			{Units, 0}, {Units, 0}, {Units, 0}, {Units, 0}, SessionId, Rated, ChargingKey, Buckets);
-charge(radius, Service, ServiceId, Product, Buckets, #price{units = Units} = Price,
+charge1(radius, Service, ServiceId, Product, Buckets, #price{units = Units} = Price,
 		initial, [], [], SessionId, Rated, ChargingKey) ->
 	charge2(Service, ServiceId, Product, Buckets, Price, initial, {Units, 0},
 			get_reserve(Price), SessionId, Rated, ChargingKey);
-charge(radius, Service, ServiceId, Product, Buckets, #price{units = Units} = Price,
+charge1(radius, Service, ServiceId, Product, Buckets, #price{units = Units} = Price,
 		interim, DebitAmounts, ReserveAmounts, SessionId, Rated, ChargingKey) ->
 	DebitAmount = case lists:keyfind(Units, 1, DebitAmounts) of
 		{Units, DebitUnits} ->
@@ -619,7 +615,7 @@ charge(radius, Service, ServiceId, Product, Buckets, #price{units = Units} = Pri
 	end,
 	charge2(Service, ServiceId, Product, Buckets, Price, interim, DebitAmount, ReserveAmount,
 			SessionId, Rated, ChargingKey);
-charge(_Protocol, Service, ServiceId, Product, Buckets,
+charge1(_Protocol, Service, ServiceId, Product, Buckets,
 		#price{units = Units, size = Size} = Price,
 		Flag, DebitAmounts, [], SessionId, Rated, ChargingKey)
 		when ((Flag == initial) or (Flag == interim)) ->
@@ -654,13 +650,13 @@ charge(_Protocol, Service, ServiceId, Product, Buckets,
 	end,
 	charge2(Service, ServiceId, Product, Buckets, Price, Flag, DebitAmount, ReserveAmount, SessionId,
 			Rated, ChargingKey);
-charge(_Protocol, Service, ServiceId, Product, Buckets, #price{units = Units, size = Size} = Price,
+charge1(_Protocol, Service, ServiceId, Product, Buckets, #price{units = Units, size = Size} = Price,
 		event, _DebitAmounts, undefined, SessionId, Rated, ChargingKey) ->
 	DebitAmount = {Units, Size},
 	ReserveAmount = {Units, 0},
 	charge2(Service, ServiceId, Product, Buckets, Price, event, DebitAmount, ReserveAmount,
 			SessionId, Rated, ChargingKey);
-charge(_Protocol, Service, ServiceId, Product, Buckets, #price{units = Units, size = Size} = Price,
+charge1(_Protocol, Service, ServiceId, Product, Buckets, #price{units = Units, size = Size} = Price,
 		event, _DebitAmounts, ReserveAmounts, SessionId, Rated, ChargingKey) ->
 	DebitAmount = case lists:keyfind(Units, 1, ReserveAmounts) of
 		{Units, DebitUnits} ->
@@ -671,7 +667,7 @@ charge(_Protocol, Service, ServiceId, Product, Buckets, #price{units = Units, si
 	ReserveAmount = {Units, 0},
 	charge2(Service, ServiceId, Product, Buckets, Price, event, DebitAmount, ReserveAmount,
 			SessionId, Rated, ChargingKey);
-charge(_Protocol, Service, ServiceId, Product, Buckets, #price{units = Units} = Price,
+charge1(_Protocol, Service, ServiceId, Product, Buckets, #price{units = Units} = Price,
 		Flag, DebitAmounts, undefined, SessionId, Rated, ChargingKey) ->
 	DebitAmount = case lists:keyfind(Units, 1, DebitAmounts) of
 		{Units, DebitUnits} ->
@@ -682,7 +678,7 @@ charge(_Protocol, Service, ServiceId, Product, Buckets, #price{units = Units} = 
 	ReserveAmount = {Units, 0},
 	charge2(Service, ServiceId, Product, Buckets, Price, Flag, DebitAmount, ReserveAmount,
 			SessionId, Rated, ChargingKey);
-charge(_Protocol, Service, ServiceId, Product, Buckets, #price{units = Units} = Price,
+charge1(_Protocol, Service, ServiceId, Product, Buckets, #price{units = Units} = Price,
 		Flag, DebitAmounts, ReserveAmounts, SessionId, Rated, ChargingKey)
 		when is_list(ReserveAmounts) ->
 	DebitAmount = case lists:keyfind(Units, 1, DebitAmounts) of
@@ -1076,9 +1072,9 @@ authorize(Protocol, ServiceType, SubscriberId, Password, Timestamp,
 					authorize1(Protocol, ServiceType, S, Timestamp,
 							Address, Direction, SessionAttributes);
 				[#service{}] ->
-					throw(bad_password);
+					mnesia:abort(bad_password);
 				[] ->
-					throw(service_not_found)
+					mnesia:abort(service_not_found)
 			end
 	end,
 	case mnesia:transaction(F) of
@@ -1086,8 +1082,6 @@ authorize(Protocol, ServiceType, SubscriberId, Password, Timestamp,
 			{authorized, Sub, Attr, SSA};
 		{atomic, {unauthorized, Reason, SSA}} ->
 			{unauthorized, Reason, SSA};
-		{aborted, {throw, Reason}} ->
-			{unauthorized, Reason, []};
 		{aborted, Reason} ->
 			{unauthorized, Reason, []}
 	end.
@@ -1115,7 +1109,7 @@ authorize1(radius, ServiceType,
 									authorize2(radius, ServiceType, Service, Buckets, Offer,
 											Timestamp, Address, Direction, SessionAttributes, RRST);
 								[] ->
-									throw(offer_not_found)
+									mnesia:abort(offer_not_found)
 							end;
 						false ->
 							authorize5(Service, Buckets, ServiceType, SessionAttributes, Attributes)
@@ -1124,7 +1118,7 @@ authorize1(radius, ServiceType,
 					authorize5(Service, Buckets, ServiceType, SessionAttributes, Attributes)
 			end;
 		[] ->
-			throw(product_not_found)
+			mnesia:abort(product_not_found)
 	end;
 authorize1(diameter, ServiceType,
 		#service{attributes = Attributes, product = ProdRef} =
@@ -1134,7 +1128,7 @@ authorize1(diameter, ServiceType,
 			Buckets = lists:flatten([mnesia:read(bucket, Id, sticky_write) || Id <- BucketRefs]),
 			authorize5(Service, Buckets, ServiceType, SessionAttributes, Attributes);
 		[] ->
-			throw(product_not_found)
+			mnesia:abort(product_not_found)
 	end.
 %% @hidden
 authorize2(radius = Protocol, ServiceType,
@@ -1167,7 +1161,7 @@ authorize2(radius = Protocol, ServiceType,
 		end
 	catch
 		_:_ ->
-			throw(invalid_bundle_product)
+			mnesia:abort(invalid_bundle_product)
 	end;
 authorize2(radius = Protocol, ServiceType,
 		#service{attributes = Attributes} = Service, Buckets,
@@ -1226,16 +1220,16 @@ authorize3(Protocol, ServiceType, Service, Buckets, Address,
 							authorize4(Protocol, ServiceType, Service, Buckets,
 								Price#price{amount = N}, SessionAttributes, Reserve);
 						_N ->
-							throw(negative_amount)
+							mnesia:abort(negative_amount)
 					end;
 				Other ->
 					error_logger:error_report(["Prefix table tariff lookup failed",
 							{module, ?MODULE}, {table, Table},
 							{address, Address}, {result, Other}]),
-					throw(table_lookup_failed)
+					mnesia:abort(table_lookup_failed)
 			end;
 		false ->
-			throw(undefined_tariff)
+			mnesia:abort(undefined_tariff)
 	end;
 authorize3(Protocol, ServiceType, Service,
 		Buckets, _Address, Price, SessionAttributes, Reserve) ->
