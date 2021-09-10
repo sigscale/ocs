@@ -2081,6 +2081,11 @@ get_final([], _, _, _, _, Debits, Acc) ->
 	{Debits, lists:reverse(Acc)}.
 
 %% @hidden
+get_debits(undefined, undefined, SessionId,
+		[{_, Debited, Reserved, _ServiceId, _ChargingKey, SessionId} | T],
+		Debit, Refund, Acc) ->
+	get_debits(undefined, undefined, SessionId,
+			T, Debit + Debited, Refund + Reserved, Acc);
 get_debits(ServiceId, ChargingKey, SessionId,
 		[{_, Debited, Reserved, ServiceId, ChargingKey, SessionId} | T],
 		Debit, Refund, Acc) ->
