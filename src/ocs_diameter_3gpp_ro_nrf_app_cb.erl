@@ -1131,6 +1131,9 @@ map_service_rating([{struct, Elements} | T], RC2, Acc) ->
 		F([{"consumedUnit", {_, Units}} | T1], Acc1) ->
 			Acc2 = Acc1#{"consumedUnit" => used_units(Units)},
 			F(T1, Acc2);
+		F([{"currentTariff", {_, TariffElements}} | T1], Acc1) ->
+			Acc2 = Acc1#{"tariffElement" => tariff_element(TariffElements)},
+			F(T1, Acc2);
 		F([{"resultCode", RC1} | T1], Acc1) ->
 			{NewRC1, NewRC2} = result_code(RC1, RC2),
 			Acc2 = Acc1#{"resultCode" => NewRC1,
@@ -1146,6 +1149,38 @@ map_service_rating([{struct, Elements} | T], RC2, Acc) ->
 	map_service_rating(T, NewRC2, [ServiceRatingMap | Acc]);
 map_service_rating([], NewRC2, Acc) ->
 	{lists:reverse(Acc), NewRC2}.
+
+
+
+%% @hidden
+tariff_element(Elements) ->
+	tariff_element(Elements, #{}).
+tariff_element([{"currencyCode", CurrencyCode} | T], Acc) ->
+	tariff_element(T, Acc#{"currencyCode" => CurrencyCode});
+tariff_element([{"rateElement", {_,[{_, RateElements}]}} | T], Acc) ->
+	RateElements1 = rate_elements(RateElements, #{}),
+	tariff_element(T, Acc#{"rateElements" => RateElements1});
+tariff_element([_H | T], Acc) ->
+	tariff_element(T, Acc);
+tariff_element([], Acc) ->
+	Acc.
+
+%% @hidden
+rate_elements([{"unitType", UnitType} | T], Acc) ->
+	rate_elements(T, Acc#{"unitType" => UnitType});
+rate_elements([{"unitSize", {_, [{"valueDigits", ValueDigits}]}} | T], Acc) ->
+	rate_elements(T, Acc#{"unitSize" => #{"valueDigits" => ValueDigits}});
+rate_elements([{"unitCost", {_, [{"valueDigits", ValueDigits},
+		{"exponent", Exponent}]}} | T], Acc) ->
+	rate_elements(T, Acc#{"unitCost" => #{"valueDigits" => ValueDigits,
+			"exponent" => Exponent}});
+rate_elements([_H | T], Acc) ->
+	rate_elements(T, Acc);
+rate_elements([], Acc) ->
+	Acc.
+
+
+
 
 -spec build_container(MSCC) -> MSCC
 	when
