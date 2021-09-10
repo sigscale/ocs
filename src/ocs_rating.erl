@@ -20,7 +20,7 @@
 -module(ocs_rating).
 -copyright('Copyright (c) 2016 - 2021 SigScale Global Inc.').
 
--export([rate/13]).
+-export([rate/13, charge/9]).
 -export([authorize/8]).
 -export([session_attributes/1]).
 -export([filter_prices_tod/2, filter_prices_key/2]).
@@ -459,9 +459,140 @@ rate4(Protocol, Service, ServiceId, Product, Buckets, Price,
 		_RoamingTable, Rated, ChargingKey, _ServiceNetwork) ->
 	charge(Protocol, Service, ServiceId, Product, Buckets, Price,
 			Flag, DebitAmounts, ReserveAmounts, SessionId, Rated, ChargingKey).
+
+-spec charge(Protocol, SubscriberID, ServiceId, Price, ChargingKey, Flag, DebitAmounts,
+		ReserveAmounts, SessionAttributes) -> Result
+	when
+		Protocol :: radius | diameter,
+		SubscriberID :: binary(),
+		ServiceId :: string(),
+		ChargingKey :: integer() | undefined,
+		Price :: #price{},
+		Flag :: initial | interim | final | event,
+		DebitAmounts :: list(),
+		ReserveAmounts :: list() | undefined,
+		SessionAttributes :: list(),
+		Result :: {ok, Service, GrantedAmount}
+				| {ok, Service, Rated}
+				| {ok, Service, GrantedAmount, Rated}
+				| {out_of_credit, RedirectServerAddress, SessionList}
+				| {out_of_credit, RedirectServerAddress, SessionList, Rated}
+				| {disabled, SessionList}
+				| {error, Reason},
+		Service :: #service{},
+		GrantedAmount :: {Type, Amount},
+		Type :: octets | seconds | messages,
+		Amount :: integer(),
+		Rated :: [#rated{}],
+		SessionList :: [{pos_integer(), [tuple()]}],
+		RedirectServerAddress :: string() | undefined,
+		Reason :: term().
+%% @doc Handle balance management for used and reserved unit amounts.
+charge(Protocol, SubscriberID, ServiceId, Price, ChargingKey, Flag, DebitAmounts,
+		ReserveAmounts, SessionAttributes)
+		when ((Protocol == radius) or (Protocol == diameter)),
+		is_binary(SubscriberID), is_list(ServiceId),
+		(is_integer(ChargingKey) or (ChargingKey == undefined)),
+		((Flag == initial) or (Flag == interim) or (Flag == final) or (Flag == event)),
+		is_list(DebitAmounts),
+		(is_list(ReserveAmounts) or (ReserveAmounts == undefined)),
+		length(SessionAttributes) > 0 ->
+	F = fun() ->
+		case mnesia:read(service, SubscriberID, read) of
+			[#service{product = ProdRef, session_attributes = SessionList} = Service] ->
+				case mnesia:read(product, ProdRef, read) of
+					[#product{product = OfferId, balance = BucketRefs} = Product] ->
+						case mnesia:read(offer, OfferId, read) of
+							[#offer{char_value_use = CharValueUse, name = OfferName} = _Offer] ->
+								Buckets = lists:flatten([mnesia:read(bucket, Id, sticky_write)
+									|| Id <- BucketRefs]),
+								F1 = fun(#bucket{units = cents, remain_amount = RM}) when RM < 0 ->
+										false;
+									(_) ->
+										true
+								end,
+								RedirectServerAddress = case lists:keyfind("redirectServer",
+										#char_value_use.name, CharValueUse) of
+									#char_value_use{values = [#char_value{value = Value}]}
+											when is_list(Value) ->
+										Value;
+									_Other ->
+										undefined
+								end,
+								case lists:all(F1, Buckets) of
+									true ->
+										Rated = #rated{product = OfferName, price_type = tariff},
+										{charge(Protocol, Service, ServiceId, Product, Buckets, Price,
+											Flag, DebitAmounts, ReserveAmounts,
+											get_session_id(SessionAttributes), Rated, ChargingKey), RedirectServerAddress};
+									false ->
+										{out_of_credit, RedirectServerAddress, SessionList, [], []}
+								end;
+							[] ->
+								throw(offer_not_found)
+						end;
+					[] ->
+						throw(product_not_found)
+				end;
+			[] ->
+				throw(service_not_found)
+		end
+	end,
+	case mnesia:transaction(F) of
+		{atomic, {{ok, Sub, Rated, DeletedBuckets, AccBalance}, _}}
+				when is_list(Rated); Rated == #rated{} ->
+			Rated1 = case Rated of
+				Rated when is_list(Rated) ->
+					Rated;
+				#rated{} = Rated ->
+					[Rated]
+			end,
+			ok = send_notifications(DeletedBuckets),
+			ok = notify_accumulated_balance(AccBalance),
+			{ok, Sub, Rated1};
+		{atomic, {{ok, Sub, Granted, Rated, DeletedBuckets, AccBalance}, _}}
+				when is_list(Rated); Rated == #rated{} ->
+			Rated1 = case Rated of
+				Rated when is_list(Rated) ->
+					Rated;
+				#rated{} = Rated ->
+					[Rated]
+			end,
+			ok = send_notifications(DeletedBuckets),
+			ok = notify_accumulated_balance(AccBalance),
+			{ok, Sub, Granted, Rated1};
+		{atomic, {{out_of_credit, SL, Rated,
+				DeletedBuckets, AccBalance}, RedirectServerAddress}} ->
+			ok = send_notifications(DeletedBuckets),
+			ok = notify_accumulated_balance(AccBalance),
+			{out_of_credit, RedirectServerAddress, SL, Rated};
+		{atomic, {{grant, Sub, {_Units, Amount} = Granted, DeletedBuckets,
+				AccBalance}, _}} when is_integer(Amount) ->
+			ok = send_notifications(DeletedBuckets),
+			ok = notify_accumulated_balance(AccBalance),
+			{ok, Sub, Granted};
+		{atomic, {{out_of_credit, SL,
+				DeletedBuckets, AccBalance}, RedirectServerAddress}} ->
+			ok = send_notifications(DeletedBuckets),
+			ok = notify_accumulated_balance(AccBalance),
+			{out_of_credit, RedirectServerAddress, SL};
+		{atomic, {{disabled, SL, DeletedBuckets, AccBalance}, _}} ->
+			ok = send_notifications(DeletedBuckets),
+			ok = notify_accumulated_balance(AccBalance),
+			{disabled, SL};
+		{atomic, {out_of_credit, RedirectServerAddress, SL,
+				DeletedBuckets, AccBalance}} ->
+			ok = send_notifications(DeletedBuckets),
+			ok = notify_accumulated_balance(AccBalance),
+			{out_of_credit, RedirectServerAddress, SL};
+		{aborted, {throw, Reason}} ->
+			{error, Reason};
+		{aborted, Reason} ->
+			{error, Reason}
+	end.
+
 %% @hidden
-
-
+%% @private
 charge(_Protocol, #service{enabled = false} = Service, ServiceId, Product,
 		Buckets, #price{units = Units} = _Price, initial,
 		_DebitAmounts, _ReserveAmounts, SessionId, Rated, ChargingKey) ->
@@ -1556,17 +1687,17 @@ charge_session(Type, Charge, Now, ServiceId, ChargingKey, SessionId,
 			T, Charged, [H | Acc]);
 charge_session(Type, Charge, Now,
 		ServiceId, ChargingKey, SessionId, [], Charged, Acc) ->
-	charge(Type, Charge, Now, ServiceId, ChargingKey, SessionId,
+	charge1(Type, Charge, Now, ServiceId, ChargingKey, SessionId,
 			lists:reverse(Acc), [], Charged).
 
 %% @hidden
-charge(Type, Charge, Now, ServiceId, ChargingKey, SessionId,
+charge1(Type, Charge, Now, ServiceId, ChargingKey, SessionId,
 		[#bucket{end_date = Expires, reservations = [],
 		remain_amount = R} | T], Acc, Charged)
 		when R >= 0, Expires /= undefined, Expires =< Now ->
-	charge(Type, Charge, Now,
+	charge1(Type, Charge, Now,
 			ServiceId, ChargingKey, SessionId, T, Acc, Charged);
-charge(Type, Charge, Now, ServiceId, ChargingKey, SessionId,
+charge1(Type, Charge, Now, ServiceId, ChargingKey, SessionId,
 		[#bucket{units = Type, remain_amount = R, end_date = Expires,
 		reservations = Reservations} = B | T], Acc, Charged)
 		when Charge > 0, R >= Charge,
@@ -1576,7 +1707,7 @@ charge(Type, Charge, Now, ServiceId, ChargingKey, SessionId,
 			last_modified = {Now, erlang:unique_integer([positive])},
 			reservations = [NewReservation | Reservations]} | T],
 	{Charged + Charge, lists:reverse(Acc) ++ NewBuckets};
-charge(Type, Charge, Now, ServiceId, ChargingKey, SessionId,
+charge1(Type, Charge, Now, ServiceId, ChargingKey, SessionId,
 		[#bucket{units = Type, remain_amount = R, end_date = Expires,
 		reservations = Reservations} = B | T], Acc, Charged)
 		when Charge > 0, R =< Charge, R > 0,
@@ -1585,15 +1716,15 @@ charge(Type, Charge, Now, ServiceId, ChargingKey, SessionId,
 	NewAcc = [B#bucket{remain_amount = 0,
 			last_modified = {Now, erlang:unique_integer([positive])},
 			reservations = [NewReservation | Reservations]} | Acc],
-	charge(Type, Charge - R, Now,
+	charge1(Type, Charge - R, Now,
 			ServiceId, ChargingKey, SessionId, T, NewAcc, Charged + R);
-charge(_Type, 0, _, _, _, _, Buckets, Acc, Charged) ->
+charge1(_Type, 0, _, _, _, _, Buckets, Acc, Charged) ->
 	{Charged, lists:reverse(Acc) ++ Buckets};
-charge(Type, Charge, Now, ServiceId, ChargingKey, SessionId,
+charge1(Type, Charge, Now, ServiceId, ChargingKey, SessionId,
 		[H | T], Acc, Charged) ->
-	charge(Type, Charge, Now, ServiceId, ChargingKey, SessionId,
+	charge1(Type, Charge, Now, ServiceId, ChargingKey, SessionId,
 			T, [H | Acc], Charged);
-charge(_, _, _, _, _, _, [], Acc, Charged) ->
+charge1(_, _, _, _, _, _, [], Acc, Charged) ->
 	{Charged, lists:reverse(Acc)}.
 
 -spec charge_event(Type, Charge, Buckets) -> Result
