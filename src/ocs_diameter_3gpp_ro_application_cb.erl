@@ -1098,6 +1098,19 @@ rate(ServiceType, ServiceNetwork, Subscriber,
 		{error, Reason} ->
 			{error, Reason}
 	end;
+rate(ServiceType, ServiceNetwork, Subscriber,
+		Timestamp, Address, Direction, final, SessionId,
+		[], Acc, ResultCode, Rated1) ->
+	case ocs_rating:rate(diameter, ServiceType, undefined, undefined,
+			ServiceNetwork, Subscriber, Timestamp, Address, Direction, final,
+			[], [], [{'Session-Id', SessionId}]) of
+		{ok, _, Rated2} when is_list(Rated2), Rated1 == undefined ->
+			{lists:reverse(Acc), ResultCode, Rated2};
+		{ok, _, Rated2} when is_list(Rated2), is_list(Rated1) ->
+			{lists:reverse(Acc), ResultCode, Rated1 ++ Rated2};
+		{error, Reason} ->
+			{error, Reason}
+	end;
 rate(_, _, _, _, _, _, _, _, [], [], undefined, undefined) ->
 	{[], ?'DIAMETER_CC_APP_RESULT-CODE_RATING_FAILED'};
 rate(_, _, _, _, _, _, _, _, [], Acc, ResultCode, undefined) ->
