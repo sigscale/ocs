@@ -257,7 +257,7 @@ rate1(Protocol, Service, ServiceId, Product, Buckets, Timestamp, Address, Direct
 				end
 		end,
 		[#offer{name = OfferName} = Offer | _] = lists:foldl(F, [], Bundle),
-		rate2(Protocol, Product, Service, ServiceId, Buckets, Timestamp,
+		rate2(Protocol, Service, ServiceId, Product, Buckets, Timestamp,
 				Address, Direction, Offer, Flag, DebitAmounts,
 				ReserveAmounts, SessionId, #rated{product = OfferName},
 				ChargingKey, ServiceNetwork)
