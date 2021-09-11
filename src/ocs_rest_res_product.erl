@@ -1340,6 +1340,8 @@ price([start_date | T], #price{start_date = Start,
 	price(T, P, [{"validFor", ValidFor} | Acc]);
 price([end_date | T], P, Acc) ->
 	price(T, P, Acc);
+price([type | T], #price{type = #pla_ref{} = Pla} = P, Acc) ->
+	price(T, P, [{"priceType", "tariff"}, {"plaRef", pla_ref(Pla)} | Acc]);
 price([type | T], #price{type = Type} = P, Acc)
 		when Type /= undefined ->
 	price(T, P, [{"priceType", price_type(Type)} | Acc]);
@@ -1369,9 +1371,6 @@ price([char_value_use | T], #price{char_value_use = CharValueUses} = P, Acc) ->
 price([alteration | T], #price{alteration = Alteration} = P, Acc)
 		when is_record(Alteration, alteration) ->
 	price(T, P, [{"productOfferPriceAlteration", alteration(Alteration)} | Acc]);
-price([pla | T], #price{pla = PlaRef} = P, Acc)
-	when PlaRef =/= undefined ->
-	price(T, P, [{"plaRef", pla_ref(PlaRef)} | Acc]);
 price([_ | T], P, Acc) ->
 	price(T, P, Acc);
 price([], _P, Acc) ->
@@ -1456,7 +1455,7 @@ price([{"productOfferPriceAlteration", {struct, L} = Alteration} | T], Acc)
 	price(T, Acc#price{alteration = alteration(Alteration)});
 price([{"plaRef", {struct, L} = PlaRef} | T], Acc)
 		when is_list(L) ->
-	price(T, Acc#price{pla = pla_ref(PlaRef)});
+	price(T, Acc#price{type = pla_ref(PlaRef)});
 price([], Acc) ->
 	Acc.
 

@@ -106,8 +106,7 @@
 		amount :: integer() | undefined,
 		currency :: string() | undefined,
 		char_value_use = [] :: [#char_value_use{}],
-		alteration :: #alteration{} | undefined,
-		pla :: pla_ref() | undefined}).
+		alteration :: #alteration{} | undefined}).
 
 -record(pla_ref,
 		{id :: string() | undefined | '_',
