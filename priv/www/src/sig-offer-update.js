@@ -2252,6 +2252,7 @@ class offerUpdate extends PolymerElement {
 			this.$.updateAddPriceCharReserveBytes.disabled = true;
 			this.$.updatePriceUnits.selected = 1;
 			this.$.updatePriceAmount.disabled = false;
+			this.$.updatePla.disabled = true;
 		} else if(this.$.updatePriceType.selected == 1) {
 			this.$.updatePricePerioddrop.disabled = true;
 			this.$.priceBytes.disabled = true;
@@ -2261,6 +2262,7 @@ class offerUpdate extends PolymerElement {
 			this.$.updateAddPriceCharReserveBytes.disabled = true;
 			this.$.updatePriceUnits.selected = 1;
 			this.$.updatePriceAmount.disabled = false;
+			this.$.updatePla.disabled = true;
 		} else if(this.$.updatePriceType.selected == 2) {
 			this.$.updatePricePerioddrop.disabled = true;
 			this.$.priceCents.disabled = true;
@@ -2268,6 +2270,7 @@ class offerUpdate extends PolymerElement {
 			this.$.priceSeconds.disabled = false;
 			this.$.updatePriceUnits.selected = 0;
 			this.$.updatePriceAmount.disabled = false;
+			this.$.updatePla.disabled = true;
 		} else if(this.$.updatePriceType.selected == 3) {
 			this.$.updatePricePerioddrop.disabled = true;
 			this.$.priceCents.disabled = true;
@@ -2276,6 +2279,7 @@ class offerUpdate extends PolymerElement {
 			this.$.updatePriceUnits.selected = 2;
 			this.$.updatePriceAmount.disabled = true;
 			this.$.updatePriceAmount.value = null;
+			this.$.updatePla.disabled = false;
 		}
 	}
 
