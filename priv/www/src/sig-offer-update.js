@@ -2429,7 +2429,8 @@ class offerUpdate extends PolymerElement {
 				var plas = new Array();
 				var plaRef = new Object();
 				plaRef.href = this.priceUpdatePla;
-				addValue.pricingLogicAlgorithm = plas.push(plaRef);
+				plas.push(plaRef);
+				addValue.pricingLogicAlgorithm = plas;
 			}
 			if(this.priceUpdateUnits == "Seconds") {
 				this.priceUpdateUnits = "s";
