@@ -1543,6 +1543,15 @@ add_offer(#offer{price = Prices} = Offer) when length(Prices) > 0 ->
 					is_integer(Size), Size > 0, is_integer(Amount),
 					AltType /= usage ->
 				Fvala(Alteration);
+			(#price{type = #pla_ref{href = "http" ++ _}, period = undefined,
+					units = undefined, size = undefined, amount = undefined,
+					alteration = undefined}) ->
+				true;
+			(#price{type = #pla_ref{href = "http" ++ _}, period = undefined,
+					units = undefined, size = undefined, amount = undefined,
+					alteration = #alteration{type = AltType} = Alteration})
+					when AltType /= usage  ->
+				Fvala(Alteration);
 			(#price{type = tariff, period = undefined,
 					units = Units, size = Size, amount = Amount,
 					alteration = undefined})
