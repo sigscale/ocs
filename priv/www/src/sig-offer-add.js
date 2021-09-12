@@ -311,6 +311,19 @@ class offerAdd extends PolymerElement {
 						</div>
 						<div>
 							<paper-input
+									id="addPla"
+									value="{{pricePla}}"
+									input="url"
+									pattern="https?://.+"
+									label="Pricing Logic Algorithm"
+									auto-validate>
+							</paper-input>
+							<paper-tooltip>
+								Provide a URL to a remote (Class A) Rating Function (RF)
+							</paper-tooltip>
+						</div>
+						<div>
+							<paper-input
 									id="addPriceSize"
 									label="Unit Size"
 									value="{{priceSize}}"
@@ -869,6 +882,9 @@ class offerAdd extends PolymerElement {
 			priceType: {
 				type: String
 			},
+			pricepla: {
+				type: String
+			},
 			priceUnits: {
 				type: String
 			},
@@ -1017,6 +1033,7 @@ class offerAdd extends PolymerElement {
 				this.offerStartDatePrice = null;
 				this.offerEndDatePrice = null;
 				this.priceType = null;
+				this.pricePla = null;
 				this.priceSize = null;
 				this.priceUnits = null;
 				this.priceAmount = null;
@@ -1046,6 +1063,7 @@ class offerAdd extends PolymerElement {
 						this.$.addPriceType.selected = 3;
 						break;
 				}
+				this.pricePla = this.prices[indexPrice].pla;
 				this.priceSize = this.prices[indexPrice].size;
 				switch(this.prices[indexPrice].unit) {
 					case "b":
@@ -1359,6 +1377,13 @@ class offerAdd extends PolymerElement {
 			}
 			if(item.type) {
 				out.priceType = item.type;
+			}
+			if(item.pla) {
+				var plas = new Array();
+				var pla = new Object();
+				pla.href = item.pla;
+				plas.push(pla);
+				out.pricingLogicAlgorithm = plas;
 			}
 			if(item.unit && item.size) {
 				var len = item.size.length;
@@ -1744,6 +1769,7 @@ class offerAdd extends PolymerElement {
 			this.$.addPriceCharReserveBytes.disabled = true;
 			this.$.addPriceUnits.selected = 1;
 			this.$.addPriceAmount.disabled = false;
+			this.$.addPla.disabled = true;
 		} else if(this.priceType == "One Time") {
 			this.$.addPricePerioddrop.disabled = true;
 			this.$.priceBytes.disabled = true;
@@ -1754,6 +1780,7 @@ class offerAdd extends PolymerElement {
 			this.$.addPriceCharReserveBytes.disabled = true;
 			this.$.addPriceUnits.selected = 1;
 			this.$.addPriceAmount.disabled = false;
+			this.$.addPla.disabled = true;
 		} else if(this.priceType == "Usage") {
 			this.$.addPricePerioddrop.disabled = true;
 			this.$.priceCents.disabled = true;
@@ -1762,6 +1789,7 @@ class offerAdd extends PolymerElement {
 			this.$.priceSeconds.disabled = false;
 			this.$.addPriceUnits.selected = 0;
 			this.$.addPriceAmount.disabled = false;
+			this.$.addPla.disabled = true;
 		} else if(this.priceType == "Tariff") {
 			this.$.addPricePerioddrop.disabled = true;
 			this.$.priceCents.disabled = true;
@@ -1770,6 +1798,7 @@ class offerAdd extends PolymerElement {
 			this.$.priceSeconds.disabled = false;
 			this.$.addPriceUnits.selected = 2;
 			this.$.addPriceAmount.disabled = true;
+			this.$.addPla.disabled = false;
 			this.priceAmount = null;
 		}
 	}
@@ -1825,6 +1854,7 @@ class offerAdd extends PolymerElement {
 				priceNew.type = "tariff";
 				break;
 		}
+		priceNew.pla = this.pricePla;
 		switch(this.$.addPriceUnits.selected) {
 			case 0:
 				priceNew.unit = "b";
