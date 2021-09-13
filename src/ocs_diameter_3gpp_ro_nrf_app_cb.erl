@@ -784,7 +784,7 @@ post_request_ecur1(SubscriberIds, SessionId, ServiceRating, Path) ->
 	case httpc:request(post, Request, Options, [], Profile) of
 		{_RequestId, {{_HttpVersion, 201, _ReasonPhrase}, Headers1, Body1}} ->
 			{_, Location1} = lists:keyfind("location", 1, Headers1),
-			insert_ref(Location1, SessionId),
+			insert_ref(SessionId, Location1),
 			{ok, Body1};
 		{_RequestId, {{_HttpVersion, 200, _ReasonPhrase}, _Headers, Body1}} ->
 			{ok, Body1};
@@ -843,7 +843,7 @@ post_request_iec1(SubscriberIds, SessionId, ServiceRating) ->
 	case httpc:request(post, Request, Options, [], Profile) of
 		{_RequestId, {{_HttpVersion, 201, _ReasonPhrase}, Headers1, Body1}} ->
 			{_, Location1} = lists:keyfind("location", 1, Headers1),
-			insert_ref(Location1, SessionId),
+			insert_ref(SessionId, Location1),
 			{ok, Body1};
 		{_RequestId, {{_HttpVersion, StatusCode, _ReasonPhrase}, _Headers, _Body1}} ->
 			{error, StatusCode};
@@ -924,7 +924,7 @@ post_request_scur1(SubscriberIds, SessionId, ServiceRating, Path) ->
 	case httpc:request(post, Request, Options, [], Profile) of
 		{_RequestId, {{_HttpVersion, 201, _ReasonPhrase}, Headers1, Body1}} ->
 			{_, Location1} = lists:keyfind("location", 1, Headers1),
-			insert_ref(Location1, SessionId),
+			insert_ref(SessionId, Location1),
 			{ok, Body1};
 		{_RequestId, {{_HttpVersion, 200, _ReasonPhrase}, _Headers, Body1}} ->
 			{ok, Body1};
@@ -993,15 +993,15 @@ get_service_location1(<<MCC1, MCC2, MCC3, MNC1, MNC2>>) ->
 	{"serviceInformation", {struct, [{"sgsnMccMnc", {struct,
 			[{"mcc", MCC}, {"mnc", MNC}]}}]}}.
 
--spec insert_ref(Location, SessionId) -> Result
+-spec insert_ref(SessionId, Location) -> Result
 	when
-		Location :: string(),
 		SessionId :: binary(),
+		Location :: string(),
 		Result :: ok | {error, Reason},
 		Reason :: term().
 %% @doc Insert a rating Data ref.
 %% @hidden
-insert_ref(Location, SessionId)
+insert_ref(SessionId, Location)
 		when is_list(Location), is_binary(SessionId) ->
 	case catch ets:insert(?NRF_TABLE, {SessionId, Location}) of
 		true ->
@@ -1150,8 +1150,6 @@ map_service_rating([{struct, Elements} | T], RC2, Acc) ->
 map_service_rating([], NewRC2, Acc) ->
 	{lists:reverse(Acc), NewRC2}.
 
-
-
 %% @hidden
 tariff_element(Elements) ->
 	tariff_element(Elements, #{}).
@@ -1178,9 +1176,6 @@ rate_elements([_H | T], Acc) ->
 	rate_elements(T, Acc);
 rate_elements([], Acc) ->
 	Acc.
-
-
-
 
 -spec build_container(MSCC) -> MSCC
 	when
