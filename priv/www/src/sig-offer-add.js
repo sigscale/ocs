@@ -146,6 +146,42 @@ class offerAdd extends PolymerElement {
 							</paper-tooltip>
 						</div>
 						<div>
+							<paper-dropdown-menu
+									id="addOfferProductStatusDrop"
+									value="{{offerAddStatus}}"
+									no-animations="true"
+									label="Status">
+								<paper-listbox
+										id="addOfferProductStatusList"
+										slot="dropdown-content">
+									<paper-item>
+										In Study
+									</paper-item>
+									<paper-item>
+										In Design
+									</paper-item>
+									<paper-item>
+										In Test
+									</paper-item>
+									<paper-item>
+										Active
+									</paper-item>
+									<paper-item>
+										Rejected
+									</paper-item>
+									<paper-item>
+										Launched
+									</paper-item>
+									<paper-item>
+										Retired
+									</paper-item>
+									<paper-item>
+										Obsolete
+									</paper-item>
+								</paper-listbox>
+							</paper-dropdown-menu>
+						</div>
+						<div>
 							<span>Characteristics</span>
 							<paper-icon-button
 									id="onClickOfferChars"
@@ -1263,6 +1299,9 @@ class offerAdd extends PolymerElement {
 			offerNew.validFor = {startDateTime};
 		} else if(!startDateTime && endDateTime) {
 			offerNew.validFor = {endDateTime};
+		}
+		if(this.offerAddStatus) {
+			offerNew.lifecycleStatus = this.offerAddStatus;
 		}
 		var prodSpecCharValueUse = new Array();
 		if (this.$.addOfferCharReserveSession.value && this.$.addOfferCharReserveSession.value.length > 0) {
