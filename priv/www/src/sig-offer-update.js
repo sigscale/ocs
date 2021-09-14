@@ -121,6 +121,41 @@ class offerUpdate extends PolymerElement {
 							</paper-tooltip>
 						</div>
 						<div>
+							<paper-dropdown-menu
+									label="Status"
+									value="{{offerUpdateStatus}}"
+									no-animations="true">
+								<paper-listbox
+										id="updateOfferStatus"
+										slot="dropdown-content">
+									<paper-item>
+										In Study
+									</paper-item>
+									<paper-item>
+										In Design
+									</paper-item>
+									<paper-item>
+										In Test
+									</paper-item>
+									<paper-item>
+										Active
+									</paper-item>
+									<paper-item>
+										Rejected
+									</paper-item>
+									<paper-item>
+										Launched
+									</paper-item>
+									<paper-item>
+										Retired
+									</paper-item>
+									<paper-item>
+										Obsolete
+									</paper-item>
+								</paper-listbox>
+							</paper-dropdown-menu>
+						</div>
+						<div>
 							<span>Characteristics</span>
 							<paper-icon-button
 									id="updateOnClickOfferChars"
@@ -869,6 +904,7 @@ class offerUpdate extends PolymerElement {
 			}
 			this.updateOfferStartDate = current.startDate;
 			this.updateOfferEndDate = current.endDate;
+			this.offerUpdateStatus = current.lifecycleStatus;
 			this.characteristics = current.prodSpecCharValueUse;
 			for (var indexCha in current.prodSpecCharValueUse) {
 				if(current.prodSpecCharValueUse[indexCha].name == "radiusReserveSessionTime") {
@@ -1332,6 +1368,13 @@ class offerUpdate extends PolymerElement {
 				endDateTimeObject.path = "/validFor/endDateTime";
 				endDateTimeObject.value = this.updateOfferEndDate;
 				offerNew.push(endDateTimeObject);
+			}
+			if(this.offerUpdateStatus) {
+				var stat = new Object();
+				stat.op = "add";
+				stat.path = "/lifecycleStatus";
+				stat.value = this.offerUpdateStatus;
+				offerNew.push(stat);
 			}
 		if(this.$.updateReserveSession.value) {
 			function checkName(char) {
@@ -2764,6 +2807,7 @@ class offerUpdate extends PolymerElement {
 		this.updateOfferSpecification = null;
 		this.updateOfferStartDate = null;
 		this.updateOfferEndDate = null;
+		this.offerUpdateStatus = null;
 		this.$.updateAddPriceChars.hide();
 		this.$.addBundleUpdate.hide();
 		this.priceUpdateName = null;
