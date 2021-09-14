@@ -993,34 +993,38 @@ get_service_location1(<<MCC1, MCC2, MCC3, MNC1, MNC2>>) ->
 	{"serviceInformation", {struct, [{"sgsnMccMnc", {struct,
 			[{"mcc", MCC}, {"mnc", MNC}]}}]}}.
 
--spec insert_ref(SessionId, Location) -> Result
+-spec insert_ref(SessionId, SessionState) -> Result
 	when
 		SessionId :: binary(),
+		SessionState :: Location | ServiceRating,
 		Location :: string(),
+		ServiceRating :: [map()],
 		Result :: ok | {error, Reason},
 		Reason :: term().
 %% @doc Insert a rating Data ref.
 %% @hidden
-insert_ref(SessionId, Location)
-		when is_list(Location), is_binary(SessionId) ->
-	case catch ets:insert(?NRF_TABLE, {SessionId, Location}) of
+insert_ref(SessionId, SessionState)
+		when is_list(SessionState), is_binary(SessionId) ->
+	case catch ets:insert(?NRF_TABLE, {SessionId, SessionState}) of
 		true ->
 			ok;
 		{'EXIT', Reason} ->
 			{error, Reason}
 	end.
 
--spec get_ref(SessionId) -> Result
+-spec get_ref(SessionId) -> SessionState
 	when
 		SessionId :: binary(),
-		Result :: list().
+		SessionState :: Location | ServiceRating,
+		Location :: string(),
+		ServiceRating :: [map()].
 %% @doc Get a rating data ref
 %% @hidden
-get_ref(SessionId) ->
-	Pattern = {SessionId, '$1'},
-	case ets:match_object(?NRF_TABLE, Pattern) of
-		[{SessionId, RatingDataRef}] ->
-			RatingDataRef;
+get_ref(SessionId)
+		when is_binary(SessionId) ->
+	case ets:lookup(?NRF_TABLE, SessionId) of
+		[{SessionId, SessionState}] ->
+			SessionState;
 		_ ->
 			[]
 	end.
@@ -1034,8 +1038,7 @@ get_ref(SessionId) ->
 %% @hidden
 remove_ref(SessionId)
 		when is_binary(SessionId) ->
-	Pattern = {SessionId, '$1'},
-	case catch ets:delete_object(?NRF_TABLE, Pattern) of
+	case catch ets:delete(?NRF_TABLE, SessionId) of
 		true ->	
 			ok;
 		{'EXIT', Reason} ->
