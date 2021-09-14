@@ -66,7 +66,9 @@
 				| {out_of_credit, RedirectServerAddress, SessionList}
 				| {out_of_credit, RedirectServerAddress, SessionList, Rated}
 				| {disabled, SessionList}
+				| {ok, {pla_ref, Price}}
 				| {error, Reason},
+		Price :: #price{},
 		Service :: #service{},
 		GrantedAmount :: {Type, Amount},
 		Rated :: [#rated{}],
@@ -224,7 +226,9 @@ rate(Protocol, ServiceType, ServiceId, ChargingKey,
 				DeletedBuckets, AccBalance}} ->
 			ok = send_notifications(DeletedBuckets),
 			ok = notify_accumulated_balance(AccBalance),
-		{out_of_credit, RedirectServerAddress, SL};
+			{out_of_credit, RedirectServerAddress, SL};
+		{atomic, {{pla_ref, Price}, _}} ->
+			{ok,  {pla_ref, Price}};
 		{aborted, Reason} ->
 			{error, Reason}
 	end.
@@ -311,6 +315,8 @@ rate2(Protocol, Service, ServiceId, Product, Buckets, Timestamp, Address, Direct
 	FilteredPrices2 = filter_prices_key(ChargingKey, FilteredPrices1),
 	FilteredPrices3 = filter_prices_tod(Timestamp, FilteredPrices2),
 	case filter_prices_dir(Direction, FilteredPrices3) of
+		[#price{type = #pla_ref{}} = Price | _] ->
+			 {pla_ref, Price};
 		[#price{units = Units, type = PriceType, size = UnitSize, amount = UnitPrice,
 				currency = Currency, char_value_use = PriceChars} = Price | _] ->
 			RoamingTable = roaming_table_prefix(Price),
@@ -338,6 +344,8 @@ rate2(Protocol, Service, ServiceId, Product, Buckets, Timestamp, Address, Direct
 	FilteredPrices2 = filter_prices_key(ChargingKey, FilteredPrices1),
 	FilteredPrices3 = filter_prices_tod(Timestamp, FilteredPrices2),
 	case filter_prices_dir(Direction, FilteredPrices3) of
+		[#price{type = #pla_ref{}} = Price | _] ->
+			 {pla_ref, Price};
 		[#price{units = Units, type = PriceType, size = UnitSize, amount = UnitPrice,
 				currency = Currency, char_value_use = PriceChars} = Price | _] ->
 			RoamingTable = roaming_table_prefix(Price),
@@ -362,6 +370,8 @@ rate2(Protocol, Service, ServiceId, Product, Buckets, Timestamp, _Address, _Dire
 	FilteredPrices1 = lists:filter(F, Prices),
 	FilteredPrices2 = filter_prices_key(ChargingKey, FilteredPrices1),
 	case filter_prices_tod(Timestamp, FilteredPrices2) of
+		[#price{type = #pla_ref{}} = Price | _] ->
+			 {pla_ref, Price};
 		[#price{units = Units, type = PriceType, size = UnitSize, amount = UnitPrice,
 				currency = Currency, char_value_use = PriceChars} = Price| _] ->
 			RoamingTable = roaming_table_prefix(Price),
@@ -479,12 +489,12 @@ rate4(Protocol, Service, ServiceId, Product, Buckets,
 	when
 		Protocol :: radius | diameter,
 		SubscriberID :: binary(),
-		ServiceId :: string(),
+		ServiceId :: integer() | undefined,
 		ChargingKey :: integer() | undefined,
 		UnitSize :: integer() | undefined,
 		Currency :: string(),
 		UnitPrice :: integer() | undefined,
-		PriceChars :: #char_value_use{},
+		PriceChars :: #char_value_use{} | undefined,
 		Units :: integer() | undefined,
 		Flag :: initial | interim | final | event,
 		DebitAmounts :: list(),
@@ -511,8 +521,9 @@ charge(Protocol, SubscriberID, ServiceId,
 		ChargingKey, Flag, DebitAmounts,
 		ReserveAmounts, SessionAttributes)
 		when ((Protocol == radius) or (Protocol == diameter)),
-		is_binary(SubscriberID), is_list(ServiceId),
+		is_binary(SubscriberID),
 		(is_integer(ChargingKey) or (ChargingKey == undefined)),
+		(is_integer(ServiceId) or (ServiceId== undefined)),
 		(is_integer(UnitSize) or (UnitSize == undefined)),
 		(is_integer(UnitPrice) or (UnitPrice == undefined)),
 		(is_integer(Units) or (Units == undefined)),
