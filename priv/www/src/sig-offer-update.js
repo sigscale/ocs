@@ -1668,7 +1668,7 @@ class offerUpdate extends PolymerElement {
 				}
 			}
 		}
-		if(this.priceUpdateAmount.length != "") {
+		if(this.priceUpdateAmount != "") {
 			if(this.priceUpdateAmount != this.prices[indexPrices].amount) {
 				var priceAmount = new Object();
 				priceAmount.op = "add";
