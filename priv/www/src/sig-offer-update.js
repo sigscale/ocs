@@ -1821,9 +1821,10 @@ class offerUpdate extends PolymerElement {
 					keyE.path = "/productOfferingPrice/" + indexPrices + "/prodSpecCharValueUse/" + indexCharCharging  + "/productSpecCharacteristicValue/0/value";
 					keyE.value = parseInt(this.chargingKey);
 					if(isNaN(keyE.value)) {
-						var priceChargeDel = new Object();
-						priceChargeDel.op = "remove";
-						priceChargeDel.path = "/productOfferingPrice/" + indexPrices + "/prodSpecCharValueUse/" + indexCharCharging;
+						var priceChargeDelete = new Object();
+						priceChargeDelete.op = "remove";
+						priceChargeDelete.path = "/productOfferingPrice/" + indexPrices + "/prodSpecCharValueUse/" + indexCharCharging;
+						updatePriceNew.push(priceChargeDelete);
 					} else {
 						updatePriceNew.push(keyE);
 					}
