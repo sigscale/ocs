@@ -1348,7 +1348,7 @@ class offerUpdate extends PolymerElement {
 			if(this.updateOfferStartDate == "") {
 				var startDateTimeDel = new Object();
 				startDateTimeDel.op = "remove";
-				startDateTimeDel.path = "/description";
+				startDateTimeDel.path = "/validFor";
 				offerNew.push(startDateTimeDel);
 			} else if(this.updateOfferStartDate) {
 				var startDateTimeObject = new Object();
@@ -1610,61 +1610,64 @@ class offerUpdate extends PolymerElement {
 				updatePriceNew.push(pricetype);
 			}
 		} 
-		if(this.priceUpdateSize != this.prices[indexPrices].size) {
-			var priceSize = new Object();
-			priceSize.op = "add";
-			priceSize.path = "/productOfferingPrice/" + indexPrices + "/unitOfMeasure";
-			for(var indexUnit in this.prices) {
-				if(this.priceUpdateUnits == "Seconds") {
-					this.prices[indexUnit].unit = "s";
-				}
-				if(this.priceUpdateUnits == "Bytes") {
-					this.prices[indexUnit].unit = "b";
-				}
-				if(this.prices[indexUnit].unit != undefined) {
-					var unitDrop = this.prices[indexUnit].unit;
-				}
-				if(this.priceUpdateSize != undefined) {
-					var sizeVal = this.priceUpdateSize;
-				}
-				if(unitDrop && sizeVal) {
-					var len = sizeVal.length;
-					var m = sizeVal.charAt(len - 1);
-					if(isNaN(parseInt(m))) {
-						var s = sizeVal.slice(0, (len - 1));
+		if(this.$.updatePriceSize.disabled == false){
+			if(this.priceUpdateSize != this.prices[indexPrices].size
+					|| this.priceUpdateUnits != this.prices[indexPrices].unit) {
+				var priceSize = new Object();
+				priceSize.op = "add";
+				priceSize.path = "/productOfferingPrice/" + indexPrices + "/unitOfMeasure";
+				for(var indexUnit in this.prices) {
+					if(this.priceUpdateUnits == "Seconds") {
+						this.prices[indexUnit].unit = "s";
+					}
+					if(this.priceUpdateUnits == "Bytes") {
+						this.prices[indexUnit].unit = "b";
+					}
+					if(this.prices[indexUnit].unit != undefined) {
+						var unitDrop = this.prices[indexUnit].unit;
+					}
+					if(this.priceUpdateSize != undefined) {
+						var sizeVal = this.priceUpdateSize;
+					}
+					if(unitDrop && sizeVal) {
+						var len = sizeVal.length;
+						var m = sizeVal.charAt(len - 1);
+						if(isNaN(parseInt(m))) {
+							var s = sizeVal.slice(0, (len - 1));
+						} else {
+							var s = sizeVal;
+						}
+						if(unitDrop == "b") {
+							if (m == "m") {
+								priceSize.value = s + "000000b";
+							} else if(m == "g") {
+								priceSize.value = s + "000000000b";
+							} else if(m == "k") {
+								priceSize.value = s + "000b";
+							} else {
+								priceSize.value = s + "b";
+							}
+						} else if(unitDrop == "s") {
+							var n = Number(s);
+							if(m == "m") {
+								n = n * 60;
+								priceSize.value = n.toString() + "s";
+							} else if(m == "h") {
+								n = n * 3600;
+								priceSize.value = n.toString() + "s";
+							} else {
+								priceSize.value = n.toString() + "s";
+							}
+						}
+					}
+					if(priceSize.value == "") {
+						var priceSizeDel = new Object();
+						priceSizeDel.op = "remove";
+						priceSizeDel.path = "/productOfferingPrice/" + indexPrices + "/unitOfMeasure";
+						updatePriceNew.push(priceSizeDel);
 					} else {
-						var s = sizeVal;
+						updatePriceNew.push(priceSize);
 					}
-					if(unitDrop == "b") {
-						if (m == "m") {
-							priceSize.value = s + "000000b";
-						} else if(m == "g") {
-							priceSize.value = s + "000000000b";
-						} else if(m == "k") {
-							priceSize.value = s + "000b";
-						} else {
-							priceSize.value = s + "b";
-						}
-					} else if(unitDrop == "s") {
-						var n = Number(s);
-						if(m == "m") {
-							n = n * 60;
-							priceSize.value = n.toString() + "s";
-						} else if(m == "h") {
-							n = n * 3600;
-							priceSize.value = n.toString() + "s";
-						} else {
-							priceSize.value = n.toString() + "s";
-						}
-					}
-				}
-				if(priceSize.value == "") {
-					var priceSizeDel = new Object();
-					priceSizeDel.op = "remove";
-					priceSizeDel.path = "/productOfferingPrice/" + indexPrices + "/unitOfMeasure";
-					updatePriceNew.push(priceSizeDel);
-				} else {
-					updatePriceNew.push(priceSize);
 				}
 			}
 		}
