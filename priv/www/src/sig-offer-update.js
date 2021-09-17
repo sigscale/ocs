@@ -2011,6 +2011,7 @@ class offerUpdate extends PolymerElement {
 		}
 		ajax.body = JSON.stringify(updatePriceNew);
 		ajax.generateRequest();
+		this.priceUpdateName = null;
 		this.priceUpdateDescription = null;
 		this.priceUpdateSize = null;
 		this.priceUpdateType = null;
