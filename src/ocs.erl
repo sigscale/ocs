@@ -2322,7 +2322,7 @@ find_sn_network(Table, Id) ->
 			exit(Reason)
 	end.
 
-	-spec statistics(Item) -> Result
+-spec statistics(Item) -> Result
 	when
 		Item :: scheduler_utilization,
 		Result :: {ok, {Etag, Interval, Report}} | {error, Reason},

@@ -121,6 +121,41 @@ class offerUpdate extends PolymerElement {
 							</paper-tooltip>
 						</div>
 						<div>
+							<paper-dropdown-menu
+									label="Status"
+									value="{{offerUpdateStatus}}"
+									no-animations="true">
+								<paper-listbox
+										id="updateOfferStatus"
+										slot="dropdown-content">
+									<paper-item>
+										In Study
+									</paper-item>
+									<paper-item>
+										In Design
+									</paper-item>
+									<paper-item>
+										In Test
+									</paper-item>
+									<paper-item>
+										Active
+									</paper-item>
+									<paper-item>
+										Rejected
+									</paper-item>
+									<paper-item>
+										Launched
+									</paper-item>
+									<paper-item>
+										Retired
+									</paper-item>
+									<paper-item>
+										Obsolete
+									</paper-item>
+								</paper-listbox>
+							</paper-dropdown-menu>
+						</div>
+						<div>
 							<span>Characteristics</span>
 							<paper-icon-button
 									id="updateOnClickOfferChars"
@@ -326,7 +361,7 @@ class offerUpdate extends PolymerElement {
 									pattern="[0-9]+\.?[0-9]{0,6}$"
 									auto-validate
 									label="Amount"
-									value=0>
+									value="0">
 							</paper-input>
 							<paper-tooltip
 									Add a value to update the offer price tax included amount
@@ -885,6 +920,7 @@ class offerUpdate extends PolymerElement {
 			}
 			this.updateOfferStartDate = current.startDate;
 			this.updateOfferEndDate = current.endDate;
+			this.offerUpdateStatus = current.lifecycleStatus;
 			this.characteristics = current.prodSpecCharValueUse;
 			for (var indexCha in current.prodSpecCharValueUse) {
 				if(current.prodSpecCharValueUse[indexCha].name == "radiusReserveSessionTime") {
@@ -1247,8 +1283,14 @@ class offerUpdate extends PolymerElement {
 							this.$.updateAddPriceCharReserveBytes.value = prodPriceUpdate.prodSpecCharValueUse[indexCharVal].value;
 						}
 						if(prodPriceUpdate.prodSpecCharValueUse[indexCharVal].name == "timeOfDayRange") {
-							this.startTimeUpdate = prodPriceUpdate.prodSpecCharValueUse[indexCharVal].value.lowerValue.amount;
-							this.endTimeUpdate = prodPriceUpdate.prodSpecCharValueUse[indexCharVal].value.upperValue.amount;
+							if(prodPriceUpdate.prodSpecCharValueUse[indexCharVal].value.lowerValue.units == "minutes") {
+								var todStart = prodPriceUpdate.prodSpecCharValueUse[indexCharVal].value.lowerValue.amount;
+								this.startTimeUpdate = (todStart / 60).toFixed(0).padStart(2, '0')
+										+ ':' + (todStart % 60).toString().padStart(2, '0');
+								var todEnd = prodPriceUpdate.prodSpecCharValueUse[indexCharVal].value.upperValue.amount;
+								this.endTimeUpdate = (todEnd / 60).toFixed(0).padStart(2, '0')
+										+ ':' + (todEnd % 60).toString().padStart(2, '0');
+							}
 						}
 						if(prodPriceUpdate.prodSpecCharValueUse[indexCharVal].name == "callDirection") {
 							if(prodPriceUpdate.prodSpecCharValueUse[indexCharVal].value == "originate") {
@@ -1333,7 +1375,7 @@ class offerUpdate extends PolymerElement {
 			if(this.updateOfferStartDate == "") {
 				var startDateTimeDel = new Object();
 				startDateTimeDel.op = "remove";
-				startDateTimeDel.path = "/description";
+				startDateTimeDel.path = "/validFor";
 				offerNew.push(startDateTimeDel);
 			} else if(this.updateOfferStartDate) {
 				var startDateTimeObject = new Object();
@@ -1353,6 +1395,13 @@ class offerUpdate extends PolymerElement {
 				endDateTimeObject.path = "/validFor/endDateTime";
 				endDateTimeObject.value = this.updateOfferEndDate;
 				offerNew.push(endDateTimeObject);
+			}
+			if(this.offerUpdateStatus) {
+				var stat = new Object();
+				stat.op = "add";
+				stat.path = "/lifecycleStatus";
+				stat.value = this.offerUpdateStatus;
+				offerNew.push(stat);
 			}
 		if(this.$.updateReserveSession.value) {
 			function checkName(char) {
@@ -1588,89 +1637,73 @@ class offerUpdate extends PolymerElement {
 				updatePriceNew.push(pricetype);
 			}
 		} 
-		if(this.priceUpdatePla != this.prices[indexPrices].pla) {
-			var pla = new Object();
-			pla.path = "/productOfferingPrice/" + indexPrices + "/pricingLogicAlgorithm";
-			if(this.priceUpdatePla == "") {
-				pla.op = "remove";
-			} else {
-				pla.op = "add";
-				pla.value = new Array();
-				var plaRef = new Object();
-				plaRef.href = this.priceUpdatePla;
-				pla.value.push(plaRef);
-			}
-			updatePriceNew.push(pla);
-		}
-		if(this.priceUpdateSize != this.prices[indexPrices].size) {
-			var priceSize = new Object();
-			priceSize.op = "add";
-			priceSize.path = "/productOfferingPrice/" + indexPrices + "/unitOfMeasure";
-			for(var indexUnit in this.prices) {
-				if(this.priceUpdateUnits == "Seconds") {
-					this.prices[indexUnit].unit = "s";
-				}
-				if(this.priceUpdateUnits == "Bytes") {
-					this.prices[indexUnit].unit = "b";
-				}
-				if(this.prices[indexUnit].unit != undefined) {
-					var unitDrop = this.prices[indexUnit].unit;
-				}
-				if(this.priceUpdateSize != undefined) {
-					var sizeVal = this.priceUpdateSize;
-				}
-				if(unitDrop && sizeVal) {
-					var len = sizeVal.length;
-					var m = sizeVal.charAt(len - 1);
-					if(isNaN(parseInt(m))) {
-						var s = sizeVal.slice(0, (len - 1));
+		if(this.$.updatePriceSize.disabled == false){
+			if(this.priceUpdateSize != this.prices[indexPrices].size
+					|| this.priceUpdateUnits != this.prices[indexPrices].unit) {
+				var priceSize = new Object();
+				priceSize.op = "add";
+				priceSize.path = "/productOfferingPrice/" + indexPrices + "/unitOfMeasure";
+				for(var indexUnit in this.prices) {
+					if(this.priceUpdateUnits == "Seconds") {
+						this.prices[indexUnit].unit = "s";
+					}
+					if(this.priceUpdateUnits == "Bytes") {
+						this.prices[indexUnit].unit = "b";
+					}
+					if(this.prices[indexUnit].unit != undefined) {
+						var unitDrop = this.prices[indexUnit].unit;
+					}
+					if(this.priceUpdateSize != undefined) {
+						var sizeVal = this.priceUpdateSize;
+					}
+					if(unitDrop && sizeVal) {
+						var len = sizeVal.length;
+						var m = sizeVal.charAt(len - 1);
+						if(isNaN(parseInt(m))) {
+							var s = sizeVal.slice(0, (len - 1));
+						} else {
+							var s = sizeVal;
+						}
+						if(unitDrop == "b") {
+							if (m == "m") {
+								priceSize.value = s + "000000b";
+							} else if(m == "g") {
+								priceSize.value = s + "000000000b";
+							} else if(m == "k") {
+								priceSize.value = s + "000b";
+							} else {
+								priceSize.value = s + "b";
+							}
+						} else if(unitDrop == "s") {
+							var n = Number(s);
+							if(m == "m") {
+								n = n * 60;
+								priceSize.value = n.toString() + "s";
+							} else if(m == "h") {
+								n = n * 3600;
+								priceSize.value = n.toString() + "s";
+							} else {
+								priceSize.value = n.toString() + "s";
+							}
+						}
+					}
+					if(priceSize.value == "") {
+						var priceSizeDel = new Object();
+						priceSizeDel.op = "remove";
+						priceSizeDel.path = "/productOfferingPrice/" + indexPrices + "/unitOfMeasure";
+						updatePriceNew.push(priceSizeDel);
 					} else {
-						var s = sizeVal;
+						updatePriceNew.push(priceSize);
 					}
-					if(unitDrop == "b") {
-						if (m == "m") {
-							priceSize.value = s + "000000b";
-						} else if(m == "g") {
-							priceSize.value = s + "000000000b";
-						} else if(m == "k") {
-							priceSize.value = s + "000b";
-						} else {
-							priceSize.value = s + "b";
-						}
-					} else if(unitDrop == "s") {
-						var n = Number(s);
-						if(m == "m") {
-							n = n * 60;
-							priceSize.value = n.toString() + "s";
-						} else if(m == "h") {
-							n = n * 3600;
-							priceSize.value = n.toString() + "s";
-						} else {
-							priceSize.value = n.toString() + "s";
-						}
-					}
-				}
-				if(priceSize.value == "") {
-					var priceSizeDel = new Object();
-					priceSizeDel.op = "remove";
-					priceSizeDel.path = "/productOfferingPrice/" + indexPrices + "/unitOfMeasure";
-					updatePriceNew.push(priceSizeDel);
-				} else {
-					updatePriceNew.push(priceSize);
 				}
 			}
 		}
-		if(this.priceUpdateAmount != this.prices[indexPrices].amount) {
-			var priceAmount = new Object();
-			priceAmount.op = "add";
-			priceAmount.path = "/productOfferingPrice/" + indexPrices + "/price/taxIncludedAmount";
-			priceAmount.value = this.priceUpdateAmount;
-			if(priceAmount.value == "") {
-				var priceAmountDel = new Object();
-				priceAmountDel.op = "remove";
-				priceAmountDel.path = "/productOfferingPrice/" + indexPrices + "/price/taxIncludedAmount";
-				updatePriceNew.push(priceAmountDel);
-			} else {
+		if(this.priceUpdateAmount != "") {
+			if(this.priceUpdateAmount != this.prices[indexPrices].amount) {
+				var priceAmount = new Object();
+				priceAmount.op = "add";
+				priceAmount.path = "/productOfferingPrice/" + indexPrices + "/price/taxIncludedAmount";
+				priceAmount.value = this.priceUpdateAmount;
 				updatePriceNew.push(priceAmount);
 			}
 		}
@@ -1799,7 +1832,9 @@ class offerUpdate extends PolymerElement {
 				key1.name = "chargingKey";
 				var key2Arr = new Array();
 				var key2 = new Object();
-				key2.value = parseInt(this.chargingKey);
+				if(!isNaN(parseInt(this.chargingKey))) {
+					key2.value = parseInt(this.chargingKey);
+				}
 				key2Arr.push(key2);
 				key1.productSpecCharacteristicValue = key2Arr;
 				var key3 = new Object();
@@ -1816,10 +1851,10 @@ class offerUpdate extends PolymerElement {
 					keyE.path = "/productOfferingPrice/" + indexPrices + "/prodSpecCharValueUse/" + indexCharCharging  + "/productSpecCharacteristicValue/0/value";
 					keyE.value = parseInt(this.chargingKey);
 					if(isNaN(keyE.value)) {
-						var priceChargeDel = new Object();
-						priceChargeDel.op = "remove";
-						priceChargeDel.path = "/productOfferingPrice/" + indexPrices + "/prodSpecCharValueUse/" + indexCharCharging;
-						updatePriceNew.push(priceChargeDel);
+						var priceChargeDelete = new Object();
+						priceChargeDelete.op = "remove";
+						priceChargeDelete.path = "/productOfferingPrice/" + indexPrices + "/prodSpecCharValueUse/" + indexCharCharging;
+						updatePriceNew.push(priceChargeDelete);
 					} else {
 						updatePriceNew.push(keyE);
 					}
@@ -1840,7 +1875,9 @@ class offerUpdate extends PolymerElement {
 				var roam2Arr = new Array();
 				var roam2 = new Object();
 				roam2.default = true;
-				roam2.value = this.priceAddRoaming;
+				if(this.priceAddRoaming == null) {
+					roam2.value = this.priceAddRoaming;
+				}
 				roam2Arr.push(roam2);
 				roam1.productSpecCharacteristicValue = roam2Arr;
 				var roam3 = new Object();
@@ -1852,56 +1889,56 @@ class offerUpdate extends PolymerElement {
 			} else if(this.prices[indexPrices].prodSpecCharValueUse.length != 0) {
 				if(this.priceAddRoaming != this.prices[indexPrices].prodSpecCharValueUse[resRoaming].value) {
 					var indexCharRoaming = resRoaming.toString();
-					var roam = new Object();
-					roam.op = "add";
-					roam.path = "/productOfferingPrice/" + indexPrices + "/prodSpecCharValueUse/" + indexCharRoaming  + "/productSpecCharacteristicValue/0/value";
-					roam.value = this.priceAddRoaming;
-					if(roam.value == "") {
+					var roamR = new Object();
+					roamR.op = "add";
+					roamR.path = "/productOfferingPrice/" + indexPrices + "/prodSpecCharValueUse/" + indexCharRoaming  + "/productSpecCharacteristicValue/0/value";
+					roamR.value = this.priceAddRoaming;
+					if(roamR.value == "") {
 						var priceRoomDel = new Object();
 						priceRoomDel.op = "remove";
 						priceRoomDel.path = "/productOfferingPrice/" + indexPrices + "/prodSpecCharValueUse/" + indexCharRoaming;
 						updatePriceNew.push(priceRoomDel);
 					} else {
-						updatePriceNew.push(roam);
+						updatePriceNew.push(roamR);
 					}
 				}
 			}
-		}
-		function checkChar1(charVal) {
-			return charVal.name == "radiusReserveOctets";
-		}
-		var resReserveOctets = this.prices[indexPrices].prodSpecCharValueUse.findIndex(checkChar1);
-		if(resReserveOctets == -1) {
-			var indexChar1 = "-";
-			var charResBytes = new Object();
-			charResBytes.op = "add";
-			charResBytes.path = "/productOfferingPrice/" + indexPrices + "/prodSpecCharValueUse/" + indexChar1;
-			var resByte1 = new Object();
-			resByte1.name = "radiusReserveOctets";
-			resByte1.valueType = "Number";
-			resByte1.minCardinality = 1;
-			resByte1.maxCardinality = 1;
-			var resByte2Arr = new Array();
-			var resByte2 = new Object();
-			resByte2.unitOfMeasure = "octets";
-			resByte2.default = true;
-			resByte2.value = this.$.updateAddPriceCharReserveBytes.value;
-			resByte1.productSpecCharacteristicValue = resByte2Arr;
-			var resByte3 = new Object();
-			resByte3.id = "4";
-			resByte3.href = "/catalogManagement/v2/productSpecification/4";
-			resByte1.productSpecification = resByte3;
-			resByte2Arr.push(resByte2);
-			charResBytes.value = resByte1; 
-			updatePriceNew.push(charResBytes);
-		} else if(this.prices[indexPrices].prodSpecCharValueUse.length != 0) {
-			if(this.$.updateAddPriceCharReserveBytes.value != this.prices[indexPrices].prodSpecCharValueUse[resReserveOctets].value) {
-				var indexChar1 = resReserveOctets.toString();
+			function checkCharOctet1(charVal) {
+				return charVal.name == "radiusReserveOctets";
+			}
+			var resReserveOctets = this.prices[indexPrices].prodSpecCharValueUse.findIndex(checkCharOctet1);
+			if(resReserveOctets == -1) {
+				var indexChar1 = "-";
 				var charResBytes = new Object();
 				charResBytes.op = "add";
-				charResBytes.path = "/productOfferingPrice/" + indexPrices + "/prodSpecCharValueUse/" + indexChar1 + "/productSpecCharacteristicValue/0/value";
-				charResBytes.value = this.$.updateAddPriceCharReserveBytes.value;
+				charResBytes.path = "/productOfferingPrice/" + indexPrices + "/prodSpecCharValueUse/" + indexChar1;
+				var resByte1 = new Object();
+				resByte1.name = "radiusReserveOctets";
+				resByte1.valueType = "Number";
+				resByte1.minCardinality = 1;
+				resByte1.maxCardinality = 1;
+				var resByte2Arr = new Array();
+				var resByte2 = new Object();
+				resByte2.unitOfMeasure = "octets";
+				resByte2.default = true;
+				resByte2.value = this.$.updateAddPriceCharReserveBytes.value;
+				resByte1.productSpecCharacteristicValue = resByte2Arr;
+				var resByte3 = new Object();
+				resByte3.id = "4";
+				resByte3.href = "/catalogManagement/v2/productSpecification/4";
+				resByte1.productSpecification = resByte3;
+				resByte2Arr.push(resByte2);
+				charResBytes.value = resByte1; 
 				updatePriceNew.push(charResBytes);
+			} else if(this.prices[indexPrices].prodSpecCharValueUse.length != 0) {
+				if(this.$.updateAddPriceCharReserveBytes.value != this.prices[indexPrices].prodSpecCharValueUse[resReserveOctets].value) {
+					var indexChar1 = resReserveOctets.toString();
+					var charResBytes = new Object();
+					charResBytes.op = "add";
+					charResBytes.path = "/productOfferingPrice/" + indexPrices + "/prodSpecCharValueUse/" + indexChar1 + "/productSpecCharacteristicValue/0/value";
+					charResBytes.value = this.$.updateAddPriceCharReserveBytes.value;
+					updatePriceNew.push(charResBytes);
+				}
 			}
 		}
 		if(this.$.updateCheckIn.checked || this.$.updateCheckOut.checked) {
@@ -1948,59 +1985,61 @@ class offerUpdate extends PolymerElement {
 					updatePriceNew.push(call);
 				}
 			}
-			if(this.startTimeUpdate ||
-					this.endTimeUpdate ||
-					(this.startTimeUpdate &&
-					this.endTimeUpdate)) {
-				function checkChar1(charVal) {
-					return charVal.name == "timeOfDayRange";
-				}
-				var resTime = this.prices[indexPrices].prodSpecCharValueUse.findIndex(checkChar1);
-				if(resTime == -1) {
-					var indexChar2 = "-";
-					var timeDay = new Object();
-					timeDay.op = "add";
-					timeDay.path = "/productOfferingPrice/" + indexPrices + "/prodSpecCharValueUse/" + indexChar2;
-					var timeRange1 = new Object();
-					timeRange1.name = "timeOfDayRange";
-					timeRange1.valueType = "Range";
-					timeRange1.minCardinality = 0;
-					timeRange1.maxCardinality = 1;
-					var timeRangeArr = new Array();
-					var timeRange2 = new Object();
-					var timeRange3 = new Object();
-					var timeRangeLower = new Object();
-					timeRangeLower.amount = this.startTimeUpdate;
-					timeRangeLower.units = "minutes";
-					timeRange3.lowerValue = timeRangeLower;
-					var timeRangeUpper = new Object();
-					timeRangeUpper.amount = this.endTimeUpdate;
-					timeRangeUpper.units = "minutes";
-					timeRange3.upperValue = timeRangeUpper;
-					timeRange2.value = timeRange3;
-					timeRange1.productSpecCharacteristicValue = timeRangeArr;
-					timeRangeArr.push(timeRange2);
-					timeDay.value = timeRange1;
-					updatePriceNew.push(timeDay);
-				} else if(this.prices[indexPrices].prodSpecCharValueUse.length != 0) {
-					if(this.startTimeUpdate != this.prices[indexPrices].prodSpecCharValueUse[resTime].value || this.endTimeUpdate != this.prices[indexPrices].prodSpecCharValueUse[resTime].value) {
-						var indexChar2 = resTime.toString();
-						var timeDay1 = new Object();
-						timeDay1.op = "add";
-						timeDay1.path = "/productOfferingPrice/" + indexPrices + "/prodSpecCharValueUse/" + indexChar2 + "/productSpecCharacteristicValue/0/value/lowerValue/amount";
-						timeDay1.value = this.startTimeUpdate;
-						updatePriceNew.push(timeDay1);
-						var timeDayEnd = new Object();
-						timeDayEnd.op = "add";
-						timeDayEnd.path = "/productOfferingPrice/" + indexPrices + "/prodSpecCharValueUse/" + indexChar2 + "/productSpecCharacteristicValue/0/value/upperValue/amount";
-						timeDayEnd.value = this.endTimeUpdate;
-						updatePriceNew.push(timeDayEnd);
-					}
+		}
+		if(this.startTimeUpdate && this.endTimeUpdate) {
+			function checkCharTime(charVal) {
+				return charVal.name == "timeOfDayRange";
+			}
+			var resTime = this.prices[indexPrices].prodSpecCharValueUse.findIndex(checkCharTime);
+			if(resTime == -1) {
+				var indexChar2 = "-";
+				var timeDay = new Object();
+				timeDay.op = "add";
+				timeDay.path = "/productOfferingPrice/" + indexPrices + "/prodSpecCharValueUse/" + indexChar2;
+				var timeRange1 = new Object();
+				timeRange1.name = "timeOfDayRange";
+				timeRange1.valueType = "Range";
+				timeRange1.minCardinality = 0;
+				timeRange1.maxCardinality = 1;
+				var timeRangeArr = new Array();
+				var timeRange2 = new Object();
+				var timeRange3 = new Object();
+				var timeRangeLower = new Object();
+				var epochStart = new Date("1970-01-01T" + this.startTimeUpdate);
+				timeRangeLower.amount = (epochStart.getHours() * 60) + epochStart.getMinutes();
+				timeRangeLower.units = "minutes";
+				timeRange3.lowerValue = timeRangeLower;
+				var timeRangeUpper = new Object();
+				var epochEnd = new Date("1970-01-01T" + this.endTimeUpdate);
+				timeRangeUpper.amount = (epochEnd.getHours() * 60) + epochEnd.getMinutes();
+				timeRangeUpper.units = "minutes";
+				timeRange3.upperValue = timeRangeUpper;
+				timeRange2.value = timeRange3;
+				timeRange1.productSpecCharacteristicValue = timeRangeArr;
+				timeRangeArr.push(timeRange2);
+				timeDay.value = timeRange1;
+				updatePriceNew.push(timeDay);
+			} else if(this.prices[indexPrices].prodSpecCharValueUse.length != 0) {
+				if(this.startTimeUpdate != this.prices[indexPrices].prodSpecCharValueUse[resTime].value || this.endTimeUpdate != this.prices[indexPrices].prodSpecCharValueUse[resTime].value) {
+					var indexChar2 = resTime.toString();
+					var timeDay1 = new Object();
+					timeDay1.op = "add";
+					timeDay1.path = "/productOfferingPrice/" + indexPrices + "/prodSpecCharValueUse/" + indexChar2 + "/productSpecCharacteristicValue/0/value/lowerValue/amount";
+					var epochStart = new Date("1970-01-01T" + this.startTimeUpdate);
+					timeDay1.value = (epochStart.getHours() * 60) + epochStart.getMinutes();
+					updatePriceNew.push(timeDay1);
+					var timeDayEnd = new Object();
+					timeDayEnd.op = "add";
+					timeDayEnd.path = "/productOfferingPrice/" + indexPrices + "/prodSpecCharValueUse/" + indexChar2 + "/productSpecCharacteristicValue/0/value/upperValue/amount";
+					var epochEnd = new Date("1970-01-01T" + this.endTimeUpdate);
+					timeDayEnd.value = (epochEnd.getHours() * 60) + epochEnd.getMinutes();
+					updatePriceNew.push(timeDayEnd);
 				}
 			}
 		}
 		ajax.body = JSON.stringify(updatePriceNew);
 		ajax.generateRequest();
+		this.priceUpdateName = null;
 		this.priceUpdateDescription = null;
 		this.priceUpdateSize = null;
 		this.priceUpdateType = null;
@@ -2645,11 +2684,13 @@ class offerUpdate extends PolymerElement {
 					var charValue1 = new Object();
 					var charValue = new Object();
 					var charValueLower = new Object();
-					charValueLower.amount = this.startTimeUpdate;
+					var epochStart = new Date("1970-01-01T" + this.startTimeUpdate);
+					charValueLower.amount = (epochStart.getHours() * 60) + epochStart.getMinutes();
 					charValueLower.units = "minutes";
 					charValue.lowerValue = charValueLower;
 					var charValueUpper = new Object();
-					charValueUpper.amount = this.endTimeUpdate;
+					var epochEnd = new Date("1970-01-01T" + this.endTimeUpdate);
+					charValueUpper.amount = (epochEnd.getHours() * 60) + epochEnd.getMinutes();
 					charValueUpper.units = "minutes";
 					charValue.upperValue = charValueUpper;
 					charValue1.value = charValue;
@@ -2815,6 +2856,7 @@ class offerUpdate extends PolymerElement {
 		this.updateOfferSpecification = null;
 		this.updateOfferStartDate = null;
 		this.updateOfferEndDate = null;
+		this.offerUpdateStatus = null;
 		this.$.updateAddPriceChars.hide();
 		this.$.addBundleUpdate.hide();
 		this.priceUpdateName = null;

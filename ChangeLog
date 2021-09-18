@@ -1,3 +1,20 @@
+2021-09-14  Vance Shipley <vances@sigscale.org>
+
+	* status in update product offer
+	* status in add product offer
+	* change example offer status from in_study to undefined
+	* handle null value offer price update
+	* reap all reservations matching session-id
+	* correct variable name clash matching problem content type
+	* correct format problem with no accept header
+	* nrf class a rating response examples
+	* no update or release for class a nrf
+	* clarify iec examples examples are class b
+	* rename rate element unit size attribute
+	* include only mandotary fields when creating a role
+	* use existing get user erlang api for get role by name
+	* return all records in httpd_user table in partyrole resource model
+
 2021-09-06  Vance Shipley <vances@sigscale.org>
 
 	* health component resources for individual applications

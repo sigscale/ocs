@@ -2165,7 +2165,7 @@ filter_prices_dir(_, [], Acc) ->
 
 -spec filter_prices_key(ChargingKey, Prices) -> Prices
 	when
-		ChargingKey :: non_neg_integer(),
+		ChargingKey :: non_neg_integer() | undefined,
 		Prices :: [#price{}].
 %% @doc Filter prices with `chargingKey'.
 %% @hidden
