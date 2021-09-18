@@ -239,7 +239,7 @@ class offerUpdate extends PolymerElement {
 									<option value="{{item.name}}" />
 								</template>
 							</datalist>
-							<input id="updatePriceName" 
+							<input id="updatePriceName"
 									list="updatePriceNames"
 									value="{{priceUpdateName::input}}"
 									placeholder="Name"/>
@@ -573,8 +573,8 @@ class offerUpdate extends PolymerElement {
 									<option value="{{item.name}}"/>
 								</template>
 							</datalist>
-							<input id="updateAltName" 
-									list="updateAltNames" 
+							<input id="updateAltName"
+									list="updateAltNames"
 									value="{{AltUpdateName::input}}"
 									placeholder="Name"/>
 							<paper-tooltip
@@ -1358,7 +1358,7 @@ class offerUpdate extends PolymerElement {
 
 	_updateProductOffer(event) {
 		var ajax =  this.$.updateProductOfferAjax;
-		ajax.url = "/catalogManagement/v2/productOffering/" + this.updateOfferName; 
+		ajax.url = "/catalogManagement/v2/productOffering/" + this.updateOfferName;
 		var offerNew = new Array();
 			if(this.updateOfferDescription == "") {
 				var offerDescDel = new Object();
@@ -1412,7 +1412,7 @@ class offerUpdate extends PolymerElement {
 				var indexChar = "-";
 				var reserveSession = new Object();
 				reserveSession.op = "add";
-				reserveSession.path = "/prodSpecCharValueUse/" + indexChar; 
+				reserveSession.path = "/prodSpecCharValueUse/" + indexChar;
 				var session2Arr = new Array();
 				var session2 = new Object();
 				session2.default = true;
@@ -1446,7 +1446,7 @@ class offerUpdate extends PolymerElement {
 			var indexChar = "-";
 			var redirectSer = new Object();
 			redirectSer.op = "add";
-			redirectSer.path = "/prodSpecCharValueUse/" + indexChar; 
+			redirectSer.path = "/prodSpecCharValueUse/" + indexChar;
 			var redirectSerArr = new Array();
 			var redirectSer1 = new Object();
 			redirectSer1.value = this.updateRedirect;
@@ -1486,7 +1486,7 @@ class offerUpdate extends PolymerElement {
 				var indexChar = "-";
 				var Service = new Object();
 				Service.op = "add";
-				Service.path = "/prodSpecCharValueUse/" + indexChar; 
+				Service.path = "/prodSpecCharValueUse/" + indexChar;
 				var ServiceArr = new Array();
 				var ServiceObj1 = new Object();
 				ServiceObj1.value = this.serviceIdentifier;
@@ -1527,7 +1527,7 @@ class offerUpdate extends PolymerElement {
 				var indexChar = "-";
 				var policy = new Object();
 				policy.op = "add";
-				policy.path = "/prodSpecCharValueUse/" + indexChar; 
+				policy.path = "/prodSpecCharValueUse/" + indexChar;
 				var policyArr = new Array();
 				var policyObj1 = new Object();
 				policyObj1.value = this.priceUpdatePolicy;
@@ -1590,7 +1590,7 @@ class offerUpdate extends PolymerElement {
 		var ajax =  this.$.updateOfferPriceAjax;
 		ajax.method = "PATCH";
 		ajax.contentType = "application/json-patch+json";
-		ajax.url = "/catalogManagement/v2/productOffering/" + this.updateOfferName; 
+		ajax.url = "/catalogManagement/v2/productOffering/" + this.updateOfferName;
 		var updatePriceNew = new Array();
 		function checkName(price) {
 			return price.name == document.body.querySelector('sig-app').shadowRoot.getElementById('updateOffer').shadowRoot.getElementById('updatePriceName').value;
@@ -1636,7 +1636,50 @@ class offerUpdate extends PolymerElement {
 			} else {
 				updatePriceNew.push(pricetype);
 			}
-		} 
+		}
+ 		if(this.priceUpdatePla != this.prices[indexPrices].pla) {
+ 			var pla = new Object();
+			 pla.path = "/productOfferingPrice/" + indexPrices + "/pricingLogicAlgorithm";
+			 if(this.priceUpdatePla == "") {
+					pla.op = "remove";
+			 } else {
+	 				pla.op = "add";
+					pla.value = new Array();
+					var plaRef = new Object();
+					plaRef.href = this.priceUpdatePla;
+ 					pla.value.push(plaRef);
+			}
+			updatePriceNew.push(pla);
+		}
+		if(this.priceUpdateSize != this.prices[indexPrices].size) {
+				var priceSize = new Object();
+				priceSize.op = "add";
+				priceSize.path = "/productOfferingPrice/" + indexPrices + "/unitOfMeasure";
+ 				for(var indexUnit in this.prices) {
+					if(this.priceUpdateUnits == "Seconds") {
+ 						this.prices[indexUnit].unit = "s";
+					}
+					if(this.priceUpdateUnits == "Bytes") {
+ 						this.prices[indexUnit].unit = "b";
+					}
+ 				}
+				if(this.prices[indexUnit].unit != undefined) {
+ 					var unitDrop = this.prices[indexUnit].unit;
+ 				}
+ 				if(this.priceUpdateSize != undefined) {
+ 					var sizeVal = this.priceUpdateSize;
+ 				}
+				if(unitDrop && sizeVal) {
+ 					var len = sizeVal.length;
+ 					var m = sizeVal.charAt(len - 1);
+				}
+				if(isNaN(parseInt(m))) {
+					var s = sizeVal.slice(0, (len - 1));
+				}
+				else {
+		 			var s = sizeVal;
+				}
+			}
 		if(this.$.updatePriceSize.disabled == false){
 			if(this.priceUpdateSize != this.prices[indexPrices].size
 					|| this.priceUpdateUnits != this.prices[indexPrices].unit) {
@@ -1737,7 +1780,7 @@ class offerUpdate extends PolymerElement {
 				} else {
 					updatePriceNew.push(priceCharge);
 				}
-			} 
+			}
 		}
 		if(this.prices[indexPrices].prodSpecCharValueUse) {
 			function checkChar1(charVal) {
@@ -1767,7 +1810,7 @@ class offerUpdate extends PolymerElement {
 				resTime1.productSpecification = resTime3;
 				charReserve.value = resTime1;
 				updatePriceNew.push(charReserve);
-			} else if(this.prices[indexPrices].prodSpecCharValueUse.length != 0) { 
+			} else if(this.prices[indexPrices].prodSpecCharValueUse.length != 0) {
 				if(this.$.updateAddPriceCharReserveTime.value != this.prices[indexPrices].prodSpecCharValueUse[res].value) {
 					var indexChar = res.toString();
 					var charReserve = new Object();
@@ -1802,7 +1845,7 @@ class offerUpdate extends PolymerElement {
 				tariff1.productSpecification = tariff3;
 				destTariff.value = tariff1;
 				updatePriceNew.push(destTariff);
-			} else if(this.prices[indexPrices].prodSpecCharValueUse.length != 0) { 
+			} else if(this.prices[indexPrices].prodSpecCharValueUse.length != 0) {
 				if(this.priceUpdateTariff != this.prices[indexPrices].prodSpecCharValueUse[resTarriff].value) {
 					var indexCharTariff = resTarriff.toString();
 					var destTariff = new Object();
@@ -1928,7 +1971,7 @@ class offerUpdate extends PolymerElement {
 				resByte3.href = "/catalogManagement/v2/productSpecification/4";
 				resByte1.productSpecification = resByte3;
 				resByte2Arr.push(resByte2);
-				charResBytes.value = resByte1; 
+				charResBytes.value = resByte1;
 				updatePriceNew.push(charResBytes);
 			} else if(this.prices[indexPrices].prodSpecCharValueUse.length != 0) {
 				if(this.$.updateAddPriceCharReserveBytes.value != this.prices[indexPrices].prodSpecCharValueUse[resReserveOctets].value) {
@@ -2056,7 +2099,7 @@ class offerUpdate extends PolymerElement {
 		this.endTimeUpdate = null;
 		this.priceUpdateAmount = null;
 		this.priceUpdateUnits = null;
-	} 
+	}
 
 	_updateOfferPriceResponse(event) {
 		this.$.updateOfferModal.close();
@@ -2079,7 +2122,7 @@ class offerUpdate extends PolymerElement {
 		var ajax =  this.$.updateOfferAlterationAjax;
 		ajax.method = "PATCH";
 		ajax.contentType = "application/json-patch+json";
-		ajax.url = "/catalogManagement/v2/productOffering/" + this.updateOfferName; 
+		ajax.url = "/catalogManagement/v2/productOffering/" + this.updateOfferName;
 		var updateAlterationNew = new Array();
 		function checkAlterationName(alts) {
 			return alts.name == document.body.querySelector('sig-app').shadowRoot.getElementById('updateOffer').shadowRoot.getElementById('updateAltName').value;;
@@ -2226,7 +2269,7 @@ class offerUpdate extends PolymerElement {
 			} else {
 				updateAlterationNew.push(altCharge);
 			}
-		} 
+		}
 		ajax.body = JSON.stringify(updateAlterationNew);
 		ajax.generateRequest();
 	}
@@ -2417,7 +2460,7 @@ class offerUpdate extends PolymerElement {
 			updatePriceNew.alteration = this.alterations.findIndex(checkAlt);
 		}
 		if(updatePriceNew.name
-					&& (updatePriceNew.amount || updatePriceNew.updatePriceType == "tariff") 
+					&& (updatePriceNew.amount || updatePriceNew.updatePriceType == "tariff")
 					&& updatePriceNew.priceType
 					&& updatePriceNew.unit) {
 			if(updateIndexPrice == -1) {
@@ -2426,7 +2469,7 @@ class offerUpdate extends PolymerElement {
 			var ajax =  this.$.updateOfferPriceAjax;
 			ajax.method = "PATCH";
 			ajax.contentType = "application/json-patch+json";
-			ajax.url = "/catalogManagement/v2/productOffering/" + this.updateOfferName; 
+			ajax.url = "/catalogManagement/v2/productOffering/" + this.updateOfferName;
 			var updatePriceNew1 = new Array();
 			function checkName(price) {
 				return price.name == document.body.querySelector('sig-app').shadowRoot.getElementById('updateOffer').shadowRoot.getElementById('updatePriceName').value;
@@ -2441,10 +2484,10 @@ class offerUpdate extends PolymerElement {
 			}
 			if(this.priceUpdateDescription) {
 				addValue.description = this.priceUpdateDescription;
-			} 
+			}
 			if(this.updateOfferStartDatePrice) {
 				var startTimeObj = new Object();
-				startTimeObj.startDateTime = this.updateOfferStartDatePrice; 
+				startTimeObj.startDateTime = this.updateOfferStartDatePrice;
 				addValue.validFor = startTimeObj;
 			}
 			if(this.updateOfferEndDatePrice) {
@@ -2467,7 +2510,7 @@ class offerUpdate extends PolymerElement {
 						addValue.priceType = "tariff";
 						break;
 				}
-			} 
+			}
 			if(this.priceUpdatePla) {
 				var plas = new Array();
 				var plaRef = new Object();
