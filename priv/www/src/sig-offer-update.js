@@ -270,6 +270,19 @@ class offerUpdate extends PolymerElement {
 						</div>
 						<div>
 							<paper-input
+									id="updatePla"
+									value="{{priceUpdatePla}}"
+									input="url"
+									pattern="https?://.+"
+									label="Pricing Logic Algorithm"
+									auto-validate>
+							</paper-input>
+							<paper-tooltip>
+								Provide a URL to a remote (Class A) Rating Function (RF)
+							</paper-tooltip>
+						</div>
+						<div>
+							<paper-input
 									id="updatePriceSize"
 									value="{{priceUpdateSize}}"
 									allowed-pattern="[0-9kmg]"
@@ -818,6 +831,9 @@ class offerUpdate extends PolymerElement {
 			updateOfferEndDatePrice: {
 				type: String
 			},
+			priceUpdatePla: {
+				type: String
+			},
 			priceUpdateSize: {
 				type: String
 			},
@@ -902,6 +918,9 @@ class offerUpdate extends PolymerElement {
 					case "tariff":
 						newPrice.priceType = "Tariff";
 						break;
+				}
+				if (current.prices[index].pricingLogicAlgorithm) {
+					newPrice.pla = current.prices[index].pricingLogicAlgorithm.pop().href;
 				}
 				if (current.prices[index].unitOfMeasure) {
 					var unitOfMeasure = current.prices[index].unitOfMeasure;
@@ -1161,6 +1180,7 @@ class offerUpdate extends PolymerElement {
 				this.updateOfferStartDatePrice = null;
 				this.updateOfferEndDatePrice = null;
 				this.priceUpdateType = null;
+				this.priceUpdatePla = null;
 				this.priceUpdateSize = null;
 				this.priceUpdateUnits = null;
 				this.priceUpdateAmount = null;
@@ -1187,6 +1207,7 @@ class offerUpdate extends PolymerElement {
 					this.updateOfferEndDatePrice = this.prices[indexUpdatePrice].end;
 				}
 				this.priceUpdateType = this.prices[indexUpdatePrice].priceType;
+				this.priceUpdatePla = this.prices[indexUpdatePrice].pla;
 				this.priceUpdateSize = this.prices[indexUpdatePrice].size;
 				switch(this.prices[indexUpdatePrice].unit) {
 					case "b":
@@ -1567,6 +1588,20 @@ class offerUpdate extends PolymerElement {
 				updatePriceNew.push(pricetype);
 			}
 		} 
+		if(this.priceUpdatePla != this.prices[indexPrices].pla) {
+			var pla = new Object();
+			pla.path = "/productOfferingPrice/" + indexPrices + "/pricingLogicAlgorithm";
+			if(this.priceUpdatePla == "") {
+				pla.op = "remove";
+			} else {
+				pla.op = "add";
+				pla.value = new Array();
+				var plaRef = new Object();
+				plaRef.href = this.priceUpdatePla;
+				pla.value.push(plaRef);
+			}
+			updatePriceNew.push(pla);
+		}
 		if(this.priceUpdateSize != this.prices[indexPrices].size) {
 			var priceSize = new Object();
 			priceSize.op = "add";
@@ -1969,6 +2004,7 @@ class offerUpdate extends PolymerElement {
 		this.priceUpdateDescription = null;
 		this.priceUpdateSize = null;
 		this.priceUpdateType = null;
+		this.priceUpdatePla = null;
 		this.priceUpdatePeriod = null;
 		this.$.updateAddPriceCharReserveTime.value = null;
 		this.priceUpdateTariff = null;
@@ -2216,6 +2252,7 @@ class offerUpdate extends PolymerElement {
 			this.$.updateAddPriceCharReserveBytes.disabled = true;
 			this.$.updatePriceUnits.selected = 1;
 			this.$.updatePriceAmount.disabled = false;
+			this.$.updatePla.disabled = true;
 		} else if(this.$.updatePriceType.selected == 1) {
 			this.$.updatePricePerioddrop.disabled = true;
 			this.$.priceBytes.disabled = true;
@@ -2225,6 +2262,7 @@ class offerUpdate extends PolymerElement {
 			this.$.updateAddPriceCharReserveBytes.disabled = true;
 			this.$.updatePriceUnits.selected = 1;
 			this.$.updatePriceAmount.disabled = false;
+			this.$.updatePla.disabled = true;
 		} else if(this.$.updatePriceType.selected == 2) {
 			this.$.updatePricePerioddrop.disabled = true;
 			this.$.priceCents.disabled = true;
@@ -2232,6 +2270,7 @@ class offerUpdate extends PolymerElement {
 			this.$.priceSeconds.disabled = false;
 			this.$.updatePriceUnits.selected = 0;
 			this.$.updatePriceAmount.disabled = false;
+			this.$.updatePla.disabled = true;
 		} else if(this.$.updatePriceType.selected == 3) {
 			this.$.updatePricePerioddrop.disabled = true;
 			this.$.priceCents.disabled = true;
@@ -2240,6 +2279,7 @@ class offerUpdate extends PolymerElement {
 			this.$.updatePriceUnits.selected = 2;
 			this.$.updatePriceAmount.disabled = true;
 			this.$.updatePriceAmount.value = null;
+			this.$.updatePla.disabled = false;
 		}
 	}
 
@@ -2293,6 +2333,7 @@ class offerUpdate extends PolymerElement {
 				updatePriceNew.priceType = "tariff";
 				break;
 		}
+		updatePriceNew.pla = this.updatePricePla;
 		switch(this.$.updatePriceUnits.selected) {
 			case 0:
 				updatePriceNew.unit = "b";
@@ -2388,6 +2429,13 @@ class offerUpdate extends PolymerElement {
 						break;
 				}
 			} 
+			if(this.priceUpdatePla) {
+				var plas = new Array();
+				var plaRef = new Object();
+				plaRef.href = this.priceUpdatePla;
+				plas.push(plaRef);
+				addValue.pricingLogicAlgorithm = plas;
+			}
 			if(this.priceUpdateUnits == "Seconds") {
 				this.priceUpdateUnits = "s";
 			}
@@ -2624,6 +2672,7 @@ class offerUpdate extends PolymerElement {
 			this.priceUpdateUnits = null;
 			this.updateOfferEndDatePrice = null;
 			this.priceUpdateType = null;
+			this.priceUpdatePla = null;
 			this.priceUpdateCurrency = null;
 			this.priceUpdatePeriod = null;
 			this.$.updateAddPriceCharReserveTime.value = null;
@@ -2773,6 +2822,7 @@ class offerUpdate extends PolymerElement {
 		this.updateOfferStartDatePrice = null;
 		this.updateOfferEndDatePrice = null;
 		this.priceUpdateType = null;
+		this.priceUpdatePla = null;
 		this.priceUpdateUnits = null;
 		this.priceUpdateAmount = null;
 		this.priceUpdateSize = null;

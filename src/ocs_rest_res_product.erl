@@ -1110,7 +1110,8 @@ price_type("tariff") -> tariff;
 price_type(usage) -> "usage";
 price_type(recurring) -> "recurring";
 price_type(one_time) -> "one_time";
-price_type(tariff) -> "tariff".
+price_type(tariff) -> "tariff";
+price_type(#pla_ref{}) -> "tariff".
 
 -spec price_period(Period) -> Period
 	when
@@ -1341,7 +1342,8 @@ price([start_date | T], #price{start_date = Start,
 price([end_date | T], P, Acc) ->
 	price(T, P, Acc);
 price([type | T], #price{type = #pla_ref{} = Pla} = P, Acc) ->
-	price(T, P, [{"priceType", "tariff"}, {"plaRef", pla_ref(Pla)} | Acc]);
+	price(T, P, [{"priceType", "tariff"}, {"pricingLogicAlgorithm",
+			{array, [pla_ref(Pla)]}} | Acc]);
 price([type | T], #price{type = Type} = P, Acc)
 		when Type /= undefined ->
 	price(T, P, [{"priceType", price_type(Type)} | Acc]);
@@ -1453,7 +1455,7 @@ price([{"prodSpecCharValueUse", {array, _} = CharValueUses} | T], Acc) ->
 price([{"productOfferPriceAlteration", {struct, L} = Alteration} | T], Acc)
 		when is_list(L) ->
 	price(T, Acc#price{alteration = alteration(Alteration)});
-price([{"plaRef", {struct, L} = PlaRef} | T], Acc)
+price([{"pricingLogicAlgorithm", {array, [{struct, L} = PlaRef]}} | T], Acc)
 		when is_list(L) ->
 	price(T, Acc#price{type = pla_ref(PlaRef)});
 price([], Acc) ->
