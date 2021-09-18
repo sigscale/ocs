@@ -1857,10 +1857,8 @@ char_value_type({struct, [{"upperValue", {struct, _} = UV},
 		{"lowerValue", {struct, _} = LV}]}) ->
 	#range{lower = char_value_type(LV), upper = char_value_type(UV)};
 char_value_type({struct, [{"amount", Hours}, {"units", "hours"}]})
-		when is_list(Hours) ->
-	[H, M] = string:tokens(Hours, ":"), 
-	Amount = list_to_integer(H) * 60 + list_to_integer(M),
-	#quantity{amount = Amount, units = "minutes"};
+		when is_integer(Hours) ->
+	#quantity{amount = Hours * 60, units = "minutes"};
 char_value_type({struct, [{"amount", V1}, {"units", V2}]})
 		when is_integer(V1), is_list(V2) ->
 	#quantity{amount = V1, units = V2};
