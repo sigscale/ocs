@@ -791,8 +791,7 @@ add_example_data_offer1(Alteration, PriceSubscription, PriceOverage) ->
 	PriceSubscription1 = PriceSubscription#price{amount = 1000000000,
 			alteration = Alteration1},
 	Offer = #offer{name = "Data (1G)", description = "1GB/month",
-			status = in_study, specification = "8",
-			price = [PriceSubscription1, PriceOverage]},
+			specification = "8", price = [PriceSubscription1, PriceOverage]},
 	case ocs:add_offer(Offer) of
 		{ok, #offer{}} ->
 			add_example_data_offer2(Alteration, PriceSubscription, PriceOverage);
@@ -805,8 +804,7 @@ add_example_data_offer2(Alteration, PriceSubscription, PriceOverage) ->
 	PriceSubscription2 = PriceSubscription#price{amount = 3500000000,
 			alteration = Alteration2},
 	Offer = #offer{name = "Data (4G)", description = "4GB/month",
-			status = in_study, specification = "8",
-			price = [PriceSubscription2, PriceOverage]},
+			specification = "8", price = [PriceSubscription2, PriceOverage]},
 	case ocs:add_offer(Offer) of
 		{ok, #offer{}} ->
 			add_example_data_offer3(Alteration, PriceSubscription, PriceOverage);
@@ -819,8 +817,7 @@ add_example_data_offer3(Alteration, PriceSubscription, PriceOverage) ->
 	PriceSubscription3 = PriceSubscription#price{amount = 7500000000,
 			alteration = Alteration3},
 	Offer = #offer{name = "Data (10G)", description = "10GB/month",
-			status = in_study, specification = "8",
-			price = [PriceSubscription3, PriceOverage]},
+			specification = "8", price = [PriceSubscription3, PriceOverage]},
 	case ocs:add_offer(Offer) of
 		{ok, #offer{}} ->
 			ok;
@@ -839,8 +836,7 @@ add_example_voice_offers() ->
 			char_value_use = [#char_value_use{name = "destPrefixTariffTable",
 			specification = "3", values = [#char_value{value = "example"}]}]},
 	Offer = #offer{name = "Voice Calling", description = "Tariffed voice calling",
-			status = in_study, specification = "9",
-			price = [PriceUsage]},
+			specification = "9", price = [PriceUsage]},
 	case ocs:add_offer(Offer) of
 		{ok, #offer{}} ->
 			case code:priv_dir(ocs) of

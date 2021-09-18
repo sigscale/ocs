@@ -204,7 +204,7 @@ class offerList extends PolymerElement {
 							newRecord.endDate = request.response[index].validFor.endDateTime.split("T")[0];
 						}
 					}
-					newRecord.lifecycleStatus = request.response[index].status;
+					newRecord.lifecycleStatus = request.response[index].lifecycleStatus;
 					if(request.response[index].productOfferingPrice && request.response[index].productOfferingPrice != "")
 					{
 						function getNames(price) {
