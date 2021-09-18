@@ -1262,8 +1262,14 @@ class offerUpdate extends PolymerElement {
 							this.$.updateAddPriceCharReserveBytes.value = prodPriceUpdate.prodSpecCharValueUse[indexCharVal].value;
 						}
 						if(prodPriceUpdate.prodSpecCharValueUse[indexCharVal].name == "timeOfDayRange") {
-							this.startTimeUpdate = prodPriceUpdate.prodSpecCharValueUse[indexCharVal].value.lowerValue.amount;
-							this.endTimeUpdate = prodPriceUpdate.prodSpecCharValueUse[indexCharVal].value.upperValue.amount;
+							if(prodPriceUpdate.prodSpecCharValueUse[indexCharVal].value.lowerValue.units == "minutes") {
+								var todStart = prodPriceUpdate.prodSpecCharValueUse[indexCharVal].value.lowerValue.amount;
+								this.startTimeUpdate = (todStart / 60).toFixed(0).padStart(2, '0')
+										+ ':' + (todStart % 60).toString().padStart(2, '0');
+								var todEnd = prodPriceUpdate.prodSpecCharValueUse[indexCharVal].value.upperValue.amount;
+								this.endTimeUpdate = (todEnd / 60).toFixed(0).padStart(2, '0')
+										+ ':' + (todEnd % 60).toString().padStart(2, '0');
+							}
 						}
 						if(prodPriceUpdate.prodSpecCharValueUse[indexCharVal].name == "callDirection") {
 							if(prodPriceUpdate.prodSpecCharValueUse[indexCharVal].value == "originate") {
@@ -1959,10 +1965,7 @@ class offerUpdate extends PolymerElement {
 				}
 			}
 		}
-		if(this.startTimeUpdate ||
-			this.endTimeUpdate ||
-			(this.startTimeUpdate &&
-			this.endTimeUpdate)) {
+		if(this.startTimeUpdate && this.endTimeUpdate) {
 			function checkCharTime(charVal) {
 				return charVal.name == "timeOfDayRange";
 			}
@@ -1981,11 +1984,13 @@ class offerUpdate extends PolymerElement {
 				var timeRange2 = new Object();
 				var timeRange3 = new Object();
 				var timeRangeLower = new Object();
-				timeRangeLower.amount = this.startTimeUpdate;
+				var epochStart = new Date("1970-01-01T" + this.startTimeUpdate);
+				timeRangeLower.amount = (epochStart.getHours() * 60) + epochStart.getMinutes();
 				timeRangeLower.units = "minutes";
 				timeRange3.lowerValue = timeRangeLower;
 				var timeRangeUpper = new Object();
-				timeRangeUpper.amount = this.endTimeUpdate;
+				var epochEnd = new Date("1970-01-01T" + this.endTimeUpdate);
+				timeRangeUpper.amount = (epochEnd.getHours() * 60) + epochEnd.getMinutes();
 				timeRangeUpper.units = "minutes";
 				timeRange3.upperValue = timeRangeUpper;
 				timeRange2.value = timeRange3;
@@ -1999,12 +2004,14 @@ class offerUpdate extends PolymerElement {
 					var timeDay1 = new Object();
 					timeDay1.op = "add";
 					timeDay1.path = "/productOfferingPrice/" + indexPrices + "/prodSpecCharValueUse/" + indexChar2 + "/productSpecCharacteristicValue/0/value/lowerValue/amount";
-					timeDay1.value = this.startTimeUpdate;
+					var epochStart = new Date("1970-01-01T" + this.startTimeUpdate);
+					timeDay1.value = (epochStart.getHours() * 60) + epochStart.getMinutes();
 					updatePriceNew.push(timeDay1);
 					var timeDayEnd = new Object();
 					timeDayEnd.op = "add";
 					timeDayEnd.path = "/productOfferingPrice/" + indexPrices + "/prodSpecCharValueUse/" + indexChar2 + "/productSpecCharacteristicValue/0/value/upperValue/amount";
-					timeDayEnd.value = this.endTimeUpdate;
+					var epochEnd = new Date("1970-01-01T" + this.endTimeUpdate);
+					timeDayEnd.value = (epochEnd.getHours() * 60) + epochEnd.getMinutes();
 					updatePriceNew.push(timeDayEnd);
 				}
 			}
@@ -2643,11 +2650,13 @@ class offerUpdate extends PolymerElement {
 					var charValue1 = new Object();
 					var charValue = new Object();
 					var charValueLower = new Object();
-					charValueLower.amount = this.startTimeUpdate;
+					var epochStart = new Date("1970-01-01T" + this.startTimeUpdate);
+					charValueLower.amount = (epochStart.getHours() * 60) + epochStart.getMinutes();
 					charValueLower.units = "minutes";
 					charValue.lowerValue = charValueLower;
 					var charValueUpper = new Object();
-					charValueUpper.amount = this.endTimeUpdate;
+					var epochEnd = new Date("1970-01-01T" + this.endTimeUpdate);
+					charValueUpper.amount = (epochEnd.getHours() * 60) + epochEnd.getMinutes();
 					charValueUpper.units = "minutes";
 					charValue.upperValue = charValueUpper;
 					charValue1.value = charValue;
