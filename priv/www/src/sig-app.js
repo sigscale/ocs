@@ -502,7 +502,7 @@ class SigApp extends PolymerElement {
 		}
 		switch (this.page) {
 			case 'offerView':
-				this.viewTitle = 'Product Offering';
+				this.viewTitle = 'Product Offerings';
 				break;
 			case 'serviceView':
 				this.viewTitle = 'Services';
@@ -519,11 +519,14 @@ class SigApp extends PolymerElement {
 			case 'accountingView':
 				this.viewTitle = 'Accounting Log';
 				break;
+			case 'balanceView':
+				this.viewTitle = 'Balance Log';
+				break;
 			case 'ipdrWlanView':
-				this.viewTitle = 'IPDR WLAN';
+				this.viewTitle = 'IPDR WLAN Log';
 				break;
 			case 'ipdrVoipView':
-				this.viewTitle = 'IPDR Voice';
+				this.viewTitle = 'IPDR Voice Log';
 				break;
 			case 'httpView':
 				this.viewTitle = 'HTTP Log';
@@ -532,11 +535,8 @@ class SigApp extends PolymerElement {
 				if(this.prefixTable) {
 					this.viewTitle = 'Tariff: ' + this.prefixTable;
 				} else {
-					this.viewTitle = 'Tariff Table';
+					this.viewTitle = 'Tariff Tables';
 				}
-				break;
-			case 'balanceView':
-				this.viewTitle = 'Accumulated Balance';
 				break;
 			case 'productView':
 				this.viewTitle = 'Product Subscriptions';
@@ -548,7 +548,7 @@ class SigApp extends PolymerElement {
 				if(this.policyTable) {
 					this.viewTitle = 'Policy: ' + this.policyTable;
 				} else {
-					this.viewTitle = 'Policy Table';
+					this.viewTitle = 'Policy Tables';
 				}
 				break;
 			default:
