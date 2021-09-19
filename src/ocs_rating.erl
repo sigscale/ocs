@@ -306,6 +306,7 @@ rate1(Protocol, Service, Buckets, Timestamp, Address,
 		_ ->
 			throw(invalid_service_type)
 	end.
+%% @hidden
 rate2(Protocol, Service, Buckets, Timestamp, Address, Direction,
 		#offer{specification = ProdSpec, price = Prices} = _Offer,
 		Flag, DebitAmounts, ReserveAmounts,
