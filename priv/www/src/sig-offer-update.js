@@ -1681,8 +1681,8 @@ class offerUpdate extends PolymerElement {
 			if(this.priceUpdateAmount != this.prices[indexPrices].amount) {
 				var priceAmount = new Object();
 				priceAmount.op = "add";
-				priceAmount.path = "/productOfferingPrice/" + indexPrices + "/price/taxIncludedAmount";
-				priceAmount.value = this.priceUpdateAmount;
+				priceAmount.path = "/productOfferingPrice/" + indexPrices + "/price";
+				priceAmount.value = {"taxIncludedAmount": this.priceUpdateAmount};
 				updatePriceNew.push(priceAmount);
 			}
 		}
