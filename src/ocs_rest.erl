@@ -308,7 +308,6 @@ pointer1(T, Acc1, Acc2) ->
 %% @doc Apply a JSON `Patch' (<a href="http://tools.ietf.org/html/rfc6902">RFC6902</a>).
 %% 	Modifies the `Resource' by applying the operations listed in `Patch'.
 %% 	`Operation' may be `"add"', `"remove"', or `"replace"'.
-%% @hidden
 patch({array, L} = _Patch, Resource) ->
 	patch1(L, Resource, []).
 %% @hidden
