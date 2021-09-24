@@ -1266,6 +1266,8 @@ class offerUpdate extends PolymerElement {
 								var todStart = prodPriceUpdate.prodSpecCharValueUse[indexCharVal].value.lowerValue.amount;
 								this.startTimeUpdate = (todStart / 60).toFixed(0).padStart(2, '0')
 										+ ':' + (todStart % 60).toString().padStart(2, '0');
+							}
+							if(prodPriceUpdate.prodSpecCharValueUse[indexCharVal].value.upperValue.units == "minutes") {
 								var todEnd = prodPriceUpdate.prodSpecCharValueUse[indexCharVal].value.upperValue.amount;
 								this.endTimeUpdate = (todEnd / 60).toFixed(0).padStart(2, '0')
 										+ ':' + (todEnd % 60).toString().padStart(2, '0');
