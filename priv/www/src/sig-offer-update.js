@@ -1356,23 +1356,22 @@ class offerUpdate extends PolymerElement {
 				startDateTimeDel.op = "remove";
 				startDateTimeDel.path = "/validFor";
 				offerNew.push(startDateTimeDel);
+			} else if(this.updateOfferEndDate == "") {
+				var endDateTimeDel = new Object();
+				endDateTimeDel.op = "remove";
+				endDateTimeDel.path = "/validFor";
+				offerNew.push(endDateTimeDel);
 			} else if(this.updateOfferStartDate) {
 				var startDateTimeObject = new Object();
 				startDateTimeObject.op = "add";
-				startDateTimeObject.path = "/validFor/startDateTime";
-				startDateTimeObject.value = this.updateOfferStartDate;
+				startDateTimeObject.path = "/validFor";
+				startDateTimeObject.value = {"startDateTime": this.updateOfferStartDate};
 				offerNew.push(startDateTimeObject);
-			}
-			if(this.updateOfferEndDate == "") {
-				var endDateTimeDel = new Object();
-				endDateTimeDel.op = "remove";
-				endDateTimeDel.path = "/description";
-				offerNew.push(endDateTimeDel);
 			} else if(this.updateOfferEndDate){
 				var endDateTimeObject = new Object();
 				endDateTimeObject.op = "add";
-				endDateTimeObject.path = "/validFor/endDateTime";
-				endDateTimeObject.value = this.updateOfferEndDate;
+				endDateTimeObject.path = "/validFor";
+				endDateTimeObject.value = {"endDateTime": this.updateOfferEndDate};
 				offerNew.push(endDateTimeObject);
 			}
 			if(this.offerUpdateStatus) {
