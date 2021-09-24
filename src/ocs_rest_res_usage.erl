@@ -3621,11 +3621,11 @@ characteristic({"name", exact, "acctSessionId"}, {"value", like, Like},
 	characteristic(T, radius, Types, ReqAttrs2, RespAttrs, N);
 characteristic({"name", exact, "acctSessionId"}, {"value", exact, AcctSessionId},
 		T, diameter, Types, '_', RespAttrs, N) when is_list(AcctSessionId) ->
-	ReqAttrs2 = [{#'3gpp_ro_CCR'{'Session-Id' = AcctSessionId, _ = '_'}, []}],
+	ReqAttrs2 = [{#'3gpp_ro_CCR'{'Session-Id' = list_to_binary(AcctSessionId), _ = '_'}, []}],
 	characteristic(T, diameter, Types, ReqAttrs2, RespAttrs, N);
 characteristic({"name", exact, "acctSessionId"}, {"value", exact, AcctSessionId},
 		T, diameter, Types, [{CCR, _MC}], RespAttrs, N) when is_list(AcctSessionId) ->
-	ReqAttrs2 = [{CCR#'3gpp_ro_CCR'{'Session-Id' = AcctSessionId}, []}],
+	ReqAttrs2 = [{CCR#'3gpp_ro_CCR'{'Session-Id' = list_to_binary(AcctSessionId)}, []}],
 	characteristic(T, diameter, Types, ReqAttrs2, RespAttrs, N);
 characteristic({"name", exact, "acctMultiSessionId"}, {"value", exact, AcctMultiSessionId},
 		T, radius, Types, ReqAttrs1, RespAttrs, N) when is_list(AcctMultiSessionId) ->
