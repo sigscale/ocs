@@ -1211,6 +1211,18 @@ rate_elements([_H | T], Acc) ->
 rate_elements([], Acc) ->
 	Acc.
 
+%% @hidden
+unit_type("TOTAL_VOLUME") ->
+	octets;
+unit_type("UPLINK_VOLUME") ->
+	octets;
+unit_type("DOWNLINK_VOLUME") ->
+	octets;
+unit_type("SERVICE_SPECIFIC_UNITS") ->
+	messages;
+unit_type("TIME") ->
+	seconds.
+
 -spec build_container(MSCC) -> MSCC
 	when
 		MSCC :: [#'3gpp_ro_Multiple-Services-Credit-Control'{}].
