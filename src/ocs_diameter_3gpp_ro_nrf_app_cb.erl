@@ -1189,13 +1189,23 @@ tariff_element([], Acc) ->
 
 %% @hidden
 rate_elements([{"unitType", UnitType} | T], Acc) ->
-	rate_elements(T, Acc#{"unitType" => UnitType});
+	rate_elements(T, Acc#{"unitType" => unit_type(UnitType)});
 rate_elements([{"unitSize", {_, [{"valueDigits", ValueDigits}]}} | T], Acc) ->
-	rate_elements(T, Acc#{"unitSize" => #{"valueDigits" => ValueDigits}});
+	rate_elements(T, Acc#{"unitSize" => ValueDigits});
+rate_elements([{"unitSize", {_, [{"valueDigits", ValueDigits},
+		{"exponent", Exponent}]}} | T], Acc) when Exponent >= 0 ->
+	rate_elements(T, Acc#{"unitSize" => ValueDigits * (Exponent * 10) * 10000});
+rate_elements([{"unitSize", {_, [{"valueDigits", ValueDigits},
+		{"exponent", Exponent}]}} | T], Acc) when Exponent < 0 ->
+	rate_elements(T, Acc#{"unitSize" => ValueDigits div (Exponent * 10) * 10000});
+rate_elements([{"unitCost", {_, [{"valueDigits", ValueDigits}]}} | T], Acc) ->
+	rate_elements(T, Acc#{"unitCost" => ValueDigits});
 rate_elements([{"unitCost", {_, [{"valueDigits", ValueDigits},
-		{"exponent", Exponent}]}} | T], Acc) ->
-	rate_elements(T, Acc#{"unitCost" => #{"valueDigits" => ValueDigits,
-			"exponent" => Exponent}});
+		{"exponent", Exponent}]}} | T], Acc) when Exponent >= 0 ->
+	rate_elements(T, Acc#{"unitCost" => ValueDigits * (Exponent * 10) * 10000});
+rate_elements([{"unitCost", {_, [{"valueDigits", ValueDigits},
+		{"exponent", Exponent}]}} | T], Acc) when Exponent < 0 ->
+	rate_elements(T, Acc#{"unitCost" => ValueDigits div (Exponent * 10) * 10000});
 rate_elements([_H | T], Acc) ->
 	rate_elements(T, Acc);
 rate_elements([], Acc) ->
