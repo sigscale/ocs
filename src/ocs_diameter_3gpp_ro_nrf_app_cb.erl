@@ -415,17 +415,31 @@ process_request1(?'3GPP_CC-REQUEST-TYPE_INITIAL_REQUEST' = RequestType,
 				{error, Reason}
 		end
 	of
-		{ok, JSON} ->
-			{struct, RatedStruct} = mochijson:decode(JSON),
+		{ok, JSON1, PLA1, MSCC3} ->
+			{struct, RatedStruct} = mochijson:decode(JSON1),
 			{_, {_, ServiceElements}} = lists:keyfind("serviceRating", 1, RatedStruct),
-			{ServiceRating, ResultCode} = map_service_rating(ServiceElements, SessionId),
+			ServiceRating = map_service_rating(ServiceElements),
+			case charge(Subscriber, ServiceRating, PLA1, SessionId, initial) of
+				{ok, NewMSCC1, ResultCode1} ->
+					Container = build_container(MSCC1),
+					NewMSCC3 = build_mscc(NewMSCC1 ++ MSCC3, Container),
+					diameter_answer(SessionId, NewMSCC3, ResultCode1,
+							OHost, ORealm, RequestType, RequestNum);
+				{error, Reason1} ->
+					error_logger:error_report(["Rating Error",
+							{module, ?MODULE}, {error, Reason1}]),
+					diameter_error(SessionId,
+							?'DIAMETER_CC_APP_RESULT-CODE_RATING_FAILED',
+							OHost, ORealm, RequestType, RequestNum)
+			end;
+		{ok, MSCC3, ResultCode1} ->
 			Container = build_container(MSCC1),
-			NewMSCC = build_mscc(ServiceRating, Container),
-			diameter_answer(SessionId, NewMSCC, ResultCode,
+			NewMSCC3 = build_mscc(MSCC3, Container),
+			diameter_answer(SessionId, NewMSCC3, ResultCode1,
 					OHost, ORealm, RequestType, RequestNum);
-		{error, Reason} ->
+		{error, Reason1} ->
 			error_logger:error_report(["Rating Error",
-					{module, ?MODULE}, {error, Reason}]),
+					{module, ?MODULE}, {error, Reason1}]),
 			diameter_error(SessionId,
 					?'DIAMETER_CC_APP_RESULT-CODE_RATING_FAILED',
 					OHost, ORealm, RequestType, RequestNum)
@@ -2027,4 +2041,92 @@ rate(_, _, _, _, _, _, _, _, [], Acc1, Acc2, ResultCode, undefined) ->
 	{{lists:reverse(Acc1), ResultCode}, Acc2};
 rate(_, _, _, _, _, _, _, _, [], Acc1, Acc2, ResultCode, Rated) ->
 	{{lists:reverse(Acc1), ResultCode, Rated}, Acc2}.
+
+-spec	charge(Subscriber, ServiceRating, PLA, SessionId, Flag) -> Result
+	when
+		Subscriber :: binary(),
+		ServiceRating :: [map()],
+		PLA :: [map()],
+		Flag :: initial | interim | final | event,
+		SessionId :: binary(),
+		Result :: {ok, MSCCs, ResultCode}
+				| {error, Reason},
+		ResultCode :: pos_integer(),
+		Reason :: term(),
+		MSCCs :: [MSCC],
+		MSCC :: map().
+%% @doc Rate all the MSCCs.
+%% @hidden
+charge(Subscriber, ServiceRating, PLA, SessionId, Flag) ->
+	charge(Subscriber, ServiceRating, PLA, SessionId, Flag, [], undefined).
+%% @hidden
+charge(Subscriber, [#{"tariffElement" := #{"currencyCode" := Currency,
+		"rateElements" := #{"unitType" := Units,
+		"unitSize" := UnitSize,
+		"unitCost" := UnitPrice}}} | T], [#{"rsu" := Reserves,
+		"usu" := Debits, "serviceId" := SI,
+		"ratingGroup" := RG} | T1], SessionId, Flag, Acc1, ResultCode1) ->
+	ServiceId = case SI of
+		undefined ->
+			undefined;
+		N1 when is_integer(N1)->
+			N1
+	end,
+	ChargingKey = case RG of
+		undefined ->
+			undefined;
+		N2 when is_integer(N2)->
+			N2
+	end,
+	case ocs_rating:charge(diameter, Subscriber, ServiceId,
+			UnitSize, Units, Currency, UnitPrice, undefined,
+			ChargingKey, Flag, Debits,
+			Reserves, [{'Session-Id', SessionId}]) of
+		{ok, _, {_, Amount} = GrantedAmount} when Amount > 0 ->
+			ResultCode2 = ?'DIAMETER_BASE_RESULT-CODE_SUCCESS',
+			MSCC = #{"grantedUnit" => granted_unit(GrantedAmount),
+					"serviceId" => ServiceId, "ratingGroup" => ChargingKey,
+					"resultCode" => ResultCode2},
+			charge(Subscriber, T, T1, SessionId, Flag, [MSCC | Acc1], ResultCode2);
+		{ok, _, {_, 0} = _GrantedAmount} ->
+			ResultCode2 = ?'DIAMETER_BASE_RESULT-CODE_SUCCESS',
+			charge(Subscriber, T, T1, SessionId, Flag, Acc1, ResultCode2);
+		{ok, _, {_, Amount} = GrantedAmount, _} when Amount > 0 ->
+			ResultCode2 = ?'DIAMETER_BASE_RESULT-CODE_SUCCESS',
+			MSCC = #{"grantedUnit" => granted_unit(GrantedAmount),
+					"serviceId" => ServiceId, "ratingGroup" => ChargingKey,
+					"resultCode" => ResultCode2},
+			charge(Subscriber, T, T1, SessionId, Flag, [MSCC | Acc1], ResultCode2);
+		{ok, #service{}, _} ->
+			ResultCode2 = ?'DIAMETER_BASE_RESULT-CODE_SUCCESS',
+			charge(Subscriber, T, T1, SessionId, Flag, Acc1, ResultCode2);
+		{out_of_credit, RedirectServerAddress, _SessionList} ->
+			ResultCode2 = ?'DIAMETER_CC_APP_RESULT-CODE_CREDIT_LIMIT_REACHED',
+			ResultCode3 = case ResultCode1 of
+				undefined->
+					ResultCode2;
+				ResultCode1 ->
+					ResultCode1
+			end,
+			MSCC = case RedirectServerAddress of
+				undefined ->
+					#{"serviceId" => ServiceId, "ratingGroup" => ChargingKey,
+							"resultCode" => ResultCode2};
+				RedirectServerAddress when is_list(RedirectServerAddress) ->
+					#{"serviceId" => ServiceId, "ratingGroup" => ChargingKey,
+							"finalUnitIndication" => fui(RedirectServerAddress),
+							"resultCode" => ResultCode2}
+			end,
+			charge(Subscriber, T, T1, SessionId, Flag, [MSCC | Acc1], ResultCode3);
+		{disabled, _SessionList} ->
+			{ok, Acc1, ?'DIAMETER_CC_APP_RESULT-CODE_END_USER_SERVICE_DENIED'};
+		{error, service_not_found} ->
+			{ok, Acc1, ?'DIAMETER_CC_APP_RESULT-CODE_USER_UNKNOWN'};
+		{error, Reason} ->
+			{error, Reason}
+	end;
+charge(_, [], [], _, _, [], undefined) ->
+	{ok, [], ?'DIAMETER_CC_APP_RESULT-CODE_RATING_FAILED'};
+charge(_, _, [], _, _, Acc, ResultCode)->
+	{ok, lists:reverse(Acc), ResultCode}.
 
