@@ -372,10 +372,11 @@ process_request1(?'3GPP_CC-REQUEST-TYPE_INITIAL_REQUEST' = RequestType,
 					?'DIAMETER_CC_APP_RESULT-CODE_RATING_FAILED',
 					OHost, ORealm, RequestType, RequestNum)
 	catch
-		_:Reason1 ->
+		?CATCH_STACK ->
+			?SET_STACK,
 			error_logger:warning_report(["Unable to process DIAMETER request",
 					{origin_host, OHost}, {origin_realm, ORealm},
-					{request, Request}, {error, Reason1}, {stack, erlang:get_stacktrace()}]),
+					{request, Request}, {error, Reason1}, {stack, StackTrace}]),
 			diameter_error(SessionId, ?'DIAMETER_BASE_RESULT-CODE_UNABLE_TO_COMPLY',
 					OHost, ORealm, RequestType, RequestNum)
 	end;
@@ -706,13 +707,16 @@ process_request1(?'3GPP_CC-REQUEST-TYPE_EVENT_REQUEST' = RequestType,
 					OHost, ORealm, RequestType, RequestNum)
 	end.
 
--spec subscriber_id(SubscriberIdAVP) -> SubscriberIds
+-spec subscriber_id(SubscriberIdAVP) -> Subscribers
 	when
 		SubscriberIdAVP :: [#'3gpp_ro_Subscription-Id'{}],
-		SubscriberIds :: map().
-%% @doc Get SubscriberIds From Diameter SubscriberId AVP.
+		Subscribers :: [Subscriber] | [],
+		Subscriber :: {IdType, Id},
+		IdType :: msisdn | imsi,
+		Id :: binary().
+%% @doc Get Subscribers From Diameter SubscriberId AVP.
 subscriber_id(SubscriberIdAVP) ->
-	subscriber_id(SubscriberIdAVP, #{}).
+	subscriber_id(SubscriberIdAVP, []).
 %% @hidden
 subscriber_id([#'3gpp_ro_Subscription-Id'{'Subscription-Id-Data' = undefined,
 		'Subscription-Id-Type' = ?'3GPP_SUBSCRIPTION-ID-TYPE_END_USER_E164'} | T], Acc) ->
@@ -722,10 +726,10 @@ subscriber_id([#'3gpp_ro_Subscription-Id'{'Subscription-Id-Data' = undefined,
 	subscriber_id(T, Acc);
 subscriber_id([#'3gpp_ro_Subscription-Id'{'Subscription-Id-Data' = SubId,
 		'Subscription-Id-Type' = ?'3GPP_SUBSCRIPTION-ID-TYPE_END_USER_E164'} | T], Acc) ->
-	subscriber_id(T, Acc#{"msisdn" => SubId});
+	subscriber_id(T, [{msisdn, SubId} | Acc]);
 subscriber_id([#'3gpp_ro_Subscription-Id'{'Subscription-Id-Data' = SubId,
 		'Subscription-Id-Type' = ?'3GPP_SUBSCRIPTION-ID-TYPE_END_USER_IMSI'} | T], Acc) ->
-	subscriber_id(T, Acc#{"imsi" => SubId});
+	subscriber_id(T, [{imsi, SubId} | Acc]);
 subscriber_id([_ | T], Acc) ->
 	subscriber_id(T, Acc);
 subscriber_id([], Acc) ->
