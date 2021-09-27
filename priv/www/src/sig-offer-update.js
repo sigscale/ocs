@@ -902,6 +902,7 @@ class offerUpdate extends PolymerElement {
 			if(current.productSpecification && current.productSpecification.name) {
 				this.updateOfferSpecification = current.productSpecification.name.replace("ProductSpec", "");
 			}
+console.log(current);
 			this.updateOfferStartDate = current.startDate;
 			this.updateOfferEndDate = current.endDate;
 			this.offerUpdateStatus = current.lifecycleStatus;
@@ -1351,6 +1352,36 @@ class offerUpdate extends PolymerElement {
 				offerDesc.value = this.updateOfferDescription;
 				offerNew.push(offerDesc);
 			}
+			if(this.updateOfferStartDate != "undefined") {
+				if(this.updateOfferStartDate) {
+					var startDateTimeObject = new Object();
+					startDateTimeObject.op = "add";
+					startDateTimeObject.path = "/validFor/startDateTime";
+					startDateTimeObject.value = this.updateOfferStartDate;
+					offerNew.push(startDateTimeObject);
+				}
+			} else {
+				var startDateTimeObject = new Object();
+				startDateTimeObject.op = "add";
+				startDateTimeObject.path = "/validFor";
+				startDateTimeObject.value = {"startDateTime": this.updateOfferStartDate};
+				offerNew.push(startDateTimeObject);
+			}
+			if(this.updateOfferEndDate != "undefined") {
+				if(this.updateOfferEndDate) {
+					var endDateTimeObject = new Object();
+					endDateTimeObject.op = "add";
+					endDateTimeObject.path = "/validFor/endDateTime";
+					endDateTimeObject.value = this.updateOfferEndDate;
+					offerNew.push(endDateTimeObject);
+				}
+			} else {
+				var endDateTimeObject = new Object();
+				endDateTimeObject.op = "add";
+				endDateTimeObject.path = "/validFor";
+				endDateTimeObject.value = {"endDateTime": this.updateOfferEndDate};
+				offerNew.push(endDateTimeObject);
+			}
 			if(this.updateOfferStartDate == "") {
 				var startDateTimeDel = new Object();
 				startDateTimeDel.op = "remove";
@@ -1361,18 +1392,6 @@ class offerUpdate extends PolymerElement {
 				endDateTimeDel.op = "remove";
 				endDateTimeDel.path = "/validFor";
 				offerNew.push(endDateTimeDel);
-			} else if(this.updateOfferStartDate) {
-				var startDateTimeObject = new Object();
-				startDateTimeObject.op = "add";
-				startDateTimeObject.path = "/validFor";
-				startDateTimeObject.value = {"startDateTime": this.updateOfferStartDate};
-				offerNew.push(startDateTimeObject);
-			} else if(this.updateOfferEndDate){
-				var endDateTimeObject = new Object();
-				endDateTimeObject.op = "add";
-				endDateTimeObject.path = "/validFor";
-				endDateTimeObject.value = {"endDateTime": this.updateOfferEndDate};
-				offerNew.push(endDateTimeObject);
 			}
 			if(this.offerUpdateStatus) {
 				var stat = new Object();
