@@ -388,9 +388,10 @@ process_request1(?'3GPP_CC-REQUEST-TYPE_INITIAL_REQUEST' = RequestType,
 	try
 		{Direction, Address} = direction_address(ServiceInformation),
 		ServiceNetwork = service_network(ServiceInformation),
+		ServiceType = service_type(SvcContextId),
 		Location = get_service_location(ServiceInformation),
 		Destination = get_destination(ServiceInformation),
-		case service_type(SvcContextId) of
+		case ServiceType of
 			32251 ->
 				post_request_scur(SubscriberIds, SvcContextId,
 						SessionId, MSCC1, Location, initial, a);
