@@ -767,12 +767,13 @@ subscriber_id([_ | T], Acc) ->
 subscriber_id([], Acc) ->
 	lists:reverse(Acc).
 
--spec post_request_ecur(SubscriberIds, ServiceContextId,
+-spec post_request_ecur(Subscribers, ServiceContextId,
 		SessionId, MSCC, Location, Destination, Flag, Class) -> Result
 	when
-		SubscriberIds :: {MSISDN, IMSI},
-		MSISDN :: binary(),
-		IMSI :: binary(),
+		Subscribers :: [Subscriber],
+		Subscriber :: {IdType, Id},
+      IdType :: msisdn | imsi,
+      Id :: binary(),
 		ServiceContextId :: binary(),
 		SessionId :: binary(),
 		MSCC :: [#'3gpp_ro_Multiple-Services-Credit-Control'{}],
@@ -841,12 +842,13 @@ post_request_ecur1(SubscriberIds, SessionId, ServiceRating, Path) ->
 			{error, Reason}
 	end.
 
--spec post_request_iec(SubscriberIds, ServiceContextId,
+-spec post_request_iec(Subscribers, ServiceContextId,
 		SessionId, MSCC, Location, Destination) -> Result
 	when
-		SubscriberIds :: {MSISDN, IMSI},
-		MSISDN :: binary(),
-		IMSI :: binary(),
+		Subscribers :: [Subscriber],
+		Subscriber :: {IdType, Id},
+      IdType :: msisdn | imsi,
+      Id :: binary(),
 		ServiceContextId :: binary(),
 		SessionId :: binary(),
 		MSCC :: [#'3gpp_ro_Multiple-Services-Credit-Control'{}] | [],
@@ -898,12 +900,13 @@ post_request_iec1(SubscriberIds, SessionId, ServiceRating) ->
 			{error, Reason}
 	end.
 
--spec post_request_scur(SubscriberIds, ServiceContextId,
+-spec post_request_scur(Subscribers, ServiceContextId,
 		SessionId, MSCC, Location, Flag, Class) -> Result
 	when
-		SubscriberIds :: {MSISDN, IMSI},
-		MSISDN :: binary(),
-		IMSI :: binary(),
+		Subscribers :: [Subscriber],
+		Subscriber :: {IdType, Id},
+      IdType :: msisdn | imsi,
+      Id :: binary(),
 		ServiceContextId :: binary(),
 		SessionId :: binary(),
 		MSCC :: [#'3gpp_ro_Multiple-Services-Credit-Control'{}],
