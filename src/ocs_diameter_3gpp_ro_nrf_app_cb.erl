@@ -385,7 +385,7 @@ process_request1(?'3GPP_CC-REQUEST-TYPE_INITIAL_REQUEST' = RequestType,
 		'Service-Information' = ServiceInformation,
 		'Service-Context-Id' = SvcContextId,
 		'Event-Timestamp' = EventTimestamp} = Request, SessionId, RequestNum,
-		SubscriberIds, OHost, _DHost, ORealm, _DRealm, _IpAddress, _Port, _Class) ->
+		[{_, Subscriber} | _] = SubscriberIds, OHost, _DHost, ORealm, _DRealm, _IpAddress, _Port, _Class) ->
 	try
 		{Direction, Address} = direction_address(ServiceInformation),
 		ServiceNetwork = service_network(ServiceInformation),
@@ -396,13 +396,23 @@ process_request1(?'3GPP_CC-REQUEST-TYPE_INITIAL_REQUEST' = RequestType,
 			_ ->
 				calendar:universal_time()
 		end,
-		case ServiceType of
-			32251 ->
-				post_request_scur(SubscriberIds, SvcContextId,
-						SessionId, MSCC1, Location, initial, a);
-			32260 ->
-				post_request_ecur(SubscriberIds, SvcContextId,
-						SessionId, MSCC1, Location, Destination, initial, a)
+		case rate(ServiceType, ServiceNetwork, Subscriber, Timestamp,
+				Address, Direction, initial, SessionId, get_mscc(MSCC1)) of
+			{{MSCC2, ResultCode}, []} ->
+				{ok, MSCC2, ResultCode};
+			{{MSCC2, _}, PLA} when is_list(MSCC2), length(PLA) > 0 ->
+				case ServiceType of
+					32251 ->
+						{ok, JSON} = post_request_scur(SubscriberIds, SvcContextId,
+								SessionId, MSCC1, Location, initial, a)
+						{ok, JSON, PLA, MSCC2};
+					32260 ->
+						{ok, JSON} = post_request_ecur(SubscriberIds, SvcContextId,
+								SessionId, MSCC1, Location, Destination, initial, a),
+						{ok, JSON, PLA, MSCC2};
+				end;
+			{error, Reason} ->
+				{error, Reason}
 		end
 	of
 		{ok, JSON} ->
@@ -1060,7 +1070,7 @@ get_ref(SessionId)
 remove_ref(SessionId)
 		when is_binary(SessionId) ->
 	case catch ets:delete(?NRF_TABLE, SessionId) of
-		true ->	
+		true ->
 			ok;
 		{'EXIT', Reason} ->
 			{error, Reason}
@@ -1833,4 +1843,188 @@ get_usu(#'3gpp_ro_Multiple-Services-Credit-Control'{
 	[{messages, CCSpecUnits}];
 get_usu(#'3gpp_ro_Multiple-Services-Credit-Control'{'Used-Service-Unit' = []}) ->
 	[].
+
+-spec rate(ServiceType, ServiceNetwork, Subscriber, Timestamp,
+		Address, Direction, Flag, SessionId, Amounts) -> Result
+	when
+		ServiceType :: binary(),
+		ServiceNetwork :: binary(),
+		Subscriber :: binary(),
+		Timestamp :: calendar:datetime(),
+		Address :: binary() | undefined,
+		Direction :: answer | originate | undefined,
+		Flag :: initial | interim | final | event,
+		SessionId :: binary(),
+		Amounts :: [{ServiceIdentifier, RatingGroup,
+				UsedAmounts, ReserveAmounts}],
+		ServiceIdentifier :: [pos_integer()],
+		RatingGroup :: [pos_integer()],
+		UsedAmounts :: [{Units, pos_integer()}],
+		ReserveAmounts :: [{Units, pos_integer()}],
+		Units :: octets | seconds | messages,
+		Result :: {{MSCCs, ResultCode}, PLAs}
+				| {{MSCCs, ResultCode, Rated}, PLAs}
+				| {error, Reason},
+		Reason :: term(),
+		MSCCs :: [MSCC],
+		MSCC :: map(),
+		PLAs :: [PLA],
+		PLA :: map(),
+		ResultCode :: pos_integer(),
+		Rated :: [#rated{}] | undefined.
+%% @doc Rate all the MSCCs.
+%% @hidden
+rate(ServiceType, ServiceNetwork, Subscriber, Timestamp,
+		Address, Direction, Flag, SessionId, Amounts) ->
+	rate(ServiceType, ServiceNetwork, Subscriber, Timestamp,
+			Address, Direction, Flag, SessionId,
+			Amounts, [], [], undefined, undefined).
+%% @hidden
+rate(ServiceType, ServiceNetwork, Subscriber,
+		Timestamp, Address, Direction, Flag, SessionId,
+		[{SI, RG, Debits, Reserves} | T],
+				Acc1, Acc2, ResultCode1, Rated1) ->
+	ServiceId = case SI of
+		[] ->
+			undefined;
+		[N1] ->
+			N1
+	end,
+	ChargingKey = case RG of
+		[] ->
+			undefined;
+		[N2] ->
+			N2
+	end,
+	case ocs_rating:rate(diameter, ServiceType, ServiceId, ChargingKey,
+			ServiceNetwork, Subscriber, Timestamp, Address, Direction, Flag,
+			Debits, Reserves, [{'Session-Id', SessionId}]) of
+		{ok, {pla_ref, #price{} = Price}} ->
+			PLA = #{"price" => Price, "rsu" => Reserves,
+					"usu" => Debits, "serviceId" => ServiceId, "ratingGroup" => ChargingKey},
+			rate(ServiceType, ServiceNetwork, Subscriber,
+					Timestamp, Address, Direction, Flag, SessionId,
+					T, Acc1, [PLA | Acc2], ResultCode1, Rated1);
+		{ok, _, {_, Amount} = GrantedAmount} when Amount > 0 ->
+			ResultCode2 = ?'DIAMETER_BASE_RESULT-CODE_SUCCESS',
+			MSCC = #{"grantedUnit" => granted_unit(GrantedAmount),
+					"serviceId" => ServiceId, "ratingGroup" => ChargingKey,
+					"resultCode" => ResultCode2},
+			rate(ServiceType, ServiceNetwork, Subscriber,
+					Timestamp, Address, Direction, Flag, SessionId,
+					T, [MSCC | Acc1], Acc2, ResultCode2, Rated1);
+		{ok, _, {_, 0} = _GrantedAmount} ->
+			ResultCode2 = ?'DIAMETER_BASE_RESULT-CODE_SUCCESS',
+			rate(ServiceType, ServiceNetwork, Subscriber,
+					Timestamp, Address, Direction, Flag, SessionId,
+					T, Acc1, Acc2, ResultCode2, Rated1);
+		{ok, _, {_, Amount} = GrantedAmount, Rated2} when Amount > 0,
+				is_list(Rated2), Rated1 == undefined ->
+			ResultCode2 = ?'DIAMETER_BASE_RESULT-CODE_SUCCESS',
+			MSCC = #{"grantedUnit" => granted_unit(GrantedAmount),
+					"serviceId" => ServiceId, "ratingGroup" => ChargingKey,
+					"resultCode" => ResultCode2},
+			rate(ServiceType, ServiceNetwork, Subscriber,
+					Timestamp, Address, Direction, Flag, SessionId,
+					T, [MSCC | Acc1], Acc2, ResultCode2, Rated2);
+		{ok, _, Rated2} when is_list(Rated2), Rated1 == undefined ->
+			ResultCode2 = ?'DIAMETER_BASE_RESULT-CODE_SUCCESS',
+			rate(ServiceType, ServiceNetwork, Subscriber,
+					Timestamp, Address, Direction, Flag, SessionId,
+					T, Acc1, Acc2, ResultCode2, Rated2);
+		{ok, _, Rated2} when is_list(Rated2), is_list(Rated1) ->
+			ResultCode2 = ?'DIAMETER_BASE_RESULT-CODE_SUCCESS',
+			rate(ServiceType, ServiceNetwork, Subscriber,
+					Timestamp, Address, Direction, Flag, SessionId,
+					T, Acc1, Acc2, ResultCode2, Rated1 ++ Rated2);
+		{out_of_credit, RedirectServerAddress, _SessionList} ->
+			ResultCode2 = ?'DIAMETER_CC_APP_RESULT-CODE_CREDIT_LIMIT_REACHED',
+			ResultCode3 = case ResultCode1 of
+				undefined->
+					ResultCode2;
+				ResultCode1 ->
+					ResultCode1
+			end,
+			MSCC = case RedirectServerAddress of
+				undefined ->
+					#{"serviceId" => ServiceId, "ratingGroup" => ChargingKey,
+							"resultCode" => ResultCode2};
+				RedirectServerAddress when is_list(RedirectServerAddress) ->
+					#{"serviceId" => ServiceId, "ratingGroup" => ChargingKey,
+							"finalUnitIndication" => fui(RedirectServerAddress),
+							"resultCode" => ResultCode2}
+			end,
+			rate(ServiceType, ServiceNetwork, Subscriber,
+					Timestamp, Address, Direction, Flag, SessionId,
+					T, [MSCC | Acc1], Acc2, ResultCode3, Rated1);
+		{out_of_credit, RedirectServerAddress, _SessionList, Rated2}
+				when is_list(Rated2), Rated1 == undefined ->
+			ResultCode2 = ?'DIAMETER_CC_APP_RESULT-CODE_CREDIT_LIMIT_REACHED',
+			ResultCode3 = case ResultCode1 of
+				undefined ->
+					ResultCode2;
+				ResultCode1 ->
+					ResultCode1
+			end,
+			MSCC = case RedirectServerAddress of
+				undefined ->
+					#{"serviceId" => ServiceId, "ratingGroup" => ChargingKey,
+							"resultCode" => ResultCode2};
+				RedirectServerAddress when is_list(RedirectServerAddress) ->
+					#{"serviceId" => ServiceId, "ratingGroup" => ChargingKey,
+							"finalUnitIndication" => fui(RedirectServerAddress),
+							"resultCode" => ResultCode2}
+			end,
+			rate(ServiceType, ServiceNetwork, Subscriber,
+					Timestamp, Address, Direction, Flag, SessionId,
+					T, [MSCC | Acc1], Acc2, ResultCode3, Rated2);
+		{out_of_credit, RedirectServerAddress, _SessionList, Rated2}
+				when is_list(Rated2), is_list(Rated1) ->
+			ResultCode2 = ?'DIAMETER_CC_APP_RESULT-CODE_CREDIT_LIMIT_REACHED',
+			ResultCode3 = case ResultCode1 of
+				undefined ->
+					ResultCode2;
+				ResultCode1 ->
+					ResultCode1
+			end,
+			MSCC = case RedirectServerAddress of
+				undefined ->
+					#{"serviceId" => ServiceId, "ratingGroup" => ChargingKey,
+							"resultCode" => ResultCode2};
+				RedirectServerAddress when is_list(RedirectServerAddress) ->
+					#{"serviceId" => ServiceId, "ratingGroup" => ChargingKey,
+							"finalUnitIndication" => fui(RedirectServerAddress),
+							"resultCode" => ResultCode2}
+			end,
+			rate(ServiceType, ServiceNetwork, Subscriber,
+					Timestamp, Address, Direction, Flag, SessionId,
+					T, [MSCC | Acc1], Acc2, ResultCode3, Rated1 ++ Rated2);
+		{disabled, _SessionList} ->
+			{{Acc1, ?'DIAMETER_CC_APP_RESULT-CODE_END_USER_SERVICE_DENIED'}, Acc2};
+		{error, service_not_found} ->
+			{{Acc1, ?'DIAMETER_CC_APP_RESULT-CODE_USER_UNKNOWN'}, Acc2};
+		{error, Reason} ->
+			{error, Reason}
+	end;
+rate(ServiceType, ServiceNetwork, Subscriber,
+		Timestamp, Address, Direction, final, SessionId,
+		[], Acc1, Acc2, ResultCode, Rated1) ->
+	case ocs_rating:rate(diameter, ServiceType, undefined, undefined,
+			ServiceNetwork, Subscriber, Timestamp, Address, Direction, final,
+			[], [], [{'Session-Id', SessionId}]) of
+		{ok, _, Rated2} when is_list(Rated2), Rated1 == undefined ->
+			{{lists:reverse(Acc1), ResultCode, Rated2}, Acc2};
+		{ok, _, Rated2} when is_list(Rated2), is_list(Rated1) ->
+			{{lists:reverse(Acc1), ResultCode,  Rated1 ++ Rated2}, Acc2};
+		{ok, {pla_ref, #price{} = _Price}} ->
+			{{lists:reverse(Acc1), ResultCode, Rated1}, lists:reverse(Acc2)};
+		{error, Reason} ->
+			{error, Reason}
+	end;
+rate(_, _, _, _, _, _, _, _, [], [], [], undefined, undefined) ->
+	{{[], ?'DIAMETER_CC_APP_RESULT-CODE_RATING_FAILED'}, []};
+rate(_, _, _, _, _, _, _, _, [], Acc1, Acc2, ResultCode, undefined) ->
+	{{lists:reverse(Acc1), ResultCode}, Acc2};
+rate(_, _, _, _, _, _, _, _, [], Acc1, Acc2, ResultCode, Rated) ->
+	{{lists:reverse(Acc1), ResultCode, Rated}, Acc2}.
 
