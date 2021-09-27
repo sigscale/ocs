@@ -390,10 +390,10 @@ process_request1(?'3GPP_CC-REQUEST-TYPE_INITIAL_REQUEST' = RequestType,
 		case service_type(SvcContextId) of
 			32251 ->
 				post_request_scur(SubscriberIds, SvcContextId,
-						SessionId, MSCC1, Location, initial, b);
+						SessionId, MSCC1, Location, initial, a);
 			32260 ->
 				post_request_ecur(SubscriberIds, SvcContextId,
-						SessionId, MSCC1, Location, Destination, initial, b)
+						SessionId, MSCC1, Location, Destination, initial, a)
 		end
 	of
 		{ok, JSON} ->
@@ -411,10 +411,11 @@ process_request1(?'3GPP_CC-REQUEST-TYPE_INITIAL_REQUEST' = RequestType,
 					?'DIAMETER_CC_APP_RESULT-CODE_RATING_FAILED',
 					OHost, ORealm, RequestType, RequestNum)
 	catch
-		_:Reason1 ->
+		?CATCH_STACK ->
+			?SET_STACK,
 			error_logger:warning_report(["Unable to process DIAMETER request",
 					{origin_host, OHost}, {origin_realm, ORealm},
-					{request, Request}, {error, Reason1}, {stack, erlang:get_stacktrace()}]),
+					{request, Request}, {error, Reason1}, {stack, StackTrace}]),
 			diameter_error(SessionId, ?'DIAMETER_BASE_RESULT-CODE_UNABLE_TO_COMPLY',
 					OHost, ORealm, RequestType, RequestNum)
 	end;
@@ -708,14 +709,10 @@ process_request1(?'3GPP_CC-REQUEST-TYPE_EVENT_REQUEST' = RequestType,
 -spec subscriber_id(SubscriberIdAVP) -> SubscriberIds
 	when
 		SubscriberIdAVP :: [#'3gpp_ro_Subscription-Id'{}],
-		SubscriberId :: [SubscriberIds] | [],
-		SubscriberIds :: MSISDN | IMSI,
-		MSISDN :: {msisdn, Id},
-		IMSI:: {imsi, id},
-		Id :: binary()
+		SubscriberIds :: map().
 %% @doc Get SubscriberIds From Diameter SubscriberId AVP.
 subscriber_id(SubscriberIdAVP) ->
-	subscriber_id(SubscriberIdAVP, []).
+	subscriber_id(SubscriberIdAVP, #{}).
 %% @hidden
 subscriber_id([#'3gpp_ro_Subscription-Id'{'Subscription-Id-Data' = undefined,
 		'Subscription-Id-Type' = ?'3GPP_SUBSCRIPTION-ID-TYPE_END_USER_E164'} | T], Acc) ->
@@ -725,10 +722,10 @@ subscriber_id([#'3gpp_ro_Subscription-Id'{'Subscription-Id-Data' = undefined,
 	subscriber_id(T, Acc);
 subscriber_id([#'3gpp_ro_Subscription-Id'{'Subscription-Id-Data' = SubId,
 		'Subscription-Id-Type' = ?'3GPP_SUBSCRIPTION-ID-TYPE_END_USER_E164'} | T], Acc) ->
-	subscriber_id(T, [{msisdn, SubId} | Acc]);
+	subscriber_id(T, Acc#{"msisdn" => SubId});
 subscriber_id([#'3gpp_ro_Subscription-Id'{'Subscription-Id-Data' = SubId,
 		'Subscription-Id-Type' = ?'3GPP_SUBSCRIPTION-ID-TYPE_END_USER_IMSI'} | T], Acc) ->
-	subscriber_id(T, [{imsi, SubId} | Acc]);
+	subscriber_id(T, Acc#{"imsi" => SubId});
 subscriber_id([_ | T], Acc) ->
 	subscriber_id(T, Acc);
 subscriber_id([], Acc) ->
@@ -787,7 +784,7 @@ post_request_ecur1(SubscriberIds, SessionId, ServiceRating, Path) ->
 					{"oneTimeEventType", "PEC"},
 					{"invocationTimeStamp", InvocationTimeStamp},
 					{"invocationSequenceNumber", Sequence},
-					{"subscriptionId", {array, charged_parties(SubscriberIds)}},
+					{"subscriptionId", {array, format_subs_ids(SubscriberIds)}},
 					{"serviceRating",
 							{array, lists:flatten(ServiceRating)}}]},
 	ContentType = "application/json",
@@ -845,7 +842,7 @@ post_request_iec1(SubscriberIds, SessionId, ServiceRating) ->
 					{"oneTimeEventType", "IEC"},
 					{"invocationTimeStamp", InvocationTimeStamp},
 					{"invocationSequenceNumber", Sequence},
-					{"subscriptionId", {array, charged_parties(SubscriberIds)}},
+					{"subscriptionId", {array, format_subs_ids(SubscriberIds)}},
 					{"serviceRating",
 							{array, lists:flatten(ServiceRating)}}]},
 	Path = get_option(nrf_uri) ++ ?BASE_URI,
@@ -927,7 +924,7 @@ post_request_scur1(SubscriberIds, SessionId, ServiceRating, Path) ->
 							{struct, [{"nodeFunctionality", "OCF"}]}},
 					{"invocationTimeStamp", InvocationTimeStamp},
 					{"invocationSequenceNumber", Sequence},
-					{"subscriptionId", {array, charged_parties(SubscriberIds)}},
+					{"subscriptionId", {array, format_subs_ids(SubscriberIds)}},
 					{"serviceRating",
 							{array, lists:flatten(ServiceRating)}}]},
 	ContentType = "application/json",
@@ -948,28 +945,21 @@ post_request_scur1(SubscriberIds, SessionId, ServiceRating, Path) ->
 			{error, Reason}
 	end.
 
--spec charged_parties(Subscribers) -> SubscriptionId
+-spec format_subs_ids(Subscribers) -> SubscriptionId
 	when
-		Subscribers :: [Subscriber]
-		Subscriber :: {Type, Id},
-		Type :: msisdn | imsi,
-		Id :: binary(),
-		ChargedParties :: [ChargedParty],
-		ChargedParty :: MSISDN | IMSI,
+		Subscribers :: map(),
+		SubscriptionId :: [SubscriptionIds],
+		SubscriptionIds :: MSISDN | IMSI,
 		MSISDN :: string(),
 		IMSI :: string().
 %% @doc Format subsriber ids for nrf request.
-charged_parties(Subscribers) ->
-	charged_parties(Subscribers, []).
-%% @hidden
-charged_parties([{msisdn, MSISDN} | T], Acc) ->
-	charged_parties(T, ["msisdn-" ++ binary_to_list(MSISDN) | Acc]);
-charged_parties([{imsi, IMSI} | T], Acc) ->
-	charged_parties(T, ["imsi-" ++ binary_to_list(IMSI) | Acc]);
-charged_parties([_ | T], Acc) ->
-	charged_parties(T, Acc);
-charged_parties([], Acc) ->
-	lists:reverse(Acc).
+format_subs_ids(#{"msisdn" := MSISDN, "imsi" := IMSI}) ->
+	["msisdn-" ++ binary_to_list(MSISDN),
+			"imsi-" ++ binary_to_list(IMSI)];
+format_subs_ids(#{"msisdn" := MSISDN}) ->
+	["msisdn-" ++ binary_to_list(MSISDN)];
+format_subs_ids(#{"imsi" := IMSI}) ->
+	["imsi-" ++ binary_to_list(IMSI)].
 
 -spec get_destination(ServiceInformation) -> RequestedPartyAddress
 	when
@@ -1187,23 +1177,13 @@ tariff_element([], Acc) ->
 
 %% @hidden
 rate_elements([{"unitType", UnitType} | T], Acc) ->
-	rate_elements(T, Acc#{"unitType" => unit_type(UnitType)});
+	rate_elements(T, Acc#{"unitType" => UnitType});
 rate_elements([{"unitSize", {_, [{"valueDigits", ValueDigits}]}} | T], Acc) ->
-	rate_elements(T, Acc#{"unitSize" => ValueDigits});
-rate_elements([{"unitSize", {_, [{"valueDigits", ValueDigits},
-		{"exponent", Exponent}]}} | T], Acc) when Exponent >= 0 ->
-	rate_elements(T, Acc#{"unitSize" => ValueDigits * (Exponent * 10) * 10000});
-rate_elements([{"unitSize", {_, [{"valueDigits", ValueDigits},
-		{"exponent", Exponent}]}} | T], Acc) when Exponent < 0 ->
-	rate_elements(T, Acc#{"unitSize" => ValueDigits div (Exponent * 10) * 10000});
-rate_elements([{"unitCost", {_, [{"valueDigits", ValueDigits}]}} | T], Acc) ->
-	rate_elements(T, Acc#{"unitCost" => ValueDigits});
+	rate_elements(T, Acc#{"unitSize" => #{"valueDigits" => ValueDigits}});
 rate_elements([{"unitCost", {_, [{"valueDigits", ValueDigits},
-		{"exponent", Exponent}]}} | T], Acc) when Exponent >= 0 ->
-	rate_elements(T, Acc#{"unitCost" => ValueDigits * (Exponent * 10) * 10000});
-rate_elements([{"unitCost", {_, [{"valueDigits", ValueDigits},
-		{"exponent", Exponent}]}} | T], Acc) when Exponent < 0 ->
-	rate_elements(T, Acc#{"unitCost" => ValueDigits div (Exponent * 10) * 10000});
+		{"exponent", Exponent}]}} | T], Acc) ->
+	rate_elements(T, Acc#{"unitCost" => #{"valueDigits" => ValueDigits,
+			"exponent" => Exponent}});
 rate_elements([_H | T], Acc) ->
 	rate_elements(T, Acc);
 rate_elements([], Acc) ->
