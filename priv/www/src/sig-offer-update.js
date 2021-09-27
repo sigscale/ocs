@@ -1636,17 +1636,17 @@ class offerUpdate extends PolymerElement {
 				updatePriceNew.push(pricetype);
 			}
 		}
- 		if(this.priceUpdatePla != this.prices[indexPrices].pla) {
- 			var pla = new Object();
+		if(this.priceUpdatePla != this.prices[indexPrices].pla) {
+			var pla = new Object();
 			 pla.path = "/productOfferingPrice/" + indexPrices + "/pricingLogicAlgorithm";
 			 if(this.priceUpdatePla == "") {
 					pla.op = "remove";
 			 } else {
-	 				pla.op = "add";
+					pla.op = "add";
 					pla.value = new Array();
 					var plaRef = new Object();
 					plaRef.href = this.priceUpdatePla;
- 					pla.value.push(plaRef);
+					pla.value.push(plaRef);
 			}
 			updatePriceNew.push(pla);
 		}
@@ -1654,29 +1654,29 @@ class offerUpdate extends PolymerElement {
 				var priceSize = new Object();
 				priceSize.op = "add";
 				priceSize.path = "/productOfferingPrice/" + indexPrices + "/unitOfMeasure";
- 				for(var indexUnit in this.prices) {
+				for(var indexUnit in this.prices) {
 					if(this.priceUpdateUnits == "Seconds") {
- 						this.prices[indexUnit].unit = "s";
+						this.prices[indexUnit].unit = "s";
 					}
 					if(this.priceUpdateUnits == "Bytes") {
- 						this.prices[indexUnit].unit = "b";
+						this.prices[indexUnit].unit = "b";
 					}
- 				}
+				}
 				if(this.prices[indexUnit].unit != undefined) {
- 					var unitDrop = this.prices[indexUnit].unit;
- 				}
- 				if(this.priceUpdateSize != undefined) {
- 					var sizeVal = this.priceUpdateSize;
- 				}
+					var unitDrop = this.prices[indexUnit].unit;
+				}
+				if(this.priceUpdateSize != undefined) {
+					var sizeVal = this.priceUpdateSize;
+				}
 				if(unitDrop && sizeVal) {
- 					var len = sizeVal.length;
- 					var m = sizeVal.charAt(len - 1);
+					var len = sizeVal.length;
+					var m = sizeVal.charAt(len - 1);
 				}
 				if(isNaN(parseInt(m))) {
 					var s = sizeVal.slice(0, (len - 1));
 				}
 				else {
-		 			var s = sizeVal;
+					var s = sizeVal;
 				}
 			}
 		if(this.$.updatePriceSize.disabled == false){
@@ -2525,15 +2525,15 @@ class offerUpdate extends PolymerElement {
 			}
 			if(this.priceUpdateUnits && this.priceUpdateSize) {
 				var len = this.priceUpdateSize.length;
- 				var m = this.priceUpdateSize.charAt(len - 1);
- 				if(isNaN(parseInt(m))) {
- 					var s = this.priceUpdateSize.slice(0, (len - 1));
- 				} else {
- 					var s = this.priceUpdateSize;
- 				}
- 				if(this.priceUpdateUnits == "b") {
- 					if (m == "m") {
- 						addValue.unitOfMeasure = s + "000000b";
+				var m = this.priceUpdateSize.charAt(len - 1);
+				if(isNaN(parseInt(m))) {
+					var s = this.priceUpdateSize.slice(0, (len - 1));
+				} else {
+					var s = this.priceUpdateSize;
+				}
+				if(this.priceUpdateUnits == "b") {
+					if (m == "m") {
+						addValue.unitOfMeasure = s + "000000b";
 					} else if(m == "g") {
 						addValue.unitOfMeasure = s + "000000000b";
 					} else if(m == "k") {
