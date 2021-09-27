@@ -308,23 +308,9 @@ process_request(IpAddress, Port,
 				'CC-Request-Number' = RequestNum,
 				'Subscription-Id' = SubscriptionId} = Request, Class) ->
 	try
-		SubscriberIds = case SubscriptionId of
-			[#'3gpp_ro_Subscription-Id'{'Subscription-Id-Data' = Sub1,
-					'Subscription-Id-Type' = ?'3GPP_SUBSCRIPTION-ID-TYPE_END_USER_E164'},
-					#'3gpp_ro_Subscription-Id'{'Subscription-Id-Data' = Sub2,
-					'Subscription-Id-Type' = ?'3GPP_SUBSCRIPTION-ID-TYPE_END_USER_IMSI'} | _] ->
-				{Sub1, Sub2};
-			[#'3gpp_ro_Subscription-Id'{'Subscription-Id-Data' = Sub1,
-					'Subscription-Id-Type' = ?'3GPP_SUBSCRIPTION-ID-TYPE_END_USER_IMSI'},
-					#'3gpp_ro_Subscription-Id'{'Subscription-Id-Data' = Sub2,
-					'Subscription-Id-Type' = ?'3GPP_SUBSCRIPTION-ID-TYPE_END_USER_E164'} | _] ->
-				{Sub2, Sub1};
-			[#'3gpp_ro_Subscription-Id'{'Subscription-Id-Data' = Sub1,
-					'Subscription-Id-Type' = ?'3GPP_SUBSCRIPTION-ID-TYPE_END_USER_E164'} | _] ->
-				{Sub1, undefined};
-			[#'3gpp_ro_Subscription-Id'{'Subscription-Id-Data' = Sub2,
-					'Subscription-Id-Type' = ?'3GPP_SUBSCRIPTION-ID-TYPE_END_USER_IMSI'} | _] ->
-				{undefined, Sub2};
+		SubscriberIds = case subscriber_id(SubscriptionId) of
+			SubIds when length(SubIds) > 0,
+				SubIds;
 			[] ->
 				case UserName of
 					[] ->
@@ -720,6 +706,31 @@ process_request1(?'3GPP_CC-REQUEST-TYPE_EVENT_REQUEST' = RequestType,
 					OHost, ORealm, RequestType, RequestNum)
 	end.
 
+-spec subscriber_id(SubscriberIdAVP) -> SubscriberIds
+	when
+		SubscriberIdAVP :: [#'3gpp_ro_Subscription-Id'{}],
+		SubscriberIds :: map().
+%% @doc Get SubscriberIds From Diameter SubscriberId AVP.
+subscriber_id(SubscriberIdAVP) ->
+	subscriber_id(SubscriberIdAVP, #{}).
+%% @hidden
+subscriber_id([#'3gpp_ro_Subscription-Id'{'Subscription-Id-Data' = undefined,
+		'Subscription-Id-Type' = ?'3GPP_SUBSCRIPTION-ID-TYPE_END_USER_E164'} | T], Acc) ->
+	subscriber_id(T, Acc);
+subscriber_id([#'3gpp_ro_Subscription-Id'{'Subscription-Id-Data' = undefined,
+		'Subscription-Id-Type' = ?'3GPP_SUBSCRIPTION-ID-TYPE_END_USER_IMSI'} | T], Acc) ->
+	subscriber_id(T, Acc);
+subscriber_id([#'3gpp_ro_Subscription-Id'{'Subscription-Id-Data' = SubId,
+		'Subscription-Id-Type' = ?'3GPP_SUBSCRIPTION-ID-TYPE_END_USER_E164'} | T], Acc) ->
+	subscriber_id(T, Acc#{"msisdn" => SubId});
+subscriber_id([#'3gpp_ro_Subscription-Id'{'Subscription-Id-Data' = SubId,
+		'Subscription-Id-Type' = ?'3GPP_SUBSCRIPTION-ID-TYPE_END_USER_IMSI'} | T], Acc) ->
+	subscriber_id(T, Acc#{"imsi" => SubId});
+subscriber_id([_ | T], Acc) ->
+	subscriber_id(T, Acc);
+subscriber_id([], Acc) ->
+	lists:reverse(Acc).
+
 -spec post_request_ecur(SubscriberIds, ServiceContextId,
 		SessionId, MSCC, Location, Destination, Flag, Class) -> Result
 	when
@@ -934,23 +945,21 @@ post_request_scur1(SubscriberIds, SessionId, ServiceRating, Path) ->
 			{error, Reason}
 	end.
 
--spec format_subs_ids(SubscriberIds) -> Result
+-spec format_subs_ids(Subscribers) -> SubscriptionId
 	when
-		SubscriberIds :: {MSISDN, IMSI},
-		MSISDN :: binary() | string() | undefined,
-		IMSI :: binary() | string() | undefined,
-		Result :: [MSISDN | IMSI].
+		Subscribers :: map(),
+		SubscriptionId :: [SubscriptionIds],
+		SubscriptionIds :: MSISDN | IMSI,
+		MSISDN :: string(),
+		IMSI :: string().
 %% @doc Format subsriber ids for nrf request.
-format_subs_ids({MSISDN, undefined})
-		when is_binary(MSISDN) ->
-	["msisdn-" ++ binary_to_list(MSISDN)];
-format_subs_ids({undefined, IMSI})
-		when is_binary(IMSI) ->
-	["imsi-" ++ binary_to_list(IMSI)];
-format_subs_ids({MSISDN, IMSI})
-		when is_binary(MSISDN), is_binary(IMSI) ->
+format_subs_ids(#{"msisdn" := MSISDN, "imsi" := IMSI}) ->
 	["msisdn-" ++ binary_to_list(MSISDN),
-			"imsi-" ++ binary_to_list(IMSI)].
+			"imsi-" ++ binary_to_list(IMSI)];
+format_subs_ids(#{"msisdn" := MSISDN}) ->
+	["msisdn-" ++ binary_to_list(MSISDN)];
+format_subs_ids(#{"imsi" := IMSI}) ->
+	["imsi-" ++ binary_to_list(IMSI)].
 
 -spec get_destination(ServiceInformation) -> RequestedPartyAddress
 	when
@@ -1649,12 +1658,12 @@ service_type(Id) ->
 			undefined
 	end.
 
--spec get_option(Option) -> Result 
+-spec get_option(Option) -> Result
 	when
 		Option :: atom(),
 		Result :: term().
 %% @doc Get the Nrf endpoint uri.
-get_option(Option) -> 
+get_option(Option) ->
 	Options = case application:get_env(ocs, diameter) of
 		{ok, [{acct,[{_, _, Oplist}]}]} ->
 			Oplist;
@@ -1670,5 +1679,5 @@ get_option(Option) ->
 			Uri;
 		false ->
 			undefined
-	end. 
+	end.
 
