@@ -1863,8 +1863,6 @@ class offerAdd extends PolymerElement {
 		} else if(!start && end) {
 			priceNew.validFor = {end};
 		}
-//		priceNew.start = this.offerStartDatePrice;
-//		priceNew.end = this.offerEndDatePrice;
 		switch(this.$.addPriceType.selected) {
 			case 0:
 				priceNew.type = "recurring";
