@@ -2144,3 +2144,32 @@ granted_unit({octets, TotalVolume}) ->
 granted_unit({messages, SpecUnits}) ->
 	#'3gpp_ro_Granted-Service-Unit'{'CC-Service-Specific-Units' = [SpecUnits]}.
 
+-spec fui(RedirectServerAddress) -> Result
+	when
+		RedirectServerAddress :: string(),
+		Result :: [#'3gpp_ro_Final-Unit-Indication'{}].
+%% @doc Parse redirect server address.
+%% @private
+fui(RedirectServerAddress)
+		when is_list(RedirectServerAddress) ->
+	AddressType = case inet:parse_address(RedirectServerAddress) of
+		{ok, Address} when size(Address) =:= 4 ->
+			?'3GPP_RO_REDIRECT-ADDRESS-TYPE_IPV4_ADDRESS';
+		{ok, Address} when size(Address) =:= 8 ->
+			?'3GPP_RO_REDIRECT-ADDRESS-TYPE_IPV6_ADDRESS';
+		{error, _} ->
+			case RedirectServerAddress of
+				[$s, $i, $p, $: | _]  ->
+					?'3GPP_RO_REDIRECT-ADDRESS-TYPE_SIP_URI';
+				[$h, $t, $t, $p, $: | _]  ->
+					?'3GPP_RO_REDIRECT-ADDRESS-TYPE_URL';
+				_ ->
+					[]
+			end
+	end,
+	RedirectServer = #'3gpp_ro_Redirect-Server'{'Redirect-Address-Type' = AddressType,
+			'Redirect-Server-Address' = RedirectServerAddress},
+	Action = ?'3GPP_RO_FINAL-UNIT-ACTION_REDIRECT',
+	[#'3gpp_ro_Final-Unit-Indication'{'Final-Unit-Action' = Action,
+			'Redirect-Server' = [RedirectServer]}].
+
