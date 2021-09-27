@@ -383,14 +383,19 @@ process_request1(?'3GPP_CC-REQUEST-TYPE_INITIAL_REQUEST' = RequestType,
 process_request1(?'3GPP_CC-REQUEST-TYPE_INITIAL_REQUEST' = RequestType,
 		#'3gpp_ro_CCR'{'Multiple-Services-Credit-Control' = MSCC1,
 		'Service-Information' = ServiceInformation,
-		'Service-Context-Id' = SvcContextId} = Request, SessionId, RequestNum,
+		'Service-Context-Id' = SvcContextId,
+		'Event-Timestamp' = EventTimestamp} = Request, SessionId, RequestNum,
 		SubscriberIds, OHost, _DHost, ORealm, _DRealm, _IpAddress, _Port, _Class) ->
 	try
 		{Direction, Address} = direction_address(ServiceInformation),
 		ServiceNetwork = service_network(ServiceInformation),
 		ServiceType = service_type(SvcContextId),
-		Location = get_service_location(ServiceInformation),
-		Destination = get_destination(ServiceInformation),
+		Timestamp = case EventTimestamp of
+			[{{_, _, _}, {_, _, _}} = TS] ->
+				TS;
+			_ ->
+				calendar:universal_time()
+		end,
 		case ServiceType of
 			32251 ->
 				post_request_scur(SubscriberIds, SvcContextId,
