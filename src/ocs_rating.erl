@@ -309,6 +309,8 @@ rate2(Protocol, Service, ServiceId, Product, Buckets, Timestamp, Address, Direct
 				true;
 			(#price{type = tariff, units = messages}) ->
 				true;
+			(#price{type = #pla_ref{}}) ->
+				true;
 			(_) ->
 				false
 	end,
@@ -338,6 +340,8 @@ rate2(Protocol, Service, ServiceId, Product, Buckets, Timestamp, Address, Direct
 				true;
 			(#price{type = usage, units = seconds}) ->
 				true;
+			(#price{type = #pla_ref{}}) ->
+				true;
 			(_) ->
 				false
 	end,
@@ -364,6 +368,8 @@ rate2(Protocol, Service, ServiceId, Product, Buckets, Timestamp, _Address, _Dire
 	F = fun(#price{type = tariff, units = octets}) ->
 				true;
 			(#price{type = usage}) ->
+				true;
+			(#price{type = #pla_ref{}}) ->
 				true;
 			(_) ->
 				false
