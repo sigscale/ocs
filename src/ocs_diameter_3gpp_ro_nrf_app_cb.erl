@@ -309,7 +309,7 @@ process_request(IpAddress, Port,
 				'Subscription-Id' = SubscriptionId} = Request, Class) ->
 	try
 		SubscriberIds = case subscriber_id(SubscriptionId) of
-			SubIds when length(SubIds) > 0,
+			SubIds when length(SubIds) > 0 ->
 				SubIds;
 			[] ->
 				case UserName of
@@ -404,12 +404,10 @@ process_request1(?'3GPP_CC-REQUEST-TYPE_INITIAL_REQUEST' = RequestType,
 				case ServiceType of
 					32251 ->
 						{ok, JSON} = post_request_scur(SubscriberIds, SvcContextId,
-								SessionId, MSCC1, undefined, initial, a),
+								SessionId, MSCC1, [], initial, a),
 						{ok, JSON, PLA, MSCC2};
-					32260 ->
-						{ok, JSON} = post_request_ecur(SubscriberIds, SvcContextId,
-								SessionId, MSCC1, undefined, undefined, initial, a),
-						{ok, JSON, PLA, MSCC2}
+					_ ->
+						{error, invalid_context_id}
 				end;
 			{error, Reason} ->
 				{error, Reason}
@@ -777,7 +775,7 @@ subscriber_id([], Acc) ->
 		ServiceContextId :: binary(),
 		SessionId :: binary(),
 		MSCC :: [#'3gpp_ro_Multiple-Services-Credit-Control'{}],
-		Location :: [tuple()],
+		Location :: [tuple()] | undefined,
 		Flag :: initial | interim | final,
 		Class :: a | b,
 		Destination :: string(),
@@ -788,14 +786,14 @@ subscriber_id([], Acc) ->
 post_request_ecur(SubscriberIds, SvcContextId,
 		SessionId, MSCC, Location, Destination, initial, a) ->
 	Path = get_option(nrf_uri) ++ ?BASE_URI,
-	ServiceRating = initial_service_rating(MSCC, binary_to_list(SvcContextId),
-			Location, Destination, a),
+	ServiceRating = initial_service_rating_b(MSCC, binary_to_list(SvcContextId),
+			Location, Destination),
 	post_request_ecur1(SubscriberIds, SessionId, ServiceRating, Path);
 post_request_ecur(SubscriberIds, SvcContextId,
 		SessionId, MSCC, Location, Destination, initial, b) ->
 	Path = get_option(nrf_uri) ++ ?BASE_URI,
-	ServiceRating = initial_service_rating(MSCC, binary_to_list(SvcContextId),
-			Location, Destination, b),
+	ServiceRating = initial_service_rating_a(MSCC, binary_to_list(SvcContextId),
+			Location, Destination),
 	post_request_ecur1(SubscriberIds, SessionId, ServiceRating, Path);
 post_request_ecur(SubscriberIds, SvcContextId,
 		SessionId, MSCC, Location, Destination, final, a) ->
@@ -910,7 +908,7 @@ post_request_iec1(SubscriberIds, SessionId, ServiceRating) ->
 		ServiceContextId :: binary(),
 		SessionId :: binary(),
 		MSCC :: [#'3gpp_ro_Multiple-Services-Credit-Control'{}],
-		Location :: [tuple()],
+		Location :: [tuple()] | [],
 		Flag :: initial | interim | final,
 		Class :: a | b,
 		Result :: {ok, Body} | {error, Reason},
@@ -918,16 +916,15 @@ post_request_iec1(SubscriberIds, SessionId, ServiceRating) ->
 		Reason :: term().
 %% @doc POST SCUR rating data to a Nrf Rating Server.
 post_request_scur(SubscriberIds, SvcContextId,
-		SessionId, MSCC, Location, initial, a) ->
+		SessionId, MSCC, [], initial, a) ->
 	Path = get_option(nrf_uri) ++ ?BASE_URI,
-	ServiceRating = initial_service_rating(MSCC, binary_to_list(SvcContextId),
-			Location, undefined, a),
+	ServiceRating = initial_service_rating_a(SubscriberIds, MSCC, binary_to_list(SvcContextId)),
 	post_request_scur1(SubscriberIds, SessionId, ServiceRating, Path);
 post_request_scur(SubscriberIds, SvcContextId,
 		SessionId, MSCC, Location, initial, b) ->
 	Path = get_option(nrf_uri) ++ ?BASE_URI,
-	ServiceRating = initial_service_rating(MSCC, binary_to_list(SvcContextId),
-			Location, undefined, b),
+	ServiceRating = initial_service_rating_b(MSCC, binary_to_list(SvcContextId),
+			Location, undefined),
 	post_request_scur1(SubscriberIds, SessionId, ServiceRating, Path);
 post_request_scur(SubscriberIds, SvcContextId,
 		SessionId, MSCC, Location, interim, a) ->
@@ -1528,28 +1525,27 @@ reserved_unit4([#'3gpp_ro_Requested-Service-Unit'
 reserved_unit4(_RSU, Acc) ->
 	Acc.
 
--spec initial_service_rating(MSCC, ServiceContextId, ServiceInformation,
-		Destination, Class) -> ServiceRating
+-spec initial_service_rating_b(MSCC, ServiceContextId, ServiceInformation,
+		Destination) -> ServiceRating
 	when
 		MSCC :: [#'3gpp_ro_Multiple-Services-Credit-Control'{}],
 		ServiceContextId :: string(),
 		ServiceInformation :: [tuple()],
 		Destination :: string() | undefined,
-		Class :: a | b,
 		ServiceRating :: [{struct, [tuple()]}].
 %% Create list of service elements to be rated.
-initial_service_rating(MSCC, ServiceContextId, ServiceInformation, undefined, Class) ->
+initial_service_rating_b(MSCC, ServiceContextId, ServiceInformation, undefined) ->
 	SCID = {"serviceContextId", ServiceContextId},
-	initial_service_rating(MSCC, SCID, ServiceInformation, undefined, Class, []);
-initial_service_rating(MSCC, ServiceContextId, ServiceInformation, Destination, Class) ->
+	initial_service_rating_b(MSCC, SCID, ServiceInformation, undefined, []);
+initial_service_rating_b(MSCC, ServiceContextId, ServiceInformation, Destination) ->
 	SCID = {"serviceContextId", ServiceContextId},
 	Des = {"destinationId", {array, [{struct, [{"destinationIdType", "DN"},
 			{"destinationIdData", Destination}]}]}},
-	initial_service_rating(MSCC, SCID, ServiceInformation, Des, Class, []).
+	initial_service_rating_b(MSCC, SCID, ServiceInformation, Des, []).
 %% @hidden
-initial_service_rating([#'3gpp_ro_Multiple-Services-Credit-Control'{
+initial_service_rating_b([#'3gpp_ro_Multiple-Services-Credit-Control'{
 		'Requested-Service-Unit' = RSU, 'Service-Identifier' = SI,
-		'Rating-Group' = RG} = _MSCC | T], SCID, SInfo, Des, Class, Acc) ->
+		'Rating-Group' = RG} = _MSCC | T], SCID, SInfo, Des, Acc) ->
 	Acc1 = case SI of
 		[] ->
 			[];
@@ -1574,21 +1570,56 @@ initial_service_rating([#'3gpp_ro_Multiple-Services-Credit-Control'{
 		_ ->
 			[Des | Acc3]
 	end,
-	case Class of
-	a ->
-		initial_service_rating(T, SCID, SInfo, Des, Class, [{struct, [SCID | Acc4]}| Acc]);
-	b ->
-		case reserved_unit(RSU) of
-			[] ->
-				ServiceRating = {struct, [SCID, {"requestSubType", "RESERVE"} | Acc4]},
-				initial_service_rating(T, SCID, SInfo, Des, Class, [ServiceRating | Acc]);
-			ReservedUnits ->
-				ServiceRating = {struct, [SCID, {"requestedUnit", {struct, ReservedUnits}},
-						{"requestSubType", "RESERVE"} | Acc4]},
-				initial_service_rating(T, SCID, SInfo, Des, Class, [ServiceRating | Acc])
-		end
+	case reserved_unit(RSU) of
+		[] ->
+			ServiceRating = {struct, [SCID, {"requestSubType", "RESERVE"} | Acc4]},
+				initial_service_rating_b(T, SCID, SInfo, Des, [ServiceRating | Acc]);
+		ReservedUnits ->
+			ServiceRating = {struct, [SCID, {"requestedUnit", {struct, ReservedUnits}},
+					{"requestSubType", "RESERVE"} | Acc4]},
+			initial_service_rating_b(T, SCID, SInfo, Des, [ServiceRating | Acc])
 	end;
-initial_service_rating([], _SCID, _SI, _Des, _Class, Acc) ->
+initial_service_rating_b([], _SCID, _SI, _Des, Acc) ->
+	Acc.
+
+-spec initial_service_rating_a(Subscribers, MSCC,
+		ServiceContextId) -> ServiceRating
+	when
+		Subscribers :: [Subscriber],
+		Subscriber :: {IdType, Id},
+      IdType :: msisdn | imsi,
+      Id :: binary(),
+		MSCC :: [#'3gpp_ro_Multiple-Services-Credit-Control'{}],
+		ServiceContextId :: string(),
+		ServiceRating :: [{struct, [tuple()]}].
+%% Create list of service elements to be rated.
+initial_service_rating_a(Subscribers, MSCC, ServiceContextId) ->
+	SCID = {"serviceContextId", ServiceContextId},
+	initial_service_rating_a(Subscribers, MSCC, SCID, []).
+%% @hidden
+initial_service_rating_a(Subscribers, [#{"serviceId" := SI,
+		"ratingGroup" := RG} = _MSCC | T], SCID, Acc) ->
+	Acc1 = case SI of
+		undefined ->
+			[];
+		N1 when is_integer(N1) ->
+			[{"serviceId", N1}]
+		end,
+	Acc2 = case RG of
+		undefined ->
+			[];
+		N2 when is_integer(N2) ->
+			[{"ratingGroup", N2} | Acc1]
+	end,
+	Acc3 = case Subscribers of
+		[{_, Destination} | _] when is_binary(Destination) ->
+			[{"destinationId", {array,
+					[binary_to_list(Destination)]}} | Acc2];
+		_ ->
+			Acc2
+	end,
+	initial_service_rating_a(Subscribers, T, SCID, [{struct, [SCID | Acc3]}| Acc]);
+initial_service_rating_a(_, [], _, Acc) ->
 	Acc.
 
 -spec update_service_rating(MSCC, ServiceContextId,
@@ -1871,7 +1902,7 @@ get_usu(#'3gpp_ro_Multiple-Services-Credit-Control'{'Used-Service-Unit' = []}) -
 -spec rate(ServiceType, ServiceNetwork, Subscriber, Timestamp,
 		Address, Direction, Flag, SessionId, Amounts) -> Result
 	when
-		ServiceType :: binary(),
+		ServiceType :: pos_integer(),
 		ServiceNetwork :: binary(),
 		Subscriber :: binary(),
 		Timestamp :: calendar:datetime(),
