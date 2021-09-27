@@ -404,12 +404,12 @@ process_request1(?'3GPP_CC-REQUEST-TYPE_INITIAL_REQUEST' = RequestType,
 				case ServiceType of
 					32251 ->
 						{ok, JSON} = post_request_scur(SubscriberIds, SvcContextId,
-								SessionId, MSCC1, Location, initial, a)
+								SessionId, MSCC1, undefined, initial, a),
 						{ok, JSON, PLA, MSCC2};
 					32260 ->
 						{ok, JSON} = post_request_ecur(SubscriberIds, SvcContextId,
-								SessionId, MSCC1, Location, Destination, initial, a),
-						{ok, JSON, PLA, MSCC2};
+								SessionId, MSCC1, undefined, undefined, initial, a),
+						{ok, JSON, PLA, MSCC2}
 				end;
 			{error, Reason} ->
 				{error, Reason}
@@ -418,7 +418,7 @@ process_request1(?'3GPP_CC-REQUEST-TYPE_INITIAL_REQUEST' = RequestType,
 		{ok, JSON1, PLA1, MSCC3} ->
 			{struct, RatedStruct} = mochijson:decode(JSON1),
 			{_, {_, ServiceElements}} = lists:keyfind("serviceRating", 1, RatedStruct),
-			ServiceRating = map_service_rating(ServiceElements),
+			{ServiceRating, _} = map_service_rating(ServiceElements, SessionId),
 			case charge(Subscriber, ServiceRating, PLA1, SessionId, initial) of
 				{ok, NewMSCC1, ResultCode1} ->
 					Container = build_container(MSCC1),
@@ -2129,4 +2129,10 @@ charge(_, [], [], _, _, [], undefined) ->
 	{ok, [], ?'DIAMETER_CC_APP_RESULT-CODE_RATING_FAILED'};
 charge(_, _, [], _, _, Acc, ResultCode)->
 	{ok, lists:reverse(Acc), ResultCode}.
+
+%% @hidden
+destination(<<"tel:", Dest/binary>>) ->
+	binary_to_list(Dest);
+destination(Dest) ->
+	binary_to_list(Dest).
 
