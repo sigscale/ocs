@@ -346,6 +346,7 @@ process_request1(?'3GPP_CC-REQUEST-TYPE_INITIAL_REQUEST' = RequestType,
 		'Service-Context-Id' = SvcContextId} = Request, SessionId, RequestNum,
 		SubscriberIds, OHost, _DHost, ORealm, _DRealm, _IpAddress, _Port, b = _Class) ->
 	try
+		{Direction, Address} = direction_address(ServiceInformation),
 		Location = get_service_location(ServiceInformation),
 		Destination = get_destination(ServiceInformation),
 		case service_type(SvcContextId) of
@@ -1684,4 +1685,25 @@ get_option(Option) ->
 		false ->
 			undefined
 	end.
+
+%% @hidden
+direction_address([#'3gpp_ro_Service-Information'{
+		'SMS-Information' = [#'3gpp_ro_SMS-Information'{
+		'Recipient-Info' = [#'3gpp_ro_Recipient-Info'{
+		'Recipient-Address' = [#'3gpp_ro_Recipient-Address'{
+		'Address-Data' = [RecipientAddress]}]}]}]}]) ->
+	% @todo handle multiple SMS recipients
+	{originate, RecipientAddress};
+direction_address([#'3gpp_ro_Service-Information'{
+		'IMS-Information' = [#'3gpp_ro_IMS-Information'{
+		'Role-Of-Node' = [?'3GPP_RO_ROLE-OF-NODE_ORIGINATING_ROLE'],
+		'Called-Party-Address' = [CalledParty]}]}]) ->
+	{originate, destination(CalledParty)};
+direction_address([#'3gpp_ro_Service-Information'{
+		'IMS-Information' = [#'3gpp_ro_IMS-Information'{
+		'Role-Of-Node' = [?'3GPP_RO_ROLE-OF-NODE_TERMINATING_ROLE'],
+		'Calling-Party-Address' = [CallingParty]}]}]) ->
+	{answer, destination(CallingParty)};
+direction_address(_) ->
+	{undefined, undefined}.
 
