@@ -1588,6 +1588,36 @@ class offerUpdate extends PolymerElement {
 				updatePriceNew.push(priceDesc);
 			}
 		}
+		if(this.prices[indexPrices].start != "undefined") {
+			if(this.updateOfferStartDatePrice != this.prices[indexPrices].start) {
+				var priceStart = new Object();
+				priceStart.op = "add";
+				priceStart.path = "/productOfferingPrice/" + indexPrices + "/validFor/startDateTime";
+				priceStart.value = this.updateOfferStartDatePrice;
+				updatePriceNew.push(priceStart);
+			}
+		} else {
+			var priceStart = new Object();
+			priceStart.op = "add";
+			priceStart.path = "/productOfferingPrice/" + indexPrices + "/validFor";
+			priceStart.value = {"startDateTime": this.updateOfferStartDatePrice};
+			updatePriceNew.push(priceStart);
+		}
+		if(this.updateOfferEndDatePrice != "undefined") {
+			if(this.updateOfferEndDatePrice != this.prices[indexPrices].end) {
+				var priceEnd = new Object();
+				priceEnd.op = "add";
+				priceEnd.path = "/productOfferingPrice/" + indexPrices + "/validFor/endDateTime";
+				priceEnd.value = this.updateOfferEndDatePrice;
+				updatePriceNew.push(priceEnd);
+			}
+		} else {
+			var priceEnd = new Object();
+			priceEnd.op = "add";
+			priceEnd.path = "/productOfferingPrice/" + indexPrices + "/validFor";
+			priceEnd.value = {"endDateTime": this.updateOfferEndDatePrice};
+			updatePriceNew.push(priceEnd);
+		}
 		if(this.priceUpdateType != this.prices[indexPrices].priceType) {
 			var pricetype = new Object();
 			pricetype.op = "add";
@@ -2414,15 +2444,20 @@ class offerUpdate extends PolymerElement {
 			if(this.priceUpdateDescription) {
 				addValue.description = this.priceUpdateDescription;
 			} 
+			var startDateTime;
+			var endDateTime;
 			if(this.updateOfferStartDatePrice) {
-				var startTimeObj = new Object();
-				startTimeObj.startDateTime = this.updateOfferStartDatePrice; 
-				addValue.validFor = startTimeObj;
+				startDateTime = this.updateOfferStartDatePrice;
 			}
 			if(this.updateOfferEndDatePrice) {
-				var endTimeObj = new Object();
-				endTimeObj.endDateTime = this.updateOfferEndDatePrice;
-				addValue.validFor = endTimeObj;
+				endDateTime = this.updateOfferEndDatePrice;
+			}
+			if(startDateTime && endDateTime) {
+				addValue.validFor = {startDateTime, endDateTime};
+			} else if(startDateTime && !endDateTime) {
+				addValue.validFor = {startDateTime};
+			} else if(!startDateTime  && endDateTime) {
+				addValue.validFor = {endDateTime};
 			}
 			if(this.priceUpdateType) {
 				switch(this.$.updatePriceType.selected) {
