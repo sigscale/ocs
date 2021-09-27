@@ -2136,3 +2136,11 @@ destination(<<"tel:", Dest/binary>>) ->
 destination(Dest) ->
 	binary_to_list(Dest).
 
+%% @hidden
+granted_unit({seconds, CCTime}) ->
+	#'3gpp_ro_Granted-Service-Unit'{'CC-Time' = [CCTime]};
+granted_unit({octets, TotalVolume}) ->
+	#'3gpp_ro_Granted-Service-Unit'{'CC-Total-Octets' = [TotalVolume]};
+granted_unit({messages, SpecUnits}) ->
+	#'3gpp_ro_Granted-Service-Unit'{'CC-Service-Specific-Units' = [SpecUnits]}.
+
