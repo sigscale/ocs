@@ -308,7 +308,6 @@ pointer1(T, Acc1, Acc2) ->
 %% @doc Apply a JSON `Patch' (<a href="http://tools.ietf.org/html/rfc6902">RFC6902</a>).
 %% 	Modifies the `Resource' by applying the operations listed in `Patch'.
 %% 	`Operation' may be `"add"', `"remove"', or `"replace"'.
-%% @hidden
 patch({array, L} = _Patch, Resource) ->
 	patch1(L, Resource, []).
 %% @hidden
@@ -503,7 +502,7 @@ format_problem1(Problem, Accepted) ->
 			Title = ["\t\"title\": \"", maps:get(title, Problem), "\""],
 			Detail = case maps:find(detail, Problem) of
 				{ok, Value1} ->
-					[",\n\t\"detail\": \"", Value1, "\",\n"];
+					[",\n\t\"detail\": \"", Value1, "\""];
 				error ->
 					[]
 			end,
@@ -565,13 +564,13 @@ format_problem2(Problem, Accepted) ->
 	end,
 	case lists:any(F, Accepted) of
 		true ->
-			Class = "\t\"@type\": \"Error\"\n",
+			Class = "\t\"@type\": \"Error\",\n",
 			Type = ["\t\"referenceError\": \"", maps:get(type, Problem), "\",\n"],
 			Code = ["\t\"code\": \"", maps:get(code, Problem), "\",\n"],
 			Reason = ["\t\"reason\": \"", maps:get(title, Problem), "\""],
 			Message = case maps:find(detail, Problem) of
 				{ok, Value1} ->
-					[",\n\t\"message\": \"", Value1, "\",\n"];
+					[",\n\t\"message\": \"", Value1, "\""];
 				error ->
 					[]
 			end,

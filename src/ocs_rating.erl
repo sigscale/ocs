@@ -297,6 +297,7 @@ rate1(Protocol, Service, ServiceId, Product, Buckets, Timestamp, Address,
 		_ ->
 			mnesia:abort(invalid_service_type)
 	end.
+%% @hidden
 rate2(Protocol, Service, ServiceId, Product, Buckets, Timestamp, Address, Direction,
 		#offer{specification = ProdSpec, price = Prices} = _Offer,
 		Flag, DebitAmounts, ReserveAmounts, SessionId, Rated,
@@ -2112,6 +2113,8 @@ filter_prices_tod(Timestamp, Prices) ->
 %% @hidden
 filter_prices_tod(Timestamp, [#price{char_value_use = CharValueUse} = P | T], Acc) ->
 	case lists:keyfind("timeOfDayRange", #char_value_use.name, CharValueUse) of
+		#char_value_use{values = [#char_value{value = undefined}]} ->
+					filter_prices_tod(Timestamp, T, [P | Acc]);
 		#char_value_use{values = [#char_value{value =
 				#range{lower = Start, upper = End}}]} ->
 			case filter_prices_tod1(Timestamp, Start, End) of
@@ -2166,6 +2169,8 @@ filter_prices_dir(Direction, [#price{char_value_use = CharValueUse} = P | T], Ac
 		#char_value_use{values = [#char_value{value = "originate"}]}
 				when Direction == originate ->
 			filter_prices_dir(Direction, T, [P | Acc]);
+		#char_value_use{values = [#char_value{value = undefined}]} ->
+			filter_prices_dir(Direction, T, [P | Acc]);
 		#char_value_use{values = [#char_value{}]} ->
 			filter_prices_dir(Direction, T, Acc);
 		_ ->
@@ -2187,6 +2192,8 @@ filter_prices_key(ChargingKey, Prices) when is_integer(ChargingKey) ->
 %% @hidden
 filter_prices_key(ChargingKey, [#price{char_value_use = CharValueUse} = P | T], Acc) ->
 	case lists:keyfind("chargingKey", #char_value_use.name, CharValueUse) of
+		#char_value_use{values = [#char_value{value = undefined}]} ->
+			filter_prices_key(ChargingKey, T, [P | Acc]);
 		#char_value_use{values = [#char_value{value = ChargingKey}]} ->
 			filter_prices_key(ChargingKey, T, [P | Acc]);
 		#char_value_use{values = [#char_value{}]} ->
