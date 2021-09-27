@@ -820,7 +820,7 @@ post_request_ecur1(SubscriberIds, SessionId, ServiceRating, Path) ->
 					{"oneTimeEventType", "PEC"},
 					{"invocationTimeStamp", InvocationTimeStamp},
 					{"invocationSequenceNumber", Sequence},
-					{"subscriptionId", {array, format_subs_ids(SubscriberIds)}},
+					{"subscriptionId", {array, charged_party(SubscriberIds)}},
 					{"serviceRating",
 							{array, lists:flatten(ServiceRating)}}]},
 	ContentType = "application/json",
@@ -878,7 +878,7 @@ post_request_iec1(SubscriberIds, SessionId, ServiceRating) ->
 					{"oneTimeEventType", "IEC"},
 					{"invocationTimeStamp", InvocationTimeStamp},
 					{"invocationSequenceNumber", Sequence},
-					{"subscriptionId", {array, format_subs_ids(SubscriberIds)}},
+					{"subscriptionId", {array, charged_party(SubscriberIds)}},
 					{"serviceRating",
 							{array, lists:flatten(ServiceRating)}}]},
 	Path = get_option(nrf_uri) ++ ?BASE_URI,
@@ -960,7 +960,7 @@ post_request_scur1(SubscriberIds, SessionId, ServiceRating, Path) ->
 							{struct, [{"nodeFunctionality", "OCF"}]}},
 					{"invocationTimeStamp", InvocationTimeStamp},
 					{"invocationSequenceNumber", Sequence},
-					{"subscriptionId", {array, format_subs_ids(SubscriberIds)}},
+					{"subscriptionId", {array, charged_party(SubscriberIds)}},
 					{"serviceRating",
 							{array, lists:flatten(ServiceRating)}}]},
 	ContentType = "application/json",
@@ -981,21 +981,28 @@ post_request_scur1(SubscriberIds, SessionId, ServiceRating, Path) ->
 			{error, Reason}
 	end.
 
--spec format_subs_ids(Subscribers) -> SubscriptionId
+-spec charged_party(Subscriber) -> ChargedParty
 	when
-		Subscribers :: map(),
-		SubscriptionId :: [SubscriptionIds],
-		SubscriptionIds :: MSISDN | IMSI,
+		Subscriber :: [Subscribers],
+		Subscribers :: {IdType, Id},
+		IdType :: msisdn | imsi,
+		Id :: binary(),
+		ChargedParty :: [ChargedParties],
+		ChargedParties :: MSISDN | IMSI,
 		MSISDN :: string(),
 		IMSI :: string().
 %% @doc Format subsriber ids for nrf request.
-format_subs_ids(#{"msisdn" := MSISDN, "imsi" := IMSI}) ->
-	["msisdn-" ++ binary_to_list(MSISDN),
-			"imsi-" ++ binary_to_list(IMSI)];
-format_subs_ids(#{"msisdn" := MSISDN}) ->
-	["msisdn-" ++ binary_to_list(MSISDN)];
-format_subs_ids(#{"imsi" := IMSI}) ->
-	["imsi-" ++ binary_to_list(IMSI)].
+charged_party(Subscriber) ->
+	charged_party(Subscriber, []).
+%% @hidden
+charged_party([{msisdn, MSISDN} | T], Acc) ->
+	charged_party(T, ["msisdn-" ++ binary_to_list(MSISDN) | Acc]);
+charged_party([{imsi, IMSI} | T], Acc) ->
+	charged_party(T, ["imsi-" ++ binary_to_list(IMSI) | Acc]);
+charged_party([_| T], Acc) ->
+	charged_party(T, Acc);
+charged_party([], Acc) ->
+	lists:reverse(Acc).
 
 -spec get_destination(ServiceInformation) -> RequestedPartyAddress
 	when
