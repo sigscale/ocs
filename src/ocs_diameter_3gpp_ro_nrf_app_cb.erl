@@ -346,7 +346,6 @@ process_request1(?'3GPP_CC-REQUEST-TYPE_INITIAL_REQUEST' = RequestType,
 		'Service-Context-Id' = SvcContextId} = Request, SessionId, RequestNum,
 		SubscriberIds, OHost, _DHost, ORealm, _DRealm, _IpAddress, _Port, b = _Class) ->
 	try
-		{Direction, Address} = direction_address(ServiceInformation),
 		Location = get_service_location(ServiceInformation),
 		Destination = get_destination(ServiceInformation),
 		case service_type(SvcContextId) of
@@ -387,6 +386,8 @@ process_request1(?'3GPP_CC-REQUEST-TYPE_INITIAL_REQUEST' = RequestType,
 		'Service-Context-Id' = SvcContextId} = Request, SessionId, RequestNum,
 		SubscriberIds, OHost, _DHost, ORealm, _DRealm, _IpAddress, _Port, _Class) ->
 	try
+		{Direction, Address} = direction_address(ServiceInformation),
+		ServiceNetwork = service_network(ServiceInformation),
 		Location = get_service_location(ServiceInformation),
 		Destination = get_destination(ServiceInformation),
 		case service_type(SvcContextId) of
@@ -1706,4 +1707,12 @@ direction_address([#'3gpp_ro_Service-Information'{
 	{answer, destination(CallingParty)};
 direction_address(_) ->
 	{undefined, undefined}.
+
+%% @hidden
+service_network([#'3gpp_ro_Service-Information'{
+		'PS-Information' = [#'3gpp_ro_PS-Information'{
+		'3GPP-SGSN-MCC-MNC' = [MccMnc]}]}]) ->
+	MccMnc;
+service_network(_) ->
+	undefined.
 
