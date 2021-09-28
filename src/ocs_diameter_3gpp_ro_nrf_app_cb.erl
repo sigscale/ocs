@@ -433,6 +433,7 @@ process_request1(?'3GPP_CC-REQUEST-TYPE_INITIAL_REQUEST' = RequestType,
 		{ok, MSCC3, ResultCode1} ->
 			Container = build_container(MSCC1),
 			NewMSCC3 = build_mscc(MSCC3, Container),
+			ok = insert_ref(SessionId, ServiceRating),
 			diameter_answer(SessionId, NewMSCC3, ResultCode1,
 					OHost, ORealm, RequestType, RequestNum);
 		{error, Reason1} ->
