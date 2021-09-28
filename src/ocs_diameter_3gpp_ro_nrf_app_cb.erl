@@ -590,35 +590,59 @@ process_request1(?'3GPP_CC-REQUEST-TYPE_TERMINATION_REQUEST' = RequestType,
 process_request1(?'3GPP_CC-REQUEST-TYPE_TERMINATION_REQUEST' = RequestType,
 		#'3gpp_ro_CCR'{'Multiple-Services-Credit-Control' = MSCC1,
 		'Service-Information' = ServiceInformation,
-		'Service-Context-Id' = SvcContextId} = Request, SessionId,
-		RequestNum, SubscriberIds, OHost, _DHost, ORealm, _DRealm,
+		'Service-Context-Id' = SvcContextId,
+		'Event-Timestamp' = EventTimestamp} = Request, SessionId,
+		RequestNum, [{_, Subscriber} | _], OHost, _DHost, ORealm, _DRealm,
 		_IpAddress, _Port, _Class) ->
 	try
-		Location = get_service_location(ServiceInformation),
-		Destination = get_destination(ServiceInformation),
-		case service_type(SvcContextId) of
-			32251 ->
-				post_request_scur(SubscriberIds, SvcContextId,
-						SessionId, MSCC1, Location, final, a);
-			32260 ->
-				post_request_ecur(SubscriberIds, SvcContextId,
-						SessionId, MSCC1, Location, Destination, final, a)
+		{Direction, Address} = direction_address(ServiceInformation),
+		ServiceNetwork = service_network(ServiceInformation),
+		ServiceType = service_type(SvcContextId),
+		Timestamp = case EventTimestamp of
+			[{{_, _, _}, {_, _, _}} = TS] ->
+				TS;
+			_ ->
+				calendar:universal_time()
+		end,
+		case rate(ServiceType, ServiceNetwork, Subscriber, Timestamp,
+				Address, Direction, final, SessionId, get_mscc(MSCC1)) of
+			{{MSCC2, ResultCode}, []} ->
+				{ok, MSCC2, ResultCode};
+			{{MSCC2, ResultCode, _}, []} ->
+				{ok, MSCC2, ResultCode};
+			{{MSCC2, _}, PLA} when is_list(MSCC2) ->
+				{ok, get_ref(SessionId), PLA, MSCC2};
+			{{MSCC2, _, _}, PLA} ->
+				{ok, get_ref(SessionId), PLA, MSCC2};
+			{error, Reason} ->
+				{error, Reason}
 		end
 	of
-		{ok, JSON} ->
-			{struct, RatedStruct} = mochijson:decode(JSON),
-			{_, {_, ServiceElements}} = lists:keyfind("serviceRating", 1, RatedStruct),
-			{ServiceRating, ResultCode} = map_service_rating(ServiceElements, SessionId),
+		{ok, ServiceRating, PLA1, MSCC3} ->
+			case charge(Subscriber, ServiceRating, PLA1, SessionId, final) of
+				{ok, NewMSCC1, ResultCode1} ->
+					Container = build_container(MSCC1),
+					NewMSCC3 = build_mscc(NewMSCC1 ++ MSCC3, Container),
+					ok = remove_ref(SessionId),
+					diameter_answer(SessionId, NewMSCC3, ResultCode1,
+							OHost, ORealm, RequestType, RequestNum);
+				{error, Reason1} ->
+					error_logger:error_report(["Rating Error",
+							{module, ?MODULE}, {error, Reason1}]),
+					diameter_error(SessionId,
+							?'DIAMETER_CC_APP_RESULT-CODE_RATING_FAILED',
+							OHost, ORealm, RequestType, RequestNum)
+			end;
+		{ok, MSCC3, ResultCode1} ->
 			Container = build_container(MSCC1),
-			NewMSCC = build_mscc(ServiceRating, Container),
-			ok = remove_ref(SessionId),
-			diameter_answer(SessionId, NewMSCC, ResultCode,
+			NewMSCC = build_mscc(MSCC3, Container),
+			diameter_answer(SessionId, NewMSCC, ResultCode1,
 					OHost, ORealm, RequestType, RequestNum);
-		{error, ReasonCode} ->
+		{error, Reason1} ->
 			error_logger:error_report(["Rating Error",
-					{module, ?MODULE}, {error, ReasonCode}]),
-			ok = remove_ref(SessionId),
-			diameter_error(SessionId, ReasonCode,
+					{module, ?MODULE}, {error, Reason1}]),
+			diameter_error(SessionId,
+					?'DIAMETER_CC_APP_RESULT-CODE_RATING_FAILED',
 					OHost, ORealm, RequestType, RequestNum)
 	catch
 		?CATCH_STACK ->
