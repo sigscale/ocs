@@ -421,6 +421,7 @@ process_request1(?'3GPP_CC-REQUEST-TYPE_INITIAL_REQUEST' = RequestType,
 				{ok, NewMSCC1, ResultCode1} ->
 					Container = build_container(MSCC1),
 					NewMSCC3 = build_mscc(NewMSCC1 ++ MSCC3, Container),
+					ok = insert_ref(SessionId, ServiceRating),
 					diameter_answer(SessionId, NewMSCC3, ResultCode1,
 							OHost, ORealm, RequestType, RequestNum);
 				{error, Reason1} ->
@@ -433,7 +434,6 @@ process_request1(?'3GPP_CC-REQUEST-TYPE_INITIAL_REQUEST' = RequestType,
 		{ok, MSCC3, ResultCode1} ->
 			Container = build_container(MSCC1),
 			NewMSCC3 = build_mscc(MSCC3, Container),
-			ok = insert_ref(SessionId, ServiceRating),
 			diameter_answer(SessionId, NewMSCC3, ResultCode1,
 					OHost, ORealm, RequestType, RequestNum);
 		{error, Reason1} ->
@@ -488,33 +488,61 @@ process_request1(?'3GPP_CC-REQUEST-TYPE_UPDATE_REQUEST' = RequestType,
 process_request1(?'3GPP_CC-REQUEST-TYPE_UPDATE_REQUEST' = RequestType,
 		#'3gpp_ro_CCR'{'Multiple-Services-Credit-Control' = MSCC1,
 		'Service-Information' = ServiceInformation,
-		'Service-Context-Id' = SvcContextId} = Request, SessionId,
-		RequestNum, SubscriberIds, OHost, _DHost, ORealm, _DRealm,
+		'Service-Context-Id' = SvcContextId,
+		'Event-Timestamp' = EventTimestamp} = Request, SessionId,
+		RequestNum, [{_, Subscriber} | _], OHost, _DHost, ORealm, _DRealm,
 		_IpAddress, _Port, _Class) when length(MSCC1) > 0 ->
 	try
-		Location = get_service_location(ServiceInformation),
-		case post_request_scur(SubscriberIds, SvcContextId,
-				SessionId, MSCC1, Location, interim, a) of
-			{ok, JSON} ->
-				{struct, RatedStruct} = mochijson:decode(JSON),
-				{_, {_, ServiceElements}} = lists:keyfind("serviceRating", 1, RatedStruct),
-				{ServiceRating, ResultCode} = map_service_rating(ServiceElements, SessionId),
-				Container = build_container(MSCC1),
-				NewMSCC = build_mscc(ServiceRating, Container),
-				diameter_answer(SessionId, NewMSCC, ResultCode,
-						OHost, ORealm, RequestType, RequestNum);
+		{Direction, Address} = direction_address(ServiceInformation),
+		ServiceNetwork = service_network(ServiceInformation),
+		ServiceType = service_type(SvcContextId),
+		Timestamp = case EventTimestamp of
+			[{{_, _, _}, {_, _, _}} = TS] ->
+				TS;
+			_ ->
+				calendar:universal_time()
+		end,
+		case rate(ServiceType, ServiceNetwork, Subscriber, Timestamp,
+				Address, Direction, interim, SessionId, get_mscc(MSCC1)) of
+			{{MSCC2, ResultCode}, []} ->
+				{ok, MSCC2, ResultCode};
+			{{MSCC2, _ResultCode}, PLA} ->
+				{ok, get_ref(SessionId), PLA, MSCC2};
 			{error, Reason} ->
-				error_logger:error_report(["Rating Error",
-						{module, ?MODULE}, {error, Reason}]),
-				diameter_error(SessionId,
-						?'DIAMETER_CC_APP_RESULT-CODE_RATING_FAILED',
-						OHost, ORealm, RequestType, RequestNum)
+				{error, Reason}
 		end
+	of
+		{ok, ServiceRating, PLA1, MSCC3} ->
+			case charge(Subscriber, ServiceRating, PLA1, SessionId, interim) of
+				{ok, NewMSCC1, ResultCode1} ->
+					Container = build_container(MSCC1),
+					NewMSCC3 = build_mscc(NewMSCC1 ++ MSCC3, Container),
+					diameter_answer(SessionId, NewMSCC3, ResultCode1,
+							OHost, ORealm, RequestType, RequestNum);
+				{error, Reason1} ->
+					error_logger:error_report(["Rating Error",
+							{module, ?MODULE}, {error, Reason1}]),
+					diameter_error(SessionId,
+							?'DIAMETER_CC_APP_RESULT-CODE_RATING_FAILED',
+							OHost, ORealm, RequestType, RequestNum)
+			end;
+		{ok, MSCC3, ResultCode1} ->
+			Container = build_container(MSCC1),
+			NewMSCC3 = build_mscc(MSCC3, Container),
+			diameter_answer(SessionId, NewMSCC3, ResultCode1,
+					OHost, ORealm, RequestType, RequestNum);
+		{error, Reason1} ->
+			error_logger:error_report(["Rating Error",
+					{module, ?MODULE}, {error, Reason1}]),
+			diameter_error(SessionId,
+					?'DIAMETER_CC_APP_RESULT-CODE_RATING_FAILED',
+					OHost, ORealm, RequestType, RequestNum)
 	catch
-		_:Reason1 ->
+		?CATCH_STACK ->
+			?SET_STACK,
 			error_logger:warning_report(["Unable to process DIAMETER request",
 					{origin_host, OHost}, {origin_realm, ORealm},
-					{request, Request}, {error, Reason1}, {stack, erlang:get_stacktrace()}]),
+					{request, Request}, {error, Reason1}, {stack, StackTrace}]),
 			diameter_error(SessionId, ?'DIAMETER_BASE_RESULT-CODE_UNABLE_TO_COMPLY',
 					OHost, ORealm, RequestType, RequestNum)
 	end;
