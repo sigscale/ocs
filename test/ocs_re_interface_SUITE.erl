@@ -876,12 +876,8 @@ send_initial_scur_class_a() ->
 	[{userdata, [{doc, "On received SCUR CCR-I send startRating"}]}].
 
 send_initial_scur_class_a(Config) ->
-	P1 = price(usage, octets, rand:uniform(10000000), rand:uniform(1000000)),
-	OfferId = add_offer([P1], 4),
-	HostUrl = ?config(host_url, Config),
-	PlaRef = #pla_ref{id = ocs:generate_password(), href = HostUrl ++ "/nrf-rating/v1/ratingdata",
-			name = tariff, class_type = a, schema = nrf_rating, ref_type = pla},
-	ProdRef = add_product(OfferId, [{pla, PlaRef}]),
+	OfferId = add_offer([price_pla(Config)], 4),
+	ProdRef = add_product(OfferId),
 	MSISDN = list_to_binary(ocs:generate_identity()),
 	IMSI = list_to_binary(ocs:generate_identity()),
 	Subscriber = {MSISDN, IMSI},
@@ -902,6 +898,15 @@ send_initial_scur_class_a(Config) ->
 %%---------------------------------------------------------------------
 %%  Internal functions
 %%---------------------------------------------------------------------
+
+price_pla(Config) ->
+	HostUrl = ?config(host_url, Config),
+	PlaRef = #pla_ref{id = ocs:generate_password(),
+			href = HostUrl ++ "/nrf-rating/v1/ratingdata",
+			name = tariff, class_type = a,
+			schema = nrf_rating, ref_type = pla},
+	#price{name = ocs:generate_identity(),
+			type = PlaRef, units = octets}.
 
 nrf_post_final_ecur_class_b(MSISDN, IMSI, Messages) ->
 	TS = erlang:system_time(?MILLISECOND),
