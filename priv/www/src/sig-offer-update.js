@@ -902,7 +902,6 @@ class offerUpdate extends PolymerElement {
 			if(current.productSpecification && current.productSpecification.name) {
 				this.updateOfferSpecification = current.productSpecification.name.replace("ProductSpec", "");
 			}
-console.log(current);
 			this.updateOfferStartDate = current.startDate;
 			this.updateOfferEndDate = current.endDate;
 			this.offerUpdateStatus = current.lifecycleStatus;
