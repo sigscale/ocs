@@ -1216,6 +1216,7 @@ class offerUpdate extends PolymerElement {
 				this.$.updateCheckIn.checked = false;
 				this.$.updateCheckOut.checked = false;
 				this.priceUpdateAlteration = null;
+				this.selected = 0;	
 			} else {
 				this.priceUpdateDescription = this.prices[indexUpdatePrice].description;
 				if(this.prices[indexUpdatePrice].start || this.prices[indexUpdatePrice].end) {
@@ -1307,6 +1308,7 @@ class offerUpdate extends PolymerElement {
 				this.$.updateAltAmount.value = null;
 				this.altUpdateCurrency = null;
 				this.AltUpdatePeriod = null;
+				this.selected = 0;
 			} else {
 				this.AltUpdateDescription = this.alterations[indexAlt].description;
 				if(this.alterations[indexAlt].start || this.alterations[indexAlt].end) {
@@ -2081,6 +2083,7 @@ class offerUpdate extends PolymerElement {
 		this.endTimeUpdate = null;
 		this.priceUpdateAmount = null;
 		this.priceUpdateUnits = null;
+		this.selected = 0;
 	} 
 
 	_updateOfferPriceResponse(event) {
@@ -2908,6 +2911,7 @@ class offerUpdate extends PolymerElement {
 		this.endTimeUpdate = null;
 		this.$.updateCheckIn.checked = null;
 		this.$.updateCheckOut.checked = null;
+		this.selected = 0;
 		this.$.updateOfferModal.close();
 	}
 }
