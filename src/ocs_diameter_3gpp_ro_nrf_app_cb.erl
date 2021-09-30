@@ -1328,8 +1328,14 @@ build_mscc([H | T], Acc, Container) ->
 					_ ->
 						MSCC2
 				end,
-				MSCC4 = MSCC3#'3gpp_ro_Multiple-Services-Credit-Control'{'Result-Code' = [RC]},
-				MSCC4;
+				MSCC4 = case catch maps:get("finalUnitIndication", ServiceRating) of
+					[#'3gpp_ro_Final-Unit-Indication'{}] = FUI ->
+						MSCC3#'3gpp_ro_Multiple-Services-Credit-Control'{'Final-Unit-Indication' = FUI};
+					_ ->
+						MSCC3
+				end,
+				MSCC5 = MSCC4#'3gpp_ro_Multiple-Services-Credit-Control'{'Result-Code' = [RC]},
+				MSCC5;
 		F(#{"serviceId" := SI, "resultCode" := RC } = ServiceRating,
 			[#'3gpp_ro_Multiple-Services-Credit-Control'
 					{'Service-Identifier' = [SI], 'Rating-Group' = []} = MSCC1 | _]) ->
@@ -1345,8 +1351,14 @@ build_mscc([H | T], Acc, Container) ->
 				_ ->
 					MSCC2
 			end,
-			MSCC4 = MSCC3#'3gpp_ro_Multiple-Services-Credit-Control'{'Result-Code' = [RC]},
-			MSCC4;
+			MSCC4 = case catch maps:get("finalUnitIndication", ServiceRating) of
+				[#'3gpp_ro_Final-Unit-Indication'{}] = FUI ->
+					MSCC3#'3gpp_ro_Multiple-Services-Credit-Control'{'Final-Unit-Indication' = FUI};
+				_ ->
+					MSCC3
+			end,
+			MSCC5 = MSCC4#'3gpp_ro_Multiple-Services-Credit-Control'{'Result-Code' = [RC]},
+			MSCC5;
 		F(#{"ratingGroup" := RG, "resultCode" := RC} = ServiceRating,
 				[#'3gpp_ro_Multiple-Services-Credit-Control'
 						{'Service-Identifier' = [], 'Rating-Group' = [RG]} = MSCC1 | _]) ->
@@ -1362,8 +1374,14 @@ build_mscc([H | T], Acc, Container) ->
 				_ ->
 					MSCC2
 			end,
-			MSCC4 = MSCC3#'3gpp_ro_Multiple-Services-Credit-Control'{'Result-Code' = [RC]},
-			MSCC4;
+			MSCC4 = case catch maps:get("finalUnitIndication", ServiceRating) of
+				[#'3gpp_ro_Final-Unit-Indication'{}] = FUI ->
+					MSCC3#'3gpp_ro_Multiple-Services-Credit-Control'{'Final-Unit-Indication' = FUI};
+				_ ->
+					MSCC3
+			end,
+			MSCC5 = MSCC4#'3gpp_ro_Multiple-Services-Credit-Control'{'Result-Code' = [RC]},
+			MSCC5;
 		F(ServiceRating, [_H | T1]) ->
 			F(ServiceRating, T1)
 	end,
