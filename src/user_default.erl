@@ -21,17 +21,29 @@
 -copyright('Copyright (c) 2016 - 2021 SigScale Global Inc.').
 
 %% export the user_default public API
--export([get_diameter_info/0, get_diameter_info/2, get_avp_info/1]).
+-export([help/0, di/0, di/2, get_avp_info/1]).
+
+-include_lib("diameter/include/diameter.hrl").
 
 %%----------------------------------------------------------------------
 %%  The user_default public API
 %%----------------------------------------------------------------------
 
--spec get_diameter_info() -> Result
+-spec help() -> true.
+%% @doc Get help on shell local commands.
+help() ->
+	shell_default:help(),
+	io:format("** ocs commands ** \n"),
+	io:format("di()       -- diameter services info\n"),
+	io:format("di(acct, Info) -- diameter accounting services info\n"),
+	io:format("di(auth, Info) -- diameter authentication and authorization services info\n"),
+	true.
+
+-spec di() -> Result
 	when
 		Result :: term().
-%% @doc Get the status of running diameter services
-get_diameter_info() ->
+%% @doc Get information on running diameter services.
+di() ->
 	Info = [peer, applications, capabilities,
 			transport, connections, statistics],
 	F = fun F([H | T], Acc) ->
@@ -46,16 +58,16 @@ get_diameter_info() ->
 			[]
 	end.
 
--spec get_diameter_info(ServiceType, Info) -> Result
+-spec di(ServiceType, Info) -> Result
 	when
 		ServiceType :: auth | acct,
 		Info :: [Values],
-		Values :: [] | peer | applications | capabilities |
-				transport | connections | statistics,
+		Values :: [] | peer | applications | capabilities
+				| transport | connections | statistics,
 		Result :: term() | {error, Reason},
 		Reason :: unknown_service.
-%% @doc Get the status of running diameter services
-get_diameter_info(auth, Info) ->
+%% @doc Get the status of running diameter services.
+di(auth, Info) ->
 	case diameter:services() of
 		[{ocs_diameter_auth_service, _, _} = Service, _] ->
 			diameter:service_info(Service, get_params(Info));
@@ -66,7 +78,7 @@ get_diameter_info(auth, Info) ->
 		_ ->
 			{error, unknown_service}
 	end;
-get_diameter_info(acct, Info) ->
+di(acct, Info) ->
 	case diameter:services() of
 		[{ocs_diameter_acct_service, _, _} = Service, _] ->
 			diameter:service_info(Service, get_params(Info));
@@ -84,7 +96,7 @@ get_diameter_info(acct, Info) ->
 				vendor_id | product_name |
 				origin_state_id | host_ip_address |
 				supported_vendor | auth_application_id |
-				inband_security_id | 'acct_application_id' |
+				inband_security_id | acct_application_id |
 				vendor_specific_application_id | firmware_revision,
 		Result :: term().
 %% @doc Get the status of a selected diameter avp.
