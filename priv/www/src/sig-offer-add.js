@@ -1383,11 +1383,11 @@ class offerAdd extends PolymerElement {
 			}
 			var startDateTime;
 			var endDateTime;
-			if(item.start) {
-				startDateTime = item.start;
+			if(item.validFor.start) {
+				startDateTime = item.validFor.start;
 			}
-			if(item.end) {
-				endDateTime = item.end;
+			if(item.validFor.end) {
+				endDateTime = item.validFor.end;
 			}
 			if(startDateTime && endDateTime) {
 				out.validFor = {startDateTime, endDateTime};
@@ -1848,8 +1848,21 @@ class offerAdd extends PolymerElement {
 		}
 		priceNew.name = this.priceName;
 		priceNew.description = this.priceDescription;
-		priceNew.start = this.offerStartDatePrice;
-		priceNew.end = this.offerEndDatePrice;
+		var start;
+		var end;
+		if(this.offerStartDatePrice) {
+			start = this.offerStartDatePrice;
+		}
+		if(this.offerEndDatePrice) {
+			end = this.offerEndDatePrice;
+		}
+		if(start && end) {
+			priceNew.validFor = {start, end};
+		} else if(start && !end) {
+			priceNew.validFor = {start};
+		} else if(!start && end) {
+			priceNew.validFor = {end};
+		}
 		switch(this.$.addPriceType.selected) {
 			case 0:
 				priceNew.type = "recurring";
