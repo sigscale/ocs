@@ -344,33 +344,46 @@ process_request1(?'3GPP_CC-REQUEST-TYPE_INITIAL_REQUEST' = RequestType,
 		#'3gpp_ro_CCR'{'Multiple-Services-Credit-Control' = MSCC1,
 		'Service-Information' = ServiceInformation,
 		'Service-Context-Id' = SvcContextId} = Request, SessionId, RequestNum,
-		SubscriberIds, OHost, _DHost, ORealm, _DRealm, _IpAddress, _Port, b = _Class) ->
+		Subscriber, OHost, _, ORealm, _, IpAddress, Port, b = _Class) ->
 	try
 		Location = get_service_location(ServiceInformation),
 		Destination = get_destination(ServiceInformation),
-		case service_type(SvcContextId) of
+		Server = {IpAddress, Port},
+		{Direction, Address} = direction_address(ServiceInformation),
+		NrfResponse = case service_type(SvcContextId) of
 			32251 ->
-				post_request_scur(SubscriberIds, SvcContextId,
+				post_request_scur(Subscriber, SvcContextId,
 						SessionId, MSCC1, Location, {initial, b}, undefined);
 			32260 ->
-				post_request_ecur(SubscriberIds, SvcContextId,
+				post_request_ecur(Subscriber, SvcContextId,
 						SessionId, MSCC1, Location, Destination, {initial, b}, undefined)
+		end,
+		case NrfResponse of
+			{ok, JSON} ->
+				{struct, RatedStruct} = mochijson:decode(JSON),
+				{_, {_, ServiceElements}} = lists:keyfind("serviceRating", 1, RatedStruct),
+				{ServiceRating, ResultCode} = map_service_rating(ServiceElements, SessionId),
+				Container = build_container(MSCC1),
+				NewMSCC = build_mscc(ServiceRating, Container),
+				Reply = diameter_answer(SessionId, NewMSCC, ResultCode,
+						OHost, ORealm, RequestType, RequestNum),
+				ok = ocs_log:acct_log(diameter, Server,
+						accounting_event_type(RequestType), Request, Reply, undefined),
+				Reply;
+			{error, Reason} ->
+				error_logger:error_report(["Rating Error",
+						{module, ?MODULE}, {error, Reason},
+						{origin_host, OHost}, {origin_realm, ORealm},
+						{type, accounting_event_type(RequestType)},
+						{subscriber, Subscriber}, {address, Address},
+						{direction, Direction}, {amounts, get_mscc(MSCC1)}]),
+				Reply = diameter_error(SessionId,
+						?'DIAMETER_CC_APP_RESULT-CODE_RATING_FAILED',
+						OHost, ORealm, RequestType, RequestNum),
+				ok = ocs_log:acct_log(diameter, Server,
+						accounting_event_type(RequestType), Request, Reply, undefined),
+				Reply
 		end
-	of
-		{ok, JSON} ->
-			{struct, RatedStruct} = mochijson:decode(JSON),
-			{_, {_, ServiceElements}} = lists:keyfind("serviceRating", 1, RatedStruct),
-			{ServiceRating, ResultCode} = map_service_rating(ServiceElements, SessionId),
-			Container = build_container(MSCC1),
-			NewMSCC = build_mscc(ServiceRating, Container),
-			diameter_answer(SessionId, NewMSCC, ResultCode,
-					OHost, ORealm, RequestType, RequestNum);
-		{error, Reason} ->
-			error_logger:error_report(["Rating Error",
-					{module, ?MODULE}, {error, Reason}]),
-			diameter_error(SessionId,
-					?'DIAMETER_CC_APP_RESULT-CODE_RATING_FAILED',
-					OHost, ORealm, RequestType, RequestNum)
 	catch
 		?CATCH_STACK ->
 			?SET_STACK,
@@ -385,20 +398,22 @@ process_request1(?'3GPP_CC-REQUEST-TYPE_INITIAL_REQUEST' = RequestType,
 		'Service-Information' = ServiceInformation,
 		'Service-Context-Id' = SvcContextId,
 		'Event-Timestamp' = EventTimestamp} = Request, SessionId, RequestNum,
-		[{_, Subscriber} | _] = SubscriberIds, OHost, _DHost, ORealm, _DRealm, _IpAddress, _Port, _Class) ->
+		[{_, Subscriber} | _] = SubscriberIds, OHost, _, ORealm, _, IpAddress, Port, _) ->
 	try
 		{Direction, Address} = direction_address(ServiceInformation),
 		Destination = get_destination(ServiceInformation),
 		ServiceNetwork = service_network(ServiceInformation),
 		ServiceType = service_type(SvcContextId),
+		Server = {IpAddress, Port},
 		Timestamp = case EventTimestamp of
 			[{{_, _, _}, {_, _, _}} = TS] ->
 				TS;
 			_ ->
 				calendar:universal_time()
 		end,
-		case rate(ServiceType, ServiceNetwork, Subscriber, Timestamp,
-				Address, Direction, initial, SessionId, get_mscc(MSCC1)) of
+		Amounts = get_mscc(MSCC1),
+		RfResponse = case rate(ServiceType, ServiceNetwork, Subscriber, Timestamp,
+				Address, Direction, initial, SessionId, Amounts) of
 			{{MSCC2, ResultCode}, []} ->
 				{ok, MSCC2, ResultCode};
 			{{MSCC2, _}, PLA} when is_list(MSCC2), length(PLA) > 0 ->
@@ -410,43 +425,62 @@ process_request1(?'3GPP_CC-REQUEST-TYPE_INITIAL_REQUEST' = RequestType,
 					32260 ->
 						{ok, JSON} = post_request_ecur(SubscriberIds, SvcContextId,
 								SessionId, MSCC1, undefined, Destination, {initial, a}, PLA),
-						{ok, JSON, PLA, MSCC2};
-					_ ->
-						{error, invalid_context_id}
+						{ok, JSON, PLA, MSCC2}
 				end;
 			{error, Reason} ->
 				{error, Reason}
+		end,
+		case RfResponse of
+			{ok, JSON1, PLA1, MSCC3} ->
+				{struct, RatedStruct} = mochijson:decode(JSON1),
+				{_, {_, ServiceElements}} = lists:keyfind("serviceRating", 1, RatedStruct),
+				{ServiceRating, _} = map_service_rating(ServiceElements, SessionId),
+				case charge(Subscriber, ServiceRating, PLA1, SessionId, initial) of
+					{ok, NewMSCC1, ResultCode1} ->
+						Container = build_container(MSCC1),
+						NewMSCC3 = build_mscc(NewMSCC1 ++ MSCC3, Container),
+						ok = insert_ref(SessionId, ServiceRating),
+						Reply = diameter_answer(SessionId, NewMSCC3, ResultCode1,
+								OHost, ORealm, RequestType, RequestNum),
+						ok = ocs_log:acct_log(diameter, Server,
+								accounting_event_type(RequestType), Request, Reply, undefined),
+						Reply;
+					{error, Reason2} ->
+						error_logger:error_report(["Rating Error",
+								{module, ?MODULE}, {error, Reason2},
+								{origin_host, OHost}, {origin_realm, ORealm},
+								{type, accounting_event_type(RequestType)},
+								{subscriber, SubscriberIds}, {address, Address},
+								{direction, Direction}, {amounts, Amounts}]),
+						Reply = diameter_error(SessionId,
+								?'DIAMETER_CC_APP_RESULT-CODE_RATING_FAILED',
+								OHost, ORealm, RequestType, RequestNum),
+						ok = ocs_log:acct_log(diameter, Server,
+							accounting_event_type(RequestType), Request, Reply, undefined),
+						Reply
+				end;
+			{ok, MSCC3, ResultCode1} ->
+				Container = build_container(MSCC1),
+				NewMSCC3 = build_mscc(MSCC3, Container),
+				Reply = diameter_answer(SessionId, NewMSCC3, ResultCode1,
+						OHost, ORealm, RequestType, RequestNum),
+				ok = ocs_log:acct_log(diameter, Server,
+						accounting_event_type(RequestType), Request, Reply, undefined),
+				Reply;
+			{error, Reason2} ->
+				error_logger:error_report(["Rating Error",
+						{module, ?MODULE}, {error, Reason2},
+						{origin_host, OHost}, {origin_realm, ORealm},
+						{type, accounting_event_type(RequestType)},
+						{subscriber, Subscriber}, {address, Address},
+						{direction, Direction}, {amounts, Amounts}]),
+				Reply = diameter_error(SessionId,
+						?'DIAMETER_CC_APP_RESULT-CODE_RATING_FAILED',
+						OHost, ORealm, RequestType, RequestNum),
+				ok = ocs_log:acct_log(diameter, Server,
+						accounting_event_type(RequestType), Request, Reply, undefined),
+				Reply
 		end
-	of
-		{ok, JSON1, PLA1, MSCC3} ->
-			{struct, RatedStruct} = mochijson:decode(JSON1),
-			{_, {_, ServiceElements}} = lists:keyfind("serviceRating", 1, RatedStruct),
-			{ServiceRating, _} = map_service_rating(ServiceElements, SessionId),
-			case charge(Subscriber, ServiceRating, PLA1, SessionId, initial) of
-				{ok, NewMSCC1, ResultCode1} ->
-					Container = build_container(MSCC1),
-					NewMSCC3 = build_mscc(NewMSCC1 ++ MSCC3, Container),
-					ok = insert_ref(SessionId, ServiceRating),
-					diameter_answer(SessionId, NewMSCC3, ResultCode1,
-							OHost, ORealm, RequestType, RequestNum);
-				{error, Reason1} ->
-					error_logger:error_report(["Rating Error",
-							{module, ?MODULE}, {error, Reason1}]),
-					diameter_error(SessionId,
-							?'DIAMETER_CC_APP_RESULT-CODE_RATING_FAILED',
-							OHost, ORealm, RequestType, RequestNum)
-			end;
-		{ok, MSCC3, ResultCode1} ->
-			Container = build_container(MSCC1),
-			NewMSCC3 = build_mscc(MSCC3, Container),
-			diameter_answer(SessionId, NewMSCC3, ResultCode1,
-					OHost, ORealm, RequestType, RequestNum);
-		{error, Reason1} ->
-			error_logger:error_report(["Rating Error",
-					{module, ?MODULE}, {error, Reason1}]),
-			diameter_error(SessionId,
-					?'DIAMETER_CC_APP_RESULT-CODE_RATING_FAILED',
-					OHost, ORealm, RequestType, RequestNum)
 	catch
 		?CATCH_STACK ->
 			?SET_STACK,
@@ -460,11 +494,14 @@ process_request1(?'3GPP_CC-REQUEST-TYPE_UPDATE_REQUEST' = RequestType,
 		#'3gpp_ro_CCR'{'Multiple-Services-Credit-Control' = MSCC1,
 		'Service-Information' = ServiceInformation,
 		'Service-Context-Id' = SvcContextId} = Request, SessionId,
-		RequestNum, SubscriberIds, OHost, _DHost, ORealm, _DRealm,
-		_IpAddress, _Port, b = _Class) when length(MSCC1) > 0 ->
+		RequestNum, Subscriber, OHost, _DHost, ORealm, _DRealm,
+		IpAddress, Port, b = _Class) when length(MSCC1) > 0 ->
 	try
+		Server = {IpAddress, Port},
 		Location = get_service_location(ServiceInformation),
-		case post_request_scur(SubscriberIds, SvcContextId,
+		{Direction, Address} = direction_address(ServiceInformation),
+		Amounts = get_mscc(MSCC1),
+		case post_request_scur(Subscriber, SvcContextId,
 				SessionId, MSCC1, Location, interim, undefined) of
 			{ok, JSON} ->
 				{struct, RatedStruct} = mochijson:decode(JSON),
@@ -472,14 +509,24 @@ process_request1(?'3GPP_CC-REQUEST-TYPE_UPDATE_REQUEST' = RequestType,
 				{ServiceRating, ResultCode} = map_service_rating(ServiceElements, SessionId),
 				Container = build_container(MSCC1),
 				NewMSCC = build_mscc(ServiceRating, Container),
-				diameter_answer(SessionId, NewMSCC, ResultCode,
-						OHost, ORealm, RequestType, RequestNum);
+				Reply = diameter_answer(SessionId, NewMSCC, ResultCode,
+						OHost, ORealm, RequestType, RequestNum),
+				ok = ocs_log:acct_log(diameter, Server,
+						accounting_event_type(RequestType), Request, Reply, undefined),
+				Reply;
 			{error, Reason} ->
 				error_logger:error_report(["Rating Error",
-						{module, ?MODULE}, {error, Reason}]),
-				diameter_error(SessionId,
+						{module, ?MODULE}, {error, Reason},
+						{origin_host, OHost}, {origin_realm, ORealm},
+						{type, accounting_event_type(RequestType)},
+						{subscriber, Subscriber}, {address, Address},
+						{direction, Direction}, {amounts, Amounts}]),
+				Reply = diameter_error(SessionId,
 						?'DIAMETER_CC_APP_RESULT-CODE_RATING_FAILED',
-						OHost, ORealm, RequestType, RequestNum)
+						OHost, ORealm, RequestType, RequestNum),
+				ok = ocs_log:acct_log(diameter, Server,
+						accounting_event_type(RequestType), Request, Reply, undefined),
+				Reply
 		end
 	catch
 		?CATCH_STACK ->
@@ -496,8 +543,9 @@ process_request1(?'3GPP_CC-REQUEST-TYPE_UPDATE_REQUEST' = RequestType,
 		'Service-Context-Id' = SvcContextId,
 		'Event-Timestamp' = EventTimestamp} = Request, SessionId,
 		RequestNum, [{_, Subscriber} | _], OHost, _DHost, ORealm, _DRealm,
-		_IpAddress, _Port, _Class) when length(MSCC1) > 0 ->
+		IpAddress, Port, _Class) when length(MSCC1) > 0 ->
 	try
+		Server = {IpAddress, Port},
 		{Direction, Address} = direction_address(ServiceInformation),
 		ServiceNetwork = service_network(ServiceInformation),
 		ServiceType = service_type(SvcContextId),
@@ -507,41 +555,63 @@ process_request1(?'3GPP_CC-REQUEST-TYPE_UPDATE_REQUEST' = RequestType,
 			_ ->
 				calendar:universal_time()
 		end,
-		case rate(ServiceType, ServiceNetwork, Subscriber, Timestamp,
-				Address, Direction, interim, SessionId, get_mscc(MSCC1)) of
+		Amounts = get_mscc(MSCC1),
+		RfResponse = case rate(ServiceType, ServiceNetwork, Subscriber, Timestamp,
+				Address, Direction, interim, SessionId, Amounts) of
 			{{MSCC2, ResultCode}, []} ->
 				{ok, MSCC2, ResultCode};
 			{{MSCC2, _ResultCode}, PLA} ->
 				{ok, get_ref(SessionId), PLA, MSCC2};
 			{error, Reason} ->
 				{error, Reason}
+		end,
+		case RfResponse of
+			{ok, ServiceRating, PLA1, MSCC3} ->
+				case charge(Subscriber, ServiceRating, PLA1, SessionId, interim) of
+					{ok, NewMSCC1, ResultCode1} ->
+						Container = build_container(MSCC1),
+						NewMSCC3 = build_mscc(NewMSCC1 ++ MSCC3, Container),
+						Reply = diameter_answer(SessionId, NewMSCC3, ResultCode1,
+								OHost, ORealm, RequestType, RequestNum),
+						ok = ocs_log:acct_log(diameter, Server,
+								accounting_event_type(RequestType), Request, Reply, undefined),
+						Reply;
+					{error, Reason2} ->
+						error_logger:error_report(["Rating Error",
+								{module, ?MODULE}, {error, Reason2},
+								{origin_host, OHost}, {origin_realm, ORealm},
+								{type, accounting_event_type(RequestType)},
+								{subscriber, Subscriber}, {address, Address},
+								{direction, Direction}, {amounts, Amounts}]),
+						Reply = diameter_error(SessionId,
+								?'DIAMETER_CC_APP_RESULT-CODE_RATING_FAILED',
+								OHost, ORealm, RequestType, RequestNum),
+						ok = ocs_log:acct_log(diameter, Server,
+								accounting_event_type(RequestType), Request, Reply, undefined),
+						Reply
+				end;
+			{ok, MSCC3, ResultCode1} ->
+				Container = build_container(MSCC1),
+				NewMSCC3 = build_mscc(MSCC3, Container),
+				Reply = diameter_answer(SessionId, NewMSCC3, ResultCode1,
+						OHost, ORealm, RequestType, RequestNum),
+				ok = ocs_log:acct_log(diameter, Server,
+						accounting_event_type(RequestType), Request, Reply, undefined),
+				Reply;
+			{error, Reason2} ->
+				error_logger:error_report(["Rating Error",
+						{module, ?MODULE}, {error, Reason2},
+						{origin_host, OHost}, {origin_realm, ORealm},
+						{type, accounting_event_type(RequestType)},
+						{subscriber, Subscriber}, {address, Address},
+						{direction, Direction}, {amounts, Amounts}]),
+				Reply = diameter_error(SessionId,
+						?'DIAMETER_CC_APP_RESULT-CODE_RATING_FAILED',
+						OHost, ORealm, RequestType, RequestNum),
+				ok = ocs_log:acct_log(diameter, Server,
+						accounting_event_type(RequestType), Request, Reply, undefined),
+				Reply
 		end
-	of
-		{ok, ServiceRating, PLA1, MSCC3} ->
-			case charge(Subscriber, ServiceRating, PLA1, SessionId, interim) of
-				{ok, NewMSCC1, ResultCode1} ->
-					Container = build_container(MSCC1),
-					NewMSCC3 = build_mscc(NewMSCC1 ++ MSCC3, Container),
-					diameter_answer(SessionId, NewMSCC3, ResultCode1,
-							OHost, ORealm, RequestType, RequestNum);
-				{error, Reason1} ->
-					error_logger:error_report(["Rating Error",
-							{module, ?MODULE}, {error, Reason1}]),
-					diameter_error(SessionId,
-							?'DIAMETER_CC_APP_RESULT-CODE_RATING_FAILED',
-							OHost, ORealm, RequestType, RequestNum)
-			end;
-		{ok, MSCC3, ResultCode1} ->
-			Container = build_container(MSCC1),
-			NewMSCC3 = build_mscc(MSCC3, Container),
-			diameter_answer(SessionId, NewMSCC3, ResultCode1,
-					OHost, ORealm, RequestType, RequestNum);
-		{error, Reason1} ->
-			error_logger:error_report(["Rating Error",
-					{module, ?MODULE}, {error, Reason1}]),
-			diameter_error(SessionId,
-					?'DIAMETER_CC_APP_RESULT-CODE_RATING_FAILED',
-					OHost, ORealm, RequestType, RequestNum)
 	catch
 		?CATCH_STACK ->
 			?SET_STACK,
@@ -555,40 +625,55 @@ process_request1(?'3GPP_CC-REQUEST-TYPE_TERMINATION_REQUEST' = RequestType,
 		#'3gpp_ro_CCR'{'Multiple-Services-Credit-Control' = MSCC1,
 		'Service-Information' = ServiceInformation,
 		'Service-Context-Id' = SvcContextId} = Request, SessionId,
-		RequestNum, SubscriberIds, OHost, _DHost, ORealm, _DRealm,
-		_IpAddress, _Port, b = _Class) ->
+		RequestNum, Subscriber, OHost, _DHost, ORealm, _DRealm,
+		IpAddress, Port, b = _Class) ->
 	try
+		Server = {IpAddress, Port},
+		{Direction, Address} = direction_address(ServiceInformation),
 		Location = get_service_location(ServiceInformation),
 		Destination = get_destination(ServiceInformation),
-		case service_type(SvcContextId) of
+		NrfResponse = case service_type(SvcContextId) of
 			32251 ->
-				post_request_scur(SubscriberIds, SvcContextId,
+				post_request_scur(Subscriber, SvcContextId,
 						SessionId, MSCC1, Location, final, undefined);
 			32260 ->
-				post_request_ecur(SubscriberIds, SvcContextId,
+				post_request_ecur(Subscriber, SvcContextId,
 						SessionId, MSCC1, Location, Destination, final, undefined)
+		end,
+		Amounts = get_mscc(MSCC1),
+		case NrfResponse of
+			{ok, JSON} ->
+				{struct, RatedStruct} = mochijson:decode(JSON),
+				{_, {_, ServiceElements}} = lists:keyfind("serviceRating", 1, RatedStruct),
+				{ServiceRating, ResultCode} = map_service_rating(ServiceElements, SessionId),
+				Container = build_container(MSCC1),
+				NewMSCC = build_mscc(ServiceRating, Container),
+				ok = remove_ref(SessionId),
+				Reply = diameter_answer(SessionId, NewMSCC, ResultCode,
+						OHost, ORealm, RequestType, RequestNum),
+				ok = ocs_log:acct_log(diameter, Server,
+						accounting_event_type(RequestType), Request, Reply, undefined),
+				Reply;
+			{error, Reason2} ->
+				error_logger:error_report(["Rating Error",
+						{module, ?MODULE}, {error, Reason2},
+						{origin_host, OHost}, {origin_realm, ORealm},
+						{type, accounting_event_type(RequestType)},
+						{subscriber, Subscriber}, {address, Address},
+						{direction, Direction}, {amounts, Amounts}]),
+				ok = remove_ref(SessionId),
+				Reply = diameter_error(SessionId, Reason2,
+						OHost, ORealm, RequestType, RequestNum),
+				ok = ocs_log:acct_log(diameter, Server,
+						accounting_event_type(RequestType), Request, Reply, undefined),
+				Reply
 		end
-	of
-		{ok, JSON} ->
-			{struct, RatedStruct} = mochijson:decode(JSON),
-			{_, {_, ServiceElements}} = lists:keyfind("serviceRating", 1, RatedStruct),
-			{ServiceRating, ResultCode} = map_service_rating(ServiceElements, SessionId),
-			Container = build_container(MSCC1),
-			NewMSCC = build_mscc(ServiceRating, Container),
-			ok = remove_ref(SessionId),
-			diameter_answer(SessionId, NewMSCC, ResultCode,
-					OHost, ORealm, RequestType, RequestNum);
-		{error, ReasonCode} ->
-			error_logger:error_report(["Rating Error",
-					{module, ?MODULE}, {error, ReasonCode}]),
-			ok = remove_ref(SessionId),
-			diameter_error(SessionId, ReasonCode,
-					OHost, ORealm, RequestType, RequestNum)
 	catch
-		_:Reason1 ->
+		?CATCH_STACK ->
+			?SET_STACK,
 			error_logger:warning_report(["Unable to process DIAMETER request",
 					{origin_host, OHost}, {origin_realm, ORealm},
-					{request, Request}, {error, Reason1}, {stack, erlang:get_stacktrace()}]),
+					{request, Request}, {error, Reason1}, {stack, StackTrace}]),
 			diameter_error(SessionId, ?'DIAMETER_BASE_RESULT-CODE_UNABLE_TO_COMPLY',
 					OHost, ORealm, RequestType, RequestNum)
 	end;
@@ -598,8 +683,9 @@ process_request1(?'3GPP_CC-REQUEST-TYPE_TERMINATION_REQUEST' = RequestType,
 		'Service-Context-Id' = SvcContextId,
 		'Event-Timestamp' = EventTimestamp} = Request, SessionId,
 		RequestNum, [{_, Subscriber} | _], OHost, _DHost, ORealm, _DRealm,
-		_IpAddress, _Port, _Class) ->
+		IpAddress, Port, _Class) ->
 	try
+		Server = {IpAddress, Port},
 		{Direction, Address} = direction_address(ServiceInformation),
 		ServiceNetwork = service_network(ServiceInformation),
 		ServiceType = service_type(SvcContextId),
@@ -609,8 +695,9 @@ process_request1(?'3GPP_CC-REQUEST-TYPE_TERMINATION_REQUEST' = RequestType,
 			_ ->
 				calendar:universal_time()
 		end,
-		case rate(ServiceType, ServiceNetwork, Subscriber, Timestamp,
-				Address, Direction, final, SessionId, get_mscc(MSCC1)) of
+		Amounts = get_mscc(MSCC1),
+		RfResponse = case rate(ServiceType, ServiceNetwork, Subscriber, Timestamp,
+				Address, Direction, final, SessionId, Amounts) of
 			{{MSCC2, ResultCode}, []} ->
 				{ok, MSCC2, ResultCode};
 			{{MSCC2, ResultCode, _}, []} ->
@@ -621,34 +708,55 @@ process_request1(?'3GPP_CC-REQUEST-TYPE_TERMINATION_REQUEST' = RequestType,
 				{ok, get_ref(SessionId), PLA, MSCC2};
 			{error, Reason} ->
 				{error, Reason}
+		end,
+		case RfResponse of
+			{ok, ServiceRating, PLA1, MSCC3} ->
+				case charge(Subscriber, ServiceRating, PLA1, SessionId, final) of
+					{ok, NewMSCC1, ResultCode1} ->
+						Container = build_container(MSCC1),
+						NewMSCC3 = build_mscc(NewMSCC1 ++ MSCC3, Container),
+						ok = remove_ref(SessionId),
+						Reply = diameter_answer(SessionId, NewMSCC3, ResultCode1,
+								OHost, ORealm, RequestType, RequestNum),
+						ok = ocs_log:acct_log(diameter, Server,
+								accounting_event_type(RequestType), Request, Reply, undefined),
+						Reply;
+					{error, Reason2} ->
+						error_logger:error_report(["Rating Error",
+								{module, ?MODULE}, {error, Reason2},
+								{origin_host, OHost}, {origin_realm, ORealm},
+								{type, accounting_event_type(RequestType)},
+								{subscriber, Subscriber}, {address, Address},
+								{direction, Direction}, {amounts, Amounts}]),
+						Reply = diameter_error(SessionId,
+								?'DIAMETER_CC_APP_RESULT-CODE_RATING_FAILED',
+								OHost, ORealm, RequestType, RequestNum),
+						ok = ocs_log:acct_log(diameter, Server,
+								accounting_event_type(RequestType), Request, Reply, undefined),
+						Reply
+				end;
+			{ok, MSCC3, ResultCode1} ->
+				Container = build_container(MSCC1),
+				NewMSCC = build_mscc(MSCC3, Container),
+				Reply = diameter_answer(SessionId, NewMSCC, ResultCode1,
+						OHost, ORealm, RequestType, RequestNum),
+				ok = ocs_log:acct_log(diameter, Server,
+						accounting_event_type(RequestType), Request, Reply, undefined),
+				Reply;
+			{error, Reason2} ->
+				error_logger:error_report(["Rating Error",
+						{module, ?MODULE}, {error, Reason2},
+						{origin_host, OHost}, {origin_realm, ORealm},
+						{type, accounting_event_type(RequestType)},
+						{subscriber, Subscriber}, {address, Address},
+						{direction, Direction}, {amounts, Amounts}]),
+				Reply = diameter_error(SessionId,
+						?'DIAMETER_CC_APP_RESULT-CODE_RATING_FAILED',
+						OHost, ORealm, RequestType, RequestNum),
+				ok = ocs_log:acct_log(diameter, Server,
+						accounting_event_type(RequestType), Request, Reply, undefined),
+				Reply
 		end
-	of
-		{ok, ServiceRating, PLA1, MSCC3} ->
-			case charge(Subscriber, ServiceRating, PLA1, SessionId, final) of
-				{ok, NewMSCC1, ResultCode1} ->
-					Container = build_container(MSCC1),
-					NewMSCC3 = build_mscc(NewMSCC1 ++ MSCC3, Container),
-					ok = remove_ref(SessionId),
-					diameter_answer(SessionId, NewMSCC3, ResultCode1,
-							OHost, ORealm, RequestType, RequestNum);
-				{error, Reason1} ->
-					error_logger:error_report(["Rating Error",
-							{module, ?MODULE}, {error, Reason1}]),
-					diameter_error(SessionId,
-							?'DIAMETER_CC_APP_RESULT-CODE_RATING_FAILED',
-							OHost, ORealm, RequestType, RequestNum)
-			end;
-		{ok, MSCC3, ResultCode1} ->
-			Container = build_container(MSCC1),
-			NewMSCC = build_mscc(MSCC3, Container),
-			diameter_answer(SessionId, NewMSCC, ResultCode1,
-					OHost, ORealm, RequestType, RequestNum);
-		{error, Reason1} ->
-			error_logger:error_report(["Rating Error",
-					{module, ?MODULE}, {error, Reason1}]),
-			diameter_error(SessionId,
-					?'DIAMETER_CC_APP_RESULT-CODE_RATING_FAILED',
-					OHost, ORealm, RequestType, RequestNum)
 	catch
 		?CATCH_STACK ->
 			?SET_STACK,
@@ -663,29 +771,42 @@ process_request1(?'3GPP_CC-REQUEST-TYPE_EVENT_REQUEST' = RequestType,
 		'Requested-Action' = [?'3GPP_RO_REQUESTED-ACTION_DIRECT_DEBITING'],
 		'Service-Information' = ServiceInformation,
 		'Service-Context-Id' = SvcContextId} = Request, SessionId,
-		RequestNum, SubscriberIds, OHost, _DHost, ORealm, _DRealm,
-		_IpAddress, _Port, b = _Class) ->
+		RequestNum, Subscriber, OHost, _DHost, ORealm, _DRealm,
+		IpAddress, Port, b = _Class) ->
 	try
+		Server = {IpAddress, Port},
+		{Direction, Address} = direction_address(ServiceInformation),
 		Location = get_service_location(ServiceInformation),
 		Destination = get_destination(ServiceInformation),
-		case post_request_iec(SubscriberIds, SvcContextId,
+		case post_request_iec(Subscriber, SvcContextId,
 				SessionId, [], Location, Destination) of
 			{ok, JSON} ->
 				{struct, _RatedStruct} = mochijson:decode(JSON),
-				diameter_answer(SessionId, [], ?'DIAMETER_BASE_RESULT-CODE_SUCCESS',
-						OHost, ORealm, RequestType, RequestNum);
-			{error, ReasonCode} ->
+				Reply = diameter_answer(SessionId, [], ?'DIAMETER_BASE_RESULT-CODE_SUCCESS',
+						OHost, ORealm, RequestType, RequestNum),
+				ok = ocs_log:acct_log(diameter, Server,
+						accounting_event_type(RequestType), Request, Reply, undefined),
+				Reply;
+			{error, Reason} ->
 				error_logger:error_report(["Rating Error",
-						{module, ?MODULE}, {error, ReasonCode}]),
+						{module, ?MODULE}, {error, Reason},
+						{origin_host, OHost}, {origin_realm, ORealm},
+						{type, accounting_event_type(RequestType)},
+						{subscriber, Subscriber}, {address, Address},
+						{direction, Direction}, {amounts, []}]),
 				ok = remove_ref(SessionId),
-				diameter_error(SessionId, ReasonCode,
-						OHost, ORealm, RequestType, RequestNum)
+				Reply = diameter_error(SessionId, Reason,
+						OHost, ORealm, RequestType, RequestNum),
+				ok = ocs_log:acct_log(diameter, Server,
+						accounting_event_type(RequestType), Request, Reply, undefined),
+				Reply
 		end
 	catch
-		_:Reason1 ->
+		?CATCH_STACK ->
+			?SET_STACK,
 			error_logger:warning_report(["Unable to process DIAMETER request",
 					{origin_host, OHost}, {origin_realm, ORealm},
-					{request, Request}, {error, Reason1}, {stack, erlang:get_stacktrace()}]),
+					{request, Request}, {error, Reason1}, {stack, StackTrace}]),
 			diameter_error(SessionId, ?'DIAMETER_BASE_RESULT-CODE_UNABLE_TO_COMPLY',
 					OHost, ORealm, RequestType, RequestNum)
 	end;
@@ -694,23 +815,35 @@ process_request1(?'3GPP_CC-REQUEST-TYPE_EVENT_REQUEST' = RequestType,
 		'Requested-Action' = [?'3GPP_RO_REQUESTED-ACTION_DIRECT_DEBITING'],
 		'Service-Information' = ServiceInformation,
 		'Service-Context-Id' = SvcContextId} = Request, SessionId,
-		RequestNum, SubscriberIds, OHost, _DHost, ORealm, _DRealm,
-		_IpAddress, _Port, _Class) ->
+		RequestNum, Subscriber, OHost, _DHost, ORealm, _DRealm,
+		IpAddress, Port, _Class) ->
 	try
+		Server = {IpAddress, Port},
+		{Direction, Address} = direction_address(ServiceInformation),
 		Location = get_service_location(ServiceInformation),
 		Destination = get_destination(ServiceInformation),
-		case post_request_iec(SubscriberIds, SvcContextId,
+		case post_request_iec(Subscriber, SvcContextId,
 				SessionId, [], Location, Destination) of
 			{ok, JSON} ->
 				{struct, _RatedStruct} = mochijson:decode(JSON),
-				diameter_answer(SessionId, [], ?'DIAMETER_BASE_RESULT-CODE_SUCCESS',
-						OHost, ORealm, RequestType, RequestNum);
-			{error, ReasonCode} ->
+				Reply = diameter_answer(SessionId, [], ?'DIAMETER_BASE_RESULT-CODE_SUCCESS',
+						OHost, ORealm, RequestType, RequestNum),
+				ok = ocs_log:acct_log(diameter, Server,
+						accounting_event_type(RequestType), Request, Reply, undefined),
+				Reply;
+			{error, Reason} ->
 				error_logger:error_report(["Rating Error",
-						{module, ?MODULE}, {error, ReasonCode}]),
+						{module, ?MODULE}, {error, Reason},
+						{origin_host, OHost}, {origin_realm, ORealm},
+						{type, accounting_event_type(RequestType)},
+						{subscriber, Subscriber}, {address, Address},
+						{direction, Direction}, {amounts, []}]),
 				ok = remove_ref(SessionId),
-				diameter_error(SessionId, ReasonCode,
-						OHost, ORealm, RequestType, RequestNum)
+				Reply = diameter_error(SessionId, Reason,
+						OHost, ORealm, RequestType, RequestNum),
+				ok = ocs_log:acct_log(diameter, Server,
+						accounting_event_type(RequestType), Request, Reply, undefined),
+				Reply
 		end
 	catch
 		?CATCH_STACK ->
@@ -726,12 +859,14 @@ process_request1(?'3GPP_CC-REQUEST-TYPE_EVENT_REQUEST' = RequestType,
 		'Requested-Action' = [?'3GPP_RO_REQUESTED-ACTION_DIRECT_DEBITING'],
 		'Service-Information' = ServiceInformation,
 		'Service-Context-Id' = SvcContextId} = Request, SessionId,
-		RequestNum, SubscriberIds, OHost, _DHost, ORealm, _DRealm,
-		_IpAddress, _Port, b = _Class) ->
+		RequestNum, Subscriber, OHost, _DHost, ORealm, _DRealm,
+		IpAddress, Port, b = _Class) ->
 	try
+		Server = {IpAddress, Port},
+		{Direction, Address} = direction_address(ServiceInformation),
 		Location = get_service_location(ServiceInformation),
 		Destination = get_destination(ServiceInformation),
-		case post_request_iec(SubscriberIds, SvcContextId,
+		case post_request_iec(Subscriber, SvcContextId,
 				SessionId, MSCC, Location, Destination) of
 			{ok, JSON} ->
 				{struct, RatedStruct} = mochijson:decode(JSON),
@@ -740,20 +875,31 @@ process_request1(?'3GPP_CC-REQUEST-TYPE_EVENT_REQUEST' = RequestType,
 				Container = build_container(MSCC),
 				NewMSCC = build_mscc(ServiceRating, Container),
 				ok = remove_ref(SessionId),
-				diameter_answer(SessionId, NewMSCC, ResultCode,
-						OHost, ORealm, RequestType, RequestNum);
-			{error, ReasonCode} ->
+				Reply = diameter_answer(SessionId, NewMSCC, ResultCode,
+						OHost, ORealm, RequestType, RequestNum),
+				ok = ocs_log:acct_log(diameter, Server,
+						accounting_event_type(RequestType), Request, Reply, undefined),
+				Reply;
+			{error, Reason} ->
 				error_logger:error_report(["Rating Error",
-						{module, ?MODULE}, {error, ReasonCode}]),
+						{module, ?MODULE}, {error, Reason},
+						{origin_host, OHost}, {origin_realm, ORealm},
+						{type, accounting_event_type(RequestType)},
+						{subscriber, Subscriber}, {address, Address},
+						{direction, Direction}, {amounts, []}]),
 				ok = remove_ref(SessionId),
-				diameter_error(SessionId, ReasonCode,
-						OHost, ORealm, RequestType, RequestNum)
+				Reply = diameter_error(SessionId, Reason,
+						OHost, ORealm, RequestType, RequestNum),
+				ok = ocs_log:acct_log(diameter, Server,
+						accounting_event_type(RequestType), Request, Reply, undefined),
+				Reply
 		end
 	catch
-		_:Reason1 ->
+		?CATCH_STACK ->
+			?SET_STACK,
 			error_logger:warning_report(["Unable to process DIAMETER request",
 					{origin_host, OHost}, {origin_realm, ORealm},
-					{request, Request}, {error, Reason1}, {stack, erlang:get_stacktrace()}]),
+					{request, Request}, {error, Reason1}, {stack, StackTrace}]),
 			diameter_error(SessionId, ?'DIAMETER_BASE_RESULT-CODE_UNABLE_TO_COMPLY',
 					OHost, ORealm, RequestType, RequestNum)
 	end;
@@ -762,12 +908,14 @@ process_request1(?'3GPP_CC-REQUEST-TYPE_EVENT_REQUEST' = RequestType,
 		'Requested-Action' = [?'3GPP_RO_REQUESTED-ACTION_DIRECT_DEBITING'],
 		'Service-Information' = ServiceInformation,
 		'Service-Context-Id' = SvcContextId} = Request, SessionId,
-		RequestNum, SubscriberIds, OHost, _DHost, ORealm, _DRealm,
-		_IpAddress, _Port, _Class) ->
+		RequestNum, Subscriber, OHost, _DHost, ORealm, _DRealm,
+		IpAddress, Port, _Class) ->
 	try
+		Server = {IpAddress, Port},
+		{Direction, Address} = direction_address(ServiceInformation),
 		Location = get_service_location(ServiceInformation),
 		Destination = get_destination(ServiceInformation),
-		case post_request_iec(SubscriberIds, SvcContextId,
+		case post_request_iec(Subscriber, SvcContextId,
 				SessionId, MSCC, Location, Destination) of
 			{ok, JSON} ->
 				{struct, RatedStruct} = mochijson:decode(JSON),
@@ -776,14 +924,24 @@ process_request1(?'3GPP_CC-REQUEST-TYPE_EVENT_REQUEST' = RequestType,
 				Container = build_container(MSCC),
 				NewMSCC = build_mscc(ServiceRating, Container),
 				ok = remove_ref(SessionId),
-				diameter_answer(SessionId, NewMSCC, ResultCode,
-						OHost, ORealm, RequestType, RequestNum);
-			{error, ReasonCode} ->
+				Reply = diameter_answer(SessionId, NewMSCC, ResultCode,
+						OHost, ORealm, RequestType, RequestNum),
+				ok = ocs_log:acct_log(diameter, Server,
+						accounting_event_type(RequestType), Request, Reply, undefined),
+				Reply;
+			{error, Reason} ->
 				error_logger:error_report(["Rating Error",
-						{module, ?MODULE}, {error, ReasonCode}]),
+						{module, ?MODULE}, {error, Reason},
+						{origin_host, OHost}, {origin_realm, ORealm},
+						{type, accounting_event_type(RequestType)},
+						{subscriber, Subscriber}, {address, Address},
+						{direction, Direction}, {amounts, []}]),
 				ok = remove_ref(SessionId),
-				diameter_error(SessionId, ReasonCode,
-						OHost, ORealm, RequestType, RequestNum)
+				Reply = diameter_error(SessionId, Reason,
+						OHost, ORealm, RequestType, RequestNum),
+				ok = ocs_log:acct_log(diameter, Server,
+						accounting_event_type(RequestType), Request, Reply, undefined),
+				Reply
 		end
 	catch
 		?CATCH_STACK ->
@@ -1925,7 +2083,9 @@ get_usu(#'3gpp_ro_Multiple-Services-Credit-Control'{
 		when is_integer(CCSpecUnits), CCSpecUnits > 0 ->
 	[{messages, CCSpecUnits}];
 get_usu(#'3gpp_ro_Multiple-Services-Credit-Control'{'Used-Service-Unit' = []}) ->
-	[].
+	[];
+get_usu(#'3gpp_ro_Multiple-Services-Credit-Control'{}) ->
+	undefined.
 
 -spec rate(ServiceType, ServiceNetwork, Subscriber, Timestamp,
 		Address, Direction, Flag, SessionId, Amounts) -> Result
@@ -2241,4 +2401,14 @@ fui(RedirectServerAddress)
 	Action = ?'3GPP_RO_FINAL-UNIT-ACTION_REDIRECT',
 	[#'3gpp_ro_Final-Unit-Indication'{'Final-Unit-Action' = Action,
 			'Redirect-Server' = [RedirectServer]}].
+
+-spec accounting_event_type(RequestType) -> EventType
+	when
+	RequestType :: 1..4,
+	EventType :: start | interim | stop | event.
+%% @doc Converts CC-Request-Type integer value to a readable atom.
+accounting_event_type(?'3GPP_CC-REQUEST-TYPE_INITIAL_REQUEST') -> start;
+accounting_event_type(?'3GPP_CC-REQUEST-TYPE_UPDATE_REQUEST') -> interim;
+accounting_event_type(?'3GPP_CC-REQUEST-TYPE_TERMINATION_REQUEST') -> stop;
+accounting_event_type(?'3GPP_CC-REQUEST-TYPE_EVENT_REQUEST') -> event.
 
