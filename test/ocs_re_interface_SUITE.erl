@@ -185,7 +185,8 @@ init_per_testcase(TestCase, Config)
 init_per_testcase(TestCase, Config)
 		when TestCase == send_initial_scur_class_a;
 		TestCase == receive_initial_scur_class_a;
-		TestCase == send_interim_scur_class_a ->
+		TestCase == send_interim_scur_class_a;
+		TestCase == receive_interim_scur_class_a ->
 	Address = ?config(diameter_acct_address, Config),
 	{ok, _} = ocs:add_client(Address, undefined, diameter, undefined, true),
 	{ok, [Auth, {acct, [{DAddress, Port, Options}]}]} = application:get_env(ocs, diameter),
@@ -219,7 +220,7 @@ all() ->
 		receive_iec_class_b, send_initial_ecur_class_b, receive_initial_ecur_class_b,
 		send_final_ecur_class_b, receive_final_ecur_class_b, post_iec_class_b, post_initial_ecur_class_b,
 		post_final_ecur_class_b, send_initial_scur_class_a, receive_initial_scur_class_a,
-		send_interim_scur_class_a].
+		send_interim_scur_class_a, receive_interim_scur_class_a].
 
 %%---------------------------------------------------------------------
 %%  Test cases
@@ -957,6 +958,42 @@ send_interim_scur_class_a(Config) ->
 	UsedServiceUnits = {InputOctets2, OutputOctets2},
 	Answer1 = diameter_scur_interim(SId, Subscriber, RequestNum1, UsedServiceUnits, 0),
 	#'3gpp_ro_CCA'{'Result-Code' = ?'DIAMETER_BASE_RESULT-CODE_SUCCESS'} = Answer1.
+
+receive_interim_scur_class_a() ->
+	[{userdata, [{doc, "On IEC updateRating response send CCA-U"}]}].
+
+receive_interim_scur_class_a(Config) ->
+	OfferId = add_offer([price_pla(Config)], 4),
+	ProdRef = add_product(OfferId),
+	MSISDN = list_to_binary(ocs:generate_identity()),
+	IMSI = list_to_binary(ocs:generate_identity()),
+	Subscriber = {MSISDN, IMSI},
+	Password = ocs:generate_identity(),
+	{ok, #service{}} = ocs:add_service(MSISDN, Password, ProdRef, []),
+	Balance = rand:uniform(100000000000),
+	B1 = bucket(octets, Balance),
+	_BId = add_bucket(ProdRef, B1),
+	Ref = erlang:ref_to_list(make_ref()),
+	SId = diameter:session_id(Ref),
+	RequestNum0 = 0,
+	InputOctets1 = rand:uniform(Balance div 3),
+	OutputOctets1 = rand:uniform(Balance div 4),
+	RequestedServiceUnits = {InputOctets1, OutputOctets1},
+	Answer0 = diameter_scur_start(SId, Subscriber, RequestNum0, RequestedServiceUnits),
+	#'3gpp_ro_CCA'{'Result-Code' = ?'DIAMETER_BASE_RESULT-CODE_SUCCESS'} = Answer0,
+	RequestNum1 = RequestNum0 + 1,
+	InputOctets2 = rand:uniform(Balance div 2),
+	OutputOctets2 = rand:uniform(Balance div 3),
+	UsedServiceUnits = {InputOctets2, OutputOctets2},
+	Answer1 = diameter_scur_interim(SId, Subscriber, RequestNum1, UsedServiceUnits, 0),
+	#'3gpp_ro_CCA'{'Result-Code' = ?'DIAMETER_BASE_RESULT-CODE_SUCCESS',
+			'Auth-Application-Id' = ?RO_APPLICATION_ID,
+			'CC-Request-Type' = ?'3GPP_CC-REQUEST-TYPE_UPDATE_REQUEST',
+			'CC-Request-Number' = RequestNum1,
+			'Multiple-Services-Credit-Control' = [MultiServices_CC]} = Answer1,
+	#'3gpp_ro_Multiple-Services-Credit-Control'{
+			'Granted-Service-Unit' = [GrantedUnits]} = MultiServices_CC,
+	#'3gpp_ro_Granted-Service-Unit'{'CC-Total-Octets' = [_TotalOctets]} = GrantedUnits.
 
 %%---------------------------------------------------------------------
 %%  Internal functions
