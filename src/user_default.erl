@@ -22,8 +22,24 @@
 
 %% export the user_default public API
 -export([help/0, di/0, di/1, di/2, dc/0]).
+-export([ql/2, ql/3, ql/4]).
 
+-include_lib("ocs/include/ocs.hrl").
+-include_lib("ocs/include/ocs_log.hrl").
+-include_lib("ocs/include/ocs_eap_codec.hrl").
+-include_lib("ocs/include/diameter_gen_3gpp.hrl").
+-include_lib("ocs/include/diameter_gen_etsi.hrl").
+-include_lib("ocs/include/diameter_gen_ietf.hrl").
+-include_lib("ocs/include/diameter_gen_3gpp_ro_application.hrl").
+-include_lib("ocs/include/diameter_gen_3gpp_gx_application.hrl").
+-include_lib("ocs/include/diameter_gen_3gpp_sta_application.hrl").
+-include_lib("ocs/include/diameter_gen_3gpp_swm_application.hrl").
+-include_lib("ocs/include/diameter_gen_3gpp_swx_application.hrl").
+-include_lib("ocs/include/diameter_gen_3gpp_s6a_application.hrl").
+-include_lib("ocs/include/diameter_gen_3gpp_s6b_application.hrl").
 -include_lib("diameter/include/diameter.hrl").
+
+-define(MAX_HEAP_SIZE, 1000000).
 
 %%----------------------------------------------------------------------
 %%  The user_default public API
@@ -39,6 +55,12 @@ help() ->
 	io:format("di(acct, Types) -- diameter accounting services info\n"),
 	io:format("di(auth, Types) -- diameter authentication and authorization services info\n"),
 	io:format("dc()            -- diameter capabilities values\n"),
+	io:format("ql(acct, Match) -- query accounting log\n"),
+	io:format("ql(acct, Match, Start)\n"),
+	io:format("ql(acct, Match, Start, End)\n"),
+	io:format("ql(auth, Match) -- query authentication and authorization log\n"),
+	io:format("ql(auth, Match, Start)\n"),
+	io:format("ql(auth, Match, Start, End)\n"),
 	true.
 
 -spec di() -> Result
@@ -111,6 +133,77 @@ dc() ->
 			'Firmware-Revision'],
 	diameter_service_info(diameter:services(), Info).
 
+-spec ql(Type, Match) -> Events
+	when
+		Type :: acct | auth,
+		Match :: DiameterMatchSpec | RatedMatchSpec,
+		DiameterMatchSpec :: {DiameterMatchHead, MatchConditions},
+		DiameterMatchHead :: #'3gpp_ro_CCR'{} | #'3gpp_ro_CCA'{},
+		RatedMatchSpec :: {RatedMatchHead, MatchConditions},
+		RatedMatchHead :: #rated{},
+		MatchConditions :: [tuple()],
+		Events :: [ocs_log:acct_event()].
+%% @doc Query diameter logs.
+%%
+%% 	Start will be minus one hour from now.
+%%
+ql(acct = _Type, {MatchHead, MatchConditions} = Match)
+		when is_list(MatchConditions),
+		(is_record(MatchHead, '3gpp_ro_CCR')
+		or is_record(MatchHead, '3gpp_ro_CCA')
+		or is_record(MatchHead, rated)) ->
+	End = erlang:universaltime(),
+	EndS = calendar:datetime_to_gregorian_seconds(End),
+	Start = calendar:gregorian_seconds_to_datetime(EndS - 3600),
+	query_acct_log(Match, Start, End).
+
+-spec ql(Type, Match, Start) -> Events
+	when
+		Type :: acct | auth,
+		Match :: DiameterMatchSpec | RatedMatchSpec,
+		DiameterMatchSpec :: {DiameterMatchHead, MatchConditions},
+		DiameterMatchHead :: #'3gpp_ro_CCR'{} | #'3gpp_ro_CCA'{},
+		RatedMatchSpec :: {RatedMatchHead, MatchConditions},
+		RatedMatchHead :: #rated{},
+		MatchConditions :: [tuple()],
+		Start :: calendar:datetime(),
+		Events :: [ocs_log:acct_event()].
+%% @doc Query diameter logs.
+%%
+%% 	End time will be now.
+%%
+ql(acct = _Type, {MatchHead, MatchConditions} = Match,
+		{{_, _, _}, {_, _, _}} = Start)
+		when is_list(MatchConditions),
+		(is_record(MatchHead, '3gpp_ro_CCR')
+		or is_record(MatchHead, '3gpp_ro_CCA')
+		or is_record(MatchHead, rated)) ->
+	End = erlang:universaltime(),
+	query_acct_log(Match, Start, End).
+
+-spec ql(Type, Match, Start, End) -> Events
+	when
+		Type :: acct | auth,
+		Match :: DiameterMatchSpec | RatedMatchSpec,
+		DiameterMatchSpec :: {DiameterMatchHead, MatchConditions},
+		DiameterMatchHead :: #'3gpp_ro_CCR'{} | #'3gpp_ro_CCA'{},
+		RatedMatchSpec :: {RatedMatchHead, MatchConditions},
+		RatedMatchHead :: #rated{},
+		MatchConditions :: [tuple()],
+		Start :: calendar:datetime(),
+		End :: calendar:datetime(),
+		Events :: [ocs_log:acct_event()].
+%% @doc Query diameter logs.
+ql(acct = _Type, {MatchHead, MatchConditions} = Match,
+		{{_, _, _}, {_, _, _}} = Start,
+		{{_, _, _}, {_, _, _}} = End)
+		when is_list(MatchConditions),
+		(is_record(MatchHead, '3gpp_ro_CCR')
+		or is_record(MatchHead, '3gpp_ro_CCA')
+		or is_record(MatchHead, rated)) ->
+	End = erlang:universaltime(),
+	query_acct_log(Match, Start, End).
+
 %%----------------------------------------------------------------------
 %%  The user_default private API
 %%----------------------------------------------------------------------
@@ -137,4 +230,43 @@ diameter_service_info([Service | T], Info, Acc) ->
 			[{Service, diameter:service_info(Service, Info)} | Acc]);
 diameter_service_info([], _Info, Acc) ->
 	lists:reverse(Acc).
+
+-spec query_acct_log(Match, Start, End) -> Events
+	when
+		Match :: DiameterMatchSpec | RatedMatchSpec,
+		DiameterMatchSpec :: {DiameterMatchHead, MatchConditions},
+		DiameterMatchHead :: #'3gpp_ro_CCR'{} | #'3gpp_ro_CCA'{},
+		RatedMatchSpec :: {RatedMatchHead, MatchConditions},
+		RatedMatchHead :: #rated{},
+		MatchConditions :: [tuple()],
+		Start :: calendar:datetime() | pos_integer(),
+		End :: calendar:datetime() | pos_integer(),
+		Events :: [ocs_log:acct_event()].
+%% @hidden
+query_acct_log(Match, Start, End) ->
+	set_max_heap(),
+	query_acct_log(start, Start, End, Match, []).
+%% @hidden
+query_acct_log(eof, _, _, _, Acc) ->
+	lists:flatten(lists:reverse(Acc));
+query_acct_log(Context1, Start, End, Match, Acc) ->
+	case ocs_log:acct_query(Context1, Start, End, diameter, '_', [Match]) of
+		{error, Reason} ->
+			exit(Reason);
+		{Context2, []} ->
+			query_acct_log(Context2, Start, End, Match, Acc);
+		{Context2, Events} ->
+			query_acct_log(Context2, Start, End, Match, [Events | Acc])
+	end.
+
+%% @hidden
+set_max_heap() ->
+	MaxHeapSize = #{error_logger => true,
+			kill => true, size => ?MAX_HEAP_SIZE},
+	case erlang:process_info(self(), max_heap_size) of
+		{max_heap_size, #{size := 0}} ->
+			erlang:process_flag(max_heap_size, MaxHeapSize);
+		{max_heap_size, _} ->
+			ok
+	end.
 
