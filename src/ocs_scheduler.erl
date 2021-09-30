@@ -251,6 +251,8 @@ start_delay(ScheduledTime, Interval) when Interval < 1440 ->
 			(IntervalSecs - ((0 - Delay) rem IntervalSecs)) * 1000;
 		0 ->
 			IntervalSecs * 1000;
+		Delay when Delay > 0, (Delay rem IntervalSecs) == 0 ->
+			IntervalSecs * 1000;
 		Delay when Delay > 0 ->
 			(Delay rem IntervalSecs) * 1000
 	end;
