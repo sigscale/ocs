@@ -21,7 +21,7 @@
 -copyright('Copyright (c) 2016 - 2021 SigScale Global Inc.').
 
 %% export the user_default public API
--export([help/0, di/0, di/2, get_avp_info/1]).
+-export([help/0, di/0, di/1, di/2, get_avp_info/1]).
 
 -include_lib("diameter/include/diameter.hrl").
 
@@ -34,61 +34,58 @@
 help() ->
 	shell_default:help(),
 	io:format("** ocs commands ** \n"),
-	io:format("di()       -- diameter services info\n"),
-	io:format("di(acct, Info) -- diameter accounting services info\n"),
-	io:format("di(auth, Info) -- diameter authentication and authorization services info\n"),
+	io:format("di()            -- diameter services info\n"),
+	io:format("di(Types)       -- diameter services info of types\n"),
+	io:format("di(acct, Types) -- diameter accounting services info\n"),
+	io:format("di(auth, Types) -- diameter authentication and authorization services info\n"),
 	true.
 
 -spec di() -> Result
 	when
-		Result :: term().
+		Result :: [ServiceResult],
+		ServiceResult :: {Service, [term()]},
+		Service :: term().
 %% @doc Get information on running diameter services.
 di() ->
-	Info = [peer, applications, capabilities,
-			transport, connections, statistics],
-	F = fun F([H | T], Acc) ->
-			F(T, [diameter:service_info(H, Info) | Acc]);
-		F([], Acc) ->
-			lists:reverse(Acc)
-	end,
-	case diameter:services() of
-		Services when length(Services) > 0 ->
-			F(Services, []);
-		[] ->
-			[]
-	end.
+	diameter_service_info(diameter:services(), []).
+
+-spec di(Info) -> Result
+	when
+		Info :: [Item],
+		Item :: peer | applications | capabilities
+				| transport | connections | statistics,
+		Result :: [ServiceResult],
+		ServiceResult :: {Service, [term()]},
+		Service :: term().
+%% @doc Get information on running diameter services.
+di(Info) ->
+	diameter_service_info(diameter:services(), Info).
 
 -spec di(ServiceType, Info) -> Result
 	when
 		ServiceType :: auth | acct,
-		Info :: [Values],
-		Values :: [] | peer | applications | capabilities
+		Info :: [Item],
+		Item :: peer | applications | capabilities
 				| transport | connections | statistics,
 		Result :: term() | {error, Reason},
 		Reason :: unknown_service.
-%% @doc Get the status of running diameter services.
+%% @doc Get information on running diameter services.
 di(auth, Info) ->
-	case diameter:services() of
-		[{ocs_diameter_auth_service, _, _} = Service, _] ->
-			diameter:service_info(Service, get_params(Info));
-		[_, {ocs_diameter_auth_service, _, _} = Service] ->
-			diameter:service_info(Service, get_params(Info));
-		[{ocs_diameter_auth_service, _, _} = Service] ->
-			diameter:service_info(Service, get_params(Info));
-		_ ->
-			{error, unknown_service}
-	end;
+	F = fun({ocs_diameter_auth_service, _, _}) ->
+				true;
+			(_) ->
+				false
+	end,
+	AuthServices = lists:filter(F, diameter:services()),
+	diameter_service_info(AuthServices, Info);
 di(acct, Info) ->
-	case diameter:services() of
-		[{ocs_diameter_acct_service, _, _} = Service, _] ->
-			diameter:service_info(Service, get_params(Info));
-		[_, {ocs_diameter_acct_service, _, _} = Service] ->
-			diameter:service_info(Service, get_params(Info));
-		[{ocs_diameter_acct_service, _, _} = Service] ->
-			diameter:service_info(Service, get_params(Info));
-		_ ->
-			{error, unknown_service}
-	end.
+	F = fun({ocs_diameter_acct_service, _, _}) ->
+				true;
+			(_) ->
+				false
+	end,
+	AcctServices = lists:filter(F, diameter:services()),
+	diameter_service_info(AcctServices, Info).
 
 -spec get_avp_info(AVP) -> Result
 	when
@@ -116,6 +113,29 @@ get_avp_info(_, [], Acc) ->
 %%----------------------------------------------------------------------
 %%  The user_default private API
 %%----------------------------------------------------------------------
+
+-spec diameter_service_info(Services, Info) -> Result
+	when
+		Services :: [term()],
+		Info :: [Item],
+		Item :: peer | applications | capabilities
+				| transport | connections | statistics,
+		Result :: [ServiceResult],
+		ServiceResult :: {Service, [term()]},
+		Service :: term().
+%% @hidden
+diameter_service_info(Services, []) ->
+	Info = [peer, applications, capabilities,
+			transport, connections, statistics],
+	diameter_service_info(Services, Info, []);
+diameter_service_info(Services, Info) ->
+	diameter_service_info(Services, Info, []).
+%% @hidden
+diameter_service_info([Service | T], Info, Acc) ->
+	diameter_service_info(T, Info,
+			[{Service, diameter:service_info(Service, Info)} | Acc]);
+diameter_service_info([], _Info, Acc) ->
+	lists:reverse(Acc).
 
 -spec avp(Value) -> AVP
 	when
@@ -157,10 +177,3 @@ avp(vendor_specific_application_id) ->
 avp(firmware_revision) ->
 	'Firmware-Revision'.
 
-%% @hidden
-get_params([]) ->
-	[peer, applications, capabilities, transport,
-			connections, statistics];
-get_params(Info)
-		when Info /= undefined ->
-	Info.
