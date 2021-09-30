@@ -906,7 +906,7 @@ price_pla(Config) ->
 			name = tariff, class_type = a,
 			schema = nrf_rating, ref_type = pla},
 	#price{name = ocs:generate_identity(),
-			type = PlaRef, units = octets}.
+			type = PlaRef, units = undefined}.
 
 nrf_post_final_ecur_class_b(MSISDN, IMSI, Messages) ->
 	TS = erlang:system_time(?MILLISECOND),
