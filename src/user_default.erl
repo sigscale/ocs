@@ -22,7 +22,7 @@
 
 %% export the user_default public API
 -export([help/0, di/0, di/1, di/2, dc/0]).
--export([ql/2, ql/3, ql/4]).
+-export([ll/1, ll/2, ql/2, ql/3, ql/4]).
 
 -include_lib("ocs/include/ocs.hrl").
 -include_lib("ocs/include/ocs_log.hrl").
@@ -55,6 +55,10 @@ help() ->
 	io:format("di(acct, Types) -- diameter accounting services info\n"),
 	io:format("di(auth, Types) -- diameter authentication and authorization services info\n"),
 	io:format("dc()            -- diameter capabilities values\n"),
+	io:format("ll(acct)        -- last accounting log events\n"),
+	io:format("ll(acct, N)\n"),
+	io:format("ll(auth)        -- last authentication and authorization log events\n"),
+	io:format("ll(auth, N)\n"),
 	io:format("ql(acct, Match) -- query accounting log\n"),
 	io:format("ql(acct, Match, Start)\n"),
 	io:format("ql(acct, Match, Start, End)\n"),
@@ -133,9 +137,52 @@ dc() ->
 			'Firmware-Revision'],
 	diameter_service_info(diameter:services(), Info).
 
--spec ql(Type, Match) -> Events
+-spec ll(Log) -> Events
 	when
-		Type :: acct | auth,
+		Log :: acct | auth,
+		Events :: [ocs_log:acct_event()] | [ocs_log:auth_event()].
+%% @doc Get the last five events written to log.
+ll(acct = _Log) ->
+	case ocs_log:last(ocs_acct, 5) of
+		{Count, Events} when is_integer(Count) ->
+			Events;
+		{error, Reason} ->
+			exit(Reason)
+	end;
+ll(auth = _Log) ->
+	case ocs_log:last(ocs_auth, 5) of
+		{Count, Events} when is_integer(Count) ->
+			Events;
+		{error, Reason} ->
+			exit(Reason)
+	end.
+
+-spec ll(Log, N) -> Events
+	when
+		Log :: acct | auth,
+		N :: pos_integer(),
+		Events :: [ocs_log:acct_event()] | [ocs_log:auth_event()].
+%% @doc Get the last `N' events written to log.
+ll(acct = _Log, N) when is_integer(N), N > 0 ->
+	set_max_heap(),
+	case ocs_log:last(ocs_acct, N) of
+		{Count, Events} when is_integer(Count) ->
+			Events;
+		{error, Reason} ->
+			exit(Reason)
+	end;
+ll(auth = _Log, N) when is_integer(N), N > 0 ->
+	set_max_heap(),
+	case ocs_log:last(ocs_auth, N) of
+		{Count, Events} when is_integer(Count) ->
+			Events;
+		{error, Reason} ->
+			exit(Reason)
+	end.
+
+-spec ql(Log, Match) -> Events
+	when
+		Log :: acct | auth,
 		Match :: DiameterMatchSpec | RatedMatchSpec,
 		DiameterMatchSpec :: {DiameterMatchHead, MatchConditions},
 		DiameterMatchHead :: #'3gpp_ro_CCR'{} | #'3gpp_ro_CCA'{},
@@ -147,7 +194,7 @@ dc() ->
 %%
 %% 	Start will be minus one hour from now.
 %%
-ql(acct = _Type, {MatchHead, MatchConditions} = Match)
+ql(acct = _Log, {MatchHead, MatchConditions} = Match)
 		when is_list(MatchConditions),
 		(is_record(MatchHead, '3gpp_ro_CCR')
 		or is_record(MatchHead, '3gpp_ro_CCA')
@@ -157,9 +204,9 @@ ql(acct = _Type, {MatchHead, MatchConditions} = Match)
 	Start = calendar:gregorian_seconds_to_datetime(EndS - 3600),
 	query_acct_log(Match, Start, End).
 
--spec ql(Type, Match, Start) -> Events
+-spec ql(Log, Match, Start) -> Events
 	when
-		Type :: acct | auth,
+		Log :: acct | auth,
 		Match :: DiameterMatchSpec | RatedMatchSpec,
 		DiameterMatchSpec :: {DiameterMatchHead, MatchConditions},
 		DiameterMatchHead :: #'3gpp_ro_CCR'{} | #'3gpp_ro_CCA'{},
@@ -172,7 +219,7 @@ ql(acct = _Type, {MatchHead, MatchConditions} = Match)
 %%
 %% 	End time will be now.
 %%
-ql(acct = _Type, {MatchHead, MatchConditions} = Match,
+ql(acct = _Log, {MatchHead, MatchConditions} = Match,
 		{{_, _, _}, {_, _, _}} = Start)
 		when is_list(MatchConditions),
 		(is_record(MatchHead, '3gpp_ro_CCR')
@@ -181,9 +228,9 @@ ql(acct = _Type, {MatchHead, MatchConditions} = Match,
 	End = erlang:universaltime(),
 	query_acct_log(Match, Start, End).
 
--spec ql(Type, Match, Start, End) -> Events
+-spec ql(Log, Match, Start, End) -> Events
 	when
-		Type :: acct | auth,
+		Log :: acct | auth,
 		Match :: DiameterMatchSpec | RatedMatchSpec,
 		DiameterMatchSpec :: {DiameterMatchHead, MatchConditions},
 		DiameterMatchHead :: #'3gpp_ro_CCR'{} | #'3gpp_ro_CCA'{},
@@ -194,7 +241,7 @@ ql(acct = _Type, {MatchHead, MatchConditions} = Match,
 		End :: calendar:datetime(),
 		Events :: [ocs_log:acct_event()].
 %% @doc Query diameter logs.
-ql(acct = _Type, {MatchHead, MatchConditions} = Match,
+ql(acct = _Log, {MatchHead, MatchConditions} = Match,
 		{{_, _, _}, {_, _, _}} = Start,
 		{{_, _, _}, {_, _, _}} = End)
 		when is_list(MatchConditions),
