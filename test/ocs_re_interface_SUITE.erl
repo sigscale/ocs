@@ -113,7 +113,8 @@ init_per_suite1(Config) ->
 	DiameterAuthPort = ct:get_config({diameter, auth_port}, rand:uniform(64511) + 1024),
 	DiameterAcctPort = ct:get_config({diameter, acct_port}, rand:uniform(64511) + 1024),
 	DiameterAppVar = [{auth, [{DiameterAddress, DiameterAuthPort, []}]},
-		{acct, [{DiameterAddress, DiameterAcctPort, [{callback, ocs_diameter_3gpp_ro_nrf_app_cb}]}]}],
+		{acct, [{DiameterAddress, DiameterAcctPort, [{class, undefined},
+				{callback, ocs_diameter_3gpp_ro_nrf_app_cb}]}]}],
 	ok = application:set_env(ocs, diameter, DiameterAppVar),
 	ok = application:set_env(ocs, min_reserve_octets, 1000000),
 	ok = application:set_env(ocs, min_reserve_seconds, 60),
@@ -178,9 +179,12 @@ init_per_testcase(TestCase, Config)
 	Address = ?config(diameter_acct_address, Config),
 	{ok, _} = ocs:add_client(Address, undefined, diameter, undefined, true),
 	{ok, [Auth, {acct, [{DAddress, Port, Options}]}]} = application:get_env(ocs, diameter),
-	NewOptions = Options ++ [{class, b}],
+erlang:display({?MODULE, ?LINE, Options}),
+	NewOptions = lists:keyreplace(class, 1, Options,  {class, b}),
 	NewEnvVar = [Auth, {acct, [{DAddress, Port, NewOptions}]}],
+erlang:display({?MODULE, ?LINE, NewEnvVar}),
 	ok = application:set_env(ocs, diameter, NewEnvVar),
+erlang:display({?MODULE, ?LINE,  application:get_env(ocs, diameter)}),
 	Config;
 init_per_testcase(TestCase, Config)
 		when TestCase == send_initial_scur_class_a;
@@ -191,7 +195,7 @@ init_per_testcase(TestCase, Config)
 	Address = ?config(diameter_acct_address, Config),
 	{ok, _} = ocs:add_client(Address, undefined, diameter, undefined, true),
 	{ok, [Auth, {acct, [{DAddress, Port, Options}]}]} = application:get_env(ocs, diameter),
-	NewOptions = Options ++ [{class, undefined}],
+	NewOptions = lists:keyreplace(class, 1, Options,  {class, undefined}),
 	NewEnvVar = [Auth, {acct, [{DAddress, Port, NewOptions}]}],
 	ok = application:set_env(ocs, diameter, NewEnvVar),
 	Config;
