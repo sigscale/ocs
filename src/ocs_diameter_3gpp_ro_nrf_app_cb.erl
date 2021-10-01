@@ -1138,10 +1138,9 @@ post_request_iec1(SubscriberIds, SessionId, ServiceRating) ->
 post_request_scur(Subscriber, SvcContextId,
 		SessionId,  [#{"price" := #price{type = #pla_ref{href = Path}}} | _] = PLA,
 		Location, {initial, a}) ->
-	Path1 = Path ++ ?BASE_URI,
 	ServiceRating = initial_service_rating(Subscriber, PLA, binary_to_list(SvcContextId),
 			Location, undefined, a),
-	post_request_scur1(Subscriber, SessionId, ServiceRating, Path1);
+	post_request_scur1(Subscriber, SessionId, ServiceRating, Path);
 post_request_scur(Subscriber, SvcContextId,
 		SessionId, MSCC, Location, {initial, b}) ->
 	Path = get_option(nrf_uri) ++ ?BASE_URI,
@@ -1428,8 +1427,12 @@ map_service_rating([{struct, Elements} | T], RC2, Acc) ->
 			Acc1
 	end,
 	ServiceRatingMap = F(Elements, #{}),
-	NewRC2 = maps:get("finalResultCode", ServiceRatingMap),
-	map_service_rating(T, NewRC2, [ServiceRatingMap | Acc]);
+	case catch maps:get("finalResultCode", ServiceRatingMap) of
+		{'EXIT', _Reason} ->
+			map_service_rating(T, undefined, [ServiceRatingMap | Acc]);
+		RC3 ->
+			map_service_rating(T, RC3, [ServiceRatingMap | Acc])
+	end;
 map_service_rating([], NewRC2, Acc) ->
 	{lists:reverse(Acc), NewRC2}.
 
