@@ -2496,8 +2496,8 @@ char_attr_authentic(Attributes, Acc) ->
 
 %% @hidden
 char_attr_session_time(#'3gpp_ro_CCR'{'Multiple-Services-Credit-Control'
-		= [#'3gpp_ro_Multiple-Services-Credit-Control'{'Requested-Service-Unit'
-		= [#'3gpp_ro_Requested-Service-Unit'{'CC-Time' = Duration}]}]} = CCR, Acc)
+		= [#'3gpp_ro_Multiple-Services-Credit-Control'{'Used-Service-Unit'
+		= [#'3gpp_ro_Used-Service-Unit'{'CC-Time' = Duration}]}]} = CCR, Acc)
 		when is_integer(Duration) ->
 	NewAcc = [{struct, [{"name", "acctSessionTime"},
 			{"value", Duration}]} | Acc],
