@@ -87,7 +87,7 @@ do_post(ModData, Body, ["ratingdata"]) ->
 		true = length(ServiceRatingRequests) > 0,
 		TS = erlang:system_time(millisecond),
 		InvocationTimeStamp = ocs_log:iso8601(TS),
-		ServiceRatingResults = service_rating(ServiceRatingRequests, []),
+		ServiceRatingResults = service_rating_b(ServiceRatingRequests, []),
 		SubscriptionId = lists:keyfind("subscriptionId", 1, NrfRequest),
 		Response = {struct,[{"invocationTimeStamp", InvocationTimeStamp},
 				{"invocationSequenceNumber", InvocationSequenceNumber},
@@ -101,6 +101,21 @@ do_post(ModData, Body, ["ratingdata"]) ->
 		_:_Reason ->
 			do_response(ModData, {error, 400})
 	end;
+do_post(ModData, Body, ["nrf-rating", "v1", "ratingdata", "tariffrequest"]) ->
+	try
+		{struct, NrfRequest} = mochijson:decode(Body),
+		{_, {_, ServiceRatingRequests}} = lists:keyfind("serviceRating", 1, NrfRequest),
+		true = length(ServiceRatingRequests) > 0,
+		ServiceRatingResults = service_rating_a(ServiceRatingRequests, []),
+		SubscriptionIds = lists:keyfind("subscriptionId", 1, NrfRequest),
+		Response = {struct,[SubscriptionIds,
+				{"serviceRating",
+				{array, ServiceRatingResults}}]},
+		do_response(ModData, {200, [], mochijson:encode(Response)})
+	catch
+		_:_Reason ->
+			do_response(ModData, {error, 400})
+	end;
 do_post(ModData, Body, ["ratingdata", _RatingDataRef, Op])
 		when Op == "update"; Op == "release" ->
 	try
@@ -110,7 +125,7 @@ do_post(ModData, Body, ["ratingdata", _RatingDataRef, Op])
 		true = length(ServiceRatingRequests) > 0,
 		TS = erlang:system_time(millisecond),
 		InvocationTimeStamp = ocs_log:iso8601(TS),
-		ServiceRatingResults = service_rating(ServiceRatingRequests, []),
+		ServiceRatingResults = service_rating_b(ServiceRatingRequests, []),
 		SubscriptionId = lists:keyfind("subscriptionId", 1, NrfRequest),
 		Response = {struct,[{"invocationTimeStamp", InvocationTimeStamp},
 				{"invocationSequenceNumber", InvocationSequenceNumber},
@@ -123,7 +138,8 @@ do_post(ModData, Body, ["ratingdata", _RatingDataRef, Op])
 			do_response(ModData, {error, 400})
 	end.
 
-service_rating([{_, Attributes} | T], Acc) ->
+%% @hidden
+service_rating_b([{_, Attributes} | T], Acc) ->
 	NewAttributes1 = case lists:keyfind("serviceContextId", 1, Attributes) of
 		false ->
 			[];
@@ -164,11 +180,47 @@ service_rating([{_, Attributes} | T], Acc) ->
 	end,
 	case NewAttributes6 of
 		[] ->
-			service_rating(T, Acc);
+			service_rating_b(T, Acc);
 		NewAttributes6 when length(NewAttributes6) > 0 ->
-			service_rating(T, [{struct, NewAttributes6} | Acc])
+			service_rating_b(T, [{struct, NewAttributes6} | Acc])
 	end;
-service_rating([], Acc) ->
+service_rating_b([], Acc) ->
+	Acc.
+
+%% @hidden
+service_rating_a([{_, Attributes} | T], Acc) ->
+	NewAttributes1 = case lists:keyfind("serviceContextId", 1, Attributes) of
+		false ->
+			[];
+		ServiceContextId ->
+			[ServiceContextId]
+	end,
+	NewAttributes2 = case lists:keyfind("serviceId", 1, Attributes) of
+		false ->
+			NewAttributes1;
+		ServiceId ->
+			[ServiceId | NewAttributes1]
+	end,
+	NewAttributes3 = case lists:keyfind("ratingGroup", 1, Attributes) of
+		false ->
+			NewAttributes2;
+		RatingGroup ->
+			[RatingGroup | NewAttributes2]
+	end,
+	NewAttributes4 = case lists:keyfind("destinationId", 1, Attributes) of
+		false ->
+			NewAttributes3;
+		DestinationId ->
+			[DestinationId | NewAttributes3]
+	end,
+	case NewAttributes4 of
+		[] ->
+			service_rating_a(T, Acc);
+		NewAttributes4 when length(NewAttributes4) > 0 ->
+			service_rating_a(T, [{struct, [{"currentTariff", get_tariff()}
+					| NewAttributes4]} | Acc])
+	end;
+service_rating_a([], Acc) ->
 	Acc.
 
 %% @hidden
@@ -187,4 +239,13 @@ send(#mod{socket = Socket, socket_type = SocketType} = Info,
 		StatusCode, Headers, ResponseBody) ->
 	httpd_response:send_header(Info, StatusCode, Headers),
 	httpd_socket:deliver(SocketType, Socket, ResponseBody).
+
+%% @hidden
+get_tariff() ->
+{struct, [{"currencyCode", 840},
+		{"rateElement",
+		{array, [{struct, [{"unitType", "TOTAL_VOLUME"},
+				{"unitSize", {struct, [{"valueDigits", 1000000}]}},
+				{"unitCost", {struct, [{"valueDigits", 75},
+						{"exponent", -3}]}}]}]}}]}.
 
