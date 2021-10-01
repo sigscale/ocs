@@ -179,12 +179,9 @@ init_per_testcase(TestCase, Config)
 	Address = ?config(diameter_acct_address, Config),
 	{ok, _} = ocs:add_client(Address, undefined, diameter, undefined, true),
 	{ok, [Auth, {acct, [{DAddress, Port, Options}]}]} = application:get_env(ocs, diameter),
-erlang:display({?MODULE, ?LINE, Options}),
 	NewOptions = lists:keyreplace(class, 1, Options,  {class, b}),
 	NewEnvVar = [Auth, {acct, [{DAddress, Port, NewOptions}]}],
-erlang:display({?MODULE, ?LINE, NewEnvVar}),
 	ok = application:set_env(ocs, diameter, NewEnvVar),
-erlang:display({?MODULE, ?LINE,  application:get_env(ocs, diameter)}),
 	Config;
 init_per_testcase(TestCase, Config)
 		when TestCase == send_initial_scur_class_a;
