@@ -76,8 +76,8 @@ di() ->
 	when
 		Info :: [Item],
 		Item :: peer | applications | capabilities | transport
-				| connections | statistics | Capabilities,
-		Capabilities :: 'Origin-Host' | 'Origin-Realm' | 'Vendor-Id'
+				| connections | statistics | Capability,
+		Capability :: 'Origin-Host' | 'Origin-Realm' | 'Vendor-Id'
 				| 'Product-Name' | 'Origin-State-Id' | 'Host-IP-Address'
 				| 'Supported-Vendor' | 'Auth-Application-Id'
 				| 'Inband-Security-Id' | 'Acct-Application-Id'
@@ -94,8 +94,8 @@ di(Info) ->
 		ServiceType :: auth | acct,
 		Info :: [Item],
 		Item :: peer | applications | capabilities | transport
-				| connections | statistics | Capabilities,
-		Capabilities :: 'Origin-Host' | 'Origin-Realm' | 'Vendor-Id'
+				| connections | statistics | Capability,
+		Capability :: 'Origin-Host' | 'Origin-Realm' | 'Vendor-Id'
 				| 'Product-Name' | 'Origin-State-Id' | 'Host-IP-Address'
 				| 'Supported-Vendor' | 'Auth-Application-Id'
 				| 'Inband-Security-Id' | 'Acct-Application-Id'
@@ -212,8 +212,13 @@ ql(acct = _Type, {MatchHead, MatchConditions} = Match,
 	when
 		Services :: [term()],
 		Info :: [Item],
-		Item :: peer | applications | capabilities
-				| transport | connections | statistics,
+		Item :: peer | applications | capabilities | transport
+				| connections | statistics | Capability,
+		Capability :: 'Origin-Host' | 'Origin-Realm' | 'Vendor-Id'
+				| 'Product-Name' | 'Origin-State-Id' | 'Host-IP-Address'
+				| 'Supported-Vendor' | 'Auth-Application-Id'
+				| 'Inband-Security-Id' | 'Acct-Application-Id'
+				| 'Vendor-Specific-Application-Id' | 'Firmware-Revision',
 		Result :: [ServiceResult],
 		ServiceResult :: {Service, [term()]},
 		Service :: term().
