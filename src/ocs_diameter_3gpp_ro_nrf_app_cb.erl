@@ -353,10 +353,10 @@ process_request1(?'3GPP_CC-REQUEST-TYPE_INITIAL_REQUEST' = RequestType,
 		NrfResponse = case service_type(SvcContextId) of
 			32251 ->
 				post_request_scur(Subscriber, SvcContextId,
-						SessionId, MSCC1, Location, {initial, b}, undefined);
+						SessionId, MSCC1, Location, {initial, b});
 			32260 ->
 				post_request_ecur(Subscriber, SvcContextId,
-						SessionId, MSCC1, Location, Destination, {initial, b}, undefined)
+						SessionId, MSCC1, Location, Destination, {initial, b})
 		end,
 		case NrfResponse of
 			{ok, JSON} ->
@@ -420,11 +420,11 @@ process_request1(?'3GPP_CC-REQUEST-TYPE_INITIAL_REQUEST' = RequestType,
 				case ServiceType of
 					32251 ->
 						{ok, JSON} = post_request_scur(SubscriberIds, SvcContextId,
-								SessionId, MSCC1, [], {initial, a}, PLA),
+								SessionId, PLA, [], {initial, a}),
 						{ok, JSON, PLA, MSCC2};
 					32260 ->
 						{ok, JSON} = post_request_ecur(SubscriberIds, SvcContextId,
-								SessionId, MSCC1, undefined, Destination, {initial, a}, PLA),
+								SessionId, PLA, [], Destination, {initial, a}),
 						{ok, JSON, PLA, MSCC2}
 				end;
 			{error, Reason} ->
@@ -502,7 +502,7 @@ process_request1(?'3GPP_CC-REQUEST-TYPE_UPDATE_REQUEST' = RequestType,
 		{Direction, Address} = direction_address(ServiceInformation),
 		Amounts = get_mscc(MSCC1),
 		case post_request_scur(Subscriber, SvcContextId,
-				SessionId, MSCC1, Location, interim, undefined) of
+				SessionId, MSCC1, Location, interim) of
 			{ok, JSON} ->
 				{struct, RatedStruct} = mochijson:decode(JSON),
 				{_, {_, ServiceElements}} = lists:keyfind("serviceRating", 1, RatedStruct),
@@ -635,10 +635,10 @@ process_request1(?'3GPP_CC-REQUEST-TYPE_TERMINATION_REQUEST' = RequestType,
 		NrfResponse = case service_type(SvcContextId) of
 			32251 ->
 				post_request_scur(Subscriber, SvcContextId,
-						SessionId, MSCC1, Location, final, undefined);
+						SessionId, MSCC1, Location, final);
 			32260 ->
 				post_request_ecur(Subscriber, SvcContextId,
-						SessionId, MSCC1, Location, Destination, final, undefined)
+						SessionId, MSCC1, Location, Destination, final)
 		end,
 		Amounts = get_mscc(MSCC1),
 		case NrfResponse of
@@ -982,7 +982,7 @@ subscriber_id([], Acc) ->
 	lists:reverse(Acc).
 
 -spec post_request_ecur(Subscribers, ServiceContextId,
-		SessionId, MSCC, Location, Destination, Flag, PLAs) -> Result
+		SessionId, ServiceRatingData, Location, Destination, Flag) -> Result
 	when
 		Subscribers :: [Subscriber],
 		Subscriber :: {IdType, Id},
@@ -990,33 +990,33 @@ subscriber_id([], Acc) ->
 		Id :: binary(),
 		ServiceContextId :: binary(),
 		SessionId :: binary(),
+		ServiceRatingData :: MSCCs | PLAs,
+		MSCCs :: [MSCC],
+		PLAs :: [PLA],
 		MSCC :: [#'3gpp_ro_Multiple-Services-Credit-Control'{}],
+		PLA :: map(),
 		Location :: [tuple()] | undefined,
 		Flag :: {initial, Class} | interim | final,
 		Class :: a | b,
-		PLAs :: [PLA] | undefined,
-		PLA :: map(),
 		Destination :: string(),
 		Result :: {ok, Body} | {error, Reason},
 		Body :: string(),
 		Reason :: term().
 %% @doc POST ECUR rating data to a Nrf Rating Server.
 post_request_ecur(SubscriberIds, SvcContextId,
-		SessionId, MSCC, Location, Destination, {initial, a},
-		[#{"price" := #price{type = #pla_ref{href = Path}}}
-		| _]) ->
-	Path1 = Path ++ ?BASE_URI,
-	ServiceRating = initial_service_rating(SubscriberIds, MSCC, binary_to_list(SvcContextId),
+		SessionId, [#{"price" := #price{type = #pla_ref{href = Path}}}
+      | _] = PLA, Location, Destination, {initial, a}) ->
+	ServiceRating = initial_service_rating(SubscriberIds, PLA, binary_to_list(SvcContextId),
 			Location, Destination, a),
-	post_request_ecur1(SubscriberIds, SessionId, ServiceRating, Path1);
+	post_request_ecur1(SubscriberIds, SessionId, ServiceRating, Path);
 post_request_ecur(SubscriberIds, SvcContextId,
-		SessionId, MSCC, Location, Destination, {initial, b}, undefined) ->
+		SessionId, MSCC, Location, Destination, {initial, b}) ->
 	Path = get_option(nrf_uri) ++ ?BASE_URI,
 	ServiceRating = initial_service_rating(SubscriberIds, MSCC, binary_to_list(SvcContextId),
 			Location, Destination, b),
 	post_request_ecur1(SubscriberIds, SessionId, ServiceRating, Path);
 post_request_ecur(SubscriberIds, SvcContextId,
-		SessionId, MSCC, Location, Destination, final, undefined) ->
+		SessionId, MSCC, Location, Destination, final) ->
 	Path = get_option(nrf_uri) ++ get_ref(SessionId) ++ "/" ++ "release",
 	ServiceRating = final_service_rating(MSCC, binary_to_list(SvcContextId),
 			Location, Destination),
@@ -1113,7 +1113,7 @@ post_request_iec1(SubscriberIds, SessionId, ServiceRating) ->
 	end.
 
 -spec post_request_scur(Subscribers, ServiceContextId,
-		SessionId, MSCC, Location, Flag, PLAs) -> Result
+		SessionId, ServiceRatingData, Location, Flag) -> Result
 	when
 		Subscribers :: [Subscriber],
 		Subscriber :: {IdType, Id},
@@ -1121,7 +1121,11 @@ post_request_iec1(SubscriberIds, SessionId, ServiceRating) ->
 		Id :: binary(),
 		ServiceContextId :: binary(),
 		SessionId :: binary(),
-		MSCC :: [#'3gpp_ro_Multiple-Services-Credit-Control'{}],
+		ServiceRatingData :: MSCCs | PLAs,
+		MSCCs :: [MSCC],
+		PLAs :: [PLA],
+		MSCC :: #'3gpp_ro_Multiple-Services-Credit-Control'{},
+		PLA :: map(),
 		Location :: [tuple()] | [],
 		Flag :: {initial, Class} | interim | final,
 		Class :: a | b,
@@ -1132,26 +1136,26 @@ post_request_iec1(SubscriberIds, SessionId, ServiceRating) ->
 		Reason :: term().
 %% @doc POST SCUR rating data to a Nrf Rating Server.
 post_request_scur(Subscriber, SvcContextId,
-		SessionId, MSCC, Location, {initial, a},
-		[#{"price" := #price{type = #pla_ref{href = Path}}} | _]) ->
+		SessionId,  [#{"price" := #price{type = #pla_ref{href = Path}}} | _] = PLA,
+		Location, {initial, a}) ->
 	Path1 = Path ++ ?BASE_URI,
-	ServiceRating = initial_service_rating(Subscriber, MSCC, binary_to_list(SvcContextId),
+	ServiceRating = initial_service_rating(Subscriber, PLA, binary_to_list(SvcContextId),
 			Location, undefined, a),
 	post_request_scur1(Subscriber, SessionId, ServiceRating, Path1);
 post_request_scur(Subscriber, SvcContextId,
-		SessionId, MSCC, Location, {initial, b}, undefined) ->
+		SessionId, MSCC, Location, {initial, b}) ->
 	Path = get_option(nrf_uri) ++ ?BASE_URI,
 	ServiceRating = initial_service_rating(Subscriber, MSCC, binary_to_list(SvcContextId),
 			Location, undefined, b),
 	post_request_scur1(Subscriber, SessionId, ServiceRating, Path);
 post_request_scur(Subscriber, SvcContextId,
-		SessionId, MSCC, Location, interim, undefined) ->
+		SessionId, MSCC, Location, interim) ->
 	Path = get_option(nrf_uri) ++ get_ref(SessionId) ++ "/" ++ "update",
 	ServiceRating = update_service_rating(MSCC, binary_to_list(SvcContextId),
 			Location),
 	post_request_scur1(Subscriber, SessionId, ServiceRating, Path);
 post_request_scur(Subscriber, SvcContextId,
-		SessionId, MSCC, Location, final, undefined) ->
+		SessionId, MSCC, Location, final) ->
 	Path = get_option(nrf_uri) ++ get_ref(SessionId) ++ "/" ++ "release",
 	ServiceRating = final_service_rating(MSCC, binary_to_list(SvcContextId),
 			undefined, Location),
@@ -1756,7 +1760,9 @@ reserved_unit4(_RSU, Acc) ->
 		Subscribers :: {IdType, Id},
 		IdType :: msisdn | imsi,
 		Id :: binary(),
-		MSCC :: [#'3gpp_ro_Multiple-Services-Credit-Control'{}],
+		MSCC :: [#'3gpp_ro_Multiple-Services-Credit-Control'{}] | PLA,
+		PLA :: [PLAs],
+		PLAs :: map(),
 		ServiceContextId :: string(),
 		ServiceInformation :: [tuple()],
 		Destination :: string() | undefined,
@@ -1810,9 +1816,8 @@ initial_service_rating(Subscriber, [#'3gpp_ro_Multiple-Services-Credit-Control'{
 					{"requestSubType", "RESERVE"} | Acc4]},
 			initial_service_rating(Subscriber, T, SCID, SInfo, Des, b, [ServiceRating | Acc])
 	end;
-initial_service_rating(Subscriber, [#'3gpp_ro_Multiple-Services-Credit-Control'{
-		'Service-Identifier' = SI, 'Rating-Group' = RG} = _MSCC | T],
-		SCID, SInfo, Des, a, Acc) ->
+initial_service_rating(Subscriber, [#{"serviceId" := SI,
+		"ratingGroup" := RG} = _MSCC | T], SCID, SInfo, Des, a, Acc) ->
 	Acc1 = case SI of
 		undefined ->
 			[];
