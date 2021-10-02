@@ -21,7 +21,7 @@
 -copyright('Copyright (c) 2016 - 2021 SigScale Global Inc.').
 
 %% export the user_default public API
--export([help/0, ts/0, di/0, di/1, di/2, dc/0]).
+-export([help/0, ts/0, td/0, di/0, di/1, di/2, dc/0]).
 -export([ll/1, ll/2, ql/2, ql/3, ql/4]).
 
 -include("ocs.hrl").
@@ -51,6 +51,7 @@ help() ->
 	shell_default:help(),
 	io:fwrite("** ocs commands ** \n"),
 	io:fwrite("ts()            -- table sizes\n"),
+	io:fwrite("td()            -- table distribution\n"),
 	io:fwrite("di()            -- diameter services info\n"),
 	io:fwrite("di(Types)       -- diameter services info of types\n"),
 	io:fwrite("di(acct, Types) -- diameter accounting services info\n"),
@@ -71,12 +72,9 @@ help() ->
 -spec ts() -> ok.
 %% @doc Dipslay the total number of records in ocs tables.
 ts() ->
-	Tables = [offer, product, service, bucket, resource, client, session],
 	case mnesia:system_info(is_running)  of
 		yes ->
-			Other = mnesia:system_info(tables)
-					-- [schema, httpd_user, httpd_group | Tables],
-			ts00(Other, lists:reverse(Tables));
+			ts00(tables(), 0, []);
 		no ->
 			io:fwrite("mnesia is not running\n");
 		starting ->
@@ -85,28 +83,18 @@ ts() ->
 			io:fwrite("mnesia is stopping\n")
 	end.
 %% @hidden
-ts00([H | T], Acc) ->
-	case mnesia:table_info(H, record_name) of
-		gtt ->
-			ts00(T, [H | Acc]);
-		_ ->
-			ts00(T, Acc)
-	end;
-ts00([], Acc) ->
-	ts01(lists:reverse(Acc), 0, []).
-%% @hidden
-ts01([H | T], Max, Acc) ->
+ts00([H | T], Max, Acc) ->
 	NewMax = case length(atom_to_list(H)) of
 		N when N > Max ->
 			N;
 		_ ->
 			Max
 	end,
-	ts01(T, NewMax, [H | Acc]);
-ts01([], Max, Acc) ->
-	ts02(lists:reverse(Acc), Max, 0, []).
+	ts00(T, NewMax, [H | Acc]);
+ts00([], Max, Acc) ->
+	ts01(lists:reverse(Acc), Max, 0, []).
 %% @hidden
-ts02([H | T], NameLen, Max, Acc) ->
+ts01([H | T], NameLen, Max, Acc) ->
 	Size = mnesia:table_info(H, size),
 	NewMax = case length(integer_to_list(Size)) of
 		N when N > Max ->
@@ -114,15 +102,45 @@ ts02([H | T], NameLen, Max, Acc) ->
 		_ ->
 			Max
 	end,
-	ts02(T, NameLen, NewMax, [{H, Size} | Acc]);
-ts02([], NameLen, Max, Acc) ->
+	ts01(T, NameLen, NewMax, [{H, Size} | Acc]);
+ts01([], NameLen, Max, Acc) ->
 	io:fwrite("Table sizes:\n"),
-	ts03(lists:reverse(Acc), NameLen, Max).
+	ts02(lists:reverse(Acc), NameLen, Max).
 %% @hidden
-ts03([{Name, Size} | T], NameLen, SizeLen) ->
+ts02([{Name, Size} | T], NameLen, SizeLen) ->
 	io:fwrite("~*s: ~*b\n", [NameLen + 4, Name, SizeLen, Size]),
-	ts03(T, NameLen, SizeLen);
-ts03([], _, _) ->
+	ts02(T, NameLen, SizeLen);
+ts02([], _, _) ->
+	ok.
+
+-spec td() -> ok.
+%% @doc Dipslay the current ocs table distribution.
+td() ->
+	Nodes = mnesia:system_info(db_nodes),
+	Running = mnesia:system_info(running_db_nodes),
+	io:fwrite("Table distribution:\n"),
+	io:fwrite("    Nodes:\n"),
+	io:fwrite("        running:  ~s\n", [snodes(Running)]),
+	io:fwrite("        stopped:  ~s\n", [snodes(Nodes -- Running)]),
+	io:fwrite("    Tables:\n"),
+	td0(tables()).
+%% @hidden
+td0([H | T]) ->
+	io:fwrite("        ~s:\n", [H]),
+	case mnesia:table_info(H, disc_copies) of
+		[] ->
+			ok;
+		Nodes1 ->
+			io:fwrite("            disc_copies:  ~s\n", [snodes(Nodes1)])
+	end,
+	case mnesia:table_info(H, ram_copies) of
+		[] ->
+			ok;
+		Nodes2 ->
+			io:fwrite("             ram_copies:  ~s\n", [snodes(Nodes2)])
+	end,
+	td0(T);
+td0([]) ->
 	ok.
 
 -spec di() -> Result
@@ -379,4 +397,32 @@ set_max_heap() ->
 		{max_heap_size, _} ->
 			ok
 	end.
+
+%% @hidden
+tables() ->
+	Tables = [offer, product, service, bucket, resource, client, session],
+	Other = mnesia:system_info(tables)
+			-- [schema, httpd_user, httpd_group | Tables],
+	tables(Other, lists:reverse(Tables)).
+%% @hidden
+tables([H | T], Acc) ->
+	case mnesia:table_info(H, record_name) of
+		gtt ->
+			tables(T, [H | Acc]);
+		_ ->
+			tables(T, Acc)
+	end;
+tables([], Acc) ->
+	lists:reverse(Acc).
+
+%% @hidden
+snodes(Nodes) ->
+	snodes(Nodes, []).
+%% @hidden
+snodes([H | T], []) ->
+	snodes(T, [atom_to_list(H)]);
+snodes([H | T], Acc) ->
+	snodes(T, [atom_to_list(H), ", " | Acc]);
+snodes([], Acc) ->
+	lists:reverse(Acc).
 
