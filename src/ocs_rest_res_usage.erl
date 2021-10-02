@@ -2496,8 +2496,8 @@ char_attr_authentic(Attributes, Acc) ->
 
 %% @hidden
 char_attr_session_time(#'3gpp_ro_CCR'{'Multiple-Services-Credit-Control'
-		= [#'3gpp_ro_Multiple-Services-Credit-Control'{'Requested-Service-Unit'
-		= [#'3gpp_ro_Requested-Service-Unit'{'CC-Time' = Duration}]}]} = CCR, Acc)
+		= [#'3gpp_ro_Multiple-Services-Credit-Control'{'Used-Service-Unit'
+		= [#'3gpp_ro_Used-Service-Unit'{'CC-Time' = Duration}]}]} = CCR, Acc)
 		when is_integer(Duration) ->
 	NewAcc = [{struct, [{"name", "acctSessionTime"},
 			{"value", Duration}]} | Acc],
@@ -2515,8 +2515,8 @@ char_attr_session_time(Attributes, Acc) ->
 
 %% @hidden
 char_attr_input_octets(#'3gpp_ro_CCR'{'Multiple-Services-Credit-Control'
-		= [#'3gpp_ro_Multiple-Services-Credit-Control'{'Requested-Service-Unit'
-		= [#'3gpp_ro_Requested-Service-Unit'{'CC-Input-Octets' = InputOctets}]}]}
+		= [#'3gpp_ro_Multiple-Services-Credit-Control'{'Used-Service-Unit'
+		= [#'3gpp_ro_Used-Service-Unit'{'CC-Input-Octets' = [InputOctets]} | _]}]}
 		= CCR, Acc) when is_integer(InputOctets) ->
 	NewAcc = [{struct, [{"name", "inputOctets"},
 			{"value", InputOctets}]} | Acc],
@@ -2534,8 +2534,8 @@ char_attr_input_octets(Attributes, Acc) ->
 
 %% @hidden
 char_attr_output_octets(#'3gpp_ro_CCR'{'Multiple-Services-Credit-Control'
-		= [#'3gpp_ro_Multiple-Services-Credit-Control'{'Requested-Service-Unit'
-		= [#'3gpp_ro_Requested-Service-Unit'{'CC-Output-Octets' = OutputOctets}]}]}
+		= [#'3gpp_ro_Multiple-Services-Credit-Control'{'Used-Service-Unit'
+		= [#'3gpp_ro_Used-Service-Unit'{'CC-Output-Octets' = [OutputOctets]} | _]}]}
 		= CCR, Acc) when is_integer(OutputOctets) ->
 	NewAcc = [{struct, [{"name", "outputOctets"},
 			{"value", OutputOctets}]} | Acc],
@@ -2553,8 +2553,8 @@ char_attr_output_octets(Attributes, Acc) ->
 
 %% @hidden
 char_attr_total_octets(#'3gpp_ro_CCR'{'Multiple-Services-Credit-Control'
-		= [#'3gpp_ro_Multiple-Services-Credit-Control'{'Requested-Service-Unit'
-		= [#'3gpp_ro_Requested-Service-Unit'{'CC-Total-Octets' = TotalOctets}]}]}
+		= [#'3gpp_ro_Multiple-Services-Credit-Control'{'Used-Service-Unit'
+		= [#'3gpp_ro_Used-Service-Unit'{'CC-Total-Octets' = [TotalOctets]} | _]}]}
 		= CCR, Acc) when is_integer(TotalOctets) ->
 	NewAcc = [{struct, [{"name", "totalOctets"},
 			{"value", TotalOctets}]} | Acc],
