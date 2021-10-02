@@ -21,7 +21,7 @@
 -copyright('Copyright (c) 2016 - 2021 SigScale Global Inc.').
 
 %% export the user_default public API
--export([help/0, di/0, di/1, di/2, dc/0]).
+-export([help/0, ts/0, di/0, di/1, di/2, dc/0]).
 -export([ll/1, ll/2, ql/2, ql/3, ql/4]).
 
 -include("ocs.hrl").
@@ -49,23 +49,81 @@
 %% @doc Get help on shell local commands.
 help() ->
 	shell_default:help(),
-	io:format("** ocs commands ** \n"),
-	io:format("di()            -- diameter services info\n"),
-	io:format("di(Types)       -- diameter services info of types\n"),
-	io:format("di(acct, Types) -- diameter accounting services info\n"),
-	io:format("di(auth, Types) -- diameter authentication and authorization services info\n"),
-	io:format("dc()            -- diameter capabilities values\n"),
-	io:format("ll(acct)        -- last accounting log events\n"),
-	io:format("ll(acct, N)\n"),
-	io:format("ll(auth)        -- last authentication and authorization log events\n"),
-	io:format("ll(auth, N)\n"),
-	io:format("ql(acct, Match) -- query accounting log\n"),
-	io:format("ql(acct, Match, Start)\n"),
-	io:format("ql(acct, Match, Start, End)\n"),
-	io:format("ql(auth, Match) -- query authentication and authorization log\n"),
-	io:format("ql(auth, Match, Start)\n"),
-	io:format("ql(auth, Match, Start, End)\n"),
+	io:fwrite("** ocs commands ** \n"),
+	io:fwrite("ts()            -- table sizes\n"),
+	io:fwrite("di()            -- diameter services info\n"),
+	io:fwrite("di(Types)       -- diameter services info of types\n"),
+	io:fwrite("di(acct, Types) -- diameter accounting services info\n"),
+	io:fwrite("di(auth, Types) -- diameter authentication and authorization services info\n"),
+	io:fwrite("dc()            -- diameter capabilities values\n"),
+	io:fwrite("ll(acct)        -- last accounting log events\n"),
+	io:fwrite("ll(acct, N)\n"),
+	io:fwrite("ll(auth)        -- last authentication and authorization log events\n"),
+	io:fwrite("ll(auth, N)\n"),
+	io:fwrite("ql(acct, Match) -- query accounting log\n"),
+	io:fwrite("ql(acct, Match, Start)\n"),
+	io:fwrite("ql(acct, Match, Start, End)\n"),
+	io:fwrite("ql(auth, Match) -- query authentication and authorization log\n"),
+	io:fwrite("ql(auth, Match, Start)\n"),
+	io:fwrite("ql(auth, Match, Start, End)\n"),
 	true.
+
+-spec ts() -> ok.
+%% @doc Dipslay the total number of records in ocs tables.
+ts() ->
+	Tables = [offer, product, service, bucket, resource, client, session],
+	case mnesia:system_info(is_running)  of
+		yes ->
+			Other = mnesia:system_info(tables)
+					-- [schema, httpd_user, httpd_group | Tables],
+			ts00(Other, lists:reverse(Tables));
+		no ->
+			io:fwrite("mnesia is not running\n");
+		starting ->
+			io:fwrite("mnesia is starting\n");
+		stopping ->
+			io:fwrite("mnesia is stopping\n")
+	end.
+%% @hidden
+ts00([H | T], Acc) ->
+	case mnesia:table_info(H, record_name) of
+		gtt ->
+			ts00(T, [H | Acc]);
+		_ ->
+			ts00(T, Acc)
+	end;
+ts00([], Acc) ->
+	ts01(lists:reverse(Acc), 0, []).
+%% @hidden
+ts01([H | T], Max, Acc) ->
+	NewMax = case length(atom_to_list(H)) of
+		N when N > Max ->
+			N;
+		_ ->
+			Max
+	end,
+	ts01(T, NewMax, [H | Acc]);
+ts01([], Max, Acc) ->
+	ts02(lists:reverse(Acc), Max, 0, []).
+%% @hidden
+ts02([H | T], NameLen, Max, Acc) ->
+	Size = mnesia:table_info(H, size),
+	NewMax = case length(integer_to_list(Size)) of
+		N when N > Max ->
+			N;
+		_ ->
+			Max
+	end,
+	ts02(T, NameLen, NewMax, [{H, Size} | Acc]);
+ts02([], NameLen, Max, Acc) ->
+	io:fwrite("Table sizes:\n"),
+	ts03(lists:reverse(Acc), NameLen, Max).
+%% @hidden
+ts03([{Name, Size} | T], NameLen, SizeLen) ->
+	io:fwrite("~*s: ~*b\n", [NameLen + 4, Name, SizeLen, Size]),
+	ts03(T, NameLen, SizeLen);
+ts03([], _, _) ->
+	ok.
 
 -spec di() -> Result
 	when
