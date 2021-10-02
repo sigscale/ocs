@@ -24,19 +24,19 @@
 -export([help/0, di/0, di/1, di/2, dc/0]).
 -export([ll/1, ll/2, ql/2, ql/3, ql/4]).
 
--include_lib("ocs/include/ocs.hrl").
--include_lib("ocs/include/ocs_log.hrl").
--include_lib("ocs/include/ocs_eap_codec.hrl").
--include_lib("ocs/include/diameter_gen_3gpp.hrl").
--include_lib("ocs/include/diameter_gen_etsi.hrl").
--include_lib("ocs/include/diameter_gen_ietf.hrl").
--include_lib("ocs/include/diameter_gen_3gpp_ro_application.hrl").
--include_lib("ocs/include/diameter_gen_3gpp_gx_application.hrl").
--include_lib("ocs/include/diameter_gen_3gpp_sta_application.hrl").
--include_lib("ocs/include/diameter_gen_3gpp_swm_application.hrl").
--include_lib("ocs/include/diameter_gen_3gpp_swx_application.hrl").
--include_lib("ocs/include/diameter_gen_3gpp_s6a_application.hrl").
--include_lib("ocs/include/diameter_gen_3gpp_s6b_application.hrl").
+-include("ocs.hrl").
+-include("ocs_log.hrl").
+-include("ocs_eap_codec.hrl").
+-include("diameter_gen_3gpp.hrl").
+-include("diameter_gen_etsi.hrl").
+-include("diameter_gen_ietf.hrl").
+-include("diameter_gen_3gpp_ro_application.hrl").
+-include("diameter_gen_3gpp_gx_application.hrl").
+-include("diameter_gen_3gpp_sta_application.hrl").
+-include("diameter_gen_3gpp_swm_application.hrl").
+-include("diameter_gen_3gpp_swx_application.hrl").
+-include("diameter_gen_3gpp_s6a_application.hrl").
+-include("diameter_gen_3gpp_s6b_application.hrl").
 -include_lib("diameter/include/diameter.hrl").
 
 -define(MAX_HEAP_SIZE, 1000000).
