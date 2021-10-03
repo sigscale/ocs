@@ -88,7 +88,6 @@
 				ocs_rating,
 				ocs_log_rotate_server,
 				ocs_scheduler,
-				mod_ocs_rest_lang,
 				mod_ocs_rest_accepted_content,
 				mod_ocs_rest_delete,
 				mod_ocs_rest_get,
