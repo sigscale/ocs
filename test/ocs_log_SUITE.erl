@@ -863,7 +863,7 @@ diameter_scur(_Config) ->
 	[E1, E2, E3] = Fget(ocs_log:acct_query(start, Start, End, diameter, '_', MatchSpec), []),
 	{_, _, diameter, _, _, start, #'3gpp_ro_CCR'{}, #'3gpp_ro_CCA'{}, undefined} = E1,
 	{_, _, diameter, _, _, interim, #'3gpp_ro_CCR'{}, #'3gpp_ro_CCA'{}, undefined} = E2,
-	{_, _, diameter, _, _, stop, #'3gpp_ro_CCR'{}, #'3gpp_ro_CCA'{}, [#rated{} = Rated]} = E3,
+	{_, _, diameter, _, _, stop, #'3gpp_ro_CCR'{}, #'3gpp_ro_CCA'{}, [#rated{} = Rated | _]} = E3,
 	#rated{bucket_value = _RatedValue, bucket_type = octets, is_billed = true,
 			product = OfferId, price_type = usage} = Rated.
 
@@ -938,7 +938,7 @@ diameter_scur_voice(_Config) ->
 	end,
 	[E1, E2] = Fget(ocs_log:acct_query(start, Start, End, diameter, '_', MatchSpec), []),
 	{_, _, diameter, _, _, start, #'3gpp_ro_CCR'{}, #'3gpp_ro_CCA'{}, undefined} = E1,
-	{_, _, diameter, _, _, stop, #'3gpp_ro_CCR'{}, #'3gpp_ro_CCA'{}, [#rated{} = Rated]} = E2,
+	{_, _, diameter, _, _, stop, #'3gpp_ro_CCR'{}, #'3gpp_ro_CCA'{}, [#rated{} = Rated | _]} = E2,
 	#rated{bucket_value = _RatedValue, bucket_type = seconds, is_billed = true,
 			product = OfferId, price_type = usage} = Rated.
 
@@ -1007,7 +1007,7 @@ diameter_ecur(_Config) ->
 	end,
 	[E1, E2] = Fget(ocs_log:acct_query(start, Start, End, diameter, '_', MatchSpec), []),
 	{_, _, diameter, _, _, start, #'3gpp_ro_CCR'{}, #'3gpp_ro_CCA'{}, undefined} = E1,
-	{_, _, diameter, _, _, stop, #'3gpp_ro_CCR'{}, #'3gpp_ro_CCA'{}, [#rated{} = Rated]} = E2,
+	{_, _, diameter, _, _, stop, #'3gpp_ro_CCR'{}, #'3gpp_ro_CCA'{}, [#rated{} = Rated | _]} = E2,
 	#rated{bucket_value = _RatedValue, bucket_type = messages, is_billed = true,
 			product = OfferId, price_type = usage} = Rated.
 
@@ -1061,7 +1061,7 @@ diameter_iec(_Config) ->
 						MatchSpec), [Events | Acc])
 	end,
 	[E1] = Fget(ocs_log:acct_query(start, Start, End, diameter, '_', MatchSpec), []),
-	{_, _, diameter, _, _, event, #'3gpp_ro_CCR'{}, #'3gpp_ro_CCA'{}, [#rated{} = Rated]} = E1,
+	{_, _, diameter, _, _, event, #'3gpp_ro_CCR'{}, #'3gpp_ro_CCA'{}, [#rated{} = Rated | _]} = E1,
 	#rated{bucket_value = _RatedValue, bucket_type = messages, is_billed = true,
 			product = OfferId, price_type = usage} = Rated.
 
