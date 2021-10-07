@@ -1236,6 +1236,7 @@ class offerUpdate extends PolymerElement {
 				this.$.updateCheckIn.checked = false;
 				this.$.updateCheckOut.checked = false;
 				this.priceUpdateAlteration = null;
+				this.selected = 0;	
 			} else {
 				this.priceUpdateDescription = this.prices[indexUpdatePrice].description;
 				if(this.prices[indexUpdatePrice].start || this.prices[indexUpdatePrice].end) {
@@ -1287,6 +1288,8 @@ class offerUpdate extends PolymerElement {
 								var todStart = prodPriceUpdate.prodSpecCharValueUse[indexCharVal].value.lowerValue.amount;
 								this.startTimeUpdate = (todStart / 60).toFixed(0).padStart(2, '0')
 										+ ':' + (todStart % 60).toString().padStart(2, '0');
+							}
+							if(prodPriceUpdate.prodSpecCharValueUse[indexCharVal].value.upperValue.units == "minutes") {
 								var todEnd = prodPriceUpdate.prodSpecCharValueUse[indexCharVal].value.upperValue.amount;
 								this.endTimeUpdate = (todEnd / 60).toFixed(0).padStart(2, '0')
 										+ ':' + (todEnd % 60).toString().padStart(2, '0');
@@ -1328,6 +1331,7 @@ class offerUpdate extends PolymerElement {
 				this.$.updateAltAmount.value = null;
 				this.altUpdateCurrency = null;
 				this.AltUpdatePeriod = null;
+				this.selected = 0;
 			} else {
 				this.AltUpdateDescription = this.alterations[indexAlt].description;
 				if(this.alterations[indexAlt].start || this.alterations[indexAlt].end) {
@@ -1372,6 +1376,36 @@ class offerUpdate extends PolymerElement {
 				offerDesc.value = this.updateOfferDescription;
 				offerNew.push(offerDesc);
 			}
+			if(this.updateOfferStartDate != "undefined") {
+				if(this.updateOfferStartDate) {
+					var startDateTimeObject = new Object();
+					startDateTimeObject.op = "add";
+					startDateTimeObject.path = "/validFor/startDateTime";
+					startDateTimeObject.value = this.updateOfferStartDate;
+					offerNew.push(startDateTimeObject);
+				}
+			} else {
+				var startDateTimeObject = new Object();
+				startDateTimeObject.op = "add";
+				startDateTimeObject.path = "/validFor";
+				startDateTimeObject.value = {"startDateTime": this.updateOfferStartDate};
+				offerNew.push(startDateTimeObject);
+			}
+			if(this.updateOfferEndDate != "undefined") {
+				if(this.updateOfferEndDate) {
+					var endDateTimeObject = new Object();
+					endDateTimeObject.op = "add";
+					endDateTimeObject.path = "/validFor/endDateTime";
+					endDateTimeObject.value = this.updateOfferEndDate;
+					offerNew.push(endDateTimeObject);
+				}
+			} else {
+				var endDateTimeObject = new Object();
+				endDateTimeObject.op = "add";
+				endDateTimeObject.path = "/validFor";
+				endDateTimeObject.value = {"endDateTime": this.updateOfferEndDate};
+				offerNew.push(endDateTimeObject);
+			}
 			if(this.updateOfferStartDate == "") {
 				var startDateTimeDel = new Object();
 				startDateTimeDel.op = "remove";
@@ -1382,18 +1416,6 @@ class offerUpdate extends PolymerElement {
 				endDateTimeDel.op = "remove";
 				endDateTimeDel.path = "/validFor";
 				offerNew.push(endDateTimeDel);
-			} else if(this.updateOfferStartDate) {
-				var startDateTimeObject = new Object();
-				startDateTimeObject.op = "add";
-				startDateTimeObject.path = "/validFor";
-				startDateTimeObject.value = {"startDateTime": this.updateOfferStartDate};
-				offerNew.push(startDateTimeObject);
-			} else if(this.updateOfferEndDate){
-				var endDateTimeObject = new Object();
-				endDateTimeObject.op = "add";
-				endDateTimeObject.path = "/validFor";
-				endDateTimeObject.value = {"endDateTime": this.updateOfferEndDate};
-				offerNew.push(endDateTimeObject);
 			}
 			if(this.offerUpdateStatus) {
 				var stat = new Object();
@@ -1608,6 +1630,36 @@ class offerUpdate extends PolymerElement {
 			} else {
 				updatePriceNew.push(priceDesc);
 			}
+		}
+		if(this.prices[indexPrices].start != "undefined") {
+			if(this.updateOfferStartDatePrice != this.prices[indexPrices].start) {
+				var priceStart = new Object();
+				priceStart.op = "add";
+				priceStart.path = "/productOfferingPrice/" + indexPrices + "/validFor/startDateTime";
+				priceStart.value = this.updateOfferStartDatePrice;
+				updatePriceNew.push(priceStart);
+			}
+		} else {
+			var priceStart = new Object();
+			priceStart.op = "add";
+			priceStart.path = "/productOfferingPrice/" + indexPrices + "/validFor";
+			priceStart.value = {"startDateTime": this.updateOfferStartDatePrice};
+			updatePriceNew.push(priceStart);
+		}
+		if(this.updateOfferEndDatePrice != "undefined") {
+			if(this.updateOfferEndDatePrice != this.prices[indexPrices].end) {
+				var priceEnd = new Object();
+				priceEnd.op = "add";
+				priceEnd.path = "/productOfferingPrice/" + indexPrices + "/validFor/endDateTime";
+				priceEnd.value = this.updateOfferEndDatePrice;
+				updatePriceNew.push(priceEnd);
+			}
+		} else {
+			var priceEnd = new Object();
+			priceEnd.op = "add";
+			priceEnd.path = "/productOfferingPrice/" + indexPrices + "/validFor";
+			priceEnd.value = {"endDateTime": this.updateOfferEndDatePrice};
+			updatePriceNew.push(priceEnd);
 		}
 		if(this.priceUpdateType != this.prices[indexPrices].priceType) {
 			var pricetype = new Object();
@@ -2098,7 +2150,8 @@ class offerUpdate extends PolymerElement {
 		this.endTimeUpdate = null;
 		this.priceUpdateAmount = null;
 		this.priceUpdateUnits = null;
-	}
+		this.selected = 0;
+	} 
 
 	_updateOfferPriceResponse(event) {
 		this.$.updateOfferModal.close();
@@ -2483,16 +2536,21 @@ class offerUpdate extends PolymerElement {
 			}
 			if(this.priceUpdateDescription) {
 				addValue.description = this.priceUpdateDescription;
-			}
+			} 
+			var startDateTime;
+			var endDateTime;
 			if(this.updateOfferStartDatePrice) {
-				var startTimeObj = new Object();
-				startTimeObj.startDateTime = this.updateOfferStartDatePrice;
-				addValue.validFor = startTimeObj;
+				startDateTime = this.updateOfferStartDatePrice;
 			}
 			if(this.updateOfferEndDatePrice) {
-				var endTimeObj = new Object();
-				endTimeObj.endDateTime = this.updateOfferEndDatePrice;
-				addValue.validFor = endTimeObj;
+				endDateTime = this.updateOfferEndDatePrice;
+			}
+			if(startDateTime && endDateTime) {
+				addValue.validFor = {startDateTime, endDateTime};
+			} else if(startDateTime && !endDateTime) {
+				addValue.validFor = {startDateTime};
+			} else if(!startDateTime  && endDateTime) {
+				addValue.validFor = {endDateTime};
 			}
 			if(this.priceUpdateType) {
 				switch(this.$.updatePriceType.selected) {
@@ -2934,6 +2992,7 @@ class offerUpdate extends PolymerElement {
 		this.endTimeUpdate = null;
 		this.$.updateCheckIn.checked = null;
 		this.$.updateCheckOut.checked = null;
+		this.selected = 0;
 		this.$.updateOfferModal.close();
 	}
 }
