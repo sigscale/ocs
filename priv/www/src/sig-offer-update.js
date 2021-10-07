@@ -191,7 +191,8 @@ class offerUpdate extends PolymerElement {
 							</div>
 							<div>
 								<paper-input
-										allowed-pattern="[0-9\.]"
+										pattern="(^[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3})|(^http://.+)|(sip:.+)"
+										auto-validate
 										label="Redirect Server"
 										value="{{updateRedirect}}">
 								</paper-input>
