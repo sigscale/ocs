@@ -863,26 +863,34 @@ process_request1(?'3GPP_CC-REQUEST-TYPE_EVENT_REQUEST' = RequestType,
 -spec subscriber_id(SubscriberIdAVP) -> Subscribers
 	when
 		SubscriberIdAVP :: [#'3gpp_ro_Subscription-Id'{}],
-		Subscribers :: [Subscriber] | [],
+		Subscribers :: [Subscriber], 
 		Subscriber :: {IdType, Id},
-		IdType :: msisdn | imsi,
+		IdType :: msisdn | imsi | sip | nai | private,
 		Id :: binary().
 %% @doc Get Subscribers From Diameter SubscriberId AVP.
 subscriber_id(SubscriberIdAVP) ->
 	subscriber_id(SubscriberIdAVP, []).
 %% @hidden
-subscriber_id([#'3gpp_ro_Subscription-Id'{'Subscription-Id-Data' = undefined,
-		'Subscription-Id-Type' = ?'3GPP_SUBSCRIPTION-ID-TYPE_END_USER_E164'} | T], Acc) ->
-	subscriber_id(T, Acc);
-subscriber_id([#'3gpp_ro_Subscription-Id'{'Subscription-Id-Data' = undefined,
-		'Subscription-Id-Type' = ?'3GPP_SUBSCRIPTION-ID-TYPE_END_USER_IMSI'} | T], Acc) ->
-	subscriber_id(T, Acc);
 subscriber_id([#'3gpp_ro_Subscription-Id'{'Subscription-Id-Data' = SubId,
-		'Subscription-Id-Type' = ?'3GPP_SUBSCRIPTION-ID-TYPE_END_USER_E164'} | T], Acc) ->
+		'Subscription-Id-Type' = ?'3GPP_SUBSCRIPTION-ID-TYPE_END_USER_E164'} | T], Acc)
+		when is_binary(SubId) ->
 	subscriber_id(T, [{msisdn, SubId} | Acc]);
 subscriber_id([#'3gpp_ro_Subscription-Id'{'Subscription-Id-Data' = SubId,
-		'Subscription-Id-Type' = ?'3GPP_SUBSCRIPTION-ID-TYPE_END_USER_IMSI'} | T], Acc) ->
+		'Subscription-Id-Type' = ?'3GPP_SUBSCRIPTION-ID-TYPE_END_USER_IMSI'} | T], Acc)
+		when is_binary(SubId) ->
 	subscriber_id(T, [{imsi, SubId} | Acc]);
+subscriber_id([#'3gpp_ro_Subscription-Id'{'Subscription-Id-Data' = SubId,
+		'Subscription-Id-Type' = ?'3GPP_SUBSCRIPTION-ID-TYPE_END_USER_SIP_URI'} | T], Acc)
+		when is_binary(SubId) ->
+	subscriber_id(T, [{sip, SubId} | Acc]);
+subscriber_id([#'3gpp_ro_Subscription-Id'{'Subscription-Id-Data' = SubId,
+		'Subscription-Id-Type' = ?'3GPP_SUBSCRIPTION-ID-TYPE_END_USER_NAI'} | T], Acc)
+		when is_binary(SubId) ->
+	subscriber_id(T, [{nai, SubId} | Acc]);
+subscriber_id([#'3gpp_ro_Subscription-Id'{'Subscription-Id-Data' = SubId,
+		'Subscription-Id-Type' = ?'3GPP_SUBSCRIPTION-ID-TYPE_END_USER_PRIVATE'} | T], Acc)
+		when is_binary(SubId) ->
+	subscriber_id(T, [{private, SubId} | Acc]);
 subscriber_id([_ | T], Acc) ->
 	subscriber_id(T, Acc);
 subscriber_id([], Acc) ->
