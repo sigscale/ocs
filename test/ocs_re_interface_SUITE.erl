@@ -149,7 +149,7 @@ init_per_suite2(Config) ->
 			NewEnvVar = [Auth, {acct, [{Address, DPort, NewOptions}]}],
 			ok = application:set_env(ocs, diameter, NewEnvVar),
 			[{server_port, Port},
-					{server_pid, HttpdPid} | Config];
+					{server_pid, HttpdPid}, {nrf_uri, NrfUri} | Config];
 		{error, InetsReason} ->
 			ct:fail(InetsReason)
 	end.
@@ -188,7 +188,8 @@ init_per_testcase(TestCase, Config)
 		TestCase == receive_initial_scur_class_a;
 		TestCase == send_interim_scur_class_a;
 		TestCase == receive_interim_scur_class_a;
-		TestCase == final_scur_class_a ->
+		TestCase == final_scur_class_a;
+		TestCase == send_initial_ecur_class_a ->
 	Address = ?config(diameter_acct_address, Config),
 	{ok, _} = ocs:add_client(Address, undefined, diameter, undefined, true),
 	{ok, [Auth, {acct, [{DAddress, Port, Options}]}]} = application:get_env(ocs, diameter),
@@ -222,7 +223,8 @@ all() ->
 		receive_iec_class_b, send_initial_ecur_class_b, receive_initial_ecur_class_b,
 		send_final_ecur_class_b, receive_final_ecur_class_b, post_iec_class_b, post_initial_ecur_class_b,
 		post_final_ecur_class_b, send_initial_scur_class_a, receive_initial_scur_class_a,
-		send_interim_scur_class_a, receive_interim_scur_class_a, final_scur_class_a].
+		send_interim_scur_class_a, receive_interim_scur_class_a, final_scur_class_a,
+		send_initial_ecur_class_a].
 
 %%---------------------------------------------------------------------
 %%  Test cases
@@ -1034,14 +1036,33 @@ final_scur_class_a(Config) ->
 			'CC-Request-Number' = RequestNum2,
 			'Multiple-Services-Credit-Control' = []} = Answer2.
 
+send_initial_ecur_class_a() ->
+	[{userdata, [{doc, "On received ECUR CCR-I send startRating"}]}].
+
+send_initial_ecur_class_a(Config) ->
+	OfferId = add_offer([price_pla(Config)], 11),
+	ProdRef = add_product(OfferId),
+	MSISDN = list_to_binary(ocs:generate_identity()),
+	IMSI = list_to_binary(ocs:generate_identity()),
+	Subscriber = {MSISDN, IMSI},
+	Password = ocs:generate_identity(),
+	{ok, #service{}} = ocs:add_service(MSISDN, Password, ProdRef, []),
+	B1 = bucket(messages, 5),
+	_BId = add_bucket(ProdRef, B1),
+	Ref = erlang:ref_to_list(make_ref()),
+	SId = diameter:session_id(Ref),
+	RequestNum = 0,
+	Answer0 = diameter_ecur_start(Subscriber, SId, RequestNum),
+	#'3gpp_ro_CCA'{'Result-Code' = ?'DIAMETER_BASE_RESULT-CODE_SUCCESS'} = Answer0.
+
 %%---------------------------------------------------------------------
 %%  Internal functions
 %%---------------------------------------------------------------------
 
 price_pla(Config) ->
-	HostUrl = ?config(host_url, Config),
+	HostUrl = ?config(nrf_uri, Config),
 	PlaRef = #pla_ref{id = ocs:generate_password(),
-			href = HostUrl ++ "/nrf-rating/v1/ratingdata",
+			href = HostUrl ++ "/nrf-rating/v1/ratingdata/tariffrequest",
 			name = tariff, class_type = a,
 			schema = nrf_rating, ref_type = pla},
 	#price{name = ocs:generate_identity(),
@@ -1129,7 +1150,7 @@ diameter_ecur_start({MSISDN, IMSI}, SId, RequestNum) ->
 			'Address-Data' = [ocs:generate_identity()]}]}]}]},
 	CC_CCR = #'3gpp_ro_CCR'{'Session-Id' = SId,
 			'Auth-Application-Id' = ?RO_APPLICATION_ID,
-			'Service-Context-Id' = "32260@3gpp.org",
+			'Service-Context-Id' = "32274@3gpp.org",
 			'User-Name' = [MSISDN],
 			'CC-Request-Type' = ?'3GPP_CC-REQUEST-TYPE_INITIAL_REQUEST',
 			'CC-Request-Number' = RequestNum,
@@ -1159,7 +1180,7 @@ diameter_ecur_final({MSISDN, IMSI}, SId, RequestNum) ->
 			'Address-Data' = [ocs:generate_identity()]}]}]}]},
 	CC_CCR = #'3gpp_ro_CCR'{'Session-Id' = SId,
 			'Auth-Application-Id' = ?RO_APPLICATION_ID,
-			'Service-Context-Id' = "32260@3gpp.org",
+			'Service-Context-Id' = "32274@3gpp.org",
 			'User-Name' = [MSISDN],
 			'CC-Request-Type' = ?'3GPP_CC-REQUEST-TYPE_TERMINATION_REQUEST',
 			'CC-Request-Number' = RequestNum,
