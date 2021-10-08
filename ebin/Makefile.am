@@ -64,7 +64,6 @@ beam_DATA = ocs.beam \
 			ocs_eap_tls_transport.beam \
 			ocs_milenage.beam \
 			ocs_rating.beam \
-			mod_ocs_rest_lang.beam \
 			mod_ocs_rest_accepted_content.beam \
 			mod_ocs_rest_get.beam \
 			mod_ocs_rest_post.beam \

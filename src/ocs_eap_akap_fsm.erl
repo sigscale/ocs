@@ -113,10 +113,23 @@
 %% 3GPP TS 23.003 19.3.5 Pseudonym
 -define(TEMP_AKAp, $7).
 
+-dialyzer({[nowarn_function, no_match], [prf/6]}).
+-ifdef(OTP_RELEASE).
+	-define(HMAC_SHA(Key, Data),
+		case ?OTP_RELEASE of
+			OtpRelease when OtpRelease >= 23 ->
+				crypto:mac(hmac, sha256, Key, Data);
+			OtpRelease when OtpRelease < 23 ->
+				crypto:hmac(sha256, Key, Data)
+		end).
+-else.
+	-define(HMAC_SHA(Key, Data), crypto:hmac(sha256, Key, Data)).
+-endif.
+
 -dialyzer({[nowarn_function, no_match],
 		[vector/2, challenge/2, challenge1/4]}).
 -ifdef(OTP_RELEASE).
-	-define(HMAC_SHA(Key, Data),
+	-define(HMACN_SHA(Key, Data),
 		case ?OTP_RELEASE of
 			OtpRelease when OtpRelease >= 23 ->
 				crypto:macN(hmac, sha256, Key, Data, 16);
@@ -124,7 +137,7 @@
 				crypto:hmac(sha256, Key, Data, 16)
 		end).
 -else.
-	-define(HMAC_SHA(Key, Data), crypto:hmac(sha256, Key, Data, 16)).
+	-define(HMACN_SHA(Key, Data), crypto:hmac(sha256, Key, Data, 16)).
 -endif.
 
 -dialyzer({[nowarn_function, no_match],
@@ -633,7 +646,7 @@ vector({ok, {RAND, AUTN, CKprime, IKprime, XRES}}, #statedata{eap_id = EapID,
 	EapPacket = #eap_packet{code = request, type = ?AKAprime,
 			identifier = NextEapID, data = EapData},
 	EapMessage1 = ocs_eap_codec:eap_packet(EapPacket),
-	Mac = ?HMAC_SHA(Kaut, EapMessage1),
+	Mac = ?HMACN_SHA(Kaut, EapMessage1),
 	EapMessage2 = ocs_eap_codec:aka_set_mac(Mac, EapMessage1),
 	NewStateData = StateData#statedata{request = undefined,
 			eap_id = NextEapID, res = XRES, ck = CKprime, ik = IKprime,
@@ -656,7 +669,7 @@ vector({ok, {RAND, AUTN, CKprime, IKprime, XRES}}, #statedata{eap_id = EapID,
 	EapPacket = #eap_packet{code = request, type = ?AKAprime,
 			identifier = NextEapID, data = EapData},
 	EapMessage1 = ocs_eap_codec:eap_packet(EapPacket),
-	Mac = ?HMAC_SHA(Kaut, EapMessage1),
+	Mac = ?HMACN_SHA(Kaut, EapMessage1),
 	EapMessage2 = ocs_eap_codec:aka_set_mac(Mac, EapMessage1),
 	NewStateData = StateData#statedata{request = undefined,
 			eap_id = NextEapID, res = XRES, ck = CKprime, ik = IKprime,
@@ -742,9 +755,9 @@ challenge({#radius{id = RadiusID, authenticator = RequestAuthenticator,
 			#eap_aka_challenge{res = RES, checkcode = CheckCode, mac = MAC}
 					when ((CheckCode == undefined) or (CheckCode == <<>>)) ->
 				EapMessage2 = ocs_eap_codec:aka_clear_mac(EapMessage1),
-				case ?HMAC_SHA(Kaut, EapMessage2) of
+				case ?HMACN_SHA(Kaut, EapMessage2) of
 					MAC ->
-						Salt = rand:uniform(16#8000, 16#ffff),
+						Salt = rand:uniform(16#7fff) + 16#7fff,
 						<<MSK1:32/binary, MSK2:32/binary>> = MSK,
 						MsMppeRecvKey = ocs_eap_aka:encrypt_key(Secret,
 								RequestAuthenticator, Salt, MSK1),
@@ -856,7 +869,7 @@ challenge1(EapMessage1, Request, RAT,
 			#eap_aka_challenge{res = RES, checkcode = CheckCode, mac = MAC}
 					when ((CheckCode == undefined) or (CheckCode == <<>>)) ->
 				EapMessage2 = ocs_eap_codec:aka_clear_mac(EapMessage1),
-				case ?HMAC_SHA(Kaut, EapMessage2) of
+				case ?HMACN_SHA(Kaut, EapMessage2) of
 					MAC ->
 						EapPacket1 = #eap_packet{code = success, identifier = EapID},
 						EapMessage3 = ocs_eap_codec:eap_packet(EapPacket1),
@@ -1509,7 +1522,7 @@ prf(K, S, N) when is_binary(K), is_binary(S), is_integer(N), N > 1 ->
 prf(_, _, N, P, _, Acc) when P > N ->
 	iolist_to_binary(lists:reverse(Acc));
 prf(K, S, N, P, T1, Acc) ->
-	T2 = ?HMAC_MD5(K, <<T1/binary, S/binary, P>>),
+	T2 = ?HMAC_SHA(K, <<T1/binary, S/binary, P>>),
 	prf(K, S, N, P + 1, T2, [T2 | Acc]).
 
 %% @hidden

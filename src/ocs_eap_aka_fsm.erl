@@ -725,7 +725,7 @@ challenge({#radius{id = RadiusID, authenticator = RequestAuthenticator,
 				EapMessage2 = ocs_eap_codec:aka_clear_mac(EapMessage1),
 				case ?HMAC_SHA(Kaut, EapMessage2) of
 					MAC ->
-						Salt = rand:uniform(16#8000, 16#ffff),
+						Salt = rand:uniform(16#7fff) + 16#7fff,
 						<<MSK1:32/binary, MSK2:32/binary>> = MSK,
 						MsMppeRecvKey = ocs_eap_aka:encrypt_key(Secret,
 								RequestAuthenticator, Salt, MSK1),

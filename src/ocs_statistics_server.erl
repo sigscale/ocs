@@ -128,7 +128,8 @@ handle_call(scheduler_utilization, _From,
 	Reply = {Euniq, Interval, Report},
 	Now = erlang:system_time(millisecond),
 	NewState = State#state{timeout = Now + ?TIMEOUT},
-	{reply, Reply, NewState, Interval}.
+	Timeout = (Ts + Interval) - Now,
+	{reply, Reply, NewState, Timeout}.
 
 -spec handle_cast(Request, State) -> Result
 	when
