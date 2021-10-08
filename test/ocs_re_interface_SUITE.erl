@@ -189,7 +189,8 @@ init_per_testcase(TestCase, Config)
 		TestCase == send_interim_scur_class_a;
 		TestCase == receive_interim_scur_class_a;
 		TestCase == final_scur_class_a;
-		TestCase == send_initial_ecur_class_a ->
+		TestCase == send_initial_ecur_class_a;
+		TestCase == receive_initial_ecur_class_a ->
 	Address = ?config(diameter_acct_address, Config),
 	{ok, _} = ocs:add_client(Address, undefined, diameter, undefined, true),
 	{ok, [Auth, {acct, [{DAddress, Port, Options}]}]} = application:get_env(ocs, diameter),
@@ -224,7 +225,7 @@ all() ->
 		send_final_ecur_class_b, receive_final_ecur_class_b, post_iec_class_b, post_initial_ecur_class_b,
 		post_final_ecur_class_b, send_initial_scur_class_a, receive_initial_scur_class_a,
 		send_interim_scur_class_a, receive_interim_scur_class_a, final_scur_class_a,
-		send_initial_ecur_class_a].
+		send_initial_ecur_class_a, receive_initial_ecur_class_a].
 
 %%---------------------------------------------------------------------
 %%  Test cases
@@ -1054,6 +1055,32 @@ send_initial_ecur_class_a(Config) ->
 	RequestNum = 0,
 	Answer0 = diameter_ecur_start(Subscriber, SId, RequestNum),
 	#'3gpp_ro_CCA'{'Result-Code' = ?'DIAMETER_BASE_RESULT-CODE_SUCCESS'} = Answer0.
+
+receive_initial_ecur_class_a() ->
+	[{userdata, [{doc, "On ECUR startRating response send CCA-I"}]}].
+
+receive_initial_ecur_class_a(Config) ->
+	OfferId = add_offer([price_pla(Config)], 11),
+	ProdRef = add_product(OfferId),
+	MSISDN = list_to_binary(ocs:generate_identity()),
+	IMSI = list_to_binary(ocs:generate_identity()),
+	Subscriber = {MSISDN, IMSI},
+	Password = ocs:generate_identity(),
+	{ok, #service{}} = ocs:add_service(MSISDN, Password, ProdRef, []),
+	B1 = bucket(messages, 5),
+	_BId = add_bucket(ProdRef, B1),
+	Ref = erlang:ref_to_list(make_ref()),
+	SId = diameter:session_id(Ref),
+	RequestNum = 0,
+	Answer0 = diameter_ecur_start(Subscriber, SId, RequestNum),
+	#'3gpp_ro_CCA'{'Result-Code' = ?'DIAMETER_BASE_RESULT-CODE_SUCCESS',
+			'Auth-Application-Id' = ?RO_APPLICATION_ID,
+			'CC-Request-Type' = ?'3GPP_CC-REQUEST-TYPE_INITIAL_REQUEST',
+			'CC-Request-Number' = RequestNum,
+			'Multiple-Services-Credit-Control' = [MultiServices_CC]} = Answer0,
+	#'3gpp_ro_Multiple-Services-Credit-Control'{
+			'Granted-Service-Unit' = [UsedUnits]} = MultiServices_CC,
+	#'3gpp_ro_Granted-Service-Unit'{'CC-Service-Specific-Units' = [1]} = UsedUnits.
 
 %%---------------------------------------------------------------------
 %%  Internal functions
