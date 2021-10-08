@@ -354,7 +354,7 @@ process_request1(?'3GPP_CC-REQUEST-TYPE_INITIAL_REQUEST' = RequestType,
 			32251 ->
 				post_request_scur(Subscriber, SvcContextId,
 						SessionId, MSCC1, Location, {initial, b});
-			32260 ->
+			Id when Id == 32260; Id == 32274 ->
 				post_request_ecur(Subscriber, SvcContextId,
 						SessionId, MSCC1, Location, Destination, {initial, b})
 		end,
@@ -422,7 +422,7 @@ process_request1(?'3GPP_CC-REQUEST-TYPE_INITIAL_REQUEST' = RequestType,
 						{ok, JSON} = post_request_scur(SubscriberIds, SvcContextId,
 								SessionId, PLA, [], {initial, a}),
 						{ok, JSON, PLA, MSCC2};
-					32260 ->
+					Id when Id == 32260; Id == 32274 ->
 						{ok, JSON} = post_request_ecur(SubscriberIds, SvcContextId,
 								SessionId, PLA, [], Destination, {initial, a}),
 						{ok, JSON, PLA, MSCC2}
@@ -636,7 +636,7 @@ process_request1(?'3GPP_CC-REQUEST-TYPE_TERMINATION_REQUEST' = RequestType,
 			32251 ->
 				post_request_scur(Subscriber, SvcContextId,
 						SessionId, MSCC1, Location, final);
-			32260 ->
+			Id when Id == 32260; Id == 32274 ->
 				post_request_ecur(Subscriber, SvcContextId,
 						SessionId, MSCC1, Location, Destination, final)
 		end,
@@ -767,50 +767,6 @@ process_request1(?'3GPP_CC-REQUEST-TYPE_TERMINATION_REQUEST' = RequestType,
 					OHost, ORealm, RequestType, RequestNum)
 	end;
 process_request1(?'3GPP_CC-REQUEST-TYPE_EVENT_REQUEST' = RequestType,
-		#'3gpp_ro_CCR'{'Multiple-Services-Credit-Control' = [],
-		'Requested-Action' = [?'3GPP_RO_REQUESTED-ACTION_DIRECT_DEBITING'],
-		'Service-Information' = ServiceInformation,
-		'Service-Context-Id' = SvcContextId} = Request, SessionId,
-		RequestNum, Subscriber, OHost, _DHost, ORealm, _DRealm,
-		IpAddress, Port, b = _Class) ->
-	try
-		Server = {IpAddress, Port},
-		{Direction, Address} = direction_address(ServiceInformation),
-		Location = get_service_location(ServiceInformation),
-		Destination = get_destination(ServiceInformation),
-		case post_request_iec(Subscriber, SvcContextId,
-				SessionId, [], Location, Destination) of
-			{ok, JSON} ->
-				{struct, _RatedStruct} = mochijson:decode(JSON),
-				Reply = diameter_answer(SessionId, [], ?'DIAMETER_BASE_RESULT-CODE_SUCCESS',
-						OHost, ORealm, RequestType, RequestNum),
-				ok = ocs_log:acct_log(diameter, Server,
-						accounting_event_type(RequestType), Request, Reply, undefined),
-				Reply;
-			{error, Reason} ->
-				error_logger:error_report(["Rating Error",
-						{module, ?MODULE}, {error, Reason},
-						{origin_host, OHost}, {origin_realm, ORealm},
-						{type, accounting_event_type(RequestType)},
-						{subscriber, Subscriber}, {address, Address},
-						{direction, Direction}, {amounts, []}]),
-				ok = remove_ref(SessionId),
-				Reply = diameter_error(SessionId, Reason,
-						OHost, ORealm, RequestType, RequestNum),
-				ok = ocs_log:acct_log(diameter, Server,
-						accounting_event_type(RequestType), Request, Reply, undefined),
-				Reply
-		end
-	catch
-		?CATCH_STACK ->
-			?SET_STACK,
-			error_logger:warning_report(["Unable to process DIAMETER request",
-					{origin_host, OHost}, {origin_realm, ORealm},
-					{request, Request}, {error, Reason1}, {stack, StackTrace}]),
-			diameter_error(SessionId, ?'DIAMETER_BASE_RESULT-CODE_UNABLE_TO_COMPLY',
-					OHost, ORealm, RequestType, RequestNum)
-	end;
-process_request1(?'3GPP_CC-REQUEST-TYPE_EVENT_REQUEST' = RequestType,
 		#'3gpp_ro_CCR'{'Multiple-Services-Credit-Control' = MSCC,
 		'Requested-Action' = [?'3GPP_RO_REQUESTED-ACTION_DIRECT_DEBITING'],
 		'Service-Information' = ServiceInformation,
@@ -826,16 +782,25 @@ process_request1(?'3GPP_CC-REQUEST-TYPE_EVENT_REQUEST' = RequestType,
 				SessionId, MSCC, Location, Destination) of
 			{ok, JSON} ->
 				{struct, RatedStruct} = mochijson:decode(JSON),
-				{_, {_, ServiceElements}} = lists:keyfind("serviceRating", 1, RatedStruct),
-				{ServiceRating, ResultCode} = map_service_rating(ServiceElements, SessionId),
-				Container = build_container(MSCC),
-				NewMSCC = build_mscc(ServiceRating, Container),
-				ok = remove_ref(SessionId),
-				Reply = diameter_answer(SessionId, NewMSCC, ResultCode,
-						OHost, ORealm, RequestType, RequestNum),
-				ok = ocs_log:acct_log(diameter, Server,
-						accounting_event_type(RequestType), Request, Reply, undefined),
-				Reply;
+				case lists:keyfind("serviceRating", 1, RatedStruct) of
+					{_, {_, ServiceElements}} ->
+						{ServiceRating, ResultCode} = map_service_rating(ServiceElements, SessionId),
+						Container = build_container(MSCC),
+						NewMSCC = build_mscc(ServiceRating, Container),
+						ok = remove_ref(SessionId),
+						Reply = diameter_answer(SessionId, NewMSCC, ResultCode,
+								OHost, ORealm, RequestType, RequestNum),
+						ok = ocs_log:acct_log(diameter, Server,
+								accounting_event_type(RequestType), Request, Reply, undefined),
+						Reply;
+					_ ->
+						{_, ResultCode} = map_service_rating([], SessionId),
+						Reply = diameter_answer(SessionId, [], ResultCode,
+								OHost, ORealm, RequestType, RequestNum),
+						ok = ocs_log:acct_log(diameter, Server,
+								accounting_event_type(RequestType), Request, Reply, undefined),
+						Reply
+				end;
 			{error, Reason} ->
 				error_logger:error_report(["Rating Error",
 						{module, ?MODULE}, {error, Reason},
@@ -863,7 +828,7 @@ process_request1(?'3GPP_CC-REQUEST-TYPE_EVENT_REQUEST' = RequestType,
 -spec subscriber_id(SubscriberIdAVP) -> Subscribers
 	when
 		SubscriberIdAVP :: [#'3gpp_ro_Subscription-Id'{}],
-		Subscribers :: [Subscriber], 
+		Subscribers :: [Subscriber],
 		Subscriber :: {IdType, Id},
 		IdType :: msisdn | imsi | sip | nai | private,
 		Id :: binary().
@@ -1312,7 +1277,7 @@ build_mscc([], Acc, _Container) ->
 	when
 		ServiceRating :: [{struct, [tuple()]}],
 		SessionId :: binary() | undefined,
-		Result :: {[map()], ResultCode} | {[], ResultCode},
+		Result :: {[map()], ResultCode},
 		ResultCode :: integer().
 %% @doc Convert a service rating struct list to list of maps.
 map_service_rating(ServiceRating, SessionId)
