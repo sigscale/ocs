@@ -2197,8 +2197,7 @@ charge(Subscriber, ServiceRating, PLA, SessionId, Flag) ->
 %% @hidden
 charge(Subscriber, [#{"tariffElement" := #{"currencyCode" := Currency,
 		"rateElements" := #{"unitType" := Units,
-		"unitSize" := UnitSize,
-		"unitCost" := UnitPrice}}} | T], [#{"rsu" := Reserves,
+		"unitSize" := UnitSize}}} = PLA | T], [#{"rsu" := Reserves,
 		"usu" := Debits, "serviceId" := SI,
 		"ratingGroup" := RG} | T1], SessionId, Flag, Acc1, ResultCode1) ->
 	ServiceId = case SI of
@@ -2212,6 +2211,12 @@ charge(Subscriber, [#{"tariffElement" := #{"currencyCode" := Currency,
 			undefined;
 		N2 when is_integer(N2)->
 			N2
+	end,
+	UnitPrice = case PLA of
+		#{"unitCost" := UnitCost} ->
+			UnitCost;
+		_ ->
+			0
 	end,
 	case ocs_rating:charge(diameter, Subscriber, ServiceId,
 			UnitSize, Units, Currency, UnitPrice, undefined,
