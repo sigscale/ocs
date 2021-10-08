@@ -217,7 +217,7 @@ service_rating_a([{_, Attributes} | T], Acc) ->
 		[] ->
 			service_rating_a(T, Acc);
 		NewAttributes4 when length(NewAttributes4) > 0 ->
-			service_rating_a(T, [{struct, [{"currentTariff", get_tariff()}
+			service_rating_a(T, [{struct, [{"currentTariff", get_tariff(NewAttributes1)}
 					| NewAttributes4]} | Acc])
 	end;
 service_rating_a([], Acc) ->
@@ -241,11 +241,17 @@ send(#mod{socket = Socket, socket_type = SocketType} = Info,
 	httpd_socket:deliver(SocketType, Socket, ResponseBody).
 
 %% @hidden
-get_tariff() ->
+get_tariff([{_, "32251@3gpp.org"}]) ->
 {struct, [{"currencyCode", 840},
 		{"rateElement",
-		{array, [{struct, [{"unitType", "TOTAL_VOLUME"},
+		{array, [{struct,
+				[{"unitType", "TOTAL_VOLUME"},
 				{"unitSize", {struct, [{"valueDigits", 1000000}]}},
-				{"unitCost", {struct, [{"valueDigits", 75},
-						{"exponent", -3}]}}]}]}}]}.
+				{"unitCost", {struct, [{"valueDigits", 75}, {"exponent", -3}]}}]}]}}]};
+get_tariff([{_, "32274@3gpp.org"}]) ->
+{struct, [{"currencyCode", 840},
+		{"rateElement",
+		{array, [{struct,
+				[{"unitType", "SERVICE_SPECIFIC_UNITS"},
+				{"unitSize", {struct, [{"valueDigits", 5}, {"exponent", -10}]}}]}]}}]}.
 
