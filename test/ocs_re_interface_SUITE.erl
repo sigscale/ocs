@@ -190,7 +190,8 @@ init_per_testcase(TestCase, Config)
 		TestCase == receive_interim_scur_class_a;
 		TestCase == final_scur_class_a;
 		TestCase == send_initial_ecur_class_a;
-		TestCase == receive_initial_ecur_class_a ->
+		TestCase == receive_initial_ecur_class_a;
+		TestCase == send_final_ecur_class_a ->
 	Address = ?config(diameter_acct_address, Config),
 	{ok, _} = ocs:add_client(Address, undefined, diameter, undefined, true),
 	{ok, [Auth, {acct, [{DAddress, Port, Options}]}]} = application:get_env(ocs, diameter),
@@ -225,7 +226,7 @@ all() ->
 		send_final_ecur_class_b, receive_final_ecur_class_b, post_iec_class_b, post_initial_ecur_class_b,
 		post_final_ecur_class_b, send_initial_scur_class_a, receive_initial_scur_class_a,
 		send_interim_scur_class_a, receive_interim_scur_class_a, final_scur_class_a,
-		send_initial_ecur_class_a, receive_initial_ecur_class_a].
+		send_initial_ecur_class_a, receive_initial_ecur_class_a, send_final_ecur_class_a].
 
 %%---------------------------------------------------------------------
 %%  Test cases
@@ -1081,6 +1082,28 @@ receive_initial_ecur_class_a(Config) ->
 	#'3gpp_ro_Multiple-Services-Credit-Control'{
 			'Granted-Service-Unit' = [UsedUnits]} = MultiServices_CC,
 	#'3gpp_ro_Granted-Service-Unit'{'CC-Service-Specific-Units' = [1]} = UsedUnits.
+
+send_final_ecur_class_a() ->
+	[{userdata, [{doc, "On received ECUR CCR-U send endRating"}]}].
+
+send_final_ecur_class_a(Config) ->
+	OfferId = add_offer([price_pla(Config)], 11),
+	ProdRef = add_product(OfferId),
+	MSISDN = list_to_binary(ocs:generate_identity()),
+	IMSI = list_to_binary(ocs:generate_identity()),
+	Subscriber = {MSISDN, IMSI},
+	Password = ocs:generate_identity(),
+	{ok, #service{}} = ocs:add_service(MSISDN, Password, ProdRef, []),
+	B1 = bucket(messages, 5),
+	_BId = add_bucket(ProdRef, B1),
+	Ref = erlang:ref_to_list(make_ref()),
+	SId = diameter:session_id(Ref),
+	RequestNum0 = 0,
+	Answer0 = diameter_ecur_start(Subscriber, SId, RequestNum0),
+	#'3gpp_ro_CCA'{'Result-Code' = ?'DIAMETER_BASE_RESULT-CODE_SUCCESS'} = Answer0,
+	RequestNum1 = RequestNum0 + 1,
+	Answer1 = diameter_ecur_final(Subscriber, SId, RequestNum1),
+	#'3gpp_ro_CCA'{'Result-Code' = ?'DIAMETER_BASE_RESULT-CODE_SUCCESS'} = Answer1.
 
 %%---------------------------------------------------------------------
 %%  Internal functions
