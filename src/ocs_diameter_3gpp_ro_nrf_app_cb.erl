@@ -811,105 +811,12 @@ process_request1(?'3GPP_CC-REQUEST-TYPE_EVENT_REQUEST' = RequestType,
 					OHost, ORealm, RequestType, RequestNum)
 	end;
 process_request1(?'3GPP_CC-REQUEST-TYPE_EVENT_REQUEST' = RequestType,
-		#'3gpp_ro_CCR'{'Multiple-Services-Credit-Control' = [],
-		'Requested-Action' = [?'3GPP_RO_REQUESTED-ACTION_DIRECT_DEBITING'],
-		'Service-Information' = ServiceInformation,
-		'Service-Context-Id' = SvcContextId} = Request, SessionId,
-		RequestNum, Subscriber, OHost, _DHost, ORealm, _DRealm,
-		IpAddress, Port, _Class) ->
-	try
-		Server = {IpAddress, Port},
-		{Direction, Address} = direction_address(ServiceInformation),
-		Location = get_service_location(ServiceInformation),
-		Destination = get_destination(ServiceInformation),
-		case post_request_iec(Subscriber, SvcContextId,
-				SessionId, [], Location, Destination) of
-			{ok, JSON} ->
-				{struct, _RatedStruct} = mochijson:decode(JSON),
-				Reply = diameter_answer(SessionId, [], ?'DIAMETER_BASE_RESULT-CODE_SUCCESS',
-						OHost, ORealm, RequestType, RequestNum),
-				ok = ocs_log:acct_log(diameter, Server,
-						accounting_event_type(RequestType), Request, Reply, undefined),
-				Reply;
-			{error, Reason} ->
-				error_logger:error_report(["Rating Error",
-						{module, ?MODULE}, {error, Reason},
-						{origin_host, OHost}, {origin_realm, ORealm},
-						{type, accounting_event_type(RequestType)},
-						{subscriber, Subscriber}, {address, Address},
-						{direction, Direction}, {amounts, []}]),
-				ok = remove_ref(SessionId),
-				Reply = diameter_error(SessionId, Reason,
-						OHost, ORealm, RequestType, RequestNum),
-				ok = ocs_log:acct_log(diameter, Server,
-						accounting_event_type(RequestType), Request, Reply, undefined),
-				Reply
-		end
-	catch
-		?CATCH_STACK ->
-			?SET_STACK,
-			error_logger:warning_report(["Unable to process DIAMETER request",
-					{origin_host, OHost}, {origin_realm, ORealm},
-					{request, Request}, {error, Reason1}, {stack, StackTrace}]),
-			diameter_error(SessionId, ?'DIAMETER_BASE_RESULT-CODE_UNABLE_TO_COMPLY',
-					OHost, ORealm, RequestType, RequestNum)
-	end;
-process_request1(?'3GPP_CC-REQUEST-TYPE_EVENT_REQUEST' = RequestType,
 		#'3gpp_ro_CCR'{'Multiple-Services-Credit-Control' = MSCC,
 		'Requested-Action' = [?'3GPP_RO_REQUESTED-ACTION_DIRECT_DEBITING'],
 		'Service-Information' = ServiceInformation,
 		'Service-Context-Id' = SvcContextId} = Request, SessionId,
 		RequestNum, Subscriber, OHost, _DHost, ORealm, _DRealm,
 		IpAddress, Port, b = _Class) ->
-	try
-		Server = {IpAddress, Port},
-		{Direction, Address} = direction_address(ServiceInformation),
-		Location = get_service_location(ServiceInformation),
-		Destination = get_destination(ServiceInformation),
-		case post_request_iec(Subscriber, SvcContextId,
-				SessionId, MSCC, Location, Destination) of
-			{ok, JSON} ->
-				{struct, RatedStruct} = mochijson:decode(JSON),
-				{_, {_, ServiceElements}} = lists:keyfind("serviceRating", 1, RatedStruct),
-				{ServiceRating, ResultCode} = map_service_rating(ServiceElements, SessionId),
-				Container = build_container(MSCC),
-				NewMSCC = build_mscc(ServiceRating, Container),
-				ok = remove_ref(SessionId),
-				Reply = diameter_answer(SessionId, NewMSCC, ResultCode,
-						OHost, ORealm, RequestType, RequestNum),
-				ok = ocs_log:acct_log(diameter, Server,
-						accounting_event_type(RequestType), Request, Reply, undefined),
-				Reply;
-			{error, Reason} ->
-				error_logger:error_report(["Rating Error",
-						{module, ?MODULE}, {error, Reason},
-						{origin_host, OHost}, {origin_realm, ORealm},
-						{type, accounting_event_type(RequestType)},
-						{subscriber, Subscriber}, {address, Address},
-						{direction, Direction}, {amounts, []}]),
-				ok = remove_ref(SessionId),
-				Reply = diameter_error(SessionId, Reason,
-						OHost, ORealm, RequestType, RequestNum),
-				ok = ocs_log:acct_log(diameter, Server,
-						accounting_event_type(RequestType), Request, Reply, undefined),
-				Reply
-		end
-	catch
-		?CATCH_STACK ->
-			?SET_STACK,
-			error_logger:warning_report(["Unable to process DIAMETER request",
-					{origin_host, OHost}, {origin_realm, ORealm},
-					{request, Request}, {error, Reason1}, {stack, StackTrace}]),
-			diameter_error(SessionId, ?'DIAMETER_BASE_RESULT-CODE_UNABLE_TO_COMPLY',
-					OHost, ORealm, RequestType, RequestNum)
-	end;
-process_request1(?'3GPP_CC-REQUEST-TYPE_EVENT_REQUEST' = RequestType,
-		#'3gpp_ro_CCR'{'Multiple-Services-Credit-Control' = MSCC,
-		'Requested-Action' = [?'3GPP_RO_REQUESTED-ACTION_DIRECT_DEBITING'],
-		'Service-Information' = ServiceInformation,
-		'Service-Context-Id' = SvcContextId} = Request, SessionId,
-		RequestNum, Subscriber, OHost, _DHost, ORealm, _DRealm,
-		IpAddress, Port, _Class) ->
 	try
 		Server = {IpAddress, Port},
 		{Direction, Address} = direction_address(ServiceInformation),
