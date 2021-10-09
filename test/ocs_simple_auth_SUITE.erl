@@ -135,7 +135,7 @@ end_per_testcase(TestCase, Config) when
 		TestCase == simple_authentication_diameter; TestCase == bad_password_diameter;
 		TestCase == unknown_username_diameter; TestCase == out_of_credit_diameter;
 		TestCase == session_termination_diameter ->
-	Client = ?config(diameter_client, Config),
+	Client = ?config(diameter_acct_address, Config),
 	ok = ocs:delete_client(Client);
 end_per_testcase(_TestCase, Config) ->
 	Socket = ?config(socket, Config),
