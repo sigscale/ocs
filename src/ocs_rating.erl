@@ -912,7 +912,8 @@ rate7(#service{session_attributes = SessionList} = Service1, Buckets, event,
 		Protocol :: radius | diameter,
 		ServiceType :: binary() | char() | undefined,
 		SubscriberId :: binary() | string(),
-		Password :: binary(),
+		Password :: binary() | string() | {ChapId :: 0..255,
+				ChapPassword :: binary(), Challenge :: binary()},
 		Timestamp :: calendar:datetime(),
 		Address :: string() | undefined,
 		Direction :: answer | originate | undefined,
@@ -950,6 +951,15 @@ authorize(Protocol, ServiceType, SubscriberId, Password, Timestamp,
 						session_attributes = ExistingAttr} = S] ->
 					ok = mnesia:write(S#service{session_attributes = []}),
 					{unauthorized, disabled, ExistingAttr};
+				[#service{password = Password1} = S] when is_tuple(Password) ->
+					{ChapId, ChapPassword, Challenge} = Password,
+					case crypto:hash(md5, [ChapId, Password1, Challenge]) of
+						ChapPassword ->
+							authorize1(Protocol, ServiceType, S, Timestamp,
+									Address, Direction, SessionAttributes);
+						_Other ->
+							mnesia:abort(bad_password)
+					end;
 				[#service{password = MTPassword} = S] when
 						((Password == <<>>) and (Password =/= MTPassword)) orelse
 						(Password == MTPassword) ->
