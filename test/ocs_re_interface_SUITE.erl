@@ -175,7 +175,8 @@ init_per_testcase(TestCase, Config)
 		TestCase == send_initial_ecur_class_b;
 		TestCase == receive_initial_ecur_class_b;
 		TestCase == send_final_ecur_class_b;
-		TestCase == receive_final_ecur_class_b ->
+		TestCase == receive_final_ecur_class_b;
+		TestCase == scur_sms_class_b ->
 	Address = ?config(diameter_acct_address, Config),
 	{ok, _} = ocs:add_client(Address, undefined, diameter, undefined, true),
 	{ok, [Auth, {acct, [{DAddress, Port, Options}]}]} = application:get_env(ocs, diameter),
@@ -228,7 +229,7 @@ all() ->
 		post_final_ecur_class_b, send_initial_scur_class_a, receive_initial_scur_class_a,
 		send_interim_scur_class_a, receive_interim_scur_class_a, final_scur_class_a,
 		send_initial_ecur_class_a, receive_initial_ecur_class_a, send_final_ecur_class_a,
-		receive_final_ecur_class_a].
+		receive_final_ecur_class_a, scur_sms_class_b].
 
 %%---------------------------------------------------------------------
 %%  Test cases
@@ -238,17 +239,9 @@ send_initial_scur_class_b() ->
 	[{userdata, [{doc, "On received SCUR CCR-I send startRating"}]}].
 
 send_initial_scur_class_b(_Config) ->
-	P1 = price(usage, octets, rand:uniform(10000000), rand:uniform(1000000)),
-	OfferId = add_offer([P1], 4),
-	ProdRef = add_product(OfferId),
 	MSISDN = list_to_binary(ocs:generate_identity()),
 	IMSI = list_to_binary(ocs:generate_identity()),
 	Subscriber = {MSISDN, IMSI},
-	Password = ocs:generate_identity(),
-	{ok, #service{}} = ocs:add_service(MSISDN, Password, ProdRef, []),
-	Balance = rand:uniform(1000000000),
-	B1 = bucket(octets, Balance),
-	_BId = add_bucket(ProdRef, B1),
 	Ref = erlang:ref_to_list(make_ref()),
 	SId = diameter:session_id(Ref),
 	RequestNum = 0,
@@ -262,17 +255,9 @@ receive_initial_scur_class_b() ->
 	[{userdata, [{doc, "On SCUR startRating response send CCA-I"}]}].
 
 receive_initial_scur_class_b(_Config) ->
-	P1 = price(usage, octets, rand:uniform(10000000), rand:uniform(1000000)),
-	OfferId = add_offer([P1], 4),
-	ProdRef = add_product(OfferId),
 	MSISDN = list_to_binary(ocs:generate_identity()),
 	IMSI = list_to_binary(ocs:generate_identity()),
 	Subscriber = {MSISDN, IMSI},
-	Password = ocs:generate_identity(),
-	{ok, #service{}} = ocs:add_service(MSISDN, Password, ProdRef, []),
-	Balance = rand:uniform(1000000000),
-	B1 = bucket(octets, Balance),
-	_BId = add_bucket(ProdRef, B1),
 	Ref = erlang:ref_to_list(make_ref()),
 	SId = diameter:session_id(Ref),
 	RequestNum = 0,
@@ -294,17 +279,9 @@ send_interim_scur_class_b() ->
 	[{userdata, [{doc, "On received SCUR CCR-U send updateRating"}]}].
 
 send_interim_scur_class_b(_Config) ->
-	P1 = price(usage, octets, rand:uniform(10000000), rand:uniform(1000000)),
-	OfferId = add_offer([P1], 4),
-	ProdRef = add_product(OfferId),
 	MSISDN = list_to_binary(ocs:generate_identity()),
 	IMSI = list_to_binary(ocs:generate_identity()),
 	Subscriber = {MSISDN, IMSI},
-	Password = ocs:generate_identity(),
-	{ok, #service{}} = ocs:add_service(MSISDN, Password, ProdRef, []),
-	Balance = rand:uniform(100000000000),
-	B1 = bucket(octets, Balance),
-	_BId = add_bucket(ProdRef, B1),
 	Ref = erlang:ref_to_list(make_ref()),
 	SId = diameter:session_id(Ref),
 	RequestNum0 = 0,
@@ -314,7 +291,7 @@ send_interim_scur_class_b(_Config) ->
 	Answer0 = diameter_scur_start(SId, Subscriber, RequestNum0, RequestedServiceUnits),
 	#'3gpp_ro_CCA'{'Result-Code' = ?'DIAMETER_BASE_RESULT-CODE_SUCCESS'} = Answer0,
 	RequestNum1 = RequestNum0 + 1,
-	InputOctets2 = rand:uniform(Balance div 2),
+	InputOctets2 = rand:uniform(100),
 	OutputOctets2 = rand:uniform(200),
 	UsedServiceUnits = {InputOctets2, OutputOctets2},
 	Answer1 = diameter_scur_interim(SId, Subscriber, RequestNum1, UsedServiceUnits, 0),
@@ -324,28 +301,20 @@ receive_interim_scur_class_b() ->
 	[{userdata, [{doc, "On SCUR updateRating response send CCA-U"}]}].
 
 receive_interim_scur_class_b(_Config) ->
-	P1 = price(usage, octets, rand:uniform(10000000), rand:uniform(1000000)),
-	OfferId = add_offer([P1], 4),
-	ProdRef = add_product(OfferId),
 	MSISDN = list_to_binary(ocs:generate_identity()),
 	IMSI = list_to_binary(ocs:generate_identity()),
 	Subscriber = {MSISDN, IMSI},
-	Password = ocs:generate_identity(),
-	{ok, #service{}} = ocs:add_service(MSISDN, Password, ProdRef, []),
-	Balance = rand:uniform(100000000000),
-	B1 = bucket(octets, Balance),
-	_BId = add_bucket(ProdRef, B1),
 	Ref = erlang:ref_to_list(make_ref()),
 	SId = diameter:session_id(Ref),
 	RequestNum0 = 0,
-	InputOctets1 = rand:uniform(Balance div 3),
-	OutputOctets1 = rand:uniform(Balance div 4),
+	InputOctets1 = rand:uniform(1000),
+	OutputOctets1 = rand:uniform(2000),
 	RequestedServiceUnits = {InputOctets1, OutputOctets1},
 	Answer0 = diameter_scur_start(SId, Subscriber, RequestNum0, RequestedServiceUnits),
 	#'3gpp_ro_CCA'{'Result-Code' = ?'DIAMETER_BASE_RESULT-CODE_SUCCESS'} = Answer0,
 	RequestNum1 = RequestNum0 + 1,
-	InputOctets2 = rand:uniform(Balance div 2),
-	OutputOctets2 = rand:uniform(Balance div 3),
+	InputOctets2 = rand:uniform(100),
+	OutputOctets2 = rand:uniform(200),
 	UsedServiceUnits = {InputOctets2, OutputOctets2},
 	Answer1 = diameter_scur_interim(SId, Subscriber, RequestNum1, UsedServiceUnits, 0),
 	#'3gpp_ro_CCA'{'Result-Code' = ?'DIAMETER_BASE_RESULT-CODE_SUCCESS',
@@ -362,17 +331,9 @@ send_final_scur_class_b() ->
 	[{userdata, [{doc, "On received SCUR CCR-T send endRating"}]}].
 
 send_final_scur_class_b(_Config) ->
-	P1 = price(usage, octets, rand:uniform(10000000), rand:uniform(1000000)),
-	OfferId = add_offer([P1], 4),
-	ProdRef = add_product(OfferId),
 	MSISDN = list_to_binary(ocs:generate_identity()),
 	IMSI = list_to_binary(ocs:generate_identity()),
 	Subscriber = {MSISDN, IMSI},
-	Password = ocs:generate_identity(),
-	{ok, #service{}} = ocs:add_service(MSISDN, Password, ProdRef, []),
-	Balance = rand:uniform(1000000000),
-	B1 = bucket(octets, Balance),
-	_BId = add_bucket(ProdRef, B1),
 	Ref = erlang:ref_to_list(make_ref()),
 	SId = diameter:session_id(Ref),
 	RequestNum0 = 0,
@@ -382,13 +343,13 @@ send_final_scur_class_b(_Config) ->
 	Answer0 = diameter_scur_start(SId, Subscriber, RequestNum0, RequestedServiceUnits),
 	#'3gpp_ro_CCA'{'Result-Code' = ?'DIAMETER_BASE_RESULT-CODE_SUCCESS'} = Answer0,
 	RequestNum1 = RequestNum0 + 1,
-	InputOctets2 =  rand:uniform(Balance div 2),
+	InputOctets2 =  rand:uniform(100),
 	OutputOctets2 = rand:uniform(200),
 	UsedServiceUnits = {InputOctets2, OutputOctets2},
 	Answer1 = diameter_scur_interim(SId, Subscriber, RequestNum1, UsedServiceUnits, 0),
 	#'3gpp_ro_CCA'{'Result-Code' = ?'DIAMETER_BASE_RESULT-CODE_SUCCESS'} = Answer1,
 	RequestNum2 = RequestNum1 + 1,
-	Grant2 = rand:uniform(Balance div 2),
+	Grant2 = rand:uniform(300),
 	Answer2 = diameter_scur_stop(SId, Subscriber, RequestNum2, Grant2),
 	#'3gpp_ro_CCA'{'Result-Code' = ?'DIAMETER_BASE_RESULT-CODE_SUCCESS'} = Answer2.
 
@@ -396,17 +357,9 @@ receive_final_scur_class_b() ->
 	[{userdata, [{doc, "On SCUR endRatingresponse send CCA-T"}]}].
 
 receive_final_scur_class_b(_Config) ->
-	P1 = price(usage, octets, rand:uniform(10000000), rand:uniform(1000000)),
-	OfferId = add_offer([P1], 4),
-	ProdRef = add_product(OfferId),
 	MSISDN = list_to_binary(ocs:generate_identity()),
 	IMSI = list_to_binary(ocs:generate_identity()),
 	Subscriber = {MSISDN, IMSI},
-	Password = ocs:generate_identity(),
-	{ok, #service{}} = ocs:add_service(MSISDN, Password, ProdRef, []),
-	Balance = rand:uniform(1000000000),
-	B1 = bucket(octets, Balance),
-	_BId = add_bucket(ProdRef, B1),
 	Ref = erlang:ref_to_list(make_ref()),
 	SId = diameter:session_id(Ref),
 	RequestNum0 = 0,
@@ -416,13 +369,13 @@ receive_final_scur_class_b(_Config) ->
 	Answer0 = diameter_scur_start(SId, Subscriber, RequestNum0, RequestedServiceUnits),
 	#'3gpp_ro_CCA'{'Result-Code' = ?'DIAMETER_BASE_RESULT-CODE_SUCCESS'} = Answer0,
 	RequestNum1 = RequestNum0 + 1,
-	InputOctets2 = rand:uniform(Balance div 2),
+	InputOctets2 = rand:uniform(100),
 	OutputOctets2 = rand:uniform(200),
 	UsedServiceUnits = {InputOctets2, OutputOctets2},
 	Answer1 = diameter_scur_interim(SId, Subscriber, RequestNum1, UsedServiceUnits, 0),
 	#'3gpp_ro_CCA'{'Result-Code' = ?'DIAMETER_BASE_RESULT-CODE_SUCCESS'} = Answer1,
 	RequestNum2 = RequestNum1 + 1,
-	UsedServiceUnits1 = rand:uniform(Balance div 2),
+	UsedServiceUnits1 = rand:uniform(300),
 	Answer2 = diameter_scur_stop(SId, Subscriber, RequestNum2, UsedServiceUnits1),
 	#'3gpp_ro_CCA'{'Result-Code' = ?'DIAMETER_BASE_RESULT-CODE_SUCCESS',
 			'Auth-Application-Id' = ?RO_APPLICATION_ID,
@@ -437,22 +390,14 @@ receive_interim_no_usu_scur_class_b() ->
 	[{userdata, [{doc, "On SCUR updateRating response with no USU send CCA-U"}]}].
 
 receive_interim_no_usu_scur_class_b(_Config) ->
-	P1 = price(usage, octets, rand:uniform(10000000), rand:uniform(1000000)),
-	OfferId = add_offer([P1], 4),
-	ProdRef = add_product(OfferId),
 	MSISDN = list_to_binary(ocs:generate_identity()),
 	IMSI = list_to_binary(ocs:generate_identity()),
 	Subscriber = {MSISDN, IMSI},
-	Password = ocs:generate_identity(),
-	{ok, #service{}} = ocs:add_service(MSISDN, Password, ProdRef, []),
-	Balance = rand:uniform(1000000000),
-	B1 = bucket(octets, Balance),
-	_BId = add_bucket(ProdRef, B1),
 	Ref = erlang:ref_to_list(make_ref()),
 	SId = diameter:session_id(Ref),
 	RequestNum0 = 0,
-	InputOctets1 = rand:uniform(Balance),
-	OutputOctets1 = rand:uniform(Balance),
+	InputOctets1 = rand:uniform(100),
+	OutputOctets1 = rand:uniform(200),
 	RequestedServiceUnits1 = {InputOctets1, OutputOctets1},
 	Answer0 = diameter_scur_start(SId, Subscriber, RequestNum0, RequestedServiceUnits1),
 	#'3gpp_ro_CCA'{'Result-Code' = ?'DIAMETER_BASE_RESULT-CODE_SUCCESS'} = Answer0,
@@ -475,17 +420,9 @@ receive_initial_empty_rsu_scur_class_b() ->
 	[{userdata, [{doc, "On SCUR startRating with empty RSU send CCA-I"}]}].
 
 receive_initial_empty_rsu_scur_class_b(_Config) ->
-	P1 = price(usage, octets, rand:uniform(10000000), rand:uniform(1000000)),
-	OfferId = add_offer([P1], 4),
-	ProdRef = add_product(OfferId),
 	MSISDN = list_to_binary(ocs:generate_identity()),
 	IMSI = list_to_binary(ocs:generate_identity()),
 	Subscriber = {MSISDN, IMSI},
-	Password = ocs:generate_identity(),
-	{ok, #service{}} = ocs:add_service(MSISDN, Password, ProdRef, []),
-	Balance = rand:uniform(1000000000),
-	B1 = bucket(octets, Balance),
-	_BId = add_bucket(ProdRef, B1),
 	Ref = erlang:ref_to_list(make_ref()),
 	SId = diameter:session_id(Ref),
 	RequestNum = 0,
@@ -639,18 +576,11 @@ send_iec_class_b() ->
 	[{userdata, [{doc, "On received IEC CCR-E send startRating"}]}].
 
 send_iec_class_b(_Config) ->
-	P1 = price(usage, messages, 1, rand:uniform(1000000)),
-	OfferId = add_offer([P1], 11),
-	ProdRef = add_product(OfferId),
-   B1 = bucket(messages, 5),
-   _BId = add_bucket(ProdRef, B1),
    Ref = erlang:ref_to_list(make_ref()),
    SId = diameter:session_id(Ref),
 	MSISDN = list_to_binary(ocs:generate_identity()),
 	IMSI = list_to_binary(ocs:generate_identity()),
 	Subscriber = {MSISDN, IMSI},
-	Password = ocs:generate_identity(),
-	{ok, #service{}} = ocs:add_service(MSISDN, Password, ProdRef, []),
 	RequestNum = 0,
 	Answer0 = diameter_iec(Subscriber, SId, RequestNum),
 	#'3gpp_ro_CCA'{'Result-Code' = ?'DIAMETER_BASE_RESULT-CODE_SUCCESS'} = Answer0.
@@ -659,18 +589,11 @@ receive_iec_class_b() ->
 	[{userdata, [{doc, "On IEC startRating response send CCA-E"}]}].
 
 receive_iec_class_b(_Config) ->
-	P1 = price(usage, messages, 1, rand:uniform(1000000)),
-	OfferId = add_offer([P1], 11),
-	ProdRef = add_product(OfferId),
-   B1 = bucket(messages, 5),
-   _BId = add_bucket(ProdRef, B1),
    Ref = erlang:ref_to_list(make_ref()),
    SId = diameter:session_id(Ref),
 	MSISDN = list_to_binary(ocs:generate_identity()),
 	IMSI = list_to_binary(ocs:generate_identity()),
 	Subscriber = {MSISDN, IMSI},
-	Password = ocs:generate_identity(),
-	{ok, #service{}} = ocs:add_service(MSISDN, Password, ProdRef, []),
 	RequestNum = 0,
 	Answer0 = diameter_iec(Subscriber, SId, RequestNum),
 	#'3gpp_ro_CCA'{'Result-Code' = ?'DIAMETER_BASE_RESULT-CODE_SUCCESS',
@@ -686,16 +609,9 @@ send_initial_ecur_class_b() ->
 	[{userdata, [{doc, "On received ECUR CCR-I send startRating"}]}].
 
 send_initial_ecur_class_b(_Config) ->
-	P1 = price(usage, messages, 1, rand:uniform(1000000)),
-	OfferId = add_offer([P1], 11),
-	ProdRef = add_product(OfferId),
 	MSISDN = list_to_binary(ocs:generate_identity()),
 	IMSI = list_to_binary(ocs:generate_identity()),
 	Subscriber = {MSISDN, IMSI},
-	Password = ocs:generate_identity(),
-	{ok, #service{}} = ocs:add_service(MSISDN, Password, ProdRef, []),
-	B1 = bucket(messages, 5),
-	_BId = add_bucket(ProdRef, B1),
 	Ref = erlang:ref_to_list(make_ref()),
 	SId = diameter:session_id(Ref),
 	RequestNum = 0,
@@ -706,16 +622,9 @@ receive_initial_ecur_class_b() ->
 	[{userdata, [{doc, "On ECUR startRating response send CCA-I"}]}].
 
 receive_initial_ecur_class_b(_Config) ->
-	P1 = price(usage, messages, 1, rand:uniform(1000000)),
-	OfferId = add_offer([P1], 11),
-	ProdRef = add_product(OfferId),
 	MSISDN = list_to_binary(ocs:generate_identity()),
 	IMSI = list_to_binary(ocs:generate_identity()),
 	Subscriber = {MSISDN, IMSI},
-	Password = ocs:generate_identity(),
-	{ok, #service{}} = ocs:add_service(MSISDN, Password, ProdRef, []),
-	B1 = bucket(messages, 5),
-	_BId = add_bucket(ProdRef, B1),
 	Ref = erlang:ref_to_list(make_ref()),
 	SId = diameter:session_id(Ref),
 	RequestNum = 0,
@@ -733,16 +642,9 @@ send_final_ecur_class_b() ->
 	[{userdata, [{doc, "On received ECUR CCR-U send endRating"}]}].
 
 send_final_ecur_class_b(_Config) ->
-	P1 = price(usage, messages, 1, rand:uniform(1000000)),
-	OfferId = add_offer([P1], 11),
-	ProdRef = add_product(OfferId),
 	MSISDN = list_to_binary(ocs:generate_identity()),
 	IMSI = list_to_binary(ocs:generate_identity()),
 	Subscriber = {MSISDN, IMSI},
-	Password = ocs:generate_identity(),
-	{ok, #service{}} = ocs:add_service(MSISDN, Password, ProdRef, []),
-	B1 = bucket(messages, 5),
-	_BId = add_bucket(ProdRef, B1),
 	Ref = erlang:ref_to_list(make_ref()),
 	SId = diameter:session_id(Ref),
 	RequestNum0 = 0,
@@ -756,16 +658,9 @@ receive_final_ecur_class_b() ->
 	[{userdata, [{doc, "On ECUR endRating response send CCA-U"}]}].
 
 receive_final_ecur_class_b(_Config) ->
-	P1 = price(usage, messages, 1, rand:uniform(1000000)),
-	OfferId = add_offer([P1], 11),
-	ProdRef = add_product(OfferId),
 	MSISDN = list_to_binary(ocs:generate_identity()),
 	IMSI = list_to_binary(ocs:generate_identity()),
 	Subscriber = {MSISDN, IMSI},
-	Password = ocs:generate_identity(),
-	{ok, #service{}} = ocs:add_service(MSISDN, Password, ProdRef, []),
-	B1 = bucket(messages, 5),
-	_BId = add_bucket(ProdRef, B1),
 	Ref = erlang:ref_to_list(make_ref()),
 	SId = diameter:session_id(Ref),
 	RequestNum0 = 0,
@@ -1132,6 +1027,129 @@ receive_final_ecur_class_a(Config) ->
 			'CC-Request-Type' = ?'3GPP_CC-REQUEST-TYPE_TERMINATION_REQUEST',
 			'CC-Request-Number' = RequestNum1,
 			'Multiple-Services-Credit-Control' = []} = Answer1.
+
+scur_sms_class_b() ->
+	[{userdata, [{doc, "Diameter SCUR SMS Nrf Class B operation"}]}].
+
+scur_sms_class_b(_Config) ->
+	Subscriber = list_to_binary(ocs:generate_identity()),
+	MSISDN = #'3gpp_ro_Subscription-Id'{
+			'Subscription-Id-Type' = ?'3GPP_SUBSCRIPTION-ID-TYPE_END_USER_E164',
+			'Subscription-Id-Data' = Subscriber},
+	IMSI = #'3gpp_ro_Subscription-Id'{
+			'Subscription-Id-Type' = ?'3GPP_SUBSCRIPTION-ID-TYPE_END_USER_IMSI',
+			'Subscription-Id-Data' = list_to_binary(ocs:generate_identity())},
+	ServiceInformation = #'3gpp_ro_Service-Information'{'PS-Information' =
+			[#'3gpp_ro_PS-Information'{
+					'3GPP-PDP-Type' = [3],
+					'Serving-Node-Type' = [2],
+					'SGSN-Address' = [{10,1,2,3}],
+					'GGSN-Address' = [{10,4,5,6}],
+					'3GPP-IMSI-MCC-MNC' = [<<"001001">>],
+					'3GPP-GGSN-MCC-MNC' = [<<"001001">>],
+					'3GPP-SGSN-MCC-MNC' = [<<"001001">>]}]},
+	Ref = erlang:ref_to_list(make_ref()),
+	SId = diameter:session_id(Ref),
+	RequestNum0 = 0,
+	RequestedUnits0 = #'3gpp_ro_Requested-Service-Unit'{'CC-Service-Specific-Units' = [1]},
+	MultiServices_CC0 = #'3gpp_ro_Multiple-Services-Credit-Control'{
+			'Requested-Service-Unit' = [RequestedUnits0], 'Service-Identifier' = [1],
+			'Rating-Group' = [2]},
+	CC_CCR0 = #'3gpp_ro_CCR'{'Session-Id' = SId,
+			'Auth-Application-Id' = ?RO_APPLICATION_ID,
+			'Service-Context-Id' = "32274@3gpp.org",
+			'User-Name' = [Subscriber],
+			'CC-Request-Type' = ?'3GPP_CC-REQUEST-TYPE_INITIAL_REQUEST',
+			'CC-Request-Number' = RequestNum0,
+			'Event-Timestamp' = [calendar:universal_time()],
+			'Subscription-Id' = [MSISDN, IMSI],
+			'Multiple-Services-Credit-Control' = [MultiServices_CC0],
+			'Service-Information' = [ServiceInformation]},
+	{ok, Answer0} = diameter:call(?MODULE, cc_app_test, CC_CCR0, []),
+	#'3gpp_ro_CCA'{'Result-Code' = ?'DIAMETER_BASE_RESULT-CODE_SUCCESS'} = Answer0,
+	RequestNum1 = RequestNum0 + 1,
+	UsedUnits1 = #'3gpp_ro_Used-Service-Unit'{'CC-Service-Specific-Units' = [1]},
+	RequestedUnits1 = #'3gpp_ro_Requested-Service-Unit'{'CC-Service-Specific-Units' = []},
+	MultiServices_CC1 = #'3gpp_ro_Multiple-Services-Credit-Control'{
+			'Used-Service-Unit' = [UsedUnits1],
+			'Requested-Service-Unit' = [RequestedUnits1], 'Service-Identifier' = [1],
+			'Rating-Group' = [2]},
+	CC_CCR1 = #'3gpp_ro_CCR'{'Session-Id' = SId,
+		'Auth-Application-Id' = ?RO_APPLICATION_ID,
+		'Service-Context-Id' = "32274@3gpp.org",
+		'User-Name' = [Subscriber],
+		'CC-Request-Type' = ?'3GPP_CC-REQUEST-TYPE_UPDATE_REQUEST',
+		'CC-Request-Number' = RequestNum1,
+		'Event-Timestamp' = [calendar:universal_time()],
+		'Multiple-Services-Credit-Control' = [MultiServices_CC1],
+		'Subscription-Id' = [MSISDN, IMSI],
+		'Service-Information' = [ServiceInformation]},
+	{ok, Answer1} = diameter:call(?MODULE, cc_app_test, CC_CCR1, []),
+	#'3gpp_ro_CCA'{'Result-Code' = ?'DIAMETER_BASE_RESULT-CODE_SUCCESS'} = Answer1,
+	RequestNum2 = RequestNum1 + 1,
+	UsedUnits2 = #'3gpp_ro_Used-Service-Unit'{'CC-Service-Specific-Units' = [1]},
+	RequestedUnits2 = #'3gpp_ro_Requested-Service-Unit'{'CC-Service-Specific-Units' = []},
+	MultiServices_CC2 = #'3gpp_ro_Multiple-Services-Credit-Control'{
+			'Used-Service-Unit' = [UsedUnits2],
+			'Requested-Service-Unit' = [RequestedUnits2], 'Service-Identifier' = [1],
+			'Rating-Group' = [2]},
+	CC_CCR2 = #'3gpp_ro_CCR'{'Session-Id' = SId,
+		'Auth-Application-Id' = ?RO_APPLICATION_ID,
+		'Service-Context-Id' = "32274@3gpp.org",
+		'User-Name' = [Subscriber],
+		'CC-Request-Type' = ?'3GPP_CC-REQUEST-TYPE_UPDATE_REQUEST',
+		'CC-Request-Number' = RequestNum2,
+		'Event-Timestamp' = [calendar:universal_time()],
+		'Multiple-Services-Credit-Control' = [MultiServices_CC2],
+		'Subscription-Id' = [MSISDN, IMSI],
+		'Service-Information' = [ServiceInformation]},
+	{ok, Answer2} = diameter:call(?MODULE, cc_app_test, CC_CCR2, []),
+	#'3gpp_ro_CCA'{'Result-Code' = ?'DIAMETER_BASE_RESULT-CODE_SUCCESS'} = Answer2,
+	RequestNum3 = RequestNum2 + 1,
+	UsedUnits3 = #'3gpp_ro_Used-Service-Unit'{'CC-Service-Specific-Units' = [1]},
+	RequestedUnits3 = #'3gpp_ro_Requested-Service-Unit'{'CC-Service-Specific-Units' = []},
+	MultiServices_CC3 = #'3gpp_ro_Multiple-Services-Credit-Control'{
+			'Used-Service-Unit' = [UsedUnits3],
+			'Requested-Service-Unit' = [RequestedUnits3], 'Service-Identifier' = [1],
+			'Rating-Group' = [2]},
+	CC_CCR3 = #'3gpp_ro_CCR'{'Session-Id' = SId,
+		'Auth-Application-Id' = ?RO_APPLICATION_ID,
+		'Service-Context-Id' = "32274@3gpp.org",
+		'User-Name' = [Subscriber],
+		'CC-Request-Type' = ?'3GPP_CC-REQUEST-TYPE_UPDATE_REQUEST',
+		'CC-Request-Number' = RequestNum3,
+		'Event-Timestamp' = [calendar:universal_time()],
+		'Multiple-Services-Credit-Control' = [MultiServices_CC3],
+		'Subscription-Id' = [MSISDN, IMSI],
+		'Service-Information' = [ServiceInformation]},
+	{ok, Answer3} = diameter:call(?MODULE, cc_app_test, CC_CCR3, []),
+	#'3gpp_ro_CCA'{'Result-Code' = ?'DIAMETER_BASE_RESULT-CODE_SUCCESS'} = Answer3,
+	RequestNum4 = RequestNum3 + 1,
+	UsedUnits4 = #'3gpp_ro_Used-Service-Unit'{'CC-Service-Specific-Units' = [1]},
+	RequestedUnits4 = #'3gpp_ro_Requested-Service-Unit'{'CC-Service-Specific-Units' = []},
+	MultiServices_CC4 = #'3gpp_ro_Multiple-Services-Credit-Control'{
+			'Used-Service-Unit' = [UsedUnits4],
+			'Requested-Service-Unit' = [RequestedUnits4], 'Service-Identifier' = [1],
+			'Rating-Group' = [2]},
+	CC_CCR4 = #'3gpp_ro_CCR'{'Session-Id' = SId,
+			'Auth-Application-Id' = ?RO_APPLICATION_ID,
+			'Service-Context-Id' = "32274@3gpp.org" ,
+			'User-Name' = [Subscriber],
+			'CC-Request-Type' = ?'3GPP_CC-REQUEST-TYPE_TERMINATION_REQUEST',
+			'CC-Request-Number' = RequestNum4,
+			'Event-Timestamp' = [calendar:universal_time()],
+			'Multiple-Services-Credit-Control' = [MultiServices_CC4],
+			'Subscription-Id' = [MSISDN, IMSI],
+			'Service-Information' = [ServiceInformation]},
+	{ok, Answer4} = diameter:call(?MODULE, cc_app_test, CC_CCR4, []),
+	#'3gpp_ro_CCA'{'Result-Code' = ?'DIAMETER_BASE_RESULT-CODE_SUCCESS',
+			'Auth-Application-Id' = ?RO_APPLICATION_ID,
+			'CC-Request-Type' = ?'3GPP_CC-REQUEST-TYPE_TERMINATION_REQUEST',
+			'CC-Request-Number' = RequestNum4,
+			'Multiple-Services-Credit-Control' = [MultiServices_CC5]} = Answer4,
+	#'3gpp_ro_Multiple-Services-Credit-Control'{
+			'Used-Service-Unit' = [UsedUnits5]} = MultiServices_CC5,
+	#'3gpp_ro_Used-Service-Unit'{'CC-Service-Specific-Units' = [_UsedServiceUnits]} = UsedUnits5.
 
 %%---------------------------------------------------------------------
 %%  Internal functions
