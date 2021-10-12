@@ -321,7 +321,7 @@ send_interim_scur_class_b(_Config) ->
 	#'3gpp_ro_CCA'{'Result-Code' = ?'DIAMETER_BASE_RESULT-CODE_SUCCESS'} = Answer1.
 
 receive_interim_scur_class_b() ->
-	[{userdata, [{doc, "On IEC updateRating response send CCA-U"}]}].
+	[{userdata, [{doc, "On SCUR updateRating response send CCA-U"}]}].
 
 receive_interim_scur_class_b(_Config) ->
 	P1 = price(usage, octets, rand:uniform(10000000), rand:uniform(1000000)),
@@ -359,7 +359,7 @@ receive_interim_scur_class_b(_Config) ->
 	#'3gpp_ro_Used-Service-Unit'{'CC-Total-Octets' = [TotalOctets]} = UsedUnits.
 
 send_final_scur_class_b() ->
-	[{userdata, [{doc, "On received SCUR CCR-U send endRating"}]}].
+	[{userdata, [{doc, "On received SCUR CCR-T send endRating"}]}].
 
 send_final_scur_class_b(_Config) ->
 	P1 = price(usage, octets, rand:uniform(10000000), rand:uniform(1000000)),
@@ -393,7 +393,7 @@ send_final_scur_class_b(_Config) ->
 	#'3gpp_ro_CCA'{'Result-Code' = ?'DIAMETER_BASE_RESULT-CODE_SUCCESS'} = Answer2.
 
 receive_final_scur_class_b() ->
-	[{userdata, [{doc, "On IECendRatingresponse send CCA-U"}]}].
+	[{userdata, [{doc, "On SCUR endRatingresponse send CCA-T"}]}].
 
 receive_final_scur_class_b(_Config) ->
 	P1 = price(usage, octets, rand:uniform(10000000), rand:uniform(1000000)),
@@ -434,7 +434,7 @@ receive_final_scur_class_b(_Config) ->
 	#'3gpp_ro_Used-Service-Unit'{'CC-Total-Octets' = [UsedServiceUnits1]} = UsedUnits.
 
 receive_interim_no_usu_scur_class_b() ->
-	[{userdata, [{doc, "On IEC updateRating response with no USU send CCA-U"}]}].
+	[{userdata, [{doc, "On SCUR updateRating response with no USU send CCA-U"}]}].
 
 receive_interim_no_usu_scur_class_b(_Config) ->
 	P1 = price(usage, octets, rand:uniform(10000000), rand:uniform(1000000)),
@@ -636,7 +636,7 @@ post_final_scur_class_b(Config) ->
 	{_, {_, [{_, TotalOctets2}]}} = lists:keyfind("consumedUnit", 1, ServiceRating1).
 
 send_iec_class_b() ->
-	[{userdata, [{doc, "On received IEC CCR-I send startRating"}]}].
+	[{userdata, [{doc, "On received IEC CCR-E send startRating"}]}].
 
 send_iec_class_b(_Config) ->
 	P1 = price(usage, messages, 1, rand:uniform(1000000)),
@@ -656,7 +656,7 @@ send_iec_class_b(_Config) ->
 	#'3gpp_ro_CCA'{'Result-Code' = ?'DIAMETER_BASE_RESULT-CODE_SUCCESS'} = Answer0.
 
 receive_iec_class_b() ->
-	[{userdata, [{doc, "On IEC startRating response send CCA-I"}]}].
+	[{userdata, [{doc, "On IEC startRating response send CCA-E"}]}].
 
 receive_iec_class_b(_Config) ->
 	P1 = price(usage, messages, 1, rand:uniform(1000000)),
@@ -968,7 +968,7 @@ send_interim_scur_class_a(Config) ->
 	#'3gpp_ro_CCA'{'Result-Code' = ?'DIAMETER_BASE_RESULT-CODE_SUCCESS'} = Answer1.
 
 receive_interim_scur_class_a() ->
-	[{userdata, [{doc, "On IEC updateRating response send CCA-U"}]}].
+	[{userdata, [{doc, "On SCUR updateRating response send CCA-U"}]}].
 
 receive_interim_scur_class_a(Config) ->
 	OfferId = add_offer([price_pla(Config)], 4),
@@ -1004,7 +1004,7 @@ receive_interim_scur_class_a(Config) ->
 	#'3gpp_ro_Granted-Service-Unit'{'CC-Total-Octets' = [_TotalOctets]} = GrantedUnits.
 
 final_scur_class_a() ->
-	[{userdata, [{doc, "On received SCUR CCR-U send endRating"}]}].
+	[{userdata, [{doc, "On received SCUR CCR-T send endRating"}]}].
 
 final_scur_class_a(Config) ->
 	OfferId = add_offer([price_pla(Config)], 4),
@@ -1086,7 +1086,7 @@ receive_initial_ecur_class_a(Config) ->
 	#'3gpp_ro_Granted-Service-Unit'{'CC-Service-Specific-Units' = [1]} = UsedUnits.
 
 send_final_ecur_class_a() ->
-	[{userdata, [{doc, "On received ECUR CCR-U send endRating"}]}].
+	[{userdata, [{doc, "On received ECUR CCR-T send endRating"}]}].
 
 send_final_ecur_class_a(Config) ->
 	OfferId = add_offer([price_pla(Config)], 11),
@@ -1108,7 +1108,7 @@ send_final_ecur_class_a(Config) ->
 	#'3gpp_ro_CCA'{'Result-Code' = ?'DIAMETER_BASE_RESULT-CODE_SUCCESS'} = Answer1.
 
 receive_final_ecur_class_a() ->
-	[{userdata, [{doc, "On ECUR endRating response send CCA-U"}]}].
+	[{userdata, [{doc, "On ECUR endRating response send CCA-T"}]}].
 
 receive_final_ecur_class_a(Config) ->
 	OfferId = add_offer([price_pla(Config)], 11),
