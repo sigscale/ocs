@@ -176,7 +176,7 @@ init_per_testcase(TestCase, Config)
 		TestCase == receive_initial_ecur_class_b;
 		TestCase == send_final_ecur_class_b;
 		TestCase == receive_final_ecur_class_b;
-		TestCase == scur_sms_class_b ->
+		TestCase == scur_vas_class_b ->
 	Address = ?config(diameter_acct_address, Config),
 	{ok, _} = ocs:add_client(Address, undefined, diameter, undefined, true),
 	{ok, [Auth, {acct, [{DAddress, Port, Options}]}]} = application:get_env(ocs, diameter),
@@ -229,7 +229,7 @@ all() ->
 		post_final_ecur_class_b, send_initial_scur_class_a, receive_initial_scur_class_a,
 		send_interim_scur_class_a, receive_interim_scur_class_a, final_scur_class_a,
 		send_initial_ecur_class_a, receive_initial_ecur_class_a, send_final_ecur_class_a,
-		receive_final_ecur_class_a, scur_sms_class_b].
+		receive_final_ecur_class_a, scur_vas_class_b].
 
 %%---------------------------------------------------------------------
 %%  Test cases
@@ -1028,10 +1028,10 @@ receive_final_ecur_class_a(Config) ->
 			'CC-Request-Number' = RequestNum1,
 			'Multiple-Services-Credit-Control' = []} = Answer1.
 
-scur_sms_class_b() ->
+scur_vas_class_b() ->
 	[{userdata, [{doc, "Diameter SCUR SMS Nrf Class B operation"}]}].
 
-scur_sms_class_b(_Config) ->
+scur_vas_class_b(_Config) ->
 	Subscriber = list_to_binary(ocs:generate_identity()),
 	MSISDN = #'3gpp_ro_Subscription-Id'{
 			'Subscription-Id-Type' = ?'3GPP_SUBSCRIPTION-ID-TYPE_END_USER_E164',
