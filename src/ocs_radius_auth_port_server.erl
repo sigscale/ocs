@@ -324,7 +324,16 @@ request2(none, none, SessionID, Address, Port, Secret, PasswordReq, Trusted,
 	{ok, _} = radius_attributes:find(?UserName, Attributes),
 	case PasswordReq of
 		true ->
-			radius_attributes:fetch(?UserPassword, Attributes);
+			case {radius_attributes:find(?UserPassword, Attributes),
+					radius_attributes:find(?ChapPassword, Attributes),
+					radius_attributes:find(?State, Attributes)} of
+				{{ok, _}, {error, not_found}, _} ->
+					ok;
+				{{error, not_found}, {ok, _}, _} ->
+					ok;
+				{_, _, {ok, _}} ->
+					ok
+			end;
 		false ->
 			ok
 	end,

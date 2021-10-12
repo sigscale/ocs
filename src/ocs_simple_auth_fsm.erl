@@ -59,7 +59,7 @@
 		session_id :: string() | {NAS :: inet:ip_address() | string(),
 				Port :: string(), Peer :: string()},
 		radius_id :: undefined | byte(),
-		req_auth :: undefined | binary(),
+		req_auth :: undefined | [byte()] | binary(),
 		req_attr :: undefined | radius_attributes:attributes(),
 		res_attr :: undefined | radius_attributes:attributes(),
 		subscriber :: undefined | string(),
@@ -70,7 +70,9 @@
 		origin_realm :: undefined | string(),
 		dest_host :: undefined | string(),
 		dest_realm :: undefined | string(),
-		password :: undefined | string() | binary(),
+		password :: undefined | binary()
+				| {ChapId :: 0..255, ChapPassword :: binary(),
+						Challenge :: binary()},
 		diameter_port_server :: undefined | pid(),
 		request :: undefined | #diameter_nas_app_AAR{},
 		password_required :: boolean(),
@@ -204,20 +206,50 @@ request(timeout, #statedata{protocol = diameter} = StateData) ->
 	handle_diameter(StateData).
 
 %% @hidden
-handle_radius(#statedata{req_attr = Attributes, req_auth = Authenticator,
-		session_id = SessionID, shared_secret = Secret, password_required =
-		PasswordReq} = StateData) ->
+handle_radius(#statedata{req_attr = Attributes, session_id = SessionID,
+		password_required = false} = StateData) ->
 	try
 		Subscriber = radius_attributes:fetch(?UserName, Attributes),
-		Password = case PasswordReq of
-			true ->
-				Hidden = radius_attributes:fetch(?UserPassword, Attributes),
-				radius_attributes:unhide(Secret, Authenticator, Hidden);
-			false ->
-				[]
+		NewStateData = StateData#statedata{subscriber = Subscriber,
+				password = <<>>},
+		handle_radius1(NewStateData)
+	catch
+		_:_ ->
+			response(?AccessReject, [], StateData),
+			{stop, {shutdown, SessionID}, StateData}
+	end;
+handle_radius(#statedata{req_attr = Attributes, req_auth = Authenticator,
+		session_id = SessionID, shared_secret = Secret,
+		password_required = true} = StateData) ->
+	try
+		Subscriber = radius_attributes:fetch(?UserName, Attributes),
+		Password = case radius_attributes:find(?UserPassword, Attributes) of
+			{ok, Hidden} ->
+				list_to_binary(radius_attributes:unhide(Secret,
+						Authenticator, Hidden));
+			{error, not_found} ->
+				{ChapId, ChapPassword} = case radius_attributes:fetch(?ChapPassword,
+						Attributes) of
+					{N, B} when is_binary(B) ->
+						{N, B};
+					{N, L} when is_list(L) ->
+						{N, list_to_binary(L)}
+				end,
+				Challenge = case radius_attributes:find(?ChapChallenge,
+						Attributes) of
+					{ok, ChapChallenge} when is_binary(ChapChallenge) ->
+						ChapChallenge;
+					{ok, ChapChallenge} when is_list(ChapChallenge) ->
+						list_to_binary(ChapChallenge);
+					{error, not_found} when is_binary(Authenticator) ->
+						Authenticator;
+					{error, not_found} when is_list(Authenticator) ->
+						list_to_binary(Authenticator)
+				end,
+				{ChapId, ChapPassword, Challenge}
 		end,
 		NewStateData = StateData#statedata{subscriber = Subscriber,
-				password = list_to_binary(Password)},
+				password = Password},
 		handle_radius1(NewStateData)
 	catch
 		_:_ ->

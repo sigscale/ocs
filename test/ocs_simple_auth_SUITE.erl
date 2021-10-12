@@ -135,7 +135,7 @@ end_per_testcase(TestCase, Config) when
 		TestCase == simple_authentication_diameter; TestCase == bad_password_diameter;
 		TestCase == unknown_username_diameter; TestCase == out_of_credit_diameter;
 		TestCase == session_termination_diameter ->
-	Client = ?config(diameter_client, Config),
+	Client = ?config(diameter_acct_address, Config),
 	ok = ocs:delete_client(Client);
 end_per_testcase(_TestCase, Config) ->
 	Socket = ?config(socket, Config),
@@ -151,10 +151,10 @@ sequences() ->
 %% Returns a list of all test cases in this test suite.
 %%
 all() -> 
-	[simple_authentication_radius, out_of_credit_radius, bad_password_radius,
-	unknown_username_radius, simple_authentication_diameter, bad_password_diameter,
-	unknown_username_diameter, out_of_credit_diameter, session_termination_diameter,
-	authenticate_voice_call].
+	[simple_authentication_radius, simple_auth_radius_chap, out_of_credit_radius,
+	bad_password_radius, unknown_username_radius, simple_authentication_diameter,
+	bad_password_diameter, unknown_username_diameter, out_of_credit_diameter,
+	session_termination_diameter, authenticate_voice_call].
 
 %%---------------------------------------------------------------------
 %%  Test cases
@@ -202,6 +202,47 @@ simple_authentication_radius(Config) ->
 
 simple_authentication_diameter() ->
 	[{userdata, [{doc, "Successful simple authentication using DIAMETER NAS application"}]}].
+
+simple_auth_radius_chap() ->
+	[{userdata, [{doc, "RADIUS Access-Request with CHAP"}]}].
+
+simple_auth_radius_chap(Config) ->
+	Id = 1,
+	NasId = ?config(nas_id, Config),
+	P1 = price(usage, octets, rand:uniform(1000000), rand:uniform(100)),
+	OfferId = add_offer([P1], 4),
+	ProdRef = add_product(OfferId),
+	#service{name = PeerID,
+			password = PeerPassword} =  add_service(ProdRef),
+	B1 = bucket(octets, rand:uniform(100000)),
+	_BId = add_bucket(ProdRef, B1),
+	CalledStationId = ?config(called_id, Config),
+	MAC = "DE:FE1:DE:EE:BE:AE",
+	MACtokens = string:tokens(MAC, ":"),
+	CallingStationId = string:join(MACtokens, "-"),
+	Authenticator = radius:authenticator(),
+	SharedSecret = ct:get_config({radius, secret}),
+	ChapId = 42,
+	ChapPassword = crypto:hash(md5, [ChapId, PeerPassword, Authenticator]),
+	{ok, RadiusConfig} = application:get_env(ocs, radius),
+	{auth, [{AuthAddress, AuthPort, _} | _]} = lists:keyfind(auth, 1, RadiusConfig),
+	Socket = ?config(socket, Config), 
+	A0 = radius_attributes:new(),
+	A1 = radius_attributes:add(?ServiceType, 2, A0),
+	A2 = radius_attributes:add(?NasPortId, "wlan1", A1),
+	A3 = radius_attributes:add(?NasPortType, 19, A2),
+	A4 = radius_attributes:add(?UserName, binary_to_list(PeerID), A3),
+	A5 = radius_attributes:add(?AcctSessionId, "826005e0", A4),
+	A6 = radius_attributes:add(?CallingStationId, CallingStationId, A5),
+	A7 = radius_attributes:add(?CalledStationId, CalledStationId, A6),
+	A8 = radius_attributes:add(?ChapPassword, {ChapId, ChapPassword}, A7),
+	A9 = radius_attributes:add(?NasIdentifier, NasId, A8),
+	AccessReqest = #radius{code = ?AccessRequest, id = Id,
+			authenticator = Authenticator, attributes = A9},
+	AccessReqestPacket= radius:codec(AccessReqest),
+	ok = gen_udp:send(Socket, AuthAddress, AuthPort, AccessReqestPacket),
+	{ok, {AuthAddress, AuthPort, AccessAcceptPacket}} = gen_udp:recv(Socket, 0),
+	#radius{code = ?AccessAccept, id = Id} = radius:codec(AccessAcceptPacket).
 
 simple_authentication_diameter(_Config) ->
 	P1 = price(usage, octets, rand:uniform(1000000), rand:uniform(100)),

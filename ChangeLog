@@ -1,3 +1,45 @@
+2021-10-09  Vance Shipley <vances@sigscale.org>
+
+	* radius chap authentication (ocs-497)
+	* delete diameter client after test cases in simple auth suite
+	* allow uri patterns to redirect server in offer update
+	* update log test suite to expect multiple rated records
+	* removed deprecated i18n
+	* url encode reserved chars in rest api test suite
+	* correct salt in eap aka/aka'
+	* correct prf in eap akap
+	* correct statistics server interval handling
+	* ocs shell command for scheduler utilization
+	* ocs shell command for table distribution
+	* ocs shell command for table sizes
+	* includes for record definitions in shell
+	* acct session time should be taken from used service units
+	* input, output and total octets should be taken from used service units
+	* ocs shell command for last log events
+	* correct type specification for diameter capabilities
+	* ocs shell command for acct log query
+	* ocs shell command for diameter capabilities
+	* refactor ocs diameter shell commands
+	* correct rescheduling when job completes in < 1s
+	* ocs shell command help; short function names
+	* set default paper-tab
+	* fix star, end update in offer
+	* implement update start, end in price
+	* fix adding start, end time in offering prices
+	* fix offer start and end time path for update
+	* session id is a binary value in CCR record
+	* tod test on upper value also
+	* missing commas in rest problem resports
+	* patch function should be public in rest library
+	* fix tax included amount update
+	* consistent web component view titles
+	* ignore empty price characteristic values
+	* correct time-of-day in update price
+	* char value type unit value is integer
+	* clear price name after click update
+	* fix offer price update for unit size and units
+	* fix charging key in offer price remove method
+
 2021-09-14  Vance Shipley <vances@sigscale.org>
 
 	* status in update product offer
