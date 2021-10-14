@@ -4,9 +4,10 @@ Prebuilt packages available for [Ubuntu](https://raw.githubusercontent.com/sigsc
 [Debian](https://raw.githubusercontent.com/sigscale/ocs/master/README.debian)
 and [Docker](https://raw.githubusercontent.com/sigscale/ocs/master/README.docker).
 
+[FAQ](https://sigscale.atlassian.net/wiki/spaces/SO/pages/3833857/FAQ+on+OCS "FAQ")
+[HOWTO](https://sigscale.atlassian.net/wiki/spaces/SO/pages/3833890/How-To+with+OCS "HOWTO")
 [Open Issues](https://sigscale.atlassian.net/projects/OCS/issues/?filter=allopenissues "Open Issues")  
-[Create Issue](https://sigscale.atlassian.net/secure/CreateIssue!default.jspa?pid=10100&issuetype=10000 "Create
- Issue")
+[Create Issue](https://sigscale.atlassian.net/secure/CreateIssue!default.jspa?pid=10100&issuetype=10000 "Create Issue")
 
 This application implements functions used by communications
 service providers (CSP) for authorization and charging of
