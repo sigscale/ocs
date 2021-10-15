@@ -496,7 +496,21 @@ diameter_error(SId, ResultCode, OHost, ORealm, RequestType, RequestNum) ->
 		Subscriber :: binary() | [].
 %% @doc Get Subscribers From Diameter SubscriberId AVP.
 subscriber_id(SubscriberIdAVPs) ->
-	subscriber_id(SubscriberIdAVPs, get_option(sub_id_type)).
+	ServiceOptions = case application:get_env(ocs, diameter) of
+		{ok, [{acct, [{_, _, Oplist}]}]} ->
+			Oplist;
+		{ok, [{acct, [{_, _, Oplist}]}, _]} ->
+			Oplist;
+		{ok, [_, {acct, [{_, _, Oplist}]}]} ->
+			Oplist
+	end,
+	IdTypes = case lists:keyfind(sub_id_type, 1, ServiceOptions) of
+		{sub_id_type, Value} ->
+			Value;
+		false ->
+			undefined
+	end,
+	subscriber_id(SubscriberIdAVPs, IdTypes).
 %% @hidden
 subscriber_id(SubscriberIdAVPs, undefined) ->
 	subscriber_id(SubscriberIdAVPs, [msisdn]);
@@ -513,3 +527,16 @@ subscriber_id(SubscriberIdAVPs, [H | T])
 subscriber_id(_, []) ->
 	[].
 
+%% @hidden
+id_type(imsi) ->
+	?'3GPP_SUBSCRIPTION-ID-TYPE_END_USER_IMSI';
+id_type(msisdn) ->
+	?'3GPP_SUBSCRIPTION-ID-TYPE_END_USER_E164';
+id_type(nai) ->
+	?'3GPP_SUBSCRIPTION-ID-TYPE_END_USER_NAI';
+id_type(sip) ->
+	?'3GPP_SUBSCRIPTION-ID-TYPE_END_USER_SIP_URI';
+id_type(private) ->
+	?'3GPP_SUBSCRIPTION-ID-TYPE_END_USER_PRIVATE';
+id_type(_) ->
+	[].

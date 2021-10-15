@@ -1155,7 +1155,21 @@ fui(RedirectServerAddress)
 		SubId :: binary().
 %% @doc Get Subscribers From Diameter SubscriberId AVP.
 subscriber_id(SubscriberIdAVPs) ->
-	subscriber_id(SubscriberIdAVPs, get_option(sub_id_type)).
+	ServiceOptions = case application:get_env(ocs, diameter) of
+		{ok, [{acct, [{_, _, Oplist}]}]} ->
+			Oplist;
+		{ok, [{acct, [{_, _, Oplist}]}, _]} ->
+			Oplist;
+		{ok, [_, {acct, [{_, _, Oplist}]}]} ->
+			Oplist
+	end,
+	IdTypes = case lists:keyfind(sub_id_type, 1, ServiceOptions) of
+		{sub_id_type, Value} ->
+			Value;
+		false ->
+			undefined
+	end,
+	subscriber_id(SubscriberIdAVPs, IdTypes).
 %% @hidden
 subscriber_id(SubscriberIdAVPs, undefined) ->
 	subscriber_id(SubscriberIdAVPs, [msisdn]);
@@ -1185,25 +1199,4 @@ id_type(private) ->
 	?'3GPP_SUBSCRIPTION-ID-TYPE_END_USER_PRIVATE';
 id_type(_) ->
 	[].
-
--spec get_option(Option) -> Result
-	when
-		Option :: atom(),
-		Result :: term().
-%% @doc Get the Nrf endpoint uri.
-get_option(Option) ->
-	ServiceOptions = case application:get_env(ocs, diameter) of
-		{ok, [{acct, [{_, _, Oplist}]}]} ->
-			Oplist;
-		{ok, [{acct, [{_, _, Oplist}]}, _]} ->
-			Oplist;
-		{ok, [_, {acct, [{_, _, Oplist}]}]} ->
-			Oplist
-	end,
-	case lists:keyfind(Option, 1, ServiceOptions) of
-		{Option, Value} ->
-			Value;
-		false ->
-			undefined
-	end.
 
