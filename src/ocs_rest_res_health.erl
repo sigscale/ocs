@@ -58,21 +58,23 @@ get_health([] = _Query, _RequestHeaders) ->
 		Check1 = application([ocs, inets, diameter, radius, snmp]),
 		Check2 = table_size([offer, product, service, resource, bucket]),
 		case scheduler() of
-			{ok, Check3} ->
-				{"checks", {struct, [Check1, Check2, Check3]}};
+			{ok, HeadOptions, Check3} ->
+				{HeadOptions, {"checks", {struct, [Check1, Check2, Check3]}}};
 			{error, _Reason1} ->
-				{"checks", {struct, [Check1, Check2]}}
+				{[], {"checks", {struct, [Check1, Check2]}}}
 		end
 	of
-		{_, {_, [{"application", {_, [{_, [{_, ocs}, _, {_, "up"}]} | _]}} | _]}} = Checks ->
+		{CacheControl, {_, {_, [{"application", {_, [{_, [{_, ocs}, _,
+				{_, "up"}]} | _]}} | _]}} = Checks} ->
 			Status = {"status", "pass"},
 			ServiceId = {"serviceId", atom_to_list(node())},
 			Description = {"description", "Health of SigScale OCS"},
 			Health = {struct, [Status, ServiceId, Description, Checks]},
 			ResponseBody = mochijson:encode(Health),
-			ResponseHeaders = [{content_type, "application/health+json"}],
+			ResponseHeaders = [{content_type, "application/health+json"}
+					| CacheControl],
 			{ok, ResponseHeaders, ResponseBody};
-		Checks ->
+		{_CacheControl, Checks} ->
 			Status = {"status", "fail"},
 			ServiceId = {"serviceId", atom_to_list(node())},
 			Description = {"description", "Health of SigScale OCS"},
@@ -171,14 +173,29 @@ get_application(Id, _RequestHeaders) ->
 
 -spec scheduler() -> Result
 	when
-		Result :: {ok, Check} | {error, Reason},
+		Result :: {ok, HeadOptions, Check} | {error, Reason},
+		HeadOptions :: {Option, Value},
+		Option :: etag | cache_control,
+		Value :: string(),
 		Check :: tuple(),
 		Reason :: term().
 %% @doc Check scheduler component.
 %% @hidden
 scheduler() ->
 	scheduler(ocs:statistics(scheduler_utilization)).
-scheduler({ok, {_Etag, _Interval, Report}}) ->
+scheduler({ok, {Etag, Interval, Report}}) ->
+	[TS, _] = string:tokens(Etag, [$-]),
+	Next = case (list_to_integer(TS) + Interval)
+			- erlang:system_time(millisecond) of
+		N when N =< 0 ->
+			0;
+		N when (N rem 1000) >= 500 ->
+			(N div 1000) + 1;
+		N ->
+			N div 1000
+	end,
+	MaxAge = "max-age=" ++ integer_to_list(Next),
+	HeadOptions = [{etag, Etag}, {cache_control, MaxAge}],
 	F = fun({SchedulerId, Utilization}) ->
 				Component1 = {"componentId",
 						integer_to_list(SchedulerId)},
@@ -187,7 +204,8 @@ scheduler({ok, {_Etag, _Interval, Report}}) ->
 				Type1 = {"componentType", "system"},
 				{struct, [Component1, Value1, Unit1, Type1]}
 	end,
-	{ok, {"scheduler:utilization", {array, lists:map(F, Report)}}};
+	Check = {"scheduler:utilization", {array, lists:map(F, Report)}},
+	{ok, HeadOptions, Check};
 scheduler({error, Reason}) ->
 	{error, Reason}.
 
