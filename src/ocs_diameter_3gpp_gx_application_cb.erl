@@ -290,20 +290,29 @@ process_request(Address, Port,
 				'Auth-Application-Id' = ?Gx_APPLICATION_ID,
 				'CC-Request-Type' = RequestType,
 				'CC-Request-Number' = RequestNum,
-				'Subscription-Id' = [#'3gpp_gx_Subscription-Id'{
-				'Subscription-Id-Data' = Subscriber} | _]} = Request) ->
-	case ocs:find_service(Subscriber) of
-		{ok, #service{product = ProductRef}} ->
-			process_request(Address, Port, DiameterCaps, Request,
-					ocs:find_product(ProductRef));
-		{error, Reason} ->
-			error_logger:warning_report(["Unable to process DIAMETER request",
-					{origin_host, OHost}, {origin_realm, ORealm},
-					{session_id, SId}, {request, Request},
-					{error, Reason}]),
-			diameter_error(SId,
-					?'DIAMETER_CC_APP_RESULT-CODE_USER_UNKNOWN',
-					OHost, ORealm, RequestType, RequestNum)
+				'Subscription-Id' = SubscriptionIds} = Request) ->
+	case subscriber_id(SubscriptionIds) of
+			Subscriber when is_binary(Subscriber) ->
+				case ocs:find_service(Subscriber) of
+					{ok, #service{product = ProductRef}} ->
+						process_request(Address, Port, DiameterCaps, Request,
+								ocs:find_product(ProductRef));
+					{error, Reason} ->
+						error_logger:warning_report(["Unable to process DIAMETER request",
+								{origin_host, OHost}, {origin_realm, ORealm},
+								{session_id, SId}, {request, Request},
+								{error, Reason}]),
+						diameter_error(SId,
+								?'DIAMETER_CC_APP_RESULT-CODE_USER_UNKNOWN',
+								OHost, ORealm, RequestType, RequestNum)
+				end;
+			_ ->
+				error_logger:warning_report(["Unable to process DIAMETER request",
+						{origin_host, OHost}, {origin_realm, ORealm},
+						{session_id, SId}, {request, Request},
+						{error, missing_subscription_id}]),
+				diameter_error(SId, ?'DIAMETER_CC_APP_RESULT-CODE_USER_UNKNOWN',
+						OHost, ORealm, RequestType, RequestNum)
 	end.
 %% @hidden
 process_request(Address, Port, DiameterCaps, Request,
@@ -480,4 +489,27 @@ diameter_error(SId, ResultCode, OHost, ORealm, RequestType, RequestNum) ->
 			'Origin-Host' = OHost, 'Origin-Realm' = ORealm,
 			'Auth-Application-Id' = ?Gx_APPLICATION_ID,
 			'CC-Request-Type' = RequestType, 'CC-Request-Number' = RequestNum}.
+
+-spec subscriber_id(SubscriberIdAVPs) -> Subscriber
+	when
+		SubscriberIdAVPs :: [#'3gpp_gx_Subscription-Id'{}],
+		Subscriber :: binary() | [].
+%% @doc Get Subscribers From Diameter SubscriberId AVP.
+subscriber_id(SubscriberIdAVPs) ->
+	subscriber_id(SubscriberIdAVPs, get_option(sub_id_type)).
+%% @hidden
+subscriber_id(SubscriberIdAVPs, undefined) ->
+	subscriber_id(SubscriberIdAVPs, [msisdn]);
+subscriber_id(SubscriberIdAVPs, [H | T])
+		when is_atom(H) ->
+	IdType = id_type(H),
+	case lists:keyfind(IdType, #'3gpp_gx_Subscription-Id'.'Subscription-Id-Type',
+			SubscriberIdAVPs) of
+		#'3gpp_gx_Subscription-Id'{'Subscription-Id-Data' = SubId} ->
+			SubId;
+		_  ->
+			subscriber_id(SubscriberIdAVPs, T)
+	end;
+subscriber_id(_, []) ->
+	[].
 
