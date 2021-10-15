@@ -288,10 +288,10 @@ process_request(IpAddress, Port,
 				'CC-Request-Number' = RequestNum,
 				'Subscription-Id' = SubscriptionIds} = Request) ->
 	try
-		Subscriber = case SubscriptionIds of
-			[#'3gpp_ro_Subscription-Id'{'Subscription-Id-Data' = Sub} | _] ->
-				Sub;
-			[] ->
+		Subscriber = case subscriber_id(SubscriptionIds) of
+			{_IdType, SubId} ->
+				SubId;
+			_ ->
 				case UserName of
 					[] ->
 						throw(no_subscriber_identification_information);
@@ -1146,4 +1146,64 @@ fui(RedirectServerAddress)
 	Action = ?'3GPP_RO_FINAL-UNIT-ACTION_REDIRECT',
 	[#'3gpp_ro_Final-Unit-Indication'{'Final-Unit-Action' = Action,
 			'Redirect-Server' = [RedirectServer]}].
+
+-spec subscriber_id(SubscriberIdAVPs) -> Subscribers
+	when
+		SubscriberIdAVPs :: [#'3gpp_ro_Subscription-Id'{}],
+		Subscribers :: {IdType, SubId} | [],
+		IdType :: integer(),
+		SubId :: binary().
+%% @doc Get Subscribers From Diameter SubscriberId AVP.
+subscriber_id(SubscriberIdAVPs) ->
+	subscriber_id(SubscriberIdAVPs, get_option(sub_id_type)).
+%% @hidden
+subscriber_id(SubscriberIdAVPs, undefined) ->
+	subscriber_id(SubscriberIdAVPs, [msisdn]);
+subscriber_id(SubscriberIdAVPs, [H | T])
+		when is_atom(H) ->
+	IdType = id_type(H),
+	case lists:keyfind(IdType, #'3gpp_ro_Subscription-Id'.'Subscription-Id-Type',
+			SubscriberIdAVPs) of
+		#'3gpp_ro_Subscription-Id'{'Subscription-Id-Data' = SubId} ->
+			{IdType, SubId};
+		_  ->
+			subscriber_id(SubscriberIdAVPs, T)
+	end;
+subscriber_id(_, []) ->
+	[].
+
+%% @hidden
+id_type(imsi) ->
+	?'3GPP_SUBSCRIPTION-ID-TYPE_END_USER_IMSI';
+id_type(msisdn) ->
+	?'3GPP_SUBSCRIPTION-ID-TYPE_END_USER_E164';
+id_type(nai) ->
+	?'3GPP_SUBSCRIPTION-ID-TYPE_END_USER_NAI';
+id_type(sip) ->
+	?'3GPP_SUBSCRIPTION-ID-TYPE_END_USER_SIP_URI';
+id_type(private) ->
+	?'3GPP_SUBSCRIPTION-ID-TYPE_END_USER_PRIVATE';
+id_type(_) ->
+	[].
+
+-spec get_option(Option) -> Result
+	when
+		Option :: atom(),
+		Result :: term().
+%% @doc Get the Nrf endpoint uri.
+get_option(Option) ->
+	ServiceOptions = case application:get_env(ocs, diameter) of
+		{ok, [{acct, [{_, _, Oplist}]}]} ->
+			Oplist;
+		{ok, [{acct, [{_, _, Oplist}]}, _]} ->
+			Oplist;
+		{ok, [_, {acct, [{_, _, Oplist}]}]} ->
+			Oplist
+	end,
+	case lists:keyfind(Option, 1, ServiceOptions) of
+		{Option, Value} ->
+			Value;
+		false ->
+			undefined
+	end.
 
