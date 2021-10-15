@@ -1097,7 +1097,7 @@ charged_party([{?'3GPP_SUBSCRIPTION-ID-TYPE_END_USER_NAI', NAI} | T], Acc) ->
 	charged_party(T, ["nai-" ++ binary_to_list(NAI) | Acc]);
 charged_party([{?'3GPP_SUBSCRIPTION-ID-TYPE_END_USER_SIP_URI', SIP} | T], Acc) ->
 	charged_party(T, ["sip-" ++ binary_to_list(SIP) | Acc]);
-charged_party([{'3GPP_SUBSCRIPTION-ID-TYPE_END_USER_PRIVATE', PRIVATE} | T], Acc) ->
+charged_party([{?'3GPP_SUBSCRIPTION-ID-TYPE_END_USER_PRIVATE', PRIVATE} | T], Acc) ->
 	charged_party(T, ["private-" ++ binary_to_list(PRIVATE) | Acc]);
 charged_party([_| T], Acc) ->
 	charged_party(T, Acc);
