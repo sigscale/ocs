@@ -3082,22 +3082,20 @@ query_accumulated_balance_notification(Config) ->
 			{_, BId2} = lists:keyfind("id", 1, BalanceDelList)
 	end,
 	{ok, {{_, 200, _}, _, _}} = httpc:request(get, Request2, [], []),
-	AccBalanceStructs = receive
+	AccBalance = receive
 		Input6 ->
 			{struct, AccBalanceEvent} = mochijson:decode(Input6),
 			{_, "AccumulatedBalanceCreationNotification"}
 					= lists:keyfind("eventType", 1, AccBalanceEvent),
-			{_, {array, AccStructList}}
+			{_, {array, [{struct, AccBalList}]}}
 					= lists:keyfind("event", 1, AccBalanceEvent),
-			AccStructList
+			AccBalList
 	end,
 	Request3 = {CollectionUrl ++ SubId, [Accept, auth_header()]},
 	{ok, {{_, 204, _}, _, []}} = httpc:request(delete, Request3, [], []),
-	AccBalanceRecords = [ocs_rest_res_balance:acc_balance(AccBalanceStruct)
-			|| AccBalanceStruct <- AccBalanceStructs],
-	#acc_balance{total_balance = RA1}
-			= lists:keyfind(cents, #acc_balance.units, AccBalanceRecords),
-	RA1 < Threshold.
+	{_, {array,[{struct, Q}]}} = lists:keyfind("totalBalance", 1, AccBalance),
+	{_, Amount} = lists:keyfind("amount", 1, Q),
+	list_to_integer(Amount) < Threshold.
 
 query_bucket_notification() ->
 	[{userdata, [{doc, "Query bucket notification"}]}].

@@ -270,8 +270,9 @@ get_balance(ProdRef, Query) ->
 			Buckets3 = lists:filter(F, Buckets2),
 			TotalAmount = lists:sum([B#bucket.remain_amount || B <- Buckets3]),
 			BucketIds = [B#bucket.id || B <- Buckets3],
-			AccBalance = #acc_balance{id = ProdRef, total_balance = TotalAmount,
-					units = Units, bucket = BucketIds, product = [ProdRef]},
+			AccBalance = #acc_balance{id = ProdRef,
+					total_balance = [#quantity{amount = TotalAmount, units = Units}],
+					units = [Units], bucket = BucketIds, product = [ProdRef]},
 			[{Condition, S}] = Query -- [{"totalBalance.units", Value}],
 			ok = send_notification(Condition, TotalAmount,
 					ocs_rest:millionths_in(S), AccBalance),
@@ -631,10 +632,9 @@ acc_balance([{"id", ID} | T], AccBalance) ->
 	acc_balance(T, AccBalance#acc_balance{id = ID});
 acc_balance([{"name", Name} | T], AccBalance) when is_list(Name) ->
 	acc_balance(T, AccBalance#acc_balance{name = Name});
-acc_balance([{"totalBalance", {struct, _} = Q} | T], AccBalance) ->
-	#quantity{amount = Amount, units = Units} = quantity(Q),
-	acc_balance(T, AccBalance#acc_balance{units = Units,
-			total_balance = Amount});
+acc_balance([{"totalBalance", {array, Structs}} | T], AccBalance) ->
+	acc_balance(T, AccBalance#acc_balance{
+			total_balance = [quantity(Struct) || Struct <- Structs]});
 acc_balance([{"product", {array, [{struct, ProdRefList}]}} | T], AccBalance) ->
 	{_, ProdRef} = lists:keyfind("id", 1, ProdRefList),
 	acc_balance(T, AccBalance#acc_balance{product = [ProdRef]});
