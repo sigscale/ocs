@@ -2438,7 +2438,7 @@ get_balance(Config) ->
 	OfferId = offer_add([P1], 4),
 	ProdRef = product_add(OfferId),
 	B1 = b(cents, 10000),
-	B2 = b(cents, 5),
+	B2 = b(octets, 150000000),
 	B3 = #bucket{units = cents, remain_amount = 500,
 			start_date = erlang:system_time(millisecond) - (2 * 2592000000),
 			end_date = erlang:system_time(millisecond) - 2592000000},
@@ -2447,7 +2447,8 @@ get_balance(Config) ->
 	{_, _, #bucket{}} = ocs:add_bucket(ProdRef, B3),
 	AcceptValue = "application/json",
 	Accept = {"accept", AcceptValue},
-	Balance = B1#bucket.remain_amount + B2#bucket.remain_amount,
+	CentsBal = ocs_rest:millionths_out(B1#bucket.remain_amount),
+	OctetsBal = integer_to_list(B2#bucket.remain_amount) ++ "b",
 	Path = "/balanceManagement/v1/product/" ++ ProdRef ++ "/accumulatedBalance",
 	GETURI = HostUrl ++ Path,
 	GETRequest = {GETURI, [Accept, auth_header()]},
@@ -2457,13 +2458,13 @@ get_balance(Config) ->
 	ContentLength = integer_to_list(length(Body)),
 	{_, ContentLength} = lists:keyfind("content-length", 1, Headers),
 	{struct, PrePayBalance} = mochijson:decode(Body),
-	{_, {struct, TotalAmount}} = lists:keyfind("totalBalance", 1, PrePayBalance),
+	{_, {array, TAStructs}} = lists:keyfind("totalBalance", 1, PrePayBalance),
 	{_, {array, [{struct, Product}]}} = lists:keyfind("product", 1, PrePayBalance),
 	{_, {array, Buckets}} = lists:keyfind("buckets", 1, PrePayBalance),
 	{_, ProdRef} = lists:keyfind("id", 1, Product),
 	{_, Path} =
 			lists:keyfind("href", 1, Product),
-	F = fun({struct, B}) ->
+	F1 = fun({struct, B}) ->
 		case lists:keyfind("id", 1, B) of
 			{_, Id} when Id == BId1; Id == BId2 ->
 				true;
@@ -2471,9 +2472,16 @@ get_balance(Config) ->
 				false
 		end
 	end,
-	true = lists:all(F, Buckets),
-	{_, Balance1} = lists:keyfind("amount", 1, TotalAmount),
-	Balance1 = ocs_rest:millionths_out(Balance).
+	true = lists:all(F1, Buckets),
+	F2 = fun({struct, ObjList}) ->
+		case lists:keyfind("amount", 1, ObjList) of
+			{_, Amount} when Amount == CentsBal; Amount == OctetsBal ->
+				true;
+			_ ->
+				false
+		end
+	end,
+	true = lists:all(F2, TAStructs).
 
 get_balance_service() ->
 	[{userdata, [{doc,"TMF654 Prepay Balance Management API :
