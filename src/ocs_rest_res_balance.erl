@@ -194,20 +194,10 @@ get_balance_service(Identity) ->
 		end
 	of
 		{ProductRef1, Buckets2} ->
-			Now = erlang:system_time(millisecond),
-			F1 = fun(#bucket{units = cents, end_date = EndDate})
-					when EndDate == undefined; EndDate > Now ->
-						true;
-					(_) -> false
-			end,
-			Buckets3 = lists:filter(F1, Buckets2),
-			TotalAmount = lists:sum([B#bucket.remain_amount || B <- Buckets3]),
-			F2 = fun(#bucket{id = Id}) ->
-					Id
-			end,
-			AccBalance = #acc_balance{id = Identity, total_balance = TotalAmount,
-					units = cents, bucket = lists:map(F2, Buckets3),
-					product = [ProductRef1]},
+			{TotalBal, IdAcc}
+					= calculate_total(Buckets2, {0, 0, 0, 0}, []),
+			AccBalance = #acc_balance{id = Identity, total_balance = TotalBal,
+					bucket = IdAcc, product = [ProductRef1]},
 			Body  = mochijson:encode(acc_balance(AccBalance)),
 			Headers = [{content_type, "application/json"}],
 			{ok, Headers, Body}
