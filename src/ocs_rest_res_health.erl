@@ -174,7 +174,7 @@ get_application(Id, _RequestHeaders) ->
 -spec scheduler() -> Result
 	when
 		Result :: {ok, HeadOptions, Check} | {error, Reason},
-		HeadOptions :: {Option, Value},
+		HeadOptions :: [{Option, Value}],
 		Option :: etag | cache_control,
 		Value :: string(),
 		Check :: tuple(),

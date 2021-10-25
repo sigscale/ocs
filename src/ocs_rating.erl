@@ -2461,8 +2461,8 @@ build_acc(Buckets, Name, Units, ProdRef, {ok, UnitThreshold}, AccBalance)
 				TotalBalance < UnitThreshold ->
 			BucketRefs = [Id || #bucket{id = Id} <- Buckets],
 			[#acc_balance{id = ProdRef, name = Name, product = [ProdRef],
-					units = Units, total_balance = TotalBalance,
-					bucket = BucketRefs} | AccBalance];
+					total_balance = [#quantity{units = Units,
+					amount = TotalBalance}], bucket = BucketRefs} | AccBalance];
 		_ ->
 			AccBalance
 	end.

@@ -194,20 +194,10 @@ get_balance_service(Identity) ->
 		end
 	of
 		{ProductRef1, Buckets2} ->
-			Now = erlang:system_time(millisecond),
-			F1 = fun(#bucket{units = cents, end_date = EndDate})
-					when EndDate == undefined; EndDate > Now ->
-						true;
-					(_) -> false
-			end,
-			Buckets3 = lists:filter(F1, Buckets2),
-			TotalAmount = lists:sum([B#bucket.remain_amount || B <- Buckets3]),
-			F2 = fun(#bucket{id = Id}) ->
-					Id
-			end,
-			AccBalance = #acc_balance{id = Identity, total_balance = TotalAmount,
-					units = cents, bucket = lists:map(F2, Buckets3),
-					product = [ProductRef1]},
+			{TotalBal, IdAcc}
+					= calculate_total(Buckets2, {0, 0, 0, 0}, []),
+			AccBalance = #acc_balance{id = Identity, total_balance = TotalBal,
+					bucket = IdAcc, product = [ProductRef1]},
 			Body  = mochijson:encode(acc_balance(AccBalance)),
 			Headers = [{content_type, "application/json"}],
 			{ok, Headers, Body}
@@ -235,20 +225,10 @@ get_balance(ProdRef) ->
 		end
 	of
 		Buckets2 ->
-			Now = erlang:system_time(millisecond),
-			F1 = fun(#bucket{units = cents, end_date = EndDate})
-					when EndDate == undefined; EndDate > Now ->
-						true;
-					(_) -> false
-			end,
-			Buckets3 = lists:filter(F1, Buckets2),
-			TotalAmount = lists:sum([B#bucket.remain_amount || B <- Buckets3]),
-			F2 = fun(#bucket{id = Id}) ->
-					Id
-			end,
-			AccBalance = #acc_balance{id = ProdRef, total_balance = TotalAmount,
-					units = cents, bucket = lists:map(F2, Buckets3),
-					product = [ProdRef]},
+			{TotalBal, IdAcc}
+					= calculate_total(Buckets2, {0, 0, 0, 0}, []),
+			AccBalance = #acc_balance{id = ProdRef, product = [ProdRef],
+					total_balance = TotalBal, bucket = IdAcc},
 			Body  = mochijson:encode(acc_balance(AccBalance)),
 			Headers = [{content_type, "application/json"}],
 			{ok, Headers, Body}
@@ -290,8 +270,9 @@ get_balance(ProdRef, Query) ->
 			Buckets3 = lists:filter(F, Buckets2),
 			TotalAmount = lists:sum([B#bucket.remain_amount || B <- Buckets3]),
 			BucketIds = [B#bucket.id || B <- Buckets3],
-			AccBalance = #acc_balance{id = ProdRef, total_balance = TotalAmount,
-					units = Units, bucket = BucketIds, product = [ProdRef]},
+			AccBalance = #acc_balance{id = ProdRef,
+					total_balance = [#quantity{amount = TotalAmount, units = Units}],
+					units = [Units], bucket = BucketIds, product = [ProdRef]},
 			[{Condition, S}] = Query -- [{"totalBalance.units", Value}],
 			ok = send_notification(Condition, TotalAmount,
 					ocs_rest:millionths_in(S), AccBalance),
@@ -651,10 +632,9 @@ acc_balance([{"id", ID} | T], AccBalance) ->
 	acc_balance(T, AccBalance#acc_balance{id = ID});
 acc_balance([{"name", Name} | T], AccBalance) when is_list(Name) ->
 	acc_balance(T, AccBalance#acc_balance{name = Name});
-acc_balance([{"totalBalance", {struct, _} = Q} | T], AccBalance) ->
-	#quantity{amount = Amount, units = Units} = quantity(Q),
-	acc_balance(T, AccBalance#acc_balance{units = Units,
-			total_balance = Amount});
+acc_balance([{"totalBalance", {array, Structs}} | T], AccBalance) ->
+	acc_balance(T, AccBalance#acc_balance{
+			total_balance = [quantity(Struct) || Struct <- Structs]});
 acc_balance([{"product", {array, [{struct, ProdRefList}]}} | T], AccBalance) ->
 	{_, ProdRef} = lists:keyfind("id", 1, ProdRefList),
 	acc_balance(T, AccBalance#acc_balance{product = [ProdRef]});
@@ -681,10 +661,10 @@ acc_balance([id | T], #acc_balance{id = ServiceId} = AccBal, Acc)
 acc_balance([name | T], #acc_balance{name = Name} = AccBal, Acc)
 		when is_list(Name) ->
 	acc_balance(T, AccBal, [{"name", Name} | Acc]);
-acc_balance([total_balance | T], #acc_balance{units = Units,
-		total_balance = Amount} = AccBal, Acc) when is_integer(Amount) ->
-	Q = #quantity{amount = Amount, units = Units},
-	acc_balance(T, AccBal, [{"totalBalance", quantity(Q)} | Acc]);
+acc_balance([total_balance | T], #acc_balance{total_balance = TotalBal} = AccBal,
+		Acc) when is_list(TotalBal) ->
+	acc_balance(T, AccBal, [{"totalBalance",
+			{array, [quantity(Quantity) || Quantity <- TotalBal]}} | Acc]);
 acc_balance([product | T], #acc_balance{product = [ProdRef],
 		id = ProdRef} = AccBal, Acc) when is_list(ProdRef) ->
 	Id = {"id", ProdRef},
@@ -974,3 +954,40 @@ send_notification("totalBalance.amount.lt", TotalAmount, Threshold, AccBalance)
 send_notification(_, _TotalAmount, _Threshold, _AccBalance) ->
 	ok.
 
+%% @hidden
+calculate_total(Buckets, TotalAcc, IdAcc) ->
+	calculate_total(Buckets, TotalAcc, IdAcc, erlang:system_time(millisecond)).
+%% @hidden
+calculate_total([#bucket{id = Id, units = octets, remain_amount = RA,
+		end_date = EndDate} | T], {TO, TC, TS, TM}, IdAcc, Now) when
+		EndDate == undefined; EndDate > Now ->
+	Now = erlang:system_time(millisecond),
+	calculate_total(T, {TO + RA, TC, TS, TM}, [Id | IdAcc], Now);
+calculate_total([#bucket{id = Id, units = cents, remain_amount = RA,
+		end_date = EndDate} | T], {TO, TC, TS, TM}, IdAcc, Now) when
+		EndDate == undefined; EndDate > Now ->
+	calculate_total(T, {TO, TC + RA, TS, TM}, [Id | IdAcc], Now);
+calculate_total([#bucket{id = Id, units = seconds, remain_amount = RA,
+		end_date = EndDate} | T], {TO, TC, TS, TM}, IdAcc, Now) when
+		EndDate == undefined; EndDate > Now ->
+	calculate_total(T, {TO, TC, TS + RA, TM}, [Id | IdAcc], Now);
+calculate_total([#bucket{id = Id, units = messages, remain_amount = RA,
+		end_date = EndDate} | T], {TO, TC, TS, TM}, IdAcc, Now) when
+		EndDate == undefined; EndDate > Now ->
+	calculate_total(T, {TO, TC, TS, TM + RA}, [Id | IdAcc], Now);
+calculate_total([_ | T], {TO, TC, TS, TM}, IdAcc, Now) ->
+	calculate_total(T, {TO, TC, TS, TM}, IdAcc, Now);
+calculate_total([], {TO, TC, TS, TM}, IdAcc, _Now) ->
+	Totals = [{octets, TO}, {cents, TC}, {seconds, TS}, {messages, TM}],
+	F = fun({octets, A}) when A > 0 ->
+				{true, #quantity{units = octets, amount = A}};
+			({cents, A}) when A > 0 ->
+				{true, #quantity{units = cents, amount = A}};
+			({seconds, A}) when A > 0 ->
+				{true, #quantity{units = seconds, amount = A}};
+			({messages, A}) when A > 0 ->
+				{true, #quantity{units = messages, amount = A}};
+			(_) ->
+				false
+	end,
+	{lists:filtermap(F, Totals), IdAcc}.
