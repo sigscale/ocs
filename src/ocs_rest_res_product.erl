@@ -439,7 +439,7 @@ patch_offer(ProdId, Etag, ReqData) ->
 							case catch ocs_rest:patch(Operations, offer(Product1)) of
 								{struct, _} = Product2  ->
 									case catch offer(Product2) of
-										{struct, _} = Product3 ->
+										#offer{} = Product3 ->
 											TS = erlang:system_time(millisecond),
 											N = erlang:unique_integer([positive]),
 											LM = {TS, N},
