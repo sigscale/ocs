@@ -1352,9 +1352,11 @@ DIAMETER services may be configured with the following (optional) configuration 
 	<dt>nrf_uri</dt>
 		<dd>.The Nrf endpoint(default: "http://host")</dd>
 	<dt>rf_class</dt>
-		<dd>.The class of rating function to be used</dd>
+		<dd>The class of rating function to be used</dd>
 	<dt>callback</dt>
-		<dd>.The callback module to be used diameter events (default: ocs_diameter_3gpp_ro_application_cb)</dd>
+		<dd>The callback module to be used diameter events (default: ocs_diameter_3gpp_ro_application_cb)</dd>
+	<dt>sub_id_type</dt>
+		<dd>Defines a list of subscription ID types, in order of priority, to use to find a SubscriberID to use for rating (default: msisdn)</dd>
 </dl>
 
 === RADIUS Configuration ===
