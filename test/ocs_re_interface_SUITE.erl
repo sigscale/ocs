@@ -201,6 +201,15 @@ init_per_testcase(TestCase, Config)
 	NewEnvVar = [Auth, {acct, [{DAddress, Port, NewOptions}]}],
 	ok = application:set_env(ocs, diameter, NewEnvVar),
 	Config;
+init_per_testcase(scur_imsi_class_b, Config) ->
+	Address = ?config(diameter_acct_address, Config),
+	{ok, _} = ocs:add_client(Address, undefined, diameter, undefined, true),
+	{ok, [Auth, {acct, [{DAddress, Port, Options}]}]} = application:get_env(ocs, diameter),
+	NewOptions = lists:keyreplace(class, 1, Options,  {class, b}),
+	NewOptions1 = lists:keyreplace(sub_id_type, 1, NewOptions , {sub_id_type, [imsi]}),
+	NewEnvVar = [Auth, {acct, [{DAddress, Port, NewOptions1}]}],
+	ok = application:set_env(ocs, diameter, NewEnvVar),
+	Config;
 init_per_testcase(_TestCase, Config) ->
 	Config.
 
@@ -229,7 +238,7 @@ all() ->
 		post_final_ecur_class_b, send_initial_scur_class_a, receive_initial_scur_class_a,
 		send_interim_scur_class_a, receive_interim_scur_class_a, final_scur_class_a,
 		send_initial_ecur_class_a, receive_initial_ecur_class_a, send_final_ecur_class_a,
-		receive_final_ecur_class_a, scur_vas_class_b].
+		receive_final_ecur_class_a, scur_vas_class_b, scur_imsi_class_b].
 
 %%---------------------------------------------------------------------
 %%  Test cases
@@ -1151,6 +1160,63 @@ scur_vas_class_b(_Config) ->
 			'Used-Service-Unit' = [UsedUnits5]} = MultiServices_CC5,
 	#'3gpp_ro_Used-Service-Unit'{'CC-Service-Specific-Units' = [_UsedServiceUnits]} = UsedUnits5.
 
+scur_imsi_class_b() ->
+	[{userdata, [{doc, "On SCUR with IMSI startRating response send CCA-I"}]}].
+
+scur_imsi_class_b(_Config) ->
+	IMSI = list_to_binary(ocs:generate_identity()),
+	MSISDN = list_to_binary(ocs:generate_identity()),
+	NAI = <<"user@realm">>,
+	Ref = erlang:ref_to_list(make_ref()),
+	SId = diameter:session_id(Ref),
+	RequestNum = 0,
+	InputOctets = rand:uniform(100),
+	OutputOctets = rand:uniform(200),
+	SubscriptionId1 = #'3gpp_ro_Subscription-Id'{
+			'Subscription-Id-Type' = ?'3GPP_SUBSCRIPTION-ID-TYPE_END_USER_IMSI',
+			'Subscription-Id-Data' = IMSI},
+	SubscriptionId2 = #'3gpp_ro_Subscription-Id'{
+			'Subscription-Id-Type' = ?'3GPP_SUBSCRIPTION-ID-TYPE_END_USER_E164',
+			'Subscription-Id-Data' = MSISDN},
+	SubscriptionId3 = #'3gpp_ro_Subscription-Id'{
+			'Subscription-Id-Type' = ?'3GPP_SUBSCRIPTION-ID-TYPE_END_USER_E164',
+			'Subscription-Id-Data' = NAI},
+	RequestedUnits = #'3gpp_ro_Requested-Service-Unit' {
+			'CC-Input-Octets' = [InputOctets], 'CC-Output-Octets' = [OutputOctets],
+			'CC-Total-Octets' = [InputOctets + OutputOctets]},
+	MSCC = #'3gpp_ro_Multiple-Services-Credit-Control'{
+			'Requested-Service-Unit' = [RequestedUnits], 'Service-Identifier' = [1],
+			'Rating-Group' = [2]},
+	ServiceInformation = #'3gpp_ro_Service-Information'{'PS-Information' =
+			[#'3gpp_ro_PS-Information'{
+					'3GPP-PDP-Type' = [3],
+					'Serving-Node-Type' = [2],
+					'SGSN-Address' = [{10,1,2,3}],
+					'GGSN-Address' = [{10,4,5,6}],
+					'3GPP-IMSI-MCC-MNC' = [<<"001001">>],
+					'3GPP-GGSN-MCC-MNC' = [<<"001001">>],
+					'3GPP-SGSN-MCC-MNC' = [<<"001001">>]}]},
+	CC_CCR = #'3gpp_ro_CCR'{'Session-Id' = SId,
+			'Auth-Application-Id' = ?RO_APPLICATION_ID,
+			'Service-Context-Id' = "32251@3gpp.org",
+			'User-Name' = [IMSI],
+			'CC-Request-Type' = ?'3GPP_CC-REQUEST-TYPE_INITIAL_REQUEST',
+			'CC-Request-Number' = RequestNum,
+			'Event-Timestamp' = [calendar:universal_time()],
+			'Subscription-Id' = [SubscriptionId1, SubscriptionId2, SubscriptionId3],
+			'Multiple-Services-Credit-Control' = [MSCC],
+			'Service-Information' = [ServiceInformation]},
+	{ok, Answer0} = diameter:call(?MODULE, cc_app_test, CC_CCR, []),
+	#'3gpp_ro_CCA'{'Result-Code' = ?'DIAMETER_BASE_RESULT-CODE_SUCCESS',
+			'Auth-Application-Id' = ?RO_APPLICATION_ID,
+			'CC-Request-Type' = ?'3GPP_CC-REQUEST-TYPE_INITIAL_REQUEST',
+			'CC-Request-Number' = RequestNum,
+			'Multiple-Services-Credit-Control' = [MultiServices_CC]} = Answer0,
+	#'3gpp_ro_Multiple-Services-Credit-Control'{
+			'Granted-Service-Unit' = [GrantedUnits]} = MultiServices_CC,
+	TotalOctets = InputOctets + OutputOctets,
+	#'3gpp_ro_Granted-Service-Unit'{'CC-Total-Octets' = [TotalOctets]} = GrantedUnits.
+
 %%---------------------------------------------------------------------
 %%  Internal functions
 %%---------------------------------------------------------------------
@@ -1634,4 +1700,4 @@ transport_opts1({Trans, LocalAddr, RemAddr, RemPort}) ->
 	[{transport_module, Trans}, {transport_config,
 		[{raddr, RemAddr}, {rport, RemPort},
 		{reuseaddr, true}, {ip, LocalAddr}]}].
-T
+
