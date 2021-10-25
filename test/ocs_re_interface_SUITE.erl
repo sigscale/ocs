@@ -114,7 +114,7 @@ init_per_suite1(Config) ->
 	DiameterAcctPort = ct:get_config({diameter, acct_port}, rand:uniform(64511) + 1024),
 	DiameterAppVar = [{auth, [{DiameterAddress, DiameterAuthPort, []}]},
 		{acct, [{DiameterAddress, DiameterAcctPort, [{class, undefined},
-				{callback, ocs_diameter_3gpp_ro_nrf_app_cb}]}]}],
+				{callback, ocs_diameter_3gpp_ro_nrf_app_cb}, {sub_id_type, [msisdn, imsi]}]}]}],
 	ok = application:set_env(ocs, diameter, DiameterAppVar),
 	ok = application:set_env(ocs, min_reserve_octets, 1000000),
 	ok = application:set_env(ocs, min_reserve_seconds, 60),
@@ -1634,4 +1634,4 @@ transport_opts1({Trans, LocalAddr, RemAddr, RemPort}) ->
 	[{transport_module, Trans}, {transport_config,
 		[{raddr, RemAddr}, {rport, RemPort},
 		{reuseaddr, true}, {ip, LocalAddr}]}].
-
+T
