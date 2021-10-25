@@ -840,7 +840,7 @@ subscriber_id(SubscriberIdAVP, undefined, Acc) ->
 	subscriber_id(SubscriberIdAVP, [msisdn], Acc);
 subscriber_id(SubscriberIdAVP, [IdType | T], Acc) ->
 	Acc1 = subscriber_id1(SubscriberIdAVP, id_type(IdType)),
-	subscriber_id(SubscriberIdAVP, T, Acc1 ++ Acc);
+	subscriber_id(SubscriberIdAVP, T, Acc ++ Acc1);
 subscriber_id(_, [], Acc) ->
 	Acc.
 %% @hidden
