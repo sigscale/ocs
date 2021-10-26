@@ -272,7 +272,7 @@ get_balance(ProdRef, Query) ->
 			BucketIds = [B#bucket.id || B <- Buckets3],
 			AccBalance = #acc_balance{id = ProdRef,
 					total_balance = [#quantity{amount = TotalAmount, units = Units}],
-					units = [Units], bucket = BucketIds, product = [ProdRef]},
+					bucket = BucketIds, product = [ProdRef]},
 			[{Condition, S}] = Query -- [{"totalBalance.units", Value}],
 			ok = send_notification(Condition, TotalAmount,
 					ocs_rest:millionths_in(S), AccBalance),

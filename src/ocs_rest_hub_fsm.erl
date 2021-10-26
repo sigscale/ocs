@@ -191,11 +191,16 @@ registered({Type, [#acc_balance{} | _] = Resource, Category},
 		length(Query) > 0 ->
 	case string:tokens(Query, "&=") of
 		["totalBalance.units", Units, "totalBalance.amount.lt", Threshold] ->
-			case lists:keyfind(list_to_existing_atom(Units),
-					#acc_balance.units, Resource) of
-				false ->
+			U = list_to_existing_atom(Units),
+			F = fun(#acc_balance{total_balance = [#quantity{units = U}]}) ->
+						true;
+					(_) ->
+						false
+			end,
+			case lists:filter(F, Resource) of
+				[] ->
 					{next_state, registered, StateData};
-				#acc_balance{total_balance = TotalBalance}
+				[#acc_balance{total_balance = [#quantity{amount = TotalBalance}]}]
 						when TotalBalance < Threshold ->
 					send_request({Type, Resource, Category}, StateData);
 				_ ->

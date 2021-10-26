@@ -172,7 +172,6 @@
 		{id :: string() | undefined,
 		name :: string() | undefined,
 		total_balance :: [quantity()] | undefined,
-		units :: [Unit :: octets | cents | seconds | messages] | undefined,
 		bucket = [] :: [string()],
 		product = [] :: [string()]}).
 -type acc_balance() :: #acc_balance{}.
