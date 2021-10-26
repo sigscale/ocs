@@ -1014,7 +1014,7 @@ query_bucket2({Buckets, Cont}, {Op, String})
 			end;
 		_ ->
 			fun(#bucket{product = Products}) ->
-					lists:member(Products, String)
+					lists:member(String, Products)
 			end
 	end,
 	{Cont, lists:filter(F1, Buckets)};
