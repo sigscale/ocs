@@ -218,8 +218,8 @@ request(ServiceName, Capabilities, Request) ->
 %% @hidden
 request(ServiceName, Capabilities, Request, [H | T]) ->
 	case ocs:find_client(H) of
-		{ok, #client{protocol = diameter}} ->
-			process_request(ServiceName, Capabilities, Request);
+		{ok, #client{protocol = diameter} = Client} ->
+			process_request(ServiceName, Capabilities, Request, Client);
 		{error, not_found} ->
 			request(ServiceName, Capabilities, Request, T)
 	end;
@@ -228,65 +228,86 @@ request(ServiceName, Capabilities, Request, []) ->
 			[?'DIAMETER_BASE_RESULT-CODE_UNKNOWN_PEER']),
 	{answer_message, Error}.
 
--spec process_request(ServiceName, Capabilities, Request) -> Result
+-spec process_request(ServiceName, Capabilities, Request, Client) -> Result
 	when
 		ServiceName :: term(),
 		Capabilities :: capabilities(),
 		Request :: term(),
+		Client :: #client{},
 		Result :: {reply, message()} | discard.
 %% @doc Process a received DIAMETER packet.
 %% @private
 %% @todo Handle S6a/S6d requests.
-process_request(ServiceName,
+process_request({_, ServerAddress, ServerPort} = ServiceName,
 		#diameter_caps{origin_host = {OHost, _DHost},
 		origin_realm = {ORealm, _DRealm}} = Capabilities,
-		#'3gpp_s6a_AIR'{'Session-Id' = SId} = Request) ->
+		#'3gpp_s6a_AIR'{'Session-Id' = SId} = Request,
+		#client{address = CAddress, port = CPort} = Client) ->
 	try
-		authentication_information(ServiceName, Capabilities, Request)
+		authentication_information(ServiceName, Capabilities, Request, Client)
 	catch
 		_:_Reason ->
-			{reply, #'3gpp_s6a_AIA'{'Session-Id' = SId,
+			Server = {ServerAddress, ServerPort},
+			Client1 = {CAddress, CPort},
+			Answer = #'3gpp_s6a_AIA'{'Session-Id' = SId,
 					'Result-Code' = [?'DIAMETER_BASE_RESULT-CODE_INVALID_AVP_BITS'],
 					'Auth-Session-State' =  ?'3GPP_S6A_AUTH-SESSION-STATE_NO_STATE_MAINTAINED',
-					'Origin-Host' = OHost, 'Origin-Realm' = ORealm}}
+					'Origin-Host' = OHost, 'Origin-Realm' = ORealm},
+			ok = ocs_log:auth_log(diameter, Server, Client1, Request, Answer),
+			{reply, Answer}
 	end;
-process_request(ServiceName,
+process_request({_, ServerAddress, ServerPort} = ServiceName,
 		#diameter_caps{origin_host = {OHost, _DHost},
 		origin_realm = {ORealm, _DRealm}} = Capabilities,
-		#'3gpp_s6a_ULR'{'Session-Id' = SId} = Request) ->
+		#'3gpp_s6a_ULR'{'Session-Id' = SId} = Request,
+		#client{address = CAddress, port = CPort} = Client) ->
 	try
-		update_location(ServiceName, Capabilities, Request)
+		update_location(ServiceName, Capabilities, Request, Client)
 	catch
 		_:_Reason ->
-			{reply, #'3gpp_s6a_ULA'{'Session-Id' = SId,
+			Server = {ServerAddress, ServerPort},
+			Client1 = {CAddress, CPort},
+			Answer = #'3gpp_s6a_ULA'{'Session-Id' = SId,
 					'Result-Code' = [?'DIAMETER_BASE_RESULT-CODE_INVALID_AVP_BITS'],
-					'Origin-Host' = OHost, 'Origin-Realm' = ORealm}}
+					'Origin-Host' = OHost, 'Origin-Realm' = ORealm},
+			ok = ocs_log:auth_log(diameter, Server, Client1, Request, Answer),
+			{reply, Answer}
 	end;
-process_request(ServiceName,
+process_request({_, ServerAddress, ServerPort} = ServiceName,
 		#diameter_caps{origin_host = {OHost, _DHost},
 		origin_realm = {ORealm, _DRealm}} = Capabilities,
-		#'3gpp_s6a_PUR'{'Session-Id' = SId} = Request) ->
+		#'3gpp_s6a_PUR'{'Session-Id' = SId} = Request,
+		#client{address = CAddress, port = CPort} = Client) ->
 	try
-		purge_ue(ServiceName, Capabilities, Request)
+		purge_ue(ServiceName, Capabilities, Request, Client)
 	catch
 		_:_Reason ->
-			{reply, #'3gpp_s6a_PUA'{'Session-Id' = SId,
+			Server = {ServerAddress, ServerPort},
+			Client1 = {CAddress, CPort},
+			Answer = #'3gpp_s6a_PUA'{'Session-Id' = SId,
 					'Result-Code' = [?'DIAMETER_BASE_RESULT-CODE_INVALID_AVP_BITS'],
-					'Origin-Host' = OHost, 'Origin-Realm' = ORealm}}
+					'Origin-Host' = OHost, 'Origin-Realm' = ORealm},
+			ok = ocs_log:auth_log(diameter, Server, Client1, Request, Answer),
+			{reply, Answer}
 	end.
 
 %% @hidden
-authentication_information(ServiceName,
+authentication_information({_, ServerAddress, ServerPort} = ServiceName,
 		#diameter_caps{origin_host = {OHost, _DHost},
 		origin_realm = {ORealm, _DRealm}} = _Capabilities,
 		#'3gpp_s6a_AIR'{'Session-Id' = SId, 'User-Name' = IMSI,
-		'Requested-EUTRAN-Authentication-Info' = ReqEutranAuth}) ->
+		'Requested-EUTRAN-Authentication-Info' = ReqEutranAuth} = Request,
+		#client{address = CAddress, port = CPort}) ->
 	case ocs:find_service(IMSI) of
 		{ok, #service{enabled = false} = _Service} ->
-			{reply, #'3gpp_s6a_AIA'{'Session-Id' = SId,
+			Server = {ServerAddress, ServerPort},
+			Client1 = {CAddress, CPort},
+			Answer = #'3gpp_s6a_AIA'{'Session-Id' = SId,
 					'Result-Code' = [?'DIAMETER_BASE_RESULT-CODE_AUTHORIZATION_REJECTED'],
 					'Auth-Session-State' =  ?'3GPP_S6A_AUTH-SESSION-STATE_NO_STATE_MAINTAINED',
-					'Origin-Host' = OHost, 'Origin-Realm' = ORealm}};
+					'Origin-Host' = OHost, 'Origin-Realm' = ORealm},
+			ok = ocs_log:auth_log(diameter, Server, Client1, Request, Answer),
+			{reply, Answer};
 		{ok, #service{password = #aka_cred{k = K, opc = OPc, dif = DIF},
 				attributes = _Attributes} = _Service} ->
 			% @todo Handle three digit MNC!
@@ -305,11 +326,15 @@ authentication_information(ServiceName,
 					EutranVector = #'3gpp_s6a_E-UTRAN-Vector'{'Item-Number' = [1],
 							'RAND' = RAND, 'XRES' = XRES, 'AUTN' = AUTN, 'KASME' = KASME},
 					AuthInfo = #'3gpp_s6a_Authentication-Info'{'E-UTRAN-Vector' = [EutranVector]},
-					{reply, #'3gpp_s6a_AIA'{'Session-Id' = SId,
+					Server = {ServerAddress, ServerPort},
+					Client1 = {CAddress, CPort},
+					Answer = #'3gpp_s6a_AIA'{'Session-Id' = SId,
 							'Result-Code' = [?'DIAMETER_BASE_RESULT-CODE_SUCCESS'],
 							'Auth-Session-State' = ?'3GPP_S6A_AUTH-SESSION-STATE_NO_STATE_MAINTAINED',
 							'Origin-Host' = OHost, 'Origin-Realm' = ORealm,
-							'Authentication-Info' = [AuthInfo]}};
+							'Authentication-Info' = [AuthInfo]},
+					ok = ocs_log:auth_log(diameter, Server, Client1, Request, Answer),
+					{reply, Answer};
 				[#'3gpp_s6a_Requested-EUTRAN-Authentication-Info'{
 						'Re-Synchronization-Info' = [<<RAND:16/binary, SQN:48, MAC_S:8/binary>>]}] ->
 					{XRES, CK, IK, <<AK:48>>} = ocs_milenage:f2345(OPc, K, RAND),
@@ -323,11 +348,15 @@ authentication_information(ServiceName,
 							EutranVector = #'3gpp_s6a_E-UTRAN-Vector'{'Item-Number' = [1],
 									'RAND' = RAND, 'XRES' = XRES, 'AUTN' = AUTN, 'KASME' = KASME},
 							AuthInfo = #'3gpp_s6a_Authentication-Info'{'E-UTRAN-Vector' = [EutranVector]},
-							{reply, #'3gpp_s6a_AIA'{'Session-Id' = SId,
+							Server = {ServerAddress, ServerPort},
+							Client1 = {CAddress, CPort},
+							Answer = #'3gpp_s6a_AIA'{'Session-Id' = SId,
 									'Result-Code' = [?'DIAMETER_BASE_RESULT-CODE_SUCCESS'],
 									'Auth-Session-State' =  ?'3GPP_S6A_AUTH-SESSION-STATE_NO_STATE_MAINTAINED',
 									'Origin-Host' = OHost, 'Origin-Realm' = ORealm,
-									'Authentication-Info' = [AuthInfo]}};
+									'Authentication-Info' = [AuthInfo]},
+							ok = ocs_log:auth_log(diameter, Server, Client1, Request, Answer),
+							{reply, Answer};
 						_A ->
 							case ocs_milenage:'f1*'(OPc, K, RAND, <<SQNms:48>>, <<0:16>>) of
 								MAC_S ->
@@ -338,51 +367,72 @@ authentication_information(ServiceName,
 									EutranVector = #'3gpp_s6a_E-UTRAN-Vector'{'Item-Number' = [1],
 											'RAND' = RAND, 'XRES' = XRES, 'AUTN' = AUTN, 'KASME' = KASME},
 									AuthInfo = #'3gpp_s6a_Authentication-Info'{'E-UTRAN-Vector' = [EutranVector]},
-									{reply, #'3gpp_s6a_AIA'{'Session-Id' = SId,
+									Server = {ServerAddress, ServerPort},
+									Client1 = {CAddress, CPort},
+									Answer = #'3gpp_s6a_AIA'{'Session-Id' = SId,
 											'Result-Code' = [?'DIAMETER_BASE_RESULT-CODE_SUCCESS'],
 											'Auth-Session-State' =  ?'3GPP_S6A_AUTH-SESSION-STATE_NO_STATE_MAINTAINED',
 											'Origin-Host' = OHost, 'Origin-Realm' = ORealm,
-											'Authentication-Info' = [AuthInfo]}};
+											'Authentication-Info' = [AuthInfo]},
+									ok = ocs_log:auth_log(diameter, Server, Client1, Request, Answer),
+									{reply, Answer};
 								_ ->
 									error_logger:error_report(["AUTS verification failed",
 											{service, ServiceName}, {identity, IMSI},
 											{auts, <<SQN:48, MAC_S/binary>>}]),
-									{reply, #'3gpp_s6a_AIA'{'Session-Id' = SId,
+									Server = {ServerAddress, ServerPort},
+									Client1 = {CAddress, CPort},
+									Answer = #'3gpp_s6a_AIA'{'Session-Id' = SId,
 											'Experimental-Result' = [#'3gpp_s6a_Experimental-Result'{
 											'Vendor-Id' = ?IANA_PEN_3GPP,
 											'Experimental-Result-Code' = ?'DIAMETER_AUTHENTICATION_DATA_UNAVAILABLE'}],
 											'Auth-Session-State' =  ?'3GPP_S6A_AUTH-SESSION-STATE_NO_STATE_MAINTAINED',
-											'Origin-Host' = OHost, 'Origin-Realm' = ORealm}}
+											'Origin-Host' = OHost, 'Origin-Realm' = ORealm},
+									ok = ocs_log:auth_log(diameter, Server, Client1, Request, Answer),
+									{reply, Answer}
 							end
 					end;
 				[] ->
-					{reply, #'3gpp_s6a_AIA'{'Session-Id' = SId,
+					Server = {ServerAddress, ServerPort},
+					Client1 = {CAddress, CPort},
+					Answer = #'3gpp_s6a_AIA'{'Session-Id' = SId,
 							'Result-Code' = [?'DIAMETER_BASE_RESULT-CODE_SUCCESS'],
 							'Auth-Session-State' =  ?'3GPP_S6A_AUTH-SESSION-STATE_NO_STATE_MAINTAINED',
-							'Origin-Host' = OHost, 'Origin-Realm' = ORealm}}
+							'Origin-Host' = OHost, 'Origin-Realm' = ORealm},
+					ok = ocs_log:auth_log(diameter, Server, Client1, Request, Answer),
+					{reply, Answer}
 			end;
 		{error, not_found} ->
-			{reply, #'3gpp_s6a_AIA'{'Session-Id' = SId,
+			Server = {ServerAddress, ServerPort},
+			Client1 = {CAddress, CPort},
+			Answer = #'3gpp_s6a_AIA'{'Session-Id' = SId,
 					'Experimental-Result' = [#'3gpp_s6a_Experimental-Result'{
 					'Vendor-Id' = ?IANA_PEN_3GPP,
 					'Experimental-Result-Code' = ?'DIAMETER_ERROR_USER_UNKNOWN'}],
 					'Auth-Session-State' =  ?'3GPP_S6A_AUTH-SESSION-STATE_NO_STATE_MAINTAINED',
-					'Origin-Host' = OHost, 'Origin-Realm' = ORealm}};
+					'Origin-Host' = OHost, 'Origin-Realm' = ORealm},
+			ok = ocs_log:auth_log(diameter, Server, Client1, Request, Answer),
+			{reply, Answer};
 		{error, Reason} ->
 			error_logger:error_report(["Service lookup failure",
 					{service, ServiceName}, {module, ?MODULE}, {error, Reason}]),
-			{reply, #'3gpp_s6a_AIA'{'Session-Id' = SId,
+			Server = {ServerAddress, ServerPort},
+			Client1 = {CAddress, CPort},
+			Answer = #'3gpp_s6a_AIA'{'Session-Id' = SId,
 					'Result-Code' = [?'DIAMETER_BASE_RESULT-CODE_UNABLE_TO_COMPLY'],
 					'Auth-Session-State' =  ?'3GPP_S6A_AUTH-SESSION-STATE_NO_STATE_MAINTAINED',
-					'Origin-Host' = OHost, 'Origin-Realm' = ORealm}}
+					'Origin-Host' = OHost, 'Origin-Realm' = ORealm},
+			ok = ocs_log:auth_log(diameter, Server, Client1, Request, Answer),
+			{reply, Answer}
 	end.
 
 %% @hidden
-update_location(ServiceName,
+update_location({_, ServerAddress, ServerPort} = ServiceName,
 		#diameter_caps{origin_host = {OHost, _DHost},
 		origin_realm = {ORealm, _DRealm}} = _Capabilities,
 		#'3gpp_s6a_ULR'{'Session-Id' = SId,
-		'User-Name' = IMSI, 'ULR-Flags' = RequestFlags}) ->
+		'User-Name' = IMSI, 'ULR-Flags' = RequestFlags} = Request,
+		#client{address = CAddress, port = CPort}) ->
 	SkipSub = case RequestFlags of
 		[<<_:29, 1:1, _:2>>] ->
 			true;
@@ -391,10 +441,14 @@ update_location(ServiceName,
 	end,
 	case ocs:find_service(IMSI) of
 		{ok, #service{}} when SkipSub ->
-			{reply, #'3gpp_s6a_ULA'{'Session-Id' = SId,
+			Server = {ServerAddress, ServerPort},
+			Client1 = {CAddress, CPort},
+			Answer = #'3gpp_s6a_ULA'{'Session-Id' = SId,
 					'Result-Code' = [?'DIAMETER_BASE_RESULT-CODE_SUCCESS'],
 					'Auth-Session-State' =  ?'3GPP_S6A_AUTH-SESSION-STATE_NO_STATE_MAINTAINED',
-					'Origin-Host' = OHost, 'Origin-Realm' = ORealm}};
+					'Origin-Host' = OHost, 'Origin-Realm' = ORealm},
+			ok = ocs_log:auth_log(diameter, Server, Client1, Request, Answer),
+			{reply, Answer};
 		{ok, #service{}} ->
 			ApnConfig1 = #'3gpp_s6a_APN-Configuration'{'Service-Selection' = "cmnet",
 					'Context-Identifier' = 1,
@@ -422,52 +476,77 @@ update_location(ServiceName,
 			SubscriptionData = #'3gpp_s6a_Subscription-Data'{
 					'Subscriber-Status' = [?'3GPP_S6A_SUBSCRIBER-STATUS_SERVICE_GRANTED'],
 					'APN-Configuration-Profile' = [ApnProfile], 'AMBR' = [AMBR]},
-			{reply, #'3gpp_s6a_ULA'{'Session-Id' = SId,
+			Server = {ServerAddress, ServerPort},
+			Client1 = {CAddress, CPort},
+			Answer = #'3gpp_s6a_ULA'{'Session-Id' = SId,
 					'Result-Code' = [?'DIAMETER_BASE_RESULT-CODE_SUCCESS'],
 					'Auth-Session-State' =  ?'3GPP_S6A_AUTH-SESSION-STATE_NO_STATE_MAINTAINED',
 					'Origin-Host' = OHost, 'Origin-Realm' = ORealm,
-					'Subscription-Data' = [SubscriptionData]}};
+					'Subscription-Data' = [SubscriptionData]},
+			ok = ocs_log:auth_log(diameter, Server, Client1, Request, Answer),
+			{reply, Answer};
 		{error, not_found} ->
-			{reply, #'3gpp_s6a_AIA'{'Session-Id' = SId,
+			Server = {ServerAddress, ServerPort},
+			Client1 = {CAddress, CPort},
+			Answer = #'3gpp_s6a_AIA'{'Session-Id' = SId,
 					'Experimental-Result' = [#'3gpp_s6a_Experimental-Result'{
 					'Vendor-Id' = ?IANA_PEN_3GPP,
 					'Experimental-Result-Code' = ?'DIAMETER_ERROR_USER_UNKNOWN'}],
 					'Auth-Session-State' =  ?'3GPP_S6A_AUTH-SESSION-STATE_NO_STATE_MAINTAINED',
-					'Origin-Host' = OHost, 'Origin-Realm' = ORealm}};
+					'Origin-Host' = OHost, 'Origin-Realm' = ORealm},
+			ok = ocs_log:auth_log(diameter, Server, Client1, Request, Answer),
+			{reply, Answer};
 		{error, Reason} ->
 			error_logger:error_report(["Service lookup failure",
 					{service, ServiceName}, {module, ?MODULE}, {error, Reason}]),
-			{reply, #'3gpp_s6a_ULA'{'Session-Id' = SId,
+			Server = {ServerAddress, ServerPort},
+			Client1 = {CAddress, CPort},
+			Answer = #'3gpp_s6a_ULA'{'Session-Id' = SId,
 					'Result-Code' = [?'DIAMETER_BASE_RESULT-CODE_UNABLE_TO_COMPLY'],
 					'Auth-Session-State' =  ?'3GPP_S6A_AUTH-SESSION-STATE_NO_STATE_MAINTAINED',
-					'Origin-Host' = OHost, 'Origin-Realm' = ORealm}}
+					'Origin-Host' = OHost, 'Origin-Realm' = ORealm},
+			ok = ocs_log:auth_log(diameter, Server, Client1, Request, Answer),
+			{reply, Answer}
 	end.
 
 %% @hidden
-purge_ue(ServiceName,
+purge_ue({_, ServerAddress, ServerPort} = ServiceName,
 		#diameter_caps{origin_host = {OHost, _DHost},
 		origin_realm = {ORealm, _DRealm}} = _Capabilities,
-		#'3gpp_s6a_PUR'{'Session-Id' = SId, 'User-Name' = IMSI}) ->
+		#'3gpp_s6a_PUR'{'Session-Id' = SId, 'User-Name' = IMSI} = Request,
+		#client{address = CAddress, port = CPort}) ->
 	case ocs:find_service(IMSI) of
 		{ok, #service{} = _Service} ->
-			{reply, #'3gpp_s6a_PUA'{'Session-Id' = SId,
+			Server = {ServerAddress, ServerPort},
+			Client1 = {CAddress, CPort},
+			Answer = #'3gpp_s6a_PUA'{'Session-Id' = SId,
 					'Result-Code' = [?'DIAMETER_BASE_RESULT-CODE_SUCCESS'],
 					'Auth-Session-State' = ?'3GPP_S6A_AUTH-SESSION-STATE_NO_STATE_MAINTAINED',
-					'Origin-Host' = OHost, 'Origin-Realm' = ORealm}};
+					'Origin-Host' = OHost, 'Origin-Realm' = ORealm},
+			ok = ocs_log:auth_log(diameter, Server, Client1, Request, Answer),
+			{reply, Answer};
 		{error, not_found} ->
-			{reply, #'3gpp_s6a_PUA'{'Session-Id' = SId,
+			Server = {ServerAddress, ServerPort},
+			Client1 = {CAddress, CPort},
+			Answer = #'3gpp_s6a_PUA'{'Session-Id' = SId,
 					'Experimental-Result' = [#'3gpp_s6a_Experimental-Result'{
 					'Vendor-Id' = ?IANA_PEN_3GPP,
 					'Experimental-Result-Code' = ?'DIAMETER_ERROR_USER_UNKNOWN'}],
 					'Auth-Session-State' =  ?'3GPP_S6A_AUTH-SESSION-STATE_NO_STATE_MAINTAINED',
-					'Origin-Host' = OHost, 'Origin-Realm' = ORealm}};
+					'Origin-Host' = OHost, 'Origin-Realm' = ORealm},
+			ok = ocs_log:auth_log(diameter, Server, Client1, Request, Answer),
+			{reply, Answer};
 		{error, Reason} ->
 			error_logger:error_report(["Service lookup failure",
 					{service, ServiceName}, {module, ?MODULE}, {error, Reason}]),
-			{reply, #'3gpp_s6a_PUA'{'Session-Id' = SId,
+			Server = {ServerAddress, ServerPort},
+			Client1 = {CAddress, CPort},
+			Answer = #'3gpp_s6a_PUA'{'Session-Id' = SId,
 					'Result-Code' = [?'DIAMETER_BASE_RESULT-CODE_UNABLE_TO_COMPLY'],
 					'Auth-Session-State' =  ?'3GPP_S6A_AUTH-SESSION-STATE_NO_STATE_MAINTAINED',
-					'Origin-Host' = OHost, 'Origin-Realm' = ORealm}}
+					'Origin-Host' = OHost, 'Origin-Realm' = ORealm},
+			ok = ocs_log:auth_log(diameter, Server, Client1, Request, Answer),
+			{reply, Answer}
 	end.
 
 -spec errors(ServiceName, Capabilities, Request, Errors) -> Result

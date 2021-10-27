@@ -52,6 +52,7 @@
 -include("diameter_gen_3gpp_swm_application.hrl").
 -include("diameter_gen_3gpp_s6b_application.hrl").
 -include("diameter_gen_3gpp_swx_application.hrl").
+-include("diameter_gen_3gpp_s6a_application.hrl").
 
 % calendar:datetime_to_gregorian_seconds({{1970,1,1},{0,0,0}})
 -define(EPOCH, 62167219200).
@@ -228,12 +229,16 @@ auth_log(Protocol, Server, Client, Type, RequestAttributes, ResponseAttributes) 
 				| #'3gpp_sta_DER'{} | #'3gpp_swm_DER'{}
 				| #'3gpp_sta_STR'{} | #'3gpp_swm_STR'{}
 				| #'3gpp_s6b_STR'{} | #'3gpp_swx_RTR'{}
-				| #'3gpp_s6b_AAR'{},
+				| #'3gpp_s6b_AAR'{}
+				| #'3gpp_s6a_AIA'{} | #'3gpp_s6a_ULR'{}
+				| #'3gpp_s6a_PUR'{},
 		Response :: #diameter_nas_app_AAA{} | #diameter_eap_app_DEA{}
 				| #'3gpp_sta_DEA'{} | #'3gpp_swm_DEA'{}
 				| #'3gpp_sta_STA'{} | #'3gpp_swm_STA'{}
 				| #'3gpp_s6b_STA'{} | #'3gpp_swx_RTA'{}
-				| #'3gpp_s6b_AAA'{},
+				| #'3gpp_s6b_AAA'{}
+				| #'3gpp_s6a_AIA'{} | #'3gpp_s6a_ULR'{}
+				| #'3gpp_s6a_PUR'{},
 		Result :: ok | {error, Reason},
 		Reason :: term().
 %% @doc Write a DIAMETER event to authorization log.
