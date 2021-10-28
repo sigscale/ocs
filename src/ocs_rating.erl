@@ -305,13 +305,26 @@ rate2(Protocol, Service, ServiceId, Product, Buckets, Timestamp, Address, Direct
 		Flag, DebitAmounts, ReserveAmounts, SessionId, Rated,
 		ChargingKey, ServiceNetwork)
 		when ProdSpec == "10"; ProdSpec == "11" ->
-	F = fun(#price{type = usage, units = messages}) ->
+	Now = erlang:system_time(millisecond),
+	F = fun(#price{type = usage, units = messages,
+					start_date = StartDate, end_date = EndDate})
+					when ((StartDate =< Now) or (StartDate == undefined)),
+					((EndDate > Now) or ( EndDate == undefined)) ->
 				true;
-			(#price{type = usage, units = cents}) ->
+			(#price{type = usage, units = cents,
+					start_date = StartDate, end_date = EndDate})
+					when ((StartDate =< Now) or (StartDate == undefined)),
+					((EndDate > Now) or ( EndDate == undefined)) ->
 				true;
-			(#price{type = tariff, units = messages}) ->
+			(#price{type = tariff, units = messages,
+					start_date = StartDate, end_date = EndDate})
+					when ((StartDate =< Now) or (StartDate == undefined)),
+					((EndDate > Now) or ( EndDate == undefined)) ->
 				true;
-			(#price{type = #pla_ref{}}) ->
+			(#price{type = #pla_ref{},
+					start_date = StartDate, end_date = EndDate})
+					when ((StartDate =< Now) or (StartDate == undefined)),
+					((EndDate > Now) or ( EndDate == undefined)) ->
 				true;
 			(_) ->
 				false
@@ -338,11 +351,21 @@ rate2(Protocol, Service, ServiceId, Product, Buckets, Timestamp, Address, Direct
 		Flag, DebitAmounts, ReserveAmounts,
 		SessionId, Rated, ChargingKey, ServiceNetwork)
 		when ProdSpec == "5"; ProdSpec == "9" ->
-	F = fun(#price{type = tariff, units = seconds}) ->
+	Now = erlang:system_time(millisecond),
+	F = fun(#price{type = tariff, units = seconds,
+					start_date = StartDate, end_date = EndDate})
+					when ((StartDate =< Now) or (StartDate == undefined)),
+					((EndDate > Now) or ( EndDate == undefined)) ->
 				true;
-			(#price{type = usage, units = seconds}) ->
+			(#price{type = usage, units = seconds,
+					start_date = StartDate, end_date = EndDate})
+					when ((StartDate =< Now) or (StartDate == undefined)),
+					((EndDate > Now) or ( EndDate == undefined)) ->
 				true;
-			(#price{type = #pla_ref{}}) ->
+			(#price{type = #pla_ref{},
+					start_date = StartDate, end_date = EndDate})
+					when ((StartDate =< Now) or (StartDate == undefined)),
+					((EndDate > Now) or ( EndDate == undefined)) ->
 				true;
 			(_) ->
 				false
@@ -367,11 +390,21 @@ rate2(Protocol, Service, ServiceId, Product, Buckets, Timestamp, Address, Direct
 rate2(Protocol, Service, ServiceId, Product, Buckets, Timestamp, _Address, _Direction,
 		#offer{price = Prices} = _Offer, Flag, DebitAmounts, ReserveAmounts,
 		SessionId, Rated, ChargingKey, ServiceNetwork) ->
-	F = fun(#price{type = tariff, units = octets}) ->
+	Now = erlang:system_time(millisecond),
+	F = fun(#price{type = tariff, units = octets,
+					start_date = StartDate, end_date = EndDate})
+					when ((StartDate =< Now) or (StartDate == undefined)),
+					((EndDate > Now) or ( EndDate == undefined)) ->
 				true;
-			(#price{type = usage}) ->
+			(#price{type = usage,
+					start_date = StartDate, end_date = EndDate})
+					when ((StartDate =< Now) or (StartDate == undefined)),
+					((EndDate > Now) or ( EndDate == undefined)) ->
 				true;
-			(#price{type = #pla_ref{}}) ->
+			(#price{type = #pla_ref{},
+					start_date = StartDate, end_date = EndDate})
+					when ((StartDate =< Now) or (StartDate == undefined)),
+					((EndDate > Now) or ( EndDate == undefined)) ->
 				true;
 			(_) ->
 				false
