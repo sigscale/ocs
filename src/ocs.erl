@@ -2622,14 +2622,21 @@ get_params2(_, _, undefined) ->
 	{error, inet_services_undefined}.
 %% @hidden
 get_params3(Address, Port, {httpd, Httpd}) ->
-	get_params4(Address, Port, lists:keyfind(directory, 1, Httpd));
+	F = fun({directory, _}) ->
+				true;
+			(_) ->
+				false
+	end,
+	get_params4(Address, Port, lists:filter(F, Httpd));
 get_params3(_, _, false) ->
 	{error, httpd_service_undefined}.
 %% @hidden
-get_params4(Address, Port, {directory, {Directory, Auth}}) ->
+get_params4(Address, Port, [{directory, {_Dir, []}} | T]) ->
+	get_params4(Address, Port, T);
+get_params4(Address, Port, [{directory, {Directory, Auth}} | _T]) ->
 	get_params5(Address, Port, Directory,
 			lists:keyfind(require_group, 1, Auth));
-get_params4(_, _, false) ->
+get_params4(_, _, []) ->
 	{error, httpd_directory_undefined}.
 %% @hidden
 get_params5(Address, Port, Directory, {require_group, [Group | _]}) ->

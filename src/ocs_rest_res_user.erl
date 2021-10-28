@@ -275,11 +275,21 @@ get_params() ->
 	{_, Address} = lists:keyfind(bind_address, 1, Info),
 	{ok, EnvObj} = application:get_env(inets, services),
 	{httpd, HttpdObj} = lists:keyfind(httpd, 1, EnvObj),
-	{directory, {Directory, AuthObj}} = lists:keyfind(directory, 1, HttpdObj),
-	case lists:keyfind(require_group, 1, AuthObj) of
-		{require_group, [Group | _T]} ->
+	F = fun({directory, {Directory, Auth}})
+			when is_list(Auth), length(Auth) > 0 ->
+				case lists:keyfind(require_group, 1, Auth) of
+					{require_group, [Group | _T]} ->
+						{true, {Port, Address, Directory, Group}};
+					false ->
+						false
+				end;
+			(_) ->
+				false
+	end,
+	case lists:filtermap(F, HttpdObj) of
+		[{Port, Address, Directory, Group}] ->
 			{Port, Address, Directory, Group};
-		false ->
+		[] ->
 			exit(not_found)
 	end.
 
