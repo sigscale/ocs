@@ -144,8 +144,10 @@ rate(Protocol, ServiceType, ServiceId, ChargingKey,
 					case mnesia:read(product, ProdRef, read) of
 						[#product{product = OfferId,
 								balance = BucketRefs} = Product] ->
+							Now = erlang:system_time(millisecond),
 							case mnesia:read(offer, OfferId, read) of
-								[#offer{char_value_use = CharValueUse} = Offer] ->
+								[#offer{char_value_use = CharValueUse, end_date = EndDate, start_date = StartDate} = Offer]
+										when ((StartDate =< Now) or (StartDate == undefined)), ((EndDate > Now) or ( EndDate == undefined)) ->
 									Buckets = lists:flatten([mnesia:read(bucket, Id, sticky_write)
 											|| Id <- BucketRefs]),
 									F2 = fun(#bucket{units = cents, remain_amount = RM}) when RM < 0 ->
@@ -170,7 +172,7 @@ rate(Protocol, ServiceType, ServiceId, ChargingKey,
 										false ->
 											{out_of_credit, RedirectServerAddress, SessionList, [], []}
 									end;
-								[] ->
+								_ ->
 									mnesia:abort(offer_not_found)
 							end;
 						[] ->
