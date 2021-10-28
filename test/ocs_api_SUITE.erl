@@ -1089,8 +1089,8 @@ accumulated_balance_event(_Config) ->
 			undefined, undefined, ServiceId, Timestamp, undefined, undefined,
 			initial, [], [{octets, PackageSize}], SessionId),
 	receive
-		{accumulated, [#acc_balance{total_balance = BytesTotalAmount,
-				units = octets}], balance} ->
+		{accumulated, [#acc_balance{total_balance = [#quantity{units = octets,
+				amount = BytesTotalAmount}]}], balance} ->
 			BytesTotalAmount = RA2 - PackageSize
 	end.
 

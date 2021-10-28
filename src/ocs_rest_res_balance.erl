@@ -155,12 +155,12 @@ get_buckets(Query, Headers) ->
 				case ocs_rest_query_parser:parse(Tokens) of
 					{ok, [{array, [{complex, Complex}]}]} ->
 						MatchId = match("id", Complex, Query),
-						MatchProduct = match("product", Complex, Query),
+						MatchProduct = match("product.id", Complex, Query),
 						{Query1, [MatchId, MatchProduct]}
 				end;
 			false ->
 				MatchId = match("id", [], Query),
-				MatchProduct = match("product", [], Query),
+				MatchProduct = match("product.id", [], Query),
 				{Query, [MatchId, MatchProduct]}
 		end
 	of
@@ -272,7 +272,7 @@ get_balance(ProdRef, Query) ->
 			BucketIds = [B#bucket.id || B <- Buckets3],
 			AccBalance = #acc_balance{id = ProdRef,
 					total_balance = [#quantity{amount = TotalAmount, units = Units}],
-					units = [Units], bucket = BucketIds, product = [ProdRef]},
+					bucket = BucketIds, product = [ProdRef]},
 			[{Condition, S}] = Query -- [{"totalBalance.units", Value}],
 			ok = send_notification(Condition, TotalAmount,
 					ocs_rest:millionths_in(S), AccBalance),

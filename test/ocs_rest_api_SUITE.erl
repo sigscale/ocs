@@ -220,7 +220,7 @@ all() ->
 	get_auth_usage, get_auth_usage_id, get_auth_usage_filter,
 	get_auth_usage_range, get_acct_usage, get_acct_usage_id,
 	get_acct_usage_filter, get_acct_usage_range, get_ipdr_usage,
-	top_up, get_balance, get_balance_service,
+	top_up, get_balance, get_balance_service, query_buckets,
 	simultaneous_updates_on_client_failure, get_product, add_product,
 	add_product_sms, update_product_realizing_service, delete_product,
 	ignore_delete_product, query_product, filter_product,
@@ -2538,6 +2538,43 @@ get_balance_service(Config) ->
 		end
 	end,
 	true = lists:all(F2, TAStructs).
+
+query_buckets() ->
+	[{userdata, [{doc,"query buckets based on product id"}]}].
+
+query_buckets(Config) ->
+	HostUrl = ?config(host_url, Config),
+	P1 = price(usage, octets, rand:uniform(10000), rand:uniform(100)),
+	OfferId1 = offer_add([P1], 4),
+	ProdRef1 = product_add(OfferId1),
+	B1 = b(cents, 10000),
+	B2 = b(octets, 150000000),
+	{_, _, #bucket{id = BId1}} = ocs:add_bucket(ProdRef1, B1),
+	{_, _, #bucket{id = BId2}} = ocs:add_bucket(ProdRef1, B2),
+	P2 = price(one_time, undefined, undefined, 1000),
+	OfferId2 = offer_add([P2], 4),
+	ProdRef2 = product_add(OfferId2),
+	B3 = b(cents, 450000),
+	{_, _, #bucket{}} = ocs:add_bucket(ProdRef2, B3),
+	AcceptValue = "application/json",
+	Accept = {"accept", AcceptValue},
+	Path = "/balanceManagement/v1/bucket" ++ "?product.id=" ++ ProdRef1,
+	GETRequest = {HostUrl ++ Path, [Accept, auth_header()]},
+	{ok, GETResult} = httpc:request(get, GETRequest, [], []),
+	{{"HTTP/1.1", 200, _OK}, Headers, Body} = GETResult,
+	{_, "application/json"} = lists:keyfind("content-type", 1, Headers),
+	ContentLength = integer_to_list(length(Body)),
+	{_, ContentLength} = lists:keyfind("content-length", 1, Headers),
+	{array, BucketStructs} = mochijson:decode(Body),
+	F1 = fun({struct, B}) ->
+		case lists:keyfind("id", 1, B) of
+			{_, Id} when Id == BId1; Id == BId2 ->
+				true;
+			_ ->
+				false
+		end
+	end,
+	true = lists:all(F1, BucketStructs).
 
 simultaneous_updates_on_client_failure() ->
 	[{userdata, [{doc,"Simulataneous HTTP PATCH requests on client resource must fail
