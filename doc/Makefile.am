@@ -6,6 +6,7 @@
 modhtml = ocs.html \
 			ocs_app.html \
 			ocs_sup.html \
+			ocs_diameter.html \
 			ocs_diameter_auth_port_server.html \
 			ocs_diameter_auth_port_sup.html \
 			ocs_diameter_auth_service_fsm_sup.html \

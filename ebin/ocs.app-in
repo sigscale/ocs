@@ -5,6 +5,7 @@
 				[ocs,
 				ocs_app,
 				ocs_sup,
+				ocs_diameter,
 				ocs_diameter_auth_port_server,
 				ocs_diameter_auth_port_sup,
 				ocs_diameter_auth_service_fsm_sup,

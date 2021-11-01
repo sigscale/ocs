@@ -10,6 +10,7 @@ EXTRA_DIST = ocs.app
 beam_DATA = ocs.beam \
 			ocs_app.beam \
 			ocs_sup.beam \
+			ocs_diameter.beam \
 			ocs_diameter_auth_port_server.beam \
 			ocs_diameter_auth_port_sup.beam \
 			ocs_diameter_auth_service_fsm_sup.beam \
