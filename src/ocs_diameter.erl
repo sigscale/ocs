@@ -23,12 +23,7 @@
 -copyright('Copyright (c) 2016 - 2021 SigScale Global Inc.').
 
 %% export the ocs_diameter public API
-
-%% exported the private function
 -export([]).
-
-%% export the ocs_diameter event types
--export_type([]).
 
 
 %%----------------------------------------------------------------------
