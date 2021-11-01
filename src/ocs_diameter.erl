@@ -25,7 +25,6 @@
 %% export the ocs_diameter public API
 -export([plmn/1]).
 
-
 %%----------------------------------------------------------------------
 %%  The ocs_diameter public API
 %%----------------------------------------------------------------------
@@ -38,6 +37,7 @@
 		MNC :: [$0..$9],
 		Rest :: string().
 %% @doc Extract MCC and MNC AVP strings
+%%% @reference <a href="https://www.mcc-mnc.com">
 %% Abkhazia, A-Mobile
 plmn("28968" ++ Rest) ->
 	{"289", "68", Rest};
