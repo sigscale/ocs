@@ -103,7 +103,7 @@ peer_down(_ServiceName, _Peer, State) ->
 		Peer :: peer() | false,
 		Result :: Selection | false.
 %% @doc Invoked as a consequence of a call to diameter:call/4 to select
-%% a destination peer for an outgoing request. 
+%% a destination peer for an outgoing request.
 pick_peer([Peer | _] = _LocalCandidates, _RemoteCandidates,
 		_ServiceName, _State, _Fsm) ->
 	{ok, Peer}.
@@ -119,7 +119,7 @@ pick_peer([Peer | _] = _LocalCandidates, _RemoteCandidates,
 		Discard :: {discard, Reason} | discard,
 		Reason :: term(),
 		PostF :: diameter:evaluable().
-%% @doc Invoked to return a request for encoding and transport 
+%% @doc Invoked to return a request for encoding and transport
 prepare_request(#diameter_packet{} = Packet, _ServiceName, _Peer, _Fsm) ->
 	{send, Packet}.
 
@@ -310,9 +310,12 @@ authentication_information({_, ServerAddress, ServerPort} = ServiceName,
 			{reply, Answer};
 		{ok, #service{password = #aka_cred{k = K, opc = OPc, dif = DIF},
 				attributes = _Attributes} = _Service} ->
-			% @todo Handle three digit MNC!
-			<<Mcc1, Mcc2, Mcc3, Mnc1, Mnc2, Mnc3, _/binary>> = IMSI,
-			SN = <<Mcc2:4, Mcc1:4, 15:4, Mcc3:4, Mnc2:4, Mnc1:4>>,
+			SN = case ocs_diameter:plmn(binary_to_list(IMSI)) of
+				{[Mcc1, Mcc2, Mcc3], [Mnc1, Mnc2], _} ->
+					<<Mcc2:4, Mcc1:4, 15:4, Mcc3:4, Mnc2:4, Mnc1:4>>;
+				{[Mcc1, Mcc2, Mcc3], [Mnc1, Mnc2, Mnc3], _} ->
+					<<Mcc2:4, Mcc1:4, Mnc3:4, Mcc3:4, Mnc2:4, Mnc1:4>>
+			end,
 			AMF = <<1:1, 0:15>>,
 			case ReqEutranAuth of
 				[#'3gpp_s6a_Requested-EUTRAN-Authentication-Info'{
