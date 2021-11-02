@@ -18,6 +18,8 @@
 %%% @doc This library module implements utility used in diameter callback modules
 %%% 	in the {@link //ocs. ocs} application.
 %%%
+%%% @reference <a href="https://www.mcc-mnc.com">
+%%%   Mobile Country Codes (MCC) and Mobile Network Codes (MNC) </a>
 %%%
 -module(ocs_diameter).
 -copyright('Copyright (c) 2016 - 2021 SigScale Global Inc.').
@@ -37,7 +39,6 @@
 		MNC :: [$0..$9],
 		Rest :: string().
 %% @doc Extract MCC and MNC 
-%%% @reference <a href="https://www.mcc-mnc.com">
 %% Abkhazia, A-Mobile
 plmn("28968" ++ Rest) ->
 	{"289", "68", Rest};
