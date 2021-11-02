@@ -36,7 +36,7 @@
 		MCC :: [$0..$9],
 		MNC :: [$0..$9],
 		Rest :: string().
-%% @doc Extract MCC and MNC AVP strings
+%% @doc Extract MCC and MNC 
 %%% @reference <a href="https://www.mcc-mnc.com">
 %% Abkhazia, A-Mobile
 plmn("28968" ++ Rest) ->
