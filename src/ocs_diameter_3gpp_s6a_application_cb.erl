@@ -310,7 +310,7 @@ authentication_information({_, ServerAddress, ServerPort} = ServiceName,
 			{reply, Answer};
 		{ok, #service{password = #aka_cred{k = K, opc = OPc, dif = DIF},
 				attributes = _Attributes} = _Service} ->
-			SN = case ocs_diameter:plmn(binary_to_list(IMSI)) of
+			SN = case ocs_diameter:plmn(IMSI) of
 				{[Mcc1, Mcc2, Mcc3], [Mnc1, Mnc2], _} ->
 					<<Mcc2:4, Mcc1:4, 15:4, Mcc3:4, Mnc2:4, Mnc1:4>>;
 				{[Mcc1, Mcc2, Mcc3], [Mnc1, Mnc2, Mnc3], _} ->

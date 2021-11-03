@@ -39,6 +39,14 @@
 		MNC :: [$0..$9],
 		Rest :: string().
 %% @doc Extract MCC and MNC 
+plmn(String) when is_binary(String) ->
+	plmn(binary_to_list(String));
+%% Test network
+plmn("00101" ++ Rest) ->
+	{"001", "01", Rest};
+%% Test network
+plmn("001001" ++ Rest) ->
+	{"001", "001", Rest};
 %% Abkhazia, A-Mobile
 plmn("28968" ++ Rest) ->
 	{"289", "68", Rest};
