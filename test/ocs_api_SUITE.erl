@@ -96,7 +96,8 @@ all() ->
 	add_product_event, delete_product_event, add_bucket_event,
 	delete_bucket_event, product_charge_event, rating_deleted_bucket_event,
 	accumulated_balance_event,
-	add_resource, get_resources, get_resource, delete_resource].
+	add_resource, get_resources, get_resource, delete_resource,
+	parse_access_network_information_string].
 
 %%---------------------------------------------------------------------
 %%  Test cases
@@ -156,7 +157,6 @@ update_client_password(_Config) ->
 	NewPasswordBin = list_to_binary(NewPassword),
 	{ok, #client{port = 3799, protocol = Protocol,
 			secret = NewPasswordBin}} = ocs:find_client(Address).
-
 
 delete_client() ->
 	[{userdata, [{doc, "Delete  a client from database"}]}].
@@ -1165,6 +1165,17 @@ delete_resource(_Config) ->
 	{ok, #resource{id = ResouceId}} = ocs:add_resource(Resource),
 	ok = ocs:delete_resource(ResouceId),
 	{error, not_found} = ocs:get_resource(ResouceId).
+
+parse_access_network_information_string() ->
+	[{userdata, [{doc, "Parse String for MCC and MNC"}]}].
+
+parse_access_network_information_string(_Config) ->
+	MCC = "001",
+	MNC = "001",
+	TAC = "33C4", 
+	ECI = "76B4321",
+	NetworkID = MCC ++ MNC ++ TAC ++ ECI,
+	{MCC, MNC, _Rest} = ocs_diameter:plmn(NetworkID).
 
 %%---------------------------------------------------------------------
 %%  Internal functions
