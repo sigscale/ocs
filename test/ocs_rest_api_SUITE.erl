@@ -3065,10 +3065,10 @@ notify_accumulated_balance_threshold(Config) ->
 			{_, {array, [{struct, AccList}]}}
 					= lists:keyfind("event", 1, AccBalanceEvent),
 			case lists:keyfind("totalBalance", 1, AccList) of
-				{_, {struct, [{"amount", Amount}, {"units", "octets"}]}} ->
+				{_, {array, [{struct, [{"amount", Amount}, {"units", "octets"}]}]}} ->
 					OctetsAmount = list_to_integer(lists:droplast(Amount)),
 					OctetsAmount = RA - PackageSize;
-				{_, {struct, [{"units", "octets"}, {"amount", Amount}]}} ->
+				{_, {array, [{struct, [{"units", "octets"}, {"amount", Amount}]}]}} ->
 					OctetsAmount = list_to_integer(lists:droplast(Amount)),
 					OctetsAmount = RA - PackageSize
 			end
