@@ -1,4 +1,4 @@
-%%% ocs_diameter_3gpp_ro_application_cb.erl 
+%%% ocs_diameter_3gpp_ro_application_cb.erl
 %%% vim: ts=3
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%% @copyright 2016 - 2021 SigScale Global Inc.
@@ -93,7 +93,7 @@ peer_down(_ServiceName, _Peer, State) ->
 		Peer :: peer() | false,
 		Result :: Selection | false.
 %% @doc Invoked as a consequence of a call to diameter:call/4 to select
-%% a destination peer for an outgoing request. 
+%% a destination peer for an outgoing request.
 pick_peer([Peer | _] = _LocalCandidates, _RemoteCandidates, _ServiceName, _State) ->
 	{ok, Peer}.
 
@@ -107,7 +107,7 @@ pick_peer([Peer | _] = _LocalCandidates, _RemoteCandidates, _ServiceName, _State
 		Discard :: {discard, Reason} | discard,
 		Reason :: term(),
 		PostF :: diameter:evaluable().
-%% @doc Invoked to return a request for encoding and transport 
+%% @doc Invoked to return a request for encoding and transport
 prepare_request(#diameter_packet{} = Packet, _ServiceName, _Peer) ->
 	{send, Packet}.
 
@@ -767,8 +767,37 @@ service_network([#'3gpp_ro_Service-Information'{
 		'PS-Information' = [#'3gpp_ro_PS-Information'{
 		'3GPP-SGSN-MCC-MNC' = [MccMnc]}]}]) ->
 	MccMnc;
+service_network([#'3gpp_ro_Service-Information'{
+		'IMS-Information' = [#'3gpp_ro_IMS-Information'{
+		'Access-Network-Information' = [ANI]}]}]) ->
+	{MCC, MNC, _ } = access_info(string:tokens(binary_to_list(ANI), ",")),
+	MCC ++ MNC;
 service_network(_) ->
 	undefined.
+
+%% @hidden
+access_info([H | T]) ->
+	case access_info1(string:tokens(H, ";")) of
+		ID when length(ID) > 0 ->
+			ocs_diameter:plmn(ID);
+		[] ->
+			access_info(T)
+	end.
+%% @hidden
+access_info1(["utran-cell-id-3gpp=" ++ CID | _]) ->
+	CID;
+access_info1(["cgi-3gpp=" ++ CGI | _]) ->
+	CGI;
+access_info1(["cgi-3gpp2=" ++ CGI | _]) ->
+	CGI;
+access_info1(["ci-3gpp2-femto=" ++ CGI | _]) ->
+	CGI;
+access_info1(["extension-access-info=" ++ CGI | _]) ->
+	CGI;
+access_info1([_ | T]) ->
+   access_info1(T);
+access_info1([]) ->
+	[].
 
 -spec get_mscc(MSCC) -> Result
 	when
@@ -882,7 +911,7 @@ get_rg(_) ->
 				| {error, Reason ::term()},
 		MSCC :: #'3gpp_ro_Multiple-Services-Credit-Control'{},
 		ResultCode :: pos_integer(),
-		Rated :: [#rated{}]. 
+		Rated :: [#rated{}].
 %% @doc Rate all the MSCCs.
 %% @hidden
 rate(ServiceType, ServiceNetwork, Subscriber, Timestamp,
