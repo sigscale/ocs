@@ -1,3 +1,33 @@
+2021-11-01  Refath Wadood <refath@sigscale.org>
+
+	* faq and howto links in readme
+	* cache control in health response, use for polling time
+	* merge get option function into subscriber id function
+	* correct error code when input is invalid
+	* acc_balance.total_balance is a list of quantity() and units is also a list
+	* return total of all the bucket types in accumulated balance by product id
+	* add sub id type service option to overview edoc
+	* add diameter service options for subscriber ids
+	* units go into total_balance field of accumulated balance
+	* add s6a authentication logging
+	* check period of product offering
+	* check product offer price validity period
+	* more than one directory property may be provided in httpd configuration
+	* add ocs diameter utility module scaffolding
+	* add plmn function for mcc mnc parsing
+	* acc_balance.total_balance is a list of quantity()
+	* process subscription ids according to sub id type service option (ocs-496) in gx handler
+	* handle two digit mnc (ocs-458)
+	* derive p-access-network-information for roaming table lookup (ocs-413)
+	* process subscription ds according to sub id type service option (ocs-496)
+	* test: query buckets
+	* test: correct documention
+	* test: add scur sms class b
+	* test: case testcase naming
+	* test: add scur imsi class b
+	* test: add parse access network information string
+	* test: add diameter scur roaming voice ims
+
 2021-10-09  Vance Shipley <vances@sigscale.org>
 
 	* radius chap authentication (ocs-497)
