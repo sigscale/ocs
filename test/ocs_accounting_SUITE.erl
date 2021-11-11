@@ -167,7 +167,8 @@ init_per_testcase1(TestCase, Config) when
 		TestCase == diameter_voice_out_tariff;
 		TestCase == diameter_voice_in_tariff;
 		TestCase == scur_start_redirect_server;
-		TestCase == diameter_scur_price_descrimination_by_rg ->
+		TestCase == diameter_scur_price_descrimination_by_rg;
+		TestCase == diameter_scur_roaming_voice_ims ->
 	Address = ?config(diameter_acct_address, Config),
 	{ok, _} = ocs:add_client(Address, undefined, diameter, undefined, true),
 	Config.
@@ -201,7 +202,8 @@ end_per_testcase(TestCase, Config) when
 		TestCase == diameter_voice_out_tariff;
 		TestCase == diameter_voice_in_tariff;
 		TestCase == scur_start_redirect_server;
-		TestCase == diameter_scur_price_descrimination_by_rg ->
+		TestCase == diameter_scur_price_descrimination_by_rg;
+		TestCase == diameter_scur_roaming_voice_ims ->
 	Address = ?config(diameter_acct_address, Config),
 	ok = ocs:delete_client(Address).
 
@@ -224,7 +226,7 @@ all() ->
 			diameter_voice_out, diameter_voice_in,
 			diameter_voice_out_tariff, diameter_voice_in_tariff,
 			diameter_scur_no_credit, scur_start_redirect_server,
-			diameter_scur_price_descrimination_by_rg].
+			diameter_scur_price_descrimination_by_rg, diameter_scur_roaming_voice_ims].
 
 %%---------------------------------------------------------------------
 %%  Test cases
@@ -1035,6 +1037,7 @@ diameter_voice_out_tariff(_Config) ->
 			'Subscription-Id' = [SubscriptionId],
 			'Multiple-Services-Credit-Control' = [MSCC1],
 			'Service-Information' = [ServiceInformation]},
+erlang:display({?MODULE, ?LINE, CCR1}),
 	{ok, Answer1} = diameter:call(?MODULE, cc_app_test, CCR1, []),
 	#'3gpp_ro_CCA'{'Result-Code' = ?'DIAMETER_BASE_RESULT-CODE_SUCCESS',
 			'Auth-Application-Id' = ?RO_APPLICATION_ID,
@@ -1283,9 +1286,124 @@ diameter_scur_price_descrimination_by_rg(_Config) ->
 	[#bucket{remain_amount = NewBalance}] = ocs:get_buckets(ProdRef),
 	USUTotalOctets = Balance - NewBalance.
 
+diameter_scur_roaming_voice_ims() ->
+	[{userdata, [{doc, "DIAMETER SCUR "}]}].
+
+diameter_scur_roaming_voice_ims(_Config) ->
+	UnitSize = rand:uniform(6000000),
+	TariffRateIn = rand:uniform(100),
+	TariffRateOut = rand:uniform(200),
+	SN = "00101",
+	CallingAddress = ocs:generate_identity(),
+	CalledAddress = ocs:generate_identity(),
+	RoamingTableName = ocs:generate_identity(),
+	DestPrefixTableName = ocs:generate_identity(), 
+	Prefix = ocs:generate_identity(), 
+	ok = create_table_roaming(RoamingTableName),
+	ok = add_record_roaming(RoamingTableName, SN, "Test nework", Prefix),
+	DestPrefixTable = Prefix  ++ "-" ++ DestPrefixTableName,
+	ok = ocs_gtt:new(DestPrefixTable, [{ram_copies, [node()]}]),
+	{ok, _} = ocs_gtt:insert(DestPrefixTable, CallingAddress, {"in", ocs_rest:millionths_in(TariffRateIn)}),
+	{ok, _} = ocs_gtt:insert(DestPrefixTable, CalledAddress, {"out", ocs_rest:millionths_in(TariffRateOut)}),
+	TableNameValue = #char_value{value = DestPrefixTable},
+	TariffTable = #char_value_use{name = "destPrefixTariffTable",
+			specification = "3", values = [TableNameValue]},
+	RoamingTableValue = #char_value{value = RoamingTableName},
+	RoamingTable = #char_value_use{name = "destPrefixTariffTable",
+			values = [RoamingTableValue]},
+	Incoming = #char_value{value = "answer"},
+	CallDirection1 = #char_value_use{name = "callDirection",
+			specification = "5", values = [Incoming]},
+	P1 = #price{name = ocs:generate_identity(),
+			type = tariff, units = seconds, size = UnitSize,
+			char_value_use = [CallDirection1, TariffTable, RoamingTable]},
+	Outgoing = #char_value{value = "originate"},
+	CallDirection2 = #char_value_use{name = "callDirection",
+			specification = "5", values = [Outgoing]},
+	P2 = #price{name = ocs:generate_identity(),
+			type = tariff, units = seconds, size = UnitSize,
+			char_value_use = [CallDirection2, TariffTable, RoamingTable]},
+	OfferId = add_offer([P1, P2], 9),
+	ProdRef = add_product(OfferId),
+	MSISDN = list_to_binary(ocs:generate_identity()),
+	{ok, #service{}} = ocs:add_service(MSISDN, undefined, ProdRef, []),
+	Balance1 = rand:uniform(1000000000),
+	B1 = bucket(seconds, Balance1),
+	_BId = add_bucket(ProdRef, B1),
+	Ref = erlang:ref_to_list(make_ref()),
+	SId = diameter:session_id(Ref),
+	SubscriptionId = #'3gpp_ro_Subscription-Id'{
+			'Subscription-Id-Type' = ?'3GPP_RO_SUBSCRIPTION-ID-TYPE_END_USER_E164',
+			'Subscription-Id-Data' = MSISDN},
+	RSU = #'3gpp_ro_Requested-Service-Unit' {},
+	MSCC1 = #'3gpp_ro_Multiple-Services-Credit-Control'{
+			'Requested-Service-Unit' = [RSU]},
+	SIP = <<"P-Access-Network-Info: 3GPP-UTRAN-TDD;utran-cell-id-3gpp=00101D0FCE11">>,
+	CallingPartyAddress = list_to_binary("tel:" ++ CallingAddress),
+	CalledPartyAddress = list_to_binary("tel:" ++ CalledAddress),
+	ServiceInformation = #'3gpp_ro_Service-Information'{'IMS-Information' =
+			[#'3gpp_ro_IMS-Information'{
+					'Node-Functionality' = ?'3GPP_RO_NODE-FUNCTIONALITY_AS',
+					'Role-Of-Node' = [?'3GPP_RO_ROLE-OF-NODE_TERMINATING_ROLE'],
+					'Calling-Party-Address' = [CallingPartyAddress],
+					'Called-Party-Address' = [CalledPartyAddress],
+					'Access-Network-Information' = [SIP]}]},
+	RequestNum = 0,
+	CCR = #'3gpp_ro_CCR'{'Session-Id' = SId,
+			'Auth-Application-Id' = ?RO_APPLICATION_ID,
+			'Service-Context-Id' = "32260@3gpp.org",
+			'User-Name' = [MSISDN],
+			'CC-Request-Type' = ?'3GPP_RO_CC-REQUEST-TYPE_INITIAL_REQUEST',
+			'CC-Request-Number' = 0,
+			'Event-Timestamp' = [calendar:universal_time()],
+			'Subscription-Id' = [SubscriptionId],
+			'Multiple-Services-Credit-Control' = [MSCC1],
+			'Service-Information' = [ServiceInformation]},
+	{ok, Answer0} = diameter:call(?MODULE, cc_app_test, CCR, []),
+	#'3gpp_ro_CCA'{'Result-Code' = ?'DIAMETER_BASE_RESULT-CODE_SUCCESS',
+			'Auth-Application-Id' = ?RO_APPLICATION_ID,
+			'CC-Request-Type' = ?'3GPP_CC-REQUEST-TYPE_INITIAL_REQUEST',
+			'CC-Request-Number' = RequestNum,
+			'Multiple-Services-Credit-Control' = [MSCC2]} = Answer0,
+	#'3gpp_ro_Multiple-Services-Credit-Control'{
+			'Granted-Service-Unit' = [GSU]} = MSCC2,
+	#'3gpp_ro_Granted-Service-Unit'{'CC-Time' = [UnitSize]} = GSU.
+
 %%---------------------------------------------------------------------
 %%  Internal functions
 %%---------------------------------------------------------------------
+
+-record(roaming, {key, des, value}).
+
+create_table_roaming(RoamingTable) ->
+	Table = list_to_atom(RoamingTable),
+	case mnesia:create_table(Table,
+			[{disc_copies, [node()]},
+			{attributes, record_info(fields, roaming)},
+			{record_name, roaming}]) of
+		{atomic, ok} ->
+			ok;
+		{aborted, {already_exists, Table}} ->
+			case mnesia:clear_table(Table) of
+				{atomic, ok} ->
+					ok;
+				{aborted, Reason} ->
+					exit(Reason)
+			end;
+		{aborted, Reason} ->
+			exit(Reason)
+	end.
+
+add_record_roaming(Table, SN, Desc, DestPrefixTableName) ->
+	Table1 = list_to_atom(Table),
+	Record = #roaming{key = list_to_binary(SN), des = Desc,
+			value = DestPrefixTableName},
+	case mnesia:transaction(fun() -> mnesia:write(Table1, Record, write) end) of
+      {atomic, ok} ->
+         ok;
+      {aborted, Reason} ->
+         exit(Reason)
+   end.
 
 authenticate_subscriber(Socket, Address,
 		Port, PeerID, Password, Secret, NasID, ReqAuth, RadID, AcctSessionID) ->
