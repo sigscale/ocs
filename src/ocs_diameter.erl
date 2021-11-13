@@ -35,8 +35,9 @@
 	when
 		String :: binary() | string(),
 		Result :: {MCC, MNC, Rest},
-		MCC :: [$0..$9],
-		MNC :: [$0..$9],
+		MCC :: [Digit],
+		MNC :: [Digit],
+		MCC :: 48..57,
 		Rest :: string().
 %% @doc Extract MCC and MNC 
 plmn(String) when is_binary(String) ->
