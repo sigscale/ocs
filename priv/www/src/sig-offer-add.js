@@ -1401,11 +1401,13 @@ class offerAdd extends PolymerElement {
 			}
 			var startDateTime;
 			var endDateTime;
-			if(item.validFor.start) {
-				startDateTime = item.validFor.start;
-			}
-			if(item.validFor.end) {
-				endDateTime = item.validFor.end;
+			if(item.validFor) {
+				if(item.validFor.start) {
+					startDateTime = item.validFor.start;
+				}
+				if(item.validFor.end) {
+					endDateTime = item.validFor.end;
+				}
 			}
 			if(startDateTime && endDateTime) {
 				out.validFor = {startDateTime, endDateTime};
