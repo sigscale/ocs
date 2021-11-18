@@ -37,7 +37,7 @@
 		Result :: {MCC, MNC, Rest},
 		MCC :: [Digit],
 		MNC :: [Digit],
-		MCC :: 48..57,
+		Digit :: 48..57,
 		Rest :: string().
 %% @doc Extract MCC and MNC 
 plmn(String) when is_binary(String) ->
