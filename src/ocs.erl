@@ -1533,7 +1533,7 @@ add_offer(#offer{price = Prices} = Offer) when length(Prices) > 0 ->
 					when length(Name) > 0, ((Units == octets)
 					or (Units == seconds) or (Units == messages)),
 					is_integer(Size), Size > 0, is_integer(Amount),
-					Amount > 0 ->
+					Amount >= 0 ->
 				true;
 			(#price{name = Name, type = usage, period = undefined,
 					units = Units, size = Size, amount = Amount,
