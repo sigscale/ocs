@@ -5116,8 +5116,8 @@ post_hub_role(Config) ->
 	{_, Location} = lists:keyfind("location", 1, Headers),
 	Id = string:substr(Location, string:rstr(Location, PathHub) + length(PathHub)),
 	{struct, HubList} = mochijson:decode(ResponseBody),
+	2 = length(HubList),
 	{_, Callback} = lists:keyfind("callback", 1, HubList),
-	{_, null} = lists:keyfind("query", 1, HubList),
 	{_, Id} = lists:keyfind("id", 1, HubList).
 
 delete_hub_role() ->
@@ -5199,10 +5199,10 @@ get_role_hub(Config) ->
 	ContentLength = integer_to_list(length(ResponseBody)),
 	{_, ContentLength} = lists:keyfind("content-length", 1, Headers2),
 	{struct, HubList} = mochijson:decode(ResponseBody),
+	3 = length(HubList),
 	{_, Callback} = lists:keyfind("callback", 1, HubList),
 	{_, Id} = lists:keyfind("id", 1, HubList),
 	Href = PathHub ++ Id,
-	{_, null} = lists:keyfind("query", 1, HubList),
 	{_, Href} = lists:keyfind("href", 1, HubList).
 
 %%---------------------------------------------------------------------

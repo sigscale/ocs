@@ -161,11 +161,8 @@ hub([id | T], #hub{id = Id} = H, Acc) when is_list(Id) ->
 	hub(T, H, [{"id", Id} | Acc]);
 hub([href | T], #hub{href = Href} = H, Acc) when is_list(Href) ->
 	hub(T, H, [{"href", Href} | Acc]);
-hub([query | T], #hub{query = undefined} = H, Acc) ->
-	hub(T, H, [{"query", null} | Acc]);
-hub([query | T], #hub{query = []} = H, Acc) ->
-	hub(T, H, [{"query", null} | Acc]);
-hub([query | T], #hub{query = Query} = H, Acc) when is_list(Query) ->
+hub([query | T], #hub{query = Query} = H, Acc)
+		when is_list(Query), length(Query) > 0 ->
 	hub(T, H, [{"query", Query} | Acc]);
 hub([_ | T], H, Acc) ->
 	hub(T, H, Acc);
