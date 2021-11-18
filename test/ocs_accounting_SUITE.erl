@@ -1037,7 +1037,6 @@ diameter_voice_out_tariff(_Config) ->
 			'Subscription-Id' = [SubscriptionId],
 			'Multiple-Services-Credit-Control' = [MSCC1],
 			'Service-Information' = [ServiceInformation]},
-erlang:display({?MODULE, ?LINE, CCR1}),
 	{ok, Answer1} = diameter:call(?MODULE, cc_app_test, CCR1, []),
 	#'3gpp_ro_CCA'{'Result-Code' = ?'DIAMETER_BASE_RESULT-CODE_SUCCESS',
 			'Auth-Application-Id' = ?RO_APPLICATION_ID,
@@ -1208,28 +1207,21 @@ diameter_scur_price_descrimination_by_rg() ->
 diameter_scur_price_descrimination_by_rg(_Config) ->
 	ServiceID = ocs:generate_identity(),
 	MSISDN = list_to_binary(ServiceID),
-	Type = usage,
-	Units = octets,
-	Amount1 = rand:uniform(10000),
-	Amount2 = rand:uniform(10000),
-	P1 = #price{name = ocs:generate_identity(), type = Type,
-					units = Units, size = 1, amount = Amount1,
-					char_value_use = [#char_value_use{name = "chargingKey",
-							specification = "3", values = [#char_value{
-							value = 100}]}]},
-	P2 = #price{name = ocs:generate_identity(), type = Type,
-					units = Units, size = 1, amount = Amount2,
+	UnitSize = rand:uniform(50000000) + 50000000,
+	P1 = #price{name = ocs:generate_identity(), type = usage,
+					units = octets, size = 100000000, amount = rand:uniform(10000),
 					char_value_use = [#char_value_use{name = "chargingKey",
 							specification = "3", values = [#char_value{
 							value = 200}]}]},
+	P2 = #price{name = ocs:generate_identity(), type = usage,
+					units = octets, size = UnitSize, amount = 0,
+					char_value_use = [#char_value_use{name = "chargingKey",
+							specification = "3", values = [#char_value{
+							value = 100}]}]},
 	OfferId = add_offer([P1, P2], 4),
 	ProdRef = add_product(OfferId),
 	{ok, #service{}} = ocs:add_service(ServiceID, undefined, ProdRef, []),
-	F1 = fun() ->
-			mnesia:write(product, #product{id = ProdRef, service = [MSISDN]})
-	end,
-	mnesia:transaction(F1),
-	Balance = 1000000 + rand:uniform(1000000000),
+	Balance = 10000000 + rand:uniform(1000000000),
 	B1 = bucket(octets, Balance),
 	_BId = add_bucket(ProdRef, B1),
 	Ref = erlang:ref_to_list(make_ref()),
@@ -1265,7 +1257,7 @@ diameter_scur_price_descrimination_by_rg(_Config) ->
 	{ok, Answer1} = diameter:call(?MODULE, cc_app_test, CCR1, []),
 	#'3gpp_ro_CCA'{'Result-Code' = ?'DIAMETER_BASE_RESULT-CODE_SUCCESS'} = Answer1,
 	RequestNum2 = RequestNum1 + 1,
-	USUTotalOctets = 1,
+	USUTotalOctets = rand:uniform(50000000) + 50000000,
 	UsedUnits2 = #'3gpp_ro_Used-Service-Unit' {
 			'CC-Total-Octets' = [USUTotalOctets]},
 	MSCC2 = #'3gpp_ro_Multiple-Services-Credit-Control'{
@@ -1283,8 +1275,7 @@ diameter_scur_price_descrimination_by_rg(_Config) ->
 			'Service-Information' = [ServiceInformation]},
 	{ok, Answer3} = diameter:call(?MODULE, cc_app_test, CCR2, []),
 	#'3gpp_ro_CCA'{'Result-Code' = ?'DIAMETER_BASE_RESULT-CODE_SUCCESS'} = Answer3,
-	[#bucket{remain_amount = NewBalance}] = ocs:get_buckets(ProdRef),
-	USUTotalOctets = Balance - NewBalance.
+	[#bucket{remain_amount = Balance}] = ocs:get_buckets(ProdRef).
 
 diameter_scur_roaming_voice_ims() ->
 	[{userdata, [{doc, "DIAMETER SCUR "}]}].
