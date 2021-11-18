@@ -706,9 +706,9 @@ charge1(_Protocol, Service, ServiceId, Product, Buckets,
 		Flag, DebitAmounts, [], SessionId, Rated, ChargingKey)
 		when ((Flag == initial) or (Flag == interim)) ->
 	DebitAmount = case lists:keyfind(Units, 1, DebitAmounts) of
-		{Units, DebitUnits} ->
+		{Units, DebitUnits} when UnitPrice > 0 ->
 			{Units, DebitUnits};
-		false ->
+		_ ->
 			{Units, 0}
 	end,
 	ReserveAmount = case Units of
@@ -762,9 +762,9 @@ charge1(_Protocol, Service, ServiceId, Product, Buckets, PriceType,
 		UnitSize, Units, Currency, UnitPrice, _PriceChars,
 		Flag, DebitAmounts, undefined, SessionId, Rated, ChargingKey) ->
 	DebitAmount = case lists:keyfind(Units, 1, DebitAmounts) of
-		{Units, DebitUnits} ->
+		{Units, DebitUnits} when UnitPrice > 0 ->
 			{Units, DebitUnits};
-		false ->
+		_ ->
 			{Units, 0}
 	end,
 	ReserveAmount = {Units, 0},
@@ -776,9 +776,9 @@ charge1(_Protocol, Service, ServiceId, Product, Buckets,
 		Flag, DebitAmounts, ReserveAmounts, SessionId, Rated, ChargingKey)
 		when is_list(ReserveAmounts) ->
 	DebitAmount = case lists:keyfind(Units, 1, DebitAmounts) of
-		{Units, DebitUnits} ->
+		{Units, DebitUnits} when UnitPrice > 0 ->
 			{Units, DebitUnits};
-		false ->
+		_ ->
 			{Units, 0}
 	end,
 	ReserveAmount = case lists:keyfind(Units, 1, ReserveAmounts) of
@@ -2077,6 +2077,8 @@ sort(Buckets) ->
 		TotalPrice :: pos_integer().
 %% @doc Calculate total size and price.
 price_units(0, _UnitSize, _UnitPrice) ->
+	{0, 0};
+price_units(_Amount, _UnitSize, 0) ->
 	{0, 0};
 price_units(Amount, UnitSize, UnitPrice) when (Amount rem UnitSize) == 0 ->
 	{Amount, UnitPrice * (Amount div UnitSize)};
