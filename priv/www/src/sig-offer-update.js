@@ -1423,6 +1423,12 @@ class offerUpdate extends PolymerElement {
 				stat.op = "add";
 				stat.path = "/lifecycleStatus";
 				stat.value = this.offerUpdateStatus;
+				if(this.offerUpdateStatus == "") {
+					var statDel = new Object();
+					statDel.op = "remove";
+					statDel.path = "/lifecycleStatus";
+					offerNew.push(statDel);
+				}
 				offerNew.push(stat);
 			}
 		if(this.$.updateReserveSession.value) {
@@ -1490,7 +1496,7 @@ class offerUpdate extends PolymerElement {
 			redirectServer.op = "replace";
 			redirectServer.path = "/prodSpecCharValueUse/" + indexChar + "/productSpecCharacteristicValue/0/value";
 			redirectServer.value = this.updateRedirect;
-			if(redirectServer.value == "") {
+			if(redirectServer.value == "" || redirectServer.value == null) {
 				var redirectServerDel = new Object();
 				redirectServerDel.op = "remove";
 				redirectServerDel.path = "/prodSpecCharValueUse/" + indexChar;
@@ -1633,12 +1639,14 @@ class offerUpdate extends PolymerElement {
 			}
 		}
 		if(this.prices[indexPrices].start != "undefined") {
-			if(this.updateOfferStartDatePrice != this.prices[indexPrices].start) {
-				var priceStart = new Object();
-				priceStart.op = "add";
-				priceStart.path = "/productOfferingPrice/" + indexPrices + "/validFor/startDateTime";
-				priceStart.value = this.updateOfferStartDatePrice;
-				updatePriceNew.push(priceStart);
+			if(this.updateOfferStartDatePrice != "") {
+				if(this.updateOfferStartDatePrice != this.prices[indexPrices].start) {
+					var priceStart = new Object();
+					priceStart.op = "add";
+					priceStart.path = "/productOfferingPrice/" + indexPrices + "/validFor/startDateTime";
+					priceStart.value = this.updateOfferStartDatePrice;
+					updatePriceNew.push(priceStart);
+				}
 			}
 		} else {
 			var priceStart = new Object();
@@ -1648,12 +1656,14 @@ class offerUpdate extends PolymerElement {
 			updatePriceNew.push(priceStart);
 		}
 		if(this.updateOfferEndDatePrice != "undefined") {
-			if(this.updateOfferEndDatePrice != this.prices[indexPrices].end) {
-				var priceEnd = new Object();
-				priceEnd.op = "add";
-				priceEnd.path = "/productOfferingPrice/" + indexPrices + "/validFor/endDateTime";
-				priceEnd.value = this.updateOfferEndDatePrice;
-				updatePriceNew.push(priceEnd);
+			if(this.updateOfferEndDatePrice != "") {
+				if(this.updateOfferEndDatePrice != this.prices[indexPrices].end) {
+					var priceEnd = new Object();
+					priceEnd.op = "add";
+					priceEnd.path = "/productOfferingPrice/" + indexPrices + "/validFor/endDateTime";
+					priceEnd.value = this.updateOfferEndDatePrice;
+					updatePriceNew.push(priceEnd);
+				}
 			}
 		} else {
 			var priceEnd = new Object();
