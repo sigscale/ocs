@@ -1873,13 +1873,15 @@ class offerUpdate extends PolymerElement {
 				charReserve.value = resTime1;
 				updatePriceNew.push(charReserve);
 			} else if(this.prices[indexPrices].prodSpecCharValueUse.length != 0) {
-				if(this.$.updateAddPriceCharReserveTime.value != this.prices[indexPrices].prodSpecCharValueUse[res].value) {
-					var indexChar = res.toString();
-					var charReserve = new Object();
-					charReserve.op = "add";
-					charReserve.path = "/productOfferingPrice/" + indexPrices + "/prodSpecCharValueUse/" + indexChar + "/productSpecCharacteristicValue/0/value";
-					charReserve.value = this.$.updateAddPriceCharReserveTime.value;
-					updatePriceNew.push(charReserve);
+				if(this.$.updateAddPriceCharReserveTime.value != null) {
+					if(this.$.updateAddPriceCharReserveTime.value != this.prices[indexPrices].prodSpecCharValueUse[res].value) {
+						var indexChar = res.toString();
+						var charReserve = new Object();
+						charReserve.op = "add";
+						charReserve.path = "/productOfferingPrice/" + indexPrices + "/prodSpecCharValueUse/" + indexChar + "/productSpecCharacteristicValue/0/value";
+						charReserve.value = this.$.updateAddPriceCharReserveTime.value;
+						updatePriceNew.push(charReserve);
+					}
 				}
 			}
 			function checkTar(char) {
@@ -1914,10 +1916,10 @@ class offerUpdate extends PolymerElement {
 					destTariff.op = "add";
 					destTariff.path = "/productOfferingPrice/" + indexPrices + "/prodSpecCharValueUse/" + indexCharTariff  + "/productSpecCharacteristicValue/0/value";
 					destTariff.value = this.priceUpdateTariff;
-					if(destTariff.value == "") {
+					if(this.priceUpdateTariff == "") {
 						var priceTariffDel = new Object();
 						priceTariffDel.op = "remove";
-						priceTariffDel.path = "/productOfferingPrice/" + indexPrices + "/prodSpecCharValueUse/" + indexCharCharging;
+						priceTariffDel.path = "/productOfferingPrice/" + indexPrices + "/prodSpecCharValueUse/" + indexCharTariff;
 						updatePriceNew.push(priceTariffDel);
 					} else {
 						updatePriceNew.push(destTariff);
