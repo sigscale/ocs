@@ -472,7 +472,6 @@ patch_offer(ProdId, Etag, ReqData) ->
 				{aborted, {throw, precondition_failed}} ->
 					{error, 412};
 				{aborted, _Reason} ->
-erlang:display({?MODULE, ?LINE, here}),
 					{error, 500}
 			end
 	catch
@@ -1788,10 +1787,8 @@ char_value([start_date | T], #char_value{start_date = undefined,
 char_value([end_date | T], #char_value{} = V, Acc) ->
 	char_value(T, V, Acc);
 char_value([value | T], #char_value{value = undefined} = V, Acc) ->
-erlang:display({?MODULE, ?LINE}),
 	char_value(T, V, Acc);
 char_value([value | T], #char_value{value = Value} = V, Acc) ->
-erlang:display({?MODULE, ?LINE, Value}),
 	char_value(T, V, [{"value", char_value_type(Value)} | Acc]);
 char_value([from | T], #char_value{from = undefined} = V, Acc) ->
 	char_value(T, V, Acc);
@@ -1838,10 +1835,8 @@ char_value([{"validFor", {struct, L}} | T], Acc) when is_list(L) ->
 char_value([{"value", Value} | T], Acc)
 		when is_integer(Value); is_float(Value);
 		is_list(Value); is_boolean(Value) ->
-erlang:display({?MODULE, ?LINE, Value}),
 	char_value(T, Acc#char_value{value = Value});
 char_value([{"value", {struct, _} = Value} | T], Acc) ->
-erlang:display({?MODULE, ?LINE, Value}),
 	char_value(T, Acc#char_value{value = char_value_type(Value)});
 char_value([{"valueFrom", From} | T], Acc)
 		when is_integer(From); is_list(From) ->
