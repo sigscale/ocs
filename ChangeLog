@@ -1,3 +1,16 @@
+2021-11-19  Refath Wadood <refath@sigscale.org>
+
+	* add debian stretch supported ascii values in spec
+	* add a guard for price time
+	* query shouldn't be included in response if it is null
+	* unit price must be integer in charge/13
+	* offering price of 0 is valid
+	* correct assignment of digit in plmn/1 spec
+	* do not decrement buckets when price is 0 (ocs-509)
+	* handle null & empty string in offer patch request
+	* fix big in offercheck null value
+	* test: validate price descrimination by rg in diameter_scur_price_descrimination_by_rg
+
 2021-11-01  Refath Wadood <refath@sigscale.org>
 
 	* faq and howto links in readme
