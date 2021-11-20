@@ -85,13 +85,13 @@ initial_nrf(NrfRequest) ->
 			Location = "/ratingdata/" ++ RatingDataRef,
 			ReponseBody = mochijson:encode(NrfResponse),
 			Headers = [{content_type, "application/json"}, {location, Location}],
-			{ok, Headers, ReponseBody };
+			{ok, Headers, ReponseBody};
 		{error, StatusCode, Problem1} ->
 			{error, StatusCode, Problem1};
 		{error, _Reason} ->
 			{error, 500}
 	catch
-		_:_ ->
+		_:_Reason ->
 			{error, 500}
 	end.
 	
@@ -273,10 +273,11 @@ lookup_ref(RatingDataRef)
 		Reason :: term().
 %% @doc Add a rating data ref to the rating ref table.
 add_rating_ref(RatingDataRef, #{"nodeFunctionality" := NF,
-		"imsi" := IMSI, "msisdn" := MSISDN} = _NrfMap) ->
+		"subscriptionId" := SubscriptionId} = _NrfMap) ->
 	F = fun() ->
 			NewRef = #nrf_ref{rating_ref = RatingDataRef,
-					 nodeFunctionality = NF, imsi = IMSI, msisdn = MSISDN},
+					node_functionality = NF, subscription_id = SubscriptionId,
+					last_modified = erlang:system_time(millisecond)},
 			mnesia:write(nrf_ref, NewRef, write)
 	end,
 	case mnesia:transaction(F) of
@@ -319,11 +320,11 @@ error_response(unknown_ref, InvalidParams) ->
 		Reason :: term().
 %% @doc Rate Nrf Service Ratings.
 rate(#{"serviceRating" := ServiceRating, "invocationSequenceNumber" := ISN,
-		"msisdn" := MSISDN}, Flag) ->
-	rate(ServiceRating, ISN, MSISDN, Flag, []).
+		"subscriptionId" := SubscriptionIds}, Flag) ->
+	rate(ServiceRating, ISN, SubscriptionIds, Flag, []).
 %% @hidden
 rate([#{"serviceContextId" := SCI} = H | T],
-		ISN, Subscriber, Flag, Acc) ->
+		ISN, SubscriptionIds, Flag, Acc) ->
 	{Map1, ServiceId} = case maps:find("serviceId", H) of
 		{ok, SI} ->
 			{#{"serviceId" => SI}, SI};
@@ -365,31 +366,29 @@ rate([#{"serviceContextId" := SCI} = H | T],
 	ServiceType = service_type(list_to_binary(SCI)),
 	TS = calendar:universal_time(),
 	case ocs_rating:rate(diameter, ServiceType, ServiceId, ChargingKey,
-			MCCMNC, Subscriber, TS, undefined, undefined, Flag,
+			MCCMNC, get_subscriber(SubscriptionIds), TS, undefined, undefined, Flag,
 			Debits, Reserves, [{"invocationSequenceNumber", ISN}]) of
 		{ok, _, {Type, Amount} = _GrantedAmount} when Amount > 0 ->
 			RatedMap = Map4#{"resultCode" => "SUCCESS", "grantedUnit" => #{type(Type) => Amount},
 					"serviceContextId"=> SCI},
-			rate(T, ISN, Subscriber, Flag, [RatedMap | Acc]);
+			rate(T, ISN, SubscriptionIds, Flag, [RatedMap | Acc]);
 		{ok, _, {_, 0} = _GrantedAmount} ->
 			RatedMap = Map4#{"resultCode" => "SUCCESS", "serviceContextId" => SCI},
-			rate(T, ISN, Subscriber, Flag, [RatedMap | Acc]);
+			rate(T, ISN, SubscriptionIds, Flag, [RatedMap | Acc]);
 		{ok, _, {Type, Amount}, _} ->
 			RatedMap = Map4#{"resultCode" => "SUCCESS", "grantedUnit" => #{type(Type) => Amount},
 					"serviceContextId"=> SCI},
-			rate(T, ISN, Subscriber, Flag, [RatedMap | Acc]);
+			rate(T, ISN, SubscriptionIds, Flag, [RatedMap | Acc]);
 		{ok, _, _} ->
 			RatedMap = Map4#{"resultCode" => "SUCCESS", "serviceContextId" => SCI},
-			rate(T, ISN, Subscriber, Flag, [RatedMap | Acc]);
+			rate(T, ISN, SubscriptionIds, Flag, [RatedMap | Acc]);
 		{out_of_credit, _, _} ->
 			RatedMap = Map4#{"resultCode" => "QUOTA_LIMIT_REACHED",
 					"serviceContextId" => SCI},
-			rate(T, ISN, Subscriber, Flag, [RatedMap | Acc]);
+			rate(T, ISN, SubscriptionIds, Flag, [RatedMap | Acc]);
 		{error, Reason} ->
 			{error, Reason}
 	end;
-rate([], _ISN, _Subscriber, _Flag, []) ->
-	[];
 rate([], _ISN, _Subscriber, _Flag, Acc) ->
 	F = fun F([#{"resultCode" := "SUCCESS"} | _T]) ->
 			Acc;
@@ -413,9 +412,8 @@ nrf1(#{"invocationTimeStamp" := TS} = M, Acc) ->
 	nrf2(M, [{"invocationTimeStamp", TS} | Acc]).
 nrf2(#{"invocationSequenceNumber" := SeqNum} = M, Acc) ->
 	nrf3(M, [{"invocationSequenceNumber", SeqNum} | Acc]).
-nrf3(#{"msisdn" := MSISDN, "imsi" := IMSI} = M, Acc) ->
-	nrf4(M, [{"subscriptionId", {array, ["msisdn-" ++ MSISDN,
-			"imsi-" ++ IMSI]}} | Acc]).
+nrf3(#{"subscriptionId" := SubIds} = M, Acc) ->
+	nrf4(M, [{"subscriptionId", {array, subscriptionId_list(SubIds)}} | Acc]).
 nrf4(#{"nodeFunctionality" := NF} = M, Acc) ->
 	nrf5(M, [{"nfConsumerIdentification",
 			{struct, [{"nodeFunctionality", NF}]}} | Acc]).
@@ -429,8 +427,8 @@ nrf([{"oneTimeEventType", EventType} | T], Acc) ->
 	nrf(T, Acc#{"oneTimeEventType" => EventType});
 nrf([{"invocationSequenceNumber", SeqNum} | T], Acc) ->
 	nrf(T, Acc#{"invocationSequenceNumber" => SeqNum});
-nrf([{"subscriptionId", {array, ["msisdn-" ++ MSISDN, "imsi-" ++ IMSI]}} | T], Acc) ->
-	nrf(T, Acc#{"msisdn" => MSISDN, "imsi" => IMSI});
+nrf([{"subscriptionId", SubscriptionIds} | T], Acc) ->
+	nrf(T, subscriptionId_map(SubscriptionIds, Acc));
 nrf([{"nfConsumerIdentification", {struct, [{"nodeFunctionality", NF}]}} | T], Acc) ->
 	nrf(T, Acc#{"nodeFunctionality" => NF});
 nrf([{"serviceRating", {array, ServiceRating}} | T], Acc) ->
@@ -439,6 +437,54 @@ nrf([_H | T], Acc) ->
 	nrf(T, Acc);
 nrf([], Acc) ->
 	Acc.
+
+%% @hidden
+subscriptionId_map({array, Ids}, Acc) ->
+	subscriptionId_map(Ids, Acc#{"subscriptionId" => []});
+subscriptionId_map(["msisdn-" ++ MSISDN | T],
+		#{"subscriptionId" := SubscriptionIds} = Acc) ->
+	Acc1 = Acc#{"subscriptionId" =>
+			["msisdn-" ++ MSISDN | SubscriptionIds]},
+	subscriptionId_map(T, Acc1);
+subscriptionId_map(["imsi-" ++ IMSI | T],
+		#{"subscriptionId" := SubscriptionIds} = Acc) ->
+	Acc1 = Acc#{"subscriptionId" =>
+			["imsi-" ++ IMSI | SubscriptionIds]},
+	subscriptionId_map(T, Acc1);
+subscriptionId_map([_ | T], Acc) ->
+	subscriptionId_map(T, Acc);
+subscriptionId_map([], #{"subscriptionId" := SubscriptionIds} = Acc) ->
+	SubscriptionIds1 = lists:reverse(SubscriptionIds),
+	Acc#{"subscriptionId" := SubscriptionIds1}.
+
+%% @hidden
+subscriptionId_list(SubscriptionIds) ->
+	subscriptionId_list1(SubscriptionIds, []).
+%% @hidden
+subscriptionId_list1(["msisdn-" ++ MSISDN | T], Acc) ->
+	subscriptionId_list1(T, ["msisdn-" ++ MSISDN | Acc]);
+subscriptionId_list1(["imsi-" ++ IMSI | T], Acc) ->
+	subscriptionId_list1(T, ["imsi-" ++ IMSI| Acc]);
+subscriptionId_list1([_| T], Acc) ->
+	subscriptionId_list1(T, Acc);
+subscriptionId_list1([], Acc) ->
+	lists:reverse(Acc).
+
+-spec get_subscriber(SubscriptionIds) -> Subscriber
+	when
+		SubscriptionIds :: [Id],
+		Id :: string(),
+		Subscriber :: string().
+%% @hidden Get a subscriber id from list of subscribers.
+get_subscriber(["msisdn-" ++ MSISDN | _]) -> 
+	MSISDN;
+get_subscriber(["imsi-" ++ IMSI | _]) -> 
+	IMSI;
+get_subscriber([_ | T]) -> 
+	get_subscriber(T);
+get_subscriber([]) -> 
+	undefined.
+
 
 %% @hidden
 event_type(#{"oneTimeEventType" := "IEC"}) ->
