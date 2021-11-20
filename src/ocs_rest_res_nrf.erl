@@ -232,7 +232,7 @@ release_nrf1(RatingDataRef, NrfRequest) ->
 		RatingDataRef :: string(),
 		Result :: ok | {error, Reason},
 		Reason :: term().
-%% @doc Look up a rating data ref.
+%% @doc Remove a rating data ref.
 remove_ref(RatingDataRef)
 		when is_list(RatingDataRef) ->
 	F = fun() ->
