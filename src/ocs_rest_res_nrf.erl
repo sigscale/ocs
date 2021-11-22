@@ -361,23 +361,23 @@ rate([#{"serviceContextId" := SCI} = H | T],
 			{Map2, undefined}
 	end,
 	Reserves = case maps:find("requestedUnit", H) of
-		{ok, #{"totalVolume" := RTV}} ->
+		{ok, #{"totalVolume" := RTV}} when RTV > 0->
 			[{octets, RTV}];
-		{ok, #{"time" := RTime}} ->
+		{ok, #{"time" := RTime}} when RTime > 0 ->
 			[{seconds, RTime}];
-		{ok, #{"serviceSpecificUnit" := RSSU}} ->
+		{ok, #{"serviceSpecificUnit" := RSSU}} when RSSU > 0 ->
 			[{messages, RSSU}];
-		error ->
-			undefined
+		_ ->
+			[]
 	end,
 	{Debits, Map4} = case maps:find("consumedUnit", H) of
-		{ok, #{"totalVolume" := CTV}} ->
+		{ok, #{"totalVolume" := CTV}} when CTV > 0 ->
 			{[{octets, CTV}], Map3#{"consumedUnit" => #{"totalVolume" => CTV}}};
-		{ok, #{"time" := CTime}} ->
+		{ok, #{"time" := CTime}} when CTime > 0 ->
 			{[{seconds, CTime}], Map3#{"consumedUnit" => #{"time" => CTime}}};
-		{ok, #{"serviceSpecificUnit" := CSSU}} ->
+		{ok, #{"serviceSpecificUnit" := CSSU}} when CSSU > 0 ->
 			{[{messages, CSSU}], Map3#{"consumedUnit" => #{"serviceSpecificUnit" => CSSU}}};
-		error ->
+		_ ->
 			{[], Map3}
 	end,
 	ServiceType = service_type(list_to_binary(SCI)),
