@@ -53,6 +53,7 @@
 -include("diameter_gen_3gpp_s6b_application.hrl").
 -include("diameter_gen_3gpp_swx_application.hrl").
 -include("diameter_gen_3gpp_s6a_application.hrl").
+-include("diameter_gen_3gpp_gx_application.hrl").
 
 % calendar:datetime_to_gregorian_seconds({{1970,1,1},{0,0,0}})
 -define(EPOCH, 62167219200).
@@ -87,10 +88,10 @@ acct_open() ->
 		Server :: {Address, Port},
 		Address :: inet:ip_address(),
 		Port :: integer(),
-		Type :: on | off | start | stop | update | interim | final,
-		Request :: #'3gpp_ro_CCR'{} | #'3gpp_ro_RAR'{}
+		Type :: on | off | start | stop | update | interim | final | 'event',
+		Request :: #'3gpp_ro_CCR'{} | #'3gpp_ro_RAR'{} | #'3gpp_gx_CCR'{}
 				| radius_attributes:attributes(),
-		Response :: #'3gpp_ro_CCA'{} | #'3gpp_ro_RAA'{}
+		Response :: #'3gpp_ro_CCA'{} | #'3gpp_ro_RAA'{} | #'3gpp_gx_CCA'{}
 				| radius_attributes:attributes() | undefined,
 		Rated :: [#rated{}] | undefined,
 		Result :: ok | {error, Reason},
