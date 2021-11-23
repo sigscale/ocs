@@ -5107,7 +5107,7 @@ post_hub_role(Config) ->
 			++ "}\n",
 	ContentType = "application/json",
 	Accept = {"accept", "application/json"},
-	Request = {CollectionUrl, [Accept, auth_header()], ContentType, RequestBody},
+	Request = {CollectionUrl, [Accept], ContentType, RequestBody},
 	{ok, Result} = httpc:request(post, Request, [], []),
 	{{"HTTP/1.1", 201, _Created}, Headers, ResponseBody} = Result,
 	{_, "application/json"} = lists:keyfind("content-type", 1, Headers),

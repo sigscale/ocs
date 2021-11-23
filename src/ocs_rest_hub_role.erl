@@ -21,7 +21,7 @@
 
 -include("ocs.hrl").
 
--export([content_types_accepted/0, content_types_provided/0, post_hub/2,
+-export([content_types_accepted/0, content_types_provided/0, post_hub/1,
 		delete_hub/1, get_hubs/0, get_hub/1]).
 -export([hub/1]).
 
@@ -46,24 +46,23 @@ content_types_accepted() ->
 content_types_provided() ->
 	["application/json"].
 
--spec post_hub(ReqBody, Authorization) -> Result
+-spec post_hub(ReqBody) -> Result
 	when
 		ReqBody :: list(),
-		Authorization :: string(),
 		Result :: {ok, Headers :: [tuple()], Body :: iolist()}
 			| {error, ErrorCode :: integer()}.
 %% Create hub listener for role.
 %% @doc Respond to `POST /partyRoleManagement/v4/hub'
-post_hub(ReqBody, Authorization) ->
+post_hub(ReqBody) ->
 	try
 		case hub(mochijson:decode(ReqBody)) of
 			#hub{callback = Callback, query = undefined} = HubRecord ->
 				post_hub1(supervisor:start_child(ocs_rest_hub_sup,
-						[[], Callback, ?PathRoleHub, Authorization]), HubRecord);
+						[[], Callback, ?PathRoleHub]), HubRecord);
 			#hub{callback = Callback,
 					query = Query} = HubRecord when is_list(Query) ->
 				post_hub1(supervisor:start_child(ocs_rest_hub_sup,
-						[Query, Callback, ?PathRoleHub, Authorization]), HubRecord)
+						[Query, Callback, ?PathRoleHub]), HubRecord)
 		end
 	catch
 		_:500 ->
