@@ -71,9 +71,9 @@ post_hub(ReqBody) ->
 			{error, 400}
 	end.
 post_hub1({ok, _PageServer, Id}, HubRecord) ->
-	Body = mochijson:encode(hub(HubRecord#hub{id = Id})),
-	Headers = [{content_type, "application/json"},
-			{location, ?PathRoleHub ++ Id}],
+	Href = ?PathRoleHub ++ Id,
+	Body = mochijson:encode(hub(HubRecord#hub{id = Id, href = Href})),
+	Headers = [{content_type, "application/json"}, {location, Href}],
 	{ok, Headers, Body};
 post_hub1({error, _Reason}, _HubRecord) ->
 	{error, 500}.

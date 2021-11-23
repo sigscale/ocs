@@ -5116,7 +5116,7 @@ post_hub_role(Config) ->
 	{_, Location} = lists:keyfind("location", 1, Headers),
 	Id = string:substr(Location, string:rstr(Location, PathHub) + length(PathHub)),
 	{struct, HubList} = mochijson:decode(ResponseBody),
-	2 = length(HubList),
+	3 = length(HubList),
 	{_, Callback} = lists:keyfind("callback", 1, HubList),
 	{_, Id} = lists:keyfind("id", 1, HubList).
 
