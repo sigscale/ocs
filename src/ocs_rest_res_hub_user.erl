@@ -1,4 +1,4 @@
-%%% ocs_rest_hub_resource.erl
+%%% ocs_rest_res_hub_user.erl
 %%% vim: ts=3
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%% @copyright 2020 - 2021 SigScale Global Inc.
@@ -16,7 +16,7 @@
 %%% limitations under the License.
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%%
--module(ocs_rest_hub_resource).
+-module(ocs_rest_res_hub_user).
 -copyright('Copyright (c) 2020 - 2021 SigScale Global Inc.').
 
 -include("ocs.hrl").
@@ -25,7 +25,7 @@
 		delete_hub/1, get_hubs/0, get_hub/1]).
 -export([hub/1]).
 
--define(PathResourceHub, "/resourceInventory/v1/hub/").
+-define(PathUserHub, "/partyManagement/v1/hub/").
 
 %%----------------------------------------------------------------------
 %%  The hub public API
@@ -52,7 +52,7 @@ content_types_provided() ->
 		Result :: {ok, Headers :: [tuple()], Body :: iolist()}
 			| {error, ErrorCode :: integer()}.
 %% Delete by id.
-%% @doc Respond to `POST /resourceInventory/v1/hub/{id}'
+%% @doc Respond to `POST /partyManagement/v1/hub/{id}'
 delete_hub(Id) ->
 	{gen_fsm:send_all_state_event({global, Id}, shutdown), [], []}.
 
@@ -63,28 +63,28 @@ delete_hub(Id) ->
 		Result :: {ok, Headers :: [tuple()], Body :: iolist()}
 			| {error, ErrorCode :: integer()}.
 %% Hub event to disk.
-%% @doc Respond to `POST /resourceInventory/v1/hub'
+%% @doc Respond to `POST /partyManagement/v1/hub'
 post_hub(ReqBody, Authorization) ->
 	try
 		case hub(mochijson:decode(ReqBody)) of
 			#hub{callback = Callback, query = undefined} = HubRecord ->
 				case supervisor:start_child(ocs_rest_hub_sup,
-						[[], Callback, ?PathResourceHub, Authorization]) of
+						[[], Callback, ?PathUserHub, Authorization]) of
 					{ok, _PageServer, Id} ->
 						Body = mochijson:encode(hub(HubRecord#hub{id = Id})),
 						Headers = [{content_type, "application/json"},
-								{location, ?PathResourceHub ++ Id}],
+								{location, ?PathUserHub ++ Id}],
 						{ok, Headers, Body};
 					{error, _Reason} ->
 						{error, 500}
 				end;
 			#hub{callback = Callback, query = Query} = HubRecord ->
 				case supervisor:start_child(ocs_rest_hub_sup,
-						[Query, Callback, ?PathResourceHub, Authorization]) of
+						[Query, Callback, ?PathUserHub, Authorization]) of
 					{ok, _PageServer, Id} ->
 						Body = mochijson:encode(hub(HubRecord#hub{id = Id})),
 						Headers = [{content_type, "application/json"},
-								{location, ?PathResourceHub ++ Id}],
+								{location, ?PathUserHub ++ Id}],
 						{ok, Headers, Body};
 					{error, _Reason} ->
 						{error, 500}
@@ -100,13 +100,13 @@ post_hub(ReqBody, Authorization) ->
 		Result :: {ok, Headers :: [tuple()], Body :: iolist()}
 				| {error, ErrorCode :: integer()}.
 %% @doc Body producing function for
-%% 	`GET|HEAD /resourceInventory/v1/hub/'
+%% 	`GET|HEAD /partyManagement/v1/hub/'
 get_hubs() ->
 	get_hubs(supervisor:which_children(ocs_rest_hub_sup), []).
 %% @hidden
 get_hubs([{_, Pid, _, _} | T], Acc) ->
 	case gen_fsm:sync_send_all_state_event(Pid, get) of
-		#hub{href = ?PathResourceHub ++ _} = Hub ->
+		#hub{href = ?PathUserHub ++ _} = Hub ->
 			get_hubs(T, [Hub | Acc]);
 		_Hub ->
 			get_hubs(T, Acc)
@@ -122,7 +122,7 @@ get_hubs([], Acc) ->
 		Result :: {ok, Headers :: [tuple()], Body :: iolist()}
 				| {error, ErrorCode :: integer()}.
 %% @doc Body producing function for
-%% 	`GET|HEAD /resourceInventory/v1/hub/{id}'
+%% 	`GET|HEAD /partyManagement/v1/hub/{id}'
 get_hub(Id) ->
 	case global:whereis_name(Id) of
 		Fsm when is_pid(Fsm) ->

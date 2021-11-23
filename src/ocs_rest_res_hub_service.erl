@@ -1,4 +1,4 @@
-%%% ocs_rest_hub_service.erl
+%%% ocs_rest_res_hub_service.erl
 %%% vim: ts=3
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%% @copyright 2020  - 2021 SigScale Global Inc.
@@ -16,7 +16,7 @@
 %%% limitations under the License.
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%%
--module(ocs_rest_hub_service).
+-module(ocs_rest_res_hub_service).
 -copyright('Copyright (c) 2020 - 2021 SigScale Global Inc.').
 
 -include("ocs.hrl").

@@ -125,17 +125,17 @@ do(#mod{request_uri = Uri, data = Data} = ModData) ->
 						["usageManagement", "v1", "usageSpecification" | _] ->
 							check_content_type_header(ocs_rest_res_usage, ModData);
 						["usageManagement", "v1", "hub" | _] ->
-							check_content_type_header(ocs_rest_hub_usage, ModData);
+							check_content_type_header(ocs_rest_res_hub_usage, ModData);
 						["partyManagement", "v1", "individual"] ->
 							check_content_type_header(ocs_rest_res_user, ModData);
 						["partyManagement", "v1", "individual", _Id] ->
 							check_content_type_header(ocs_rest_res_user, ModData);
 						["partyManagement", "v1", "hub" | _] ->
-							check_content_type_header(ocs_rest_hub_user, ModData);
+							check_content_type_header(ocs_rest_res_hub_user, ModData);
 						["partyRoleManagement", "v4", "partyRole" | _] ->
 							check_content_type_header(ocs_rest_res_role, ModData);
 						["partyRoleManagement", "v4", "hub" | _] ->
-							check_content_type_header(ocs_rest_hub_role, ModData);
+							check_content_type_header(ocs_rest_res_hub_role, ModData);
 						["balanceManagement", "v1", "product",_Id, "balanceTopup"] ->
 							check_content_type_header(ocs_rest_res_balance, ModData);
 						["balanceManagement", "v1", "service",_Id, "balanceTopup"] ->
@@ -151,9 +151,9 @@ do(#mod{request_uri = Uri, data = Data} = ModData) ->
 						["balanceManagement", "v1", "balanceAdjustment"] ->
 							check_content_type_header(ocs_rest_res_balance, ModData);
 						["balanceManagement", "v1", "hub"] ->
-							check_content_type_header(ocs_rest_hub_balance, ModData);
+							check_content_type_header(ocs_rest_res_hub_balance, ModData);
 						["balanceManagement", "v1", "hub" | _] ->
-							check_content_type_header(ocs_rest_hub_balance, ModData);
+							check_content_type_header(ocs_rest_res_hub_balance, ModData);
 						["catalogManagement", "v2", "productOffering" | _] ->
 							check_content_type_header(ocs_rest_res_product, ModData);
 						["productCatalogManagement", "v2", "syncOffer" | _] ->
@@ -171,7 +171,7 @@ do(#mod{request_uri = Uri, data = Data} = ModData) ->
 						["productInventoryManagement", "v2", "product" | _] ->
 							check_content_type_header(ocs_rest_res_product, ModData);
 						["productInventory", "v2", "hub" | _] ->
-							check_content_type_header(ocs_rest_hub_product, ModData);
+							check_content_type_header(ocs_rest_res_hub_product, ModData);
 						["productInventoryManagement", "schema", "OCS.yml" | _] ->
 							check_content_type_header(ocs_rest_res_product, ModData);
 						["catalogManagement", "v2", "resourceSpecification" | _] ->
@@ -187,13 +187,13 @@ do(#mod{request_uri = Uri, data = Data} = ModData) ->
 						["resourceInventoryManagement", "v1", "pla" | _] ->
 							check_content_type_header(ocs_rest_res_resource, ModData);
 						["resourceInventory", "v1", "hub" | _] ->
-							check_content_type_header(ocs_rest_hub_resource, ModData);
+							check_content_type_header(ocs_rest_res_hub_resource, ModData);
 						["catalogManagement", "v2", "serviceSpecification" | _] ->
 							check_content_type_header(ocs_rest_res_service, ModData);
 						["serviceInventoryManagement", "v2", "service" | _] ->
 							check_content_type_header(ocs_rest_res_service, ModData);
 						["serviceInventory", "v2", "hub" | _] ->
-							check_content_type_header(ocs_rest_hub_service, ModData);
+							check_content_type_header(ocs_rest_res_hub_service, ModData);
 						["serviceInventoryManagement", "schema", "OCS.yml" | _] ->
 							check_content_type_header(ocs_rest_res_service, ModData);
 						["productCatalogManagement", "v2", "productSpecification" | _] ->
@@ -205,7 +205,7 @@ do(#mod{request_uri = Uri, data = Data} = ModData) ->
 						["productCatalogManagement", "v2", "productOffering" | _] ->
 							check_content_type_header(ocs_rest_res_product, ModData);
 						["productCatalog", "v2", "hub" | _] ->
-							check_content_type_header(ocs_rest_hub_product, ModData);
+							check_content_type_header(ocs_rest_res_hub_product, ModData);
 						["resourceCatalogManagement", "v2", "resourceCatalog" | _] ->
 							check_content_type_header(ocs_rest_res_resource, ModData);
 						["resourceCatalogManagement", "v2", "plaSpecification" | _] ->
