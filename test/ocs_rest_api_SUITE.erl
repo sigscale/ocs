@@ -5014,7 +5014,7 @@ post_role(Config) ->
 	RequestBody = lists:flatten(mochijson:encode(party_role("Global_Pirates"))),
 	ContentType = "application/json",
 	Accept = {"accept", "application/json"},
-	Request = {CollectionUrl, [Accept, auth_header()], ContentType, RequestBody},
+	Request = {CollectionUrl, [Accept], ContentType, RequestBody},
 	{ok, Result} = httpc:request(post, Request, [], []),
 	{{"HTTP/1.1", 201, _Created}, Headers, ResponseBody} = Result,
 	{_, "application/json"} = lists:keyfind("content-type", 1, Headers),
