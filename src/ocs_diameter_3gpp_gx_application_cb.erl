@@ -270,19 +270,23 @@ errors(ServiceName, Capabilities, Request, []) ->
 		Result :: packet() | message().
 %% @doc Process a received DIAMETER Accounting packet.
 %% @private
-process_request(_Address, _Port,
+process_request(Address, Port,
 		#diameter_caps{origin_host = {OHost, _DHost}, origin_realm = {ORealm, _DRealm}},
 		#'3gpp_gx_CCR'{'Session-Id' = SId,
 				'Auth-Application-Id' = ?Gx_APPLICATION_ID,
 				'CC-Request-Type' = RequestType,
 				'CC-Request-Number' = RequestNum,
 				'Subscription-Id' = []} = Request) ->
+			Server = {Address, Port},
 			error_logger:warning_report(["Unable to process DIAMETER request",
 					{origin_host, OHost}, {origin_realm, ORealm},
 					{session_id, SId}, {request, Request},
 					{error, missing_subscription_id}]),
-			diameter_error(SId, ?'DIAMETER_ERROR_INITIAL_PARAMETERS',
-					OHost, ORealm, RequestType, RequestNum);
+			Reply = diameter_error(SId, ?'DIAMETER_ERROR_INITIAL_PARAMETERS',
+					OHost, ORealm, RequestType, RequestNum),
+			ok = ocs_log:acct_log(diameter, Server,
+					accounting_event_type(RequestType), Request, Reply, undefined),
+			Reply;
 process_request(Address, Port,
 		#diameter_caps{origin_host = {OHost, _DHost},
 		origin_realm = {ORealm, _DRealm}} = DiameterCaps,
@@ -291,6 +295,7 @@ process_request(Address, Port,
 				'CC-Request-Type' = RequestType,
 				'CC-Request-Number' = RequestNum,
 				'Subscription-Id' = SubscriptionIds} = Request) ->
+	Server = {Address, Port},
 	case subscriber_id(SubscriptionIds) of
 			Subscriber when is_binary(Subscriber) ->
 				case ocs:find_service(Subscriber) of
@@ -302,17 +307,23 @@ process_request(Address, Port,
 								{origin_host, OHost}, {origin_realm, ORealm},
 								{session_id, SId}, {request, Request},
 								{error, Reason}]),
-						diameter_error(SId,
+						Reply = diameter_error(SId,
 								?'DIAMETER_CC_APP_RESULT-CODE_USER_UNKNOWN',
-								OHost, ORealm, RequestType, RequestNum)
+								OHost, ORealm, RequestType, RequestNum),
+						ok = ocs_log:acct_log(diameter, Server,
+								accounting_event_type(RequestType), Request, Reply, undefined),
+						Reply
 				end;
 			_ ->
 				error_logger:warning_report(["Unable to process DIAMETER request",
 						{origin_host, OHost}, {origin_realm, ORealm},
 						{session_id, SId}, {request, Request},
 						{error, missing_subscription_id}]),
-				diameter_error(SId, ?'DIAMETER_CC_APP_RESULT-CODE_USER_UNKNOWN',
-						OHost, ORealm, RequestType, RequestNum)
+				Reply = diameter_error(SId, ?'DIAMETER_CC_APP_RESULT-CODE_USER_UNKNOWN',
+						OHost, ORealm, RequestType, RequestNum),
+				ok = ocs_log:acct_log(diameter, Server,
+						accounting_event_type(RequestType), Request, Reply, undefined),
+				Reply
 	end.
 %% @hidden
 process_request(Address, Port, DiameterCaps, Request,
@@ -323,7 +334,7 @@ process_request(Address, Port, DiameterCaps, Request,
 		{ok, #offer{char_value_use = CharValue}}) ->
 	process_request1(Address, Port, DiameterCaps, Request,
 			lists:keyfind("policyTable", #char_value_use.name, CharValue));
-process_request(_Address, _Port, #diameter_caps{origin_host = {OHost, _DHost},
+process_request(Address, Port, #diameter_caps{origin_host = {OHost, _DHost},
 		origin_realm = {ORealm, _DRealm}},
 		#'3gpp_gx_CCR'{'Session-Id' = SId,
             'CC-Request-Type' = RequestType,
@@ -331,65 +342,84 @@ process_request(_Address, _Port, #diameter_caps{origin_host = {OHost, _DHost},
 	error_logger:warning_report(["Unable to process DIAMETER request",
 			{origin_host, OHost}, {origin_realm, ORealm},
 			{request, Request}, {error, Reason}]),
-	diameter_error(SId, ?'DIAMETER_BASE_RESULT-CODE_UNABLE_TO_COMPLY',
-			OHost, ORealm, RequestType, RequestNum).
+	Server = {Address, Port},
+	Reply = diameter_error(SId, ?'DIAMETER_BASE_RESULT-CODE_UNABLE_TO_COMPLY',
+			OHost, ORealm, RequestType, RequestNum),
+	ok = ocs_log:acct_log(diameter, Server,
+			accounting_event_type(RequestType), Request, Reply, undefined),
+	Reply.
 %% @hidden
 process_request1(Address, Port, DiameterCaps, Request,
 		#char_value_use{name = "policyTable",
 		values = [#char_value{value = PolicyTable}]}) ->
 	process_request2(Address, Port, DiameterCaps, Request,
 			ocs:query_resource(start, '_', '_', '_', {exact, PolicyTable}));
-process_request1(_Address, _Port, #diameter_caps{origin_host = {OHost, _DHost},
+process_request1(Address, Port, #diameter_caps{origin_host = {OHost, _DHost},
 		origin_realm = {ORealm, _DRealm}} = _DiameterCaps,
 		#'3gpp_gx_CCR'{'Session-Id' = SId,
 				'Auth-Application-Id' = ?Gx_APPLICATION_ID,
 				'CC-Request-Type' = RequestType,
-				'CC-Request-Number' = RequestNum}, false) ->
-	#'3gpp_gx_CCA'{'Session-Id' = SId,
+				'CC-Request-Number' = RequestNum} = Request, false) ->
+	Server = {Address, Port},
+	Reply = #'3gpp_gx_CCA'{'Session-Id' = SId,
 			'Result-Code' = [?'DIAMETER_BASE_RESULT-CODE_SUCCESS'],
 			'Origin-Host' = OHost, 'Origin-Realm' = ORealm,
 			'Auth-Application-Id' = ?Gx_APPLICATION_ID,
 			'CC-Request-Type' = RequestType,
-			'CC-Request-Number' = RequestNum}.
+			'CC-Request-Number' = RequestNum},
+	ok = ocs_log:acct_log(diameter, Server,
+			accounting_event_type(RequestType), Request, Reply, undefined),
+	Reply.
 
 %% @hidden
-process_request2(_Address, _Port, #diameter_caps{origin_host = {OHost, _DHost},
+process_request2(Address, Port, #diameter_caps{origin_host = {OHost, _DHost},
 		origin_realm = {ORealm, _DRealm}} = _DiameterCaps,
 		#'3gpp_gx_CCR'{'Session-Id' = SId,
 				'Auth-Application-Id' = ?Gx_APPLICATION_ID,
 				'CC-Request-Type' = RequestType,
 				'CC-Request-Number' = RequestNum} = Request,
 		{_, [#resource{} | _] = PolicyResList}) ->
+	Server = {Address, Port},
 	try
-		#'3gpp_gx_CCA'{'Session-Id' = SId,
+		Reply = #'3gpp_gx_CCA'{'Session-Id' = SId,
 				'Result-Code' = [?'DIAMETER_BASE_RESULT-CODE_SUCCESS'],
 				'Origin-Host' = OHost, 'Origin-Realm' = ORealm,
 				'Auth-Application-Id' = ?Gx_APPLICATION_ID,
 				'CC-Request-Type' = RequestType,
 				'CC-Request-Number' = RequestNum,
 				'Online' = [?'3GPP_GX_ONLINE_ENABLE_ONLINE'],
-				'Charging-Rule-Install' = [charging_rule(PolicyResList)]}
+				'Charging-Rule-Install' = [charging_rule(PolicyResList)]},
+		ok = ocs_log:acct_log(diameter, Server,
+				accounting_event_type(RequestType), Request, Reply, undefined),
+		Reply
 	catch
 		_:Reason ->
 			error_logger:warning_report(["Unable to process DIAMETER request",
 					{origin_host, OHost}, {origin_realm, ORealm},
 					{session_id, SId}, {request, Request}, {error, Reason}]),
-			diameter_error(SId, ?'DIAMETER_BASE_RESULT-CODE_UNABLE_TO_COMPLY',
-					OHost, ORealm, RequestType, RequestNum)
+			Reply1 = diameter_error(SId, ?'DIAMETER_BASE_RESULT-CODE_UNABLE_TO_COMPLY',
+					OHost, ORealm, RequestType, RequestNum),
+			ok = ocs_log:acct_log(diameter, Server,
+					accounting_event_type(RequestType), Request, Reply1, undefined),
+			Reply1
 	end;
-process_request2(_Address, _Port, #diameter_caps{origin_host = {OHost, _DHost},
+process_request2(Address, Port, #diameter_caps{origin_host = {OHost, _DHost},
 		origin_realm = {ORealm, _DRealm}} = _DiameterCaps,
 		#'3gpp_gx_CCR'{'Session-Id' = SId,
 				'Auth-Application-Id' = ?Gx_APPLICATION_ID,
 				'CC-Request-Type' = RequestType,
-				'CC-Request-Number' = RequestNum} = _Request, {eof, []}) ->
-	#'3gpp_gx_CCA'{'Session-Id' = SId,
+				'CC-Request-Number' = RequestNum} = Request, {eof, []}) ->
+	Server = {Address, Port},
+	Reply = #'3gpp_gx_CCA'{'Session-Id' = SId,
 			'Result-Code' = [?'DIAMETER_BASE_RESULT-CODE_SUCCESS'],
 			'Origin-Host' = OHost, 'Origin-Realm' = ORealm,
 			'Auth-Application-Id' = ?Gx_APPLICATION_ID,
 			'CC-Request-Type' = RequestType,
-			'CC-Request-Number' = RequestNum};
-process_request2(_Address, _Port, #diameter_caps{origin_host = {OHost, _DHost},
+			'CC-Request-Number' = RequestNum},
+	ok = ocs_log:acct_log(diameter, Server,
+			accounting_event_type(RequestType), Request, Reply, undefined),
+	Reply;
+process_request2(Address, Port, #diameter_caps{origin_host = {OHost, _DHost},
 		origin_realm = {ORealm, _DRealm}} = _DiameterCaps,
 		#'3gpp_gx_CCR'{'Session-Id' = SId,
 				'Auth-Application-Id' = ?Gx_APPLICATION_ID,
@@ -398,8 +428,12 @@ process_request2(_Address, _Port, #diameter_caps{origin_host = {OHost, _DHost},
 	error_logger:warning_report(["Unable to process DIAMETER request",
 			{origin_host, OHost}, {origin_realm, ORealm},
 			{session_id, SId}, {request, Request}, {error, Reason}]),
-	diameter_error(SId, ?'DIAMETER_BASE_RESULT-CODE_UNABLE_TO_COMPLY',
-			OHost, ORealm, RequestType, RequestNum).
+	Server = {Address, Port},
+	Reply = diameter_error(SId, ?'DIAMETER_BASE_RESULT-CODE_UNABLE_TO_COMPLY',
+			OHost, ORealm, RequestType, RequestNum),
+	ok = ocs_log:acct_log(diameter, Server,
+			accounting_event_type(RequestType), Request, Reply, undefined),
+	Reply.
 
 -spec charging_rule(PolicyResList) -> Result
 	when
@@ -540,3 +574,14 @@ id_type(private) ->
 	?'3GPP_SUBSCRIPTION-ID-TYPE_END_USER_PRIVATE';
 id_type(_) ->
 	[].
+
+-spec accounting_event_type(RequestType) -> EventType
+	when
+	RequestType :: 1..4,
+	EventType :: start | interim | stop | event.
+%% @doc Converts CC-Request-Type integer value to a readable atom.
+accounting_event_type(?'3GPP_CC-REQUEST-TYPE_INITIAL_REQUEST') -> start;
+accounting_event_type(?'3GPP_CC-REQUEST-TYPE_UPDATE_REQUEST') -> interim;
+accounting_event_type(?'3GPP_CC-REQUEST-TYPE_TERMINATION_REQUEST') -> stop;
+accounting_event_type(?'3GPP_CC-REQUEST-TYPE_EVENT_REQUEST') -> event.
+

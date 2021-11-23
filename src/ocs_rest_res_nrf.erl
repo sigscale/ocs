@@ -73,6 +73,11 @@ initial_nrf(NrfRequest) ->
 								reason => "Unknown subscriber identifier"}],
 						Problem = error_response(service_not_found, InvalidParams),
 						{error, 404, Problem};
+					{error, invalid_service_type} ->
+						InvalidParams = [#{param => "/serviceContextId",
+								reason => "Invalid Service Type"}],
+						Problem = error_response(invalid_service_type, InvalidParams),
+						{error, 400, Problem};
 					{error, Reason} ->
 						{error, Reason}
 				end;
@@ -136,6 +141,11 @@ update_nrf(NrfRequest) ->
 								reason => "Unknown subscriber identifier"}],
 						Problem = error_response(service_not_found, InvalidParams),
 						{error, 404, Problem};
+					{error, invalid_service_type} ->
+						InvalidParams = [#{param => "/serviceContextId",
+								reason => "Invalid Service Type"}],
+						Problem = error_response(invalid_service_type, InvalidParams),
+						{error, 400, Problem};
 					{error, Reason} ->
 						{error, Reason}
 				end;
@@ -201,7 +211,9 @@ release_nrf1(RatingDataRef, NrfRequest) ->
 						Problem = error_response(service_not_found, InvalidParams),
 						{error, 404, Problem};
 					{error, invalid_service_type} ->
-						Problem = error_response(charging_failed, undefined),
+						InvalidParams = [#{param => "/serviceContextId",
+								reason => "Invalid Service Type"}],
+						Problem = error_response(invalid_service_type, InvalidParams),
 						{error, 400, Problem};
 					{error, Reason} ->
 						{error, Reason}
@@ -310,6 +322,11 @@ error_response(unknown_ref, InvalidParams) ->
 	#{cause => "RATING_DATA_REF_UNKNOWN",
 			type => "https://app.swaggerhub.com/apis/SigScale/nrf-rating/1.0.0#/",
 			title => "Request denied because the rating data ref is not recognized",
+			invalidParams => InvalidParams};
+error_response(invalid_service_type, InvalidParams) ->
+	#{cause => "CHARGING_FAILED",
+			type => "https://app.swaggerhub.com/apis/SigScale/nrf-rating/1.0.0#/",
+			title => "Request denied because the service context id is not recognized",
 			invalidParams => InvalidParams}.
 
 -spec rate(NrfRequest, Flag) -> Result
@@ -344,23 +361,23 @@ rate([#{"serviceContextId" := SCI} = H | T],
 			{Map2, undefined}
 	end,
 	Reserves = case maps:find("requestedUnit", H) of
-		{ok, #{"totalVolume" := RTV}} ->
+		{ok, #{"totalVolume" := RTV}} when RTV > 0->
 			[{octets, RTV}];
-		{ok, #{"time" := RTime}} ->
+		{ok, #{"time" := RTime}} when RTime > 0 ->
 			[{seconds, RTime}];
-		{ok, #{"serviceSpecificUnit" := RSSU}} ->
+		{ok, #{"serviceSpecificUnit" := RSSU}} when RSSU > 0 ->
 			[{messages, RSSU}];
-		error ->
-			undefined
+		_ ->
+			[]
 	end,
 	{Debits, Map4} = case maps:find("consumedUnit", H) of
-		{ok, #{"totalVolume" := CTV}} ->
+		{ok, #{"totalVolume" := CTV}} when CTV > 0 ->
 			{[{octets, CTV}], Map3#{"consumedUnit" => #{"totalVolume" => CTV}}};
-		{ok, #{"time" := CTime}} ->
+		{ok, #{"time" := CTime}} when CTime > 0 ->
 			{[{seconds, CTime}], Map3#{"consumedUnit" => #{"time" => CTime}}};
-		{ok, #{"serviceSpecificUnit" := CSSU}} ->
+		{ok, #{"serviceSpecificUnit" := CSSU}} when CSSU > 0 ->
 			{[{messages, CSSU}], Map3#{"consumedUnit" => #{"serviceSpecificUnit" => CSSU}}};
-		error ->
+		_ ->
 			{[], Map3}
 	end,
 	ServiceType = service_type(list_to_binary(SCI)),
@@ -484,7 +501,6 @@ get_subscriber([_ | T]) ->
 	get_subscriber(T);
 get_subscriber([]) -> 
 	undefined.
-
 
 %% @hidden
 event_type(#{"oneTimeEventType" := "IEC"}) ->
