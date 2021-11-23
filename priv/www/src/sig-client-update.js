@@ -382,7 +382,7 @@ class clientUpdate extends PolymerElement {
 
 	deleteClient() {
 		this.$.deleteClientAjax.method = "DELETE";
-		this.$.deleteClientAjax.url = "/ocs/v1/client/" + document.body.querySelector('sig-app').shadowRoot.getElementById('clientList').shadowRoot.getElementById('clientGrid').selectedItems[0].id;
+		this.$.deleteClientAjax.url = "/ocs/v1/client/" + this.clientUpAddress; 
 		this.$.deleteClientAjax.generateRequest();
 	}
 
