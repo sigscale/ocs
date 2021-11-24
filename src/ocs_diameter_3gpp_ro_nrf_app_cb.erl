@@ -215,7 +215,7 @@ request(ServiceName, Capabilities, Request) ->
 request({_, IpAddress, Port} = ServiceName, Capabilities, Request, [H | T]) ->
 	case ocs:find_client(H) of
 		{ok, #client{protocol = diameter}} ->
-			Class = get_option(class),
+			Class = get_option(rf_class),
 			{reply, process_request(IpAddress, Port, Capabilities, Request, Class)};
 		{error, not_found} ->
 			request(ServiceName, Capabilities, Request, T)
