@@ -1,3 +1,20 @@
+2021-11-24  Refath Wadood <refath@sigscale.org>
+
+	* restructure nrf table fields
+	* correct subscriber id handling; correct nrf ref record
+	* log diameter events on the gx interface
+	* return error 400 when service context id is invalid
+	* add 3gpp gx interface types to ocs_acct spec
+	* use [] as when amount when it is not provided in request
+	* fix delete client
+	* handle multiple httpd directories
+	* basic auth is not required in party role management
+	* POST response body should include href
+	* rename hub modules
+	* correct enviroment variable name from class to nrf_class
+	* include missing avps
+	* test: add role without basic auth in test
+
 2021-11-19  Refath Wadood <refath@sigscale.org>
 
 	* add debian stretch supported ascii values in spec
