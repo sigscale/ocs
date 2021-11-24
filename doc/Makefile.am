@@ -113,14 +113,14 @@ modhtml = ocs.html \
 			ocs_mib.html \
 			ocs_rest_hub_sup.html \
 			ocs_rest_hub_fsm.html \
-			ocs_rest_hub_balance.html \
-			ocs_rest_hub_product.html \
-			ocs_rest_hub_service.html \
-			ocs_rest_hub_user.html \
-			ocs_rest_hub_resource.html \
-			ocs_rest_hub_usage.html \
+			ocs_rest_res_hub_balance.html \
+			ocs_rest_res_hub_product.html \
+			ocs_rest_res_hub_service.html \
+			ocs_rest_res_hub_user.html \
+			ocs_rest_res_hub_resource.html \
+			ocs_rest_res_hub_usage.html \
 			ocs_rest_res_role.html \
-			ocs_rest_hub_role.html \
+			ocs_rest_res_hub_role.html \
 			ocs_statistics_sup.html \
 			ocs_statistics_server.html \
 			ocs_event.html \

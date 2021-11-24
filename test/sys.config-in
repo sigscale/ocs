@@ -28,6 +28,7 @@
                      [{auth_type, mnesia},
                      {auth_name, "ocs.sigscale.org"},
                      {require_group, ["all"]}]}},
+               {directory, {"/partyRoleManagement", []}},
                {modules,
                      [mod_alias,
                      mod_auth,

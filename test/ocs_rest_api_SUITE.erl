@@ -5014,7 +5014,7 @@ post_role(Config) ->
 	RequestBody = lists:flatten(mochijson:encode(party_role("Global_Pirates"))),
 	ContentType = "application/json",
 	Accept = {"accept", "application/json"},
-	Request = {CollectionUrl, [Accept, auth_header()], ContentType, RequestBody},
+	Request = {CollectionUrl, [Accept], ContentType, RequestBody},
 	{ok, Result} = httpc:request(post, Request, [], []),
 	{{"HTTP/1.1", 201, _Created}, Headers, ResponseBody} = Result,
 	{_, "application/json"} = lists:keyfind("content-type", 1, Headers),
@@ -5107,7 +5107,7 @@ post_hub_role(Config) ->
 			++ "}\n",
 	ContentType = "application/json",
 	Accept = {"accept", "application/json"},
-	Request = {CollectionUrl, [Accept, auth_header()], ContentType, RequestBody},
+	Request = {CollectionUrl, [Accept], ContentType, RequestBody},
 	{ok, Result} = httpc:request(post, Request, [], []),
 	{{"HTTP/1.1", 201, _Created}, Headers, ResponseBody} = Result,
 	{_, "application/json"} = lists:keyfind("content-type", 1, Headers),
@@ -5116,7 +5116,7 @@ post_hub_role(Config) ->
 	{_, Location} = lists:keyfind("location", 1, Headers),
 	Id = string:substr(Location, string:rstr(Location, PathHub) + length(PathHub)),
 	{struct, HubList} = mochijson:decode(ResponseBody),
-	2 = length(HubList),
+	3 = length(HubList),
 	{_, Callback} = lists:keyfind("callback", 1, HubList),
 	{_, Id} = lists:keyfind("id", 1, HubList).
 

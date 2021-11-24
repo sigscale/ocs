@@ -120,10 +120,8 @@ do_post(Resource, #mod{parsed_header = Headers} = ModData, Body,
 	do_response(ModData, Resource:post_hub(Body, Authorization));
 do_post(Resource, ModData, Body, ["partyRoleManagement", "v4", "partyRole"]) ->
 	do_response(ModData, Resource:post_role(Body));
-do_post(Resource, #mod{parsed_header = Headers} = ModData,
-		Body, ["partyRoleManagement", "v4", "hub"]) ->
-	{_, Authorization} = lists:keyfind("authorization", 1, Headers),
-	do_response(ModData, Resource:post_hub(Body, Authorization));
+do_post(Resource, ModData, Body, ["partyRoleManagement", "v4", "hub"]) ->
+	do_response(ModData, Resource:post_hub(Body));
 do_post(Resource, ModData, Body, ["balanceManagement", "v1", "product", Id, "balanceTopup"]) ->
 	do_response(ModData, Resource:top_up(Id, Body));
 do_post(Resource, ModData, Body, ["balanceManagement", "v1", "service", Id, "balanceTopup"]) ->

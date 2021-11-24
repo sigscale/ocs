@@ -119,14 +119,14 @@ beam_DATA = ocs.beam \
 			ocs_mib.beam \
 			ocs_rest_hub_sup.beam \
 			ocs_rest_hub_fsm.beam \
-			ocs_rest_hub_balance.beam \
-			ocs_rest_hub_product.beam \
-			ocs_rest_hub_service.beam \
-			ocs_rest_hub_user.beam \
-			ocs_rest_hub_resource.beam \
-			ocs_rest_hub_usage.beam \
+			ocs_rest_res_hub_balance.beam \
+			ocs_rest_res_hub_product.beam \
+			ocs_rest_res_hub_service.beam \
+			ocs_rest_res_hub_user.beam \
+			ocs_rest_res_hub_resource.beam \
+			ocs_rest_res_hub_usage.beam \
 			ocs_rest_res_role.beam \
-			ocs_rest_hub_role.beam \
+			ocs_rest_res_hub_role.beam \
 			ocs_event.beam \
 			ocs_statistics_sup.beam \
 			ocs_statistics_server.beam \
