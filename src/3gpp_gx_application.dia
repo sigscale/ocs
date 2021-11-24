@@ -20,7 +20,10 @@
     Subscription-Id-Data
     Rating-Group
     Service-Identifier
-
+    User-Equipment-Info
+    User-Equipment-Info-Type
+    User-Equipment-Info-Value
+    
 @messages
 
    CCR ::= < Diameter Header: 272, REQ, PXY >
