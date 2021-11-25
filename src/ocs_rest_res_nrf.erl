@@ -128,7 +128,7 @@ initial_nrf(NrfRequest) ->
 update_nrf(RatingDataRef, NrfRequest) ->
 	case lookup_ref(RatingDataRef) of
 		true ->
-			update_nrf(NrfRequest);
+			update_nrf1(RatingDataRef, NrfRequest);
 		false ->
 			InvalidParams = [#{param => "{" ++ RatingDataRef ++ "}",
 					reason => "Unknown rating data reference"}],
@@ -137,7 +137,7 @@ update_nrf(RatingDataRef, NrfRequest) ->
 		{error, _Reason} ->
 			{error, 500}
 	end.
-update_nrf(NrfRequest) ->
+update_nrf1(RatingDataRef, NrfRequest) ->
 	try
 		case mochijson:decode(NrfRequest) of
 			{struct, _Attributes} = NrfStruct ->
@@ -145,7 +145,9 @@ update_nrf(NrfRequest) ->
 				case rate(NrfMap, interim) of
 					ServiceRating when is_list(ServiceRating) ->
 						UpdatedMap = maps:update("serviceRating", ServiceRating, NrfMap),
-						nrf(UpdatedMap);
+						NrfResponse = nrf(UpdatedMap),
+						{NrfResponse, log_request(RatingDataRef, 1, NrfMap),
+								log_reply(RatingDataRef, 1, UpdatedMap)};
 					{error, out_of_credit} ->
 						Problem = error_response(out_of_credit, undefined),
 						{error, 403, Problem};
@@ -167,8 +169,8 @@ update_nrf(NrfRequest) ->
 				{error, 400, Problem}
 		end
 	of
-		{struct, _Attributes1} = NrfResponse ->
-			ReponseBody = mochijson:encode(NrfResponse),
+		{{struct, _} = NrfResponse1, LogRequest, LogResponse} ->
+			ReponseBody = mochijson:encode(NrfResponse1),
 			ok = ocs_log:acct_log(diameter, server(),
 					start, LogRequest, LogResponse, undefined),
 			{200, [], ReponseBody };
@@ -216,7 +218,9 @@ release_nrf1(RatingDataRef, NrfRequest) ->
 					ServiceRating when is_list(ServiceRating) ->
 						UpdatedMap = maps:update("serviceRating", ServiceRating, NrfMap),
 						ok = remove_ref(RatingDataRef),
-						nrf(UpdatedMap);
+						NrfResponse = nrf(UpdatedMap),
+						{NrfResponse, log_request(RatingDataRef, 1, NrfMap),
+								log_reply(RatingDataRef, 1, UpdatedMap)};
 					{error, out_of_credit} ->
 						Problem = error_response(out_of_credit, undefined),
 						{error, 403, Problem};
@@ -238,8 +242,8 @@ release_nrf1(RatingDataRef, NrfRequest) ->
 				{error, 400, Problem}
 		end
 	of
-		{struct, _Attributes1} = NrfResponse ->
-			ReponseBody = mochijson:encode(NrfResponse),
+		{{struct, _} = NrfResponse1, LogRequest, LogResponse} ->
+			ReponseBody = mochijson:encode(NrfResponse1),
 			ok = ocs_log:acct_log(diameter, server(),
 					start, LogRequest, LogResponse, undefined),
 			{200, [], ReponseBody};
