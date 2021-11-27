@@ -1350,9 +1350,9 @@ DIAMETER services may be configured with the following (optional) configuration 
 	<dt>eap_method_order</dt>
 		<dd>The list of EAP methods supported in order of preference. (default: [akap, aka, pwd, ttls])</dd>
 	<dt>nrf_uri</dt>
-		<dd>.The Nrf endpoint(default: "http://host")</dd>
+		<dd>The Nrf_Rating API endpoint of a remote rating function (RF) (e.g. "http://example.net/nrf-rating/v1")</dd>
 	<dt>rf_class</dt>
-		<dd>The class of rating function to be used</dd>
+		<dd>The class of remote rating function (RF) to be used. Value `b' specifies a Class B RF with a colocated account balance management function (ABMF). If this option is not defined Class A operation is assumed with local RF and ABMF where any Product Offering Price may specify a remote RF as a pricing logic algorithm (PLA).</dd>
 	<dt>callback</dt>
 		<dd>The callback module to be used diameter events (default: ocs_diameter_3gpp_ro_application_cb)</dd>
 	<dt>sub_id_type</dt>
@@ -1435,7 +1435,7 @@ The {@link //inets. inets} application's {@link //inets/httpd. httpd} server con
       {auth_log_files, 100},
       {ipdr_log_dir, "log/ipdr"},
       {export_dir, "log/export"},
-      {rest_page_size, 1000}]},
+      {rest_page_size, 1000},
       {tls_key, "ssl/key.pem"},
       {tls_cert, "ssl/cert.pem"},
       {tls_cacert, "ssl/ca.pem"},
