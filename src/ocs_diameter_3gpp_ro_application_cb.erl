@@ -288,7 +288,23 @@ process_request(IpAddress, Port,
 				'CC-Request-Number' = RequestNum,
 				'Subscription-Id' = SubscriptionIds} = Request) ->
 	try
-		Subscriber = case subscriber_id(SubscriptionIds) of
+		{ok, Configurations} = application:get_env(ocs, diameter),
+		{_, AcctServices} = lists:keyfind(acct, 1, Configurations),
+		F = fun F([{{0, 0, 0, 0}, P, Options} | _]) when P =:= Port ->
+				Options;
+			F([{Ip, P, Options} | _]) when Ip == IpAddress, P =:= Port ->
+				Options;
+			F([{_, _, _} | T]) ->
+				F(T)
+		end,
+		ServiceOptions = F(AcctServices),
+		SubIdTypes = case lists:keyfind(sub_id_type, 1, ServiceOptions) of
+			{sub_id_type, Ts} when is_list(Ts) ->
+				Ts;
+			false ->
+				undefined
+		end,
+		Subscriber = case subscriber_id(SubscriptionIds, SubIdTypes) of
 			{_IdType, SubId} ->
 				SubId;
 			_ ->
@@ -1176,31 +1192,16 @@ fui(RedirectServerAddress)
 	[#'3gpp_ro_Final-Unit-Indication'{'Final-Unit-Action' = Action,
 			'Redirect-Server' = [RedirectServer]}].
 
--spec subscriber_id(SubscriberIdAVPs) -> Subscribers
+-spec subscriber_id(SubscriberIdAVPs, SubIdTypes) -> Subscribers
 	when
 		SubscriberIdAVPs :: [#'3gpp_ro_Subscription-Id'{}],
+		SubIdTypes :: [SubIdType] | undefined,
+		SubIdType :: imsi | msisdn | nai | sip | private,
 		Subscribers :: {IdType, SubId} | [],
 		IdType :: integer(),
 		SubId :: binary().
 %% @doc Get Subscribers From Diameter SubscriberId AVP.
-subscriber_id(SubscriberIdAVPs) ->
-	ServiceOptions = case application:get_env(ocs, diameter) of
-		{ok, [{acct, [{_, _, Oplist}]}]} ->
-			Oplist;
-		{ok, [{acct, [{_, _, Oplist}]}, _]} ->
-			Oplist;
-		{ok, [_, {acct, [{_, _, Oplist}]}]} ->
-			Oplist
-	end,
-	IdTypes = case lists:keyfind(sub_id_type, 1, ServiceOptions) of
-		{sub_id_type, Value} ->
-			Value;
-		false ->
-			undefined
-	end,
-	subscriber_id(SubscriberIdAVPs, IdTypes).
-%% @hidden
-subscriber_id(SubscriberIdAVPs, undefined) ->
+subscriber_id(SubscriberIdAVPs, undefined = _SubIdTypes) ->
 	subscriber_id(SubscriberIdAVPs, [msisdn]);
 subscriber_id(SubscriberIdAVPs, [H | T])
 		when is_atom(H) ->

@@ -306,9 +306,25 @@ process_request(IpAddress, Port,
 				'Service-Context-Id' = _SvcContextId,
 				'CC-Request-Type' = RequestType,
 				'CC-Request-Number' = RequestNum,
-				'Subscription-Id' = SubscriptionId} = Request, Class) ->
+				'Subscription-Id' = SubscriptionIds} = Request, Class) ->
 	try
-		SubscriberIds = case subscriber_id(SubscriptionId) of
+		{ok, Configurations} = application:get_env(ocs, diameter),
+		{_, AcctServices} = lists:keyfind(acct, 1, Configurations),
+		F = fun F([{{0, 0, 0, 0}, P, Options} | _]) when P =:= Port ->
+				Options;
+			F([{Ip, P, Options} | _]) when Ip == IpAddress, P =:= Port ->
+				Options;
+			F([{_, _, _} | T]) ->
+				F(T)
+		end,
+		ServiceOptions = F(AcctServices),
+		SubIdTypes = case lists:keyfind(sub_id_type, 1, ServiceOptions) of
+			{sub_id_type, Ts} when is_list(Ts) ->
+				Ts;
+			false ->
+				undefined
+		end,
+		Subscribers = case subscriber_id(SubscriptionIds, SubIdTypes) of
 			SubIds when length(SubIds) > 0 ->
 				SubIds;
 			[] ->
@@ -329,7 +345,7 @@ process_request(IpAddress, Port,
 				end
 		end,
 		process_request1(RequestType, Request, SessionId, RequestNum,
-				SubscriberIds, OHost, DHost, ORealm, DRealm, IpAddress, Port, Class)
+				Subscribers, OHost, DHost, ORealm, DRealm, IpAddress, Port, Class)
 	catch
 		?CATCH_STACK ->
 			?SET_STACK,
@@ -825,19 +841,20 @@ process_request1(?'3GPP_CC-REQUEST-TYPE_EVENT_REQUEST' = RequestType,
 					OHost, ORealm, RequestType, RequestNum)
 	end.
 
--spec subscriber_id(SubscriberIdAVPs) -> Subscribers
+-spec subscriber_id(SubscriberIdAVPs, SubIdTypes) -> Subscribers
 	when
 		SubscriberIdAVPs :: [#'3gpp_ro_Subscription-Id'{}],
-		Subscribers :: [Subscriber],
-		Subscriber :: {IdType, Id},
+		SubIdTypes :: [SubIdType] | undefined,
+		SubIdType :: imsi | msisdn | nai | sip | private,
+		Subscribers :: [{IdType, SubId}] | [],
 		IdType :: integer(),
-		Id :: binary().
+		SubId :: binary().
 %% @doc Get Subscribers From Diameter SubscriberId AVP.
-subscriber_id(SubscriberIdAVPs) ->
-	subscriber_id(SubscriberIdAVPs, get_option(sub_id_type), []).
+subscriber_id(SubscriberIdAVPs, SubIdTypes) ->
+	subscriber_id(SubscriberIdAVPs, SubIdTypes, []).
 %% @hidden
-subscriber_id(SubscriberIdAVP, undefined, Acc) ->
-	subscriber_id(SubscriberIdAVP, [msisdn], Acc);
+subscriber_id(SubscriberIdAVPs, undefined = _SubIdTypes, Acc) ->
+	subscriber_id(SubscriberIdAVPs, [msisdn], Acc);
 subscriber_id(SubscriberIdAVP, [IdType | T], Acc) ->
 	Acc1 = subscriber_id1(SubscriberIdAVP, id_type(IdType)),
 	subscriber_id(SubscriberIdAVP, T, Acc ++ Acc1);
