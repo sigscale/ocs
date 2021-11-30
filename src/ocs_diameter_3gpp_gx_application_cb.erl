@@ -462,13 +462,13 @@ charging_rule(PolicyResList) ->
 %% @hidden
 charging_rule([#resource{name = Name, characteristic = Chars} | T], Acc) ->
 	ChargingRuleInstall = case lists:keyfind("predefined",
-			#resource_char.value, Chars) of
-		false ->
+			#resource_char.name, Chars) of
+		#resource_char{name = "predefined", value = false} ->
 			ChargingRuleDefinitions = parse_policy_char(Chars,
 					#'3gpp_gx_Charging-Rule-Definition'{'Charging-Rule-Name' = Name}),
 			#'3gpp_gx_Charging-Rule-Install'{
 					'Charging-Rule-Definition' = ChargingRuleDefinitions};
-		_ ->
+		#resource_char{name = "predefined", value = true} ->
 			#'3gpp_gx_Charging-Rule-Install'{
 					'Charging-Rule-Name' = [Name]}
 	end,
