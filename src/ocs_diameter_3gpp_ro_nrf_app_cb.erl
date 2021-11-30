@@ -1552,7 +1552,7 @@ iec_service_rating(MSCC, ServiceContextId, ServiceInformation, Destination) ->
 	iec_service_rating1(MSCC, SCID, ServiceInformation, Des, []).
 %% @hidden
 iec_service_rating1([#'3gpp_ro_Multiple-Services-Credit-Control'{
-		'Used-Service-Unit' = RSU, 'Service-Identifier' = SI,
+		'Used-Service-Unit' = USU, 'Service-Identifier' = SI,
 		'Rating-Group' = RG} = _MSCC | T], SCID, SInfo, Des, Acc) ->
 	Acc1 = case SI of
 		[] ->
@@ -1572,7 +1572,7 @@ iec_service_rating1([#'3gpp_ro_Multiple-Services-Credit-Control'{
 		_ ->
 			[SInfo | Acc2]
 	end,
-	ServiceRating = case reserved_unit(RSU) of
+	ServiceRating = case used_unit(USU) of
 		[] ->
 			{struct, [SCID, Des, {"requestSubType", "DEBIT"} | Acc3]};
 		ReservedUnits ->
