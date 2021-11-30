@@ -215,7 +215,7 @@ request(ServiceName, Capabilities, Request) ->
 request({_, IpAddress, Port} = ServiceName, Capabilities, Request, [H | T]) ->
 	case ocs:find_client(H) of
 		{ok, #client{protocol = diameter}} ->
-			Class = get_option(rf_class),
+			Class = get_option({IpAddress, Port}, rf_class),
 			{reply, process_request(IpAddress, Port, Capabilities, Request, Class)};
 		{error, not_found} ->
 			request(ServiceName, Capabilities, Request, T)
@@ -306,9 +306,25 @@ process_request(IpAddress, Port,
 				'Service-Context-Id' = _SvcContextId,
 				'CC-Request-Type' = RequestType,
 				'CC-Request-Number' = RequestNum,
-				'Subscription-Id' = SubscriptionId} = Request, Class) ->
+				'Subscription-Id' = SubscriptionIds} = Request, Class) ->
 	try
-		SubscriberIds = case subscriber_id(SubscriptionId) of
+		{ok, Configurations} = application:get_env(ocs, diameter),
+		{_, AcctServices} = lists:keyfind(acct, 1, Configurations),
+		F = fun F([{{0, 0, 0, 0}, P, Options} | _]) when P =:= Port ->
+				Options;
+			F([{Ip, P, Options} | _]) when Ip == IpAddress, P =:= Port ->
+				Options;
+			F([{_, _, _} | T]) ->
+				F(T)
+		end,
+		ServiceOptions = F(AcctServices),
+		SubIdTypes = case lists:keyfind(sub_id_type, 1, ServiceOptions) of
+			{sub_id_type, Ts} when is_list(Ts) ->
+				Ts;
+			false ->
+				undefined
+		end,
+		Subscribers = case subscriber_id(SubscriptionIds, SubIdTypes) of
 			SubIds when length(SubIds) > 0 ->
 				SubIds;
 			[] ->
@@ -329,7 +345,7 @@ process_request(IpAddress, Port,
 				end
 		end,
 		process_request1(RequestType, Request, SessionId, RequestNum,
-				SubscriberIds, OHost, DHost, ORealm, DRealm, IpAddress, Port, Class)
+				Subscribers, OHost, DHost, ORealm, DRealm, IpAddress, Port, Class)
 	catch
 		?CATCH_STACK ->
 			?SET_STACK,
@@ -352,10 +368,10 @@ process_request1(?'3GPP_CC-REQUEST-TYPE_INITIAL_REQUEST' = RequestType,
 		{Direction, Address} = direction_address(ServiceInformation),
 		NrfResponse = case service_type(SvcContextId) of
 			32251 ->
-				post_request_scur(Subscriber, SvcContextId,
+				post_request_scur(Server, Subscriber, SvcContextId,
 						SessionId, MSCC1, Location, {initial, b});
 			Id when Id == 32260; Id == 32274 ->
-				post_request_ecur(Subscriber, SvcContextId,
+				post_request_ecur(Server, Subscriber, SvcContextId,
 						SessionId, MSCC1, Location, Destination, {initial, b})
 		end,
 		case NrfResponse of
@@ -419,11 +435,11 @@ process_request1(?'3GPP_CC-REQUEST-TYPE_INITIAL_REQUEST' = RequestType,
 			{{MSCC2, _}, PLA} when is_list(MSCC2), length(PLA) > 0 ->
 				case ServiceType of
 					32251 ->
-						{ok, JSON} = post_request_scur(Subscribers, SvcContextId,
+						{ok, JSON} = post_request_scur(Server, Subscribers, SvcContextId,
 								SessionId, PLA, [], {initial, a}),
 						{ok, JSON, PLA, MSCC2};
 					Id when Id == 32260; Id == 32274 ->
-						{ok, JSON} = post_request_ecur(Subscribers, SvcContextId,
+						{ok, JSON} = post_request_ecur(Server, Subscribers, SvcContextId,
 								SessionId, PLA, [], Destination, {initial, a}),
 						{ok, JSON, PLA, MSCC2}
 				end;
@@ -501,7 +517,7 @@ process_request1(?'3GPP_CC-REQUEST-TYPE_UPDATE_REQUEST' = RequestType,
 		Location = get_service_location(ServiceInformation),
 		{Direction, Address} = direction_address(ServiceInformation),
 		Amounts = get_mscc(MSCC1),
-		case post_request_scur(Subscriber, SvcContextId,
+		case post_request_scur(Server, Subscriber, SvcContextId,
 				SessionId, MSCC1, Location, interim) of
 			{ok, JSON} ->
 				{struct, RatedStruct} = mochijson:decode(JSON),
@@ -634,10 +650,10 @@ process_request1(?'3GPP_CC-REQUEST-TYPE_TERMINATION_REQUEST' = RequestType,
 		Destination = get_destination(ServiceInformation),
 		NrfResponse = case service_type(SvcContextId) of
 			32251 ->
-				post_request_scur(Subscriber, SvcContextId,
+				post_request_scur(Server, Subscriber, SvcContextId,
 						SessionId, MSCC1, Location, final);
 			Id when Id == 32260; Id == 32274 ->
-				post_request_ecur(Subscriber, SvcContextId,
+				post_request_ecur(Server, Subscriber, SvcContextId,
 						SessionId, MSCC1, Location, Destination, final)
 		end,
 		Amounts = get_mscc(MSCC1),
@@ -778,7 +794,7 @@ process_request1(?'3GPP_CC-REQUEST-TYPE_EVENT_REQUEST' = RequestType,
 		{Direction, Address} = direction_address(ServiceInformation),
 		Location = get_service_location(ServiceInformation),
 		Destination = get_destination(ServiceInformation),
-		case post_request_iec(Subscriber, SvcContextId,
+		case post_request_iec(Server, Subscriber, SvcContextId,
 				SessionId, MSCC, Location, Destination) of
 			{ok, JSON} ->
 				{struct, RatedStruct} = mochijson:decode(JSON),
@@ -825,19 +841,20 @@ process_request1(?'3GPP_CC-REQUEST-TYPE_EVENT_REQUEST' = RequestType,
 					OHost, ORealm, RequestType, RequestNum)
 	end.
 
--spec subscriber_id(SubscriberIdAVPs) -> Subscribers
+-spec subscriber_id(SubscriberIdAVPs, SubIdTypes) -> Subscribers
 	when
 		SubscriberIdAVPs :: [#'3gpp_ro_Subscription-Id'{}],
-		Subscribers :: [Subscriber],
-		Subscriber :: {IdType, Id},
+		SubIdTypes :: [SubIdType] | undefined,
+		SubIdType :: imsi | msisdn | nai | sip | private,
+		Subscribers :: [{IdType, SubId}] | [],
 		IdType :: integer(),
-		Id :: binary().
+		SubId :: binary().
 %% @doc Get Subscribers From Diameter SubscriberId AVP.
-subscriber_id(SubscriberIdAVPs) ->
-	subscriber_id(SubscriberIdAVPs, get_option(sub_id_type), []).
+subscriber_id(SubscriberIdAVPs, SubIdTypes) ->
+	subscriber_id(SubscriberIdAVPs, SubIdTypes, []).
 %% @hidden
-subscriber_id(SubscriberIdAVP, undefined, Acc) ->
-	subscriber_id(SubscriberIdAVP, [msisdn], Acc);
+subscriber_id(SubscriberIdAVPs, undefined = _SubIdTypes, Acc) ->
+	subscriber_id(SubscriberIdAVPs, [msisdn], Acc);
 subscriber_id(SubscriberIdAVP, [IdType | T], Acc) ->
 	Acc1 = subscriber_id1(SubscriberIdAVP, id_type(IdType)),
 	subscriber_id(SubscriberIdAVP, T, Acc ++ Acc1);
@@ -866,9 +883,12 @@ id_type(private) ->
 id_type(_) ->
 	[].
 
--spec post_request_ecur(Subscribers, ServiceContextId,
+-spec post_request_ecur(ServiceName, Subscribers, ServiceContextId,
 		SessionId, ServiceRatingData, Location, Destination, Flag) -> Result
 	when
+		ServiceName :: {IpAddress, Port},
+		IpAddress :: inet:ip_address(),
+		Port :: inet:port_number(),
 		Subscribers :: [Subscriber],
 		Subscriber :: {IdType, Id},
 		IdType :: integer(),
@@ -888,21 +908,21 @@ id_type(_) ->
 		Body :: string(),
 		Reason :: term().
 %% @doc POST ECUR rating data to a Nrf Rating Server.
-post_request_ecur(SubscriberIds, SvcContextId,
+post_request_ecur(_ServiceName, SubscriberIds, SvcContextId,
 		SessionId, [#{"price" := #price{type = #pla_ref{href = Path}}}
       | _] = PLA, Location, Destination, {initial, a}) ->
 	ServiceRating = initial_service_rating(SubscriberIds, PLA, binary_to_list(SvcContextId),
 			Location, Destination, a),
 	post_request_ecur1(SubscriberIds, SessionId, ServiceRating, Path);
-post_request_ecur(SubscriberIds, SvcContextId,
+post_request_ecur(ServiceName, SubscriberIds, SvcContextId,
 		SessionId, MSCC, Location, Destination, {initial, b}) ->
-	Path = get_option(nrf_uri) ++ ?BASE_URI,
+	Path = get_option(ServiceName, nrf_uri) ++ ?BASE_URI,
 	ServiceRating = initial_service_rating(SubscriberIds, MSCC, binary_to_list(SvcContextId),
 			Location, Destination, b),
 	post_request_ecur1(SubscriberIds, SessionId, ServiceRating, Path);
-post_request_ecur(SubscriberIds, SvcContextId,
+post_request_ecur(ServiceName, SubscriberIds, SvcContextId,
 		SessionId, MSCC, Location, Destination, final) ->
-	Path = get_option(nrf_uri) ++ get_ref(SessionId) ++ "/" ++ "release",
+	Path = get_option(ServiceName, nrf_uri) ++ get_ref(SessionId) ++ "/" ++ "release",
 	ServiceRating = final_service_rating(MSCC, binary_to_list(SvcContextId),
 			Location, Destination),
 	post_request_ecur1(SubscriberIds, SessionId, ServiceRating, Path).
@@ -939,9 +959,12 @@ post_request_ecur1(SubscriberIds, SessionId, ServiceRating, Path) ->
 			{error, Reason}
 	end.
 
--spec post_request_iec(Subscribers, ServiceContextId,
+-spec post_request_iec(ServiceName, Subscribers, ServiceContextId,
 		SessionId, MSCC, Location, Destination) -> Result
 	when
+		ServiceName :: {IpAddress, Port},
+		IpAddress :: inet:ip_address(),
+		Port :: inet:port_number(),
 		Subscribers :: [Subscriber],
 		Subscriber :: {IdType, Id},
 		IdType :: integer(),
@@ -955,18 +978,18 @@ post_request_ecur1(SubscriberIds, SessionId, ServiceRating, Path) ->
 		Body :: string(),
 		Reason :: term().
 %% @doc POST IEC rating data to a Nrf Rating Server.
-post_request_iec(SubscriberIds, ServiceContextId, SessionId,
+post_request_iec(ServiceName, SubscriberIds, ServiceContextId, SessionId,
 		[], _Location, Destination) ->
 	SCID = {"serviceContextId", binary_to_list(ServiceContextId)},
 	Des = {"destinationId", {array, [{struct, [{"destinationIdType", "DN"},
 			{"destinationIdData", Destination}]}]}},
 	ServiceRating = [{struct, [SCID, Des, {"requestSubType", "DEBIT"}]}],
-	post_request_iec1(SubscriberIds, SessionId, ServiceRating);
-post_request_iec(SubscriberIds, ServiceContextId, SessionId, MSCC, Location, Destination) ->
+	post_request_iec1(ServiceName, SubscriberIds, SessionId, ServiceRating);
+post_request_iec(ServiceName, SubscriberIds, ServiceContextId, SessionId, MSCC, Location, Destination) ->
 	ServiceRating = iec_service_rating(MSCC, binary_to_list(ServiceContextId), Location, Destination),
-	post_request_iec1(SubscriberIds, SessionId, ServiceRating).
+	post_request_iec1(ServiceName, SubscriberIds, SessionId, ServiceRating).
 %% @hidden
-post_request_iec1(SubscriberIds, SessionId, ServiceRating) ->
+post_request_iec1(ServiceName, SubscriberIds, SessionId, ServiceRating) ->
 	{ok, Profile} = application:get_env(ocs, nrf_profile),
 	TS = erlang:system_time(millisecond),
 	InvocationTimeStamp = ocs_log:iso8601(TS),
@@ -980,7 +1003,7 @@ post_request_iec1(SubscriberIds, SessionId, ServiceRating) ->
 					{"subscriptionId", {array, charged_party(SubscriberIds)}},
 					{"serviceRating",
 							{array, lists:flatten(ServiceRating)}}]},
-	Path = get_option(nrf_uri) ++ ?BASE_URI,
+	Path = get_option(ServiceName, nrf_uri) ++ ?BASE_URI,
 	ContentType = "application/json",
 	RequestBody = mochijson:encode(Body),
 	Headers = [{"accept", "application/json"}, {"content_type", "application/json"}],
@@ -997,9 +1020,12 @@ post_request_iec1(SubscriberIds, SessionId, ServiceRating) ->
 			{error, Reason}
 	end.
 
--spec post_request_scur(Subscribers, ServiceContextId,
+-spec post_request_scur(ServiceName, Subscribers, ServiceContextId,
 		SessionId, ServiceRatingData, Location, Flag) -> Result
 	when
+		ServiceName :: {IpAddress, Port},
+		IpAddress :: inet:ip_address(),
+		Port :: inet:port_number(),
 		Subscribers :: [Subscriber],
 		Subscriber :: {IdType, Id},
 		IdType :: integer(),
@@ -1020,27 +1046,27 @@ post_request_iec1(SubscriberIds, SessionId, ServiceRating) ->
 		Body :: string(),
 		Reason :: term().
 %% @doc POST SCUR rating data to a Nrf Rating Server.
-post_request_scur(Subscriber, SvcContextId,
+post_request_scur(_ServiceName, Subscriber, SvcContextId,
 		SessionId,  [#{"price" := #price{type = #pla_ref{href = Path}}} | _] = PLA,
 		Location, {initial, a}) ->
 	ServiceRating = initial_service_rating(Subscriber, PLA, binary_to_list(SvcContextId),
 			Location, undefined, a),
 	post_request_scur1(Subscriber, SessionId, ServiceRating, Path);
-post_request_scur(Subscriber, SvcContextId,
+post_request_scur(ServiceName, Subscriber, SvcContextId,
 		SessionId, MSCC, Location, {initial, b}) ->
-	Path = get_option(nrf_uri) ++ ?BASE_URI,
+	Path = get_option(ServiceName, nrf_uri) ++ ?BASE_URI,
 	ServiceRating = initial_service_rating(Subscriber, MSCC, binary_to_list(SvcContextId),
 			Location, undefined, b),
 	post_request_scur1(Subscriber, SessionId, ServiceRating, Path);
-post_request_scur(Subscriber, SvcContextId,
+post_request_scur(ServiceName, Subscriber, SvcContextId,
 		SessionId, MSCC, Location, interim) ->
-	Path = get_option(nrf_uri) ++ get_ref(SessionId) ++ "/" ++ "update",
+	Path = get_option(ServiceName, nrf_uri) ++ get_ref(SessionId) ++ "/" ++ "update",
 	ServiceRating = update_service_rating(MSCC, binary_to_list(SvcContextId),
 			Location),
 	post_request_scur1(Subscriber, SessionId, ServiceRating, Path);
-post_request_scur(Subscriber, SvcContextId,
+post_request_scur(ServiceName, Subscriber, SvcContextId,
 		SessionId, MSCC, Location, final) ->
-	Path = get_option(nrf_uri) ++ get_ref(SessionId) ++ "/" ++ "release",
+	Path = get_option(ServiceName, nrf_uri) ++ get_ref(SessionId) ++ "/" ++ "release",
 	ServiceRating = final_service_rating(MSCC, binary_to_list(SvcContextId),
 			undefined, Location),
 	post_request_scur1(Subscriber, SessionId, ServiceRating, Path).
@@ -1230,7 +1256,7 @@ build_mscc([H | T], Acc, Container) ->
 				end,
 				MSCC5 = MSCC4#'3gpp_ro_Multiple-Services-Credit-Control'{'Result-Code' = [RC]},
 				MSCC5;
-		F(#{"serviceId" := SI, "resultCode" := RC } = ServiceRating,
+		F(#{"serviceId" := SI, "resultCode" := RC} = ServiceRating,
 			[#'3gpp_ro_Multiple-Services-Credit-Control'
 					{'Service-Identifier' = [SI], 'Rating-Group' = []} = MSCC1 | _]) ->
 			MSCC2 = case catch maps:get("grantedUnit", ServiceRating) of
@@ -1526,7 +1552,7 @@ iec_service_rating(MSCC, ServiceContextId, ServiceInformation, Destination) ->
 	iec_service_rating1(MSCC, SCID, ServiceInformation, Des, []).
 %% @hidden
 iec_service_rating1([#'3gpp_ro_Multiple-Services-Credit-Control'{
-		'Requested-Service-Unit' = RSU, 'Service-Identifier' = SI,
+		'Used-Service-Unit' = USU, 'Service-Identifier' = SI,
 		'Rating-Group' = RG} = _MSCC | T], SCID, SInfo, Des, Acc) ->
 	Acc1 = case SI of
 		[] ->
@@ -1546,7 +1572,7 @@ iec_service_rating1([#'3gpp_ro_Multiple-Services-Credit-Control'{
 		_ ->
 			[SInfo | Acc2]
 	end,
-	ServiceRating = case reserved_unit(RSU) of
+	ServiceRating = case used_unit(USU) of
 		[] ->
 			{struct, [SCID, Des, {"requestSubType", "DEBIT"} | Acc3]};
 		ReservedUnits ->
@@ -1860,20 +1886,26 @@ service_type(Id) ->
 			undefined
 	end.
 
--spec get_option(Option) -> Result
+-spec get_option(ServiceName, Option) -> Result
 	when
+		ServiceName :: {IpAddress, Port},
+		IpAddress :: inet:ip_address(),
+		Port :: inet:port_number(),
 		Option :: atom(),
 		Result :: term().
 %% @doc Get the Nrf endpoint uri.
-get_option(Option) ->
-	ServiceOptions = case application:get_env(ocs, diameter) of
-		{ok, [{acct, [{_, _, Oplist}]}]} ->
-			Oplist;
-		{ok, [{acct, [{_, _, Oplist}]}, _]} ->
-			Oplist;
-		{ok, [_, {acct, [{_, _, Oplist}]}]} ->
-			Oplist
+get_option({IpAddress, Port}, Option)
+		when is_atom(Option) ->
+	{ok, Configurations} = application:get_env(ocs, diameter),
+	{_, AcctServices} = lists:keyfind(acct, 1, Configurations),
+	F = fun F([{{0, 0, 0, 0}, P, Options} | _]) when P =:= Port ->
+			Options;
+		F([{Ip, P, Options} | _]) when Ip == IpAddress, P =:= Port ->
+			Options;
+		F([{_, _, _} | T]) ->
+			F(T)
 	end,
+	ServiceOptions = F(AcctServices),
 	case lists:keyfind(Option, 1, ServiceOptions) of
 		{Option, Value} ->
 			Value;
