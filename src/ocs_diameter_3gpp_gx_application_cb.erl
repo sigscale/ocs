@@ -405,7 +405,7 @@ process_request2(Address, Port, #diameter_caps{origin_host = {OHost, _DHost},
 				'CC-Request-Type' = RequestType,
 				'CC-Request-Number' = RequestNum,
 				'Online' = [?'3GPP_GX_ONLINE_ENABLE_ONLINE'],
-				'Charging-Rule-Install' = [charging_rule(PolicyResList)]},
+				'Charging-Rule-Install' = charging_rule(PolicyResList)},
 		ok = ocs_log:acct_log(diameter, Server,
 				accounting_event_type(RequestType), Request, Reply, undefined),
 		Reply
