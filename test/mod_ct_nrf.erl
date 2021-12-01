@@ -84,7 +84,6 @@ do_post(ModData, Body, ["ratingdata"]) ->
 		{struct, NrfRequest} = mochijson:decode(Body),
 		{_, InvocationSequenceNumber} = lists:keyfind("invocationSequenceNumber", 1, NrfRequest),
 		{_, {_, ServiceRatingRequests}} = lists:keyfind("serviceRating", 1, NrfRequest),
-erlang:display({?MODULE, ?LINE, ServiceRatingRequests}),
 		true = length(ServiceRatingRequests) > 0,
 		TS = erlang:system_time(millisecond),
 		InvocationTimeStamp = ocs_log:iso8601(TS),
