@@ -84,6 +84,7 @@ do_post(ModData, Body, ["ratingdata"]) ->
 		{struct, NrfRequest} = mochijson:decode(Body),
 		{_, InvocationSequenceNumber} = lists:keyfind("invocationSequenceNumber", 1, NrfRequest),
 		{_, {_, ServiceRatingRequests}} = lists:keyfind("serviceRating", 1, NrfRequest),
+erlang:display({?MODULE, ?LINE, ServiceRatingRequests}),
 		true = length(ServiceRatingRequests) > 0,
 		TS = erlang:system_time(millisecond),
 		InvocationTimeStamp = ocs_log:iso8601(TS),
@@ -158,31 +159,32 @@ service_rating_b([{_, Attributes} | T], Acc) ->
 		RatingGroup ->
 			[RatingGroup | NewAttributes2]
 	end,
-	NewAttributes4 = case lists:keyfind("requestedUnit", 1, Attributes) of
+	NewAttributes4 = case lists:keyfind("requestSubType", 1, Attributes) of
 		false ->
 			NewAttributes3;
-		{"requestedUnit", {struct, RequestedUnits}} ->
-			[{"grantedUnit", {struct, RequestedUnits}} | NewAttributes3]
-	end,
-	NewAttributes5 = case lists:keyfind("consumedUnit", 1, Attributes) of
-		false ->
-			NewAttributes4;
-		{"consumedUnit", {struct, ConsumedUnits}} ->
-			[{"consumedUnit", {struct, ConsumedUnits}} | NewAttributes4]
-	end,
-	NewAttributes6 = case lists:keyfind("requestSubType", 1, Attributes) of
-		false ->
-			NewAttributes5;
 		{_, "RESERVE"} ->
-			[{"resultCode", "SUCCESS"} | NewAttributes5];
+			case lists:keyfind("requestedUnit", 1, Attributes) of
+				false ->
+					[{"grantedUnit", {struct, [{"totalVolume", 5000}]}},
+							{"resultCode", "SUCCESS"} | NewAttributes3] ;
+				{"requestedUnit", {struct, RequestedUnits}} ->
+					[{"grantedUnit", {struct, RequestedUnits}},
+							{"resultCode", "SUCCESS"} | NewAttributes3]
+			end;
 		{_, "DEBIT"} ->
-			[{"resultCode", "SUCCESS"} | NewAttributes5]
+			case lists:keyfind("consumedUnit", 1, Attributes) of
+				false ->
+					NewAttributes3;
+				{"consumedUnit", {struct, ConsumedUnits}} ->
+					[{"consumedUnit", {struct, ConsumedUnits}},
+							{"resultCode", "SUCCESS"} | NewAttributes3]
+			end
 	end,
-	case NewAttributes6 of
+	case NewAttributes4 of
 		[] ->
 			service_rating_b(T, Acc);
-		NewAttributes6 when length(NewAttributes6) > 0 ->
-			service_rating_b(T, [{struct, NewAttributes6} | Acc])
+		NewAttributes4 when length(NewAttributes4) > 0 ->
+			service_rating_b(T, [{struct, NewAttributes4} | Acc])
 	end;
 service_rating_b([], Acc) ->
 	Acc.
