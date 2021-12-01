@@ -1592,8 +1592,6 @@ iec_service_rating1([], _SCID, _SI, _Dec, Acc) ->
 		Unit :: time | downlinkVolume | uplinkVolume
 				| totalVolume | serviceSpecificUnit,
 		Value :: pos_integer().
-used_unit([]) ->
-	[];
 used_unit(UsedServiceUnits) ->
 	used_unit(UsedServiceUnits, []).
 %% @hidden
@@ -1637,8 +1635,6 @@ used_unit4(_RSU, Acc) ->
 		Unit :: time | downlinkVolume | uplinkVolume
 				| totalVolume | serviceSpecificUnit,
 		Value :: pos_integer().
-reserved_unit([]) ->
-	[];
 reserved_unit(RequestedServiceUnits) ->
 	reserved_unit(RequestedServiceUnits, []).
 %% @hidden
@@ -1800,11 +1796,12 @@ update_service_rating1([#'3gpp_ro_Multiple-Services-Credit-Control'{
 		{[], []} ->
 			ServiceRating = {struct, [SCID, {"requestSubType", "RESERVE"} | Acc3]},
 			update_service_rating1(T, SCID, SInfo, [ServiceRating | Acc]);
-		{ConsumedUnits, []} ->
-			ServiceRating = {struct, [SCID, {"consumedUnit", {struct, ConsumedUnits}},
+		{ConsumedUnits, []} when length(ConsumedUnits) > 0 ->
+			ServiceRating1 = {struct, [SCID, {"consumedUnit", {struct, ConsumedUnits}},
 					{"requestSubType", "DEBIT"} | Acc3]},
-			update_service_rating1(T, SCID, SInfo, [ServiceRating | Acc]);
-		{[], ReservedUnits} ->
+			ServiceRating2 = {struct, [SCID, {"requestSubType", "RESERVE"} | Acc3]},
+			update_service_rating1(T, SCID, SInfo, [ServiceRating1, ServiceRating2 | Acc]);
+		{[], ReservedUnits} when length(ReservedUnits) > 0->
 			ServiceRating = {struct, [SCID, {"requestedUnit", {struct, ReservedUnits}},
 					{"requestSubType", "RESERVE"} | Acc3]},
 			update_service_rating1(T, SCID, SInfo, [ServiceRating | Acc])
