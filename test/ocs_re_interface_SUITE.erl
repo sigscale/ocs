@@ -378,10 +378,15 @@ receive_interim_scur_class_b(_Config) ->
 			'Auth-Application-Id' = ?RO_APPLICATION_ID,
 			'CC-Request-Type' = ?'3GPP_CC-REQUEST-TYPE_UPDATE_REQUEST',
 			'CC-Request-Number' = RequestNum1,
-			'Multiple-Services-Credit-Control' = [MultiServices_CC]} = Answer1,
+			'Multiple-Services-Credit-Control' = [MCC1, MCC2]} = Answer1,
 	#'3gpp_ro_Multiple-Services-Credit-Control'{
-			'Used-Service-Unit' = [UsedUnits]} = MultiServices_CC,
+			'Used-Service-Unit' = [UsedUnits],
+			'Granted-Service-Unit' = [GrantedUnits]} = MCC1,
+	#'3gpp_ro_Multiple-Services-Credit-Control'{
+			'Granted-Service-Unit' = [GrantedUnits1]} = MCC2,
 	TotalOctets = InputOctets2 + OutputOctets2,
+	#'3gpp_ro_Granted-Service-Unit'{'CC-Total-Octets' = [5000]} = GrantedUnits,
+	#'3gpp_ro_Granted-Service-Unit'{'CC-Total-Octets' = [5000]} = GrantedUnits1,
 	#'3gpp_ro_Used-Service-Unit'{'CC-Total-Octets' = [TotalOctets]} = UsedUnits.
 
 send_final_scur_class_b() ->
@@ -744,7 +749,7 @@ post_iec_class_b(Config) ->
 	{_, 32} = lists:keyfind("ratingGroup", 1, ServiceRating),
 	{_, 4} = lists:keyfind("serviceId", 1, ServiceRating),
 	{_, "32274@3gpp.org"} = lists:keyfind("serviceContextId", 1, ServiceRating),
-	{_, {_, [{_, Messages}]}} = lists:keyfind("grantedUnit", 1, ServiceRating).
+	{_, {_, [{_, Messages}]}} = lists:keyfind("consumedUnit", 1, ServiceRating).
 
 post_initial_ecur_class_b() ->
 	[{userdata, [{doc, "Post ECUR Inital Nrf Request to be rated"}]}].
@@ -1316,7 +1321,7 @@ nrf_post_iec_class_b(MSISDN, IMSI, Messages) ->
 					{array, [{struct, [{"serviceContextId", "32274@3gpp.org"},
 							{"serviceId", 4},
 							{"ratingGroup", 32},
-							{"requestedUnit", {struct, [{"serviceSpecificUnit", Messages}]}},
+							{"consumedUnit", {struct, [{"serviceSpecificUnit", Messages}]}},
 							{"destinationId",
 									{array, [{struct, [{"destinationIdType", "DN"},
 									{"destinationIdData", "14165556789"}]}]}},
@@ -1554,10 +1559,13 @@ diameter_scur_interim(SId, {MSISDN, IMSI}, RequestNum,
 			'CC-Total-Octets' = [UsedInputOctets + UsedOutputOctets]},
 	RequestedUnits = #'3gpp_ro_Requested-Service-Unit' {
 			'CC-Total-Octets' = []},
-	MultiServices_CC = #'3gpp_ro_Multiple-Services-Credit-Control'{
+	MCC1 = #'3gpp_ro_Multiple-Services-Credit-Control'{
 			'Used-Service-Unit' = [UsedUnits],
 			'Requested-Service-Unit' = [RequestedUnits], 'Service-Identifier' = [1],
 			'Rating-Group' = [2]},
+	MCC2 = #'3gpp_ro_Multiple-Services-Credit-Control'{
+			'Requested-Service-Unit' = [RequestedUnits], 'Service-Identifier' = [2],
+			'Rating-Group' = []},
 	ServiceInformation = #'3gpp_ro_Service-Information'{'PS-Information' =
 			[#'3gpp_ro_PS-Information'{
 					'3GPP-PDP-Type' = [3],
@@ -1574,7 +1582,7 @@ diameter_scur_interim(SId, {MSISDN, IMSI}, RequestNum,
 		'CC-Request-Type' = ?'3GPP_CC-REQUEST-TYPE_UPDATE_REQUEST',
 		'CC-Request-Number' = RequestNum,
 		'Event-Timestamp' = [calendar:universal_time()],
-		'Multiple-Services-Credit-Control' = [MultiServices_CC],
+		'Multiple-Services-Credit-Control' = [MCC1, MCC2],
 		'Subscription-Id' = [MSISDN1, IMSI1],
 		'Service-Information' = [ServiceInformation]},
 	{ok, Answer} = diameter:call(?MODULE, cc_app_test, CC_CCR, []),
