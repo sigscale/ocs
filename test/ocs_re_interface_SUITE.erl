@@ -1564,8 +1564,7 @@ diameter_scur_interim(SId, {MSISDN, IMSI}, RequestNum,
 			'Requested-Service-Unit' = [RequestedUnits], 'Service-Identifier' = [1],
 			'Rating-Group' = [2]},
 	MCC2 = #'3gpp_ro_Multiple-Services-Credit-Control'{
-			'Requested-Service-Unit' = [RequestedUnits], 'Service-Identifier' = [2],
-			'Rating-Group' = []},
+			'Requested-Service-Unit' = [RequestedUnits], 'Rating-Group' = [2]},
 	ServiceInformation = #'3gpp_ro_Service-Information'{'PS-Information' =
 			[#'3gpp_ro_PS-Information'{
 					'3GPP-PDP-Type' = [3],
