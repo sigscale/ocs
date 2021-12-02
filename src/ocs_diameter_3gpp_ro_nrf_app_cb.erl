@@ -2193,7 +2193,7 @@ rate(ServiceType, ServiceNetwork, [{_, Subscriber} | _] = Subscribers,
 		{error, Reason} ->
 			{error, Reason}
 	end;
-rate(ServiceType, ServiceNetwork, [{_, Subscriber} | _] = Subscribers,
+rate(ServiceType, ServiceNetwork, [{_, Subscriber} | _],
 		Timestamp, Address, Direction, final, SessionId,
 		[], Acc1, Acc2, ResultCode, Rated1) ->
 	case ocs_rating:rate(diameter, ServiceType, undefined, undefined,
@@ -2234,27 +2234,30 @@ rate(_, _, _, _, _, _, _, _, [], Acc1, Acc2, ResultCode, Rated) ->
 %% @doc Rate all the MSCCs.
 %% @hidden
 charge(Subscribers, ServiceRating, PLA, SessionId, Flag) ->
-erlang:display({?MODULE, ?LINE, ServiceRating, Flag}),
-erlang:display({?MODULE, ?LINE, PLA, Flag}),
 	charge(Subscribers, ServiceRating, PLA, SessionId, Flag, [], undefined).
 %% @hidden
-charge([{_, Subscriber} | _] = Subscribers, [#{"tariffElement" := #{"currencyCode" := Currency,
-		"rateElements" := #{"unitType" := Units,
-		"unitSize" := UnitSize}}} = PLA | T], [#{"rsu" := Reserves,
+charge([{_, Subscriber} | _] = Subscribers, ServiceRating, [#{"rsu" := Reserves,
 		"usu" := Debits, "serviceId" := SI,
-		"ratingGroup" := RG} | T1], SessionId, Flag, Acc1, ResultCode1) ->
-	ServiceId = case SI of
-		undefined ->
-			undefined;
-		N1 when is_integer(N1)->
-			N1
+		"ratingGroup" := RG} = H | T1] = PLA, SessionId, Flag, Acc1, ResultCode1) ->
+	F = fun F([#{"tariffElement" := #{"currencyCode" := Currency,
+				"rateElements" := #{"unitType" := Units,
+				"unitSize" := UnitSize}}, "ratingGroup" := RG1, "serviceId" := SI1} | _])
+				when RG1 =:= RG, SI1 =:= SI ->
+					{RG1, SI1, Currency, Units, UnitSize};
+			F([#{"tariffElement" := #{"currencyCode" := Currency,
+				"rateElements" := #{"unitType" := Units,
+				"unitSize" := UnitSize}}, "serviceId" := SI1} | _])
+				when SI1 =:= SI, RG =:= undefined ->
+					{undefined, SI1, Currency, Units, UnitSize};
+			F([#{"tariffElement" := #{"currencyCode" := Currency,
+				"rateElements" := #{"unitType" := Units,
+				"unitSize" := UnitSize}}, "ratingGroup" := RG1} | _])
+				when RG1 =:= RG, SI =:= undefined ->
+					{RG1, undefined, Currency, Units, UnitSize};
+			F([_ | T]) ->
+				F(T)
 	end,
-	ChargingKey = case RG of
-		undefined ->
-			undefined;
-		N2 when is_integer(N2)->
-			N2
-	end,
+	{ChargingKey, ServiceId, Currency, Units, UnitSize} = F(ServiceRating),
 	UnitPrice = case PLA of
 		#{"unitCost" := UnitCost} ->
 			UnitCost;
@@ -2270,19 +2273,19 @@ charge([{_, Subscriber} | _] = Subscribers, [#{"tariffElement" := #{"currencyCod
 			MSCC = #{"grantedUnit" => granted_unit(GrantedAmount),
 					"serviceId" => ServiceId, "ratingGroup" => ChargingKey,
 					"resultCode" => ResultCode2},
-			charge(Subscribers, T, T1, SessionId, Flag, [MSCC | Acc1], ResultCode2);
+			charge(Subscribers, ServiceRating, T1, SessionId, Flag, [MSCC | Acc1], ResultCode2);
 		{ok, _, {_, 0} = _GrantedAmount} ->
 			ResultCode2 = ?'DIAMETER_BASE_RESULT-CODE_SUCCESS',
-			charge(Subscribers, T, T1, SessionId, Flag, Acc1, ResultCode2);
+			charge(Subscribers, ServiceRating, T1, SessionId, Flag, Acc1, ResultCode2);
 		{ok, _, {_, Amount} = GrantedAmount, _} when Amount > 0 ->
 			ResultCode2 = ?'DIAMETER_BASE_RESULT-CODE_SUCCESS',
 			MSCC = #{"grantedUnit" => granted_unit(GrantedAmount),
 					"serviceId" => ServiceId, "ratingGroup" => ChargingKey,
 					"resultCode" => ResultCode2},
-			charge(Subscribers, T, T1, SessionId, Flag, [MSCC | Acc1], ResultCode2);
+			charge(Subscribers, ServiceRating, T1, SessionId, Flag, [MSCC | Acc1], ResultCode2);
 		{ok, #service{}, _} ->
 			ResultCode2 = ?'DIAMETER_BASE_RESULT-CODE_SUCCESS',
-			charge(Subscribers, T, T1, SessionId, Flag, Acc1, ResultCode2);
+			charge(Subscribers, ServiceRating, T1, SessionId, Flag, Acc1, ResultCode2);
 		{out_of_credit, RedirectServerAddress, _SessionList} ->
 			ResultCode2 = ?'DIAMETER_CC_APP_RESULT-CODE_CREDIT_LIMIT_REACHED',
 			ResultCode3 = case ResultCode1 of
@@ -2300,7 +2303,7 @@ charge([{_, Subscriber} | _] = Subscribers, [#{"tariffElement" := #{"currencyCod
 							"finalUnitIndication" => fui(RedirectServerAddress),
 							"resultCode" => ResultCode2}
 			end,
-			charge(Subscribers, T, T1, SessionId, Flag, [MSCC | Acc1], ResultCode3);
+			charge(Subscribers, ServiceRating, T1, SessionId, Flag, [MSCC | Acc1], ResultCode3);
 		{disabled, _SessionList} ->
 			{ok, Acc1, ?'DIAMETER_CC_APP_RESULT-CODE_END_USER_SERVICE_DENIED'};
 		{error, service_not_found} ->
