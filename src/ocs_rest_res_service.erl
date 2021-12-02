@@ -233,7 +233,22 @@ patch_inventory(ServiceId, Etag, ReqData) ->
 											ok = mnesia:write(product, Product1, write),
 											ok = mnesia:write(Service4),
 											{Service2, LM};
-										Service3 ->
+										#service{product = ProductRef1} = Service3
+												when ProductRef1 =/= ProductRef,
+												ProductRef1 =/= undefined->
+											Service4 = Service3#service{last_modified = LM,
+													product = ProductRef1},
+											{ok, #product{service = Services} = Product}
+													= ocs:find_product(ProductRef1),
+											{ok, #product{service = OldServices} = OldProduct}
+													= ocs:find_product(ProductRef),
+											Product1 = Product#product{service = Services ++ [list_to_binary(ServiceId)]},
+											Product2 = OldProduct#product{service = OldServices -- [list_to_binary(ServiceId)]},
+											ok = mnesia:write(product, Product1, write),
+											ok = mnesia:write(product, Product2, write),
+											ok = mnesia:write(Service4),
+											{Service2, LM};
+										#service{product = ProductRef} = Service3 ->
 											Service4 = Service3#service{last_modified = LM},
 											ok = mnesia:write(Service4),
 											{Service2, LM}
