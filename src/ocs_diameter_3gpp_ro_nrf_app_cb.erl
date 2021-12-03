@@ -2238,32 +2238,30 @@ charge(Subscribers, ServiceRating, PLA, SessionId, Flag) ->
 %% @hidden
 charge([{_, Subscriber} | _] = Subscribers, ServiceRating, [#{"rsu" := Reserves,
 		"usu" := Debits, "serviceId" := SI,
-		"ratingGroup" := RG} = H | T1] = PLA, SessionId, Flag, Acc1, ResultCode1) ->
+		"ratingGroup" := RG} | T1], SessionId, Flag, Acc1, ResultCode1) ->
 	F = fun F([#{"tariffElement" := #{"currencyCode" := Currency,
 				"rateElements" := #{"unitType" := Units,
-				"unitSize" := UnitSize}}, "ratingGroup" := RG1, "serviceId" := SI1} | _])
-				when RG1 =:= RG, SI1 =:= SI ->
-					{RG1, SI1, Currency, Units, UnitSize};
+				"unitSize" := UnitSize, "unitCost" := UnitPrice}},
+				"ratingGroup" := RG1, "serviceId" := SI1} | _])
+					when RG1 =:= RG, SI1 =:= SI ->
+					{RG, SI, Currency, Units, UnitSize, UnitPrice};
 			F([#{"tariffElement" := #{"currencyCode" := Currency,
 				"rateElements" := #{"unitType" := Units,
-				"unitSize" := UnitSize}}, "serviceId" := SI1} | _])
-				when SI1 =:= SI, RG =:= undefined ->
-					{undefined, SI1, Currency, Units, UnitSize};
+				"unitSize" := UnitSize, "unitCost" := UnitPrice}},
+				"serviceId" := SI1} | _])
+					when RG =:= undefined, SI1 =:= SI ->
+					{undefined, SI, Currency, Units, UnitSize, UnitPrice};
 			F([#{"tariffElement" := #{"currencyCode" := Currency,
 				"rateElements" := #{"unitType" := Units,
-				"unitSize" := UnitSize}}, "ratingGroup" := RG1} | _])
-				when RG1 =:= RG, SI =:= undefined ->
-					{RG1, undefined, Currency, Units, UnitSize};
+				"unitSize" := UnitSize, "unitCost" := UnitPrice}},
+				"ratingGroup" := RG1} | _])
+					when SI =:= undefined, RG1 =:= RG ->
+					{RG, undefined, Currency, Units, UnitSize, UnitPrice};
 			F([_ | T]) ->
 				F(T)
 	end,
-	{ChargingKey, ServiceId, Currency, Units, UnitSize} = F(ServiceRating),
-	UnitPrice = case PLA of
-		#{"unitCost" := UnitCost} ->
-			UnitCost;
-		_ ->
-			0
-	end,
+	{ChargingKey, ServiceId, Currency,
+			Units, UnitSize, UnitPrice} = F(ServiceRating),
 	case ocs_rating:charge(diameter, Subscriber, ServiceId,
 			UnitSize, Units, Currency, UnitPrice, undefined,
 			ChargingKey, Flag, Debits,
