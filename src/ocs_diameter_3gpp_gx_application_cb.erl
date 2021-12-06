@@ -405,7 +405,7 @@ process_request2(Address, Port, #diameter_caps{origin_host = {OHost, _DHost},
 				'CC-Request-Type' = RequestType,
 				'CC-Request-Number' = RequestNum,
 				'Online' = [?'3GPP_GX_ONLINE_ENABLE_ONLINE'],
-				'Charging-Rule-Install' = [charging_rule(PolicyResList)]},
+				'Charging-Rule-Install' = charging_rule(PolicyResList)},
 		ok = ocs_log:acct_log(diameter, Server,
 				accounting_event_type(RequestType), Request, Reply, undefined),
 		Reply
@@ -462,13 +462,13 @@ charging_rule(PolicyResList) ->
 %% @hidden
 charging_rule([#resource{name = Name, characteristic = Chars} | T], Acc) ->
 	ChargingRuleInstall = case lists:keyfind("predefined",
-			#resource_char.value, Chars) of
-		false ->
+			#resource_char.name, Chars) of
+		#resource_char{name = "predefined", value = false} ->
 			ChargingRuleDefinitions = parse_policy_char(Chars,
 					#'3gpp_gx_Charging-Rule-Definition'{'Charging-Rule-Name' = Name}),
 			#'3gpp_gx_Charging-Rule-Install'{
 					'Charging-Rule-Definition' = ChargingRuleDefinitions};
-		_ ->
+		#resource_char{name = "predefined", value = true} ->
 			#'3gpp_gx_Charging-Rule-Install'{
 					'Charging-Rule-Name' = [Name]}
 	end,

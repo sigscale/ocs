@@ -846,7 +846,7 @@ spec_prod_prepaid_data() ->
 	Dependency = {"productSpecificationRelationship", {array, [Depend1, Depend2]}},
 	Name1 = {"name", "redirectServer"},
    Description1 = {"description",
-         "Defines the address of the redirect server, should be an IPv4 or IPv6 address"},
+         "Defines the address of the redirect server, as an IPv4/IPv6 address, SIP URI or HTTP URL."},
    Config1 = {"configurable", true},
    Type1 = {"valueType", "String"},
    Value1 = {"productSpecCharacteristicValue", {array, [{struct, [Type1]}]}},
