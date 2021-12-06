@@ -76,32 +76,44 @@ initial_nrf(NrfRequest) ->
 		case mochijson:decode(NrfRequest) of
 			{struct, _Attributes} = NrfStruct ->
 				NrfMap = nrf(NrfStruct),
-				Flag = event_type(NrfMap),
+				Flag = case NrfMap of
+					#{"oneTimeEventType" := "IEC"} ->
+						event;
+					_ ->
+						initial
+				end,
 				case rate(NrfMap, Flag) of
 					ServiceRating when is_list(ServiceRating) ->
 						UpdatedMap = maps:update("serviceRating", ServiceRating, NrfMap),
 						ok = add_rating_ref(RatingDataRef, UpdatedMap),
 						NrfResponse = nrf(UpdatedMap),
-						{NrfResponse, diameter_request(RatingDataRef, 1, NrfMap),
-								diameter_reply(RatingDataRef, 1, UpdatedMap)};
+						{NrfResponse, diameter_request(RatingDataRef, Flag, NrfMap),
+								diameter_reply(RatingDataRef, Flag, UpdatedMap)};
 					{error, out_of_credit} ->
-						Problem = error_response(out_of_credit, undefined),
-						{error, 403, Problem};
+						Problem = rest_error_response(out_of_credit, undefined),
+						{error, 403, Problem,
+								diameter_error_response(out_of_credit, RatingDataRef, initial, NrfMap)};
 					{error, service_not_found} ->
 						InvalidParams = [#{param => "/subscriptionId",
 								reason => "Unknown subscriber identifier"}],
-						Problem = error_response(service_not_found, InvalidParams),
-						{error, 404, Problem};
+						Problem = rest_error_response(service_not_found, InvalidParams),
+						{error, 404, Problem,
+								diameter_error_response(service_not_found, RatingDataRef, initial, NrfMap)};
 					{error, invalid_service_type} ->
 						InvalidParams = [#{param => "/serviceContextId",
 								reason => "Invalid Service Type"}],
-						Problem = error_response(invalid_service_type, InvalidParams),
-						{error, 400, Problem};
+						Problem = rest_error_response(invalid_service_type, InvalidParams),
+						{error, 400, Problem,
+								diameter_error_response(invalid_service_type, RatingDataRef, initial, NrfMap)};
 					{error, Reason} ->
-						{error, Reason}
+						{error, Reason,
+							diameter_error_response(charging_failed, RatingDataRef, initial, NrfMap)}
 				end;
 			_ ->
-				Problem = error_response(charging_failed, undefined),
+				error_logger:warning_report(["Unable to process DIAMETER Nrf request",
+						{RatingDataRef, ratingDataRef}, {request, NrfRequest}, {flag, start},
+						{error, decode_failed}]),
+				Problem = rest_error_response(charging_failed, undefined),
 				{error, 400, Problem}
 		end
 	of
@@ -112,18 +124,25 @@ initial_nrf(NrfRequest) ->
 			ok = ocs_log:acct_log(diameter, server(),
 					start, LogRequest, LogResponse, undefined),
 			{ok, Headers, ReponseBody};
-		{error, StatusCode, Problem1} ->
+		{error, StatusCode, Problem1, {DiameterRequest, DiameterReply}} ->
+			error_logger:warning_report(["Rating Error",
+					{RatingDataRef, ratingDataRef}, {request, NrfRequest}, {flag, start},
+					{error, charging_failed}]),
+			ok = ocs_log:acct_log(diameter, server(),
+					start, DiameterRequest, DiameterReply, undefined),
 			{error, StatusCode, Problem1};
-		{error, Reason1} ->
-			error_logger:warning_report(["Unable to process DIAMETER Nrf request",
-					{RatingDataRef, ratingDataRef}, {request, NrfRequest},
+		{error, Reason1, {DiameterRequest, DiameterReply}} ->
+			error_logger:warning_report(["Rating Error",
+					{RatingDataRef, ratingDataRef}, {request, NrfRequest}, {flag, start},
 					{error, Reason1}]),
+			ok = ocs_log:acct_log(diameter, server(),
+					start, DiameterRequest, DiameterReply, undefined),
 			{error, 500}
 	catch
 		?CATCH_STACK ->
 			?SET_STACK,
 			error_logger:warning_report(["Unable to process DIAMETER Nrf request",
-					{RatingDataRef, ratingDataRef}, {request, NrfRequest},
+					{RatingDataRef, ratingDataRef}, {request, NrfRequest}, {flag, start},
 					{error, Reason1}, {stack, StackTrace}]),
 			{error, 500}
 	end.
@@ -147,9 +166,15 @@ update_nrf(RatingDataRef, NrfRequest) ->
 		false ->
 			InvalidParams = [#{param => "{" ++ RatingDataRef ++ "}",
 					reason => "Unknown rating data reference"}],
-			Problem = error_response(unknown_ref, InvalidParams),
+			Problem = rest_error_response(unknown_ref, InvalidParams),
+			error_logger:warning_report(["Unable to process DIAMETER Nrf request",
+					{RatingDataRef, ratingDataRef}, {request, NrfRequest}, {flag, update},
+					{error, unknown_ref}]),
 			{error, 404, Problem};
-		{error, _Reason} ->
+		{error, Reason} ->
+			error_logger:warning_report(["Unable to process DIAMETER Nrf request",
+					{RatingDataRef, ratingDataRef}, {request, NrfRequest}, {flag, interim},
+					{error, Reason}]),
 			{error, 500}
 	end.
 update_nrf1(RatingDataRef, NrfRequest) ->
@@ -161,26 +186,33 @@ update_nrf1(RatingDataRef, NrfRequest) ->
 					ServiceRating when is_list(ServiceRating) ->
 						UpdatedMap = maps:update("serviceRating", ServiceRating, NrfMap),
 						NrfResponse = nrf(UpdatedMap),
-						{NrfResponse, diameter_request(RatingDataRef, 1, NrfMap),
-								diameter_reply(RatingDataRef, 1, UpdatedMap)};
+						{NrfResponse, diameter_request(RatingDataRef, interim, NrfMap),
+								diameter_reply(RatingDataRef, interim, UpdatedMap)};
 					{error, out_of_credit} ->
-						Problem = error_response(out_of_credit, undefined),
-						{error, 403, Problem};
+						Problem = rest_error_response(out_of_credit, undefined),
+						{error, 403, Problem,
+								diameter_error_response(out_of_credit, RatingDataRef, interim, NrfMap)};
 					{error, service_not_found} ->
 						InvalidParams = [#{param => "/subscriptionId",
 								reason => "Unknown subscriber identifier"}],
-						Problem = error_response(service_not_found, InvalidParams),
-						{error, 404, Problem};
+						Problem = rest_error_response(service_not_found, InvalidParams),
+						{error, 404, Problem,
+								diameter_error_response(service_not_found, RatingDataRef, interim, NrfMap)};
 					{error, invalid_service_type} ->
 						InvalidParams = [#{param => "/serviceContextId",
 								reason => "Invalid Service Type"}],
-						Problem = error_response(invalid_service_type, InvalidParams),
-						{error, 400, Problem};
+						Problem = rest_error_response(invalid_service_type, InvalidParams),
+						{error, 400, Problem,
+								diameter_error_response(invalid_service_type, RatingDataRef, interim, NrfMap)};
 					{error, Reason} ->
-						{error, Reason}
+						{error, Reason,
+								diameter_error_response(charging_failed, RatingDataRef, interim, NrfMap)}
 				end;
 			_ ->
-				Problem = error_response(charging_failed, undefined),
+				error_logger:warning_report(["Unable to process DIAMETER Nrf request",
+						{RatingDataRef, ratingDataRef}, {request, NrfRequest}, {flag, interim},
+						{error, decode_failed}]),
+				Problem = rest_error_response(charging_failed, undefined),
 				{error, 400, Problem}
 		end
 	of
@@ -189,18 +221,25 @@ update_nrf1(RatingDataRef, NrfRequest) ->
 			ok = ocs_log:acct_log(diameter, server(),
 					start, LogRequest, LogResponse, undefined),
 			{200, [], ReponseBody };
-		{error, StatusCode, Problem1} ->
+		{error, StatusCode, Problem1, {DiameterRequest, DiameterReply}} ->
+			error_logger:warning_report(["Rating Error",
+					{RatingDataRef, ratingDataRef}, {request, NrfRequest}, {flag, interim},
+					{error, charging_failed}]),
+			ok = ocs_log:acct_log(diameter, server(),
+					update, DiameterRequest, DiameterReply, undefined),
 			{error, StatusCode, Problem1};
-		{error, Reason1} ->
-			error_logger:warning_report(["Unable to process DIAMETER Nrf request",
-					{RatingDataRef, ratingDataRef}, {request, NrfRequest},
+		{error, Reason1, {DiameterRequest, DiameterReply}} ->
+			error_logger:warning_report(["Rating Error",
+					{RatingDataRef, ratingDataRef}, {request, NrfRequest}, {flag, interim},
 					{error, Reason1}]),
+			ok = ocs_log:acct_log(diameter, server(),
+					update, DiameterRequest, DiameterReply, undefined),
 			{error, 500}
 	catch
 		?CATCH_STACK ->
 			?SET_STACK,
 			error_logger:warning_report(["Unable to process DIAMETER Nrf request",
-					{RatingDataRef, ratingDataRef}, {request, NrfRequest},
+					{RatingDataRef, ratingDataRef}, {request, NrfRequest}, {flag, interim},
 					{error, Reason1}, {stack, StackTrace}]),
 			{error, 500}
 	end.
@@ -226,9 +265,15 @@ release_nrf(RatingDataRef, NrfRequest) ->
 		false ->
 			InvalidParams = [#{param => "{" ++ RatingDataRef ++ "}",
 					reason => "Unknown rating data reference"}],
-			Problem = error_response(unknown_ref, InvalidParams),
+			Problem = rest_error_response(unknown_ref, InvalidParams),
+			error_logger:warning_report(["Unable to process DIAMETER Nrf request",
+					{RatingDataRef, ratingDataRef}, {request, NrfRequest},
+					{error, unknown_ref}]),
 			{error, 404, Problem};
-		{error, _Reason} ->
+		{error, Reason} ->
+			error_logger:warning_report(["Unable to process DIAMETER Nrf request",
+					{RatingDataRef, ratingDataRef}, {request, NrfRequest},
+					{error, Reason}]),
 			{error, 500}
 	end.
 release_nrf1(RatingDataRef, NrfRequest) ->
@@ -241,26 +286,33 @@ release_nrf1(RatingDataRef, NrfRequest) ->
 						UpdatedMap = maps:update("serviceRating", ServiceRating, NrfMap),
 						ok = remove_ref(RatingDataRef),
 						NrfResponse = nrf(UpdatedMap),
-						{NrfResponse, diameter_request(RatingDataRef, 1, NrfMap),
-								diameter_reply(RatingDataRef, 1, UpdatedMap)};
+						{NrfResponse, diameter_request(RatingDataRef, final, NrfMap),
+								diameter_reply(RatingDataRef, final, UpdatedMap)};
 					{error, out_of_credit} ->
-						Problem = error_response(out_of_credit, undefined),
-						{error, 403, Problem};
+						Problem = rest_error_response(out_of_credit, undefined),
+						{error, 403, Problem,
+								diameter_error_response(out_of_credit, RatingDataRef, final, NrfMap)};
 					{error, service_not_found} ->
 						InvalidParams = [#{param => "/subscriptionId",
 								reason => "Unknown subscriber identifier"}],
-						Problem = error_response(service_not_found, InvalidParams),
-						{error, 404, Problem};
+						Problem = rest_error_response(service_not_found, InvalidParams),
+						{error, 404, Problem,
+								diameter_error_response(service_not_found, RatingDataRef, final, NrfMap)};
 					{error, invalid_service_type} ->
 						InvalidParams = [#{param => "/serviceContextId",
 								reason => "Invalid Service Type"}],
-						Problem = error_response(invalid_service_type, InvalidParams),
-						{error, 400, Problem};
+						Problem = rest_error_response(invalid_service_type, InvalidParams),
+						{error, 400, Problem,
+								diameter_error_response(invalid_service_type, RatingDataRef, final, NrfMap)};
 					{error, Reason} ->
-						{error, Reason}
+						{error, Reason,
+								diameter_error_response(charging_failed, RatingDataRef, final, NrfMap)}
 				end;
 			_ ->
-				Problem = error_response(charging_failed, undefined),
+				error_logger:warning_report(["Unable to process DIAMETER Nrf request",
+						{RatingDataRef, ratingDataRef}, {request, NrfRequest},
+						{error, decode_failed}]),
+				Problem = rest_error_response(charging_failed, undefined),
 				{error, 400, Problem}
 		end
 	of
@@ -269,12 +321,19 @@ release_nrf1(RatingDataRef, NrfRequest) ->
 			ok = ocs_log:acct_log(diameter, server(),
 					start, LogRequest, LogResponse, undefined),
 			{200, [], ReponseBody};
-		{error, StatusCode, Problem1} ->
+		{error, StatusCode, Problem1, {DiameterRequest, DiameterReply}} ->
+			error_logger:warning_report(["Rating Error",
+					{RatingDataRef, ratingDataRef}, {request, NrfRequest}, {flag, final},
+					{error, charging_failed}]),
+			ok = ocs_log:acct_log(diameter, server(),
+					stop, DiameterRequest, DiameterReply, undefined),
 			{error, StatusCode, Problem1};
-		{error, _Reason} ->
-			error_logger:warning_report(["Unable to process DIAMETER Nrf request",
-					{RatingDataRef, ratingDataRef}, {request, NrfRequest},
-					{error, 500}]),
+		{error, Reason1, {DiameterRequest, DiameterReply}} ->
+			error_logger:warning_report(["Rating Error",
+					{RatingDataRef, ratingDataRef}, {request, NrfRequest}, {flag, final},
+					{error, Reason1}]),
+			ok = ocs_log:acct_log(diameter, server(),
+					stop, DiameterRequest, DiameterReply, undefined),
 			{error, 500}
 	catch
 		?CATCH_STACK ->
@@ -289,10 +348,51 @@ release_nrf1(RatingDataRef, NrfRequest) ->
 %%  internal functions
 %%----------------------------------------------------------------------
 
+-spec diameter_error_response(Error, RatingDataRef, RequestType, NrfMap) -> Result
+	when
+		Error :: term(),
+		RatingDataRef :: term(),
+		RequestType :: initial | interim | final | event,
+		NrfMap :: map(),
+		Result :: {DiameterRequest, DiameterReply},
+		DiameterRequest :: #'3gpp_ro_CCR'{},
+		DiameterReply :: #'3gpp_ro_CCA'{}.
+%% @doc Construct a diameter problem report for accounting error logging.
+diameter_error_response(out_of_credit, RatingDataRef, RequestType, NrfMap) ->
+	ResultCode = ?'DIAMETER_CC_APP_RESULT-CODE_CREDIT_LIMIT_REACHED',
+	diameter_error_response1(ResultCode, RatingDataRef, RequestType, NrfMap);
+diameter_error_response(service_not_found, RatingDataRef, RequestType, NrfMap) ->
+	ResultCode = ?'DIAMETER_CC_APP_RESULT-CODE_USER_UNKNOWN',
+	diameter_error_response1(ResultCode, RatingDataRef, RequestType, NrfMap);
+diameter_error_response(charging_failed, RatingDataRef, RequestType, NrfMap) ->
+	ResultCode = ?'DIAMETER_CC_APP_RESULT-CODE_RATING_FAILED',
+	diameter_error_response1(ResultCode, RatingDataRef, RequestType, NrfMap);
+diameter_error_response(invalid_service_type, RatingDataRef, RequestType, NrfMap) ->
+	ResultCode = ?'DIAMETER_BASE_RESULT-CODE_UNABLE_TO_COMPLY',
+	diameter_error_response1(ResultCode, RatingDataRef, RequestType, NrfMap).
+%% @hidden
+diameter_error_response1(ResultCode, RatingDataRef, RequestType, NrfMap) ->
+	{diameter_request(RatingDataRef, RequestType, NrfMap),
+			diameter_error(RatingDataRef, RequestType, ResultCode, NrfMap)}.
+
+-spec event_type(RequestType) -> EventType
+	when
+	RequestType :: initial | interim | final | event,
+	EventType :: 1..4.
+%% @doc Converts an atom to a CC-Request-Type integer.
+event_type(initial) ->
+	?'3GPP_CC-REQUEST-TYPE_INITIAL_REQUEST';
+event_type(interim) ->
+	?'3GPP_CC-REQUEST-TYPE_UPDATE_REQUEST';
+event_type(final) ->
+	?'3GPP_CC-REQUEST-TYPE_TERMINATION_REQUEST';
+event_type(event) ->
+	?'3GPP_CC-REQUEST-TYPE_EVENT_REQUEST'.
+
 -spec diameter_request(RatingDataRef, RequestType, NrfRequest) -> DiameterRequest
 	when
 		RatingDataRef :: string(),
-		RequestType :: 1..4,
+		RequestType :: initial | interim | final | event,
 		NrfRequest :: map(),
 		DiameterRequest :: #'3gpp_ro_CCR'{}.
 %% @doc Convert a NrfRequest map() to a #'3gpp_ro_CCR'{}.
@@ -306,17 +406,17 @@ diameter_request(RatingDataRef, RequestType, #{"invocationSequenceNumber" := Req
 			'Destination-Realm' = <<"asia-east1-b.c.sigscale-ocs.internal">>,
 			'Auth-Application-Id' = ?RO_APPLICATION_ID,
 			'Service-Context-Id' = SCI,
-			'CC-Request-Type' = RequestType,
+			'CC-Request-Type' = event_type(RequestType),
 			'CC-Request-Number' = RequestNum,
 			'User-Name' = [list_to_binary(get_subscriber(SubscriptionIds))],
 			'Event-Timestamp' = calendar:universal_time(),
 			'Subscription-Id' = format_sub_ids(SubscriptionIds)}.
 
--spec diameter_reply(RatingDataRef, RequestType, Reply) -> DiameterReply
+-spec diameter_reply(RatingDataRef, RequestType, NrfReply) -> DiameterReply
 	when
 		RatingDataRef :: string(),
-		RequestType :: 1..4,
-		Reply :: map(),
+		RequestType :: initial | interim | final | event,
+		NrfReply :: map(),
 		DiameterReply :: #'3gpp_ro_CCA'{}.
 %% @doc Convert a Nrf Resply map() to a #'3gpp_ro_CCA'{}.
 diameter_reply(RatingDataRef, RequestType, #{"invocationSequenceNumber" := RequestNum,
@@ -326,10 +426,30 @@ diameter_reply(RatingDataRef, RequestType, #{"invocationSequenceNumber" := Reque
 			'Origin-Host' = list_to_binary(ohost(DiamterConfig)),
 			'Origin-Realm' = list_to_binary(orealm(DiamterConfig)),
 			'Auth-Application-Id' = ?RO_APPLICATION_ID,
-			'CC-Request-Type' = RequestType,
+			'CC-Request-Type' = event_type(RequestType),
 			'CC-Request-Number' = RequestNum,
 			'Multiple-Services-Credit-Control' = mscc(ServiceRating),
 			'Result-Code' = result_code(ServiceRating)}.
+
+-spec diameter_error(RatingDataRef, RequestType, ResultCode,
+		NrfReply) -> DiameterReply
+	when
+		RatingDataRef :: string(),
+		RequestType :: initial | interim | final | event,
+		ResultCode :: pos_integer(),
+		NrfReply :: map(),
+		DiameterReply :: #'3gpp_ro_CCA'{}.
+%% @doc Build a CCA DIAMETER CCA indicating an operation failure.
+%% @hidden
+diameter_error(RatingDataRef, RequestType, ResultCode,
+		#{"invocationSequenceNumber" := RequestNum}) ->
+	{ok, DiamterConfig} = application:get_env(ocs, diameter),
+	#'3gpp_ro_CCA'{'Session-Id' = RatingDataRef, 'Result-Code' = ResultCode,
+			'Origin-Host' = list_to_binary(ohost(DiamterConfig)),
+			'Origin-Realm' = list_to_binary(orealm(DiamterConfig)),
+			'Auth-Application-Id' = ?RO_APPLICATION_ID,
+			'CC-Request-Type' = event_type(RequestType),
+			'CC-Request-Number' = RequestNum}.
 
 %% @hidden
 result_code("SUCCESS") ->
@@ -460,31 +580,31 @@ add_rating_ref(RatingDataRef, #{"nodeFunctionality" := NF,
 			ok
 	end.
 
--spec error_response(Error, InvalidParams) -> Result
+-spec rest_error_response(Error, InvalidParams) -> Result
 	when
 		Error :: term(),
 		InvalidParams :: [map()] | undefined,
 		Result :: map().
 %% @doc Construct a problem report for an error respponse.
-error_response(out_of_credit, undefined) ->
+rest_error_response(out_of_credit, undefined) ->
 	#{cause => "QUOTA_LIMIT_REACHED",
 			type => "https://app.swaggerhub.com/apis/SigScale/nrf-rating/1.0.0#/",
 			title => "Request denied due to insufficient credit (usage applied)"};
-error_response(service_not_found, InvalidParams) ->
+rest_error_response(service_not_found, InvalidParams) ->
 	#{cause => "USER_UNKNOWN",
 			type => "https://app.swaggerhub.com/apis/SigScale/nrf-rating/1.0.0#/",
 			title => "Request denied because the subscriber identity is unrecognized",
 			invalidParams => InvalidParams};
-error_response(charging_failed, undefined) ->
+rest_error_response(charging_failed, undefined) ->
 	#{cause => "CHARGING_FAILED",
 			type => "https://app.swaggerhub.com/apis/SigScale/nrf-rating/1.0.0#/",
 			title => "Incomplete or erroneous session or subscriber information"};
-error_response(unknown_ref, InvalidParams) ->
+rest_error_response(unknown_ref, InvalidParams) ->
 	#{cause => "RATING_DATA_REF_UNKNOWN",
 			type => "https://app.swaggerhub.com/apis/SigScale/nrf-rating/1.0.0#/",
 			title => "Request denied because the rating data ref is not recognized",
 			invalidParams => InvalidParams};
-error_response(invalid_service_type, InvalidParams) ->
+rest_error_response(invalid_service_type, InvalidParams) ->
 	#{cause => "CHARGING_FAILED",
 			type => "https://app.swaggerhub.com/apis/SigScale/nrf-rating/1.0.0#/",
 			title => "Request denied because the service context id is not recognized",
@@ -493,7 +613,7 @@ error_response(invalid_service_type, InvalidParams) ->
 -spec rate(NrfRequest, Flag) -> Result
 	when
 		NrfRequest :: map(),
-		Flag :: initial | interim | final,
+		Flag :: initial | interim | final | event,
 		Result :: [map()] | {error, Reason},
 		Reason :: term().
 %% @doc Rate Nrf Service Ratings.
@@ -639,21 +759,15 @@ subscriptionId_map([], #{"subscriptionId" := SubscriptionIds} = Acc) ->
 		Id :: string(),
 		Subscriber :: string().
 %% @hidden Get a subscriber id from list of subscribers.
-get_subscriber(["msisdn-" ++ MSISDN | _]) -> 
+get_subscriber(["msisdn-" ++ MSISDN | _]) ->
 	MSISDN;
-get_subscriber(["imsi-" ++ IMSI | _]) -> 
+get_subscriber(["imsi-" ++ IMSI | _]) ->
 	IMSI;
-get_subscriber([_ | T]) -> 
+get_subscriber([_ | T]) ->
 	get_subscriber(T);
-get_subscriber([]) -> 
+get_subscriber([]) ->
 	undefined.
 
-%% @hidden
-event_type(#{"oneTimeEventType" := "IEC"}) ->
-	event;
-event_type(_) ->
-	initial.
-	
 -spec struct_service_rating(ServiceRating) -> Result
 	when
 		ServiceRating :: [map()],
