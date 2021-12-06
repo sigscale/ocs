@@ -560,12 +560,12 @@ class subAdd extends PolymerElement {
 		this.idAddAuthe = null;
 		this.$.idCheck.checked = false;
 		this.$.idCheckPass.checked = false;
-		this.$.addSubscriberPassword.value = null;
+		this.PassAddAuthe = null;
 		this.$.addSubscriberAkak.disabled = null;
 		this.$.addSubscriberAkaOpc.disabled = null;
-		this.$.add8.value = null;
+		this.amoAddCre = null;
 		this.$.adduni9.selected = null;
-		this.$.addProductId1.value = null;
+		this.proAddPro = null;
 		this.$.addproduct10.selected = null
 		this.$.proAddOff.disabled = false;
 		this.$.addProductId1.disabled = false
@@ -614,7 +614,7 @@ class subAdd extends PolymerElement {
 			var bucketTop = {type: "buckettype"};
 			var bunits;
 			var bamount;
-			if(this.$.add8.value) {
+			if(this.amoAddCre) {
 				if(this.$.adduni9.selected == 0) {
 					bunits = "octets";
 				} else if (this.$.adduni9.selected == 1) {
@@ -624,8 +624,8 @@ class subAdd extends PolymerElement {
 				} else {
 					bunits = "cents";
 				}
-				if(bunits && this.$.add8.value) {
-					var size = this.$.add8.value;
+				if(bunits && this.amoAddCre) {
+					var size = this.amoAddCre;
 					var len = size.length;
 					var m = size.charAt(len - 1);
 					if(isNaN(parseInt(m))) {
@@ -644,7 +644,7 @@ class subAdd extends PolymerElement {
 							bamount = s + "b";
 						}
 					} else if(bunits == "cents") {
-						bamount = this.$.add8.value;
+						bamount = this.amoAddCre;
 					} else if(bunits == "seconds") {
 						var n = Number(s);
 						if(m == "m") {
@@ -667,7 +667,7 @@ class subAdd extends PolymerElement {
 				ajaxBucket.generateRequest();
 			}
 			this.$.addServiceModal.close();
-			this.$.add8.value = null;
+			this.amoAddCre = null;
 			document.body.querySelector('sig-app').shadowRoot.getElementById('serviceList').shadowRoot.getElementById('subscriberGrid').clearCache();
 			this.$.addproduct10.selected = null;
 			this.$.proAddOff.disabled = false;
@@ -684,7 +684,7 @@ class subAdd extends PolymerElement {
 		var bucketTop = {type: "buckettype"};
 		var bunits;
 		var bamount;
-		if(this.$.add8.value) {
+		if(this.amoAddCre) {
 			if(this.$.adduni9.selected == 0) {
 				bunits = "octets";
 			} else if (this.$.adduni9.selected == 1) {
@@ -694,8 +694,8 @@ class subAdd extends PolymerElement {
 			} else {
 				bunits = "cents";
 			}
-			if(bunits && this.$.add8.value) {
-				var size = this.$.add8.value;
+			if(bunits && this.amoAddCre) {
+				var size = this.amoAddCre;
 				var len = size.length;
 				var m = size.charAt(len - 1);
 				if(isNaN(parseInt(m))) {
@@ -714,7 +714,7 @@ class subAdd extends PolymerElement {
 						bamount = s + "b";
 					}
 				} else if(bunits == "cents") {
-					bamount = this.$.add8.value;
+					bamount = this.amoAddCre;
 				} else if(bunits == "seconds") {
 					var n = Number(s);
 					if(m == "m") {
@@ -737,7 +737,7 @@ class subAdd extends PolymerElement {
 			ajaxBucket.generateRequest();
 		}
 		this.$.addServiceModal.close();
-		this.$.add8.value = null;
+		this.amoAddCre = null;
 		document.body.querySelector('sig-app').shadowRoot.getElementById('serviceList').shadowRoot.getElementById('subscriberGrid').clearCache();
 	}
 
