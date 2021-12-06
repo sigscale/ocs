@@ -35,6 +35,14 @@
 
 -define(RO_APPLICATION_ID, 4).
 
+-ifdef(OTP_RELEASE). % >= 21
+	-define(CATCH_STACK, _:Reason1:ST).
+	-define(SET_STACK, StackTrace = ST).
+-else.
+	-define(CATCH_STACK, _:Reason1).
+	-define(SET_STACK, StackTrace = erlang:get_stacktrace()).
+-endif.
+
 -spec content_types_accepted() -> ContentTypes
 	when
 		ContentTypes :: list().
@@ -74,8 +82,8 @@ initial_nrf(NrfRequest) ->
 						UpdatedMap = maps:update("serviceRating", ServiceRating, NrfMap),
 						ok = add_rating_ref(RatingDataRef, UpdatedMap),
 						NrfResponse = nrf(UpdatedMap),
-						{NrfResponse, log_request(RatingDataRef, 1, NrfMap),
-								log_reply(RatingDataRef, 1, UpdatedMap)};
+						{NrfResponse, diameter_request(RatingDataRef, 1, NrfMap),
+								diameter_reply(RatingDataRef, 1, UpdatedMap)};
 					{error, out_of_credit} ->
 						Problem = error_response(out_of_credit, undefined),
 						{error, 403, Problem};
@@ -106,10 +114,17 @@ initial_nrf(NrfRequest) ->
 			{ok, Headers, ReponseBody};
 		{error, StatusCode, Problem1} ->
 			{error, StatusCode, Problem1};
-		{error, _Reason} ->
+		{error, Reason1} ->
+			error_logger:warning_report(["Unable to process DIAMETER Nrf request",
+					{RatingDataRef, ratingDataRef}, {request, NrfRequest},
+					{error, Reason1}]),
 			{error, 500}
 	catch
-		_:_Reason ->
+		?CATCH_STACK ->
+			?SET_STACK,
+			error_logger:warning_report(["Unable to process DIAMETER Nrf request",
+					{RatingDataRef, ratingDataRef}, {request, NrfRequest},
+					{error, Reason1}, {stack, StackTrace}]),
 			{error, 500}
 	end.
 	
@@ -146,8 +161,8 @@ update_nrf1(RatingDataRef, NrfRequest) ->
 					ServiceRating when is_list(ServiceRating) ->
 						UpdatedMap = maps:update("serviceRating", ServiceRating, NrfMap),
 						NrfResponse = nrf(UpdatedMap),
-						{NrfResponse, log_request(RatingDataRef, 1, NrfMap),
-								log_reply(RatingDataRef, 1, UpdatedMap)};
+						{NrfResponse, diameter_request(RatingDataRef, 1, NrfMap),
+								diameter_reply(RatingDataRef, 1, UpdatedMap)};
 					{error, out_of_credit} ->
 						Problem = error_response(out_of_credit, undefined),
 						{error, 403, Problem};
@@ -176,10 +191,17 @@ update_nrf1(RatingDataRef, NrfRequest) ->
 			{200, [], ReponseBody };
 		{error, StatusCode, Problem1} ->
 			{error, StatusCode, Problem1};
-		{error, _Reason} ->
+		{error, Reason1} ->
+			error_logger:warning_report(["Unable to process DIAMETER Nrf request",
+					{RatingDataRef, ratingDataRef}, {request, NrfRequest},
+					{error, Reason1}]),
 			{error, 500}
 	catch
-		_:_ ->
+		?CATCH_STACK ->
+			?SET_STACK,
+			error_logger:warning_report(["Unable to process DIAMETER Nrf request",
+					{RatingDataRef, ratingDataRef}, {request, NrfRequest},
+					{error, Reason1}, {stack, StackTrace}]),
 			{error, 500}
 	end.
 
@@ -219,8 +241,8 @@ release_nrf1(RatingDataRef, NrfRequest) ->
 						UpdatedMap = maps:update("serviceRating", ServiceRating, NrfMap),
 						ok = remove_ref(RatingDataRef),
 						NrfResponse = nrf(UpdatedMap),
-						{NrfResponse, log_request(RatingDataRef, 1, NrfMap),
-								log_reply(RatingDataRef, 1, UpdatedMap)};
+						{NrfResponse, diameter_request(RatingDataRef, 1, NrfMap),
+								diameter_reply(RatingDataRef, 1, UpdatedMap)};
 					{error, out_of_credit} ->
 						Problem = error_response(out_of_credit, undefined),
 						{error, 403, Problem};
@@ -250,9 +272,16 @@ release_nrf1(RatingDataRef, NrfRequest) ->
 		{error, StatusCode, Problem1} ->
 			{error, StatusCode, Problem1};
 		{error, _Reason} ->
+			error_logger:warning_report(["Unable to process DIAMETER Nrf request",
+					{RatingDataRef, ratingDataRef}, {request, NrfRequest},
+					{error, 500}]),
 			{error, 500}
 	catch
-		_:_ ->
+		?CATCH_STACK ->
+			?SET_STACK,
+			error_logger:warning_report(["Unable to process DIAMETER Nrf request",
+					{RatingDataRef, ratingDataRef}, {request, NrfRequest},
+					{error, Reason1}, {stack, StackTrace}]),
 			{error, 500}
 	end.
 
@@ -260,14 +289,14 @@ release_nrf1(RatingDataRef, NrfRequest) ->
 %%  internal functions
 %%----------------------------------------------------------------------
 
--spec log_request(RatingDataRef, RequestType, NrfRequest) -> DiameterRequest
+-spec diameter_request(RatingDataRef, RequestType, NrfRequest) -> DiameterRequest
 	when
 		RatingDataRef :: string(),
 		RequestType :: 1..4,
 		NrfRequest :: map(),
 		DiameterRequest :: #'3gpp_ro_CCR'{}.
 %% @doc Convert a NrfRequest map() to a #'3gpp_ro_CCR'{}.
-log_request(RatingDataRef, RequestType, #{"invocationSequenceNumber" := RequestNum,
+diameter_request(RatingDataRef, RequestType, #{"invocationSequenceNumber" := RequestNum,
 		"serviceRating" := [#{"serviceContextId" := SCI} | _],
 		"subscriptionId" := SubscriptionIds}) ->
 	{ok, DiamterConfig} = application:get_env(ocs, diameter),
@@ -283,14 +312,14 @@ log_request(RatingDataRef, RequestType, #{"invocationSequenceNumber" := RequestN
 			'Event-Timestamp' = calendar:universal_time(),
 			'Subscription-Id' = format_sub_ids(SubscriptionIds)}.
 
--spec log_reply(RatingDataRef, RequestType, Reply) -> DiameterReply
+-spec diameter_reply(RatingDataRef, RequestType, Reply) -> DiameterReply
 	when
 		RatingDataRef :: string(),
 		RequestType :: 1..4,
 		Reply :: map(),
 		DiameterReply :: #'3gpp_ro_CCA'{}.
 %% @doc Convert a Nrf Resply map() to a #'3gpp_ro_CCA'{}.
-log_reply(RatingDataRef, RequestType, #{"invocationSequenceNumber" := RequestNum,
+diameter_reply(RatingDataRef, RequestType, #{"invocationSequenceNumber" := RequestNum,
 		"serviceRating" := ServiceRating}) ->
 	{ok, DiamterConfig} = application:get_env(ocs, diameter),
 	#'3gpp_ro_CCA'{'Session-Id' = RatingDataRef,
