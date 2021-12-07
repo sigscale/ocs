@@ -333,6 +333,10 @@ install(Nodes) when is_list(Nodes) ->
 					error_logger:info_report("Created mnesia schema",
 							[{nodes, Nodes}]),
 					install1(Nodes);
+				{error, {_, {already_exists, _}}} ->
+						error_logger:info_report("mnesia schema already exists",
+						[{nodes, Nodes}]),
+					install1(Nodes);
 				{error, Reason} ->
 					error_logger:error_report(["Failed to create schema",
 							mnesia:error_description(Reason),
