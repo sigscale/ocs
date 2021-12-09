@@ -1304,7 +1304,7 @@ ipdr_codec1(Protocol, TimeStamp, ReqType,
 	end;
 ipdr_codec1(radius, TimeStamp, ReqType, Req, Res, Rated) when is_list(Req) ->
 	ipdr_wlan(radius, TimeStamp, ReqType, Req, Res, Rated);
-ipdr_codec1(diameter, _, _, _, _, _) ->
+ipdr_codec1(_, _, _, _, _, _) ->
 	undefined.
 %% @hidden
 ipdr_codec2(#'3gpp_ro_Service-Information'{'PS-Information' = [_PSInfo]},
