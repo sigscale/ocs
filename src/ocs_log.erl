@@ -554,14 +554,14 @@ ipdr_log3(IpdrLog, Start, End, SeqNum, {Cont, []}) ->
 ipdr_log3(IpdrLog, _Start, End, SeqNum, {_Cont, [H | _]})
 		when element(1, H) > End ->
 	ipdr_log4(IpdrLog, SeqNum);
-ipdr_log3(IpdrLog, _Start, End, SeqNum, {Cont, [H | T]})
+ipdr_log3(IpdrLog, Start, End, SeqNum, {Cont, [H | T]})
 		when element(6, H) == stop ->
 	case ipdr_codec(H) of
 		#ipdr_wlan{} = IPDR ->
 			NewSeqNum = SeqNum + 1,
 			case disk_log:log(IpdrLog, IPDR#ipdr_wlan{seqNum = NewSeqNum}) of
 				ok ->
-					ipdr_log3(IpdrLog, _Start, End, NewSeqNum, {Cont, T});
+					ipdr_log3(IpdrLog, Start, End, NewSeqNum, {Cont, T});
 				{error, Reason} ->
 					Descr = lists:flatten(disk_log:format_error(Reason)),
 					Trunc = lists:sublist(Descr, length(Descr) - 1),
@@ -574,7 +574,7 @@ ipdr_log3(IpdrLog, _Start, End, SeqNum, {Cont, [H | T]})
 			NewSeqNum = SeqNum + 1,
 			case disk_log:log(IpdrLog, IPDR#ipdr_voip{seqNum = NewSeqNum}) of
 				ok ->
-					ipdr_log3(IpdrLog, _Start, End, NewSeqNum, {Cont, T});
+					ipdr_log3(IpdrLog, Start, End, NewSeqNum, {Cont, T});
 				{error, Reason} ->
 					Descr = lists:flatten(disk_log:format_error(Reason)),
 					Trunc = lists:sublist(Descr, length(Descr) - 1),
@@ -582,7 +582,10 @@ ipdr_log3(IpdrLog, _Start, End, SeqNum, {Cont, [H | T]})
 							{log, IpdrLog}, {error, Reason}]),
 					disk_log:close(IpdrLog),
 					{error, Reason}
-			end
+			end;
+		_ ->
+			ipdr_log3(IpdrLog, Start, End, SeqNum, {Cont, T})
+			
 	end;
 ipdr_log3(IpdrLog, Start, End, SeqNum, {Cont, [_ | T]}) ->
 	ipdr_log3(IpdrLog, Start, End, SeqNum, {Cont, T}).
@@ -1251,7 +1254,7 @@ get_range2(Log, End, {Cont, Chunk}, Acc) ->
 -spec ipdr_codec(Event) -> IPDR
 	when
 		Event :: tuple(),
-		IPDR :: #ipdr_wlan{} | #ipdr_voip{}.
+		IPDR :: #ipdr_wlan{} | #ipdr_voip{} | undefined.
 %% @doc Convert `ocs_acct' log entry to IPDR log entry.
 %% @private
 ipdr_codec(Event) when size(Event) > 6,
@@ -1300,7 +1303,9 @@ ipdr_codec1(Protocol, TimeStamp, ReqType,
 			exit(service_type_not_found)
 	end;
 ipdr_codec1(radius, TimeStamp, ReqType, Req, Res, Rated) when is_list(Req) ->
-	ipdr_wlan(radius, TimeStamp, ReqType, Req, Res, Rated).
+	ipdr_wlan(radius, TimeStamp, ReqType, Req, Res, Rated);
+ipdr_codec1(diameter, _, _, _, _, _) ->
+	undefined.
 %% @hidden
 ipdr_codec2(#'3gpp_ro_Service-Information'{'PS-Information' = [_PSInfo]},
 		_ServiceType, Protocol, TimeStamp, ReqType, Req, Res, Rated) ->
