@@ -372,7 +372,7 @@ process_request1(?'3GPP_CC-REQUEST-TYPE_INITIAL_REQUEST' = RequestType,
 						SessionId, MSCC1, [], Location, {initial, b});
 			Id when Id == 32260; Id == 32274 ->
 				post_request_ecur(Server, Subscriber, SvcContextId,
-						SessionId, MSCC1, Location, Destination, {initial, b})
+						SessionId, MSCC1, [], Location, Destination, {initial, b})
 		end,
 		case NrfResponse of
 			{ok, JSON} ->
@@ -440,7 +440,7 @@ process_request1(?'3GPP_CC-REQUEST-TYPE_INITIAL_REQUEST' = RequestType,
 						{ok, JSON, PLA, Amounts, MSCC2};
 					Id when Id == 32260; Id == 32274 ->
 						{ok, JSON} = post_request_ecur(Server, Subscribers, SvcContextId,
-								SessionId, Amounts, [], Destination, {initial, a}),
+								SessionId, PLA, Amounts, [], Destination, {initial, a}),
 						{ok, JSON, PLA, Amounts, MSCC2}
 				end;
 			{error, Reason} ->
@@ -654,7 +654,7 @@ process_request1(?'3GPP_CC-REQUEST-TYPE_TERMINATION_REQUEST' = RequestType,
 						SessionId, MSCC1, [], Location, final);
 			Id when Id == 32260; Id == 32274 ->
 				post_request_ecur(Server, Subscriber, SvcContextId,
-						SessionId, MSCC1, Location, Destination, final)
+						SessionId, MSCC1, [], Location, Destination, final)
 		end,
 		Amounts = get_mscc(MSCC1),
 		case NrfResponse of
@@ -718,16 +718,16 @@ process_request1(?'3GPP_CC-REQUEST-TYPE_TERMINATION_REQUEST' = RequestType,
 				{ok, MSCC2, ResultCode};
 			{{MSCC2, ResultCode, _}, [], []} ->
 				{ok, MSCC2, ResultCode};
-			{{MSCC2, _}, PLA, Amounts} when is_list(MSCC2) ->
-				{ok, get_ref(SessionId), PLA, Amounts, MSCC2};
-			{{MSCC2, _, _}, PLA} ->
-				{ok, get_ref(SessionId), PLA, Amounts, MSCC2};
+			{{MSCC2, _}, PLA, Amounts1} when is_list(MSCC2) ->
+				{ok, get_ref(SessionId), PLA, Amounts1, MSCC2};
+			{{MSCC2, _, _}, PLA, Amounts1} ->
+				{ok, get_ref(SessionId), PLA, Amounts1, MSCC2};
 			{error, Reason} ->
 				{error, Reason}
 		end,
 		case RfResponse of
-			{ok, ServiceRating, PLA1, Amounts1, MSCC3} ->
-				case charge(Subscribers, ServiceRating, Amounts1, SessionId, final) of
+			{ok, ServiceRating, PLA1, Amounts2, MSCC3} ->
+				case charge(Subscribers, ServiceRating, Amounts2, SessionId, final) of
 					{ok, NewMSCC1, ResultCode1} ->
 						Container = build_container(MSCC1),
 						NewMSCC3 = build_mscc(NewMSCC1 ++ MSCC3, Container),
@@ -884,7 +884,7 @@ id_type(_) ->
 	[].
 
 -spec post_request_ecur(ServiceName, Subscribers, ServiceContextId,
-		SessionId, ServiceRatingData, Location, Destination, Flag) -> Result
+		SessionId, ServiceRatingData, Amounts, Location, Destination, Flag) -> Result
 	when
 		ServiceName :: {IpAddress, Port},
 		IpAddress :: inet:ip_address(),
@@ -900,6 +900,13 @@ id_type(_) ->
 		PLAs :: [PLA],
 		MSCC :: [#'3gpp_ro_Multiple-Services-Credit-Control'{}],
 		PLA :: map(),
+		Amounts :: [{ServiceIdentifier, RatingGroup,
+				UsedAmounts, ReserveAmounts}] | [],
+		ServiceIdentifier :: [pos_integer()],
+		RatingGroup :: [pos_integer()],
+		UsedAmounts :: [{Units, pos_integer()}],
+		ReserveAmounts :: [{Units, pos_integer()}],
+		Units :: octets | seconds | messages,
 		Location :: [tuple()] | undefined,
 		Flag :: {initial, Class} | interim | final,
 		Class :: a | b,
@@ -910,18 +917,18 @@ id_type(_) ->
 %% @doc POST ECUR rating data to a Nrf Rating Server.
 post_request_ecur(_ServiceName, SubscriberIds, SvcContextId,
 		SessionId, [#{"price" := #price{type = #pla_ref{href = Path}}}
-      | _] = PLA, Location, Destination, {initial, a}) ->
-	ServiceRating = initial_service_rating(SubscriberIds, PLA, binary_to_list(SvcContextId),
+      | _], Amounts, Location, Destination, {initial, a}) ->
+	ServiceRating = initial_service_rating(SubscriberIds, Amounts, binary_to_list(SvcContextId),
 			Location, Destination, a),
 	post_request_ecur1(SubscriberIds, SessionId, ServiceRating, Path);
 post_request_ecur(ServiceName, SubscriberIds, SvcContextId,
-		SessionId, MSCC, Location, Destination, {initial, b}) ->
+		SessionId, MSCC, _, Location, Destination, {initial, b}) ->
 	Path = get_option(ServiceName, nrf_uri) ++ ?BASE_URI,
 	ServiceRating = initial_service_rating(SubscriberIds, MSCC, binary_to_list(SvcContextId),
 			Location, Destination, b),
 	post_request_ecur1(SubscriberIds, SessionId, ServiceRating, Path);
 post_request_ecur(ServiceName, SubscriberIds, SvcContextId,
-		SessionId, MSCC, Location, Destination, final) ->
+		SessionId, MSCC, _, Location, Destination, final) ->
 	Path = get_option(ServiceName, nrf_uri) ++ get_ref(SessionId) ++ "/" ++ "release",
 	ServiceRating = final_service_rating(MSCC, binary_to_list(SvcContextId),
 			Location, Destination),
@@ -2254,7 +2261,7 @@ rate(_, _, _, _, _, _, _, _, [], Acc1, Acc2, Acc3, ResultCode, Rated) ->
 charge(Subscribers, ServiceRating, Amounts, SessionId, Flag) ->
 	charge(Subscribers, ServiceRating, Amounts, SessionId, Flag, [], undefined).
 %% @hidden
-charge([{_, Subscriber} | _] = Subscribers, ServiceRating, [{SI, RG,
+charge([{_, Subscriber} | _] = Subscribers, ServiceRating, [{[SI], [RG],
 		Debits, Reserves} | T1], SessionId, Flag, Acc1, ResultCode1) ->
 	F = fun F([#{"tariffElement" := #{"currencyCode" := Currency,
 				"rateElements" := #{"unitType" := Units,
