@@ -576,14 +576,14 @@ process_request1(?'3GPP_CC-REQUEST-TYPE_UPDATE_REQUEST' = RequestType,
 				Address, Direction, interim, SessionId, Amounts) of
 			{{MSCC2, ResultCode}, [], []} ->
 				{ok, MSCC2, ResultCode};
-			{{MSCC2, _ResultCode}, PLA, Amounts} ->
-				{ok, get_ref(SessionId), PLA, Amounts, MSCC2};
+			{{MSCC2, _ResultCode}, PLA, Amounts1} ->
+				{ok, get_ref(SessionId), PLA, Amounts1, MSCC2};
 			{error, Reason} ->
 				{error, Reason}
 		end,
 		case RfResponse of
-			{ok, ServiceRating, PLA1, Amounts1, MSCC3} ->
-				case charge(Subscribers, ServiceRating, Amounts1, SessionId, interim) of
+			{ok, ServiceRating, PLA1, Amounts2, MSCC3} ->
+				case charge(Subscribers, ServiceRating, Amounts2, SessionId, interim) of
 					{ok, NewMSCC1, ResultCode1} ->
 						Container = build_container(MSCC1),
 						NewMSCC3 = build_mscc(NewMSCC1 ++ MSCC3, Container),
@@ -2261,8 +2261,20 @@ rate(_, _, _, _, _, _, _, _, [], Acc1, Acc2, Acc3, ResultCode, Rated) ->
 charge(Subscribers, ServiceRating, Amounts, SessionId, Flag) ->
 	charge(Subscribers, ServiceRating, Amounts, SessionId, Flag, [], undefined).
 %% @hidden
-charge([{_, Subscriber} | _] = Subscribers, ServiceRating, [{[SI], [RG],
+charge([{_, Subscriber} | _] = Subscribers, ServiceRating, [{ServiceId, RatingGroup,
 		Debits, Reserves} | T1], SessionId, Flag, Acc1, ResultCode1) ->
+	SI = case ServiceId of
+		[] ->
+			undefined;
+		[N1] when is_integer(N1) ->
+			N1
+	end,
+	RG = case RatingGroup of
+		[] ->
+			undefined;
+		[N2] when is_integer(N2) ->
+			N2
+	end,
 	F = fun F([#{"tariffElement" := #{"currencyCode" := Currency,
 				"rateElements" := #{"unitType" := Units,
 				"unitSize" := UnitSize, "unitCost" := UnitPrice}},
@@ -2284,16 +2296,16 @@ charge([{_, Subscriber} | _] = Subscribers, ServiceRating, [{[SI], [RG],
 			F([_ | T]) ->
 				F(T)
 	end,
-	{ChargingKey, ServiceId, Currency,
+	{RG1, SI1, Currency,
 			Units, UnitSize, UnitPrice} = F(ServiceRating),
-	case ocs_rating:charge(diameter, Subscriber, ServiceId,
+	case ocs_rating:charge(diameter, Subscriber, SI1,
 			UnitSize, Units, Currency, UnitPrice, undefined,
-			ChargingKey, Flag, Debits,
+			RG1, Flag, Debits,
 			Reserves, [{'Session-Id', SessionId}]) of
 		{ok, _, {_, Amount} = GrantedAmount} when Amount > 0 ->
 			ResultCode2 = ?'DIAMETER_BASE_RESULT-CODE_SUCCESS',
 			MSCC = #{"grantedUnit" => granted_unit(GrantedAmount),
-					"serviceId" => ServiceId, "ratingGroup" => ChargingKey,
+					"serviceId" => SI1, "ratingGroup" => RG1,
 					"resultCode" => ResultCode2},
 			charge(Subscribers, ServiceRating, T1, SessionId, Flag, [MSCC | Acc1], ResultCode2);
 		{ok, _, {_, 0} = _GrantedAmount} ->
@@ -2302,7 +2314,7 @@ charge([{_, Subscriber} | _] = Subscribers, ServiceRating, [{[SI], [RG],
 		{ok, _, {_, Amount} = GrantedAmount, _} when Amount > 0 ->
 			ResultCode2 = ?'DIAMETER_BASE_RESULT-CODE_SUCCESS',
 			MSCC = #{"grantedUnit" => granted_unit(GrantedAmount),
-					"serviceId" => ServiceId, "ratingGroup" => ChargingKey,
+					"serviceId" => SI1, "ratingGroup" => RG1,
 					"resultCode" => ResultCode2},
 			charge(Subscribers, ServiceRating, T1, SessionId, Flag, [MSCC | Acc1], ResultCode2);
 		{ok, #service{}, _} ->
@@ -2318,10 +2330,10 @@ charge([{_, Subscriber} | _] = Subscribers, ServiceRating, [{[SI], [RG],
 			end,
 			MSCC = case RedirectServerAddress of
 				undefined ->
-					#{"serviceId" => ServiceId, "ratingGroup" => ChargingKey,
+					#{"serviceId" => SI1, "ratingGroup" => RG1,
 							"resultCode" => ResultCode2};
 				RedirectServerAddress when is_list(RedirectServerAddress) ->
-					#{"serviceId" => ServiceId, "ratingGroup" => ChargingKey,
+					#{"serviceId" => SI1, "ratingGroup" => RG1,
 							"finalUnitIndication" => fui(RedirectServerAddress),
 							"resultCode" => ResultCode2}
 			end,
