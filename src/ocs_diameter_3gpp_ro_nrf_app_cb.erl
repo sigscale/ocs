@@ -2087,8 +2087,8 @@ rate(ServiceType, ServiceNetwork, [{_, Subscriber} | _] = Subscribers,
 			ServiceNetwork, Subscriber, Timestamp, Address, Direction, Flag,
 			Debits, Reserves, [{'Session-Id', SessionId}]) of
 		{ok, {pla_ref, #price{} = Price}} ->
-			PLA = #{"price" => Price, "rsu" => Reserves,
-					"usu" => Debits, "serviceId" => ServiceId, "ratingGroup" => ChargingKey},
+			PLA = #{"price" => Price, "serviceId" => ServiceId,
+					"ratingGroup" => ChargingKey},
 			rate(ServiceType, ServiceNetwork, Subscribers,
 					Timestamp, Address, Direction, Flag, SessionId,
 					T, Acc1, [PLA | Acc2], ResultCode1, Rated1);
