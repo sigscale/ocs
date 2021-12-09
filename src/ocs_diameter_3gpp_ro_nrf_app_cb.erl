@@ -1335,6 +1335,8 @@ map_service_rating([{struct, Elements} | T], RC2, Acc) ->
 			Acc2 = Acc1#{"resultCode" => NewRC1,
 					"finalResultCode" => NewRC2},
 			F(T1, Acc2);
+		F([{"destinationId", {array, [DestinationId]}} | T1], Acc1) ->
+			F(T1, Acc1#{"destinationId" => DestinationId});
 		F([{Name, Value} | T1], Acc1) ->
 			F(T1, Acc1#{Name => Value});
 		F([], Acc1) ->
