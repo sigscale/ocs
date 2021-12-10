@@ -432,26 +432,26 @@ process_request1(?'3GPP_CC-REQUEST-TYPE_INITIAL_REQUEST' = RequestType,
 				Address, Direction, initial, SessionId, Amounts) of
 			{{MSCC2, ResultCode}, [], []} ->
 				{ok, MSCC2, ResultCode};
-			{{MSCC2, _}, PLA, Amounts} when is_list(MSCC2), length(PLA) > 0 ->
+			{{MSCC2, _}, PLA, Amounts1} when is_list(MSCC2), length(PLA) > 0 ->
 				case ServiceType of
 					32251 ->
 						{ok, JSON} = post_request_scur(Server, Subscribers, SvcContextId,
-								SessionId, PLA, Amounts, [], {initial, a}),
-						{ok, JSON, PLA, Amounts, MSCC2};
+								SessionId, PLA, Amounts1, [], {initial, a}),
+						{ok, JSON, PLA, Amounts1, MSCC2};
 					Id when Id == 32260; Id == 32274 ->
 						{ok, JSON} = post_request_ecur(Server, Subscribers, SvcContextId,
-								SessionId, PLA, Amounts, [], Destination, {initial, a}),
-						{ok, JSON, PLA, Amounts, MSCC2}
+								SessionId, PLA, Amounts1, [], Destination, {initial, a}),
+						{ok, JSON, PLA, Amounts1, MSCC2}
 				end;
 			{error, Reason} ->
 				{error, Reason}
 		end,
 		case RfResponse of
-			{ok, JSON1, PLA1, Amounts1, MSCC3} ->
+			{ok, JSON1, PLA1, Amounts2, MSCC3} ->
 				{struct, RatedStruct} = mochijson:decode(JSON1),
 				{_, {_, ServiceElements}} = lists:keyfind("serviceRating", 1, RatedStruct),
 				{ServiceRating, _} = map_service_rating(ServiceElements, SessionId),
-				case charge(Subscribers, ServiceRating, Amounts1, SessionId, initial) of
+				case charge(Subscribers, ServiceRating, Amounts2, SessionId, initial) of
 					{ok, NewMSCC1, ResultCode1} ->
 						Container = build_container(MSCC1),
 						NewMSCC3 = build_mscc(NewMSCC1 ++ MSCC3, Container),
@@ -2238,7 +2238,7 @@ rate(_, _, _, _, _, _, _, _, [], Acc1, Acc2, Acc3, ResultCode, Rated) ->
 	when
 		Subscribers :: [Subscriber],
 		Subscriber :: {IdType, Id},
-		IdType :: imsi | msisdn | nai | sip | private,
+		IdType :: 0..4,
 		Id :: binary(),
 		ServiceRating :: [map()],
 		Amounts :: [{ServiceIdentifier, RatingGroup,
