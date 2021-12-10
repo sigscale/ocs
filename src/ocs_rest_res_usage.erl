@@ -29,6 +29,7 @@
 -include_lib("radius/include/radius.hrl").
 -include("ocs_log.hrl").
 -include("diameter_gen_3gpp_ro_application.hrl").
+-include("diameter_gen_3gpp_gx_application.hrl").
 
 -define(usageSpecPath, "/usageManagement/v1/usageSpecification/").
 -define(usagePath, "/usageManagement/v1/usage/").
@@ -2088,12 +2089,25 @@ char_attr_username(#'3gpp_ro_CCR'{'Subscription-Id' = SubscriptionIdData} = CCR,
 	end,
 	NewAcc = lists:foldl(F, Acc, SubscriptionIdData),
 	char_attr_nas_ip(CCR, NewAcc);
+char_attr_username(#'3gpp_gx_CCR'{'Subscription-Id' = SubscriptionIdData} = CCR, Acc)
+		when length(SubscriptionIdData) > 0 ->
+	F = fun(#'3gpp_gx_Subscription-Id'{'Subscription-Id-Type' = ?'3GPP_RO_SUBSCRIPTION-ID-TYPE_END_USER_E164',
+				'Subscription-Id-Data' = MSISDN}, Acc1) ->
+			[{struct, [{"name", "msisdn"}, {"value", binary_to_list(MSISDN)}]} | Acc1];
+		(#'3gpp_gx_Subscription-Id'{'Subscription-Id-Type' = ?'3GPP_RO_SUBSCRIPTION-ID-TYPE_END_USER_IMSI',
+				'Subscription-Id-Data' = IMSI}, Acc1) ->
+			[{struct, [{"name", "imsi"}, {"value", binary_to_list(IMSI)}]} | Acc1];
+		(_, Acc1) ->
+			Acc1
+	end,
+	NewAcc = lists:foldl(F, Acc, SubscriptionIdData),
+	char_attr_nas_ip(CCR, NewAcc);
 char_attr_username(#'3gpp_ro_CCR'{'User-Name' = [Username]} = CCR, Acc)
 		when is_binary(Username) ->
 	NewAcc = [{struct, [{"name", "username"},
 			{"value", binary_to_list(Username)}]} | Acc],
 	char_attr_nas_ip(CCR, NewAcc);
-char_attr_username(#'3gpp_ro_CCR'{} = CCR, Acc) ->
+char_attr_username(CCR, Acc) ->
 	char_attr_nas_ip(CCR, Acc);
 char_attr_username(Attributes, Acc) ->
 	NewAcc = case radius_attributes:find(?UserName, Attributes) of
@@ -2106,6 +2120,10 @@ char_attr_username(Attributes, Acc) ->
 
 %% @hidden
 char_attr_nas_ip(#'3gpp_ro_CCR'{'Origin-Host' = Value} = CCR, Acc) ->
+	NewAcc = [{struct, [{"name", "nasIpAddress"},
+			{"value", binary_to_list(Value)}]} | Acc],
+	char_attr_service_type(CCR, NewAcc);
+char_attr_nas_ip(#'3gpp_gx_CCR'{'Origin-Host' = Value} = CCR, Acc) ->
 	NewAcc = [{struct, [{"name", "nasIpAddress"},
 			{"value", binary_to_list(Value)}]} | Acc],
 	char_attr_service_type(CCR, NewAcc);
@@ -2138,6 +2156,8 @@ char_attr_service_type(#'3gpp_ro_CCR'{'Service-Context-Id' = Context} = CCR, Acc
 			[{struct, [{"name", "serviceType"}, {"value", Value}]} | Acc]
 	end,
 	char_attr_called_id(CCR, NewAcc);
+char_attr_service_type(CCR, Acc) ->
+	char_attr_called_id(CCR, Acc);
 char_attr_service_type(Attributes, Acc) ->
 	NewAcc = case radius_attributes:find(?ServiceType, Attributes) of
 		{ok, Value} ->
@@ -2297,7 +2317,7 @@ char_attr_called_id(#'3gpp_ro_CCR'{'Service-Information'
 	NewAcc = [{struct, [{"name", "calledStationId"},
 			{"value", binary_to_list(Called)}]} | Acc],
 	char_attr_calling_id(CCR, NewAcc);
-char_attr_called_id(#'3gpp_ro_CCR'{} = CCR, Acc) ->
+char_attr_called_id(CCR, Acc) ->
 	char_attr_calling_id(CCR, Acc);
 char_attr_called_id(Attributes, Acc) ->
 	NewAcc = case radius_attributes:find(?CalledStationId, Attributes) of
@@ -2316,7 +2336,7 @@ char_attr_calling_id(#'3gpp_ro_CCR'{'Service-Information'
 	NewAcc = [{struct, [{"name", "callingStationId"},
 			{"value", binary_to_list(Called)}]} | Acc],
 	char_attr_nas_id(CCR, NewAcc);
-char_attr_calling_id(#'3gpp_ro_CCR'{} = CCR, Acc) ->
+char_attr_calling_id(CCR, Acc) ->
 	char_attr_nas_id(CCR, Acc);
 char_attr_calling_id(Attributes, Acc) ->
 	NewAcc = case radius_attributes:find(?CallingStationId, Attributes) of
@@ -2344,7 +2364,7 @@ char_attr_nas_id(#'3gpp_ro_CCR'{'Service-Information'
    NewAcc = [{struct, [{"name", "nasIdentifier"},
          {"value", binary_to_list(IOI)}]} | Acc],
    char_attr_event_timestamp(CCR, NewAcc);
-char_attr_nas_id(#'3gpp_ro_CCR'{} = CCR, Acc) ->
+char_attr_nas_id(CCR, Acc) ->
 	char_attr_event_timestamp(CCR, Acc);
 char_attr_nas_id(Attributes, Acc) ->
 	NewAcc = case radius_attributes:find(?NasIdentifier, Attributes) of
@@ -2425,7 +2445,7 @@ char_attr_event_timestamp(#'3gpp_ro_CCR'{'Service-Information'
 	NewAcc = [{struct, [{"name", "eventTimestamp"},
 			{"value", ocs_log:iso8601(Seconds * 1000)}]} | Acc],
 	char_attr_session_id(CCR, NewAcc);
-char_attr_event_timestamp(#'3gpp_ro_CCR'{} = CCR, Acc) ->
+char_attr_event_timestamp(CCR, Acc) ->
 	char_attr_session_id(CCR, Acc);
 char_attr_event_timestamp(Attributes, Acc) ->
 	NewAcc = case radius_attributes:find(?EventTimestamp, Attributes) of
@@ -2443,7 +2463,12 @@ char_attr_session_id(#'3gpp_ro_CCR'{'Session-Id' = SessionID} = CCR, Acc)
 	NewAcc = [{struct, [{"name", "acctSessionId"},
 			{"value", binary_to_list(SessionID)}]} | Acc],
 	char_attr_session_time(CCR, NewAcc);
-char_attr_session_id(#'3gpp_ro_CCR'{} = CCR, Acc) ->
+char_attr_session_id(#'3gpp_gx_CCR'{'Session-Id' = SessionID} = CCR, Acc)
+		when SessionID /= undefined ->
+	NewAcc = [{struct, [{"name", "acctSessionId"},
+			{"value", binary_to_list(SessionID)}]} | Acc],
+	char_attr_session_time(CCR, NewAcc);
+char_attr_session_id(CCR, Acc) ->
 	char_attr_session_time(CCR, Acc);
 char_attr_session_id(Attributes, Acc) ->
 	NewAcc = case radius_attributes:find(?AcctSessionId, Attributes) of
@@ -2502,7 +2527,7 @@ char_attr_session_time(#'3gpp_ro_CCR'{'Multiple-Services-Credit-Control'
 	NewAcc = [{struct, [{"name", "acctSessionTime"},
 			{"value", Duration}]} | Acc],
 	char_attr_input_octets(CCR, NewAcc);
-char_attr_session_time(#'3gpp_ro_CCR'{} = CCR, Acc) ->
+char_attr_session_time(CCR, Acc) ->
 	char_attr_input_octets(CCR, Acc);
 char_attr_session_time(Attributes, Acc) ->
 	NewAcc = case radius_attributes:find(?AcctSessionTime, Attributes) of
@@ -2521,7 +2546,7 @@ char_attr_input_octets(#'3gpp_ro_CCR'{'Multiple-Services-Credit-Control'
 	NewAcc = [{struct, [{"name", "inputOctets"},
 			{"value", InputOctets}]} | Acc],
 	char_attr_output_octets(CCR, NewAcc);
-char_attr_input_octets(#'3gpp_ro_CCR'{} = CCR, Acc) ->
+char_attr_input_octets(CCR, Acc) ->
 	char_attr_output_octets(CCR, Acc);
 char_attr_input_octets(Attributes, Acc) ->
 	NewAcc = case radius_attributes:find(?AcctInputOctets, Attributes) of
@@ -2540,7 +2565,7 @@ char_attr_output_octets(#'3gpp_ro_CCR'{'Multiple-Services-Credit-Control'
 	NewAcc = [{struct, [{"name", "outputOctets"},
 			{"value", OutputOctets}]} | Acc],
 	char_attr_total_octets(CCR, NewAcc);
-char_attr_output_octets(#'3gpp_ro_CCR'{} = CCR, Acc) ->
+char_attr_output_octets(CCR, Acc) ->
 	char_attr_total_octets(CCR, Acc);
 char_attr_output_octets(Attributes, Acc) ->
 	NewAcc = case radius_attributes:find(?AcctOutputOctets, Attributes) of
@@ -2559,7 +2584,7 @@ char_attr_total_octets(#'3gpp_ro_CCR'{'Multiple-Services-Credit-Control'
 	NewAcc = [{struct, [{"name", "totalOctets"},
 			{"value", TotalOctets}]} | Acc],
 	char_attr_cause(CCR, NewAcc);
-char_attr_total_octets(#'3gpp_ro_CCR'{} = CCR, Acc) ->
+char_attr_total_octets(CCR, Acc) ->
 	char_attr_cause(CCR, Acc).
 
 %% @hidden
@@ -2639,7 +2664,7 @@ char_attr_cause(#'3gpp_ro_CCR'{'Service-Information'
 		= [Cause]}]}]}, Acc) ->
 	[{struct, [{"name", "acctTerminateCause"},
 			{"value", integer_to_list(Cause)}]} | Acc];
-char_attr_cause(#'3gpp_ro_CCR'{} = CCR, Acc) ->
+char_attr_cause(CCR, Acc) ->
 	char_attr_user_location(CCR, Acc);
 char_attr_cause(Attributes, Acc) ->
 	case radius_attributes:find(?AcctTerminateCause, Attributes) of
