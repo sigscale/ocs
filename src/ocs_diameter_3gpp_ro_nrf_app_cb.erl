@@ -2258,10 +2258,10 @@ rate(_, _, _, _, _, _, _, _, [], Acc1, Acc2, Acc3, ResultCode, Rated) ->
 		MSCC :: map().
 %% @doc Rate all the MSCCs.
 %% @hidden
-charge(Subscribers, ServiceRating, Amounts, SessionId, Flag) ->
-	charge(Subscribers, ServiceRating, Amounts, SessionId, Flag, [], undefined).
+charge([{_, Subscriber} | _], ServiceRating, Amounts, SessionId, Flag) ->
+	charge(Subscriber, ServiceRating, Amounts, SessionId, Flag, [], undefined).
 %% @hidden
-charge([{_, Subscriber} | _] = Subscribers, ServiceRating, [{ServiceId, RatingGroup,
+charge(Subscriber, ServiceRating, [{ServiceId, RatingGroup,
 		Debits, Reserves} | T1], SessionId, Flag, Acc1, ResultCode1) ->
 	SI = case ServiceId of
 		[] ->
@@ -2307,19 +2307,19 @@ charge([{_, Subscriber} | _] = Subscribers, ServiceRating, [{ServiceId, RatingGr
 			MSCC = #{"grantedUnit" => granted_unit(GrantedAmount),
 					"serviceId" => SI1, "ratingGroup" => RG1,
 					"resultCode" => ResultCode2},
-			charge(Subscribers, ServiceRating, T1, SessionId, Flag, [MSCC | Acc1], ResultCode2);
+			charge(Subscriber, ServiceRating, T1, SessionId, Flag, [MSCC | Acc1], ResultCode2);
 		{ok, _, {_, 0} = _GrantedAmount} ->
 			ResultCode2 = ?'DIAMETER_BASE_RESULT-CODE_SUCCESS',
-			charge(Subscribers, ServiceRating, T1, SessionId, Flag, Acc1, ResultCode2);
+			charge(Subscriber, ServiceRating, T1, SessionId, Flag, Acc1, ResultCode2);
 		{ok, _, {_, Amount} = GrantedAmount, _} when Amount > 0 ->
 			ResultCode2 = ?'DIAMETER_BASE_RESULT-CODE_SUCCESS',
 			MSCC = #{"grantedUnit" => granted_unit(GrantedAmount),
 					"serviceId" => SI1, "ratingGroup" => RG1,
 					"resultCode" => ResultCode2},
-			charge(Subscribers, ServiceRating, T1, SessionId, Flag, [MSCC | Acc1], ResultCode2);
+			charge(Subscriber, ServiceRating, T1, SessionId, Flag, [MSCC | Acc1], ResultCode2);
 		{ok, #service{}, _} ->
 			ResultCode2 = ?'DIAMETER_BASE_RESULT-CODE_SUCCESS',
-			charge(Subscribers, ServiceRating, T1, SessionId, Flag, Acc1, ResultCode2);
+			charge(Subscriber, ServiceRating, T1, SessionId, Flag, Acc1, ResultCode2);
 		{out_of_credit, RedirectServerAddress, _SessionList} ->
 			ResultCode2 = ?'DIAMETER_CC_APP_RESULT-CODE_CREDIT_LIMIT_REACHED',
 			ResultCode3 = case ResultCode1 of
@@ -2337,7 +2337,7 @@ charge([{_, Subscriber} | _] = Subscribers, ServiceRating, [{ServiceId, RatingGr
 							"finalUnitIndication" => fui(RedirectServerAddress),
 							"resultCode" => ResultCode2}
 			end,
-			charge(Subscribers, ServiceRating, T1, SessionId, Flag, [MSCC | Acc1], ResultCode3);
+			charge(Subscriber, ServiceRating, T1, SessionId, Flag, [MSCC | Acc1], ResultCode3);
 		{disabled, _SessionList} ->
 			{ok, Acc1, ?'DIAMETER_CC_APP_RESULT-CODE_END_USER_SERVICE_DENIED'};
 		{error, service_not_found} ->
