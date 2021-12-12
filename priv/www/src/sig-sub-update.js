@@ -471,7 +471,7 @@ class subUpdate extends PolymerElement {
 	}
 
 	_updateSubscriberAuthenticationResponse(event) {
-		this.$.updateSubscriberNewPassword.value = "";
+		this.updateSubNPass = "";
 		document.body.querySelector('sig-app').shadowRoot.getElementById('serviceList').shadowRoot.getElementById('subscriberGrid').clearCache();
 	}
 
