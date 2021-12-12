@@ -1356,7 +1356,7 @@ DIAMETER services may be configured with the following (optional) configuration 
 	<dt>callback</dt>
 		<dd>The callback module to be used diameter events (default: ocs_diameter_3gpp_ro_application_cb)</dd>
 	<dt>sub_id_type</dt>
-		<dd>Defines a list of subscription ID types, in order of priority, to use to find a SubscriberID to use for rating (default: msisdn)</dd>
+		<dd>Defines a list of subscription ID types, in order of priority, to use to find a SubscriberID to use for rating. The complete list is [imsi, msisdn, nai, sip, private] (default: [msisdn])</dd>
 </dl>
 
 === RADIUS Configuration ===
