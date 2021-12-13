@@ -315,7 +315,7 @@ process_request(Address, Port,
 					{ok, #service{product = ProductRef}} ->
 						process_request(Address, Port, DiameterCaps, Request,
 								ocs:find_product(ProductRef));
-					{error, Reason} ->
+					{error, _Reason} ->
 						Reply = diameter_error(SId,
 								?'DIAMETER_CC_APP_RESULT-CODE_USER_UNKNOWN',
 								OHost, ORealm, RequestType, RequestNum),
@@ -343,7 +343,7 @@ process_request(Address, Port, #diameter_caps{origin_host = {OHost, _DHost},
 		origin_realm = {ORealm, _DRealm}},
 		#'3gpp_gx_CCR'{'Session-Id' = SId,
             'CC-Request-Type' = RequestType,
-            'CC-Request-Number' = RequestNum} = Request, {error, Reason}) ->
+            'CC-Request-Number' = RequestNum} = Request, {error, _Reason}) ->
 	Server = {Address, Port},
 	Reply = diameter_error(SId, ?'DIAMETER_BASE_RESULT-CODE_UNABLE_TO_COMPLY',
 			OHost, ORealm, RequestType, RequestNum),
@@ -395,7 +395,7 @@ process_request2(Address, Port, #diameter_caps{origin_host = {OHost, _DHost},
 				accounting_event_type(RequestType), Request, Reply, undefined),
 		Reply
 	catch
-		_:Reason ->
+		_:_Reason ->
 			Reply1 = diameter_error(SId, ?'DIAMETER_BASE_RESULT-CODE_UNABLE_TO_COMPLY',
 					OHost, ORealm, RequestType, RequestNum),
 			ok = ocs_log:acct_log(diameter, Server,
@@ -423,7 +423,7 @@ process_request2(Address, Port, #diameter_caps{origin_host = {OHost, _DHost},
 		#'3gpp_gx_CCR'{'Session-Id' = SId,
 				'Auth-Application-Id' = ?Gx_APPLICATION_ID,
 				'CC-Request-Type' = RequestType,
-				'CC-Request-Number' = RequestNum} = Request, {error, Reason}) ->
+				'CC-Request-Number' = RequestNum} = Request, {error, _Reason}) ->
 	Server = {Address, Port},
 	Reply = diameter_error(SId, ?'DIAMETER_BASE_RESULT-CODE_UNABLE_TO_COMPLY',
 			OHost, ORealm, RequestType, RequestNum),
