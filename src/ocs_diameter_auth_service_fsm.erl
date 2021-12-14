@@ -388,13 +388,7 @@ service_options(Options) ->
 							'Vendor-Id' = ?IANA_PEN_3GPP,
 							'Auth-Application-Id' = [?S6b_APPLICATION_ID]}]}
 	end,
-	Options5 = case lists:keymember(apn, 1, Options) of
-		true ->
-			Options4;
-		false ->
-			[{apn, "internet"} | Options4]
-	end,
-	Options5 ++ [{'Vendor-Id', ?IANA_PEN_SigScale},
+	Options4 ++ [{'Vendor-Id', ?IANA_PEN_SigScale},
 		{'Product-Name', "SigScale AAA"},
 		{'Firmware-Revision', Version},
 		{'Supported-Vendor-Id',[?IANA_PEN_3GPP]},
@@ -509,9 +503,6 @@ split_options([{'Vendor-Specific-Application-Id', _} | T], Acc1, Acc2) ->
 	split_options(T, Acc1, Acc2);
 split_options([{'Firmware-Revision', _} | T], Acc1, Acc2) ->
 	split_options(T, Acc1, Acc2);
-split_options([{apn, Name} = H | T], Acc1, Acc2)
-		when is_list(Name) ->
-	split_options(T, Acc1, [H | Acc2]);
 split_options([{capx_timeout, Timeout} = H | T], Acc1, Acc2)
 		when is_integer(Timeout) ->
 	split_options(T, [H | Acc1], Acc2);
