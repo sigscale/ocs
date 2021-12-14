@@ -1198,11 +1198,14 @@ get_service_location1(<<MCC1, MCC2, MCC3, MNC1, MNC2>>) ->
 %% @doc Insert a rating Data ref.
 insert_ref(SessionId, SessionState, undefined)
 		when is_list(SessionState), is_binary(SessionId) ->
-	insert_ref1(SessionId, SessionState);
+	NewSessionState = SessionState#{"lastModified" =
+			erlang:system_time(millisecond)},
+	insert_ref1(SessionId, NewSessionState);
 insert_ref(SessionId, SessionState,
 		[#{"price" := #price{type = #pla_ref{href = Path}}}| _])
 		when is_list(SessionState), is_binary(SessionId) ->
-	NewSessionState = SessionState#{"ratingFunction" => Path},
+	NewSessionState = SessionState#{"ratingFunction" => Path,
+			"lastModified" = erlang:system_time(millisecond)},
 	insert_ref1(SessionId, NewSessionState).
 %% @hidden
 insert_ref1(SessionId, SessionState) ->
