@@ -455,7 +455,7 @@ process_request1(?'3GPP_CC-REQUEST-TYPE_INITIAL_REQUEST' = RequestType,
 					{ok, NewMSCC1, ResultCode1} ->
 						Container = build_container(MSCC1),
 						NewMSCC3 = build_mscc(NewMSCC1 ++ MSCC3, Container),
-						ok = insert_ref(SessionId, ServiceRating),
+						ok = insert_ref(SessionId, ServiceRating, PLA1),
 						Reply = diameter_answer(SessionId, NewMSCC3, ResultCode1,
 								OHost, ORealm, RequestType, RequestNum),
 						ok = ocs_log:acct_log(diameter, Server,
@@ -956,7 +956,7 @@ post_request_ecur1(SubscriberIds, SessionId, ServiceRating, Path) ->
 	case httpc:request(post, Request, Options, [], Profile) of
 		{_RequestId, {{_HttpVersion, 201, _ReasonPhrase}, Headers1, Body1}} ->
 			{_, Location1} = lists:keyfind("location", 1, Headers1),
-			insert_ref(SessionId, Location1),
+			insert_ref(SessionId, Location1, undefined),
 			{ok, Body1};
 		{_RequestId, {{_HttpVersion, 200, _ReasonPhrase}, _Headers, Body1}} ->
 			{ok, Body1};
@@ -1019,7 +1019,7 @@ post_request_iec1(ServiceName, SubscriberIds, SessionId, ServiceRating) ->
 	case httpc:request(post, Request, Options, [], Profile) of
 		{_RequestId, {{_HttpVersion, 201, _ReasonPhrase}, Headers1, Body1}} ->
 			{_, Location1} = lists:keyfind("location", 1, Headers1),
-			insert_ref(SessionId, Location1),
+			insert_ref(SessionId, Location1, undefined),
 			{ok, Body1};
 		{_RequestId, {{_HttpVersion, StatusCode, _ReasonPhrase}, _Headers, _Body1}} ->
 			{error, StatusCode};
@@ -1105,7 +1105,7 @@ post_request_scur1(Subscriber, SessionId, ServiceRating, Path) ->
 	case httpc:request(post, Request, Options, [], Profile) of
 		{_RequestId, {{_HttpVersion, 201, _ReasonPhrase}, Headers1, Body1}} ->
 			{_, Location1} = lists:keyfind("location", 1, Headers1),
-			insert_ref(SessionId, Location1),
+			insert_ref(SessionId, Location1, undefined),
 			{ok, Body1};
 		{_RequestId, {{_HttpVersion, 200, _ReasonPhrase}, _Headers, Body1}} ->
 			{ok, Body1};
@@ -1185,18 +1185,27 @@ get_service_location1(<<MCC1, MCC2, MCC3, MNC1, MNC2>>) ->
 	{"serviceInformation", {struct, [{"sgsnMccMnc", {struct,
 			[{"mcc", MCC}, {"mnc", MNC}]}}]}}.
 
--spec insert_ref(SessionId, SessionState) -> Result
+-spec insert_ref(SessionId, SessionState, PLAs) -> Result
 	when
 		SessionId :: binary(),
 		SessionState :: Location | ServiceRating,
+		PLAs :: [PLA] | undefined,
+		PLA :: map(),
 		Location :: string(),
 		ServiceRating :: [map()],
 		Result :: ok | {error, Reason},
 		Reason :: term().
 %% @doc Insert a rating Data ref.
-%% @hidden
-insert_ref(SessionId, SessionState)
+insert_ref(SessionId, SessionState, undefined)
 		when is_list(SessionState), is_binary(SessionId) ->
+	insert_ref1(SessionId, SessionState);
+insert_ref(SessionId, SessionState,
+		[#{"price" := #price{type = #pla_ref{href = Path}}}| _])
+		when is_list(SessionState), is_binary(SessionId) ->
+	NewSessionState = SessionState#{"ratingFunction" => Path},
+	insert_ref1(SessionId, NewSessionState).
+%% @hidden
+insert_ref1(SessionId, SessionState) ->
 	case catch ets:insert(?NRF_TABLE, {SessionId, SessionState}) of
 		true ->
 			ok;
