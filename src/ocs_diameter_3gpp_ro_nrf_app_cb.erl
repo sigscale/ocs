@@ -1198,15 +1198,25 @@ get_service_location1(<<MCC1, MCC2, MCC3, MNC1, MNC2>>) ->
 %% @doc Insert a rating Data ref.
 insert_ref(SessionId, SessionState, undefined)
 		when is_list(SessionState), is_binary(SessionId) ->
-	NewSessionState = SessionState#{"lastModified" =
-			erlang:system_time(millisecond)},
-	insert_ref1(SessionId, NewSessionState);
+	F = fun F([#{} = H | T1], Acc1) ->
+			NewSessionState = H#{"lastModified" =>
+					erlang:system_time(millisecond)},
+			F(T1, [NewSessionState | Acc1]);
+		F([], Acc1) ->
+			Acc1
+	end,
+	insert_ref1(SessionId, F(SessionState, []));
 insert_ref(SessionId, SessionState,
 		[#{"price" := #price{type = #pla_ref{href = Path}}}| _])
 		when is_list(SessionState), is_binary(SessionId) ->
-	NewSessionState = SessionState#{"ratingFunction" => Path,
-			"lastModified" = erlang:system_time(millisecond)},
-	insert_ref1(SessionId, NewSessionState).
+	F = fun F([#{} = H | T1], Acc1) ->
+			NewSessionState = H#{"ratingFunction" => Path,
+					"lastModified" => erlang:system_time(millisecond)},
+			F(T1, [NewSessionState | Acc1]);
+		F([], Acc1) ->
+			Acc1
+	end,
+	insert_ref1(SessionId, F(SessionState, [])).
 %% @hidden
 insert_ref1(SessionId, SessionState) ->
 	case catch ets:insert(?NRF_TABLE, {SessionId, SessionState}) of
