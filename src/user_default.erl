@@ -72,7 +72,7 @@ help() ->
 	true.
 
 -spec ts() -> ok.
-%% @doc Dipslay the total number of records in ocs tables.
+%% @doc Display the total number of records in ocs tables.
 ts() ->
 	case mnesia:system_info(is_running)  of
 		yes ->
@@ -116,7 +116,7 @@ ts02([], _, _) ->
 	ok.
 
 -spec td() -> ok.
-%% @doc Dipslay the current ocs table distribution.
+%% @doc Display the current ocs table distribution.
 td() ->
 	Nodes = mnesia:system_info(db_nodes),
 	Running = mnesia:system_info(running_db_nodes),
@@ -146,7 +146,7 @@ td0([]) ->
 	ok.
 
 -spec su() -> ok.
-%% @doc Dipslay scheduler utilization.
+%% @doc Display scheduler utilization.
 su() ->
 	case ocs:statistics(scheduler_utilization) of
 		{ok, {Etag, Interval, Report}} ->

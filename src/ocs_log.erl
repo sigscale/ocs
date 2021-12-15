@@ -18,7 +18,28 @@
 %%% @doc This library module implements functions used in handling logging
 %%% 	in the {@link //ocs. ocs} application.
 %%%
-%%% 	@reference <a href="http://www.tmforum.org/ipdr/">IPDR Specifications</a>.
+%%% 	Event logging in {@link //ocs. ocs} uses
+%%% 	{@link //kernel/disk_log. disk_log} wrap logs configured for file
+%%% 	size, and number of files, using application environment variables
+%%% 	(e.g. `acct_log_size', `acct_log_files'). As the log items are
+%%% 	chronologically ordered finding an event by start time is relatively
+%%% 	efficient. The {@link btree_search/2. btree_search/2} function is
+%%% 	used to perform a binary tree search across the files and a chunk
+%%% 	head comparison to quickly find the file and chunk containing items
+%%% 	with a given start time.
+%%%
+%%% 	All log items have the common form:
+%%% 	<ul>
+%%% 		<li>tuple with artity > 2</li>
+%%% 		<li>first element (TS) is {@link timestamp(). timestamp()}</li>
+%%% 		<li>second element(N) is {@link unique(). unique()}</li>
+%%% 		<li>`{TS, N}' is unique within a log</li>
+%%% 	</ul>
+%%%
+%%% 	Functions reading log files SHALL assume the above format and
+%%% 	SHOULD ignore items with unexpected tuple arity or element values.
+%%%
+%%% @reference <a href="http://www.tmforum.org/ipdr/">IPDR Specifications</a>.
 %%%
 -module(ocs_log).
 -copyright('Copyright (c) 2016 - 2021 SigScale Global Inc.').
@@ -41,7 +62,7 @@
 -export([acct_query/4, ipdr_query/2, auth_query/5, abmf_query/6]).
 
 %% export the ocs_log event types
--export_type([auth_event/0, acct_event/0, http_event/0]).
+-export_type([auth_event/0, acct_event/0, abmf_event/0, http_event/0]).
 
 -include("ocs_log.hrl").
 -include_lib("radius/include/radius.hrl").
@@ -57,6 +78,19 @@
 
 % calendar:datetime_to_gregorian_seconds({{1970,1,1},{0,0,0}})
 -define(EPOCH, 62167219200).
+
+%% export the common log field types
+-type timestamp() :: pos_integer().
+-type unique() :: pos_integer().
+-type protocol() :: radius | diameter.
+-type server() :: {Address :: inet:ip_address(), Port :: pos_integer()}.
+-export_type([timestamp/0, unique/0, protocol/0, server/0]).
+
+%% export the ocs_acct field types
+-export_type([acct_type/0, acct_request/0, acct_response/0, acct_rated/0]).
+
+%% export the ocs_auth field types
+-export_type([auth_type/0, auth_request/0, auth_response/0]).
 
 %%----------------------------------------------------------------------
 %%  The ocs_log public API
@@ -82,18 +116,21 @@ acct_open() ->
 	{ok, LogFiles} = application:get_env(ocs, acct_log_files),
 	open_log(Directory, log_name(acct_log_name), LogSize, LogFiles).
 
+-type acct_type() :: on | off | start | stop | update | interim | final | 'event'.
+-type acct_request() :: #'3gpp_ro_CCR'{} | #'3gpp_ro_RAR'{} | #'3gpp_gx_CCR'{}
+		| radius_attributes:attributes().
+-type acct_response() :: #'3gpp_ro_CCA'{} | #'3gpp_ro_RAA'{} | #'3gpp_gx_CCA'{}
+		| radius_attributes:attributes().
+-type acct_rated() :: [#rated{}].
+
 -spec acct_log(Protocol, Server, Type, Request, Response, Rated) -> Result
 	when
-		Protocol :: diameter | radius,
-		Server :: {Address, Port},
-		Address :: inet:ip_address(),
-		Port :: integer(),
-		Type :: on | off | start | stop | update | interim | final | 'event',
-		Request :: #'3gpp_ro_CCR'{} | #'3gpp_ro_RAR'{} | #'3gpp_gx_CCR'{}
-				| radius_attributes:attributes(),
-		Response :: #'3gpp_ro_CCA'{} | #'3gpp_ro_RAA'{} | #'3gpp_gx_CCA'{}
-				| radius_attributes:attributes() | undefined,
-		Rated :: [#rated{}] | undefined,
+		Protocol :: protocol(),
+		Server :: server(),
+		Type :: acct_type(),
+		Request :: acct_request(),
+		Response :: acct_response() | undefined,
+		Rated :: acct_rated() | undefined,
 		Result :: ok | {error, Reason},
 		Reason :: term().
 %% @doc Write an event to accounting log.
@@ -112,10 +149,10 @@ acct_close() ->
 -spec acct_query(Continuation, Start, End, Types, Matches) -> Result
 	when
 		Continuation :: start | disk_log:continuation(),
-		Start :: calendar:datetime() | pos_integer(),
-		End :: calendar:datetime() | pos_integer(),
+		Start :: calendar:datetime() | timestamp(),
+		End :: calendar:datetime() | timestamp(),
 		Types :: [Type] | '_',
-		Type :: on | off | start | stop | interim | event,
+		Type :: acct_type(),
 		Matches :: [Match] | '_',
 		Match :: RadiusMatch | DiameterMatchSpec | RatedMatchSpec,
 		RadiusMatch :: {Attribute, AttributeMatch},
@@ -143,11 +180,11 @@ acct_query(Continuation, Start, End, Types, AttrsMatch) ->
 -spec acct_query(Continuation, Start, End, Protocol, Types, Matches) -> Result
 	when
 		Continuation :: start | disk_log:continuation(),
-		Start :: calendar:datetime() | pos_integer(),
-		End :: calendar:datetime() | pos_integer(),
-		Protocol :: radius | diameter | '_',
+		Start :: calendar:datetime() | timestamp(),
+		End :: calendar:datetime() | timestamp(),
+		Protocol :: protocol() | '_',
 		Types :: [Type] | '_',
-		Type :: on | off | start | stop | interim | event,
+		Type :: acct_type(),
 		Matches :: [Match] | '_',
 		Match :: RadiusMatch | DiameterMatchSpec | RatedMatchSpec,
 		RadiusMatch :: {Attribute, AttributeMatch},
@@ -200,17 +237,31 @@ auth_open() ->
 	{ok, LogFiles} = application:get_env(ocs, auth_log_files),
 	open_log(Directory, log_name(auth_log_name), LogSize, LogFiles).
 
+-type auth_type() :: accept | reject | change.
+-type auth_request_rad() :: radius_attributes:attributes().
+-type auth_request_dia() :: #diameter_nas_app_AAR{}
+		| #diameter_eap_app_DER{} | #'3gpp_sta_DER'{} | #'3gpp_swm_DER'{}
+		| #'3gpp_sta_STR'{} | #'3gpp_swm_STR'{} | #'3gpp_s6b_STR'{}
+		| #'3gpp_swx_RTR'{} | #'3gpp_s6b_AAR'{} | #'3gpp_s6a_AIA'{}
+		| #'3gpp_s6a_ULR'{} | #'3gpp_s6a_PUR'{}.
+-type auth_request() :: auth_request_rad() | auth_request_dia().
+-type auth_response_rad() :: radius_attributes:attributes().
+-type auth_response_dia() :: #diameter_nas_app_AAA{}
+		| #diameter_eap_app_DEA{} | #'3gpp_sta_DEA'{} | #'3gpp_swm_DEA'{}
+		| #'3gpp_sta_STA'{} | #'3gpp_swm_STA'{} | #'3gpp_s6b_STA'{}
+		| #'3gpp_swx_RTA'{} | #'3gpp_s6b_AAA'{} | #'3gpp_s6a_AIA'{}
+		| #'3gpp_s6a_ULR'{} | #'3gpp_s6a_PUR'{}.
+-type auth_response() :: auth_response_rad() | auth_response_dia().
+
 -spec auth_log(Protocol, Server, Client, Type, RequestAttributes,
 		ResponseAttributes) -> Result
 	when
 		Protocol :: radius,
-		Server :: {Address, Port},
-		Client :: {Address, Port},
-		Address :: inet:ip_address(),
-		Port :: integer(),
-		Type :: accept | reject | change,
-		RequestAttributes :: radius_attributes:attributes(),
-		ResponseAttributes :: radius_attributes:attributes(),
+		Server :: server(),
+		Client :: server(),
+		Type :: auth_type(),
+		RequestAttributes :: auth_request_rad(),
+		ResponseAttributes :: auth_response_rad(),
 		Result :: ok | {error, Reason},
 		Reason :: term().
 %% @doc Write a RADIUS event to authorization log.
@@ -222,24 +273,10 @@ auth_log(Protocol, Server, Client, Type, RequestAttributes, ResponseAttributes) 
 -spec auth_log(Protocol, Server, Client, Request, Response) -> Result
 	when
 		Protocol :: diameter,
-		Server :: {Address, Port},
-		Client :: {Address, Port},
-		Address :: inet:ip_address(),
-		Port :: integer(),
-		Request :: #diameter_nas_app_AAR{} | #diameter_eap_app_DER{}
-				| #'3gpp_sta_DER'{} | #'3gpp_swm_DER'{}
-				| #'3gpp_sta_STR'{} | #'3gpp_swm_STR'{}
-				| #'3gpp_s6b_STR'{} | #'3gpp_swx_RTR'{}
-				| #'3gpp_s6b_AAR'{}
-				| #'3gpp_s6a_AIA'{} | #'3gpp_s6a_ULR'{}
-				| #'3gpp_s6a_PUR'{},
-		Response :: #diameter_nas_app_AAA{} | #diameter_eap_app_DEA{}
-				| #'3gpp_sta_DEA'{} | #'3gpp_swm_DEA'{}
-				| #'3gpp_sta_STA'{} | #'3gpp_swm_STA'{}
-				| #'3gpp_s6b_STA'{} | #'3gpp_swx_RTA'{}
-				| #'3gpp_s6b_AAA'{}
-				| #'3gpp_s6a_AIA'{} | #'3gpp_s6a_ULR'{}
-				| #'3gpp_s6a_PUR'{},
+		Server :: server(),
+		Client :: server(),
+		Request :: auth_request_dia(),
+		Response :: auth_response_dia(),
 		Result :: ok | {error, Reason},
 		Reason :: term().
 %% @doc Write a DIAMETER event to authorization log.
@@ -251,10 +288,10 @@ auth_log(Protocol, Server, Client, Request, Response) ->
 		ReqAttrsMatch, RespAttrsMatch) -> Result
 	when
 		Continuation :: start | disk_log:continuation(),
-		Start :: calendar:datetime() | pos_integer(),
-		End :: calendar:datetime() | pos_integer(),
+		Start :: calendar:datetime() | timestamp(),
+		End :: calendar:datetime() | timestamp(),
 		Types :: [Type] | '_',
-		Type :: accept | reject | change,
+		Type :: auth_type(),
 		ReqAttrsMatch :: [{Attribute, Match}] | '_',
 		RespAttrsMatch :: [{Attribute, Match}] | '_',
 		Attribute :: byte(),
@@ -278,11 +315,11 @@ auth_query(Continuation, Start, End, Types, ReqAttrsMatch, RespAttrsMatch) ->
 		ReqAttrsMatch, RespAttrsMatch) -> Result
 	when
 		Continuation :: start | disk_log:continuation(),
-		Start :: calendar:datetime() | pos_integer(),
-		End :: calendar:datetime() | pos_integer(),
-		Protocol :: radius | diameter | '_',
+		Start :: calendar:datetime() | timestamp(),
+		End :: calendar:datetime() | timestamp(),
+		Protocol :: protocol() | '_',
 		Types :: [Type] | '_',
-		Type :: accept | reject | change,
+		Type :: auth_type(),
 		ReqAttrsMatch :: [{Attribute, Match}] | '_',
 		RespAttrsMatch :: [{Attribute, Match}] | '_',
 		Attribute :: byte(),
@@ -419,8 +456,8 @@ http_query8(Chunks) ->
 	when
 		Continuation :: start | disk_log:continuation(),
 		Log :: atom(),
-		Start :: calendar:datetime() | pos_integer(),
-		End :: calendar:datetime() | pos_integer(),
+		Start :: calendar:datetime() | timestamp(),
+		End :: calendar:datetime() | timestamp(),
 		AttrsMatch :: [{Attribute, Match}] | '_',
 		Attribute :: byte(),
 		Match :: {exact, term()} | {notexact, term()}
@@ -445,8 +482,8 @@ ipdr_query(Continuation, Log, _Start, _End, _AttrsMatch) ->
 	when
 		Type :: wlan | voip,
 		File :: file:filename(),
-		Start :: calendar:datetime() | pos_integer(),
-		End :: calendar:datetime() | pos_integer(),
+		Start :: calendar:datetime() | timestamp(),
+		End :: calendar:datetime() | timestamp(),
 		Result :: ok | {error, Reason},
 		Reason :: term().
 %% @doc Log accounting records within range to new IPDR disk log.
@@ -554,14 +591,14 @@ ipdr_log3(IpdrLog, Start, End, SeqNum, {Cont, []}) ->
 ipdr_log3(IpdrLog, _Start, End, SeqNum, {_Cont, [H | _]})
 		when element(1, H) > End ->
 	ipdr_log4(IpdrLog, SeqNum);
-ipdr_log3(IpdrLog, _Start, End, SeqNum, {Cont, [H | T]})
+ipdr_log3(IpdrLog, Start, End, SeqNum, {Cont, [H | T]})
 		when element(6, H) == stop ->
 	case ipdr_codec(H) of
 		#ipdr_wlan{} = IPDR ->
 			NewSeqNum = SeqNum + 1,
 			case disk_log:log(IpdrLog, IPDR#ipdr_wlan{seqNum = NewSeqNum}) of
 				ok ->
-					ipdr_log3(IpdrLog, _Start, End, NewSeqNum, {Cont, T});
+					ipdr_log3(IpdrLog, Start, End, NewSeqNum, {Cont, T});
 				{error, Reason} ->
 					Descr = lists:flatten(disk_log:format_error(Reason)),
 					Trunc = lists:sublist(Descr, length(Descr) - 1),
@@ -574,7 +611,7 @@ ipdr_log3(IpdrLog, _Start, End, SeqNum, {Cont, [H | T]})
 			NewSeqNum = SeqNum + 1,
 			case disk_log:log(IpdrLog, IPDR#ipdr_voip{seqNum = NewSeqNum}) of
 				ok ->
-					ipdr_log3(IpdrLog, _Start, End, NewSeqNum, {Cont, T});
+					ipdr_log3(IpdrLog, Start, End, NewSeqNum, {Cont, T});
 				{error, Reason} ->
 					Descr = lists:flatten(disk_log:format_error(Reason)),
 					Trunc = lists:sublist(Descr, length(Descr) - 1),
@@ -582,7 +619,10 @@ ipdr_log3(IpdrLog, _Start, End, SeqNum, {Cont, [H | T]})
 							{log, IpdrLog}, {error, Reason}]),
 					disk_log:close(IpdrLog),
 					{error, Reason}
-			end
+			end;
+		_ ->
+			ipdr_log3(IpdrLog, Start, End, SeqNum, {Cont, T})
+			
 	end;
 ipdr_log3(IpdrLog, Start, End, SeqNum, {Cont, [_ | T]}) ->
 	ipdr_log3(IpdrLog, Start, End, SeqNum, {Cont, T}).
@@ -701,8 +741,8 @@ ipdr_file3(Log, IoDevice, csv, {Cont, Events}) ->
 -spec get_range(Log, Start, End) -> Result
 	when
 		Log :: disk_log:log(),
-		Start :: calendar:datetime() | pos_integer(),
-		End :: calendar:datetime() | pos_integer(),
+		Start :: calendar:datetime() | timestamp(),
+		End :: calendar:datetime() | timestamp(),
 		Result :: [term()].
 %% @doc Get all events in a log within a date/time range.
 %%
@@ -853,7 +893,7 @@ last3(_Log, _MaxItems, [], NumItems, Acc) ->
 
 -spec date(MilliSeconds) -> Result
 	when
-		MilliSeconds :: pos_integer(),
+		MilliSeconds :: timestamp(),
 		Result :: calendar:datetime().
 %% @doc Convert timestamp to date and time.
 date(MilliSeconds) when is_integer(MilliSeconds) ->
@@ -862,7 +902,7 @@ date(MilliSeconds) when is_integer(MilliSeconds) ->
 
 -spec iso8601(DateTime) -> DateTime
 	when
-		DateTime :: pos_integer() | string().
+		DateTime :: timestamp() | string().
 %% @doc Convert between ISO 8601 and Unix epoch milliseconds.
 %% 	Parsing is not strict to allow prefix matching.
 iso8601(DateTime) when is_integer(DateTime) ->
@@ -1007,7 +1047,7 @@ abmf_open() ->
 		Amount :: integer(),
 		AmountBefore :: integer() | undefined,
 		AmountAfter :: integer() | undefined,
-		Validity :: undefined | pos_integer(),
+		Validity :: undefined | timestamp(),
 		Channel :: undefined | string(),
 		Requestor :: undefined | [{Id, Role, Name}],
 		RelatedParty :: undefined | [{Id, Role, Name}],
@@ -1038,8 +1078,8 @@ abmf_log(Type, ServiceId, Bucket, Units, Product, Amount,
 		Bucket, Units, Product) -> Result
 	when
 		Continuation :: start | disk_log:continuation(),
-		Start :: calendar:datetime() | pos_integer(),
-		End :: calendar:datetime() | pos_integer(),
+		Start :: calendar:datetime() | timestamp(),
+		End :: calendar:datetime() | timestamp(),
 		Type :: [{type, {MatchType, TypeValue}}] | '_',
 		TypeValue :: deduct | reserve | unreserve | transfer | topup | adjustment | '_',
 		Subscriber :: [{subscriber, {MatchType, SubscriberValue}}] | '_',
@@ -1100,7 +1140,7 @@ file_chunk1(Log, IoDevice, Type, Cont, []) ->
 -spec btree_search(Log, Start) -> Result
 	when
 		Log :: disk_log:log(),
-		Start :: pos_integer(),
+		Start :: timestamp(),
 		Result :: disk_log:continuation() | {error, Reason},
 		Reason :: term().
 %% @doc Binary tree search of multi file wrap disk_log.
@@ -1198,8 +1238,8 @@ btree_search(_Log, _Start, _Step, _PrevCont, _PrevChunkStart, _Cont, {error, Rea
 -spec get_range(Log, Start, End, Cont) -> Result
 	when
 		Log :: disk_log:log(),
-		Start :: pos_integer(),
-		End :: pos_integer(),
+		Start :: timestamp(),
+		End :: timestamp(),
 		Cont :: start | disk_log:continuation(),
 		Result :: [term()].
 %% @doc Sequentially read 64KB chunks.
@@ -1251,7 +1291,7 @@ get_range2(Log, End, {Cont, Chunk}, Acc) ->
 -spec ipdr_codec(Event) -> IPDR
 	when
 		Event :: tuple(),
-		IPDR :: #ipdr_wlan{} | #ipdr_voip{}.
+		IPDR :: #ipdr_wlan{} | #ipdr_voip{} | undefined.
 %% @doc Convert `ocs_acct' log entry to IPDR log entry.
 %% @private
 ipdr_codec(Event) when size(Event) > 6,
@@ -1300,7 +1340,9 @@ ipdr_codec1(Protocol, TimeStamp, ReqType,
 			exit(service_type_not_found)
 	end;
 ipdr_codec1(radius, TimeStamp, ReqType, Req, Res, Rated) when is_list(Req) ->
-	ipdr_wlan(radius, TimeStamp, ReqType, Req, Res, Rated).
+	ipdr_wlan(radius, TimeStamp, ReqType, Req, Res, Rated);
+ipdr_codec1(_, _, _, _, _, _) ->
+	undefined.
 %% @hidden
 ipdr_codec2(#'3gpp_ro_Service-Information'{'PS-Information' = [_PSInfo]},
 		_ServiceType, Protocol, TimeStamp, ReqType, Req, Res, Rated) ->
@@ -1315,7 +1357,7 @@ ipdr_codec2(_, _ServiceType, Protocol, TimeStamp, ReqType, Req, Res, Rated) ->
 	when
 		ServiceType :: binary(),
 		Protocol :: diameter,
-		TimeStamp :: pos_integer(),
+		TimeStamp :: timestamp(),
 		ReqType :: stop,
 		Req :: #'3gpp_ro_CCR'{},
 		Res :: #'3gpp_ro_CCA'{},
@@ -1331,7 +1373,7 @@ ipdr_ims(<<"32260">> = _Voice, Protocol, TimeStamp, ReqType, Req, Res, Rated) ->
 -spec ipdr_ims_voip(Protocol, TimeStamp, ReqType, Req, Res, Rated) -> IPDR
 	when
 		Protocol :: diameter,
-		TimeStamp :: pos_integer(),
+		TimeStamp :: timestamp(),
 		ReqType :: stop,
 		Req :: #'3gpp_ro_CCR'{},
 		Res :: #'3gpp_ro_CCA'{},
@@ -1445,7 +1487,7 @@ ipdr_ims_voip1([], _Protocol, _TimeStamp, _ReqType, _Req, _Res, _Rated, IPDR) ->
 -spec ipdr_wlan(Protocol, TimeStamp, ReqType, Req, Res, Rated) -> IPDRWlan
 	when
 		Protocol :: radius | diameter,
-		TimeStamp :: pos_integer(),
+		TimeStamp :: timestamp(),
 		ReqType :: stop,
 		Req :: [tuple()] | #'3gpp_ro_CCR'{} | undefined,
 		Res :: [tuple()] | #'3gpp_ro_CCA'{} | undefined,
@@ -2115,8 +2157,8 @@ close_log(Log) ->
 -spec query_log(Continuation, Start, End, Log, MFA) -> Result
 	when
 		Continuation :: start | disk_log:continuation(),
-		Start :: calendar:datetime() | pos_integer(),
-		End :: calendar:datetime() | pos_integer(),
+		Start :: calendar:datetime() | timestamp(),
+		End :: calendar:datetime() | timestamp(),
 		MFA :: {Module, Function, Args},
 		Log :: atom(),
 		Module :: atom(),

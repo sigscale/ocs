@@ -278,10 +278,6 @@ process_request(Address, Port,
 				'CC-Request-Number' = RequestNum,
 				'Subscription-Id' = []} = Request) ->
 			Server = {Address, Port},
-			error_logger:warning_report(["Unable to process DIAMETER request",
-					{origin_host, OHost}, {origin_realm, ORealm},
-					{session_id, SId}, {request, Request},
-					{error, missing_subscription_id}]),
 			Reply = diameter_error(SId, ?'DIAMETER_ERROR_INITIAL_PARAMETERS',
 					OHost, ORealm, RequestType, RequestNum),
 			ok = ocs_log:acct_log(diameter, Server,
@@ -319,11 +315,7 @@ process_request(Address, Port,
 					{ok, #service{product = ProductRef}} ->
 						process_request(Address, Port, DiameterCaps, Request,
 								ocs:find_product(ProductRef));
-					{error, Reason} ->
-						error_logger:warning_report(["Unable to process DIAMETER request",
-								{origin_host, OHost}, {origin_realm, ORealm},
-								{session_id, SId}, {request, Request},
-								{error, Reason}]),
+					{error, _Reason} ->
 						Reply = diameter_error(SId,
 								?'DIAMETER_CC_APP_RESULT-CODE_USER_UNKNOWN',
 								OHost, ORealm, RequestType, RequestNum),
@@ -332,10 +324,6 @@ process_request(Address, Port,
 						Reply
 				end;
 			_ ->
-				error_logger:warning_report(["Unable to process DIAMETER request",
-						{origin_host, OHost}, {origin_realm, ORealm},
-						{session_id, SId}, {request, Request},
-						{error, missing_subscription_id}]),
 				Reply = diameter_error(SId, ?'DIAMETER_CC_APP_RESULT-CODE_USER_UNKNOWN',
 						OHost, ORealm, RequestType, RequestNum),
 				ok = ocs_log:acct_log(diameter, Server,
@@ -355,10 +343,7 @@ process_request(Address, Port, #diameter_caps{origin_host = {OHost, _DHost},
 		origin_realm = {ORealm, _DRealm}},
 		#'3gpp_gx_CCR'{'Session-Id' = SId,
             'CC-Request-Type' = RequestType,
-            'CC-Request-Number' = RequestNum} = Request, {error, Reason}) ->
-	error_logger:warning_report(["Unable to process DIAMETER request",
-			{origin_host, OHost}, {origin_realm, ORealm},
-			{request, Request}, {error, Reason}]),
+            'CC-Request-Number' = RequestNum} = Request, {error, _Reason}) ->
 	Server = {Address, Port},
 	Reply = diameter_error(SId, ?'DIAMETER_BASE_RESULT-CODE_UNABLE_TO_COMPLY',
 			OHost, ORealm, RequestType, RequestNum),
@@ -410,10 +395,7 @@ process_request2(Address, Port, #diameter_caps{origin_host = {OHost, _DHost},
 				accounting_event_type(RequestType), Request, Reply, undefined),
 		Reply
 	catch
-		_:Reason ->
-			error_logger:warning_report(["Unable to process DIAMETER request",
-					{origin_host, OHost}, {origin_realm, ORealm},
-					{session_id, SId}, {request, Request}, {error, Reason}]),
+		_:_Reason ->
 			Reply1 = diameter_error(SId, ?'DIAMETER_BASE_RESULT-CODE_UNABLE_TO_COMPLY',
 					OHost, ORealm, RequestType, RequestNum),
 			ok = ocs_log:acct_log(diameter, Server,
@@ -441,10 +423,7 @@ process_request2(Address, Port, #diameter_caps{origin_host = {OHost, _DHost},
 		#'3gpp_gx_CCR'{'Session-Id' = SId,
 				'Auth-Application-Id' = ?Gx_APPLICATION_ID,
 				'CC-Request-Type' = RequestType,
-				'CC-Request-Number' = RequestNum} = Request, {error, Reason}) ->
-	error_logger:warning_report(["Unable to process DIAMETER request",
-			{origin_host, OHost}, {origin_realm, ORealm},
-			{session_id, SId}, {request, Request}, {error, Reason}]),
+				'CC-Request-Number' = RequestNum} = Request, {error, _Reason}) ->
 	Server = {Address, Port},
 	Reply = diameter_error(SId, ?'DIAMETER_BASE_RESULT-CODE_UNABLE_TO_COMPLY',
 			OHost, ORealm, RequestType, RequestNum),

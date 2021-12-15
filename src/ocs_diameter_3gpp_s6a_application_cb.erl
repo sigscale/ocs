@@ -453,7 +453,23 @@ update_location({_, ServerAddress, ServerPort} = ServiceName,
 			ok = ocs_log:auth_log(diameter, Server, Client1, Request, Answer),
 			{reply, Answer};
 		{ok, #service{}} ->
-			ApnConfig1 = #'3gpp_s6a_APN-Configuration'{'Service-Selection' = "cmnet",
+			{ok, Configurations} = application:get_env(ocs, diameter),
+			{_, AcctServices} = lists:keyfind(auth, 1, Configurations),
+			F = fun F([{{0, 0, 0, 0}, P, Options} | _]) when P =:= ServerPort ->
+					Options;
+				F([{Ip, P, Options} | _]) when Ip == ServerAddress, P =:= ServerPort ->
+					Options;
+				F([{_, _, _} | T]) ->
+					F(T)
+			end,
+			ServiceOptions = F(AcctServices),
+			ServiceSelection = case lists:keyfind(apn, 1, ServiceOptions) of
+				{apn, Name} when is_list(Name) ->
+					Name;
+				false ->
+					"internet"
+			end,
+			ApnConfig1 = #'3gpp_s6a_APN-Configuration'{'Service-Selection' = ServiceSelection,
 					'Context-Identifier' = 1,
 					'PDN-Type' =  ?'3GPP_S6A_3GPP-PDP-TYPE_IPV4',
 					'EPS-Subscribed-QoS-Profile' = [#'3gpp_s6a_EPS-Subscribed-QoS-Profile'{
