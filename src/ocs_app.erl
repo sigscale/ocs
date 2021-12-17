@@ -931,7 +931,8 @@ join(Nodes) when is_list(Nodes), is_atom(hd(Nodes))  ->
 	case mnesia:system_info(is_running) of
 		no ->
 			join1(Node);
-		_ ->
+		Running ->
+			error_logger:error_report(["mnesia running", {is_running, Running}]),
 			{error, mnesia_running}
 	end.
 %% @hidden
@@ -939,15 +940,18 @@ join1(Node) ->
 	case net_kernel:connect_node(Node) of
 		true ->
 			join2(Node);
-		false ->
-			{error, not_connected};
-		ignored ->
-			{error, not_alive}
+		Connect ->
+			error_logger:error_report(["Failed to connect node",
+					{result, Connect}]),
+			{error, Connect}
 	end.
 %% @hidden
 join2(Node) ->
 	case rpc:call(Node, mnesia, add_table_copy, [schema, node(), ram_copies]) of
 		{atomic, ok} ->
+			join3(Node);
+		{aborted, {already_exists, schema, _}} ->
+			error_logger:info_msg("Found existing schema table on ~s.~n", [Node]),
 			join3(Node);
 		{aborted, Reason} ->
 			error_logger:error_report([mnesia:error_description(Reason),
@@ -960,6 +964,8 @@ join3(Node) ->
 		ok ->
 			join4(Node);
 		{error, Reason} ->
+			error_logger:error_report([mnesia:error_description(Reason),
+					{error, Reason}]),
 			{error, Reason}
 	end.
 %% @hidden
@@ -968,6 +974,8 @@ join4(Node) ->
 		{ok, _Nodes} ->
 			join5(Node);
 		{error, Reason} ->
+			error_logger:error_report([mnesia:error_description(Reason),
+					{error, Reason}]),
 			{error, Reason}
 	end.
 %% @hidden
@@ -975,6 +983,9 @@ join5(Node) ->
 	case mnesia:change_table_copy_type(schema, node(), disc_copies) of
 		{atomic, ok} ->
 			error_logger:info_msg("Copied schema table from ~s.~n", [Node]),
+			join6(Node, [schema]);
+		{aborted, {already_exists, schema, _, disc_copies}} ->
+			error_logger:info_msg("Found existing schema table on ~s.~n", [Node]),
 			join6(Node, [schema]);
 		{aborted, Reason} ->
 			error_logger:error_report([mnesia:error_description(Reason),
@@ -987,6 +998,9 @@ join6(Node, Acc) ->
 		{atomic, ok} ->
 			error_logger:info_msg("Copied client table from ~s.~n", [Node]),
 			join7(Node, [client | Acc]);
+		{aborted, {already_exists, client, _}} ->
+			error_logger:info_msg("Found existing client table on ~s.~n", [Node]),
+			join7(Node, [client | Acc]);
 		{aborted, Reason} ->
 			error_logger:error_report([mnesia:error_description(Reason),
 				{error, Reason}]),
@@ -997,6 +1011,9 @@ join7(Node, Acc) ->
 	case rpc:call(Node, mnesia, add_table_copy, [service, node(), disc_copies]) of
 		{atomic, ok} ->
 			error_logger:info_msg("Copied service table from ~s.~n", [Node]),
+			join8(Node, [service | Acc]);
+		{aborted, {already_exists, service, _}} ->
+			error_logger:info_msg("Found existing service table on ~s.~n", [Node]),
 			join8(Node, [service | Acc]);
 		{aborted, Reason} ->
 			error_logger:error_report([mnesia:error_description(Reason),
@@ -1009,6 +1026,9 @@ join8(Node, Acc) ->
 		{atomic, ok} ->
 			error_logger:info_msg("Copied offer table from ~s.~n", [Node]),
 			join9(Node, [offer | Acc]);
+		{aborted, {already_exists, offer, _}} ->
+			error_logger:info_msg("Found existing offer table on ~s.~n", [Node]),
+			join9(Node, [offer | Acc]);
 		{aborted, Reason} ->
 			error_logger:error_report([mnesia:error_description(Reason),
 				{error, Reason}]),
@@ -1019,6 +1039,9 @@ join9(Node, Acc) ->
 	case rpc:call(Node, mnesia, add_table_copy, [product, node(), disc_copies]) of
 		{atomic, ok} ->
 			error_logger:info_msg("Copied product table from ~s.~n", [Node]),
+			join10(Node, [product | Acc]);
+		{aborted, {already_exists, product, _}} ->
+			error_logger:info_msg("Found existing product table on ~s.~n", [Node]),
 			join10(Node, [product | Acc]);
 		{aborted, Reason} ->
 			error_logger:error_report([mnesia:error_description(Reason),
@@ -1031,6 +1054,9 @@ join10(Node, Acc) ->
 		{atomic, ok} ->
 			error_logger:info_msg("Copied resource table from ~s.~n", [Node]),
 			join11(Node, [resource | Acc]);
+		{aborted, {already_exists, resource, _}} ->
+			error_logger:info_msg("Found existing resource table on ~s.~n", [Node]),
+			join11(Node, [resource | Acc]);
 		{aborted, Reason} ->
 			error_logger:error_report([mnesia:error_description(Reason),
 				{error, Reason}]),
@@ -1041,6 +1067,9 @@ join11(Node, Acc) ->
 	case rpc:call(Node, mnesia, add_table_copy, [bucket, node(), disc_copies]) of
 		{atomic, ok} ->
 			error_logger:info_msg("Copied bucket table from ~s.~n", [Node]),
+			join12(Node, [bucket | Acc]);
+		{aborted, {already_exists, bucket, _}} ->
+			error_logger:info_msg("Found existing bucket table on ~s.~n", [Node]),
 			join12(Node, [bucket | Acc]);
 		{aborted, Reason} ->
 			error_logger:error_report([mnesia:error_description(Reason),
@@ -1053,6 +1082,9 @@ join12(Node, Acc) ->
 		{atomic, ok} ->
 			error_logger:info_msg("Copied httpd_user table from ~s.~n", [Node]),
 			join13(Node, [httpd_user | Acc]);
+		{aborted, {already_exists, httpd_user, _}} ->
+			error_logger:info_msg("Found existing httpd_user table on ~s.~n", [Node]),
+			join13(Node, [httpd_user | Acc]);
 		{aborted, Reason} ->
 			error_logger:error_report([mnesia:error_description(Reason),
 				{error, Reason}]),
@@ -1063,6 +1095,9 @@ join13(Node, Acc) ->
 	case rpc:call(Node, mnesia, add_table_copy, [httpd_group, node(), disc_copies]) of
 		{atomic, ok} ->
 			error_logger:info_msg("Copied httpd_group table from ~s.~n", [Node]),
+			join14(Node, [httpd_group | Acc]);
+		{aborted, {already_exists, httpd_group, _}} ->
+			error_logger:info_msg("Found existing httpd_group table on ~s.~n", [Node]),
 			join14(Node, [httpd_group | Acc]);
 		{aborted, Reason} ->
 			error_logger:error_report([mnesia:error_description(Reason),
@@ -1075,6 +1110,9 @@ join14(Node, Acc) ->
 		{atomic, ok} ->
 			error_logger:info_msg("Copied session table from ~s.~n", [Node]),
 			join15(Node, [session | Acc]);
+		{aborted, {already_exists, session, _}} ->
+			error_logger:info_msg("Found existing session table on ~s.~n", [Node]),
+			join15(Node, [session | Acc]);
 		{aborted, Reason} ->
 			error_logger:error_report([mnesia:error_description(Reason),
 				{error, Reason}]),
@@ -1086,13 +1124,16 @@ join15(Node, Acc) ->
 		{atomic, ok} ->
 			error_logger:info_msg("Copied nrf_ref table from ~s.~n", [Node]),
 			join16(Node, [nrf_ref | Acc]);
+		{aborted, {already_exists, nrf_ref, _}} ->
+			error_logger:info_msg("Found existing nrf_ref table on ~s.~n", [Node]),
+			join16(Node, [nrf_ref | Acc]);
 		{aborted, Reason} ->
 			error_logger:error_report([mnesia:error_description(Reason),
 				{error, Reason}]),
 			{error, Reason}
 	end.
 %% @hidden
-join16(Node, Tables) ->
+join16(_Node, Tables) ->
 	case mnesia:wait_for_tables(lists:reverse(Tables), ?WAITFORTABLES) of
 		ok ->
 			{ok, Tables};
