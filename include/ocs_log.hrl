@@ -19,15 +19,15 @@
 
 %% Authorization event
 -type auth_event() :: {
-		Timestamp :: pos_integer(),
-		N :: pos_integer(),
-		Protocol :: radius | diameter,
+		Timestamp :: ocs_log:timestamp(),
+		N :: ocs_log:unique(),
+		Protocol :: ocs_log:protocol(),
 		Node :: atom(),
-		Server :: {inet:ip_address(), inet:port_number()},
-		Client :: {inet:ip_address(), inet:port_number()},
-		Type :: atom(),
-		RequestAttributes :: radius_attributes:attributes(),
-		ResponseAttributes :: radius_attributes:attributes()}.
+		Server :: ocs_log:server(),
+		Client :: ocs_log:server(),
+		Type :: ocs_log:auth_type(),
+		RequestAttributes :: ocs_log:auth_request(),
+		ResponseAttributes :: ocs_log:auth_response()}.
 
 -record(rated,
 		{bucket_value :: non_neg_integer() | undefined | '_',
@@ -46,14 +46,15 @@
 
 %% Accounting event
 -type acct_event() :: {
-		Timestamp :: pos_integer(),
-		N :: pos_integer(),
-		Protocol :: radius | diameter,
+		Timestamp :: ocs_log:timestamp(),
+		N :: ocs_log:unique(),
+		Protocol :: ocs_log:protocol(),
 		Node :: atom(),
-		Server :: {inet:ip_address(), inet:port_number()},
-		Type :: atom(),
-		ReqAttrs :: radius_attributes:attributes(),
-		RespAttrs :: radius_attributes:attributes(),
+		Server :: ocs_log:server(),
+		Client :: ocs_log:server(),
+		Type :: ocs_log:acct_type(),
+		RequestAttributes :: ocs_log:acct_request(),
+		ResponseAttributes :: ocs_log:acct_response(),
 		Rated :: [#rated{}]}.
 
 %% REST API event
@@ -67,9 +68,12 @@
 
 %% Account Balance event
 -type abmf_event() :: {
-		Timestamp :: pos_integer(),
-		N :: pos_integer(),
+		Timestamp :: ocs_log:timestamp(),
+		N :: ocs_log:unique(),
+		Protocol :: ocs_log:protocol(),
 		Node :: atom(),
+		Server :: ocs_log:server(),
+		Client :: ocs_log:server(),
 		Type :: deduct | reserve | unreserve | transfer | topup | adjustment,
 		Subscriber :: binary(),
 		Bucket :: undefined | string(),

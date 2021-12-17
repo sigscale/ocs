@@ -125,16 +125,10 @@ initial_nrf(NrfRequest) ->
 					start, LogRequest, LogResponse, undefined),
 			{ok, Headers, ReponseBody};
 		{error, StatusCode, Problem1, {DiameterRequest, DiameterReply}} ->
-			error_logger:warning_report(["Rating Error",
-					{RatingDataRef, ratingDataRef}, {request, NrfRequest}, {flag, start},
-					{error, charging_failed}]),
 			ok = ocs_log:acct_log(diameter, server(),
 					start, DiameterRequest, DiameterReply, undefined),
 			{error, StatusCode, Problem1};
 		{error, Reason1, {DiameterRequest, DiameterReply}} ->
-			error_logger:warning_report(["Rating Error",
-					{RatingDataRef, ratingDataRef}, {request, NrfRequest}, {flag, start},
-					{error, Reason1}]),
 			ok = ocs_log:acct_log(diameter, server(),
 					start, DiameterRequest, DiameterReply, undefined),
 			{error, 500}
@@ -167,14 +161,8 @@ update_nrf(RatingDataRef, NrfRequest) ->
 			InvalidParams = [#{param => "{" ++ RatingDataRef ++ "}",
 					reason => "Unknown rating data reference"}],
 			Problem = rest_error_response(unknown_ref, InvalidParams),
-			error_logger:warning_report(["Unable to process DIAMETER Nrf request",
-					{RatingDataRef, ratingDataRef}, {request, NrfRequest}, {flag, update},
-					{error, unknown_ref}]),
 			{error, 404, Problem};
 		{error, Reason} ->
-			error_logger:warning_report(["Unable to process DIAMETER Nrf request",
-					{RatingDataRef, ratingDataRef}, {request, NrfRequest}, {flag, interim},
-					{error, Reason}]),
 			{error, 500}
 	end.
 update_nrf1(RatingDataRef, NrfRequest) ->
@@ -222,16 +210,10 @@ update_nrf1(RatingDataRef, NrfRequest) ->
 					start, LogRequest, LogResponse, undefined),
 			{200, [], ReponseBody };
 		{error, StatusCode, Problem1, {DiameterRequest, DiameterReply}} ->
-			error_logger:warning_report(["Rating Error",
-					{RatingDataRef, ratingDataRef}, {request, NrfRequest}, {flag, interim},
-					{error, charging_failed}]),
 			ok = ocs_log:acct_log(diameter, server(),
 					update, DiameterRequest, DiameterReply, undefined),
 			{error, StatusCode, Problem1};
 		{error, Reason1, {DiameterRequest, DiameterReply}} ->
-			error_logger:warning_report(["Rating Error",
-					{RatingDataRef, ratingDataRef}, {request, NrfRequest}, {flag, interim},
-					{error, Reason1}]),
 			ok = ocs_log:acct_log(diameter, server(),
 					update, DiameterRequest, DiameterReply, undefined),
 			{error, 500}
@@ -266,14 +248,8 @@ release_nrf(RatingDataRef, NrfRequest) ->
 			InvalidParams = [#{param => "{" ++ RatingDataRef ++ "}",
 					reason => "Unknown rating data reference"}],
 			Problem = rest_error_response(unknown_ref, InvalidParams),
-			error_logger:warning_report(["Unable to process DIAMETER Nrf request",
-					{RatingDataRef, ratingDataRef}, {request, NrfRequest},
-					{error, unknown_ref}]),
 			{error, 404, Problem};
 		{error, Reason} ->
-			error_logger:warning_report(["Unable to process DIAMETER Nrf request",
-					{RatingDataRef, ratingDataRef}, {request, NrfRequest},
-					{error, Reason}]),
 			{error, 500}
 	end.
 release_nrf1(RatingDataRef, NrfRequest) ->
@@ -322,16 +298,10 @@ release_nrf1(RatingDataRef, NrfRequest) ->
 					start, LogRequest, LogResponse, undefined),
 			{200, [], ReponseBody};
 		{error, StatusCode, Problem1, {DiameterRequest, DiameterReply}} ->
-			error_logger:warning_report(["Rating Error",
-					{RatingDataRef, ratingDataRef}, {request, NrfRequest}, {flag, final},
-					{error, charging_failed}]),
 			ok = ocs_log:acct_log(diameter, server(),
 					stop, DiameterRequest, DiameterReply, undefined),
 			{error, StatusCode, Problem1};
 		{error, Reason1, {DiameterRequest, DiameterReply}} ->
-			error_logger:warning_report(["Rating Error",
-					{RatingDataRef, ratingDataRef}, {request, NrfRequest}, {flag, final},
-					{error, Reason1}]),
 			ok = ocs_log:acct_log(diameter, server(),
 					stop, DiameterRequest, DiameterReply, undefined),
 			{error, 500}
