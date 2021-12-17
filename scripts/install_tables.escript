@@ -1,6 +1,5 @@
 #!/usr/bin/env escript
 %% vim: syntax=erlang
-%%! -sname ocs-kusal -config sys
 
 main([]) ->
 	case catch mnesia:system_info(db_nodes) of
