@@ -23,6 +23,8 @@
 
 -include_lib("inets/include/httpd.hrl").
 
+-define(MINIMUM_RESERVATION, 5000).
+
 -spec do(ModData) -> Result when
 	ModData :: #mod{},
 	Result :: {proceed, OldData} | {proceed, NewData} | {break, NewData} | done,
@@ -164,7 +166,7 @@ service_rating_b([{_, Attributes} | T], Acc) ->
 		{_, "RESERVE"} ->
 			case lists:keyfind("requestedUnit", 1, Attributes) of
 				false ->
-					[{"grantedUnit", {struct, [{"totalVolume", 5000}]}},
+					[{"grantedUnit", {struct, [{"totalVolume", ?MINIMUM_RESERVATION}]}},
 							{"resultCode", "SUCCESS"} | NewAttributes3] ;
 				{"requestedUnit", {struct, RequestedUnits}} ->
 					[{"grantedUnit", {struct, RequestedUnits}},
@@ -254,5 +256,6 @@ get_tariff([{_, "32274@3gpp.org"}]) ->
 		{"rateElement",
 		{array, [{struct,
 				[{"unitType", "SERVICE_SPECIFIC_UNITS"},
-				{"unitSize", {struct, [{"valueDigits", 5}, {"exponent", -10}]}}]}]}}]}.
+				{"unitSize", {struct, [{"valueDigits", 1000000}]}},
+				{"unitCost", {struct, [{"valueDigits", 5}, {"exponent", -10}]}}]}]}}]}.
 
