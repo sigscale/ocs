@@ -593,13 +593,14 @@ process_request1(?'3GPP_CC-REQUEST-TYPE_UPDATE_REQUEST' = RequestType,
 						{struct, RatedStruct} = mochijson:decode(JSON),
 						{_, {_, ServiceElements}} = lists:keyfind("serviceRating", 1, RatedStruct),
 						{ServiceRating, _} = map_service_rating(ServiceElements, SessionId),
+						ok = insert_ref(SessionId, ServiceRating, PLA),
 						{ok, PLA, match_tariff(ServiceRating, Amounts1), MSCC2}
 				end;
 			{error, Reason} ->
 				{error, Reason}
 		end,
 		case Price of
-			{ok, PLA1, Prices1, MSCC3} ->
+			{ok, _PLA1, Prices1, MSCC3} ->
 				case charge(Subscribers, SessionId, interim, Prices1) of
 					{ok, NewMSCC1, ResultCode1} ->
 						Container = build_container(MSCC1),
@@ -750,6 +751,7 @@ process_request1(?'3GPP_CC-REQUEST-TYPE_TERMINATION_REQUEST' = RequestType,
 						{struct, RatedStruct} = mochijson:decode(JSON),
 						{_, {_, ServiceElements}} = lists:keyfind("serviceRating", 1, RatedStruct),
 						{ServiceRating, _} = map_service_rating(ServiceElements, SessionId),
+						ok = insert_ref(SessionId, ServiceRating, PLA),
 						{ok, PLA, match_tariff(ServiceRating, Amounts1), MSCC2}
 				end;
 			{error, Reason} ->
@@ -764,7 +766,7 @@ process_request1(?'3GPP_CC-REQUEST-TYPE_TERMINATION_REQUEST' = RequestType,
 				ok = ocs_log:acct_log(diameter, Server,
 						accounting_event_type(RequestType), Request, Reply, Rated1),
 				Reply;
-			{ok, PLA1, Prices1, MSCC3} ->
+			{ok, _PLA1, Prices1, MSCC3} ->
 				case charge(Subscribers, SessionId, final, Prices1) of
 					{ok, NewMSCC1, ResultCode1} ->
 						Container = build_container(MSCC1),
@@ -2334,8 +2336,6 @@ match_tariff(Tariffs, [H | T], Acc) ->
 							"unitPrice" => UnitPrice, "debits" => Debits,
 							"reserves" => Reserves};
 			F([H1 | T1], MSCC) ->
-erlang:display({?MODULE, ?LINE, H1}),
-erlang:display({?MODULE, ?LINE, MSCC}),
 				F(T1, MSCC);
 			F([], _MSCC) ->
 				{error, missing_tariff}
