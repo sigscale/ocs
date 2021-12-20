@@ -11,7 +11,7 @@ systemdsystemunit_DATA = scripts/ocs.service
 env_DATA = scripts/ocs
 endif
 
-script_SCRIPTS = scripts/send_sms
+script_SCRIPTS = scripts/send_sms.escript 
 
 .PHONY: release
 release:	$(PACKAGE_VERSION).tar.gz
