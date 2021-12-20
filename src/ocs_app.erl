@@ -301,9 +301,9 @@ start10() ->
 
 -spec install() -> Result
 	when
-		Result :: {ok, Tables},
-		Tables :: [atom()].
-
+		Result :: {ok, Tables} | {error, Reason},
+		Tables :: [atom()],
+		Reason :: term().
 %% @equiv install([node() | nodes()])
 install() ->
 	Nodes = [node() | nodes()],
