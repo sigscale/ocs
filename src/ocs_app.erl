@@ -303,6 +303,7 @@ start10() ->
 	when
 		Result :: {ok, Tables},
 		Tables :: [atom()].
+
 %% @equiv install([node() | nodes()])
 install() ->
 	Nodes = [node() | nodes()],
@@ -497,6 +498,7 @@ install7(Nodes, Acc) ->
 				{error, Reason}]),
 			{error, Reason}
 	end.
+%% @hidden
 install8(Nodes, Acc) ->
 	case mnesia:create_table(bucket, [{disc_copies, Nodes},
 			{attributes, record_info(fields, bucket)}]) of
@@ -735,7 +737,7 @@ stop(_State) ->
 		Removed :: [Par],
 		Par :: atom(),
 		Val :: atom().
-%% @doc Called after a code  replacement, if there are any 
+%% @doc Called after a code  replacement, if there are any
 %% 	changes to the configuration  parameters.
 %%
 config_change(_Changed, _New, _Removed) ->
@@ -921,7 +923,7 @@ add_example_bundles3(PriceInstall) ->
 		Reason :: term().
 %% @doc Join an existing cluster.
 %%
-%% 	Tables will be copied from a given `Node'.
+%% 	Tables will be copied from the given `Node'.
 %%
 join(Node) when is_atom(Node)  ->
 	case mnesia:system_info(is_running) of
