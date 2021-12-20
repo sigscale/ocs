@@ -61,11 +61,18 @@ start(normal = _StartType, _Args) ->
 		ok ->
 			start1();
 		{timeout, BadTabList} ->
-			case force(BadTabList) of
+			case create_table(BadTabList) of
 				ok ->
-					start1();
+					case force(BadTabList) of
+						ok ->
+							start1();
+						{error, Reason} ->
+							error_logger:error_report(["ocs application failed to"
+									" start", {reason, Reason}, {module, ?MODULE}]),
+							{error, Reason}
+					end;
 				{error, Reason} ->
-					error_logger:error_report(["ocs application failed to start",
+					error_logger:error_report(["failed to create missing tables",
 							{reason, Reason}, {module, ?MODULE}]),
 					{error, Reason}
 			end;
@@ -1245,6 +1252,23 @@ add_example_bundles3(PriceInstall) ->
 			{error, Reason}
 	end.
 
+-spec create_table(Tables) -> Result
+	when
+		Tables :: [atom()],
+		Result :: ok | {error, Reason},
+		Reason :: term().
+%% @doc Create missing tables.
+%% @private
+create_table([Table | Tables]) when is_atom(Table) ->
+	case create_table(Table, mnesia:system_info(db_nodes)) of
+		ok ->
+			create_table(Tables);
+		{error, Reason} ->
+			{error, Reason}
+	end;
+create_table([]) ->
+	ok.
+
 -spec create_table(Table, Nodes) -> Result
 	when
 		Table :: atom(),
@@ -1254,38 +1278,40 @@ add_example_bundles3(PriceInstall) ->
 %% @doc Create missing table.
 %% @private
 create_table(client, Nodes) when is_list(Nodes) ->
-	create_table(mnesia:create_table(client, [{disc_copies, Nodes},
+	create_table1(mnesia:create_table(client, [{disc_copies, Nodes},
 			{attributes, record_info(fields, client)}]));
 create_table(service, Nodes) when is_list(Nodes) ->
-	create_table(mnesia:create_table(service, [{disc_copies, Nodes},
+	create_table1(mnesia:create_table(service, [{disc_copies, Nodes},
 			{attributes, record_info(fields, service)}]));
 create_table(product, Nodes) when is_list(Nodes) ->
-	create_table(mnesia:create_table(product, [{disc_copies, Nodes},
+	create_table1(mnesia:create_table(product, [{disc_copies, Nodes},
 			{attributes, record_info(fields, product)}]));
 create_table(resource, Nodes) when is_list(Nodes) ->
-	create_table(mnesia:create_table(resource, [{disc_copies, Nodes},
+	create_table1(mnesia:create_table(resource, [{disc_copies, Nodes},
 			{attributes, record_info(fields, resource)}]));
 create_table(offer, Nodes) when is_list(Nodes) ->
-	create_table(mnesia:create_table(offer, [{disc_copies, Nodes},
+	create_table1(mnesia:create_table(offer, [{disc_copies, Nodes},
 			{attributes, record_info(fields, offer)}]));
 create_table(bucket, Nodes) when is_list(Nodes) ->
-	create_table(mnesia:create_table(bucket, [{disc_copies, Nodes},
+	create_table1(mnesia:create_table(bucket, [{disc_copies, Nodes},
 			{attributes, record_info(fields, bucket)}]));
 create_table(httpd_user, Nodes) when is_list(Nodes) ->
-	create_table(mnesia:create_table(httpd_user, [{disc_copies, Nodes},
+	create_table1(mnesia:create_table(httpd_user, [{disc_copies, Nodes},
 			{attributes, record_info(fields, httpd_user)}]));
 create_table(httpd_group, Nodes) when is_list(Nodes) ->
-	create_table(mnesia:create_table(httpd_group, [{disc_copies, Nodes},
+	create_table1(mnesia:create_table(httpd_group, [{disc_copies, Nodes},
 			{attributes, record_info(fields, httpd_group)}]));
 create_table(session, Nodes) ->
-	create_table(mnesia:create_table(session, [{ram_copies, Nodes},
+	create_table1(mnesia:create_table(session, [{ram_copies, Nodes},
 			{attributes, record_info(fields, session)}]));
 create_table(nrf_ref, Nodes) ->
-	create_table(mnesia:create_table(nrf_ref, [{ram_copies, Nodes},
+	create_table1(mnesia:create_table(nrf_ref, [{ram_copies, Nodes},
 			{attributes, record_info(fields, nrf_ref)}])).
 %% @hidden
-create_table({atomic, ok}) ->
+create_table1({atomic, ok}) ->
 	ok;
-create_table({aborted, Reason}) ->
+create_table1({aborted, {already_exists, resource}}) ->
+	ok;
+create_table1({aborted, Reason}) ->
 	{error, Reason}.
 
