@@ -50,7 +50,7 @@
                     },
                     "invocationTimeStamp" : "2020-12-13T15:28:32.123Z",
                     "invocationSequenceNumber" : 1,
-                    "actualTime" : "2020-12-13T15:28:32Z",
+                    "beginTimeStamp" : "2020-12-13T15:28:32Z",
                     "subscriptionId" : [ "msisdn-14165551234", "imsi-001001000000001" ],
                     "oneTimeEvent" : true,
                     "oneTimeEventType" : "IEC",
@@ -74,7 +74,7 @@
                     },
                     "invocationTimeStamp" : "2020-12-13T15:28:32.123Z",
                     "invocationSequenceNumber" : 1,
-                    "actualTime" : "2020-12-13T15:28:32Z",
+                    "beginTimeStamp" : "2020-12-13T15:28:32Z",
                     "subscriptionId" : [ "msisdn-14165551234", "imsi-001001000000001" ],
                     "oneTimeEvent" : true,
                     "oneTimeEventType" : "PEC",
@@ -97,7 +97,7 @@
                     },
                     "invocationTimeStamp" : "2020-12-13T15:28:32.123Z",
                     "invocationSequenceNumber" : 1,
-                    "actualTime" : "2020-12-13T15:28:32Z",
+                    "beginTimeStamp" : "2020-12-13T15:28:32Z",
                     "subscriptionId" : [ "msisdn-14165551234", "imsi-001001000000001" ],
                     "oneTimeEvent" : true,
                     "oneTimeEventType" : "PEC",
@@ -124,7 +124,7 @@
                     },
                     "invocationTimeStamp" : "2020-12-13T15:28:32.123Z",
                     "invocationSequenceNumber" : 1,
-                    "actualTime" : "2020-12-13T15:28:32Z",
+                    "beginTimeStamp" : "2020-12-13T15:28:32Z",
                     "subscriptionId" : [ "msisdn-14165551234", "imsi-001001000000001" ],
                     "serviceRating" : [ {
                       "serviceContextId" : "32251@3gpp.org",
@@ -146,7 +146,7 @@
                     },
                     "invocationTimeStamp" : "2020-12-13T15:28:32.123Z",
                     "invocationSequenceNumber" : 1,
-                    "actualTime" : "2020-12-13T15:28:32Z",
+                    "beginTimeStamp" : "2020-12-13T15:28:32Z",
                     "subscriptionId" : [ "msisdn-14165551234", "imsi-001001000000001" ],
                     "serviceRating" : [ {
                       "serviceContextId" : "32251@3gpp.org",
@@ -170,7 +170,7 @@
                     },
                     "invocationTimeStamp" : "2020-12-13T15:28:32.123Z",
                     "invocationSequenceNumber" : 1,
-                    "actualTime" : "2020-12-13T15:28:32Z",
+                    "beginTimeStamp" : "2020-12-13T15:28:32Z",
                     "subscriptionId" : [ "msisdn-14165551234", "imsi-001001000000001" ],
                     "serviceRating" : [ {
                       "serviceContextId" : "32276@3gpp.org",
@@ -502,7 +502,7 @@
                     },
                     "invocationTimeStamp" : "2020-12-13T15:33:10.203Z",
                     "invocationSequenceNumber" : 2,
-                    "actualTime" : "2020-12-13T15:33:10Z",
+                    "beginTimeStamp" : "2020-12-13T15:33:10Z",
                     "serviceRating" : [ {
                       "serviceContextId" : "32251@3gpp.org",
                       "serviceId" : 1,
@@ -645,7 +645,7 @@
                     },
                     "invocationTimeStamp" : "2020-12-13T15:38:45.490Z",
                     "invocationSequenceNumber" : 2,
-                    "actualTime" : "2020-12-13T15:38:45Z",
+                    "beginTimeStamp" : "2020-12-13T15:38:45Z",
                     "oneTimeEvent" : true,
                     "oneTimeEventType" : "PEC",
                     "serviceRating" : [ {
@@ -670,7 +670,7 @@
                     },
                     "invocationTimeStamp" : "2020-12-13T15:38:45.490Z",
                     "invocationSequenceNumber" : 3,
-                    "actualTime" : "2020-12-13T15:38:45Z",
+                    "beginTimeStamp" : "2020-12-13T15:38:45Z",
                     "serviceRating" : [ {
                       "serviceContextId" : "32251@3gpp.org",
                       "serviceId" : 1,
@@ -1083,7 +1083,7 @@
             }
           },
           "tariffSwitchTime" : {
-            "description" : "Time period in seconds from the time included in actualTime of the request until the next tariff switch occurs. A value \"0\" means, that the tariff switch occurs immediately, i.e. the tariff information contained in nextMonetaryTariff is valid immediately.",
+            "description" : "Time period in seconds from the time included in beginTimeStamp of the request until the next tariff switch occurs. A value \"0\" means, that the tariff switch occurs immediately, i.e. the tariff information contained in nextMonetaryTariff is valid immediately.",
             "allOf" : [ {
               "$ref" : "https://api.swaggerhub.com/domains/SigScale/TS29571_CommonData/1.2.1#/components/schemas/Uint32"
             } ]
@@ -1101,7 +1101,7 @@
             } ]
           },
           "expiryTime" : {
-            "description" : "Time period in seconds from the time in actualTime of the request until the expiration of all tariff information contained in this response message. This attribute may be used e.g. if multiple tariff switches are foreseen, or if interworking between limited valid units and tariff switches needs to be ensured.",
+            "description" : "Time period in seconds from the time in beginTimeStamp of the request until the expiration of all tariff information contained in this response message. This attribute may be used e.g. if multiple tariff switches are foreseen, or if interworking between limited valid units and tariff switches needs to be ensured.",
             "allOf" : [ {
               "$ref" : "https://api.swaggerhub.com/domains/SigScale/TS29571_CommonData/1.2.1#/components/schemas/Uint32"
             } ]
