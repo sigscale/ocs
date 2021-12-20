@@ -430,9 +430,9 @@ process_request1(?'3GPP_CC-REQUEST-TYPE_INITIAL_REQUEST' = RequestType,
 		Amounts = get_mscc(MSCC1),
 		RfResponse = case rate(ServiceType, ServiceNetwork, Subscribers, Timestamp,
 				Address, Direction, initial, SessionId, Amounts) of
-			{{MSCC2, ResultCode}, [], []} ->
-				{ok, MSCC2, ResultCode};
-			{{MSCC2, _}, PLA, Amounts1} when is_list(MSCC2), length(PLA) > 0 ->
+			{{MSCC2, ResultCode, undefined}, [], []} ->
+				{ok, MSCC2, ResultCode, undefined};
+			{{MSCC2, _, undefined}, PLA, Amounts1} when is_list(MSCC2), length(PLA) > 0 ->
 				case ServiceType of
 					32251 ->
 						{ok, JSON} = post_request_scur(Server, Subscribers, SvcContextId,
@@ -451,7 +451,7 @@ process_request1(?'3GPP_CC-REQUEST-TYPE_INITIAL_REQUEST' = RequestType,
 				{struct, RatedStruct} = mochijson:decode(JSON1),
 				{_, {_, ServiceElements}} = lists:keyfind("serviceRating", 1, RatedStruct),
 				{ServiceRating, _} = map_service_rating(ServiceElements, SessionId),
-				case charge(Subscribers, ServiceRating, Amounts2, SessionId, initial) of
+				case charge(Subscribers, SessionId, initial, match_tariff(ServiceRating, Amounts2)) of
 					{ok, NewMSCC1, ResultCode1} ->
 						Container = build_container(MSCC1),
 						NewMSCC3 = build_mscc(NewMSCC1 ++ MSCC3, Container),
@@ -475,7 +475,7 @@ process_request1(?'3GPP_CC-REQUEST-TYPE_INITIAL_REQUEST' = RequestType,
 							accounting_event_type(RequestType), Request, Reply, undefined),
 						Reply
 				end;
-			{ok, MSCC3, ResultCode1} ->
+			{ok, MSCC3, ResultCode1, undefined} ->
 				Container = build_container(MSCC1),
 				NewMSCC3 = build_mscc(MSCC3, Container),
 				Reply = diameter_answer(SessionId, NewMSCC3, ResultCode1,
@@ -565,6 +565,7 @@ process_request1(?'3GPP_CC-REQUEST-TYPE_UPDATE_REQUEST' = RequestType,
 		{Direction, Address} = direction_address(ServiceInformation),
 		ServiceNetwork = service_network(ServiceInformation),
 		ServiceType = service_type(SvcContextId),
+		Destination = get_destination(ServiceInformation),
 		Timestamp = case EventTimestamp of
 			[{{_, _, _}, {_, _, _}} = TS] ->
 				TS;
@@ -572,18 +573,35 @@ process_request1(?'3GPP_CC-REQUEST-TYPE_UPDATE_REQUEST' = RequestType,
 				calendar:universal_time()
 		end,
 		Amounts = get_mscc(MSCC1),
-		RfResponse = case rate(ServiceType, ServiceNetwork, Subscribers, Timestamp,
+		Price = case rate(ServiceType, ServiceNetwork, Subscribers, Timestamp,
 				Address, Direction, interim, SessionId, Amounts) of
-			{{MSCC2, ResultCode}, [], []} ->
+			{{MSCC2, ResultCode, undefined}, [], []} ->
 				{ok, MSCC2, ResultCode};
-			{{MSCC2, _ResultCode}, PLA, Amounts1} ->
-				{ok, get_ref(SessionId), PLA, Amounts1, MSCC2};
+			{{MSCC2, _ResultCode, undefined}, PLA, Amounts1} ->
+				case match_tariff(get_ref(SessionId), Amounts1) of
+					Prices when is_list(Prices) ->
+						{ok, PLA, Prices, MSCC2};
+					{error, missing_tariff} ->
+						{ok, JSON} = case ServiceType of
+							32251 ->
+								post_request_scur(Server, Subscribers, SvcContextId,
+										SessionId, PLA, Amounts1, [], {initial, a});
+							Id when Id == 32260; Id == 32274 ->
+								post_request_ecur(Server, Subscribers, SvcContextId,
+										SessionId, PLA, Amounts1, [], Destination, {initial, a})
+						end,
+						{struct, RatedStruct} = mochijson:decode(JSON),
+						{_, {_, ServiceElements}} = lists:keyfind("serviceRating", 1, RatedStruct),
+						{ServiceRating, _} = map_service_rating(ServiceElements, SessionId),
+						ok = insert_ref(SessionId, ServiceRating, PLA),
+						{ok, PLA, match_tariff(ServiceRating, Amounts1), MSCC2}
+				end;
 			{error, Reason} ->
 				{error, Reason}
 		end,
-		case RfResponse of
-			{ok, ServiceRating, PLA1, Amounts2, MSCC3} ->
-				case charge(Subscribers, ServiceRating, Amounts2, SessionId, interim) of
+		case Price of
+			{ok, _PLA1, Prices1, MSCC3} ->
+				case charge(Subscribers, SessionId, interim, Prices1) of
 					{ok, NewMSCC1, ResultCode1} ->
 						Container = build_container(MSCC1),
 						NewMSCC3 = build_mscc(NewMSCC1 ++ MSCC3, Container),
@@ -704,6 +722,7 @@ process_request1(?'3GPP_CC-REQUEST-TYPE_TERMINATION_REQUEST' = RequestType,
 		Server = {IpAddress, Port},
 		{Direction, Address} = direction_address(ServiceInformation),
 		ServiceNetwork = service_network(ServiceInformation),
+		Destination = get_destination(ServiceInformation),
 		ServiceType = service_type(SvcContextId),
 		Timestamp = case EventTimestamp of
 			[{{_, _, _}, {_, _, _}} = TS] ->
@@ -714,20 +733,41 @@ process_request1(?'3GPP_CC-REQUEST-TYPE_TERMINATION_REQUEST' = RequestType,
 		Amounts = get_mscc(MSCC1),
 		RfResponse = case rate(ServiceType, ServiceNetwork, Subscribers, Timestamp,
 				Address, Direction, final, SessionId, Amounts) of
-			{{MSCC2, ResultCode}, [], []} ->
-				{ok, MSCC2, ResultCode};
-			{{MSCC2, ResultCode, _}, [], []} ->
-				{ok, MSCC2, ResultCode};
-			{{MSCC2, _}, PLA, Amounts1} when is_list(MSCC2) ->
-				{ok, get_ref(SessionId), PLA, Amounts1, MSCC2};
+			{{MSCC2, ResultCode, Rated}, [], []} ->
+				{ok, MSCC2, ResultCode, Rated};
 			{{MSCC2, _, _}, PLA, Amounts1} ->
-				{ok, get_ref(SessionId), PLA, Amounts1, MSCC2};
+				case match_tariff(get_ref(SessionId), Amounts1) of
+					Prices when is_list(Prices) ->
+						{ok, PLA, Prices, MSCC2};
+					{error, missing_tariff} ->
+						{ok, JSON} = case ServiceType of
+							32251 ->
+								post_request_scur(Server, Subscribers, SvcContextId,
+										SessionId, PLA, Amounts1, [], {initial, a});
+							Id when Id == 32260; Id == 32274 ->
+								post_request_ecur(Server, Subscribers, SvcContextId,
+										SessionId, PLA, Amounts1, [], Destination, {initial, a})
+						end,
+						{struct, RatedStruct} = mochijson:decode(JSON),
+						{_, {_, ServiceElements}} = lists:keyfind("serviceRating", 1, RatedStruct),
+						{ServiceRating, _} = map_service_rating(ServiceElements, SessionId),
+						ok = insert_ref(SessionId, ServiceRating, PLA),
+						{ok, PLA, match_tariff(ServiceRating, Amounts1), MSCC2}
+				end;
 			{error, Reason} ->
 				{error, Reason}
 		end,
 		case RfResponse of
-			{ok, ServiceRating, PLA1, Amounts2, MSCC3} ->
-				case charge(Subscribers, ServiceRating, Amounts2, SessionId, final) of
+			{ok, MSCC3, ResultCode1, [#rated{}| _] = Rated1} ->
+				Container = build_container(MSCC1),
+				NewMSCC = build_mscc(MSCC3, Container),
+				Reply = diameter_answer(SessionId, NewMSCC, ResultCode1,
+						OHost, ORealm, RequestType, RequestNum),
+				ok = ocs_log:acct_log(diameter, Server,
+						accounting_event_type(RequestType), Request, Reply, Rated1),
+				Reply;
+			{ok, _PLA1, Prices1, MSCC3} ->
+				case charge(Subscribers, SessionId, final, Prices1) of
 					{ok, NewMSCC1, ResultCode1} ->
 						Container = build_container(MSCC1),
 						NewMSCC3 = build_mscc(NewMSCC1 ++ MSCC3, Container),
@@ -751,14 +791,6 @@ process_request1(?'3GPP_CC-REQUEST-TYPE_TERMINATION_REQUEST' = RequestType,
 								accounting_event_type(RequestType), Request, Reply, undefined),
 						Reply
 				end;
-			{ok, MSCC3, ResultCode1} ->
-				Container = build_container(MSCC1),
-				NewMSCC = build_mscc(MSCC3, Container),
-				Reply = diameter_answer(SessionId, NewMSCC, ResultCode1,
-						OHost, ORealm, RequestType, RequestNum),
-				ok = ocs_log:acct_log(diameter, Server,
-						accounting_event_type(RequestType), Request, Reply, undefined),
-				Reply;
 			{error, Reason2} ->
 				error_logger:error_report(["Rating Error",
 						{module, ?MODULE}, {error, Reason2},
@@ -1280,8 +1312,13 @@ build_mscc([H | T], Container) ->
 					_ ->
 						MSCC3
 				end,
-				MSCC5 = MSCC4#'3gpp_ro_Multiple-Services-Credit-Control'{'Result-Code' = [RC]},
-				lists:reverse(T1) ++ [MSCC5] ++ Acc;
+				case MSCC4 of
+					#'3gpp_ro_Multiple-Services-Credit-Control'{'Granted-Service-Unit' = []} ->
+						lists:reverse(T1) ++ Acc;
+					_ ->
+						MSCC5 = MSCC4#'3gpp_ro_Multiple-Services-Credit-Control'{'Result-Code' = [RC]},
+						lists:reverse(T1) ++ [MSCC5] ++ Acc
+				end;
 		F(#{"serviceId" := SI, "resultCode" := RC} = ServiceRating,
 			[#'3gpp_ro_Multiple-Services-Credit-Control'
 					{'Service-Identifier' = [SI], 'Rating-Group' = []} = MSCC1 | T1], Acc) ->
@@ -1334,7 +1371,7 @@ build_mscc([H | T], Container) ->
 	NewContainer = F(H, Container, []),
 	build_mscc(T, NewContainer);
 build_mscc([], Container) ->
-	lists:reverse(Container).
+	Container.
 
 -spec map_service_rating(ServiceRating, SessionId) -> Result
 	when
@@ -1735,7 +1772,7 @@ initial_service_rating(Subscriber, [#'3gpp_ro_Multiple-Services-Credit-Control'{
 		end,
 	Acc2 = case RG of
 		[] ->
-			[];
+			Acc1;
 		[N2] ->
 			[{"ratingGroup", N2} | Acc1]
 	end,
@@ -1762,14 +1799,14 @@ initial_service_rating(Subscriber, [#'3gpp_ro_Multiple-Services-Credit-Control'{
 	end;
 initial_service_rating(Subscriber, [{SI, RG, _, _} | T], SCID, SInfo, Des, a, Acc) ->
 	Acc1 = case SI of
-		undefined ->
+		[] ->
 			[];
 		[N1] when is_integer(N1) ->
 			[{"serviceId", N1}]
 		end,
 	Acc2 = case RG of
-		undefined ->
-			[];
+		[] ->
+			Acc1;
 		[N2] when is_integer(N2) ->
 			[{"ratingGroup", N2} | Acc1]
 	end,
@@ -2079,8 +2116,7 @@ get_usu(#'3gpp_ro_Multiple-Services-Credit-Control'{}) ->
 		UsedAmounts :: [{Units, pos_integer()}],
 		ReserveAmounts :: [{Units, pos_integer()}],
 		Units :: octets | seconds | messages,
-		Result :: {{MSCCs, ResultCode}, PLAs, Amounts}
-				| {{MSCCs, ResultCode, Rated}, PLAs, Amounts}
+		Result :: {{MSCCs, ResultCode, Rated}, PLAs, Amounts}
 				| {error, Reason},
 		Reason :: term(),
 		MSCCs :: [MSCC],
@@ -2218,9 +2254,11 @@ rate(ServiceType, ServiceNetwork, [{_, Subscriber} | _] = Subscribers,
 					Timestamp, Address, Direction, Flag, SessionId,
 					T, [MSCC | Acc1], Acc2, Acc3, ResultCode3, Rated1 ++ Rated2);
 		{disabled, _SessionList} ->
-			{{Acc1, ?'DIAMETER_CC_APP_RESULT-CODE_END_USER_SERVICE_DENIED'}, Acc2, Acc3};
+			{{Acc1, ?'DIAMETER_CC_APP_RESULT-CODE_END_USER_SERVICE_DENIED', undefined},
+					Acc2, Acc3};
 		{error, service_not_found} ->
-			{{Acc1, ?'DIAMETER_CC_APP_RESULT-CODE_USER_UNKNOWN'}, Acc2, Acc3};
+			{{Acc1, ?'DIAMETER_CC_APP_RESULT-CODE_USER_UNKNOWN', undefined},
+					Acc2, Acc3};
 		{error, Reason} ->
 			{error, Reason}
 	end;
@@ -2243,28 +2281,84 @@ rate(ServiceType, ServiceNetwork, [{_, Subscriber} | _],
 			{error, Reason}
 	end;
 rate(_, _, _, _, _, _, _, _, [], [], [], [], undefined, undefined) ->
-	{{[], ?'DIAMETER_CC_APP_RESULT-CODE_RATING_FAILED'}, []};
+	{{[], ?'DIAMETER_CC_APP_RESULT-CODE_RATING_FAILED', undefined}, []};
 rate(_, _, _, _, _, _, _, _, [], Acc1, Acc2, Acc3, ResultCode, undefined) ->
-	{{lists:reverse(Acc1), ResultCode}, lists:reverse(Acc2), lists:reverse(Acc3)};
+	{{lists:reverse(Acc1), ResultCode, undefined}, lists:reverse(Acc2), lists:reverse(Acc3)};
 rate(_, _, _, _, _, _, _, _, [], Acc1, Acc2, Acc3, ResultCode, Rated) ->
 	{{lists:reverse(Acc1), ResultCode, Rated}, lists:reverse(Acc2), lists:reverse(Acc3)}.
 
--spec charge(Subscribers, ServiceRating, Amounts, SessionId, Flag) -> Result
+-spec match_tariff(Tariffs, MSCCs) -> Result
 	when
-		Subscribers :: [Subscriber],
-		Subscriber :: {IdType, Id},
-		IdType :: 0..4,
-		Id :: binary(),
-		ServiceRating :: [map()],
-		Amounts :: [{ServiceIdentifier, RatingGroup,
+		Tariffs:: [map()],
+		MSCCs :: [{ServiceIdentifier, RatingGroup,
 				UsedAmounts, ReserveAmounts}],
 		ServiceIdentifier :: [pos_integer()],
 		RatingGroup :: [pos_integer()],
 		UsedAmounts :: [{Units, pos_integer()}],
 		ReserveAmounts :: [{Units, pos_integer()}],
 		Units :: octets | seconds | messages,
-		Flag :: initial | interim | final | event,
+		Result :: Prices | {error, missing_tariff},
+		Prices :: [Price],
+		Price :: map().
+%% @doc Match a Tariff object with an MSCC
+match_tariff(Tariffs, MSCCs) ->
+	match_tariff(Tariffs, MSCCs, []).
+%% @hidden
+match_tariff(Tariffs, [H | T], Acc) ->
+	F = fun F([#{"tariffElement" := #{"currencyCode" := Currency,
+					"rateElements" := #{"unitType" := Units,
+					"unitSize" := UnitSize, "unitCost" := UnitPrice}},
+					"ratingGroup" := RG1, "serviceId" := SI1} | _],
+					{[SI], [RG], Debits, Reserves})
+						when RG1 =:= RG, SI1 =:= SI ->
+					#{"rg" => RG1, "si" => SI1, "currency" => Currency,
+							"units" => Units, "unitSize" => UnitSize,
+							"unitPrice" => UnitPrice, "debits" => Debits,
+							"reserves" => Reserves};
+			F([#{"tariffElement" := #{"currencyCode" := Currency,
+					"rateElements" := #{"unitType" := Units,
+					"unitSize" := UnitSize, "unitCost" := UnitPrice}},
+					"serviceId" := SI1} | _],
+					{[SI], [], Debits, Reserves})
+						when SI1 =:= SI ->
+					#{"rg" => undefined, "si" => SI1, "currency" => Currency,
+							"units" => Units, "unitSize" => UnitSize,
+							"unitPrice" => UnitPrice, "debits" => Debits,
+							"reserves" => Reserves};
+			F([#{"tariffElement" := #{"currencyCode" := Currency,
+					"rateElements" := #{"unitType" := Units,
+					"unitSize" := UnitSize, "unitCost" := UnitPrice}},
+					"ratingGroup" := RG1} | _],
+					{[], [RG], Debits, Reserves})
+						when RG1 =:= RG ->
+					#{"rg" => RG1, "si" => undefined, "currency" => Currency,
+							"units" => Units, "unitSize" => UnitSize,
+							"unitPrice" => UnitPrice, "debits" => Debits,
+							"reserves" => Reserves};
+			F([H1 | T1], MSCC) ->
+				F(T1, MSCC);
+			F([], _MSCC) ->
+				{error, missing_tariff}
+	end,
+	case F(Tariffs, H) of
+				#{} = Charge ->
+					match_tariff(Tariffs, T, [Charge | Acc]);
+				{error, missing_tariff} ->
+					{error, missing_tariff}
+	end;
+match_tariff(_Tariffs, [], Acc) ->
+	lists:reverse(Acc).
+
+-spec charge(Subscribers, SessionId, Flag, Prices) -> Result
+	when
+		Subscribers :: [Subscriber],
+		Subscriber :: {IdType, Id},
+		IdType :: 0..4,
+		Id :: binary(),
 		SessionId :: binary(),
+		Flag :: initial | interim | final | event,
+		Prices :: [Price],
+		Price :: map(),
 		Result :: {ok, MSCCs, ResultCode}
 				| {error, Reason},
 		ResultCode :: pos_integer(),
@@ -2273,96 +2367,62 @@ rate(_, _, _, _, _, _, _, _, [], Acc1, Acc2, Acc3, ResultCode, Rated) ->
 		MSCC :: map().
 %% @doc Rate all the MSCCs.
 %% @hidden
-charge([{_, Subscriber} | _], ServiceRating, Amounts, SessionId, Flag) ->
-	charge(Subscriber, ServiceRating, Amounts, SessionId, Flag, [], undefined).
+charge([{_, Subscriber} | _], SessionId, Flag, Prices) ->
+	charge1(Subscriber, SessionId, Flag, Prices, [], undefined).
 %% @hidden
-charge(Subscriber, ServiceRating, [{ServiceId, RatingGroup,
-		Debits, Reserves} | T1], SessionId, Flag, Acc1, ResultCode1) ->
-	SI = case ServiceId of
-		[] ->
-			undefined;
-		[N1] when is_integer(N1) ->
-			N1
-	end,
-	RG = case RatingGroup of
-		[] ->
-			undefined;
-		[N2] when is_integer(N2) ->
-			N2
-	end,
-	F = fun F([#{"tariffElement" := #{"currencyCode" := Currency,
-				"rateElements" := #{"unitType" := Units,
-				"unitSize" := UnitSize, "unitCost" := UnitPrice}},
-				"ratingGroup" := RG1, "serviceId" := SI1} | _])
-					when RG1 =:= RG, SI1 =:= SI ->
-					{RG, SI, Currency, Units, UnitSize, UnitPrice};
-			F([#{"tariffElement" := #{"currencyCode" := Currency,
-				"rateElements" := #{"unitType" := Units,
-				"unitSize" := UnitSize, "unitCost" := UnitPrice}},
-				"serviceId" := SI1} | _])
-					when RG =:= undefined, SI1 =:= SI ->
-					{undefined, SI, Currency, Units, UnitSize, UnitPrice};
-			F([#{"tariffElement" := #{"currencyCode" := Currency,
-				"rateElements" := #{"unitType" := Units,
-				"unitSize" := UnitSize, "unitCost" := UnitPrice}},
-				"ratingGroup" := RG1} | _])
-					when SI =:= undefined, RG1 =:= RG ->
-					{RG, undefined, Currency, Units, UnitSize, UnitPrice};
-			F([_ | T]) ->
-				F(T)
-	end,
-	{RG1, SI1, Currency,
-			Units, UnitSize, UnitPrice} = F(ServiceRating),
-	case ocs_rating:charge(diameter, Subscriber, SI1,
+charge1(Subscriber, SessionId, Flag, [#{"rg" := RG, "si" := SI, "currency" := Currency,
+		"units" := Units, "unitSize" := UnitSize, "unitPrice" := UnitPrice, "debits" := Debits,
+		"reserves" := Reserves} | T], Acc, ResultCode1) ->
+	case ocs_rating:charge(diameter, Subscriber, SI,
 			UnitSize, Units, Currency, UnitPrice, undefined,
-			RG1, Flag, Debits,
+			RG, Flag, Debits,
 			Reserves, [{'Session-Id', SessionId}]) of
 		{ok, _, {_, Amount} = GrantedAmount} when Amount > 0 ->
 			ResultCode2 = ?'DIAMETER_BASE_RESULT-CODE_SUCCESS',
 			MSCC = #{"grantedUnit" => granted_unit(GrantedAmount),
-					"serviceId" => SI1, "ratingGroup" => RG1,
+					"serviceId" => SI, "ratingGroup" => RG,
 					"resultCode" => ResultCode2},
-			charge(Subscriber, ServiceRating, T1, SessionId, Flag, [MSCC | Acc1], ResultCode2);
+			charge1(Subscriber, SessionId, Flag, T, [MSCC | Acc], ResultCode2);
 		{ok, _, {_, 0} = _GrantedAmount} ->
 			ResultCode2 = ?'DIAMETER_BASE_RESULT-CODE_SUCCESS',
-			charge(Subscriber, ServiceRating, T1, SessionId, Flag, Acc1, ResultCode2);
+			charge1(Subscriber, SessionId, Flag, T, Acc, ResultCode2);
 		{ok, _, {_, Amount} = GrantedAmount, _} when Amount > 0 ->
 			ResultCode2 = ?'DIAMETER_BASE_RESULT-CODE_SUCCESS',
 			MSCC = #{"grantedUnit" => granted_unit(GrantedAmount),
-					"serviceId" => SI1, "ratingGroup" => RG1,
+					"serviceId" => SI, "ratingGroup" => RG,
 					"resultCode" => ResultCode2},
-			charge(Subscriber, ServiceRating, T1, SessionId, Flag, [MSCC | Acc1], ResultCode2);
+			charge1(Subscriber, SessionId, Flag, T, [MSCC | Acc], ResultCode2);
 		{ok, #service{}, _} ->
 			ResultCode2 = ?'DIAMETER_BASE_RESULT-CODE_SUCCESS',
-			charge(Subscriber, ServiceRating, T1, SessionId, Flag, Acc1, ResultCode2);
+			charge1(Subscriber, SessionId, Flag, T, Acc, ResultCode2);
 		{out_of_credit, RedirectServerAddress, _SessionList} ->
 			ResultCode2 = ?'DIAMETER_CC_APP_RESULT-CODE_CREDIT_LIMIT_REACHED',
 			ResultCode3 = case ResultCode1 of
-				undefined->
+				undefined ->
 					ResultCode2;
 				ResultCode1 ->
 					ResultCode1
 			end,
 			MSCC = case RedirectServerAddress of
 				undefined ->
-					#{"serviceId" => SI1, "ratingGroup" => RG1,
+					#{"serviceId" => SI, "ratingGroup" => RG,
 							"resultCode" => ResultCode2};
 				RedirectServerAddress when is_list(RedirectServerAddress) ->
-					#{"serviceId" => SI1, "ratingGroup" => RG1,
+					#{"serviceId" => SI, "ratingGroup" => RG,
 							"finalUnitIndication" => fui(RedirectServerAddress),
 							"resultCode" => ResultCode2}
 			end,
-			charge(Subscriber, ServiceRating, T1, SessionId, Flag, [MSCC | Acc1], ResultCode3);
+			charge1(Subscriber, SessionId, Flag, T, [MSCC | Acc], ResultCode3);
 		{disabled, _SessionList} ->
-			{ok, Acc1, ?'DIAMETER_CC_APP_RESULT-CODE_END_USER_SERVICE_DENIED'};
+			{ok, Acc, ?'DIAMETER_CC_APP_RESULT-CODE_END_USER_SERVICE_DENIED'};
 		{error, service_not_found} ->
-			{ok, Acc1, ?'DIAMETER_CC_APP_RESULT-CODE_USER_UNKNOWN'};
+			{ok, Acc, ?'DIAMETER_CC_APP_RESULT-CODE_USER_UNKNOWN'};
 		{error, Reason} ->
 			{error, Reason}
 	end;
-charge(_, [], [], _, _, [], undefined) ->
+charge1(_, _, _, [], [], undefined) ->
 	{ok, [], ?'DIAMETER_CC_APP_RESULT-CODE_RATING_FAILED'};
-charge(_, _, [], _, _, Acc, ResultCode)->
+charge1(_, _, _, [], Acc, ResultCode) ->
 	{ok, lists:reverse(Acc), ResultCode}.
 
 %% @hidden

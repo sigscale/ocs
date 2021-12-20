@@ -1,4 +1,4 @@
-%%% ocs_re_interface_SUITE.erl
+%% ocs_re_interface_SUITE.erl
 %%% vim: ts=3
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%% @copyright 2016 - 2021 SigScale Global Inc.
@@ -46,6 +46,7 @@
 -define(IANA_PEN_3GPP, 10415).
 -define(IANA_PEN_SigScale, 50386).
 -define(NRF_RO_APPLICATION_CALLBACK, ocs_diameter_3gpp_ro_nrf_app_cb).
+-define(MINIMUM_RESERVATION, 5000).
 
 %%---------------------------------------------------------------------
 %%  Test server callback functions
@@ -330,7 +331,7 @@ receive_initial_cud_scur_class_b(_Config) ->
 			'Multiple-Services-Credit-Control' = [MSCC3]} = Answer0,
 	#'3gpp_ro_Multiple-Services-Credit-Control'{
 			'Granted-Service-Unit' = [GrantedUnits]} = MSCC3,
-	#'3gpp_ro_Granted-Service-Unit'{'CC-Total-Octets' = [5000]} = GrantedUnits.
+	#'3gpp_ro_Granted-Service-Unit'{'CC-Total-Octets' = [?MINIMUM_RESERVATION]} = GrantedUnits.
 
 send_interim_scur_class_b() ->
 	[{userdata, [{doc, "On received SCUR CCR-U send updateRating"}]}].
@@ -380,14 +381,11 @@ receive_interim_scur_class_b(_Config) ->
 			'CC-Request-Number' = RequestNum1,
 			'Multiple-Services-Credit-Control' = [MCC1, MCC2]} = Answer1,
 	#'3gpp_ro_Multiple-Services-Credit-Control'{
-			'Used-Service-Unit' = [UsedUnits],
 			'Granted-Service-Unit' = [GrantedUnits]} = MCC1,
 	#'3gpp_ro_Multiple-Services-Credit-Control'{
 			'Granted-Service-Unit' = [GrantedUnits1]} = MCC2,
-	TotalOctets = InputOctets2 + OutputOctets2,
-	#'3gpp_ro_Granted-Service-Unit'{'CC-Total-Octets' = [5000]} = GrantedUnits,
-	#'3gpp_ro_Granted-Service-Unit'{'CC-Total-Octets' = [5000]} = GrantedUnits1,
-	#'3gpp_ro_Used-Service-Unit'{'CC-Total-Octets' = [TotalOctets]} = UsedUnits.
+	#'3gpp_ro_Granted-Service-Unit'{'CC-Total-Octets' = [?MINIMUM_RESERVATION]} = GrantedUnits,
+	#'3gpp_ro_Granted-Service-Unit'{'CC-Total-Octets' = [?MINIMUM_RESERVATION]} = GrantedUnits1.
 
 send_final_scur_class_b() ->
 	[{userdata, [{doc, "On received SCUR CCR-T send endRating"}]}].
@@ -442,11 +440,7 @@ receive_final_scur_class_b(_Config) ->
 	#'3gpp_ro_CCA'{'Result-Code' = ?'DIAMETER_BASE_RESULT-CODE_SUCCESS',
 			'Auth-Application-Id' = ?RO_APPLICATION_ID,
 			'CC-Request-Type' = ?'3GPP_CC-REQUEST-TYPE_TERMINATION_REQUEST',
-			'CC-Request-Number' = RequestNum2,
-			'Multiple-Services-Credit-Control' = [MultiServices_CC]} = Answer2,
-	#'3gpp_ro_Multiple-Services-Credit-Control'{
-			'Used-Service-Unit' = [UsedUnits]} = MultiServices_CC,
-	#'3gpp_ro_Used-Service-Unit'{'CC-Total-Octets' = [UsedServiceUnits1]} = UsedUnits.
+			'CC-Request-Number' = RequestNum2} = Answer2.
 
 receive_interim_no_usu_scur_class_b() ->
 	[{userdata, [{doc, "On SCUR updateRating response with no USU send CCA-U"}]}].
@@ -642,11 +636,7 @@ receive_iec_class_b(_Config) ->
 	#'3gpp_ro_CCA'{'Result-Code' = ?'DIAMETER_BASE_RESULT-CODE_SUCCESS',
 			'Auth-Application-Id' = ?RO_APPLICATION_ID,
 			'CC-Request-Type' = ?'3GPP_CC-REQUEST-TYPE_EVENT_REQUEST',
-			'CC-Request-Number' = RequestNum,
-			'Multiple-Services-Credit-Control' = [MultiServices_CC]} = Answer0,
-	#'3gpp_ro_Multiple-Services-Credit-Control'{
-			'Used-Service-Unit' = [UsedUnits]} = MultiServices_CC,
-	#'3gpp_ro_Used-Service-Unit'{'CC-Service-Specific-Units' = [1]} = UsedUnits.
+			'CC-Request-Number' = RequestNum} = Answer0.
 
 send_initial_ecur_class_b() ->
 	[{userdata, [{doc, "On received ECUR CCR-I send startRating"}]}].
@@ -714,11 +704,7 @@ receive_final_ecur_class_b(_Config) ->
 	#'3gpp_ro_CCA'{'Result-Code' = ?'DIAMETER_BASE_RESULT-CODE_SUCCESS',
 			'Auth-Application-Id' = ?RO_APPLICATION_ID,
 			'CC-Request-Type' = ?'3GPP_CC-REQUEST-TYPE_TERMINATION_REQUEST',
-			'CC-Request-Number' = RequestNum1,
-			'Multiple-Services-Credit-Control' = [MultiServices_CC]} = Answer1,
-	#'3gpp_ro_Multiple-Services-Credit-Control'{
-			'Used-Service-Unit' = [UsedUnits]} = MultiServices_CC,
-	#'3gpp_ro_Used-Service-Unit'{'CC-Service-Specific-Units' = [2]} = UsedUnits.
+			'CC-Request-Number' = RequestNum1} = Answer1.
 
 post_iec_class_b() ->
 	[{userdata, [{doc, "Post IEC Event Nrf Request to be rated"}]}].
@@ -936,9 +922,9 @@ receive_interim_scur_class_a(Config) ->
 			'Auth-Application-Id' = ?RO_APPLICATION_ID,
 			'CC-Request-Type' = ?'3GPP_CC-REQUEST-TYPE_UPDATE_REQUEST',
 			'CC-Request-Number' = RequestNum1,
-			'Multiple-Services-Credit-Control' = [MultiServices_CC]} = Answer1,
+			'Multiple-Services-Credit-Control' = [MSCC1, MSCC2]} = Answer1,
 	#'3gpp_ro_Multiple-Services-Credit-Control'{
-			'Granted-Service-Unit' = [GrantedUnits]} = MultiServices_CC,
+			'Granted-Service-Unit' = [GrantedUnits]} = MSCC1,
 	#'3gpp_ro_Granted-Service-Unit'{'CC-Total-Octets' = [_TotalOctets]} = GrantedUnits.
 
 final_scur_class_a() ->
@@ -975,8 +961,7 @@ final_scur_class_a(Config) ->
 	#'3gpp_ro_CCA'{'Result-Code' = ?'DIAMETER_BASE_RESULT-CODE_SUCCESS',
 			'Auth-Application-Id' = ?RO_APPLICATION_ID,
 			'CC-Request-Type' = ?'3GPP_CC-REQUEST-TYPE_TERMINATION_REQUEST',
-			'CC-Request-Number' = RequestNum2,
-			'Multiple-Services-Credit-Control' = []} = Answer2.
+			'CC-Request-Number' = RequestNum2} = Answer2.
 
 send_initial_ecur_class_a() ->
 	[{userdata, [{doc, "On received ECUR CCR-I send startRating"}]}].
@@ -1068,8 +1053,7 @@ receive_final_ecur_class_a(Config) ->
 	#'3gpp_ro_CCA'{'Result-Code' = ?'DIAMETER_BASE_RESULT-CODE_SUCCESS',
 			'Auth-Application-Id' = ?RO_APPLICATION_ID,
 			'CC-Request-Type' = ?'3GPP_CC-REQUEST-TYPE_TERMINATION_REQUEST',
-			'CC-Request-Number' = RequestNum1,
-			'Multiple-Services-Credit-Control' = []} = Answer1.
+			'CC-Request-Number' = RequestNum1} = Answer1.
 
 scur_vas_class_b() ->
 	[{userdata, [{doc, "Diameter SCUR SMS Nrf Class B operation"}]}].
@@ -1188,11 +1172,7 @@ scur_vas_class_b(_Config) ->
 	#'3gpp_ro_CCA'{'Result-Code' = ?'DIAMETER_BASE_RESULT-CODE_SUCCESS',
 			'Auth-Application-Id' = ?RO_APPLICATION_ID,
 			'CC-Request-Type' = ?'3GPP_CC-REQUEST-TYPE_TERMINATION_REQUEST',
-			'CC-Request-Number' = RequestNum4,
-			'Multiple-Services-Credit-Control' = [MultiServices_CC5]} = Answer4,
-	#'3gpp_ro_Multiple-Services-Credit-Control'{
-			'Used-Service-Unit' = [UsedUnits5]} = MultiServices_CC5,
-	#'3gpp_ro_Used-Service-Unit'{'CC-Service-Specific-Units' = [_UsedServiceUnits]} = UsedUnits5.
+			'CC-Request-Number' = RequestNum4} = Answer4.
 
 scur_imsi_class_b() ->
 	[{userdata, [{doc, "On SCUR with IMSI startRating response send CCA-I"}]}].
