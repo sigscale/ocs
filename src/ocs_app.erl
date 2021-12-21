@@ -1208,14 +1208,14 @@ is_mod_auth_mnesia1(InetsServices) ->
 			ok
 	end.
 %% @hidden
-is_mod_auth_mnesia2([{directory, {_Dir, []}} | _T]) ->
-	false;
-is_mod_auth_mnesia2([{directory, {_, DirectoryInfo}} | _]) ->
+is_mod_auth_mnesia2([{directory, {_Dir, []}} | T]) ->
+	is_mod_auth_mnesia2(T);
+is_mod_auth_mnesia2([{directory, {_, DirectoryInfo}} | T]) ->
 	case lists:keyfind(auth_type, 1, DirectoryInfo) of
 		{auth_type, mnesia} ->
 			true;
 		_ ->
-			false
+			is_mod_auth_mnesia2(T)
 	end;
 is_mod_auth_mnesia2([]) ->
 	false.
