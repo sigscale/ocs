@@ -405,87 +405,40 @@ install2(Nodes) ->
 	end.
 %% @hidden
 install3(Nodes, Acc) ->
-	case mnesia:create_table(client, [{disc_copies, Nodes},
-			{attributes, record_info(fields, client)},
-			{index, [#client.identifier]}]) of
-		{atomic, ok} ->
-			error_logger:info_msg("Created new client table.~n"),
+	case create_table(client, Nodes) of
+		ok ->
 			install4(Nodes, [client | Acc]);
-		{aborted, {not_active, _, Node} = Reason} ->
-			error_logger:error_report(["Mnesia not started on node",
-					{node, Node}]),
-			{error, Reason};
-		{aborted, {already_exists, client}} ->
-			error_logger:info_msg("Found existing client table.~n"),
-			install4(Nodes, [client | Acc]);
-		{aborted, Reason} ->
-			error_logger:error_report([mnesia:error_description(Reason),
-				{error, Reason}]),
+		{error, Reason} ->
 			{error, Reason}
 	end.
 %% @hidden
 install4(Nodes, Acc) ->
-	case mnesia:create_table(service, [{disc_copies, Nodes},
-			{attributes, record_info(fields, service)}]) of
-		{atomic, ok} ->
-			error_logger:info_msg("Created new service table.~n"),
-			install5(Nodes, [service| Acc]);
-		{aborted, {not_active, _, Node} = Reason} ->
-			error_logger:error_report(["Mnesia not started on node",
-					{node, Node}]),
-			{error, Reason};
-		{aborted, {already_exists, service}} ->
-			error_logger:info_msg("Found existing service table.~n"),
-			install5(Nodes, [service| Acc]);
-		{aborted, Reason} ->
-			error_logger:error_report([mnesia:error_description(Reason),
-				{error, Reason}]),
+	case create_table(service, Nodes) of
+		ok ->
+			install5(Nodes, [service | Acc]);
+		{error, Reason} ->
 			{error, Reason}
 	end.
 %% @hidden
 install5(Nodes, Acc) ->
-	case mnesia:create_table(product, [{disc_copies, Nodes},
-			{attributes, record_info(fields, product)}]) of
-		{atomic, ok} ->
-			error_logger:info_msg("Created new product table.~n"),
+	case create_table(product, Nodes) of
+		ok ->
 			install6(Nodes, [product | Acc]);
-		{aborted, {not_active, _, Node} = Reason} ->
-			error_logger:error_report(["Mnesia not started on node",
-					{node, Node}]),
-			{error, Reason};
-		{aborted, {already_exists, product}} ->
-			error_logger:info_msg("Found existing product table.~n"),
-			install6(Nodes, [product | Acc]);
-		{aborted, Reason} ->
-			error_logger:error_report([mnesia:error_description(Reason),
-				{error, Reason}]),
+		{error, Reason} ->
 			{error, Reason}
 	end.
 %% @hidden
 install6(Nodes, Acc) ->
-	case mnesia:create_table(resource, [{disc_copies, Nodes},
-			{attributes, record_info(fields, resource)}]) of
-		{atomic, ok} ->
-			error_logger:info_msg("Created new resource table.~n"),
+	case create_table(resource, Nodes) of
+		ok ->
 			install7(Nodes, [resource | Acc]);
-		{aborted, {not_active, _, Node} = Reason} ->
-			error_logger:error_report(["Mnesia not started on node",
-					{node, Node}]),
-			{error, Reason};
-		{aborted, {already_exists, resource}} ->
-			error_logger:info_msg("Found existing resource table.~n"),
-			install7(Nodes, [resource | Acc]);
-		{aborted, Reason} ->
-			error_logger:error_report([mnesia:error_description(Reason),
-				{error, Reason}]),
+		{error, Reason} ->
 			{error, Reason}
 	end.
 %% @hidden
 install7(Nodes, Acc) ->
-	case mnesia:create_table(offer, [{disc_copies, Nodes},
-			{attributes, record_info(fields, offer)}]) of
-		{atomic, ok} ->
-			error_logger:info_msg("Created new offer table.~n"),
+	case create_table(offer, Nodes) of
+		ok ->
 			case add_example_offers() of
 				ok ->
 					error_logger:info_msg("Added example offers to product catalog.~n"),
@@ -493,74 +446,31 @@ install7(Nodes, Acc) ->
 				{error, Reason} ->
 					{error, Reason}
 			end;
-		{aborted, {not_active, _, Node} = Reason} ->
-			error_logger:error_report(["Mnesia not started on node",
-					{node, Node}]),
-			{error, Reason};
-		{aborted, {already_exists, offer}} ->
-			error_logger:info_msg("Found existing offer table.~n"),
-			install8(Nodes, [offer | Acc]);
-		{aborted, Reason} ->
-			error_logger:error_report([mnesia:error_description(Reason),
-				{error, Reason}]),
+		{error, Reason} ->
 			{error, Reason}
 	end.
 %% @hidden
 install8(Nodes, Acc) ->
-	case mnesia:create_table(bucket, [{disc_copies, Nodes},
-			{attributes, record_info(fields, bucket)}]) of
-		{atomic, ok} ->
-			error_logger:info_msg("Created new bucket table.~n"),
+	case create_table(bucket, Nodes) of
+		ok ->
 			install9(Nodes, [bucket | Acc]);
-		{aborted, {not_active, _, Node} = Reason} ->
-			error_logger:error_report(["Mnesia not started on node",
-					{node, Node}]),
-			{error, Reason};
-		{aborted, {already_exists, bucket}} ->
-			error_logger:info_msg("Found existing bucket table.~n"),
-			install9(Nodes, [bucket | Acc]);
-		{aborted, Reason} ->
-			error_logger:error_report([mnesia:error_description(Reason),
-				{error, Reason}]),
+		{error, Reason} ->
 			{error, Reason}
 	end.
 %% @hidden
 install9(Nodes, Acc) ->
-	case mnesia:create_table(session, [{ram_copies, Nodes},
-			{attributes, record_info(fields, session)},
-			{index, [#session.imsi]}]) of
-		{atomic, ok} ->
-			error_logger:info_msg("Created new session table.~n"),
+	case create_table(session, Nodes) of
+		ok ->
 			install10(Nodes, [session | Acc]);
-		{aborted, {not_active, _, Node} = Reason} ->
-			error_logger:error_report(["Mnesia not started on node",
-					{node, Node}]),
-			{error, Reason};
-		{aborted, {already_exists, session}} ->
-			error_logger:info_msg("Found existing session table.~n"),
-			install10(Nodes, [session | Acc]);
-		{aborted, Reason} ->
-			error_logger:error_report([mnesia:error_description(Reason),
-				{error, Reason}]),
+		{error, Reason} ->
 			{error, Reason}
 	end.
 %% @hidden
 install10(Nodes, Acc) ->
-	case mnesia:create_table(nrf_ref, [{ram_copies, Nodes},
-			{attributes, record_info(fields, nrf_ref)}]) of
-		{atomic, ok} ->
-			error_logger:info_msg("Created new nrf ref table.~n"),
+	case create_table(nrf_ref, Nodes) of
+		ok ->
 			install11(Nodes, [nrf_ref | Acc]);
-		{aborted, {not_active, _, Node} = Reason} ->
-			error_logger:error_report(["Mnesia not started on node",
-					{node, Node}]),
-			{error, Reason};
-		{aborted, {already_exists, nrf_ref}} ->
-			error_logger:info_msg("Found existing nrf_ref table.~n"),
-			install11(Nodes, [nrf_ref | Acc]);
-		{aborted, Reason} ->
-			error_logger:error_report([mnesia:error_description(Reason),
-				{error, Reason}]),
+		{error, Reason} ->
 			{error, Reason}
 	end.
 %% @hidden
@@ -615,40 +525,18 @@ install14(Nodes, Acc, []) ->
 	install16(Nodes, Acc).
 %% @hidden
 install15(Nodes, Acc) ->
-	case mnesia:create_table(httpd_user, [{type, bag},{disc_copies, Nodes},
-			{attributes, record_info(fields, httpd_user)}]) of
-		{atomic, ok} ->
-			error_logger:info_msg("Created new httpd_user table.~n"),
+	case create_table(httpd_user, Nodes) of
+		ok ->
 			install16(Nodes, [httpd_user | Acc]);
-		{aborted, {not_active, _, Node} = Reason} ->
-			error_logger:error_report(["Mnesia not started on node",
-					{node, Node}]),
-			{error, Reason};
-		{aborted, {already_exists, httpd_user}} ->
-			error_logger:info_msg("Found existing httpd_user table.~n"),
-			install16(Nodes, [httpd_user | Acc]);
-		{aborted, Reason} ->
-			error_logger:error_report([mnesia:error_description(Reason),
-				{error, Reason}]),
+		{error, Reason} ->
 			{error, Reason}
 	end.
 %% @hidden
 install16(Nodes, Acc) ->
-	case mnesia:create_table(httpd_group, [{type, bag},{disc_copies, Nodes},
-			{attributes, record_info(fields, httpd_group)}]) of
-		{atomic, ok} ->
-			error_logger:info_msg("Created new httpd_group table.~n"),
+	case create_table(httpd_group, Nodes) of
+		ok ->
 			install17(Nodes, [httpd_group | Acc]);
-		{aborted, {not_active, _, Node} = Reason} ->
-			error_logger:error_report(["Mnesia not started on node",
-					{node, Node}]),
-			{error, Reason};
-		{aborted, {already_exists, httpd_group}} ->
-			error_logger:info_msg("Found existing httpd_group table.~n"),
-			install17(Nodes, [httpd_group | Acc]);
-		{aborted, Reason} ->
-			error_logger:error_report([mnesia:error_description(Reason),
-				{error, Reason}]),
+		{error, Reason} ->
 			{error, Reason}
 	end.
 %% @hidden
@@ -792,11 +680,8 @@ join6(Node, Nodes, Acc) ->
 		{aborted, {no_exists, {client, _C}}} ->
 			case create_table(client, Nodes) of
 				ok ->
-					error_logger:info_msg("Created client table on ~s.~n", [Node]),
 					join7(Node, Nodes, [client | Acc]);
 				{error, Reason} ->
-					error_logger:error_report([mnesia:error_description(Reason),
-							{error, Reason}]),
 					{error, Reason}
 			end;
 		{aborted, Reason} ->
@@ -816,11 +701,8 @@ join7(Node, Nodes, Acc) ->
 		{aborted, {no_exists, {service, _}}} ->
 			case create_table(service, Nodes) of
 				ok ->
-					error_logger:info_msg("Created service table on ~s.~n", [Node]),
 					join8(Node, Nodes, [service | Acc]);
 				{error, Reason} ->
-					error_logger:error_report([mnesia:error_description(Reason),
-							{error, Reason}]),
 					{error, Reason}
 			end;
 		{aborted, Reason} ->
@@ -840,11 +722,8 @@ join8(Node, Nodes, Acc) ->
 		{aborted, {no_exists, {offer, _}}} ->
 			case create_table(offer, Nodes) of
 				ok ->
-					error_logger:info_msg("Created offer table on ~s.~n", [Node]),
 					join9(Node, Nodes, [offer | Acc]);
 				{error, Reason} ->
-					error_logger:error_report([mnesia:error_description(Reason),
-							{error, Reason}]),
 					{error, Reason}
 			end;
 		{aborted, Reason} ->
@@ -864,11 +743,8 @@ join9(Node, Nodes, Acc) ->
 		{aborted, {no_exists, {product, _}}} ->
 			case create_table(product, Nodes) of
 				ok ->
-					error_logger:info_msg("Created product table on ~s.~n", [Node]),
 					join10(Node, Nodes, [product | Acc]);
 				{error, Reason} ->
-					error_logger:error_report([mnesia:error_description(Reason),
-							{error, Reason}]),
 					{error, Reason}
 			end;
 		{aborted, Reason} ->
@@ -888,11 +764,8 @@ join10(Node, Nodes, Acc) ->
 		{aborted, {no_exists, {resource, _}}} ->
 			case create_table(resource, Nodes) of
 				ok ->
-					error_logger:info_msg("Created resource table on ~s.~n", [Node]),
 					join11(Node, Nodes, [resource | Acc]);
 				{error, Reason} ->
-					error_logger:error_report([mnesia:error_description(Reason),
-							{error, Reason}]),
 					{error, Reason}
 			end;
 		{aborted, Reason} ->
@@ -912,11 +785,8 @@ join11(Node, Nodes, Acc) ->
 		{aborted, {no_exists, {bucket, _}}} ->
 			case create_table(bucket, Nodes) of
 				ok ->
-					error_logger:info_msg("Created bucket table on ~s.~n", [Node]),
 					join12(Node, Nodes, [bucket | Acc]);
 				{error, Reason} ->
-					error_logger:error_report([mnesia:error_description(Reason),
-							{error, Reason}]),
 					{error, Reason}
 			end;
 		{aborted, Reason} ->
@@ -936,11 +806,8 @@ join12(Node, Nodes, Acc) ->
 		{aborted, {no_exists, {httpd_user, _}}} ->
 			case create_table(httpd_user, Nodes) of
 				ok ->
-					error_logger:info_msg("Created httpd_user table on ~s.~n", [Node]),
 					join13(Node, Nodes, [httpd_user | Acc]);
 				{error, Reason} ->
-					error_logger:error_report([mnesia:error_description(Reason),
-							{error, Reason}]),
 					{error, Reason}
 			end;
 		{aborted, Reason} ->
@@ -960,11 +827,8 @@ join13(Node, Nodes, Acc) ->
 		{aborted, {no_exists, {httpd_group, _}}} ->
 			case create_table(httpd_group, Nodes) of
 				ok ->
-					error_logger:info_msg("Created httpd_group table on ~s.~n", [Node]),
 					join14(Node, Nodes, [httpd_group | Acc]);
 				{error, Reason} ->
-					error_logger:error_report([mnesia:error_description(Reason),
-							{error, Reason}]),
 					{error, Reason}
 			end;
 		{aborted, Reason} ->
@@ -984,11 +848,8 @@ join14(Node, Nodes, Acc) ->
 		{aborted, {no_exists, {session, _}}} ->
 			case create_table(session, Nodes) of
 				ok ->
-					error_logger:info_msg("Created session table on ~s.~n", [Node]),
 					join15(Node, Nodes, [session | Acc]);
 				{error, Reason} ->
-					error_logger:error_report([mnesia:error_description(Reason),
-							{error, Reason}]),
 					{error, Reason}
 			end;
 		{aborted, Reason} ->
@@ -1008,11 +869,8 @@ join15(Node, Nodes, Acc) ->
 		{aborted, {no_exists, {nrf_ref, _}}} ->
 			case create_table(nrf_ref, Nodes) of
 				ok ->
-					error_logger:info_msg("Created nrf_ref table on ~s.~n", [Node]),
 					join16(Node, Nodes, [nrf_ref | Acc]);
 				{error, Reason} ->
-					error_logger:error_report([mnesia:error_description(Reason),
-							{error, Reason}]),
 					{error, Reason}
 			end;
 		{aborted, Reason} ->
@@ -1257,7 +1115,7 @@ add_example_bundles3(PriceInstall) ->
 		Tables :: [atom()],
 		Result :: ok | {error, Reason},
 		Reason :: term().
-%% @doc Create missing tables.
+%% @doc Create mnesia tables.
 %% @private
 create_table([Table | Tables]) when is_atom(Table) ->
 	case create_table(Table, mnesia:system_info(db_nodes)) of
@@ -1275,11 +1133,12 @@ create_table([]) ->
 		Nodes :: [node()],
 		Result :: ok | {error, Reason},
 		Reason :: term().
-%% @doc Create missing table.
+%% @doc Create mnesia table.
 %% @private
 create_table(client, Nodes) when is_list(Nodes) ->
-	create_table1(mnesia:create_table(client, [{disc_copies, Nodes},
-			{attributes, record_info(fields, client)}]));
+	create_table1(Table, mnesia:create_table(client, [{disc_copies, Nodes},
+			{attributes, record_info(fields, client)},
+			{index, [#client.identifier]}]));
 create_table(service, Nodes) when is_list(Nodes) ->
 	create_table1(mnesia:create_table(service, [{disc_copies, Nodes},
 			{attributes, record_info(fields, service)}]));
@@ -1303,15 +1162,22 @@ create_table(httpd_group, Nodes) when is_list(Nodes) ->
 			{attributes, record_info(fields, httpd_group)}]));
 create_table(session, Nodes) ->
 	create_table1(mnesia:create_table(session, [{ram_copies, Nodes},
-			{attributes, record_info(fields, session)}]));
+			{attributes, record_info(fields, session)},
+			{index, [#session.imsi]}]));
 create_table(nrf_ref, Nodes) ->
 	create_table1(mnesia:create_table(nrf_ref, [{ram_copies, Nodes},
 			{attributes, record_info(fields, nrf_ref)}])).
 %% @hidden
-create_table1({atomic, ok}) ->
+create_table1(Table, {atomic, ok}) ->
+	error_logger:info_msg("Created new ~w table.~n", [Table]),
 	ok;
-create_table1({aborted, {already_exists, resource}}) ->
+create_table1(Table, {aborted, {already_exists, Table}}) ->
+	error_logger:info_msg("Found existing ~w table.~n", [Table]),
 	ok;
-create_table1({aborted, Reason}) ->
+create_table1(Table, {aborted, {not_active, _, Node} = Reason}) ->
+	error_logger:error_report(["Mnesia not started on node", {node, Node}]),
+	{error, Reason};
+create_table1(Table, {aborted, Reason}) ->
+	error_logger:error_report([mnesia:error_description(Reason), {error, Reason}]),
 	{error, Reason}.
 
