@@ -1296,10 +1296,10 @@ create_table(bucket, Nodes) when is_list(Nodes) ->
 	create_table1(mnesia:create_table(bucket, [{disc_copies, Nodes},
 			{attributes, record_info(fields, bucket)}]));
 create_table(httpd_user, Nodes) when is_list(Nodes) ->
-	create_table1(mnesia:create_table(httpd_user, [{disc_copies, Nodes},
+	create_table1(mnesia:create_table(httpd_user, [{type, bag}, {disc_copies, Nodes},
 			{attributes, record_info(fields, httpd_user)}]));
 create_table(httpd_group, Nodes) when is_list(Nodes) ->
-	create_table1(mnesia:create_table(httpd_group, [{disc_copies, Nodes},
+	create_table1(mnesia:create_table(httpd_group, [{type, bag}, {disc_copies, Nodes},
 			{attributes, record_info(fields, httpd_group)}]));
 create_table(session, Nodes) ->
 	create_table1(mnesia:create_table(session, [{ram_copies, Nodes},
