@@ -59,7 +59,7 @@ start(normal = _StartType, _Args) ->
 	case mnesia:wait_for_tables(Tables, ?WAITFORTABLES) of
 		ok ->
 			start1();
-		{timeout, BadTabbles} ->
+		{timeout, BadTables} ->
 			case force(BadTables) of
 				ok ->
 					error_logger:warning_report(["Force loaded mnesia tables",
@@ -76,12 +76,13 @@ start(normal = _StartType, _Args) ->
 			{error, Reason}
 	end.
 %% @hidden
-sart1() ->
+start1() ->
 	case is_mod_auth_mnesia() of
 		true ->
 			Tables = [httpd_user, httpd_group],
 			start2(Tables, mnesia:wait_for_tables(Tables, ?WAITFORTABLES));
 		false ->
+			start3()
 	end.
 %% @hidden
 start2(_Tables, ok) ->
@@ -96,7 +97,7 @@ start2(_Tables, {timeout, BadTables}) ->
 			error_logger:error_report(["Failed to force load mnesia tables",
 					{tables, BadTables}, {reason, Reason}, {module, ?MODULE}]),
 			{error, Reason}
-	end.
+	end;
 start2(Tables, {error, Reason}) ->
 	error_logger:error_report(["Failed to load mnesia tables",
 			{tables, Tables}, {reason, Reason}, {module, ?MODULE}]),
@@ -158,7 +159,7 @@ start7(Profile, [_ | T]) ->
 start7(Profile, []) ->
 	case inets:start(httpc, [{profile, Profile}]) of
 		{ok, _Pid} ->
-			start6(Profile);
+			start6();
 		{error, Reason} ->
 			{error, Reason}
 	end.
@@ -198,18 +199,28 @@ start9() ->
 	end.
 %% @hidden
 start10() ->
-	Tables = [session, nrf_session],
+	Tables = [session, nrf_ref],
 	start11(Tables, mnesia:wait_for_tables(Tables, ?WAITFORTABLES)).
 %% @hidden
 start11(_Tables, ok) ->
 	start12();
 start11(_Tables, {timeout, BadTables}) ->
-	case create_tables(BadTables) of
+	F = fun F([Table | T]) ->
+				case create_table(Table, mnesia:system_info(db_nodes)) of
+					ok ->
+						F(T);
+					{error, Reason} ->
+						{error, Reason}
+				end;
+			F([]) ->
+				ok
+	end,
+	case F(BadTables) of
 		ok ->
 			start12();
 		{error, Reason} ->
 			{error, Reason}
-	end.
+	end;
 start11(Tables, {error, Reason}) ->
 	error_logger:error_report(["Failed to load mnesia tables",
 			{tables, Tables}, {reason, Reason}, {module, ?MODULE}]),
@@ -519,7 +530,7 @@ install11(Nodes, Acc) ->
 			error_logger:info_msg("Loaded inets.~n"),
 			install12(Nodes, Acc);
 		{error, {already_loaded, inets}} ->
-			install12(Nodes, Acc);
+			install12(Nodes, Acc)
 	end.
 %% @hidden
 install12(Nodes, Acc) ->
@@ -1127,36 +1138,37 @@ add_example_bundles3(PriceInstall) ->
 %% @doc Create mnesia table.
 %% @private
 create_table(client, Nodes) when is_list(Nodes) ->
-	create_table1(Table, mnesia:create_table(client, [{disc_copies, Nodes},
+	create_table1(client, mnesia:create_table(client, [{disc_copies, Nodes},
 			{attributes, record_info(fields, client)},
 			{index, [#client.identifier]}]));
 create_table(service, Nodes) when is_list(Nodes) ->
-	create_table1(mnesia:create_table(service, [{disc_copies, Nodes},
+	create_table1(service, mnesia:create_table(service, [{disc_copies, Nodes},
 			{attributes, record_info(fields, service)}]));
 create_table(product, Nodes) when is_list(Nodes) ->
-	create_table1(mnesia:create_table(product, [{disc_copies, Nodes},
+	create_table1(product, mnesia:create_table(product, [{disc_copies, Nodes},
 			{attributes, record_info(fields, product)}]));
 create_table(resource, Nodes) when is_list(Nodes) ->
-	create_table1(mnesia:create_table(resource, [{disc_copies, Nodes},
+	create_table1(resource, mnesia:create_table(resource, [{disc_copies, Nodes},
 			{attributes, record_info(fields, resource)}]));
 create_table(offer, Nodes) when is_list(Nodes) ->
-	create_table1(mnesia:create_table(offer, [{disc_copies, Nodes},
+	create_table1(offer, mnesia:create_table(offer, [{disc_copies, Nodes},
 			{attributes, record_info(fields, offer)}]));
 create_table(bucket, Nodes) when is_list(Nodes) ->
-	create_table1(mnesia:create_table(bucket, [{disc_copies, Nodes},
+	create_table1(bucket, mnesia:create_table(bucket, [{disc_copies, Nodes},
 			{attributes, record_info(fields, bucket)}]));
 create_table(httpd_user, Nodes) when is_list(Nodes) ->
-	create_table1(mnesia:create_table(httpd_user, [{type, bag}, {disc_copies, Nodes},
-			{attributes, record_info(fields, httpd_user)}]));
+	create_table1(httpd_user, mnesia:create_table(httpd_user, [{type, bag},
+			{disc_copies, Nodes}, {attributes, record_info(fields, httpd_user)}]));
 create_table(httpd_group, Nodes) when is_list(Nodes) ->
-	create_table1(mnesia:create_table(httpd_group, [{type, bag}, {disc_copies, Nodes},
+	create_table1(httpd_group, mnesia:create_table(httpd_group,
+			[{type, bag}, {disc_copies, Nodes},
 			{attributes, record_info(fields, httpd_group)}]));
 create_table(session, Nodes) ->
-	create_table1(mnesia:create_table(session, [{ram_copies, Nodes},
+	create_table1(session, mnesia:create_table(session, [{ram_copies, Nodes},
 			{attributes, record_info(fields, session)},
 			{index, [#session.imsi]}]));
 create_table(nrf_ref, Nodes) ->
-	create_table1(mnesia:create_table(nrf_ref, [{ram_copies, Nodes},
+	create_table1(nrf_ref, mnesia:create_table(nrf_ref, [{ram_copies, Nodes},
 			{attributes, record_info(fields, nrf_ref)}])).
 %% @hidden
 create_table1(Table, {atomic, ok}) ->
@@ -1165,10 +1177,10 @@ create_table1(Table, {atomic, ok}) ->
 create_table1(Table, {aborted, {already_exists, Table}}) ->
 	error_logger:info_msg("Found existing ~w table.~n", [Table]),
 	ok;
-create_table1(Table, {aborted, {not_active, _, Node} = Reason}) ->
+create_table1(_Table, {aborted, {not_active, _, Node} = Reason}) ->
 	error_logger:error_report(["Mnesia not started on node", {node, Node}]),
 	{error, Reason};
-create_table1(Table, {aborted, Reason}) ->
+create_table1(_Table, {aborted, Reason}) ->
 	error_logger:error_report([mnesia:error_description(Reason), {error, Reason}]),
 	{error, Reason}.
 
@@ -1183,7 +1195,7 @@ is_mod_auth_mnesia() ->
 			false
 	end.
 %% @hidden
-is_mod_auth_mnesia1(InetsServices);
+is_mod_auth_mnesia1(InetsServices) ->
 	case lists:keyfind(httpd, 1, InetsServices) of
 		{httpd, HttpdInfo} ->
 			F = fun({directory, _}) ->
@@ -1196,7 +1208,7 @@ is_mod_auth_mnesia1(InetsServices);
 			ok
 	end.
 %% @hidden
-is_mod_auth_mnesia2([{directory, {_Dir, []}} | T]) ->
+is_mod_auth_mnesia2([{directory, {_Dir, []}} | _T]) ->
 	false;
 is_mod_auth_mnesia2([{directory, {_, DirectoryInfo}} | _]) ->
 	case lists:keyfind(auth_type, 1, DirectoryInfo) of
