@@ -55,85 +55,107 @@
 %% @see //kernel/application:start/2
 %%
 start(normal = _StartType, _Args) ->
-	Tables = [client, service, offer, product, resource,
-			bucket, httpd_user, httpd_group, session, nrf_ref],
+	Tables = [client, service, offer, product, resource, bucket],
 	case mnesia:wait_for_tables(Tables, ?WAITFORTABLES) of
 		ok ->
 			start1();
-		{timeout, BadTabList} ->
-			case create_table(BadTabList) of
+		{timeout, BadTabbles} ->
+			case force(BadTables) of
 				ok ->
-					case force(BadTabList) of
-						ok ->
-							start1();
-						{error, Reason} ->
-							error_logger:error_report(["ocs application failed to"
-									" start", {reason, Reason}, {module, ?MODULE}]),
-							{error, Reason}
-					end;
+					error_logger:warning_report(["Force loaded mnesia tables",
+							{tables, BadTables}, {module, ?MODULE}]),
+					start1();
 				{error, Reason} ->
-					error_logger:error_report(["failed to create missing tables",
-							{reason, Reason}, {module, ?MODULE}]),
+					error_logger:error_report(["Failed to force load mnesia tables",
+							{tables, BadTables}, {reason, Reason}, {module, ?MODULE}]),
 					{error, Reason}
 			end;
 		{error, Reason} ->
+			error_logger:error_report(["Failed to load mnesia tables",
+					{tables, Tables}, {reason, Reason}, {module, ?MODULE}]),
 			{error, Reason}
 	end.
 %% @hidden
-start1() ->
+sart1() ->
+	case is_mod_auth_mnesia() of
+		true ->
+			Tables = [httpd_user, httpd_group],
+			start2(Tables, mnesia:wait_for_tables(Tables, ?WAITFORTABLES));
+		false ->
+	end.
+%% @hidden
+start2(_Tables, ok) ->
+	start3();
+start2(_Tables, {timeout, BadTables}) ->
+	case force(BadTables) of
+		ok ->
+			error_logger:warning_report(["Force loaded mnesia tables",
+					{tables, BadTables}, {module, ?MODULE}]),
+			start3();
+		{error, Reason} ->
+			error_logger:error_report(["Failed to force load mnesia tables",
+					{tables, BadTables}, {reason, Reason}, {module, ?MODULE}]),
+			{error, Reason}
+	end.
+start2(Tables, {error, Reason}) ->
+	error_logger:error_report(["Failed to load mnesia tables",
+			{tables, Tables}, {reason, Reason}, {module, ?MODULE}]),
+	{error, Reason}.
+%% @hidden
+start3() ->
 	case inets:services_info() of
 		ServicesInfo when is_list(ServicesInfo) ->
 			{ok, Profile} = application:get_env(hub_profile),
-			start2(Profile, ServicesInfo);
+			start4(Profile, ServicesInfo);
 		{error, Reason} ->
 			{error, Reason}
 	end.
 %% @hidden
-start2(Profile, [{httpc, _Pid, Info} | T]) ->
+start4(Profile, [{httpc, _Pid, Info} | T]) ->
 	case proplists:lookup(profile, Info) of
 		{profile, Profile} ->
-			start3(Profile);
+			start5(Profile);
 		_ ->
-			start2(Profile, T)
+			start4(Profile, T)
 	end;
-start2(Profile, [_ | T]) ->
-	start2(Profile, T);
-start2(Profile, []) ->
+start4(Profile, [_ | T]) ->
+	start4(Profile, T);
+start4(Profile, []) ->
 	case inets:start(httpc, [{profile, Profile}]) of
 		{ok, _Pid} ->
-			start3(Profile);
+			start5(Profile);
 		{error, Reason} ->
 			{error, Reason}
 	end.
 %% @hidden
-start3(Profile) ->
+start5(Profile) ->
 	{ok, Options} = application:get_env(hub_options),
 	case httpc:set_options(Options, Profile) of
 		ok ->
-			start4();
+			start6();
 		{error, Reason} ->
 			{error, Reason}
 	end.
 %% @hidden
-start4() ->
+start6() ->
 	case inets:services_info() of
 		ServicesInfo when is_list(ServicesInfo) ->
 			{ok, Profile} = application:get_env(nrf_profile),
-			start5(Profile, ServicesInfo);
+			start7(Profile, ServicesInfo);
 		{error, Reason} ->
 			{error, Reason}
 	end.
 %% @hidden
-start5(Profile, [{httpc, _Pid, Info} | T]) ->
+start7(Profile, [{httpc, _Pid, Info} | T]) ->
 	case proplists:lookup(profile, Info) of
 		{profile, Profile} ->
-			start6(Profile);
+			start8(Profile);
 		_ ->
-			start5(Profile, T)
+			start7(Profile, T)
 	end;
-start5(Profile, [_ | T]) ->
-	start5(Profile, T);
-start5(Profile, []) ->
+start7(Profile, [_ | T]) ->
+	start7(Profile, T);
+start7(Profile, []) ->
 	case inets:start(httpc, [{profile, Profile}]) of
 		{ok, _Pid} ->
 			start6(Profile);
@@ -141,20 +163,20 @@ start5(Profile, []) ->
 			{error, Reason}
 	end.
 %% @hidden
-start6(Profile) ->
+start8(Profile) ->
 	{ok, Options} = application:get_env(hub_options),
 	case httpc:set_options(Options, Profile) of
 		ok ->
-			start7();
+			start9();
 		{error, Reason} ->
 			{error, Reason}
 	end.
 %% @doc Migrate client table, if necessary, to add Trusted field.
 %% @hidden
-start7() ->
+start9() ->
 	case mnesia:table_info(client, arity) of
 		9 ->
-			start8();
+			start10();
 		8 ->
 			F = fun({client, Address, Identifier, Port, Protocol,
 						Secret, PasswordRequired, LastModified}) ->
@@ -167,19 +189,36 @@ start7() ->
 			case mnesia:transform_table(client, F, NewAttributes) of
 				{atomic, ok} ->
 					error_logger:info_report(["Migrated client table"]),
-					start8();
+					start10();
 				{aborted, Reason} ->
 					error_logger:error_report(["Failed to migrate client table",
 							mnesia:error_description(Reason), {error, Reason}]),
 					{error, Reason}
 			end
 	end.
-%% @doc Migrate session table, if necessary, to add Identity field.
 %% @hidden
-start8() ->
+start10() ->
+	Tables = [session, nrf_session],
+	start11(Tables, mnesia:wait_for_tables(Tables, ?WAITFORTABLES)).
+%% @hidden
+start11(_Tables, ok) ->
+	start12();
+start11(_Tables, {timeout, BadTables}) ->
+	case create_tables(BadTables) of
+		ok ->
+			start12();
+		{error, Reason} ->
+			{error, Reason}
+	end.
+start11(Tables, {error, Reason}) ->
+	error_logger:error_report(["Failed to load mnesia tables",
+			{tables, Tables}, {reason, Reason}, {module, ?MODULE}]),
+	{error, Reason}.
+%% @hidden
+start12() ->
 	case mnesia:table_info(session, arity) of
 		12 ->
-			start9();
+			start13();
 		11 ->
 			F = fun({session, Id, IMSI, App, NasHost, NasRealm, NasAddress,
 					HssHost, HssRealm, UserProfile, LM}) ->
@@ -193,7 +232,7 @@ start8() ->
 			case mnesia:transform_table(session, F, NewAttributes) of
 				{atomic, ok} ->
 					error_logger:info_report(["Migrated session table"]),
-					start9();
+					start12();
 				{aborted, Reason} ->
 					error_logger:error_report(["Failed to migrate session table",
 							mnesia:error_description(Reason), {error, Reason}]),
@@ -201,18 +240,18 @@ start8() ->
 			end
 	end.
 %% @hidden
-start9() ->
+start13() ->
 	Options = [set, public, named_table, {write_concurrency, true}],
 	ets:new(nrf_session, Options),
    ets:new(counters, Options),
    case catch ets:insert(counters, {nrf_seq, 0}) of
 		true ->
-			start10();
+			start14();
 		{'EXIT', Reason} ->
 			{error, Reason}
 	end.
 %% @hidden
-start10() ->
+start14() ->
 	{ok, RadiusConfig} = application:get_env(radius),
 	{ok, DiameterConfig} = application:get_env(diameter),
 	{ok, RotateInterval} = application:get_env(acct_log_rotate),
@@ -480,70 +519,39 @@ install11(Nodes, Acc) ->
 			error_logger:info_msg("Loaded inets.~n"),
 			install12(Nodes, Acc);
 		{error, {already_loaded, inets}} ->
-			install12(Nodes, Acc)
+			install12(Nodes, Acc);
 	end.
 %% @hidden
 install12(Nodes, Acc) ->
-	case application:get_env(inets, services) of
-		{ok, InetsServices} ->
-			install13(Nodes, Acc, InetsServices);
-		undefined ->
-			error_logger:info_msg("Inets services not defined. "
-					"User table not created~n"),
-			install17(Nodes, Acc)
-	end.
-%% @hidden
-install13(Nodes, Acc, InetsServices) ->
-	case lists:keyfind(httpd, 1, InetsServices) of
-		{httpd, HttpdInfo} ->
-			F = fun({directory, _}) ->
-						true;
-					(_) ->
-						false
-			end,
-			install14(Nodes, Acc, lists:filter(F, HttpdInfo));
+	case is_mod_auth_mnesia() of
+		true ->
+			install13(Nodes, Acc);
 		false ->
 			error_logger:info_msg("Httpd service not defined. "
 					"User table not created~n"),
-			install17(Nodes, Acc)
+			install15(Nodes, Acc)
 	end.
 %% @hidden
-install14(Nodes, Acc, [{directory, {_Dir, []}} | T]) ->
-	install14(Nodes, Acc, T);
-install14(Nodes, Acc, [{directory, {_, DirectoryInfo}} | _]) ->
-	case lists:keyfind(auth_type, 1, DirectoryInfo) of
-		{auth_type, mnesia} ->
-			install15(Nodes, Acc);
-		_ ->
-			error_logger:info_msg("Auth type not mnesia. "
-					"User table not created~n"),
-			install17(Nodes, Acc)
-	end;
-install14(Nodes, Acc, []) ->
-	error_logger:info_msg("Auth directory not defined. "
-			"User table not created~n"),
-	install16(Nodes, Acc).
-%% @hidden
-install15(Nodes, Acc) ->
+install13(Nodes, Acc) ->
 	case create_table(httpd_user, Nodes) of
 		ok ->
-			install16(Nodes, [httpd_user | Acc]);
+			install14(Nodes, [httpd_user | Acc]);
 		{error, Reason} ->
 			{error, Reason}
 	end.
 %% @hidden
-install16(Nodes, Acc) ->
+install14(Nodes, Acc) ->
 	case create_table(httpd_group, Nodes) of
 		ok ->
-			install17(Nodes, [httpd_group | Acc]);
+			install15(Nodes, [httpd_group | Acc]);
 		{error, Reason} ->
 			{error, Reason}
 	end.
 %% @hidden
-install17(_Nodes, Tables) ->
+install15(_Nodes, Tables) ->
 	case mnesia:wait_for_tables(Tables, ?WAITFORTABLES) of
 		ok ->
-			install18(Tables, lists:member(httpd_user, Tables));
+			install16(Tables, lists:member(httpd_user, Tables));
 		{timeout, Tables} ->
 			error_logger:error_report(["Timeout waiting for tables",
 					{tables, Tables}]),
@@ -554,21 +562,21 @@ install17(_Nodes, Tables) ->
 			{error, Reason}
 	end.
 %% @hidden
-install18(Tables, true) ->
+install16(Tables, true) ->
 	case inets:start() of
 		ok ->
 			error_logger:info_msg("Started inets.~n"),
-			install19(Tables);
+			install17(Tables);
 		{error, {already_started, inets}} ->
-			install19(Tables);
+			install17(Tables);
 		{error, Reason} ->
 			error_logger:error_msg("Failed to start inets~n"),
 			{error, Reason}
 	end;
-install18(Tables, false) ->
+install16(Tables, false) ->
 	{ok, Tables}.
 %% @hidden
-install19(Tables) ->
+install17(Tables) ->
 	case ocs:list_users() of
 		{ok, []} ->
 			case ocs:add_user("admin", "admin", "en") of
@@ -1110,23 +1118,6 @@ add_example_bundles3(PriceInstall) ->
 			{error, Reason}
 	end.
 
--spec create_table(Tables) -> Result
-	when
-		Tables :: [atom()],
-		Result :: ok | {error, Reason},
-		Reason :: term().
-%% @doc Create mnesia tables.
-%% @private
-create_table([Table | Tables]) when is_atom(Table) ->
-	case create_table(Table, mnesia:system_info(db_nodes)) of
-		ok ->
-			create_table(Tables);
-		{error, Reason} ->
-			{error, Reason}
-	end;
-create_table([]) ->
-	ok.
-
 -spec create_table(Table, Nodes) -> Result
 	when
 		Table :: atom(),
@@ -1180,4 +1171,40 @@ create_table1(Table, {aborted, {not_active, _, Node} = Reason}) ->
 create_table1(Table, {aborted, Reason}) ->
 	error_logger:error_report([mnesia:error_description(Reason), {error, Reason}]),
 	{error, Reason}.
+
+-spec is_mod_auth_mnesia() -> boolean().
+%% @doc Check if inets mod_auth uses mmnesia tables.
+%% @hidden
+is_mod_auth_mnesia() ->
+	case application:get_env(inets, services) of
+		{ok, InetsServices} ->
+			is_mod_auth_mnesia1(InetsServices);
+		undefined ->
+			false
+	end.
+%% @hidden
+is_mod_auth_mnesia1(InetsServices);
+	case lists:keyfind(httpd, 1, InetsServices) of
+		{httpd, HttpdInfo} ->
+			F = fun({directory, _}) ->
+						true;
+					(_) ->
+						false
+			end,
+			is_mod_auth_mnesia2(lists:filter(F, HttpdInfo));
+		false ->
+			ok
+	end.
+%% @hidden
+is_mod_auth_mnesia2([{directory, {_Dir, []}} | T]) ->
+	false;
+is_mod_auth_mnesia2([{directory, {_, DirectoryInfo}} | _]) ->
+	case lists:keyfind(auth_type, 1, DirectoryInfo) of
+		{auth_type, mnesia} ->
+			true;
+		_ ->
+			false
+	end;
+is_mod_auth_mnesia2([]) ->
+	false.
 
