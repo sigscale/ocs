@@ -496,6 +496,8 @@ install7(Nodes, Acc) ->
 				{error, Reason} ->
 					{error, Reason}
 			end;
+		{error, already_exists} ->
+			install8(Nodes, [offer | Acc]);
 		{error, Reason} ->
 			{error, Reason}
 	end.
@@ -1174,6 +1176,9 @@ create_table(nrf_ref, Nodes) ->
 create_table1(Table, {atomic, ok}) ->
 	error_logger:info_msg("Created new ~w table.~n", [Table]),
 	ok;
+create_table1(offer, {aborted, {already_exists, offer}}) ->
+	error_logger:info_msg("Found existing ~w table.~n", [offer]),
+	{error, already_exists};
 create_table1(Table, {aborted, {already_exists, Table}}) ->
 	error_logger:info_msg("Found existing ~w table.~n", [Table]),
 	ok;
