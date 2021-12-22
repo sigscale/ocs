@@ -1,3 +1,84 @@
+2021-12-21  Vance Shipley <vances@sigscale.org>
+
+	* correct attribute for actual time session began in nrf_rating api examples
+	* example offers should not be installed on already initialized table
+	* check mnesia auth type in all the directories
+	* refactor start to upgrade install session and nrf_ref tables if missing
+	* refactor for common table creation function
+	* inets mod_auth tables are type bag
+	* install voice and data diameter test scripts
+	* include escripts in Makefile
+	* add missing tables during application start
+	* escript to join node to a cluster
+	* add missing tables during join
+	* update new tariffs; remove display lines
+	* move join/1 to appear directly after install/1
+	* correct function spec
+	* remove emulator arguments
+	* escript for install tables
+	* join accepts only one node
+	* join should be re-entrant
+	* correct cca validation for ccr-t
+	* tariff must include unit size
+	* post nrf request when matching tariff is not found
+	* add escript file extension
+	* escript for data_session & voice_call
+	* session state is a list of maps during class a
+	* session state is a list of maps
+	* add lastModified element to tariff reference
+	* add ratingFunction element to tariff reference
+	* add apn as an configuration option for diameter auth service (ocs-525)
+	* refactor type specifications and edoc for ocs_log
+	* document sub_id_type app env var values
+	* remove unnecessary logging
+	* better guard handling
+	* subscriber id type is integer in charge function
+	* handle gx acct events in rest query; ignore unknown entries
+	* better single subscriber filtering
+	* check for valid rating group and service id
+	* default amounts is an empty list; typos
+	* differentiate between pla and amounts to be charged
+	* strip mochijson structure from destination id
+	* remove redundant values from pla
+	* ignore unknown log entries in ipdr codec
+	* install should be reentrant
+	* Merge branch 'nrf'
+	* log diameter nrf server error events
+	* fix variable caliing method
+	* accurate function naming
+	* test: add second rating group
+	* escript to send an sms with diameter
+	* fix variable shadowing in fun()
+	* match existing tariff price to mscc by rating group and service id
+	* test: differentiate by rating group
+	* update new and old products when service product is changed
+	* default product value in service is undefined
+	* describe uris in redirect server characteristic
+	* test: validate multiple msccs in the same diameter cca
+	* handle cud in diameter update
+	* test: add receive initial cud scur class b
+	* remove extra brackets
+	* find predefined characteristic value
+	* event based charging does not include reserved units
+	* get application enviroment variable of single diameter service
+	* get subscriber id types of single diameter service
+	* better document re interface configuration options
+	* incorrect attribute name for service id in ecur class a example
+	* log update and release diameter events in ocs_acct
+	* log successful nrf rating events to ocs_acct
+	* remove duplicate inheritance
+	* include missing avps
+	* correct enviroment variable name from class to nrf_class
+	* rename hub modules
+	* POST response body should include href
+	* basic auth is not required in party role management
+	* handle multiple httpd directories
+	* add role without basic auth in test
+	* fix delete client
+	* use [] as when amount when it is not provided in request
+	* add 3gpp gx interface types to ocs_acct spec
+	* return error 400 when service context id is invalid
+
 2021-11-24  Refath Wadood <refath@sigscale.org>
 
 	* restructure nrf table fields
