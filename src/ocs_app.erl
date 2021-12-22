@@ -369,8 +369,9 @@ install() ->
 -spec install(Nodes) -> Result
 	when
 		Nodes :: [node()],
-		Result :: {ok, Tables},
-		Tables :: [atom()].
+		Result :: {ok, Tables} | {error, Reason},
+		Tables :: [atom()],
+		Reason :: term().
 %% @doc Initialize OCS tables.
 %% 	`Nodes' is a list of the nodes where
 %% 	{@link //ocs. ocs} tables will be replicated.
