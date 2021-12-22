@@ -948,7 +948,7 @@ id_type(_) ->
 		Reason :: term().
 %% @doc POST ECUR rating data to a Nrf Rating Server.
 post_request_ecur(_ServiceName, SubscriberIds, SvcContextId,
-		SessionId, [#{"price" := #price{type = #pla_ref{href = Path}}}
+		SessionId, [#{price := #price{type = #pla_ref{href = Path}}}
       | _], Amounts, Location, Destination, {initial, a}) ->
 	ServiceRating = initial_service_rating(SubscriberIds, Amounts, binary_to_list(SvcContextId),
 			Location, Destination, a),
@@ -1093,7 +1093,7 @@ post_request_iec1(ServiceName, SubscriberIds, SessionId, ServiceRating) ->
 		Reason :: term().
 %% @doc POST SCUR rating data to a Nrf Rating Server.
 post_request_scur(_ServiceName, Subscriber, SvcContextId,
-		SessionId,  [#{"price" := #price{type = #pla_ref{href = Path}}} | _],
+		SessionId,  [#{price := #price{type = #pla_ref{href = Path}}} | _],
 		Amounts, Location, {initial, a}) ->
 	ServiceRating = initial_service_rating(Subscriber, Amounts, binary_to_list(SvcContextId),
 			Location, undefined, a),
@@ -1220,11 +1220,29 @@ get_service_location1(<<MCC1, MCC2, MCC3, MNC1, MNC2>>) ->
 -spec insert_ref(SessionId, SessionState, PLAs) -> Result
 	when
 		SessionId :: binary(),
-		SessionState :: Location | ServiceRating,
+		SessionState :: Location | ServiceRatings,
 		PLAs :: [PLA] | undefined,
 		PLA :: map(),
 		Location :: string(),
-		ServiceRating :: [map()],
+		ServiceRatings :: [Tariff],
+		Tariff :: #{destinationId => string(),
+				lastModified := integer(),
+				ratingFunction := string(),
+				ratingGroup => 0..4294967295,
+				serviceId => 0..4294967295,
+				serviceContextId := string(),
+				expiryTime => 0..4294967295,
+				currentTariff := TariffElement,
+				nextTariff => TariffElement},
+		TariffElement :: #{currencyCode => integer(),
+				rateElements := RateElement},
+		RateElement :: #{unitType := UnitType,
+				unitSize := UnitSize, unitCost := UnitCost},
+		UnitSize :: #{valueDigits := pos_integer(),
+				exponent => integer()},
+		UnitCost :: #{valueDigits := integer(),
+				exponent => integer()},
+		UnitType :: octets | seconds | messages,
 		Result :: ok | {error, Reason},
 		Reason :: term().
 %% @doc Insert a rating Data ref.
@@ -1232,11 +1250,11 @@ insert_ref(SessionId, SessionState, undefined)
 		when is_list(SessionState), is_binary(SessionId) ->
 	insert_ref1(SessionId, SessionState);
 insert_ref(SessionId, SessionState,
-		[#{"price" := #price{type = #pla_ref{href = Path}}}| _])
+		[#{price := #price{type = #pla_ref{href = Path}}} | _])
 		when is_list(SessionState), is_binary(SessionId) ->
 	F = fun F([#{} = H | T1], Acc1) ->
-			NewSessionState = H#{"ratingFunction" => Path,
-					"lastModified" => erlang:system_time(millisecond)},
+			NewSessionState = H#{ratingFunction => Path,
+					lastModified => erlang:system_time(millisecond)},
 			F(T1, [NewSessionState | Acc1]);
 		F([], Acc1) ->
 			Acc1
@@ -1284,29 +1302,34 @@ remove_ref(SessionId)
 			{error, Reason}
 	end.
 
--spec build_mscc(ServiceRating, Container) -> Result
+-spec build_mscc(ServiceRatings, Container) -> Result
 	when
-		ServiceRating :: [map()],
+		ServiceRatings :: [ServiceRating],
+		ServiceRating :: #{finalResultCode => pos_integer(),
+				grantedUnit => #'3gpp_ro_Granted-Service-Unit'{},
+				consumedUnit => #'3gpp_ro_Used-Service-Unit'{},
+				ratingGroup => pos_integer(), resultCode => pos_integer(),
+				serviceId => pos_integer(), serviceContextId => string()},
 		Container :: [#'3gpp_ro_Multiple-Services-Credit-Control'{}],
 		Result :: [#'3gpp_ro_Multiple-Services-Credit-Control'{}].
 %% @doc Build a list of CCA MSCCs
 build_mscc([H | T], Container) ->
-	F = fun F(#{"serviceId" := SI, "ratingGroup" := RG, "resultCode" := RC} = ServiceRating,
+	F = fun F(#{serviceId := SI, ratingGroup := RG, resultCode := RC} = ServiceRating,
 			[#'3gpp_ro_Multiple-Services-Credit-Control'
 					{'Service-Identifier' = [SI], 'Rating-Group' = [RG]} = MSCC1 | T1], Acc) ->
-				MSCC2 = case catch maps:get("grantedUnit", ServiceRating) of
+				MSCC2 = case catch maps:get(grantedUnit, ServiceRating) of
 					#'3gpp_ro_Granted-Service-Unit'{} = GrantedUnits ->
 						MSCC1#'3gpp_ro_Multiple-Services-Credit-Control'{'Granted-Service-Unit' = [GrantedUnits]};
 					_ ->
 						MSCC1
 				end,
-				MSCC3 = case catch maps:get("consumedUnit", ServiceRating) of
+				MSCC3 = case catch maps:get(consumedUnit, ServiceRating) of
 					#'3gpp_ro_Used-Service-Unit'{} = UsedUnits ->
 						MSCC2#'3gpp_ro_Multiple-Services-Credit-Control'{'Used-Service-Unit' = [UsedUnits]};
 					_ ->
 						MSCC2
 				end,
-				MSCC4 = case catch maps:get("finalUnitIndication", ServiceRating) of
+				MSCC4 = case catch maps:get(finalUnitIndication, ServiceRating) of
 					[#'3gpp_ro_Final-Unit-Indication'{}] = FUI ->
 						MSCC3#'3gpp_ro_Multiple-Services-Credit-Control'{'Final-Unit-Indication' = FUI};
 					_ ->
@@ -1319,22 +1342,22 @@ build_mscc([H | T], Container) ->
 						MSCC5 = MSCC4#'3gpp_ro_Multiple-Services-Credit-Control'{'Result-Code' = [RC]},
 						lists:reverse(T1) ++ [MSCC5] ++ Acc
 				end;
-		F(#{"serviceId" := SI, "resultCode" := RC} = ServiceRating,
+		F(#{serviceId := SI, resultCode := RC} = ServiceRating,
 			[#'3gpp_ro_Multiple-Services-Credit-Control'
 					{'Service-Identifier' = [SI], 'Rating-Group' = []} = MSCC1 | T1], Acc) ->
-				MSCC2 = case catch maps:get("grantedUnit", ServiceRating) of
+				MSCC2 = case catch maps:get(grantedUnit, ServiceRating) of
 					#'3gpp_ro_Granted-Service-Unit'{} = GrantedUnits ->
 						MSCC1#'3gpp_ro_Multiple-Services-Credit-Control'{'Granted-Service-Unit' = [GrantedUnits]};
 					_ ->
 						MSCC1
 				end,
-				MSCC3 = case catch maps:get("consumedUnit", ServiceRating) of
+				MSCC3 = case catch maps:get(consumedUnit, ServiceRating) of
 					#'3gpp_ro_Used-Service-Unit'{} = UsedUnits ->
 						MSCC2#'3gpp_ro_Multiple-Services-Credit-Control'{'Used-Service-Unit' = [UsedUnits]};
 					_ ->
 						MSCC2
 				end,
-				MSCC4 = case catch maps:get("finalUnitIndication", ServiceRating) of
+				MSCC4 = case catch maps:get(finalUnitIndication, ServiceRating) of
 					[#'3gpp_ro_Final-Unit-Indication'{}] = FUI ->
 						MSCC3#'3gpp_ro_Multiple-Services-Credit-Control'{'Final-Unit-Indication' = FUI};
 					_ ->
@@ -1342,22 +1365,22 @@ build_mscc([H | T], Container) ->
 				end,
 				MSCC5 = MSCC4#'3gpp_ro_Multiple-Services-Credit-Control'{'Result-Code' = [RC]},
 				lists:reverse(T1) ++ [MSCC5] ++ Acc;
-			F(#{"ratingGroup" := RG, "resultCode" := RC} = ServiceRating,
+			F(#{ratingGroup := RG, resultCode := RC} = ServiceRating,
 					[#'3gpp_ro_Multiple-Services-Credit-Control'
 							{'Service-Identifier' = [], 'Rating-Group' = [RG]} = MSCC1 | T1], Acc) ->
-				MSCC2 = case catch maps:get("grantedUnit", ServiceRating) of
+				MSCC2 = case catch maps:get(grantedUnit, ServiceRating) of
 					#'3gpp_ro_Granted-Service-Unit'{} = GrantedUnits ->
 						MSCC1#'3gpp_ro_Multiple-Services-Credit-Control'{'Granted-Service-Unit' = [GrantedUnits]};
 					_ ->
 						MSCC1
 				end,
-				MSCC3 = case catch maps:get("consumedUnit", ServiceRating) of
+				MSCC3 = case catch maps:get(consumedUnit, ServiceRating) of
 					#'3gpp_ro_Used-Service-Unit'{} = UsedUnits ->
 						MSCC2#'3gpp_ro_Multiple-Services-Credit-Control'{'Used-Service-Unit' = [UsedUnits]};
 					_ ->
 						MSCC2
 				end,
-				MSCC4 = case catch maps:get("finalUnitIndication", ServiceRating) of
+				MSCC4 = case catch maps:get(finalUnitIndication, ServiceRating) of
 					[#'3gpp_ro_Final-Unit-Indication'{}] = FUI ->
 						MSCC3#'3gpp_ro_Multiple-Services-Credit-Control'{'Final-Unit-Indication' = FUI};
 					_ ->
@@ -1371,7 +1394,7 @@ build_mscc([H | T], Container) ->
 	NewContainer = F(H, Container, []),
 	build_mscc(T, NewContainer);
 build_mscc([], Container) ->
-	Container.
+	lists:reverse(Container).
 
 -spec map_service_rating(ServiceRating, SessionId) -> Result
 	when
@@ -1388,28 +1411,35 @@ map_service_rating([], _) ->
 %% @hidden
 map_service_rating([{struct, Elements} | T], RC2, Acc) ->
 	F = fun F([{"grantedUnit", {_, Units}} | T1], Acc1) ->
-			Acc2 = Acc1#{"grantedUnit" => granted_units(Units)},
+			Acc2 = Acc1#{grantedUnit => granted_units(Units)},
 			F(T1, Acc2);
 		F([{"consumedUnit", {_, Units}} | T1], Acc1) ->
-			Acc2 = Acc1#{"consumedUnit" => used_units(Units)},
+			Acc2 = Acc1#{consumedUnit => used_units(Units)},
 			F(T1, Acc2);
 		F([{"currentTariff", {_, TariffElements}} | T1], Acc1) ->
-			Acc2 = Acc1#{"tariffElement" => tariff_element(TariffElements)},
+			Acc2 = Acc1#{currentTariff => tariff_element(TariffElements)},
+			F(T1, Acc2);
+		F([{"nextTariff", {_, TariffElements}} | T1], Acc1) ->
+			Acc2 = Acc1#{nextTariff => tariff_element(TariffElements)},
 			F(T1, Acc2);
 		F([{"resultCode", RC1} | T1], Acc1) ->
 			{NewRC1, NewRC2} = result_code(RC1, RC2),
-			Acc2 = Acc1#{"resultCode" => NewRC1,
-					"finalResultCode" => NewRC2},
+			Acc2 = Acc1#{resultCode => NewRC1,
+					finalResultCode => NewRC2},
 			F(T1, Acc2);
 		F([{"destinationId", {array, [DestinationId]}} | T1], Acc1) ->
-			F(T1, Acc1#{"destinationId" => DestinationId});
+			F(T1, Acc1#{destinationId => DestinationId});
+		F([{"ratingGroup", Value} | T1], Acc1) ->
+			F(T1, Acc1#{ratingGroup => Value});
+		F([{"serviceId", Value} | T1], Acc1) ->
+			F(T1, Acc1#{serviceId => Value});
 		F([{Name, Value} | T1], Acc1) ->
 			F(T1, Acc1#{Name => Value});
 		F([], Acc1) ->
 			Acc1
 	end,
 	ServiceRatingMap = F(Elements, #{}),
-	case catch maps:get("finalResultCode", ServiceRatingMap) of
+	case catch maps:get(finalResultCode, ServiceRatingMap) of
 		{'EXIT', _Reason} ->
 			map_service_rating(T, undefined, [ServiceRatingMap | Acc]);
 		RC3 ->
@@ -1422,10 +1452,10 @@ map_service_rating([], NewRC2, Acc) ->
 tariff_element(Elements) ->
 	tariff_element(Elements, #{}).
 tariff_element([{"currencyCode", CurrencyCode} | T], Acc) ->
-	tariff_element(T, Acc#{"currencyCode" => CurrencyCode});
+	tariff_element(T, Acc#{currencyCode => CurrencyCode});
 tariff_element([{"rateElement", {_,[{_, RateElements}]}} | T], Acc) ->
 	RateElements1 = rate_elements(RateElements, #{}),
-	tariff_element(T, Acc#{"rateElements" => RateElements1});
+	tariff_element(T, Acc#{rateElements => RateElements1});
 tariff_element([_H | T], Acc) ->
 	tariff_element(T, Acc);
 tariff_element([], Acc) ->
@@ -1433,23 +1463,23 @@ tariff_element([], Acc) ->
 
 %% @hidden
 rate_elements([{"unitType", UnitType} | T], Acc) ->
-	rate_elements(T, Acc#{"unitType" => unit_type(UnitType)});
+	rate_elements(T, Acc#{unitType => unit_type(UnitType)});
 rate_elements([{"unitSize", {_, [{"valueDigits", ValueDigits}]}} | T], Acc) ->
-	rate_elements(T, Acc#{"unitSize" => ValueDigits});
+	rate_elements(T, Acc#{unitSize => ValueDigits});
 rate_elements([{"unitSize", {_, [{"valueDigits", ValueDigits},
 		{"exponent", Exponent}]}} | T], Acc) when Exponent >= 0 ->
-	rate_elements(T, Acc#{"unitSize" => ValueDigits * (Exponent * 10) * 10000});
+	rate_elements(T, Acc#{unitSize => ValueDigits * (Exponent * 10) * 10000});
 rate_elements([{"unitSize", {_, [{"valueDigits", ValueDigits},
 		{"exponent", Exponent}]}} | T], Acc) when Exponent < 0 ->
-	rate_elements(T, Acc#{"unitSize" => ValueDigits div (Exponent * 10) * 10000});
+	rate_elements(T, Acc#{unitSize => ValueDigits div (Exponent * 10) * 10000});
 rate_elements([{"unitCost", {_, [{"valueDigits", ValueDigits}]}} | T], Acc) ->
-	rate_elements(T, Acc#{"unitCost" => ValueDigits});
+	rate_elements(T, Acc#{unitCost => ValueDigits});
 rate_elements([{"unitCost", {_, [{"valueDigits", ValueDigits},
 		{"exponent", Exponent}]}} | T], Acc) when Exponent >= 0 ->
-	rate_elements(T, Acc#{"unitCost" => ValueDigits * (Exponent * 10) * 10000});
+	rate_elements(T, Acc#{unitCost => ValueDigits * (Exponent * 10) * 10000});
 rate_elements([{"unitCost", {_, [{"valueDigits", ValueDigits},
 		{"exponent", Exponent}]}} | T], Acc) when Exponent < 0 ->
-	rate_elements(T, Acc#{"unitCost" => ValueDigits div (Exponent * 10) * 10000});
+	rate_elements(T, Acc#{unitCost => ValueDigits div (Exponent * 10) * 10000});
 rate_elements([_H | T], Acc) ->
 	rate_elements(T, Acc);
 rate_elements([], Acc) ->
@@ -1457,10 +1487,6 @@ rate_elements([], Acc) ->
 
 %% @hidden
 unit_type("TOTAL_VOLUME") ->
-	octets;
-unit_type("UPLINK_VOLUME") ->
-	octets;
-unit_type("DOWNLINK_VOLUME") ->
 	octets;
 unit_type("SERVICE_SPECIFIC_UNITS") ->
 	messages;
@@ -2153,17 +2179,17 @@ rate(ServiceType, ServiceNetwork, [{_, Subscriber} | _] = Subscribers,
 			ServiceNetwork, Subscriber, Timestamp, Address, Direction, Flag,
 			Debits, Reserves, [{'Session-Id', SessionId}]) of
 		{ok, {pla_ref, #price{} = Price}} ->
-			PLA = #{"price" => Price, "serviceId" => ServiceId,
-					"ratingGroup" => ChargingKey},
+			PLA = #{price => Price, serviceId => ServiceId,
+					ratingGroup => ChargingKey},
 			rate(ServiceType, ServiceNetwork, Subscribers,
 					Timestamp, Address, Direction, Flag, SessionId,
 					T, Acc1, [PLA | Acc2], [{SI, RG, Debits, Reserves} | Acc3],
 					ResultCode1, Rated1);
 		{ok, _, {_, Amount} = GrantedAmount} when Amount > 0 ->
 			ResultCode2 = ?'DIAMETER_BASE_RESULT-CODE_SUCCESS',
-			MSCC = #{"grantedUnit" => granted_unit(GrantedAmount),
-					"serviceId" => ServiceId, "ratingGroup" => ChargingKey,
-					"resultCode" => ResultCode2},
+			MSCC = #{grantedUnit => granted_unit(GrantedAmount),
+					serviceId => ServiceId, ratingGroup => ChargingKey,
+					resultCode => ResultCode2},
 			rate(ServiceType, ServiceNetwork, Subscribers,
 					Timestamp, Address, Direction, Flag, SessionId,
 					T, [MSCC | Acc1], Acc2, Acc3, ResultCode2, Rated1);
@@ -2175,9 +2201,9 @@ rate(ServiceType, ServiceNetwork, [{_, Subscriber} | _] = Subscribers,
 		{ok, _, {_, Amount} = GrantedAmount, Rated2} when Amount > 0,
 				is_list(Rated2), Rated1 == undefined ->
 			ResultCode2 = ?'DIAMETER_BASE_RESULT-CODE_SUCCESS',
-			MSCC = #{"grantedUnit" => granted_unit(GrantedAmount),
-					"serviceId" => ServiceId, "ratingGroup" => ChargingKey,
-					"resultCode" => ResultCode2},
+			MSCC = #{grantedUnit => granted_unit(GrantedAmount),
+					serviceId => ServiceId, ratingGroup => ChargingKey,
+					resultCode => ResultCode2},
 			rate(ServiceType, ServiceNetwork, Subscribers,
 					Timestamp, Address, Direction, Flag, SessionId,
 					T, [MSCC | Acc1], Acc2, Acc3, ResultCode2, Rated2);
@@ -2201,12 +2227,12 @@ rate(ServiceType, ServiceNetwork, [{_, Subscriber} | _] = Subscribers,
 			end,
 			MSCC = case RedirectServerAddress of
 				undefined ->
-					#{"serviceId" => ServiceId, "ratingGroup" => ChargingKey,
-							"resultCode" => ResultCode2};
+					#{serviceId => ServiceId, ratingGroup => ChargingKey,
+							resultCode => ResultCode2};
 				RedirectServerAddress when is_list(RedirectServerAddress) ->
-					#{"serviceId" => ServiceId, "ratingGroup" => ChargingKey,
-							"finalUnitIndication" => fui(RedirectServerAddress),
-							"resultCode" => ResultCode2}
+					#{serviceId => ServiceId, ratingGroup => ChargingKey,
+							finalUnitIndication => fui(RedirectServerAddress),
+							resultCode => ResultCode2}
 			end,
 			rate(ServiceType, ServiceNetwork, Subscribers,
 					Timestamp, Address, Direction, Flag, SessionId,
@@ -2222,12 +2248,12 @@ rate(ServiceType, ServiceNetwork, [{_, Subscriber} | _] = Subscribers,
 			end,
 			MSCC = case RedirectServerAddress of
 				undefined ->
-					#{"serviceId" => ServiceId, "ratingGroup" => ChargingKey,
-							"resultCode" => ResultCode2};
+					#{serviceId => ServiceId, ratingGroup => ChargingKey,
+							resultCode => ResultCode2};
 				RedirectServerAddress when is_list(RedirectServerAddress) ->
-					#{"serviceId" => ServiceId, "ratingGroup" => ChargingKey,
-							"finalUnitIndication" => fui(RedirectServerAddress),
-							"resultCode" => ResultCode2}
+					#{serviceId => ServiceId, ratingGroup => ChargingKey,
+							finalUnitIndication => fui(RedirectServerAddress),
+							resultCode => ResultCode2}
 			end,
 			rate(ServiceType, ServiceNetwork, Subscribers,
 					Timestamp, Address, Direction, Flag, SessionId,
@@ -2243,12 +2269,12 @@ rate(ServiceType, ServiceNetwork, [{_, Subscriber} | _] = Subscribers,
 			end,
 			MSCC = case RedirectServerAddress of
 				undefined ->
-					#{"serviceId" => ServiceId, "ratingGroup" => ChargingKey,
-							"resultCode" => ResultCode2};
+					#{serviceId => ServiceId, ratingGroup => ChargingKey,
+							resultCode => ResultCode2};
 				RedirectServerAddress when is_list(RedirectServerAddress) ->
-					#{"serviceId" => ServiceId, "ratingGroup" => ChargingKey,
-							"finalUnitIndication" => fui(RedirectServerAddress),
-							"resultCode" => ResultCode2}
+					#{serviceId => ServiceId, ratingGroup => ChargingKey,
+							finalUnitIndication => fui(RedirectServerAddress),
+							resultCode => ResultCode2}
 			end,
 			rate(ServiceType, ServiceNetwork, Subscribers,
 					Timestamp, Address, Direction, Flag, SessionId,
@@ -2305,37 +2331,37 @@ match_tariff(Tariffs, MSCCs) ->
 	match_tariff(Tariffs, MSCCs, []).
 %% @hidden
 match_tariff(Tariffs, [H | T], Acc) ->
-	F = fun F([#{"tariffElement" := #{"currencyCode" := Currency,
-					"rateElements" := #{"unitType" := Units,
-					"unitSize" := UnitSize, "unitCost" := UnitPrice}},
-					"ratingGroup" := RG1, "serviceId" := SI1} | _],
+	F = fun F([#{currentTariff := #{currencyCode := Currency,
+					rateElements := #{unitType := Units,
+					unitSize := UnitSize, unitCost := UnitPrice}},
+					ratingGroup := RG1, serviceId := SI1} | _],
 					{[SI], [RG], Debits, Reserves})
 						when RG1 =:= RG, SI1 =:= SI ->
-					#{"rg" => RG1, "si" => SI1, "currency" => Currency,
-							"units" => Units, "unitSize" => UnitSize,
-							"unitPrice" => UnitPrice, "debits" => Debits,
-							"reserves" => Reserves};
-			F([#{"tariffElement" := #{"currencyCode" := Currency,
-					"rateElements" := #{"unitType" := Units,
-					"unitSize" := UnitSize, "unitCost" := UnitPrice}},
-					"serviceId" := SI1} | _],
+					#{rg => RG1, si => SI1, currency => Currency,
+							units => Units, unitSize => UnitSize,
+							unitPrice => UnitPrice, debits => Debits,
+							reserves => Reserves};
+			F([#{currentTariff := #{currencyCode := Currency,
+					rateElements := #{unitType := Units,
+					unitSize := UnitSize, unitCost := UnitPrice}},
+					serviceId := SI1} | _],
 					{[SI], [], Debits, Reserves})
 						when SI1 =:= SI ->
-					#{"rg" => undefined, "si" => SI1, "currency" => Currency,
-							"units" => Units, "unitSize" => UnitSize,
-							"unitPrice" => UnitPrice, "debits" => Debits,
-							"reserves" => Reserves};
-			F([#{"tariffElement" := #{"currencyCode" := Currency,
-					"rateElements" := #{"unitType" := Units,
-					"unitSize" := UnitSize, "unitCost" := UnitPrice}},
-					"ratingGroup" := RG1} | _],
+					#{rg => undefined, si => SI1, currency => Currency,
+							units => Units, unitSize => UnitSize,
+							unitPrice => UnitPrice, debits => Debits,
+							reserves => Reserves};
+			F([#{currentTariff := #{currencyCode := Currency,
+					rateElements := #{unitType := Units,
+					unitSize := UnitSize, unitCost := UnitPrice}},
+					ratingGroup := RG1} | _],
 					{[], [RG], Debits, Reserves})
 						when RG1 =:= RG ->
-					#{"rg" => RG1, "si" => undefined, "currency" => Currency,
-							"units" => Units, "unitSize" => UnitSize,
-							"unitPrice" => UnitPrice, "debits" => Debits,
-							"reserves" => Reserves};
-			F([H1 | T1], MSCC) ->
+					#{rg => RG1, si => undefined, currency => Currency,
+							units => Units, unitSize => UnitSize,
+							unitPrice => UnitPrice, debits => Debits,
+							reserves => Reserves};
+			F([_ | T1], MSCC) ->
 				F(T1, MSCC);
 			F([], _MSCC) ->
 				{error, missing_tariff}
@@ -2370,27 +2396,27 @@ match_tariff(_Tariffs, [], Acc) ->
 charge([{_, Subscriber} | _], SessionId, Flag, Prices) ->
 	charge1(Subscriber, SessionId, Flag, Prices, [], undefined).
 %% @hidden
-charge1(Subscriber, SessionId, Flag, [#{"rg" := RG, "si" := SI, "currency" := Currency,
-		"units" := Units, "unitSize" := UnitSize, "unitPrice" := UnitPrice, "debits" := Debits,
-		"reserves" := Reserves} | T], Acc, ResultCode1) ->
+charge1(Subscriber, SessionId, Flag, [#{rg := RG, si := SI, currency := Currency,
+		units := Units, unitSize := UnitSize, unitPrice := UnitPrice, debits := Debits,
+		reserves := Reserves} | T], Acc, ResultCode1) ->
 	case ocs_rating:charge(diameter, Subscriber, SI,
 			UnitSize, Units, Currency, UnitPrice, undefined,
 			RG, Flag, Debits,
 			Reserves, [{'Session-Id', SessionId}]) of
 		{ok, _, {_, Amount} = GrantedAmount} when Amount > 0 ->
 			ResultCode2 = ?'DIAMETER_BASE_RESULT-CODE_SUCCESS',
-			MSCC = #{"grantedUnit" => granted_unit(GrantedAmount),
-					"serviceId" => SI, "ratingGroup" => RG,
-					"resultCode" => ResultCode2},
+			MSCC = #{grantedUnit => granted_unit(GrantedAmount),
+					serviceId => SI, ratingGroup => RG,
+					resultCode => ResultCode2},
 			charge1(Subscriber, SessionId, Flag, T, [MSCC | Acc], ResultCode2);
 		{ok, _, {_, 0} = _GrantedAmount} ->
 			ResultCode2 = ?'DIAMETER_BASE_RESULT-CODE_SUCCESS',
 			charge1(Subscriber, SessionId, Flag, T, Acc, ResultCode2);
 		{ok, _, {_, Amount} = GrantedAmount, _} when Amount > 0 ->
 			ResultCode2 = ?'DIAMETER_BASE_RESULT-CODE_SUCCESS',
-			MSCC = #{"grantedUnit" => granted_unit(GrantedAmount),
-					"serviceId" => SI, "ratingGroup" => RG,
-					"resultCode" => ResultCode2},
+			MSCC = #{grantedUnit => granted_unit(GrantedAmount),
+					serviceId => SI, ratingGroup => RG,
+					resultCode => ResultCode2},
 			charge1(Subscriber, SessionId, Flag, T, [MSCC | Acc], ResultCode2);
 		{ok, #service{}, _} ->
 			ResultCode2 = ?'DIAMETER_BASE_RESULT-CODE_SUCCESS',
@@ -2405,12 +2431,12 @@ charge1(Subscriber, SessionId, Flag, [#{"rg" := RG, "si" := SI, "currency" := Cu
 			end,
 			MSCC = case RedirectServerAddress of
 				undefined ->
-					#{"serviceId" => SI, "ratingGroup" => RG,
-							"resultCode" => ResultCode2};
+					#{serviceId => SI, ratingGroup => RG,
+							resultCode => ResultCode2};
 				RedirectServerAddress when is_list(RedirectServerAddress) ->
-					#{"serviceId" => SI, "ratingGroup" => RG,
-							"finalUnitIndication" => fui(RedirectServerAddress),
-							"resultCode" => ResultCode2}
+					#{serviceId => SI, ratingGroup => RG,
+							finalUnitIndication => fui(RedirectServerAddress),
+							resultCode => ResultCode2}
 			end,
 			charge1(Subscriber, SessionId, Flag, T, [MSCC | Acc], ResultCode3);
 		{disabled, _SessionList} ->
