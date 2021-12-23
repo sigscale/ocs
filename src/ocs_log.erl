@@ -1945,37 +1945,37 @@ ipdr_csv(Log, IoDevice, {Cont, [#ipdr_wlan{} = I | T]}) ->
 		undefined ->
 			<<>>;
 		SI ->
-			list_to_binary(SI)
+			SI
 	end,
 	IP = case I#ipdr_wlan.userIpAddress of
 		undefined ->
 			<<>>;
 		IpAddress ->
-			list_to_binary(IpAddress)
+			IpAddress
 	end,
 	Calling = case I#ipdr_wlan.callingStationId of
 		undefined ->
 			<<>>;
 		CgID ->
-			list_to_binary(CgID)
+			CgID
 	end,
 	Called = case I#ipdr_wlan.calledStationId of
 		undefined ->
 			<<>>;
 		CdID ->
-			list_to_binary(CdID)
+			CdID
 	end,
 	NasIP = case I#ipdr_wlan.nasIpAddress of
 		undefined ->
 			<<>>;
 		NIP ->
-			list_to_binary(NIP)
+			NIP
 	end,
 	NasID = case I#ipdr_wlan.nasId of
 		undefined ->
 			<<>>;
 		NID ->
-			list_to_binary(NID)
+			NID
 	end,
 	Duration = case I#ipdr_wlan.sessionDuration of
 		undefined ->
@@ -1999,7 +1999,7 @@ ipdr_csv(Log, IoDevice, {Cont, [#ipdr_wlan{} = I | T]}) ->
 		undefined ->
 			<<>>;
 		CLS ->
-			list_to_binary(CLS)
+			CLS
 	end,
 	Cause = case I#ipdr_wlan.sessionTerminateCause of
 		undefined ->
