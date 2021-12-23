@@ -1654,7 +1654,7 @@ ipdr_wlan1([unitOfMeasure | T], diameter, TimeStamp, stop, Req, Resp, undefined,
 	ipdr_wlan1(T, diameter, TimeStamp, stop, Req, Resp, undefined, IPDR);
 ipdr_wlan1([unitOfMeasure | T], diameter, TimeStamp, stop, Req, Resp,
 		[#rated{bucket_type = BType, currency = Currency,
-		tax_included_amount = TaxInc}] = Rated, IPDR) ->
+		tax_excluded_amount = TaxInc}] = Rated, IPDR) ->
 	NewIPDR = IPDR#ipdr_wlan{unitOfMeasure = BType, chargeAmount = TaxInc,
 			chargeCurrencyType = Currency},
 	ipdr_wlan1(T, diameter, TimeStamp, stop, Req, Resp, Rated, NewIPDR);
