@@ -1650,13 +1650,22 @@ ipdr_wlan1([gmtSessionEndDateTime | T], diameter, TimeStamp, stop,
 	EventTimeSeconds = calendar:datetime_to_gregorian_seconds(EventTimestamp),
 	NewIPDR = IPDR#ipdr_wlan{gmtSessionEndDateTime = iso8601(EventTimeSeconds)},
 	ipdr_wlan1(T, diameter, TimeStamp, stop, Req, Resp, Rated, NewIPDR);
-ipdr_wlan1([unitOfMeasure | T], diameter, TimeStamp, stop, Req, Resp, undefined, IPDR) ->
-	ipdr_wlan1(T, diameter, TimeStamp, stop, Req, Resp, undefined, IPDR);
 ipdr_wlan1([unitOfMeasure | T], diameter, TimeStamp, stop, Req, Resp,
-		[#rated{bucket_type = BType, currency = Currency,
-		tax_excluded_amount = TaxInc}] = Rated, IPDR) ->
-	NewIPDR = IPDR#ipdr_wlan{unitOfMeasure = BType, chargeAmount = TaxInc,
-			chargeCurrencyType = Currency},
+		[#rated{product = Product, bucket_type = BType, bucket_value = BValue,
+		price_type = PType, tariff_type = TType, currency = Currency,
+		tax_excluded_amount = Amount, usage_rating_tag = non_included}] = Rated, IPDR) ->
+	NewIPDR = IPDR#ipdr_wlan{unitOfMeasure = BType, chargeAmount = Amount,
+			chargeCurrencyType = Currency, bucketValue = BValue,
+			bucketType = BType, tariffType = TType, priceType = PType,
+			usageRating = non_included, product = Product},
+	ipdr_wlan1(T, diameter, TimeStamp, stop, Req, Resp, Rated, NewIPDR);
+ipdr_wlan1([unitOfMeasure | T], diameter, TimeStamp, stop, Req, Resp,
+		[#rated{product = Product, price_type = PType, tariff_type = TType, 
+				bucket_type = BType, bucket_value = Amount,
+				usage_rating_tag = included}] = Rated, IPDR) ->
+	NewIPDR = IPDR#ipdr_wlan{unitOfMeasure = BType, chargeableQuantity = Amount,
+			bucketType = BType, tariffType = TType, priceType = PType,
+         usageRating = included, product = Product, bucketValue = Amount},
 	ipdr_wlan1(T, diameter, TimeStamp, stop, Req, Resp, Rated, NewIPDR);
 ipdr_wlan1([class | T], radius, TimeStamp, stop, Req, Resp, Rated, IPDR) ->
 	Class = proplists:get_value(?Class, Req),
@@ -1665,8 +1674,6 @@ ipdr_wlan1([class | T], radius, TimeStamp, stop, Req, Resp, Rated, IPDR) ->
 ipdr_wlan1([class | T], diameter, TimeStamp, stop, Req, Resp, Rated, IPDR) ->
 	ipdr_wlan1(T, diameter, TimeStamp, stop, Req, Resp, Rated, IPDR);
 ipdr_wlan1([chargeableUnit| T], diameter, TimeStamp, stop, Req, Resp, Rated, IPDR) ->
-	ipdr_wlan1(T, diameter, TimeStamp, stop, Req, Resp, Rated, IPDR);
-ipdr_wlan1([chargeableQuantity | T], diameter, TimeStamp, stop, Req, Resp, Rated, IPDR) ->
 	ipdr_wlan1(T, diameter, TimeStamp, stop, Req, Resp, Rated, IPDR);
 ipdr_wlan1([chargeAmount | T], diameter, TimeStamp, stop, Req, Resp, Rated, IPDR) ->
 	ipdr_wlan1(T, diameter, TimeStamp, stop, Req, Resp, Rated, IPDR);
@@ -1806,8 +1813,10 @@ ipdr_csv(Log, IoDevice, {Cont, [#ipdrDocWLAN{} | T]}) ->
 	Header = [<<"Creation Time;Sequence Number;Username;">>,
 			<<"Accounting Session ID;User IP Address;Calling Station ID;">>,
 			<<"Called Station ID;NAS IP Address;NAS Identifier;">>,
-			<<"Session Duration;Input Octets;Output Octets;">>,
-			<<"Class;Session Terminate Cause">>, $\r, $\n],
+			<<"Class;Session Terminate Cause;Session Duration">>,
+			<<"Input Octets;Output Octets;Chargeable Quantity;">>,
+			<<"Bucket Type;Bucket Value;Tarrif Type;">>,
+			<<"Product;Price Type;Usage Rating;Charge Amount;">>, $\r, $\n],
 	case file:write(IoDevice, Header) of
 		ok ->
 			ipdr_csv(Log, IoDevice, {Cont, T});
@@ -1820,10 +1829,10 @@ ipdr_csv(Log, IoDevice, {Cont, [#ipdrDocWLAN{} | T]}) ->
 	end;
 ipdr_csv(Log, IoDevice, {Cont, [#ipdrDocVoIP{} | T]}) ->
 	Header = [<<"Creation Time;Sequence Number;Subscriber ID;">>,
-			<<"Unique Call ID;Bucket Type;Bucket Value;Tarrif Type;" >>,
-			<<"Product;Price Type;Usage Rating;Charge Amount;">>,
-			<<"Destination ID;Call Completion Code;">>,
-			<<"Disconnect Reason;Host Name;">>, $\r, $\n],
+			<<"Unique Call ID;Destination ID;Call Completion Code;">>,
+			<<"Disconnect Reason;Host Name;">>,
+			<<"Bucket Type;Bucket Value;Tarrif Type;">>,
+			<<"Product;Price Type;Usage Rating;Charge Amount;">>, $\r, $\n],
 	case file:write(IoDevice, Header) of
 		ok ->
 			ipdr_csv(Log, IoDevice, {Cont, T});
@@ -1919,9 +1928,10 @@ ipdr_csv(Log, IoDevice, {Cont, [#ipdr_voip{} = I | T]}) ->
 		HN ->
 			list_to_binary(HN)
 	end,
-	IPDR = [Time, $;, Seq, $;, SubId, $;, UniqueId, $;, BType, $;,
+	IPDR = [Time, $;, Seq, $;, SubId, $;, UniqueId, $;, Dest, $;,
+			CCCode, $;, DiscReason, $;, HostName, $;, BType, $;,
 			BValue, $;, TType, $;, Prod, $;, PType, $;, URating, $;,
-			ChargeA, $;, Dest, $;, CCCode, $;, DiscReason, $;, HostName, $\r, $\n],
+			ChargeA, $\r, $\n],
 	case file:write(IoDevice, IPDR) of
 		ok ->
 			ipdr_csv(Log, IoDevice, {Cont, T});
@@ -1932,6 +1942,9 @@ ipdr_csv(Log, IoDevice, {Cont, [#ipdr_voip{} = I | T]}) ->
 			disk_log:close(Log),
 			{error, Reason}
 	end;
+ipdr_csv(Log, IoDevice, {Cont, [I | T]})
+		when ((size(I) =:= 48) and (element(1, I) == ipdr_wlan)) ->
+	ipdr_csv(Log, IoDevice, {Cont, [idpr_convert(I) | T]});
 ipdr_csv(Log, IoDevice, {Cont, [#ipdr_wlan{} = I | T]}) ->
 	Time = list_to_binary(I#ipdr_wlan.ipdrCreationTime),
 	Seq = integer_to_binary(I#ipdr_wlan.seqNum),
@@ -2007,9 +2020,58 @@ ipdr_csv(Log, IoDevice, {Cont, [#ipdr_wlan{} = I | T]}) ->
 		CS ->
 			integer_to_binary(CS)
 	end,
+	ChargeQ = case I#ipdr_wlan.chargeableQuantity of
+		undefined ->
+			<<>>;
+		CQ ->
+			integer_to_binary(CQ)
+	end,
+	BType = case I#ipdr_wlan.bucketType of
+		undefined ->
+			<<>>;
+		BT ->
+			atom_to_binary(BT, latin1)
+	end,
+	BValue = case I#ipdr_wlan.bucketValue of
+		undefined ->
+			<<>>;
+		BV ->
+			integer_to_binary(BV)
+	end,
+	TType = case I#ipdr_wlan.tariffType of
+		undefined ->
+			<<>>;
+		TP ->
+			atom_to_binary(TP, latin1)
+	end,
+	Prod = case I#ipdr_wlan.product of
+		undefined ->
+			<<>>;
+		P ->
+		 term_to_binary(P)
+	end,
+	PType = case I#ipdr_wlan.priceType of
+		undefined ->
+			<<>>;
+		PT ->
+			atom_to_binary(PT, latin1)
+	end,
+	URating = case I#ipdr_wlan.usageRating of
+		undefined ->
+			<<>>;
+		UR ->
+			atom_to_binary(UR, latin1)
+	end,
+	ChargeA = case I#ipdr_wlan.chargeAmount of
+		undefined ->
+			<<>>;
+		CA ->
+		 list_to_binary(ocs_rest:millionths_out(CA))
+	end,
 	IPDR = [Time, $;, Seq, $;, User, $;, $", Sess, $", $;, IP, $;, Calling, $;,
-			Called, $;, NasIP, $;, NasID, $;, Duration, $;,
-			Input, $;, Output, $;, Class, $;, Cause, $\r, $\n],
+         Called, $;, NasIP, $;, NasID, $;, Class, $;, Cause, $;, Duration, $;,
+         Input, $;, Output, $;, ChargeQ, $;, BType, $;, BValue, $;, TType, $;,
+         Prod, $;, PType, $;, URating, $;, ChargeA, $\r, $\n],
 	case file:write(IoDevice, IPDR) of
 		ok ->
 			ipdr_csv(Log, IoDevice, {Cont, T});
@@ -2681,4 +2743,48 @@ abmf_query6(Attributes, [_H | T]) ->
 	false;
 abmf_query6(_Attributes, []) ->
 	false.
+
+%% @hidden
+idpr_convert({ipdr_wlan, IpdrCreationTime, SeqNum,
+		Username, ScIdType, ScId, HomeServiceProviderType,
+		HomeServiceProvider, AcctSessionId, UserIpAddress,
+		CallingStationId, CalledStationId, NasIpAddress, NasId, AccessProviderType,
+		AccessServiceProvider, LocationName, LocationId, LocationType,
+		LocationCountryCode, LocationStateProvince, LocationCity,
+		LocationGeocode, LocationGeocodeType, NasPortType, PaymentType,
+		NetworkConnectionType, SessionDuration, InputOctets,
+		OutputOctets, Class, GmtSessionStartDateTime, GmtSessionEndDateTime, SessionTerminateCause,
+		BillingClassOfService, UnitOfMeasure, ChargeableUnit, ChargeableQuantity,
+		ChargeAmount, ChargeCurrencyType, OtherParty,
+		TaxPercentage, TaxAmount, TaxType, IntermediaryName,
+		ServiceName, RelatedIpdrIdList, TempUserId}) ->
+	#ipdr_wlan{ipdrCreationTime = IpdrCreationTime, seqNum = SeqNum,
+	username = Username, scIdType = ScIdType, scId = ScId,
+	homeServiceProviderType = HomeServiceProviderType,
+	homeServiceProvider = HomeServiceProvider, acctSessionId = AcctSessionId,
+	userIpAddress = UserIpAddress, callingStationId = CallingStationId,
+	calledStationId = CalledStationId, nasIpAddress = NasIpAddress,
+	nasId = NasId, accessProviderType = AccessProviderType,
+	accessServiceProvider = AccessServiceProvider, locationName = LocationName,
+	locationId = LocationId, locationType = LocationType,
+	locationCountryCode = LocationCountryCode,
+	locationStateProvince = LocationStateProvince, locationCity = LocationCity,
+	locationGeocode = LocationGeocode, locationGeocodeType = LocationGeocodeType,
+	nasPortType = NasPortType, paymentType = PaymentType,
+	networkConnectionType = NetworkConnectionType,
+	sessionDuration = SessionDuration, inputOctets = InputOctets,
+	outputOctets = OutputOctets, class = Class,
+	gmtSessionStartDateTime = GmtSessionStartDateTime,
+	gmtSessionEndDateTime = GmtSessionEndDateTime,
+	sessionTerminateCause = SessionTerminateCause,
+	billingClassOfService = BillingClassOfService, unitOfMeasure = UnitOfMeasure,
+	chargeableUnit = ChargeableUnit, chargeableQuantity = ChargeableQuantity,
+	chargeAmount = ChargeAmount, chargeCurrencyType = ChargeCurrencyType,
+	bucketType = undefined, bucketValue = undefined,
+	tariffType = undefined, product = undefined,
+	priceType = undefined, usageRating = undefined,
+	otherParty = OtherParty, taxPercentage = TaxPercentage,
+	taxAmount = TaxAmount, taxType = TaxType,
+	intermediaryName = IntermediaryName, serviceName = ServiceName,
+	relatedIpdrIdList = RelatedIpdrIdList, tempUserId = TempUserId}.
 
