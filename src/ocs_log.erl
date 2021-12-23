@@ -2007,7 +2007,7 @@ ipdr_csv(Log, IoDevice, {Cont, [#ipdr_wlan{} = I | T]}) ->
 		CS ->
 			integer_to_binary(CS)
 	end,
-	IPDR = [Time, $;, Seq, $;, User, $;, Sess, $;, IP, $;, Calling, $;,
+	IPDR = [Time, $;, Seq, $;, User, $;, $", Sess, $", $;, IP, $;, Calling, $;,
 			Called, $;, NasIP, $;, NasID, $;, Duration, $;,
 			Input, $;, Output, $;, Class, $;, Cause, $\r, $\n],
 	case file:write(IoDevice, IPDR) of
