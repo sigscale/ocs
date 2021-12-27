@@ -818,59 +818,38 @@ join11(Node, Nodes, Acc) ->
 	end.
 %% @hidden
 join12(Node, Nodes, Acc) ->
+   case application:load(inets) of
+      ok ->
+         error_logger:info_msg("Loaded inets.~n"),
+         join13(Node, Nodes, Acc);
+      {error, {already_loaded, inets}} ->
+         join13(Node, Nodes, Acc);
+      {error, Reason} ->
+         {error, Reason}
+   end.
+%% @hidden
+join13(Node, Exist, Acc) ->
+   case is_mod_auth_mnesia() of
+      true ->
+         join14(Node, Exist, Acc);
+      false ->
+         error_logger:info_msg("Httpd service not defined. "
+               "User table not created~n"),
+         join16(Node, Exist, Acc)
+   end.
+%% @hidden
+join14(Node, Nodes, Acc) ->
 	case rpc:call(Node, mnesia, add_table_copy, [httpd_user, node(), disc_copies]) of
 		{atomic, ok} ->
 			error_logger:info_msg("Copied httpd_user table from ~s.~n", [Node]),
-			join13(Node, Nodes, [httpd_user | Acc]);
+			join15(Node, Nodes, [httpd_user | Acc]);
 		{aborted, {already_exists, httpd_user, _}} ->
 			error_logger:info_msg("Found existing httpd_user table on ~s.~n", [Node]),
-			join13(Node, Nodes, [httpd_user | Acc]);
+			join15(Node, Nodes, [httpd_user | Acc]);
 		{aborted, {no_exists, {httpd_user, _}}} ->
 			case create_table(httpd_user, Nodes) of
 				ok ->
-					join13(Node, Nodes, [httpd_user | Acc]);
-				{error, Reason} ->
-					{error, Reason}
-			end;
-		{aborted, Reason} ->
-			error_logger:error_report([mnesia:error_description(Reason),
-				{error, Reason}]),
-			{error, Reason}
-	end.
-%% @hidden
-join13(Node, Nodes, Acc) ->
-	case rpc:call(Node, mnesia, add_table_copy, [httpd_group, node(), disc_copies]) of
-		{atomic, ok} ->
-			error_logger:info_msg("Copied httpd_group table from ~s.~n", [Node]),
-			join14(Node, Nodes, [httpd_group | Acc]);
-		{aborted, {already_exists, httpd_group, _}} ->
-			error_logger:info_msg("Found existing httpd_group table on ~s.~n", [Node]),
-			join14(Node, Nodes, [httpd_group | Acc]);
-		{aborted, {no_exists, {httpd_group, _}}} ->
-			case create_table(httpd_group, Nodes) of
-				ok ->
-					join14(Node, Nodes, [httpd_group | Acc]);
-				{error, Reason} ->
-					{error, Reason}
-			end;
-		{aborted, Reason} ->
-			error_logger:error_report([mnesia:error_description(Reason),
-				{error, Reason}]),
-			{error, Reason}
-	end.
-%% @hidden
-join14(Node, Nodes, Acc) ->
-	case rpc:call(Node, mnesia, add_table_copy, [session, node(), ram_copies]) of
-		{atomic, ok} ->
-			error_logger:info_msg("Copied session table from ~s.~n", [Node]),
-			join15(Node, Nodes, [session | Acc]);
-		{aborted, {already_exists, session, _}} ->
-			error_logger:info_msg("Found existing session table on ~s.~n", [Node]),
-			join15(Node, Nodes, [session | Acc]);
-		{aborted, {no_exists, {session, _}}} ->
-			case create_table(session, Nodes) of
-				ok ->
-					join15(Node, Nodes, [session | Acc]);
+					join15(Node, Nodes, [httpd_user | Acc]);
 				{error, Reason} ->
 					{error, Reason}
 			end;
@@ -881,17 +860,17 @@ join14(Node, Nodes, Acc) ->
 	end.
 %% @hidden
 join15(Node, Nodes, Acc) ->
-	case rpc:call(Node, mnesia, add_table_copy, [nrf_ref, node(), ram_copies]) of
+	case rpc:call(Node, mnesia, add_table_copy, [httpd_group, node(), disc_copies]) of
 		{atomic, ok} ->
-			error_logger:info_msg("Copied nrf_ref table from ~s.~n", [Node]),
-			join16(Node, Nodes, [nrf_ref | Acc]);
-		{aborted, {already_exists, nrf_ref, _}} ->
-			error_logger:info_msg("Found existing nrf_ref table on ~s.~n", [Node]),
-			join16(Node, Nodes, [nrf_ref | Acc]);
-		{aborted, {no_exists, {nrf_ref, _}}} ->
-			case create_table(nrf_ref, Nodes) of
+			error_logger:info_msg("Copied httpd_group table from ~s.~n", [Node]),
+			join16(Node, Nodes, [httpd_group | Acc]);
+		{aborted, {already_exists, httpd_group, _}} ->
+			error_logger:info_msg("Found existing httpd_group table on ~s.~n", [Node]),
+			join16(Node, Nodes, [httpd_group | Acc]);
+		{aborted, {no_exists, {httpd_group, _}}} ->
+			case create_table(httpd_group, Nodes) of
 				ok ->
-					join16(Node, Nodes, [nrf_ref | Acc]);
+					join16(Node, Nodes, [httpd_group | Acc]);
 				{error, Reason} ->
 					{error, Reason}
 			end;
@@ -901,7 +880,49 @@ join15(Node, Nodes, Acc) ->
 			{error, Reason}
 	end.
 %% @hidden
-join16(_Node, _Nodes, Tables) ->
+join16(Node, Nodes, Acc) ->
+	case rpc:call(Node, mnesia, add_table_copy, [session, node(), ram_copies]) of
+		{atomic, ok} ->
+			error_logger:info_msg("Copied session table from ~s.~n", [Node]),
+			join17(Node, Nodes, [session | Acc]);
+		{aborted, {already_exists, session, _}} ->
+			error_logger:info_msg("Found existing session table on ~s.~n", [Node]),
+			join17(Node, Nodes, [session | Acc]);
+		{aborted, {no_exists, {session, _}}} ->
+			case create_table(session, Nodes) of
+				ok ->
+					join17(Node, Nodes, [session | Acc]);
+				{error, Reason} ->
+					{error, Reason}
+			end;
+		{aborted, Reason} ->
+			error_logger:error_report([mnesia:error_description(Reason),
+				{error, Reason}]),
+			{error, Reason}
+	end.
+%% @hidden
+join17(Node, Nodes, Acc) ->
+	case rpc:call(Node, mnesia, add_table_copy, [nrf_ref, node(), ram_copies]) of
+		{atomic, ok} ->
+			error_logger:info_msg("Copied nrf_ref table from ~s.~n", [Node]),
+			join18(Node, Nodes, [nrf_ref | Acc]);
+		{aborted, {already_exists, nrf_ref, _}} ->
+			error_logger:info_msg("Found existing nrf_ref table on ~s.~n", [Node]),
+			join18(Node, Nodes, [nrf_ref | Acc]);
+		{aborted, {no_exists, {nrf_ref, _}}} ->
+			case create_table(nrf_ref, Nodes) of
+				ok ->
+					join18(Node, Nodes, [nrf_ref | Acc]);
+				{error, Reason} ->
+					{error, Reason}
+			end;
+		{aborted, Reason} ->
+			error_logger:error_report([mnesia:error_description(Reason),
+				{error, Reason}]),
+			{error, Reason}
+	end.
+%% @hidden
+join18(_Node, _Nodes, Tables) ->
 	case mnesia:wait_for_tables(lists:reverse(Tables), ?WAITFORTABLES) of
 		ok ->
 			{ok, Tables};
