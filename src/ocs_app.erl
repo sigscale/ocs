@@ -593,7 +593,8 @@ install16(Tables, false) ->
 install17(Tables) ->
 	case ocs:list_users() of
 		{ok, []} ->
-			case ocs:add_user("admin", "admin", "en") of
+			UserData = [{locale, "en"}],
+			case ocs:add_user("admin", "admin", UserData) of
 				{ok, _LastModified} ->
 					error_logger:info_report(["Created a default user",
 							{username, "admin"}, {password, "admin"},
