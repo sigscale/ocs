@@ -621,14 +621,11 @@ add_product(OfferId, ServiceRefs, StartDate, EndDate, Characteristics)
 		Reason :: not_found | term().
 %% @doc Look up entry in product table
 find_product(ProductRef) when is_list(ProductRef) ->
-	F = fun() -> mnesia:read(product, ProductRef, read) end,
-	case mnesia:transaction(F) of
-		{atomic, []} ->
+	case mnesia:dirty_read(product, ProductRef) of
+		[] ->
 			{error, not_found};
-		{atomic, [#product{} = Product]} ->
+		[#product{} = Product] ->
 			{ok, Product};
-		{aborted, Reason} ->
-			{error, Reason}
 	end.
 
 -spec delete_product(ProductRef) -> Result
@@ -894,14 +891,11 @@ add_bucket(ProductRef, #bucket{id = undefined} = Bucket) when is_list(ProductRef
 		Reason :: not_found | term().
 %% @doc Look up an entry in the bucket table.
 find_bucket(BucketId) ->
-	F = fun() -> mnesia:read(bucket, BucketId, read) end,
-	case mnesia:transaction(F) of
-		{atomic, [#bucket{} = B]} ->
+	case mnesia:dirty_read(bucket, BucketId)  of
+		[#bucket{} = B] ->
 			{ok, B};
-		{atomic, []} ->
+		[] ->
 			{error, not_found};
-		{aborted, Reason} ->
-			{error, Reason}
 	end.
 
 -spec get_buckets() -> Result
