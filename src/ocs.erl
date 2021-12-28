@@ -2081,23 +2081,26 @@ delete_user3(true) ->
 delete_user3({error, Reason}) ->
 	{error, Reason}.
 
--spec update_user(Username, Password, Language) -> Result
+-spec update_user(Username, Password, UserData) -> Result
 	when
 		Username :: string(),
 		Password :: string(),
-		Language :: string(),
+		UserData :: [UserDataChar],
+		UserDataChar :: {Name, Value},
+		Name :: atom(),
+		Value :: term(),
 		Result :: {ok, LM} | {error, Reason},
 		LM :: {integer(), integer()},
 		Reason :: term().
 %% @hidden Update user password and language
-update_user(Username, Password, Language) ->
+update_user(Username, Password, UserData) ->
 	case get_user(Username) of
 		{error, Reason} ->
 			{error, Reason};
 		{ok, #httpd_user{}} ->
 			case delete_user(Username) of
 				ok ->
-					case add_user(Username, Password, Language) of
+					case add_user(Username, Password, UserData) of
 						{ok, LM} ->
 							{ok, LM};
 						{error, Reason} ->
