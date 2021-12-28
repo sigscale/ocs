@@ -217,8 +217,7 @@ patch_user(ID, Etag, "application/json-patch+json", ReqBody) ->
 								{struct, _} = Result ->
 									#httpd_user{user_data = UserData2,
 										password = Password} = user(Result),
-									{_, Language} = lists:keyfind(locale, 1, UserData2),
-									case catch ocs:update_user(ID, Password, Language) of
+									case catch ocs:update_user(ID, Password, UserData2) of
 										{ok, Etag4} ->
 											Location = "/partyManagement/v1/individual/" ++ ID,
 											Headers = [{content_type, "application/json"},
