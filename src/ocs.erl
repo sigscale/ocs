@@ -1966,36 +1966,41 @@ start(Protocol, Type, Address, Port, Options) when is_tuple(Address),
 		is_integer(Port), is_list(Options) ->
 		gen_server:call(ocs, {start, Protocol, Type, Address, Port, Options}).
 
--spec add_user(Username, Password, Locale) -> Result
+-spec add_user(Username, Password, UserData) -> Result
 	when
 		Username :: string(),
 		Password :: string(),
-		Locale :: string(),
+		UserData :: [UserDataChar],
+		UserDataChar :: {Name, Value},
+		Name :: atom(),
+		Value :: term(),
 		Result :: {ok, LastModified} | {error, Reason},
 		LastModified :: {integer(), integer()},
 		Reason :: user_exists | term().
 %% @doc Add an HTTP user.
 %% 	HTTP Basic authentication (RFC7617) is required with
-%% 	`Username' and  `Password' used to construct the
+%% 	`Username' and `Password' used to construct the
 %% 	`Authorization' header in requests.
 %%
-%% 	`Locale' is used to set the language for text in the web UI.
+%%		`UserData' contains addtional properties specific to each user.
+%% 	`Locale' is a `UserData' property used to set the language for
+%%		text in the web UI.
 %% 	For English use `"en"', for Spanish use `"es'"..
 %%
-add_user(Username, Password, Locale) when is_list(Username),
-		is_list(Password), is_list(Locale) ->
-	add_user1(Username, Password, Locale, get_params()).
+add_user(Username, Password, UserData) when is_list(Username),
+		is_list(Password), is_list(UserData) ->
+	add_user1(Username, Password, UserData, get_params()).
 %% @hidden
-add_user1(Username, Password, Locale, {Port, Address, Dir, Group}) ->
+add_user1(Username, Password, UserData, {Port, Address, Dir, Group}) ->
 	add_user2(Username, Password, Locale,
 			Address, Port, Dir, Group, ocs:get_user(Username));
 add_user1(_, _, _, {error, Reason}) ->
 	{error, Reason}.
 %% @hidden
-add_user2(Username, Password, Locale,
+add_user2(Username, Password, UserData,
 		Address, Port, Dir, Group, {error, no_such_user}) ->
 	LM = {erlang:system_time(millisecond), erlang:unique_integer([positive])},
-	NewUserData = [{last_modified, LM}, {locale, Locale}],
+	NewUserData = [{last_modified, LM} | UserData],
 	add_user3(Username, Address, Port, Dir, Group, LM,
 			mod_auth:add_user(Username, Password, NewUserData, Address, Port, Dir));
 add_user2(_, _, _, _, _, _, _, {error, Reason}) ->
