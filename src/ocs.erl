@@ -2000,7 +2000,7 @@ add_user1(_, _, _, {error, Reason}) ->
 add_user2(Username, Password, UserData,
 		Address, Port, Dir, Group, {error, no_such_user}) ->
 	LM = {erlang:system_time(millisecond), erlang:unique_integer([positive])},
-	NewUserData = case lists:keyfind() of
+	NewUserData = case lists:keyfind(locale, 1, UserData) of
 		{locale, Locale} when is_list(Locale) ->
 			[{last_modified, LM} | UserData];
 		false ->
