@@ -174,13 +174,11 @@ find_client(Address) when is_list(Address) ->
 	{ok, AddressTuple} = inet_parse:address(Address),
 	find_client(AddressTuple);
 find_client(Address) when is_tuple(Address) ->
-	case catch mnesia:dirty_read(client, Address) of
+	case mnesia:dirty_read(client, Address) of
 		[#client{} = Client] ->
 			{ok, Client};
 		[] ->
-			{error, not_found};
-		{aborted, Reason} ->
-			{error, Reason}
+			{error, not_found}
 	end.
 
 -spec update_client(Address, Password)-> Result
@@ -766,6 +764,9 @@ add_service(undefined, Password, State, ProductRef, Chars,
 		when (is_binary(Password) or is_record(Password, aka_cred)),
 		is_list(Attributes), is_boolean(EnabledStatus),
 		is_boolean(MultiSession) ->
+	Now = erlang:system_time(millisecond),
+	N = erlang:unique_integer([positive]),
+	LM = {Now, N},
 	F1 = fun() ->
 			F2 = fun F2(_, 0) ->
 							mnesia:abort(retries);
@@ -779,7 +780,7 @@ add_service(undefined, Password, State, ProductRef, Chars,
 			end,
 			Identity = F2(list_to_binary(generate_identity()), 5),
 			add_service1(Identity, Password, State, ProductRef,
-					Chars, Attributes, EnabledStatus, MultiSession)
+					Chars, Attributes, EnabledStatus, MultiSession, LM)
 	end,
 	case mnesia:transaction(F1) of
 		{atomic, Service} ->
