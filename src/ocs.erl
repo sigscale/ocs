@@ -1992,7 +1992,7 @@ add_user(Username, Password, UserData) when is_list(Username),
 	add_user1(Username, Password, UserData, get_params()).
 %% @hidden
 add_user1(Username, Password, UserData, {Port, Address, Dir, Group}) ->
-	add_user2(Username, Password, Locale,
+	add_user2(Username, Password, UserData,
 			Address, Port, Dir, Group, ocs:get_user(Username));
 add_user1(_, _, _, {error, Reason}) ->
 	{error, Reason}.
@@ -2000,7 +2000,12 @@ add_user1(_, _, _, {error, Reason}) ->
 add_user2(Username, Password, UserData,
 		Address, Port, Dir, Group, {error, no_such_user}) ->
 	LM = {erlang:system_time(millisecond), erlang:unique_integer([positive])},
-	NewUserData = [{last_modified, LM} | UserData],
+	NewUserData = case lists:keyfind() of
+		{locale, Locale} when is_list(Locale) ->
+			[{last_modified, LM} | UserData];
+		false ->
+			[{last_modified, LM}, {locale, "en"} | UserData]
+	end,
 	add_user3(Username, Address, Port, Dir, Group, LM,
 			mod_auth:add_user(Username, Password, NewUserData, Address, Port, Dir));
 add_user2(_, _, _, _, _, _, _, {error, Reason}) ->
