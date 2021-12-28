@@ -174,13 +174,10 @@ find_client(Address) when is_list(Address) ->
 	{ok, AddressTuple} = inet_parse:address(Address),
 	find_client(AddressTuple);
 find_client(Address) when is_tuple(Address) ->
-	F = fun() ->
-				mnesia:read(client, Address, read)
-	end,
-	case mnesia:transaction(F) of
-		{atomic, [#client{} = Client]} ->
+	case catch mnesia:dirty_read(client, Address) of
+		[#client{} = Client] ->
 			{ok, Client};
-		{atomic, []} ->
+		[] ->
 			{error, not_found};
 		{aborted, Reason} ->
 			{error, Reason}
