@@ -145,7 +145,7 @@ rate(Protocol, ServiceType, ServiceId, ChargingKey,
 						[#product{product = OfferId,
 								balance = BucketRefs} = Product] ->
 							Now = erlang:system_time(millisecond),
-							case mnesia:read(offer, OfferId, read) of
+							case mnesia:dirty_read(offer, OfferId) of
 								[#offer{char_value_use = CharValueUse, end_date = EndDate, start_date = StartDate} = Offer]
 										when ((StartDate =< Now) or (StartDate == undefined)), ((EndDate > Now) or ( EndDate == undefined)) ->
 									Buckets = lists:flatten([mnesia:read(bucket, Id, sticky_write)
@@ -240,7 +240,7 @@ rate1(Protocol, Service, ServiceId, Product, Buckets, Timestamp, Address, Direct
 		DebitAmounts, ReserveAmounts, ServiceType, SessionId, ChargingKey, ServiceNetwork) ->
 	try
 		F = fun(#bundled_po{name = OfferId}, Acc) ->
-				case mnesia:read(offer, OfferId, read) of
+				case mnesia:dirty_read(offer, OfferId) of
 					[#offer{specification = Spec, status = Status} = P] when
 							((Status == active) orelse (Status == undefined))
 							and
@@ -275,7 +275,7 @@ rate1(Protocol, Service, ServiceId, Product, Buckets, Timestamp, Address,
 		Direction, #offer{name = OfferName} = Offer,
 		Flag, DebitAmounts, ReserveAmounts, ServiceType, SessionId,
 		ChargingKey, ServiceNetwork) ->
-	case mnesia:read(offer, OfferName, read) of
+	case mnesia:dirty_read(offer, OfferName) of
 		[#offer{specification = Spec, status = Status} = _P] when
 				((Status == active) orelse (Status == undefined))
 				and
@@ -1226,7 +1226,7 @@ authorize1(radius, ServiceType,
 authorize1(diameter, ServiceType,
 		#service{attributes = Attributes, product = ProdRef} =
 		Service, _Timestamp, _Address, _Direction, SessionAttributes) ->
-	case mnesia:read(product, ProdRef, read) of
+	case mnesia:dirty_read(product, ProdRef) of
 		[#product{balance = BucketRefs}] ->
 			Buckets = lists:flatten([mnesia:read(bucket, Id, sticky_write) || Id <- BucketRefs]),
 			authorize5(Service, Buckets, ServiceType, SessionAttributes, Attributes);

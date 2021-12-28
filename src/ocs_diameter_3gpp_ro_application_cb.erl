@@ -342,7 +342,7 @@ process_request1(?'3GPP_CC-REQUEST-TYPE_INITIAL_REQUEST' = RequestType,
 		IpAddress, Port) ->
 	try
 		Server = {IpAddress, Port},
-		case mnesia:transaction(fun() -> mnesia:read(service, Subscriber, read) end) of
+		case mnesia:transaction(fun() -> mnesia:dirty_read(service, Subscriber) end) of
 			{atomic, [#service{enabled = true}]} ->
 				Reply = diameter_answer(SessionId, [],
 						?'DIAMETER_BASE_RESULT-CODE_SUCCESS',
