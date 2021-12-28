@@ -115,12 +115,12 @@ add_client({A, B, C, D} = Address,
 		undefined, diameter, undefined, PasswordRequired, Trusted)
 		when A >= 1, A =< 255, B >= 0, C =< 255, C >= 0, D =< 255, D >= 1, A < 255,
 		is_boolean(PasswordRequired), is_boolean(Trusted) ->
+	TS = erlang:system_time(millisecond),
+	N = erlang:unique_integer([positive]),
+	LM = {TS, N},
+	R = #client{address = Address, protocol = diameter, last_modified = LM,
+			password_required = PasswordRequired, trusted = Trusted},
 	F = fun() ->
-				TS = erlang:system_time(millisecond),
-				N = erlang:unique_integer([positive]),
-				R = #client{address = Address, protocol = diameter,
-						last_modified = {TS, N},
-						password_required = PasswordRequired, trusted = Trusted},
 				mnesia:write(R),
 				R
 	end,
@@ -146,13 +146,13 @@ add_client({A, B, C, D} = Address,
 		when A >= 1, A =< 255, B >= 0, C =< 255,
 		C >= 0, D =< 255, D >= 1, A < 255,
 		is_binary(Secret), is_boolean(PasswordRequired) ->
+	TS = erlang:system_time(millisecond),
+	N = erlang:unique_integer([positive]),
+	LM = {TS, N},
+	R = #client{address = Address, port = Port, protocol = radius,
+			secret = Secret, password_required = PasswordRequired,
+			trusted = Trusted, last_modified = LM},
 	F = fun() ->
-				TS = erlang:system_time(millisecond),
-				N = erlang:unique_integer([positive]),
-				LM = {TS, N},
-				R = #client{address = Address, port = Port, protocol = radius,
-						secret = Secret, password_required = PasswordRequired,
-						trusted = Trusted, last_modified = LM},
 				ok = mnesia:write(R),
 				R
 	end,
@@ -199,12 +199,13 @@ update_client(Address, Password) when is_list(Address) ->
 update_client(Address, Password) when is_list(Password) ->
 	update_client(Address, list_to_binary(Password));
 update_client(Address, Password) ->
+	TS = erlang:system_time(millisecond),
+	N = erlang:unique_integer([positive]),
+	LM = {TS, N},
 	F = fun() ->
 				case mnesia:read(client, Address, write) of
 					[Entry] ->
-						TS = erlang:system_time(millisecond),
-						N = erlang:unique_integer([positive]),
-						NewEntry = Entry#client{secret = Password, last_modified = {TS,N}},
+						NewEntry = Entry#client{secret = Password, last_modified = LM},
 						mnesia:write(client, NewEntry, write);
 					[] ->
 						throw(not_found)
@@ -233,13 +234,14 @@ update_client(Address, Port, Protocol) when is_list(Address) ->
 update_client(Address, Port, Protocol) when is_tuple(Address),
 		(((Protocol == radius) and is_integer(Port))
 		or ((Protocol == diameter) and (Port == undefined))) ->
+	TS = erlang:system_time(millisecond),
+	N = erlang:unique_integer([positive]),
+	LM = {TS, N},
 	F = fun() ->
 				case mnesia:read(client, Address, write) of
 					[Entry] ->
-						TS = erlang:system_time(millisecond),
-						N = erlang:unique_integer([positive]),
-						NewEntry = Entry#client{port = Port, protocol = Protocol,
-								last_modified = {TS, N}},
+						NewEntry = Entry#client{port = Port,
+								protocol = Protocol, last_modified = LM},
 						mnesia:write(client, NewEntry, write);
 					[] ->
 						throw(not_found)
@@ -576,14 +578,13 @@ add_product(OfferId, ServiceRefs, StartDate, EndDate, Characteristics)
 		when (is_integer(StartDate) orelse (StartDate == undefined)),
 		(is_integer(EndDate) orelse (EndDate == undefined)),
 		is_list(Characteristics), is_list(OfferId), is_list(ServiceRefs) ->
+	TS = erlang:system_time(millisecond),
+	N = erlang:unique_integer([positive]),
+	LM = {TS, N},
+	Id = ocs_rest:etag(LM),
 	F = fun() ->
 			case mnesia:read(offer, OfferId, read) of
 				[#offer{char_value_use = CharValueUse} = Offer] ->
-					TS = erlang:system_time(millisecond),
-					N1 = erlang:unique_integer([positive]),
-					N2 = erlang:unique_integer([positive]),
-					LM = {TS, N2},
-					Id = ocs_rest:etag({TS, N1}),
 					F2 = fun(ServiceRef) ->
 								case mnesia:read(service, ServiceRef, write) of
 									[#service{product = undefined} = Service] ->
@@ -795,9 +796,12 @@ add_service(Identity, Password, State, ProductRef, Chars, Attributes,
 		(is_binary(Password) or is_record(Password, aka_cred)),
 		is_list(Attributes), is_boolean(EnabledStatus),
 		is_boolean(MultiSession) ->
+	Now = erlang:system_time(millisecond),
+	N = erlang:unique_integer([positive]),
+	LM = {Now, N},
 	F1 =  fun() ->
 			add_service1(Identity, Password, State, ProductRef,
-					Chars, Attributes, EnabledStatus, MultiSession)
+					Chars, Attributes, EnabledStatus, MultiSession, LM)
 	end,
 	case mnesia:transaction(F1) of
 		{atomic, Service} ->
@@ -810,10 +814,7 @@ add_service(Identity, Password, State, ProductRef, Chars, Attributes,
 	end.
 %% @hidden
 add_service1(Identity, Password, State, undefined,
-		Chars, Attributes, EnabledStatus, MultiSession) ->
-	Now = erlang:system_time(millisecond),
-	N = erlang:unique_integer([positive]),
-	LM = {Now, N},
+		Chars, Attributes, EnabledStatus, MultiSession, LM) ->
 	S1 = #service{name = Identity,
 					password = Password,
 					state = State,
@@ -825,14 +826,11 @@ add_service1(Identity, Password, State, undefined,
 	ok = mnesia:write(service, S1, write),
 	S1;
 add_service1(Identity, Password, State, ProductRef,
-		Chars, Attributes, EnabledStatus, MultiSession) ->
+		Chars, Attributes, EnabledStatus, MultiSession, LM) ->
 	case mnesia:read(product, ProductRef, read) of
 		[#product{service = ServiceRefs} = P1] ->
 			case lists:member(Identity, ServiceRefs) of
 				false ->
-					Now = erlang:system_time(millisecond),
-					N = erlang:unique_integer([positive]),
-					LM = {Now, N},
 					P2 = P1#product{service = [Identity | ServiceRefs],
 							last_modified = LM},
 					ok = mnesia:write(P2),
@@ -864,10 +862,10 @@ add_service1(Identity, Password, State, ProductRef,
 		Reason :: term().
 %% @doc Add a new bucket to bucket table or update exsiting bucket
 add_bucket(ProductRef, #bucket{id = undefined} = Bucket) when is_list(ProductRef) ->
+	BId = generate_bucket_id(),
 	F = fun() ->
 		case mnesia:read(product, ProductRef, write) of
 			[#product{balance = B} = P] ->
-				BId = generate_bucket_id(),
 				Bucket1  = Bucket#bucket{id = BId, product = [ProductRef]},
 				ok = mnesia:write(bucket, Bucket1, write),
 				Product = P#product{balance = lists:reverse([BId | B])},
@@ -1584,10 +1582,11 @@ add_offer(#offer{specification = L, bundle = []} = Offer)
 	add_offer1(Offer).
 %% @hidden
 add_offer1(Offer) ->
+	TS = erlang:system_time(millisecond),
+	N = erlang:unique_integer([positive]),
+	LM = {TS, N},
 	Fadd = fun() ->
-		TS = erlang:system_time(millisecond),
-		N = erlang:unique_integer([positive]),
-		Offer1 = Offer#offer{last_modified = {TS, N}},
+		Offer1 = Offer#offer{last_modified = LM},
 		{mnesia:write(offer, Offer1, write), Offer1}
 	end,
 	case mnesia:transaction(Fadd) of
@@ -1739,14 +1738,14 @@ add_resource(#resource{id = undefined, last_modified = undefined,
 	add_resource1(Resource).
 %% @hidden
 add_resource1(#resource{} = Resource) ->
+	TS = erlang:system_time(millisecond),
+	N = erlang:unique_integer([positive]),
+	Id = integer_to_list(TS) ++ integer_to_list(N),
+	LM = {TS, N},
+	Href = ?PathInventory ++ "resource/" ++ Id,
+	NewResource = Resource#resource{id = Id,
+			href = Href, last_modified = LM},
 	F = fun() ->
-			TS = erlang:system_time(millisecond),
-			N = erlang:unique_integer([positive]),
-			Id = integer_to_list(TS) ++ integer_to_list(N),
-			LM = {TS, N},
-			Href = ?PathInventory ++ "resource/" ++ Id,
-			NewResource = Resource#resource{id = Id,
-					href = Href, last_modified = LM},
 			ok = mnesia:write(NewResource),
 			NewResource
 	end,
