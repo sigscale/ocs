@@ -57,7 +57,8 @@ post_role(RequestBody) ->
 	try
 		Role = role(mochijson:decode(RequestBody)),
 		{Name, _, _, _} = Role#httpd_user.username,
-		case ocs:add_user(Name, [], "en") of
+		UserData = [{locale, "en"}],
+		case ocs:add_user(Name, [], UserData) of
 			{ok, LastModified} ->
 				Body = mochijson:encode(role(Role)),
 				Location = "/partyRoleManagement/v4/partyRole/" ++ Name,

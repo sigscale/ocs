@@ -172,13 +172,8 @@ post_user(RequestBody) ->
 		User = user(mochijson:decode(RequestBody)),
 		{Username, _, _, _} = User#httpd_user.username,
 		Password = User#httpd_user.password,
-		Locale = case lists:keyfind(locale, 1, User#httpd_user.user_data) of
-			{_, Loc} ->
-				Loc;
-			false ->
-				"en"
-		end,
-		case ocs:add_user(Username, Password, Locale) of
+		UserData = User#httpd_user.user_data,
+		case ocs:add_user(Username, Password, UserData) of
 			{ok, LastModified} ->
 				Body = mochijson:encode(user(User)),
 				Location = "/partyManagement/v1/individual/" ++ Username,
@@ -222,8 +217,7 @@ patch_user(ID, Etag, "application/json-patch+json", ReqBody) ->
 								{struct, _} = Result ->
 									#httpd_user{user_data = UserData2,
 										password = Password} = user(Result),
-									{_, Language} = lists:keyfind(locale, 1, UserData2),
-									case catch ocs:update_user(ID, Password, Language) of
+									case catch ocs:update_user(ID, Password, UserData2) of
 										{ok, Etag4} ->
 											Location = "/partyManagement/v1/individual/" ++ ID,
 											Headers = [{content_type, "application/json"},
@@ -308,9 +302,15 @@ user(#httpd_user{username = ID, password = Password, user_data = Characteristic}
 		false ->
 			C1
 	end,
+	C3 = case lists:keyfind(rating, 1, Characteristic) of
+		{_, Rating} ->
+			[{struct, [{"name", "rating"}, {"value", Rating}]} | C1];
+		false ->
+			C2
+	end,
 	{struct, [{"id", ID},
 				{"href", "/partyManagement/v1/individual/" ++ ID},
-				{"characteristic", {array, C2}}]};
+				{"characteristic", {array, C3}}]};
 user({struct, L}) when is_list(L) ->
 	user(L, #httpd_user{user_data = []}).
 %% @hidden
@@ -329,22 +329,15 @@ user1([{struct, [{"name", "username"}, {"value", Username}]} | T], Acc)
 		when is_list(Username) ->
 	{Port, Address, Directory, _Group} = get_params(),
 	user1(T, Acc#httpd_user{username = {Username, Address, Port, Directory}});
-user1([{struct, [{"value", Username}, {"name", "username"}]} | T], Acc)
-		when is_list(Username) ->
-	{Port, Address, Directory, _Group} = get_params(),
-	user1(T, Acc#httpd_user{username = {Username, Address, Port, Directory}});
 user1([{struct, [{"name", "password"}, {"value", Password}]} | T], Acc)
 		when is_list(Password) ->
 	user1(T, Acc#httpd_user{password = Password});
-user1([{struct, [{"value", Password}, {"name", "password"}]} | T], Acc)
-		when is_list(Password) ->
-	user1(T, Acc#httpd_user{password = Password});
-user1([{struct, [{"value", Locale}, {"name", "locale"}]} | T],
-		#httpd_user{user_data = Data} = Acc) when is_list(Locale) ->
-	user1(T, Acc#httpd_user{user_data = [{locale, Locale} | Data]});
 user1([{struct, [{"name", "locale"}, {"value", Locale}]} | T],
 		#httpd_user{user_data = Data} = Acc) when is_list(Locale) ->
 	user1(T, Acc#httpd_user{user_data = [{locale, Locale} | Data]});
+user1([{struct, [{"name", "rating"}, {"value", Rating}]} | T],
+		#httpd_user{user_data = Data} = Acc) when is_boolean(Rating) ->
+	user1(T, Acc#httpd_user{user_data = [{rating, Rating} | Data]});
 user1([], Acc) ->
 	Acc.
 
