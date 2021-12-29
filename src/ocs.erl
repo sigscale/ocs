@@ -625,7 +625,7 @@ find_product(ProductRef) when is_list(ProductRef) ->
 		[] ->
 			{error, not_found};
 		[#product{} = Product] ->
-			{ok, Product};
+			{ok, Product}
 	end.
 
 -spec delete_product(ProductRef) -> Result
@@ -895,7 +895,7 @@ find_bucket(BucketId) ->
 		[#bucket{} = B] ->
 			{ok, B};
 		[] ->
-			{error, not_found};
+			{error, not_found}
 	end.
 
 -spec get_buckets() -> Result
