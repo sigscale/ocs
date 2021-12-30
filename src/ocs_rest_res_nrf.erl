@@ -22,7 +22,7 @@
 -copyright('Copyright (c) 2016 - 2021 SigScale Global Inc.').
 
 -export([content_types_accepted/0, content_types_provided/0]).
--export([initial_nrf/1, update_nrf/2, release_nrf/2]).
+-export([initial_nrf/2, update_nrf/3, release_nrf/3]).
 
 -include_lib("diameter/include/diameter.hrl").
 -include_lib("diameter/include/diameter_gen_base_rfc6733.hrl").
@@ -32,6 +32,8 @@
 -include("diameter_gen_cc_application_rfc4006.hrl").
 -include("ocs.hrl").
 -include("ocs_log.hrl").
+-include_lib("inets/include/httpd.hrl").
+-include_lib("inets/include/mod_auth.hrl").
 
 -define(RO_APPLICATION_ID, 4).
 
@@ -57,9 +59,10 @@ content_types_accepted() ->
 content_types_provided() ->
 	["application/json", "application/problem+json"].
 
--spec initial_nrf(NrfRequest) -> NrfResponse
+-spec initial_nrf(ModData, NrfRequest) -> NrfResponse
 	when
 		NrfRequest :: iolist(),
+		ModData :: #mod{},
 		NrfResponse :: {ok, Headers, Body} | {error, Status} |
 				{error, Status, Problem},
 		Headers :: [tuple()],
@@ -70,7 +73,15 @@ content_types_provided() ->
 %%
 %%		Rate an intial Nrf Request.
 %%
-initial_nrf(NrfRequest) ->
+initial_nrf(ModData, NrfRequest) ->
+	case authorize_rating(ModData) of
+		{error, Status} ->
+			{error, Status};
+		{ok, authorized} ->
+			initial_nrf1(NrfRequest)
+	end.
+%% @hidden
+initial_nrf1(NrfRequest) ->
 	RatingDataRef = unique(),
 	try
 		case mochijson:decode(NrfRequest) of
@@ -128,7 +139,7 @@ initial_nrf(NrfRequest) ->
 			ok = ocs_log:acct_log(diameter, server(),
 					start, DiameterRequest, DiameterReply, undefined),
 			{error, StatusCode, Problem1};
-		{error, Reason1, {DiameterRequest, DiameterReply}} ->
+		{error, _Reason1, {DiameterRequest, DiameterReply}} ->
 			ok = ocs_log:acct_log(diameter, server(),
 					start, DiameterRequest, DiameterReply, undefined),
 			{error, 500}
@@ -141,8 +152,9 @@ initial_nrf(NrfRequest) ->
 			{error, 500}
 	end.
 	
--spec update_nrf(RatingDataRef, NrfRequest) -> NrfResponse
+-spec update_nrf(ModData, RatingDataRef, NrfRequest) -> NrfResponse
 	when
+		ModData ::#mod{},
 		NrfRequest :: iolist(),
 		RatingDataRef :: string(),
 		NrfResponse :: {Status, Headers, Body} | {error, Status} |
@@ -153,19 +165,28 @@ initial_nrf(NrfRequest) ->
 		Problem :: map().
 %% @doc Respond to `POST /nrf-rating/v1/ratingdata/{ratingRef}/update'.
 %%		Rate an interim Nrf Request.
-update_nrf(RatingDataRef, NrfRequest) ->
+update_nrf(ModData, RatingDataRef, NrfRequest) ->
+	case authorize_rating(ModData) of
+		{error, Status} ->
+			{error, Status};
+		{ok, authorized} ->
+			update_nrf1(RatingDataRef, NrfRequest)
+	end.
+%% @hidden
+update_nrf1(RatingDataRef, NrfRequest) ->
 	case lookup_ref(RatingDataRef) of
 		true ->
-			update_nrf1(RatingDataRef, NrfRequest);
+			update_nrf2(RatingDataRef, NrfRequest);
 		false ->
 			InvalidParams = [#{param => "{" ++ RatingDataRef ++ "}",
 					reason => "Unknown rating data reference"}],
 			Problem = rest_error_response(unknown_ref, InvalidParams),
 			{error, 404, Problem};
-		{error, Reason} ->
+		{error, _Reason} ->
 			{error, 500}
 	end.
-update_nrf1(RatingDataRef, NrfRequest) ->
+%% @hidden
+update_nrf2(RatingDataRef, NrfRequest) ->
 	try
 		case mochijson:decode(NrfRequest) of
 			{struct, _Attributes} = NrfStruct ->
@@ -213,7 +234,7 @@ update_nrf1(RatingDataRef, NrfRequest) ->
 			ok = ocs_log:acct_log(diameter, server(),
 					update, DiameterRequest, DiameterReply, undefined),
 			{error, StatusCode, Problem1};
-		{error, Reason1, {DiameterRequest, DiameterReply}} ->
+		{error, _Reason1, {DiameterRequest, DiameterReply}} ->
 			ok = ocs_log:acct_log(diameter, server(),
 					update, DiameterRequest, DiameterReply, undefined),
 			{error, 500}
@@ -226,8 +247,9 @@ update_nrf1(RatingDataRef, NrfRequest) ->
 			{error, 500}
 	end.
 
--spec release_nrf(RatingDataRef, NrfRequest) -> NrfResponse
+-spec release_nrf(ModData, RatingDataRef, NrfRequest) -> NrfResponse
 	when
+		ModData ::#mod{},
 		NrfRequest :: iolist(),
 		RatingDataRef :: string(),
 		NrfResponse :: {Status, Headers, Body} | {error, Status} |
@@ -240,19 +262,28 @@ update_nrf1(RatingDataRef, NrfRequest) ->
 %%
 %%		Rate an final Nrf Request.
 %%
-release_nrf(RatingDataRef, NrfRequest) ->
+release_nrf(ModData, RatingDataRef, NrfRequest) ->
+	case authorize_rating(ModData) of
+		{error, Status} ->
+			{error, Status};
+		{ok, authorized} ->
+			release_nrf1(RatingDataRef, NrfRequest)
+	end.
+%% @hidden
+release_nrf1(RatingDataRef, NrfRequest) ->
 	case lookup_ref(RatingDataRef) of
 		true ->
-			release_nrf1(RatingDataRef, NrfRequest);
+			release_nrf2(RatingDataRef, NrfRequest);
 		false ->
 			InvalidParams = [#{param => "{" ++ RatingDataRef ++ "}",
 					reason => "Unknown rating data reference"}],
 			Problem = rest_error_response(unknown_ref, InvalidParams),
 			{error, 404, Problem};
-		{error, Reason} ->
+		{error, _Reason} ->
 			{error, 500}
 	end.
-release_nrf1(RatingDataRef, NrfRequest) ->
+%% @hidden
+release_nrf2(RatingDataRef, NrfRequest) ->
 	try
 		case mochijson:decode(NrfRequest) of
 			{struct, _Attributes} = NrfStruct ->
@@ -301,7 +332,7 @@ release_nrf1(RatingDataRef, NrfRequest) ->
 			ok = ocs_log:acct_log(diameter, server(),
 					stop, DiameterRequest, DiameterReply, undefined),
 			{error, StatusCode, Problem1};
-		{error, Reason1, {DiameterRequest, DiameterReply}} ->
+		{error, _Reason1, {DiameterRequest, DiameterReply}} ->
 			ok = ocs_log:acct_log(diameter, server(),
 					stop, DiameterRequest, DiameterReply, undefined),
 			{error, 500}
@@ -961,5 +992,32 @@ get_address() ->
 			Address;
 		{error, Reason} ->
 			{error, Reason}
+	end.
+
+-spec authorize_rating(ModData) -> Result
+	when
+		ModData :: #mod{},
+		Result :: {ok, authorized} | {error, Status},
+		Status :: term().
+%% @doc Do Authorization for Re interface
+authorize_rating(#mod{data = Data} = _ModData) ->
+	case lists:keyfind(remote_user, 1, Data) of
+		{remote_user, RemoteUser} ->
+			authorize_rating1(RemoteUser);
+		false ->
+			{error, 400}
+	end.
+%% @hidden
+authorize_rating1(RemoteUser) ->
+	case ocs:get_user(RemoteUser) of
+		{ok, #httpd_user{user_data = UserData}} ->
+			case lists:keyfind(rating, 1, UserData) of
+				{rating, true} ->
+					{ok, authorized};
+				{rating, false} ->
+					{error, 401}
+			end;
+		{error, no_such_user} ->
+			{error, 404}
 	end.
 
