@@ -262,16 +262,16 @@ get_clients()->
 				F(F, mnesia:select(client, MatchSpec,
 						?CHUNKSIZE, read), Acc);
 			(_F, '$end_of_table', Acc) ->
-				lists:flatten(lists:reverse(Acc));
+				{ok, lists:flatten(lists:reverse(Acc))};
 			(_F, {error, Reason}, _Acc) ->
 				{error, Reason};
 			(F,{Clients, Cont}, Acc) ->
 				F(F, mnesia:select(Cont), [Clients | Acc])
 	end,
-	case mnesia:transaction(F, [F, start, []]) of
-		{aborted, Reason} ->
+	case mnesia:ets(F, [F, start, []]) of
+		{error, Reason} ->
 			{error, Reason};
-		{atomic, Result} ->
+		{ok, Result} ->
 			Result
 	end.
 
@@ -445,16 +445,16 @@ get_products()->
 		F(F, mnesia:select(product, MatchSpec,
 				?CHUNKSIZE, read), Acc);
 		(_F, '$end_of_table', Acc) ->
-				lists:flatten(lists:reverse(Acc));
+				{ok, lists:flatten(lists:reverse(Acc))};
 		(_F, {error, Reason}, _Acc) ->
 				{error, Reason};
 		(F,{Products, Cont}, Acc) ->
 				F(F, mnesia:select(Cont), [Products | Acc])
 	end,
-	case mnesia:transaction(F, [F, start, []]) of
-		{aborted, Reason} ->
+	case mnesia:ets(F, [F, start, []]) of
+		{error, Reason} ->
 			{error, Reason};
-		{atomic, Result} ->
+		{ok, Result} ->
 			Result
 	end.
 
@@ -910,16 +910,16 @@ get_buckets() ->
 		F(mnesia:select(bucket, MatchSpec,
 				?CHUNKSIZE, read), Acc);
 		F('$end_of_table', Acc) ->
-				lists:flatten(lists:reverse(Acc));
+				{ok, lists:flatten(lists:reverse(Acc))};
 		F({error, Reason}, _Acc) ->
 				{error, Reason};
 		F({Buckets, Cont}, Acc) ->
 				F(mnesia:select(Cont), [Buckets | Acc])
 	end,
-	case mnesia:transaction(F, [start, []]) of
-		{aborted, Reason} ->
+	case mnesia:ets(F, [start, []]) of
+		{error, Reason} ->
 			{error, Reason};
-		{atomic, Result} ->
+		{ok, Result} ->
 			Result
 	end.
 
@@ -933,22 +933,20 @@ get_buckets(ProdRef) when is_list(ProdRef) ->
 	F = fun() ->
 		case mnesia:read(product, ProdRef) of
 			[#product{balance = []}] ->
-				[];
+				{ok, []};
 			[#product{balance = BucketRefs}] ->
 				MatchHead = #bucket{id = '$1', _ = '_'},
 				MatchIds = [{'==', Id, '$1'} || Id <- BucketRefs],
 				MatchConditions = [list_to_tuple(['or' | MatchIds])],
-				mnesia:select(bucket, [{MatchHead, MatchConditions, ['$_']}]);
+				{ok, mnesia:select(bucket, [{MatchHead, MatchConditions, ['$_']}])};
 			[] ->
 				throw(product_not_found)
 		end
 	end,
-	case mnesia:transaction(F) of
-		{atomic, Buckets} ->
+	case mnesia:ets(F) of
+		{ok, Buckets} ->
 			Buckets;
-		{aborted, {throw, Reason}} ->
-			{error, Reason};
-		{aborted, Reason} ->
+		{throw, Reason} ->
 			{error, Reason}
 	end.
 
@@ -1349,16 +1347,16 @@ get_services()->
 				F(F, mnesia:select(service, MatchSpec,
 						?CHUNKSIZE, read), Acc);
 			(_F, '$end_of_table', Acc) ->
-				lists:flatten(lists:reverse(Acc));
+				{ok, lists:flatten(lists:reverse(Acc))};
 			(_F, {error, Reason}, _Acc) ->
 				{error, Reason};
 			(F,{Services, Cont}, Acc) ->
 				F(F, mnesia:select(Cont), [Services | Acc])
 	end,
-	case mnesia:transaction(F, [F, start, []]) of
-		{aborted, Reason} ->
+	case mnesia:ets(F, [F, start, []]) of
+		{error, Reason} ->
 			{error, Reason};
-		{atomic, Result} ->
+		{ok, Result} ->
 			Result
 	end.
 
@@ -1618,16 +1616,16 @@ get_offers() ->
 				F(F, mnesia:select(offer, MatchSpec,
 						?CHUNKSIZE, read), Acc);
 			(_F, '$end_of_table', Acc) ->
-				lists:flatten(lists:reverse(Acc));
+				{ok, lists:flatten(lists:reverse(Acc))};
 			(_F, {error, Reason}, _Acc) ->
 				{error, Reason};
 			(F,{Offer, Cont}, Acc) ->
 				F(F, mnesia:select(Cont), [Offer | Acc])
 	end,
-	case mnesia:transaction(F, [F, start, []]) of
-		{aborted, Reason} ->
+	case mnesia:ets(F, [F, start, []]) of
+		{error, Reason} ->
 			{error, Reason};
-		{atomic, Result} ->
+		{ok, Result} ->
 			Result
 	end.
 
@@ -1759,16 +1757,16 @@ get_resources() ->
 	F = fun(F, start, Acc) ->
 				F(F, mnesia:select(resource, MatchSpec, ?CHUNKSIZE, read), Acc);
 			(_F, '$end_of_table', Acc) ->
-				lists:flatten(lists:reverse(Acc));
+				{ok, lists:flatten(lists:reverse(Acc))};
 			(_F, {error, Reason}, _Acc) ->
 				{error, Reason};
 			(F,{Offer, Cont}, Acc) ->
 				F(F, mnesia:select(Cont), [Offer | Acc])
 	end,
-	case mnesia:transaction(F, [F, start, []]) of
-		{aborted, Reason} ->
+	case mnesia:ets(F, [F, start, []]) of
+		{error, Reason} ->
 			{error, Reason};
-		{atomic, Result} ->
+		{ok, Result} ->
 			Result
 	end.
 
