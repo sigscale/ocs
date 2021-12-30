@@ -91,10 +91,12 @@ init_per_suite(Config) ->
 	RestPass = ct:get_config({rest, password}),
 	{Host, Port} = case Fport(Services) of
 		{{_, H2}, {_, P2}} when H2 == "localhost"; H2 == {127,0,0,1} ->
-			{ok, _} = ocs:add_user(RestUser, RestPass, "en"),
+			UserData = [{locale, "en"}, {rating, true}],
+			{ok, _} = ocs:add_user(RestUser, RestPass, UserData),
 			{"localhost", P2};
 		{{_, H2}, {_, P2}} ->
-			{ok, _} = ocs:add_user(RestUser, RestPass, "en"),
+			UserData = [{locale, "en"}, {rating, true}],
+			{ok, _} = ocs:add_user(RestUser, RestPass, UserData),
 			case H2 of
 				H2 when is_tuple(H2) ->
 					{inet:ntoa(H2), P2};
@@ -102,7 +104,8 @@ init_per_suite(Config) ->
 					{H2, P2}
 			end;
 		{false, {_, P2}} ->
-			{ok, _} = ocs:add_user(RestUser, RestPass, "en"),
+			UserData = [{locale, "en"}, {rating, true}],
+			{ok, _} = ocs:add_user(RestUser, RestPass, UserData),
 			{"localhost", P2}
 	end,
 	Config1 = [{port, Port} | Config],
@@ -211,6 +214,16 @@ init_per_testcase(scur_imsi_class_b, Config) ->
 	NewEnvVar = [Auth, {acct, [{DAddress, Port, NewOptions1}]}],
 	ok = application:set_env(ocs, diameter, NewEnvVar),
 	Config;
+init_per_testcase(TestCase, Config)
+		when TestCase == post_initial_scur_class_b;
+		TestCase == post_update_scur_class_b;
+		TestCase == post_final_scur_class_b;
+		TestCase == post_iec_class_b;
+		TestCase == post_initial_ecur_class_b;
+		TestCase == post_final_ecur_class_b ->
+	ServerPID = ?config(server_pid, Config),
+	inets:stop(httpd, ServerPID),
+	Config;
 init_per_testcase(_TestCase, Config) ->
 	Config.
 
@@ -233,13 +246,13 @@ all() ->
 	[send_initial_scur_class_b, receive_initial_scur_class_b, receive_initial_cud_scur_class_b,
 		send_interim_scur_class_b, receive_interim_scur_class_b, send_final_scur_class_b,
 		receive_final_scur_class_b, receive_interim_no_usu_scur_class_b,
-		post_initial_scur_class_b, post_update_scur_class_b,
-		post_final_scur_class_b, send_iec_class_b, receive_iec_class_b, send_initial_ecur_class_b,
+		send_iec_class_b, receive_iec_class_b, send_initial_ecur_class_b,
 		receive_initial_ecur_class_b, send_final_ecur_class_b, receive_final_ecur_class_b,
-		post_iec_class_b, post_initial_ecur_class_b, post_final_ecur_class_b, send_initial_scur_class_a,
-		receive_initial_scur_class_a, send_interim_scur_class_a, receive_interim_scur_class_a, final_scur_class_a,
-		send_initial_ecur_class_a, receive_initial_ecur_class_a, send_final_ecur_class_a,
-		receive_final_ecur_class_a, scur_vas_class_b, scur_imsi_class_b].
+		send_initial_scur_class_a, receive_initial_scur_class_a, send_interim_scur_class_a,
+		receive_interim_scur_class_a, final_scur_class_a, send_initial_ecur_class_a,
+		receive_initial_ecur_class_a, send_final_ecur_class_a, receive_final_ecur_class_a,
+		scur_vas_class_b, scur_imsi_class_b, post_initial_scur_class_b, post_update_scur_class_b,
+		post_final_scur_class_b, post_iec_class_b, post_initial_ecur_class_b, post_final_ecur_class_b].
 
 %%---------------------------------------------------------------------
 %%  Test cases
