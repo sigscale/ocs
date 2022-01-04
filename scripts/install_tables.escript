@@ -6,8 +6,15 @@ main([]) ->
 		[] ->
 			case ocs_app:install() of
 				{ok, Tables} ->
-					{ok, Tables};
+					case mnesia:stop() of
+						stopped ->
+							io:fwrite("{ok, ~p}~n", [Tables]);
+						{error, Reason} ->
+							io:fwrite("error: ~w~n", [Reason]),
+							erlang:halt(1)
+					end;
 				{error, Reason} ->
+					stopped = mnesia:stop(),
 					io:fwrite("error: ~w~n", [Reason]),
 					erlang:halt(1)
 			end;
@@ -16,12 +23,20 @@ main([]) ->
 				ok ->
 					case ocs_app:install() of
 						{ok, Tables} ->
-							{ok, Tables};
+							case mnesia:stop() of
+								stopped ->
+									io:fwrite("{ok, ~p}~n", [Tables]);
+								{error, Reason} ->
+									io:fwrite("error: ~w~n", [Reason]),
+									erlang:halt(1)
+							end;
 						{error, Reason} ->
+							stopped = mnesia:stop(),
 							io:fwrite("error: ~w~n", [Reason]),
 							erlang:halt(1)
 					end;
 				{error, Reason} ->
+					stopped = mnesia:stop(),
 					io:fwrite("error: ~w~n", [Reason]),
 					erlang:halt(1)
 			end
