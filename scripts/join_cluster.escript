@@ -6,7 +6,7 @@ main([Node]) ->
 		[] ->
 			case ocs_app:join(list_to_atom(Node)) of
 				{ok, Tables} ->
-					io:fwrite("~p~n", [Tables]);
+					io:fwrite("{ok, ~p}~n", [Tables]);
 				{error, Reason} ->
 					io:fwrite("error: ~w~n", [Reason]),
 					erlang:halt(1)
@@ -16,7 +16,7 @@ main([Node]) ->
 				ok ->
 					case ocs_app:join(list_to_atom(Node)) of
 						{ok, Tables} ->
-							io:fwrite("~p~n", [Tables]);
+							io:fwrite("{ok, ~p}~n", [Tables]);
 						{error, Reason} ->
 							io:fwrite("error: ~w~n", [Reason]),
 							erlang:halt(1)
