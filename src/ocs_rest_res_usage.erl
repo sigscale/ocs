@@ -814,9 +814,39 @@ spec_aaa_policy_usage_spec() ->
 	Start = {"startDateTime", "2017-01-01T00:00:00Z"},
 	End = {"endDateTime", undefined},
 	Valid = {"validFor", {struct, [Start, End]}},
-	Chars = [],
+	Chars = [spec_charging_rule_install()],
 	Char = {"usageSpecCharacteristic", {array, Chars}},
 	{struct, [ID, Href, Name, Desc, Valid, Char]}.
+
+%% @hidden
+spec_charging_rule_install()  ->
+	Name = {"name", "chargingRuleInstall"},
+	Desc = {"description", "Charing Rule characteristic in Gx Policy Usage"},
+	Conf = {"configurable", true},
+	Value1 = {struct, [{"name", "name"},
+			{"description", "Policy rule name"},
+			{"default", true}, {"valueType", "String"}]},
+	Value2 = {struct, [{"name", "precedence"},
+			{"description", "Priority order rules are applied in"},
+			{"default", true}, {"valueType", "Number"}]},
+	Value3 = {struct, [{"name", "predefined"},
+			{"description", "Indicate PCEF predefined rule"},
+			{"default", false}, {"valueType", "Boolean"}]},
+	Value4 = {struct, [{"name", "chargingKey"},
+			{"description", "Charging rule"},
+			{"default", true}, {"valueType", "Number"}]},
+	Value5 = {struct, [{"name", "serviceId"},
+			{"description", "Service flow identifier"},
+			{"default", false}, {"valueType", "String"}]},
+	Value6 =  {struct, [{"name", "qosInformation"},
+			{"description", "Quality of Service Information"},
+			{"default", false}, {"valueType", "Object"}]},
+	Value7 = {struct, [{"name", "flowInformation"},
+			{"description", "Service flow template"}, {"default", true},
+			{"valueType", "Array"}]},
+	Value = {"usageSpecCharacteristicValue", {array, [Value1, Value2, Value3,
+			Value4, Value5, Value6, Value7]}},
+	{struct, [Name, Desc, Conf, Value]}.
 
 %% @hidden
 spec_aaa_auth() ->
