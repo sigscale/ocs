@@ -805,6 +805,20 @@ usage_http_transfer([], _Filters, Acc) ->
 	lists:reverse(Acc).
 
 %% @hidden
+spec_aaa_policy_usage_spec() ->
+	ID = {"id", "AAAPolicyUsageSpec"},
+	Href = {"href", ?usageSpecPath ++ "AAAPolicyUsageSpec"},
+	Name = {"name", "AAAPolicyUsageSpec"},
+	Desc = {"description", "Specification for SigScale OCS Policy
+			Usage in Diameter Gx interface."},
+	Start = {"startDateTime", "2017-01-01T00:00:00Z"},
+	End = {"endDateTime", undefined},
+	Valid = {"validFor", {struct, [Start, End]}},
+	Chars = [],
+	Char = {"usageSpecCharacteristic", {array, Chars}},
+	{struct, [ID, Href, Name, Desc, Valid, Char]}.
+
+%% @hidden
 spec_aaa_auth() ->
 	ID = {"id", "AAAAccessUsageSpec"},
 	Href = {"href", ?usageSpecPath ++ "AAAAccessUsageSpec"},
