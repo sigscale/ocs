@@ -243,6 +243,11 @@ get_usagespec(Query) ->
 			{ok, RespHeaders, Body};
 		{_, {_, "AAAAccountingUsageSpec"}, _} ->
 			{error, 400};
+		{_, {_, "AAAPolicyUsageSpec"}, []} ->
+			Body = mochijson:encode({array, [|spec_aaa_policy_usage_spec()]}),
+			{ok, RespHeaders, Body};
+		{_, {_, "AAAPolicyUsageSpec"}, _} ->
+			{error, 400};
 		{_, {_, "PublicWLANAccessUsageSpec"}, []} ->
 			Body = mochijson:encode({array, [spec_public_wlan()]}),
 			{ok, RespHeaders, Body};
@@ -283,6 +288,12 @@ get_usagespec("AAAAccountingUsageSpec", [] = _Query) ->
 	Body = mochijson:encode(spec_aaa_acct()),
 	{ok, RespHeaders, Body};
 get_usagespec("AAAAccountingUsageSpec", _Query) ->
+	{error, 400};
+get_usagespec("AAAPolicyUsageSpec", [] = _Query) ->
+	RespHeaders = [{content_type, "application/json"}],
+	Body = mochijson:encode(spec_aaa_policy_usage_spec()),
+	{ok, RespHeaders, Body};
+get_usagespec("AAAPolicyUsageSpec", _Query) ->
 	{error, 400};
 get_usagespec("PublicWLANAccessUsageSpec", [] = _Query) ->
 	RespHeaders = [{content_type, "application/json"}],
