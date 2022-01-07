@@ -291,7 +291,6 @@ process_request(Address, Port,
 				'CC-Request-Type' = RequestType,
 				'CC-Request-Number' = RequestNum,
 				'Subscription-Id' = SubscriptionIds} = Request) ->
-
 	{ok, Configurations} = application:get_env(ocs, diameter),
 	{_, AcctServices} = lists:keyfind(acct, 1, Configurations),
 	F = fun F([{{0, 0, 0, 0}, P, Options} | _]) when P =:= Port ->
