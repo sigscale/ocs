@@ -495,39 +495,43 @@ process_request1(?'3GPP_CC-REQUEST-TYPE_TERMINATION_REQUEST' = RequestType,
 			_ ->
 				calendar:universal_time()
 		end,
-		Amounts = case get_mscc(MSCC1) of
+		case get_mscc(MSCC1) of
 			[] ->
-				[{[], [], [], []}];
-			As ->
-				As
-		end,
-		case rate(ServiceType, ServiceNetwork, Subscriber,
-				Timestamp, Address, Direction, final, SessionId,
-				Amounts) of
-			{MSCC2, ResultCode} when is_list(MSCC2) ->
-				Reply = diameter_answer(SessionId, MSCC2,
+				ResultCode = ?'DIAMETER_BASE_RESULT-CODE_SUCCESS',
+				Reply = diameter_answer(SessionId, [],
 						ResultCode, OHost, ORealm, RequestType, RequestNum),
 				ok = ocs_log:acct_log(diameter, Server,
 						accounting_event_type(RequestType), Request, Reply, undefined),
 				Reply;
-			{MSCC2, ResultCode, Rated} when is_list(Rated) ->
-				Reply = diameter_answer(SessionId, MSCC2,
-						ResultCode, OHost, ORealm, RequestType, RequestNum),
-				ok = ocs_log:acct_log(diameter, Server,
-						accounting_event_type(RequestType), Request, Reply, Rated),
-				Reply;
-			{error, Reason} ->
-				error_logger:error_report(["Rating Error",
-						{module, ?MODULE}, {error, Reason},
-						{origin_host, OHost}, {origin_realm, ORealm},
-						{type, accounting_event_type(RequestType)},
-						{subscriber, Subscriber}, {address, Address},
-						{direction, Direction}, {amounts, Amounts}]),
-				Reply = diameter_error(SessionId, ?'DIAMETER_CC_APP_RESULT-CODE_RATING_FAILED',
-						OHost, ORealm, RequestType, RequestNum),
-				ok = ocs_log:acct_log(diameter, Server,
-						accounting_event_type(RequestType), Request, Reply, undefined),
-				Reply
+			Amounts ->
+				case rate(ServiceType, ServiceNetwork, Subscriber,
+						Timestamp, Address, Direction, final, SessionId,
+						Amounts) of
+					{MSCC2, ResultCode} when is_list(MSCC2) ->
+						Reply = diameter_answer(SessionId, MSCC2,
+								ResultCode, OHost, ORealm, RequestType, RequestNum),
+						ok = ocs_log:acct_log(diameter, Server,
+								accounting_event_type(RequestType), Request, Reply, undefined),
+						Reply;
+					{MSCC2, ResultCode, Rated} when is_list(Rated) ->
+						Reply = diameter_answer(SessionId, MSCC2,
+								ResultCode, OHost, ORealm, RequestType, RequestNum),
+						ok = ocs_log:acct_log(diameter, Server,
+								accounting_event_type(RequestType), Request, Reply, Rated),
+						Reply;
+					{error, Reason} ->
+						error_logger:error_report(["Rating Error",
+								{module, ?MODULE}, {error, Reason},
+								{origin_host, OHost}, {origin_realm, ORealm},
+								{type, accounting_event_type(RequestType)},
+								{subscriber, Subscriber}, {address, Address},
+								{direction, Direction}, {amounts, Amounts}]),
+						Reply = diameter_error(SessionId, ?'DIAMETER_CC_APP_RESULT-CODE_RATING_FAILED',
+								OHost, ORealm, RequestType, RequestNum),
+						ok = ocs_log:acct_log(diameter, Server,
+								accounting_event_type(RequestType), Request, Reply, undefined),
+						Reply
+				end
 		end
 	catch
 		?CATCH_STACK ->
@@ -1075,12 +1079,12 @@ rate(ServiceType, ServiceNetwork, Subscriber,
 					#'3gpp_ro_Multiple-Services-Credit-Control'{
 							'Service-Identifier' = SI,
 							'Rating-Group' = RG,
-							'Result-Code' = [ResultCode2]};
+							'Result-Code' = [ResultCode3]};
 				RedirectServerAddress when is_list(RedirectServerAddress) ->
 					#'3gpp_ro_Multiple-Services-Credit-Control'{
 							'Service-Identifier' = SI,
 							'Rating-Group' = RG,
-							'Result-Code' = [ResultCode2],
+							'Result-Code' = [ResultCode3],
 							'Final-Unit-Indication' = fui(RedirectServerAddress)}
 			end,
 			rate(ServiceType, ServiceNetwork, Subscriber,
@@ -1100,12 +1104,12 @@ rate(ServiceType, ServiceNetwork, Subscriber,
 					#'3gpp_ro_Multiple-Services-Credit-Control'{
 							'Service-Identifier' = SI,
 							'Rating-Group' = RG,
-							'Result-Code' = [ResultCode2]};
+							'Result-Code' = [ResultCode3]};
 				RedirectServerAddress when is_list(RedirectServerAddress) ->
 					#'3gpp_ro_Multiple-Services-Credit-Control'{
 							'Service-Identifier' = SI,
 							'Rating-Group' = RG,
-							'Result-Code' = [ResultCode2],
+							'Result-Code' = [ResultCode3],
 							'Final-Unit-Indication' = fui(RedirectServerAddress)}
 			end,
 			rate(ServiceType, ServiceNetwork, Subscriber,
@@ -1125,12 +1129,12 @@ rate(ServiceType, ServiceNetwork, Subscriber,
 					#'3gpp_ro_Multiple-Services-Credit-Control'{
 							'Service-Identifier' = SI,
 							'Rating-Group' = RG,
-							'Result-Code' = [ResultCode2]};
+							'Result-Code' = [ResultCode3]};
 				RedirectServerAddress when is_list(RedirectServerAddress) ->
 					#'3gpp_ro_Multiple-Services-Credit-Control'{
 							'Service-Identifier' = SI,
 							'Rating-Group' = RG,
-							'Result-Code' = [ResultCode2],
+							'Result-Code' = [ResultCode3],
 							'Final-Unit-Indication' = fui(RedirectServerAddress)}
 			end,
 			rate(ServiceType, ServiceNetwork, Subscriber,
