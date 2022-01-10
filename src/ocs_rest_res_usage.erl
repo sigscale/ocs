@@ -244,7 +244,7 @@ get_usagespec(Query) ->
 		{_, {_, "AAAAccountingUsageSpec"}, _} ->
 			{error, 400};
 		{_, {_, "AAAPolicyUsageSpec"}, []} ->
-			Body = mochijson:encode({array, [|spec_aaa_policy_usage_spec()]}),
+			Body = mochijson:encode({array, [spec_aaa_policy_usage_spec()]}),
 			{ok, RespHeaders, Body};
 		{_, {_, "AAAPolicyUsageSpec"}, _} ->
 			{error, 400};
