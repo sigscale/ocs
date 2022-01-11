@@ -1,3 +1,35 @@
+2021-01-10  Refath Wadood <vances@sigscale.org>
+
+	* remove ambiguous map specs; non json map keys are atoms
+	* remove usu from cca in nrf callback handler
+	* idpr row elements can be strings or binary
+	* seperate session id ipdr row element using quotes
+	* ipdr charge ammount exlusive of taxes
+	* add missing ipdr_wlan fields in ipdr codec; include missing fields in ipdr export
+	* copy httpd_user and httpd_group tables if auth type is mnesia only
+	* add_user/3 will take a list of user_data properties as the 3rd argument
+	* set the default locale as en
+	* handle user_data property rating in post_user/1
+	* user_data is a list of properties
+	* add user_data for default user
+	* test: add locale as an user_data property in add_user
+	* handle user_data in update_user/3
+	* optimize mnesia table reads
+	* move prep work out of transactions
+	* remove redundant catch; typos
+	* replace mnesia:transaction/1 with mnesia:ets/1 for optimized table reads
+	* authorize users to use Re interface based on rating property in #httpd_user.user_data (ocs-513)
+	* add rating property to #httpd_user.user_data; improved testcase transition
+	* stop mnesia cleanly in install_tables.escript
+	* print ok and list of tables
+	* remove expiry date on specifications
+	* add aaa policy usage
+	* add charging rule install attribute to policy usage
+	* usage policy spec can be queried
+	* remove whitespace
+	* empty mscc in final should not be rated (ocs-547)
+	* add edoc overview for user_default module
+
 2021-12-21  Vance Shipley <vances@sigscale.org>
 
 	* correct attribute for actual time session began in nrf_rating api examples

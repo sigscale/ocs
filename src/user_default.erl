@@ -15,8 +15,15 @@
 %%% See the License for the specific language governing permissions and
 %%% limitations under the License.
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%% @doc This module implements short form commands for the Erlang shell.
 %%%
-
+%%% 	The functions in this module are available when called without
+%%% 	a module name in an interactive shell. These are meant to be used
+%%% 	by operations support staff to quickly get status information
+%%% 	about a running system.
+%%%
+%%% @see //stdlib/shell_default.
+%%%
 -module(user_default).
 -copyright('Copyright (c) 2016 - 2021 SigScale Global Inc.').
 

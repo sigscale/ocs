@@ -1,3 +1,8 @@
+January 10, 2022
+----------------
+	- Lock free mnesia table reads for increased transaction performance
+	- Re interface utilization now requires rating user role
+
 November 19, 2021
 -----------------
 	- Add Support For 0 Price Rating
