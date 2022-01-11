@@ -1511,7 +1511,6 @@ ipdr_ims_voip1([], _Protocol, _TimeStamp, _ReqType, _Req, _Res, _Rated, IPDR) ->
 		IPDRWlan :: #ipdr_wlan{}.
 %% @doc CODEC for IPDR Wlan
 ipdr_wlan(Protocol, TimeStamp, ReqType, Req, Res, Rated) ->
-erlang:display({?MODULE, ?LINE, Rated}),
 	ipdr_wlan1(record_info(fields, ipdr_wlan), Protocol, TimeStamp,
 			ReqType, Req, Res, Rated, #ipdr_wlan{}).
 %% @hidden
