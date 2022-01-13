@@ -1513,6 +1513,7 @@ ipdr_ims_voip1([], _Protocol, _TimeStamp, _ReqType, _Req, _Res, _Rated, IPDR) ->
 		IPDRWlan :: #ipdr_wlan{}.
 %% @doc CODEC for IPDR Wlan
 ipdr_wlan(Protocol, TimeStamp, ReqType, Req, Res, Rated) ->
+erlang:display({?MODULE, ?LINE, Req}),
 	ipdr_wlan1(record_info(fields, ipdr_wlan), Protocol, TimeStamp,
 			ReqType, Req, Res, Rated, #ipdr_wlan{}).
 %% @hidden
@@ -1524,7 +1525,7 @@ ipdr_wlan1([username | T], radius, TimeStamp, stop, Req, Resp, Rated, IPDR) ->
 	NewIPDR = IPDR#ipdr_wlan{username = Username},
 	ipdr_wlan1(T, radius, TimeStamp, stop, Req, Resp, Rated, NewIPDR);
 ipdr_wlan1([username | T], diameter, TimeStamp, stop,
-		#'3gpp_ro_CCR'{'Subscription-Id' = [SubscriptionID]} = Req, Resp,
+		#'3gpp_ro_CCR'{'Subscription-Id' = [SubscriptionID, _]} = Req, Resp,
 		Rated, IPDR) ->
 	case SubscriptionID of
 		#'3gpp_ro_Subscription-Id'{'Subscription-Id-Data' = Subscriber} ->
@@ -1828,7 +1829,7 @@ ipdr_xdr(Log, IoDevice, {Cont, []}) ->
 
 %% @hidden
 ipdr_csv(Log, IoDevice, {Cont, [#ipdrDocWLAN{} | T]}) ->
-	Header = [<<"Creation Time;Sequence Number;Username;">>,
+	Header = [<<"Creation Time;Sequence Number;Username;Subscriber ID;">>,
 			<<"Accounting Session ID;User IP Address;Calling Station ID;">>,
 			<<"Called Station ID;NAS IP Address;NAS Identifier;">>,
 			<<"Class;Session Terminate Cause;Session Duration;">>,
@@ -1970,7 +1971,7 @@ ipdr_csv(Log, IoDevice, {Cont, [#ipdr_wlan{} = I | T]}) ->
 		undefined ->
 			<<>>;
 		US ->
-			list_to_binary(US)
+			US
 	end,
 	Sess = case I#ipdr_wlan.acctSessionId of
 		undefined ->
