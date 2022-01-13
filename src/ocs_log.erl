@@ -1833,7 +1833,7 @@ ipdr_csv(Log, IoDevice, {Cont, [#ipdrDocWLAN{} | T]}) ->
 			<<"Called Station ID;NAS IP Address;NAS Identifier;">>,
 			<<"Class;Session Terminate Cause;Session Duration;">>,
 			<<"Input Octets;Output Octets;Chargeable Quantity;">>,
-			<<"Bucket Type;Bucket Value;Tarrif Type;">>,
+			<<"Bucket Type;Bucket Value;Tariff Type;">>,
 			<<"Product;Price Type;Usage Rating;Charge Amount;">>, $\r, $\n],
 	case file:write(IoDevice, Header) of
 		ok ->
@@ -1849,7 +1849,7 @@ ipdr_csv(Log, IoDevice, {Cont, [#ipdrDocVoIP{} | T]}) ->
 	Header = [<<"Creation Time;Sequence Number;Subscriber ID;">>,
 			<<"Unique Call ID;Destination ID;Call Completion Code;">>,
 			<<"Disconnect Reason;Host Name;">>,
-			<<"Bucket Type;Bucket Value;Tarrif Type;">>,
+			<<"Bucket Type;Bucket Value;Tariff Type;">>,
 			<<"Product;Price Type;Usage Rating;Charge Amount;">>, $\r, $\n],
 	case file:write(IoDevice, Header) of
 		ok ->
