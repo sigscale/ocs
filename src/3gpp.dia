@@ -478,22 +478,38 @@
    Relay-IP-Address                                       4411  Address          VM
    Target-IP-Address                                      4412  Address          VM
    FE-Identifier-List                                     4413  UTF8String       VM
-   ;;; 3GPP RS  29.061
+   ;;; 3GPP TS 29.061
    3GPP-IMSI                                                 1  UTF8String       V
    3GPP-Charging-Id                                          2  OctetString      V
    3GPP-PDP-Type                                             3  Enumerated       V
+   3GPP-Charging-Gateway-Address                             4  Address          V
    3GPP-GPRS-Negotiated-QoS-Profile                          5  UTF8String       V
+   3GPP-SGSN-Address                                         6  Address          V
+   3GPP-GGSN-Address                                         7  Address          V
    3GPP-IMSI-MCC-MNC                                         8  UTF8String       V
    3GPP-GGSN-MCC-MNC                                         9  UTF8String       V
    3GPP-NSAPI                                               10  OctetString      V
    3GPP-Session-Stop-Indicator                              11  OctetString      V
    3GPP-Selection-Mode                                      12  UTF8String       V
    3GPP-Charging-Characteristics                            13  UTF8String       V
+   3GPP-Charging-Gateway-IPv6-Address                       14  OctetString      V
+   3GPP-SGSN-IPv6-Address                                   15  OctetString      V
+   3GPP-GGSN-IPv6-Address                                   16  OctetString      V
+   3GPP-IPv6-DNS-Servers                                    17  OctetString      V
    3GPP-SGSN-MCC-MNC                                        18  UTF8String       V
+   3GPP-Teardown-Indicator                                  19  OctetString      V
    3GPP-IMEISV                                              20  UTF8String       V
    3GPP-RAT-Type                                            21  OctetString      V
    3GPP-User-Location-Info                                  22  OctetString      V
    3GPP-MS-TimeZone                                         23  OctetString      V
+   3GPP-CAMEL-Charging-Info                                 24  OctetString      V
+   3GPP-Packet-Filter                                       25  OctetString      V
+   3GPP-Negotiated-DSCP                                     26  OctetString      V
+   3GPP-Allocate-IP-Type                                    27  OctetString      V
+;  External-Identifier                                      28  UTF8String       V
+   TWAN-Identifier                                          29  OctetString      V
+   3GPP-User-Location-Info-Time                             30  Unsigned32       V
+   3GPP-Secondary-RAT-Usage                                 31  OctetString      V
    ;; 3GPP TS 29.214
    Access-Network-Charging-Address                         501  Address          VM
    Access-Network-Charging-Identifier                      502  Grouped          VM
