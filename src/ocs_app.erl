@@ -923,7 +923,41 @@ join17(Node, Nodes, Acc) ->
 			{error, Reason}
 	end.
 %% @hidden
-join18(_Node, _Nodes, Tables) ->
+join18(Node, Nodes, Acc) ->
+	case rpc:call(Node, mnesia, system_info, [tables]) of
+		[T | _] = Tables when is_atom(T) ->
+			join18(Node, Nodes, Tables, Acc);
+		{badrpc, Reason} ->
+			error_logger:error_report(["Bad rpc call to get list of tables",
+					{badrpc, Reason}]),
+			{error, Reason}
+	end.
+%% @hidden
+join18(Node, Nodes, [Table | Tables], Acc) ->
+	case rpc:call(Node, mnesia, table_info, [Table, record_name]) of
+		gtt ->
+			case rpc:call(Node, mnesia, add_table_copy,
+					[Table, node(), disc_copies]) of
+				{atomic, ok} ->
+					error_logger:info_msg("Copied ~s table from ~s.~n",
+							[Table, Node]),
+					join18(Node, Nodes, Tables, [Table | Acc]);
+				{aborted, {already_exists, Table, _}} ->
+					error_logger:info_msg("Found existing ~s table on ~s.~n",
+							[Table, Node]),
+					join18(Node, Nodes, Tables, [Table | Acc]);
+				{aborted, Reason} ->
+					error_logger:error_report([mnesia:error_description(Reason),
+						{error, Reason}]),
+					{error, Reason}
+			end;
+		_ ->
+			join18(Node, Nodes, Tables, Acc)
+	end;
+join18(Node, Nodes, [], Acc) ->
+	join19(Node, Nodes, Acc).
+%% @hidden
+join19(_Node, _Nodes, Tables) ->
 	case mnesia:wait_for_tables(lists:reverse(Tables), ?WAITFORTABLES) of
 		ok ->
 			{ok, Tables};
