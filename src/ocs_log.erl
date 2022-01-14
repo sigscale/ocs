@@ -1327,9 +1327,11 @@ ipdr_codec(Event) when size(Event) > 6,
 	end,
 	ipdr_codec1(Protocol, TimeStamp, ReqType, Req, Res, Rated, []).
 %% @hidden
-ipdr_codec1(Protocol, TimeStamp, ReqType, Req, Res, [H | T], Acc) ->
-	IPDR = ipdr_codec2(Protocol, TimeStamp, ReqType, Req, Res, H),
-	ipdr_codec1(Protocol, TimeStamp, ReqType, Req, Res, T, [IPDR | Acc]);
+ipdr_codec1(diameter, TimeStamp, ReqType, Req, Res, [H | T], Acc) ->
+	IPDR = ipdr_codec2(diameter, TimeStamp, ReqType, Req, Res, H),
+	ipdr_codec1(diameter, TimeStamp, ReqType, Req, Res, T, [IPDR | Acc]);
+ipdr_codec1(radius, TimeStamp, ReqType, Req, Res, undefined, Acc) ->
+	ipdr_codec2(radius, TimeStamp, ReqType, Req, Res, undefined);
 ipdr_codec1(_Protocol, _TimeStamp, _ReqType, _Req, _Res, [], Acc) ->
 	lists:reverse(Acc).
 %% @hidden
@@ -1511,6 +1513,7 @@ ipdr_ims_voip1([], _Protocol, _TimeStamp, _ReqType, _Req, _Res, _Rated, IPDR) ->
 		IPDRWlan :: #ipdr_wlan{}.
 %% @doc CODEC for IPDR Wlan
 ipdr_wlan(Protocol, TimeStamp, ReqType, Req, Res, Rated) ->
+erlang:display({?MODULE, ?LINE, Req}),
 	ipdr_wlan1(record_info(fields, ipdr_wlan), Protocol, TimeStamp,
 			ReqType, Req, Res, Rated, #ipdr_wlan{}).
 %% @hidden
@@ -1522,7 +1525,7 @@ ipdr_wlan1([username | T], radius, TimeStamp, stop, Req, Resp, Rated, IPDR) ->
 	NewIPDR = IPDR#ipdr_wlan{username = Username},
 	ipdr_wlan1(T, radius, TimeStamp, stop, Req, Resp, Rated, NewIPDR);
 ipdr_wlan1([username | T], diameter, TimeStamp, stop,
-		#'3gpp_ro_CCR'{'Subscription-Id' = [SubscriptionID]} = Req, Resp,
+		#'3gpp_ro_CCR'{'Subscription-Id' = [SubscriptionID, _]} = Req, Resp,
 		Rated, IPDR) ->
 	case SubscriptionID of
 		#'3gpp_ro_Subscription-Id'{'Subscription-Id-Data' = Subscriber} ->
@@ -1831,7 +1834,7 @@ ipdr_csv(Log, IoDevice, {Cont, [#ipdrDocWLAN{} | T]}) ->
 			<<"Called Station ID;NAS IP Address;NAS Identifier;">>,
 			<<"Class;Session Terminate Cause;Session Duration;">>,
 			<<"Input Octets;Output Octets;Chargeable Quantity;">>,
-			<<"Bucket Type;Bucket Value;Tarrif Type;">>,
+			<<"Bucket Type;Bucket Value;Tariff Type;">>,
 			<<"Product;Price Type;Usage Rating;Charge Amount;">>, $\r, $\n],
 	case file:write(IoDevice, Header) of
 		ok ->
@@ -1847,7 +1850,7 @@ ipdr_csv(Log, IoDevice, {Cont, [#ipdrDocVoIP{} | T]}) ->
 	Header = [<<"Creation Time;Sequence Number;Subscriber ID;">>,
 			<<"Unique Call ID;Destination ID;Call Completion Code;">>,
 			<<"Disconnect Reason;Host Name;">>,
-			<<"Bucket Type;Bucket Value;Tarrif Type;">>,
+			<<"Bucket Type;Bucket Value;Tariff Type;">>,
 			<<"Product;Price Type;Usage Rating;Charge Amount;">>, $\r, $\n],
 	case file:write(IoDevice, Header) of
 		ok ->
@@ -1968,7 +1971,7 @@ ipdr_csv(Log, IoDevice, {Cont, [#ipdr_wlan{} = I | T]}) ->
 		undefined ->
 			<<>>;
 		US ->
-			list_to_binary(US)
+			US
 	end,
 	Sess = case I#ipdr_wlan.acctSessionId of
 		undefined ->
