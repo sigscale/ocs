@@ -1988,7 +1988,7 @@
    3GPP-EPS      5
    Non-3GPP-EPS  6
    FBA           7
-	Non-3GPP-5GS  9
+   Non-3GPP-5GS  9
 
 @enum RAT-Type
    WLAN              0
@@ -2316,7 +2316,7 @@
    IMS_SIGNALLING  1
 
 @enum Reporting-Level
-	SERVICE_IDENTIFIER_LEVEL       0
+   SERVICE_IDENTIFIER_LEVEL       0
    RATING_GROUP_LEVEL             1
    SPONSORED_CONNECTIVITY_LEVEL   2
 
