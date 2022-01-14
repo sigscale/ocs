@@ -1829,7 +1829,7 @@ ipdr_xdr(Log, IoDevice, {Cont, []}) ->
 
 %% @hidden
 ipdr_csv(Log, IoDevice, {Cont, [#ipdrDocWLAN{} | T]}) ->
-	Header = [<<"Creation Time;Sequence Number;Username;Subscriber ID;">>,
+	Header = [<<"Creation Time;Sequence Number;Username;">>,
 			<<"Accounting Session ID;User IP Address;Calling Station ID;">>,
 			<<"Called Station ID;NAS IP Address;NAS Identifier;">>,
 			<<"Class;Session Terminate Cause;Session Duration;">>,
