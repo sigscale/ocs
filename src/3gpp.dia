@@ -545,10 +545,11 @@
    Pre-emption-Capability                                 1047  Enumerated       V
    Pre-emption-Vulnerability                              1048  Enumerated       V
    Default-EPS-Bearer-QoS                                 1049  Grouped          V
-   Packet-Filter-Identifier                               1050  OctetString      V
+   AN-GW-Address                                          1050  Address          V
    Security-Parameter-Index                               1056  OctetString      V
    Flow-Label                                             1057  OctetString      V
    Flow-Information                                       1058  Grouped          V
+   Packet-Filter-Identifier                               1060  OctetString      V
    Packet-Filter-Usage                                    1072  Enumerated       V
    Routing-Rule-Identifier                                1077  OctetString      V
    Flow-Direction                                         1080  Enumerated       V
