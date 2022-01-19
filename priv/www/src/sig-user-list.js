@@ -63,6 +63,23 @@ class userList extends PolymerElement {
 						[[item.language]]
 					</template>
 				</vaadin-grid-column>
+				<vaadin-grid-column>
+					<template class="header">
+						<vaadin-grid-filter
+								aria-label="Rating"
+								path="rating"
+								value="{{_filterRating}}">
+							<input
+									slot="filter"
+									placeholder="Rating"
+									value="{{_filterRating::input}}"
+									focus-target>
+						</vaadin-grid-filter>
+					</template>
+					<template>
+						[[item.rating]]
+					</template>
+				</vaadin-grid-column>
 			</vaadin-grid>
 			<div class="add-button">
 				<paper-fab
@@ -151,12 +168,19 @@ class userList extends PolymerElement {
 				function checkChar(characteristic){
 					return characteristic.name == "locale";
 				}
+				function checkCharRate(characteristicRa){
+					return characteristicRa.name == "rating";
+				}
 				for(var index in request.response) {
 					var newRecord = new Object();
 					newRecord.id = request.response[index].id;
 					var langChar = request.response[index].characteristic.find(checkChar);
 					if(langChar != undefined) {
 						newRecord.language = langChar.value;
+					}
+					var rateChar = request.response[index].characteristic.find(checkCharRate);
+					if(rateChar != undefined) {
+						newRecord.rating = rateChar.value;
 					}
 					vaadinItems[index] = newRecord;
 				}
