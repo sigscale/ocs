@@ -1513,7 +1513,6 @@ ipdr_ims_voip1([], _Protocol, _TimeStamp, _ReqType, _Req, _Res, _Rated, IPDR) ->
 		IPDRWlan :: #ipdr_wlan{}.
 %% @doc CODEC for IPDR Wlan
 ipdr_wlan(Protocol, TimeStamp, ReqType, Req, Res, Rated) ->
-erlang:display({?MODULE, ?LINE, Req}),
 	ipdr_wlan1(record_info(fields, ipdr_wlan), Protocol, TimeStamp,
 			ReqType, Req, Res, Rated, #ipdr_wlan{}).
 %% @hidden
@@ -1670,21 +1669,30 @@ ipdr_wlan1([gmtSessionEndDateTime | T], diameter, TimeStamp, stop,
 	NewIPDR = IPDR#ipdr_wlan{gmtSessionEndDateTime = iso8601(EventTimeSeconds)},
 	ipdr_wlan1(T, diameter, TimeStamp, stop, Req, Resp, Rated, NewIPDR);
 ipdr_wlan1([unitOfMeasure | T], diameter, TimeStamp, stop, Req, Resp,
-		#rated{product = Product, bucket_type = BType, bucket_value = BValue,
+		#rated{product = Product, bucket_type = cents, bucket_value = BValue,
 		price_type = PType, tariff_type = TType, currency = Currency,
 		tax_excluded_amount = Amount, usage_rating_tag = non_included} = Rated, IPDR) ->
-	NewIPDR = IPDR#ipdr_wlan{unitOfMeasure = BType, chargeAmount = Amount,
+	NewIPDR = IPDR#ipdr_wlan{unitOfMeasure = cents, chargeAmount = Amount,
 			chargeCurrencyType = Currency, bucketValue = BValue,
-			bucketType = BType, tariffType = TType, priceType = PType,
+			bucketType = cents, tariffType = TType, priceType = PType,
 			usageRating = non_included, product = Product},
 	ipdr_wlan1(T, diameter, TimeStamp, stop, Req, Resp, Rated, NewIPDR);
 ipdr_wlan1([unitOfMeasure | T], diameter, TimeStamp, stop, Req, Resp,
 		#rated{product = Product, price_type = PType, tariff_type = TType,
-				bucket_type = BType, bucket_value = Amount,
+				bucket_type = cents, bucket_value = BValue,
+				usage_rating_tag = included, tax_included_amount = Amount} = Rated, IPDR) ->
+	NewIPDR = IPDR#ipdr_wlan{unitOfMeasure = cents, chargeableQuantity = Amount,
+			bucketType = cents, tariffType = TType, priceType = PType,
+			usageRating = included, product = Product, bucketValue = BValue,
+			chargeAmount = Amount},
+	ipdr_wlan1(T, diameter, TimeStamp, stop, Req, Resp, Rated, NewIPDR);
+ipdr_wlan1([unitOfMeasure | T], diameter, TimeStamp, stop, Req, Resp,
+		#rated{product = Product, price_type = PType, tariff_type = TType,
+				bucket_type = BType, bucket_value = BValue,
 				usage_rating_tag = included} = Rated, IPDR) ->
-	NewIPDR = IPDR#ipdr_wlan{unitOfMeasure = BType, chargeableQuantity = Amount,
+	NewIPDR = IPDR#ipdr_wlan{unitOfMeasure = BType, chargeableQuantity = BValue,
 			bucketType = BType, tariffType = TType, priceType = PType,
-			usageRating = included, product = Product, bucketValue = Amount},
+			usageRating = included, product = Product, bucketValue = BValue},
 	ipdr_wlan1(T, diameter, TimeStamp, stop, Req, Resp, Rated, NewIPDR);
 ipdr_wlan1([class | T], radius, TimeStamp, stop, Req, Resp, Rated, IPDR) ->
 	Class = proplists:get_value(?Class, Req),
