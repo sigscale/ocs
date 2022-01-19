@@ -298,7 +298,7 @@ ll(auth = _Log, N) when is_integer(N), N > 0 ->
 		Log :: acct | auth,
 		Match :: DiameterMatchSpec | RatedMatchSpec,
 		DiameterMatchSpec :: {DiameterMatchHead, MatchConditions},
-		DiameterMatchHead :: #'3gpp_ro_CCR'{} | #'3gpp_ro_CCA'{},
+		DiameterMatchHead :: ocs_log:acct_request() | ocs_log:acct_response(),
 		RatedMatchSpec :: {RatedMatchHead, MatchConditions},
 		RatedMatchHead :: #rated{},
 		MatchConditions :: [tuple()],
@@ -311,6 +311,10 @@ ql(acct = _Log, {MatchHead, MatchConditions} = Match)
 		when is_list(MatchConditions),
 		(is_record(MatchHead, '3gpp_ro_CCR')
 		or is_record(MatchHead, '3gpp_ro_CCA')
+		or is_record(MatchHead, '3gpp_gx_CCR')
+		or is_record(MatchHead, '3gpp_gx_CCA')
+		or is_record(MatchHead, '3gpp_gx_RAR')
+		or is_record(MatchHead, '3gpp_gx_RAA')
 		or is_record(MatchHead, rated)) ->
 	End = erlang:universaltime(),
 	EndS = calendar:datetime_to_gregorian_seconds(End),
@@ -322,7 +326,7 @@ ql(acct = _Log, {MatchHead, MatchConditions} = Match)
 		Log :: acct | auth,
 		Match :: DiameterMatchSpec | RatedMatchSpec,
 		DiameterMatchSpec :: {DiameterMatchHead, MatchConditions},
-		DiameterMatchHead :: #'3gpp_ro_CCR'{} | #'3gpp_ro_CCA'{},
+		DiameterMatchHead :: ocs_log:acct_request() | ocs_log:acct_response(),
 		RatedMatchSpec :: {RatedMatchHead, MatchConditions},
 		RatedMatchHead :: #rated{},
 		MatchConditions :: [tuple()],
@@ -337,6 +341,12 @@ ql(acct = _Log, {MatchHead, MatchConditions} = Match,
 		when is_list(MatchConditions),
 		(is_record(MatchHead, '3gpp_ro_CCR')
 		or is_record(MatchHead, '3gpp_ro_CCA')
+		or is_record(MatchHead, '3gpp_ro_RAR')
+		or is_record(MatchHead, '3gpp_ro_RAA')
+		or is_record(MatchHead, '3gpp_gx_CCR')
+		or is_record(MatchHead, '3gpp_gx_CCA')
+		or is_record(MatchHead, '3gpp_gx_RAR')
+		or is_record(MatchHead, '3gpp_gx_RAA')
 		or is_record(MatchHead, rated)) ->
 	End = erlang:universaltime(),
 	query_acct_log(Match, Start, End).
@@ -346,7 +356,7 @@ ql(acct = _Log, {MatchHead, MatchConditions} = Match,
 		Log :: acct | auth,
 		Match :: DiameterMatchSpec | RatedMatchSpec,
 		DiameterMatchSpec :: {DiameterMatchHead, MatchConditions},
-		DiameterMatchHead :: #'3gpp_ro_CCR'{} | #'3gpp_ro_CCA'{},
+		DiameterMatchHead :: ocs_log:acct_request() | ocs_log:acct_response(),
 		RatedMatchSpec :: {RatedMatchHead, MatchConditions},
 		RatedMatchHead :: #rated{},
 		MatchConditions :: [tuple()],
@@ -360,6 +370,12 @@ ql(acct = _Log, {MatchHead, MatchConditions} = Match,
 		when is_list(MatchConditions),
 		(is_record(MatchHead, '3gpp_ro_CCR')
 		or is_record(MatchHead, '3gpp_ro_CCA')
+		or is_record(MatchHead, '3gpp_ro_RAR')
+		or is_record(MatchHead, '3gpp_ro_RAA')
+		or is_record(MatchHead, '3gpp_gx_CCR')
+		or is_record(MatchHead, '3gpp_gx_CCA')
+		or is_record(MatchHead, '3gpp_gx_RAR')
+		or is_record(MatchHead, '3gpp_gx_RAA')
 		or is_record(MatchHead, rated)) ->
 	End = erlang:universaltime(),
 	query_acct_log(Match, Start, End).
@@ -400,7 +416,7 @@ diameter_service_info([], _Info, Acc) ->
 	when
 		Match :: DiameterMatchSpec | RatedMatchSpec,
 		DiameterMatchSpec :: {DiameterMatchHead, MatchConditions},
-		DiameterMatchHead :: #'3gpp_ro_CCR'{} | #'3gpp_ro_CCA'{},
+		DiameterMatchHead :: ocs_log:acct_request() | ocs_log:acct_response(),
 		RatedMatchSpec :: {RatedMatchHead, MatchConditions},
 		RatedMatchHead :: #rated{},
 		MatchConditions :: [tuple()],

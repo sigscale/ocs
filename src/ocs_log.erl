@@ -117,10 +117,10 @@ acct_open() ->
 	open_log(Directory, log_name(acct_log_name), LogSize, LogFiles).
 
 -type acct_type() :: on | off | start | stop | update | interim | final | 'event'.
--type acct_request() :: #'3gpp_ro_CCR'{} | #'3gpp_ro_RAR'{} | #'3gpp_gx_CCR'{}
-		| radius_attributes:attributes().
--type acct_response() :: #'3gpp_ro_CCA'{} | #'3gpp_ro_RAA'{} | #'3gpp_gx_CCA'{}
-		| radius_attributes:attributes().
+-type acct_request() :: #'3gpp_ro_CCR'{} | #'3gpp_ro_RAR'{}
+		| #'3gpp_gx_CCR'{} | #'3gpp_gx_RAR'{} |radius_attributes:attributes().
+-type acct_response() :: #'3gpp_ro_CCA'{} | #'3gpp_ro_RAA'{}
+		| #'3gpp_gx_CCA'{} | #'3gpp_gx_RAA'{} | radius_attributes:attributes().
 -type acct_rated() :: [#rated{}].
 
 -spec acct_log(Protocol, Server, Type, Request, Response, Rated) -> Result
@@ -164,7 +164,7 @@ acct_close() ->
 				| {in, [term()]} | {notin, [term()]} | {contains, [term()]}
 				| {notcontain, [term()]} | {containsall, [term()]},
 		DiameterMatchSpec :: {DiameterMatchHead, MatchConditions},
-		DiameterMatchHead :: #'3gpp_ro_CCR'{} | #'3gpp_ro_CCA'{},
+		DiameterMatchHead :: acct_request() | acct_response(),
 		RatedMatchSpec :: {RatedMatchHead, MatchConditions},
 		RatedMatchHead :: #rated{},
 		MatchConditions :: [tuple()],
@@ -196,7 +196,7 @@ acct_query(Continuation, Start, End, Types, AttrsMatch) ->
 				| {in, [term()]} | {notin, [term()]} | {contains, [term()]}
 				| {notcontain, [term()]} | {containsall, [term()]},
 		DiameterMatchSpec :: {DiameterMatchHead, MatchConditions},
-		DiameterMatchHead :: #'3gpp_ro_CCR'{} | #'3gpp_ro_CCA'{},
+		DiameterMatchHead :: acct_request() | acct_response(),
 		RatedMatchSpec :: {RatedMatchHead, MatchConditions},
 		RatedMatchHead :: #rated{},
 		MatchConditions :: [tuple()],
