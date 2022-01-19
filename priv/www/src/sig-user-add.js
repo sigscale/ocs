@@ -76,6 +76,16 @@ class userAdd extends PolymerElement {
 						offset="0">
 					Select user language from list
 				</paper-tooltip>
+				<paper-input
+						id="addUserRate"
+						label="Rating"
+						value="{{rating}}">
+				</paper-input>
+				<paper-tooltip
+						for="addUserRate"
+						offset="0">
+					Rating Role
+				</paper-tooltip>
 
 				<div class="buttons">
 					<paper-button
@@ -145,11 +155,15 @@ class userAdd extends PolymerElement {
 		} else if (this.userLanguage == "Spanish") {
 			language.value = "es";
 		}
+		var ratingRole = new Object();
+		ratingRole.name = "rating";
+		ratingRole.value = Boolean(this.rating);
 		if(username.value) {
 			var characteristic = new Array();
 			characteristic.push(username);
 			characteristic.push(password);
 			characteristic.push(language);
+			characteristic.push(ratingRole);
 			user.characteristic = characteristic;
 			ajax.body = user;
 			ajax.generateRequest();
