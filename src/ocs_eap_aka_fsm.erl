@@ -1564,7 +1564,7 @@ get_radius_rat(Attributes) ->
 		EHRPD :: 2003.
 %% @hidden
 nas_port_type(5) ->
-	7;
+	1;
 nas_port_type(19) ->
 	0;
 nas_port_type(22) ->
