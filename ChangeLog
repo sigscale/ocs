@@ -1,4 +1,19 @@
-2021-01-10  Refath Wadood <vances@sigscale.org>
+2021-01-21  Refath Wadood <refath@sigscale.org>
+
+	* create ipdr entries for each #rated{}
+	* handle diameter and radius events in ipdr log
+	* copy tariff tables in join
+	* handle multiple subscriber ids in request in ipdr log
+	* user default query gx in logs
+	* include ro/gx rar/raa in acct_log request/response types
+	* update 3gpp dictionary with avps 29.061 avps
+	* add an-gw-address, correct packet-filter-identifier avps in 3gpp dictionary
+	* gui: validate null value in offer
+	* add rating role in user (ocs-515)
+	* handle rating role in get view
+	* correct radius rat-type mapping for eap-aka
+
+2021-01-10  Refath Wadood <refath@sigscale.org>
 
 	* remove ambiguous map specs; non json map keys are atoms
 	* remove usu from cca in nrf callback handler
