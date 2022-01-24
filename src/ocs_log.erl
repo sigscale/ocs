@@ -1673,9 +1673,9 @@ ipdr_wlan1([unitOfMeasure | T], diameter, TimeStamp, stop, Req, Resp,
 		#rated{product = Product, bucket_type = BType, bucket_value = BValue,
 		price_type = PType, tariff_type = TType, currency = Currency,
 		tax_excluded_amount = Amount, usage_rating_tag = non_included} = Rated, IPDR) ->
-	NewIPDR = IPDR#ipdr_wlan{unitOfMeasure = cents, chargeAmount = Amount,
+	NewIPDR = IPDR#ipdr_wlan{unitOfMeasure = BType, chargeAmount = Amount,
 			chargeCurrencyType = Currency, bucketValue = BValue,
-			bucketType = cents, tariffType = TType, priceType = PType,
+			bucketType = BType, tariffType = TType, priceType = PType,
 			usageRating = non_included, product = Product},
 	ipdr_wlan1(T, diameter, TimeStamp, stop, Req, Resp, Rated, NewIPDR);
 ipdr_wlan1([unitOfMeasure | T], diameter, TimeStamp, stop, Req, Resp,
