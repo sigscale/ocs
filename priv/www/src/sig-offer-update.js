@@ -933,6 +933,9 @@ class offerUpdate extends PolymerElement {
 				if(current.prodSpecCharValueUse[indexCha].name == "serviceIdentifier") {
 					this.serviceIdentifier = current.prodSpecCharValueUse[indexCha].productSpecCharacteristicValue[0].value;
 				}
+				if(current.prodSpecCharValueUse[indexCha].name == "policyTable") {
+					this.priceUpdatePolicy = current.prodSpecCharValueUse[indexCha].productSpecCharacteristicValue[0].value;
+				}
 			}
 			for(var index in current.prices) {
 				var newPrice = new Object();
