@@ -25,7 +25,7 @@
 -copyright('Copyright (c) 2016 - 2021 SigScale Global Inc.').
 
 %% export the ocs_diameter public API
--export([plmn/1]).
+-export([plmn/1, authenticate_client/2]).
 
 %%----------------------------------------------------------------------
 %%  The ocs_diameter public API
@@ -5212,6 +5212,26 @@ plmn("64801" ++ Rest) ->
 %% Zimbabwe, Telecel
 plmn("64803" ++ Rest) ->
 	{"648", "03", Rest}.
+
+-spec authenticate_client(TransportRef, Capabilities) -> Result
+	when
+		TransportRef :: diameter:transport_ref(),
+		Capabilities :: capabilities(),
+		Result :: ok | unknown.
+%% Authorize a diameter client 
+%% @private
+authenticate_client(_TransportRef, #diameter_caps{host_ip_address = {_, HostIpAddresses}}) ->
+	authenticate_client(HostIpAddresses).
+%% @hidden
+authenticate_client([H | T]) ->
+	case ocs:find_client(H) of
+		{ok, #client{protocol = diameter}} ->
+			ok;
+		{error, not_found} ->
+			authenticate_client(T)
+	end;
+authenticate_client([]) ->
+	unknown.
 
 %%----------------------------------------------------------------------
 %%  internal functions

@@ -40,6 +40,7 @@
 -include_lib("diameter/include/diameter.hrl").
 -include_lib("diameter/include/diameter_gen_base_rfc6733.hrl").
 -include_lib("kernel/include/inet.hrl").
+-include("ocs.hrl").
 
 -record(statedata,
 		{transport_ref :: undefined | reference(),
@@ -395,7 +396,8 @@ transport_options(Options, Address, Port) ->
 			Opts = [{reuseaddr, true}, {ip, Address}, {port, Port}],
 			[{transport_config, Opts} | Options1]
 	end,
-	{listen, Options2}.
+	Options3 = [{capabilities_cb, fun ocs_diameter:authenticate_client/2} | Options2],
+	{listen, Options3}.
 
 -spec split_options(Options) -> Result
 	when
