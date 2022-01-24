@@ -214,7 +214,9 @@ end_per_testcase(TestCase, Config) when
 	ok = ocs:delete_client(Address),
 	Config;
 end_per_testcase(TestCase, Config)
-		when TestCase == client_authorized ->
+		when TestCase == client_authorized_acct;
+		TestCase == client_not_authorized_acct;
+		TestCase == client_authorized_auth  ->
 	ServiceName = atom_to_list(?MODULE) ++ ":" ++ TestCase,
 	Address = ct:get_config({diameter, peer_address}, {127,0,0,21}),
 	ok = ocs:delete_client(Address),
@@ -244,7 +246,7 @@ all() ->
 			diameter_voice_out_tariff, diameter_voice_in_tariff,
 			diameter_scur_no_credit, scur_start_redirect_server,
 			diameter_scur_price_descrimination_by_rg, diameter_scur_roaming_voice_ims,
-			client_authorized_acct].
+			client_authorized_acct, client_not_authorized_acct].
 
 %%---------------------------------------------------------------------
 %%  Test cases
@@ -1412,6 +1414,26 @@ client_authorized_acct1(_Config) ->
 	SId = diameter:session_id(Ref),
 	Answer = diameter_scur_cud_start(SId, Subscriber, 0),
 	#'3gpp_ro_CCA'{'Result-Code' = ?'DIAMETER_BASE_RESULT-CODE_SUCCESS'} = Answer.
+
+client_not_authorized_acct() ->
+	[{userdata, [{doc, "Deny Service To An Unknown Diameter Peer"}]}].
+
+client_not_authorized_acct(Config) ->
+	ServiceName = atom_to_list(?MODULE) ++ ":" ++ "client_authorized_acct",
+	DiameterAcctPort = ?config(diameter_acct_port, Config),
+	DiameterAcctAddress = ?config(diameter_address, Config),
+	DiameterPeerAddress = ct:get_config({diameter, peer_address}, {127,0,0,21}),
+	ok = diameter:start_service(ServiceName, client_acct_service_opts(Config, DiameterPeerAddress)),
+	true = diameter:subscribe(ServiceName),
+	{ok, _Ref} = connect(ServiceName, DiameterAcctAddress, DiameterAcctPort,
+			DiameterPeerAddress, diameter_tcp),
+	receive
+		#diameter_event{service = ServiceName, info = Info}
+				when element(1, Info) == closed ->
+			ok;
+		 _Other ->
+			{skip, diameter_client_acct_service_not_started}
+	end.
 
 %%---------------------------------------------------------------------
 %%  Internal functions
