@@ -106,7 +106,7 @@ init_per_suite(Config) ->
 			{radius_auth_port, RadiusAuthPort},
 			{radius_acct_address, RadiusAddress},
 			{radius_acct_port, RadiusAcctPort},
-			{diameter_address, DiameterAddress},
+			{diameter_acct_address, DiameterAddress},
 			{diameter_acct_port, DiameterAcctPort},
 			{diameter_auth_port, DiameterAuthPort} | Config],
 	ok = diameter:start_service(?MODULE, client_acct_service_opts(Config1)),
@@ -116,6 +116,7 @@ init_per_suite(Config) ->
 	receive
 		#diameter_event{service = ?MODULE, info = Info}
 				when element(1, Info) == up ->
+			ok = ocs:delete_client(DiameterAddress),
 			Config1;
 		_Other ->
 			{skip, diameter_client_acct_service_not_started}
@@ -1386,7 +1387,7 @@ client_authorized_acct() ->
 client_authorized_acct(Config) ->
 	ServiceName = atom_to_list(?MODULE) ++ ":" ++ "client_authorized_acct",
 	DiameterAcctPort = ?config(diameter_acct_port, Config),
-	DiameterAcctAddress = ?config(diameter_address, Config),
+	DiameterAcctAddress = ?config(diameter_acct_address, Config),
 	DiameterPeerAddress = ct:get_config({diameter, peer_address}, {127,0,0,21}),
 	ok = diameter:start_service(ServiceName, client_acct_service_opts(Config, DiameterPeerAddress)),
 	true = diameter:subscribe(ServiceName),
@@ -1419,9 +1420,9 @@ client_not_authorized_acct() ->
 	[{userdata, [{doc, "Deny Service To An Unknown Diameter Peer"}]}].
 
 client_not_authorized_acct(Config) ->
-	ServiceName = atom_to_list(?MODULE) ++ ":" ++ "client_authorized_acct",
+	ServiceName = atom_to_list(?MODULE) ++ ":" ++ "client_not_authorized_acct",
 	DiameterAcctPort = ?config(diameter_acct_port, Config),
-	DiameterAcctAddress = ?config(diameter_address, Config),
+	DiameterAcctAddress = ?config(diameter_acct_address, Config),
 	DiameterPeerAddress = ct:get_config({diameter, peer_address}, {127,0,0,21}),
 	ok = diameter:start_service(ServiceName, client_acct_service_opts(Config, DiameterPeerAddress)),
 	true = diameter:subscribe(ServiceName),
