@@ -1240,7 +1240,6 @@ class offerUpdate extends PolymerElement {
 				this.$.updateCheckIn.checked = false;
 				this.$.updateCheckOut.checked = false;
 				this.priceUpdateAlteration = null;
-				this.selected = 0;	
 			} else {
 				this.priceUpdateDescription = this.prices[indexUpdatePrice].description;
 				if(this.prices[indexUpdatePrice].start || this.prices[indexUpdatePrice].end) {
@@ -1308,6 +1307,7 @@ class offerUpdate extends PolymerElement {
 						}
 					}
 				}
+				this.selected = 0;
 			}
 		}
 	}
