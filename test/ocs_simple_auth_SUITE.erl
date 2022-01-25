@@ -121,7 +121,8 @@ init_per_testcase(TestCase, Config) when
 	{ok, _} = ocs:add_client(Address, undefined, diameter, undefined, true),
 	Config;
 init_per_testcase(TestCase, Config) when
-		TestCase == client_authorized ->
+		TestCase == client_authorized;
+		TestCase == client_not_authorized ->
 	ok = diameter:stop_service(?MODULE),
 	Config;
 init_per_testcase(_TestCase, Config) ->
@@ -145,7 +146,8 @@ end_per_testcase(TestCase, Config) when
 	Client = ?config(diameter_acct_address, Config),
 	ok = ocs:delete_client(Client);
 end_per_testcase(TestCase, Config) when
-		TestCase == client_authorized ->
+		TestCase == client_authorized;
+		TestCase == client_not_authorized ->
 	ServiceName = atom_to_list(?MODULE) ++ ":" ++ TestCase,
 	Address = ct:get_config({diameter, peer_address}, {127,0,0,21}),
 	ok = ocs:delete_client(Address),
@@ -170,7 +172,8 @@ all() ->
 	[simple_authentication_radius, simple_auth_radius_chap, out_of_credit_radius,
 	bad_password_radius, unknown_username_radius, simple_authentication_diameter,
 	bad_password_diameter, unknown_username_diameter, out_of_credit_diameter,
-	session_termination_diameter, authenticate_voice_call, client_authorized].
+	session_termination_diameter, authenticate_voice_call, client_authorized,
+	client_not_authorized].
 
 %%---------------------------------------------------------------------
 %%  Test cases
@@ -589,6 +592,26 @@ client_authorized(ServiceName, _Config) ->
 	#diameter_nas_app_AAA{'Result-Code' = ?'DIAMETER_BASE_RESULT-CODE_SUCCESS',
 			'Auth-Application-Id' = ?NAS_APPLICATION_ID,
 			'Auth-Request-Type' = ?'DIAMETER_NAS_APP_AUTH-REQUEST-TYPE_AUTHENTICATE_ONLY'} = Answer.
+
+client_not_authorized() ->
+	[{userdata, [{doc, "Deny Service To An Unknown Diameter Peer"}]}].
+
+client_not_authorized(Config) ->
+	ServiceName = atom_to_list(?MODULE) ++ ":" ++ "client_not_authorized",
+	DiameterAuthPort = ?config(diameter_auth_port, Config),
+	DiameterAcctAddress = ?config(diameter_acct_address, Config),
+	DiameterPeerAddress = ct:get_config({diameter, peer_address}, {127,0,0,21}),
+	ok = diameter:start_service(ServiceName, client_auth_service_opts(Config, DiameterPeerAddress)),
+	true = diameter:subscribe(ServiceName),
+	{ok, _Ref} = connect(ServiceName, DiameterAcctAddress, DiameterAuthPort,
+			DiameterPeerAddress, diameter_tcp),
+	receive
+		#diameter_event{service = ServiceName, info = Info}
+				when element(1, Info) == closed ->
+			ok;
+		 _Other ->
+			{skip, diameter_client_auth_service_not_started}
+	end.
 
 %%--------------------------------------------------------------------------------------
 %% Internal functions
