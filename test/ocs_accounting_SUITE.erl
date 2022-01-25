@@ -216,8 +216,7 @@ end_per_testcase(TestCase, Config) when
 	Config;
 end_per_testcase(TestCase, Config)
 		when TestCase == client_authorized_acct;
-		TestCase == client_not_authorized_acct;
-		TestCase == client_authorized_auth  ->
+		TestCase == client_not_authorized_acct ->
 	ServiceName = atom_to_list(?MODULE) ++ ":" ++ TestCase,
 	Address = ct:get_config({diameter, peer_address}, {127,0,0,21}),
 	ok = ocs:delete_client(Address),
