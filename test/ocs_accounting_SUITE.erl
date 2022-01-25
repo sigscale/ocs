@@ -215,8 +215,8 @@ end_per_testcase(TestCase, Config) when
 	ok = ocs:delete_client(Address),
 	Config;
 end_per_testcase(TestCase, Config)
-		when TestCase == client_authorized_acct;
-		TestCase == client_not_authorized_acct ->
+		when TestCase == client_authorized;
+		TestCase == client_not_authorized ->
 	ServiceName = atom_to_list(?MODULE) ++ ":" ++ TestCase,
 	Address = ct:get_config({diameter, peer_address}, {127,0,0,21}),
 	ok = ocs:delete_client(Address),
@@ -1380,10 +1380,10 @@ diameter_scur_roaming_voice_ims(_Config) ->
 			'Granted-Service-Unit' = [GSU]} = MSCC2,
 	#'3gpp_ro_Granted-Service-Unit'{'CC-Time' = [UnitSize]} = GSU.
 
-client_authorized_acct() ->
+client_authorized() ->
 	[{userdata, [{doc, "Authorize a Diameter Peer"}]}].
 
-client_authorized_acct(Config) ->
+client_authorized(Config) ->
 	ServiceName = atom_to_list(?MODULE) ++ ":" ++ "client_authorized_acct",
 	DiameterAcctPort = ?config(diameter_acct_port, Config),
 	DiameterAcctAddress = ?config(diameter_acct_address, Config),
@@ -1396,11 +1396,11 @@ client_authorized_acct(Config) ->
 	receive
 		#diameter_event{service = ServiceName, info = Info}
 				when element(1, Info) == up ->
-			client_authorized_acct1(Config);
+			client_authorized(ServiceName, Config);
 		 _Other ->
 			{skip, diameter_client_acct_service_not_started}
 	end.
-client_authorized_acct1(_Config) ->
+client_authorized(ServiceName, _Config) ->
 	P1 = price(usage, octets, rand:uniform(1000000), rand:uniform(100000)),
 	OfferId = add_offer([P1], 4),
 	ProdRef = add_product(OfferId),
@@ -1412,13 +1412,13 @@ client_authorized_acct1(_Config) ->
 	_BId = add_bucket(ProdRef, B1),
 	Ref = erlang:ref_to_list(make_ref()),
 	SId = diameter:session_id(Ref),
-	Answer = diameter_scur_cud_start(SId, Subscriber, 0),
+	Answer = diameter_scur_cud_start(ServiceName, SId, Subscriber, 0),
 	#'3gpp_ro_CCA'{'Result-Code' = ?'DIAMETER_BASE_RESULT-CODE_SUCCESS'} = Answer.
 
-client_not_authorized_acct() ->
+client_not_authorized() ->
 	[{userdata, [{doc, "Deny Service To An Unknown Diameter Peer"}]}].
 
-client_not_authorized_acct(Config) ->
+client_not_authorized(Config) ->
 	ServiceName = atom_to_list(?MODULE) ++ ":" ++ "client_not_authorized_acct",
 	DiameterAcctPort = ?config(diameter_acct_port, Config),
 	DiameterAcctAddress = ?config(diameter_acct_address, Config),
@@ -1674,7 +1674,7 @@ diameter_scur_start(SId, Username, RequestNum, Requested) ->
 	Answer.
 	
 %% @hidden
-diameter_scur_cud_start(SId, Username, RequestNum) ->
+diameter_scur_cud_start(ServiceName, SId, Username, RequestNum) ->
 	Subscription_Id = #'3gpp_ro_Subscription-Id'{
 			'Subscription-Id-Type' = ?'3GPP_SUBSCRIPTION-ID-TYPE_END_USER_E164',
 			'Subscription-Id-Data' = Username},
@@ -1699,7 +1699,7 @@ diameter_scur_cud_start(SId, Username, RequestNum) ->
 			'Subscription-Id' = [Subscription_Id],
 			'Multiple-Services-Credit-Control' = [MultiServices_CC],
 			'Service-Information' = [ServiceInformation]},
-	{ok, Answer} = diameter:call(?MODULE, cc_app_test, CC_CCR, []),
+	{ok, Answer} = diameter:call(ServiceName, cc_app_test, CC_CCR, []),
 	Answer.
 
 %% @hidden
