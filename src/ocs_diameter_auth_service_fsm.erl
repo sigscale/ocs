@@ -463,7 +463,8 @@ transport_options(Options, Address, Port) ->
 			Opts = [{reuseaddr, true}, {ip, Address}, {port, Port}],
 			[{transport_config, Opts} | Options1]
 	end,
-	{listen, Options2}.
+	Options3 = [{capabilities_cb, fun ocs_diameter:authenticate_client/2} | Options2],
+	{listen, Options3}.
 
 -spec split_options(Options) -> Result
 	when
