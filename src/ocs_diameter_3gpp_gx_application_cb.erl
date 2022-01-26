@@ -154,8 +154,8 @@ handle_error(_Reason, _Request, _ServiceName, _Peer) ->
 		PostF :: diameter:evaluable().
 %% @doc Invoked when a request message is received from the peer.
 handle_request(#diameter_packet{msg = Request, errors = []} = _Packet,
-		ServiceName, {_, Caps} = _Peer) ->
-	request(ServiceName, Caps, Request);
+		{_, Address, Port}, {_, Caps} = _Peer) ->
+	{reply, process_request(Address, Port, Caps, Request)};
 handle_request(#diameter_packet{msg = Request, errors = Errors} = _Packet,
 		ServiceName, {_, Caps} = _Peer) ->
 	errors(ServiceName, Caps, Request, Errors).
@@ -163,37 +163,6 @@ handle_request(#diameter_packet{msg = Request, errors = Errors} = _Packet,
 %%----------------------------------------------------------------------
 %%  internal functions
 %%----------------------------------------------------------------------
-
--spec request(Svc, Capabilities, Request) -> Action
-	when
-		Svc :: atom(),
-		Capabilities :: capabilities(),
-		Request :: message(),
-		Action :: Reply | {relay, [Opt]} | discard
-			| {eval|eval_packet, Action, PostF},
-		Reply :: {reply, packet() | message()}
-			| {answer_message, 3000..3999|5000..5999}
-			| {protocol_error, 3000..3999},
-		Opt :: diameter:call_opt(),
-		PostF :: diameter:evaluable().
-%% @doc Handle received request.
-%% 	Authorize client then forward capabilities and request
-%% 	to the accounting port server matching the service the
-%% 	request was received on.
-%% @private
-request(ServiceName, Capabilities, Request) ->
-	#diameter_caps{host_ip_address = {_, HostIpAddresses}} = Capabilities,
-	request(ServiceName, Capabilities, Request, HostIpAddresses).
-%% @hidden
-request({_, Address, Port} = ServiceName, Capabilities, Request, [H | T]) ->
-	case ocs:find_client(H) of
-		{ok, #client{protocol = diameter}} ->
-			{reply, process_request(Address, Port, Capabilities, Request)};
-		{error, not_found} ->
-			request(ServiceName, Capabilities, Request, T)
-	end;
-request(_, _, _, []) ->
-	{answer_message, ?'DIAMETER_BASE_RESULT-CODE_UNKNOWN_PEER'}.
 
 -spec errors(ServiceName, Capabilities, Request, Errors) -> Action
 	when
@@ -257,9 +226,7 @@ errors(ServiceName, Capabilities, _Request,
 errors(_ServiceName, _Capabilities, _Request, [{ResultCode, _} | _]) ->
 	{answer_message, ResultCode};
 errors(_ServiceName, _Capabilities, _Request, [ResultCode | _]) ->
-	{answer_message, ResultCode};
-errors(ServiceName, Capabilities, Request, []) ->
-	request(ServiceName, Capabilities, Request).
+	{answer_message, ResultCode}.
 
 -spec process_request(Address, Port, Caps, Request) -> Result
 	when
