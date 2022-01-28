@@ -132,7 +132,7 @@ unload(Agent) ->
 %% @private
 client_table(get, [1, 4] ++ Key = _RowIndex, Columns)
 		when length(Key) == 4 ->
-	case ocs:find_client(list_to_tuple(Key)) of
+	case catch ocs:find_client(list_to_tuple(Key)) of
 		{ok, #client{port = Port, identifier = Id, protocol = Proto}} ->
 			F2 = fun(1, Acc) ->
 						[{value, ipv4} | Acc];
@@ -152,7 +152,7 @@ client_table(get, [1, 4] ++ Key = _RowIndex, Columns)
 			lists:reverse(lists:foldl(F2, [], Columns));
 		{error, not_found} ->
 			{noValue, noSuchInstance};
-		{error, _Reason} ->
+		{'EXIT', _Reason} ->
 			{genErr, 0}
 	end;
 client_table(get, _RowIndex, _Columns) ->

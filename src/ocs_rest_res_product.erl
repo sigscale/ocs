@@ -202,9 +202,7 @@ get_inventory(ID) ->
 			{ok, Product1} ->
 				Product1;
 			{error, not_found} ->
-				{throw, 404};
-			{error, _Reason1} ->
-				{throw, 500}
+				{throw, 404}
 		end
 	of
 		Product ->
@@ -216,7 +214,7 @@ get_inventory(ID) ->
 					{content_type, "application/json"}],
 			{ok, Headers, Body}
 	catch
-		throw:_Reason2 ->
+		exit:_Reason2 ->
 			{error, 500};
 		_:_ ->
 			{error, 400}
