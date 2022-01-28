@@ -178,7 +178,7 @@ handle_request(#diameter_packet{msg = Request, errors = Errors} = _Packet,
 %% @private
 request(ServiceName, #diameter_caps{origin_host = {OHost, DHost},
 		origin_realm = {ORealm, DRealm},
-		host_ip_address = {_, [H | _]}} = Capabilities,
+		host_ip_address = {_, [H | _]}} = _Capabilities,
 		Request) ->
 	[Info] = diameter:service_info(ServiceName, transport),
 	{options, Options} = lists:keyfind(options, 1, Info),

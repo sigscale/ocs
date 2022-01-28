@@ -372,7 +372,7 @@ dcca_peer_info_get(Index, Columns) ->
 										[{value, Index} | Acc];
 									(2, Acc) ->
 										[{value, PeerId} | Acc];
-									(3, Acc) when Rev == undefined ->
+									(3, _Acc) when Rev == undefined ->
 										[{noValue, noSuchInstance}];
 									(3, Acc) ->
 										[{value, Rev} | Acc];
@@ -380,7 +380,7 @@ dcca_peer_info_get(Index, Columns) ->
 										[{value, volatile} | Acc];
 									(5, Acc) ->
 										[{value, active} | Acc];
-									(_, Acc) ->
+									(_, _Acc) ->
 										{noValue, noSuchInstance}
 							end,
 							lists:reverse(lists:foldl(F1, [], Columns));
