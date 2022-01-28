@@ -632,9 +632,7 @@ dia_count({275, send, RC, RcCount}, Count) ->
 	io:fwrite("        STR ~w ~b: ~b~n", [RC, RcCount, Count]);
 dia_count({275, recv, RC, RcCount}, Count) ->
 	io:fwrite("        STA ~w ~b: ~b~n", [RC, RcCount, Count]);
-dia_count({282, send, RC, RcCount}, Count) ->
-	io:fwrite("        DPR ~w ~b: ~b~n", [RC, RcCount, Count]);
 dia_count({272, send, RC, RcCount}, Count) ->
 	io:fwrite("        CCR ~w ~b: ~b~n", [RC, RcCount, Count]);
-dia_count({272, send, RC, RcCount}, Count) ->
+dia_count({272, recv, RC, RcCount}, Count) ->
 	io:fwrite("        CCA ~w ~b: ~b~n", [RC, RcCount, Count]).
