@@ -933,6 +933,9 @@ class offerUpdate extends PolymerElement {
 				if(current.prodSpecCharValueUse[indexCha].name == "serviceIdentifier") {
 					this.serviceIdentifier = current.prodSpecCharValueUse[indexCha].productSpecCharacteristicValue[0].value;
 				}
+				if(current.prodSpecCharValueUse[indexCha].name == "policyTable") {
+					this.priceUpdatePolicy = current.prodSpecCharValueUse[indexCha].productSpecCharacteristicValue[0].value;
+				}
 			}
 			for(var index in current.prices) {
 				var newPrice = new Object();
@@ -1237,7 +1240,6 @@ class offerUpdate extends PolymerElement {
 				this.$.updateCheckIn.checked = false;
 				this.$.updateCheckOut.checked = false;
 				this.priceUpdateAlteration = null;
-				this.selected = 0;	
 			} else {
 				this.priceUpdateDescription = this.prices[indexUpdatePrice].description;
 				if(this.prices[indexUpdatePrice].start || this.prices[indexUpdatePrice].end) {
@@ -1305,6 +1307,7 @@ class offerUpdate extends PolymerElement {
 						}
 					}
 				}
+				this.selected = 0;
 			}
 		}
 	}
