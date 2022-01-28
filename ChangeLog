@@ -1,3 +1,18 @@
+2021-01-28  Refath Wadood <refath@sigscale.org>
+	
+	* align 3gpp 39.061 avp types with table 9a
+	* gui: updated policy shows value
+	* authenticate diameter acct peer during capabilities exchange (ocs-537)
+	* authenticate the diameter auth peer client during cer/cea negotiation (ocs-539)
+	* test: sucessful client authorization during capabilities exchange (ocs-538)
+	* test: unsucessful client authorization during capabilities exchange (ocs-538
+	* gui: remove default tab selection for detalis
+	* test: sucessfuly authenticate a known diameter auth peer
+	* test: failure to authenticate a unknown diameter auth peer
+	* remove redundant ocs:find_client/2 calls from callback 
+	* pretty print diameter statistics(ocs-488)
+	* add escript to export ipdr archive logs
+
 2021-01-21  Refath Wadood <refath@sigscale.org>
 
 	* create ipdr entries for each #rated{}

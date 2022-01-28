@@ -1,3 +1,7 @@
+January 28, 2022
+----------------
+	- Diameter Peer authenticaiton is now performed during CER/CEA exchange
+
 January 10, 2022
 ----------------
 	- Lock free mnesia table reads for increased transaction performance
