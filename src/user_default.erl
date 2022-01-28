@@ -3,14 +3,14 @@
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%% @copyright 2016 - 2021 SigScale Global Inc.
 %%% @end
-%%% Licensed under the Apache License, Version 2.0 (the "License");
+%%% Licensed under the Apache License, Version 2.0 (the"License");
 %%% you may not use this file except in compliance with the License.
 %%% You may obtain a copy of the License at
 %%%
 %%%     http://www.apache.org/licenses/LICENSE-2.0
 %%%
 %%% Unless required by applicable law or agreed to in writing, software
-%%% distributed under the License is distributed on an "AS IS" BASIS,
+%%% distributed under the License is distributed on an"AS IS" BASIS,
 %%% WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 %%% See the License for the specific language governing permissions and
 %%% limitations under the License.
@@ -31,6 +31,8 @@
 -export([help/0, ts/0, td/0, su/0]).
 -export([di/0, di/1, di/2, dc/0]).
 -export([ll/1, ll/2, ql/2, ql/3, ql/4]).
+%%remove after debugging
+-export([service_name/1]).
 
 -include("ocs.hrl").
 -include("ocs_log.hrl").
@@ -403,6 +405,9 @@ diameter_service_info(Services, []) ->
 	Info = [peer, applications, capabilities,
 			transport, connections, statistics],
 	diameter_service_info(Services, Info, []);
+diameter_service_info(Services, statistics) ->
+	ServiceStats = [diameter:service_info(Service, statistics) || Service <- Services],
+	service_name(ServiceStats);
 diameter_service_info(Services, Info) ->
 	diameter_service_info(Services, Info, []).
 %% @hidden
@@ -479,3 +484,157 @@ snodes([H | T], Acc) ->
 snodes([], Acc) ->
 	lists:reverse(Acc).
 
+%% @doc Parse service name statistics.
+%% @todo check recursion OCS-488
+%% @hidden
+service_name([{ServiceName, PeerStat} | T]) ->
+	io:fwrite("~w:~n", [ServiceName]),
+	peer_stat(PeerStat),
+	service_name(T);
+service_name([_H | T]) ->
+	service_name(T);
+service_name([]) ->
+	ok.
+
+
+%% @doc Parse peer statistics.
+%% @hidden
+peer_stat([{_PeerFsm, PeerStats} | T]) ->
+	peer_stat1(PeerStats, #{}),
+	peer_stat(T);
+peer_stat([]) ->
+	ok.
+%% @hidden
+peer_stat1([{{{Application, CommandCode, _}, Direction, {RC, RcCount}}, Count} | T], Acc) ->
+	NewAcc = case maps:find(Application, Acc) of
+		{ok, CommandMap} ->
+			case maps:find({CommandCode, Direction, RC, RcCount}, CommandMap) of
+				{ok, Value} ->
+					Acc#{Application => CommandMap#{{CommandCode, Direction, RC, RcCount} => Value + Count}};
+				error->
+					Acc#{Application => CommandMap#{{CommandCode, Direction, RC, RcCount} => Count}}
+			end;
+		error->
+			Acc#{Application => #{{CommandCode, Direction, RC, RcCount} => Count}}
+	end,
+	peer_stat1(T, NewAcc);
+peer_stat1([{{{Application, CommandCode, _}, Direction}, Count} | T], Acc) ->
+	NewAcc = case maps:find(Application, Acc) of
+		{ok, CommandMap} ->
+			case maps:find({CommandCode, Direction}, CommandMap) of
+				{ok, Value} ->
+					Acc#{Application => CommandMap#{{CommandCode, Direction} => Value + Count}};
+				error->
+					Acc#{Application => CommandMap#{{CommandCode, Direction} => Count}}
+			end;
+		error->
+			Acc#{Application => #{{CommandCode, Direction} => Count}}
+
+	end,
+	peer_stat1(T, NewAcc);
+peer_stat1([], Acc) ->
+	F2 = fun(Command, Count, _Acc) ->
+				dia_count(Command, Count)
+	end,
+	F1 = fun(Application, CommandMap, _Acc) ->
+				dia_application(Application),
+				maps:fold(F2, [], CommandMap)
+	end,
+	maps:fold(F1, [], Acc).
+
+-spec dia_application(Application) -> ok
+	when
+		Application :: non_neg_integer().
+%% @doc Print the Application name header.
+dia_application(0) ->
+	io:fwrite("    Base: ~n");
+dia_application(1) ->
+	io:fwrite("    Nas: ~n");
+dia_application(5) ->
+	io:fwrite("    EAP: ~n");
+dia_application(16777250) ->
+	io:fwrite("    STa: ~n");
+dia_application(16777264) ->
+	io:fwrite("    SWm: ~n");
+dia_application(16777265) ->
+	io:fwrite("    SWx: ~n");
+dia_application(16777251) ->
+	io:fwrite("    S6a: ~n");
+dia_application(16777272) ->
+	io:fwrite("    S6b: ~n");
+dia_application(4) ->
+	io:fwrite("    Ro: ~n");
+dia_application(16777238) ->
+	io:fwrite("    Gx: ~n").
+
+-spec dia_count(Command, Count) -> ok
+	when
+		Command :: tuple(),
+		Count :: non_neg_integer().
+%% @doc Print the command name and count.
+dia_count({257, send}, Count) ->
+	io:fwrite("      	CER: ~b~n", [Count]);
+dia_count({257, recv}, Count) ->
+	io:fwrite("        CEA: ~b~n", [Count]);
+dia_count({280, send}, Count) ->
+	io:fwrite("        DWR: ~b~n", [Count]);
+dia_count({280, recv}, Count) ->
+	io:fwrite("        DWA: ~b~n", [Count]);
+dia_count({271, send}, Count) ->
+	io:fwrite("        ACR: ~b~n", [Count]);
+dia_count({271, recv}, Count) ->
+	io:fwrite("        ACA: ~b~n", [Count]);
+dia_count({282, send}, Count) ->
+	io:fwrite("        DPR: ~b~n", [Count]);
+dia_count({282, recv}, Count) ->
+	io:fwrite("        DPA: ~b~n", [Count]);
+dia_count({258, send}, Count) ->
+	io:fwrite("        RAR: ~b~n", [Count]);
+dia_count({258, recv}, Count) ->
+	io:fwrite("        RAA: ~b~n", [Count]);
+dia_count({274, send}, Count) ->
+	io:fwrite("        ASR: ~b~n", [Count]);
+dia_count({274, recv}, Count) ->
+	io:fwrite("        ASA: ~b~n", [Count]);
+dia_count({275, send}, Count) ->
+	io:fwrite("        STR: ~b~n", [Count]);
+dia_count({275, recv}, Count) ->
+	io:fwrite("        STA: ~b~n", [Count]);
+dia_count({272, send}, Count) ->
+	io:fwrite("        CCR: ~b~n", [Count]);
+dia_count({272, recv}, Count) ->
+	io:fwrite("        CCA: ~b~n", [Count]);
+dia_count({257, send, RC, RcCount}, Count) ->
+	io:fwrite("        CER ~w ~b: ~b~n", [RC, RcCount, Count]);
+dia_count({257, recv, RC, RcCount}, Count) ->
+	io:fwrite("        CEA ~w ~b: ~b~n", [RC, RcCount, Count]);
+dia_count({280, send, RC, RcCount}, Count) ->
+	io:fwrite("        DWR ~w ~b: ~b~n", [RC, RcCount, Count]);
+dia_count({280, recv, RC, RcCount}, Count) ->
+	io:fwrite("        DWA ~w ~b: ~b~n", [RC, RcCount, Count]);
+dia_count({271, send, RC, RcCount}, Count) ->
+	io:fwrite("        ACR ~w ~b: ~b~n", [RC, RcCount, Count]);
+dia_count({271, recv, RC, RcCount}, Count) ->
+	io:fwrite("        ACA ~w ~b: ~b~n", [RC, RcCount, Count]);
+dia_count({282, send, RC, RcCount}, Count) ->
+	io:fwrite("        DPR ~w ~b: ~b~n", [RC, RcCount, Count]);
+dia_count({282, recv, RC, RcCount}, Count) ->
+	io:fwrite("        DPA ~w ~b: ~b~n", [RC, RcCount, Count]);
+dia_count({258, send, RC, RcCount}, Count) ->
+	io:fwrite("        RAR ~w ~b: ~b~n", [RC, RcCount, Count]);
+dia_count({258, recv, RC, RcCount}, Count) ->
+	io:fwrite("        RAA ~w ~b: ~b~n", [RC, RcCount, Count]);
+dia_count({274, send, RC, RcCount}, Count) ->
+	io:fwrite("        ASR ~w ~b: ~b~n", [RC, RcCount, Count]);
+dia_count({274, recv, RC, RcCount}, Count) ->
+	io:fwrite("        ASA ~w ~b: ~b~n", [RC, RcCount, Count]);
+dia_count({275, send, RC, RcCount}, Count) ->
+	io:fwrite("        STR ~w ~b: ~b~n", [RC, RcCount, Count]);
+dia_count({275, recv, RC, RcCount}, Count) ->
+	io:fwrite("        STA ~w ~b: ~b~n", [RC, RcCount, Count]);
+dia_count({282, send, RC, RcCount}, Count) ->
+	io:fwrite("        DPR ~w ~b: ~b~n", [RC, RcCount, Count]);
+dia_count({272, send, RC, RcCount}, Count) ->
+	io:fwrite("        CCR ~w ~b: ~b~n", [RC, RcCount, Count]);
+dia_count({272, send, RC, RcCount}, Count) ->
+	io:fwrite("        CCA ~w ~b: ~b~n", [RC, RcCount, Count]).
