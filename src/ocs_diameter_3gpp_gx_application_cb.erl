@@ -26,7 +26,7 @@
 
 -export([peer_up/3, peer_down/3, pick_peer/4, prepare_request/3,
 			prepare_retransmit/3, handle_answer/4, handle_error/4,
-			handle_request/3]).
+			handle_request/3, process_request/4]).
 
 -include_lib("diameter/include/diameter.hrl").
 -include_lib("diameter/include/diameter_gen_base_rfc6733.hrl").
@@ -408,7 +408,7 @@ charging_rule(PolicyResList) ->
 charging_rule([#resource{name = Name, characteristic = Chars} | T], Acc) ->
 	ChargingRuleInstall = case lists:keyfind("predefined",
 			#resource_char.name, Chars) of
-		#resource_char{name = "predefined", value = false} ->
+		false ->
 			ChargingRuleDefinitions = parse_policy_char(Chars,
 					#'3gpp_gx_Charging-Rule-Definition'{'Charging-Rule-Name' = Name}),
 			#'3gpp_gx_Charging-Rule-Install'{
