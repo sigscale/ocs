@@ -2031,11 +2031,11 @@
    PRE-EMPTION_VULNERABILITY_DISABLED 1
 
 @enum Trigger-Type
-   HANGE_IN_SGSN_IP_ADDRESS                             1
-   HANGE_IN_QOS                                         2
-   HANGE_IN_LOCATION                                    3
-   HANGE_IN_RAT                                         4
-   HANGE_IN_UE_TIMEZONE                                 5
+   CHANGE_IN_SGSN_IP_ADDRSS                             1
+   CHANGE_IN_QOS                                        2
+   CHANGE_IN_LOCATION                                   3
+   CHANGE_IN_RAT                                        4
+   CHANGE_IN_UE_TIMEZONE                                5
    CHANGEINQOS_TRAFFIC_CLASS                           10
    CHANGEINQOS_RELIABILITY_CLASS                       11
    CHANGEINQOS_DELAY_CLASS                             12
