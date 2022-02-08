@@ -437,15 +437,23 @@ patch_offer(ProdId, Etag, ReqData) ->
 							case catch ocs_rest:patch(Operations, offer(Product1)) of
 								{struct, _} = Product2  ->
 									case catch offer(Product2) of
-										#offer{} = Product3 ->
-											TS = erlang:system_time(millisecond),
-											N = erlang:unique_integer([positive]),
-											LM = {TS, N},
-											Product4 = Product3#offer{last_modified = LM},
-											ok = mnesia:write(Product4),
-											{Product2, LM};
-									_ ->
-										throw(bad_request)
+										#offer{price = Price} = Product3 ->
+											F1 = fun F1([#price{type = tariff,
+												char_value_use = []} | _]) ->
+													throw(bad_request);
+												F1([_H | T]) ->
+													F1(T);
+												F1([]) ->
+													TS = erlang:system_time(millisecond),
+													N = erlang:unique_integer([positive]),
+													LM = {TS, N},
+													Product4 = Product3#offer{last_modified = LM},
+													ok = mnesia:write(Product4),
+													{Product2, LM}
+											end,
+											F1(Price);
+										_ ->
+											throw(bad_request)
 									end;
 								_ ->
 									throw(bad_request)
