@@ -1272,7 +1272,7 @@ class offerUpdate extends PolymerElement {
 				if(prodPriceUpdate.prodSpecCharValueUse) {
 					for (var indexCharVal in prodPriceUpdate.prodSpecCharValueUse) {
 						if(prodPriceUpdate.prodSpecCharValueUse[indexCharVal].name == "destPrefixTariffTable") {
-							this.priceUpdateTariff = prodPriceUpdate.prodSpecCharValueUse[indexCharVal].value;
+							this.priceUpdateTariff = prodPriceUpdate.prodSpecCharValueUse[indexCharVal].value,
 						}
 						if(prodPriceUpdate.prodSpecCharValueUse[indexCharVal].name == "roamingTable") {
 							this.priceAddRoaming = prodPriceUpdate.prodSpecCharValueUse[indexCharVal].value;
@@ -2522,6 +2522,7 @@ class offerUpdate extends PolymerElement {
 		charAddObj.priceCharReserveBytes = this.$.updateAddPriceCharReserveBytes.value;
 		charAddObj.timeOfDayStart = this.startTimeUpdate;
 		charAddObj.timeOfDayEnd = this.endTimeUpdate;
+		charAddObj.destPrefixTariffTable = this.priceUpdateTariff;
 		updatePriceNew.prodSpecCharValueUse = charAddObj;
 		if(this.priceUpdateAlteration) {
 			function checkAlt(alts) {
@@ -2530,7 +2531,7 @@ class offerUpdate extends PolymerElement {
 			updatePriceNew.alteration = this.alterations.findIndex(checkAlt);
 		}
 		if(updatePriceNew.name
-					&& (updatePriceNew.amount || updatePriceNew.updatePriceType == "tariff")
+					&& (updatePriceNew.amount || updatePriceNew.priceType == "tariff")
 					&& updatePriceNew.priceType
 					&& updatePriceNew.unit) {
 			if(updateIndexPrice == -1) {
