@@ -3,7 +3,7 @@
 ##
 ## Process this file with automake to produce Makefile.in
 
-erl_DATA = diameter_gen_ietf.erl \
+noinst_DATA = diameter_gen_ietf.erl \
 		diameter_gen_etsi.erl \
 		diameter_gen_3gpp.erl \
 		diameter_gen_3gpp_ro_application.erl \
@@ -102,5 +102,5 @@ diameter_gen_eap_application_rfc4072.hrl:	eap_application_rfc4072.dia $(top_buil
 %.erl:%.yrl
 	$(ERLC) $<
 
-CLEANFILES = $(erl_DATA)
+CLEANFILES = $(noinst_DATA)
 
