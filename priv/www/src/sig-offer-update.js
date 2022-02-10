@@ -1272,7 +1272,7 @@ class offerUpdate extends PolymerElement {
 				if(prodPriceUpdate.prodSpecCharValueUse) {
 					for (var indexCharVal in prodPriceUpdate.prodSpecCharValueUse) {
 						if(prodPriceUpdate.prodSpecCharValueUse[indexCharVal].name == "destPrefixTariffTable") {
-							this.priceUpdateTariff = prodPriceUpdate.prodSpecCharValueUse[indexCharVal].value,
+							this.priceUpdateTariff = prodPriceUpdate.prodSpecCharValueUse[indexCharVal].value;
 						}
 						if(prodPriceUpdate.prodSpecCharValueUse[indexCharVal].name == "roamingTable") {
 							this.priceAddRoaming = prodPriceUpdate.prodSpecCharValueUse[indexCharVal].value;
