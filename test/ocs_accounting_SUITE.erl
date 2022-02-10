@@ -246,7 +246,7 @@ all() ->
 			diameter_voice_out_tariff, diameter_voice_in_tariff,
 			diameter_scur_no_credit, scur_start_redirect_server,
 			diameter_scur_price_descrimination_by_rg, diameter_scur_roaming_voice_ims,
-			client_authorized_acct, client_not_authorized_acct].
+			client_authorized, client_not_authorized].
 
 %%---------------------------------------------------------------------
 %%  Test cases
