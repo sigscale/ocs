@@ -740,10 +740,10 @@ ipdr_file3(Log, IoDevice, _Format, {error, Reason}) ->
 	{error, Reason};
 ipdr_file3(Log, IoDevice, Format, {Cont, []}) ->
 	ipdr_file3(Log, IoDevice, Format, disk_log:chunk(Log, Cont));
-ipdr_file3(Log, IoDevice, xml, {Cont, Events}) ->
-	ipdr_xml(Log, IoDevice, {Cont, Events});
-ipdr_file3(Log, IoDevice, xdr, {Cont, Events}) ->
-	ipdr_xdr(Log, IoDevice, {Cont, Events});
+ipdr_file3(_Log, _IoDevice, xml, {_Cont, _Events}) ->
+	 {error, unimplemented};
+ipdr_file3(_Log, _IoDevice, xdr, {_Cont,_Events}) ->
+	 {error, unimplemented};
 ipdr_file3(Log, IoDevice, csv, {Cont, Events}) ->
 	ipdr_csv(Log, IoDevice, {Cont, Events}).
 
@@ -1743,88 +1743,6 @@ ipdr_wlan1([_ | T], Protocol, TimeStamp, stop, Req, Resp, Rated, IPDR) ->
 	ipdr_wlan1(T, Protocol, TimeStamp, stop, Req, Resp, Rated, IPDR);
 ipdr_wlan1([], _Protocol, _TimeStamp, _Flag, _Req, _Resp, _Rated, IPDR) ->
 	IPDR.
-
-%% @hidden
-ipdr_xml(Log, IoDevice, {Cont, [#ipdrDocWLAN{} = _I | T]}) ->
-	Header = [],
-	case file:write(IoDevice, Header) of
-		ok ->
-			ipdr_xml(Log, IoDevice, {Cont, T});
-		{error, Reason} ->
-			error_logger:error_report([file:format_error(Reason),
-					{module, ?MODULE}, {log, Log}, {error, Reason}]),
-			file:close(IoDevice),
-			disk_log:close(Log),
-			{error, Reason}
-	end;
-ipdr_xml(Log, IoDevice, {Cont, [#ipdr_wlan{} = _I | T]}) ->
-	IPDR = <<>>,
-	case file:write(IoDevice, IPDR) of
-		ok ->
-			ipdr_xml(Log, IoDevice, {Cont, T});
-		{error, Reason} ->
-			error_logger:error_report([file:format_error(Reason),
-					{module, ?MODULE}, {log, Log}, {error, Reason}]),
-			file:close(IoDevice),
-			disk_log:close(Log),
-			{error, Reason}
-	end;
-ipdr_xml(Log, IoDevice, {Cont, [#ipdrDocEnd{}]}) ->
-	Trailer = <<>>,
-	case file:write(IoDevice, Trailer) of
-		ok ->
-			ipdr_file3(Log, IoDevice, xml, {Cont, []});
-		{error, Reason} ->
-			error_logger:error_report([file:format_error(Reason),
-					{module, ?MODULE}, {log, Log}, {error, Reason}]),
-			file:close(IoDevice),
-			disk_log:close(Log),
-			{error, Reason}
-	end;
-ipdr_xml(Log, IoDevice, {Cont, []}) ->
-	ipdr_file3(Log, IoDevice, xml, {Cont, []}).
-
-%% @hidden
-ipdr_xdr(Log, IoDevice, {Cont, [#ipdrDocWLAN{} = _I | T]}) ->
-	Header = [<<>>],
-	case file:write(IoDevice, Header) of
-		ok ->
-			ipdr_xdr(Log, IoDevice, {Cont, T});
-		{error, Reason} ->
-			error_logger:error_report([file:format_error(Reason),
-					{module, ?MODULE}, {log, Log}, {error, Reason}]),
-			file:close(IoDevice),
-			disk_log:close(Log),
-			{error, Reason}
-	end;
-ipdr_xdr(Log, IoDevice, {Cont, [#ipdr_wlan{} = _I | T]}) ->
-	IPDR = <<>>,
-	case file:write(IoDevice, IPDR) of
-		ok ->
-			ipdr_xdr(Log, IoDevice, {Cont, T});
-		{error, Reason} ->
-			error_logger:error_report([file:format_error(Reason),
-					{module, ?MODULE}, {log, Log}, {error, Reason}]),
-			file:close(IoDevice),
-			disk_log:close(Log),
-			{error, Reason}
-	end;
-ipdr_xdr(Log, IoDevice, {Cont, [#ipdrDocEnd{}]}) ->
-	Trailer = <<>>,
-	case file:write(IoDevice, Trailer) of
-		ok ->
-			ipdr_file3(Log, IoDevice, xdr, {Cont, []});
-		{error, Reason} ->
-			error_logger:error_report([file:format_error(Reason),
-					{module, ?MODULE}, {log, Log}, {error, Reason}]),
-			file:close(IoDevice),
-			disk_log:close(Log),
-			{error, Reason}
-	end;
-ipdr_xdr(Log, IoDevice, {Cont, [_ | T]}) ->
-	ipdr_xdr(Log, IoDevice, {Cont, T});
-ipdr_xdr(Log, IoDevice, {Cont, []}) ->
-	ipdr_file3(Log, IoDevice, xdr, {Cont, []}).
 
 %% @hidden
 ipdr_csv(Log, IoDevice, {Cont, [#ipdrDocWLAN{} | T]}) ->
