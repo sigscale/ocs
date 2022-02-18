@@ -437,7 +437,7 @@ class offerUpdate extends PolymerElement {
 						</div>
 						<iron-collapse id="updateAddPriceChars">
 							<div>
-								<span>Time of day range</span>
+								<span>Time of Day Range</span>
 								<paper-icon-button
 										id="updateOnClickCharsTime"
 										suffix
