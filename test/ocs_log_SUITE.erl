@@ -152,7 +152,7 @@ all() ->
 			binary_tree_after, binary_tree_backward, binary_tree_forward,
 			binary_tree_last, binary_tree_first, binary_tree_half,
 			diameter_scur, diameter_scur_voice, diameter_ecur,
-			diameter_iec, dia_auth_to_ecs].
+			diameter_iec, dia_auth_to_ecs, radius_auth_to_ecs].
 
 %%---------------------------------------------------------------------
 %%  Test cases
@@ -171,7 +171,7 @@ radius_log_auth_event(_Config) ->
 	ClientPort = 49651,
 	Client = {ClientAddress, ClientPort},
 	Type = accept,
-	RandomList = [rand:uniform(255) || N <- lists:seq(1, 16)],
+	RandomList = [rand:uniform(255) || _N <- lists:seq(1, 16)],
 	RandomBin = list_to_binary(RandomList),
 	ReqAttrs = [{?ServiceType, 2}, {?NasPortId, "wlan1"}, {?NasPortType, 19},
 			{?UserName, "DE:AD:BE:EF:CA:FE"}, {?AcctSessionId, "8240019b"},
@@ -1125,6 +1125,58 @@ dia_auth_to_ecs(_Config) ->
 	{_, {struct, [{"subdomain", DR}]}} = lists:keyfind("destination", 1, EcsObj),
 	{_, {struct, SourceObj}} = lists:keyfind("source", 1, EcsObj),
 	{_, {struct, [{"name", MSISDN}]}} = lists:keyfind("user", 1, SourceObj).
+
+radius_auth_to_ecs() ->
+	[{userdata, [{doc, "Convert radius ocs_auth log to ECS"}]}].
+
+radius_auth_to_ecs(_Config) ->
+	Node = node(),
+	ServerAddress = {0, 0, 0, 0},
+	ServerPort = 1812,
+	Server = {ServerAddress, ServerPort},
+	ClientAddress = {192, 168, 150, 151},
+	ClientPort = 49651,
+	Client = {ClientAddress, ClientPort},
+	Type = accept,
+	RandomList = [rand:uniform(255) || _N <- lists:seq(1, 16)],
+	RandomBin = list_to_binary(RandomList),
+	UserName = "DE:AD:BE:EF:CA:FE",
+	ReqAttrs = [{?ServiceType, 2}, {?NasPortId, "wlan1"}, {?NasPortType, 19},
+			{?UserName, UserName}, {?AcctSessionId, "8240019b"},
+			{?CallingStationId, "FE-ED-BE-EF-F0-0D"},
+			{?CalledStationId, "CA-FE-CA-FE-CA-FE:AP 1"},
+			{?UserPassword, RandomList},
+			{?NasIdentifier, "ap-1.sigscale.net"},
+			{?NasIpAddress, ClientAddress}],
+	ResAttrs = [{?SessionTimeout, 3600}, {?MessageAuthenticator, RandomBin}],
+	TS = erlang:system_time(millisecond),
+	N = erlang:unique_integer([positive]),
+	Protocol = radius,
+	LogEvent = {TS, N, Protocol, Node, Server, Client, Type, ReqAttrs, ResAttrs},
+	{struct, EcsObj} = ocs_log:auth_to_ecs(LogEvent),
+	TimeStamp = ocs_log:iso8601(TS),
+	{_, TimeStamp} = lists:keyfind("@timestamp", 1, EcsObj),
+	{_, {struct, EventObj}} = lists:keyfind("event", 1, EcsObj),
+	EventId = integer_to_list(TS) ++ "-" ++ integer_to_list(N),
+	{_, EventId} = lists:keyfind("id", 1, EventObj),
+	Url = "http://host.example.net:8080" ++ ?usagePath ++ EventId,
+	{_, Url} = lists:keyfind("url", 1, EventObj),
+	{_, "start"} = lists:keyfind("type", 1, EventObj),
+	{_, "success"} = lists:keyfind("outcome", 1, EventObj),
+	{_, {struct, [{"port", ServerPort}]}} = lists:keyfind("server", 1, EcsObj),
+	{_, {struct, ServiceObj}} = lists:keyfind("service", 1, EcsObj),
+	{_, ServerAddress} = lists:keyfind("ip", 1, ServiceObj),
+	{_, {struct, [{_, Node}]}} = lists:keyfind("node", 1, ServiceObj),
+	{_, {struct, NetworkObj}} = lists:keyfind("network", 1, EcsObj),
+	{_, Protocol} = lists:keyfind("protocol", 1, NetworkObj),
+	{_, {struct, ClientObj}} = lists:keyfind("client", 1, EcsObj),
+	{_, OH} = lists:keyfind("address", 1, ClientObj),
+	{_, ClientAddress} = lists:keyfind("ip", 1, ClientObj),
+	{_, OH} = lists:keyfind("domain", 1, ClientObj),
+	{_, {struct, SourceObj}} = lists:keyfind("source", 1, EcsObj),
+	{_, {struct, UserObj}} = lists:keyfind("user", 1, SourceObj),
+	{_, UserName} = lists:keyfind("name", 1, UserObj),
+	{_, UserName} = lists:keyfind("id", 1, UserObj).
 
 %%---------------------------------------------------------------------
 %% internal functions
