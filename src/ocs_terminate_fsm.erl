@@ -141,60 +141,71 @@ init([ServiceName, ServerAddress, ServerPort, ClientAddress,
 idle(Request, From, #statedata{session_id = SessionId} = StateData)
 		when is_record(Request, '3gpp_sta_STR');
 		is_record(Request, '3gpp_swm_STR') ->
-	{Identity, NasRealm, NasHost} = case Request of
-		#'3gpp_sta_STR'{'User-Name' = [UserName],
-				'Origin-Realm' = OR, 'Origin-Host' = OH} ->
-			{UserName, OR, OH};
-		#'3gpp_swm_STR'{'User-Name' = [UserName],
-				'Origin-Realm' = OR, 'Origin-Host' = OH} ->
-			{UserName, OR, OH}
-	end,
-	IMSI = case Identity of
-		<<?PERM_AKA, PermanentID/binary>> ->
-			[H | _] = binary:split(PermanentID, <<$@>>, []),
-			H;
-		<<?TEMP_AKA:6, _/bits>> ->
-			{ok, Keys} = application:get_env(aka_kpseu),
-			[Pseudonym | _] = binary:split(Identity, <<$@>>, []),
-			CompressedIMSI = ocs_eap_aka:decrypt_imsi(Pseudonym, Keys),
-			ocs_eap_aka:compressed_imsi(CompressedIMSI)
-%		<<?FAST_AKA:6, _/bits>> ->
-	end,
-	NewStateData = StateData#statedata{request = Request,
-			from = From, nas_realm = NasRealm, nas_host = NasHost,
-			imsi = IMSI, identity = Identity},
-	F = fun() ->
-			case mnesia:read(session, SessionId, write) of
-				[#session{imsi = IMSI, hss_realm = undefined}] ->
-					mnesia:delete(session, SessionId, write);
-				[#session{imsi = IMSI, hss_realm = HR, hss_host = HH}] ->
-					mnesia:delete(session, SessionId, write),
-					{HR, HH};
-				[] ->
-					not_found
+	try
+		{Identity, NasRealm, NasHost} = case Request of
+			#'3gpp_sta_STR'{'User-Name' = [UserName],
+					'Origin-Realm' = OR, 'Origin-Host' = OH} ->
+				{UserName, OR, OH};
+			#'3gpp_swm_STR'{'User-Name' = [UserName],
+					'Origin-Realm' = OR, 'Origin-Host' = OH} ->
+				{UserName, OR, OH}
+		end,
+		IMSI = case Identity of
+			<<?PERM_AKA, PermanentID/binary>> ->
+				[H | _] = binary:split(PermanentID, <<$@>>, []),
+				H;
+			<<?TEMP_AKA:6, _/bits>> ->
+				{ok, Keys} = application:get_env(aka_kpseu),
+				[Pseudonym | _] = binary:split(Identity, <<$@>>, []),
+				CompressedIMSI = ocs_eap_aka:decrypt_imsi(Pseudonym, Keys),
+				ocs_eap_aka:compressed_imsi(CompressedIMSI)
+%			<<?FAST_AKA:6, _/bits>> ->
+		end,
+		{Identity, NasRealm, NasHost, IMSI}
+	of
+		{Identity1, NasRealm1, NasHost1, IMSI1} ->
+			NewStateData = StateData#statedata{request = Request,
+					from = From, nas_realm = NasRealm1, nas_host = NasHost1,
+					imsi = IMSI1, identity = Identity1},
+			F = fun() ->
+					case mnesia:read(session, SessionId, write) of
+						[#session{imsi = IMSI1, hss_realm = undefined}] ->
+							mnesia:delete(session, SessionId, write);
+						[#session{imsi = IMSI1, hss_realm = HR, hss_host = HH}] ->
+							mnesia:delete(session, SessionId, write),
+							{HR, HH};
+						[] ->
+							not_found
+					end
+			end,
+			case mnesia:transaction(F) of
+				{atomic, ok} ->
+					response(?'DIAMETER_BASE_RESULT-CODE_SUCCESS', NewStateData),
+					{stop, shutdown, NewStateData};
+				{atomic, {HssRealm1, HssHost1}} ->
+					NextStateData = NewStateData#statedata{hss_realm = HssRealm1,
+							hss_host = HssHost1},
+					send_deregister(NextStateData),
+					{next_state, deregister, NextStateData, ?TIMEOUT};
+				{atomic, not_found} ->
+					ResultCode = ?'DIAMETER_BASE_RESULT-CODE_UNKNOWN_SESSION_ID',
+					Reply = response(ResultCode, NewStateData),
+					{stop, shutdown, Reply, NewStateData};
+				{aborted, Reason} ->
+					error_logger:error_report(["Failed user lookup",
+							{nas_host, NasHost1}, {nas_realm, NasRealm1},
+							{imsi, IMSI1}, {identity, Identity1},
+							{session, SessionId}, {error, Reason}]),
+					ResultCode = ?'DIAMETER_BASE_RESULT-CODE_UNABLE_TO_COMPLY',
+					Reply = response(ResultCode, NewStateData),
+					{stop, Reason, Reply, NewStateData}
 			end
-	end,
-	case mnesia:transaction(F) of
-		{atomic, ok} ->
-			response(?'DIAMETER_BASE_RESULT-CODE_SUCCESS', NewStateData),
-			{stop, shutdown, NewStateData};
-		{atomic, {HssRealm, HssHost}} ->
-			NextStateData = NewStateData#statedata{hss_realm = HssRealm,
-					hss_host = HssHost},
-			send_deregister(NextStateData),
-			{next_state, deregister, NextStateData, ?TIMEOUT};
-		{atomic, not_found} ->
+	catch
+		_ ->
+			NewStateData = StateData#statedata{request = Request, from = From},
 			ResultCode = ?'DIAMETER_BASE_RESULT-CODE_UNKNOWN_SESSION_ID',
 			Reply = response(ResultCode, NewStateData),
-			{stop, shutdown, Reply, NewStateData};
-		{aborted, Reason} ->
-			error_logger:error_report(["Failed user lookup",
-					{nas_host, NasHost}, {nas_realm, NasRealm},
-					{imsi, IMSI}, {identity, Identity},
-					{session, SessionId}, {error, Reason}]),
-			ResultCode = ?'DIAMETER_BASE_RESULT-CODE_UNABLE_TO_COMPLY',
-			Reply = response(ResultCode, NewStateData),
-			{stop, Reason, Reply, NewStateData}
+			{stop, shutdown, Reply, NewStateData}
 	end.
 
 -spec deregister(Event, StateData) -> Result
