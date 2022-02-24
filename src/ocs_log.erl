@@ -57,7 +57,7 @@
 -export([http_query/8]).
 -export([log_name/1]).
 -export([btree_search/2]).
--export([auth_to_ecs/1]).
+-export([auth_to_ecs/1, acct_to_ecs/1]).
 
 %% exported the private function
 -export([acct_query/4, ipdr_query/2, auth_query/5, abmf_query/6]).
@@ -1220,10 +1220,236 @@ auth_to_ecs({TS, N, radius = Protocol, Node, {ServerIP, ServerPort}, _Client,
 auth_to_ecs(_Event, _ClientObj, false) ->
 	throw(not_found).
 
+-spec acct_to_ecs(Event) -> ECS
+	when
+		Event :: acct_event(),
+		ECS :: {struct, list()}.
+%% @doc Convert auth_event to ECS.
+acct_to_ecs({TS, N, diameter = P, Node,
+		Server, Type, Request, Response, Rated}) ->
+	acct_to_ecs({TS, N, P, Node, Server, Type, Request, Response, Rated},
+		dia_req_and_res(Request, Response)).
+%% @hidden
+acct_to_ecs({TS, N, diameter = Protocol, Node,
+		{ServerIP, ServerPort}, Type, _Request, _Response, _Rated},
+		{Outcome, App, ClientAddress, ClientIp, ClientDomain,
+		OriginDomain, DestinationDom, Subscriber, UserName, Reference}) ->
+	Now = erlang:system_time(millisecond),
+	EventId = integer_to_list(TS) ++ "-" ++ integer_to_list(N),
+	ExampleSocket = "http://host.example.net:8080",
+	EventObj = {struct, [{"created", ocs_log:iso8601(Now)},
+			{"id", EventId},
+			{"url", ExampleSocket ++ ?usagePath ++ EventId},
+			{"reference", ExampleSocket ++ ?usageSpecPath ++ Reference},
+			{"dataset", "acct"},
+			{"kind", "event"},
+			{"category", "session"},
+			{"type", event_type(Type)},
+			{"outcome", Outcome}]},
+	ServiceObj = {struct, [{"ip", ServerIP},
+			{"type", "sigscale-ocs"},
+			{"name", "aaa"},
+			{"node", {struct, [{"name", Node}]}}]},
+	ClientObj = case {ClientIp, ClientDomain} of
+		{undefined, CD} when is_list(CD) ->
+			{struct, [{"address", ClientAddress},
+					{"domain", CD}, {"subdomain", OriginDomain}]};
+		{CIP, undefined} when is_binary(CIP) ->
+			{struct, [{"ip", CIP}, {"address", ClientAddress},
+					{"subdomain", OriginDomain}]}
+	end,
+	SourceObj = case {Subscriber, UserName} of
+		{undefined, undefined} ->
+			[];
+		{undefined, UN} when is_binary(UN) ->
+			[{"source", {struct, [{"user", {struct, [{"name", UserName}]}}]}}];
+		{Sub, undefined} when is_binary(Sub) ->
+			[{"source", {struct, [{"user", {struct, [{"id", Sub}]}}]}}];
+		{Sub, UN} when is_binary(Sub), is_binary(UN) ->
+			[{"source", {struct, [{"user",
+					{struct, [{"id", Sub}, {"name", UserName}]}}]}}]
+	end,
+	{struct, [{"@timestamp", ocs_log:iso8601(TS)},
+			{"event", EventObj},
+			{"service", ServiceObj},
+			{"server", {struct, [{"port", ServerPort}]}},
+			{"agent", {struct, [{"type", "sigscale-ocs"}]}},
+			{"network", {struct, [{"application", App}, {"protocol", Protocol}]}},
+			{"client", ClientObj},
+			{"destination", {struct,
+					[{"subdomain", DestinationDom}]}}] ++ SourceObj}.
+
 %%----------------------------------------------------------------------
 %%  internal functions
 %%----------------------------------------------------------------------
 
+%% @hidden
+event_type(on) ->
+	"start";
+event_type(off) ->
+	"end";
+event_type(start) ->
+	"start";
+event_type(stop) ->
+	"end";
+event_type(update) ->
+	"info";
+event_type(interim) ->
+	"info";
+event_type(final) ->
+	"end";
+event_type('event') ->
+	"start".
+
+%% @hidden
+dia_req_and_res(#'3gpp_ro_CCR'{'Origin-Realm' = OriginRealm,
+		'Destination-Realm' = DesRealm, 'User-Name' = [UserName],
+		'Subscription-Id' = [#'3gpp_ro_Subscription-Id'{
+				'Subscription-Id-Data' = Subscriber} | _]} = Request,
+		#'3gpp_ro_CCA'{'Result-Code' = undefined}) ->
+	case Request#'3gpp_ro_CCR'.'Origin-Host' of
+		OriginHost1 when is_binary(OriginHost1) ->
+			{"unknown", "ro", OriginHost1, OriginHost1, undefined, OriginRealm,
+					DesRealm, Subscriber, UserName, "AAAAccountingUsageSpec"};
+		OriginHost2 when is_list(OriginHost2) ->
+			{"unknown", "ro", OriginHost2, undefined, OriginHost2, OriginRealm,
+					DesRealm, Subscriber, UserName, "AAAAccountingUsageSpec"}
+	end;
+dia_req_and_res(#'3gpp_ro_CCR'{'Origin-Realm' = OriginRealm,
+		'Destination-Realm' = DesRealm, 'User-Name' = [UserName],
+		'Subscription-Id' = [#'3gpp_ro_Subscription-Id'{
+				'Subscription-Id-Data' = Subscriber} | _]} = Request,
+		#'3gpp_ro_CCA'{'Result-Code' = ResultCode})
+		when ResultCode >= 2000, ResultCode < 3000 ->
+	case Request#'3gpp_ro_CCR'.'Origin-Host' of
+		OriginHost1 when is_binary(OriginHost1) ->
+			{"success", "ro", OriginHost1, OriginHost1, undefined, OriginRealm,
+					DesRealm, Subscriber, UserName, "AAAAccountingUsageSpec"};
+		OriginHost2 when is_list(OriginHost2) ->
+			{"success", "ro", OriginHost2, undefined, OriginHost2, OriginRealm,
+					DesRealm, Subscriber, UserName, "AAAAccountingUsageSpec"}
+	end;
+dia_req_and_res(#'3gpp_ro_CCR'{'Origin-Realm' = OriginRealm,
+		'Destination-Realm' = DesRealm, 'User-Name' = [UserName],
+		'Subscription-Id' = [#'3gpp_ro_Subscription-Id'{
+				'Subscription-Id-Data' = Subscriber} | _]} = Request,
+		#'3gpp_ro_CCA'{'Result-Code' = _ResultCode}) ->
+	case Request#'3gpp_ro_CCR'.'Origin-Host' of
+		OriginHost1 when is_binary(OriginHost1) ->
+			{"failure", "ro", OriginHost1, OriginHost1, undefined, OriginRealm,
+					DesRealm, Subscriber, UserName, "AAAAccountingUsageSpec"};
+		OriginHost2 when is_list(OriginHost2) ->
+			{"failure", "ro", OriginHost2, undefined, OriginHost2, OriginRealm,
+					DesRealm, Subscriber, UserName, "AAAAccountingUsageSpec"}
+	end;
+dia_req_and_res(#'3gpp_ro_RAR'{'Origin-Realm' = OriginRealm,
+		'Destination-Realm' = DesRealm, 'User-Name' = [UserName]} = Request,
+		#'3gpp_ro_RAA'{'Result-Code' = undefined}) ->
+	case Request#'3gpp_ro_RAR'.'Origin-Host' of
+		OriginHost1 when is_binary(OriginHost1) ->
+			{"unknown", "ro", OriginHost1, OriginHost1, undefined, OriginRealm,
+					DesRealm, undefined, UserName, "AAAAccountingUsageSpec"};
+		OriginHost2 when is_list(OriginHost2) ->
+			{"unknown", "ro", OriginHost2, undefined, OriginHost2, OriginRealm,
+					DesRealm, undefined, UserName, "AAAAccountingUsageSpec"}
+	end;
+dia_req_and_res(#'3gpp_ro_RAR'{'Origin-Realm' = OriginRealm,
+		'Destination-Realm' = DesRealm, 'User-Name' = [UserName]} = Request,
+		#'3gpp_ro_RAA'{'Result-Code' = ResultCode})
+		when ResultCode >= 2000, ResultCode < 3000 ->
+	case Request#'3gpp_ro_RAR'.'Origin-Host' of
+		OriginHost1 when is_binary(OriginHost1) ->
+			{"success", "ro", OriginHost1, OriginHost1, undefined, OriginRealm,
+					DesRealm, undefined, UserName, "AAAAccountingUsageSpec"};
+		OriginHost2 when is_list(OriginHost2) ->
+			{"success", "ro", OriginHost2, undefined, OriginHost2, OriginRealm,
+					DesRealm, undefined, UserName, "AAAAccountingUsageSpec"}
+	end;
+dia_req_and_res(#'3gpp_ro_RAR'{'Origin-Realm' = OriginRealm,
+		'Destination-Realm' = DesRealm, 'User-Name' = [UserName]} = Request,
+		#'3gpp_ro_RAA'{'Result-Code' = _ResultCode}) ->
+	case Request#'3gpp_ro_RAR'.'Origin-Host' of
+		OriginHost1 when is_binary(OriginHost1) ->
+			{"failure", "ro", OriginHost1, OriginHost1, undefined, OriginRealm,
+					DesRealm, undefined, UserName, "AAAAccountingUsageSpec"};
+		OriginHost2 when is_list(OriginHost2) ->
+			{"failure", "ro", OriginHost2, undefined, OriginHost2, OriginRealm,
+					DesRealm, undefined, UserName, "AAAAccountingUsageSpec"}
+	end;
+dia_req_and_res(#'3gpp_gx_CCR'{'Origin-Realm' = OriginRealm,
+		'Destination-Realm' = DesRealm,
+		'Subscription-Id' = [#'3gpp_gx_Subscription-Id'{
+				'Subscription-Id-Data' = Subscriber} | _]} = Request,
+		#'3gpp_gx_CCA'{'Result-Code' = undefined}) ->
+	case Request#'3gpp_gx_CCR'.'Origin-Host' of
+		OriginHost1 when is_binary(OriginHost1) ->
+			{"unknown", "gx", OriginHost1, OriginHost1, undefined, OriginRealm,
+					DesRealm, Subscriber, undefined, "AAAPolicyUsageSpec"};
+		OriginHost2 when is_list(OriginHost2) ->
+			{"unknown", "gx", OriginHost2, undefined, OriginHost2, OriginRealm,
+					DesRealm, Subscriber, undefined, "AAAPolicyUsageSpec"}
+	end;
+dia_req_and_res(#'3gpp_gx_CCR'{'Origin-Realm' = OriginRealm,
+		'Destination-Realm' = DesRealm,
+		'Subscription-Id' = [#'3gpp_gx_Subscription-Id'{
+				'Subscription-Id-Data' = Subscriber} | _]} = Request,
+		#'3gpp_gx_CCA'{'Result-Code' = ResultCode})
+		when ResultCode >= 2000, ResultCode < 3000 ->
+	case Request#'3gpp_gx_CCR'.'Origin-Host' of
+		OriginHost1 when is_binary(OriginHost1) ->
+			{"success", "gx", OriginHost1, OriginHost1, undefined, OriginRealm,
+					DesRealm, Subscriber, undefined, "AAAPolicyUsageSpec"};
+		OriginHost2 when is_list(OriginHost2) ->
+			{"success", "gx", OriginHost2, undefined, OriginHost2, OriginRealm,
+					DesRealm, Subscriber, undefined, "AAAPolicyUsageSpec"}
+	end;
+dia_req_and_res(#'3gpp_gx_CCR'{'Origin-Realm' = OriginRealm,
+		'Destination-Realm' = DesRealm,
+		'Subscription-Id' = [#'3gpp_gx_Subscription-Id'{
+				'Subscription-Id-Data' = Subscriber} | _]} = Request,
+		#'3gpp_gx_CCA'{'Result-Code' = _ResultCode}) ->
+	case Request#'3gpp_gx_CCR'.'Origin-Host' of
+		OriginHost1 when is_binary(OriginHost1) ->
+			{"failure", "gx", OriginHost1, OriginHost1, undefined, OriginRealm,
+					DesRealm, Subscriber, undefined, "AAAPolicyUsageSpec"};
+		OriginHost2 when is_list(OriginHost2) ->
+			{"failure", "gx", OriginHost2, undefined, OriginHost2, OriginRealm,
+					DesRealm, Subscriber, undefined, "AAAPolicyUsageSpec"}
+	end;
+dia_req_and_res(#'3gpp_gx_RAR'{'Origin-Realm' = OriginRealm,
+		'Destination-Realm' = DesRealm} = Request,
+		#'3gpp_gx_RAA'{'Result-Code' = undefined}) ->
+	case Request#'3gpp_gx_RAR'.'Origin-Host' of
+		OriginHost1 when is_binary(OriginHost1) ->
+			{"unknown", "gx", OriginHost1, OriginHost1, undefined, OriginRealm,
+					DesRealm, undefined, undefined, "AAAPolicyUsageSpec"};
+		OriginHost2 when is_list(OriginHost2) ->
+			{"unknown", "gx", OriginHost2, undefined, OriginHost2, OriginRealm,
+					DesRealm, undefined, undefined, "AAAPolicyUsageSpec"}
+	end;
+dia_req_and_res(#'3gpp_gx_RAR'{'Origin-Realm' = OriginRealm,
+		'Destination-Realm' = DesRealm} = Request,
+		#'3gpp_gx_RAA'{'Result-Code' = ResultCode})
+		when ResultCode >= 2000, ResultCode < 3000 ->
+	case Request#'3gpp_gx_RAR'.'Origin-Host' of
+		OriginHost1 when is_binary(OriginHost1) ->
+			{"success", "gx", OriginHost1, OriginHost1, undefined, OriginRealm,
+					DesRealm, undefined, undefined, "AAAPolicyUsageSpec"};
+		OriginHost2 when is_list(OriginHost2) ->
+			{"success", "gx", OriginHost2, undefined, OriginHost2, OriginRealm,
+					DesRealm, undefined, undefined, "AAAPolicyUsageSpec"}
+	end;
+dia_req_and_res(#'3gpp_gx_RAR'{'Origin-Realm' = OriginRealm,
+		'Destination-Realm' = DesRealm} = Request,
+		#'3gpp_gx_RAA'{'Result-Code' = _ResultCode}) ->
+	case Request#'3gpp_gx_RAR'.'Origin-Host' of
+		OriginHost1 when is_binary(OriginHost1) ->
+			{"failure", "gx", OriginHost1, OriginHost1, undefined, OriginRealm,
+					DesRealm, undefined, undefined, "AAAPolicyUsageSpec"};
+		OriginHost2 when is_list(OriginHost2) ->
+			{"failure", "gx", OriginHost2, undefined, OriginHost2, OriginRealm,
+					DesRealm, undefined, undefined, "AAAPolicyUsageSpec"}
+	end.
 %% @hidden
 dia_req_and_res(#diameter_nas_app_AAR{'Origin-Realm' = OriginRealm,
 		'Destination-Realm' = DesRealm, 'User-Name' = UserName} = Request,
