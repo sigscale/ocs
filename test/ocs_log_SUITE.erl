@@ -44,6 +44,7 @@
 -define(IANA_PEN_SigScale, 50386).
 
 -define(usagePath, "/usageManagement/v1/usage/").
+-define(usageSpecPath, "/usageManagement/v1/usageSpecification/").
 
 %%---------------------------------------------------------------------
 %%  Test server callback functions
@@ -152,7 +153,7 @@ all() ->
 			binary_tree_after, binary_tree_backward, binary_tree_forward,
 			binary_tree_last, binary_tree_first, binary_tree_half,
 			diameter_scur, diameter_scur_voice, diameter_ecur,
-			diameter_iec, dia_auth_to_ecs, radius_auth_to_ecs].
+			diameter_iec, dia_auth_to_ecs, radius_auth_to_ecs, dia_acct_to_ecs].
 
 %%---------------------------------------------------------------------
 %%  Test cases
@@ -1177,6 +1178,82 @@ radius_auth_to_ecs(_Config) ->
 	{_, {struct, UserObj}} = lists:keyfind("user", 1, SourceObj),
 	{_, UserName} = lists:keyfind("name", 1, UserObj),
 	{_, UserName} = lists:keyfind("id", 1, UserObj).
+
+dia_acct_to_ecs() ->
+	[{userdata, [{doc, "Convert diameter ocs_acct log to ECS"}]}].
+
+dia_acct_to_ecs(_Config) ->
+	MSISDN = list_to_binary(io_lib:fwrite("1416555~4.10.0b",
+			[rand:uniform(1000) - 1])),
+	IMSI = list_to_binary(io_lib:fwrite("001001~9.10.0b",
+			[rand:uniform(1000000000) - 1])),
+	ServerAddress = {0, 0, 0, 0},
+	ServerPort = 1812,
+	Server = {{0, 0, 0, 0}, ServerPort},
+	OriginHost = <<"10.0.0.1">>,
+	Username = list_to_binary(ocs:generate_identity()),
+	ServiceContextId = <<"10.32251.3gpp.org">>,
+	OriginRealm = <<"app.sigscale.net">>,
+	DesRealm = "sigscale.com",
+	Requested = rand:uniform(100000),
+	RequestedUnits = #'3gpp_ro_Requested-Service-Unit' {
+			'CC-Total-Octets' = [Requested]},
+	MSCC = #'3gpp_ro_Multiple-Services-Credit-Control'{
+			'Requested-Service-Unit' = [RequestedUnits]},
+	IMSInfo = #'3gpp_ro_IMS-Information'{
+			'Calling-Party-Address' = ocs_test_lib:mac(),
+			'Called-Party-Address' = ocs_test_lib:mac()},
+	ServiceInformation = #'3gpp_ro_Service-Information'{
+			'IMS-Information' = [IMSInfo]},
+	Sub1 = #'3gpp_ro_Subscription-Id'{
+			'Subscription-Id-Type' = ?'3GPP_RO_SUBSCRIPTION-ID-TYPE_END_USER_E164',
+			'Subscription-Id-Data' = MSISDN},
+	Sub2 = #'3gpp_ro_Subscription-Id'{
+			'Subscription-Id-Type' = ?'3GPP_RO_SUBSCRIPTION-ID-TYPE_END_USER_IMSI',
+			'Subscription-Id-Data' = IMSI},
+	CCR = #'3gpp_ro_CCR'{'Origin-Host' = OriginHost,
+			'Origin-Realm' = OriginRealm, 'Destination-Realm' = DesRealm,
+			'Service-Context-Id' = ServiceContextId, 'User-Name' = [Username],
+			'Multiple-Services-Credit-Control' = [MSCC],
+			'Service-Information' = [ServiceInformation],
+			'Subscription-Id' = [Sub1, Sub2]},
+	CCA = #'3gpp_ro_CCA'{'Result-Code' = ?'DIAMETER_BASE_RESULT-CODE_SUCCESS',
+			'CC-Request-Type' = ?'3GPP_CC-REQUEST-TYPE_TERMINATION_REQUEST'},
+	Rated = #rated{bucket_type = octets, is_billed = true, price_type = usage},
+	TS = erlang:system_time(millisecond),
+	N = erlang:unique_integer([positive]),
+	Node = node(),
+	LogEvent = {TS, N, diameter, Node, Server, stop, CCR, CCA, Rated},
+	{struct, EcsObj} = ocs_log:acct_to_ecs(LogEvent),
+	TimeStamp = ocs_log:iso8601(TS),
+	{_, TimeStamp} = lists:keyfind("@timestamp", 1, EcsObj),
+	{_, {struct, EventObj}} = lists:keyfind("event", 1, EcsObj),
+	EventId = integer_to_list(TS) ++ "-" ++ integer_to_list(N),
+	{_, EventId} = lists:keyfind("id", 1, EventObj),
+	Url = "http://host.example.net:8080" ++ ?usagePath ++ EventId,
+	{_, Url} = lists:keyfind("url", 1, EventObj),
+	Reference = "http://host.example.net:8080"
+			++ ?usageSpecPath ++ "AAAAccountingUsageSpec",
+	{_, Reference} = lists:keyfind("reference", 1, EventObj),
+	{_, "end"} = lists:keyfind("type", 1, EventObj),
+	{_, "success"} = lists:keyfind("outcome", 1, EventObj),
+	{_, {struct, [{"port", ServerPort}]}} = lists:keyfind("server", 1, EcsObj),
+	{_, {struct, ServiceObj}} = lists:keyfind("service", 1, EcsObj),
+	{_, ServerAddress} = lists:keyfind("ip", 1, ServiceObj),
+	{_, {struct, [{_, Node}]}} = lists:keyfind("node", 1, ServiceObj),
+	{_, {struct, NetworkObj}} = lists:keyfind("network", 1, EcsObj),
+	{_, "ro"} = lists:keyfind("application", 1, NetworkObj),
+	{_, diameter} = lists:keyfind("protocol", 1, NetworkObj),
+	{_, {struct, ClientObj}} = lists:keyfind("client", 1, EcsObj),
+	{_, OriginHost} = lists:keyfind("address", 1, ClientObj),
+	{_, OriginHost} = lists:keyfind("ip", 1, ClientObj),
+	{_, OriginRealm} = lists:keyfind("subdomain", 1, ClientObj),
+	{_, {struct, [{"subdomain", DesRealm}]}}
+			= lists:keyfind("destination", 1, EcsObj),
+	{_, {struct, SourceObj}} = lists:keyfind("source", 1, EcsObj),
+	{_, {struct, UserObj}} = lists:keyfind("user", 1, SourceObj),
+	{_, MSISDN} = lists:keyfind("id", 1, UserObj),
+	{_, Username} = lists:keyfind("name", 1, UserObj).
 
 %%---------------------------------------------------------------------
 %% internal functions
