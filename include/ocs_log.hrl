@@ -63,7 +63,6 @@
 		Protocol :: ocs_log:protocol(),
 		Node :: atom(),
 		Server :: ocs_log:server(),
-		Client :: ocs_log:server(),
 		Type :: ocs_log:acct_type(),
 		RequestAttributes :: ocs_log:acct_request(),
 		ResponseAttributes :: ocs_log:acct_response(),
