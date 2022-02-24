@@ -201,7 +201,7 @@ idle(Request, From, #statedata{session_id = SessionId} = StateData)
 					{stop, Reason, Reply, NewStateData}
 			end
 	catch
-		_ ->
+		_:_ ->
 			NewStateData = StateData#statedata{request = Request, from = From},
 			ResultCode = ?'DIAMETER_BASE_RESULT-CODE_UNKNOWN_SESSION_ID',
 			Reply = response(ResultCode, NewStateData),
