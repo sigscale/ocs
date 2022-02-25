@@ -94,6 +94,7 @@ init_per_suite(Config) ->
 		{diameter_client, DiameterAddress} | Config],
 	ok = diameter:start_service(?MODULE, client_service_opts(Config1)),
 	true = diameter:subscribe(?MODULE),
+	{ok, _} = ocs:add_client(DiameterAddress, undefined, diameter, undefined, true),
 	{ok, _Ref} = connect(?MODULE, DiameterAddress, DiameterAuthPort, diameter_tcp),
 	receive
 		#diameter_event{service = ?MODULE, info = Info}

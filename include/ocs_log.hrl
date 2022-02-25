@@ -18,7 +18,19 @@
 %%% 
 
 %% Authorization event
--type auth_event() :: {
+-type auth_event() :: diameter_auth_event() | radius_auth_event().
+
+-type diameter_auth_event() :: {
+		Timestamp :: ocs_log:timestamp(),
+		N :: ocs_log:unique(),
+		Protocol :: ocs_log:protocol(),
+		Node :: atom(),
+		Server :: ocs_log:server(),
+		Client :: ocs_log:server(),
+		RequestAttributes :: ocs_log:auth_request(),
+		ResponseAttributes :: ocs_log:auth_response()}.
+
+-type radius_auth_event() :: {
 		Timestamp :: ocs_log:timestamp(),
 		N :: ocs_log:unique(),
 		Protocol :: ocs_log:protocol(),

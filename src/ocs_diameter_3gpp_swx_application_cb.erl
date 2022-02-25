@@ -190,7 +190,7 @@ handle_request(#diameter_packet{msg = Request, errors = Errors} = _Packet,
 %% @private
 request(ServiceName, #diameter_caps{origin_host = {OHost, DHost},
 		origin_realm = {ORealm, DRealm},
-		host_ip_address = {_, ClientAddresses}} = Capabilities,
+		host_ip_address = {_, [H | _]}} = _Capabilities,
 		Request) ->
 	[Info] = diameter:service_info(ServiceName, transport),
 	{options, Options} = lists:keyfind(options, 1, Info),
@@ -205,21 +205,8 @@ request(ServiceName, #diameter_caps{origin_host = {OHost, DHost},
 			{port, Port} = lists:keyfind(port, 1, SctpOpts),
 			{IP, Port}
 	end,
-	request(ServiceName, Capabilities, ServerAddress, ServerPort,
-			OHost, ORealm, DHost, DRealm, Request, ClientAddresses).
-%% @hidden
-request(ServiceName, Capabilities, ServerAddress, ServerPort,
-		OHost, ORealm, DHost, DRealm, Request, [H | T]) ->
-	case ocs:find_client(H) of
-		{ok, #client{protocol = diameter}} ->
-			process_request(ServiceName, ServerAddress, ServerPort,
-					H, OHost, ORealm, DHost, DRealm, Request);
-		{error, not_found} ->
-			request(ServiceName, Capabilities, ServerAddress, ServerPort,
-					OHost, ORealm, DHost, DRealm, Request, T)
-	end;
-request(ServiceName, Capabilities, _, _, _, _, _, _, Request, []) ->
-	errors(ServiceName, Capabilities, Request, [?'DIAMETER_BASE_RESULT-CODE_UNKNOWN_PEER']).
+	process_request(ServiceName, ServerAddress, ServerPort,
+		H, OHost, ORealm, DHost, DRealm, Request).
 
 -spec process_request(ServiceName, ServerAddress, ServerPort,
 		ClientAddress, OHost, ORealm, DHost, DRealm, Request) -> Result
@@ -327,7 +314,5 @@ errors(ServiceName, Capabilities, _Request,
 errors(_ServiceName, _Capabilities, _Request, [{ResultCode, _} | _]) ->
 	{answer_message, ResultCode};
 errors(_ServiceName, _Capabilities, _Request, [ResultCode | _]) ->
-	{answer_message, ResultCode};
-errors(ServiceName, Capabilities, Request, []) ->
-	request(ServiceName, Capabilities, Request).
+	{answer_message, ResultCode}.
 

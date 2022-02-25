@@ -1,4 +1,32 @@
-2021-01-21  Refath Wadood <refath@sigscale.org>
+2022-02-1  Refath Wadood <refath@sigscale.org>
+
+	* do not install generated source
+	* policy rule predfined char default value is false
+	* typos in 3gpp trigger-type avp enum
+	* missing tariff table names returns 400
+	* remove unimplemented xml and xdr ipdr exports
+	* add info report closed diameter event
+	* udpdate last modifed timestamp when resource is modifed (ocs-548)
+	* eap fsm workers are transient
+	* update supervision diagram for eap fsm change
+	* supervision diagram in scalable vector graphics
+
+2022-01-28  Refath Wadood <refath@sigscale.org>
+	
+	* align 3gpp 39.061 avp types with table 9a
+	* gui: updated policy shows value
+	* authenticate diameter acct peer during capabilities exchange (ocs-537)
+	* authenticate the diameter auth peer client during cer/cea negotiation (ocs-539)
+	* test: sucessful client authorization during capabilities exchange (ocs-538)
+	* test: unsucessful client authorization during capabilities exchange (ocs-538
+	* gui: remove default tab selection for detalis
+	* test: sucessfuly authenticate a known diameter auth peer
+	* test: failure to authenticate a unknown diameter auth peer
+	* remove redundant ocs:find_client/2 calls from callback 
+	* pretty print diameter statistics(ocs-488)
+	* add escript to export ipdr archive logs
+
+2022-01-21  Refath Wadood <refath@sigscale.org>
 
 	* create ipdr entries for each #rated{}
 	* handle diameter and radius events in ipdr log
@@ -13,7 +41,7 @@
 	* handle rating role in get view
 	* correct radius rat-type mapping for eap-aka
 
-2021-01-10  Refath Wadood <refath@sigscale.org>
+2022-01-10  Refath Wadood <refath@sigscale.org>
 
 	* remove ambiguous map specs; non json map keys are atoms
 	* remove usu from cca in nrf callback handler

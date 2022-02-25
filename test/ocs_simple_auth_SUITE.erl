@@ -42,6 +42,7 @@
 -define(NAS_APPLICATION_ID, 1).
 -define(IANA_PEN_3GPP, 10415).
 -define(IANA_PEN_SigScale, 50386).
+-define(RO_APPLICATION_ID, 4).
 
 %%---------------------------------------------------------------------
 %%  Test server callback functions
@@ -85,8 +86,10 @@ init_per_suite(Config) ->
 			{radius_auth_port, RadiusAuthPort},
 			{radius_acct_address, RadiusAddress},
 			{radius_acct_port, RadiusAcctPort},
+			{diameter_auth_port, DiameterAuthPort},
 			{diameter_acct_address, DiameterAddress} | Config],
 	ok = diameter:start_service(?MODULE, client_service_opts(Config1)),
+	{ok, _} = ocs:add_client(DiameterAddress, undefined, diameter, undefined, true),
 	true = diameter:subscribe(?MODULE),
 	{ok, _Ref} = connect(?MODULE, DiameterAddress, DiameterAuthPort, diameter_tcp),
 	receive
@@ -117,6 +120,11 @@ init_per_testcase(TestCase, Config) when
 	{auth, [{Address, _, _} | _]} = lists:keyfind(auth, 1, DiameterConfig),
 	{ok, _} = ocs:add_client(Address, undefined, diameter, undefined, true),
 	Config;
+init_per_testcase(TestCase, Config) when
+		TestCase == client_authorized;
+		TestCase == client_not_authorized ->
+	ok = diameter:stop_service(?MODULE),
+	Config;
 init_per_testcase(_TestCase, Config) ->
 	NasId = atom_to_list(node()),
 	CalledStationId = "E4-8D-8C-D6-E0-AC:TestSSID",
@@ -137,6 +145,16 @@ end_per_testcase(TestCase, Config) when
 		TestCase == session_termination_diameter ->
 	Client = ?config(diameter_acct_address, Config),
 	ok = ocs:delete_client(Client);
+end_per_testcase(TestCase, Config) when
+		TestCase == client_authorized;
+		TestCase == client_not_authorized ->
+	ServiceName = atom_to_list(?MODULE) ++ ":" ++ TestCase,
+	Address = ct:get_config({diameter, peer_address}, {127,0,0,21}),
+	ok = ocs:delete_client(Address),
+	ok = diameter:stop_service(ServiceName),
+	ok = diameter:remove_transport(ServiceName, true),
+	ok = diameter:start_service(?MODULE, client_service_opts(Config)),
+	Config;
 end_per_testcase(_TestCase, Config) ->
 	Socket = ?config(socket, Config),
 	ok = 	gen_udp:close(Socket).
@@ -154,7 +172,8 @@ all() ->
 	[simple_authentication_radius, simple_auth_radius_chap, out_of_credit_radius,
 	bad_password_radius, unknown_username_radius, simple_authentication_diameter,
 	bad_password_diameter, unknown_username_diameter, out_of_credit_diameter,
-	session_termination_diameter, authenticate_voice_call].
+	session_termination_diameter, authenticate_voice_call, client_authorized,
+	client_not_authorized].
 
 %%---------------------------------------------------------------------
 %%  Test cases
@@ -200,9 +219,6 @@ simple_authentication_radius(Config) ->
 	{ok, {AuthAddress, AuthPort, AccessAcceptPacket}} = gen_udp:recv(Socket, 0),
 	#radius{code = ?AccessAccept, id = Id} = radius:codec(AccessAcceptPacket).
 
-simple_authentication_diameter() ->
-	[{userdata, [{doc, "Successful simple authentication using DIAMETER NAS application"}]}].
-
 simple_auth_radius_chap() ->
 	[{userdata, [{doc, "RADIUS Access-Request with CHAP"}]}].
 
@@ -243,6 +259,9 @@ simple_auth_radius_chap(Config) ->
 	ok = gen_udp:send(Socket, AuthAddress, AuthPort, AccessReqestPacket),
 	{ok, {AuthAddress, AuthPort, AccessAcceptPacket}} = gen_udp:recv(Socket, 0),
 	#radius{code = ?AccessAccept, id = Id} = radius:codec(AccessAcceptPacket).
+
+simple_authentication_diameter() ->
+	[{userdata, [{doc, "Successful simple authentication using DIAMETER NAS application"}]}].
 
 simple_authentication_diameter(_Config) ->
 	P1 = price(usage, octets, rand:uniform(1000000), rand:uniform(100)),
@@ -534,6 +553,66 @@ authenticate_voice_call(Config) ->
 	RadiusReserveSessionTime = radius_attributes:fetch(?SessionTimeout, RadiusAttributes),
 	{ok, _} = ocs:add_client({127, 0, 0, 1}, 3799, radius, SharedSecret, true).
 
+client_authorized() ->
+	[{userdata, [{doc, "Authorize a Diameter Peer"}]}].
+
+client_authorized(Config) ->
+	ServiceName = atom_to_list(?MODULE) ++ ":" ++ "client_authorized",
+	DiameterAuthPort = ?config(diameter_auth_port, Config),
+	DiameterAddress = ?config(diameter_acct_address, Config),
+	DiameterPeerAddress = ct:get_config({diameter, peer_address}, {127,0,0,21}),
+	ok = diameter:start_service(ServiceName, client_auth_service_opts(Config, DiameterPeerAddress)),
+	true = diameter:subscribe(ServiceName),
+	{ok, _} = ocs:add_client(DiameterPeerAddress, undefined, diameter, undefined, true),
+	{ok, _Ref} = connect(ServiceName, DiameterAddress, DiameterAuthPort,
+			DiameterPeerAddress, diameter_tcp),
+	receive
+		#diameter_event{service = ServiceName, info = Info}
+				when element(1, Info) == up ->
+			client_authorized(ServiceName, Config);
+		 _Other ->
+			{skip, diameter_client_auth_service_not_started}
+	end.
+client_authorized(ServiceName, _Config) ->
+	P1 = price(usage, octets, rand:uniform(1000000), rand:uniform(100)),
+	OfferId = add_offer([P1], 4),
+	ProdRef = add_product(OfferId),
+	#service{name = Username,
+			password = Password} =  add_service(ProdRef),
+	B1 = bucket(octets, rand:uniform(100000)),
+	_BId = add_bucket(ProdRef, B1),
+	Ref = erlang:ref_to_list(make_ref()),
+	SId = diameter:session_id(Ref),
+	NAS_AAR = #diameter_nas_app_AAR{'Session-Id' = SId,
+			'Auth-Application-Id' = ?NAS_APPLICATION_ID ,
+			'Auth-Request-Type' = ?'DIAMETER_NAS_APP_AUTH-REQUEST-TYPE_AUTHENTICATE_ONLY',
+			'User-Name' = [Username], 'User-Password' = [Password]},
+	{ok, Answer} = diameter:call(ServiceName, nas_app_test, NAS_AAR, []),
+	true = is_record(Answer, diameter_nas_app_AAA),
+	#diameter_nas_app_AAA{'Result-Code' = ?'DIAMETER_BASE_RESULT-CODE_SUCCESS',
+			'Auth-Application-Id' = ?NAS_APPLICATION_ID,
+			'Auth-Request-Type' = ?'DIAMETER_NAS_APP_AUTH-REQUEST-TYPE_AUTHENTICATE_ONLY'} = Answer.
+
+client_not_authorized() ->
+	[{userdata, [{doc, "Deny Service To An Unknown Diameter Peer"}]}].
+
+client_not_authorized(Config) ->
+	ServiceName = atom_to_list(?MODULE) ++ ":" ++ "client_not_authorized",
+	DiameterAuthPort = ?config(diameter_auth_port, Config),
+	DiameterAcctAddress = ?config(diameter_acct_address, Config),
+	DiameterPeerAddress = ct:get_config({diameter, peer_address}, {127,0,0,21}),
+	ok = diameter:start_service(ServiceName, client_auth_service_opts(Config, DiameterPeerAddress)),
+	true = diameter:subscribe(ServiceName),
+	{ok, _Ref} = connect(ServiceName, DiameterAcctAddress, DiameterAuthPort,
+			DiameterPeerAddress, diameter_tcp),
+	receive
+		#diameter_event{service = ServiceName, info = Info}
+				when element(1, Info) == closed ->
+			ok;
+		 _Other ->
+			{skip, diameter_client_auth_service_not_started}
+	end.
+
 %%--------------------------------------------------------------------------------------
 %% Internal functions
 %%--------------------------------------------------------------------------------------
@@ -542,6 +621,9 @@ authenticate_voice_call(Config) ->
 %% @hidden
 connect(SvcName, Address, Port, Transport) when is_atom(Transport) ->
 	connect(SvcName, [{connect_timer, 30000} | transport_opts(Address, Port, Transport)]).
+%% @hidden
+connect(SvcName, RemAddress, Port, LocalIp, Transport) when is_atom(Transport) ->
+	connect(SvcName, [{connect_timer, 30000} | transport_opts(RemAddress, Port, LocalIp, Transport)]).
 
 %% @hidden
 connect(SvcName, Opts)->
@@ -562,10 +644,29 @@ client_service_opts(Config) ->
 			{application, [{alias, nas_app_test},
 					{dictionary, diameter_gen_nas_application_rfc7155},
 					{module, diameter_test_client_cb}]}].
+%% @hidden
+client_auth_service_opts(Config, HostIp) ->
+	[{'Origin-Host', ?config(host, Config)},
+			{'Origin-Realm', ?config(realm, Config)},
+			{'Host-IP-Address', [HostIp]},
+			{'Product-Name', "SigScale Test Client (auth)"},
+			{'Vendor-Id', ?IANA_PEN_SigScale},
+			{'Supported-Vendor-Id', [?IANA_PEN_3GPP]},
+			{'Auth-Application-Id', [?BASE_APPLICATION_ID, ?NAS_APPLICATION_ID]},
+			{string_decode, false},
+			{application, [{alias, base_app_test},
+					{dictionary, diameter_gen_base_rfc6733},
+					{module, diameter_test_client_cb}]},
+			{application, [{alias, nas_app_test},
+					{dictionary, diameter_gen_nas_application_rfc7155},
+					{module, diameter_test_client_cb}]}].
 
 %% @hidden
 transport_opts(Address, Port, Trans) when is_atom(Trans) ->
 	transport_opts1({Trans, Address, Address, Port}).
+%% @hidden
+transport_opts(RemAddress, Port, Ip, Trans) when is_atom(Trans) ->
+	transport_opts1({Trans, Ip, RemAddress, Port}).
 
 %% @hidden
 transport_opts1({Trans, LocalAddr, RemAddr, RemPort}) ->

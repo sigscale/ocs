@@ -40,6 +40,7 @@
 -include_lib("diameter/include/diameter.hrl").
 -include_lib("diameter/include/diameter_gen_base_rfc6733.hrl").
 -include_lib("kernel/include/inet.hrl").
+-include("ocs.hrl").
 
 -record(statedata,
 		{transport_ref :: undefined | reference(),
@@ -262,6 +263,13 @@ handle_info(#diameter_event{info = Event, service = Service},
 			{service, Service}, {event, element(1, Event)},
 			{peer, binary_to_list(Peer)}]),
 	{next_state, StateName, StateData};
+handle_info(#diameter_event{info = Event, service = Service},
+		StateName, StateData) when element(1, Event) == closed ->
+	{_CER, _Caps, #diameter_caps{origin_host = {_, Peer}}, _Packet} = element(3, Event),
+	error_logger:info_report(["DIAMETER peer address not found",
+			{service, Service}, {event, element(1, Event)},
+			{peer, binary_to_list(Peer)}]),
+	{next_state, StateName, StateData};
 handle_info(#diameter_event{info = {watchdog,
 		_Ref, _PeerRef, {_From, _To}, _Config}}, StateName, StateData) ->
 	{next_state, StateName, StateData};
@@ -395,7 +403,8 @@ transport_options(Options, Address, Port) ->
 			Opts = [{reuseaddr, true}, {ip, Address}, {port, Port}],
 			[{transport_config, Opts} | Options1]
 	end,
-	{listen, Options2}.
+	Options3 = [{capabilities_cb, fun ocs_diameter:authenticate_client/2} | Options2],
+	{listen, Options3}.
 
 -spec split_options(Options) -> Result
 	when

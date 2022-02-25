@@ -16,7 +16,8 @@
 %%% limitations under the License.
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%% @doc This {@link //stdlib/gen_fsm. gen_fsm} behaviour callback module
-%%% 	implements procedures for user authorization initiated by PDN Gateway.
+%%% 	implements procedures for user authorization initiated by
+%%% 	PDN Gateway (PGW).
 %%%
 %%% @reference <a href="https://webapp.etsi.org/key/key.asp?GSMSpecPart1=29&amp;GSMSpecPart2=273">
 %%% 	3GPP TS 29.273 - 3GPP EPS AAA interfaces</a>
@@ -202,7 +203,24 @@ idle(#'3gpp_s6b_AAR'{'User-Name' = [Identity], 'Session-Id' = SessionId,
 			{imsi, IMSI}, {identity, Identity},
 			{session, SessionId}, {result, ResultCode}]),
 	gen_fsm:reply(From, response(ResultCode, NewStateData)),
-	{stop, shutdown, NewStateData}.
+	{stop, shutdown, NewStateData};
+idle(#'3gpp_s6b_STR'{'User-Name' = [Identity],
+		'Session-Id' = SessionId, 'Termination-Cause' = _Cause} = Request,
+		_From, #statedata{server_address = ServerAddress,
+		server_port = ServerPort, client_address = ClientAddress,
+		client_port = ClientPort, orig_host = OriginHost,
+		orig_realm = OriginRealm} = StateData) ->
+	[IMSI | _] = binary:split(Identity, <<$@>>, []),
+	NewStateData = StateData#statedata{session_id = SessionId,
+			identity = Identity, imsi = IMSI},
+	Server = {ServerAddress, ServerPort},
+	Client = {ClientAddress, ClientPort},
+	Answer = #'3gpp_s6b_STA'{'Session-Id' = SessionId,
+			'Result-Code' = ?'DIAMETER_BASE_RESULT-CODE_SUCCESS',
+			'Origin-Host' = OriginHost,
+			'Origin-Realm' = OriginRealm},
+	ok = ocs_log:auth_log(diameter, Server, Client, Request, Answer),
+	{stop, shutdown, Answer, NewStateData}.
 
 -spec register(Event, StateData) -> Result
 	when

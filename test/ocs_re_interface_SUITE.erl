@@ -130,6 +130,7 @@ init_per_suite1(Config) ->
 	ok = ocs_test_lib:start(),
    ok = diameter:start_service(?MODULE, client_acct_service_opts(Config1)),
    true = diameter:subscribe(?MODULE),
+	{ok, _} = ocs:add_client(DiameterAddress, undefined, diameter, undefined, true),
    {ok, _Ref2} = connect(?MODULE, DiameterAddress, DiameterAcctPort, diameter_tcp),
    receive
       #diameter_event{service = ?MODULE, info = Info}

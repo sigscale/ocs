@@ -132,7 +132,7 @@ unload(Agent) ->
 %% @private
 client_table(get, [1, 4] ++ Key = _RowIndex, Columns)
 		when length(Key) == 4 ->
-	case ocs:find_client(list_to_tuple(Key)) of
+	case catch ocs:find_client(list_to_tuple(Key)) of
 		{ok, #client{port = Port, identifier = Id, protocol = Proto}} ->
 			F2 = fun(1, Acc) ->
 						[{value, ipv4} | Acc];
@@ -152,7 +152,7 @@ client_table(get, [1, 4] ++ Key = _RowIndex, Columns)
 			lists:reverse(lists:foldl(F2, [], Columns));
 		{error, not_found} ->
 			{noValue, noSuchInstance};
-		{error, _Reason} ->
+		{'EXIT', _Reason} ->
 			{genErr, 0}
 	end;
 client_table(get, _RowIndex, _Columns) ->
@@ -372,7 +372,7 @@ dcca_peer_info_get(Index, Columns) ->
 										[{value, Index} | Acc];
 									(2, Acc) ->
 										[{value, PeerId} | Acc];
-									(3, Acc) when Rev == undefined ->
+									(3, _Acc) when Rev == undefined ->
 										[{noValue, noSuchInstance}];
 									(3, Acc) ->
 										[{value, Rev} | Acc];
@@ -380,7 +380,7 @@ dcca_peer_info_get(Index, Columns) ->
 										[{value, volatile} | Acc];
 									(5, Acc) ->
 										[{value, active} | Acc];
-									(_, Acc) ->
+									(_, _Acc) ->
 										{noValue, noSuchInstance}
 							end,
 							lists:reverse(lists:foldl(F1, [], Columns));

@@ -209,7 +209,7 @@ request(ServiceName,
 			ServerAddress, ServerPort, Request, ClientAddresses).
 %% @hidden
 request(ServiceName, Capabilities,
-		ServerAddress, ServerPort, Request, [H | T]) ->
+		ServerAddress, ServerPort, #'3gpp_swm_DER'{} = Request, [H | T]) ->
 	case ocs:find_client(H) of
 		{ok, #client{protocol = diameter, trusted = Trusted}} ->
 			process_request(ServiceName, Capabilities,
@@ -218,6 +218,11 @@ request(ServiceName, Capabilities,
 			request(ServiceName, Capabilities,
 					ServerAddress, ServerPort, Request, T)
 	end;
+%% @hidden
+request(ServiceName, Capabilities,
+		ServerAddress, ServerPort, #'3gpp_swm_STR'{} = Request, [H | _]) ->
+	process_request(ServiceName, Capabilities,
+			ServerAddress, ServerPort, H, undefined, Request);
 request(ServiceName, Capabilities, _, _, Request, []) ->
 	errors(ServiceName, Capabilities, Request, [?'DIAMETER_BASE_RESULT-CODE_UNKNOWN_PEER']).
 
@@ -229,7 +234,7 @@ request(ServiceName, Capabilities, _, _, Request, []) ->
 		ServerAddress :: inet:ip_address(),
 		ServerPort :: inet:ip_port(),
 		ClientAddress :: inet:ip_address(),
-		Trusted :: boolean(),
+		Trusted :: boolean() | undefined,
 		Request :: #'3gpp_swm_DER'{} | #'3gpp_swm_STR'{},
 		Result :: {reply, packet()} | discard.
 %% @doc Process a received DIAMETER Authorization packet.
