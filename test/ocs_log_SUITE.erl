@@ -1110,6 +1110,9 @@ dia_auth_to_ecs(_Config) ->
 	{_, EventId} = lists:keyfind("id", 1, EventObj),
 	Url = "http://host.example.net:8080" ++ ?usagePath ++ EventId,
 	{_, Url} = lists:keyfind("url", 1, EventObj),
+	Reference = "http://host.example.net:8080"
+			++ ?usageSpecPath ++ "AAAAccessUsageSpec",
+	{_, Reference} = lists:keyfind("reference", 1, EventObj),
 	{_, "start"} = lists:keyfind("type", 1, EventObj),
 	{_, "success"} = lists:keyfind("outcome", 1, EventObj),
 	{_, {struct, [{"port", ServerPort}]}} = lists:keyfind("server", 1, EcsObj),
@@ -1163,6 +1166,9 @@ radius_auth_to_ecs(_Config) ->
 	{_, EventId} = lists:keyfind("id", 1, EventObj),
 	Url = "http://host.example.net:8080" ++ ?usagePath ++ EventId,
 	{_, Url} = lists:keyfind("url", 1, EventObj),
+	Reference = "http://host.example.net:8080"
+			++ ?usageSpecPath ++ "AAAAccessUsageSpec",
+	{_, Reference} = lists:keyfind("reference", 1, EventObj),
 	{_, "start"} = lists:keyfind("type", 1, EventObj),
 	{_, "success"} = lists:keyfind("outcome", 1, EventObj),
 	{_, {struct, [{"port", ServerPort}]}} = lists:keyfind("server", 1, EcsObj),
@@ -1297,6 +1303,7 @@ radius_acct_to_ecs(_Config) ->
 	{_, Url} = lists:keyfind("url", 1, EventObj),
 	Reference = "http://host.example.net:8080"
 			++ ?usageSpecPath ++ "AAAAccountingUsageSpec",
+	{_, Reference} = lists:keyfind("reference", 1, EventObj),
 	{_, "start"} = lists:keyfind("type", 1, EventObj),
 	{_, "success"} = lists:keyfind("outcome", 1, EventObj),
 	{_, {struct, [{"port", ServerPort}]}} = lists:keyfind("server", 1, EcsObj),
