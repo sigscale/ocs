@@ -31,7 +31,6 @@
 -export([help/0, ts/0, td/0, su/0]).
 -export([di/0, di/1, di/2, dc/0]).
 -export([ll/1, ll/2, ql/2, ql/3, ql/4]).
-%%remove after debugging
 -export([service_name/1]).
 
 -include("ocs.hrl").
@@ -406,7 +405,7 @@ diameter_service_info(Services, []) ->
 			transport, connections, statistics],
 	diameter_service_info(Services, Info, []);
 diameter_service_info(Services, statistics) ->
-	ServiceStats = [diameter:service_info(Service, statistics) || Service <- Services],
+	ServiceStats = [{Service, diameter:service_info(Service, statistics)} || Service <- Services],
 	service_name(ServiceStats);
 diameter_service_info(Services, Info) ->
 	diameter_service_info(Services, Info, []).
@@ -485,7 +484,6 @@ snodes([], Acc) ->
 	lists:reverse(Acc).
 
 %% @doc Parse service name statistics.
-%% @todo check recursion OCS-488
 %% @hidden
 service_name([{ServiceName, PeerStat} | T]) ->
 	io:fwrite("~w:~n", [ServiceName]),
@@ -495,7 +493,6 @@ service_name([_H | T]) ->
 	service_name(T);
 service_name([]) ->
 	ok.
-
 
 %% @doc Parse peer statistics.
 %% @hidden
