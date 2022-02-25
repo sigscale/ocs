@@ -1500,7 +1500,7 @@ dia_req_and_res(#'3gpp_gx_RAR'{'Origin-Realm' = OriginRealm,
 	end.
 %% @hidden
 dia_req_and_res(#diameter_nas_app_AAR{'Origin-Realm' = OriginRealm,
-		'Destination-Realm' = DesRealm, 'User-Name' = UserName} = Request,
+		'Destination-Realm' = DesRealm, 'User-Name' = [UserName]} = Request,
 		#diameter_nas_app_AAA{'Result-Code' = undefined}, {Ip, _Port}) ->
 	case Request#diameter_nas_app_AAR.'Origin-Host' of
 		OriginHost1 when is_binary(OriginHost1) ->
@@ -1511,7 +1511,7 @@ dia_req_and_res(#diameter_nas_app_AAR{'Origin-Realm' = OriginRealm,
 					Ip, OriginHost2, OriginRealm, DesRealm, undefined, UserName}
 	end;
 dia_req_and_res(#diameter_nas_app_AAR{'Origin-Realm' = OriginRealm,
-		'Destination-Realm' = DesRealm, 'User-Name' = UserName} = Request,
+		'Destination-Realm' = DesRealm, 'User-Name' = [UserName]} = Request,
 		#diameter_nas_app_AAA{'Result-Code' = ResultCode}, {Ip, _Port})
 		when ResultCode >= 2000, ResultCode < 3000 ->
 	case Request#diameter_nas_app_AAR.'Origin-Host' of
@@ -1523,7 +1523,7 @@ dia_req_and_res(#diameter_nas_app_AAR{'Origin-Realm' = OriginRealm,
 					Ip, OriginHost2, OriginRealm, DesRealm, undefined, UserName}
 	end;
 dia_req_and_res(#diameter_nas_app_AAR{'Origin-Realm' = OriginRealm,
-		'Destination-Realm' = DesRealm, 'User-Name' = UserName} = Request,
+		'Destination-Realm' = DesRealm, 'User-Name' = [UserName]} = Request,
 		#diameter_nas_app_AAA{'Result-Code' = _ResultCode}, {Ip, _Port}) ->
 	case Request#diameter_nas_app_AAR.'Origin-Host' of
 		OriginHost1 when is_binary(OriginHost1) ->
@@ -1534,7 +1534,7 @@ dia_req_and_res(#diameter_nas_app_AAR{'Origin-Realm' = OriginRealm,
 					Ip, OriginHost2, OriginRealm, DesRealm, undefined, UserName}
 	end;
 dia_req_and_res(#diameter_eap_app_DER{'Origin-Realm' = OriginRealm,
-		'Destination-Realm' = DesRealm, 'User-Name' = UserName} = Request,
+		'Destination-Realm' = DesRealm, 'User-Name' = [UserName]} = Request,
 		#diameter_eap_app_DEA{'Result-Code' = undefined}, {Ip, _Port}) ->
 	case Request#diameter_eap_app_DER.'Origin-Host' of
 		OriginHost1 when is_binary(OriginHost1) ->
@@ -1545,7 +1545,7 @@ dia_req_and_res(#diameter_eap_app_DER{'Origin-Realm' = OriginRealm,
 					Ip, OriginHost2, OriginRealm, DesRealm, undefined, UserName}
 	end;
 dia_req_and_res(#diameter_eap_app_DER{'Origin-Realm' = OriginRealm,
-		'Destination-Realm' = DesRealm, 'User-Name' = UserName} = Request,
+		'Destination-Realm' = DesRealm, 'User-Name' = [UserName]} = Request,
 		#diameter_eap_app_DEA{'Result-Code' = ResultCode}, {Ip, _Port})
 		when ResultCode >= 2000, ResultCode < 3000 ->
 	case Request#diameter_eap_app_DER.'Origin-Host' of
@@ -1557,7 +1557,7 @@ dia_req_and_res(#diameter_eap_app_DER{'Origin-Realm' = OriginRealm,
 					Ip, OriginHost2, OriginRealm, DesRealm, undefined, UserName}
 	end;
 dia_req_and_res(#diameter_eap_app_DER{'Origin-Realm' = OriginRealm,
-		'Destination-Realm' = DesRealm, 'User-Name' = UserName} = Request,
+		'Destination-Realm' = DesRealm, 'User-Name' = [UserName]} = Request,
 		#diameter_eap_app_DEA{'Result-Code' = _ResultCode}, {Ip, _Port}) ->
 	case Request#diameter_eap_app_DER.'Origin-Host' of
 		OriginHost1 when is_binary(OriginHost1) ->
@@ -1568,7 +1568,7 @@ dia_req_and_res(#diameter_eap_app_DER{'Origin-Realm' = OriginRealm,
 					Ip, OriginHost2, OriginRealm, DesRealm, undefined, UserName}
 	end;
 dia_req_and_res(#'3gpp_sta_DER'{'Origin-Realm' = OriginRealm,
-		'Destination-Realm' = DesRealm, 'User-Name' = UserName} = Request,
+		'Destination-Realm' = DesRealm, 'User-Name' = [UserName]} = Request,
 		#'3gpp_sta_DEA'{'Result-Code' = undefined,
 		'Subscription-Id' = #'3gpp_sta_Subscription-Id'{
 				'Subscription-Id-Data' = Subscriber}}, {Ip, _Port}) ->
@@ -1581,7 +1581,7 @@ dia_req_and_res(#'3gpp_sta_DER'{'Origin-Realm' = OriginRealm,
 					Ip, OriginHost2, OriginRealm, DesRealm, Subscriber, UserName}
 	end;
 dia_req_and_res(#'3gpp_sta_DER'{'Origin-Realm' = OriginRealm,
-		'Destination-Realm' = DesRealm, 'User-Name' = UserName} = Request,
+		'Destination-Realm' = DesRealm, 'User-Name' = [UserName]} = Request,
 		#'3gpp_sta_DEA'{'Result-Code' = ResultCode,
 		'Subscription-Id' = #'3gpp_sta_Subscription-Id'{
 				'Subscription-Id-Data' = Subscriber}}, {Ip, _Port})
@@ -1595,7 +1595,7 @@ dia_req_and_res(#'3gpp_sta_DER'{'Origin-Realm' = OriginRealm,
 					Ip, OriginHost2, OriginRealm, DesRealm, Subscriber, UserName}
 	end;
 dia_req_and_res(#'3gpp_sta_DER'{'Origin-Realm' = OriginRealm,
-		'Destination-Realm' = DesRealm, 'User-Name' = UserName} = Request,
+		'Destination-Realm' = DesRealm, 'User-Name' = [UserName]} = Request,
 		#'3gpp_sta_DEA'{'Result-Code' = _ResultCode,
 		'Subscription-Id' = #'3gpp_sta_Subscription-Id'{
 				'Subscription-Id-Data' = Subscriber}}, {Ip, _Port}) ->
@@ -1608,7 +1608,7 @@ dia_req_and_res(#'3gpp_sta_DER'{'Origin-Realm' = OriginRealm,
 					Ip, OriginHost2, OriginRealm, DesRealm, Subscriber, UserName}
 	end;
 dia_req_and_res(#'3gpp_swm_DER'{'Origin-Realm' = OriginRealm,
-		'Destination-Realm' = DesRealm, 'User-Name' = UserName} = Request,
+		'Destination-Realm' = DesRealm, 'User-Name' = [UserName]} = Request,
 		#'3gpp_swm_DEA'{'Result-Code' = undefined,
 		'Subscription-Id' = #'3gpp_sta_Subscription-Id'{
 				'Subscription-Id-Data' = Subscriber}}, {Ip, _Port}) ->
@@ -1621,7 +1621,7 @@ dia_req_and_res(#'3gpp_swm_DER'{'Origin-Realm' = OriginRealm,
 					Ip, OriginHost2, OriginRealm, DesRealm, Subscriber, UserName}
 	end;
 dia_req_and_res(#'3gpp_swm_DER'{'Origin-Realm' = OriginRealm,
-		'Destination-Realm' = DesRealm, 'User-Name' = UserName} = Request,
+		'Destination-Realm' = DesRealm, 'User-Name' = [UserName]} = Request,
 		#'3gpp_swm_DEA'{'Result-Code' = ResultCode,
 		'Subscription-Id' = #'3gpp_sta_Subscription-Id'{
 				'Subscription-Id-Data' = Subscriber}}, {Ip, _Port})
@@ -1635,7 +1635,7 @@ dia_req_and_res(#'3gpp_swm_DER'{'Origin-Realm' = OriginRealm,
 					Ip, OriginHost2, OriginRealm, DesRealm, Subscriber, UserName}
 	end;
 dia_req_and_res(#'3gpp_swm_DER'{'Origin-Realm' = OriginRealm,
-		'Destination-Realm' = DesRealm, 'User-Name' = UserName} = Request,
+		'Destination-Realm' = DesRealm, 'User-Name' = [UserName]} = Request,
 		#'3gpp_swm_DEA'{'Result-Code' = _ResultCode,
 		'Subscription-Id' = #'3gpp_sta_Subscription-Id'{
 				'Subscription-Id-Data' = Subscriber}}, {Ip, _Port}) ->
@@ -1648,7 +1648,7 @@ dia_req_and_res(#'3gpp_swm_DER'{'Origin-Realm' = OriginRealm,
 					Ip, OriginHost2, OriginRealm, DesRealm, Subscriber, UserName}
 	end;
 dia_req_and_res(#'3gpp_sta_STR'{'Origin-Realm' = OriginRealm,
-		'Destination-Realm' = DesRealm, 'User-Name' = UserName} = Request,
+		'Destination-Realm' = DesRealm, 'User-Name' = [UserName]} = Request,
 		#'3gpp_sta_STA'{'Result-Code' = undefined}, {Ip, _Port}) ->
 	case Request#'3gpp_sta_STR'.'Origin-Host' of
 		OriginHost1 when is_binary(OriginHost1) ->
@@ -1659,7 +1659,7 @@ dia_req_and_res(#'3gpp_sta_STR'{'Origin-Realm' = OriginRealm,
 					Ip, OriginHost2, OriginRealm, DesRealm, undefined, UserName}
 	end;
 dia_req_and_res(#'3gpp_sta_STR'{'Origin-Realm' = OriginRealm,
-		'Destination-Realm' = DesRealm, 'User-Name' = UserName} = Request,
+		'Destination-Realm' = DesRealm, 'User-Name' = [UserName]} = Request,
 		#'3gpp_sta_STA'{'Result-Code' = ResultCode}, {Ip, _Port})
 		when ResultCode >= 2000, ResultCode < 3000 ->
 	case Request#'3gpp_sta_STR'.'Origin-Host' of
@@ -1671,7 +1671,7 @@ dia_req_and_res(#'3gpp_sta_STR'{'Origin-Realm' = OriginRealm,
 					Ip, OriginHost2, OriginRealm, DesRealm, undefined, UserName}
 	end;
 dia_req_and_res(#'3gpp_sta_STR'{'Origin-Realm' = OriginRealm,
-		'Destination-Realm' = DesRealm, 'User-Name' = UserName} = Request,
+		'Destination-Realm' = DesRealm, 'User-Name' = [UserName]} = Request,
 		#'3gpp_sta_STA'{'Result-Code' = _ResultCode}, {Ip, _Port}) ->
 	case Request#'3gpp_sta_STR'.'Origin-Host' of
 		OriginHost1 when is_binary(OriginHost1) ->
@@ -1682,7 +1682,7 @@ dia_req_and_res(#'3gpp_sta_STR'{'Origin-Realm' = OriginRealm,
 					Ip, OriginHost2, OriginRealm, DesRealm, undefined, UserName}
 	end;
 dia_req_and_res(#'3gpp_swm_STR'{'Origin-Realm' = OriginRealm,
-		'Destination-Realm' = DesRealm, 'User-Name' = UserName} = Request,
+		'Destination-Realm' = DesRealm, 'User-Name' = [UserName]} = Request,
 		#'3gpp_swm_STA'{'Result-Code' = undefined}, {Ip, _Port}) ->
 	case Request#'3gpp_swm_STR'.'Origin-Host' of
 		OriginHost1 when is_binary(OriginHost1) ->
@@ -1693,7 +1693,7 @@ dia_req_and_res(#'3gpp_swm_STR'{'Origin-Realm' = OriginRealm,
 					Ip, OriginHost2, OriginRealm, DesRealm, undefined, UserName}
 	end;
 dia_req_and_res(#'3gpp_swm_STR'{'Origin-Realm' = OriginRealm,
-		'Destination-Realm' = DesRealm, 'User-Name' = UserName} = Request,
+		'Destination-Realm' = DesRealm, 'User-Name' = [UserName]} = Request,
 		#'3gpp_swm_STA'{'Result-Code' = ResultCode}, {Ip, _Port})
 		when ResultCode >= 2000, ResultCode < 3000 ->
 	case Request#'3gpp_swm_STR'.'Origin-Host' of
@@ -1705,7 +1705,7 @@ dia_req_and_res(#'3gpp_swm_STR'{'Origin-Realm' = OriginRealm,
 					Ip, OriginHost2, OriginRealm, DesRealm, undefined, UserName}
 	end;
 dia_req_and_res(#'3gpp_swm_STR'{'Origin-Realm' = OriginRealm,
-		'Destination-Realm' = DesRealm, 'User-Name' = UserName} = Request,
+		'Destination-Realm' = DesRealm, 'User-Name' = [UserName]} = Request,
 		#'3gpp_swm_STA'{'Result-Code' = _ResultCode}, {Ip, _Port}) ->
 	case Request#'3gpp_swm_STR'.'Origin-Host' of
 		OriginHost1 when is_binary(OriginHost1) ->
@@ -1716,7 +1716,7 @@ dia_req_and_res(#'3gpp_swm_STR'{'Origin-Realm' = OriginRealm,
 					Ip, OriginHost2, OriginRealm, DesRealm, undefined, UserName}
 	end;
 dia_req_and_res(#'3gpp_s6b_STR'{'Origin-Realm' = OriginRealm,
-		'Destination-Realm' = DesRealm, 'User-Name' = UserName} = Request,
+		'Destination-Realm' = DesRealm, 'User-Name' = [UserName]} = Request,
 		#'3gpp_s6b_STA'{'Result-Code' = undefined}, {Ip, _Port}) ->
 	case Request#'3gpp_s6b_STR'.'Origin-Host' of
 		OriginHost1 when is_binary(OriginHost1) ->
@@ -1727,7 +1727,7 @@ dia_req_and_res(#'3gpp_s6b_STR'{'Origin-Realm' = OriginRealm,
 					Ip, OriginHost2, OriginRealm, DesRealm, undefined, UserName}
 	end;
 dia_req_and_res(#'3gpp_s6b_STR'{'Origin-Realm' = OriginRealm,
-		'Destination-Realm' = DesRealm, 'User-Name' = UserName} = Request,
+		'Destination-Realm' = DesRealm, 'User-Name' = [UserName]} = Request,
 		#'3gpp_s6b_STA'{'Result-Code' = ResultCode}, {Ip, _Port})
 		when ResultCode >= 2000, ResultCode < 3000 ->
 	case Request#'3gpp_s6b_STR'.'Origin-Host' of
@@ -1739,7 +1739,7 @@ dia_req_and_res(#'3gpp_s6b_STR'{'Origin-Realm' = OriginRealm,
 					Ip, OriginHost2, OriginRealm, DesRealm, undefined, UserName}
 	end;
 dia_req_and_res(#'3gpp_s6b_STR'{'Origin-Realm' = OriginRealm,
-		'Destination-Realm' = DesRealm, 'User-Name' = UserName} = Request,
+		'Destination-Realm' = DesRealm, 'User-Name' = [UserName]} = Request,
 		#'3gpp_s6b_STA'{'Result-Code' = _ResultCode}, {Ip, _Port}) ->
 	case Request#'3gpp_s6b_STR'.'Origin-Host' of
 		OriginHost1 when is_binary(OriginHost1) ->
@@ -1784,7 +1784,7 @@ dia_req_and_res(#'3gpp_swx_RTR'{'Origin-Realm' = OriginRealm,
 					Ip, OriginHost2, OriginRealm, DesRealm, undefined, UserName}
 	end;
 dia_req_and_res(#'3gpp_s6b_AAR'{'Origin-Realm' = OriginRealm,
-		'Destination-Realm' = DesRealm, 'User-Name' = UserName} = Request,
+		'Destination-Realm' = DesRealm, 'User-Name' = [UserName]} = Request,
 		#'3gpp_s6b_AAA'{'Result-Code' = undefined}, {Ip, _Port}) ->
 	case Request#'3gpp_s6b_AAR'.'Origin-Host' of
 		OriginHost1 when is_binary(OriginHost1) ->
@@ -1795,7 +1795,7 @@ dia_req_and_res(#'3gpp_s6b_AAR'{'Origin-Realm' = OriginRealm,
 					Ip, OriginHost2, OriginRealm, DesRealm, undefined, UserName}
 	end;
 dia_req_and_res(#'3gpp_s6b_AAR'{'Origin-Realm' = OriginRealm,
-		'Destination-Realm' = DesRealm, 'User-Name' = UserName} = Request,
+		'Destination-Realm' = DesRealm, 'User-Name' = [UserName]} = Request,
 		#'3gpp_s6b_AAA'{'Result-Code' = ResultCode}, {Ip, _Port})
 		when ResultCode >= 2000, ResultCode < 3000 ->
 	case Request#'3gpp_s6b_AAR'.'Origin-Host' of
@@ -1807,7 +1807,7 @@ dia_req_and_res(#'3gpp_s6b_AAR'{'Origin-Realm' = OriginRealm,
 					Ip, OriginHost2, OriginRealm, DesRealm, undefined, UserName}
 	end;
 dia_req_and_res(#'3gpp_s6b_AAR'{'Origin-Realm' = OriginRealm,
-		'Destination-Realm' = DesRealm, 'User-Name' = UserName} = Request,
+		'Destination-Realm' = DesRealm, 'User-Name' = [UserName]} = Request,
 		#'3gpp_s6b_AAA'{'Result-Code' = _ResultCode}, {Ip, _Port}) ->
 	case Request#'3gpp_s6b_AAR'.'Origin-Host' of
 		OriginHost1 when is_binary(OriginHost1) ->

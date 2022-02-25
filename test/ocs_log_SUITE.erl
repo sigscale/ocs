@@ -1092,7 +1092,7 @@ dia_auth_to_ecs(_Config) ->
 	Request = #diameter_nas_app_AAR{'Session-Id' = SessionID,
 			'Auth-Application-Id' = 1, 'Origin-Host' = OH,
 			'Origin-Realm' = OR, 'Destination-Realm' = DR,
-			'Auth-Request-Type' = AuthType, 'User-Name' = MSISDN},
+			'Auth-Request-Type' = AuthType, 'User-Name' = [MSISDN]},
 	Response = #diameter_nas_app_AAA{'Session-Id' = SessionID,
 			'Auth-Application-Id' = 1, 'Auth-Request-Type' = AuthType,
 			'Result-Code' = ResultCode, 'Origin-Host' = OH,
