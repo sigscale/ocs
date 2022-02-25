@@ -1570,8 +1570,8 @@ dia_req_and_res(#diameter_eap_app_DER{'Origin-Realm' = OriginRealm,
 dia_req_and_res(#'3gpp_sta_DER'{'Origin-Realm' = OriginRealm,
 		'Destination-Realm' = DesRealm, 'User-Name' = [UserName]} = Request,
 		#'3gpp_sta_DEA'{'Result-Code' = undefined,
-		'Subscription-Id' = #'3gpp_sta_Subscription-Id'{
-				'Subscription-Id-Data' = Subscriber}}, {Ip, _Port}) ->
+		'Subscription-Id' = [#'3gpp_sta_Subscription-Id'{
+				'Subscription-Id-Data' = Subscriber} | _]}, {Ip, _Port}) ->
 	case Request#'3gpp_sta_DER'.'Origin-Host' of
 		OriginHost1 when is_binary(OriginHost1) ->
 			{"end", "unknown", "sta", OriginHost1, OriginHost1,
@@ -1583,8 +1583,8 @@ dia_req_and_res(#'3gpp_sta_DER'{'Origin-Realm' = OriginRealm,
 dia_req_and_res(#'3gpp_sta_DER'{'Origin-Realm' = OriginRealm,
 		'Destination-Realm' = DesRealm, 'User-Name' = [UserName]} = Request,
 		#'3gpp_sta_DEA'{'Result-Code' = ResultCode,
-		'Subscription-Id' = #'3gpp_sta_Subscription-Id'{
-				'Subscription-Id-Data' = Subscriber}}, {Ip, _Port})
+		'Subscription-Id' = [#'3gpp_sta_Subscription-Id'{
+				'Subscription-Id-Data' = Subscriber} | _]}, {Ip, _Port})
 		when ResultCode >= 2000, ResultCode < 3000 ->
 	case Request#'3gpp_sta_DER'.'Origin-Host' of
 		OriginHost1 when is_binary(OriginHost1) ->
@@ -1597,8 +1597,8 @@ dia_req_and_res(#'3gpp_sta_DER'{'Origin-Realm' = OriginRealm,
 dia_req_and_res(#'3gpp_sta_DER'{'Origin-Realm' = OriginRealm,
 		'Destination-Realm' = DesRealm, 'User-Name' = [UserName]} = Request,
 		#'3gpp_sta_DEA'{'Result-Code' = _ResultCode,
-		'Subscription-Id' = #'3gpp_sta_Subscription-Id'{
-				'Subscription-Id-Data' = Subscriber}}, {Ip, _Port}) ->
+		'Subscription-Id' = [#'3gpp_sta_Subscription-Id'{
+				'Subscription-Id-Data' = Subscriber} | _]}, {Ip, _Port}) ->
 	case Request#'3gpp_sta_DER'.'Origin-Host' of
 		OriginHost1 when is_binary(OriginHost1) ->
 			{"end", "failure", "sta", OriginHost1, OriginHost1,
@@ -1610,8 +1610,8 @@ dia_req_and_res(#'3gpp_sta_DER'{'Origin-Realm' = OriginRealm,
 dia_req_and_res(#'3gpp_swm_DER'{'Origin-Realm' = OriginRealm,
 		'Destination-Realm' = DesRealm, 'User-Name' = [UserName]} = Request,
 		#'3gpp_swm_DEA'{'Result-Code' = undefined,
-		'Subscription-Id' = #'3gpp_sta_Subscription-Id'{
-				'Subscription-Id-Data' = Subscriber}}, {Ip, _Port}) ->
+		'Subscription-Id' = [#'3gpp_sta_Subscription-Id'{
+				'Subscription-Id-Data' = Subscriber} | _]}, {Ip, _Port}) ->
 	case Request#'3gpp_swm_DER'.'Origin-Host' of
 		OriginHost1 when is_binary(OriginHost1) ->
 			{"start", "unknown", "swm", OriginHost1, OriginHost1,
@@ -1623,8 +1623,8 @@ dia_req_and_res(#'3gpp_swm_DER'{'Origin-Realm' = OriginRealm,
 dia_req_and_res(#'3gpp_swm_DER'{'Origin-Realm' = OriginRealm,
 		'Destination-Realm' = DesRealm, 'User-Name' = [UserName]} = Request,
 		#'3gpp_swm_DEA'{'Result-Code' = ResultCode,
-		'Subscription-Id' = #'3gpp_sta_Subscription-Id'{
-				'Subscription-Id-Data' = Subscriber}}, {Ip, _Port})
+		'Subscription-Id' = [#'3gpp_sta_Subscription-Id'{
+				'Subscription-Id-Data' = Subscriber} | _]}, {Ip, _Port})
 		when ResultCode >= 2000, ResultCode < 3000 ->
 	case Request#'3gpp_swm_DER'.'Origin-Host' of
 		OriginHost1 when is_binary(OriginHost1) ->
@@ -1637,8 +1637,8 @@ dia_req_and_res(#'3gpp_swm_DER'{'Origin-Realm' = OriginRealm,
 dia_req_and_res(#'3gpp_swm_DER'{'Origin-Realm' = OriginRealm,
 		'Destination-Realm' = DesRealm, 'User-Name' = [UserName]} = Request,
 		#'3gpp_swm_DEA'{'Result-Code' = _ResultCode,
-		'Subscription-Id' = #'3gpp_sta_Subscription-Id'{
-				'Subscription-Id-Data' = Subscriber}}, {Ip, _Port}) ->
+		'Subscription-Id' = [#'3gpp_sta_Subscription-Id'{
+				'Subscription-Id-Data' = Subscriber} | _]}, {Ip, _Port}) ->
 	case Request#'3gpp_swm_DER'.'Origin-Host' of
 		OriginHost1 when is_binary(OriginHost1) ->
 			{"start", "failure", "swm", OriginHost1, OriginHost1,
