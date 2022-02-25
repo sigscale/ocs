@@ -153,7 +153,8 @@ all() ->
 			binary_tree_after, binary_tree_backward, binary_tree_forward,
 			binary_tree_last, binary_tree_first, binary_tree_half,
 			diameter_scur, diameter_scur_voice, diameter_ecur,
-			diameter_iec, dia_auth_to_ecs, radius_auth_to_ecs, dia_acct_to_ecs].
+			diameter_iec, dia_auth_to_ecs, radius_auth_to_ecs,
+			dia_acct_to_ecs, radius_acct_to_ecs].
 
 %%---------------------------------------------------------------------
 %%  Test cases
@@ -1254,6 +1255,62 @@ dia_acct_to_ecs(_Config) ->
 	{_, {struct, UserObj}} = lists:keyfind("user", 1, SourceObj),
 	{_, MSISDN} = lists:keyfind("id", 1, UserObj),
 	{_, Username} = lists:keyfind("name", 1, UserObj).
+
+radius_acct_to_ecs() ->
+	[{userdata, [{doc, "Convert radius ocs_acct log to ECS"}]}].
+
+radius_acct_to_ecs(_Config) ->
+	Node = node(),
+	AcctOutputOctets = rand:uniform(100000),
+	AcctInputOctets = rand:uniform(100000000),
+	AcctSessionTime = rand:uniform(3600) + 100,
+	UserName = ocs:generate_identity(),
+	ServerAddress = {0, 0, 0, 0},
+	ServerPort = 1812,
+	Server = {ServerAddress, ServerPort},
+	I3 = rand:uniform(256) - 1,
+	I4 = rand:uniform(254),
+	ClientAddress = <<"10.0.0.1">>,
+	NASn = integer_to_list((I3 bsl 8) + I4),
+	NasIdentifier = "ap-" ++ NASn ++ ".sigscale.net",
+	Type = start,
+	ReqAttrs = [{?ServiceType, 2}, {?NasPortId, "wlan1"},{?NasPortType, 19},
+			{?NasIdentifier, NasIdentifier}, {?NasIpAddress, ClientAddress},
+			{?UserName, UserName}, {?CallingStationId, ocs_test_lib:mac()},
+			{?CalledStationId, ocs_test_lib:mac() ++ ":AP1"},
+			{?AcctStatusType, rand:uniform(3)}, {?AcctSessionId, "8240019b"},
+			{?AcctSessionTime, AcctSessionTime},
+			{?AcctInputOctets, AcctInputOctets},
+			{?AcctOutputOctets, AcctOutputOctets}],
+	TS = erlang:system_time(millisecond),
+	N = erlang:unique_integer([positive]),
+	Protocol = radius,
+	LogEvent = {TS, N, Protocol, Node, Server,
+			Type, ReqAttrs, undefined, undefined},
+	{struct, EcsObj} = ocs_log:acct_to_ecs(LogEvent),
+	TimeStamp = ocs_log:iso8601(TS),
+	{_, TimeStamp} = lists:keyfind("@timestamp", 1, EcsObj),
+	{_, {struct, EventObj}} = lists:keyfind("event", 1, EcsObj),
+	EventId = integer_to_list(TS) ++ "-" ++ integer_to_list(N),
+	{_, EventId} = lists:keyfind("id", 1, EventObj),
+	Url = "http://host.example.net:8080" ++ ?usagePath ++ EventId,
+	{_, Url} = lists:keyfind("url", 1, EventObj),
+	Reference = "http://host.example.net:8080"
+			++ ?usageSpecPath ++ "AAAAccountingUsageSpec",
+	{_, "start"} = lists:keyfind("type", 1, EventObj),
+	{_, "success"} = lists:keyfind("outcome", 1, EventObj),
+	{_, {struct, [{"port", ServerPort}]}} = lists:keyfind("server", 1, EcsObj),
+	{_, {struct, ServiceObj}} = lists:keyfind("service", 1, EcsObj),
+	{_, ServerAddress} = lists:keyfind("ip", 1, ServiceObj),
+	{_, {struct, [{_, Node}]}} = lists:keyfind("node", 1, ServiceObj),
+	{_, {struct, [{_, Protocol}]}} = lists:keyfind("network", 1, EcsObj),
+	{_, {struct, ClientObj}} = lists:keyfind("client", 1, EcsObj),
+	{_, NasIdentifier} = lists:keyfind("address", 1, ClientObj),
+	{_, NasIdentifier} = lists:keyfind("domain", 1, ClientObj),
+	{_, {struct, SourceObj}} = lists:keyfind("source", 1, EcsObj),
+	{_, {struct, UserObj}} = lists:keyfind("user", 1, SourceObj),
+	{_, UserName} = lists:keyfind("name", 1, UserObj),
+	{_, UserName} = lists:keyfind("id", 1, UserObj).
 
 %%---------------------------------------------------------------------
 %% internal functions
