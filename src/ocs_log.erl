@@ -1225,11 +1225,25 @@ auth_to_ecs(_Event, _ClientObj, false) ->
 		Event :: acct_event(),
 		ECS :: {struct, list()}.
 %% @doc Convert auth_event to ECS.
+acct_to_ecs({TS, N, radius = P, Node, Server,
+		Type, ReqAttributes, ResAttributes, Rated}) ->
+	acct_to_ecs({TS, N, P, Node, Server, Type, ReqAttributes, ResAttributes,
+			Rated}, lists:keyfind(?NasIdentifier, 1, ReqAttributes));
 acct_to_ecs({TS, N, diameter = P, Node,
 		Server, Type, Request, Response, Rated}) ->
 	acct_to_ecs({TS, N, P, Node, Server, Type, Request, Response, Rated},
 		dia_req_and_res(Request, Response)).
 %% @hidden
+acct_to_ecs({_TS, _N, radius, _Node, _Server, _Type, ReqAttributes,
+		_ResAttributes, _Rated} = Event, {_, OriginHost}) ->
+	ClientFields = case OriginHost of
+		OriginHost1 when is_binary(OriginHost1) ->
+			[{"ip", OriginHost1}];
+		OriginHost2 when is_list(OriginHost2) ->
+			[{"domain", OriginHost2}]
+	end,
+	ClientObj = {struct, [{"address", OriginHost}] ++ ClientFields},
+	acct_to_ecs(Event, ClientObj, lists:keyfind(?UserName, 1, ReqAttributes));
 acct_to_ecs({TS, N, diameter = Protocol, Node,
 		{ServerIP, ServerPort}, Type, _Request, _Response, _Rated},
 		{Outcome, App, ClientAddress, ClientIp, ClientDomain,
@@ -1277,7 +1291,41 @@ acct_to_ecs({TS, N, diameter = Protocol, Node,
 			{"network", {struct, [{"application", App}, {"protocol", Protocol}]}},
 			{"client", ClientObj},
 			{"destination", {struct,
-					[{"subdomain", DestinationDom}]}}] ++ SourceObj}.
+					[{"subdomain", DestinationDom}]}}] ++ SourceObj};
+acct_to_ecs(_Event, false) ->
+	throw(not_found).
+%% @hidden
+acct_to_ecs({TS, N, radius = Protocol, Node, {ServerIP, ServerPort},
+		Type, _Req, _Res, _Rated}, ClientObj, {_, UserName}) ->
+	Now = erlang:system_time(millisecond),
+	EventId = integer_to_list(TS) ++ "-" ++ integer_to_list(N),
+	ExampleSocket = "http://host.example.net:8080",
+	EventObj = {struct, [{"created", ocs_log:iso8601(Now)},
+			{"id", EventId},
+			{"url", ExampleSocket ++ ?usagePath ++ EventId},
+			{"reference", ExampleSocket
+					++ ?usageSpecPath ++ "AAAAccountingUsageSpec"},
+			{"dataset", "auth"},
+			{"kind", "event"},
+			{"category", "authentication"},
+			{"type", event_type(Type)},
+			{"outcome", "success"}]},
+	ServiceObj = {struct, [{"ip", ServerIP},
+			{"type", "sigscale-ocs"},
+			{"name", "aaa"},
+			{"node", {struct, [{"name", Node}]}}]},
+	SourceObj = {struct, [{"user", {struct,
+			[{"id", UserName}, {"name", UserName}]}}]},
+	{struct, [{"@timestamp", ocs_log:iso8601(TS)},
+			{"event", EventObj},
+			{"service", ServiceObj},
+			{"server", {struct, [{"port", ServerPort}]}},
+			{"agent", {struct, [{"type", "sigscale-ocs"}]}},
+			{"network", {struct, [{"protocol", Protocol}]}},
+			{"client", ClientObj},
+			{"source", SourceObj}]};
+acct_to_ecs(_Event, _ClientObj, false) ->
+	throw(not_found).
 
 %%----------------------------------------------------------------------
 %%  internal functions
