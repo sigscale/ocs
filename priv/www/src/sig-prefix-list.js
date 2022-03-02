@@ -17,6 +17,7 @@ import '@polymer/paper-fab/paper-fab.js';
 import '@polymer/iron-icons/iron-icons.js';
 import '@vaadin/vaadin-grid/theme/material/vaadin-grid.js';
 import '@vaadin/vaadin-grid/vaadin-grid.js';
+import '@vaadin/vaadin-grid/vaadin-grid-filter.js';
 import './style-element.js'
 
 class prefixList extends PolymerElement {
@@ -30,19 +31,46 @@ class prefixList extends PolymerElement {
 					theme="no-border">
 				<vaadin-grid-column width="15ex">
 					<template class="header">
-						Prefix
+						<vaadin-grid-filter
+								aria-label="prefix"
+								path="prefix"
+								value="{{_filterPrefix}}">
+							<input
+									slot="filter"
+									placeholder="Prefix"
+									value="{{_filterPrefix::input}}"
+									focus-target>
+						</vaadin-grid-filter>
 					</template>
 					<template>[[item.prefix]]</template>
 				</vaadin-grid-column>
 				<vaadin-grid-column width="15ex">
 					<template class="header">
-						Description
+						<vaadin-grid-filter
+								aria-label="description"
+								path="description"
+								value="{{_filterDescription}}">
+							<input
+									slot="filter"
+									placeholder="Description"
+									value="{{_filterDescription::input}}"
+									focus-target>
+						</vaadin-grid-filter>
 					</template>
 					<template>[[item.description]]</template>
 				</vaadin-grid-column>
 				<vaadin-grid-column width="15ex">
 					<template class="header">
-						Rate
+						<vaadin-grid-filter
+								aria-label="rate"
+								path="rate"
+								value="{{_filterRate}}">
+							<input
+									slot="filter"
+									placeholder="Rate"
+									value="{{_filterRate::input}}"
+									focus-target>
+						</vaadin-grid-filter>
 					</template>
 					<template>[[item.rate]]</template>
 				</vaadin-grid-column>
@@ -129,6 +157,18 @@ class prefixList extends PolymerElement {
 				type: String,
 				value: null
 			},
+			_filterPrefix: {
+				type: Boolean,
+				observer: '_filterChanged'
+			},
+			_filterDescription: {
+				type: Boolean,
+				observer: '_filterChanged'
+			},
+			_filterRate: {
+				type: Boolean,
+				observer: '_filterChanged'
+			},
 			tables: {
 				type: Array,
 				readOnly: true,
@@ -190,11 +230,11 @@ class prefixList extends PolymerElement {
 		this.shadowRoot.getElementById('getPrefixTables').generateRequest();
 	}
 
-   _getTablesError(event) {
-      var toast = document.body.querySelector('sig-app').shadowRoot.getElementById('restError');
-      toast.text = "Error";
-      toast.open();
-   }
+	_getTablesError(event) {
+		var toast = document.body.querySelector('sig-app').shadowRoot.getElementById('restError');
+		toast.text = "Error";
+		toast.open();
+	}
 
 	_deleteTableError(event) {
 		var toast = document.body.querySelector('sig-app').shadowRoot.getElementById('restError');
@@ -222,6 +262,22 @@ class prefixList extends PolymerElement {
 		var prefixList = document.body.querySelector('sig-app').shadowRoot.getElementById('prefixList');
 		var ajax = prefixList.shadowRoot.getElementById('getPrefixRows');
 		ajax.url = "/resourceInventoryManagement/v1/resource?resourceSpecification.id=2&resourceRelationship.resource.name=" + prefixList.activeTableName;
+		delete ajax.params['filter'];
+		function checkHead(param) {
+			return param.path == "prefix" || param.path == "description" || param.path == "rate"
+		}
+		params.filters.filter(checkHead).forEach(function(filter) {
+			if(filter.value) {
+				if(ajax.params['filter']) {
+					ajax.params['filter'] += "]," + filter.path + ".like=[" + filter.value + "%";
+				} else {
+					ajax.params['filter'] = "\"[{" + filter.path + ".like=[" + filter.value + "%";
+				}
+			}
+		});
+		if (ajax.params['filter']) {
+			ajax.params['filter'] += "]}]\"";
+		}
 		var handleAjaxResponse = function(request) {
 			if(request) {
 				prefixList.etag = request.xhr.getResponseHeader('ETag');
@@ -294,6 +350,12 @@ class prefixList extends PolymerElement {
 			}
 			ajax.generateRequest().completes.then(handleAjaxResponse, handleAjaxError);
 		}
+	}
+
+	_filterChanged(filter) {
+		this.etag = null;
+		var grid = this.shadowRoot.getElementById('prefixGrid');
+		grid.size = 0;
 	}
 
 	_tableAdd() {
