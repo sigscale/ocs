@@ -159,13 +159,13 @@ start7(Profile, [_ | T]) ->
 start7(Profile, []) ->
 	case inets:start(httpc, [{profile, Profile}]) of
 		{ok, _Pid} ->
-			start6();
+			start8(Profile);
 		{error, Reason} ->
 			{error, Reason}
 	end.
 %% @hidden
 start8(Profile) ->
-	{ok, Options} = application:get_env(hub_options),
+	{ok, Options} = application:get_env(nrf_options),
 	case httpc:set_options(Options, Profile) of
 		ok ->
 			start9();
