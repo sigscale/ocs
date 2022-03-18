@@ -1176,8 +1176,7 @@ adjustment(#adjustment{amount = Amount, service = ServiceRef, product = undefine
 								BucketRefs2 = [B5 || #bucket{id = B5} <- Buckets2],
 								P2 = P1#product{balance = [B4#bucket.id | BucketRefs2]},
 								mnesia:write(product, P2, write),
-								{RemainAmount, DeleteRefs, [B4#bucket.id | BucketRefs2],
-		ProductRef}
+								{RemainAmount, DeleteRefs, [B4#bucket.id | BucketRefs2], ProductRef}
 						end;
 					[] ->
 						mnesia:abort(not_found)
@@ -1636,7 +1635,7 @@ get_offers() ->
 %% @doc Delete an entry from the offer table.
 delete_offer(OfferID) ->
 	Ftransaction = fun() ->
-			case mnesia:read(offer, OfferID) of
+			case mnesia:read(offer, OfferID, write) of
 				[#offer{} = Offer] ->
 					Fselect = fun F(start) ->
 								MatchSpec = [{#product{product = OfferID,
@@ -1799,7 +1798,7 @@ get_resource(ResourceID) when is_list(ResourceID) ->
 %% @doc Delete a Resource.
 delete_resource(ResourceID) when is_list(ResourceID) ->
 	F = fun() ->
-			case mnesia:read(resource, ResourceID) of
+			case mnesia:read(resource, ResourceID, write) of
 				[#resource{specification = #specification_ref{id = "2"},
 						related = [#resource_rel{name = Table}],
 						characteristic = Chars} = Resource] when is_list(Table) ->
