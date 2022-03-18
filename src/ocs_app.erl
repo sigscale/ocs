@@ -341,7 +341,8 @@ start14() ->
 			catch ocs_mib:load(),
 			case ocs_scheduler:start() of
 				ok ->
-					{ok, Sup};
+%					{ok, Sup};
+					start15(Sup);
 				{error, Reason2} ->
 					throw(Reason2)
 			end
@@ -349,6 +350,41 @@ start14() ->
 		Reason ->
 			error_logger:error_report(["ocs application failed to start",
 					{reason, Reason}, {module, ?MODULE}]),
+			{error, Reason}
+	end.
+%% @hidden
+start15(Sup) ->
+	case inets:services_info() of
+		ServicesInfo when is_list(ServicesInfo) ->
+			case application:get_env(elastic_shipper) of
+				undefined ->
+					{ok, Sup};
+				{ok, {_, Profile, _Options}} ->
+					case supervisor:start_child(ocs_event_log_sup, []) of
+						{ok, _PageServer, _Id} ->
+							start16(Profile, ServicesInfo, Sup);
+						{error, Reason} ->
+							{error, Reason}
+					end
+			end;
+		{error, Reason} ->
+			{error, Reason}
+	end.
+%% @hidden
+start16(Profile, [{httpc, _Pid, Info} | T], Sup) ->
+	case proplists:lookup(profile, Info) of
+		{profile, Profile} ->
+			{ok, Sup};
+		_ ->
+			start16(Profile, T, Sup)
+	end;
+start16(Profile, [_ | T], Sup) ->
+	start16(Profile, T, Sup);
+start16(Profile, [], Sup) ->
+	case inets:start(httpc, [{profile, Profile}]) of
+		{ok, _Pid} ->
+			{ok, Sup};
+		{error, Reason} ->
 			{error, Reason}
 	end.
 
