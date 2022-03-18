@@ -130,7 +130,8 @@ beam_DATA = ocs.beam \
 			ocs_event.beam \
 			ocs_statistics_sup.beam \
 			ocs_statistics_server.beam \
-			user_default.beam
+			user_default.beam \
+			ocs_event_log.beam
 
 %.beam:$(top_srcdir)/src/%.erl	$(top_srcdir)/include/ocs.hrl \
 		$(top_srcdir)/include/ocs_log.hrl \

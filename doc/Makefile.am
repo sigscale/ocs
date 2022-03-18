@@ -124,7 +124,8 @@ modhtml = ocs.html \
 			ocs_statistics_sup.html \
 			ocs_statistics_server.html \
 			ocs_event.html \
-			user_default.html
+			user_default.html \
+			ocs_event_log.html
 
 doc_DATA = overview.edoc $(modhtml) \
 		modules-frame.html overview-summary.html \
