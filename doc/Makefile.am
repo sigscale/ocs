@@ -126,6 +126,7 @@ modhtml = ocs.html \
 			ocs_event.html \
 			user_default.html \
 			ocs_event_log.html \
+			ocs_event_log_sup.html \
 			ocs_event_log_fsm.html
 
 doc_DATA = overview.edoc $(modhtml) \

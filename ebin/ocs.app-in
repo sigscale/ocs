@@ -126,6 +126,7 @@
 				ocs_statistics_server,
 				user_default,
 				ocs_event_log,
+				ocs_event_log_sup,
 				ocs_event_log_fsm]},
 		{registered, [ocs]},
 		{applications, [mnesia, crypto, inets, asn1, public_key, ssl, mochiweb, radius, diameter]},
