@@ -69,7 +69,10 @@ init([LogRotateTime, LogRotateInterval] = _Args) ->
 			supervisor(ocs_rest_hub_sup,
 					ocs_rest_hub_sup, []),
 			server(ocs_server, [self()]),
-			event(ocs_event)],
+			event(ocs_event),
+			supervisor(ocs_event_log_sup,
+					ocs_event_log_sup, []),
+			event(ocs_event_log)],
 	{ok, {{one_for_one, 10, 60}, ChildSpecs}}.
 
 %%----------------------------------------------------------------------
