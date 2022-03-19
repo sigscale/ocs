@@ -139,7 +139,7 @@ rate(Protocol, ServiceType, ServiceId, ChargingKey,
 		(is_list(ReserveAmounts) or (ReserveAmounts == undefined)),
 		length(SessionAttributes) > 0 ->
 	F = fun() ->
-			case mnesia:read(service, SubscriberID, write) of
+			case mnesia:read(service, SubscriberID, sticky_write) of
 				[#service{product = ProdRef, session_attributes = SessionList} = Service] ->
 					case mnesia:read(product, ProdRef, read) of
 						[#product{product = OfferId,
@@ -148,7 +148,7 @@ rate(Protocol, ServiceType, ServiceId, ChargingKey,
 							case mnesia:dirty_read(offer, OfferId) of
 								[#offer{char_value_use = CharValueUse, end_date = EndDate, start_date = StartDate} = Offer]
 										when ((StartDate =< Now) or (StartDate == undefined)), ((EndDate > Now) or ( EndDate == undefined)) ->
-									Buckets = lists:flatten([mnesia:read(bucket, Id, write)
+									Buckets = lists:flatten([mnesia:read(bucket, Id, sticky_write)
 											|| Id <- BucketRefs]),
 									F2 = fun(#bucket{units = cents, remain_amount = RM}) when RM < 0 ->
 												false;
@@ -580,7 +580,7 @@ charge(Protocol, SubscriberID, ServiceId,
 					[#product{product = OfferId, balance = BucketRefs} = Product] ->
 						case mnesia:read(offer, OfferId, read) of
 							[#offer{char_value_use = CharValueUse, name = OfferName} = _Offer] ->
-								Buckets = lists:flatten([mnesia:read(bucket, Id, write)
+								Buckets = lists:flatten([mnesia:read(bucket, Id, sticky_write)
 										|| Id <- BucketRefs]),
 								F1 = fun(#bucket{units = cents, remain_amount = RM}) when RM < 0 ->
 										false;
@@ -1195,7 +1195,7 @@ authorize1(radius, ServiceType,
 		Direction, SessionAttributes) ->
 	case mnesia:read(product, ProdRef, read) of
 		[#product{product = OfferId, balance = BucketRefs}] ->
-			Buckets = lists:flatten([mnesia:read(bucket, Id, write) || Id <- BucketRefs]),
+			Buckets = lists:flatten([mnesia:read(bucket, Id, sticky_write) || Id <- BucketRefs]),
 			F = fun({'Session-Id', _}) ->
 					true;
 				({?AcctSessionId, _}) ->
@@ -1228,7 +1228,7 @@ authorize1(diameter, ServiceType,
 		Service, _Timestamp, _Address, _Direction, SessionAttributes) ->
 	case mnesia:dirty_read(product, ProdRef) of
 		[#product{balance = BucketRefs}] ->
-			Buckets = lists:flatten([mnesia:read(bucket, Id, write) || Id <- BucketRefs]),
+			Buckets = lists:flatten([mnesia:read(bucket, Id, sticky_write) || Id <- BucketRefs]),
 			authorize5(Service, Buckets, ServiceType, SessionAttributes, Attributes);
 		[] ->
 			mnesia:abort(product_not_found)
