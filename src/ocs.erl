@@ -258,21 +258,21 @@ update_client(Address, Port, Protocol) when is_tuple(Address),
 %% @doc Get all clients.
 get_clients()->
 	MatchSpec = [{'_', [], ['$_']}],
-	F = fun(F, start, Acc) ->
-				F(F, mnesia:select(client, MatchSpec,
+	F = fun F(start, Acc) ->
+				F(mnesia:select(client, MatchSpec,
 						?CHUNKSIZE, read), Acc);
-			(_F, '$end_of_table', Acc) ->
-				{ok, lists:flatten(lists:reverse(Acc))};
-			(_F, {error, Reason}, _Acc) ->
+			F('$end_of_table', Acc) ->
+				Acc;
+			F({error, Reason}, _Acc) ->
 				{error, Reason};
-			(F,{Clients, Cont}, Acc) ->
-				F(F, mnesia:select(Cont), [Clients | Acc])
+			F({L, Cont}, Acc) ->
+				F(mnesia:select(Cont), [L | Acc])
 	end,
 	case mnesia:ets(F, [F, start, []]) of
 		{error, Reason} ->
 			{error, Reason};
-		{ok, Result} ->
-			Result
+		{ok, Acc} when is_list(Acc) ->
+			{ok, lists:flatten(lists:reverse(Acc))}
 	end.
 
 -spec delete_client(Client) -> ok
@@ -441,21 +441,21 @@ query_clients5({Clients, Cont}, {Op, String})
 
 get_products()->
 	MatchSpec = [{'_', [], ['$_']}],
-	F = fun(F, start, Acc) ->
-		F(F, mnesia:select(product, MatchSpec,
-				?CHUNKSIZE, read), Acc);
-		(_F, '$end_of_table', Acc) ->
-				{ok, lists:flatten(lists:reverse(Acc))};
-		(_F, {error, Reason}, _Acc) ->
+	F = fun F(start, Acc) ->
+				F(mnesia:select(product, MatchSpec,
+						?CHUNKSIZE, read), Acc);
+			F('$end_of_table', Acc) ->
+				Acc;
+			F({error, Reason}, _Acc) ->
 				{error, Reason};
-		(F,{Products, Cont}, Acc) ->
-				F(F, mnesia:select(Cont), [Products | Acc])
+			F({L, Cont}, Acc) ->
+				F(mnesia:select(Cont), [L | Acc])
 	end,
 	case mnesia:ets(F, [F, start, []]) of
 		{error, Reason} ->
 			{error, Reason};
-		{ok, Result} ->
-			Result
+		{ok, Acc} when is_list(Acc) ->
+			{ok, lists:flatten(lists:reverse(Acc))}
 	end.
 
 -spec query_product(Cont, MatchId, MatchOffer, MatchService) -> Result
@@ -907,20 +907,20 @@ find_bucket(BucketId) ->
 get_buckets() ->
 	MatchSpec = [{'_', [], ['$_']}],
 	F = fun F(start, Acc) ->
-		F(mnesia:select(bucket, MatchSpec,
-				?CHUNKSIZE, read), Acc);
-		F('$end_of_table', Acc) ->
-				{ok, lists:flatten(lists:reverse(Acc))};
-		F({error, Reason}, _Acc) ->
+				F(mnesia:select(bucket, MatchSpec,
+					?CHUNKSIZE, read), Acc);
+			F('$end_of_table', Acc) ->
+				Acc;
+			F({error, Reason}, _Acc) ->
 				{error, Reason};
-		F({Buckets, Cont}, Acc) ->
-				F(mnesia:select(Cont), [Buckets | Acc])
+			F({L, Cont}, Acc) ->
+				F(mnesia:select(Cont), [L| Acc])
 	end,
 	case mnesia:ets(F, [start, []]) of
 		{error, Reason} ->
 			{error, Reason};
-		{ok, Result} ->
-			Result
+		{ok, Acc} when is_list(Acc) ->
+			{ok, lists:flatten(lists:reverse(Acc))}
 	end.
 
 -spec get_buckets(ProdRef) -> Result
@@ -1176,8 +1176,7 @@ adjustment(#adjustment{amount = Amount, service = ServiceRef, product = undefine
 								BucketRefs2 = [B5 || #bucket{id = B5} <- Buckets2],
 								P2 = P1#product{balance = [B4#bucket.id | BucketRefs2]},
 								mnesia:write(product, P2, write),
-								{RemainAmount, DeleteRefs, [B4#bucket.id | BucketRefs2],
-		ProductRef}
+								{RemainAmount, DeleteRefs, [B4#bucket.id | BucketRefs2], ProductRef}
 						end;
 					[] ->
 						mnesia:abort(not_found)
@@ -1343,21 +1342,21 @@ find_service(Identity) when is_binary(Identity) ->
 %% @doc Get all entries in the service table.
 get_services()->
 	MatchSpec = [{'_', [], ['$_']}],
-	F = fun(F, start, Acc) ->
-				F(F, mnesia:select(service, MatchSpec,
+	F = fun F(start, Acc) ->
+				F(mnesia:select(service, MatchSpec,
 						?CHUNKSIZE, read), Acc);
-			(_F, '$end_of_table', Acc) ->
-				{ok, lists:flatten(lists:reverse(Acc))};
-			(_F, {error, Reason}, _Acc) ->
+			F('$end_of_table', Acc) ->
+				Acc;
+			F({error, Reason}, _Acc) ->
 				{error, Reason};
-			(F,{Services, Cont}, Acc) ->
-				F(F, mnesia:select(Cont), [Services | Acc])
+			F({L, Cont}, Acc) ->
+				F(mnesia:select(Cont), [L | Acc])
 	end,
 	case mnesia:ets(F, [F, start, []]) of
 		{error, Reason} ->
 			{error, Reason};
-		{ok, Result} ->
-			Result
+		{ok, Acc} when is_list(Acc) ->
+			{ok, lists:flatten(lists:reverse(Acc))}
 	end.
 
 -spec query_service(Cont, MatchId, MatchProduct) -> Result
@@ -1612,21 +1611,21 @@ find_offer(OfferID) ->
 %% @doc Get all entries in the offer table.
 get_offers() ->
 	MatchSpec = [{'_', [], ['$_']}],
-	F = fun(F, start, Acc) ->
-				F(F, mnesia:select(offer, MatchSpec,
+	F = fun F(start, Acc) ->
+				F(mnesia:select(offer, MatchSpec,
 						?CHUNKSIZE, read), Acc);
-			(_F, '$end_of_table', Acc) ->
-				{ok, lists:flatten(lists:reverse(Acc))};
-			(_F, {error, Reason}, _Acc) ->
+			F('$end_of_table', Acc) ->
+				Acc;
+			F({error, Reason}, _Acc) ->
 				{error, Reason};
-			(F,{Offer, Cont}, Acc) ->
-				F(F, mnesia:select(Cont), [Offer | Acc])
+			F({L, Cont}, Acc) ->
+				F(mnesia:select(Cont), [L | Acc])
 	end,
 	case mnesia:ets(F, [F, start, []]) of
 		{error, Reason} ->
 			{error, Reason};
-		{ok, Result} ->
-			Result
+		{ok, Acc} when is_list(Acc) ->
+			{ok, lists:flatten(lists:reverse(Acc))}
 	end.
 
 -spec delete_offer(OfferID) -> Result
@@ -1636,7 +1635,7 @@ get_offers() ->
 %% @doc Delete an entry from the offer table.
 delete_offer(OfferID) ->
 	Ftransaction = fun() ->
-			case mnesia:read(offer, OfferID) of
+			case mnesia:read(offer, OfferID, write) of
 				[#offer{} = Offer] ->
 					Fselect = fun F(start) ->
 								MatchSpec = [{#product{product = OfferID,
@@ -1754,20 +1753,21 @@ add_resource2({aborted, Reason}) ->
 %% @doc List all entries in the resource table.
 get_resources() ->
 	MatchSpec = [{'_', [], ['$_']}],
-	F = fun(F, start, Acc) ->
-				F(F, mnesia:select(resource, MatchSpec, ?CHUNKSIZE, read), Acc);
-			(_F, '$end_of_table', Acc) ->
-				{ok, lists:flatten(lists:reverse(Acc))};
-			(_F, {error, Reason}, _Acc) ->
+	F = fun F(start, Acc) ->
+				F(mnesia:select(resource, MatchSpec,
+						?CHUNKSIZE, read), Acc);
+			F('$end_of_table', Acc) ->
+				Acc;
+			F({error, Reason}, _Acc) ->
 				{error, Reason};
-			(F,{Offer, Cont}, Acc) ->
-				F(F, mnesia:select(Cont), [Offer | Acc])
+			F({L, Cont}, Acc) ->
+				F(mnesia:select(Cont), [L | Acc])
 	end,
 	case mnesia:ets(F, [F, start, []]) of
 		{error, Reason} ->
 			{error, Reason};
-		{ok, Result} ->
-			Result
+		{ok, Acc} when is_list(Acc) ->
+			{ok, lists:flatten(lists:reverse(Acc))}
 	end.
 
 -spec get_resource(ResourceID) -> Result
@@ -1798,7 +1798,7 @@ get_resource(ResourceID) when is_list(ResourceID) ->
 %% @doc Delete a Resource.
 delete_resource(ResourceID) when is_list(ResourceID) ->
 	F = fun() ->
-			case mnesia:read(resource, ResourceID) of
+			case mnesia:read(resource, ResourceID, write) of
 				[#resource{specification = #specification_ref{id = "2"},
 						related = [#resource_rel{name = Table}],
 						characteristic = Chars} = Resource] when is_list(Table) ->
