@@ -446,9 +446,6 @@ rate3(Protocol, Service, ServiceId, Product, Buckets, Address,
 							mnesia:abort(negative_amount)
 					end;
 				Other ->
-					error_logger:error_report(["Prefix table tariff lookup failed",
-							{module, ?MODULE}, {table, Table},
-							{address, Address}, {result, Other}]),
 					mnesia:abort(table_lookup_failed)
 			end;
 		#char_value_use{values = [#char_value{value = TariffTable}]}
@@ -470,9 +467,6 @@ rate3(Protocol, Service, ServiceId, Product, Buckets, Address,
 										mnesia:abort(negative_amount)
 								end;
 							Other ->
-								error_logger:error_report(["Prefix table tariff lookup failed",
-										{module, ?MODULE}, {table, Table2},
-										{address, Address}, {result, Other}]),
 								mnesia:abort(table_lookup_failed)
 						end;
 				Other ->
@@ -511,9 +505,6 @@ rate4(Protocol, Service, ServiceId, Product, Buckets,
 					mnesia:abort(negative_amount)
 			end;
 		Other ->
-			error_logger:error_report(["Prefix table tariff lookup failed",
-					{module, ?MODULE}, {table, Table},
-					{service_network, ServiceNetwork}, {result, Other}]),
 			mnesia:abort(table_lookup_failed)
 	end;
 rate4(Protocol, Service, ServiceId, Product, Buckets,
@@ -1326,9 +1317,6 @@ authorize3(Protocol, ServiceType, Service, Buckets, Address,
 							mnesia:abort(negative_amount)
 					end;
 				Other ->
-					error_logger:error_report(["Prefix table tariff lookup failed",
-							{module, ?MODULE}, {table, Table},
-							{address, Address}, {result, Other}]),
 					mnesia:abort(table_lookup_failed)
 			end;
 		false ->
