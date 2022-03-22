@@ -25,7 +25,7 @@
 -behaviour(gen_event).
 
 %% export the private API
--export([handle_async/2]).
+-export([pending_result/3, established_result/1]).
 %% export the ocs_event_log API
 -export([notify/2]).
 
@@ -112,7 +112,7 @@ handle_event1(_Request, _Profile,
 handle_event1(Request, Profile,
 		#state{estabslished = false, pending = false} = State) ->
 	NewState = State#state{estabslished = false, pending = true},
-	MFA = {?MODULE, handle_async, [NewState]},
+	MFA = {?MODULE, pending_result, [self(), ?MODULE]},
 	Options = [{sync, false}, {receiver, MFA}],
 	case httpc:request(post, Request, [], Options, Profile) of
 		{ok, RequestId} when is_reference(RequestId) ->
@@ -123,7 +123,7 @@ handle_event1(Request, Profile,
 	end;
 handle_event1(Request, Profile,
 		#state{estabslished = true, pending = false} = State) ->
-	MFA = {?MODULE, handle_async, [State]},
+	MFA = {?MODULE, established_result, []},
 	Options = [{sync, false}, {receiver, MFA}],
 	case httpc:request(post, Request, [], Options, Profile) of
 		{ok, RequestId} when is_reference(RequestId) ->
@@ -156,18 +156,19 @@ handle_call({_RequestId,
 		when StatusCode >= 200, StatusCode  < 300 ->
 	{ok, ok, State#state{estabslished = true, pending = false}};
 handle_call({RequestId,
-		{{_HttpVersion, StatusCode, _ReasonPhrase}, _Headers, _Body}}, State) ->
+		{{_HttpVersion, StatusCode, ReasonPhrase}, _Headers, _Body}}, State) ->
 	error_logger:warning_report(["Event shipping failed",
 			{module, ?MODULE}, {state, State},
-			{status, StatusCode}, {request, RequestId}]),
+			{status, StatusCode}, {reason, ReasonPhrase},
+			{request, RequestId}]),
 	ok = gen_event:delete_handler(ocs_event_log, ocs_event_log, []),
-	{remove_handler, {error, StatusCode}};
+	{remove_handler, ReasonPhrase};
 handle_call({RequestId, {error, Reason}}, State) ->
 	error_logger:warning_report(["Event shipping failed",
 			{module, ?MODULE}, {state, State},
 			{error, Reason}, {request, RequestId}]),
 	ok = gen_event:delete_handler(ocs_event_log, ocs_event_log, []),
-	{remove_handler, {error, Reason}}.
+	{remove_handler, Reason}.
 
 -spec handle_info(Info, Fsm) -> Result
 	when
@@ -212,34 +213,42 @@ terminate(_Reason, _Fsm) ->
 code_change(_OldVsn, State, _Extra) ->
 	{ok, State}.
 
--spec handle_async(ReplyInfo, State) -> ok
+-spec pending_result(ReplyInfo, EventManager, Handler) -> ok
 	when
 		ReplyInfo :: tuple(),
-		State :: state().
-%% @doc Handle async result of httpc:request/3.
+		EventManager :: pid(),
+		Handler :: gen_event_log.
+%% @doc Handle async result of httpc:request/5 while session pending.
 %% @private
-handle_async(ReplyInfo, #state{estabslished = false, pending = true} = State) ->
-	case gen_event:call(ocs_event_log, ocs_event_log, ReplyInfo) of
+pending_result(ReplyInfo, EventManager, Handler) ->
+	case gen_event:call(EventManager, Handler, ReplyInfo) of
 		ok ->
 			ok;
 		{error, _Reason} ->
 			error_logger:warning_report(["Event shipping failed",
-					{module, ?MODULE}, {state, State}]),
-			gen_event:delete_handler(ocs_event_log, ocs_event_log, [])
-	end;
-handle_async({_RequestId,
-		{{_HttpVersion, StatusCode, _ReasonPhrase}, _Headers, _Body}}, _State)
+					{module, ?MODULE}, {manager, EventManager}, {handler, Handler}]),
+			gen_event:delete_handler(EventManager, Handler, [])
+	end.
+
+-spec established_result(ReplyInfo) -> ok
+	when
+		ReplyInfo :: tuple().
+%% @doc Handle async result of httpc:request/5 while session established.
+%% @private
+established_result({_RequestId,
+		{{_HttpVersion, StatusCode, _ReasonPhrase}, _Headers, _Body}})
 		when StatusCode >= 200, StatusCode  < 300 ->
 	ok;
-handle_async({RequestId,
-		{{_HttpVersion, StatusCode, _ReasonPhrase}, _Headers, _Body}}, State) ->
+established_result({RequestId,
+		{{_HttpVersion, StatusCode, ReasonPhrase}, _Headers, _Body}}) ->
 	error_logger:warning_report(["Event shipping failed",
-			{module, ?MODULE}, {state, State},
-			{status, StatusCode}, {request, RequestId}]),
+			{module, ?MODULE},
+			{status, StatusCode}, {reason, ReasonPhrase},
+			{request, RequestId}]),
 	gen_event:delete_handler(ocs_event_log, ocs_event_log, []);
-handle_async({RequestId, {error, Reason}}, State) ->
+established_result({RequestId, {error, Reason}}) ->
 	error_logger:warning_report(["Event shipping failed",
-			{module, ?MODULE}, {state, State},
+			{module, ?MODULE},
 			{error, Reason}, {request, RequestId}]),
 	gen_event:delete_handler(ocs_event_log, ocs_event_log, []).
 
