@@ -361,7 +361,7 @@ start15(Sup) ->
 					{ok, Sup};
 				{ok, {_, Profile, _Options}} ->
 					case supervisor:start_child(ocs_event_log_sup, []) of
-						{ok, _PageServer, _Id} ->
+						{ok, _EventLogSup, _Id} ->
 							start16(Profile, ServicesInfo, Sup);
 						{error, Reason} ->
 							{error, Reason}

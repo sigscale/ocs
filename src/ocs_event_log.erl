@@ -38,7 +38,7 @@
 		callback :: string(),
 		fsm :: pid(),
 		type :: atom(),
-		estabslished = false :: boolean(),
+		established = false :: boolean(),
 		pending = false :: boolean()}).
 -type state() :: #state{}.
 
@@ -107,11 +107,11 @@ handle_event({Type, Resource} = _Event,
 	handle_event1(Request, Profile, State).
 %% @hidden
 handle_event1(_Request, _Profile,
-		#state{estabslished = false, pending = true} = State) ->
+		#state{established = false, pending = true} = State) ->
 	{ok, State};
 handle_event1(Request, Profile,
-		#state{estabslished = false, pending = false} = State) ->
-	NewState = State#state{estabslished = false, pending = true},
+		#state{established = false, pending = false} = State) ->
+	NewState = State#state{established = false, pending = true},
 	MFA = {?MODULE, pending_result, [self(), ?MODULE]},
 	Options = [{sync, false}, {receiver, MFA}],
 	case httpc:request(post, Request, [], Options, Profile) of
@@ -122,7 +122,7 @@ handle_event1(Request, Profile,
 			remove_handler
 	end;
 handle_event1(Request, Profile,
-		#state{estabslished = true, pending = false} = State) ->
+		#state{established = true, pending = false} = State) ->
 	MFA = {?MODULE, established_result, []},
 	Options = [{sync, false}, {receiver, MFA}],
 	case httpc:request(post, Request, [], Options, Profile) of
@@ -152,9 +152,9 @@ handle_event1(Request, Profile,
 %%
 handle_call({_RequestId,
 		{{_HttpVersion, StatusCode, _ReasonPhrase}, _Headers, _Body}},
-		#state{estabslished = false, pending = true} = State)
+		#state{established = false, pending = true} = State)
 		when StatusCode >= 200, StatusCode  < 300 ->
-	{ok, ok, State#state{estabslished = true, pending = false}};
+	{ok, ok, State#state{established = true, pending = false}};
 handle_call({RequestId,
 		{{_HttpVersion, StatusCode, ReasonPhrase}, _Headers, _Body}}, State) ->
 	error_logger:warning_report(["Event shipping failed",
