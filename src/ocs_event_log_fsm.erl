@@ -25,7 +25,7 @@
 -export([start_link/0]).
 
 %% export the ocs_event_log_fsm states
--export([install/2, backoff/2]).
+-export([install/2, installed/2, backoff/2]).
 
 %% export the callbacks needed for gen_fsm behaviour
 -export([init/1, handle_event/3, handle_sync_event/4,
@@ -35,7 +35,8 @@
 		{id :: string(),
 		profile :: atom(),
 		callback :: string(),
-		backoff :: pos_integer()}).
+		backoff :: pos_integer(),
+		reason :: term()}).
 -type statedata() :: #statedata{}.
 
 %%----------------------------------------------------------------------
@@ -76,30 +77,21 @@ start_link() ->
 %%
 init([Id] = _Args) ->
 	process_flag(trap_exit, true),
-	init(Id, application:get_env(elastic_shipper)).
-%% @hidden
-init(_Id, undefined) ->
-	{stop, {elastic_shipper, undefined}};
-init(Id, {ok, {Url, Profile, Options}}) ->
-	init(Id, Url, Profile, lists:keyfind(backoff, 1, Options)).
-%% @hidden
-init(_Id, _Url, _Profile, false) ->
-	{stop, {backoff, undefined}};
-init(Id, Url, Profile, {_, Time}) ->
-	State = case Url of
-		U1 when is_list(U1) ->
-			#statedata{id = Id, profile = Profile,
-					callback = U1, backoff = Time};
-		U2 when is_binary(U2) ->
-			#statedata{id = Id, profile = Profile,
-					callback = binary_to_list(U2), backoff = Time}
+	{ok, {Url, Profile, Options}} = application:get_env(elastic_shipper),
+	Time = case lists:keyfind(backoff, 1, Options) of
+		{_, Ti} ->
+			Ti;
+		false ->
+			60
 	end,
-	{ok, install, State, 0}.
+	StateData = #statedata{id = Id, profile = Profile,
+			callback = Url, backoff = Time * 1000},
+	{ok, install, StateData, 0}.
 
--spec install(Event, State) -> Result
+-spec install(Event, StateData) -> Result
 	when
 		Event :: timeout | pos_integer(),
-		State :: statedata(),
+		StateData :: statedata(),
 		Result :: {next_state, NextStateName, NewStateData}
 			| {next_state, NextStateName, NewStateData, timeout}
 			| {next_state, NextStateName, NewStateData, hibernate}
@@ -109,25 +101,36 @@ init(Id, Url, Profile, {_, Time}) ->
 		Reason :: normal | term().
 %% @doc Handle event received in `register' state.
 %% @private
-install(timeout, #statedata{profile = Profile, callback = Callback} = State) ->
+install(timeout, #statedata{profile = Profile,
+		callback = Callback} = StateData) ->
 	case gen_event:add_sup_handler(ocs_event_log, ocs_event_log,
 			[self(), Profile, Callback]) of
 		ok ->
-			{next_state, backoff, State};
+			{next_state, installed, StateData};
 		{'EXIT', Reason} ->
-			{stop, Reason, State}
+			{stop, Reason, StateData}
 	end.
 
--spec backoff(Event, State) -> Result
+-spec installed(Event, StateData) -> Result
 	when
-		Event :: {Type, Resource, Category},
-		Type :: create_bucket | delete_bucket | charge | depleted | accumulated
-				| create_product | delete_product | create_service | delete_service
-				| create_offer | delete_offer | create_resource | delete_resource
-				| insert_gtt | delete_gtt | log_acct,
-		Resource :: ocs_log:acct_event() | ocs_log:auth_event(),
-		Category :: balance | product | service | resource | usage,
-		State :: statedata(),
+		Event :: timeout | pos_integer(),
+		StateData :: statedata(),
+		Result :: {next_state, NextStateName, NewStateData}
+			| {next_state, NextStateName, NewStateData, timeout}
+			| {next_state, NextStateName, NewStateData, hibernate}
+			| {stop, Reason, NewStateData},
+		NextStateName :: atom(),
+		NewStateData :: statedata(),
+		Reason :: normal | term().
+%% @doc Handle event received in `register' state.
+%% @private
+installed(_Event, StateData) ->
+	{next_state, installed, StateData}.
+
+-spec backoff(Event, StateData) -> Result
+	when
+		Event :: term(),
+		StateData :: statedata(),
 		Result :: {next_state, NextStateName, NewStateData}
 			| {next_state, NextStateName, NewStateData, timeout}
 			| {next_state, NextStateName, NewStateData, hibernate}
@@ -137,15 +140,14 @@ install(timeout, #statedata{profile = Profile, callback = Callback} = State) ->
 		Reason :: normal | term().
 %% @doc Handle event received in `backoff' state.
 %% @private
-backoff(_Result, #statedata{backoff = Time} = StateData) ->
-	timer:sleep(Time),
-	{next_state, install, StateData}.
+backoff(timeout, #statedata{reason = Reason} = StateData) ->
+	{stop, Reason, StateData}.
 
--spec handle_event(Event, StateName, State) -> Result
+-spec handle_event(Event, StateName, StateData) -> Result
 	when
 		Event :: term(),
 		StateName :: atom(),
-		State :: statedata(),
+		StateData :: statedata(),
 		Result :: {next_state, NextStateName, NewStateData}
 			| {next_state, NextStateName, NewStateData, Timeout}
 			| {next_state, NextStateName, NewStateData, hibernate}
@@ -158,8 +160,8 @@ backoff(_Result, #statedata{backoff = Time} = StateData) ->
 %% 	{@link //stdlib/gen_fsm:send_all_state_event/2}.
 %% @private
 %%
-handle_event(Reason, _StateName, State) ->
-	{stop, Reason, State}.
+handle_event(Reason, _StateName, StateData) ->
+	{stop, Reason, StateData}.
 
 -spec handle_sync_event(Event, From, StateName, StateData) -> Result
 	when
@@ -187,7 +189,7 @@ handle_event(Reason, _StateName, State) ->
 %% @see //stdlib/gen_fsm:handle_sync_event/4
 %% @private
 %%
-handle_sync_event(get, _From, StateName, #statedata{} = StateData) ->
+handle_sync_event(_Event, _From, StateName, #statedata{} = StateData) ->
 	{next_state, StateName, StateData}.
 
 -spec handle_info(Info, StateName, StateData) -> Result
@@ -207,7 +209,14 @@ handle_sync_event(get, _From, StateName, #statedata{} = StateData) ->
 %% @see //stdlib/gen_fsm:handle_info/3
 %% @private
 %%
-handle_info({gen_event_EXIT, _Handler, Reason}, _StateName, StateData) ->
+handle_info({gen_event_EXIT, _Handler, {swapped, _, _}},
+		installed, StateData) ->
+	{next_state, installed, StateData};
+handle_info({gen_event_EXIT, _Handler, Reason}, installed,
+		#statedata{backoff = Time} = StateData) ->
+	NewStateData = StateData#statedata{reason = Reason},
+	{next_state, backoff, NewStateData, Time};
+handle_info({'EXIT', _Handler, Reason}, _StateName, StateData) ->
 	{stop, Reason, StateData}.
 
 -spec terminate(Reason, StateName, StateData) -> any()
@@ -219,16 +228,8 @@ handle_info({gen_event_EXIT, _Handler, Reason}, _StateName, StateData) ->
 %% @see //stdlib/gen_fsm:terminate/3
 %% @private
 %%
-terminate(Reason, _StateName, _StateData)
-		when Reason == shutdown; Reason == normal ->
-	ok;
-terminate({shutdown, Reason}, StateName, StateData) ->
-	terminate(Reason, StateName, StateData);
-terminate(Reason, StateName,
-		#statedata{id = Id, callback = Callback}) ->
-	error_logger:warning_report(["Notification subscription cancelled",
-			{reason, Reason}, {pid, self()}, {state, StateName},
-			{id, Id}, {callback, Callback}]).
+terminate(_Reason, _StateName, _StateData) ->
+	ok.
 
 -spec code_change(OldVsn, StateName, StateData, Extra) -> Result
 	when
