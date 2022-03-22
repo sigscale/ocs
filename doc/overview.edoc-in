@@ -1320,6 +1320,8 @@ The {@link //ocs. ocs} application may be configured using the following applica
 		<dd>Certificate Authority certificate for TLS over EAP.</dd>
 	<dt>rest_page_size</dt>
 		<dd>Defines the maximum number of items to return for a REST collection.</dd>
+	<dt>elastic_shipper</dt>
+		<dd>Shipper for Elastic Stack: {Url, Profile, Options} (default: undefined).</dd>
 </dl>
 
 === DIAMETER Configuration ===
