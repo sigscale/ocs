@@ -636,14 +636,16 @@ find_product(ProductRef) when is_list(ProductRef) ->
 delete_product(ProductRef) when is_list(ProductRef) ->
 	F1 = fun() ->
 			case mnesia:read(product, ProductRef, write) of
-				[#product{service = Services}] when length(Services) > 0 ->
-					mnesia:abort(service_exists);
+				[#product{service = Services,
+						balance = Buckets} = Product] when length(Services) > 0 ->
+					case service_exist(Services) of
+						true ->
+							mnesia:abort(service_exists);
+						false ->
+							delete_product(Product, Buckets)
+					end;
 				[#product{balance = Buckets} = Product] ->
-					F2 = fun(B) ->
-							mnesia:delete(bucket, B, write)
-					end,
-					mnesia:delete(product, ProductRef, write),
-					{lists:foreach(F2, Buckets), Product};
+					delete_product(Product, Buckets);
 				[] ->
 					mnesia:abort(not_found)
 			end
@@ -655,6 +657,13 @@ delete_product(ProductRef) when is_list(ProductRef) ->
 		{aborted, Reason} ->
 			exit(Reason)
 	end.
+%% @hidden
+delete_product(#product{id = ProductRef} = Product, Buckets) ->
+	F = fun(B) ->
+			mnesia:delete(bucket, B, write)
+	end,
+	mnesia:delete(product, ProductRef, write),
+	{lists:foreach(F, Buckets), Product}.
 
 -spec add_service(Identity, Password) -> Result
 	when
@@ -2929,4 +2938,21 @@ match_protocol3(Prefix) ->
 %% @private
 make_lm() ->
 	{erlang:system_time(millisecond), erlang:unique_integer([positive])}.
+
+-spec service_exist(Services) -> Result
+	when
+		Services :: [#service{}],
+		Result :: boolean().
+%% @doc Check at lease one service actually exists.
+%% @hidden
+service_exist(Services) ->
+	F = fun(Service) ->
+			case mnesia:read(service, Service) of
+				[] ->
+					false;
+				[#service{}] ->
+					true
+			end
+	end,
+	lists:any(F, Services).
 
