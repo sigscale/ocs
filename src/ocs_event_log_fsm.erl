@@ -22,7 +22,7 @@
 -behaviour(gen_fsm).
 
 %% export the public API
--export([start_link/0]).
+-export([start_link/3]).
 
 %% export the ocs_event_log_fsm states
 -export([install/2, installed/2, backoff/2]).
@@ -43,15 +43,22 @@
 %%  The ocs_event_log_fsm API
 %%----------------------------------------------------------------------
 
--spec start_link() -> Result
+-spec start_link(Url, Profile, Options) -> Result
 	when
-		Result :: {ok, PageServer} | {error, Reason},
-		PageServer :: pid(),
+		Url :: http_uri:uri(),
+		Profile :: httpc:profile(),
+		Options :: [Option],
+		Option :: {api_type, ApiType} | {backoff, Time},
+		ApiType :: index_api | http_plugin,
+		Time :: pos_integer(),
+		Result :: {ok, EventLogServer} | {error, Reason},
+		EventLogServer :: pid(),
 		Reason :: term().
 %% @doc Start a hub fsm
-start_link() ->
+start_link(Url, Profile, Options) ->
 	{Id, _} = unique(),
-	case gen_fsm:start_link({global, Id}, ?MODULE, [Id], []) of
+	case gen_fsm:start_link({global, Id},
+			?MODULE, [Id, Url, Profile, Options], []) of
 		{ok, Child} ->
 			{ok, Child, Id};
 		{error, Reason} ->
@@ -75,9 +82,8 @@ start_link() ->
 %% @see //stdlib/gen_fsm:init/1
 %% @private
 %%
-init([Id] = _Args) ->
+init([Id, Url, Profile, Options] = _Args) ->
 	process_flag(trap_exit, true),
-	{ok, {Url, Profile, Options}} = application:get_env(elastic_shipper),
 	Time = case lists:keyfind(backoff, 1, Options) of
 		{_, Ti} ->
 			Ti;

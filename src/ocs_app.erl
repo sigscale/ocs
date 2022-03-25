@@ -359,8 +359,9 @@ start15(Sup) ->
 			case application:get_env(elastic_shipper) of
 				undefined ->
 					{ok, Sup};
-				{ok, {_, Profile, _Options}} ->
-					case supervisor:start_child(ocs_event_log_sup, []) of
+				{ok, {Url, Profile, Options}} ->
+					case supervisor:start_child(ocs_event_log_sup,
+							[Url, Profile, Options]) of
 						{ok, _EventLogSup, _Id} ->
 							start16(Profile, ServicesInfo, Sup);
 						{error, Reason} ->
