@@ -94,6 +94,8 @@ init([Fsm, Profile, Callback] = _Args) ->
 %% 	gen_event:notify/2, gen_event:sync_notify/2}.
 %% @private
 %%
+handle_event(_Event, #state{established = false, pending = true} = State) ->
+	{ok, State};
 handle_event({Type, Resource} = _Event,
 		#state{profile = Profile, callback = Callback} = State) ->
 	Headers = [{"accept", "application/json"}],
@@ -106,9 +108,6 @@ handle_event({Type, Resource} = _Event,
 	Request = {Callback, Headers, "application/json", Body},
 	handle_event1(Request, Profile, State).
 %% @hidden
-handle_event1(_Request, _Profile,
-		#state{established = false, pending = true} = State) ->
-	{ok, State};
 handle_event1(Request, Profile,
 		#state{established = false, pending = false} = State) ->
 	NewState = State#state{established = false, pending = true},
