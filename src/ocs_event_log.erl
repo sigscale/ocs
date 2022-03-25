@@ -184,16 +184,16 @@ handle_call({RequestId, {error, Reason}}, State) ->
 handle_info(_Info, _Fsm) ->
 	remove_handler.
 
--spec terminate(Arg, Fsm) -> term()
+-spec terminate(Arg, State) -> term()
 	when
 		Arg :: Args :: term() | {stop, Reson :: term()} | {error, term()}
 				| stop | remove_handler | {error,{'EXIT', Reason :: term()}},
-      Fsm :: pid().
+      State :: state().
 %% @doc Cleanup and exit.
-%% @see //stdlib/gen_event:terminate/3
+%% @see //stdlib/gen_event:terminate/2
 %% @private
 %%
-terminate(_Reason, _Fsm) ->
+terminate(_Arg, _State) ->
 	ok.
 
 -spec code_change(OldVsn, State, Extra) -> Result
