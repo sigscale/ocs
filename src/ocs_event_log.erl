@@ -118,7 +118,6 @@ handle_event1(Request, Profile,
 		{ok, RequestId} when is_reference(RequestId) ->
 			{ok, NewState};
 		{error, _Reason} ->
-			ok = gen_event:delete_handler(ocs_event_log, ocs_event_log, []),
 			remove_handler
 	end;
 handle_event1(Request, Profile,
@@ -129,7 +128,6 @@ handle_event1(Request, Profile,
 		{ok, RequestId} when is_reference(RequestId) ->
 			{ok, State};
 		{error, _Reason} ->
-			ok = gen_event:delete_handler(ocs_event_log, ocs_event_log, []),
 			remove_handler
 	end.
 
@@ -161,14 +159,12 @@ handle_call({RequestId,
 			{module, ?MODULE}, {state, State},
 			{status, StatusCode}, {reason, ReasonPhrase},
 			{request, RequestId}]),
-	ok = gen_event:delete_handler(ocs_event_log, ocs_event_log, []),
-	{remove_handler, ReasonPhrase};
+	{remove_handler, {error, ReasonPhrase}};
 handle_call({RequestId, {error, Reason}}, State) ->
 	error_logger:warning_report(["Event shipping failed",
 			{module, ?MODULE}, {state, State},
 			{error, Reason}, {request, RequestId}]),
-	ok = gen_event:delete_handler(ocs_event_log, ocs_event_log, []),
-	{remove_handler, Reason}.
+	{remove_handler, {error, Reason}}.
 
 -spec handle_info(Info, Fsm) -> Result
 	when
