@@ -1132,7 +1132,7 @@ auth_to_ecs({TS, N, radius = P, Node, Server, {ClientIp, _} = Client,
 		OriginHost1 when is_binary(OriginHost1) ->
 			[{"ip", OriginHost1}];
 		OriginHost2 when is_list(OriginHost2) ->
-			[{"ip", ClientIp}, {"domain", OriginHost2}]
+			[{"ip", parse_ip(ClientIp)}, {"domain", OriginHost2}]
 	end,
 	ClientObj = {struct, [{"address", OriginHost}] ++ ClientFields},
 	auth_to_ecs({TS, N, radius = P, Node, Server, Client,
@@ -1154,7 +1154,7 @@ auth_to_ecs({TS, N, diameter = Protocol, Node,
 			{"category", "authentication"},
 			{"type", EventType},
 			{"outcome", Outcome}]},
-	ServiceObj = {struct, [{"ip", ServerIP},
+	ServiceObj = {struct, [{"ip", parse_ip(ServerIP)},
 			{"type", "sigscale-ocs"},
 			{"name", "aaa"},
 			{"node", {struct, [{"name", Node}]}}]},
@@ -1213,7 +1213,7 @@ auth_to_ecs({TS, N, radius = Protocol, Node, {ServerIP, ServerPort}, _Client,
 			{"category", "authentication"},
 			{"type", EventType},
 			{"outcome", Outcome}]},
-	ServiceObj = {struct, [{"ip", ServerIP},
+	ServiceObj = {struct, [{"ip", parse_ip(ServerIP)},
 			{"type", "sigscale-ocs"},
 			{"name", "aaa"},
 			{"node", {struct, [{"name", Node}]}}]},
@@ -1270,7 +1270,7 @@ acct_to_ecs({TS, N, diameter = Protocol, Node,
 			{"category", "session"},
 			{"type", event_type(Type)},
 			{"outcome", Outcome}]},
-	ServiceObj = {struct, [{"ip", ServerIP},
+	ServiceObj = {struct, [{"ip", parse_ip(ServerIP)},
 			{"type", "sigscale-ocs"},
 			{"name", "aaa"},
 			{"node", {struct, [{"name", Node}]}}]},
@@ -1322,7 +1322,7 @@ acct_to_ecs({TS, N, radius = Protocol, Node, {ServerIP, ServerPort},
 			{"category", "authentication"},
 			{"type", event_type(Type)},
 			{"outcome", "success"}]},
-	ServiceObj = {struct, [{"ip", ServerIP},
+	ServiceObj = {struct, [{"ip", parse_ip(ServerIP)},
 			{"type", "sigscale-ocs"},
 			{"name", "aaa"},
 			{"node", {struct, [{"name", Node}]}}]},
@@ -1360,6 +1360,12 @@ event_type(final) ->
 	"end";
 event_type('event') ->
 	"start".
+
+%% @hidden
+parse_ip({I1, I2, I3, I4}) when is_integer(I1),
+		is_integer(I2), is_integer(I3), is_integer(I4) ->
+	integer_to_list(I1) ++ "," ++ integer_to_list(I2) ++ ","
+			++ integer_to_list(I3) ++ "," ++ integer_to_list(I4).
 
 %% @hidden
 dia_req_and_res(#'3gpp_ro_CCR'{'Origin-Realm' = OriginRealm,
@@ -1550,7 +1556,7 @@ dia_req_and_res(#diameter_nas_app_AAR{'Origin-Realm' = OriginRealm,
 			{"start", "unknown", "nas", OriginHost1, OriginHost1,
 					undefined, OriginRealm, DesRealm, undefined, UserName};
 		OriginHost2 ->
-			{"start", "unknown", "nas", OriginHost2, Ip,
+			{"start", "unknown", "nas", OriginHost2, parse_ip(Ip),
 					OriginHost2, OriginRealm, DesRealm, undefined, UserName}
 	end;
 dia_req_and_res(#diameter_nas_app_AAR{'Origin-Realm' = OriginRealm,
@@ -1563,7 +1569,7 @@ dia_req_and_res(#diameter_nas_app_AAR{'Origin-Realm' = OriginRealm,
 			{"start", "success", "nas", OriginHost1, OriginHost1,
 					undefined, OriginRealm, DesRealm, undefined, UserName};
 		OriginHost2 ->
-			{"start", "success", "nas", OriginHost2, Ip,
+			{"start", "success", "nas", OriginHost2, parse_ip(Ip),
 					OriginHost2, OriginRealm, DesRealm, undefined, UserName}
 	end;
 dia_req_and_res(#diameter_nas_app_AAR{'Origin-Realm' = OriginRealm,
@@ -1575,7 +1581,7 @@ dia_req_and_res(#diameter_nas_app_AAR{'Origin-Realm' = OriginRealm,
 			{"start", "failure", "nas", OriginHost1, OriginHost1,
 					undefined, OriginRealm, DesRealm, undefined, UserName};
 		OriginHost2 ->
-			{"start", "failure", "nas", OriginHost2, Ip,
+			{"start", "failure", "nas", OriginHost2, parse_ip(Ip),
 					OriginHost2, OriginRealm, DesRealm, undefined, UserName}
 	end;
 dia_req_and_res(#diameter_eap_app_DER{'Origin-Realm' = OriginRealm,
@@ -1587,7 +1593,7 @@ dia_req_and_res(#diameter_eap_app_DER{'Origin-Realm' = OriginRealm,
 			{"start", "unknown", "eap", OriginHost1, OriginHost1,
 					undefined, OriginRealm, DesRealm, undefined, UserName};
 		OriginHost2 ->
-			{"start", "unknown", "eap", OriginHost2, Ip,
+			{"start", "unknown", "eap", OriginHost2, parse_ip(Ip),
 					OriginHost2, OriginRealm, DesRealm, undefined, UserName}
 	end;
 dia_req_and_res(#diameter_eap_app_DER{'Origin-Realm' = OriginRealm,
@@ -1600,7 +1606,7 @@ dia_req_and_res(#diameter_eap_app_DER{'Origin-Realm' = OriginRealm,
 			{"start", "success", "eap", OriginHost1, OriginHost1,
 					undefined, OriginRealm, DesRealm, undefined, UserName};
 		OriginHost2 ->
-			{"start", "success", "eap", OriginHost2, Ip,
+			{"start", "success", "eap", OriginHost2, parse_ip(Ip),
 					OriginHost2, OriginRealm, DesRealm, undefined, UserName}
 	end;
 dia_req_and_res(#diameter_eap_app_DER{'Origin-Realm' = OriginRealm,
@@ -1612,7 +1618,7 @@ dia_req_and_res(#diameter_eap_app_DER{'Origin-Realm' = OriginRealm,
 			{"start", "failure", "eap", OriginHost1, OriginHost1,
 					undefined, OriginRealm, DesRealm, undefined, UserName};
 		OriginHost2 ->
-			{"start", "failure", "eap", OriginHost2, Ip,
+			{"start", "failure", "eap", OriginHost2, parse_ip(Ip),
 					OriginHost2, OriginRealm, DesRealm, undefined, UserName}
 	end;
 dia_req_and_res(#'3gpp_sta_DER'{'Origin-Realm' = OriginRealm,
@@ -1631,7 +1637,7 @@ dia_req_and_res(#'3gpp_sta_DER'{'Origin-Realm' = OriginRealm,
 			{"end", "unknown", "sta", OriginHost1, OriginHost1,
 					undefined, OriginRealm, DesRealm, Subscriber, UserName};
 		OriginHost2 ->
-			{"end", "unknown", "sta", OriginHost2, Ip,
+			{"end", "unknown", "sta", OriginHost2, parse_ip(Ip),
 					OriginHost2, OriginRealm, DesRealm, Subscriber, UserName}
 	end;
 dia_req_and_res(#'3gpp_sta_DER'{'Origin-Realm' = OriginRealm,
@@ -1651,7 +1657,7 @@ dia_req_and_res(#'3gpp_sta_DER'{'Origin-Realm' = OriginRealm,
 			{"end", "unknown", "sta", OriginHost1, OriginHost1,
 					undefined, OriginRealm, DesRealm, Subscriber, UserName};
 		OriginHost2 ->
-			{"end", "unknown", "sta", OriginHost2, Ip,
+			{"end", "unknown", "sta", OriginHost2, parse_ip(Ip),
 					OriginHost2, OriginRealm, DesRealm, Subscriber, UserName}
 	end;
 dia_req_and_res(#'3gpp_sta_DER'{'Origin-Realm' = OriginRealm,
@@ -1670,7 +1676,7 @@ dia_req_and_res(#'3gpp_sta_DER'{'Origin-Realm' = OriginRealm,
 			{"end", "failure", "sta", OriginHost1, OriginHost1,
 					undefined, OriginRealm, DesRealm, Subscriber, UserName};
 		OriginHost2 ->
-			{"end", "failure", "sta", OriginHost2, Ip,
+			{"end", "failure", "sta", OriginHost2, parse_ip(Ip),
 					OriginHost2, OriginRealm, DesRealm, Subscriber, UserName}
 	end;
 dia_req_and_res(#'3gpp_swm_DER'{'Origin-Realm' = OriginRealm,
@@ -1689,7 +1695,7 @@ dia_req_and_res(#'3gpp_swm_DER'{'Origin-Realm' = OriginRealm,
 			{"start", "unknown", "swm", OriginHost1, OriginHost1,
 					undefined, OriginRealm, DesRealm, Subscriber, UserName};
 		OriginHost2 ->
-			{"start", "unknown", "swm", OriginHost2, Ip,
+			{"start", "unknown", "swm", OriginHost2, parse_ip(Ip),
 					OriginHost2, OriginRealm, DesRealm, Subscriber, UserName}
 	end;
 dia_req_and_res(#'3gpp_swm_DER'{'Origin-Realm' = OriginRealm,
@@ -1709,7 +1715,7 @@ dia_req_and_res(#'3gpp_swm_DER'{'Origin-Realm' = OriginRealm,
 			{"start", "success", "swm", OriginHost1, OriginHost1,
 					undefined, OriginRealm, DesRealm, Subscriber, UserName};
 		OriginHost2 ->
-			{"start", "success", "swm", OriginHost2, Ip,
+			{"start", "success", "swm", OriginHost2, parse_ip(Ip),
 					OriginHost2, OriginRealm, DesRealm, Subscriber, UserName}
 	end;
 dia_req_and_res(#'3gpp_swm_DER'{'Origin-Realm' = OriginRealm,
@@ -1728,7 +1734,7 @@ dia_req_and_res(#'3gpp_swm_DER'{'Origin-Realm' = OriginRealm,
 			{"start", "failure", "swm", OriginHost1, OriginHost1,
 					undefined, OriginRealm, DesRealm, Subscriber, UserName};
 		OriginHost2 ->
-			{"start", "failure", "swm", OriginHost2, Ip,
+			{"start", "failure", "swm", OriginHost2, parse_ip(Ip),
 					OriginHost2, OriginRealm, DesRealm, Subscriber, UserName}
 	end;
 dia_req_and_res(#'3gpp_sta_STR'{'Origin-Realm' = OriginRealm,
@@ -1740,7 +1746,7 @@ dia_req_and_res(#'3gpp_sta_STR'{'Origin-Realm' = OriginRealm,
 			{"end", "unknown", "sta", OriginHost1, OriginHost1,
 					undefined, OriginRealm, DesRealm, undefined, UserName};
 		OriginHost2 ->
-			{"end", "unknown", "sta", OriginHost2, Ip,
+			{"end", "unknown", "sta", OriginHost2, parse_ip(Ip),
 					OriginHost2, OriginRealm, DesRealm, undefined, UserName}
 	end;
 dia_req_and_res(#'3gpp_sta_STR'{'Origin-Realm' = OriginRealm,
@@ -1753,7 +1759,7 @@ dia_req_and_res(#'3gpp_sta_STR'{'Origin-Realm' = OriginRealm,
 			{"end", "success", "sta", OriginHost1, OriginHost1,
 					undefined, OriginRealm, DesRealm, undefined, UserName};
 		OriginHost2 ->
-			{"end", "success", "sta", OriginHost2, Ip,
+			{"end", "success", "sta", OriginHost2, parse_ip(Ip),
 					OriginHost2, OriginRealm, DesRealm, undefined, UserName}
 	end;
 dia_req_and_res(#'3gpp_sta_STR'{'Origin-Realm' = OriginRealm,
@@ -1765,7 +1771,7 @@ dia_req_and_res(#'3gpp_sta_STR'{'Origin-Realm' = OriginRealm,
 			{"end", "failure", "sta", OriginHost1, OriginHost1,
 					undefined, OriginRealm, DesRealm, undefined, UserName};
 		OriginHost2 ->
-			{"end", "failure", "sta", OriginHost2, Ip,
+			{"end", "failure", "sta", OriginHost2, parse_ip(Ip),
 					OriginHost2, OriginRealm, DesRealm, undefined, UserName}
 	end;
 dia_req_and_res(#'3gpp_swm_STR'{'Origin-Realm' = OriginRealm,
@@ -1777,7 +1783,7 @@ dia_req_and_res(#'3gpp_swm_STR'{'Origin-Realm' = OriginRealm,
 			{"end", "unknown", "swm", OriginHost1, OriginHost1,
 					undefined, OriginRealm, DesRealm, undefined, UserName};
 		OriginHost2 ->
-			{"end", "unknown", "swm", OriginHost2, Ip,
+			{"end", "unknown", "swm", OriginHost2, parse_ip(Ip),
 					OriginHost2, OriginRealm, DesRealm, undefined, UserName}
 	end;
 dia_req_and_res(#'3gpp_swm_STR'{'Origin-Realm' = OriginRealm,
@@ -1790,7 +1796,7 @@ dia_req_and_res(#'3gpp_swm_STR'{'Origin-Realm' = OriginRealm,
 			{"end", "success", "swm", OriginHost1, OriginHost1,
 					undefined, OriginRealm, DesRealm, undefined, UserName};
 		OriginHost2 ->
-			{"end", "success", "swm", OriginHost2, Ip,
+			{"end", "success", "swm", OriginHost2, parse_ip(Ip),
 					OriginHost2, OriginRealm, DesRealm, undefined, UserName}
 	end;
 dia_req_and_res(#'3gpp_swm_STR'{'Origin-Realm' = OriginRealm,
@@ -1802,7 +1808,7 @@ dia_req_and_res(#'3gpp_swm_STR'{'Origin-Realm' = OriginRealm,
 			{"end", "failure", "swm", OriginHost1, OriginHost1,
 					undefined, OriginRealm, DesRealm, undefined, UserName};
 		OriginHost2 ->
-			{"end", "failure", "swm", OriginHost2, Ip,
+			{"end", "failure", "swm", OriginHost2, parse_ip(Ip),
 					OriginHost2, OriginRealm, DesRealm, undefined, UserName}
 	end;
 dia_req_and_res(#'3gpp_s6b_STR'{'Origin-Realm' = OriginRealm,
@@ -1814,7 +1820,7 @@ dia_req_and_res(#'3gpp_s6b_STR'{'Origin-Realm' = OriginRealm,
 			{"end", "unknown", "s6b", OriginHost1, OriginHost1,
 					undefined, OriginRealm, DesRealm, undefined, UserName};
 		OriginHost2 ->
-			{"end", "unknown", "s6b", OriginHost2, Ip,
+			{"end", "unknown", "s6b", OriginHost2, parse_ip(Ip),
 					OriginHost2, OriginRealm, DesRealm, undefined, UserName}
 	end;
 dia_req_and_res(#'3gpp_s6b_STR'{'Origin-Realm' = OriginRealm,
@@ -1827,7 +1833,7 @@ dia_req_and_res(#'3gpp_s6b_STR'{'Origin-Realm' = OriginRealm,
 			{"end", "success", "s6b", OriginHost1, OriginHost1,
 					undefined, OriginRealm, DesRealm, undefined, UserName};
 		OriginHost2 ->
-			{"end", "success", "s6b", OriginHost2, Ip,
+			{"end", "success", "s6b", OriginHost2, parse_ip(Ip),
 					OriginHost2, OriginRealm, DesRealm, undefined, UserName}
 	end;
 dia_req_and_res(#'3gpp_s6b_STR'{'Origin-Realm' = OriginRealm,
@@ -1839,7 +1845,7 @@ dia_req_and_res(#'3gpp_s6b_STR'{'Origin-Realm' = OriginRealm,
 			{"end", "failure", "s6b", OriginHost1, OriginHost1,
 					undefined, OriginRealm, DesRealm, undefined, UserName};
 		OriginHost2 ->
-			{"end", "failure", "s6b", OriginHost2, Ip,
+			{"end", "failure", "s6b", OriginHost2, parse_ip(Ip),
 					OriginHost2, OriginRealm, DesRealm, undefined, UserName}
 	end;
 dia_req_and_res(#'3gpp_swx_RTR'{'Origin-Realm' = OriginRealm,
@@ -1851,7 +1857,7 @@ dia_req_and_res(#'3gpp_swx_RTR'{'Origin-Realm' = OriginRealm,
 			{"end", "unknown", "swx", OriginHost1, OriginHost1,
 					undefined, OriginRealm, DesRealm, undefined, UserName};
 		OriginHost2 ->
-			{"end", "unknown", "swx", OriginHost2, Ip,
+			{"end", "unknown", "swx", OriginHost2, parse_ip(Ip),
 					OriginHost2, OriginRealm, DesRealm, undefined, UserName}
 	end;
 dia_req_and_res(#'3gpp_swx_RTR'{'Origin-Realm' = OriginRealm,
@@ -1864,7 +1870,7 @@ dia_req_and_res(#'3gpp_swx_RTR'{'Origin-Realm' = OriginRealm,
 			{"end", "success", "swx", OriginHost1, OriginHost1,
 					undefined, OriginRealm, DesRealm, undefined, UserName};
 		OriginHost2 ->
-			{"end", "success", "swx", OriginHost2, Ip,
+			{"end", "success", "swx", OriginHost2, parse_ip(Ip),
 					OriginHost2, OriginRealm, DesRealm, undefined, UserName}
 	end;
 dia_req_and_res(#'3gpp_swx_RTR'{'Origin-Realm' = OriginRealm,
@@ -1876,7 +1882,7 @@ dia_req_and_res(#'3gpp_swx_RTR'{'Origin-Realm' = OriginRealm,
 			{"end", "failure", "swx", OriginHost1, OriginHost1,
 					undefined, OriginRealm, DesRealm, undefined, UserName};
 		OriginHost2 ->
-			{"end", "failure", "swx", OriginHost2, Ip,
+			{"end", "failure", "swx", OriginHost2, parse_ip(Ip),
 					OriginHost2, OriginRealm, DesRealm, undefined, UserName}
 	end;
 dia_req_and_res(#'3gpp_s6b_AAR'{'Origin-Realm' = OriginRealm,
@@ -1888,7 +1894,7 @@ dia_req_and_res(#'3gpp_s6b_AAR'{'Origin-Realm' = OriginRealm,
 			{"start", "unknown", "s6b", OriginHost1, OriginHost1,
 					undefined, OriginRealm, DesRealm, undefined, UserName};
 		OriginHost2 ->
-			{"start", "unknown", "s6b", OriginHost2, Ip,
+			{"start", "unknown", "s6b", OriginHost2, parse_ip(Ip),
 					OriginHost2, OriginRealm, DesRealm, undefined, UserName}
 	end;
 dia_req_and_res(#'3gpp_s6b_AAR'{'Origin-Realm' = OriginRealm,
@@ -1901,7 +1907,7 @@ dia_req_and_res(#'3gpp_s6b_AAR'{'Origin-Realm' = OriginRealm,
 			{"start", "success", "s6b", OriginHost1, OriginHost1,
 					undefined, OriginRealm, DesRealm, undefined, UserName};
 		OriginHost2 ->
-			{"start", "success", "s6b", OriginHost2, Ip,
+			{"start", "success", "s6b", OriginHost2, parse_ip(Ip),
 					OriginHost2, OriginRealm, DesRealm, undefined, UserName}
 	end;
 dia_req_and_res(#'3gpp_s6b_AAR'{'Origin-Realm' = OriginRealm,
@@ -1913,7 +1919,7 @@ dia_req_and_res(#'3gpp_s6b_AAR'{'Origin-Realm' = OriginRealm,
 			{"start", "failure", "s6b", OriginHost1, OriginHost1,
 					undefined, OriginRealm, DesRealm, undefined, UserName};
 		OriginHost2 ->
-			{"start", "failure", "s6b", OriginHost2, Ip,
+			{"start", "failure", "s6b", OriginHost2, parse_ip(Ip),
 					OriginHost2, OriginRealm, DesRealm, undefined, UserName}
 	end;
 dia_req_and_res(#'3gpp_s6a_AIR'{'Origin-Realm' = OriginRealm,
@@ -1925,7 +1931,7 @@ dia_req_and_res(#'3gpp_s6a_AIR'{'Origin-Realm' = OriginRealm,
 			{"start", "unknown", "s6a", OriginHost1, OriginHost1,
 					undefined, OriginRealm, DesRealm, undefined, UserName};
 		OriginHost2 ->
-			{"start", "unknown", "s6a", OriginHost2, Ip,
+			{"start", "unknown", "s6a", OriginHost2, parse_ip(Ip),
 					OriginHost2, OriginRealm, DesRealm, undefined, UserName}
 	end;
 dia_req_and_res(#'3gpp_s6a_AIR'{'Origin-Realm' = OriginRealm,
@@ -1938,7 +1944,7 @@ dia_req_and_res(#'3gpp_s6a_AIR'{'Origin-Realm' = OriginRealm,
 			{"start", "success", "s6a", OriginHost1, OriginHost1,
 					undefined, OriginRealm, DesRealm, undefined, UserName};
 		OriginHost2 ->
-			{"start", "success", "s6a", OriginHost2, Ip,
+			{"start", "success", "s6a", OriginHost2, parse_ip(Ip),
 					OriginHost2, OriginRealm, DesRealm, undefined, UserName}
 	end;
 dia_req_and_res(#'3gpp_s6a_AIR'{'Origin-Realm' = OriginRealm,
@@ -1950,7 +1956,7 @@ dia_req_and_res(#'3gpp_s6a_AIR'{'Origin-Realm' = OriginRealm,
 			{"start", "failure", "s6a", OriginHost1, OriginHost1,
 					undefined, OriginRealm, DesRealm, undefined, UserName};
 		OriginHost2 ->
-			{"start", "failure", "s6a", OriginHost2, Ip,
+			{"start", "failure", "s6a", OriginHost2, parse_ip(Ip),
 					OriginHost2, OriginRealm, DesRealm, undefined, UserName}
 	end;
 dia_req_and_res(#'3gpp_s6a_ULR'{'Origin-Realm' = OriginRealm,
@@ -1962,7 +1968,7 @@ dia_req_and_res(#'3gpp_s6a_ULR'{'Origin-Realm' = OriginRealm,
 			{"info", "unknown", "s6a", OriginHost1, OriginHost1,
 					undefined, OriginRealm, DesRealm, undefined, UserName};
 		OriginHost2 ->
-			{"info", "unknown", "s6a", OriginHost2, Ip,
+			{"info", "unknown", "s6a", OriginHost2, parse_ip(Ip),
 					OriginHost2, OriginRealm, DesRealm, undefined, UserName}
 	end;
 dia_req_and_res(#'3gpp_s6a_ULR'{'Origin-Realm' = OriginRealm,
@@ -1975,7 +1981,7 @@ dia_req_and_res(#'3gpp_s6a_ULR'{'Origin-Realm' = OriginRealm,
 			{"info", "success", "s6a", OriginHost1, OriginHost1,
 					undefined, OriginRealm, DesRealm, undefined, UserName};
 		OriginHost2 ->
-			{"info", "success", "s6a", OriginHost2, Ip,
+			{"info", "success", "s6a", OriginHost2, parse_ip(Ip),
 					OriginHost2, OriginRealm, DesRealm, undefined, UserName}
 	end;
 dia_req_and_res(#'3gpp_s6a_ULR'{'Origin-Realm' = OriginRealm,
@@ -1987,7 +1993,7 @@ dia_req_and_res(#'3gpp_s6a_ULR'{'Origin-Realm' = OriginRealm,
 			{"info", "failure", "s6a", OriginHost1, OriginHost1,
 					undefined, OriginRealm, DesRealm, undefined, UserName};
 		OriginHost2 ->
-			{"info", "failure", "s6a", OriginHost2, Ip,
+			{"info", "failure", "s6a", OriginHost2, parse_ip(Ip),
 					OriginHost2, OriginRealm, DesRealm, undefined, UserName}
 	end;
 dia_req_and_res(#'3gpp_s6a_PUR'{'Origin-Realm' = OriginRealm,
@@ -1999,7 +2005,7 @@ dia_req_and_res(#'3gpp_s6a_PUR'{'Origin-Realm' = OriginRealm,
 			{"end", "unknown", "s6a", OriginHost1, OriginHost1,
 					undefined, OriginRealm, DesRealm, undefined, UserName};
 		OriginHost2 ->
-			{"end", "unknown", "s6a", OriginHost2, Ip,
+			{"end", "unknown", "s6a", OriginHost2, parse_ip(Ip),
 					OriginHost2, OriginRealm, DesRealm, undefined, UserName}
 	end;
 dia_req_and_res(#'3gpp_s6a_PUR'{'Origin-Realm' = OriginRealm,
@@ -2012,7 +2018,7 @@ dia_req_and_res(#'3gpp_s6a_PUR'{'Origin-Realm' = OriginRealm,
 			{"end", "success", "s6a", OriginHost1, OriginHost1,
 					undefined, OriginRealm, DesRealm, undefined, UserName};
 		OriginHost2 ->
-			{"end", "success", "s6a", OriginHost2, Ip,
+			{"end", "success", "s6a", OriginHost2, parse_ip(Ip),
 					OriginHost2, OriginRealm, DesRealm, undefined, UserName}
 	end;
 dia_req_and_res(#'3gpp_s6a_PUR'{'Origin-Realm' = OriginRealm,
@@ -2024,7 +2030,7 @@ dia_req_and_res(#'3gpp_s6a_PUR'{'Origin-Realm' = OriginRealm,
 			{"end", "failure", "s6a", OriginHost1, OriginHost1,
 					undefined, OriginRealm, DesRealm, undefined, UserName};
 		OriginHost2 ->
-			{"end", "failure", "s6a", OriginHost2, Ip,
+			{"end", "failure", "s6a", OriginHost2, parse_ip(Ip),
 					OriginHost2, OriginRealm, DesRealm, undefined, UserName}
 	end.
 
