@@ -33,7 +33,7 @@
 
 -define(bucketPath, "/balanceManagement/v1/bucket/").
 -define(actionPath, "/balanceManagement/v1/balanceTransfer/").
--define(productInventoryPath, "/productInventoryManagement/v1/product/").
+-define(productInventoryPath, "/productInventoryManagement/v2/product/").
 -define(balancePath, "/balanceManagement/v1/").
 
 -spec content_types_accepted() -> ContentTypes
