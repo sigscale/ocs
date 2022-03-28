@@ -3045,14 +3045,17 @@ write_log(Log, Event) ->
 	TS = erlang:system_time(millisecond),
 	N = erlang:unique_integer([positive]),
 	LogEvent = list_to_tuple([TS, N | Event]),
-	Result = disk_log:log(Log, LogEvent),
-	case Log of
-		ocs_acct ->
-			ok = ocs_event:notify(log_acct, LogEvent, usage),
-			Result;
-		_ ->
-			Result
-	end.
+	write_log(Log, LogEvent, disk_log:log(Log, LogEvent)).
+%% @hidden
+write_log(ocs_auth, LogEvent, Result) ->
+	ok = ocs_event_log:notify(ocs_auth, LogEvent),
+	Result;
+write_log(ocs_acct, LogEvent, Result) ->
+	ok = ocs_event:notify(log_acct, LogEvent, usage),
+	ok = ocs_event_log:notify(ocs_acct, LogEvent),
+	Result;
+write_log(ocs_abmf, _LogEvent, Result) ->
+	Result.
 
 -spec close_log(Log) -> Result
 	when
