@@ -34,6 +34,7 @@
 
 -record(state,
 		{fsm :: pid(),
+		id :: string(),
 		category :: atom()}).
 -type state() :: #state{}.
 
@@ -76,8 +77,8 @@ notify(EventType, EventPayLoad, Category) ->
 %% @see //stdlib/gen_event:init/1
 %% @private
 %%
-init([Fsm, Category] = _Args) ->
-	{ok, #state{fsm = Fsm, category = Category}}.
+init([Fsm, Id, Category] = _Args) ->
+	{ok, #state{fsm = Fsm, id = Id, category = Category}}.
 
 -spec handle_event(Event, State) -> Result
 	when
