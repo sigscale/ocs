@@ -357,7 +357,7 @@ start15(Sup) ->
 	case inets:services_info() of
 		ServicesInfo when is_list(ServicesInfo) ->
 			case application:get_env(elastic_shipper) of
-				undefined ->
+				{ok, undefined} ->
 					{ok, Sup};
 				{ok, {Url, Profile, Options}} ->
 					F = fun({Key, _Value}) when Key == proxy; Key == https_proxy;
