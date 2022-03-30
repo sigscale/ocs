@@ -49,8 +49,8 @@
 
 -spec start_link() -> Result
 	when
-		Result :: {ok, PageServer} | {error, Reason},
-		PageServer :: pid(),
+		Result :: {ok, StatsServer} | {error, Reason},
+		StatsServer :: pid(),
 		Reason :: term().
 %% @doc Start a handler for system statistics gathering.
 start_link() ->

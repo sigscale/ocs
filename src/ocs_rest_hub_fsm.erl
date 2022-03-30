@@ -56,8 +56,8 @@
 		Query :: string(),
 		Callback :: string(),
 		Uri :: string(),
-		Result :: {ok, PageServer} | {error, Reason},
-		PageServer :: pid(),
+		Result :: {ok, HubFsm} | {error, Reason},
+		HubFsm :: pid(),
 		Reason :: term().
 %% @doc Start a hub fsm
 start_link(Query, Callback, Uri) ->
@@ -76,8 +76,8 @@ start_link(Query, Callback, Uri) ->
 		Callback :: string(),
 		Uri :: string(),
 		Authorization :: string(),
-		Result :: {ok, PageServer} | {error, Reason},
-		PageServer :: pid(),
+		Result :: {ok, HubFsm} | {error, Reason},
+		HubFsm :: pid(),
 		Reason :: term().
 %% @doc Start a hub fsm
 start_link(Query, Callback, Uri, Authorization) ->
@@ -154,8 +154,9 @@ register(timeout,
 	register1(service, State);
 register(timeout, #statedata{href = "/product" ++ _} = State) ->
 	register1(product, State).
-register1(Category, State) ->
-	case gen_event:add_sup_handler(ocs_event, ocs_event, [self(), Category]) of
+register1(Category, #statedata{id = Id} = State) ->
+	case gen_event:add_sup_handler(ocs_event,
+			{ocs_event, Id}, [self(), Id, Category]) of
 		ok ->
 			{next_state, registered, State};
 		{'EXIT', Reason} ->

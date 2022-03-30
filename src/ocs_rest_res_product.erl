@@ -569,7 +569,7 @@ patch_inventory(ProdId, Etag, ReqData) ->
 			end,
 			case mnesia:transaction(F) of
 				{atomic, {Product, Etag3}} ->
-					Location = "/productInventoryManagement/v1/product/" ++ ProdId,
+					Location = ?inventoryPath ++ ProdId,
 					Headers = [{content_type, "application/json"},
 							{location, Location}, {etag, ocs_rest:etag(Etag3)}],
 					Body = mochijson:encode(Product),
