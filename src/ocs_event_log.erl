@@ -39,7 +39,8 @@
 		fsm :: pid(),
 		type :: atom(),
 		established = false :: boolean(),
-		pending = false :: boolean()}).
+		pending = false :: boolean(),
+		options :: [{atom(), term()}]}).
 -type state() :: #state{}.
 
 %%----------------------------------------------------------------------
@@ -73,8 +74,9 @@ notify(EventType, EventPayLoad) ->
 %% @see //stdlib/gen_event:init/1
 %% @private
 %%
-init([Fsm, Profile, Callback] = _Args) ->
-	{ok, #state{fsm = Fsm, profile = Profile, callback = Callback}}.
+init([Fsm, Profile, Callback, Options] = _Args) ->
+	{ok, #state{fsm = Fsm, profile = Profile,
+			callback = Callback, options = Options}}.
 
 -spec handle_event(Event, State) -> Result
 	when
@@ -96,8 +98,8 @@ init([Fsm, Profile, Callback] = _Args) ->
 %%
 handle_event(_Event, #state{established = false, pending = true} = State) ->
 	{ok, State};
-handle_event({Type, Resource} = _Event,
-		#state{profile = Profile, callback = Callback} = State) ->
+handle_event({Type, Resource} = _Event, #state{profile = Profile,
+		callback = Callback, options = Options} = State) ->
 	Headers = [{"accept", "application/json"}],
 	Body = case Type of
 		ocs_acct ->
@@ -106,24 +108,38 @@ handle_event({Type, Resource} = _Event,
 			lists:flatten(mochijson:encode(ocs_log:auth_to_ecs(Resource)))
 	end,
 	Request = {Callback, Headers, "application/json", Body},
-	handle_event1(Request, Profile, State).
+	F = fun({Key, _Value}) when Key == timeout; Key == connect_timeout;
+			Key == ssl; Key == essl; Key == autoredirect; Key == proxy_auth;
+			Key == version; Key == relaxed ->
+				true;
+			({_Key, _Value}) ->
+				false
+	end,
+	HttpOptions = lists:filter(F, Options),
+	case lists:keyfind(timeout, 1, HttpOptions) of
+		{timeout, _Val} ->
+			handle_event1(Request, Profile, HttpOptions, State);
+		false ->
+			NewHttpOptions = HttpOptions ++ [{timeout, 4000}],
+			handle_event1(Request, Profile, NewHttpOptions, State)
+	end.
 %% @hidden
-handle_event1(Request, Profile,
+handle_event1(Request, Profile, HttpOptions,
 		#state{established = false, pending = false} = State) ->
 	NewState = State#state{established = false, pending = true},
 	MFA = {?MODULE, pending_result, [self(), ?MODULE]},
 	Options = [{sync, false}, {receiver, MFA}],
-	case httpc:request(post, Request, [], Options, Profile) of
+	case httpc:request(post, Request, HttpOptions, Options, Profile) of
 		{ok, RequestId} when is_reference(RequestId) ->
 			{ok, NewState};
 		{error, _Reason} ->
 			remove_handler
 	end;
-handle_event1(Request, Profile,
+handle_event1(Request, Profile, HttpOptions,
 		#state{established = true, pending = false} = State) ->
 	MFA = {?MODULE, established_result, []},
 	Options = [{sync, false}, {receiver, MFA}],
-	case httpc:request(post, Request, [], Options, Profile) of
+	case httpc:request(post, Request, HttpOptions, Options, Profile) of
 		{ok, RequestId} when is_reference(RequestId) ->
 			{ok, State};
 		{error, _Reason} ->

@@ -109,9 +109,9 @@ init([Id, Url, Profile, Options1] = _Args) ->
 %% @doc Handle event received in `register' state.
 %% @private
 install(timeout, #statedata{profile = Profile,
-		callback = Callback} = StateData) ->
+		callback = Callback, options = Options} = StateData) ->
 	case gen_event:add_sup_handler(ocs_event_log, ocs_event_log,
-			[self(), Profile, Callback]) of
+			[self(), Profile, Callback, Options]) of
 		ok ->
 			{next_state, installed, StateData};
 		{'EXIT', Reason} ->
