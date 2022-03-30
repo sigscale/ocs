@@ -372,7 +372,7 @@ start15(Sup) ->
 					end,
 					SetOptions = lists:filter(F, Options),
 					case supervisor:start_child(ocs_event_log_sup,
-							[Url, Profile, Options]) of
+							[Url, Profile, Options -- SetOptions]) of
 						{ok, _EventLogSup, _Id} ->
 							start16(Profile, ServicesInfo, Sup, SetOptions);
 						{error, Reason} ->

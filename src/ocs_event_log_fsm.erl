@@ -36,7 +36,8 @@
 		profile :: atom(),
 		callback :: string(),
 		backoff :: pos_integer(),
-		reason :: term()}).
+		reason :: term(),
+		options :: [{atom(), term()}]}).
 -type statedata() :: #statedata{}.
 
 %%----------------------------------------------------------------------
@@ -82,16 +83,16 @@ start_link(Url, Profile, Options) ->
 %% @see //stdlib/gen_fsm:init/1
 %% @private
 %%
-init([Id, Url, Profile, Options] = _Args) ->
+init([Id, Url, Profile, Options1] = _Args) ->
 	process_flag(trap_exit, true),
-	Time = case lists:keyfind(backoff, 1, Options) of
-		{_, Ti} ->
-			Ti;
+	{Time, Options3} = case lists:keytake(backoff, 1, Options1) of
+		{_, {backoff, Ti}, Options2} ->
+			{Ti, Options2};
 		false ->
-			60
+			{60, Options1}
 	end,
 	StateData = #statedata{id = Id, profile = Profile,
-			callback = Url, backoff = Time * 1000},
+			callback = Url, backoff = Time * 1000, options = Options3},
 	{ok, install, StateData, 0}.
 
 -spec install(Event, StateData) -> Result
