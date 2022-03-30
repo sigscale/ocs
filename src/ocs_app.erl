@@ -360,10 +360,21 @@ start15(Sup) ->
 				undefined ->
 					{ok, Sup};
 				{ok, {Url, Profile, Options}} ->
+					F = fun({Key, _Value}) when Key == proxy; Key == https_proxy;
+							Key == max_sessions; Key == max_keep_alive_length;
+							Key == keep_alive_timeout; Key == max_pipeline_length;
+							Key == pipeline_timeout; Key == cookies; Key == ipfamily;
+							Key == ip; Key == port; Key == socket_opts; Key == verbose;
+							Key == unix_socket ->
+								true;
+							({_Key, _Value}) ->
+								false
+					end,
+					SetOptions = lists:filter(F, Options),
 					case supervisor:start_child(ocs_event_log_sup,
 							[Url, Profile, Options]) of
 						{ok, _EventLogSup, _Id} ->
-							start16(Profile, ServicesInfo, Sup);
+							start16(Profile, ServicesInfo, Sup, SetOptions);
 						{error, Reason} ->
 							{error, Reason}
 					end
@@ -372,18 +383,26 @@ start15(Sup) ->
 			{error, Reason}
 	end.
 %% @hidden
-start16(Profile, [{httpc, _Pid, Info} | T], Sup) ->
+start16(Profile, [{httpc, _Pid, Info} | T], Sup, SetOptions) ->
 	case proplists:lookup(profile, Info) of
 		{profile, Profile} ->
-			{ok, Sup};
+			start17(Profile, Sup, SetOptions);
 		_ ->
-			start16(Profile, T, Sup)
+			start16(Profile, T, Sup, SetOptions)
 	end;
-start16(Profile, [_ | T], Sup) ->
-	start16(Profile, T, Sup);
-start16(Profile, [], Sup) ->
+start16(Profile, [_ | T], Sup, SetOptions) ->
+	start16(Profile, T, Sup, SetOptions);
+start16(Profile, [], Sup, _SetOptions) ->
 	case inets:start(httpc, [{profile, Profile}]) of
 		{ok, _Pid} ->
+			{ok, Sup};
+		{error, Reason} ->
+			{error, Reason}
+	end.
+%% @hidden
+start17(Profile, Sup, SetOptions) ->
+	case httpc:set_options(SetOptions, Profile) of
+		ok ->
 			{ok, Sup};
 		{error, Reason} ->
 			{error, Reason}
