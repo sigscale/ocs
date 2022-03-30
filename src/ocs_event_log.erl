@@ -147,21 +147,25 @@ handle_event1(Request, Profile,
 %% @see //stdlib/gen_event:handle_call/3
 %% @private
 %%
-handle_call({_RequestId,
-		{{_HttpVersion, StatusCode, _ReasonPhrase}, _Headers, _Body}},
+handle_call({RequestId,
+		{{_HttpVersion, StatusCode, ReasonPhrase}, _Headers, _Body}},
 		#state{established = false, pending = true} = State)
 		when StatusCode >= 200, StatusCode  < 300 ->
+	error_logger:info_report(["Event shipping established",
+			{module, ?MODULE}, {state, State}, {pid, self()},
+			{status, StatusCode}, {reason, ReasonPhrase},
+			{request, RequestId}]),
 	{ok, ok, State#state{established = true, pending = false}};
 handle_call({RequestId,
 		{{_HttpVersion, StatusCode, ReasonPhrase}, _Headers, _Body}}, State) ->
-	error_logger:warning_report(["Event shipping failed",
-			{module, ?MODULE}, {state, State},
+	error_logger:warning_report(["Pending event shipping failed",
+			{module, ?MODULE}, {state, State}, {pid, self()},
 			{status, StatusCode}, {reason, ReasonPhrase},
 			{request, RequestId}]),
 	{remove_handler, {error, ReasonPhrase}};
 handle_call({RequestId, {error, Reason}}, State) ->
-	error_logger:warning_report(["Event shipping failed",
-			{module, ?MODULE}, {state, State},
+	error_logger:warning_report(["Pending event shipping failed",
+			{module, ?MODULE}, {state, State}, {pid, self()},
 			{error, Reason}, {request, RequestId}]),
 	{remove_handler, {error, Reason}}.
 
@@ -220,8 +224,6 @@ pending_result(ReplyInfo, EventManager, Handler) ->
 		ok ->
 			ok;
 		{error, _Reason} ->
-			error_logger:warning_report(["Event shipping failed",
-					{module, ?MODULE}, {manager, EventManager}, {handler, Handler}]),
 			gen_event:delete_handler(EventManager, Handler, [])
 	end.
 
@@ -236,14 +238,13 @@ established_result({_RequestId,
 	ok;
 established_result({RequestId,
 		{{_HttpVersion, StatusCode, ReasonPhrase}, _Headers, _Body}}) ->
-	error_logger:warning_report(["Event shipping failed",
-			{module, ?MODULE},
-			{status, StatusCode}, {reason, ReasonPhrase},
-			{request, RequestId}]),
+	error_logger:warning_report(["Established event shipping failed",
+			{module, ?MODULE}, {pid, self()}, {status, StatusCode},
+			{reason, ReasonPhrase}, {request, RequestId}]),
 	gen_event:delete_handler(ocs_event_log, ocs_event_log, []);
 established_result({RequestId, {error, Reason}}) ->
-	error_logger:warning_report(["Event shipping failed",
-			{module, ?MODULE},
+	error_logger:warning_report(["Established event shipping failed",
+			{module, ?MODULE}, {pid, self()},
 			{error, Reason}, {request, RequestId}]),
 	gen_event:delete_handler(ocs_event_log, ocs_event_log, []).
 
