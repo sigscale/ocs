@@ -70,7 +70,7 @@ post_hub(ReqBody, Authorization) ->
 			#hub{callback = Callback, query = undefined} = HubRecord ->
 				case supervisor:start_child(ocs_rest_hub_sup,
 						[[], Callback, ?PathResourceHub, Authorization]) of
-					{ok, _PageServer, Id} ->
+					{ok, _HubFsm, Id} ->
 						Body = mochijson:encode(hub(HubRecord#hub{id = Id})),
 						Headers = [{content_type, "application/json"},
 								{location, ?PathResourceHub ++ Id}],
@@ -81,7 +81,7 @@ post_hub(ReqBody, Authorization) ->
 			#hub{callback = Callback, query = Query} = HubRecord ->
 				case supervisor:start_child(ocs_rest_hub_sup,
 						[Query, Callback, ?PathResourceHub, Authorization]) of
-					{ok, _PageServer, Id} ->
+					{ok, _HubFsm, Id} ->
 						Body = mochijson:encode(hub(HubRecord#hub{id = Id})),
 						Headers = [{content_type, "application/json"},
 								{location, ?PathResourceHub ++ Id}],

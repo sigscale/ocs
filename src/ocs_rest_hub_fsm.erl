@@ -56,8 +56,8 @@
 		Query :: string(),
 		Callback :: string(),
 		Uri :: string(),
-		Result :: {ok, PageServer} | {error, Reason},
-		PageServer :: pid(),
+		Result :: {ok, HubFsm} | {error, Reason},
+		HubFsm :: pid(),
 		Reason :: term().
 %% @doc Start a hub fsm
 start_link(Query, Callback, Uri) ->
@@ -76,8 +76,8 @@ start_link(Query, Callback, Uri) ->
 		Callback :: string(),
 		Uri :: string(),
 		Authorization :: string(),
-		Result :: {ok, PageServer} | {error, Reason},
-		PageServer :: pid(),
+		Result :: {ok, HubFsm} | {error, Reason},
+		HubFsm :: pid(),
 		Reason :: term().
 %% @doc Start a hub fsm
 start_link(Query, Callback, Uri, Authorization) ->
