@@ -93,9 +93,7 @@ do_post(ModData, Body, ["ratingdata"]) ->
 		SubscriptionId = lists:keyfind("subscriptionId", 1, NrfRequest),
 		Response = {struct,[{"invocationTimeStamp", InvocationTimeStamp},
 				{"invocationSequenceNumber", InvocationSequenceNumber},
-				SubscriptionId,
-				{"serviceRating",
-				{array, ServiceRatingResults}}]},
+				SubscriptionId, {"serviceRating", {array, ServiceRatingResults}}]},
 		RatingDataRef = integer_to_list(rand:uniform(16#ffff)),
 		Headers = [{location, "/ratingdata/" ++ RatingDataRef}],
 		do_response(ModData, {201, Headers, mochijson:encode(Response)})
