@@ -1,3 +1,7 @@
+April 07, 2022
+----------------
+	- Add Elastic Stack Integration
+
 January 28, 2022
 ----------------
 	- Diameter Peer authenticaiton is now performed during CER/CEA exchange
@@ -13,7 +17,7 @@ November 19, 2021
 
 November 11, 2021
 -----------------
-	- Add Support Two Digit MNC
+	- Support Two Digit MNC
 	- Improved Accumulated Bucket Balance Display Handling
 
 September 6, 2021

@@ -1,3 +1,43 @@
+2022-04-07 Refath Wadood <refath@sigscale.org>
+
+	* revert: eap fsm workers are transient
+	* support session-termination-request (str) by pgw
+	* correct diameter request and response record names
+	* gui: fix time of day range label
+	* test: diameter ocs_auth to ECS
+	* test: radius ocs_auth to ECS
+	* diameter and radius ocs_auth to ECS
+	* handle missing user-name in swm str with unknown seesion-id response
+	* test: convert diameter acct events to ECS
+	* convert diameter acct events to ECS
+	* catch exit (not default throw) in terminate fsm
+	* test: convert radius ocs_acct event to ECS
+	* test: validate event reference
+	* codec to convert radius ocs_acct event to ECS
+	* implement filter for prefix table in GUI
+	* add gen_event behaviour module to ship log events to elastic stack
+	* add gen_fsm to ship log events to elastic stack
+	* add application environment variable for ECS Shipper configuration
+	* add supervisor for ocs_event_log_fsm
+	* register ocs_event_log_sup and ocs_event_log under main supervisor
+	* start child of ocs_event_log_sup if elastic_shipper env is not undefined
+	* move lists reverse of result out of transaction
+	* acquire a write lock when reading before deletion
+	* no sticky locks
+	* revert: no sticky locks
+	* do not log prefix table tariff lookup failures
+	* radius session reserve in product characteristics (not service)
+	* defines elastic_shipper environment variable
+	* refactor gen_event behaviour module to have two callback functions
+	* introduce installed state and move to backoff state when timeout
+	* prevent deletion of product if service exists
+	* do not install ploymer-cli globally
+	* send only auth and acct log events to logstash
+	* correct version in product inventory path
+	* add rest hub event handlers with id
+	* refactor error logger messages
+	* set httpc options for the log profile
+
 2022-02-1  Refath Wadood <refath@sigscale.org>
 
 	* do not install generated source
