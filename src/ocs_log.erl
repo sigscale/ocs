@@ -1629,6 +1629,8 @@ dia_req_and_res(#'3gpp_sta_DER'{'Origin-Realm' = OriginRealm,
 	Subscriber = case SubscriptionId of
 		[] ->
 			undefined;
+		[#'3gpp_swx_Subscription-Id'{'Subscription-Id-Data' = Sub} | _] ->
+			Sub;
 		[#'3gpp_sta_Subscription-Id'{'Subscription-Id-Data' = Sub} | _] ->
 			Sub
 	end,
@@ -1649,6 +1651,8 @@ dia_req_and_res(#'3gpp_sta_DER'{'Origin-Realm' = OriginRealm,
 	Subscriber = case SubscriptionId of
 		[] ->
 			undefined;
+		[#'3gpp_swx_Subscription-Id'{'Subscription-Id-Data' = Sub} | _] ->
+			Sub;
 		[#'3gpp_sta_Subscription-Id'{'Subscription-Id-Data' = Sub} | _] ->
 			Sub
 	end,
@@ -1668,6 +1672,8 @@ dia_req_and_res(#'3gpp_sta_DER'{'Origin-Realm' = OriginRealm,
 	Subscriber = case SubscriptionId of
 		[] ->
 			undefined;
+		[#'3gpp_swx_Subscription-Id'{'Subscription-Id-Data' = Sub} | _] ->
+			Sub;
 		[#'3gpp_sta_Subscription-Id'{'Subscription-Id-Data' = Sub} | _] ->
 			Sub
 	end,
@@ -1687,6 +1693,8 @@ dia_req_and_res(#'3gpp_swm_DER'{'Origin-Realm' = OriginRealm,
 	Subscriber = case SubscriptionId of
 		[] ->
 			undefined;
+		[#'3gpp_swx_Subscription-Id'{'Subscription-Id-Data' = Sub} | _] ->
+			Sub;
 		[#'3gpp_swm_Subscription-Id'{'Subscription-Id-Data' = Sub} | _] ->
 			Sub
 	end,
@@ -1707,6 +1715,8 @@ dia_req_and_res(#'3gpp_swm_DER'{'Origin-Realm' = OriginRealm,
 	Subscriber = case SubscriptionId of
 		[] ->
 			undefined;
+		[#'3gpp_swx_Subscription-Id'{'Subscription-Id-Data' = Sub} | _] ->
+			Sub;
 		[#'3gpp_swm_Subscription-Id'{'Subscription-Id-Data' = Sub} | _] ->
 			Sub
 	end,
@@ -1726,6 +1736,8 @@ dia_req_and_res(#'3gpp_swm_DER'{'Origin-Realm' = OriginRealm,
 	Subscriber = case SubscriptionId of
 		[] ->
 			undefined;
+		[#'3gpp_swx_Subscription-Id'{'Subscription-Id-Data' = Sub} | _] ->
+			Sub;
 		[#'3gpp_swm_Subscription-Id'{'Subscription-Id-Data' = Sub} | _] ->
 			Sub
 	end,
