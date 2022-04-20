@@ -38,14 +38,6 @@
 
 -define(S6a_APPLICATION_ID, 16777251).
 -define(IANA_PEN_3GPP, 10415).
--define(DIAMETER_AUTHENTICATION_DATA_UNAVAILABLE,  4181).
--define(DIAMETER_ERROR_CAMEL_SUBSCRIPTION_PRESENT, 4182).
--define(DIAMETER_ERROR_USER_UNKNOWN,               5001).
--define(DIAMETER_ERROR_ROAMING_NOT_ALLOWED,        5004).
--define(DIAMETER_ERROR_UNKNOWN_EPS_SUBSCRIPTION,   5420).
--define(DIAMETER_ERROR_RAT_NOT_ALLOWED,            5421).
--define(DIAMETER_ERROR_EQUIPMENT_UNKNOWN,          5422).
--define(DIAMETER_ERROR_UNKOWN_SERVING_NODE,        5423).
 
 -type state() :: #state{}.
 -type capabilities() :: #diameter_caps{}.
@@ -353,7 +345,7 @@ authentication_information({_, ServerAddress, ServerPort} = ServiceName,
 									Answer = #'3gpp_s6a_AIA'{'Session-Id' = SId,
 											'Experimental-Result' = [#'3gpp_s6a_Experimental-Result'{
 											'Vendor-Id' = ?IANA_PEN_3GPP,
-											'Experimental-Result-Code' = ?'DIAMETER_AUTHENTICATION_DATA_UNAVAILABLE'}],
+											'Experimental-Result-Code' = ?'3GPP_S6A_EXPERIMENTAL-RESULT-CODE_AUTHENTICATION_DATA_UNAVAILABLE'}],
 											'Auth-Session-State' =  ?'3GPP_S6A_AUTH-SESSION-STATE_NO_STATE_MAINTAINED',
 											'Origin-Host' = OHost, 'Origin-Realm' = ORealm},
 									ok = ocs_log:auth_log(diameter, Server, Client1, Request, Answer),
@@ -376,7 +368,7 @@ authentication_information({_, ServerAddress, ServerPort} = ServiceName,
 			Answer = #'3gpp_s6a_AIA'{'Session-Id' = SId,
 					'Experimental-Result' = [#'3gpp_s6a_Experimental-Result'{
 					'Vendor-Id' = ?IANA_PEN_3GPP,
-					'Experimental-Result-Code' = ?'DIAMETER_ERROR_USER_UNKNOWN'}],
+					'Experimental-Result-Code' = ?'3GPP_S6A_EXPERIMENTAL-RESULT-CODE_ERROR_USER_UNKNOWN'}],
 					'Auth-Session-State' =  ?'3GPP_S6A_AUTH-SESSION-STATE_NO_STATE_MAINTAINED',
 					'Origin-Host' = OHost, 'Origin-Realm' = ORealm},
 			ok = ocs_log:auth_log(diameter, Server, Client1, Request, Answer),
@@ -475,7 +467,7 @@ update_location({_, ServerAddress, ServerPort} = ServiceName,
 			Answer = #'3gpp_s6a_AIA'{'Session-Id' = SId,
 					'Experimental-Result' = [#'3gpp_s6a_Experimental-Result'{
 					'Vendor-Id' = ?IANA_PEN_3GPP,
-					'Experimental-Result-Code' = ?'DIAMETER_ERROR_USER_UNKNOWN'}],
+					'Experimental-Result-Code' = ?'3GPP_S6A_EXPERIMENTAL-RESULT-CODE_ERROR_USER_UNKNOWN'}],
 					'Auth-Session-State' =  ?'3GPP_S6A_AUTH-SESSION-STATE_NO_STATE_MAINTAINED',
 					'Origin-Host' = OHost, 'Origin-Realm' = ORealm},
 			ok = ocs_log:auth_log(diameter, Server, Client1, Request, Answer),
@@ -515,7 +507,7 @@ purge_ue({_, ServerAddress, ServerPort} = ServiceName,
 			Answer = #'3gpp_s6a_PUA'{'Session-Id' = SId,
 					'Experimental-Result' = [#'3gpp_s6a_Experimental-Result'{
 					'Vendor-Id' = ?IANA_PEN_3GPP,
-					'Experimental-Result-Code' = ?'DIAMETER_ERROR_USER_UNKNOWN'}],
+					'Experimental-Result-Code' = ?'3GPP_S6A_EXPERIMENTAL-RESULT-CODE_ERROR_USER_UNKNOWN'}],
 					'Auth-Session-State' =  ?'3GPP_S6A_AUTH-SESSION-STATE_NO_STATE_MAINTAINED',
 					'Origin-Host' = OHost, 'Origin-Realm' = ORealm},
 			ok = ocs_log:auth_log(diameter, Server, Client1, Request, Answer),

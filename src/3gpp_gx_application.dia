@@ -229,3 +229,19 @@
          [ DRMP ]
         *[ AVP ]
 
+@define Experimental-Result-Code
+	ERROR_LATE_OVERLAPPING_REQUEST      5453
+	ERROR_TIMED_OUT_REQUEST             5454
+	ERROR_INITIAL_PARAMETERS            5140
+	ERROR_TRIGGER_EVENT                 5141
+	PCC_RULE_EVENT                      5142
+	ERROR_BEARER_NOT_AUTHORIZED         5143
+	ERROR_TRAFFIC_MAPPING_INFO_REJECTED 5144
+	ERROR_CONFLICTING_REQUEST           5147
+	ADC_RULE_EVENT                      5148
+	ERROR_NBIFOM_NOT_AUTHORIZED         5149
+	PCC_BEARER_EVENT                    4141
+	AN_GW_FAILED                        4143
+	PENDING_TRANSACTION                 4144
+	UE_STATUS_SUSPEND                   4145
+
