@@ -362,6 +362,17 @@ authentication_information({_, ServerAddress, ServerPort} = ServiceName,
 					ok = ocs_log:auth_log(diameter, Server, Client1, Request, Answer),
 					{reply, Answer}
 			end;
+		{ok, #service{} = _Service} ->
+			Server = {ServerAddress, ServerPort},
+			Client1 = {CAddress, CPort},
+			Answer = #'3gpp_s6a_AIA'{'Session-Id' = SId,
+					'Experimental-Result' = [#'3gpp_s6a_Experimental-Result'{
+					'Vendor-Id' = ?IANA_PEN_3GPP,
+					'Experimental-Result-Code' = ?'3GPP_S6A_EXPERIMENTAL-RESULT-CODE_AUTHENTICATION_DATA_UNAVAILABLE'}],
+					'Auth-Session-State' =  ?'3GPP_S6A_AUTH-SESSION-STATE_NO_STATE_MAINTAINED',
+					'Origin-Host' = OHost, 'Origin-Realm' = ORealm},
+			ok = ocs_log:auth_log(diameter, Server, Client1, Request, Answer),
+			{reply, Answer};
 		{error, not_found} ->
 			Server = {ServerAddress, ServerPort},
 			Client1 = {CAddress, CPort},
