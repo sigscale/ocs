@@ -37,7 +37,7 @@ class prefixAdd extends PolymerElement {
 				</paper-progress>
 					<div>
 						<paper-input
-								allowed-pattern="[0-9]"
+								allowed-pattern="[0-9+]"
 								label="Prefix"
 								value="{{addPre}}">
 						</paper-input>
