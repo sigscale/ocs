@@ -1,3 +1,11 @@
+2022-04-22 Refath Wadood <refath@sigscale.org>
+
+	* subscription id data can be in swx record type
+	* experimental result code macros
+	* correct s6a result when k/opc unavailable
+	* gui: allow + in tarrif prefix coloumn
+	* gui: fix pattern for tarrif prefix table
+
 2022-04-07 Refath Wadood <refath@sigscale.org>
 
 	* revert: eap fsm workers are transient
