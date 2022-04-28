@@ -2961,6 +2961,9 @@ plmn("42891" ++ Rest) ->
 %% Mongolia, Unitel
 plmn("42888" ++ Rest) ->
 	{"428", "88", Rest};
+%% Mongolia, Ondo / IN Mobile
+plmn("42833" ++ Rest) ->
+	{"428", "33", Rest};
 %% Montenegro, Monet/T-mobile
 plmn("29702" ++ Rest) ->
 	{"297", "02", Rest};
