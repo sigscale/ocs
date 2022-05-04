@@ -1,3 +1,7 @@
+2022-05-04 Vance Shipley <vances@sigscale.org>
+
+	* add plmn mcc/mnc for ondo
+
 2022-04-22 Refath Wadood <refath@sigscale.org>
 
 	* subscription id data can be in swx record type
