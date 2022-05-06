@@ -955,18 +955,24 @@ characteristic_product_network() ->
 			{array, [Type41, Type42, Type43, Type44]}},
 	Char4 = {struct, [Name4, Description4, Config4, Type4, Value4]},
 	Name5 = {"name", "radiusReserveSessionTime"},
-	Description5 = {"description", "Number of seconds for one session"},
+	Description5 = {"description", "Number of seconds to reserve on session start"},
 	Config5 = {"configurable", true},
 	Type5 = {"valueType", "Number"},
 	Value5 = {"productSpecCharacteristicValue", {array, [{struct, [Type5]}]}},
 	Char5 = {struct, [Name5, Description5, Config5, Type5, Value5]},
-	Name6 = {"name", "serviceIdentifier"},
-	Description6 = {"description", "Identifiers of services."},
+	Name6 = {"name", "radiusReserveSessionOctets"},
+	Description6 = {"description", "Number of of octets to reserve on session start"},
 	Config6 = {"configurable", true},
-	Type6 = {"valueType", "Array"},
+	Type6 = {"valueType", "Number"},
 	Value6 = {"productSpecCharacteristicValue", {array, [{struct, [Type6]}]}},
 	Char6 = {struct, [Name6, Description6, Config6, Type6, Value6]},
-	[Char1, Char2, Char3, Char4, Char5, Char6].
+	Name7 = {"name", "serviceIdentifier"},
+	Description7 = {"description", "Identifiers of services."},
+	Config7 = {"configurable", true},
+	Type7 = {"valueType", "Array"},
+	Value7 = {"productSpecCharacteristicValue", {array, [{struct, [Type7]}]}},
+	Char7 = {struct, [Name7, Description7, Config7, Type7, Value7]},
+	[Char1, Char2, Char3, Char4, Char5, Char6, Char7].
 
 %% @hidden
 characteristic_product_rated_plan() ->
