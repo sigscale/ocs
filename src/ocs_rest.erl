@@ -188,7 +188,12 @@ fields(Filters, JsonObject) when is_list(Filters) ->
 	Filters2 = string:tokens(Filters1, ","),
 	Filters3 = [string:tokens(F, ".") || F <- Filters2],
 	Filters4 = lists:usort(Filters3),
-	fields1(Filters4, JsonObject, []).
+	case fields1(Filters4, JsonObject, []) of
+		{struct, []} ->
+			{struct, default_response(JsonObject)};
+		Other ->
+			Other
+	end.
 
 -type operator() :: exact | notexact | lt | lte | gt | gte | regex
 		| like | notlike | in | notin | contains | notcontain | containsall.
@@ -656,6 +661,18 @@ format_problem3(Problem) ->
 %%----------------------------------------------------------------------
 %%  internal functions
 %%----------------------------------------------------------------------
+
+%% @hidden
+default_response({struct, List}) ->
+	F = fun(Key) ->
+		case lists:keyfind(Key, 1, List) of
+			{Key, Value} ->
+				{Key, Value};
+			false ->
+				{error, 400}
+		end
+	end,
+	[F("id"), F("href")].
 
 %% @hidden
 fields1(Filters, {array, L}, Acc) ->
