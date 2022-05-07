@@ -178,6 +178,8 @@ parse_query1(Field, N, Acc) ->
 %%
 %% @throws {error, 400}
 %%
+fields("none" = _Filters, JsonObject) ->
+	fields("id,href", JsonObject);
 fields(Filters, JsonObject) when is_list(Filters) ->
 	Filters1 = case lists:member($(, Filters) of
 		true ->
@@ -186,9 +188,10 @@ fields(Filters, JsonObject) when is_list(Filters) ->
 			Filters
 	end,
 	Filters2 = string:tokens(Filters1, ","),
-	Filters3 = [string:tokens(F, ".") || F <- Filters2],
-	Filters4 = lists:usort(Filters3),
-	fields1(Filters4, JsonObject, []).
+	Filters3 = lists:usort(["id", "href"] ++ Filters2),
+	Filters4 = [string:tokens(F, ".") || F <- Filters3],
+	Filters5 = lists:usort(Filters4),
+	fields1(Filters5, JsonObject, []).
 
 -type operator() :: exact | notexact | lt | lte | gt | gte | regex
 		| like | notlike | in | notin | contains | notcontain | containsall.
