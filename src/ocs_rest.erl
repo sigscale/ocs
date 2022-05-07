@@ -711,8 +711,6 @@ fields3(Filters, [{Key1, Value1} | T], IsValueMatch, ValueMatched, Acc) ->
 			fields3(Filters, T, true, false, Acc);
 		{true, false} ->
 			fields3(Filters, T, true, ValueMatched, Acc);
-		{false, {_, {_, []}}} ->
-			fields3(Filters, T, IsValueMatch, ValueMatched, Acc);
 		{false, {Key2, Value2}} ->
 			fields3(Filters, T, IsValueMatch, ValueMatched, [{Key2, Value2} | Acc]);
 		{true, {Key2, Value2}} ->
