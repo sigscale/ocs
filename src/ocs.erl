@@ -262,13 +262,13 @@ get_clients()->
 				F(mnesia:select(client, MatchSpec,
 						?CHUNKSIZE, read), Acc);
 			F('$end_of_table', Acc) ->
-				Acc;
+				{ok, Acc};
 			F({error, Reason}, _Acc) ->
 				{error, Reason};
 			F({L, Cont}, Acc) ->
 				F(mnesia:select(Cont), [L | Acc])
 	end,
-	case mnesia:ets(F, [F, start, []]) of
+	case mnesia:ets(F, [start, []]) of
 		{error, Reason} ->
 			{error, Reason};
 		{ok, Acc} when is_list(Acc) ->
@@ -445,13 +445,13 @@ get_products()->
 				F(mnesia:select(product, MatchSpec,
 						?CHUNKSIZE, read), Acc);
 			F('$end_of_table', Acc) ->
-				Acc;
+				{ok, Acc};
 			F({error, Reason}, _Acc) ->
 				{error, Reason};
 			F({L, Cont}, Acc) ->
 				F(mnesia:select(Cont), [L | Acc])
 	end,
-	case mnesia:ets(F, [F, start, []]) of
+	case mnesia:ets(F, [start, []]) of
 		{error, Reason} ->
 			{error, Reason};
 		{ok, Acc} when is_list(Acc) ->
@@ -919,7 +919,7 @@ get_buckets() ->
 				F(mnesia:select(bucket, MatchSpec,
 					?CHUNKSIZE, read), Acc);
 			F('$end_of_table', Acc) ->
-				Acc;
+				{ok, Acc};
 			F({error, Reason}, _Acc) ->
 				{error, Reason};
 			F({L, Cont}, Acc) ->
@@ -1355,13 +1355,13 @@ get_services()->
 				F(mnesia:select(service, MatchSpec,
 						?CHUNKSIZE, read), Acc);
 			F('$end_of_table', Acc) ->
-				Acc;
+				{ok, Acc};
 			F({error, Reason}, _Acc) ->
 				{error, Reason};
 			F({L, Cont}, Acc) ->
 				F(mnesia:select(Cont), [L | Acc])
 	end,
-	case mnesia:ets(F, [F, start, []]) of
+	case mnesia:ets(F, [start, []]) of
 		{error, Reason} ->
 			{error, Reason};
 		{ok, Acc} when is_list(Acc) ->
@@ -1624,13 +1624,13 @@ get_offers() ->
 				F(mnesia:select(offer, MatchSpec,
 						?CHUNKSIZE, read), Acc);
 			F('$end_of_table', Acc) ->
-				Acc;
+				{ok, Acc};
 			F({error, Reason}, _Acc) ->
 				{error, Reason};
 			F({L, Cont}, Acc) ->
 				F(mnesia:select(Cont), [L | Acc])
 	end,
-	case mnesia:ets(F, [F, start, []]) of
+	case mnesia:ets(F, [start, []]) of
 		{error, Reason} ->
 			{error, Reason};
 		{ok, Acc} when is_list(Acc) ->
@@ -1766,13 +1766,13 @@ get_resources() ->
 				F(mnesia:select(resource, MatchSpec,
 						?CHUNKSIZE, read), Acc);
 			F('$end_of_table', Acc) ->
-				Acc;
+				{ok, Acc};
 			F({error, Reason}, _Acc) ->
 				{error, Reason};
 			F({L, Cont}, Acc) ->
 				F(mnesia:select(Cont), [L | Acc])
 	end,
-	case mnesia:ets(F, [F, start, []]) of
+	case mnesia:ets(F, [start, []]) of
 		{error, Reason} ->
 			{error, Reason};
 		{ok, Acc} when is_list(Acc) ->
