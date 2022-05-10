@@ -168,11 +168,24 @@ class offerUpdate extends PolymerElement {
 							<div>
 								<paper-input
 										id="updateReserveSession"
-										allowed-pattern="[0-9mh]"
-										pattern="^[0-9]+[mh]?$"
+										allowed-pattern="[0-9ms]"
+										pattern="^[0-9]+[ms]?$"
 										auto-validate
-										label="RADIUS Reserve Session"
-										value=0>
+										label="RADIUS Reserve Session time"
+										value="0">
+								</paper-input>
+								<paper-tooltip>
+										Add a value to update the offer reserve session
+								</paper-tooltip>
+							</div>
+							<div>
+								<paper-input
+										id="updateReserveSessionOctets"
+										allowed-pattern="[0-9kmg]"
+										pattern="^[0-9]+[kmg]?$"
+										auto-validate
+										label="RADIUS Reserve Session bytes"
+										value="0">
 								</paper-input>
 								<paper-tooltip>
 										Add a value to update the offer reserve session
@@ -927,6 +940,9 @@ class offerUpdate extends PolymerElement {
 				if(current.prodSpecCharValueUse[indexCha].name == "radiusReserveSessionTime") {
 					this.$.updateReserveSession.value = current.prodSpecCharValueUse[indexCha].productSpecCharacteristicValue[0].value;
 				}
+				if(current.prodSpecCharValueUse[indexCha].name == "radiusReserveSessionOctets") {
+					this.$.updateReserveSessionOctets.value = current.prodSpecCharValueUse[indexCha].productSpecCharacteristicValue[0].value;
+				}
 				if(current.prodSpecCharValueUse[indexCha].name == "redirectServer") {
 					this.updateRedirect = current.prodSpecCharValueUse[indexCha].productSpecCharacteristicValue[0].value;
 				}
@@ -1229,6 +1245,7 @@ class offerUpdate extends PolymerElement {
 				this.$.updateAddPriceCharReserveTime.value = null;
 				this.$.updateAddPriceCharReserveBytes.value = null;
 				this.$.updateReserveSession.value = null;
+				this.$.updateReserveSessionOctets.value = null;
 				this.updateRedirect = null;
 				this.serviceIdentifier = null;
 				this.priceAddRoaming = null;
@@ -1434,11 +1451,86 @@ class offerUpdate extends PolymerElement {
 				}
 				offerNew.push(stat);
 			}
+		if(this.$.updateReserveSessionOctets.value) {
+			function checkNameOct(char) {
+				return char.name == "radiusReserveSessionOctets";
+			}
+			var res = this.characteristics.findIndex(checkNameOct);
+			if(this.$.updateReserveSessionOctets.value) {
+				var lenTime = this.$.updateReserveSessionOctets.value.length;
+				var m = this.$.updateReserveSessionOctets.value.charAt(lenTime - 1);
+				if(isNaN(parseInt(m))) {
+					var s = this.$.updateReserveSessionOctets.value.slice(0, (lenTime - 1));
+				} else {
+					var s = this.$.updateReserveSessionOctets.value;
+				} if(this.$.updateReserveSessionOctets.value.includes("m")) {
+					if (m == "m") {
+						this.$.updateReserveSessionOctets.value = s + "000000b";
+					}
+				} else if(this.$.updateReserveSessionOctets.value.includes("g")) {
+					if(m == "g") {
+						this.$.updateReserveSessionOctets.value = s + "000000000b";
+					}
+				} else if(this.$.updateReserveSessionOctets.value.includes("k")) {
+					if(m == "k") {
+						 this.$.updateReserveSessionOctets.value = s + "000b";
+               }
+				} else {
+					this.$.updateReserveSessionOctets.value = s + "b";
+				}
+			}
+			if(res == -1) {
+				var indexChar = "-";
+				var reserveSessionOctets = new Object();
+				reserveSessionOctets.op = "add";
+				reserveSessionOctets.path = "/prodSpecCharValueUse/" + indexChar;
+				var session2Arr = new Array();
+				var session2 = new Object();
+				session2.default = true;
+				session2.value = this.$.updateReserveSessionOctets.value;
+				session2Arr.push(session2);
+				var session1 = new Object();
+				session1.name = "radiusReserveSessionOctets";
+				session1.minCardinality = 0;
+				session1.maxCardinality = 1;
+				session1.productSpecCharacteristicValue = session2Arr;
+				var session2 = new Object();
+				session2.id = "1";
+				session2.href = "/catalogManagement/v2/productSpecification/1";
+				session1.productSpecification = session2;
+				reserveSessionOctets.value = session1;
+				offerNew.push(reserveSessionOctets);
+			} else {
+				var indexChar = res.toString();
+				var reserveSessionOctet = new Object();
+				reserveSessionOctet.op = "replace";
+				reserveSessionOctet.path = "/prodSpecCharValueUse/" + indexChar + "/productSpecCharacteristicValue/0/value";
+				reserveSessionOctet.value = this.$.updateReserveSessionOctets.value;
+				offerNew.push(reserveSessionOctet);
+			}
+		}
 		if(this.$.updateReserveSession.value) {
 			function checkName(char) {
 				return char.name == "radiusReserveSessionTime";
 			}
 			var res = this.characteristics.findIndex(checkName);
+			if(this.$.updateReserveSession.value) {
+				var lenTime = this.$.updateReserveSession.value.length;
+				var m = this.$.updateReserveSession.value.charAt(lenTime - 1);
+				if(isNaN(parseInt(m))) {
+					var s = this.$.updateReserveSession.value.slice(0, (lenTime - 1));
+				} else {
+					var s = this.$.updateReserveSession.value;
+				}if(this.$.updateReserveSession.value.includes("m")) {
+					var n = Number(s);
+					if(m == "m") { 
+						n = n * 60;
+						this.$.updateReserveSession.value = n.toString() + "s";
+					} else { 
+						this.$.updateReserveSession.value = n.toString() + "s";
+					}
+				}
+			}
 			if(res == -1) {
 				var indexChar = "-";
 				var reserveSession = new Object();
@@ -1447,7 +1539,7 @@ class offerUpdate extends PolymerElement {
 				var session2Arr = new Array();
 				var session2 = new Object();
 				session2.default = true;
-				session2.value = parseInt(this.$.updateReserveSession.value);
+				session2.value = this.$.updateReserveSession.value;
 				session2Arr.push(session2);
 				var session1 = new Object();
 				session1.name = "radiusReserveSessionTime";
@@ -1465,7 +1557,7 @@ class offerUpdate extends PolymerElement {
 				var reserveSession = new Object();
 				reserveSession.op = "replace";
 				reserveSession.path = "/prodSpecCharValueUse/" + indexChar + "/productSpecCharacteristicValue/0/value";
-				reserveSession.value = parseInt(this.$.updateReserveSession.value);
+				reserveSession.value = this.$.updateReserveSession.value;
 				offerNew.push(reserveSession);
 			}
 		}
