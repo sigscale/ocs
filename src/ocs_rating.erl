@@ -1184,7 +1184,7 @@ authorize1(radius, ServiceType,
 		#service{attributes = Attributes, product = ProdRef} = Service,
 		Timestamp, Address, Direction, SessionAttributes) ->
 	case mnesia:read(product, ProdRef, read) of
-		[#product{product = OfferId, balance = BucketRefs, characteristics = Chars}] ->
+		[#product{product = OfferId, balance = BucketRefs} = P] ->
 			Buckets = lists:flatten([mnesia:read(bucket, Id, sticky_write) || Id <- BucketRefs]),
 			F = fun({'Session-Id', _}) ->
 					true;
@@ -1195,20 +1195,25 @@ authorize1(radius, ServiceType,
 			end,
 			case lists:any(F, get_session_id(SessionAttributes)) of
 				true ->
-					case lists:keyfind("radiusReserveSessionTime", 1, Chars) of
-						{_, RRST} when is_integer(RRST) ->
-							case mnesia:read(offer, OfferId, read) of
-								[#offer{} = Offer] ->
-									authorize2(radius, ServiceType, Service, Buckets, Offer,
-											Timestamp, Address, Direction, SessionAttributes, RRST);
-								[] ->
-									mnesia:abort(offer_not_found)
+					case mnesia:read(offer, OfferId, read) of
+						[#offer{char_value_use = CharValueUse} = Offer] ->
+							case lists:keyfind("radiusReserveSessionTime",
+									#char_value_use.name, CharValueUse) of
+								#char_value_use{values = [#char_value{value = RRST}]}
+										when is_integer(RRST) ->
+									authorize2(radius, ServiceType, Service, Buckets,
+										Offer, Timestamp, Address, Direction,
+										SessionAttributes, RRST);
+								false ->
+									authorize5(Service, Buckets, ServiceType,
+											SessionAttributes, Attributes)
 							end;
-						false ->
-							authorize5(Service, Buckets, ServiceType, SessionAttributes, Attributes)
+						[] ->
+							mnesia:abort(offer_not_found)
 					end;
 				false ->
-					authorize5(Service, Buckets, ServiceType, SessionAttributes, Attributes)
+					authorize5(Service, Buckets, ServiceType,
+							SessionAttributes, Attributes)
 			end;
 		[] ->
 			mnesia:abort(product_not_found)
