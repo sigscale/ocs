@@ -171,24 +171,22 @@ class offerUpdate extends PolymerElement {
 										allowed-pattern="[0-9ms]"
 										pattern="^[0-9]+[ms]?$"
 										auto-validate
-										label="RADIUS Reserve Session time"
-										value="0">
+										label="RADIUS Reserve Session Time">
 								</paper-input>
 								<paper-tooltip>
-										Add a value to update the offer reserve session
+										Reserve an amount of time at session start	
 								</paper-tooltip>
 							</div>
 							<div>
 								<paper-input
 										id="updateReserveSessionOctets"
-										allowed-pattern="[0-9kmg]"
-										pattern="^[0-9]+[kmg]?$"
+										allowed-pattern="[0-9kmgb]"
+										pattern="^[0-9]+[kmgb]?$"
 										auto-validate
-										label="RADIUS Reserve Session bytes"
-										value="0">
+										label="RADIUS Reserve Session Bytes">
 								</paper-input>
 								<paper-tooltip>
-										Add a value to update the offer reserve session
+										Reserve an amount of bytes at session start
 								</paper-tooltip>
 							</div>
 							<div>
@@ -939,9 +937,15 @@ class offerUpdate extends PolymerElement {
 			for (var indexCha in current.prodSpecCharValueUse) {
 				if(current.prodSpecCharValueUse[indexCha].name == "radiusReserveSessionTime") {
 					this.$.updateReserveSession.value = current.prodSpecCharValueUse[indexCha].productSpecCharacteristicValue[0].value;
+					if(this.$.updateReserveSession.value.length >= 0) {
+						this.$.updateReserveSessionOctets.disabled = true;
+					}
 				}
 				if(current.prodSpecCharValueUse[indexCha].name == "radiusReserveSessionOctets") {
 					this.$.updateReserveSessionOctets.value = current.prodSpecCharValueUse[indexCha].productSpecCharacteristicValue[0].value;
+					if(this.$.updateReserveSessionOctets.value.length >= 0) {
+						this.$.updateReserveSession.disabled = true;
+					}
 				}
 				if(current.prodSpecCharValueUse[indexCha].name == "redirectServer") {
 					this.updateRedirect = current.prodSpecCharValueUse[indexCha].productSpecCharacteristicValue[0].value;
@@ -3062,6 +3066,8 @@ class offerUpdate extends PolymerElement {
 				el.checked = false;
 			}
 		});
+		this.$.updateReserveSessionOctets.disabled = false;
+		this.$.updateReserveSession.disabled = false;
 		this.updateOfferName = null;
 		this.updateOfferDescription = null;
 		this.updateOfferSpecification = null;
