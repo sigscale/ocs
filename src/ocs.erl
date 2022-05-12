@@ -272,7 +272,7 @@ get_clients()->
 		{error, Reason} ->
 			{error, Reason};
 		{ok, Acc} when is_list(Acc) ->
-			{ok, lists:flatten(lists:reverse(Acc))}
+			lists:flatten(lists:reverse(Acc))
 	end.
 
 -spec delete_client(Client) -> ok
@@ -455,7 +455,7 @@ get_products()->
 		{error, Reason} ->
 			{error, Reason};
 		{ok, Acc} when is_list(Acc) ->
-			{ok, lists:flatten(lists:reverse(Acc))}
+			lists:flatten(lists:reverse(Acc))
 	end.
 
 -spec query_product(Cont, MatchId, MatchOffer, MatchService) -> Result
@@ -929,7 +929,7 @@ get_buckets() ->
 		{error, Reason} ->
 			{error, Reason};
 		{ok, Acc} when is_list(Acc) ->
-			{ok, lists:flatten(lists:reverse(Acc))}
+			lists:flatten(lists:reverse(Acc))
 	end.
 
 -spec get_buckets(ProdRef) -> Result
@@ -1365,7 +1365,7 @@ get_services()->
 		{error, Reason} ->
 			{error, Reason};
 		{ok, Acc} when is_list(Acc) ->
-			{ok, lists:flatten(lists:reverse(Acc))}
+			lists:flatten(lists:reverse(Acc))
 	end.
 
 -spec query_service(Cont, MatchId, MatchProduct) -> Result
@@ -1634,7 +1634,7 @@ get_offers() ->
 		{error, Reason} ->
 			{error, Reason};
 		{ok, Acc} when is_list(Acc) ->
-			{ok, lists:flatten(lists:reverse(Acc))}
+			lists:flatten(lists:reverse(Acc))
 	end.
 
 -spec delete_offer(OfferID) -> Result
@@ -1776,7 +1776,7 @@ get_resources() ->
 		{error, Reason} ->
 			{error, Reason};
 		{ok, Acc} when is_list(Acc) ->
-			{ok, lists:flatten(lists:reverse(Acc))}
+			lists:flatten(lists:reverse(Acc))
 	end.
 
 -spec get_resource(ResourceID) -> Result
