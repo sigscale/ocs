@@ -174,7 +174,7 @@ class offerUpdate extends PolymerElement {
 										label="RADIUS Reserve Session Time">
 								</paper-input>
 								<paper-tooltip>
-										Reserve an amount of time at session start	
+										Reserve an amount of time at session start
 								</paper-tooltip>
 							</div>
 							<div>
