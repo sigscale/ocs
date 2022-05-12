@@ -1198,8 +1198,8 @@ authorize1(radius, ServiceType,
 					case mnesia:read(offer, OfferId, read) of
 						[#offer{char_value_use = CharValueUse} = Offer] ->
 							F2 = fun(#char_value_use{name = "radiusReserveSessionTime",
-									values = [#char_value{value = RRST}]})
-									when is_integer(RRST) ->
+											values = [#char_value{value = RRST}]})
+											when is_integer(RRST) ->
 										{true, {seconds, RRST}};
 									(#char_value_use{name = "radiusReserveSessionOctets",
 											values = [#char_value{value = RRSO}]})
