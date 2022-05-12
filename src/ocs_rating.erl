@@ -1353,7 +1353,6 @@ authorize4(_Protocol, ServiceType,
 			NewAttr = radius_attributes:store(?SessionTimeout, Reserve, Attr),
 			authorize5(Service, Buckets, ServiceType, SessionAttributes, NewAttr);
 		{0, Reserve, _Buckets2} ->
-%			NewAttr = radius_attributes:store(?SessionTimeout, Reserve, Attr),
 			authorize5(Service, Buckets, ServiceType, SessionAttributes, Attr);
 		{0, UnitsReserved, Buckets2} ->
 			PriceReserveUnits = (Reserve- UnitsReserved),
