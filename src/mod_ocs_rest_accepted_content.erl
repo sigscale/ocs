@@ -104,7 +104,7 @@ do(#mod{request_uri = Uri, data = Data} = ModData) ->
 		undefined ->
 			case proplists:get_value(response, Data) of
 				undefined ->
-					Path = ?USR_DECODE(Uri),
+					Path = ?URI_DECODE(Uri),
 					case string:tokens(Path, "/?") of
 						["health"] ->
 							check_content_type_header(ocs_rest_res_health, ModData);
