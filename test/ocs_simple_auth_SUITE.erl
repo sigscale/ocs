@@ -73,7 +73,6 @@ init_per_suite(Config) ->
 	ok = ocs_test_lib:initialize_db(),
 	ok = ocs_test_lib:load(ocs),
 	RadiusAddress = ct:get_config({radius, address}),
-	RadiusPeerAddress = ct:get_config({radius, peer_address}),
 	RadiusAuthPort = ct:get_config({radius, auth_port}, rand:uniform(64511) + 1024),
 	RadiusAcctPort = ct:get_config({radius, acct_port}, rand:uniform(64511) + 1024),
 	RadiusAppVar = [{auth, [{RadiusAddress, RadiusAuthPort, []}]},
@@ -127,7 +126,8 @@ init_per_testcase(TestCase, Config) when
 		TestCase == out_of_credit_radius;
 		TestCase == bad_password_radius;
 		TestCase == unknown_username_radius;
-		TestCase == authenticate_voice_call ->
+		TestCase == authenticate_voice;
+		TestCase == auth_data_fail ->
 	Address = ct:get_config({radius, peer_address}),
 	SharedSecret = ct:get_config({radius, secret}),
 	{ok, _} = ocs:add_client(Address, 3799, radius, SharedSecret, true),
@@ -139,7 +139,6 @@ init_per_testcase(TestCase, Config) when
 		TestCase == unknown_username_diameter;
 		TestCase == out_of_credit_diameter;
 		TestCase == session_termination_diameter;
-		TestCase == authenticate_voice_call;
 		TestCase == client_authorized ->
 	DiameterPeerAddress = ct:get_config({radius, peer_address}),
 	{ok, _} = ocs:add_client(DiameterPeerAddress, undefined, diameter, undefined, true),
@@ -163,7 +162,8 @@ end_per_testcase(TestCase, Config) when
 		TestCase == out_of_credit_radius;
 		TestCase == bad_password_radius;
 		TestCase == unknown_username_radius;
-		TestCase == authenticate_voice_call ->
+		TestCase == authenticate_voice;
+		TestCase == auth_data_fail ->
 	Address = ct:get_config({radius, peer_address}),
 	ok = ocs:delete_client(Address),
 	Socket = ?config(socket, Config),
@@ -174,7 +174,6 @@ end_per_testcase(TestCase, Config) when
 		TestCase == unknown_username_diameter;
 		TestCase == out_of_credit_diameter;
 		TestCase == session_termination_diameter;
-		TestCase == authenticate_voice_call;
 		TestCase == client_authorized ->
 	Address = ct:get_config({diameter, peer_address}),
 	ok = ocs:delete_client(Address),
@@ -195,8 +194,8 @@ all() ->
 	[simple_authentication_radius, simple_auth_radius_chap, out_of_credit_radius,
 	bad_password_radius, unknown_username_radius, simple_authentication_diameter,
 	bad_password_diameter, unknown_username_diameter, out_of_credit_diameter,
-	session_termination_diameter, authenticate_voice_call, client_authorized,
-	client_not_authorized].
+	session_termination_diameter, authenticate_voice, auth_data_fail,
+	client_authorized, client_not_authorized].
 
 %%---------------------------------------------------------------------
 %%  Test cases
@@ -528,28 +527,23 @@ session_termination_diameter(_Config) ->
 	true = is_record(Answer1, diameter_nas_app_STA),
 	#diameter_nas_app_STA{'Result-Code' = ?'DIAMETER_BASE_RESULT-CODE_SUCCESS'} = Answer1.
 
-authenticate_voice_call() ->
-	[{userdata, [{doc, "Successful
-		authenticate and authorize voice call"}]}].
+authenticate_voice() ->
+	[{userdata, [{doc, "Successful authenticate and authorize voice call"}]}].
 
-authenticate_voice_call(Config) ->
+authenticate_voice(Config) ->
 	PackagePrice = 1,
 	PackageSize = 2,
 	P1 = price(usage, seconds, PackageSize, PackagePrice),
 	OfferId = add_offer([P1], 9),
 	ProdRef = add_product(OfferId, []),
-	#service{name = UserName,
-			password = PeerPassword} =  add_service(ProdRef),
+	#service{name = UserName, password = PeerPassword} =  add_service(ProdRef),
 	Id = 1,
 	NasId = ?config(nas_id, Config),
 	CallingStationId = "99771234567",
 	CalledStationId = "99771234568",
-	Password = ocs:generate_password(),
 	B1 = bucket(cents, 3000),
 	_BId = add_bucket(ProdRef, B1),
 	RadiusReserveSessionTime = 60,
-	Chars = [{"radiusReserveSessionTime", RadiusReserveSessionTime}],
-	{ok, _} = ocs:add_service(CallingStationId, Password, ProdRef, Chars),
 	Authenticator = radius:authenticator(),
 	SharedSecret = ct:get_config({radius, secret}),
 	UserPassword = radius_attributes:hide(SharedSecret, Authenticator, PeerPassword),
@@ -575,6 +569,43 @@ authenticate_voice_call(Config) ->
 			attributes = Attributes} = radius:codec(AccessAcceptPacket),
 	RadiusAttributes = radius_attributes:codec(Attributes),
 	RadiusReserveSessionTime = radius_attributes:fetch(?SessionTimeout, RadiusAttributes).
+
+auth_data_fail() ->
+	[{userdata, [{doc, "Successful authenticate and authorize data"}]}].
+
+auth_data_fail(Config) ->
+	PackagePrice = 1,
+	PackageSize = 1000000,
+	P1 = price(usage, octets, PackageSize, PackagePrice),
+	OfferId = add_offer([P1], 8),
+	ProdRef = add_product(OfferId, []),
+	#service{name = UserName, password = PeerPassword} =  add_service(ProdRef),
+	Id = 1,
+	NasId = ?config(nas_id, Config),
+	CallingStationId = "99771234567",
+	CalledStationId = "99771234568",
+	Authenticator = radius:authenticator(),
+	SharedSecret = ct:get_config({radius, secret}),
+	UserPassword = radius_attributes:hide(SharedSecret, Authenticator, PeerPassword),
+	{ok, RadiusConfig} = application:get_env(ocs, radius),
+	{auth, [{AuthAddress, AuthPort, _} | _]} = lists:keyfind(auth, 1, RadiusConfig),
+	Socket = ?config(socket, Config),
+	A0 = radius_attributes:new(),
+	A1 = radius_attributes:add(?ServiceType, 2, A0),
+	A2 = radius_attributes:add(?NasPortId, "wlan1", A1),
+	A3 = radius_attributes:add(?NasPortType, 19, A2),
+	A4 = radius_attributes:add(?UserName, binary_to_list(UserName), A3),
+	A5 = radius_attributes:add(?AcctSessionId, "92641849", A4),
+	A6 = radius_attributes:add(?CallingStationId, CallingStationId, A5),
+	A7 = radius_attributes:add(?CalledStationId, CalledStationId, A6),
+	A8 = radius_attributes:add(?UserPassword, UserPassword, A7),
+	A9 = radius_attributes:add(?NasIdentifier, NasId, A8),
+	AccessReqest = #radius{code = ?AccessRequest, id = Id,
+			authenticator = Authenticator, attributes = A9},
+	AccessReqestPacket= radius:codec(AccessReqest),
+	ok = gen_udp:send(Socket, AuthAddress, AuthPort, AccessReqestPacket),
+	{ok, {AuthAddress, AuthPort, AccessAcceptPacket}} = gen_udp:recv(Socket, 0),
+	#radius{code = ?AccessReject, id = Id} = radius:codec(AccessAcceptPacket).
 
 client_authorized() ->
 	[{userdata, [{doc, "Authorize a Diameter Peer"}]}].
@@ -698,6 +729,22 @@ bucket(Units, RA) ->
 %% @hidden
 add_offer(Prices, Spec) when is_integer(Spec) ->
 	add_offer(Prices, integer_to_list(Spec));
+add_offer(Prices, "8" = Spec) ->
+	Values = [#char_value{value = 1000000}],
+	ValueUse = [#char_value_use{name = "radiusReserveSessionOctets", values = Values}],
+	Offer = #offer{name = ocs:generate_identity(),
+			char_value_use = ValueUse,
+			price = Prices, specification = Spec},
+	{ok, #offer{name = OfferId}} = ocs:add_offer(Offer),
+	OfferId;
+add_offer(Prices, "9" = Spec) ->
+	Values = [#char_value{value = 60}],
+	ValueUse = [#char_value_use{name = "radiusReserveSessionTime", values = Values}],
+	Offer = #offer{name = ocs:generate_identity(),
+			char_value_use = ValueUse,
+			price = Prices, specification = Spec},
+	{ok, #offer{name = OfferId}} = ocs:add_offer(Offer),
+	OfferId;
 add_offer(Prices, Spec) ->
 	Offer = #offer{name = ocs:generate_identity(),
 	price = Prices, specification = Spec},
@@ -722,3 +769,4 @@ add_service(ProdRef) ->
 add_bucket(ProdRef, Bucket) ->
 	{ok, _, #bucket{id = BId}} = ocs:add_bucket(ProdRef, Bucket),
 	BId.
+
