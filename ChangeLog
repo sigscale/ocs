@@ -1,6 +1,22 @@
+2022-05-25 Vance Shipley <vances@sigscale.org>
+
+	* test suite: radius reserve session time in offer
+	* test case: data radius auth fail
+	* convert unused session bucket to regular bucket
+	* refactore add client in simple auth test suite
+	* fix get table api function result
+	* add disable validation for reserve time and bytes
+	* support for radius reserve session octets in authorization
+	* radius reserve session accepts time and bytes
+	* getting radius reserve session time from offer instead of product
+	* rest query fields filters, id href mandatory in response
+	* fix get table api functions broken in commit 205fd6f8
+	* unit of measure in radius reserve session char value
+	* radius session reserve octets in product spec (ocs-589)
+
 2022-05-04 Vance Shipley <vances@sigscale.org>
 
-	* add plmn mcc/mnc for ondo
+	* add plmn mcc/mnc of ondo
 
 2022-04-22 Refath Wadood <refath@sigscale.org>
 
