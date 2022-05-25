@@ -1,5 +1,9 @@
-2022-05-25 Vance Shipley <vances@sigscale.org>
+2022-05-26 Vance Shipley <vances@sigscale.org>
 
+	* split http path before percent decode
+	* macros to conditionally use new crypto in aka where available
+	* macros to conditionally use new uri_string module when available
+	* implement query function for gtt resource
 	* test suite: radius reserve session time in offer
 	* test case: data radius auth fail
 	* convert unused session bucket to regular bucket
