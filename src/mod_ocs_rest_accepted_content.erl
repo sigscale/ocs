@@ -64,6 +64,16 @@
 
 -include_lib("inets/include/httpd.hrl").
 
+-ifdef(OTP_RELEASE).
+	-if(?OTP_RELEASE > 23).
+		-define(URI_DECODE(URI), uri_string:percent_decode(URI)).
+	-else.
+		-define(URI_DECODE(URI), http_uri:decode(URI)).
+	-endif.
+-else.
+	-define(URI_DECODE(URI), http_uri:decode(URI)).
+-endif.
+
 -spec do(ModData) -> Result when
 	ModData :: #mod{},
 	Result :: {proceed, OldData} | {proceed, NewData} | {break, NewData} | done,
@@ -94,7 +104,7 @@ do(#mod{request_uri = Uri, data = Data} = ModData) ->
 		undefined ->
 			case proplists:get_value(response, Data) of
 				undefined ->
-					Path = http_uri:decode(Uri),
+					Path = ?USR_DECODE(Uri),
 					case string:tokens(Path, "/?") of
 						["health"] ->
 							check_content_type_header(ocs_rest_res_health, ModData);

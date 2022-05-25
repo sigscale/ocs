@@ -25,6 +25,16 @@
 
 -define(MINIMUM_RESERVATION, 5000).
 
+-ifdef(OTP_RELEASE).
+	-if(?OTP_RELEASE > 23).
+		-define(URI_DECODE(URI), uri_string:percent_decode(URI)).
+	-else.
+		-define(URI_DECODE(URI), http_uri:decode(URI)).
+	-endif.
+-else.
+	-define(URI_DECODE(URI), http_uri:decode(URI)).
+-endif.
+
 -spec do(ModData) -> Result when
 	ModData :: #mod{},
 	Result :: {proceed, OldData} | {proceed, NewData} | {break, NewData} | done,
@@ -58,7 +68,7 @@ do(#mod{method = Method, parsed_header = Headers, request_uri = Uri,
 				undefined ->
 					case proplists:get_value(response, Data) of
 						undefined ->
-							Path = http_uri:decode(Uri),
+							Path = ?URI_DECODE(Uri),
 							content_type_available(Headers, Path, Body, ModData);
 						_Response ->
 							{proceed,  Data}

@@ -63,6 +63,16 @@
 
 -include_lib("inets/include/httpd.hrl").
 
+-ifdef(OTP_RELEASE).
+	-if(?OTP_RELEASE > 23).
+		-define(URI_DECODE(URI), uri_string:percent_decode(URI)).
+	-else.
+		-define(URI_DECODE(URI), http_uri:decode(URI)).
+	-endif.
+-else.
+	-define(URI_DECODE(URI), http_uri:decode(URI)).
+-endif.
+
 -spec do(ModData) -> Result when
 	ModData :: #mod{},
 	Result :: {proceed, OldData} | {proceed, NewData} | {break, NewData} | done,
@@ -97,7 +107,7 @@ do(#mod{method = Method, request_uri = Uri,
 					case proplists:get_value(response, Data) of
 						undefined ->
 							{_, Resource} = lists:keyfind(resource, 1, Data),
-							Path = http_uri:decode(Uri),
+							Path = ?URI_DECODE(Uri),
 							do_post(Resource, ModData, Body, string:tokens(Path, "/"));
 						_Response ->
 							{proceed,  Data}

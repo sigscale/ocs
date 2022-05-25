@@ -46,7 +46,7 @@
 
 -spec start_link(Url, Profile, Options) -> Result
 	when
-		Url :: http_uri:uri(),
+		Url :: string(),
 		Profile :: httpc:profile(),
 		Options :: [Option],
 		Option :: {api_type, ApiType} | {backoff, Time},
