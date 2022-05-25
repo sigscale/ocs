@@ -534,7 +534,11 @@ authenticate_voice(Config) ->
 	PackagePrice = 1,
 	PackageSize = 2,
 	P1 = price(usage, seconds, PackageSize, PackagePrice),
-	OfferId = add_offer([P1], 9),
+	RadiusReserveSessionTime = 60,
+	CharValue = #char_value{units = "seconds", value = RadiusReserveSessionTime},
+	Chars = [#char_value_use{name = "radiusReserveSessionTime",
+			values = [CharValue]}],
+	OfferId = add_offer([P1], "9", Chars),
 	ProdRef = add_product(OfferId, []),
 	#service{name = UserName, password = PeerPassword} =  add_service(ProdRef),
 	Id = 1,
@@ -746,8 +750,12 @@ add_offer(Prices, "9" = Spec) ->
 	{ok, #offer{name = OfferId}} = ocs:add_offer(Offer),
 	OfferId;
 add_offer(Prices, Spec) ->
+	add_offer(Prices, Spec, []).
+%% @hidden
+add_offer(Prices, Spec, Chars) ->
 	Offer = #offer{name = ocs:generate_identity(),
-	price = Prices, specification = Spec},
+			price = Prices, specification = Spec,
+			char_value_use = Chars},
 	{ok, #offer{name = OfferId}} = ocs:add_offer(Offer),
 	OfferId.
 
