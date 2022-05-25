@@ -162,8 +162,8 @@ do(#mod{method = Method, parsed_header = _Headers,
 								false ->
 									{proceed, Data};
 								{_, Resource} ->
-									Path = ?URI_DECODE(Uri),
-									parse_query(Resource, ModData, httpd_util:split_path(Path))
+									{Path, Query} = httpd_util:split_path(Uri),
+									parse_query(Resource, ModData, Path, ?URI_DECODE(Query))
 							end;
 						_Response ->
 							{proceed,  Data}
@@ -174,18 +174,18 @@ do(#mod{method = Method, parsed_header = _Headers,
 	end.
 
 %% @hidden
-parse_query(Resource, ModData, {Path, []})
+parse_query(Resource, ModData, Path, [])
 		when is_list(Path) ->
 	do_get(Resource, ModData, string:tokens(Path, "/"), []);
-parse_query(Resource, ModData, {Path, "?" ++ Query})
+parse_query(Resource, ModData, Path, "?" ++ Query)
 		when is_list(Path), is_list(Query) ->
 	do_get(Resource, ModData, string:tokens(Path, "/"),
 		ocs_rest:parse_query(Query));
-parse_query(Resource, ModData, {Path, Query})
+parse_query(Resource, ModData, Path, Query)
 		when is_list(Path), is_list(Query) ->
 	do_get(Resource, ModData, string:tokens(Path, "/"),
 		ocs_rest:parse_query(Query));
-parse_query(_, #mod{parsed_header = RequestHeaders, data = Data} = ModData, _) ->
+parse_query(_, #mod{parsed_header = RequestHeaders, data = Data} = ModData, _, _) ->
 	Problem = #{type => "https://datatracker.ietf.org/doc/html/rfc7231#section-6.5.4",
 			title => "Not Found",
 			detail => "No resource exists at the path provided",
