@@ -2290,7 +2290,7 @@ get_final([#bucket{reservations = []} = B | T],
 		ServiceId, ChargingKey, SessionId, Now, Debits, Acc) ->
 	get_final(T, ServiceId, ChargingKey, SessionId, Now, Debits, [B | Acc]);
 get_final([#bucket{units = Units, reservations = Reservations,
-		remain_amount = R, end_date = Expires} = B | T],
+		remain_amount = R, start_date = StartDate, end_date = EndDate} = B | T],
 		ServiceId, ChargingKey, SessionId, Now, Debits, Acc) ->
 	N = maps:get(Units, Debits, 0),
 	case get_debits(ServiceId, ChargingKey, SessionId,
@@ -2298,7 +2298,14 @@ get_final([#bucket{units = Units, reservations = Reservations,
 		{Debit, 0, []} when R == 0 ->
 			get_final(T, ServiceId, ChargingKey, SessionId,
 					Now, Debits#{Units => N + Debit}, Acc);
-		{Debit, _Refund, []} when R >= 0, Expires /= undefined, Expires < Now ->
+		{Debit, Refund, []} when StartDate == EndDate ->
+			get_final(T, ServiceId, ChargingKey, SessionId,
+					Now, Debits#{Units => N + Debit},
+					[B#bucket{name = undefined, end_date = undefined,
+					remain_amount = R + Refund,
+					last_modified = {Now, erlang:unique_integer([positive])},
+					reservations = []} | Acc]);
+		{Debit, _Refund, []} when R >= 0, EndDate /= undefined, EndDate < Now ->
 			get_final(T, ServiceId, ChargingKey, SessionId,
 					Now, Debits#{Units => N + Debit}, Acc);
 		{Debit, Refund, NewReservations} ->
