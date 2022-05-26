@@ -46,31 +46,13 @@ class prefixList extends PolymerElement {
 				</vaadin-grid-column>
 				<vaadin-grid-column width="15ex">
 					<template class="header">
-						<vaadin-grid-filter
-								aria-label="description"
-								path="description"
-								value="{{_filterDescription}}">
-							<input
-									slot="filter"
-									placeholder="Description"
-									value="{{_filterDescription::input}}"
-									focus-target>
-						</vaadin-grid-filter>
+							Description
 					</template>
 					<template>[[item.description]]</template>
 				</vaadin-grid-column>
 				<vaadin-grid-column width="15ex">
 					<template class="header">
-						<vaadin-grid-filter
-								aria-label="rate"
-								path="rate"
-								value="{{_filterRate}}">
-							<input
-									slot="filter"
-									placeholder="Rate"
-									value="{{_filterRate::input}}"
-									focus-target>
-						</vaadin-grid-filter>
+							Rate
 					</template>
 					<template>[[item.rate]]</template>
 				</vaadin-grid-column>
@@ -264,14 +246,14 @@ class prefixList extends PolymerElement {
 		ajax.url = "/resourceInventoryManagement/v1/resource?resourceSpecification.id=2&resourceRelationship.resource.name=" + prefixList.activeTableName;
 		delete ajax.params['filter'];
 		function checkHead(param) {
-			return param.path == "prefix" || param.path == "description" || param.path == "rate"
+			return param.path == "prefix"
 		}
 		params.filters.filter(checkHead).forEach(function(filter) {
 			if(filter.value) {
 				if(ajax.params['filter']) {
-					ajax.params['filter'] += "]," + filter.path + ".like=[" + filter.value + "%";
+					ajax.params['filter'] += "]," + "resourceCharacteristic." + filter.path + ".like=[" + filter.value + "%";
 				} else {
-					ajax.params['filter'] = "\"[{" + filter.path + ".like=[" + filter.value + "%";
+					ajax.params['filter'] = "\"[{" + "resourceCharacteristic." +filter.path + ".like=[" + filter.value + "%";
 				}
 			}
 		});

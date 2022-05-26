@@ -252,7 +252,11 @@ get_resource(Query, Headers) ->
 					{ok, [{array, [{complex, Complex}]}]} ->
 						MatchId = match("id", Complex, Query),
 						MatchCategory = match("category", Complex, Query),
-						{Query1, [MatchId, MatchCategory]}
+						MatchSpecId = match("resourceSpecification.id", Complex, Query),
+						MatchRelName
+								= match("resourceRelationship.resource.name", Complex, Query),
+						MatchPrefix = match("resourceCharacteristic.prefix", Complex, Query),
+						{Query1, [MatchId, MatchCategory, MatchSpecId, MatchRelName, MatchPrefix]}
 				end;
 			false ->
 					MatchId = match("id", [], Query),
@@ -260,16 +264,16 @@ get_resource(Query, Headers) ->
 					MatchSpecId = match("resourceSpecification.id", [], Query),
 					MatchRelName
 							= match("resourceRelationship.resource.name", [], Query),
-					{Query, [MatchId, MatchCategory, MatchSpecId, MatchRelName]}
+					MatchPrefix = match("resourceCharacteristic.prefix", [], Query),
+					{Query, [MatchId, MatchCategory, MatchSpecId, MatchRelName, MatchPrefix]}
 		end
 	of
-		{Query2, [_, _, {exact, "2"}, {exact, Table}]} ->
+		{Query2, [_, _, {exact, "2"}, {exact, Table}, MatchPrefix1]} ->
 			Codec = fun gtt/2,
-			query_filter({ocs_gtt, list, [list_to_existing_atom(Table)]},
-					Codec, Query2, Headers);
-		{Query2, Args} ->
+			query_filter({ocs_gtt, query, [list_to_existing_atom(Table), MatchPrefix1]}, Codec, Query2, Headers);
+		{Query2, [ResId, ResName, SpecId, RelName, _]} ->
 			Codec = fun resource/1,
-			query_filter({ocs, query_resource, Args}, Codec, Query2, Headers)
+			query_filter({ocs, query_resource, [ResId, ResName, SpecId, RelName]}, Codec, Query2, Headers)
 	catch
 		_ ->
 			{error, 400}
