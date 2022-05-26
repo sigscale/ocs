@@ -480,7 +480,7 @@ list('$end_of_table') ->
 query(Cont, Table, '_') ->
 	MatchHead = #gtt{_ = '_'},
 	MatchSpec = [{MatchHead, [], ['$_']}],
-	query1(Cont, Table, MatchHead);
+	query1(Cont, Table, MatchSpec);
 query(Cont, Table, {Op, String})
 		when is_list(String), ((Op == exact) orelse (Op == like)) ->
 	MatchHead = case lists:last(String) of
@@ -492,7 +492,7 @@ query(Cont, Table, {Op, String})
 	MatchSpec = [{MatchHead, [], ['$_']}],
 	query1(Cont, Table, MatchSpec).
 %% @hidden
-query1(_Cont, Table, MatchSpec) when is_atom(Table) ->
+query1(start, Table, MatchSpec) when is_atom(Table) ->
 	F = fun() ->
 		mnesia:select(Table, MatchSpec, ?CHUNKSIZE, read)
 	end,
