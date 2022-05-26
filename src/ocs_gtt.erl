@@ -41,7 +41,7 @@
 %% export API
 -export([new/2, new/3, insert/2, insert/3, delete/2, lookup_first/2,
 		lookup_last/2, lookup_all/2, list/0, list/2, backup/2, restore/2,
-		import/1, clear_table/1, query/4]).
+		import/1, clear_table/1, query/3]).
 
 -define(CHUNKSIZE, 100).
 
@@ -467,21 +467,21 @@ list({[#gtt{} | _] = Gtts, Cont}) ->
 list('$end_of_table') ->
 	{eof, []}.
 
--spec query(Cont, Table, MatchPrefix, MatchDescription) -> Result
+-spec query(Cont, Table, MatchPrefix) -> Result
 	when
 		Cont :: start | any(),
 		Table :: atom(),
 		MatchPrefix :: Match,
-		MatchDescription :: Match,
 		Match :: {exact, string()} | {like, string()} | '_',
 		Result :: {Cont1, [#gtt{}]} | {error, Reason},
 		Cont1 :: eof | any(),
 		Reason :: term().
 %% @doc Paginated filtered query of table.
-query(Cont, Table, '_', MatchDescription) ->
+query(Cont, Table, '_') ->
 	MatchHead = #gtt{_ = '_'},
-	query1(Cont, Table, MatchHead, MatchDescription);
-query(Cont, Table, {Op, String}, MatchDescription)
+	MatchSpec = [{MatchHead, [], ['$_']}],
+	query1(Cont, Table, MatchHead);
+query(Cont, Table, {Op, String})
 		when is_list(String), ((Op == exact) orelse (Op == like)) ->
 	MatchHead = case lists:last(String) of
 		$% when Op == like ->
@@ -489,42 +489,30 @@ query(Cont, Table, {Op, String}, MatchDescription)
 		_ ->
 			#gtt{num = String, _ = '_'}
 	end,
-	query1(Cont, Table, MatchHead, MatchDescription).
-%% @hidden
-query1(Cont, Table, MatchHead, '_') ->
 	MatchSpec = [{MatchHead, [], ['$_']}],
-	query2(Cont, Table, MatchSpec);
-query1(Cont, Table, MatchHead1, {Op, String})
-		when is_list(String), ((Op == exact) orelse (Op == like)) ->
-	MatchHead2 = case lists:last(String) of
-		$% when Op == like ->
-			MatchHead1#gtt{value = {lists:droplast(String) ++ '_', '_', _ = '_'}};
-		_ ->
-			MatchHead1#gtt{value = {String ++ '_', '_', _ = '_'}}
-	end,
-	MatchSpec = [{MatchHead2, [], ['$_']}],
-	query2(Cont, Table, MatchSpec).
-query2(_Cont, Table, MatchSpec) when is_atom(Table) ->
+	query1(Cont, Table, MatchSpec).
+%% @hidden
+query1(_Cont, Table, MatchSpec) when is_atom(Table) ->
 	F = fun() ->
 		mnesia:select(Table, MatchSpec, ?CHUNKSIZE, read)
 	end,
-	query3(mnesia:ets(F));
-query2(Cont, _Table, _MatchSpec) ->
+	query2(mnesia:ets(F));
+query1(Cont, _Table, _MatchSpec) ->
 	F = fun() ->
 		mnesia:select(Cont)
 	end,
-	query3(mnesia:ets(F)).
+	query2(mnesia:ets(F)).
 %% @hidden
-query3({[#gtt{} | _] = Gtts, Cont}) ->
-	query4(Gtts, Cont, []);
-query3('$end_of_table') ->
+query2({[#gtt{} | _] = Gtts, Cont}) ->
+	query3(Gtts, Cont, []);
+query2('$end_of_table') ->
 	{eof, []}.
 %% @hidden
-query4([#gtt{value = undefined} | T], Cont, Acc) ->
-   query4(T, Cont, Acc);
-query4([#gtt{} = Gtt | T], Cont, Acc) ->
-   query4(T, Cont, [Gtt | Acc]);
-query4([], Cont, Acc) ->
+query3([#gtt{value = undefined} | T], Cont, Acc) ->
+   query3(T, Cont, Acc);
+query3([#gtt{} = Gtt | T], Cont, Acc) ->
+   query3(T, Cont, [Gtt | Acc]);
+query3([], Cont, Acc) ->
    {Cont, Acc}. 
 
 -spec clear_table(Table) -> ok
