@@ -110,9 +110,7 @@ class prefixList extends PolymerElement {
 				</paper-fab>
 			</div>
 			<iron-ajax
-					id="getPrefixRows"
-					on-response="_getTableRowsResponse"
-					on-error="_getTableRowsError">
+					id="getPrefixRows">
 			</iron-ajax>
 			<iron-ajax
 					id="deletePrefixTable"
