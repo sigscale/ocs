@@ -1126,7 +1126,11 @@ rate(ServiceType, ServiceNetwork, Subscriber,
 		{ok, _, Rated2}
 				when is_list(Rated2), is_list(Rated1) ->
 			{lists:reverse(Acc), ResultCode, Rated1 ++ Rated2};
-		{out_of_credit, _, []} ->
+		{out_of_credit, _, []}
+				when Rated1 == undefined ->
+			{lists:reverse(Acc), ResultCode, []};
+		{out_of_credit, _, []}
+				when is_list(Rated1) ->
 			{lists:reverse(Acc), ResultCode, Rated1};
 		{out_of_credit, _, [], Rated2}
 				when is_list(Rated2), Rated1 == undefined ->
@@ -1134,8 +1138,12 @@ rate(ServiceType, ServiceNetwork, Subscriber,
 		{out_of_credit, _, [], Rated2}
 				when is_list(Rated2), is_list(Rated1) ->
 			{lists:reverse(Acc), ResultCode, Rated1 ++ Rated2};
-		{disabled, []} ->
-			{lists:reverse(Acc), ResultCode, Rated1};
+		{disabled, []}
+				when Rated1 == undefined ->
+			{lists:reverse(Acc), ResultCode, []};
+		{disabled, []}
+				when is_list(Rated1) ->
+			{lists:reverse(Acc), ResultCode, rated1};
 		{error, Reason} ->
 			{error, Reason}
 	end;
