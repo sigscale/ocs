@@ -1,3 +1,12 @@
+2022-05-31 Vance Shipley <vances@sigscale.org>
+
+	* input validation on rate amount
+	* handle decimal values in rating
+	* refactor rest api test suite to eliminate ssl warnings
+	* fix ttls test suite initialization
+	* implement prefix table filter
+	* fix error in query function
+
 2022-05-26 Vance Shipley <vances@sigscale.org>
 
 	* split http path before percent decode
