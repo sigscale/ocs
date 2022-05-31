@@ -38,6 +38,9 @@ class tableUpdate extends PolymerElement {
 				<paper-input
 						id="updatePrefix"
 						name="Prefix"
+						allowed-pattern="[+0-9]"
+						pattern="^[+]?[0-9]+"
+						auto-validate
 						label="Prefix"
 						value="{{upPrefix}}"
 						disabled>
@@ -61,6 +64,9 @@ class tableUpdate extends PolymerElement {
 				<paper-input
 						id="updateRate"
 						name="rateUpdate"
+						allowed-pattern="[0-9.]"
+						pattern="^[0-9]+\.?[0-9]{0,6}$"
+						auto-validate
 						label="Rate"
 						value="{{upRate}}">
 				</paper-input>

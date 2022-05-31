@@ -39,7 +39,7 @@ class prefixAdd extends PolymerElement {
 						<paper-input
 								allowed-pattern="[+0-9]"
 								pattern="^[+]?[0-9]+"
-                        auto-validate
+								auto-validate
 								label="Prefix"
 								value="{{addPre}}">
 						</paper-input>
@@ -58,6 +58,9 @@ class prefixAdd extends PolymerElement {
 					</div>
 					<div>
 						<paper-input
+								allowed-pattern="[0-9.]"
+								pattern="^[0-9]+\.?[0-9]{0,6}$"
+								auto-validate
 								label="Rate"
 								value="{{addPreRate}}">
 						</paper-input>
@@ -122,9 +125,9 @@ class prefixAdd extends PolymerElement {
 		relObj.id = prefixList.activeTableId;
 		relObj.href = "/resourceInventoryManagement/v1/resourceRelationship/" + relObj.id;
 		relObj.name = prefixList.activeTableName;
-      var relObj1 = new Object();
-      relObj1.relationshipType = "contained";
-      relObj1.resource = relObj
+		var relObj1 = new Object();
+		relObj1.relationshipType = "contained";
+		relObj1.resource = relObj
 		rel.push(relObj1);
 		tar.resourceRelationship = rel
 
