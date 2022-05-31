@@ -58,7 +58,6 @@ class prefixAdd extends PolymerElement {
 					</div>
 					<div>
 						<paper-input
-								type="number"
 								label="Rate"
 								value="{{addPreRate}}">
 						</paper-input>
@@ -140,7 +139,7 @@ class prefixAdd extends PolymerElement {
 		resource.push(resDes);
 		var resRate = new Object();
 		resRate.name = "rate";
-		resRate.value = parseInt(this.addPreRate);
+		resRate.value = this.addPreRate;
 		resource.push(resRate);
 		tar.resourceCharacteristic = resource;
 

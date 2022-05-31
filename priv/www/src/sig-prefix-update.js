@@ -62,7 +62,6 @@ class tableUpdate extends PolymerElement {
 						id="updateRate"
 						name="rateUpdate"
 						label="Rate"
-						type="number"
 						value="{{upRate}}">
 				</paper-input>
 				<paper-tooltip
@@ -175,7 +174,7 @@ class tableUpdate extends PolymerElement {
 				var Rate = new Object();
 				Rate.op = "replace";
 				Rate.path = "/resourceCharacteristic/2/value";
-				Rate.value = parseInt(this.upRate);
+				Rate.value = this.upRate;
 				ResArray.push(Rate);
 			}
 		}
