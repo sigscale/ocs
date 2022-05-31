@@ -1120,10 +1120,22 @@ rate(ServiceType, ServiceNetwork, Subscriber,
 	case ocs_rating:rate(diameter, ServiceType, undefined, undefined,
 			ServiceNetwork, Subscriber, Timestamp, Address, Direction, final,
 			[], [], [{'Session-Id', SessionId}]) of
-		{ok, _, Rated2} when is_list(Rated2), Rated1 == undefined ->
+		{ok, _, Rated2}
+				when is_list(Rated2), Rated1 == undefined ->
 			{lists:reverse(Acc), ResultCode, Rated2};
-		{ok, _, Rated2} when is_list(Rated2), is_list(Rated1) ->
+		{ok, _, Rated2}
+				when is_list(Rated2), is_list(Rated1) ->
 			{lists:reverse(Acc), ResultCode, Rated1 ++ Rated2};
+		{out_of_credit, _, []} ->
+			{lists:reverse(Acc), ResultCode, Rated1};
+		{out_of_credit, _, [], Rated2}
+				when is_list(Rated2), Rated1 == undefined ->
+			{lists:reverse(Acc), ResultCode, Rated2};
+		{out_of_credit, _, [], Rated2}
+				when is_list(Rated2), is_list(Rated1) ->
+			{lists:reverse(Acc), ResultCode, Rated1 ++ Rated2};
+		{disabled, []} ->
+			{lists:reverse(Acc), ResultCode, Rated1};
 		{error, Reason} ->
 			{error, Reason}
 	end;
