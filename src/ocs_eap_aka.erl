@@ -38,11 +38,11 @@
 		-define(BLOCK_ENCRYPT(Cipher, Key, Data), crypto:crypto_one_time(Cipher, Key, Data, true)).
 		-define(BLOCK_DECRYPT(Cipher, Key, Data), crypto:crypto_one_time(Cipher, Key, Data, false)).
 	-else.
-		-define(BLOCK_ENCRYPT(Cipher, Key, Data), crypto:block_encrypt(Cipher, Key, Data)),
+		-define(BLOCK_ENCRYPT(Cipher, Key, Data), crypto:block_encrypt(Cipher, Key, Data)).
 		-define(BLOCK_DECRYPT(Cipher, Key, Data), crypto:block_decrypt(Cipher, Key, Data)).
 	-endif.
 -else.
-		-define(BLOCK_ENCRYPT(Cipher, Key, Data), crypto:block_encrypt(Cipher, Key, Data)),
+		-define(BLOCK_ENCRYPT(Cipher, Key, Data), crypto:block_encrypt(Cipher, Key, Data)).
 		-define(BLOCK_DECRYPT(Cipher, Key, Data), crypto:block_decrypt(Cipher, Key, Data)).
 -endif.
 
