@@ -15,7 +15,7 @@ main(_) ->
 
 usage() ->
 	io:fwrite("usage: ~s Type LogFile Format
-		Type = wlan | vopi
+		Type = wlan | voip
     		LogFile = export log name
     		Format = xml | xdr | csv ~n", [escript:script_name()]),
 	halt(1).
