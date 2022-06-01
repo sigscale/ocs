@@ -141,7 +141,7 @@ overview.edoc: overview.edoc-in
 %.html:$(top_srcdir)/src/%.erl	overview.edoc $(top_srcdir)/doc/supervision.edoc
 	$(ERL) -noshell -run edoc_run application \
 			"'$(PACKAGE_NAME)'" "'$(top_builddir)'" \
-			'[{sort_functions,false},{private,true},{todo,true},{source_path,["$(top_srcdir)/src"]},{includes,["$(ERLANG_LIB_DIR_radius)"]},{subpackages,false},{def,{docsrc,"$(top_srcdir)/doc/{@?}"}},{stylesheet_file, "$(top_srcdir)/doc/sigscale.css"}]'
+			'[{preprocess,true},{sort_functions,false},{private,true},{todo,true},{source_path,["$(top_srcdir)/src"]},{includes,["$(top_srcdir)/include","$(top_builddir)/include","$(ERLANG_LIB_DIR_radius)/include"]},{subpackages,false},{def,{docsrc,"$(top_srcdir)/doc/{@?}"}},{stylesheet_file, "$(top_srcdir)/doc/sigscale.css"}]'
 	for i in `ls *.html`; do \
 			sed -e 's!erlang logo!sigscale logo!' \
 					-e 's!href=\"http://www.erlang.org/\"!href=\"http://www.sigscale.org/\"!' \

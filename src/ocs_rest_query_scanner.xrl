@@ -57,23 +57,4 @@ Rules.
 \" : {token, {'"', TokenLine}}.
 
 Erlang code.
-%%% @doc The lexical scanner.
-%%%  <h2><a name="functions">Function Details</a></h2>
-%%%
-%%%  <h3 class="function"><a name="string-1">string/1</a></h3>
-%%%  <div class="spec">
-%%%  <p><tt>string(String) -&gt; Result</tt>
-%%%  <ul class="definitions">
-%%%    <li><tt>String = string()</tt></li>
-%%%    <li><tt>Result = {ok, Tokens, EndLine} | ErrorInfo</tt></li>
-%%%    <li><tt>Token = tuple()</tt></li>
-%%%    <li><tt>ErrorLine = integer()</tt></li>
-%%%    <li><tt>ErrorInfo = {ErrorLine, module(), error_descriptor()}</tt></li>
-%%%  </ul></p>
-%%%  </div>
-%%%  <p>Scan the input <tt>String</tt> according to the grammar
-%%%  of the advanced attribute filtering pattern. Create <tt>Tokens</tt>
-%%%  suitable for input to {@link //ocs/ocs_rest_query_parser.
-%%%  ocs_rest_query_parser}</p>
-%%% @end
 
