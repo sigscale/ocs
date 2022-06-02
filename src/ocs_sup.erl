@@ -25,17 +25,15 @@
 %% export the callback needed for supervisor behaviour
 -export([init/1]).
 
--dialyzer({no_match, init/1}).
 -ifdef(OTP_RELEASE).
-	-define(PG,
-		case ?OTP_RELEASE of
-			OtpRelease when OtpRelease >= 23 ->
+	-if(?OTP_RELEASE >= 23).
+		-define(PG,
 				StartMod = pg,
 				StartFunc = {StartMod, start_link, [pg_scope_ocs]},
-				[{StartMod, StartFunc, permanent, 4000, worker, [StartMod]}];
-			OtpRelease when OtpRelease < 23 ->
-				[]
-		end).
+				[{StartMod, StartFunc, permanent, 4000, worker, [StartMod]}]).
+	-else.
+		-define(PG, []).
+	-endif.
 -else.
 	-define(PG, []).
 -endif.
@@ -54,7 +52,7 @@
 %% @private
 %%
 init([LogRotateTime, LogRotateInterval] = _Args) ->
-	ChildSpecs = ?PG ++ [supervisor(ocs_radius_acct_top_sup, []),
+	ChildSpecs = pg() ++ [supervisor(ocs_radius_acct_top_sup, []),
 			supervisor(ocs_radius_auth_sup, []),
 			supervisor(ocs_diameter_auth_sup, []),
 			supervisor(ocs_diameter_acct_top_sup, []),
@@ -78,6 +76,10 @@ init([LogRotateTime, LogRotateInterval] = _Args) ->
 %%----------------------------------------------------------------------
 %%  internal functions
 %%----------------------------------------------------------------------
+
+%% @hidden
+pg() ->
+	?PG.
 
 -spec supervisor(StartMod, Args) -> Result
 	when

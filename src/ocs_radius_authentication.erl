@@ -33,15 +33,12 @@
 -record(state,
 		{port_server :: atom() | pid()}).
 
--dialyzer({[nowarn_function, no_match], request/4}).
 -ifdef(OTP_RELEASE).
-	-define(HMAC(Key, Data),
-		case ?OTP_RELEASE of
-			OtpRelease when OtpRelease >= 23 ->
-				crypto:mac(hmac, md5, Key, Data);
-			OtpRelease when OtpRelease < 23 ->
-				crypto:hmac(md5, Key, Data)
-		end).
+	-if(?OTP_RELEASE >= 23).
+		-define(HMAC(Key, Data), crypto:mac(hmac, md5, Key, Data)).
+	-else.
+		-define(HMAC(Key, Data), crypto:hmac(md5, Key, Data)).
+	-endif.
 -else.
 	-define(HMAC(Key, Data), crypto:hmac(md5, Key, Data)).
 -endif.

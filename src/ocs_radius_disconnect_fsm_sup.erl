@@ -25,15 +25,12 @@
 %% export the call back needed for supervisor behaviour
 -export([init/1]).
 
--dialyzer({[nowarn_function, no_match], init/1}).
 -ifdef(OTP_RELEASE).
-	-define(PG_JOIN(Group, Pid),
-		case ?OTP_RELEASE of
-			OtpRelease when OtpRelease >= 23 ->
-				pg:join(pg_scope_ocs, Group, Pid);
-			OtpRelease when OtpRelease < 23 ->
-				pg2:join(Group, Pid)
-		end).
+	-if(?OTP_RELEASE >= 23).
+		-define(PG_JOIN(Group, Pid), pg:join(pg_scope_ocs, Group, Pid)).
+	-else.
+		-define(PG_JOIN(Group, Pid), pg2:join(Group, Pid)).
+	-endif.
 -else.
 	-define(PG_JOIN(Group, Pid), pg2:join(Group, Pid)).
 -endif.

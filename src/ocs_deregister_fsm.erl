@@ -75,11 +75,9 @@
 
 -define(TIMEOUT, 10000).
 
--dialyzer({[nowarn_function, no_match], send_abort/2}).
 -ifdef(OTP_RELEASE).
-	-define(PG_CLOSEST(Name),
-		case ?OTP_RELEASE of
-			OtpRelease when OtpRelease >= 23 ->
+	-if(?OTP_RELEASE >= 23).
+		-define(PG_CLOSEST(Name),
 				case pg:get_local_members(pg_scope_ocs, Name) of
 					[] ->
 						case pg:get_members(pg_scope_ocs, Name) of
@@ -90,10 +88,10 @@
 						end;
 					[Pid | _] ->
 						Pid
-				end;
-			OtpRelease when OtpRelease < 23 ->
-				pg2:get_closest_pid(Name)
-		end).
+				end).
+	-else.
+		-define(PG_CLOSEST(Name), pg2:get_closest_pid(Name)).
+	-endif.
 -else.
 	-define(PG_CLOSEST(Name), pg2:get_closest_pid(Name)).
 -endif.

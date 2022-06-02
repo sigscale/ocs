@@ -46,43 +46,30 @@
 -define(IANA_PEN_3GPP, 10415).
 -define(IANA_PEN_SigScale, 50386).
 
--dialyzer({[nowarn_function, no_match], [kdf/5, prf/6]}).
 -ifdef(OTP_RELEASE).
-	-define(HMAC_SHA(Key, Data),
-		case ?OTP_RELEASE of
-			OtpRelease when OtpRelease >= 23 ->
-				crypto:mac(hmac, sha256, Key, Data);
-			OtpRelease when OtpRelease < 23 ->
-				crypto:hmac(sha256, Key, Data)
-		end).
+	-if(?OTP_RELEASE >= 23).
+		-define(HMAC_SHA(Key, Data), crypto:mac(hmac, sha256, Key, Data)).
+	-else.
+		-define(HMAC_SHA(Key, Data), crypto:hmac(sha256, Key, Data)).
+	-endif.
 -else.
 	-define(HMAC_SHA(Key, Data), crypto:hmac(sha256, Key, Data)).
 -endif.
-
--dialyzer({[nowarn_function, no_match],
-		[challenge_radius_trusted/1]}).
 -ifdef(OTP_RELEASE).
-	-define(HMACN_SHA(Key, Data),
-		case ?OTP_RELEASE of
-			OtpRelease when OtpRelease >= 23 ->
-				crypto:macN(hmac, sha256, Key, Data, 16);
-			OtpRelease when OtpRelease < 23 ->
-				crypto:hmac(sha256, Key, Data, 16)
-		end).
+	-if(?OTP_RELEASE >= 23).
+		-define(HMACN_SHA(Key, Data), crypto:macN(hmac, sha256, Key, Data, 16)).
+	-else.
+		-define(HMACN_SHA(Key, Data), crypto:hmac(sha256, Key, Data, 16)).
+	-endif.
 -else.
 	-define(HMACN_SHA(Key, Data), crypto:hmac(sha256, Key, Data, 16)).
 -endif.
-
--dialyzer({[nowarn_function, no_match],
-		[radius_access_request/10]}).
 -ifdef(OTP_RELEASE).
-	-define(HMAC_MD5(Key, Data),
-		case ?OTP_RELEASE of
-			OtpRelease when OtpRelease >= 23 ->
-				crypto:mac(hmac, md5, Key, Data);
-			OtpRelease when OtpRelease < 23 ->
-				crypto:hmac(md5, Key, Data)
-		end).
+	-if(?OTP_RELEASE >= 23).
+		-define(HMAC_MD5(Key, Data), crypto:mac(hmac, md5, Key, Data)).
+	-else.
+		-define(HMAC_MD5(Key, Data), crypto:hmac(md5, Key, Data)).
+	-endif.
 -else.
 	-define(HMAC_MD5(Key, Data), crypto:hmac(md5, Key, Data)).
 -endif.

@@ -33,41 +33,30 @@
 
 -include("ocs_eap_codec.hrl").
 
--dialyzer({[nowarn_function, no_match], h/1}).
 -ifdef(OTP_RELEASE).
-	-define(HMAC_INIT(Key),
-		case ?OTP_RELEASE of
-			OtpRelease when OtpRelease >= 23 ->
-				crypto:mac_init(hmac, sha256, Key);
-			OtpRelease when OtpRelease < 23 ->
-				crypto:hmac_init(sha256, Key)
-		end).
+	-if(?OTP_RELEASE >= 23).
+		-define(HMAC_INIT(Key), crypto:mac_init(hmac, sha256, Key)).
+	-else.
+		-define(HMAC_INIT(Key), crypto:hmac_init(sha256, Key)).
+	-endif.
 -else.
 	-define(HMAC_INIT(Key), crypto:hmac_init(sha256, Key)).
 -endif.
-
--dialyzer({[nowarn_function, no_match], h/2}).
 -ifdef(OTP_RELEASE).
-	-define(HMAC_UPDATE(Context, Data),
-		case ?OTP_RELEASE of
-			OtpRelease when OtpRelease >= 23 ->
-				crypto:mac_update(Context, Data);
-			OtpRelease when OtpRelease < 23 ->
-				crypto:hmac_update(Context, Data)
-		end).
+	-if(?OTP_RELEASE >= 23).
+		-define(HMAC_UPDATE(Context, Data), crypto:mac_update(Context, Data)).
+	-else.
+		-define(HMAC_UPDATE(Context, Data), crypto:hmac_update(Context, Data)).
+	-endif.
 -else.
-	-define(HMAC_UPDATE(Context, Data), crypto:hmac_final(Context, Data)).
+	-define(HMAC_UPDATE(Context, Data), crypto:hmac_update(Context, Data)).
 -endif.
-
--dialyzer({[nowarn_function, no_match], h/2}).
 -ifdef(OTP_RELEASE).
-	-define(HMAC_FINAL(Context),
-		case ?OTP_RELEASE of
-			OtpRelease when OtpRelease >= 23 ->
-				crypto:mac_final(Context);
-			OtpRelease when OtpRelease < 23 ->
-				crypto:hmac_final(Context)
-		end).
+	-if(?OTP_RELEASE >= 23).
+		-define(HMAC_FINAL(Context), crypto:mac_final(Context)).
+	-else.
+		-define(HMAC_FINAL(Context), crypto:hmac_final(Context)).
+	-endif.
 -else.
 	-define(HMAC_FINAL(Context), crypto:hmac_final(Context)).
 -endif.

@@ -49,15 +49,8 @@
 
 -define(TIMEOUT, 30000).
 
--dialyzer({[nowarn_function, no_match], idle/2}).
 -ifdef(OTP_RELEASE).
-	-define(SSL_ACCEPT(Socket, Timeout),
-		case ?OTP_RELEASE of
-			OtpRelease when OtpRelease >= 21 ->
-				ssl:handshake(Socket, Timeout);
-			OtpRelease when OtpRelease < 21 ->
-				ssl:ssl_accept(Socket, Timeout)
-		end).
+	-define(SSL_ACCEPT(Socket, Timeout), ssl:handshake(Socket, Timeout)).
 -else.
 	-define(SSL_ACCEPT(Socket, Timeout), ssl:ssl_accept(Socket, Timeout)).
 -endif.

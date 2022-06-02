@@ -51,31 +51,26 @@
 -define(r4, 64).
 -define(r5, 96).
 
--dialyzer({[nowarn_function, no_match],
-		[temp/3, opc/2, out1/4, out2/3, out3/3, out4/3, out5/3]}).
 -ifdef(OTP_RELEASE).
-	-define(BLOCK_ENCRYPT_CFB(Key, Ivec, Data),
-		case ?OTP_RELEASE of
-			OtpRelease when OtpRelease >= 23 ->
-				crypto:crypto_one_time(aes_128_cfb128, Key, Ivec, Data, []);
-			OtpRelease when OtpRelease < 23 ->
-				crypto:block_encrypt(aes_cfb128, Key, Ivec, Data)
-		end).
+	-if(?OTP_RELEASE  >= 23).
+		-define(BLOCK_ENCRYPT_CFB(Key, Ivec, Data),
+				crypto:crypto_one_time(aes_128_cfb128, Key, Ivec, Data, [])).
+	-else.
+		-define(BLOCK_ENCRYPT_CFB(Key, Ivec, Data),
+				crypto:block_encrypt(aes_cfb128, Key, Ivec, Data)).
+	-endif.
 -else.
 	-define(BLOCK_ENCRYPT_CFB(Key, Ivec, Data),
 			crypto:block_encrypt(aes_cfb128, Key, Ivec, Data)).
 -endif.
-
--dialyzer({[nowarn_function, no_match],
-		[temp/3, opc/2, out1/4, out2/3, out3/3, out4/3, out5/3]}).
 -ifdef(OTP_RELEASE).
-	-define(BLOCK_ENCRYPT_CBC(Key, Ivec, Data),
-		case ?OTP_RELEASE of
-			OtpRelease when OtpRelease >= 23 ->
-				crypto:crypto_one_time(aes_128_cbc, Key, Ivec, Data, []);
-			OtpRelease when OtpRelease < 23 ->
-				crypto:block_encrypt(aes_cbc128, Key, Ivec, Data)
-		end).
+	-if(?OTP_RELEASE  >= 23).
+		-define(BLOCK_ENCRYPT_CBC(Key, Ivec, Data),
+				crypto:crypto_one_time(aes_128_cbc, Key, Ivec, Data, [])).
+	-else.
+		-define(BLOCK_ENCRYPT_CBC(Key, Ivec, Data),
+				crypto:block_encrypt(aes_cbc128, Key, Ivec, Data)).
+	-endif.
 -else.
 	-define(BLOCK_ENCRYPT_CBC(Key, Ivec, Data),
 			crypto:block_encrypt(aes_cbc128, Key, Ivec, Data)).

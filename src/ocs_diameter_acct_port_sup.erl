@@ -25,15 +25,12 @@
 %% export the callback needed for supervisor behaviour
 -export([init/1]).
 
--dialyzer({[nowarn_function, no_match], init/1}).
 -ifdef(OTP_RELEASE).
-	-define(PG_CREATE(Name),
-		case ?OTP_RELEASE of
-			OtpRelease when OtpRelease >= 23 ->
-				ok;
-			OtpRelease when OtpRelease < 23 ->
-				pg2:create(Name)
-		end).
+	-if(?OTP_RELEASE >= 23).
+		-define(PG_CREATE(Name), ok).
+	-else.
+		-define(PG_CREATE(Name), pg2:create(Name)).
+	-endif.
 -else.
 	-define(PG_CREATE(Name), pg2:create(Name)).
 -endif.
