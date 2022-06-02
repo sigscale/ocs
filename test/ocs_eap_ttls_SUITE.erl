@@ -91,8 +91,15 @@ suite() ->
 	[{userdata, [{doc, "Test suite for authentication with EAP-TTLS in OCS."}]},
 	{timetrap, {seconds, 8}},
 	{require, radius},
-	{default_config, radius, [{username, "ocs"},
-			{password, "ocs123"}, {secret, "xyzzy5461"}]}].
+	{default_config, radius,
+			[{bind, {127,0,0,1}},
+			{username, "ocs"},
+			{password, "ocs123"},
+			{secret, "xyzzy5461"}]},
+	{require, diameter},
+	{default_config, diameter,
+			[{bind, {127,0,0,1}},
+			{realm, "mnc001.mcc001.3gppnetwork.org"}]}].
 
 -spec init_per_suite(Config :: [tuple()]) -> Config :: [tuple()].
 %% Initialization before the whole suite.
@@ -100,26 +107,29 @@ suite() ->
 init_per_suite(Config) ->
 	ok = ocs_test_lib:initialize_db(),
 	ok = ocs_test_lib:load(ocs),
-	RadiusAddress = ct:get_config({radius, address}, {127,0,0,1}),
+	RadiusBindAddress = ct:get_config({radius, bind}),
 	RadiusAuthPort = ct:get_config({radius, auth_port}, rand:uniform(64511) + 1024),
 	Options = [{eap_method_prefer, ttls}, {eap_method_order, [ttls, pwd, akap]}],
-	RadiusAppVar = [{auth, [{RadiusAddress, RadiusAuthPort, Options}]}],
+	RadiusAppVar = [{auth, [{RadiusBindAddress, RadiusAuthPort, Options}]}],
 	ok = application:set_env(ocs, radius, RadiusAppVar),
-	DiameterAddress = ct:get_config({diameter, address}, {127,0,0,1}),
+	DiameterBindAddress = ct:get_config({diameter, bind}),
 	DiameterAuthPort = ct:get_config({diameter, auth_port}, rand:uniform(64511) + 1024),
-	DiameterAppVar = [{auth, [{DiameterAddress, DiameterAuthPort, Options}]}],
+	DiameterAppVar = [{auth, [{DiameterBindAddress, DiameterAuthPort, Options}]}],
 	ok = application:set_env(ocs, diameter, DiameterAppVar),
 	ok = ocs_test_lib:start(),
-	Protocol = ct:get_config(protocol),
-	SharedSecret = ct:get_config({radius, secret}),
-	{ok, _} = ocs:add_client(RadiusAddress, 3799, Protocol, SharedSecret, true),
 	NasId = atom_to_list(node()),
-	Realm = ct:get_config({diameter, realm}, "mnc001.mcc001.3gppnetwork.org"),
-	Host = ct:get_config({diameter, host}, atom_to_list(?MODULE) ++ "." ++ Realm),
-	Config1 = [{host, Host}, {realm, Realm}, {nas_id, NasId} | Config],
+	OriginRealm = ct:get_config({diameter, realm}),
+	OriginHost = ct:get_config({diameter, host},
+			atom_to_list(?MODULE) ++ "." ++ OriginRealm),
+	Config1 = [{origin_host, OriginHost}, {origin_realm, OriginRealm},
+			{nas_id, NasId} | Config],
+	DiameterClientAddress = {127, 0, 0, 1},
+	{ok, _} = ocs:add_client(DiameterClientAddress,
+			undefined, diameter, undefined, true),
 	ok = diameter:start_service(?MODULE, client_service_opts(Config1)),
 	true = diameter:subscribe(?MODULE),
-	{ok, _Ref} = connect(?MODULE, DiameterAddress, DiameterAuthPort, diameter_tcp),
+	{ok, _Ref} = connect(?MODULE,
+			DiameterBindAddress, DiameterAuthPort, diameter_tcp),
 	receive
 		#diameter_event{service = ?MODULE, info = Info}
 				when element(1, Info) == up ->
@@ -141,14 +151,16 @@ end_per_suite(Config) ->
 %% Initialization before each test case.
 %%
 init_per_testcase(TestCase, Config) when TestCase == eap_ttls_authentication_diameter ->
-	Address = {127, 0, 0, 1},
-	{ok, _} = ocs:add_client(Address, undefined, diameter, undefined, true),
-	[{diameter_client, Address} | Config];
+	ClientAddress = {127, 0, 0, 1},
+	{ok, _} = ocs:add_client(ClientAddress, undefined, diameter, undefined, true),
+	lists:keystore(diameter_client, 1, Config, {diameter_client, ClientAddress});
 init_per_testcase(_TestCase, Config) ->
-	AuthAddress = {127, 0, 0, 1},
+	ClientAddress = {127, 0, 0, 1},
+	Secret = ct:get_config({radius, secret}),
+	{ok, _} = ocs:add_client(ClientAddress, 3799, radius, Secret, true),
 	{ok, Socket} = gen_udp:open(0, [{active, false},
-			inet, {ip, AuthAddress}, binary]),
-	[{socket, Socket} | Config].
+			inet, {ip, ClientAddress}, binary]),
+	lists:keystore(socket, 1, Config, {socket, Socket}).
 
 -spec end_per_testcase(TestCase :: atom(), Config :: [tuple()]) -> any().
 %% Cleanup after each test case.
@@ -158,7 +170,7 @@ end_per_testcase(TestCase, Config) when TestCase == eap_ttls_authentication_diam
 	ok = ocs:delete_client(Dclient);
 end_per_testcase(_TestCase, Config) ->
 	Socket = ?config(socket, Config),
-	ok = 	gen_udp:close(Socket).
+	ok = gen_udp:close(Socket).
 
 -spec sequences() -> Sequences :: [{SeqName :: atom(), Testcases :: [atom()]}].
 %% Group test cases into a test sequence.
@@ -640,8 +652,8 @@ connect(SvcName, Opts)->
 
 %% @hidden
 client_service_opts(Config) ->
-	[{'Origin-Host', ?config(host, Config)},
-			{'Origin-Realm', ?config(realm, Config)},
+	[{'Origin-Host', ?config(origin_host, Config)},
+			{'Origin-Realm', ?config(origin_realm, Config)},
 			{'Vendor-Id', ?IANA_PEN_SigScale},
 			{'Supported-Vendor-Id', [?IANA_PEN_3GPP]},
 			{'Product-Name', "SigScale Test Client (auth)"},
