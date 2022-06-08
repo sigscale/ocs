@@ -1328,7 +1328,6 @@ class offerUpdate extends PolymerElement {
 						}
 					}
 				}
-				this.selected = 0;
 			}
 		}
 	}
