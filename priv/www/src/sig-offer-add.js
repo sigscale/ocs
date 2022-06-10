@@ -198,15 +198,28 @@ class offerAdd extends PolymerElement {
 							<div>
 								<div>
 									<paper-input
-											id="addOfferCharReserveSession"
-											allowed-pattern="[0-9mh]"
-											pattern="^[0-9]+[mh]?$"
-											auto-validate
-											label="RADIUS Reserve Session Time"
-											value="0">
+										id="addReserveSession"
+										allowed-pattern="[0-9ms]"
+										pattern="^[0-9]+[ms]?$"
+										auto-validate
+										on-change="_value"
+										label="RADIUS Reserve Session Time">
 									</paper-input>
 									<paper-tooltip>
-										Amount of time to reserve on RADIUS session authorization and session timeout for reauthorization.
+										Reserve an amount of time at session start
+									</paper-tooltip>
+								</div>
+								<div>
+									<paper-input
+										id="addReserveSessionOctets"
+										allowed-pattern="[0-9kmgb]"
+										pattern="^[0-9]+[kmgb]?$"
+										auto-validate
+										on-change="_valueOc"
+										label="RADIUS Reserve Session Bytes">
+									</paper-input>
+									<paper-tooltip>
+										Reserve an amount of bytes at session start
 									</paper-tooltip>
 								</div>
 								<div>
@@ -1261,6 +1274,22 @@ class offerAdd extends PolymerElement {
 		}
 	}
 
+	_value(event) {
+		if(this.$.addReserveSession.value.length > 0) {
+			this.$.addReserveSessionOctets.disabled = true;
+		} else {
+			this.$.addReserveSessionOctets.disabled = false;
+		}
+	}
+
+	_valueOc(event) {
+		if(this.$.addReserveSessionOctets.value.length > 0) {
+			this.$.addReserveSession.disabled = true;
+		} else {
+			this.$.addReserveSession.disabled = false;
+		}
+	}
+
 	_addOffer(event) {
 		var offerNew = new Object();
 		if(this.offerName) {
@@ -1322,14 +1351,14 @@ class offerAdd extends PolymerElement {
 			offerNew.lifecycleStatus = this.offerAddStatus;
 		}
 		var prodSpecCharValueUse = new Array();
-		if (this.$.addOfferCharReserveSession.value && this.$.addOfferCharReserveSession.value.length > 0) {
+		if (this.$.addReserveSession.value && this.$.addReserveSession.value.length >= 0) {
 			var charValueUse = new Object();
 			charValueUse.name = "radiusReserveSessionTime";
 			charValueUse.minCardinality = 0;
 			charValueUse.maxCardinality = 1;
 			var charValue = new Object();
 			charValue.default = true;
-			charValue.value = parseInt(this.$.addOfferCharReserveSession.value);
+			charValue.value = parseInt(this.$.addReserveSession.value);
 			var charValues = new Array();
 			charValues.push(charValue);
 			charValueUse.productSpecCharacteristicValue = charValues;
@@ -1338,6 +1367,23 @@ class offerAdd extends PolymerElement {
 			prodSpec.href = "/catalogManagement/v2/productSpecification/1";
 			charValueUse.productSpecification = prodSpec;
 			prodSpecCharValueUse.push(charValueUse);
+		}
+		if (this.$.addReserveSessionOctets.value && this.$.addReserveSessionOctets.value.length >= 0) {
+			var charValueUse1 = new Object();
+			charValueUse1.name = "radiusReserveSessionOctets";
+			charValueUse1.minCardinality = 0;
+			charValueUse1.maxCardinality = 1;
+			var charValue1 = new Object();
+			charValue1.default = true;
+			charValue1.value = parseInt(this.$.addReserveSessionOctets.value);
+			var charValues1 = new Array();
+			charValues1.push(charValue1);
+			charValueUse1.productSpecCharacteristicValue = charValues1;
+			var prodSpec = new Object();
+			prodSpec.id = "1";
+			prodSpec.href = "/catalogManagement/v2/productSpecification/1";
+			charValueUse1.productSpecification = prodSpec;
+			prodSpecCharValueUse.push(charValueUse1);
 		}
 		if(this.redirectAddress) {
 			var redirect = new Object();
