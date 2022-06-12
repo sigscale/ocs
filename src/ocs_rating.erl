@@ -1070,9 +1070,13 @@ charge3(#service{session_attributes = SessionList} = Service1,
 	{NewBRefs, DeletedBuckets}
 			= update_buckets(Product#product.balance, OldBuckets, Buckets),
 	ok = mnesia:write(Product#product{balance = NewBRefs}),
-	NewSessionList = add_session(SessionId, SessionList),
-	Service2 = Service1#service{session_attributes = NewSessionList},
-	ok = mnesia:write(Service2),
+	case add_session(SessionId, SessionList) of
+		SessionList ->
+			ok;
+		NewSessionList ->
+			Service2 = Service1#service{session_attributes = NewSessionList},
+			ok = mnesia:write(Service2)
+	end,
 	{grant, Service2, {Units, Reserved}, DeletedBuckets,
 			accumulated_balance(Buckets, Product#product.id)};
 charge3(Service, _ServiceId, Product, Buckets, interim, {Units, _Charge}, {Units, _Charged},
