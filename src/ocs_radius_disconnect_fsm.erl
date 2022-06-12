@@ -320,7 +320,7 @@ code_change(_OldVsn, StateName, StateData, _Extra) ->
 extract_attributes(Attributes) ->
 	F = fun({K, _}) when K == ?NasIdentifier; K == ?NasIpAddress;
 				K == ?UserName; K == ?FramedIpAddress; K == ?NasPort;
-				K == ?NasPortType; K == ?CalledStationId; K == ?CallingStationId;
+				K == ?CalledStationId; K == ?CallingStationId;
 				K == ?AcctSessionId; K == ?AcctMultiSessionId; K == ?NasPortId ->
 			true;
 		(_) ->
