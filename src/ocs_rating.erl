@@ -1072,13 +1072,14 @@ charge3(#service{session_attributes = SessionList} = Service1,
 	ok = mnesia:write(Product#product{balance = NewBRefs}),
 	case add_session(SessionId, SessionList) of
 		SessionList ->
-			ok;
+			{grant, Service1, {Units, Reserved}, DeletedBuckets,
+					accumulated_balance(Buckets, Product#product.id)};
 		NewSessionList ->
 			Service2 = Service1#service{session_attributes = NewSessionList},
-			ok = mnesia:write(Service2)
-	end,
-	{grant, Service2, {Units, Reserved}, DeletedBuckets,
-			accumulated_balance(Buckets, Product#product.id)};
+			ok = mnesia:write(Service2),
+			{grant, Service2, {Units, Reserved}, DeletedBuckets,
+					accumulated_balance(Buckets, Product#product.id)}
+	end;
 charge3(Service, _ServiceId, Product, Buckets, interim, {Units, _Charge}, {Units, _Charged},
 		{Units, _Reserve}, {Units, Reserved},
 		_SessionId, _Rated, _ChargingKey, OldBuckets) ->
@@ -2011,17 +2012,26 @@ remove_session(SessionId, SessionList) ->
 
 -spec add_session(SessionId, SessionList) -> SessionList
 	when
-		SessionId:: [tuple()],
+		SessionId :: [tuple()],
 		SessionList :: [{pos_integer(), [tuple()]}].
-%% @doc Add new session identification attributes set to active sessions list.
+%% @doc Add session identification attributes set to active sessions list.
+%%
+%% 	If new `SessionId' is a superset of an existing `SessionId' replace it.
 %% @private
+add_session(SessionId, [] = _SessionList) ->
+	[{erlang:system_time(millisecond), SessionId}];
 add_session(SessionId, SessionList) ->
-	case lists:keymember(SessionId, 2, SessionList) of
-		true ->
-			SessionList;
-		false ->
-			[{erlang:system_time(millisecond), SessionId} | SessionList]
-	end.
+	add_session(SessionList, SessionId, []).
+%% @hidden
+add_session([{TS, CurrentId} = H | T], NewId, Acc) ->
+	case CurrentId -- NewId of
+		[] ->
+			lists:reverse(Acc) ++ [{TS, NewId} | T];
+		_ ->
+			add_session(T, NewId, [H | Acc])
+	end;
+add_session([], _, Acc) ->
+	lists:reverse(Acc).
 
 -spec get_session_id(SessionAttributes) -> SessionId
 	when
