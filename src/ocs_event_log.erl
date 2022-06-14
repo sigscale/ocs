@@ -24,10 +24,10 @@
 
 -behaviour(gen_event).
 
-%% export the private API
--export([pending_result/3, established_result/1]).
-%% export the ocs_event_log API
+%% export the ocs_event_log public API
 -export([notify/2]).
+%% export the ocs_event_log private API
+-export([pending_result/3, established_result/1]).
 
 %% export the callbacks needed for gen_event behaviour
 -export([init/1, handle_call/2, handle_event/2, handle_info/2,
@@ -44,7 +44,7 @@
 -type state() :: #state{}.
 
 %%----------------------------------------------------------------------
-%%  The ocs_event_log API
+%%  The ocs_event_log public API
 %%----------------------------------------------------------------------
 
 -spec notify(EventType, EventPayLoad) -> ok
@@ -227,6 +227,10 @@ terminate(_Arg, _State) ->
 %%
 code_change(_OldVsn, State, _Extra) ->
 	{ok, State}.
+
+%%----------------------------------------------------------------------
+%%  The ocs_event_log private API
+%%----------------------------------------------------------------------
 
 -spec pending_result(ReplyInfo, EventManager, Handler) -> ok
 	when
