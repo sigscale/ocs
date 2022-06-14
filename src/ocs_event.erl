@@ -94,7 +94,7 @@ init([Fsm, Id, Category] = _Args) ->
 		Handler2 :: Module2 | {Module2, Id},
 		Module2 :: atom(),
 		Id :: term().
-%% @doc Handle a request sent using {@link //stdlib/genevent:handle_event/2.
+%% @doc Handle a request sent using {@link //stdlib/gen_event:handle_event/2.
 %% 	gen_event:notify/2, gen_event:sync_notify/2}.
 %% @private
 %%
