@@ -17,7 +17,7 @@
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%% @doc This {@link //stdlib/gen_event. gen_event} behaviour callback
 %%% 	module implements an event handler of the
-%%% 	{@link //sigscale_ocs. sigscale_ocs} application.
+%%% 	{@link //ocs. ocs} application.
 %%%
 -module(ocs_event).
 -copyright('Copyright (c) 2020 - 2021 SigScale Global Inc.').
