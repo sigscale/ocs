@@ -75,6 +75,7 @@ class offerAdd extends PolymerElement {
 							no-animations="true"
 							label="Units">
 						<paper-listbox
+								id="addBucket"
 								slot="dropdown-content">
 							<paper-item>
 								Bytes
@@ -243,6 +244,7 @@ class offerAdd extends PolymerElement {
 			ajax.body = bucket;
 			ajax.url="/balanceManagement/v1/product/" + this.productId + "/balanceTopup";
 			ajax.generateRequest();
+			this.$.addBucket.selected = null;
 		}
 	}
 
