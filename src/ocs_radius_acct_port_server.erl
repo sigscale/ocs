@@ -332,17 +332,15 @@ request1(?AccountingStop, AcctSessionId, Id,
 			ok = ocs_log:acct_log(radius,
 					{ServerAddress, ServerPort}, stop, Attributes, undefined, Rated),
 			{reply, {ok, response(Id, Authenticator, Secret)}, State};
-		{out_of_credit, _RedirectServerAddress, SessionList, Rated}  ->
+		{out_of_credit, _RedirectServerAddress, _SessionList, Rated}  ->
 			gen_server:reply(From, {ok, response(Id, Authenticator, Secret)}),
 			ok = ocs_log:acct_log(radius,
 					{ServerAddress, ServerPort}, stop, Attributes, undefined, Rated),
-			start_disconnect(State, Subscriber, SessionList),
 			{noreply, State};
-		{disabled, SessionList} ->
+		{disabled, _SessionList} ->
 			gen_server:reply(From, {ok, response(Id, Authenticator, Secret)}),
 			ok = ocs_log:acct_log(radius,
 					{ServerAddress, ServerPort}, stop, Attributes, undefined, undefined),
-			start_disconnect(State, Subscriber, SessionList),
 			{noreply, State};
 		{error, Reason} ->
 			error_logger:error_report(["Rating Error",

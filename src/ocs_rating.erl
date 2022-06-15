@@ -1070,11 +1070,16 @@ charge3(#service{session_attributes = SessionList} = Service1,
 	{NewBRefs, DeletedBuckets}
 			= update_buckets(Product#product.balance, OldBuckets, Buckets),
 	ok = mnesia:write(Product#product{balance = NewBRefs}),
-	NewSessionList = add_session(SessionId, SessionList),
-	Service2 = Service1#service{session_attributes = NewSessionList},
-	ok = mnesia:write(Service2),
-	{grant, Service2, {Units, Reserved}, DeletedBuckets,
-			accumulated_balance(Buckets, Product#product.id)};
+	case add_session(SessionId, SessionList) of
+		SessionList ->
+			{grant, Service1, {Units, Reserved}, DeletedBuckets,
+					accumulated_balance(Buckets, Product#product.id)};
+		NewSessionList ->
+			Service2 = Service1#service{session_attributes = NewSessionList},
+			ok = mnesia:write(Service2),
+			{grant, Service2, {Units, Reserved}, DeletedBuckets,
+					accumulated_balance(Buckets, Product#product.id)}
+	end;
 charge3(Service, _ServiceId, Product, Buckets, interim, {Units, _Charge}, {Units, _Charged},
 		{Units, _Reserve}, {Units, Reserved},
 		_SessionId, _Rated, _ChargingKey, OldBuckets) ->
@@ -2007,17 +2012,26 @@ remove_session(SessionId, SessionList) ->
 
 -spec add_session(SessionId, SessionList) -> SessionList
 	when
-		SessionId:: [tuple()],
+		SessionId :: [tuple()],
 		SessionList :: [{pos_integer(), [tuple()]}].
-%% @doc Add new session identification attributes set to active sessions list.
+%% @doc Add session identification attributes set to active sessions list.
+%%
+%% 	If new `SessionId' is a superset of an existing `SessionId' replace it.
 %% @private
+add_session(SessionId, [] = _SessionList) ->
+	[{erlang:system_time(millisecond), SessionId}];
 add_session(SessionId, SessionList) ->
-	case lists:keymember(SessionId, 2, SessionList) of
-		true ->
-			SessionList;
-		false ->
-			[{erlang:system_time(millisecond), SessionId} | SessionList]
-	end.
+	add_session(SessionList, SessionId, []).
+%% @hidden
+add_session([{TS, CurrentId} = H | T], NewId, Acc) ->
+	case CurrentId -- NewId of
+		[] ->
+			lists:reverse(Acc) ++ [{TS, NewId} | T];
+		_ ->
+			add_session(T, NewId, [H | Acc])
+	end;
+add_session([], _, Acc) ->
+	lists:reverse(Acc).
 
 -spec get_session_id(SessionAttributes) -> SessionId
 	when
@@ -2029,35 +2043,10 @@ add_session(SessionId, SessionList) ->
 get_session_id(SessionAttributes) ->
 	case lists:keyfind('Session-Id', 1, SessionAttributes) of
 		false ->
-			get_session_id1(SessionAttributes, []);
+			session_attributes(SessionAttributes);
 		SessionId ->
 			[SessionId]
 	end.
-%% @hidden
-get_session_id1([], Acc) ->
-	lists:keysort(1, Acc);
-get_session_id1([{?AcctSessionId, _} = AcctSessionId | T], Acc) ->
-	get_session_id1(T, [AcctSessionId | Acc]);
-get_session_id1([{?NasIdentifier, _} = NasIdentifier | T], Acc) ->
-	get_session_id1(T, [NasIdentifier | Acc]);
-get_session_id1([{?NasIpAddress, _} = NasIpAddress | T], Acc) ->
-	get_session_id1(T, [NasIpAddress | Acc]);
-get_session_id1([{?UserName, _} = UserName | T], Acc) ->
-	get_session_id1(T, [UserName | Acc]);
-get_session_id1([{?NasPort, _} = NasPort | T], Acc) ->
-	get_session_id1(T, [NasPort | Acc]);
-get_session_id1([{?NasPortId, _} = NasPortId | T], Acc) ->
-	get_session_id1(T, [NasPortId | Acc]);
-get_session_id1([{?NasPortType, _} = NasPortType | T], Acc) ->
-	get_session_id1(T, [NasPortType | Acc]);
-get_session_id1([{?FramedIpAddress, _} = FramedIpAddress | T], Acc) ->
-	get_session_id1(T, [FramedIpAddress | Acc]);
-get_session_id1([{?CallingStationId, _} = CallingStationId | T], Acc) ->
-	get_session_id1(T, [CallingStationId | Acc]);
-get_session_id1([{?CalledStationId, _} = CalledStationId | T], Acc) ->
-	get_session_id1(T, [CalledStationId | Acc]);
-get_session_id1([_ | T], Acc) ->
-	get_session_id1(T, Acc).
 
 -spec sort(Buckets) -> Buckets
 	when
