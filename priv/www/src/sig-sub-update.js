@@ -187,8 +187,8 @@ class subUpdate extends PolymerElement {
 								id="edit-amount"
 								name="amount"
 								value="{{updateSubAmo}}"
-								allowed-pattern="[0-9kmg]"
-								pattern="^[0-9]+[kmg]?$"
+								allowed-pattern="[0-9kmgdhs]"
+								pattern="^[0-9]+[kmgdhs]?$"
 								label="Amount">
 						</paper-input>
 						<paper-tooltip
@@ -524,6 +524,9 @@ class subUpdate extends PolymerElement {
 						bamount = n.toString() + "s";
 					} else if(m == "h") {
 						n = n * 3600;
+						bamount = n.toString() + "s";
+					} else if(m == "d") {
+						n = n * 86400;
 						bamount = n.toString() + "s";
 					} else {
 						bamount = n.toString() + "s";
