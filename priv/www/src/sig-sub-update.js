@@ -111,7 +111,6 @@ class subUpdate extends PolymerElement {
 								id="updateSubscriberTimeout"
 								name="sessionTimeout"
 								value="{{updateSubSes}}"
-								type="number"
 								label="Session Timeout">
 						</paper-input>
 						<paper-tooltip
@@ -123,7 +122,6 @@ class subUpdate extends PolymerElement {
 								id="updateSubscriberInterval"
 								name="acctSessionInterval"
 								value="{{updateSubSessInt}}"
-								type="number"
 								label="Accounting Interval">
 						</paper-input>
 						<paper-tooltip
@@ -571,10 +569,56 @@ class subUpdate extends PolymerElement {
 				penAuthoSub.add(this.$.updateSubscriberEnabled.checked);
 			}
 			if(this.updateSubSes != this.valCha[indexx].sessionTimeout) {
+				var sessionTime;
+				var size = this.updateSubSes;
+				var len = size.length;
+				var m = size.charAt(len - 1);
+				if(isNaN(parseInt(m))) {
+					var s = size.slice(0, (len - 1));
+				} else {
+					var s = size;
+				}
+				var n = Number(s);
+				if(m == "m") {
+					n = n * 60;
+					sessionTime = n.toString();
+				} else if(m == "h") {
+					n = n * 3600;
+					sessionTime = n.toString();
+				} else if(m == "d") {
+					n = n * 86400;
+					sessionTime = n.toString();
+				} else {
+					sessionTime = n.toString();
+				}
+				this.updateSubSes = sessionTime;
 				penAuthoSubObj.sessionTimeout = this.updateSubSes;
 				penAuthoSub.add(this.updateSubSes);
 			}
 			if(this.updateSubSessInt != this.valCha[indexx].acctInterimInterval) {
+				var sessionInt;
+				var size = this.updateSubSessInt;
+				var len = size.length;
+				var m = size.charAt(len - 1);
+				if(isNaN(parseInt(m))) {
+					var s = size.slice(0, (len - 1));
+				} else {
+					var s = size;
+				}
+				var n = Number(s);
+				if(m == "m") {
+					n = n * 60;
+					sessionInt = n.toString();
+				} else if(m == "h") {
+					n = n * 3600;
+					sessionInt = n.toString();
+				} else if(m == "d") {
+					n = n * 86400;
+					sessionInt = n.toString();
+				} else {
+					sessionInt = n.toString();
+				}
+				this.updateSubSessInt = sessionInt;
 				penAuthoSubObj.acctInterimInterval = this.updateSubSessInt;
 				penAuthoSub.add(this.updateSubSessInt);
 			}
@@ -616,7 +660,7 @@ class subUpdate extends PolymerElement {
 					sub1.path = "/serviceCharacteristic/-";
 					var sessionTimeout = new Object();
 					sessionTimeout.name = "sessionTimeout";
-					sessionTimeout.value = parseInt(this.valChaOne[indexx1].sessionTimeout);
+					sessionTimeout.value = this.valChaOne[indexx1].sessionTimeout;
 					sub1.value = sessionTimeout;
 					serviceAuthoSubArr.push(sub1);
 				} else {
@@ -625,7 +669,7 @@ class subUpdate extends PolymerElement {
 					sub11.path = "/serviceCharacteristic/" + indexSession;
 					var sessionTimeout = new Object();
 					sessionTimeout.name = "sessionTimeout";
-					sessionTimeout.value = parseInt(this.valChaOne[indexx1].sessionTimeout);
+					sessionTimeout.value = this.valChaOne[indexx1].sessionTimeout;
 					sub11.value = sessionTimeout;
 					serviceAuthoSubArr.push(sub11);
 				}
@@ -641,7 +685,7 @@ class subUpdate extends PolymerElement {
 					sub2.path = "/serviceCharacteristic/-";
 					var acctSessionInterval = new Object();
 					acctSessionInterval.name = "acctSessionInterval";
-					acctSessionInterval.value = parseInt(this.valChaOne[indexx1].acctInterimInterval);
+					acctSessionInterval.value = this.valChaOne[indexx1].acctInterimInterval;
 					sub2.value = acctSessionInterval;
 					serviceAuthoSubArr.push(sub2);
 				} else {
@@ -650,7 +694,7 @@ class subUpdate extends PolymerElement {
 					sub22.path = "/serviceCharacteristic/" + indexSessionInt;
 					var acctSessionInterval = new Object();
 					acctSessionInterval.name = "acctSessionInterval";
-					acctSessionInterval.value = parseInt(this.valChaOne[indexx1].acctInterimInterval);
+					acctSessionInterval.value = this.valChaOne[indexx1].acctInterimInterval;
 					sub22.value = acctSessionInterval;
 					serviceAuthoSubArr.push(sub22);
 				}
