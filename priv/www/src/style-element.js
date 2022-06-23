@@ -215,6 +215,17 @@ styleElement.innerHTML = `<template>
 			font-weight: bolder;
 			color: black;
 		}
+		vaadin-grid [expired=true] {
+			background-color: #ff0000;
+			padding-left: 14px;
+			top: 0;
+			left: 0;
+			bottom: 0;
+			right: 0;
+			position: absolute;
+			z-index: 1;
+			overflow: hidden;
+		}
 		div.flowRow {
 			display: flex;
 		}

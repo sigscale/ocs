@@ -82,7 +82,11 @@ class bucketList extends PolymerElement {
 									focus-target>
 						</vaadin-grid-filter>
 					</template>
-					<template>[[item.id]]</template>
+					<template>
+						<div expired$="{{item.expired}}">
+							[[item.id]]
+						</div>
+					</template>
 				</vaadin-grid-column>
 				<vaadin-grid-column width="15ex" flex-grow="5">
 					<template class="header">
@@ -97,7 +101,11 @@ class bucketList extends PolymerElement {
 									focus-target>
 						</vaadin-grid-filter>
 					</template>
-					<template>[[item.product]]</template>
+					<template>
+						<div expired$="{{item.expired}}">
+							[[item.product]]
+						</div>
+					</template>
 				</vaadin-grid-column>
 				<vaadin-grid-column-group>
 					<template class="header">
@@ -108,7 +116,9 @@ class bucketList extends PolymerElement {
 								Cents
 						</template>
 						<template>
-							<div class="cell numeric">[[item.cents]]</div>
+							<div class="cell numeric" expired$="{{item.expired}}">
+								[[item.cents]]
+							</div>
 						</template>
 					</vaadin-grid-column>
 					<vaadin-grid-column width="12ex" flex-grow="2">
@@ -116,7 +126,9 @@ class bucketList extends PolymerElement {
 								Bytes
 						</template>
 						<template>
-							<div class="cell numeric">[[item.remainedAmount]]</div>
+							<div class="cell numeric" expired$="{{item.expired}}">
+								[[item.remainedAmount]]
+							</div>
 						</template>
 					</vaadin-grid-column>
 					<vaadin-grid-column width="12ex" flex-grow="2">
@@ -124,10 +136,27 @@ class bucketList extends PolymerElement {
 								Seconds
 						</template>
 						<template>
-							<div class="cell numeric">[[item.seconds]]</div>
+							<div class="cell numeric" expired$="{{item.expired}}">
+								[[item.seconds]]
+							</div>
 						</template>
 					</vaadin-grid-column>
 				</vaadin-grid-column-group>
+				<vaadin-grid-column width="15ex" flex-grow="5" hidden>
+					<template class="header">
+						<vaadin-grid-filter
+								aria-label="expired"
+								path="expired"
+								value="[[_filterExpired]]">
+							<input
+									slot="filter"
+									placeholder="expired"
+									value="{{_filterExpired::input}}"
+									focus-target>
+						</vaadin-grid-filter>
+					</template>
+					<template>[[item.expired]]</template>
+				</vaadin-grid-column>
 			</vaadin-grid>
 			<div class="add-button">
 				<paper-fab
@@ -277,6 +306,13 @@ class bucketList extends PolymerElement {
 						}
 						if(request.response[index].validFor.endDateTime) {
 							newRecord.endDate = request.response[index].validFor.endDateTime;
+							var date = new Date();
+							var currentDate = date.toISOString();
+							if(Date.parse(newRecord.endDate) < Date.parse(currentDate)) {
+								newRecord.expired = "true";
+							} else {
+								newRecord.expired = "false";
+							}
 						}
 					}
 					vaadinItems[index] = newRecord;
