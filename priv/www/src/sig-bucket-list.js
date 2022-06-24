@@ -142,21 +142,6 @@ class bucketList extends PolymerElement {
 						</template>
 					</vaadin-grid-column>
 				</vaadin-grid-column-group>
-				<vaadin-grid-column width="15ex" flex-grow="5" hidden>
-					<template class="header">
-						<vaadin-grid-filter
-								aria-label="expired"
-								path="expired"
-								value="[[_filterExpired]]">
-							<input
-									slot="filter"
-									placeholder="expired"
-									value="{{_filterExpired::input}}"
-									focus-target>
-						</vaadin-grid-filter>
-					</template>
-					<template>[[item.expired]]</template>
-				</vaadin-grid-column>
 			</vaadin-grid>
 			<div class="add-button">
 				<paper-fab
