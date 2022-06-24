@@ -170,7 +170,7 @@ class offerAdd extends PolymerElement {
 
 	static get properties() {
 		return {
-				loading: {
+			loading: {
 				type: Boolean,
 				value: false
 			},
