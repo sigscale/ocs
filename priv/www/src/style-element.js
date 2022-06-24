@@ -215,6 +215,9 @@ styleElement.innerHTML = `<template>
 			font-weight: bolder;
 			color: black;
 		}
+		[part~="body-cell"].expired {
+			background-color: var(--paper-red-50);
+		}
 		div.flowRow {
 			display: flex;
 		}
