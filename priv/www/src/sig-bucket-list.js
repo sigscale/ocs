@@ -82,11 +82,7 @@ class bucketList extends PolymerElement {
 									focus-target>
 						</vaadin-grid-filter>
 					</template>
-					<template>
-						<div expired$="{{item.expired}}">
-							[[item.id]]
-						</div>
-					</template>
+					<template>[[item.id]]</template>
 				</vaadin-grid-column>
 				<vaadin-grid-column width="15ex" flex-grow="5">
 					<template class="header">
@@ -101,11 +97,7 @@ class bucketList extends PolymerElement {
 									focus-target>
 						</vaadin-grid-filter>
 					</template>
-					<template>
-						<div expired$="{{item.expired}}">
-							[[item.product]]
-						</div>
-					</template>
+					<template>[[item.product]]</template>
 				</vaadin-grid-column>
 				<vaadin-grid-column-group>
 					<template class="header">
@@ -116,9 +108,7 @@ class bucketList extends PolymerElement {
 								Cents
 						</template>
 						<template>
-							<div class="cell numeric" expired$="{{item.expired}}">
-								[[item.cents]]
-							</div>
+							<div class="cell numeric">[[item.cents]]</div>
 						</template>
 					</vaadin-grid-column>
 					<vaadin-grid-column width="12ex" flex-grow="2">
@@ -126,9 +116,7 @@ class bucketList extends PolymerElement {
 								Bytes
 						</template>
 						<template>
-							<div class="cell numeric" expired$="{{item.expired}}">
-								[[item.remainedAmount]]
-							</div>
+							<div class="cell numeric">[[item.remainedAmount]]</div>
 						</template>
 					</vaadin-grid-column>
 					<vaadin-grid-column width="12ex" flex-grow="2">
@@ -136,9 +124,7 @@ class bucketList extends PolymerElement {
 								Seconds
 						</template>
 						<template>
-							<div class="cell numeric" expired$="{{item.expired}}">
-								[[item.seconds]]
-							</div>
+							<div class="cell numeric">[[item.seconds]]</div>
 						</template>
 					</vaadin-grid-column>
 				</vaadin-grid-column-group>
@@ -291,13 +277,6 @@ class bucketList extends PolymerElement {
 						}
 						if(request.response[index].validFor.endDateTime) {
 							newRecord.endDate = request.response[index].validFor.endDateTime;
-							var date = new Date();
-							var currentDate = date.toISOString();
-							if(Date.parse(newRecord.endDate) < Date.parse(currentDate)) {
-								newRecord.expired = "true";
-							} else {
-								newRecord.expired = "false";
-							}
 						}
 					}
 					vaadinItems[index] = newRecord;
