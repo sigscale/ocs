@@ -1521,10 +1521,9 @@ update_session(Type, Charge, Reserve,
 			ServiceId, ChargingKey, SessionId, sort(Buckets), [], 0, 0).
 %% @hidden
 update_session(Type, Charge, Reserve, Now, ServiceId, ChargingKey, SessionId,
-		[#bucket{start_date = Start, end_date = Expires,
-		attributes = #{bucket_type := normal}, remain_amount = Remain} | T],
-		Acc, Charged, Reserved) when Expires /= undefined,
-		Start =/= Expires, Expires =< Now, Remain >= 0 ->
+		[#bucket{end_date = Expires, attributes = #{bucket_type := normal},
+		remain_amount = Remain} | T], Acc, Charged, Reserved)
+		when Expires /= undefined, Expires =< Now, Remain >= 0 ->
 	update_session(Type, Charge, Reserve, Now,
 			ServiceId, ChargingKey, SessionId, T, Acc, Charged, Reserved);
 update_session(Type, Charge, Reserve, Now, ServiceId, ChargingKey, SessionId,
@@ -2359,16 +2358,16 @@ get_final([#bucket{attributes = #{bucket_type := normal}} = B | T],
 		ServiceId, ChargingKey, SessionId, Now, Debits, Acc) ->
 	get_final(T, ServiceId, ChargingKey, SessionId, Now, Debits, [B | Acc]);
 get_final([#bucket{units = Units, attributes = Attributes,
-		remain_amount = R, start_date = StartDate, end_date = EndDate} = B | T],
+		remain_amount = R, end_date = EndDate} = B | T],
 		ServiceId, ChargingKey, SessionId, Now, Debits, Acc) ->
-	#{reservations := Reservations} = Attributes,
+	#{bucket_type := BucketType, reservations := Reservations} = Attributes,
 	N = maps:get(Units, Debits, 0),
 	case get_debits(ServiceId, ChargingKey, SessionId,
 			maps:to_list(Reservations), 0, 0, []) of
 		{Debit, 0, []} when R == 0 ->
 			get_final(T, ServiceId, ChargingKey, SessionId,
 					Now, Debits#{Units => N + Debit}, Acc);
-		{Debit, Refund, []} when StartDate == EndDate ->
+		{Debit, Refund, []} when BucketType == session ->
 			NewAttributes = maps:remove(reservations, Attributes),
 			get_final(T, ServiceId, ChargingKey, SessionId,
 					Now, Debits#{Units => N + Debit},
