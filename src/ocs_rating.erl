@@ -1522,7 +1522,7 @@ update_session(Type, Charge, Reserve,
 %% @hidden
 update_session(Type, Charge, Reserve, Now, ServiceId, ChargingKey, SessionId,
 		[#bucket{start_date = Start, end_date = Expires,
-		attributes = [], remain_amount = Remain} | T],
+		attributes = #{bucket_type := normal}, remain_amount = Remain} | T],
 		Acc, Charged, Reserved) when Expires /= undefined,
 		Start =/= Expires, Expires =< Now, Remain >= 0 ->
 	update_session(Type, Charge, Reserve, Now,
@@ -1707,7 +1707,7 @@ update_session1(Type, Charge, Reserve, Now, ServiceId, ChargingKey, SessionId,
 
 %% @hidden
 update(Type, Charge, Reserve, Now, ServiceId, ChargingKey, SessionId,
-		[#bucket{end_date = Expires, attributes = [],
+		[#bucket{end_date = Expires, attributes = #{bucket_type := normal},
 		remain_amount = Remain} | T], Acc, Charged, Reserved)
 		when Expires /= undefined, Expires =< Now, Remain >= 0 ->
 	update(Type, Charge, Reserve, Now,
@@ -1793,7 +1793,7 @@ charge_session(Type, Charge,
 			ServiceId, ChargingKey, SessionId, sort(Buckets), 0, []).
 %% @hidden
 charge_session(Type, Charge, Now, ServiceId, ChargingKey, SessionId,
-		[#bucket{remain_amount = Remain, attributes = [],
+		[#bucket{remain_amount = Remain, attributes = #{bucket_type := normal},
 		start_date = Start, end_date = Expires} | T], Charged, Acc)
 		when Remain >= 0, Expires /= undefined, Expires =/= Start,
 		Expires =< Now ->
@@ -1859,7 +1859,7 @@ charge_session(Type, Charge, Now,
 
 %% @hidden
 charge_session1(Type, Charge, Now, ServiceId, ChargingKey, SessionId,
-		[#bucket{end_date = Expires, attributes = [],
+		[#bucket{end_date = Expires, attributes = #{bucket_type := normal},
 		remain_amount = R} | T], Acc, Charged)
 		when R >= 0, Expires /= undefined, Expires =< Now ->
 	charge_session1(Type, Charge, Now,
@@ -1918,7 +1918,7 @@ charge_event(Type, Charge, Buckets) ->
 	charge_event(Type, Charge, Now, sort(Buckets), 0, []).
 %% @hidden
 charge_event(Type, Charge, Now,
-		[#bucket{remain_amount = Remain, attributes = [],
+		[#bucket{remain_amount = Remain, attributes = #{bucket_type := normal},
 		start_date = Start, end_date = Expires} | T], Charged, Acc)
 		when Remain >= 0, Expires /= undefined, Expires =/= Start,
 		Expires =< Now ->
@@ -1977,7 +1977,7 @@ convert(0, Type, Size, ServiceId, ChargingKey, SessionId,
 			Now, lists:reverse(Acc) ++ CentsBuckets, UnitsBuckets, []);
 convert(Price, Type, Size, ServiceId, ChargingKey, SessionId, Now,
 		[#bucket{remain_amount = R, end_date = Expires,
-		attributes = []} | T], UnitsBuckets, Acc)
+		attributes = #{bucket_type := normal}} | T], UnitsBuckets, Acc)
 		when R >= 0, Expires /= undefined, Expires =< Now ->
 	convert(Price, Type, Size, ServiceId, ChargingKey, SessionId,
 			Now, T, UnitsBuckets, Acc);
@@ -2346,14 +2346,16 @@ get_final(ServiceId, ChargingKey, SessionId, Buckets) ->
 	Now = erlang:system_time(millisecond),
 	get_final(Buckets, ServiceId, ChargingKey, SessionId, Now, #{}, []).
 %% @hidden
-get_final([#bucket{remain_amount = 0, attributes = []} | T], ServiceId,
+get_final([#bucket{remain_amount = 0,
+		attributes = #{bucket_type := normal}} | T], ServiceId,
 		ChargingKey, SessionId, Now, Debits, Acc) ->
 	get_final(T, ServiceId, ChargingKey, SessionId, Now, Debits, Acc);
-get_final([#bucket{remain_amount = R, attributes = [], end_date = Expires} | T], ServiceId,
+get_final([#bucket{remain_amount = R, attributes = #{bucket_type := normal},
+		end_date = Expires} | T], ServiceId,
 		ChargingKey, SessionId, Now, Debits, Acc)
 		when R >= 0, Expires /= undefined, Expires < Now ->
 	get_final(T, ServiceId, ChargingKey, SessionId, Now, Debits, Acc);
-get_final([#bucket{attributes = []} = B | T],
+get_final([#bucket{attributes = #{bucket_type := normal}} = B | T],
 		ServiceId, ChargingKey, SessionId, Now, Debits, Acc) ->
 	get_final(T, ServiceId, ChargingKey, SessionId, Now, Debits, [B | Acc]);
 get_final([#bucket{units = Units, attributes = Attributes,
