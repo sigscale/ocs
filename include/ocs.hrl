@@ -158,7 +158,7 @@
 		end_date :: pos_integer() | undefined | '_',
 		status :: bucket_status() | undefined | '_',
 		remain_amount = 0 :: integer() | '_',
-		attributes :: bucket_attributes(),
+		attributes :: bucket_attributes() | '_',
 		units :: octets | cents | seconds | messages | undefined | '_',
 		prices = [] :: list() | '_',
 		product  = [] :: [ProdRef :: term()] | '_',
