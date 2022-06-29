@@ -2065,9 +2065,10 @@ convert1(Type, Size, ServiceId, ChargingKey, SessionId, Now,
 			start_date = Now, end_date = Now,
 			name = "session", product = Product,
 			remain_amount = Size, units = Type,
-			attributes = #{reservations => #{SessionId => #{ts => Now, debit => 0,
-					reserve => 0, service_id => ServiceId,
-					charging_key => ChargingKey}}}},
+			attributes = #{bucket_type => session,
+					reservations => #{SessionId => #{ts => Now, debit => 0,
+							reserve => 0, service_id => ServiceId,
+							charging_key => ChargingKey}}}},
 	NewBuckets = CentsBuckets ++ [NewBucket | lists:reverse(Acc)],
 	{ok, NewBuckets}.
 
@@ -2368,7 +2369,8 @@ get_final([#bucket{units = Units, attributes = Attributes,
 			get_final(T, ServiceId, ChargingKey, SessionId,
 					Now, Debits#{Units => N + Debit}, Acc);
 		{Debit, Refund, []} when BucketType == session ->
-			NewAttributes = maps:remove(reservations, Attributes),
+			Attributes1 = maps:remove(reservations, Attributes),
+			NewAttributes = Attributes1#{bucket_type => normal},
 			get_final(T, ServiceId, ChargingKey, SessionId,
 					Now, Debits#{Units => N + Debit},
 					[B#bucket{name = undefined, end_date = undefined,
