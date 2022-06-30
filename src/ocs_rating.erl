@@ -1528,8 +1528,7 @@ update_session(Type, Charge, Reserve, Now, ServiceId, ChargingKey, SessionId,
 			ServiceId, ChargingKey, SessionId, T, Acc, Charged, Reserved);
 update_session(Type, Charge, Reserve, Now, ServiceId, ChargingKey, SessionId,
 		[#bucket{units = Type, remain_amount = Remain,
-		attributes = #{bucket_type := session}} = B | T], Acc, Charged, Reserved) ->
-	Attributes = B#bucket.attributes,
+		attributes = Attributes} = B | T], Acc, Charged, Reserved) ->
 	#{reservations := Reservations} = Attributes,
 	NewCharge = Charge - Charged,
 	NewReserve = Reserve - Reserved,
@@ -1606,9 +1605,8 @@ update_session(Type, Charge, Reserve, Now, ServiceId, ChargingKey, SessionId,
 %% @hidden
 update_session1(Type, Charge, Reserve, Now, ServiceId, ChargingKey, SessionId,
 		[#bucket{units = Type, remain_amount = Remain,
-		attributes = #{bucket_type := session}} = B | T], Acc, Charged, Reserved)
+		attributes = Attributes} = B | T], Acc, Charged, Reserved)
 		when ((Charge > Charged) or (Reserve > Reserved)), Remain > 0 ->
-	Attributes = B#bucket.attributes,
 	#{reservations := Reservations} = Attributes,
 	NewCharge = Charge - Charged,
 	NewReserve = Reserve - Reserved,
@@ -1715,10 +1713,9 @@ update(Type, Charge, Reserve, Now, ServiceId, ChargingKey, SessionId,
 			ServiceId, ChargingKey, SessionId, T, Acc, Charged, Reserved);
 update(Type, Charge, Reserve, Now, ServiceId, ChargingKey, SessionId,
 		[#bucket{units = Type, remain_amount = Remain, end_date = Expires,
-		attributes = #{bucket_type := session}} = B | T], Acc, Charged, Reserved)
+		attributes = Attributes} = B | T], Acc, Charged, Reserved)
 		when ((Expires == undefined) or (Now < Expires)),
 		Remain >= ((Charge - Charged) + (Reserve - Reserved)) ->
-	Attributes = B#bucket.attributes,
 	#{reservations := Reservations} = Attributes,
 	NewCharge = Charge - Charged,
 	NewReserve = Reserve - Reserved,
@@ -1731,10 +1728,9 @@ update(Type, Charge, Reserve, Now, ServiceId, ChargingKey, SessionId,
 	{Charged + NewCharge, Reserved + NewReserve, lists:reverse(NewBuckets) ++ T};
 update(Type, Charge, Reserve, Now, ServiceId, ChargingKey, SessionId,
 		[#bucket{units = Type, remain_amount = Remain, end_date = Expires,
-		attributes = #{bucket_type := session}} = B | T], Acc, Charged, Reserved)
+		attributes = Attributes} = B | T], Acc, Charged, Reserved)
 		when ((Expires == undefined) or (Now < Expires)),
 		Remain > 0, Remain >= (Charge - Charged) ->
-	Attributes = B#bucket.attributes,
 	#{reservations := Reservations} = Attributes,
 	NewCharge = Charge - Charged,
 	NewReserve = Remain - NewCharge,
@@ -1748,10 +1744,9 @@ update(Type, Charge, Reserve, Now, ServiceId, ChargingKey, SessionId,
 			T, NewAcc, Charged + NewCharge, Reserved + NewReserve);
 update(Type, Charge, Reserve, Now, ServiceId, ChargingKey, SessionId,
 		[#bucket{units = Type, remain_amount = Remain, end_date = Expires,
-		attributes = #{bucket_type := session}} = B | T], Acc, Charged, Reserved)
+		attributes = Attributes} = B | T], Acc, Charged, Reserved)
 		when ((Expires == undefined) or (Now < Expires)),
 		Remain > 0, Remain < (Charge - Charged) ->
-	Attributes = B#bucket.attributes,
 	#{reservations := Reservations} = Attributes,
 	NewCharge = Charge - Charged,
 	NewReservation = Reservations#{SessionId => #{ts => Now, debit => NewCharge,
@@ -1805,9 +1800,7 @@ charge_session(Type, Charge, Now, ServiceId, ChargingKey, SessionId,
 			ServiceId, ChargingKey, SessionId, T, Charged, Acc);
 charge_session(Type, Charge, Now, ServiceId, ChargingKey, SessionId,
 		[#bucket{units = Type, remain_amount = Remain,
-		attributes = #{bucket_type := session}} = B | T], Charged, Acc)
-		when Charge > 0 ->
-	Attributes = B#bucket.attributes,
+		attributes = Attributes} = B | T], Charged, Acc) when Charge > 0 ->
 	#{reservations := Reservations} = Attributes,
 	case maps:take(SessionId, Reservations) of
 		{#{debit := DebitedAmount, reserve := ReservedAmount,
@@ -1872,10 +1865,9 @@ charge_session1(Type, Charge, Now, ServiceId, ChargingKey, SessionId,
 			ServiceId, ChargingKey, SessionId, T, Acc, Charged);
 charge_session1(Type, Charge, Now, ServiceId, ChargingKey, SessionId,
 		[#bucket{units = Type, remain_amount = R, end_date = Expires,
-		attributes = #{bucket_type := session}} = B | T], Acc, Charged)
+		attributes = Attributes} = B | T], Acc, Charged)
 		when Charge > 0, R >= Charge,
 		((Expires == undefined) or (Now < Expires)) ->
-	Attributes = B#bucket.attributes,
 	#{reservations := Reservations} = Attributes,
 	NewReservations = Reservations#{SessionId => #{ts => Now, debit => Charge,
 			reserve => 0, service_id => ServiceId, charging_key => ChargingKey}},
@@ -1885,10 +1877,9 @@ charge_session1(Type, Charge, Now, ServiceId, ChargingKey, SessionId,
 	{Charged + Charge, lists:reverse(Acc) ++ NewBuckets};
 charge_session1(Type, Charge, Now, ServiceId, ChargingKey, SessionId,
 		[#bucket{units = Type, remain_amount = R, end_date = Expires,
-		attributes = #{bucket_type := session}} = B | T], Acc, Charged)
+		attributes = Attributes} = B | T], Acc, Charged)
 		when Charge > 0, R =< Charge, R > 0,
 		((Expires == undefined) or (Now < Expires)) ->
-	Attributes = B#bucket.attributes,
 	#{reservations := Reservations} = Attributes,
 	NewReservations = Reservations#{SessionId => #{ts => Now, debit => R,
 			reserve => 0, service_id => ServiceId, charging_key => ChargingKey}},
@@ -1991,9 +1982,8 @@ convert(Price, Type, Size, ServiceId, ChargingKey, SessionId, Now,
 			Now, T, UnitsBuckets, Acc);
 convert(Price1, Type, Size, ServiceId, ChargingKey, SessionId, Now,
 		[#bucket{remain_amount = R, end_date = Expires,
-		attributes = #{bucket_type := session}} = B1 | T], UnitsBuckets, Acc)
+		attributes = Attributes} = B1 | T], UnitsBuckets, Acc)
 		when Price1 > 0, R > 0, ((Expires == undefined) or (Now < Expires)) ->
-	Attributes = B1#bucket.attributes,
 	#{reservations := Reservations1} = Attributes,
 	F = fun({SessionId1, #{service_id := ServiceId1, charging_key := ChargingKey1}})
 					when ServiceId1 =:= ServiceId,
@@ -2046,8 +2036,7 @@ convert(Price, _, _, _, _, _, _, [], _, _) when Price > 0 ->
 %% @hidden
 convert1(Type, Size, ServiceId, ChargingKey, SessionId, Now, CentsBuckets,
 		[#bucket{units = Type, name = "session", remain_amount = R,
-		attributes = #{bucket_type := session,
-				reservations := Reservations}} = B | T], Acc) ->
+		attributes = #{reservations := Reservations}} = B | T], Acc) ->
 	F = fun({SessionId1, #{service_id := ServiceId1,
 					charging_key := ChargingKey1}}) when ServiceId1 =:= ServiceId,
 					ChargingKey1 =:= ChargingKey, SessionId1 == SessionId ->
@@ -2201,8 +2190,7 @@ refund(ServiceId, ChargingKey, SessionId, Buckets) ->
 	refund(ServiceId, ChargingKey, SessionId, Buckets, []).
 %% @hidden
 refund(ServiceId, ChargingKey, SessionId,
-		[#bucket{attributes = #{bucket_type := session,
-		reservations := Reservations}} = H | T], Acc) ->
+		[#bucket{attributes = #{reservations := Reservations}} = H | T], Acc) ->
 	refund(ServiceId, ChargingKey, SessionId,
 			H, maps:to_list(Reservations), T, [], Acc);
 refund(_, _, _, [], Acc) ->
