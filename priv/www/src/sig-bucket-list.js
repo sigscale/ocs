@@ -205,13 +205,9 @@ class bucketList extends PolymerElement {
 	}
 
 	_cellClassNameGenerator(column, model) {
-		if(column !== undefined && model.item.expired) {
-			return "expired";
-		} else if(column !== undefined && model.item.correctable) {
-			return "correctable";
-		} else if(column !== undefined && model.item.terminal) {
-			return "terminal"
-		}else {
+		if(column !== undefined && model.item.entityClass !== undefined) {
+			return model.item.entityClass;
+		} else {
 			return null;
 		}
 	}
@@ -304,8 +300,14 @@ class bucketList extends PolymerElement {
 							var currentDate = date.toISOString();
 							if(Date.parse(newRecord.endDate) < Date.parse(currentDate)) {
 								newRecord.expired = true;
+								if(newRecord.expired) {
+									newRecord.entityClass = "expired";
+								}
 							} else {
 								newRecord.expired = false;
+								if(newRecord.expired) {
+									newRecord.entityClass = "expired";
+								}
 							}
 						}
 					}
@@ -318,12 +320,18 @@ class bucketList extends PolymerElement {
 						if(request.response[index].lifecycleStatus == "Active") {
 							if(Date.parse(st) < Date.parse(currentDateOne)) {
 								newRecord.correctable = request.response[index].lifecycleStatus;
+								if(newRecord.correctable) {
+									newRecord.entityClass = "correctable";
+								}
 							}
 						}
 						if(request.response[index].lifecycleStatus == "Expired" ||
 							request.response[index].lifecycleStatus == "Suspended"){
 							if(Date.parse(st) > Date.parse(currentDateOne)) {
 								newRecord.terminal = request.response[index].lifecycleStatus;
+								if(newRecord.terminal) {
+									newRecord.entityClass = "terminal";
+								}
 							}
 						}
 					}
