@@ -136,8 +136,9 @@ initial_exact_fit(_Config) ->
 			ServiceType, undefined, undefined, undefined, ServiceId,
 			Timestamp, undefined, undefined, initial, [],
 			[{PackageUnits, PackageSize}], SessionId),
-	{ok, #bucket{remain_amount = 0, reservations = Rs}} = ocs:find_bucket(BId),
-	[{_, PackagePrice, 0, _, _, SessionId}] = Rs.
+	{ok, #bucket{remain_amount = 0, attributes = Attr}} = ocs:find_bucket(BId),
+	#{reservations := #{SessionId := #{debit := PackagePrice,
+			reserve := 0}}} = Attr.
 
 initial_insufficient() ->
 	[{userdata, [{doc, "Insufficient cents balance for initial reservation"}]}].
@@ -160,7 +161,7 @@ initial_insufficient(_Config) ->
 			undefined, undefined, ServiceId, Timestamp, undefined, undefined,
 			initial, [], [{PackageUnits, PackageSize}], SessionId),
 	{ok, #bucket{units = cents, remain_amount = RemAmount,
-			reservations = []}} = ocs:find_bucket(BId).
+			attributes = #{bucket_type := normal}}} = ocs:find_bucket(BId).
 
 initial_insufficient_multisession() ->
 	[{userdata, [{doc, "Insufficient cents balance on initial reservation of additional session"}]}].
@@ -176,9 +177,9 @@ initial_insufficient_multisession(_Config) ->
 	RemAmount = 13,
 	B1 = bucket(cents, RemAmount),
 	SessionId1 = [{'Session-Id', list_to_binary(ocs:generate_password())}],
-	R = [{erlang:system_time(millisecond), 100,
-			undefined, undefined, undefined, SessionId1}],
-	B2 = B1#bucket{reservations = R},
+	R = #{SessionId1 => #{ts => erlang:system_time(millisecond),
+			debit => 100, reserve => 0}},
+	B2 = B1#bucket{attributes = #{bucket_type => normal, reservations => R}},
 	BId = add_bucket(ProdRef, B2),
 	Timestamp = calendar:local_time(),
 	SessionId2 = [{'Session-Id', list_to_binary(ocs:generate_password())}],
@@ -187,7 +188,8 @@ initial_insufficient_multisession(_Config) ->
 			undefined, undefined, undefined,
 			ServiceId, Timestamp, undefined, undefined, initial, [],
 			[{PackageUnits, PackageSize}], SessionId2),
-	{ok, #bucket{remain_amount = RemAmount, reservations = R}} = ocs:find_bucket(BId).
+	{ok, #bucket{remain_amount = RemAmount,
+			attributes = #{reservations := R}}} = ocs:find_bucket(BId).
 
 initial_add_session() ->
 	[{userdata, [{doc, "Add a session"}]}].
@@ -214,8 +216,9 @@ initial_add_session(_Config) ->
 			ServiceType, undefined, undefined, undefined, ServiceId,
 			Timestamp, undefined, undefined,
 			initial, [], [{PackageUnits, PackageSize}], SessionAttr),
-	{ok, #bucket{reservations = R}} = ocs:find_bucket(BId),
-	[{_, PackagePrice, 0, _, _, SessionId}] = R.
+	{ok, #bucket{attributes = Attr}} = ocs:find_bucket(BId),
+	#{reservations := #{SessionId := #{debit := PackagePrice,
+			reserve := 0}}} = Attr.
 
 initial_overhead() ->
 	[{userdata, [{doc, "Reserved amount greater than requested reservation amount"}]}].
@@ -240,16 +243,17 @@ initial_overhead(_Config) ->
 			undefined, undefined, initial, [], [{PackageUnits, Reservation}],
 			SessionId),
 	{ok, #bucket{remain_amount = RemAmount2,
-			reservations = [CReservation]}} = ocs:find_bucket(BId),
+			attributes = #{reservations := CReservation}}} = ocs:find_bucket(BId),
 	F = fun(A) when (A rem PackageSize) == 0 ->
 				(A div PackageSize) * PackagePrice;
 			(A) ->
 				(A div PackageSize + 1) * PackagePrice
 	end,
-	RemAmount2 = RemAmount1 - F(Reservation),
+	Reserved = F(Reservation),
+	RemAmount2 = RemAmount1 - Reserved,
 	0 = Reserved rem PackageSize,
 	true = Reserved > Reservation,
-	element(3, CReservation) == F(Reservation).
+	#{SessionId := #{reserve := Reserved}} = CReservation.
 
 initial_multiple_buckets() ->
 	[{userdata, [{doc, "Reservation over multiple cents buckets"}]}].
@@ -289,9 +293,9 @@ initial_multiple_buckets(_Config) ->
 	Balance2 = Balance1 - F(Reservation),
 	0 = Reserved rem UnitSize,
 	true = Reserved > Reservation,
-	#bucket{reservations = [{_, 0, Reserved, _, _, SessionId}],
-			remain_amount = 0} = lists:keyfind(octets,
-			#bucket.units, RatedBuckets).
+	#bucket{attributes = #{reservations := #{SessionId := #{debit := 0,
+			reserve := Reserved}}}, remain_amount = 0}
+			= lists:keyfind(octets, #bucket.units, RatedBuckets).
 
 initial_expire_buckets() ->
 	[{userdata, [{doc, "Remove expired buckets"}]}].
@@ -332,10 +336,10 @@ initial_ignore_expired_buckets(_Config) ->
 	SessionId1 = [{'Session-Id', list_to_binary(ocs:generate_password())}],
 	Now = erlang:system_time(millisecond),
 	RemAmount1 = rand:uniform(PackagePrice * 10),
-	Reservations = [{Now - 3666000, rand:uniform(PackagePrice * 3),
-			0, undefined, undefined, SessionId1}],
-	ExpiredBucket = #bucket{units = cents,
-			remain_amount = RemAmount1, reservations = Reservations,
+	Reservations = #{SessionId1 => #{ts => Now - 3666000,
+			debit => rand:uniform(PackagePrice * 3), reserve => 0}},
+	ExpiredBucket = #bucket{units = cents, remain_amount = RemAmount1,
+			attributes = #{bucket_type => session, reservations => Reservations},
 			start_date = Now - (2 * 2592000000), end_date = Now - 2592000000},
 	BId1 = add_bucket(ProdRef, ExpiredBucket),
 	RemAmount2 = PackagePrice + rand:uniform(PackagePrice * 10),
@@ -402,8 +406,8 @@ interim_reserve(_Config) ->
 			undefined, interim, [], [{PackageUnits, PackageSize}], SessionId),
 	RemAmount2 = RemAmount1 - PackagePrice,
 	{ok, #bucket{remain_amount = RemAmount2,
-			reservations = R}} = ocs:find_bucket(BId),
-	[{_, PackagePrice, 0, _, _, SessionId}] = R.
+			attributes = #{reservations := R}}} = ocs:find_bucket(BId),
+	#{SessionId := #{debit := PackagePrice, reserve := 0}} = R.
 
 interim_reserve_within_unit_size() ->
 	[{userdata, [{doc, "Reservation amounts less than package size"}]}].
@@ -433,8 +437,8 @@ interim_reserve_within_unit_size(_Config) ->
 			undefined, undefined, undefined, ServiceId, Timestamp, undefined,
 			undefined, initial, [], [{PackageUnits, Reservation1}], SessionId),
 	{ok, #bucket{remain_amount = RemAmount2,
-			reservations = R1}} = ocs:find_bucket(BId),
-	[{_, PackagePrice, _, _, _, SessionId}] = R1,
+			attributes = #{reservations := R1}}} = ocs:find_bucket(BId),
+	#{SessionId := #{debit := PackagePrice}} = R1,
 	RemAmount2 = RemAmount1 - F(Reservation1),
 	Reservation2 = rand:uniform(PackageSize - 1),
 	{ok, #service{}, _} = ocs_rating:rate(diameter, ServiceType,
@@ -442,8 +446,8 @@ interim_reserve_within_unit_size(_Config) ->
 			calendar:gregorian_seconds_to_datetime(TS + 60), undefined, undefined,
 			interim, [], [{PackageUnits, Reservation2}], SessionId),
 	{ok, #bucket{remain_amount = RemAmount3,
-			reservations = R2}} = ocs:find_bucket(BId),
-	[{_, Reserved1, _, _, _, SessionId}] = R2,
+			attributes = #{reservations := R2}}} = ocs:find_bucket(BId),
+	#{SessionId := #{debit := Reserved1}} = R2,
 	Reserved1 = F(Reservation2),
 	RemAmount3 = RemAmount1 - F(Reservation2),
 	Reservation3 = rand:uniform(PackageSize - 1),
@@ -452,8 +456,8 @@ interim_reserve_within_unit_size(_Config) ->
 			calendar:gregorian_seconds_to_datetime(TS + 120), undefined, undefined,
 			interim, [], [{PackageUnits, Reservation3}], SessionId),
 	{ok, #bucket{remain_amount = RemAmount4,
-			reservations = R3}} = ocs:find_bucket(BId),
-	[{_, Reserved2, 0, _, _, SessionId}] = R3,
+			attributes = #{reservations := R3}}} = ocs:find_bucket(BId),
+	#{SessionId := #{debit := Reserved2, reserve := 0}} = R3,
 	RemAmount4 = RemAmount1 - F(Reservation3),
 	Reserved2 = F(Reservation3).
 
@@ -484,8 +488,8 @@ interim_reserve_available(_Config) ->
 			undefined, undefined, interim, [],
 			[{PackageUnits, PackageSize}], SessionId),
 	{ok, #bucket{remain_amount = 0,
-			reservations = R}} = ocs:find_bucket(BId),
-	[{_, PackagePrice, 0, _, _, SessionId}] = R.
+			attributes = #{reservations := R}}} = ocs:find_bucket(BId),
+	#{SessionId := #{debit := PackagePrice, reserve := 0}} = R.
 
 interim_reserve_out_of_credit() ->
 	[{userdata, [{doc, "Out of credit on reservation"}]}].
@@ -740,7 +744,8 @@ interim_debit_and_reserve_available(_Config) ->
 			undefined, undefined, ServiceId, Timestamp, undefined, undefined,
 			initial, [], [{PackageUnits, Reservation}], SessionId),
 	RemAmount2 = RemAmount1 - PackagePrice,
-	{ok, #bucket{reservations = [{_, PackagePrice, _, _, _, SessionId}],
+	{ok, #bucket{attributes = #{reservations
+					:= #{SessionId := #{debit := PackagePrice}}},
 			remain_amount = RemAmount2}} = ocs:find_bucket(BId),
 	Debit = rand:uniform(Reservation),
 	{ok, _, _} = ocs_rating:rate(diameter, ServiceType,
@@ -918,8 +923,9 @@ interim_debit_and_reserve_charging_key(_Config) ->
 			[], SessionId),
 	RemAmount3 = RemAmount2 - (PackagePrice * 2),
 	{ok, #bucket{remain_amount = RemAmount3}} = ocs:find_bucket(BId1),
-	[#bucket{reservations = _Reservations1},
-			#bucket{reservations = _Reservations2}] = lists:foldl(F2, [], ocs:get_buckets(ProdRef)),
+	[#bucket{attributes = #{reservations := _Reservations1}},
+			#bucket{attributes = #{reservations := _Reservations2}}]
+			= lists:foldl(F2, [], ocs:get_buckets(ProdRef)),
 	Debit3 = rand:uniform(PackageSize),
 	Debit4 = rand:uniform(PackageSize),
 	{ok, _, _} = ocs_rating:rate(diameter,
@@ -1035,7 +1041,8 @@ remove_session_after_multiple_interims(_Config) ->
 	{ok, _, _} = ocs_rating:rate(diameter, ServiceType,
 			undefined, undefined, undefined, ServiceId, calendar:gregorian_seconds_to_datetime(TS1 + 240), undefined,
 			undefined, final, [{PackageUnits, PackageSize + rand:uniform(PackageSize div 2)}], [], SessionId),
-	[#bucket{units = cents, reservations = []}] = ocs:get_buckets(ProdRef).
+	[#bucket{units = cents,
+			attributes = #{bucket_type := normal}}] = ocs:get_buckets(ProdRef).
 
 final_refund_octets() ->
 	[{userdata, [{doc, "Refund unused amount of octets reservation"}]}].
@@ -1821,9 +1828,10 @@ reserve_sms(_Config) ->
 	{ok, _, _} = ocs_rating:rate(diameter, ServiceType, undefined,
 			undefined, undefined, ServiceId, Timestamp, undefined, undefined,
 			initial, [], [{messages, NumOfEvents}], SessionId),
-	{ok, #bucket{remain_amount = R, reservations = Rs}} = ocs:find_bucket(BId),
+	{ok, #bucket{remain_amount = R,
+			attributes = #{reservations := Rs}}} = ocs:find_bucket(BId),
 	R = RemAmount - (PackagePrice * NumOfEvents),
-	[{_, _, Reserved, _, _, _}] = Rs,
+	#{SessionId := #{reserve := Reserved}} = Rs,
 	Reserved = PackagePrice * NumOfEvents.
 
 debit_sms() ->
@@ -1847,16 +1855,18 @@ debit_sms(_Config) ->
 			undefined, undefined, ServiceId, Timestamp, undefined, undefined,
 			initial, [], [{messages, NumOfEvents}],
 		SessionId),
-	{ok, #bucket{remain_amount = R1, reservations = Rs1}} = ocs:find_bucket(BId),
+	{ok, #bucket{remain_amount = R1,
+			attributes = #{reservations := Rs1}}} = ocs:find_bucket(BId),
 	R1 = RemAmount - (PackagePrice * NumOfEvents),
-	[{_, _, Reserved, _, _, _}] = Rs1,
+	#{SessionId := #{reserve := Reserved}} = Rs1,
 	Reserved = PackagePrice * NumOfEvents,
 	{ok, _, Rated} = ocs_rating:rate(diameter, ServiceType, undefined,
 			undefined, undefined, ServiceId, Timestamp, undefined, undefined,
 			final, [{messages, NumOfEvents}], [],
 		SessionId),
 	R2 = RemAmount - (PackagePrice * NumOfEvents),
-	{ok, #bucket{remain_amount = R2, reservations = []}} = ocs:find_bucket(BId),
+	{ok, #bucket{remain_amount = R2,
+			attributes = #{bucket_type := normal}}} = ocs:find_bucket(BId),
 	[#rated{bucket_type = messages, bucket_value = NumOfEvents}] = Rated.
 
 roaming_table_data() ->
@@ -2062,8 +2072,10 @@ final_empty_mscc(_Config) ->
 			undefined, undefined, undefined, ServiceId, Timestamp, undefined,
 			undefined, final, [], [], SessionId),
 	BucketList = ocs:get_buckets(ProdRef),
-	#bucket{units = cents, reservations = []} =  lists:keyfind(cents, #bucket.units, BucketList),
-	#bucket{units = octets, reservations = []} =  lists:keyfind(octets, #bucket.units, BucketList).
+	#bucket{units = cents, attributes = #{bucket_type := normal}}
+			=  lists:keyfind(cents, #bucket.units, BucketList),
+	#bucket{units = octets, attributes = #{bucket_type := normal}}
+			=  lists:keyfind(octets, #bucket.units, BucketList).
 
 final_empty_mscc_multiple_services() ->
 	[{userdata, [{doc, "Rate final with an empty MSCC after rating interims with different services"}]}].
@@ -2101,8 +2113,10 @@ final_empty_mscc_multiple_services(_Config) ->
 			undefined, undefined, undefined, ServiceId1, Timestamp1, undefined,
 			undefined, final, [], [], SessionId1),
 	BucketList = ocs:get_buckets(ProdRef),
-	#bucket{units = cents, reservations = []} =  lists:keyfind(cents, #bucket.units, BucketList),
-	#bucket{units = octets, reservations = []} =  lists:keyfind(octets, #bucket.units, BucketList).
+	#bucket{units = cents, attributes = #{bucket_type := normal}}
+			=  lists:keyfind(cents, #bucket.units, BucketList),
+	#bucket{units = octets, attributes = #{bucket_type := normal}}
+			=  lists:keyfind(octets, #bucket.units, BucketList).
 
 initial_invalid_service_type() ->
 	[{userdata, [{doc, "Check the validity of a service type during rating"}]}].
