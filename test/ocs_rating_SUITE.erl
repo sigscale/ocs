@@ -2053,7 +2053,8 @@ final_empty_mscc(_Config) ->
 	ok = ocs:adjustment(Adjustment),
 	RemAmount = 20000000000,
 	B1 = #bucket{units = cents, remain_amount = RemAmount,
-			start_date = erlang:system_time(millisecond)},
+			start_date = erlang:system_time(millisecond),
+			attributes = #{bucket_type => normal}},
 	_BId = add_bucket(ProdRef, B1),
 	SessionId = [{'Session-Id', list_to_binary(ocs:generate_password())}],
 	ServiceType = 32251,
@@ -2094,7 +2095,8 @@ final_empty_mscc_multiple_services(_Config) ->
 	ok = ocs:adjustment(Adjustment),
 	RemAmount = 20000000000,
 	B1 = #bucket{units = cents, remain_amount = RemAmount,
-			start_date = erlang:system_time(millisecond)},
+			start_date = erlang:system_time(millisecond),
+			attributes = #{bucket_type => normal}},
 	_BId = add_bucket(ProdRef, B1),
 	SessionId1 = [{'Session-Id', list_to_binary(ocs:generate_password())}],
 	ServiceType = 32251,
@@ -2153,8 +2155,9 @@ price(Type, Units, Size, Amount) ->
 %% @hidden
 bucket(Units, RA) ->
 	#bucket{units = Units, remain_amount = RA,
-		start_date = erlang:system_time(millisecond),
-		end_date = erlang:system_time(millisecond) + 2592000000}.
+			start_date = erlang:system_time(millisecond),
+			end_date = erlang:system_time(millisecond) + 2592000000,
+			attributes = #{bucket_type => normal}}.
 
 %% @hidden
 add_offer(Prices, Spec) when is_integer(Spec) ->
