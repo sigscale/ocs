@@ -186,6 +186,20 @@ class subList extends PolymerElement {
 							}
 						);
 					}
+					function checkSession(timeout) {
+						return timeout.name == "sessionTimeout";
+					}
+					var indexPass = request.response[index].serviceCharacteristic.findIndex(checkSession);
+					if(indexPass != -1) {
+						newRecord.sessionTimeout = request.response[index].serviceCharacteristic[indexPass].value;
+					}
+					function checkSessionInt(interval) {
+						return interval.name == "acctSessionInterval";
+					}
+					var indexPass = request.response[index].serviceCharacteristic.findIndex(checkSessionInt);
+					if(indexPass != -1) {
+						newRecord.acctInterimInterval = request.response[index].serviceCharacteristic[indexPass].value;
+					}
 					function checkPassword(pass) {
 						return pass.name == "servicePassword";
 					}

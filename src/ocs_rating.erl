@@ -271,34 +271,32 @@ rate1(Protocol, Service, ServiceId, Product, Buckets, Timestamp, Address, Direct
 		_:_ ->
 			mnesia:abort(invalid_bundle_product)
 	end;
-rate1(Protocol, Service, ServiceId, Product, Buckets, Timestamp, Address,
-		Direction, #offer{name = OfferName} = Offer,
+rate1(Protocol, Service, ServiceId, Product, Buckets,
+		Timestamp, Address, Direction,
+		#offer{name = OfferName, specification = Spec, status = Status} = Offer,
 		Flag, DebitAmounts, ReserveAmounts, ServiceType, SessionId,
-		ChargingKey, ServiceNetwork) ->
-	case mnesia:dirty_read(offer, OfferName) of
-		[#offer{specification = Spec, status = Status} = _P] when
-				((Status == active) orelse (Status == undefined))
-				and
-				(((Protocol == radius)
-					and
-					(((ServiceType == ?RADIUSFRAMED) orelse (ServiceType == ?RADIUSLOGIN))
-					and ((Spec == "4") orelse (Spec == "8"))) orelse
-					((ServiceType == ?RADIUSVOICE) and ((Spec == "5") orelse (Spec == "9"))))
-				orelse
-				((Protocol == diameter)
-					and
-					((ServiceType == ?DIAMETERDATA) and ((Spec == "4") orelse (Spec == "8")))
-					orelse
-					((ServiceType == ?DIAMETERVOICE) and ((Spec == "5") orelse (Spec == "9")))
-					orelse
-					((ServiceType == ?DIAMETERSMS) and ((Spec == "10") orelse (Spec == "11"))))) ->
-			rate2(Protocol, Service, ServiceId, Product, Buckets, Timestamp, Address,
-					Direction, Offer, Flag, DebitAmounts, ReserveAmounts,
-					SessionId, #rated{product = OfferName},
-					ChargingKey, ServiceNetwork);
-		_ ->
-			mnesia:abort(invalid_service_type)
-	end.
+		ChargingKey, ServiceNetwork) when
+		((Status == active) orelse (Status == undefined))
+		and
+		(((Protocol == radius)
+			and
+			(((ServiceType == ?RADIUSFRAMED) orelse (ServiceType == ?RADIUSLOGIN))
+			and ((Spec == "4") orelse (Spec == "8"))) orelse
+			((ServiceType == ?RADIUSVOICE) and ((Spec == "5") orelse (Spec == "9"))))
+		orelse
+		((Protocol == diameter)
+			and
+			((ServiceType == ?DIAMETERDATA) and ((Spec == "4") orelse (Spec == "8")))
+			orelse
+			((ServiceType == ?DIAMETERVOICE) and ((Spec == "5") orelse (Spec == "9")))
+			orelse
+			((ServiceType == ?DIAMETERSMS) and ((Spec == "10") orelse (Spec == "11"))))) ->
+	rate2(Protocol, Service, ServiceId, Product, Buckets, Timestamp, Address,
+			Direction, Offer, Flag, DebitAmounts, ReserveAmounts,
+			SessionId, #rated{product = OfferName},
+			ChargingKey, ServiceNetwork);
+rate1(_, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _) ->
+	mnesia:abort(invalid_service_type).
 %% @hidden
 rate2(Protocol, Service, ServiceId, Product, Buckets, Timestamp, Address, Direction,
 		#offer{specification = ProdSpec, price = Prices} = _Offer,

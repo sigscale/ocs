@@ -17,17 +17,17 @@
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%% @doc This {@link //stdlib/gen_event. gen_event} behaviour callback
 %%% 	module implements an event handler of the
-%%% 	{@link //sigscale_ocs. sigscale_ocs} application.
+%%% 	{@link //ocs. ocs} application.
 %%%
 -module(ocs_event_log).
 -copyright('Copyright (c) 2022 SigScale Global Inc.').
 
 -behaviour(gen_event).
 
-%% export the private API
--export([pending_result/3, established_result/1]).
-%% export the ocs_event_log API
+%% export the ocs_event_log public API
 -export([notify/2]).
+%% export the ocs_event_log private API
+-export([pending_result/3, established_result/1]).
 
 %% export the callbacks needed for gen_event behaviour
 -export([init/1, handle_call/2, handle_event/2, handle_info/2,
@@ -44,7 +44,7 @@
 -type state() :: #state{}.
 
 %%----------------------------------------------------------------------
-%%  The ocs_event_log API
+%%  The ocs_event_log public API
 %%----------------------------------------------------------------------
 
 -spec notify(EventType, EventPayLoad) -> ok
@@ -92,7 +92,7 @@ init([Fsm, Profile, Callback, Options] = _Args) ->
 		Handler2 :: Module2 | {Module2, Id},
 		Module2 :: atom(),
 		Id :: term().
-%% @doc Handle a request sent using {@link //stdlib/genevent:handle_event/2.
+%% @doc Handle a request sent using {@link //stdlib/gen_event:handle_event/2.
 %% 	gen_event:notify/2, gen_event:sync_notify/2}.
 %% @private
 %%
@@ -227,6 +227,10 @@ terminate(_Arg, _State) ->
 %%
 code_change(_OldVsn, State, _Extra) ->
 	{ok, State}.
+
+%%----------------------------------------------------------------------
+%%  The ocs_event_log private API
+%%----------------------------------------------------------------------
 
 -spec pending_result(ReplyInfo, EventManager, Handler) -> ok
 	when

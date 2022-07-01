@@ -428,6 +428,18 @@ type1(transfer) -> "transfer";
 type1(topup) -> "topup";
 type1(adjustment) -> "adjustment".
 
+-spec bucket_status(Status) -> Status
+   when
+      Status :: atom() | string().
+%% @doc CODEC for life cycle status of Bucket instance.
+%% @private
+bucket_status("Active") -> active;
+bucket_status("Expired") -> expired;
+bucket_status("Suspended") -> suspended;
+bucket_status(active) -> "Active";
+bucket_status(expired) -> "Expired";
+bucket_status(suspended) -> "Suspended".
+
 -spec bucket(Bucket) -> Bucket
 	when
 		Bucket :: #bucket{} | {struct, list()}.
@@ -444,6 +456,8 @@ bucket([{"name", Name} | T], Bucket) ->
 bucket([{"amount", {struct, _} = Q} | T], Bucket) ->
 	#quantity{amount = Amount, units = Units} = quantity(Q),
 	bucket(T, Bucket#bucket{units = Units, remain_amount = Amount});
+bucket([{"lifecycleStatus", Status} | T], Bucket) ->
+	bucket(T, Bucket#bucket{status = bucket_status(Status)});
 bucket([{"remainedAmount", {struct, _} = Q} | T], Bucket) ->
 	#quantity{amount = Amount, units = Units} = quantity(Q),
 	bucket(T, Bucket#bucket{units = Units, remain_amount = Amount});
@@ -487,6 +501,10 @@ bucket([remain_amount | T],
 		B, Acc) when is_integer(Amount) ->
 	Q = #quantity{amount = Amount, units = Units},
 	bucket(T, B, [{"remainedAmount", quantity(Q)} | Acc]);
+bucket([status | T], #bucket{status = Status} = B, Acc)
+		when Status /= undefined ->
+	StatusString = bucket_status(Status),
+	bucket(T, B, [{"lifecycleStatus", StatusString} | Acc]);
 bucket([reservations | T], #bucket{reservations = []} = B, Acc) ->
 	bucket(T, B, Acc);
 bucket([reservations | T], #bucket{units = undefined,

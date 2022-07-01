@@ -511,16 +511,62 @@ class subAdd extends PolymerElement {
 			serviceAkaOpc.value = this.akaopcAddAuthe;
 			serviceChar.push(serviceAkaOpc);
 		}
-		if(parseInt(this.accSessAddAutho)) {
+		if(this.accSessAddAutho) {
 			var sessionInterval = new Object();
 			sessionInterval.name = "acctSessionInterval";
-			sessionInterval.value = parseInt(this.accSessAddAutho);
+			var sessionInt;
+			var size = this.accSessAddAutho;
+			var len = size.length;
+			var m = size.charAt(len - 1);
+			if(isNaN(parseInt(m))) {
+				var s = size.slice(0, (len - 1));
+			} else {
+				var s = size;
+			}
+			var n = Number(s);
+			if(m == "m") {
+				n = n * 60;
+				sessionInt = n.toString();
+			} else if(m == "h") {
+				n = n * 3600;
+				sessionInt = n.toString();
+			} else if(m == "d") {
+				n = n * 86400;
+				sessionInt = n.toString();
+			} else {
+				sessionInt = n.toString();
+			}
+			this.accSessAddAutho = sessionInt;
+			sessionInterval.value = this.accSessAddAutho;
 			serviceChar.push(sessionInterval);
 		}
-		if(parseInt(this.sessTimAddAutho)) {
+		if(this.sessTimAddAutho) {
 			var sessionTime = new Object();
 			sessionTime.name = "sessionTimeout";
-			sessionTime.value = parseInt(this.sessTimAddAutho);
+			var sessionTimeVal;
+			var size = this.sessTimAddAutho;
+			var len = size.length;
+			var m = size.charAt(len - 1);
+			if(isNaN(parseInt(m))) {
+				var s = size.slice(0, (len - 1));
+			} else {
+				var s = size;
+			}
+			var n = Number(s);
+			if(m == "m") {
+				n = n * 60;
+				sessionTimeVal = n.toString();
+			} else if(m == "h") {
+				n = n * 3600;
+				sessionTimeVal = n.toString();
+			} else if(m == "d") {
+				n = n * 86400;
+				sessionTimeVal = n.toString();
+			} else {
+				sessionTimeVal = n.toString();
+			}
+			this.sessTimAddAutho = sessionTimeVal;
+			sessionTime.value = this.sessTimAddAutho;
 			serviceChar.push(sessionTime);
 		}
 		if(this.multiAddAutho) {
