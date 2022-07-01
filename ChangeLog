@@ -1,3 +1,33 @@
+2022-07-01 Vance Shipley <vances@sigscale.org>
+
+	* ttls test suite expects pwd method preference
+	* fix end date format in gui
+	* handle state in service view
+	* portable socket handling in ttls aaah fsm
+	* portable cipher name handling
+	* refactor entity status property for buckets
+	* handle terminal state and correctable state for buckets
+	* add status in rest for bucket
+	* highlight expired buckets
+	* remove unused column in bucket view
+	* removed unused style module
+	* handle multipliers for session timeout and accounting interval
+	* support unit multipliers (d, h, m, s) & display existing values
+	* eliminate redundant mnesia read in rate
+	* deselect units after submit
+	* install svg supervision diagram
+	* replace session id if new is superset of any current
+	* common session attribute identifier handling
+	* avoid writing service if session id exists
+	* no disconnect-request after accounting-stop
+	* remove nas-port-type from  disconnect-request
+	* radius reserve session time and octets in add
+	* fix switching tab bug
+	* refactor otp portability macros for simplicity
+	* correct eap ttls test suite initialization
+	* use epp preprocessor for edoc
+	* handle out-of-credit in final session reap
+
 2022-05-31 Vance Shipley <vances@sigscale.org>
 
 	* input validation on rate amount
