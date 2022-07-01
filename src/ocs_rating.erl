@@ -1529,7 +1529,7 @@ update_session(Type, Charge, Reserve, Now, ServiceId, ChargingKey, SessionId,
 update_session(Type, Charge, Reserve, Now, ServiceId, ChargingKey, SessionId,
 		[#bucket{units = Type, remain_amount = Remain,
 		attributes = Attributes} = B | T], Acc, Charged, Reserved) ->
-	#{reservations := Reservations} = Attributes,
+	Reservations = maps:get(reservations, Attributes, #{}),
 	NewCharge = Charge - Charged,
 	NewReserve = Reserve - Reserved,
 	F = fun({SessionId1, #{service_id := ServiceId1,
@@ -1607,7 +1607,7 @@ update_session1(Type, Charge, Reserve, Now, ServiceId, ChargingKey, SessionId,
 		[#bucket{units = Type, remain_amount = Remain,
 		attributes = Attributes} = B | T], Acc, Charged, Reserved)
 		when ((Charge > Charged) or (Reserve > Reserved)), Remain > 0 ->
-	#{reservations := Reservations} = Attributes,
+	Reservations = maps:get(reservations, Attributes, #{}),
 	NewCharge = Charge - Charged,
 	NewReserve = Reserve - Reserved,
 	F = fun({SessionId1, #{service_id := ServiceId1,
@@ -1716,7 +1716,7 @@ update(Type, Charge, Reserve, Now, ServiceId, ChargingKey, SessionId,
 		attributes = Attributes} = B | T], Acc, Charged, Reserved)
 		when ((Expires == undefined) or (Now < Expires)),
 		Remain >= ((Charge - Charged) + (Reserve - Reserved)) ->
-	#{reservations := Reservations} = Attributes,
+	Reservations = maps:get(reservations, Attributes, #{}),
 	NewCharge = Charge - Charged,
 	NewReserve = Reserve - Reserved,
 	NewReservation = Reservations#{SessionId => #{ts => Now, debit => NewCharge,
@@ -1731,7 +1731,7 @@ update(Type, Charge, Reserve, Now, ServiceId, ChargingKey, SessionId,
 		attributes = Attributes} = B | T], Acc, Charged, Reserved)
 		when ((Expires == undefined) or (Now < Expires)),
 		Remain > 0, Remain >= (Charge - Charged) ->
-	#{reservations := Reservations} = Attributes,
+	Reservations = maps:get(reservations, Attributes, #{}),
 	NewCharge = Charge - Charged,
 	NewReserve = Remain - NewCharge,
 	NewReservation = Reservations#{SessionId => #{ts => Now, debit => NewCharge,
@@ -1747,7 +1747,7 @@ update(Type, Charge, Reserve, Now, ServiceId, ChargingKey, SessionId,
 		attributes = Attributes} = B | T], Acc, Charged, Reserved)
 		when ((Expires == undefined) or (Now < Expires)),
 		Remain > 0, Remain < (Charge - Charged) ->
-	#{reservations := Reservations} = Attributes,
+	Reservations = maps:get(reservations, Attributes, #{}),
 	NewCharge = Charge - Charged,
 	NewReservation = Reservations#{SessionId => #{ts => Now, debit => NewCharge,
 			reserve => 0, service_id => ServiceId, charging_key => ChargingKey}},
@@ -1801,7 +1801,7 @@ charge_session(Type, Charge, Now, ServiceId, ChargingKey, SessionId,
 charge_session(Type, Charge, Now, ServiceId, ChargingKey, SessionId,
 		[#bucket{units = Type, remain_amount = Remain,
 		attributes = Attributes} = B | T], Charged, Acc) when Charge > 0 ->
-	#{reservations := Reservations} = Attributes,
+	Reservations = maps:get(reservations, Attributes, #{}),
 	case maps:take(SessionId, Reservations) of
 		{#{debit := DebitedAmount, reserve := ReservedAmount,
 				service_id := ServiceId, charging_key := ChargingKey},
@@ -1868,7 +1868,7 @@ charge_session1(Type, Charge, Now, ServiceId, ChargingKey, SessionId,
 		attributes = Attributes} = B | T], Acc, Charged)
 		when Charge > 0, R >= Charge,
 		((Expires == undefined) or (Now < Expires)) ->
-	#{reservations := Reservations} = Attributes,
+	Reservations = maps:get(reservations, Attributes, #{}),
 	NewReservations = Reservations#{SessionId => #{ts => Now, debit => Charge,
 			reserve => 0, service_id => ServiceId, charging_key => ChargingKey}},
 	NewBuckets = [B#bucket{remain_amount = R - Charge,
@@ -1880,7 +1880,7 @@ charge_session1(Type, Charge, Now, ServiceId, ChargingKey, SessionId,
 		attributes = Attributes} = B | T], Acc, Charged)
 		when Charge > 0, R =< Charge, R > 0,
 		((Expires == undefined) or (Now < Expires)) ->
-	#{reservations := Reservations} = Attributes,
+	Reservations = maps:get(reservations, Attributes, #{}),
 	NewReservations = Reservations#{SessionId => #{ts => Now, debit => R,
 			reserve => 0, service_id => ServiceId, charging_key => ChargingKey}},
 	NewAcc = [B#bucket{remain_amount = 0,
@@ -1984,7 +1984,7 @@ convert(Price1, Type, Size, ServiceId, ChargingKey, SessionId, Now,
 		[#bucket{remain_amount = R, end_date = Expires,
 		attributes = Attributes} = B1 | T], UnitsBuckets, Acc)
 		when Price1 > 0, R > 0, ((Expires == undefined) or (Now < Expires)) ->
-	#{reservations := Reservations1} = Attributes,
+	Reservations1 = maps:get(reservations, Attributes, #{}),
 	F = fun({SessionId1, #{service_id := ServiceId1, charging_key := ChargingKey1}})
 					when ServiceId1 =:= ServiceId,
 					ChargingKey1 =:= ChargingKey, SessionId1 == SessionId ->
@@ -2190,7 +2190,8 @@ refund(ServiceId, ChargingKey, SessionId, Buckets) ->
 	refund(ServiceId, ChargingKey, SessionId, Buckets, []).
 %% @hidden
 refund(ServiceId, ChargingKey, SessionId,
-		[#bucket{attributes = #{reservations := Reservations}} = H | T], Acc) ->
+		[#bucket{attributes = Attributes} = H | T], Acc) ->
+	Reservations = maps:get(reservations, Attributes, #{}),
 	refund(ServiceId, ChargingKey, SessionId,
 			H, maps:to_list(Reservations), T, [], Acc);
 refund(_, _, _, [], Acc) ->
