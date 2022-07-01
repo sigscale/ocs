@@ -1614,7 +1614,7 @@ update_session1(Type, Charge, Reserve, Now, ServiceId, ChargingKey, SessionId,
 					charging_key := ChargingKey1}}) when ServiceId1 =:= ServiceId,
 					ChargingKey1 =:= ChargingKey, SessionId1 == SessionId ->
 				true;
-			({_, _, _, _, _, _}) ->
+			({_, _}) ->
 				false
 	end,
 	case lists:partition(F, maps:to_list(Reservations)) of
