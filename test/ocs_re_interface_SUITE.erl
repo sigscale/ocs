@@ -1676,6 +1676,7 @@ add_product(OfferId, Chars) ->
 
 bucket(Units, RA) ->
 	#bucket{units = Units, remain_amount = RA,
+			attributes = #{bucket_type => normal},
 			start_date = erlang:system_time(millisecond),
 			end_date = erlang:system_time(millisecond) + 2592000000}.
 

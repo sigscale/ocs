@@ -934,6 +934,7 @@ get_product(Config) ->
 	Amount2 = 1000,
 	B1 = b(cents, Amount2),
 	B2 = #bucket{units = cents, remain_amount = 5000,
+			attributes = #{bucket_type => normal},
 			start_date = erlang:system_time(millisecond) - (2 * 2592000000),
 			end_date = erlang:system_time(millisecond) - 2592000000},
 	{_, _, #bucket{}} = ocs:add_bucket(ProdRef, B1),
@@ -2433,6 +2434,7 @@ get_balance(Config) ->
 	B1 = b(cents, 10000),
 	B2 = b(octets, 150000000),
 	B3 = #bucket{units = cents, remain_amount = 500,
+			attributes = #{bucket_type => normal},
 			start_date = erlang:system_time(millisecond) - (2 * 2592000000),
 			end_date = erlang:system_time(millisecond) - 2592000000},
 	{_, _, #bucket{id = BId1}} = ocs:add_bucket(ProdRef, B1),
@@ -2489,6 +2491,7 @@ get_balance_service(Config) ->
 	B1 = b(cents, 10000),
 	B2 = b(octets, 150000000),
 	B3 = #bucket{units = cents, remain_amount = 500,
+			attributes = #{bucket_type => normal},
 			start_date = erlang:system_time(millisecond) - (2 * 2592000000),
 			end_date = erlang:system_time(millisecond) - 2592000000},
 	{_, _, #bucket{id = BId1}} = ocs:add_bucket(ProdRef, B1),
@@ -2849,6 +2852,7 @@ notify_create_bucket(Config) ->
 	{ok, #offer{name = OfferId}} = ocs:add_offer(Offer),
 	{ok, #product{id = ProdRef}} = ocs:add_product(OfferId, [], []),
 	Bucket = #bucket{units = cents, remain_amount = 100,
+			attributes = #{bucket_type => normal},
 			start_date = erlang:system_time(millisecond),
 			end_date = erlang:system_time(millisecond) + 2592000000},
 	{ok, _, #bucket{}} = ocs:add_bucket(ProdRef, Bucket),
@@ -2937,6 +2941,7 @@ notify_rating_deleted_bucket(Config) ->
 	{ok, #service{name = ServiceId}} = ocs:add_service(ocs:generate_identity(),
 			ocs:generate_password(), ProdRef, []),
 	Bucket = #bucket{units = cents, remain_amount = 100,
+			attributes = #{bucket_type => normal},
 			start_date = erlang:system_time(millisecond) - (2 * 2592000000),
 			end_date = erlang:system_time(millisecond) - 2592000000},
 	{ok, _, #bucket{id = BId}} = ocs:add_bucket(ProdRef, Bucket),
@@ -3162,6 +3167,7 @@ notify_product_charge(Config) ->
 	ok = mnesia:dirty_write(product, P#product{payment =
 			[{Price#price.name, Expired}]}),
 	B1 = #bucket{units = cents, remain_amount = 1000000000,
+			attributes = #{bucket_type => normal},
 			start_date = erlang:system_time(millisecond),
 			end_date = erlang:system_time(millisecond) + 2592000000},
 	{ok, _, #bucket{id = BId1}} = ocs:add_bucket(ProdId, B1),
@@ -3174,6 +3180,7 @@ notify_product_charge(Config) ->
 			{_, BId1} = lists:keyfind("id", 1, BucketList1)
 	end,
 	B2 = #bucket{units = cents, remain_amount = 1000000000,
+			attributes = #{bucket_type => normal},
 			start_date = erlang:system_time(millisecond),
 			end_date = erlang:system_time(millisecond) + 2592000000},
 	{ok, _, #bucket{id = BId2}} = ocs:add_bucket(ProdId, B2),
@@ -5557,8 +5564,9 @@ price(tariff, Units, Size, undefined)
 %% @hidden
 b(Units, RA) ->
 	#bucket{units = Units, remain_amount = RA,
-		start_date = erlang:system_time(millisecond),
-		end_date = erlang:system_time(millisecond) + 2592000000}.
+			attributes = #{bucket_type => normal},
+			start_date = erlang:system_time(millisecond),
+			end_date = erlang:system_time(millisecond) + 2592000000}.
 
 %% @hidden
 offer_add(Prices, Spec) when is_integer(Spec) ->
@@ -5663,6 +5671,7 @@ add_offer(Prices, Spec) ->
 %% @hidden
 add_bucket(ProdRef, Units, RA) ->
 	Bucket = #bucket{units = Units, remain_amount = RA,
+			attributes = #{bucket_type => normal},
 			start_date = erlang:system_time(millisecond),
 			end_date = erlang:system_time(millisecond) + 2592000000},
 	{ok, _, #bucket{id = BId}} = ocs:add_bucket(ProdRef, Bucket),
