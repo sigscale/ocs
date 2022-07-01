@@ -49,6 +49,7 @@
 
 -define(TIMEOUT, 30000).
 
+-dialyzer({no_match, idle/2}).
 -ifdef(OTP_RELEASE).
 	-define(SSL_ACCEPT(Socket, Timeout), ssl:handshake(Socket, Timeout)).
 -else.
@@ -107,6 +108,10 @@ idle({ttls_socket, TtlsFsm, TlsRecordLayerSocket}, StateData) ->
 			case ?SSL_ACCEPT(SslSocket, ?TIMEOUT) of
 				ok ->
 					NewStateData = StateData#statedata{ssl_socket = SslSocket,
+							ttls_fsm = TtlsFsm},
+					{next_state, request, NewStateData};
+				{ok, NewSslSocket} ->
+					NewStateData = StateData#statedata{ssl_socket = NewSslSocket,
 							ttls_fsm = TtlsFsm},
 					{next_state, request, NewStateData};
 				{error, Reason} ->
