@@ -865,7 +865,9 @@ add_service1(Identity, Password, State, ProductRef,
 		BucketAfter :: #bucket{},
 		Reason :: term().
 %% @doc Add a new bucket to bucket table or update exsiting bucket
-add_bucket(ProductRef, #bucket{id = undefined} = Bucket) when is_list(ProductRef) ->
+add_bucket(ProductRef, #bucket{id = undefined,
+		attributes = #{bucket_type := Type}} = Bucket)
+		when is_list(ProductRef), ((Type == normal) or (Type == session)) ->
 	BId = generate_bucket_id(),
 	F = fun() ->
 		case mnesia:read(product, ProductRef, write) of
