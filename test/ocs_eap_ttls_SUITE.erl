@@ -105,7 +105,7 @@ init_per_suite(Config) ->
 	ok = ocs_test_lib:load(ocs),
 	RadiusBindAddress = ct:get_config({radius, bind}),
 	RadiusAuthPort = ct:get_config({radius, auth_port}, rand:uniform(64511) + 1024),
-	Options = [{eap_method_prefer, ttls}, {eap_method_order, [ttls, pwd, akap]}],
+	Options = [{eap_method_prefer, pwd}, {eap_method_order, [pwd, akap, ttls]}],
 	RadiusAppVar = [{auth, [{RadiusBindAddress, RadiusAuthPort, Options}]}],
 	ok = application:set_env(ocs, radius, RadiusAppVar),
 	DiameterBindAddress = ct:get_config({diameter, bind}),
@@ -308,6 +308,7 @@ send_identity_radius(Socket, Address, Port, NasId, AnonymousName, Secret, MAC,
 			AnonymousName, Secret, MAC, Auth, RadId).
 
 receive_identity(Socket, Address, Port, Secret, Auth, RadId) ->
+erlang:display({?MODULE, ?LINE, application:get_env(ocs, radius)}),
 	Radius = access_challenge(Socket, Address, Port,
 			Secret, RadId, Auth),
 	EapMsg = get_eap(Radius),
