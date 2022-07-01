@@ -134,7 +134,16 @@ class subList extends PolymerElement {
 		super.ready();
 		var grid = this.shadowRoot.getElementById('subscriberGrid');
 		grid.dataProvider = this._getSub;
+		grid.cellClassNameGenerator = this._cellClassNameGenerator;
 	}
+
+   _cellClassNameGenerator(column, model) {
+      if(column !== undefined && model.item.entityClass !== undefined) {
+         return model.item.entityClass;
+      } else {
+         return null;
+      }
+   }
 
 	_getSub(params, callback) {
 		var grid = this; 
@@ -214,6 +223,39 @@ class subList extends PolymerElement {
 					var indexMulti = request.response[index].serviceCharacteristic.findIndex(checkMultisession);
 					if(indexMulti != -1) {
 						newRecord.multisession = request.response[index].serviceCharacteristic[indexMulti].value;
+					}
+					if(request.response[index].state){
+						if(request.response[index].validFor) {
+							var st = request.response[index].validFor.startDateTime;
+						}
+						var date = new Date();
+						var currentDate = date.toISOString();
+						if(request.response[index].state == "active" || request.response[index].state == "feasibilityChecked" || request.response[index].state ==  "designed" || request.response[index].state == "reserved" ){
+							if(Date.parse(st) < Date.parse(currentDate)) {
+								newRecord.correctable = request.response[index].state;
+								if(newRecord.correctable) {
+									newRecord.entityClass = "correctable";
+								}
+							} else if(st == undefined) {
+								newRecord.correctable = request.response[index].state;
+								if(newRecord.correctable) {
+									newRecord.entityClass = "correctable";
+								}
+							}
+						}
+						if(request.response[index].state == "inActive" || request.response[index].state == "terminated") {
+							if(Date.parse(st) < Date.parse(currentDate)) {
+								newRecord.terminal = request.response[index].state;
+								if(newRecord.terminal) {
+									newRecord.entityClass = "terminal";
+								}
+							} else if(st == undefined) {
+								newRecord.correctable = request.response[index].state;
+								if(newRecord.correctable) {
+									newRecord.entityClass = "correctable";
+								}
+							}
+						}
 					}
 					vaadinItems[index] = newRecord;
 				}
