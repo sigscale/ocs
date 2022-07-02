@@ -42,7 +42,7 @@
 	-else.
 		-define(BLOCK_ENCRYPT(Key, Data),
 				crypto:block_encrypt(aes_ecb, Key, Data)).
-		-define(BLOCK_DECRYPT(Cipher, Key, Data),
+		-define(BLOCK_DECRYPT(Key, Data),
 				crypto:block_decrypt(aes_ecb, Key, Data)).
 	-endif.
 -else.
