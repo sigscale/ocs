@@ -29,7 +29,6 @@
 -export([peer_up/3, peer_down/3, pick_peer/4, prepare_request/3,
 			prepare_retransmit/3, handle_answer/4, handle_error/4,
 			handle_request/3]).
--export([content_types_accepted/0, content_types_provided/0]).
 
 -include_lib("diameter/include/diameter.hrl").
 -include_lib("diameter/include/diameter_gen_base_rfc6733.hrl").
@@ -64,21 +63,6 @@
 %%----------------------------------------------------------------------
 %%  The DIAMETER application callbacks
 %%----------------------------------------------------------------------
-
--spec content_types_accepted() -> ContentTypes
-   when
-      ContentTypes :: list().
-%% @doc Provides list of resource representations accepted.
-content_types_accepted() ->
-	["application/json", "application/merge-patch+json",
-			"application/json-patch+json"].
-
--spec content_types_provided() -> ContentTypes
-	when
-		ContentTypes :: list().
-%% @doc Provides list of resource representations available.
-content_types_provided() ->
-	["application/json"].
 
 -spec peer_up(ServiceName, Peer, State) -> NewState
 	when
