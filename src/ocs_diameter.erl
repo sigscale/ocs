@@ -15,8 +15,8 @@
 %%% See the License for the specific language governing permissions and
 %%% limitations under the License.
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-%%% @doc This library module implements utility used in diameter callback modules
-%%% 	in the {@link //ocs. ocs} application.
+%%% @doc This library module implements utilities used by diameter
+%%% 	callback modules in the {@link //ocs. ocs} application.
 %%%
 %%% @reference <a href="https://www.mcc-mnc.com">
 %%%   Mobile Country Codes (MCC) and Mobile Network Codes (MNC) </a>
