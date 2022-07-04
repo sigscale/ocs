@@ -198,11 +198,10 @@ class offerAdd extends PolymerElement {
 							<div>
 								<div>
 									<paper-input
-										id="addReserveSession"
-										allowed-pattern="[0-9ms]"
-										pattern="^[0-9]+[ms]?$"
+										id="addReserveSessionTime"
+										allowed-pattern="[0-9sm]"
+										pattern="^[0-9]+[sm]?$"
 										auto-validate
-										on-change="_value"
 										label="RADIUS Reserve Session Time">
 									</paper-input>
 									<paper-tooltip>
@@ -211,11 +210,10 @@ class offerAdd extends PolymerElement {
 								</div>
 								<div>
 									<paper-input
-										id="addReserveSessionOctets"
-										allowed-pattern="[0-9kmgb]"
-										pattern="^[0-9]+[kmgb]?$"
+										id="addReserveSessionBytes"
+										allowed-pattern="[0-9bkmg]"
+										pattern="^[0-9]+[bkmg]?$"
 										auto-validate
-										on-change="_valueOc"
 										label="RADIUS Reserve Session Bytes">
 									</paper-input>
 									<paper-tooltip>
@@ -551,8 +549,8 @@ class offerAdd extends PolymerElement {
 							<div>
 								<paper-input
 										id="addPriceCharReserveTime"
-										allowed-pattern="[0-9mh]"
-										pattern="^[0-9]+[mh]?$"
+										allowed-pattern="[0-9sm]"
+										pattern="^[0-9]+[sm]?$"
 										auto-validate
 										label="RADIUS Reserve Time"
 										value="{{priceReserveTime}}">
@@ -565,8 +563,8 @@ class offerAdd extends PolymerElement {
 							<div>
 								<paper-input
 										id="addPriceCharReserveBytes"
-										allowed-pattern="[0-9kmg]"
-										pattern="^[0-9]+[kmg]?$"
+										allowed-pattern="[0-9bkmg]"
+										pattern="^[0-9]+[bkmg]?$"
 										auto-validate
 										label="RADIUS Reserve Data"
 										value="{{priceReserveBytes}}">
@@ -1274,22 +1272,6 @@ class offerAdd extends PolymerElement {
 		}
 	}
 
-	_value(event) {
-		if(this.$.addReserveSession.value.length > 0) {
-			this.$.addReserveSessionOctets.disabled = true;
-		} else {
-			this.$.addReserveSessionOctets.disabled = false;
-		}
-	}
-
-	_valueOc(event) {
-		if(this.$.addReserveSessionOctets.value.length > 0) {
-			this.$.addReserveSession.disabled = true;
-		} else {
-			this.$.addReserveSession.disabled = false;
-		}
-	}
-
 	_addOffer(event) {
 		var offerNew = new Object();
 		if(this.offerName) {
@@ -1351,14 +1333,27 @@ class offerAdd extends PolymerElement {
 			offerNew.lifecycleStatus = this.offerAddStatus;
 		}
 		var prodSpecCharValueUse = new Array();
-		if (this.$.addReserveSession.value && this.$.addReserveSession.value.length >= 0) {
+		var rst_value = this.$.addReserveSessionTime.value;
+		if (rst_value && rst_value.length >= 0) {
 			var charValueUse = new Object();
 			charValueUse.name = "radiusReserveSessionTime";
 			charValueUse.minCardinality = 0;
 			charValueUse.maxCardinality = 1;
 			var charValue = new Object();
 			charValue.default = true;
-			charValue.value = parseInt(this.$.addReserveSession.value);
+			var rst_len = rst_value.length;
+			var rst_last = rst_value.charAt(rst_len - 1);
+			if(isNaN(parseInt(rst_last))) {
+				charValue.value = parseInt(rst_value.slice(0, (rst_len - 1)));
+			} else {
+				charValue.unitOfMeasure = "seconds";
+				charValue.value = parseInt(rst_value);
+			}
+			if (rst_last == "s") {
+				charValue.unitOfMeasure = "seconds";
+			} else if(rst_last == "m") {
+				charValue.unitOfMeasure = "minutes";
+			}
 			var charValues = new Array();
 			charValues.push(charValue);
 			charValueUse.productSpecCharacteristicValue = charValues;
@@ -1368,14 +1363,31 @@ class offerAdd extends PolymerElement {
 			charValueUse.productSpecification = prodSpec;
 			prodSpecCharValueUse.push(charValueUse);
 		}
-		if (this.$.addReserveSessionOctets.value && this.$.addReserveSessionOctets.value.length >= 0) {
+		var rso_value = this.$.addReserveSessionBytes.value;
+		if (rso_value && rso_value.length >= 0) {
 			var charValueUse1 = new Object();
-			charValueUse1.name = "radiusReserveSessionOctets";
+			charValueUse1.name = "radiusReserveSessionBytes";
 			charValueUse1.minCardinality = 0;
 			charValueUse1.maxCardinality = 1;
 			var charValue1 = new Object();
 			charValue1.default = true;
-			charValue1.value = parseInt(this.$.addReserveSessionOctets.value);
+			var rso_len = rso_value.length;
+			var rso_last = rso_value.charAt(rso_len - 1);
+			if(isNaN(parseInt(rso_last))) {
+				charValue1.value = parseInt(rso_value.slice(0, (rso_len - 1)));
+			} else {
+				charValue1.value = parseInt(rso_value);
+				charValue1.unitOfMeasure = "bytes";
+			}
+			if (rso_last == "b") {
+				charValue1.unitOfMeasure = "bytes";
+			} else if(rso_last == "k") {
+				charValue1.unitOfMeasure = "kilobytes";
+			} else if(rso_last == "m") {
+				charValue1.unitOfMeasure = "megabytes";
+			} else if(rso_last == "g") {
+				charValue1.unitOfMeasure = "gigabytes";
+			}
 			var charValues1 = new Array();
 			charValues1.push(charValue1);
 			charValueUse1.productSpecCharacteristicValue = charValues1;
@@ -1650,24 +1662,14 @@ class offerAdd extends PolymerElement {
 			}
 			if (item.reserveTime) {
 				var charValue = new Object();
-				charValue.unitOfMeasure = "seconds";
-				var charLength = item.reserveTime.length;
-				var lastChar = item.reserveTime.charAt(charLength - 1);
-				if(isNaN(parseInt(lastChar))) {
-					var s = item.reserveTime.slice(0, (charLength -1));
+				charValue.value = parseInt(item.reserveTime);
+				var lastChar = item.reserveTime.charAt(item.reserveTime.length - 1);
+				if(lastChar == "m") {
+					charValue.unitOfMeasure = "minutes";
+				} else if(lastChar == "s") {
+					charValue.unitOfMeasure = "seconds";
 				} else {
-					var s = item.reserveTime;
-				}
-				if(charValue.unitOfMeasure == "seconds") {
-					var n = Number(s);
-					if(lastChar == "m") {
-						charValue.value = n * 60;
-					}
-					else if(lastChar == "h") {
-						charValue.value = n * 3600;
-					} else {
-						charValue.value = n;
-					}
+					charValue.unitOfMeasure = "seconds";
 				}
 				var charValueUse = new Object();
 				charValueUse.name = "radiusReserveTime";
@@ -1686,27 +1688,18 @@ class offerAdd extends PolymerElement {
 			}
 			if (item.reserveBytes) {
 				var charValue = new Object();
-				charValue.unitOfMeasure = "octets";
-				var charLength = item.reserveBytes.length;
-				var lastChar = item.reserveBytes.charAt(charLength - 1);
-				if(isNaN(parseInt(lastChar))) {
-					var s = item.reserveBytes.slice(0, (charLength -1));
+				charValue.value = parseInt(item.reserveBytes);
+				var lastChar = item.reserveBytes.charAt(item.reserveBytes.length - 1);
+				if(lastChar == "g") {
+					charValue.unitOfMeasure = "gigabytes";
+				} else if(lastChar == "m") {
+					charValue.unitOfMeasure = "megabytes";
+				} else if(lastChar == "k") {
+					charValue.unitOfMeasure = "kilobytes";
+				} else if(lastChar == "b") {
+					charValue.unitOfMeasure = "bytes";
 				} else {
-					var s = item.reserveBytes;
-				}
-				if(charValue.unitOfMeasure == "octets") {
-					var n = Number(s);
-					if(lastChar == "g") {
-						charValue.value = n * 1000000000;
-					}
-					else if(lastChar == "m") {
-						charValue.value = n * 1000000;
-					}
-					else if(lastChar == "k") {
-						charValue.value = n * 1000;
-					} else {
-						charValue.value = n;
-					}
+					charValue.unitOfMeasure = "bytes";
 				}
 				var charValueUse = new Object();
 				charValueUse.name = "radiusReserveOctets";
@@ -1787,10 +1780,16 @@ class offerAdd extends PolymerElement {
 	_checkProductSpec() {
 		if(this.offerAddSpec == "Prepaid Data") {
 			this.$.destPrefixTariff.disabled = true;
+			this.$.addReserveSessionTime.disabled = true;
+			this.$.addReserveSessionBytes.disabled = false;
 		} else if(this.offerAddSpec == "Prepaid Voice") {
+			this.$.addReserveSessionTime.disabled = false;
+			this.$.addReserveSessionBytes.disabled = true;
 			this.$.destPrefixTariff.disabled = false;
 		} else if(this.offerAddSpec == "Prepaid SMS") {
 			this.$.destPrefixTariff.disabled = false;
+			this.$.addReserveSessionTime.disabled = true;
+			this.$.addReserveSessionBytes.disabled = true;
 		}
 	}
 
@@ -1799,8 +1798,8 @@ class offerAdd extends PolymerElement {
 			this.$.addPriceSize.allowedPattern = "[0-9kmg]";
 			this.$.addPriceSize.pattern = "^[0-9]+[kmg]?$";
 			this.$.addPriceSize.disabled = false;
-			this.$.addPriceCharReserveBytes.allowedPattern = "[0-9kmg]";
-			this.$.addPriceCharReserveBytes.pattern = "^[0-9]+[kmg]?$";
+			this.$.addPriceCharReserveBytes.allowedPattern = "[0-9bkmg]";
+			this.$.addPriceCharReserveBytes.pattern = "^[0-9]+[bkmg]?$";
 			this.$.addPriceCharReserveBytes.disabled = false;
 			this.$.addPriceCharReserveTime.disabled = true;
 		} else if(this.priceUnits == "Cents") {
@@ -1808,11 +1807,11 @@ class offerAdd extends PolymerElement {
 			this.$.addPriceSize.pattern = "^[0-9]+$";
 			this.$.addPriceSize.disabled = true;
 		} else if(this.priceUnits == "Seconds") {
-			this.$.addPriceSize.allowedPattern = "[0-9mh]";
-			this.$.addPriceSize.pattern = "^[0-9]+[mh]?$";
+			this.$.addPriceSize.allowedPattern = "[0-9smh]";
+			this.$.addPriceSize.pattern = "^[0-9]+[smh]?$";
 			this.$.addPriceSize.disabled = false;
-			this.$.addPriceCharReserveTime.allowedPattern = "[0-9mh]";
-			this.$.addPriceCharReserveTime.pattern = "^[0-9]+[mh]?$";
+			this.$.addPriceCharReserveTime.allowedPattern = "[0-9sm]";
+			this.$.addPriceCharReserveTime.pattern = "^[0-9]+[sm]?$";
 			this.$.addPriceCharReserveTime.disabled = false;
 			this.$.addPriceCharReserveBytes.disabled = true;
 		} else if(this.priceUnits == "Messages") {
@@ -2221,7 +2220,8 @@ class offerAdd extends PolymerElement {
 		this.priceTariff = null;
 		this.priceRoaming = null;
 		this.priceKey = null;
-		this.$.addOfferCharReserveSession.value = null;
+		this.$.addReserveSessionTime.value = null;
+		this.$.addReserveSessionBytes.value = null;
 		this.offerStartDate = null;
 		this.offerEndDate = null;
 		this.offerStartDatePrice = null;
@@ -2242,7 +2242,7 @@ class offerAdd extends PolymerElement {
 		this.alterationEndDate = null;
 		this.$.addAltType.selected = null;
 		this.alterationSize = null;
-		this.$.addAltUnitDrop.selected = null;
+	this.$.addAltUnitDrop.selected = null;
 		this.alterationAmount = null;
 		this.alterationCurrency = null;
 		this.$.addAltPeriod.selected = null;
