@@ -2035,8 +2035,9 @@ convert(Price, _, _, _, _, _, _, [], _, _) when Price > 0 ->
 	false.
 %% @hidden
 convert1(Type, Size, ServiceId, ChargingKey, SessionId, Now, CentsBuckets,
-		[#bucket{units = Type, name = "session", remain_amount = R,
-		attributes = #{reservations := Reservations}} = B | T], Acc) ->
+		[#bucket{units = Type, remain_amount = R,
+		attributes = #{bucket_type := session,
+				reservations := Reservations}} = B | T], Acc) ->
 	F = fun({SessionId1, #{service_id := ServiceId1,
 					charging_key := ChargingKey1}}) when ServiceId1 =:= ServiceId,
 					ChargingKey1 =:= ChargingKey, SessionId1 == SessionId ->

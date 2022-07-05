@@ -907,7 +907,11 @@ interim_debit_and_reserve_charging_key(_Config) ->
 			Timestamp, undefined, undefined, initial, [], [], SessionId),
 	RemAmount2 = RemAmount1 - (PackagePrice * 2),
 	{ok, #bucket{remain_amount = RemAmount2}} = ocs:find_bucket(BId1),
-	F2 = fun(#bucket{name = "session"} = B, Acc) -> [B | Acc]; (_, Acc) -> Acc end,
+	F2 = fun(#bucket{attributes = #{bucket_type := session}} = B, Acc) ->
+				[B | Acc];
+			(_, Acc) ->
+				Acc
+	end,
 	BucketList = lists:foldl(F2, [], ocs:get_buckets(ProdRef)),
 	2 = length(BucketList),
 	Debit1 = rand:uniform(PackageSize),
