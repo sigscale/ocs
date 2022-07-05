@@ -217,6 +217,9 @@ class subList extends PolymerElement {
 						newRecord.password = request.response[index].serviceCharacteristic[indexPass].value;
 					}
 					newRecord.enabled = request.response[index].isServiceEnabled;
+					if(newRecord.enabled == false) {
+						newRecord.entityClass = "correctable";
+					}
 					function checkMultisession(multi) {
 						return multi.name == "multiSession";
 					}
@@ -224,36 +227,29 @@ class subList extends PolymerElement {
 					if(indexMulti != -1) {
 						newRecord.multisession = request.response[index].serviceCharacteristic[indexMulti].value;
 					}
+					if(request.response[index].validFor) {
+						var st = request.response[index].validFor.startDateTime;
+						var en = request.response[index].validFor.endDateTime;
+					}
+					var date = new Date();
+					var currentDate = date.toISOString();
+					if(Date.parse(st) > Date.parse(currentDate)) {
+						newRecord.entityClass = "correctable";
+					}
+					if(Date.parse(en) < Date.parse(currentDate)) {
+						newRecord.entityClass = "terminal";
+					}
 					if(request.response[index].state){
-						if(request.response[index].validFor) {
-							var st = request.response[index].validFor.startDateTime;
-						}
-						var date = new Date();
-						var currentDate = date.toISOString();
-						if(request.response[index].state == "active" || request.response[index].state == "feasibilityChecked" || request.response[index].state ==  "designed" || request.response[index].state == "reserved" ){
-							if(Date.parse(st) < Date.parse(currentDate)) {
-								newRecord.correctable = request.response[index].state;
-								if(newRecord.correctable) {
-									newRecord.entityClass = "correctable";
-								}
-							} else if(st == undefined) {
-								newRecord.correctable = request.response[index].state;
-								if(newRecord.correctable) {
-									newRecord.entityClass = "correctable";
-								}
+						if(request.response[index].state == "feasibilityChecked" || request.response[index].state ==  "designed" || request.response[index].state == "reserved" || request.response[index].state == "inactive"){
+							newRecord.correctable = request.response[index].state;
+							if(newRecord.correctable) {
+								newRecord.entityClass = "correctable";
 							}
 						}
-						if(request.response[index].state == "inActive" || request.response[index].state == "terminated") {
-							if(Date.parse(st) < Date.parse(currentDate)) {
-								newRecord.terminal = request.response[index].state;
-								if(newRecord.terminal) {
-									newRecord.entityClass = "terminal";
-								}
-							} else if(st == undefined) {
-								newRecord.correctable = request.response[index].state;
-								if(newRecord.correctable) {
-									newRecord.entityClass = "correctable";
-								}
+						if(request.response[index].state == "terminated") {
+							newRecord.terminal = request.response[index].state;
+							if(newRecord.terminal) {
+								newRecord.entityClass = "terminal";
 							}
 						}
 					}
