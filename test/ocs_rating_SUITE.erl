@@ -179,7 +179,8 @@ initial_insufficient_multisession(_Config) ->
 	SessionId1 = [{'Session-Id', list_to_binary(ocs:generate_password())}],
 	R = #{SessionId1 => #{ts => erlang:system_time(millisecond),
 			debit => 100, reserve => 0}},
-	B2 = B1#bucket{attributes = #{bucket_type => normal, reservations => R}},
+	Attributes = B1#bucket.attributes,
+	B2 = B1#bucket{attributes = Attributes#{reservations => R}},
 	BId = add_bucket(ProdRef, B2),
 	Timestamp = calendar:local_time(),
 	SessionId2 = [{'Session-Id', list_to_binary(ocs:generate_password())}],
@@ -249,11 +250,11 @@ initial_overhead(_Config) ->
 			(A) ->
 				(A div PackageSize + 1) * PackagePrice
 	end,
-	Reserved = F(Reservation),
-	RemAmount2 = RemAmount1 - Reserved,
+	DebitAmount = F(Reservation),
+	RemAmount2 = RemAmount1 - DebitAmount,
 	0 = Reserved rem PackageSize,
 	true = Reserved > Reservation,
-	#{SessionId := #{reserve := Reserved}} = CReservation.
+	#{SessionId := #{debit := DebitAmount}} = CReservation.
 
 initial_multiple_buckets() ->
 	[{userdata, [{doc, "Reservation over multiple cents buckets"}]}].
@@ -339,7 +340,7 @@ initial_ignore_expired_buckets(_Config) ->
 	Reservations = #{SessionId1 => #{ts => Now - 3666000,
 			debit => rand:uniform(PackagePrice * 3), reserve => 0}},
 	ExpiredBucket = #bucket{units = cents, remain_amount = RemAmount1,
-			attributes = #{bucket_type => session, reservations => Reservations},
+			attributes = #{bucket_type => normal, reservations => Reservations},
 			start_date = Now - (2 * 2592000000), end_date = Now - 2592000000},
 	BId1 = add_bucket(ProdRef, ExpiredBucket),
 	RemAmount2 = PackagePrice + rand:uniform(PackagePrice * 10),
