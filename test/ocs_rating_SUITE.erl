@@ -110,7 +110,8 @@ all() ->
 	authorize_data_with_partial_reservation, authorize_negative_balance,
 	unauthorize_bad_password, unauthorize_bad_password, reserve_sms, debit_sms,
 	roaming_table_data, roaming_table_voice, roaming_table_sms, final_empty_mscc,
-	final_empty_mscc_multiple_services, initial_invalid_service_type].
+	final_empty_mscc_multiple_services, initial_invalid_service_type,
+	refund_unused_reservation].
 
 %%---------------------------------------------------------------------
 %%  Test cases
@@ -2157,6 +2158,32 @@ initial_invalid_service_type(_Config) ->
 	{error, invalid_service_type} = ocs_rating:rate(diameter, ServiceType, undefined,
 			undefined, undefined, ServiceId, Timestamp, undefined, undefined,
 			initial, [], [], SId).
+
+refund_unused_reservation() ->
+	[{userdata, [{doc, "Refund unused reservation"}]}].
+
+refund_unused_reservation(_Config) ->
+	PackagePrice = 10000000,
+	PackageSize = 60,
+	PackageUnits = seconds,
+	P1 = price(usage, PackageUnits, PackageSize, PackagePrice),
+	OfferId = add_offer([P1], 9),
+	ProdRef = add_product(OfferId),
+	ServiceId = add_service(ProdRef),
+	RemainAmount = 100000000,
+	B = bucket(cents, RemainAmount),
+	BId = add_bucket(ProdRef, B),
+	ServiceType = 32260,
+	Timestamp = calendar:local_time(),
+	SessionId = [{'Session-Id', list_to_binary(ocs:generate_password())}],
+	{ok, _, {PackageUnits, PackageSize}} = ocs_rating:rate(diameter,
+			ServiceType, undefined, undefined, undefined, ServiceId,
+			Timestamp, undefined, undefined, initial, [],
+			[{PackageUnits, PackageSize}], SessionId),
+	{ok, _, [#rated{} | _]} = ocs_rating:rate(diameter,
+			ServiceType, undefined, undefined, undefined, ServiceId,
+			Timestamp, undefined, undefined, final, [], undefined, SessionId),
+	{ok, #bucket{remain_amount = RemainAmount}} = ocs:find_bucket(BId).
 
 %%---------------------------------------------------------------------
 %%  Internal functions
