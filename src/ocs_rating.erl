@@ -2409,6 +2409,13 @@ get_final([#bucket{units = Units, attributes = Attributes,
 				EndDate /= undefined, EndDate < Now ->
 			get_final(T, ServiceId, ChargingKey, SessionId,
 					Now, Debits#{Units => N + Debit}, Acc);
+		{Debit, Refund, []} ->
+			NewAttributes = maps:remove(reservations, Attributes),
+			get_final(T, ServiceId, ChargingKey, SessionId,
+					Now, Debits#{Units => N + Debit},
+					[B#bucket{remain_amount = R + Refund,
+					last_modified = {Now, erlang:unique_integer([positive])},
+					attributes = NewAttributes} | Acc]);
 		{Debit, Refund, NewReservations} ->
 			get_final(T, ServiceId, ChargingKey, SessionId,
 					Now, Debits#{Units => N + Debit},
