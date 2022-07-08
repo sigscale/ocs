@@ -2063,13 +2063,17 @@ convert1(Type, Size, ServiceId, ChargingKey, SessionId,
 	convert1(Type, Size, ServiceId, ChargingKey, SessionId,
 			Now, CentsBuckets, T, [H | Acc]);
 convert1(Type, Size, ServiceId, ChargingKey, SessionId, Now,
-		[#bucket{product = Product} | _] = CentsBuckets, [], Acc) ->
+		[#bucket{id = Id, product = Product,
+		attributes = #{reservations := Reservations}} | _]
+		= CentsBuckets, [], Acc) ->
+	#{SessionId := #{debit := DA}} = Reservations,
 	LM = make_lm(),
 	NewBucket = #bucket{id = make_id(LM), last_modified = LM,
 			start_date = Now, end_date = Now,
 			name = "session", product = Product,
 			remain_amount = Size, units = Type,
 			attributes = #{bucket_type => session,
+					from_bucket => #{id => Id, rate => DA, size => Size},
 					reservations => #{SessionId => #{ts => Now, debit => 0,
 							reserve => 0, service_id => ServiceId,
 							charging_key => ChargingKey}}}},
@@ -2375,14 +2379,32 @@ get_final([#bucket{units = Units, attributes = Attributes,
 			get_final(T, ServiceId, ChargingKey, SessionId,
 					Now, Debits#{Units => N + Debit}, Acc);
 		{Debit, Refund, []} when BucketType == session ->
-			Attributes1 = maps:remove(reservations, Attributes),
-			NewAttributes = Attributes1#{bucket_type => normal},
-			get_final(T, ServiceId, ChargingKey, SessionId,
-					Now, Debits#{Units => N + Debit},
-					[B#bucket{name = undefined, end_date = undefined,
-					remain_amount = R + Refund,
-					last_modified = {Now, erlang:unique_integer([positive])},
-					attributes = NewAttributes} | Acc]);
+			#{from_bucket := #{id := Id,
+					rate := Rate, size := Size}} = Attributes,
+			Refunded = case Refund div Size of
+				0 ->
+					0;
+				Num ->
+					Num * Rate
+			end,
+			case lists:keyfind(Id, #bucket.id, T) of
+				#bucket{remain_amount = Remain} = CentsBucket1 ->
+					CentsBucket2 = CentsBucket1#bucket{
+							remain_amount = Remain + Refunded,
+							last_modified = {Now, erlang:unique_integer([positive])}},
+					NewT = lists:keyreplace(Id, #bucket.id, T, CentsBucket2),
+					get_final(NewT, ServiceId, ChargingKey, SessionId, Now,
+							Debits#{Units => N + Debit}, Acc);
+				false ->
+					CentsBucket1 = lists:keyfind(Id, #bucket.id, Acc),
+					#bucket{remain_amount = Remain} = CentsBucket1,
+					CentsBucket2 = CentsBucket1#bucket{
+							remain_amount = Remain + Refunded,
+							last_modified = {Now, erlang:unique_integer([positive])}},
+					NewAcc = lists:keyreplace(Id, #bucket.id, Acc, CentsBucket2),
+					get_final(T, ServiceId, ChargingKey, SessionId, Now,
+							Debits#{Units => N + Debit}, NewAcc)
+			end;
 		{Debit, _Refund, []} when R >= 0,
 				EndDate /= undefined, EndDate < Now ->
 			get_final(T, ServiceId, ChargingKey, SessionId,
