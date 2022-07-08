@@ -44,6 +44,7 @@
 %% export the ocs private API
 -export([normalize/1, subscription/4, end_period/2]).
 -export([import/2, find_sn_network/2]).
+-export([parse_buckets/1]).
 
 -export_type([eap_method/0, match/0]).
 
@@ -2374,6 +2375,73 @@ statistics(Item) ->
 					{error, ocs_down}
 			end
 	end.
+
+%%----------------------------------------------------------------------
+%%  The ocs private API
+%%----------------------------------------------------------------------
+
+-spec parse_buckets(Buckets) -> Buckets
+	when
+		Buckets :: [#bucket{}].
+%% @doc Replace reservations field of buckte with attrbutes.
+%% @private
+parse_buckets(Buckets) when is_list(Buckets) ->
+	parse_buckets(Buckets, []).
+%% @hidden
+parse_buckets([Bucket | T], Acc) ->
+	case element(8, Bucket) of
+		Attributes when is_map(Attributes) ->
+			parse_buckets(T, [Bucket | Acc]);
+		Reservations when is_list(Reservations) ->
+			reservations_to_attributes(Bucket, T, Reservations, Acc)
+	end;
+parse_buckets([], Acc) ->
+	lists:reverse(Acc).
+%% @hidden
+reservations_to_attributes(#bucket{start_date = Milliseconds,
+		end_date = Milliseconds} = Bucket, T, Reservations, Acc)
+		when is_integer(Milliseconds) ->
+	NewBucket = reservations_to_attributes1(Reservations, Bucket, session, #{}),
+	parse_buckets(T, [NewBucket | Acc]);
+reservations_to_attributes(#bucket{} = Bucket, T, Reservations, Acc) ->
+	NewBucket = reservations_to_attributes1(Reservations, Bucket, normal, #{}),
+	parse_buckets(T, [NewBucket | Acc]).
+%% @hidden
+reservations_to_attributes1(
+		[{TS, Debit, Reserve, ServiceId, ChargingKey, SessionId} = R | T1],
+		Bucket, BucketType, Acc1) when is_list(SessionId) ->
+	F = fun F([undefined | T2], Acc2) ->
+				F(T2, Acc2);
+			F([TS1 | T2], Acc2) when TS1 == TS ->
+				F(T2, Acc2#{ts => TS});
+			F([Debit1 | T2], Acc2) when Debit1 ==  Debit ->
+				F(T2, Acc2#{debit => Debit});
+			F([Reserve1 | T2], Acc2) when Reserve1 == Reserve ->
+				F(T2, Acc2#{reserve => Reserve});
+			F([ServiceId1 | T2], Acc2) when ServiceId1 ==  ServiceId ->
+				F(T2, Acc2#{service_id => ServiceId});
+			F([ChargingKey1 | T2], Acc2) when ChargingKey1 == ChargingKey ->
+				F(T2, Acc2#{charging_key => ChargingKey});
+			F([_ | []], ReservationMap) ->
+				Acc1#{SessionId => ReservationMap}
+	end,
+	reservations_to_attributes1(T1, Bucket, BucketType, F(tuple_to_list(R), #{}));
+reservations_to_attributes1([], #bucket{id = Id, name = Name,
+		start_date = StartDate, end_date = EndDate, status = Status,
+		remain_amount = RA, units = Units, prices = Prices, product = Product},
+		BucketType, Reservations) ->
+	TS = erlang:system_time(millisecond),
+	N = erlang:unique_integer([positive]),
+	Attributes = case maps:size(Reservations) of
+		0 ->
+			#{bucket_type => BucketType};
+		_Num ->
+			#{bucket_type => BucketType, reservations => Reservations}
+	end,
+	#bucket{id = Id, name = Name, start_date = StartDate, end_date = EndDate,
+			status = Status, remain_amount = RA, attributes = Attributes,
+			units = Units, prices = Prices, product = Product,
+			last_modified = {TS, N}}.
 
 %%----------------------------------------------------------------------
 %%  internal functions
