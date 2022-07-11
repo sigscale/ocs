@@ -2056,7 +2056,7 @@ roaming_table_sms(Config) ->
 	ok = file:close(File2).
 
 final_empty_mscc() ->
-	[{userdata, [{doc, "Rate a final call with an empty MSCC and remove session"}]}].
+	[{userdata, [{doc, "Rate a final call with an empty MSCC and check whether sessions are removed"}]}].
 
 final_empty_mscc(_Config) ->
 	Alteration = #alteration{name = "Allowance", units = octets,
@@ -2092,13 +2092,24 @@ final_empty_mscc(_Config) ->
 			undefined, undefined, undefined, ServiceId, Timestamp, undefined,
 			undefined, final, [], [], SessionId),
 	BucketList = ocs:get_buckets(ProdRef),
-	#bucket{units = cents, attributes = #{bucket_type := normal}}
-			=  lists:keyfind(cents, #bucket.units, BucketList),
-	#bucket{units = octets, attributes = #{bucket_type := normal}}
-			=  lists:keyfind(octets, #bucket.units, BucketList).
+	F1 = fun(#bucket{attributes = #{reservations := Reservation}})
+					when is_map(Reservation) ->
+				I1 = maps:iterator(Reservation),
+				F2 = fun({Key, _Value, _I2}) when Key == SessionId ->
+							false;
+						({_Key, _Value, I2}) ->
+							maps:next(I2);
+						(none) ->
+							true
+				end,
+				F2(maps:next(I1));
+			(#bucket{}) ->
+				true
+	end,
+	true = lists:all(F1, BucketList).
 
 final_empty_mscc_multiple_services() ->
-	[{userdata, [{doc, "Rate final with an empty MSCC after rating interims with different services"}]}].
+	[{userdata, [{doc, "Rate final with an empty MSCC after rating interims with different services and check whether sessions are removed"}]}].
 
 final_empty_mscc_multiple_services(_Config) ->
 	Alteration = #alteration{name = "Allowance", units = octets,
@@ -2134,10 +2145,21 @@ final_empty_mscc_multiple_services(_Config) ->
 			undefined, undefined, undefined, ServiceId1, Timestamp1, undefined,
 			undefined, final, [], [], SessionId1),
 	BucketList = ocs:get_buckets(ProdRef),
-	#bucket{units = cents, attributes = #{bucket_type := normal}}
-			=  lists:keyfind(cents, #bucket.units, BucketList),
-	#bucket{units = octets, attributes = #{bucket_type := normal}}
-			=  lists:keyfind(octets, #bucket.units, BucketList).
+	F1 = fun(#bucket{attributes = #{reservations := Reservation}})
+					when is_map(Reservation) ->
+				I1 = maps:iterator(Reservation),
+				F2 = fun({Key, _Value, _I2}) when Key == SessionId1 ->
+							false;
+						({_Key, _Value, I2}) ->
+							maps:next(I2);
+						(none) ->
+							true
+				end,
+				F2(maps:next(I1));
+			(#bucket{}) ->
+				true
+	end,
+	true = lists:all(F1, BucketList).
 
 initial_invalid_service_type() ->
 	[{userdata, [{doc, "Check the validity of a service type during rating"}]}].
