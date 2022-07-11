@@ -961,7 +961,7 @@ characteristic_product_network() ->
 	Type5 = {"valueType", "Number"},
 	Type51 = {struct, [{"unitOfMeasure", "seconds"}, {"valueType", "Number"}]},
 	Type52 = {struct, [{"unitOfMeasure", "minutes"}, {"valueType", "Number"}]},
-	Value5 = {"productSpecCharacteristicValue", {array, [{struct, [Type51, Type52]}]}},
+	Value5 = {"productSpecCharacteristicValue", {array, [Type51, Type52]}},
 	Char5 = {struct, [Name5, Description5, Config5, Type5, Value5]},
 	Name6 = {"name", "radiusReserveSessionOctets"},
 	Description6 = {"description",

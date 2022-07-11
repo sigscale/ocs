@@ -215,6 +215,15 @@ styleElement.innerHTML = `<template>
 			font-weight: bolder;
 			color: black;
 		}
+		[part~="body-cell"].expired {
+			background-color: var(--paper-red-50);
+		}
+		[part~="body-cell"].terminal {
+			background-color: var(--paper-red-50);
+		}
+		[part~="body-cell"].correctable {
+			background-color: var(--paper-yellow-50);
+		}
 		div.flowRow {
 			display: flex;
 		}

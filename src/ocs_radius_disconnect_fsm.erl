@@ -80,7 +80,7 @@
 %% @see //stdlib/gen_fsm:init/1
 %% @private
 %%
-init([Subscriber, {_, SessionAttributes}]) ->
+init([Id, Subscriber, {_, SessionAttributes}]) ->
 	process_flag(trap_exit, true),
 	NasIp = proplists:get_value(?NasIpAddress, SessionAttributes),
 	NasId = proplists:get_value(?NasIdentifier, SessionAttributes),
@@ -135,7 +135,7 @@ send_request(timeout, #statedata{nas_ip = Address, port = Port,
 	DisconnectRequest = radius:codec(DisconRec),
 	case gen_udp:open(0, [{active, once}, binary]) of
 		{ok, Socket} ->
-			case gen_udp:send(Socket, Address, Port, DisconnectRequest)of
+			case gen_udp:send(Socket, Address, Port, DisconnectRequest) of
 				ok ->
 					NewStateData = StateData#statedata{id = Id, socket = Socket,
 							request = DisconnectRequest},
@@ -146,7 +146,6 @@ send_request(timeout, #statedata{nas_ip = Address, port = Port,
 		{error, _Reason} ->
 				{next_state, send_request, StateData, ?TIMEOUT}
 	end.
-
 
 -spec receive_response(Event, StateData) -> Result
 	when

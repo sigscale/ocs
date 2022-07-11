@@ -1216,13 +1216,37 @@ authorize1(radius, ServiceType,
 					case mnesia:read(offer, OfferId, read) of
 						[#offer{char_value_use = CharValueUse} = Offer] ->
 							F2 = fun(#char_value_use{name = "radiusReserveSessionTime",
-											values = [#char_value{value = RRST}]})
-											when is_integer(RRST) ->
-										{true, {seconds, RRST}};
+											values = [CharValue]}) ->
+										case CharValue of
+											#char_value{units = undefined, value = RRST}
+													when is_integer(RRST) ->
+												{true, {seconds, RRST}};
+											#char_value{units = "seconds", value = RRST}
+													when is_integer(RRST) ->
+												{true, {seconds, RRST}};
+											#char_value{units = "minutes", value = RRST}
+													when is_integer(RRST) ->
+												{true, {seconds, RRST * 60}}
+										end;
 									(#char_value_use{name = "radiusReserveSessionOctets",
-											values = [#char_value{value = RRSO}]})
-											when is_integer(RRSO) ->
-										{true, {octets, RRSO}};
+											values = [CharValue]}) ->
+										case CharValue of
+											#char_value{units = undefined, value = RRSO}
+													when is_integer(RRSO) ->
+												{true, {octets, RRSO}};
+											#char_value{units = "bytes", value = RRSO}
+													when is_integer(RRSO) ->
+												{true, {octets, RRSO}};
+											#char_value{units = "kilobytes", value = RRSO}
+													when is_integer(RRSO) ->
+												{true, {octets, RRSO * 1000}};
+											#char_value{units = "megabytes", value = RRSO}
+													when is_integer(RRSO) ->
+												{true, {octets, RRSO * 1000000}};
+											#char_value{units = "gigabytes", value = RRSO}
+													when is_integer(RRSO) ->
+												{true, {octets, RRSO * 1000000000}}
+										end;
 									(_) ->
 										false
 							end,
@@ -2171,8 +2195,18 @@ get_reserve(#price{units = seconds,
 		char_value_use = CharValueUse} = _Price) ->
 	case lists:keyfind("radiusReserveTime",
 			#char_value_use.name, CharValueUse) of
-		#char_value_use{values = [#char_value{value = Value}]} ->
-			{seconds, Value};
+		#char_value_use{values = CharValue} ->
+			case CharValue of
+				[#char_value{units = undefined, value = Value}]
+						when is_integer(Value) ->
+					{seconds, Value};
+				[#char_value{units = "seconds", value = Value}]
+						when is_integer(Value) ->
+					{seconds, Value};
+				[#char_value{units = "minutes", value = Value}]
+						when is_integer(Value) ->
+					{seconds, Value * 60}
+			end;
 		false ->
 			{seconds, 0}
 	end;
@@ -2180,8 +2214,27 @@ get_reserve(#price{units = octets,
 		char_value_use = CharValueUse} = _Price) ->
 	case lists:keyfind("radiusReserveOctets",
 			#char_value_use.name, CharValueUse) of
-		#char_value_use{values = [#char_value{value = Value}]} ->
-			{octets, Value};
+		#char_value_use{values = CharValue} ->
+			case CharValue of
+				[#char_value{units = undefined, value = Value}]
+						when is_integer(Value) ->
+					{octets, Value};
+				[#char_value{units = "octets", value = Value}]
+						when is_integer(Value) ->
+					{octets, Value};
+				[#char_value{units = "bytes", value = Value}]
+						when is_integer(Value) ->
+					{octets, Value};
+				[#char_value{units = "kilobytes", value = Value}]
+						when is_integer(Value) ->
+					{octets, Value * 1000};
+				[#char_value{units = "megabytes", value = Value}]
+						when is_integer(Value) ->
+					{octets, Value * 1000000};
+				[#char_value{units = "gigabytes", value = Value}]
+						when is_integer(Value) ->
+					{octets, Value * 1000000000}
+			end;
 		false ->
 			{octets, 0}
 	end.

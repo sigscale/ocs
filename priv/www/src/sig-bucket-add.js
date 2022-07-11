@@ -62,6 +62,7 @@ class offerAdd extends PolymerElement {
 				</div>
 				<div>
 					<paper-input
+							type="datetime-local"
 							value="{{bucketEnd}}"
 							label="End Date">
 					</paper-input>
@@ -170,7 +171,7 @@ class offerAdd extends PolymerElement {
 
 	static get properties() {
 		return {
-				loading: {
+			loading: {
 				type: Boolean,
 				value: false
 			},

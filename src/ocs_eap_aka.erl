@@ -35,21 +35,21 @@
 
 -ifdef(OTP_RELEASE).
 	-if(?OTP_RELEASE >= 22).
-		-define(BLOCK_ENCRYPT(Cipher, Key, Data),
-				crypto:crypto_one_time(Cipher, Key, Data, true)).
-		-define(BLOCK_DECRYPT(Cipher, Key, Data),
-				crypto:crypto_one_time(Cipher, Key, Data, false)).
+		-define(BLOCK_ENCRYPT(Key, Data),
+				crypto:crypto_one_time(aes_128_ecb, Key, Data, true)).
+		-define(BLOCK_DECRYPT(Key, Data),
+				crypto:crypto_one_time(aes_128_ecb, Key, Data, false)).
 	-else.
-		-define(BLOCK_ENCRYPT(Cipher, Key, Data),
-				crypto:block_encrypt(Cipher, Key, Data)).
-		-define(BLOCK_DECRYPT(Cipher, Key, Data),
-				crypto:block_decrypt(Cipher, Key, Data)).
+		-define(BLOCK_ENCRYPT(Key, Data),
+				crypto:block_encrypt(aes_ecb, Key, Data)).
+		-define(BLOCK_DECRYPT(Key, Data),
+				crypto:block_decrypt(aes_ecb, Key, Data)).
 	-endif.
 -else.
-		-define(BLOCK_ENCRYPT(Cipher, Key, Data),
-				crypto:block_encrypt(Cipher, Key, Data)).
-		-define(BLOCK_DECRYPT(Cipher, Key, Data),
-				crypto:block_decrypt(Cipher, Key, Data)).
+		-define(BLOCK_ENCRYPT(Key, Data),
+				crypto:block_encrypt(aes_ecb, Key, Data)).
+		-define(BLOCK_DECRYPT(Key, Data),
+				crypto:block_decrypt(aes_ecb, Key, Data)).
 -endif.
 
 %% 3GPP TS 23.003 19.3.2 Root NAI
@@ -131,7 +131,7 @@ encrypt_imsi(Tag, CompressedIMSI, {N, Kpseu} = _Key)
 		size(CompressedIMSI) == 8, size(Kpseu) == 16 ->
 	Pad = crypto:strong_rand_bytes(8),
 	PaddedIMSI = <<CompressedIMSI/binary, Pad/binary>>,
-	EncryptedIMSI = ?BLOCK_ENCRYPT(aes_ecb, Kpseu, PaddedIMSI),
+	EncryptedIMSI = ?BLOCK_ENCRYPT(Kpseu, PaddedIMSI),
 	TaggedIMSI = <<Tag:6, N:4, EncryptedIMSI/binary, 0:6>>,
 	binary:part(base64:encode(TaggedIMSI), 0, 23).
 
@@ -152,7 +152,7 @@ decrypt_imsi(Pseudonym, Keys)
 	TaggedIMSI = base64:decode(<<Pseudonym/binary, $A>>),
 	<<_:6, N:4, EncryptedIMSI:16/binary, _:6>> = TaggedIMSI,
 	{_, Kpseu} = lists:keyfind(N, 1, Keys),
-	PaddedIMSI = ?BLOCK_DECRYPT(aes_ecb, Kpseu, EncryptedIMSI),
+	PaddedIMSI = ?BLOCK_DECRYPT(Kpseu, EncryptedIMSI),
 	binary:part(PaddedIMSI, 0, 8).
 
 -spec encrypt_key(Secret, RequestAuthenticator, Salt, Key) -> Ciphertext
