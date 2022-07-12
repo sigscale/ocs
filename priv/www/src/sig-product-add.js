@@ -32,6 +32,12 @@ class productAddClass extends PolymerElement {
 				<app-toolbar>
 					<h3>Add Product</h3>
 				</app-toolbar>
+				<paper-input
+						id="statusId"
+						name="Lifecyclestatus"
+						value="{{lifestatus}}"
+						label="Lifecyclestatus">
+				</paper-input>
 				<paper-dropdown-menu
 						id="addProDrop"
 						label="Product Offer"
@@ -189,6 +195,7 @@ class productAddClass extends PolymerElement {
 	_productinvenAddSubmit() {
 		var ajaxPro = this.$.addProductAjax;
 		var productRes = new Object();
+		productRes.status = this.lifestatus;
 		var productAdd = new Object();
 		productAdd.id = this.proAdd;
 		productAdd.name = this.proAdd;
