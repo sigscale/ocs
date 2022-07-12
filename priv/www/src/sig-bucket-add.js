@@ -43,6 +43,12 @@ class offerAdd extends PolymerElement {
 				</paper-progress>
 				<div>
 					<paper-input
+							value="{{lifeStatus}}"
+							label="Lifecyclestatus">
+					</paper-input>
+				</div>
+				<div>
+					<paper-input
 							value="{{productId}}"
 							label="Product">
 					</paper-input>
@@ -221,6 +227,7 @@ class offerAdd extends PolymerElement {
 	_bucketAddSubmit(event) {
 		if(this.productId && this.bucketUnit && this.bucketAmount) {
 			var bucket = {name: "channel"};
+			bucket.lifecycleStatus = this.lifeStatus; 
 			bucket.product = {id: this.productId,
 					href: "/productInventoryManagement/v2/product/" + this.productId};
 			if(this.bucketStart || this.bucketEnd) {
