@@ -44,7 +44,7 @@ class offerAdd extends PolymerElement {
 				<div>
 					<paper-input
 							value="{{lifeStatus}}"
-							label="Lifecyclestatus">
+							label="Status">
 					</paper-input>
 				</div>
 				<div>
