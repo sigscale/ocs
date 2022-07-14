@@ -213,7 +213,7 @@ class subAdd extends PolymerElement {
 								id="addStatus"
 								name="lifeCycleStatus"
 								value="{{lifeCycleStatus}}"
-								label="Lifecyclestatus">
+								label="Status">
 						</paper-input>
 						<paper-input
 								id="addAcctSessionInterval"
