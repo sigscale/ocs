@@ -139,6 +139,15 @@ class offerList extends PolymerElement {
 		ajax1.params['resourceSpecification.id'] = '1';
 		ajax1.generateRequest();
 		grid.dataProvider = this.getOffers;
+		grid.cellClassNameGenerator = this._cellClassNameGenerator;
+	}
+
+	_cellClassNameGenerator(column, model) {
+		if(column !== undefined && model.item.entityClass !== undefined) {
+			return model.item.entityClass;
+		} else {
+			return null;
+		}
 	}
 
 	getOffers(params, callback) {
@@ -195,16 +204,38 @@ class offerList extends PolymerElement {
 					newRecord.description = request.response[index].description;
 					newRecord.productSpecification = request.response[index].productSpecification;
 					if(request.response[index].validFor && request.response[index].validFor != "") {
+						var date = new Date();
+						var currentDate = date.toISOString();
 						if(request.response[index].validFor.startDateTime
 									&& request.response[index].validFor.startDateTime != ""){
 							newRecord.startDate = request.response[index].validFor.startDateTime.split("T")[0];
+							if(Date.parse(newRecord.startDate) > Date.parse(currentDate)) {
+								newRecord.entityClass = "correctable";
+							}
 						}
 						if(request.response[index].validFor.endDateTime
 									&& request.response[index].validFor.endDateTime != ""){
 							newRecord.endDate = request.response[index].validFor.endDateTime.split("T")[0];
+							if(Date.parse(newRecord.endDate) < Date.parse(currentDate)) {
+								newRecord.entityClass = "terminal";
+							}
 						}
 					}
-					newRecord.lifecycleStatus = request.response[index].lifecycleStatus;
+					if(request.response[index].lifecycleStatus) {
+						newRecord.lifecycleStatus = request.response[index].lifecycleStatus;
+						if(request.response[index].lifecycleStatus == "In Study" || request.response[index].lifecycleStatus == "In Design" || request.response[index].lifecycleStatus == "In Test") {
+							newRecord.correctable = request.response[index].lifecycleStatus;
+							if(newRecord.correctable) {
+								newRecord.entityClass = "correctable";
+							}
+						}
+						if(request.response[index].lifecycleStatus == "Rejected" || request.response[index].lifecycleStatus == "Retired" || request.response[index].lifecycleStatus == "Obsolete") {
+							newRecord.terminal = request.response[index].lifecycleStatus;
+							if(newRecord.terminal) {
+								newRecord.entityClass = "terminal";
+							}
+						}
+					}
 					if(request.response[index].productOfferingPrice && request.response[index].productOfferingPrice != "")
 					{
 						function getNames(price) {

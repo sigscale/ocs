@@ -210,6 +210,12 @@ class subAdd extends PolymerElement {
 					</div>
 					<div id="add-divone">
 						<paper-input
+								id="addStatus"
+								name="lifeCycleStatus"
+								value="{{lifeCycleStatus}}"
+								label="Lifecyclestatus">
+						</paper-input>
+						<paper-input
 								id="addAcctSessionInterval"
 								name="acctSessionInterval"
 								value="{{accSessAddAutho}}"
@@ -581,7 +587,7 @@ class subAdd extends PolymerElement {
 			subscriber.product = this.proAddPro;
 		}
 		subscriber.isServiceEnabled = this.enableAddAutho.checked;
-		subscriber.state = "active";
+		subscriber.state = this.lifeCycleStatus;
 		var specService = new Object();
 		specService.id = "1";
 		specService.href = "/catalogManagement/v2/serviceSpecification/1";

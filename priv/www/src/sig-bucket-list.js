@@ -293,6 +293,11 @@ class bucketList extends PolymerElement {
 					if(request.response[index].validFor) {
 						if(request.response[index].validFor.startDateTime) {
 							newRecord.startDate = request.response[index].validFor.startDateTime;
+							var dateOne = new Date();
+							var currentDateOne = dateOne.toISOString();
+							if(Date.parse(newRecord.startDate) > Date.parse(currentDateOne)) {
+								newRecord.entityClass = "correctable";
+							}
 						}
 						if(request.response[index].validFor.endDateTime) {
 							newRecord.endDate = request.response[index].validFor.endDateTime;
@@ -312,26 +317,15 @@ class bucketList extends PolymerElement {
 						}
 					}
 					if(request.response[index].lifecycleStatus) {
-						if(request.response[index].validFor) {
-							var st = request.response[index].validFor.startDateTime;
-						}
-						var dateOne = new Date();
-						var currentDateOne = dateOne.toISOString();
-						if(request.response[index].lifecycleStatus == "Active") {
-							if(Date.parse(st) < Date.parse(currentDateOne)) {
-								newRecord.correctable = request.response[index].lifecycleStatus;
-								if(newRecord.correctable) {
-									newRecord.entityClass = "correctable";
-								}
+						if(request.response[index].lifecycleStatus == "Suspended") {							newRecord.correctable = request.response[index].lifecycleStatus;
+							if(newRecord.correctable) {
+								newRecord.entityClass = "correctable";
 							}
 						}
-						if(request.response[index].lifecycleStatus == "Expired" ||
-							request.response[index].lifecycleStatus == "Suspended"){
-							if(Date.parse(st) > Date.parse(currentDateOne)) {
-								newRecord.terminal = request.response[index].lifecycleStatus;
-								if(newRecord.terminal) {
-									newRecord.entityClass = "terminal";
-								}
+						if(request.response[index].lifecycleStatus == "Expired") { 
+							newRecord.terminal = request.response[index].lifecycleStatus;
+							if(newRecord.terminal) {
+								newRecord.entityClass = "terminal";
 							}
 						}
 					}
