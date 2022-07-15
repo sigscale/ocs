@@ -146,11 +146,13 @@
 		charging_key => non_neg_integer()}.
 -type bucket_source() ::
 		#{id := string(),
-		rate := pos_integer(),
-		size := pos_integer()}.
+		amount := pos_integer(),
+		unit_size := pos_integer(),
+		unit_price := pos_integer(),
+		expire := pos_integer() | undefined}.
 -type bucket_attributes() ::
 		#{bucket_type := normal | session,
-		from_bucket => bucket_source(),
+		from_bucket => [bucket_source()],
 		reservations => reservations()}.
 
 -record(bucket,
