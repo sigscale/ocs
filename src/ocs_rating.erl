@@ -2465,11 +2465,16 @@ get_final([#bucket{units = Units, attributes = Attributes,
 			get_final(T, ServiceId, ChargingKey, SessionId,
 					Now, Debits#{Units => N + Debit}, Acc);
 		{Debit, Refund, []} when BucketType == session ->
-			#{from_bucket := FromBucket1} = Attributes,
-			FromBucket2 = sort_from_bucket(FromBucket1),
-			{NewT, NewAcc} = get_final1(Refund, Now, T, Acc, FromBucket2),
-			get_final(NewT, ServiceId, ChargingKey, SessionId, Now,
+			case maps:find(from_bucket, Attributes) of
+				{ok, FromBucket1} ->
+					FromBucket2 = sort_from_bucket(FromBucket1),
+					{NewT, NewAcc} = get_final1(Refund, Now, T, Acc, FromBucket2),
+					get_final(NewT, ServiceId, ChargingKey, SessionId, Now,
 							Debits#{Units => N + Debit}, NewAcc);
+				error ->
+					get_final(T, ServiceId, ChargingKey, SessionId, Now,
+							Debits#{Units => N + Debit}, Acc)
+			end;
 		{Debit, _Refund, []} when R >= 0,
 				EndDate /= undefined, EndDate < Now ->
 			get_final(T, ServiceId, ChargingKey, SessionId,
