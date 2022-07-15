@@ -794,7 +794,7 @@ charge2(Service, ServiceId, Product, Buckets,
 			PriceReserveUnits = (Amount - UnitsReserved),
 			{UnitReserve, PriceReserve} = price_units(PriceReserveUnits,
 					UnitSize, UnitPrice),
-			case convert(PriceReserve, Units, UnitReserve,
+			case convert(PriceReserve, Units, UnitPrice, UnitSize, UnitReserve,
 					ServiceId, ChargingKey, SessionId, Buckets2) of
 				{ok, Buckets3} ->
 					{0, UnitReserve, Buckets4} = update_session(Units, 0,
@@ -821,7 +821,7 @@ charge2(#service{enabled = false} = Service, ServiceId, #product{id = ProductId}
 			NewChargeUnits = Amount - UnitsCharged,
 			{UnitCharge, PriceCharge} = price_units(NewChargeUnits,
 					UnitSize, UnitPrice),
-			case convert(PriceCharge, Units, UnitCharge,
+			case convert(PriceCharge, Units, UnitPrice, UnitSize, UnitCharge,
 					ServiceId, ChargingKey, SessionId, Buckets2) of
 				{ok, Buckets3} ->
 					case update_session(Units, NewChargeUnits, 0,
@@ -877,7 +877,7 @@ charge2(Service, ServiceId, #product{id = ProductId} = Product, Buckets,
 			NewReserveUnits = Ramount - UnitsReserved,
 			{UnitReserve, PriceReserve} = price_units(NewReserveUnits,
 					UnitSize, UnitPrice),
-			case convert(PriceReserve, Units, UnitReserve,
+			case convert(PriceReserve, Units, UnitPrice, UnitSize, UnitReserve,
 					ServiceId, ChargingKey, SessionId, Buckets2) of
 				{ok, Buckets3} ->
 					{0, NewReserveUnits, Buckets4} = update_session(Units,
@@ -895,7 +895,7 @@ charge2(Service, ServiceId, #product{id = ProductId} = Product, Buckets,
 			{ConvertReserve, PriceReserve} = price_units(NewChargeUnits + Ramount,
 					UnitSize, UnitPrice),
 			{UnitReserve, _} = price_units(Ramount, UnitSize, UnitPrice),
-			case convert(PriceReserve, Units, ConvertReserve,
+			case convert(PriceReserve, Units, UnitPrice, UnitSize, ConvertReserve,
 					ServiceId, ChargingKey, SessionId, Buckets2) of
 				{ok, Buckets3} ->
 					case update_session(Units, NewChargeUnits, UnitReserve,
@@ -1968,14 +1968,16 @@ charge_event(Type, Charge, Now, [H | T], Charged, Acc) ->
 charge_event(_, _, _, [], Charged, Acc) ->
 	{Charged, lists:reverse(Acc)}.
 
--spec convert(Price, Type, Size,
+-spec convert(Price, Type, UnitPrice, UnitSize, TotalSize,
 		ServiceId, ChargingKey, SessionId, Buckets) -> Result
 	when
 		Price :: pos_integer(),
 		Type :: octets | seconds | messages,
 		ServiceId :: non_neg_integer() | undefined,
 		ChargingKey :: non_neg_integer() | undefined,
-		Size :: pos_integer(),
+		UnitPrice :: pos_integer(),
+		UnitSize :: pos_integer(),
+		TotalSize :: pos_integer(),
 		SessionId :: string() | binary(),
 		Buckets :: [#bucket{}],
 		Result :: {ok, Buckets} | false.
@@ -1984,7 +1986,8 @@ charge_event(_, _, _, [], Charged, Acc) ->
 %% 	Tops up existing bucket for session if found,
 %% 	otherwise creates session bucket(s) of `Type'.
 %% @private
-convert(Price, Type, Size, ServiceId, ChargingKey, SessionId, Buckets) ->
+convert(Price, Type, UnitPrice, UnitSize, TotalSize,
+		ServiceId, ChargingKey, SessionId, Buckets) ->
 	Buckets1 = sort(Buckets),
 	Fcents = fun(#bucket{units = cents}) ->
 				true;
@@ -1993,22 +1996,22 @@ convert(Price, Type, Size, ServiceId, ChargingKey, SessionId, Buckets) ->
 	end,
 	{CentsBuckets, UnitsBuckets} = lists:partition(Fcents, Buckets1),
 	Now = erlang:system_time(millisecond),
-	convert(Price, Type, Size, ServiceId, ChargingKey, SessionId,
-			Now, CentsBuckets, UnitsBuckets, []).
+	convert(Price, Type, UnitPrice, UnitSize, TotalSize, ServiceId, ChargingKey,
+			SessionId, Now, CentsBuckets, UnitsBuckets, []).
 %% @hidden
-convert(0, Type, Size, ServiceId, ChargingKey, SessionId,
-		Now, CentsBuckets, UnitsBuckets, Acc) ->
-	convert1(Type, Size, ServiceId, ChargingKey, SessionId,
-			Now, lists:reverse(Acc) ++ CentsBuckets, UnitsBuckets, []);
-convert(Price, Type, Size, ServiceId, ChargingKey, SessionId, Now,
-		[#bucket{remain_amount = R, end_date = Expires,
+convert(0, Type, _UnitPrice, _UnitSize, TotalSize, ServiceId, ChargingKey,
+		SessionId, Now, CentsBuckets, UnitsBuckets, Acc) ->
+	convert1(Type, TotalSize, ServiceId, ChargingKey, SessionId, Now,
+			lists:reverse(Acc) ++ CentsBuckets, UnitsBuckets, []);
+convert(Price, Type, UnitPrice, UnitSize, TotalSize, ServiceId, ChargingKey,
+		SessionId, Now, [#bucket{remain_amount = R, end_date = Expires,
 		attributes = Attributes} | T], UnitsBuckets, Acc) when R >= 0,
 		Expires /= undefined, Expires =< Now,
 		false == is_map_key(reservations, Attributes) ->
-	convert(Price, Type, Size, ServiceId, ChargingKey, SessionId,
-			Now, T, UnitsBuckets, Acc);
-convert(Price1, Type, Size, ServiceId, ChargingKey, SessionId, Now,
-		[#bucket{remain_amount = R, end_date = Expires,
+	convert(Price, Type, UnitPrice, UnitSize, TotalSize, ServiceId, ChargingKey,
+			SessionId, Now, T, UnitsBuckets, Acc);
+convert(Price1, Type, UnitPrice, UnitSize, TotalSize, ServiceId, ChargingKey,
+		SessionId, Now, [#bucket{id = BId, remain_amount = R, end_date = Expires,
 		attributes = Attributes} = B1 | T], UnitsBuckets, Acc)
 		when Price1 > 0, R > 0, ((Expires == undefined) or (Now < Expires)) ->
 	Reservations1 = maps:get(reservations, Attributes, #{}),
@@ -2019,7 +2022,7 @@ convert(Price1, Type, Size, ServiceId, ChargingKey, SessionId, Now,
 			({_, _}) ->
 				false
 	end,
-	{Price2, B2} = case lists:partition(F, maps:to_list(Reservations1)) of
+	{Price2, B2, FBAcc2} = case lists:partition(F, maps:to_list(Reservations1)) of
 		{[{_, #{debit := DebitedAmount, reserve := ReservedAmount}}], Reservations2}
 				when R >= Price1 ->
 			NewReservations = [{SessionId, #{ts => Now,
@@ -2028,7 +2031,7 @@ convert(Price1, Type, Size, ServiceId, ChargingKey, SessionId, Now,
 					charging_key => ChargingKey}} | Reservations2],
 			{0, B1#bucket{remain_amount = R - Price1,
 					last_modified = {Now, erlang:unique_integer([positive])},
-					attributes = Attributes#{reservations => maps:from_list(NewReservations)}}};
+					attributes = Attributes#{reservations => maps:from_list(NewReservations)}}, FromBucket};
 		{[{_, #{debit := DebitedAmount, reserve := ReservedAmount}}], Reservations2}
 				when R < Price1 ->
 			NewReservations = [{SessionId, #{ts => Now, debit => DebitedAmount + R,
@@ -2036,33 +2039,33 @@ convert(Price1, Type, Size, ServiceId, ChargingKey, SessionId, Now,
 					charging_key => ChargingKey}} | Reservations2],
 			{Price1 - R, B1#bucket{remain_amount = 0,
 					last_modified = {Now, erlang:unique_integer([positive])},
-					attributes = Attributes#{reservations => maps:from_list(NewReservations)}}};
+					attributes = Attributes#{reservations => maps:from_list(NewReservations)}}, FromBucket};
 		{[], _} when R >= Price1 ->
 			NewReservations = Reservations1#{SessionId => #{ts => Now,
 					debit => Price1, reserve => 0, service_id => ServiceId,
 					charging_key => ChargingKey}},
 			{0, B1#bucket{remain_amount = R - Price1,
 					last_modified = {Now, erlang:unique_integer([positive])},
-					attributes = Attributes#{reservations => NewReservations}}};
+					attributes = Attributes#{reservations => NewReservations}}, FromBucket};
 		{[], _} when R < Price1 ->
 			NewReservations = Reservations1#{SessionId => #{ts => Now, debit => R,
 					reserve => 0, service_id => ServiceId,
 					charging_key => ChargingKey}},
 			{Price1 - R, B1#bucket{remain_amount = 0,
 					last_modified = {Now, erlang:unique_integer([positive])},
-					attributes = Attributes#{reservations => NewReservations}}}
+					attributes = Attributes#{reservations => NewReservations}}, FromBucket}
 	end,
-	convert(Price2, Type, Size, ServiceId, ChargingKey, SessionId,
-			Now, T, UnitsBuckets, [B2 | Acc]);
-convert(Price, Type, Size, ServiceId, ChargingKey, SessionId,
-		Now, [H | T], UnitsBuckets, Acc) ->
-	convert(Price, Type, Size, ServiceId, ChargingKey, SessionId,
-			Now, T, UnitsBuckets, [H | Acc]);
-convert(Price, _, _, _, _, _, _, [], _, _) when Price > 0 ->
+	convert(Price2, Type, UnitPrice, UnitSize, TotalSize, ServiceId,
+			ChargingKey, SessionId, Now, T, UnitsBuckets, [B2 | Acc]);
+convert(Price, Type, UnitPrice, UnitSize, TotalSize, ServiceId, ChargingKey,
+		SessionId, Now, [H | T], UnitsBuckets, Acc) ->
+	convert(Price, Type, UnitPrice, UnitSize, TotalSize, ServiceId, ChargingKey,
+			SessionId, Now, T, UnitsBuckets, [H | Acc]);
+convert(Price, _, _, _, _, _, _, _, _, [], _, _, _) when Price > 0 ->
 	false.
 %% @hidden
-convert1(Type, Size, ServiceId, ChargingKey, SessionId, Now, CentsBuckets,
-		[#bucket{units = Type, remain_amount = R,
+convert1(Type, TotalSize, ServiceId, ChargingKey,
+		SessionId, Now, CentsBuckets, [#bucket{units = Type, remain_amount = R,
 		attributes = #{bucket_type := session,
 				reservations := Reservations}} = B | T], Acc) ->
 	F = fun({SessionId1, #{service_id := ServiceId1,
@@ -2074,28 +2077,25 @@ convert1(Type, Size, ServiceId, ChargingKey, SessionId, Now, CentsBuckets,
 	end,
 	case lists:any(F, maps:to_list(Reservations)) of
 		true ->
-			NewBucket = B#bucket{remain_amount = R + Size,
+			NewBucket = B#bucket{remain_amount = R + TotalSize,
 					last_modified = {Now, erlang:unique_integer([positive])}},
 			NewBuckets = CentsBuckets ++ lists:reverse(Acc) ++ [NewBucket | T],
 			{ok, NewBuckets};
 		false ->
-			convert1(Type, Size, ServiceId, ChargingKey, SessionId,
-					Now, CentsBuckets, T, [B | Acc])
+			convert1(Type, TotalSize, ServiceId, ChargingKey,
+					SessionId, Now, CentsBuckets, T, [B | Acc])
 	end;
-convert1(Type, Size, ServiceId, ChargingKey, SessionId,
-		Now, CentsBuckets, [H | T], Acc) ->
-	convert1(Type, Size, ServiceId, ChargingKey, SessionId,
-			Now, CentsBuckets, T, [H | Acc]);
-convert1(Type, Size, ServiceId, ChargingKey, SessionId, Now,
-		[#bucket{id = Id, product = Product,
-		attributes = #{reservations := Reservations}} | _]
-		= CentsBuckets, [], Acc) ->
-	#{SessionId := #{debit := DA}} = Reservations,
+convert1(Type, TotalSize, ServiceId, ChargingKey,
+		SessionId, Now, CentsBuckets, [H | T], Acc) ->
+	convert1(Type, TotalSize, ServiceId, ChargingKey,
+			SessionId, Now, CentsBuckets, T, [H | Acc]);
+convert1(Type, TotalSize, ServiceId, ChargingKey,
+		SessionId, Now, CentsBuckets, [], Acc) ->
 	LM = make_lm(),
 	NewBucket = #bucket{id = make_id(LM), last_modified = LM,
 			start_date = Now, end_date = Now,
 			name = "session", product = Product,
-			remain_amount = Size, units = Type,
+			remain_amount = TotalSize, units = Type,
 			attributes = #{bucket_type => session,
 					from_bucket => #{id => Id, rate => DA, size => Size},
 					reservations => #{SessionId => #{ts => Now, debit => 0,
