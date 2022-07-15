@@ -2186,6 +2186,19 @@ sort(Buckets) ->
 	end,
 	lists:sort(F, Buckets).
 
+-spec sort_from_bucket(FromBucket) -> FromBucket
+	when
+		FromBucket :: [bucket_source()].
+%% @doc Sort oldest `BucketSource' first.
+%% @private
+sort_from_bucket(FromBucket) when is_list(FromBucket) ->
+	F = fun(#{expire := T1}, #{expire := T2}) when T1 =< T2 ->
+				true;
+			(_, _) ->
+				false
+	end,
+	lists:sort(F, FromBucket).
+
 -spec price_units(Amount, UnitSize, UnitPrice) -> {TotalUnits, TotalPrice}
 	when
 		Amount :: non_neg_integer(),
@@ -2453,7 +2466,8 @@ get_final([#bucket{units = Units, attributes = Attributes,
 					Now, Debits#{Units => N + Debit}, Acc);
 		{Debit, Refund, []} when BucketType == session ->
 			#{from_bucket := FromBucket1} = Attributes,
-			{NewT, NewAcc} = get_final1(Refund, Now, T, Acc, FromBucket1),
+			FromBucket2 = sort_from_bucket(FromBucket1),
+			{NewT, NewAcc} = get_final1(Refund, Now, T, Acc, FromBucket2),
 			get_final(NewT, ServiceId, ChargingKey, SessionId, Now,
 							Debits#{Units => N + Debit}, NewAcc);
 		{Debit, _Refund, []} when R >= 0,
