@@ -720,7 +720,7 @@ class offerAdd extends PolymerElement {
 									on-selected-item-changed="_checkPatternAlt"
 									no-animations="true">
 								<paper-listbox
-										id="addAltUnitDrop"
+										id="addAlterationUnits"
 										slot="dropdown-content">
 									<paper-item
 											id="altBytes">
@@ -1076,7 +1076,7 @@ class offerAdd extends PolymerElement {
 				this.priceType = null;
 				if(this.offerAddSpec == "Prepaid Data") {
 					this.$.altBytes.disabled = false;
-					this.$.altSeconds.disabled = true;
+					this.$.altSeconds.disabled = false;
 					this.$.altMessages.disabled = true;
 				}
 				if(this.offerAddSpec == "Prepaid Voice") {
@@ -1221,16 +1221,16 @@ class offerAdd extends PolymerElement {
 				this.alterationSize = this.alterations[index].size;
 				switch(this.alterations[index].unit) {
 					case "b":
-						this.$.addAltUnitDrop.selected = 0;
+						this.$.addAlterationUnits.selected = 0;
 						break;
 					case "c":
-						this.$.addAltUnitDrop.selected = 1;
+						this.$.addAlterationUnits.selected = 1;
 						break;
 					case "s":
-						this.$.addAltUnitDrop.selected = 2;
+						this.$.addAlterationUnits.selected = 2;
 						break;
 					case "msg":
-						this.$.addAltUnitDrop.selected = 3;
+						this.$.addAlterationUnits.selected = 3;
 						break;
 				}
 				this.alterationCurrency = this.alterations[index].currency;
@@ -1885,37 +1885,41 @@ class offerAdd extends PolymerElement {
 			this.$.priceCents.disabled = true;
 			if(this.offerAddSpec == "Prepaid Data") {
 				this.$.priceBytes.disabled = false;
-				this.$.priceSeconds.disabled = true;
+				this.$.priceSeconds.disabled = false;
 				this.$.priceMessages.disabled = true;
-			}
-			if(this.offerAddSpec == "Prepaid Voice") {
+				this.$.addPriceUnits.selected = 0;
+			} else if(this.offerAddSpec == "Prepaid Voice") {
 				this.$.priceSeconds.disabled = false;
 				this.$.priceBytes.disabled = true;
 				this.$.priceMessages.disabled = true;
-			}
-			if(this.offerAddSpec == "Prepaid SMS") {
+				this.$.addPriceUnits.selected = 2;
+			} else if(this.offerAddSpec == "Prepaid SMS") {
 				this.$.priceMessages.disabled = false;
 				this.$.priceBytes.disabled = true;
 				this.$.priceSeconds.disabled = true;
+				this.$.addPriceUnits.selected = 3;
 			}
-			this.$.addPriceUnits.selected = 0;
 			this.$.addPriceAmount.disabled = false;
 			this.$.addPla.disabled = true;
 		} else if(this.priceType == "Tariff") {
 			this.$.addPricePerioddrop.disabled = true;
 			this.$.priceCents.disabled = true;
 			this.$.priceBytes.disabled = true;
-			if(this.offerAddSpec == "Prepaid Voice") {
+			if(this.offerAddSpec == "Prepaid Data") {
+				this.$.priceBytes.disabled = false;
+				this.$.priceSeconds.disabled = false;
+				this.$.addPriceUnits.selected = 0;
+			} else if(this.offerAddSpec == "Prepaid Voice") {
 				this.$.priceSeconds.disabled = false;
 				this.$.priceBytes.disabled = true;
 				this.$.priceMessages.disabled = true;
-			}
-			if(this.offerAddSpec == "Prepaid SMS") {
+				this.$.addPriceUnits.selected = 2;
+			} else if(this.offerAddSpec == "Prepaid SMS") {
 				this.$.priceMessages.disabled = false;
 				this.$.priceBytes.disabled = true;
 				this.$.priceSeconds.disabled = true;
+				this.$.addPriceUnits.selected = 3;
 			}
-			this.$.addPriceUnits.selected = 2;
 			this.$.addPriceAmount.disabled = true;
 			this.$.addPla.disabled = false;
 			this.priceAmount = null;
@@ -1925,60 +1929,61 @@ class offerAdd extends PolymerElement {
 	_checkRecurringAlt() {
 		if(this.alterationType == "Recurring") {
 			this.$.altPeriodDrop.disabled = false;
+			this.$.altCents.disabled = true;
 			if(this.offerAddSpec == "Prepaid Data") {
 				this.$.altBytes.disabled = false;
-				this.$.altSeconds.disabled = true;
+				this.$.altSeconds.disabled = false;
 				this.$.altMessages.disabled = true;
-			}
-			if(this.offerAddSpec == "Prepaid Voice") {
+				this.$.addAlterationUnits.selected = 0;
+			} else if(this.offerAddSpec == "Prepaid Voice") {
 				this.$.altSeconds.disabled = false;
 				this.$.altBytes.disabled = true;
 				this.$.altMessages.disabled = true;
-			}
-			if(this.offerAddSpec == "Prepaid SMS") {
+				this.$.addAlterationUnits.selected = 2;
+			} else if(this.offerAddSpec == "Prepaid SMS") {
 				this.$.altMessages.disabled = false;
 				this.$.altBytes.disabled = true;
 				this.$.altSeconds.disabled = true;
+				this.$.addAlterationUnits.selected = 3;
 			}
-			this.$.altCents.disabled = true;
-			this.$.addAltUnitDrop.selected = 0;
 		} else if(this.alterationType == "One Time") {
 			this.$.altPeriodDrop.disabled = true;
+			this.$.altCents.disabled = false;
 			if(this.offerAddSpec == "Prepaid Data") {
 				this.$.altBytes.disabled = false;
-				this.$.altSeconds.disabled = true;
+				this.$.altSeconds.disabled = false;
 				this.$.altMessages.disabled = true;
-			}
-			if(this.offerAddSpec == "Prepaid Voice") {
+				this.$.addAlterationUnits.selected = 0;
+			} else if(this.offerAddSpec == "Prepaid Voice") {
 				this.$.altSeconds.disabled = false;
 				this.$.altBytes.disabled = true;
 				this.$.altMessages.disabled = true;
-			}
-			if(this.offerAddSpec == "Prepaid SMS") {
+				this.$.addAlterationUnits.selected = 2;
+			} else if(this.offerAddSpec == "Prepaid SMS") {
 				this.$.altMessages.disabled = false;
 				this.$.altBytes.disabled = true;
 				this.$.altSeconds.disabled = true;
+				this.$.addAlterationUnits.selected = 3;
 			}
-			this.$.altCents.disabled = false;
-			this.$.addAltUnitDrop.selected = 1;
 		} else if(this.alterationType == "Usage") {
 			this.$.altPeriodDrop.disabled = true;
+			this.$.altCents.disabled = true;
 			if(this.offerAddSpec == "Prepaid Data") {
 				this.$.altBytes.disabled = false;
-				this.$.altSeconds.disabled = true;
+				this.$.altSeconds.disabled = false;
 				this.$.altMessages.disabled = true;
-			}
-			if(this.offerAddSpec == "Prepaid Voice") {
+				this.$.addAlterationUnits.selected = 0;
+			} else if(this.offerAddSpec == "Prepaid Voice") {
 				this.$.altSeconds.disabled = false;
 				this.$.altBytes.disabled = true;
 				this.$.altMessages.disabled = true;
-			}
-			if(this.offerAddSpec == "Prepaid SMS") {
+				this.$.addAlterationUnits.selected = 2;
+			} else if(this.offerAddSpec == "Prepaid SMS") {
 				this.$.altMessages.disabled = false;
 				this.$.altBytes.disabled = true;
 				this.$.altSeconds.disabled = true;
+				this.$.addAlterationUnits.selected = 3;
 			}
-			this.$.altCents.disabled = true;
 		}
 	}
 	_addPrice(event) {
@@ -2212,7 +2217,7 @@ class offerAdd extends PolymerElement {
 				altNew.period = "yearly";
 				break;
 		}
-		switch(this.$.addAltUnitDrop.selected) {
+		switch(this.$.addAlterationUnits.selected) {
 			case 0:
 				altNew.unit = "b";
 				break;
@@ -2246,7 +2251,7 @@ class offerAdd extends PolymerElement {
 			this.alterationEndDate = null;
 			this.$.addAltType.selected = null;
 			this.alterationSize = null;
-			this.$.addAltUnitDrop.selected = null;
+			this.$.addAlterationUnits.selected = null;
 			this.alterationAmount = null;
 			this.alterationCurrency = null;
 			this.$.addAltPeriod.selected = null;
@@ -2324,7 +2329,7 @@ class offerAdd extends PolymerElement {
 		this.$.altSeconds.disabled = false;
 		this.$.altMessages.disabled = false;
 		this.alterationSize = null;
-		this.$.addAltUnitDrop.selected = null;
+		this.$.addAlterationUnits.selected = null;
 		this.alterationAmount = null;
 		this.alterationCurrency = null;
 		this.$.addAltPeriod.selected = null;

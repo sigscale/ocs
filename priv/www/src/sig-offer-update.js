@@ -671,7 +671,7 @@ class offerUpdate extends PolymerElement {
 									no-animations="true"
 									label="Units">
 								<paper-listbox
-										id="updateUnitDrop"
+										id="updateAlterationUnits"
 										on-selected-item-changed="checkPatternAlt"
 										slot="dropdown-content">
 									<paper-item id="altBytes">
@@ -1267,13 +1267,15 @@ class offerUpdate extends PolymerElement {
 				this.updateOfferStartDatePrice = null;
 				this.updateOfferEndDatePrice = null;
 				this.priceUpdateType = null;
-				if(this.updateOfferSpecification == "Prepaid Data") {
+				if(this.updateOfferSpecification == "PrepaidData") {
 					this.$.priceBytes.disabled = false;
-					this.$.priceSeconds.disabled = true;
+					this.$.priceSeconds.disabled = false;
+					this.$.updatePriceUnits.selected = 0;
 				}
-				if(this.updateOfferSpecification == "Prepaid Voice") {
+				if(this.updateOfferSpecification == "PrepaidVoice") {
 					this.$.priceSeconds.disabled = false;
 					this.$.priceBytes.disabled = true;
+					this.$.updatePriceUnits.selected = 2;
 				}
 				this.priceUpdatePla = null;
 				this.priceUpdateSize = null;
@@ -1405,13 +1407,15 @@ class offerUpdate extends PolymerElement {
 				this.updateOfferStartDateAlt = null;
 				this.updateOfferEndDateAlt = null;
 				this.altUpdateType = null;
-				if(this.updateOfferSpecification == "Prepaid Data") {
+				if(this.updateOfferSpecification == "PrepaidData") {
 					this.$.altBytes.disabled = false;
-					this.$.altSeconds.disabled = true;
+					this.$.altSeconds.disabled = false;
+					this.$.updateAlterationUnits.selected = 0;
 				}
-				if(this.updateOfferSpecification == "Prepaid Voice") {
+				if(this.updateOfferSpecification == "PrepaidVoice") {
 					this.$.altSeconds.disabled = false;
 					this.$.altBytes.disabled = true;
+					this.$.updateAlterationUnits.selected = 2;
 				}
 				this.$.updateAltSize.value = null;
 				this.altUpdateUnits = null;
@@ -1429,13 +1433,13 @@ class offerUpdate extends PolymerElement {
 				this.$.updateAltSize.value = this.alterations[indexAlt].size;
 				switch(this.alterations[indexAlt].unit) {
 					case "b":
-						this.$.updateUnitDrop.selected = 0;
+						this.$.updateAlterationUnits.selected = 0;
 						break;
 					case "c":
-						this.$.updateUnitDrop.selected = 1;
+						this.$.updateAlterationUnits.selected = 1;
 						break;
 					case "s":
-						this.$.updateUnitDrop.selected = 2;
+						this.$.updateAlterationUnits.selected = 2;
 						break;
 				}
 				if(this.alterations[indexAlt].currency || this.alterations[indexAlt].amount) {
@@ -2606,13 +2610,13 @@ class offerUpdate extends PolymerElement {
 	}
 
 	checkPatternAlt() {
-		if(this.$.updateUnitDrop.selected == 0) {
+		if(this.$.updateAlterationUnits.selected == 0) {
 			this.$.updateAltSize.allowedPattern = "[0-9kmg]";
 			this.$.updateAltSize.pattern = "^[0-9]+[kmg]?$";
-		} else if(this.$.updateUnitDrop.selected == 1) {
+		} else if(this.$.updateAlterationUnits.selected == 1) {
 			this.$.updateAltSize.allowedPattern = "[0-9]";
 			this.$.updateAltSize.pattern = "^[0-9]+$";
-		} else if(this.$.updateUnitDrop.selected == 2) {
+		} else if(this.$.updateAlterationUnits.selected == 2) {
 			this.$.updateAltSize.allowedPattern = "[0-9mh]";
 			this.$.updateAltSize.pattern = "^[0-9]+[mh]?$";
 		}
@@ -2642,23 +2646,31 @@ class offerUpdate extends PolymerElement {
 		} else if(this.$.updatePriceType.selected == 2) {
 			this.$.updatePricePerioddrop.disabled = true;
 			this.$.priceCents.disabled = true;
-			if(this.updateOfferSpecification == "Prepaid Data") {
+			if(this.updateOfferSpecification == "PrepaidData") {
 				this.$.priceBytes.disabled = false;
-				this.$.priceSeconds.disabled = true;
+				this.$.priceSeconds.disabled = false;
+				this.$.updatePriceUnits.selected = 0;
 			}
-			if(this.updateOfferSpecification == "Prepaid Voice") {
+			if(this.updateOfferSpecification == "PrepaidVoice") {
 				this.$.priceSeconds.disabled = false;
 				this.$.priceBytes.disabled = true;
+				this.$.updatePriceUnits.selected = 2;
 			}
-			this.$.updatePriceUnits.selected = 0;
 			this.$.updatePriceAmount.disabled = false;
 			this.$.updatePla.disabled = true;
 		} else if(this.$.updatePriceType.selected == 3) {
 			this.$.updatePricePerioddrop.disabled = true;
 			this.$.priceCents.disabled = true;
-			this.$.priceBytes.disabled = true;
-			this.$.priceSeconds.disabled = false;
-			this.$.updatePriceUnits.selected = 2;
+			if(this.updateOfferSpecification == "PrepaidData") {
+				this.$.priceBytes.disabled = false;
+				this.$.priceSeconds.disabled = false;
+				this.$.updatePriceUnits.selected = 0;
+			}
+			if(this.updateOfferSpecification == "PrepaidVoice") {
+				this.$.priceSeconds.disabled = false;
+				this.$.priceBytes.disabled = true;
+				this.$.updatePriceUnits.selected = 2;
+			}
 			this.$.updatePriceAmount.disabled = true;
 			this.$.updatePriceAmount.value = null;
 			this.$.updatePla.disabled = false;
@@ -2668,40 +2680,41 @@ class offerUpdate extends PolymerElement {
 	checkRecurringAlt() {
 		if(this.$.updateAltType.selected == 0) {
 			this.$.addAltPeriodDrop.disabled = false;
-			if(this.updateOfferSpecification == "Prepaid Data") {
+			if(this.updateOfferSpecification == "PrepaidData") {
 				this.$.altBytes.disabled = false;
-				this.$.altSeconds.disabled = true;
+				this.$.altSeconds.disabled = false;
 			}
-			if(this.updateOfferSpecification == "Prepaid Voice") {
+			if(this.updateOfferSpecification == "PrepaidVoice") {
 				this.$.altSeconds.disabled = false;
 				this.$.altBytes.disabled = true;
 			}
 			this.$.altCents.disabled = false;
-			this.$.updateUnitDrop.selected = 1;
+			this.$.updateAlterationUnits.selected = 1;
 		} else if(this.$.updateAltType.selected == 1) {
 			this.$.addAltPeriodDrop.disabled = true;
-			if(this.updateOfferSpecification == "Prepaid Data") {
+			if(this.updateOfferSpecification == "PrepaidData") {
 				this.$.altBytes.disabled = false;
-				this.$.altSeconds.disabled = true;
+				this.$.altSeconds.disabled = false;
 			}
-			if(this.updateOfferSpecification == "Prepaid Voice") {
+			if(this.updateOfferSpecification == "PrepaidVoice") {
 				this.$.altSeconds.disabled = false;
 				this.$.altBytes.disabled = true;
 			}
 			this.$.altCents.disabled = false;
-			this.$.updateUnitDrop.selected = 1;
+			this.$.updateAlterationUnits.selected = 1;
 		} else if(this.$.updateAltType.selected == 2) {
 			this.$.addAltPeriodDrop.disabled = true;
-			if(this.updateOfferSpecification == "Prepaid Data") {
+			if(this.updateOfferSpecification == "PrepaidData") {
 				this.$.altBytes.disabled = false;
-				this.$.altSeconds.disabled = true;
+				this.$.altSeconds.disabled = false;
+				this.$.updateAlterationUnits.selected = 0;
 			}
-			if(this.updateOfferSpecification == "Prepaid Voice") {
+			if(this.updateOfferSpecification == "PrepaidVoice") {
 				this.$.altSeconds.disabled = false;
 				this.$.altBytes.disabled = true;
+				this.$.updateAlterationUnits.selected = 2;
 			}
 			this.$.altCents.disabled = true;
-			this.$.updateUnitDrop.selected = 0;
 		}
 	}
 
@@ -3086,7 +3099,7 @@ class offerUpdate extends PolymerElement {
 				updateAltNew.priceType = "usage";
 				break;
 		}
-		switch(this.$.updateUnitDrop.selected) {
+		switch(this.$.updateAlterationUnits.selected) {
 			case 0:
 				updateAltNew.unit = "b";
 				break;
