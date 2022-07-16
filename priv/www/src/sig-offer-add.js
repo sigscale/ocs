@@ -1164,8 +1164,14 @@ class offerAdd extends PolymerElement {
 				}
 				this.priceReserveTime = this.prices[indexPrice].reserveTime;
 				this.priceReserveOctets = this.prices[indexPrice].reserveBytes;
-				this.priceTodStart = this.prices[indexPrice].timeOfDayRange.low.amount;
-				this.priceTodEnd = this.prices[indexPrice].timeOfDayRange.up.amount;
+				if(this.prices[indexPrice].timeOfDayRange
+						&& this.prices[indexPrice].timeOfDayRange.low) {
+					this.priceTodStart = this.prices[indexPrice].timeOfDayRange.low.amount;
+				}
+				if(this.prices[indexPrice].timeOfDayRange
+						&& this.prices[indexPrice].timeOfDayRange.up) {
+					this.priceTodEnd = this.prices[indexPrice].timeOfDayRange.up.amount;
+				}
 				if(this.prices[indexPrice].callDirection == "answer") {
 					this.priceCallDirectionIn = true;
 				}
