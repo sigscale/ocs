@@ -95,7 +95,7 @@ class offerAdd extends PolymerElement {
 									is="dom-repeat"
 									items="{{bundleOffers}}">
 								<paper-checkbox
-										checked="{{item.checked}}"> 
+										checked="{{item.checked}}">
 									{{item.name}}
 								</paper-checkbox>
 							</template>
@@ -210,7 +210,7 @@ class offerAdd extends PolymerElement {
 								</div>
 								<div>
 									<paper-input
-										id="addReserveSessionBytes"
+										id="addReserveSessionOctets"
 										allowed-pattern="[0-9bkmg]"
 										pattern="^[0-9]+[bkmg]?$"
 										auto-validate
@@ -220,7 +220,7 @@ class offerAdd extends PolymerElement {
 										Reserve an amount of bytes at session start
 									</paper-tooltip>
 								</div>
-								<div>
+								<div style="display:inline-block">
 									<paper-input
 										label="Redirect Server"
 										pattern="(^[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3})|(^http://.+)|(sip:.+)"
@@ -533,18 +533,14 @@ class offerAdd extends PolymerElement {
 							</div>
 							<iron-collapse
 									id="callDirection">
-								<div>
-									<paper-checkbox
-											value="{{priceIncoming}}"> 
-										Incoming
-									</paper-checkbox>
-								</div>
-								<div>
-									<paper-checkbox
-											value="{{priceOutgoing}}"> 
-										Outgoing
-									</paper-checkbox>
-								</div>
+								<paper-checkbox
+										checked="{{priceCallDirectionIn}}">
+									Incoming
+								</paper-checkbox>
+								<paper-checkbox
+										checked="{{priceCallDirectionOut}}">
+									Outgoing
+								</paper-checkbox>
 							</iron-collapse>
 							<div>
 								<paper-input
@@ -562,12 +558,12 @@ class offerAdd extends PolymerElement {
 							</div>
 							<div>
 								<paper-input
-										id="addPriceCharReserveBytes"
+										id="addPriceCharReserveOctets"
 										allowed-pattern="[0-9bkmg]"
 										pattern="^[0-9]+[bkmg]?$"
 										auto-validate
 										label="RADIUS Reserve Data"
-										value="{{priceReserveBytes}}">
+										value="{{priceReserveOctets}}">
 								</paper-input>
 								<paper-tooltip>
 									Amount of bytes to reserve on RADIUS Accounting-Start and add to reported bytes on Accounting-Interim.
@@ -944,19 +940,17 @@ class offerAdd extends PolymerElement {
 			priceTodStart: {
 				type: String
 			},
-			priceIncoming: {
+			priceCallDirectionIn: {
 				type: Boolean
 			},
-			priceOutgoing: {
+			priceCallDirectionOut: {
 				type: Boolean
 			},
 			priceReserveTime: {
-				type: Number,
-				value: 0
+				type: String
 			},
-			priceReserveBytes: {
-				type: Number,
-				value: 0
+			priceReserveOctets: {
+				type: String
 			},
 			priceTariff: {
 				type: String
@@ -1072,7 +1066,7 @@ class offerAdd extends PolymerElement {
 		function checkPriceUpdateName(price) {
 			return price.name == document.body.querySelector('sig-app').shadowRoot.getElementById('addOffer').priceName;
 		}
-		if(this.prices != undefined) {
+		if(this.prices) {
 			var indexPrice = this.prices.findIndex(checkPriceUpdateName);
 			if (indexPrice == -1) {
 				this.addOrUpdateButton = "add";
@@ -1080,6 +1074,21 @@ class offerAdd extends PolymerElement {
 				this.offerStartDatePrice = null;
 				this.offerEndDatePrice = null;
 				this.priceType = null;
+				if(this.offerAddSpec == "Prepaid Data") {
+					this.$.altBytes.disabled = false;
+					this.$.altSeconds.disabled = true;
+					this.$.altMessages.disabled = true;
+				}
+				if(this.offerAddSpec == "Prepaid Voice") {
+					this.$.altSeconds.disabled = false;
+					this.$.altBytes.disabled = true;
+					this.$.altMessages.disabled = true;
+				}
+				if(this.offerAddSpec == "Prepaid SMS") {
+					this.$.altMessages.disabled = false;
+					this.$.altBytes.disabled = true;
+					this.$.altSeconds.disabled = true;
+				}
 				this.pricePla = null;
 				this.priceSize = null;
 				this.priceUnits = null;
@@ -1088,7 +1097,7 @@ class offerAdd extends PolymerElement {
 				this.pricePeriod = null;
 				this.priceAlteration = null;
 				this.priceReserveTime = null;
-				this.priceReserveBytes = null;
+				this.priceReserveOctets = null;
 				this.priceTodStart = null;
 				this.priceTodEnd = null;
 			} else {
@@ -1154,14 +1163,14 @@ class offerAdd extends PolymerElement {
 					this.$.addPriceAlteration.selected = this.alterations.findIndex(checkAltName);
 				}
 				this.priceReserveTime = this.prices[indexPrice].reserveTime;
-				this.priceReserveBytes = this.prices[indexPrice].reserveBytes;
+				this.priceReserveOctets = this.prices[indexPrice].reserveBytes;
 				this.priceTodStart = this.prices[indexPrice].timeOfDayRange.low.amount;
 				this.priceTodEnd = this.prices[indexPrice].timeOfDayRange.up.amount;
 				if(this.prices[indexPrice].callDirection == "answer") {
-					this.priceIncoming = true;
+					this.priceCallDirectionIn = true;
 				}
 				if(this.prices[indexPrice].callDirection == "originate") {
-					this.priceOutgoing = true;
+					this.priceCallDirectionOut = true;
 				}
 				this.priceTariff = this.prices[indexPrice].prefixTariff;
 				this.priceRoaming = this.prices[indexPrice].roamingTable;
@@ -1174,7 +1183,7 @@ class offerAdd extends PolymerElement {
 		function checkName(alt) {
 			return alt.name == this.alterationName;
 		}
-		if(this.alterations != undefined) {
+		if(this.alterations) {
 			var index = this.alterations.findIndex(checkName);
 			if (index == -1) {
 				this.addOrUpdateButton = "add";
@@ -1266,9 +1275,11 @@ class offerAdd extends PolymerElement {
 		if(this.$.addOfferChars.opened == false) {
 			this.$.addOfferChars.show();
 			this.$.onClickOfferChars.icon = "arrow-drop-up";
+			this.$.addOfferModal.notifyResize();
 		} else {
 			this.$.addOfferChars.hide();
 			this.$.onClickOfferChars.icon = "arrow-drop-down";
+			this.$.addOfferModal.notifyResize();
 		}
 	}
 
@@ -1341,18 +1352,14 @@ class offerAdd extends PolymerElement {
 			charValueUse.maxCardinality = 1;
 			var charValue = new Object();
 			charValue.default = true;
-			var rst_len = rst_value.length;
-			var rst_last = rst_value.charAt(rst_len - 1);
-			if(isNaN(parseInt(rst_last))) {
-				charValue.value = parseInt(rst_value.slice(0, (rst_len - 1)));
-			} else {
-				charValue.unitOfMeasure = "seconds";
-				charValue.value = parseInt(rst_value);
-			}
+			var rst_last = rst_value.charAt(rst_value.length - 1);
+			charValue.value = parseInt(rst_value);
 			if (rst_last == "s") {
 				charValue.unitOfMeasure = "seconds";
 			} else if(rst_last == "m") {
 				charValue.unitOfMeasure = "minutes";
+			} else {
+				charValue.unitOfMeasure = "seconds";
 			}
 			var charValues = new Array();
 			charValues.push(charValue);
@@ -1363,22 +1370,16 @@ class offerAdd extends PolymerElement {
 			charValueUse.productSpecification = prodSpec;
 			prodSpecCharValueUse.push(charValueUse);
 		}
-		var rso_value = this.$.addReserveSessionBytes.value;
+		var rso_value = this.$.addReserveSessionOctets.value;
 		if (rso_value && rso_value.length >= 0) {
 			var charValueUse1 = new Object();
-			charValueUse1.name = "radiusReserveSessionBytes";
+			charValueUse1.name = "radiusReserveSessionOctets";
 			charValueUse1.minCardinality = 0;
 			charValueUse1.maxCardinality = 1;
 			var charValue1 = new Object();
 			charValue1.default = true;
-			var rso_len = rso_value.length;
-			var rso_last = rso_value.charAt(rso_len - 1);
-			if(isNaN(parseInt(rso_last))) {
-				charValue1.value = parseInt(rso_value.slice(0, (rso_len - 1)));
-			} else {
-				charValue1.value = parseInt(rso_value);
-				charValue1.unitOfMeasure = "bytes";
-			}
+			charValue1.value = parseInt(rso_value);
+			var rso_last = rso_value.charAt(rso_value.length - 1);
 			if (rso_last == "b") {
 				charValue1.unitOfMeasure = "bytes";
 			} else if(rso_last == "k") {
@@ -1387,6 +1388,8 @@ class offerAdd extends PolymerElement {
 				charValue1.unitOfMeasure = "megabytes";
 			} else if(rso_last == "g") {
 				charValue1.unitOfMeasure = "gigabytes";
+			} else {
+				charValue1.unitOfMeasure = "bytes";
 			}
 			var charValues1 = new Array();
 			charValues1.push(charValue1);
@@ -1424,8 +1427,8 @@ class offerAdd extends PolymerElement {
 			services.push(serviceUse);
 			service.productSpecCharacteristicValue = services;
 			var prodSpec1 = new Object();
-			prodSpec1.id = "8";
-			prodSpec1.href = "/productCatalogManagement/v2/productSpecification/8",
+			prodSpec1.id = "1";
+			prodSpec1.href = "/productCatalogManagement/v2/productSpecification/1",
 			service.productSpecification = prodSpec1;
 			prodSpecCharValueUse.push(service);
 		}
@@ -1441,8 +1444,8 @@ class offerAdd extends PolymerElement {
 			charValues.push(charValue);
 			charValueUse.productSpecCharacteristicValue = charValues;
 			var prodSpec = new Object();
-			prodSpec.id = "3";
-			prodSpec.href = "/catalogManagement/v2/productSpecification/4";
+			prodSpec.id = "5";
+			prodSpec.href = "/catalogManagement/v2/productSpecification/5";
 			charValueUse.productSpecification = prodSpec;
 			prodSpecCharValueUse.push(charValueUse);
 		}
@@ -1588,7 +1591,7 @@ class offerAdd extends PolymerElement {
 							n1 = n1 * 3600;
 							out.productOfferPriceAlteration.unitOfMeasure = n1.toString() + "s";
 						} else {
-							out.productOfferPriceAlteration.unitOfMeasure = n1.toString() + "s"; 
+							out.productOfferPriceAlteration.unitOfMeasure = n1.toString() + "s";
 						}
 					}
 				}
@@ -1624,8 +1627,8 @@ class offerAdd extends PolymerElement {
 				charValues.push(charValue);
 				charValueUse.productSpecCharacteristicValue = charValues;
 				var prodSpec = new Object();
-				prodSpec.id = "3";
-				prodSpec.href = "/catalogManagement/v2/productSpecification/3";
+				prodSpec.id = "5";
+				prodSpec.href = "/catalogManagement/v2/productSpecification/5";
 				charValueUse.productSpecification = prodSpec;
 				prodSpecCharValueUse.push(charValueUse);
 			}
@@ -1641,8 +1644,8 @@ class offerAdd extends PolymerElement {
 				charValues.push(charValue);
 				charValueUse.productSpecCharacteristicValue = charValues;
 				var prodSpec = new Object();
-				prodSpec.id = "3";
-				prodSpec.href = "/catalogManagement/v2/productSpecification/3";
+				prodSpec.id = "5";
+				prodSpec.href = "/catalogManagement/v2/productSpecification/5";
 				charValueUse.productSpecification = prodSpec;
 				prodSpecCharValueUse.push(charValueUse);
 			}
@@ -1681,8 +1684,8 @@ class offerAdd extends PolymerElement {
 				charValues.push(charValue);
 				charValueUse.productSpecCharacteristicValue = charValues;
 				var prodSpec = new Object();
-				prodSpec.id = "4";
-				prodSpec.href = "/catalogManagement/v2/productSpecification/4";
+				prodSpec.id = "1";
+				prodSpec.href = "/catalogManagement/v2/productSpecification/1";
 				charValueUse.productSpecification = prodSpec;
 				prodSpecCharValueUse.push(charValueUse);
 			}
@@ -1711,8 +1714,8 @@ class offerAdd extends PolymerElement {
 				charValuesByte.push(charValue);
 				charValueUse.productSpecCharacteristicValue = charValuesByte;
 				var prodSpec = new Object();
-				prodSpec.id = "4";
-				prodSpec.href = "/catalogManagement/v2/productSpecification/4";
+				prodSpec.id = "1";
+				prodSpec.href = "/catalogManagement/v2/productSpecification/1";
 				charValueUse.productSpecification = prodSpec;
 				prodSpecCharValueUse.push(charValueUse);
 			}
@@ -1737,8 +1740,8 @@ class offerAdd extends PolymerElement {
 				charValues.push(charValueFinal);
 				charValueUse.productSpecCharacteristicValue = charValues;
 				var prodSpec = new Object();
-				prodSpec.id = "4";
-				prodSpec.href = "/catalogManagement/v2/productSpecification/4";
+				prodSpec.id = "3";
+				prodSpec.href = "/catalogManagement/v2/productSpecification/3";
 				charValueUse.productSpecification = prodSpec;
 				prodSpecCharValueUse.push(charValueUse);
 			}
@@ -1749,7 +1752,7 @@ class offerAdd extends PolymerElement {
 				charValueUse.minCardinality = 1;
 				charValueUse.maxCardinality = 1;
 				charValue.default = true;
-				charValue.value = item.callDirection; 
+				charValue.value = item.callDirection;
 				var charValuesByte = new Array();
 				charValuesByte.push(charValue);
 				charValueUse.productSpecCharacteristicValue = charValuesByte;
@@ -1780,16 +1783,16 @@ class offerAdd extends PolymerElement {
 	_checkProductSpec() {
 		if(this.offerAddSpec == "Prepaid Data") {
 			this.$.destPrefixTariff.disabled = true;
-			this.$.addReserveSessionTime.disabled = true;
-			this.$.addReserveSessionBytes.disabled = false;
+			this.$.addReserveSessionTime.disabled = false;
+			this.$.addReserveSessionOctets.disabled = false;
 		} else if(this.offerAddSpec == "Prepaid Voice") {
 			this.$.addReserveSessionTime.disabled = false;
-			this.$.addReserveSessionBytes.disabled = true;
+			this.$.addReserveSessionOctets.disabled = true;
 			this.$.destPrefixTariff.disabled = false;
 		} else if(this.offerAddSpec == "Prepaid SMS") {
 			this.$.destPrefixTariff.disabled = false;
 			this.$.addReserveSessionTime.disabled = true;
-			this.$.addReserveSessionBytes.disabled = true;
+			this.$.addReserveSessionOctets.disabled = true;
 		}
 	}
 
@@ -1798,14 +1801,16 @@ class offerAdd extends PolymerElement {
 			this.$.addPriceSize.allowedPattern = "[0-9kmg]";
 			this.$.addPriceSize.pattern = "^[0-9]+[kmg]?$";
 			this.$.addPriceSize.disabled = false;
-			this.$.addPriceCharReserveBytes.allowedPattern = "[0-9bkmg]";
-			this.$.addPriceCharReserveBytes.pattern = "^[0-9]+[bkmg]?$";
-			this.$.addPriceCharReserveBytes.disabled = false;
+			this.$.addPriceCharReserveOctets.allowedPattern = "[0-9bkmg]";
+			this.$.addPriceCharReserveOctets.pattern = "^[0-9]+[bkmg]?$";
+			this.$.addPriceCharReserveOctets.disabled = false;
 			this.$.addPriceCharReserveTime.disabled = true;
 		} else if(this.priceUnits == "Cents") {
 			this.$.addPriceSize.allowedPattern = "[0-9]";
 			this.$.addPriceSize.pattern = "^[0-9]+$";
 			this.$.addPriceSize.disabled = true;
+			this.$.addPriceCharReserveOctets.disabled = true;
+			this.$.addPriceCharReserveTime.disabled = true;
 		} else if(this.priceUnits == "Seconds") {
 			this.$.addPriceSize.allowedPattern = "[0-9smh]";
 			this.$.addPriceSize.pattern = "^[0-9]+[smh]?$";
@@ -1813,11 +1818,13 @@ class offerAdd extends PolymerElement {
 			this.$.addPriceCharReserveTime.allowedPattern = "[0-9sm]";
 			this.$.addPriceCharReserveTime.pattern = "^[0-9]+[sm]?$";
 			this.$.addPriceCharReserveTime.disabled = false;
-			this.$.addPriceCharReserveBytes.disabled = true;
+			this.$.addPriceCharReserveOctets.disabled = true;
 		} else if(this.priceUnits == "Messages") {
 			this.$.addPriceSize.allowedPattern = "[0-9]";
 			this.$.addPriceSize.pattern = "^[0-9]+$";
 			this.$.addPriceSize.disabled = false;
+			this.$.addPriceCharReserveTime.disabled = true;
+			this.$.addPriceCharReserveOctets.disabled = true;
 		}
 	}
 
@@ -1826,7 +1833,7 @@ class offerAdd extends PolymerElement {
 			this.$.addAltSize.allowedPattern = "[0-9kmg]";
 			this.$.addAltSize.pattern = "^[0-9]+[kmg]?$";
 			this.$.addAltSize.disabled = false;
-		} 
+		}
 		if(this.alterationUnit == "Cents") {
 			this.$.addAltSize.allowedPattern = "[0-9]";
 			this.$.addAltSize.pattern = "^[0-9]+$";
@@ -1852,7 +1859,7 @@ class offerAdd extends PolymerElement {
 			this.$.priceMessages.disabled = true;
 			this.$.priceCents.disabled = false;
 			this.$.addPriceCharReserveTime.disabled = true;
-			this.$.addPriceCharReserveBytes.disabled = true;
+			this.$.addPriceCharReserveOctets.disabled = true;
 			this.$.addPriceUnits.selected = 1;
 			this.$.addPriceAmount.disabled = false;
 			this.$.addPla.disabled = true;
@@ -1863,16 +1870,28 @@ class offerAdd extends PolymerElement {
 			this.$.priceMessages.disabled = true;
 			this.$.priceCents.disabled = false;
 			this.$.addPriceCharReserveTime.disabled = true;
-			this.$.addPriceCharReserveBytes.disabled = true;
+			this.$.addPriceCharReserveOctets.disabled = true;
 			this.$.addPriceUnits.selected = 1;
 			this.$.addPriceAmount.disabled = false;
 			this.$.addPla.disabled = true;
 		} else if(this.priceType == "Usage") {
 			this.$.addPricePerioddrop.disabled = true;
 			this.$.priceCents.disabled = true;
-			this.$.priceMessages.disabled = false;
-			this.$.priceBytes.disabled = false;
-			this.$.priceSeconds.disabled = false;
+			if(this.offerAddSpec == "Prepaid Data") {
+				this.$.priceBytes.disabled = false;
+				this.$.priceSeconds.disabled = true;
+				this.$.priceMessages.disabled = true;
+			}
+			if(this.offerAddSpec == "Prepaid Voice") {
+				this.$.priceSeconds.disabled = false;
+				this.$.priceBytes.disabled = true;
+				this.$.priceMessages.disabled = true;
+			}
+			if(this.offerAddSpec == "Prepaid SMS") {
+				this.$.priceMessages.disabled = false;
+				this.$.priceBytes.disabled = true;
+				this.$.priceSeconds.disabled = true;
+			}
 			this.$.addPriceUnits.selected = 0;
 			this.$.addPriceAmount.disabled = false;
 			this.$.addPla.disabled = true;
@@ -1880,8 +1899,16 @@ class offerAdd extends PolymerElement {
 			this.$.addPricePerioddrop.disabled = true;
 			this.$.priceCents.disabled = true;
 			this.$.priceBytes.disabled = true;
-			this.$.priceMessages.disabled = false;
-			this.$.priceSeconds.disabled = false;
+			if(this.offerAddSpec == "Prepaid Voice") {
+				this.$.priceSeconds.disabled = false;
+				this.$.priceBytes.disabled = true;
+				this.$.priceMessages.disabled = true;
+			}
+			if(this.offerAddSpec == "Prepaid SMS") {
+				this.$.priceMessages.disabled = false;
+				this.$.priceBytes.disabled = true;
+				this.$.priceSeconds.disabled = true;
+			}
 			this.$.addPriceUnits.selected = 2;
 			this.$.addPriceAmount.disabled = true;
 			this.$.addPla.disabled = false;
@@ -1892,24 +1919,60 @@ class offerAdd extends PolymerElement {
 	_checkRecurringAlt() {
 		if(this.alterationType == "Recurring") {
 			this.$.altPeriodDrop.disabled = false;
-			this.$.altBytes.disabled = false;
-			this.$.altSeconds.disabled = false;
+			if(this.offerAddSpec == "Prepaid Data") {
+				this.$.altBytes.disabled = false;
+				this.$.altSeconds.disabled = true;
+				this.$.altMessages.disabled = true;
+			}
+			if(this.offerAddSpec == "Prepaid Voice") {
+				this.$.altSeconds.disabled = false;
+				this.$.altBytes.disabled = true;
+				this.$.altMessages.disabled = true;
+			}
+			if(this.offerAddSpec == "Prepaid SMS") {
+				this.$.altMessages.disabled = false;
+				this.$.altBytes.disabled = true;
+				this.$.altSeconds.disabled = true;
+			}
 			this.$.altCents.disabled = true;
-			this.$.altMessages.disabled = false;
 			this.$.addAltUnitDrop.selected = 0;
 		} else if(this.alterationType == "One Time") {
 			this.$.altPeriodDrop.disabled = true;
-			this.$.altBytes.disabled = false;
-			this.$.altSeconds.disabled = false;
+			if(this.offerAddSpec == "Prepaid Data") {
+				this.$.altBytes.disabled = false;
+				this.$.altSeconds.disabled = true;
+				this.$.altMessages.disabled = true;
+			}
+			if(this.offerAddSpec == "Prepaid Voice") {
+				this.$.altSeconds.disabled = false;
+				this.$.altBytes.disabled = true;
+				this.$.altMessages.disabled = true;
+			}
+			if(this.offerAddSpec == "Prepaid SMS") {
+				this.$.altMessages.disabled = false;
+				this.$.altBytes.disabled = true;
+				this.$.altSeconds.disabled = true;
+			}
 			this.$.altCents.disabled = false;
-			this.$.altMessages.disabled = false;
 			this.$.addAltUnitDrop.selected = 1;
 		} else if(this.alterationType == "Usage") {
 			this.$.altPeriodDrop.disabled = true;
-			this.$.altBytes.disabled = false;
-			this.$.altSeconds.disabled = false;
+			if(this.offerAddSpec == "Prepaid Data") {
+				this.$.altBytes.disabled = false;
+				this.$.altSeconds.disabled = true;
+				this.$.altMessages.disabled = true;
+			}
+			if(this.offerAddSpec == "Prepaid Voice") {
+				this.$.altSeconds.disabled = false;
+				this.$.altBytes.disabled = true;
+				this.$.altMessages.disabled = true;
+			}
+			if(this.offerAddSpec == "Prepaid SMS") {
+				this.$.altMessages.disabled = false;
+				this.$.altBytes.disabled = true;
+				this.$.altSeconds.disabled = true;
+			}
 			this.$.altCents.disabled = true;
-			this.$.altMessages.disabled = false;
 		}
 	}
 	_addPrice(event) {
@@ -1999,7 +2062,7 @@ class offerAdd extends PolymerElement {
 			priceNew.alterations = this.alterations[altIndex];
 		}
 		priceNew.reserveTime = this.priceReserveTime;
-		priceNew.reserveBytes = this.priceReserveBytes;
+		priceNew.reserveBytes = this.priceReserveOctets;
 		var dayStartTime = this.priceTodStart;
 		var dayEndTime = this.priceTodEnd;
 		if(dayStartTime && dayEndTime ) {
@@ -2011,10 +2074,10 @@ class offerAdd extends PolymerElement {
 			up.units = "hours";
 			priceNew.timeOfDayRange = {low, up};
 		}
-		if(this.priceIncoming == true) {
+		if(this.priceCallDirectionIn && !this.priceCallDirectionOut) {
 			priceNew.callDirection = "answer";
 		}
-		if(this.priceOutgoing == true) {
+		if(this.priceCallDirectionOut && !this.priceCallDirectionIn) {
 			priceNew.callDirection = "originate";
 		}
 		priceNew.prefixTariff = this.priceTariff;
@@ -2047,7 +2110,9 @@ class offerAdd extends PolymerElement {
 			this.$.addPricePeriod.selected = null;
 			this.$.addPriceAlteration.selected = null;
 			this.priceReserveTime = null;
-			this.priceReserveBytes = null;
+			this.$.addPriceCharReserveTime.disabled = false;
+			this.priceReserveOctets = null;
+			this.$.addPriceCharReserveOctets.disabled = false;
 			this.priceTariff = null;
 			this.priceRoaming = null;
 			this.priceKey = null;
@@ -2221,7 +2286,9 @@ class offerAdd extends PolymerElement {
 		this.priceRoaming = null;
 		this.priceKey = null;
 		this.$.addReserveSessionTime.value = null;
-		this.$.addReserveSessionBytes.value = null;
+		this.$.addReserveSessionTime.disabled = false;
+		this.$.addReserveSessionOctets.value = null;
+		this.$.addReserveSessionOctets.disabled = false;
 		this.offerStartDate = null;
 		this.offerEndDate = null;
 		this.offerStartDatePrice = null;
@@ -2229,25 +2296,43 @@ class offerAdd extends PolymerElement {
 		this.priceName = null;
 		this.priceDescription = null;
 		this.$.addPriceType.selected = null;
+		this.$.priceMessages.disabled = false;
+		this.$.priceBytes.disabled = false;
+		this.$.priceSeconds.disabled = false;
+		this.priceType = null;
 		this.priceSize = null;
 		this.$.addPriceUnits.selected = null;
 		this.priceAmount = null;
 		this.priceCurrency = null;
 		this.$.addPricePeriod.selected = null;
 		this.priceReserveTime = null;
-		this.priceReserveBytes = null;
+		this.$.addPriceCharReserveTime.disabled = false;
+		this.priceReserveOctets = null;
+		this.$.addPriceCharReserveOctets.disabled = false;
 		this.alterationName = null;
 		this.alterationDescription = null;
 		this.alterationStartDate = null;
 		this.alterationEndDate = null;
 		this.$.addAltType.selected = null;
+		this.$.altBytes.disabled = false;
+		this.$.altSeconds.disabled = false;
+		this.$.altMessages.disabled = false;
 		this.alterationSize = null;
-	this.$.addAltUnitDrop.selected = null;
+		this.$.addAltUnitDrop.selected = null;
 		this.alterationAmount = null;
 		this.alterationCurrency = null;
 		this.$.addAltPeriod.selected = null;
 		this.priceTodStart = null;
 		this.priceTodEnd = null;
+		this.selected = 0;
+		this.$.addOfferChars.hide();
+		this.$.onClickOfferChars.icon = "arrow-drop-down";
+		this.$.addPriceChars.hide();
+		this.$.priceCharsSection.icon = "arrow-drop-down";
+		this.$.addPriceCharsTime.hide();
+		this.$.priceCharsSection.icon = "arrow-drop-down";
+		this.$.callDirection.hide();
+		this.$.callDirSection.icon = "arrow-drop-down";
 		this.$.addOfferModal.close();
 	}
 
