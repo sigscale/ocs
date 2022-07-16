@@ -3203,6 +3203,7 @@ class offerUpdate extends PolymerElement {
 		this.updateOfferStartDatee = null;
 		this.updateOfferEndDate = null;
 		this.offerUpdateStatus = null;
+		this.$.updateOfferStatus.selected = null;
 		this.$.updateAddPriceChars.hide();
 		this.$.addBundleUpdate.hide();
 		this.priceUpdateName = null;

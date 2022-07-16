@@ -2291,6 +2291,7 @@ class offerAdd extends PolymerElement {
 		this.offerName = null;
 		this.offerDescription = null;
 		this.$.addOfferProductSpecList.selected = null;
+		this.$.addOfferProductStatusList.selected = null;
 		this.$.addOfferChars.hide();
 		this.$.addBundle.hide();
 		this.priceTariff = null;
