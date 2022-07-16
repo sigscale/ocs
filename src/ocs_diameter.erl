@@ -1,7 +1,7 @@
 %%% ocs_diameter.erl
 %%% vim: ts=3
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-%%% @copyright 2016 - 2021 SigScale Global Inc.
+%%% @copyright 2016 - 2022 SigScale Global Inc.
 %%% @end
 %%% Licensed under the Apache License, Version 2.0 (the "License");
 %%% you may not use this file except in compliance with the License.
@@ -22,7 +22,7 @@
 %%%   Mobile Country Codes (MCC) and Mobile Network Codes (MNC) </a>
 %%%
 -module(ocs_diameter).
--copyright('Copyright (c) 2016 - 2021 SigScale Global Inc.').
+-copyright('Copyright (c) 2016 - 2022 SigScale Global Inc.').
 
 %% export the ocs_diameter public API
 -export([plmn/1, authenticate_client/2]).
