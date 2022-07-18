@@ -1,5 +1,5 @@
 /**
- * Copyright 2016 - 2021 SigScale Global Inc.
+ * Copyright 2016 - 2022 SigScale Global Inc.
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
@@ -209,6 +209,26 @@ class subAdd extends PolymerElement {
 						</div>
 					</div>
 					<div id="add-divone">
+						<paper-input
+								type="datetime-local"
+								id="startDate"
+								name="startDateTime"
+								value="{{startDate}}"
+								label="StartDate">
+						</paper-input>
+						<paper-input
+								type="datetime-local"
+								id="endDate"
+								name="endDateTime"
+								value="{{endDate}}"
+								label="EndDate">
+						</paper-input>
+						<paper-input
+								id="addStatus"
+								name="lifeCycleStatus"
+								value="{{lifeCycleStatus}}"
+								label="Status">
+						</paper-input>
 						<paper-input
 								id="addAcctSessionInterval"
 								name="acctSessionInterval"
@@ -580,8 +600,14 @@ class subAdd extends PolymerElement {
 		if(this.proAddPro) {
 			subscriber.product = this.proAddPro;
 		}
+		if(this.startDate) {
+			subscriber.startDate = this.startDate;
+		}
+		if(this.endDate) {
+			subscriber.endDate = this.endDate;
+		}
 		subscriber.isServiceEnabled = this.enableAddAutho.checked;
-		subscriber.state = "active";
+		subscriber.state = this.lifeCycleStatus;
 		var specService = new Object();
 		specService.id = "1";
 		specService.href = "/catalogManagement/v2/serviceSpecification/1";

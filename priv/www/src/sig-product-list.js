@@ -1,5 +1,5 @@
 /**
- * Copyright 2016 - 2021 SigScale Global Inc.
+ * Copyright 2016 - 2022 SigScale Global Inc.
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
@@ -169,6 +169,15 @@ class productList extends PolymerElement {
 		super.ready();
 		var grid = this.shadowRoot.getElementById('productInventoryGrid');
 		grid.dataProvider = this._getProduct;
+		grid.cellClassNameGenerator = this._cellClassNameGenerator;
+	}
+
+	_cellClassNameGenerator(column, model) {
+		if(column !== undefined && model.item.entityClass !== undefined) {
+			return model.item.entityClass;
+		} else {
+			return null;
+		}
 	}
 
 	_getProduct(params, callback) {
@@ -250,6 +259,34 @@ class productList extends PolymerElement {
 					for(var indexSer in request.response[index].realizingService) {
 						serArray.push(request.response[index].realizingService[indexSer].id);
 						newRecord.service = serArray;
+					}
+					var date = new Date();
+					var currentDate = date.toISOString();
+					if(request.response[index].startDate) {
+						newRecord.StartDate = request.response[index].startDate;
+						if(Date.parse(newRecord.StartDate) > Date.parse(currentDate)) {
+							newRecord.entityClass = "correctable";
+						}
+					}
+					if(request.response[index].terminationDate) {
+						newRecord.endDate = request.response[index].terminationDate;
+						if(Date.parse(newRecord.endDate) < Date.parse(currentDate)) {
+							newRecord.entityClass = "terminal";
+						}
+					}
+					if(request.response[index].status){
+						if(request.response[index].status == "Pending Active" || request.response[index].status == "Suspended" || request.response[index].status == "Pending Terminate") {
+							newRecord.correctable = request.response[index].status;
+							if(newRecord.correctable) {
+								newRecord.entityClass = "correctable";
+							}
+						}
+						if(request.response[index].status == "Aborted" || request.response[index].status == "Cancelled" || request.response[index].status == "Terminated") {
+							newRecord.terminal = request.response[index].status;
+							if(newRecord.terminal) {
+								newRecord.entityClass = "terminal";
+							}
+						}
 					}
 					vaadinItems[index] = newRecord;
 				}

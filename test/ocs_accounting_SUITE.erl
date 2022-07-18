@@ -1,7 +1,7 @@
 %%% ocs_accounting_SUITE.erl
 %%% vim: ts=3
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-%%% @copyright 2016 - 2021 SigScale Global Inc.
+%%% @copyright 2016 - 2022 SigScale Global Inc.
 %%% @end
 %%% Licensed under the Apache License, Version 2.0 (the "License");
 %%% you may not use this file except in compliance with the License.
@@ -18,7 +18,7 @@
 %%%  @doc Test suite for accounting of the {@link //ocs. ocs} application.
 %%%
 -module(ocs_accounting_SUITE).
--copyright('Copyright (c) 2016 - 2021 SigScale Global Inc.').
+-copyright('Copyright (c) 2016 - 2022 SigScale Global Inc.').
 
 %% common_test required callbacks
 -export([suite/0, sequences/0, all/0]).

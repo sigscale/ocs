@@ -1,7 +1,7 @@
 %%% ocs_rest_res_health.erl
 %%% vim: ts=3
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-%%% @copyright 2021 SigScale Global Inc.
+%%% @copyright 2022 SigScale Global Inc.
 %%% @end
 %%% Licensed under the Apache License, Version 2.0 (the "License");
 %%% you may not use this file except in compliance with the License.
@@ -24,7 +24,7 @@
 %%% 	Health Check Response Format for HTTP APIs</a>
 %%%
 -module(ocs_rest_res_health).
--copyright('Copyright (c) 2021 SigScale Global Inc.').
+-copyright('Copyright (c) 2022 SigScale Global Inc.').
 
 -export([content_types_accepted/0, content_types_provided/0,
 		get_health/2, get_applications/2, get_application/2]).

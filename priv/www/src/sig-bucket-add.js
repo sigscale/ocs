@@ -1,5 +1,5 @@
 /**
- * Copyright 2016 - 2021 SigScale Global Inc.
+ * Copyright 2016 - 2022 SigScale Global Inc.
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
@@ -41,6 +41,12 @@ class offerAdd extends PolymerElement {
 						class="slow red"
 						disabled="{{!loading}}">
 				</paper-progress>
+				<div>
+					<paper-input
+							value="{{lifeStatus}}"
+							label="Status">
+					</paper-input>
+				</div>
 				<div>
 					<paper-input
 							value="{{productId}}"
@@ -221,6 +227,7 @@ class offerAdd extends PolymerElement {
 	_bucketAddSubmit(event) {
 		if(this.productId && this.bucketUnit && this.bucketAmount) {
 			var bucket = {name: "channel"};
+			bucket.lifecycleStatus = this.lifeStatus; 
 			bucket.product = {id: this.productId,
 					href: "/productInventoryManagement/v2/product/" + this.productId};
 			if(this.bucketStart || this.bucketEnd) {

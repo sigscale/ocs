@@ -1,3 +1,22 @@
+2022-07-16 Vance Shipley <vances@sigscale.org>
+
+	* refactor offer add/update web components with many corrections
+	* correct label in add service
+	* correct label name
+	* add start and end date for add product dialog
+	* add lifecycle status in add bucket
+	* add lifecycleStatus in product add dialog
+	* add lifecyclestatus in authorization service view
+	* handle state in GUI for product view
+	* handle states & time for offer
+	* handle terminal & correctable states in service row
+	* refactor handle states
+	* product add dialog reserve char value use (ocs-618)
+	* align radius reserve char value use with product specification
+	* correct json encoding in product spec
+	* remove unused exported functions
+	* argument mismatch in macro
+
 2022-07-01 Vance Shipley <vances@sigscale.org>
 
 	* ttls test suite expects pwd method preference

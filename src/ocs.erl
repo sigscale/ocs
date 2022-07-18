@@ -1,7 +1,7 @@
 %%% ocs.erl
 %%% vim: ts=3
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-%%% @copyright 2016 - 2021 SigScale Global Inc.
+%%% @copyright 2016 - 2022 SigScale Global Inc.
 %%% @end
 %%% Licensed under the Apache License, Version 2.0 (the "License");
 %%% you may not use this file except in compliance with the License.
@@ -19,7 +19,7 @@
 %%% 	{@link //ocs. ocs} application.
 %%%
 -module(ocs).
--copyright('Copyright (c) 2016 - 2021 SigScale Global Inc.').
+-copyright('Copyright (c) 2016 - 2022 SigScale Global Inc.').
 
 %% export the ocs public API
 -export([add_client/2, add_client/3, add_client/5, add_client/6,
