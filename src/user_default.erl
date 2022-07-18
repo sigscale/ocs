@@ -1,7 +1,7 @@
 %%% user_default.erl
 %%% vim: ts=3
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-%%% @copyright 2016 - 2021 SigScale Global Inc.
+%%% @copyright 2016 - 2022 SigScale Global Inc.
 %%% @end
 %%% Licensed under the Apache License, Version 2.0 (the"License");
 %%% you may not use this file except in compliance with the License.
@@ -25,7 +25,7 @@
 %%% @see //stdlib/shell_default.
 %%%
 -module(user_default).
--copyright('Copyright (c) 2016 - 2021 SigScale Global Inc.').
+-copyright('Copyright (c) 2016 - 2022 SigScale Global Inc.').
 
 %% export the user_default public API
 -export([help/0, ts/0, td/0, su/0]).

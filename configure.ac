@@ -5,8 +5,8 @@
 ##
 ## Boilerplate:  standard boilerplate code
 ##
-AC_INIT([ocs], [3.2.23], [issues@sigscale.org])
-AC_COPYRIGHT([Copyright (c) 2016 - 2021 SigScale Global Inc.])
+AC_INIT([ocs], [3.2.24], [issues@sigscale.org])
+AC_COPYRIGHT([Copyright (c) 2016 - 2022 SigScale Global Inc.])
 AC_PREREQ([2.63])
 AC_CONFIG_SRCDIR([src/ocs_app.erl])
 AC_CONFIG_HEADERS([config.h])

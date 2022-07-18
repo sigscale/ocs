@@ -1,6 +1,6 @@
 %%% vim: ts=3
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-%%% @copyright 2008 Motivity Telecom Inc., 2018 - 2021 SigScale Global Inc.
+%%% @copyright 2008 Motivity Telecom Inc., 2018 - 2022 SigScale Global Inc.
 %%% @end
 %%% Licensed under the Apache License, Version 2.0 (the "License");
 %%% you may not use this file except in compliance with the License.
@@ -32,7 +32,7 @@
 %%% 	Document 2: Algorithm specification</a>
 %%%
 -module(ocs_milenage).
--copyright('Copyright (c) 2018 - 2021 SigScale Global Inc.').
+-copyright('Copyright (c) 2018 - 2022 SigScale Global Inc.').
 -author('vances@motivity.ca').
 
 %% export the API

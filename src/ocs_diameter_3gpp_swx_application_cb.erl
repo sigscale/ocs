@@ -1,7 +1,7 @@
 %%% ocs_diameter_3gpp_swx_application_cb.erl 
 %%% vim: ts=3
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-%%% @copyright 2016 - 2021 SigScale Global Inc.
+%%% @copyright 2016 - 2022 SigScale Global Inc.
 %%% @end
 %%% Licensed under the Apache License, Version 2.0 (the "License");
 %%% you may not use this file except in compliance with the License.
@@ -22,7 +22,7 @@
 %%% @reference 3GPP TS TS 29.273 EPS AAA Interfaces
 %%%
 -module(ocs_diameter_3gpp_swx_application_cb).
--copyright('Copyright (c) 2016 - 2021 SigScale Global Inc.').
+-copyright('Copyright (c) 2016 - 2022 SigScale Global Inc.').
 
 -export([peer_up/3, peer_down/3, pick_peer/5, prepare_request/4,
 		prepare_retransmit/4, handle_answer/5, handle_error/5,
