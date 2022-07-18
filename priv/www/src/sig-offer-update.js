@@ -361,6 +361,9 @@ class offerUpdate extends PolymerElement {
 									<paper-item id="priceSeconds">
 											Seconds
 									</paper-item>
+									<paper-item id="priceMessages">
+											Messages
+									</paper-item>
 								</paper-listbox>
 							</paper-dropdown-menu>
 							<paper-tooltip
@@ -1046,6 +1049,12 @@ class offerUpdate extends PolymerElement {
 							newPrice.size = conv1.toString();
 							newPrice.unit = "s";
 							break;
+						case "msg":
+							var conv2;
+							conv2 = parseInt(unitOfMeasure.slice(0, -1));
+							newPrice.size = conv2.toString();
+							newPrice.unit = "msg";
+							break;
 					}
 				}
 				if(current.prices[index].price) {
@@ -1318,6 +1327,9 @@ class offerUpdate extends PolymerElement {
 						break;
 					case "s":
 						this.priceUpdateUnits = "Seconds";
+						break;
+					case "msg":
+						this.priceUpdateUnits = "Messages";
 						break;
 				}
 				if(this.prices[indexUpdatePrice].currency) {
@@ -1993,6 +2005,22 @@ class offerUpdate extends PolymerElement {
 					unitOfMeasure.op = "replace";
 					unitOfMeasure.path = "/productOfferingPrice/" + indexPrices + "/unitOfMeasure";
 					unitOfMeasure.value = priceSizeN.toString() + "b";
+					updatePriceNew.push(unitOfMeasure);
+				}
+			} else if(this.priceUpdateUnits == "Messages") {
+				var priceSizeLast = this.priceUpdateSize.slice(-1);
+				var priceSizeN = new Number();
+				if(priceSizeLast === "msg") {
+					priceSizeN = parseInt(this.priceUpdateSize);
+				} else {
+					priceSizeN = parseInt(this.priceUpdateSize);
+				}
+				if((this.prices[indexPrices].unit != "msg")
+						|| (this.prices[indexPrices].size != priceSizeN)) {
+					var unitOfMeasure = new Object();
+					unitOfMeasure.op = "replace";
+					unitOfMeasure.path = "/productOfferingPrice/" + indexPrices + "/unitOfMeasure";
+					unitOfMeasure.value = priceSizeN.toString() + "msg";
 					updatePriceNew.push(unitOfMeasure);
 				}
 			}
@@ -2757,6 +2785,9 @@ class offerUpdate extends PolymerElement {
 			case 2:
 				updatePriceNew.unit = "s";
 				break;
+			case 3:
+				updatePriceNew.unit = "msg";
+				break;
 		}
 		updatePriceNew.amount = this.priceUpdateAmount;
 		updatePriceNew.size = this.priceUpdateSize;
@@ -2854,6 +2885,9 @@ class offerUpdate extends PolymerElement {
 			if(this.priceUpdateUnits == "Bytes") {
 				this.priceUpdateUnits = "b";
 			}
+			if(this.priceUpdateUnits == "Messages") {
+				this.priceUpdateUnits = "msg";
+			}
 			if(this.priceUpdateUnits && this.priceUpdateSize) {
 				var m = this.priceUpdateSize.slice(-1);
 				if(isNaN(parseInt(m))) {
@@ -2882,6 +2916,8 @@ class offerUpdate extends PolymerElement {
 					} else {
 						addValue.unitOfMeasure = n.toString() + "s";
 					}
+				} else if(this.priceUpdateUnits == "msg") {
+					addValue.unitOfMeasure = s + "msg";
 				}
 			}
 			if(this.priceUpdateAmount) {
