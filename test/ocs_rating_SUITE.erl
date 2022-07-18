@@ -111,7 +111,7 @@ all() ->
 	unauthorize_bad_password, unauthorize_bad_password, reserve_sms, debit_sms,
 	roaming_table_data, roaming_table_voice, roaming_table_sms, final_empty_mscc,
 	final_empty_mscc_multiple_services, initial_invalid_service_type,
-	refund_unused_reservation].
+	refund_unused_reservation, refund_partially_used_reservation].
 
 %%---------------------------------------------------------------------
 %%  Test cases
@@ -2208,6 +2208,41 @@ refund_unused_reservation(_Config) ->
 			ServiceType, undefined, undefined, undefined, ServiceId,
 			Timestamp, undefined, undefined, final, [], undefined, SessionId),
 	{ok, #bucket{remain_amount = RemainAmount}} = ocs:find_bucket(BId).
+
+refund_partially_used_reservation() ->
+	[{userdata, [{doc, "Refund partially used reservation"}]}].
+
+refund_partially_used_reservation(_Config) ->
+	PackagePrice = 10000000,
+	PackageSize = 60,
+	PackageUnits = seconds,
+	P1 = price(usage, PackageUnits, PackageSize, PackagePrice),
+	OfferId = add_offer([P1], 9),
+	ProdRef = add_product(OfferId),
+	ServiceId = add_service(ProdRef),
+	RemainAmount1 = 5000000,
+	B1 = bucket(cents, RemainAmount1),
+	BId1 = add_bucket(ProdRef, B1),
+	RemainAmount2 = 20000000,
+	B2 = bucket(cents, RemainAmount2),
+	BId2 = add_bucket(ProdRef, B2),
+	ServiceType = 32260,
+	Timestamp = calendar:local_time(),
+	TS = calendar:datetime_to_gregorian_seconds(Timestamp),
+	SessionId = [{'Session-Id', list_to_binary(ocs:generate_password())}],
+	{ok, _, {PackageUnits, PackageSize}} = ocs_rating:rate(diameter,
+			ServiceType, undefined, undefined, undefined, ServiceId,
+			Timestamp, undefined, undefined, initial, [],
+			[{PackageUnits, PackageSize}], SessionId),
+	{ok, #service{}, _Reservation} = ocs_rating:rate(diameter, ServiceType,
+			undefined, undefined, undefined, ServiceId,
+			calendar:gregorian_seconds_to_datetime(TS + 60), undefined,
+			undefined, interim, [], [{PackageUnits, PackageSize}], SessionId),
+	{ok, _, [#rated{} | _]} = ocs_rating:rate(diameter, ServiceType, undefined,
+			undefined, undefined, ServiceId, Timestamp, undefined, undefined,
+			final, [{PackageUnits, 50}], undefined, SessionId),
+	{error, not_found} = ocs:find_bucket(BId1),
+	{ok, #bucket{remain_amount = 15000000}} = ocs:find_bucket(BId2).
 
 %%---------------------------------------------------------------------
 %%  Internal functions
