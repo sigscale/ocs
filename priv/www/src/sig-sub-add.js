@@ -210,6 +210,20 @@ class subAdd extends PolymerElement {
 					</div>
 					<div id="add-divone">
 						<paper-input
+								type="datetime-local"
+								id="startDate"
+								name="startDateTime"
+								value="{{startDate}}"
+								label="StartDate">
+						</paper-input>
+						<paper-input
+								type="datetime-local"
+								id="endDate"
+								name="endDateTime"
+								value="{{endDate}}"
+								label="EndDate">
+						</paper-input>
+						<paper-input
 								id="addStatus"
 								name="lifeCycleStatus"
 								value="{{lifeCycleStatus}}"
@@ -585,6 +599,12 @@ class subAdd extends PolymerElement {
 		subscriber.serviceCharacteristic = serviceChar;
 		if(this.proAddPro) {
 			subscriber.product = this.proAddPro;
+		}
+		if(this.startDate) {
+			subscriber.startDate = this.startDate;
+		}
+		if(this.endDate) {
+			subscriber.endDate = this.endDate;
 		}
 		subscriber.isServiceEnabled = this.enableAddAutho.checked;
 		subscriber.state = this.lifeCycleStatus;
