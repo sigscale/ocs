@@ -32,25 +32,9 @@ class productAddClass extends PolymerElement {
 				<app-toolbar>
 					<h3>Add Product</h3>
 				</app-toolbar>
-				<paper-input
-						id="statusId"
-						name="Lifecyclestatus"
-						value="{{lifestatus}}"
-						label="Status">
-				</paper-input>
-				<paper-input
-					type="datetime-local"
-					label="Start Date"
-					value="{{productStartDate}}">
-				</paper-input>
-				<paper-input
-					type="datetime-local"
-					label="End Date"
-					value="{{productEndDate}}">
-				</paper-input>
 				<paper-dropdown-menu
 						id="addProDrop"
-						label="Product Offer"
+						label="Product Offering"
 						no-animations="true"
 						value="{{proAdd}}">
 					<paper-listbox
@@ -70,17 +54,61 @@ class productAddClass extends PolymerElement {
 				</paper-tooltip>
 				<paper-input
 						id="servId"
-						name="ServiceId"
+						name="Service ID"
 						value="{{proService}}"
 						label="Service Id">
 				</paper-input>
-				<h3>Warning</h3>
-				<p>A Service may be associated with at most <b>one</b> Product instance.</P>
 				<paper-tooltip
 						for="servId"
 						offset="0">
 					service ID
 				</paper-tooltip>
+				<paper-dropdown-menu
+					id="statusId"
+					value="{{lifestatus}}"
+					no-animations="true"
+					label="Status">
+					<paper-listbox
+							id="addBucketStatus"
+							slot="dropdown-content">
+						<paper-item>
+							Created
+						</paper-item>
+						<paper-item>
+							Pending Active
+						</paper-item>
+						<paper-item>
+							Aborted
+						</paper-item>
+						<paper-item>
+							Cancelled
+						</paper-item>
+						<paper-item>
+							Active
+						</paper-item>
+						<paper-item>
+							Suspended
+						</paper-item>
+						<paper-item>
+							Pending Terminate
+						</paper-item>
+						<paper-item>
+							Terminated
+						</paper-item>
+					</paper-listbox>
+				</paper-dropdown-menu>
+				<paper-input
+					type="datetime-local"
+					label="Start Date"
+					value="{{productStartDate}}">
+				</paper-input>
+				<paper-input
+					type="datetime-local"
+					label="End Date"
+					value="{{productEndDate}}">
+				</paper-input>
+				<h3>Warning</h3>
+				<p>A Service may be associated with at most <b>one</b> Product instance.</P>
 				<div class="buttons">
 					<paper-button dialog-confirm
 							raised
@@ -205,9 +233,15 @@ class productAddClass extends PolymerElement {
 	_productinvenAddSubmit() {
 		var ajaxPro = this.$.addProductAjax;
 		var productRes = new Object();
-		productRes.status = this.lifestatus;
-		productRes.startDate = this.productStartDate;
-		productRes.terminationDate = this.productEndDate;
+		if(this.lifestatus) {
+			productRes.status = this.lifestatus;
+		}
+		if(this.productStartDate) {
+			productRes.startDate = this.productStartDate;
+		}
+		if(this.productEndDate) {
+			productRes.terminationDate = this.productEndDate;
+		}
 		var productAdd = new Object();
 		productAdd.id = this.proAdd;
 		productAdd.name = this.proAdd;
@@ -251,6 +285,9 @@ class productAddClass extends PolymerElement {
 		this.proAdd = null;
 		this.$.addProDropList.selected = null;
 		this.proService = null;
+      this.lifestatus = null;
+      this.productStartDate = null;
+      this.productEndDate = null;
 	}
 }
 
