@@ -58,11 +58,53 @@ class subAdd extends PolymerElement {
 				<iron-pages
 						selected="{{selected}}">
 					<div id="add-divpro">
+						<paper-input
+								type="datetime-local"
+								id="startDate"
+								name="startDateTime"
+								value="{{startDate}}"
+								label="StartDate">
+						</paper-input>
+						<paper-input
+								type="datetime-local"
+								id="endDate"
+								name="endDateTime"
+								value="{{endDate}}"
+								label="EndDate">
+						</paper-input>
+						<paper-dropdown-menu
+								id="addStatus"
+								value="{{lifeCycleStatus}}"
+								no-animations="true"
+								label="Status">
+							<paper-listbox
+									id="addStatusList"
+									slot="dropdown-content">
+								<paper-item>
+									Feasibility Checked
+								</paper-item>
+								<paper-item>
+									Designed
+								</paper-item>
+								<paper-item>
+									Reserved
+								</paper-item>
+								<paper-item>
+									Active
+								</paper-item>
+								<paper-item>
+									Inactive
+								</paper-item>
+								<paper-item>
+									Terminated
+								</paper-item>
+							</paper-listbox>
+						</paper-dropdown-menu>
 						<div>
 							<paper-dropdown-menu
 									id="proAddOff"
 									value="{{offAddPro}}"
-									label="Offers"
+									label="Product Offering"
 									no-animations="true"
 									on-selected-item-changed="_productSelected">
 								<paper-listbox
@@ -91,7 +133,7 @@ class subAdd extends PolymerElement {
 									id="addProductId1"
 									name="product"
 									value="{{proAddPro}}"
-									label="ProductId"
+									label="Product ID"
 									on-focused-changed="proSelection">
 							</paper-input>
 							<paper-tooltip
@@ -209,26 +251,6 @@ class subAdd extends PolymerElement {
 						</div>
 					</div>
 					<div id="add-divone">
-						<paper-input
-								type="datetime-local"
-								id="startDate"
-								name="startDateTime"
-								value="{{startDate}}"
-								label="StartDate">
-						</paper-input>
-						<paper-input
-								type="datetime-local"
-								id="endDate"
-								name="endDateTime"
-								value="{{endDate}}"
-								label="EndDate">
-						</paper-input>
-						<paper-input
-								id="addStatus"
-								name="lifeCycleStatus"
-								value="{{lifeCycleStatus}}"
-								label="Status">
-						</paper-input>
 						<paper-input
 								id="addAcctSessionInterval"
 								name="acctSessionInterval"
@@ -607,7 +629,9 @@ class subAdd extends PolymerElement {
 			subscriber.endDate = this.endDate;
 		}
 		subscriber.isServiceEnabled = this.enableAddAutho.checked;
-		subscriber.state = this.lifeCycleStatus;
+		if(this.lifeCycleStatus) {
+			subscriber.state = this.lifeCycleStatus;
+		}
 		var specService = new Object();
 		specService.id = "1";
 		specService.href = "/catalogManagement/v2/serviceSpecification/1";
@@ -625,6 +649,10 @@ class subAdd extends PolymerElement {
 			this.akaAddAuthe = null;
 			this.akaopcAddAuthe = null;
 			this.proAddPro = null;
+			this.lifeCycleStatus = null;
+			this.startDate = null;
+			this.endDate = null;
+			this.selected = 0;
 		}
 	}
 
@@ -638,9 +666,13 @@ class subAdd extends PolymerElement {
 		this.amoAddCre = null;
 		this.$.adduni9.selected = null;
 		this.proAddPro = null;
+		this.lifeCycleStatus = null;
+		this.startDate = null;
+		this.endDate = null;
 		this.$.addproduct10.selected = null
 		this.$.proAddOff.disabled = false;
-		this.$.addProductId1.disabled = false
+		this.$.addProductId1.disabled = false;
+		this.selected = 0;
 	}
 
 	_addServiceResponse(event) {
