@@ -35,6 +35,9 @@ class subUpdate extends PolymerElement {
 			<paper-dialog class="dialog" id="updateSubscriberModal" modal>
 				<app-toolbar>
 					<paper-tabs selected="{{selected}}">
+						<paper-tab id="product-up">
+							<h2>Product</h2>
+						</paper-tab>
 						<paper-tab id="authen">
 							<h2>Authentication</h2>
 						</paper-tab>
@@ -43,9 +46,6 @@ class subUpdate extends PolymerElement {
 						</paper-tab>
 						<paper-tab id="credit-up">
 							<h2>Credit</h2>
-						</paper-tab>
-						<paper-tab id="product-up">
-							<h2>Product</h2>
 						</paper-tab>
 					</paper-tabs>
 				</app-toolbar>
@@ -86,11 +86,6 @@ class subUpdate extends PolymerElement {
 							Add a new value to update the service authentication password
 						</paper-tooltip>
 						<div class="buttons">
-							<paper-button dialog-dismiss
-									on-tap="cancelDialog"
-									class="cancel-button">
-								Cancel
-							</paper-button>
 							<paper-button dialog-confirm
 									autofocus
 									on-tap="updateSubscriberAuthentication"
@@ -103,6 +98,11 @@ class subUpdate extends PolymerElement {
 									on-tap="deleteSubscriber"
 									class="delete-button">
 								Delete
+							</paper-button>
+							<paper-button dialog-dismiss
+									on-tap="cancelDialog"
+									class="cancel-button">
+								Cancel
 							</paper-button>
 						</div>
 					</div>
@@ -160,16 +160,16 @@ class subUpdate extends PolymerElement {
 							</div>
 						</div>
 						<div class="buttons">
-							<paper-button dialog-dismiss
-									on-tap="cancelDialog"
-									class="cancel-button">
-								Cancel
-							</paper-button>
 							<paper-button dialog-confirm
 									autofocus
 									on-tap="updateSubscriberAuthorization"
 									class="update-button">
 								Update
+							</paper-button>
+							<paper-button dialog-dismiss
+									on-tap="cancelDialog"
+									class="cancel-button">
+								Cancel
 							</paper-button>
 						</div>
 					</div>
@@ -221,16 +221,16 @@ class subUpdate extends PolymerElement {
 							</paper-tooltip>
 						</div>
 						<div class="buttons">
-							<paper-button dialog-dismiss
-									on-tap="cancelDialog"
-									class="cancel-button">
-								Cancel
-							</paper-button>
 							<paper-button dialog-confirm
 									autofocus
 									on-tap="updateSubscriberBalance"
 									class="update-button">
 								Update
+							</paper-button>
+							<paper-button dialog-dismiss
+									on-tap="cancelDialog"
+									class="cancel-button">
+								Cancel
 							</paper-button>
 						</div>
 					</div>
@@ -247,16 +247,16 @@ class subUpdate extends PolymerElement {
 							Product Id
 						</paper-tooltip>
 						<div class="buttons">
-							<paper-button dialog-dismiss
-									on-tap="cancelDialog"
-									class="cancel-button">
-								Cancel
-							</paper-button>
 							<paper-button dialog-confirm
 									autofocus
 									on-tap="updateSubscriberProduct"
 									class="update-button">
 								Update
+							</paper-button>
+							<paper-button dialog-dismiss
+									on-tap="cancelDialog"
+									class="cancel-button">
+								Cancel
 							</paper-button>
 						</div>
 					</div>
