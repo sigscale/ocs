@@ -33,7 +33,7 @@ class offerAdd extends PolymerElement {
 					id="addBucketModal"
 					modal>
 				<app-toolbar>
-					<h3>Add Bucket</h3>
+					<h3>Add Balance Bucket</h3>
 				</app-toolbar>
 				<paper-progress
 						indeterminate
@@ -43,37 +43,11 @@ class offerAdd extends PolymerElement {
 				</paper-progress>
 				<div>
 					<paper-input
-							value="{{lifeStatus}}"
-							label="Status">
-					</paper-input>
-				</div>
-				<div>
-					<paper-input
 							value="{{productId}}"
-							label="Product">
+							label="Product ID">
 					</paper-input>
 					<paper-tooltip>
 						Identifier of the Product associated with this bucket.
-					</paper-tooltip>
-				</div>
-				<div>
-					<paper-input
-							type="datetime-local"
-							value="{{bucketStart}}"
-							label="Start Date">
-					</paper-input>
-					<paper-tooltip>
-						Start of balance bucket validity period.
-					</paper-tooltip>
-				</div>
-				<div>
-					<paper-input
-							type="datetime-local"
-							value="{{bucketEnd}}"
-							label="End Date">
-					</paper-input>
-					<paper-tooltip>
-						End of balance bucket validity period.
 					</paper-tooltip>
 				</div>
 				<div>
@@ -110,6 +84,49 @@ class offerAdd extends PolymerElement {
 					</paper-input>
 					<paper-tooltip>
 						Total amount of units contained in this bucket.
+					</paper-tooltip>
+				</div>
+				<div>
+					<paper-dropdown-menu
+							value="{{lifeStatus}}"
+							no-animations="true"
+							label="Status">
+						<paper-listbox
+								id="addStatusBucket"
+								slot="dropdown-content">
+							<paper-item>
+								Active
+							</paper-item>
+							<paper-item>
+								Expired
+							</paper-item>
+							<paper-item>
+								Suspended
+							</paper-item>
+						</paper-listbox>
+					</paper-dropdown-menu>
+					<paper-tooltip>
+						Type of units contained in this bucket.
+					</paper-tooltip>
+				</div>
+				<div>
+					<paper-input
+							type="datetime-local"
+							value="{{bucketStart}}"
+							label="Start Date">
+					</paper-input>
+					<paper-tooltip>
+						Start of balance bucket validity period.
+					</paper-tooltip>
+				</div>
+				<div>
+					<paper-input
+							type="datetime-local"
+							value="{{bucketEnd}}"
+							label="End Date">
+					</paper-input>
+					<paper-tooltip>
+						End of balance bucket validity period.
 					</paper-tooltip>
 				</div>
 				<div class="buttons">
@@ -227,7 +244,9 @@ class offerAdd extends PolymerElement {
 	_bucketAddSubmit(event) {
 		if(this.productId && this.bucketUnit && this.bucketAmount) {
 			var bucket = {name: "channel"};
-			bucket.lifecycleStatus = this.lifeStatus; 
+			if(this.lifeStatus) {
+				bucket.lifecycleStatus = this.lifeStatus; 
+			}
 			bucket.product = {id: this.productId,
 					href: "/productInventoryManagement/v2/product/" + this.productId};
 			if(this.bucketStart || this.bucketEnd) {
@@ -253,6 +272,12 @@ class offerAdd extends PolymerElement {
 			ajax.url="/balanceManagement/v1/product/" + this.productId + "/balanceTopup";
 			ajax.generateRequest();
 			this.$.addBucket.selected = null;
+			this.lifeStatus = null;
+			this.productId = null;
+			this.bucketStart = null;
+			this.bucketEnd = null;
+			this.bucketUnit = null;
+			this.bucketAmount = null;
 		}
 	}
 
@@ -262,6 +287,7 @@ class offerAdd extends PolymerElement {
 		this.bucketEnd = null;
 		this.bucketUnit = null;
 		this.bucketAmount = null;
+		this.lifeStatus = null;
 	}
 
 	_addBucketResponse(event) {
