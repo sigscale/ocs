@@ -445,9 +445,9 @@ bucket_status(suspended) -> "Suspended".
 		Bucket :: #bucket{} | {struct, list()}.
 %% @doc CODEC for buckets
 bucket({struct, Object}) ->
-	bucket(Object, #bucket{});
+	bucket(Object, #bucket{attributes = #{bucket_type => normal}});
 bucket(#bucket{} = B) ->
-	bucket(record_info(fields, bucket), B, []).
+	bucket(record_info(fields, bucket), ocs:parse_bucket(B), []).
 %% @hidden
 bucket([{"id", ID} | T], Bucket) ->
 	bucket(T, Bucket#bucket{id = ID});
@@ -505,23 +505,27 @@ bucket([status | T], #bucket{status = Status} = B, Acc)
 		when Status /= undefined ->
 	StatusString = bucket_status(Status),
 	bucket(T, B, [{"lifecycleStatus", StatusString} | Acc]);
-bucket([reservations | T], #bucket{reservations = []} = B, Acc) ->
+bucket([attributes | T], #bucket{attributes = Attributes} = B, Acc)
+		when false == is_map_key(reservations, Attributes) ->
 	bucket(T, B, Acc);
-bucket([reservations | T], #bucket{units = undefined,
-		reservations = Reservations} = B, Acc) ->
-	Amount = lists:sum([A || {_, _, A, _, _, _} <- Reservations]),
+bucket([attributes | T], #bucket{units = undefined,
+		attributes = #{reservations := Reservations}} = B, Acc) ->
+	ReservationList = maps:to_list(Reservations),
+	Amount = lists:sum([A || {_, #{reserve := A}} <- ReservationList]),
 	Reserved = [{"amount", Amount}],
 	bucket(T, B, [{"reservedAmount", {struct, Reserved}}| Acc]);
-bucket([reservations | T], #bucket{reservations = Reservations,
+bucket([attributes | T], #bucket{attributes = #{reservations := Reservations},
 		units = cents} = B, Acc) ->
-	Amount = lists:sum([A || {_, _, A, _, _, _} <- Reservations]),
+	ReservationList = maps:to_list(Reservations),
+	Amount = lists:sum([A || {_, #{reserve := A}} <- ReservationList]),
 	Reserved = [{"amount", ocs_rest:millionths_out(Amount)}, {"units", "cents"}],
 	bucket(T, B, [{"reservedAmount", {struct, Reserved}}| Acc]);
-bucket([reservations | T], #bucket{reservations = Reservations,
+bucket([attributes | T], #bucket{attributes = #{reservations := Reservations},
 		units = Units} = B, Acc) ->
-	Amount = lists:sum([A || {_, _, A, _, _, _} <- Reservations]),
+	ReservationList = maps:to_list(Reservations),
+	Amount = lists:sum([A || {_, #{reserve := A}} <- ReservationList]),
 	Reserved = [{"amount", Amount}, {"units", units(Units)}],
-	bucket(T, B, [{"reservedAmount", {struct, Reserved}}| Acc]);
+	bucket(T, B, [{"reservedAmount", {struct, Reserved}} | Acc]);
 bucket([start_date | T], #bucket{start_date = undefined,
 		end_date = End} = B, Acc) when is_integer(End) ->
 	ValidFor = {struct, [{"endDateTime", ocs_rest:iso8601(End)}]},

@@ -137,6 +137,24 @@
 		char_value_use = [] :: [#char_value_use{}] | '_',
 		last_modified :: tuple() | undefined | '_'}).
 
+-type reservations() :: #{SesssionID :: list() => reservation()}.
+-type reservation() ::
+		#{ts := pos_integer(),
+		debit := non_neg_integer(),
+		reserve := non_neg_integer(),
+		service_id => non_neg_integer(),
+		charging_key => non_neg_integer()}.
+-type bucket_source() ::
+		#{id := string(),
+		amount := pos_integer(),
+		unit_size := pos_integer(),
+		unit_price := pos_integer(),
+		expire := pos_integer() | undefined}.
+-type bucket_attributes() ::
+		#{bucket_type := normal | session,
+		from_bucket => [bucket_source()],
+		reservations => reservations()}.
+
 -record(bucket,
 		{id :: string() | undefined | '_' | '$1',
 		name :: string() | undefined | '_',
@@ -144,12 +162,7 @@
 		end_date :: pos_integer() | undefined | '_',
 		status :: bucket_status() | undefined | '_',
 		remain_amount = 0 :: integer() | '_',
-		reservations = [] :: [{TS :: pos_integer(),
-				DebitAmount :: non_neg_integer(),
-				ReservedAmount :: non_neg_integer(),
-				ServiceId :: non_neg_integer() | undefined,
-				ChargingKey :: non_neg_integer() | undefined,
-				SessionId :: list()}] | '_',
+		attributes :: bucket_attributes() | '_',
 		units :: octets | cents | seconds | messages | undefined | '_',
 		prices = [] :: list() | '_',
 		product  = [] :: [ProdRef :: term()] | '_',

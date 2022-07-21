@@ -44,6 +44,7 @@
 %% export the ocs private API
 -export([normalize/1, subscription/4, end_period/2]).
 -export([import/2, find_sn_network/2]).
+-export([parse_bucket/1]).
 
 -export_type([eap_method/0, match/0]).
 
@@ -865,7 +866,9 @@ add_service1(Identity, Password, State, ProductRef,
 		BucketAfter :: #bucket{},
 		Reason :: term().
 %% @doc Add a new bucket to bucket table or update exsiting bucket
-add_bucket(ProductRef, #bucket{id = undefined} = Bucket) when is_list(ProductRef) ->
+add_bucket(ProductRef, #bucket{id = undefined,
+		attributes = #{bucket_type := Type}} = Bucket)
+		when is_list(ProductRef), ((Type == normal) or (Type == session)) ->
 	BId = generate_bucket_id(),
 	F = fun() ->
 		case mnesia:read(product, ProductRef, write) of
@@ -1078,6 +1081,7 @@ adjustment(#adjustment{amount = Amount, product = ProductRef, units = Units,
 						B4 = #bucket{id = generate_bucket_id(),
 								start_date = StartDate, end_date = EndDate,
 								remain_amount = RemainAmount, units = Units,
+								attributes = #{bucket_type => normal},
 								product = [ProductRef],
 								last_modified = make_lm()},
 						mnesia:write(B4),
@@ -1108,6 +1112,7 @@ adjustment(#adjustment{amount = Amount1, product = ProductRef, units = Units,
 				BId = generate_bucket_id(),
 				NewBucket = #bucket{id = BId, start_date = StartDate, end_date = EndDate,
 						remain_amount = Amount1, units = Units, product = [ProductRef],
+						attributes = #{bucket_type => normal},
 						last_modified = make_lm()},
 				mnesia:write(bucket, NewBucket, write),
 				NewProduct = P#product{balance = [BId]},
@@ -1134,6 +1139,7 @@ adjustment(#adjustment{amount = Amount1, product = ProductRef, units = Units,
 						BId = generate_bucket_id(),
 						NewBucket = #bucket{id = BId, start_date = StartDate, end_date = EndDate,
 								remain_amount = -Amount2, units = Units, product = [ProductRef],
+								attributes = #{bucket_type => normal},
 								last_modified = make_lm()},
 						ok = mnesia:write(bucket, NewBucket, write),
 						{[BId |Acc], [BId | WrittenRefs], DeletedRefs}
@@ -1177,6 +1183,7 @@ adjustment(#adjustment{amount = Amount, service = ServiceRef, product = undefine
 								B4 = #bucket{id = generate_bucket_id(),
 										start_date = StartDate, end_date = EndDate,
 										remain_amount = RemainAmount, units = Units,
+										attributes = #{bucket_type => normal},
 										product = [ProductRef],
 										last_modified = make_lm()},
 								mnesia:write(B4),
@@ -1212,6 +1219,7 @@ adjustment(#adjustment{amount = Amount1, service = ServiceRef, product = undefin
 						BId = generate_bucket_id(),
 						NewBucket = #bucket{id = BId, start_date = StartDate,
 								end_date = EndDate, remain_amount = Amount1,
+								attributes = #{bucket_type => normal},
 								units = Units, product = [ProductRef],
 								last_modified = make_lm()},
 						mnesia:write(bucket, NewBucket, write),
@@ -1239,6 +1247,7 @@ adjustment(#adjustment{amount = Amount1, service = ServiceRef, product = undefin
 							BId = generate_bucket_id(),
 							NewBucket = #bucket{id = BId, start_date = StartDate, end_date = EndDate,
 									remain_amount = -Amount2, units = Units, product = [ProductRef],
+									attributes = #{bucket_type => normal},
 									last_modified = make_lm()},
 							ok = mnesia:write(bucket, NewBucket, write),
 							{[BId |Acc], [BId | WrittenRefs], DeletedRefs}
@@ -2368,6 +2377,57 @@ statistics(Item) ->
 	end.
 
 %%----------------------------------------------------------------------
+%%  The ocs private API
+%%----------------------------------------------------------------------
+
+-spec parse_bucket(Bucket) -> Bucket
+	when
+		Bucket :: #bucket{}.
+%% @doc Replace reservations field of bucket with attributes.
+%% @private
+parse_bucket(Bucket) ->
+	case element(8, Bucket) of
+		Attributes when is_map(Attributes) ->
+			Bucket;
+		Reservations when is_list(Reservations) ->
+			F1 = fun(R, MapAcc) ->
+				Size = size(R),
+				F2 = fun F2(6, Map) ->
+							SessionId = element(6, R),
+							MapAcc#{SessionId => Map};
+						F2(N, Map) when N =< Size ->
+							case element(N, R)  of
+								undefined ->
+									F2(N + 1, Map);
+								Value ->
+									Key = reservation_key(N),
+									F2(N + 1, Map#{Key => Value})
+							end
+				end,
+				F2(1, #{})
+			end,
+			parse_bucket(Bucket, lists:foldl(F1, #{}, Reservations))
+	end.
+%% @hidden
+parse_bucket(#bucket{start_date = Milliseconds,
+		end_date = Milliseconds} = Bucket, ReservationMap)
+		when is_integer(Milliseconds) ->
+	parse_bucket(Bucket, ReservationMap, session);
+parse_bucket(#bucket{} = Bucket, ReservationMap) ->
+	parse_bucket(Bucket, ReservationMap, normal).
+%% @hidden
+parse_bucket(Bucket, Reservations, BucketType) ->
+	TS = erlang:system_time(millisecond),
+	N = erlang:unique_integer([positive]),
+	Attributes = case maps:size(Reservations) of
+		0 ->
+			#{bucket_type => BucketType};
+		_Num ->
+			#{bucket_type => BucketType, reservations => Reservations}
+	end,
+	Bucket#bucket{attributes = Attributes, last_modified = {TS, N}}.
+
+%%----------------------------------------------------------------------
 %%  internal functions
 %%----------------------------------------------------------------------
 
@@ -2489,8 +2549,9 @@ subscription(#product{id = ProdRef} = Product, Now, true,
 	N = erlang:unique_integer([positive]),
 	NewBuckets = charge(ProdRef, PriceAmount + AlterAmount,
 			[#bucket{id = generate_bucket_id(), product = [ProdRef],
-				units = Units, remain_amount = Size, last_modified = {Now, N}}
-				| Buckets]),
+					units = Units, remain_amount = Size,
+					attributes = #{bucket_type => normal},
+					last_modified = {Now, N}} | Buckets]),
 	subscription(Product, Now, true, NewBuckets, T);
 subscription(Product, Now, false, Buckets, [#price{type = one_time} | T]) ->
 	subscription(Product, Now, false, Buckets, T);
@@ -2500,8 +2561,10 @@ subscription(#product{id = ProdRef} = Product, Now, true, Buckets,
 		when ((Type == usage) or (Type == tariff)) ->
 	N = erlang:unique_integer([positive]),
 	NewBuckets = charge(ProdRef, AlterationAmount,
-		[#bucket{id = generate_bucket_id(), units = Units,
-			remain_amount = Size, product = [ProdRef], last_modified = {Now, N}}
+			[#bucket{id = generate_bucket_id(), units = Units,
+					attributes = #{bucket_type => normal},
+					remain_amount = Size, product = [ProdRef],
+					last_modified = {Now, N}}
 			| Buckets]),
 	subscription(Product, Now, true, NewBuckets, T);
 subscription(Product, Now, false, Buckets,
@@ -2531,8 +2594,9 @@ subscription(#product{id = ProdRef, payment = Payments} = Product,
 	N = erlang:unique_integer([positive]),
 	NewBuckets = charge(ProdRef, Amount + AllowanceAmount,
 			[#bucket{id = generate_bucket_id(),
-			units = Units, remain_amount = Size, product = [ProdRef],
-			end_date = end_period(Now, Period), last_modified = {Now, N}}
+					attributes = #{bucket_type => normal},
+					units = Units, remain_amount = Size, product = [ProdRef],
+					end_date = end_period(Now, Period), last_modified = {Now, N}}
 			| Buckets]),
 	NewPayments = [{Name, end_period(Now, Period)} | Payments],
 	Product1 = Product#product{payment = NewPayments},
@@ -2546,8 +2610,9 @@ subscription(#product{id = ProdRef, payment = Payments} = Product,
 	N = erlang:unique_integer([positive]),
 	NewBuckets2 = charge(ProdRef, AllowanceAmount,
 			[#bucket{id = generate_bucket_id(),
-			units = Units, remain_amount = Size, product = [ProdRef],
-			end_date = end_period(Now, Period), last_modified = {Now, N}}
+					attributes = #{bucket_type => normal},
+					units = Units, remain_amount = Size, product = [ProdRef],
+					end_date = end_period(Now, Period), last_modified = {Now, N}}
 			| NewBuckets1]),
 	Product1 = Product#product{payment = NewPayments},
 	subscription(Product1, Now, false, NewBuckets2, T);
@@ -2557,9 +2622,11 @@ subscription(#product{id = ProdRef, payment = Payments} = Product, Now, true,
 		| T]) when Period /= undefined, Units == octets; Units == seconds;
 		Units == messages, ((Type == usage) or (Type == tariff)) ->
 	N = erlang:unique_integer([positive]),
-	NewBuckets = charge(ProdRef, Amount, [#bucket{id = generate_bucket_id(),
-			units = Units, remain_amount = Size, product = [ProdRef],
-			end_date = end_period(Now, Period), last_modified = {Now, N}}
+	NewBuckets = charge(ProdRef, Amount,
+			[#bucket{id = generate_bucket_id(), units = Units,
+					attributes = #{bucket_type => normal},
+					remain_amount = Size, product = [ProdRef],
+					end_date = end_period(Now, Period), last_modified = {Now, N}}
 			| Buckets]),
 	NewPayments = [{Name, end_period(Now, Period)} | Payments],
 	Product1 = Product#product{payment = NewPayments},
@@ -2571,9 +2638,11 @@ subscription(#product{id = ProdRef, payment = Payments}
 		Units == seconds; Units == messages, ((Type == usage) or (Type == tariff)) ->
 	{NewPayments, NewBuckets1} = dues(Payments, Now, Buckets, Name, Period, Amount, ProdRef),
 	N = erlang:unique_integer([positive]),
-	NewBuckets2 = charge(ProdRef, Amount, [#bucket{id = generate_bucket_id(),
-			units = Units, remain_amount = Size, product = [ProdRef],
-			end_date = end_period(Now, Period), last_modified = {Now, N}}
+	NewBuckets2 = charge(ProdRef, Amount,
+			[#bucket{id = generate_bucket_id(), units = Units,
+					attributes = #{bucket_type => normal},
+					remain_amount = Size, product = [ProdRef],
+					end_date = end_period(Now, Period), last_modified = {Now, N}}
 			| NewBuckets1]),
 	Product1 = Product#product{payment = NewPayments},
 	subscription(Product1, Now, false, NewBuckets2, T);
@@ -2678,6 +2747,7 @@ charge(ProdRef, Amount, [H | T], Acc) ->
 	charge(ProdRef, Amount, T, [H | Acc]);
 charge(ProdRef, Amount, [], Acc) ->
 	[#bucket{id = generate_bucket_id(), units = cents,
+			attributes = #{bucket_type => normal},
 			remain_amount = - Amount, product = [ProdRef]}
 			| lists:reverse(Acc)].
 
@@ -2955,4 +3025,16 @@ service_exist(Services) ->
 			end
 	end,
 	lists:any(F, Services).
+
+%% @hidden
+reservation_key(1) ->
+	ts;
+reservation_key(2) ->
+	debit;
+reservation_key(3) ->
+	reserve;
+reservation_key(4) ->
+	service_id;
+reservation_key(5) ->
+	charging_key.
 
