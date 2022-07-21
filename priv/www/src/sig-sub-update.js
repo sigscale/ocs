@@ -660,7 +660,7 @@ class subUpdate extends PolymerElement {
 					sub1.path = "/serviceCharacteristic/-";
 					var sessionTimeout = new Object();
 					sessionTimeout.name = "sessionTimeout";
-					sessionTimeout.value = this.valChaOne[indexx1].sessionTimeout;
+					sessionTimeout.value = parseInt(this.valChaOne[indexx1].sessionTimeout);
 					sub1.value = sessionTimeout;
 					serviceAuthoSubArr.push(sub1);
 				} else {
@@ -669,7 +669,7 @@ class subUpdate extends PolymerElement {
 					sub11.path = "/serviceCharacteristic/" + indexSession;
 					var sessionTimeout = new Object();
 					sessionTimeout.name = "sessionTimeout";
-					sessionTimeout.value = this.valChaOne[indexx1].sessionTimeout;
+					sessionTimeout.value = parseInt(this.valChaOne[indexx1].sessionTimeout);
 					sub11.value = sessionTimeout;
 					serviceAuthoSubArr.push(sub11);
 				}
@@ -685,7 +685,7 @@ class subUpdate extends PolymerElement {
 					sub2.path = "/serviceCharacteristic/-";
 					var acctSessionInterval = new Object();
 					acctSessionInterval.name = "acctSessionInterval";
-					acctSessionInterval.value = this.valChaOne[indexx1].acctInterimInterval;
+					acctSessionInterval.value = parseInt(this.valChaOne[indexx1].acctInterimInterval);
 					sub2.value = acctSessionInterval;
 					serviceAuthoSubArr.push(sub2);
 				} else {
@@ -694,7 +694,7 @@ class subUpdate extends PolymerElement {
 					sub22.path = "/serviceCharacteristic/" + indexSessionInt;
 					var acctSessionInterval = new Object();
 					acctSessionInterval.name = "acctSessionInterval";
-					acctSessionInterval.value = this.valChaOne[indexx1].acctInterimInterval;
+					acctSessionInterval.value = parseInt(this.valChaOne[indexx1].acctInterimInterval);
 					sub22.value = acctSessionInterval;
 					serviceAuthoSubArr.push(sub22);
 				}
@@ -716,6 +716,8 @@ class subUpdate extends PolymerElement {
 		}
 		editAjax.body = JSON.stringify(serviceAuthoSubArr);
 		editAjax.generateRequest();
+		this.updateSubSessInt = null;
+		this.updateSubSes = null;
 	}
 
 	_updateSubscriberAuthorizationResponse(event) {

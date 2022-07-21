@@ -579,7 +579,7 @@ class subAdd extends PolymerElement {
 				sessionInt = n.toString();
 			}
 			this.accSessAddAutho = sessionInt;
-			sessionInterval.value = this.accSessAddAutho;
+			sessionInterval.value = parseInt(this.accSessAddAutho);
 			serviceChar.push(sessionInterval);
 		}
 		if(this.sessTimAddAutho) {
@@ -608,7 +608,7 @@ class subAdd extends PolymerElement {
 				sessionTimeVal = n.toString();
 			}
 			this.sessTimAddAutho = sessionTimeVal;
-			sessionTime.value = this.sessTimAddAutho;
+			sessionTime.value = parseInt(this.sessTimAddAutho);
 			serviceChar.push(sessionTime);
 		}
 		if(this.multiAddAutho) {
