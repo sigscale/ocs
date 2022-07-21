@@ -57,6 +57,34 @@ class subUpdate extends PolymerElement {
 				<iron-pages
 						selected="{{selected}}">
 					<div id="edit-product">
+                  <paper-dropdown-menu
+                        id="addStatus"
+                        value="{{lifeCycleStatus}}"
+                        no-animations="true"
+                        label="Status">
+                     <paper-listbox
+                           id="addStatusList"
+                           slot="dropdown-content">
+                        <paper-item>
+                           Feasibility Checked
+                        </paper-item>
+                        <paper-item>
+                           Designed
+                        </paper-item>
+                        <paper-item>
+                           Reserved
+                        </paper-item>
+                        <paper-item>
+                           Active
+                        </paper-item>
+                        <paper-item>
+                           Inactive
+                        </paper-item>
+                        <paper-item>
+                           Terminated
+                        </paper-item>
+                     </paper-listbox>
+                  </paper-dropdown-menu>
 						<paper-input
 								id="updateProduct"
 								name="product"
@@ -390,6 +418,7 @@ class subUpdate extends PolymerElement {
 			this.$.updateSubscriberEnabled.checked =  current.enabled;
 			this.$.updateSubscriberMulti.checked =  current.multisession;
 			this.updateSubProduct = current.product;
+			this.lifeCycleStatus = current.state;
 			var arrObj = new Object();
 			arrObj.id = this.updateSubId;
 			arrObj.password = this.updateSubPass;
@@ -400,6 +429,7 @@ class subUpdate extends PolymerElement {
 			arrObj.enabled = this.$.updateSubscriberEnabled.checked
 			arrObj.multisession = this.$.updateSubscriberMulti.checked;
 			arrObj.product = this.updateSubProduct;
+			arrObj.state = this.lifeCycleStatus
 			this.valCha.push(arrObj);
 			this.$.updateSubscriberModal.open();
 		}
@@ -741,6 +771,13 @@ class subUpdate extends PolymerElement {
 			var penProductSub = new Set();
 			var penProductSubObj = new Object();
 			var penProductSubObj1 = new Object(); 
+			if(this.lifeCycleStatus != this.valCha[indexx].state) {
+				penProductSubObj.state = this.lifeCycleStatus;
+				penProductSub.add(this.lifeCycleStatus);
+			}
+			if (penProductSub.has(this.lifeCycleStatus)) {
+				penProductSubObj1.state = this.lifeCycleStatus;
+			}
 			if(this.updateSubProduct != this.valCha[indexx].product) {
 				penProductSubObj.product = this.updateSubProduct;
 				penProductSub.add(this.updateSubProduct);
@@ -766,9 +803,24 @@ class subUpdate extends PolymerElement {
 					serviceProductSubArr.push(pro);
 				}
 			}
+			if(this.valChaOne[indexx1].state != null) {
+				var stateObj = new Object();
+				stateObj.op = "add";
+				stateObj.path = "/state"
+				stateObj.value = this.valChaOne[indexx1].state;
+				if(stateObj.value == "") {
+					var stateObjDel = new Object();
+					stateObjDel.op = "remove";
+					stateObjDel.path = "/state";
+					serviceProductSubArr.push(stateObjDel);
+				} else {
+					serviceProductSubArr.push(stateObj);
+				}
+			}
 		}
 		editAjax.body = JSON.stringify(serviceProductSubArr);
 		editAjax.generateRequest();
+		this.lifeCycleStatus = null;
 	}
 
 	deleteSubscriber(event) {
@@ -802,6 +854,7 @@ class subUpdate extends PolymerElement {
 		this.updateSubSes = null;
 		this.updateSubSessInt = null;
 		this.updateSubMul = null;
+		this.lifeCycleStatus = null;
 	}
 }
 

@@ -240,6 +240,7 @@ class subList extends PolymerElement {
 						newRecord.entityClass = "terminal";
 					}
 					if(request.response[index].state){
+						newRecord.state = request.response[index].state;
 						if(request.response[index].state == "feasibilityChecked" || request.response[index].state ==  "designed" || request.response[index].state == "reserved" || request.response[index].state == "inactive"){
 							newRecord.correctable = request.response[index].state;
 							if(newRecord.correctable) {
