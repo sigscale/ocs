@@ -44,7 +44,7 @@
 %% export the ocs private API
 -export([normalize/1, subscription/4, end_period/2]).
 -export([import/2, find_sn_network/2]).
--export([parse_buckets/1]).
+-export([parse_bucket/1]).
 
 -export_type([eap_method/0, match/0]).
 
@@ -2380,56 +2380,43 @@ statistics(Item) ->
 %%  The ocs private API
 %%----------------------------------------------------------------------
 
--spec parse_buckets(Buckets) -> Buckets
+-spec parse_bucket(Bucket) -> Bucket
 	when
-		Buckets :: [#bucket{}].
-%% @doc Replace reservations field of buckte with attrbutes.
+		Bucket :: #bucket{}.
+%% @doc Replace reservations field of bucket with attributes.
 %% @private
-parse_buckets(Buckets) when is_list(Buckets) ->
-	parse_buckets(Buckets, []).
-%% @hidden
-parse_buckets([Bucket | T], Acc) ->
+parse_bucket(Bucket) ->
 	case element(8, Bucket) of
 		Attributes when is_map(Attributes) ->
-			parse_buckets(T, [Bucket | Acc]);
+			Bucket;
 		Reservations when is_list(Reservations) ->
-			reservations_to_attributes(Bucket, T, Reservations, Acc)
-	end;
-parse_buckets([], Acc) ->
-	lists:reverse(Acc).
+			F1 = fun(R, MapAcc) ->
+				Size = size(R),
+				F2 = fun F2(6, Map) ->
+							SessionId = element(6, R),
+							MapAcc#{SessionId => Map};
+						F2(N, Map) when N =< Size ->
+							case element(N, R)  of
+								undefined ->
+									F2(N + 1, Map);
+								Value ->
+									Key = reservation_key(N),
+									F2(N + 1, Map#{Key => Value})
+							end
+				end,
+				F2(1, #{})
+			end,
+			parse_bucket(Bucket, lists:foldl(F1, #{}, Reservations))
+	end.
 %% @hidden
-reservations_to_attributes(#bucket{start_date = Milliseconds,
-		end_date = Milliseconds} = Bucket, T, Reservations, Acc)
+parse_bucket(#bucket{start_date = Milliseconds,
+		end_date = Milliseconds} = Bucket, ReservationMap)
 		when is_integer(Milliseconds) ->
-	NewBucket = reservations_to_attributes1(Reservations, Bucket, session, #{}),
-	parse_buckets(T, [NewBucket | Acc]);
-reservations_to_attributes(#bucket{} = Bucket, T, Reservations, Acc) ->
-	NewBucket = reservations_to_attributes1(Reservations, Bucket, normal, #{}),
-	parse_buckets(T, [NewBucket | Acc]).
+	parse_bucket(Bucket, ReservationMap, session);
+parse_bucket(#bucket{} = Bucket, ReservationMap) ->
+	parse_bucket(Bucket, ReservationMap, normal).
 %% @hidden
-reservations_to_attributes1(
-		[{TS, Debit, Reserve, ServiceId, ChargingKey, SessionId} = R | T1],
-		Bucket, BucketType, Acc1) when is_list(SessionId) ->
-	F = fun F([undefined | T2], Acc2) ->
-				F(T2, Acc2);
-			F([TS1 | T2], Acc2) when TS1 == TS ->
-				F(T2, Acc2#{ts => TS});
-			F([Debit1 | T2], Acc2) when Debit1 ==  Debit ->
-				F(T2, Acc2#{debit => Debit});
-			F([Reserve1 | T2], Acc2) when Reserve1 == Reserve ->
-				F(T2, Acc2#{reserve => Reserve});
-			F([ServiceId1 | T2], Acc2) when ServiceId1 ==  ServiceId ->
-				F(T2, Acc2#{service_id => ServiceId});
-			F([ChargingKey1 | T2], Acc2) when ChargingKey1 == ChargingKey ->
-				F(T2, Acc2#{charging_key => ChargingKey});
-			F([_ | []], ReservationMap) ->
-				Acc1#{SessionId => ReservationMap}
-	end,
-	reservations_to_attributes1(T1, Bucket, BucketType, F(tuple_to_list(R), #{}));
-reservations_to_attributes1([], #bucket{id = Id, name = Name,
-		start_date = StartDate, end_date = EndDate, status = Status,
-		remain_amount = RA, units = Units, prices = Prices, product = Product},
-		BucketType, Reservations) ->
+parse_bucket(Bucket, Reservations, BucketType) ->
 	TS = erlang:system_time(millisecond),
 	N = erlang:unique_integer([positive]),
 	Attributes = case maps:size(Reservations) of
@@ -2438,10 +2425,7 @@ reservations_to_attributes1([], #bucket{id = Id, name = Name,
 		_Num ->
 			#{bucket_type => BucketType, reservations => Reservations}
 	end,
-	#bucket{id = Id, name = Name, start_date = StartDate, end_date = EndDate,
-			status = Status, remain_amount = RA, attributes = Attributes,
-			units = Units, prices = Prices, product = Product,
-			last_modified = {TS, N}}.
+	Bucket#bucket{attributes = Attributes, last_modified = {TS, N}}.
 
 %%----------------------------------------------------------------------
 %%  internal functions
@@ -3041,4 +3025,16 @@ service_exist(Services) ->
 			end
 	end,
 	lists:any(F, Services).
+
+%% @hidden
+reservation_key(1) ->
+	ts;
+reservation_key(2) ->
+	debit;
+reservation_key(3) ->
+	reserve;
+reservation_key(4) ->
+	service_id;
+reservation_key(5) ->
+	charging_key.
 
