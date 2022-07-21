@@ -56,6 +56,32 @@ class subUpdate extends PolymerElement {
 				</paper-progress>
 				<iron-pages
 						selected="{{selected}}">
+					<div id="edit-product">
+						<paper-input
+								id="updateProduct"
+								name="product"
+								value="{{updateSubProduct}}"
+								label="Product">
+						</paper-input>
+						<paper-tooltip
+								for="updateProduct"
+								offset="0">
+							Product Id
+						</paper-tooltip>
+						<div class="buttons">
+							<paper-button dialog-confirm
+									autofocus
+									on-tap="updateSubscriberProduct"
+									class="update-button">
+								Update
+							</paper-button>
+							<paper-button dialog-dismiss
+									on-tap="cancelDialog"
+									class="cancel-button">
+								Cancel
+							</paper-button>
+						</div>
+					</div>
 					<div id="edit-password" >
 						<paper-input
 								id="updateSubscriberId"
@@ -224,32 +250,6 @@ class subUpdate extends PolymerElement {
 							<paper-button dialog-confirm
 									autofocus
 									on-tap="updateSubscriberBalance"
-									class="update-button">
-								Update
-							</paper-button>
-							<paper-button dialog-dismiss
-									on-tap="cancelDialog"
-									class="cancel-button">
-								Cancel
-							</paper-button>
-						</div>
-					</div>
-					<div id="edit-product">
-						<paper-input
-								id="updateProduct"
-								name="product"
-								value="{{updateSubProduct}}"
-								label="Product">
-						</paper-input>
-						<paper-tooltip
-								for="updateProduct"
-								offset="0">
-							Product Id
-						</paper-tooltip>
-						<div class="buttons">
-							<paper-button dialog-confirm
-									autofocus
-									on-tap="updateSubscriberProduct"
 									class="update-button">
 								Update
 							</paper-button>
