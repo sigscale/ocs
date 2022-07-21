@@ -80,7 +80,7 @@
 %% @see //stdlib/gen_fsm:init/1
 %% @private
 %%
-init([Id, Subscriber, {_, SessionAttributes}]) ->
+init([Subscriber, {_, SessionAttributes}]) ->
 	process_flag(trap_exit, true),
 	NasIp = proplists:get_value(?NasIpAddress, SessionAttributes),
 	NasId = proplists:get_value(?NasIdentifier, SessionAttributes),
@@ -88,7 +88,7 @@ init([Id, Subscriber, {_, SessionAttributes}]) ->
 	Id = 1,
 	case lookup_client(NasIp, NasId) of
 		{ok, #client{port = 0}} ->
-			{stop, {shutdown, disconnect_not_supported}};
+			ignore;
 		{ok, #client{address = Address, identifier = NasID,
 				secret = Secret, port = Port}} ->
 			StateData = #statedata{nas_ip = Address, 

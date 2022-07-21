@@ -42,8 +42,7 @@
 		port :: non_neg_integer(),
 		handlers = gb_trees:empty() :: gb_trees:tree(Key ::
 				({NAS :: string() | inet:ip_address(), Port :: string(),
-				Peer :: string()}), Value :: (Fsm :: pid())),
-		disc_id = 1 :: integer()}).
+				Peer :: string()}), Value :: (Fsm :: pid()))}).
 -type state() :: #state{}.
 
 %%----------------------------------------------------------------------
@@ -437,16 +436,20 @@ response(Id, RequestAuthenticator, Secret) ->
 %% @hidden
 %% @doc Start a disconnect_fsm worker.
 %%
-start_disconnect(#state{disc_sup = DiscSup} = State, Subscriber, [H | Tail]) ->
-	start_disconnect1(DiscSup, Subscriber, H),
-	start_disconnect(State, Subscriber, Tail);
-start_disconnect(_State, _Subscriber, []) ->
-	ok.
-%% @hidden
-start_disconnect1(DiscSup, Subscriber, SessionAttributes) ->
-	DiscArgs = [Subscriber, SessionAttributes],
+start_disconnect(#state{disc_sup = Sup} = State, Subscriber, [H | T]) ->
+	DiscArgs = [Subscriber, H],
 	StartArgs = [DiscArgs, []],
-	supervisor:start_child(DiscSup, StartArgs).
+	case supervisor:start_child(Sup, StartArgs) of
+		{ok, _Child} ->
+			start_disconnect(State, Subscriber, T);
+		ignore ->
+			ok;
+		{error, Reason} ->
+			error_logger:error_report(["Failed to start radius disconnect",
+					{module, ?MODULE}, {error, Reason}, {disc_sup, Sup}])
+	end;
+start_disconnect(_, _, []) ->
+	ok.
 
 %% @hidden
 %% @doc Get used octets from RADIUS attributes.
