@@ -35,6 +35,9 @@ class subUpdate extends PolymerElement {
 			<paper-dialog class="dialog" id="updateSubscriberModal" modal>
 				<app-toolbar>
 					<paper-tabs selected="{{selected}}">
+						<paper-tab id="product-up">
+							<h2>Product</h2>
+						</paper-tab>
 						<paper-tab id="authen">
 							<h2>Authentication</h2>
 						</paper-tab>
@@ -43,9 +46,6 @@ class subUpdate extends PolymerElement {
 						</paper-tab>
 						<paper-tab id="credit-up">
 							<h2>Credit</h2>
-						</paper-tab>
-						<paper-tab id="product-up">
-							<h2>Product</h2>
 						</paper-tab>
 					</paper-tabs>
 				</app-toolbar>
@@ -86,11 +86,6 @@ class subUpdate extends PolymerElement {
 							Add a new value to update the service authentication password
 						</paper-tooltip>
 						<div class="buttons">
-							<paper-button dialog-dismiss
-									on-tap="cancelDialog"
-									class="cancel-button">
-								Cancel
-							</paper-button>
 							<paper-button dialog-confirm
 									autofocus
 									on-tap="updateSubscriberAuthentication"
@@ -103,6 +98,11 @@ class subUpdate extends PolymerElement {
 									on-tap="deleteSubscriber"
 									class="delete-button">
 								Delete
+							</paper-button>
+							<paper-button dialog-dismiss
+									on-tap="cancelDialog"
+									class="cancel-button">
+								Cancel
 							</paper-button>
 						</div>
 					</div>
@@ -160,16 +160,16 @@ class subUpdate extends PolymerElement {
 							</div>
 						</div>
 						<div class="buttons">
-							<paper-button dialog-dismiss
-									on-tap="cancelDialog"
-									class="cancel-button">
-								Cancel
-							</paper-button>
 							<paper-button dialog-confirm
 									autofocus
 									on-tap="updateSubscriberAuthorization"
 									class="update-button">
 								Update
+							</paper-button>
+							<paper-button dialog-dismiss
+									on-tap="cancelDialog"
+									class="cancel-button">
+								Cancel
 							</paper-button>
 						</div>
 					</div>
@@ -221,16 +221,16 @@ class subUpdate extends PolymerElement {
 							</paper-tooltip>
 						</div>
 						<div class="buttons">
-							<paper-button dialog-dismiss
-									on-tap="cancelDialog"
-									class="cancel-button">
-								Cancel
-							</paper-button>
 							<paper-button dialog-confirm
 									autofocus
 									on-tap="updateSubscriberBalance"
 									class="update-button">
 								Update
+							</paper-button>
+							<paper-button dialog-dismiss
+									on-tap="cancelDialog"
+									class="cancel-button">
+								Cancel
 							</paper-button>
 						</div>
 					</div>
@@ -247,16 +247,16 @@ class subUpdate extends PolymerElement {
 							Product Id
 						</paper-tooltip>
 						<div class="buttons">
-							<paper-button dialog-dismiss
-									on-tap="cancelDialog"
-									class="cancel-button">
-								Cancel
-							</paper-button>
 							<paper-button dialog-confirm
 									autofocus
 									on-tap="updateSubscriberProduct"
 									class="update-button">
 								Update
+							</paper-button>
+							<paper-button dialog-dismiss
+									on-tap="cancelDialog"
+									class="cancel-button">
+								Cancel
 							</paper-button>
 						</div>
 					</div>
@@ -660,7 +660,7 @@ class subUpdate extends PolymerElement {
 					sub1.path = "/serviceCharacteristic/-";
 					var sessionTimeout = new Object();
 					sessionTimeout.name = "sessionTimeout";
-					sessionTimeout.value = this.valChaOne[indexx1].sessionTimeout;
+					sessionTimeout.value = parseInt(this.valChaOne[indexx1].sessionTimeout);
 					sub1.value = sessionTimeout;
 					serviceAuthoSubArr.push(sub1);
 				} else {
@@ -669,7 +669,7 @@ class subUpdate extends PolymerElement {
 					sub11.path = "/serviceCharacteristic/" + indexSession;
 					var sessionTimeout = new Object();
 					sessionTimeout.name = "sessionTimeout";
-					sessionTimeout.value = this.valChaOne[indexx1].sessionTimeout;
+					sessionTimeout.value = parseInt(this.valChaOne[indexx1].sessionTimeout);
 					sub11.value = sessionTimeout;
 					serviceAuthoSubArr.push(sub11);
 				}
@@ -685,7 +685,7 @@ class subUpdate extends PolymerElement {
 					sub2.path = "/serviceCharacteristic/-";
 					var acctSessionInterval = new Object();
 					acctSessionInterval.name = "acctSessionInterval";
-					acctSessionInterval.value = this.valChaOne[indexx1].acctInterimInterval;
+					acctSessionInterval.value = parseInt(this.valChaOne[indexx1].acctInterimInterval);
 					sub2.value = acctSessionInterval;
 					serviceAuthoSubArr.push(sub2);
 				} else {
@@ -694,7 +694,7 @@ class subUpdate extends PolymerElement {
 					sub22.path = "/serviceCharacteristic/" + indexSessionInt;
 					var acctSessionInterval = new Object();
 					acctSessionInterval.name = "acctSessionInterval";
-					acctSessionInterval.value = this.valChaOne[indexx1].acctInterimInterval;
+					acctSessionInterval.value = parseInt(this.valChaOne[indexx1].acctInterimInterval);
 					sub22.value = acctSessionInterval;
 					serviceAuthoSubArr.push(sub22);
 				}
@@ -716,6 +716,8 @@ class subUpdate extends PolymerElement {
 		}
 		editAjax.body = JSON.stringify(serviceAuthoSubArr);
 		editAjax.generateRequest();
+		this.updateSubSessInt = null;
+		this.updateSubSes = null;
 	}
 
 	_updateSubscriberAuthorizationResponse(event) {
