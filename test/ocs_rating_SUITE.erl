@@ -2242,7 +2242,8 @@ refund_partially_used_reservation(_Config) ->
 			undefined, undefined, ServiceId, Timestamp, undefined, undefined,
 			final, [{PackageUnits, 50}], undefined, SessionId),
 	{error, not_found} = ocs:find_bucket(BId1),
-	{ok, #bucket{remain_amount = 15000000}} = ocs:find_bucket(BId2).
+	RemainAmount3 = RemainAmount1 + RemainAmount2 - PackagePrice,
+	{ok, #bucket{remain_amount = RemainAmount3}} = ocs:find_bucket(BId2).
 
 %%---------------------------------------------------------------------
 %%  Internal functions
