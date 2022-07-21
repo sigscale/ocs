@@ -57,34 +57,34 @@ class subUpdate extends PolymerElement {
 				<iron-pages
 						selected="{{selected}}">
 					<div id="edit-product">
-                  <paper-dropdown-menu
-                        id="addStatus"
-                        value="{{lifeCycleStatus}}"
-                        no-animations="true"
-                        label="Status">
-                     <paper-listbox
-                           id="addStatusList"
-                           slot="dropdown-content">
-                        <paper-item>
-                           Feasibility Checked
-                        </paper-item>
-                        <paper-item>
-                           Designed
-                        </paper-item>
-                        <paper-item>
-                           Reserved
-                        </paper-item>
-                        <paper-item>
-                           Active
-                        </paper-item>
-                        <paper-item>
-                           Inactive
-                        </paper-item>
-                        <paper-item>
-                           Terminated
-                        </paper-item>
-                     </paper-listbox>
-                  </paper-dropdown-menu>
+						<paper-dropdown-menu
+								id="addStatus"
+								value="{{lifeCycleStatus}}"
+								no-animations="true"
+								label="Status">
+							<paper-listbox
+									id="addStatusList"
+									slot="dropdown-content">
+								<paper-item>
+									Feasibility Checked
+								</paper-item>
+								<paper-item>
+									Designed
+								</paper-item>
+								<paper-item>
+									Reserved
+								</paper-item>
+								<paper-item>
+									Active
+								</paper-item>
+								<paper-item>
+									Inactive
+								</paper-item>
+								<paper-item>
+									Terminated
+								</paper-item>
+							</paper-listbox>
+						</paper-dropdown-menu>
 						<paper-input
 								id="updateProduct"
 								name="product"
