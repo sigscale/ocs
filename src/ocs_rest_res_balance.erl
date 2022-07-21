@@ -505,8 +505,8 @@ bucket([status | T], #bucket{status = Status} = B, Acc)
 		when Status /= undefined ->
 	StatusString = bucket_status(Status),
 	bucket(T, B, [{"lifecycleStatus", StatusString} | Acc]);
-bucket([attributes | T],
-		#bucket{attributes = #{bucket_type := normal}} = B, Acc) ->
+bucket([attributes | T], #bucket{attributes = Attributes} = B, Acc)
+		when false == is_map_key(reservations, Attributes) ->
 	bucket(T, B, Acc);
 bucket([attributes | T], #bucket{units = undefined,
 		attributes = #{reservations := Reservations}} = B, Acc) ->
