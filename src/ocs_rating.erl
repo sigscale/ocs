@@ -165,7 +165,8 @@ rate(Protocol, ServiceType, ServiceId, ChargingKey,
 									end,
 									case lists:all(F2, Buckets) of
 										true ->
-											{rate1(Protocol, Service, ServiceId, Product, ocs:parse_buckets(Buckets),
+											NewBuckets = lists:map(fun ocs:parse_bucket/1, Buckets),
+											{rate1(Protocol, Service, ServiceId, Product, NewBuckets,
 													Timestamp, Address, Direction, Offer,
 													Flag, DebitAmounts, ReserveAmounts, ServiceType,
 													get_session_id(SessionAttributes), ChargingKey, ServiceNetwork), RedirectServerAddress};

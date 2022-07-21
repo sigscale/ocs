@@ -447,7 +447,7 @@ bucket_status(suspended) -> "Suspended".
 bucket({struct, Object}) ->
 	bucket(Object, #bucket{attributes = #{bucket_type => normal}});
 bucket(#bucket{} = B) ->
-	bucket(record_info(fields, bucket), B, []).
+	bucket(record_info(fields, bucket), ocs:parse_bucket(B), []).
 %% @hidden
 bucket([{"id", ID} | T], Bucket) ->
 	bucket(T, Bucket#bucket{id = ID});
