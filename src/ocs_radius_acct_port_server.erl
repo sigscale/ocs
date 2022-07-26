@@ -440,10 +440,10 @@ start_disconnect(#state{disc_sup = Sup} = State, Subscriber, [H | T]) ->
 	DiscArgs = [Subscriber, H],
 	StartArgs = [DiscArgs, []],
 	case supervisor:start_child(Sup, StartArgs) of
+		{ok, undefined} -> % ignore
+			ok;
 		{ok, _Child} ->
 			start_disconnect(State, Subscriber, T);
-		ignore ->
-			ok;
 		{error, Reason} ->
 			error_logger:error_report(["Failed to start radius disconnect",
 					{module, ?MODULE}, {error, Reason}, {disc_sup, Sup}])
