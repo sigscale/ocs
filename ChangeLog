@@ -1,3 +1,26 @@
+2022-07-26 Vance Shipley <vances@sigscale.org>
+
+	* handle undefined rated in diameter protocol log
+	* support update status in service
+	* fix changing tab order contents in service update
+	* ignore if reservations are not included
+	* change radius attribute type number to string
+	* use ocs:parse_bucket/1
+	* refactor ocs:parse_bucket/1
+	* test: replace hardcoded remain amount with calculated
+	* start disconnect fsm synchronously
+	* correct error introduced in commit 3b9792abf
+	* fix status and arrange fields in add product GUI
+	* refactor status and arrange fields in add bucket dialog
+	* change order of button and tabs for update service
+	* refactor lifecycle stuff in service
+	* test: refund partially used reservation
+	* add unit type messages in offer update
+	* add date in service add GUI
+	* clear lifecycle status selection on add/update offer dialog cancel
+	* correct unit type selection in add/update offer dialog
+	* handle time of day in add offer dialog price update
+
 2022-07-16 Vance Shipley <vances@sigscale.org>
 
 	* refactor offer add/update web components with many corrections
