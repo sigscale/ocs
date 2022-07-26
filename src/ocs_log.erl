@@ -2262,6 +2262,8 @@ ipdr_codec(Event) when size(Event) > 6,
 ipdr_codec1(diameter, TimeStamp, ReqType, Req, Res, [H | T], Acc) ->
 	IPDR = ipdr_codec2(diameter, TimeStamp, ReqType, Req, Res, H),
 	ipdr_codec1(diameter, TimeStamp, ReqType, Req, Res, T, [IPDR | Acc]);
+ipdr_codec1(diameter, TimeStamp, ReqType, Req, Res, undefined, Acc) ->
+	ipdr_codec2(diameter, TimeStamp, ReqType, Req, Res, undefined);
 ipdr_codec1(radius, TimeStamp, ReqType, Req, Res, undefined, Acc) ->
 	ipdr_codec2(radius, TimeStamp, ReqType, Req, Res, undefined);
 ipdr_codec1(_Protocol, _TimeStamp, _ReqType, _Req, _Res, [], Acc) ->
