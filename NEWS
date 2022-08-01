@@ -1,3 +1,12 @@
+August 1, 2022
+--------------
+	- Refactored Balance Buckets
+	  Old buckets will be transformed to new Bucket format however
+	  to once new Buckets are written old versions will fail to read
+	  those Buckets.  To minimize impact stop all cluster nodes and
+	  upgrade each node before restarting.
+	- IPDR Log Fix
+
 July 16, 2022
 -------------
 	- UI improvements
