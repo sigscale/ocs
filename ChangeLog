@@ -1,3 +1,8 @@
+2022-08-01 Vance Shipley <vances@sigscale.org>
+
+	* handle rated in radius ipdr codec
+	* disconnect start_child handling of ignore retruned from child init
+
 2022-07-26 Vance Shipley <vances@sigscale.org>
 
 	* handle undefined rated in diameter protocol log
