@@ -155,12 +155,12 @@ get_buckets(Query, Headers) ->
 				case ocs_rest_query_parser:parse(Tokens) of
 					{ok, [{array, [{complex, Complex}]}]} ->
 						MatchId = match("id", Complex, Query),
-						MatchProduct = match("product.id", Complex, Query),
+						MatchProduct = match("product", Complex, Query),
 						{Query1, [MatchId, MatchProduct]}
 				end;
 			false ->
 				MatchId = match("id", [], Query),
-				MatchProduct = match("product.id", [], Query),
+				MatchProduct = match("product", [], Query),
 				{Query, [MatchId, MatchProduct]}
 		end
 	of
