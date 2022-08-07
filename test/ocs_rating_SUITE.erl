@@ -1300,7 +1300,7 @@ reserve_voice() ->
 	[{userdata, [{doc, "Reservation for voice call"}]}].
 
 reserve_voice(_Config) ->
-	DataAmount = 2,
+	DataAmount = rand:uniform(10),
 	DataSize = rand:uniform(10000000),
 	ReserveOctets = 1000000 * rand:uniform(10),
 	DataPrice = #price{name = "Data", type = usage,
@@ -1309,15 +1309,14 @@ reserve_voice(_Config) ->
 			min = 1, max = 1, values = [#char_value{default = true,
 			units = "bytes", value = ReserveOctets}]}]},
 	DataOfferId = add_offer([DataPrice], 8),
-	VoiceAmount = 2,
+	VoiceAmount = rand:uniform(10),
 	VoiceSize = 60,
-	ReserveMins = rand:uniform(4000),
-	ReserveSecs = ReserveMins * 60,
+	Reserve = rand:uniform(4000),
 	VoicePrice = #price{name = "Calls", type = usage,
 			units = seconds, size = VoiceSize, amount = VoiceAmount,
 			char_value_use = [#char_value_use{name = "radiusReserveTime",
 			min = 1, max = 1, values = [#char_value{default = true,
-			units = "minutes", value = ReserveMins}]}]},
+			units = "seconds", value = Reserve}]}]},
 	VoiceOfferId = add_offer([VoicePrice], 9),
 	BundleOfferId = ocs:generate_password(),
 	BundleProduct = #offer{name = BundleOfferId,
@@ -1326,7 +1325,7 @@ reserve_voice(_Config) ->
 	{ok, _} = ocs:add_offer(BundleProduct),
 	ProdRef = add_product(BundleOfferId),
 	ServiceId = add_service(ProdRef),
-	StartingAmount = 2567,
+	StartingAmount = (Reserve div VoiceSize) * VoiceAmount * 2,
 	B1 = bucket(cents, StartingAmount),
 	BId = add_bucket(ProdRef, B1),
 	ServiceType = 12,
@@ -1337,13 +1336,13 @@ reserve_voice(_Config) ->
 			undefined, undefined, ServiceId, Timestamp, CallAddress,
 			undefined, initial, [], [], SessionId),
 	{ok, #bucket{remain_amount = Amount}} = ocs:find_bucket(BId),
-	ReservedUnits = case (ReserveSecs rem VoiceSize) of
+	Reserved = case (Reserve rem VoiceSize) of
 		0 ->
-			ReserveSecs div VoiceSize;
+			Reserve div VoiceSize;
 		_ ->
-			ReserveSecs div VoiceSize + 1
+			(Reserve div VoiceSize) + 1
 	end,
-	Amount = StartingAmount - ReservedUnits * VoiceAmount.
+	Amount = StartingAmount - (Reserved * VoiceAmount).
 
 reserve_incoming_voice() ->
 	[{userdata, [{doc, "Reservation for incoming voice call"}]}].
@@ -1432,7 +1431,7 @@ interim_voice(_Config) ->
 			bundle = [#bundled_po{name = DataOfferId},
 					#bundled_po{name = VoiceOfferId}]},
 	{ok, _} = ocs:add_offer(BundleOffer),
-	StartingAmount = 1000,
+	StartingAmount = (ReserveTime div VoiceSize) * VoiceAmount * 2,
 	ProdRef = add_product(BundleOfferId),
 	ServiceId = add_service(ProdRef),
 	B1 = bucket(cents, StartingAmount),
