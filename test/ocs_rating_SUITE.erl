@@ -723,7 +723,7 @@ interim_debit_remove_session(_Config) ->
 	[] = SessionAttributes1 -- SessionAttributes2,
 	{out_of_credit, _, _} = ocs_rating:rate(radius, ServiceType,
 			undefined, undefined, undefined, ServiceId, Timestamp, undefined, undefined,
-			interim, [{PackageUnits, PackagePrice}], [{PackageUnits, 0}], SessionAttributes1),
+			interim, [{PackageUnits, PackageSize}], [], SessionAttributes1),
 	{ok, #service{session_attributes = []}} = ocs:find_service(ServiceId).
 
 interim_debit_and_reserve_available() ->
@@ -741,16 +741,17 @@ interim_debit_and_reserve_available(_Config) ->
 	B1 = bucket(cents, RemAmount1),
 	BId = add_bucket(ProdRef, B1),
 	ServiceType = 32251,
-	Reservation = rand:uniform(PackageSize),
+	Reservation = rand:uniform(PackageSize) + PackageSize,
 	Timestamp = calendar:local_time(),
 	TS = calendar:datetime_to_gregorian_seconds(Timestamp),
 	SessionId = [{'Session-Id', list_to_binary(ocs:generate_password())}],
 	{ok, _, _} = ocs_rating:rate(diameter, ServiceType, undefined,
 			undefined, undefined, ServiceId, Timestamp, undefined, undefined,
 			initial, [], [{PackageUnits, Reservation}], SessionId),
-	RemAmount2 = RemAmount1 - PackagePrice,
+	RemAmount2 = RemAmount1 - (PackagePrice * 2),
+	DebitReserve = PackagePrice * 2,
 	{ok, #bucket{attributes = #{reservations
-					:= #{SessionId := #{debit := PackagePrice}}},
+					:= #{SessionId := #{debit := DebitReserve}}},
 			remain_amount = RemAmount2}} = ocs:find_bucket(BId),
 	Debit = rand:uniform(Reservation),
 	{ok, _, _} = ocs_rating:rate(diameter, ServiceType,
@@ -758,7 +759,8 @@ interim_debit_and_reserve_available(_Config) ->
 			calendar:gregorian_seconds_to_datetime(TS + 60), undefined,
 			undefined, interim, [{PackageUnits, Debit}],
 			[{PackageUnits, Reservation}], SessionId),
-	{ok, #bucket{remain_amount = RemAmount2}} = ocs:find_bucket(BId).
+	RemAmount3 = RemAmount2 - PackagePrice,
+	{ok, #bucket{remain_amount = RemAmount3}} = ocs:find_bucket(BId).
 
 interim_debit_and_reserve_insufficient1() ->
 	[{userdata, [{doc, "Debit amount less than package size and reservation amount
