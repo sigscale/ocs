@@ -848,10 +848,10 @@ charge2(#service{enabled = false} = Service, ServiceId, #product{id = ProductId}
 									DebitAmount, {Units, UnitsCharged + NewUnitsCharged},
 									{Units, 0}, {Units, 0}, SessionId, Rated, ChargingKey, Buckets)
 					end;
-				false ->
+				false when UnitsCharged > 0 ->
 					Now = erlang:system_time(millisecond),
 					Reservation = #{ts => Now, debit => 0,
-							reserve => NewChargeUnits - Amount,
+							reserve => UnitsCharged,
 							service_id => ServiceId, charging_key => ChargingKey},
 					Attributes = #{bucket_type => session,
 							reservations => #{SessionId => Reservation}},
@@ -862,6 +862,10 @@ charge2(#service{enabled = false} = Service, ServiceId, #product{id = ProductId}
 							units = Units, product = [ProductId]} | Buckets2],
 					charge3(Service, ServiceId, Product, Buckets4, interim,
 							DebitAmount, {Units, UnitsCharged},
+							{Units, 0}, {Units, 0}, SessionId, Rated, ChargingKey, Buckets);
+				false ->
+					charge3(Service, ServiceId, Product, Buckets2, interim,
+							DebitAmount, {Units, 0},
 							{Units, 0}, {Units, 0}, SessionId, Rated, ChargingKey, Buckets)
 			end
 	end;
@@ -924,7 +928,7 @@ charge2(Service, ServiceId, #product{id = ProductId} = Product, Buckets,
 									{Units, UnitsCharged + NewUnitsCharged},
 									ReserveAmount, {Units, 0}, SessionId, Rated, ChargingKey, Buckets)
 					end;
-				false ->
+				false when UnitsCharged > 0 ->
 					Now = erlang:system_time(millisecond),
 					Reservation = #{ts => Now, debit => UnitsCharged, reserve => 0,
 							service_id => ServiceId, charging_key => ChargingKey},
@@ -938,6 +942,10 @@ charge2(Service, ServiceId, #product{id = ProductId} = Product, Buckets,
 							product = [ProductId]} | Buckets2],
 					charge3(Service, ServiceId, Product, Buckets4, interim,
 							DebitAmount, {Units, Damount - UnitsCharged},
+							ReserveAmount, {Units, 0}, SessionId, Rated, ChargingKey, Buckets);
+				false ->
+					charge3(Service, ServiceId, Product, Buckets2, interim,
+							DebitAmount, {Units, 0},
 							ReserveAmount, {Units, 0}, SessionId, Rated, ChargingKey, Buckets)
 			end
 	end;
