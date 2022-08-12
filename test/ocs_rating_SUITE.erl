@@ -753,7 +753,7 @@ interim_debit_and_reserve_available(_Config) ->
 	{ok, #bucket{attributes = #{reservations
 					:= #{SessionId := #{debit := DebitReserve}}},
 			remain_amount = RemAmount2}} = ocs:find_bucket(BId),
-	Debit = rand:uniform(PackageSize - 1),
+	Debit = PackageSize,
 	{ok, _, _} = ocs_rating:rate(diameter, ServiceType,
 			undefined, undefined, undefined, ServiceId,
 			calendar:gregorian_seconds_to_datetime(TS + 60), undefined,
