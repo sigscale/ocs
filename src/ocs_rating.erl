@@ -2216,6 +2216,7 @@ sort_from_bucket(FromBucket) when is_list(FromBucket) ->
 		TotalUnits :: pos_integer(),
 		TotalPrice :: pos_integer().
 %% @doc Calculate total size and price.
+%% @private
 price_units(0, _UnitSize, _UnitPrice) ->
 	{0, 0};
 price_units(_Amount, _UnitSize, 0) ->
@@ -2223,7 +2224,7 @@ price_units(_Amount, _UnitSize, 0) ->
 price_units(Amount, UnitSize, UnitPrice) when (Amount rem UnitSize) == 0 ->
 	{Amount, UnitPrice * (Amount div UnitSize)};
 price_units(Amount, UnitSize, UnitPrice) ->
-	Units = (Amount div UnitSize + 1),
+	Units = (Amount div UnitSize) + 1,
 	{Units * UnitSize, UnitPrice * Units}.
 
 -spec get_reserve(Price) -> ReserveAmount
@@ -2233,6 +2234,7 @@ price_units(Amount, UnitSize, UnitPrice) ->
 		Units :: seconds | octets,
 		Amount :: pos_integer().
 %% @doc Get the reserve amount.
+%% @private
 get_reserve(#price{units = seconds,
 		char_value_use = CharValueUse} = _Price) ->
 	case lists:keyfind("radiusReserveTime",
@@ -2288,7 +2290,7 @@ get_reserve(#price{units = octets,
 		ChargingKey :: non_neg_integer() | undefined,
 		SessionId :: string() | binary().
 %% @doc Refund unused reservations.
-%% @hidden
+%% @private
 refund(ServiceId, ChargingKey, SessionId, Buckets) ->
 	refund(ServiceId, ChargingKey, SessionId, Buckets, []).
 %% @hidden
@@ -2445,7 +2447,6 @@ filter_prices_key(_, [], Acc) ->
 %% @doc Get total debited and remaining amounts, refund and
 %% 	remove all reservations, for session.
 %% @private
-%%
 get_final(ServiceId, ChargingKey, SessionId, Buckets) ->
 	Now = erlang:system_time(millisecond),
 	get_final(Buckets, ServiceId, ChargingKey, SessionId, Now, #{}, []).
