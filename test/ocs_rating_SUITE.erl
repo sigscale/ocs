@@ -1247,8 +1247,13 @@ final_voice(_Config) ->
 			undefined, undefined, ServiceId, Timestamp, CallAddress,
 			undefined, final, [{seconds, UsedSeconds2}], [], SessionAttributes),
 	{ok, #bucket{remain_amount = RemainAmount}} = ocs:find_bucket(BId),
-	RemainAmount = StartingAmount - (((ReserveTime div UnitSize)
-			* 2) * UnitPrice).
+	TotalUsed = UsedSeconds1 + UsedSeconds2,
+	case (TotalUsed rem UnitSize) of
+		0 ->
+			RemainAmount = StartingAmount - ((TotalUsed div UnitSize) * UnitPrice);
+		_N ->
+			RemainAmount = StartingAmount - (((TotalUsed div UnitSize) + 1) * UnitPrice)
+	end.
 
 reserve_data() ->
 	[{userdata, [{doc, "Reservation for data session"}]}].
@@ -1450,8 +1455,14 @@ interim_voice(_Config) ->
 			undefined, undefined, ServiceId, Timestamp, CallAddress, undefined,
 			interim, [{octets, UsedOctets}, {seconds, UsedSeconds}], [], SessionId),
 	{ok, #bucket{remain_amount = RemainAmount}} = ocs:find_bucket(BId),
-	RemainAmount = StartingAmount - (((ReserveTime div VoiceSize)
-			* VoiceAmount) * 2).
+	ReserveAmount = ((ReserveTime div VoiceSize) * VoiceAmount),
+	UsedAmount = case (UsedSeconds rem VoiceSize) of
+		0 ->
+			(UsedSeconds div VoiceSize) * VoiceAmount;
+		_N ->
+			((UsedSeconds div VoiceSize) + 1) * VoiceAmount
+	end,
+	RemainAmount = StartingAmount - ReserveAmount - UsedAmount.
 
 time_of_day() ->
 	[{userdata, [{doc, "Time of day price matching"}]}].
