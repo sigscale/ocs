@@ -102,7 +102,8 @@ all() ->
 	interim_debit_and_reserve_insufficient3,
 	interim_debit_and_reserve_insufficient4,
 	interim_debit_and_reserve_charging_key,
-	interim_out_of_credit_voice, final_remove_session, remove_session_after_multiple_interims,
+	interim_out_of_credit_voice, interim_out_of_credit_negative,
+	final_remove_session, remove_session_after_multiple_interims,
 	final_refund_octets, final_refund_seconds,
 	final_voice, final_multiple_buckets,
 	reserve_data, reserve_voice, interim_voice, time_of_day,
@@ -981,6 +982,50 @@ interim_out_of_credit_voice(_Config) ->
 			interim, [{seconds, UsedUnits}], [], SessionId),
 	RemainAmount = StartingAmount - UnitPrice,
 	{ok, #bucket{remain_amount = RemainAmount}} = ocs:find_bucket(BId).
+
+interim_out_of_credit_negative() ->
+	[{userdata, [{doc, "Credit overrun leaves negative balance"}]}].
+
+interim_out_of_credit_negative(_Config) ->
+	UnitPrice = rand:uniform(100),
+	UnitSize = 1000000 + rand:uniform(9000000),
+	P1 = #price{name = "Usage", type = usage, units = octets,
+			size = UnitSize, amount = UnitPrice,
+			char_value_use = [#char_value_use{name = "radiusReserveOctets",
+			min = 1, max = 1, values = [#char_value{default = true,
+			units = "bytes", value = UnitSize}]}]},
+	OfferId = add_offer([P1], 8),
+	ProdRef = add_product(OfferId),
+	ServiceId = add_service(ProdRef),
+	StartingAmount = UnitPrice + rand:uniform(UnitPrice - 1),
+	B1 = bucket(cents, StartingAmount),
+	BId = add_bucket(ProdRef, B1),
+	ServiceType = 2,
+	Timestamp = calendar:local_time(),
+	TS = calendar:datetime_to_gregorian_seconds(Timestamp),
+	AcctSessionId = {?AcctSessionId, list_to_binary(ocs:generate_password())},
+	NasIp = {?NasIpAddress, "192.168.35.101"},
+	NasId = {?NasIdentifier, ocs:generate_password()},
+	SessionAttributes = [NasIp, NasId, AcctSessionId],
+	{ok, _, _} = ocs_rating:rate(radius, ServiceType,
+			undefined, undefined, undefined, ServiceId,
+			calendar:gregorian_seconds_to_datetime(TS),
+			undefined, undefined,
+			initial, [], [], SessionAttributes),
+	UsedUnits1 = UnitSize + rand:uniform(UnitSize),
+	{out_of_credit, _, _} = ocs_rating:rate(radius, ServiceType,
+			undefined, undefined, undefined, ServiceId,
+			calendar:gregorian_seconds_to_datetime(TS + 60),
+			undefined, undefined,
+			interim, [{octets, UsedUnits1}], [], SessionAttributes),
+	UsedUnits2 = rand:uniform(UnitSize),
+	{out_of_credit, _, _, _} = ocs_rating:rate(radius, ServiceType,
+			undefined, undefined, undefined, ServiceId,
+			calendar:gregorian_seconds_to_datetime(TS + 60),
+			undefined, undefined,
+			final, [{octets, UsedUnits2}], [], SessionAttributes),
+	{ok, #bucket{remain_amount = RemainAmount}} = ocs:find_bucket(BId),
+	true = RemainAmount < 0.
 
 final_remove_session() ->
 	[{userdata, [{doc, "Final call remove session attributes from subscriber record"}]}].
