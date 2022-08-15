@@ -958,31 +958,29 @@ interim_out_of_credit_voice() ->
 	[{userdata, [{doc, "Voice call out of credit during call"}]}].
 
 interim_out_of_credit_voice(_Config) ->
-	UnitPrice = 10 + rand:uniform(90),
-	UnitSize = 5000000 + rand:uniform(9000000),
+	UnitPrice = rand:uniform(10),
+	UnitSize = 60,
 	P1 = price(usage, seconds, UnitSize, UnitPrice),
 	OfferId = add_offer([P1], 9),
 	ProdRef = add_product(OfferId),
 	ServiceId = add_service(ProdRef),
-	StartingAmount = UnitPrice + rand:uniform(UnitPrice - 1),
+	StartingAmount = UnitPrice * 2,
 	B1 = bucket(cents, StartingAmount),
 	BId = add_bucket(ProdRef, B1),
-	ReserveUnits1 = rand:uniform(UnitSize),
 	ServiceType = 32260,
 	Timestamp = calendar:local_time(),
 	TS = calendar:datetime_to_gregorian_seconds(Timestamp),
 	SessionId = [{'Session-Id', list_to_binary(ocs:generate_password())}],
 	{ok, _, _} = ocs_rating:rate(diameter, ServiceType, undefined,
 			undefined, undefined, ServiceId, Timestamp, undefined, undefined,
-			initial, [], [{seconds, ReserveUnits1}], SessionId),
-	UsedUnits = (UnitSize * 2) + rand:uniform(UnitSize),
-	ReserveUnits2 = rand:uniform(UnitSize),
+			initial, [], [], SessionId),
+	UsedUnits = UnitSize + rand:uniform(UnitSize),
 	{out_of_credit, _, _} = ocs_rating:rate(diameter, ServiceType,
 			undefined, undefined, undefined, ServiceId,
 			calendar:gregorian_seconds_to_datetime(TS + 60), undefined, undefined,
-			interim, [{seconds, UsedUnits}], [{seconds, ReserveUnits2}], SessionId),
-	Remain = StartingAmount - UnitPrice,
-	{ok, #bucket{remain_amount = Remain}} = ocs:find_bucket(BId).
+			interim, [{seconds, UsedUnits}], [], SessionId),
+	RemainAmount = StartingAmount - UnitPrice,
+	{ok, #bucket{remain_amount = RemainAmount}} = ocs:find_bucket(BId).
 
 final_remove_session() ->
 	[{userdata, [{doc, "Final call remove session attributes from subscriber record"}]}].
