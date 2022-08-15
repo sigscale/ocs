@@ -28,6 +28,8 @@
 %% Note: This directive should only be used in test suites.
 -compile(export_all).
 
+-behaviour(ct_suite).
+
 -include_lib("common_test/include/ct.hrl").
 
 -record(test_set,
