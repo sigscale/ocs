@@ -241,7 +241,7 @@ class subList extends PolymerElement {
 					}
 					if(request.response[index].state){
 						newRecord.state = request.response[index].state;
-						if(request.response[index].state == "feasibilityChecked" || request.response[index].state ==  "designed" || request.response[index].state == "reserved" || request.response[index].state == "inactive"){
+						if(request.response[index].state == "feasibilitychecked" || request.response[index].state ==  "designed" || request.response[index].state == "reserved" || request.response[index].state == "inactive"){
 							newRecord.correctable = request.response[index].state;
 							if(newRecord.correctable) {
 								newRecord.entityClass = "correctable";
