@@ -2478,7 +2478,7 @@ get_final([#bucket{units = Units, attributes = Attributes,
 			case maps:find(from_bucket, Attributes) of
 				{ok, FromBucket1} ->
 					FromBucket2 = sort_from_bucket(FromBucket1),
-					{NewT, NewAcc} = get_final1(Refund, Now, T, Acc, FromBucket2),
+					{NewT, NewAcc} = get_final1(Refund + R, Now, T, Acc, FromBucket2),
 					get_final(NewT, ServiceId, ChargingKey, SessionId, Now,
 							Debits#{Units => N + Debit}, NewAcc);
 				error ->
@@ -2508,12 +2508,21 @@ get_final([], _, _, _, _, Debits, Acc) ->
 	{Debits, lists:reverse(Acc)}.
 
 %% @hidden
-get_final1(Refund, Now, T1, Acc1, [#{id := Id, amount := Amount,
-		unit_size := Size, unit_price := Price} | BucketFrom]) when Refund >= Size ->
+get_final1(RefundUnits1, Now, T1, Acc1, [#{id := Id, amount := Amount,
+		unit_size := Size, unit_price := Price} | BucketFrom])
+		when RefundUnits1 >= Size ->
+	RefundUnits2 = (Amount div Price) * Size,
+	{RefundedAmount, RefundedUnits} = case RefundUnits2 =< RefundUnits1 of
+		true ->
+			{Amount, RefundUnits2};
+		false ->
+			Rate = RefundUnits1 div Size,
+			{Rate * Price, Rate * Size}
+	end,
 	{NewT, NewAcc} = case lists:keyfind(Id, #bucket.id, T1) of
 		#bucket{remain_amount = Remain} = CentsBucket1 ->
 			CentsBucket2 = CentsBucket1#bucket{
-					remain_amount = Remain + Price,
+					remain_amount = Remain + RefundedAmount,
 					last_modified = {Now, erlang:unique_integer([positive])}},
 			T2 = lists:keyreplace(Id, #bucket.id, T1, CentsBucket2),
 			{T2, Acc1};
@@ -2521,12 +2530,12 @@ get_final1(Refund, Now, T1, Acc1, [#{id := Id, amount := Amount,
 			CentsBucket1 = lists:keyfind(Id, #bucket.id, Acc1),
 			#bucket{remain_amount = Remain} = CentsBucket1,
 			CentsBucket2 = CentsBucket1#bucket{
-					remain_amount = Remain + Price,
+					remain_amount = Remain + RefundedAmount,
 					last_modified = {Now, erlang:unique_integer([positive])}},
 			Acc2 = lists:keyreplace(Id, #bucket.id, Acc1, CentsBucket2),
 			{T1, Acc2}
 	end,
-	get_final1(Refund - Amount, Now, NewT, NewAcc, BucketFrom);
+	get_final1(RefundUnits1 - RefundedUnits, Now, NewT, NewAcc, BucketFrom);
 get_final1(_, _Now, T, Acc, _) ->
 	{T, Acc}.
 
