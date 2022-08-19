@@ -833,7 +833,7 @@
             "type" : "array",
             "items" : {
               "type" : "string",
-              "pattern" : "^(imsi-[0-9]{5,15}|msisdn-[0-9]{5,15}|nai-.+|gci-.+|gli-.+|.+)$"
+              "pattern" : "^(imsi-[0-9]{5,15}|msisdn-[0-9]{5,15}|nai-.+|gci-.+|gli-.+|iccid-89[0-9]{1,17}|.+)$"
             }
           },
           "tenantIdentifier" : {
