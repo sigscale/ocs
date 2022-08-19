@@ -1870,7 +1870,7 @@ charge_session(Type, Charge, Now, ServiceId, ChargingKey, SessionId,
 			NewReservations2 = NewReservations1#{SessionId => #{ts => Now,
 			debit => NewDebitedAmount, reserve => 0, service_id => ServiceId,
 			charging_key => ChargingKey}},
-			NewAcc = [B#bucket{remain_amount = 0,
+			NewAcc = [B#bucket{remain_amount = Remain - (Charge - ReservedAmount),
 					last_modified = {Now, erlang:unique_integer([positive])},
 					attributes = Attributes#{reservations => NewReservations2}} | Acc],
 			charge_session(Type, Charge - ReservedAmount - Remain,
@@ -2039,7 +2039,7 @@ convert(Price1, Type, UnitPrice, UnitSize, TotalSize, ServiceId, ChargingKey,
 					service_id => ServiceId,
 					charging_key => ChargingKey}} | Reservations2],
 			FromBucket = [#{id => BId, amount => Price1, unit_size => UnitSize,
-					unit_price => UnitPrice, expire => Expires} | FBAcc1],
+					unit_price => UnitPrice, expire => Expires}] ++ FBAcc1,
 			{0, B1#bucket{remain_amount = R - Price1,
 					last_modified = {Now, erlang:unique_integer([positive])},
 					attributes = Attributes#{reservations => maps:from_list(NewReservations)}}, FromBucket};
@@ -2049,7 +2049,7 @@ convert(Price1, Type, UnitPrice, UnitSize, TotalSize, ServiceId, ChargingKey,
 					reserve => ReservedAmount, service_id => ServiceId,
 					charging_key => ChargingKey}} | Reservations2],
 			FromBucket = [#{id => BId, amount => R, unit_size => UnitSize,
-					unit_price => UnitPrice, expire => Expires} | FBAcc1],
+					unit_price => UnitPrice, expire => Expires}] ++ FBAcc1,
 			{Price1 - R, B1#bucket{remain_amount = 0,
 					last_modified = {Now, erlang:unique_integer([positive])},
 					attributes = Attributes#{reservations => maps:from_list(NewReservations)}}, FromBucket};
@@ -2058,7 +2058,7 @@ convert(Price1, Type, UnitPrice, UnitSize, TotalSize, ServiceId, ChargingKey,
 					debit => Price1, reserve => 0, service_id => ServiceId,
 					charging_key => ChargingKey}},
 			FromBucket = [#{id => BId, amount => Price1, unit_size => UnitSize,
-					unit_price => UnitPrice, expire => Expires} | FBAcc1],
+					unit_price => UnitPrice, expire => Expires}] ++ FBAcc1,
 			{0, B1#bucket{remain_amount = R - Price1,
 					last_modified = {Now, erlang:unique_integer([positive])},
 					attributes = Attributes#{reservations => NewReservations}}, FromBucket};
@@ -2067,7 +2067,7 @@ convert(Price1, Type, UnitPrice, UnitSize, TotalSize, ServiceId, ChargingKey,
 					reserve => 0, service_id => ServiceId,
 					charging_key => ChargingKey}},
 			FromBucket = [#{id => BId, amount => R, unit_size => UnitSize,
-					unit_price => UnitPrice, expire => Expires} | FBAcc1],
+					unit_price => UnitPrice, expire => Expires}] ++ FBAcc1,
 			{Price1 - R, B1#bucket{remain_amount = 0,
 					last_modified = {Now, erlang:unique_integer([positive])},
 					attributes = Attributes#{reservations => NewReservations}}, FromBucket}
@@ -2096,7 +2096,7 @@ convert1(Type, TotalSize, ServiceId, ChargingKey,
 		true ->
 			Attributes = B#bucket.attributes,
 			NewBucket = B#bucket{remain_amount = R + TotalSize,
-					attributes = Attributes#{from_bucket => [FBAcc | FromBucket]},
+					attributes = Attributes#{from_bucket => FBAcc ++ FromBucket},
 					last_modified = {Now, erlang:unique_integer([positive])}},
 			NewBuckets = CentsBuckets ++ lists:reverse(Acc) ++ [NewBucket | T],
 			{ok, NewBuckets};
@@ -2478,7 +2478,7 @@ get_final([#bucket{units = Units, attributes = Attributes,
 			case maps:find(from_bucket, Attributes) of
 				{ok, FromBucket1} ->
 					FromBucket2 = sort_from_bucket(FromBucket1),
-					{NewT, NewAcc} = get_final1(Refund, Now, T, Acc, FromBucket2),
+					{NewT, NewAcc} = get_final1(Refund + R, Now, T, Acc, FromBucket2),
 					get_final(NewT, ServiceId, ChargingKey, SessionId, Now,
 							Debits#{Units => N + Debit}, NewAcc);
 				error ->
@@ -2508,12 +2508,21 @@ get_final([], _, _, _, _, Debits, Acc) ->
 	{Debits, lists:reverse(Acc)}.
 
 %% @hidden
-get_final1(Refund, Now, T1, Acc1, [#{id := Id, amount := Amount,
-		unit_size := Size, unit_price := Price} | BucketFrom]) when Refund >= Size ->
+get_final1(RefundUnits1, Now, T1, Acc1, [#{id := Id, amount := Amount,
+		unit_size := Size, unit_price := Price} | BucketFrom])
+		when RefundUnits1 >= Size ->
+	RefundUnits2 = (Amount div Price) * Size,
+	{RefundedAmount, RefundedUnits} = case RefundUnits2 =< RefundUnits1 of
+		true ->
+			{Amount, RefundUnits2};
+		false ->
+			Rate = RefundUnits1 div Size,
+			{Rate * Price, Rate * Size}
+	end,
 	{NewT, NewAcc} = case lists:keyfind(Id, #bucket.id, T1) of
 		#bucket{remain_amount = Remain} = CentsBucket1 ->
 			CentsBucket2 = CentsBucket1#bucket{
-					remain_amount = Remain + Price,
+					remain_amount = Remain + RefundedAmount,
 					last_modified = {Now, erlang:unique_integer([positive])}},
 			T2 = lists:keyreplace(Id, #bucket.id, T1, CentsBucket2),
 			{T2, Acc1};
@@ -2521,12 +2530,12 @@ get_final1(Refund, Now, T1, Acc1, [#{id := Id, amount := Amount,
 			CentsBucket1 = lists:keyfind(Id, #bucket.id, Acc1),
 			#bucket{remain_amount = Remain} = CentsBucket1,
 			CentsBucket2 = CentsBucket1#bucket{
-					remain_amount = Remain + Price,
+					remain_amount = Remain + RefundedAmount,
 					last_modified = {Now, erlang:unique_integer([positive])}},
 			Acc2 = lists:keyreplace(Id, #bucket.id, Acc1, CentsBucket2),
 			{T1, Acc2}
 	end,
-	get_final1(Refund - Amount, Now, NewT, NewAcc, BucketFrom);
+	get_final1(RefundUnits1 - RefundedUnits, Now, NewT, NewAcc, BucketFrom);
 get_final1(_, _Now, T, Acc, _) ->
 	{T, Acc}.
 

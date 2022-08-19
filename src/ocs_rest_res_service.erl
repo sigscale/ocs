@@ -653,12 +653,12 @@ service_state("Reserved") -> reserved;
 service_state("Active") -> active;
 service_state("Inactive") -> inactive;
 service_state("Terminated") -> terminated;
-service_state(feasibilityChecked) -> "Feasibility Checked";
-service_state(designed) -> "Designed";
-service_state(reserved) -> "Reserved";
-service_state(active) -> "Active";
-service_state(inactive) -> "Inactive";
-service_state(terminated) -> "Terminated".
+service_state(feasibilityChecked) -> "feasibilitychecked";
+service_state(designed) -> "designed";
+service_state(reserved) -> "reserved";
+service_state(active) -> "active";
+service_state(inactive) -> "inactive";
+service_state(terminated) -> "terminated".
 
 -spec service_chars(ServiceChars) -> ServiceChars
 	when
