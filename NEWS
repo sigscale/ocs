@@ -1,3 +1,9 @@
+August 19, 2022
+---------------
+	- Fixed final unit rating bug introduced in last release
+	- Fixed removed negative bucket bug introduced in last release
+	- Updated and extended rating test suite
+
 August 1, 2022
 --------------
 	- Refactored Balance Buckets

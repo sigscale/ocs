@@ -1,3 +1,24 @@
+2022-08-19 Vance Shipley <vances@sigscale.org>
+
+	* fix refunding unused reservation
+	* credit overrun leaves negative balance
+	* fix status type for service
+	* edoc private functions
+	* do not create session bucket when nothing charged
+	* declare ct_suite behaviour for all test suites
+	* test case: credit overrun leaves negative balance
+	* correct unit size in rating test case
+	* correct remain amount in interim and final voice rating test cases
+	* correct debit amount in rating interim debit test case
+	* correct debit amount in rating interim debit test case
+	* correct balance math in interim debit test cases
+	* correct product specifications in rating test suite
+	* remove bogus characteristics in rating test suite
+	* correct bucket amount calculation in rating suit test case for voice reservatione
+	* correct radius session attributes in rating test suite
+	* correct filter path for buket filter by product
+	* news on refactored balance buckets
+
 2022-08-01 Vance Shipley <vances@sigscale.org>
 
 	* handle rated in radius ipdr codec
