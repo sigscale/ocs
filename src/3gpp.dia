@@ -2263,6 +2263,14 @@
    Normal                       1
    High                         2
 
+@enum SM-Message-Type
+   SUBMISSION                   0
+   DELIVERY_REPORT              1
+   SM_Service_Request           2
+   T4_Device_Trigger            3
+   SM_Device_Trigger            4
+   MO_SMS_T4_submission         5
+
 @enum Message-Type
    m-send-req                   1
    m-send-conf                  2
