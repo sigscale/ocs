@@ -213,7 +213,7 @@
    SM-Status                                              2014  OctetString      VM
    SM-User-Data-Header                                    2015  OctetString      VM
    SMS-Node                                               2016  Enumerated       VM
-   SMSC-Address                                           2017  Address          VM
+   SMSC-Address                                           2017  OctetString      VM
    Client-Address                                         2018  Address          VM
    Number-Of-Messages-Sent                                2019  Unsigned32       VM
    Low-Balance-Indication                                 2020  Enumerated       VM
