@@ -204,9 +204,9 @@
    Interface-Text                                         2005  UTF8String       VM
    Interface-Type                                         2006  Enumerated       VM
    SM-Message-Type                                        2007  Enumerated       VM
-   Originator-SCCP-Address                                2008  Address          VM
+   Originator-SCCP-Address                                2008  OctetString      VM
    Originator-Interface                                   2009  Grouped          VM
-;  Recipient-SCCP-Address                                 2010  Address          VM
+   Recipient-SCCP-Address                                 2010  OctetString      VM
 ;  Reply-Path-Requested                                   2011  Enumerated       VM
    SM-Discharge-Time                                      2012  Time             VM
    SM-Protocol-ID                                         2013  OctetString      VM
@@ -224,7 +224,7 @@
 ;  PoC-Event-Type                                         2025  Enumerated       VM
    Recipient-Info                                         2026  Grouped          VM
    Originator-Received-Address                            2027  Grouped          VM
-;  Recipient-Received-Address                             2028  Grouped          VM
+   Recipient-Received-Address                             2028  Grouped          VM
    SM-Service-Type                                        2029  Enumerated       VM
 ;  MMTel-Information                                      2030  Grouped          VM
    MMTel-SService-Type                                    2031  Unsigned32       VM
@@ -1358,15 +1358,20 @@
    Recipient-Info ::= <AVP Header: 2026>
       [ Destination-Interface ]
      *[ Recipient-Address ]
-;    *[ Recipient-Received-Address ]
-;     [ Recipient-SCCP-Address ]
-;     [ SM-Protocol-ID ]
+     *[ Recipient-Received-Address ]
+      [ Recipient-SCCP-Address ]
+      [ SM-Protocol-ID ]
 
    Recipient-Address ::= <AVP Header: 1201>
       [ Address-Type ]
       [ Address-Data ]
       [ Address-Domain ]
       [ Addressee-Type ]
+
+   Recipient-Received-Address :: = <AVP Header: 2028>
+      [ Address-Type ]
+      [ Address-Data ]
+      [ Address-Domain ]
 
    Originator-Received-Address ::= <AVP Header: 2027>
       [ Address-Type ]
