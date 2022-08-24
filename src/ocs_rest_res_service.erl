@@ -647,18 +647,18 @@ start_mode(any_of_the_above) -> 5.
 		State :: atom() | string().
 %% @doc CODEC for life cycle status of Product instance.
 %% @private
-service_state("Feasibility Checked") -> feasibilityChecked;
-service_state("Designed") -> designed;
-service_state("Reserved") -> reserved;
-service_state("Active") -> active;
-service_state("Inactive") -> inactive;
-service_state("Terminated") -> terminated;
-service_state(feasibilityChecked) -> "feasibilitychecked";
+service_state(feasibilityChecked) -> "feasibilityChecked";
 service_state(designed) -> "designed";
 service_state(reserved) -> "reserved";
 service_state(active) -> "active";
 service_state(inactive) -> "inactive";
-service_state(terminated) -> "terminated".
+service_state(terminated) -> "terminated";
+service_state("feasibilityChecked") -> feasibilityChecked;
+service_state("designed") -> designed;
+service_state("reserved") -> reserved;
+service_state("active") -> active;
+service_state("inactive") -> inactive;
+service_state("terminated") -> terminated.
 
 -spec service_chars(ServiceChars) -> ServiceChars
 	when
