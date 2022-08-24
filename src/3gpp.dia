@@ -1368,7 +1368,7 @@
       [ Address-Domain ]
       [ Addressee-Type ]
 
-   Recipient-Received-Address :: = <AVP Header: 2028>
+   Recipient-Received-Address ::= <AVP Header: 2028>
       [ Address-Type ]
       [ Address-Data ]
       [ Address-Domain ]
