@@ -629,6 +629,24 @@ class subAdd extends PolymerElement {
 			subscriber.endDate = this.endDate;
 		}
 		subscriber.isServiceEnabled = this.enableAddAutho.checked;
+		if(this.lifeCycleStatus == "Feasibility Checked") {
+			this.lifeCycleStatus = "feasibilityChecked"
+		}
+		if(this.lifeCycleStatus = "Designed") {
+			this.lifeCycleStatus = "designed"
+		}
+		if(this.lifeCycleStatus == "Reserved") {
+			this.lifeCycleStatus = "reserved"
+		}
+		if(this.lifeCycleStatus == "Active") {
+			this.lifeCycleStatus = "active"
+		}
+		if(this.lifeCycleStatus == "Inactive") {
+			this.lifeCycleStatus = "inactive"
+		}
+		if(this.lifeCycleStatus == "Terminated") {
+			this.lifeCycleStatus = "terminated"
+		}
 		if(this.lifeCycleStatus) {
 			subscriber.state = this.lifeCycleStatus;
 		}

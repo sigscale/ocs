@@ -771,6 +771,24 @@ class subUpdate extends PolymerElement {
 			var penProductSub = new Set();
 			var penProductSubObj = new Object();
 			var penProductSubObj1 = new Object(); 
+			if(this.lifeCycleStatus == "Feasibility Checked") {
+				this.lifeCycleStatus = "feasibilityChecked"
+			}
+			if(this.lifeCycleStatus == "Designed") {
+				this.lifeCycleStatus = "designed"
+			}
+			if(this.lifeCycleStatus == "Reserved") {
+				this.lifeCycleStatus = "reserved"
+			}
+			if(this.lifeCycleStatus == "Active") {
+				this.lifeCycleStatus = "active"
+			}
+			if(this.lifeCycleStatus == "Inactive") {
+				this.lifeCycleStatus = "inactive"
+			}
+			if(this.lifeCycleStatus == "Terminated") {
+				this.lifeCycleStatus = "terminated"
+			}
 			if(this.lifeCycleStatus != this.valCha[indexx].state) {
 				penProductSubObj.state = this.lifeCycleStatus;
 				penProductSub.add(this.lifeCycleStatus);
