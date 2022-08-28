@@ -1432,7 +1432,6 @@ class offerUpdate extends PolymerElement {
 				this.$.updateAltAmount.value = null;
 				this.altUpdateCurrency = null;
 				this.altUpdatePeriod = null;
-				this.selected = 0;
 			} else {
 				this.altUpdateDescription = this.alterations[indexAlt].description;
 				if(this.alterations[indexAlt].start || this.alterations[indexAlt].end) {
