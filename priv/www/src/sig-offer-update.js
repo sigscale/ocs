@@ -55,7 +55,7 @@ class offerUpdate extends PolymerElement {
 				</paper-progress>
 				<iron-pages
 						selected="{{selected}}">
-					<div id="addOffer-tab">
+					<div>
 						<div>
 							<paper-input
 									value="{{updateOfferName}}"
@@ -246,7 +246,7 @@ class offerUpdate extends PolymerElement {
 							</paper-button>
 						</div>
 					</div>
-					<div id=updatePrice-tab>
+					<div>
 						<div>
 							<datalist id="updatePriceNames">
 								<template is="dom-repeat" items="{{prices}}">
@@ -584,7 +584,7 @@ class offerUpdate extends PolymerElement {
 							</paper-button>
 						</div>
 					</div>
-					<div id="add-Alt-tab">
+					<div">
 						<div>
 							<datalist id="updateAltNames">
 								<template is="dom-repeat" items="{{alterations}}">
@@ -595,9 +595,7 @@ class offerUpdate extends PolymerElement {
 									list="updateAltNames"
 									value="{{altUpdateName::input}}"
 									placeholder="Name"/>
-							<paper-tooltip
-									for="updateAltName"
-									offset="0">
+							<paper-tooltip>
 								Add a value to update the offer price alteration name
 							</paper-tooltip>
 						</div>
