@@ -439,8 +439,7 @@ class offerAdd extends PolymerElement {
 									no-animations="true">
 								<paper-listbox
 										id="addPricePeriod"
-										slot="dropdown-content"
-										selected="2">
+										slot="dropdown-content">
 									<paper-item>
 										Hourly
 									</paper-item>
@@ -576,6 +575,7 @@ class offerAdd extends PolymerElement {
 										no-animations="true"
 										label="Prefix Tariff Table">
 									<paper-listbox
+											id="addPriceTariff"
 											slot="dropdown-content">
 										<template
 												is="dom-repeat"
@@ -1069,11 +1069,8 @@ class offerAdd extends PolymerElement {
 		if(this.prices) {
 			var indexPrice = this.prices.findIndex(checkPriceUpdateName);
 			if (indexPrice == -1) {
+				this.clearPrice();
 				this.addOrUpdateButton = "add";
-				this.priceDescription = null;
-				this.offerStartDatePrice = null;
-				this.offerEndDatePrice = null;
-				this.priceType = null;
 				if(this.offerAddSpec == "Prepaid Data") {
 					this.$.altBytes.disabled = false;
 					this.$.altSeconds.disabled = false;
@@ -1089,17 +1086,6 @@ class offerAdd extends PolymerElement {
 					this.$.altBytes.disabled = true;
 					this.$.altSeconds.disabled = true;
 				}
-				this.pricePla = null;
-				this.priceSize = null;
-				this.priceUnits = null;
-				this.priceAmount = null;
-				this.priceCurrency = null;
-				this.pricePeriod = null;
-				this.priceAlteration = null;
-				this.priceReserveTime = null;
-				this.priceReserveOctets = null;
-				this.priceTodStart = null;
-				this.priceTodEnd = null;
 			} else {
 				this.addOrUpdateButton = "update";
 				this.priceDescription = this.prices[indexPrice].description;
@@ -1193,15 +1179,7 @@ class offerAdd extends PolymerElement {
 			var index = this.alterations.findIndex(checkName);
 			if (index == -1) {
 				this.addOrUpdateButton = "add";
-				this.alterationDescription = null;
-				this.alterationStartDate = null;
-				this.alterationEndDate = null;
-				this.alterationType = null;
-				this.alterationSize = null;
-				this.alterationUnit = null;
-				this.alterationAmount = null;
-				this.alterationCurrency = null;
-				this.altAddPeriod = null;
+				this.clearAlteration();
 			} else {
 				this.addOrUpdateButton = "update";
 				this.alterationDescription = this.alterations[index].description;
@@ -1986,6 +1964,7 @@ class offerAdd extends PolymerElement {
 			}
 		}
 	}
+
 	_addPrice(event) {
 		function checkPriceName(price) {
 			return price.name == null;
@@ -2110,25 +2089,7 @@ class offerAdd extends PolymerElement {
 				this.addOrUpdateButton = "add";
 			}
 			this.priceName = null;
-			this.priceDescription = null;
-			this.offerStartDatePrice = null;
-			this.offerEndDatePrice = null;
-			this.$.addPriceType.selected = null;
-			this.priceSize = null;
-			this.$.addPriceUnits.selected = null;
-			this.priceAmount = null;
-			this.priceCurrency = null;
-			this.$.addPricePeriod.selected = null;
-			this.$.addPriceAlteration.selected = null;
-			this.priceReserveTime = null;
-			this.$.addPriceCharReserveTime.disabled = false;
-			this.priceReserveOctets = null;
-			this.$.addPriceCharReserveOctets.disabled = false;
-			this.priceTariff = null;
-			this.priceRoaming = null;
-			this.priceKey = null;
-			this.priceTodStart = null;
-			this.priceTodEnd = null;
+			this.clearPrice();
 			var toast = document.body.querySelector('sig-app').shadowRoot.getElementById('restError');
 			toast.text = "Success";
 			toast.open();
@@ -2246,15 +2207,7 @@ class offerAdd extends PolymerElement {
 				this.addOrUpdateButton = "add";
 			}
 			this.alterationName = null;
-			this.alterationDescription = null;
-			this.alterationStartDate = null;
-			this.alterationEndDate = null;
-			this.$.addAltType.selected = null;
-			this.alterationSize = null;
-			this.$.addAlterationUnits.selected = null;
-			this.alterationAmount = null;
-			this.alterationCurrency = null;
-			this.$.addAltPeriod.selected = null;
+			this.clearAlteration();
 			var toast = document.body.querySelector('sig-app').shadowRoot.getElementById('restError');
 			toast.text = "Success";
 			toast.open();
@@ -2284,6 +2237,68 @@ class offerAdd extends PolymerElement {
 		toast.open();
 	}
 
+	clearPrice() {
+		this.priceDescription = null;
+		this.offerStartDatePrice = null;
+		this.offerEndDatePrice = null;
+		this.priceType = null;
+		this.$.addPriceType.selected = null;
+		this.pricePla = null;
+		this.$.addPla.disabled = false;
+		this.priceSize = null;
+		this.priceUnits = null;
+		this.$.addPriceUnits.selected = null;
+		this.$.priceBytes.disabled = false;
+		this.$.priceSeconds.disabled = false;
+		this.$.priceMessages.disabled = false;
+		this.$.priceCents.disabled = false;
+		this.priceAmount = null;
+		this.$.addPriceAmount.disabled = false;
+		this.priceCurrency = null;
+		this.pricePeriod = null;
+		this.$.addPricePeriod.selected = null;
+		this.$.addPricePerioddrop.disabled = false;
+		this.priceAlteration = null;
+		this.$.addPriceAlteration.selected = null;
+		this.priceTodStart = null;
+		this.priceTodEnd = null;
+		this.priceCallDirectionIn = false;
+		this.priceCallDirectionOut = false;
+		this.priceReserveTime = null;
+		this.$.addPriceCharReserveTime.disabled = false;
+		this.priceReserveOctets = null;
+		this.$.addPriceCharReserveOctets.disabled = false;
+		this.priceTariff = null;
+		this.$.addPriceTariff.selected = null;
+		this.priceRoaming = null;
+		this.priceKey = null;
+		this.$.addPriceChars.hide();
+		this.$.priceCharsSection.icon = "arrow-drop-down";
+		this.$.addPriceCharsTime.hide();
+		this.$.priceCharsSection.icon = "arrow-drop-down";
+		this.$.callDirection.hide();
+		this.$.callDirSection.icon = "arrow-drop-down";
+	}
+
+	clearAlteration() {
+		this.alterationDescription = null;
+		this.alterationStartDate = null;
+		this.alterationEndDate = null;
+		this.alterationType = null;
+		this.$.addAltType.selected = null;
+		this.alterationSize = null;
+		this.alterationUnit = null;
+		this.$.altBytes.disabled = false;
+		this.$.altSeconds.disabled = false;
+		this.$.altMessages.disabled = false;
+		this.$.altCents.disabled = false;
+		this.$.addAlterationUnits.selected = null;
+		this.alterationAmount = null;
+		this.alterationCurrency = null;
+		this.alterationPeriod = null;
+		this.$.addAltPeriod.selected = null;
+	}
+
 	cancelDialog() {
 		this.set('prices', []);
 		this.set('alterations', []);
@@ -2294,9 +2309,6 @@ class offerAdd extends PolymerElement {
 		this.$.addOfferProductStatusList.selected = null;
 		this.$.addOfferChars.hide();
 		this.$.addBundle.hide();
-		this.priceTariff = null;
-		this.priceRoaming = null;
-		this.priceKey = null;
 		this.$.addReserveSessionTime.value = null;
 		this.$.addReserveSessionTime.disabled = false;
 		this.$.addReserveSessionOctets.value = null;
@@ -2305,46 +2317,13 @@ class offerAdd extends PolymerElement {
 		this.offerEndDate = null;
 		this.offerStartDatePrice = null;
 		this.offerEndDatePrice = null;
-		this.priceName = null;
-		this.priceDescription = null;
-		this.$.addPriceType.selected = null;
-		this.$.priceMessages.disabled = false;
-		this.$.priceBytes.disabled = false;
-		this.$.priceSeconds.disabled = false;
-		this.priceType = null;
-		this.priceSize = null;
-		this.$.addPriceUnits.selected = null;
-		this.priceAmount = null;
-		this.priceCurrency = null;
-		this.$.addPricePeriod.selected = null;
-		this.priceReserveTime = null;
-		this.$.addPriceCharReserveTime.disabled = false;
-		this.priceReserveOctets = null;
-		this.$.addPriceCharReserveOctets.disabled = false;
-		this.alterationName = null;
-		this.alterationDescription = null;
-		this.alterationStartDate = null;
-		this.alterationEndDate = null;
-		this.$.addAltType.selected = null;
-		this.$.altBytes.disabled = false;
-		this.$.altSeconds.disabled = false;
-		this.$.altMessages.disabled = false;
-		this.alterationSize = null;
-		this.$.addAlterationUnits.selected = null;
-		this.alterationAmount = null;
-		this.alterationCurrency = null;
-		this.$.addAltPeriod.selected = null;
-		this.priceTodStart = null;
-		this.priceTodEnd = null;
-		this.selected = 0;
 		this.$.addOfferChars.hide();
 		this.$.onClickOfferChars.icon = "arrow-drop-down";
-		this.$.addPriceChars.hide();
-		this.$.priceCharsSection.icon = "arrow-drop-down";
-		this.$.addPriceCharsTime.hide();
-		this.$.priceCharsSection.icon = "arrow-drop-down";
-		this.$.callDirection.hide();
-		this.$.callDirSection.icon = "arrow-drop-down";
+		this.priceName = null;
+		this.clearPrice();
+		this.alterationName = null;
+		this.clearAlteration();
+		this.selected = 0;
 		this.$.addOfferModal.close();
 	}
 
