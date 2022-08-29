@@ -1166,7 +1166,7 @@ class offerAdd extends PolymerElement {
 				}
 				this.priceTariff = this.prices[indexPrice].prefixTariff;
 				this.priceRoaming = this.prices[indexPrice].roamingTable;
-				this.priceKey = this.prices[indexPrice].priceKey;
+				this.priceKey = this.prices[indexPrice].chargingKey;
 			}
 		}
 	}
@@ -2072,7 +2072,7 @@ class offerAdd extends PolymerElement {
 		}
 		priceNew.prefixTariff = this.priceTariff;
 		priceNew.roamingTable = this.priceRoaming;
-		priceNew.chargingKey = parseInt(this.priceKey);
+		priceNew.chargingKey = this.priceKey;
 		if(priceNew.name
 					&& priceNew.type
 					&& priceNew.unit
