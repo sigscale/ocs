@@ -1034,25 +1034,21 @@ class offerUpdate extends PolymerElement {
 				}
 				if (current.prices[index].unitOfMeasure) {
 					var unitOfMeasure = current.prices[index].unitOfMeasure;
-					switch(unitOfMeasure.slice(-1)) {
-						case "b":
-							var conv;
-							conv = unitOfMeasure = parseInt(unitOfMeasure.slice(0, -1));
-							newPrice.size = conv.toString();
-							newPrice.unit = "b";
-							break;
-						case "s":
-							var conv1;
-							conv1 = parseInt(unitOfMeasure.slice(0, -1));
-							newPrice.size = conv1.toString();
-							newPrice.unit = "s";
-							break;
-						case "msg":
-							var conv2;
-							conv2 = parseInt(unitOfMeasure.slice(0, -1));
-							newPrice.size = conv2.toString();
-							newPrice.unit = "msg";
-							break;
+					if(unitOfMeasure.slice(-3) == "msg") {
+						var conv2;
+						conv2 = parseInt(unitOfMeasure.slice(0, -1));
+						newPrice.size = conv2.toString();
+						newPrice.unit = "msg";
+					} else if(unitOfMeasure.slice(-1) == "b") {
+						var conv;
+						conv = unitOfMeasure = parseInt(unitOfMeasure.slice(0, -1));
+						newPrice.size = conv.toString();
+						newPrice.unit = "b";
+					} else if(unitOfMeasure.slice(-1) == "s") {
+						var conv1;
+						conv1 = parseInt(unitOfMeasure.slice(0, -1));
+						newPrice.size = conv1.toString();
+						newPrice.unit = "s";
 					}
 				}
 				if(current.prices[index].price) {
@@ -3258,6 +3254,7 @@ class offerUpdate extends PolymerElement {
 		this.updateOfferStartDateAlt = null;
 		this.updateOfferEndDateAlt = null;
 		this.altUpdateType = null;
+		this.$.updateAlterationUnits.selected = null;
 		this.$.altSeconds.disabled = false;
 		this.$.altBytes.disabled = false;
 		this.$.updateAltSize.value = null;
