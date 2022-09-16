@@ -1104,7 +1104,7 @@ class offerAdd extends PolymerElement {
 					case "tariff":
 						this.$.addPriceType.selected = 3;
 						break;
-				}
+      		}
 				this.pricePla = this.prices[indexPrice].pla;
 				this.priceSize = this.prices[indexPrice].size;
 				switch(this.prices[indexPrice].unit) {
@@ -1167,6 +1167,12 @@ class offerAdd extends PolymerElement {
 				this.priceTariff = this.prices[indexPrice].prefixTariff;
 				this.priceRoaming = this.prices[indexPrice].roamingTable;
 				this.priceKey = this.prices[indexPrice].chargingKey;
+				var priceNameUp = document.body.querySelector('sig-app').shadowRoot.getElementById('addOffer').priceName;
+				function checkPr(pri) {
+					return pri.name == priceNameUp;
+				}
+				var priIndex = this.prices.findIndex(checkPr);
+				this.prices.splice(priIndex, 1);
 			}
 		}
 	}
