@@ -1,3 +1,15 @@
+2022-09-20 Vance Shipley <vances@sigscale.org>
+
+	* fix bug for create price twice
+	* fix bug for display existing prices in offering
+	* correct reading charging key from price
+	* clear price and alteration dialogs with common functions
+	* fix tab switch on input bug
+	* remove unused div ids in offer update dialog
+	* fix status in service view
+	* fix codec
+	* non-ip addresses as binary; recipient received address avp
+
 2022-08-20 Vance Shipley <vances@sigscale.org>
 
 	* missing enumerations for sms message type
