@@ -502,30 +502,43 @@ peer_stat([{_PeerFsm, PeerStats} | T]) ->
 peer_stat([]) ->
 	ok.
 %% @hidden
-peer_stat1([{{{Application, CommandCode, _}, Direction, {RC, RcCount}}, Count} | T], Acc) ->
+peer_stat1([{{{Application, CommandCode, RequestFlag}, _Direction, {'Result-Code', ResultCode}}, Count} | T], Acc) ->
 	NewAcc = case maps:find(Application, Acc) of
 		{ok, CommandMap} ->
-			case maps:find({CommandCode, Direction, RC, RcCount}, CommandMap) of
+			case maps:find({CommandCode, 'Result-Code', ResultCode}, CommandMap) of
 				{ok, Value} ->
-					Acc#{Application => CommandMap#{{CommandCode, Direction, RC, RcCount} => Value + Count}};
+					Acc#{Application => CommandMap#{{CommandCode, RequestFlag, 'Result-Code', ResultCode} => Value + Count}};
 				error->
-					Acc#{Application => CommandMap#{{CommandCode, Direction, RC, RcCount} => Count}}
+					Acc#{Application => CommandMap#{{CommandCode, RequestFlag, 'Result-Code', ResultCode} => Count}}
 			end;
 		error->
-			Acc#{Application => #{{CommandCode, Direction, RC, RcCount} => Count}}
+			Acc#{Application => #{{CommandCode, RequestFlag, 'Result-Code', ResultCode} => Count}}
 	end,
 	peer_stat1(T, NewAcc);
-peer_stat1([{{{Application, CommandCode, _}, Direction}, Count} | T], Acc) ->
+peer_stat1([{{{Application, CommandCode, RequestFlag}, _Direction, error}, Count} | T], Acc) ->
 	NewAcc = case maps:find(Application, Acc) of
 		{ok, CommandMap} ->
-			case maps:find({CommandCode, Direction}, CommandMap) of
+			case maps:find({CommandCode, RequestFlag, error}, CommandMap) of
 				{ok, Value} ->
-					Acc#{Application => CommandMap#{{CommandCode, Direction} => Value + Count}};
+					Acc#{Application => CommandMap#{{CommandCode, RequestFlag, error} => Value + Count}};
 				error->
-					Acc#{Application => CommandMap#{{CommandCode, Direction} => Count}}
+					Acc#{Application => CommandMap#{{CommandCode, RequestFlag, error} => Count}}
 			end;
 		error->
-			Acc#{Application => #{{CommandCode, Direction} => Count}}
+			Acc#{Application => #{{CommandCode, RequestFlag, error} => Count}}
+	end,
+	peer_stat1(T, NewAcc);
+peer_stat1([{{{Application, CommandCode, RequestFlag}, _Direction}, Count} | T], Acc) ->
+	NewAcc = case maps:find(Application, Acc) of
+		{ok, CommandMap} ->
+			case maps:find({CommandCode, RequestFlag}, CommandMap) of
+				{ok, Value} ->
+					Acc#{Application => CommandMap#{{CommandCode, RequestFlag} => Value + Count}};
+				error->
+					Acc#{Application => CommandMap#{{CommandCode, RequestFlag} => Count}}
+			end;
+		error->
+			Acc#{Application => #{{CommandCode, RequestFlag} => Count}}
 
 	end,
 	peer_stat1(T, NewAcc);
@@ -569,67 +582,84 @@ dia_application(16777238) ->
 		Command :: tuple(),
 		Count :: non_neg_integer().
 %% @doc Print the command name and count.
-dia_count({257, send}, Count) ->
-	io:fwrite("      	CER: ~b~n", [Count]);
-dia_count({257, recv}, Count) ->
+dia_count({257, 1}, Count) ->
+	io:fwrite("        CER: ~b~n", [Count]);
+dia_count({257, 0}, Count) ->
 	io:fwrite("        CEA: ~b~n", [Count]);
-dia_count({280, send}, Count) ->
+dia_count({280, 1}, Count) ->
 	io:fwrite("        DWR: ~b~n", [Count]);
-dia_count({280, recv}, Count) ->
+dia_count({280, 0}, Count) ->
 	io:fwrite("        DWA: ~b~n", [Count]);
-dia_count({271, send}, Count) ->
+dia_count({271, 1}, Count) ->
 	io:fwrite("        ACR: ~b~n", [Count]);
-dia_count({271, recv}, Count) ->
+dia_count({271, 0}, Count) ->
 	io:fwrite("        ACA: ~b~n", [Count]);
-dia_count({282, send}, Count) ->
+dia_count({282, 1}, Count) ->
 	io:fwrite("        DPR: ~b~n", [Count]);
-dia_count({282, recv}, Count) ->
+dia_count({282, 0}, Count) ->
 	io:fwrite("        DPA: ~b~n", [Count]);
-dia_count({258, send}, Count) ->
+dia_count({258, 1}, Count) ->
 	io:fwrite("        RAR: ~b~n", [Count]);
-dia_count({258, recv}, Count) ->
+dia_count({258, 0}, Count) ->
 	io:fwrite("        RAA: ~b~n", [Count]);
-dia_count({274, send}, Count) ->
+dia_count({274, 1}, Count) ->
 	io:fwrite("        ASR: ~b~n", [Count]);
-dia_count({274, recv}, Count) ->
+dia_count({274, 0}, Count) ->
 	io:fwrite("        ASA: ~b~n", [Count]);
-dia_count({275, send}, Count) ->
+dia_count({275, 1}, Count) ->
 	io:fwrite("        STR: ~b~n", [Count]);
-dia_count({275, recv}, Count) ->
+dia_count({275, 0}, Count) ->
 	io:fwrite("        STA: ~b~n", [Count]);
-dia_count({272, send}, Count) ->
+dia_count({272, 1}, Count) ->
 	io:fwrite("        CCR: ~b~n", [Count]);
-dia_count({272, recv}, Count) ->
+dia_count({272, 0}, Count) ->
 	io:fwrite("        CCA: ~b~n", [Count]);
-dia_count({257, send, RC, RcCount}, Count) ->
-	io:fwrite("        CER ~w ~b: ~b~n", [RC, RcCount, Count]);
-dia_count({257, recv, RC, RcCount}, Count) ->
-	io:fwrite("        CEA ~w ~b: ~b~n", [RC, RcCount, Count]);
-dia_count({280, send, RC, RcCount}, Count) ->
-	io:fwrite("        DWR ~w ~b: ~b~n", [RC, RcCount, Count]);
-dia_count({280, recv, RC, RcCount}, Count) ->
-	io:fwrite("        DWA ~w ~b: ~b~n", [RC, RcCount, Count]);
-dia_count({271, send, RC, RcCount}, Count) ->
-	io:fwrite("        ACR ~w ~b: ~b~n", [RC, RcCount, Count]);
-dia_count({271, recv, RC, RcCount}, Count) ->
-	io:fwrite("        ACA ~w ~b: ~b~n", [RC, RcCount, Count]);
-dia_count({282, send, RC, RcCount}, Count) ->
-	io:fwrite("        DPR ~w ~b: ~b~n", [RC, RcCount, Count]);
-dia_count({282, recv, RC, RcCount}, Count) ->
-	io:fwrite("        DPA ~w ~b: ~b~n", [RC, RcCount, Count]);
-dia_count({258, send, RC, RcCount}, Count) ->
-	io:fwrite("        RAR ~w ~b: ~b~n", [RC, RcCount, Count]);
-dia_count({258, recv, RC, RcCount}, Count) ->
-	io:fwrite("        RAA ~w ~b: ~b~n", [RC, RcCount, Count]);
-dia_count({274, send, RC, RcCount}, Count) ->
-	io:fwrite("        ASR ~w ~b: ~b~n", [RC, RcCount, Count]);
-dia_count({274, recv, RC, RcCount}, Count) ->
-	io:fwrite("        ASA ~w ~b: ~b~n", [RC, RcCount, Count]);
-dia_count({275, send, RC, RcCount}, Count) ->
-	io:fwrite("        STR ~w ~b: ~b~n", [RC, RcCount, Count]);
-dia_count({275, recv, RC, RcCount}, Count) ->
-	io:fwrite("        STA ~w ~b: ~b~n", [RC, RcCount, Count]);
-dia_count({272, send, RC, RcCount}, Count) ->
-	io:fwrite("        CCR ~w ~b: ~b~n", [RC, RcCount, Count]);
-dia_count({272, recv, RC, RcCount}, Count) ->
-	io:fwrite("        CCA ~w ~b: ~b~n", [RC, RcCount, Count]).
+dia_count({257, 0, 'Result-Code', ResultCode}, Count) ->
+	io:fwrite("        CEA ~w ~b: ~b~n", ['Result-Code', ResultCode, Count]);
+dia_count({280, 0, 'Result-Code', ResultCode}, Count) ->
+	io:fwrite("        DWA ~w ~b: ~b~n", ['Result-Code', ResultCode, Count]);
+dia_count({271, 0, 'Result-Code', ResultCode}, Count) ->
+	io:fwrite("        ACA ~w ~b: ~b~n", ['Result-Code', ResultCode, Count]);
+dia_count({282, 0, 'Result-Code', ResultCode}, Count) ->
+	io:fwrite("        DPA ~w ~b: ~b~n", ['Result-Code', ResultCode, Count]);
+dia_count({258, 0, 'Result-Code', ResultCode}, Count) ->
+	io:fwrite("        RAA ~w ~b: ~b~n", ['Result-Code', ResultCode, Count]);
+dia_count({274, 0, 'Result-Code', ResultCode}, Count) ->
+	io:fwrite("        ASA ~w ~b: ~b~n", ['Result-Code', ResultCode, Count]);
+dia_count({275, 0, 'Result-Code', ResultCode}, Count) ->
+	io:fwrite("        STA ~w ~b: ~b~n", ['Result-Code', ResultCode, Count]);
+dia_count({272, 0, 'Result-Code', ResultCode}, Count) ->
+	io:fwrite("        CCA ~w ~b: ~b~n", ['Result-Code', ResultCode, Count]);
+dia_count({257, 1, error}, Count) ->
+	io:fwrite("        CER error: ~b~n", [Count]);
+dia_count({257, 0, error}, Count) ->
+	io:fwrite("        CEA error: ~b~n", [Count]);
+dia_count({280, 1, error}, Count) ->
+	io:fwrite("        DWR error: ~b~n", [Count]);
+dia_count({280, 0, error}, Count) ->
+	io:fwrite("        DWA error: ~b~n", [Count]);
+dia_count({271, 1, error}, Count) ->
+	io:fwrite("        ACR error: ~b~n", [Count]);
+dia_count({271, 0, error}, Count) ->
+	io:fwrite("        ACA error: ~b~n", [Count]);
+dia_count({282, 1, error}, Count) ->
+	io:fwrite("        DPR error: ~b~n", [Count]);
+dia_count({282, 0, error}, Count) ->
+	io:fwrite("        DPA error: ~b~n", [Count]);
+dia_count({258, 1, error}, Count) ->
+	io:fwrite("        RAR error: ~b~n", [Count]);
+dia_count({258, 0, error}, Count) ->
+	io:fwrite("        RAA error: ~b~n", [Count]);
+dia_count({274, 1, error}, Count) ->
+	io:fwrite("        ASR error: ~b~n", [Count]);
+dia_count({274, 0, error}, Count) ->
+	io:fwrite("        ASA error: ~b~n", [Count]);
+dia_count({275, 1, error}, Count) ->
+	io:fwrite("        STR error: ~b~n", [Count]);
+dia_count({275, 0, error}, Count) ->
+	io:fwrite("        STA error: ~b~n", [Count]);
+dia_count({272, 1, error}, Count) ->
+	io:fwrite("        CCR error: ~b~n", [Count]);
+dia_count({272, 0, error}, Count) ->
+	io:fwrite("        CCA error: ~b~n", [Count]).
+
