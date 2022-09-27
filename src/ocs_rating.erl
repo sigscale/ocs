@@ -668,7 +668,7 @@ charge1(radius, Service, ServiceId, Product, Buckets,
 		initial, [], [], SessionId, Rated, ChargingKey) ->
 	charge2(Service, ServiceId, Product, Buckets,
 			PriceType, UnitSize, Units, Currency, UnitPrice, initial, {Units, 0},
-			get_reserve(#price{units = Units, char_value_use = PriceChars}),
+			get_reserve(Units, PriceChars),
 			SessionId, Rated, ChargingKey);
 charge1(radius, Service, ServiceId, Product, Buckets,
 		PriceType, UnitSize, Units, Currency, UnitPrice, PriceChars,
@@ -681,12 +681,10 @@ charge1(radius, Service, ServiceId, Product, Buckets,
 	end,
 	ReserveAmount = case lists:keyfind(Units, 1, ReserveAmounts) of
 		{_, ReserveUnits} ->
-			{Units, Amount} = get_reserve(#price{units = Units,
-					char_value_use = PriceChars}),
+			{Units, Amount} = get_reserve(Units, PriceChars),
 			{Units, ReserveUnits + Amount};
 		false ->
-			get_reserve(#price{units = Units,
-					char_value_use = PriceChars})
+			get_reserve(Units, PriceChars)
 	end,
 	charge2(Service, ServiceId, Product, Buckets, PriceType,
 			UnitSize, Units, Currency, UnitPrice, interim, DebitAmount, ReserveAmount,
@@ -2227,16 +2225,15 @@ price_units(Amount, UnitSize, UnitPrice) ->
 	Units = (Amount div UnitSize) + 1,
 	{Units * UnitSize, UnitPrice * Units}.
 
--spec get_reserve(Price) -> ReserveAmount
+-spec get_reserve(Units, CharValueUse) -> ReserveAmount
 	when
-		Price :: #price{},
-		ReserveAmount :: {Units, Amount},
 		Units :: seconds | octets,
+		CharValueUse :: [tuple()],
+		ReserveAmount :: {Units, Amount},
 		Amount :: pos_integer().
 %% @doc Get the reserve amount.
 %% @private
-get_reserve(#price{units = seconds,
-		char_value_use = CharValueUse} = _Price) ->
+get_reserve(seconds, CharValueUse) ->
 	case lists:keyfind("radiusReserveTime",
 			#char_value_use.name, CharValueUse) of
 		#char_value_use{values = CharValue} ->
@@ -2254,8 +2251,7 @@ get_reserve(#price{units = seconds,
 		false ->
 			{seconds, 0}
 	end;
-get_reserve(#price{units = octets,
-		char_value_use = CharValueUse} = _Price) ->
+get_reserve(octets, CharValueUse) ->
 	case lists:keyfind("radiusReserveOctets",
 			#char_value_use.name, CharValueUse) of
 		#char_value_use{values = CharValue} ->
