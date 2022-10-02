@@ -71,7 +71,6 @@ new(Table, Options) when is_list(Options) ->
 			[{attributes, record_info(fields, gtt)},
 			{record_name, gtt}]) of
 		{atomic, ok} ->
-			add_resource(Table),
 			ok;
 		{aborted, Reason} ->
 			exit(Reason)
@@ -102,7 +101,6 @@ new(Table, Options, Items) when is_list(Options), is_list(Items) ->
 	mnesia:create_table(Table, Options ++
 			[{attributes, record_info(fields, gtt)},
 			{record_name, gtt}]),
-	add_resource(Table),
 	Threshold = mnesia:system_info(dump_log_write_threshold) - 1,
 	Ftran = fun(F, [{Number, Value} | T], N) when is_integer(Number) ->
 				F(F, [{integer_to_list(Number), Value} | T], N);
@@ -260,7 +258,7 @@ lookup_all(Table, [Digit | Rest]) when is_atom(Table) ->
 		Tables :: Table | [Table],
 		Table :: atom() | string(),
 		File :: string().
-%% @doc Create a backup of the named table(s) in `File.BUPTMP'.
+%% @doc Create a backup of the named table(s) in `File'.
 %%
 backup([H | _ ] = Tables, File) when is_list(H) ->
 	backup([list_to_existing_atom(T) || T <- Tables], File);
@@ -288,7 +286,7 @@ backup(Tables, File) when is_list(Tables), is_list(File) ->
 		Table :: atom() | string(),
 		File :: string(),
 		RestoredTabs :: [atom()].
-%% @doc Restore the named table(s) from the backup in `File.BUPTMP'.
+%% @doc Restore the named table(s) from the backup in `File'.
 %%
 restore([H | _ ] = Tables, File) when is_list(H) ->
 	restore([list_to_existing_atom(T) || T <- Tables], File);
@@ -299,7 +297,6 @@ restore(Tables, File) when is_atom(Tables) ->
 restore(Tables, File) when is_list(Tables), is_list(File) ->
 	case mnesia:restore(File, [{clear_tables, Tables}]) of
 		{atomic, RestoredTabs} ->
-			add_resources(RestoredTabs),
 			{ok,  RestoredTabs};
 		{aborted, Reason} ->
 			exit(Reason)
@@ -368,7 +365,6 @@ import3(Table, Records) ->
 	end,
 	case mnesia:transaction(F) of
 		{atomic, ok} ->
-			add_resource(Table),
 			ok;
 		{aborted, Reason} ->
 			exit(Reason)
@@ -533,37 +529,6 @@ clear_table(Table) when is_atom(Table) ->
 %%----------------------------------------------------------------------
 %%  internal functions
 %%----------------------------------------------------------------------
-
--spec add_resource(Table) -> Result
-	when
-		Table :: atom() | string(),
-		Result :: ok.
-%% @doc Add a REST resource.
-add_resource(Table) when is_atom(Table) ->
-	add_resource(atom_to_list(Table));
-add_resource(Table) when is_list(Table) ->
-	TariffResource = #resource{name = Table, state = "created",
-			description = Table ++ " tariff",
-			specification = #specification_ref{id = "1",
-			href = "/resourceCatalogManagement/v2/resourceSpecification/1",
-			name = "TariffTable"}},
-	case ocs:add_resource(TariffResource) of
-		{ok, #resource{}} ->
-			ok;
-		{error, Reason} ->
-			exit(Reason)
-	end.
-
--spec add_resources(Tables) -> Result
-	when
-		Tables :: [atom() | string()],
-		Result :: ok.
-%% @doc Add a REST resource.
-add_resources([H | T]) ->
-	ok = add_resource(H),
-	add_resources(T);
-add_resources([]) ->
-	ok.
 
 -spec insert(Table, Number, Value, []) -> {NumWrites, #gtt{}}
 	when
