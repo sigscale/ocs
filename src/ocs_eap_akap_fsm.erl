@@ -853,7 +853,7 @@ challenge1(EapMessage1, Request, RAT,
 		#eap_packet{code = response, type = ?AKAprime, identifier = EapID,
 				data = Data1} = ocs_eap_codec:eap_packet(EapMessage1),
 		case ocs_eap_codec:eap_aka(Data1) of
-			#eap_aka_challenge{res = RES, mac = MAC}
+			#eap_aka_challenge{res = RES, mac = MAC} ->
 				EapMessage2 = ocs_eap_codec:aka_clear_mac(EapMessage1),
 				case ?HMACN_SHA(Kaut, EapMessage2) of
 					MAC ->
