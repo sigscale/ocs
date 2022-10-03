@@ -741,8 +741,7 @@ challenge({#radius{id = RadiusID, authenticator = RequestAuthenticator,
 		#eap_packet{code = response, type = ?AKAprime, identifier = EapID,
 				data = Data1} = ocs_eap_codec:eap_packet(EapMessage1),
 		case ocs_eap_codec:eap_aka(Data1) of
-			#eap_aka_challenge{res = RES, checkcode = CheckCode, mac = MAC}
-					when ((CheckCode == undefined) or (CheckCode == <<>>)) ->
+			#eap_aka_challenge{res = RES, mac = MAC} ->
 				EapMessage2 = ocs_eap_codec:aka_clear_mac(EapMessage1),
 				case ?HMACN_SHA(Kaut, EapMessage2) of
 					MAC ->
@@ -777,8 +776,7 @@ challenge({#radius{id = RadiusID, authenticator = RequestAuthenticator,
 								RequestAttributes, undefined, NextStateData),
 						{next_state, failure, NextStateData, ?TIMEOUT}
 				end;
-			#eap_aka_challenge{checkcode = CheckCode}
-					when ((CheckCode == undefined) or (CheckCode == <<>>)) ->
+			#eap_aka_challenge{} ->
 				Notification = #eap_aka_notification{notification = 16384},
 				Data2 = ocs_eap_codec:eap_aka(Notification),
 				EapPacket1 = #eap_packet{code = request,
@@ -855,8 +853,7 @@ challenge1(EapMessage1, Request, RAT,
 		#eap_packet{code = response, type = ?AKAprime, identifier = EapID,
 				data = Data1} = ocs_eap_codec:eap_packet(EapMessage1),
 		case ocs_eap_codec:eap_aka(Data1) of
-			#eap_aka_challenge{res = RES, checkcode = CheckCode, mac = MAC}
-					when ((CheckCode == undefined) or (CheckCode == <<>>)) ->
+			#eap_aka_challenge{res = RES, mac = MAC}
 				EapMessage2 = ocs_eap_codec:aka_clear_mac(EapMessage1),
 				case ?HMACN_SHA(Kaut, EapMessage2) of
 					MAC ->
@@ -878,8 +875,7 @@ challenge1(EapMessage1, Request, RAT,
 								EapMessage3, PortServer, Request, undefined, NextStateData),
 						{next_state, failure, NextStateData, ?TIMEOUT}
 				end;
-			#eap_aka_challenge{checkcode = CheckCode}
-					when ((CheckCode == undefined) or (CheckCode == <<>>)) ->
+			#eap_aka_challenge{} ->
 				Notification = #eap_aka_notification{notification = 16384},
 				Data2 = ocs_eap_codec:eap_aka(Notification),
 				EapPacket1 = #eap_packet{code = request,
