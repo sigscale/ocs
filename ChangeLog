@@ -1,3 +1,10 @@
+2022-10-03 Vance Shipley <vances@sigscale.org>
+
+	* ignore unimplemented eap checkcode
+	* do not add a (redundant) table resource on new/import
+	* rational get_reserve/2 arguments
+	* handle error count and request flag in diameter statistics shell command
+
 2022-09-20 Vance Shipley <vances@sigscale.org>
 
 	* fix bug for create price twice
