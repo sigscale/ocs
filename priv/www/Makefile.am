@@ -39,6 +39,7 @@ MODULES = sig-ipdr-list-wlan.js \
 		sig-policy-list.js \
 		sig-policy-add.js \
 		sig-policy-table-add.js \
+		sig-ocs-dashboard.js \
 		style-element.js
 
 $(abs_builddir)/index.html:
@@ -56,6 +57,7 @@ $(abs_builddir)/sw-precache-config.js:
 package.json: yarn.lock
 
 yarn.lock:
+	yarn add d3
 	yarn add polymer-cli
 	yarn install
 

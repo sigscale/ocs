@@ -271,6 +271,12 @@ styleElement.innerHTML = `<template>
 				font-size: larger;
 			}
 		}
+		#schedGraph {
+			width: 100%;
+		}
+		#schedule {
+			width: 100%;
+		}
 	</style>
 </template>`;
 

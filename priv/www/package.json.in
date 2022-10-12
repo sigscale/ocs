@@ -46,6 +46,13 @@
     "@polymer/paper-toggle-button": "^3.0.1",
     "@polymer/paper-dialog-scrollable": "^3.0.1",
     "@polymer/iron-list": "^3.1.0",
+    "d3-selection": "3",
+    "d3-shape": "3",
+    "d3-scale": "4",
+    "d3-axis": "3",
+    "d3-array": "3",
+    "d3-delaunay": "6",
+    "d3-scale-chromatic": "3",
     "@vaadin/vaadin-grid": "^5.1.0-alpha3"
   },
   "devDependencies": {

@@ -175,6 +175,11 @@ class SigApp extends PolymerElement {
 								loading="{{policyLoading}}"
 								name="policyView">
 						</sig-policy-list>
+						<sig-dashboard
+								id="dashBoard"
+								loading="{{dashLoading}}"
+								name="dashView">
+						</sig-dashboard>
 					</iron-pages>
 					<paper-toast
 							id="restError"
@@ -190,6 +195,12 @@ class SigApp extends PolymerElement {
 							attr-for-selected="name"
 							class="drawer-list"
 							role="navigation">
+						<a name="dashView" href="[[rootPath]]dashView">
+							<paper-icon-button
+								icon="my-icons:dashboard">
+							</paper-icon-button>
+							Dashboard
+						</a>
 						<a href="" on-click="_collapseCatalog">
 							<paper-icon-button
 									icon="my-icons:store">
@@ -332,6 +343,14 @@ class SigApp extends PolymerElement {
 	}
 
 	refresh() {
+		if(this.$.load.selected == "dashView") {
+			var dash = document.body.querySelector('sig-app').shadowRoot.getElementById('dashBoard');
+			if (!dash.loading) {
+				dash._healthChart();
+			} else {
+				console.log('Have patience dude!');
+			}
+		}
 		if(this.$.load.selected == "offerView") {
 			var offerList = document.body.querySelector('sig-app').shadowRoot.getElementById('offerList');
 			offerList.splice('offers', 0, offerList.offers.length);
@@ -476,6 +495,9 @@ class SigApp extends PolymerElement {
 			bucketLoading: {
 				type: Boolean
 			},
+			dashLoading: {
+				type: Boolean
+			},
 			prefixTable: {
 				type: String
 			},
@@ -488,7 +510,7 @@ class SigApp extends PolymerElement {
 	static get observers() {
 		return [
 			'_routePageChanged(routeData.page)',
-			'_loadingChanged(offerLoading, serviceLoading, clientLoading, userLoading, accessLoading, accountingLoading, ipdrWlanLoading, ipdrVoipLoading, httpLoading, prefixLoading, balanceLoading, productLoading, bucketLoading)'
+			'_loadingChanged(dashLoading, offerLoading, serviceLoading, clientLoading, userLoading, accessLoading, accountingLoading, ipdrWlanLoading, ipdrVoipLoading, httpLoading, prefixLoading, balanceLoading, productLoading, bucketLoading)'
 		];
 	}
 
@@ -497,10 +519,16 @@ class SigApp extends PolymerElement {
 //
 // If no page was found in the route data, page will be an empty string.
 // Show 'inventoryView' in that case. And if the page doesn't exist, show 'view404'.
-		if (['offerView', 'serviceView', 'clientView', 'userView', 'accessView', 'accountingView', 'ipdrWlanView', 'ipdrVoipView', 'httpView', 'prefixView', 'policyView', 'balanceView', 'productView', 'bucketView'].indexOf(page) !== -1) {
+		if(this.page == undefined){
+			this.page = 'dashView';
+		}
+		if (['dashView', 'offerView', 'serviceView', 'clientView', 'userView', 'accessView', 'accountingView', 'ipdrWlanView', 'ipdrVoipView', 'httpView', 'prefixView', 'policyView', 'balanceView', 'productView', 'bucketView'].indexOf(page) !== -1) {
 			this.page = page;
 		}
 		switch (this.page) {
+			case 'dashView':
+				this.viewTitle = 'Dashboard';
+				break;
 			case 'offerView':
 				this.viewTitle = 'Product Offerings';
 				break;
@@ -566,6 +594,9 @@ class SigApp extends PolymerElement {
 // Note: `polymer build` doesn't like string concatenation in the import
 // statement, so break it up.
 		switch (page) {
+			case 'dashView':
+				import('./sig-dashboard.js');
+				break;
 			case 'offerView':
 				import('./sig-offer-add.js');
 				import('./sig-offer-update.js');
@@ -630,7 +661,7 @@ class SigApp extends PolymerElement {
 	}
 
 	_loadingChanged() {
-		if(this.offerLoading || this.serviceLoading || this.clientLoading || this.userLoading || this.accessLoading || this.accountingLoading || this.ipdrWlanLoading || this.ipdrVoipLoading || this.httpLoading || this.prefixLoading || this.balanceLoading || this.productLoading || this.bucketLoading) {
+		if(this.dashLoading || this.offerLoading || this.serviceLoading || this.clientLoading || this.userLoading || this.accessLoading || this.accountingLoading || this.ipdrWlanLoading || this.ipdrVoipLoading || this.httpLoading || this.prefixLoading || this.balanceLoading || this.productLoading || this.bucketLoading) {
 			this.loading = true;
 		} else {
 			this.loading = false;
