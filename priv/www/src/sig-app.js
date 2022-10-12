@@ -352,50 +352,119 @@ class SigApp extends PolymerElement {
 			}
 		}
 		if(this.$.load.selected == "offerView") {
-			var offerList = document.body.querySelector('sig-app').shadowRoot.getElementById('offerList');
-			offerList.splice('offers', 0, offerList.offers.length);
-			offerList.shadowRoot.getElementById('offerGrid').clearCache();
+			var offer = document.body.querySelector('sig-app').shadowRoot.getElementById('offerList');
+			if (!offer.loading) {
+				offer.splice('offers', 0, offerList.offers.length);
+				offer.shadowRoot.getElementById('offerGrid').clearCache();
+			} else {
+				console.log('Have patience dude!');
+			}
 		}
 		if(this.$.load.selected == "serviceView") {
-			document.body.querySelector('sig-app').shadowRoot.getElementById('serviceList').shadowRoot.getElementById('subscriberGrid').clearCache();
+			var service = document.body.querySelector('sig-app').shadowRoot.getElementById('serviceList');
+			if (!service.loading) {
+				service.shadowRoot.getElementById('subscriberGrid').clearCache();
+			} else {
+				console.log('Have patience dude!');
+			}
 		}
 		if(this.$.load.selected == "clientView") {
-			document.body.querySelector('sig-app').shadowRoot.getElementById('clientList').shadowRoot.getElementById('clientGrid').clearCache();
+			var client = document.body.querySelector('sig-app').shadowRoot.getElementById('clientList');
+			if (!client.loading) {
+				client.shadowRoot.getElementById('clientGrid').clearCache();
+			} else {
+				console.log('Have patience dude!');
+			}
 		}
 		if(this.$.load.selected == "userView") {
-			document.body.querySelector('sig-app').shadowRoot.getElementById('userList').shadowRoot.getElementById('userGrid').clearCache();
+			var user = document.body.querySelector('sig-app').shadowRoot.getElementById('userList');
+			if (!user.loading) {
+				user.shadowRoot.getElementById('userGrid').clearCache();
+			} else {
+				console.log('Have patience dude!');
+			}
 		}
 		if(this.$.load.selected == "accessView") {
-			document.body.querySelector('sig-app').shadowRoot.getElementById('accessList').shadowRoot.getElementById('accessGrid').clearCache();
+			var access = document.body.querySelector('sig-app').shadowRoot.getElementById('accessList')
+			if (!access.loading) {
+				access.shadowRoot.getElementById('accessGrid').clearCache();
+			} else {
+				console.log('Have patience dude!');
+			}
 		}
 		if(this.$.load.selected == "accountingView") {
-			document.body.querySelector('sig-app').shadowRoot.getElementById('accountingList').shadowRoot.getElementById('accountingGrid').clearCache();
+			var account = document.body.querySelector('sig-app').shadowRoot.getElementById('accountingList');
+			if (!account.loading) {
+				account.shadowRoot.getElementById('accountingGrid').clearCache();
+			} else {
+				console.log('Have patience dude!');
+			}
 		}
 		if(this.$.load.selected == "ipdrWlanView") {
-			document.body.querySelector('sig-app').shadowRoot.getElementById('ipdrLogListWlan').shadowRoot.getElementById('ipdrGrid').clearCache();
+			var wlan = document.body.querySelector('sig-app').shadowRoot.getElementById('ipdrLogListWlan');
+			if (!wlan.loading) {
+				wlan.shadowRoot.getElementById('ipdrGrid').clearCache();
+			} else {
+				console.log('Have patience dude!');
+			}
 		}
 		if(this.$.load.selected == "ipdrVoipView") {
-			document.body.querySelector('sig-app').shadowRoot.getElementById('ipdrLogListVoip').shadowRoot.getElementById('ipdrGridVoip').clearCache();
+			var voip = document.body.querySelector('sig-app').shadowRoot.getElementById('ipdrLogListVoip');
+			if (!voip.loading) {
+				voip.shadowRoot.getElementById('ipdrGridVoip').clearCache();
+			} else {
+				console.log('Have patience dude!');
+			}
 		}
 		if(this.$.load.selected == "httpView") {
-			document.body.querySelector('sig-app').shadowRoot.getElementById('httpList').shadowRoot.getElementById('getHttp').generateRequest();
+		var http = 	document.body.querySelector('sig-app').shadowRoot.getElementById('httpList');
+			if (!http.loading) {
+				http.shadowRoot.getElementById('getHttp').generateRequest();
+			} else {
+				console.log('Have patience dude!');
+			}
 		}
 		if(this.$.load.selected == "prefixView") {
-			document.body.querySelector('sig-app').shadowRoot.querySelector('sig-prefix-list').shadowRoot.getElementById('tableList').open();
-			document.body.querySelector('sig-app').shadowRoot.getElementById('prefixList').shadowRoot.getElementById('prefixGrid').clearCache();
+			var prefix = document.body.querySelector('sig-app').shadowRoot.querySelector('sig-prefix-list');
+			if (!prefix.loading) {
+				prefix.shadowRoot.getElementById('tableList').open();
+				prefix.shadowRoot.getElementById('prefixGrid').clearCache();
+			} else {
+				console.log('Have patience dude!');
+			}
 		}
 		if(this.$.load.selected == "policyView") {
-			document.body.querySelector('sig-app').shadowRoot.querySelector('sig-policy-list').shadowRoot.getElementById('tableList').open();
-			document.body.querySelector('sig-app').shadowRoot.getElementById('policyList').shadowRoot.getElementById('policyGrid').clearCache();
+		var policy = document.body.querySelector('sig-app').shadowRoot.querySelector('sig-policy-list');
+			if (!policy.loading) {
+				policy.shadowRoot.getElementById('tableList').open();
+				policy.shadowRoot.getElementById('policyGrid').clearCache();
+			} else {
+				console.log('Have patience dude!');
+			}
 		}
 		if(this.$.load.selected == "balanceView") {
-			document.body.querySelector('sig-app').shadowRoot.getElementById('balanceList').shadowRoot.getElementById('balanceGrid').clearCache();
+			var balance = document.body.querySelector('sig-app').shadowRoot.getElementById('balanceList');
+			if (!balance.loading) {
+				balance.shadowRoot.getElementById('balanceGrid').clearCache();
+			} else {
+				console.log('Have patience dude!');
+			}
 		}
 		if(this.$.load.selected == "productView") {
-			document.body.querySelector('sig-app').shadowRoot.getElementById('productList').shadowRoot.getElementById('productInventoryGrid').clearCache();
+			var product = document.body.querySelector('sig-app').shadowRoot.getElementById('productList');
+			if (!product.loading) {
+				product.shadowRoot.getElementById('productInventoryGrid').clearCache();
+			} else {
+				console.log('Have patience dude!');
+			}
 		}
 		if(this.$.load.selected == "bucketView") {
-			document.body.querySelector('sig-app').shadowRoot.getElementById('bucketList').shadowRoot.getElementById('balanceBucketGrid').clearCache();
+			var bucket = document.body.querySelector('sig-app').shadowRoot.getElementById('bucketList');
+			if (!bucket.loading) {
+				bucket.shadowRoot.getElementById('balanceBucketGrid').clearCache();
+			} else {
+				console.log('Have patience dude!');
+			}
 		}
 	}
 
