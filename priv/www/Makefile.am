@@ -49,23 +49,25 @@ $(abs_builddir)/index.html:
 		fi; \
 	done
 
-$(abs_builddir)/sw-precache-config.js:
-	if [ ! -e $(abs_builddir)/sw-precache-config.js ]; then \
-		cp $(srcdir)/sw-precache-config.js $(abs_builddir); \
+$(abs_builddir)/workbox-config.js:
+	if [ ! -e $(abs_builddir)/workbox-config.js ]; then \
+		cp $(srcdir)/workbox-config.js $(abs_builddir); \
 	fi
 
 package.json: yarn.lock
 
 yarn.lock:
 	yarn add d3
-	yarn add polymer-cli
+	yarn global add polymer-cli
+	yarn global add workbox-cli
 	yarn install
 
-$(abs_builddir)/build/polymer.json: package.json $(abs_builddir)/index.html $(abs_builddir)/sw-precache-config.js ${patsubst %,$(abs_builddir)/src/%,$(MODULES)}
+$(abs_builddir)/build/polymer.json: package.json $(abs_builddir)/index.html $(abs_builddir)/workbox-config.js ${patsubst %,$(abs_builddir)/src/%,$(MODULES)}
 	if [ ! -e $(abs_builddir)/polymer.json ]; then \
 		cp $(srcdir)/polymer.json $(abs_builddir); \
 	fi
 	polymer build
+	workbox generateSW
 
 check_DATA = .polymer_lint_ok
 
@@ -77,6 +79,10 @@ install-data-local:
 	cp -R $(abs_builddir)/build/esm-bundled/* $(DESTDIR)$(wwwdir)
 	$(MKDIR_P) $(DESTDIR)$(wwwdir)/locales
 	cp $(abs_srcdir)/locales/* $(DESTDIR)$(wwwdir)/locales
+	cp $(abs_builddir)/service-worker.js $(DESTDIR)$(wwwdir)/
+	cp $(abs_builddir)/service-worker.js.map $(DESTDIR)$(wwwdir)/
+	cp $(abs_builddir)/workbox-*.js $(DESTDIR)$(wwwdir)/
+	cp $(abs_builddir)/workbox-*.js.map $(DESTDIR)$(wwwdir)/
 
 clean-local:
 	-rm -rf yarn.lock build
