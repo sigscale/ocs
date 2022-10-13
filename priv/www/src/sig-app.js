@@ -354,7 +354,7 @@ class SigApp extends PolymerElement {
 		if(this.$.load.selected == "offerView") {
 			var offer = document.body.querySelector('sig-app').shadowRoot.getElementById('offerList');
 			if (!offer.loading) {
-				offer.splice('offers', 0, offerList.offers.length);
+				offer.splice('offers', 0, offer.offers.length);
 				offer.shadowRoot.getElementById('offerGrid').clearCache();
 			} else {
 				console.log('Have patience dude!');
