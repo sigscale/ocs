@@ -304,11 +304,9 @@ class offerList extends PolymerElement {
 	_getPrefixTableError(event) {
 		this.shadowRoot.getElementById('offerGrid').size = 0;
 		cbProduct([]);
-		if (!lastItem && event.detail.request.xhr.status != 416) {
-			var toast = document.body.querySelector('sig-app').shadowRoot.getElementById('restError');
-			toast.text = "Error";
-			toast.open();
-		}
+		var toast = document.body.querySelector('sig-app').shadowRoot.getElementById('restError');
+		toast.text = "Error";
+		toast.open();
 	}
 
 	_filterChanged(filter) {
