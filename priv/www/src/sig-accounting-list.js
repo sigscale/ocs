@@ -388,15 +388,19 @@ class accountingList extends PolymerElement {
 		var accountingList = document.body.querySelector('sig-app').shadowRoot.querySelector('sig-accounting-list');
 		var ajax = accountingList.shadowRoot.getElementById('getAccounting');
 		delete ajax.params['date'];
-		delete ajax.params['nasIdentifier'];
+		delete ajax.params['nasIpAddress'];
 		delete ajax.params['acctSessiontime'];
 		delete ajax.params['acctOutputoctets'];
 		delete ajax.params['acctInputoctets'];
 		delete ajax.params['acctTotaloctets'];
+		delete ajax.params['msisdn'];
+		delete ajax.params['imsi'];
 		delete ajax.params['filter'];
 		ajax.params['type'] = "AAAAccountingUsage";
 		function checkHead(param) {
-			return param.path == "date" || param.path == "status";
+			return param.path == "date" || param.path == "status"
+				|| param.path == "nasIpAddress" || param.path == "msisdn"
+				|| param.path == "imsi";
 		}
 		var head;
 		params.filters.filter(checkHead).forEach(function(filter) {
@@ -405,7 +409,9 @@ class accountingList extends PolymerElement {
 			}
 		});
 		function checkChar(param) {
-			return param.path != "date" && param.path != "status";
+			return param.path != "date" && param.path != "status"
+				&& param.path != "nasIpAddress" && param.path != "msisdn"
+				&& param.path != "imsi";
 		}
 		params.filters.filter(checkChar).forEach(function(filter) {
 			if (filter.value) {
@@ -417,7 +423,7 @@ class accountingList extends PolymerElement {
 				if(isNaN(filter.value)) {
 					ajax.params['filter'] += "{name=" + filter.path + ",value.like=[" + filter.value + "%]}";
 				} else {
-					ajax.params['filter'] += "{name=" + filter.path + ",value.gte=" + filter.value + "%}";
+					ajax.params['filter'] += "{name=" + filter.path + ",value.like=[" + filter.value + "%]}";
 				}
 			}
 		});
@@ -448,6 +454,7 @@ class accountingList extends PolymerElement {
 						return characteristicClient.name == "nasIpAddress";
 					}
 					var clientId = request.response[index].usageCharacteristic.find(checkCharClient);
+console.log(clientId);
 					if(clientId  != undefined) {
 						newRecord.nasIpAddress = clientId.value;
 					}
