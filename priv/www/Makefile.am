@@ -49,11 +49,6 @@ $(abs_builddir)/index.html:
 		fi; \
 	done
 
-$(abs_builddir)/workbox-config.js:
-	if [ ! -e $(abs_builddir)/workbox-config.js ]; then \
-		cp $(srcdir)/workbox-config.js $(abs_builddir); \
-	fi
-
 package.json: yarn.lock
 
 yarn.lock:
@@ -62,12 +57,12 @@ yarn.lock:
 	yarn global add workbox-cli
 	yarn install
 
-$(abs_builddir)/build/polymer.json: package.json $(abs_builddir)/index.html $(abs_builddir)/workbox-config.js ${patsubst %,$(abs_builddir)/src/%,$(MODULES)}
+$(abs_builddir)/build/polymer.json: package.json $(abs_builddir)/index.html workbox-config.js ${patsubst %,$(abs_builddir)/src/%,$(MODULES)}
 	if [ ! -e $(abs_builddir)/polymer.json ]; then \
 		cp $(srcdir)/polymer.json $(abs_builddir); \
 	fi
 	polymer build
-	workbox generateSW
+	workbox generateSW $(srcdir)/workbox-config.js
 
 check_DATA = .polymer_lint_ok
 
