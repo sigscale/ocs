@@ -13,5 +13,10 @@ module.exports = {
 	],
 	swDest: 'service-worker.js',
 	navigateFallback: '/index.html',
-	navigateFallbackAllowlist: [/^(?!.*\.js$|\/data\/).*/]
+	navigateFallbackAllowlist: [
+		/^(?!.*\.js$|\/data\/).*/
+	],
+	navigateFallbackDenylist: [
+		/^\/doc\/.*/
+	]
 }
