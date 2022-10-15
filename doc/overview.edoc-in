@@ -47,10 +47,9 @@ e.g &#058;
 	{ok,[httpd_group,httpd_user,bucket,offer,pla,product,service,client]}
 	'''
 
-===HTTP Authentication===
 To use the {@link //inets/mod_auth. mod_auth} module for authentication
-you should create necessary users in the {@link //mnesia/mnesia. mnesia}
-tables it uses. All users will be added to groups specified in `require_group'
+users are created in the {@link //mnesia/mnesia. mnesia} tables it uses.
+All users will be added to groups specified in `require_group'
 option in inets httpd confifuration.
 e.g &#058;
    ```
@@ -60,6 +59,7 @@ e.g &#058;
 	{ok,{1501829458220,157}}
 
 	'''
+The web UI also allows you to create users, making the above step unecessary.
 
 ==Operation==
 The OCS application will start RADIUS &amp; DIAMETER servers for authentication
@@ -68,74 +68,174 @@ may be started to provide a REST API and web user interface (UI).
 
 ==REST API==
 The {@link //ocs. ocs} application provides a
-<a href="http://www.ics.uci.edu/~fielding/pubs/dissertation/top.htm">RESTful</a>
-API built on the <a href="http://tools.ietf.org/html/rfc2616">HTTP</a> protocol
-and using <a href="http://tools.ietf.org/html/rfc4627">JSON</a> data encoding.
+<a target="_blank" href="http://www.ics.uci.edu/~fielding/pubs/dissertation/top.htm">RESTful</a>
+API built on the <a target="_blank" href="http://tools.ietf.org/html/rfc2616">HTTP</a> protocol
+and using <a target="_blank" href="http://tools.ietf.org/html/rfc4627">JSON</a> data encoding.
 
-The following <a href="https://www.tmforum.org/open-apis/">TM Forum Open APIs</a>
-are used:
-
+The following <a target="_blank" href="https://www.tmforum.org/open-apis/">
+TM Forum Open APIs</a> are used:
 <p><table id="mt">
 	<thead>
 		<tr id="mt">
-			<th id="mt">Document Number</th>
+			<th id="mt">Number</th>
 			<th id="mt">TM Forum Open API</th>
+			<th id="mt">Download</th>
+			<th id="mt">Browse</th>
 		</tr>
 	</thead>
 	<tbody>
 		<tr id="mt">
-			<td id="mt">TMF632</td>
-			<td id="mt">Party Management</td>
-		</tr>
-		<tr id="mt">
-			<td id="mt">TMF654</td>
-			<td id="mt">Prepay Balance Management</td>
-		</tr>
-		<tr id="mt">
 			<td id="mt">TMF620</td>
 			<td id="mt">Product Catalog Management</td>
+			<td id="mt">
+				<a href="/schema/productCatalogManagement.swagger.json"
+						download="productCatalogManagement.json">
+					<img src="oas-logo.svg" />
+				</a>
+			</td>
+			<td id="mt">
+				<a target="_blank"
+						href="https://app.swaggerhub.com/apis/SigScale/product-catalog_management/2.0.0">
+					<img src="swaggerhub-logo.svg" />
+				</a>
+			</td>
 		</tr>
 		<tr id="mt">
 			<td id="mt">TMF637</td>
 			<td id="mt">Product Inventory Management</td>
+			<td id="mt">
+				<a href="/schema/productInventoryManagement.swagger.json"
+						download="productInventoryManagement.json">
+					<img src="oas-logo.svg" />
+				</a>
+			</td>
+			<td id="mt">
+				<a target="_blank"
+						href="https://app.swaggerhub.com/apis/SigScale/product-inventory_management/2.0.0">
+					<img src="swaggerhub-logo.svg" />
+				</a>
+			</td>
+		</tr>
+		<tr id="mt">
+			<td id="mt">TMF633</td>
+			<td id="mt">Service Catalog Management</td>
+			<td id="mt">
+				<a href="/schema/serviceCatalogManagement.swagger.json"
+						download="serviceCatalogManagement.json">
+					<img src="oas-logo.svg" />
+				</a>
+			</td>
+			<td id="mt">
+				<a target="_blank"
+						href="https://app.swaggerhub.com/apis/SigScale/service-catalog_management/2.0.0">
+					<img src="swaggerhub-logo.svg" />
+				</a>
+			</td>
 		</tr>
 		<tr id="mt">
 			<td id="mt">TMF638</td>
 			<td id="mt">Service Inventory Management</td>
+			<td id="mt">
+				<a href="/schema/serviceInventoryManagement.swagger.json"
+						download="serviceInventoryManagement.json">
+					<img src="oas-logo.svg" />
+				</a>
+			</td>
+			<td id="mt">
+				<a target="_blank"
+						href="https://app.swaggerhub.com/apis/SigScale/service-inventory_management/2.0.0">
+					<img src="swaggerhub-logo.svg" />
+				</a>
+			</td>
+		</tr>
+		<tr id="mt">
+			<td id="mt">TMF634</td>
+			<td id="mt">Resource Catalog Management</td>
+			<td id="mt">
+				<a href="/schema/resourceCatalogManagement.swagger.json"
+						download="resourceCatalogManagement.json">
+					<img src="oas-logo.svg" />
+				</a>
+			</td>
+			<td id="mt">
+				<a target="_blank"
+						href="https://app.swaggerhub.com/apis/SigScale/resource-catalog_management/4.0.0">
+					<img src="swaggerhub-logo.svg" />
+				</a>
+			</td>
 		</tr>
 		<tr id="mt">
 			<td id="mt">TMF639</td>
 			<td id="mt">Resource Inventory Management</td>
+			<td id="mt">
+				<a href="/schema/resourceInventoryManagement.swagger.json"
+						download="resourceInventoryManagement.json">
+					<img src="oas-logo.svg" />
+				</a>
+			</td>
+			<td id="mt">
+				<a target="_blank"
+						href="https://app.swaggerhub.com/apis/SigScale/resource-inventory_management/4.0.0">
+					<img src="swaggerhub-logo.svg" />
+				</a>
+			</td>
+		</tr>
+		<tr id="mt">
+			<td id="mt">TMF654</td>
+			<td id="mt">Prepay Balance Management</td>
+			<td id="mt">
+				<a href="/schema/balanceManagement.swagger.json"
+						download="balanceManagement.json">
+					<img src="oas-logo.svg" />
+				</a>
+			</td>
+			<td id="mt">
+				<a target="_blank"
+						href="https://app.swaggerhub.com/apis/SigScale/balance-management/1.0.0">
+					<img src="swaggerhub-logo.svg" />
+				</a>
+			</td>
 		</tr>
 		<tr id="mt">
 			<td id="mt">TMF635</td>
 			<td id="mt">Usage Management</td>
+			<td id="mt">
+				<a href="/schema/usageManagement.swagger.json"
+						download="usageManagement.json">
+					<img src="oas-logo.svg" />
+				</a>
+			</td>
+			<td id="mt">
+				<a target="_blank"
+						href="https://app.swaggerhub.com/apis/SigScale/usage-management/1.0.0">
+					<img src="swaggerhub-logo.svg" />
+				</a>
+			</td>
+		</tr>
+		<tr id="mt">
+			<td id="mt">TMF632</td>
+			<td id="mt">Party Management</td>
+			<td id="mt">
+				<a href="/schema/partyManagement.swagger.json"
+						download="partyManagement.json">
+					<img src="oas-logo.svg" />
+				</a>
+			</td>
 		</tr>
 	</tbody>
 </table></p>
 
-===Uniform Resource Identifiers (URI)===
-In this document we will use the
-<a href="http://tools.ietf.org/html/rfc6570">URI Template</a> syntax to
-specify the format of
-<a href="http://tools.ietf.org/html/rfc3986">URI</a>s used with the API.
-The actual <a href="http://tools.ietf.org/html/rfc3986">URI</a>, as shown
-in the examples, is expanded using the values of the variables in use.  For
-example a URI specified using the template
-`/balanceManagement/v1/service/{id}/balanceTopup' might be formed as
-`/balanceManagement/v1/service/771231660/balanceTopup'.
-
 ===HTTP Methods===
-The <a href="http://tools.ietf.org/html/rfc2616">HTTP</a> methods used in
-this API include
-<a href="http://tools.ietf.org/html/rfc2616#section-9.3">`GET'</a>,
-<a href="http://tools.ietf.org/html/rfc2616#section-9.5">`POST'</a>,
-<a href="https://tools.ietf.org/html/rfc2068#section-19.6.1">`PATCH'</a> and
-<a href="http://tools.ietf.org/html/rfc2616#section-9.7">`DELETE'</a>.
+The <a target="_blank" href="http://tools.ietf.org/html/rfc2616">HTTP</a>
+methods used in this API include
+<a target="_blank" href="http://tools.ietf.org/html/rfc2616#section-9.3">`GET'</a>,
+<a target="_blank" href="http://tools.ietf.org/html/rfc2616#section-9.4">`HEAD'</a>,
+<a target="_blank" href="http://tools.ietf.org/html/rfc2616#section-9.5">`POST'</a>,
+<a target="_blank" href="https://tools.ietf.org/html/rfc2068#section-19.6.1">`PATCH'</a> and
+<a target="_blank" href="http://tools.ietf.org/html/rfc2616#section-9.7">`DELETE'</a>.
 
 ===Media Types===
 The media types used in this application are described below.
-
 <p><table id="mt">
 	<thead>
 		<tr id="mt">
@@ -144,24 +244,29 @@ The media types used in this application are described below.
 	</thead>
 	<tbody>
 		<tr id="mt">
-			<td id="mt"><a href="http://tools.ietf.org/html/rfc4627">application/json</a></td>
+			<td id="mt"><a target="_blank" href="http://tools.ietf.org/html/rfc4627">application/json</a></td>
 		</tr>
 		<tr id="mt">
-			<td id="mt"><a href="http://tools.ietf.org/html/rfc6902">application/json-patch+json</a></td>
+			<td id="mt"><a target="_blank" href="http://tools.ietf.org/html/rfc6902">application/json-patch+json</a></td>
 		</tr>
 		<tr id="mt">
-			<td id="mt"><a href="http://tools.ietf.org/html/rfc7396">application/merge-patch+json</a></td>
+			<td id="mt"><a target="_blank" href="http://tools.ietf.org/html/rfc7396">application/merge-patch+json</a></td>
 		</tr>
 		<tr id="mt">
-			<td id="mt"><a href="http://tools.ietf.org/html/rfc7396">text/x-yaml</a></td>
+			<td id="mt"><a target="_blank" href="http://tools.ietf.org/html/rfc7396">text/x-yaml</a></td>
 		</tr>
 	</tbody>
 </table></p>
 
 ===Advanced Attribute Filtering Pattern===
 Complex queries are supported using a `filter' attribute as described in issue
-<a href="https://projects.tmforum.org/jira/browse/AP-832">AP-832</a> of TM Forum
-<a href="https://projects.tmforum.org/wiki/display/AP/">API Project</a>.
+<a target="_blank" href="https://projects.tmforum.org/jira/browse/AP-832">AP-832</a>
+of TM Forum <a target="_blank" href="https://projects.tmforum.org/wiki/display/AP/">
+API Project</a>.
+
+[Note: TMF630 Part 6 provides an equivalent advanced query syntax using JSON Path,
+       however this implementation peredates that by several years. A future version
+       shall provide JSON Path syntax support.]
 
 <p>Example:</p>
 ```
@@ -209,1037 +314,30 @@ A complex value should be enclosed in `{}'.</p>
 	</tbody>
 </table></p>
 
-===Resources &amp; Operations===
-The resources, their URIs, the methods available on them and expected
-responses, are described in this section.  Only the headers, and responses,
-relevant to the function being described are included.  Any valid HTTP
-headers may be included in requests and responses.
-
-<p><table>
-	<caption class="op"><b>Operations</b></caption>
-	<tbody>
-		<tr>
-			<td><a href="#add-offer">Add a Product Offering</a></td>
-		</tr>
-		<tr>
-			<td><a href="#delete-offer">Delete a Product Offering</a></td>
-		</tr>
-		<tr>
-			<td><a href="#get-product">Get a Product Offering</a></td>
-		</tr>
-		<tr>
-			<td><a href="#add-client">Add a Client</a></td>
-		</tr>
-		<tr>
-			<td><a href="#get-client">Get a Client</a></td>
-		</tr>
-		<tr>
-			<td><a href="#get-clients">Get all Clients</a></td>
-		</tr>
-		<tr>
-			<td><a href="#update-client">Update a Client</a></td>
-		</tr>
-		<tr>
-			<td><a href="#delete-client">Delete a Client</a></td>
-		</tr>
-		<tr>
-			<td><a href="#get-usage">Get Usage Records</a></td>
-		</tr>
-		<tr>
-			<td><a href="#add-user">Add a User</a></td>
-		</tr>
-		<tr>
-			<td><a href="#get-user">Get a User</a></td>
-		</tr>
-		<tr>
-			<td><a href="#get-users">Get all Users</a></td>
-		</tr>
-		<tr>
-			<td><a href="#update-user">Update a User</a></td>
-		</tr>
-		<tr>
-			<td><a href="#delete-user">Delete a User</a></td>
-		</tr>
-	</tbody>
-</table></p>
-
-<table id="add-offer" class="op">
-	<caption class="op"><b>Add a Product Offering</b></caption>
-	<tr class="op">
-		<td id="opl">Resource URI</td>
-		<td id="opr">/catalogManagement/v2/productOffering</td>
-	</tr>
-	<tr class="op">
-		<td id="opl">Request Methods</td>
-		<td id="opr">POST</td>
-	</tr>
-	<tr class="op">
-		<td id="opl">Request Headers</td>
-		<td id="opr">Accept, Content-Type, Content-Length</td>
-	</tr>
-	<tr class="op">
-		<td id="opl">Request Message Body</td>
-		<td id="opr">Representation of a Product Offering</td>
-	</tr>
-	<tr class="op">
-		<td id="opl">Response Headers</td>
-		<td id="opr">Location, Content-Type, Content-Length, Etag</td>
-	</tr>
-	<tr class="op">
-		<td id="opl">Response Body</td>
-		<td id="opr">Representation of the newly added Product Offering</td>
-	</tr>
-	<tr class="op">
-		<td id="opl">Response Status</td>
-		<td id="opr">201 Created</td>
-	</tr>
-</table>
-<p>Example request:<pre>
-POST /catalogManagement/v2/productOffering HTTP/1.1
-Accept: application/json
-Content-type: application/json
-
-{
-     "name":  "Silver Surfer",
-     "description":  "Monthly data subscription (50GB).",
-     "productSpecification":  {
-          "id":  "8",
-          "href":  "/catalogManagement/v2/productSpecification/8"
-     },
-     "productOfferingPrice":  [
-          {
-               "name":  "Installation",
-               "description":  "One time installation charge.",
-               "priceType":  "one_time",
-               "price":  {
-                    "taxIncludedAmount":  "2000",
-                    "currencyCode":  "CAD"
-               }
-          },
-          {
-               "name":  "Overage",
-               "description":  "Price charged for usage over allowance.",
-               "priceType":  "usage",
-               "unitOfMeasure":  "10m",
-               "price":  {
-                    "taxIncludedAmount": "1",
-                    "currencyCode":  "CAD"
-               },
-               "productOfferPriceAlteration":  {
-                    "name":  "Allowance",
-                    "description":  "Monthly usage included in subscription.",
-                    "priceType":  "recurring",
-                    "unitOfMeasure":  "50g",
-                    "price":  {
-                         "taxIncludedAmount":  "0",
-                         "currencyCode":  "CAD"
-                    },
-                    "recurringChargePeriod":  "monthly"
-               }
-          }
-     ]
-}
-</pre></p>
-<p>Example response:<pre>
-HTTP/1.1 201 Created
-Location: /catalogManagement/v2/productOffering/Silver%20Surfer
-Content-Type: application/json
-Etag: 1528460859482-19
-
-{
-     "id":  "Silver Surfer",
-     "href":  "/catalogManagement/v2/productOffering/Silver Surfer",
-     "isBundle":  false,
-     "name":  "Silver Surfer",
-     "description":  "Monthly data subscription (50GB).",
-     "productSpecification":  {
-          "id":  "8",
-          "href":  "/catalogManagement/v2/productSpecification/8",
-          "name":  "PrepaidDataProductSpec"
-     },
-     "productOfferingPrice":  [
-          {
-               "name":  "Installation",
-               "description":  "One time installation charge.",
-               "priceType":  "one_time",
-               "price":  {
-                    "taxIncludedAmount":  "2000",
-                    "currencyCode":  "CAD"
-               },
-               "prodSpecCharValueUse":  []
-          },
-          {
-               "name":  "Overage",
-               "description":  "Price charged for usage over allowance.",
-               "priceType":  "usage",
-               "unitOfMeasure":  "10000000b",
-               "price":  {
-                    "taxIncludedAmount":  "1",
-                    "currencyCode":  "CAD"
-               },
-               "prodSpecCharValueUse":  [],
-               "productOfferPriceAlteration":  {
-                    "name":  "Allowance",
-                    "description":  "Monthly usage included in subscription.",
-                    "priceType":  "recurring",
-                    "recurringChargePeriod":  "monthly",
-                    "unitOfMeasure":  "50000000000b",
-                    "price":  {
-                         "taxIncludedAmount":  "0",
-                         "currencyCode":  "CAD"
-                    }
-               }
-          }
-     ],
-     "prodSpecCharValueUse":  [
-          {
-               "name":  "radiusReserveSessionTime",
-               "minCardinality":  0,
-               "maxCardinality":  1,
-               "productSpecification":  {
-                    "id":  "1",
-                    "href":  "/catalogManagement/v2/productSpecification/1"
-               },
-               "productSpecCharacteristicValue":  [
-                    {
-                         "default":  true,
-                         "value":  0
-                    }
-               
-               ]
-          }
-     ],
-     "lastUpdate":  "2018-06-08T12:27:39.482"
-}
-</pre></p>
-
-<table id="delete-offer" class="op">
-	<caption class="op"><b>Delete a Product Offering</b></caption>
-	<tr class="op">
-		<td id="opl">Resource URI</td>
-		<td id="opr">/catalogManagement/v2/productOffering</td>
-	</tr>
-	<tr class="op">
-		<td id="opl">Request Methods</td>
-		<td id="opr">DELETE</td>
-	</tr>
-	<tr class="op">
-		<td id="opl">Request Headers</td>
-		<td id="opr"></td>
-	</tr>
-	<tr class="op">
-		<td id="opl">Request Message Body</td>
-		<td id="opr">None</td>
-	</tr>
-	<tr class="op">
-		<td id="opl">Response Headers</td>
-		<td id="opr">Content-Length</td>
-	</tr>
-	<tr class="op">
-		<td id="opl">Response Body</td>
-		<td id="opr">None</td>
-	</tr>
-	<tr class="op">
-		<td id="opl">Response Status</td>
-		<td id="opr">204 No Content</td>
-	</tr>
-</table>
-<p>Example request:<pre>
-DELETE /catalogManagement/v2/productOffering/Silver%20Surfer HTTP/1.1
-</pre></p>
-<p>Example response:<pre>
-HTTP/1.1 204 No Content
-</pre></p>
-
-<table id="get-product" class="op">
-	<caption class="op"><b>Get a Product Instance</b></caption>
-	<tr class="op">
-		<td id="opl">Resource URI</td>
-		<td id="opr">/catalogManagement/v2/productOffering/{id}</td>
-	</tr>
-	<tr class="op">
-		<td id="opl">Request Methods</td>
-		<td id="opr">GET</td>
-	</tr>
-	<tr class="op">
-		<td id="opl">Request Headers</td>
-		<td id="opr">Accept</td>
-	</tr>
-	<tr class="op">
-		<td id="opl">Request Message Body</td>
-		<td id="opr">none</td>
-	</tr>
-	<tr class="op">
-		<td id="opl">Response Headers</td>
-		<td id="opr">Content-Type, Content-Length</td>
-	</tr>
-	<tr class="op">
-		<td id="opl">Response Body</td>
-		<td id="opr">Reprsentation of a product entity</td>
-	</tr>
-	<tr class="op">
-		<td id="opl">Response Status</td>
-		<td id="opr">200 OK, 404 Not Found</td>
-	</tr>
-</table>
-<p>Example request:<pre>
-GET /catalogManagement/v2/productOffering/Wi-Fi HTTP/1.1
-Accept: application/json
-</pre></p>
-<p>Example response:<pre>
-HTTP/1.1 200 OK
-Content-Type: application/json
-Content-Length: 2761
-
-{
- "name": "Wi-Fi",
- "href": "/catalogManagement/v2/productOffering/Wi-Fi",
- "isBundle": false,
- "startDate": "2017-09-11T00:00",
- "terminationDate": "2018-09-12T00:00",
- "status": "Active",
- "validFor":{
-             "startDateTime": "2017-09-11T00:00:00.000",
-             "endDateTime": "2018-09-12T00:00:00.000"
-            },
- "productPrice":[
-                         {
-                          "name": "Family-Pack",
-                          "description": "monthlyprice",
-                          "validFor":{
-                                      "startDateTime": "2017-09-11T00:00:00.000",
-                                      "endDateTime": "2017-12-31T00:00:00.000"
-                                     },
-                          "priceType": "recurring",
-                          "unitOfMeasure": "",
-                          "price":{
-                                   "taxIncludedAmount": 230,
-                                   "currencyCode": "MXV"
-                                  },
-                          "recurringChargePeriod": "monthly"
-                         },
-
-                         {
-                          "name": "usage",
-                          "description": "usage definition for family pack",
-                          "validFor":{
-                                      "startDateTime": "2017-09-11T00:00:00.000",
-                                      "endDateTime": "2017-12-31T00:00:00.000"
-                                     },
-                          "priceType": "usage",
-                          "unitOfMeasure": "100000b",
-                          "price":{
-                                   "taxIncludedAmount": 5,
-                                    "currencyCode": "MXV"
-                                  },
-                          "recurringChargePeriod": "",
-
-                          "prodPriceAlteration":{
-                                                         "name": "Usage",
-                                                         "description": "",
-                                                         "validFor":{
-                                                                     "startDateTime": "2017-12-31T00:00:00.000"
-                                                                    },
-                                                          "priceType": "usage",
-                                                          "unitOfMeasure": "60g",
-                                                          "price":{
-                                                                   "taxIncludedAmount":  0
-                                                           }
-                                                         }
-                         }
-                       ]
-}
-</pre></p>
-
-<table id="add-client" class="op">
-	<caption class="op"><b>Add a Client</b></caption>
-	<tr class="op">
-		<td id="opl">Resource URI</td>
-		<td id="opr">/ocs/v1/client</td>
-	</tr>
-	<tr class="op">
-		<td id="opl">Request Methods</td>
-		<td id="opr">POST</td>
-	</tr>
-	<tr class="op">
-		<td id="opl">Request Headers</td>
-		<td id="opr">Accept, Content-Type, Content-Length</td>
-	</tr>
-	<tr class="op">
-		<td id="opl">Request Message Body</td>
-		<td id="opr">Representation of a client</td>
-	</tr>
-	<tr class="op">
-		<td id="opl">Response Headers</td>
-		<td id="opr">Location, Content-Type, Content-Length, Etag</td>
-	</tr>
-	<tr class="op">
-		<td id="opl">Response Body</td>
-		<td id="opr">Representation of the added client</td>
-	</tr>
-	<tr class="op">
-		<td id="opl">Response Status</td>
-		<td id="opr">201 Created</td>
-	</tr>
-</table>
-<p>Example request:<pre>
-POST /ocs/v1/client HTTP/1.1
-Accept: application/json
-Content-type: application/json
-Content-length: nn
-
-{
- "id":"10.2.53.9",
- "port": 3799,
- "protocol": "RADIUS",
- "secret":"ksc8c244npqc",
- "passwordRequired":true
-}
-</pre></p>
-<p>Example response:<pre>
-HTTP/1.1 201 Created
-Location: /ocs/v1/client/10.2.53.9
-Content-Type: application/json
-Content-Length: 149
-Etag: 1528460867948-26
-
-{
- "id": "10.2.53.9",
- "href": "/ocs/v1/client/10.2.53.9"
- "port": 3799,
- "protocol": "RADIUS",
- "secret": "ksc8c244npqc",
- "passwordRequired"true
-}
-</pre></p>
-
-<table id="get-client" class="op">
-	<caption class="op"><b>Get a Client</b></caption>
-	<tr class="op">
-		<td id="opl">Resource URI</td>
-		<td id="opr">/ocs/v1/client/{id}</td>
-	</tr>
-	<tr class="op">
-		<td id="opl">Request Methods</td>
-		<td id="opr">GET</td>
-	</tr>
-	<tr class="op">
-		<td id="opl">Request Headers</td>
-		<td id="opr">Accept</td>
-	</tr>
-	<tr class="op">
-		<td id="opl">Request Message Body</td>
-		<td id="opr">none</td>
-	</tr>
-	<tr class="op">
-		<td id="opl">Response Headers</td>
-		<td id="opr">Content-Type, Content-Length, Etag</td>
-	</tr>
-	<tr class="op">
-		<td id="opl">Response Body</td>
-		<td id="opr">Representation of a client</td>
-	</tr>
-	<tr class="op">
-		<td id="opl">Response Status</td>
-		<td id="opr">200 OK, 404 Not Found</td>
-	</tr>
-</table>
-<p>Example request:<pre>
-GET /ocs/v1/client/10.2.53.9 HTTP/1.1
-Accept: application/json
-</pre></p>
-<p>Example response:<pre>
-HTTP/1.1 200 OK
-Content-Type: application/json
-Content-Length: 182
-Etag: 1528460873819-92
-
-{
- "id": "10.2.53.9",
- "href": "/ocs/v1/client/10.2.53.9"
- "identifier": "Nas_identifier",
- "port": 3799,
- "protocol": "RADIUS",
- "secret": "ksc8c244npqc",
- "passwordRequired"true
-}
-</pre></p>
-
-<table id="get-clients" class="op">
-<caption class="op"><b>Get all Clients</b></caption>
-<tr class="op">
-<td id="opl">Resource URI</td>
-		<td id="opr">/ocs/v1/client</td>
-	</tr>
-	<tr class="op">
-		<td id="opl">Request Methods</td>
-		<td id="opr">GET, HEAD</td>
-	</tr>
-	<tr class="op">
-		<td id="opl">Request Headers</td>
-		<td id="opr">Accept</td>
-	</tr>
-	<tr class="op">
-		<td id="opl">Request Message Body</td>
-		<td id="opr">none</td>
-	</tr>
-	<tr class="op">
-		<td id="opl">Response Headers</td>
-		<td id="opr">Content-Type, Content-Length</td>
-	</tr>
-	<tr class="op">
-		<td id="opl">Response Body</td>
-		<td id="opr">Array of client representations</td>
-	</tr>
-	<tr class="op">
-		<td id="opl">Response Status</td>
-		<td id="opr">200 OK, 404 Not Found</td>
-	</tr>
-</table>
-<p>Example request:<pre>
-GET /ocs/v1/client HTTP/1.1
-Accept: application/json
-</pre></p>
-<p>Example response:<pre>
-HTTP/1.1 200 OK
-Content-Type: application/json
-Content-Length: 362
-
-[
- {
-   "id": "10.2.53.9",
-   "href": "/ocs/v1/client/10.2.53.9"
-   "port": 3799,
-   "protocol": "RADIUS",
-   "secret": "2h7csggw35aa",
-	"passwordRequired"true
- },
- {
-  "id": "10.2.53.10",
-  "href": "/ocs/v1/client/10.2.53.10"
-  "identifier": "Nas_identifier",
-  "port": 3799,
-  "protocol": "RADIUS",
-  "secret": "rzambns7knr4",
-  "passwordRequired"false
- }
-]
-</pre></p>
-
-<table id="update-client" class="op">
-<caption class="op"><b>Update a Client</b></caption>
-	<tr class="op">
-		<td id="opl">Resource URI</td>
-		<td id="opr">/ocs/v1/client/{id}</td>
-	</tr>
-	<tr class="op">
-		<td id="opl">Request Methods</td>
-		<td id="opr">PATCH</td>
-	</tr>
-	<tr class="op">
-		<td id="opl">Request Headers</td>
-		<td id="opr">Accept, Content-Type</td>
-	</tr>
-	<tr class="op">
-		<td id="opl">Request Message Body</td>
-		<td id="opr">Partial representation of a client</td>
-	</tr>
-	<tr class="op">
-		<td id="opl">Response Headers</td>
-		<td id="opr">Content-Type, Content-Length, Etag</td>
-	</tr>
-	<tr class="op">
-		<td id="opl">Response Body</td>
-		<td id="opr">Representation of the updated client</td>
-	</tr>
-	<tr class="op">
-		<td id="opl">Response Status</td>
-		<td id="opr">200 Ok</td>
-	</tr>
-</table>
-<p>Example request (for Content-Type: application/json):<pre>
-PATCH /ocs/v1/client/10.2.53.9 HTTP/1.1
-Content-type: application/json
-Accept: application/json
-
-{
-  "secret":"7fy8qhs7hh7n"
-}
-</pre></p>
-
-<p>Example request (for Content-Type: application/json-patch+json):<pre>
-PATCH /ocs/v1/client/10.2.53.9 HTTP/1.1
-Content-type: application/json-patch+json
-Accept: application/json
-
-[
- {
-   "op": "replace",
-   "path": "/secret",
-   "value": "7fy8qhs7hh7n"
-  }
-]
-</pre></p>
-
-<p>Example response:<pre>
-HTTP/1.1 200 Ok
-Content-Type: application/json
-Content-Length: 150
-Etag: 1528460874866-4
-
-{
- "id": "10.2.53.9",
- "href": "/ocs/v1/client/10.2.53.9",
- "port": 3799,
- "protocol": "RADIUS",
- "secret": "7fy8qhs7hh7n",
- "passwordRequired"true
-}
-</pre></p>
-
-<table id="delete-client" class="op">
-	<caption class="op"><b>Delete a Client</b></caption>
-	<tr class="op">
-		<td id="opl">Resource URI</td>
-		<td id="opr">/ocs/v1/client/{id}</td>
-	</tr>
-	<tr class="op">
-		<td id="opl">Request Methods</td>
-		<td id="opr">DELETE</td>
-	</tr>
-	<tr class="op">
-		<td id="opl">Request Headers</td>
-		<td id="opr">None</td>
-	</tr>
-	<tr class="op">
-		<td id="opl">Request Message Body</td>
-		<td id="opr">None</td>
-	</tr>
-	<tr class="op">
-		<td id="opl">Response Headers</td>
-		<td id="opr">Content-Length</td>
-	</tr>
-	<tr class="op">
-		<td id="opl">Response Body</td>
-		<td id="opr">None</td>
-	</tr>
-	<tr class="op">
-		<td id="opl">Response Status</td>
-		<td id="opr">204 No Content</td>
-	</tr>
-</table>
-<p>Example request:<pre>
-DELETE /ocs/v1/client/10.2.53.9 HTTP/1.1
-</pre></p>
-<p>Example response:<pre>
-HTTP/1.1 204 Content
-Content-Length: 0
-</pre></p>
-
-<table id="get-usage" class="op">
-<caption class="op"><b>Get Usage Records</b></caption>
-<tr class="op">
-<td id="opl">Resource URI</td>
-		<td id="opr">/usageManagement/v1/usage/{id}</td>
-	</tr>
-	<tr class="op">
-		<td id="opl">Request Methods</td>
-		<td id="opr">GET, HEAD</td>
-	</tr>
-	<tr class="op">
-		<td id="opl">Request Headers</td>
-		<td id="opr">Accept</td>
-	</tr>
-	<tr class="op">
-		<td id="opl">Request Message Body</td>
-		<td id="opr">none</td>
-	</tr>
-	<tr class="op">
-		<td id="opl">Response Headers</td>
-		<td id="opr">Content-Type, Content-Length</td>
-	</tr>
-	<tr class="op">
-		<td id="opl">Response Body</td>
-		<td id="opr">Array of IPDR Usage</td>
-	</tr>
-	<tr class="op">
-		<td id="opl">Response Status</td>
-		<td id="opr">200 OK, 404 Not Found</td>
-	</tr>
-</table>
-<p>Example request:<pre>
-GET /usageManagement/v1/usage/2017-02-22T10:00:14.910Z HTTP/1.1
-Accept: application/json
-</pre></p>
-<p>Example response:<pre>
-HTTP/1.1 200 OK
-Content-Type: application/json
-Content-Length: 1110
-
-[{"id": 1,
-	"href": "/usageManagement/v1/usage/1"
-	"date": "2017-02-22T10:00:14.910Z",
-	"type": "PublicWLANAccessUsage",
-	"description": "Public WLAN Access",
-	"status" : "recieved",
-	"usageSpecification" : {
-		"id" : "PublicWLANAccessUsageSpec",
-		"href" : "/usageManagement/v1/usageSpecification/PublicWLANAccessUsageSpec","
-		"name" : "PublicWLANAccessUsageSpec"
-	}
-	"usageCharacteristic": [
-		{
-			"name" : "username",
-			"value" : "DE-AD-BE-AF-CA-FE",
-		},
-		{
-			"name" : "acctSessionId",
-			"value" : "8240019a"
-		},
-		{
-			"name" : "userIpAddress",
-			"value" : "10.2.45.190",
-		},
-		{
-			"name" : "callingStationId",
-			"value" : "DE-AD-BE-AF-CA-FE",
-		},
-		{
-			"name" : "calledStationId",
-			"value" : "DE-AD-DE-AD-CA-FE:AP 1",
-		},
-		{
-			"name" : "nasIpAddress",
-			"value" : "10.2.45.190"
-		},
-		{
-			"name" : "nasId",
-			"value" : "ap1.sigscale.net"
-		},
-		{
-			"name" : "sessionDuration",
-			"value" : 3602
-		},
-		{
-			"name" : "inputOctets",
-			"value" : 54157910
-		},
-		{
-			"name" : "outputOctets",
-			"value" : 2515791
-		},
-		{
-			"name" : "sessionTerminateCause",
-			"value" : 1
-		}
-	]
-}]
-</pre></p>
-
-<table id="add-user" class="op">
-	<caption class="op"><b>Add a User</b></caption>
-	<tr class="op">
-		<td id="opl">Resource URI</td>
-		<td id="opr">/partyManagement/v1/individual</td>
-	</tr>
-	<tr class="op">
-		<td id="opl">Request Methods</td>
-		<td id="opr">POST</td>
-	</tr>
-	<tr class="op">
-		<td id="opl">Request Headers</td>
-		<td id="opr">Accept, Content-Type, Content-Length</td>
-	</tr>
-	<tr class="op">
-		<td id="opl">Request Message Body</td>
-		<td id="opr">Representation of a user</td>
-	</tr>
-	<tr class="op">
-		<td id="opl">Response Headers</td>
-		<td id="opr">Location, Content-Type, Content-Length, Etag</td>
-	</tr>
-	<tr class="op">
-		<td id="opl">Response Body</td>
-		<td id="opr">Representation of the added user</td>
-	</tr>
-	<tr class="op">
-		<td id="opl">Response Status</td>
-		<td id="opr">201 Created</td>
-	</tr>
-</table>
-<p>Example request:<pre>
-POST /partyManagement/v1/individual HTTP/1.1
-Accept: application/json
-Content-type: application/json
-Content-length: 279
-
-{
- "id":"john",
- "href": "/partyManagement/v1/individual/john",
- "characteristic": [
-          {
-               "name": "password",
-               "value": "g2k7hyeh6qag"
-          },
-          {
-               "name": "locale",
-               "value": "en"
-          }
-     ]
-}
-</pre></p>
-<p>Example response:<pre>
-HTTP/1.1 201 Created
-Location: /partyManagement/v1/individual/john
-Content-Type: application/json
-Content-Length: 370
-Etag: 1528460853317-61
-
-{
- "id":"john",
- "href": "/partyManagement/v1/individual/john",
- "characteristic": [
-          {
-               "name": "username",
-               "value": "john"
-          },
-          {
-               "name": "password",
-               "value": "g2k7hyeh6qag"
-          },
-          {
-               "name": "locale",
-               "value": "en"
-          }
-     ]
-}
-</pre></p>
-
-<table id="get-user" class="op">
-	<caption class="op"><b>Get a User</b></caption>
-	<tr class="op">
-		<td id="opl">Resource URI</td>
-		<td id="opr">/partyManagement/v1/individual/{id}</td>
-	</tr>
-	<tr class="op">
-		<td id="opl">Request Methods</td>
-		<td id="opr">GET</td>
-	</tr>
-	<tr class="op">
-		<td id="opl">Request Headers</td>
-		<td id="opr">Accept</td>
-	</tr>
-	<tr class="op">
-		<td id="opl">Request Message Body</td>
-		<td id="opr">none</td>
-	</tr>
-	<tr class="op">
-		<td id="opl">Response Headers</td>
-		<td id="opr">Content-Type, Content-Length, Etag</td>
-	</tr>
-	<tr class="op">
-		<td id="opl">Response Body</td>
-		<td id="opr">Representation of a user</td>
-	</tr>
-	<tr class="op">
-		<td id="opl">Response Status</td>
-		<td id="opr">200 OK, 404 Not Found</td>
-	</tr>
-</table>
-<p>Example request:<pre>
-GET /partyManagement/v1/individual/john HTTP/1.1
-Accept: application/json
-</pre></p>
-<p>Example response:<pre>
-HTTP/1.1 200 OK
-Content-Type: application/json
-Content-Length: 270
-Etag: 1528460854222-25
-
-{
- "id":"john",
- "href": "/partyManagement/v1/individual/john",
- "characteristic": [
-          {    
-               "name": "username",
-               "value": "john"
-          }
-          {    
-               "name": "locale",
-               "value": "en"
-          }
-     ]
-}
-</pre></p>
-
-<table id="get-users" class="op">
-	<caption class="op"><b>Get all Users</b></caption>
-	<tr class="op">
-		<td id="opl">Resource URI</td>
-		<td id="opr">/partyManagement/v1/individual/</td>
-	</tr>
-	<tr class="op">
-		<td id="opl">Request Methods</td>
-		<td id="opr">GET, HEAD</td>
-	</tr>
-	<tr class="op">
-		<td id="opl">Request Headers</td>
-		<td id="opr">Accept</td>
-	</tr>
-	<tr class="op">
-		<td id="opl">Request Message Body</td>
-		<td id="opr">none</td>
-	</tr>
-	<tr class="op">
-		<td id="opl">Response Headers</td>
-		<td id="opr">Content-Type, Content-Length</td>
-	</tr>
-	<tr class="op">
-		<td id="opl">Response Body</td>
-		<td id="opr">Representation of a user</td>
-	</tr>
-	<tr class="op">
-		<td id="opl">Response Status</td>
-		<td id="opr">200 OK, 404 Not Found</td>
-	</tr>
-</table>
-<p>Example request:<pre>
-GET /partyManagement/v1/individual HTTP/1.1
-Accept: application/json
-</pre></p>
-<p>Example response:<pre>
-HTTP/1.1 200 OK
-Content-Type: application/json
-Content-Length: 548
-
-[
- {
- "id":"john",
- "href": "/partyManagement/v1/individual/john",
- "characteristic": [
-          {
-               "name": "username",
-               "value": "john"
-          },
-          {
-               "name": "locale",
-               "value": "en"
-          }
-     ]
- },
- {
- "id":"dom",
- "href": "/partyManagement/v1/individual/dom",
- "characteristic": [
-          {
-               "name": "username",
-               "value": "dom"
-          },
-          {
-               "name": "locale",
-               "value": "en"
-          }
-     ]
- }
-]
-</pre></p>
-
-<table id="update-user" class="op">
-<caption class="op"><b>Update a User</b></caption>
-	<tr class="op">
-		<td id="opl">Resource URI</td>
-		<td id="opr">/partyManagement/v1/individual/{id}</td>
-	</tr>
-	<tr class="op">
-		<td id="opl">Request Methods</td>
-		<td id="opr">PATCH</td>
-	</tr>
-	<tr class="op">
-		<td id="opl">Request Headers</td>
-		<td id="opr">Accept, Content-Type</td>
-	</tr>
-	<tr class="op">
-		<td id="opl">Request Message Body</td>
-		<td id="opr">Characteristics that needs to be updated</td>
-	</tr>
-	<tr class="op">
-		<td id="opl">Response Headers</td>
-		<td id="opr">Content-Type, Content-Length, Etag</td>
-	</tr>
-	<tr class="op">
-		<td id="opl">Response Body</td>
-		<td id="opr">Representation of the updated user</td>
-	</tr>
-	<tr class="op">
-		<td id="opl">Response Status</td>
-		<td id="opr">204 No Content </td>
-	</tr>
-</table>
-
-<p>Example request (for Content-Type: application/json-patch+json):<pre>
-PATCH /partyManagement/v1/individual/john HTTP/1.1
-Content-type: application/json-patch+json
-Accept: application/json
-
-[
- {
-   "op" : "replace",
-   "path" : "/characteristic/1",
-   "value" : "{ "name" : "password", "value" : "g2k7hyeh6qag"}"
- },
- {
-   "op" : "replace",
-   "path" : "/characteristic/2",
-   "value" : "{ "name" : "locale", "value" : "es"}"
- }
-]
-
-</pre></p>
-<p>Example response:<pre>
-HTTP/1.1 204 No Content
-Content-Length: 0
-Etag: 1528460835302-87
-
-</pre></p>
-
-<table id="delete-user" class="op">
-	<caption class="op"><b>Delete a User</b></caption>
-	<tr class="op">
-		<td id="opl">Resource URI</td>
-		<td id="opr">/partyManagement/v1/individual/{id}</td>
-	</tr>
-	<tr class="op">
-		<td id="opl">Request Methods</td>
-		<td id="opr">DELETE</td>
-	</tr>
-	<tr class="op">
-		<td id="opl">Request Headers</td>
-		<td id="opr">None</td>
-	</tr>
-	<tr class="op">
-		<td id="opl">Request Message Body</td>
-		<td id="opr">None</td>
-	</tr>
-	<tr class="op">
-		<td id="opl">Response Headers</td>
-		<td id="opr">Content-Length</td>
-	</tr>
-	<tr class="op">
-		<td id="opl">Response Body</td>
-		<td id="opr">None</td>
-	</tr>
-	<tr class="op">
-		<td id="opl">Response Status</td>
-		<td id="opr">204 No Content</td>
-	</tr>
-</table>
-<p>Example request:<pre>
-DELETE /partyManagement/v1/individual HTTP/1.1
-</pre></p>
-<p>Example response:<pre>
-HTTP/1.1 204 No Content
-Content-Length: 0
-</pre></p>
+===Pagination===
+A `GET' operation on a REST <i>Collection</i>, with or without a query
+portion, could result in a huge array of <i>Items</i>. To prevent
+overwhelming the client or server pagination is used. A maximum limit
+on the number of items in a single response (page) is enforced (default
+`1000'). The `Content-Range' header 
+(<a target="_blank" href="https://www.rfc-editor.org/rfc/rfc7233">RFC7233</a>)
+shall indicate the range of the response and the total size (if available):
+```
+Content-Range: items 1-1000/3768
+Accept-Ranges: items
+Etag: 1643855624410-7330
+'''
+The `Etag' header provides a reference to a process in the server which
+holds a result buffer and continuation pointer. This process will be
+removed after an idle timeout (default `1m'). A series of paginated `GET'
+requests MUST include an `If-Match' header, containing the `Etag' value
+of the first response, and specify the next page with the `Range' header:
+```
+If-Match: 1643855624410-7330
+Range: items=1001-2000
+'''
+See `rest_page_size' and `rest_page_timeout' in the Configuration section
+below.
 
 ==Information Model==
 <table id="mt">
@@ -1507,19 +605,21 @@ of IETF draft MIBs.
 			<td id="mt">SIGSCALE-OCS-MIB</td>
 		</tr>
 		<tr id="mt">
-			<td id="mt"><a href="http://tools.ietf.org/html/draft-ietf-dime-diameter-base-protocol-mib-06">draft-ietf-dime-diameter-base-protocol-mib</a></td>
+			<td id="mt"><a target="_blank"
+					href="http://tools.ietf.org/html/draft-ietf-dime-diameter-base-protocol-mib-06">draft-ietf-dime-diameter-base-protocol-mib</a></td>
 			<td id="mt">SIGSCALE-DIAMETER-BASE-PROTOCOL-MIB</td>
 		</tr>
 		<tr id="mt">
-			<td id="mt"><a href="http://tools.ietf.org/html/draft-ietf-dime-diameter-cc-appl-mib-03">draft-ietf-dime-diameter-cc-appl-mib</a></td>
+			<td id="mt"><a target="_blank"
+					href="http://tools.ietf.org/html/draft-ietf-dime-diameter-cc-appl-mib-03">draft-ietf-dime-diameter-cc-appl-mib</a></td>
 			<td id="mt">SIGSCALE-DIAMETER-CC-APPLICATION-MIB</td>
 		</tr>
 		<tr id="mt">
-			<td id="mt"><a href="http://tools.ietf.org/html/rfc4669">RFC4669</a></td>
+			<td id="mt"><a target="_blank" href="http://tools.ietf.org/html/rfc4669">RFC4669</a></td>
 			<td id="mt">RADIUS-AUTH-SERVER-MIB</td>
 		</tr>
 		<tr id="mt">
-			<td id="mt"><a href="http://tools.ietf.org/html/rfc4671">RFC4671</a></td>
+			<td id="mt"><a target="_blank" href="http://tools.ietf.org/html/rfc4671">RFC4671</a></td>
 			<td id="mt">RADIUS-ACC-SERVER-MIB</td>
 		</tr>
 	</tbody>
