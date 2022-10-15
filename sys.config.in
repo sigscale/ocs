@@ -66,6 +66,8 @@
                   {"css", "text/css"},
                   {"js", "application/javascript"},
                   {"json", "application/json"},
+                  {"svg", "image/svg+xml"},
+                  {"png", "image/png"},
                   {"csv", "text/csv"}]},
             {port, 8080},
             {socket_type, ip_comm},
