@@ -67,13 +67,14 @@ and accounting on the configured ports. The {@link //inets. inets} application
 may be started to provide a REST API and web user interface (UI).
 
 ==REST API==
-The {@link //ocs. ocs} application provides a
-<a target="_blank" href="http://www.ics.uci.edu/~fielding/pubs/dissertation/top.htm">RESTful</a>
-API built on the <a target="_blank" href="http://tools.ietf.org/html/rfc2616">HTTP</a> protocol
-and using <a target="_blank" href="http://tools.ietf.org/html/rfc4627">JSON</a> data encoding.
+The {@link //ocs. ocs} application provides <a target="_blank"
+href="http://www.ics.uci.edu/~fielding/pubs/dissertation/top.htm">RESTful</a>
+APIs built on the <a target="_blank" href="http://tools.ietf.org/html/rfc2616">
+HTTP</a> protocol and using <a target="_blank"
+href="http://tools.ietf.org/html/rfc4627">JSON</a> data encoding.
 
-The following <a target="_blank" href="https://www.tmforum.org/open-apis/">
-TM Forum Open APIs</a> are used:
+The following industry standard <a target="_blank"
+href="https://www.tmforum.org/open-apis/">TM Forum Open APIs</a> are used:
 <p><table id="mt">
 	<thead>
 		<tr id="mt">
@@ -219,6 +220,46 @@ TM Forum Open APIs</a> are used:
 				<a href="/schema/partyManagement.swagger.json"
 						download="partyManagement.json">
 					<img src="oas-logo.svg" />
+				</a>
+			</td>
+		</tr>
+	</tbody>
+</table></p>
+
+A Rating &amp; Charging API is also supported which allows decomposing
+SigScale OCS into OCF, RF and ABMF components. An Online Charging Function
+(OCF) produces network facing protocols (i.e. DIAMETER) and consumes the
+<i>Nrf</i> API. A Rating Function (RF) produces the <i>Nrf</i>
+API.  An Account Balance Management Function (ABMF) is either colocated
+with an RF (class B) or with an OCF (class A). This decomposition is
+described in 3GPP TS <a target="_blank"
+href="https://webapp.etsi.org/key/key.asp?GSMSpecPart1=32&amp;GSMSpecPart2=296">
+32.296</a>. Sigscale's <i>Nrf_Rating</i> API follows the 3GPP's
+drafting rules for 5GC Service Based Interfaces (SBI) and is aligned with
+the <i>Nchf</i> SBI for the 5GC Charging Function (CHF).
+<p><table id="mt">
+	<thead>
+		<tr id="mt">
+			<th id="mt">Name</th>
+			<th id="mt">Description</th>
+			<th id="mt">Download</th>
+			<th id="mt">Browse</th>
+		</tr>
+	</thead>
+	<tbody>
+		<tr id="mt">
+			<td id="mt">Nrf</td>
+			<td id="mt">RF Rating Service</td>
+			<td id="mt">
+				<a href="/schema/Nrf_Rating.json"
+						download="Nrf_Rating.json">
+					<img src="oas-logo.svg" />
+				</a>
+			</td>
+			<td id="mt">
+				<a target="_blank"
+						href="https://app.swaggerhub.com/apis/SigScale/nrf-rating/1.0.0">
+					<img src="swaggerhub-logo.svg" />
 				</a>
 			</td>
 		</tr>
