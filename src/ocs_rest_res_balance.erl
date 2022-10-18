@@ -190,7 +190,7 @@ get_balance_service(Identity) ->
 						throw(Reason)
 				end;
 			{error, _} ->
-				{error, 500}
+				{error, 404}
 		end
 	of
 		{ProductRef1, Buckets2} ->
