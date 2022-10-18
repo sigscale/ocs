@@ -171,7 +171,6 @@ class dashBoard extends PolymerElement {
 			var toast = document.body.querySelector('sig-app').shadowRoot.getElementById('restError');
 			toast.text = error;
 			toast.open();
-			callback([]);
 		}
 		if(ajax.loading) {
 			ajax.lastRequest.completes.then(function(request) {
