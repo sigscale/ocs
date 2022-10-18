@@ -87,12 +87,6 @@ styleElement.innerHTML = `<template>
 		paper-dialog iron-collapse > div:first-child hr {
 			display: none;
 		}
-		paper-dialog iron-collapse > div {
-			padding-top: 25px
-		}
-		paper-dialog iron-collapse > div:first-child {
-			padding-top: 0px
-		}
 		.drawer-list a.iron-selected {
 			color: #78909C;
 			font-weight: bold;
