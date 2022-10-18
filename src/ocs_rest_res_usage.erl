@@ -870,7 +870,7 @@ spec_aaa_auth() ->
 	Valid = {"validFor", {struct, [Start, End]}},
 	Chars = [spec_protocol(), spec_node(), spec_server_address(),
 			spec_server_port(), spec_client_address(),
-			spec_client_port(), spec_type_access(),
+			spec_client_port(), spec_type_access(), spec_attr_context(),
 			spec_attr_username(), spec_attr_nas_ip(),
 			spec_attr_nas_port(), spec_attr_service_type(),
 			spec_attr_framed_address(), spec_attr_framed_pool(),
@@ -896,7 +896,7 @@ spec_aaa_acct() ->
 	End = {"endDateTime", undefined},
 	Valid = {"validFor", {struct, [Start, End]}},
 	Chars = [spec_protocol(), spec_node(), spec_server_address(),
-			spec_server_port(), spec_type_accounting(),
+			spec_server_port(), spec_type_accounting(), spec_attr_context(),
 			spec_attr_username(),  spec_attr_msisdn(), spec_attr_imsi(),
 			spec_attr_nas_ip(), spec_attr_nas_port(),
 			spec_attr_service_type(), spec_attr_framed_address(),
@@ -1667,16 +1667,17 @@ spec_attr_nas_port() ->
 %% @hidden
 spec_attr_service_type() ->
 	Name = {"name", "serviceType"},
-	Desc = {"description", "Service-Type attribute"},
+	Desc = {"description", "RADIUS Service-Type"},
 	Conf = {"configurable", true},
-	Typ = {"valueType", "String"},
-	Def = {"default", true},
+	TypS = {"valueType", "String"},
+	TypN = {"valueType", "Number"},
 	Val1 = {"value", "framed"},
-	Value1 = {struct, [Typ, Def, Val1]},
+	Value1 = {struct, [TypS, Val1]},
 	Val2 = {"value", "administrative"},
-	Value2 = {struct, [Typ, Def, Val2]},
+	Value2 = {struct, [TypS, Val2]},
 	Val3 = {"value", "authenticate-only"},
-	Value3 = {struct, [Typ, Def, Val3]},
+	Value3 = {struct, [TypS, Val3]},
+	Value4 = {struct, [TypN]},
 	Value = {"usageSpecCharacteristicValue", {array, [Value1, Value2, Value3]}},
 	{struct, [Name, Desc, Conf, Value]}.
 
@@ -2127,6 +2128,14 @@ spec_attr_cause() ->
 	{struct, [Name, Desc, Conf, Value]}.
 
 %% @hidden
+spec_attr_context() ->
+	Name = {"name", "serviceContextId"},
+	Desc = {"description", "Service-Context-Id AVP"},
+	Conf = {"configurable", true},
+	Type = {"valueType", "String"},
+	{struct, [Name, Desc, Conf, Type]}.
+
+%% @hidden
 usage_characteristics(Attributes) ->
 	lists:reverse(char_attr_username(Attributes, [])).
 
@@ -2178,11 +2187,11 @@ char_attr_username(CCR, Acc) ->
 char_attr_nas_ip(#'3gpp_ro_CCR'{'Origin-Host' = Value} = CCR, Acc) ->
 	NewAcc = [{struct, [{"name", "nasIpAddress"},
 			{"value", binary_to_list(Value)}]} | Acc],
-	char_attr_service_type(CCR, NewAcc);
+	char_attr_context(CCR, NewAcc);
 char_attr_nas_ip(#'3gpp_gx_CCR'{'Origin-Host' = Value} = CCR, Acc) ->
 	NewAcc = [{struct, [{"name", "nasIpAddress"},
 			{"value", binary_to_list(Value)}]} | Acc],
-	char_attr_service_type(CCR, NewAcc);
+	char_attr_context(CCR, NewAcc);
 char_attr_nas_ip(Attributes, Acc) ->
 	NewAcc = case radius_attributes:find(?NasIpAddress, Attributes) of
 		{ok, Value} ->
@@ -2204,14 +2213,6 @@ char_attr_nas_port(Attributes, Acc) ->
 	char_attr_service_type(Attributes, NewAcc).
 
 %% @hidden
-char_attr_service_type(#'3gpp_ro_CCR'{'Service-Context-Id' = Context} = CCR, Acc) ->
-	NewAcc = case service_type(Context) of
-		undefined ->
-			Acc;
-		Value ->
-			[{struct, [{"name", "serviceType"}, {"value", Value}]} | Acc]
-	end,
-	char_attr_called_id(CCR, NewAcc);
 char_attr_service_type(Attributes, Acc)
 		when is_list(Attributes) ->
 	NewAcc = case radius_attributes:find(?ServiceType, Attributes) of
@@ -2230,8 +2231,13 @@ char_attr_service_type(Attributes, Acc)
 		{error, not_found} ->
 			Acc
 	end,
-	char_attr_framed_address(Attributes, NewAcc);
-char_attr_service_type(CCR, Acc) ->
+	char_attr_framed_address(Attributes, NewAcc).
+
+char_attr_context(#'3gpp_ro_CCR'{'Service-Context-Id' = Context} = CCR, Acc) ->
+	Value = binary_to_list(Context),
+	NewAcc = [{struct, [{"name", "serviceContextId"}, {"value", Value}]} | Acc],
+	char_attr_called_id(CCR, NewAcc);
+char_attr_context(CCR, Acc) ->
 	char_attr_called_id(CCR, Acc).
 
 %% @hidden
@@ -4911,20 +4917,4 @@ rev('_') ->
 	'_';
 rev(Attributes) when is_list(Attributes) ->
 	lists:reverse(Attributes).
-
-%% @hidden
-service_type(Id) ->
-	% allow ".3gpp.org" or the proper "@3gpp.org"
-	case binary:part(Id, size(Id), -8) of
-		<<"3gpp.org">> ->
-			ServiceContext = binary:part(Id, byte_size(Id) - 14, 5),
-			case catch binary:decode_unsigned(ServiceContext) of
-				{'EXIT', _} ->
-					undefined;
-				SeviceType ->
-					SeviceType
-			end;
-		_ ->
-			undefined
-	end.
 
