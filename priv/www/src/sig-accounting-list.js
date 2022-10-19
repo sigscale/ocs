@@ -421,7 +421,7 @@ class accountingList extends PolymerElement {
 					ajax.params['filter'] += ",";
 				}
 				if(isNaN(filter.value)) {
-					ajax.params['filter'] += "{name=" + filter.path + ",value.like=[" + filter.value + "%]}";
+					ajax.params['filter'] += "{name=" + filter.path + ",value.gte=" + filter.value + "%}";
 				} else {
 					ajax.params['filter'] += "{name=" + filter.path + ",value.like=[" + filter.value + "%]}";
 				}
