@@ -1,5 +1,26 @@
 2022-10-12  Vance Shipley <vances@sigscale.org>
 
+	* more content in edoc overview page
+	* mark private api function
+	* remove unused d3 graph function
+	* fix query
+	* remove extra padding in dialog lists
+	* remove misplaced function call
+	* add service context id usage characteristic
+	* handle unexpected error on open log
+	* get balance by unknown service id result is 404
+	* nrf api in edoc overview
+	* refactor and modernize edoc overview page
+	* config to fix svg image handing in inets httpd
+	* fix filter in accounting view
+	* allow /doc without service worker
+	* source workbox config from src dir
+	* remove unused clause
+	* make clean removes service worker
+	* block page manual refresh if still loading
+	* rename rootpath global
+	* modernize service worker with workbox
+	* correct dashboard module name
 	* dashboard landing page
 	* minor edoc formatting
 
