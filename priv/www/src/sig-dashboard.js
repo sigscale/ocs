@@ -14,7 +14,6 @@ import { arc, pie, line, curveLinear } from 'd3-shape';
 import { scaleOrdinal, scaleLinear, scaleUtc } from 'd3-scale';
 import { axisBottom, axisLeft, ticks, tickSizeOuter } from 'd3-axis';
 import { max, extent, group, InternSet, range } from 'd3-array';
-import { voronoi } from 'd3-delaunay';
 import { transition } from 'd3-transition';
 import {} from '@polymer/polymer/lib/elements/dom-repeat.js';
 import "@polymer/paper-card/paper-card.js";
@@ -204,7 +203,6 @@ class dashBoard extends PolymerElement {
 		var mixBlendMode = "multiply";
 		var yLabel = "↑ Scheduler (%)";
 		var yFormat;
-		var voronoi;
 		svg.selectAll("*").remove();
 		select("body").selectAll(".tooltip").remove();
 		var X = data.map(x);
@@ -233,9 +231,6 @@ class dashBoard extends PolymerElement {
 			.attr("transform", `translate(${marginLeft},0)`)
 			.call(yAxis)
 			.call(g => g.select(".domain").remove())
-			.call(voronoi ? () => {} : g => g.selectAll(".tick line").clone()
-				.attr("x2", width - marginLeft - marginRight)
-				.attr("stroke-opacity", 0.1))
 			.call(g => g.append("text")
 				.attr("x", -marginLeft)
 				.attr("y", 10)
