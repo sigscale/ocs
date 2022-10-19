@@ -338,6 +338,10 @@ terminate(Reason, StateName,
 code_change(_OldVsn, StateName, StateData, _Extra) ->
 	{ok, StateName, StateData}.
 
+%%----------------------------------------------------------------------
+%%  The ocs_rest_hub_fsm private API
+%%----------------------------------------------------------------------
+
 -spec handle_async(ReplyInfo, Fsm) -> ok
 	when
 		ReplyInfo :: tuple(),
