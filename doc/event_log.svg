@@ -1,0 +1,100 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN" "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd">
+<svg xmlns="http://www.w3.org/2000/svg" xmlns:dc="http://purl.org/dc/elements/1.1/" xmlns:xl="http://www.w3.org/1999/xlink" version="1.1" viewBox="258.666 368 834.53 135.4" width="834.53" height="135.4">
+  <defs>
+    <marker orient="auto" overflow="visible" markerUnits="strokeWidth" id="FilledArrow_Marker" stroke-linejoin="miter" stroke-miterlimit="10" viewBox="-1 -2 5 4" markerWidth="5" markerHeight="4" color="#d6d6d6">
+      <g>
+        <path d="M 2.24 0 L 0 -.84 L 0 .84 Z" fill="currentColor" stroke="currentColor" stroke-width="1"/>
+      </g>
+    </marker>
+    <marker orient="auto" overflow="visible" markerUnits="strokeWidth" id="FilledArrow_Marker_2" stroke-linejoin="miter" stroke-miterlimit="10" viewBox="-1 -2 5 4" markerWidth="5" markerHeight="4" color="#d6d6d6">
+      <g>
+        <path d="M 2.24 0 L 0 -.84 L 0 .84 Z" fill="currentColor" stroke="currentColor" stroke-width="1"/>
+      </g>
+    </marker>
+  </defs>
+  <g id="Event_Log" stroke="none" stroke-opacity="1" stroke-dasharray="none" fill="none" fill-opacity="1">
+    <title>Event Log</title>
+    <g id="Event_Log_Layer_1">
+      <title>Layer 1</title>
+      <g id="Line_70">
+        <line x1="697.98725" y1="421.6234" x2="763.6672" y2="421.2458" stroke="#d6d6d6" stroke-linecap="round" stroke-linejoin="round" stroke-width="3"/>
+      </g>
+      <g id="Graphic_5">
+        <path d="M 259.166 381.5 L 414.334 381.5 L 414.334 446.7 C 367.7836 438.55 305.7164 471.15 259.166 454.85 Z" fill="white"/>
+        <path d="M 259.166 381.5 L 414.334 381.5 L 414.334 446.7 C 367.7836 438.55 305.7164 471.15 259.166 454.85 Z" stroke="#ffa900" stroke-linecap="round" stroke-linejoin="round" stroke-width="1"/>
+        <text transform="translate(264.166 403.675)" fill="black">
+          <tspan font-family="Montserrat" font-size="24" fill="black" x="27.452" y="23">ocs_log</tspan>
+        </text>
+      </g>
+      <g id="Graphic_39">
+        <ellipse cx="589" cy="422.25" rx="109.000174171307" ry="40.7500651145023" fill="#ffa900"/>
+        <text transform="translate(506.8 408.25)" fill="white">
+          <tspan font-family="Montserrat" font-size="23" fill="white" x=".8259969" y="22">ocs_event_log</tspan>
+        </text>
+      </g>
+      <g id="Line_40">
+        <line x1="414.334" y1="422.25" x2="468.57995" y2="422.25" marker-end="url(#FilledArrow_Marker)" stroke="#d6d6d6" stroke-linecap="round" stroke-linejoin="round" stroke-width="3"/>
+      </g>
+      <g id="Group_74">
+        <g id="Group_42">
+          <g id="Graphic_49">
+            <path d="M 1066.9692 424.7769 C 1066.9692 416.33443 1061.7231 409.0394 1053.9361 406.1706 C 1054.266 404.3862 1054.4305 402.5752 1054.4277 400.76055 C 1054.4277 385.1047 1041.723 372.4 1026.0671 372.4 C 1016.9688 372.4 1008.4443 376.7442 1003.1163 384.2032 C 1000.4934 382.1539 997.2967 381.08843 993.9359 381.08843 C 985.657 381.08843 978.854 387.8095 978.854 396.17038 C 978.854 397.97373 979.1819 399.7771 979.7554 401.41646 C 971.8869 404.1213 966.5588 411.66227 966.5588 420.02273 C 966.5588 428.4656 971.8049 435.8426 979.6735 438.7114 C 979.3459 440.43275 979.1819 442.2361 979.1819 444.12106 C 979.1819 459.69494 991.8866 472.4 1007.4605 472.4 C 1016.6408 472.4 1025.0837 467.9738 1030.4113 460.5968 C 1033.0342 462.64574 1036.313 463.7936 1039.6737 463.7936 C 1047.9526 463.7936 1054.7556 457.0721 1054.7556 448.7116 C 1054.7556 446.90827 1054.4277 445.1049 1053.8542 443.46554 C 1061.5587 440.6787 1066.9688 433.13774 1066.9688 424.7769 Z" fill="white"/>
+          </g>
+          <g id="Graphic_48">
+            <path d="M 1005.8211 415.35057 L 1028.1984 425.59677 L 1050.8214 405.76067 C 1051.1512 404.11447 1051.3158 402.43946 1051.3129 400.76055 C 1051.3129 386.82644 1040.0016 375.5148 1026.0671 375.5148 C 1017.7063 375.5148 1009.9197 379.61303 1005.2476 386.4981 L 1001.4769 406.00663 L 1005.8211 415.35096 Z" fill="#f4bd19"/>
+          </g>
+          <g id="Graphic_47">
+            <path d="M 982.6243 439.03934 C 982.2967 440.6787 982.1327 442.4001 982.1327 444.12145 C 982.1327 458.05556 993.526 469.4492 1007.4605 469.4492 C 1015.9033 469.4492 1023.6903 465.269 1028.444 458.3835 L 1032.1327 438.87537 L 1027.1326 429.36706 L 1004.6736 419.12125 L 982.6243 439.03934 Z" fill="#3cbeb1"/>
+          </g>
+          <g id="Graphic_46">
+            <path d="M 982.4607 400.2686 L 997.7886 403.87533 L 1001.2309 386.4161 C 999.1 384.77673 996.5588 383.95724 993.8539 383.95724 C 987.2144 383.95724 981.7228 389.3669 981.7228 396.0884 C 981.7228 397.4818 981.9687 398.9572 982.4603 400.2686 Z" fill="#e9478c"/>
+          </g>
+          <g id="Graphic_45">
+            <path d="M 981.1489 403.9569 C 974.2638 406.1702 969.5096 412.8097 969.5096 420.02273 C 969.5096 427.07217 973.8538 433.3837 980.4113 435.8426 L 1001.9688 416.33404 L 998.0342 407.89198 L 981.1489 403.9573 Z" fill="#2c458f"/>
+          </g>
+          <g id="Graphic_44">
+            <path d="M 1032.3787 458.3015 C 1034.5096 459.9413 1037.0508 460.8428 1039.6737 460.8428 C 1046.3132 460.8428 1051.8048 455.4331 1051.8048 448.7116 C 1051.8048 447.2362 1051.5589 445.8424 1051.0673 444.531 L 1035.7394 440.9247 L 1032.3787 458.3015 Z" fill="#95c63d"/>
+          </g>
+          <g id="Graphic_43">
+            <path d="M 1035.4935 436.90804 L 1052.3788 440.8427 C 1059.2638 438.5478 1064.018 431.9903 1064.018 424.7769 C 1064.018 417.72745 1059.6738 411.4983 1053.1163 408.95743 L 1030.9853 428.3016 L 1035.4935 436.90843 Z" fill="#176655"/>
+          </g>
+        </g>
+        <g id="Graphic_50">
+          <text transform="translate(941.332 473.4)" fill="black">
+            <tspan font-family="Montserrat" font-size="24" fill="black" x="6963319e-19" y="23">Elastic Stack</tspan>
+          </text>
+        </g>
+      </g>
+      <g id="Line_63">
+        <line x1="849.1646" y1="420.7377" x2="958.0899" y2="420.0694" marker-end="url(#FilledArrow_Marker_2)" stroke="#d6d6d6" stroke-linecap="round" stroke-linejoin="round" stroke-width="3"/>
+      </g>
+      <g id="Group_75">
+        <g id="Graphic_68">
+          <ellipse cx="831.916" cy="400.5" rx="42.7500683103061" ry="32.0000511328608" fill="#ffa900"/>
+          <ellipse cx="831.916" cy="400.5" rx="42.7500683103061" ry="32.0000511328608" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="1"/>
+          <text transform="translate(802.716 389.5)" fill="white">
+            <tspan font-family="Montserrat" font-size="18" fill="white" x="4.756001" y="17">httpc</tspan>
+          </text>
+        </g>
+        <g id="Graphic_67">
+          <ellipse cx="819.416" cy="410.5" rx="42.7500683103061" ry="32.0000511328607" fill="#ffa900"/>
+          <ellipse cx="819.416" cy="410.5" rx="42.7500683103061" ry="32.0000511328607" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="1"/>
+          <text transform="translate(790.216 399.5)" fill="white">
+            <tspan font-family="Montserrat" font-size="18" fill="white" x="4.756001" y="17">httpc</tspan>
+          </text>
+        </g>
+        <g id="Graphic_66">
+          <ellipse cx="806.416" cy="421" rx="42.7500683103061" ry="32.0000511328607" fill="#ffa900"/>
+          <ellipse cx="806.416" cy="421" rx="42.7500683103061" ry="32.0000511328607" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="1"/>
+          <text transform="translate(777.216 410)" fill="white">
+            <tspan font-family="Montserrat" font-size="18" fill="white" x="4.756001" y="17">httpc</tspan>
+          </text>
+        </g>
+      </g>
+      <g id="Line_78">
+        <line x1="697.98725" y1="421.6234" x2="752.2474" y2="421.31143" marker-end="url(#FilledArrow_Marker_2)" stroke="#d6d6d6" stroke-linecap="round" stroke-linejoin="round" stroke-width="3"/>
+      </g>
+    </g>
+  </g>
+</svg>

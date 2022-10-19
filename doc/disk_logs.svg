@@ -1,0 +1,165 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN" "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd">
+<svg xmlns="http://www.w3.org/2000/svg" xmlns:dc="http://purl.org/dc/elements/1.1/" xmlns:xl="http://www.w3.org/1999/xlink" version="1.1" viewBox="-13 176 1215.25 449" width="1215.25" height="449">
+  <defs>
+    <marker orient="auto" overflow="visible" markerUnits="strokeWidth" id="FilledArrow_Marker" stroke-linejoin="miter" stroke-miterlimit="10" viewBox="-1 -3 6 6" markerWidth="6" markerHeight="6" color="#d6d6d6">
+      <g>
+        <path d="M 3.2 0 L 0 -1.2 L 0 1.2 Z" fill="currentColor" stroke="currentColor" stroke-width="1"/>
+      </g>
+    </marker>
+  </defs>
+  <g id="Disk_Logs" stroke="none" stroke-opacity="1" stroke-dasharray="none" fill="none" fill-opacity="1">
+    <title>Disk Logs</title>
+    <g id="Disk_Logs_Layer_1">
+      <title>Layer 1</title>
+      <g id="Line_45">
+        <line x1="770" y1="413.36185" x2="999.8989" y2="371.9859" marker-end="url(#FilledArrow_Marker)" stroke="#d6d6d6" stroke-linecap="round" stroke-linejoin="round" stroke-width="4"/>
+      </g>
+      <g id="Line_46">
+        <line x1="770" y1="449.26046" x2="1000.4567" y2="521.11387" marker-end="url(#FilledArrow_Marker)" stroke="#d6d6d6" stroke-linecap="round" stroke-linejoin="round" stroke-width="4"/>
+      </g>
+      <g id="Graphic_15">
+        <text transform="translate(454.365 377.5)" fill="black">
+          <tspan font-family="Montserrat" font-size="24" fill="black" x="22737368e-20" y="23">Scheduled</tspan>
+        </text>
+      </g>
+      <g id="Graphic_27">
+        <text transform="translate(838.533 420)" fill="black">
+          <tspan font-family="Montserrat" font-size="24" fill="black" x="55422333e-20" y="23">On Demand</tspan>
+        </text>
+      </g>
+      <g id="Group_44">
+        <g id="Graphic_2">
+          <path d="M 268.25 473.3 L 268.25 379.7 C 268.25 373.2416 300.506 368 340.25 368 C 379.994 368 412.25 373.2416 412.25 379.7 L 412.25 473.3 C 412.25 479.7584 379.994 485 340.25 485 C 300.506 485 268.25 479.7584 268.25 473.3" fill="white"/>
+          <path d="M 268.25 473.3 L 268.25 379.7 C 268.25 373.2416 300.506 368 340.25 368 C 379.994 368 412.25 373.2416 412.25 379.7 L 412.25 473.3 C 412.25 479.7584 379.994 485 340.25 485 C 300.506 485 268.25 479.7584 268.25 473.3 M 268.25 379.7 C 268.25 386.1584 300.506 391.4 340.25 391.4 C 379.994 391.4 412.25 386.1584 412.25 379.7" stroke="#ff7c00" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"/>
+          <text transform="translate(273.25 417.85)" fill="black">
+            <tspan font-family="Montserrat" font-size="24" fill="black" x="41.548" y="23">acct</tspan>
+          </text>
+        </g>
+        <g id="Graphic_5">
+          <path d="M 268.25 334.3 L 268.25 240.7 C 268.25 234.2416 300.506 229 340.25 229 C 379.994 229 412.25 234.2416 412.25 240.7 L 412.25 334.3 C 412.25 340.7584 379.994 346 340.25 346 C 300.506 346 268.25 340.7584 268.25 334.3" fill="white"/>
+          <path d="M 268.25 334.3 L 268.25 240.7 C 268.25 234.2416 300.506 229 340.25 229 C 379.994 229 412.25 234.2416 412.25 240.7 L 412.25 334.3 C 412.25 340.7584 379.994 346 340.25 346 C 300.506 346 268.25 340.7584 268.25 334.3 M 268.25 240.7 C 268.25 247.1584 300.506 252.4 340.25 252.4 C 379.994 252.4 412.25 247.1584 412.25 240.7" stroke="#ff7c00" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"/>
+          <text transform="translate(273.25 278.85)" fill="black">
+            <tspan font-family="Montserrat" font-size="24" fill="black" x="38.848" y="23">auth</tspan>
+          </text>
+        </g>
+        <g id="Graphic_6">
+          <path d="M 268.25 612.3 L 268.25 518.7 C 268.25 512.2416 300.506 507 340.25 507 C 379.994 507 412.25 512.2416 412.25 518.7 L 412.25 612.3 C 412.25 618.7584 379.994 624 340.25 624 C 300.506 624 268.25 618.7584 268.25 612.3" fill="white"/>
+          <path d="M 268.25 612.3 L 268.25 518.7 C 268.25 512.2416 300.506 507 340.25 507 C 379.994 507 412.25 512.2416 412.25 518.7 L 412.25 612.3 C 412.25 618.7584 379.994 624 340.25 624 C 300.506 624 268.25 618.7584 268.25 612.3 M 268.25 518.7 C 268.25 525.1584 300.506 530.4 340.25 530.4 C 379.994 530.4 412.25 525.1584 412.25 518.7" stroke="#ff7c00" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"/>
+          <text transform="translate(273.25 556.85)" fill="black">
+            <tspan font-family="Montserrat" font-size="24" fill="black" x="34.984" y="23">abmf</tspan>
+          </text>
+        </g>
+        <g id="Graphic_29">
+          <text transform="translate(279.734 177)" fill="black">
+            <tspan font-family="Montserrat" font-size="24" fill="black" x="0" y="23">FIFO Logs</tspan>
+          </text>
+        </g>
+      </g>
+      <g id="Group_36">
+        <g id="Group_11">
+          <g id="Graphic_10">
+            <path d="M 662.75 411.3 L 662.75 317.7 C 662.75 311.2416 695.006 306 734.75 306 C 774.494 306 806.75 311.2416 806.75 317.7 L 806.75 411.3 C 806.75 417.7584 774.494 423 734.75 423 C 695.006 423 662.75 417.7584 662.75 411.3" fill="white"/>
+            <path d="M 662.75 411.3 L 662.75 317.7 C 662.75 311.2416 695.006 306 734.75 306 C 774.494 306 806.75 311.2416 806.75 317.7 L 806.75 411.3 C 806.75 417.7584 774.494 423 734.75 423 C 695.006 423 662.75 417.7584 662.75 411.3 M 662.75 317.7 C 662.75 324.1584 695.006 329.4 734.75 329.4 C 774.494 329.4 806.75 324.1584 806.75 317.7" stroke="#ff7c00" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"/>
+            <text transform="translate(667.75 355.85)" fill="black">
+              <tspan font-family="Montserrat" font-size="24" fill="black" x="42.688" y="23">ipdr</tspan>
+            </text>
+          </g>
+          <g id="Graphic_9">
+            <path d="M 645.75 443.3 L 645.75 349.7 C 645.75 343.2416 678.006 338 717.75 338 C 757.494 338 789.75 343.2416 789.75 349.7 L 789.75 443.3 C 789.75 449.7584 757.494 455 717.75 455 C 678.006 455 645.75 449.7584 645.75 443.3" fill="white"/>
+            <path d="M 645.75 443.3 L 645.75 349.7 C 645.75 343.2416 678.006 338 717.75 338 C 757.494 338 789.75 343.2416 789.75 349.7 L 789.75 443.3 C 789.75 449.7584 757.494 455 717.75 455 C 678.006 455 645.75 449.7584 645.75 443.3 M 645.75 349.7 C 645.75 356.1584 678.006 361.4 717.75 361.4 C 757.494 361.4 789.75 356.1584 789.75 349.7" stroke="#ff7c00" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"/>
+            <text transform="translate(650.75 387.85)" fill="black">
+              <tspan font-family="Montserrat" font-size="24" fill="black" x="42.688" y="23">ipdr</tspan>
+            </text>
+          </g>
+          <g id="Graphic_3">
+            <path d="M 625 473.3 L 625 379.7 C 625 373.2416 657.256 368 697 368 C 736.744 368 769 373.2416 769 379.7 L 769 473.3 C 769 479.7584 736.744 485 697 485 C 657.256 485 625 479.7584 625 473.3" fill="white"/>
+            <path d="M 625 473.3 L 625 379.7 C 625 373.2416 657.256 368 697 368 C 736.744 368 769 373.2416 769 379.7 L 769 473.3 C 769 479.7584 736.744 485 697 485 C 657.256 485 625 479.7584 625 473.3 M 625 379.7 C 625 386.1584 657.256 391.4 697 391.4 C 736.744 391.4 769 386.1584 769 379.7" stroke="#ff7c00" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"/>
+            <text transform="translate(630 417.85)" fill="black">
+              <tspan font-family="Montserrat" font-size="24" fill="black" x="42.688" y="23">ipdr</tspan>
+            </text>
+          </g>
+        </g>
+        <g id="Graphic_30">
+          <text transform="translate(639.291 253.5)" fill="black">
+            <tspan font-family="Montserrat" font-size="24" fill="black" x="7673862e-19" y="23">Archive Logs</tspan>
+          </text>
+        </g>
+      </g>
+      <g id="Group_38">
+        <g id="Group_37">
+          <g id="Group_17">
+            <g id="Graphic_20">
+              <path d="M 1057.25 429 L 1201.25 429 L 1201.25 522.6 C 1158.05 510.9 1100.45 557.7 1057.25 534.3 Z" fill="white"/>
+              <path d="M 1057.25 429 L 1201.25 429 L 1201.25 522.6 C 1158.05 510.9 1100.45 557.7 1057.25 534.3 Z" stroke="#ff7c00" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"/>
+              <text transform="translate(1062.25 467.15)" fill="black">
+                <tspan font-family="Montserrat" font-size="24" fill="black" x="42.688" y="23">ipdr</tspan>
+              </text>
+            </g>
+            <g id="Graphic_19">
+              <path d="M 1040.25 461 L 1184.25 461 L 1184.25 554.6 C 1141.05 542.9 1083.45 589.7 1040.25 566.3 Z" fill="white"/>
+              <path d="M 1040.25 461 L 1184.25 461 L 1184.25 554.6 C 1141.05 542.9 1083.45 589.7 1040.25 566.3 Z" stroke="#ff7c00" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"/>
+              <text transform="translate(1045.25 499.15)" fill="black">
+                <tspan font-family="Montserrat" font-size="24" fill="black" x="42.688" y="23">ipdr</tspan>
+              </text>
+            </g>
+            <g id="Graphic_18">
+              <path d="M 1019.5 491 L 1163.5 491 L 1163.5 584.6 C 1120.3 572.9 1062.7 619.7 1019.5 596.3 Z" fill="white"/>
+              <path d="M 1019.5 491 L 1163.5 491 L 1163.5 584.6 C 1120.3 572.9 1062.7 619.7 1019.5 596.3 Z" stroke="#ff7c00" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"/>
+              <text transform="translate(1024.5 529.15)" fill="black">
+                <tspan font-family="Montserrat" font-size="24" fill="black" x="40.888" y="23">XML</tspan>
+              </text>
+            </g>
+          </g>
+          <g id="Group_22">
+            <g id="Graphic_25">
+              <path d="M 1057.25 235 L 1201.25 235 L 1201.25 328.6 C 1158.05 316.9 1100.45 363.7 1057.25 340.3 Z" fill="white"/>
+              <path d="M 1057.25 235 L 1201.25 235 L 1201.25 328.6 C 1158.05 316.9 1100.45 363.7 1057.25 340.3 Z" stroke="#ff7c00" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"/>
+              <text transform="translate(1062.25 273.15)" fill="black">
+                <tspan font-family="Montserrat" font-size="24" fill="black" x="42.688" y="23">ipdr</tspan>
+              </text>
+            </g>
+            <g id="Graphic_24">
+              <path d="M 1040.25 267 L 1184.25 267 L 1184.25 360.6 C 1141.05 348.9 1083.45 395.7 1040.25 372.3 Z" fill="white"/>
+              <path d="M 1040.25 267 L 1184.25 267 L 1184.25 360.6 C 1141.05 348.9 1083.45 395.7 1040.25 372.3 Z" stroke="#ff7c00" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"/>
+              <text transform="translate(1045.25 305.15)" fill="black">
+                <tspan font-family="Montserrat" font-size="24" fill="black" x="42.688" y="23">ipdr</tspan>
+              </text>
+            </g>
+            <g id="Graphic_23">
+              <path d="M 1019.5 297 L 1163.5 297 L 1163.5 390.6 C 1120.3 378.9 1062.7 425.7 1019.5 402.3 Z" fill="white"/>
+              <path d="M 1019.5 297 L 1163.5 297 L 1163.5 390.6 C 1120.3 378.9 1062.7 425.7 1019.5 402.3 Z" stroke="#ff7c00" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"/>
+              <text transform="translate(1024.5 335.15)" fill="black">
+                <tspan font-family="Montserrat" font-size="24" fill="black" x="42.664" y="23">CSV</tspan>
+              </text>
+            </g>
+          </g>
+        </g>
+        <g id="Graphic_31">
+          <text transform="translate(1040.403 177)" fill="black">
+            <tspan font-family="Montserrat" font-size="24" fill="black" x="0" y="23">Export Files</tspan>
+          </text>
+        </g>
+      </g>
+      <g id="Graphic_40">
+        <path d="M -12 385.75 L 143.168 385.75 L 143.168 450.95 C 96.6176 442.8 34.5504 475.4 -12 459.1 Z" fill="white"/>
+        <path d="M -12 385.75 L 143.168 385.75 L 143.168 450.95 C 96.6176 442.8 34.5504 475.4 -12 459.1 Z" stroke="#ff7c00" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"/>
+        <text transform="translate(-7 407.925)" fill="black">
+          <tspan font-family="Montserrat" font-size="24" fill="black" x="27.452" y="23">ocs_log</tspan>
+        </text>
+      </g>
+      <g id="Line_39">
+        <line x1="144.168" y1="386.73106" x2="250.38646" y2="332.97717" marker-end="url(#FilledArrow_Marker)" stroke="#d6d6d6" stroke-linecap="round" stroke-linejoin="round" stroke-width="4"/>
+      </g>
+      <g id="Line_41">
+        <line x1="114.34087" y1="451.17435" x2="250.38646" y2="520.02283" marker-end="url(#FilledArrow_Marker)" stroke="#d6d6d6" stroke-linecap="round" stroke-linejoin="round" stroke-width="4"/>
+      </g>
+      <g id="Line_42">
+        <line x1="144.168" y1="426.5" x2="248.35" y2="426.5" marker-end="url(#FilledArrow_Marker)" stroke="#d6d6d6" stroke-linecap="round" stroke-linejoin="round" stroke-width="4"/>
+      </g>
+      <g id="Line_43">
+        <line x1="413.25" y1="426.5" x2="605.1" y2="426.5" marker-end="url(#FilledArrow_Marker)" stroke="#d6d6d6" stroke-linecap="round" stroke-linejoin="round" stroke-width="4"/>
+      </g>
+    </g>
+  </g>
+</svg>

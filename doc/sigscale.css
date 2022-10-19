@@ -55,6 +55,54 @@ td {
 }
 
 /* SigScale style */
+img.diagram {
+	display: block;
+	margin-left: auto;
+	margin-right: auto;
+	width: 65%;
+}
+img.diagram#integration {
+	display: block;
+	margin-left: auto;
+	margin-right: auto;
+	width: 50%;
+}
+img.diagram#decomposition {
+	display: block;
+	margin-left: auto;
+	margin-right: auto;
+	width: 50%;
+}
+img.diagram#interfaces  {
+	display: block;
+	margin-left: auto;
+	margin-right: auto;
+	width: 50%;
+}
+img.diagram#twan {
+	display: block;
+	margin-left: auto;
+	margin-right: auto;
+	width: 50%;
+}
+img.diagram#wlan {
+	display: block;
+	margin-left: auto;
+	margin-right: auto;
+	width: 50%;
+}
+img.diagram#notification {
+	display: block;
+	margin-left: auto;
+	margin-right: auto;
+	width: 90%;
+}
+img.diagram#schema {
+	display: block;
+	margin-left: auto;
+	margin-right: auto;
+	width: 50%;
+}
 table#mt, tr#mt, td#mt {
 	border: 1px solid black;
 	text-align: left;

@@ -4,33 +4,155 @@
 @doc This application implements an Online Charging System (OCS).
 
 ==Introduction==
-
 This application implements functions used by communications
 service providers (CSP) for authorization and charging of
 prepaid services. It is built to TM Forum standards with
 Open APIs for management of product, service and balance. A
-web components front end is also provided for standalone use.
+web components front end is also provided as a progressive
+web app (PWA) for standalone use.
+
+==Features==
+SigScale OCS provides the following high level functions.
+
+===Product Catalog===
+An internal catalog of <i>Product Offerings</i> and <i>Prices</i>
+is provided which may be synched from an external master
+catalog (TMF620) where available. Any number of offers may be
+created, with simple or complex rating, using multiple <i>Prices</i>
+matched to appropriate service usage. Tariff tables may be used
+to rate by origination and/or destination address prefix as well
+as visited network (VPLMN MCC-MNC). <i>Product Offerings</i> may
+be bundled to create Voice, Data and Messaging <i>offers</i>.
+
+===Product Inventory===
+An internal inventory of subscribed <i>Products</i> is maintained
+which may be synched from an external master inventory (TMF637)
+where available. Account <i>Balance Buckets</i> are associated
+with a <i>Product</i> instance (subscription) and may be shared
+by associated <i>Services</i> (devices).
+
+===Service Inventory===
+An internal <i>Service Inventory</i> contains the subscriber
+identifiers used to match reported service usage with a
+<i>Product</i>. It may be synched with an external master
+inventory (TMF638).
 
 ===AAA===
 Authentication, authorization and accounting (AAA) functions
-are the foundation to commercial operations of a CSP. Subscriber
-credentials may (optionally) be stored internally with
-authentication performed over DIAMETER/RADIUS using EAP methods
-(AKA/AKA', PWD, TTLS) or managed by an external AAA (e.g. 3GPP HSS).
+are the foundation to commercial operations of a CSP. In a
+3GPP OCS use case authentication will have already been ccomplished
+before a DIAMETER Ro/Gy Credit Control Request (CCR) is received
+by the OCS. Authorization is performed by the OCS based on the
+application of prevailing ratees and available account balance.
+Accounting is perormed by reserving and charging against account
+balance, in real time, during service usage.
 
-===OCS===
+Authentication is optionally provided.  Subscriber credentials
+(i.e. password or K/OPc) may be stored internally with
+authentication performed over DIAMETER/RADIUS using EAP methods
+(AKA/AKA', PWD, TTLS).
+
+===OCS/CCS===
 An Online Charging System (OCS) performs real-time charging for
-services. An OCS authorizes subscribers' sessions subject to
-available credit on account and decrements account balance as
-services are consumed.  When a subscriber's account balance is
-depleted authorization may be withdrawn and ongoing session(s)
-terminated.
+services. A Converged Charging System (CCS) combines online
+(prepaid) and offline (postpaid) charging in one 5G Core function.
+An OCS/CCS authorizes subscribers' sessions subject to available
+credit on account and decrements account balance as services are
+consumed.  When a subscriber's account balance is depleted
+authorization may be withdrawn and ongoing session(s) terminated.
+
+===Business Support Systems (BSS)===
+The OCS/CCS includes control plane interfaces to core networks
+but also integrates with Business Support Systems (BSS) which
+manage commercial operations and customer management. SigScale
+OCS is designed and built to make this integration as frictionless
+as possible.  The diagram below represents a possible solution
+architecture.
+
+<img id="integration" class="diagram"
+		src="bss-integration.svg" alt="BSS integration" />
+
+===Functional Distribution===
+A 3GPP OCS/CCS may be decomposed into OCF/CHF, RF and ABMF
+(3GPP TS <a target="_blank"
+href="https://webapp.etsi.org/key/key.asp?GSMSpecPart1=32&amp;GSMSpecPart2=296">
+32.296</a>). A protocol for the <i>Re</i> interface, based
+on DIAMETER, was partially specified however SigScale has
+progressed this work by aligning with the 5GC SBI for <i>Nch</i>
+and created the <i>Nrf</i> REST API described below.
+
+<img id="decomposition" class="diagram"
+		src="bss-rating-function.svg" alt="RSS with RF" />
+
+====OCF/CHF====
+The network facing protocols (DIAMETER, RADIUS) are handled by an
+Online Charging Function (OCF). In 5G Core this is the CHF.
+
+====RF====
+The Rating Function (RF) provided in SigScale OCS is driven
+entirely by the <i>Product Offering Prices (POP)</i> in the
+catalog. The RF determines which of the POPs apply and determines
+a tariff rate to apply for the requested service usage. In class
+B operation the RF and ABMF are colocated and the response is
+for the combined operation.  In class A operation only the
+tariff rate to be applied is retruned and the OCF/CHF shall
+interact with the ABMF directly. The class of operation may be
+decided by the RF dynamically, a mix of class A and B may be
+used.
+
+====ABMF====
+The Account Balance Management Function (ABMF) supports reservation,
+debit and refund in monetary, byte, time and event units across
+multiple discrete <i>Buckets</i>. Each <i>Bucket</i> has it's
+own lifecycle period wth charging done across <i>Buckets</i>
+with a first to expire priority. External systems may use the
+TMF654 API to check accumulated balance, recgharge, etc..
+
+===PCRF===
+The Policy and Charging Rules Function (PCRF) is included which
+produces a DIAMETER Gx application service on the same ports as
+the Ro application (default 3868). Both static and dynamic
+Policy Rules installation on the Policy Enformenet Control
+Function (PCEF) is supported. Any number of <i>Policy Tables</i>
+ may be created, containing any number of <i>Policy Rules</i>.
+A <i>Product Offering</i> may have a <i>Policy Table</i>
+associated with it, allowing QoS to be defined at the
+<i>Product Offering</i> level and automatically applied to
+subscribers. Rules may be managed with the PWA (GUI) or TMF639 API.
+
+===CAMEL===
+Support for 3GPP CAMEL (Customized Applications for Mobile network
+Enhanced Logic) protocol is available through an integration with
+SigScale CSE which provides a CAMEL Service Envirionment (CSE).
+The interface between CSE and OCS is the <i>Nrf</i> API described
+in the REST section below.
 
 ===3GPP===
 This application conforms to 3GPP specifications for the interfaces,
-protocols and procedures of the OCS and 3GPP AAA Server functions
-in the reference architecture. Supported interfaces include
-DIAMETER Ro/Gy for OCS and DIAMETER SWm/STa/SWx for AAA Server.
+protocols and procedures of the OCS, PCRF and 3GPP AAA Server
+functions in the reference architecture. Supported interfaces
+include DIAMETER Ro/Gy, RADIUS and Nrf for OCS, Gx for PCRF and
+SWm/STa/SWx/S6b for AAA Server.
+
+<img id="interfaces" class="diagram"
+		src="interfaces.svg" alt="Interfaces" />
+
+===3GPP AAA Server===
+Non-3GPP access use cases are supported with the 3GPP AAA Server
+function which builds on the base AAA function and includes the
+3GPP reference architecture interfaces SWm, STa, S6b and SWx.
+The SIM's AKA credentials (K, OPc) may be stored internally,
+for testing or standalone deployments. In normal operation the
+DIAMETER SWx application is used to retrieve authentication
+vectors from a Home Subscriber Server (HSS).
+
+====Trusted WLAN====
+<img id="twan" class="diagram"
+		src="non-3gpp-trusted.svg" alt="non-3GPP trusted access" />
+
+====Untrusted WLAN====
+<img id="wlan" class="diagram"
+		src="non-3gpp-untrusted.svg" alt="non-3GPP untrusted access" />
 
 ==Installation==
 Before starting the application for the first time, {@link //mnesia/mnesia. mnesia}
@@ -65,6 +187,33 @@ The web UI also allows you to create users, making the above step unecessary.
 The OCS application will start RADIUS &amp; DIAMETER servers for authentication
 and accounting on the configured ports. The {@link //inets. inets} application
 may be started to provide a REST API and web user interface (UI).
+
+==Logging==
+Every detail of each DIAMETER/RADIUS transaction is logged to disk.
+
+===Disk Logs===
+Event details are logged to fixed size FIFO logs consisting of a configurable
+number, and size, of internally formatted files. Events are written to archive
+log files on a scheduled basis (default daily). These internally formatted
+archive logs may be exported on demand to a supported file format (e.g. CSV).
+A shell script is provided (`bin/export_ipdr') for this pupose.
+
+<img class="diagram" src="disk_logs.svg" alt="Disk Logs" />
+
+See `acct_log_dir', `acct_log_files', `acct_log_rotate', `acct_log_rotate_time',
+`acct_log_size', `auth_log_dir', `auth_log_files', `auth_log_size', `ipdr_log_dir',
+and `export_dir' in the Configuration section below.
+
+===Elasstic Stack===
+Optionally DIAMETER/RADIUS transactions may be shipped to
+<a target="_blank" href="https://www.elastic.co/logstash/">LogStash</a>
+with the <a target="_blank"
+href="https://www.elastic.co/guide/en/logstash/current/plugins-inputs-http.html">
+http input plugin</a>.
+
+<img class="diagram" src="event_log.svg" alt="Event Logging" />
+
+See `elastic_shipper' in the Configuration section below.
 
 ==REST API==
 The {@link //ocs. ocs} application provides <a target="_blank"
@@ -226,17 +375,14 @@ href="https://www.tmforum.org/open-apis/">TM Forum Open APIs</a> are used:
 	</tbody>
 </table></p>
 
-A Rating &amp; Charging API is also supported which allows decomposing
-SigScale OCS into OCF, RF and ABMF components. An Online Charging Function
-(OCF) produces network facing protocols (i.e. DIAMETER) and consumes the
-<i>Nrf</i> API. A Rating Function (RF) produces the <i>Nrf</i>
-API.  An Account Balance Management Function (ABMF) is either colocated
-with an RF (class B) or with an OCF (class A). This decomposition is
-described in 3GPP TS <a target="_blank"
+Sigscale's <i>Nrf_Rating</i> API follows the 3GPP's drafting rules
+for 5GC Service Based Interfaces (SBI) and is aligned with
+the <i>Nchf</i> SBI for the 5GC Charging Function (CHF). It is
+derived directly from the <i>Re</i> interface DIAMETER application
+(partially) specified in (3GPP TS <a target="_blank"
 href="https://webapp.etsi.org/key/key.asp?GSMSpecPart1=32&amp;GSMSpecPart2=296">
-32.296</a>. Sigscale's <i>Nrf_Rating</i> API follows the 3GPP's
-drafting rules for 5GC Service Based Interfaces (SBI) and is aligned with
-the <i>Nchf</i> SBI for the 5GC Charging Function (CHF).
+32.296</a>).
+
 <p><table id="mt">
 	<thead>
 		<tr id="mt">
@@ -360,7 +506,7 @@ A `GET' operation on a REST <i>Collection</i>, with or without a query
 portion, could result in a huge array of <i>Items</i>. To prevent
 overwhelming the client or server pagination is used. A maximum limit
 on the number of items in a single response (page) is enforced (default
-`1000'). The `Content-Range' header 
+`1000'). The `Content-Range' header
 (<a target="_blank" href="https://www.rfc-editor.org/rfc/rfc7233">RFC7233</a>)
 shall indicate the range of the response and the total size (if available):
 ```
@@ -380,7 +526,36 @@ Range: items=1001-2000
 See `rest_page_size' and `rest_page_timeout' in the Configuration section
 below.
 
+==Pub/Sub Events==
+Event notification is supported as described in <a target="_blank"
+href="https://www.tmforum.org/resources/specification/tmf630-rest-api-design-guidelines-4-2-0/">
+TMF630</a> Notification Patterns. An external entity may subscribe an API
+endpoint to receive event notifications for any of the Open APIs. A query
+portion may be included to limit the scope of subscribed events. Each
+eligible event will be sent to the endpoint in an HTTP POST operation.
+
+<img id="notification" class="diagram"
+		src="pub_sub_events.svg" alt="Event Notification" />
+
+[Note: A subscription will be silently removed on the first encountered
+		error in sending a notification.  The `/hub' collections may be
+		be queried to verify that a subscription still exists.]
+
 ==Information Model==
+The information model is a faithful mapping of TM Forum's
+<a target="_blank"
+href="https://www.tmforum.org/oda/information-systems/information-framework-sid/">
+SID</a>.  The <i>product</i> table represents <i>Product Inventory</i>. A row in
+this table represents a subscription and is associated to zero or one row of the
+<i>offer</i> table which represents the <i>Product Offering</i> collection. A row
+in the <i>offer</i> table may be associated with zero or more <i>Pricing Logic
+Algorithms (PLA)</i> implemented with prefix matching tables. A <i>product</i>
+table row may be associated with zero or more <i>Balance Buckets</i> as represented
+by the <i>bucket</i> table. The <i>Service Inventory</i> is represented by the
+<i>service</i> table. A <i>product</i> table row may be associated with zero or
+many <i>service</i> table rows while a <i>service</i> table row may be associated
+with at most one <i>product</i> table row.
+
 <table id="mt">
 	<caption id="mt">There are six persistent {@link //mnesia. mnesia} tables:</caption>
 	<thead>
@@ -416,10 +591,13 @@ below.
 		</tr>
 	</tbody>
 </table>
-<img src="schema.png" alt="Schema" height="501" width="619" />
+<img id="schema" class="diagram" src="schema.svg" alt="Schema" />
 
 ==Configuration==
-The {@link //ocs. ocs} application may be configured using the following application environment variables:
+The {@link //ocs. ocs} application may be configured using the following application environment variables.
+
+===Rating===
+Rating configuration options:
 <dl>
 	<dt>min_reserve_octets</dt>
 		<dd>Centralized Unit Determination: minimum size of octets reserved</dd>
@@ -427,6 +605,11 @@ The {@link //ocs. ocs} application may be configured using the following applica
 		<dd>Centralized Unit Determination: minimum size of seconds reserved</dd>
 	<dt>min_reserve_messages</dt>
 		<dd>Centralized Unit Determination: minimum number of messages reserved</dd>
+</dl>
+
+===Logging===
+Logging configuration options:
+<dl>
 	<dt>acct_log_dir</dt>
 		<dd>Path of directory to store accounting logs.</dd>
 	<dt>acct_log_files</dt>
@@ -447,24 +630,18 @@ The {@link //ocs. ocs} application may be configured using the following applica
 		<dd>Path of directory to store IPDR logs.</dd>
 	<dt>export_dir</dt>
 		<dd>Path of directory to store exported files.</dd>
-	<dt>radius</dt>
-		<dd>Configuration groups for RADIUS: {radius, [{auth | acct, ip_address(), port(), [option()}]}</dd>
-	<dt>diameter</dt>
-		<dd>Configuration groups for DIAMETER: {diameter, [{auth | acct, ip_address(), port(), [option()}]}</dd>
-	<dt>tls_cert</dt>
-		<dd>Public certificate for TLS over EAP.</dd>
-	<dt>tlst_key</dt>
-		<dd>Private key for TLS over EAP.</dd>
-	<dt>tls_cacert</dt>
-		<dd>Certificate Authority certificate for TLS over EAP.</dd>
-	<dt>rest_page_size</dt>
-		<dd>Defines the maximum number of items to return for a REST collection.</dd>
 	<dt>elastic_shipper</dt>
 		<dd>Shipper for Elastic Stack: {Url, Profile, Options} (default: undefined).</dd>
 </dl>
 
 === DIAMETER Configuration ===
-DIAMETER services may be configured with the following (optional) configuration group options: 
+DIAMETER protocol services are configured with the following environment variable:
+<dl>
+	<dt>diameter</dt>
+		<dd>Configuration groups for DIAMETER: {diameter, [{auth | acct, ip_address(), port(), [option()}]}</dd>
+</dl>
+
+DIAMETER services may be configured with the following (optional) configuration group options:
 <dl>
 	<dt>'Origin-Host'</dt>
 		<dd>DiameterIdentity of this host. (default: inet:gethostname())</dd>
@@ -501,7 +678,13 @@ DIAMETER services may be configured with the following (optional) configuration 
 </dl>
 
 === RADIUS Configuration ===
-RADIUS services may be configured with the following (optional) configuration group options: 
+RADIUS protocol services are configured with the following environment variable:
+<dl>
+	<dt>radius</dt>
+		<dd>Configuration groups for RADIUS: {radius, [{auth | acct, ip_address(), port(), [option()}]}</dd>
+</dl>
+
+RADIUS services may be configured with the following (optional) configuration group options:
 <dl>
 	<dt>eap_method_prefer</dt>
 		<dd>The EAP method which will be offered first. (default: akap)</dd>
@@ -518,6 +701,14 @@ RADIUS servers may be configured with the following environment variables of the
 === HTTP Configuration ===
 The mod_oauth module may be configured with the following environment variables :
 <dl>
+	<dt>tls_cert</dt>
+		<dd>Public certificate for TLS over EAP.</dd>
+	<dt>tlst_key</dt>
+		<dd>Private key for TLS over EAP.</dd>
+	<dt>tls_cacert</dt>
+		<dd>Certificate Authority certificate for TLS over EAP.</dd>
+	<dt>rest_page_size</dt>
+		<dd>Defines the maximum number of items to return for a REST collection.</dd>
 	<dt>oauth_audience</dt>
 		<dd>Defines the recipient for who the JWT is intended: {string()}</dd>
 	<dt>oauth_issuer</dt>
@@ -525,6 +716,7 @@ The mod_oauth module may be configured with the following environment variables 
 	<dt>oauth_key</dt>
 		<dd>Path of the file containing a publicKey in PEM format: {string()}</dd>
 </dl>
+
 The {@link //inets. inets} application's {@link //inets/httpd. httpd} server configuration includes these environment variables:
 <dl>
 	<dt>{port, integer()}</dt>

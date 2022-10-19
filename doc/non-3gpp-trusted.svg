@@ -1,0 +1,71 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN" "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd">
+<svg xmlns="http://www.w3.org/2000/svg" xmlns:dc="http://purl.org/dc/elements/1.1/" xmlns:xl="http://www.w3.org/1999/xlink" version="1.1" viewBox="138.5 306.5 722 291.5" width="722" height="291.5">
+  <defs/>
+  <g id="Trusted_WLAN_Access" stroke="none" stroke-opacity="1" stroke-dasharray="none" fill="none" fill-opacity="1">
+    <title>Trusted WLAN Access</title>
+    <g id="Trusted_WLAN_Access_Layer_1">
+      <title>Layer 1</title>
+      <g id="Graphic_2">
+        <path d="M 431 306.5 L 604.5 306.5 C 608.9183 306.5 612.5 310.08172 612.5 314.5 L 612.5 373.5 C 612.5 377.9183 608.9183 381.5 604.5 381.5 L 431 381.5 C 426.5817 381.5 423 377.9183 423 373.5 L 423 314.5 C 423 310.08172 426.5817 306.5 431 306.5 Z" fill="#ffa900"/>
+        <text transform="translate(428 329.5)" fill="white">
+          <tspan font-family="Montserrat" font-size="24" fill="white" x="10.274" y="23">SigScale AAA</tspan>
+        </text>
+      </g>
+      <g id="Graphic_9">
+        <path d="M 768.5 306.5 L 852.5 306.5 C 856.9183 306.5 860.5 310.08172 860.5 314.5 L 860.5 373.5 C 860.5 377.9183 856.9183 381.5 852.5 381.5 L 768.5 381.5 C 764.0817 381.5 760.5 377.9183 760.5 373.5 L 760.5 314.5 C 760.5 310.08172 764.0817 306.5 768.5 306.5 Z" fill="#ccc"/>
+        <text transform="translate(765.5 329.5)" fill="white">
+          <tspan font-family="Montserrat" font-size="24" fill="white" x="20.484" y="23">HSS</tspan>
+        </text>
+      </g>
+      <g id="Line_11">
+        <line x1="612.5" y1="344" x2="760.5" y2="344" stroke="#aaa" stroke-linecap="round" stroke-linejoin="round" stroke-width="3"/>
+      </g>
+      <g id="Graphic_10">
+        <rect x="667.3702" y="332" width="42.068" height="24" fill="white"/>
+        <text transform="translate(668.3702 333)" fill="black">
+          <tspan font-family="Montserrat" font-size="18" fill="black" x="0" y="17">SWx</tspan>
+        </text>
+      </g>
+      <g id="Graphic_12">
+        <path d="M 475.75 523 L 559.75 523 C 564.1683 523 567.75 526.5817 567.75 531 L 567.75 590 C 567.75 594.4183 564.1683 598 559.75 598 L 475.75 598 C 471.3317 598 467.75 594.4183 467.75 590 L 467.75 531 C 467.75 526.5817 471.3317 523 475.75 523 Z" fill="#ccc"/>
+        <text transform="translate(472.75 546)" fill="white">
+          <tspan font-family="Montserrat" font-size="24" fill="white" x="13.776" y="23">PGW</tspan>
+        </text>
+      </g>
+      <g id="Line_14">
+        <line x1="517.75" y1="381.5" x2="517.75" y2="523" stroke="#aaa" stroke-linecap="round" stroke-linejoin="round" stroke-width="3"/>
+      </g>
+      <g id="Graphic_13">
+        <rect x="499.632" y="441.787" width="36.236" height="24" fill="white"/>
+        <text transform="translate(500.632 442.787)" fill="black">
+          <tspan font-family="Montserrat" font-size="18" fill="black" x="3943512e-19" y="17">S6b</tspan>
+        </text>
+      </g>
+      <g id="Graphic_20">
+        <path d="M 156.2955 348.02825 C 134.23438 344 143.0318 310.08875 178.22423 315.875 C 181.4893 304.59575 222.41338 306.4265 222.14584 315.875 C 247.80647 303.79025 280.59923 327.887 258.60362 339.97175 C 284.99726 345.83075 258.27056 377.39825 236.60938 372.125 C 234.87582 380.91425 196.15214 383.99 192.7533 372.125 C 170.82593 384.79625 125.10389 365.3135 156.2955 348.02825 Z" fill="#ccc"/>
+        <text transform="translate(163.975 329.5)" fill="white">
+          <tspan font-family="Montserrat" font-size="24" fill="white" x="4.6870015" y="23">TWAN</tspan>
+        </text>
+      </g>
+      <g id="Line_22">
+        <line x1="266.9609" y1="344" x2="423" y2="344" stroke="#aaa" stroke-linecap="round" stroke-linejoin="round" stroke-width="3"/>
+      </g>
+      <g id="Graphic_21">
+        <rect x="330.01537" y="332" width="33.32" height="24" fill="white"/>
+        <text transform="translate(331.01537 333)" fill="black">
+          <tspan font-family="Montserrat" font-size="18" fill="black" x="0" y="17">STa</tspan>
+        </text>
+      </g>
+      <g id="Line_24">
+        <line x1="247.10715" y1="372.0943" x2="469.063" y2="526.607" stroke="#aaa" stroke-linecap="round" stroke-linejoin="round" stroke-width="3"/>
+      </g>
+      <g id="Graphic_23">
+        <rect x="343.539" y="439.02896" width="33.914" height="24" fill="white"/>
+        <text transform="translate(344.539 440.02896)" fill="black">
+          <tspan font-family="Montserrat" font-size="18" fill="black" x="3375078e-19" y="17">S2a</tspan>
+        </text>
+      </g>
+    </g>
+  </g>
+</svg>

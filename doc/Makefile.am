@@ -22,6 +22,7 @@ modhtml = ocs.html \
 			diameter_gen_3gpp_swm_application.html \
 			diameter_gen_3gpp_swx_application.html \
 			diameter_gen_3gpp_s6a_application.html \
+			diameter_gen_3gpp_s6b_application.html \
 			diameter_gen_3gpp_gx_application.html \
 			diameter_gen_cc_application_rfc4006.html \
 			diameter_gen_nas_application_rfc7155.html \
@@ -33,6 +34,7 @@ modhtml = ocs.html \
 			ocs_diameter_3gpp_swm_application_cb.html \
 			ocs_diameter_3gpp_swx_application_cb.html \
 			ocs_diameter_3gpp_s6a_application_cb.html \
+			ocs_diameter_3gpp_s6b_application_cb.html \
 			ocs_diameter_3gpp_gx_application_cb.html \
 			ocs_diameter_cc_application_cb.html \
 			ocs_diameter_nas_application_cb.html \
@@ -130,10 +132,23 @@ modhtml = ocs.html \
 			ocs_event_log_fsm.html
 
 doc_DATA = overview.edoc $(modhtml) \
-		modules-frame.html overview-summary.html \
-		index.html stylesheet.css \
-		sigscale-logo.png supervision.svg schema.png \
-		oas-logo.svg swaggerhub-logo.svg
+		modules-frame.html \
+		overview-summary.html \
+		index.html \
+		stylesheet.css \
+		sigscale-logo.png \
+		oas-logo.svg \
+		swaggerhub-logo.svg \
+		supervision.svg \
+		bss-integration.svg \
+		bss-rating-function.svg \
+		interfaces.svg \
+		non-3gpp-trusted.svg \
+		non-3gpp-untrusted.svg \
+		schema.svg \
+		disk_logs.svg \
+		event_log.svg \
+		pub_sub_events.svg
 
 overview.edoc: overview.edoc-in
 	sed -e 's!%VERSION%!$(VERSION)!' \
@@ -150,12 +165,37 @@ overview.edoc: overview.edoc-in
 			mv $$i.tmp $$i; \
 	done
 	-cp -n $(top_srcdir)/doc/sigscale-logo.png .
+	-cp -n $(top_srcdir)/doc/oas-logo.svg .
+	-cp -n $(top_srcdir)/doc/swaggerhub-logo.svg .
 	-cp -n $(top_srcdir)/doc/supervision.svg .
-	-cp -n $(top_srcdir)/doc/schema.png .
-	-cp -n $(top_srcdir)/doc/oas-logo.png .
-	-cp -n $(top_srcdir)/doc/swaggerhub-logo.png .
+	-cp -n $(top_srcdir)/doc/bss-integration.svg .
+	-cp -n $(top_srcdir)/doc/bss-rating-function.svg .
+	-cp -n $(top_srcdir)/doc/interfaces.svg .
+	-cp -n $(top_srcdir)/doc/non-3gpp-trusted.svg .
+	-cp -n $(top_srcdir)/doc/non-3gpp-untrusted.svg .
+	-cp -n $(top_srcdir)/doc/schema.svg .
+	-cp -n $(top_srcdir)/doc/disk_logs.svg .
+	-cp -n $(top_srcdir)/doc/event_log.svg .
+	-cp -n $(top_srcdir)/doc/pub_sub_events.svg .
 
-CLEANFILES = overview.edoc edoc-info index.html \
-		modules-frame.html overview-summary.html packages-frame.html \
-		stylesheet.css erlang.png $(modhtml)
+CLEANFILES = overview.edoc \
+		edoc-info \
+		index.html \
+		modules-frame.html \
+		overview-summary.html \
+		packages-frame.html \
+		stylesheet.css \
+		erlang.png \
+		$(modhtml) \
+		supervision.svg \
+		bss-integration.svg \
+		bss-rating-function.svg \
+		interfaces.svg \
+		non-3gpp-trusted.svg \
+		non-3gpp-untrusted.svg \
+		disk_logs.svg \
+		event_log.svg \
+		pub_sub_events.svg \
+		schema.svg \
+		sigscale-logo.png
 
