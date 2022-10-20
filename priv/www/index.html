@@ -1,14 +1,15 @@
 <!doctype html>
 <html lang="en" style="overflow: hidden;">
 	<head>
-		<title>Online Charging System (OCS)</title>
+		<title>SigScale OCS</title>
 		<meta charset="utf-8">
-		<meta name="viewport" content="width=device-width, initial-scale=1.0, minimum-scale=1.0">
+		<meta name="viewport" content="width=device-width,
+				initial-scale=1.0, minimum-scale=1.0">
 		<meta name="theme-color" content="#f57f17">
 		<meta name="mobile-web-app-capable" content="yes">
 		<meta name="application-name" content="Online Charging System (OCS)">
 		<link rel="icon" href="/images/favicon.ico">
-		<link rel="manifest" href="/manifest.json" crossorigin="use-credentials">
+		<link rel="manifest" crossorigin="use-credentials" href="/manifest.json">
 		<script>
 			window.SigScaleGlobals = { rootPath: '/' };
 			if ('serviceWorker' in navigator) {
@@ -19,8 +20,11 @@
 				});
 			}
 		</script>
-		<script src="node_modules/@webcomponents/webcomponentsjs/webcomponents-loader.js"></script>
-		<script type="module" src="src/sig-app.js" crossorigin="use-credentials"></script>
+		<script crossorigin="use-credentials"
+				src="node_modules/@webcomponents/webcomponentsjs/webcomponents-loader.js">
+		</script>
+		<script type="module" crossorigin="use-credentials" src="src/sig-app.js">
+		</script>
 	</head>
 	<body>
 		<sig-app></sig-app>
