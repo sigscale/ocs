@@ -1,5 +1,6 @@
 2022-10-12  Vance Shipley <vances@sigscale.org>
 
+	* add table of contents to edoc overview
 	* more content in edoc overview page
 	* mark private api function
 	* remove unused d3 graph function
