@@ -3,6 +3,16 @@
 @title %DESCRIPTION%
 @doc This application implements an Online Charging System (OCS).
 
+==Table of Contents==
+<ul>
+	<li><a href="#Intoduction">Introduction</a><br /></li>
+	<li><a href="#Features">Features</a><br /></li>
+	<li><a href="#Schema">Schema</a><br /></li>
+	<li><a href="#Installation">Installation</a><br /></li>
+	<li><a href="#Operation">Operation</a><br /></li>
+	<li><a href="#Configuration">Configuration</a><br /></li>
+</ul>
+
 ==Introduction==
 This application implements functions used by communications
 service providers (CSP) for authorization and charging of
@@ -154,6 +164,58 @@ vectors from a Home Subscriber Server (HSS).
 <img id="wlan" class="diagram"
 		src="non-3gpp-untrusted.svg" alt="non-3GPP untrusted access" />
 
+==Schema==
+The table schema is a faithful mapping of TM Forum's Information Model
+<a target="_blank"
+href="https://www.tmforum.org/oda/information-systems/information-framework-sid/">
+SID</a>.  The <i>product</i> table represents <i>Product Inventory</i>. A row in
+this table represents a subscription and is associated to zero or one row of the
+<i>offer</i> table which represents the <i>Product Offering</i> collection. A row
+in the <i>offer</i> table may be associated with zero or more <i>Pricing Logic
+Algorithms (PLA)</i> implemented with prefix matching tables. A <i>product</i>
+table row may be associated with zero or more <i>Balance Buckets</i> as represented
+by the <i>bucket</i> table. The <i>Service Inventory</i> is represented by the
+<i>service</i> table. A <i>product</i> table row may be associated with zero or
+many <i>service</i> table rows while a <i>service</i> table row may be associated
+with at most one <i>product</i> table row.
+
+<table id="mt">
+	<caption id="mt">There are six persistent {@link //mnesia. mnesia} tables:</caption>
+	<thead>
+		<tr id="mt">
+			<th id="mt">Table Name</th>
+			<th id="mt">Description</th>
+		</tr>
+	</thead>
+	<tbody>
+		<tr id="mt">
+			<td id="mt">offer</td>
+			<td id="mt">Product Catalog</td>
+		</tr>
+		<tr id="mt">
+			<td id="mt">product</td>
+			<td id="mt">Product Inventory</td>
+		</tr>
+		<tr id="mt">
+			<td id="mt">service</td>
+			<td id="mt">Service Inventory</td>
+		</tr>
+		<tr id="mt">
+			<td id="mt">bucket</td>
+			<td id="mt">Balance Buckets</td>
+		</tr>
+		<tr id="mt">
+			<td id="mt">pla</td>
+			<td id="mt">Pricing Logic Algorithms (Rate Tables)</td>
+		</tr>
+		<tr id="mt">
+			<td id="mt">client</td>
+			<td id="mt">RADIUS/DIAMETER Clients</td>
+		</tr>
+	</tbody>
+</table>
+<img id="schema" class="diagram" src="schema.svg" alt="Schema" />
+
 ==Installation==
 Before starting the application for the first time, {@link //mnesia/mnesia. mnesia}
 should be initialized. Create a schema and start mnesia on all nodes
@@ -188,10 +250,10 @@ The OCS application will start RADIUS &amp; DIAMETER servers for authentication
 and accounting on the configured ports. The {@link //inets. inets} application
 may be started to provide a REST API and web user interface (UI).
 
-==Logging==
+===Logging===
 Every detail of each DIAMETER/RADIUS transaction is logged to disk.
 
-===Disk Logs===
+====Disk Logs====
 Event details are logged to fixed size FIFO logs consisting of a configurable
 number, and size, of internally formatted files. Events are written to archive
 log files on a scheduled basis (default daily). These internally formatted
@@ -204,7 +266,7 @@ See `acct_log_dir', `acct_log_files', `acct_log_rotate', `acct_log_rotate_time',
 `acct_log_size', `auth_log_dir', `auth_log_files', `auth_log_size', `ipdr_log_dir',
 and `export_dir' in the Configuration section below.
 
-===Elasstic Stack===
+====Elasstic Stack====
 Optionally DIAMETER/RADIUS transactions may be shipped to
 <a target="_blank" href="https://www.elastic.co/logstash/">LogStash</a>
 with the <a target="_blank"
@@ -215,7 +277,7 @@ http input plugin</a>.
 
 See `elastic_shipper' in the Configuration section below.
 
-==REST API==
+===REST API===
 The {@link //ocs. ocs} application provides <a target="_blank"
 href="http://www.ics.uci.edu/~fielding/pubs/dissertation/top.htm">RESTful</a>
 APIs built on the <a target="_blank" href="http://tools.ietf.org/html/rfc2616">
@@ -412,7 +474,7 @@ href="https://webapp.etsi.org/key/key.asp?GSMSpecPart1=32&amp;GSMSpecPart2=296">
 	</tbody>
 </table></p>
 
-===HTTP Methods===
+====HTTP Methods====
 The <a target="_blank" href="http://tools.ietf.org/html/rfc2616">HTTP</a>
 methods used in this API include
 <a target="_blank" href="http://tools.ietf.org/html/rfc2616#section-9.3">`GET'</a>,
@@ -421,7 +483,7 @@ methods used in this API include
 <a target="_blank" href="https://tools.ietf.org/html/rfc2068#section-19.6.1">`PATCH'</a> and
 <a target="_blank" href="http://tools.ietf.org/html/rfc2616#section-9.7">`DELETE'</a>.
 
-===Media Types===
+====Media Types====
 The media types used in this application are described below.
 <p><table id="mt">
 	<thead>
@@ -445,7 +507,7 @@ The media types used in this application are described below.
 	</tbody>
 </table></p>
 
-===Advanced Attribute Filtering Pattern===
+====Advanced Attribute Filtering Pattern====
 Complex queries are supported using a `filter' attribute as described in issue
 <a target="_blank" href="https://projects.tmforum.org/jira/browse/AP-832">AP-832</a>
 of TM Forum <a target="_blank" href="https://projects.tmforum.org/wiki/display/AP/">
@@ -501,7 +563,7 @@ A complex value should be enclosed in `{}'.</p>
 	</tbody>
 </table></p>
 
-===Pagination===
+====Pagination====
 A `GET' operation on a REST <i>Collection</i>, with or without a query
 portion, could result in a huge array of <i>Items</i>. To prevent
 overwhelming the client or server pagination is used. A maximum limit
@@ -541,57 +603,44 @@ eligible event will be sent to the endpoint in an HTTP POST operation.
 		error in sending a notification.  The `/hub' collections may be
 		be queried to verify that a subscription still exists.]
 
-==Information Model==
-The information model is a faithful mapping of TM Forum's
-<a target="_blank"
-href="https://www.tmforum.org/oda/information-systems/information-framework-sid/">
-SID</a>.  The <i>product</i> table represents <i>Product Inventory</i>. A row in
-this table represents a subscription and is associated to zero or one row of the
-<i>offer</i> table which represents the <i>Product Offering</i> collection. A row
-in the <i>offer</i> table may be associated with zero or more <i>Pricing Logic
-Algorithms (PLA)</i> implemented with prefix matching tables. A <i>product</i>
-table row may be associated with zero or more <i>Balance Buckets</i> as represented
-by the <i>bucket</i> table. The <i>Service Inventory</i> is represented by the
-<i>service</i> table. A <i>product</i> table row may be associated with zero or
-many <i>service</i> table rows while a <i>service</i> table row may be associated
-with at most one <i>product</i> table row.
+===SNMP Agent===
+SigScale OCS supports fault &amp; performance management with the Simple Network
+Management Protocol (SNMP). A management information base (MIB) for the OCS
+application is provided as well as IETF standard MIBs and SigScale's versions
+of IETF draft MIBs.
 
-<table id="mt">
-	<caption id="mt">There are six persistent {@link //mnesia. mnesia} tables:</caption>
+<p><table id="mt">
 	<thead>
 		<tr id="mt">
-			<th id="mt">Table Name</th>
-			<th id="mt">Description</th>
+			<th id="mt">IETF</th>
+			<th id="mt">MIB Name</th>
 		</tr>
 	</thead>
 	<tbody>
 		<tr id="mt">
-			<td id="mt">offer</td>
-			<td id="mt">Product Catalog</td>
+			<td id="mt"></td>
+			<td id="mt">SIGSCALE-OCS-MIB</td>
 		</tr>
 		<tr id="mt">
-			<td id="mt">product</td>
-			<td id="mt">Product Inventory</td>
+			<td id="mt"><a target="_blank"
+					href="http://tools.ietf.org/html/draft-ietf-dime-diameter-base-protocol-mib-06">draft-ietf-dime-diameter-base-protocol-mib</a></td>
+			<td id="mt">SIGSCALE-DIAMETER-BASE-PROTOCOL-MIB</td>
 		</tr>
 		<tr id="mt">
-			<td id="mt">service</td>
-			<td id="mt">Service Inventory</td>
+			<td id="mt"><a target="_blank"
+					href="http://tools.ietf.org/html/draft-ietf-dime-diameter-cc-appl-mib-03">draft-ietf-dime-diameter-cc-appl-mib</a></td>
+			<td id="mt">SIGSCALE-DIAMETER-CC-APPLICATION-MIB</td>
 		</tr>
 		<tr id="mt">
-			<td id="mt">bucket</td>
-			<td id="mt">Balance Buckets</td>
+			<td id="mt"><a target="_blank" href="http://tools.ietf.org/html/rfc4669">RFC4669</a></td>
+			<td id="mt">RADIUS-AUTH-SERVER-MIB</td>
 		</tr>
 		<tr id="mt">
-			<td id="mt">pla</td>
-			<td id="mt">Pricing Logic Algorithms (Rate Tables)</td>
-		</tr>
-		<tr id="mt">
-			<td id="mt">client</td>
-			<td id="mt">RADIUS/DIAMETER Clients</td>
+			<td id="mt"><a target="_blank" href="http://tools.ietf.org/html/rfc4671">RFC4671</a></td>
+			<td id="mt">RADIUS-ACC-SERVER-MIB</td>
 		</tr>
 	</tbody>
-</table>
-<img id="schema" class="diagram" src="schema.svg" alt="Schema" />
+</table></p>
 
 ==Configuration==
 The {@link //ocs. ocs} application may be configured using the following application environment variables.
@@ -818,43 +867,4 @@ The {@link //inets. inets} application's {@link //inets/httpd. httpd} server con
             {document_root, "/usr/lib/erlang/lib/ocs-%VERSION%/priv/www"}]}]}]}].
 
 '''
-
-==SNMP Agent==
-SigScale OCS supports fault &amp; performance management with the Simple Network
-Management Protocol (SNMP). A management information base (MIB) for the OCS
-application is provided as well as IETF standard MIBs and SigScale's versions
-of IETF draft MIBs.
-
-<p><table id="mt">
-	<thead>
-		<tr id="mt">
-			<th id="mt">IETF</th>
-			<th id="mt">MIB Name</th>
-		</tr>
-	</thead>
-	<tbody>
-		<tr id="mt">
-			<td id="mt"></td>
-			<td id="mt">SIGSCALE-OCS-MIB</td>
-		</tr>
-		<tr id="mt">
-			<td id="mt"><a target="_blank"
-					href="http://tools.ietf.org/html/draft-ietf-dime-diameter-base-protocol-mib-06">draft-ietf-dime-diameter-base-protocol-mib</a></td>
-			<td id="mt">SIGSCALE-DIAMETER-BASE-PROTOCOL-MIB</td>
-		</tr>
-		<tr id="mt">
-			<td id="mt"><a target="_blank"
-					href="http://tools.ietf.org/html/draft-ietf-dime-diameter-cc-appl-mib-03">draft-ietf-dime-diameter-cc-appl-mib</a></td>
-			<td id="mt">SIGSCALE-DIAMETER-CC-APPLICATION-MIB</td>
-		</tr>
-		<tr id="mt">
-			<td id="mt"><a target="_blank" href="http://tools.ietf.org/html/rfc4669">RFC4669</a></td>
-			<td id="mt">RADIUS-AUTH-SERVER-MIB</td>
-		</tr>
-		<tr id="mt">
-			<td id="mt"><a target="_blank" href="http://tools.ietf.org/html/rfc4671">RFC4671</a></td>
-			<td id="mt">RADIUS-ACC-SERVER-MIB</td>
-		</tr>
-	</tbody>
-</table></p>
 
