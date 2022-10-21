@@ -23,7 +23,7 @@
 
 -export([date/1, iso8601/1, etag/1]).
 -export([pointer/1, patch/2]).
--export([parse_query/1, lhs/1, fields/2, range/1]).
+-export([parse_query/1, lhs/1, fields/2, range/1, date_range/1]).
 -export([millionths_in/1, millionths_out/1]).
 -export([format_problem/2]).
 
@@ -49,25 +49,27 @@ date(DateTime) when is_tuple(DateTime) ->
 	Seconds = calendar:datetime_to_gregorian_seconds(DateTime) - ?EPOCH,
 	Seconds * 1000.
 
--spec iso8601(MilliSeconds) -> Result
+-spec iso8601(DateTime) -> Result
 	when
-		MilliSeconds	:: pos_integer() | string(),
+		DateTime			:: ISODateTime | MilliSeconds,
+		ISODateTime		:: string(),
+		MilliSeconds	:: pos_integer(),
 		Result			:: string() | pos_integer().
 %% @doc Convert iso8610 to ISO 8601 format date and time.
-iso8601(MilliSeconds) when is_integer(MilliSeconds) ->
-	{{Year, Month, Day}, {Hour, Minute, Second}} = date(MilliSeconds),
+iso8601(DateTime) when is_integer(DateTime) ->
+	{{Year, Month, Day}, {Hour, Minute, Second}} = date(DateTime),
 	DateFormat = "~4.10.0b-~2.10.0b-~2.10.0b",
 	TimeFormat = "T~2.10.0b:~2.10.0b:~2.10.0b.~3.10.0b",
 	Chars = io_lib:fwrite(DateFormat ++ TimeFormat,
-			[Year, Month, Day, Hour, Minute, Second, MilliSeconds rem 1000]),
+			[Year, Month, Day, Hour, Minute, Second, DateTime rem 1000]),
 	lists:flatten(Chars);
-iso8601(ISODateTime) when is_list(ISODateTime) ->
-	case string:rchr(ISODateTime, $T) of
+iso8601(DateTime) when is_list(DateTime) ->
+	case string:rchr(DateTime, $T) of
 		0 ->
-			iso8601(ISODateTime, []);
+			iso8601(DateTime, []);
 		N ->
-			iso8601(lists:sublist(ISODateTime, N - 1),
-				lists:sublist(ISODateTime,  N + 1, length(ISODateTime)))
+			iso8601(lists:sublist(DateTime, N - 1),
+				lists:sublist(DateTime,  N + 1, length(DateTime)))
 	end.
 %% @hidden
 iso8601(Date, Time) when is_list(Date), is_list(Time) ->
@@ -655,6 +657,165 @@ format_problem3(Problem) ->
 	Head = "\t<head>\n\t\t<title>Error</title>\n\t</head>\n",
 	HTML = ["<!DOCTYPE html>\n<html lang=\"en\">\n", Head, Body, "</html>"],
 	{"text/html", HTML}.
+
+-spec date_range(ISODateTime) -> Result
+	when
+		ISODateTime :: string(),
+		Result :: {Start, End},
+		Start :: pos_integer(),
+		End :: pos_integer().
+%% @doc Convert an ISO8601 prefix to a range.
+date_range([Y1, Y2, Y3, Y4 | T] = ISODateTime)
+		when Y1 >= $0, Y1 =< $9, Y2 >= $0, Y2 =< $9,
+		Y3 >= $0, Y3 =< $9, Y4 >= $0, Y4 =< $9 ->
+	{ocs_log:iso8601(ISODateTime), date_range([Y1, Y2, Y3, Y4], T)}.
+%% @hidden
+date_range(Year, []) ->
+	EndYear = list_to_integer(Year) + 1,
+	End = lists:flatten(io_lib:fwrite("~4.10.0b", [EndYear])),
+	ocs_log:iso8601(End) - 1;
+date_range(Year, "-") ->
+	date_range(Year, []);
+date_range(Year, "-0") ->
+	ocs_log:iso8601(Year ++ "-10-01") - 1;
+date_range(Year, "-1") ->
+	EndYear = list_to_integer(Year) + 1,
+	End = lists:flatten(io_lib:fwrite("~4.10.0b", [EndYear])),
+	ocs_log:iso8601(End) - 1;
+date_range(Year, [$-, $0, N]) when N >= $1, N =< $8 ->
+	ocs_log:iso8601(Year ++ [$-, $0, N + 1]) - 1;
+date_range(Year, "-09") ->
+	ocs_log:iso8601(Year ++ "-10") - 1;
+date_range(Year, "-10") ->
+	ocs_log:iso8601(Year ++ "-11") - 1;
+date_range(Year, "-11") ->
+	ocs_log:iso8601(Year ++ "-12") - 1;
+date_range(Year, "-12") ->
+	EndYear = list_to_integer(Year) + 1,
+	End = lists:flatten(io_lib:fwrite("~4.10.0b", [EndYear])),
+	ocs_log:iso8601(End) - 1;
+date_range(Year, [$-, M1, M2, $-]) ->
+	date_range(Year, [$-, M1, M2]);
+date_range(Year, [$-, M1, M2, $-, $0]) ->
+	ocs_log:iso8601(Year ++ [$-, M1, M2, $-, $1, $0]) - 1;
+date_range(Year, [$-, M1, M2, $-, $1]) ->
+	ocs_log:iso8601(Year ++ [$-, M1, M2, $-, $2, $0]) - 1;
+date_range(Year, "-02-2") ->
+	ocs_log:iso8601(Year ++ "-03") - 1;
+date_range(Year, [$-, M1, M2, $-, $2]) ->
+	ocs_log:iso8601(Year ++ [$-, M1, M2, $-, $3, $0]) - 1;
+date_range(Year, "-12-3") ->
+	EndYear = list_to_integer(Year) + 1,
+	End = lists:flatten(io_lib:fwrite("~4.10.0b", [EndYear])),
+	ocs_log:iso8601(End) - 1;
+date_range(Year, [$-, M1, M2, $-, $3]) ->
+	Month = list_to_integer([M1, M2]) + 1,
+	End = lists:flatten(io_lib:fwrite("-~2.10.0b", [Month])),
+	ocs_log:iso8601(Year ++ End) - 1;
+date_range(Year, "-02-29") ->
+	ocs_log:iso8601(Year ++ "-03-01") - 1;
+date_range(Year, "-02-28") ->
+	case calendar:last_day_of_the_month(list_to_integer(Year), 2) of
+		28 ->
+			ocs_log:iso8601(Year ++ "-03-01") - 1;
+		29 ->
+			ocs_log:iso8601(Year ++ "-02-29") - 1
+	end;
+date_range(Year, [$-, M1, M2, $-, $0, $9]) ->
+	ocs_log:iso8601(Year ++ [$-, M1, M2, $-, $1, $0]) - 1;
+date_range(Year, [$-, M1, M2, $-, $0, D2]) ->
+	ocs_log:iso8601(Year ++ [$-, M1, M2, $-, $0, D2 + 1]) - 1;
+date_range(Year, [$-, M1, M2, $-, $1, $9]) ->
+	ocs_log:iso8601(Year ++ [$-, M1, M2, $-, $2, $0]) - 1;
+date_range(Year, [$-, M1, M2, $-, $1, D2]) ->
+	ocs_log:iso8601(Year ++ [$-, M1, M2, $-, $1, D2 + 1]) - 1;
+date_range(Year, [$-, M1, M2, $-, $2, $9]) ->
+	ocs_log:iso8601(Year ++ [$-, M1, M2, $-, $3, $0]) - 1;
+date_range(Year, [$-, M1, M2, $-, $2, D2]) ->
+   ocs_log:iso8601(Year ++ [$-, M1, M2, $-, $2, D2 + 1]) - 1;
+date_range(Year, [$-, $0, $4, $-, $3, $0]) ->
+	ocs_log:iso8601(Year ++ [$-, $0, $5, $-, $0, $1]) - 1;
+date_range(Year, [$-, $0, $6, $-, $3, $0]) ->
+	ocs_log:iso8601(Year ++ [$-, $0, $7, $-, $0, $1]) - 1;
+date_range(Year, [$-, $0, $9, $-, $3, $0]) ->
+	ocs_log:iso8601(Year ++ [$-, $1, $0, $-, $0, $1]) - 1;
+date_range(Year, [$-, $1, $1, $-, $3, $0]) ->
+	ocs_log:iso8601(Year ++ [$-, $1, $2, $-, $0, $1]) - 1;
+date_range(Year, [$-, $1, $2, $-, $3, $1]) ->
+	EndYear = list_to_integer(Year) + 1,
+	End = lists:flatten(io_lib:fwrite("~4.10.0b", [EndYear])),
+	ocs_log:iso8601(End) - 1;
+date_range(Year, [$-, M1, M2, $-, $3, $0]) ->
+	ocs_log:iso8601(Year ++ [$-, M1, M2, $-, $3, $1]) - 1;
+date_range(Year, [$-, M1, M2, $-, D1, D2, $T]) ->
+	date_range(Year, [$-, M1, M2, $-, D1, D2]);
+date_range(Year, [$-, M1, M2, $-, D1, D2, $T | T]) ->
+	date_range(Year, [$-, M1, M2, $-, D1, D2, $T], T).
+%% @hidden
+date_range(Year, Day, [$0]) ->
+	ocs_log:iso8601(Year ++ Day ++ "10") - 1;
+date_range(Year, Day, [$1]) ->
+	ocs_log:iso8601(Year ++ Day ++ "20") - 1;
+date_range(Year, Day, [$2]) ->
+	ocs_log:iso8601(Year ++ Day ++ "24") - 1;
+date_range(Year, Day, "09") ->
+	ocs_log:iso8601(Year ++ Day ++ "10") - 1;
+date_range(Year, Day, [$0, N]) ->
+	ocs_log:iso8601(Year ++ Day ++ [$0, N + 1]) - 1;
+date_range(Year, Day, "19") ->
+	ocs_log:iso8601(Year ++ Day ++ "20") - 1;
+date_range(Year, Day, [$1, N]) ->
+	ocs_log:iso8601(Year ++ Day ++ [$1, N + 1]) - 1;
+date_range(Year, Day, [$2, N]) when N >= $0, N =< $3 ->
+	ocs_log:iso8601(Year ++ Day ++ [$1, N + 1]) - 1;
+date_range(Year, Day, [H1, H2, $:]) ->
+	date_range(Year, Day, [H1, H2]);
+date_range(Year, Day, [H1, H2, $:, $5]) ->
+	Hour = list_to_integer([H1, H2]) + 1,
+	End = lists:flatten(io_lib:fwrite("~2.10.0b", [Hour])),
+	ocs_log:iso8601(Year ++ Day ++ End) - 1;
+date_range(Year, Day, [H1, H2, $:, M]) ->
+	ocs_log:iso8601(Year ++ Day ++ [H1, H2, $:, M + 1]) - 1;
+date_range(Year, Day, [H1, H2, $:, $5, $9]) ->
+	Hour = list_to_integer([H1, H2]) + 1,
+	End = lists:flatten(io_lib:fwrite("~2.10.0b", [Hour])),
+	ocs_log:iso8601(Year ++ Day ++ End) - 1;
+date_range(Year, Day, [H1, H2, $:, M, $9]) ->
+	ocs_log:iso8601(Year ++ Day ++ [H1, H2, $:, M + 1, $0]) - 1;
+date_range(Year, Day, [H1, H2, $:, M1, M2]) ->
+	ocs_log:iso8601(Year ++ Day ++ [H1, H2, $:, M1, M2 + 1]) - 1;
+date_range(Year, Day, [H1, H2, $:, M1, M2, $:]) ->
+	date_range(Year, Day, [H1, H2, $:, M1, M2]);
+date_range(Year, Day, [H1, H2, $:, $5, $9, $:, $5]) ->
+	Hour = list_to_integer([H1, H2]) + 1,
+	End = lists:flatten(io_lib:fwrite("~2.10.0b", [Hour])),
+	ocs_log:iso8601(Year ++ Day ++ End) - 1;
+date_range(Year, Day, [H1, H2, $:, M1, M2, $:, $5]) ->
+	Minute = list_to_integer([M1, M2]) + 1,
+	End = lists:flatten(io_lib:fwrite("~2.10.0b", [Minute])),
+	ocs_log:iso8601(Year ++ Day ++ [H1, H2, $:] ++ End) - 1;
+date_range(Year, Day, [H1, H2, $:, M1, M2, $:, N]) ->
+	ocs_log:iso8601(Year ++ Day ++ [H1, H2, $:, M1, M2, $:, N + 1]) - 1;
+date_range(Year, Day, [H1, H2, $:, $5, $9, $:, $5, $9]) ->
+	Hour = list_to_integer([H1, H2]) + 1,
+	End = lists:flatten(io_lib:fwrite("~2.10.0b", [Hour])),
+	ocs_log:iso8601(Year ++ Day ++ End) - 1;
+date_range(Year, Day, [H1, H2, $:, M1, M2, $:, $5, $9]) ->
+	Minute = list_to_integer([M1, M2]) + 1,
+	End = lists:flatten(io_lib:fwrite("~2.10.0b", [Minute])),
+	ocs_log:iso8601(Year ++ Day ++ [H1, H2, $:] ++ End) - 1;
+date_range(Year, Day, [H1, H2, $:, M1, M2, $:, S1, $9]) ->
+	ocs_log:iso8601(Year ++ Day ++ [H1, H2, $:, M1, M2, $:, S1 + 1, $0]) - 1;
+date_range(Year, Day, [H1, H2, $:, M1, M2, $:, S1, S2]) ->
+	ocs_log:iso8601(Year ++ Day ++ [H1, H2, $:, M1, M2, $:, S1, S2 + 1]) - 1;
+date_range(Year, Day, [H1, H2, $:, M1, M2, $:, S1, S2, $.]) ->
+	date_range(Year, Day, [H1, H2, $:, M1, M2, $:, S1, S2]);
+date_range(Year, Day, [_, _, $:, _, _, $:, _, _, $., _] = S) ->
+	ocs_log:iso8601(Year ++ Day ++ S ++ "99");
+date_range(Year, Day, [_, _, $:, _, _, $:, _, _, $., _, _] = S) ->
+	ocs_log:iso8601(Year ++ Day ++ S ++ "9");
+date_range(Year, Day, [_, _, $:, _, _, $:, _, _, $., _, _ | _] = S) ->
+	ocs_log:iso8601(Year ++ Day ++ S).
 
 %%----------------------------------------------------------------------
 %%  internal functions

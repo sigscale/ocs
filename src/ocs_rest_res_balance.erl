@@ -62,7 +62,7 @@ get_balance_log(Query, Headers) ->
 	try
 		{DateStart, DateEnd} = case lists:keyfind("date", 1, Query) of
 			{_, DateTime} when length(DateTime) > 3 ->
-				ocs_rest:range(DateTime);
+				ocs_rest:date_range(DateTime);
 			false ->
 				{1, erlang:system_time(millisecond)}
 		end,
