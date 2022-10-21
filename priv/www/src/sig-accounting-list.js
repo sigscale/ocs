@@ -219,7 +219,7 @@ class accountingList extends PolymerElement {
 					</template>
 					<template>[[item.prices]]</template>
 				</vaadin-grid-column>
-				<vaadin-grid-column width="12ex" flex-grow="1">
+				<vaadin-grid-column width="12ex" flex-grow="6">
 					<template class="header">
 						<vaadin-grid-filter
 								aria-label="user name"
@@ -249,7 +249,7 @@ class accountingList extends PolymerElement {
 					</template>
 					<template>[[item.type]]</template>
 				</vaadin-grid-column>
-				<vaadin-grid-column width="8ex" flex-grow="2">
+				<vaadin-grid-column width="17ex" flex-grow="1">
 					<template class="header">
 						<vaadin-grid-filter
 								aria-label="msisdn"
@@ -264,7 +264,7 @@ class accountingList extends PolymerElement {
 					</template>
 					<template>[[item.msisdn]]</template>
 				</vaadin-grid-column>
-				<vaadin-grid-column width="8ex" flex-grow="2">
+				<vaadin-grid-column width="17ex" flex-grow="1">
 					<template class="header">
 						<vaadin-grid-filter
 								aria-label="imsi"
@@ -454,7 +454,6 @@ class accountingList extends PolymerElement {
 						return characteristicClient.name == "nasIpAddress";
 					}
 					var clientId = request.response[index].usageCharacteristic.find(checkCharClient);
-console.log(clientId);
 					if(clientId  != undefined) {
 						newRecord.nasIpAddress = clientId.value;
 					}
