@@ -93,7 +93,7 @@ class offerAdd extends PolymerElement {
 								id="addBundle">
 							<template
 									is="dom-repeat"
-									items="{{bundleOffers}}">
+									items="{{unbundledOffers}}">
 								<paper-checkbox
 										checked="{{item.checked}}">
 									{{item.name}}
@@ -874,7 +874,7 @@ class offerAdd extends PolymerElement {
 				readOnly: true,
 				observer: '_activePageChanged'
 			},
-			bundleOffers: {
+			unbundledOffers: {
 				type: Array,
 				value: function() {
 					return [];
@@ -996,7 +996,7 @@ class offerAdd extends PolymerElement {
 
 	static get observers() {
 		return [
-			'_bundleCheckboxChanged(bundleOffers.*)',
+			'_bundleCheckboxChanged(unbundledOffers.*)',
 			'_offersChanged(offers.splices)'
 		]
 	}
@@ -1022,14 +1022,14 @@ class offerAdd extends PolymerElement {
 					function checkName(bundleOffer) {
 						return bundleOffer.name == offerName;
 					}
-					var index = this.bundleOffers.findIndex(checkName);
-					this.splice('bundleOffers', index, 1);
+					var index = this.unbundledOffers.findIndex(checkName);
+					this.splice('unbundledOffers', index, 1);
 				}
 				splice.removed.forEach(removeOffer, this);
 				for (var i = 0; i < splice.addedCount; i++) {
 					var checkOffer = {checked: false,
 							name: splice.object[splice.index + i]};
-					this.push('bundleOffers', checkOffer);
+					this.push('unbundledOffers', checkOffer);
 				}
 			}
 			change.indexSplices.forEach(doChange, this);
@@ -1244,7 +1244,7 @@ class offerAdd extends PolymerElement {
 		function check(item) {
 			return item.checked;
 		}
-		if(this.bundleOffers.some(check)) {
+		if(this.unbundledOffers.some(check)) {
 			this.$.addOfferProductSpecDrop.disabled = true;
 		} else {
 			this.$.addOfferProductSpecDrop.disabled = false;
@@ -1283,16 +1283,16 @@ class offerAdd extends PolymerElement {
 		}
 		if(this.$.addBundle) {
 			var bundled = new Array();
-			for(var index in this.bundleOffers) {
-				if(this.bundleOffers[index].checked == true) {
+			for(var index in this.unbundledOffers) {
+				if(this.unbundledOffers[index].checked == true) {
 					var bundleOffer = new Object();
 					bundleOffer.numberRelOfferLowerLimit = 0;
 					bundleOffer.numberRelOfferUpperLimit = 1;
 					bundleOffer.numberRelOfferDefault = 1;
 					var bundleObj = new Object();
-					bundleObj.id = this.bundleOffers[index].id;
-					bundleObj.href = this.bundleOffers[index].href;
-					bundleObj.name = this.bundleOffers[index].name;
+					bundleObj.id = this.unbundledOffers[index].id;
+					bundleObj.href = this.unbundledOffers[index].href;
+					bundleObj.name = this.unbundledOffers[index].name;
 					bundleObj.bundledProductOfferingOption = bundleOffer;
 					bundled.push(bundleObj);
 				}
