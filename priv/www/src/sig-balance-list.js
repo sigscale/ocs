@@ -213,7 +213,7 @@ class balanceList extends PolymerElement {
 		var grid = this; 
 		var balanceList = document.body.querySelector('sig-app').shadowRoot.querySelector('sig-balance-list');
 		var ajax = balanceList.shadowRoot.getElementById('getBalanceAjax');
-
+		delete ajax.params['filter'];
 		function checkHead(param) {
 			return param.path == "timeStamp" || param.path == "type" ||
 				param.path == "amount" || param.path == "bucket" ||
@@ -232,6 +232,7 @@ class balanceList extends PolymerElement {
 		if (ajax.params['filter']) {
 			ajax.params['filter'] += "]}]\"";
 		}
+
 		var handleAjaxResponse = function(request) {
 			if (request) {
 				balanceList.etag = request.xhr.getResponseHeader('ETag');
