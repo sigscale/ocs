@@ -222,7 +222,11 @@ class balanceList extends PolymerElement {
 		}
 		params.filters.filter(checkHead).forEach(function(filter) {
 			if (filter.value) {
-				ajax.params['filter'] = "\"[{" + filter.path + ".like=[" + filter.value;
+				if(ajax.params['filter']) {
+					ajax.params['filter'] += "]," + filter.path + ".like=[" + filter.value;
+				} else {
+					ajax.params['filter'] = "\"[{" + filter.path + ".like=[" + filter.value;
+				}
 			}
 		});
 		if (ajax.params['filter']) {
