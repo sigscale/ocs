@@ -15,7 +15,6 @@ import { PolymerElement, html } from '@polymer/polymer/polymer-element.js';
 import {} from '@polymer/polymer/lib/elements/dom-if.js';
 import {} from '@polymer/polymer/lib/elements/dom-repeat.js'
 import '@vaadin/vaadin-grid/vaadin-grid.js';
-import '@vaadin/vaadin-grid/vaadin-grid-filter.js'
 import '@vaadin/vaadin-grid/vaadin-grid-column-group.js';
 import '@polymer/iron-ajax/iron-ajax.js';
 import '@polymer/paper-fab/paper-fab.js';

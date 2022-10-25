@@ -141,14 +141,6 @@ class prefixList extends PolymerElement {
 				type: Boolean,
 				observer: '_filterChanged'
 			},
-			_filterDescription: {
-				type: Boolean,
-				observer: '_filterChanged'
-			},
-			_filterRate: {
-				type: Boolean,
-				observer: '_filterChanged'
-			},
 			tables: {
 				type: Array,
 				readOnly: true,
