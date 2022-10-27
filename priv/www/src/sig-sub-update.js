@@ -841,6 +841,10 @@ class subUpdate extends PolymerElement {
 		this.lifeCycleStatus = null;
 	}
 
+	_updateSubscriberProductResponse(event) {
+		document.body.querySelector('sig-app').shadowRoot.getElementById('serviceList').shadowRoot.getElementById('subscriberGrid').clearCache();
+	}
+
 	deleteSubscriber(event) {
 		var delSub = this.$.deleteSubscriberAjax;
 		delSub.method = "DELETE";
