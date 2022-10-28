@@ -418,7 +418,26 @@ class subUpdate extends PolymerElement {
 			this.$.updateSubscriberEnabled.checked =  current.enabled;
 			this.$.updateSubscriberMulti.checked =  current.multisession;
 			this.updateSubProduct = current.product;
-			this.lifeCycleStatus = current.state;
+			switch(current.state) {
+				case "feasibilityChecked":
+					this.lifeCycleStatus = "Feasibility Checked"; 
+					break;
+				case "designed":
+					this.lifeCycleStatus = "Designed";
+					break;
+				case "reserved":
+					this.lifeCycleStatus = "Reserved";
+					break;
+				case "active":
+					this.lifeCycleStatus = "Active";
+					break;
+				case "inactive":
+					this.lifeCycleStatus = "Inactive";
+					break;
+				case "terminated":
+					this.lifeCycleStatus = "Terminated";
+					break;
+			}
 			var arrObj = new Object();
 			arrObj.id = this.updateSubId;
 			arrObj.password = this.updateSubPass;
