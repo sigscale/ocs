@@ -82,7 +82,7 @@ class offerUpdate extends PolymerElement {
 							</paper-icon-button>
 						</div>
 						<iron-collapse id="addBundleUpdate">
-							<template is=dom-repeat items="{{offers}}">
+							<template is=dom-repeat items="{{unbundledOffers}}">
 								<div>
 									<paper-checkbox class="bundleCheck" checked="{{item.checked}}">
 										{{item.name}}
@@ -839,6 +839,12 @@ class offerUpdate extends PolymerElement {
 				type: Number,
 				value: 0
 			},
+			unbundledOffers: {
+				type: Array,
+				value: function() {
+					return [];
+				}
+			},
 			priceUpdatePolicy: {
 				type: String
 			},
@@ -926,8 +932,37 @@ class offerUpdate extends PolymerElement {
 		}
 	}
 
+	static get observers() {
+		return [
+			'_offersUpdate(offers.splices)'
+		]
+	}
+
 	ready() {
 		super.ready()
+	}
+
+	_offersUpdate(update) {
+		if(update) {
+			function doUpdate(splice) {
+				function removeOfferUpdate(offerNameUp) {
+					function checkName(bundleOff) {
+						return bundleOff.name == offerNameUp;
+					}
+					var index = this.unbundledOffers.findIndex(checkName);
+					this.splice('unbundledOffers', index, 1);
+				}
+				splice.removed.forEach(removeOfferUpdate, this);
+				for (var i = 0; i < splice.addedCount; i++) {
+					if(typeof splice.object[splice.index + i] !== 'object') {
+						var checkOffer = {checked: false,
+								name: splice.object[splice.index + i]};
+						this.push('unbundledOffers', checkOffer);
+					}
+				}
+			}
+			update.indexSplices.forEach(doUpdate, this);
+		}
 	}
 
 	_activeItemChanged(item, last) {
