@@ -1046,6 +1046,12 @@
               "$ref" : "https://api.swaggerhub.com/domains/SigScale/TS29571_CommonData/1.2.1#/components/schemas/ServiceId"
             } ]
           },
+          "ratingGroup" : {
+            "description" : "Identifies the charging key for the service.",
+            "allOf" : [ {
+              "$ref" : "https://api.swaggerhub.com/domains/SigScale/TS29571_CommonData/1.2.1#/components/schemas/RatingGroup"
+            } ]
+          },
           "serviceContextId" : {
             "$ref" : "#/components/schemas/ServiceContextId"
           },
