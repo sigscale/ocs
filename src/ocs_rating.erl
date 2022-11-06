@@ -300,7 +300,90 @@ rate1(Protocol, Service, ServiceId, Product, Buckets,
 rate1(_, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _) ->
 	mnesia:abort(invalid_service_type).
 %% @hidden
-rate2(Protocol, Service, ServiceId, Product, Buckets, Timestamp, Address, Direction,
+rate2(Protocol, Service, ServiceId, Product, Buckets, Timestamp,
+		_Address, _Direction,
+		#offer{specification = ProdSpec, price = Prices} = _Offer,
+		Flag, DebitAmounts, ReserveAmounts, SessionId, Rated,
+		ChargingKey, ServiceNetwork)
+		when ProdSpec == "4"; ProdSpec == "8" ->
+	Now = erlang:system_time(millisecond),
+	F = fun(#price{type = tariff, units = octets,
+					start_date = StartDate, end_date = EndDate})
+					when ((StartDate =< Now) or (StartDate == undefined)),
+					((EndDate > Now) or ( EndDate == undefined)) ->
+				true;
+			(#price{type = usage,
+					start_date = StartDate, end_date = EndDate})
+					when ((StartDate =< Now) or (StartDate == undefined)),
+					((EndDate > Now) or ( EndDate == undefined)) ->
+				true;
+			(#price{type = #pla_ref{},
+					start_date = StartDate, end_date = EndDate})
+					when ((StartDate =< Now) or (StartDate == undefined)),
+					((EndDate > Now) or ( EndDate == undefined)) ->
+				true;
+			(_) ->
+				false
+	end,
+	FilteredPrices1 = lists:filter(F, Prices),
+	FilteredPrices2 = filter_prices_key(ChargingKey, FilteredPrices1),
+	case filter_prices_tod(Timestamp, FilteredPrices2) of
+		[#price{type = #pla_ref{}} = Price | _] ->
+			 {pla_ref, Price};
+		[#price{units = Units, type = PriceType, size = UnitSize, amount = UnitPrice,
+				currency = Currency, char_value_use = PriceChars} = Price| _] ->
+			RoamingTable = roaming_table_prefix(Price),
+			rate4(Protocol, Service, ServiceId, Product, Buckets,
+					PriceType, UnitSize, Units, Currency, UnitPrice, PriceChars,
+					Flag, DebitAmounts, ReserveAmounts,
+					SessionId, RoamingTable, Rated, ChargingKey, ServiceNetwork);
+		_ ->
+			mnesia:abort(price_not_found)
+	end;
+rate2(Protocol, Service, ServiceId, Product, Buckets, Timestamp,
+		Address, Direction,
+		#offer{specification = ProdSpec, price = Prices} = _Offer,
+		Flag, DebitAmounts, ReserveAmounts, SessionId, Rated,
+		ChargingKey, ServiceNetwork)
+		when ProdSpec == "5"; ProdSpec == "9" ->
+	Now = erlang:system_time(millisecond),
+	F = fun(#price{type = tariff, units = seconds,
+					start_date = StartDate, end_date = EndDate})
+					when ((StartDate =< Now) or (StartDate == undefined)),
+					((EndDate > Now) or ( EndDate == undefined)) ->
+				true;
+			(#price{type = usage, units = seconds,
+					start_date = StartDate, end_date = EndDate})
+					when ((StartDate =< Now) or (StartDate == undefined)),
+					((EndDate > Now) or ( EndDate == undefined)) ->
+				true;
+			(#price{type = #pla_ref{},
+					start_date = StartDate, end_date = EndDate})
+					when ((StartDate =< Now) or (StartDate == undefined)),
+					((EndDate > Now) or ( EndDate == undefined)) ->
+				true;
+			(_) ->
+				false
+	end,
+	FilteredPrices1 = lists:filter(F, Prices),
+	FilteredPrices2 = filter_prices_key(ChargingKey, FilteredPrices1),
+	FilteredPrices3 = filter_prices_tod(Timestamp, FilteredPrices2),
+	case filter_prices_dir(Direction, FilteredPrices3) of
+		[#price{type = #pla_ref{}} = Price | _] ->
+			 {pla_ref, Price};
+		[#price{units = Units, type = PriceType, size = UnitSize, amount = UnitPrice,
+				currency = Currency, char_value_use = PriceChars} = Price | _] ->
+			RoamingTable = roaming_table_prefix(Price),
+			rate3(Protocol, Service, ServiceId, Product, Buckets, Address,
+					PriceType, UnitSize, Units, Currency, UnitPrice, PriceChars,
+					Flag, DebitAmounts, ReserveAmounts,
+					SessionId, RoamingTable,
+					Rated, ChargingKey, ServiceNetwork);
+		_ ->
+			mnesia:abort(price_not_found)
+	end;
+rate2(Protocol, Service, ServiceId, Product, Buckets, Timestamp,
+		Address, Direction,
 		#offer{specification = ProdSpec, price = Prices} = _Offer,
 		Flag, DebitAmounts, ReserveAmounts, SessionId, Rated,
 		ChargingKey, ServiceNetwork)
@@ -343,84 +426,6 @@ rate2(Protocol, Service, ServiceId, Product, Buckets, Timestamp, Address, Direct
 					Flag, DebitAmounts, ReserveAmounts,
 					SessionId, RoamingTable, Rated,
 					ChargingKey, ServiceNetwork);
-		_ ->
-			mnesia:abort(price_not_found)
-	end;
-rate2(Protocol, Service, ServiceId, Product, Buckets, Timestamp, Address, Direction,
-		#offer{specification = ProdSpec, price = Prices} = _Offer,
-		Flag, DebitAmounts, ReserveAmounts,
-		SessionId, Rated, ChargingKey, ServiceNetwork)
-		when ProdSpec == "5"; ProdSpec == "9" ->
-	Now = erlang:system_time(millisecond),
-	F = fun(#price{type = tariff, units = seconds,
-					start_date = StartDate, end_date = EndDate})
-					when ((StartDate =< Now) or (StartDate == undefined)),
-					((EndDate > Now) or ( EndDate == undefined)) ->
-				true;
-			(#price{type = usage, units = seconds,
-					start_date = StartDate, end_date = EndDate})
-					when ((StartDate =< Now) or (StartDate == undefined)),
-					((EndDate > Now) or ( EndDate == undefined)) ->
-				true;
-			(#price{type = #pla_ref{},
-					start_date = StartDate, end_date = EndDate})
-					when ((StartDate =< Now) or (StartDate == undefined)),
-					((EndDate > Now) or ( EndDate == undefined)) ->
-				true;
-			(_) ->
-				false
-	end,
-	FilteredPrices1 = lists:filter(F, Prices),
-	FilteredPrices2 = filter_prices_key(ChargingKey, FilteredPrices1),
-	FilteredPrices3 = filter_prices_tod(Timestamp, FilteredPrices2),
-	case filter_prices_dir(Direction, FilteredPrices3) of
-		[#price{type = #pla_ref{}} = Price | _] ->
-			 {pla_ref, Price};
-		[#price{units = Units, type = PriceType, size = UnitSize, amount = UnitPrice,
-				currency = Currency, char_value_use = PriceChars} = Price | _] ->
-			RoamingTable = roaming_table_prefix(Price),
-			rate3(Protocol, Service, ServiceId, Product, Buckets, Address,
-					PriceType, UnitSize, Units, Currency, UnitPrice, PriceChars,
-					Flag, DebitAmounts, ReserveAmounts,
-					SessionId, RoamingTable,
-					Rated, ChargingKey, ServiceNetwork);
-		_ ->
-			mnesia:abort(price_not_found)
-	end;
-rate2(Protocol, Service, ServiceId, Product, Buckets, Timestamp, _Address, _Direction,
-		#offer{price = Prices} = _Offer, Flag, DebitAmounts, ReserveAmounts,
-		SessionId, Rated, ChargingKey, ServiceNetwork) ->
-	Now = erlang:system_time(millisecond),
-	F = fun(#price{type = tariff, units = octets,
-					start_date = StartDate, end_date = EndDate})
-					when ((StartDate =< Now) or (StartDate == undefined)),
-					((EndDate > Now) or ( EndDate == undefined)) ->
-				true;
-			(#price{type = usage,
-					start_date = StartDate, end_date = EndDate})
-					when ((StartDate =< Now) or (StartDate == undefined)),
-					((EndDate > Now) or ( EndDate == undefined)) ->
-				true;
-			(#price{type = #pla_ref{},
-					start_date = StartDate, end_date = EndDate})
-					when ((StartDate =< Now) or (StartDate == undefined)),
-					((EndDate > Now) or ( EndDate == undefined)) ->
-				true;
-			(_) ->
-				false
-	end,
-	FilteredPrices1 = lists:filter(F, Prices),
-	FilteredPrices2 = filter_prices_key(ChargingKey, FilteredPrices1),
-	case filter_prices_tod(Timestamp, FilteredPrices2) of
-		[#price{type = #pla_ref{}} = Price | _] ->
-			 {pla_ref, Price};
-		[#price{units = Units, type = PriceType, size = UnitSize, amount = UnitPrice,
-				currency = Currency, char_value_use = PriceChars} = Price| _] ->
-			RoamingTable = roaming_table_prefix(Price),
-			rate4(Protocol, Service, ServiceId, Product, Buckets,
-					PriceType, UnitSize, Units, Currency, UnitPrice, PriceChars,
-					Flag, DebitAmounts, ReserveAmounts,
-					SessionId, RoamingTable, Rated, ChargingKey, ServiceNetwork);
 		_ ->
 			mnesia:abort(price_not_found)
 	end.
