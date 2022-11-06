@@ -43,9 +43,13 @@
 		lookup_last/2, lookup_all/2, list/0, list/2, backup/2, restore/2,
 		import/1, clear_table/1, query/3]).
 
+-export_type([gtt/0]).
+
 -define(CHUNKSIZE, 100).
 
 -include("ocs.hrl").
+
+-type gtt() :: #gtt{}.
 
 %%----------------------------------------------------------------------
 %%  The GTT API
@@ -130,7 +134,7 @@ new(Table, Options, Items) when is_list(Options), is_list(Items) ->
 		Table :: atom() | string(),
 		Number :: string(),
 		Value :: term(),
-		Result :: {ok, #gtt{}}.
+		Result :: {ok, gtt()}.
 %% @doc Insert a table entry.
 %%
 insert(Table, Number, Value) when is_list(Table) ->
@@ -410,8 +414,13 @@ import5([], Acc) when length(Acc) == 3 ->
 import5([], _Acc) ->
 	[].
 %% @hidden
-import6([Key, Desc, Rate]) ->
-	Tuple  = {Desc, ocs_rest:millionths_in(Rate)},
+import6([Key, Desc, Value]) ->
+	Tuple = case catch ocs_rest:millionths_in(Value) of
+		Rate when is_integer(Rate) ->
+			{Desc, Rate};
+		{'EXIT', _Reason} ->
+			{Desc, Value}
+	end,
 	case is_key_number(Key) of
 		true->
 			{Key, Tuple};
@@ -441,7 +450,7 @@ list_tables([], Acc) ->
 	when
 		Cont :: start,
 		Table :: atom(),
-		Result :: {Cont1, [#gtt{}]} | {error, Reason},
+		Result :: {Cont1, [gtt()]} | {error, Reason},
 		Cont1 :: eof | any(),
 		Reason :: term().
 %% @doc List all gtt entries.
@@ -469,7 +478,7 @@ list('$end_of_table') ->
 		Table :: atom(),
 		MatchPrefix :: Match,
 		Match :: {exact, string()} | {like, string()} | '_',
-		Result :: {Cont1, [#gtt{}]} | {error, Reason},
+		Result :: {Cont1, [gtt()]} | {error, Reason},
 		Cont1 :: eof | any(),
 		Reason :: term().
 %% @doc Paginated filtered query of table.
@@ -530,7 +539,7 @@ clear_table(Table) when is_atom(Table) ->
 %%  internal functions
 %%----------------------------------------------------------------------
 
--spec insert(Table, Number, Value, []) -> {NumWrites, #gtt{}}
+-spec insert(Table, Number, Value, []) -> {NumWrites, gtt()}
 	when
 		Table :: atom(),
 		Number :: list() | integer(),

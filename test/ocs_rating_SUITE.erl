@@ -115,7 +115,8 @@ all() ->
 	unauthorize_bad_password, unauthorize_bad_password, reserve_sms, debit_sms,
 	roaming_table_data, roaming_table_voice, roaming_table_sms, final_empty_mscc,
 	final_empty_mscc_multiple_services, initial_invalid_service_type,
-	refund_unused_reservation, refund_partially_used_reservation].
+	refund_unused_reservation, refund_partially_used_reservation,
+	tariff_prices].
 
 %%---------------------------------------------------------------------
 %%  Test cases
@@ -988,7 +989,7 @@ interim_out_of_credit_negative() ->
 	[{userdata, [{doc, "Credit overrun leaves negative balance (radius)"}]}].
 
 interim_out_of_credit_negative(_Config) ->
-	UnitPrice = rand:uniform(100),
+	UnitPrice = rand:uniform(98) + 2,
 	UnitSize = 1000000 + rand:uniform(9000000),
 	P1 = #price{name = "Usage", type = usage, units = octets,
 			size = UnitSize, amount = UnitPrice,
@@ -1032,7 +1033,7 @@ interim_out_of_credit_negative1() ->
 	[{userdata, [{doc, "Credit overrun leaves negative balance (diameter)"}]}].
 
 interim_out_of_credit_negative1(_Config) ->
-	UnitPrice = rand:uniform(100),
+	UnitPrice = rand:uniform(98) + 2,
 	UnitSize = 5000000 + rand:uniform(9000000),
 	P1 = #price{name = "Usage", type = usage, units = octets,
 			size = UnitSize, amount = UnitPrice},
@@ -1984,18 +1985,21 @@ roaming_table_data(Config) ->
 	CsvFile = PrivDir ++ RoamingTable ++ ".csv",
 	{ok, File} = file:open(CsvFile, [write]),
 	F = fun F(0) ->
-			ok;
-		F(N) ->
-			SN = ocs:generate_identity(),
-			ok = file:write(File, SN ++ "," ++ ocs:generate_password() ++
-					"," ++ integer_to_list(rand:uniform(100)) ++ "\n"),
-			F(N - 1)
+				ok;
+			F(N) ->
+				SNPrefix = ocs:generate_identity(),
+				Description = ocs:generate_password(),
+				UnitPrice = [integer_to_list(rand:uniform(5 - 1)),
+						$., integer_to_list(rand:uniform(1000))],
+				Line = [SNPrefix, $,, Description, $,, UnitPrice, $\n],
+				ok = file:write(File, Line),
+				F(N - 1)
 	end,
-	ok = F(10),
-	SNPrefix = ocs:generate_identity(),
-	ok = file:write(File, SNPrefix ++ "," ++ ocs:generate_password() ++
-			"," ++ integer_to_list(rand:uniform(100)) ++ "\n"),
+	ok = F(100),
+	ok = file:close(File),
 	ok = ocs_gtt:import(CsvFile),
+	{_Cont, GTTs} = ocs_gtt:list(start, list_to_existing_atom(RoamingTable)),
+	#gtt{num = SN} = lists:nth(rand:uniform(length(GTTs)), GTTs),
 	PackageSize = 200,
 	PackageUnits = octets,
 	CharValueUse = [#char_value_use{name = "roamingTable",
@@ -2004,9 +2008,8 @@ roaming_table_data(Config) ->
 			amount = 0, char_value_use = CharValueUse},
 	OfferId = add_offer([P1], 8),
 	ProdRef = add_product(OfferId, []),
-	Password = ocs:generate_password(),
-	ServiceId = list_to_binary(ocs:generate_identity()),
-	{ok, _Service1} = ocs:add_service(ServiceId, Password, ProdRef, []),
+	ServiceId = ocs:generate_identity(),
+	{ok, _Service1} = ocs:add_service(ServiceId, undefined, ProdRef),
 	Timestamp = calendar:local_time(),
 	RemAmount = ocs_rest:millionths_in(1000),
 	B1 = bucket(cents, RemAmount),
@@ -2014,9 +2017,9 @@ roaming_table_data(Config) ->
 	ServiceType = 32251,
 	SessionId = [{'Session-Id', list_to_binary(ocs:generate_password())}],
 	{ok, _A, {PackageUnits, PackageSize}} = ocs_rating:rate(diameter,
-			ServiceType, undefined, undefined, SNPrefix, ServiceId, Timestamp,
-			undefined, undefined, initial, [], [{PackageUnits, PackageSize}], SessionId),
-	ok = file:close(File).
+			ServiceType, undefined, undefined, SN, ServiceId, Timestamp,
+			undefined, undefined, initial, [], [{PackageUnits, PackageSize}],
+			SessionId).
 
 roaming_table_voice() ->
 	[{userdata, [{doc, "Voice rating for roaming with prefix table"}]}].
@@ -2024,48 +2027,56 @@ roaming_table_voice() ->
 roaming_table_voice(Config) ->
 	PrivDir = ?config(priv_dir, Config),
 	RoamingTable = ocs:generate_identity(),
-	DestPrefixTable = ocs:generate_identity(),
-	DesPrefix = ocs:generate_identity(),
+	DestinationTable = ocs:generate_identity(),
 	CsvFile1 = PrivDir ++ RoamingTable ++ ".csv",
 	{ok, File1} = file:open(CsvFile1, [write]),
 	F1 = fun F1(0) ->
-			ok;
-		F1(N) ->
-			SN = ocs:generate_identity(),
-			ok = file:write(File1, SN ++ "," ++ ocs:generate_password() ++ "," ++
-					ocs:generate_identity() ++ "\n"),
-			F1(N - 1)
+				ok;
+			F1(N) ->
+				SNPrefix = ocs:generate_identity(),
+				Description = ocs:generate_password(),
+				TablePrefix = ocs:generate_password(),
+				Line = [SNPrefix, $,, Description, $,, TablePrefix, $\n],
+				ok = file:write(File1, Line),
+				F1(N - 1)
 	end,
-	ok = F1(10),
-	SNPrefix = ocs:generate_identity(),
-	ok = file:write(File1, SNPrefix ++ "," ++ ocs:generate_password() ++ ","
-			++ DesPrefix ++ "\n"),
-	ok = ocs:import(CsvFile1, voice),
-	CsvFile2 = PrivDir ++ DesPrefix ++ "-" ++ DestPrefixTable ++ ".csv",
+	ok = F1(100),
+	ok = file:close(File1),
+	ok = ocs_gtt:import(CsvFile1),
+	{_, GTTs1} = ocs_gtt:list(start, list_to_existing_atom(RoamingTable)),
+	#gtt{num = SN, value = Value} = lists:nth(rand:uniform(length(GTTs1)), GTTs1),
+	TablePrefix = element(2, Value),
+	CsvFile2 = PrivDir ++ TablePrefix ++ "-" ++ DestinationTable ++ ".csv",
 	{ok, File2} = file:open(CsvFile2, [write]),
 	F2 = fun F2(0) ->
 				ok;
 			F2(N) ->
-				Prefix = ocs:generate_identity(),
-				ok = file:write(File2, Prefix ++ "," ++ ocs:generate_password() ++ ","
-						++ integer_to_list(rand:uniform(200)) ++ "\n"),
+				DestPrefix = ocs:generate_identity(),
+				Description = ocs:generate_password(),
+				UnitPrice = [integer_to_list(rand:uniform(5 - 1)),
+						$., integer_to_list(rand:uniform(1000))],
+				Line = [DestPrefix, $,, Description, $,, UnitPrice, $\n],
+				ok = file:write(File2, Line),
 				F2(N - 2)
 	end,
 	ok = F2(20),
-	ok = file:write(File2, DesPrefix ++ "," ++ ocs:generate_password() ++ ","
-						++ integer_to_list(rand:uniform(200)) ++ "\n"),
+	ok = file:close(File2),
 	ok = ocs_gtt:import(CsvFile2),
+	{_, GTTs2} = ocs_gtt:list(start,
+			list_to_existing_atom(TablePrefix ++ "-" ++ DestinationTable)),
+	#gtt{num = Address} = lists:nth(rand:uniform(length(GTTs2)), GTTs2),
 	PackageSize = 10,
 	PackageUnits = seconds,
-	CharValueUse = [#char_value_use{name = "roamingTable", values = [#char_value{value = RoamingTable}]},
-			#char_value_use{name = "destPrefixTariffTable", values = [#char_value{value = DestPrefixTable}]}],
-	P1 = #price{type = tariff, units = PackageUnits, size = PackageSize, amount = 0,
-			char_value_use = CharValueUse},
+	CharValueUse = [#char_value_use{name = "roamingTable",
+					values = [#char_value{value = RoamingTable}]},
+			#char_value_use{name = "destPrefixTariffTable",
+					values = [#char_value{value = DestinationTable}]}],
+	P1 = #price{type = tariff, units = PackageUnits, size = PackageSize,
+			amount = 0, char_value_use = CharValueUse},
 	OfferId = add_offer([P1], 9),
 	ProdRef = add_product(OfferId, []),
-	Password = ocs:generate_password(),
-	ServiceId = DesPrefix ++ ocs:generate_identity(),
-	{ok, _Service1} = ocs:add_service(ServiceId, Password, ProdRef, []),
+	ServiceId = ocs:generate_identity(),
+	{ok, _Service1} = ocs:add_service(ServiceId, undefined, ProdRef),
 	Timestamp = calendar:local_time(),
 	RemAmount = ocs_rest:millionths_in(1000),
 	B1 = bucket(cents, RemAmount),
@@ -2073,11 +2084,9 @@ roaming_table_voice(Config) ->
 	ServiceType = 32260,
 	SessionId = [{'Session-Id', list_to_binary(ocs:generate_password())}],
 	{ok, _A, {PackageUnits, PackageSize}} = ocs_rating:rate(diameter,
-			ServiceType, undefined, undefined, SNPrefix, ServiceId, Timestamp,
-			ServiceId, undefined, initial, [], [{PackageUnits, PackageSize}],
-			SessionId),
-	ok = file:close(File1),
-	ok = file:close(File2).
+			ServiceType, undefined, undefined, SN, ServiceId, Timestamp,
+			Address, undefined, initial, [], [{PackageUnits, PackageSize}],
+			SessionId).
 
 roaming_table_sms() ->
 	[{userdata, [{doc, "SMS rating for roaming with prefix table"}]}].
@@ -2085,47 +2094,56 @@ roaming_table_sms() ->
 roaming_table_sms(Config) ->
 	PrivDir = ?config(priv_dir, Config),
 	RoamingTable = ocs:generate_identity(),
-	DestPrefixTable = ocs:generate_identity(),
-	DesPrefix = ocs:generate_identity(),
+	DestinationTable = ocs:generate_identity(),
 	CsvFile1 = PrivDir ++ RoamingTable ++ ".csv",
 	{ok, File1} = file:open(CsvFile1, [write]),
 	F1 = fun F1(0) ->
-			ok;
-		F1(N) ->
-			SN = ocs:generate_identity(),
-			ok = file:write(File1, SN ++ "," ++ ocs:generate_password() ++ "," ++
-					ocs:generate_identity() ++ "\n"),
-			F1(N - 1)
+				ok;
+			F1(N) ->
+				SNPrefix = ocs:generate_identity(),
+				Description = ocs:generate_password(),
+				TablePrefix = ocs:generate_password(),
+				Line = [SNPrefix, $,, Description, $,, TablePrefix, $\n],
+				ok = file:write(File1, Line),
+				F1(N - 1)
 	end,
 	ok = F1(10),
-	SNPrefix = ocs:generate_identity(),
-	ok = file:write(File1, SNPrefix ++ "," ++ ocs:generate_password() ++ ","
-			++ DesPrefix ++ "\n"),
-	ok = ocs:import(CsvFile1, voice),
-	CsvFile2 = PrivDir ++ DesPrefix ++ "-" ++ DestPrefixTable ++ ".csv",
+	ok = file:close(File1),
+	ok = ocs_gtt:import(CsvFile1),
+	{_, GTTs1} = ocs_gtt:list(start, list_to_existing_atom(RoamingTable)),
+	#gtt{num = SN, value = Value} = lists:nth(rand:uniform(length(GTTs1)), GTTs1),
+	TablePrefix = element(2, Value),
+	CsvFile2 = PrivDir ++ TablePrefix ++ "-" ++ DestinationTable ++ ".csv",
 	{ok, File2} = file:open(CsvFile2, [write]),
 	F2 = fun F2(0) ->
 				ok;
 			F2(N) ->
-				Prefix = ocs:generate_identity(),
-				ok = file:write(File2, Prefix ++ "," ++ ocs:generate_password() ++ ","
-						++ integer_to_list(rand:uniform(200)) ++ "\n"),
+				DestPrefix = ocs:generate_identity(),
+				Description = ocs:generate_password(),
+				UnitPrice = [integer_to_list(rand:uniform(5 - 1)),
+						$., integer_to_list(rand:uniform(1000))],
+				Line = [DestPrefix, $,, Description, $,, UnitPrice, $\n],
+				ok = file:write(File2, Line),
 				F2(N - 2)
 	end,
 	ok = F2(20),
-	ok = file:write(File2, DesPrefix ++ "," ++ ocs:generate_password() ++ ","
-						++ integer_to_list(rand:uniform(200)) ++ "\n"),
+	ok = file:close(File2),
 	ok = ocs_gtt:import(CsvFile2),
+	{_, GTTs2} = ocs_gtt:list(start,
+			list_to_existing_atom(TablePrefix ++ "-" ++ DestinationTable)),
+	#gtt{num = Address} = lists:nth(rand:uniform(length(GTTs2)), GTTs2),
 	PackageSize = 10,
 	PackageUnits = messages,
-	CharValueUse = [#char_value_use{name = "roamingTable", values = [#char_value{value = RoamingTable}]},
-			#char_value_use{name = "destPrefixTariffTable", values = [#char_value{value = DestPrefixTable}]}],
-	P1 = #price{type = tariff, units = PackageUnits, size = PackageSize, amount = 0, char_value_use = CharValueUse},
+	CharValueUse = [#char_value_use{name = "roamingTable",
+					values = [#char_value{value = RoamingTable}]},
+			#char_value_use{name = "destPrefixTariffTable",
+					values = [#char_value{value = DestinationTable}]}],
+	P1 = #price{type = tariff, units = PackageUnits, size = PackageSize,
+			amount = 0, char_value_use = CharValueUse},
 	OfferId = add_offer([P1], 10),
 	ProdRef = add_product(OfferId, []),
-	Password = ocs:generate_password(),
-	ServiceId = DesPrefix ++ ocs:generate_identity(),
-	{ok, _Service1} = ocs:add_service(ServiceId, Password, ProdRef, []),
+	ServiceId = ocs:generate_identity(),
+	{ok, _Service1} = ocs:add_service(ServiceId, undefined, ProdRef),
 	Timestamp = calendar:local_time(),
 	RemAmount = ocs_rest:millionths_in(1000),
 	B1 = bucket(cents, RemAmount),
@@ -2133,11 +2151,9 @@ roaming_table_sms(Config) ->
 	ServiceType = 32274,
 	SessionId = [{'Session-Id', list_to_binary(ocs:generate_password())}],
 	{ok, _A, {PackageUnits, PackageSize}} = ocs_rating:rate(diameter,
-			ServiceType, undefined, undefined, SNPrefix, ServiceId, Timestamp,
-			ServiceId, undefined, initial, [], [{PackageUnits, PackageSize}],
-			SessionId),
-	ok = file:close(File1),
-	ok = file:close(File2).
+			ServiceType, undefined, undefined, SN, ServiceId, Timestamp,
+			Address, undefined, initial, [], [{PackageUnits, PackageSize}],
+			SessionId).
 
 final_empty_mscc() ->
 	[{userdata, [{doc, "Rate a final call with an empty MSCC and check whether sessions are removed"}]}].
@@ -2328,6 +2344,63 @@ refund_partially_used_reservation(_Config) ->
 	{error, not_found} = ocs:find_bucket(BId1),
 	RemainAmount3 = RemainAmount1 + RemainAmount2 - PackagePrice,
 	{ok, #bucket{remain_amount = RemainAmount3}} = ocs:find_bucket(BId2).
+
+tariff_prices() ->
+	[{userdata, [{doc, "Price discrimination by tariff table match"}]}].
+
+tariff_prices(_Config) ->
+	TariffTable1 = ocs:generate_identity(),
+	TariffTable2 = ocs:generate_identity(),
+	TariffTable3 = ocs:generate_identity(),
+	F = fun F(0, _, Items) ->
+				Items;
+			F(N, P, Items) ->
+				Rate = rand:uniform(10000) * 1000,
+				Description = ocs:generate_identity(),
+				Value = {Description, Rate},
+				Number = [P | ocs:generate_identity()],
+				Item = {Number, Value},
+				F(N - 1, P, [Item | Items])
+	end,
+	ok = ocs_gtt:new(TariffTable1, [], F(100, $1, [])),
+	ok = ocs_gtt:new(TariffTable2, [], F(100, $2, [])),
+	ok = ocs_gtt:new(TariffTable3, [], F(100, $3, [])),
+	CharValueUse1 = [#char_value_use{name = "destPrefixTariffTable",
+			values = [#char_value{value = TariffTable1}]}],
+	CharValueUse2 = [#char_value_use{name = "destPrefixTariffTable",
+			values = [#char_value{value = TariffTable2}]}],
+	CharValueUse3 = [#char_value_use{name = "destPrefixTariffTable",
+			values = [#char_value{value = TariffTable3}]}],
+	P1 = #price{type = tariff, units = seconds, size = 60,
+			char_value_use = CharValueUse1},
+	P2 = #price{type = tariff, units = seconds, size = 120,
+			char_value_use = CharValueUse2},
+	P3 = #price{type = tariff, units = seconds, size = 300,
+			char_value_use = CharValueUse3},
+	OfferId = add_offer([P1, P2, P3], 9),
+	ProdRef = add_product(OfferId, []),
+	ServiceId = ocs:generate_identity(),
+	{ok, _Service} = ocs:add_service(ServiceId, undefined, ProdRef),
+	Timestamp = calendar:local_time(),
+	RemAmount1 = ocs_rest:millionths_in(1000),
+	BId = add_bucket(ProdRef, bucket(cents, RemAmount1)),
+	ServiceType = 32260,
+	UnTariffedDestination =  [$9 | ocs:generate_identity()],
+	SessionId1 = [{'Session-Id', list_to_binary(ocs:generate_password())}],
+	{error,table_lookup_failed} = ocs_rating:rate(diameter,
+			ServiceType, undefined, undefined, undefined, ServiceId,
+			calendar:local_time(), UnTariffedDestination, undefined,
+			initial, [], [], SessionId1),
+	{_Cont, Items} = ocs_gtt:list(start, list_to_existing_atom(TariffTable3)),
+	#gtt{num = Destination, value = Value} = lists:last(Items), 
+	Rate = element(2, Value),
+	SessionId2 = [{'Session-Id', list_to_binary(ocs:generate_password())}],
+	{ok, _, {seconds, 300}} = ocs_rating:rate(diameter,
+			ServiceType, undefined, undefined, undefined, ServiceId,
+			calendar:local_time(), Destination, undefined,
+			initial, [], [], SessionId2),
+	RemainAmount2 = RemAmount1 - Rate,
+	{ok, #bucket{remain_amount = RemainAmount2}} = ocs:find_bucket(BId).
 
 %%---------------------------------------------------------------------
 %%  Internal functions

@@ -327,19 +327,10 @@ rate2(Protocol, Service, ServiceId, Product, Buckets, Timestamp,
 	end,
 	FilteredPrices1 = lists:filter(F, Prices),
 	FilteredPrices2 = filter_prices_key(ChargingKey, FilteredPrices1),
-	case filter_prices_tod(Timestamp, FilteredPrices2) of
-		[#price{type = #pla_ref{}} = Price | _] ->
-			 {pla_ref, Price};
-		[#price{units = Units, type = PriceType, size = UnitSize, amount = UnitPrice,
-				currency = Currency, char_value_use = PriceChars} = Price| _] ->
-			RoamingTable = roaming_table_prefix(Price),
-			rate4(Protocol, Service, ServiceId, Product, Buckets,
-					PriceType, UnitSize, Units, Currency, UnitPrice, PriceChars,
-					Flag, DebitAmounts, ReserveAmounts,
-					SessionId, RoamingTable, Rated, ChargingKey, ServiceNetwork);
-		_ ->
-			mnesia:abort(price_not_found)
-	end;
+	FilteredPrices3 = filter_prices_tod(Timestamp, FilteredPrices2),
+	rate3(Protocol, Service, ServiceId, Product, Buckets, undefined,
+			Flag, DebitAmounts, ReserveAmounts, SessionId,
+			Rated, ChargingKey, ServiceNetwork, FilteredPrices3);
 rate2(Protocol, Service, ServiceId, Product, Buckets, Timestamp,
 		Address, Direction,
 		#offer{specification = ProdSpec, price = Prices} = _Offer,
@@ -368,20 +359,10 @@ rate2(Protocol, Service, ServiceId, Product, Buckets, Timestamp,
 	FilteredPrices1 = lists:filter(F, Prices),
 	FilteredPrices2 = filter_prices_key(ChargingKey, FilteredPrices1),
 	FilteredPrices3 = filter_prices_tod(Timestamp, FilteredPrices2),
-	case filter_prices_dir(Direction, FilteredPrices3) of
-		[#price{type = #pla_ref{}} = Price | _] ->
-			 {pla_ref, Price};
-		[#price{units = Units, type = PriceType, size = UnitSize, amount = UnitPrice,
-				currency = Currency, char_value_use = PriceChars} = Price | _] ->
-			RoamingTable = roaming_table_prefix(Price),
-			rate3(Protocol, Service, ServiceId, Product, Buckets, Address,
-					PriceType, UnitSize, Units, Currency, UnitPrice, PriceChars,
-					Flag, DebitAmounts, ReserveAmounts,
-					SessionId, RoamingTable,
-					Rated, ChargingKey, ServiceNetwork);
-		_ ->
-			mnesia:abort(price_not_found)
-	end;
+	FilteredPrices4 = filter_prices_dir(Direction, FilteredPrices3),
+	rate3(Protocol, Service, ServiceId, Product, Buckets, Address,
+			Flag, DebitAmounts, ReserveAmounts, SessionId,
+			Rated, ChargingKey, ServiceNetwork, FilteredPrices4);
 rate2(Protocol, Service, ServiceId, Product, Buckets, Timestamp,
 		Address, Direction,
 		#offer{specification = ProdSpec, price = Prices} = _Offer,
@@ -415,110 +396,148 @@ rate2(Protocol, Service, ServiceId, Product, Buckets, Timestamp,
 	FilteredPrices1 = lists:filter(F, Prices),
 	FilteredPrices2 = filter_prices_key(ChargingKey, FilteredPrices1),
 	FilteredPrices3 = filter_prices_tod(Timestamp, FilteredPrices2),
-	case filter_prices_dir(Direction, FilteredPrices3) of
-		[#price{type = #pla_ref{}} = Price | _] ->
-			 {pla_ref, Price};
-		[#price{units = Units, type = PriceType, size = UnitSize, amount = UnitPrice,
-				currency = Currency, char_value_use = PriceChars} = Price | _] ->
-			RoamingTable = roaming_table_prefix(Price),
-			rate3(Protocol, Service, ServiceId, Product, Buckets, Address,
-					PriceType, UnitSize, Units, Currency, UnitPrice, PriceChars,
-					Flag, DebitAmounts, ReserveAmounts,
-					SessionId, RoamingTable, Rated,
-					ChargingKey, ServiceNetwork);
-		_ ->
-			mnesia:abort(price_not_found)
-	end.
+	FilteredPrices4 = filter_prices_dir(Direction, FilteredPrices3),
+	rate3(Protocol, Service, ServiceId, Product, Buckets, Address,
+			Flag, DebitAmounts, ReserveAmounts, SessionId,
+			Rated, ChargingKey, ServiceNetwork, FilteredPrices4).
 %% @hidden
-rate3(Protocol, Service, ServiceId, Product, Buckets, Address,
-		tariff = PriceType, UnitSize, Units, Currency, _UnitPrice, PriceChars,
-		Flag, DebitAmounts, ReserveAmounts, SessionId,
-		RoamingTable, Rated, ChargingKey, ServiceNetwork) ->
-	case lists:keyfind("destPrefixTariffTable", #char_value_use.name, PriceChars) of
-		#char_value_use{values = [#char_value{value = TariffTable}]}
-				when RoamingTable == undefined ->
-			Table = list_to_existing_atom(TariffTable),
-			case catch ocs_gtt:lookup_last(Table, Address) of
-				{Description, Amount, _} when is_integer(Amount) ->
-					case Amount of
-						N when N >= 0 ->
-							charge1(Protocol, Service, ServiceId, Product, Buckets,
-									PriceType, UnitSize, Units, Currency, N, PriceChars,
-									Flag, DebitAmounts, ReserveAmounts,
-									SessionId, Rated#rated{price_type = tariff,
-											description = Description}, ChargingKey);
-						_N ->
+rate3(Protocol, Service, ServiceId, Product, Buckets,
+		undefined = _Address, Flag, DebitAmounts, ReserveAmounts,
+		SessionId, Rated, ChargingKey, ServiceNetwork,
+		[#price{type = tariff, units = Units, size = UnitSize,
+				currency = Currency, char_value_use = PriceChars} | T]) ->
+	RoamingTable = case lists:keyfind("roamingTable",
+			#char_value_use.name, PriceChars) of
+		#char_value_use{values = [#char_value{value = RT}]} ->
+			RT;
+		false ->
+			undefined
+	end,
+	case {RoamingTable, ServiceNetwork} of
+		{RoamingTable, ServiceNetwork}
+				when is_list(RoamingTable), is_list(ServiceNetwork) ->
+			Table = list_to_existing_atom(RoamingTable),
+			case catch ocs_gtt:lookup_last(Table, ServiceNetwork) of
+				Value2 when is_integer(element(2, Value2)) ->
+					case element(2, Value2) of
+						UnitPrice when UnitPrice >= 0 ->
+							charge1(Protocol, Service, ServiceId, Product,
+									Buckets, tariff, UnitSize, Units,
+									Currency, UnitPrice, PriceChars, Flag,
+									DebitAmounts, ReserveAmounts, SessionId,
+									Rated#rated{price_type = tariff,
+											description = element(1, Value2)},
+									ChargingKey);
+						_UnitPrice ->
 							mnesia:abort(negative_amount)
 					end;
-				Other ->
-					mnesia:abort(table_lookup_failed)
+				_Other ->
+					rate3(Protocol, Service, ServiceId, Product, Buckets,
+							undefined, Flag, DebitAmounts, ReserveAmounts,
+							SessionId, Rated, ChargingKey, ServiceNetwork, T)
 			end;
-		#char_value_use{values = [#char_value{value = TariffTable}]}
-				when ServiceNetwork /= undefined ->
-			Table1 = list_to_existing_atom(RoamingTable),
-			case catch ocs:find_sn_network(Table1, ServiceNetwork) of
-				{_, _, _Description, TabPrefix} ->
-						Table2 = list_to_existing_atom(TabPrefix ++ "-" ++ TariffTable),
-						case catch ocs_gtt:lookup_last(Table2, Address) of
-							{Description1, Amount, _} when is_integer(Amount) ->
-								case Amount of
-									N when N >= 0 ->
-										charge1(Protocol, Service, ServiceId, Product, Buckets,
-												PriceType, UnitSize, Units, Currency, N, PriceChars,
-												Flag, DebitAmounts, ReserveAmounts,
-												SessionId, Rated#rated{price_type = tariff,
-												description = Description1}, ChargingKey);
-									_N ->
-										mnesia:abort(negative_amount)
-								end;
-							Other ->
-								mnesia:abort(table_lookup_failed)
-						end;
-				Other ->
-					error_logger:error_report(["Service Network table lookup failed",
-							{module, ?MODULE}, {table, Table1},
-							{address, Address}, {result, Other}]),
-					mnesia:abort(table_lookup_failed)
-			end;
-		false ->
+		{RoamingTable, undefined} when is_list(RoamingTable) ->
+			mnesia:abort(undefined_service_network);
+		{undefined, _} ->
 			mnesia:abort(undefined_tariff)
 	end;
-rate3(Protocol, Service, ServiceId, Product, Buckets, _Address,
-		PriceType, UnitSize, Units, Currency, UnitPrice, PriceChars,
-		Flag, DebitAmounts, ReserveAmounts, SessionId,
-		_RoamingTable, Rated, ChargingKey, _ServiceNetwork) ->
-	charge1(Protocol, Service, ServiceId, Product, Buckets,
-			PriceType, UnitSize, Units, Currency, UnitPrice, PriceChars,
-			Flag, DebitAmounts, ReserveAmounts, SessionId, Rated, ChargingKey).
-%% @hidden
-rate4(Protocol, Service, ServiceId, Product, Buckets,
-		PriceType, UnitSize, Units, Currency, _UnitPrice, PriceChars,
-		Flag, DebitAmounts, ReserveAmounts,
-		SessionId, RoamingTable, Rated, ChargingKey, ServiceNetwork)
-		when is_list(RoamingTable), is_list(ServiceNetwork) ->
-	Table = list_to_existing_atom(RoamingTable),
-	case catch ocs_gtt:lookup_last(Table, ServiceNetwork) of
-		{Description, Amount, _} when is_integer(Amount) ->
-			case Amount of
-				N when N >= 0 ->
-					charge1(Protocol, Service, ServiceId, Product, Buckets,
-							PriceType, UnitSize, Units, Currency, N, PriceChars,
-							Flag, DebitAmounts, ReserveAmounts,
-							SessionId, Rated#rated{price_type = tariff,
-							description = Description}, ChargingKey);
-				_N ->
-					mnesia:abort(negative_amount)
+rate3(Protocol, Service, ServiceId, Product, Buckets,
+		Address, Flag, DebitAmounts, ReserveAmounts,
+		SessionId, Rated, ChargingKey, ServiceNetwork,
+		[#price{type = tariff, units = Units, size = UnitSize,
+				currency = Currency, char_value_use = PriceChars} | T])
+		when is_list(Address) ->
+	RoamingTable = case lists:keyfind("roamingTable",
+			#char_value_use.name, PriceChars) of
+		#char_value_use{values = [#char_value{value = RT}]} ->
+			RT;
+		false ->
+			undefined
+	end,
+	DestinationTable = case lists:keyfind("destPrefixTariffTable",
+			#char_value_use.name, PriceChars) of
+		#char_value_use{values = [#char_value{value = DT}]} ->
+			DT;
+		false ->
+			undefined
+	end,
+	case {RoamingTable, ServiceNetwork, DestinationTable} of
+		{undefined, _, TariffTable} when is_list(TariffTable) ->
+			Table = list_to_existing_atom(TariffTable),
+			case catch ocs_gtt:lookup_last(Table, Address) of
+				Value when is_integer(element(2, Value)) ->
+					case element(2, Value) of
+						UnitPrice when UnitPrice >= 0 ->
+							Rated1 = Rated#rated{price_type = tariff,
+									description = element(1, Value)},
+							charge1(Protocol, Service, ServiceId, Product, Buckets,
+									tariff, UnitSize, Units, Currency, UnitPrice,
+									PriceChars, Flag, DebitAmounts, ReserveAmounts,
+									SessionId, Rated1, ChargingKey);
+						_UnitPrice ->
+							mnesia:abort(negative_amount)
+					end;
+				_Other ->
+					rate3(Protocol, Service, ServiceId, Product, Buckets,
+							Address, Flag, DebitAmounts, ReserveAmounts,
+							SessionId, Rated, ChargingKey, ServiceNetwork, T)
 			end;
-		Other ->
-			mnesia:abort(table_lookup_failed)
+		{RoamingTable, undefined, _} when is_list(RoamingTable) ->
+			mnesia:abort(undefined_service_network);
+		{RoamingTable, ServiceNetwork, TariffTable}
+				when is_list(RoamingTable), is_list(TariffTable) ->
+			Table1 = list_to_existing_atom(RoamingTable),
+			case catch ocs_gtt:lookup_last(Table1, ServiceNetwork) of
+				Value1 when is_list(element(2, Value1)) ->
+						Table2 = list_to_existing_atom(element(2, Value1)
+								++ "-" ++ TariffTable),
+						case catch ocs_gtt:lookup_last(Table2, Address) of
+							Value2 when is_integer(element(2, Value2)) ->
+								case element(2, Value2 )of
+									UnitPrice when UnitPrice >= 0 ->
+										charge1(Protocol, Service, ServiceId, Product,
+												Buckets, tariff, UnitSize, Units,
+												Currency, UnitPrice, PriceChars, Flag,
+												DebitAmounts, ReserveAmounts, SessionId,
+												Rated#rated{price_type = tariff,
+														description = element(1, Value2)},
+												ChargingKey);
+									_UnitPrice ->
+										mnesia:abort(negative_amount)
+								end;
+							_Other ->
+								rate3(Protocol, Service, ServiceId, Product, Buckets,
+										Address, Flag, DebitAmounts, ReserveAmounts,
+										SessionId, Rated, ChargingKey, ServiceNetwork, T)
+						end;
+				_Other ->
+					rate3(Protocol, Service, ServiceId, Product, Buckets,
+							Address, Flag, DebitAmounts, ReserveAmounts,
+							SessionId, Rated, ChargingKey, ServiceNetwork, T)
+			end;
+		{_, _, undefined} ->
+			mnesia:abort(undefined_tariff)
 	end;
-rate4(Protocol, Service, ServiceId, Product, Buckets,
-		PriceType, UnitSize, Units, Currency, UnitPrice, PriceChars,
-		Flag, DebitAmounts, ReserveAmounts, SessionId,
-		_RoamingTable, Rated, ChargingKey, _ServiceNetwork) ->
+rate3(_Protocol, _Service, _ServiceId, _Product, _Buckets,
+		_Address, _Flag, _DebitAmounts, _ReserveAmounts,
+		_SessionId, _Rated, _ChargingKey, _ServiceNetwork,
+		[#price{type = #pla_ref{}} = Price | _]) ->
+	{pla_ref, Price};
+rate3(Protocol, Service, ServiceId, Product, Buckets,
+		_Address, Flag, DebitAmounts, ReserveAmounts,
+		SessionId, Rated, ChargingKey, _ServiceNetwork,
+		[#price{type = PriceType, units = Units, size = UnitSize,
+				amount = UnitPrice, currency = Currency,
+				char_value_use = PriceChars} | _]) ->
 	charge1(Protocol, Service, ServiceId, Product, Buckets,
-			PriceType, UnitSize, Units, Currency, UnitPrice, PriceChars,
-			Flag, DebitAmounts, ReserveAmounts, SessionId, Rated, ChargingKey).
+			PriceType, UnitSize, Units, Currency, UnitPrice,
+			PriceChars, Flag, DebitAmounts, ReserveAmounts,
+			SessionId, Rated, ChargingKey);
+rate3(_Protocol, _Service, _ServiceId, _Product, _Buckets,
+		_Address, _Flag, _DebitAmounts, _ReserveAmounts,
+		_SessionId, _Rated, _ChargingKey, _ServiceNetwork,
+		[]) ->
+	mnesia:abort(table_lookup_failed).
 
 -spec charge(Protocol, SubscriberID, ServiceId,
 		UnitSize, Units, Currency, UnitPrice, PriceChars,
@@ -2616,17 +2635,6 @@ delete_b([BRef | T]) ->
 	delete_b(T);
 delete_b([]) ->
 	ok.
-
-%% @hidden
-roaming_table_prefix(#price{type = tariff, char_value_use = CharValueUse}) ->
-	case lists:keyfind("roamingTable", #char_value_use.name, CharValueUse) of
-		#char_value_use{values = [#char_value{value = RoamingTable}]} ->
-			RoamingTable;
-		false ->
-			undefined
-	end;
-roaming_table_prefix(_) ->
-	undefined.
 
 %% @private
 make_lm() ->
