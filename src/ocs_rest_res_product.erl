@@ -32,7 +32,6 @@
 -export([get_product_spec/2, get_product_specs/1, product_status/1]).
 -export([get_pla_spec/2]).
 -export([delete_offer/1, delete_inventory/1]).
--export([get_schema/0]).
 -export([inventory/1, offer/1]).
 
 -include("ocs.hrl").
@@ -59,27 +58,7 @@ content_types_accepted() ->
 		ContentTypes :: list().
 %% @doc Provides list of resource representations available.
 content_types_provided() ->
-	["application/json", "text/x-yaml", "application/problem+json"].
-
--spec get_schema() -> Result when
-	Result :: {ok, Headers, Body},
-	Body :: iolist(),
-	Headers  :: [tuple()].
-%% @doc Respond to `GET /productInventoryManagement/schema/OCS.yml'.
-%%    get schema.
-get_schema() ->
-	Body = "OCS:\n"
-			"	title:OCS\n"
-			"	type: Object\n"
-			"	allof:\n"
-			"		-$ref: '#/definition/Product'\n"
-			"		-properties:\n"
-			"			balance:\n"
-			"				type: array\n"
-			"				items:\n"
-			"					-$ref: '/balanceManagement/v1#definition/AccumulatedBalance'\n",
-	Headers = [{content_type, "text/x-yaml"}],
-	{ok, Headers, Body}.
+	["application/json", "application/problem+json"].
 
 -spec add_offer(ReqData) -> Result when
 	ReqData	:: [tuple()],
@@ -2063,8 +2042,10 @@ inventory([end_date | T], #product{end_date = TDate} = Product, Acc) ->
 inventory([_ | T], Product, Acc) ->
 	inventory(T, Product,  Acc);
 inventory([], _Product, Acc) ->
-	Obj = [{"@schemaLocation", "/productInventoryManagement/schema/OCS.yml"},
-			{"@baseType", "Product"}, {"@type", "OCS"} | Acc],
+	Obj = [{"@schemaLocation",
+			"/schema/productInventoryManagement.swagger.json"
+					"#/definitions/Product"},
+			{"@type", "Product"} | Acc],
 	lists:reverse(Obj).
 
 -spec instance_chars(Characteristics) -> Characteristics

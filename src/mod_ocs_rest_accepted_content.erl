@@ -182,8 +182,6 @@ do(#mod{request_uri = Uri, data = Data} = ModData) ->
 							check_content_type_header(ocs_rest_res_product, ModData);
 						["productInventory", "v2", "hub" | _] ->
 							check_content_type_header(ocs_rest_res_hub_product, ModData);
-						["productInventoryManagement", "schema", "OCS.yml" | _] ->
-							check_content_type_header(ocs_rest_res_product, ModData);
 						["catalogManagement", "v2", "resourceSpecification" | _] ->
 							check_content_type_header(ocs_rest_res_resource, ModData);
 						["catalogManagement", "v2", "resourceCandidate" | _] ->
@@ -204,8 +202,6 @@ do(#mod{request_uri = Uri, data = Data} = ModData) ->
 							check_content_type_header(ocs_rest_res_service, ModData);
 						["serviceInventory", "v2", "hub" | _] ->
 							check_content_type_header(ocs_rest_res_hub_service, ModData);
-						["serviceInventoryManagement", "schema", "OCS.yml" | _] ->
-							check_content_type_header(ocs_rest_res_service, ModData);
 						["productCatalogManagement", "v2", "productSpecification" | _] ->
 							check_content_type_header(ocs_rest_res_product, ModData);
 						["productCatalogManagement", "v2", "catalog" | _] ->
