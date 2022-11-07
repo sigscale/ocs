@@ -375,7 +375,7 @@ get_product_spec(_Id, _Query) ->
 %% 	Retrieve all product specifications.
 get_product_specs([] = _Query) ->
 	Headers = [{content_type, "application/json"}],
-	Object = {array, [spec_prod_network(), spec_prod_fixed_quantity_pkg(),
+	Object = {array, [spec_prod_network(), spec_prod_usage_volume(),
 					spec_prod_rate_plan(), spec_prod_data(), spec_prod_voice(),
 					spec_prod_prepaid(), spec_prod_postpaid(),
 					spec_prod_prepaid_data(), spec_prod_prepaid_voice(),
@@ -673,7 +673,7 @@ product_status(terminated) -> "Terminated".
 product_spec("1") ->
 	spec_prod_network();
 product_spec("2") ->
-	spec_prod_fixed_quantity_pkg();
+	spec_prod_usage_volume();
 product_spec("3") ->
 	spec_prod_rate_plan();
 product_spec("4") ->
@@ -734,13 +734,18 @@ spec_prod_network() ->
 	DepHref1 = {"href", ?productSpecPath "3"},
 	DepName1 = {"name", "RatePlanProductSpec"},
 	Depend1 = {struct, [DepId1, DepHref1, DepName1, DepType]},
-	{struct, [Id, Name, Href, Description, Version, LastUpdate, Status, Chars, Depend1]}.
+	DepId2 = {"id", "2"},
+	DepHref2 = {"href", ?productSpecPath "2"},
+	DepName2 = {"name", "UsageVolumePlanProductSpec"},
+	Depend2 = {struct, [DepId2, DepHref2, DepName2, DepType]},
+	{struct, [Id, Name, Href, Description, Version, LastUpdate,
+			Status, Chars, Depend1, Depend2]}.
 
 %% @hidden
-spec_prod_fixed_quantity_pkg() ->
+spec_prod_usage_volume() ->
 	Id = {"id", "2"},
 	Href = {"href", ?productSpecPath "2"},
-	Name = {"name", "FixedQuantityPackageProductSpec"},
+	Name = {"name", "UsageVolumeProductSpec"},
 	Description = {"description", "Defines buckets of usage from which Usages will debit the bucket."},
 	Version = {"version", "1.0"},
 	LastUpdate = {"lastUpdate", "2017-10-06T12:00:00Z"},
