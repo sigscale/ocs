@@ -840,15 +840,7 @@ spec_prod_prepaid_data() ->
 	DepName2 = {"name", "PrepaidProductSpec"},
 	Depend2 = {struct, [DepId2, DepHref2, DepName2, DepType]},
 	Dependency = {"productSpecificationRelationship", {array, [Depend1, Depend2]}},
-	Name1 = {"name", "redirectServer"},
-   Description1 = {"description",
-         "Defines the address of the redirect server, as an IPv4/IPv6 address, SIP URI or HTTP URL."},
-   Config1 = {"configurable", true},
-   Type1 = {"valueType", "String"},
-   Value1 = {"productSpecCharacteristicValue", {array, [{struct, [Type1]}]}},
-	Char1 = {struct, [Name1, Description1, Config1, Type1, Value1]},
-	Chars = {"productSpecCharacteristic", {array, [Char1]}},
-	{struct, [Id, Name, Href, Description, Version, LastUpdate, Status, Dependency, Chars]}.
+	{struct, [Id, Name, Href, Description, Version, LastUpdate, Status, Dependency]}.
 
 %% @hidden
 spec_prod_prepaid_voice() ->
@@ -978,7 +970,14 @@ characteristic_product_network() ->
 	Type7 = {"valueType", "Array"},
 	Value7 = {"productSpecCharacteristicValue", {array, [{struct, [Type7]}]}},
 	Char7 = {struct, [Name7, Description7, Config7, Type7, Value7]},
-	[Char1, Char2, Char3, Char4, Char5, Char6, Char7].
+	Name8 = {"name", "redirectServer"},
+   Description8 = {"description", "Defines the address of the redirect server,"
+			" as an IPv4/IPv6 address, SIP URI or HTTP URL."},
+   Config8 = {"configurable", true},
+   Type8 = {"valueType", "String"},
+   Value8 = {"productSpecCharacteristicValue", {array, [{struct, [Type8]}]}},
+	Char8 = {struct, [Name8, Description8, Config8, Type8, Value8]},
+	[Char1 Char1, Char2, Char3, Char4, Char5, Char6, Char7, Char8].
 
 %% @hidden
 characteristic_product_rated_plan() ->
