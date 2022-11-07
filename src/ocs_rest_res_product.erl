@@ -376,7 +376,7 @@ get_product_spec(_Id, _Query) ->
 get_product_specs([] = _Query) ->
 	Headers = [{content_type, "application/json"}],
 	Object = {array, [spec_prod_network(), spec_prod_fixed_quantity_pkg(),
-					spec_prod_rated_plan(), spec_prod_data(), spec_prod_voice(),
+					spec_prod_rate_plan(), spec_prod_data(), spec_prod_voice(),
 					spec_prod_prepaid(), spec_prod_postpaid(),
 					spec_prod_prepaid_data(), spec_prod_prepaid_voice(),
 					spec_prod_sms(), spec_prod_prepaid_sms()]},
@@ -675,7 +675,7 @@ product_spec("1") ->
 product_spec("2") ->
 	spec_prod_fixed_quantity_pkg();
 product_spec("3") ->
-	spec_prod_rated_plan();
+	spec_prod_rate_plan();
 product_spec("4") ->
 	spec_prod_data();
 product_spec("5") ->
@@ -743,15 +743,15 @@ spec_prod_fixed_quantity_pkg() ->
 	{struct, [Id, Name, Href, Description, Version, LastUpdate, Status]}.
 
 %% @hidden
-spec_prod_rated_plan() ->
+spec_prod_rate_plan() ->
 	Id = {"id", "3"},
 	Href = {"href", ?productSpecPath "3"},
-	Name = {"name", "RatedPlanProductSpec"},
+	Name = {"name", "RatePlanProductSpec"},
 	Description = {"description", "Defines criteria to be used to gain special usage tariffs like the period (day, evening) or phone number."},
 	Version = {"version", "1.0"},
 	LastUpdate = {"lastUpdate", "2017-10-06T12:00:00Z"},
 	Status = {"lifecycleStatus", "Active"},
-	Chars = {"productSpecCharacteristic", {array, characteristic_product_rated_plan()}},
+	Chars = {"productSpecCharacteristic", {array, characteristic_product_rate_plan()}},
 	{struct, [Id, Name, Href, Description, Version, LastUpdate, Status, Chars]}.
 
 %% @hidden
@@ -770,7 +770,7 @@ spec_prod_data() ->
 	Depend1 = {struct, [DepId1, DepHref1, DepName1, DepType]},
 	DepId2 = {"id", "3"},
 	DepHref2 = {"href", ?productSpecPath "3"},
-	DepName2 = {"name", "RatedPlanProductSpec"},
+	DepName2 = {"name", "RatePlanProductSpec"},
 	Depend2 = {struct, [DepId2, DepHref2, DepName2, DepType]},
 	Dependency = {"productSpecificationRelationship", {array, [Depend1, Depend2]}},
 	Chars = {"productSpecCharacteristic", {array, characteristic_product_data()}},
@@ -792,7 +792,7 @@ spec_prod_voice() ->
 	Depend1 = {struct, [DepId1, DepHref1, DepName1, DepType]},
 	DepId2 = {"id", "3"},
 	DepHref2 = {"href", ?productSpecPath "3"},
-	DepName2 = {"name", "RatedPlanProductSpec"},
+	DepName2 = {"name", "RatePlanProductSpec"},
 	Depend2 = {struct, [DepId2, DepHref2, DepName2, DepType]},
 	Dependency = {"productSpecificationRelationship", {array, [Depend1, Depend2]}},
 	Chars = {"productSpecCharacteristic", {array, characteristic_product_voice()}},
@@ -879,7 +879,7 @@ spec_prod_sms() ->
 	Depend1 = {struct, [DepId1, DepHref1, DepName1, DepType]},
 	DepId2 = {"id", "3"},
 	DepHref2 = {"href", ?productSpecPath "3"},
-	DepName2 = {"name", "RatedPlanProductSpec"},
+	DepName2 = {"name", "RatePlanProductSpec"},
 	Depend2 = {struct, [DepId2, DepHref2, DepName2, DepType]},
 	Dependency = {"productSpecificationRelationship", {array, [Depend1, Depend2]}},
 	{struct, [Id, Name, Href, Description, Version, LastUpdate, Status, Dependency]}.
@@ -980,7 +980,7 @@ characteristic_product_network() ->
 	[Char1 Char1, Char2, Char3, Char4, Char5, Char6, Char7, Char8].
 
 %% @hidden
-characteristic_product_rated_plan() ->
+characteristic_product_rate_plan() ->
 	Name1 = {"name", "timeOfDayRange"},
 	Description1 = {"description", "Start and End of time of day range"},
 	Config1 = {"configurable", true},
