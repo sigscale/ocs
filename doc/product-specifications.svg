@@ -1,0 +1,187 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN" "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd">
+<svg xmlns="http://www.w3.org/2000/svg" xmlns:xl="http://www.w3.org/1999/xlink" xmlns:dc="http://purl.org/dc/elements/1.1/" version="1.1" viewBox="-940.5 121.5 1084 508.5" width="1084" height="508.5">
+  <defs>
+    <marker orient="auto" overflow="visible" markerUnits="strokeWidth" id="StickArrow_Marker" stroke-linejoin="miter" stroke-miterlimit="10" viewBox="-1 -4 10 8" markerWidth="10" markerHeight="8" color="#ab4500">
+      <g>
+        <path d="M 7.2 0 L 0 0 M 0 -2.7 L 7.2 0 L 0 2.7" fill="none" stroke="currentColor" stroke-width="1"/>
+      </g>
+    </marker>
+  </defs>
+  <g id="Product_Specifications" fill-opacity="1" stroke-opacity="1" stroke-dasharray="none" stroke="none" fill="none">
+    <title>Product Specifications</title>
+    <g id="Product_Specifications_Layer_1">
+      <title>Layer 1</title>
+      <g id="Graphic_66">
+        <path d="M -369.75 122 L -101.75 122 C -92.91344 122 -85.75 129.16344 -85.75 138 L -85.75 613.5 C -85.75 622.33656 -92.91344 629.5 -101.75 629.5 L -369.75 629.5 C -378.58656 629.5 -385.75 622.33656 -385.75 613.5 L -385.75 138 C -385.75 129.16344 -378.58656 122 -369.75 122 Z" fill="white"/>
+        <path d="M -369.75 122 L -101.75 122 C -92.91344 122 -85.75 129.16344 -85.75 138 L -85.75 613.5 C -85.75 622.33656 -92.91344 629.5 -101.75 629.5 L -369.75 629.5 C -378.58656 629.5 -385.75 622.33656 -385.75 613.5 L -385.75 138 C -385.75 129.16344 -378.58656 122 -369.75 122 Z" stroke="#1a2746" stroke-linecap="round" stroke-linejoin="round" stroke-dasharray="4.0,4.0" stroke-width="1"/>
+        <text transform="translate(-380.75 132)" fill="black">
+          <tspan font-family="Montserrat" font-size="18" fill="black" x="11.494" y="17">Included in Product Offerings</tspan>
+        </text>
+      </g>
+      <g id="Line_6">
+        <line x1="-594.6429" y1="289.6" x2="-697.4277" y2="345.13608" marker-end="url(#StickArrow_Marker)" stroke="#ab4500" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"/>
+      </g>
+      <g id="Line_41">
+        <line x1="-614.5" y1="408.30173" x2="-695.3003" y2="407.8228" marker-end="url(#StickArrow_Marker)" stroke="#ab4500" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"/>
+      </g>
+      <g id="Line_47">
+        <line x1="-162.06117" y1="289.6" x2="-57.62211" y2="345.22896" marker-end="url(#StickArrow_Marker)" stroke="#ab4500" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"/>
+      </g>
+      <g id="Line_51">
+        <line x1="-122" y1="408.1546" x2="-59.69967" y2="407.7737" marker-end="url(#StickArrow_Marker)" stroke="#ab4500" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"/>
+      </g>
+      <g id="Line_53">
+        <line x1="-597.8662" y1="520.6" x2="-725.6631" y2="454.48323" marker-end="url(#StickArrow_Marker)" stroke="#ab4500" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"/>
+      </g>
+      <g id="Line_57">
+        <line x1="-164.05401" y1="520.6" x2="-39.34167" y2="454.62663" marker-end="url(#StickArrow_Marker)" stroke="#ab4500" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"/>
+      </g>
+      <g id="Line_59">
+        <line x1="-817.25" y1="339.25" x2="-817.25" y2="307.3" marker-end="url(#StickArrow_Marker)" stroke="#ab4500" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"/>
+      </g>
+      <g id="Group_13">
+        <g id="Graphic_15">
+          <rect x="-614.5" y="182.5" width="185" height="28.6" fill="#f57f17"/>
+          <rect x="-614.5" y="182.5" width="185" height="28.6" stroke="#f57f17" stroke-linecap="round" stroke-linejoin="round" stroke-width="1"/>
+          <text transform="translate(-609.5 187.3)" fill="white">
+            <tspan font-family="Montserrat" font-size="16" fill="white" x="16.236" y="15">DataProductSpec</tspan>
+          </text>
+        </g>
+        <g id="Graphic_14">
+          <rect x="-614.5" y="211.1" width="185" height="78.5" fill="white"/>
+          <rect x="-614.5" y="211.1" width="185" height="78.5" stroke="#f57f17" stroke-linecap="round" stroke-linejoin="round" stroke-width="1"/>
+        </g>
+      </g>
+      <g id="Group_16">
+        <g id="Graphic_18">
+          <rect x="-614.5" y="341" width="185" height="28.6" fill="#f57f17"/>
+          <rect x="-614.5" y="341" width="185" height="28.6" stroke="#f57f17" stroke-linecap="round" stroke-linejoin="round" stroke-width="1"/>
+          <text transform="translate(-609.5 345.8)" fill="white">
+            <tspan font-family="Montserrat" font-size="16" fill="white" x="13.956" y="15">VoiceProductSpec</tspan>
+          </text>
+        </g>
+        <g id="Graphic_17">
+          <rect x="-614.5" y="369.6" width="185" height="78.5" fill="white"/>
+          <rect x="-614.5" y="369.6" width="185" height="78.5" stroke="#f57f17" stroke-linecap="round" stroke-linejoin="round" stroke-width="1"/>
+        </g>
+      </g>
+      <g id="Group_26">
+        <g id="Graphic_28">
+          <rect x="-349.5" y="182.5" width="227.5" height="28.6" fill="#f57f17"/>
+          <rect x="-349.5" y="182.5" width="227.5" height="28.6" stroke="#f57f17" stroke-linecap="round" stroke-linejoin="round" stroke-width="1"/>
+          <text transform="translate(-344.5 187.3)" fill="white">
+            <tspan font-family="Montserrat" font-size="16" fill="white" x="6.294" y="15">PrepaidDataProductSpec</tspan>
+          </text>
+        </g>
+        <g id="Graphic_27">
+          <rect x="-349.5" y="211.1" width="227.5" height="78.5" fill="white"/>
+          <rect x="-349.5" y="211.1" width="227.5" height="78.5" stroke="#f57f17" stroke-linecap="round" stroke-linejoin="round" stroke-width="1"/>
+        </g>
+      </g>
+      <g id="Group_29">
+        <g id="Graphic_31">
+          <rect x="-349.5" y="341" width="227.5" height="28.6" fill="#f57f17"/>
+          <rect x="-349.5" y="341" width="227.5" height="28.6" stroke="#f57f17" stroke-linecap="round" stroke-linejoin="round" stroke-width="1"/>
+          <text transform="translate(-344.5 345.8)" fill="white">
+            <tspan font-family="Montserrat" font-size="16" fill="white" x="4.014" y="15">PrepaidVoiceProductSpec</tspan>
+          </text>
+        </g>
+        <g id="Graphic_30">
+          <rect x="-349.5" y="369.6" width="227.5" height="78.5" fill="white"/>
+          <rect x="-349.5" y="369.6" width="227.5" height="78.5" stroke="#f57f17" stroke-linecap="round" stroke-linejoin="round" stroke-width="1"/>
+        </g>
+      </g>
+      <g id="Group_36">
+        <g id="Graphic_38">
+          <rect x="-349.5" y="492" width="222.5" height="28.6" fill="#f57f17"/>
+          <rect x="-349.5" y="492" width="222.5" height="28.6" stroke="#f57f17" stroke-linecap="round" stroke-linejoin="round" stroke-width="1"/>
+          <text transform="translate(-344.5 496.8)" fill="white">
+            <tspan font-family="Montserrat" font-size="16" fill="white" x="5.61" y="15">PrepaidSMSProductSpec</tspan>
+          </text>
+        </g>
+        <g id="Graphic_37">
+          <rect x="-349.5" y="520.6" width="222.5" height="78.5" fill="white"/>
+          <rect x="-349.5" y="520.6" width="222.5" height="78.5" stroke="#f57f17" stroke-linecap="round" stroke-linejoin="round" stroke-width="1"/>
+        </g>
+      </g>
+      <g id="Line_45">
+        <line x1="-349.5" y1="250.35" x2="-411.8" y2="250.35" marker-end="url(#StickArrow_Marker)" stroke="#ab4500" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"/>
+      </g>
+      <g id="Line_49">
+        <line x1="-349.5" y1="408.85" x2="-411.8" y2="408.85" marker-end="url(#StickArrow_Marker)" stroke="#ab4500" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"/>
+      </g>
+      <g id="Line_55">
+        <line x1="-349.5" y1="559.85" x2="-411.8" y2="559.85" marker-end="url(#StickArrow_Marker)" stroke="#ab4500" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"/>
+      </g>
+      <g id="Group_33">
+        <g id="Graphic_35">
+          <rect x="-614.5" y="492" width="185" height="28.6" fill="#f57f17"/>
+          <rect x="-614.5" y="492" width="185" height="28.6" stroke="#f57f17" stroke-linecap="round" stroke-linejoin="round" stroke-width="1"/>
+          <text transform="translate(-609.5 496.8)" fill="white">
+            <tspan font-family="Montserrat" font-size="16" fill="white" x="18.052" y="15">SMSProductSpec</tspan>
+          </text>
+        </g>
+        <g id="Graphic_34">
+          <rect x="-614.5" y="520.6" width="185" height="78.5" fill="white"/>
+          <rect x="-614.5" y="520.6" width="185" height="78.5" stroke="#f57f17" stroke-linecap="round" stroke-linejoin="round" stroke-width="1"/>
+        </g>
+      </g>
+      <g id="Group_22">
+        <g id="Graphic_24">
+          <rect x="-42" y="339.25" width="185" height="28.6" fill="#f57f17"/>
+          <rect x="-42" y="339.25" width="185" height="28.6" stroke="#f57f17" stroke-linecap="round" stroke-linejoin="round" stroke-width="1"/>
+          <text transform="translate(-37 344.05)" fill="white">
+            <tspan font-family="Montserrat" font-size="16" fill="white" x="4.34" y="15">PrepaidProductSpec</tspan>
+          </text>
+        </g>
+        <g id="Graphic_23">
+          <rect x="-42" y="367.85" width="185" height="78.5" fill="white"/>
+          <rect x="-42" y="367.85" width="185" height="78.5" stroke="#f57f17" stroke-linecap="round" stroke-linejoin="round" stroke-width="1"/>
+        </g>
+      </g>
+      <g id="Group_2">
+        <g id="Graphic_4">
+          <rect x="-921.5" y="339.25" width="208.5" height="28.6" fill="#f57f17"/>
+          <rect x="-921.5" y="339.25" width="208.5" height="28.6" stroke="#f57f17" stroke-linecap="round" stroke-linejoin="round" stroke-width="1"/>
+          <text transform="translate(-916.5 344.05)" fill="white">
+            <tspan font-family="Montserrat" font-size="16" fill="white" x="12.898" y="15">NetworkProductSpec</tspan>
+          </text>
+        </g>
+        <g id="Graphic_3">
+          <rect x="-921.5" y="367.85" width="208.5" height="78.5" fill="white"/>
+          <rect x="-921.5" y="367.85" width="208.5" height="78.5" stroke="#f57f17" stroke-linecap="round" stroke-linejoin="round" stroke-width="1"/>
+        </g>
+      </g>
+      <g id="Group_7">
+        <g id="Graphic_9">
+          <rect x="-940" y="492" width="245.5" height="28.6" fill="#f57f17"/>
+          <rect x="-940" y="492" width="245.5" height="28.6" stroke="#f57f17" stroke-linecap="round" stroke-linejoin="round" stroke-width="1"/>
+          <text transform="translate(-935 496.8)" fill="white">
+            <tspan font-family="Montserrat" font-size="16" fill="white" x="9.606" y="15">UsageVolumeProductSpec</tspan>
+          </text>
+        </g>
+        <g id="Graphic_8">
+          <rect x="-940" y="520.6" width="245.5" height="78.5" fill="white"/>
+          <rect x="-940" y="520.6" width="245.5" height="78.5" stroke="#f57f17" stroke-linecap="round" stroke-linejoin="round" stroke-width="1"/>
+        </g>
+      </g>
+      <g id="Line_63">
+        <line x1="-817.25" y1="446.35" x2="-817.25" y2="474.3" marker-end="url(#StickArrow_Marker)" stroke="#ab4500" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"/>
+      </g>
+      <g id="Group_10">
+        <g id="Graphic_12">
+          <rect x="-921.5" y="182.5" width="208.5" height="28.6" fill="#f57f17"/>
+          <rect x="-921.5" y="182.5" width="208.5" height="28.6" stroke="#f57f17" stroke-linecap="round" stroke-linejoin="round" stroke-width="1"/>
+          <text transform="translate(-916.5 187.3)" fill="white">
+            <tspan font-family="Montserrat" font-size="16" fill="white" x="10.858" y="15">RatePlanProductSpec</tspan>
+          </text>
+        </g>
+        <g id="Graphic_11">
+          <rect x="-921.5" y="211.1" width="208.5" height="78.5" fill="white"/>
+          <rect x="-921.5" y="211.1" width="208.5" height="78.5" stroke="#f57f17" stroke-linecap="round" stroke-linejoin="round" stroke-width="1"/>
+        </g>
+      </g>
+    </g>
+  </g>
+</svg>

@@ -8,6 +8,7 @@
 	<li><a href="#Intoduction">Introduction</a><br /></li>
 	<li><a href="#Features">Features</a><br /></li>
 	<li><a href="#Schema">Schema</a><br /></li>
+	<li><a href="#Product_Specifications">Product Specifications</a><br /></li>
 	<li><a href="#Installation">Installation</a><br /></li>
 	<li><a href="#Operation">Operation</a><br /></li>
 	<li><a href="#Configuration">Configuration</a><br /></li>
@@ -216,10 +217,21 @@ with at most one <i>product</i> table row.
 </table>
 <img id="schema" class="diagram" src="schema.svg" alt="Schema" />
 
+==Product Specifications==
+Rating and charging is controled by <i>Characteristic</i> values
+configured in <i>Product Offering</i> and <i>Product Offering Price</i>.
+The <i>Characteristics</i> are defined in <i>Product Specifications</i>
+available with the <i>Product Catalog</i> API at
+`/productCatalogManagement/v2/productSpecification'.
+
+<img id="product-specifications" class="diagram"
+			src="product-specifications.svg" alt="Products" />
+
 ==Installation==
-Before starting the application for the first time, {@link //mnesia/mnesia. mnesia}
-should be initialized. Create a schema and start mnesia on all nodes
-where the application {@link //ocs. ocs} application will run.
+Before starting the application for the first time,
+{@link //mnesia/mnesia. mnesia} should be initialized. Create
+a schema and start mnesia on all nodes where the application
+{@link //ocs. ocs} application will run.
 
 The following command will initialize {@link //ocs. ocs}
 on the current node and create a default REST user
