@@ -729,7 +729,12 @@ spec_prod_network() ->
 	LastUpdate = {"lastUpdate", "2018-01-01T12:00:00Z"},
 	Status = {"lifecycleStatus", "Active"},
 	Chars = {"productSpecCharacteristic", {array, characteristic_product_network()}},
-	{struct, [Id, Name, Href, Description, Version, LastUpdate, Status, Chars]}.
+	DepType = {"type", "dependency"},
+	DepId1 = {"id", "3"},
+	DepHref1 = {"href", ?productSpecPath "3"},
+	DepName1 = {"name", "RatePlanProductSpec"},
+	Depend1 = {struct, [DepId1, DepHref1, DepName1, DepType]},
+	{struct, [Id, Name, Href, Description, Version, LastUpdate, Status, Chars, Depend1]}.
 
 %% @hidden
 spec_prod_fixed_quantity_pkg() ->
@@ -768,11 +773,7 @@ spec_prod_data() ->
 	DepHref1 = {"href", ?productSpecPath "1"},
 	DepName1 = {"name", "NetworkProductSpec"},
 	Depend1 = {struct, [DepId1, DepHref1, DepName1, DepType]},
-	DepId2 = {"id", "3"},
-	DepHref2 = {"href", ?productSpecPath "3"},
-	DepName2 = {"name", "RatePlanProductSpec"},
-	Depend2 = {struct, [DepId2, DepHref2, DepName2, DepType]},
-	Dependency = {"productSpecificationRelationship", {array, [Depend1, Depend2]}},
+	Dependency = {"productSpecificationRelationship", {array, [Depend1]}},
 	Chars = {"productSpecCharacteristic", {array, characteristic_product_data()}},
 	{struct, [Id, Name, Href, Description, Version, LastUpdate, Status, Chars, Dependency]}.
 
@@ -790,11 +791,7 @@ spec_prod_voice() ->
 	DepHref1 = {"href", ?productSpecPath "1"},
 	DepName1 = {"name", "NetworkProductSpec"},
 	Depend1 = {struct, [DepId1, DepHref1, DepName1, DepType]},
-	DepId2 = {"id", "3"},
-	DepHref2 = {"href", ?productSpecPath "3"},
-	DepName2 = {"name", "RatePlanProductSpec"},
-	Depend2 = {struct, [DepId2, DepHref2, DepName2, DepType]},
-	Dependency = {"productSpecificationRelationship", {array, [Depend1, Depend2]}},
+	Dependency = {"productSpecificationRelationship", {array, [Depend1]}},
 	Chars = {"productSpecCharacteristic", {array, characteristic_product_voice()}},
 	{struct, [Id, Name, Href, Description, Version, LastUpdate, Status, Chars, Dependency]}.
 
@@ -877,11 +874,7 @@ spec_prod_sms() ->
 	DepHref1 = {"href", ?productSpecPath "1"},
 	DepName1 = {"name", "NetworkProductSpec"},
 	Depend1 = {struct, [DepId1, DepHref1, DepName1, DepType]},
-	DepId2 = {"id", "3"},
-	DepHref2 = {"href", ?productSpecPath "3"},
-	DepName2 = {"name", "RatePlanProductSpec"},
-	Depend2 = {struct, [DepId2, DepHref2, DepName2, DepType]},
-	Dependency = {"productSpecificationRelationship", {array, [Depend1, Depend2]}},
+	Dependency = {"productSpecificationRelationship", {array, [Depend1]}},
 	{struct, [Id, Name, Href, Description, Version, LastUpdate, Status, Dependency]}.
 
 %% @hidden
