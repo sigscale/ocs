@@ -23,7 +23,7 @@
 
 -export([content_types_accepted/0, content_types_provided/0]).
 -export([add_inventory/1, get_inventory/1, get_inventories/2,
-		delete_inventory/1, patch_inventory/3, get_schema/0]).
+		delete_inventory/1, patch_inventory/3]).
 -export([get_service_specs/1, get_service_spec/2]).
 -export([inventory/1]).
 
@@ -46,27 +46,7 @@ content_types_accepted() ->
 		ContentTypes :: list().
 %% @doc Provides list of resource representations available.
 content_types_provided() ->
-	["application/json", "text/x-yaml", "application/problem+json"].
-
--spec get_schema() -> Result when
-	Result :: {ok, Headers, Body},
-	Body :: iolist(),
-	Headers  :: [tuple()].
-%% @doc Respond to `GET /serviceInventoryManagement/schema/OCS.yml'.
-%%    get schema.
-get_schema() ->
-	Body = "OCS:\n"
-			"   title: OCS\n"
-			"   type: Object\n"
-			"   allOf:\n"
-			"      -$ref: #/definition/Service\n"
-			"      -properties:\n"
-			"         product:\n"
-			"            type: string\n"
-			"         productOffering:\n"
-			"            type: string\n",
-	Headers = [{content_type, "text/x-yaml"}],
-	{ok, Headers, Body}.
+	["application/json", "application/problem+json"].
 
 -spec add_inventory(ReqData) -> Result when
 	ReqData	:: [tuple()],
@@ -621,8 +601,10 @@ inventory([], _Service, [], Acc) ->
 	{struct, lists:reverse(Acc)};
 inventory([], _Service, Chars, Acc) ->
 	Obj = [{"serviceCharacteristic", service_chars(Chars)},
-			{"@schemaLocation", "serviceInventoryManagement/schema/OCS.yml"},
-			{"@baseType", "Service"}, {"@type", "OCS"}, {"type", "RFS"} | Acc],
+			{"@schemaLocation",
+					"/schema/serviceInventoryManagement.schema.json"
+					"#/definitions/Service"},
+			{"@type", "Service"}, {"type", "RFS"} | Acc],
 	{struct, lists:reverse(Obj)}.
 
 -spec start_mode(Mode) -> Mode

@@ -317,6 +317,12 @@
           "description": "",
           "type": "boolean"
         },
+        "product": {
+          "type": "string"
+        },
+        "productOffering": {
+          "type": "string"
+        },
         "serviceCharacteristic": {
           "type": "array",
           "items": {

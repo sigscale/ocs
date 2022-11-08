@@ -427,7 +427,7 @@ class offerUpdate extends PolymerElement {
 							<paper-dropdown-menu
 									value="{{priceUpdateAlteration}}"
 									no-animations="true"
-									label="Alterations">
+									label="Alteration">
 								<paper-listbox
 										id="addUpdatePriceAlteration"
 										slot="dropdown-content">

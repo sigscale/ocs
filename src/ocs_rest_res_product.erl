@@ -32,7 +32,6 @@
 -export([get_product_spec/2, get_product_specs/1, product_status/1]).
 -export([get_pla_spec/2]).
 -export([delete_offer/1, delete_inventory/1]).
--export([get_schema/0]).
 -export([inventory/1, offer/1]).
 
 -include("ocs.hrl").
@@ -59,27 +58,7 @@ content_types_accepted() ->
 		ContentTypes :: list().
 %% @doc Provides list of resource representations available.
 content_types_provided() ->
-	["application/json", "text/x-yaml", "application/problem+json"].
-
--spec get_schema() -> Result when
-	Result :: {ok, Headers, Body},
-	Body :: iolist(),
-	Headers  :: [tuple()].
-%% @doc Respond to `GET /productInventoryManagement/schema/OCS.yml'.
-%%    get schema.
-get_schema() ->
-	Body = "OCS:\n"
-			"	title:OCS\n"
-			"	type: Object\n"
-			"	allof:\n"
-			"		-$ref: '#/definition/Product'\n"
-			"		-properties:\n"
-			"			balance:\n"
-			"				type: array\n"
-			"				items:\n"
-			"					-$ref: '/balanceManagement/v1#definition/AccumulatedBalance'\n",
-	Headers = [{content_type, "text/x-yaml"}],
-	{ok, Headers, Body}.
+	["application/json", "application/problem+json"].
 
 -spec add_offer(ReqData) -> Result when
 	ReqData	:: [tuple()],
@@ -396,8 +375,8 @@ get_product_spec(_Id, _Query) ->
 %% 	Retrieve all product specifications.
 get_product_specs([] = _Query) ->
 	Headers = [{content_type, "application/json"}],
-	Object = {array, [spec_prod_network(), spec_prod_fixed_quantity_pkg(),
-					spec_prod_rated_plan(), spec_prod_data(), spec_prod_voice(),
+	Object = {array, [spec_prod_network(), spec_prod_usage_volume(),
+					spec_prod_rate_plan(), spec_prod_data(), spec_prod_voice(),
 					spec_prod_prepaid(), spec_prod_postpaid(),
 					spec_prod_prepaid_data(), spec_prod_prepaid_voice(),
 					spec_prod_sms(), spec_prod_prepaid_sms()]},
@@ -694,9 +673,9 @@ product_status(terminated) -> "Terminated".
 product_spec("1") ->
 	spec_prod_network();
 product_spec("2") ->
-	spec_prod_fixed_quantity_pkg();
+	spec_prod_usage_volume();
 product_spec("3") ->
-	spec_prod_rated_plan();
+	spec_prod_rate_plan();
 product_spec("4") ->
 	spec_prod_data();
 product_spec("5") ->
@@ -750,13 +729,25 @@ spec_prod_network() ->
 	LastUpdate = {"lastUpdate", "2018-01-01T12:00:00Z"},
 	Status = {"lifecycleStatus", "Active"},
 	Chars = {"productSpecCharacteristic", {array, characteristic_product_network()}},
-	{struct, [Id, Name, Href, Description, Version, LastUpdate, Status, Chars]}.
+	DepType = {"type", "dependency"},
+	DepId1 = {"id", "3"},
+	DepHref1 = {"href", ?productSpecPath "3"},
+	DepName1 = {"name", "RatePlanProductSpec"},
+	Depend1 = {struct, [DepId1, DepHref1, DepName1, DepType]},
+	DepId2 = {"id", "2"},
+	DepHref2 = {"href", ?productSpecPath "2"},
+	DepName2 = {"name", "UsageVolumePlanProductSpec"},
+	Depend2 = {struct, [DepId2, DepHref2, DepName2, DepType]},
+	Dependency = {"productSpecificationRelationship",
+			{array, [Depend1, Depend2]}},
+	{struct, [Id, Name, Href, Description, Version, LastUpdate,
+			Status, Chars, Dependency]}.
 
 %% @hidden
-spec_prod_fixed_quantity_pkg() ->
+spec_prod_usage_volume() ->
 	Id = {"id", "2"},
 	Href = {"href", ?productSpecPath "2"},
-	Name = {"name", "FixedQuantityPackageProductSpec"},
+	Name = {"name", "UsageVolumeProductSpec"},
 	Description = {"description", "Defines buckets of usage from which Usages will debit the bucket."},
 	Version = {"version", "1.0"},
 	LastUpdate = {"lastUpdate", "2017-10-06T12:00:00Z"},
@@ -764,16 +755,18 @@ spec_prod_fixed_quantity_pkg() ->
 	{struct, [Id, Name, Href, Description, Version, LastUpdate, Status]}.
 
 %% @hidden
-spec_prod_rated_plan() ->
+spec_prod_rate_plan() ->
 	Id = {"id", "3"},
 	Href = {"href", ?productSpecPath "3"},
-	Name = {"name", "RatedPlanProductSpec"},
+	Name = {"name", "RatePlanProductSpec"},
 	Description = {"description", "Defines criteria to be used to gain special usage tariffs like the period (day, evening) or phone number."},
 	Version = {"version", "1.0"},
 	LastUpdate = {"lastUpdate", "2017-10-06T12:00:00Z"},
 	Status = {"lifecycleStatus", "Active"},
-	Chars = {"productSpecCharacteristic", {array, characteristic_product_rated_plan()}},
-	{struct, [Id, Name, Href, Description, Version, LastUpdate, Status, Chars]}.
+	Chars = {"productSpecCharacteristic",
+			{array, characteristic_product_rate_plan()}},
+	{struct, [Id, Name, Href, Description, Version, LastUpdate,
+			Status, Chars]}.
 
 %% @hidden
 spec_prod_data() ->
@@ -785,12 +778,16 @@ spec_prod_data() ->
 	LastUpdate = {"lastUpdate", "2017-11-14T12:00:00Z"},
 	Status = {"lifecycleStatus", "Active"},
 	DepType = {"type", "dependency"},
-	DepId = {"id", "1"},
-	DepHref = {"href", ?productSpecPath "1"},
-	Depend = {struct, [DepId, DepHref, DepType]},
-	Dependency = {"productSpecificationRelationship", {array, [Depend]}},
-	Chars = {"productSpecCharacteristic", {array, characteristic_product_data()}},
-	{struct, [Id, Name, Href, Description, Version, LastUpdate, Status, Chars, Dependency]}.
+	DepId1 = {"id", "1"},
+	DepHref1 = {"href", ?productSpecPath "1"},
+	DepName1 = {"name", "NetworkProductSpec"},
+	Depend1 = {struct, [DepId1, DepHref1, DepName1, DepType]},
+	Dependency = {"productSpecificationRelationship",
+			{array, [Depend1]}},
+	Chars = {"productSpecCharacteristic",
+			{array, characteristic_product_data()}},
+	{struct, [Id, Name, Href, Description, Version, LastUpdate, Status,
+			Chars, Dependency]}.
 
 %% @hidden
 spec_prod_voice() ->
@@ -804,13 +801,14 @@ spec_prod_voice() ->
 	DepType = {"type", "dependency"},
 	DepId1 = {"id", "1"},
 	DepHref1 = {"href", ?productSpecPath "1"},
-	Depend1 = {struct, [DepId1, DepHref1, DepType]},
-	DepId2 = {"id", "3"},
-	DepHref2 = {"href", ?productSpecPath "3"},
-	Depend2 = {struct, [DepId2, DepHref2, DepType]},
-	Dependency = {"productSpecificationRelationship", {array, [Depend1, Depend2]}},
-	Chars = {"productSpecCharacteristic", {array, characteristic_product_voice()}},
-	{struct, [Id, Name, Href, Description, Version, LastUpdate, Status, Chars, Dependency]}.
+	DepName1 = {"name", "NetworkProductSpec"},
+	Depend1 = {struct, [DepId1, DepHref1, DepName1, DepType]},
+	Dependency = {"productSpecificationRelationship",
+			{array, [Depend1]}},
+	Chars = {"productSpecCharacteristic",
+			{array, characteristic_product_voice()}},
+	{struct, [Id, Name, Href, Description, Version, LastUpdate, Status,
+			Chars, Dependency]}.
 
 %% @hidden
 spec_prod_prepaid() ->
@@ -821,8 +819,10 @@ spec_prod_prepaid() ->
 	Version = {"version", "1.0"},
 	LastUpdate = {"lastUpdate", "2017-12-21T12:00:00Z"},
 	Status = {"lifecycleStatus", "Active"},
-	Chars = {"productSpecCharacteristic", {array, characteristic_product_prepaid()}},
-	{struct, [Id, Name, Href, Description, Version, LastUpdate, Status, Chars]}.
+	Chars = {"productSpecCharacteristic",
+			{array, characteristic_product_prepaid()}},
+	{struct, [Id, Name, Href, Description, Version, LastUpdate,
+			Status, Chars]}.
 
 %% @hidden
 spec_prod_postpaid() ->
@@ -847,20 +847,16 @@ spec_prod_prepaid_data() ->
 	DepType = {"type", "dependency"},
 	DepId1 = {"id", "4"},
 	DepHref1 = {"href", ?productSpecPath "4"},
-	Depend1 = {struct, [DepId1, DepHref1, DepType]},
+	DepName1 = {"name", "DataProductSpec"},
+	Depend1 = {struct, [DepId1, DepHref1, DepName1, DepType]},
 	DepId2 = {"id", "6"},
 	DepHref2 = {"href", ?productSpecPath "6"},
-	Depend2 = {struct, [DepId2, DepHref2, DepType]},
-	Dependency = {"productSpecificationRelationship", {array, [Depend1, Depend2]}},
-	Name1 = {"name", "redirectServer"},
-   Description1 = {"description",
-         "Defines the address of the redirect server, as an IPv4/IPv6 address, SIP URI or HTTP URL."},
-   Config1 = {"configurable", true},
-   Type1 = {"valueType", "String"},
-   Value1 = {"productSpecCharacteristicValue", {array, [{struct, [Type1]}]}},
-	Char1 = {struct, [Name1, Description1, Config1, Type1, Value1]},
-	Chars = {"productSpecCharacteristic", {array, [Char1]}},
-	{struct, [Id, Name, Href, Description, Version, LastUpdate, Status, Dependency, Chars]}.
+	DepName2 = {"name", "PrepaidProductSpec"},
+	Depend2 = {struct, [DepId2, DepHref2, DepName2, DepType]},
+	Dependency = {"productSpecificationRelationship",
+			{array, [Depend1, Depend2]}},
+	{struct, [Id, Name, Href, Description, Version, LastUpdate, Status,
+			Dependency]}.
 
 %% @hidden
 spec_prod_prepaid_voice() ->
@@ -874,12 +870,16 @@ spec_prod_prepaid_voice() ->
 	DepType = {"type", "dependency"},
 	DepId1 = {"id", "5"},
 	DepHref1 = {"href", ?productSpecPath "5"},
-	Depend1 = {struct, [DepId1, DepHref1, DepType]},
+	DepName1 = {"name", "VoiceProductSpec"},
+	Depend1 = {struct, [DepId1, DepHref1, DepName1, DepType]},
 	DepId2 = {"id", "6"},
 	DepHref2 = {"href", ?productSpecPath "6"},
-	Depend2 = {struct, [DepId2, DepHref2, DepType]},
-	Dependency = {"productSpecificationRelationship", {array, [Depend1, Depend2]}},
-	{struct, [Id, Name, Href, Description, Version, LastUpdate, Status, Dependency]}.
+	DepName2 = {"name", "PrepaidProductSpec"},
+	Depend2 = {struct, [DepId2, DepHref2, DepName2, DepType]},
+	Dependency = {"productSpecificationRelationship",
+			{array, [Depend1, Depend2]}},
+	{struct, [Id, Name, Href, Description, Version, LastUpdate,
+			Status, Dependency]}.
 
 %% @hidden
 spec_prod_sms() ->
@@ -893,12 +893,11 @@ spec_prod_sms() ->
 	DepType = {"type", "dependency"},
 	DepId1 = {"id", "1"},
 	DepHref1 = {"href", ?productSpecPath "1"},
-	Depend1 = {struct, [DepId1, DepHref1, DepType]},
-	DepId2 = {"id", "3"},
-	DepHref2 = {"href", ?productSpecPath "3"},
-	Depend2 = {struct, [DepId2, DepHref2, DepType]},
-	Dependency = {"productSpecificationRelationship", {array, [Depend1, Depend2]}},
-	{struct, [Id, Name, Href, Description, Version, LastUpdate, Status, Dependency]}.
+	DepName1 = {"name", "NetworkProductSpec"},
+	Depend1 = {struct, [DepId1, DepHref1, DepName1, DepType]},
+	Dependency = {"productSpecificationRelationship", {array, [Depend1]}},
+	{struct, [Id, Name, Href, Description, Version, LastUpdate, Status,
+			Dependency]}.
 
 %% @hidden
 spec_prod_prepaid_sms() ->
@@ -912,9 +911,16 @@ spec_prod_prepaid_sms() ->
 	DepType = {"type", "dependency"},
 	DepId1 = {"id", "10"},
 	DepHref1 = {"href", ?productSpecPath "10"},
-	Depend1 = {struct, [DepId1, DepHref1, DepType]},
-	Dependency = {"productSpecificationRelationship", {array, [Depend1]}},
-	{struct, [Id, Name, Href, Description, Version, LastUpdate, Status, Dependency]}.
+	DepName1 = {"name", "SMSProductSpec"},
+	Depend1 = {struct, [DepId1, DepHref1, DepName1, DepType]},
+	DepId2 = {"id", "6"},
+	DepHref2 = {"href", ?productSpecPath "6"},
+	DepName2 = {"name", "PrepaidProductSpec"},
+	Depend2 = {struct, [DepId2, DepHref2, DepName2, DepType]},
+	Dependency = {"productSpecificationRelationship",
+			{array, [Depend1, Depend2]}},
+	{struct, [Id, Name, Href, Description, Version, LastUpdate,
+			Status, Dependency]}.
 
 %% @hidden
 characteristic_product_network() ->
@@ -981,10 +987,17 @@ characteristic_product_network() ->
 	Type7 = {"valueType", "Array"},
 	Value7 = {"productSpecCharacteristicValue", {array, [{struct, [Type7]}]}},
 	Char7 = {struct, [Name7, Description7, Config7, Type7, Value7]},
-	[Char1, Char2, Char3, Char4, Char5, Char6, Char7].
+	Name8 = {"name", "redirectServer"},
+   Description8 = {"description", "Defines the address of the redirect server,"
+			" as an IPv4/IPv6 address, SIP URI or HTTP URL."},
+   Config8 = {"configurable", true},
+   Type8 = {"valueType", "String"},
+   Value8 = {"productSpecCharacteristicValue", {array, [{struct, [Type8]}]}},
+	Char8 = {struct, [Name8, Description8, Config8, Type8, Value8]},
+	[Char1, Char2, Char3, Char4, Char5, Char6, Char7, Char8].
 
 %% @hidden
-characteristic_product_rated_plan() ->
+characteristic_product_rate_plan() ->
 	Name1 = {"name", "timeOfDayRange"},
 	Description1 = {"description", "Start and End of time of day range"},
 	Config1 = {"configurable", true},
@@ -1011,7 +1024,13 @@ characteristic_product_prepaid() ->
 	Value1 = {"productSpecCharacteristicValue",
 			{array, [Type11, Type12, Type13, Type14, Type15]}},
 	Char1 = {struct, [Name1, Description1, Config1, Type1, Value1]},
-	[Char1].
+	Name2 = {"name", "fixedPriceBucket"},
+	Description2 = {"description", "Bucket created by alteration is only"
+			"applicable for use with this Product Offering Price (POP)"},
+	Config2 = {"configurable", true},
+	Type2 = {"valueType", "Boolean"},
+	Char2 = {struct, [Name2, Description2, Config2, Type2]},
+	[Char1, Char2].
 
 %% @hidden
 characteristic_product_voice() ->
@@ -2063,8 +2082,10 @@ inventory([end_date | T], #product{end_date = TDate} = Product, Acc) ->
 inventory([_ | T], Product, Acc) ->
 	inventory(T, Product,  Acc);
 inventory([], _Product, Acc) ->
-	Obj = [{"@schemaLocation", "/productInventoryManagement/schema/OCS.yml"},
-			{"@baseType", "Product"}, {"@type", "OCS"} | Acc],
+	Obj = [{"@schemaLocation",
+			"/schema/productInventoryManagement.swagger.json"
+					"#/definitions/Product"},
+			{"@type", "Product"} | Acc],
 	lists:reverse(Obj).
 
 -spec instance_chars(Characteristics) -> Characteristics

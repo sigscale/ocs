@@ -147,6 +147,7 @@ doc_DATA = overview.edoc $(modhtml) \
 		non-3gpp-trusted.svg \
 		non-3gpp-untrusted.svg \
 		schema.svg \
+		product-specifications.svg \
 		disk_logs.svg \
 		event_log.svg \
 		pub_sub_events.svg
@@ -175,6 +176,7 @@ overview.edoc: overview.edoc-in
 	-cp -n $(top_srcdir)/doc/non-3gpp-trusted.svg .
 	-cp -n $(top_srcdir)/doc/non-3gpp-untrusted.svg .
 	-cp -n $(top_srcdir)/doc/schema.svg .
+	-cp -n $(top_srcdir)/doc/product-specifications.svg .
 	-cp -n $(top_srcdir)/doc/disk_logs.svg .
 	-cp -n $(top_srcdir)/doc/event_log.svg .
 	-cp -n $(top_srcdir)/doc/pub_sub_events.svg .
@@ -198,5 +200,6 @@ CLEANFILES = overview.edoc \
 		event_log.svg \
 		pub_sub_events.svg \
 		schema.svg \
+		product-specifications.svg \
 		sigscale-logo.png
 

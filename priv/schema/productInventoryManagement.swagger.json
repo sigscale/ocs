@@ -328,6 +328,12 @@
           "items": {
             "$ref": "#/definitions/RealizingService"
           }
+        },
+        "balance": {
+          "type": "array",
+          "items": {
+            "$ref": "/balanceManagement/v1#definition/AccumulatedBalance"
+          }
         }
       }
     },
