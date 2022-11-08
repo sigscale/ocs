@@ -219,10 +219,14 @@ with at most one <i>product</i> table row.
 
 ==Product Specifications==
 Rating and charging is controled by <i>Characteristic</i> values
-configured in <i>Product Offering</i> and <i>Product Offering Price</i>.
-The <i>Characteristics</i> are defined in <i>Product Specifications</i>
-available with the <i>Product Catalog</i> API at
-`/productCatalogManagement/v2/productSpecification'.
+chosen when creating <i>Product Offerings</i> and
+<i>Product Offering Prices</i>.  The <i>Characteristics</i> are
+defined in <i>Product Specifications</i> available with the
+<i>Product Catalog</i> API (TMF620)
+(`/productCatalogManagement/v2/productSpecification/'). The diagram
+below depicts the `dependency' relationships.  An atomic
+<i>Product Offering</i> will include one of the <i>Prepaid</i>
+<i>Product Specifications</i>.
 
 <img id="product-specifications" class="diagram"
 			src="product-specifications.svg" alt="Products" />
