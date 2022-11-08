@@ -59,6 +59,7 @@
                   mod_get,
                   mod_ocs_rest_post,
                   mod_ocs_rest_patch,
+						mod_ocs_rest_head,
                   mod_ocs_rest_delete,
                   mod_disk_log]},
             {mime_types,

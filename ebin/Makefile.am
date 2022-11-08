@@ -69,6 +69,7 @@ beam_DATA = ocs.beam \
 			mod_ocs_rest_get.beam \
 			mod_ocs_rest_post.beam \
 			mod_ocs_rest_patch.beam \
+			mod_ocs_rest_head.beam \
 			mod_ocs_rest_delete.beam \
 			mod_oauth.beam \
 			ocs_rest.beam \
