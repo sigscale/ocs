@@ -27,7 +27,7 @@
 -export([get_resource_candidate/1, get_resource_candidates/1]).
 -export([get_resource_catalog/1, get_resource_catalogs/1]).
 -export([get_resource/1, get_resource/2, add_resource/1, patch_resource/3,
-		delete_resource/1]).
+		delete_resource/1, head_resource/0]).
 -export([get_pla_specs/1]).
 -export([resource/1, gtt/2]).
 
@@ -233,6 +233,26 @@ get_resource(Id) ->
 		_:_Reason1 ->
 			{error, 500}
 	end.
+
+-spec head_resource() -> Result
+	when
+		Result :: {ok, [], Body :: iolist()}
+				| {error, ErrorCode :: integer()}.
+%% @doc Body producing function for
+%% 	`HEAD /resourceInventoryManagement/v1/resource'
+%% 	requests.
+head_resource() ->
+	try
+		Size = mnesia:table_info(resource, size),
+		LastItem = integer_to_list(Size),
+		ContentRange = "items 1-" ++ LastItem ++ "/" ++ LastItem,
+		Headers = [{content_range, ContentRange}],
+		{ok, Headers, []}
+	catch
+		_:_Reason ->
+			{error, 500}
+	end.
+	
 
 -spec get_resource(Query, Headers) -> Result
 	when

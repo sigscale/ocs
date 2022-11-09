@@ -107,6 +107,7 @@ modhtml = ocs.html \
 			mod_ocs_rest_accepted_content.html \
 			mod_ocs_rest_delete.html \
 			mod_ocs_rest_get.html \
+			mod_ocs_rest_head.html \
 			mod_ocs_rest_patch.html \
 			mod_ocs_rest_post.html \
 			mod_oauth.html \

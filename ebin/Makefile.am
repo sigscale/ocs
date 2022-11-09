@@ -67,6 +67,7 @@ beam_DATA = ocs.beam \
 			ocs_rating.beam \
 			mod_ocs_rest_accepted_content.beam \
 			mod_ocs_rest_get.beam \
+			mod_ocs_rest_head.beam \
 			mod_ocs_rest_post.beam \
 			mod_ocs_rest_patch.beam \
 			mod_ocs_rest_delete.beam \
