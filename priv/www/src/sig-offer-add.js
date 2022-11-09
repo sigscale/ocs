@@ -287,15 +287,14 @@ class offerAdd extends PolymerElement {
 								<template
 										is="dom-repeat"
 										items="{{prices}}">
-									<option value="{{item.name}}" />
+									<option value="{{item.name}}"/>
 								</template>
 							</datalist>
 							<input
 									list="priceNames"
 									autocomplete="on"
 									placeholder="Name"
-									value="{{priceName::input}}">
-							</paper-input>
+									value="{{priceName::input}}"/>
 							<paper-tooltip>
 								Name of the Product Offering Price.
 							</paper-tooltip>
@@ -629,20 +628,18 @@ class offerAdd extends PolymerElement {
 					<div>
 						<div>
 							<datalist
-									id="alterations">
+									id="alterationNames">
 								<template
 										is="dom-repeat"
-										items="[[alterations]]">
-									<option value="{{item.name}}" />
+										items="{{alterations}}">
+									<option value="{{item.name}}"/>
 								</template>
 							</datalist>
-							<paper-input
-									label="Name"
-									list="alterations"
-									value="{{alterationName}}"
+							<input
+									list="alterationNames"
 									autocomplete="on"
-									on-value-changed="updateAltsDialog">
-							</paper-input>
+									placeholder="Name"
+									value="{{alterationName::input}}"/>
 							<paper-tooltip>
 								Name of the Product Offering Price Alteration.
 							</paper-tooltip>
@@ -962,7 +959,8 @@ class offerAdd extends PolymerElement {
 				type: Number
 			},
 			alterationName: {
-				type: String
+				type: String,
+				observer: 'updateAltsDialog'
 			},
 			alterationDescription: {
 				type: String
@@ -1179,7 +1177,7 @@ class offerAdd extends PolymerElement {
 
 	updateAltsDialog() {
 		function checkName(alt) {
-			return alt.name == this.alterationName;
+			return alt.name == document.body.querySelector('sig-app').shadowRoot.getElementById('addOffer').alterationName;
 		}
 		if(this.alterations) {
 			var index = this.alterations.findIndex(checkName);
@@ -2077,7 +2075,7 @@ class offerAdd extends PolymerElement {
 			priceNew.callDirection = "originate";
 		}
 		priceNew.prefixTariff = this.priceTariff;
-		priceNew.roamingTable = this.priceRoaming;
+				  priceNew.roamingTable = this.priceRoaming;
 		priceNew.chargingKey = this.priceKey;
 		if(priceNew.name
 					&& priceNew.type
@@ -2138,7 +2136,7 @@ class offerAdd extends PolymerElement {
 
 	_addAlteration(event) {
 		function checkAltName(alt) {
-			return alt.name == this.alterationName;
+			return alt.name == null;
 		}
 		var indexAlt = this.alterations.findIndex(checkAltName);
 		if (indexAlt == -1) {
@@ -2146,7 +2144,6 @@ class offerAdd extends PolymerElement {
 		} else {
 			var altNew = this.prices[indexAlt];
 		}
-		var altNew = new Object();
 		altNew.name = this.alterationName;
 		altNew.description = this.alterationDescription;
 		altNew.startdate = this.alterationStartDate;
