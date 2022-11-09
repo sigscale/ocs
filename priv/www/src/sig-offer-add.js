@@ -1234,6 +1234,12 @@ class offerAdd extends PolymerElement {
 						this.$.addAltPeriod.selected = 4;
 						break;
 				}
+				var altNameUp = document.body.querySelector('sig-app').shadowRoot.getElementById('addOffer').alterationName;
+				function checkAl(alte) {
+					return alte.name == altNameUp;
+				}
+				var alIndex = this.alterations.findIndex(checkAl);
+				this.alterations.splice(alIndex, 1);
 			}
 		}
 	}
