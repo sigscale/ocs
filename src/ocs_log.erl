@@ -683,7 +683,9 @@ ipdr_file(Type, LogFile, Format) when is_list(LogFile),
 	case disk_log:open([{name, make_ref()}, {file, FileName}, {repair, true}]) of
 		{ok, Log} ->
 			ipdr_file1(LogFile, Log, Format);
-		{repaired, Log, _Recovered, _Bad} ->
+		{repaired, Log, Recovered, BadBytes} ->
+			error_logger:warning_report(["Log Repaied",
+					{module, ?MODULE}, {log, Log}, Recovered, BadBytes]),
 			ipdr_file1(LogFile, Log, Format);
 		{error, Reason} ->
 			Descr = lists:flatten(disk_log:format_error(Reason)),
@@ -3030,7 +3032,9 @@ open_log1(Directory, Log, LogSize, LogFiles) ->
 			ok;
 		{error, {size_mismatch, _CurrentSize, {LogSize, LogFiles}}} ->
 			open_log2(Log, FileName, LogSize, LogFiles);
-		{repaired, _, _, _} ->
+		{repaired, Log, Recovered, BadBytes} ->
+			error_logger:warning_report(["Log Repaied",
+					{module, ?MODULE}, {log, Log}, Recovered, BadBytes]),
 			ok;
 		{error, Reason} ->
 			open_log3(Log, Reason)
@@ -3039,6 +3043,15 @@ open_log1(Directory, Log, LogSize, LogFiles) ->
 open_log2(Log, FileName, LogSize, LogFiles) ->
 	case disk_log:open([{name, Log}, {file, FileName}, {type, wrap}]) of
 		{ok, _} ->
+			case disk_log:change_size(Log, {LogSize, LogFiles}) of
+				ok ->
+					ok;
+				{error, Reason} ->
+					open_log3(Log, Reason)
+			end;
+		{repaired, Log, Recovered, BadBytes} ->
+			error_logger:warning_report(["Log Repaied",
+					{module, ?MODULE}, {log, Log}, Recovered, BadBytes]),
 			case disk_log:change_size(Log, {LogSize, LogFiles}) of
 				ok ->
 					ok;
