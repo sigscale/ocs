@@ -2402,6 +2402,7 @@ normalize([], Acc) ->
 		Buckets :: [#bucket{}],
 		InitialFlag :: boolean(),
 		Result :: {Product, Buckets}.
+%% @doc Apply one time and recurring charges.
 %% @private
 subscription(Product, #offer{bundle = [], price = Prices} =
 		_Offer, Buckets, InitialFlag) ->
@@ -2429,24 +2430,28 @@ subscription(#product{id = ProdRef} = Product, Now, true, Buckets,
 	subscription(Product, Now, true, NewBuckets, T);
 subscription(#product{id = ProdRef} = Product, Now, true,
 		Buckets, [#price{type = one_time, amount = PriceAmount,
+			name = Name, char_value_use = CharValueUse,
 			alteration = #alteration{units = Units, size = Size,
 			amount = AlterAmount}} | T]) ->
 	N = erlang:unique_integer([positive]),
 	NewBuckets = charge(ProdRef, PriceAmount + AlterAmount,
 			[#bucket{id = generate_bucket_id(), product = [ProdRef],
 					units = Units, remain_amount = Size,
+					price = bucket_price(Name, CharValueUse),
 					attributes = #{bucket_type => normal},
 					last_modified = {Now, N}} | Buckets]),
 	subscription(Product, Now, true, NewBuckets, T);
 subscription(Product, Now, false, Buckets, [#price{type = one_time} | T]) ->
 	subscription(Product, Now, false, Buckets, T);
 subscription(#product{id = ProdRef} = Product, Now, true, Buckets,
-		[#price{type = Type, alteration = #alteration{type = one_time,
+		[#price{type = Type, name = Name, char_value_use = CharValueUse,
+			alteration = #alteration{type = one_time,
 			units = Units, size = Size, amount = AlterationAmount}} | T])
 		when ((Type == usage) or (Type == tariff)) ->
 	N = erlang:unique_integer([positive]),
 	NewBuckets = charge(ProdRef, AlterationAmount,
 			[#bucket{id = generate_bucket_id(), units = Units,
+					price = bucket_price(Name, CharValueUse),
 					attributes = #{bucket_type => normal},
 					remain_amount = Size, product = [ProdRef],
 					last_modified = {Now, N}}
@@ -2464,37 +2469,46 @@ subscription(#product{id = ProdRef, payment = Payments} = Product,
 	NewPayments = [{Name, end_period(Now, Period)} | Payments],
 	Product1 = Product#product{payment = NewPayments},
 	subscription(Product1, Now, true, NewBuckets, T);
-subscription(#product{id = ProdRef, payment = Payments} = Product, Now, false, Buckets,
-		[#price{type = recurring, period = Period, amount = Amount,
-			name = Name, alteration = undefined} | T]) when Period /= undefined ->
-	{NewPayments, NewBuckets} = dues(Payments, Now, Buckets, Name, Period, Amount, ProdRef),
+subscription(#product{id = ProdRef, payment = Payments} = Product,
+		Now, false, Buckets, [#price{type = recurring, period = Period,
+		amount = Amount, name = Name, alteration = undefined} | T])
+		when Period /= undefined ->
+	{NewPayments, NewBuckets} = dues(Payments, Now,
+			Buckets, Name, Period, Amount, ProdRef),
 	Product1 = Product#product{payment = NewPayments},
 	subscription(Product1, Now, false, NewBuckets, T);
 subscription(#product{id = ProdRef, payment = Payments} = Product,
 		Now, true, Buckets, [#price{type = recurring, period = Period,
 			amount = Amount, alteration = #alteration{units = Units,
-			size = Size, amount = AllowanceAmount}, name = Name} | T]) when
+			size = Size, amount = AllowanceAmount}, name = Name,
+			char_value_use = CharValueUse} | T]) when
 			(Period /= undefined) and ((Units == octets) orelse
 			(Units == seconds) orelse  (Units == messages)) ->
 	N = erlang:unique_integer([positive]),
 	NewBuckets = charge(ProdRef, Amount + AllowanceAmount,
 			[#bucket{id = generate_bucket_id(),
+					price = bucket_price(Name, CharValueUse),
 					attributes = #{bucket_type => normal},
-					units = Units, remain_amount = Size, product = [ProdRef],
-					end_date = end_period(Now, Period), last_modified = {Now, N}}
-			| Buckets]),
+					units = Units, remain_amount = Size,
+					product = [ProdRef],
+					end_date = end_period(Now, Period),
+					last_modified = {Now, N}} | Buckets]),
 	NewPayments = [{Name, end_period(Now, Period)} | Payments],
 	Product1 = Product#product{payment = NewPayments},
 	subscription(Product1, Now, true, NewBuckets, T);
 subscription(#product{id = ProdRef, payment = Payments} = Product,
 		Now, false, Buckets, [#price{type = recurring, period = Period,
-			amount = Amount, alteration = #alteration{units = Units, size = Size,
-			amount = AllowanceAmount}, name = Name} | T]) when (Period /= undefined)
-			and ((Units == octets) orelse (Units == seconds) orelse (Units == messages)) ->
-	{NewPayments, NewBuckets1} = dues(Payments, Now, Buckets, Name, Period, Amount, ProdRef),
+			amount = Amount, alteration = #alteration{units = Units,
+			size = Size, amount = AllowanceAmount}, name = Name,
+			char_value_use = CharValueUse} | T])
+			when (Period /= undefined) and ((Units == octets)
+			orelse (Units == seconds) orelse (Units == messages)) ->
+	{NewPayments, NewBuckets1} = dues(Payments, Now,
+			Buckets, Name, Period, Amount, ProdRef),
 	N = erlang:unique_integer([positive]),
 	NewBuckets2 = charge(ProdRef, AllowanceAmount,
 			[#bucket{id = generate_bucket_id(),
+					price = bucket_price(Name, CharValueUse),
 					attributes = #{bucket_type => normal},
 					units = Units, remain_amount = Size, product = [ProdRef],
 					end_date = end_period(Now, Period), last_modified = {Now, N}}
@@ -2502,13 +2516,16 @@ subscription(#product{id = ProdRef, payment = Payments} = Product,
 	Product1 = Product#product{payment = NewPayments},
 	subscription(Product1, Now, false, NewBuckets2, T);
 subscription(#product{id = ProdRef, payment = Payments} = Product, Now, true,
-		Buckets, [#price{type = Type, alteration = #alteration{type = recurring,
-		period = Period, units = Units, size = Size, amount = Amount}, name = Name}
-		| T]) when Period /= undefined, Units == octets; Units == seconds;
+		Buckets, [#price{type = Type,
+		alteration = #alteration{type = recurring, period = Period,
+		units = Units, size = Size, amount = Amount}, name = Name,
+		char_value_use = CharValueUse} | T])
+		when Period /= undefined, Units == octets; Units == seconds;
 		Units == messages, ((Type == usage) or (Type == tariff)) ->
 	N = erlang:unique_integer([positive]),
 	NewBuckets = charge(ProdRef, Amount,
 			[#bucket{id = generate_bucket_id(), units = Units,
+					price = bucket_price(Name, CharValueUse),
 					attributes = #{bucket_type => normal},
 					remain_amount = Size, product = [ProdRef],
 					end_date = end_period(Now, Period), last_modified = {Now, N}}
@@ -2516,8 +2533,9 @@ subscription(#product{id = ProdRef, payment = Payments} = Product, Now, true,
 	NewPayments = [{Name, end_period(Now, Period)} | Payments],
 	Product1 = Product#product{payment = NewPayments},
 	subscription(Product1, Now, true, NewBuckets, T);
-subscription(#product{id = ProdRef, payment = Payments}
-		= Product, Now, false, Buckets, [#price{type = Type, name = Name,
+subscription(#product{id = ProdRef, payment = Payments} = Product,
+		Now, false, Buckets, [#price{type = Type, name = Name,
+		char_value_use = CharValueUse,
 		alteration = #alteration{type = recurring, period = Period, units = Units,
 		size = Size, amount = Amount}} | T]) when Period /= undefined, Units == octets;
 		Units == seconds; Units == messages, ((Type == usage) or (Type == tariff)) ->
@@ -2525,6 +2543,7 @@ subscription(#product{id = ProdRef, payment = Payments}
 	N = erlang:unique_integer([positive]),
 	NewBuckets2 = charge(ProdRef, Amount,
 			[#bucket{id = generate_bucket_id(), units = Units,
+					price = bucket_price(Name, CharValueUse),
 					attributes = #{bucket_type => normal},
 					remain_amount = Size, product = [ProdRef],
 					end_date = end_period(Now, Period), last_modified = {Now, N}}
@@ -2536,6 +2555,16 @@ subscription(Product, Now, InitialFlag, Buckets, [_H | T]) ->
 subscription(Product, _Now, _, Buckets, []) ->
 	NewBIds = [Id || #bucket{id = Id} <- Buckets],
 	{Product#product{balance = NewBIds}, Buckets}.
+
+%% @hidden
+bucket_price(PriceName,
+		[#char_value_use{name = "fixedPriceBucket",
+		values = [#char_value{value = true}]} | _]) ->
+	PriceName;
+bucket_price(PriceName, [_ | T]) ->
+	bucket_price(PriceName, T);
+bucket_price(PriceName, []) ->
+	[].
 
 %% @hidden
 dues(Payments, Now, Buckets, PName, Period, Amount, ProdRef) ->
