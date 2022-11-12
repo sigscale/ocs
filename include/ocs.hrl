@@ -164,7 +164,7 @@
 		remain_amount = 0 :: integer() | '_',
 		attributes :: bucket_attributes() | '_',
 		units :: octets | cents | seconds | messages | undefined | '_',
-		prices = [] :: list() | '_',
+		price = [] :: string() | '_',
 		product  = [] :: [ProdRef :: term()] | '_',
 		last_modified :: tuple() | undefined | '_'}).
 
