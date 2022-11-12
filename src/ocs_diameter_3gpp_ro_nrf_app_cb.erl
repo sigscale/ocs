@@ -2365,7 +2365,7 @@ charge([{_, Subscriber} | _], SessionId, Flag, Prices) ->
 charge1(Subscriber, SessionId, Flag, [#{rg := RG, si := SI, currency := Currency,
 		units := Units, unitSize := UnitSize, unitPrice := UnitPrice, debits := Debits,
 		reserves := Reserves} | T], Acc, ResultCode1) ->
-	case ocs_rating:charge(diameter, Subscriber, SI,
+	case ocs_rating:charge(diameter, Subscriber, SI, [],
 			UnitSize, Units, Currency, UnitPrice, undefined,
 			RG, Flag, Debits,
 			Reserves, [{'Session-Id', SessionId}]) of
