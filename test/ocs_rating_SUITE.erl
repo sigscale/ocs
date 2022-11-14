@@ -116,7 +116,7 @@ all() ->
 	roaming_table_data, roaming_table_voice, roaming_table_sms, final_empty_mscc,
 	final_empty_mscc_multiple_services, initial_invalid_service_type,
 	refund_unused_reservation, refund_partially_used_reservation,
-	tariff_prices].
+	tariff_prices, allowance_bucket].
 
 %%---------------------------------------------------------------------
 %%  Test cases
@@ -2381,7 +2381,6 @@ tariff_prices(_Config) ->
 	ProdRef = add_product(OfferId, []),
 	ServiceId = ocs:generate_identity(),
 	{ok, _Service} = ocs:add_service(ServiceId, undefined, ProdRef),
-	Timestamp = calendar:local_time(),
 	RemAmount1 = ocs_rest:millionths_in(1000),
 	BId = add_bucket(ProdRef, bucket(cents, RemAmount1)),
 	ServiceType = 32260,
@@ -2401,6 +2400,76 @@ tariff_prices(_Config) ->
 			initial, [], [], SessionId2),
 	RemainAmount2 = RemAmount1 - Rate,
 	{ok, #bucket{remain_amount = RemainAmount2}} = ocs:find_bucket(BId).
+
+allowance_bucket() ->
+	[{userdata, [{doc, "Allowance bucket, created by Alteration, pinned to a Price"}]}].
+
+allowance_bucket(_Config) ->
+	{ok, UnitSize} = application:get_env(ocs, min_reserve_octets),
+	AllowanceSize = (5 * UnitSize) + (rand:uniform(5) * UnitSize),
+	PeakAmount = rand:uniform(1000000),
+	OffPeakAmount = rand:uniform(1000000),
+	Allowance = #alteration{name = "Allowance", units = octets,
+			size = AllowanceSize, amount = 0, type = recurring,
+			period = monthly},
+	P1 = #price{name = "Peak", type = usage,
+			units = octets, size = UnitSize, amount = PeakAmount,
+			char_value_use = [#char_value_use{name = "timeOfDayRange",
+			min = 1, max = 1, values = [#char_value{default = true,
+			value = #range{lower = #quantity{amount = 480, units = "minutes"},
+			upper = #quantity{amount = 1380, units = "minutes"}}}]}]},
+	P2 = #price{name = "OffPeak", type = usage,
+			units = octets, size = UnitSize, amount = OffPeakAmount,
+			char_value_use = [#char_value_use{name = "timeOfDayRange",
+			min = 1, max = 1, values = [#char_value{default = true,
+			value = #range{lower = #quantity{amount = 1380, units = "minutes"},
+			upper = #quantity{amount = 480, units = "minutes"}}}]},
+			#char_value_use{name = "fixedPriceBucket",
+			values = [#char_value{value = true}]}],
+			alteration = Allowance},
+	OfferId = add_offer([P1, P2], 8),
+	ServiceId = ocs:generate_identity(),
+	{ok, #service{name = ServiceRef}} = ocs:add_service(ServiceId,
+			undefined, undefined),
+	{ok, #product{id = ProdRef, balance = [BId1]}}
+			= ocs:add_product(OfferId, [ServiceRef]),
+	RemAmount1 = (10 *  UnitSize) + rand:uniform(UnitSize),
+	BId2 = add_bucket(ProdRef, bucket(octets, RemAmount1)),
+	ServiceType = 32251,
+	SessionId1 = [{'Session-Id', list_to_binary(ocs:generate_password())}],
+	{ok, _, _} = ocs_rating:rate(diameter,
+			ServiceType, undefined, undefined, undefined, ServiceId,
+			{date(), {20, 0, 0}}, undefined, undefined,
+			initial, [], [], SessionId1),
+	DayAmount1 = rand:uniform(UnitSize) + UnitSize,
+	{ok, _, _} = ocs_rating:rate(diameter,
+			ServiceType, undefined, undefined, undefined, ServiceId,
+			{date(), {21, 0, 0}}, undefined, undefined,
+			interim, [{octets, DayAmount1}], [], SessionId1),
+	DayAmount2 = rand:uniform(UnitSize),
+	{ok, _, _} = ocs_rating:rate(diameter,
+			ServiceType, undefined, undefined, undefined, ServiceId,
+			{date(), {22, 0, 0}}, undefined, undefined,
+			final, [{octets, DayAmount2}], [], SessionId1),
+	SessionId2 = [{'Session-Id', list_to_binary(ocs:generate_password())}],
+	{ok, _, _} = ocs_rating:rate(diameter,
+			ServiceType, undefined, undefined, undefined, ServiceId,
+			{date(), {2, 0, 0}}, undefined, undefined,
+			initial, [], [], SessionId2),
+	NightAmount1 = rand:uniform(UnitSize) + UnitSize,
+	{ok, _, _} = ocs_rating:rate(diameter,
+			ServiceType, undefined, undefined, undefined, ServiceId,
+			{date(), {3, 0, 0}}, undefined, undefined,
+			interim, [{octets, NightAmount1}], [], SessionId2),
+	NightAmount2 = rand:uniform(UnitSize),
+	{ok, _, _} = ocs_rating:rate(diameter,
+			ServiceType, undefined, undefined, undefined, ServiceId,
+			{date(), {4, 0, 0}}, undefined, undefined,
+			final, [{octets, NightAmount2}], [], SessionId2),
+	RemainAmount2 = RemAmount1 - DayAmount1 - DayAmount2,
+	{ok, #bucket{remain_amount = RemainAmount2}} = ocs:find_bucket(BId2),
+	RemainAmount3 = AllowanceSize - NightAmount1 - NightAmount2,
+	{ok, #bucket{remain_amount = RemainAmount3}} = ocs:find_bucket(BId1).
 
 %%---------------------------------------------------------------------
 %%  Internal functions

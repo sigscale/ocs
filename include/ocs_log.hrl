@@ -49,6 +49,7 @@
 		is_tax_exempt :: boolean() | undefined | '_',
 		tariff_type :: atom() | undefined | '_',
 		product :: term() | undefined | '_',
+		price_name :: string() | undefined | '_',
 		price_type :: tariff | usage | event | undefined | '_',
 		description :: string() | undefined | '_',
 		tax_excluded_amount :: non_neg_integer() | undefined | '_',

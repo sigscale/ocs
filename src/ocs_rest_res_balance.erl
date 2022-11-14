@@ -34,6 +34,7 @@
 -define(bucketPath, "/balanceManagement/v1/bucket/").
 -define(actionPath, "/balanceManagement/v1/balanceTransfer/").
 -define(productInventoryPath, "/productInventoryManagement/v2/product/").
+-define(serviceInventoryPath, "/serviceInventoryManagement/v2/service/").
 -define(balancePath, "/balanceManagement/v1/").
 
 -spec content_types_accepted() -> ContentTypes
@@ -617,11 +618,11 @@ adjustment([product | T], #adjustment{product = [ProdRef]} = A, Acc) ->
 	adjustment(T, A, [{"product", {struct, [Id, Href]}} | Acc]);
 adjustment([service | T], #adjustment{service = [ServiceRef]} = A, Acc) ->
 	Id = {"id", ServiceRef},
-	Href = {"href", ?productInventoryPath ++ ServiceRef},
+	Href = {"href", ?serviceInventoryPath ++ ServiceRef},
 	adjustment(T, A, [{"service", {struct, [Id, Href]}} | Acc]);
 adjustment([bucket | T], #adjustment{bucket = [BucketRef]} = A, Acc) ->
 	Id = {"id", BucketRef},
-	Href = {"href", ?productInventoryPath ++ BucketRef},
+	Href = {"href", ?bucketPath ++ BucketRef},
 	adjustment(T, A, [{"bucket", {struct, [Id, Href]}} | Acc]);
 adjustment([amount | T], #adjustment{units = Units, amount = Amount} = A, Acc)
 		when is_integer(Amount) ->
