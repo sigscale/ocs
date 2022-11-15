@@ -462,8 +462,8 @@ bucket([{"lifecycleStatus", Status} | T], Bucket) ->
 bucket([{"remainedAmount", {struct, _} = Q} | T], Bucket) ->
 	#quantity{amount = Amount, units = Units} = quantity(Q),
 	bucket(T, Bucket#bucket{units = Units, remain_amount = Amount});
-bucket([{"prices", {array, Prices}} | T], Bucket) when is_list(Prices) ->
-	bucket(T, Bucket#bucket{prices = Prices});
+bucket([{"price", {array, Price}} | T], Bucket) when is_list(Price) ->
+	bucket(T, Bucket#bucket{price = Price});
 bucket([{"product", {struct, P}} | T], Bucket) ->
 	{_, ProdRef} = lists:keyfind("id", 1, P),
 	bucket(T, Bucket#bucket{product = [ProdRef]});
@@ -495,9 +495,9 @@ bucket([name | T], #bucket{name = undefined} = B, Acc) ->
 	bucket(T, B, Acc);
 bucket([name | T], #bucket{name = Name} = B, Acc) ->
 	bucket(T, B, [{"name", Name} | Acc]);
-bucket([prices | T], #bucket{prices = Prices} = B, Acc)
-		when is_list(Prices) ->
-	bucket(T, B, [{"prices", {array, Prices}} | Acc]);
+bucket([price | T], #bucket{price = Price} = B, Acc)
+		when is_list(Price) ->
+	bucket(T, B, [{"price", {array, Price}} | Acc]);
 bucket([product | T], #bucket{product = [ProdRef]} = B, Acc) ->
 	Id = {"id", ProdRef},
 	Href = {"href", ?productInventoryPath ++ ProdRef},
