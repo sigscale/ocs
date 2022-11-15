@@ -540,6 +540,10 @@ class offerAdd extends PolymerElement {
 									Outgoing
 								</paper-checkbox>
 							</iron-collapse>
+							<paper-checkbox
+									checked="{{fixedPriceBucket}}">
+								Fixed Price Bucket
+							</paper-checkbox>
 							<div>
 								<paper-input
 										id="addPriceCharReserveTime"
@@ -943,6 +947,9 @@ class offerAdd extends PolymerElement {
 			priceCallDirectionOut: {
 				type: Boolean
 			},
+			fixedPriceBucket: {
+				type: Boolean
+			},
 			priceReserveTime: {
 				type: String
 			},
@@ -1102,7 +1109,7 @@ class offerAdd extends PolymerElement {
 					case "tariff":
 						this.$.addPriceType.selected = 3;
 						break;
-      		}
+				}
 				this.pricePla = this.prices[indexPrice].pla;
 				this.priceSize = this.prices[indexPrice].size;
 				switch(this.prices[indexPrice].unit) {
@@ -1161,6 +1168,9 @@ class offerAdd extends PolymerElement {
 				}
 				if(this.prices[indexPrice].callDirection == "originate") {
 					this.priceCallDirectionOut = true;
+				}
+				if(this.prices[indexPrice].fixedPriceBucket == true) {
+					this.fixedPriceBucket = "true";
 				}
 				this.priceTariff = this.prices[indexPrice].prefixTariff;
 				this.priceRoaming = this.prices[indexPrice].roamingTable;
@@ -1756,6 +1766,20 @@ class offerAdd extends PolymerElement {
 				charValueUse.productSpecification = prodSpec;
 				prodSpecCharValueUse.push(charValueUse);
 			}
+			if (item.fixedPriceBucket) {
+				var charValue = new Object();
+				var charValueUse = new Object();
+				charValueUse.name = "fixedPriceBucket";
+				charValue.value = item.fixedPriceBucket;
+				var charValues = new Array();
+				charValues.push(charValue);
+				charValueUse.productSpecCharacteristicValue = charValues;
+				var prodSpec = new Object();
+				prodSpec.id = "3";
+				prodSpec.href = "/catalogManagement/v2/productSpecification/3";
+				charValueUse.productSpecification = prodSpec;
+				prodSpecCharValueUse.push(charValueUse);
+			}
 			if (prodSpecCharValueUse.length > 0) {
 				out.prodSpecCharValueUse = prodSpecCharValueUse;
 			}
@@ -2079,6 +2103,9 @@ class offerAdd extends PolymerElement {
 		}
 		if(this.priceCallDirectionOut && !this.priceCallDirectionIn) {
 			priceNew.callDirection = "originate";
+		}
+		if(this.fixedPriceBucket == true) {
+			priceNew.fixedPriceBucket = "true";
 		}
 		priceNew.prefixTariff = this.priceTariff;
 				  priceNew.roamingTable = this.priceRoaming;
