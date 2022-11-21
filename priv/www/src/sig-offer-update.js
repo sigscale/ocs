@@ -503,6 +503,10 @@ class offerUpdate extends PolymerElement {
 									Outgoing
 								</paper-checkbox>
 							</iron-collapse>
+							<paper-checkbox
+									checked="{{fixedUpdatePriceBucket}}">
+								Fixed Price Bucket
+							</paper-checkbox>
 							<div>
 								<paper-input
 										id="priceUpdateReserveTimeInput"
@@ -899,6 +903,9 @@ class offerUpdate extends PolymerElement {
 			priceUpdateCallDirOut: {
 				type: Boolean
 			},
+         fixedUpdatePriceBucket: {
+            type: Boolean
+         },
 			priceUpdateTariff: {
 				type: String
 			},
@@ -1109,6 +1116,9 @@ class offerUpdate extends PolymerElement {
 						}
 						if(prodPrice.prodSpecCharValueUse[indexChar].name == "callDirection") {
 							specChar[indexChar] = {name: "callDirection", value: prodPrice.prodSpecCharValueUse[indexChar].productSpecCharacteristicValue[0].value};
+						}
+						if(prodPrice.prodSpecCharValueUse[indexChar].name == "fixedPriceBucket") {
+							specChar[indexChar] = {name: "fixedPriceBucket", value: prodPrice.prodSpecCharValueUse[indexChar].productSpecCharacteristicValue[0].value};
 						}
 						if(prodPrice.prodSpecCharValueUse[indexChar].name == "destPrefixTariffTable") {
 							specChar[indexChar] = {name: "destPrefixTariffTable", value: prodPrice.prodSpecCharValueUse[indexChar].productSpecCharacteristicValue[0].value};
@@ -1423,6 +1433,9 @@ class offerUpdate extends PolymerElement {
 							} else if(prodPriceUpdate.prodSpecCharValueUse[indexCharVal].value == "answer") {
 								this.priceUpdateCallDirIn = true;
 							}
+						}
+						if(prodPriceUpdate.prodSpecCharValueUse[indexCharVal].name == "fixedPriceBucket") {
+							this.fixedUpdatePriceBucket = "true";
 						}
 					}
 				}
@@ -2382,6 +2395,54 @@ class offerUpdate extends PolymerElement {
 			}
 		}
 		if(this.prices[indexPrices].prodSpecCharValueUse) {
+			function checkFixed(fix) {
+				return fix.name == "fixedPriceBucket";
+			}
+			var fixedIndex = this.prices[indexPrices].prodSpecCharValueUse.findIndex(checkFixed);
+		} else {
+			var fixedIndex = -1;
+		}
+		if(!this.fixedUpdatePriceBucket && (fixedIndex != -1)) {
+			var fixedKey = new Object();
+			fixedKey.op = "remove";
+			fixedKey.path = "/productOfferingPrice/" + indexPrices + "/prodSpecCharValueUse/" + fixedIndex;
+			updatePriceNew.push(fixedKey);
+		} else if(this.fixedUpdatePriceBucket) {
+			if(fixedIndex == -1) {
+				var fixedKey = new Object();
+				fixedKey.op = "add";
+				fixedKey.path = "/productOfferingPrice/" + indexPrices + "/prodSpecCharValueUse/-";
+				var fixedCharValue = new Object();
+				var fixedCharValueUse = new Object();
+				fixedCharValueUse.name = "fixedPriceBucket";
+				if(this.fixedUpdatePriceBucket == true) {
+					fixedCharValue.value = "true";
+				} else if(this.fixedUpdatePriceBucket == false) {
+					fixedCharValue.value = "false";
+				}
+				var fixedCharValueArray  = new Array();
+				fixedCharValueArray.push(fixedCharValue);
+				fixedCharValueUse.productSpecCharacteristicValue = fixedCharValueArray;
+				var fixedProductSpec = new Object();
+				fixedProductSpec.id = "3";
+				fixedProductSpec.href = "/catalogManagement/v2/productSpecification/3";
+				fixedCharValueUse.productSpecification = fixedProductSpec;
+				fixedKey.value = fixedCharValueUse;
+				updatePriceNew.push(fixedKey);
+			} else if(this.fixedUpdatePriceBucket != this.prices[indexPrices].prodSpecCharValueUse[fixedIndex].value) {
+				var fixedKey = new Object();
+				fixedKey.op = "replace";
+				fixedKey.path = "/productOfferingPrice/" + indexPrices + "/prodSpecCharValueUse/"
+						+ fixedIndex + "/productSpecCharacteristicValue/0/value";
+				if(this.fixedUpdatePriceBucket == true) {
+					fixedKey.value = "true";
+				} else if(this.fixedUpdatePriceBucket == false) {
+					fixedKey.value = "false";
+				}
+				updatePriceNew.push(fixedKey);
+			}
+		}
+		if(this.prices[indexPrices].prodSpecCharValueUse) {
 			function checkCharTime(charVal) {
 				return charVal.name == "timeOfDayRange";
 			}
@@ -3100,6 +3161,25 @@ class offerUpdate extends PolymerElement {
 				prodSpecCharValueUse.push(charValueUse);
 				addValue.prodSpecCharValueUse = prodSpecCharValueUse;
 			}
+			if (this.fixedUpdatePriceBucket) {
+				var charValue = new Object();
+				var charValueUse = new Object();
+				charValueUse.name = "fixedPriceBucket";
+				if(this.fixedUpdatePriceBucket == true) {
+					charValue.value = "true";
+				} else if(this.fixedUpdatePriceBucket == false) {
+					charValue.value = "false";
+				}
+				var charValues = new Array();
+				charValues.push(charValue);
+				charValueUse.productSpecCharacteristicValue = charValues;
+				var prodSpec = new Object();
+				prodSpec.id = "3";
+				prodSpec.href = "/catalogManagement/v2/productSpecification/3";
+				charValueUse.productSpecification = prodSpec;
+				prodSpecCharValueUse.push(charValueUse);
+				addValue.prodSpecCharValueUse = prodSpecCharValueUse;
+			}
 			if (this.priceUpdateTODStart || this.priceUpdateTODEnd) {
 				if (this.priceUpdateTODStart.length > 0 || this.priceUpdateTODEnd.length > 0) {
 					var charValueUse = new Object();
@@ -3308,6 +3388,7 @@ class offerUpdate extends PolymerElement {
 		this.priceUpdateChargingKey = null;
 		this.updateRedirect = null;
 		this.priceUpdateTODStart = null;
+		this.fixedUpdatePriceBucket = null;
 		this.priceUpdateTODEnd = null;
 		this.priceUpdateCallDirIn = false;
 		this.priceUpdateCallDirOut = false;
