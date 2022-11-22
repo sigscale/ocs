@@ -59,6 +59,10 @@ class bucketList extends PolymerElement {
 							<dt><b>Units</b></dt>
 							<dd>{{item.units}}</dd>
 						</template>
+						<template is="dom-if" if="{{item.fixedPriceBucket}}">
+							<dt><b>Fixed Price Bucket</b></dt>
+							<dd>{{item.fixedPriceBucket}}</dd>
+						</template>
 					</dl>
 					<div class="buttons">
 						<paper-button
@@ -263,6 +267,11 @@ class bucketList extends PolymerElement {
 						}
 						if(request.response[index].product.href) {
 							newRecord.productHref = request.response[index].product.href;
+						}
+					}
+					if(request.response[index].price) {
+						if(request.response[index].price.fixedPriceBucket) {
+							newRecord.price = request.response[index].price.fixedPriceBucket;
 						}
 					}
 					if(request.response[index].remainedAmount) {
