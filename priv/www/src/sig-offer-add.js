@@ -1170,7 +1170,7 @@ class offerAdd extends PolymerElement {
 					this.priceCallDirectionOut = true;
 				}
 				if(this.prices[indexPrice].fixedPriceBucket == true) {
-					this.fixedPriceBucket = "true";
+					this.fixedPriceBucket = true;
 				}
 				this.priceTariff = this.prices[indexPrice].prefixTariff;
 				this.priceRoaming = this.prices[indexPrice].roamingTable;
@@ -2105,7 +2105,7 @@ class offerAdd extends PolymerElement {
 			priceNew.callDirection = "originate";
 		}
 		if(this.fixedPriceBucket == true) {
-			priceNew.fixedPriceBucket = "true";
+			priceNew.fixedPriceBucket = true;
 		}
 		priceNew.prefixTariff = this.priceTariff;
 				  priceNew.roamingTable = this.priceRoaming;
