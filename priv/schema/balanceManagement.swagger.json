@@ -369,6 +369,10 @@
           "items" : {
             "$ref" : "#/definitions/ProductRefType"
           }
+        },
+        "price" : {
+          "type" : "string",
+          "description" : "The name of a Product Offering Price (POP) to which this Bucket is exclusively available."
         }
       },
       "description" : "Represents and tracks the amount remained or owed for a certain type of service by certain customer"
