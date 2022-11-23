@@ -1435,7 +1435,7 @@ class offerUpdate extends PolymerElement {
 							}
 						}
 						if(prodPriceUpdate.prodSpecCharValueUse[indexCharVal].name == "fixedPriceBucket") {
-							this.fixedUpdatePriceBucket = "true";
+							this.fixedUpdatePriceBucket = true;
 						}
 					}
 				}
@@ -2415,11 +2415,7 @@ class offerUpdate extends PolymerElement {
 				var fixedCharValue = new Object();
 				var fixedCharValueUse = new Object();
 				fixedCharValueUse.name = "fixedPriceBucket";
-				if(this.fixedUpdatePriceBucket == true) {
-					fixedCharValue.value = "true";
-				} else if(this.fixedUpdatePriceBucket == false) {
-					fixedCharValue.value = "false";
-				}
+				fixedCharValue.value = this.fixedUpdatePriceBucket;
 				var fixedCharValueArray  = new Array();
 				fixedCharValueArray.push(fixedCharValue);
 				fixedCharValueUse.productSpecCharacteristicValue = fixedCharValueArray;
@@ -3165,11 +3161,7 @@ class offerUpdate extends PolymerElement {
 				var charValue = new Object();
 				var charValueUse = new Object();
 				charValueUse.name = "fixedPriceBucket";
-				if(this.fixedUpdatePriceBucket == true) {
-					charValue.value = "true";
-				} else if(this.fixedUpdatePriceBucket == false) {
-					charValue.value = "false";
-				}
+				charValue.value = this.fixedUpdatePriceBucket;
 				var charValues = new Array();
 				charValues.push(charValue);
 				charValueUse.productSpecCharacteristicValue = charValues;
