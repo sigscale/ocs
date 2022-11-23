@@ -493,6 +493,12 @@ class offerAdd extends PolymerElement {
 						<iron-collapse
 								id="addPriceChars">
 							<div>
+								<paper-checkbox
+										checked="{{fixedPriceBucket}}">
+									Fixed Price Bucket
+								</paper-checkbox>
+							</div>
+							<div>
 								<span>Time of Day Range</span>
 								<paper-icon-button
 										id="priceCharsTimeSection"
@@ -540,10 +546,6 @@ class offerAdd extends PolymerElement {
 									Outgoing
 								</paper-checkbox>
 							</iron-collapse>
-							<paper-checkbox
-									checked="{{fixedPriceBucket}}">
-								Fixed Price Bucket
-							</paper-checkbox>
 							<div>
 								<paper-input
 										id="addPriceCharReserveTime"
@@ -2308,6 +2310,7 @@ class offerAdd extends PolymerElement {
 		this.$.addPriceTariff.selected = null;
 		this.priceRoaming = null;
 		this.priceKey = null;
+		this.fixedPriceBucket  = null;
 		this.$.addPriceChars.hide();
 		this.$.priceCharsSection.icon = "arrow-drop-down";
 		this.$.addPriceCharsTime.hide();

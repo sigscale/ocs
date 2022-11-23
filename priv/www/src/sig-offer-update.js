@@ -453,6 +453,12 @@ class offerUpdate extends PolymerElement {
 						</div>
 						<iron-collapse id="updateAddPriceChars">
 							<div>
+								<paper-checkbox
+										checked="{{fixedUpdatePriceBucket}}">
+									Fixed Price Bucket
+								</paper-checkbox>
+							</div>
+							<div>
 								<span>Time of Day Range</span>
 								<paper-icon-button
 										id="updateOnClickCharsTime"
@@ -503,10 +509,6 @@ class offerUpdate extends PolymerElement {
 									Outgoing
 								</paper-checkbox>
 							</iron-collapse>
-							<paper-checkbox
-									checked="{{fixedUpdatePriceBucket}}">
-								Fixed Price Bucket
-							</paper-checkbox>
 							<div>
 								<paper-input
 										id="priceUpdateReserveTimeInput"
@@ -1341,6 +1343,7 @@ class offerUpdate extends PolymerElement {
 				this.$.updateReserveSessionOctets.disabled = false;
 				this.updateRedirect = null;
 				this.serviceIdentifier = null;
+				this.fixedUpdatePriceBucket = null;
 				this.priceUpdateRoamingTable = null;
 				this.priceUpdateChargingKey = null;
 				this.priceUpdateTariff = null;
@@ -3381,6 +3384,7 @@ class offerUpdate extends PolymerElement {
 		this.updateRedirect = null;
 		this.priceUpdateTODStart = null;
 		this.fixedUpdatePriceBucket = null;
+		fixedUpdatePriceBucket = null;
 		this.priceUpdateTODEnd = null;
 		this.priceUpdateCallDirIn = false;
 		this.priceUpdateCallDirOut = false;
