@@ -450,9 +450,9 @@ bucket({struct, Object}) ->
 bucket(#bucket{} = B) ->
 	bucket(record_info(fields, bucket), ocs:parse_bucket(B), []).
 %% @hidden
-bucket([{"id", ID} | T], Bucket) ->
+bucket([{"id", ID} | T], Bucket) when is_list(ID) ->
 	bucket(T, Bucket#bucket{id = ID});
-bucket([{"name", Name} | T], Bucket) ->
+bucket([{"name", Name} | T], Bucket) when is_list(Name) ->
 	bucket(T, Bucket#bucket{name = Name});
 bucket([{"amount", {struct, _} = Q} | T], Bucket) ->
 	#quantity{amount = Amount, units = Units} = quantity(Q),
@@ -462,7 +462,7 @@ bucket([{"lifecycleStatus", Status} | T], Bucket) ->
 bucket([{"remainedAmount", {struct, _} = Q} | T], Bucket) ->
 	#quantity{amount = Amount, units = Units} = quantity(Q),
 	bucket(T, Bucket#bucket{units = Units, remain_amount = Amount});
-bucket([{"price", {array, Price}} | T], Bucket) when is_list(Price) ->
+bucket([{"price", Price} | T], Bucket) when is_list(Price) ->
 	bucket(T, Bucket#bucket{price = Price});
 bucket([{"product", {struct, P}} | T], Bucket) ->
 	{_, ProdRef} = lists:keyfind("id", 1, P),
@@ -495,9 +495,10 @@ bucket([name | T], #bucket{name = undefined} = B, Acc) ->
 	bucket(T, B, Acc);
 bucket([name | T], #bucket{name = Name} = B, Acc) ->
 	bucket(T, B, [{"name", Name} | Acc]);
-bucket([price | T], #bucket{price = Price} = B, Acc)
-		when is_list(Price) ->
-	bucket(T, B, [{"price", {array, Price}} | Acc]);
+bucket([name | T], #bucket{price = []} = B, Acc) ->
+	bucket(T, B, Acc);
+bucket([price | T], #bucket{price = Price} = B, Acc) ->
+	bucket(T, B, [{"price", Price} | Acc]);
 bucket([product | T], #bucket{product = [ProdRef]} = B, Acc) ->
 	Id = {"id", ProdRef},
 	Href = {"href", ?productInventoryPath ++ ProdRef},
