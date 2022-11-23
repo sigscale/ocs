@@ -1934,7 +1934,8 @@ char_value_type(#range{lower = Lower, upper = Upper}) ->
 char_value_type(#rate{numerator = Numerator, denominator = Denominator}) ->
 	{struct, [{"numerator", char_value_type(Numerator)},
 			{"denominator", char_value_type(Denominator)}]};
-char_value_type(Value) when is_integer(Value); is_list(Value) ->
+char_value_type(Value)
+		when is_integer(Value); is_list(Value); is_boolean(Value) ->
 	Value.
 	
 -spec inventory(Instance) -> Instance
