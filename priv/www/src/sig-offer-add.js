@@ -2079,9 +2079,10 @@ class offerAdd extends PolymerElement {
 				priceNew.period = "yearly";
 				break;
 		}
+		var priAltObj = this.priceAlteration;
 		if(this.priceAlteration) {
 			function checkAlt(alts) {
-				return alts.name == this.priceAlteration;
+				return alts.name == priAltObj;
 			}
 			var altIndex = this.alterations.findIndex(checkAlt);
 			priceNew.alterations = this.alterations[altIndex];

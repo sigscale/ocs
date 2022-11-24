@@ -1380,8 +1380,12 @@ class offerUpdate extends PolymerElement {
 				if(this.prices[indexUpdatePrice].amount) {
 					this.priceUpdateAmount = this.prices[indexUpdatePrice].amount;
 				}
-				this.priceUpdatePeriod = this.prices[indexUpdatePrice].period;
-				this.priceUpdateAlteration = this.prices[indexUpdatePrice].alteration;
+				if(this.prices[indexUpdatePrice].period) {
+					this.priceUpdatePeriod = this.prices[indexUpdatePrice].period;
+				}
+				if(this.prices[indexUpdatePrice].alteration) {
+					this.priceUpdateAlteration = this.prices[indexUpdatePrice].alteration;
+				}
 				var prodPriceUpdate = this.prices[indexUpdatePrice];
 				if(prodPriceUpdate.prodSpecCharValueUse) {
 					for (var indexCharVal in prodPriceUpdate.prodSpecCharValueUse) {
@@ -2094,7 +2098,7 @@ class offerUpdate extends PolymerElement {
 			updatePriceNew.push(pricePeriod);
 		} else if(this.priceUpdatePeriod) {
 			var pricePeriod = new Object();
-			priceCharge.path = "/productOfferingPrice/" + indexPrices + "/recurringChargePeriod";
+			pricePeriod.path = "/productOfferingPrice/" + indexPrices + "/recurringChargePeriod";
 			switch(this.priceUpdatePeriod) {
 				case "Hourly":
 					pricePeriod.value = "hourly";
@@ -2113,10 +2117,12 @@ class offerUpdate extends PolymerElement {
 					break;
 			}
 			if(!this.prices[indexPrices].period) {
+				var pricePeriod = new Object();
 				priceperiod.op = "add";
 				updatePriceNew.push(pricePeriod);
 			} else if(this.priceUpdatePeriod != this.prices[indexPrices].period) {
-				priceCharge.op = "replace";
+				var pricePeriod = new Object();
+				pricePeriod.op = "replace";
 				updatePriceNew.push(pricePeriod);
 			}
 		}
@@ -2897,9 +2903,10 @@ class offerUpdate extends PolymerElement {
 				updatePriceNew.period = "yearly";
 				break;
 		}
+		var AltObj = this.priceUpdateAlteration;
 		if(this.priceUpdateAlteration) {
 			function checkAlt(alts) {
-				return alts.name == this.priceUpdateAlteration;
+				return alts.name == AltObj;
 			}
 			updatePriceNew.alteration = this.alterations.findIndex(checkAlt);
 		}
