@@ -3366,6 +3366,7 @@ class offerUpdate extends PolymerElement {
 		this.updateOfferEndDateAlt = null;
 		this.altUpdateType = null;
 		this.$.updateAltType.selected = null;
+		this.addUpdatePriceAlteration = null;
 		this.$.updateAlterationUnits.selected = null;
 		this.$.altSeconds.disabled = false;
 		this.$.altBytes.disabled = false;
@@ -3373,6 +3374,7 @@ class offerUpdate extends PolymerElement {
 		this.altUpdateCurrency = null;
 		this.$.updateAltAmount.value = null;
 		this.altUpdatePeriod = null;
+		this.updateAltPeriod = null;
 		this.altUpdateUnits = null;
 		this.priceUpdateReserveTime = null;
 		this.$.priceUpdateReserveTimeInput.disabled = false;
