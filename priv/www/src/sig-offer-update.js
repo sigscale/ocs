@@ -3384,7 +3384,6 @@ class offerUpdate extends PolymerElement {
 		this.updateRedirect = null;
 		this.priceUpdateTODStart = null;
 		this.fixedUpdatePriceBucket = null;
-		fixedUpdatePriceBucket = null;
 		this.priceUpdateTODEnd = null;
 		this.priceUpdateCallDirIn = false;
 		this.priceUpdateCallDirOut = false;
