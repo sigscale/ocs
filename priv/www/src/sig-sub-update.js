@@ -103,6 +103,13 @@ class subUpdate extends PolymerElement {
 									class="update-button">
 								Update
 							</paper-button>
+							<paper-button
+									toggles
+									raised
+									on-tap="deleteSubscriber"
+									class="delete-button">
+								Delete
+							</paper-button>
 							<paper-button dialog-dismiss
 									on-tap="cancelDialog"
 									class="cancel-button">
