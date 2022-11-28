@@ -2093,7 +2093,7 @@ class offerUpdate extends PolymerElement {
 		}
 		if(!this.priceUpdatePeriod && this.prices[indexPrices].period) {
 			var pricePeriod = new Object();
-			priceperiod.op = "remove";
+			pricePeriod.op = "remove";
 			pricePeriod.path = "/productOfferingPrice/" + indexPrices + "/recurringChargePeriod";
 			updatePriceNew.push(pricePeriod);
 		} else if(this.priceUpdatePeriod) {
@@ -2118,7 +2118,7 @@ class offerUpdate extends PolymerElement {
 			}
 			if(!this.prices[indexPrices].period) {
 				var pricePeriod = new Object();
-				priceperiod.op = "add";
+				pricePeriod.op = "add";
 				updatePriceNew.push(pricePeriod);
 			} else if(this.priceUpdatePeriod != this.prices[indexPrices].period) {
 				var pricePeriod = new Object();
