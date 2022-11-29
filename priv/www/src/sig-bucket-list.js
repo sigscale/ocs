@@ -107,6 +107,14 @@ class bucketList extends PolymerElement {
 						[[item.product]]
 					</template>
 				</vaadin-grid-column>
+				<vaadin-grid-column width="12ex" flex-grow="2">
+					<template class="header">
+						Price
+					</template>
+					<template>
+						[[item.price]]
+					</template>
+				</vaadin-grid-column>
 				<vaadin-grid-column-group>
 					<template class="header">
 						<div class="grouptitle">Balance</div>
