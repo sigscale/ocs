@@ -400,8 +400,7 @@ class offerUpdate extends PolymerElement {
 									label="Period">
 								<paper-listbox
 										id="updatePricePeriod"
-										slot="dropdown-content"
-										selected="2">
+										slot="dropdown-content">
 									<paper-item>
 										Hourly
 									</paper-item>
@@ -1960,27 +1959,43 @@ class offerUpdate extends PolymerElement {
 			priceType.path = "/productOfferingPrice/" + indexPrices + "/priceType";
 			updatePriceNew.push(priceType);
 		} else if(this.priceUpdateType) {
-			var priceType = new Object();
-			priceType.path = "/productOfferingPrice/" + indexPrices + "/priceType";
-			switch(this.priceUpdateType) {
-				case "Recurring":
-					priceType.value = "recurring";
-					break;
-				case "One Time":
-					priceType.value = "one_time";
-					break;
-				case "Usage":
-					priceType.value = "usage";
-					break;
-				case "Tariff":
-					priceType.value = "tariff";
-					break;
-			}
 			if(!this.prices[indexPrices].priceType) {
+				var priceType = new Object();
 				priceType.op = "add";
+				priceType.path = "/productOfferingPrice/" + indexPrices + "/priceType";
+				switch(this.priceUpdateType) {
+					case "Recurring":
+						priceType.value = "recurring";
+						break;
+					case "One Time":
+						priceType.value = "one_time";
+						break;
+					case "Usage":
+						priceType.value = "usage";
+						break;
+					case "Tariff":
+						priceType.value = "tariff";
+						break;
+				}
 				updatePriceNew.push(priceType);
 			} else if(this.priceUpdateType !== this.prices[indexPrices].priceType) {
+				var priceType = new Object();
 				priceType.op = "replace";
+				priceType.path = "/productOfferingPrice/" + indexPrices + "/priceType";
+				switch(this.priceUpdateType) {
+					case "Recurring":
+						priceType.value = "recurring";
+						break;
+					case "One Time":
+						priceType.value = "one_time";
+						break;
+					case "Usage":
+						priceType.value = "usage";
+						break;
+					case "Tariff":
+						priceType.value = "tariff";
+						break;
+				}
 				updatePriceNew.push(priceType);
 			}
 		}
@@ -2097,32 +2112,49 @@ class offerUpdate extends PolymerElement {
 			pricePeriod.path = "/productOfferingPrice/" + indexPrices + "/recurringChargePeriod";
 			updatePriceNew.push(pricePeriod);
 		} else if(this.priceUpdatePeriod) {
-			var pricePeriod = new Object();
-			pricePeriod.path = "/productOfferingPrice/" + indexPrices + "/recurringChargePeriod";
-			switch(this.priceUpdatePeriod) {
-				case "Hourly":
-					pricePeriod.value = "hourly";
-					break;
-				case "Daily":
-					pricePeriod.value = "daily";
-					break;
-				case "Weekly":
-					pricePeriod.value = "weekly";
-					break;
-				case "Monthly":
-					pricePeriod.value = "monthly";
-					break;
-				case "Yearly":
-					pricePeriod.value = "yearly";
-					break;
-			}
 			if(!this.prices[indexPrices].period) {
 				var pricePeriod = new Object();
-				pricePeriod.op = "add";
+				pricePeriod.op = "add"
+				pricePeriod.path = "/productOfferingPrice/" + indexPrices + "/recurringChargePeriod";
+				switch(this.priceUpdatePeriod) {
+					case "Hourly":
+						pricePeriod.value = "hourly";
+						break;
+					case "Daily":
+						pricePeriod.value = "daily";
+						break;
+					case "Weekly":
+						pricePeriod.value = "weekly";
+						break;
+					case "Monthly":
+						pricePeriod.value = "monthly";
+						break;
+					case "Yearly":
+						pricePeriod.value = "yearly";
+						break;
+				}
 				updatePriceNew.push(pricePeriod);
 			} else if(this.priceUpdatePeriod != this.prices[indexPrices].period) {
 				var pricePeriod = new Object();
 				pricePeriod.op = "replace";
+				pricePeriod.path = "/productOfferingPrice/" + indexPrices + "/recurringChargePeriod";
+				switch(this.priceUpdatePeriod) {
+					case "Hourly":
+						pricePeriod.value = "hourly";
+						break;
+					case "Daily":
+						pricePeriod.value = "daily";
+						break;
+					case "Weekly":
+						pricePeriod.value = "weekly";
+						break;
+					case "Monthly":
+						pricePeriod.value = "monthly";
+						break;
+					case "Yearly":
+						pricePeriod.value = "yearly";
+						break;
+				}
 				updatePriceNew.push(pricePeriod);
 			}
 		}
