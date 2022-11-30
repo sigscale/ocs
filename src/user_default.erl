@@ -28,7 +28,7 @@
 -copyright('Copyright (c) 2016 - 2022 SigScale Global Inc.').
 
 %% export the user_default public API
--export([help/0, ts/0, td/0, su/0]).
+-export([help/0, ts/0, td/0, su/0, up/0]).
 -export([di/0, di/1, di/2, dc/0]).
 -export([ll/1, ll/2, ql/2, ql/3, ql/4]).
 -export([service_name/1]).
@@ -180,6 +180,15 @@ su0([], Etag, Interval) ->
 			N + 1
 	end,
 	io:fwrite("Next report available in ~b seconds.\n", [Seconds]).
+
+-spec up() -> ok.
+%% @doc Display system uptime.
+up() ->
+   CurrentTime = erlang:system_time(second),
+   StartTime = erlang:convert_time_unit(erlang:system_info(start_time)
+         +  erlang:time_offset(), native, second),
+   {D, {H, M, S}} = calendar:seconds_to_daystime(CurrentTime - StartTime),
+   io:fwrite("Uptime: ~b days, ~b hours, ~b minutes, ~b seconds\n", [D, M, H, S]).
 
 -spec di() -> Result
 	when
