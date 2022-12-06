@@ -22,7 +22,7 @@
 -copyright('Copyright (c) 2016 - 2022 SigScale Global Inc.').
 
 -export([content_types_accepted/0, content_types_provided/0, get_params/0,
-		get_user/2, get_users/2, post_user/1, patch_user/4,
+		get_user/2, get_users/2, head_user/0, post_user/1, patch_user/4,
 		delete_user/1, user/1]).
 
 -include_lib("radius/include/radius.hrl").
@@ -42,6 +42,25 @@ content_types_accepted() ->
 %% @doc Provides list of resource representations available.
 content_types_provided() ->
 	["application/json", "application/problem+json"].
+
+-spec head_user() -> Result
+	when
+		Result :: {ok, [], Body :: iolist()}
+				| {error, ErrorCode :: integer()}.
+%% @doc Body producing function for
+%% 	`HEAD /partyManagement/v1/individual'
+%% 	requests.
+head_user() ->
+	try
+		Size = mnesia:table_info(httpd_user, size),
+		LastItem = integer_to_list(Size),
+		ContentRange = "items 1-" ++ LastItem ++ "/" ++ LastItem,
+		Headers = [{content_range, ContentRange}],
+		{ok, Headers, []}
+	catch
+		_:_Reason ->
+			{error, 500}
+	end.
 
 -spec get_users(Query, Headers) -> Result
 	when
