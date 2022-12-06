@@ -170,8 +170,22 @@ do(#mod{method = Method, parsed_header = _Headers,
 	end.
 
 %% @hidden
+do_head(Resource, ModData, ["balanceManagement", "v1", "bucket"]) ->
+	do_response(ModData, Resource:head_bucket());
+do_head(Resource, ModData, ["ocs", "v1", "client"]) ->
+	do_response(ModData, Resource:head_client());
+do_head(Resource, ModData, ["serviceInventoryManagement", "v2", "service"]) ->
+	do_response(ModData, Resource:head_inventory());
 do_head(Resource, ModData, ["resourceInventoryManagement", "v1", "resource"]) ->
 	do_response(ModData, Resource:head_resource());
+do_head(Resource, ModData, ["catalogManagement", "v2", "productOffering"]) ->
+	do_response(ModData, Resource:head_offer());
+do_head(Resource, ModData, ["productCatalogManagement", "v2", "productOffering"]) ->
+	do_response(ModData, Resource:head_offer());
+do_head(Resource, ModData, ["productInventoryManagement", "v2", "product"]) ->
+	do_response(ModData, Resource:head_product());
+do_head(Resource, ModData, ["partyManagement", "v1", "individual"]) ->
+	do_response(ModData, Resource:head_user());
 do_head(_, #mod{parsed_header = RequestHeaders, data = Data} = ModData, _) ->
 	Problem = #{type => "https://datatracker.ietf.org/doc/html/rfc7231#section-6.5.4",
 			title => "Not Found",

@@ -25,7 +25,7 @@
 		top_up/2, top_up_service/2, get_balance/1, get_balance/2,
 		get_balance_service/1, get_balance_log/2, balance_adjustment/1]).
 -export([delete_bucket/1]).
--export([get_bucket/1, get_buckets/2]).
+-export([get_bucket/1, get_buckets/2, head_bucket/0]).
 -export([abmf/1, adjustment/1, bucket/1, acc_balance/1]).
 -export([quantity/1]).
 
@@ -138,6 +138,25 @@ get_bucket(BucketId) ->
 		_:not_found ->
 			{error, 404};
 		_:_ ->
+			{error, 500}
+	end.
+
+-spec head_bucket() -> Result
+	when
+		Result :: {ok, [], Body :: iolist()}
+				| {error, ErrorCode :: integer()}.
+%% @doc Body producing function for
+%%    `HEAD /balanceManagement/v1/bucket'
+%%    requests.
+head_bucket() ->
+	try
+		Size = mnesia:table_info(bucket, size),
+		LastItem = integer_to_list(Size),
+		ContentRange = "items 1-" ++ LastItem ++ "/" ++ LastItem,
+		Headers = [{content_range, ContentRange}],
+		{ok, Headers, []}
+	catch
+		_:_Reason ->
 			{error, 500}
 	end.
 

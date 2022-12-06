@@ -103,6 +103,13 @@ class subUpdate extends PolymerElement {
 									class="update-button">
 								Update
 							</paper-button>
+							<paper-button
+									toggles
+									raised
+									on-tap="deleteSubscriber"
+									class="delete-button">
+								Delete
+							</paper-button>
 							<paper-button dialog-dismiss
 									on-tap="cancelDialog"
 									class="cancel-button">
@@ -312,15 +319,12 @@ class subUpdate extends PolymerElement {
 			</iron-ajax>
 			<iron-ajax
 					id="getServiceRespAjax"
-					method = "GET"
-					on-error="_getServiceError">
+					method = "GET">
 			</iron-ajax>
 			<iron-ajax
 					id="addBucketAjax"
 					method = "post"
-					content-type="application/json"
-					on-response="_addBucketResponse"
-					on-error="_addBucketError">
+					content-type="application/json">
 			</iron-ajax>
 			<iron-ajax
 					id="updateSubscriberProductsAjax"
@@ -862,6 +866,12 @@ class subUpdate extends PolymerElement {
 
 	_updateSubscriberProductResponse(event) {
 		document.body.querySelector('sig-app').shadowRoot.getElementById('serviceList').shadowRoot.getElementById('subscriberGrid').clearCache();
+	}
+
+	_updateSubscriberProductError(event) {
+		var toast = document.body.querySelector('sig-app').shadowRoot.getElementById('restError');
+		toast.text = "Error";
+		toast.open();
 	}
 
 	deleteSubscriber(event) {

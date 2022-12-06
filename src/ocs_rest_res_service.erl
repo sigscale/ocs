@@ -23,7 +23,7 @@
 
 -export([content_types_accepted/0, content_types_provided/0]).
 -export([add_inventory/1, get_inventory/1, get_inventories/2,
-		delete_inventory/1, patch_inventory/3]).
+		delete_inventory/1, patch_inventory/3, head_inventory/0]).
 -export([get_service_specs/1, get_service_spec/2]).
 -export([inventory/1]).
 
@@ -120,6 +120,25 @@ get_inventory(Id) ->
 		_:_ ->
 			{error, 500}
 	end.
+
+-spec head_inventory() -> Result
+   when
+      Result :: {ok, [], Body :: iolist()}
+            | {error, ErrorCode :: integer()}.
+%% @doc Body producing function for
+%%    `HEAD /serviceInventoryManagement/v2/service'
+%%    requests.
+head_inventory() ->
+   try
+      Size = mnesia:table_info(client, size),
+      LastItem = integer_to_list(Size),
+      ContentRange = "items 1-" ++ LastItem ++ "/" ++ LastItem,
+      Headers = [{content_range, ContentRange}],
+      {ok, Headers, []}
+   catch
+      _:_Reason ->
+         {error, 500}
+   end.
 
 -spec get_inventories(Query, Headers) -> Result when
 	Query :: [{Key :: string(), Value :: string()}],

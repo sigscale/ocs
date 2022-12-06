@@ -23,7 +23,7 @@
 
 -export([content_types_accepted/0, content_types_provided/0,
 		get_clients/2, get_client/2, post_client/1,
-		patch_client/4, delete_client/1]).
+		patch_client/4, delete_client/1, head_client/0]).
 
 -include("ocs.hrl").
 
@@ -40,6 +40,25 @@ content_types_accepted() ->
 %% @doc Provides list of resource representations available.
 content_types_provided() ->
 	["application/json", "application/problem+json"].
+
+-spec head_client() -> Result
+   when
+      Result :: {ok, [], Body :: iolist()}
+            | {error, ErrorCode :: integer()}.
+%% @doc Body producing function for
+%%    `HEAD /ocs/v1/client'
+%%    requests.
+head_client() ->
+   try
+      Size = mnesia:table_info(client, size),
+      LastItem = integer_to_list(Size),
+      ContentRange = "items 1-" ++ LastItem ++ "/" ++ LastItem,
+      Headers = [{content_range, ContentRange}],
+      {ok, Headers, []}
+   catch
+      _:_Reason ->
+         {error, 500}
+   end.
 
 -spec get_clients(Query, Headers) -> Result
 	when

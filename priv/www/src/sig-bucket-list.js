@@ -60,7 +60,7 @@ class bucketList extends PolymerElement {
 							<dd>{{item.units}}</dd>
 						</template>
 						<template is="dom-if" if="{{item.price}}">
-							<dt><b>Fixed Price Bucket</b></dt>
+							<dt><b>Fixed Price</b></dt>
 							<dd>{{item.price}}</dd>
 						</template>
 					</dl>
@@ -105,6 +105,14 @@ class bucketList extends PolymerElement {
 					</template>
 					<template>
 						[[item.product]]
+					</template>
+				</vaadin-grid-column>
+				<vaadin-grid-column width="12ex" flex-grow="2">
+					<template class="header">
+						Price
+					</template>
+					<template>
+						[[item.price]]
 					</template>
 				</vaadin-grid-column>
 				<vaadin-grid-column-group>

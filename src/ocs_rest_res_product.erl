@@ -23,8 +23,8 @@
 
 -export([content_types_accepted/0, content_types_provided/0]).
 -export([add_offer/1, add_inventory/1]).
--export([get_offer/1, get_offers/2,
-		patch_offer/3, get_inventory/1,
+-export([get_offer/1, get_offers/2, head_offer/0,
+		patch_offer/3, get_inventory/1, head_product/0,
 		get_inventories/2, patch_inventory/3]).
 -export([sync_offer/1]).
 -export([get_catalog/2, get_catalogs/1]).
@@ -199,6 +199,25 @@ get_inventory(ID) ->
 			{error, 400}
 	end.
 
+-spec head_offer() -> Result
+	when
+		Result :: {ok, [], Body :: iolist()}
+				| {error, ErrorCode :: integer()}.
+%% @doc Body producing function for
+%% 	`HEAD /catalogManagement/v2/productOffering'
+%% 	requests.
+head_offer() ->
+	try
+		Size = mnesia:table_info(offer, size),
+		LastItem = integer_to_list(Size),
+		ContentRange = "items 1-" ++ LastItem ++ "/" ++ LastItem,
+		Headers = [{content_range, ContentRange}],
+		{ok, Headers, []}
+	catch
+		_:_Reason ->
+			{error, 500}
+	end.
+
 -spec get_offers(Query, Headers) -> Result when
 	Query :: [{Key :: string(), Value :: string()}],
 	Result	:: {ok, Headers, Body} | {error, Status},
@@ -240,6 +259,25 @@ get_offers(Query, Headers) ->
 		_ ->
 			{error, 400}
 		end.
+
+-spec head_product() -> Result
+	when
+		Result :: {ok, [], Body :: iolist()}
+				| {error, ErrorCode :: integer()}.
+%% @doc Body producing function for
+%% 	`HEAD /productInventoryManagement/v2/product'
+%% 	requests.
+head_product() ->
+	try
+		Size = mnesia:table_info(product, size),
+		LastItem = integer_to_list(Size),
+		ContentRange = "items 1-" ++ LastItem ++ "/" ++ LastItem,
+		Headers = [{content_range, ContentRange}],
+		{ok, Headers, []}
+	catch
+		_:_Reason ->
+			{error, 500}
+	end.
 				
 -spec get_inventories(Query, Headers) -> Result when
 	Query :: [{Key :: string(), Value :: string()}],
