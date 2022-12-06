@@ -182,6 +182,8 @@ do_head(Resource, ModData, ["catalogManagement", "v2", "productOffering"]) ->
 	do_response(ModData, Resource:head_offer());
 do_head(Resource, ModData, ["productCatalogManagement", "v2", "productOffering"]) ->
 	do_response(ModData, Resource:head_offer());
+do_head(Resource, ModData, ["productInventoryManagement", "v2", "product"]) ->
+	do_response(ModData, Resource:head_product());
 do_head(_, #mod{parsed_header = RequestHeaders, data = Data} = ModData, _) ->
 	Problem = #{type => "https://datatracker.ietf.org/doc/html/rfc7231#section-6.5.4",
 			title => "Not Found",
