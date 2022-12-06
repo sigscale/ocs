@@ -170,6 +170,8 @@ do(#mod{method = Method, parsed_header = _Headers,
 	end.
 
 %% @hidden
+do_head(Resource, ModData, ["balanceManagement", "v1", "bucket"]) ->
+	do_response(ModData, Resource:head_bucket());
 do_head(Resource, ModData, ["ocs", "v1", "client"]) ->
 	do_response(ModData, Resource:head_client());
 do_head(Resource, ModData, ["serviceInventoryManagement", "v2", "service"]) ->
