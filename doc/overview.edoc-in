@@ -724,7 +724,7 @@ DIAMETER services may be configured with the following (optional) configuration 
 	<dt>transport_module</dt>
 		<dd>Transport module may be <tt>diameter_tcp | diameter_sctp</tt>. (default: diameter_tcp)</dd>
 	<dt>transport_config</dt>
-		<dd></dd>
+		<dd>Config argument in the transport module's `start/3' function. (default: [])</dd>
 	<dt>eap_method_prefer</dt>
 		<dd>The EAP method which will be offered first. (default: akap)</dd>
 	<dt>eap_method_order</dt>
