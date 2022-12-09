@@ -391,7 +391,7 @@ ql(acct = _Log, {MatchHead, MatchConditions} = Match,
 	query_acct_log(Match, Start, End).
 
 %%----------------------------------------------------------------------
-%%  The user_default private API
+%%  the user_default private api
 %%----------------------------------------------------------------------
 
 -spec diameter_service_info(Services, Info) -> Result
@@ -427,7 +427,7 @@ diameter_service_info([], _Info, Acc) ->
 
 -spec query_acct_log(Match, Start, End) -> Events
 	when
-		Match :: DiameterMatchSpec | RatedMatchSpec,
+	        Match :: DiameterMatchSpec | RatedMatchSpec,
 		DiameterMatchSpec :: {DiameterMatchHead, MatchConditions},
 		DiameterMatchHead :: ocs_log:acct_request() | ocs_log:acct_response(),
 		RatedMatchSpec :: {RatedMatchHead, MatchConditions},
@@ -623,6 +623,38 @@ dia_count({272, 1}, Count) ->
 	io:fwrite("        CCR: ~b~n", [Count]);
 dia_count({272, 0}, Count) ->
 	io:fwrite("        CCA: ~b~n", [Count]);
+dia_count({265, 1}, Count) ->
+        io:fwrite("        AAR: ~b~n", [Count]);
+dia_count({265, 0}, Count) ->
+        io:fwrite("        AAA: ~b~n", [Count]);
+dia_count({268, 1}, Count) ->
+        io:fwrite("        DER: ~b~n", [Count]);
+dia_count({268, 0}, Count) ->
+        io:fwrite("        DEA: ~b~n", [Count]);
+dia_count({301, 1}, Count) ->
+        io:fwrite("        SAR: ~b~n", [Count]);
+dia_count({301, 0}, Count) ->
+        io:fwrite("        SAA: ~b~n", [Count]);
+dia_count({303, 1}, Count) ->
+        io:fwrite("        MAR: ~b~n", [Count]);
+dia_count({303, 0}, Count) ->
+        io:fwrite("        MAA: ~b~n", [Count]);
+dia_count({304, 1}, Count) ->
+        io:fwrite("        RTR: ~b~n", [Count]);
+dia_count({304, 0}, Count) ->
+        io:fwrite("        RTA: ~b~n", [Count]);
+dia_count({316, 1}, Count) ->
+        io:fwrite("        ULR: ~b~n", [Count]);
+dia_count({316, 0}, Count) ->
+        io:fwrite("        ULA: ~b~n", [Count]);
+dia_count({318, 1}, Count) ->
+        io:fwrite("        AIR: ~b~n", [Count]);
+dia_count({318, 0}, Count) ->
+        io:fwrite("        AIA: ~b~n", [Count]);
+dia_count({321, 1}, Count) ->
+        io:fwrite("        PUR: ~b~n", [Count]);
+dia_count({321, 0}, Count) ->
+        io:fwrite("        PUA: ~b~n", [Count]);
 dia_count({257, 0, 'Result-Code', ResultCode}, Count) ->
 	io:fwrite("        CEA ~w ~b: ~b~n", ['Result-Code', ResultCode, Count]);
 dia_count({280, 0, 'Result-Code', ResultCode}, Count) ->
