@@ -198,7 +198,7 @@ sequences() ->
 %%
 all() ->
 	[get_balance_range, authenticate_user_request, unauthenticate_user_request,
-	add_user, get_user, delete_user,
+	add_user, get_user, head_user, delete_user,
 	update_user_characteristics_json_patch,
 	add_client, add_client_without_password, get_client, get_client_id,
 	get_client_bogus, get_client_notfound, get_all_clients,
@@ -337,6 +337,24 @@ get_user(Config) ->
 	{ok, ID} = F(F, Characteristic, "username"),
 	{error, not_found} = F(F, Characteristic, "password"),
 	{ok, Locale} = F(F, Characteristic, "locale").
+
+head_user() ->
+	[{userdata, [{doc,"head user in rest interface"}]}].
+
+head_user(Config) ->
+	HostUrl = ?config(host_url, Config),
+	HttpOpt = ?config(http_options, Config),
+	ContentType = "application/json",
+	ID = "head",
+	Password = "request",
+	Locale = "es",
+	UserData = [{locale, Locale}],
+	{ok, _} = ocs:add_user(ID, Password, UserData),
+	Accept = {"accept", "application/json"},
+	Request2 = {HostUrl ++ "/partyManagement/v1/individual", [auth_header()], ContentType},
+	{ok, Result1} = httpc:request(head, Request2, HttpOpt, []),
+	{{"HTTP/1.1", 204, _NoContent}, Headers1, []} = Result1,
+	{_, "0"} = lists:keyfind("content-length", 1, Headers1).
 
 delete_user() ->
 	[{userdata, [{doc,"Delete user in rest interface"}]}].
