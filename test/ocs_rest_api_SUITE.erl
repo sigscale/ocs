@@ -214,7 +214,7 @@ all() ->
 	get_auth_usage_range, get_acct_usage, get_acct_usage_id,
 	get_acct_usage_filter, get_acct_usage_range, get_ipdr_usage,
 	top_up, get_balance, get_balance_service, query_buckets,
-	simultaneous_updates_on_client_failure, get_product, add_product,
+	simultaneous_updates_on_client_failure, get_product, head_product, add_product,
 	add_product_sms, update_product_realizing_service, delete_product,
 	ignore_delete_product, query_product, filter_product,
 	post_hub_balance, delete_hub_balance, get_balance_hubs, get_balance_hub,
@@ -1057,6 +1057,23 @@ update_product_realizing_service(Config) ->
 			end
 	end,
 	true = lists:all(F3, RealizeingServices).
+
+head_product() ->
+	[{userdata, [{doc,"Head product inventory"}]}].
+
+head_product(Config) ->
+	HostUrl = ?config(host_url, Config),
+	HttpOpt = ?config(http_options, Config),
+	ContentType = "application/json",
+	P2 = price(usage, octets, rand:uniform(10000), rand:uniform(100)),
+	OfferId1 = offer_add([P2], 4),
+	ProdRef1 = product_add(OfferId1),
+	{_, #product{}} = ocs:find_product(ProdRef1),
+	URI = "/productInventoryManagement/v2/product",
+	Request = {HostUrl ++ URI, [auth_header()], ContentType},
+	{ok, Result} = httpc:request(head, Request, HttpOpt, []),
+	{{"HTTP/1.1", 204, _NoContent}, Headers, []} = Result,
+	{_, "0"} = lists:keyfind("content-length", 1, Headers).
 
 delete_product() ->
 	[{userdata, [{doc,"Delete product inventory"}]}].
