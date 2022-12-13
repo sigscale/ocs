@@ -202,7 +202,7 @@ all() ->
 	update_user_characteristics_json_patch,
 	add_client, add_client_without_password, get_client, get_client_id,
 	get_client_bogus, get_client_notfound, get_all_clients,
-	get_client_range, get_clients_filter, delete_client,
+	get_client_range, get_clients_filter, head_client, delete_client,
 	update_client_password_json_patch,
 	update_client_attributes_json_patch,
 	add_offer, get_offer, delete_offer, ignore_delete_offer, update_offer,
@@ -669,6 +669,30 @@ get_clients_filter(Config) ->
 						and lists:keymember("secret", 1, L)
 	end,
 	true = lists:all(Fall, ClientsList).
+
+head_client() ->
+	[{userdata, [{doc,"Head client in rest interface"}]}].
+
+head_client(Config) ->
+	HostUrl = ?config(host_url, Config),
+	HttpOpt = ?config(http_options, Config),
+	ContentType = "application/json",
+	ID = "10.2.55.9",
+	Port = 1898,
+	Protocol = "RADIUS",
+	Secret = "kss8c244npqc",
+	JSON1 = {struct, [{"id", ID}, {"port", Port}, {"protocol", Protocol},
+		{"secret", Secret}]},
+	RequestBody = lists:flatten(mochijson:encode(JSON1)),
+	Accept = {"accept", "application/json"},
+	Request1 = {HostUrl ++ "/ocs/v1/client", [Accept, auth_header()], ContentType, RequestBody},
+	{ok, Result} = httpc:request(post, Request1, HttpOpt, []),
+	{{"HTTP/1.1", 201, _Created}, Headers, _} = Result,
+	{_, URI1} = lists:keyfind("location", 1, Headers),
+	Request2 = {HostUrl ++ "/ocs/v1/client", [auth_header()], ContentType},
+	{ok, Result1} = httpc:request(head, Request2, HttpOpt, []),
+	{{"HTTP/1.1", 204, _NoContent}, Headers1, []} = Result1,
+	{_, "0"} = lists:keyfind("content-length", 1, Headers1).
 
 delete_client() ->
 	[{userdata, [{doc,"Delete client in rest interface"}]}].
