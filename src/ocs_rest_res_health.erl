@@ -57,14 +57,15 @@ get_health([] = _Query, _RequestHeaders) ->
 	try
 		Check1 = application([ocs, inets, diameter, radius, snmp]),
 		Check2 = table_size([offer, product, service, resource, bucket]),
+		Check3 = up(),
 		case scheduler() of
-			{ok, HeadOptions, Check3} ->
-				{HeadOptions, {"checks", {struct, [Check1, Check2, Check3]}}};
+			{ok, HeadOptions, Check4} ->
+				{HeadOptions, {"checks", {struct, [Check1, Check2, Check3, Check4]}}};
 			{error, _Reason1} ->
-				{[], {"checks", {struct, [Check1, Check2]}}}
+				{[], {"checks", {struct, [Check1, Check2, Check3]}}}
 		end
 	of
-		{CacheControl, {_, {_, [{"application", {_, [{_, [{_, ocs}, _,
+	        {CacheControl, {_, {_, [{"application", {_, [{_, [{_, ocs}, _,
 				{_, "up"}]} | _]}} | _]}} = Checks} ->
 			Status = {"status", "pass"},
 			ServiceId = {"serviceId", atom_to_list(node())},
@@ -199,7 +200,7 @@ scheduler({ok, {Etag, Interval, Report}}) ->
 	F = fun({SchedulerId, Utilization}) ->
 				Component1 = {"componentId",
 						integer_to_list(SchedulerId)},
-				Value1 = {"observeredValue", Utilization},
+				Value1 = {"observedValue", Utilization},
 				Unit1 = {"observedUnit", "percent"},
 				Type1 = {"componentType", "system"},
 				{struct, [Component1, Value1, Unit1, Type1]}
@@ -246,8 +247,16 @@ table_size([Name | T], Acc) ->
 	NewAcc = [{struct, [{"componentId", Name},
 			{"componentType", "component"},
 			{"observedUnit", "rows"},
-			{"observeredValue", Size}]} | Acc],
+			{"observedValue", Size}]} | Acc],
 	table_size(T, NewAcc);
 table_size([], Acc) ->
 	{"table:size", {array, Acc}}.
 
+up() ->
+   CurrentTime = erlang:system_time(second),
+   StartTime = erlang:convert_time_unit(erlang:system_info(start_time) +  erlang:time_offset(), native, second),
+   Uptime = CurrentTime - StartTime,
+   Time  = [{struct, [	{"componentType", "system"},
+			{"observedUnit", "s"},
+			{"observedValue", Uptime}]}],
+   {"uptime", {array, Time }}.
