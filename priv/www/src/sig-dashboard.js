@@ -20,6 +20,7 @@ import "@polymer/paper-card/paper-card.js";
 import "@polymer/paper-item/paper-icon-item.js";
 import '@polymer/paper-input/paper-input.js';
 import '@polymer/iron-ajax/iron-ajax.js';
+import '@polymer/iron-iconset-svg/iron-iconset-svg.js';
 import '@polymer/paper-styles/color.js';
 import './style-element.js';
 
@@ -49,6 +50,17 @@ class dashBoard extends PolymerElement {
 					</svg>
 				</div>
 			</paper-card>
+			<paper-card
+					heading="Uptime">
+				<div
+						class="card-content">
+					<svg
+							id="uptime"
+							width="500"
+							height="200">
+					</svg>
+				</div>
+			</paper-card>
 			<iron-ajax
 					id="getHealthDashAjax"
 					headers='{"Accept": "application/health+json"}'
@@ -66,6 +78,14 @@ class dashBoard extends PolymerElement {
 				value: false
 			},
 			tabSize: {
+				type: Array,
+				readOnly: true,
+				notify: false,
+				value: function() {
+					return []
+				}
+			},
+			upArr: {
 				type: Array,
 				readOnly: true,
 				notify: false,
@@ -111,11 +131,11 @@ class dashBoard extends PolymerElement {
 							var newRecord = new Object();
 							var date = new Date();
 							newRecord.dateTime = date.toISOString();
-							newRecord.name = "observeredValue";
+							newRecord.name = "observedValue";
 							newRecord.componentId = request.response.checks
 									["scheduler:utilization"][index].componentId;
 							newRecord.count = request.response.checks
-									["scheduler:utilization"][index].observeredValue;
+									["scheduler:utilization"][index].observedValue;
 							ocsHealth.push('schedulerData', newRecord);
 							var schedule = ocsHealth.shadowRoot.getElementById("schedule");
 							var width = schedule.width.baseVal.value;
@@ -156,14 +176,27 @@ class dashBoard extends PolymerElement {
 						for(var index in request.response.checks["table:size"]) {
 							var newRecord = new Object();
 							newRecord.name = request.response.checks["table:size"][index].componentId;
-							newRecord.count = request.response.checks["table:size"][index].observeredValue;
+							newRecord.count = request.response.checks["table:size"][index].observedValue;
 							ocsHealth.push('tabSize', newRecord);
+						}
+					}
+					if(request.response.checks["uptime"]) {
+						for(var indexUp in request.response.checks["uptime"]) {
+							var newRecordUp = new Object();
+							newRecordUp.unit = request.response.checks["uptime"][indexUp].observedUnit;
+							var upValue = request.response.checks["uptime"][indexUp].observedValue;
+							var days = upValue / 86400;
+							var hours = upValue / 3600;
+							var minutes = upValue / 60;
+							ocsHealth.push('upArr', newRecordUp);
 						}
 					}
 				}
 				var svgTable = select(root).select("#tableSize");
 				ocsHealth.draw_pie(svgTable, ocsHealth.tabSize, color_size);
 				ocsHealth.schedulerTimeout = setTimeout(ocsHealth._healthChart, maxAge * 1000);
+				var svgUp = select(root).select("#uptime");
+				ocsHealth.drawCircle(svgUp, ocsHealth.upArr, days.toFixed(0), hours.toFixed(0), minutes.toFixed(0));
 			}
 		}
 		var handleAjaxError = function(error) {
@@ -178,6 +211,82 @@ class dashBoard extends PolymerElement {
 		} else {
 			ajax.generateRequest().completes.then(handleAjaxResponse, handleAjaxError);
 		}
+	}
+
+	drawCircle(svg, data, days, hours, minutes) {
+		var g1 = svg.append('g');
+		var g2 = svg.append('g');
+		var g3 = svg.append('g');
+		g1.append('circle')
+			.attr('cx', '80')
+			.attr('cy', '80')
+			.attr('r', 72)
+			.style('fill', '#8ac000');
+		g1.append('text')
+			.attr('x', '80')
+			.attr('y', '80')
+			.attr("text-anchor", "middle")
+			.attr('dy', '10px')
+			.text(days)
+			.style('fill', 'white')
+			.attr("font-size", '48')
+			.attr("font-family", "Roboto");
+		g1.append('text')
+			.attr('x', '80')
+			.attr('y', '80')
+			.attr("text-anchor", "middle")
+			.attr('dy', '1.5em')
+			.text('Days')
+			.style('fill', 'white')
+			.attr("font-size", '24')
+			.attr("font-family", "Roboto");
+		g2.append('circle')
+			.attr('cx', '232')
+			.attr('cy', '80')
+			.attr('r', 72)
+			.style('fill', '#8ac000');
+		g2.append('text')
+			.attr('x', '232')
+			.attr('y', '80')
+			.attr("text-anchor", "middle")
+			.attr('dy', '10px')
+			.text(hours)
+			.style('fill', 'white')
+			.attr("font-size", '48')
+			.attr("font-family", "Roboto");
+		g2.append('text')
+			.attr('x', '232')
+			.attr('y', '80')
+			.attr("text-anchor", "middle")
+			.attr('dy', '1.5em')
+			.text('Hours')
+			.style('fill', 'white')
+			.attr("font-size", '24')
+			.attr("font-family", "Roboto");
+		g3.append('circle')
+			.attr('cx', '384')
+			.attr('cy', '80')
+			.attr('r', 72)
+			.style('fill', '#8ac000');
+		g3.append('text')
+			.attr('x', '384')
+			.attr('y', '80')
+			.attr("text-anchor", "middle")
+			.attr('dy', '10px')
+			.text(minutes)
+			.style('fill', 'white')
+			.attr("font-size", '48')
+			.attr("font-family", "Roboto");
+		g3.append('text')
+			.attr('x', '384')
+			.attr('y', '80')
+			.attr("text-anchor", "middle")
+			.attr('dy', '1.5em')
+			.text('Minutes')
+			.style('fill', 'white')
+			.attr("font-size", '24')
+			.attr("font-family", "Roboto");
+		return svg.node();
 	}
 
 	draw_line(svg, data, width, height, color) {
