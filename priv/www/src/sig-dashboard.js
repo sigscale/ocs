@@ -85,13 +85,10 @@ class dashBoard extends PolymerElement {
 					return []
 				}
 			},
-			upArr: {
-				type: Array,
+			uptime: {
+				type: Number,
 				readOnly: true,
-				notify: false,
-				value: function() {
-					return []
-				}
+				notify: false
 			},
 			schedulerData: {
 				type: Array,
@@ -181,22 +178,14 @@ class dashBoard extends PolymerElement {
 						}
 					}
 					if(request.response.checks["uptime"]) {
-						for(var indexUp in request.response.checks["uptime"]) {
-							var newRecordUp = new Object();
-							newRecordUp.unit = request.response.checks["uptime"][indexUp].observedUnit;
-							var upValue = request.response.checks["uptime"][indexUp].observedValue;
-							var days = upValue / 86400;
-							var hours = upValue / 3600;
-							var minutes = upValue / 60;
-							ocsHealth.push('upArr', newRecordUp);
-						}
+						ocsHealth.uptime = request.response.checks["uptime"][0].observedValue;
 					}
 				}
 				var svgTable = select(root).select("#tableSize");
 				ocsHealth.draw_pie(svgTable, ocsHealth.tabSize, color_size);
 				ocsHealth.schedulerTimeout = setTimeout(ocsHealth._healthChart, maxAge * 1000);
 				var svgUp = select(root).select("#uptime");
-				ocsHealth.drawCircle(svgUp, ocsHealth.upArr, days.toFixed(0), hours.toFixed(0), minutes.toFixed(0));
+				ocsHealth.draw_up(svgUp, ocsHealth.uptime);
 			}
 		}
 		var handleAjaxError = function(error) {
@@ -213,7 +202,10 @@ class dashBoard extends PolymerElement {
 		}
 	}
 
-	drawCircle(svg, data, days, hours, minutes) {
+	draw_up(svg, uptime) {
+		var days = uptimne / 86400;
+		var hours = (uptime % 86400) / 3600;
+		var minutes = (uptime % 3600) / 60;
 		var g1 = svg.append('g');
 		var g2 = svg.append('g');
 		var g3 = svg.append('g');
@@ -227,7 +219,7 @@ class dashBoard extends PolymerElement {
 			.attr('y', '80')
 			.attr("text-anchor", "middle")
 			.attr('dy', '10px')
-			.text(days)
+			.text(days.toFixed(0))
 			.style('fill', 'white')
 			.attr("font-size", '48')
 			.attr("font-family", "Roboto");
@@ -250,7 +242,7 @@ class dashBoard extends PolymerElement {
 			.attr('y', '80')
 			.attr("text-anchor", "middle")
 			.attr('dy', '10px')
-			.text(hours)
+			.text(hours.toFixed)
 			.style('fill', 'white')
 			.attr("font-size", '48')
 			.attr("font-family", "Roboto");
@@ -273,7 +265,7 @@ class dashBoard extends PolymerElement {
 			.attr('y', '80')
 			.attr("text-anchor", "middle")
 			.attr('dy', '10px')
-			.text(minutes)
+			.text(minutes.toFixed)
 			.style('fill', 'white')
 			.attr("font-size", '48')
 			.attr("font-family", "Roboto");
