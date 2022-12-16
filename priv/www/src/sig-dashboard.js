@@ -87,8 +87,8 @@ class dashBoard extends PolymerElement {
 			},
 			uptime: {
 				type: Number,
-				readOnly: true,
-				notify: false
+				notify: false,
+				value: 0
 			},
 			schedulerData: {
 				type: Array,
@@ -203,7 +203,7 @@ class dashBoard extends PolymerElement {
 	}
 
 	draw_up(svg, uptime) {
-		var days = uptimne / 86400;
+		var days = uptime / 86400;
 		var hours = (uptime % 86400) / 3600;
 		var minutes = (uptime % 3600) / 60;
 		var g1 = svg.append('g');
@@ -242,7 +242,7 @@ class dashBoard extends PolymerElement {
 			.attr('y', '80')
 			.attr("text-anchor", "middle")
 			.attr('dy', '10px')
-			.text(hours.toFixed)
+			.text(hours.toFixed(0))
 			.style('fill', 'white')
 			.attr("font-size", '48')
 			.attr("font-family", "Roboto");
@@ -265,7 +265,7 @@ class dashBoard extends PolymerElement {
 			.attr('y', '80')
 			.attr("text-anchor", "middle")
 			.attr('dy', '10px')
-			.text(minutes.toFixed)
+			.text(minutes.toFixed(0))
 			.style('fill', 'white')
 			.attr("font-size", '48')
 			.attr("font-family", "Roboto");
