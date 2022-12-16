@@ -203,9 +203,9 @@ class dashBoard extends PolymerElement {
 	}
 
 	draw_up(svg, uptime) {
-		var days = uptime / 86400;
-		var hours = (uptime % 86400) / 3600;
-		var minutes = (uptime % 3600) / 60;
+		var days = Math.floor(uptime / 86400);
+		var hours = Math.floor((uptime % 86400) / 3600);
+		var minutes = Math.floor((uptime % 3600) / 60);
 		var g1 = svg.append('g');
 		var g2 = svg.append('g');
 		var g3 = svg.append('g');
@@ -219,7 +219,7 @@ class dashBoard extends PolymerElement {
 			.attr('y', '80')
 			.attr("text-anchor", "middle")
 			.attr('dy', '10px')
-			.text(days.toFixed(0))
+			.text(days)
 			.style('fill', 'white')
 			.attr("font-size", '48')
 			.attr("font-family", "Roboto");
@@ -242,7 +242,7 @@ class dashBoard extends PolymerElement {
 			.attr('y', '80')
 			.attr("text-anchor", "middle")
 			.attr('dy', '10px')
-			.text(hours.toFixed(0))
+			.text(hours)
 			.style('fill', 'white')
 			.attr("font-size", '48')
 			.attr("font-family", "Roboto");
@@ -265,7 +265,7 @@ class dashBoard extends PolymerElement {
 			.attr('y', '80')
 			.attr("text-anchor", "middle")
 			.attr('dy', '10px')
-			.text(minutes.toFixed(0))
+			.text(minutes)
 			.style('fill', 'white')
 			.attr("font-size", '48')
 			.attr("font-family", "Roboto");
