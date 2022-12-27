@@ -1347,7 +1347,7 @@ find_service(Identity) when is_binary(Identity) ->
 		{atomic, [#service{} = Service]} ->
 			{ok, Service};
 		{atomic, []} ->
-			{error, not_found};
+			{error, throw(product_not_found)};
 		{aborted, Reason} ->
 			{error, Reason}
 	end.
