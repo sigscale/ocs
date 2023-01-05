@@ -1356,7 +1356,7 @@ fill_acct() ->
 		_Other ->
 			fill_acct()
 	after
-		0 ->
+		500 ->
 			fill_acct()
 	end.
 fill_acct(N) ->
@@ -1374,7 +1374,7 @@ fill_acct(N) ->
 		_Other ->
 			fill_acct(N)
 	after
-		0 ->
+		500 ->
 			fill_acct(N)
 	end.
 fill_acct(0, _Protocal) ->
