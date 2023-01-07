@@ -200,7 +200,7 @@
                     "value" : {
                       "invocationTimeStamp" : "2020-12-13T15:28:32.186Z",
                       "invocationSequenceNumber" : 1,
-                      "serviceRating" : {
+                      "serviceRating" : [ {
                         "serviceContextId" : "32274@3gpp.org",
                         "serviceId" : 1,
                         "ratingGroup" : 100,
@@ -211,7 +211,7 @@
                             "exponent" : -10
                           }
                         }
-                      }
+                      } ]
                     }
                   },
                   "SCUR (Class A)" : {
@@ -282,7 +282,7 @@
                     "value" : {
                       "invocationTimeStamp" : "2020-12-13T15:28:32.186Z",
                       "invocationSequenceNumber" : 1,
-                      "serviceRating" : {
+                      "serviceRating" : [ {
                         "serviceContextId" : "32274@3gpp.org",
                         "serviceId" : 4,
                         "price" : {
@@ -296,7 +296,7 @@
                           "serviceSpecificUnit" : 1
                         },
                         "resultCode" : "SUCCESS"
-                      }
+                      } ]
                     }
                   },
                   "ECUR (Class B)" : {
@@ -305,7 +305,7 @@
                     "value" : {
                       "invocationTimeStamp" : "2020-12-13T15:28:32.186Z",
                       "invocationSequenceNumber" : 1,
-                      "serviceRating" : {
+                      "serviceRating" : [ {
                         "serviceContextId" : "32274@3gpp.org",
                         "serviceId" : 4,
                         "price" : {
@@ -319,7 +319,7 @@
                           "serviceSpecificUnit" : 1
                         },
                         "resultCode" : "SUCCESS"
-                      }
+                      } ]
                     }
                   },
                   "SCUR (Class B)" : {
@@ -1182,7 +1182,7 @@
         }
       },
       "ServiceContextId" : {
-        "description" : "A unique identifier of the service specific document that applies to the request. This is an identifier allocated by the service provider/operator, by the service element manufacturer or by a standardization body and MUST uniquely identify a given service specific document. For offline charging, this identifies the service specific document (\"middle tier\" TS) on which associated CDRs should based.\nThe format of the Service-Context-Id is':'\n[extensions.MNC.MCC.Release.]<service-context>@domain\nThe 3GPP specific values for <service-context@domain include':'\n  2251@3gpp.org for PS charging\n  32260@3gpp.org for IMS charging\n  32274@3gpp.org for SMS service charging\n  32275@3gpp.org for MMTel service charging\n  32276@3gpp.org for VCS charging\n"
+        "description" : "A unique identifier of the service specific document that applies to the request. This is an identifier allocated by the service provider/operator, by the service element manufacturer or by a standardization body and MUST uniquely identify a given service specific document. For offline charging, this identifies the service specific document (\"middle tier\" TS) on which associated CDRs should based.\nThe format of the Service-Context-Id is':'\n[extensions.MNC.MCC.Release.]<service-context>@domain\nThe 3GPP specific values for <service-context@domain include':'\n  32251@3gpp.org for PS charging\n  32260@3gpp.org for IMS charging\n  32274@3gpp.org for SMS service charging\n  32275@3gpp.org for MMTel service charging\n  32276@3gpp.org for VCS charging\n"
       },
       "ServiceInformation" : {
         "description" : "This parameter holds the individual service specific parameters as defined in the corresponding \"middle tier\" 3GPP TS.",
