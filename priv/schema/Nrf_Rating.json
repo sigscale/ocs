@@ -200,7 +200,7 @@
                     "value" : {
                       "invocationTimeStamp" : "2020-12-13T15:28:32.186Z",
                       "invocationSequenceNumber" : 1,
-                      "serviceRating" : {
+                      "serviceRating" : [ {
                         "serviceContextId" : "32274@3gpp.org",
                         "serviceId" : 1,
                         "ratingGroup" : 100,
@@ -211,7 +211,7 @@
                             "exponent" : -10
                           }
                         }
-                      }
+                      } ]
                     }
                   },
                   "SCUR (Class A)" : {
@@ -282,7 +282,7 @@
                     "value" : {
                       "invocationTimeStamp" : "2020-12-13T15:28:32.186Z",
                       "invocationSequenceNumber" : 1,
-                      "serviceRating" : {
+                      "serviceRating" : [ {
                         "serviceContextId" : "32274@3gpp.org",
                         "serviceId" : 4,
                         "price" : {
@@ -296,7 +296,7 @@
                           "serviceSpecificUnit" : 1
                         },
                         "resultCode" : "SUCCESS"
-                      }
+                      } ]
                     }
                   },
                   "ECUR (Class B)" : {
@@ -305,7 +305,7 @@
                     "value" : {
                       "invocationTimeStamp" : "2020-12-13T15:28:32.186Z",
                       "invocationSequenceNumber" : 1,
-                      "serviceRating" : {
+                      "serviceRating" : [ {
                         "serviceContextId" : "32274@3gpp.org",
                         "serviceId" : 4,
                         "price" : {
@@ -319,7 +319,7 @@
                           "serviceSpecificUnit" : 1
                         },
                         "resultCode" : "SUCCESS"
-                      }
+                      } ]
                     }
                   },
                   "SCUR (Class B)" : {
