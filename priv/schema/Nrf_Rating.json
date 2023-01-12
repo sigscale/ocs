@@ -1227,6 +1227,11 @@
             "$ref" : "#/components/schemas/SmsInformation"
           } ]
         }, {
+          "description" : "MMS Charging Information",
+          "allOf" : [ {
+            "$ref" : "#/components/schemas/MmsInformation"
+          } ]
+        }, {
           "description" : "IMS Charging Information",
           "allOf" : [ {
             "$ref" : "#/components/schemas/ImsInformation"
@@ -1262,6 +1267,105 @@
       "SmsInformation" : {
         "description" : "Short Message Service (SMS) charging (3GPP TS 32.274).",
         "type" : "object"
+      },
+      "MmsInformation" : {
+        "description" : "Multimedia Messaging Service (MMS) charging (3GPP TS 32.270).",
+        "type" : "object",
+        "properties" : {
+          "mmContentType" : {
+            "description" : "Indicates the overall content type of the MM content and includes information about all the contents of an MM.",
+            "type" : "object",
+            "properties" : {
+              "typeNumber" : {
+                "description" : "OMNA WSP Content Types (MIME)",
+                "type" : "string",
+                "example" : "text/x-vCard"
+              },
+              "additionalTypeInformation" : {
+                "type" : "string"
+              },
+              "contentSize" : {
+                "allOf" : [ {
+                  "$ref" : "https://api.swaggerhub.com/domains/SigScale/TS29571_CommonData/1.2.1#/components/schemas/Uint32"
+                } ]
+              },
+              "additionalContentInformation" : {
+                "type" : "array",
+                "items" : {
+                  "type" : "object",
+                  "properties" : {
+                    "typeNumber" : {
+                      "type" : "string"
+                    },
+                    "additionalTypeInformation" : {
+                      "type" : "string"
+                    },
+                    "contentSize" : {
+                      "allOf" : [ {
+                        "$ref" : "https://api.swaggerhub.com/domains/SigScale/TS29571_CommonData/1.2.1#/components/schemas/Uint32"
+                      } ]
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "contentClass" : {
+            "description" : "Classifies the content of the MM to the highest content class to which the MM belongs (OMA MMS Encapsulation Protocol).",
+            "anyOf" : [ {
+              "type" : "string",
+              "enum" : [ "text", "image-basic", "image-rich", "video-basic", "video-rich", "megapixel", "content-basic", "content-rich" ]
+            }, {
+              "type" : "string"
+            } ]
+          },
+          "messageID" : {
+            "type" : "string"
+          },
+          "messageType" : {
+            "description" : "Type of the message according to the MMS transactions (e.g. submission, delivery).",
+            "anyOf" : [ {
+              "type" : "string",
+              "enum" : [ "m-send-req", "m-send-conf", "m-notification-ind", "m-notifyresp-ind", "m-retrieve-conf", "m-acknowledge-ind", "m-delivery-ind", "m-read-rec-ind", "m-read-orig-ind", "m-forward-req", "m-forward-conf", "m-mbox-store-conf", "m-mbox-view-conf", "m-mbox-upload-conf", "m-mbox-delete-conf" ]
+            }, {
+              "type" : "string"
+            } ]
+          },
+          "messageClass" : {
+            "type" : "object",
+            "properties" : {
+              "classIdentifier" : {
+                "anyOf" : [ {
+                  "type" : "string",
+                  "enum" : [ "Personal", "Advertisement", "Informational", "Auto" ]
+                }, {
+                  "type" : "string"
+                } ]
+              },
+              "tokenText" : {
+                "type" : "string"
+              }
+            }
+          },
+          "messageSize" : {
+            "description" : "Total size in bytes of the MM (3GPP TS 23.140)",
+            "allOf" : [ {
+              "$ref" : "https://api.swaggerhub.com/domains/SigScale/TS29571_CommonData/1.2.1#/components/schemas/Uint32"
+            } ]
+          },
+          "applicId" : {
+            "description" : "Identification of the destination application.",
+            "type" : "string"
+          },
+          "vasId" : {
+            "description" : "Identification of a Value Added Service (VAS).",
+            "type" : "string"
+          },
+          "vaspId" : {
+            "description" : "Identification of a VAS Provider (VASP).",
+            "type" : "string"
+          }
+        }
       },
       "ImsInformation" : {
         "description" : "IP Multimedia Subsystem (IMS) charging (3GPP TS 32.260).",
