@@ -150,6 +150,12 @@
                     "subscriptionId" : [ "msisdn-14165551234", "imsi-001001000000001" ],
                     "serviceRating" : [ {
                       "serviceContextId" : "32251@3gpp.org",
+                      "serviceInformation" : {
+                        "sgsnMccMnc" : {
+                          "mcc" : "999",
+                          "mnc" : "999"
+                        }
+                      },
                       "serviceId" : 1,
                       "ratingGroup" : 2,
                       "requestSubType" : "RESERVE"
