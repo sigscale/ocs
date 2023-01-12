@@ -1266,7 +1266,40 @@
       },
       "SmsInformation" : {
         "description" : "Short Message Service (SMS) charging (3GPP TS 32.274).",
-        "type" : "object"
+        "type" : "object",
+        "properties" : {
+          "smsNode" : {
+            "description" : "Identifies the role which the SMS node performs in relation to the charging event.",
+            "anyOf" : [ {
+              "type" : "string",
+              "enum" : [ "SMS Router", "IP-SM-GW", "SMS Router and IP-SM-GW", "SMS-SC" ]
+            }, {
+              "type" : "string"
+            } ]
+          },
+          "messageType" : {
+            "description" : "Indicates the type of the message which caused the charging interaction.",
+            "anyOf" : [ {
+              "type" : "string",
+              "enum" : [ "SUBMISSION", "DELIVERY_REPORT", "SM Service Request", "T4 Device Trigger", "SM Device Trigger", "MO-SMS T4 submission" ]
+            } ]
+          },
+          "serviceType" : {
+            "description" : "Indicates the type of SM service that caused the charging interaction (3GPP TS 22.142). Present if 'messageType' is 'SM Service Request'.",
+            "anyOf" : [ {
+              "type" : "string",
+              "enum" : [ "VAS4SMS Short Message content processing", "VAS4SMS Short Message forwarding", "VAS4SMS Short Message Forwarding multiple subscriptions", "VAS4SMS Short Message filtering", "VAS4SMS Short Message receipt", "VAS4SMS Short Message Network Storage", "VAS4SMS Short Message to multiple destinations", "VAS4SMS Short Message Virtual Private Network (VPN)", "VAS4SMS Short Message Auto Reply", "VAS4SMS Short Message Personal Signature", "VAS4SMS Short Message Deferred Delivery" ]
+            }, {
+              "type" : "string"
+            } ]
+          },
+          "smsResult" : {
+            "description" : "Result of an attempt for an SM transaction (submission or delivery).",
+            "allOf" : [ {
+              "$ref" : "https://api.swaggerhub.com/domains/SigScale/TS29571_CommonData/1.2.1#/components/schemas/Uint32"
+            } ]
+          }
+        }
       },
       "MmsInformation" : {
         "description" : "Multimedia Messaging Service (MMS) charging (3GPP TS 32.270).",
