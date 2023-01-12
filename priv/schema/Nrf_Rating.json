@@ -129,11 +129,26 @@
                     "serviceRating" : [ {
                       "serviceContextId" : "32251@3gpp.org",
                       "serviceId" : 1,
-                      "ratingGroup" : 2
+                      "ratingGroup" : 2,
+                      "serviceInformation" : {
+                        "sgsnMccMnc" : {
+                          "mcc" : "001",
+                          "mnc" : "001"
+                        }
+                      }
                     }, {
-                      "serviceContextId" : "32251@3gpp.org",
+                      "serviceContextId" : "32260@3gpp.org",
                       "serviceId" : 2,
-                      "ratingGroup" : 32
+                      "ratingGroup" : 32,
+                      "destinationId" : [ {
+                        "destinationIdType" : "DN",
+                        "destinationIdData" : "14165556789"
+                      } ],
+                      "serviceInformation" : {
+                        "nodeFunctionality" : "AS",
+                        "roleOfNode" : "ORIGINATING",
+                        "visitedNetworkIdentifier" : "s8hr.mnc001.mcc001.3gppnetwork.org"
+                      }
                     } ]
                   }
                 },
@@ -152,18 +167,33 @@
                       "serviceContextId" : "32251@3gpp.org",
                       "serviceId" : 1,
                       "ratingGroup" : 2,
+                      "serviceInformation" : {
+                        "sgsnMccMnc" : {
+                          "mcc" : "999",
+                          "mnc" : "999"
+                        }
+                      },
                       "requestSubType" : "RESERVE"
                     }, {
                       "serviceContextId" : "32251@3gpp.org",
                       "serviceId" : 2,
                       "ratingGroup" : 32,
+                      "destinationId" : [ {
+                        "destinationIdType" : "DN",
+                        "destinationIdData" : "14165556789"
+                      } ],
+                      "serviceInformation" : {
+                        "nodeFunctionality" : "AS",
+                        "roleOfNode" : "ORIGINATING",
+                        "visitedNetworkIdentifier" : "s8hr.mnc999.mcc999.3gppnetwork.org"
+                      },
                       "requestSubType" : "RESERVE"
                     } ]
                   }
                 },
                 "Roaming" : {
                   "summary" : "Roaming voice call service (VCS).",
-                  "description" : "Request a reservation for charging a roaming voice call session. The user location is provided to enable rating based on Visited Public Land Mobile Network (PLMN).",
+                  "description" : "Request a reservation for charging a roaming voice call session. The serving VLR number is provided to enable rating based on Visited PLMN.",
                   "value" : {
                     "nfConsumerIdentification" : {
                       "nodeFunctionality" : "OCF"
@@ -1197,6 +1227,11 @@
             "$ref" : "#/components/schemas/SmsInformation"
           } ]
         }, {
+          "description" : "MMS Charging Information",
+          "allOf" : [ {
+            "$ref" : "#/components/schemas/MmsInformation"
+          } ]
+        }, {
           "description" : "IMS Charging Information",
           "allOf" : [ {
             "$ref" : "#/components/schemas/ImsInformation"
@@ -1212,8 +1247,16 @@
         "description" : "Packet Switched (PS) domain charging (3GPP TS 32.251).",
         "type" : "object",
         "properties" : {
+          "servingNodeType" : {
+            "anyOf" : [ {
+              "type" : "string",
+              "enum" : [ "SGSN", "PMIPSGW", "GTPSGW", "ePDG", "hSGW", "MME", "TWAN" ]
+            }, {
+              "type" : "string"
+            } ]
+          },
           "sgsnMccMnc" : {
-            "description" : "The serving gateway MCC/MNC.",
+            "description" : "The serving node MCC/MNC.",
             "allOf" : [ {
               "$ref" : "https://api.swaggerhub.com/domains/SigScale/TS29571_CommonData/1.2.1#/components/schemas/PlmnId"
             } ]
@@ -1223,7 +1266,139 @@
       },
       "SmsInformation" : {
         "description" : "Short Message Service (SMS) charging (3GPP TS 32.274).",
-        "type" : "object"
+        "type" : "object",
+        "properties" : {
+          "smsNode" : {
+            "description" : "Identifies the role which the SMS node performs in relation to the charging event.",
+            "anyOf" : [ {
+              "type" : "string",
+              "enum" : [ "SMS Router", "IP-SM-GW", "SMS Router and IP-SM-GW", "SMS-SC" ]
+            }, {
+              "type" : "string"
+            } ]
+          },
+          "messageType" : {
+            "description" : "Indicates the type of the message which caused the charging interaction.",
+            "anyOf" : [ {
+              "type" : "string",
+              "enum" : [ "SUBMISSION", "DELIVERY_REPORT", "SM Service Request", "T4 Device Trigger", "SM Device Trigger", "MO-SMS T4 submission" ]
+            } ]
+          },
+          "serviceType" : {
+            "description" : "Indicates the type of SM service that caused the charging interaction (3GPP TS 22.142). Present if 'messageType' is 'SM Service Request'.",
+            "anyOf" : [ {
+              "type" : "string",
+              "enum" : [ "VAS4SMS Short Message content processing", "VAS4SMS Short Message forwarding", "VAS4SMS Short Message Forwarding multiple subscriptions", "VAS4SMS Short Message filtering", "VAS4SMS Short Message receipt", "VAS4SMS Short Message Network Storage", "VAS4SMS Short Message to multiple destinations", "VAS4SMS Short Message Virtual Private Network (VPN)", "VAS4SMS Short Message Auto Reply", "VAS4SMS Short Message Personal Signature", "VAS4SMS Short Message Deferred Delivery" ]
+            }, {
+              "type" : "string"
+            } ]
+          },
+          "smsResult" : {
+            "description" : "Result of an attempt for an SM transaction (submission or delivery).",
+            "allOf" : [ {
+              "$ref" : "https://api.swaggerhub.com/domains/SigScale/TS29571_CommonData/1.2.1#/components/schemas/Uint32"
+            } ]
+          }
+        }
+      },
+      "MmsInformation" : {
+        "description" : "Multimedia Messaging Service (MMS) charging (3GPP TS 32.270).",
+        "type" : "object",
+        "properties" : {
+          "mmContentType" : {
+            "description" : "Indicates the overall content type of the MM content and includes information about all the contents of an MM.",
+            "type" : "object",
+            "properties" : {
+              "typeNumber" : {
+                "description" : "OMNA WSP Content Types (MIME)",
+                "type" : "string",
+                "example" : "text/x-vCard"
+              },
+              "additionalTypeInformation" : {
+                "type" : "string"
+              },
+              "contentSize" : {
+                "allOf" : [ {
+                  "$ref" : "https://api.swaggerhub.com/domains/SigScale/TS29571_CommonData/1.2.1#/components/schemas/Uint32"
+                } ]
+              },
+              "additionalContentInformation" : {
+                "type" : "array",
+                "items" : {
+                  "type" : "object",
+                  "properties" : {
+                    "typeNumber" : {
+                      "type" : "string"
+                    },
+                    "additionalTypeInformation" : {
+                      "type" : "string"
+                    },
+                    "contentSize" : {
+                      "allOf" : [ {
+                        "$ref" : "https://api.swaggerhub.com/domains/SigScale/TS29571_CommonData/1.2.1#/components/schemas/Uint32"
+                      } ]
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "contentClass" : {
+            "description" : "Classifies the content of the MM to the highest content class to which the MM belongs (OMA MMS Encapsulation Protocol).",
+            "anyOf" : [ {
+              "type" : "string",
+              "enum" : [ "text", "image-basic", "image-rich", "video-basic", "video-rich", "megapixel", "content-basic", "content-rich" ]
+            }, {
+              "type" : "string"
+            } ]
+          },
+          "messageID" : {
+            "type" : "string"
+          },
+          "messageType" : {
+            "description" : "Type of the message according to the MMS transactions (e.g. submission, delivery).",
+            "anyOf" : [ {
+              "type" : "string",
+              "enum" : [ "m-send-req", "m-send-conf", "m-notification-ind", "m-notifyresp-ind", "m-retrieve-conf", "m-acknowledge-ind", "m-delivery-ind", "m-read-rec-ind", "m-read-orig-ind", "m-forward-req", "m-forward-conf", "m-mbox-store-conf", "m-mbox-view-conf", "m-mbox-upload-conf", "m-mbox-delete-conf" ]
+            }, {
+              "type" : "string"
+            } ]
+          },
+          "messageClass" : {
+            "type" : "object",
+            "properties" : {
+              "classIdentifier" : {
+                "anyOf" : [ {
+                  "type" : "string",
+                  "enum" : [ "Personal", "Advertisement", "Informational", "Auto" ]
+                }, {
+                  "type" : "string"
+                } ]
+              },
+              "tokenText" : {
+                "type" : "string"
+              }
+            }
+          },
+          "messageSize" : {
+            "description" : "Total size in bytes of the MM (3GPP TS 23.140)",
+            "allOf" : [ {
+              "$ref" : "https://api.swaggerhub.com/domains/SigScale/TS29571_CommonData/1.2.1#/components/schemas/Uint32"
+            } ]
+          },
+          "applicId" : {
+            "description" : "Identification of the destination application.",
+            "type" : "string"
+          },
+          "vasId" : {
+            "description" : "Identification of a Value Added Service (VAS).",
+            "type" : "string"
+          },
+          "vaspId" : {
+            "description" : "Identification of a VAS Provider (VASP).",
+            "type" : "string"
+          }
+        }
       },
       "ImsInformation" : {
         "description" : "IP Multimedia Subsystem (IMS) charging (3GPP TS 32.260).",
@@ -1236,6 +1411,17 @@
             }, {
               "type" : "string"
             } ]
+          },
+          "roleOfNode" : {
+            "anyOf" : [ {
+              "type" : "string",
+              "enum" : [ "ORIGINATING", "TERMINATING", "FORWARDING" ]
+            }, {
+              "type" : "string"
+            } ]
+          },
+          "visitedNetworkIdentifier" : {
+            "type" : "string"
           }
         },
         "required" : [ "nodeFunctionality" ]
