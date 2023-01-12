@@ -3099,16 +3099,21 @@ write_log(ocs_abmf, _LogEvent, Result) ->
 		Reason :: term().
 %% @doc close log files
 close_log(Log) ->
-	case disk_log:close(Log) of
-		ok ->
-			ok;
-		{error, Reason} ->
-			Descr = lists:flatten(disk_log:format_error(Reason)),
-			Trunc = lists:sublist(Descr, length(Descr) - 1),
-			error_logger:error_report([Trunc, {module, ?MODULE},
-					{log, Log}, {error, Reason}]),
-			{error, Reason}
-	end.
+	close_log1(Log,  disk_log:sync(Log)).
+%% @hidden
+close_log1(Log, ok) ->
+	close_log2(Log, disk_log:close(Log));
+close_log1(Log, {error, Reason}) ->
+	close_log2(Log, {error, Reason}).
+%% @hidden
+close_log2(Log, ok) ->
+	ok;
+close_log2(Log, {error, Reason}) ->
+	Descr = lists:flatten(disk_log:format_error(Reason)),
+	Trunc = lists:sublist(Descr, length(Descr) - 1),
+	error_logger:error_report([Trunc, {module, ?MODULE},
+			{log, Log}, {error, Reason}]),
+	{error, Reason}.
 
 -spec query_log(Continuation, Start, End, Log, MFA) -> Result
 	when
