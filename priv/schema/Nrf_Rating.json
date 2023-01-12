@@ -1251,6 +1251,14 @@
               "type" : "string"
             } ]
           },
+          "roleOfNode" : {
+            "anyOf" : [ {
+              "type" : "string",
+              "enum" : [ "ORIGINATING", "TERMINATING", "FORWARDING" ]
+            }, {
+              "type" : "string"
+            } ]
+          },
           "visitedNetworkIdentifier" : {
             "type" : "string"
           }
