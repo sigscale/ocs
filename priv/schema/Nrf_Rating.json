@@ -129,11 +129,26 @@
                     "serviceRating" : [ {
                       "serviceContextId" : "32251@3gpp.org",
                       "serviceId" : 1,
-                      "ratingGroup" : 2
+                      "ratingGroup" : 2,
+                      "serviceInformation" : {
+                        "sgsnMccMnc" : {
+                          "mcc" : "001",
+                          "mnc" : "001"
+                        }
+                      }
                     }, {
-                      "serviceContextId" : "32251@3gpp.org",
+                      "serviceContextId" : "32260@3gpp.org",
                       "serviceId" : 2,
-                      "ratingGroup" : 32
+                      "ratingGroup" : 32,
+                      "destinationId" : [ {
+                        "destinationIdType" : "DN",
+                        "destinationIdData" : "14165556789"
+                      } ],
+                      "serviceInformation" : {
+                        "nodeFunctionality" : "AS",
+                        "roleOfNode" : "ORIGINATING",
+                        "visitedNetworkIdentifier" : "s8hr.mnc001.mcc001.3gppnetwork.org"
+                      }
                     } ]
                   }
                 },
@@ -150,26 +165,35 @@
                     "subscriptionId" : [ "msisdn-14165551234", "imsi-001001000000001" ],
                     "serviceRating" : [ {
                       "serviceContextId" : "32251@3gpp.org",
+                      "serviceId" : 1,
+                      "ratingGroup" : 2,
                       "serviceInformation" : {
                         "sgsnMccMnc" : {
                           "mcc" : "999",
                           "mnc" : "999"
                         }
                       },
-                      "serviceId" : 1,
-                      "ratingGroup" : 2,
                       "requestSubType" : "RESERVE"
                     }, {
                       "serviceContextId" : "32251@3gpp.org",
                       "serviceId" : 2,
                       "ratingGroup" : 32,
+                      "destinationId" : [ {
+                        "destinationIdType" : "DN",
+                        "destinationIdData" : "14165556789"
+                      } ],
+                      "serviceInformation" : {
+                        "nodeFunctionality" : "AS",
+                        "roleOfNode" : "ORIGINATING",
+                        "visitedNetworkIdentifier" : "s8hr.mnc999.mcc999.3gppnetwork.org"
+                      },
                       "requestSubType" : "RESERVE"
                     } ]
                   }
                 },
                 "Roaming" : {
                   "summary" : "Roaming voice call service (VCS).",
-                  "description" : "Request a reservation for charging a roaming voice call session. The user location is provided to enable rating based on Visited Public Land Mobile Network (PLMN).",
+                  "description" : "Request a reservation for charging a roaming voice call session. The serving VLR number is provided to enable rating based on Visited PLMN.",
                   "value" : {
                     "nfConsumerIdentification" : {
                       "nodeFunctionality" : "OCF"
