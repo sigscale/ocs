@@ -1218,8 +1218,16 @@
         "description" : "Packet Switched (PS) domain charging (3GPP TS 32.251).",
         "type" : "object",
         "properties" : {
+          "servingNodeType" : {
+            "anyOf" : [ {
+              "type" : "string",
+              "enum" : [ "SGSN", "PMIPSGW", "GTPSGW", "ePDG", "hSGW", "MME", "TWAN" ]
+            }, {
+              "type" : "string"
+            } ]
+          },
           "sgsnMccMnc" : {
-            "description" : "The serving gateway MCC/MNC.",
+            "description" : "The serving node MCC/MNC.",
             "allOf" : [ {
               "$ref" : "https://api.swaggerhub.com/domains/SigScale/TS29571_CommonData/1.2.1#/components/schemas/PlmnId"
             } ]
