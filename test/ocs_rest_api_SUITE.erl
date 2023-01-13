@@ -213,7 +213,7 @@ all() ->
 	get_auth_usage, get_auth_usage_id, get_auth_usage_filter,
 	get_auth_usage_range, get_acct_usage, get_acct_usage_id,
 	get_acct_usage_filter, get_acct_usage_range, get_ipdr_usage,
-	top_up, get_balance, get_balance_service, query_buckets,
+	top_up, get_balance, get_balance_service, query_buckets, head_bucket,
 	simultaneous_updates_on_client_failure, get_product, head_product, add_product,
 	add_product_sms, update_product_realizing_service, delete_product,
 	ignore_delete_product, query_product, filter_product,
@@ -2634,6 +2634,32 @@ query_buckets(Config) ->
 		end
 	end,
 	true = lists:all(F1, BucketStructs).
+
+head_bucket() ->
+	[{userdata, [{doc,"Head balance buckets"}]}].
+
+head_bucket(Config) ->
+	HostUrl = ?config(host_url, Config),
+	HttpOpt = ?config(http_options, Config),
+	P1 = price(usage, octets, rand:uniform(10000), rand:uniform(100)),
+	OfferId1 = offer_add([P1], 4),
+	ProdRef1 = product_add(OfferId1),
+	B1 = b(cents, 10000),
+	B2 = b(octets, 150000000),
+	{_, _, #bucket{id = BId1}} = ocs:add_bucket(ProdRef1, B1),
+	{_, _, #bucket{id = BId2}} = ocs:add_bucket(ProdRef1, B2),
+	P2 = price(one_time, undefined, undefined, 1000),
+	OfferId2 = offer_add([P2], 4),
+	ProdRef2 = product_add(OfferId2),
+	B3 = b(cents, 450000),
+	{_, _, #bucket{}} = ocs:add_bucket(ProdRef2, B3),
+	ContentType = "application/json",
+	Accept = {"accept", "application/json"},
+	URI = "/balanceManagement/v1/bucket",
+	Request = {HostUrl ++ URI, [auth_header()], ContentType},
+	{ok, Result} = httpc:request(head, Request, HttpOpt, []),
+	{{"HTTP/1.1", 204, _NoContent}, Headers, []} = Result,
+	{_, "0"} = lists:keyfind("content-length", 1, Headers).
 
 simultaneous_updates_on_client_failure() ->
 	[{userdata, [{doc,"Simulataneous HTTP PATCH requests on client resource must fail
