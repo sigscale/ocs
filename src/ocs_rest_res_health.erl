@@ -58,7 +58,7 @@ get_health([] = _Query, _RequestHeaders) ->
 		Check1 = application([ocs, inets, diameter, radius, snmp]),
 		Check2 = table_size([offer, product, service, resource, bucket]),
 		Check3 = up(),
-		DiameterChecks = ocs_rest_res_health:get_diameter_statistics(),
+		DiameterChecks = get_diameter_statistics(),
 		case scheduler() of
 			{ok, HeadOptions, Check4} ->
 				{HeadOptions, {"checks", {struct, [Check1, Check2, Check3, Check4 |  DiameterChecks]}}};
