@@ -51,6 +51,17 @@ class dashBoard extends PolymerElement {
 				</div>
 			</paper-card>
 			<paper-card
+					heading="Credit Control Requests">
+				<div
+						class="card-content">
+					<svg
+							id="creditControl"
+							width="420"
+							height="200">
+					</svg>
+				</div>
+			</paper-card>
+			<paper-card
 					heading="Uptime">
 				<div
 						class="card-content">
@@ -86,6 +97,11 @@ class dashBoard extends PolymerElement {
 				}
 			},
 			uptime: {
+				type: Number,
+				notify: false,
+				value: 0
+			},
+			creditControl: {
 				type: Number,
 				notify: false,
 				value: 0
@@ -180,12 +196,44 @@ class dashBoard extends PolymerElement {
 					if(request.response.checks["uptime"]) {
 						ocsHealth.uptime = request.response.checks["uptime"][0].observedValue;
 					}
+					if(request.response.checks["diameter-base:counters"]) {
+						for(var indexDia in request.response.checks["diameter-base:counters"]) {
+							var newDia = new Object();
+							if(request.response.checks["diameter-base:counters"][indexDia]
+										.componentId == "CEA 2001") {
+								var rc2001 = request.response.checks["diameter-base:counters"]
+													[indexDia].observedValue;
+							} else if(request.response.checks["diameter-base:counters"][indexDia]
+										.componentId == "CEA 4012") {
+								var rc4012 = request.response.checks["diameter-base:counters"]
+													[indexDia].observedValue;
+							} else if(request.response.checks["diameter-base:counters"][indexDia]
+										.componentId == "CEA 5030") {
+								var rc5030 = request.response.checks["diameter-base:counters"]
+													[indexDia].observedValue;
+							} else if(request.response.checks["diameter-base:counters"][indexDia]
+										.componentId == "CEA 4010") {
+								var rc4010 = request.response.checks["diameter-base:counters"]
+													[indexDia].observedValue;
+							} else if(request.response.checks["diameter-base:counters"][indexDia]
+										.componentId == "CEA 5031") {
+								var rc5031 = request.response.checks["diameter-base:counters"]
+													[indexDia].observedValue;
+							} else if(request.response.checks["diameter-base:counters"][indexDia]
+										.componentId == "CEA 5012") {
+								var rc5012 = request.response.checks["diameter-base:counters"]
+													[indexDia].observedValue;
+							}
+						}
+					}
 				}
 				var svgTable = select(root).select("#tableSize");
 				ocsHealth.draw_pie(svgTable, ocsHealth.tabSize, color_size);
 				ocsHealth.schedulerTimeout = setTimeout(ocsHealth._healthChart, maxAge * 1000);
 				var svgUp = select(root).select("#uptime");
 				ocsHealth.draw_up(svgUp, ocsHealth.uptime);
+				var svgCredit = select(root).select("#creditControl");
+				ocsHealth.draw_credit(svgCredit, rc2001, rc4012, rc5030, rc4010, rc5031, rc5012);
 			}
 		}
 		var handleAjaxError = function(error) {
@@ -200,6 +248,186 @@ class dashBoard extends PolymerElement {
 		} else {
 			ajax.generateRequest().completes.then(handleAjaxResponse, handleAjaxError);
 		}
+	}
+
+	draw_credit(svg, rc2001, rc4012, rc5030, rc4010, rc5031, rc5012) {
+
+		var g1 = svg.append('g');
+		var g2 = svg.append('g');
+		var g3 = svg.append('g');
+		var g4 = svg.append('g');
+		var g5 = svg.append('g');
+		var g6 = svg.append('g');
+  
+		g1.append('rect')
+			.attr('width', '150')
+			.attr('height', '28')
+			.attr('x', 0)
+			.attr('y', 0)
+			.style('fill', '#aeea00');
+		g1.append('text')
+			.attr('x', '140')
+			.attr('y', '22')
+			.attr("text-anchor", "end")
+			.text(rc2001)
+			.style('fill', 'black')
+			.attr("font-size", '18')
+			.attr("font-family", "Roboto");
+		g1.append('rect')
+			.attr('width', '250')
+			.attr('height', '28')
+			.attr('x', 160)
+			.attr('y', 0)
+			.style('fill', '#aeea00');
+		g1.append('text')
+			.attr('x', '285')
+			.attr('y', '22')
+			.attr("text-anchor", "middle")
+			.text('SUCCESS')
+			.style('fill', 'black')
+			.attr("font-size", '18')
+			.attr("font-family", "Roboto");
+		g2.append('rect')
+			.attr('width', '150')
+			.attr('height', '28')
+			.attr('x', 0)
+			.attr('y', 32)
+			.style('fill', '#e4ff54');
+		g2.append('text')
+			.attr('x', '140')
+			.attr('y', '54')
+			.attr("text-anchor", "end")
+			.text(rc4012)
+			.style('fill', 'black')
+			.attr("font-size", '18')
+			.attr("font-family", "Roboto");
+		g2.append('rect')
+			.attr('width', '250')
+			.attr('height', '28')
+			.attr('x', 160)
+			.attr('y', 32)
+			.style('fill', '#e4ff54');
+		g2.append('text')
+			.attr('x', '285')
+			.attr('y', '54')
+			.attr("text-anchor", "middle")
+			.text('CREDIT LIMIT REACHED')
+			.style('fill', 'black')
+			.attr("font-size", '18')
+			.attr("font-family", "Roboto");
+		g3.append('rect')
+			.attr('width', '150')
+			.attr('height', '28')
+			.attr('x', 0)
+			.attr('y', 64)
+			.style('fill', '#ffb04c');
+		g3.append('text')
+			.attr('x', '140')
+			.attr('y', '86')
+			.attr("text-anchor", "end")
+			.text(rc5030)
+			.style('fill', 'black')
+			.attr("font-size", '18')
+			.attr("font-family", "Roboto");
+		g3.append('rect')
+			.attr('width', '250')
+			.attr('height', '28')
+			.attr('x', 160)
+			.attr('y', 64)
+			.style('fill', '#ffb04c');
+		g3.append('text')
+			.attr('x', '285')
+			.attr('y', '86')
+			.attr("text-anchor", "middle")
+			.text('USER UNKNOWN')
+			.style('fill', 'black')
+			.attr("font-size", '18')
+			.attr("font-family", "Roboto");
+		g4.append('rect')
+			.attr('width', '150')
+			.attr('height', '28')
+			.attr('x', 0)
+			.attr('y', 96)
+			.style('fill', '#ffb04c');
+		g4.append('text')
+			.attr('x', '140')
+			.attr('y', '118')
+			.attr("text-anchor", "end")
+			.text(rc4010)
+			.style('fill', 'black')
+			.attr("font-size", '18')
+			.attr("font-family", "Roboto");
+		g4.append('rect')
+			.attr('width', '250')
+			.attr('height', '28')
+			.attr('x', 160)
+			.attr('y', 96)
+			.style('fill', '#ffb04c');
+		g4.append('text')
+			.attr('x', '285')
+			.attr('y', '118')
+			.attr("text-anchor", "middle")
+			.text('USER SERVICE DENIED')
+			.style('fill', 'black')
+			.attr("font-size", '18')
+			.attr("font-family", "Roboto");
+		g5.append('rect')
+			.attr('width', '150')
+			.attr('height', '28')
+			.attr('x', 0)
+			.attr('y', 128)
+			.style('fill', '#bc5100');
+		g5.append('text')
+			.attr('x', '140')
+			.attr('y', '150')
+			.attr("text-anchor", "end")
+			.text(rc5031)
+			.style('fill', 'black')
+			.attr("font-size", '18')
+			.attr("font-family", "Roboto");
+		g5.append('rect')
+			.attr('width', '250')
+			.attr('height', '28')
+			.attr('x', 160)
+			.attr('y', 128)
+			.style('fill', '#bc5100');
+		g5.append('text')
+			.attr('x', '285')
+			.attr('y', '150')
+			.attr("text-anchor", "middle")
+			.text('RATING FAILED')
+			.style('fill', 'black')
+			.attr("font-size", '18')
+			.attr("font-family", "Roboto");
+		g6.append('rect')
+			.attr('width', '150')
+			.attr('height', '28')
+			.attr('x', 0)
+			.attr('y', 160)
+			.style('fill', '#f05545');
+		g6.append('text')
+			.attr('x', '140')
+			.attr('y', '182')
+			.attr("text-anchor", "end")
+			.text(rc5012)
+			.style('fill', 'black')
+			.attr("font-size", '18')
+			.attr("font-family", "Roboto");
+		g6.append('rect')
+			.attr('width', '250')
+			.attr('height', '28')
+			.attr('x', 160)
+			.attr('y', 160)
+			.style('fill', '#f05545');
+		g6.append('text')
+			.attr('x', '285')
+			.attr('y', '182')
+			.attr("text-anchor", "middle")
+			.text('UNABLE TO COMPLY')
+			.style('fill', 'black')
+			.attr("font-size", '18')
+			.attr("font-family", "Roboto");
+		return svg.node();
 	}
 
 	draw_up(svg, uptime) {
