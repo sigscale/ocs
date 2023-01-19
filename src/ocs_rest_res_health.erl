@@ -406,7 +406,6 @@ service_counters(_Application, [], Counters) ->
 %% @doc Parse peer statistics.
 %% @hidden
 peer_stat(Application, PeerStats, Counters) ->
-	erlang:display({?MODULE, ?LINE, PeerStats}),
 	NewCounters = peer_stat1(Application, PeerStats, Counters).
 %% @hidden
 peer_stat1(Application, [{{{Application, CommandCode, 1}, _, {'Result-Code', ResultCode}}, Count} | T], Acc) ->
