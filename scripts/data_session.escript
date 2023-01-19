@@ -38,9 +38,9 @@ main([CallingParty]) ->
 		true = diameter:subscribe(Name),
 		TransportOptions =  [{transport_module, diameter_tcp},
 				{transport_config,
-						[{raddr, {10,140,15,239}},
-						{rport, 4999},
-						{ip, {10,140,15,239}}]}],
+						[{raddr, {127,0,0,1}},
+						{rport, 3868},
+						{ip, {127,0,0,1}}]}],
 		{ok, _Ref} = diameter:add_transport(Name, {connect, TransportOptions}),
 		receive
 			#diameter_event{service = Name, info = Info}
