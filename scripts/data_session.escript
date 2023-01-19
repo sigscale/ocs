@@ -46,9 +46,9 @@ data_session(Options) ->
 		true = diameter:subscribe(Name),
 		TransportOptions =  [{transport_module, diameter_tcp},
 				{transport_config,
-						[{raddr, {127,0,0,1}},
-						{rport, 3868},
-						{ip, {127,0,0,1}}]}],
+						[{raddr, maps:get(raddr, Options, {127,0,0,1})},
+						{rport, maps:get(rport, Options, 3868)},
+						{ip, maps:get(ip, Options, {127,0,0,1})}]}],
 		{ok, _Ref} = diameter:add_transport(Name, {connect, TransportOptions}),
 		receive
 			#diameter_event{service = Name, info = Info}
@@ -152,11 +152,14 @@ data_session(Options) ->
 	end.
 
 usage() ->
-	Option1 = " [--msisdn MSISDN]",
-	Option2 = " [--imsi IMSI]",
-	Option3 = " [--interval milliseconds]",
-	Option4 = " [--updates N]",
-	Options = [Option1, Option2, Option3, Option4],
+	Option1 = " [--msisdn 14165551234]",
+	Option2 = " [--imsi 001001123456789]",
+	Option3 = " [--interval 1000]",
+	Option4 = " [--updates 1]",
+	Option5 = " [--ip 127.0.0.1]",
+	Option6 = " [--raddr 127.0.0.1]",
+	Option7 = " [--rport 3868]",
+	Options = [Option1, Option2, Option3, Option4, Option5, Option6, Option7],
 	Format = lists:flatten(["usage: ~s", Options, "~n"]),
 	io:fwrite(Format, [escript:script_name()]),
 	halt(1).
@@ -173,6 +176,14 @@ options(["--interval", MS | T], Acc) ->
 	options(T, Acc#{interval => list_to_integer(MS)});
 options(["--updates", N | T], Acc) ->
 	options(T, Acc#{updates => list_to_integer(N)});
+options(["--ip", Address | T], Acc) ->
+	{ok, IP} = inet:parse_address(Address),
+	options(T, Acc#{ip => IP});
+options(["--raddr", Address | T], Acc) ->
+	{ok, IP} = inet:parse_address(Address),
+	options(T, Acc#{raddr => IP});
+options(["--rport", Port | T], Acc) ->
+	options(T, Acc#{rport=> list_to_integer(Port)});
 options([_H | _T], _Acc) ->
 	usage();
 options([], Acc) ->
