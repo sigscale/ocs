@@ -89,7 +89,9 @@ data_session(Options) ->
 			'Multiple-Services-Credit-Control' = [MSCC1],
 			'Service-Information' = [ServiceInformation]},
 		Fro = fun('3gpp_ro_CCA', _N) ->
-					record_info(fields, '3gpp_ro_CCA')
+					record_info(fields, '3gpp_ro_CCA');
+				('3gpp_ro_Multiple-Services-Credit-Control', _N) ->
+					record_info(fields, '3gpp_ro_Multiple-Services-Credit-Control')
 		end,
 		Fbase = fun('diameter_base_answer-message', _N) ->
 					record_info(fields, 'diameter_base_answer-message')
