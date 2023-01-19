@@ -1413,6 +1413,29 @@ get_service_inventory(Config) ->
 	end,
 	true = lists:all(F, Chars).
 
+head_service_inventory() ->
+	[{userdata, [{doc,"head service invetory"}]}].
+
+head_service_inventory(Config) ->
+	HostUrl = ?config(host_url, Config),
+	HttpOpt = ?config(http_options, Config),
+	OfferId = ?config(product_id, Config),
+	{ok, #product{id = ProdRef}} = ocs:add_product(OfferId, []),
+	ID = ocs:generate_identity(),
+	Password = ocs:generate_password(),
+	State = active,
+	SessionTimeout = rand:uniform(2500),
+	AcctInterimInterval = rand:uniform(500),
+	Attributes = [{?SessionTimeout, SessionTimeout},
+			{?AcctInterimInterval, AcctInterimInterval}],
+	{ok, #service{}} = ocs:add_service(ID, Password, State, ProdRef, [], Attributes, true, false),
+	ContentType = "application/json",
+	Request = {HostUrl ++ "/serviceInventoryManagement/v2/service/", [auth_header()],
+		ContentType},
+	{ok, Result} = httpc:request(head, Request, HttpOpt, []),
+	{{"HTTP/1.1", 204, _NoContent}, Headers1, []} = Result1,
+	{_, "0"} = lists:keyfind("content-length", 1, Headers1).
+
 get_service_not_found() ->
 	[{userdata, [{doc, "Get service notfound for given service id"}]}].
 
