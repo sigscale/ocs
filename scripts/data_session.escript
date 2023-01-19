@@ -9,7 +9,15 @@
 -define(IANA_PEN_3GPP, 10415).
 -define(IANA_PEN_SigScale, 50386).
 
-main([CallingParty]) ->
+main(Args) ->
+	case options(Args) of
+		#{help := true} = _Options ->
+			usage();
+		Options ->
+			data_session(Options)
+	end.
+
+data_session(Options) ->
 	try
 		Name = escript:script_name(),
 		ok = diameter:start(),
@@ -49,9 +57,13 @@ main([CallingParty]) ->
 		end,
 		SId = diameter:session_id(Hostname),
 		RequestNum = 0,
-		Subscription_Id = #'3gpp_ro_Subscription-Id'{
+		IMSI = #'3gpp_ro_Subscription-Id'{
+			'Subscription-Id-Type' = ?'3GPP_SUBSCRIPTION-ID-TYPE_END_USER_IMSI',
+			'Subscription-Id-Data' = maps:get(imsi, Options, "001001123456789")},
+		MSISDN = #'3gpp_ro_Subscription-Id'{
 			'Subscription-Id-Type' = ?'3GPP_SUBSCRIPTION-ID-TYPE_END_USER_E164',
-			'Subscription-Id-Data' = CallingParty},
+			'Subscription-Id-Data' = maps:get(msisdn, Options, "14165551234")},
+		SubscriptionId = [IMSI, MSISDN],
 		MSCC1 = #'3gpp_ro_Multiple-Services-Credit-Control'{
 			'Requested-Service-Unit' = []},
 		ServiceInformation = #'3gpp_ro_Service-Information'{'PS-Information' =
@@ -73,57 +85,63 @@ main([CallingParty]) ->
 			'CC-Request-Type' = ?'3GPP_CC-REQUEST-TYPE_INITIAL_REQUEST',
 			'CC-Request-Number' = RequestNum,
 			'Event-Timestamp' = [calendar:universal_time()],
-			'Subscription-Id' = [Subscription_Id],
+			'Subscription-Id' = SubscriptionId,
 			'Multiple-Services-Credit-Control' = [MSCC1],
 			'Service-Information' = [ServiceInformation]},
-		F = fun('3gpp_ro_CCA', _N) ->
+		Fro = fun('3gpp_ro_CCA', _N) ->
 					record_info(fields, '3gpp_ro_CCA')
 		end,
-		F1 = fun('diameter_base_answer-message', _N) ->
+		Fbase = fun('diameter_base_answer-message', _N) ->
 					record_info(fields, 'diameter_base_answer-message')
 		end,
 		case diameter:call(Name, ro, CCR, []) of
 			#'3gpp_ro_CCA'{} = Answer ->
-						io:fwrite("~s~n", [io_lib_pretty:print(Answer, F)]);
+						io:fwrite("~s~n", [io_lib_pretty:print(Answer, Fro)]);
 			#'diameter_base_answer-message'{} = Answer ->
-						io:fwrite("~s~n", [io_lib_pretty:print(Answer, F1)]);
+						io:fwrite("~s~n", [io_lib_pretty:print(Answer, Fbase)]);
 			{error, Reason} ->
 						throw(Reason)
 		end,
-		timer:sleep(1000),
-		RequestNum1 = RequestNum + 1,
-		UsedUnits = rand:uniform(10000),
-		USU = #'3gpp_ro_Used-Service-Unit'{'CC-Time' = [UsedUnits]},
-		MSCC3 = #'3gpp_ro_Multiple-Services-Credit-Control'{
-			'Used-Service-Unit' = [USU]},
-		CCR1 = CCR#'3gpp_ro_CCR'{'Session-Id' = SId,
-			'CC-Request-Type' = ?'3GPP_CC-REQUEST-TYPE_UPDATE_REQUEST',
-			'CC-Request-Number' = RequestNum1,
-			'Multiple-Services-Credit-Control' = [MSCC3],
-			'Event-Timestamp' = [calendar:universal_time()]},
-		case diameter:call(Name, ro, CCR1, []) of
-			#'3gpp_ro_CCA'{} = Answer1 ->
-						io:fwrite("~s~n", [io_lib_pretty:print(Answer1, F)]);
-			#'diameter_base_answer-message'{} = Answer1 ->
-						io:fwrite("~s~n", [io_lib_pretty:print(Answer1, F1)]);
-			{error, Reason1} ->
-				throw(Reason1)
+		timer:sleep(maps:get(interval, Options, 1000)),
+		Fupdate = fun F(0, ReqNum) ->
+					ReqNum;
+				F(N, ReqNum) ->
+					NewReqNum = ReqNum + 1,
+					UsedUnits = rand:uniform(1000000),
+					USU = #'3gpp_ro_Used-Service-Unit'{'CC-Total-Octets' = [UsedUnits]},
+					MSCC3 = #'3gpp_ro_Multiple-Services-Credit-Control'{
+						'Used-Service-Unit' = [USU]},
+					CCR1 = CCR#'3gpp_ro_CCR'{'Session-Id' = SId,
+						'CC-Request-Type' = ?'3GPP_CC-REQUEST-TYPE_UPDATE_REQUEST',
+						'CC-Request-Number' = NewReqNum,
+						'Multiple-Services-Credit-Control' = [MSCC3],
+						'Event-Timestamp' = [calendar:universal_time()]},
+					case diameter:call(Name, ro, CCR1, []) of
+						#'3gpp_ro_CCA'{} = Answer1 ->
+									io:fwrite("~s~n", [io_lib_pretty:print(Answer1, Fro)]);
+						#'diameter_base_answer-message'{} = Answer1 ->
+									io:fwrite("~s~n", [io_lib_pretty:print(Answer1, Fbase)]);
+						{error, Reason1} ->
+							throw(Reason1)
+					end,
+					timer:sleep(maps:get(interval, Options, 1000)),
+					F(N - 1, NewReqNum)
 		end,
-		timer:sleep(1000),
-		RequestNum2 = RequestNum1 + 1,
-		USU1 = #'3gpp_ro_Used-Service-Unit'{'CC-Time' = [UsedUnits]},
+		RequestNum1 = Fupdate(maps:get(updates, Options, 1), RequestNum),
+		UsedUnits1 = rand:uniform(1000000),
+		USU1 = #'3gpp_ro_Used-Service-Unit'{'CC-Total-Octets' = [UsedUnits1]},
 		MSCC4 = #'3gpp_ro_Multiple-Services-Credit-Control'{
 			'Used-Service-Unit' = [USU1]},
-		CCR2 = CCR1#'3gpp_ro_CCR'{'Session-Id' = SId,
+		CCR2 = CCR#'3gpp_ro_CCR'{'Session-Id' = SId,
 			'CC-Request-Type' = ?'3GPP_CC-REQUEST-TYPE_TERMINATION_REQUEST',
-			'CC-Request-Number' = RequestNum2,
+			'CC-Request-Number' = RequestNum1,
 			'Multiple-Services-Credit-Control' = [MSCC4],
 			'Event-Timestamp' = [calendar:universal_time()]},
 		case diameter:call(Name, ro, CCR2, []) of
 			#'3gpp_ro_CCA'{} = Answer2 ->
-						io:fwrite("~s~n", [io_lib_pretty:print(Answer2, F)]);
+						io:fwrite("~s~n", [io_lib_pretty:print(Answer2, Fro)]);
 			#'diameter_base_answer-message'{} = Answer2 ->
-						io:fwrite("~s~n", [io_lib_pretty:print(Answer2, F1)]);
+						io:fwrite("~s~n", [io_lib_pretty:print(Answer2, Fbase)]);
 			{error, Reason2} ->
 				throw(Reason2)
 		end
@@ -131,10 +149,32 @@ main([CallingParty]) ->
 		Error:Reason3 ->
 			io:fwrite("~w: ~w~n", [Error, Reason3]),
 			usage()
-	end;
-main(_) ->
-	usage().
+	end.
 
 usage() ->
-	io:fwrite("usage: ~s Origin~n", [escript:script_name()]),
+	Option1 = " [--msisdn MSISDN]",
+	Option2 = " [--imsi IMSI]",
+	Option3 = " [--interval milliseconds]",
+	Option4 = " [--updates N]",
+	Options = [Option1, Option2, Option3, Option4],
+	Format = lists:flatten(["usage: ~s", Options, "~n"]),
+	io:fwrite(Format, [escript:script_name()]),
 	halt(1).
+
+options(Args) ->
+	options(Args, #{}).
+options(["--help" | T], Acc) ->
+	options(T, Acc#{help => true});
+options(["--imsi", IMSI | T], Acc) ->
+	options(T, Acc#{imsi=> IMSI});
+options(["--msisdn", MSISDN | T], Acc) ->
+	options(T, Acc#{msisdn => MSISDN});
+options(["--interval", MS | T], Acc) ->
+	options(T, Acc#{interval => list_to_integer(MS)});
+options(["--updates", N | T], Acc) ->
+	options(T, Acc#{updates => list_to_integer(N)});
+options([_H | _T], _Acc) ->
+	usage();
+options([], Acc) ->
+	Acc.
+
