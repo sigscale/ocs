@@ -431,7 +431,7 @@ peer_stat1(_Application, [], Acc) ->
 		Component :: tuple().
 %% @doc Returns JSON object for a diameter count.
 dia_count(257, ResultCode, Count) ->
-		Component = "CEA " ++ integer_to_list(ResultCode),
+		Component = "CEA Result-Code: " ++ integer_to_list(ResultCode),
 		{struct, [{"componentId", Component},
 			{"componentType", "Protocol"},
          {"observedValue", Count}]};
