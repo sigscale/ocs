@@ -32,10 +32,7 @@
 	* correct service rating in iec examples
 	* test suite: avoid race condition by waiting for log event
 	* fix error code bug for balance query
-	* typo in description of ps context-id
-	* typo in description of ps context-id
 	* correct math in uptime
-	* typos
 	* correct hours,minutes uptime calculation
 	* actual svg size in uptime paper-card
 	* uptime dashboard
@@ -56,7 +53,6 @@
 	* remove default value and refactor update path
 	* add price column in bucket view
 	* handle undefined methods
-	* fix typo
 	* add delete in service update view
 	* default value for lifecyclestatus
 	* fix console bugs
