@@ -1,3 +1,111 @@
+2023-01-19  Vance Shipley <vances@sigscale.org>
+
+	* handle mscc parse in data_session escript
+	* correct diameter health check parsing in dashboard
+	* change color and label
+	* fixed string of dia_count/3
+	* match on send statistics in diameter health checks
+	* command line options for diameter transport in data_session escript
+	* add command line arguments for data_session escript
+	* test client scripts connect to localhost
+	* implement credit control chart
+	* changed ocs_rest_res_health:get_diameter_statistics() to get_diameter_statistics()
+	* head service testcase
+	* added diameter counters to health check
+	* head testcase for bucket
+	* sync disk_log before close
+	* sms-information in nrf
+	* sms-information in nrf
+	* mms-information in nrf
+	* mms-information in nrf
+	* expand service-information in nrf examples
+	* expand service-information in nrf examples
+	* role of node in ims-information of nrf
+	* role of node in ims-information of nrf
+	* visited network in ims-information of nrf
+	* visited network in ims-information of nrf
+	* serving node type is ps-information of nrf
+	* serving node type is ps-information of nrf
+	* scur example of ps service information
+	* scur example of ps service information
+	* correct service rating in iec examples
+	* correct service rating in iec examples
+	* test suite: avoid race condition by waiting for log event
+	* fix error code bug for balance query
+	* typo in description of ps context-id
+	* typo in description of ps context-id
+	* correct math in uptime
+	* typos
+	* correct hours,minutes uptime calculation
+	* actual svg size in uptime paper-card
+	* uptime dashboard
+	* head product testcase
+	* head  user testcase
+	* head client testcase
+	* uptime for health
+	* auth statistics counts
+	* describe transport_config diameter option in edoc overview
+	* implment HEAD request for user
+	* implement HEAD request for productInventory
+	* support productCatalogManagement offer for HEAD
+	* implement HEAD Request for offering
+	* implement HEAD request for bucket
+	* implement HEAD method for service
+	* implement HEAD method for client
+	* shell command for uptime
+	* remove default value and refactor update path
+	* add price column in bucket view
+	* handle undefined methods
+	* fix typo
+	* add delete in service update view
+	* default value for lifecyclestatus
+	* fix console bugs
+	* place priceAlteration into the guard
+	* fix label & remove unwanted line
+	* fixed price bucket in bucket row detail
+	* change the order and clear value
+	* bucket price is always a string
+	* fixed price bucket support in tmf654 oas
+	* correct type of fixed price bucket
+	* support boolean char value type
+	* display fixedPriceBucket in balancebucket row detail
+	* update fixedpricebucket
+	* fixed price bucket in offer add dialog
+	* change prices to price
+	* rating and charging allowance buckets with fixed price
+	* subscription charges create buckets with fixed price set
+	* add price name attribute to rated record
+	* rename bucket attribute price
+	* correct service href in balance adjustment
+	* add price in bucket
+	* handle repaied log result and report a warning
+	* fixed automatically selected price
+	* remove duplicate alterations
+	* add multiple alteration
+	* implement HEAD request for resource
+	* describe product specification relationships in edoc
+	* document product specifications
+	* add fixed price bucket char in prepaid product spec
+	* correct alteration label in offer update dialog
+	* rename fixed quantity package product spec to usage volume
+	* move rate plan dependency to network product spec
+	* renamed rate plan product spec to match sid example
+	* move redirect server characteristic to network product spec
+	* include name in product spec relationships
+	* removed deprecated polymorphic schemas, update oas
+	* correct common name for ca cert in rest test suite
+	* refactor tariff table rating for price discrimination (ocs-833)
+	* refactor rate3/16 for order and consistency
+	* missing rating group attribute in service rating result
+	* add observer unbundled offer
+	* fix capitalization for status
+	* display changes automatically
+	* fix for balnace URI
+	* removed unused filter imports
+	* use literate property name
+	* correct date range in balance log; move date range function to rest lib
+	* correct imsi and msisdn column sizes in acct log view
+
 2022-10-12  Vance Shipley <vances@sigscale.org>
 
 	* fix 401 error on pwa version update
