@@ -339,7 +339,7 @@ class dashBoard extends PolymerElement {
 			.attr('x', '285')
 			.attr('y', '86')
 			.attr("text-anchor", "middle")
-			.text('USER UNKNOWN')
+			.text('USER_UNKNOWN')
 			.style('fill', 'black')
 			.attr("font-size", '18')
 			.attr("font-family", "Roboto");
@@ -376,7 +376,7 @@ class dashBoard extends PolymerElement {
 			.attr('height', '28')
 			.attr('x', 0)
 			.attr('y', 128)
-			.style('fill', '#bc5100');
+			.style('fill', '#f05545');
 		g5.append('text')
 			.attr('x', '140')
 			.attr('y', '150')
@@ -390,7 +390,7 @@ class dashBoard extends PolymerElement {
 			.attr('height', '28')
 			.attr('x', 160)
 			.attr('y', 128)
-			.style('fill', '#bc5100');
+			.style('fill', '#f05545');
 		g5.append('text')
 			.attr('x', '285')
 			.attr('y', '150')
