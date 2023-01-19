@@ -295,6 +295,7 @@ diameter_all_dictionaries([Service | T], Acc) ->
 diameter_all_dictionaries([], Acc) ->
    lists:sort(lists:flatten(Acc)).
 
+%% @hidden
 diameter_dictionaries([Application | T], Acc) ->
    {dictionary, Dictionary} = lists:keyfind(dictionary, 1, Application),
    diameter_dictionaries(T, [Dictionary | Acc]);
@@ -408,7 +409,8 @@ service_counters(_Application, [], Counters) ->
 peer_stat(Application, PeerStats, Counters) ->
 	NewCounters = peer_stat1(Application, PeerStats, Counters).
 %% @hidden
-peer_stat1(Application, [{{{Application, CommandCode, 1}, _, {'Result-Code', ResultCode}}, Count} | T], Acc) ->
+peer_stat1(Application, [{{{Application, CommandCode, 0}, send,
+		{'Result-Code', ResultCode}}, Count} | T], Acc) ->
 	NewAcc = case maps:find({CommandCode, ResultCode}, Acc) of
   			   	{ok, Value} ->
    	   	   	Acc#{{CommandCode, ResultCode} => Value + Count};
