@@ -684,7 +684,7 @@ ipdr_file(Type, LogFile, Format) when is_list(LogFile),
 		{ok, Log} ->
 			ipdr_file1(LogFile, Log, Format);
 		{repaired, Log, Recovered, BadBytes} ->
-			error_logger:warning_report(["Log Repaied",
+			error_logger:warning_report(["Log Repaired",
 					{module, ?MODULE}, {log, Log}, Recovered, BadBytes]),
 			ipdr_file1(LogFile, Log, Format);
 		{error, Reason} ->
@@ -3033,7 +3033,7 @@ open_log1(Directory, Log, LogSize, LogFiles) ->
 		{error, {size_mismatch, _CurrentSize, {LogSize, LogFiles}}} ->
 			open_log2(Log, FileName, LogSize, LogFiles);
 		{repaired, Log, Recovered, BadBytes} ->
-			error_logger:warning_report(["Log Repaied",
+			error_logger:warning_report(["Log Repaired",
 					{module, ?MODULE}, {log, Log}, Recovered, BadBytes]),
 			ok;
 		{error, Reason} ->
@@ -3050,7 +3050,7 @@ open_log2(Log, FileName, LogSize, LogFiles) ->
 					open_log3(Log, Reason)
 			end;
 		{repaired, Log, Recovered, BadBytes} ->
-			error_logger:warning_report(["Log Repaied",
+			error_logger:warning_report(["Log Repaired",
 					{module, ?MODULE}, {log, Log}, Recovered, BadBytes]),
 			case disk_log:change_size(Log, {LogSize, LogFiles}) of
 				ok ->
