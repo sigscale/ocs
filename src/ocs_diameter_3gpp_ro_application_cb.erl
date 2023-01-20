@@ -1138,10 +1138,10 @@ rate(ServiceType, ServiceNetwork, Subscriber,
 		{out_of_credit, _, _SessionList, Rated2}
 				when is_list(Rated2), is_list(Rated1) ->
 			{lists:reverse(Acc), ResultCode, Rated1 ++ Rated2};
-		{disabled, _SessionList} ->
+		{disabled, _SessionList}
 				when Rated1 == undefined ->
 			{lists:reverse(Acc), ResultCode, []};
-		{disabled, _SessionList} ->
+		{disabled, _SessionList}
 				when is_list(Rated1) ->
 			{lists:reverse(Acc), ResultCode, rated1};
 		{error, Reason} ->
