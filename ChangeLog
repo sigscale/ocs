@@ -1,3 +1,7 @@
+2023-01-20  Vance Shipley <vances@sigscale.org>
+
+	* ignore session list in final out-of-credit
+
 2023-01-19  Vance Shipley <vances@sigscale.org>
 
 	* handle mscc parse in data_session escript
