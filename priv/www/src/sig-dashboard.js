@@ -187,10 +187,14 @@ class dashBoard extends PolymerElement {
 					if(request.response.checks["table:size"]) {
 						ocsHealth.tabSize.splice(0, ocsHealth.tabSize.length);
 						for(var index in request.response.checks["table:size"]) {
-							var newRecord = new Object();
-							newRecord.name = request.response.checks["table:size"][index].componentId;
-							newRecord.count = request.response.checks["table:size"][index].observedValue;
-							ocsHealth.push('tabSize', newRecord);
+							delete request.response.checks["table:size"][1];
+							delete request.response.checks["table:size"][4];
+							if(request.response.checks["table:size"][index] != undefined){
+								var newRecord = new Object();
+								newRecord.name = request.response.checks["table:size"][index].componentId;
+								newRecord.count = request.response.checks["table:size"][index].observedValue;
+								ocsHealth.push('tabSize', newRecord);
+							}
 						}
 					}
 					if(request.response.checks["uptime"]) {
@@ -216,7 +220,8 @@ class dashBoard extends PolymerElement {
 					}
 				}
 				var svgTable = select(root).select("#tableSize");
-				ocsHealth.draw_pie(svgTable, ocsHealth.tabSize, color_size);
+				var colorTable = scaleOrdinal(["#f57f17", "#ffb04c", "#bc5100"]);
+				ocsHealth.draw_pie(svgTable, ocsHealth.tabSize, colorTable);
 				ocsHealth.schedulerTimeout = setTimeout(ocsHealth._healthChart, maxAge * 1000);
 				var svgUp = select(root).select("#uptime");
 				ocsHealth.draw_up(svgUp, ocsHealth.uptime);
