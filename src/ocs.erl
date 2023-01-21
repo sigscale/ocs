@@ -38,6 +38,7 @@
 		query_offer/7]).
 -export([add_resource/1, get_resources/0, get_resource/1, delete_resource/1,
 		query_resource/5]).
+-export([clean_services/1]).
 -export([generate_password/0, generate_identity/0]).
 -export([statistics/1]).
 -export([start/4, start/5]).
@@ -2260,6 +2261,60 @@ statistics(Item) ->
 					{error, ocs_down}
 			end
 	end.
+
+-spec clean_services(Before) -> Result
+	when
+		Before :: ocs_rest:timestamp(),
+		Result :: ok | {error, Reason},
+		Reason :: term().
+%% @doc Clean the `service' table.
+%%
+%% 	Traverse the `service' table, removing expired sessions.
+%%
+%% 	The `service' table entries include a `session_attributes'
+%% 	field used to track active sessions. It is a list of
+%% 	`{TS, Attributes}' where `TS' is a timestamp and `Attributes'
+%% 	is a list of RADIUS or DIAMETER AVPs uniquely identifying a
+%% 	session. Instability of the RADIUS/DIAMETER connections may
+%% 	result in sessions not being removed.
+%%
+%% 	This function lazily traverses the `service' table, removing
+%% 	any session timestamped earlier than `Before'.
+%%
+clean_services(Before) when is_tuple(Before) ->
+	clean_services(ocs_rest:date(Before));
+clean_services(Before) when is_list(Before) ->
+	clean_services(ocs_rest:iso8601(Before));
+clean_services(Before)
+		when is_integer(Before), Before > ?EPOCH ->
+	clean_services(Before, mnesia:dirty_first(service)).
+%% @hidden
+clean_services(Before, Key) when is_binary(Key) ->
+	Fclean = fun({TS, _Attributes}) when TS > Before ->
+				true;
+			({TS, _Attributes}) when TS =< Before ->
+				false
+	end,
+	Ftrans = fun() ->
+			[#service{session_attributes = SA1} = S1]
+					= mnesia:read(service, Key, read),
+			case lists:filter(Fclean, SA1) of
+				SA2 when length(SA2) < length(SA1) ->
+					S2 = S1#service{session_attributes = SA2},
+					mnesia:write(service, S2, write);
+				_SA2 ->
+					ok
+			end
+	end,
+	case mnesia:transaction(Ftrans) of
+		{atomic, ok} ->
+			Next = mnesia:dirty_next(service, Key),
+			clean_services(Before, Next);
+		{aborted, Reason} ->
+			{error, Reason}
+	end;
+clean_services(Before, '$end_of_table') ->
+	ok.
 
 %%----------------------------------------------------------------------
 %%  The ocs private API
