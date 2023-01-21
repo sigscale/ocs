@@ -27,7 +27,7 @@
 -export([millionths_in/1, millionths_out/1]).
 -export([format_problem/2]).
 
--export_type([operator/0]).
+-export_type([timestamp/0, operator/0]).
 
 % calendar:datetime_to_gregorian_seconds({{1970,1,1},{0,0,0}})
 -define(EPOCH, 62167219200).
@@ -49,12 +49,13 @@ date(DateTime) when is_tuple(DateTime) ->
 	Seconds = calendar:datetime_to_gregorian_seconds(DateTime) - ?EPOCH,
 	Seconds * 1000.
 
+-type timestamp() :: pos_integer() | string().
 -spec iso8601(DateTime) -> Result
 	when
 		DateTime			:: ISODateTime | MilliSeconds,
 		ISODateTime		:: string(),
 		MilliSeconds	:: pos_integer(),
-		Result			:: string() | pos_integer().
+		Result			:: timestamp().
 %% @doc Convert iso8610 to ISO 8601 format date and time.
 iso8601(DateTime) when is_integer(DateTime) ->
 	{{Year, Month, Day}, {Hour, Minute, Second}} = date(DateTime),
