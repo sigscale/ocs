@@ -68,7 +68,7 @@ class dashBoard extends PolymerElement {
 					<svg
 							id="uptime"
 							width="464"
-							height="160">
+							height="200">
 					</svg>
 				</div>
 			</paper-card>
