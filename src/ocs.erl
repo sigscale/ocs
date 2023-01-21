@@ -38,7 +38,7 @@
 		query_offer/7]).
 -export([add_resource/1, get_resources/0, get_resource/1, delete_resource/1,
 		query_resource/5]).
--export([clean_services/1]).
+-export([clean_services/1, clean_buckets/1]).
 -export([generate_password/0, generate_identity/0]).
 -export([statistics/1]).
 -export([start/4, start/5]).
@@ -2286,10 +2286,11 @@ clean_services(Before) when is_tuple(Before) ->
 clean_services(Before) when is_list(Before) ->
 	clean_services(ocs_rest:iso8601(Before));
 clean_services(Before)
-		when is_integer(Before), Before > ?EPOCH ->
+		when is_integer(Before) ->
 	clean_services(Before, mnesia:dirty_first(service)).
 %% @hidden
 clean_services(Before, Key) when is_binary(Key) ->
+	Next = mnesia:dirty_next(service, Key),
 	Fclean = fun({TS, _Attributes}) when TS > Before ->
 				true;
 			({TS, _Attributes}) when TS =< Before ->
@@ -2308,12 +2309,66 @@ clean_services(Before, Key) when is_binary(Key) ->
 	end,
 	case mnesia:transaction(Ftrans) of
 		{atomic, ok} ->
-			Next = mnesia:dirty_next(service, Key),
 			clean_services(Before, Next);
 		{aborted, Reason} ->
 			{error, Reason}
 	end;
 clean_services(Before, '$end_of_table') ->
+	ok.
+
+-spec clean_buckets(Before) -> Result
+	when
+		Before :: ocs_rest:timestamp(),
+		Result :: ok | {error, Reason},
+		Reason :: term().
+%% @doc Clean the `bucket' table.
+%%
+%% 	Traverse the `buckets' table, removing old buckets.
+%%
+%% 	The `bucket' table entries include a `last_modified'
+%% 	field with a timestamp of the last write. The `end_date'
+%% 	field may (optionally) contain an expiration date.
+%%
+%% 	This function lazily traverses the `bucket' table,
+%% 	removing expired buckets and those which haven't been
+%% 	written since `Before'.
+%%
+clean_buckets(Before) when is_tuple(Before) ->
+	clean_buckets(ocs_rest:date(Before));
+clean_buckets(Before) when is_list(Before) ->
+	clean_buckets(ocs_rest:iso8601(Before));
+clean_buckets(Before)
+		when is_integer(Before) ->
+	clean_buckets(Before, mnesia:dirty_first(bucket)).
+%% @hidden
+clean_buckets(Before, Key) when is_list(Key) ->
+	Next = mnesia:dirty_next(bucket, Key),
+	Now = erlang:system_time(millisecond),
+	Ftrans = fun() ->
+			case mnesia:read(bucket, Key, read) of
+				[#bucket{product = [ProdRef], end_date = Expiry,
+						last_modified = {TS,_}}] when TS < Before;
+						((Expiry /= undefined) and (Expiry =< Now)) ->
+					case mnesia:read(product, ProdRef, write) of
+						[#product{balance = Buckets1} = Product1] ->
+							Buckets2 = lists:delete(Key, Buckets1),
+							Product2 = Product1#product{balance = Buckets2},
+							mnesia:write(Product2),
+							mnesia:delete(bucket, Key, write);
+						[] ->
+							mnesia:delete(bucket, Key, write)
+					end;
+				[#bucket{}] ->
+					ok
+			end
+	end,
+	case mnesia:transaction(Ftrans) of
+		{atomic, ok} ->
+			clean_buckets(Before, Next);
+		{aborted, Reason} ->
+			{error, Reason}
+	end;
+clean_buckets(Before, '$end_of_table') ->
 	ok.
 
 %%----------------------------------------------------------------------
