@@ -187,10 +187,18 @@ class dashBoard extends PolymerElement {
 					if(request.response.checks["table:size"]) {
 						ocsHealth.tabSize.splice(0, ocsHealth.tabSize.length);
 						for(var index in request.response.checks["table:size"]) {
-							delete request.response.checks["table:size"][1];
-							delete request.response.checks["table:size"][4];
-							if(request.response.checks["table:size"][index] != undefined){
-								var newRecord = new Object();
+							var newRecord = new Object();
+							if(request.response.checks["table:size"][index].componentId == "bucket"){
+								newRecord.name = request.response.checks["table:size"][index].componentId;
+								newRecord.count = request.response.checks["table:size"][index].observedValue;
+								ocsHealth.push('tabSize', newRecord);
+							}
+							if(request.response.checks["table:size"][index].componentId == "service") {
+								newRecord.name = request.response.checks["table:size"][index].componentId;
+								newRecord.count = request.response.checks["table:size"][index].observedValue;
+								ocsHealth.push('tabSize', newRecord);
+							}
+							if(request.response.checks["table:size"][index].componentId == "product") {
 								newRecord.name = request.response.checks["table:size"][index].componentId;
 								newRecord.count = request.response.checks["table:size"][index].observedValue;
 								ocsHealth.push('tabSize', newRecord);
