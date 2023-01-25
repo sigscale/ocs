@@ -459,6 +459,9 @@ client([identifier| T], #client{identifier = Identifier} = C, Acc)
 	client(T, C, [{"identifier", binary_to_list(Identifier)} | Acc]);
 client([password_required | T], #client{password_required = false} = C, Acc) ->
 	client(T, C, [{"passwordRequired", false} | Acc]);
+client([trusted| T], #client{trusted = Trusted} = C, Acc)
+		when is_boolean(Trusted) ->
+	client(T, C, [{"trusted", Trusted} | Acc]);
 client([_ | T], Client, Acc) ->
 	client(T, Client, Acc);
 client([], _, Acc) ->
@@ -488,6 +491,9 @@ client([{"secret", Secret} | T], Acc) when is_list(Secret) ->
 client([{"passwordRequired", PwdReq} | T], Acc)
 		when is_boolean(PwdReq) ->
 	client(T, Acc#client{password_required = PwdReq});
+client([{"trusted", Trusted} | T], Acc)
+		when is_boolean(Trusted) ->
+	client(T, Acc#client{trusted = Trusted});
 client([], Acc) ->
 	Acc.
 
