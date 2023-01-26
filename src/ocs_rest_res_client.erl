@@ -154,9 +154,10 @@ post_client(RequestBody) ->
 	try
 		Client = client(mochijson:decode(RequestBody)),
 		#client{address = Address, port = Port, protocol = Protocol,
-				secret = Secret, password_required = PasswordReq} = Client,
+				secret = Secret, password_required = PasswordReq,
+				trusted = Trusted} = Client,
 		{ok, #client{last_modified = Etag} = Client1} =
-				ocs:add_client(Address, Port, Protocol, Secret, PasswordReq),
+				ocs:add_client(Address, Port, Protocol, Secret, PasswordReq, Trusted),
 		Id = inet:ntoa(Address),
 		Location = "/ocs/v1/client/" ++ Id,
 		JsonObj  = client(Client1),

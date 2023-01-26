@@ -113,6 +113,11 @@ class clientAdd extends PolymerElement {
 						Passwordless
 					</paper-checkbox>
 				</iron-collapse>
+				<paper-checkbox
+						id="clientTrusted"
+						checked="{{checkTrusted}}">
+					Trusted WLAN (TWAN)
+				</paper-checkbox>
 				<div class="buttons">
 					<paper-button
 							raised
@@ -174,6 +179,9 @@ class clientAdd extends PolymerElement {
 			},
 			checkPasswordless: {
 				type: Boolean
+			},
+			checkTrusted: {
+				type: Boolean
 			}
 		}
 	}
@@ -185,6 +193,7 @@ class clientAdd extends PolymerElement {
 	_addClientSubmit() {
 		var client = new Object();
 		client.id = this.address;
+		client.trusted = this.checkTrusted;
 		if (this.clientProto == "DIAMETER") {
 			client.protocol = "DIAMETER";
 		} else {
