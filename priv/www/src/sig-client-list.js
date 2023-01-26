@@ -112,6 +112,12 @@ class clientList extends PolymerElement {
 							[[item.protocol]]
 					</template>
 				</vaadin-grid-column>
+            <vaadin-grid-column width="10ex" flex-grow="1">
+               <template class="header">
+                  TWAN
+               </template>
+               <template>[[item.trusted]]</template>
+            </vaadin-grid-column>
 			</vaadin-grid>
 			<div class="add-button">
 				<paper-fab
@@ -224,6 +230,7 @@ class clientList extends PolymerElement {
 					newRecord.passwordRequired = request.response[index].passwordRequired;
 					newRecord.port = request.response[index].port;
 					newRecord.protocol = request.response[index].protocol;
+					newRecord.trusted = request.response[index].trusted;
 					vaadinItems[index] = newRecord;
 				}
 				callback(vaadinItems);
