@@ -81,6 +81,11 @@ class clientUpdate extends PolymerElement {
 								id="updatePass">
 							Passwordless
 						</paper-checkbox>
+						<paper-checkbox
+								checked="{{updateTrusted}}"
+								id="updateTrust">
+							Trusted WLAN (TWAN)
+						</paper-checkbox>
 						<div class="buttons">
 							<paper-button
 									raised
@@ -233,12 +238,14 @@ class clientUpdate extends PolymerElement {
 			this.clientUpProto = current.protocol;
 			this.clientUpDisPort = current.port;
 			this.updatePasswordless = current.passwordRequired;
+			this.updateTrusted = current.trusted;
 			var arrObj = new Object();
 			arrObj.port = this.clientUpDisPort;
 			arrObj.protocol = this.clientUpProto;
 			arrObj.address = this.clientUpAddress;
 			arrObj.pass = this.clientUpNewPass;
 			arrObj.passwordless = this.updatePasswordless;
+			arrObj.trusted = this.updateTrusted;
 			this.valCha.push(arrObj);
 			this.$.updateClientModal.open();
 		}
@@ -269,11 +276,18 @@ class clientUpdate extends PolymerElement {
 				penAuthObj.passwordless = this.updatePasswordless;
 				penAuth.add(this.updatePasswordless);
 			}
+			if(this.updateTrusted != this.valCha[indexx].trusted){
+				penAuthObj.trusted = this.updateTrusted;
+				penAuth.add(this.updateTrusted);
+			}
 			if (penAuth.has(this.clientUpNewPass)) {
 				penAuthObj1.pass = this.clientUpNewPass;
 			}
 			if (penAuth.has(this.updatePasswordless)) {
 				penAuthObj1.passwordless = this.updatePasswordless;
+			}
+			if (penAuth.has(this.updateTrusted)) {
+				penAuthObj1.trusted = this.updateTrusted;
 			}
 			this.valChaOne.push(penAuthObj1);
 		}
@@ -293,10 +307,16 @@ class clientUpdate extends PolymerElement {
 				passwordReq.value = this.valChaOne[indexx1].passwordless;
 				clientPass.push(passwordReq);
 			}
+			var trustedWlan = new Object();
+			trustedWlan.op = "replace";
+			trustedWlan.path = "/trusted";
+			trustedWlan.value = this.valChaOne[indexx1].trusted;
+			clientPass.push(trustedWlan);
 		}
 		ajax.body = JSON.stringify(clientPass);
 		ajax.generateRequest();
 		this.$.updatePass.checked = null;
+		this.$.updateTrust.checked = null;
 	}
 
 	_updateClientAuthResponse() {
