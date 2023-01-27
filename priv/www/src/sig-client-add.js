@@ -118,6 +118,11 @@ class clientAdd extends PolymerElement {
 						checked="{{checkTrusted}}">
 					Trusted WLAN (TWAN)
 				</paper-checkbox>
+				<paper-tooltip
+						for="clientTrusted"
+						offset="0">
+					Indicates to 3GPP AAA Server if a non-3GPP access network is trusted
+				</paper-tooltip>
 				<div class="buttons">
 					<paper-button
 							raised
