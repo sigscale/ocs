@@ -112,7 +112,7 @@ class clientList extends PolymerElement {
 							[[item.protocol]]
 					</template>
 				</vaadin-grid-column>
-            <vaadin-grid-column width="10ex" flex-grow="1">
+            <vaadin-grid-column>
                <template class="header">
                   TWAN
                </template>
