@@ -30,45 +30,49 @@ class dashBoard extends PolymerElement {
 			<style include="style-element">
 			</style>
 			<paper-card
-					id="schedGraph"
+					class="schedGraph"
 					heading="Scheduler Utilization">
 				<div
 						class="card-content">
 					<svg
 							id="schedule"
-							height="500"></svg>
+							height="300">
+					</svg>
 				</div>
 			</paper-card>
 			<paper-card
+					class="tableSize"
 					heading="Table Size">
 				<div
 						class="card-content">
 					<svg
 							id="tableSize"
-							width="500"
-							height="200">
+							width="400"
+							height="188">
 					</svg>
 				</div>
 			</paper-card>
 			<paper-card
+					class="creditControl"
 					heading="Credit Control Requests">
 				<div
 						class="card-content">
 					<svg
 							id="creditControl"
-							width="420"
-							height="200">
+							width="410"
+							height="188">
 					</svg>
 				</div>
 			</paper-card>
 			<paper-card
+					class="upTime"
 					heading="Uptime">
 				<div
 						class="card-content">
 					<svg
 							id="uptime"
 							width="464"
-							height="200">
+							height="152">
 					</svg>
 				</div>
 			</paper-card>

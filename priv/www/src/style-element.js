@@ -265,11 +265,40 @@ styleElement.innerHTML = `<template>
 				font-size: larger;
 			}
 		}
-		#schedGraph {
-			width: 100%;
+		#dashBoard {
+			display: flex;
+			flex-direction: row;
+			flex-wrap: wrap;
+			align-items: flex-start;
+			gap: 8px;
+		}
+		paper-card.schedGraph {
+			--paper-card: {
+				order: 0;
+				width: 100%;
+				border-radius: 8px;
+			};
 		}
 		#schedule {
 			width: 100%;
+		}
+		paper-card.creditControl {
+			--paper-card: {
+				order: 1;
+				border-radius: 8px;
+			};
+		}
+		paper-card.tableSize {
+			--paper-card: {
+				order: 2;
+				border-radius: 8px;
+			};
+		}
+		paper-card.upTime {
+			--paper-card: {
+				order: 3;
+				border-radius: 8px;
+			};
 		}
 	</style>
 </template>`;
