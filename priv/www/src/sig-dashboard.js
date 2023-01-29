@@ -31,7 +31,7 @@ class dashBoard extends PolymerElement {
 			</style>
 			<paper-card
 					class="schedGraph"
-					heading="Scheduler Utilization">
+					heading="Scheduler Utilization{{schedulerCoreHeader}}">
 				<div
 						class="card-content">
 					<svg
@@ -110,6 +110,15 @@ class dashBoard extends PolymerElement {
 				notify: false,
 				value: 0
 			},
+			schedulerCoreHeader: {
+				type: String,
+				computed: 'computeCores(numSchedulers)'
+			},
+			numSchedulers: {
+				type: Number,
+				notify: false,
+				value: 0
+			},
 			schedulerData: {
 				type: Array,
 				readOnly: true,
@@ -163,6 +172,7 @@ class dashBoard extends PolymerElement {
 								ocsHealth.splice('schedulerData', 0, schedulerLength - numPoints);
 							}
 						}
+						ocsHealth.numSchedulers = request.response.checks["scheduler:utilization"].length;
 					}
 				}
 				var svgSched = select(root).select("#schedule");
@@ -692,6 +702,14 @@ class dashBoard extends PolymerElement {
 		function midAngle(d) {
 			return d.startAngle + (d.endAngle - d.startAngle) / 2;
 		};
+	}
+
+	computeCores(numSchedulers) {
+		if(numSchedulers > 2) {
+			return " (" + Math.floor(numSchedulers/2) + " Cores)";
+		} else {
+			return " (1 Core)";
+		}
 	}
 }
 
