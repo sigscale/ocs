@@ -41,12 +41,12 @@ class dashBoard extends PolymerElement {
 				</div>
 			</paper-card>
 			<paper-card
-					class="tableSize"
-					heading="Table Size">
+					class="subscriptions"
+					heading="Subscriptions">
 				<div
 						class="card-content">
 					<svg
-							id="tableSize"
+							id="subscriptions"
 							width="400"
 							height="188">
 					</svg>
@@ -92,7 +92,7 @@ class dashBoard extends PolymerElement {
 				notify: true,
 				value: false
 			},
-			tabSize: {
+			subscriptions: {
 				type: Array,
 				readOnly: true,
 				notify: false,
@@ -179,23 +179,23 @@ class dashBoard extends PolymerElement {
 				ocsHealth.draw_line(svgSched, ocsHealth.schedulerData, width, height);
 				if(request.response){
 					if(request.response.checks["table:size"]) {
-						ocsHealth.tabSize.splice(0, ocsHealth.tabSize.length);
+						ocsHealth.subscriptions.splice(0, ocsHealth.subscriptions.length);
 						for(var index in request.response.checks["table:size"]) {
 							var newRecord = new Object();
 							if(request.response.checks["table:size"][index].componentId == "bucket"){
 								newRecord.name = request.response.checks["table:size"][index].componentId;
 								newRecord.count = request.response.checks["table:size"][index].observedValue;
-								ocsHealth.push('tabSize', newRecord);
+								ocsHealth.push('subscriptions', newRecord);
 							}
 							if(request.response.checks["table:size"][index].componentId == "service") {
 								newRecord.name = request.response.checks["table:size"][index].componentId;
 								newRecord.count = request.response.checks["table:size"][index].observedValue;
-								ocsHealth.push('tabSize', newRecord);
+								ocsHealth.push('subscriptions', newRecord);
 							}
 							if(request.response.checks["table:size"][index].componentId == "product") {
 								newRecord.name = request.response.checks["table:size"][index].componentId;
 								newRecord.count = request.response.checks["table:size"][index].observedValue;
-								ocsHealth.push('tabSize', newRecord);
+								ocsHealth.push('subscriptions', newRecord);
 							}
 						}
 					}
@@ -221,8 +221,8 @@ class dashBoard extends PolymerElement {
 						}
 					}
 				}
-				var svgTable = select(root).select("#tableSize");
-				ocsHealth.draw_pie(svgTable, ocsHealth.tabSize);
+				var svgSubs = select(root).select("#subscriptions");
+				ocsHealth.draw_pie(svgSubs, ocsHealth.subscriptions);
 				ocsHealth.schedulerTimeout = setTimeout(ocsHealth._healthChart, maxAge * 1000);
 				var svgUp = select(root).select("#uptime");
 				ocsHealth.draw_up(svgUp, ocsHealth.uptime);

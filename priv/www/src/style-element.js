@@ -288,7 +288,7 @@ styleElement.innerHTML = `<template>
 				border-radius: 8px;
 			};
 		}
-		paper-card.tableSize {
+		paper-card.subscriptions {
 			--paper-card: {
 				order: 2;
 				border-radius: 8px;
