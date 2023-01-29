@@ -161,28 +161,8 @@ class dashBoard extends PolymerElement {
 						}
 					}
 				}
-				var rs = getComputedStyle(document.querySelector(':root'));
-				var color_size = scaleOrdinal([rs.getPropertyValue('--paper-yellow-900'),
-					rs.getPropertyValue('--paper-green-900'),
-					rs.getPropertyValue('--paper-red-900'),
-					rs.getPropertyValue('--paper-blue-900'),
-					rs.getPropertyValue('--paper-cyan-900'),
-					rs.getPropertyValue('--paper-pink-900'),
-					rs.getPropertyValue('--paper-teal-900'),
-					rs.getPropertyValue('--paper-purple-900'),
-					rs.getPropertyValue('--paper-amber-900'),
-					rs.getPropertyValue('--paper-orange-900'),
-					rs.getPropertyValue('--paper-light-blue-900'),
-					rs.getPropertyValue('--paper-light-green-900'),
-					rs.getPropertyValue('--paper-lime-900'),
-					rs.getPropertyValue('--paper-blue-grey-900'),
-					rs.getPropertyValue('--paper-deep-orange-900'),
-					rs.getPropertyValue('--paper-deep-purple-900'),
-					rs.getPropertyValue('--paper-indigo-900'),
-					rs.getPropertyValue('--paper-grey-900'),
-					rs.getPropertyValue('--paper-brown-900')]);
 				var svgSched = select(root).select("#schedule");
-				ocsHealth.draw_line(svgSched, ocsHealth.schedulerData, width, height, color_size);
+				ocsHealth.draw_line(svgSched, ocsHealth.schedulerData, width, height);
 				if(request.response){
 					if(request.response.checks["table:size"]) {
 						ocsHealth.tabSize.splice(0, ocsHealth.tabSize.length);
@@ -228,8 +208,7 @@ class dashBoard extends PolymerElement {
 					}
 				}
 				var svgTable = select(root).select("#tableSize");
-				var colorTable = scaleOrdinal(["#f57f17", "#ffb04c", "#bc5100"]);
-				ocsHealth.draw_pie(svgTable, ocsHealth.tabSize, colorTable);
+				ocsHealth.draw_pie(svgTable, ocsHealth.tabSize);
 				ocsHealth.schedulerTimeout = setTimeout(ocsHealth._healthChart, maxAge * 1000);
 				var svgUp = select(root).select("#uptime");
 				ocsHealth.draw_up(svgUp, ocsHealth.uptime);
@@ -510,7 +489,27 @@ class dashBoard extends PolymerElement {
 		return svg.node();
 	}
 
-	draw_line(svg, data, width, height, color) {
+	draw_line(svg, data, width, height) {
+		var rs = getComputedStyle(document.querySelector(':root'));
+		var color = scaleOrdinal([rs.getPropertyValue('--paper-yellow-900'),
+			rs.getPropertyValue('--paper-green-900'),
+			rs.getPropertyValue('--paper-red-900'),
+			rs.getPropertyValue('--paper-blue-900'),
+			rs.getPropertyValue('--paper-cyan-900'),
+			rs.getPropertyValue('--paper-pink-900'),
+			rs.getPropertyValue('--paper-teal-900'),
+			rs.getPropertyValue('--paper-purple-900'),
+			rs.getPropertyValue('--paper-amber-900'),
+			rs.getPropertyValue('--paper-orange-900'),
+			rs.getPropertyValue('--paper-light-blue-900'),
+			rs.getPropertyValue('--paper-light-green-900'),
+			rs.getPropertyValue('--paper-lime-900'),
+			rs.getPropertyValue('--paper-blue-grey-900'),
+			rs.getPropertyValue('--paper-deep-orange-900'),
+			rs.getPropertyValue('--paper-deep-purple-900'),
+			rs.getPropertyValue('--paper-indigo-900'),
+			rs.getPropertyValue('--paper-grey-900'),
+			rs.getPropertyValue('--paper-brown-900')]);
 		var curve = curveLinear;
 		var marginTop = 20;
 		var marginRight = 30;
@@ -625,7 +624,8 @@ class dashBoard extends PolymerElement {
 			.attr("y", -8);
 	}
 
-	draw_pie(svg, data, color) {
+	draw_pie(svg, data) {
+		var color = scaleOrdinal(["#f57f17", "#ffb04c", "#bc5100"]);
 		svg.selectAll("*").remove();
 		var g = svg.append("g");
 		g.append("g")
