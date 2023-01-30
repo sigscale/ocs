@@ -114,6 +114,7 @@ class clientAdd extends PolymerElement {
 					</paper-checkbox>
 				</iron-collapse>
 				<paper-checkbox
+						class="trusted"
 						id="clientTrusted"
 						checked="{{checkTrusted}}">
 					Trusted WLAN (TWAN)

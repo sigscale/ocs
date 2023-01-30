@@ -244,6 +244,9 @@ styleElement.innerHTML = `<template>
 		.passwordless {
 			width: 8em;
 		}
+		.trusted {
+			display: block;
+		}
 		.secret {
 			display: inline-block;
 		}
