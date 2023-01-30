@@ -62,18 +62,18 @@ class SigApp extends PolymerElement {
 						<app-toolbar
 								class="toolbar-top">
 							<paper-icon-button
-									icon="my-icons:menu"
+									icon="ocs-icons:menu"
 									drawer-toggle>
 							</paper-icon-button>
 							<div main-title>[[viewTitle]]</div>
 							<paper-icon-button
 								id="refresh"
-								icon="my-icons:refresh"
+								icon="ocs-icons:refresh"
 								on-click="refresh">
 							</paper-icon-button>
 							<paper-icon-button
 								toggles
-								icon="my-icons:overFlowMenu"
+								icon="ocs-icons:overFlowMenu"
 								id="overFlowIcon"
 								active="{{overFlowActive}}"
 								on-click="_overFlowMenu">
@@ -197,26 +197,26 @@ class SigApp extends PolymerElement {
 							role="navigation">
 						<a name="dashView" href="[[rootPath]]dashView">
 							<paper-icon-button
-								icon="my-icons:dashboard">
+								icon="ocs-icons:dashboard">
 							</paper-icon-button>
 							Dashboard
 						</a>
 						<a href="" on-click="_collapseCatalog">
 							<paper-icon-button
-									icon="my-icons:store">
+									icon="ocs-icons:store">
 							</paper-icon-button>
 							Catalog
 						</a>
 						<iron-collapse id="catalog">
 							<a name="offerView" href="[[rootPath]]offerView">
 								<paper-icon-button
-										icon="my-icons:offer">
+										icon="ocs-icons:offer">
 								</paper-icon-button>
 								Offerings
 							</a>
 							<a name="prefixView" href="[[rootPath]]prefixView">
 								<paper-icon-button
-										icon="my-icons:table">
+										icon="ocs-icons:table">
 								</paper-icon-button>
 								Tariff
 							</a>
@@ -229,90 +229,90 @@ class SigApp extends PolymerElement {
 						</iron-collapse>
 							<a href="" on-click="_collapseSubscriber">
 								<paper-icon-button
-										icon="my-icons:card-membership">
+										icon="ocs-icons:card-membership">
 								</paper-icon-button>
 								Subscribers 
 							</a>
 						<iron-collapse id="subscribers">
 							<a name="serviceView" href="[[rootPath]]serviceView">
 								<paper-icon-button
-										icon="my-icons:devices">
+										icon="ocs-icons:devices">
 								</paper-icon-button>
 								Services
 							</a>
 							<a name="productView" href="[[rootPath]]productView">
 								<paper-icon-button
-										icon="my-icons:offer">
+										icon="ocs-icons:offer">
 								</paper-icon-button>
 								Products
 							</a>
 							<a name="bucketView" href="[[rootPath]]bucketView">
 								<paper-icon-button
-										icon="my-icons:icons:account-balance">
+										icon="ocs-icons:icons:account-balance">
 								</paper-icon-button>
 								Balance Buckets
 							</a>
 						</iron-collapse>
 						<a name="clientView" href="[[rootPath]]clientView">
 							<paper-icon-button
-								icon="my-icons:router">
+								icon="ocs-icons:router">
 							</paper-icon-button>
 							Clients
 						</a>
 						<a name="userView" href="[[rootPath]]userView">
 							<paper-icon-button
-									icon="my-icons:perm-identity">
+									icon="ocs-icons:perm-identity">
 							</paper-icon-button>
 							Users
 						</a>
 						<a href="" on-click="_collapseLogs">
 							<paper-icon-button
-									icon="my-icons:history">
+									icon="ocs-icons:history">
 							</paper-icon-button>
 							Logs
 						</a>
 						<iron-collapse id="logs">
 							<a name="accessView" href="[[rootPath]]accessView">
 								<paper-icon-button
-										icon="my-icons:data-usage">
+										icon="ocs-icons:data-usage">
 								</paper-icon-button>
 								Access
 							</a>
 							<a name="accountingView" href="[[rootPath]]accountingView">
 								<paper-icon-button
-										icon="my-icons:data-usage">
+										icon="ocs-icons:data-usage">
 								</paper-icon-button>
 								Accounting
 							</a>
 							<a name="balanceView" href="[[rootPath]]balanceView">
 								<paper-icon-button
-										icon="my-icons:data-usage">
+										icon="ocs-icons:data-usage">
 								</paper-icon-button>
 								Balance
 							</a>
 							<a href="" on-click="_collapseIpdr">
 								<paper-icon-button
-									icon="my-icons:data-usage">
+									icon="ocs-icons:data-usage">
 								</paper-icon-button>
 								IPDR
 							</a>
 							<iron-collapse id="ipdr">
 								<a name="ipdrWlanView" href="[[rootPath]]ipdrWlanView">
 									<paper-icon-button
-											icon="my-icons:data-usage">
+											icon="ocs-icons:data-usage">
 									</paper-icon-button>
 									WLAN
 								</a>
 								<a name="ipdrVoipView" href="[[rootPath]]ipdrVoipView">
 									<paper-icon-button
-											icon="my-icons:data-usage">
+											icon="ocs-icons:data-usage">
 									</paper-icon-button>
 									VoIP
 								</a>
 							</iron-collapse>
 							<a name="httpView" href="[[rootPath]]httpView">
 								<paper-icon-button
-									icon="my-icons:data-usage">
+									icon="ocs-icons:data-usage">
 								</paper-icon-button>
 								HTTP
 							</a>

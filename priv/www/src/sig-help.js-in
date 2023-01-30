@@ -27,31 +27,31 @@ class ocsHelp extends PolymerElement {
 			<paper-dialog class="helpdialog" id="helpDrop">
 				<paper-icon-item class="menu-trigger menuitem"
 					on-click="_collapseLogsContact">
-					<iron-icon icon="my-icons:contactUs" item-icon></iron-icon>
+					<iron-icon icon="ocs-icons:contactUs" item-icon></iron-icon>
 						Contact Us
 				</paper-icon-item>
 				<iron-collapse id="contact">
 					<div>
 						<paper-icon-button
-							icon="my-icons:call">
+							icon="ocs-icons:call">
 						</paper-icon-button>
 						<a href="tel:+639208370397">+639208370397</a>
 					</div>
 					<div>
 						<paper-icon-button
-							icon="my-icons:email">
+							icon="ocs-icons:email">
 						</paper-icon-button>
 						<a target="_blank" href="mailto:info@sigscale.org">info@sigscale.org</a>
 					</div>
 				</iron-collapse>
 				<paper-icon-item class="menu-trigger menuitem">
-					<iron-icon icon="my-icons:feedback" item-icon></iron-icon>
+					<iron-icon icon="ocs-icons:feedback" item-icon></iron-icon>
 					<a target="_blank" href="https://sigscale.atlassian.net/secure/CreateIssue!default.jspa?pid=10100&issuetype=10000">
 						Send Feedback
 					</a>
 				</paper-icon-item>
 				<paper-icon-item class="menu-trigger menuitem">
-					<iron-icon icon="my-icons:api" item-icon></iron-icon>
+					<iron-icon icon="ocs-icons:api" item-icon></iron-icon>
 					<a target="_blank" href="/doc/index.html">
 						API Docs
 					</a>
@@ -59,11 +59,11 @@ class ocsHelp extends PolymerElement {
 				<paper-icon-item
 					   class="menu-trigger menuitem"
 						on-click="helpId">
-					<iron-icon icon="my-icons:help" item-icon></iron-icon>
+					<iron-icon icon="ocs-icons:help" item-icon></iron-icon>
 						Help
 				</paper-icon-item>
 				<paper-icon-item class="menu-trigger menuitem" on-click="about">
-					<iron-icon icon="my-icons:about"></iron-icon>
+					<iron-icon icon="ocs-icons:about"></iron-icon>
 						About
 				</paper-icon-item>
 			</paper-dialog>
@@ -74,19 +74,19 @@ class ocsHelp extends PolymerElement {
 				<paper-icon-item
 						class="icon-style"
 						on-click="catalog">
-					<iron-icon icon="my-icons:store" item-icon></iron-icon>
+					<iron-icon icon="ocs-icons:store" item-icon></iron-icon>
 					Catalog
 				</paper-icon-item>
 				<paper-icon-item
 						class="icon-style"
 						on-click="offering">
-					<iron-icon icon="my-icons:offer" item-icon></iron-icon>
+					<iron-icon icon="ocs-icons:offer" item-icon></iron-icon>
 					Offering
 				</paper-icon-item>
 				<paper-icon-item
 						class="icon-style"
 						on-click="tariff">
-					<iron-icon icon="my-icons:table" item-icon></iron-icon>
+					<iron-icon icon="ocs-icons:table" item-icon></iron-icon>
 					Tariff
 				</paper-icon-item>
 				<paper-icon-item
@@ -98,49 +98,49 @@ class ocsHelp extends PolymerElement {
 				<paper-icon-item
 						class="icon-style"
 						on-click="addSubQue">
-					<iron-icon icon="my-icons:card-membership" item-icon></iron-icon>
+					<iron-icon icon="ocs-icons:card-membership" item-icon></iron-icon>
 					Subscribers
 				</paper-icon-item>
 				<paper-icon-item
 						class="icon-style"
 						on-click="service">
-					<iron-icon icon="my-icons:devices" item-icon></iron-icon>
+					<iron-icon icon="ocs-icons:devices" item-icon></iron-icon>
 					Services
 				</paper-icon-item>
 				<paper-icon-item
 						class="icon-style"
 						on-click="product">
-					<iron-icon icon="my-icons:offer" item-icon></iron-icon>
+					<iron-icon icon="ocs-icons:offer" item-icon></iron-icon>
 					Product
 				</paper-icon-item>
 				<paper-icon-item
 						class="icon-style"
 						on-click="bucket">
-					<iron-icon icon="my-icons:icons:account-balance" item-icon></iron-icon>
+					<iron-icon icon="ocs-icons:icons:account-balance" item-icon></iron-icon>
 					Balance Bucket
 				</paper-icon-item>
 				<paper-icon-item
 						class="icon-style"
 						on-click="addClientQue">
-					<iron-icon icon="my-icons:router" item-icon></iron-icon>
+					<iron-icon icon="ocs-icons:router" item-icon></iron-icon>
 					Clients
 				</paper-icon-item>
 				<paper-icon-item
 						class="icon-style"
 						on-click="addUserQue">
-					<iron-icon icon="my-icons:perm-identity" item-icon></iron-icon>
+					<iron-icon icon="ocs-icons:perm-identity" item-icon></iron-icon>
 					Users
 				</paper-icon-item>
 				<paper-icon-item
 						class="icon-style"
 						on-click="addLogQue">
-					<iron-icon icon="my-icons:history" item-icon></iron-icon>
+					<iron-icon icon="ocs-icons:history" item-icon></iron-icon>
 					Logs
 				</paper-icon-item>
 				<paper-icon-item
 						class="icon-style"
 						on-click="toolQue">
-					<iron-icon icon="my-icons:assignment" item-icon></iron-icon>
+					<iron-icon icon="ocs-icons:assignment" item-icon></iron-icon>
 					Toolbar
 				</paper-icon-item>
 				<paper-icon-item
@@ -153,13 +153,13 @@ class ocsHelp extends PolymerElement {
 			<paper-dialog class="helpdialog" id="helpCatalog">
 				<app-toolbar>
 					<paper-icon-button
-							icon="my-icons:arrow-back"
+							icon="ocs-icons:arrow-back"
 							on-click="helpBack">
 					</paper-icon-button>
 					<h2>Catalog</h2>
 				</app-toolbar>
 				<paper-icon-item>
-					<iron-icon icon="my-icons:store" slot="item-icon"></iron-icon>
+					<iron-icon icon="ocs-icons:store" slot="item-icon"></iron-icon>
 					<h2>Catalog</h2>
 				</paper-icon-item>
 				<paper-dialog-scrollable>
@@ -169,11 +169,11 @@ class ocsHelp extends PolymerElement {
 					<p>Press <b>Catalog</b> view then three more sub views will appear which
 					are: </p>
 					<dl>
-						<iron-icon icon="my-icons:offer" slot="item-icon"></iron-icon>
+						<iron-icon icon="ocs-icons:offer" slot="item-icon"></iron-icon>
 						<b>Offerings view</b>
 					</dl>
 					<dl>
-						<iron-icon icon="my-icons:table" slot="item-icon"></iron-icon>
+						<iron-icon icon="ocs-icons:table" slot="item-icon"></iron-icon>
 						<b>Tariff view</b>
 					</dl>
 					<dl>
@@ -185,13 +185,13 @@ class ocsHelp extends PolymerElement {
 			<paper-dialog class="helpdialog" id="helpOffering">
 				<app-toolbar>
 					<paper-icon-button
-							icon="my-icons:arrow-back"
+							icon="ocs-icons:arrow-back"
 							on-click="helpBack">
 					</paper-icon-button>
 					<h2>Offering</h2>
 				</app-toolbar>
 				<paper-icon-item>
-					<iron-icon icon="my-icons:offer" slot="item-icon"></iron-icon>
+					<iron-icon icon="ocs-icons:offer" slot="item-icon"></iron-icon>
 					<h2>Offering</h2>
 				</paper-icon-item>
 				<paper-dialog-scrollable>
@@ -199,7 +199,7 @@ class ocsHelp extends PolymerElement {
 					drawer by selecting it's icon
 					<iron-icon class="iconHelp" icon="menu"></iron-icon>
 					on the left of the toolbar at top. Select the
-					<iron-icon class="iconHelp" icon="my-icons:offer"></iron-icon>
+					<iron-icon class="iconHelp" icon="ocs-icons:offer"></iron-icon>
 					<b>Offerings</b> view from the navigation menu.</p>
 					<h3>Add Offering</h3>
 					<p>Select the floating action button <iron-icon class="iconHelp" icon="add">
@@ -236,13 +236,13 @@ class ocsHelp extends PolymerElement {
 			<paper-dialog class="helpdialog" id="helpTariff">
 				<app-toolbar>
 					<paper-icon-button
-							icon="my-icons:arrow-back"
+							icon="ocs-icons:arrow-back"
 							on-click="helpBack">
 					</paper-icon-button>
 					<h2>Tariff</h2>
 				</app-toolbar>
 				<paper-icon-item>
-					<iron-icon icon="my-icons:table" slot="item-icon"></iron-icon>
+					<iron-icon icon="ocs-icons:table" slot="item-icon"></iron-icon>
 					<h2>Tariff</h2>
 				</paper-icon-item>
 				<paper-dialog-scrollable>
@@ -250,7 +250,7 @@ class ocsHelp extends PolymerElement {
 					drawer by selecting it's icon
 					<iron-icon class="iconHelp" icon="menu"></iron-icon>
 					on the left of the toolbar at top. Select the
-					<iron-icon class="iconHelp" icon="my-icons:table"></iron-icon>
+					<iron-icon class="iconHelp" icon="ocs-icons:table"></iron-icon>
 					<b>tariff</b> view from the navigation menu. It appears list of
 					<b>tariff</b> table dialog. Select the table name and click
 					<b>Ok</b> button then get into selected table rows will appear</p>
@@ -278,7 +278,7 @@ class ocsHelp extends PolymerElement {
 			<paper-dialog class="helpdialog" id="helpPolicy">
 				<app-toolbar>
 					<paper-icon-button
-							icon="my-icons:arrow-back"
+							icon="ocs-icons:arrow-back"
 							on-click="helpBack">
 					</paper-icon-button>
 					<h2>Policy</h2>
@@ -321,13 +321,13 @@ class ocsHelp extends PolymerElement {
 			<paper-dialog class="helpdialog" id="helpSubscribers">
 				<app-toolbar>
 					<paper-icon-button
-							icon="my-icons:arrow-back"
+							icon="ocs-icons:arrow-back"
 							on-click="helpBack">
 					</paper-icon-button>
 					<h2>Subscribers</h2>
 				</app-toolbar>
 				<paper-icon-item>
-					<iron-icon icon="my-icons:card-membership" slot="item-icon"></iron-icon>
+					<iron-icon icon="ocs-icons:card-membership" slot="item-icon"></iron-icon>
 					<h2>Subscribers</h2>
 				</paper-icon-item>
 				<paper-dialog-scrollable>
@@ -369,15 +369,15 @@ class ocsHelp extends PolymerElement {
 					<p>Press <b>Subscribers</b> view then three more sub views will appear which
 					are: </p>
 					<dl>
-						<iron-icon icon="my-icons:devices" slot="item-icon"></iron-icon>
+						<iron-icon icon="ocs-icons:devices" slot="item-icon"></iron-icon>
 						<b>Service view</b>
 					</dl>
 					<dl>
-						<iron-icon icon="my-icons:offer" slot="item-icon"></iron-icon>
+						<iron-icon icon="ocs-icons:offer" slot="item-icon"></iron-icon>
 						<b>Product view</b>
 					</dl>
 					<dl>
-						<iron-icon icon="my-icons:icons:account-balance" slot="item-icon">
+						<iron-icon icon="ocs-icons:icons:account-balance" slot="item-icon">
 						</iron-icon>
 						<b>Bucket view</b>
 					</dl>
@@ -386,13 +386,13 @@ class ocsHelp extends PolymerElement {
 			<paper-dialog class="helpdialog" id="helpService">
 				<app-toolbar>
 					<paper-icon-button
-							icon="my-icons:arrow-back"
+							icon="ocs-icons:arrow-back"
 							on-click="helpBack">
 					</paper-icon-button>
 					<h2>Services</h2>
 				</app-toolbar>
 				<paper-icon-item>
-					<iron-icon icon="my-icons:devices" slot="item-icon"></iron-icon>
+					<iron-icon icon="ocs-icons:devices" slot="item-icon"></iron-icon>
 					<h2>Services</h2>
 				</paper-icon-item>
 				<paper-dialog-scrollable>
@@ -400,7 +400,7 @@ class ocsHelp extends PolymerElement {
 					drawer by selecting it's icon
 					<iron-icon class="iconHelp" icon="menu"></iron-icon>
 					on the left of the toolbar at top. Select the
-					<iron-icon class="iconHelp" icon="my-icons:devices"></iron-icon>
+					<iron-icon class="iconHelp" icon="ocs-icons:devices"></iron-icon>
 					<b>Services</b> view from the navigation menu.</p>
 					<h3>Add a Service</h3>
 					<p>Select the floating action button
@@ -425,19 +425,19 @@ class ocsHelp extends PolymerElement {
 			<paper-dialog class="helpdialog" id="helpProduct">
 				<app-toolbar>
 					<paper-icon-button
-						icon="my-icons:arrow-back"
+						icon="ocs-icons:arrow-back"
 						on-click="helpBack">
 					</paper-icon-button>
 					<h2>Product</h2>
 				</app-toolbar>
 				<paper-icon-item>
-					<iron-icon icon="my-icons:offer" slot="item-icon"></iron-icon>
+					<iron-icon icon="ocs-icons:offer" slot="item-icon"></iron-icon>
 					<h2>Product</h2>
 				</paper-icon-item>
 				<paper-dialog-scrollable>
 					<p>To add <b>Product</b> first open the navigation drawer by selecting its icon
 					<iron-icon class="iconHelp" icon="menu"></iron-icon> on the left of the toolbar
-					at top. Select the <iron-icon class="iconHelp" icon="my-icons:offer">
+					at top. Select the <iron-icon class="iconHelp" icon="ocs-icons:offer">
 					</iron-icon>
 					<b>Product</b> view from the navigation menu.</p>
 					<h3>Add Product</h3>
@@ -453,20 +453,20 @@ class ocsHelp extends PolymerElement {
 			<paper-dialog class="helpdialog" id="helpBucket">
 				<app-toolbar>
 					<paper-icon-button
-						icon="my-icons:arrow-back"
+						icon="ocs-icons:arrow-back"
 						on-click="helpBack">
 					</paper-icon-button>
 					<h2>Balance Bucket</h2>
 				</app-toolbar>
 				<paper-icon-item>
-					<iron-icon icon="my-icons:icons:account-balance" slot="item-icon"></iron-icon>
+					<iron-icon icon="ocs-icons:icons:account-balance" slot="item-icon"></iron-icon>
 					<h2>Balance Bucket</h2>
 				</paper-icon-item>
 				<paper-dialog-scrollable>
 					<p>To add <b>Balance Bucket</b> first open the navigation drawer by
 					selecting its icon <iron-icon class="iconHelp" icon="menu"></iron-icon>
 					on the left of the toolbar at top. Select the <iron-icon class="iconHelp"
-					icon="my-icons:icons:account-balance"></iron-icon><b>Balance Bucket</b>
+					icon="ocs-icons:icons:account-balance"></iron-icon><b>Balance Bucket</b>
 					view from the navigation menu.</p>
 					<h3>Add Bucket</h3>
 					<p>Select the floating action button <iron-icon class="iconHelp" icon="add">
@@ -480,20 +480,20 @@ class ocsHelp extends PolymerElement {
 			<paper-dialog class="helpdialog" id="helpClients">
 				<app-toolbar>
 					<paper-icon-button
-						icon="my-icons:arrow-back"
+						icon="ocs-icons:arrow-back"
 						on-click="helpBack">
 					</paper-icon-button>
 					<h2>Clients</h2> 
 				</app-toolbar>
 				<paper-icon-item>
-					<iron-icon icon="my-icons:router" slot="item-icon"></iron-icon>
+					<iron-icon icon="ocs-icons:router" slot="item-icon"></iron-icon>
 					<h2>Clients</h2> 
 				</paper-icon-item>
 				<paper-dialog-scrollable>
 					<p>To access the <b>Clients</b> view first open the navigation drawer
 					by selecting it's icon <iron-icon class="iconHelp" icon="menu"></iron-icon>
 					on the left of the toolbar at top. Select the
-					<iron-icon class="iconHelp" icon="my-icons:router"></iron-icon>
+					<iron-icon class="iconHelp" icon="ocs-icons:router"></iron-icon>
 					<b>Clients</b> view from the navigation menu.</p>
 					<p><b>Clients</b> are Network Access Servers (<b>NAS</b>) which
 					delegate Authentication, Authorization and Accounting (<b>AAA</b>)
@@ -537,13 +537,13 @@ class ocsHelp extends PolymerElement {
 			<paper-dialog class="helpdialog" id="helpUsers">
 				<app-toolbar>
 					<paper-icon-button
-							icon="my-icons:arrow-back"
+							icon="ocs-icons:arrow-back"
 							on-click="helpBack">
 					</paper-icon-button>
 					<h2>Users</h2>
 				</app-toolbar>
 				<paper-icon-item>
-						<iron-icon icon="my-icons:perm-identity" slot="item-icon"></iron-icon>
+						<iron-icon icon="ocs-icons:perm-identity" slot="item-icon"></iron-icon>
 					<h2>Users</h2>
 				</paper-icon-item>
 				<paper-dialog-scrollable>
@@ -574,20 +574,20 @@ class ocsHelp extends PolymerElement {
 			<paper-dialog class="helpdialog" id="helpLogs">
 				<app-toolbar>
 					<paper-icon-button
-						icon="my-icons:arrow-back"
+						icon="ocs-icons:arrow-back"
 						on-click="helpBack">
 					</paper-icon-button>
 					<h2>Logs</h2>
 				</app-toolbar>
 				<paper-icon-item>
-					<iron-icon icon="my-icons:history" slot="item-icon"></iron-icon>
+					<iron-icon icon="ocs-icons:history" slot="item-icon"></iron-icon>
 					<h2>Logs</h2>
 				</paper-icon-item>
 				<paper-dialog-scrollable>
 					<p>To access log views first open the navigation drawer
 					by selecting it's icon <iron-icon class="iconHelp" icon="menu"></iron-icon>
 					on the left of the toolbar at top. Select the
-					<iron-icon class="iconHelp" icon="my-icons:history"></iron-icon>
+					<iron-icon class="iconHelp" icon="ocs-icons:history"></iron-icon>
 					<b>Logs</b> submenu from the navigation menu.</p>
 					<p>Activity logs provide persistent storage of chronologically
 					ordered event details. For AAA requests all attributes of RADIUS
@@ -599,7 +599,7 @@ class ocsHelp extends PolymerElement {
 					for inter-operator exchange of billing records used with roaming
 					agreements.</p>
 					<h3>Access</h3>
-					<p>Select the <iron-icon class="iconHelp" icon="my-icons:data-usage">
+					<p>Select the <iron-icon class="iconHelp" icon="ocs-icons:data-usage">
 					</iron-icon>
 					<b>Access</b> view from the submenu in the navigation drawer.</p>
 					<dl>
@@ -618,7 +618,7 @@ class ocsHelp extends PolymerElement {
 							<dd>Indicates the response (accept/reject).</dd>
 					</dl>
 					<h3>Accounting</h3>
-					<p>Select the <iron-icon class="iconHelp" icon="my-icons:data-usage">
+					<p>Select the <iron-icon class="iconHelp" icon="ocs-icons:data-usage">
 					</iron-icon>
 					<b>Accounting</b> view from the submenu in the navigation drawer.</p>
 					<dl>
@@ -647,7 +647,7 @@ class ocsHelp extends PolymerElement {
 							<dd>Unique identifier of the subscriber.</dd>
 					</dl>
 					<h3>Balance</h3>
-					<p>Select the <iron-icon class="iconHelp" icon="my-icons:data-usage">
+					<p>Select the <iron-icon class="iconHelp" icon="ocs-icons:data-usage">
 					</iron-icon>
 					<b>Balance</b> view from the submenu in the navigation drawer.</p>
 					<dl>
@@ -668,7 +668,7 @@ class ocsHelp extends PolymerElement {
 							<dd>Amount before balance bucket.</dd>
 					</dl>
 					<h3>IPDR</h3>
-					<p>Select <iron-icon class="iconHelp" icon="my-icons:data-usage"></iron-icon>
+					<p>Select <iron-icon class="iconHelp" icon="ocs-icons:data-usage"></iron-icon>
 					<b>IPDR</b> from the submenu in the navigation drawer.</p>
 					<p>A file selction dialog will appear with a list of available
 					IPDR logs.  Filenames are ISO8601 timestamps (UTC) indicating
@@ -707,7 +707,7 @@ class ocsHelp extends PolymerElement {
 							<dd>Indicates the reason the session ended.</dd>
 					</dl>
 					<h3>HTTP</h3>
-					<p>Select the <iron-icon class="iconHelp" icon="my-icons:data-usage">
+					<p>Select the <iron-icon class="iconHelp" icon="ocs-icons:data-usage">
 					</iron-icon>
 					<b>HTTP</b> view from the submenu in the navigation drawer.</p>
 					<dl>
@@ -730,7 +730,7 @@ class ocsHelp extends PolymerElement {
 				<paper-dialog-scrollable>
 					<app-toolbar>
 						<paper-icon-button
-								icon="my-icons:arrow-back"
+								icon="ocs-icons:arrow-back"
 								on-click="helpBack">
 						</paper-icon-button>
 						<h2>Toolbar</h2>
@@ -764,7 +764,7 @@ class ocsHelp extends PolymerElement {
 			<paper-dialog class="helpdialog" id="helpFiltering">
 				<app-toolbar>
 					<paper-icon-button
-						icon="my-icons:arrow-back"
+						icon="ocs-icons:arrow-back"
 						on-click="helpBack">
 					</paper-icon-button>
 					<h2>Filtering</h2>
