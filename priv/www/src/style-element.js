@@ -246,6 +246,8 @@ styleElement.innerHTML = `<template>
 		}
 		.trusted {
 			display: block;
+			padding-bottom: 5px;
+			padding-block-start: 5px;
 		}
 		.secret {
 			display: inline-block;
