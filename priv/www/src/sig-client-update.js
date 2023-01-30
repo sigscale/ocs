@@ -82,6 +82,7 @@ class clientUpdate extends PolymerElement {
 							Passwordless
 						</paper-checkbox>
 						<paper-checkbox
+								class="trusted"
 								checked="{{updateTrusted}}"
 								id="updateTrust">
 							Trusted WLAN (TWAN)
