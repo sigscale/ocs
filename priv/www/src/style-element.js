@@ -243,7 +243,6 @@ styleElement.innerHTML = `<template>
 		}
 		.passwordless {
 			width: 8em;
-			padding-left: 10px;
 		}
 		.secret {
 			display: inline-block;
