@@ -174,7 +174,8 @@ class dashBoard extends PolymerElement {
 					}
 				}
 				var svgSched = select(root).select("#schedCard div.card-content svg");
-				ocsHealth.draw_line(svgSched, ocsHealth.schedulerData, width, height);
+				var yLabel = "↑ Scheduler (%)";
+				ocsHealth.draw_line(svgSched, ocsHealth.schedulerData, width, height, yLabel);
 				if(request.response){
 					if(request.response.checks["table:size"]) {
 						ocsHealth.subscriptions.splice(0, ocsHealth.subscriptions.length);
@@ -501,7 +502,7 @@ class dashBoard extends PolymerElement {
 		return svg.node();
 	}
 
-	draw_line(svg, data, width, height) {
+	draw_line(svg, data, width, height, yLabel) {
 		var rs = getComputedStyle(document.querySelector(':root'));
 		var color = scaleOrdinal([rs.getPropertyValue('--paper-yellow-900'),
 			rs.getPropertyValue('--paper-green-900'),
@@ -542,7 +543,6 @@ class dashBoard extends PolymerElement {
 		var strokeWidth = 1.5;
 		var strokeOpacity;
 		var mixBlendMode = "multiply";
-		var yLabel = "↑ Scheduler (%)";
 		var yFormat;
 		svg.selectAll("*").remove();
 		select("body").selectAll(".tooltip").remove();
@@ -606,13 +606,11 @@ class dashBoard extends PolymerElement {
 					div.transition()
 						.duration('50')
 						.style("opacity", 1);
-					var scheduler = i[0];
 					var minVal = Math.min.apply(null, i[1]);
 					var maxVal = Math.max.apply(null, i[1]);
 					var total = i[1].reduce((acc, c) => acc + c, 0);
 					var meanAve = total/i[1].length;
-					var numm = "sched=" + scheduler
-							+ ", min=" + minVal
+					var numm = "min=" + minVal
 							+ ", mean=" + Math.round(meanAve)
 							+ ", max=" + maxVal;
 					div.html(numm )
