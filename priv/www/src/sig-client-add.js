@@ -194,6 +194,7 @@ class clientAdd extends PolymerElement {
 
 	ready() {
 		super.ready()
+		this.checkTrusted = true;
 	}
 
 	_addClientSubmit() {
@@ -249,6 +250,10 @@ class clientAdd extends PolymerElement {
 			this.$.addClientSecretModal.open();
 		}
 		this.$.clientAddModal.close();
+		this.checkTrusted = true;
+		this.address = null;
+		this.clientProto = null;
+		this.clientSecret = null;
 		document.body.querySelector('sig-app').shadowRoot.getElementById('clientList').shadowRoot.getElementById('clientGrid').clearCache();
 	}
 
@@ -256,6 +261,7 @@ class clientAdd extends PolymerElement {
 		this.address = null;
 		this.clientProto = null;
 		this.clientSecret = null;
+		this.checkTrusted = true;
 	}
 
 	_addClientError(event) {
