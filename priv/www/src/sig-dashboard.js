@@ -32,47 +32,43 @@ class dashBoard extends PolymerElement {
 			<style include="style-element">
 			</style>
 			<paper-card
-					class="schedGraph"
+					id="schedCard"
 					heading="Scheduler Utilization{{schedulerCoreHeader}}">
 				<div
 						class="card-content">
 					<svg
-							id="schedule"
 							height="300">
 					</svg>
 				</div>
 			</paper-card>
 			<paper-card
-					class="subscriptions"
+					id="subsCard"
 					heading="Subscriptions">
 				<div
 						class="card-content">
 					<svg
-							id="subscriptions"
 							width="400"
 							height="188">
 					</svg>
 				</div>
 			</paper-card>
 			<paper-card
-					class="creditControl"
+					id="creditCard"
 					heading="Credit Control Requests">
 				<div
 						class="card-content">
 					<svg
-							id="creditControl"
 							width="410"
 							height="188">
 					</svg>
 				</div>
 			</paper-card>
 			<paper-card
-					class="upTime"
+					id="upCard"
 					heading="Uptime">
 				<div
 						class="card-content">
 					<svg
-							id="uptime"
 							width="464"
 							height="152">
 					</svg>
@@ -153,6 +149,10 @@ class dashBoard extends PolymerElement {
 				var matches = request.xhr.getResponseHeader('cache-control').match(/max-age=(\d+)/);
 				var maxAge = matches ? parseInt(matches[1], 10) : -1
 				var root = ocsHealth.shadowRoot;
+				var svgContents = root.querySelector("#schedCard div.card-content svg");
+				var width = parseInt(getComputedStyle(svgContents).width, 10);
+				var height = parseInt(getComputedStyle(svgContents).height, 10);
+				var numPoints = width / 2;
 				if(request.response){
 					if(ajax.lastResponse.checks["scheduler:utilization"]) {
 						for(var index in request.response.checks["scheduler:utilization"]) {
@@ -165,10 +165,6 @@ class dashBoard extends PolymerElement {
 							newRecord.count = request.response.checks
 									["scheduler:utilization"][index].observedValue;
 							ocsHealth.push('schedulerData', newRecord);
-							var schedule = ocsHealth.shadowRoot.getElementById("schedule");
-							var width = schedule.width.baseVal.value;
-							var height = schedule.height.baseVal.value;
-							var numPoints = width / 2;
 							var schedulerLength = ocsHealth.schedulerData.length;
 							if(schedulerLength > numPoints) {
 								ocsHealth.splice('schedulerData', 0, schedulerLength - numPoints);
@@ -177,7 +173,7 @@ class dashBoard extends PolymerElement {
 						ocsHealth.numSchedulers = request.response.checks["scheduler:utilization"].length;
 					}
 				}
-				var svgSched = select(root).select("#schedule");
+				var svgSched = select(root).select("#schedCard div.card-content svg");
 				ocsHealth.draw_line(svgSched, ocsHealth.schedulerData, width, height);
 				if(request.response){
 					if(request.response.checks["table:size"]) {
@@ -223,12 +219,12 @@ class dashBoard extends PolymerElement {
 						}
 					}
 				}
-				var svgSubs = select(root).select("#subscriptions");
+				var svgSubs = select(root).select("#subsCard div.card-content svg");
 				ocsHealth.draw_pie(svgSubs, ocsHealth.subscriptions);
 				ocsHealth.schedulerTimeout = setTimeout(ocsHealth._healthChart, maxAge * 1000);
-				var svgUp = select(root).select("#uptime");
+				var svgUp = select(root).select("#upCard div.card-content svg");
 				ocsHealth.draw_up(svgUp, ocsHealth.uptime);
-				var svgCredit = select(root).select("#creditControl");
+				var svgCredit = select(root).select("#creditCard div.card-content svg");
 				ocsHealth.draw_credit(svgCredit, rc2001, rc4012, rc5030, rc4010, rc5031, rc5012);
 			}
 		}
@@ -572,6 +568,8 @@ class dashBoard extends PolymerElement {
 			.curve(curve)
 			.x(i => xScale(X[i]))
 			.y(i => yScale(Y[i]));
+		svg.attr("width", width)
+			.attr("height", height);
 		svg.append("g")
 			.attr("transform", `translate(${marginLeft},0)`)
 			.call(yAxis)
