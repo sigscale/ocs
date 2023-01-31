@@ -29,7 +29,7 @@
 			terminate/2, code_change/3]).
 
 -record(state,
-		{last :: pos_integer(),
+		{last :: integer(),
 		uniq :: pos_integer(),
 		interval :: pos_integer(),
 		timeout :: pos_integer(),
@@ -82,15 +82,16 @@ start_link() ->
 init(_Args) ->
 	{ok, I} = application:get_env(statistics_interval),
 	Interval = I * 1000,
-	Now = erlang:system_time(millisecond),
+	Now = erlang:monotonic_time(millisecond),
 	N = erlang:unique_integer([positive]),
 	erlang:system_flag(scheduler_wall_time, true),
 	Wall = erlang:statistics(scheduler_wall_time),
+	ServerTimeout = Now + erlang:time_offset(millisecond) + ?TIMEOUT,
 	process_flag(trap_exit, true),
 	State = #state{last = Now, uniq = N,
 			interval = Interval,
 			wall0 = Wall, wall1 = Wall,
-			timeout = Now + ?TIMEOUT},
+			timeout = ServerTimeout},
 	{ok, State, Interval}.
 
 -spec handle_call(Request, From, State) -> Result
@@ -115,7 +116,7 @@ init(_Args) ->
 %% @private
 %%
 handle_call(scheduler_utilization, _From,
-		#state{wall0 = W0, wall1 = W1, last = Ts,
+		#state{wall0 = W0, wall1 = W1, last = Last,
 		uniq = N, interval = Interval} = State) ->
 	F = fun({{I, _, T0}, {I, _, T1}})
 					when (T1 - T0) == 0 ->
@@ -124,11 +125,18 @@ handle_call(scheduler_utilization, _From,
 				{I, (A1 - A0) * 100 div (T1 - T0)}
 	end,
 	Report = lists:map(F, lists:zip(lists:sort(W0), lists:sort(W1))),
+	Ts = Last + erlang:time_offset(millisecond),
 	Euniq = integer_to_list(Ts) ++ "-" ++ integer_to_list(N),
 	Reply = {Euniq, Interval, Report},
-	Now = erlang:system_time(millisecond),
-	NewState = State#state{timeout = Now + ?TIMEOUT},
-	Timeout = (Ts + Interval) - Now,
+	Now = erlang:monotonic_time(millisecond),
+	ServerTimeout = Now + erlang:time_offset(millisecond) + ?TIMEOUT,
+	NewState = State#state{timeout = ServerTimeout},
+	Timeout = case Interval - (Now - Last) of
+		To when To >= 0 ->
+			To;
+		_To ->
+			0
+	end,
 	{reply, Reply, NewState, Timeout}.
 
 -spec handle_cast(Request, State) -> Result
@@ -168,7 +176,7 @@ handle_info(timeout,
 	{stop, shutdown, State};
 handle_info(timeout,
 		#state{wall1 = W1, interval = Interval} = State) ->
-	Now = erlang:system_time(millisecond),
+	Now = erlang:monotonic_time(millisecond),
 	N = erlang:unique_integer([positive]),
 	NewState = State#state{last = Now, uniq = N, wall0 = W1,
 			wall1 = erlang:statistics(scheduler_wall_time)},
