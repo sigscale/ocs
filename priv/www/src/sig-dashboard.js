@@ -1,13 +1,15 @@
 /**
- * @license
- * Copyright (c) 2021 The Polymer Project Authors. All rights reserved.
- * This code may only be used under the BSD style license found at http://polymer.github.io/LICENSE.txt
- * The complete set of authors may be found at http://polymer.github.io/AUTHORS.txt
- * The complete set of contributors may be found at http://polymer.github.io/CONTRIBUTORS.txt
- * Code distributed by Google as part of the polymer project is also
- * subject to an additional IP rights grant found at http://polymer.github.io/PATENTS.txt
+ * Copyright 2016 - 2022 SigScale Global Inc.
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
  */
-
 import { PolymerElement, html } from '@polymer/polymer/polymer-element.js';
 import { select, selectAll } from 'd3-selection';
 import { arc, pie, line, curveLinear } from 'd3-shape';
@@ -30,47 +32,43 @@ class dashBoard extends PolymerElement {
 			<style include="style-element">
 			</style>
 			<paper-card
-					class="schedGraph"
+					id="schedCard"
 					heading="Scheduler Utilization{{schedulerCoreHeader}}">
 				<div
 						class="card-content">
 					<svg
-							id="schedule"
 							height="300">
 					</svg>
 				</div>
 			</paper-card>
 			<paper-card
-					class="subscriptions"
+					id="subsCard"
 					heading="Subscriptions">
 				<div
 						class="card-content">
 					<svg
-							id="subscriptions"
 							width="400"
 							height="188">
 					</svg>
 				</div>
 			</paper-card>
 			<paper-card
-					class="creditControl"
+					id="creditCard"
 					heading="Credit Control Requests">
 				<div
 						class="card-content">
 					<svg
-							id="creditControl"
 							width="410"
 							height="188">
 					</svg>
 				</div>
 			</paper-card>
 			<paper-card
-					class="upTime"
+					id="upCard"
 					heading="Uptime">
 				<div
 						class="card-content">
 					<svg
-							id="uptime"
 							width="464"
 							height="152">
 					</svg>
@@ -151,6 +149,10 @@ class dashBoard extends PolymerElement {
 				var matches = request.xhr.getResponseHeader('cache-control').match(/max-age=(\d+)/);
 				var maxAge = matches ? parseInt(matches[1], 10) : -1
 				var root = ocsHealth.shadowRoot;
+				var svgContents = root.querySelector("#schedCard div.card-content svg");
+				var width = parseInt(getComputedStyle(svgContents).width, 10);
+				var height = parseInt(getComputedStyle(svgContents).height, 10);
+				var numPoints = width / 2;
 				if(request.response){
 					if(ajax.lastResponse.checks["scheduler:utilization"]) {
 						for(var index in request.response.checks["scheduler:utilization"]) {
@@ -163,10 +165,6 @@ class dashBoard extends PolymerElement {
 							newRecord.count = request.response.checks
 									["scheduler:utilization"][index].observedValue;
 							ocsHealth.push('schedulerData', newRecord);
-							var schedule = ocsHealth.shadowRoot.getElementById("schedule");
-							var width = schedule.width.baseVal.value;
-							var height = schedule.height.baseVal.value;
-							var numPoints = width / 2;
 							var schedulerLength = ocsHealth.schedulerData.length;
 							if(schedulerLength > numPoints) {
 								ocsHealth.splice('schedulerData', 0, schedulerLength - numPoints);
@@ -175,7 +173,7 @@ class dashBoard extends PolymerElement {
 						ocsHealth.numSchedulers = request.response.checks["scheduler:utilization"].length;
 					}
 				}
-				var svgSched = select(root).select("#schedule");
+				var svgSched = select(root).select("#schedCard div.card-content svg");
 				ocsHealth.draw_line(svgSched, ocsHealth.schedulerData, width, height);
 				if(request.response){
 					if(request.response.checks["table:size"]) {
@@ -221,12 +219,12 @@ class dashBoard extends PolymerElement {
 						}
 					}
 				}
-				var svgSubs = select(root).select("#subscriptions");
+				var svgSubs = select(root).select("#subsCard div.card-content svg");
 				ocsHealth.draw_pie(svgSubs, ocsHealth.subscriptions);
 				ocsHealth.schedulerTimeout = setTimeout(ocsHealth._healthChart, maxAge * 1000);
-				var svgUp = select(root).select("#uptime");
+				var svgUp = select(root).select("#upCard div.card-content svg");
 				ocsHealth.draw_up(svgUp, ocsHealth.uptime);
-				var svgCredit = select(root).select("#creditControl");
+				var svgCredit = select(root).select("#creditCard div.card-content svg");
 				ocsHealth.draw_credit(svgCredit, rc2001, rc4012, rc5030, rc4010, rc5031, rc5012);
 			}
 		}
@@ -570,6 +568,8 @@ class dashBoard extends PolymerElement {
 			.curve(curve)
 			.x(i => xScale(X[i]))
 			.y(i => yScale(Y[i]));
+		svg.attr("width", width)
+			.attr("height", height);
 		svg.append("g")
 			.attr("transform", `translate(${marginLeft},0)`)
 			.call(yAxis)

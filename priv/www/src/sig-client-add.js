@@ -146,7 +146,7 @@ class clientAdd extends PolymerElement {
 				<paper-item>
 					<paper-item-body two-line>
 						<div>
-							<iron-icon icon="my-icons:vpn" item-icon></iron-icon>
+							<iron-icon icon="ocs-icons:vpn" item-icon></iron-icon>
 								Secret:
 						</div>
 						<div secondary>

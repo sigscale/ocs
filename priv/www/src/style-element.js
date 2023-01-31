@@ -269,40 +269,24 @@ styleElement.innerHTML = `<template>
 				font-size: larger;
 			}
 		}
-		#dashBoard {
+		sig-dashboard {
 			display: flex;
-			flex-direction: row;
 			flex-wrap: wrap;
+			flex-direction: row;
 			align-items: flex-start;
 			gap: 8px;
 		}
-		paper-card.schedGraph {
+		paper-card {
 			--paper-card: {
-				order: 0;
-				width: 100%;
 				border-radius: 8px;
 			};
 		}
-		#schedule {
+		#schedCard {
+			order: -1;
+			flex: 1 0 100%;
+		}
+		#schedCard div.card-content svg {
 			width: 100%;
-		}
-		paper-card.creditControl {
-			--paper-card: {
-				order: 1;
-				border-radius: 8px;
-			};
-		}
-		paper-card.subscriptions {
-			--paper-card: {
-				order: 2;
-				border-radius: 8px;
-			};
-		}
-		paper-card.upTime {
-			--paper-card: {
-				order: 3;
-				border-radius: 8px;
-			};
 		}
 	</style>
 </template>`;
