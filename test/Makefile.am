@@ -106,7 +106,7 @@ ocs_eap_akap_SUITE.beam:$(top_srcdir)/test/ocs_eap_akap_SUITE.erl \
 		openssl req -newkey rsa:2048 -nodes \
 				-subj /C=CA/ST=Ontario/L=Toronto/O=Example/CN=$$(hostname)\/emailAddress=support@$$(hostname) \
 				-keyout key.pem -out cert.csr; \
-				chmod 400 key.pem; \
+				chmod 600 key.pem; \
 		fi; \
 		if [ ! -f extensions ]; then \
 			echo "extendedKeyUsage = serverAuth" > extensions; \
@@ -124,7 +124,7 @@ ocs_eap_akap_SUITE.beam:$(top_srcdir)/test/ocs_eap_akap_SUITE.erl \
 	fi
 	if [ ! -f ocs_rest_api_SUITE_data/key.pem ]; then \
 		openssl rsa -in $(CERT_DIR)/key.pem -out ocs_rest_api_SUITE_data/key.pem; \
-		chmod 400 ocs_rest_api_SUITE_data/key.pem; \
+		chmod 600 ocs_rest_api_SUITE_data/key.pem; \
 	fi
 	NODENAME=`id -un`
 	ct_run -no_auto_compile -pa $(top_builddir)/ebin -logdir log -config ct.cfg -spec test.spec -dir . -erl_args -config sys -sname $(LOGNAME)-ct
