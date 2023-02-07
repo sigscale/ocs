@@ -151,7 +151,7 @@ init([ServiceName, ServerAddress, ServerPort, ClientAddress,
 %% @@see //stdlib/gen_fsm:StateName/3
 %% @private
 %%
-idle(#'3gpp_swx_RTR'{'User-Name' = [Identity],
+idle(#'3gpp_swx_RTR'{'User-Name' = Identity,
 		'Origin-Realm' = HssRealm, 'Origin-Host' = HssHost,
 		'Deregistration-Reason' = #'3gpp_swx_Deregistration-Reason'{
 				'Reason-Code' = ReasonCode,
