@@ -1,3 +1,34 @@
+2023-02-07  Vance Shipley <vances@sigscale.org>
+
+	* user-name avp is mandatory in swx rtr
+	* make clean deletes private key
+	* remove scheduler specific stuff from draw line function
+	* make default and clear existing values for client view
+	* refactor dashboard element selectors and svg size calculation
+	* refactor scheduler utilization statistics server for safe timeouts
+	* rename icon collection to match module
+	* correct license
+	* make trusted in seperate line and fix overlap issue in client update dialog
+	* make trusted on seperate line in add client view
+	* fix passwordless offset
+	* rename dashboard card as sibscriptions to relect refactor
+	* report # of cores in scheduler utilization dashboard card header
+	* resize and restyle the dashboard
+	* dashboard draw functions keep colors private
+	* add tooltip for trusted field
+	* fix sizes for trusted column
+	* update trusted in client
+	* add TWAN coloumn in client view
+	* add trusted wlan in client
+	* add trusted attribute in codec
+	* refactor the implemented method for pie chart
+	* consistent height for cards in dashboard
+	* manual purge of expired or stale buckets
+	* manual garbage collection of old sessions in service table
+	* export type for timestamp values
+	* refactor the pie char
+	* fix syntax error is systemd service name
+
 2023-01-20  Vance Shipley <vances@sigscale.org>
 
 	* ignore session list in final out-of-credit

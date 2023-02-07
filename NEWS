@@ -1,3 +1,10 @@
+February 7, 2023
+----------------
+	- Corrected handling of received RTR on SWx 
+	- Dashboard CSS improvements
+	- Manage TWAN flag in client API and web components
+	- Utilities for cleaning tables
+
 January 19, 2023
 ----------------
 	- Allowance Buckets
