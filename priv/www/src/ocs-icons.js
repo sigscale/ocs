@@ -85,6 +85,18 @@ $_documentContainer.innerHTML = `<iron-iconset-svg name="ocs-icons" size="24">
 			<g id="dashboard">
 				<path d="M3 13h8V3H3v10zm0 8h8v-6H3v6zm10 0h8V11h-8v10zm0-18v6h8V3h-8z"></path>
 			</g>
+			<g id="vstream">
+				<path d="M3,7v10c0,1.1,0.9,2,2,2h14c1.1,0,2-0.9,2-2V7c0-1.1-0.9-2-2-2H5C3.9,5,3,5.9,3,7z  M19,17H5v-4h14V17z M5,11V7h14v4H5z"></path>
+			</g>
+			<g id="vcolumn">
+				<path d="M3,5v14h18V5H3z M8.33,17H5V7h3.33V17z M13.67,17h-3.33V7h3.33V17z M19,17h-3.33V7H19V17z"></path>
+			</g>
+			<g id="vright">
+				<path d="M10 6L8.59 7.41 13.17 12l-4.58 4.59L10 18l6-6-6-6z"></path>
+			</g>
+			<g id="vleft">
+				<path d="M15.41 7.41L14 6l-6 6 6 6 1.41-1.41L10.83 12l4.58-4.59z"></path>
+			</g>
 		</defs>
 	</svg>
 </iron-iconset-svg>`;

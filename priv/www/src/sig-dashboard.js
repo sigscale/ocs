@@ -40,6 +40,21 @@ class dashBoard extends PolymerElement {
 							height="300">
 					</svg>
 				</div>
+				<paper-icon-button
+						id="vstream"
+						icon="ocs-icons:vstream"
+						on-click="_toggle">
+				</paper-icon-button>
+				<paper-icon-button
+						id="vleft"
+						icon="ocs-icons:vleft"
+						on-click="_orderLeft">
+				</paper-icon-button>
+				<paper-icon-button
+						id="vright"
+						icon="ocs-icons:vright"
+						on-click="_orderRight">
+				</paper-icon-button>
 			</paper-card>
 			<paper-card
 					id="subsCard"
@@ -51,6 +66,16 @@ class dashBoard extends PolymerElement {
 							height="188">
 					</svg>
 				</div>
+				<paper-icon-button
+						id="vleft"
+						icon="ocs-icons:vleft"
+						on-click="_orderLeft">
+				</paper-icon-button>
+				<paper-icon-button
+						id="vright"
+						icon="ocs-icons:vright"
+						on-click="_orderRight">
+				</paper-icon-button>
 			</paper-card>
 			<paper-card
 					id="creditCard"
@@ -62,6 +87,16 @@ class dashBoard extends PolymerElement {
 							height="188">
 					</svg>
 				</div>
+				<paper-icon-button
+						id="vleft"
+						icon="ocs-icons:vleft"
+						on-click="_orderLeft">
+				</paper-icon-button>
+				<paper-icon-button
+						id="vright"
+						icon="ocs-icons:vright"
+						on-click="_orderRight">
+				</paper-icon-button>
 			</paper-card>
 			<paper-card
 					id="upCard"
@@ -73,6 +108,37 @@ class dashBoard extends PolymerElement {
 							height="152">
 					</svg>
 				</div>
+				<paper-icon-button
+						id="vleft"
+						icon="ocs-icons:vleft"
+						on-click="_orderLeft">
+				</paper-icon-button>
+				<paper-icon-button
+						id="vright"
+						icon="ocs-icons:vright"
+						on-click="_orderRight">
+				</paper-icon-button>
+			</paper-card>
+			<paper-card
+					id="diameterApp"
+					heading="Diameter Application">
+				<div
+						class="card-content">
+					<svg
+							width="450"
+							height="188">
+					</svg>
+				</div>
+				<paper-icon-button
+						id="vleft"
+						icon="ocs-icons:vleft"
+						on-click="_orderLeft">
+				</paper-icon-button>
+				<paper-icon-button
+						id="vright"
+						icon="ocs-icons:vright"
+						on-click="_orderRight">
+				</paper-icon-button>
 			</paper-card>
 			<iron-ajax
 					id="getHealthDashAjax"
@@ -135,6 +201,10 @@ class dashBoard extends PolymerElement {
 	ready() {
 		super.ready();
 		this._healthChart();
+	}
+
+	_toggle() {
+		this.$.vstream.icon="ocs-icons:vcolumn";
 	}
 
 	_healthChart() {
