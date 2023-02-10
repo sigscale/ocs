@@ -204,7 +204,16 @@ class dashBoard extends PolymerElement {
 	}
 
 	_toggle() {
-		this.$.vstream.icon="ocs-icons:vcolumn";
+		var toggleHealth = document.body.querySelector('sig-app')
+				.shadowRoot.querySelector('sig-dashboard').shadowRoot
+				.querySelector("#schedCard");
+		if(toggleHealth.style.flex == "1 0 100%") {
+			this.$.vstream.icon="ocs-icons:vcolumn";
+			toggleHealth.style.flex = "1 0 15%";
+		} else {
+			this.$.vstream.icon="ocs-icons:vstream";
+			toggleHealth.style.flex = "1 0 100%";
+		}
 	}
 
 	_healthChart() {
