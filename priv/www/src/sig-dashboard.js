@@ -130,6 +130,11 @@ class dashBoard extends PolymerElement {
 					</svg>
 				</div>
 				<paper-icon-button
+						id="vstream"
+						icon="ocs-icons:vstream"
+						on-click="_toggleDia">
+				</paper-icon-button>
+				<paper-icon-button
 						id="vleft"
 						icon="ocs-icons:vleft"
 						on-click="_orderLeftDia">
@@ -213,6 +218,19 @@ class dashBoard extends PolymerElement {
 		} else {
 			this.$.vstream.icon="ocs-icons:vstream";
 			toggleHealth.style.flex = "1 0 100%";
+		}
+	}
+
+	_toggleDia() {
+		var toggleDiaHealth = document.body.querySelector('sig-app')
+				.shadowRoot.querySelector('sig-dashboard').shadowRoot
+				.querySelector("#diameterApp");
+		if(toggleDiaHealth.style.flex == "1 0 100%") {
+			this.$.vstream.icon="ocs-icons:vcolumn";
+			toggleDiaHealth.style.flex = "inherit";
+		} else {
+			this.$.vstream.icon="ocs-icons:vstream";
+			toggleDiaHealth.style.flex = "1 0 100%";
 		}
 	}
 
