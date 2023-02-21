@@ -48,12 +48,12 @@ class dashBoard extends PolymerElement {
 				<paper-icon-button
 						id="vleft"
 						icon="ocs-icons:vleft"
-						on-click="_orderLeft">
+						on-click="_orderLeftSched">
 				</paper-icon-button>
 				<paper-icon-button
 						id="vright"
 						icon="ocs-icons:vright"
-						on-click="_orderRight">
+						on-click="_orderRightSched">
 				</paper-icon-button>
 			</paper-card>
 			<paper-card
@@ -69,12 +69,12 @@ class dashBoard extends PolymerElement {
 				<paper-icon-button
 						id="vleft"
 						icon="ocs-icons:vleft"
-						on-click="_orderLeft">
+						on-click="_orderLeftSub">
 				</paper-icon-button>
 				<paper-icon-button
 						id="vright"
 						icon="ocs-icons:vright"
-						on-click="_orderRight">
+						on-click="_orderRightSub">
 				</paper-icon-button>
 			</paper-card>
 			<paper-card
@@ -90,12 +90,12 @@ class dashBoard extends PolymerElement {
 				<paper-icon-button
 						id="vleft"
 						icon="ocs-icons:vleft"
-						on-click="_orderLeft">
+						on-click="_orderLeftCredit">
 				</paper-icon-button>
 				<paper-icon-button
 						id="vright"
 						icon="ocs-icons:vright"
-						on-click="_orderRight">
+						on-click="_orderRightCredit">
 				</paper-icon-button>
 			</paper-card>
 			<paper-card
@@ -111,12 +111,12 @@ class dashBoard extends PolymerElement {
 				<paper-icon-button
 						id="vleft"
 						icon="ocs-icons:vleft"
-						on-click="_orderLeft">
+						on-click="_orderLeftUp">
 				</paper-icon-button>
 				<paper-icon-button
 						id="vright"
 						icon="ocs-icons:vright"
-						on-click="_orderRight">
+						on-click="_orderRightUp">
 				</paper-icon-button>
 			</paper-card>
 			<paper-card
@@ -132,12 +132,12 @@ class dashBoard extends PolymerElement {
 				<paper-icon-button
 						id="vleft"
 						icon="ocs-icons:vleft"
-						on-click="_orderLeft">
+						on-click="_orderLeftDia">
 				</paper-icon-button>
 				<paper-icon-button
 						id="vright"
 						icon="ocs-icons:vright"
-						on-click="_orderRight">
+						on-click="_orderRightDia">
 				</paper-icon-button>
 			</paper-card>
 			<iron-ajax
@@ -213,6 +213,257 @@ class dashBoard extends PolymerElement {
 		} else {
 			this.$.vstream.icon="ocs-icons:vstream";
 			toggleHealth.style.flex = "1 0 100%";
+		}
+	}
+
+	_orderLeftSched() {
+		var orderSched = document.body.querySelector('sig-app')
+				.shadowRoot.querySelector('sig-dashboard').shadowRoot
+				.querySelector("#schedCard");
+		orderSched.style.order = '-1';
+		var orderSubs = document.body.querySelector('sig-app')
+				.shadowRoot.querySelector('sig-dashboard').shadowRoot
+				.querySelector("#subsCard");
+		var orderCredit = document.body.querySelector('sig-app')
+				.shadowRoot.querySelector('sig-dashboard').shadowRoot
+				.querySelector("#creditCard");
+		var orderUp = document.body.querySelector('sig-app')
+				.shadowRoot.querySelector('sig-dashboard').shadowRoot
+				.querySelector("#upCard");
+		var orderDia = document.body.querySelector('sig-app')
+				.shadowRoot.querySelector('sig-dashboard').shadowRoot
+				.querySelector("#diameterApp");
+		if(orderSched.style.order == '-1') {
+			orderSubs.style.order = '0';
+			orderCredit.style.order = '0';
+			orderUp.style.order = '0';
+			orderDia.style.order = '0';
+		}
+	}
+
+	_orderRightSched() {
+		var orderSched = document.body.querySelector('sig-app')
+				.shadowRoot.querySelector('sig-dashboard').shadowRoot
+				.querySelector("#schedCard");
+		orderSched.style.order = '1';
+		var orderSubs = document.body.querySelector('sig-app')
+				.shadowRoot.querySelector('sig-dashboard').shadowRoot
+				.querySelector("#subsCard");
+		var orderCredit = document.body.querySelector('sig-app')
+				.shadowRoot.querySelector('sig-dashboard').shadowRoot
+				.querySelector("#creditCard");
+		var orderUp = document.body.querySelector('sig-app')
+				.shadowRoot.querySelector('sig-dashboard').shadowRoot
+				.querySelector("#upCard");
+		var orderDia = document.body.querySelector('sig-app')
+				.shadowRoot.querySelector('sig-dashboard').shadowRoot
+				.querySelector("#diameterApp");
+		if(orderSched.style.order == '1') {
+			orderSubs.style.order = '0';
+			orderCredit.style.order = '0';
+			orderUp.style.order = '0';
+			orderDia.style.order = '0';
+		}
+	}
+
+
+	_orderLeftSub() {
+		var orderSched = document.body.querySelector('sig-app')
+				.shadowRoot.querySelector('sig-dashboard').shadowRoot
+				.querySelector("#schedCard");
+		var orderSubs = document.body.querySelector('sig-app')
+				.shadowRoot.querySelector('sig-dashboard').shadowRoot
+				.querySelector("#subsCard");
+		orderSubs.style.order = '-1';
+		var orderCredit = document.body.querySelector('sig-app')
+				.shadowRoot.querySelector('sig-dashboard').shadowRoot
+				.querySelector("#creditCard");
+		var orderUp = document.body.querySelector('sig-app')
+				.shadowRoot.querySelector('sig-dashboard').shadowRoot
+				.querySelector("#upCard");
+		var orderDia = document.body.querySelector('sig-app')
+				.shadowRoot.querySelector('sig-dashboard').shadowRoot
+				.querySelector("#diameterApp");
+		if(orderSubs.style.order == '-1') {
+			orderSched.style.order = '0';
+			orderCredit.style.order = '0';
+			orderUp.style.order = '0';
+			orderDia.style.order = '0';
+		}
+	}
+
+	_orderRightSub() {
+		var orderSched = document.body.querySelector('sig-app')
+				.shadowRoot.querySelector('sig-dashboard').shadowRoot
+				.querySelector("#schedCard");
+		var orderSubs = document.body.querySelector('sig-app')
+				.shadowRoot.querySelector('sig-dashboard').shadowRoot
+				.querySelector("#subsCard");
+		orderSubs.style.order = '1';
+		var orderCredit = document.body.querySelector('sig-app')
+				.shadowRoot.querySelector('sig-dashboard').shadowRoot
+				.querySelector("#creditCard");
+		var orderUp = document.body.querySelector('sig-app')
+				.shadowRoot.querySelector('sig-dashboard').shadowRoot
+				.querySelector("#upCard");
+		var orderDia = document.body.querySelector('sig-app')
+				.shadowRoot.querySelector('sig-dashboard').shadowRoot
+				.querySelector("#diameterApp");
+		if(orderSubs.style.order == '1') {
+			orderSched.style.order = '0';
+			orderCredit.style.order = '0';
+			orderUp.style.order = '0';
+			orderDia.style.order = '0';
+		}
+	}
+
+	_orderLeftCredit() {
+		var orderSched = document.body.querySelector('sig-app')
+				.shadowRoot.querySelector('sig-dashboard').shadowRoot
+				.querySelector("#schedCard");
+		var orderSubs = document.body.querySelector('sig-app')
+				.shadowRoot.querySelector('sig-dashboard').shadowRoot
+				.querySelector("#subsCard");
+		var orderCredit = document.body.querySelector('sig-app')
+				.shadowRoot.querySelector('sig-dashboard').shadowRoot
+				.querySelector("#creditCard");
+		orderCredit.style.order = '-1';
+		var orderUp = document.body.querySelector('sig-app')
+				.shadowRoot.querySelector('sig-dashboard').shadowRoot
+				.querySelector("#upCard");
+		var orderDia = document.body.querySelector('sig-app')
+				.shadowRoot.querySelector('sig-dashboard').shadowRoot
+				.querySelector("#diameterApp");
+		if(orderCredit.style.order == '-1') {
+			orderSched.style.order = '0';
+			orderSubs.style.order = '0';
+			orderUp.style.order = '0';
+			orderDia.style.order = '0';
+		}
+	}
+
+	_orderRightCredit() {
+		var orderSched = document.body.querySelector('sig-app')
+				.shadowRoot.querySelector('sig-dashboard').shadowRoot
+				.querySelector("#schedCard");
+		var orderSubs = document.body.querySelector('sig-app')
+				.shadowRoot.querySelector('sig-dashboard').shadowRoot
+				.querySelector("#subsCard");
+		var orderCredit = document.body.querySelector('sig-app')
+				.shadowRoot.querySelector('sig-dashboard').shadowRoot
+				.querySelector("#creditCard");
+		orderCredit.style.order = '1';
+		var orderUp = document.body.querySelector('sig-app')
+				.shadowRoot.querySelector('sig-dashboard').shadowRoot
+				.querySelector("#upCard");
+		var orderDia = document.body.querySelector('sig-app')
+				.shadowRoot.querySelector('sig-dashboard').shadowRoot
+				.querySelector("#diameterApp");
+		if(orderCredit.style.order == '1') {
+			orderSched.style.order = '0';
+			orderSubs.style.order = '0';
+			orderUp.style.order = '0';
+			orderDia.style.order = '0';
+		}
+	}
+
+	_orderLeftUp() {
+		var orderSched = document.body.querySelector('sig-app')
+				.shadowRoot.querySelector('sig-dashboard').shadowRoot
+				.querySelector("#schedCard");
+		var orderSubs = document.body.querySelector('sig-app')
+				.shadowRoot.querySelector('sig-dashboard').shadowRoot
+				.querySelector("#subsCard");
+		var orderCredit = document.body.querySelector('sig-app')
+				.shadowRoot.querySelector('sig-dashboard').shadowRoot
+				.querySelector("#creditCard");
+		var orderUp = document.body.querySelector('sig-app')
+				.shadowRoot.querySelector('sig-dashboard').shadowRoot
+				.querySelector("#upCard");
+		orderUp.style.order = '-1';
+		var orderDia = document.body.querySelector('sig-app')
+				.shadowRoot.querySelector('sig-dashboard').shadowRoot
+				.querySelector("#diameterApp");
+		if(orderUp.style.order == '-1') {
+			orderSched.style.order = '0';
+			orderSubs.style.order = '0';
+			orderCredit.style.order = '0';
+			orderDia.style.order = '0';
+		}
+	}
+
+	_orderRightUp() {
+		var orderSched = document.body.querySelector('sig-app')
+				.shadowRoot.querySelector('sig-dashboard').shadowRoot
+				.querySelector("#schedCard");
+		var orderSubs = document.body.querySelector('sig-app')
+				.shadowRoot.querySelector('sig-dashboard').shadowRoot
+				.querySelector("#subsCard");
+		var orderCredit = document.body.querySelector('sig-app')
+				.shadowRoot.querySelector('sig-dashboard').shadowRoot
+				.querySelector("#creditCard");
+		var orderUp = document.body.querySelector('sig-app')
+				.shadowRoot.querySelector('sig-dashboard').shadowRoot
+				.querySelector("#upCard");
+		orderUp.style.order = '1';
+		var orderDia = document.body.querySelector('sig-app')
+				.shadowRoot.querySelector('sig-dashboard').shadowRoot
+				.querySelector("#diameterApp");
+		if(orderUp.style.order == '1') {
+			orderSched.style.order = '0';
+			orderSubs.style.order = '0';
+			orderCredit.style.order = '0';
+			orderDia.style.order = '0';
+		}
+	}
+
+	_orderLeftDia() {
+		var orderSched = document.body.querySelector('sig-app')
+				.shadowRoot.querySelector('sig-dashboard').shadowRoot
+				.querySelector("#schedCard");
+		var orderSubs = document.body.querySelector('sig-app')
+				.shadowRoot.querySelector('sig-dashboard').shadowRoot
+				.querySelector("#subsCard");
+		var orderCredit = document.body.querySelector('sig-app')
+				.shadowRoot.querySelector('sig-dashboard').shadowRoot
+				.querySelector("#creditCard");
+		var orderUp = document.body.querySelector('sig-app')
+				.shadowRoot.querySelector('sig-dashboard').shadowRoot
+				.querySelector("#upCard");
+		var orderDia = document.body.querySelector('sig-app')
+				.shadowRoot.querySelector('sig-dashboard').shadowRoot
+				.querySelector("#diameterApp");
+		orderDia.style.order = '-1';
+		if(orderDia.style.order == '-1') {
+			orderSched.style.order = '0';
+			orderSubs.style.order = '0';
+			orderCredit.style.order = '0';
+			orderUp.style.order = '0';
+		}
+	}
+
+	_orderRightDia() {
+		var orderSched = document.body.querySelector('sig-app')
+				.shadowRoot.querySelector('sig-dashboard').shadowRoot
+				.querySelector("#schedCard");
+		var orderSubs = document.body.querySelector('sig-app')
+				.shadowRoot.querySelector('sig-dashboard').shadowRoot
+				.querySelector("#subsCard");
+		var orderCredit = document.body.querySelector('sig-app')
+				.shadowRoot.querySelector('sig-dashboard').shadowRoot
+				.querySelector("#creditCard");
+		var orderUp = document.body.querySelector('sig-app')
+				.shadowRoot.querySelector('sig-dashboard').shadowRoot
+				.querySelector("#upCard");
+		var orderDia = document.body.querySelector('sig-app')
+				.shadowRoot.querySelector('sig-dashboard').shadowRoot
+				.querySelector("#diameterApp");
+		orderDia.style.order = '1';
+		if(orderDia.style.order == '1') {
+			orderSched.style.order = '0';
+			orderSubs.style.order = '0';
+			orderCredit.style.order = '0';
+			orderUp.style.order = '0';
 		}
 	}
 

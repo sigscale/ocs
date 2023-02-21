@@ -282,11 +282,23 @@ styleElement.innerHTML = `<template>
 			};
 		}
 		#schedCard {
-			order: -1;
+			flex-direction: row;
 			flex: 1 0 100%;
 		}
 		#schedCard div.card-content svg {
 			width: 100%;
+		}
+		#subsCard {
+			flex-direction: row;
+		}
+		#creditCard {
+			flex-direction: row;
+		}
+		#upCard {
+			flex-direction: row;
+		}
+		#diameterApp {
+			flex-direction: row;
 		}
 	</style>
 </template>`;
