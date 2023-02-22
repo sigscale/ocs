@@ -288,6 +288,9 @@ styleElement.innerHTML = `<template>
 		#schedCard div.card-content svg {
 			width: 100%;
 		}
+		#diameterApp {
+			flex-direction: row;
+		}
 		#subsCard {
 			flex-direction: row;
 		}
@@ -296,13 +299,6 @@ styleElement.innerHTML = `<template>
 		}
 		#upCard {
 			flex-direction: row;
-		}
-		#diameterApp {
-			flex-direction: row;
-			flex: 1 0 100%;
-		}
-		#schedCard div.card-content svg {
-			width: 100%;
 		}
 	</style>
 </template>`;
