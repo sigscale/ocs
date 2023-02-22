@@ -299,6 +299,10 @@ styleElement.innerHTML = `<template>
 		}
 		#diameterApp {
 			flex-direction: row;
+			flex: 1 0 100%;
+		}
+		#schedCard div.card-content svg {
+			width: 100%;
 		}
 	</style>
 </template>`;
