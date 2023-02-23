@@ -682,7 +682,7 @@ class dashBoard extends PolymerElement {
 				}
 				var svgDia = select(root).select("#diameterApp div.card-content svg");
 				var yLabel = "↑ Diameter (%)";
-				var nameDia = "dictionary=";
+				var nameDia = "Dictionary=";
 				ocsHealth.draw_line(svgDia, ocsHealth.diameterData, 450, 180, yLabel, nameDia);
 
 				if(request.response){
