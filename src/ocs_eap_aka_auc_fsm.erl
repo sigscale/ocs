@@ -23,7 +23,7 @@
 %%% 	The users of this module are the EAP-AKA/AKA' handlers which request
 %%% 	authentication vectors by sending the event:<br />
 %%% 	`{vector, {AkaFsm, Identity, AUTS, RAT, ANID}}' (AKA')<br />
-%%% 	`{vector {AkaFsm, Identity, AUTS, RAT}}' (AKA)<br />
+%%% 	`{vector, {AkaFsm, Identity, AUTS, RAT}}' (AKA)<br />
 %%% 	and expect one of these replies:<br />
 %%% 	`{ok, {RAND, AUTN, CKprime, IKprime, XRES}}' (AKA')<br />
 %%% 	`{ok, {RAND, AUTN, CK, IK, XRES}}' (AKA)<br />
